@@ -9109,6 +9109,13 @@ async def _coop_http_app():
 
 def main():
     async def _post_init(application):
+        # Инициализация БД + миграции (ALTER TABLE на новые колонки).
+        # Без этого вызова старые БД не получают колонки типа job_cooldowns_json.
+        try:
+            await init_db()
+            logger.info("init_db() выполнен (миграции применены)")
+        except Exception as _e:
+            logger.exception("init_db() упал: %s", _e)
         # Запускаем HTTP API (co-op + найм/увольнение) на :8080 в фоне
         # ВНУТРИ работающего event-loop’а, иначе get_event_loop() падает.
         try:
