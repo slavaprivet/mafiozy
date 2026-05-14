@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Разборка</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0f1e; --surface: #1a1a2e; --surface2: #16213e;
+      --gold: #d4af37; --gold-dim: #7a6020;
+      --red: #c0392b; --red-dark: #6b0a0a;
+      --green: #27ae60; --green-dark: #0d3b1e;
+      --blue: #3498db; --purple-dark: #3a0058;
+      --slate: #263545; --text: #e8e8f0; --text-dim: #7a7a9a;
+      --hp-bg: #2a0a0a; --mp-bg: #0a0a2a;
+    }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system,'Segoe UI',sans-serif;
+      height: 100%; display: flex; flex-direction: column;
+      padding: 8px 10px 10px; gap: 7px; overflow: hidden;
+    }
+    .header {
+      text-align: center; font-size: 15px; font-weight: 900;
+      letter-spacing: 3px; color: var(--gold);
+      padding-bottom: 6px; border-bottom: 1px solid var(--gold-dim);
+      flex-shrink: 0;
+    }
+    /* ── Fighters ─────────────────────────────────────────── */
+    .fighters { display: flex; align-items: flex-start; gap: 5px; flex-shrink: 0; position: relative; }
+    .fighter {
+      flex: 1; background: var(--surface); border-radius: 11px;
+      padding: 9px; border: 1px solid #2a2a44; min-width: 0; position: relative;
+    }
+    .fighter.player { border-color: #1e3a5f; }
+    .fighter.enemy  { border-color: #5a1515; }
+    .fighter.shake  { animation: shake .35s ease; }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-5px)}
+      40%{transform:translateX(5px)}
+      60%{transform:translateX(-4px)}
+      80%{transform:translateX(3px)}
+    }
+    .f-avatar { font-size: 30px; text-align: center; margin-bottom: 2px; }
+    .f-name {
+      font-size: 10px; font-weight: 700; text-align: center;
+      margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; color: #ccccee;
+    }
+    .bar-row { margin-bottom: 3px; }
+    .bar-lbl { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-bottom: 1px; }
+    .bar-track { height: 6px; border-radius: 3px; overflow: hidden; }
+    .bar-track.hp-t { background: var(--hp-bg); }
+    .bar-track.mp-t { background: var(--mp-bg); }
+    .bar-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+    .hp-fill { background: linear-gradient(90deg,#7b0000,#e74c3c); }
+    .mp-fill { background: linear-gradient(90deg,#1a237e,#3498db); }
+    .f-title { font-size: 8px; color: var(--text-dim); text-align: center; margin-top: 3px; }
+    .vs-col {
+      display: flex; align-items: center; justify-content: center;
+      width: 24px; flex-shrink: 0; padding-top: 15px;
+    }
+    .vs-badge {
+      background: var(--red-dark); border: 2px solid var(--red);
+      border-radius: 50%; width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 900; color: #fff;
+    }
+    /* ── Floating damage numbers ──────────────────────────── */
+    .float-dmg {
+      position: absolute; pointer-events: none; z-index: 50;
+      font-size: 18px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,.7);
+      animation: floatUp .9s ease-out forwards;
+    }
+    .float-dmg.player { color: #ff4444; }
+    .float-dmg.enemy  { color: #44ff88; }
+    .float-dmg.heal   { color: #44ccff; }
+    @keyframes floatUp {
+      0%   { transform: translateY(0) scale(1); opacity: 1; }
+      60%  { transform: translateY(-28px) scale(1.15); opacity: 1; }
+      100% { transform: translateY(-48px) scale(0.9); opacity: 0; }
+    }
+    /* ── Party ────────────────────────────────────────────── */
+    .party-section {
+      background: var(--surface2); border: 1px solid #2a2a50;
+      border-radius: 10px; padding: 7px; flex-shrink: 0;
+      max-height: 130px; overflow-y: auto;
+    }
+    .party-title { font-size: 11px; font-weight: 700; color: var(--gold); margin-bottom: 6px; text-align: center; }
+    .party-members { display: flex; flex-direction: column; gap: 5px; }
+    .party-member {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--surface); border-radius: 8px;
+      padding: 5px 8px; border: 1px solid #252545;
+    }
+    .party-member.dead { opacity: 0.4; filter: grayscale(.8); }
+    .pm-icon { font-size: 18px; flex-shrink: 0; }
+    .pm-info { flex: 1; min-width: 0; }
+    .pm-name { font-size: 10px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ccccee; margin-bottom: 2px; }
+    .pm-bar-row { display: flex; align-items: center; gap: 4px; }
+    .pm-hp-lbl { font-size: 8px; color: var(--text-dim); flex-shrink: 0; min-width: 40px; }
+    .pm-bar-track { flex: 1; height: 4px; border-radius: 2px; background: var(--hp-bg); overflow: hidden; }
+    .pm-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg,#7b0000,#e74c3c); transition: width .5s; }
+    .pm-type-badge { font-size: 8px; padding: 2px 4px; border-radius: 4px; font-weight: 600; flex-shrink: 0; }
+    .pm-type-m { background: #2a1a00; color: #e67e22; }
+    .pm-type-f { background: #001a2a; color: #3498db; }
+    .pm-dead-lbl { font-size: 9px; color: #c0392b; font-weight: 700; flex-shrink: 0; }
+    .btn-pm-atk {
+      border: none; border-radius: 7px; padding: 5px 8px;
+      color: #fff; font-size: 10px; font-weight: 700;
+      cursor: pointer; flex-shrink: 0;
+      transition: transform .1s; -webkit-tap-highlight-color: transparent;
+      background: linear-gradient(135deg,#7b0000,#c0392b);
+    }
+    .btn-pm-atk.role-bruiser  { background: linear-gradient(135deg,#003060,#1a5fa0); }
+    .btn-pm-atk.role-sniper   { background: linear-gradient(135deg,#4a0040,#9b30a0); }
+    .btn-pm-atk.role-bomber   { background: linear-gradient(135deg,#5a2e00,#c67c00); }
+    .btn-pm-atk.role-medic    { background: linear-gradient(135deg,#003820,#27ae60); }
+    .btn-pm-atk.role-scout    { background: linear-gradient(135deg,#1a1a00,#7a7a00); }
+    .btn-pm-atk:active { transform: scale(0.93); }
+    .btn-pm-atk:disabled { opacity: 0.35; cursor: not-allowed; }
+    .pm-ability {
+      font-size: 8px; color: #99bbff; margin-top: 2px; line-height: 1.4;
+    }
+    .pm-ability .ab-active  { color: #ffdd88; }
+    .pm-ability .ab-passive { color: #88ddaa; }
+    /* ── Combat log ───────────────────────────────────────── */
+    .log-box {
+      background: var(--surface2); border: 1px solid #22224a;
+      border-radius: 9px; padding: 7px 10px;
+      font-size: 12px; line-height: 1.5;
+      flex: 1; overflow-y: auto; min-height: 48px;
+      color: #c8c8de;
+    }
+    .log-line { margin-bottom: 2px; }
+    .log-player { color: #66ccff; }
+    .log-enemy  { color: #ff8888; }
+    .log-party  { color: #ffcc66; }
+    .log-system { color: #aaaacc; font-style: italic; }
+    .log-special{ color: #ff9944; font-weight: 700; }
+    /* ── Action buttons ───────────────────────────────────── */
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; flex-shrink: 0; }
+    .btn {
+      border: none; border-radius: 10px; padding: 11px 4px;
+      cursor: pointer; display: flex; flex-direction: column;
+      align-items: center; gap: 1px;
+      transition: transform .1s, filter .1s;
+      -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
+    }
+    .btn:active { transform: scale(0.94); filter: brightness(.88); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn:disabled:active { transform: none; filter: none; }
+    .btn-lbl { font-size: 13px; font-weight: 700; color: #fff; }
+    .btn-sub  { font-size: 10px; color: rgba(255,255,255,.7); }
+    .btn-atk  { background: linear-gradient(135deg,#7b0000,#c0392b); }
+    .btn-skill{ background: linear-gradient(135deg,#3e0064,#8e44ad); }
+    .btn-pot  { background: linear-gradient(135deg,#0d3b1e,#27ae60); }
+    .btn-flee { background: linear-gradient(135deg,#1e2a36,#546e7a); }
+    .btn-nade { background: linear-gradient(135deg,#5a2e00,#c67c00); }
+    .btn-prop { background: linear-gradient(135deg,#003030,#0a7a6a); }
+    /* ── Overlay base ─────────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; padding: 16px;
+    }
+    .overlay-card {
+      background: var(--surface); border: 1px solid var(--gold-dim);
+      border-radius: 14px; padding: 20px 16px;
+      width: 100%; max-width: 320px; text-align: center;
+    }
+    /* ── Flee confirm ─────────────────────────────────────── */
+    .confirm-card h3 { color: var(--gold); margin-bottom: 6px; font-size: 15px; }
+    .confirm-card p  { color: var(--text-dim); font-size: 12px; margin-bottom: 14px; line-height: 1.5; }
+    .confirm-btns { display: flex; gap: 8px; }
+    .confirm-btns button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .c-yes { background: var(--red); color: #fff; }
+    .c-no  { background: #3a4a55; color: #fff; }
+    /* ── End battle ───────────────────────────────────────── */
+    .end-icon { font-size: 52px; margin-bottom: 8px; }
+    .end-title { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+    .end-title.win { color: var(--gold); }
+    .end-title.lose { color: var(--red); }
+    .end-title.fled { color: #95a5a6; }
+    .end-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 16px; }
+    .end-btns { display: flex; flex-direction: column; gap: 8px; }
+    .end-btns button {
+      padding: 12px; border: none; border-radius: 10px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-stats  { background: linear-gradient(135deg,#1a3a6b,#3498db); color: #fff; }
+    .btn-close  { background: linear-gradient(135deg,#3a4a55,#546e7a); color: #fff; }
+    .btn-close-win { background: linear-gradient(135deg,#7a5a00,#d4af37); color: #000; }
+    /* ── Stats modal ──────────────────────────────────────── */
+    .stats-card { max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; }
+    .stats-title { font-size: 16px; font-weight: 900; color: var(--gold); margin-bottom: 10px; }
+    .stats-summary {
+      display: flex; gap: 8px; margin-bottom: 10px;
+    }
+    .stat-box {
+      flex: 1; background: var(--surface2); border-radius: 8px;
+      padding: 7px 4px; text-align: center; border: 1px solid #252545;
+    }
+    .stat-box .sv { font-size: 16px; font-weight: 900; color: var(--gold); }
+    .stat-box .sl { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
+    .stats-log {
+      flex: 1; overflow-y: auto; max-height: 240px;
+      font-size: 11px; line-height: 1.6;
+    }
+    .sl-row { padding: 3px 0; border-bottom: 1px solid #222240; }
+    .sl-row:last-child { border: none; }
+    .sl-turn { color: var(--text-dim); margin-right: 4px; }
+    .sl-player  { color: #66ccff; }
+    .sl-enemy   { color: #ff8888; }
+    .sl-party   { color: #ffcc66; }
+    .sl-special { color: #ff9944; }
+    .stats-close {
+      margin-top: 10px; padding: 10px; border: none; border-radius: 9px;
+      background: #3a4a55; color: #fff; font-size: 13px; font-weight: 700;
+      cursor: pointer; width: 100%;
+    }
+    /* ── Enemy turn indicator ─────────────────────────────── */
+    .enemy-turn-indicator {
+      text-align: center; font-size: 11px; color: #ff8888;
+      font-weight: 700; letter-spacing: 1px; flex-shrink: 0;
+      min-height: 16px;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .enemy-turn-indicator.pulsing { animation: pulse .6s ease infinite; }
+    /* ── Blood particles ────────────────────────────────────── */
+    .blood-particle {
+      position: fixed; border-radius: 50%; pointer-events: none;
+      animation: blood-fly var(--dur, .7s) ease-out forwards;
+      z-index: 9999;
+    }
+    @keyframes blood-fly {
+      0%   { transform: translate(0,0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--tx,0px), var(--ty,0px)) scale(0.2); opacity: 0; }
+    }
+    /* ── Co-op players grid ─────────────────────────────────── */
+    .coop-players {
+      display:flex; gap:4px; flex-shrink:0;
+    }
+    .coop-player {
+      flex:1; background:var(--surface2); border:1px solid #1e3a5f;
+      border-radius:8px; padding:4px 6px; min-width:0;
+    }
+    .cp-name { font-size:10px; font-weight:700; color:#66ccff;
+               white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cp-hp   { font-size:10px; color:#888; }
+    .cp-bar  { height:4px; background:#0a0a2a; border-radius:2px; margin-top:2px; overflow:hidden; }
+    .cp-fill { height:100%; background:#3498db; border-radius:2px; width:100%; transition:width .3s; }
+    /* ── Bullet projectile ────────────────────────────────── */
+    .bullet-proj {
+      position:fixed; pointer-events:none; z-index:9998;
+      width:9px; height:9px; border-radius:50%;
+      background:radial-gradient(circle, #ffe066 30%, #ff8800 100%);
+      box-shadow:0 0 7px 2px rgba(255,150,0,.7);
+      animation:bullet-fly var(--bur,.22s) linear forwards;
+    }
+    @keyframes bullet-fly {
+      0%   { transform:translate(0,0) scale(1); opacity:1; }
+      80%  { opacity:1; }
+      100% { transform:translate(var(--bx,0px),var(--by,0px)) scale(.3); opacity:0; }
+    }
+    /* ── Strike flash ─────────────────────────────────────── */
+    .strike-flash {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%) scale(.5);
+      font-size:38px; pointer-events:none; z-index:100;
+      animation:strike-pop .42s ease-out forwards;
+    }
+    @keyframes strike-pop {
+      0%   { transform:translate(-50%,-50%) scale(.5); opacity:1; }
+      45%  { transform:translate(-50%,-60%) scale(1.5); opacity:1; }
+      100% { transform:translate(-50%,-75%) scale(1.0); opacity:0; }
+    }
+    /* ── Low HP badge ─────────────────────────────────────── */
+    .low-hp-badge {
+      position:absolute; top:3px; right:3px;
+      background:rgba(90,0,0,.88); border:1px solid #c0392b;
+      border-radius:6px; padding:2px 5px;
+      font-size:9px; color:#ff9999; font-weight:700; white-space:nowrap;
+      animation:low-hp-pulse 1.1s ease infinite; z-index:10;
+      display:none;
+    }
+    @keyframes low-hp-pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+    .cp-low-hp {
+      font-size:8px; color:#ff7777; font-weight:700;
+      animation:low-hp-pulse 1.1s ease infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">💥 РАЗБОРКА</div>
+
+  <div class="fighters">
+    <div class="fighter player" id="player-side">
+      <div class="low-hp-badge" id="player-low-hp">🩹 едва держусь</div>
+      <div class="f-avatar">🤵</div>
+      <div class="f-name" id="pname">Игрок</div>
+      <div class="bar-row">
+        <div class="bar-lbl"><span>❤️</span><span id="php-lbl">—</span></div>
+        <div class="bar-track hp-t"><div class="bar-fill hp-fill" id="php-bar" style="width:0%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-lbl"><span>⚡</span><span id="pmp-lbl">—</span></div>
+        <div class="bar-track mp-t"><div class="bar-fill mp-fill" id="pmp-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="vs-col"><div class="vs-badge">VS</div></div>
+
+    <div class="fighter enemy" id="enemy-side">
+      <div class="f-avatar" id="eemoji">😈</div>
+      <div class="f-name" id="ename">Враг</div>
+      <div class="bar-row">
+        <div class="bar-lbl"><span>❤️</span><span id="ehp-lbl">—</span></div>
+        <div class="bar-track hp-t"><div class="bar-fill hp-fill" id="ehp-bar" style="width:0%"></div></div>
+      </div>
+      <div class="f-title" id="etitle"></div>
+    </div>
+  </div>
+
+  <div class="enemy-turn-indicator" id="enemy-indicator"></div>
+
+  <div class="coop-players" id="coop-players" style="display:none"></div>
+
+  <div class="party-section" id="party-section" style="display:none">
+    <div class="party-title">⚔️ ОТРЯД</div>
+    <div class="party-members" id="party-members"></div>
+  </div>
+
+  <div class="log-box" id="log-box"></div>
+
+  <!-- Main action buttons -->
+  <div class="actions">
+    <button class="btn btn-atk" id="btn-atk" onclick="playerAct('attack')">
+      <span class="btn-lbl" id="atk-lbl">🤜 Бить</span>
+      <span class="btn-sub" id="atk-dmg"></span>
+      <span class="btn-sub" id="atk-cost">-5⚡</span>
+    </button>
+    <button class="btn btn-skill" id="btn-sk" onclick="playerAct('skill')">
+      <span class="btn-lbl" id="sk-lbl">💥 Приём</span>
+      <span class="btn-sub" id="sk-dmg"></span>
+      <span class="btn-sub" id="sk-cost"></span>
+    </button>
+    <button class="btn btn-pot" id="btn-pot" onclick="playerAct('potion')">
+      <span class="btn-lbl">🩹 Аптечка</span>
+      <span class="btn-sub" id="pot-txt">нет</span>
+    </button>
+    <button class="btn btn-flee" onclick="showFlee()">
+      <span class="btn-lbl">🏃 Валить</span>
+      <span class="btn-sub">50% шанс</span>
+    </button>
+  </div>
+
+  <!-- Extra abilities (grenade + property) — shown only if available -->
+  <div class="actions" id="actions-extra" style="display:none">
+    <button class="btn btn-nade" id="btn-nade" onclick="playerAct('grenade')" disabled>
+      <span class="btn-lbl">💣 Граната</span>
+      <span class="btn-sub" id="nade-txt">нет</span>
+    </button>
+    <button class="btn btn-prop" id="btn-prop" onclick="playerAct('property')" disabled>
+      <span class="btn-lbl" id="prop-lbl">🏠 Имущество</span>
+      <span class="btn-sub" id="prop-sub">нет</span>
+    </button>
+  </div>
+
+  <!-- Flee confirm -->
+  <div class="overlay" id="flee-ov" style="display:none">
+    <div class="overlay-card confirm-card">
+      <h3>🏃 Сваливаешь?</h3>
+      <p>50% шанс, что враг не даст уйти.<br>При провале бой продолжится.</p>
+      <div class="confirm-btns">
+        <button class="c-yes" onclick="doFlee()">Да, ухожу</button>
+        <button class="c-no"  onclick="hideFlee()">Нет</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- End battle overlay -->
+  <div class="overlay" id="end-ov" style="display:none">
+    <div class="overlay-card">
+      <div class="end-icon" id="end-icon">🏆</div>
+      <div class="end-title" id="end-title">ПОБЕДА!</div>
+      <div class="end-sub" id="end-sub"></div>
+      <div class="end-btns">
+        <button class="btn-stats" onclick="showStats()">📊 Статистика боя</button>
+        <button id="btn-end-close" onclick="closeBattle()">✅ В меню</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats modal -->
+  <div class="overlay" id="stats-ov" style="display:none">
+    <div class="overlay-card stats-card">
+      <div class="stats-title">📊 Статистика боя</div>
+      <div class="stats-summary" id="stats-summary"></div>
+      <div class="stats-log" id="stats-log"></div>
+      <button class="stats-close" onclick="hideStats()">⬅️ Назад</button>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    tg.enableClosingConfirmation(); // Предотвращает случайное закрытие
+
+    const p   = new URLSearchParams(window.location.search);
+    const get = (k, d='')  => p.has(k) ? decodeURIComponent(p.get(k)) : d;
+    const gn  = (k, d=0)   => { const v = p.get(k); return v !== null ? parseInt(v, 10) : d; };
+    const gf  = (k, d=1.0) => { const v = p.get(k); return v !== null ? parseFloat(v) : d; };
+
+    // ── Params ─────────────────────────────────────────────────
+    let playerHp  = gn('ph',100), playerMaxHp = gn('pmh',100);
+    let playerMp  = gn('pm',50),  playerMaxMp = gn('pmm',50);
+    const pname   = get('pn','Игрок');
+    const playerAtk = gn('pa', 15);
+    const playerDef = gn('pd', 5);
+
+    let enemyHp   = gn('eh',100), enemyMaxHp = gn('emh',100);
+    const enemyAtk  = gn('ea', 20);
+    const enemyDef  = gn('ed', 5);
+    const enemyName = get('en','Враг');
+    const enemyTitle= get('et','');
+
+    const wt       = gn('wt',0);
+    const skName   = get('sk','Приём');
+    const skCost   = gn('sc',25);
+    const skMult   = gf('sm',2.0);
+    const skHeal   = gn('sh',0);
+    const hasPots  = gn('po',0) === 1;
+
+    // ── Grenades ────────────────────────────────────────────────
+    let grenCount = gn('gr', 0);
+    let grenUsed  = 0;
+
+    // ── Property skill ──────────────────────────────────────────
+    const ppName = get('pp_n', '');
+    const ppMult = gf('pp_m', 0);
+    const ppOk   = gn('pp_ok', 1); // 1 = owner (can use), 0 = partner (cannot)
+    let   propUsed = false;
+
+    // ── Co-op Firebase ──────────────────────────────────────────
+    const coopId   = get('coop_id', '');
+    const myPnum   = gn('pnum', 0);       // 1=хост, 2=партнёр, 0=соло
+    const partnerN = get('partner', '');
+
+    const partyCount = gn('pc',0);
+    const party = [];
+    for (let i = 0; i < partyCount; i++) {
+      const hp = gn('p'+i+'h',0), mxhp = gn('p'+i+'m',50);
+      const atkRaw = get('p'+i+'a','5-10');
+      const [lo,hi] = atkRaw.split(/[-–]/).map(Number);
+      const ptype = get('p'+i+'t','m');
+      const prole = get('p'+i+'r', ptype==='f' ? 'friend' : 'mercenary');
+      party.push({
+        name: get('p'+i+'n','?'), hp, maxHp: mxhp,
+        type: ptype, role: prole, alive: hp > 0,
+        atkLo: lo||5, atkHi: hi||10,
+        cd: 0,           // активный кулдаун (ходов до следующего использования)
+        passiveCharge: 0,// счётчик для пассивного авто-лечения медика
+        shieldActive: false,  // Здоровяк: принять следующий удар
+        smokeActive: false,   // Разведчик: повышенный шанс промаха
+        bomberUsed: false,    // Подрывник: уже взорвался
+      });
+    }
+
+    // ── Таблицы ролей ─────────────────────────────────────────────
+    const ROLE_ICONS = {
+      mercenary:'🔫', bruiser:'💪', sniper:'🔪',
+      bomber:'💣', medic:'🏥', scout:'🕵️', friend:'👥'
+    };
+    const ROLE_ACTIONS = {
+      mercenary: {label:'⚔️ Удар',      cls:'',            baseCd:1},
+      bruiser:   {label:'🛡 Прикрыть',  cls:'role-bruiser', baseCd:3},
+      sniper:    {label:'🎯 Прицел',    cls:'role-sniper',  baseCd:3},
+      bomber:    {label:'💥 ВЗРЫВ!',   cls:'role-bomber',  baseCd:-1},
+      medic:     {label:'🩹 Лечить',   cls:'role-medic',   baseCd:2},
+      scout:     {label:'💨 Дымовуха', cls:'role-scout',   baseCd:3},
+      friend:    {label:'🤝 Помочь',   cls:'role-medic',   baseCd:2},
+    };
+    const ROLE_PASSIVES = {
+      mercenary: '🔄 Авто-контр.',
+      bruiser:   '🛡 -8% урона',
+      medic:     '💊 Авто-лечение',
+      scout:     '👁 15% уклон',
+      sniper:    '', bomber:'', friend:'',
+    };
+    // Описание способностей для карточки бойца
+    const ROLE_DESC = {
+      mercenary: { active: '⚔️ Удар без ответки (кд:1)', passive: '🔄 Контр. после удара босса' },
+      bruiser:   { active: '🛡 Прикрыть — берёт удар (кд:3)', passive: '🛡 −8% урона пока жив' },
+      sniper:    { active: '🎯 Прицел — x2.5 урона (кд:3)', passive: null },
+      bomber:    { active: '💥 ВЗРЫВ — 60-80% HP босса, гибнет', passive: null },
+      medic:     { active: '🩹 Лечить +20-30 HP (кд:2)', passive: '💊 +10-15 HP авто каждые 3 хода' },
+      scout:     { active: '💨 Дымовуха — 40% промах (кд:3)', passive: '👁 15% шанс промаха всегда' },
+      friend:    { active: '🤝 Лечить +20-30 HP (кд:2)', passive: null },
+    };
+
+    const ATKMANA = 5;
+    const ATK_LABELS = {0:'🤜 Бить', 1:'🔪 Колоть', 2:'🔫 Стрелять'};
+    const ATK_LABEL  = ATK_LABELS[wt] || '🤜 Бить';
+
+    // ── Battle state ────────────────────────────────────────────
+    let waiting = false, battleDone = false;
+    let turnNum = 0;
+    const stats = []; // {turn, who, cls, action, damage, heal}
+    let endResult = null;
+    let potUsed = false;
+    let hasPotions = hasPots;
+
+    // ── Firebase Co-op Realtime (до 4 игроков) ───────────────────
+    const FB_URL = "https://mafiozy-default-rtdb.firebaseio.com";
+    let fbWriteTime  = 0;
+    var fbMaxHp = {}; // pnum → maxHp
+
+    // Имена со-op игроков из URL-параметра (через запятую)
+    var coopPartnerNames = partnerN ? partnerN.split(',').map(function(s){ return s.trim(); }) : [];
+
+    function fbPatch(obj) {
+      if (!coopId) return;
+      fetch(FB_URL + '/battles/' + coopId + '.json', {
+        method: 'PATCH', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(obj)
+      }).catch(function(){});
+    }
+
+    // Синхронизировать HP босса + своё HP
+    function fbSync() {
+      if (!coopId) return;
+      fbWriteTime = Date.now();
+      var obj = { bossHp: enemyHp };
+      obj['p' + myPnum + 'hp'] = playerHp;
+      fbPatch(obj);
+    }
+
+    // Обновить карточку игрока в сетке
+    function updateCoopCard(pnum, hp, maxHp, name) {
+      var card = document.getElementById('cp' + pnum);
+      if (!card) return;
+      if (maxHp) fbMaxHp[pnum] = maxHp;
+      var mxhp = fbMaxHp[pnum] || maxHp || 100;
+      var pct  = hp !== null ? Math.max(0, Math.min(100, hp / mxhp * 100)) : null;
+      var bar  = document.getElementById('cpbar' + pnum);
+      var lbl  = document.getElementById('cphp' + pnum);
+      var nl   = document.getElementById('cpname' + pnum);
+      if (bar && pct !== null) bar.style.width = pct + '%';
+      if (lbl && hp !== null) {
+        var lowHpTxt = (hp > 0 && hp / mxhp < 0.3) ? ' <span class="cp-low-hp">🩹едва</span>' : '';
+        lbl.innerHTML = hp + '/' + mxhp + lowHpTxt;
+      }
+      if (nl && name) nl.textContent = name;
+    }
+
+    // Обработка Firebase-событий
+    function handleFbData(path, data) {
+      if (battleDone || data === null || data === undefined) return;
+
+      // Начальная загрузка (path = '/')
+      if (path === '/' && typeof data === 'object') {
+        // HP всех игроков
+        for (var pn = 1; pn <= 4; pn++) {
+          if (pn === myPnum) continue;
+          var hk = 'p' + pn + 'hp', mk = 'p' + pn + 'maxhp', nk = 'p' + pn + 'name';
+          if (data[hk] !== undefined) updateCoopCard(pn, parseInt(data[hk]), parseInt(data[mk])||100, data[nk]||'');
+        }
+        // Boss HP
+        if (data.bossHp !== undefined && Date.now() - fbWriteTime > 1000) {
+          var fbHp = parseInt(data.bossHp);
+          if (!isNaN(fbHp) && fbHp < enemyHp && !waiting) applyPartnerDamage(enemyHp - fbHp, fbHp, data);
+        }
+        return;
+      }
+
+      // Boss HP
+      if (path === '/bossHp') {
+        if (Date.now() - fbWriteTime < 1000) return;
+        var fbHp2 = parseInt(data);
+        if (!isNaN(fbHp2) && fbHp2 < enemyHp && !waiting) applyPartnerDamage(enemyHp - fbHp2, fbHp2, null);
+        return;
+      }
+
+      // Имя игрока
+      var nameMatch = path.match(/^\/p(\d)name$/);
+      if (nameMatch) { updateCoopCard(parseInt(nameMatch[1]), null, null, String(data)); return; }
+
+      // maxhp игрока
+      var maxMatch = path.match(/^\/p(\d)maxhp$/);
+      if (maxMatch) { fbMaxHp[parseInt(maxMatch[1])] = parseInt(data)||100; return; }
+
+      // HP игрока
+      var hpMatch = path.match(/^\/p(\d)hp$/);
+      if (hpMatch) {
+        var pn2 = parseInt(hpMatch[1]);
+        if (pn2 !== myPnum) updateCoopCard(pn2, parseInt(data)||0, fbMaxHp[pn2]||100, null);
+        return;
+      }
+
+      // status = won
+      if (path === '/status' && data === 'won' && !battleDone) endBattle('win');
+    }
+
+    function applyPartnerDamage(diff, newHp, rootData) {
+      // Определяем имя атакующего партнёра по данным Firebase
+      var attackerName = 'Напарник';
+      if (rootData) {
+        for (var pn = 1; pn <= 4; pn++) {
+          if (pn === myPnum) continue;
+          var nk2 = 'p' + pn + 'name';
+          if (rootData[nk2]) { attackerName = rootData[nk2]; break; }
+        }
+      } else if (coopPartnerNames.length > 0) {
+        attackerName = coopPartnerNames[0];
+      }
+      enemyHp = Math.max(0, newHp);
+      shakeEl('enemy-side');
+      showFloatDmg('enemy-side', diff, 'enemy');
+      spawnBlood('enemy-side', 10, false);
+      addLog('💥 ' + attackerName + ': ' + diff + ' урона врагу!', 'log-party');
+      updateBars();
+      if (enemyHp <= 0 && !battleDone) endBattle('win');
+    }
+
+    function fbConnect() {
+      if (!coopId) return;
+
+      // Строим сетку карточек других игроков
+      var container = document.getElementById('coop-players');
+      if (container) {
+        container.style.display = 'flex';
+        // Создаём карточки для pnum 1..4, пропускаем свой
+        for (var pn = 1; pn <= 4; pn++) {
+          if (pn === myPnum) continue;
+          var nameHint = coopPartnerNames[pn - 2] || ('P' + pn);
+          if (pn === 1) nameHint = coopPartnerNames[coopPartnerNames.length - (myPnum - 1)] || 'P1';
+          var div = document.createElement('div');
+          div.className = 'coop-player';
+          div.id = 'cp' + pn;
+          div.innerHTML =
+            '<div class="cp-name" id="cpname' + pn + '">' + nameHint + '</div>' +
+            '<div class="cp-hp"  id="cphp'  + pn + '">—</div>' +
+            '<div class="cp-bar"><div class="cp-fill" id="cpbar' + pn + '" style="width:100%"></div></div>';
+          container.appendChild(div);
+        }
+      }
+
+      // Инициализируем свои данные в Firebase
+      fbWriteTime = Date.now();
+      if (myPnum === 1) {
+        var init = { bossHp: enemyHp, bossMaxHp: enemyMaxHp, status: 'active' };
+        init['p1hp'] = playerHp; init['p1maxhp'] = playerMaxHp; init['p1name'] = pname;
+        fetch(FB_URL + '/battles/' + coopId + '.json', {
+          method: 'PUT', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(init)
+        }).catch(function(){});
+      } else {
+        var myObj = {};
+        myObj['p' + myPnum + 'hp']    = playerHp;
+        myObj['p' + myPnum + 'maxhp'] = playerMaxHp;
+        myObj['p' + myPnum + 'name']  = pname;
+        fbPatch(myObj);
+      }
+
+      // SSE подключение
+      var src = new EventSource(FB_URL + '/battles/' + coopId + '.json');
+      src.addEventListener('put', function(e) {
+        try { var ev = JSON.parse(e.data); handleFbData(ev.path, ev.data); } catch(ex) {}
+      });
+      src.addEventListener('patch', function(e) {
+        try {
+          var ev = JSON.parse(e.data);
+          if (ev.data && typeof ev.data === 'object') {
+            Object.keys(ev.data).forEach(function(k) { handleFbData('/' + k, ev.data[k]); });
+          }
+        } catch(ex) {}
+      });
+    }
+
+    // ── Blood particles ──────────────────────────────────────────
+    function spawnBlood(elId, count, isPlayer) {
+      var el = document.getElementById(elId);
+      if (!el) return;
+      var rect = el.getBoundingClientRect();
+      var cx = rect.left + rect.width  / 2;
+      var cy = rect.top  + rect.height / 2;
+      var colors = isPlayer
+        ? ['#cc0000','#990000','#ff2222','#880000','#ff4444']
+        : ['#cc0000','#aa0000','#ff1111','#dd2222','#ff6666'];
+      for (var i = 0; i < count; i++) {
+        var p = document.createElement('div');
+        p.className = 'blood-particle';
+        var angle = Math.random() * Math.PI * 2;
+        var dist  = 30 + Math.random() * 70;
+        var tx = Math.cos(angle) * dist;
+        var ty = Math.sin(angle) * dist - 10;
+        var size = 4 + Math.random() * 7;
+        var dur  = 0.5 + Math.random() * 0.4;
+        p.style.cssText =
+          'left:' + (cx - size/2) + 'px;top:' + (cy - size/2) + 'px;' +
+          'width:' + size + 'px;height:' + size + 'px;' +
+          'background:' + colors[Math.floor(Math.random()*colors.length)] + ';' +
+          '--tx:' + tx + 'px;--ty:' + ty + 'px;--dur:' + dur + 's;' +
+          'box-shadow:0 0 3px rgba(180,0,0,.6);';
+        document.body.appendChild(p);
+        setTimeout(function(el){ el.remove(); }, (dur + 0.1) * 1000, p);
+      }
+    }
+
+    // ── Bullet animation ─────────────────────────────────────────
+    function spawnBullets(fromId, toId, count) {
+      count = count || 3;
+      var from = document.getElementById(fromId);
+      var to   = document.getElementById(toId);
+      if (!from || !to) return;
+      var fr = from.getBoundingClientRect();
+      var tr = to.getBoundingClientRect();
+      var sx = fr.left + fr.width  / 2;
+      var sy = fr.top  + fr.height / 2;
+      var ex = tr.left + tr.width  / 2;
+      var ey = tr.top  + tr.height / 2;
+      var dx = ex - sx, dy = ey - sy;
+      for (var i = 0; i < count; i++) {
+        (function(delay) {
+          setTimeout(function() {
+            var b = document.createElement('div');
+            b.className = 'bullet-proj';
+            var spread = (Math.random() - 0.5) * 24;
+            var bx = dx + spread, by = dy + spread;
+            var dur = 0.18 + Math.random() * 0.08;
+            b.style.cssText =
+              'left:' + (sx - 4.5) + 'px;top:' + (sy - 4.5) + 'px;' +
+              '--bx:' + bx + 'px;--by:' + by + 'px;--bur:' + dur + 's;';
+            document.body.appendChild(b);
+            setTimeout(function() { b.remove(); }, (dur + 0.15) * 1000);
+          }, delay);
+        })(i * 90);
+      }
+    }
+
+    // ── Strike flash (melee / knife / enemy hit) ──────────────────
+    function spawnStrike(targetId, weaponType) {
+      var el = document.getElementById(targetId);
+      if (!el) return;
+      // wt: 0=fist 💢, 1=knife 🔪, -1=enemy hit ⚡
+      var emoji = weaponType === 1 ? '🔪' : (weaponType === -1 ? '⚡' : '💢');
+      var flash = document.createElement('div');
+      flash.className = 'strike-flash';
+      flash.textContent = emoji;
+      el.style.position = 'relative';
+      el.appendChild(flash);
+      setTimeout(function() { flash.remove(); }, 460);
+    }
+
+    // ── Low HP badge (player) ─────────────────────────────────────
+    function updateLowHp() {
+      var pct = playerMaxHp > 0 ? playerHp / playerMaxHp : 1;
+      var badge = document.getElementById('player-low-hp');
+      if (!badge) return;
+      badge.style.display = (pct > 0 && pct < 0.3) ? '' : 'none';
+    }
+
+    // ── Damage calc ─────────────────────────────────────────────
+    function rnd(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+    function calcDmg(atk, def, mult=1.0) {
+      const base = Math.max(1, atk - Math.floor(def/2));
+      return Math.max(1, Math.round(base * (0.85 + Math.random()*0.30) * mult));
+    }
+
+    // ── UI helpers ──────────────────────────────────────────────
+    function firstEmoji(s) {
+      const m = s.match(/^(\ud83c[\udc00-\udfff]|\ud83d[\udc00-\udfff]|\ud83e[\udc00-\udfff]|[☀-➿])/);
+      return m ? m[0] : '😈';
+    }
+    function stripEmoji(s) { return s.replace(/^[\p{Emoji_Presentation}\s]+/u,''); }
+
+    function updateBars() {
+      document.getElementById('php-lbl').textContent = playerHp+'/'+playerMaxHp;
+      document.getElementById('pmp-lbl').textContent = playerMp+'/'+playerMaxMp;
+      document.getElementById('ehp-lbl').textContent = enemyHp+'/'+enemyMaxHp;
+      document.getElementById('php-bar').style.width = Math.max(0,playerHp/playerMaxHp*100)+'%';
+      document.getElementById('pmp-bar').style.width = Math.max(0,playerMp/playerMaxMp*100)+'%';
+      document.getElementById('ehp-bar').style.width = Math.max(0,enemyHp/enemyMaxHp*100)+'%';
+      document.getElementById('btn-atk').disabled  = waiting || battleDone || playerMp < ATKMANA;
+      document.getElementById('btn-sk').disabled   = waiting || battleDone || playerMp < skCost;
+      document.getElementById('btn-pot').disabled  = waiting || battleDone || !hasPotions;
+      document.querySelector('.btn-flee').disabled = waiting || battleDone;
+      // Extra buttons
+      const btnNade = document.getElementById('btn-nade');
+      const btnProp = document.getElementById('btn-prop');
+      if (btnNade) btnNade.disabled = waiting || battleDone || grenCount <= 0;
+      if (btnProp) btnProp.disabled = waiting || battleDone || propUsed || !ppName || ppOk === 0;
+      // Low HP badge
+      updateLowHp();
+      // Party buttons — обновляем роль и кулдаун
+      party.forEach((_,i) => { updatePartyMember(i); });
+    }
+
+    function setWaiting(val) {
+      waiting = val;
+      const ind = document.getElementById('enemy-indicator');
+      if (val) {
+        ind.textContent = '😤 ' + stripEmoji(enemyName) + ' готовится атаковать...';
+        ind.classList.add('pulsing');
+      } else {
+        ind.textContent = '';
+        ind.classList.remove('pulsing');
+      }
+      updateBars();
+    }
+
+    function addLog(text, cls='log-system') {
+      const box = document.getElementById('log-box');
+      const line = document.createElement('div');
+      line.className = 'log-line ' + cls;
+      line.textContent = text;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function showFloatDmg(targetId, amount, cls) {
+      const el = document.getElementById(targetId);
+      if (!el) return;
+      const span = document.createElement('span');
+      span.className = 'float-dmg ' + cls;
+      span.textContent = (cls==='heal' ? '+' : '-') + amount;
+      span.style.left = (20 + Math.random()*40) + '%';
+      span.style.top  = '30%';
+      el.appendChild(span);
+      setTimeout(() => span.remove(), 950);
+    }
+
+    function shakeEl(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('shake');
+      void el.offsetWidth;
+      el.classList.add('shake');
+      setTimeout(() => el.classList.remove('shake'), 400);
+    }
+
+    function updatePartyMember(idx) {
+      const m = party[idx];
+      const hpLbl = document.getElementById('pmhp-'+idx);
+      const bar   = document.getElementById('pmbar-'+idx);
+      const btn   = document.getElementById('pmbtn-'+idx);
+      if (hpLbl) hpLbl.textContent = '❤️ '+m.hp+'/'+m.maxHp;
+      if (bar)   bar.style.width = Math.max(0, m.hp/m.maxHp*100)+'%';
+      if ((m.hp <= 0 || !m.alive)) {
+        if (m.alive) m.alive = false;
+        const row = document.getElementById('pmrow-'+idx);
+        if (row) row.classList.add('dead');
+        if (btn && btn.tagName === 'BUTTON') btn.outerHTML = '<span class="pm-dead-lbl">💀 Выбыл</span>';
+        return;
+      }
+      // Обновляем кнопку действия
+      if (btn && btn.tagName === 'BUTTON') {
+        const role = m.role || 'mercenary';
+        const ra = ROLE_ACTIONS[role] || ROLE_ACTIONS.mercenary;
+        if (m.cd > 0) {
+          btn.textContent = '⏳ ' + m.cd + ' хода';
+          btn.disabled = true;
+        } else if (role === 'bomber' && m.bomberUsed) {
+          btn.textContent = '💀 Погиб';
+          btn.disabled = true;
+        } else if (role === 'bruiser' && m.shieldActive) {
+          btn.textContent = '🛡 На щите';
+          btn.disabled = false;
+        } else if (role === 'scout' && m.smokeActive) {
+          btn.textContent = '💨 Дымка';
+          btn.disabled = false;
+        } else {
+          btn.textContent = ra.label;
+          btn.disabled = waiting || battleDone;
+        }
+      }
+    }
+
+    // ── Enemy taunts ─────────────────────────────────────────────
+    const ENEMY_TAUNTS_ATTACK = [
+      "Идите сюда, уроды!",
+      "Вы что творите вообще?!",
+      "Завалю, понял?!",
+      "Тебе конец, слышишь?!",
+      "Думал, я шуткую?",
+      "У нас тут свои порядки.",
+      "Ты не в том районе оказался.",
+      "Щас зубы соберёшь с пола.",
+      "Ещё раз сунешься — в цемент закатаю.",
+      "Кто тебя вообще сюда пустил?!",
+      "Ты на кого прёшь, умник?",
+      "Твои кости — моя коллекция.",
+      "Не жили богато — нечего начинать.",
+      "Слышь, ты вообще соображаешь?",
+      "Я таких как ты на завтрак ем.",
+      "Сейчас узнаешь, кто тут хозяин.",
+      "Чтоб духу твоего тут не было!",
+      "Это мой район, понял?!",
+      "Ты за это ответишь.",
+      "Думал, всё так просто?",
+      "Ты мне надоел.",
+      "Уложу и не вспомню.",
+      "Дёргайся, дёргайся...",
+      "Никто тебя искать не будет.",
+      "Последний раз предупреждаю.",
+    ];
+    const ENEMY_TAUNTS_LOW_HP = [
+      "Ещё не конец, понял?!",
+      "Думаешь, победил? Рано радуешься!",
+      "Я ещё не закончил!",
+      "Это щекотка, не больше!",
+      "Ты пожалеешь об этом!",
+      "Злее буду — берегись!",
+    ];
+    const ENEMY_TAUNTS_PLAYER_LOW_HP = [
+      "Лежи уже, зачем мучиться?",
+      "Почти готов, ещё чуток.",
+      "Скоро всё закончится для тебя.",
+      "Не убегай, трус!",
+    ];
+    function getEnemyTaunt(playerHpPct, enemyHpPct) {
+      if (enemyHpPct < 0.3) {
+        if (Math.random() < 0.5) return ENEMY_TAUNTS_LOW_HP[Math.floor(Math.random()*ENEMY_TAUNTS_LOW_HP.length)];
+      }
+      if (playerHpPct < 0.25) {
+        if (Math.random() < 0.5) return ENEMY_TAUNTS_PLAYER_LOW_HP[Math.floor(Math.random()*ENEMY_TAUNTS_PLAYER_LOW_HP.length)];
+      }
+      return Math.random() < 0.75
+        ? ENEMY_TAUNTS_ATTACK[Math.floor(Math.random()*ENEMY_TAUNTS_ATTACK.length)]
+        : null;
+    }
+
+    // ── Enemy attacks player ─────────────────────────────────────
+    function enemyTurn() {
+      const eName = stripEmoji(enemyName) || enemyName;
+      turnNum++;
+
+      // ─ Пассив: Разведчик — шанс промаха ─────────────────────────
+      const aliveScouts = party.filter(m => m.alive && m.role === 'scout').length;
+      const smokeM = party.find(m => m.alive && m.role === 'scout' && m.smokeActive);
+      const dodgeChance = aliveScouts * 0.15 + (smokeM ? 0.40 : 0);
+      if (smokeM) smokeM.smokeActive = false;
+      if (dodgeChance > 0 && Math.random() < dodgeChance) {
+        const src = smokeM ? '💨 Дымовая завеса!' : '🕵️ Разведчик отвлёк врага!';
+        addLog(src + ' ' + eName + ' промахнулся!', 'log-party');
+        tickPartyCooldowns();
+        medicPassiveTick();
+        updateBars();
+        setWaiting(false);
+        return;
+      }
+
+      // ─ Пассив: Здоровяк — снижение урона ─────────────────────────
+      const aliveBruisers = party.filter(m => m.alive && m.role === 'bruiser').length;
+      const defMult = Math.max(0.6, 1 - aliveBruisers * 0.08);
+
+      // ─ Пассив: Здоровяк — щит (берёт удар на себя) ───────────────
+      const shieldM = party.find(m => m.alive && m.role === 'bruiser' && m.shieldActive);
+      let dmg = calcDmg(enemyAtk, playerDef);
+      if (shieldM) {
+        shieldM.shieldActive = false;
+        const shieldDmg = Math.max(1, Math.round(dmg * 0.7)); // Здоровяк берёт 70%
+        shieldM.hp = Math.max(0, shieldM.hp - shieldDmg);
+        const si = party.indexOf(shieldM);
+        stats.push({turn:turnNum, who:eName, cls:'sl-enemy', action:'👊 Удар→Щит', damage:shieldDmg, heal:0});
+        addLog('🛡 ' + shieldM.name + ' принял удар ' + shieldDmg + ' на себя!', 'log-party');
+        shakeEl('pmrow-'+si);
+        showFloatDmg('enemy-side', shieldDmg, 'player');
+        spawnStrike('player-side', -1);
+        updatePartyMember(si);
+        if (shieldM.hp <= 0) {
+          shieldM.alive = false;
+          addLog('💀 ' + shieldM.name + ' пал прикрывая тебя!', 'log-system');
+        }
+        tickPartyCooldowns();
+        medicPassiveTick();
+        updateBars();
+        if (coopId) { var pObj = {}; pObj['p'+myPnum+'hp'] = playerHp; fbPatch(pObj); }
+        setWaiting(false);
+        return;
+      }
+
+      // ─ Обычный удар по игроку ─────────────────────────────────────
+      dmg = Math.max(1, Math.round(dmg * defMult));
+      playerHp = Math.max(0, playerHp - dmg);
+      stats.push({turn:turnNum, who:eName, cls:'sl-enemy', action:'👊 Удар', damage:dmg, heal:0});
+      const taunt = getEnemyTaunt(playerHp/playerMaxHp, enemyHp/enemyMaxHp);
+      if (taunt) addLog('💬 ' + eName + ': «' + taunt + '»', 'log-enemy');
+      const defNote = aliveBruisers > 0 ? ' (−' + Math.round((1-defMult)*100) + '% от Здоровяка)' : '';
+      addLog('😤 ' + eName + ' бьёт тебя: ' + dmg + ' урона!' + defNote, 'log-enemy');
+      shakeEl('player-side');
+      showFloatDmg('player-side', dmg, 'player');
+      spawnBlood('player-side', 10, true);
+      spawnStrike('player-side', -1);
+
+      // ─ Авто-контратака Хулиганов ──────────────────────────────────
+      autoCounterAttack();
+      // ─ Тик кулдаунов и пассив Медика ─────────────────────────────
+      tickPartyCooldowns();
+      medicPassiveTick();
+
+      updateBars();
+      if (coopId) { var phObj = {}; phObj['p'+myPnum+'hp'] = playerHp; fbPatch(phObj); }
+      if (playerHp <= 0) { endBattle('lose'); return; }
+      setWaiting(false);
+    }
+
+    // ── Player phrases ───────────────────────────────────────────
+    const PLAYER_PHRASES = {
+      attack: [
+        "Получи, урод!", "Иди сюда, поговорим.", "Это тебе за всё.",
+        "Сейчас узнаешь, кто ты такой.", "Я предупреждал.",
+        "Больно? Будет ещё.", "Не отвлекайся.", "Приятно познакомиться.",
+        "За базар отвечают.", "Смотри внимательно.",
+        "Это только начало.", "Вот так вот.",
+      ],
+      skill: [
+        "А вот это специально для тебя.", "Это мой фирменный.",
+        "Такого ты ещё не видел.", "Всё, что умею — для тебя.",
+        "Давно копил — получай.", "Красиво, да?",
+        "Это называется мастерство.", "Запомни этот момент.",
+      ],
+      potion: [
+        "Минута — залечусь.", "Не торопись, у меня ещё запасы.",
+        "Подожди, дело есть.", "Второй раз не промахнусь.",
+        "Это не слабость — это тактика.", "Живой — значит прав.",
+      ],
+      grenade: [
+        "Лови подарок!", "Граната летит!", "Привет от меня!",
+        "Держи, мне не жалко.", "Кидаю — не зевай!",
+        "Это тебе от всей банды.", "Специальная доставка!",
+      ],
+      property: [
+        "А вот теперь серьёзно.", "Это тебе не кулаки.",
+        "Специальный калибр для тебя.", "Большие деньги — большой калибр.",
+        "Вот за что люблю деньги.", "Ты этого заслужил.",
+        "Роскошь бьёт больно.", "Думал, только руками умею?",
+      ],
+      flee_try: [
+        "Сматываемся!", "Живой уйду — вернусь с подкреплением.",
+        "Это не трусость, это тактика.", "Нас ещё ждут дела.",
+        "Не сегодня.", "Бежим! Тихо!",
+      ],
+      flee_fail: [
+        "Не пустил, гад.", "Не дали уйти красиво.",
+        "Окружили — придётся биться.", "Ладно, ладно, остаёмся.",
+      ],
+    };
+    // Фраза союзника-наёмника
+    const MERC_PHRASES = [
+      "Иду!", "Держись, братан!", "Получай!",
+      "За босса!", "Сейчас покажу!", "Вперёд!",
+      "Не уйдёшь!", "Работаем!", "Мой выстрел.",
+    ];
+    // Фраза друга из банды
+    const FRIEND_PHRASES = [
+      "Рядом с тобой, брат!", "Прикрываю!", "Это за нас!",
+      "Держимся вместе!", "Не дам тебя обидеть.",
+      "Ещё раз — и конец!", "Мы одна банда!", "Вместе — страшнее.",
+    ];
+    function pick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+    // ── Player actions ───────────────────────────────────────────
+    function playerAct(type) {
+      if (waiting || battleDone) return;
+      let dmg = 0, healAmt = 0, actionLabel = '';
+      turnNum++;
+
+      if (type === 'attack') {
+        if (playerMp < ATKMANA) return;
+        dmg = calcDmg(playerAtk, enemyDef);
+        playerMp = Math.max(0, playerMp - ATKMANA);
+        actionLabel = ATK_LABEL;
+        enemyHp = Math.max(0, enemyHp - dmg);
+        stats.push({turn: turnNum, who: pname, cls:'sl-player', action: actionLabel, damage: dmg, heal: 0});
+        addLog('💬 ' + pname + ': «' + pick(PLAYER_PHRASES.attack) + '»', 'log-player');
+        addLog('💥 ' + pname + ': ' + actionLabel + ' — ' + dmg + ' урона!', 'log-player');
+        shakeEl('enemy-side');
+        showFloatDmg('enemy-side', dmg, 'enemy');
+        spawnBlood('enemy-side', 10, false);
+        if (wt === 2) spawnBullets('player-side', 'enemy-side', 3);
+        else spawnStrike('enemy-side', wt);
+
+      } else if (type === 'skill') {
+        if (playerMp < skCost) return;
+        dmg = calcDmg(playerAtk, enemyDef, skMult);
+        playerMp = Math.max(0, playerMp - skCost);
+        actionLabel = skName;
+        enemyHp = Math.max(0, enemyHp - dmg);
+        if (skHeal > 0) {
+          healAmt = skHeal;
+          playerHp = Math.min(playerMaxHp, playerHp + healAmt);
+          showFloatDmg('player-side', healAmt, 'heal');
+        }
+        stats.push({turn: turnNum, who: pname, cls:'sl-player', action: actionLabel, damage: dmg, heal: healAmt});
+        addLog('💬 ' + pname + ': «' + pick(PLAYER_PHRASES.skill) + '»', 'log-player');
+        let logTxt = '⚡ ' + pname + ': ' + actionLabel + ' — ' + dmg + ' урона!';
+        if (healAmt) logTxt += ' (+' + healAmt + ' HP)';
+        addLog(logTxt, 'log-player');
+        shakeEl('enemy-side');
+        showFloatDmg('enemy-side', dmg, 'enemy');
+        spawnBlood('enemy-side', 12, false);
+        if (wt === 2) spawnBullets('player-side', 'enemy-side', 4);
+        else spawnStrike('enemy-side', wt);
+
+      } else if (type === 'potion') {
+        if (!hasPotions) return;
+        hasPotions = false; potUsed = true;
+        healAmt = 40 + Math.floor(Math.random()*20);
+        playerHp = Math.min(playerMaxHp, playerHp + healAmt);
+        actionLabel = '🩹 Аптечка';
+        stats.push({turn: turnNum, who: pname, cls:'sl-player', action: actionLabel, damage: 0, heal: healAmt});
+        addLog('💬 ' + pname + ': «' + pick(PLAYER_PHRASES.potion) + '»', 'log-player');
+        addLog('🩹 ' + pname + ' использует аптечку: +' + healAmt + ' HP!', 'log-player');
+        showFloatDmg('player-side', healAmt, 'heal');
+        updateBars();
+        if (enemyHp <= 0) { endBattle('win'); return; }
+        setWaiting(true);
+        setTimeout(enemyTurn, 1100 + Math.floor(Math.random()*700));
+        return;
+
+      } else if (type === 'grenade') {
+        if (grenCount <= 0) return;
+        const nadeDmg = 80 + Math.floor(Math.random() * 51);
+        grenCount--;
+        grenUsed++;
+        enemyHp = Math.max(0, enemyHp - nadeDmg);
+        actionLabel = '💣 Граната';
+        stats.push({turn: turnNum, who: pname, cls:'sl-special', action: actionLabel, damage: nadeDmg, heal: 0});
+        addLog('💬 ' + pname + ': «' + pick(PLAYER_PHRASES.grenade) + '»', 'log-special');
+        addLog('💣 ' + pname + ' бросает гранату — ' + nadeDmg + ' урона! (без ответки)', 'log-special');
+        shakeEl('enemy-side');
+        showFloatDmg('enemy-side', nadeDmg, 'enemy');
+        spawnBlood('enemy-side', 20, false);
+        const nadeTxt = document.getElementById('nade-txt');
+        if (nadeTxt) nadeTxt.textContent = grenCount > 0 ? '×' + grenCount : 'нет';
+        updateBars();
+        fbSync();
+        if (enemyHp <= 0) { endBattle('win'); return; }
+        return; // без ответки
+
+      } else if (type === 'property') {
+        if (propUsed || !ppName || ppOk === 0) return;
+        propUsed = true;
+        dmg = Math.max(1, Math.round(playerAtk * ppMult * (0.85 + Math.random() * 0.30)));
+        enemyHp = Math.max(0, enemyHp - dmg);
+        actionLabel = ppName;
+        stats.push({turn: turnNum, who: pname, cls:'sl-special', action: actionLabel, damage: dmg, heal: 0});
+        addLog('💬 ' + pname + ': «' + pick(PLAYER_PHRASES.property) + '»', 'log-special');
+        addLog('🎯 ' + pname + ': ' + actionLabel + ' — ' + dmg + ' урона! (без ответки)', 'log-special');
+        shakeEl('enemy-side');
+        showFloatDmg('enemy-side', dmg, 'enemy');
+        spawnBlood('enemy-side', 14, false);
+        const propBtn = document.getElementById('btn-prop');
+        if (propBtn) propBtn.disabled = true;
+        updateBars();
+        fbSync();
+        if (enemyHp <= 0) { endBattle('win'); return; }
+        return; // без ответки
+      }
+
+      updateBars();
+      fbSync();
+      if (enemyHp <= 0) { endBattle('win'); return; }
+      setWaiting(true);
+      const delay = 1100 + Math.floor(Math.random()*700);
+      setTimeout(enemyTurn, delay);
+    }
+
+    // ── Party member action (FREE — враг не отвечает) ────────────
+    function partyAct(idx) {
+      if (waiting || battleDone || !party[idx].alive) return;
+      const m = party[idx];
+      if (m.cd > 0) return;
+      const role = m.role || (m.type === 'f' ? 'friend' : 'mercenary');
+      turnNum++;
+
+      if (role === 'bomber' && !m.bomberUsed) {
+        // 💥 ВЗРЫВ — гибнет, огромный урон
+        const bombDmg = Math.round(enemyMaxHp * (0.6 + Math.random() * 0.2));
+        enemyHp = Math.max(0, enemyHp - bombDmg);
+        m.hp = 0; m.alive = false; m.bomberUsed = true; m.cd = 999;
+        stats.push({turn:turnNum, who:m.name, cls:'sl-special', action:'💥 ВЗРЫВ', damage:bombDmg, heal:0});
+        addLog('💬 ' + m.name + ': «За всех!»', 'log-special');
+        addLog('💥 ' + m.name + ' ВЗРЫВАЕТСЯ — ' + bombDmg + ' урона! Подрывник погиб.', 'log-special');
+        shakeEl('enemy-side'); showFloatDmg('enemy-side', bombDmg, 'enemy');
+        spawnBlood('enemy-side', 20, false);
+
+      } else if (role === 'bruiser') {
+        // 🛡 Прикрыть — берёт следующий удар
+        m.shieldActive = true; m.cd = 3;
+        addLog('💬 ' + m.name + ': «Держитесь за мной!»', 'log-party');
+        addLog('🛡 ' + m.name + ' встаёт щитом — примет следующий удар!', 'log-party');
+        shakeEl('player-side');
+
+      } else if (role === 'sniper') {
+        // 🎯 Прицел — x2.5 урона
+        const sDmg = Math.round(rnd(m.atkLo, m.atkHi) * 2.5);
+        enemyHp = Math.max(0, enemyHp - sDmg);
+        m.cd = 3;
+        stats.push({turn:turnNum, who:m.name, cls:'sl-party', action:'🎯 Прицел', damage:sDmg, heal:0});
+        addLog('💬 ' + m.name + ': «Вижу цель.»', 'log-party');
+        addLog('🎯 ' + m.name + ' берёт прицел: ' + sDmg + ' урона!', 'log-party');
+        shakeEl('enemy-side'); showFloatDmg('enemy-side', sDmg, 'enemy');
+        spawnBlood('enemy-side', 14, false);
+        spawnBullets('player-side', 'enemy-side', 2);
+
+      } else if (role === 'medic' || role === 'friend') {
+        // 🩹 Лечить — восстанавливает HP игрока
+        const healAmt = 20 + Math.floor(Math.random() * 11);
+        playerHp = Math.min(playerMaxHp, playerHp + healAmt);
+        m.cd = 2;
+        stats.push({turn:turnNum, who:m.name, cls:'sl-party', action:'🩹 Лечит', damage:0, heal:healAmt});
+        addLog('💬 ' + m.name + ': «Держись, перевяжу.»', 'log-party');
+        addLog('🩹 ' + m.name + ' лечит тебя: +' + healAmt + ' HP', 'log-party');
+        showFloatDmg('player-side', healAmt, 'heal');
+
+      } else if (role === 'scout') {
+        // 💨 Дымовуха — следующий удар 40% промах
+        m.smokeActive = true; m.cd = 3;
+        addLog('💬 ' + m.name + ': «Дымовуха!»', 'log-party');
+        addLog('💨 ' + m.name + ' ставит дымовую завесу — враг может промахнуться!', 'log-party');
+
+      } else {
+        // ⚔️ Удар (Хулиган / дефолт) — обычная атака, без ответа врага
+        const dmg = rnd(m.atkLo, m.atkHi);
+        enemyHp = Math.max(0, enemyHp - dmg);
+        m.cd = 1;
+        const phrase = pick(m.type === 'f' ? FRIEND_PHRASES : MERC_PHRASES);
+        stats.push({turn:turnNum, who:m.name, cls:'sl-party', action:'⚔️ Удар', damage:dmg, heal:0});
+        addLog('💬 ' + m.name + ': «' + phrase + '»', 'log-party');
+        addLog('⚔️ ' + m.name + ' атакует: ' + dmg + ' урона!', 'log-party');
+        shakeEl('enemy-side'); showFloatDmg('enemy-side', dmg, 'enemy');
+        spawnBlood('enemy-side', 8, false);
+        if (wt === 2) spawnBullets('player-side', 'enemy-side', 2);
+        else spawnStrike('enemy-side', 0);
+      }
+
+      updateBars();
+      fbSync();
+      if (enemyHp <= 0) { endBattle('win'); return; }
+      // ✅ Нет setWaiting / нет enemyTurn — действие отряда БЕСПЛАТНОЕ
+    }
+
+    // ── Хелперы отряда после хода врага ──────────────────────────
+    function tickPartyCooldowns() {
+      party.forEach(m => { if (m.alive && m.cd > 0) m.cd--; });
+    }
+
+    function autoCounterAttack() {
+      // Хулиган авто-контратакует после удара врага
+      const avail = party.filter((m,i) => m.alive && m.cd === 0 && m.role === 'mercenary');
+      if (avail.length === 0) return;
+      const m = avail[Math.floor(Math.random() * avail.length)];
+      const dmg = rnd(m.atkLo, m.atkHi);
+      enemyHp = Math.max(0, enemyHp - dmg);
+      m.cd = 1;
+      addLog('🔄 ' + m.name + ' контратакует: ' + dmg + ' урона!', 'log-party');
+      showFloatDmg('enemy-side', dmg, 'enemy');
+      spawnBlood('enemy-side', 6, false);
+    }
+
+    function medicPassiveTick() {
+      // Медик авто-лечит каждые 3 хода врага
+      party.forEach((m, i) => {
+        if (!m.alive || m.role !== 'medic') return;
+        m.passiveCharge = (m.passiveCharge || 0) + 1;
+        if (m.passiveCharge >= 3) {
+          m.passiveCharge = 0;
+          const h = 10 + Math.floor(Math.random() * 6);
+          playerHp = Math.min(playerMaxHp, playerHp + h);
+          addLog('💊 ' + m.name + ' (авто): +' + h + ' HP', 'log-party');
+          showFloatDmg('player-side', h, 'heal');
+        }
+      });
+    }
+
+    // ── Flee ─────────────────────────────────────────────────────
+    function showFlee() { if (!waiting && !battleDone) document.getElementById('flee-ov').style.display='flex'; }
+    function hideFlee() { document.getElementById('flee-ov').style.display='none'; }
+
+    function doFlee() {
+      hideFlee();
+      addLog('💬 ' + pname + ': «' + pick(PLAYER_PHRASES.flee_try) + '»', 'log-player');
+      if (Math.random() < 0.5) {
+        endBattle('fled');
+      } else {
+        turnNum++;
+        stats.push({turn:turnNum, who:pname, cls:'sl-player', action:'🏃 Побег', damage:0, heal:0});
+        addLog('💬 ' + pname + ': «' + pick(PLAYER_PHRASES.flee_fail) + '»', 'log-player');
+        addLog('❌ ' + pname + ' попытался сбежать — не дали!', 'log-system');
+        setWaiting(true);
+        setTimeout(enemyTurn, 1000 + Math.floor(Math.random()*500));
+      }
+    }
+
+    // ── End battle ────────────────────────────────────────────────
+    function endBattle(result) {
+      battleDone = true;
+      setWaiting(false);
+      updateBars();
+
+      const icon     = document.getElementById('end-icon');
+      const title    = document.getElementById('end-title');
+      const sub      = document.getElementById('end-sub');
+      const closeBtn = document.getElementById('btn-end-close');
+
+      if (result === 'win') {
+        icon.textContent = '🏆';
+        title.textContent = 'ПОБЕДА!'; title.className='end-title win';
+        sub.textContent = 'Враг повержен. Трофеи ждут.';
+        closeBtn.className = 'btn-close-win';
+        closeBtn.textContent = '✅ Получить награду';
+        endResult = {a:'battle_won', php: playerHp, pmp: playerMp, gu: grenUsed};
+        // Уведомляем партнёра через Firebase что босс мёртв
+        if (coopId) { fbWriteTime = Date.now(); fbPatch({bossHp: 0, status: 'won'}); }
+      } else if (result === 'lose') {
+        icon.textContent = '💀';
+        title.textContent = 'ПОРАЖЕНИЕ'; title.className='end-title lose';
+        sub.textContent = 'Ты проиграл. Но можно попробовать снова.';
+        closeBtn.className = 'btn-close';
+        closeBtn.textContent = '🚑 В меню';
+        endResult = {a:'battle_lost', gu: grenUsed};
+      } else {
+        icon.textContent = '🏃';
+        title.textContent = 'СЛИЛСЯ'; title.className='end-title fled';
+        sub.textContent = 'Ушёл живым. Это тоже победа.';
+        closeBtn.className = 'btn-close';
+        closeBtn.textContent = '🚶 Уйти';
+        endResult = {a:'battle_fled', gu: grenUsed};
+      }
+      document.getElementById('end-ov').style.display = 'flex';
+    }
+
+    function closeBattle() {
+      if (endResult) tg.sendData(JSON.stringify(endResult));
+    }
+
+    // ── Statistics ────────────────────────────────────────────────
+    function showStats() {
+      const totalPlayerDmg  = stats.filter(s=>s.cls==='sl-player').reduce((a,s)=>a+s.damage,0);
+      const totalPartyDmg   = stats.filter(s=>s.cls==='sl-party').reduce((a,s)=>a+s.damage,0);
+      const totalSpecialDmg = stats.filter(s=>s.cls==='sl-special').reduce((a,s)=>a+s.damage,0);
+      const totalEnemyDmg   = stats.filter(s=>s.cls==='sl-enemy').reduce((a,s)=>a+s.damage,0);
+      const totalHealed      = stats.filter(s=>s.heal>0).reduce((a,s)=>a+s.heal,0);
+      const sumEl = document.getElementById('stats-summary');
+      sumEl.innerHTML = `
+        <div class="stat-box"><div class="sv">${totalPlayerDmg}</div><div class="sl">твой урон</div></div>
+        ${totalPartyDmg ? `<div class="stat-box"><div class="sv">${totalPartyDmg}</div><div class="sl">отряд</div></div>` : ''}
+        ${totalSpecialDmg ? `<div class="stat-box"><div class="sv">${totalSpecialDmg}</div><div class="sl">спец.</div></div>` : ''}
+        <div class="stat-box"><div class="sv">${totalEnemyDmg}</div><div class="sl">по тебе</div></div>
+        ${totalHealed ? `<div class="stat-box"><div class="sv">${totalHealed}</div><div class="sl">лечение</div></div>` : ''}
+      `;
+      const logEl = document.getElementById('stats-log');
+      logEl.innerHTML = '';
+      stats.forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'sl-row';
+        let txt = `<span class="sl-turn">${s.turn}.</span> <span class="${s.cls}">${s.who}</span>: ${s.action}`;
+        if (s.damage) txt += ` — <b>${s.damage} урона</b>`;
+        if (s.heal)   txt += ` <span style="color:#44ccff">+${s.heal} HP</span>`;
+        row.innerHTML = txt;
+        logEl.appendChild(row);
+      });
+      document.getElementById('end-ov').style.display   = 'none';
+      document.getElementById('stats-ov').style.display = 'flex';
+    }
+
+    function hideStats() {
+      document.getElementById('stats-ov').style.display = 'none';
+      document.getElementById('end-ov').style.display   = 'flex';
+    }
+
+    // ── Init ──────────────────────────────────────────────────────
+    document.getElementById('pname').textContent  = pname;
+    document.getElementById('eemoji').textContent = firstEmoji(enemyName);
+    document.getElementById('ename').textContent  = stripEmoji(enemyName) || enemyName;
+    document.getElementById('etitle').textContent = enemyTitle;
+
+    setTimeout(() => {
+      document.getElementById('php-bar').style.width = Math.max(0,playerHp/playerMaxHp*100)+'%';
+      document.getElementById('pmp-bar').style.width = Math.max(0,playerMp/playerMaxMp*100)+'%';
+      document.getElementById('ehp-bar').style.width = Math.max(0,enemyHp/enemyMaxHp*100)+'%';
+    }, 60);
+    document.getElementById('php-lbl').textContent = playerHp+'/'+playerMaxHp;
+    document.getElementById('pmp-lbl').textContent = playerMp+'/'+playerMaxMp;
+    document.getElementById('ehp-lbl').textContent = enemyHp+'/'+enemyMaxHp;
+
+    const atkDmgLo = Math.max(1, Math.round(Math.max(1,playerAtk-Math.floor(enemyDef/2))*0.85));
+    const atkDmgHi = Math.max(1, Math.round(Math.max(1,playerAtk-Math.floor(enemyDef/2))*1.15));
+    const skDmgLo  = Math.max(1, Math.round(Math.max(1,playerAtk-Math.floor(enemyDef/2))*0.85*skMult));
+    const skDmgHi  = Math.max(1, Math.round(Math.max(1,playerAtk-Math.floor(enemyDef/2))*1.15*skMult));
+
+    document.getElementById('atk-lbl').textContent = ATK_LABEL;
+    document.getElementById('atk-dmg').textContent = '⚔️ '+atkDmgLo+'–'+atkDmgHi;
+    document.getElementById('atk-cost').textContent = '-'+ATKMANA+'⚡';
+    document.getElementById('sk-lbl').textContent  = skName;
+    document.getElementById('sk-dmg').textContent  = '⚔️ '+skDmgLo+'–'+skDmgHi;
+    document.getElementById('sk-cost').textContent = '-'+skCost+'⚡';
+
+    if (hasPotions) {
+      document.getElementById('pot-txt').textContent = 'использовать';
+    } else {
+      document.getElementById('btn-pot').disabled = true;
+      document.getElementById('pot-txt').textContent = 'нет';
+    }
+    if (playerMp < ATKMANA) document.getElementById('btn-atk').disabled = true;
+    if (playerMp < skCost)  document.getElementById('btn-sk').disabled  = true;
+
+    // ── Extra abilities setup ─────────────────────────────────────
+    const hasGrenade  = grenCount > 0;
+    const hasPropSkill = ppName.length > 0;
+    if (hasGrenade || hasPropSkill) {
+      document.getElementById('actions-extra').style.display = 'grid';
+    }
+    if (hasGrenade) {
+      document.getElementById('nade-txt').textContent = '×' + grenCount;
+    }
+    if (ppName && ppOk === 1) {
+      document.getElementById('actions-extra').style.display = 'grid';
+      document.getElementById('prop-lbl').textContent = ppName;
+      document.getElementById('prop-sub').textContent = 'x'+ppMult+' урон';
+      document.getElementById('btn-prop').disabled = false;
+    }
+
+    // Отряд
+    if (party.length > 0) {
+      document.getElementById('party-section').style.display = '';
+      const cont = document.getElementById('party-members');
+      party.forEach(function(m, i) {
+        const role = m.role || (m.type==='f'?'friend':'mercenary');
+        const ra   = ROLE_ACTIONS[role] || ROLE_ACTIONS.mercenary;
+        const icon = ROLE_ICONS[role] || '🔫';
+        const rd   = ROLE_DESC[role]   || ROLE_DESC.mercenary;
+        const badge = m.type === 'f'
+          ? '<span class="pm-type-badge pm-type-f">Друг</span>'
+          : '<span class="pm-type-badge pm-type-m">Наём</span>';
+        const abilityLine =
+          '<div class="pm-ability">' +
+            '<span class="ab-active">' + rd.active + '</span>' +
+            (rd.passive ? '<br><span class="ab-passive">' + rd.passive + '</span>' : '') +
+          '</div>';
+        cont.innerHTML +=
+          '<div class="party-member" id="pmrow-'+i+'">'+
+          '<div class="pm-icon">'+icon+'</div>'+
+          '<div class="pm-info">'+
+            '<div class="pm-name">'+m.name+'</div>'+
+            '<div class="pm-bar-row">'+
+              '<span class="pm-hp-lbl" id="pmhp-'+i+'">❤️ '+m.hp+'/'+m.maxHp+'</span>'+
+              '<div class="pm-bar-track"><div class="pm-bar-fill" id="pmbar-'+i+'" style="width:'+Math.round(m.hp/m.maxHp*100)+'%"></div></div>'+
+              badge+
+            '</div>'+
+            abilityLine+
+          '</div>'+
+          '<button class="btn-pm-atk '+ra.cls+'" id="pmbtn-'+i+'" onclick="partyAct('+i+')">'+ra.label+'</button>'+
+          '</div>';
+      });
+    }
+
+    // Вступительная фраза врага
+    const ENEMY_INTROS = [
+      'Ты сам пришёл — сам виноват.',
+      'Долго ждал тебя.',
+      'Думал, не придёшь.',
+      'Хорошо, что явился сам.',
+      'Я уже скучал.',
+      'Твоё время вышло.',
+      'Здесь твоя дорога заканчивается.',
+      'Ну что, поговорим по-мужски?',
+    ];
+    const intro = ENEMY_INTROS[Math.floor(Math.random()*ENEMY_INTROS.length)];
+    addLog('💬 ' + stripEmoji(enemyName) + ': «' + intro + '»', 'log-enemy');
+    addLog('⚔️ Бой начался! Удачи, ' + pname + '.', 'log-system');
+
+    updateBars();
+    fbConnect(); // Подключаем Firebase для co-op (в соло-бою не делает ничего)
+  </script>
+</body>
+</html>

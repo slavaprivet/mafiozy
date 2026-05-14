@@ -1,0 +1,54 @@
+# === SECRETS — никогда не коммитить ===
+.token
+.bot-token
+*.env
+secrets.py
+secrets_local.py
+токены мафия.txt
+tokens.txt
+*token*.txt
+
+# === Бинарники / логи туннеля ===
+cloudflared.exe
+cloudflared.log
+
+# === Бэкапы исходников ===
+*.before-*
+*.bak
+mafiozi_bot.py.before-*
+
+# === База данных и бекапы ===
+mafiozi.db
+mafiozi.db.bak
+mafiozi.db.new
+*.db
+*.db-journal
+*.db.bak
+*.db.new
+*.sqlite
+*.sqlite3
+
+# === Python виртуальное окружение и кеш ===
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# === IDE / редакторы ===
+.vscode/
+.idea/
+*.swp
+*~
+
+# === OS ===
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# === Логи ===
+*.log
+logs/
