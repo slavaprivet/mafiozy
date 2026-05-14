@@ -1658,7 +1658,7 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "api":      COOP_API_BASE,
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
-        "_v": "13",  # bump when hub.html is updated — breaks Telegram cache
+        "_v": "14",  # bump when hub.html is updated — breaks Telegram cache
     }
     return HUB_WEBAPP_URL + "?" + urllib.parse.urlencode(params)
 

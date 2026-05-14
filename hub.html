@@ -4732,6 +4732,17 @@ function _fmtMins(sec){
   return r ? `${h}ч ${r}м` : `${h}ч`;
 }
 
+// Живой таймер обратного отсчёта с секундами — для кулдаунов и активных контрактов
+function _fmtCountdown(sec){
+  if(sec <= 0) return '0с';
+  const h = Math.floor(sec/3600);
+  const m = Math.floor((sec%3600)/60);
+  const s = Math.floor(sec%60);
+  if(h > 0) return h + 'ч ' + String(m).padStart(2,'0') + 'м ' + String(s).padStart(2,'0') + 'с';
+  if(m > 0) return m + 'м ' + String(s).padStart(2,'0') + 'с';
+  return s + 'с';
+}
+
 function _serverNow(){
   // Если бот прислал srv_now, считаем что (его now == момент сборки URL).
   // Можно подкорректировать локальным дрейфом, но проще: брать большее из локального и серверного.
@@ -4826,7 +4837,7 @@ function renderJobs(){
             <div class="jobs-status-title">🛠 ${job.name}</div>
             <div class="jobs-status-text">
               Идёт работа.<br>
-              ⏳ Осталось: <span class="jobs-countdown">${_fmtMins(remaining)}</span><br>
+              ⏳ Осталось: <span class="jobs-countdown">${_fmtCountdown(remaining)}</span><br>
               💵 Выплата: ${job.pay_min}–${job.pay_max}$
               ${job.success ? `<br>🎲 Шанс выполнить: ${job.success}%` : ''}
             </div>
@@ -4893,7 +4904,7 @@ function renderJobs(){
           const cdUntil = (DATA.job_cd && DATA.job_cd[j.id]) || 0;
           const cdLeft = cdUntil - _serverNow();
           if (locked) return '<button class="job-btn" disabled>🔒 Закрыто</button>';
-          if (cdLeft > 0) return '<button class="job-btn" disabled>⏳ Кулдаун: ' + _fmtMins(cdLeft) + '</button>';
+          if (cdLeft > 0) return '<button class="job-btn" disabled>⏳ Кулдаун: ' + _fmtCountdown(cdLeft) + '</button>';
           return '<button class="job-btn">🛠 Приступить</button>';
         })()}
       </div>`;
@@ -4910,14 +4921,14 @@ function renderJobs(){
 
 // Optimistic UI: обновляем DATA локально, перерисовываем,
 // чтобы пользователь увидел изменение ДО того как мини-приложение закроется.
-// Re-render jobs page every 30s while it's visible (live timer)
+// Re-render jobs page every second while it's visible (live timer with seconds)
 let _jobsTickTimer = null;
 function _startJobsTick(){
   if (_jobsTickTimer) return;
   _jobsTickTimer = setInterval(() => {
     const visible = document.getElementById('page-jobs');
     if (visible && visible.style.display !== 'none') renderJobs();
-  }, 30000);
+  }, 1000);
 }
 function _stopJobsTick(){
   if (_jobsTickTimer){ clearInterval(_jobsTickTimer); _jobsTickTimer = null; }
