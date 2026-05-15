@@ -292,6 +292,40 @@
       40%  { transform:scale(1.2); opacity:1; }
       100% { transform:scale(1.8); opacity:0; }
     }
+    /* ── Muzzle flash (вспышка дула) ─────────────────────── */
+    .muzzle-flash {
+      position:fixed; pointer-events:none; z-index:9997;
+      border-radius:50%;
+      background:radial-gradient(circle, #fff 0%, #ffe080 30%, #ff9000 60%, transparent 80%);
+      animation:muzzle-pop var(--mfd, .12s) ease-out forwards;
+      transform-origin:center;
+    }
+    @keyframes muzzle-pop {
+      0%   { transform:scale(.2); opacity:1; }
+      40%  { transform:scale(1.1); opacity:.95; }
+      100% { transform:scale(1.6); opacity:0; }
+    }
+    /* ── Recoil (отдача игрока) ──────────────────────────── */
+    .recoil-light { animation:recoil-l .18s ease-out; }
+    .recoil-mid   { animation:recoil-m .26s ease-out; }
+    .recoil-heavy { animation:recoil-h .36s ease-out; }
+    @keyframes recoil-l { 0%{transform:translateX(0)} 35%{transform:translateX(-4px)} 100%{transform:translateX(0)} }
+    @keyframes recoil-m { 0%{transform:translateX(0)} 35%{transform:translateX(-9px) rotate(-1deg)} 100%{transform:translateX(0) rotate(0)} }
+    @keyframes recoil-h { 0%{transform:translateX(0)} 35%{transform:translateX(-16px) rotate(-2deg)} 75%{transform:translateX(-3px)} 100%{transform:translateX(0) rotate(0)} }
+    /* ── Гильза ──────────────────────────────────────────── */
+    .shell-casing {
+      position:fixed; pointer-events:none; z-index:9996;
+      width:5px; height:11px; border-radius:1.5px;
+      background:linear-gradient(180deg, #d4a040 0%, #a07020 100%);
+      box-shadow:inset -1px 0 0 #5a3810, 0 1px 2px rgba(0,0,0,.5);
+      animation:shell-fall var(--sfd, .85s) cubic-bezier(.45,.05,.55,.95) forwards;
+    }
+    .shell-casing.big { width:7px; height:14px; }
+    @keyframes shell-fall {
+      0%   { transform:translate(0,0) rotate(0deg); opacity:1; }
+      60%  { transform:translate(var(--sx, 30px), 40px) rotate(360deg); opacity:1; }
+      100% { transform:translate(calc(var(--sx, 30px) * 1.2), 200px) rotate(720deg); opacity:0; }
+    }
     /* ── Low HP badge ─────────────────────────────────────── */
     .low-hp-badge {
       position:absolute; top:3px; right:3px;
@@ -628,40 +662,91 @@
     }
 
     // ── Конфиг звука + анимации для каждого класса ──────────────
+    // recoil: 'light' | 'mid' | 'heavy' | null  — отдача игрока
+    // muzzle: {size, color} | null               — вспышка дула
+    // shell:  {size, count, big, perBullet}      — гильзы (perBullet=true — гильза за каждую пулю)
     const WEAPON_FX_CFG = {
       fists:        { sound:()=>{ _tone({freq:140,freqEnd:80,dur:0.08,type:'sine',vol:0.18}); },
-                       strike:{ emoji:'💢' } },
+                       strike:{ emoji:'💢' }, recoil:'light' },
       brass:        { sound:()=>{ _tone({freq:210,freqEnd:90,dur:0.10,type:'square',vol:0.24}); _noise({dur:0.06,vol:0.14,filter:'lowpass',filterFreq:600}); },
-                       strike:{ emoji:'🥊' } },
+                       strike:{ emoji:'🥊' }, recoil:'light' },
       chain:        { sound:()=>{ _noise({dur:0.22,vol:0.16,filter:'bandpass',filterFreq:2400}); _tone({freq:800,freqEnd:300,dur:0.18,type:'triangle',vol:0.10}); },
-                       strike:{ emoji:'⛓️' } },
+                       strike:{ emoji:'⛓️' }, recoil:'mid' },
       bat:          { sound:()=>{ _tone({freq:180,freqEnd:55,dur:0.22,type:'triangle',vol:0.26}); _noise({dur:0.08,vol:0.14,filter:'lowpass',filterFreq:400}); },
-                       strike:{ emoji:'🏏' } },
+                       strike:{ emoji:'🏏' }, recoil:'mid' },
       blade_short:  { sound:()=>{ _noise({dur:0.10,vol:0.18,filter:'highpass',filterFreq:3000}); _tone({freq:2400,freqEnd:1200,dur:0.08,type:'sine',vol:0.08}); },
-                       strike:{ emoji:'🔪' } },
+                       strike:{ emoji:'🔪' }, recoil:'light' },
       blade_long:   { sound:()=>{ _noise({dur:0.20,vol:0.18,filter:'highpass',filterFreq:2000}); _tone({freq:1500,freqEnd:400,dur:0.15,type:'sawtooth',vol:0.08}); },
-                       strike:{ emoji:'⚔️' } },
+                       strike:{ emoji:'⚔️' }, recoil:'mid' },
       pistol:       { sound:()=>{ _tone({freq:300,freqEnd:80,dur:0.08,type:'square',vol:0.30}); _noise({dur:0.05,vol:0.20}); },
-                       bullets:{ count:1, color:'#ffea80', spread:6 } },
+                       bullets:{ count:1, color:'#ffea80', spread:6 },
+                       muzzle:{size:28,color:'#ffd76b'}, recoil:'light', shell:{count:1} },
       pistol_heavy: { sound:()=>{ _tone({freq:200,freqEnd:50,dur:0.13,type:'square',vol:0.36}); _noise({dur:0.07,vol:0.24,filter:'lowpass',filterFreq:800}); },
-                       bullets:{ count:1, color:'#ffb060', spread:4, thick:true } },
+                       bullets:{ count:1, color:'#ffb060', spread:4, thick:true },
+                       muzzle:{size:38,color:'#ff9040'}, recoil:'mid', shell:{count:1,big:true} },
       pistol_gold:  { sound:()=>{ _tone({freq:620,freqEnd:200,dur:0.10,type:'sawtooth',vol:0.30}); _tone({freq:1200,freqEnd:400,dur:0.08,type:'sine',vol:0.14}); _noise({dur:0.05,vol:0.15}); },
-                       bullets:{ count:1, color:'#ffd76b', spread:4, sparkle:true } },
+                       bullets:{ count:1, color:'#ffd76b', spread:4, sparkle:true },
+                       muzzle:{size:34,color:'#ffe080'}, recoil:'light', shell:{count:1} },
       shotgun:      { sound:()=>{ _tone({freq:120,freqEnd:30,dur:0.18,type:'square',vol:0.42}); _noise({dur:0.14,vol:0.32,filter:'lowpass',filterFreq:500}); },
-                       bullets:{ count:6, color:'#ffaa50', spread:50, simultaneous:true } },
+                       bullets:{ count:6, color:'#ffaa50', spread:50, simultaneous:true },
+                       muzzle:{size:56,color:'#ff8040'}, recoil:'heavy', shell:{count:1,big:true} },
       smg:          { sound:()=>{ for (let i=0;i<3;i++) setTimeout(()=>{ _tone({freq:380,freqEnd:120,dur:0.05,type:'square',vol:0.20}); _noise({dur:0.03,vol:0.13}); }, i*55); },
-                       bullets:{ count:3, color:'#ffea80', spread:14, interval:55 } },
+                       bullets:{ count:3, color:'#ffea80', spread:14, interval:55 },
+                       muzzle:{size:24,color:'#ffd76b'}, recoil:'light', shell:{perBullet:true} },
       smg_gold:     { sound:()=>{ for (let i=0;i<4;i++) setTimeout(()=>{ _tone({freq:500,freqEnd:200,dur:0.05,type:'sawtooth',vol:0.22}); _noise({dur:0.03,vol:0.11}); }, i*45); },
-                       bullets:{ count:4, color:'#ffd76b', spread:12, interval:45, sparkle:true } },
+                       bullets:{ count:4, color:'#ffd76b', spread:12, interval:45, sparkle:true },
+                       muzzle:{size:26,color:'#ffe080'}, recoil:'light', shell:{perBullet:true} },
       rifle:        { sound:()=>{ for (let i=0;i<5;i++) setTimeout(()=>{ _tone({freq:260,freqEnd:80,dur:0.07,type:'square',vol:0.28}); _noise({dur:0.05,vol:0.20,filter:'lowpass',filterFreq:1500}); }, i*100); },
-                       bullets:{ count:5, color:'#ffea80', spread:10, interval:100 } },
+                       bullets:{ count:5, color:'#ffea80', spread:10, interval:100 },
+                       muzzle:{size:30,color:'#ffc060'}, recoil:'mid', shell:{perBullet:true,big:true} },
       rifle_gold:   { sound:()=>{ for (let i=0;i<6;i++) setTimeout(()=>{ _tone({freq:300,freqEnd:100,dur:0.06,type:'sawtooth',vol:0.30}); _noise({dur:0.05,vol:0.18,filter:'lowpass',filterFreq:1500}); }, i*85); },
-                       bullets:{ count:6, color:'#ffd76b', spread:10, interval:85, sparkle:true } },
+                       bullets:{ count:6, color:'#ffd76b', spread:10, interval:85, sparkle:true },
+                       muzzle:{size:32,color:'#ffe080'}, recoil:'mid', shell:{perBullet:true,big:true} },
       sniper:       { sound:()=>{ _tone({freq:80,freqEnd:25,dur:0.40,type:'sawtooth',vol:0.42}); _noise({dur:0.18,vol:0.30,filter:'lowpass',filterFreq:400}); _tone({freq:1800,freqEnd:200,dur:0.30,type:'sine',vol:0.10}); },
-                       bullets:{ count:1, color:'#ff5050', spread:0, thick:true, tracer:true } },
+                       bullets:{ count:1, color:'#ff5050', spread:0, thick:true, tracer:true },
+                       muzzle:{size:44,color:'#ff7050'}, recoil:'heavy', shell:{count:1,big:true} },
       rpg:          { sound:()=>{ _tone({freq:60,freqEnd:20,dur:0.50,type:'sawtooth',vol:0.45}); _noise({dur:0.40,vol:0.35,filter:'lowpass',filterFreq:300}); setTimeout(()=>{ _tone({freq:200,freqEnd:40,dur:0.30,type:'square',vol:0.42}); _noise({dur:0.30,vol:0.40}); }, 240); },
-                       bullets:{ count:1, color:'#ff6020', explosive:true } },
+                       bullets:{ count:1, color:'#ff6020', explosive:true },
+                       muzzle:{size:80,color:'#ff5020'}, recoil:'heavy', shell:null /* нет гильзы */ },
     };
+
+    // ── Эффекты у дула игрока ──────────────────────────────────
+    function _muzzleFlashAt(sx, sy, cfg) {
+      if (!cfg) return;
+      const size = cfg.size || 28;
+      const el = document.createElement('div');
+      el.className = 'muzzle-flash';
+      el.style.cssText =
+        'left:'+(sx-size/2)+'px;top:'+(sy-size/2)+'px;'+
+        'width:'+size+'px;height:'+size+'px;'+
+        '--mfd:'+(0.10+Math.random()*0.05)+'s;';
+      if (cfg.color) el.style.background =
+        'radial-gradient(circle, #fff 0%, '+cfg.color+' 35%, transparent 75%)';
+      document.body.appendChild(el);
+      setTimeout(function(){ el.remove(); }, 180);
+    }
+    function _shellEjectAt(sx, sy, opts) {
+      const sh = document.createElement('div');
+      sh.className = 'shell-casing' + (opts.big ? ' big' : '');
+      // лётка вправо-вверх с небольшим разбросом
+      const sx2 = 28 + Math.random() * 22;
+      sh.style.cssText =
+        'left:'+(sx + (Math.random()*8-4))+'px;top:'+(sy - 4)+'px;'+
+        '--sx:'+sx2+'px; --sfd:'+(0.75 + Math.random()*0.25)+'s;';
+      document.body.appendChild(sh);
+      setTimeout(function(){ sh.remove(); }, 1200);
+    }
+    function _playRecoil(level) {
+      if (!level) return;
+      const p = document.getElementById('player-side');
+      if (!p) return;
+      const cls = 'recoil-' + level;
+      p.classList.remove('recoil-light','recoil-mid','recoil-heavy');
+      // force reflow для рестарта анимации
+      void p.offsetWidth;
+      p.classList.add(cls);
+      setTimeout(function(){ p.classList.remove(cls); }, level === 'heavy' ? 380 : (level === 'mid' ? 280 : 200));
+    }
 
     // ── Универсальный спавн пули с поддержкой цвета/толщины/блеска ─
     function _spawnBulletAdv(sx, sy, dx, dy, opts) {
@@ -696,11 +781,16 @@
       try { if (cfg.sound) cfg.sound(); } catch(e) {}
       const fromEl = document.getElementById('player-side');
       const toEl   = document.getElementById('enemy-side');
+      // отдача
+      _playRecoil(cfg.recoil);
       if (cfg.bullets && fromEl && toEl) {
         const fr = fromEl.getBoundingClientRect();
         const tr = toEl.getBoundingClientRect();
-        const sx = fr.left + fr.width/2;
-        const sy = fr.top  + fr.height/2;
+        // точка "дула" — справа от игрока, на высоте груди
+        const muzzleX = fr.right - 6;
+        const muzzleY = fr.top + fr.height * 0.45;
+        const sx = muzzleX;
+        const sy = muzzleY;
         const ex = tr.left + tr.width/2;
         const ey = tr.top  + tr.height/2;
         const dx = ex - sx, dy = ey - sy;
@@ -708,14 +798,29 @@
         let count = cfg2.count;
         if (strength === 'skill') count = Math.min(count + 2, 10);
         if (strength === 'party') count = Math.max(1, count - 1);
+        // вспышка + одиночная гильза (если не perBullet)
+        if (cfg.muzzle) _muzzleFlashAt(sx, sy, cfg.muzzle);
+        if (cfg.shell && !cfg.shell.perBullet) {
+          for (let s = 0; s < (cfg.shell.count || 1); s++) {
+            setTimeout(function(){ _shellEjectAt(muzzleX, muzzleY, cfg.shell); }, 40 + s*30);
+          }
+        }
         for (let i = 0; i < count; i++) {
           const delay = cfg2.simultaneous ? 0 : (cfg2.interval || 90) * i;
-          (function(d){
+          (function(d, idx){
             setTimeout(function(){
               const spread = cfg2.spread || 0;
               _spawnBulletAdv(sx, sy, dx + (Math.random()-0.5)*spread, dy + (Math.random()-0.5)*spread, cfg2);
+              // вспышка повторяется на каждой пуле для очередей
+              if (idx > 0 && cfg.muzzle && !cfg2.simultaneous) {
+                _muzzleFlashAt(sx, sy, cfg.muzzle);
+              }
+              // гильза за каждую пулю
+              if (cfg.shell && cfg.shell.perBullet) {
+                _shellEjectAt(muzzleX, muzzleY, cfg.shell);
+              }
             }, d);
-          })(delay);
+          })(delay, i);
         }
         if (cfg2.explosive) {
           setTimeout(function(){ _spawnExplosion(ex, ey); shakeEl('enemy-side'); }, 350);
