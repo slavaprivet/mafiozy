@@ -280,6 +280,12 @@
       45%  { transform:translate(-50%,-60%) scale(1.5); opacity:1; }
       100% { transform:translate(-50%,-75%) scale(1.0); opacity:0; }
     }
+    /* ── Explosion (RPG / base) ──────────────────────────── */
+    @keyframes rpg-boom {
+      0%   { transform:scale(.2); opacity:1; }
+      40%  { transform:scale(1.2); opacity:1; }
+      100% { transform:scale(1.8); opacity:0; }
+    }
     /* ── Low HP badge ─────────────────────────────────────── */
     .low-hp-badge {
       position:absolute; top:3px; right:3px;
@@ -432,6 +438,7 @@
     const enemyTitle= get('et','');
 
     const wt       = gn('wt',0);
+    const weaponId = get('wp','');
     const skName   = get('sk','Приём');
     const skCost   = gn('sc',25);
     const skMult   = gf('sm',2.0);
@@ -508,6 +515,184 @@
     const ATKMANA = 5;
     const ATK_LABELS = {0:'🤜 Бить', 1:'🔪 Колоть', 2:'🔫 Стрелять'};
     const ATK_LABEL  = ATK_LABELS[wt] || '🤜 Бить';
+
+    // ══ WEAPON FX: каждая пушка/мили имеет свой класс ══════════════
+    // Каждый класс — свой звук (Web Audio синтез) и анимация.
+    // Сохраняем weapon_id из URL (`wp`) и мапим на класс.
+    const WEAPON_CLASSES = {
+      // melee
+      'zatochka':    'blade_short',
+      'knuckles':    'brass',
+      'chain':       'chain',
+      'spiked_bat':  'bat',
+      'machete':     'blade_long',
+      'katana':      'blade_long',
+      // pistols
+      'nagan':       'pistol',
+      'revolver':    'pistol',
+      'tt_pistol':   'pistol',
+      'deagle':      'pistol_heavy',
+      'golden_colt': 'pistol_gold',
+      // shotguns
+      'sawn_off':    'shotgun',
+      'shotgun':     'shotgun',
+      // SMG
+      'uzi':         'smg',
+      'golden_uzi':  'smg_gold',
+      // rifles
+      'm16':         'rifle',
+      'ak74':        'rifle',
+      'tommy_gun':   'rifle_gold',
+      // special
+      'sniper':      'sniper',
+      'rpg':         'rpg',
+    };
+    const weaponClass = WEAPON_CLASSES[weaponId] || (wt === 1 ? 'blade_short' : (wt === 2 ? 'pistol' : 'fists'));
+
+    // ── Web Audio синтез (без файлов — генерируем тон и шум) ────
+    let _audioCtx = null;
+    function _getAudio() {
+      if (!_audioCtx) {
+        try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch(e) { _audioCtx = null; }
+      }
+      return _audioCtx;
+    }
+    function _tone(o) {
+      const ctx = _getAudio(); if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator(); const g = ctx.createGain();
+      osc.type = o.type || 'square';
+      osc.frequency.setValueAtTime(o.freq, now);
+      if (o.freqEnd != null) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.freqEnd), now + o.dur);
+      g.gain.setValueAtTime(o.vol != null ? o.vol : 0.18, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + o.dur);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(now); osc.stop(now + o.dur + 0.04);
+    }
+    function _noise(o) {
+      const ctx = _getAudio(); if (!ctx) return;
+      const dur = o.dur || 0.12;
+      const buf = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * dur)), ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random()*2-1) * (1 - i/data.length);
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(o.vol != null ? o.vol : 0.22, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+      let last = src;
+      if (o.filter) {
+        const f = ctx.createBiquadFilter();
+        f.type = o.filter; f.frequency.setValueAtTime(o.filterFreq || 1500, ctx.currentTime);
+        if (o.q) f.Q.setValueAtTime(o.q, ctx.currentTime);
+        src.connect(f); last = f;
+      }
+      last.connect(g).connect(ctx.destination);
+      src.start(); src.stop(ctx.currentTime + dur + 0.05);
+    }
+
+    // ── Конфиг звука + анимации для каждого класса ──────────────
+    const WEAPON_FX_CFG = {
+      fists:        { sound:()=>{ _tone({freq:140,freqEnd:80,dur:0.08,type:'sine',vol:0.18}); },
+                       strike:{ emoji:'💢' } },
+      brass:        { sound:()=>{ _tone({freq:210,freqEnd:90,dur:0.10,type:'square',vol:0.24}); _noise({dur:0.06,vol:0.14,filter:'lowpass',filterFreq:600}); },
+                       strike:{ emoji:'🥊' } },
+      chain:        { sound:()=>{ _noise({dur:0.22,vol:0.16,filter:'bandpass',filterFreq:2400}); _tone({freq:800,freqEnd:300,dur:0.18,type:'triangle',vol:0.10}); },
+                       strike:{ emoji:'⛓️' } },
+      bat:          { sound:()=>{ _tone({freq:180,freqEnd:55,dur:0.22,type:'triangle',vol:0.26}); _noise({dur:0.08,vol:0.14,filter:'lowpass',filterFreq:400}); },
+                       strike:{ emoji:'🏏' } },
+      blade_short:  { sound:()=>{ _noise({dur:0.10,vol:0.18,filter:'highpass',filterFreq:3000}); _tone({freq:2400,freqEnd:1200,dur:0.08,type:'sine',vol:0.08}); },
+                       strike:{ emoji:'🔪' } },
+      blade_long:   { sound:()=>{ _noise({dur:0.20,vol:0.18,filter:'highpass',filterFreq:2000}); _tone({freq:1500,freqEnd:400,dur:0.15,type:'sawtooth',vol:0.08}); },
+                       strike:{ emoji:'⚔️' } },
+      pistol:       { sound:()=>{ _tone({freq:300,freqEnd:80,dur:0.08,type:'square',vol:0.30}); _noise({dur:0.05,vol:0.20}); },
+                       bullets:{ count:1, color:'#ffea80', spread:6 } },
+      pistol_heavy: { sound:()=>{ _tone({freq:200,freqEnd:50,dur:0.13,type:'square',vol:0.36}); _noise({dur:0.07,vol:0.24,filter:'lowpass',filterFreq:800}); },
+                       bullets:{ count:1, color:'#ffb060', spread:4, thick:true } },
+      pistol_gold:  { sound:()=>{ _tone({freq:620,freqEnd:200,dur:0.10,type:'sawtooth',vol:0.30}); _tone({freq:1200,freqEnd:400,dur:0.08,type:'sine',vol:0.14}); _noise({dur:0.05,vol:0.15}); },
+                       bullets:{ count:1, color:'#ffd76b', spread:4, sparkle:true } },
+      shotgun:      { sound:()=>{ _tone({freq:120,freqEnd:30,dur:0.18,type:'square',vol:0.42}); _noise({dur:0.14,vol:0.32,filter:'lowpass',filterFreq:500}); },
+                       bullets:{ count:6, color:'#ffaa50', spread:50, simultaneous:true } },
+      smg:          { sound:()=>{ for (let i=0;i<3;i++) setTimeout(()=>{ _tone({freq:380,freqEnd:120,dur:0.05,type:'square',vol:0.20}); _noise({dur:0.03,vol:0.13}); }, i*55); },
+                       bullets:{ count:3, color:'#ffea80', spread:14, interval:55 } },
+      smg_gold:     { sound:()=>{ for (let i=0;i<4;i++) setTimeout(()=>{ _tone({freq:500,freqEnd:200,dur:0.05,type:'sawtooth',vol:0.22}); _noise({dur:0.03,vol:0.11}); }, i*45); },
+                       bullets:{ count:4, color:'#ffd76b', spread:12, interval:45, sparkle:true } },
+      rifle:        { sound:()=>{ for (let i=0;i<5;i++) setTimeout(()=>{ _tone({freq:260,freqEnd:80,dur:0.07,type:'square',vol:0.28}); _noise({dur:0.05,vol:0.20,filter:'lowpass',filterFreq:1500}); }, i*100); },
+                       bullets:{ count:5, color:'#ffea80', spread:10, interval:100 } },
+      rifle_gold:   { sound:()=>{ for (let i=0;i<6;i++) setTimeout(()=>{ _tone({freq:300,freqEnd:100,dur:0.06,type:'sawtooth',vol:0.30}); _noise({dur:0.05,vol:0.18,filter:'lowpass',filterFreq:1500}); }, i*85); },
+                       bullets:{ count:6, color:'#ffd76b', spread:10, interval:85, sparkle:true } },
+      sniper:       { sound:()=>{ _tone({freq:80,freqEnd:25,dur:0.40,type:'sawtooth',vol:0.42}); _noise({dur:0.18,vol:0.30,filter:'lowpass',filterFreq:400}); _tone({freq:1800,freqEnd:200,dur:0.30,type:'sine',vol:0.10}); },
+                       bullets:{ count:1, color:'#ff5050', spread:0, thick:true, tracer:true } },
+      rpg:          { sound:()=>{ _tone({freq:60,freqEnd:20,dur:0.50,type:'sawtooth',vol:0.45}); _noise({dur:0.40,vol:0.35,filter:'lowpass',filterFreq:300}); setTimeout(()=>{ _tone({freq:200,freqEnd:40,dur:0.30,type:'square',vol:0.42}); _noise({dur:0.30,vol:0.40}); }, 240); },
+                       bullets:{ count:1, color:'#ff6020', explosive:true } },
+    };
+
+    // ── Универсальный спавн пули с поддержкой цвета/толщины/блеска ─
+    function _spawnBulletAdv(sx, sy, dx, dy, opts) {
+      const b = document.createElement('div');
+      b.className = 'bullet-proj';
+      const dur = (opts.thick ? 0.22 : 0.18) + Math.random()*0.06;
+      const size = opts.thick ? 9 : 5;
+      b.style.cssText =
+        'left:'+(sx-size/2)+'px;top:'+(sy-size/2)+'px;'+
+        'width:'+size+'px;height:'+size+'px;'+
+        'background:'+(opts.color||'#ffea80')+';'+
+        'box-shadow:0 0 '+(opts.sparkle?14:8)+'px '+(opts.color||'#ffea80')+';'+
+        '--bx:'+dx+'px;--by:'+dy+'px;--bur:'+dur+'s;';
+      document.body.appendChild(b);
+      setTimeout(function(){ b.remove(); }, (dur+0.15)*1000);
+    }
+    function _spawnExplosion(tx, ty) {
+      // Большой огненный шар на цели + волна
+      const ex = document.createElement('div');
+      ex.style.cssText =
+        'position:fixed;left:'+(tx-60)+'px;top:'+(ty-60)+'px;'+
+        'width:120px;height:120px;border-radius:50%;'+
+        'background:radial-gradient(circle, #fff 0%, #ffb050 25%, #ff5020 55%, #802010 80%, transparent 100%);'+
+        'pointer-events:none;z-index:9999;'+
+        'animation:rpg-boom 0.55s ease-out forwards;';
+      document.body.appendChild(ex);
+      setTimeout(function(){ ex.remove(); }, 600);
+    }
+
+    function spawnWeaponFX(strength) {
+      const cfg = WEAPON_FX_CFG[weaponClass] || WEAPON_FX_CFG.fists;
+      try { if (cfg.sound) cfg.sound(); } catch(e) {}
+      const fromEl = document.getElementById('player-side');
+      const toEl   = document.getElementById('enemy-side');
+      if (cfg.bullets && fromEl && toEl) {
+        const fr = fromEl.getBoundingClientRect();
+        const tr = toEl.getBoundingClientRect();
+        const sx = fr.left + fr.width/2;
+        const sy = fr.top  + fr.height/2;
+        const ex = tr.left + tr.width/2;
+        const ey = tr.top  + tr.height/2;
+        const dx = ex - sx, dy = ey - sy;
+        const cfg2 = cfg.bullets;
+        let count = cfg2.count;
+        if (strength === 'skill') count = Math.min(count + 2, 10);
+        if (strength === 'party') count = Math.max(1, count - 1);
+        for (let i = 0; i < count; i++) {
+          const delay = cfg2.simultaneous ? 0 : (cfg2.interval || 90) * i;
+          (function(d){
+            setTimeout(function(){
+              const spread = cfg2.spread || 0;
+              _spawnBulletAdv(sx, sy, dx + (Math.random()-0.5)*spread, dy + (Math.random()-0.5)*spread, cfg2);
+            }, d);
+          })(delay);
+        }
+        if (cfg2.explosive) {
+          setTimeout(function(){ _spawnExplosion(ex, ey); shakeEl('enemy-side'); }, 350);
+        }
+      } else if (cfg.strike && toEl) {
+        const flash = document.createElement('div');
+        flash.className = 'strike-flash';
+        flash.textContent = cfg.strike.emoji;
+        toEl.style.position = 'relative';
+        toEl.appendChild(flash);
+        setTimeout(function(){ flash.remove(); }, 460);
+      }
+    }
 
     // ── Battle state ────────────────────────────────────────────
     let waiting = false, battleDone = false;
@@ -1085,8 +1270,7 @@
         shakeEl('enemy-side');
         showFloatDmg('enemy-side', dmg, 'enemy');
         spawnBlood('enemy-side', 10, false);
-        if (wt === 2) spawnBullets('player-side', 'enemy-side', 3);
-        else spawnStrike('enemy-side', wt);
+        spawnWeaponFX('normal');
 
       } else if (type === 'skill') {
         if (playerMp < skCost) return;
@@ -1107,8 +1291,7 @@
         shakeEl('enemy-side');
         showFloatDmg('enemy-side', dmg, 'enemy');
         spawnBlood('enemy-side', 12, false);
-        if (wt === 2) spawnBullets('player-side', 'enemy-side', 4);
-        else spawnStrike('enemy-side', wt);
+        spawnWeaponFX('skill');
 
       } else if (type === 'potion') {
         if (!hasPotions) return;

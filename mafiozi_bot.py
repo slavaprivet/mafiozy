@@ -515,8 +515,15 @@ ITEMS = {
     "nagan":         {"name": "🔫 Наган",            "type": "weapon",   "attack_bonus": 8,   "price": 250,  "desc": "+8 к атаке. Старый уличный ствол."},
     "sawn_off":      {"name": "💥 Обрез",            "type": "weapon",   "attack_bonus": 12,  "price": 600,  "desc": "+12 к атаке. Короткий и злой."},
     "uzi":           {"name": "🔫 Узи",              "type": "weapon",   "attack_bonus": 16,  "price": 1500, "desc": "+16 к атаке. Автоматика за копейки."},
-    "leather_jacket":{"name": "🧥 Кожанка",          "type": "armor",    "defense_bonus": 12, "price": 180,  "desc": "+12 к защите"},
-    "bulletproof":   {"name": "🦺 Бронежилет",       "type": "armor",    "defense_bonus": 28, "price": 450,  "desc": "+28 к защите"},
+    "leather_jacket":{"name": "🧥 Кожанка",          "type": "armor",    "defense_bonus": 12, "price": 180,  "desc": "+12 к защите. Уличная классика."},
+    "bulletproof":   {"name": "🦺 Бронежилет",       "type": "armor",    "defense_bonus": 28, "price": 450,  "desc": "+28 к защите. Любительский."},
+    # ── 6 новых брони (заполняем промежуток до титанового жилета) ──────────
+    "kevlar_vest":   {"name": "🛡️ Кевларовый жилет", "type": "armor",    "defense_bonus": 38, "price": 1200,  "desc": "+38 к защите. Стандарт ЧОПа."},
+    "tactical_vest": {"name": "🥋 Тактический жилет","type": "armor",    "defense_bonus": 50, "price": 2500,  "desc": "+50 к защите. С разгрузкой под магазины."},
+    "army_armor":    {"name": "🪖 Армейская броня",  "type": "armor",    "defense_bonus": 62, "price": 5000,  "desc": "+62 к защите. Списано со складов."},
+    "swat_suit":     {"name": "👮 Костюм спецназа",  "type": "armor",    "defense_bonus": 78, "price": 9000,  "desc": "+78 к защите. Шлем, наколенники, всё дело."},
+    "composite_armor":{"name":"🦾 Композитный доспех","type": "armor",   "defense_bonus": 95, "price": 16000, "desc": "+95 к защите. Кевлар + керамика."},
+    "exo_armor":     {"name": "⚙️ Экзо-броня",       "type": "armor",    "defense_bonus": 120,"price": 28000, "desc": "+120 к защите. Прототип из лаборатории."},
     "golden_colt":   {"name": "🌟 Золотой Кольт",    "type": "weapon",   "attack_bonus": 65,  "diamonds_price": 100, "desc": "+65 к атаке (премиум)"},
     "titanium_vest": {"name": "⚙️ Титановый жилет",  "type": "armor",    "defense_bonus": 65, "diamonds_price": 100, "desc": "+65 к защите (премиум)"},
     # ── 10 новых стволов (мафия 90-х) ──────────────────────────────────
@@ -1841,7 +1848,8 @@ def build_battle_url(char: dict, battle: dict, boss: dict,
         "eh":  battle["boss_hp"],
         "emh": battle["boss_max_hp"],
         "ea":  boss["attack"],
-        "ed":  boss["defense"],        # новый: защита врага
+        "ed":  boss["defense"],
+        "wp":  weapon_id or "",        # id оружия для анимаций/звуков (fists если пусто)
     }
     # Отряд (наёмники + друзья)
     alive_party = [m for m in (party or battle.get("party", [])) if m.get("alive", True)]
