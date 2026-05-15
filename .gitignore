@@ -43,6 +43,7 @@ __pycache__/
 .idea/
 *.swp
 *~
+.claude/settings.local.json
 
 # === OS ===
 Thumbs.db
