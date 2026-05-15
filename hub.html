@@ -80,21 +80,26 @@ body {
   background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 
-/* ── WANTED indicator inside hero-card (top-right corner) ── */
-.hero-wanted {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+/* ── WANTED indicator inside hero-info (рядом с рангом) ── */
+.hero-meta-row {
   display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.hero-meta-row .hero-rank { margin-bottom: 0; }
+.hero-wanted {
+  display: inline-flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 5px 7px;
-  border-radius: 10px;
+  gap: 2px;
+  padding: 3px 7px;
+  border-radius: 8px;
   background: rgba(10, 10, 24, 0.55);
-  border: 1px solid #ffffff14;
+  border: 1px solid #ffffff18;
   cursor: pointer;
-  z-index: 3;
   transition: background .15s, border-color .15s, transform .15s;
+  line-height: 1;
 }
 .hero-wanted:hover, .hero-wanted:active {
   background: rgba(255, 255, 255, 0.08);
@@ -103,8 +108,8 @@ body {
 }
 .hero-wanted-row {
   display: flex;
-  gap: 2px;
-  font-size: 13px;
+  gap: 1px;
+  font-size: 11px;
   line-height: 1;
 }
 .hero-wanted-slot {
@@ -115,12 +120,12 @@ body {
 .hero-wanted-slot.active.cop {
   opacity: 1;
   filter: none;
-  text-shadow: 0 0 6px #ffd76b, 0 0 12px #e8c96e80;
+  text-shadow: 0 0 5px #ffd76b, 0 0 10px #e8c96e80;
 }
 .hero-wanted-slot.active.gang {
   opacity: 1;
   filter: none;
-  text-shadow: 0 0 6px #ff5050, 0 0 12px #ff404080;
+  text-shadow: 0 0 5px #ff5050, 0 0 10px #ff404080;
 }
 
 /* ── WANTED INFO modal ── */
@@ -185,8 +190,6 @@ body {
   cursor: pointer;
   margin-top: 4px;
 }
-.hero-info { padding-right: 56px; }
-
 /* ── AVATAR ── */
 .avatar-wrap {
   position: relative;
@@ -1135,6 +1138,22 @@ body.on-subpage .time-display-box { display: none !important; }
 </div>
 </div>
 
+<!-- WANTED INFO MODAL -->
+<div class="wanted-modal-bg" id="wantedInfoModal" onclick="if(event.target===this)closeWantedInfo()">
+  <div class="wanted-modal-box">
+    <div class="wanted-modal-title">⚠️ Кто тебя ищет</div>
+    <div class="wanted-modal-section">
+      <div class="wanted-modal-row">🚓 Розыск копов <span class="count" id="wanted-modal-cops">0/3</span></div>
+      <div class="wanted-modal-desc">Чем больше звёзд — тем активнее ищет полиция. На 3 звёздах попадаешь в тюрьму. Снижается со временем, либо избавься от компромата.</div>
+    </div>
+    <div class="wanted-modal-section">
+      <div class="wanted-modal-row">👊 Розыск банд <span class="count" id="wanted-modal-gangs">0/3</span></div>
+      <div class="wanted-modal-desc">Соперничающие банды держат на тебя зуб. На 3 кулаках готовь к серьёзному наезду — отнять могут часть денег. Снижается со временем.</div>
+    </div>
+    <button class="wanted-modal-close" onclick="closeWantedInfo()">Закрыть</button>
+  </div>
+</div>
+
 <div id="page-main">
 
 <!-- TOP BAR -->
@@ -1154,7 +1173,13 @@ body.on-subpage .time-display-box { display: none !important; }
   </div>
   <div class="hero-info">
     <div class="hero-name" id="hero-name">—</div>
-    <div class="hero-rank" id="hero-rank">Ранг 1</div>
+    <div class="hero-meta-row">
+      <div class="hero-rank" id="hero-rank">Ранг 1</div>
+      <div class="hero-wanted" id="hero-wanted-box" onclick="event.stopPropagation(); openWantedInfo();" title="Кто тебя ищет">
+        <div class="hero-wanted-row" id="hero-wanted-cops"></div>
+        <div class="hero-wanted-row" id="hero-wanted-gangs"></div>
+      </div>
+    </div>
 
     <div class="stat-row">
       <div class="stat-label"><span>❤️ Здоровье</span><span id="hp-val">—</span></div>
@@ -1658,25 +1683,39 @@ function renderStatusBar(){
     }
     sb.appendChild(chip);
   }
-  // Wanted by cops
-  if ((DATA.wanted || 0) > 0) {
-    const chip = document.createElement('div');
-    chip.className = 'status-chip active';
-    chip.style.color = '#ff4444';
-    chip.style.borderColor = '#ff444444';
-    chip.textContent = `🚓 Розыск копов: ${'⭐'.repeat(DATA.wanted)}/3`;
-    sb.appendChild(chip);
-  }
-  // Wanted by gangs
-  if ((DATA.wanted_g || 0) > 0) {
-    const chip = document.createElement('div');
-    chip.className = 'status-chip active';
-    chip.style.color = '#ff8888';
-    chip.style.borderColor = '#ff888844';
-    chip.textContent = `👊 Розыск банд: ${'👊'.repeat(DATA.wanted_g)}/3`;
-    sb.appendChild(chip);
-  }
+  // Розыск перенесён в карточку героя (правый верхний угол) — см. renderHeroWanted()
+  renderHeroWanted();
 }
+
+// ── WANTED indicator next to hero-rank ────────────────────────────────
+function renderHeroWanted() {
+  const copsRow  = document.getElementById('hero-wanted-cops');
+  const gangsRow = document.getElementById('hero-wanted-gangs');
+  if (!copsRow || !gangsRow) return;
+  const w  = Math.max(0, Math.min(3, DATA.wanted   || 0));
+  const wg = Math.max(0, Math.min(3, DATA.wanted_g || 0));
+  let copsHtml = '', gangsHtml = '';
+  for (let i = 0; i < 3; i++) {
+    copsHtml  += `<span class="hero-wanted-slot${i < w  ? ' active cop'  : ''}">⭐</span>`;
+    gangsHtml += `<span class="hero-wanted-slot${i < wg ? ' active gang' : ''}">👊</span>`;
+  }
+  copsRow.innerHTML  = copsHtml;
+  gangsRow.innerHTML = gangsHtml;
+}
+function openWantedInfo() {
+  const m = document.getElementById('wantedInfoModal');
+  if (!m) return;
+  const cEl = document.getElementById('wanted-modal-cops');
+  const gEl = document.getElementById('wanted-modal-gangs');
+  if (cEl) cEl.textContent = `${DATA.wanted   || 0}/3`;
+  if (gEl) gEl.textContent = `${DATA.wanted_g || 0}/3`;
+  m.classList.add('open');
+}
+function closeWantedInfo() {
+  const m = document.getElementById('wantedInfoModal');
+  if (m) m.classList.remove('open');
+}
+
 // Initial render
 renderStatusBar();
 

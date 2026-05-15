@@ -642,6 +642,8 @@ async def init_db():
             ("look_json", "TEXT DEFAULT NULL"),
             # Кулдауны работ: JSON {job_id: until_ts}
             ("job_cooldowns_json", "TEXT DEFAULT NULL"),
+            # Кулдаун событий мини-аппа (события по игровому времени)
+            ("last_hub_event_at", "INTEGER DEFAULT 0"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -2840,6 +2842,157 @@ STREET_EVENTS = [
         "fn": "protection_fee",
     },
 ]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# СОБЫТИЯ МИНИ-АППА (привязаны к игровому времени суток)
+# Триггерятся клиентом каждый игровой час (= 1 реальная минута), показываются
+# в модальном окне в hub.html. Параллельная система к STREET_EVENTS.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+HUB_EVENT_COOLDOWN  = 3 * 60   # 3 минуты реального времени = 3 игровых часа между событиями
+HUB_EVENT_CHANCE    = 0.30     # шанс события на тик (если кулдаун прошёл и не в бою)
+
+HUB_EVENTS = [
+    # ── УТРО (7) — позитив, восстановление ──────────────────────────────
+    {"id": "morn_jog",            "phases": ["morning"], "weight": 10,
+     "text": "🏃 Утренняя пробежка по району. Свежий воздух освежает голову.",
+     "effects": {"energy": +15}},
+    {"id": "morn_coffee",         "phases": ["morning"], "weight": 10,
+     "text": "☕ Зашёл за кофе в любимую кофейню — старый знакомый налил со скидкой.",
+     "effects": {"energy": +10, "cash": -30}},
+    {"id": "morn_diner",          "phases": ["morning"], "weight": 8,
+     "text": "🍳 Завтрак в «семейной» забегаловке. Старшие угостили — отказывать нельзя.",
+     "effects": {"energy": +20, "hp": +10}},
+    {"id": "morn_girl_smile",     "phases": ["morning"], "weight": 8,
+     "text": "💃 Красивая девушка улыбнулась тебе на остановке. Хороший знак на день.",
+     "effects": {"energy": +15}},
+    {"id": "morn_help_grandma",   "phases": ["morning"], "weight": 6,
+     "text": "👵 Соседская бабушка попросила донести сумки. Сунула двадцатку «на чай».",
+     "effects": {"energy": +5, "cash": +20}},
+    {"id": "morn_found_cash",     "phases": ["morning"], "weight": 7,
+     "text": "💵 Утром нашёл сотню баксов на парковке. Кто-то обронил — теперь твои.",
+     "effects": {"cash": +100}},
+    {"id": "morn_friend_call",    "phases": ["morning"], "weight": 6,
+     "text": "📞 Старый кореш звонит. Поздравляет, что ты выжил после последнего дела.",
+     "effects": {"energy": +10}},
+
+    # ── ДЕНЬ (8) — работа, сделки, бытовуха ─────────────────────────────
+    {"id": "day_errand_boss",     "phases": ["day"], "weight": 10,
+     "text": "📦 Старший дал поручение — передать «привет» паре парней. Справился чисто.",
+     "effects": {"cash": +200, "energy": -10}},
+    {"id": "day_sold_car",        "phases": ["day"], "weight": 8,
+     "text": "🚗 Удачно толкнул б/у тачку через знакомого барыгу. Старая, но рабочая.",
+     "effects": {"cash": +500}},
+    {"id": "day_cards_win",       "phases": ["day"], "weight": 9,
+     "text": "🃏 Сыграл в карты на районе. Залётный лоханулся — забрал банк.",
+     "effects": {"cash": +300}},
+    {"id": "day_cards_lose",      "phases": ["day"], "weight": 8,
+     "text": "🃏 Сыграл в карты на районе. Проигрался — настроение ниже плинтуса.",
+     "effects": {"cash": -200, "energy": -10}},
+    {"id": "day_stand_by_boss",   "phases": ["day"], "weight": 9,
+     "text": "🤵 Босс позвал на стрелку — постоял рядом с серьёзным лицом. Хватило.",
+     "effects": {"cash": +150, "energy": -5}},
+    {"id": "day_shawarma",        "phases": ["day"], "weight": 7,
+     "text": "🌯 Купил шаурму и газировку в ларьке. Жизнь — простая штука.",
+     "effects": {"energy": +5, "cash": -40}},
+    {"id": "day_traffic_late",    "phases": ["day"], "weight": 6,
+     "text": "🚦 Пробка задержала на сделку — старший высказал тебе всё, что думает.",
+     "effects": {"energy": -10}},
+    {"id": "day_help_move",       "phases": ["day"], "weight": 7,
+     "text": "📦 Помог другу с переездом — заплатил по факту, без лишних разговоров.",
+     "effects": {"cash": +250, "energy": -15}},
+
+    # ── ВЕЧЕР (7) — конфликты, мелкая криминальщина, mixed ──────────────
+    {"id": "even_thug_attack",    "phases": ["evening"], "weight": 9,
+     "text": "🥊 Налетел гопник в подворотне — нанёс пару увечий и скрылся. Не успел догнать.",
+     "effects": {"hp": -30}},
+    {"id": "even_bar_girl",       "phases": ["evening"], "weight": 8,
+     "text": "💋 В кабаке познакомился с девчонкой — провели приятный вечер вдвоём.",
+     "effects": {"energy": +20}},
+    {"id": "even_market_scam",    "phases": ["evening"], "weight": 7,
+     "text": "🤝 На рынке тебя пытались обуть на сдачу — разобрался по-своему.",
+     "effects": {"cash": +100}},
+    {"id": "even_drunk_fight",    "phases": ["evening"], "weight": 8,
+     "text": "🍺 Сцепился с пьяным наезжающим — выпотрошил его кошелёк за труды.",
+     "effects": {"hp": -15, "cash": +50}},
+    {"id": "even_dark_deal",      "phases": ["evening"], "weight": 7,
+     "text": "🤫 Старший подкинул левый заработок — встреча с нужным человеком прошла гладко.",
+     "effects": {"cash": +400}},
+    {"id": "even_crossfire",      "phases": ["evening"], "weight": 5,
+     "text": "💥 Случайно угодил под перестрелку соседних банд. Поймал шальную пулю в плечо.",
+     "effects": {"hp": -40}},
+    {"id": "even_rooftop",        "phases": ["evening"], "weight": 7,
+     "text": "🌃 Спокойный вечер на крыше — почитал газету, выпил холодного пива.",
+     "effects": {"energy": +15}},
+
+    # ── НОЧЬ (8) — опасное время, криминальщина, мафия ──────────────────
+    {"id": "night_bounty_hunters","phases": ["night"], "weight": 7,
+     "text": "🎯 Ночные охотники за головами выследили — пришлось отбиваться. Узнали лицо.",
+     "effects": {"hp": -50, "wanted_g": +1}},
+    {"id": "night_camera_caught", "phases": ["night"], "weight": 8,
+     "text": "📹 Камеры у банка засекли тебя после полночного «дела». Копы зашевелились.",
+     "effects": {"wanted": +1}},
+    {"id": "night_parking_gang",  "phases": ["night"], "weight": 7,
+     "text": "🚙 На ночной парковке нарвался на агрессивную тусовку — еле унёс ноги.",
+     "effects": {"hp": -25}},
+    {"id": "night_kill_bootlegger","phases": ["night"], "weight": 6,
+     "text": "🍸 Помог завалить конкурирующего бутлегера — старшие в восторге, чужая банда — нет.",
+     "effects": {"cash": +800, "wanted_g": +1}},
+    {"id": "night_found_briefcase","phases": ["night"], "weight": 6,
+     "text": "💼 Глубокой ночью нашёл оставленный кейс с деньгами — забрал без вопросов.",
+     "effects": {"cash": +500}},
+    {"id": "night_mugged",        "phases": ["night"], "weight": 7,
+     "text": "🔪 Тебя загнали в подворотню — отняли кэш и пробили голову. Адрес не помнишь.",
+     "effects": {"hp": -20, "cash": -300}},
+    {"id": "night_safe_sleep",    "phases": ["night"], "weight": 8,
+     "text": "🛏 Ночь прошла спокойно — выспался в безопасной квартире у знакомой.",
+     "effects": {"energy": +25, "hp": +10}},
+    {"id": "night_protection_run","phases": ["night"], "weight": 6,
+     "text": "💰 Прошёл «по точкам» — собрал крышу с торговцев. Обычная рутина.",
+     "effects": {"cash": +600, "energy": -10}},
+]
+
+# События после боя — отдельный пул, триггерится при завершении боя
+HUB_POST_BATTLE_EVENTS = [
+    {"id": "after_cop_check",     "weight": 5,
+     "text": "🚓 После шума копы начали проверку района — ты под подозрением.",
+     "effects": {"wanted": +1}},
+    {"id": "after_gang_complaint","weight": 5,
+     "text": "👊 Какой-то парень с татуировками пожаловался на тебя своим. Жди ответа.",
+     "effects": {"wanted_g": +1}},
+    {"id": "after_witness_seen",  "weight": 3,
+     "text": "👁 Свидетели заметили тебя у места происшествия. Пошли слухи.",
+     "effects": {"wanted": +1}},
+]
+
+
+def pick_hub_event(phase: str):
+    """Выбирает случайное событие из HUB_EVENTS по фазе суток (взвешенно)."""
+    pool = [e for e in HUB_EVENTS if phase in e["phases"]]
+    if not pool:
+        return None
+    total = sum(e["weight"] for e in pool)
+    r = random.uniform(0, total)
+    acc = 0
+    for e in pool:
+        acc += e["weight"]
+        if r <= acc:
+            return e
+    return pool[-1]
+
+
+def pick_post_battle_event():
+    """Выбирает случайное событие из HUB_POST_BATTLE_EVENTS (взвешенно)."""
+    pool = HUB_POST_BATTLE_EVENTS
+    total = sum(e["weight"] for e in pool)
+    r = random.uniform(0, total)
+    acc = 0
+    for e in pool:
+        acc += e["weight"]
+        if r <= acc:
+            return e
+    return pool[-1]
 
 
 async def try_street_event(update, context, loc_id: str) -> bool:
@@ -9084,6 +9237,128 @@ async def _coop_http_app():
         await update_character(uid, job=None, job_started=None, job_last_paid=None)
         return await _cors(web.json_response({'ok': True}))
 
+    async def h_event_tick(req):
+        """Тик игрового времени из мини-аппа. Возможно тригерит случайное событие."""
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        phase = str(b.get('phase', 'day'))
+        if phase not in ('morning', 'day', 'evening', 'night'):
+            phase = 'day'
+        post_battle = bool(b.get('post_battle', False))
+
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+
+        now = int(time.time())
+
+        # В бою — не тригерим (исключение: post_battle вызов сразу после боя)
+        if not post_battle:
+            async with aiosqlite.connect(DB_PATH) as db:
+                async with db.execute(
+                    "SELECT 1 FROM active_battles WHERE telegram_id=?", (uid,)
+                ) as cur:
+                    in_battle = await cur.fetchone()
+            if in_battle:
+                return await _cors(web.json_response({'ok': True, 'event': None, 'reason': 'in_battle'}))
+
+        # В тюрьме / плену — не тригерим
+        if (char.get('jail_until') or 0) > now:
+            return await _cors(web.json_response({'ok': True, 'event': None, 'reason': 'in_jail'}))
+        if (char.get('captivity_until') or 0) > now:
+            return await _cors(web.json_response({'ok': True, 'event': None, 'reason': 'in_captivity'}))
+
+        # Кулдаун между событиями (обычные)
+        if not post_battle:
+            last_at = char.get('last_hub_event_at') or 0
+            if now - last_at < HUB_EVENT_COOLDOWN:
+                return await _cors(web.json_response({'ok': True, 'event': None, 'reason': 'cooldown'}))
+            # Кубик шанса
+            if random.random() > HUB_EVENT_CHANCE:
+                return await _cors(web.json_response({'ok': True, 'event': None, 'reason': 'no_roll'}))
+            ev = pick_hub_event(phase)
+        else:
+            # После боя — отдельный шанс срабатывания и отдельный пул
+            if random.random() > 0.35:
+                return await _cors(web.json_response({'ok': True, 'event': None, 'reason': 'post_battle_no_roll'}))
+            ev = pick_post_battle_event()
+
+        if not ev:
+            return await _cors(web.json_response({'ok': True, 'event': None, 'reason': 'no_event'}))
+
+        # Применяем эффекты
+        effects    = ev.get('effects', {})
+        cur_hp     = max(0, char.get('hp')           or 0)
+        max_hp     = char.get('max_hp')              or 100
+        cur_mp     = max(0, char.get('mana')         or 0)
+        max_mp     = char.get('max_mana')            or 50
+        cur_cash   = char.get('cash')                or 0
+        cur_w_cop  = char.get('wanted_stars')        or 0
+        cur_w_gang = char.get('wanted_gangs')        or 0
+
+        d_hp    = int(effects.get('hp',       0))
+        d_en    = int(effects.get('energy',   0))
+        d_cash  = int(effects.get('cash',     0))
+        d_w_c   = int(effects.get('wanted',   0))
+        d_w_g   = int(effects.get('wanted_g', 0))
+
+        new_hp   = max(1 if cur_hp > 0 and d_hp < 0 else 0,
+                       min(max_hp, cur_hp + d_hp))
+        # если игрок и так был мертв (hp=0), не трогаем; иначе минимум 1
+        if cur_hp <= 0:
+            new_hp = cur_hp
+        new_mp   = max(0, min(max_mp, cur_mp + d_en))
+        new_cash = max(0, cur_cash + d_cash)
+        new_w_c  = max(0, min(3, cur_w_cop  + d_w_c))
+        new_w_g  = max(0, min(3, cur_w_gang + d_w_g))
+
+        updates = {
+            'last_hub_event_at': now,
+            'hp':                new_hp,
+            'mana':              new_mp,
+            'cash':              new_cash,
+            'wanted_stars':      new_w_c,
+            'wanted_gangs':      new_w_g,
+        }
+
+        jailed   = False
+        captured = False
+
+        # 3 звезды копов → тюрьма (если стало 3 от события)
+        if new_w_c >= 3 and cur_w_cop < 3:
+            updates['jail_until'] = now + JAIL_DURATION
+            updates['jail_count'] = (char.get('jail_count') or 0) + 1
+            jailed = True
+        # 3 кулака банд → плен (если стало 3 от события)
+        if new_w_g >= 3 and cur_w_gang < 3:
+            updates['captivity_until'] = now + CAPTIVITY_DURATION
+            updates['captivity_count'] = (char.get('captivity_count') or 0) + 1
+            captured = True
+
+        await update_character(uid, **updates)
+
+        return await _cors(web.json_response({
+            'ok': True,
+            'event': {
+                'id':      ev['id'],
+                'text':    ev['text'],
+                'effects': {'hp': d_hp, 'energy': d_en, 'cash': d_cash,
+                            'wanted': d_w_c, 'wanted_g': d_w_g},
+            },
+            'state': {
+                'hp':       new_hp, 'mana':    new_mp, 'cash':    new_cash,
+                'wanted':   new_w_c, 'wanted_g': new_w_g,
+            },
+            'jailed':   jailed,
+            'captured': captured,
+        }))
+
     aio_app = web.Application()
     aio_app.router.add_route('OPTIONS', '/{path_info:.*}', h_options)
     aio_app.router.add_post('/coop/create',       h_create)
@@ -9098,6 +9373,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/job/{uid}/complete', h_job_complete)
     aio_app.router.add_post('/job/{uid}/collect',  h_job_collect)
     aio_app.router.add_get ('/job/{uid}/state',    h_job_state)
+    aio_app.router.add_post('/event/{uid}/tick',   h_event_tick)
 
     from aiohttp import web as _web
     runner = _web.AppRunner(aio_app)
