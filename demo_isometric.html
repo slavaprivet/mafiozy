@@ -52,8 +52,8 @@
     min-width: 240px;
   }
   #hudAvatar {
-    width: 64px; height: 64px;
-    border-radius: 10px;
+    width: 88px; height: 88px;
+    border-radius: 12px;
     background: radial-gradient(circle at 50% 30%, #2a3142 0%, #14181f 100%);
     border: 2px solid #4a5468;
     box-shadow: inset 0 0 8px rgba(0,0,0,.6);
@@ -1411,7 +1411,7 @@ function drawCharacter(obj, isPlayer) {
       }
     } else {
       // стрелковое — детальная отрисовка по типу оружия
-      const gunScale = (obj.isBoss ? 1.9 : 1.45) * (TS / 60);
+      const gunScale = (obj.isBoss ? 1.3 : 1.0) * (TS / 60);
       drawFirearm(wepKey, ex, ey, sx, sy, gunScale);
 
       // Вторая рука для двуручного оружия — берётся за цевьё
@@ -1482,18 +1482,54 @@ function drawBullet(b) {
 function drawMuzzle(m) {
   const p = w2s(m.r, m.c);
   const t = m.life / m.max;
-  const size = TS * 0.35 * t;
-  ctx.fillStyle = 'rgba(255,220,120,' + (t * 0.9) + ')';
+  const cx = p.x, cy = p.y - isoH(0.55);
+  // 1. внешнее яркое свечение — мягкий оранжевый ореол
+  ctx.save();
+  ctx.shadowColor = '#ff9020';
+  ctx.shadowBlur = 30 * t;
+  ctx.fillStyle = 'rgba(255,150,40,' + (t * 0.55) + ')';
   ctx.beginPath();
-  ctx.arc(p.x, p.y - isoH(0.55), size, 0, Math.PI*2);
+  ctx.arc(cx, cy, TS * 0.55 * t, 0, Math.PI*2);
   ctx.fill();
-  ctx.shadowColor = '#ffd76b';
-  ctx.shadowBlur = 20 * t;
-  ctx.fillStyle = 'rgba(255,255,255,' + (t * 0.7) + ')';
+  ctx.restore();
+
+  // 2. лучи-звёздочка от дула (4 луча) — по направлению ствола
+  const angle = m.angle != null ? m.angle : 0;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.fillStyle = 'rgba(255,230,140,' + (t * 0.85) + ')';
+  // длинный луч вперёд
   ctx.beginPath();
-  ctx.arc(p.x, p.y - isoH(0.55), size * 0.5, 0, Math.PI*2);
+  ctx.moveTo(0, 0);
+  ctx.lineTo(TS * 0.7 * t, -TS * 0.06 * t);
+  ctx.lineTo(TS * 0.95 * t, 0);
+  ctx.lineTo(TS * 0.7 * t, TS * 0.06 * t);
+  ctx.closePath();
   ctx.fill();
-  ctx.shadowBlur = 0;
+  // боковые искры
+  ctx.fillStyle = 'rgba(255,200,100,' + (t * 0.7) + ')';
+  for (let i = 0; i < 3; i++) {
+    const a = (i - 1) * 0.6;
+    const len = TS * (0.25 + Math.random() * 0.15) * t;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len * 0.4);
+    ctx.lineTo(0, 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 3. ярко-белое ядро в центре дула
+  ctx.save();
+  ctx.shadowColor = '#fff';
+  ctx.shadowBlur = 18 * t;
+  ctx.fillStyle = 'rgba(255,255,240,' + (t * 0.95) + ')';
+  ctx.beginPath();
+  ctx.arc(cx, cy, TS * 0.18 * t, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawGrenade(g) {
@@ -2024,8 +2060,8 @@ function fireWeapon(p, weaponKey, team) {
         const a = angle + (Math.random() - 0.5) * spread * 2;
         spawnOne(a);
       }
-      // вспышка дула — там же где вылетает пуля
-      muzzles.push({ r: p.r + Math.sin(angle)*muzD, c: p.c + Math.cos(angle)*muzD, life: 80, max: 80 });
+      // вспышка дула — там же где вылетает пуля + угол для лучей
+      muzzles.push({ r: p.r + Math.sin(angle)*muzD, c: p.c + Math.cos(angle)*muzD, angle: angle, life: 90, max: 90 });
     }, b * burstInt);
   }
 }
@@ -2405,8 +2441,8 @@ function renderHudAvatar(t) {
   hudAvatarCtx.fillRect(0, 0, W, H);
   // получаем спрайт игрока и рисуем с лёгкой "идлой" + bob если в движении
   const sprite = getSprite(player.look);
-  // вписываем по высоте (спрайт 110:200, ratio 0.55)
-  const sh = H * 0.92;
+  // вписываем по высоте (спрайт 110:200, ratio 0.55) — крупно, занимает почти весь канвас
+  const sh = H * 1.0;
   const sw = sh * 0.55;
   const idleBob = Math.sin(t * 0.003) * 1.5;
   const moveBob = player.moving ? Math.sin(player.walkPhase * 1.2) * 3.5 : 0;
