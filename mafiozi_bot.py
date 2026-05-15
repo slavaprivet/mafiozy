@@ -702,6 +702,21 @@ async def init_db():
                 last_collected REAL DEFAULT 0
             )
         """)
+        # Бизнесы игроков (пассивный доход)
+        # status: 'ok' | 'blocked' | 'burned'
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS player_businesses (
+                telegram_id  INTEGER NOT NULL,
+                biz_id       TEXT    NOT NULL,
+                bought_at    INTEGER NOT NULL,
+                last_collect INTEGER NOT NULL,
+                status       TEXT    DEFAULT 'ok',
+                blocked_until INTEGER DEFAULT 0,
+                last_event_at INTEGER DEFAULT 0,
+                pending_notice TEXT DEFAULT NULL,
+                PRIMARY KEY (telegram_id, biz_id)
+            )
+        """)
         await db.execute("""
             CREATE TABLE IF NOT EXISTS gang_members (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2952,6 +2967,102 @@ HUB_EVENTS = [
      "text": "💰 Прошёл «по точкам» — собрал крышу с торговцев. Обычная рутина.",
      "effects": {"cash": +600, "energy": -10}},
 ]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# БИЗНЕСЫ (пассивный доход, мафиозный стиль)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+BIZ_INCOME_PERIOD = 24 * 3600  # сутки = одна полная порция дохода
+BIZ_EVENT_CHANCE  = 0.20       # шанс события на бизнес при сборе (если не на кулдауне)
+BIZ_EVENT_COOLDOWN = 6 * 3600  # 6 часов между событиями на одном бизнесе
+
+# id, name, emoji, price, daily_min, daily_max, desc
+BUSINESSES = [
+    {"id": "coffee",     "emoji": "☕", "name": "Кофейня «У Дона»",
+     "price":   3000, "daily_min":  150, "daily_max":  200,
+     "desc": "Тихая кофейня на углу. Прикрытие для встреч и стабильный кэш."},
+    {"id": "carwash",    "emoji": "🚗", "name": "Автомойка",
+     "price":   5000, "daily_min":  220, "daily_max":  300,
+     "desc": "Удобная схема для отмыва налички. Машины моют, бабки трутся."},
+    {"id": "barbershop", "emoji": "💈", "name": "Парикмахерская",
+     "price":   7500, "daily_min":  300, "daily_max":  400,
+     "desc": "Классика жанра. Здесь все «свои» договариваются."},
+    {"id": "pizza",      "emoji": "🍕", "name": "Пиццерия",
+     "price":  12000, "daily_min":  450, "daily_max":  600,
+     "desc": "Доставка пиццы — отличная легенда для перевозок чего угодно."},
+    {"id": "garage",     "emoji": "🔧", "name": "Гараж-СТО",
+     "price":  18000, "daily_min":  650, "daily_max":  900,
+     "desc": "Ремонтируем тачки, варим номера, шлифуем VIN. Спрос есть."},
+    {"id": "bar",        "emoji": "🍸", "name": "Бар «Чёрная вдова»",
+     "price":  28000, "daily_min": 1000, "daily_max": 1400,
+     "desc": "Ночной бар. Алкоголь, музыка, сделки за столиком в углу."},
+    {"id": "club",       "emoji": "🎰", "name": "Подпольный клуб",
+     "price":  45000, "daily_min": 1600, "daily_max": 2200,
+     "desc": "Карты, рулетка, ставки. Доходно, но налоговая чует."},
+    {"id": "warehouse",  "emoji": "📦", "name": "Склад",
+     "price":  70000, "daily_min": 2400, "daily_max": 3300,
+     "desc": "Большой склад на окраине. Хранение «чувствительного» груза."},
+    {"id": "casino",     "emoji": "🎲", "name": "Казино",
+     "price": 120000, "daily_min": 4000, "daily_max": 5500,
+     "desc": "Своё казино — мечта каждого. Высокий доход, высокий риск."},
+    {"id": "port",       "emoji": "🚢", "name": "Доля в порту",
+     "price": 200000, "daily_min": 6500, "daily_max": 9000,
+     "desc": "Купил долю в порту. Контейнеры идут — деньги капают."},
+]
+
+# События по бизнесам — срабатывают редко при сборе дохода
+BUSINESS_EVENTS = [
+    {"id": "biz_tax_audit",    "weight": 8,
+     "text": "📋 Налоговая накрыла бизнес — забрали 20% выручки.",
+     "kind": "income_penalty", "value": 0.20},
+    {"id": "biz_protection",   "weight": 7,
+     "text": "💰 Заехали парни «за крышу» — отстегнул 15% выручки.",
+     "kind": "income_penalty", "value": 0.15},
+    {"id": "biz_thieves",      "weight": 6,
+     "text": "🦹 Воришки залезли ночью — украли часть кассы (10%).",
+     "kind": "income_penalty", "value": 0.10},
+    {"id": "biz_inspection",   "weight": 5,
+     "text": "🚓 Полицейская проверка — бизнес заблокирован на 12 часов.",
+     "kind": "block", "hours": 12},
+    {"id": "biz_health_dept",  "weight": 4,
+     "text": "🥼 Санэпидемстанция нашла нарушения — бизнес закрыт на сутки.",
+     "kind": "block", "hours": 24},
+    {"id": "biz_arson",        "weight": 2,
+     "text": "🔥 Конкуренты подожгли точку! Нужно восстанавливать.",
+     "kind": "burn"},
+    {"id": "biz_lucky_day",    "weight": 8,
+     "text": "✨ Удачный день — поток клиентов, выручка +30%.",
+     "kind": "income_bonus", "value": 0.30},
+    {"id": "biz_celebrity",    "weight": 6,
+     "text": "⭐ Знаменитость зашла — заведение в моде, выручка +20%.",
+     "kind": "income_bonus", "value": 0.20},
+    {"id": "biz_smooth",       "weight": 5,
+     "text": "🤝 Местный авторитет похвалил твой бизнес — все идёт гладко (+10%).",
+     "kind": "income_bonus", "value": 0.10},
+    {"id": "biz_gang_war",     "weight": 4,
+     "text": "💢 Стрельба у твоей точки — клиенты разбежались (-25% выручки).",
+     "kind": "income_penalty", "value": 0.25},
+]
+
+
+def get_business(biz_id: str):
+    for b in BUSINESSES:
+        if b["id"] == biz_id:
+            return b
+    return None
+
+
+def pick_business_event():
+    pool = BUSINESS_EVENTS
+    total = sum(e["weight"] for e in pool)
+    r = random.uniform(0, total)
+    acc = 0
+    for e in pool:
+        acc += e["weight"]
+        if r <= acc:
+            return e
+    return pool[-1]
+
 
 # События после боя — отдельный пул, триггерится при завершении боя
 HUB_POST_BATTLE_EVENTS = [
@@ -9237,6 +9348,379 @@ async def _coop_http_app():
         await update_character(uid, job=None, job_started=None, job_last_paid=None)
         return await _cors(web.json_response({'ok': True}))
 
+    # ── BUSINESSES (мой бизнес) ──────────────────────────────────────────
+    def _biz_pending_income(row, now: int):
+        """Считает накопленный доход бизнеса с момента last_collect."""
+        biz = get_business(row['biz_id'])
+        if not biz:
+            return 0
+        if row['status'] != 'ok':
+            return 0
+        # Если блокирован — доход начисляется только до момента блокировки... упрощаем:
+        # просто пока статус == 'ok' доход накапливается
+        if (row.get('blocked_until') or 0) > now:
+            return 0
+        elapsed = max(0, now - (row.get('last_collect') or now))
+        avg_per_day = (biz['daily_min'] + biz['daily_max']) / 2.0
+        per_sec = avg_per_day / 86400.0
+        return int(elapsed * per_sec)
+
+    async def h_biz_list(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        now = int(time.time())
+        owned = {}
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM player_businesses WHERE telegram_id=?", (uid,)
+            ) as cur:
+                rows = await cur.fetchall()
+        for r in rows:
+            d = dict(r)
+            d['pending'] = _biz_pending_income(d, now)
+            owned[d['biz_id']] = d
+        catalog = []
+        for b in BUSINESSES:
+            entry = dict(b)
+            entry['owned'] = b['id'] in owned
+            if entry['owned']:
+                o = owned[b['id']]
+                entry['status']        = o['status']
+                entry['blocked_until'] = o.get('blocked_until') or 0
+                entry['pending']       = o.get('pending') or 0
+                entry['notice']        = o.get('pending_notice')
+            catalog.append(entry)
+        return await _cors(web.json_response({
+            'ok': True,
+            'businesses': catalog,
+            'cash':       char.get('cash') or 0,
+        }))
+
+    async def h_biz_buy(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        biz_id = str(b.get('biz_id', ''))
+        biz = get_business(biz_id)
+        if not biz:
+            return await _cors(web.json_response({'ok': False, 'error': 'unknown biz'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        cash = char.get('cash') or 0
+        if cash < biz['price']:
+            return await _cors(web.json_response({'ok': False, 'error': 'no cash'}))
+        now = int(time.time())
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute(
+                "SELECT 1 FROM player_businesses WHERE telegram_id=? AND biz_id=?", (uid, biz_id)
+            ) as cur:
+                already = await cur.fetchone()
+            if already:
+                return await _cors(web.json_response({'ok': False, 'error': 'already owned'}))
+            await db.execute(
+                "INSERT INTO player_businesses (telegram_id, biz_id, bought_at, last_collect, status, blocked_until, last_event_at) "
+                "VALUES (?, ?, ?, ?, 'ok', 0, 0)",
+                (uid, biz_id, now, now)
+            )
+            await db.commit()
+        await update_character(uid, cash=cash - biz['price'])
+        return await _cors(web.json_response({'ok': True, 'cash': cash - biz['price']}))
+
+    async def h_biz_collect(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        biz_id_filter = str(b.get('biz_id', '')).strip() or None
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        now = int(time.time())
+        total = 0
+        events_fired = []
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            q = "SELECT * FROM player_businesses WHERE telegram_id=?"
+            args = [uid]
+            if biz_id_filter:
+                q += " AND biz_id=?"
+                args.append(biz_id_filter)
+            async with db.execute(q, tuple(args)) as cur:
+                rows = await cur.fetchall()
+            for r in rows:
+                row = dict(r)
+                biz = get_business(row['biz_id'])
+                if not biz:
+                    continue
+                if row['status'] != 'ok' or (row.get('blocked_until') or 0) > now:
+                    continue
+                pend = _biz_pending_income(row, now)
+                if pend <= 0:
+                    continue
+                # Шанс события
+                event = None
+                last_ev = row.get('last_event_at') or 0
+                if (now - last_ev) >= BIZ_EVENT_COOLDOWN and random.random() < BIZ_EVENT_CHANCE:
+                    event = pick_business_event()
+                # Применяем эффект события
+                pay = pend
+                new_status = row['status']
+                new_blocked_until = row.get('blocked_until') or 0
+                if event:
+                    kind = event['kind']
+                    if kind == 'income_penalty':
+                        pay = int(pay * (1.0 - float(event['value'])))
+                    elif kind == 'income_bonus':
+                        pay = int(pay * (1.0 + float(event['value'])))
+                    elif kind == 'block':
+                        new_status = 'blocked'
+                        new_blocked_until = now + int(event['hours']) * 3600
+                    elif kind == 'burn':
+                        new_status = 'burned'
+                        new_blocked_until = 0
+                    events_fired.append({
+                        'biz_id':   row['biz_id'],
+                        'biz_name': biz['name'],
+                        'biz_emoji': biz['emoji'],
+                        'text':     event['text'],
+                        'kind':     kind,
+                    })
+                total += max(0, pay)
+                await db.execute(
+                    "UPDATE player_businesses SET last_collect=?, status=?, blocked_until=?, "
+                    "last_event_at=?, pending_notice=NULL "
+                    "WHERE telegram_id=? AND biz_id=?",
+                    (now, new_status, new_blocked_until,
+                     now if event else last_ev,
+                     uid, row['biz_id'])
+                )
+            await db.commit()
+        if total > 0:
+            cur_cash = (char.get('cash') or 0) + total
+            await update_character(uid, cash=cur_cash)
+        else:
+            cur_cash = char.get('cash') or 0
+        return await _cors(web.json_response({
+            'ok':         True,
+            'collected':  total,
+            'cash':       cur_cash,
+            'events':     events_fired,
+        }))
+
+    async def h_biz_restore(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        biz_id = str(b.get('biz_id', ''))
+        biz = get_business(biz_id)
+        if not biz:
+            return await _cors(web.json_response({'ok': False, 'error': 'unknown biz'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        cost = int(biz['price'] * 0.12)  # 12% от стоимости
+        cash = char.get('cash') or 0
+        if cash < cost:
+            return await _cors(web.json_response({'ok': False, 'error': 'no cash', 'cost': cost}))
+        now = int(time.time())
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM player_businesses WHERE telegram_id=? AND biz_id=?",
+                (uid, biz_id)
+            ) as cur:
+                row = await cur.fetchone()
+            if not row:
+                return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
+            row = dict(row)
+            if row['status'] != 'burned':
+                return await _cors(web.json_response({'ok': False, 'error': 'not burned'}))
+            # Шанс восстановления (≈55%) — чтобы было «не каждый день получалось с первого раза»
+            success = random.random() < 0.55
+            if success:
+                await db.execute(
+                    "UPDATE player_businesses SET status='ok', blocked_until=0, last_collect=?, last_event_at=? "
+                    "WHERE telegram_id=? AND biz_id=?",
+                    (now, now, uid, biz_id)
+                )
+                await db.commit()
+            await update_character(uid, cash=cash - cost)
+        return await _cors(web.json_response({
+            'ok':       True,
+            'success':  success,
+            'cost':     cost,
+            'cash':     cash - cost,
+        }))
+
+    # ── ЧЁРНЫЙ РЫНОК и ИНВЕНТАРЬ (всё внутри мини-аппа) ──────────────────
+    async def h_shop_list(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        items = []
+        for iid, it in ITEMS.items():
+            t = it.get('type')
+            if t not in ('weapon', 'armor', 'potion'):
+                continue
+            items.append({
+                'id':              iid,
+                'name':            it.get('name'),
+                'type':            t,
+                'desc':            it.get('desc', ''),
+                'price':           it.get('price'),
+                'diamonds_price':  it.get('diamonds_price'),
+                'attack_bonus':    it.get('attack_bonus'),
+                'defense_bonus':   it.get('defense_bonus'),
+                'heal':            it.get('heal'),
+                'mana':            it.get('mana'),
+            })
+        return await _cors(web.json_response({
+            'ok':       True,
+            'items':    items,
+            'cash':     char.get('cash')     or 0,
+            'diamonds': char.get('diamonds') or 0,
+        }))
+
+    async def h_shop_buy(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        item_id = str(b.get('item_id', ''))
+        qty     = max(1, int(b.get('qty', 1)))
+        it      = ITEMS.get(item_id)
+        if not it:
+            return await _cors(web.json_response({'ok': False, 'error': 'unknown item'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        cash     = char.get('cash')     or 0
+        diamonds = char.get('diamonds') or 0
+        price_c  = it.get('price')
+        price_d  = it.get('diamonds_price')
+        # Оружие/броню больше 1 не покупаем
+        if it.get('type') in ('weapon', 'armor'):
+            qty = 1
+        if price_d:
+            cost = price_d * qty
+            if diamonds < cost:
+                return await _cors(web.json_response({'ok': False, 'error': 'no diamonds'}))
+            await update_character(uid, diamonds=diamonds - cost)
+        elif price_c:
+            cost = price_c * qty
+            if cash < cost:
+                return await _cors(web.json_response({'ok': False, 'error': 'no cash'}))
+            await update_character(uid, cash=cash - cost)
+        else:
+            return await _cors(web.json_response({'ok': False, 'error': 'not for sale'}))
+        for _ in range(qty):
+            await add_item(uid, item_id)
+        # Обновлённый игрок
+        char2 = await get_character(uid)
+        return await _cors(web.json_response({
+            'ok':       True,
+            'cash':     char2.get('cash')     or 0,
+            'diamonds': char2.get('diamonds') or 0,
+        }))
+
+    async def h_inv_list(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        inv = await get_inventory(uid)
+        out = []
+        for iid, qty in (inv or {}).items():
+            it = ITEMS.get(iid)
+            if not it:
+                continue
+            out.append({
+                'id':            iid,
+                'name':          it.get('name'),
+                'type':          it.get('type'),
+                'qty':           qty,
+                'desc':          it.get('desc', ''),
+                'attack_bonus':  it.get('attack_bonus'),
+                'defense_bonus': it.get('defense_bonus'),
+                'heal':          it.get('heal'),
+                'mana':          it.get('mana'),
+            })
+        return await _cors(web.json_response({
+            'ok':            True,
+            'items':         out,
+            'equipped_weapon': char.get('weapon'),
+            'equipped_armor':  char.get('armor'),
+            'cash':            char.get('cash')     or 0,
+            'diamonds':        char.get('diamonds') or 0,
+        }))
+
+    async def h_inv_equip(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        item_id = str(b.get('item_id', '')) or None
+        slot    = str(b.get('slot', '')).strip()  # 'weapon' | 'armor' | '' (auto)
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        if item_id:
+            it = ITEMS.get(item_id)
+            if not it or it.get('type') not in ('weapon', 'armor'):
+                return await _cors(web.json_response({'ok': False, 'error': 'not equipable'}, status=400))
+            inv = await get_inventory(uid)
+            if not inv or (inv.get(item_id) or 0) <= 0:
+                return await _cors(web.json_response({'ok': False, 'error': 'not in inventory'}))
+            slot = it.get('type')  # weapon or armor
+            await update_character(uid, **{slot: item_id})
+        else:
+            # Снятие
+            if slot not in ('weapon', 'armor'):
+                return await _cors(web.json_response({'ok': False, 'error': 'bad slot'}, status=400))
+            await update_character(uid, **{slot: None})
+        char2 = await get_character(uid)
+        return await _cors(web.json_response({
+            'ok':              True,
+            'equipped_weapon': char2.get('weapon'),
+            'equipped_armor':  char2.get('armor'),
+        }))
+
     async def h_event_tick(req):
         """Тик игрового времени из мини-аппа. Возможно тригерит случайное событие."""
         try:
@@ -9374,6 +9858,14 @@ async def _coop_http_app():
     aio_app.router.add_post('/job/{uid}/collect',  h_job_collect)
     aio_app.router.add_get ('/job/{uid}/state',    h_job_state)
     aio_app.router.add_post('/event/{uid}/tick',   h_event_tick)
+    aio_app.router.add_get ('/biz/{uid}/list',     h_biz_list)
+    aio_app.router.add_post('/biz/{uid}/buy',      h_biz_buy)
+    aio_app.router.add_post('/biz/{uid}/collect',  h_biz_collect)
+    aio_app.router.add_post('/biz/{uid}/restore',  h_biz_restore)
+    aio_app.router.add_get ('/shop/{uid}/list',    h_shop_list)
+    aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
+    aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
+    aio_app.router.add_post('/inv/{uid}/equip',    h_inv_equip)
 
     from aiohttp import web as _web
     runner = _web.AppRunner(aio_app)

@@ -190,6 +190,313 @@ body {
   cursor: pointer;
   margin-top: 4px;
 }
+
+/* ── EVENT MODAL (случайные события по игровому времени) ── */
+.event-modal-bg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.78);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.event-modal-bg.open { display: flex; }
+.event-modal-box {
+  background: linear-gradient(135deg, #1a1a2e, #12122a);
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  max-width: 360px;
+  width: 100%;
+  color: #fff;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  animation: eventModalIn 0.25s cubic-bezier(.4,1.7,.5,1);
+}
+@keyframes eventModalIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+.event-modal-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--gold);
+  margin-bottom: 14px;
+  text-align: center;
+  letter-spacing: 1px;
+}
+.event-modal-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e8e8f0;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.event-modal-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.event-modal-effect {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid #ffffff14;
+}
+.event-modal-effect.pos { color: #5be58a; border-color: #5be58a44; }
+.event-modal-effect.neg { color: #ff7070; border-color: #ff707044; }
+.event-modal-warn {
+  text-align: center;
+  font-size: 13px;
+  color: #ff5050;
+  font-weight: 700;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: rgba(255,80,80,0.10);
+  border: 1px solid #ff505044;
+  border-radius: 8px;
+}
+.event-modal-warn.cap { color: #ffa040; background: rgba(255,160,64,0.10); border-color: #ffa04044; }
+.event-modal-close {
+  width: 100%;
+  padding: 12px;
+  background: var(--gold);
+  color: #1a1a2e;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* ── JOBS TABS (Работа / Мой бизнес) ── */
+.jobs-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg2);
+}
+.jobs-tab {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--bg3);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+}
+.jobs-tab.active {
+  background: linear-gradient(180deg, var(--gold) 0%, var(--gold2) 100%);
+  color: #1a1208;
+  border-color: var(--gold);
+}
+
+/* ── BUSINESS CARDS (Мой бизнес) ── */
+.biz-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  margin: 12px;
+  transition: border-color .2s;
+}
+.biz-card.owned   { border-color: var(--gold); }
+.biz-card.burned  { border-color: #ff5050; opacity: 0.9; }
+.biz-card.blocked { border-color: #ffa040; opacity: 0.9; }
+.biz-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.biz-emoji { font-size: 32px; line-height: 1; }
+.biz-info { flex: 1; min-width: 0; }
+.biz-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.biz-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.biz-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.biz-chip {
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+.biz-chip.income { color: var(--gold); border-color: #e8c96e44; }
+.biz-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+}
+.biz-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--gold), var(--gold2));
+  color: #1a1208;
+}
+.biz-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.biz-btn.collect { background: linear-gradient(180deg, #4caf50, #388e3c); color: #fff; }
+.biz-btn.restore { background: linear-gradient(180deg, #ff7043, #d84315); color: #fff; }
+.biz-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.biz-status-badge.ok      { background: rgba(76,175,80,0.20);  color: #4caf50; }
+.biz-status-badge.blocked { background: rgba(255,160,64,0.20); color: #ffa040; }
+.biz-status-badge.burned  { background: rgba(255,80,80,0.25);  color: #ff5050; }
+
+/* ── SHOP / INVENTORY ── */
+.shop-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  flex-wrap: wrap;
+}
+.shop-cash-chip { color: var(--gold); }
+.shop-cash-chip.dia { color: #6ee0ff; }
+.shop-card, .inv-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.shop-card.equipped, .inv-card.equipped {
+  border-color: var(--gold);
+  background: linear-gradient(135deg, var(--bg3) 0%, #2a2010 100%);
+}
+.shop-icon, .inv-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+  width: 42px;
+  text-align: center;
+}
+.shop-info, .inv-info { flex: 1; min-width: 0; }
+.shop-name, .inv-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 2px;
+}
+.shop-desc, .inv-desc {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.shop-stats, .inv-stats {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.shop-stat-chip {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.shop-stat-chip.atk { color: #ff7070; border-color: #ff707044; }
+.shop-stat-chip.def { color: #6ec5ff; border-color: #6ec5ff44; }
+.shop-stat-chip.heal{ color: #5be58a; border-color: #5be58a44; }
+.shop-actions, .inv-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.shop-btn, .inv-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--gold), var(--gold2));
+  color: #1a1208;
+  white-space: nowrap;
+  min-width: 90px;
+}
+.shop-btn:disabled, .inv-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.inv-btn.equip   { background: linear-gradient(180deg, #4caf50, #388e3c); color: #fff; }
+.inv-btn.unequip { background: linear-gradient(180deg, #6c7480, #4a5260); color: #fff; }
+.inv-qty-badge {
+  font-size: 11px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: var(--gold);
+}
+.equipped-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #1c1810, #1a1530);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+.equipped-row .label  { font-size: 11px; color: var(--muted); }
+.equipped-row .name   { font-size: 14px; color: var(--gold); font-weight: 700; }
+.equipped-row .empty  { color: var(--muted); font-style: italic; font-size: 13px; }
+
+/* Hero card — equipped weapon chip */
+.hero-equipped {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text);
+  background: rgba(232, 201, 110, 0.12);
+  border: 1px solid #e8c96e44;
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+.hero-equipped.empty { background: rgba(255,255,255,0.04); border-color: var(--border); color: var(--muted); }
 /* ── AVATAR ── */
 .avatar-wrap {
   position: relative;
@@ -1138,6 +1445,18 @@ body.on-subpage .time-display-box { display: none !important; }
 </div>
 </div>
 
+<!-- RANDOM EVENT MODAL -->
+<div class="event-modal-bg" id="eventModal" onclick="if(event.target===this)closeEventModal()">
+  <div class="event-modal-box">
+    <div class="event-modal-title">⚡ Случайное событие</div>
+    <div class="event-modal-text" id="event-modal-text">—</div>
+    <div class="event-modal-effects" id="event-modal-effects"></div>
+    <div class="event-modal-warn"     id="event-modal-jail" style="display:none">🚔 Тебя забрали в тюрьму!</div>
+    <div class="event-modal-warn cap" id="event-modal-cap"  style="display:none">⛓ Тебя взяли в плен банды!</div>
+    <button class="event-modal-close" onclick="closeEventModal()">Понял</button>
+  </div>
+</div>
+
 <!-- WANTED INFO MODAL -->
 <div class="wanted-modal-bg" id="wantedInfoModal" onclick="if(event.target===this)closeWantedInfo()">
   <div class="wanted-modal-box">
@@ -1201,6 +1520,9 @@ body.on-subpage .time-display-box { display: none !important; }
         <span class="val" id="dia-val">0</span>
         <span class="lbl">Брилл. <span style="font-size:9px;opacity:.6">+</span></span>
       </div>
+    </div>
+    <div class="hero-equipped empty" id="hero-equipped" onclick="event.stopPropagation(); nav('inventory')" title="Открыть инвентарь">
+      <span id="hero-equipped-text">🚫 Без оружия</span>
     </div>
   </div>
 </div>
@@ -1409,8 +1731,41 @@ body.on-subpage .time-display-box { display: none !important; }
     <button class="back-btn" onclick="goBack()">← Назад</button>
     <div class="subpage-title">💼 Работа</div>
   </div>
-  <div id="jobs-status"></div>
-  <div id="jobs-list" class="jobs-list"></div>
+  <div class="jobs-tabs">
+    <button class="jobs-tab active" data-tab="work" onclick="switchJobsTab('work')">💼 Работа</button>
+    <button class="jobs-tab"        data-tab="biz"  onclick="switchJobsTab('biz')">🏢 Мой бизнес</button>
+  </div>
+  <div id="jobs-tab-work">
+    <div id="jobs-status"></div>
+    <div id="jobs-list" class="jobs-list"></div>
+  </div>
+  <div id="jobs-tab-biz" style="display:none">
+    <div id="biz-cash" style="padding:8px 14px;color:var(--gold);font-weight:700"></div>
+    <div id="biz-list"></div>
+  </div>
+</div>
+
+<div id="page-shop" class="subpage" style="display:none">
+  <div class="subpage-header">
+    <button class="back-btn" onclick="goBack()">← Назад</button>
+    <div class="subpage-title">🏪 Чёрный рынок</div>
+  </div>
+  <div class="shop-tabs">
+    <button class="jobs-tab active" data-shop-tab="weapon" onclick="switchShopTab('weapon')">🔫 Оружие</button>
+    <button class="jobs-tab"        data-shop-tab="armor"  onclick="switchShopTab('armor')">🛡 Броня</button>
+    <button class="jobs-tab"        data-shop-tab="potion" onclick="switchShopTab('potion')">💊 Расходники</button>
+  </div>
+  <div id="shop-cash" style="padding:8px 14px;font-weight:700;display:flex;gap:14px"></div>
+  <div id="shop-list"></div>
+</div>
+
+<div id="page-inventory" class="subpage" style="display:none">
+  <div class="subpage-header">
+    <button class="back-btn" onclick="goBack()">← Назад</button>
+    <div class="subpage-title">🎒 Барахло</div>
+  </div>
+  <div id="inv-equipped" style="padding:10px 14px"></div>
+  <div id="inv-list"></div>
 </div>
 
 <div id="page-bot" class="subpage" style="display:none">
@@ -1687,6 +2042,62 @@ function renderStatusBar(){
   renderHeroWanted();
 }
 
+// ── EQUIPPED WEAPON chip in hero-card ─────────────────────────────────
+const WEAPON_DISPLAY = {
+  zatochka:    '🔪 Заточка',
+  nagan:       '🔫 Наган',
+  sawn_off:    '💥 Обрез',
+  uzi:         '🔫 Узи',
+  golden_colt: '🌟 Золотой Кольт',
+  revolver:    '🔫 Револьвер',
+  machete:     '🗡️ Мачете',
+  katana:      '⚔️ Катана',
+  spiked_bat:  '🏏 Бита с гвоздями',
+  deagle:      '🦅 Дезерт Игл',
+  sniper:      '🎯 Снайперка',
+  m16:         '💥 М-16',
+  rpg:         '🚀 Базука',
+  golden_uzi:  '🌟 Золотой Узи',
+  tommy_gun:   '🔥 Томми Ган',
+  knuckles:    '🥊 Кастет',
+  chain:       '⛓️ Цепь',
+  tt_pistol:   '🔫 Пистолет ТТ',
+  shotgun:     '💣 Дробовик',
+  ak74:        '🎯 АК-74',
+};
+function renderHeroEquipped() {
+  const el  = document.getElementById('hero-equipped');
+  const txt = document.getElementById('hero-equipped-text');
+  if (!el || !txt) return;
+  const w = DATA.weapon;
+  if (!w) {
+    el.classList.add('empty');
+    txt.textContent = '🚫 Без оружия';
+    return;
+  }
+  el.classList.remove('empty');
+  txt.textContent = DATA.weaponName || WEAPON_DISPLAY[w] || `🔫 ${w}`;
+}
+renderHeroEquipped();
+// При обновлении DATA через refreshHero (если есть) — тоже перерисовываем
+(function(){
+  if (typeof refreshHero === 'function') {
+    const _orig = refreshHero;
+    refreshHero = function(){ try { _orig.apply(this, arguments); } catch(e){} try { renderHeroEquipped(); } catch(e){} };
+  } else {
+    window.refreshHero = function(){
+      try { document.getElementById('hp-val').textContent  = `${DATA.hp} / ${DATA.maxhp}`; } catch(e){}
+      try { document.getElementById('mp-val').textContent  = `${DATA.mp} / ${DATA.maxmp}`; } catch(e){}
+      try { document.getElementById('cash-val').textContent = fmtNum(DATA.cash); } catch(e){}
+      try { document.getElementById('dia-val').textContent  = fmtNum(DATA.dia);  } catch(e){}
+      try { const hb=document.getElementById('hp-bar'); if(hb) hb.style.width = Math.min(100, DATA.hp/DATA.maxhp*100).toFixed(1)+'%'; } catch(e){}
+      try { const mb=document.getElementById('mp-bar'); if(mb) mb.style.width = Math.min(100, DATA.mp/DATA.maxmp*100).toFixed(1)+'%'; } catch(e){}
+      try { renderHeroEquipped(); } catch(e){}
+      try { if (typeof renderHeroWanted === 'function') renderHeroWanted(); } catch(e){}
+    };
+  }
+})();
+
 // ── WANTED indicator next to hero-rank ────────────────────────────────
 function renderHeroWanted() {
   const copsRow  = document.getElementById('hero-wanted-cops');
@@ -1727,10 +2138,8 @@ function fmtNum(n) {
 }
 
 // ── SPA Navigation ────────────────────────────────────────────────────
-const CLIENT_PAGES = ['explore', 'district', 'battle', 'character', 'coop', 'donate', 'jobs'];
+const CLIENT_PAGES = ['explore', 'district', 'battle', 'character', 'coop', 'donate', 'jobs', 'shop', 'inventory'];
 const BOT_PAGES = {
-  inventory:   { title: '🎒 Барахло',        icon: '🎒' },
-  shop:        { title: '🏪 Чёрный рынок',   icon: '🏪' },
   gang_menu:   { title: '🔱 Моя банда',       icon: '🔱' },
   diamonds:    { title: '💎 Бриллианты',      icon: '💎' },
   my_contacts: { title: '🤝 Мои связи',       icon: '🤝' },
@@ -1850,6 +2259,8 @@ function nav(dest, extra) {
     if (dest === 'character')  renderCharacter();
     if (dest === 'coop')       renderCoopLobby();
     if (dest === 'jobs')       renderJobs();
+    if (dest === 'shop')       renderShop();
+    if (dest === 'inventory')  renderInventory();
     document.getElementById('page-' + dest).style.display = '';
     document.body.classList.add('on-subpage');
   } else if (BOT_PAGES[dest]) {
@@ -4246,6 +4657,8 @@ function afterBattle(stayInDistrict, fromButton) {
       }
     }, 2500);
   }
+  // После боя — шанс получить событие «копы заинтересовались» / «банда жалуется»
+  setTimeout(()=>{ try { if (typeof eventTick === 'function') eventTick({postBattle: true}); } catch(e){} }, 1500);
 }
 
 // ── TOAST NOTIFICATION ────────────────────────────────────────────────
@@ -4800,34 +5213,547 @@ drawAvatar();
 </script>
 
 <script>
-let gameHour = 12;
+// Игровое время: 1 реальная секунда = 1 игровая минута → 60 секунд = 1 игровой час
+let gameMinutes   = 12 * 60;  // стартуем с 12:00
+let gameHour      = 12;       // оставляем для обратной совместимости с другими функциями
+let _lastEventHour = 12;      // следим за сменой часа для тика событий
 
 function updateGameClock(){
-const timeEl = document.getElementById('gameClock');
-const emojiEl = document.getElementById('timeEmoji');
+  const timeEl  = document.getElementById('gameClock');
+  const emojiEl = document.getElementById('timeEmoji');
+  const h = Math.floor(gameMinutes / 60) % 24;
+  const m = gameMinutes % 60;
+  gameHour = h;
 
-timeEl.innerText = String(gameHour).padStart(2,'0') + ':00';
+  if (timeEl)  timeEl.innerText  = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+  if (emojiEl) {
+    if      (h >= 6  && h < 12) emojiEl.innerText = '🌅';
+    else if (h >= 12 && h < 18) emojiEl.innerText = '☀️';
+    else if (h >= 18 && h < 22) emojiEl.innerText = '🌆';
+    else                        emojiEl.innerText = '🌙';
+  }
 
-if(gameHour >= 6 && gameHour < 12){
-emojiEl.innerText = '🌅';
-}else if(gameHour >= 12 && gameHour < 18){
-emojiEl.innerText = '☀️';
-}else if(gameHour >= 18 && gameHour < 22){
-emojiEl.innerText = '🌆';
-}else{
-emojiEl.innerText = '🌙';
+  // События — только при смене ЧАСА (не чаще раза в реальную минуту)
+  if (h !== _lastEventHour) {
+    _lastEventHour = h;
+    try { if (typeof eventTick === 'function') eventTick(); } catch(e) {}
+  }
+
+  gameMinutes = (gameMinutes + 1) % 1440;  // +1 игровая минута
 }
 
-gameHour++;
-if(gameHour >= 24) gameHour = 0;
-}
-
-setInterval(updateGameClock,60000);
+setInterval(updateGameClock, 1000);  // тик каждую реальную секунду
 updateGameClock();
 
 function toggleTimeInfo(){
 const modal = document.getElementById('timeInfoModal');
 modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+}
+
+// ── СЛУЧАЙНЫЕ СОБЫТИЯ (по тику игрового времени) ─────────────────────
+function getCurrentPhase() {
+  // Час, который ТОЛЬКО ЧТО показали (gameHour уже инкрементирован)
+  const h = (typeof gameHour === 'number' ? (gameHour - 1 + 24) % 24 : 12);
+  if (h >= 6  && h < 12) return 'morning';
+  if (h >= 12 && h < 18) return 'day';
+  if (h >= 18 && h < 22) return 'evening';
+  return 'night';
+}
+function isInBattleOrMinigame() {
+  // Бой (page-battle видим)
+  const pb = document.getElementById('page-battle');
+  if (pb && getComputedStyle(pb).display !== 'none') return true;
+  // Уже открыт модал события — не стакаем
+  const em = document.getElementById('eventModal');
+  if (em && em.classList.contains('open')) return true;
+  // Мини-апп открыт но мы на саб-странице с активной логикой?
+  // Покрываем основной кейс: если открыт оверлей результата боя.
+  const tr = document.getElementById('tac-result');
+  if (tr && getComputedStyle(tr).display === 'flex') return true;
+  return false;
+}
+function eventTick(opts) {
+  opts = opts || {};
+  if (!opts.postBattle && isInBattleOrMinigame()) return;
+  const api = (typeof DATA !== 'undefined' && DATA.api) ? DATA.api : '';
+  const uid = (typeof jobUidStr === 'function') ? jobUidStr() : '';
+  if (!api || !uid) return;
+  const phase = getCurrentPhase();
+  fetch(`${api}/event/${uid}/tick`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phase: phase, post_battle: !!opts.postBattle }),
+  }).then(r => r.json()).then(j => {
+    if (!j || !j.ok || !j.event) return;
+    showEventModal(j);
+    // Обновляем DATA из ответа сервера
+    if (j.state) {
+      if (typeof j.state.hp       === 'number') DATA.hp       = j.state.hp;
+      if (typeof j.state.mana     === 'number') DATA.mana     = j.state.mana;
+      if (typeof j.state.cash     === 'number') DATA.cash     = j.state.cash;
+      if (typeof j.state.wanted   === 'number') DATA.wanted   = j.state.wanted;
+      if (typeof j.state.wanted_g === 'number') DATA.wanted_g = j.state.wanted_g;
+    }
+    // Перерисовать видимые элементы
+    if (typeof refreshHero       === 'function') { try { refreshHero(); } catch(e){} }
+    if (typeof renderStatusBar   === 'function') { try { renderStatusBar(); } catch(e){} }
+    else if (typeof renderHeroWanted === 'function') { try { renderHeroWanted(); } catch(e){} }
+  }).catch(()=>{});
+}
+function showEventModal(j) {
+  const ev = j.event || {};
+  const txt = document.getElementById('event-modal-text');
+  const fx  = document.getElementById('event-modal-effects');
+  const jw  = document.getElementById('event-modal-jail');
+  const cw  = document.getElementById('event-modal-cap');
+  if (txt) txt.textContent = ev.text || '';
+  if (fx) {
+    fx.innerHTML = '';
+    const eff = ev.effects || {};
+    const map = [
+      { key: 'hp',       icon: '❤️' },
+      { key: 'energy',   icon: '⚡' },
+      { key: 'cash',     icon: '💵' },
+      { key: 'wanted',   icon: '⭐' },
+      { key: 'wanted_g', icon: '👊' },
+    ];
+    map.forEach(m => {
+      const v = eff[m.key];
+      if (!v || v === 0) return;
+      const sign = v > 0 ? '+' : '';
+      const cls  = v > 0 ? 'pos' : 'neg';
+      const span = document.createElement('span');
+      span.className = `event-modal-effect ${cls}`;
+      span.textContent = `${m.icon} ${sign}${v}`;
+      fx.appendChild(span);
+    });
+  }
+  if (jw) jw.style.display = j.jailed   ? '' : 'none';
+  if (cw) cw.style.display = j.captured ? '' : 'none';
+  const m = document.getElementById('eventModal');
+  if (m) m.classList.add('open');
+}
+function closeEventModal() {
+  const m = document.getElementById('eventModal');
+  if (m) m.classList.remove('open');
+}
+
+// ── МОЙ БИЗНЕС (вкладка Работа → Мой бизнес) ─────────────────────────
+let _bizCatalogCache = {};
+function switchJobsTab(tab) {
+  document.querySelectorAll('.jobs-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  const work = document.getElementById('jobs-tab-work');
+  const biz  = document.getElementById('jobs-tab-biz');
+  if (work) work.style.display = (tab === 'work') ? '' : 'none';
+  if (biz)  biz.style.display  = (tab === 'biz')  ? '' : 'none';
+  if (tab === 'biz') renderBusinesses();
+}
+function _fmtCash(n) { try { return Number(n||0).toLocaleString('ru-RU'); } catch(e) { return String(n||0); } }
+async function renderBusinesses() {
+  const api = (typeof DATA !== 'undefined' && DATA.api) ? DATA.api : '';
+  const uid = (typeof jobUidStr === 'function') ? jobUidStr() : '';
+  const list = document.getElementById('biz-list');
+  const cashEl = document.getElementById('biz-cash');
+  if (!list) return;
+  if (!api || !uid) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">⚠ Сервер не настроен</div>';
+    if (cashEl) cashEl.textContent = '';
+    return;
+  }
+  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Загрузка…</div>';
+  try {
+    const res = await fetch(`${api}/biz/${uid}/list`);
+    const j = await res.json();
+    if (!j.ok) throw new Error('list failed');
+    if (cashEl) cashEl.innerHTML = `💵 Наличные: $${_fmtCash(j.cash || 0)}`;
+    list.innerHTML = '';
+    (j.businesses || []).forEach(b => {
+      _bizCatalogCache[b.id] = b;
+      list.appendChild(renderBizCard(b));
+    });
+  } catch(e) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:#ff7070">Не удалось загрузить</div>';
+  }
+}
+function renderBizCard(b) {
+  const card = document.createElement('div');
+  let cls = 'biz-card';
+  if (b.owned) cls += ' owned';
+  if (b.status === 'burned')  cls += ' burned';
+  if (b.status === 'blocked') cls += ' blocked';
+  card.className = cls;
+  let badge = '';
+  if (b.owned) {
+    if (b.status === 'burned')      badge = '<span class="biz-status-badge burned">🔥 Сожжён</span>';
+    else if (b.status === 'blocked') {
+      const left = Math.max(0, (b.blocked_until || 0) - Math.floor(Date.now()/1000));
+      const h = Math.floor(left/3600), m = Math.floor((left%3600)/60);
+      badge = `<span class="biz-status-badge blocked">🚫 Закрыт ${h}ч ${m}м</span>`;
+    } else {
+      badge = '<span class="biz-status-badge ok">✓ Работает</span>';
+    }
+  }
+  const incomeChip = b.owned
+    ? `<span class="biz-chip income">📈 Накоплено: $${_fmtCash(b.pending || 0)}</span>`
+    : `<span class="biz-chip">💵 Цена: $${_fmtCash(b.price)}</span>`;
+  card.innerHTML = `
+    <div class="biz-row">
+      <div class="biz-emoji">${b.emoji}</div>
+      <div class="biz-info">
+        <div class="biz-name">${b.name} ${badge}</div>
+        <div class="biz-desc">${b.desc}</div>
+      </div>
+    </div>
+    <div class="biz-stats">
+      <span class="biz-chip">💰 $${_fmtCash(b.daily_min)}–$${_fmtCash(b.daily_max)}/сутки</span>
+      ${incomeChip}
+    </div>
+    <div class="biz-actions" id="biz-actions-${b.id}"></div>
+  `;
+  const actions = card.querySelector(`#biz-actions-${b.id}`);
+  if (!b.owned) {
+    const btn = document.createElement('button');
+    btn.className = 'biz-btn';
+    btn.textContent = `Купить за $${_fmtCash(b.price)}`;
+    btn.onclick = () => bizBuy(b.id);
+    actions.appendChild(btn);
+  } else if (b.status === 'burned') {
+    const cost = Math.round(b.price * 0.12);
+    const btn = document.createElement('button');
+    btn.className = 'biz-btn restore';
+    btn.textContent = `🔧 Восстановить ($${_fmtCash(cost)})`;
+    btn.onclick = () => bizRestore(b.id);
+    actions.appendChild(btn);
+  } else if (b.status === 'blocked') {
+    const btn = document.createElement('button');
+    btn.className = 'biz-btn'; btn.disabled = true;
+    btn.textContent = '⏳ Ждёт разблокировки';
+    actions.appendChild(btn);
+  } else if ((b.pending || 0) > 0) {
+    const btn = document.createElement('button');
+    btn.className = 'biz-btn collect';
+    btn.textContent = `💰 Забрать $${_fmtCash(b.pending)}`;
+    btn.onclick = () => bizCollect(b.id);
+    actions.appendChild(btn);
+  } else {
+    const btn = document.createElement('button');
+    btn.className = 'biz-btn'; btn.disabled = true;
+    btn.textContent = 'Доход накапливается…';
+    actions.appendChild(btn);
+  }
+  return card;
+}
+async function bizBuy(bizId) {
+  const api = DATA.api, uid = jobUidStr();
+  if (!api || !uid) return;
+  try {
+    const res = await fetch(`${api}/biz/${uid}/buy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ biz_id: bizId })
+    });
+    const j = await res.json();
+    if (!j.ok) {
+      showToast(j.error === 'no cash' ? 'Не хватает наличных' : 'Не удалось купить', '⚠️');
+      return;
+    }
+    DATA.cash = j.cash;
+    showToast('🏢 Бизнес куплен!', '✅');
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+    renderBusinesses();
+  } catch(e) { showToast('Ошибка соединения', '⚠️'); }
+}
+async function bizCollect(bizId) {
+  const api = DATA.api, uid = jobUidStr();
+  if (!api || !uid) return;
+  try {
+    const res = await fetch(`${api}/biz/${uid}/collect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ biz_id: bizId })
+    });
+    const j = await res.json();
+    if (!j.ok) { showToast('Не удалось забрать', '⚠️'); return; }
+    DATA.cash = j.cash;
+    if ((j.collected || 0) > 0) showToast(`+$${_fmtCash(j.collected)}`, '💵');
+    if (j.events && j.events.length > 0) {
+      // Показываем события поочерёдно через event modal
+      showBusinessEventModal(j.events[0]);
+      // Если несколько — следующие после закрытия (упрощённо: только первое сейчас)
+    }
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+    renderBusinesses();
+  } catch(e) { showToast('Ошибка соединения', '⚠️'); }
+}
+function showBusinessEventModal(ev) {
+  const txt = document.getElementById('event-modal-text');
+  const fx  = document.getElementById('event-modal-effects');
+  const jw  = document.getElementById('event-modal-jail');
+  const cw  = document.getElementById('event-modal-cap');
+  if (txt) txt.innerHTML = `<b>${ev.biz_emoji || '🏢'} ${ev.biz_name || 'Бизнес'}</b><br><br>${ev.text || ''}`;
+  if (fx)  fx.innerHTML  = '';
+  if (jw) jw.style.display = 'none';
+  if (cw) cw.style.display = 'none';
+  const m = document.getElementById('eventModal');
+  if (m) m.classList.add('open');
+}
+// ── ЧЁРНЫЙ РЫНОК (мини-апп) ──────────────────────────────────────────
+let _shopState = { tab: 'weapon', items: [], cash: 0, diamonds: 0 };
+function switchShopTab(tab) {
+  _shopState.tab = tab;
+  document.querySelectorAll('.shop-tabs .jobs-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.shopTab === tab);
+  });
+  _renderShopList();
+}
+async function renderShop() {
+  const api = (typeof DATA !== 'undefined' && DATA.api) ? DATA.api : '';
+  const uid = (typeof jobUidStr === 'function') ? jobUidStr() : '';
+  const list = document.getElementById('shop-list');
+  if (!list) return;
+  if (!api || !uid) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">⚠ Сервер не настроен</div>';
+    return;
+  }
+  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Загрузка…</div>';
+  try {
+    const res = await fetch(`${api}/shop/${uid}/list`);
+    const j = await res.json();
+    if (!j.ok) throw new Error('shop list failed');
+    _shopState.items    = j.items || [];
+    _shopState.cash     = j.cash || 0;
+    _shopState.diamonds = j.diamonds || 0;
+    _renderShopList();
+  } catch(e) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:#ff7070">Не удалось загрузить</div>';
+  }
+}
+function _renderShopList() {
+  const cashEl = document.getElementById('shop-cash');
+  if (cashEl) {
+    cashEl.innerHTML = `<span class="shop-cash-chip">💵 $${_fmtCash(_shopState.cash)}</span>` +
+                       `<span class="shop-cash-chip dia">💎 ${_fmtCash(_shopState.diamonds)}</span>`;
+  }
+  const list = document.getElementById('shop-list');
+  list.innerHTML = '';
+  const filtered = _shopState.items.filter(it => it.type === _shopState.tab);
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Пусто</div>';
+    return;
+  }
+  // Сортируем по цене
+  filtered.sort((a,b) => (a.price || a.diamonds_price*1000 || 0) - (b.price || b.diamonds_price*1000 || 0));
+  filtered.forEach(it => list.appendChild(_renderShopCard(it)));
+}
+function _renderShopCard(it) {
+  const card = document.createElement('div');
+  card.className = 'shop-card';
+  const stats = [];
+  if (it.attack_bonus)  stats.push(`<span class="shop-stat-chip atk">⚔ +${it.attack_bonus}</span>`);
+  if (it.defense_bonus) stats.push(`<span class="shop-stat-chip def">🛡 +${it.defense_bonus}</span>`);
+  if (it.heal)          stats.push(`<span class="shop-stat-chip heal">❤️ +${it.heal}</span>`);
+  if (it.mana)          stats.push(`<span class="shop-stat-chip heal">⚡ +${it.mana}</span>`);
+  // Иконка из имени (первый emoji)
+  const emoji = (it.name || '').match(/^\S+/)?.[0] || '🔹';
+  const cleanName = (it.name || '').replace(/^\S+\s*/, '');
+  let priceLabel = '';
+  let priceClass = '';
+  let canAfford = true;
+  if (it.diamonds_price) {
+    priceLabel = `💎 ${it.diamonds_price}`;
+    canAfford = _shopState.diamonds >= it.diamonds_price;
+  } else if (it.price) {
+    priceLabel = `💵 $${_fmtCash(it.price)}`;
+    canAfford = _shopState.cash >= it.price;
+  }
+  card.innerHTML = `
+    <div class="shop-icon">${emoji}</div>
+    <div class="shop-info">
+      <div class="shop-name">${cleanName}</div>
+      <div class="shop-desc">${it.desc || ''}</div>
+      <div class="shop-stats">${stats.join('')}</div>
+    </div>
+    <div class="shop-actions">
+      <button class="shop-btn" ${canAfford ? '' : 'disabled'}>${priceLabel}</button>
+    </div>
+  `;
+  card.querySelector('.shop-btn').onclick = () => shopBuy(it.id);
+  return card;
+}
+async function shopBuy(itemId) {
+  const api = DATA.api, uid = jobUidStr();
+  if (!api || !uid) return;
+  try {
+    const res = await fetch(`${api}/shop/${uid}/buy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ item_id: itemId, qty: 1 })
+    });
+    const j = await res.json();
+    if (!j.ok) {
+      const msg = j.error === 'no cash' ? 'Не хватает баксов'
+                : j.error === 'no diamonds' ? 'Не хватает бриллиантов'
+                : 'Не удалось купить';
+      showToast(msg, '⚠️');
+      return;
+    }
+    DATA.cash = j.cash;
+    DATA.dia  = j.diamonds;
+    _shopState.cash = j.cash;
+    _shopState.diamonds = j.diamonds;
+    showToast('🛒 Куплено!', '✅');
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+    _renderShopList();
+  } catch(e) { showToast('Ошибка соединения', '⚠️'); }
+}
+
+// ── ИНВЕНТАРЬ / БАРАХЛО (мини-апп) ───────────────────────────────────
+let _invState = { items: [], equipped_weapon: null, equipped_armor: null };
+async function renderInventory() {
+  const api = (typeof DATA !== 'undefined' && DATA.api) ? DATA.api : '';
+  const uid = (typeof jobUidStr === 'function') ? jobUidStr() : '';
+  const list = document.getElementById('inv-list');
+  if (!list) return;
+  if (!api || !uid) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">⚠ Сервер не настроен</div>';
+    return;
+  }
+  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Загрузка…</div>';
+  try {
+    const res = await fetch(`${api}/inv/${uid}/list`);
+    const j = await res.json();
+    if (!j.ok) throw new Error('inv list failed');
+    _invState.items           = j.items || [];
+    _invState.equipped_weapon = j.equipped_weapon;
+    _invState.equipped_armor  = j.equipped_armor;
+    DATA.weapon = j.equipped_weapon || '';
+    _renderInventoryList();
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+  } catch(e) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:#ff7070">Не удалось загрузить</div>';
+  }
+}
+function _renderInventoryList() {
+  const eqDiv = document.getElementById('inv-equipped');
+  const list  = document.getElementById('inv-list');
+  if (!list) return;
+  // Equipped block
+  const findItem = id => _invState.items.find(x => x.id === id) || null;
+  const eqW = _invState.equipped_weapon ? findItem(_invState.equipped_weapon) : null;
+  const eqA = _invState.equipped_armor  ? findItem(_invState.equipped_armor)  : null;
+  if (eqDiv) {
+    eqDiv.innerHTML = `
+      <div class="equipped-row">
+        <span class="label">Оружие:</span>
+        ${eqW ? `<span class="name">${eqW.name}</span>
+                 <button class="inv-btn unequip" style="margin-left:auto" onclick="invEquip(null,'weapon')">Снять</button>`
+              : `<span class="empty">не надето</span>`}
+      </div>
+      <div class="equipped-row">
+        <span class="label">Броня:</span>
+        ${eqA ? `<span class="name">${eqA.name}</span>
+                 <button class="inv-btn unequip" style="margin-left:auto" onclick="invEquip(null,'armor')">Снять</button>`
+              : `<span class="empty">не надета</span>`}
+      </div>
+    `;
+  }
+  list.innerHTML = '';
+  if (_invState.items.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Барахла нет — иди в чёрный рынок</div>';
+    return;
+  }
+  // Группировать по типу: weapon, armor, potion
+  const groups = [
+    { type: 'weapon', label: '🔫 Оружие' },
+    { type: 'armor',  label: '🛡 Броня'  },
+    { type: 'potion', label: '💊 Расходники' },
+    { type: 'document', label: '📄 Документы' },
+  ];
+  groups.forEach(g => {
+    const arr = _invState.items.filter(it => it.type === g.type);
+    if (arr.length === 0) return;
+    const header = document.createElement('div');
+    header.className = 'section-label';
+    header.textContent = g.label;
+    list.appendChild(header);
+    arr.forEach(it => list.appendChild(_renderInvCard(it)));
+  });
+}
+function _renderInvCard(it) {
+  const card = document.createElement('div');
+  const isEquipped = (it.type === 'weapon' && it.id === _invState.equipped_weapon)
+                  || (it.type === 'armor'  && it.id === _invState.equipped_armor);
+  card.className = 'inv-card' + (isEquipped ? ' equipped' : '');
+  const stats = [];
+  if (it.attack_bonus)  stats.push(`<span class="shop-stat-chip atk">⚔ +${it.attack_bonus}</span>`);
+  if (it.defense_bonus) stats.push(`<span class="shop-stat-chip def">🛡 +${it.defense_bonus}</span>`);
+  if (it.heal)          stats.push(`<span class="shop-stat-chip heal">❤️ +${it.heal}</span>`);
+  if (it.mana)          stats.push(`<span class="shop-stat-chip heal">⚡ +${it.mana}</span>`);
+  const emoji = (it.name || '').match(/^\S+/)?.[0] || '🔹';
+  const cleanName = (it.name || '').replace(/^\S+\s*/, '');
+  let action = '';
+  if (it.type === 'weapon' || it.type === 'armor') {
+    if (isEquipped) {
+      action = `<button class="inv-btn unequip" onclick="invEquip(null,'${it.type}')">Снять</button>`;
+    } else {
+      action = `<button class="inv-btn equip" onclick="invEquip('${it.id}')">Надеть</button>`;
+    }
+  } else if (it.qty > 0) {
+    action = `<span class="inv-qty-badge">×${it.qty}</span>`;
+  }
+  card.innerHTML = `
+    <div class="inv-icon">${emoji}</div>
+    <div class="inv-info">
+      <div class="inv-name">${cleanName}</div>
+      <div class="inv-desc">${it.desc || ''}</div>
+      <div class="inv-stats">${stats.join('')}</div>
+    </div>
+    <div class="inv-actions">${action}</div>
+  `;
+  return card;
+}
+async function invEquip(itemId, slotForUnequip) {
+  const api = DATA.api, uid = jobUidStr();
+  if (!api || !uid) return;
+  try {
+    const body = itemId ? { item_id: itemId } : { item_id: null, slot: slotForUnequip };
+    const res = await fetch(`${api}/inv/${uid}/equip`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const j = await res.json();
+    if (!j.ok) { showToast('Не удалось', '⚠️'); return; }
+    _invState.equipped_weapon = j.equipped_weapon;
+    _invState.equipped_armor  = j.equipped_armor;
+    DATA.weapon = j.equipped_weapon || '';
+    showToast(itemId ? '✅ Надето' : 'Снято', '🎒');
+    _renderInventoryList();
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+  } catch(e) { showToast('Ошибка соединения', '⚠️'); }
+}
+
+async function bizRestore(bizId) {
+  const api = DATA.api, uid = jobUidStr();
+  if (!api || !uid) return;
+  try {
+    const res = await fetch(`${api}/biz/${uid}/restore`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ biz_id: bizId })
+    });
+    const j = await res.json();
+    if (!j.ok) {
+      showToast(j.error === 'no cash' ? `Нужно $${_fmtCash(j.cost || 0)}` : 'Не удалось', '⚠️');
+      return;
+    }
+    DATA.cash = j.cash;
+    showToast(j.success ? '🔧 Бизнес восстановлен!' : '😖 Не получилось, попробуй ещё', j.success ? '✅' : '⚠️');
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+    renderBusinesses();
+  } catch(e) { showToast('Ошибка соединения', '⚠️'); }
 }
 
 // === JOBS v2 (mini-app) ============================================
