@@ -5338,6 +5338,79 @@ function closeEventModal() {
   if (m) m.classList.remove('open');
 }
 
+// ── DEMO MODE (когда нет api/uid — UI работает на локальных данных) ──
+function _isDemo() {
+  const api = (typeof DATA !== 'undefined' && DATA.api) ? DATA.api : '';
+  const uid = (typeof jobUidStr === 'function') ? jobUidStr() : '';
+  return !api || !uid;
+}
+
+// Локальный каталог бизнесов (зеркало серверного)
+const DEMO_BUSINESSES_CATALOG = [
+  {id:'coffee',     emoji:'☕', name:'Кофейня «У Дона»',   price:3000,   daily_min:150,  daily_max:200,  desc:'Тихая кофейня на углу. Прикрытие для встреч и стабильный кэш.'},
+  {id:'carwash',    emoji:'🚗', name:'Автомойка',           price:5000,   daily_min:220,  daily_max:300,  desc:'Удобная схема для отмыва налички. Машины моют, бабки трутся.'},
+  {id:'barbershop', emoji:'💈', name:'Парикмахерская',      price:7500,   daily_min:300,  daily_max:400,  desc:'Классика жанра. Здесь все «свои» договариваются.'},
+  {id:'pizza',      emoji:'🍕', name:'Пиццерия',            price:12000,  daily_min:450,  daily_max:600,  desc:'Доставка пиццы — отличная легенда для перевозок чего угодно.'},
+  {id:'garage',     emoji:'🔧', name:'Гараж-СТО',           price:18000,  daily_min:650,  daily_max:900,  desc:'Ремонтируем тачки, варим номера, шлифуем VIN. Спрос есть.'},
+  {id:'bar',        emoji:'🍸', name:'Бар «Чёрная вдова»',  price:28000,  daily_min:1000, daily_max:1400, desc:'Ночной бар. Алкоголь, музыка, сделки за столиком в углу.'},
+  {id:'club',       emoji:'🎰', name:'Подпольный клуб',     price:45000,  daily_min:1600, daily_max:2200, desc:'Карты, рулетка, ставки. Доходно, но налоговая чует.'},
+  {id:'warehouse',  emoji:'📦', name:'Склад',               price:70000,  daily_min:2400, daily_max:3300, desc:'Большой склад на окраине. Хранение «чувствительного» груза.'},
+  {id:'casino',     emoji:'🎲', name:'Казино',              price:120000, daily_min:4000, daily_max:5500, desc:'Своё казино — мечта каждого. Высокий доход, высокий риск.'},
+  {id:'port',       emoji:'🚢', name:'Доля в порту',        price:200000, daily_min:6500, daily_max:9000, desc:'Купил долю в порту. Контейнеры идут — деньги капают.'},
+];
+
+// Локальное состояние демо: id → {status, blocked_until, last_collect, pending}
+let _demoBizState = {};
+
+// Локальный каталог оружия / брони / расходников (зеркало серверного ITEMS)
+const DEMO_SHOP_ITEMS = [
+  // ── Оружие ──
+  {id:'zatochka',    name:'🔪 Заточка',         type:'weapon', desc:'+6 атк. Заточенный кусок металла.',  price:60,    attack_bonus:6},
+  {id:'nagan',       name:'🔫 Наган',           type:'weapon', desc:'+8 атк. Старый уличный ствол.',      price:250,   attack_bonus:8},
+  {id:'sawn_off',    name:'💥 Обрез',           type:'weapon', desc:'+12 атк. Короткий и злой.',          price:600,   attack_bonus:12},
+  {id:'uzi',         name:'🔫 Узи',             type:'weapon', desc:'+16 атк. Автоматика за копейки.',    price:1500,  attack_bonus:16},
+  {id:'revolver',    name:'🔫 Револьвер',       type:'weapon', desc:'+20 атк. Шесть патронов — хватит на всех.', price:5000, attack_bonus:20},
+  {id:'machete',     name:'🗡️ Мачете',          type:'weapon', desc:'+28 атк. Латинский привет.',         price:8000,  attack_bonus:28},
+  {id:'katana',      name:'⚔️ Катана',          type:'weapon', desc:'+38 атк. Сталь из Японии.',          price:12000, attack_bonus:38},
+  {id:'spiked_bat',  name:'🏏 Бита с гвоздями', type:'weapon', desc:'+48 атк. Народное оружие 90-х.',     price:18000, attack_bonus:48},
+  {id:'deagle',      name:'🦅 Дезерт Игл',      type:'weapon', desc:'+58 атк. Пушка не для слабаков.',    price:25000, attack_bonus:58},
+  {id:'sniper',      name:'🎯 Снайперка',       type:'weapon', desc:'+68 атк. Один выстрел — один труп.', price:32000, attack_bonus:68},
+  {id:'m16',         name:'💥 М-16',            type:'weapon', desc:'+80 атк. Американская классика.',    price:42000, attack_bonus:80},
+  {id:'rpg',         name:'🚀 Базука',          type:'weapon', desc:'+95 атк. Вопросов нет ни у кого.',   price:50000, attack_bonus:95},
+  {id:'golden_colt', name:'🌟 Золотой Кольт',   type:'weapon', desc:'+65 атк (премиум)',                  diamonds_price:100, attack_bonus:65},
+  {id:'golden_uzi',  name:'🌟 Золотой Узи',     type:'weapon', desc:'+78 атк (премиум). Золото и свинец.',diamonds_price:10,  attack_bonus:78},
+  {id:'tommy_gun',   name:'🔥 Томми Ган',       type:'weapon', desc:'+100 атк (премиум). Крит 270-310 с шансом 25%.', diamonds_price:20, attack_bonus:100},
+  // ── Броня ──
+  {id:'leather_jacket', name:'🧥 Кожанка',     type:'armor',  desc:'+12 к защите',  price:180,  defense_bonus:12},
+  {id:'bulletproof', name:'🦺 Бронежилет',      type:'armor',  desc:'+28 к защите',                       price:450,  defense_bonus:28},
+  {id:'titanium_vest',name:'⚙️ Титановый жилет',type:'armor',  desc:'+65 к защите (премиум)',             diamonds_price:100, defense_bonus:65},
+  // ── Расходники ──
+  {id:'medkit_small', name:'🩹 Малая аптечка',  type:'potion', desc:'Восстанавливает 55 HP',              price:25,   heal:55},
+  {id:'medkit_medium',name:'🏥 Аптечка',        type:'potion', desc:'Восстанавливает 130 HP',             price:60,   heal:130},
+  {id:'medkit_large', name:'💉 Большая аптечка',type:'potion', desc:'Восстанавливает 280 HP',             price:120,  heal:280},
+  {id:'energy_drink', name:'⚡ Энергетик',      type:'potion', desc:'Восстанавливает 55 энергии',         price:45,   mana:55},
+];
+
+// Локальный демо-инвентарь (несколько предметов чтоб видно было)
+let _demoInventory = {
+  zatochka: 1,
+  nagan: 1,
+  leather_jacket: 1,
+  medkit_small: 3,
+  energy_drink: 2,
+};
+let _demoEquippedWeapon = 'nagan';
+let _demoEquippedArmor  = 'leather_jacket';
+let _demoCash = 200;
+let _demoDiamonds = 0;  // бриллианты — донатная валюта, у новичков нет
+
+// Синхронизируем DATA с демо-стейтом при старте
+if (_isDemo()) {
+  DATA.cash   = _demoCash;
+  DATA.dia    = _demoDiamonds;
+  DATA.weapon = _demoEquippedWeapon;
+}
+
 // ── МОЙ БИЗНЕС (вкладка Работа → Мой бизнес) ─────────────────────────
 let _bizCatalogCache = {};
 function switchJobsTab(tab) {
@@ -5352,16 +5425,36 @@ function switchJobsTab(tab) {
 }
 function _fmtCash(n) { try { return Number(n||0).toLocaleString('ru-RU'); } catch(e) { return String(n||0); } }
 async function renderBusinesses() {
-  const api = (typeof DATA !== 'undefined' && DATA.api) ? DATA.api : '';
-  const uid = (typeof jobUidStr === 'function') ? jobUidStr() : '';
   const list = document.getElementById('biz-list');
   const cashEl = document.getElementById('biz-cash');
   if (!list) return;
-  if (!api || !uid) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">⚠ Сервер не настроен</div>';
-    if (cashEl) cashEl.textContent = '';
+  // DEMO: показываем локальный каталог
+  if (_isDemo()) {
+    const now = Math.floor(Date.now() / 1000);
+    const data = DEMO_BUSINESSES_CATALOG.map(b => {
+      const st = _demoBizState[b.id];
+      const out = Object.assign({}, b);
+      if (st) {
+        out.owned         = true;
+        out.status        = st.status || 'ok';
+        out.blocked_until = st.blocked_until || 0;
+        // Накопленный доход: middle income / 86400 * elapsed
+        const elapsed = Math.max(0, now - (st.last_collect || now));
+        const avg = (b.daily_min + b.daily_max) / 2;
+        out.pending = (out.status === 'ok' && (out.blocked_until || 0) <= now)
+          ? Math.floor(elapsed * avg / 86400) : 0;
+      } else {
+        out.owned = false;
+      }
+      return out;
+    });
+    if (cashEl) cashEl.innerHTML = `💵 Наличные: $${_fmtCash(_demoCash)} <span style="margin-left:14px;color:#999;font-weight:400;font-size:12px">(демо: бот не подключён)</span>`;
+    list.innerHTML = '';
+    data.forEach(b => { _bizCatalogCache[b.id] = b; list.appendChild(renderBizCard(b)); });
     return;
   }
+  // ОБЫЧНЫЙ режим: с сервера
+  const api = DATA.api, uid = jobUidStr();
   list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Загрузка…</div>';
   try {
     const res = await fetch(`${api}/biz/${uid}/list`);
@@ -5446,6 +5539,20 @@ function renderBizCard(b) {
   return card;
 }
 async function bizBuy(bizId) {
+  // DEMO
+  if (_isDemo()) {
+    const b = DEMO_BUSINESSES_CATALOG.find(x => x.id === bizId);
+    if (!b) return;
+    if (_demoCash < b.price) { showToast('Не хватает наличных', '⚠️'); return; }
+    if (_demoBizState[bizId]) { showToast('Уже куплен', '⚠️'); return; }
+    _demoCash -= b.price;
+    DATA.cash  = _demoCash;
+    _demoBizState[bizId] = { status:'ok', blocked_until:0, last_collect: Math.floor(Date.now()/1000) - 3600 };
+    showToast('🏢 Бизнес куплен (демо)', '✅');
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+    renderBusinesses();
+    return;
+  }
   const api = DATA.api, uid = jobUidStr();
   if (!api || !uid) return;
   try {
@@ -5466,6 +5573,40 @@ async function bizBuy(bizId) {
   } catch(e) { showToast('Ошибка соединения', '⚠️'); }
 }
 async function bizCollect(bizId) {
+  // DEMO
+  if (_isDemo()) {
+    const b  = DEMO_BUSINESSES_CATALOG.find(x => x.id === bizId);
+    const st = _demoBizState[bizId];
+    if (!b || !st || st.status !== 'ok') return;
+    const now = Math.floor(Date.now()/1000);
+    const elapsed = Math.max(0, now - (st.last_collect || now));
+    const avg = (b.daily_min + b.daily_max) / 2;
+    let pay = Math.floor(elapsed * avg / 86400);
+    // 30% шанс события (для демо ярче)
+    let evFired = null;
+    if (Math.random() < 0.30) {
+      const evs = [
+        {kind:'income_bonus',  text:'✨ Удачный день — выручка +30%.', value:0.30},
+        {kind:'income_penalty',text:'📋 Налоговая накрыла — забрали 20%.', value:0.20},
+        {kind:'block',         text:'🚓 Полицейская проверка — закрыто на 12 часов.', hours:12},
+        {kind:'burn',          text:'🔥 Конкуренты подожгли точку!'},
+      ];
+      const ev = evs[Math.floor(Math.random() * evs.length)];
+      if (ev.kind === 'income_bonus')  pay = Math.floor(pay * (1 + ev.value));
+      if (ev.kind === 'income_penalty') pay = Math.floor(pay * (1 - ev.value));
+      if (ev.kind === 'block') { st.status = 'blocked'; st.blocked_until = now + ev.hours * 3600; }
+      if (ev.kind === 'burn')  { st.status = 'burned';  st.blocked_until = 0; }
+      evFired = { biz_emoji: b.emoji, biz_name: b.name, text: ev.text };
+    }
+    st.last_collect = now;
+    _demoCash += pay;
+    DATA.cash  = _demoCash;
+    if (pay > 0) showToast(`+$${_fmtCash(pay)} (демо)`, '💵');
+    if (evFired) showBusinessEventModal(evFired);
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+    renderBusinesses();
+    return;
+  }
   const api = DATA.api, uid = jobUidStr();
   if (!api || !uid) return;
   try {
@@ -5479,9 +5620,7 @@ async function bizCollect(bizId) {
     DATA.cash = j.cash;
     if ((j.collected || 0) > 0) showToast(`+$${_fmtCash(j.collected)}`, '💵');
     if (j.events && j.events.length > 0) {
-      // Показываем события поочерёдно через event modal
       showBusinessEventModal(j.events[0]);
-      // Если несколько — следующие после закрытия (упрощённо: только первое сейчас)
     }
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     renderBusinesses();
@@ -5509,14 +5648,17 @@ function switchShopTab(tab) {
   _renderShopList();
 }
 async function renderShop() {
-  const api = (typeof DATA !== 'undefined' && DATA.api) ? DATA.api : '';
-  const uid = (typeof jobUidStr === 'function') ? jobUidStr() : '';
   const list = document.getElementById('shop-list');
   if (!list) return;
-  if (!api || !uid) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">⚠ Сервер не настроен</div>';
+  // DEMO
+  if (_isDemo()) {
+    _shopState.items    = DEMO_SHOP_ITEMS.slice();
+    _shopState.cash     = _demoCash;
+    _shopState.diamonds = _demoDiamonds;
+    _renderShopList();
     return;
   }
+  const api = DATA.api, uid = jobUidStr();
   list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Загрузка…</div>';
   try {
     const res = await fetch(`${api}/shop/${uid}/list`);
@@ -5583,6 +5725,27 @@ function _renderShopCard(it) {
   return card;
 }
 async function shopBuy(itemId) {
+  // DEMO
+  if (_isDemo()) {
+    const it = DEMO_SHOP_ITEMS.find(x => x.id === itemId);
+    if (!it) return;
+    if (it.diamonds_price) {
+      if (_demoDiamonds < it.diamonds_price) { showToast('Не хватает бриллиантов', '⚠️'); return; }
+      _demoDiamonds -= it.diamonds_price;
+    } else if (it.price) {
+      if (_demoCash < it.price) { showToast('Не хватает баксов', '⚠️'); return; }
+      _demoCash -= it.price;
+    }
+    DATA.cash = _demoCash;
+    DATA.dia  = _demoDiamonds;
+    _shopState.cash     = _demoCash;
+    _shopState.diamonds = _demoDiamonds;
+    _demoInventory[itemId] = (_demoInventory[itemId] || 0) + 1;
+    showToast('🛒 Куплено! (демо)', '✅');
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+    _renderShopList();
+    return;
+  }
   const api = DATA.api, uid = jobUidStr();
   if (!api || !uid) return;
   try {
@@ -5612,14 +5775,25 @@ async function shopBuy(itemId) {
 // ── ИНВЕНТАРЬ / БАРАХЛО (мини-апп) ───────────────────────────────────
 let _invState = { items: [], equipped_weapon: null, equipped_armor: null };
 async function renderInventory() {
-  const api = (typeof DATA !== 'undefined' && DATA.api) ? DATA.api : '';
-  const uid = (typeof jobUidStr === 'function') ? jobUidStr() : '';
   const list = document.getElementById('inv-list');
   if (!list) return;
-  if (!api || !uid) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">⚠ Сервер не настроен</div>';
+  // DEMO
+  if (_isDemo()) {
+    const items = [];
+    for (const [id, qty] of Object.entries(_demoInventory)) {
+      const it = DEMO_SHOP_ITEMS.find(x => x.id === id);
+      if (!it) continue;
+      items.push(Object.assign({}, it, { qty }));
+    }
+    _invState.items           = items;
+    _invState.equipped_weapon = _demoEquippedWeapon;
+    _invState.equipped_armor  = _demoEquippedArmor;
+    DATA.weapon = _demoEquippedWeapon || '';
+    _renderInventoryList();
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     return;
   }
+  const api = DATA.api, uid = jobUidStr();
   list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Загрузка…</div>';
   try {
     const res = await fetch(`${api}/inv/${uid}/list`);
@@ -5715,6 +5889,26 @@ function _renderInvCard(it) {
   return card;
 }
 async function invEquip(itemId, slotForUnequip) {
+  // DEMO
+  if (_isDemo()) {
+    if (itemId) {
+      const it = DEMO_SHOP_ITEMS.find(x => x.id === itemId);
+      if (!it || (it.type !== 'weapon' && it.type !== 'armor')) { showToast('Не подходит', '⚠️'); return; }
+      if (!_demoInventory[itemId]) { showToast('Нет в инвентаре', '⚠️'); return; }
+      if (it.type === 'weapon') _demoEquippedWeapon = itemId;
+      else                      _demoEquippedArmor  = itemId;
+    } else {
+      if (slotForUnequip === 'weapon') _demoEquippedWeapon = null;
+      if (slotForUnequip === 'armor')  _demoEquippedArmor  = null;
+    }
+    _invState.equipped_weapon = _demoEquippedWeapon;
+    _invState.equipped_armor  = _demoEquippedArmor;
+    DATA.weapon = _demoEquippedWeapon || '';
+    showToast(itemId ? '✅ Надето (демо)' : 'Снято (демо)', '🎒');
+    _renderInventoryList();
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+    return;
+  }
   const api = DATA.api, uid = jobUidStr();
   if (!api || !uid) return;
   try {
@@ -5736,6 +5930,26 @@ async function invEquip(itemId, slotForUnequip) {
 }
 
 async function bizRestore(bizId) {
+  // DEMO
+  if (_isDemo()) {
+    const b  = DEMO_BUSINESSES_CATALOG.find(x => x.id === bizId);
+    const st = _demoBizState[bizId];
+    if (!b || !st) return;
+    const cost = Math.round(b.price * 0.12);
+    if (_demoCash < cost) { showToast(`Нужно $${_fmtCash(cost)}`, '⚠️'); return; }
+    _demoCash -= cost;
+    DATA.cash  = _demoCash;
+    const success = Math.random() < 0.55;
+    if (success) {
+      st.status = 'ok';
+      st.blocked_until = 0;
+      st.last_collect  = Math.floor(Date.now()/1000);
+    }
+    showToast(success ? '🔧 Восстановлено! (демо)' : '😖 Не получилось, попробуй ещё', success ? '✅' : '⚠️');
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+    renderBusinesses();
+    return;
+  }
   const api = DATA.api, uid = jobUidStr();
   if (!api || !uid) return;
   try {
