@@ -74,7 +74,32 @@
     <canvas id="gc"></canvas>
     <div class="joy-base" id="joyBase"><div class="joy-knob" id="joyKnob"></div></div>
     <div class="aim-base" id="aimBase"><div class="aim-knob" id="aimKnob"></div></div>
-    <div id="hud">FPS: <span id="fps">0</span><br>Оружие: <span id="wepName">пистолет</span><br><button id="rerollBtn" style="margin-top:4px;padding:3px 8px;background:#2a3142;color:#fff;border:1px solid #3a4452;border-radius:4px;font-size:10px;cursor:pointer">🎲 Новый перс</button> <button id="resetBtn" style="margin-top:4px;padding:3px 8px;background:#2a3142;color:#fff;border:1px solid #3a4452;border-radius:4px;font-size:10px;cursor:pointer">↻ Враги</button></div>
+    <div id="hud">FPS: <span id="fps">0</span><br>Оружие: <span id="wepName">пистолет</span><br>HP: <span id="hpVal">100</span>/100
+      <div style="width:120px;height:8px;background:#222;border:1px solid #3a4452;border-radius:3px;margin:3px 0;overflow:hidden">
+        <div id="hpBar" style="width:100%;height:100%;background:linear-gradient(90deg,#5dd55d,#3aa53a);transition:width .15s"></div>
+      </div>
+      <button id="rerollBtn" style="margin-top:2px;padding:3px 8px;background:#2a3142;color:#fff;border:1px solid #3a4452;border-radius:4px;font-size:10px;cursor:pointer">🎲 Новый перс</button> <button id="resetBtn" style="margin-top:2px;padding:3px 8px;background:#2a3142;color:#fff;border:1px solid #3a4452;border-radius:4px;font-size:10px;cursor:pointer">↻ Респ</button></div>
+    <!-- Боевой UI справа снизу: melee-кнопка + индикатор патронов/перезарядки -->
+    <div id="combatUI" style="position:absolute;right:14px;bottom:14px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none">
+      <div id="ammoBox" style="background:rgba(0,0,0,.55);padding:6px 10px;border-radius:8px;border:1px solid #3a4452;font-size:12px;color:#fff;text-align:right;min-width:120px">
+        <div id="ammoText" style="font-weight:bold">— / —</div>
+        <div style="height:6px;background:#222;border-radius:3px;margin-top:4px;overflow:hidden">
+          <div id="reloadBar" style="height:100%;width:0;background:linear-gradient(90deg,#ffd76b,#ff8030);transition:width .1s"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;pointer-events:auto">
+        <button id="reloadBtn" title="Перезарядка (R)" style="width:52px;height:52px;background:rgba(40,50,70,.85);border:2px solid #4a5468;border-radius:10px;color:#ffd76b;font-size:11px;font-weight:bold;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)">↻<br>R</button>
+        <button id="meleeBtn" title="Ближний бой" style="width:64px;height:64px;background:rgba(60,30,30,.85);border:2px solid #7a3a3a;border-radius:12px;color:#ffd76b;font-size:30px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.5);position:relative">
+          <span id="meleeIcon">👊</span>
+          <span id="meleeLabel" style="position:absolute;left:0;right:0;bottom:2px;font-size:9px;color:#cfd6e6;font-weight:bold">кулаки</span>
+        </button>
+      </div>
+    </div>
+    <div id="hitFlash" style="position:absolute;inset:0;background:rgba(255,40,40,0);pointer-events:none;z-index:7;transition:background .1s"></div>
+    <div id="gameOver" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.55);z-index:8;color:#ff5050;font-size:32px;font-weight:bold;text-shadow:0 0 12px #800;pointer-events:none">
+      <div>☠ ВЫ МЕРТВЫ ☠</div>
+      <div style="font-size:13px;color:#ccc;font-weight:normal;margin-top:8px;pointer-events:auto">нажмите «↻ Респ» в HUD</div>
+    </div>
     <canvas id="minimap" width="140" height="200" style="position:absolute;right:10px;top:10px;z-index:6;border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(0,0,0,.5);pointer-events:none"></canvas>
     <div id="hint">Левая половина — ходить<br>Правая — целиться/стрелять</div>
   </div>
@@ -125,23 +150,23 @@ function _noise(o) {
   src.start(); src.stop(ctx.currentTime + dur + 0.05);
 }
 
+// muzzleD — расстояние от центра персонажа до конца дула в тайлах (где спавнятся пули/вспышки)
+// twoHanded — двуручное (вторая рука поддерживает оружие на цевье)
 const WEAPON_FX_CFG = {
-  fists:        { sound:()=>{ _tone({freq:140,freqEnd:80,dur:0.08,type:'sine',vol:0.18}); }, cd: 350, range: 1.4, melee: true, dmg: 12 },
-  brass:        { sound:()=>{ _tone({freq:210,freqEnd:90,dur:0.10,type:'square',vol:0.24}); _noise({dur:0.06,vol:0.14,filter:'lowpass',filterFreq:600}); }, cd: 380, range: 1.4, melee: true, dmg: 18 },
-  chain:        { sound:()=>{ _noise({dur:0.22,vol:0.16,filter:'bandpass',filterFreq:2400}); _tone({freq:800,freqEnd:300,dur:0.18,type:'triangle',vol:0.10}); }, cd: 500, range: 1.8, melee: true, dmg: 25 },
-  bat:          { sound:()=>{ _tone({freq:180,freqEnd:55,dur:0.22,type:'triangle',vol:0.26}); _noise({dur:0.08,vol:0.14,filter:'lowpass',filterFreq:400}); }, cd: 500, range: 1.6, melee: true, dmg: 30 },
-  blade_short:  { sound:()=>{ _noise({dur:0.10,vol:0.18,filter:'highpass',filterFreq:3000}); _tone({freq:2400,freqEnd:1200,dur:0.08,type:'sine',vol:0.08}); }, cd: 320, range: 1.3, melee: true, dmg: 22 },
-  blade_long:   { sound:()=>{ _noise({dur:0.20,vol:0.18,filter:'highpass',filterFreq:2000}); _tone({freq:1500,freqEnd:400,dur:0.15,type:'sawtooth',vol:0.08}); }, cd: 450, range: 1.7, melee: true, dmg: 35 },
-  pistol:       { sound:()=>{ _tone({freq:300,freqEnd:80,dur:0.08,type:'square',vol:0.30}); _noise({dur:0.05,vol:0.20}); }, cd: 260, range: 8, color: '#ffea80', spread: 0.05, dmg: 22 },
-  pistol_heavy: { sound:()=>{ _tone({freq:200,freqEnd:50,dur:0.13,type:'square',vol:0.36}); _noise({dur:0.07,vol:0.24,filter:'lowpass',filterFreq:800}); }, cd: 420, range: 9, color: '#ffb060', spread: 0.04, thick: true, dmg: 38 },
-  pistol_gold:  { sound:()=>{ _tone({freq:620,freqEnd:200,dur:0.10,type:'sawtooth',vol:0.30}); _tone({freq:1200,freqEnd:400,dur:0.08,type:'sine',vol:0.14}); _noise({dur:0.05,vol:0.15}); }, cd: 240, range: 9, color: '#ffd76b', spread: 0.03, dmg: 28 },
-  shotgun:      { sound:()=>{ _tone({freq:120,freqEnd:30,dur:0.18,type:'square',vol:0.42}); _noise({dur:0.14,vol:0.32,filter:'lowpass',filterFreq:500}); }, cd: 700, range: 5, color: '#ffaa50', spread: 0.35, pellets: 6, dmg: 14 },
-  smg:          { sound:()=>{ for (let i=0;i<3;i++) setTimeout(()=>{ _tone({freq:380,freqEnd:120,dur:0.05,type:'square',vol:0.20}); _noise({dur:0.03,vol:0.13}); }, i*55); }, cd: 220, range: 7, color: '#ffea80', spread: 0.12, burst: 3, burstInterval: 55, dmg: 14 },
-  // ВИНТОВКА: одиночные тяжёлые выстрелы, медленная скорострельность, большой урон
-  rifle:        { sound:()=>{ _tone({freq:260,freqEnd:80,dur:0.10,type:'square',vol:0.32}); _noise({dur:0.07,vol:0.22,filter:'lowpass',filterFreq:1500}); }, cd: 650, range: 11, color: '#ffea80', spread: 0.02, dmg: 55 },
-  // СНАЙПЕРКА: очень медленная, 1-shot kill миньона (HP 80)
-  sniper:       { sound:()=>{ _tone({freq:80,freqEnd:25,dur:0.40,type:'sawtooth',vol:0.42}); _noise({dur:0.18,vol:0.30,filter:'lowpass',filterFreq:400}); _tone({freq:1800,freqEnd:200,dur:0.30,type:'sine',vol:0.10}); }, cd: 1800, range: 16, color: '#ff5050', spread: 0, thick: true, tracer: true, dmg: 130 },
-  rpg:          { sound:()=>{ _tone({freq:60,freqEnd:20,dur:0.50,type:'sawtooth',vol:0.45}); _noise({dur:0.40,vol:0.35,filter:'lowpass',filterFreq:300}); setTimeout(()=>{ _tone({freq:200,freqEnd:40,dur:0.30,type:'square',vol:0.42}); _noise({dur:0.30,vol:0.40}); }, 240); }, cd: 1500, range: 11, color: '#ff6020', spread: 0, thick: true, explosive: true, dmg: 90 },
+  fists:        { sound:()=>{ _tone({freq:140,freqEnd:80,dur:0.08,type:'sine',vol:0.18}); }, cd: 350, range: 1.4, melee: true, dmg: 12, muzzleD: 0.5, twoHanded: false },
+  brass:        { sound:()=>{ _tone({freq:210,freqEnd:90,dur:0.10,type:'square',vol:0.24}); _noise({dur:0.06,vol:0.14,filter:'lowpass',filterFreq:600}); }, cd: 380, range: 1.4, melee: true, dmg: 18, muzzleD: 0.55, twoHanded: false },
+  chain:        { sound:()=>{ _noise({dur:0.22,vol:0.16,filter:'bandpass',filterFreq:2400}); _tone({freq:800,freqEnd:300,dur:0.18,type:'triangle',vol:0.10}); }, cd: 500, range: 1.8, melee: true, dmg: 25, muzzleD: 0.75, twoHanded: false },
+  bat:          { sound:()=>{ _tone({freq:180,freqEnd:55,dur:0.22,type:'triangle',vol:0.26}); _noise({dur:0.08,vol:0.14,filter:'lowpass',filterFreq:400}); }, cd: 500, range: 1.6, melee: true, dmg: 30, muzzleD: 0.85, twoHanded: true },
+  blade_short:  { sound:()=>{ _noise({dur:0.10,vol:0.18,filter:'highpass',filterFreq:3000}); _tone({freq:2400,freqEnd:1200,dur:0.08,type:'sine',vol:0.08}); }, cd: 320, range: 1.3, melee: true, dmg: 22, muzzleD: 0.6, twoHanded: false },
+  blade_long:   { sound:()=>{ _noise({dur:0.20,vol:0.18,filter:'highpass',filterFreq:2000}); _tone({freq:1500,freqEnd:400,dur:0.15,type:'sawtooth',vol:0.08}); }, cd: 450, range: 1.7, melee: true, dmg: 35, muzzleD: 1.0, twoHanded: true },
+  pistol:       { sound:()=>{ _tone({freq:300,freqEnd:80,dur:0.08,type:'square',vol:0.30}); _noise({dur:0.05,vol:0.20}); }, cd: 260, range: 8, color: '#ffea80', spread: 0.05, dmg: 22, mag: 12, reload: 1200, muzzleD: 0.75, twoHanded: false },
+  pistol_heavy: { sound:()=>{ _tone({freq:200,freqEnd:50,dur:0.13,type:'square',vol:0.36}); _noise({dur:0.07,vol:0.24,filter:'lowpass',filterFreq:800}); }, cd: 420, range: 9, color: '#ffb060', spread: 0.04, thick: true, dmg: 38, mag: 8, reload: 1500, muzzleD: 0.8, twoHanded: false },
+  pistol_gold:  { sound:()=>{ _tone({freq:620,freqEnd:200,dur:0.10,type:'sawtooth',vol:0.30}); _tone({freq:1200,freqEnd:400,dur:0.08,type:'sine',vol:0.14}); _noise({dur:0.05,vol:0.15}); }, cd: 240, range: 9, color: '#ffd76b', spread: 0.03, dmg: 28, mag: 14, reload: 1100, muzzleD: 0.75, twoHanded: false },
+  shotgun:      { sound:()=>{ _tone({freq:120,freqEnd:30,dur:0.18,type:'square',vol:0.42}); _noise({dur:0.14,vol:0.32,filter:'lowpass',filterFreq:500}); }, cd: 700, range: 5, color: '#ffaa50', spread: 0.35, pellets: 6, dmg: 14, mag: 6, reload: 1800, muzzleD: 1.0, twoHanded: true },
+  smg:          { sound:()=>{ for (let i=0;i<3;i++) setTimeout(()=>{ _tone({freq:380,freqEnd:120,dur:0.05,type:'square',vol:0.20}); _noise({dur:0.03,vol:0.13}); }, i*55); }, cd: 220, range: 7, color: '#ffea80', spread: 0.12, burst: 3, burstInterval: 55, dmg: 14, mag: 30, reload: 1700, muzzleD: 0.95, twoHanded: true },
+  rifle:        { sound:()=>{ _tone({freq:260,freqEnd:80,dur:0.10,type:'square',vol:0.32}); _noise({dur:0.07,vol:0.22,filter:'lowpass',filterFreq:1500}); }, cd: 650, range: 11, color: '#ffea80', spread: 0.02, dmg: 55, mag: 8, reload: 1900, muzzleD: 1.05, twoHanded: true },
+  sniper:       { sound:()=>{ _tone({freq:80,freqEnd:25,dur:0.40,type:'sawtooth',vol:0.42}); _noise({dur:0.18,vol:0.30,filter:'lowpass',filterFreq:400}); _tone({freq:1800,freqEnd:200,dur:0.30,type:'sine',vol:0.10}); }, cd: 1800, range: 16, color: '#ff5050', spread: 0, thick: true, tracer: true, dmg: 130, mag: 5, reload: 2200, muzzleD: 1.15, twoHanded: true },
+  rpg:          { sound:()=>{ _tone({freq:60,freqEnd:20,dur:0.50,type:'sawtooth',vol:0.45}); _noise({dur:0.40,vol:0.35,filter:'lowpass',filterFreq:300}); setTimeout(()=>{ _tone({freq:200,freqEnd:40,dur:0.30,type:'square',vol:0.42}); _noise({dur:0.30,vol:0.40}); }, 240); }, cd: 1500, range: 11, color: '#ff6020', spread: 0, thick: true, explosive: true, dmg: 90, mag: 1, reload: 3000, muzzleD: 1.1, twoHanded: true },
 };
 function _playThrowSound(kind) {
   try {
@@ -163,32 +188,135 @@ function _playThrowSound(kind) {
 const canvas = document.getElementById('gc');
 const ctx = canvas.getContext('2d');
 
-// Карта (13 рядов × 9 столбцов), как в hub.html
-const COLS = 9, ROWS = 13;
+// Карта (17 рядов × 12 столбцов) — расширенная арена
+const COLS = 12, ROWS = 17;
 // 0=пол, 1=стена, 2=ящик, 3=бочка, 4=машина
 const MAP = [
-  [1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,1],
-  [1,0,2,2,0,0,3,0,1],
-  [1,0,0,0,0,0,0,0,1],
-  [1,0,0,0,4,4,0,0,1],
-  [1,0,3,0,0,0,0,2,1],
-  [1,0,0,0,0,0,0,0,1],
-  [1,2,0,0,0,3,0,0,1],
-  [1,0,0,1,1,0,0,0,1],
-  [1,0,0,0,0,0,2,0,1],
-  [1,0,3,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,2,0,0,3,0,0,2,2,0,1],
+  [1,0,2,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,4,4,0,0,0,1],
+  [1,0,3,0,0,0,0,0,0,3,0,1],
+  [1,0,0,0,2,0,0,0,2,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,2,0,0,0,1,1,0,0,0,2,1],
+  [1,2,0,0,0,1,1,0,0,0,0,1],
+  [1,0,0,3,0,0,0,0,3,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,4,4,0,0,2,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,2,1],
+  [1,0,2,0,0,3,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1],
 ];
 
 // Описание типов клеток
 const COVER_TYPES = {
-  1: { name: 'wall',   h: 1.4,  topColor: '#5a4a3a', sideColor: '#3a2e22', shape: 'box' },
-  2: { name: 'crate',  h: 0.7,  topColor: '#8a5a30', sideColor: '#5a3818', shape: 'box' },
-  3: { name: 'barrel', h: 0.95, topColor: '#a23030', sideColor: '#6a1a1a', shape: 'cyl' },
-  4: { name: 'car',    h: 0.55, topColor: '#2a4a7a', sideColor: '#16284a', shape: 'box' },
+  1: { name: 'wall',   h: 1.4,  topColor: '#5a4a3a', sideColor: '#3a2e22', shape: 'box', hp: -1 }, // -1 = неуязвима
+  2: { name: 'crate',  h: 0.7,  topColor: '#8a5a30', sideColor: '#5a3818', shape: 'box', hp: 50 },
+  3: { name: 'barrel', h: 0.95, topColor: '#a23030', sideColor: '#6a1a1a', shape: 'cyl', hp: 35, explodeOnBreak: true },
+  4: { name: 'car',    h: 0.55, topColor: '#2a4a7a', sideColor: '#16284a', shape: 'box', hp: 120 },
 };
+
+// HP для каждой ячейки укрытия (инициализируется при старте)
+const coverHP = [];
+function initCoverHP() {
+  coverHP.length = 0;
+  for (let r = 0; r < ROWS; r++) {
+    const row = [];
+    for (let c = 0; c < COLS; c++) {
+      const t = MAP[r][c];
+      row.push(t > 0 ? (COVER_TYPES[t].hp || -1) : 0);
+    }
+    coverHP.push(row);
+  }
+}
+
+// Нанести урон укрытию в одной клетке. Возвращает true если поглотило (пуля останавливается).
+function damageCoverAt(r, c, dmg) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (ri < 0 || ri >= ROWS || ci < 0 || ci >= COLS) return false;
+  const t = MAP[ri][ci];
+  if (t === 0) return false;
+  // искра от попадания
+  spawnHitSpark(r, c, t);
+  if (t === 1) return true; // стена — неразрушима
+  const cfg = COVER_TYPES[t];
+  coverHP[ri][ci] -= dmg;
+  if (coverHP[ri][ci] <= 0) {
+    // эффект разрушения с разлёта частиц
+    spawnCoverBreak(ri, ci, t);
+    MAP[ri][ci] = 0;
+    coverHP[ri][ci] = 0;
+    // бочка взрывается при уничтожении
+    if (cfg && cfg.explodeOnBreak) triggerExplosion(ri + 0.5, ci + 0.5, 50);
+  }
+  return true;
+}
+
+function spawnHitSpark(r, c, coverType) {
+  // короткая искра/пыль на месте удара пули
+  const cfg = COVER_TYPES[coverType];
+  hitSparks.push({
+    r, c, life: 200, max: 200,
+    color: cfg ? cfg.topColor : '#888',
+  });
+}
+
+function spawnCoverBreak(ri, ci, type) {
+  const cfg = COVER_TYPES[type];
+  if (!cfg) return;
+  const N = type === 3 ? 18 : (type === 4 ? 22 : 14); // больше частиц для крупных
+  const particles = [];
+  for (let i = 0; i < N; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const speed = 0.6 + Math.random() * 2.2;
+    particles.push({
+      r: ri + 0.5, c: ci + 0.5,
+      vr: Math.sin(ang) * speed,
+      vc: Math.cos(ang) * speed,
+      z: 0.2 + Math.random() * 0.4,   // высота
+      vz: 1.5 + Math.random() * 2.5,  // вверх
+      size: 2 + Math.random() * 3,
+      color: Math.random() < 0.5 ? cfg.topColor : cfg.sideColor,
+    });
+  }
+  coverBreaks.push({
+    r: ri + 0.5, c: ci + 0.5, type,
+    life: 700, max: 700,
+    particles,
+  });
+  // звук разрушения
+  try {
+    if (type === 3) { // бочка — металл
+      _noise({dur:0.3,vol:0.32,filter:'bandpass',filterFreq:1500,q:5});
+      _tone({freq:300,freqEnd:80,dur:0.2,type:'square',vol:0.22});
+    } else if (type === 4) { // машина — крах стекла+металла
+      _noise({dur:0.45,vol:0.36,filter:'highpass',filterFreq:1200});
+      _tone({freq:200,freqEnd:50,dur:0.3,type:'sawtooth',vol:0.28});
+    } else { // ящик — дерево
+      _noise({dur:0.25,vol:0.28,filter:'lowpass',filterFreq:1500});
+      _tone({freq:180,freqEnd:60,dur:0.18,type:'triangle',vol:0.24});
+    }
+  } catch(e) {}
+}
+
+// Урон всем укрытиям в радиусе (для взрывов/огня)
+function damageCovers(r, c, radius, dmg) {
+  const r0 = Math.max(0, Math.floor(r - radius));
+  const r1 = Math.min(ROWS - 1, Math.floor(r + radius));
+  const c0 = Math.max(0, Math.floor(c - radius));
+  const c1 = Math.min(COLS - 1, Math.floor(c + radius));
+  for (let ri = r0; ri <= r1; ri++) {
+    for (let ci = c0; ci <= c1; ci++) {
+      const t = MAP[ri][ci];
+      if (t <= 1) continue; // 0 пусто, 1 стена
+      const d = Math.hypot((ri + 0.5) - r, (ci + 0.5) - c);
+      if (d < radius) damageCoverAt(ri + 0.5, ci + 0.5, dmg);
+    }
+  }
+}
 
 // Look игрока — из LocalStorage (или рандом при первом запуске)
 function loadPlayerLook() {
@@ -204,24 +332,81 @@ function savePlayerLook(look) {
   try { localStorage.setItem('mafiozi_demo_look', JSON.stringify(look)); } catch(e) {}
 }
 
-// Игрок
+// Игрок — стартовая позиция в центре расширенной карты
 const player = {
-  r: 6.5, c: 4.5, hp: 100, angle: 0,
-  fireCD: 0, walkPhase: 0, moving: false,
+  r: 8.5, c: 8.5, hp: 100, hpMax: 100, angle: 0,
+  fireCD: 0, walkPhase: 0, moving: false, hitT: 0,
   look: loadPlayerLook(),
+  ammo: {}, // {wepKey: {cur, reloading, reloadEnd}}
 };
+
+function getAmmo(key) {
+  const cfg = WEAPON_FX_CFG[key];
+  if (!cfg || !cfg.mag) return null; // melee — без патронов
+  if (!player.ammo[key]) player.ammo[key] = { cur: cfg.mag, reloading: false, reloadEnd: 0 };
+  return player.ammo[key];
+}
+
+function startReload(a, cfg) {
+  if (a.reloading) return;
+  a.reloading = true;
+  a.reloadEnd = performance.now() + (cfg.reload || 1500);
+  // звук перезарядки — короткий клик
+  try { _tone({freq:600,freqEnd:200,dur:0.08,type:'square',vol:0.18}); } catch(e) {}
+  setTimeout(() => { try { _tone({freq:380,freqEnd:160,dur:0.12,type:'square',vol:0.15}); _noise({dur:0.08,vol:0.10}); } catch(e) {} }, (cfg.reload || 1500) - 200);
+}
+
+function tryFirePlayer() {
+  if (player.hp <= 0) return;
+  if (player.fireCD > 0) return;
+  const cfg = WEAPON_FX_CFG[currentWeapon];
+  if (!cfg) return;
+  if (cfg.melee) { fireWeapon(player); return; }
+  const a = getAmmo(currentWeapon);
+  if (!a) return;
+  const now = performance.now();
+  if (a.reloading) {
+    if (now >= a.reloadEnd) { a.cur = cfg.mag; a.reloading = false; }
+    else return;
+  }
+  if (a.cur <= 0) { startReload(a, cfg); return; }
+  fireWeapon(player);
+  a.cur -= 1;
+  if (a.cur <= 0) startReload(a, cfg);
+}
+
+function manualReload() {
+  if (player.hp <= 0) return;
+  const cfg = WEAPON_FX_CFG[currentWeapon];
+  if (!cfg || cfg.melee) return;
+  const a = getAmmo(currentWeapon);
+  if (!a || a.reloading || a.cur >= cfg.mag) return;
+  startReload(a, cfg);
+}
 
 // Босс для текущей "локации" — фиксированный look (детерминированный seed)
 // При переезде в hub это будет из BOSS_DATA[locationId]
 const BOSS_LOOK = { gender: 0, skin: 1, body: 2, face: 4, hair: 1, hat: 1 }; // мужик-качок в шраме, федора
 
 // Враги: 1 босс + 3 рандомных миньона
+// AI: aiState — 'patrol' (бродит), 'chase' (бежит к игроку), 'shoot' (стреляет с позиции), 'rush' (босс-рывок)
+// weapon — какое оружие использует; fireCD — кулдаун в мс; sightR — радиус обнаружения
 const enemies = [
-  { r: 2.5, c: 5.5, hp: 200, hpMax: 200, angle: 0, look: BOSS_LOOK, isBoss: true, name: 'Дон Карло' },
-  { r: 8.5, c: 6.5, hp: 80,  hpMax: 80,  angle: 0, look: rndLook(), isBoss: false },
-  { r: 10.5, c: 3.0, hp: 80, hpMax: 80,  angle: 0, look: rndLook(), isBoss: false },
-  { r: 4.5, c: 2.5,  hp: 80, hpMax: 80,  angle: 0, look: rndLook(), isBoss: false },
+  { r: 2.5, c: 6.5, hp: 200, hpMax: 200, angle: 0, look: BOSS_LOOK, isBoss: true, name: 'Дон Карло',
+    weapon: 'shotgun', fireCD: 1500, sightR: 11, aiState: 'patrol', repositionT: 0, walkPhase: 0,
+    grenadeCD: 1800, rushCD: 5000, rushT: 0 },
+  { r: 12.5, c: 9.5, hp: 80,  hpMax: 80,  angle: 0, look: rndLook(), isBoss: false,
+    weapon: 'pistol', fireCD: 600, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0 },
+  { r: 14.5, c: 3.0, hp: 80, hpMax: 80,  angle: 0, look: rndLook(), isBoss: false,
+    weapon: 'smg', fireCD: 1200, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0 },
+  { r: 5.5, c: 2.5,  hp: 80, hpMax: 80,  angle: 0, look: rndLook(), isBoss: false,
+    weapon: 'pistol_heavy', fireCD: 900, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0 },
 ];
+
+const grenades = []; // {r, c, tr, tc, t, T, fromTeam, kind: 'grenade'|'molotov', dmg}
+const firePuddles = []; // лужи огня от молотовых: {r, c, life, max, radius, fromTeam}
+const coverBreaks = []; // эффекты разрушения укрытий: {r, c, life, max, type, particles[]}
+const hitSparks = []; // искры от попаданий пуль: {r, c, life, max, color}
 
 const bullets = [];
 const muzzles = []; // вспышки у дула: {r, c, life, max}
@@ -249,11 +434,10 @@ function resize() {
   canvas.style.width = w + 'px';
   canvas.style.height = h + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // Подгоняем TS так, чтобы вся карта влезла с запасом
-  const mapW = (COLS + ROWS) * 0.5;          // ширина в "тайлах"
-  const mapH = (COLS + ROWS) * 0.5 * ISO_Y;  // высота в "тайлах"
-  TS = Math.min(w / (mapW + 1), h / (mapH + 3.5));
-  TS = Math.max(28, Math.min(70, TS));
+  // Зум: примерно 8 тайлов в высоту видимой области → камера ближе.
+  // Камера следует за игроком — не нужно чтобы вся карта влезла.
+  TS = Math.min(w / 11, h / 8.5);
+  TS = Math.max(60, Math.min(120, TS));
 }
 window.addEventListener('resize', resize);
 
@@ -319,6 +503,9 @@ function drawCover(r, c, type) {
   const base = w2s(r + 0.5, c + 0.5);  // центр тайла (r/c — индекс ячейки)
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
   const H = isoH(cfg.h);
+  // Уровень повреждения (0 = цел, 1 = почти разрушено)
+  const dmgRatio = (cfg.hp > 0 && coverHP[r] != null && coverHP[r][c] != null)
+    ? Math.max(0, 1 - coverHP[r][c] / cfg.hp) : 0;
 
   if (cfg.shape === 'cyl') {
     // ── ЦИЛИНДР (бочка) ──
@@ -410,6 +597,41 @@ function drawCover(r, c, type) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+  }
+
+  // Трещины при HP < 50% (только для разрушаемых)
+  if (dmgRatio > 0.4 && cfg.hp > 0) {
+    ctx.strokeStyle = 'rgba(0,0,0,' + (0.3 + dmgRatio * 0.4).toFixed(2) + ')';
+    ctx.lineWidth = 1.5;
+    // детерминированные «трещины» из центра — используем r/c как seed
+    const seed = (r * 31 + c * 17) % 100;
+    const nLines = Math.floor(2 + dmgRatio * 4);
+    for (let i = 0; i < nLines; i++) {
+      const ang = (seed + i * 37) % 360 * Math.PI / 180;
+      const startD = 0.05 + ((seed + i * 11) % 30) / 200;
+      const endD = 0.25 + dmgRatio * 0.2;
+      const sx = base.x + Math.cos(ang) * wx * startD * 0.8;
+      const sy = base.y - H * 0.8 + Math.sin(ang) * wy * startD * 0.8;
+      const ex = base.x + Math.cos(ang) * wx * endD * 1.5;
+      const ey = base.y - H * 0.8 + Math.sin(ang) * wy * endD * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      // зигзаг
+      const midX = (sx + ex) / 2 + Math.cos(ang + Math.PI/2) * 2;
+      const midY = (sy + ey) / 2 + Math.sin(ang + Math.PI/2) * 2;
+      ctx.lineTo(midX, midY);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+    }
+    // покачивание: если повреждение >70%, лёгкий tilt
+    if (dmgRatio > 0.7) {
+      // дым из трещин
+      const smoke = (performance.now() * 0.003 + seed) % 1;
+      ctx.fillStyle = 'rgba(80,80,80,' + (0.3 * (1 - smoke)).toFixed(2) + ')';
+      ctx.beginPath();
+      ctx.arc(base.x, base.y - H - 10 - smoke * 15, 4 + smoke * 3, 0, Math.PI*2);
+      ctx.fill();
+    }
   }
 }
 
@@ -868,9 +1090,11 @@ function drawCharacter(obj, isPlayer) {
 
   // спрайт
   const sprite = getSprite(obj.look);
-  const scale = obj.isBoss ? 2.0 : 1.55;
+  const scale = obj.isBoss ? 2.5 : 1.95;
   const sh = TS * scale;
-  const sw = sh * (SPRITE_W / SPRITE_H);
+  // sw искусственно расширяем — спрайт сам по себе узкий (110x200=0.55 ratio).
+  // Делаем 0.72, чтобы персонаж выглядел более «крепким».
+  const sw = sh * 0.72;
 
   if (isDead) {
     // Лежащий спрайт — поворот на 90° вокруг ног
@@ -885,20 +1109,56 @@ function drawCharacter(obj, isPlayer) {
     ctx.drawImage(sprite, Math.round(p.x - sw/2), Math.round(p.y - sh*0.94 + bob), sw, sh);
   }
 
-  // Рука с оружием (только живой)
+  // Рука с оружием (только живой). Плечо — на уровне груди (примерно 45% высоты спрайта снизу),
+  // смещение вбок перпендикулярно направлению, чтобы рука росла из плеча.
   if (!isDead && obj.angle != null) {
-    const armLen = TS * (obj.isBoss ? 0.55 : 0.42);
-    const handY = p.y - sh * 0.55 + bob;
+    const armLen = TS * (obj.isBoss ? 0.5 : 0.36);
     const dx = Math.cos(obj.angle), dy = Math.sin(obj.angle);
     const sx = (dx - dy) * 0.5;
     const sy = (dx + dy) * 0.5 * ISO_Y;
-    const ex = p.x + sx * armLen;
-    const ey = handY + sy * armLen;
-    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(p.x, handY); ctx.lineTo(ex, ey); ctx.stroke();
-    ctx.strokeStyle = '#555'; ctx.lineWidth = 3.5;
-    ctx.beginPath(); ctx.moveTo(ex, ey);
-    ctx.lineTo(ex + sx * TS * 0.28, ey + sy * TS * 0.28); ctx.stroke();
+    // плечо на 17% от низа спрайта = центр торса (грудь).
+    // По геометрии drawChar голова на экране занимает 29-52% от sh снизу,
+    // поэтому всё что выше 0.21 — в области головы/шеи (нож в голове).
+    const shY = p.y - sh * 0.17 + bob;
+    const dirLen = Math.hypot(sx, sy) || 1;
+    const perpX = -sy / dirLen;
+    const perpY =  sx / dirLen;
+    const shoulderD = TS * (obj.isBoss ? 0.14 : 0.10);
+    const hx = p.x + perpX * shoulderD;
+    const hy = shY + perpY * shoulderD;
+    const ex = hx + sx * armLen;
+    const ey = hy + sy * armLen;
+    // рука (тёмный рукав)
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = obj.isBoss ? 6 : 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(ex, ey); ctx.stroke();
+    // оружие
+    const wepKey = obj === player ? currentWeapon : (obj.weapon || 'pistol');
+    const wepCfg = WEAPON_FX_CFG[wepKey] || {};
+    const isMelee = !!wepCfg.melee;
+    if (isMelee) {
+      // ближнее оружие — короткое, светлое (нож/бита/катана)
+      let len = 0.2, col = '#bbb', w = 3;
+      if (wepKey === 'blade_long') { len = 0.36; col = '#cfcfcf'; w = 2.5; }
+      else if (wepKey === 'bat')   { len = 0.28; col = '#8b5a2b'; w = 4; }
+      else if (wepKey === 'chain') { len = 0.26; col = '#888'; w = 2.5; }
+      else if (wepKey === 'fists') { len = 0;    col = '#bbb'; w = 0; }
+      else if (wepKey === 'brass') { len = 0.06; col = '#e8c96e'; w = 5; }
+      if (len > 0) {
+        ctx.strokeStyle = col; ctx.lineWidth = w;
+        ctx.beginPath(); ctx.moveTo(ex, ey);
+        ctx.lineTo(ex + sx * TS * len, ey + sy * TS * len); ctx.stroke();
+      } else {
+        // кулак — кружок на конце руки
+        ctx.fillStyle = obj.look ? (SKINS[obj.look.skin] || SKINS[0]) : '#ddd';
+        ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI*2); ctx.fill();
+      }
+    } else {
+      // стрелковое — длинная тёмная черта
+      const len = wepKey === 'sniper' || wepKey === 'rifle' ? 0.4 : (wepKey === 'rpg' ? 0.5 : 0.28);
+      ctx.strokeStyle = '#333'; ctx.lineWidth = wepKey === 'rpg' ? 6 : 4;
+      ctx.beginPath(); ctx.moveTo(ex, ey);
+      ctx.lineTo(ex + sx * TS * len, ey + sy * TS * len); ctx.stroke();
+    }
   }
 
   // HP-бар (только живой и не игрок 100%)
@@ -962,6 +1222,217 @@ function drawMuzzle(m) {
   ctx.shadowBlur = 0;
 }
 
+function drawGrenade(g) {
+  const p = w2s(g.r, g.c);
+  const k = g.t / g.T;
+  const liftPx = isoH(1.1) * 4 * k * (1 - k);
+  const cx = p.x;
+  const cy = p.y - isoH(0.2) - liftPx;
+  // тень на земле
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y - isoH(0.05), 5, 2.5, 0, 0, Math.PI*2);
+  ctx.fill();
+  if (g.kind === 'molotov') {
+    // бутылка с горючим — продолговатая, с пламенем сверху
+    ctx.fillStyle = '#3a2a14';
+    ctx.beginPath(); ctx.ellipse(cx, cy, 3, 6, k * Math.PI * 2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#a07040';
+    ctx.beginPath(); ctx.ellipse(cx, cy, 1.8, 4.5, k * Math.PI * 2, 0, Math.PI*2); ctx.fill();
+    // пламя
+    ctx.fillStyle = '#ff8030';
+    ctx.beginPath(); ctx.arc(cx, cy - 7, 2.8 + Math.sin(g.t*40)*0.6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ffd76b';
+    ctx.beginPath(); ctx.arc(cx, cy - 7, 1.4, 0, Math.PI*2); ctx.fill();
+  } else {
+    // граната
+    ctx.fillStyle = '#2a2e1a';
+    ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#5a5a30'; ctx.lineWidth = 1; ctx.stroke();
+    // искра-фитиль
+    if ((g.t * 18) % 1 > 0.5) {
+      ctx.fillStyle = '#ffd76b';
+      ctx.beginPath(); ctx.arc(cx + 2, cy - 4, 1.6, 0, Math.PI*2); ctx.fill();
+    }
+  }
+}
+
+// Прицел-конус: показывает дальность и разброс выбранного оружия.
+// Лучом упирается в первое препятствие на линии прицела.
+function drawAimGuide() {
+  if (player.hp <= 0) return;
+  if (!joyR.active) return;
+  if (Math.abs(joyR.dx) < 0.1 && Math.abs(joyR.dy) < 0.1) return;
+  const cfg = WEAPON_FX_CFG[currentWeapon];
+  if (!cfg || cfg.melee) return;
+
+  const angle = player.angle;
+  const range = cfg.range || 8;
+  const spread = cfg.spread || 0;
+  const color = cfg.color || '#ffea80';
+  const isSniper = currentWeapon === 'sniper';
+
+  // Найдём фактическую длину луча — упираемся в первое препятствие
+  let hitDist = range;
+  for (let d = 0.3; d < range; d += 0.15) {
+    const rr = player.r + Math.sin(angle) * d;
+    const cc = player.c + Math.cos(angle) * d;
+    if (isBlocked(rr, cc)) { hitDist = d; break; }
+  }
+
+  // Центр луча — из плеча оружия (как у руки)
+  const p = w2s(player.r, player.c);
+  const sh = TS * 1.95;
+  const dx = Math.cos(angle), dy = Math.sin(angle);
+  const sx = (dx - dy) * 0.5;
+  const sy = (dx + dy) * 0.5 * ISO_Y;
+  const dirLen = Math.hypot(sx, sy) || 1;
+  const perpX = -sy / dirLen, perpY = sx / dirLen;
+  const shoulderD = TS * 0.10;
+  const startX = p.x + perpX * shoulderD + sx * TS * 0.45;
+  const startY = p.y - sh * 0.17 + perpY * shoulderD + sy * TS * 0.45;
+
+  // Конечная точка луча по миру → экран
+  const endR = player.r + Math.sin(angle) * hitDist;
+  const endC = player.c + Math.cos(angle) * hitDist;
+  const ep = w2s(endR, endC);
+  const endX = ep.x;
+  const endY = ep.y - isoH(0.3); // на высоте груди
+
+  if (isSniper) {
+    // ── СНАЙПЕРКА: лазерный луч ──
+    // тонкая яркая красная линия с пунктиром
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,40,40,.85)';
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([6, 4]);
+    ctx.lineDashOffset = -(performance.now() * 0.04) % 10;
+    ctx.shadowColor = '#ff3030';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+    // яркая точка прицела на конце
+    ctx.setLineDash([]);
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = '#ff5050';
+    ctx.beginPath(); ctx.arc(endX, endY, 4, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(endX, endY, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  } else {
+    // ── ОБЫЧНОЕ ОРУЖИЕ: конус с углом = spread ──
+    const halfAngle = Math.max(0.01, spread); // минимальная ширина чтобы было видно
+    const fanA = angle - halfAngle;
+    const fanB = angle + halfAngle;
+    const fanR_A = player.r + Math.sin(fanA) * hitDist;
+    const fanC_A = player.c + Math.cos(fanA) * hitDist;
+    const fanR_B = player.r + Math.sin(fanB) * hitDist;
+    const fanC_B = player.c + Math.cos(fanB) * hitDist;
+    const pA = w2s(fanR_A, fanC_A);
+    const pB = w2s(fanR_B, fanC_B);
+    const aX = pA.x, aY = pA.y - isoH(0.3);
+    const bX = pB.x, bY = pB.y - isoH(0.3);
+
+    ctx.save();
+    // заливка-градиент
+    const grd = ctx.createRadialGradient(startX, startY, 0, startX, startY, hitDist * TS);
+    grd.addColorStop(0, color + '55');
+    grd.addColorStop(0.6, color + '22');
+    grd.addColorStop(1, color + '08');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(aX, aY);
+    ctx.lineTo(bX, bY);
+    ctx.closePath();
+    ctx.fill();
+    // края конуса — лёгкие линии того же цвета
+    ctx.strokeStyle = color + '99';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY); ctx.lineTo(aX, aY);
+    ctx.moveTo(startX, startY); ctx.lineTo(bX, bY);
+    ctx.stroke();
+    // дальняя дуга — обозначает максимальный radius
+    ctx.strokeStyle = color + 'bb';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(aX, aY); ctx.lineTo(bX, bY);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawCoverBreak(b) {
+  const lifeRatio = Math.max(0, b.life / b.max);
+  b.particles.forEach(pt => {
+    const p = w2s(pt.r, pt.c);
+    const liftPx = isoH(pt.z);
+    // тень частицы
+    ctx.fillStyle = 'rgba(0,0,0,' + (0.35 * lifeRatio).toFixed(2) + ')';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, pt.size * 0.7, pt.size * 0.4, 0, 0, Math.PI*2);
+    ctx.fill();
+    // сама частица
+    ctx.fillStyle = pt.color;
+    ctx.globalAlpha = lifeRatio;
+    ctx.beginPath();
+    ctx.rect(p.x - pt.size/2, p.y - liftPx - pt.size/2, pt.size, pt.size);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+}
+
+function drawHitSpark(s) {
+  const p = w2s(s.r, s.c);
+  const t = s.life / s.max;
+  // короткая яркая вспышка
+  ctx.fillStyle = 'rgba(255,230,160,' + (t * 0.9).toFixed(2) + ')';
+  const size = 4 + 4 * (1 - t);
+  ctx.beginPath();
+  ctx.arc(p.x, p.y - isoH(0.3), size * t, 0, Math.PI*2);
+  ctx.fill();
+  // пыль/осколки
+  ctx.fillStyle = s.color;
+  ctx.globalAlpha = t * 0.7;
+  for (let i = 0; i < 3; i++) {
+    const a = i * 2.0 + (1 - t) * 4;
+    const d = (1 - t) * 8;
+    ctx.beginPath();
+    ctx.arc(p.x + Math.cos(a) * d, p.y - isoH(0.3) + Math.sin(a) * d * 0.5, 1.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawFirePuddle(f) {
+  const p = w2s(f.r, f.c);
+  const t = Math.max(0, f.life / f.max);
+  const radPx = f.radius * TS * 0.55;
+  // тёмный обугленный круг под лужей
+  ctx.fillStyle = 'rgba(20,10,5,' + (0.5 * t).toFixed(2) + ')';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y - isoH(0.05), radPx, radPx * ISO_Y, 0, 0, Math.PI*2);
+  ctx.fill();
+  // языки пламени (несколько слоёв градиентов)
+  const flickr = 0.85 + 0.15 * Math.sin(performance.now() * 0.02);
+  for (let i = 0; i < 5; i++) {
+    const ang = (performance.now() * 0.001 + i) * 1.7;
+    const ox = Math.cos(ang) * radPx * 0.35;
+    const oy = Math.sin(ang) * radPx * 0.18;
+    const grd = ctx.createRadialGradient(p.x + ox, p.y - isoH(0.1) + oy, 0, p.x + ox, p.y - isoH(0.1) + oy, radPx * 0.7 * flickr);
+    grd.addColorStop(0, 'rgba(255,230,120,' + (0.75 * t) + ')');
+    grd.addColorStop(0.4, 'rgba(255,140,40,' + (0.55 * t) + ')');
+    grd.addColorStop(1, 'rgba(160,40,10,0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.ellipse(p.x + ox, p.y - isoH(0.1) + oy, radPx * 0.7 * flickr, radPx * 0.6 * ISO_Y * flickr, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
 function drawExplosion(e) {
   const p = w2s(e.r, e.c);
   const t = e.life / e.max;
@@ -988,6 +1459,9 @@ function render() {
     }
   }
 
+  // 1.5) Лужи огня — на полу, под персонажами/укрытиями
+  firePuddles.forEach(drawFirePuddle);
+
   // 2) Объекты с глубиной (укрытия + персонажи + пули). Сортируем по r+c
   const items = [];
   for (let r = 0; r < ROWS; r++) {
@@ -1006,17 +1480,35 @@ function render() {
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
 
-  // 3) Поверх — пули, вспышки, взрывы
+  // 2.5) Прицел-конус игрока (под пулями, поверх персонажей)
+  drawAimGuide();
+
+  // 3) Поверх — пули, вспышки, гранаты, взрывы, разрушение
   bullets.forEach(drawBullet);
   muzzles.forEach(drawMuzzle);
+  grenades.forEach(drawGrenade);
   explosions.forEach(drawExplosion);
+  coverBreaks.forEach(drawCoverBreak);
+  hitSparks.forEach(drawHitSpark);
 }
 
 // ── UPDATE ─────────────────────────────────────────────────────────
 function update(dt) {
+  // тик красной вспышки урона
+  if (player.hitT > 0) player.hitT = Math.max(0, player.hitT - dt);
+
+  // AI врагов
+  enemies.forEach(e => updateEnemyAI(e, dt));
+
+  // Если игрок мёртв — пропускаем управление
+  if (player.hp <= 0) {
+    player.fireCD = Math.max(0, player.fireCD - dt * 1000);
+    // только обновляем пули и эффекты ниже
+  }
+
   // Движение игрока
   const speed = 4.5; // тайлов/сек
-  if (joyL.active && (Math.abs(joyL.dx) > 0.1 || Math.abs(joyL.dy) > 0.1)) {
+  if (player.hp > 0 && joyL.active && (Math.abs(joyL.dx) > 0.1 || Math.abs(joyL.dy) > 0.1)) {
     // joy.dx (экран X) → ось (c-r) ;  joy.dy (экран Y) → ось (c+r)*ISO_Y
     // Решаем обратно: c-r = dx ; c+r = dy/ISO_Y
     // r = (s - d) / 2, c = (s + d) / 2  где d=dx, s=dy/ISO_Y
@@ -1033,16 +1525,14 @@ function update(dt) {
   }
 
   // Прицеливание и стрельба
-  if (joyR.active && (Math.abs(joyR.dx) > 0.15 || Math.abs(joyR.dy) > 0.15)) {
+  if (player.hp > 0 && joyR.active && (Math.abs(joyR.dx) > 0.15 || Math.abs(joyR.dy) > 0.15)) {
     // Аналогично: переводим экран → мир
     const d = joyR.dx, s = joyR.dy / ISO_Y;
     const dc = (s + d) * 0.5;
     const dr = (s - d) * 0.5;
     player.angle = Math.atan2(dr, dc);
-    // Стрельба
-    if (player.fireCD <= 0) {
-      fireWeapon(player);
-    }
+    // Стрельба (через tryFirePlayer — учитывает патроны/перезарядку)
+    tryFirePlayer();
   }
   player.fireCD = Math.max(0, player.fireCD - dt * 1000);
 
@@ -1052,9 +1542,10 @@ function update(dt) {
     b.r += b.vr * dt;
     b.c += b.vc * dt;
     b.dist += Math.hypot(b.vr, b.vc) * dt;
-    // Стена?
+    // Препятствие (стена/ящик/бочка/машина)? — наносим урон укрытию (стена возвращает true но HP=-1 → жива)
     if (isBlocked(b.r, b.c)) {
-      if (b.explosive) triggerExplosion(b.r, b.c);
+      damageCoverAt(b.r, b.c, b.dmg || 25);
+      if (b.explosive) triggerExplosion(b.r, b.c, b.dmg || 90);
       bullets.splice(i, 1); continue;
     }
     // Дальность?
@@ -1062,18 +1553,92 @@ function update(dt) {
       if (b.explosive) triggerExplosion(b.r, b.c);
       bullets.splice(i, 1); continue;
     }
-    // Враги?
+    // Попадание в цели (зависит от team)
     let hit = false;
-    for (const e of enemies) {
-      if (e.hp <= 0) continue;
-      if (Math.hypot(e.r - b.r, e.c - b.c) < 0.4) {
-        e.hp -= (b.dmg || 25);
-        if (e.hp <= 0) e.hp = 0;
+    if (b.team === 'enemy') {
+      if (player.hp > 0 && Math.hypot(player.r - b.r, player.c - b.c) < 0.4) {
+        player.hp = Math.max(0, player.hp - (b.dmg || 25));
+        player.hitT = 0.25;
         if (b.explosive) triggerExplosion(b.r, b.c);
-        bullets.splice(i, 1); hit = true; break;
+        bullets.splice(i, 1); hit = true;
+      }
+    } else {
+      for (const e of enemies) {
+        if (e.hp <= 0) continue;
+        if (Math.hypot(e.r - b.r, e.c - b.c) < 0.4) {
+          e.hp -= (b.dmg || 25);
+          if (e.hp <= 0) e.hp = 0;
+          if (b.explosive) triggerExplosion(b.r, b.c);
+          bullets.splice(i, 1); hit = true; break;
+        }
       }
     }
     if (hit) continue;
+  }
+
+  // Гранаты — парабола r/c по времени; на t=T → взрыв (grenade) или лужа огня (molotov)
+  for (let i = grenades.length - 1; i >= 0; i--) {
+    const g = grenades[i];
+    g.t += dt;
+    const k = Math.min(1, g.t / g.T);
+    g.r = g.fromR + (g.tr - g.fromR) * k;
+    g.c = g.fromC + (g.tc - g.fromC) * k;
+    if (k >= 1) {
+      if (g.kind === 'molotov') {
+        try { _tone({freq:200,freqEnd:80,dur:0.3,type:'sawtooth',vol:0.32}); _noise({dur:0.5,vol:0.28,filter:'lowpass',filterFreq:600}); } catch(e) {}
+        spawnFirePuddle(g.r, g.c, g.fromTeam);
+      } else {
+        triggerExplosion(g.r, g.c, g.dmg);
+      }
+      grenades.splice(i, 1);
+    }
+  }
+
+  // Анимация разрушения укрытий — частицы летят по баллистике
+  for (let i = coverBreaks.length - 1; i >= 0; i--) {
+    const b = coverBreaks[i];
+    b.life -= dt * 1000;
+    b.particles.forEach(pt => {
+      pt.r += pt.vr * dt;
+      pt.c += pt.vc * dt;
+      pt.z += pt.vz * dt;
+      pt.vz -= 7 * dt; // гравитация
+      // трение
+      pt.vr *= (1 - dt * 1.5);
+      pt.vc *= (1 - dt * 1.5);
+      if (pt.z < 0) { pt.z = 0; pt.vz = 0; }
+    });
+    if (b.life <= 0) coverBreaks.splice(i, 1);
+  }
+
+  // Искры от попаданий пуль
+  for (let i = hitSparks.length - 1; i >= 0; i--) {
+    hitSparks[i].life -= dt * 1000;
+    if (hitSparks[i].life <= 0) hitSparks.splice(i, 1);
+  }
+
+  // Лужи огня — DoT и постепенное угасание
+  for (let i = firePuddles.length - 1; i >= 0; i--) {
+    const f = firePuddles[i];
+    f.life -= dt * 1000;
+    f.tickT += dt;
+    // тик урона раз в 0.4 сек
+    if (f.tickT >= 0.4) {
+      f.tickT = 0;
+      // игрок
+      if (player.hp > 0 && Math.hypot(player.r - f.r, player.c - f.c) < f.radius) {
+        player.hp = Math.max(0, player.hp - 8);
+        player.hitT = 0.18;
+      }
+      // враги
+      enemies.forEach(e => {
+        if (e.hp <= 0) return;
+        if (Math.hypot(e.r - f.r, e.c - f.c) < f.radius) e.hp = Math.max(0, e.hp - 6);
+      });
+      // укрытия
+      damageCovers(f.r, f.c, f.radius, 12);
+    }
+    if (f.life <= 0) firePuddles.splice(i, 1);
   }
 
   // Вспышки
@@ -1097,20 +1662,62 @@ function update(dt) {
   cam.y += (targetCamY - cam.y) * camLerp;
 }
 
-function triggerExplosion(r, c) {
+function triggerExplosion(r, c, dmg) {
+  const D = dmg || 60;
   explosions.push({ r, c, life: 600, max: 600, radius: 1.8 });
   // урон врагам в радиусе
   enemies.forEach(e => {
     if (e.hp <= 0) return;
-    if (Math.hypot(e.r - r, e.c - c) < 2.0) e.hp = Math.max(0, e.hp - 60);
+    if (Math.hypot(e.r - r, e.c - c) < 2.0) e.hp = Math.max(0, e.hp - D);
+  });
+  // урон игроку
+  if (player.hp > 0 && Math.hypot(player.r - r, player.c - c) < 2.0) {
+    player.hp = Math.max(0, player.hp - D);
+    player.hitT = 0.35;
+  }
+  // урон укрытиям в радиусе
+  damageCovers(r, c, 2.0, D);
+}
+
+function throwGrenade(from, targetR, targetC, team, opts) {
+  opts = opts || {};
+  const kind = opts.kind || 'grenade';
+  _playThrowSound(kind);
+  grenades.push({
+    fromR: from.r, fromC: from.c,
+    tr: targetR, tc: targetC,
+    t: 0, T: 1.1, // время полёта 1.1 сек
+    r: from.r, c: from.c,
+    fromTeam: team || 'enemy',
+    kind,
+    dmg: opts.dmg || (kind === 'grenade' ? 60 : 22),
   });
 }
 
-function fireWeapon(p) {
-  const cfg = WEAPON_FX_CFG[currentWeapon] || WEAPON_FX_CFG.pistol;
+function spawnFirePuddle(r, c, team) {
+  firePuddles.push({ r, c, life: 4000, max: 4000, radius: 1.6, fromTeam: team || 'enemy', tickT: 0 });
+}
+
+function fireWeapon(p, weaponKey, team) {
+  const wKey = weaponKey || currentWeapon;
+  const tm = team || 'player';
+  const cfg = WEAPON_FX_CFG[wKey] || WEAPON_FX_CFG.pistol;
   try { cfg.sound(); } catch(e) {}
   p.fireCD = cfg.cd;
-  if (cfg.melee) return; // ближний бой — только звук
+  if (cfg.melee) {
+    // ближний бой: проверка попадания в радиусе перед носителем
+    const tx = p.r + Math.sin(p.angle) * cfg.range;
+    const tc = p.c + Math.cos(p.angle) * cfg.range;
+    const victims = (tm === 'player') ? enemies : [player];
+    victims.forEach(v => {
+      if (v.hp <= 0) return;
+      if (Math.hypot(v.r - tx, v.c - tc) < 0.9) {
+        v.hp = Math.max(0, v.hp - (cfg.dmg || 12));
+        if (v === player) player.hitT = 0.25;
+      }
+    });
+    return;
+  }
 
   const speed = 18; // тайлов/сек
   const angle = p.angle;
@@ -1119,6 +1726,8 @@ function fireWeapon(p) {
   const burst = cfg.burst || 1;
   const burstInt = cfg.burstInterval || 0;
 
+  // Урон врагов ослаблен, иначе их 4 валят за секунду
+  const dmgMul = (tm === 'enemy') ? 0.35 : 1;
   const spawnOne = (a) => {
     const dr = Math.sin(a), dc = Math.cos(a);
     bullets.push({
@@ -1127,8 +1736,9 @@ function fireWeapon(p) {
       color: cfg.color || '#ffea80',
       thick: cfg.thick || false,
       explosive: cfg.explosive || false,
-      dmg: cfg.dmg || 25,
-      dist: 0, maxDist: cfg.range || 8
+      dmg: (cfg.dmg || 25) * dmgMul,
+      dist: 0, maxDist: cfg.range || 8,
+      team: tm,
     });
   };
 
@@ -1141,6 +1751,132 @@ function fireWeapon(p) {
       muzzles.push({ r: p.r + Math.sin(angle)*0.3, c: p.c + Math.cos(angle)*0.3, life: 80, max: 80 });
     }, b * burstInt);
   }
+}
+
+// ── LOS: рейкаст по тайлам (DDA) ───────────────────────────────────
+function hasLOS(r1, c1, r2, c2) {
+  const dr = r2 - r1, dc = c2 - c1;
+  const dist = Math.hypot(dr, dc);
+  const steps = Math.ceil(dist * 4);
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const r = r1 + dr * t, c = c1 + dc * t;
+    if (isBlocked(r, c)) return false;
+  }
+  return true;
+}
+
+// ── AI врагов ──────────────────────────────────────────────────────
+function updateEnemyAI(e, dt) {
+  if (e.hp <= 0) return;
+  e.fireCD = Math.max(0, e.fireCD - dt * 1000);
+  e.repositionT = Math.max(0, e.repositionT - dt);
+  if (e.isBoss) {
+    e.grenadeCD = Math.max(0, e.grenadeCD - dt * 1000);
+    e.rushCD = Math.max(0, e.rushCD - dt * 1000);
+    e.rushT = Math.max(0, e.rushT - dt);
+  }
+
+  const distToPlayer = Math.hypot(player.r - e.r, player.c - e.c);
+  const angleToPlayer = Math.atan2(player.r - e.r, player.c - e.c);
+  const playerAlive = player.hp > 0;
+  const canSee = playerAlive && distToPlayer < e.sightR && hasLOS(e.r, e.c, player.r, player.c);
+
+  // Босс в режиме rush — игнорирует обычное поведение, прёт на игрока
+  if (e.isBoss && e.rushT > 0 && playerAlive) {
+    e.aiState = 'rush';
+    e.angle = angleToPlayer;
+    const dr = player.r - e.r, dc = player.c - e.c;
+    const d = Math.hypot(dr, dc);
+    if (d > 0.5) {
+      tryMove(e, dr / d * 7.5 * dt, dc / d * 7.5 * dt);
+      e.walkPhase += dt * 16;
+    }
+    if (d < 1.1 && e.fireCD <= 0) {
+      fireWeapon(e, 'bat', 'enemy');
+    }
+    return;
+  }
+
+  // Босс — спецатаки если игрок где-то рядом
+  if (e.isBoss && playerAlive && distToPlayer < 12) {
+    // граната: каждые ~6 сек.
+    // Если игрока НЕ видно (он за стенкой/укрытием) — кидаем молотов: лужа огня выкуривает.
+    // Если видно — обычная граната.
+    if (e.grenadeCD <= 0 && distToPlayer > 2.5 && distToPlayer < 10) {
+      const kind = canSee ? 'grenade' : 'molotov';
+      const dmg = kind === 'grenade' ? 80 : 0; // молотов урон через DoT в луже
+      throwGrenade(e, player.r, player.c, 'enemy', { kind, dmg });
+      e.grenadeCD = 6500 + Math.random() * 2500;
+      e.fireCD = Math.max(e.fireCD, 800);
+    }
+    // rush: каждые ~9 сек, если игрок не вплотную и есть LOS
+    if (e.rushCD <= 0 && distToPlayer > 3 && distToPlayer < 9 && canSee) {
+      e.rushT = 1.2;
+      e.rushCD = 10000 + Math.random() * 3000;
+    }
+  }
+
+  if (canSee) {
+    e.angle = angleToPlayer;
+    const cfg = WEAPON_FX_CFG[e.weapon] || WEAPON_FX_CFG.pistol;
+    const optRange = (cfg.range || 8) * 0.7;
+    // Стреляем если в дистанции (с разбросом прицела, чтобы не вальнули с одного выстрела)
+    if (distToPlayer < (cfg.range || 8) && e.fireCD <= 0) {
+      const aimErr = (Math.random() - 0.5) * (e.isBoss ? 0.16 : 0.28);
+      const saveAngle = e.angle;
+      e.angle = angleToPlayer + aimErr;
+      fireWeapon(e, e.weapon, 'enemy');
+      e.angle = saveAngle;
+    }
+    // Перемещение: держим дистанцию + стрейф
+    e.aiState = 'shoot';
+    if (e.repositionT <= 0) {
+      // выбираем новую точку чтобы стрейфить
+      const strafe = (Math.random() - 0.5) * Math.PI;
+      const targetDist = Math.max(2.5, optRange * 0.6);
+      e.targetR = player.r + Math.sin(angleToPlayer + Math.PI + strafe) * targetDist;
+      e.targetC = player.c + Math.cos(angleToPlayer + Math.PI + strafe) * targetDist;
+      e.repositionT = 1.0 + Math.random() * 1.5;
+    }
+    // движемся к targetR/C если оно задано и далеко
+    moveTowardsTarget(e, dt, e.isBoss ? 2.2 : 2.8);
+  } else if (playerAlive && distToPlayer < e.sightR * 1.6) {
+    // Слышим игрока — идём в его сторону
+    e.aiState = 'chase';
+    e.angle = angleToPlayer;
+    e.targetR = player.r; e.targetC = player.c;
+    moveTowardsTarget(e, dt, e.isBoss ? 2.5 : 3.2);
+  } else {
+    // патруль
+    e.aiState = 'patrol';
+    if (e.repositionT <= 0 || e.targetR == null) {
+      // случайная точка в открытом тайле
+      for (let tries = 0; tries < 20; tries++) {
+        const rr = 1 + Math.random() * (ROWS - 2);
+        const cc = 1 + Math.random() * (COLS - 2);
+        if (!isBlocked(rr, cc)) { e.targetR = rr; e.targetC = cc; break; }
+      }
+      e.repositionT = 2.5 + Math.random() * 2.5;
+    }
+    moveTowardsTarget(e, dt, 1.6);
+  }
+}
+
+function moveTowardsTarget(e, dt, speed) {
+  if (e.targetR == null) return;
+  const dr = e.targetR - e.r, dc = e.targetC - e.c;
+  const d = Math.hypot(dr, dc);
+  if (d < 0.2) { e.walkPhase *= 0.85; return; }
+  const vr = dr / d * speed, vc = dc / d * speed;
+  const before = { r: e.r, c: e.c };
+  tryMove(e, vr * dt, vc * dt);
+  // если уперлись — сбросим точку, чтобы выбрать новую
+  if (Math.abs(e.r - before.r) < 0.001 && Math.abs(e.c - before.c) < 0.001) {
+    e.repositionT = 0;
+  }
+  e.walkPhase += dt * 10;
+  if (e.aiState !== 'shoot') e.angle = Math.atan2(vr, vc);
 }
 
 // ── ВВОД (джойстики) ───────────────────────────────────────────────
@@ -1169,11 +1905,11 @@ function startTouch(x, y, id) {
     aimBase.style.top  = (y - 55) + 'px';
     aimBase.classList.add('on');
     aimKnob.style.transform = 'translate(0,0)';
-    // первый выстрел сразу, как только палец легли
-    if (player.fireCD <= 0) {
+    // первый выстрел сразу, как только палец легли (только если игрок жив)
+    if (player.hp > 0 && player.fireCD <= 0) {
       // нужно, чтобы был angle — будем считать что нажал = смотрит вверх если не двигает
       player.angle = -Math.PI / 2;
-      fireWeapon(player);
+      tryFirePlayer();
     }
   }
 }
@@ -1245,17 +1981,53 @@ window.addEventListener('mouseup', (e) => {
 stage.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // Селектор оружия
+let lastMeleeWeapon = 'fists'; // последнее выбранное melee — для кнопки ближнего боя
+let preMeleeWeapon = 'pistol'; // куда вернуться после атаки в ближнем бою с пустым магазином
 document.querySelectorAll('.wbtn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.wbtn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentWeapon = btn.dataset.wep;
     document.getElementById('wepName').textContent = btn.textContent;
-    // тестовый звук
     const cfg = WEAPON_FX_CFG[currentWeapon];
+    if (cfg && cfg.melee) lastMeleeWeapon = currentWeapon;
+    else preMeleeWeapon = currentWeapon;
     if (cfg && cfg.sound) { try { cfg.sound(); } catch(e) {} }
+    updateMeleeBtn();
   });
 });
+
+// Кнопка melee — переключает на ближний бой / делает атаку если уже на melee
+const MELEE_ICONS = { fists: '👊', brass: '✊', chain: '⛓', bat: '🏏', blade_short: '🗡', blade_long: '⚔', katana: '⚔' };
+const MELEE_LABELS = { fists: 'кулаки', brass: 'кастет', chain: 'цепь', bat: 'бита', blade_short: 'нож', blade_long: 'катана' };
+function updateMeleeBtn() {
+  const icon = document.getElementById('meleeIcon');
+  const label = document.getElementById('meleeLabel');
+  if (icon) icon.textContent = MELEE_ICONS[lastMeleeWeapon] || '👊';
+  if (label) label.textContent = MELEE_LABELS[lastMeleeWeapon] || 'кулаки';
+}
+document.getElementById('meleeBtn').addEventListener('click', () => {
+  if (player.hp <= 0) return;
+  const curCfg = WEAPON_FX_CFG[currentWeapon];
+  if (curCfg && curCfg.melee) {
+    // уже в melee → бьём (выставляем angle если не задан)
+    if (player.fireCD <= 0) {
+      if (player.angle == null) player.angle = -Math.PI / 2;
+      fireWeapon(player);
+    }
+  } else {
+    // переключение на melee
+    document.querySelectorAll('.wbtn').forEach(b => {
+      b.classList.toggle('active', b.dataset.wep === lastMeleeWeapon);
+    });
+    currentWeapon = lastMeleeWeapon;
+    document.getElementById('wepName').textContent = MELEE_LABELS[lastMeleeWeapon] || lastMeleeWeapon;
+  }
+});
+
+// Кнопка перезарядки
+document.getElementById('reloadBtn').addEventListener('click', () => manualReload());
+window.addEventListener('keydown', (e) => { if (e.key === 'r' || e.key === 'R') manualReload(); });
 
 // ── Мини-карта ─────────────────────────────────────────────────────
 const mm = document.getElementById('minimap');
@@ -1316,14 +2088,29 @@ document.getElementById('rerollBtn').addEventListener('click', () => {
   savePlayerLook(player.look);
 });
 document.getElementById('resetBtn').addEventListener('click', () => {
-  enemies[0].hp = enemies[0].hpMax; enemies[0].r = 2.5; enemies[0].c = 5.5;
+  enemies[0].hp = enemies[0].hpMax; enemies[0].r = 2.5; enemies[0].c = 6.5;
   for (let i = 1; i < enemies.length; i++) {
     enemies[i].hp = enemies[i].hpMax;
     enemies[i].look = rndLook();
   }
-  enemies[1].r = 8.5; enemies[1].c = 6.5;
-  enemies[2].r = 10.5; enemies[2].c = 3.0;
-  if (enemies[3]) { enemies[3].r = 4.5; enemies[3].c = 2.5; }
+  enemies[1].r = 12.5; enemies[1].c = 9.5;
+  enemies[2].r = 14.5; enemies[2].c = 3.0;
+  if (enemies[3]) { enemies[3].r = 5.5; enemies[3].c = 2.5; }
+  enemies.forEach(e => {
+    e.aiState = 'patrol'; e.targetR = null; e.targetC = null;
+    e.repositionT = 0; e.fireCD = 0;
+    if (e.isBoss) { e.grenadeCD = 4000; e.rushCD = 9000; e.rushT = 0; }
+  });
+  bullets.length = 0; grenades.length = 0; explosions.length = 0; muzzles.length = 0; firePuddles.length = 0;
+  coverBreaks.length = 0; hitSparks.length = 0;
+  // восстанавливаем карту и HP укрытий
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) MAP[r][c] = MAP_ORIGINAL[r][c];
+  initCoverHP();
+  // сбрасываем патроны игрока
+  player.ammo = {};
+  player.hp = player.hpMax;
+  player.r = 8.5; player.c = 8.5;
+  player.hitT = 0;
 });
 
 // ── Game loop ──────────────────────────────────────────────────────
@@ -1337,6 +2124,42 @@ function loop(t) {
   render();
   // Мини-карта — раз в 5 кадров
   if (++mmFrame % 5 === 0) renderMinimap();
+
+  // HUD: HP-бар + красная вспышка + game over
+  const hpEl = document.getElementById('hpVal');
+  const hpBar = document.getElementById('hpBar');
+  const flash = document.getElementById('hitFlash');
+  const go = document.getElementById('gameOver');
+  if (hpEl) hpEl.textContent = Math.round(player.hp);
+  if (hpBar) {
+    const ratio = player.hp / player.hpMax;
+    hpBar.style.width = (ratio * 100) + '%';
+    hpBar.style.background = ratio > 0.5 ? 'linear-gradient(90deg,#5dd55d,#3aa53a)'
+      : ratio > 0.25 ? 'linear-gradient(90deg,#ffd24a,#cf8a20)'
+      : 'linear-gradient(90deg,#ff5050,#a02020)';
+  }
+  if (flash) flash.style.background = 'rgba(255,40,40,' + (player.hitT * 1.6).toFixed(2) + ')';
+  if (go) go.style.display = (player.hp <= 0) ? 'flex' : 'none';
+
+  // Индикатор патронов и перезарядки
+  const ammoText = document.getElementById('ammoText');
+  const reloadBar = document.getElementById('reloadBar');
+  const cfg = WEAPON_FX_CFG[currentWeapon];
+  if (cfg && cfg.melee) {
+    if (ammoText) ammoText.textContent = '∞ (ближний бой)';
+    if (reloadBar) reloadBar.style.width = '0%';
+  } else if (cfg) {
+    const a = getAmmo(currentWeapon);
+    if (a && ammoText) ammoText.textContent = a.cur + ' / ' + cfg.mag;
+    if (a && a.reloading && reloadBar) {
+      const now = performance.now();
+      const rT = Math.max(0, a.reloadEnd - now);
+      const ratio = 1 - rT / (cfg.reload || 1500);
+      reloadBar.style.width = (ratio * 100).toFixed(0) + '%';
+    } else if (reloadBar) {
+      reloadBar.style.width = '0%';
+    }
+  }
   fpsAcc++; fpsN++;
   if (t - fpsLast > 500) {
     document.getElementById('fps').textContent = Math.round(fpsAcc / ((t - fpsLast) / 1000));
@@ -1346,6 +2169,10 @@ function loop(t) {
 }
 
 resize();
+initCoverHP();
+updateMeleeBtn();
+// Сохраняем оригинальную карту для респа
+const MAP_ORIGINAL = MAP.map(row => row.slice());
 requestAnimationFrame(loop);
 </script>
 </body>
