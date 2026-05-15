@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mafiozi · Demo Launcher</title>
+<style>
+  body {
+    margin: 0; min-height: 100vh;
+    background: linear-gradient(135deg, #0a0a18 0%, #1a1a2e 100%);
+    color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  h1 { color: #ffd76b; margin: 0 0 8px; font-size: 32px; letter-spacing: 2px; }
+  .sub { color: #888; margin-bottom: 32px; font-size: 14px; }
+  .links { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 320px; }
+  .lnk {
+    display: block; padding: 18px 22px; border-radius: 14px;
+    background: linear-gradient(135deg, #12122a, #1a1a3a);
+    border: 1.5px solid #2a2a4a; color: #fff; text-decoration: none;
+    transition: border-color .15s, transform .12s, box-shadow .15s;
+  }
+  .lnk:hover { border-color: #ffd76b; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,215,107,0.18); }
+  .lnk .name { font-weight: 800; font-size: 17px; margin-bottom: 4px; }
+  .lnk .desc { font-size: 12px; color: #aaa; }
+  .footer { margin-top: 28px; color: #555; font-size: 11px; text-align: center; max-width: 320px; }
+</style>
+</head>
+<body>
+  <h1>🤵 MAFIOZI</h1>
+  <div class="sub">демо-режим · без бота · localhost</div>
+
+  <div class="links">
+    <a class="lnk" href="hub.html">
+      <div class="name">🏠 Главное меню (hub)</div>
+      <div class="desc">Бизнес, инвентарь, чёрный рынок, работа, время суток</div>
+    </a>
+
+    <a class="lnk" href="demo_battle.html">
+      <div class="name">🔫 Тест боя</div>
+      <div class="desc">Выбор оружия → бой против манекена. Все звуки и анимации.</div>
+    </a>
+
+    <a class="lnk" href="creator.html">
+      <div class="name">🎨 Создатель персонажа</div>
+      <div class="desc">Конструктор внешности</div>
+    </a>
+  </div>
+
+  <div class="footer">
+    Это локальный сервер на :8765 — закрой окно командной строки чтобы остановить.
+  </div>
+</body>
+</html>

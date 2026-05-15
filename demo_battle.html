@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mafiozi · Демо боя</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    background: linear-gradient(135deg, #0a0a18, #1a1a2e);
+    color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  h1 { margin: 0 0 6px; color: #ffd76b; text-align: center; }
+  .sub { text-align: center; color: #aaa; font-size: 13px; margin-bottom: 22px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px; max-width: 760px; margin: 0 auto;
+  }
+  .card {
+    background: linear-gradient(135deg, #12122a, #1a1a3a);
+    border: 1.5px solid #2a2a4a;
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform .12s, border-color .12s, box-shadow .12s;
+  }
+  .card:hover { transform: translateY(-2px); border-color: #ffd76b; box-shadow: 0 6px 22px rgba(255,215,107,0.18); }
+  .card .name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .card .cls  { font-size: 11px; color: #ffd76b; opacity: 0.85; }
+  .card .dmg  { font-size: 11px; color: #aaa; margin-top: 4px; }
+  .group-title {
+    grid-column: 1 / -1;
+    margin: 14px 0 4px;
+    font-size: 13px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border-bottom: 1px dashed #333;
+    padding-bottom: 6px;
+  }
+  .footer {
+    text-align: center; margin-top: 24px;
+    font-size: 12px; color: #666;
+  }
+  .params-bar {
+    max-width: 760px; margin: 0 auto 18px;
+    background: #12122a; border: 1px solid #2a2a4a;
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-around;
+    font-size: 12px;
+  }
+  .params-bar label { display: flex; gap: 6px; align-items: center; color: #aaa; }
+  .params-bar input { width: 60px; padding: 3px 6px; background: #0a0a18; color: #fff; border: 1px solid #333; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>🔫 Демо боя</h1>
+<div class="sub">Выбери оружие — откроется battle.html с этим стволом. Услышишь звук, увидишь анимацию.</div>
+
+<div class="params-bar">
+  <label>HP игрока: <input id="ph" type="number" value="200" min="50" max="999"></label>
+  <label>HP босса: <input id="eh" type="number" value="300" min="50" max="999"></label>
+  <label>Атака: <input id="pa" type="number" value="60" min="10" max="200"></label>
+  <label>Защита: <input id="pd" type="number" value="20" min="0" max="200"></label>
+  <label>💣 Гранат: <input id="gr" type="number" value="3" min="0" max="20"></label>
+  <label>🔥 Молот.: <input id="mol" type="number" value="3" min="0" max="20"></label>
+</div>
+
+<div class="grid">
+  <div class="group-title">Голые руки</div>
+  <div class="card" data-wp=""              data-wt="0">
+    <div class="name">🤜 Кулаки</div><div class="cls">fists</div><div class="dmg">Минимум урона</div>
+  </div>
+
+  <div class="group-title">Холодное оружие</div>
+  <div class="card" data-wp="knuckles"      data-wt="0"><div class="name">🥊 Кастет</div><div class="cls">brass</div></div>
+  <div class="card" data-wp="chain"         data-wt="0"><div class="name">⛓️ Цепь</div><div class="cls">chain</div></div>
+  <div class="card" data-wp="spiked_bat"    data-wt="0"><div class="name">🏏 Бита с гвоздями</div><div class="cls">bat</div></div>
+  <div class="card" data-wp="zatochka"      data-wt="1"><div class="name">🔪 Заточка</div><div class="cls">blade_short</div></div>
+  <div class="card" data-wp="machete"       data-wt="1"><div class="name">🗡️ Мачете</div><div class="cls">blade_long</div></div>
+  <div class="card" data-wp="katana"        data-wt="1"><div class="name">⚔️ Катана</div><div class="cls">blade_long</div></div>
+
+  <div class="group-title">Пистолеты</div>
+  <div class="card" data-wp="nagan"         data-wt="2"><div class="name">🔫 Наган</div><div class="cls">pistol</div></div>
+  <div class="card" data-wp="tt_pistol"     data-wt="2"><div class="name">🔫 ТТ</div><div class="cls">pistol</div></div>
+  <div class="card" data-wp="revolver"      data-wt="2"><div class="name">🔫 Револьвер</div><div class="cls">pistol</div></div>
+  <div class="card" data-wp="deagle"        data-wt="2"><div class="name">🦅 Дезерт Игл</div><div class="cls">pistol_heavy</div></div>
+  <div class="card" data-wp="golden_colt"   data-wt="2"><div class="name">🌟 Золотой Кольт</div><div class="cls">pistol_gold</div></div>
+
+  <div class="group-title">Дробовики</div>
+  <div class="card" data-wp="sawn_off"      data-wt="2"><div class="name">💥 Обрез</div><div class="cls">shotgun</div></div>
+  <div class="card" data-wp="shotgun"       data-wt="2"><div class="name">💣 Дробовик</div><div class="cls">shotgun</div></div>
+
+  <div class="group-title">Автоматическое</div>
+  <div class="card" data-wp="uzi"           data-wt="2"><div class="name">🔫 Узи</div><div class="cls">smg</div></div>
+  <div class="card" data-wp="golden_uzi"    data-wt="2"><div class="name">🌟 Золотой Узи</div><div class="cls">smg_gold</div></div>
+  <div class="card" data-wp="ak74"          data-wt="2"><div class="name">🎯 АК-74</div><div class="cls">rifle</div></div>
+  <div class="card" data-wp="m16"           data-wt="2"><div class="name">💥 М-16</div><div class="cls">rifle</div></div>
+  <div class="card" data-wp="tommy_gun"     data-wt="2"><div class="name">🔥 Томми Ган</div><div class="cls">rifle_gold</div></div>
+
+  <div class="group-title">Особое</div>
+  <div class="card" data-wp="sniper"        data-wt="2"><div class="name">🎯 Снайперка</div><div class="cls">sniper</div></div>
+  <div class="card" data-wp="rpg"           data-wt="2"><div class="name">🚀 Базука</div><div class="cls">rpg</div></div>
+</div>
+
+<div class="footer">
+  💡 В бою попробуй: обычная атака, удерживание гранаты/молотова для прицеливания
+</div>
+
+<script>
+  function getNum(id, def) {
+    const v = parseInt(document.getElementById(id).value);
+    return isNaN(v) ? def : v;
+  }
+  document.querySelectorAll('.card').forEach(c => {
+    c.addEventListener('click', () => {
+      const wp = c.dataset.wp || '';
+      const wt = c.dataset.wt || '0';
+      const ph  = getNum('ph', 200);
+      const eh  = getNum('eh', 300);
+      const pa  = getNum('pa', 60);
+      const pd  = getNum('pd', 20);
+      const gr  = getNum('gr', 3);
+      const mol = getNum('mol', 3);
+      const params = new URLSearchParams({
+        pn:  'Тестер',
+        ph:  ph,  pmh: ph,
+        pm:  100, pmm: 100,
+        pa:  pa,  pd:  pd,
+        wt:  wt,  wp:  wp,
+        sk:  '💥 Тестовый приём',
+        sc:  20,  sm:  2.5, sh: 0,
+        po:  1,
+        en:  '😈 Манекен',
+        et:  'Тестовая мишень',
+        eh:  eh,  emh: eh,
+        ea:  35,  ed:  10,
+        gr:  gr,  mol: mol,
+      });
+      window.location.href = 'battle.html?' + params.toString();
+    });
+  });
+</script>
+
+</body>
+</html>
