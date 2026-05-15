@@ -161,6 +161,12 @@
     .btn-pot  { background: linear-gradient(135deg,#0d3b1e,#27ae60); }
     .btn-flee { background: linear-gradient(135deg,#1e2a36,#546e7a); }
     .btn-nade { background: linear-gradient(135deg,#5a2e00,#c67c00); }
+    .btn-mol  { background: linear-gradient(135deg,#3a1500,#ff5a20); }
+    .btn[data-empty="1"] { opacity:.40; filter:grayscale(.6); cursor:not-allowed; }
+    .btn[data-empty="1"] .btn-sub { color:#ffaaaa; }
+    /* impact pulse при попадании прицела на врага */
+    #aim-cursor.on-target { border-color:#80ff80; box-shadow:0 0 22px rgba(120,255,120,0.75), inset 0 0 14px rgba(120,255,120,0.5); }
+    #aim-cursor.on-target div { background:#80ff80 !important; }
     .btn-prop { background: linear-gradient(135deg,#003030,#0a7a6a); }
     /* ── Overlay base ─────────────────────────────────────── */
     .overlay {
@@ -366,16 +372,42 @@
     </button>
   </div>
 
-  <!-- Extra abilities (grenade + property) — shown only if available -->
+  <!-- Extra abilities (grenade + molotov + property) — shown only if available -->
   <div class="actions" id="actions-extra" style="display:none">
-    <button class="btn btn-nade" id="btn-nade" onclick="playerAct('grenade')" disabled>
+    <button class="btn btn-nade" id="btn-nade"
+            data-throw="grenade"
+            onpointerdown="throwStart(event, 'grenade')">
       <span class="btn-lbl">💣 Граната</span>
-      <span class="btn-sub" id="nade-txt">нет</span>
+      <span class="btn-sub" id="nade-txt">×0</span>
+    </button>
+    <button class="btn btn-mol" id="btn-mol"
+            data-throw="molotov"
+            onpointerdown="throwStart(event, 'molotov')">
+      <span class="btn-lbl">🔥 Молотов</span>
+      <span class="btn-sub" id="mol-txt">×0</span>
     </button>
     <button class="btn btn-prop" id="btn-prop" onclick="playerAct('property')" disabled>
       <span class="btn-lbl" id="prop-lbl">🏠 Имущество</span>
       <span class="btn-sub" id="prop-sub">нет</span>
     </button>
+  </div>
+  <!-- Aiming overlay (показывается при удержании гранаты/молотова) -->
+  <div id="aim-overlay" style="display:none;position:fixed;inset:0;z-index:9990;
+       background:rgba(0,0,0,0.20);pointer-events:none;">
+    <div id="aim-hint" style="position:absolute;top:18px;left:50%;transform:translateX(-50%);
+         background:rgba(0,0,0,0.75);color:#fff;padding:8px 14px;border-radius:20px;
+         font-size:13px;font-weight:700;letter-spacing:0.5px;
+         border:1px solid rgba(255,255,255,0.2);">
+      🎯 Веди в цель и отпусти
+    </div>
+    <div id="aim-cursor" style="position:absolute;width:80px;height:80px;
+         left:-100px;top:-100px;pointer-events:none;
+         border:3px solid #ff5050;border-radius:50%;
+         box-shadow:0 0 18px rgba(255,80,80,0.7), inset 0 0 12px rgba(255,80,80,0.5);
+         background:radial-gradient(circle, transparent 35%, rgba(255,80,80,0.15) 60%, transparent 70%);">
+      <div style="position:absolute;top:50%;left:-12px;right:-12px;height:2px;background:#ff5050;"></div>
+      <div style="position:absolute;left:50%;top:-12px;bottom:-12px;width:2px;background:#ff5050;"></div>
+    </div>
   </div>
 
   <!-- Flee confirm -->
@@ -445,9 +477,13 @@
     const skHeal   = gn('sh',0);
     const hasPots  = gn('po',0) === 1;
 
-    // ── Grenades ────────────────────────────────────────────────
+    // ── Grenades / Molotovs ─────────────────────────────────────
     let grenCount = gn('gr', 0);
+    let molCount  = gn('mol', 0);
     let grenUsed  = 0;
+    let molUsed   = 0;
+    // Состояние горения врага: turnsLeft, perTurn
+    let enemyBurn = { turns: 0, perTurn: 0 };
 
     // ── Property skill ──────────────────────────────────────────
     const ppName = get('pp_n', '');
@@ -692,6 +728,196 @@
         toEl.appendChild(flash);
         setTimeout(function(){ flash.remove(); }, 460);
       }
+    }
+
+    // ══ THROWABLE: гранаты/молотовы с прицеливанием ════════════
+    function refreshThrowableButtons() {
+      const nb = document.getElementById('btn-nade');
+      const nt = document.getElementById('nade-txt');
+      if (nb && nt) {
+        nb.dataset.empty = grenCount > 0 ? '0' : '1';
+        nt.textContent   = '×' + grenCount;
+      }
+      const mb = document.getElementById('btn-mol');
+      const mt = document.getElementById('mol-txt');
+      if (mb && mt) {
+        mb.dataset.empty = molCount > 0 ? '0' : '1';
+        mt.textContent   = '×' + molCount;
+      }
+    }
+
+    // Состояние прицеливания
+    let _aim = { active:false, kind:null, pointerId:null, x:0, y:0, onTarget:false };
+
+    function throwStart(ev, kind) {
+      if (waiting || battleDone) return;
+      if (kind === 'grenade' && grenCount <= 0) return;
+      if (kind === 'molotov' && molCount  <= 0) return;
+      ev.preventDefault();
+      _aim.active    = true;
+      _aim.kind      = kind;
+      _aim.pointerId = ev.pointerId;
+      _aim.x         = ev.clientX;
+      _aim.y         = ev.clientY;
+      const ov = document.getElementById('aim-overlay');
+      const cur = document.getElementById('aim-cursor');
+      if (ov)  { ov.style.display = 'block'; ov.style.pointerEvents = 'auto'; }
+      _moveAim(ev.clientX, ev.clientY);
+      // глобально слушаем
+      window.addEventListener('pointermove',   _throwMove,   { passive:false });
+      window.addEventListener('pointerup',     _throwEnd,    { passive:false });
+      window.addEventListener('pointercancel', _throwCancel, { passive:false });
+    }
+    function _moveAim(x, y) {
+      _aim.x = x; _aim.y = y;
+      const cur = document.getElementById('aim-cursor');
+      if (cur) {
+        cur.style.left = (x - 40) + 'px';
+        cur.style.top  = (y - 40) + 'px';
+      }
+      // проверка попадания на enemy-side
+      const enemyEl = document.getElementById('enemy-side');
+      let onTarget = false;
+      if (enemyEl) {
+        const r = enemyEl.getBoundingClientRect();
+        onTarget = (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+      }
+      _aim.onTarget = onTarget;
+      if (cur) cur.classList.toggle('on-target', onTarget);
+    }
+    function _throwMove(ev) {
+      if (!_aim.active) return;
+      ev.preventDefault();
+      _moveAim(ev.clientX, ev.clientY);
+    }
+    function _throwEnd(ev) {
+      if (!_aim.active) return;
+      ev.preventDefault();
+      const onTarget = _aim.onTarget;
+      const kind = _aim.kind;
+      const tx = _aim.x, ty = _aim.y;
+      _throwCleanup();
+      _doThrow(kind, onTarget, tx, ty);
+    }
+    function _throwCancel() { _throwCleanup(); }
+    function _throwCleanup() {
+      _aim.active = false;
+      const ov = document.getElementById('aim-overlay');
+      if (ov) ov.style.display = 'none';
+      const cur = document.getElementById('aim-cursor');
+      if (cur) { cur.style.left = '-100px'; cur.style.top = '-100px'; cur.classList.remove('on-target'); }
+      window.removeEventListener('pointermove',   _throwMove);
+      window.removeEventListener('pointerup',     _throwEnd);
+      window.removeEventListener('pointercancel', _throwCancel);
+    }
+
+    function _flyThrowable(kind, tx, ty, onHit) {
+      // Простая анимация: эмодзи летит из player-side в (tx, ty)
+      const from = document.getElementById('player-side');
+      if (!from) { onHit(); return; }
+      const fr = from.getBoundingClientRect();
+      const sx = fr.left + fr.width/2;
+      const sy = fr.top  + fr.height/2;
+      const proj = document.createElement('div');
+      proj.style.cssText =
+        'position:fixed;left:'+(sx-15)+'px;top:'+(sy-15)+'px;'+
+        'width:30px;height:30px;font-size:26px;line-height:30px;text-align:center;'+
+        'pointer-events:none;z-index:9999;transition:transform 0.55s cubic-bezier(.4,.0,.6,1.0);';
+      proj.textContent = (kind === 'molotov' ? '🍾' : '💣');
+      document.body.appendChild(proj);
+      const dx = tx - sx, dy = ty - sy;
+      requestAnimationFrame(function(){
+        proj.style.transform = 'translate('+dx+'px,'+dy+'px) rotate('+(720+Math.random()*180)+'deg)';
+      });
+      setTimeout(function(){
+        proj.remove();
+        onHit();
+      }, 560);
+    }
+
+    function _doThrow(kind, onTarget, tx, ty) {
+      if (!kind) return;
+      // тратим расходник СРАЗУ — даже на промах (бросок состоялся)
+      if (kind === 'grenade') { grenCount--; grenUsed++; }
+      else if (kind === 'molotov') { molCount--;  molUsed++; }
+      refreshThrowableButtons();
+      turnNum++;
+      _flyThrowable(kind, tx, ty, function(){
+        const enemyEl = document.getElementById('enemy-side');
+        if (!enemyEl) return;
+        const r = enemyEl.getBoundingClientRect();
+        const targetX = r.left + r.width/2;
+        const targetY = r.top  + r.height/2;
+        // расстояние до центра врага
+        const dist = Math.hypot(tx - targetX, ty - targetY);
+        // 0 на враге → 1.0; чем дальше — тем меньше множитель
+        let hitMult = 1.0;
+        if (!onTarget) {
+          // мимо — рассчёт по дистанции
+          hitMult = Math.max(0.15, 1 - dist / 250);
+        }
+        _playThrowSound(kind);
+        _explodeAt(kind, tx, ty);
+        if (kind === 'grenade') {
+          const baseDmg = 80 + Math.floor(Math.random() * 51);  // 80-130
+          const dmg = Math.max(1, Math.round(baseDmg * hitMult));
+          enemyHp = Math.max(0, enemyHp - dmg);
+          stats.push({turn:turnNum, who:pname, cls:'sl-special', action:'💣 Граната', damage:dmg, heal:0});
+          addLog('💬 ' + pname + ': «' + pick(PLAYER_PHRASES.grenade) + '»', 'log-special');
+          if (onTarget) addLog('💣 Граната — точно в цель! ' + dmg + ' урона!', 'log-special');
+          else          addLog('💣 Граната рванула рядом — ' + dmg + ' урона (промах ' + Math.round(dist) + 'px).', 'log-special');
+          shakeEl('enemy-side');
+          if (dmg > 0) showFloatDmg('enemy-side', dmg, 'enemy');
+          spawnBlood('enemy-side', Math.round(20 * hitMult), false);
+        } else if (kind === 'molotov') {
+          const baseDmg = 50 + Math.floor(Math.random() * 31);  // 50-80
+          const dmg = Math.max(1, Math.round(baseDmg * hitMult));
+          enemyHp = Math.max(0, enemyHp - dmg);
+          stats.push({turn:turnNum, who:pname, cls:'sl-special', action:'🔥 Молотов', damage:dmg, heal:0});
+          addLog('💬 ' + pname + ': «Гори!»', 'log-special');
+          if (onTarget) {
+            addLog('🔥 Бутылка разбилась о цель — ' + dmg + ' урона, враг ГОРИТ!', 'log-special');
+            enemyBurn = { turns: 2, perTurn: 25 };
+          } else {
+            addLog('🔥 Бутылка упала мимо — ' + dmg + ' урона (промах).', 'log-special');
+            enemyBurn = { turns: 1, perTurn: Math.round(15 * hitMult) };
+          }
+          shakeEl('enemy-side');
+          if (dmg > 0) showFloatDmg('enemy-side', dmg, 'enemy');
+          spawnBlood('enemy-side', Math.round(12 * hitMult), false);
+        }
+        updateBars();
+        fbSync();
+        if (enemyHp <= 0) { endBattle('win'); return; }
+        // без ответки
+      });
+    }
+
+    function _playThrowSound(kind) {
+      try {
+        if (kind === 'grenade') {
+          _tone({freq:60,freqEnd:20,dur:0.45,type:'sawtooth',vol:0.45});
+          _noise({dur:0.35,vol:0.32,filter:'lowpass',filterFreq:300});
+        } else {
+          _tone({freq:280,freqEnd:80,dur:0.10,type:'square',vol:0.20});  // звон стекла
+          _noise({dur:0.20,vol:0.20,filter:'highpass',filterFreq:1800});  // вспышка
+          setTimeout(function(){ _noise({dur:0.45,vol:0.18,filter:'bandpass',filterFreq:600}); }, 80);
+        }
+      } catch(e) {}
+    }
+    function _explodeAt(kind, x, y) {
+      const ex = document.createElement('div');
+      const radius = 80;
+      const grad = (kind === 'molotov')
+        ? 'radial-gradient(circle, #fff 0%, #ffd060 20%, #ff6020 50%, #802000 80%, transparent 100%)'
+        : 'radial-gradient(circle, #fff 0%, #ffb050 25%, #ff5020 55%, #802010 80%, transparent 100%)';
+      ex.style.cssText =
+        'position:fixed;left:'+(x-radius)+'px;top:'+(y-radius)+'px;'+
+        'width:'+(radius*2)+'px;height:'+(radius*2)+'px;border-radius:50%;'+
+        'background:'+grad+';pointer-events:none;z-index:9999;'+
+        'animation:rpg-boom 0.55s ease-out forwards;';
+      document.body.appendChild(ex);
+      setTimeout(function(){ ex.remove(); }, 600);
     }
 
     // ── Battle state ────────────────────────────────────────────
@@ -1126,6 +1352,17 @@
     function enemyTurn() {
       const eName = stripEmoji(enemyName) || enemyName;
       turnNum++;
+
+      // ─ Молотов: тикаем DoT горения ───────────────────────────────
+      if (enemyBurn.turns > 0 && enemyBurn.perTurn > 0 && enemyHp > 0) {
+        const burnDmg = enemyBurn.perTurn;
+        enemyHp = Math.max(0, enemyHp - burnDmg);
+        addLog('🔥 ' + eName + ' горит! −' + burnDmg + ' HP', 'log-special');
+        showFloatDmg('enemy-side', burnDmg, 'enemy');
+        enemyBurn.turns--;
+        updateBars();
+        if (enemyHp <= 0) { endBattle('win'); return; }
+      }
 
       // ─ Пассив: Разведчик — шанс промаха ─────────────────────────
       const aliveScouts = party.filter(m => m.alive && m.role === 'scout').length;
@@ -1599,13 +1836,12 @@
 
     // ── Extra abilities setup ─────────────────────────────────────
     const hasGrenade  = grenCount > 0;
+    const hasMolotov  = molCount  > 0;
     const hasPropSkill = ppName.length > 0;
-    if (hasGrenade || hasPropSkill) {
+    if (hasGrenade || hasMolotov || hasPropSkill) {
       document.getElementById('actions-extra').style.display = 'grid';
     }
-    if (hasGrenade) {
-      document.getElementById('nade-txt').textContent = '×' + grenCount;
-    }
+    refreshThrowableButtons();
     if (ppName && ppOk === 1) {
       document.getElementById('actions-extra').style.display = 'grid';
       document.getElementById('prop-lbl').textContent = ppName;

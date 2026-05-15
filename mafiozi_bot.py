@@ -507,6 +507,9 @@ JOBS = {
     },
 }
 ITEMS = {
+    # ── Расходники-метательные ─────────────────────────────────────
+    "grenade":       {"name": "💣 Граната",          "type": "throwable", "dmg_min": 80,  "dmg_max": 130, "price": 200, "desc": "Урон 80-130, без ответки. Кидаешь — враг разлетается."},
+    "molotov":       {"name": "🔥 Коктейль Молотова","type": "throwable", "dmg_min": 50,  "dmg_max": 80,  "burn_per_turn": 25, "burn_turns": 2, "price": 130, "desc": "Урон 50-80, плюс горит 2 хода по 25. Без ответки."},
     "medkit_small":  {"name": "🩹 Малая аптечка",    "type": "potion",   "heal": 55,  "price": 25,  "desc": "Восстанавливает 55 HP"},
     "medkit_medium": {"name": "🏥 Аптечка",          "type": "potion",   "heal": 130, "price": 60,  "desc": "Восстанавливает 130 HP"},
     "medkit_large":  {"name": "💉 Большая аптечка",  "type": "potion",   "heal": 280, "price": 120, "desc": "Восстанавливает 280 HP"},
@@ -1609,7 +1612,7 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         except Exception:
             pass
 
-    gren = 0; med_s = 0; med_m = 0; med_l = 0
+    gren = 0; mol = 0; med_s = 0; med_m = 0; med_l = 0
     weapon = char.get("weapon") or ""
     prop_str = ""
     gang_str = ""
@@ -1617,6 +1620,7 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         try:
             inv = await get_inventory(user_id)
             gren  = inv.get("grenade", 0)
+            mol   = inv.get("molotov", 0)
             med_s = inv.get("medkit_small", 0)
             med_m = inv.get("medkit_medium", 0)
             med_l = inv.get("medkit_large", 0)
@@ -1673,6 +1677,7 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "atk":      char.get("attack", 20),
         "def":      char.get("defense", 10),
         "gren":     gren,
+        "mol":      mol,
         "med_s":    med_s,
         "med_m":    med_m,
         "med_l":    med_l,
@@ -1795,7 +1800,7 @@ ATTACK_MANA_COST = 5   # стоимость обычной атаки в эне�
 def battle_kb(has_mana: bool, has_potions: bool, weapon_id=None,
               eff_atk: int = 0, boss_def: int = 0, skill_mult: float = 1.0,
               skill_name: str = "Приём", cur_mana: int = 999,
-              grenades: int = 0, prop_skills: list = None):
+              grenades: int = 0, molotovs: int = 0, prop_skills: list = None):
     """prop_skills: list of (item_id, skill_name) for available property abilities."""
     atk_dmg    = dmg_range(eff_atk, boss_def)
     skill_dmg  = dmg_range(eff_atk, boss_def, skill_mult)
@@ -1810,6 +1815,8 @@ def battle_kb(has_mana: bool, has_potions: bool, weapon_id=None,
     ]
     if grenades > 0:
         rows.append([InlineKeyboardButton(f"💣 Граната ×{grenades} (80–130 урона, без ответки)", callback_data="battle_grenade")])
+    if molotovs > 0:
+        rows.append([InlineKeyboardButton(f"🔥 Молотов ×{molotovs} (100–130 урона + пожар, без ответки)", callback_data="battle_molotov")])
     for (pid, pname) in (prop_skills or []):
         rows.append([InlineKeyboardButton(pname, callback_data=f"battle_prop_{pid}")])
     return InlineKeyboardMarkup(rows)
@@ -5266,6 +5273,50 @@ async def battle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown", reply_markup=await contacts_kb(user_id)); return
         result_text = "❌ *Не дали уйти!*\n"
 
+    elif action == "battle_molotov":
+        inv = await get_inventory(user_id)
+        if not inv.get("molotov", 0):
+            await query.answer("❌ Молотовов нет!", show_alert=True); return
+        await remove_item(user_id, "molotov")
+        mol_item = ITEMS["molotov"]
+        impact = random.randint(mol_item["dmg_min"], mol_item["dmg_max"])
+        burn   = mol_item.get("burn_per_turn", 25) * mol_item.get("burn_turns", 2)
+        mol_dmg = impact + burn
+        boss_hp -= mol_dmg
+        result_text = f"🔥 *Коктейль Молотова!* — удар *{impact}* + пожар *{burn}* = *{mol_dmg} урона!* (ответки нет)\n"
+        await update_character(user_id, hp=char_hp, mana=char_mana)
+        await update_battle(user_id, max(0, boss_hp))
+        inv2 = await get_inventory(user_id)
+        has_potions2 = any(ITEMS.get(i, {}).get("type") == "potion" and q > 0 for i, q in inv2.items())
+        has_mana2 = char_mana >= SKILLS[char["class"]]["mana_cost"]
+        grenades2 = inv2.get("grenade", 0)
+        molotovs2 = inv2.get("molotov", 0)
+        props_used2 = json.loads(battle.get("props_used_json") or "[]")
+        owned_prop2 = json.loads(char.get("owned_property") or "[]")
+        prop_skills2 = get_prop_skills(owned_prop2, props_used2)
+        weapon_id2 = char.get("weapon")
+        if boss_hp <= 0:
+            pass  # обработка победы ниже общая
+        else:
+            await _edit_text(query,
+                f"🔥 *ВРАГ ГОРИТ!*\n\n{result_text}"
+                f"😤 *{boss['name']}*\n❤️ {boss_hp}/{battle['boss_max_hp']} {hp_bar(boss_hp, battle['boss_max_hp'])}\n\n"
+                f"🤵 *{md(char['name'])}*\n"
+                f"❤️ {char_hp}/{char['max_hp']} {hp_bar(char_hp, char['max_hp'])}\n"
+                f"⚡ {char_mana}/{char['max_mana']}\n\nЧто делаем?",
+                parse_mode="Markdown",
+                reply_markup=battle_kb(
+                    has_mana2, has_potions2, weapon_id2,
+                    eff_atk=eff_atk, boss_def=boss["defense"],
+                    skill_mult=SKILLS[char["class"]]["damage_mult"],
+                    skill_name=SKILLS[char["class"]]["name"],
+                    cur_mana=char_mana,
+                    grenades=grenades2, molotovs=molotovs2,
+                    prop_skills=prop_skills2
+                )
+            )
+            return
+
     elif action == "battle_grenade":
         inv = await get_inventory(user_id)
         if not inv.get("grenade", 0):
@@ -5300,7 +5351,10 @@ async def battle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     eff_atk=eff_atk, boss_def=boss["defense"],
                     skill_mult=SKILLS[char["class"]]["damage_mult"],
                     skill_name=SKILLS[char["class"]]["name"],
-                    cur_mana=char_mana, grenades=grenades2, prop_skills=prop_skills2
+                    cur_mana=char_mana,
+                    grenades=grenades2,
+                    molotovs=inv2.get("molotov", 0),
+                    prop_skills=prop_skills2
                 )
             )
             return
@@ -5508,6 +5562,7 @@ async def battle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
             skill_name=SKILLS[char["class"]]["name"],
             cur_mana=char_mana,
             grenades=inv.get("grenade", 0),
+            molotovs=inv.get("molotov", 0),
             prop_skills=get_prop_skills(
                 json.loads(char.get("owned_property") or "[]"),
                 json.loads(battle.get("props_used_json") or "[]")
@@ -8046,6 +8101,7 @@ async def _start_tracked_boss_fight(query, user_id: int, loc_id: str, char: dict
             skill_name=SKILLS[char["class"]]["name"],
             cur_mana=char["mana"],
             grenades=(await get_inventory(user_id)).get("grenade", 0),
+            molotovs=(await get_inventory(user_id)).get("molotov", 0),
             prop_skills=get_prop_skills(
                 json.loads(char.get("owned_property") or "[]"),
                 []
@@ -9593,7 +9649,7 @@ async def _coop_http_app():
         items = []
         for iid, it in ITEMS.items():
             t = it.get('type')
-            if t not in ('weapon', 'armor', 'potion'):
+            if t not in ('weapon', 'armor', 'potion', 'throwable'):
                 continue
             items.append({
                 'id':              iid,
@@ -9606,6 +9662,10 @@ async def _coop_http_app():
                 'defense_bonus':   it.get('defense_bonus'),
                 'heal':            it.get('heal'),
                 'mana':            it.get('mana'),
+                'dmg_min':         it.get('dmg_min'),
+                'dmg_max':         it.get('dmg_max'),
+                'burn_per_turn':   it.get('burn_per_turn'),
+                'burn_turns':      it.get('burn_turns'),
             })
         return await _cors(web.json_response({
             'ok':       True,
