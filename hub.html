@@ -1643,6 +1643,19 @@ body.on-subpage .time-display-box { display: none !important; }
   </div>
 </div>
 
+<!-- ══ SUB-PAGE: ХАБ ЛОКАЦИИ "РЫНОК" (open world) ══ -->
+<div id="page-market-hub" class="subpage" style="display:none">
+  <div style="position:fixed;inset:0;background:#0b0d12;overflow:hidden;touch-action:none;user-select:none">
+    <canvas id="mh-canvas" style="position:absolute;inset:0;width:100%;height:100%;display:block"></canvas>
+    <button onclick="exitMarketHub()" style="position:absolute;left:10px;top:10px;z-index:5;padding:8px 14px;background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-size:13px;cursor:pointer">← Назад</button>
+    <div id="mh-hud" style="position:absolute;right:10px;top:10px;z-index:5;padding:6px 10px;background:rgba(0,0,0,.55);color:#fff;border-radius:8px;font-size:11px">🏪 Рынок<br><span id="mh-fps">0</span> fps</div>
+    <div id="mh-joy-base" style="position:absolute;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);pointer-events:none;opacity:0;transition:opacity .15s;z-index:4">
+      <div id="mh-joy-knob" style="position:absolute;width:46px;height:46px;left:50%;top:50%;margin-left:-23px;margin-top:-23px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#aab2c8 70%);border:1px solid rgba(0,0,0,.4);box-shadow:0 4px 12px rgba(0,0,0,.5)"></div>
+    </div>
+    <div style="position:absolute;left:10px;bottom:10px;z-index:5;font-size:11px;color:#aab2c8;background:rgba(0,0,0,.4);padding:6px 10px;border-radius:8px;pointer-events:none">Жми в любое место и тащи — ходить</div>
+  </div>
+</div>
+
 <!-- ══ SUB-PAGE: БИТВА ══ -->
 <div id="page-battle" class="subpage" style="display:none">
   <div class="tac-screen" id="tac-screen">
@@ -2521,6 +2534,12 @@ function renderDistricts() {
 
 // ── ОТКРЫТЬ СТРАНИЦУ РАЙОНА ───────────────────────────────────────────
 function openDistrict(locId) {
+  // НОВОЕ: рынок → хаб-карта вместо списка боссов
+  if (locId === 'market' && typeof enterMarketHub === 'function') {
+    currentLocId = locId;
+    enterMarketHub();
+    return;
+  }
   currentLocId = locId;
   const loc = LOC_DATA[locId];
   document.getElementById('district-page-title').textContent = loc.icon + ' ' + loc.name;
@@ -3042,6 +3061,446 @@ function _drawName(ctx,vx,vy,TS,label,color){
   ctx.roundRect?ctx.roundRect(bx,by,tw+pad*2,bh,3):ctx.fillRect(bx,by,tw+pad*2,bh);
   ctx.fill();ctx.fillStyle=color;ctx.fillText(label,vx,by+bh-3);ctx.restore();
 }
+// ════════════════════════════════════════════════════════════════════
+// БЛОК CREATOR (drawChar и слои) — копия из creator.html
+// Используется для рендера в market-hub и далее в боёвке
+// ════════════════════════════════════════════════════════════════════
+const HAIR_COLORS_M = ['#1a0e00','#3d2200','#8b6333','#b8860b','#888','#111'];
+const HAIR_COLORS_F = ['#1a0e00','#8b1a1a','#b8860b','#3d2200','#888','#c87050','#e0c080'];
+
+function drawChar(ctx, W, H, opts) {
+  const { gender, skin, body, face, hair, hat, _back } = opts;
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2;
+  const sc = Math.min(W, H) / 220;
+  function px(x) { return cx + x * sc; }
+  function py(y) { return H * 0.92 - y * sc; }
+  const skinCol = SKINS[skin] || SKINS[0];
+  if (gender === 0) drawMaleFull(ctx, px, py, sc, skinCol, body, face, hair, hat, !!_back);
+  else              drawFemaleFull(ctx, px, py, sc, skinCol, body, face, hair, hat, !!_back);
+}
+
+function drawMaleFull(ctx, px, py, sc, skinCol, body, face, hair, hat, isBack) {
+  const bodyDefs = [
+    { sw: 34, sh: 80, nw: 14, nh: 22, hw: 26 },
+    { sw: 44, sh: 85, nw: 16, nh: 22, hw: 30 },
+    { sw: 58, sh: 82, nw: 18, nh: 20, hw: 36 },
+    { sw: 52, sh: 92, nw: 16, nh: 24, hw: 32 },
+  ];
+  const bd = bodyDefs[body] || bodyDefs[1];
+  const suitCol = ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4];
+  const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9'][face % 4];
+  ctx.fillStyle = suitCol;
+  const legW = bd.sw * 0.38; const legH = 55 * sc;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.22), py(legH), legW*sc, legH, 4*sc); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(px(bd.sw*0.22 - legW), py(legH), legW*sc, legH, 4*sc); ctx.fill();
+  ctx.fillStyle = '#111';
+  [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*bd.sw*0.1), py(2), 10*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill(); });
+  ctx.fillStyle = suitCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
+  if (!isBack) {
+    ctx.fillStyle = '#ddd';
+    ctx.beginPath(); ctx.roundRect(px(-7), py(bd.sh), 14*sc, bd.sh*0.7*sc, 2*sc); ctx.fill();
+    ctx.fillStyle = tieCol;
+    ctx.beginPath();
+    ctx.moveTo(px(-5), py(bd.sh-4)); ctx.lineTo(px(5), py(bd.sh-4));
+    ctx.lineTo(px(3), py(bd.sh*0.32)); ctx.lineTo(px(0), py(bd.sh*0.25));
+    ctx.lineTo(px(-3), py(bd.sh*0.32)); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = suitCol;
+    ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-2)); ctx.lineTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.sw/2), py(bd.sh-20)); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-2)); ctx.lineTo(px(bd.sw/2), py(bd.sh)); ctx.lineTo(px(bd.sw/2), py(bd.sh-20)); ctx.closePath(); ctx.fill();
+  }
+  const armLen = body===3?65:60, armW = body===3?13:10;
+  ctx.fillStyle = suitCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2-armW*sc+2), py(bd.sh), armW*sc, armLen*sc, 5*sc); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(px(bd.sw/2-2), py(bd.sh), armW*sc, armLen*sc, 5*sc); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(-bd.sw/2-armW*sc/2+2), py(armLen-10), 7*sc, 9*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px(bd.sw/2+armW*sc/2-2), py(armLen-10), 7*sc, 9*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.nw/2), py(bd.sh+bd.nh), bd.nw*sc, bd.nh*sc, 4*sc); ctx.fill();
+  const headH = bd.hw*1.22;
+  const headY = bd.sh + bd.nh + headH;
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+headH/2), bd.hw/2*sc, headH/2*sc, 0, 0, Math.PI*2); ctx.fill();
+  if (!isBack) { ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+5), bd.hw/2.2*sc, 10*sc, 0, 0, Math.PI); ctx.fill(); }
+  if (!isBack) {
+    const eyeY = bd.sh + bd.nh + headH*0.55;
+    const eyeSpan = bd.hw*0.22;
+    const mouthY = bd.sh + bd.nh + headH*0.18;
+    drawFaceMFull(ctx, face, px, py, eyeY, eyeSpan, mouthY, bd, sc);
+    if (hair > 0) drawHairMFull(ctx, hair, px, py, bd, headY, headH, sc);
+    if (hat > 0)  drawHatFull(ctx, hat, px, py, bd, headY, headH, sc);
+  }
+}
+
+function drawFemaleFull(ctx, px, py, sc, skinCol, body, face, hair, hat, isBack) {
+  const bodyDefs = [
+    { sw: 30, sh: 78, nw: 12, nh: 20, hw: 24, hip: 32 },
+    { sw: 36, sh: 80, nw: 13, nh: 20, hw: 27, hip: 40 },
+    { sw: 48, sh: 76, nw: 15, nh: 18, hw: 32, hip: 54 },
+    { sw: 34, sh: 85, nw: 13, nh: 22, hw: 26, hip: 38 },
+  ];
+  const bd = bodyDefs[body] || bodyDefs[1];
+  const dressCol = ['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a'][body % 4];
+  const accentCol = ['#e8c96e','#c0392b','#8e44ad','#2980b9'][face % 4];
+  ctx.fillStyle = dressCol;
+  ctx.beginPath();
+  ctx.moveTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.hip/2), py(0));
+  ctx.lineTo(px(bd.hip/2), py(0)); ctx.lineTo(px(bd.sw/2), py(bd.sh));
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#111';
+  [-1,1].forEach(s => {
+    ctx.beginPath(); ctx.ellipse(px(s*bd.hip*0.18), py(3), 8*sc, 4*sc, 0, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle = dressCol;
+  ctx.beginPath();
+  ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
+  if (!isBack) {
+    ctx.fillStyle = '#f0e8e0';
+    ctx.beginPath(); ctx.roundRect(px(-6), py(bd.sh), 12*sc, bd.sh*0.65*sc, 2*sc); ctx.fill();
+    ctx.fillStyle = accentCol;
+    ctx.beginPath(); ctx.arc(px(-8), py(bd.sh-10), 4*sc, 0, Math.PI*2); ctx.fill();
+  }
+  const armLen = 58, armW = 8;
+  ctx.fillStyle = dressCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2-armW*sc+2), py(bd.sh), armW*sc, armLen*sc, 4*sc); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(px(bd.sw/2-2), py(bd.sh), armW*sc, armLen*sc, 4*sc); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(-bd.sw/2-armW*sc/2+2), py(armLen-10), 6*sc, 8*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px(bd.sw/2+armW*sc/2-2), py(armLen-10), 6*sc, 8*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.nw/2), py(bd.sh+bd.nh), bd.nw*sc, bd.nh*sc, 4*sc); ctx.fill();
+  const headH = bd.hw*1.18;
+  const headY = bd.sh + bd.nh + headH;
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+headH/2), bd.hw/2*sc, headH/2*sc, 0, 0, Math.PI*2); ctx.fill();
+  const eyeY = bd.sh + bd.nh + headH*0.55;
+  const eyeSpan = bd.hw*0.22;
+  const mouthY = bd.sh + bd.nh + headH*0.18;
+  if (!isBack) {
+    drawFaceFFull(ctx, face, px, py, eyeY, eyeSpan, mouthY, bd, sc);
+    if (hair > 0) drawHairFFull(ctx, hair, px, py, bd, headY, headH, sc);
+    if (hat > 0)  drawHatFull(ctx, hat, px, py, bd, headY, headH, sc);
+  }
+}
+
+function drawFaceMFull(ctx, faceId, px, py, eyeY, eyeSpan, mouthY, bd, sc) {
+  const eyeR = 4*sc;
+  ctx.fillStyle = '#fff';
+  [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*eyeSpan), py(eyeY), eyeR*1.3, eyeR, 0, 0, Math.PI*2); ctx.fill(); });
+  ctx.fillStyle = '#1a0a00';
+  [-1,1].forEach(s => { ctx.beginPath(); ctx.arc(px(s*eyeSpan), py(eyeY), eyeR*0.65, 0, Math.PI*2); ctx.fill(); });
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 2*sc; ctx.lineCap = 'round';
+  [-1,1].forEach(s => {
+    ctx.beginPath(); ctx.moveTo(px(s*eyeSpan-8*sc),py(eyeY+9));
+    ctx.lineTo(px(s*eyeSpan+8*sc),py(eyeY+9)); ctx.stroke();
+  });
+  ctx.strokeStyle='#333'; ctx.lineWidth=2*sc;
+  ctx.beginPath(); ctx.moveTo(px(-8),py(mouthY));
+  ctx.quadraticCurveTo(px(0),py(mouthY+3),px(8),py(mouthY)); ctx.stroke();
+}
+
+function drawFaceFFull(ctx, faceId, px, py, eyeY, eyeSpan, mouthY, bd, sc) {
+  const eyeR = 4*sc;
+  ctx.fillStyle='#fff';
+  [-1,1].forEach(s=>{ctx.beginPath();ctx.ellipse(px(s*eyeSpan),py(eyeY),eyeR*1.4,eyeR,0,0,Math.PI*2);ctx.fill();});
+  ctx.fillStyle='#1a0a30';
+  [-1,1].forEach(s=>{ctx.beginPath();ctx.arc(px(s*eyeSpan),py(eyeY),eyeR*0.7,0,Math.PI*2);ctx.fill();});
+  ctx.fillStyle='#c0392b';
+  ctx.beginPath();
+  ctx.moveTo(px(-8),py(mouthY));
+  ctx.quadraticCurveTo(px(0),py(mouthY+4),px(8),py(mouthY));
+  ctx.quadraticCurveTo(px(0),py(mouthY-2),px(-8),py(mouthY));
+  ctx.fill();
+}
+
+function drawHairMFull(ctx, hairId, px, py, bd, headY, headH, sc) {
+  const hc = HAIR_COLORS_M[hairId % HAIR_COLORS_M.length];
+  const hw = bd.hw / 2;
+  ctx.fillStyle = hc;
+  ctx.beginPath();
+  ctx.ellipse(px(0), py(headY), hw*sc, 10*sc, 0, Math.PI, Math.PI*2);
+  ctx.fill();
+}
+
+function drawHairFFull(ctx, hairId, px, py, bd, headY, headH, sc) {
+  const hc = HAIR_COLORS_F[hairId % HAIR_COLORS_F.length];
+  const hw = bd.hw / 2;
+  ctx.fillStyle = hc;
+  ctx.beginPath();
+  ctx.ellipse(px(0), py(headY), hw*sc, 10*sc, 0, Math.PI, Math.PI*2);
+  ctx.fill();
+  if (hairId >= 1) {
+    [-1,1].forEach(s=>{
+      ctx.lineWidth=10*sc; ctx.strokeStyle=hc;
+      ctx.beginPath();
+      ctx.moveTo(px(s*hw),py(headY));
+      ctx.lineTo(px(s*(hw+2)),py(headY-25));
+      ctx.stroke();
+    });
+  }
+}
+
+function drawHatFull(ctx, hatId, px, py, bd, headY, headH, sc) {
+  const hw = bd.hw / 2;
+  if (hatId === 1) {
+    ctx.fillStyle = '#1a0e00';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY+2), (hw+10)*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px(-hw+2), py(headY+2+22), (hw*2-4)*sc, 22*sc, 4*sc); ctx.fill();
+    ctx.fillStyle = '#e8c96e';
+    ctx.fillRect(px(-hw+2), py(headY+8), (hw*2-4)*sc, 4*sc);
+  } else if (hatId === 2) {
+    ctx.fillStyle = '#1a2e3a';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY), hw*sc, 14*sc, 0, Math.PI, Math.PI*2); ctx.fill();
+  } else {
+    ctx.fillStyle = '#3a1a1a';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY+2), (hw+6)*sc, 4*sc, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px(-hw), py(headY+18), hw*2*sc, 18*sc, 3*sc); ctx.fill();
+  }
+}
+
+// Кеш спрайтов персонажа
+const SPRITE_W = 110, SPRITE_H = 200;
+const _spriteCache = new Map();
+function getSprite(look) {
+  const key = [look.gender|0, look.skin|0, look.body|0, look.face|0, look.hair|0, look.hat|0].join('.');
+  if (_spriteCache.has(key)) return _spriteCache.get(key);
+  const off = document.createElement('canvas');
+  off.width = SPRITE_W; off.height = SPRITE_H;
+  drawChar(off.getContext('2d'), SPRITE_W, SPRITE_H, look);
+  _spriteCache.set(key, off);
+  return off;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// MARKET HUB — открытый мир рынка (изометрия)
+// ════════════════════════════════════════════════════════════════════
+let mhState = null;
+
+function enterMarketHub() {
+  document.querySelectorAll('.subpage').forEach(p => p.style.display = 'none');
+  document.getElementById('page-market-hub').style.display = '';
+  if (tg && tg.BackButton) { tg.BackButton.offClick(goBack); tg.BackButton.onClick(exitMarketHub); tg.BackButton.show(); }
+  window.scrollTo(0, 0);
+
+  const canvas = document.getElementById('mh-canvas');
+  const COLS = 16, ROWS = 16;
+  mhState = {
+    canvas, ctx: canvas.getContext('2d'),
+    COLS, ROWS, TS: 60, ISO_Y: 0.5, dpr: 1,
+    player: { r: ROWS/2, c: COLS/2, angle: -Math.PI/2, walkPhase: 0, moving: false },
+    cam: { x: 0, y: 0 },
+    joy: { active: false, id: null, ox: 0, oy: 0, dx: 0, dy: 0 },
+    last: performance.now(), fpsAcc: 0, fpsLast: performance.now(),
+    raf: null,
+  };
+  mhResize();
+  mhBindInput();
+  mhState.raf = requestAnimationFrame(mhLoop);
+  window.addEventListener('resize', mhResize);
+}
+
+function exitMarketHub() {
+  if (mhState) {
+    if (mhState.raf) cancelAnimationFrame(mhState.raf);
+    window.removeEventListener('resize', mhResize);
+    mhUnbindInput();
+    mhState = null;
+  }
+  document.getElementById('page-market-hub').style.display = 'none';
+  // вернуться в обычную карту районов
+  if (typeof showDistricts === 'function') showDistricts();
+  else navDistrict('back');
+  if (tg && tg.BackButton) { tg.BackButton.offClick(exitMarketHub); tg.BackButton.hide(); }
+}
+
+function mhResize() {
+  if (!mhState) return;
+  const canvas = mhState.canvas;
+  const w = window.innerWidth, h = window.innerHeight;
+  mhState.dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(w * mhState.dpr);
+  canvas.height = Math.floor(h * mhState.dpr);
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  mhState.ctx.setTransform(mhState.dpr, 0, 0, mhState.dpr, 0, 0);
+  const mapDiagonal = (mhState.COLS + mhState.ROWS) * 0.5;
+  mhState.TS = Math.max(40, Math.min(80, Math.min(w / mapDiagonal, h / (mapDiagonal * mhState.ISO_Y) * 0.55)));
+}
+
+// world (r,c) → screen
+function mhW2S(r, c) {
+  const s = mhState;
+  const w = s.canvas.width / s.dpr, h = s.canvas.height / s.dpr;
+  return {
+    x: w/2 + (c - r) * s.TS * 0.5 - s.cam.x,
+    y: h/2 + (c + r) * s.TS * 0.5 * s.ISO_Y - s.cam.y
+  };
+}
+
+function mhDrawTile(r, c) {
+  const s = mhState, ctx = s.ctx;
+  const p = mhW2S(r, c);
+  const wx = s.TS * 0.5, wy = s.TS * 0.5 * s.ISO_Y;
+  ctx.beginPath();
+  ctx.moveTo(p.x,       p.y - wy);
+  ctx.lineTo(p.x + wx,  p.y);
+  ctx.lineTo(p.x,       p.y + wy);
+  ctx.lineTo(p.x - wx,  p.y);
+  ctx.closePath();
+  const dark = (r + c) % 2 === 0;
+  ctx.fillStyle = dark ? '#252535' : '#2a2a3e';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.3)';
+  ctx.lineWidth = 1; ctx.stroke();
+}
+
+function mhDrawPlayer() {
+  const s = mhState, ctx = s.ctx, p = s.player;
+  const pos = mhW2S(p.r, p.c);
+  const TS = s.TS, ISO_Y = s.ISO_Y;
+  const bob = Math.sin(p.walkPhase) * 2.5;
+  // тень
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.beginPath();
+  ctx.ellipse(pos.x, pos.y + 2, TS * 0.18, TS * 0.5 * ISO_Y * 0.6, 0, 0, Math.PI*2);
+  ctx.fill();
+  // спрайт
+  const look = { gender:DATA.gender|0, skin:DATA.skin|0, body:DATA.body|0, face:DATA.face|0, hair:DATA.hair|0, hat:DATA.hat|0 };
+  const sprite = getSprite(look);
+  const sh = TS * 1.7;
+  const sw = sh * (SPRITE_W / SPRITE_H);
+  ctx.drawImage(sprite, Math.round(pos.x - sw/2), Math.round(pos.y - sh*0.94 + bob), sw, sh);
+}
+
+function mhRender() {
+  const s = mhState, ctx = s.ctx;
+  if (!ctx) return;
+  const w = s.canvas.width / s.dpr, h = s.canvas.height / s.dpr;
+  ctx.fillStyle = '#0b0d12';
+  ctx.fillRect(0, 0, w, h);
+  // пол
+  for (let r = 0; r < s.ROWS; r++)
+    for (let c = 0; c < s.COLS; c++)
+      mhDrawTile(r, c);
+  // игрок
+  mhDrawPlayer();
+}
+
+function mhUpdate(dt) {
+  const s = mhState, p = s.player;
+  const speed = 4;
+  if (s.joy.active && (Math.abs(s.joy.dx) > 0.1 || Math.abs(s.joy.dy) > 0.1)) {
+    // экран → мир (обратно изометрии)
+    const d = s.joy.dx, ss = s.joy.dy / s.ISO_Y;
+    const dc = (ss + d) * 0.5;
+    const dr = (ss - d) * 0.5;
+    const mag = Math.hypot(dr, dc) || 1;
+    p.r += (dr / mag) * speed * dt;
+    p.c += (dc / mag) * speed * dt;
+    p.r = Math.max(0.5, Math.min(s.ROWS - 0.5, p.r));
+    p.c = Math.max(0.5, Math.min(s.COLS - 0.5, p.c));
+    p.angle = Math.atan2(dr, dc);
+    p.walkPhase += dt * 10;
+    p.moving = true;
+  } else {
+    p.moving = false;
+    p.walkPhase *= 0.9;
+  }
+  // камера за игроком
+  const tx = (p.c - p.r) * s.TS * 0.5;
+  const ty = (p.c + p.r) * s.TS * 0.5 * s.ISO_Y;
+  const lerp = 1 - Math.pow(0.001, dt);
+  s.cam.x += (tx - s.cam.x) * lerp;
+  s.cam.y += (ty - s.cam.y) * lerp;
+}
+
+function mhLoop(t) {
+  if (!mhState) return;
+  const s = mhState;
+  const dt = Math.min(0.05, (t - s.last) / 1000);
+  s.last = t;
+  mhUpdate(dt);
+  mhRender();
+  s.fpsAcc++;
+  if (t - s.fpsLast > 500) {
+    const fpsEl = document.getElementById('mh-fps');
+    if (fpsEl) fpsEl.textContent = Math.round(s.fpsAcc / ((t - s.fpsLast) / 1000));
+    s.fpsAcc = 0; s.fpsLast = t;
+  }
+  s.raf = requestAnimationFrame(mhLoop);
+}
+
+// ── Управление ──
+const JOY_RADIUS = 55;
+function mhStartTouch(x, y, id) {
+  if (!mhState || mhState.joy.active) return;
+  mhState.joy.active = true; mhState.joy.id = id;
+  mhState.joy.ox = x; mhState.joy.oy = y;
+  mhState.joy.dx = 0; mhState.joy.dy = 0;
+  const base = document.getElementById('mh-joy-base');
+  if (base) {
+    base.style.left = (x - 55) + 'px';
+    base.style.top = (y - 55) + 'px';
+    base.style.opacity = '1';
+    document.getElementById('mh-joy-knob').style.transform = 'translate(0,0)';
+  }
+}
+function mhMoveTouch(x, y, id) {
+  if (!mhState || !mhState.joy.active || mhState.joy.id !== id) return;
+  let dx = x - mhState.joy.ox, dy = y - mhState.joy.oy;
+  const d = Math.hypot(dx, dy);
+  if (d > JOY_RADIUS) { dx = dx / d * JOY_RADIUS; dy = dy / d * JOY_RADIUS; }
+  mhState.joy.dx = dx / JOY_RADIUS; mhState.joy.dy = dy / JOY_RADIUS;
+  const knob = document.getElementById('mh-joy-knob');
+  if (knob) knob.style.transform = `translate(${dx}px, ${dy}px)`;
+}
+function mhEndTouch(id) {
+  if (!mhState || !mhState.joy.active || mhState.joy.id !== id) return;
+  mhState.joy.active = false; mhState.joy.dx = 0; mhState.joy.dy = 0;
+  const base = document.getElementById('mh-joy-base');
+  if (base) base.style.opacity = '0';
+}
+let _mhTouchHandlers = null;
+function mhBindInput() {
+  const page = document.getElementById('page-market-hub');
+  const onTouchStart = (e) => {
+    e.preventDefault();
+    for (const t of e.changedTouches) mhStartTouch(t.clientX, t.clientY, t.identifier);
+  };
+  const onTouchMove = (e) => {
+    e.preventDefault();
+    for (const t of e.changedTouches) mhMoveTouch(t.clientX, t.clientY, t.identifier);
+  };
+  const onTouchEnd = (e) => {
+    for (const t of e.changedTouches) mhEndTouch(t.identifier);
+  };
+  const onMouseDown = (e) => mhStartTouch(e.clientX, e.clientY, 'mouse');
+  const onMouseMove = (e) => mhMoveTouch(e.clientX, e.clientY, 'mouse');
+  const onMouseUp   = ()  => mhEndTouch('mouse');
+  page.addEventListener('touchstart', onTouchStart, { passive: false });
+  page.addEventListener('touchmove',  onTouchMove,  { passive: false });
+  page.addEventListener('touchend',   onTouchEnd);
+  page.addEventListener('touchcancel',onTouchEnd);
+  page.addEventListener('mousedown',  onMouseDown);
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup',  onMouseUp);
+  _mhTouchHandlers = { page, onTouchStart, onTouchMove, onTouchEnd, onMouseDown, onMouseMove, onMouseUp };
+}
+function mhUnbindInput() {
+  if (!_mhTouchHandlers) return;
+  const h = _mhTouchHandlers;
+  h.page.removeEventListener('touchstart', h.onTouchStart);
+  h.page.removeEventListener('touchmove',  h.onTouchMove);
+  h.page.removeEventListener('touchend',   h.onTouchEnd);
+  h.page.removeEventListener('touchcancel',h.onTouchEnd);
+  h.page.removeEventListener('mousedown',  h.onMouseDown);
+  window.removeEventListener('mousemove', h.onMouseMove);
+  window.removeEventListener('mouseup',   h.onMouseUp);
+  _mhTouchHandlers = null;
+}
+
 function tacDrawPlayerChar(ctx,vx,vy,TS,charData,phase){
   const sk=TAC_SKINS[Math.min(4,(charData.skin||0))];
   const hr=TAC_HAIR[(charData.hair||0)%TAC_HAIR.length];
