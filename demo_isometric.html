@@ -43,9 +43,64 @@
   .aim-knob { background: radial-gradient(circle at 35% 30%, #ffe080, #c89030 80%); }
   #hud {
     position: absolute; left: 10px; top: 10px; z-index: 6;
-    background: rgba(0,0,0,.4); padding: 6px 10px; border-radius: 8px;
-    font-size: 11px; line-height: 1.4; pointer-events: none;
+    background: linear-gradient(180deg, rgba(20,24,32,.92) 0%, rgba(10,12,18,.85) 100%);
+    padding: 8px 12px 8px 8px; border-radius: 12px;
+    border: 1px solid #3a4452;
+    box-shadow: 0 4px 14px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
+    font-size: 11px; line-height: 1.3;
+    display: flex; gap: 10px; align-items: center;
+    min-width: 240px;
   }
+  #hudAvatar {
+    width: 64px; height: 64px;
+    border-radius: 10px;
+    background: radial-gradient(circle at 50% 30%, #2a3142 0%, #14181f 100%);
+    border: 2px solid #4a5468;
+    box-shadow: inset 0 0 8px rgba(0,0,0,.6);
+    flex-shrink: 0;
+    display: block;
+  }
+  #hudInfo { display: flex; flex-direction: column; gap: 3px; flex: 1; pointer-events: none; }
+  #hudInfo .row1 {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700; color: #ffd76b;
+    text-shadow: 0 1px 2px #000;
+  }
+  #hudWepIcon { width: 50px; height: 16px; flex-shrink: 0; }
+  #hudInfo .hp-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: #cfd6e6;
+  }
+  #hudInfo .hp-row .label { color: #8a92a8; font-size: 10px; }
+  #hpBarBig {
+    width: 130px; height: 12px;
+    background: #1a1e26; border: 1px solid #3a4452; border-radius: 6px;
+    overflow: hidden; position: relative;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.6);
+  }
+  #hpBarFill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg,#5dd55d,#3aa53a);
+    transition: width .2s, background .2s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  #hpBarFill.low { background: linear-gradient(90deg,#ffd24a,#cf8a20); }
+  #hpBarFill.crit { background: linear-gradient(90deg,#ff5050,#a02020); }
+  #hudInfo .fps-row {
+    font-size: 9px; color: #5a6478; pointer-events: none;
+  }
+  #hudBtns {
+    display: flex; flex-direction: column; gap: 3px;
+    pointer-events: auto;
+  }
+  #hudBtns button {
+    padding: 3px 7px; background: #2a3142; color: #cfd6e6;
+    border: 1px solid #4a5468; border-radius: 5px;
+    font-size: 10px; cursor: pointer; white-space: nowrap;
+    transition: background .1s;
+  }
+  #hudBtns button:hover { background: #3a4458; color: #ffd76b; }
+  #hudBtns button:active { transform: scale(.95); }
   #hint {
     position: absolute; right: 10px; bottom: 10px; z-index: 6;
     background: rgba(0,0,0,.4); padding: 6px 10px; border-radius: 8px;
@@ -74,11 +129,25 @@
     <canvas id="gc"></canvas>
     <div class="joy-base" id="joyBase"><div class="joy-knob" id="joyKnob"></div></div>
     <div class="aim-base" id="aimBase"><div class="aim-knob" id="aimKnob"></div></div>
-    <div id="hud">FPS: <span id="fps">0</span><br>Оружие: <span id="wepName">пистолет</span><br>HP: <span id="hpVal">100</span>/100
-      <div style="width:120px;height:8px;background:#222;border:1px solid #3a4452;border-radius:3px;margin:3px 0;overflow:hidden">
-        <div id="hpBar" style="width:100%;height:100%;background:linear-gradient(90deg,#5dd55d,#3aa53a);transition:width .15s"></div>
+    <div id="hud">
+      <canvas id="hudAvatar" width="128" height="128"></canvas>
+      <div id="hudInfo">
+        <div class="row1">
+          <canvas id="hudWepIcon" width="100" height="32"></canvas>
+          <span id="wepName">пистолет</span>
+        </div>
+        <div class="hp-row">
+          <span class="label">HP</span>
+          <div id="hpBarBig"><div id="hpBarFill"></div></div>
+          <span id="hpVal">100</span><span style="color:#5a6478">/100</span>
+        </div>
+        <div class="fps-row">FPS: <span id="fps">0</span></div>
       </div>
-      <button id="rerollBtn" style="margin-top:2px;padding:3px 8px;background:#2a3142;color:#fff;border:1px solid #3a4452;border-radius:4px;font-size:10px;cursor:pointer">🎲 Новый перс</button> <button id="resetBtn" style="margin-top:2px;padding:3px 8px;background:#2a3142;color:#fff;border:1px solid #3a4452;border-radius:4px;font-size:10px;cursor:pointer">↻ Респ</button></div>
+      <div id="hudBtns">
+        <button id="rerollBtn">🎲 Перс</button>
+        <button id="resetBtn">↻ Респ</button>
+      </div>
+    </div>
     <!-- Боевой UI справа снизу: melee-кнопка + индикатор патронов/перезарядки -->
     <div id="combatUI" style="position:absolute;right:14px;bottom:14px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none">
       <div id="ammoBox" style="background:rgba(0,0,0,.55);padding:6px 10px;border-radius:8px;border:1px solid #3a4452;font-size:12px;color:#fff;text-align:right;min-width:120px">
@@ -187,6 +256,7 @@ function _playThrowSound(kind) {
 
 const canvas = document.getElementById('gc');
 const ctx = canvas.getContext('2d');
+window.__gameCtx = ctx;
 
 // Карта (17 рядов × 12 столбцов) — расширенная арена
 const COLS = 12, ROWS = 17;
@@ -1062,6 +1132,184 @@ function rndLook() {
   };
 }
 
+// ── Рисование детального оружия в руках (вид сбоку, локальные координаты) ──
+// hx,hy — точка хвата (конец руки); sx,sy — направление прицела в экранных px;
+// scale — общий множитель (1 = игрок, 1.4 = босс).
+function drawFirearm(wepKey, hx, hy, sx, sy, scale, ctxOverride) {
+  const ctx = ctxOverride || window.__gameCtx;
+  if (!ctx) return;
+  const angle = Math.atan2(sy, sx);
+  const sc = scale || 1;
+  // зеркалим если игрок смотрит "влево" — чтобы магазин/прицел всегда были сверху
+  const flip = (Math.cos(angle) < 0) ? -1 : 1;
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.rotate(angle);
+  ctx.scale(1, flip);
+  // тонкая тень под оружием — чтоб не сливалось со спрайтом
+  ctx.shadowColor = 'rgba(0,0,0,.5)';
+  ctx.shadowBlur = 3;
+
+  switch (wepKey) {
+    case 'pistol': {
+      ctx.fillStyle = '#2a2a30';
+      ctx.fillRect(-2*sc, -3*sc, 16*sc, 5*sc); // корпус
+      ctx.fillStyle = '#1a1a20';
+      ctx.fillRect(0, -5*sc, 13*sc, 2*sc);     // затвор
+      ctx.fillStyle = '#3a3a3a';
+      ctx.fillRect(11*sc, -6*sc, 1.5*sc, 1.5*sc); // мушка
+      ctx.fillStyle = '#1a1010';
+      ctx.fillRect(-3*sc, 1*sc, 5*sc, 7*sc);   // рукоять
+      break;
+    }
+    case 'pistol_heavy': {
+      ctx.fillStyle = '#2a2226';
+      ctx.fillRect(-3*sc, -4*sc, 22*sc, 6*sc); // длинный корпус
+      ctx.fillStyle = '#1a1216';
+      ctx.fillRect(0, -6*sc, 18*sc, 2*sc);
+      ctx.fillStyle = '#3a3a3a';
+      ctx.fillRect(16*sc, -7*sc, 2*sc, 1.5*sc);
+      ctx.fillStyle = '#5a3a1a';                // деревянная рукоять
+      ctx.fillRect(-4*sc, 1*sc, 6*sc, 8*sc);
+      ctx.fillStyle = '#3a2410';
+      ctx.fillRect(-4*sc, 1*sc, 6*sc, 1*sc);
+      break;
+    }
+    case 'pistol_gold': {
+      ctx.fillStyle = '#c89030';
+      ctx.fillRect(-3*sc, -4*sc, 20*sc, 6*sc);
+      ctx.fillStyle = '#ffd76b';
+      ctx.fillRect(0, -6*sc, 16*sc, 2*sc);     // полированный затвор
+      ctx.fillStyle = '#a06010';
+      ctx.fillRect(0, 0, 16*sc, 1*sc);         // нижняя кромка
+      ctx.fillStyle = '#3a1a0a';
+      ctx.fillRect(-4*sc, 1*sc, 6*sc, 7*sc);   // деревянная рукоять
+      ctx.fillStyle = '#e8c96e';
+      ctx.fillRect(-3*sc, 2*sc, 1*sc, 5*sc);   // золотая накладка
+      break;
+    }
+    case 'shotgun': {
+      ctx.fillStyle = '#5a3a1a';                // деревянный приклад сзади
+      ctx.fillRect(-15*sc, -2*sc, 13*sc, 6*sc);
+      ctx.fillStyle = '#3a2410';
+      ctx.fillRect(-15*sc, 3*sc, 13*sc, 1*sc);
+      ctx.fillStyle = '#2a2628';                // тёмный ствол
+      ctx.fillRect(-3*sc, -4*sc, 30*sc, 4*sc);
+      ctx.fillStyle = '#4a3a1a';                // деревянное цевьё
+      ctx.fillRect(8*sc, -1*sc, 9*sc, 4*sc);
+      ctx.fillStyle = '#1a1618';
+      ctx.fillRect(24*sc, -5*sc, 4*sc, 2*sc);  // дульный срез
+      ctx.fillStyle = '#1a1010';
+      ctx.fillRect(-4*sc, 1*sc, 5*sc, 7*sc);   // рукоять
+      break;
+    }
+    case 'smg': {
+      ctx.fillStyle = '#1a1a20';
+      ctx.fillRect(-4*sc, -3*sc, 22*sc, 5*sc); // корпус
+      ctx.fillStyle = '#0a0a0c';
+      ctx.fillRect(16*sc, -4*sc, 5*sc, 2*sc);  // глушитель/срез
+      ctx.fillStyle = '#2a2a32';
+      ctx.fillRect(2*sc, 2*sc, 4.5*sc, 11*sc); // изогнутый магазин
+      ctx.fillStyle = '#1a1a20';
+      ctx.fillRect(13*sc, 1*sc, 3.5*sc, 6*sc); // передняя рукоять
+      ctx.fillStyle = '#1a1010';
+      ctx.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);   // главная рукоять
+      ctx.fillStyle = '#2a2a30';
+      ctx.fillRect(2*sc, -5*sc, 6*sc, 2*sc);   // верхний прицел
+      break;
+    }
+    case 'rifle': {
+      ctx.fillStyle = '#5a3a1a';                // деревянный приклад
+      ctx.fillRect(-15*sc, -2*sc, 13*sc, 6*sc);
+      ctx.fillStyle = '#3a2410';
+      ctx.fillRect(-15*sc, 3*sc, 13*sc, 1*sc);
+      ctx.fillStyle = '#2a2a30';                // ствол + ствольная коробка
+      ctx.fillRect(-3*sc, -3*sc, 34*sc, 4*sc);
+      ctx.fillStyle = '#3a3a40';                // прицельная планка
+      ctx.fillRect(2*sc, -5*sc, 5*sc, 2*sc);
+      ctx.fillRect(26*sc, -5*sc, 2*sc, 2*sc);  // мушка на конце
+      ctx.fillStyle = '#1a1010';
+      ctx.fillRect(-1*sc, 1*sc, 4*sc, 9*sc);   // магазин
+      ctx.fillStyle = '#1a1010';
+      ctx.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);   // рукоять
+      break;
+    }
+    case 'sniper': {
+      ctx.fillStyle = '#5a3a1a';                // приклад
+      ctx.fillRect(-16*sc, -2*sc, 14*sc, 7*sc);
+      ctx.fillStyle = '#3a2410';
+      ctx.fillRect(-16*sc, 4*sc, 14*sc, 1*sc);
+      ctx.fillStyle = '#2a352a';                // длинный военный ствол
+      ctx.fillRect(-3*sc, -2.5*sc, 44*sc, 3*sc);
+      ctx.fillStyle = '#1a251a';
+      ctx.fillRect(40*sc, -4*sc, 5*sc, 2*sc);  // дульный тормоз
+      // оптический прицел
+      ctx.fillStyle = '#0a0a0c';
+      ctx.fillRect(2*sc, -8*sc, 14*sc, 4*sc);
+      ctx.fillStyle = '#1a1a20';
+      ctx.fillRect(2*sc, -9*sc, 14*sc, 1.5*sc);
+      ctx.fillStyle = '#3a3a45';
+      ctx.fillRect(15*sc, -7*sc, 1*sc, 3*sc);  // блик линзы
+      // рукоять
+      ctx.fillStyle = '#1a1010';
+      ctx.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
+      // сошки
+      ctx.strokeStyle = '#1a1a20';
+      ctx.lineWidth = 1.3*sc;
+      ctx.beginPath();
+      ctx.moveTo(32*sc, 0);  ctx.lineTo(35*sc, 8*sc);
+      ctx.moveTo(32*sc, 0);  ctx.lineTo(29*sc, 8*sc);
+      ctx.stroke();
+      break;
+    }
+    case 'rpg': {
+      // длинная труба
+      ctx.fillStyle = '#3a4a30';
+      ctx.fillRect(-20*sc, -5*sc, 52*sc, 8*sc);
+      ctx.fillStyle = '#2a3a20';
+      ctx.fillRect(-20*sc, -6*sc, 52*sc, 1.2*sc);
+      ctx.fillStyle = '#5a6a45';
+      ctx.fillRect(-20*sc, 2*sc, 52*sc, 1*sc);
+      // боеголовка/конус впереди
+      ctx.fillStyle = '#2a1a10';
+      ctx.beginPath();
+      ctx.moveTo(32*sc, -5*sc);
+      ctx.lineTo(44*sc, 0);
+      ctx.lineTo(32*sc, 3*sc);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#5a2010';
+      ctx.fillRect(28*sc, -5*sc, 4*sc, 8*sc);   // взрыватель
+      // прицельная планка
+      ctx.fillStyle = '#2a2a30';
+      ctx.fillRect(-2*sc, -8*sc, 5*sc, 3*sc);
+      // рукоять снизу
+      ctx.fillStyle = '#1a1010';
+      ctx.fillRect(-5*sc, 3*sc, 5*sc, 9*sc);
+      break;
+    }
+    default: {
+      ctx.fillStyle = '#333';
+      ctx.fillRect(0, -2*sc, 16*sc, 4*sc);
+    }
+  }
+
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+// Длина оружия "вперёд" в тайлах — для расчёта точки цевья (вторая рука)
+const FIREARM_FOREGRIP = {
+  pistol: 0,        // одноручный — нет цевья
+  pistol_heavy: 0,
+  pistol_gold: 0,
+  shotgun: 0.30,
+  smg: 0.22,
+  rifle: 0.34,
+  sniper: 0.40,
+  rpg: 0.42,
+};
+
 // ── Рендер персонажа на сцену ─────────────────────────────────────────
 function drawCharacter(obj, isPlayer) {
   const p = w2s(obj.r, obj.c);
@@ -1106,7 +1354,19 @@ function drawCharacter(obj, isPlayer) {
     ctx.globalAlpha = 1;
     ctx.restore();
   } else {
-    ctx.drawImage(sprite, Math.round(p.x - sw/2), Math.round(p.y - sh*0.94 + bob), sw, sh);
+    // Анимация ходьбы: наклон корпуса ± и лёгкое сжатие на шаге.
+    // Когда obj.moving — амплитуды полные, иначе затухают.
+    const moveK = obj.moving ? 1 : 0.15;
+    const ph = obj.walkPhase || 0;
+    const lean = Math.sin(ph) * 0.06 * moveK;            // наклон ±3.4°
+    const squashY = 1 - Math.abs(Math.sin(ph * 2)) * 0.04 * moveK; // двойная частота — шаг каждой ноги
+    const squashX = 1 + Math.abs(Math.sin(ph * 2)) * 0.02 * moveK;
+    ctx.save();
+    ctx.translate(p.x, p.y + bob);
+    ctx.rotate(lean);
+    ctx.scale(squashX, squashY);
+    ctx.drawImage(sprite, Math.round(-sw/2), Math.round(-sh*0.94), sw, sh);
+    ctx.restore();
   }
 
   // Рука с оружием (только живой). Плечо — на уровне груди (примерно 45% высоты спрайта снизу),
@@ -1116,9 +1376,6 @@ function drawCharacter(obj, isPlayer) {
     const dx = Math.cos(obj.angle), dy = Math.sin(obj.angle);
     const sx = (dx - dy) * 0.5;
     const sy = (dx + dy) * 0.5 * ISO_Y;
-    // плечо на 17% от низа спрайта = центр торса (грудь).
-    // По геометрии drawChar голова на экране занимает 29-52% от sh снизу,
-    // поэтому всё что выше 0.21 — в области головы/шеи (нож в голове).
     const shY = p.y - sh * 0.17 + bob;
     const dirLen = Math.hypot(sx, sy) || 1;
     const perpX = -sy / dirLen;
@@ -1128,7 +1385,7 @@ function drawCharacter(obj, isPlayer) {
     const hy = shY + perpY * shoulderD;
     const ex = hx + sx * armLen;
     const ey = hy + sy * armLen;
-    // рука (тёмный рукав)
+    // ОСНОВНАЯ рука (тёмный рукав)
     ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = obj.isBoss ? 6 : 4; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(ex, ey); ctx.stroke();
     // оружие
@@ -1153,11 +1410,28 @@ function drawCharacter(obj, isPlayer) {
         ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI*2); ctx.fill();
       }
     } else {
-      // стрелковое — длинная тёмная черта
-      const len = wepKey === 'sniper' || wepKey === 'rifle' ? 0.4 : (wepKey === 'rpg' ? 0.5 : 0.28);
-      ctx.strokeStyle = '#333'; ctx.lineWidth = wepKey === 'rpg' ? 6 : 4;
-      ctx.beginPath(); ctx.moveTo(ex, ey);
-      ctx.lineTo(ex + sx * TS * len, ey + sy * TS * len); ctx.stroke();
+      // стрелковое — детальная отрисовка по типу оружия
+      const gunScale = (obj.isBoss ? 1.9 : 1.45) * (TS / 60);
+      drawFirearm(wepKey, ex, ey, sx, sy, gunScale);
+
+      // Вторая рука для двуручного оружия — берётся за цевьё
+      if (wepCfg.twoHanded) {
+        const fgT = FIREARM_FOREGRIP[wepKey] || 0.30;
+        // Плечо на ПРОТИВОПОЛОЖНОЙ стороне корпуса
+        const sh2X = p.x - perpX * shoulderD;
+        const sh2Y = shY - perpY * shoulderD;
+        // Точка хвата на цевье (вдоль направления ствола)
+        const fgX = ex + sx * TS * fgT;
+        const fgY = ey + sy * TS * fgT;
+        // рисуем ПОВЕРХ оружия — вторая рука обхватывает ствол
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = obj.isBoss ? 5 : 3.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(sh2X, sh2Y); ctx.lineTo(fgX, fgY); ctx.stroke();
+        // кисть на цевье
+        ctx.fillStyle = obj.look ? (SKINS[obj.look.skin] || SKINS[0]) : '#ddd';
+        ctx.beginPath(); ctx.arc(fgX, fgY, obj.isBoss ? 4.5 : 3.5, 0, Math.PI*2); ctx.fill();
+      }
     }
   }
 
@@ -1728,10 +2002,12 @@ function fireWeapon(p, weaponKey, team) {
 
   // Урон врагов ослаблен, иначе их 4 валят за секунду
   const dmgMul = (tm === 'enemy') ? 0.35 : 1;
+  // Точка вылета пули — конец дула. muzzleD задан per-weapon (0.5..1.15 тайлов).
+  const muzD = cfg.muzzleD != null ? cfg.muzzleD : 0.5;
   const spawnOne = (a) => {
     const dr = Math.sin(a), dc = Math.cos(a);
     bullets.push({
-      r: p.r + dr * 0.4, c: p.c + dc * 0.4,
+      r: p.r + dr * muzD, c: p.c + dc * muzD,
       vr: dr * speed, vc: dc * speed,
       color: cfg.color || '#ffea80',
       thick: cfg.thick || false,
@@ -1748,7 +2024,8 @@ function fireWeapon(p, weaponKey, team) {
         const a = angle + (Math.random() - 0.5) * spread * 2;
         spawnOne(a);
       }
-      muzzles.push({ r: p.r + Math.sin(angle)*0.3, c: p.c + Math.cos(angle)*0.3, life: 80, max: 80 });
+      // вспышка дула — там же где вылетает пуля
+      muzzles.push({ r: p.r + Math.sin(angle)*muzD, c: p.c + Math.cos(angle)*muzD, life: 80, max: 80 });
     }, b * burstInt);
   }
 }
@@ -2114,6 +2391,93 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 });
 
 // ── Game loop ──────────────────────────────────────────────────────
+// ── HUD: аватар персонажа (анимированный) ─────────────────────────
+const hudAvatarCanvas = document.getElementById('hudAvatar');
+const hudAvatarCtx = hudAvatarCanvas.getContext('2d');
+function renderHudAvatar(t) {
+  const W = hudAvatarCanvas.width, H = hudAvatarCanvas.height;
+  hudAvatarCtx.clearRect(0, 0, W, H);
+  // фон-радиал чтоб смотрелось "стеклянно"
+  const grad = hudAvatarCtx.createRadialGradient(W*0.5, H*0.3, 0, W*0.5, H*0.3, W*0.7);
+  grad.addColorStop(0, '#2a3142');
+  grad.addColorStop(1, '#0a0d12');
+  hudAvatarCtx.fillStyle = grad;
+  hudAvatarCtx.fillRect(0, 0, W, H);
+  // получаем спрайт игрока и рисуем с лёгкой "идлой" + bob если в движении
+  const sprite = getSprite(player.look);
+  // вписываем по высоте (спрайт 110:200, ratio 0.55)
+  const sh = H * 0.92;
+  const sw = sh * 0.55;
+  const idleBob = Math.sin(t * 0.003) * 1.5;
+  const moveBob = player.moving ? Math.sin(player.walkPhase * 1.2) * 3.5 : 0;
+  const lean = player.moving ? Math.sin(player.walkPhase) * 0.05 : 0;
+  hudAvatarCtx.save();
+  hudAvatarCtx.translate(W/2, H * 0.96 + idleBob + moveBob);
+  hudAvatarCtx.rotate(lean);
+  hudAvatarCtx.drawImage(sprite, -sw/2, -sh, sw, sh);
+  hudAvatarCtx.restore();
+  // HP-вспышка по краям если low
+  const ratio = player.hp / player.hpMax;
+  if (ratio <= 0.25) {
+    const pulse = 0.3 + Math.abs(Math.sin(t * 0.006)) * 0.5;
+    hudAvatarCtx.strokeStyle = 'rgba(255,40,40,' + pulse + ')';
+    hudAvatarCtx.lineWidth = 4;
+    hudAvatarCtx.strokeRect(2, 2, W - 4, H - 4);
+  }
+  // вспышка попадания
+  if (player.hitT > 0) {
+    hudAvatarCtx.fillStyle = 'rgba(255,40,40,' + (player.hitT * 0.4) + ')';
+    hudAvatarCtx.fillRect(0, 0, W, H);
+  }
+}
+
+// ── HUD: иконка текущего оружия ──────────────────────────────────
+const hudWepCanvas = document.getElementById('hudWepIcon');
+const hudWepCtx = hudWepCanvas.getContext('2d');
+let _lastWepIconKey = null;
+function renderHudWepIcon() {
+  if (_lastWepIconKey === currentWeapon) return; // не пере-рисуем без необходимости
+  _lastWepIconKey = currentWeapon;
+  const W = hudWepCanvas.width, H = hudWepCanvas.height;
+  hudWepCtx.clearRect(0, 0, W, H);
+  const cfg = WEAPON_FX_CFG[currentWeapon];
+  if (!cfg) return;
+  // рисуем оружие горизонтально по центру
+  const cx = W * 0.35, cy = H * 0.55;
+  if (cfg.melee) {
+    // мини-иконка ближнего боя
+    hudWepCtx.fillStyle = '#bbb';
+    if (currentWeapon === 'fists') {
+      hudWepCtx.fillStyle = '#d0a070';
+      hudWepCtx.beginPath(); hudWepCtx.arc(cx + 8, cy, 7, 0, Math.PI*2); hudWepCtx.fill();
+    } else if (currentWeapon === 'bat') {
+      hudWepCtx.fillStyle = '#8b5a2b';
+      hudWepCtx.fillRect(cx - 12, cy - 2, 28, 5);
+      hudWepCtx.beginPath(); hudWepCtx.arc(cx + 14, cy, 4, 0, Math.PI*2); hudWepCtx.fill();
+    } else if (currentWeapon === 'blade_long') {
+      hudWepCtx.fillStyle = '#cfcfcf';
+      hudWepCtx.fillRect(cx - 8, cy - 1, 30, 2.5);
+      hudWepCtx.fillStyle = '#5a3a1a';
+      hudWepCtx.fillRect(cx - 13, cy - 2, 5, 5);
+    } else if (currentWeapon === 'blade_short') {
+      hudWepCtx.fillStyle = '#bbb';
+      hudWepCtx.fillRect(cx - 4, cy - 1, 14, 2);
+      hudWepCtx.fillStyle = '#5a3a1a';
+      hudWepCtx.fillRect(cx - 7, cy - 2, 4, 4);
+    } else if (currentWeapon === 'brass') {
+      hudWepCtx.fillStyle = '#e8c96e';
+      for (let i = 0; i < 4; i++) hudWepCtx.fillRect(cx + i*4 - 2, cy - 3, 3.5, 6);
+    } else if (currentWeapon === 'chain') {
+      hudWepCtx.fillStyle = '#888';
+      for (let i = 0; i < 6; i++) {
+        hudWepCtx.beginPath(); hudWepCtx.arc(cx - 6 + i*4, cy, 2, 0, Math.PI*2); hudWepCtx.fill();
+      }
+    }
+  } else {
+    drawFirearm(currentWeapon, cx, cy, 1, 0, 1.2, hudWepCtx);
+  }
+}
+
 let lastT = performance.now();
 let fpsAcc = 0, fpsN = 0, fpsLast = lastT;
 let mmFrame = 0;
@@ -2127,19 +2491,23 @@ function loop(t) {
 
   // HUD: HP-бар + красная вспышка + game over
   const hpEl = document.getElementById('hpVal');
-  const hpBar = document.getElementById('hpBar');
+  const hpBar = document.getElementById('hpBarFill');
   const flash = document.getElementById('hitFlash');
   const go = document.getElementById('gameOver');
   if (hpEl) hpEl.textContent = Math.round(player.hp);
   if (hpBar) {
     const ratio = player.hp / player.hpMax;
     hpBar.style.width = (ratio * 100) + '%';
-    hpBar.style.background = ratio > 0.5 ? 'linear-gradient(90deg,#5dd55d,#3aa53a)'
-      : ratio > 0.25 ? 'linear-gradient(90deg,#ffd24a,#cf8a20)'
-      : 'linear-gradient(90deg,#ff5050,#a02020)';
+    hpBar.classList.remove('low', 'crit');
+    if (ratio <= 0.25) hpBar.classList.add('crit');
+    else if (ratio <= 0.5) hpBar.classList.add('low');
   }
   if (flash) flash.style.background = 'rgba(255,40,40,' + (player.hitT * 1.6).toFixed(2) + ')';
   if (go) go.style.display = (player.hp <= 0) ? 'flex' : 'none';
+
+  // Анимированный аватар + иконка оружия в HUD
+  renderHudAvatar(t);
+  renderHudWepIcon();
 
   // Индикатор патронов и перезарядки
   const ammoText = document.getElementById('ammoText');
