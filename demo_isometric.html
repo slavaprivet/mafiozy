@@ -773,12 +773,13 @@ function isPlayerBehind(e) {
   return Math.abs(Math.abs(diff) - Math.PI) < Math.PI * 0.35;
 }
 
-// Найти врага, к которому можно подкрасться (живой, ближайший в спине, не босс)
+// Найти врага, к которому можно подкрасться (живой, ближайший в спине).
+// Босс — валидная цель: ваншота не будет, но получит большой урон.
 function findBackstabTarget() {
   if (player.hp <= 0 || alertLevel >= 2) return null;     // в бою — нельзя
   let best = null, bestD = 99;
   for (const e of enemies) {
-    if (e.hp <= 0 || e.isBoss) continue;
+    if (e.hp <= 0) continue;
     if (!isPlayerBehind(e)) continue;
     const d = Math.hypot(player.r - e.r, player.c - e.c);
     if (d < bestD) { bestD = d; best = e; }
@@ -3049,15 +3050,17 @@ function fireWeapon(p, weaponKey, team) {
   // Игрок начал бить ближним → запускаем анимацию замаха
   if (tm === 'player') p.meleeT = 0.28;
   if (cfg.melee) {
-    // === СТЕЛС-КИЛЛ: если игрок и есть цель за спиной — мгновенно ваншот ===
+    // === СТЕЛС-КИЛЛ: игрок за спиной у врага — ваншот миньона ИЛИ
+    //     сильный урон боссу (босс не ваншотится, но получает ~40% maxHP).
     if (tm === 'player') {
       const back = findBackstabTarget();
       if (back) {
-        // тихое убийство в спину: гарантированный ваншот + кровь, без шума
         p.angle = Math.atan2(back.r - p.r, back.c - p.c);
-        const slitDmg = back.hpMax + 200; // оверкилл — труп упадёт
-        damageActor(back, slitDmg, p.angle, wKey === 'blade_short' ? 'sniper' : null);
-        spawnBlood(back.r, back.c, p.angle, 80);
+        const slitDmg = back.isBoss
+          ? Math.max(150, Math.round(back.hpMax * 0.4))  // босс: ~40% HP, не ваншот
+          : back.hpMax + 200;                            // миньон: гарантированный ваншот
+        damageActor(back, slitDmg, p.angle, (!back.isBoss && wKey === 'blade_short') ? 'sniper' : null);
+        spawnBlood(back.r, back.c, p.angle, back.isBoss ? 60 : 80);
         // лёгкий звук — но НЕ повышаем тревогу: тихо
         return;
       }
@@ -3402,14 +3405,20 @@ function updateMeleeBtn() {
 }
 document.getElementById('meleeBtn').addEventListener('click', () => {
   if (player.hp <= 0) return;
-  // СТЕЛС-КИЛЛ: если есть цель за спиной — мгновенно переключаемся на melee и бьём
+  // СТЕЛС-КИЛЛ: если есть цель за спиной — на миг переключаемся на melee
+  // (для анимации удара ножом/кулаком), бьём, потом возвращаем основное оружие.
   const back = findBackstabTarget();
   if (back) {
-    currentWeapon = lastMeleeWeapon;
-    document.getElementById('wepName').textContent = weaponLabel(lastMeleeWeapon);
+    const prevWeapon = currentWeapon;
+    const cfgCur = WEAPON_FX_CFG[currentWeapon];
+    const switchedToMelee = !(cfgCur && cfgCur.melee);
+    if (switchedToMelee) currentWeapon = lastMeleeWeapon;
     player.fireCD = 0;
     player.angle = Math.atan2(back.r - player.r, back.c - player.c);
-    fireWeapon(player);
+    fireWeapon(player); // внутри — instakill миньона / 40% урона боссу + кровь
+    // Возврат к основному оружию (если ты был на пушке — продолжишь стрелять)
+    if (switchedToMelee) currentWeapon = prevWeapon;
+    document.getElementById('wepName').textContent = weaponLabel(currentWeapon);
     return;
   }
   const curCfg = WEAPON_FX_CFG[currentWeapon];

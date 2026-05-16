@@ -27,7 +27,10 @@ echo [..] Checking telegram + aiosqlite...
 venv\Scripts\python -c "import telegram, aiosqlite" 2>nul
 if not errorlevel 1 goto :base_ok
 echo     installing python-telegram-bot + aiosqlite ...
-venv\Scripts\pip install "python-telegram-bot>=21.0" aiosqlite==0.19.0
+REM Зовём pip МОДУЛЕМ (python -m pip), а не venv\Scripts\pip.exe — иначе
+REM в путях с кириллицей шим pip.exe ломается ("Fatal error in launcher:
+REM Unable to create process ...").
+venv\Scripts\python -m pip install --disable-pip-version-check "python-telegram-bot>=21.0" aiosqlite==0.19.0
 venv\Scripts\python -c "import telegram, aiosqlite" 2>nul
 if errorlevel 1 goto :base_failed
 
@@ -39,7 +42,7 @@ echo [..] Checking aiohttp...
 venv\Scripts\python -c "import aiohttp" 2>nul
 if not errorlevel 1 goto :aiohttp_ok
 echo     installing aiohttp ...
-venv\Scripts\pip install aiohttp
+venv\Scripts\python -m pip install --disable-pip-version-check aiohttp
 venv\Scripts\python -c "import aiohttp" 2>nul
 if errorlevel 1 goto :aiohttp_warn
 echo [OK] aiohttp installed
