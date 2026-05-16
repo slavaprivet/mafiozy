@@ -528,8 +528,10 @@ function findOpenSpot(targetR, targetC, taken, maxRadius) {
   return [targetR, targetC]; // fallback
 }
 
-// Спавны: игрок снизу карты (вдалеке от кабинета), босс — в кабинете у стола.
-// Охрана сидит вместе с боссом, остальные миньоны разбросаны в основной зоне.
+// Спавны: игрок снизу карты, босс — в кабинете. Миньоны равномерно
+// рассредоточены по ВСЕЙ карте между игроком и кабинетом — раньше они
+// все сидели в комнате босса и игроку приходилось проходить пустую
+// карту до самого финала.
 const SPAWNS = (function getSpawns() {
   const playerPos = findOpenSpot(ROWS - 4, Math.floor(COLS / 2), [], 8);
   const taken = [playerPos];
@@ -537,8 +539,9 @@ const SPAWNS = (function getSpawns() {
   // Босс — у стола, лицом к двери
   const bossPos = findOpenSpot(room.deskR - 1, Math.floor((room.c0 + room.c1) / 2), taken, 3);
   taken.push(bossPos);
-  // Охрана внутри кабинета (растёт с количеством миньонов, но не больше 5)
-  const guardsInside = Math.min(MINION_COUNT, Math.min(Math.floor(MINION_COUNT / 2) + 1, 5));
+  // Охрана внутри кабинета: 1 если миньонов ≤2, 2 если больше. Остальных
+  // отправляем «патрулировать» открытую часть карты.
+  const guardsInside = MINION_COUNT >= 3 ? 2 : (MINION_COUNT >= 1 ? 1 : 0);
   const guards = [];
   outer:
   for (let dr = -2; dr <= 2; dr++) {
@@ -555,19 +558,51 @@ const SPAWNS = (function getSpawns() {
       guards.push(p); taken.push(p);
     }
   }
-  // Остальные миньоны — снаружи (между кабинетом и игроком)
+  // Остальные миньоны — равномерно по всей открытой части карты
+  // (от выхода из кабинета и до зоны игрока). Делим карту на N полос
+  // по строкам, в каждой стараемся поставить одного — так враги не
+  // кучкуются. Дистанция от игрока ≥ 6, от босса ≥ 3.
   const outside = [];
   const outsideCount = MINION_COUNT - guards.length;
-  for (let t = 0; t < outsideCount * 60 && outside.length < outsideCount; t++) {
-    const r = (room.r1 + 3) + Math.floor(Math.random() * Math.max(1, ROWS - room.r1 - 6));
-    const c = 2 + Math.floor(Math.random() * Math.max(1, COLS - 4));
-    if (r < 1 || r >= ROWS - 1 || c < 1 || c >= COLS - 1) continue;
-    if (MAP[r][c] !== 0) continue;
-    const tooClose = taken.some(([tr, tc]) =>
-      Math.abs(tr - r - 0.5) < 2.5 && Math.abs(tc - c - 0.5) < 2.5);
-    if (tooClose) continue;
-    const p = [r + 0.5, c + 0.5];
-    outside.push(p); taken.push(p);
+  if (outsideCount > 0) {
+    const r0 = room.r1 + 2;
+    const r1 = Math.max(r0 + 1, ROWS - 5);
+    const bandH = Math.max(1, Math.floor((r1 - r0) / outsideCount));
+    for (let i = 0; i < outsideCount; i++) {
+      const bandStart = r0 + i * bandH;
+      const bandEnd   = Math.min(r1, bandStart + bandH);
+      let placed = false;
+      for (let attempt = 0; attempt < 80 && !placed; attempt++) {
+        const r = bandStart + Math.floor(Math.random() * Math.max(1, bandEnd - bandStart));
+        const c = 2 + Math.floor(Math.random() * Math.max(1, COLS - 4));
+        if (r < 1 || r >= ROWS - 1 || c < 1 || c >= COLS - 1) continue;
+        if (MAP[r][c] !== 0) continue;
+        // Не вплотную к другим спавнам и не вплотную к игроку.
+        const playerD = Math.hypot(r + 0.5 - playerPos[0], c + 0.5 - playerPos[1]);
+        if (playerD < 6) continue;
+        const tooClose = taken.some(([tr, tc]) =>
+          Math.hypot(tr - r - 0.5, tc - c - 0.5) < 3);
+        if (tooClose) continue;
+        const p = [r + 0.5, c + 0.5];
+        outside.push(p); taken.push(p);
+        placed = true;
+      }
+      // Fallback: если в полосе не нашлось — пихаем где угодно подальше
+      // от игрока, чтобы не «съесть» миньона.
+      if (!placed) {
+        for (let attempt = 0; attempt < 200; attempt++) {
+          const r = r0 + Math.floor(Math.random() * Math.max(1, r1 - r0));
+          const c = 2 + Math.floor(Math.random() * Math.max(1, COLS - 4));
+          if (MAP[r] && MAP[r][c] === 0) {
+            const playerD = Math.hypot(r + 0.5 - playerPos[0], c + 0.5 - playerPos[1]);
+            if (playerD < 5) continue;
+            const p = [r + 0.5, c + 0.5];
+            outside.push(p); taken.push(p);
+            break;
+          }
+        }
+      }
+    }
   }
   return {
     player: playerPos,
@@ -577,12 +612,40 @@ const SPAWNS = (function getSpawns() {
   };
 })();
 
-// Описание типов клеток (цвета переопределяются темой района)
+// Пороховые бочки: 3..5 штук в случайных ПУСТЫХ клетках вне комнаты
+// босса. Никогда на укрытиях/стенах (m[r][c] === 0), не рядом со
+// спавнами игрока/босса/миньонов. Каждый бой места разные.
+function placePowderBarrels() {
+  const room = BOSS_ROOM;
+  const n = 3 + Math.floor(Math.random() * 3);  // 3..5
+  const minDistFromSpawn = 3;
+  const allSpawns = [SPAWNS.player, SPAWNS.boss, ...SPAWNS.minions];
+  let placed = 0, tries = 0;
+  while (placed < n && tries < n * 80) {
+    tries++;
+    const r = (room.r1 + 2) + Math.floor(Math.random() * Math.max(1, ROWS - room.r1 - 4));
+    const c = 2 + Math.floor(Math.random() * Math.max(1, COLS - 4));
+    if (r < 1 || r >= ROWS - 1 || c < 1 || c >= COLS - 1) continue;
+    if (MAP[r][c] !== 0) continue;          // только пустые клетки
+    // Не вплотную к спавнам — иначе игрок умирает мгновенно при касании.
+    const tooCloseSpawn = allSpawns.some(([sr, sc]) =>
+      Math.hypot(sr - (r + 0.5), sc - (c + 0.5)) < minDistFromSpawn);
+    if (tooCloseSpawn) continue;
+    MAP[r][c] = 5;
+    placed++;
+  }
+}
+placePowderBarrels();
+
+// Описание типов клеток (цвета переопределяются темой района).
+// Тип 5 — пороховая бочка: эпичный взрыв при попадании, большой радиус
+// и урон. На карте раскидывается рандомно по несколько штук (placePowderBarrels).
 const COVER_TYPES = {
-  1: { name: 'wall',   h: 1.4,  topColor: THEME.wallTop,   sideColor: THEME.wallSide,  shape: 'box', hp: -1 },
-  2: { name: 'crate',  h: 0.7,  topColor: THEME.crateTop,  sideColor: THEME.crateSide, shape: 'box', hp: 50 },
-  3: { name: 'barrel', h: 0.95, topColor: THEME.barrelTop, sideColor: THEME.barrelSide,shape: 'cyl', hp: 35, explodeOnBreak: true },
-  4: { name: 'car',    h: 0.55, topColor: THEME.carTop,    sideColor: THEME.carSide,   shape: 'box', hp: 120 },
+  1: { name: 'wall',         h: 1.4,  topColor: THEME.wallTop,   sideColor: THEME.wallSide,  shape: 'box', hp: -1 },
+  2: { name: 'crate',        h: 0.7,  topColor: THEME.crateTop,  sideColor: THEME.crateSide, shape: 'box', hp: 50 },
+  3: { name: 'barrel',       h: 0.95, topColor: THEME.barrelTop, sideColor: THEME.barrelSide,shape: 'cyl', hp: 35, explodeOnBreak: true },
+  4: { name: 'car',          h: 0.55, topColor: THEME.carTop,    sideColor: THEME.carSide,   shape: 'box', hp: 120 },
+  5: { name: 'powder_barrel',h: 0.95, topColor: '#1a1a1a',       sideColor: '#3a1010',       shape: 'cyl', hp: 18, explodeOnBreak: true, powder: true },
 };
 
 // HP для каждой ячейки укрытия (инициализируется при старте)
@@ -615,8 +678,12 @@ function damageCoverAt(r, c, dmg) {
     spawnCoverBreak(ri, ci, t);
     MAP[ri][ci] = 0;
     coverHP[ri][ci] = 0;
-    // бочка взрывается при уничтожении
-    if (cfg && cfg.explodeOnBreak) triggerExplosion(ri + 0.5, ci + 0.5, 50);
+    // бочка взрывается при уничтожении. Пороховая (powder=true) даёт
+    // эпичный бабах — 95 урона и радиус 3 тайла. Обычная — 50 / стандартный.
+    if (cfg && cfg.explodeOnBreak) {
+      if (cfg.powder) triggerExplosion(ri + 0.5, ci + 0.5, 95, 3.0);
+      else            triggerExplosion(ri + 0.5, ci + 0.5, 50);
+    }
   }
   return true;
 }
@@ -1232,6 +1299,19 @@ function drawCover(r, c, type) {
       ctx.ellipse(cx, cy - H * (1 - t), wx * 0.4, wy * 0.4, 0, 0, Math.PI);
       ctx.stroke();
     });
+    // Пороховая бочка — рисуем красный череп на верхней крышке + лёгкое
+    // оранжевое свечение, чтобы игрок видел «эта бочка взорвётся ОГО».
+    if (cfg.powder) {
+      ctx.save();
+      ctx.shadowColor = '#ff6020';
+      ctx.shadowBlur  = 10;
+      ctx.fillStyle   = '#ffd76b';
+      ctx.font        = 'bold ' + Math.round(wx * 0.5) + 'px sans-serif';
+      ctx.textAlign   = 'center';
+      ctx.textBaseline= 'middle';
+      ctx.fillText('☠', cx, cy - H + 1);
+      ctx.restore();
+    }
   } else {
     // ── БОКС (стена, ящик, машина) ──
     // тень на полу
@@ -2829,6 +2909,13 @@ function sendResultAndClose(action) {
       if (state.atk   != null) out.set('atk',   state.atk);
       if (state.def   != null) out.set('def',   state.def);
       if (state.kills != null) out.set('kills', state.kills);
+    } else {
+      // API недоступен — отдаём актуальный HP из боёвки, чтобы хаб
+      // не «откатил» здоровье к стартовому. При проигрыше — ровно 1 HP,
+      // чтоб игрок не мог тут же снова пойти на босса с полным баром.
+      const lost = (typeof fightStats !== 'undefined' && fightStats.result === 'lost');
+      const liveHp = Math.max(0, Math.round(player.hp));
+      out.set('hp', lost ? 1 : Math.max(1, liveHp));
     }
     // Роутинг в хабе: 'district' → сразу страница района, 'menu' → главная.
     if (action === 'district') {
@@ -3210,25 +3297,28 @@ function update(dt) {
   checkFightEnd();
 }
 
-function triggerExplosion(r, c, dmg) {
+function triggerExplosion(r, c, dmg, radius) {
   const D = dmg || 60;
-  explosions.push({ r, c, life: 600, max: 600, radius: 1.8 });
+  const R = radius || 2.0; // для пороховой бочки приходит 3.0 — эпичный бабах
+  // Визуал — раздуваем кружок-вспышку пропорционально радиусу, для большого
+  // взрыва ещё и продлеваем life, чтобы был заметен.
+  explosions.push({ r, c, life: R >= 2.8 ? 800 : 600, max: R >= 2.8 ? 800 : 600, radius: R - 0.2 });
   // урон врагам в радиусе (взрыв = дополнительный шанс отрыва конечностей)
   enemies.forEach(e => {
     if (e.hp <= 0) return;
-    if (Math.hypot(e.r - r, e.c - c) < 2.0) {
+    if (Math.hypot(e.r - r, e.c - c) < R) {
       const angAway = Math.atan2(e.r - r, e.c - c); // импульс ОТ эпицентра
       damageActor(e, D, angAway);
     }
   });
   // урон игроку
-  if (player.hp > 0 && Math.hypot(player.r - r, player.c - c) < 2.0) {
+  if (player.hp > 0 && Math.hypot(player.r - r, player.c - c) < R) {
     const angAway = Math.atan2(player.r - r, player.c - c);
     damageActor(player, D, angAway);
     player.hitT = Math.max(player.hitT, 0.35);
   }
-  // урон укрытиям в радиусе
-  damageCovers(r, c, 2.0, D);
+  // урон укрытиям в радиусе — для пороховой бочки цепная реакция возможна
+  damageCovers(r, c, R, D);
 }
 
 function throwGrenade(from, targetR, targetC, team, opts) {

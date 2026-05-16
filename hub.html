@@ -2579,6 +2579,26 @@ function updateDistHPBar() {
   document.getElementById('dist-hp-val').textContent = session.hp + ' / ' + DATA.maxhp;
 }
 
+// ── Натив-регенерация HP вне боя ─────────────────────────────────────
+// +10 HP в минуту пока игрок в хабе. Тик каждые 6 секунд = +1 HP, чтобы
+// прогресс не выглядел рывками. Капается на DATA.maxhp. Когда HP меняется
+// — обновляем все видимые HP-индикаторы и помечаем session.dirty чтобы
+// при выходе из хаба новое значение ушло на бэк.
+(function setupHpRegen() {
+  setInterval(() => {
+    if (!session || !DATA) return;
+    if (session.hp == null || DATA.maxhp == null) return;
+    if (session.hp >= DATA.maxhp) return;     // полный — ничего не делаем
+    if (session.hp <= 0) return;              // мёртв — пусть лечится в больнице
+    session.hp = Math.min(DATA.maxhp, session.hp + 1);
+    DATA.hp    = session.hp;
+    session.dirty = true;
+    // Перерисовка видимых элементов (там где элементы есть в DOM)
+    try { updateDistHPBar(); } catch(e) {}
+    try { if (typeof refreshHero === 'function') refreshHero(); } catch(e) {}
+  }, 6000);
+})();
+
 function updateHospitalBtn() {
   const btn = document.getElementById('hospital-btn');
   const hosp = HOSPITAL_NAMES[currentLocId] || {name:'🏥 Больница'};
