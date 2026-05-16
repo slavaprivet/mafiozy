@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- Предзагрузка боёвки: в TG-вебвью игра уже лежит в кэше к моменту,
+     когда игрок жмёт «В бой» — переход без задержки на загрузку html/js. -->
+<link rel="prefetch" href="demo_isometric.html" as="document">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <title>Мафиози</title>

@@ -167,9 +167,10 @@
         <button id="resetBtn">↻ Респ</button>
       </div>
     </div>
-    <!-- Боевой UI справа: melee-кнопка + индикатор патронов/перезарядки.
-         Сдвинут выше (bottom:110px) — иначе кнопки сливаются с правым стиком
-         и большим пальцем трудно по ним точно попасть. -->
+    <!-- Боевой UI справа: индикатор патронов + кнопка стелс-килла.
+         Кнопка перезарядки удалена — перезарядка автоматическая
+         (по правому стику при 0 пуль). Кнопка 🔪 УБИТЬ скрыта по умолчанию
+         и появляется только когда findBackstabTarget() видит врага сзади. -->
     <div id="combatUI" style="position:absolute;right:14px;bottom:110px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none">
       <div id="ammoBox" style="background:rgba(0,0,0,.55);padding:6px 10px;border-radius:8px;border:1px solid #3a4452;font-size:12px;color:#fff;text-align:right;min-width:120px">
         <div id="ammoText" style="font-weight:bold">— / —</div>
@@ -178,7 +179,6 @@
         </div>
       </div>
       <div style="display:flex;gap:8px;pointer-events:auto">
-        <button id="reloadBtn" title="Перезарядка (R)" style="width:52px;height:52px;background:rgba(40,50,70,.85);border:2px solid #4a5468;border-radius:10px;color:#ffd76b;font-size:11px;font-weight:bold;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)">↻<br>R</button>
         <!-- Кнопка стелс-килла. По умолчанию скрыта; renderBackstabHint
              показывает её, если игрок стоит за спиной у врага. -->
         <button id="meleeBtn" title="Стелс-килл" style="display:none;width:72px;height:72px;background:rgba(80,20,20,.92);border:2px solid #c83030;border-radius:14px;color:#ff5050;font-size:34px;cursor:pointer;box-shadow:0 0 16px rgba(255,40,40,.45),0 2px 8px rgba(0,0,0,.6);position:relative;animation:meleePulse 1s ease-in-out infinite">
@@ -196,7 +196,7 @@
     <div id="tutorial">
       <div><b>Левый стик</b> — двигаться</div>
       <div><b>Правый стик</b> — целиться и стрелять</div>
-      <div class="stealth">🤫 Подкрадись со спины — <b>стелс-килл</b> одной кнопкой 👊</div>
+      <div class="stealth">🤫 Подкрадись со спины — <b>стелс-килл</b> одной кнопкой 🔪</div>
     </div>
     <!-- Финальный экран: статистика + кнопки возврата -->
     <div id="resultScene" style="position:absolute;inset:0;z-index:31;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%, rgba(30,20,15,.65), rgba(0,0,0,.96));backdrop-filter:blur(4px);color:#fff;gap:10px;padding:24px;text-align:center;pointer-events:auto">
@@ -3562,8 +3562,9 @@ document.getElementById('meleeBtn').addEventListener('click', () => {
   document.getElementById('wepName').textContent = weaponLabel(currentWeapon);
 });
 
-// Кнопка перезарядки
-document.getElementById('reloadBtn').addEventListener('click', () => manualReload());
+// Кнопка перезарядки убрана из UI — перезарядка автоматически стартует
+// в tryFirePlayer при попытке стрельбы с пустым магазином. На десктопе
+// оставлен хоткей R на случай ручной перезарядки до опустошения обоймы.
 window.addEventListener('keydown', (e) => { if (e.key === 'r' || e.key === 'R') manualReload(); });
 
 // ── Кнопки: перегенерировать игрока / врагов ───────────────────────
