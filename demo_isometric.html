@@ -875,20 +875,28 @@ function canEnemySeeCorpse(e, dead) {
 }
 
 // Игрок ЗА СПИНОЙ у врага (для стелс-килла)
+// Сложность стелса по району: на рынке игрок учится подкрадываться —
+// большой радиус, широкий конус спины. С каждой локацией требования
+// ужесточаются (нужно подойти ближе и точнее за спину).
+const STEALTH_CFG = {
+  market:  { dist: 2.0, arc: 0.48 },  // легко — для новичков
+  port:    { dist: 1.7, arc: 0.40 },
+  casino:  { dist: 1.6, arc: 0.36 },
+  factory: { dist: 1.5, arc: 0.32 },
+  mansion: { dist: 1.4, arc: 0.30 },  // нужно реально вплотную и точно сзади
+};
+
 function isPlayerBehind(e) {
   if (!e || e.hp <= 0 || player.hp <= 0) return false;
   const dx = player.c - e.c, dy = player.r - e.r;
   const dist = Math.hypot(dx, dy);
-  // Радиус подкрадывания: было 1.2 тайла — игрок жаловался что неощутимо
-  // на ощупь. 1.7 = можно стелс-килл из-за плеча, не вставая впритык.
-  if (dist > 1.7) return false;
+  const sc = STEALTH_CFG[CURRENT_LOC] || STEALTH_CFG.market;
+  if (dist > sc.dist) return false;
   const ang = Math.atan2(dy, dx);
   let diff = ang - e.angle;
   while (diff >  Math.PI) diff -= 2 * Math.PI;
   while (diff < -Math.PI) diff += 2 * Math.PI;
-  // back-arc ±72° от противоположного направления (было ±63°) — конус
-  // спины пошире, потому что игроку сложно ловить точный угол.
-  return Math.abs(Math.abs(diff) - Math.PI) < Math.PI * 0.40;
+  return Math.abs(Math.abs(diff) - Math.PI) < Math.PI * sc.arc;
 }
 
 // Найти врага, к которому можно подкрасться (живой, ближайший в спине).
