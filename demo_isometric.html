@@ -385,7 +385,7 @@ function spawnGorePart(r, c, dirAngle, kind, victim) {
 // Универсальный хелпер для применения урона по живому персонажу
 // (вызывается отовсюду где было `v.hp -= dmg`).
 // dirAngle — направление импульса (откуда летит пуля/откуда взрыв) для брызг.
-function damageActor(v, dmg, dirAngle) {
+function damageActor(v, dmg, dirAngle, weaponKey) {
   if (!v || v.hp <= 0) return;
   const wasAlive = v.hp > 0;
   const prevHp = v.hp;
@@ -398,6 +398,23 @@ function damageActor(v, dmg, dirAngle) {
   const killed = wasAlive && v.hp <= 0;
   const overkill = killed && dmg > prevHp;          // пуля сняла больше чем оставалось HP
   const wasLowHp = prevHp <= 35;                     // был на грани
+  const gibWeapon = weaponKey === 'shotgun' || weaponKey === 'rpg' || weaponKey === 'sniper';
+
+  // ── GIBBING: убийство снайперкой/дробовиком/РПГ при низком HP → разрывает на куски ──
+  if (killed && gibWeapon && (wasLowHp || dmg >= 80) && v !== player) {
+    // куча частей + море крови
+    const allParts = ['head','arm','leg','hand','arm','leg','hand'];
+    for (const k of allParts) {
+      const dir = (dirAngle != null ? dirAngle : 0) + (Math.random() - 0.5) * 2.5;
+      spawnGorePart(v.r, v.c, dir, k, v);
+    }
+    spawnBlood(v.r, v.c, dirAngle, dmg * 2.5);
+    spawnBlood(v.r, v.c, null, dmg * 2);
+    v.lostParts.head = v.lostParts.arm = v.lostParts.leg = v.lostParts.hand = true;
+    v.hp = 0;
+    if (Math.random() < 0.7) maybeChatNearby(v, 'buddyDown', 0.9);
+    return;
+  }
 
   // ── ГОЛОВА: только если убил оверкилл-выстрелом при низком HP ──
   if (overkill && wasLowHp && dmg >= 25 && !v.lostParts.head && Math.random() < 0.75) {
@@ -405,24 +422,57 @@ function damageActor(v, dmg, dirAngle) {
     spawnGorePart(v.r, v.c, dirAngle, 'head', v);
     spawnBlood(v.r, v.c, dirAngle, dmg * 1.8);
     v.hp = 0;
-    return; // голова отлетела — finita
+    if (v !== player) maybeChatNearby(v, 'buddyDown', 0.6);
+    return;
   }
 
   // ── РУКА / НОГА / КИСТЬ: при крупном уроне, шанс зависит от dmg ──
   let goreChance = 0;
-  if (dmg >= 80)                goreChance = 0.65;   // взрыв, РПГ
-  else if (dmg >= 50)           goreChance = 0.30;   // снайперка/винтовка
+  if (dmg >= 80)                goreChance = 0.65;
+  else if (dmg >= 50)           goreChance = 0.30;
   else if (dmg >= 30 && killed) goreChance = 0.22;
   if (Math.random() < goreChance) {
-    // только то, что ещё не оторвано
     const candidates = ['arm','leg','hand'].filter(k => !v.lostParts[k]);
     if (candidates.length > 0) {
       const kind = candidates[Math.floor(Math.random() * candidates.length)];
       v.lostParts[kind] = true;
       spawnGorePart(v.r, v.c, dirAngle, kind, v);
       spawnBlood(v.r, v.c, dirAngle, dmg * 1.3);
+      // потеря руки/кисти → временно не может стрелять
+      if (kind === 'arm' || kind === 'hand') {
+        v.cantShootT = Math.max(v.cantShootT || 0, 4000);
+        if (v !== player) maybeChat(v, 'cantShoot', 0.8);
+      }
+      if (kind === 'leg' && v !== player) maybeChat(v, 'hurt', 0.7);
     }
   }
+
+  // ── КРИТ → кровотечение DoT ──
+  // 15% базовый шанс, +20% при крупном уроне
+  const critChance = dmg >= 50 ? 0.35 : 0.15;
+  if (!killed && Math.random() < critChance) {
+    v.bleedT = Math.max(v.bleedT || 0, 5500 + Math.random() * 2500);
+    v.bleedDps = 2 + dmg * 0.04; // урон в секунду от кровотечения
+    v.bleedTickT = 0;
+    if (v !== player) maybeChat(v, 'hurt', 0.5);
+  } else if (!killed) {
+    if (v !== player && Math.random() < 0.20) maybeChat(v, 'hurt', 1);
+  }
+
+  // мёртв (и не разорван) — иногда напарники реагируют
+  if (killed && v !== player) {
+    if (Math.random() < 0.45) maybeChatNearby(v, 'buddyDown', 0.6);
+  }
+}
+
+// Реплика у соседнего напарника (живого, в радиусе 8 тайлов)
+function maybeChatNearby(deadActor, kind, chance) {
+  if (!enemies) return;
+  const buddies = enemies.filter(e => e !== deadActor && e.hp > 0
+    && Math.hypot(e.r - deadActor.r, e.c - deadActor.c) < 8);
+  if (buddies.length === 0) return;
+  const b = buddies[Math.floor(Math.random() * buddies.length)];
+  maybeChat(b, kind, chance);
 }
 
 // Множитель скорости — потерял ногу → еле тащится. Используется в движении.
@@ -581,6 +631,49 @@ const hitSparks = []; // искры от попаданий пуль: {r, c, lif
 // === GORE: брызги крови (летят дугой и оседают как лужи) и оторванные части тела ===
 const bloodDrops = []; // {r,c,z,vr,vc,vz,life,max,size,splat}
 const goreParts = []; // {r,c,z,vr,vc,vz,rot,vrot,kind,life,max,landed,bodyCol,skinCol}
+const chatBubbles = []; // {owner, text, life, max, color}
+
+// === Фразы в стиле мафии ===
+const PHRASES = {
+  patrol: [
+    'Где этот гад?', 'Тихо как в могиле…', 'Чёртов холод…', 'Прирежу его лично.',
+    'Босс будет доволен.', 'Только покажись…', 'Эй, ты слышал?', 'Хех, всё спокойно.',
+    'Шевели копытами!', 'Не люблю эту работу.',
+  ],
+  spot: [
+    'Вон он!', 'Мочи гада!', 'Я его вижу!', 'Сюда!', 'Готов сдохнуть, а?',
+    'Попался, крыса!', 'Сейчас положу его!',
+  ],
+  fire: [
+    'Получай!', 'Сдохни!', 'Я тебя достану!', 'На, гад!', 'Прирежу!',
+    'Куда побежал?!', 'А ну стой!', 'Ха-ха!',
+  ],
+  grenade: ['Кидаю гранату!', 'Лови подарок!', 'Уворачивайся, лох!'],
+  molotov: ['Гори, гадёныш!', 'Жарь его!', 'Лови коктейль!'],
+  rush:    ['В атаку!', 'Конец тебе!', 'Я тебя порву!'],
+  hurt:    ['Ах сука!', 'А-а-а!', 'Чёрт!', 'Меня задело!', 'Сволочь!'],
+  cantShoot: ['Не могу стрелять!', 'Пушка заклинила!', 'Чёрт, рука!', 'Магазин пустой!'],
+  buddyDown: ['Они убили Тони!', 'Чёрт, нет!', 'Сдохнешь за это!', 'Ах ты гадёныш!', 'Ну всё, тебе конец!'],
+  playerDown: ['Сдох наконец!', 'Босс будет доволен!', 'Лёгкая работа.', 'Хм. И это всё?'],
+};
+
+function spawnChat(owner, text, life) {
+  if (!owner || !text) return;
+  // если у этого овнера уже есть реплика — обновим её, а не плодим
+  for (const b of chatBubbles) {
+    if (b.owner === owner) {
+      b.text = text; b.life = life || 2200; b.max = b.life;
+      return;
+    }
+  }
+  chatBubbles.push({ owner, text, life: life || 2200, max: life || 2200 });
+}
+
+function maybeChat(owner, kind, chance) {
+  if (Math.random() > (chance != null ? chance : 0.5)) return;
+  const list = PHRASES[kind]; if (!list || !list.length) return;
+  spawnChat(owner, list[Math.floor(Math.random() * list.length)]);
+}
 
 const bullets = [];
 const muzzles = []; // вспышки у дула: {r, c, life, max, angle}
@@ -1566,6 +1659,63 @@ function drawCharacter(obj, isPlayer) {
     ctx.fillText('☠ МЕРТВ', p.x, ty);
     ctx.globalAlpha = 1;
   }
+
+  // "🩸 РАНЕН" над раненым (кровотечение или потеря части тела)
+  if (!isDead && (obj.bleedT > 0 || (obj.lostParts && (obj.lostParts.arm || obj.lostParts.leg || obj.lostParts.hand)))) {
+    const ty = p.y - sh - (obj.isBoss ? 28 : 22);
+    const pulse = 0.7 + Math.abs(Math.sin(performance.now() * 0.006)) * 0.3;
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.font = 'bold ' + Math.floor(TS * 0.16) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#000';
+    ctx.fillText('🩸 РАНЕН', p.x + 1, ty + 1);
+    ctx.fillStyle = '#ff7070';
+    ctx.fillText('🩸 РАНЕН', p.x, ty);
+    ctx.restore();
+  }
+}
+
+// Реплика-пузырь над персонажем
+function drawChatBubble(b) {
+  if (!b.owner || b.owner.hp <= 0) return;
+  const p = w2s(b.owner.r, b.owner.c);
+  const sh = TS * (b.owner.isBoss ? 2.5 : 1.95);
+  const yOff = p.y - sh - (b.owner.bleedT > 0 || (b.owner.lostParts && Object.keys(b.owner.lostParts).length) ? 44 : 28);
+  const text = b.text;
+  ctx.save();
+  ctx.font = 'bold 11px sans-serif';
+  const padX = 6, padY = 4;
+  const w = ctx.measureText(text).width + padX * 2;
+  const h = 16;
+  const t = Math.min(1, b.life / 350); // fade out at end
+  ctx.globalAlpha = Math.min(1, t);
+  // фон-плашка
+  ctx.fillStyle = 'rgba(20,24,30,.92)';
+  ctx.strokeStyle = '#ffd76b';
+  ctx.lineWidth = 1.2;
+  const x = p.x - w/2, y = yOff - h;
+  // прямоугольник
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, 4);
+  else ctx.rect(x, y, w, h);
+  ctx.fill(); ctx.stroke();
+  // хвостик
+  ctx.beginPath();
+  ctx.moveTo(p.x - 4, y + h);
+  ctx.lineTo(p.x, y + h + 5);
+  ctx.lineTo(p.x + 4, y + h);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(20,24,30,.92)';
+  ctx.fill();
+  ctx.strokeStyle = '#ffd76b';
+  ctx.stroke();
+  // текст
+  ctx.fillStyle = '#ffe6a0';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, p.x, y + h/2);
+  ctx.restore();
 }
 
 function drawBullet(b) {
@@ -2034,6 +2184,8 @@ function render() {
   // капли крови И части тела В ПОЛЁТЕ (поверх персонажей)
   bloodDrops.forEach(d => { if (!d.splat) drawBloodDrop(d); });
   goreParts.forEach(g => { if (!g.landed) drawGorePart(g); });
+  // реплики-пузыри в самом верху
+  chatBubbles.forEach(drawChatBubble);
 }
 
 // ── UPDATE ─────────────────────────────────────────────────────────
@@ -2100,7 +2252,7 @@ function update(dt) {
     const bulletAng = Math.atan2(b.vr, b.vc);
     if (b.team === 'enemy') {
       if (player.hp > 0 && Math.hypot(player.r - b.r, player.c - b.c) < 0.4) {
-        damageActor(player, b.dmg || 25, bulletAng);
+        damageActor(player, b.dmg || 25, bulletAng, b.wepKey);
         if (b.explosive) triggerExplosion(b.r, b.c);
         bullets.splice(i, 1); hit = true;
       }
@@ -2108,7 +2260,7 @@ function update(dt) {
       for (const e of enemies) {
         if (e.hp <= 0) continue;
         if (Math.hypot(e.r - b.r, e.c - b.c) < 0.4) {
-          damageActor(e, b.dmg || 25, bulletAng);
+          damageActor(e, b.dmg || 25, bulletAng, b.wepKey);
           if (b.explosive) triggerExplosion(b.r, b.c);
           bullets.splice(i, 1); hit = true; break;
         }
@@ -2177,6 +2329,74 @@ function update(dt) {
       d.life = 4500 + Math.random() * 1500;
       d.max = 6000;
       d.size = d.size * (1.4 + Math.random() * 0.6);
+    }
+  }
+
+  // ── Реплики (chatBubbles): угасание ──
+  for (let i = chatBubbles.length - 1; i >= 0; i--) {
+    chatBubbles[i].life -= dt * 1000;
+    if (chatBubbles[i].life <= 0 || (chatBubbles[i].owner && chatBubbles[i].owner.hp <= 0)) {
+      chatBubbles.splice(i, 1);
+    }
+  }
+  // Патрульная болтовня — каждые ~10 сек случайно у одного из живых врагов
+  if (!window._patrolChatT) window._patrolChatT = 0;
+  window._patrolChatT -= dt;
+  if (window._patrolChatT <= 0) {
+    window._patrolChatT = 7 + Math.random() * 8;
+    const alive = enemies.filter(e => e.hp > 0);
+    if (alive.length > 0) {
+      const e = alive[Math.floor(Math.random() * alive.length)];
+      const distToPlayer = Math.hypot(player.r - e.r, player.c - e.c);
+      const canSee = player.hp > 0 && distToPlayer < e.sightR && hasLOS(e.r, e.c, player.r, player.c);
+      // вне боя — патрульные фразы, в бою — боевые/угрозы
+      maybeChat(e, canSee ? 'spot' : 'patrol', 0.8);
+    }
+  }
+  // Реакция врагов на смерть игрока (один раз)
+  if (player.hp <= 0 && !window._playerDownReacted) {
+    window._playerDownReacted = true;
+    const alive = enemies.filter(e => e.hp > 0);
+    if (alive.length > 0) {
+      const e = alive[Math.floor(Math.random() * alive.length)];
+      maybeChat(e, 'playerDown', 1);
+    }
+  }
+  if (player.hp > 0 && window._playerDownReacted) window._playerDownReacted = false;
+
+  // ── Кровотечение (DoT) + след кровавых капель за раненым ──
+  // + cantShoot таймер. Применяется к игроку и врагам.
+  const allActors = [player, ...enemies];
+  for (const a of allActors) {
+    if (!a || a.hp <= 0) continue;
+    // cantShoot countdown
+    if (a.cantShootT > 0) a.cantShootT = Math.max(0, a.cantShootT - dt * 1000);
+    // bleeding
+    if (a.bleedT && a.bleedT > 0) {
+      a.bleedT -= dt * 1000;
+      a.bleedTickT = (a.bleedTickT || 0) + dt;
+      // тик урона раз в 0.5 сек
+      if (a.bleedTickT >= 0.5) {
+        a.bleedTickT = 0;
+        const tick = (a.bleedDps || 3) * 0.5;
+        a.hp = Math.max(0, a.hp - tick);
+        // капля крови позади (стекает)
+        if (Math.random() < 0.7) {
+          bloodDrops.push({
+            r: a.r + (Math.random()-0.5)*0.15,
+            c: a.c + (Math.random()-0.5)*0.15,
+            z: 0.05, vr: 0, vc: 0, vz: 0,
+            life: 3500, max: 4500,
+            size: 1.4 + Math.random() * 1.2,
+            splat: true,
+          });
+        }
+        // если истёк кровью насмерть — реакция
+        if (a.hp <= 0 && a !== player) {
+          maybeChatNearby(a, 'buddyDown', 0.5);
+        }
+      }
+      if (a.bleedT <= 0) { a.bleedT = 0; a.bleedDps = 0; }
     }
   }
 
@@ -2335,6 +2555,7 @@ function fireWeapon(p, weaponKey, team) {
       dmg: (cfg.dmg || 25) * dmgMul,
       dist: 0, maxDist: cfg.range || 8,
       team: tm,
+      wepKey: wKey,
     });
   };
 
@@ -2407,11 +2628,14 @@ function updateEnemyAI(e, dt) {
       throwGrenade(e, player.r, player.c, 'enemy', { kind, dmg });
       e.grenadeCD = 6500 + Math.random() * 2500;
       e.fireCD = Math.max(e.fireCD, 800);
+      // КРИК "Кидаю гранату!" / "Гори, гадёныш!"
+      maybeChat(e, kind === 'molotov' ? 'molotov' : 'grenade', 1);
     }
     // rush: каждые ~9 сек, если игрок не вплотную и есть LOS
     if (e.rushCD <= 0 && distToPlayer > 3 && distToPlayer < 9 && canSee) {
       e.rushT = 1.2;
       e.rushCD = 10000 + Math.random() * 3000;
+      maybeChat(e, 'rush', 1);
     }
   }
 
@@ -2420,12 +2644,17 @@ function updateEnemyAI(e, dt) {
     const cfg = WEAPON_FX_CFG[e.weapon] || WEAPON_FX_CFG.pistol;
     const optRange = (cfg.range || 8) * 0.7;
     // Стреляем если в дистанции (с разбросом прицела, чтобы не вальнули с одного выстрела)
-    if (distToPlayer < (cfg.range || 8) && e.fireCD <= 0) {
+    if (distToPlayer < (cfg.range || 8) && e.fireCD <= 0 && !(e.cantShootT > 0)) {
       const aimErr = (Math.random() - 0.5) * (e.isBoss ? 0.16 : 0.28);
       const saveAngle = e.angle;
       e.angle = angleToPlayer + aimErr;
       fireWeapon(e, e.weapon, 'enemy');
       e.angle = saveAngle;
+      // ~7% шанс крикнуть боевую фразу при выстреле
+      if (Math.random() < 0.07) maybeChat(e, 'fire', 1);
+    } else if (e.cantShootT > 0 && Math.random() < 0.005) {
+      // редкое напоминание что не может стрелять
+      maybeChat(e, 'cantShoot', 1);
     }
     // Перемещение: держим дистанцию + стрейф
     e.aiState = 'shoot';
@@ -2704,6 +2933,12 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   bullets.length = 0; grenades.length = 0; explosions.length = 0; muzzles.length = 0; firePuddles.length = 0;
   coverBreaks.length = 0; hitSparks.length = 0;
   bloodDrops.length = 0; goreParts.length = 0;
+  chatBubbles.length = 0;
+  window._playerDownReacted = false;
+  // сбрасываем состояния ран у всех акторов
+  for (const a of [player, ...enemies]) {
+    if (a) { a.bleedT = 0; a.bleedDps = 0; a.bleedTickT = 0; a.cantShootT = 0; a.lostParts = {}; }
+  }
   // восстанавливаем карту и HP укрытий
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) MAP[r][c] = MAP_ORIGINAL[r][c];
   initCoverHP();
