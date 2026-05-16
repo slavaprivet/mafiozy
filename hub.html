@@ -4891,6 +4891,7 @@ function startBattle(bossId, locId){
   // Параметры — те же, что бот собирает в build_iso_url: имя/HP/maxhp/атак/защита/оружие/босс/район.
   const boss = BOSS_DATA[bossId];
   if (!boss) return;
+  const loc  = LOC_DATA[locId] || {};
   const params = new URLSearchParams();
   params.set('boss',  bossId);
   params.set('loc',   locId);
@@ -4900,6 +4901,10 @@ function startBattle(bossId, locId){
   params.set('atk',   DATA.atk   || 30);
   params.set('def',   DATA.def   || 10);
   params.set('weapon', DATA.weapon || 'fists');
+  // База наград от босса + минимальный уровень района (для множителя в боёвке)
+  params.set('exp',  boss.exp  || 0);
+  params.set('cash', boss.cash || 0);
+  params.set('mlvl', loc.minLvl || 1);
   window.location.href = 'demo_isometric.html?' + params.toString();
 }
 

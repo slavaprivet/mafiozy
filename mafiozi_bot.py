@@ -6391,8 +6391,25 @@ async def battle_webapp_action(update: Update, context: ContextTypes.DEFAULT_TYP
             gren_used = int(data.get("gu", 0))
             for _ in range(min(gren_used, 10)):  # max 10 safety
                 await remove_item(user_id, "grenade")
-            exp_gain  = boss["exp"]
-            cash_gain = boss["cash"] + random.randint(0, boss["cash"] // 3)
+            # Множитель района: ×1.0 (рынок, min_level=1) → ×2.9 (резиденция, min_level=20).
+            # Та же формула в demo_isometric.html (LOC_REWARD_MUL), числа сходятся.
+            loc_id_for_mul = battle.get("location") or ""
+            loc_min_lvl    = LOCATIONS.get(loc_id_for_mul, {}).get("min_level", 1)
+            loc_mul        = 1 + 0.10 * max(0, loc_min_lvl - 1)
+            # Если WebApp прислал свои значения (xp/cash) — доверяем им, но кэпим, чтобы
+            # не словить читы через подмену URL. Иначе считаем сами по той же формуле.
+            xp_payload   = int(data.get("xp",   0) or 0)
+            cash_payload = int(data.get("cash", 0) or 0)
+            base_exp     = round(boss["exp"]  * loc_mul)
+            base_cash    = round(boss["cash"] * loc_mul)
+            if xp_payload > 0:
+                exp_gain = min(xp_payload, base_exp * 3)
+            else:
+                exp_gain = base_exp
+            if cash_payload > 0:
+                cash_gain = min(cash_payload, base_cash * 3)
+            else:
+                cash_gain = base_cash
             await end_battle(user_id)
             await update_character(user_id,
                 hp=max(1, php), mana=max(0, pmp),

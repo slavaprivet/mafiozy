@@ -181,6 +181,8 @@
         <div style="text-align:left;color:#8a92a8">💀 Убито:</div><div id="resKills" style="text-align:right;font-weight:bold">0</div>
         <div style="text-align:left;color:#8a92a8">🔫 Выстрелов:</div><div id="resShots" style="text-align:right;font-weight:bold">0</div>
         <div style="text-align:left;color:#8a92a8">❤️ HP остаток:</div><div id="resHP" style="text-align:right;font-weight:bold">0/0</div>
+        <div style="text-align:left;color:#8a92a8">⭐ Опыт:</div><div id="resExp" style="text-align:right;font-weight:bold;color:#7bb6ff">+0</div>
+        <div style="text-align:left;color:#8a92a8">💵 Деньги:</div><div id="resCash" style="text-align:right;font-weight:bold;color:#ffd76b">+0$</div>
       </div>
       <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center">
         <button id="btnBackDistrict" style="padding:12px 18px;background:linear-gradient(180deg,#2a4a30,#1a3020);border:2px solid #4a7a4a;border-radius:10px;color:#5dd55d;font-size:13px;font-weight:bold;cursor:pointer;min-width:150px">↩ К району</button>
@@ -314,7 +316,12 @@ const QP = {
   bossNameRaw: _qStr('bname', ''),
   bossHPRaw:   _qInt('bhp', 0),
   bossEmoji:   _qStr('bemoji', ''),
+  baseExp:     _qInt('exp',  0),   // базовый опыт за босса (из BOSS_DATA в хабе)
+  baseCash:    _qInt('cash', 0),   // базовые деньги за босса
+  mlvl:        _qInt('mlvl', 1),   // минимальный уровень района — даёт множитель наград
 };
+// Множитель района: ×1.0 (рынок, mlvl=1) → ×2.9 (резиденция, mlvl=20)
+const LOC_REWARD_MUL = 1 + 0.10 * Math.max(0, QP.mlvl - 1);
 
 // ── Реестр всех 20 боссов (имя, hp, оружие, внешность, район) ──────
 const BOSS_REGISTRY = {
@@ -2648,6 +2655,14 @@ function showResultScene() {
   document.getElementById('resKills').textContent = fightStats.killsCounted.size + ' / ' + enemies.length;
   document.getElementById('resShots').textContent = fightStats.shots;
   document.getElementById('resHP').textContent = Math.max(0, Math.round(player.hp)) + ' / ' + player.hpMax;
+  // Награды: только при победе. База от босса × множитель района.
+  // На поражении — 0/0 (бот тоже ничего не начислит).
+  const expGain  = won ? Math.round(QP.baseExp  * LOC_REWARD_MUL) : 0;
+  const cashGain = won ? Math.round(QP.baseCash * LOC_REWARD_MUL) : 0;
+  fightStats.expGain  = expGain;
+  fightStats.cashGain = cashGain;
+  document.getElementById('resExp').textContent  = '+' + expGain;
+  document.getElementById('resCash').textContent = '+' + cashGain + '$';
   document.getElementById('resTitle').style.color = won ? '#ffd76b' : '#ff7070';
   document.getElementById('resultScene').style.display = 'flex';
   gamePaused = true;
@@ -2662,6 +2677,8 @@ function sendResultAndClose(action) {
     boss: QP.boss,
     loc: CURRENT_LOC,
     nav: action, // 'district' | 'menu' — куда вернуться (бот может игнорировать)
+    xp:   fightStats.expGain  || 0,
+    cash: fightStats.cashGain || 0,
   };
   if (tg && tg.sendData) {
     try { tg.sendData(JSON.stringify(payload)); } catch(e) {}
