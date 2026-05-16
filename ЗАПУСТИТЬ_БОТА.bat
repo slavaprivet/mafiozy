@@ -20,6 +20,18 @@ if not exist "venv\Scripts\python.exe" (
     python -m venv venv
 )
 if not exist "venv\Scripts\python.exe" goto :no_venv
+
+REM Проверяем что venv реально рабочий — шим venv\Scripts\python.exe внутри
+REM содержит путь к исходному интерпретатору, и если тот удалён/обновлён,
+REM любой запуск падает с "did not find executable at ...". Если так —
+REM сносим папку и создаём venv заново на текущем системном Python.
+venv\Scripts\python.exe -c "import sys; sys.exit(0)" >nul 2>nul
+if errorlevel 1 (
+    echo [..] venv broken ^(referenced python is gone^), recreating...
+    rmdir /s /q venv
+    python -m venv venv
+    if not exist "venv\Scripts\python.exe" goto :no_venv
+)
 echo [OK] venv ready
 
 REM ── базовые зависимости ──────────────────────────────
