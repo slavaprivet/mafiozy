@@ -89,6 +89,31 @@
   #hudInfo .fps-row {
     font-size: 9px; color: #5a6478; pointer-events: none;
   }
+  #alertChip {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 7px; border-radius: 10px;
+    background: rgba(40,80,40,.4); border: 1px solid #3a5d3a;
+    font-size: 10px; font-weight: bold;
+    color: #5dd55d;
+    transition: background .25s, border-color .25s, color .25s, box-shadow .25s;
+    width: max-content;
+  }
+  #alertChip #alertIcon { font-size: 13px; line-height: 1; }
+  #alertChip.suspect {
+    background: rgba(120,90,20,.45); border-color: #7a6020;
+    color: #ffd24a;
+    box-shadow: 0 0 10px rgba(255,210,80,.35);
+  }
+  #alertChip.combat {
+    background: rgba(140,30,30,.5); border-color: #8a2020;
+    color: #ff7070;
+    box-shadow: 0 0 12px rgba(255,40,40,.5);
+    animation: alertPulse 1s ease-in-out infinite;
+  }
+  @keyframes alertPulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(255,40,40,.5); }
+    50%      { box-shadow: 0 0 18px rgba(255,40,40,.85); }
+  }
   #hudBtns {
     display: flex; flex-direction: column; gap: 3px;
     pointer-events: auto;
@@ -141,6 +166,10 @@
           <div id="hpBarBig"><div id="hpBarFill"></div></div>
           <span id="hpVal">100</span><span style="color:#5a6478">/100</span>
         </div>
+        <div class="alert-row" id="alertChip">
+          <span id="alertIcon">👻</span>
+          <span id="alertText">Не замечен</span>
+        </div>
         <div class="fps-row">FPS: <span id="fps">0</span></div>
       </div>
       <div id="hudBtns">
@@ -168,11 +197,6 @@
     <div id="gameOver" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.55);z-index:8;color:#ff5050;font-size:32px;font-weight:bold;text-shadow:0 0 12px #800;pointer-events:none">
       <div>☠ ВЫ МЕРТВЫ ☠</div>
       <div style="font-size:13px;color:#ccc;font-weight:normal;margin-top:8px;pointer-events:auto">нажмите «↻ Респ» в HUD</div>
-    </div>
-    <!-- Стелс-индикатор: уровень тревоги -->
-    <div id="alertBanner" style="position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:7;display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(20,24,30,.92);border:2px solid #3a5d3a;border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,.5);pointer-events:none;transition:border-color .3s,box-shadow .3s">
-      <span id="alertIcon" style="font-size:24px;line-height:1">👻</span>
-      <span id="alertText" style="font-size:13px;font-weight:bold;color:#5dd55d;text-shadow:0 1px 2px #000;white-space:nowrap">Не замечен</span>
     </div>
     <canvas id="minimap" width="140" height="200" style="position:absolute;right:10px;top:10px;z-index:6;border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(0,0,0,.5);pointer-events:none"></canvas>
     <div id="hint">Левая половина — ходить<br>Правая — целиться/стрелять</div>
@@ -3237,32 +3261,26 @@ function renderHudWepIcon() {
   }
 }
 
-// ── HUD: баннер уровня тревоги ─────────────────────────────────────
-const alertBannerEl = document.getElementById('alertBanner');
-const alertIconEl   = document.getElementById('alertIcon');
-const alertTextEl   = document.getElementById('alertText');
+// ── HUD: чип уровня тревоги в левом блоке ──────────────────────────
+const alertChipEl = document.getElementById('alertChip');
+const alertIconEl = document.getElementById('alertIcon');
+const alertTextEl = document.getElementById('alertText');
 let _lastAlertLevel = -1;
 function renderAlertBanner() {
   if (alertLevel === _lastAlertLevel) return;
   _lastAlertLevel = alertLevel;
+  alertChipEl.classList.remove('suspect', 'combat');
   if (alertLevel === 0) {
     alertIconEl.textContent = '👻';
     alertTextEl.textContent = 'Не замечен';
-    alertTextEl.style.color = '#5dd55d';
-    alertBannerEl.style.borderColor = '#3a5d3a';
-    alertBannerEl.style.boxShadow = '0 4px 12px rgba(40,180,40,.3)';
   } else if (alertLevel === 1) {
     alertIconEl.textContent = '💡';
-    alertTextEl.textContent = 'Враги что-то заподозрили';
-    alertTextEl.style.color = '#ffd24a';
-    alertBannerEl.style.borderColor = '#7a6020';
-    alertBannerEl.style.boxShadow = '0 4px 16px rgba(255,210,80,.4)';
+    alertTextEl.textContent = 'Заподозрили';
+    alertChipEl.classList.add('suspect');
   } else {
     alertIconEl.textContent = '🔴';
-    alertTextEl.textContent = 'Тебя обнаружили! БОЙ';
-    alertTextEl.style.color = '#ff5050';
-    alertBannerEl.style.borderColor = '#8a2020';
-    alertBannerEl.style.boxShadow = '0 4px 18px rgba(255,40,40,.5)';
+    alertTextEl.textContent = 'Обнаружили! БОЙ';
+    alertChipEl.classList.add('combat');
   }
 }
 
