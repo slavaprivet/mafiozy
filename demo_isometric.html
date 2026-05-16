@@ -334,6 +334,107 @@ function spawnHitSpark(r, c, coverType) {
   });
 }
 
+// Брызги крови от попадания. dmg задаёт интенсивность.
+// dirAngle — направление полёта пули, чтоб брызги летели ВПЕРЁД (по ходу пули).
+function spawnBlood(r, c, dirAngle, dmg) {
+  const intensity = Math.min(3, 0.5 + dmg / 30);  // 0.5..3
+  const N = Math.floor(8 * intensity + Math.random() * 6);
+  for (let i = 0; i < N; i++) {
+    const ang = (dirAngle != null ? dirAngle : Math.random() * Math.PI * 2)
+      + (Math.random() - 0.5) * 1.6;
+    const sp = (0.6 + Math.random() * 2.4) * intensity * 0.6;
+    bloodDrops.push({
+      r, c,
+      z: 0.45 + Math.random() * 0.35,
+      vr: Math.sin(ang) * sp,
+      vc: Math.cos(ang) * sp,
+      vz: 0.5 + Math.random() * 1.6,
+      life: 700 + Math.random() * 500,
+      max: 1200,
+      size: (1.4 + Math.random() * 2.4) * Math.min(2, intensity),
+      splat: false,
+    });
+  }
+}
+
+// Отрыв части тела при большом уроне. kind: head/arm/leg/hand
+function spawnGorePart(r, c, dirAngle, kind, victim) {
+  const ang = (dirAngle != null ? dirAngle : Math.random() * Math.PI * 2)
+    + (Math.random() - 0.5) * 0.7;
+  const sp = 1.2 + Math.random() * 2.0;
+  const skin = victim && victim.look ? (SKINS[victim.look.skin] || SKINS[0]) : '#d0a070';
+  // Цвет одежды: суиту мужика или платью женщины — берём из bodyDefs (упрощённо)
+  const bodyCol = victim && victim.look
+    ? (victim.look.gender === 0
+       ? (['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][victim.look.body % 4])
+       : (['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a'][victim.look.body % 4]))
+    : '#1a1a2e';
+  goreParts.push({
+    r, c, z: 0.7,
+    vr: Math.sin(ang) * sp,
+    vc: Math.cos(ang) * sp,
+    vz: 1.6 + Math.random() * 1.4,
+    rot: Math.random() * Math.PI * 2,
+    vrot: (Math.random() - 0.5) * 14,
+    kind, skinCol: skin, bodyCol,
+    life: 6000, max: 6000,
+    landed: false,
+  });
+}
+
+// Универсальный хелпер для применения урона по живому персонажу
+// (вызывается отовсюду где было `v.hp -= dmg`).
+// dirAngle — направление импульса (откуда летит пуля/откуда взрыв) для брызг.
+function damageActor(v, dmg, dirAngle) {
+  if (!v || v.hp <= 0) return;
+  const wasAlive = v.hp > 0;
+  const prevHp = v.hp;
+  v.hp = Math.max(0, v.hp - dmg);
+  if (v === player) player.hitT = Math.max(player.hitT || 0, 0.25);
+  // Кровь — всегда при попадании
+  spawnBlood(v.r, v.c, dirAngle, dmg);
+
+  if (!v.lostParts) v.lostParts = {};
+  const killed = wasAlive && v.hp <= 0;
+  const overkill = killed && dmg > prevHp;          // пуля сняла больше чем оставалось HP
+  const wasLowHp = prevHp <= 35;                     // был на грани
+
+  // ── ГОЛОВА: только если убил оверкилл-выстрелом при низком HP ──
+  if (overkill && wasLowHp && dmg >= 25 && !v.lostParts.head && Math.random() < 0.75) {
+    v.lostParts.head = true;
+    spawnGorePart(v.r, v.c, dirAngle, 'head', v);
+    spawnBlood(v.r, v.c, dirAngle, dmg * 1.8);
+    v.hp = 0;
+    return; // голова отлетела — finita
+  }
+
+  // ── РУКА / НОГА / КИСТЬ: при крупном уроне, шанс зависит от dmg ──
+  let goreChance = 0;
+  if (dmg >= 80)                goreChance = 0.65;   // взрыв, РПГ
+  else if (dmg >= 50)           goreChance = 0.30;   // снайперка/винтовка
+  else if (dmg >= 30 && killed) goreChance = 0.22;
+  if (Math.random() < goreChance) {
+    // только то, что ещё не оторвано
+    const candidates = ['arm','leg','hand'].filter(k => !v.lostParts[k]);
+    if (candidates.length > 0) {
+      const kind = candidates[Math.floor(Math.random() * candidates.length)];
+      v.lostParts[kind] = true;
+      spawnGorePart(v.r, v.c, dirAngle, kind, v);
+      spawnBlood(v.r, v.c, dirAngle, dmg * 1.3);
+    }
+  }
+}
+
+// Множитель скорости — потерял ногу → еле тащится. Используется в движении.
+function getSpeedMul(v) {
+  if (!v || !v.lostParts) return 1;
+  let m = 1;
+  if (v.lostParts.leg)  m *= 0.40;
+  if (v.lostParts.arm)  m *= 0.85;
+  if (v.lostParts.hand) m *= 0.95;
+  return m;
+}
+
 function spawnCoverBreak(ri, ci, type) {
   const cfg = COVER_TYPES[type];
   if (!cfg) return;
@@ -477,9 +578,12 @@ const grenades = []; // {r, c, tr, tc, t, T, fromTeam, kind: 'grenade'|'molotov'
 const firePuddles = []; // лужи огня от молотовых: {r, c, life, max, radius, fromTeam}
 const coverBreaks = []; // эффекты разрушения укрытий: {r, c, life, max, type, particles[]}
 const hitSparks = []; // искры от попаданий пуль: {r, c, life, max, color}
+// === GORE: брызги крови (летят дугой и оседают как лужи) и оторванные части тела ===
+const bloodDrops = []; // {r,c,z,vr,vc,vz,life,max,size,splat}
+const goreParts = []; // {r,c,z,vr,vc,vz,rot,vrot,kind,life,max,landed,bodyCol,skinCol}
 
 const bullets = [];
-const muzzles = []; // вспышки у дула: {r, c, life, max}
+const muzzles = []; // вспышки у дула: {r, c, life, max, angle}
 const corpses = []; // {r, c, life}
 const explosions = []; // {r, c, life, max, radius}
 
@@ -1695,6 +1799,129 @@ function drawCoverBreak(b) {
   });
 }
 
+// === GORE: летящие капли крови, лужицы, оторванные части тела ===
+function drawBloodDrop(d) {
+  const p = w2s(d.r, d.c);
+  const yOff = -isoH(d.z); // высота над землёй
+  ctx.fillStyle = '#a01818';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + yOff, d.size, d.size * 0.7, 0, 0, Math.PI*2);
+  ctx.fill();
+  // более тёмная сердцевина
+  ctx.fillStyle = '#600808';
+  ctx.beginPath();
+  ctx.arc(p.x, p.y + yOff, d.size * 0.4, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawBloodSplat(d) {
+  const p = w2s(d.r, d.c);
+  const t = Math.min(1, d.life / d.max);
+  ctx.save();
+  ctx.globalAlpha = t * 0.85;
+  ctx.fillStyle = '#7a0a0a';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 1, d.size * 1.2, d.size * 0.55, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#a01818';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, d.size * 0.7, d.size * 0.32, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGorePart(g) {
+  const p = w2s(g.r, g.c);
+  const yOff = -isoH(g.z);
+  const t = g.landed ? Math.min(1, g.life / g.max) : 1;
+  ctx.save();
+  ctx.globalAlpha = t;
+  // тень под летящим
+  if (!g.landed && g.z > 0.05) {
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, 5, 2.5, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.translate(p.x, p.y + yOff);
+  ctx.rotate(g.rot);
+  // капля крови за частью (хвост)
+  if (!g.landed) {
+    ctx.fillStyle = 'rgba(180,30,30,.7)';
+    ctx.beginPath();
+    ctx.ellipse(-3, 1, 5, 2, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  // сама часть тела
+  switch (g.kind) {
+    case 'head': {
+      // голова — кружок цвета кожи + красная "шейка"
+      ctx.fillStyle = g.skinCol;
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, Math.PI*2);
+      ctx.fill();
+      // волосы (тёмные)
+      ctx.fillStyle = '#1a0a00';
+      ctx.beginPath();
+      ctx.arc(0, -2, 6.5, Math.PI, 2*Math.PI);
+      ctx.fill();
+      // обрубленная шея
+      ctx.fillStyle = '#8a0a0a';
+      ctx.fillRect(-3, 5, 6, 3);
+      ctx.fillStyle = '#400';
+      ctx.fillRect(-3, 7, 6, 1);
+      // глаза
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(-2, 0, 0.8, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(2, 0, 0.8, 0, Math.PI*2); ctx.fill();
+      break;
+    }
+    case 'arm': {
+      // рука (рукав суиту/платья + кисть)
+      ctx.fillStyle = g.bodyCol;
+      ctx.fillRect(-10, -2.5, 16, 5);
+      // кисть
+      ctx.fillStyle = g.skinCol;
+      ctx.beginPath(); ctx.arc(7, 0, 2.8, 0, Math.PI*2); ctx.fill();
+      // обрубок
+      ctx.fillStyle = '#8a0a0a';
+      ctx.fillRect(-12, -2.5, 2, 5);
+      break;
+    }
+    case 'leg': {
+      // нога — длинная штанина с ботинком
+      ctx.fillStyle = g.bodyCol;
+      ctx.fillRect(-12, -2, 18, 4);
+      // ботинок
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.ellipse(8, 0, 4, 2.5, 0, 0, Math.PI*2);
+      ctx.fill();
+      // обрубок
+      ctx.fillStyle = '#8a0a0a';
+      ctx.fillRect(-14, -2, 2, 4);
+      break;
+    }
+    case 'hand': {
+      // кисть с обрубком
+      ctx.fillStyle = g.skinCol;
+      ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
+      // пальцы (короткие палочки)
+      ctx.strokeStyle = g.skinCol; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(2, 0); ctx.lineTo(5, -1);
+      ctx.moveTo(2, 1); ctx.lineTo(5, 1);
+      ctx.moveTo(1.5, 2); ctx.lineTo(4, 3);
+      ctx.stroke();
+      // обрубок
+      ctx.fillStyle = '#8a0a0a';
+      ctx.fillRect(-4, -2, 2, 4);
+      break;
+    }
+  }
+  ctx.restore();
+}
+
 function drawHitSpark(s) {
   const p = w2s(s.r, s.c);
   const t = s.life / s.max;
@@ -1772,6 +1999,10 @@ function render() {
   // 1.5) Лужи огня — на полу, под персонажами/укрытиями
   firePuddles.forEach(drawFirePuddle);
 
+  // 1.7) Лужицы крови (splat-фаза) — рисуем на полу до персонажей
+  bloodDrops.forEach(d => { if (d.splat) drawBloodSplat(d); });
+  goreParts.forEach(g => { if (g.landed) drawGorePart(g); });
+
   // 2) Объекты с глубиной (укрытия + персонажи + пули). Сортируем по r+c
   const items = [];
   for (let r = 0; r < ROWS; r++) {
@@ -1800,6 +2031,9 @@ function render() {
   explosions.forEach(drawExplosion);
   coverBreaks.forEach(drawCoverBreak);
   hitSparks.forEach(drawHitSpark);
+  // капли крови И части тела В ПОЛЁТЕ (поверх персонажей)
+  bloodDrops.forEach(d => { if (!d.splat) drawBloodDrop(d); });
+  goreParts.forEach(g => { if (!g.landed) drawGorePart(g); });
 }
 
 // ── UPDATE ─────────────────────────────────────────────────────────
@@ -1817,11 +2051,9 @@ function update(dt) {
   }
 
   // Движение игрока
-  const speed = 4.5; // тайлов/сек
+  const speed = 4.5 * getSpeedMul(player); // потеря ноги → 40% скорости
   if (player.hp > 0 && joyL.active && (Math.abs(joyL.dx) > 0.1 || Math.abs(joyL.dy) > 0.1)) {
     // joy.dx (экран X) → ось (c-r) ;  joy.dy (экран Y) → ось (c+r)*ISO_Y
-    // Решаем обратно: c-r = dx ; c+r = dy/ISO_Y
-    // r = (s - d) / 2, c = (s + d) / 2  где d=dx, s=dy/ISO_Y
     const d = joyL.dx, s = joyL.dy / ISO_Y;
     const dc = (s + d) * 0.5;
     const dr = (s - d) * 0.5;
@@ -1865,10 +2097,10 @@ function update(dt) {
     }
     // Попадание в цели (зависит от team)
     let hit = false;
+    const bulletAng = Math.atan2(b.vr, b.vc);
     if (b.team === 'enemy') {
       if (player.hp > 0 && Math.hypot(player.r - b.r, player.c - b.c) < 0.4) {
-        player.hp = Math.max(0, player.hp - (b.dmg || 25));
-        player.hitT = 0.25;
+        damageActor(player, b.dmg || 25, bulletAng);
         if (b.explosive) triggerExplosion(b.r, b.c);
         bullets.splice(i, 1); hit = true;
       }
@@ -1876,8 +2108,7 @@ function update(dt) {
       for (const e of enemies) {
         if (e.hp <= 0) continue;
         if (Math.hypot(e.r - b.r, e.c - b.c) < 0.4) {
-          e.hp -= (b.dmg || 25);
-          if (e.hp <= 0) e.hp = 0;
+          damageActor(e, b.dmg || 25, bulletAng);
           if (b.explosive) triggerExplosion(b.r, b.c);
           bullets.splice(i, 1); hit = true; break;
         }
@@ -1925,6 +2156,56 @@ function update(dt) {
   for (let i = hitSparks.length - 1; i >= 0; i--) {
     hitSparks[i].life -= dt * 1000;
     if (hitSparks[i].life <= 0) hitSparks.splice(i, 1);
+  }
+
+  // Капли крови — летят дугой, оседают как лужи
+  for (let i = bloodDrops.length - 1; i >= 0; i--) {
+    const d = bloodDrops[i];
+    if (d.splat) {
+      d.life -= dt * 1000;
+      if (d.life <= 0) bloodDrops.splice(i, 1);
+      continue;
+    }
+    d.r += d.vr * dt;
+    d.c += d.vc * dt;
+    d.z += d.vz * dt;
+    d.vz -= 6.5 * dt; // гравитация (тайл/с^2 — высота в "тайлах")
+    if (d.z <= 0) {
+      // упала — превращается в красную каплю на земле
+      d.z = 0;
+      d.splat = true;
+      d.life = 4500 + Math.random() * 1500;
+      d.max = 6000;
+      d.size = d.size * (1.4 + Math.random() * 0.6);
+    }
+  }
+
+  // Оторванные части тела — летят с вращением и приземляются
+  for (let i = goreParts.length - 1; i >= 0; i--) {
+    const g = goreParts[i];
+    if (g.landed) {
+      g.life -= dt * 1000;
+      if (g.life <= 0) goreParts.splice(i, 1);
+      continue;
+    }
+    g.r += g.vr * dt;
+    g.c += g.vc * dt;
+    g.z += g.vz * dt;
+    g.vz -= 7 * dt;
+    g.rot += g.vrot * dt;
+    g.vrot *= (1 - dt * 0.4);
+    // лёгкое сопротивление по горизонтали
+    g.vr *= (1 - dt * 0.6);
+    g.vc *= (1 - dt * 0.6);
+    if (g.z <= 0) {
+      g.z = 0;
+      g.vz = 0;
+      g.landed = true;
+      g.life = 8000;
+      g.max = 8000;
+      // капля крови под ним
+      spawnBlood(g.r, g.c, null, 18);
+    }
   }
 
   // Лужи огня — DoT и постепенное угасание
@@ -1975,15 +2256,19 @@ function update(dt) {
 function triggerExplosion(r, c, dmg) {
   const D = dmg || 60;
   explosions.push({ r, c, life: 600, max: 600, radius: 1.8 });
-  // урон врагам в радиусе
+  // урон врагам в радиусе (взрыв = дополнительный шанс отрыва конечностей)
   enemies.forEach(e => {
     if (e.hp <= 0) return;
-    if (Math.hypot(e.r - r, e.c - c) < 2.0) e.hp = Math.max(0, e.hp - D);
+    if (Math.hypot(e.r - r, e.c - c) < 2.0) {
+      const angAway = Math.atan2(e.r - r, e.c - c); // импульс ОТ эпицентра
+      damageActor(e, D, angAway);
+    }
   });
   // урон игроку
   if (player.hp > 0 && Math.hypot(player.r - r, player.c - c) < 2.0) {
-    player.hp = Math.max(0, player.hp - D);
-    player.hitT = 0.35;
+    const angAway = Math.atan2(player.r - r, player.c - c);
+    damageActor(player, D, angAway);
+    player.hitT = Math.max(player.hitT, 0.35);
   }
   // урон укрытиям в радиусе
   damageCovers(r, c, 2.0, D);
@@ -2022,8 +2307,7 @@ function fireWeapon(p, weaponKey, team) {
     victims.forEach(v => {
       if (v.hp <= 0) return;
       if (Math.hypot(v.r - tx, v.c - tc) < 0.9) {
-        v.hp = Math.max(0, v.hp - (cfg.dmg || 12));
-        if (v === player) player.hitT = 0.25;
+        damageActor(v, cfg.dmg || 12, p.angle);
       }
     });
     return;
@@ -2102,7 +2386,8 @@ function updateEnemyAI(e, dt) {
     const dr = player.r - e.r, dc = player.c - e.c;
     const d = Math.hypot(dr, dc);
     if (d > 0.5) {
-      tryMove(e, dr / d * 7.5 * dt, dc / d * 7.5 * dt);
+      const sp = 7.5 * getSpeedMul(e);
+      tryMove(e, dr / d * sp * dt, dc / d * sp * dt);
       e.walkPhase += dt * 16;
     }
     if (d < 1.1 && e.fireCD <= 0) {
@@ -2181,7 +2466,8 @@ function moveTowardsTarget(e, dt, speed) {
   const dr = e.targetR - e.r, dc = e.targetC - e.c;
   const d = Math.hypot(dr, dc);
   if (d < 0.2) { e.walkPhase *= 0.85; return; }
-  const vr = dr / d * speed, vc = dc / d * speed;
+  const eff = speed * getSpeedMul(e);  // потеря ноги → ползёт
+  const vr = dr / d * eff, vc = dc / d * eff;
   const before = { r: e.r, c: e.c };
   tryMove(e, vr * dt, vc * dt);
   // если уперлись — сбросим точку, чтобы выбрать новую
@@ -2412,15 +2698,18 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   enemies.forEach(e => {
     e.aiState = 'patrol'; e.targetR = null; e.targetC = null;
     e.repositionT = 0; e.fireCD = 0;
+    e.lostParts = {};
     if (e.isBoss) { e.grenadeCD = 4000; e.rushCD = 9000; e.rushT = 0; }
   });
   bullets.length = 0; grenades.length = 0; explosions.length = 0; muzzles.length = 0; firePuddles.length = 0;
   coverBreaks.length = 0; hitSparks.length = 0;
+  bloodDrops.length = 0; goreParts.length = 0;
   // восстанавливаем карту и HP укрытий
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) MAP[r][c] = MAP_ORIGINAL[r][c];
   initCoverHP();
   // сбрасываем патроны игрока
   player.ammo = {};
+  player.lostParts = {};
   player.hp = player.hpMax;
   player.r = 8.5; player.c = 8.5;
   player.hitT = 0;
