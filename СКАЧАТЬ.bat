@@ -76,7 +76,6 @@ echo  Что лежит в папке (ключевые файлы):
 echo  ─────────────────────────────────────────
 call :show_one demo_isometric.html
 call :show_one battle.html
-call :show_one battle_tactical.html
 call :show_one hub.html
 call :show_one creator.html
 call :show_one mafiozi_bot.py

@@ -75,9 +75,9 @@ async def _edit_text(query, text: str, **kwargs):
 
 
 
-# URL мини-приложения боя (загрузи battle.html на GitHub Pages и вставь ссылку)
+# URL мини-приложения боя (загрузи .html на GitHub Pages и вставь ссылку)
 BATTLE_WEBAPP_URL    = "https://slavaprivet.github.io/mafiozi-battle/"
-TACTICAL_WEBAPP_URL  = "https://slavaprivet.github.io/mafiozi-battle/battle_tactical.html"
+ISO_WEBAPP_URL       = "https://slavaprivet.github.io/mafiozi-battle/demo_isometric.html"
 CREATOR_WEBAPP_URL   = "https://slavaprivet.github.io/mafiozi-battle/creator.html"
 HUB_WEBAPP_URL       = "https://slavaprivet.github.io/mafiozi-battle/hub.html"
 
@@ -1887,17 +1887,18 @@ def build_battle_url(char: dict, battle: dict, boss: dict,
     return BATTLE_WEBAPP_URL.rstrip("/") + "/?" + urllib.parse.urlencode(params)
 
 
-def build_tactical_url(char: dict, battle: dict, boss_id: str = "",
-                       loc_id: str = "", coop_id: str = "") -> str:
-    """Строит URL тактического боя (battle_tactical.html)."""
+def build_iso_url(char: dict, battle: dict, boss_id: str = "",
+                  loc_id: str = "", coop_id: str = "") -> str:
+    """Строит URL изометрической боёвки (demo_isometric.html)."""
     bid  = boss_id or (battle.get("boss_id") if battle else "") or "kosoy"
     lid  = loc_id  or (battle.get("location") if battle else "") or "market"
-    weapon = char.get("weapon") or "nagan"
-    # Для боссов не входящих в список в HTML передаём их статы через URL-параметры
+    weapon = char.get("weapon") or "pistol"
+    # Боссы, чьи статы зашиты в BOSS_REGISTRY внутри demo_isometric.html.
+    # Для прочих (raid_boss, mansion_gang и т.п.) передаём имя/HP/эмодзи в URL.
     boss_in_html = {
         "kosoy","bychok","zhigan","shustryy","tolsty","kaban","bukhgalter",
-        "kontrabas","legenda","professor","don_karlo","artist","buryy","khirurg",
-        "tigr","sedoy","prizrak","svalshchik","palach","vizir","mansion_gang","raid_boss",
+        "kontrabas","legenda","professor","artist","svalshchik","buryy","khirurg",
+        "tigr","palach","sedoy","prizrak","don_karlo","vizir",
     }
     params = {
         "name":   urllib.parse.quote(char["name"][:20]),
@@ -1911,21 +1912,18 @@ def build_tactical_url(char: dict, battle: dict, boss_id: str = "",
     }
     if bid not in boss_in_html:
         b = BOSSES.get(bid, BOSSES["kosoy"])
-        raw = b["name"].replace("😈","").replace("🐂","").replace("🪒","").strip()
-        # strip leading emoji
         import re as _re
-        raw = _re.sub(r'^[\U00010000-\U0010ffff☀-⟿\U0001f000-\U0001faff]+\s*', '', raw).strip()
+        raw = _re.sub(r'^[\U00010000-\U0010ffff☀-⟿\U0001f000-\U0001faff]+\s*', '', b["name"]).strip()
         params["bname"]  = urllib.parse.quote(raw[:18])
         params["bhp"]    = b["hp"]
         params["batk"]   = b["attack"]
         params["bdef"]   = b["defense"]
-        # boss emoji
         emoji_m = _re.match(r'^([\U00010000-\U0010ffff☀-⟿\U0001f000-\U0001faff]+)', b["name"])
         if emoji_m:
             params["bemoji"] = urllib.parse.quote(emoji_m.group(1))
     if coop_id:
         params["coop_id"] = coop_id
-    return TACTICAL_WEBAPP_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
+    return ISO_WEBAPP_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
 
 
 def back_kb(cb: str = "main_menu"):
@@ -3814,7 +3812,7 @@ async def hunt(update: Update, context: ContextTypes.DEFAULT_TYPE):
         has_potions = any(ITEMS.get(i, {}).get("type") == "potion" and q > 0 for i, q in inv.items())
         _opr = await get_property(user_id)
         _pn, _pm = _best_prop_skill(_opr)
-        url = build_tactical_url(char, existing)
+        url = build_iso_url(char, existing)
         await _edit_text(query,
             f"⚔️ *Бой ещё не закончен!*\n\n"
             f"Противник: *{boss['name']}* — ❤️ {existing['boss_hp']} HP\n\n"
@@ -4861,7 +4859,7 @@ async def _start_coop_battle_for_all(bot, session_id: int, host_id: int, prep: d
             _opr     = await get_property(ap["uid"])
             _pn, _pm = _best_prop_skill(_opr)
             others   = [p["name"] for p in accepted if p["uid"] != ap["uid"]]
-            url      = build_tactical_url(ap_char, ap_battle, coop_id=str(session_id))
+            url      = build_iso_url(ap_char, ap_battle, coop_id=str(session_id))
             others_line = " | ".join(f"👥{n}" for n in others) if others else "только ты"
             await bot.send_message(
                 chat_id=ap["uid"],
@@ -5034,7 +5032,7 @@ async def hunt_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             has_potions_coop = any(ITEMS.get(i,{}).get("type")=="potion" and q>0 for i,q in inv_coop.items())
             _opr_c = await get_property(user_id)
             _pn_c, _pm_c = _best_prop_skill(_opr_c)
-            url_host = build_tactical_url(char, battle_data_coop, coop_id=str(coop_sid))
+            url_host = build_iso_url(char, battle_data_coop, coop_id=str(coop_sid))
 
             team_line = " | ".join(f"👥{n}" for n in team_names)
             await context.bot.send_message(
@@ -5060,7 +5058,7 @@ async def hunt_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     _opr_ap = await get_property(ap["uid"])
                     _pn_ap, _pm_ap = _best_prop_skill(_opr_ap)
                     others_names = [char["name"]] + [p["name"] for p in accepted_players if p["uid"] != ap["uid"]]
-                    url_ap = build_tactical_url(ap_char, ap_battle, coop_id=str(coop_sid))
+                    url_ap = build_iso_url(ap_char, ap_battle, coop_id=str(coop_sid))
                     others_line = " | ".join(f"👥{n}" for n in others_names)
                     await context.bot.send_message(
                         chat_id=ap["uid"],
@@ -5091,7 +5089,7 @@ async def hunt_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     battle_data = await get_battle(user_id)
     _opr = await get_property(user_id)
     _pn, _pm = _best_prop_skill(_opr)
-    url = build_tactical_url(char, battle_data)
+    url = build_iso_url(char, battle_data)
 
     party_line = ""
     if real_party:
@@ -5707,7 +5705,7 @@ async def battle_grenade_webapp(update: Update, context: ContextTypes.DEFAULT_TY
         return
     has_potions = any(ITEMS.get(i, {}).get("type") == "potion" and q > 0 for i, q in inv.items())
     battle_upd = await get_battle(user_id)
-    url = build_tactical_url(char, battle_upd)
+    url = build_iso_url(char, battle_upd)
     gren_btn = [[InlineKeyboardButton(f"💣 Ещё гранату ×{grenades_left}", callback_data="battle_grenade_webapp")]] if grenades_left > 0 else []
     await _edit_text(query,
         f"💣 *Граната!* Взрыв — *{nade_dmg} урона!* (контратаки нет)\n"
@@ -6836,7 +6834,7 @@ async def battle_webapp_action(update: Update, context: ContextTypes.DEFAULT_TYP
     battle_upd = dict(battle); battle_upd["boss_hp"] = boss_hp; battle_upd["party"] = party
 
     log_str = result_text.strip().replace("*", "") + "\n" + boss_counter_text.replace("*", "")
-    url = build_tactical_url(char_upd, battle_upd)
+    url = build_iso_url(char_upd, battle_upd)
 
     # ── Проверяем co-op сессию ──────────────────────────────────────────
     coop_session = await get_coop_by_participant(user_id)
@@ -6867,7 +6865,7 @@ async def battle_webapp_action(update: Update, context: ContextTypes.DEFAULT_TYP
         _next_opr = await get_property(next_player_id)
         _next_pn, _next_pm = _best_prop_skill(_next_opr)
         _next_pp_ok = 1 if coop_session["host_id"] == next_player_id else 0
-        next_url = build_tactical_url(next_char, next_battle)
+        next_url = build_iso_url(next_char, next_battle)
         next_name = next_char["name"] if next_char else "партнёр"
         # Отправляем ход следующему игроку
         try:
@@ -8859,7 +8857,7 @@ async def raid_battle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ITEMS.get(i, {}).get("type") == "potion" and q > 0
                 for i, q in inv_coop.items()
             )
-            url_coop = build_tactical_url(char, battle_data_coop)
+            url_coop = build_iso_url(char, battle_data_coop)
             await _edit_text(query,
                 f"⚔️ *СОВМЕСТНАЯ ЗАЩИТА!*\n\n"
                 f"👊 *{raid_boss['name']}* — ❤️ {raid['boss_hp']}/{raid['boss_hp_max']} HP\n\n"
@@ -8898,7 +8896,7 @@ async def raid_battle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     battle_data = await get_battle(user_id)
     inv = await get_inventory(user_id)
     has_potions = any(ITEMS.get(i, {}).get("type") == "potion" and q > 0 for i, q in inv.items())
-    url = build_tactical_url(char, battle_data)
+    url = build_iso_url(char, battle_data)
 
     loc_name = LOCATIONS.get(raid["location_id"], {}).get("name", raid["location_id"])
     await _edit_text(query,

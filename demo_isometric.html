@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Изометрическая боёвка — демо</title>
+<title>Изометрическая боёвка</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0d12; font-family: -apple-system,Segoe UI,Roboto,sans-serif; color: #fff; touch-action: none; }
@@ -77,6 +78,20 @@
     background: #1a1e26; border: 1px solid #3a4452; border-radius: 6px;
     overflow: hidden; position: relative;
     box-shadow: inset 0 1px 3px rgba(0,0,0,.6);
+    transition: border-color .25s, box-shadow .25s;
+  }
+  #hpBarBig.alert-suspect {
+    border-color: #b58820;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.6), 0 0 8px rgba(255,210,80,.55);
+  }
+  #hpBarBig.alert-combat {
+    border-color: #c83030;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.6), 0 0 10px rgba(255,40,40,.6);
+    animation: hpAlertPulse 1s ease-in-out infinite;
+  }
+  @keyframes hpAlertPulse {
+    0%, 100% { box-shadow: inset 0 1px 3px rgba(0,0,0,.6), 0 0 10px rgba(255,40,40,.6); }
+    50%      { box-shadow: inset 0 1px 3px rgba(0,0,0,.6), 0 0 16px rgba(255,60,60,.95); }
   }
   #hpBarFill {
     height: 100%; width: 100%;
@@ -89,30 +104,19 @@
   #hudInfo .fps-row {
     font-size: 9px; color: #5a6478; pointer-events: none;
   }
-  #alertChip {
-    display: flex; align-items: center; gap: 5px;
-    padding: 3px 7px; border-radius: 10px;
-    background: rgba(40,80,40,.4); border: 1px solid #3a5d3a;
-    font-size: 10px; font-weight: bold;
-    color: #5dd55d;
-    transition: background .25s, border-color .25s, color .25s, box-shadow .25s;
-    width: max-content;
+  #alertIcon {
+    font-size: 14px; line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.6));
+    transition: filter .25s, transform .25s;
   }
-  #alertChip #alertIcon { font-size: 13px; line-height: 1; }
-  #alertChip.suspect {
-    background: rgba(120,90,20,.45); border-color: #7a6020;
-    color: #ffd24a;
-    box-shadow: 0 0 10px rgba(255,210,80,.35);
+  #alertIcon.suspect { filter: drop-shadow(0 0 4px rgba(255,210,80,.85)); }
+  #alertIcon.combat  {
+    filter: drop-shadow(0 0 5px rgba(255,60,60,1));
+    animation: alertIconPulse 1s ease-in-out infinite;
   }
-  #alertChip.combat {
-    background: rgba(140,30,30,.5); border-color: #8a2020;
-    color: #ff7070;
-    box-shadow: 0 0 12px rgba(255,40,40,.5);
-    animation: alertPulse 1s ease-in-out infinite;
-  }
-  @keyframes alertPulse {
-    0%, 100% { box-shadow: 0 0 12px rgba(255,40,40,.5); }
-    50%      { box-shadow: 0 0 18px rgba(255,40,40,.85); }
+  @keyframes alertIconPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.18); }
   }
   #hudBtns {
     display: flex; flex-direction: column; gap: 3px;
@@ -162,13 +166,10 @@
           <span id="wepName">пистолет</span>
         </div>
         <div class="hp-row">
+          <span id="alertIcon" title="Не замечен">👻</span>
           <span class="label">HP</span>
           <div id="hpBarBig"><div id="hpBarFill"></div></div>
-          <span id="hpVal">100</span><span style="color:#5a6478">/100</span>
-        </div>
-        <div class="alert-row" id="alertChip">
-          <span id="alertIcon">👻</span>
-          <span id="alertText">Не замечен</span>
+          <span id="hpVal">100</span><span style="color:#5a6478">/<span id="hpMaxVal">100</span></span>
         </div>
         <div class="fps-row">FPS: <span id="fps">0</span></div>
       </div>
@@ -200,6 +201,34 @@
     </div>
     <canvas id="minimap" width="140" height="200" style="position:absolute;right:10px;top:10px;z-index:6;border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(0,0,0,.5);pointer-events:none"></canvas>
     <div id="hint">Левая половина — ходить<br>Правая — целиться/стрелять</div>
+    <!-- Финальный экран: статистика + кнопки возврата -->
+    <div id="resultScene" style="position:absolute;inset:0;z-index:31;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%, rgba(30,20,15,.65), rgba(0,0,0,.96));backdrop-filter:blur(4px);color:#fff;gap:10px;padding:24px;text-align:center;pointer-events:auto">
+      <div id="resEmoji" style="font-size:72px;line-height:1;filter:drop-shadow(0 4px 16px rgba(0,0,0,.8))">🏆</div>
+      <div id="resTitle" style="font-size:26px;font-weight:bold;color:#ffd76b;text-shadow:0 2px 6px #000;margin-top:4px">ПОБЕДА</div>
+      <div id="resSubtitle" style="font-size:13px;color:#aab2c8;font-style:italic;margin-bottom:8px">— Босс повержен —</div>
+      <div id="resStats" style="display:grid;grid-template-columns:auto auto;gap:6px 18px;font-size:13px;color:#cfd6e6;background:rgba(20,24,32,.85);border:1px solid #3a4452;padding:14px 22px;border-radius:10px;min-width:260px">
+        <div style="text-align:left;color:#8a92a8">⏱ Время:</div><div id="resTime" style="text-align:right;font-weight:bold">0:00</div>
+        <div style="text-align:left;color:#8a92a8">💀 Убито:</div><div id="resKills" style="text-align:right;font-weight:bold">0</div>
+        <div style="text-align:left;color:#8a92a8">🔫 Выстрелов:</div><div id="resShots" style="text-align:right;font-weight:bold">0</div>
+        <div style="text-align:left;color:#8a92a8">❤️ HP остаток:</div><div id="resHP" style="text-align:right;font-weight:bold">0/0</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center">
+        <button id="btnBackDistrict" style="padding:12px 18px;background:linear-gradient(180deg,#2a4a30,#1a3020);border:2px solid #4a7a4a;border-radius:10px;color:#5dd55d;font-size:13px;font-weight:bold;cursor:pointer;min-width:150px">↩ К району</button>
+        <button id="btnBackMenu" style="padding:12px 18px;background:linear-gradient(180deg,#2a3548,#1a2030);border:2px solid #4a6080;border-radius:10px;color:#80a0d0;font-size:13px;font-weight:bold;cursor:pointer;min-width:150px">🏠 В меню</button>
+      </div>
+    </div>
+    <!-- Катсцена: выбор тактики перед боем -->
+    <div id="catscene" style="position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%, rgba(30,20,15,.55), rgba(0,0,0,.95));backdrop-filter:blur(3px);color:#fff;gap:14px;padding:24px;text-align:center;pointer-events:auto">
+      <div id="catLoc" style="font-size:11px;color:#aab2c8;letter-spacing:3px;text-transform:uppercase">район</div>
+      <div id="catBossEmoji" style="font-size:64px;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.7))">👤</div>
+      <div id="catBossName" style="font-size:24px;font-weight:bold;color:#ffd76b;text-shadow:0 2px 4px #000">Босс</div>
+      <div id="catBossHP" style="font-size:11px;color:#ff7070">❤️ 0 HP</div>
+      <div id="catQuote" style="font-size:13px;color:#aab2c8;max-width:340px;font-style:italic;margin:4px 0 12px">«…»</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+        <button id="btnStealth" style="padding:14px 20px;background:linear-gradient(180deg,#2a4030,#1a2820);border:2px solid #4a7a4a;border-radius:10px;color:#5dd55d;font-size:14px;font-weight:bold;cursor:pointer;min-width:130px">🤫 СТЕЛС<br><span style="font-size:10px;color:#a0c0a0;font-weight:normal">подкрасться</span></button>
+        <button id="btnFrontal" style="padding:14px 20px;background:linear-gradient(180deg,#4a2020,#2a1010);border:2px solid #a04040;border-radius:10px;color:#ff7070;font-size:14px;font-weight:bold;cursor:pointer;min-width:130px">💥 В ЛОБ<br><span style="font-size:10px;color:#c0a0a0;font-weight:normal">бой сразу</span></button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -287,35 +316,237 @@ const canvas = document.getElementById('gc');
 const ctx = canvas.getContext('2d');
 window.__gameCtx = ctx;
 
+// Telegram WebApp init — выставляем готовность и фуллскрин, если в боте
+(function() {
+  const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
+  if (tg) {
+    try { tg.ready(); } catch(e) {}
+    try { tg.expand(); } catch(e) {}
+    try { tg.setHeaderColor && tg.setHeaderColor('#0b0d12'); } catch(e) {}
+  }
+})();
+
+// ── URL-параметры (передаются ботом при запуске боя) ───────────────
+const _UP = new URLSearchParams(location.search);
+function _qInt(k, d) { const v = parseInt(_UP.get(k)); return isFinite(v) ? v : d; }
+function _qStr(k, d) { try { return decodeURIComponent(_UP.get(k) || '') || d; } catch(e){ return d; } }
+const QP = {
+  boss:        _UP.get('boss') || '',
+  loc:         _UP.get('loc')  || 'market',
+  playerName:  _qStr('name', 'Игрок'),
+  playerHP:    _qInt('hp',    100),
+  playerMax:   _qInt('maxhp', 100),
+  playerAtk:   _qInt('atk',   30),
+  playerDef:   _qInt('def',   10),
+  weapon:      _UP.get('weapon') || '',
+  bossNameRaw: _qStr('bname', ''),
+  bossHPRaw:   _qInt('bhp', 0),
+  bossEmoji:   _qStr('bemoji', ''),
+};
+
+// ── Реестр всех 20 боссов (имя, hp, оружие, внешность, район) ──────
+const BOSS_REGISTRY = {
+  // Рынок
+  kosoy:      { name: 'Косой',      emoji: '😈', hp: 150,  weapon: 'brass',         look: {gender:0,skin:2,body:0,face:1,hair:3,hat:0}, district: 'market',  quote: 'Да я тебя знаешь как...' },
+  bychok:     { name: 'Бычок',      emoji: '🐂', hp: 200,  weapon: 'bat',           look: {gender:0,skin:1,body:2,face:2,hair:0,hat:0}, district: 'market',  quote: 'Чё уставился, баран?' },
+  zhigan:     { name: 'Жиган',      emoji: '🪒', hp: 338,  weapon: 'blade_short',   look: {gender:0,skin:2,body:1,face:3,hair:4,hat:2}, district: 'market',  quote: 'Лоха видно за версту.' },
+  shustryy:   { name: 'Шустрый',    emoji: '🏃', hp: 300,  weapon: 'pistol',        look: {gender:0,skin:1,body:0,face:1,hair:5,hat:0}, district: 'market',  quote: 'Догони — тогда поговорим.' },
+  // Порт
+  tolsty:     { name: 'Толстый',    emoji: '🐷', hp: 380,  weapon: 'pistol_heavy',  look: {gender:0,skin:1,body:2,face:4,hair:2,hat:3}, district: 'port',    quote: 'Всё через меня. Всё.' },
+  kaban:      { name: 'Кабан',      emoji: '🦏', hp: 440,  weapon: 'shotgun',       look: {gender:0,skin:2,body:2,face:5,hair:1,hat:1}, district: 'port',    quote: 'Молчи и работай.' },
+  bukhgalter: { name: 'Бухгалтер',  emoji: '🧮', hp: 360,  weapon: 'pistol',        look: {gender:0,skin:0,body:1,face:0,hair:6,hat:4}, district: 'port',    quote: 'Деньги счёт любят.' },
+  kontrabas:  { name: 'Контрабас',  emoji: '📦', hp: 420,  weapon: 'smg',           look: {gender:0,skin:1,body:1,face:3,hair:3,hat:2}, district: 'port',    quote: 'Таможня? Не слышал.' },
+  // Казино
+  legenda:    { name: 'Легенда',    emoji: '👑', hp: 520,  weapon: 'pistol_gold',   look: {gender:0,skin:1,body:1,face:6,hair:0,hat:1}, district: 'casino',  quote: 'Меня знают все. Все боятся.' },
+  professor:  { name: 'Профессор',  emoji: '🎓', hp: 460,  weapon: 'pistol',        look: {gender:0,skin:0,body:0,face:4,hair:6,hat:4}, district: 'casino',  quote: 'Ты просто пешка в моей игре.' },
+  artist:     { name: 'Артист',     emoji: '🎭', hp: 500,  weapon: 'blade_long',    look: {gender:0,skin:1,body:1,face:2,hair:4,hat:0}, district: 'casino',  quote: 'Жизнь — театр. А ты — массовка.' },
+  svalshchik: { name: 'Сдатчик',    emoji: '♟️', hp: 480,  weapon: 'smg',           look: {gender:0,skin:1,body:0,face:5,hair:1,hat:0}, district: 'casino',  quote: 'Деловой разговор. Ничего личного.' },
+  // Промзона
+  buryy:      { name: 'Бурый',      emoji: '🐻', hp: 680,  weapon: 'shotgun',       look: {gender:0,skin:2,body:2,face:5,hair:0,hat:0}, district: 'factory', quote: 'Я тут раньше тебя, щенок.' },
+  khirurg:    { name: 'Хирург',     emoji: '🩺', hp: 620,  weapon: 'blade_long',    look: {gender:0,skin:0,body:0,face:0,hair:6,hat:0}, district: 'factory', quote: 'Больно не будет. Обещаю.' },
+  tigr:       { name: 'Тигр',       emoji: '🐯', hp: 750,  weapon: 'rifle',         look: {gender:0,skin:1,body:1,face:6,hair:2,hat:0}, district: 'factory', quote: 'Я не промахиваюсь.' },
+  palach:     { name: 'Палач',      emoji: '🪓', hp: 700,  weapon: 'bat',           look: {gender:0,skin:1,body:2,face:5,hair:0,hat:1}, district: 'factory', quote: 'Тебя сюда никто не звал.' },
+  // Резиденция
+  sedoy:      { name: 'Седой',      emoji: '👴', hp: 920,  weapon: 'pistol_heavy',  look: {gender:0,skin:0,body:1,face:6,hair:7,hat:1}, district: 'mansion', quote: 'Я видел, как рушились империи.' },
+  prizrak:    { name: 'Призрак',    emoji: '👻', hp: 860,  weapon: 'sniper',        look: {gender:0,skin:0,body:0,face:4,hair:6,hat:0}, district: 'mansion', quote: 'Меня нет. Я везде.' },
+  don_karlo:  { name: 'Дон Карло',  emoji: '🤵', hp: 1400, weapon: 'shotgun',       look: {gender:0,skin:1,body:2,face:4,hair:1,hat:1}, district: 'mansion', quote: 'Сделаю предложение, от которого не откажешься.' },
+  vizir:      { name: 'Визирь',     emoji: '🎯', hp: 1050, weapon: 'rifle',         look: {gender:0,skin:1,body:1,face:6,hair:2,hat:3}, district: 'mansion', quote: 'Дон знает о твоём визите.' },
+};
+
+// ── Темы районов (палитра пола/стен/укрытий) ────────────────────────
+const DISTRICT_THEMES = {
+  market:  { name: 'Рынок',         floorA: '#3a3530', floorB: '#2e2a26', wallTop: '#5a4a3a', wallSide: '#3a2e22', crateTop: '#a87040', crateSide: '#603820', barrelTop: '#a23030', barrelSide: '#6a1a1a', carTop: '#3a5a8a', carSide: '#22386a', bg: '#0e0c0a' },
+  port:    { name: 'Порт',          floorA: '#2a3a48', floorB: '#1e2a36', wallTop: '#3a5468', wallSide: '#1e2e3c', crateTop: '#7a5028', crateSide: '#4a2810', barrelTop: '#508030', barrelSide: '#2a4a18', carTop: '#3a4a5a', carSide: '#222d3a', bg: '#070b10' },
+  casino:  { name: 'Казино',        floorA: '#4a2030', floorB: '#3a1828', wallTop: '#6a3848', wallSide: '#3a1820', crateTop: '#a07028', crateSide: '#5e3e10', barrelTop: '#c0a040', barrelSide: '#7a5018', carTop: '#5a3a6a', carSide: '#341a40', bg: '#12060a' },
+  factory: { name: 'Промзона',      floorA: '#363636', floorB: '#2a2a2a', wallTop: '#4a4a4a', wallSide: '#2a2a2a', crateTop: '#6a5028', crateSide: '#3a2810', barrelTop: '#9a7818', barrelSide: '#5a4810', carTop: '#3a3a3a', carSide: '#202020', bg: '#0a0a0a' },
+  mansion: { name: 'Резиденция',    floorA: '#3a3328', floorB: '#2c2620', wallTop: '#5a4a30', wallSide: '#3a2e1a', crateTop: '#8a6028', crateSide: '#503810', barrelTop: '#7a3030', barrelSide: '#4a1a1a', carTop: '#1a1a1a', carSide: '#080808', bg: '#0c0a08' },
+};
+
+// Текущая локация и босс
+const CURRENT_LOC = DISTRICT_THEMES[QP.loc] ? QP.loc : 'market';
+const THEME = DISTRICT_THEMES[CURRENT_LOC];
+// Босс: либо из реестра, либо собран из URL fallback (bname/bhp/bemoji)
+const BOSS_CFG = (() => {
+  if (QP.boss && BOSS_REGISTRY[QP.boss]) return BOSS_REGISTRY[QP.boss];
+  // fallback: используем bname/bhp/bemoji
+  return {
+    name:   QP.bossNameRaw || 'Босс',
+    emoji:  QP.bossEmoji   || '👤',
+    hp:     QP.bossHPRaw   || 300,
+    weapon: 'shotgun',
+    look:   { gender:0, skin:1, body:2, face:4, hair:1, hat:1 },
+    district: CURRENT_LOC,
+    quote:  'Конец твоей дороги.',
+  };
+})();
+
+// Иконки оружия из бота → оружие в иго (если не совпало — pistol)
+const ISO_WEAPONS = new Set(['fists','brass','bat','blade_short','blade_long','pistol','pistol_heavy','pistol_gold','shotgun','smg','rifle','sniper','rpg']);
+const WEAPON_ALIASES = { nagan:'pistol', tt:'pistol', pm:'pistol', glock:'pistol', revolver:'pistol_heavy', desert_eagle:'pistol_heavy', knife:'blade_short', katana:'blade_long', ak:'rifle', m4:'rifle', ump:'smg', mp5:'smg' };
+const INITIAL_WEAPON = (QP.weapon && (ISO_WEAPONS.has(QP.weapon) ? QP.weapon : (WEAPON_ALIASES[QP.weapon] || 'pistol'))) || 'pistol';
+
+// ── Спавны: 4 угла + позиция игрока. Босс занимает индекс по boss_id,
+//    миньоны — остальные 3 угла. Это даёт 4 разных стартовых раскладов
+//    в каждом районе (по числу боссов в нём).
+const CORNERS = [[1.5, 1.5], [1.5, 10.5], [15.5, 1.5], [15.5, 10.5]];
+const BOSS_CORNER_IDX = {
+  // Рынок
+  kosoy: 0, bychok: 1, zhigan: 2, shustryy: 3,
+  // Порт
+  tolsty: 0, kaban: 1, bukhgalter: 2, kontrabas: 3,
+  // Казино
+  legenda: 0, professor: 1, artist: 2, svalshchik: 3,
+  // Промзона
+  buryy: 0, khirurg: 1, tigr: 2, palach: 3,
+  // Резиденция
+  sedoy: 0, prizrak: 1, don_karlo: 2, vizir: 3,
+};
+function getSpawns() {
+  const playerPos = [10.5, 5.5]; // центр-низ, открытый тайл на всех 5 картах
+  const idx = (BOSS_CORNER_IDX[QP.boss] != null) ? BOSS_CORNER_IDX[QP.boss] : 0;
+  const bossPos = CORNERS[idx];
+  const minionCorners = CORNERS.filter((_, i) => i !== idx);
+  return { player: playerPos, boss: bossPos, minions: minionCorners };
+}
+const SPAWNS = getSpawns();
+
 // Карта (17 рядов × 12 столбцов) — расширенная арена
 const COLS = 12, ROWS = 17;
 // 0=пол, 1=стена, 2=ящик, 3=бочка, 4=машина
-const MAP = [
-  [1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,2,0,0,3,0,0,2,2,0,1],
-  [1,0,2,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,4,4,0,0,0,1],
-  [1,0,3,0,0,0,0,0,0,3,0,1],
-  [1,0,0,0,2,0,0,0,2,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,1],
-  [1,2,0,0,0,1,1,0,0,0,2,1],
-  [1,2,0,0,0,1,1,0,0,0,0,1],
-  [1,0,0,3,0,0,0,0,3,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,4,4,0,0,2,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,2,1],
-  [1,0,2,0,0,3,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1],
-];
 
-// Описание типов клеток
+// ── 5 районных карт ─────────────────────────────────────────────────
+const DISTRICT_MAPS = {
+  // Рынок — россыпь ларьков и бочек
+  market: [
+    [1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,2,0,0,0,2,2,0,0,1],
+    [1,0,2,0,3,0,0,2,0,3,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,0,0,2,2,0,0,3,0,1],
+    [1,0,0,0,2,2,2,2,0,0,0,1],
+    [1,0,0,0,2,0,0,2,0,0,0,1],
+    [1,0,2,0,0,0,0,0,0,2,0,1],
+    [1,0,3,0,0,0,0,0,0,3,0,1],
+    [1,0,0,0,2,0,0,2,0,0,0,1],
+    [1,0,0,2,0,0,0,0,2,0,0,1],
+    [1,0,2,0,0,3,3,0,0,2,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,0,2,0,0,2,0,3,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1],
+  ],
+  // Порт — длинные ряды контейнеров, машины-фуры по краям
+  port: [
+    [1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,2,2,0,0,2,2,2,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,4,4,0,0,0,0,4,4,0,1],
+    [1,0,0,0,0,3,3,0,0,0,0,1],
+    [1,0,2,2,2,0,0,2,2,2,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,3,0,0,0,0,0,0,0,0,3,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,2,2,0,0,2,2,2,0,1],
+    [1,0,0,0,0,3,3,0,0,0,0,1],
+    [1,0,4,4,0,0,0,0,4,4,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,2,2,0,0,2,2,2,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1],
+  ],
+  // Казино — комнаты со стенами-перегородками
+  casino: [
+    [1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,0,0,0,0,0,0,2,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,3,0,0,0,0,0,0,3,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,0,0,0,0,0,0,1,1,1],
+    [1,0,0,0,0,2,2,0,0,0,0,1],
+    [1,1,1,0,0,0,0,0,0,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,0,0,0,0,0,0,3,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,2,0,0,0,0,0,0,2,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1],
+  ],
+  // Промзона — кластеры техники, узкие проходы между трубами
+  factory: [
+    [1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,2,0,3,3,0,2,2,0,1],
+    [1,0,2,2,0,3,3,0,2,2,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,0,0,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,3,0,2,2,2,2,0,3,0,1],
+    [1,0,3,0,0,0,0,0,0,3,0,1],
+    [1,0,3,0,2,2,2,2,0,3,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,0,0,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,2,0,3,3,0,2,2,0,1],
+    [1,0,2,2,0,3,3,0,2,2,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1],
+  ],
+  // Резиденция Дона — формальная планировка, лимузины, стены-залы
+  mansion: [
+    [1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,4,0,0,0,0,0,0,4,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,0,1,1,1,1,0,2,0,1],
+    [1,0,0,0,1,0,0,1,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,0,0,0,2,2,0,0,0,1,1],
+    [1,0,0,0,0,2,2,0,0,0,0,1],
+    [1,1,0,0,0,0,0,0,0,0,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,1,0,0,1,0,0,0,1],
+    [1,0,2,0,1,1,1,1,0,2,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,4,0,0,0,0,0,0,4,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1],
+  ],
+};
+
+// Берём карту района как ОСНОВУ (mutable копия — она будет разрушаться)
+const MAP = (DISTRICT_MAPS[CURRENT_LOC] || DISTRICT_MAPS.market).map(r => r.slice());
+
+// Описание типов клеток (цвета переопределяются темой района)
 const COVER_TYPES = {
-  1: { name: 'wall',   h: 1.4,  topColor: '#5a4a3a', sideColor: '#3a2e22', shape: 'box', hp: -1 }, // -1 = неуязвима
-  2: { name: 'crate',  h: 0.7,  topColor: '#8a5a30', sideColor: '#5a3818', shape: 'box', hp: 50 },
-  3: { name: 'barrel', h: 0.95, topColor: '#a23030', sideColor: '#6a1a1a', shape: 'cyl', hp: 35, explodeOnBreak: true },
-  4: { name: 'car',    h: 0.55, topColor: '#2a4a7a', sideColor: '#16284a', shape: 'box', hp: 120 },
+  1: { name: 'wall',   h: 1.4,  topColor: THEME.wallTop,   sideColor: THEME.wallSide,  shape: 'box', hp: -1 },
+  2: { name: 'crate',  h: 0.7,  topColor: THEME.crateTop,  sideColor: THEME.crateSide, shape: 'box', hp: 50 },
+  3: { name: 'barrel', h: 0.95, topColor: THEME.barrelTop, sideColor: THEME.barrelSide,shape: 'cyl', hp: 35, explodeOnBreak: true },
+  4: { name: 'car',    h: 0.55, topColor: THEME.carTop,    sideColor: THEME.carSide,   shape: 'box', hp: 120 },
 };
 
 // HP для каждой ячейки укрытия (инициализируется при старте)
@@ -678,9 +909,13 @@ function savePlayerLook(look) {
   try { localStorage.setItem('mafiozi_demo_look', JSON.stringify(look)); } catch(e) {}
 }
 
-// Игрок — стартовая позиция в центре расширенной карты
+// Игрок — стартовая позиция (центр карты, гарантированно открытый тайл)
 const player = {
-  r: 8.5, c: 8.5, hp: 100, hpMax: 100, angle: 0,
+  r: SPAWNS.player[0], c: SPAWNS.player[1],
+  hp: QP.playerHP, hpMax: QP.playerMax,
+  atk: QP.playerAtk, def: QP.playerDef,
+  name: QP.playerName,
+  angle: 0,
   fireCD: 0, walkPhase: 0, moving: false, hitT: 0,
   look: loadPlayerLook(),
   ammo: {}, // {wepKey: {cur, reloading, reloadEnd}}
@@ -707,7 +942,7 @@ function tryFirePlayer() {
   if (player.fireCD > 0) return;
   const cfg = WEAPON_FX_CFG[currentWeapon];
   if (!cfg) return;
-  if (cfg.melee) { fireWeapon(player); return; }
+  if (cfg.melee) { fireWeapon(player); if (typeof fightStats !== 'undefined') fightStats.shots++; return; }
   const a = getAmmo(currentWeapon);
   if (!a) return;
   const now = performance.now();
@@ -717,6 +952,7 @@ function tryFirePlayer() {
   }
   if (a.cur <= 0) { startReload(a, cfg); return; }
   fireWeapon(player);
+  if (typeof fightStats !== 'undefined') fightStats.shots++;
   a.cur -= 1;
   if (a.cur <= 0) startReload(a, cfg);
 }
@@ -730,23 +966,30 @@ function manualReload() {
   startReload(a, cfg);
 }
 
-// Босс для текущей "локации" — фиксированный look (детерминированный seed)
-// При переезде в hub это будет из BOSS_DATA[locationId]
-const BOSS_LOOK = { gender: 0, skin: 1, body: 2, face: 4, hair: 1, hat: 1 }; // мужик-качок в шраме, федора
+// Внешность босса берётся из BOSS_CFG (URL ?boss=...)
+const BOSS_LOOK = BOSS_CFG.look;
 
-// Враги: 1 босс + 3 рандомных миньона
+// Враги: 1 босс + 3 миньона. Миньоны конфигурируются от района (район = сложность).
 // AI: aiState — 'patrol' (бродит), 'chase' (бежит к игроку), 'shoot' (стреляет с позиции), 'rush' (босс-рывок)
-// weapon — какое оружие использует; fireCD — кулдаун в мс; sightR — радиус обнаружения
+const _DISTRICT_MINIONS = {
+  market:  [{w:'pistol',     fc:700,  hp: 60}, {w:'brass',       fc:600,  hp: 55}, {w:'bat',           fc:650, hp: 65}],
+  port:    [{w:'pistol',     fc:600,  hp: 80}, {w:'smg',         fc:1100, hp: 75}, {w:'pistol_heavy',  fc:850, hp: 85}],
+  casino:  [{w:'pistol_gold',fc:500,  hp: 90}, {w:'smg',         fc:1000, hp: 90}, {w:'pistol_heavy',  fc:750, hp: 100}],
+  factory: [{w:'shotgun',    fc:1400, hp:110}, {w:'rifle',       fc:550,  hp:100}, {w:'smg',           fc:900, hp:105}],
+  mansion: [{w:'rifle',      fc:500,  hp:130}, {w:'sniper',      fc:1700, hp:115}, {w:'shotgun',       fc:1200,hp:125}],
+};
+const _minions = _DISTRICT_MINIONS[CURRENT_LOC] || _DISTRICT_MINIONS.market;
 const enemies = [
-  { r: 2.5, c: 6.5, hp: 200, hpMax: 200, angle: 0, look: BOSS_LOOK, isBoss: true, name: 'Дон Карло',
-    weapon: 'shotgun', fireCD: 1500, sightR: 11, aiState: 'patrol', repositionT: 0, walkPhase: 0,
+  { r: SPAWNS.boss[0], c: SPAWNS.boss[1], hp: BOSS_CFG.hp, hpMax: BOSS_CFG.hp, angle: 0, look: BOSS_LOOK,
+    isBoss: true, name: BOSS_CFG.name, emoji: BOSS_CFG.emoji,
+    weapon: BOSS_CFG.weapon, fireCD: 1500, sightR: 11, aiState: 'patrol', repositionT: 0, walkPhase: 0,
     grenadeCD: 1800, rushCD: 5000, rushT: 0 },
-  { r: 12.5, c: 9.5, hp: 80,  hpMax: 80,  angle: 0, look: rndLook(), isBoss: false,
-    weapon: 'pistol', fireCD: 600, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0 },
-  { r: 14.5, c: 3.0, hp: 80, hpMax: 80,  angle: 0, look: rndLook(), isBoss: false,
-    weapon: 'smg', fireCD: 1200, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0 },
-  { r: 5.5, c: 2.5,  hp: 80, hpMax: 80,  angle: 0, look: rndLook(), isBoss: false,
-    weapon: 'pistol_heavy', fireCD: 900, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0 },
+  { r: SPAWNS.minions[0][0], c: SPAWNS.minions[0][1], hp: _minions[0].hp, hpMax: _minions[0].hp, angle: 0, look: rndLook(), isBoss: false,
+    weapon: _minions[0].w, fireCD: _minions[0].fc, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0 },
+  { r: SPAWNS.minions[1][0], c: SPAWNS.minions[1][1], hp: _minions[1].hp, hpMax: _minions[1].hp, angle: 0, look: rndLook(), isBoss: false,
+    weapon: _minions[1].w, fireCD: _minions[1].fc, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0 },
+  { r: SPAWNS.minions[2][0], c: SPAWNS.minions[2][1], hp: _minions[2].hp, hpMax: _minions[2].hp, angle: 0, look: rndLook(), isBoss: false,
+    weapon: _minions[2].w, fireCD: _minions[2].fc, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0 },
 ];
 
 const grenades = []; // {r, c, tr, tc, t, T, fromTeam, kind: 'grenade'|'molotov', dmg}
@@ -805,7 +1048,7 @@ const muzzles = []; // вспышки у дула: {r, c, life, max, angle}
 const corpses = []; // {r, c, life}
 const explosions = []; // {r, c, life, max, radius}
 
-let currentWeapon = 'pistol';
+let currentWeapon = INITIAL_WEAPON;
 
 // Камера
 const cam = { x: 0, y: 0 };
@@ -883,7 +1126,7 @@ function drawTile(r, c) {
   ctx.lineTo(p.x - wx,  p.y);
   ctx.closePath();
   const dark = (r + c) % 2 === 0;
-  ctx.fillStyle = dark ? '#1d2230' : '#222838';
+  ctx.fillStyle = dark ? THEME.floorA : THEME.floorB;
   ctx.fill();
   ctx.strokeStyle = 'rgba(0,0,0,.25)';
   ctx.lineWidth = 1;
@@ -2340,7 +2583,82 @@ function render() {
 }
 
 // ── UPDATE ─────────────────────────────────────────────────────────
+let gamePaused = true; // снимается при выборе тактики в катсцене
+// ── Stats боя ──────────────────────────────────────────────────────
+const fightStats = {
+  startMs: 0,      // performance.now() в момент старта (после катсцены)
+  endMs: 0,
+  shots: 0,
+  killsCounted: new Set(), // индексы убитых врагов
+  result: null,    // 'won' | 'lost' | null
+};
+function fightStatsBegin() {
+  fightStats.startMs = performance.now();
+  fightStats.endMs = 0;
+  fightStats.shots = 0;
+  fightStats.killsCounted = new Set();
+  fightStats.result = null;
+}
+function checkFightEnd() {
+  if (fightStats.result) return;
+  // Считаем убитых
+  for (let i = 0; i < enemies.length; i++) {
+    if (enemies[i].hp <= 0 && !fightStats.killsCounted.has(i)) {
+      fightStats.killsCounted.add(i);
+    }
+  }
+  // Босс — первый враг (isBoss=true).
+  // Победа имеет приоритет: если босс убит — это победа, даже если игрок умирает в этот же кадр.
+  const boss = enemies.find(e => e.isBoss);
+  if (boss && boss.hp <= 0) {
+    fightStats.result = 'won';
+    fightStats.endMs = performance.now();
+    setTimeout(showResultScene, 1200);
+  } else if (player.hp <= 0) {
+    fightStats.result = 'lost';
+    fightStats.endMs = performance.now();
+    setTimeout(showResultScene, 1500);
+  }
+}
+function showResultScene() {
+  const won = (fightStats.result === 'won');
+  document.getElementById('resEmoji').textContent = won ? '🏆' : '💀';
+  document.getElementById('resTitle').textContent = won ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ';
+  document.getElementById('resSubtitle').textContent = won
+    ? '— ' + (BOSS_CFG.name || 'Босс') + ' повержен —'
+    : '— ' + (BOSS_CFG.name || 'Босс') + ' оказался сильнее —';
+  const secs = Math.max(0, Math.round((fightStats.endMs - fightStats.startMs) / 1000));
+  const mm = Math.floor(secs / 60), ss = secs % 60;
+  document.getElementById('resTime').textContent = mm + ':' + String(ss).padStart(2, '0');
+  document.getElementById('resKills').textContent = fightStats.killsCounted.size + ' / ' + enemies.length;
+  document.getElementById('resShots').textContent = fightStats.shots;
+  document.getElementById('resHP').textContent = Math.max(0, Math.round(player.hp)) + ' / ' + player.hpMax;
+  document.getElementById('resTitle').style.color = won ? '#ffd76b' : '#ff7070';
+  document.getElementById('resultScene').style.display = 'flex';
+  gamePaused = true;
+}
+function sendResultAndClose(action) {
+  const tg = (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+  const payload = {
+    a: fightStats.result === 'won' ? 'battle_won' : 'battle_lost',
+    php: Math.max(0, Math.round(player.hp)),
+    pmp: 0,
+    gu: 0,
+    boss: QP.boss,
+    loc: CURRENT_LOC,
+    nav: action, // 'district' | 'menu' — куда вернуться (бот может игнорировать)
+  };
+  if (tg && tg.sendData) {
+    try { tg.sendData(JSON.stringify(payload)); } catch(e) {}
+    try { tg.close(); } catch(e) {}
+  } else {
+    // Демо-режим (не из Telegram): просто скрываем оверлей, чтобы можно было ещё пощёлкать
+    document.getElementById('resultScene').style.display = 'none';
+  }
+}
+
 function update(dt) {
+  if (gamePaused) return;
   // тик красной вспышки урона
   if (player.hitT > 0) player.hitT = Math.max(0, player.hitT - dt);
 
@@ -2655,6 +2973,9 @@ function update(dt) {
   const camLerp = 1 - Math.pow(0.001, dt); // плавность
   cam.x += (targetCamX - cam.x) * camLerp;
   cam.y += (targetCamY - cam.y) * camLerp;
+
+  // Проверка завершения боя (победа / поражение)
+  checkFightEnd();
 }
 
 function triggerExplosion(r, c, dmg) {
@@ -3136,14 +3457,14 @@ document.getElementById('rerollBtn').addEventListener('click', () => {
   savePlayerLook(player.look);
 });
 document.getElementById('resetBtn').addEventListener('click', () => {
-  enemies[0].hp = enemies[0].hpMax; enemies[0].r = 2.5; enemies[0].c = 6.5;
+  enemies[0].hp = enemies[0].hpMax; enemies[0].r = SPAWNS.boss[0]; enemies[0].c = SPAWNS.boss[1];
   for (let i = 1; i < enemies.length; i++) {
     enemies[i].hp = enemies[i].hpMax;
     enemies[i].look = rndLook();
   }
-  enemies[1].r = 12.5; enemies[1].c = 9.5;
-  enemies[2].r = 14.5; enemies[2].c = 3.0;
-  if (enemies[3]) { enemies[3].r = 5.5; enemies[3].c = 2.5; }
+  if (enemies[1]) { enemies[1].r = SPAWNS.minions[0][0]; enemies[1].c = SPAWNS.minions[0][1]; }
+  if (enemies[2]) { enemies[2].r = SPAWNS.minions[1][0]; enemies[2].c = SPAWNS.minions[1][1]; }
+  if (enemies[3]) { enemies[3].r = SPAWNS.minions[2][0]; enemies[3].c = SPAWNS.minions[2][1]; }
   enemies.forEach(e => {
     e.aiState = 'patrol'; e.targetR = null; e.targetC = null;
     e.repositionT = 0; e.fireCD = 0;
@@ -3169,8 +3490,12 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   player.ammo = {};
   player.lostParts = {};
   player.hp = player.hpMax;
-  player.r = 8.5; player.c = 8.5;
+  player.r = SPAWNS.player[0]; player.c = SPAWNS.player[1];
   player.hitT = 0;
+  // Сбрасываем стат + закрываем финальный экран если был
+  fightStatsBegin();
+  document.getElementById('resultScene').style.display = 'none';
+  gamePaused = false;
 });
 
 // ── Game loop ──────────────────────────────────────────────────────
@@ -3261,26 +3586,28 @@ function renderHudWepIcon() {
   }
 }
 
-// ── HUD: чип уровня тревоги в левом блоке ──────────────────────────
-const alertChipEl = document.getElementById('alertChip');
+// ── HUD: уровень тревоги — иконка + подсветка рамки HP-бара ────────
 const alertIconEl = document.getElementById('alertIcon');
-const alertTextEl = document.getElementById('alertText');
+const hpBarBigEl  = document.getElementById('hpBarBig');
 let _lastAlertLevel = -1;
 function renderAlertBanner() {
   if (alertLevel === _lastAlertLevel) return;
   _lastAlertLevel = alertLevel;
-  alertChipEl.classList.remove('suspect', 'combat');
+  alertIconEl.classList.remove('suspect', 'combat');
+  hpBarBigEl.classList.remove('alert-suspect', 'alert-combat');
   if (alertLevel === 0) {
     alertIconEl.textContent = '👻';
-    alertTextEl.textContent = 'Не замечен';
+    alertIconEl.title = 'Не замечен';
   } else if (alertLevel === 1) {
     alertIconEl.textContent = '💡';
-    alertTextEl.textContent = 'Заподозрили';
-    alertChipEl.classList.add('suspect');
+    alertIconEl.title = 'Заподозрили';
+    alertIconEl.classList.add('suspect');
+    hpBarBigEl.classList.add('alert-suspect');
   } else {
     alertIconEl.textContent = '🔴';
-    alertTextEl.textContent = 'Обнаружили! БОЙ';
-    alertChipEl.classList.add('combat');
+    alertIconEl.title = 'Обнаружили! БОЙ';
+    alertIconEl.classList.add('combat');
+    hpBarBigEl.classList.add('alert-combat');
   }
 }
 
@@ -3318,10 +3645,12 @@ function loop(t) {
 
   // HUD: HP-бар + красная вспышка + game over
   const hpEl = document.getElementById('hpVal');
+  const hpMaxEl = document.getElementById('hpMaxVal');
   const hpBar = document.getElementById('hpBarFill');
   const flash = document.getElementById('hitFlash');
   const go = document.getElementById('gameOver');
   if (hpEl) hpEl.textContent = Math.round(player.hp);
+  if (hpMaxEl) hpMaxEl.textContent = player.hpMax;
   if (hpBar) {
     const ratio = player.hp / player.hpMax;
     hpBar.style.width = (ratio * 100) + '%';
@@ -3370,6 +3699,34 @@ initCoverHP();
 updateMeleeBtn();
 // Сохраняем оригинальную карту для респа
 const MAP_ORIGINAL = MAP.map(row => row.slice());
+
+// ── Заполняем катсцену данными босса/района ────────────────────────
+(function initCatscene() {
+  document.getElementById('catLoc').textContent       = THEME.name;
+  document.getElementById('catBossEmoji').textContent = BOSS_CFG.emoji;
+  document.getElementById('catBossName').textContent  = BOSS_CFG.name;
+  document.getElementById('catBossHP').textContent    = '❤️ ' + BOSS_CFG.hp + ' HP';
+  document.getElementById('catQuote').textContent     = '«' + BOSS_CFG.quote + '»';
+  // подсвечиваем нужное оружие в топбаре
+  document.querySelectorAll('.wbtn').forEach(b => {
+    b.classList.toggle('active', b.dataset.wep === INITIAL_WEAPON);
+  });
+  const cat = document.getElementById('catscene');
+  const startGame = (mode) => {
+    cat.style.display = 'none';
+    gamePaused = false;
+    fightStatsBegin();
+    if (mode === 'frontal') {
+      setAlert(2, 'manual');
+    }
+  };
+  document.getElementById('btnStealth').onclick = () => startGame('stealth');
+  document.getElementById('btnFrontal').onclick = () => startGame('frontal');
+  // Кнопки финального экрана
+  document.getElementById('btnBackDistrict').onclick = () => sendResultAndClose('district');
+  document.getElementById('btnBackMenu').onclick     = () => sendResultAndClose('menu');
+})();
+
 requestAnimationFrame(loop);
 </script>
 </body>
