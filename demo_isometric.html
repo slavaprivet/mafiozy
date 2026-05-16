@@ -169,7 +169,6 @@
       <div>☠ ВЫ МЕРТВЫ ☠</div>
       <div style="font-size:13px;color:#ccc;font-weight:normal;margin-top:8px;pointer-events:auto">нажмите «↻ Респ» в HUD</div>
     </div>
-    <canvas id="minimap" width="140" height="200" style="position:absolute;right:10px;top:10px;z-index:6;border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(0,0,0,.5);pointer-events:none"></canvas>
     <div id="hint">Левая половина — ходить<br>Правая — целиться/стрелять</div>
     <!-- Финальный экран: статистика + кнопки возврата -->
     <div id="resultScene" style="position:absolute;inset:0;z-index:31;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%, rgba(30,20,15,.65), rgba(0,0,0,.96));backdrop-filter:blur(4px);color:#fff;gap:10px;padding:24px;text-align:center;pointer-events:auto">
@@ -320,6 +319,8 @@ const QP = {
   baseCash:    _qInt('cash', 0),   // базовые деньги за босса
   mlvl:        _qInt('mlvl', 1),   // минимальный уровень района — даёт множитель наград
   minions:     _qInt('minions', 3),// сколько миньонов у босса (2..18) — от этого размер карты
+  api:         _UP.get('api') || '', // base URL HTTP API бота (из cloudflare-туннеля)
+  uid:         _UP.get('uid') || '', // telegram-id игрока — для эндпойнта /battle/{uid}/result
 };
 // Множитель района: ×1.0 (рынок, mlvl=1) → ×2.9 (резиденция, mlvl=20)
 const LOC_REWARD_MUL = 1 + 0.10 * Math.max(0, QP.mlvl - 1);
@@ -2658,7 +2659,6 @@ function showResultScene() {
   gamePaused = true;
 }
 function sendResultAndClose(action) {
-  const tg = (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
   const payload = {
     a: fightStats.result === 'won' ? 'battle_won' : 'battle_lost',
     php: Math.max(0, Math.round(player.hp)),
@@ -2666,26 +2666,61 @@ function sendResultAndClose(action) {
     gu: 0,
     boss: QP.boss,
     loc: CURRENT_LOC,
-    nav: action, // 'district' | 'menu' — куда вернуться (бот может игнорировать)
+    nav: action, // 'district' | 'menu' — пока не используется на бэке
     xp:   fightStats.expGain  || 0,
     cash: fightStats.cashGain || 0,
   };
-  // 1) Шлём результат боту (он начислит HP/опыт/деньги и пришлёт сообщение).
-  //    tg.sendData() по доке САМ закрывает WebApp.
-  if (tg && typeof tg.sendData === 'function') {
-    try { tg.sendData(JSON.stringify(payload)); } catch(e) {}
-  }
-  // 2) Дизейблим кнопки, чтобы повторный тап не дёргал sendData ещё раз
+  // Дизейблим кнопки сразу — повторный тап ничего не даёт.
   try {
     document.getElementById('btnBackDistrict').disabled = true;
     document.getElementById('btnBackMenu').disabled     = true;
   } catch(e) {}
-  // 3) Fallback: если WebApp не закрылся (старый клиент, демо-режим в браузере
-  //    или sendData недоступен) — через 300мс гарантированно переезжаем в хаб,
-  //    чтобы игрок не залип на финальном экране.
-  setTimeout(() => {
-    window.location.href = 'hub.html';
-  }, 300);
+
+  // Строит URL хаба, подставляя обновлённое состояние персонажа из ответа API.
+  // Если ответа нет — возвращает в hub.html без изменений и hub использует
+  // те параметры, что пришли в боёвку (т.е. до боя).
+  function navigateToHub(state) {
+    const out = new URLSearchParams();
+    // Переносим ВСЕ исходные параметры боёвки кроме чисто-боевых
+    const skip = new Set(['boss','loc','exp','cash','mlvl','minions','bname','bhp','bemoji']);
+    _UP.forEach((v, k) => { if (!skip.has(k)) out.set(k, v); });
+    // Обновлённое состояние перетирает соответствующие поля
+    if (state) {
+      if (state.hp    != null) out.set('hp',    state.hp);
+      if (state.maxhp != null) out.set('maxhp', state.maxhp);
+      if (state.mp    != null) out.set('mp',    state.mp);
+      if (state.maxmp != null) out.set('maxmp', state.maxmp);
+      if (state.cash  != null) out.set('cash',  state.cash);
+      if (state.lvl   != null) out.set('lvl',   state.lvl);
+      if (state.atk   != null) out.set('atk',   state.atk);
+      if (state.def   != null) out.set('def',   state.def);
+      if (state.kills != null) out.set('kills', state.kills);
+    }
+    window.location.href = 'hub.html?' + out.toString();
+  }
+
+  // 1) HTTP API: пишем результат в БД молча, без сообщений в чат.
+  if (QP.api && QP.uid) {
+    const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    if (ctl) setTimeout(() => ctl.abort(), 5000);
+    fetch(QP.api + '/battle/' + encodeURIComponent(QP.uid) + '/result', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify(payload),
+      signal:  ctl ? ctl.signal : undefined,
+    })
+    .then(r => r.ok ? r.json() : null)
+    .catch(() => null)
+    .then(j => navigateToHub(j && j.state));
+    return;
+  }
+  // 2) Fallback: API не настроен (нет туннеля) — попробуем sendData в чат,
+  //    после чего/независимо переезжаем в hub.html.
+  const tg = (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+  if (tg && typeof tg.sendData === 'function') {
+    try { tg.sendData(JSON.stringify(payload)); } catch(e) {}
+  }
+  setTimeout(() => navigateToHub(null), 300);
 }
 
 function update(dt) {
@@ -3505,59 +3540,6 @@ document.getElementById('meleeBtn').addEventListener('click', () => {
 document.getElementById('reloadBtn').addEventListener('click', () => manualReload());
 window.addEventListener('keydown', (e) => { if (e.key === 'r' || e.key === 'R') manualReload(); });
 
-// ── Мини-карта ─────────────────────────────────────────────────────
-const mm = document.getElementById('minimap');
-const mctx = mm.getContext('2d');
-function renderMinimap() {
-  const mw = mm.width, mh = mm.height;
-  const cellW = mw / COLS, cellH = mh / ROWS;
-  mctx.fillStyle = '#0a0d14'; mctx.fillRect(0, 0, mw, mh);
-  // тайлы
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const t = MAP[r][c];
-      if (t === 0) continue;
-      mctx.fillStyle = (t === 1) ? '#444' : (t === 3 ? '#604040' : '#604830');
-      mctx.fillRect(c * cellW, r * cellH, cellW, cellH);
-    }
-  }
-  // трупы (тёмные точки)
-  enemies.forEach(e => {
-    if (e.hp > 0) return;
-    mctx.fillStyle = '#5a1010';
-    mctx.beginPath();
-    mctx.arc(e.c * cellW + cellW/2, e.r * cellH + cellH/2, Math.min(cellW, cellH) * 0.22, 0, Math.PI*2);
-    mctx.fill();
-  });
-  // живые враги (красные/сиреневые)
-  enemies.forEach(e => {
-    if (e.hp <= 0) return;
-    mctx.fillStyle = e.isBoss ? '#c060ff' : '#ff3030';
-    mctx.beginPath();
-    const radius = e.isBoss ? Math.min(cellW, cellH) * 0.5 : Math.min(cellW, cellH) * 0.35;
-    mctx.arc(e.c * cellW + cellW/2, e.r * cellH + cellH/2, radius, 0, Math.PI*2);
-    mctx.fill();
-    if (e.isBoss) {
-      mctx.strokeStyle = '#fff'; mctx.lineWidth = 1;
-      mctx.stroke();
-    }
-  });
-  // игрок (зелёный)
-  mctx.fillStyle = '#5dd55d';
-  mctx.beginPath();
-  mctx.arc(player.c * cellW + cellW/2, player.r * cellH + cellH/2, Math.min(cellW, cellH) * 0.42, 0, Math.PI*2);
-  mctx.fill();
-  mctx.strokeStyle = '#fff'; mctx.lineWidth = 1.5;
-  mctx.stroke();
-  // направление взгляда игрока
-  const dx = Math.cos(player.angle), dy = Math.sin(player.angle);
-  mctx.strokeStyle = '#5dd55d'; mctx.lineWidth = 2;
-  mctx.beginPath();
-  mctx.moveTo(player.c * cellW + cellW/2, player.r * cellH + cellH/2);
-  mctx.lineTo(player.c * cellW + cellW/2 + dx * cellW * 1.2, player.r * cellH + cellH/2 + dy * cellH * 1.2);
-  mctx.stroke();
-}
-
 // ── Кнопки: перегенерировать игрока / врагов ───────────────────────
 document.getElementById('rerollBtn').addEventListener('click', () => {
   player.look = rndLook();
@@ -3745,7 +3727,6 @@ function renderBackstabHint() {
 
 let lastT = performance.now();
 let fpsAcc = 0, fpsN = 0, fpsLast = lastT;
-let mmFrame = 0;
 function loop(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000);
   lastT = t;
@@ -3756,8 +3737,6 @@ function loop(t) {
   }
   update(dt);
   render();
-  // Мини-карта — раз в 5 кадров
-  if (++mmFrame % 5 === 0) renderMinimap();
 
   // HUD: HP-бар + красная вспышка + game over
   const hpEl = document.getElementById('hpVal');

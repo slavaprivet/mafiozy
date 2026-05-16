@@ -9926,6 +9926,97 @@ async def _coop_http_app():
             'captured': captured,
         }))
 
+    # === HTTP: результат боя из demo_isometric.html ===
+    # Закрывает запись битвы, начисляет опыт/деньги/убийства, обновляет HP
+    # и возвращает свежее состояние персонажа в JSON. В чат бот ничего не
+    # шлёт — мини-апп остаётся открытым и сразу переезжает в hub.html.
+    async def h_battle_result(request):
+        try:
+            uid = int(request.match_info.get('uid', '0'))
+        except Exception:
+            return web.json_response({'error': 'bad uid'}, status=400)
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        action = data.get('a') or ''
+        if action not in ('battle_won', 'battle_lost'):
+            return web.json_response({'error': 'bad action'}, status=400)
+        char = await get_character(uid)
+        if not char:
+            return web.json_response({'error': 'no char'}, status=404)
+        battle = await get_battle(uid)
+        # boss_id — приоритет из payload, fallback на запись битвы
+        boss_id = data.get('boss') or (battle.get('boss_id') if battle else '') or 'kosoy'
+        boss = BOSSES.get(boss_id, BOSSES['kosoy'])
+        loc_id = data.get('loc') or (battle.get('location') if battle else '') or 'market'
+        loc_min_lvl = LOCATIONS.get(loc_id, {}).get('min_level', 1)
+        loc_mul     = 1 + 0.10 * max(0, loc_min_lvl - 1)
+        if action == 'battle_won':
+            php = int(data.get('php', char['hp']) or 0)
+            gren_used = int(data.get('gu', 0) or 0)
+            for _ in range(min(gren_used, 10)):
+                await remove_item(uid, 'grenade')
+            # Доверяем числам WebApp, но кэпим x3 от базовой формулы.
+            xp_payload   = int(data.get('xp',   0) or 0)
+            cash_payload = int(data.get('cash', 0) or 0)
+            base_exp  = round(boss['exp']  * loc_mul)
+            base_cash = round(boss['cash'] * loc_mul)
+            exp_gain  = min(xp_payload,   base_exp  * 3) if xp_payload  > 0 else base_exp
+            cash_gain = min(cash_payload, base_cash * 3) if cash_payload > 0 else base_cash
+            if battle:
+                await end_battle(uid)
+            await update_character(uid,
+                hp=max(1, php), mana=char.get('mana', 0),
+                exp=char['exp'] + exp_gain,
+                cash=char['cash'] + cash_gain,
+                kills=char['kills'] + 1)
+            updated = await get_character(uid)
+            try:
+                await check_level_up(uid, updated)
+                updated = await get_character(uid)
+            except Exception:
+                pass
+            return web.json_response({
+                'ok': True,
+                'result': 'won',
+                'rewards': {'exp': exp_gain, 'cash': cash_gain},
+                'state': {
+                    'hp':    updated['hp'],
+                    'maxhp': updated['max_hp'],
+                    'mp':    updated.get('mana', 0),
+                    'maxmp': updated.get('max_mana', 0),
+                    'cash':  updated['cash'],
+                    'exp':   updated['exp'],
+                    'lvl':   updated.get('level', 1),
+                    'atk':   updated.get('attack', 20),
+                    'def':   updated.get('defense', 10),
+                    'kills': updated['kills'],
+                },
+            })
+        else:  # battle_lost
+            if battle:
+                await end_battle(uid)
+            await update_character(uid, hp=1, mana=0)
+            updated = await get_character(uid)
+            return web.json_response({
+                'ok': True,
+                'result': 'lost',
+                'rewards': {'exp': 0, 'cash': 0},
+                'state': {
+                    'hp':    updated['hp'],
+                    'maxhp': updated['max_hp'],
+                    'mp':    updated.get('mana', 0),
+                    'maxmp': updated.get('max_mana', 0),
+                    'cash':  updated['cash'],
+                    'exp':   updated['exp'],
+                    'lvl':   updated.get('level', 1),
+                    'atk':   updated.get('attack', 20),
+                    'def':   updated.get('defense', 10),
+                    'kills': updated['kills'],
+                },
+            })
+
     aio_app = web.Application()
     aio_app.router.add_route('OPTIONS', '/{path_info:.*}', h_options)
     aio_app.router.add_post('/coop/create',       h_create)
@@ -9949,6 +10040,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
     aio_app.router.add_post('/inv/{uid}/equip',    h_inv_equip)
+    aio_app.router.add_post('/battle/{uid}/result', h_battle_result)
 
     from aiohttp import web as _web
     runner = _web.AppRunner(aio_app)

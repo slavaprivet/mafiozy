@@ -4892,7 +4892,10 @@ function startBattle(bossId, locId){
   const boss = BOSS_DATA[bossId];
   if (!boss) return;
   const loc  = LOC_DATA[locId] || {};
-  const params = new URLSearchParams();
+  // Форвардим ВСЕ URL-параметры хаба (api, uid, lvl, dia, kills, look-поля и т.д.) —
+  // боёвка обратно передаст их в hub.html, чтобы после возврата состояние
+  // персонажа сохранилось без выкида в Telegram-чат.
+  const params = new URLSearchParams(location.search);
   params.set('boss',  bossId);
   params.set('loc',   locId);
   params.set('name',  DATA.name || 'Игрок');
@@ -4901,7 +4904,9 @@ function startBattle(bossId, locId){
   params.set('atk',   DATA.atk   || 30);
   params.set('def',   DATA.def   || 10);
   params.set('weapon', DATA.weapon || 'fists');
-  // База наград от босса + минимальный уровень района (для множителя в боёвке)
+  // База наград от босса + минимальный уровень района (для множителя в боёвке).
+  // Перезаписывают возможные `exp`/`cash` из хаба — для боёвки это reward'ы босса,
+  // а не персонажа. На возврате из боёвки эти ключи отбрасываются.
   params.set('exp',  boss.exp  || 0);
   params.set('cash', boss.cash || 0);
   params.set('mlvl', loc.minLvl || 1);
