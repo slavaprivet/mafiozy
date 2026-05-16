@@ -8060,34 +8060,41 @@ function _gzFlash(emoji){
 
 // ── Авто-роутинг после боя ───────────────────────────────────────────
 // Боёвка (demo_isometric.html) при выходе по кнопке «↩ К району» добавляет
-// ?view=district&loc=<id>. На входе в hub мы по умолчанию показываем главное
-// меню (page-main). Если пришёл такой параметр — открываем нужную страницу.
-// Идём ТЕМ ЖЕ путём, что обычная навигация по клику (nav('explore') →
-// openDistrict), чтобы не разъехались body-классы, BackButton и т.д.
+// ?view=district&loc=<id>. По умолчанию показывается главное меню; если
+// пришёл такой параметр — напрямую скрываем main и открываем район
+// (не через nav('explore'), чтобы не мигать промежуточным списком и не
+// плодить лишние state-переходы, на которых раньше слетал роутинг).
 function postBattleRoute() {
+  const view = P.get('view');
+  if (view !== 'district') return;
+  const locId = P.get('loc');
+  // Скрыть главную и все subpage перед открытием района — иначе
+  // page-main остаётся видимой, и кажется что «выкинуло в меню».
   try {
-    const view = P.get('view');
-    if (!view) return;
-    if (view === 'district') {
-      const locId = P.get('loc');
-      // Если loc отсутствует/неизвестен — открываем хотя бы список районов,
-      // а не оставляем игрока на главной (это и есть «не возвращается в район»).
-      if (!locId || !LOC_DATA[locId]) {
-        if (typeof nav === 'function') nav('explore');
-        return;
-      }
-      if (typeof nav === 'function') nav('explore');
+    const pm = document.getElementById('page-main');
+    if (pm) pm.style.display = 'none';
+    document.querySelectorAll('.subpage').forEach(p => p.style.display = 'none');
+    document.body.classList.add('on-subpage');
+  } catch(e) {}
+  // Открываем район. Если loc неизвестен — fallback на explore.
+  try {
+    if (locId && LOC_DATA[locId] && typeof openDistrict === 'function') {
       openDistrict(locId);
+    } else if (typeof nav === 'function') {
+      nav('explore');
     }
   } catch(e) {
-    // Если что-то упало — пытаемся хотя бы открыть список районов.
     try { if (typeof nav === 'function') nav('explore'); } catch(_) {}
   }
+  window.scrollTo(0, 0);
 }
-// DOM на этом месте уже разобран (скрипт в конце body), но openDistrict
-// дёргает renderBossList и т.д. — лучше отложить на следующий тик,
-// чтобы все верхние init-функции отработали.
-setTimeout(postBattleRoute, 0);
+// Запускаем после полного парсинга DOM. Если событие уже было, выполнить
+// прямо сейчас — иначе постBattleRoute может не получить ссылки на DOM.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', postBattleRoute);
+} else {
+  postBattleRoute();
+}
 </script>
 
 
