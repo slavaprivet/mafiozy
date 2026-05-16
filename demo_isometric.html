@@ -316,13 +316,15 @@ const canvas = document.getElementById('gc');
 const ctx = canvas.getContext('2d');
 window.__gameCtx = ctx;
 
-// Telegram WebApp init — выставляем готовность и фуллскрин, если в боте
+// Telegram WebApp init — выставляем готовность и фуллскрин, если в боте.
+// Дополнительно: переразмер канваса при изменении viewport (TG расширяется не сразу).
+const _TG = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
 (function() {
-  const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
-  if (tg) {
-    try { tg.ready(); } catch(e) {}
-    try { tg.expand(); } catch(e) {}
-    try { tg.setHeaderColor && tg.setHeaderColor('#0b0d12'); } catch(e) {}
+  if (_TG) {
+    try { _TG.ready(); } catch(e) {}
+    try { _TG.expand(); } catch(e) {}
+    try { _TG.setHeaderColor && _TG.setHeaderColor('#0b0d12'); } catch(e) {}
+    try { _TG.onEvent && _TG.onEvent('viewportChanged', () => { if (typeof resize === 'function') resize(); }); } catch(e) {}
   }
 })();
 
@@ -405,10 +407,9 @@ const ISO_WEAPONS = new Set(['fists','brass','bat','blade_short','blade_long','p
 const WEAPON_ALIASES = { nagan:'pistol', tt:'pistol', pm:'pistol', glock:'pistol', revolver:'pistol_heavy', desert_eagle:'pistol_heavy', knife:'blade_short', katana:'blade_long', ak:'rifle', m4:'rifle', ump:'smg', mp5:'smg' };
 const INITIAL_WEAPON = (QP.weapon && (ISO_WEAPONS.has(QP.weapon) ? QP.weapon : (WEAPON_ALIASES[QP.weapon] || 'pistol'))) || 'pistol';
 
-// ── Спавны: 4 угла + позиция игрока. Босс занимает индекс по boss_id,
-//    миньоны — остальные 3 угла. Это даёт 4 разных стартовых раскладов
-//    в каждом районе (по числу боссов в нём).
-const CORNERS = [[1.5, 1.5], [1.5, 10.5], [15.5, 1.5], [15.5, 10.5]];
+// ── Спавны: вычислим ПОСЛЕ MAP (нужны для findOpenSpot). Босс занимает
+//    индекс по boss_id из BOSS_CORNER_IDX — 4 разных стартовых раскладки
+//    в каждом районе (по числу боссов).
 const BOSS_CORNER_IDX = {
   // Рынок
   kosoy: 0, bychok: 1, zhigan: 2, shustryy: 3,
@@ -421,14 +422,6 @@ const BOSS_CORNER_IDX = {
   // Резиденция
   sedoy: 0, prizrak: 1, don_karlo: 2, vizir: 3,
 };
-function getSpawns() {
-  const playerPos = [10.5, 5.5]; // центр-низ, открытый тайл на всех 5 картах
-  const idx = (BOSS_CORNER_IDX[QP.boss] != null) ? BOSS_CORNER_IDX[QP.boss] : 0;
-  const bossPos = CORNERS[idx];
-  const minionCorners = CORNERS.filter((_, i) => i !== idx);
-  return { player: playerPos, boss: bossPos, minions: minionCorners };
-}
-const SPAWNS = getSpawns();
 
 // Карта (17 рядов × 12 столбцов) — расширенная арена
 const COLS = 12, ROWS = 17;
@@ -540,6 +533,58 @@ const DISTRICT_MAPS = {
 
 // Берём карту района как ОСНОВУ (mutable копия — она будет разрушаться)
 const MAP = (DISTRICT_MAPS[CURRENT_LOC] || DISTRICT_MAPS.market).map(r => r.slice());
+
+// ── Поиск ближайшего открытого тайла (нужен для безопасного спавна) ─
+function findOpenSpot(targetR, targetC, taken, maxRadius) {
+  taken = taken || [];
+  maxRadius = maxRadius || 6;
+  for (let radius = 0; radius <= maxRadius; radius++) {
+    const cells = [];
+    if (radius === 0) {
+      cells.push([Math.floor(targetR), Math.floor(targetC)]);
+    } else {
+      for (let dr = -radius; dr <= radius; dr++) {
+        for (let dc = -radius; dc <= radius; dc++) {
+          if (Math.abs(dr) !== radius && Math.abs(dc) !== radius) continue;
+          cells.push([Math.floor(targetR) + dr, Math.floor(targetC) + dc]);
+        }
+      }
+    }
+    for (const [r, c] of cells) {
+      if (r < 1 || r > ROWS - 2 || c < 1 || c > COLS - 2) continue;
+      if (MAP[r][c] !== 0) continue;
+      const tooClose = taken.some(([er, ec]) =>
+        Math.abs(er - r - 0.5) < 1.5 && Math.abs(ec - c - 0.5) < 1.5);
+      if (tooClose) continue;
+      return [r + 0.5, c + 0.5];
+    }
+  }
+  return [targetR, targetC]; // fallback
+}
+
+// Стартовые позиции: игрок в центре, 4 точки вокруг на расстоянии ~3-4 тайла —
+// сразу видны на мобильном вьюпорте. Если позиция упирается в укрытие, берём
+// ближайший открытый тайл.
+const SPAWNS = (function getSpawns() {
+  const playerPos = findOpenSpot(8.5, 5.5, []);
+  const taken = [playerPos];
+  // 4 диагональных направления вокруг игрока
+  const dirs = [
+    [playerPos[0] - 3, playerPos[1] - 2], // СЗ — corner 0
+    [playerPos[0] - 3, playerPos[1] + 2], // СВ — corner 1
+    [playerPos[0] + 4, playerPos[1] - 2], // ЮЗ — corner 2
+    [playerPos[0] + 4, playerPos[1] + 2], // ЮВ — corner 3
+  ];
+  const spots = dirs.map(([r, c]) => {
+    const s = findOpenSpot(r, c, taken);
+    taken.push(s);
+    return s;
+  });
+  const idx = (BOSS_CORNER_IDX[QP.boss] != null) ? BOSS_CORNER_IDX[QP.boss] : 0;
+  const bossPos = spots[idx];
+  const minionPositions = spots.filter((_, i) => i !== idx);
+  return { player: playerPos, boss: bossPos, minions: minionPositions };
+})();
 
 // Описание типов клеток (цвета переопределяются темой района)
 const COVER_TYPES = {
@@ -3638,6 +3683,11 @@ let mmFrame = 0;
 function loop(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000);
   lastT = t;
+  // Страховка: если канвас оказался 0×0 (Telegram WebApp ещё не раскрылся
+  // на момент первого resize()) — пересчитываем размер.
+  if (canvas.width === 0 || canvas.height === 0) {
+    try { resize(); } catch(e) {}
+  }
   update(dt);
   render();
   // Мини-карта — раз в 5 кадров
