@@ -28,25 +28,25 @@
   }
   .aim-knob { background: radial-gradient(circle at 35% 30%, #ffe080, #c89030 80%); }
   #hud {
-    position: absolute; left: 10px; top: 10px; z-index: 6;
+    position: absolute; left: 8px; top: 8px; z-index: 6;
     background: linear-gradient(180deg, rgba(20,24,32,.92) 0%, rgba(10,12,18,.85) 100%);
-    padding: 8px 12px 8px 8px; border-radius: 12px;
+    padding: 6px 8px; border-radius: 10px;
     border: 1px solid #3a4452;
     box-shadow: 0 4px 14px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
-    font-size: 11px; line-height: 1.3;
-    display: flex; gap: 10px; align-items: center;
-    min-width: 240px;
+    font-size: 11px; line-height: 1.25;
+    display: flex; gap: 8px; align-items: center;
+    max-width: calc(100vw - 16px);
   }
   #hudAvatar {
-    width: 88px; height: 88px;
-    border-radius: 12px;
+    width: 60px; height: 60px;
+    border-radius: 10px;
     background: radial-gradient(circle at 50% 30%, #2a3142 0%, #14181f 100%);
     border: 2px solid #4a5468;
     box-shadow: inset 0 0 8px rgba(0,0,0,.6);
     flex-shrink: 0;
     display: block;
   }
-  #hudInfo { display: flex; flex-direction: column; gap: 3px; flex: 1; pointer-events: none; }
+  #hudInfo { display: flex; flex-direction: column; gap: 4px; flex: 1; pointer-events: none; min-width: 0; }
   #hudInfo .row1 {
     display: flex; align-items: center; gap: 6px;
     font-size: 12px; font-weight: 700; color: #ffd76b;
@@ -88,9 +88,6 @@
   }
   #hpBarFill.low { background: linear-gradient(90deg,#ffd24a,#cf8a20); }
   #hpBarFill.crit { background: linear-gradient(90deg,#ff5050,#a02020); }
-  #hudInfo .fps-row {
-    font-size: 9px; color: #5a6478; pointer-events: none;
-  }
   #alertIcon {
     font-size: 14px; line-height: 1;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.6));
@@ -117,6 +114,11 @@
   }
   #hudBtns button:hover { background: #3a4458; color: #ffd76b; }
   #hudBtns button:active { transform: scale(.95); }
+  /* Пульсация кнопки стелс-килла — чтобы её было видно среди боевого UI. */
+  @keyframes meleePulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(255,40,40,.45), 0 2px 8px rgba(0,0,0,.6); transform: scale(1); }
+    50%      { box-shadow: 0 0 22px rgba(255,60,60,.85), 0 2px 10px rgba(0,0,0,.7); transform: scale(1.05); }
+  }
   /* Мини-обучение в начале боя: показывается ~2 сек и плавно гаснет.
      pointer-events:none — НЕ перехватывает тапы по стикам/кнопкам. */
   #tutorial {
@@ -159,7 +161,6 @@
           <span class="hp-nums"><span id="hpVal">100</span><span style="color:#5a6478">/</span><span id="hpMaxVal">100</span></span>
           <span id="alertIcon" title="Не замечен">👻</span>
         </div>
-        <div class="fps-row">FPS: <span id="fps">0</span></div>
       </div>
       <div id="hudBtns">
         <button id="rerollBtn">🎲 Перс</button>
@@ -178,9 +179,11 @@
       </div>
       <div style="display:flex;gap:8px;pointer-events:auto">
         <button id="reloadBtn" title="Перезарядка (R)" style="width:52px;height:52px;background:rgba(40,50,70,.85);border:2px solid #4a5468;border-radius:10px;color:#ffd76b;font-size:11px;font-weight:bold;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)">↻<br>R</button>
-        <button id="meleeBtn" title="Ближний бой" style="width:64px;height:64px;background:rgba(60,30,30,.85);border:2px solid #7a3a3a;border-radius:12px;color:#ffd76b;font-size:30px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.5);position:relative">
-          <span id="meleeIcon">👊</span>
-          <span id="meleeLabel" style="position:absolute;left:0;right:0;bottom:2px;font-size:9px;color:#cfd6e6;font-weight:bold">кулаки</span>
+        <!-- Кнопка стелс-килла. По умолчанию скрыта; renderBackstabHint
+             показывает её, если игрок стоит за спиной у врага. -->
+        <button id="meleeBtn" title="Стелс-килл" style="display:none;width:72px;height:72px;background:rgba(80,20,20,.92);border:2px solid #c83030;border-radius:14px;color:#ff5050;font-size:34px;cursor:pointer;box-shadow:0 0 16px rgba(255,40,40,.45),0 2px 8px rgba(0,0,0,.6);position:relative;animation:meleePulse 1s ease-in-out infinite">
+          <span id="meleeIcon">🔪</span>
+          <span id="meleeLabel" style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#ff8080;font-weight:bold;letter-spacing:1px">УБИТЬ</span>
         </button>
       </div>
     </div>
@@ -3537,45 +3540,26 @@ let lastMeleeWeapon = (_initCfg && _initCfg.melee) ? INITIAL_WEAPON : 'fists';
   if (wn) wn.textContent = weaponLabel(INITIAL_WEAPON);
 }
 
-// Кнопка melee — переключает на ближний бой / делает атаку если уже на melee
-const MELEE_ICONS = { fists: '👊', brass: '✊', chain: '⛓', bat: '🏏', blade_short: '🗡', blade_long: '⚔', katana: '⚔' };
-const MELEE_LABELS = { fists: 'кулаки', brass: 'кастет', chain: 'цепь', bat: 'бита', blade_short: 'нож', blade_long: 'катана' };
-function updateMeleeBtn() {
-  const icon = document.getElementById('meleeIcon');
-  const label = document.getElementById('meleeLabel');
-  if (icon) icon.textContent = MELEE_ICONS[lastMeleeWeapon] || '👊';
-  if (label) label.textContent = MELEE_LABELS[lastMeleeWeapon] || 'кулаки';
-}
+// Раньше тут была кнопка melee «👊 кулаки» с переключением на ближний бой —
+// убрана по просьбе игрока. Кнопка теперь = ТОЛЬКО стелс-килл (🔪 УБИТЬ),
+// её видимостью управляет renderBackstabHint() ниже. updateMeleeBtn оставлен
+// как no-op, чтобы не падали старые вызовы (например, при resetBtn).
+function updateMeleeBtn() { /* no-op: иконка кнопки фиксирована (🔪 УБИТЬ) */ }
 document.getElementById('meleeBtn').addEventListener('click', () => {
   if (player.hp <= 0) return;
-  // СТЕЛС-КИЛЛ: если есть цель за спиной — на миг переключаемся на melee
-  // (для анимации удара ножом/кулаком), бьём, потом возвращаем основное оружие.
+  // Кнопка теперь = ТОЛЬКО стелс-килл. Видна только когда findBackstabTarget()
+  // возвращает цель (см. renderBackstabHint). Обычный melee удалён.
   const back = findBackstabTarget();
-  if (back) {
-    const prevWeapon = currentWeapon;
-    const cfgCur = WEAPON_FX_CFG[currentWeapon];
-    const switchedToMelee = !(cfgCur && cfgCur.melee);
-    if (switchedToMelee) currentWeapon = lastMeleeWeapon;
-    player.fireCD = 0;
-    player.angle = Math.atan2(back.r - player.r, back.c - player.c);
-    fireWeapon(player); // внутри — instakill миньона / 40% урона боссу + кровь
-    // Возврат к основному оружию (если ты был на пушке — продолжишь стрелять)
-    if (switchedToMelee) currentWeapon = prevWeapon;
-    document.getElementById('wepName').textContent = weaponLabel(currentWeapon);
-    return;
-  }
-  const curCfg = WEAPON_FX_CFG[currentWeapon];
-  if (curCfg && curCfg.melee) {
-    // уже в melee → бьём (выставляем angle если не задан)
-    if (player.fireCD <= 0) {
-      if (player.angle == null) player.angle = -Math.PI / 2;
-      fireWeapon(player);
-    }
-  } else {
-    // переключение на melee (с экипированной пушки на кулаки/холодное)
-    currentWeapon = lastMeleeWeapon;
-    document.getElementById('wepName').textContent = weaponLabel(lastMeleeWeapon);
-  }
+  if (!back) return;
+  const prevWeapon = currentWeapon;
+  const cfgCur = WEAPON_FX_CFG[currentWeapon];
+  const switchedToMelee = !(cfgCur && cfgCur.melee);
+  if (switchedToMelee) currentWeapon = lastMeleeWeapon;
+  player.fireCD = 0;
+  player.angle = Math.atan2(back.r - player.r, back.c - player.c);
+  fireWeapon(player); // внутри — instakill миньона / 20% maxHP боссу + кровь
+  if (switchedToMelee) currentWeapon = prevWeapon;
+  document.getElementById('wepName').textContent = weaponLabel(currentWeapon);
 });
 
 // Кнопка перезарядки
@@ -3746,29 +3730,21 @@ function renderAlertBanner() {
   }
 }
 
-// Подсказка стелс-килла: подмена иконки melee-кнопки на 🔪 если игрок за спиной врага
-const meleeIconEl = document.getElementById('meleeIcon');
-const meleeLabelEl = document.getElementById('meleeLabel');
+// Кнопка стелс-килла. ПОКАЗЫВАЕМ только если игрок стоит за спиной у врага
+// (findBackstabTarget вернул цель). Иначе кнопка спрятана — обычного «ближнего
+// боя кулаками» больше нет, его убрали из UI по просьбе игрока.
+const meleeBtnEl  = document.getElementById('meleeBtn');
 let _lastBackstab = false;
 function renderBackstabHint() {
-  const t = findBackstabTarget();
-  const hasTarget = !!t;
+  const hasTarget = !!findBackstabTarget();
   if (hasTarget === _lastBackstab) return;
   _lastBackstab = hasTarget;
-  if (hasTarget) {
-    meleeIconEl.textContent = '🔪';
-    meleeLabelEl.textContent = 'УБИТЬ';
-    meleeLabelEl.style.color = '#ff5050';
-  } else {
-    // вернём текущий ближний из MELEE_LABELS
-    meleeIconEl.textContent = MELEE_ICONS[lastMeleeWeapon] || '👊';
-    meleeLabelEl.textContent = MELEE_LABELS[lastMeleeWeapon] || 'кулаки';
-    meleeLabelEl.style.color = '#cfd6e6';
-  }
+  meleeBtnEl.style.display = hasTarget ? 'flex' : 'none';
+  meleeBtnEl.style.alignItems = 'center';
+  meleeBtnEl.style.justifyContent = 'center';
 }
 
 let lastT = performance.now();
-let fpsAcc = 0, fpsN = 0, fpsLast = lastT;
 function loop(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000);
   lastT = t;
@@ -3822,11 +3798,6 @@ function loop(t) {
     } else if (reloadBar) {
       reloadBar.style.width = '0%';
     }
-  }
-  fpsAcc++; fpsN++;
-  if (t - fpsLast > 500) {
-    document.getElementById('fps').textContent = Math.round(fpsAcc / ((t - fpsLast) / 1000));
-    fpsAcc = 0; fpsLast = t;
   }
   requestAnimationFrame(loop);
 }
