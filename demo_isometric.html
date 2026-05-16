@@ -3057,7 +3057,7 @@ function fireWeapon(p, weaponKey, team) {
       if (back) {
         p.angle = Math.atan2(back.r - p.r, back.c - p.c);
         const slitDmg = back.isBoss
-          ? Math.max(150, Math.round(back.hpMax * 0.4))  // босс: ~40% HP, не ваншот
+          ? Math.max(80, Math.round(back.hpMax * 0.2))   // босс: ~20% HP, не ваншот
           : back.hpMax + 200;                            // миньон: гарантированный ваншот
         damageActor(back, slitDmg, p.angle, (!back.isBoss && wKey === 'blade_short') ? 'sniper' : null);
         spawnBlood(back.r, back.c, p.angle, back.isBoss ? 60 : 80);
