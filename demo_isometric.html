@@ -645,7 +645,7 @@ const COVER_TYPES = {
   2: { name: 'crate',        h: 0.7,  topColor: THEME.crateTop,  sideColor: THEME.crateSide, shape: 'box', hp: 50 },
   3: { name: 'barrel',       h: 0.95, topColor: THEME.barrelTop, sideColor: THEME.barrelSide,shape: 'cyl', hp: 35, explodeOnBreak: true },
   4: { name: 'car',          h: 0.55, topColor: THEME.carTop,    sideColor: THEME.carSide,   shape: 'box', hp: 120 },
-  5: { name: 'powder_barrel',h: 0.95, topColor: '#1a1a1a',       sideColor: '#3a1010',       shape: 'cyl', hp: 18, explodeOnBreak: true, powder: true },
+  5: { name: 'powder_barrel',h: 0.95, topColor: '#2a1812',       sideColor: '#a82820',       shape: 'cyl', hp: 18, explodeOnBreak: true, powder: true },
 };
 
 // HP для каждой ячейки укрытия (инициализируется при старте)
@@ -1307,17 +1307,41 @@ function drawCover(r, c, type) {
       ctx.ellipse(cx, cy - H * (1 - t), wx * 0.4, wy * 0.4, 0, 0, Math.PI);
       ctx.stroke();
     });
-    // Пороховая бочка — рисуем красный череп на верхней крышке + лёгкое
-    // оранжевое свечение, чтобы игрок видел «эта бочка взорвётся ОГО».
+    // Пороховая (нефтяная) бочка — рисуем поверх стандартного цилиндра:
+    //  • яркие жёлтые обручи (как на настоящих 200-литровых барелях),
+    //  • тёмное «дно» крышки с тонким металлическим бликом по краю,
+    //  • большая иконка пламени 🔥 в центре, с оранжевым свечением.
     if (cfg.powder) {
       ctx.save();
-      ctx.shadowColor = '#ff6020';
-      ctx.shadowBlur  = 10;
+      // Перерисовываем обручи поверх — толще и жёлтым, чтобы выделить бочку.
+      ctx.strokeStyle = '#ffc040';
+      ctx.lineWidth = 2;
+      [0.25, 0.75].forEach(t => {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - H * (1 - t), wx * 0.4, wy * 0.4, 0, 0, Math.PI);
+        ctx.stroke();
+      });
+      // Лёгкий блик-полоса по центру боковой поверхности (металлический).
+      ctx.fillStyle = 'rgba(255,180,80,0.18)';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - H * 0.5, wx * 0.4, wy * 0.4, 0, 0, Math.PI);
+      ctx.lineTo(cx + wx * 0.4, cy - H * 0.5 + 2);
+      ctx.ellipse(cx, cy - H * 0.5 + 2, wx * 0.4, wy * 0.4, 0, Math.PI, 0, true);
+      ctx.fill();
+      // Металлический ободок крышки.
+      ctx.strokeStyle = '#ffd76b';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - H, wx * 0.4, wy * 0.4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      // Иконка пламени на крышке с оранжевым свечением.
+      ctx.shadowColor = '#ff8030';
+      ctx.shadowBlur  = 14;
       ctx.fillStyle   = '#ffd76b';
-      ctx.font        = 'bold ' + Math.round(wx * 0.5) + 'px sans-serif';
+      ctx.font        = 'bold ' + Math.round(wx * 0.55) + 'px sans-serif';
       ctx.textAlign   = 'center';
       ctx.textBaseline= 'middle';
-      ctx.fillText('☠', cx, cy - H + 1);
+      ctx.fillText('🔥', cx, cy - H + 1);
       ctx.restore();
     }
   } else {
