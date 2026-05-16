@@ -9,21 +9,6 @@
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0d12; font-family: -apple-system,Segoe UI,Roboto,sans-serif; color: #fff; touch-action: none; }
   #wrap { position: fixed; inset: 0; display: flex; flex-direction: column; }
-  #topbar {
-    flex: 0 0 auto; display: flex; gap: 4px; padding: 6px;
-    background: linear-gradient(180deg, #1a1f2c 0%, #12161e 100%);
-    border-bottom: 1px solid #2a3142;
-    overflow-x: auto; scrollbar-width: none;
-  }
-  #topbar::-webkit-scrollbar { display: none; }
-  .wbtn {
-    flex: 0 0 auto; padding: 6px 10px; border-radius: 8px;
-    background: #232a3a; border: 1px solid #2e3648;
-    color: #cfd6e6; font-size: 12px; font-weight: 600;
-    white-space: nowrap; cursor: pointer; transition: all .12s;
-  }
-  .wbtn.active { background: #ffd76b; color: #1a1a1a; border-color: #ffe080; box-shadow: 0 0 12px rgba(255,215,107,.4); }
-  .wbtn:active { transform: scale(.95); }
   #stage { flex: 1 1 auto; position: relative; overflow: hidden; background: #0b0d12; }
   canvas#gc { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   /* Джойстики */
@@ -139,21 +124,6 @@
 </head>
 <body>
 <div id="wrap">
-  <div id="topbar">
-    <button class="wbtn" data-wep="fists">кулаки</button>
-    <button class="wbtn" data-wep="brass">кастет</button>
-    <button class="wbtn" data-wep="bat">бита</button>
-    <button class="wbtn" data-wep="blade_short">нож</button>
-    <button class="wbtn" data-wep="blade_long">катана</button>
-    <button class="wbtn active" data-wep="pistol">пистолет</button>
-    <button class="wbtn" data-wep="pistol_heavy">тяж.пистолет</button>
-    <button class="wbtn" data-wep="pistol_gold">золотой</button>
-    <button class="wbtn" data-wep="shotgun">дробовик</button>
-    <button class="wbtn" data-wep="smg">ПП</button>
-    <button class="wbtn" data-wep="rifle">винтовка</button>
-    <button class="wbtn" data-wep="sniper">снайперка</button>
-    <button class="wbtn" data-wep="rpg">РПГ</button>
-  </div>
   <div id="stage">
     <canvas id="gc"></canvas>
     <div class="joy-base" id="joyBase"><div class="joy-knob" id="joyKnob"></div></div>
@@ -3350,7 +3320,7 @@ function endTouch(id) {
 // Иначе preventDefault на touchstart глушит synthetic click, и кнопки внутри #stage
 // (катсцена СТЕЛС/В ЛОБ, melee, reload, респ) перестают работать на мобиле.
 function _isUiTouchTarget(t) {
-  return !!(t && t.closest && t.closest('button, #catscene, #resultScene, #gameOver, #hudBtns, #combatUI, #topbar'));
+  return !!(t && t.closest && t.closest('button, #catscene, #resultScene, #gameOver, #hudBtns, #combatUI'));
 }
 stage.addEventListener('touchstart', (e) => {
   if (_isUiTouchTarget(e.target)) return;
@@ -3390,22 +3360,23 @@ window.addEventListener('mouseup', (e) => {
 });
 stage.addEventListener('contextmenu', (e) => e.preventDefault());
 
-// Селектор оружия
-let lastMeleeWeapon = 'fists'; // последнее выбранное melee — для кнопки ближнего боя
-let preMeleeWeapon = 'pistol'; // куда вернуться после атаки в ближнем бою с пустым магазином
-document.querySelectorAll('.wbtn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.wbtn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentWeapon = btn.dataset.wep;
-    document.getElementById('wepName').textContent = btn.textContent;
-    const cfg = WEAPON_FX_CFG[currentWeapon];
-    if (cfg && cfg.melee) lastMeleeWeapon = currentWeapon;
-    else preMeleeWeapon = currentWeapon;
-    if (cfg && cfg.sound) { try { cfg.sound(); } catch(e) {} }
-    updateMeleeBtn();
-  });
-});
+// В бою доступно ТОЛЬКО экипированное оружие (приходит в URL ?weapon=...) и кулаки.
+// Селектор пушек сверху убран — игрок выбирает оружие в инвентаре хаба и экипирует.
+const WEAPON_LABELS = {
+  fists:'кулаки', brass:'кастет', chain:'цепь', bat:'бита',
+  blade_short:'нож', blade_long:'катана',
+  pistol:'пистолет', pistol_heavy:'тяж.пистолет', pistol_gold:'золотой',
+  shotgun:'дробовик', smg:'ПП', rifle:'винтовка', sniper:'снайперка', rpg:'РПГ',
+};
+function weaponLabel(w) { return WEAPON_LABELS[w] || w; }
+// Если экипировано холодное — оно же и есть «текущий melee» для кнопки ближнего боя
+const _initCfg = WEAPON_FX_CFG[INITIAL_WEAPON];
+let lastMeleeWeapon = (_initCfg && _initCfg.melee) ? INITIAL_WEAPON : 'fists';
+// Стартовое имя в HUD — из экипировки
+{
+  const wn = document.getElementById('wepName');
+  if (wn) wn.textContent = weaponLabel(INITIAL_WEAPON);
+}
 
 // Кнопка melee — переключает на ближний бой / делает атаку если уже на melee
 const MELEE_ICONS = { fists: '👊', brass: '✊', chain: '⛓', bat: '🏏', blade_short: '🗡', blade_long: '⚔', katana: '⚔' };
@@ -3422,9 +3393,7 @@ document.getElementById('meleeBtn').addEventListener('click', () => {
   const back = findBackstabTarget();
   if (back) {
     currentWeapon = lastMeleeWeapon;
-    document.querySelectorAll('.wbtn').forEach(b =>
-      b.classList.toggle('active', b.dataset.wep === lastMeleeWeapon));
-    document.getElementById('wepName').textContent = MELEE_LABELS[lastMeleeWeapon] || lastMeleeWeapon;
+    document.getElementById('wepName').textContent = weaponLabel(lastMeleeWeapon);
     player.fireCD = 0;
     player.angle = Math.atan2(back.r - player.r, back.c - player.c);
     fireWeapon(player);
@@ -3438,12 +3407,9 @@ document.getElementById('meleeBtn').addEventListener('click', () => {
       fireWeapon(player);
     }
   } else {
-    // переключение на melee
-    document.querySelectorAll('.wbtn').forEach(b => {
-      b.classList.toggle('active', b.dataset.wep === lastMeleeWeapon);
-    });
+    // переключение на melee (с экипированной пушки на кулаки/холодное)
     currentWeapon = lastMeleeWeapon;
-    document.getElementById('wepName').textContent = MELEE_LABELS[lastMeleeWeapon] || lastMeleeWeapon;
+    document.getElementById('wepName').textContent = weaponLabel(lastMeleeWeapon);
   }
 });
 
@@ -3765,10 +3731,6 @@ const MAP_ORIGINAL = MAP.map(row => row.slice());
   document.getElementById('catBossName').textContent  = BOSS_CFG.name;
   document.getElementById('catBossHP').textContent    = '❤️ ' + BOSS_CFG.hp + ' HP';
   document.getElementById('catQuote').textContent     = '«' + BOSS_CFG.quote + '»';
-  // подсвечиваем нужное оружие в топбаре
-  document.querySelectorAll('.wbtn').forEach(b => {
-    b.classList.toggle('active', b.dataset.wep === INITIAL_WEAPON);
-  });
   const cat = document.getElementById('catscene');
   const startGame = (mode) => {
     cat.style.display = 'none';
