@@ -2534,12 +2534,9 @@ function renderDistricts() {
 
 // ── ОТКРЫТЬ СТРАНИЦУ РАЙОНА ───────────────────────────────────────────
 function openDistrict(locId) {
-  // НОВОЕ: рынок → хаб-карта вместо списка боссов
-  if (locId === 'market' && typeof enterMarketHub === 'function') {
-    currentLocId = locId;
-    enterMarketHub();
-    return;
-  }
+  // Все районы → страница со списком боссов и кнопкой 'Бой' (которая
+  // ведёт в нашу боёвку demo_isometric.html). Старый walking-view рынка
+  // (enterMarketHub) отключён — он показывал пустую карту без запуска боя.
   currentLocId = locId;
   const loc = LOC_DATA[locId];
   document.getElementById('district-page-title').textContent = loc.icon + ' ' + loc.name;
