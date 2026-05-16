@@ -4905,6 +4905,9 @@ function startBattle(bossId, locId){
   params.set('exp',  boss.exp  || 0);
   params.set('cash', boss.cash || 0);
   params.set('mlvl', loc.minLvl || 1);
+  // Сила босса = количество миньонов (2..18 в BOSS_DATA). Боёвка из этого
+  // считает размер карты — чем больше миньонов, тем крупнее арена.
+  params.set('minions', boss.minions || 3);
   window.location.href = 'demo_isometric.html?' + params.toString();
 }
 
