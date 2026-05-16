@@ -812,13 +812,16 @@ function isPlayerBehind(e) {
   if (!e || e.hp <= 0 || player.hp <= 0) return false;
   const dx = player.c - e.c, dy = player.r - e.r;
   const dist = Math.hypot(dx, dy);
-  if (dist > 1.2) return false;
+  // Радиус подкрадывания: было 1.2 тайла — игрок жаловался что неощутимо
+  // на ощупь. 1.7 = можно стелс-килл из-за плеча, не вставая впритык.
+  if (dist > 1.7) return false;
   const ang = Math.atan2(dy, dx);
   let diff = ang - e.angle;
   while (diff >  Math.PI) diff -= 2 * Math.PI;
   while (diff < -Math.PI) diff += 2 * Math.PI;
-  // back-arc ±63° от противоположного направления
-  return Math.abs(Math.abs(diff) - Math.PI) < Math.PI * 0.35;
+  // back-arc ±72° от противоположного направления (было ±63°) — конус
+  // спины пошире, потому что игроку сложно ловить точный угол.
+  return Math.abs(Math.abs(diff) - Math.PI) < Math.PI * 0.40;
 }
 
 // Найти врага, к которому можно подкрасться (живой, ближайший в спине).
@@ -2269,6 +2272,71 @@ function drawGrenade(g) {
 
 // Прицел-конус: показывает дальность и разброс выбранного оружия.
 // Лучом упирается в первое препятствие на линии прицела.
+// Конус зрения врага — рисуется поверх пола под персонажами, чтобы игрок
+// видел куда смотрит каждый мафиози и понимал, где у него «спина» для
+// стелс-килла. В режиме боя (alertLevel >= 2) скрывается, иначе экран
+// превращается в мешанину пересекающихся конусов.
+function drawVisionCone(e) {
+  if (!e || e.hp <= 0) return;
+  if (alertLevel >= 2) return;             // в бою конусы скрыты
+  const ang  = e.angle || 0;
+  const half = FOV_HALF_RAD;
+  const R    = e.sightR || 4;
+  // 21 луч в пределах конуса. Для каждого считаем до какой длины он
+  // доходит, прежде чем упрётся в стену/укрытие — конус обрезается
+  // препятствиями, не проходит сквозь стены.
+  const N = 21;
+  const pts = [{ r: e.r, c: e.c }];
+  for (let i = 0; i <= N; i++) {
+    const a = ang - half + (i / N) * (half * 2);
+    const sinA = Math.sin(a), cosA = Math.cos(a);
+    let hit = R;
+    for (let d = 0.25; d < R; d += 0.20) {
+      const rr = e.r + sinA * d;
+      const cc = e.c + cosA * d;
+      if (isBlocked(rr, cc)) { hit = d; break; }
+    }
+    pts.push({ r: e.r + sinA * hit, c: e.c + cosA * hit });
+  }
+  // Цвет: жёлтый при патруле, оранжевый при подозрении.
+  const isSuspect = alertLevel === 1;
+  const fillCol   = isSuspect ? 'rgba(255,170,60,0.18)' : 'rgba(255,235,120,0.13)';
+  const strokeCol = isSuspect ? 'rgba(255,170,60,0.55)' : 'rgba(255,235,120,0.45)';
+  ctx.save();
+  ctx.beginPath();
+  for (let i = 0; i < pts.length; i++) {
+    const p = w2s(pts[i].r, pts[i].c);
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else         ctx.lineTo(p.x, p.y);
+  }
+  ctx.closePath();
+  ctx.fillStyle   = fillCol;
+  ctx.strokeStyle = strokeCol;
+  ctx.lineWidth   = 1.2;
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Маркер цели стелс-килла — иконка ножа над врагом, к которому игрок
+// подкрался сзади. Помогает понять кого именно ваншотит правый стик
+// (а кнопка 🔪 справа подсвечивается параллельно).
+function drawBackstabMarker(e) {
+  if (!e || e.hp <= 0) return;
+  const p = w2s(e.r, e.c);
+  const yOff = TS * 1.8; // над головой
+  const t = performance.now() * 0.005;
+  const bob = Math.sin(t) * 3;
+  ctx.save();
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(255,40,40,0.85)';
+  ctx.shadowBlur  = 10;
+  ctx.fillText('🔪', p.x, p.y - yOff + bob);
+  ctx.restore();
+}
+
 function drawAimGuide() {
   if (player.hp <= 0) return;
   if (!joyR.active) return;
@@ -2607,6 +2675,11 @@ function render() {
   bloodDrops.forEach(d => { if (d.splat) drawBloodSplat(d); });
   goreParts.forEach(g => { if (g.landed) drawGorePart(g); });
 
+  // 1.8) Конусы зрения врагов — поверх пола, под персонажами/укрытиями.
+  // Скрываются в активном бою (alertLevel >= 2). Это сразу видно куда
+  // смотрит каждый мафиози — игрок понимает где обойти и подкрасться сзади.
+  enemies.forEach(drawVisionCone);
+
   // 2) Объекты с глубиной (укрытия + персонажи + пули). Сортируем по r+c
   const items = [];
   for (let r = r0v; r < r1v; r++) {
@@ -2627,6 +2700,13 @@ function render() {
 
   // 2.5) Прицел-конус игрока (под пулями, поверх персонажей)
   drawAimGuide();
+
+  // 2.6) Маркер стелс-цели — иконка ножа над врагом, к которому игрок
+  // подкрался сзади. Дублирует пульсирующую кнопку 🔪 справа.
+  if (alertLevel < 2 && player.hp > 0) {
+    const back = findBackstabTarget();
+    if (back) drawBackstabMarker(back);
+  }
 
   // 3) Поверх — пули, вспышки, гранаты, взрывы, разрушение
   bullets.forEach(drawBullet);
