@@ -4889,65 +4889,21 @@ function findFreeSpawnPos(grid,ROWS,COLS,avoidR,avoidC,minDist){
   return null;
 }
 
-function startBattle(bossId,locId){
-  const boss=BOSS_DATA[bossId];if(!boss)return;
-  const bossEmoji=boss.name.match(/^./u)[0],bossName=boss.name.replace(/^\S+\s*/,'');
-  const grid=TAC_MAPS[locId]||TAC_MAPS.market,ROWS=grid.length,COLS=grid[0].length;
-
-  // Босс
-  const enemies=[{
-    id:0,r:1.5,c:COLS-2.5,hp:boss.hp,maxhp:boss.hp,atk:boss.atk,def:boss.def,
-    name:bossName,emoji:bossEmoji,wep:'tt_pistol',angle:Math.PI,isMoving:false,walkPhase:0,
-    fireCD:1200,meleeCD:0,grenadeCD:3000,molotovCD:0,deathTimer:0,hitRecently:0,
-    aiState:'approach',alerted:false,
-    fovAngle:Math.PI*.7,viewDist:8,
-    coverPos:null,coverTimer:0,peekTimer:0,peekDr:0,peekDc:0,
-    isBoss:true,patrolTimer:0,patrolAngle:Math.PI,patrolMoveTimer:0,patrolMove:false,
-    tauntCD:4000,quoteCD:0,alertCD:0,strafeDir:1,strafeTimer:0,
-  }];
-
-  // Миньоны
-  const minionCount=boss.minions||2;
-  for(let i=0;i<minionCount;i++){
-    const sp=findFreeSpawnPos(grid,ROWS,COLS,ROWS/2,COLS/2,4);
-    if(sp){
-      const m=makeMinionEnemy(i+1,sp.r,sp.c,boss);
-      enemies.push(m);
-    }
-  }
-
-  const _pw=WEP_TAC[DATA.weapon]||WEP_TAC.nagan;
-  tac={
-    bossId,locId,grid,ROWS,COLS,VIEW_W:9,VIEW_H:13,gstate:'playing',
-    player:{r:ROWS-1.5,c:1.5,hp:session.hp,maxhp:DATA.maxhp,atk:DATA.atk,def:DATA.def,name:DATA.name,
-      angle:0,isMoving:false,walkPhase:0,fireCD:0,meleeCD:0,grenCD:0,meleeAnim:0,
-      ammo:_pw.mag||0,reloading:false,reloadTimer:0},
-    stats:{dmgDealt:0,dmgTaken:0,kills:0,shots:0,startHp:session.hp},
-    enemies,
-    player_maxhp:DATA.maxhp,
-    bullets:[],meleeVfx:[],muzzleFlash:[],bloodParts:[],bloodSplats:[],
-    grenades:[],fires:[],smoke:[],
-    joy:{dx:0,dy:0,bx:0,by:0},
-    aimJoy:{dx:0,dy:0,bx:0,by:0,id:null},
-    camR:ROWS-1.5,camC:1.5,
-    pw:_pw,
-    TS:60,shake:0,lastTime:0,animPhase:0,pulseRaf:null,
-  };
-  document.querySelectorAll('.subpage').forEach(p=>p.style.display='none');
-  document.getElementById('page-battle').style.display='';
-  document.getElementById('tac-result').style.display='none';
-  const cp=document.getElementById('coop-panel');if(cp)cp.style.display='none';
-  if(tg&&tg.BackButton){tg.BackButton.offClick(goBack);tg.BackButton.hide();}
-  window.scrollTo(0,0);
-  tacResize();tacHud();
-  const tutEl=document.getElementById('tac-tutorial');
-  if(tutEl){tutEl.style.opacity='1';tutEl.style.display='flex';
-    setTimeout(()=>{tutEl.style.opacity='0';setTimeout(()=>tutEl.style.display='none',600);},1200);}
-  if(tac.pulseRaf)cancelAnimationFrame(tac.pulseRaf);
-  tac.pulseRaf=requestAnimationFrame(tacGameLoop);
-  // Auto-join if URL has ?room=
-  const roomParam=new URLSearchParams(window.location.search).get('room');
-  if(roomParam){setTimeout(()=>tacCoopJoinRoom(roomParam),600);}
+function startBattle(bossId, locId){
+  // Открываем нашу единую боёвку (demo_isometric.html) в том же WebApp-контейнере.
+  // Параметры — те же, что бот собирает в build_iso_url: имя/HP/maxhp/атак/защита/оружие/босс/район.
+  const boss = BOSS_DATA[bossId];
+  if (!boss) return;
+  const params = new URLSearchParams();
+  params.set('boss',  bossId);
+  params.set('loc',   locId);
+  params.set('name',  DATA.name || 'Игрок');
+  params.set('hp',    (session && session.hp != null ? session.hp : DATA.hp) || DATA.maxhp || 100);
+  params.set('maxhp', DATA.maxhp || 100);
+  params.set('atk',   DATA.atk   || 30);
+  params.set('def',   DATA.def   || 10);
+  params.set('weapon', DATA.weapon || 'pistol');
+  window.location.href = 'demo_isometric.html?' + params.toString();
 }
 
 // ── CO-OP MULTIPLAYER (PeerJS) ────────────────────────────────────────────
