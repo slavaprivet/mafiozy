@@ -1971,7 +1971,9 @@ const DATA = {
   med_s:   pi('med_s', 0),
   med_m:   pi('med_m', 0),
   med_l:   pi('med_l', 0),
-  weapon:  p('weapon', ''),
+  // Базовое оружие игрока — обычный пистолет («наган»). В магазине его
+  // больше нет: это стартовый ствол, выдаётся даром каждому персонажу.
+  weapon:  p('weapon', '') || 'nagan',
   prop:    p('prop','').split(',').filter(Boolean),
   gang:    p('gang','').split(',').filter(Boolean).map(s => {
              const [uid,name,emoji,role] = s.split('|');
@@ -4906,7 +4908,7 @@ function startBattle(bossId, locId){
   params.set('maxhp', DATA.maxhp || 100);
   params.set('atk',   DATA.atk   || 30);
   params.set('def',   DATA.def   || 10);
-  params.set('weapon', DATA.weapon || 'fists');
+  params.set('weapon', DATA.weapon || 'nagan');
   // База наград от босса + минимальный уровень района (для множителя в боёвке).
   // Перезаписывают возможные `exp`/`cash` из хаба — для боёвки это reward'ы босса,
   // а не персонажа. На возврате из боёвки эти ключи отбрасываются.
@@ -5793,14 +5795,12 @@ let _demoBizState = {};
 // Локальный каталог оружия / брони / расходников (зеркало серверного ITEMS)
 const DEMO_SHOP_ITEMS = [
   // ── Оружие ──
-  {id:'zatochka',    name:'🔪 Заточка',         type:'weapon', desc:'+6 атк. Заточенный кусок металла.',  price:60,    attack_bonus:6},
-  {id:'nagan',       name:'🔫 Наган',           type:'weapon', desc:'+8 атк. Старый уличный ствол.',      price:250,   attack_bonus:8},
+  // Наган — стартовый пистолет, выдаётся бесплатно при создании персонажа.
+  // Холодное оружие (zatochka/machete/katana/spiked_bat) убрано —
+  // ближний бой в боёвке больше не используется.
   {id:'sawn_off',    name:'💥 Обрез',           type:'weapon', desc:'+12 атк. Короткий и злой.',          price:600,   attack_bonus:12},
   {id:'uzi',         name:'🔫 Узи',             type:'weapon', desc:'+16 атк. Автоматика за копейки.',    price:1500,  attack_bonus:16},
   {id:'revolver',    name:'🔫 Револьвер',       type:'weapon', desc:'+20 атк. Шесть патронов — хватит на всех.', price:5000, attack_bonus:20},
-  {id:'machete',     name:'🗡️ Мачете',          type:'weapon', desc:'+28 атк. Латинский привет.',         price:8000,  attack_bonus:28},
-  {id:'katana',      name:'⚔️ Катана',          type:'weapon', desc:'+38 атк. Сталь из Японии.',          price:12000, attack_bonus:38},
-  {id:'spiked_bat',  name:'🏏 Бита с гвоздями', type:'weapon', desc:'+48 атк. Народное оружие 90-х.',     price:18000, attack_bonus:48},
   {id:'deagle',      name:'🦅 Дезерт Игл',      type:'weapon', desc:'+58 атк. Пушка не для слабаков.',    price:25000, attack_bonus:58},
   {id:'sniper',      name:'🎯 Снайперка',       type:'weapon', desc:'+68 атк. Один выстрел — один труп.', price:32000, attack_bonus:68},
   {id:'m16',         name:'💥 М-16',            type:'weapon', desc:'+80 атк. Американская классика.',    price:42000, attack_bonus:80},
@@ -8034,21 +8034,33 @@ function _gzFlash(emoji){
 // ── Авто-роутинг после боя ───────────────────────────────────────────
 // Боёвка (demo_isometric.html) при выходе по кнопке «↩ К району» добавляет
 // ?view=district&loc=<id>. На входе в hub мы по умолчанию показываем главное
-// меню (page-main). Если пришёл такой параметр — сразу прячем main и
-// открываем нужную страницу района. Иначе ничего не делаем.
-(function postBattleRoute() {
+// меню (page-main). Если пришёл такой параметр — открываем нужную страницу.
+// Идём ТЕМ ЖЕ путём, что обычная навигация по клику (nav('explore') →
+// openDistrict), чтобы не разъехались body-классы, BackButton и т.д.
+function postBattleRoute() {
   try {
     const view = P.get('view');
     if (!view) return;
     if (view === 'district') {
       const locId = P.get('loc');
-      if (!locId || !LOC_DATA[locId]) return;
-      // Прячем главную, открываем район. openDistrict сам покажет page-district.
-      document.getElementById('page-main').style.display = 'none';
+      // Если loc отсутствует/неизвестен — открываем хотя бы список районов,
+      // а не оставляем игрока на главной (это и есть «не возвращается в район»).
+      if (!locId || !LOC_DATA[locId]) {
+        if (typeof nav === 'function') nav('explore');
+        return;
+      }
+      if (typeof nav === 'function') nav('explore');
       openDistrict(locId);
     }
-  } catch(e) {}
-})();
+  } catch(e) {
+    // Если что-то упало — пытаемся хотя бы открыть список районов.
+    try { if (typeof nav === 'function') nav('explore'); } catch(_) {}
+  }
+}
+// DOM на этом месте уже разобран (скрипт в конце body), но openDistrict
+// дёргает renderBossList и т.д. — лучше отложить на следующий тик,
+// чтобы все верхние init-функции отработали.
+setTimeout(postBattleRoute, 0);
 </script>
 
 

@@ -9661,10 +9661,17 @@ async def _coop_http_app():
         char = await get_character(uid)
         if not char:
             return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        # Магазин: ближний бой убран из игры (механика melee удалена),
+        # 'nagan' — базовый ствол персонажа, выдаётся при создании.
+        # Эти id остаются в ITEMS для бэк-совместимости со старыми
+        # сохранениями, но в каталог магазина не попадают.
+        _HIDE_FROM_SHOP = {'zatochka', 'machete', 'katana', 'spiked_bat', 'nagan'}
         items = []
         for iid, it in ITEMS.items():
             t = it.get('type')
             if t not in ('weapon', 'armor', 'potion', 'throwable'):
+                continue
+            if iid in _HIDE_FROM_SHOP:
                 continue
             items.append({
                 'id':              iid,

@@ -60,8 +60,10 @@
   #hudInfo .hp-row .label { color: #8a92a8; font-size: 10px; }
   #hudInfo .hp-row .hp-nums { display: inline-flex; align-items: baseline; gap: 1px; white-space: nowrap; }
   #hudInfo .hp-row .hp-nums #hpMaxVal { color: #5a6478; }
+  /* HP-бар тянется по доступной ширине родителя — на узких экранах
+     ТГ-вебвью не выползает за viewport и не толкает alertIcon вниз. */
   #hpBarBig {
-    width: 130px; height: 12px;
+    flex: 1; min-width: 60px; height: 12px;
     background: #1a1e26; border: 1px solid #3a4452; border-radius: 6px;
     overflow: hidden; position: relative;
     box-shadow: inset 0 1px 3px rgba(0,0,0,.6);
@@ -88,6 +90,35 @@
   }
   #hpBarFill.low { background: linear-gradient(90deg,#ffd24a,#cf8a20); }
   #hpBarFill.crit { background: linear-gradient(90deg,#ff5050,#a02020); }
+  /* Строка патронов — под HP. Структура повторяет hp-row: иконка, шкала
+     (внутри неё прогресс перезарядки), цифры. Так HUD выглядит цельно. */
+  #hudInfo .ammo-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: #cfd6e6;
+  }
+  #hudInfo .ammo-row .label { color: #8a92a8; font-size: 10px; }
+  #hudInfo .ammo-row .ammo-nums { display: inline-flex; align-items: baseline; gap: 1px; white-space: nowrap; }
+  #hudInfo .ammo-row .ammo-nums #ammoMaxVal { color: #5a6478; }
+  #ammoBarBig {
+    flex: 1; min-width: 40px; height: 6px;
+    background: #1a1e26; border: 1px solid #3a4452; border-radius: 4px;
+    overflow: hidden; position: relative;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.6);
+  }
+  /* Полоса патронов (текущие/обойма). Жёлто-золотая — отличает от HP. */
+  #ammoBarFill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg,#ffe080,#c89030);
+    transition: width .12s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  /* Прогресс перезарядки — поверх «пустой» шкалы. Растёт от 0 до 100%. */
+  #ammoReloadFill {
+    position: absolute; left: 0; top: 0;
+    height: 100%; width: 0;
+    background: linear-gradient(90deg,#ffd76b,#ff8030);
+    transition: width .1s;
+  }
   #alertIcon {
     font-size: 14px; line-height: 1;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.6));
@@ -102,18 +133,6 @@
     0%, 100% { transform: scale(1); }
     50%      { transform: scale(1.18); }
   }
-  #hudBtns {
-    display: flex; flex-direction: column; gap: 3px;
-    pointer-events: auto;
-  }
-  #hudBtns button {
-    padding: 3px 7px; background: #2a3142; color: #cfd6e6;
-    border: 1px solid #4a5468; border-radius: 5px;
-    font-size: 10px; cursor: pointer; white-space: nowrap;
-    transition: background .1s;
-  }
-  #hudBtns button:hover { background: #3a4458; color: #ffd76b; }
-  #hudBtns button:active { transform: scale(.95); }
   /* Пульсация кнопки стелс-килла — чтобы её было видно среди боевого UI. */
   @keyframes meleePulse {
     0%, 100% { box-shadow: 0 0 16px rgba(255,40,40,.45), 0 2px 8px rgba(0,0,0,.6); transform: scale(1); }
@@ -161,23 +180,21 @@
           <span class="hp-nums"><span id="hpVal">100</span><span style="color:#5a6478">/</span><span id="hpMaxVal">100</span></span>
           <span id="alertIcon" title="Не замечен">👻</span>
         </div>
-      </div>
-      <div id="hudBtns">
-        <button id="rerollBtn">🎲 Перс</button>
-        <button id="resetBtn">↻ Респ</button>
-      </div>
-    </div>
-    <!-- Боевой UI справа: индикатор патронов + кнопка стелс-килла.
-         Кнопка перезарядки удалена — перезарядка автоматическая
-         (по правому стику при 0 пуль). Кнопка 🔪 УБИТЬ скрыта по умолчанию
-         и появляется только когда findBackstabTarget() видит врага сзади. -->
-    <div id="combatUI" style="position:absolute;right:14px;bottom:110px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none">
-      <div id="ammoBox" style="background:rgba(0,0,0,.55);padding:6px 10px;border-radius:8px;border:1px solid #3a4452;font-size:12px;color:#fff;text-align:right;min-width:120px">
-        <div id="ammoText" style="font-weight:bold">— / —</div>
-        <div style="height:6px;background:#222;border-radius:3px;margin-top:4px;overflow:hidden">
-          <div id="reloadBar" style="height:100%;width:0;background:linear-gradient(90deg,#ffd76b,#ff8030);transition:width .1s"></div>
+        <!-- Строка патронов: иконка, шкала (заполняется как HP), цифры.
+             Во время перезарядки внутри шкалы поверх жёлтой полосы растёт
+             оранжевый прогресс-бар. Кнопки и отдельный ammoBox убраны. -->
+        <div class="ammo-row">
+          <span class="label">🔫</span>
+          <div id="ammoBarBig"><div id="ammoBarFill"></div><div id="ammoReloadFill"></div></div>
+          <span class="ammo-nums"><span id="ammoCurVal">—</span><span style="color:#5a6478">/</span><span id="ammoMaxVal">—</span></span>
         </div>
       </div>
+    </div>
+    <!-- Боевой UI справа: только кнопка стелс-килла.
+         Патроны и прогресс перезарядки переехали в основной HUD сверху
+         (строка ammo-row). Кнопка перезарядки удалена — перезарядка
+         автоматическая (по правому стику при 0 пуль). -->
+    <div id="combatUI" style="position:absolute;right:14px;bottom:110px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none">
       <div style="display:flex;gap:8px;pointer-events:auto">
         <!-- Кнопка стелс-килла. По умолчанию скрыта; renderBackstabHint
              показывает её, если игрок стоит за спиной у врага. -->
@@ -190,7 +207,7 @@
     <div id="hitFlash" style="position:absolute;inset:0;background:rgba(255,40,40,0);pointer-events:none;z-index:7;transition:background .1s"></div>
     <div id="gameOver" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.55);z-index:8;color:#ff5050;font-size:32px;font-weight:bold;text-shadow:0 0 12px #800;pointer-events:none">
       <div>☠ ВЫ МЕРТВЫ ☠</div>
-      <div style="font-size:13px;color:#ccc;font-weight:normal;margin-top:8px;pointer-events:auto">нажмите «↻ Респ» в HUD</div>
+      <div style="font-size:13px;color:#ccc;font-weight:normal;margin-top:8px;pointer-events:auto">выйди в район и попробуй ещё раз</div>
     </div>
     <!-- Мини-обучение появляется на 2 секунды после старта боя (см. showTutorial). -->
     <div id="tutorial">
@@ -356,9 +373,9 @@ const LOC_REWARD_MUL = 1 + 0.10 * Math.max(0, QP.mlvl - 1);
 // ── Реестр всех 20 боссов (имя, hp, оружие, внешность, район) ──────
 const BOSS_REGISTRY = {
   // Рынок
-  kosoy:      { name: 'Косой',      emoji: '😈', hp: 150,  weapon: 'brass',         look: {gender:0,skin:2,body:0,face:1,hair:3,hat:0}, district: 'market',  quote: 'Да я тебя знаешь как...' },
-  bychok:     { name: 'Бычок',      emoji: '🐂', hp: 200,  weapon: 'bat',           look: {gender:0,skin:1,body:2,face:2,hair:0,hat:0}, district: 'market',  quote: 'Чё уставился, баран?' },
-  zhigan:     { name: 'Жиган',      emoji: '🪒', hp: 338,  weapon: 'blade_short',   look: {gender:0,skin:2,body:1,face:3,hair:4,hat:2}, district: 'market',  quote: 'Лоха видно за версту.' },
+  kosoy:      { name: 'Косой',      emoji: '😈', hp: 150,  weapon: 'pistol',        look: {gender:0,skin:2,body:0,face:1,hair:3,hat:0}, district: 'market',  quote: 'Да я тебя знаешь как...' },
+  bychok:     { name: 'Бычок',      emoji: '🐂', hp: 200,  weapon: 'pistol_heavy',  look: {gender:0,skin:1,body:2,face:2,hair:0,hat:0}, district: 'market',  quote: 'Чё уставился, баран?' },
+  zhigan:     { name: 'Жиган',      emoji: '🪒', hp: 338,  weapon: 'pistol',        look: {gender:0,skin:2,body:1,face:3,hair:4,hat:2}, district: 'market',  quote: 'Лоха видно за версту.' },
   shustryy:   { name: 'Шустрый',    emoji: '🏃', hp: 300,  weapon: 'pistol',        look: {gender:0,skin:1,body:0,face:1,hair:5,hat:0}, district: 'market',  quote: 'Догони — тогда поговорим.' },
   // Порт
   tolsty:     { name: 'Толстый',    emoji: '🐷', hp: 380,  weapon: 'pistol_heavy',  look: {gender:0,skin:1,body:2,face:4,hair:2,hat:3}, district: 'port',    quote: 'Всё через меня. Всё.' },
@@ -368,13 +385,13 @@ const BOSS_REGISTRY = {
   // Казино
   legenda:    { name: 'Легенда',    emoji: '👑', hp: 520,  weapon: 'pistol_gold',   look: {gender:0,skin:1,body:1,face:6,hair:0,hat:1}, district: 'casino',  quote: 'Меня знают все. Все боятся.' },
   professor:  { name: 'Профессор',  emoji: '🎓', hp: 460,  weapon: 'pistol',        look: {gender:0,skin:0,body:0,face:4,hair:6,hat:4}, district: 'casino',  quote: 'Ты просто пешка в моей игре.' },
-  artist:     { name: 'Артист',     emoji: '🎭', hp: 500,  weapon: 'blade_long',    look: {gender:0,skin:1,body:1,face:2,hair:4,hat:0}, district: 'casino',  quote: 'Жизнь — театр. А ты — массовка.' },
+  artist:     { name: 'Артист',     emoji: '🎭', hp: 500,  weapon: 'pistol_gold',   look: {gender:0,skin:1,body:1,face:2,hair:4,hat:0}, district: 'casino',  quote: 'Жизнь — театр. А ты — массовка.' },
   svalshchik: { name: 'Сдатчик',    emoji: '♟️', hp: 480,  weapon: 'smg',           look: {gender:0,skin:1,body:0,face:5,hair:1,hat:0}, district: 'casino',  quote: 'Деловой разговор. Ничего личного.' },
   // Промзона
   buryy:      { name: 'Бурый',      emoji: '🐻', hp: 680,  weapon: 'shotgun',       look: {gender:0,skin:2,body:2,face:5,hair:0,hat:0}, district: 'factory', quote: 'Я тут раньше тебя, щенок.' },
-  khirurg:    { name: 'Хирург',     emoji: '🩺', hp: 620,  weapon: 'blade_long',    look: {gender:0,skin:0,body:0,face:0,hair:6,hat:0}, district: 'factory', quote: 'Больно не будет. Обещаю.' },
+  khirurg:    { name: 'Хирург',     emoji: '🩺', hp: 620,  weapon: 'pistol_heavy',  look: {gender:0,skin:0,body:0,face:0,hair:6,hat:0}, district: 'factory', quote: 'Больно не будет. Обещаю.' },
   tigr:       { name: 'Тигр',       emoji: '🐯', hp: 750,  weapon: 'rifle',         look: {gender:0,skin:1,body:1,face:6,hair:2,hat:0}, district: 'factory', quote: 'Я не промахиваюсь.' },
-  palach:     { name: 'Палач',      emoji: '🪓', hp: 700,  weapon: 'bat',           look: {gender:0,skin:1,body:2,face:5,hair:0,hat:1}, district: 'factory', quote: 'Тебя сюда никто не звал.' },
+  palach:     { name: 'Палач',      emoji: '🪓', hp: 700,  weapon: 'shotgun',       look: {gender:0,skin:1,body:2,face:5,hair:0,hat:1}, district: 'factory', quote: 'Тебя сюда никто не звал.' },
   // Резиденция
   sedoy:      { name: 'Седой',      emoji: '👴', hp: 920,  weapon: 'pistol_heavy',  look: {gender:0,skin:0,body:1,face:6,hair:7,hat:1}, district: 'mansion', quote: 'Я видел, как рушились империи.' },
   prizrak:    { name: 'Призрак',    emoji: '👻', hp: 860,  weapon: 'sniper',        look: {gender:0,skin:0,body:0,face:4,hair:6,hat:0}, district: 'mansion', quote: 'Меня нет. Я везде.' },
@@ -409,9 +426,11 @@ const BOSS_CFG = (() => {
   };
 })();
 
-// Иконки оружия из бота → оружие в иго (если не совпало — pistol)
-const ISO_WEAPONS = new Set(['fists','brass','bat','blade_short','blade_long','pistol','pistol_heavy','pistol_gold','shotgun','smg','rifle','sniper','rpg']);
-const WEAPON_ALIASES = { nagan:'pistol', tt:'pistol', pm:'pistol', glock:'pistol', revolver:'pistol_heavy', desert_eagle:'pistol_heavy', knife:'blade_short', katana:'blade_long', ak:'rifle', m4:'rifle', ump:'smg', mp5:'smg' };
+// Иконки оружия из бота → оружие в игре. Холодное (fists/brass/bat/blade_*)
+// игроку больше не доступно: всё, что не огнестрел или не алиас → 'pistol'.
+// Конфиги в WEAPON_FX_CFG сохранены — нужны для анимации стелс-килла.
+const ISO_WEAPONS = new Set(['pistol','pistol_heavy','pistol_gold','shotgun','smg','rifle','sniper','rpg']);
+const WEAPON_ALIASES = { nagan:'pistol', tt:'pistol', pm:'pistol', glock:'pistol', revolver:'pistol_heavy', desert_eagle:'pistol_heavy', ak:'rifle', m4:'rifle', ump:'smg', mp5:'smg' };
 const INITIAL_WEAPON = (QP.weapon && (ISO_WEAPONS.has(QP.weapon) ? QP.weapon : (WEAPON_ALIASES[QP.weapon] || 'pistol'))) || 'pistol';
 
 // ── Сложность арены ────────────────────────────────────────────────
@@ -990,7 +1009,7 @@ const BOSS_LOOK = BOSS_CFG.look;
 // Враги: 1 босс + 3 миньона. Миньоны конфигурируются от района (район = сложность).
 // AI: aiState — 'patrol' (бродит), 'chase' (бежит к игроку), 'shoot' (стреляет с позиции), 'rush' (босс-рывок)
 const _DISTRICT_MINIONS = {
-  market:  [{w:'pistol',     fc:700,  hp: 60}, {w:'brass',       fc:600,  hp: 55}, {w:'bat',           fc:650, hp: 65}],
+  market:  [{w:'pistol',     fc:700,  hp: 60}, {w:'pistol',      fc:650,  hp: 55}, {w:'pistol_heavy',  fc:850, hp: 65}],
   port:    [{w:'pistol',     fc:600,  hp: 80}, {w:'smg',         fc:1100, hp: 75}, {w:'pistol_heavy',  fc:850, hp: 85}],
   casino:  [{w:'pistol_gold',fc:500,  hp: 90}, {w:'smg',         fc:1000, hp: 90}, {w:'pistol_heavy',  fc:750, hp: 100}],
   factory: [{w:'shotgun',    fc:1400, hp:110}, {w:'rifle',       fc:550,  hp:100}, {w:'smg',           fc:900, hp:105}],
@@ -3276,7 +3295,10 @@ function updateEnemyAI(e, dt) {
       e.walkPhase += dt * 16;
     }
     if (d < 1.1 && e.fireCD <= 0) {
-      fireWeapon(e, 'bat', 'enemy');
+      // Раньше тут босс «бил битой» в упор. Ближний бой убран — босс
+      // в rush стреляет из своего штатного оружия в упор. Урон тот же,
+      // механика читаемее (видно вспышку выстрела, а не невидимый удар).
+      fireWeapon(e, e.weapon || 'pistol_heavy', 'enemy');
     }
     return;
   }
@@ -3482,7 +3504,7 @@ function endTouch(id) {
 // Иначе preventDefault на touchstart глушит synthetic click, и кнопки внутри #stage
 // (катсцена СТЕЛС/В ЛОБ, melee, reload, респ) перестают работать на мобиле.
 function _isUiTouchTarget(t) {
-  return !!(t && t.closest && t.closest('button, #catscene, #resultScene, #gameOver, #hudBtns, #combatUI'));
+  return !!(t && t.closest && t.closest('button, #catscene, #resultScene, #gameOver, #combatUI'));
 }
 stage.addEventListener('touchstart', (e) => {
   if (_isUiTouchTarget(e.target)) return;
@@ -3567,56 +3589,10 @@ document.getElementById('meleeBtn').addEventListener('click', () => {
 // оставлен хоткей R на случай ручной перезарядки до опустошения обоймы.
 window.addEventListener('keydown', (e) => { if (e.key === 'r' || e.key === 'R') manualReload(); });
 
-// ── Кнопки: перегенерировать игрока / врагов ───────────────────────
-document.getElementById('rerollBtn').addEventListener('click', () => {
-  player.look = rndLook();
-  savePlayerLook(player.look);
-});
-document.getElementById('resetBtn').addEventListener('click', () => {
-  // Босс — обратно в кабинет
-  enemies[0].hp = enemies[0].hpMax;
-  enemies[0].r = SPAWNS.boss[0]; enemies[0].c = SPAWNS.boss[1];
-  enemies[0].confined = _roomBounds();
-  // Миньоны — на свои стартовые позиции, первые N — охрана в кабинете
-  for (let i = 1; i < enemies.length; i++) {
-    enemies[i].hp = enemies[i].hpMax;
-    enemies[i].look = rndLook();
-    const pos = SPAWNS.minions[i - 1];
-    if (pos) { enemies[i].r = pos[0]; enemies[i].c = pos[1]; }
-    enemies[i].confined = (i - 1 < SPAWNS.guardsInside) ? _roomBounds() : null;
-  }
-  enemies.forEach(e => {
-    e.aiState = 'patrol'; e.targetR = null; e.targetC = null;
-    e.repositionT = 0; e.fireCD = 0;
-    e.lostParts = {};
-    if (e.isBoss) { e.grenadeCD = 4000; e.rushCD = 9000; e.rushT = 0; }
-  });
-  bullets.length = 0; grenades.length = 0; explosions.length = 0; muzzles.length = 0; firePuddles.length = 0;
-  coverBreaks.length = 0; hitSparks.length = 0;
-  bloodDrops.length = 0; goreParts.length = 0;
-  chatBubbles.length = 0;
-  alertLevel = 0;
-  alertDecayT = 0;
-  _lastAlertLevel = -1; // форсируем перерисовку баннера
-  window._playerDownReacted = false;
-  // сбрасываем состояния ран у всех акторов
-  for (const a of [player, ...enemies]) {
-    if (a) { a.bleedT = 0; a.bleedDps = 0; a.bleedTickT = 0; a.cantShootT = 0; a.lostParts = {}; }
-  }
-  // восстанавливаем карту и HP укрытий
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) MAP[r][c] = MAP_ORIGINAL[r][c];
-  initCoverHP();
-  // сбрасываем патроны игрока
-  player.ammo = {};
-  player.lostParts = {};
-  player.hp = player.hpMax;
-  player.r = SPAWNS.player[0]; player.c = SPAWNS.player[1];
-  player.hitT = 0;
-  // Сбрасываем стат + закрываем финальный экран если был
-  fightStatsBegin();
-  document.getElementById('resultScene').style.display = 'none';
-  gamePaused = false;
-});
+// Кнопки «🎲 Перс» / «↻ Респ» удалены из HUD — это были демо-фичи
+// (перегенерация внешности и респ игрока/врагов). В продовой боёвке
+// игрок после смерти выходит в район через кнопку «↩ К району» на
+// финальном экране, hub перезаливает состояние и стартует новый бой.
 
 // ── Game loop ──────────────────────────────────────────────────────
 // ── HUD: аватар персонажа (анимированный) ─────────────────────────
@@ -3781,23 +3757,38 @@ function loop(t) {
   renderAlertBanner();
   renderBackstabHint();
 
-  // Индикатор патронов и перезарядки
-  const ammoText = document.getElementById('ammoText');
-  const reloadBar = document.getElementById('reloadBar');
+  // Индикатор патронов и перезарядки в HUD сверху:
+  //  • ammoBarFill — жёлтая шкала «текущие / обойма» (как HP-бар).
+  //  • ammoReloadFill — оранжевая полоса прогресса перезарядки поверх.
+  //  • ammoCurVal / ammoMaxVal — числа справа.
+  // У melee-оружия (только стелс-килл) шкала пустая, цифры — «∞».
+  const ammoCur     = document.getElementById('ammoCurVal');
+  const ammoMax     = document.getElementById('ammoMaxVal');
+  const ammoFill    = document.getElementById('ammoBarFill');
+  const reloadFill  = document.getElementById('ammoReloadFill');
   const cfg = WEAPON_FX_CFG[currentWeapon];
   if (cfg && cfg.melee) {
-    if (ammoText) ammoText.textContent = '∞ (ближний бой)';
-    if (reloadBar) reloadBar.style.width = '0%';
+    if (ammoCur) ammoCur.textContent = '∞';
+    if (ammoMax) ammoMax.textContent = '∞';
+    if (ammoFill)   ammoFill.style.width   = '0%';
+    if (reloadFill) reloadFill.style.width = '0%';
   } else if (cfg) {
     const a = getAmmo(currentWeapon);
-    if (a && ammoText) ammoText.textContent = a.cur + ' / ' + cfg.mag;
-    if (a && a.reloading && reloadBar) {
-      const now = performance.now();
-      const rT = Math.max(0, a.reloadEnd - now);
-      const ratio = 1 - rT / (cfg.reload || 1500);
-      reloadBar.style.width = (ratio * 100).toFixed(0) + '%';
-    } else if (reloadBar) {
-      reloadBar.style.width = '0%';
+    const mag = cfg.mag || 1;
+    if (a) {
+      if (ammoCur) ammoCur.textContent = a.cur;
+      if (ammoMax) ammoMax.textContent = mag;
+      if (ammoFill) ammoFill.style.width = Math.max(0, Math.min(100, (a.cur / mag) * 100)) + '%';
+      if (reloadFill) {
+        if (a.reloading) {
+          const now = performance.now();
+          const rT = Math.max(0, a.reloadEnd - now);
+          const ratio = 1 - rT / (cfg.reload || 1500);
+          reloadFill.style.width = (ratio * 100).toFixed(0) + '%';
+        } else {
+          reloadFill.style.width = '0%';
+        }
+      }
     }
   }
   requestAnimationFrame(loop);
