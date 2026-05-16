@@ -6162,10 +6162,19 @@ function _renderShopCard(it) {
   return card;
 }
 async function shopBuy(itemId) {
+  // Найдём товар (для текста подтверждения)
+  const itLookup = (_isDemo() ? DEMO_SHOP_ITEMS : _shopState.items).find(x => x.id === itemId);
+  if (!itLookup) return;
+  const priceLabel = itLookup.diamonds_price ? `💎 ${itLookup.diamonds_price}`
+                   : itLookup.price          ? `💵 $${_fmtCash(itLookup.price)}`
+                   : '';
+  const confirmText = `Купить «${itLookup.name}» за ${priceLabel}?`;
+  // Нативный TG-confirm (или браузерный fallback) — пользователь явно
+  // подтверждает покупку, чтобы случайный тап не списывал деньги.
+  if (!(await askConfirm(confirmText))) return;
   // DEMO
   if (_isDemo()) {
-    const it = DEMO_SHOP_ITEMS.find(x => x.id === itemId);
-    if (!it) return;
+    const it = itLookup;
     if (it.diamonds_price) {
       if (_demoDiamonds < it.diamonds_price) { showToast('Не хватает бриллиантов', '⚠️'); return; }
       _demoDiamonds -= it.diamonds_price;
@@ -6184,7 +6193,12 @@ async function shopBuy(itemId) {
     return;
   }
   const api = DATA.api, uid = jobUidStr();
-  if (!api || !uid) return;
+  // Раньше тут был тихий return — игроку казалось, что «кнопка не работает».
+  // Теперь объясняем причину: бот без туннеля cloudflared не отдаёт API.
+  if (!api || !uid) {
+    showToast('Сервер недоступен. Перезапусти бота через ЗАПУСТИТЬ_БОТА.bat', '⚠️');
+    return;
+  }
   try {
     const res = await fetch(`${api}/shop/${uid}/buy`, {
       method: 'POST',
@@ -6326,6 +6340,16 @@ function _renderInvCard(it) {
   return card;
 }
 async function invEquip(itemId, slotForUnequip) {
+  // Подтверждение действия — чтобы случайный тап не менял экипировку
+  // прямо в разгар работы. Текст разный для надеть/снять.
+  let confirmText;
+  if (itemId) {
+    const it = (_isDemo() ? DEMO_SHOP_ITEMS : _invState.items).find(x => x.id === itemId);
+    confirmText = `Надеть «${it ? it.name : itemId}»?`;
+  } else {
+    confirmText = slotForUnequip === 'armor' ? 'Снять броню?' : 'Снять оружие?';
+  }
+  if (!(await askConfirm(confirmText))) return;
   // DEMO
   if (_isDemo()) {
     if (itemId) {
@@ -6347,7 +6371,10 @@ async function invEquip(itemId, slotForUnequip) {
     return;
   }
   const api = DATA.api, uid = jobUidStr();
-  if (!api || !uid) return;
+  if (!api || !uid) {
+    showToast('Сервер недоступен. Перезапусти бота через ЗАПУСТИТЬ_БОТА.bat', '⚠️');
+    return;
+  }
   try {
     const body = itemId ? { item_id: itemId } : { item_id: null, slot: slotForUnequip };
     const res = await fetch(`${api}/inv/${uid}/equip`, {
