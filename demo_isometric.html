@@ -58,6 +58,8 @@
     font-size: 11px; color: #cfd6e6;
   }
   #hudInfo .hp-row .label { color: #8a92a8; font-size: 10px; }
+  #hudInfo .hp-row .hp-nums { display: inline-flex; align-items: baseline; gap: 1px; white-space: nowrap; }
+  #hudInfo .hp-row .hp-nums #hpMaxVal { color: #5a6478; }
   #hpBarBig {
     width: 130px; height: 12px;
     background: #1a1e26; border: 1px solid #3a4452; border-radius: 6px;
@@ -115,11 +117,27 @@
   }
   #hudBtns button:hover { background: #3a4458; color: #ffd76b; }
   #hudBtns button:active { transform: scale(.95); }
-  #hint {
-    position: absolute; right: 10px; bottom: 10px; z-index: 6;
-    background: rgba(0,0,0,.4); padding: 6px 10px; border-radius: 8px;
-    font-size: 10px; color: #aab2c8; pointer-events: none; max-width: 160px;
+  /* Мини-обучение в начале боя: показывается ~2 сек и плавно гаснет.
+     pointer-events:none — НЕ перехватывает тапы по стикам/кнопкам. */
+  #tutorial {
+    position: absolute; left: 50%; bottom: 26%;
+    transform: translateX(-50%);
+    z-index: 9; pointer-events: none;
+    background: rgba(14,16,22,.78);
+    border: 1px solid #3a4452;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px; line-height: 1.5;
+    color: #cfd6e6;
+    text-align: left;
+    max-width: 84vw;
+    box-shadow: 0 6px 18px rgba(0,0,0,.55);
+    opacity: 0;
+    transition: opacity .25s;
   }
+  #tutorial.on { opacity: 1; }
+  #tutorial b { color: #ffd76b; }
+  #tutorial .stealth { color: #5dd55d; }
 </style>
 </head>
 <body>
@@ -136,10 +154,10 @@
           <span id="wepName">пистолет</span>
         </div>
         <div class="hp-row">
-          <span id="alertIcon" title="Не замечен">👻</span>
           <span class="label">HP</span>
           <div id="hpBarBig"><div id="hpBarFill"></div></div>
-          <span id="hpVal">100</span><span style="color:#5a6478">/<span id="hpMaxVal">100</span></span>
+          <span class="hp-nums"><span id="hpVal">100</span><span style="color:#5a6478">/</span><span id="hpMaxVal">100</span></span>
+          <span id="alertIcon" title="Не замечен">👻</span>
         </div>
         <div class="fps-row">FPS: <span id="fps">0</span></div>
       </div>
@@ -148,8 +166,10 @@
         <button id="resetBtn">↻ Респ</button>
       </div>
     </div>
-    <!-- Боевой UI справа снизу: melee-кнопка + индикатор патронов/перезарядки -->
-    <div id="combatUI" style="position:absolute;right:14px;bottom:14px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none">
+    <!-- Боевой UI справа: melee-кнопка + индикатор патронов/перезарядки.
+         Сдвинут выше (bottom:110px) — иначе кнопки сливаются с правым стиком
+         и большим пальцем трудно по ним точно попасть. -->
+    <div id="combatUI" style="position:absolute;right:14px;bottom:110px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none">
       <div id="ammoBox" style="background:rgba(0,0,0,.55);padding:6px 10px;border-radius:8px;border:1px solid #3a4452;font-size:12px;color:#fff;text-align:right;min-width:120px">
         <div id="ammoText" style="font-weight:bold">— / —</div>
         <div style="height:6px;background:#222;border-radius:3px;margin-top:4px;overflow:hidden">
@@ -169,7 +189,12 @@
       <div>☠ ВЫ МЕРТВЫ ☠</div>
       <div style="font-size:13px;color:#ccc;font-weight:normal;margin-top:8px;pointer-events:auto">нажмите «↻ Респ» в HUD</div>
     </div>
-    <div id="hint">Левая половина — ходить<br>Правая — целиться/стрелять</div>
+    <!-- Мини-обучение появляется на 2 секунды после старта боя (см. showTutorial). -->
+    <div id="tutorial">
+      <div><b>Левый стик</b> — двигаться</div>
+      <div><b>Правый стик</b> — целиться и стрелять</div>
+      <div class="stealth">🤫 Подкрадись со спины — <b>стелс-килл</b> одной кнопкой 👊</div>
+    </div>
     <!-- Финальный экран: статистика + кнопки возврата -->
     <div id="resultScene" style="position:absolute;inset:0;z-index:31;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%, rgba(30,20,15,.65), rgba(0,0,0,.96));backdrop-filter:blur(4px);color:#fff;gap:10px;padding:24px;text-align:center;pointer-events:auto">
       <div id="resEmoji" style="font-size:72px;line-height:1;filter:drop-shadow(0 4px 16px rgba(0,0,0,.8))">🏆</div>
@@ -975,7 +1000,7 @@ const _roomBounds = () => ({ r0: BOSS_ROOM.r0, r1: BOSS_ROOM.r1, c0: BOSS_ROOM.c
 const enemies = [
   { r: SPAWNS.boss[0], c: SPAWNS.boss[1], hp: BOSS_CFG.hp, hpMax: BOSS_CFG.hp, angle: 0, look: BOSS_LOOK,
     isBoss: true, name: BOSS_CFG.name, emoji: BOSS_CFG.emoji,
-    weapon: BOSS_CFG.weapon, fireCD: 1500, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0,
+    weapon: BOSS_CFG.weapon, fireCD: 1500, sightR: 4, aiState: 'patrol', repositionT: 0, walkPhase: 0,
     grenadeCD: 1800, rushCD: 5000, rushT: 0,
     confined: _roomBounds() },
 ];
@@ -988,7 +1013,7 @@ for (let i = 0; i < SPAWNS.minions.length; i++) {
   enemies.push({
     r: pos[0], c: pos[1], hp: cfg.hp, hpMax: cfg.hp, angle: 0,
     look: rndLook(), isBoss: false,
-    weapon: cfg.w, fireCD: cfg.fc, sightR: 8,
+    weapon: cfg.w, fireCD: cfg.fc, sightR: 4,
     aiState: 'patrol', repositionT: 0, walkPhase: 0,
     confined: inRoom ? _roomBounds() : null,
   });
@@ -2670,19 +2695,26 @@ function sendResultAndClose(action) {
     xp:   fightStats.expGain  || 0,
     cash: fightStats.cashGain || 0,
   };
-  // Дизейблим кнопки сразу — повторный тап ничего не даёт.
+  // Дизейблим обе кнопки сразу + визуально откликаемся — иначе повторный
+  // тап вызывает sendResultAndClose ещё раз, а пользователь думает «лагает».
   try {
-    document.getElementById('btnBackDistrict').disabled = true;
-    document.getElementById('btnBackMenu').disabled     = true;
+    const bd = document.getElementById('btnBackDistrict');
+    const bm = document.getElementById('btnBackMenu');
+    bd.disabled = true; bm.disabled = true;
+    bd.style.opacity = '0.55'; bm.style.opacity = '0.55';
+    // меняем подпись активной кнопки, чтобы было видно «процесс идёт»
+    const active = (action === 'district') ? bd : bm;
+    if (active) active.textContent = '⏳ ' + (action === 'district' ? 'Загрузка района…' : 'Загрузка меню…');
   } catch(e) {}
 
   // Строит URL хаба, подставляя обновлённое состояние персонажа из ответа API.
   // Если ответа нет — возвращает в hub.html без изменений и hub использует
-  // те параметры, что пришли в боёвку (т.е. до боя).
+  // те параметры, что пришли в боёвку (т.е. до боя). action='district'|'menu'
+  // добавляет ?view=district&loc=<...>, чтобы хаб открыл нужный экран сразу.
   function navigateToHub(state) {
     const out = new URLSearchParams();
     // Переносим ВСЕ исходные параметры боёвки кроме чисто-боевых
-    const skip = new Set(['boss','loc','exp','cash','mlvl','minions','bname','bhp','bemoji']);
+    const skip = new Set(['boss','loc','exp','cash','mlvl','minions','bname','bhp','bemoji','view']);
     _UP.forEach((v, k) => { if (!skip.has(k)) out.set(k, v); });
     // Обновлённое состояние перетирает соответствующие поля
     if (state) {
@@ -2696,18 +2728,27 @@ function sendResultAndClose(action) {
       if (state.def   != null) out.set('def',   state.def);
       if (state.kills != null) out.set('kills', state.kills);
     }
+    // Роутинг в хабе: 'district' → сразу страница района, 'menu' → главная.
+    if (action === 'district') {
+      out.set('view', 'district');
+      out.set('loc',  CURRENT_LOC);
+    }
     window.location.href = 'hub.html?' + out.toString();
   }
 
   // 1) HTTP API: пишем результат в БД молча, без сообщений в чат.
+  //    Таймаут 1.5 сек — иначе на слабой сети висим до 5с и юзер думает «лаг».
+  //    Если не уложились — переезжаем без серверного state'а, хаб подхватит
+  //    исходные URL-параметры (стат до боя). Бот допишет результат в БД асинхронно.
   if (QP.api && QP.uid) {
     const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-    if (ctl) setTimeout(() => ctl.abort(), 5000);
+    if (ctl) setTimeout(() => ctl.abort(), 1500);
     fetch(QP.api + '/battle/' + encodeURIComponent(QP.uid) + '/result', {
       method:  'POST',
       headers: {'Content-Type': 'application/json'},
       body:    JSON.stringify(payload),
       signal:  ctl ? ctl.signal : undefined,
+      keepalive: true, // чтобы fetch не оборвался, если успеем сделать редирект
     })
     .then(r => r.ok ? r.json() : null)
     .catch(() => null)
@@ -2720,7 +2761,8 @@ function sendResultAndClose(action) {
   if (tg && typeof tg.sendData === 'function') {
     try { tg.sendData(JSON.stringify(payload)); } catch(e) {}
   }
-  setTimeout(() => navigateToHub(null), 300);
+  // Раньше тут было 300мс — сейчас навигируемся СРАЗУ, чтобы не было лага.
+  navigateToHub(null);
 }
 
 function update(dt) {
@@ -3799,6 +3841,21 @@ updateMeleeBtn();
 // Сохраняем оригинальную карту для респа
 const MAP_ORIGINAL = MAP.map(row => row.slice());
 
+// ── Мини-обучение: показ на 2 сек после старта боя ─────────────────
+let _tutorialT = null;
+function showTutorial() {
+  const el = document.getElementById('tutorial');
+  if (!el) return;
+  if (_tutorialT) clearTimeout(_tutorialT);
+  el.classList.add('on');
+  // 2.0 сек видимости → плавно убираем через .opacity transition (.25s)
+  _tutorialT = setTimeout(() => {
+    el.classList.remove('on');
+    // через transition уберём из layout, чтобы не висел
+    setTimeout(() => { if (!el.classList.contains('on')) el.style.display = 'none'; }, 350);
+  }, 2000);
+}
+
 // ── Заполняем катсцену данными босса/района ────────────────────────
 (function initCatscene() {
   document.getElementById('catLoc').textContent       = THEME.name;
@@ -3814,6 +3871,9 @@ const MAP_ORIGINAL = MAP.map(row => row.slice());
     if (mode === 'frontal') {
       setAlert(2, 'manual');
     }
+    // Мини-обучение на 2 сек — плавное появление/исчезновение,
+    // не блокирует ввод (pointer-events:none на самом блоке).
+    showTutorial();
   };
   document.getElementById('btnStealth').onclick = () => startGame('stealth');
   document.getElementById('btnFrontal').onclick = () => startGame('frontal');

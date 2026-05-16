@@ -8027,6 +8027,25 @@ function _gzFlash(emoji){
   });
   setTimeout(() => p.remove(), 400);
 }
+
+// ── Авто-роутинг после боя ───────────────────────────────────────────
+// Боёвка (demo_isometric.html) при выходе по кнопке «↩ К району» добавляет
+// ?view=district&loc=<id>. На входе в hub мы по умолчанию показываем главное
+// меню (page-main). Если пришёл такой параметр — сразу прячем main и
+// открываем нужную страницу района. Иначе ничего не делаем.
+(function postBattleRoute() {
+  try {
+    const view = P.get('view');
+    if (!view) return;
+    if (view === 'district') {
+      const locId = P.get('loc');
+      if (!locId || !LOC_DATA[locId]) return;
+      // Прячем главную, открываем район. openDistrict сам покажет page-district.
+      document.getElementById('page-main').style.display = 'none';
+      openDistrict(locId);
+    }
+  } catch(e) {}
+})();
 </script>
 
 
