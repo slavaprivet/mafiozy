@@ -169,6 +169,11 @@
       <div>☠ ВЫ МЕРТВЫ ☠</div>
       <div style="font-size:13px;color:#ccc;font-weight:normal;margin-top:8px;pointer-events:auto">нажмите «↻ Респ» в HUD</div>
     </div>
+    <!-- Стелс-индикатор: уровень тревоги -->
+    <div id="alertBanner" style="position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:7;display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(20,24,30,.92);border:2px solid #3a5d3a;border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,.5);pointer-events:none;transition:border-color .3s,box-shadow .3s">
+      <span id="alertIcon" style="font-size:24px;line-height:1">👻</span>
+      <span id="alertText" style="font-size:13px;font-weight:bold;color:#5dd55d;text-shadow:0 1px 2px #000;white-space:nowrap">Не замечен</span>
+    </div>
     <canvas id="minimap" width="140" height="200" style="position:absolute;right:10px;top:10px;z-index:6;border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(0,0,0,.5);pointer-events:none"></canvas>
     <div id="hint">Левая половина — ходить<br>Правая — целиться/стрелять</div>
   </div>
@@ -466,6 +471,102 @@ function damageActor(v, dmg, dirAngle, weaponKey) {
 }
 
 // Реплика у соседнего напарника (живого, в радиусе 8 тайлов)
+// ═══════════════════════════════════════════════════════════════════
+// СТЕЛС-СИСТЕМА: уровень тревоги, FOV-конусы зрения, тихие убийства
+// ═══════════════════════════════════════════════════════════════════
+// 0 = спокойно (👻 "Не замечен"), 1 = подозрение (💡 "Что-то заподозрили"),
+// 2 = бой (🔴 "Тебя обнаружили")
+let alertLevel = 0;
+let alertDecayT = 0;          // сек после последнего "контакта" — для остывания
+const FOV_HALF_RAD = Math.PI / 2.5;   // ±36° → конус 72°
+const ALERT_DECAY_TIME = 9;            // сек на спад до spuasus после потери игрока
+const SUSPECT_TO_CALM_TIME = 14;       // сек на возврат к "спокойно"
+
+// Может ли враг видеть игрока (с учётом FOV)
+function canEnemySeePlayer(e) {
+  if (!e || e.hp <= 0 || player.hp <= 0) return false;
+  const dx = player.c - e.c, dy = player.r - e.r;
+  const dist = Math.hypot(dx, dy);
+  if (dist > e.sightR) return false;
+  if (!hasLOS(e.r, e.c, player.r, player.c)) return false;
+  // В режиме боя — 360°: уже знают где ты
+  if (alertLevel >= 2) return true;
+  // Если стоит ВПРИТЫК (<1 тайл) — почувствует независимо от FOV
+  if (dist < 1.0) return true;
+  // Проверка FOV
+  const angToPlayer = Math.atan2(dy, dx);
+  let diff = angToPlayer - e.angle;
+  while (diff >  Math.PI) diff -= 2 * Math.PI;
+  while (diff < -Math.PI) diff += 2 * Math.PI;
+  return Math.abs(diff) <= FOV_HALF_RAD;
+}
+
+// Может ли враг увидеть труп (для перехода в "подозрение")
+function canEnemySeeCorpse(e, dead) {
+  if (!e || e.hp <= 0 || !dead || dead.hp > 0) return false;
+  const dx = dead.c - e.c, dy = dead.r - e.r;
+  const dist = Math.hypot(dx, dy);
+  if (dist > 5) return false;                              // труп видим в радиусе 5
+  if (!hasLOS(e.r, e.c, dead.r, dead.c)) return false;
+  // FOV (трупы видим только в конусе)
+  const ang = Math.atan2(dy, dx);
+  let diff = ang - e.angle;
+  while (diff >  Math.PI) diff -= 2 * Math.PI;
+  while (diff < -Math.PI) diff += 2 * Math.PI;
+  return Math.abs(diff) <= FOV_HALF_RAD;
+}
+
+// Игрок ЗА СПИНОЙ у врага (для стелс-килла)
+function isPlayerBehind(e) {
+  if (!e || e.hp <= 0 || player.hp <= 0) return false;
+  const dx = player.c - e.c, dy = player.r - e.r;
+  const dist = Math.hypot(dx, dy);
+  if (dist > 1.2) return false;
+  const ang = Math.atan2(dy, dx);
+  let diff = ang - e.angle;
+  while (diff >  Math.PI) diff -= 2 * Math.PI;
+  while (diff < -Math.PI) diff += 2 * Math.PI;
+  // back-arc ±63° от противоположного направления
+  return Math.abs(Math.abs(diff) - Math.PI) < Math.PI * 0.35;
+}
+
+// Найти врага, к которому можно подкрасться (живой, ближайший в спине, не босс)
+function findBackstabTarget() {
+  if (player.hp <= 0 || alertLevel >= 2) return null;     // в бою — нельзя
+  let best = null, bestD = 99;
+  for (const e of enemies) {
+    if (e.hp <= 0 || e.isBoss) continue;
+    if (!isPlayerBehind(e)) continue;
+    const d = Math.hypot(player.r - e.r, player.c - e.c);
+    if (d < bestD) { bestD = d; best = e; }
+  }
+  return best;
+}
+
+// Поднять уровень тревоги (с учётом источника)
+function setAlert(level, source) {
+  if (level > alertLevel) {
+    alertLevel = level;
+    alertDecayT = 0;
+    // реакция врагов
+    if (level >= 2 && source !== 'silent') {
+      const alive = enemies.filter(e => e.hp > 0);
+      if (alive.length) {
+        const e = alive[Math.floor(Math.random() * alive.length)];
+        maybeChat(e, 'spot', 0.9);
+      }
+    } else if (level === 1) {
+      const alive = enemies.filter(e => e.hp > 0);
+      if (alive.length) {
+        const e = alive[Math.floor(Math.random() * alive.length)];
+        spawnChat(e, 'Эй, что это было?', 2500);
+      }
+    }
+  } else if (level === alertLevel) {
+    alertDecayT = 0;  // сбрасываем затухание при подтверждении
+  }
+}
+
 function maybeChatNearby(deadActor, kind, chance) {
   if (!enemies) return;
   const buddies = enemies.filter(e => e !== deadActor && e.hp > 0
@@ -1569,7 +1670,11 @@ function drawCharacter(obj, isPlayer) {
   // Рука с оружием (только живой). Плечо — на уровне груди (примерно 45% высоты спрайта снизу),
   // смещение вбок перпендикулярно направлению, чтобы рука росла из плеча.
   if (!isDead && obj.angle != null) {
-    const armLen = TS * (obj.isBoss ? 0.5 : 0.36);
+    // Анимация замаха ближним: при meleeT > 0 рука выносится ВПЕРЁД и резко возвращается
+    const meleeT = obj.meleeT || 0;
+    // k: 0→0 в начале, 1 на пике замаха (середина), 0→0 в конце
+    const meleeK = meleeT > 0 ? Math.sin((1 - Math.min(1, meleeT / 0.28)) * Math.PI) : 0;
+    const armLen = TS * (obj.isBoss ? 0.5 : 0.36) * (1 + meleeK * 0.55);  // удлинение замаха
     const dx = Math.cos(obj.angle), dy = Math.sin(obj.angle);
     const sx = (dx - dy) * 0.5;
     const sy = (dx + dy) * 0.5 * ISO_Y;
@@ -1597,14 +1702,36 @@ function drawCharacter(obj, isPlayer) {
       else if (wepKey === 'chain') { len = 0.26; col = '#888'; w = 2.5; }
       else if (wepKey === 'fists') { len = 0;    col = '#bbb'; w = 0; }
       else if (wepKey === 'brass') { len = 0.06; col = '#e8c96e'; w = 5; }
+      // При замахе оружие "ускоряется" — длиннее траектория + дуговой смаз
+      const swingLen = len * (1 + meleeK * 0.6);
       if (len > 0) {
+        // Дуговой смаз белой полупрозрачной аркой (вокруг руки)
+        if (meleeK > 0.2) {
+          ctx.save();
+          ctx.strokeStyle = wepKey === 'bat' ? 'rgba(255,200,120,.45)' : 'rgba(255,255,255,.5)';
+          ctx.lineWidth = w * 0.8 + 2;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          // дуга от позиции "до замаха" до текущей
+          const angSpread = 1.1 * meleeK;
+          ctx.arc(hx, hy, TS * swingLen * 1.3, Math.atan2(sy, sx) - angSpread, Math.atan2(sy, sx) + angSpread * 0.3);
+          ctx.stroke();
+          ctx.restore();
+        }
         ctx.strokeStyle = col; ctx.lineWidth = w;
         ctx.beginPath(); ctx.moveTo(ex, ey);
-        ctx.lineTo(ex + sx * TS * len, ey + sy * TS * len); ctx.stroke();
+        ctx.lineTo(ex + sx * TS * swingLen, ey + sy * TS * swingLen); ctx.stroke();
       } else {
-        // кулак — кружок на конце руки
+        // кулак — кружок на конце руки + при ударе ударная волна
         ctx.fillStyle = obj.look ? (SKINS[obj.look.skin] || SKINS[0]) : '#ddd';
-        ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(ex, ey, 4 + meleeK * 4, 0, Math.PI*2); ctx.fill();
+        if (meleeK > 0.2) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255,255,255,' + (meleeK * 0.6) + ')';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(ex, ey, 8 + meleeK * 14, 0, Math.PI*2); ctx.stroke();
+          ctx.restore();
+        }
       }
     } else {
       // стрелковое — детальная отрисовка по типу оружия
@@ -2339,6 +2466,38 @@ function update(dt) {
       chatBubbles.splice(i, 1);
     }
   }
+
+  // ── СТЕЛС: обнаружение трупов + спад тревоги ──
+  // Проверяем что каждый живой враг видит вокруг себя — если есть труп в FOV → подозрение
+  if (alertLevel < 1) {
+    for (const e of enemies) {
+      if (e.hp <= 0) continue;
+      for (const d of enemies) {
+        if (d === e || d.hp > 0) continue;
+        if (canEnemySeeCorpse(e, d)) {
+          setAlert(1, 'corpse');
+          spawnChat(e, 'Тут труп! Кто-то тут есть!', 2800);
+          break;
+        }
+      }
+      if (alertLevel >= 1) break;
+    }
+  }
+  // Спад тревоги: если никто из врагов не видит игрока — копится таймер
+  let anyoneSeesPlayer = false;
+  for (const e of enemies) {
+    if (e.hp > 0 && canEnemySeePlayer(e)) { anyoneSeesPlayer = true; break; }
+  }
+  if (anyoneSeesPlayer) {
+    alertDecayT = 0;
+  } else if (alertLevel > 0) {
+    alertDecayT += dt;
+    const threshold = alertLevel === 2 ? ALERT_DECAY_TIME : SUSPECT_TO_CALM_TIME;
+    if (alertDecayT >= threshold) {
+      alertLevel = Math.max(0, alertLevel - 1);
+      alertDecayT = 0;
+    }
+  }
   // Патрульная болтовня — каждые ~10 сек случайно у одного из живых врагов
   if (!window._patrolChatT) window._patrolChatT = 0;
   window._patrolChatT -= dt;
@@ -2348,9 +2507,8 @@ function update(dt) {
     if (alive.length > 0) {
       const e = alive[Math.floor(Math.random() * alive.length)];
       const distToPlayer = Math.hypot(player.r - e.r, player.c - e.c);
-      const canSee = player.hp > 0 && distToPlayer < e.sightR && hasLOS(e.r, e.c, player.r, player.c);
-      // вне боя — патрульные фразы, в бою — боевые/угрозы
-      maybeChat(e, canSee ? 'spot' : 'patrol', 0.8);
+      // патрульные фразы при спокойствии, боевые в combat
+      maybeChat(e, alertLevel >= 2 ? 'spot' : (alertLevel === 1 ? 'patrol' : 'patrol'), 0.8);
     }
   }
   // Реакция врагов на смерть игрока (один раз)
@@ -2371,6 +2529,8 @@ function update(dt) {
     if (!a || a.hp <= 0) continue;
     // cantShoot countdown
     if (a.cantShootT > 0) a.cantShootT = Math.max(0, a.cantShootT - dt * 1000);
+    // melee-замах countdown
+    if (a.meleeT > 0) a.meleeT = Math.max(0, a.meleeT - dt);
     // bleeding
     if (a.bleedT && a.bleedT > 0) {
       a.bleedT -= dt * 1000;
@@ -2519,7 +2679,26 @@ function fireWeapon(p, weaponKey, team) {
   const cfg = WEAPON_FX_CFG[wKey] || WEAPON_FX_CFG.pistol;
   try { cfg.sound(); } catch(e) {}
   p.fireCD = cfg.cd;
+  // ШУМ: огнестрел от игрока → мгновенная тревога; ближний бой тихий
+  if (tm === 'player' && !cfg.melee) {
+    setAlert(2, 'shot');
+  }
+  // Игрок начал бить ближним → запускаем анимацию замаха
+  if (tm === 'player') p.meleeT = 0.28;
   if (cfg.melee) {
+    // === СТЕЛС-КИЛЛ: если игрок и есть цель за спиной — мгновенно ваншот ===
+    if (tm === 'player') {
+      const back = findBackstabTarget();
+      if (back) {
+        // тихое убийство в спину: гарантированный ваншот + кровь, без шума
+        p.angle = Math.atan2(back.r - p.r, back.c - p.c);
+        const slitDmg = back.hpMax + 200; // оверкилл — труп упадёт
+        damageActor(back, slitDmg, p.angle, wKey === 'blade_short' ? 'sniper' : null);
+        spawnBlood(back.r, back.c, p.angle, 80);
+        // лёгкий звук — но НЕ повышаем тревогу: тихо
+        return;
+      }
+    }
     // ближний бой: проверка попадания в радиусе перед носителем
     const tx = p.r + Math.sin(p.angle) * cfg.range;
     const tc = p.c + Math.cos(p.angle) * cfg.range;
@@ -2527,7 +2706,9 @@ function fireWeapon(p, weaponKey, team) {
     victims.forEach(v => {
       if (v.hp <= 0) return;
       if (Math.hypot(v.r - tx, v.c - tc) < 0.9) {
-        damageActor(v, cfg.dmg || 12, p.angle);
+        // На босса меньше шансов на гибинг, но урон x1.5 от ближнего
+        const dmgFinal = (v.isBoss ? (cfg.dmg || 12) * 1.5 : (cfg.dmg || 12));
+        damageActor(v, dmgFinal, p.angle);
       }
     });
     return;
@@ -2598,7 +2779,10 @@ function updateEnemyAI(e, dt) {
   const distToPlayer = Math.hypot(player.r - e.r, player.c - e.c);
   const angleToPlayer = Math.atan2(player.r - e.r, player.c - e.c);
   const playerAlive = player.hp > 0;
-  const canSee = playerAlive && distToPlayer < e.sightR && hasLOS(e.r, e.c, player.r, player.c);
+  // Учитываем FOV: вне боя враг видит ТОЛЬКО в конусе перед собой
+  const canSee = canEnemySeePlayer(e);
+  // Если увидел игрока — мгновенно бой
+  if (canSee && playerAlive) setAlert(2, 'sight');
 
   // Босс в режиме rush — игнорирует обычное поведение, прёт на игрока
   if (e.isBoss && e.rushT > 0 && playerAlive) {
@@ -2836,6 +3020,18 @@ function updateMeleeBtn() {
 }
 document.getElementById('meleeBtn').addEventListener('click', () => {
   if (player.hp <= 0) return;
+  // СТЕЛС-КИЛЛ: если есть цель за спиной — мгновенно переключаемся на melee и бьём
+  const back = findBackstabTarget();
+  if (back) {
+    currentWeapon = lastMeleeWeapon;
+    document.querySelectorAll('.wbtn').forEach(b =>
+      b.classList.toggle('active', b.dataset.wep === lastMeleeWeapon));
+    document.getElementById('wepName').textContent = MELEE_LABELS[lastMeleeWeapon] || lastMeleeWeapon;
+    player.fireCD = 0;
+    player.angle = Math.atan2(back.r - player.r, back.c - player.c);
+    fireWeapon(player);
+    return;
+  }
   const curCfg = WEAPON_FX_CFG[currentWeapon];
   if (curCfg && curCfg.melee) {
     // уже в melee → бьём (выставляем angle если не задан)
@@ -2934,6 +3130,9 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   coverBreaks.length = 0; hitSparks.length = 0;
   bloodDrops.length = 0; goreParts.length = 0;
   chatBubbles.length = 0;
+  alertLevel = 0;
+  alertDecayT = 0;
+  _lastAlertLevel = -1; // форсируем перерисовку баннера
   window._playerDownReacted = false;
   // сбрасываем состояния ран у всех акторов
   for (const a of [player, ...enemies]) {
@@ -3038,6 +3237,56 @@ function renderHudWepIcon() {
   }
 }
 
+// ── HUD: баннер уровня тревоги ─────────────────────────────────────
+const alertBannerEl = document.getElementById('alertBanner');
+const alertIconEl   = document.getElementById('alertIcon');
+const alertTextEl   = document.getElementById('alertText');
+let _lastAlertLevel = -1;
+function renderAlertBanner() {
+  if (alertLevel === _lastAlertLevel) return;
+  _lastAlertLevel = alertLevel;
+  if (alertLevel === 0) {
+    alertIconEl.textContent = '👻';
+    alertTextEl.textContent = 'Не замечен';
+    alertTextEl.style.color = '#5dd55d';
+    alertBannerEl.style.borderColor = '#3a5d3a';
+    alertBannerEl.style.boxShadow = '0 4px 12px rgba(40,180,40,.3)';
+  } else if (alertLevel === 1) {
+    alertIconEl.textContent = '💡';
+    alertTextEl.textContent = 'Враги что-то заподозрили';
+    alertTextEl.style.color = '#ffd24a';
+    alertBannerEl.style.borderColor = '#7a6020';
+    alertBannerEl.style.boxShadow = '0 4px 16px rgba(255,210,80,.4)';
+  } else {
+    alertIconEl.textContent = '🔴';
+    alertTextEl.textContent = 'Тебя обнаружили! БОЙ';
+    alertTextEl.style.color = '#ff5050';
+    alertBannerEl.style.borderColor = '#8a2020';
+    alertBannerEl.style.boxShadow = '0 4px 18px rgba(255,40,40,.5)';
+  }
+}
+
+// Подсказка стелс-килла: подмена иконки melee-кнопки на 🔪 если игрок за спиной врага
+const meleeIconEl = document.getElementById('meleeIcon');
+const meleeLabelEl = document.getElementById('meleeLabel');
+let _lastBackstab = false;
+function renderBackstabHint() {
+  const t = findBackstabTarget();
+  const hasTarget = !!t;
+  if (hasTarget === _lastBackstab) return;
+  _lastBackstab = hasTarget;
+  if (hasTarget) {
+    meleeIconEl.textContent = '🔪';
+    meleeLabelEl.textContent = 'УБИТЬ';
+    meleeLabelEl.style.color = '#ff5050';
+  } else {
+    // вернём текущий ближний из MELEE_LABELS
+    meleeIconEl.textContent = MELEE_ICONS[lastMeleeWeapon] || '👊';
+    meleeLabelEl.textContent = MELEE_LABELS[lastMeleeWeapon] || 'кулаки';
+    meleeLabelEl.style.color = '#cfd6e6';
+  }
+}
+
 let lastT = performance.now();
 let fpsAcc = 0, fpsN = 0, fpsLast = lastT;
 let mmFrame = 0;
@@ -3068,6 +3317,8 @@ function loop(t) {
   // Анимированный аватар + иконка оружия в HUD
   renderHudAvatar(t);
   renderHudWepIcon();
+  renderAlertBanner();
+  renderBackstabHint();
 
   // Индикатор патронов и перезарядки
   const ammoText = document.getElementById('ammoText');
