@@ -2702,20 +2702,42 @@ function update(dt) {
     // только обновляем пули и эффекты ниже
   }
 
-  // Движение игрока
-  const speed = 4.5 * getSpeedMul(player); // потеря ноги → 40% скорости
-  if (player.hp > 0 && joyL.active && (Math.abs(joyL.dx) > 0.1 || Math.abs(joyL.dy) > 0.1)) {
-    // joy.dx (экран X) → ось (c-r) ;  joy.dy (экран Y) → ось (c+r)*ISO_Y
+  // Движение игрока. Скорость = от того, насколько сильно тянешь стик:
+  // мягкий пуш → шаг (тихо), до упора → бег (враги слышат шаги).
+  const baseSpeed = 4.5 * getSpeedMul(player); // потеря ноги → 40% скорости
+  player.isRunning = false; // обновим ниже, нужно AI'у врагов для слуха
+  if (player.hp > 0 && joyL.active && (Math.abs(joyL.dx) > 0.05 || Math.abs(joyL.dy) > 0.05)) {
     const d = joyL.dx, s = joyL.dy / ISO_Y;
     const dc = (s + d) * 0.5;
     const dr = (s - d) * 0.5;
     const mag = Math.hypot(dr, dc) || 1;
-    tryMove(player, dr / mag * speed * dt, dc / mag * speed * dt);
+    // Магнитуда стика 0..1 — линейный множитель скорости.
+    const joyMag = Math.min(1, Math.hypot(joyL.dx, joyL.dy));
+    player.isRunning = joyMag > 0.7;
+    const vel = baseSpeed * joyMag;
+    tryMove(player, dr / mag * vel * dt, dc / mag * vel * dt);
     player.moving = true;
-    player.walkPhase += dt * 10;
+    player.walkPhase += dt * 10 * joyMag;
+    // Шаги: тикают по времени. На бегу — чаще и громче, на крадучих — реже и тихо.
+    player._stepT = (player._stepT || 0) - dt;
+    if (player._stepT <= 0) {
+      player._stepT = player.isRunning ? 0.32 : 0.55;
+      try {
+        _tone({
+          freq: 110, freqEnd: 55,
+          dur: player.isRunning ? 0.06 : 0.04,
+          type: 'sine',
+          vol: player.isRunning ? 0.09 : 0.025,
+        });
+      } catch(e) {}
+      // Бег — поднимаем тревогу до 1 (подозрение). Враги в зоне слуха
+      // (chase-логика ниже) пойдут на звук. Крадусь — тишина, ничего.
+      if (player.isRunning) setAlert(1, 'footstep');
+    }
   } else {
     player.moving = false;
     player.walkPhase *= 0.9;
+    player._stepT = 0;
   }
 
   // Прицеливание и стрельба
@@ -3231,8 +3253,9 @@ function updateEnemyAI(e, dt) {
     }
     // движемся к targetR/C если оно задано и далеко
     moveTowardsTarget(e, dt, e.isBoss ? 2.2 : 2.8);
-  } else if (playerAlive && distToPlayer < e.sightR * 1.6) {
-    // Слышим игрока — идём в его сторону
+  } else if (playerAlive && distToPlayer < e.sightR * 1.6 && (player.isRunning || alertLevel >= 1)) {
+    // Слышим игрока — но только если он БЕЖИТ (шум шагов) или уже идёт тревога.
+    // Идёшь медленно и тревоги нет → тебя не слышат, можно красться рядом.
     if (e.confined) e.confined = null; // выходит из кабинета на звук
     e.aiState = 'chase';
     e.angle = angleToPlayer;
