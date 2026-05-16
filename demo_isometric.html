@@ -974,7 +974,7 @@ const _roomBounds = () => ({ r0: BOSS_ROOM.r0, r1: BOSS_ROOM.r1, c0: BOSS_ROOM.c
 const enemies = [
   { r: SPAWNS.boss[0], c: SPAWNS.boss[1], hp: BOSS_CFG.hp, hpMax: BOSS_CFG.hp, angle: 0, look: BOSS_LOOK,
     isBoss: true, name: BOSS_CFG.name, emoji: BOSS_CFG.emoji,
-    weapon: BOSS_CFG.weapon, fireCD: 1500, sightR: 11, aiState: 'patrol', repositionT: 0, walkPhase: 0,
+    weapon: BOSS_CFG.weapon, fireCD: 1500, sightR: 8, aiState: 'patrol', repositionT: 0, walkPhase: 0,
     grenadeCD: 1800, rushCD: 5000, rushT: 0,
     confined: _roomBounds() },
 ];
@@ -2667,13 +2667,22 @@ function sendResultAndClose(action) {
     xp:   fightStats.expGain  || 0,
     cash: fightStats.cashGain || 0,
   };
-  if (tg && tg.sendData) {
+  // 1) Шлём результат боту (он начислит HP/опыт/деньги и пришлёт сообщение).
+  //    tg.sendData() по доке САМ закрывает WebApp.
+  if (tg && typeof tg.sendData === 'function') {
     try { tg.sendData(JSON.stringify(payload)); } catch(e) {}
-    try { tg.close(); } catch(e) {}
-  } else {
-    // Демо-режим (не из Telegram): просто скрываем оверлей, чтобы можно было ещё пощёлкать
-    document.getElementById('resultScene').style.display = 'none';
   }
+  // 2) Дизейблим кнопки, чтобы повторный тап не дёргал sendData ещё раз
+  try {
+    document.getElementById('btnBackDistrict').disabled = true;
+    document.getElementById('btnBackMenu').disabled     = true;
+  } catch(e) {}
+  // 3) Fallback: если WebApp не закрылся (старый клиент, демо-режим в браузере
+  //    или sendData недоступен) — через 300мс гарантированно переезжаем в хаб,
+  //    чтобы игрок не залип на финальном экране.
+  setTimeout(() => {
+    window.location.href = 'hub.html';
+  }, 300);
 }
 
 function update(dt) {
