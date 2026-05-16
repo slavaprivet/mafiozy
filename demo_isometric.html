@@ -3346,7 +3346,14 @@ function endTouch(id) {
   }
 }
 
+// Если тач пришёл на кнопку/оверлей — НЕ перехватываем: пусть отработает обычный click.
+// Иначе preventDefault на touchstart глушит synthetic click, и кнопки внутри #stage
+// (катсцена СТЕЛС/В ЛОБ, melee, reload, респ) перестают работать на мобиле.
+function _isUiTouchTarget(t) {
+  return !!(t && t.closest && t.closest('button, #catscene, #resultScene, #gameOver, #hudBtns, #combatUI, #topbar'));
+}
 stage.addEventListener('touchstart', (e) => {
+  if (_isUiTouchTarget(e.target)) return;
   e.preventDefault();
   for (const t of e.changedTouches) {
     const rect = stage.getBoundingClientRect();
@@ -3354,6 +3361,7 @@ stage.addEventListener('touchstart', (e) => {
   }
 }, { passive: false });
 stage.addEventListener('touchmove', (e) => {
+  if (_isUiTouchTarget(e.target)) return;
   e.preventDefault();
   for (const t of e.changedTouches) {
     const rect = stage.getBoundingClientRect();
