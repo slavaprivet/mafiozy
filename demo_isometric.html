@@ -1040,7 +1040,10 @@ function spawnChat(owner, text, life) {
 
 function maybeChat(owner, kind, chance) {
   if (Math.random() > (chance != null ? chance : 0.5)) return;
-  const list = PHRASES[kind]; if (!list || !list.length) return;
+  let list = PHRASES[kind]; if (!list || !list.length) return;
+  // Босс не говорит «Босс будет доволен» и т.п. — он сам босс.
+  if (owner && owner.isBoss) list = list.filter(p => !/босс/i.test(p));
+  if (!list.length) return;
   spawnChat(owner, list[Math.floor(Math.random() * list.length)]);
 }
 
@@ -3263,14 +3266,45 @@ function moveTowardsTarget(e, dt, speed) {
   if (e.targetR == null) return;
   const dr = e.targetR - e.r, dc = e.targetC - e.c;
   const d = Math.hypot(dr, dc);
-  if (d < 0.2) { e.walkPhase *= 0.85; return; }
+  if (d < 0.2) { e.walkPhase *= 0.85; e.stuckT = 0; return; }
   const eff = speed * getSpeedMul(e);  // потеря ноги → ползёт
   const vr = dr / d * eff, vc = dc / d * eff;
   const before = { r: e.r, c: e.c };
   tryMove(e, vr * dt, vc * dt);
-  // если уперлись — сбросим точку, чтобы выбрать новую
+  // Не сдвинулись — упёрлись в угол укрытия. Пробуем скользить
+  // перпендикулярно (объезд), потом — толчок в случайную свободную сторону.
   if (Math.abs(e.r - before.r) < 0.001 && Math.abs(e.c - before.c) < 0.001) {
-    e.repositionT = 0;
+    e.stuckT = (e.stuckT || 0) + dt;
+    e.repositionT = 0; // патрулю — выбрать новую точку
+    // Перпендикулярное скольжение в обе стороны (обход угла)
+    tryMove(e,  vc * dt, -vr * dt);
+    if (Math.abs(e.r - before.r) < 0.001 && Math.abs(e.c - before.c) < 0.001) {
+      tryMove(e, -vc * dt,  vr * dt);
+    }
+    // Прошло >0.6с залипания — принудительно пихаем в свободный соседний тайл,
+    // чтобы выбраться даже в чейс/шут режимах (где цель перезаписывается каждый кадр)
+    if (e.stuckT > 0.6) {
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
+      // случайный порядок
+      for (let i = dirs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+      }
+      for (const [dR, dC] of dirs) {
+        const nr = e.r + dR * 0.5, nc = e.c + dC * 0.5;
+        if (!isBlocked(nr, nc)) {
+          e.r += dR * 0.3; e.c += dC * 0.3;
+          e.stuckT = 0;
+          // Перевыбираем цель — оторваться от укрытия
+          e.targetR = e.r + dR * 2.5;
+          e.targetC = e.c + dC * 2.5;
+          e.repositionT = 1.5;
+          break;
+        }
+      }
+    }
+  } else {
+    e.stuckT = 0;
   }
   e.walkPhase += dt * 10;
   if (e.aiState !== 'shoot') e.angle = Math.atan2(vr, vc);
