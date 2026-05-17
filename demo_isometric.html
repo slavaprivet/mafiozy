@@ -4046,12 +4046,10 @@ function fireWeapon(p, weaponKey, team) {
       if (back) {
         const tr = back.r, tc = back.c;             // фикcируем позицию жертвы
         p.angle = Math.atan2(tr - p.r, tc - p.c);
-        // Прыжок вплотную к жертве — даёт ощущение «бросок и нож в спину».
-        const dx = tc - p.c, dy = tr - p.r;
-        const d = Math.hypot(dx, dy) || 1;
-        p.c = tc - dx / d * 0.55;
-        p.r = tr - dy / d * 0.55;
-        // Удлинённый замах — игрок видит явную анимацию удара ножом.
+        // Прыжок к жертве делали раньше, но если жертва стояла впритык к
+        // укрытию — игрок телепортировался В укрытие и застревал (tryMove
+        // блокирует occupied tile). Прыжок убран; анимация эффектна и без
+        // него за счёт удлинённого замаха + тройной крови + отрыва.
         p.meleeT = 0.55;
         const slitDmg = back.isBoss
           ? Math.max(80, Math.round(back.hpMax * 0.2))   // босс: ~20% HP, не ваншот
