@@ -222,6 +222,14 @@
       </div>
     </div>
     <div id="hitFlash" style="position:absolute;inset:0;background:rgba(255,40,40,0);pointer-events:none;z-index:7;transition:background .1s"></div>
+    <!-- FAILSAFE: «Выйти» всегда висит в верхнем правом углу.
+         Засчитывает текущий бой как проигрыш и переезжает в хаб.
+         Спасает от ситуаций «после Обновить страницы в ТГ всё зависло». -->
+    <button id="btnQuit" title="Выйти из боя"
+            style="position:absolute;right:8px;top:8px;z-index:40;width:36px;height:36px;
+                   background:rgba(20,20,28,.78);border:1px solid #5a6478;border-radius:8px;
+                   color:#cfd6e6;font-size:18px;cursor:pointer;padding:0;line-height:1;
+                   box-shadow:0 2px 6px rgba(0,0,0,.5)">🚪</button>
     <div id="gameOver" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.55);z-index:8;color:#ff5050;font-size:32px;font-weight:bold;text-shadow:0 0 12px #800;pointer-events:none">
       <div>☠ ВЫ МЕРТВЫ ☠</div>
       <div style="font-size:13px;color:#ccc;font-weight:normal;margin-top:8px;pointer-events:auto">выйди в район и попробуй ещё раз</div>
@@ -261,11 +269,74 @@
         <button id="btnStealth" style="padding:14px 20px;background:linear-gradient(180deg,#2a4030,#1a2820);border:2px solid #4a7a4a;border-radius:10px;color:#5dd55d;font-size:14px;font-weight:bold;cursor:pointer;min-width:130px">🤫 СТЕЛС<br><span style="font-size:10px;color:#a0c0a0;font-weight:normal">подкрасться</span></button>
         <button id="btnFrontal" style="padding:14px 20px;background:linear-gradient(180deg,#4a2020,#2a1010);border:2px solid #a04040;border-radius:10px;color:#ff7070;font-size:14px;font-weight:bold;cursor:pointer;min-width:130px">💥 В ЛОБ<br><span style="font-size:10px;color:#c0a0a0;font-weight:normal">бой сразу</span></button>
       </div>
+      <button id="btnCatBack" style="margin-top:10px;padding:8px 14px;background:transparent;border:1px solid #4a5060;border-radius:8px;color:#aab2c8;font-size:12px;cursor:pointer">← Назад в район</button>
     </div>
   </div>
 </div>
 
 <script>
+// ════════════════════════════════════════════════════════════════
+//  HARD FAILSAFE: кнопка «🚪 Выйти» работает ВСЕГДА, даже если ниже
+//  по скрипту произойдёт ошибка инициализации (поломанный URL,
+//  кэш, etc). Цепляем обработчик первым делом, до любой логики.
+// ════════════════════════════════════════════════════════════════
+(function _wireQuitFailsafe() {
+  function bareQuitToHub() {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const out = new URLSearchParams();
+      const KEEP = ['name','lvl','cls','uid','hp','maxhp','mp','maxmp','cash','dia',
+        'kills','wanted','wanted_g','jail_until','cap_until','job_until','srv_now',
+        'contacts','job','gender','skin','body','face','hair','hat','has_look',
+        'atk','def','weapon','prop','gang','api','_v','job_cd','bgren','bmol','bcash'];
+      KEEP.forEach(k => { if (sp.has(k)) out.set(k, sp.get(k)); });
+      // gren/mol — отдаём бэкап «как было до боя», чтобы хаб не обнулил
+      if (sp.has('bgren')) out.set('gren', sp.get('bgren'));
+      if (sp.has('bmol'))  out.set('mol',  sp.get('bmol'));
+      if (sp.has('bcash')) out.set('cash', sp.get('bcash'));
+      out.set('view', 'district');
+      if (sp.get('loc')) out.set('loc', sp.get('loc'));
+      window.location.href = 'hub.html?' + out.toString();
+    } catch(e) {
+      window.location.href = 'hub.html';
+    }
+  }
+  // Цепляемся, как только DOM готов (script внизу body — уже готов).
+  const qb = document.getElementById('btnQuit');
+  if (qb) {
+    qb.addEventListener('click', () => {
+      // Сложный путь (через sendResultAndClose) попробуем тоже — он
+      // запишет результат в БД через API. Если он не доступен — fallback.
+      try {
+        if (typeof sendResultAndClose === 'function' && typeof fightStats !== 'undefined') {
+          if (typeof player !== 'undefined' && player) player.hp = 1;
+          fightStats.result = 'lost';
+          sendResultAndClose('district');
+          return;
+        }
+      } catch(e) {}
+      bareQuitToHub();
+    });
+  }
+  // На всякий случай — Esc на десктопе тоже выходит (для разработки).
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      try { if (qb) qb.click(); } catch(e) { bareQuitToHub(); }
+    }
+  });
+  // Глобальный onerror: если инициализация боёвки упала с ошибкой —
+  // кнопка 🚪 уже работает (мы привязались выше), а в углу мигнём
+  // подсказкой, чтоб юзер её заметил.
+  window.addEventListener('error', () => {
+    try {
+      if (!qb) return;
+      qb.style.background = '#a04020';
+      qb.style.borderColor = '#ff8060';
+      qb.title = 'Что-то пошло не так — нажми, чтобы выйти';
+    } catch(e) {}
+  });
+})();
+
 // ════════════════════════════════════════════════════════════════
 //  ЗВУКОВОЙ ДВИЖОК (перенос 1-в-1 из battle.html, строки 622–711)
 // ════════════════════════════════════════════════════════════════
@@ -3284,6 +3355,9 @@ function showResultScene() {
   document.getElementById('resTitle').style.color = won ? '#ffd76b' : '#ff7070';
   document.getElementById('resultScene').style.display = 'flex';
   gamePaused = true;
+  // На финальном экране свои кнопки выхода — скрываем 🚪, чтоб не дублировался.
+  const qb = document.getElementById('btnQuit');
+  if (qb) qb.style.display = 'none';
 }
 function sendResultAndClose(action) {
   const payload = {
@@ -4701,6 +4775,43 @@ function showTutorial() {
   // Кнопки финального экрана
   document.getElementById('btnBackDistrict').onclick = () => sendResultAndClose('district');
   document.getElementById('btnBackMenu').onclick     = () => sendResultAndClose('menu');
+  // ── FAILSAFE: «Выйти» в углу + «← Назад» в катсцене ──────────────
+  // Засчитываем бой как проигрыш (HP=1, бот ничего не начислит) и сразу
+  // переезжаем в хаб. Используется, если что-то пошло не так (например
+  // юзер нажал «Обновить страницу» в меню Telegram и бой повис).
+  function forceQuitToHub(toDistrict) {
+    try { fightStats.result = 'lost'; } catch(e) {}
+    try { player.hp = 1; } catch(e) {}
+    try {
+      // Если функция navigateToHub доступна — используем её (правильно
+      // переносит cash/gren/mol через URL). Иначе — голый редирект.
+      if (typeof sendResultAndClose === 'function') {
+        sendResultAndClose(toDistrict ? 'district' : 'menu');
+        return;
+      }
+    } catch(e) {}
+    // Голый фолбэк: переезд в хаб с минимальными параметрами.
+    const sp = new URLSearchParams(window.location.search);
+    const out = new URLSearchParams();
+    ['name','lvl','cls','uid','hp','maxhp','mp','maxmp','cash','dia','kills',
+     'wanted','wanted_g','jail_until','cap_until','job_until','srv_now',
+     'contacts','job','gender','skin','body','face','hair','hat','has_look',
+     'atk','def','weapon','prop','gang','api','_v','job_cd']
+      .forEach(k => { if (sp.has(k)) out.set(k, sp.get(k)); });
+    if (toDistrict) {
+      out.set('view', 'district');
+      const loc = sp.get('loc');
+      if (loc) out.set('loc', loc);
+    }
+    window.location.href = 'hub.html?' + out.toString();
+  }
+  const qb = document.getElementById('btnQuit');
+  if (qb) qb.onclick = () => {
+    if (!confirm('Выйти из боя? Бой засчитается как поражение.')) return;
+    forceQuitToHub(true);
+  };
+  const cb2 = document.getElementById('btnCatBack');
+  if (cb2) cb2.onclick = () => forceQuitToHub(true);
 })();
 
 requestAnimationFrame(loop);
