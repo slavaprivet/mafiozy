@@ -1234,6 +1234,32 @@ body {
 }
 .coop-player-slot.empty { color: var(--muted); font-weight: 400; font-style: italic; }
 .coop-player-slot.ready { border-color: #2d8c52; box-shadow: 0 0 0 1px #2d8c5244 inset; }
+.coop-player-battle-row.left { opacity: .45; filter: grayscale(1); }
+.coop-player-battle-row.left .cpb-name::after { content: ' · ливнул'; color: #ff7070; font-size: 11px; font-weight: 400; }
+/* Верхний HUD кооп-боя — компактные HP-бары всех 4 слотов в одну строку */
+.coop-hud {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
+  padding: 8px;
+}
+.coop-hud-cell {
+  display: flex; flex-direction: column; gap: 3px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 5px 7px; min-height: 44px;
+}
+.coop-hud-cell.empty { opacity: .35; }
+.coop-hud-cell.me { border-color: var(--gold); box-shadow: 0 0 0 1px #d4af3733 inset; }
+.coop-hud-cell.dead, .coop-hud-cell.left { opacity: .45; filter: grayscale(1); }
+.coop-hud-name {
+  font-size: 11px; font-weight: 800; color: #eee;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 4px;
+}
+.coop-hud-hp-bg { height: 5px; background: var(--bg2); border-radius: 3px; overflow: hidden; }
+.coop-hud-hp-fill { height: 100%; background: linear-gradient(90deg,#27ae60,#5be58a); transition: width .3s; }
+.coop-hud-hp-fill.low  { background: linear-gradient(90deg,#e67e22,#f1c40f); }
+.coop-hud-hp-fill.crit { background: linear-gradient(90deg,#c0392b,#e74c3c); }
+.coop-hud-hp-txt { font-size: 9px; color: var(--muted); text-align: right; }
 .coop-gang-add-btn {
   padding: 5px 10px; border-radius: 8px; border: 1px solid var(--gold);
   background: rgba(212,175,55,0.10); color: var(--gold);
@@ -1891,6 +1917,8 @@ body.on-subpage .time-display-box { display: none !important; }
   <!-- BATTLE VIEW -->
   <div id="coop-battle" style="display:none">
     <div class="coop-battle-section">
+      <!-- Верхний HUD: компактные HP-бары всех 4 игроков -->
+      <div class="coop-hud" id="coop-hud"></div>
       <div class="coop-boss-bar">
         <div class="coop-boss-name" id="cb-boss-name">Босс</div>
         <div class="coop-boss-hp-bar-bg">
@@ -5506,6 +5534,10 @@ async function coopJoinSession() {
 function _coopEnterWaitRoom(data) {
   coopState = data;
   _coopShareLink = data.share_link || '';
+  // На стороне сервера в логе уже могут быть join-события с момента
+  // создания — они не должны спамить плашками. Засчитываем их как уже
+  // показанные, дальше ловим только новые.
+  _coopLastLogLen = (data.log || []).length;
   document.getElementById('coop-lobby').style.display    = 'none';
   document.getElementById('coop-join-view').style.display= 'none';
   document.getElementById('coop-waitroom').style.display = '';
@@ -5601,18 +5633,98 @@ async function _coopPollWait() {
     if (!resp.ok) return;
     const data = await resp.json();
     coopState = data;
+    _coopProcessNewLogs(data);
     _coopRenderWaitPlayers(data);
     if (data.state === 'battle') {
       _coopStopWait(); _coopStopPoll(); _coopEnterBattle(data);
     } else if (data.state === 'cancelled') {
       _coopStopWait(); _coopStopPoll();
-      const reason = data.cancel_reason === 'ready_timeout'
-        ? 'Кто-то не подтвердил готовность'
-        : 'Сессия отменена';
-      showToast(reason, '❌');
-      coopShowLobby();
+      _coopHandleCancellation(data);
     }
   } catch(e) {}
+}
+
+// Счётчик уже обработанных записей лога — чтобы не дублировать плашки
+// при каждом поллинге. На join/leave-событии создаём топ-левт-уведомление.
+let _coopLastLogLen = 0;
+
+function _coopProcessNewLogs(data) {
+  if (!data || !Array.isArray(data.log)) return;
+  const fresh = data.log.slice(_coopLastLogLen);
+  _coopLastLogLen = data.log.length;
+  fresh.forEach(entry => {
+    const t = entry && entry.type;
+    if (t === 'join')  _coopFlash(entry.text || '', '#27ae60');
+    if (t === 'leave') _coopFlash(entry.text || '', '#c0392b');
+  });
+}
+
+// Анимированная плашка в левом верхнем углу. Несколько подряд стакаются
+// вертикально, каждая живёт ~3.5 сек. Не требует CSS-классов снаружи —
+// все стили инлайн, чтобы случайно не зависеть от темы.
+function _coopFlash(text, color) {
+  if (!text) return;
+  let host = document.getElementById('coop-flash-host');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'coop-flash-host';
+    Object.assign(host.style, {
+      position: 'fixed', top: '12px', left: '10px',
+      display: 'flex', flexDirection: 'column', gap: '6px',
+      zIndex: '99999', pointerEvents: 'none', maxWidth: '70vw',
+    });
+    document.body.appendChild(host);
+  }
+  const card = document.createElement('div');
+  Object.assign(card.style, {
+    background: 'rgba(20,22,30,0.92)',
+    border: '1px solid ' + (color || '#888'),
+    borderLeft: '4px solid ' + (color || '#888'),
+    borderRadius: '8px',
+    padding: '7px 11px',
+    fontSize: '13px',
+    fontWeight: '700',
+    color: '#fff',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+    transform: 'translateX(-110%)',
+    transition: 'transform .25s ease, opacity .3s ease',
+    opacity: '0',
+  });
+  card.textContent = text;
+  host.appendChild(card);
+  requestAnimationFrame(() => {
+    card.style.transform = 'translateX(0)';
+    card.style.opacity = '1';
+  });
+  setTimeout(() => {
+    card.style.transform = 'translateX(-110%)';
+    card.style.opacity = '0';
+    setTimeout(() => card.remove(), 350);
+  }, 3500);
+}
+
+// Единая обработка отмены сессии — и в лобби, и в бою. Хост вылетел —
+// всех вышвыриваем в главное меню; иначе обычный возврат в лобби кооп.
+function _coopHandleCancellation(data) {
+  const reason = data && data.cancel_reason || '';
+  coopSid = null;
+  coopState = null;
+  if (reason === 'host_left') {
+    showToast('🚪 Хост вышел из боя — сессия закрыта', '❌');
+    // Возврат в главное меню (page-main), полностью закрываем кооп-странички.
+    document.querySelectorAll('.subpage').forEach(p => p.style.display = 'none');
+    const pm = document.getElementById('page-main');
+    if (pm) pm.style.display = '';
+    document.body.classList.remove('on-subpage');
+    if (tg && tg.BackButton) tg.BackButton.hide();
+    window.scrollTo(0, 0);
+    return;
+  }
+  const msg = reason === 'ready_timeout'
+    ? 'Кто-то не подтвердил готовность'
+    : 'Сессия отменена';
+  showToast(msg, '❌');
+  coopShowLobby();
 }
 
 async function coopStartBattle() {
@@ -5646,16 +5758,26 @@ function _coopRenderBattle(data) {
   const bPct=data.boss_max_hp>0?Math.max(0,data.boss_hp/data.boss_max_hp*100):0;
   document.getElementById('cb-boss-bar').style.width=bPct.toFixed(1)+'%';
   document.getElementById('cb-boss-hp').textContent=data.boss_hp+' / '+data.boss_max_hp;
+  _coopRenderHud(data);
   const playersEl=document.getElementById('cb-players'); playersEl.innerHTML='';
   (data.players||[]).forEach(pl=>{
-    const isMe=pl.uid===coopMyUidStr(),isMyTurn=data.turn_uid===pl.uid,isDead=pl.hp<=0;
+    const isMe=pl.uid===coopMyUidStr(),isMyTurn=data.turn_uid===pl.uid;
+    const isLeft=!!pl.left, isDead=pl.hp<=0 && !isLeft;
     const row=document.createElement('div');
-    row.className='coop-player-battle-row'+(isMyTurn?' my-turn':'')+(isDead?' dead':'');
+    row.className='coop-player-battle-row'
+      + (isMyTurn?' my-turn':'')
+      + (isDead?' dead':'')
+      + (isLeft?' left':'');
     const hpPct=pl.max_hp>0?Math.max(0,pl.hp/pl.max_hp*100):0;
-    row.innerHTML=`<div class="cpb-avatar">${isDead?'💀':'🤵'}</div>
+    const avatar = isLeft ? '📴' : (isDead ? '💀' : '🤵');
+    const status = isLeft
+      ? '<span style="color:#888;font-size:11px">📴 дисконнект</span>'
+      : `<div class="cpb-hp-bg"><div class="cpb-hp-fill" style="width:${hpPct.toFixed(1)}%"></div></div>`;
+    const badge = isLeft ? 'ушёл' : `${isMyTurn?'⚔️ ХОД ':''}${pl.hp}/${pl.max_hp} HP`;
+    row.innerHTML=`<div class="cpb-avatar">${avatar}</div>
       <div class="cpb-info"><div class="cpb-name">${pl.name}${isMe?' (ты)':''}</div>
-      <div class="cpb-hp-bg"><div class="cpb-hp-fill" style="width:${hpPct.toFixed(1)}%"></div></div></div>
-      <div class="cpb-turn-badge">${isMyTurn?'⚔️ ХОД':''}  ${pl.hp}/${pl.max_hp} HP</div>`;
+      ${status}</div>
+      <div class="cpb-turn-badge">${badge}</div>`;
     playersEl.appendChild(row);
   });
   const logEl=document.getElementById('coop-log');
@@ -5665,16 +5787,31 @@ function _coopRenderBattle(data) {
     logEl.scrollTop=logEl.scrollHeight; logEl.dataset.loglen=entries.length;
   }
   const atkBtn=document.getElementById('cb-atk-btn');
-  const myTurn=data.turn_uid===coopMyUidStr()&&data.state==='battle';
-  atkBtn.disabled=!myTurn; atkBtn.textContent=myTurn?getAttackLabel():'⏳ Ход другого';
+  // Мёртвому/ливнувшему — кнопка атаки заблокирована.
+  const myUid = coopMyUidStr();
+  const me = (data.players||[]).find(p => p.uid === myUid);
+  const meCanAct = !!me && me.hp > 0 && !me.left;
+  const myTurn=data.turn_uid===myUid && data.state==='battle' && meCanAct;
+  atkBtn.disabled=!myTurn;
+  atkBtn.textContent = !meCanAct ? '🚫 Не в строю' : (myTurn?getAttackLabel():'⏳ Ход другого');
 }
 
 async function _coopPollBattle() {
   if(!coopSid)return;
   try{
     const resp=await fetch(coopApi()+'/coop/'+coopSid); if(!resp.ok)return;
-    const data=await resp.json(); coopState=data; _coopRenderBattle(data);
-    if(data.state==='won'||data.state==='lost'){_coopStopPoll();_coopShowResult(data);}
+    const data=await resp.json(); coopState=data;
+    _coopProcessNewLogs(data);
+    _coopRenderBattle(data);
+    if (data.state === 'cancelled') {
+      _coopStopPoll();
+      _coopHandleCancellation(data);
+      return;
+    }
+    if (data.state === 'won' || data.state === 'lost') {
+      _coopStopPoll();
+      _coopShowResult(data);
+    }
   }catch(e){}
 }
 
@@ -5684,8 +5821,11 @@ async function coopAttack() {
   try{
     const resp=await fetch(coopApi()+'/coop/'+coopSid+'/attack',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:coopMyUidStr(),type:'normal'})});
     if(!resp.ok)throw new Error('HTTP '+resp.status);
-    const data=await resp.json(); coopState=data; _coopRenderBattle(data);
-    if(data.state==='won'||data.state==='lost'){_coopStopPoll();_coopShowResult(data);}
+    const data=await resp.json(); coopState=data;
+    _coopProcessNewLogs(data);
+    _coopRenderBattle(data);
+    if (data.state === 'cancelled') { _coopStopPoll(); _coopHandleCancellation(data); return; }
+    if (data.state === 'won' || data.state === 'lost') { _coopStopPoll(); _coopShowResult(data); }
   }catch(e){showToast('Ошибка атаки: '+e.message,'❌');document.getElementById('cb-atk-btn').disabled=false;}
 }
 
@@ -5698,16 +5838,74 @@ async function coopLeave() {
 function _coopShowResult(data) {
   document.getElementById('coop-battle').style.display='none';
   document.getElementById('coop-result').style.display='';
-  const won=data.state==='won',boss=BOSS_DATA[data.boss_id]||{};
-  document.getElementById('coop-result-inner').innerHTML=`
-    <div class="coop-result-icon">${won?'🏆':'💀'}</div>
-    <div class="coop-result-title ${won?'win':'lose'}">${won?'ПОБЕДА!':'ПОРАЖЕНИЕ'}</div>
-    ${won?`<div style="color:var(--muted);font-size:13px">Босс повержен. Награды разделены.</div>`:''}
-    <button class="coop-result-back" onclick="coopShowLobby()">← В лобби</button>`;
+  const won  = data.state === 'won';
+  const boss = BOSS_DATA[data.boss_id] || {};
+  const meUid = coopMyUidStr();
+  const me    = (data.players || []).find(p => p.uid === meUid);
+  const iLeft = !!(me && me.left);
+  const rewardCash = data.reward_cash || 0;
+  const rewardExp  = data.reward_exp  || 0;
+  // Полный куш каждому, кто не ливнул из боя.
+  let rewardBlock = '';
+  if (won && !iLeft && (rewardCash || rewardExp)) {
+    rewardBlock = `<div style="color:#5be58a;font-size:14px;font-weight:800;margin:8px 0">
+      💵 +$${rewardCash} &nbsp; ⭐ +${rewardExp} XP
+    </div>
+    <div style="color:var(--muted);font-size:11px">Куш не делится — это твоя доля.</div>`;
+  } else if (won && iLeft) {
+    rewardBlock = `<div style="color:#ff7070;font-size:13px;font-weight:700;margin:8px 0">
+      🚫 Ты ливнул из боя — награда не засчитана.
+    </div>`;
+  } else if (won) {
+    rewardBlock = `<div style="color:var(--muted);font-size:13px">Босс повержен.</div>`;
+  }
+  document.getElementById('coop-result-inner').innerHTML = `
+    <div class="coop-result-icon">${won ? '🏆' : '💀'}</div>
+    <div class="coop-result-title ${won ? 'win' : 'lose'}">${won ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ'}</div>
+    <div style="color:var(--muted);font-size:12px">${boss.name || ''}</div>
+    ${rewardBlock}
+    <button class="coop-result-back" onclick="coopSid=null;coopState=null;coopShowLobby();renderCoopLobby();">← В лобби</button>`;
 }
 
 function _coopStopPoll(){if(coopPollTimer){clearInterval(coopPollTimer);coopPollTimer=null;}}
 function _coopStopWait(){if(coopWaitTimer){clearInterval(coopWaitTimer);coopWaitTimer=null;}}
+
+// Верхний HUD в бою: 4 компактные ячейки с HP-баром каждого игрока,
+// чтобы было видно состояние всей команды без скролла. Пустые слоты
+// тоже показываем затемнённой плашкой — кооп до 4 человек.
+function _coopRenderHud(data) {
+  const hud = document.getElementById('coop-hud');
+  if (!hud) return;
+  hud.innerHTML = '';
+  const myUid = coopMyUidStr();
+  const players = (data && data.players) || [];
+  for (let i = 0; i < 4; i++) {
+    const cell = document.createElement('div');
+    const p = players[i];
+    if (!p) {
+      cell.className = 'coop-hud-cell empty';
+      cell.innerHTML = `<div class="coop-hud-name">— пусто —</div>
+        <div class="coop-hud-hp-bg"><div class="coop-hud-hp-fill" style="width:0%"></div></div>
+        <div class="coop-hud-hp-txt">слот ${i+1}</div>`;
+      hud.appendChild(cell);
+      continue;
+    }
+    const isMe   = p.uid === myUid;
+    const isLeft = !!p.left;
+    const isDead = p.hp <= 0 && !isLeft;
+    const pct    = p.max_hp > 0 ? Math.max(0, p.hp / p.max_hp * 100) : 0;
+    const hpClass = pct < 25 ? 'crit' : (pct < 60 ? 'low' : '');
+    cell.className = 'coop-hud-cell' + (isMe?' me':'') + (isDead?' dead':'') + (isLeft?' left':'');
+    cell.innerHTML = `
+      <div class="coop-hud-name" title="${p.name}">
+        <span>${isLeft?'📴':(isDead?'💀':(isMe?'⭐':'🤵'))}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis">${p.name}</span>
+      </div>
+      <div class="coop-hud-hp-bg"><div class="coop-hud-hp-fill ${hpClass}" style="width:${pct.toFixed(1)}%"></div></div>
+      <div class="coop-hud-hp-txt">${isLeft?'дисконнект':(p.hp + '/' + p.max_hp)}</div>`;
+    hud.appendChild(cell);
+  }
+}
 
 // ── Банда ────────────────────────────────────────────────────────────────
 // Состав банды кешируется локально — обновляется после /friend/add и при

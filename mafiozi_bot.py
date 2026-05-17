@@ -1695,7 +1695,7 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
         "bot":      BOT_USERNAME,   # имя бота для t.me/<bot>?startapp=... share-ссылок
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
-        "_v": "18",  # bump when hub.html is updated — breaks Telegram cache
+        "_v": "19",  # bump when hub.html is updated — breaks Telegram cache
     }
     return HUB_WEBAPP_URL + "?" + urllib.parse.urlencode(params)
 
@@ -9142,6 +9142,47 @@ def _coop_evaluate_lobby(sess: dict, now: float = None) -> None:
         sess['autostart_at'] = 0
 
 
+async def _coop_grant_rewards(sess: dict) -> None:
+    """Полный куш каждому живому/не-ливнувшему игроку. Победа в коопе
+    раньше шла через бот-handler (web_app_data), HTTP-сесcии награды не
+    выдавали вообще. Теперь начисляем тут — без дележа, full reward
+    each, ровно как просил продюсер. Ливнувших (`left=True`) пропускаем."""
+    if sess.get('rewarded'):
+        return
+    boss = BOSSES.get(sess.get('boss_id') or '') or {}
+    reward_cash = int(boss.get('cash') or 0)
+    reward_exp  = int(boss.get('exp')  or 0)
+    if not reward_cash and not reward_exp:
+        sess['rewarded'] = True
+        return
+    granted = []
+    for pl in sess.get('players') or []:
+        if pl.get('left'):
+            continue
+        try:
+            uid_int = int(pl['uid'])
+        except Exception:
+            continue
+        char = await get_character(uid_int)
+        if not char:
+            continue
+        await update_character(
+            uid_int,
+            cash=(char.get('cash') or 0) + reward_cash,
+            exp =(char.get('exp')  or 0) + reward_exp,
+            kills=(char.get('kills') or 0) + 1,
+        )
+        granted.append(pl['name'])
+    sess['rewarded']    = True
+    sess['reward_cash'] = reward_cash
+    sess['reward_exp']  = reward_exp
+    if granted:
+        names = ", ".join(granted)
+        _coop_add_log(sess,
+            f"💵 Каждому: +${reward_cash} · +{reward_exp} XP ({names})",
+            'sys')
+
+
 async def _coop_fetch_char_stats(uid_str: str) -> dict:
     """Подтянуть актуальные характеристики из БД по telegram_id.
     Нужно, когда игрок открыл WebApp напрямую через startapp deep-link и
@@ -9242,7 +9283,8 @@ async def _coop_http_app():
         if not any(p['uid'] == uid for p in sess['players']):
             sess['players'].append({'uid': uid, 'name': name, 'atk': atk, 'def': def_,
                                     'hp': hp, 'max_hp': maxhp, 'ready': False})
-            _coop_add_log(sess, f"{name} зашёл в лобби.", 'sys')
+            # Тип 'join' — фронт ловит его и показывает тост сверху-слева.
+            _coop_add_log(sess, f"➕ {name} подключился к сессии.", 'join')
         _coop_evaluate_lobby(sess)
         share_link = (f"https://t.me/{BOT_USERNAME}?startapp=coop_{sid}"
                       if BOT_USERNAME else "")
@@ -9307,7 +9349,7 @@ async def _coop_http_app():
         if sess['turn_uid'] != uid:
             return await _cors(web.json_response({'error': 'Not your turn'}, status=409))
         pl = next((p for p in sess['players'] if p['uid'] == uid), None)
-        if not pl or pl['hp'] <= 0:
+        if not pl or pl['hp'] <= 0 or pl.get('left'):
             return await _cors(web.json_response({'error': 'Dead'}, status=409))
         # Player hits boss
         dmg = _coop_calc_dmg(pl['atk'], sess['boss_def'])
@@ -9316,15 +9358,22 @@ async def _coop_http_app():
         if sess['boss_hp'] <= 0:
             sess['state'] = 'won'
             _coop_add_log(sess, "🏆 Победа! Босс повержен!", 'sys')
+            await _coop_grant_rewards(sess)
             return await _cors(web.json_response(sess))
-        # Boss hits random living player
+        # Boss hits random living player (исключая ливнувших)
         import random as _r
-        targets = [p for p in sess['players'] if p['hp'] > 0]
+        targets = [p for p in sess['players'] if p['hp'] > 0 and not p.get('left')]
+        if not targets:
+            sess['state'] = 'lost'
+            _coop_add_log(sess, "💀 Все пали. Поражение.", 'sys')
+            return await _cors(web.json_response(sess))
         tgt = _r.choice(targets)
         bdmg = _coop_calc_dmg(sess['boss_atk'], tgt['def'])
         tgt['hp'] = max(0, tgt['hp'] - bdmg)
         _coop_add_log(sess, f"💀 Босс бьёт {tgt['name']} — {bdmg} урона!", 'boss-hits')
-        if all(p['hp'] <= 0 for p in sess['players']):
+        # «Все пали» — если живых не-ливнувших не осталось.
+        alive = [p for p in sess['players'] if p['hp'] > 0 and not p.get('left')]
+        if not alive:
             sess['state'] = 'lost'
             _coop_add_log(sess, "💀 Все пали. Поражение.", 'sys')
             return await _cors(web.json_response(sess))
@@ -9347,11 +9396,42 @@ async def _coop_http_app():
         except Exception:
             uid = ''
         sess = _coop_sessions[sid]
+        host_uid = sess.get('host_uid') or ''
+        state    = sess.get('state')
+
+        # Хост покинул — вся сессия закрывается. В лобби и в бою одинаково:
+        # клиенты увидят state='cancelled' с reason='host_left' и сами
+        # вывалятся в главное меню с тостом.
+        if uid and uid == host_uid:
+            sess['state'] = 'cancelled'
+            sess['cancel_reason'] = 'host_left'
+            _coop_add_log(sess, "🚪 Хост вышел из сессии. Бой отменён.", 'sys')
+            return await _cors(web.json_response({'ok': True}))
+
+        # Лив игрока в БОЮ: помечаем left=True (не получит награды), hp=0
+        # для расчётов «все ли пали». Сам uid из массива не вытряхиваем —
+        # фронт должен показать карточку «дисконнект» вместо живой строки.
+        if state == 'battle':
+            pl = next((p for p in sess['players'] if p['uid'] == uid), None)
+            if pl and not pl.get('left'):
+                pl['left'] = True
+                pl['hp']   = 0
+                _coop_add_log(sess, f"📴 Дисконнект: {pl['name']}", 'leave')
+            alive = [p for p in sess['players'] if p['hp'] > 0 and not p.get('left')]
+            if not alive:
+                sess['state'] = 'lost'
+                _coop_add_log(sess, "💀 Все вышли из боя. Поражение.", 'sys')
+            else:
+                # turn_uid мог принадлежать ушедшему — пересчитать.
+                if sess.get('turn_uid') == uid:
+                    _coop_next_turn(sess)
+            return await _cors(web.json_response({'ok': True}))
+
+        # В лобби (waiting/cancelled) — просто убираем из массива.
         sess['players'] = [p for p in sess['players'] if p['uid'] != uid]
         if not sess['players']:
             sess['state'] = 'cancelled'
-        else:
-            _coop_next_turn(sess)
+        _coop_evaluate_lobby(sess)
         return await _cors(web.json_response({'ok': True}))
 
     # ── Банда: добавить другого игрока к себе (одноразовое связывание) ──
