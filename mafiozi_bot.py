@@ -1902,6 +1902,9 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
         "tigr","palach","sedoy","prizrak","don_karlo","vizir",
     }
     params = {
+        # Кеш-бастер для Telegram WebApp: подними при каждом релизе боёвки
+        # — иначе TG держит старый HTML в кеше и игроки видят прошлую версию.
+        "_v":     "15",
         "name":   urllib.parse.quote(char["name"][:20]),
         "hp":     char["hp"],
         "maxhp":  char["max_hp"],
