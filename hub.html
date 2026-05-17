@@ -5673,6 +5673,43 @@ function drawHatSimple(ctx,hatId,px,py,bd,headY,headH,sc){
 
 drawAvatar();
 
+// ── Авто-роутинг после боя ───────────────────────────────────────────
+// Боёвка demo_isometric.html при выходе по кнопке «↩ К району» добавляет
+// ?view=district&loc=<id>. По умолчанию хаб открывается на главном меню
+// (page-main). Если пришёл такой параметр — переключаем сразу на район.
+// ВАЖНО: этот код раньше жил во втором <script>-блоке, но иногда тот
+// падал где-то выше (на текущей версии TG WebApp API часть фич бросает),
+// и postBattleRoute() просто не вызывался. Переехал сюда, в первый
+// скрипт, рядом с openDistrict — чтобы вызов был гарантирован.
+function postBattleRoute() {
+  if (P.get('view') !== 'district') return;
+  const locId = P.get('loc');
+  try {
+    const pm = document.getElementById('page-main');
+    if (pm) pm.style.display = 'none';
+    document.querySelectorAll('.subpage').forEach(p => p.style.display = 'none');
+    document.body.classList.add('on-subpage');
+  } catch(e) {}
+  try {
+    if (locId && LOC_DATA[locId] && typeof openDistrict === 'function') {
+      openDistrict(locId);
+    } else if (typeof nav === 'function') {
+      nav('explore');
+    }
+  } catch(e) {
+    try { if (typeof nav === 'function') nav('explore'); } catch(_) {}
+  }
+  window.scrollTo(0, 0);
+}
+// Откладываем до конца текущего тика — выше в этом скрипте есть код,
+// который ставит page-main в `display: ''` при init. Если выполнить
+// сразу, его перезапишут. setTimeout(0) ставит нас в конец очереди.
+setTimeout(postBattleRoute, 0);
+// Дополнительная гарантия: ещё раз дёрнем после полной загрузки страницы —
+// если кто-то отрисовался позже (например, через requestAnimationFrame),
+// мы исправим состояние.
+window.addEventListener('load', () => setTimeout(postBattleRoute, 30));
+
 </script>
 
 <script>
@@ -6173,6 +6210,24 @@ const SHOP_WEAPON_ISO = {
   ak74: 'rifle', m16: 'rifle', sniper: 'sniper', rpg: 'rpg',
   golden_colt: 'pistol_gold', golden_uzi: 'smg', tommy_gun: 'smg',
 };
+// Базовый урон по item_id — берётся из WEAPON_FX_CFG demo_isometric.html.
+// Для shotgun/smg указываем суммарный (pellets/burst). Для tommy_gun — crit от ITEMS.
+// Это позволяет в карточке магазина показать понятный диапазон вместо одного «+атк».
+const SHOP_WEAPON_DMG = {
+  nagan:       [20, 30],
+  tt_pistol:   [22, 32],
+  revolver:    [34, 46],
+  deagle:      [44, 60],
+  golden_colt: [26, 38],
+  sawn_off:    [70, 95],   // shotgun: ~6 дробинок × 14
+  uzi:         [36, 50],   // smg: 3-выстрел.очередь × 14
+  tommy_gun:   [40, 56],
+  golden_uzi:  [42, 58],
+  ak74:        [50, 65],
+  m16:         [50, 65],
+  sniper:      [120, 145],
+  rpg:         [85, 110],
+};
 function _renderShopCard(it) {
   const card = document.createElement('div');
   card.className = 'shop-card';
@@ -6181,7 +6236,15 @@ function _renderShopCard(it) {
   if (it.defense_bonus) stats.push(`<span class="shop-stat-chip def">🛡 +${it.defense_bonus}</span>`);
   if (it.heal)          stats.push(`<span class="shop-stat-chip heal">❤️ +${it.heal}</span>`);
   if (it.mana)          stats.push(`<span class="shop-stat-chip heal">⚡ +${it.mana}</span>`);
-  if (it.dmg_min && it.dmg_max) stats.push(`<span class="shop-stat-chip atk">💥 ${it.dmg_min}-${it.dmg_max}</span>`);
+  // Чип урона: для метательного (гранаты/молотов) берём dmg_min/max,
+  // для огнестрела — табличный диапазон SHOP_WEAPON_DMG. Это видно глазом,
+  // не нужно считать в уме «+12 атк = сколько урона на самом деле».
+  if (it.dmg_min && it.dmg_max) {
+    stats.push(`<span class="shop-stat-chip atk">💥 урон ${it.dmg_min}-${it.dmg_max}</span>`);
+  } else if (SHOP_WEAPON_DMG[it.id]) {
+    const [d1, d2] = SHOP_WEAPON_DMG[it.id];
+    stats.push(`<span class="shop-stat-chip atk">💥 урон ${d1}-${d2}</span>`);
+  }
   // Иконка из имени (первый emoji)
   const emoji = (it.name || '').match(/^\S+/)?.[0] || '🔹';
   const cleanName = (it.name || '').replace(/^\S+\s*/, '');
@@ -8302,43 +8365,9 @@ function _gzFlash(emoji){
   setTimeout(() => p.remove(), 400);
 }
 
-// ── Авто-роутинг после боя ───────────────────────────────────────────
-// Боёвка (demo_isometric.html) при выходе по кнопке «↩ К району» добавляет
-// ?view=district&loc=<id>. По умолчанию показывается главное меню; если
-// пришёл такой параметр — напрямую скрываем main и открываем район
-// (не через nav('explore'), чтобы не мигать промежуточным списком и не
-// плодить лишние state-переходы, на которых раньше слетал роутинг).
-function postBattleRoute() {
-  const view = P.get('view');
-  if (view !== 'district') return;
-  const locId = P.get('loc');
-  // Скрыть главную и все subpage перед открытием района — иначе
-  // page-main остаётся видимой, и кажется что «выкинуло в меню».
-  try {
-    const pm = document.getElementById('page-main');
-    if (pm) pm.style.display = 'none';
-    document.querySelectorAll('.subpage').forEach(p => p.style.display = 'none');
-    document.body.classList.add('on-subpage');
-  } catch(e) {}
-  // Открываем район. Если loc неизвестен — fallback на explore.
-  try {
-    if (locId && LOC_DATA[locId] && typeof openDistrict === 'function') {
-      openDistrict(locId);
-    } else if (typeof nav === 'function') {
-      nav('explore');
-    }
-  } catch(e) {
-    try { if (typeof nav === 'function') nav('explore'); } catch(_) {}
-  }
-  window.scrollTo(0, 0);
-}
-// Запускаем после полного парсинга DOM. Если событие уже было, выполнить
-// прямо сейчас — иначе постBattleRoute может не получить ссылки на DOM.
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', postBattleRoute);
-} else {
-  postBattleRoute();
-}
+// (postBattleRoute перенесён в первый <script>-блок — там гарантированно
+// доступны P/LOC_DATA/openDistrict/nav, и второй скрипт изредка падает
+// где-то выше, не доходя до этой точки. Здесь оставляем пусто.)
 </script>
 
 

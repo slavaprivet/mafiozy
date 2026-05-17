@@ -498,8 +498,11 @@ function buildArenaMap() {
   // Бочки в углах кабинета
   if (m[roomR0 + 1][roomC0 + 1] === 0) m[roomR0 + 1][roomC0 + 1] = 3;
   if (m[roomR0 + 1][roomC1 - 1] === 0) m[roomR0 + 1][roomC1 - 1] = 3;
-  // Препятствия снаружи кабинета — россыпь ящиков/бочек/машин
-  const obsCount = Math.floor((ROWS * COLS) * 0.07);
+  // Препятствия снаружи кабинета — россыпь ящиков/бочек/машин. Доля
+  // уменьшена с 7% до 4.5%: на больших картах раньше получалось «лабиринт»
+  // из ящиков, игрок терял путь до босса. 4.5% даёт умеренные островки
+  // укрытий с проходами между ними.
+  const obsCount = Math.floor((ROWS * COLS) * 0.045);
   let placed = 0, tries = 0;
   while (placed < obsCount && tries < obsCount * 8) {
     tries++;
@@ -673,21 +676,24 @@ placePowderBarrels();
 function placeMarketDecor() {
   if (CURRENT_LOC !== 'market') return;
   const room = BOSS_ROOM;
-  // 1) Заменяем случайные существующие ящики/бочки на декор
+  // 1) Заменяем случайные существующие ящики/бочки на декор. Шанс снижен
+  //    до 0.4 — иначе «обычных» бочек/ящиков почти не остаётся, и сцена
+  //    выглядит чрезмерно цветастой.
   const DECOR_POOL = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
   for (let r = room.r1 + 2; r < ROWS - 1; r++) {
     for (let c = 1; c < COLS - 1; c++) {
       const t = MAP[r][c];
       if (t === 2 || t === 3) {
-        if (Math.random() < 0.7) {
+        if (Math.random() < 0.25) {
           MAP[r][c] = DECOR_POOL[Math.floor(Math.random() * DECOR_POOL.length)];
         }
       }
     }
   }
-  // 2) ЯКОРНАЯ РАССТАНОВКА — несколько групп для атмосферы.
-  // Каждая ставится с проверкой что клетка свободна и достаточно далеко
-  // от спавна игрока (3+ тайла), чтобы не получить препятствие в лицо.
+  // 2) ЯКОРНАЯ РАССТАНОВКА — 2 узнаваемые группы (мини-палаточный ряд + угол
+  // торговца). Раньше тут было 3 группы и до 9 объектов — карта получалась
+  // перегруженной. Оставил два «уголка» с 5 объектами суммарно — атмосферно,
+  // но проходы между ними остаются.
   const placeIf = (r, c, t) => {
     if (r < 1 || r >= ROWS - 1 || c < 1 || c >= COLS - 1) return;
     if (MAP[r][c] !== 0 && MAP[r][c] !== 2 && MAP[r][c] !== 3) return;
@@ -695,26 +701,17 @@ function placeMarketDecor() {
     if (Math.hypot(r + 0.5 - pl[0], c + 0.5 - pl[1]) < 3) return;
     MAP[r][c] = t;
   };
-  // Группа палаток: ряд из 2-3 разноцветных палаток
+  // Группа палаток: 2 разноцветных палатки с фруктовым ящиком рядом
   const tentR = Math.floor((room.r1 + ROWS) / 2);
   const tentC = 3 + Math.floor(Math.random() * Math.max(1, COLS - 8));
-  placeIf(tentR, tentC,     6);
-  placeIf(tentR, tentC + 2, 7);
-  placeIf(tentR, tentC + 4, 8);
-  // Куча фруктовых ящиков рядом друг с другом
-  const fr = tentR + 2;
-  const fc = tentC + 1;
-  placeIf(fr, fc,     9);
-  placeIf(fr, fc + 1, 10);
-  placeIf(fr + 1, fc, 16);
-  // Тележка с мешками — у другого края
+  placeIf(tentR,     tentC,     6);
+  placeIf(tentR,     tentC + 3, 7);
+  placeIf(tentR + 2, tentC + 1, 9);
+  // Угол торговца у противоположного края: тележка + газовый баллон
   const cr = Math.floor((room.r1 + ROWS) / 2) + 1;
-  const cc = Math.max(2, tentC - 4);
+  const cc = Math.max(2, tentC - 5);
   placeIf(cr,     cc,     13);
-  placeIf(cr,     cc + 1, 12);
-  // Газовый баллон и бочка с водой — рядом, для «индустриального» уголка
-  placeIf(cr + 2, cc,     14);
-  placeIf(cr + 2, cc + 1, 11);
+  placeIf(cr + 2, cc + 1, 14);
 }
 placeMarketDecor();
 
