@@ -85,6 +85,10 @@ HUB_WEBAPP_URL       = "https://slavaprivet.github.io/mafiozi-battle/hub.html"
 # Пример: "https://abc123.ngrok-free.app"
 # Оставь пустым — кооператив будет отключён в мини-приложении.
 COOP_API_BASE = os.environ.get("COOP_API_BASE", "")
+
+# Имя бота (без @) для построения share-ссылок: t.me/<BOT_USERNAME>?startapp=...
+# Заполняется в _post_init из bot.get_me().username.
+BOT_USERNAME  = ""
 CHOOSING_NAME, CHOOSING_CLASS = range(2)
 
 # ============================================================
@@ -1686,8 +1690,9 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "gang":     gang_str,
         "api":      COOP_API_BASE,
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
+        "bot":      BOT_USERNAME,   # имя бота для t.me/<bot>?startapp=... share-ссылок
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
-        "_v": "16",  # bump when hub.html is updated — breaks Telegram cache
+        "_v": "17",  # bump when hub.html is updated — breaks Telegram cache
     }
     return HUB_WEBAPP_URL + "?" + urllib.parse.urlencode(params)
 
@@ -9090,6 +9095,70 @@ def _coop_next_turn(sess: dict):
     sess['turn_uid'] = alive[idx]
 
 
+# ── Лобби: готовность, автостарт, таймаут ────────────────────────────────
+# Параметры лобби. Когда все ≥2 игроков нажали «Готов» — старт через
+# COOP_READY_AUTOSTART сек. Первое нажатие открывает окно готовности
+# COOP_READY_WINDOW сек — если кто-то не нажмёт за это время, сессия
+# отменяется автоматически.
+COOP_READY_AUTOSTART = 5    # сек до автостарта когда все готовы
+COOP_READY_WINDOW    = 30   # сек на нажатие «Готов» всеми
+
+
+def _coop_evaluate_lobby(sess: dict, now: float = None) -> None:
+    """Проверка состояния лобби — автостарт или таймаут. Вызывается на каждый
+    GET/ready, чтобы поллинг с фронта сам двигал состояние без отдельного
+    таймера (одной задачи поверх aiohttp нам не нужно)."""
+    if sess.get('state') != 'waiting':
+        return
+    if now is None:
+        now = time.time()
+    players = sess.get('players') or []
+    ready_uids = [p['uid'] for p in players if p.get('ready')]
+
+    # Таймаут готовности: после первого «Готов» даём COOP_READY_WINDOW сек —
+    # если не все нажали, отменяем. Если ни один не нажал — таймер не идёт.
+    first_ready_at = sess.get('first_ready_at') or 0
+    if first_ready_at and len(ready_uids) < len(players):
+        if now - first_ready_at > COOP_READY_WINDOW:
+            sess['state'] = 'cancelled'
+            sess['cancel_reason'] = 'ready_timeout'
+            _coop_add_log(sess, "⏱ Кто-то не подтвердил готовность. Сессия отменена.", 'sys')
+            return
+
+    # Автостарт: все готовы, минимум 2 игрока → отсчёт COOP_READY_AUTOSTART сек.
+    if len(players) >= 2 and ready_uids and len(ready_uids) == len(players):
+        if not sess.get('autostart_at'):
+            sess['autostart_at'] = now + COOP_READY_AUTOSTART
+            _coop_add_log(sess, f"✅ Все готовы. Старт через {COOP_READY_AUTOSTART} сек!", 'sys')
+        if now >= sess['autostart_at']:
+            sess['state'] = 'battle'
+            sess['autostart_at'] = 0
+            _coop_add_log(sess, "Бой начался!", 'sys')
+    else:
+        # Если кто-то «отжался» от готовности — гасим автостарт.
+        sess['autostart_at'] = 0
+
+
+async def _coop_fetch_char_stats(uid_str: str) -> dict:
+    """Подтянуть актуальные характеристики из БД по telegram_id.
+    Нужно, когда игрок открыл WebApp напрямую через startapp deep-link и
+    в URL нет hp/atk/def — тогда мы заполняем join по данным из БД."""
+    try:
+        uid_int = int(uid_str)
+    except Exception:
+        return {}
+    char = await get_character(uid_int)
+    if not char:
+        return {}
+    return {
+        'name':  str(char.get('name') or 'Игрок')[:32],
+        'atk':   int(char.get('attack')   or 20),
+        'def':   int(char.get('defense')  or 10),
+        'hp':    int(char.get('hp')       or 100),
+        'maxhp': int(char.get('max_hp')   or 100),
+    }
+
+
 async def _coop_http_app():
     try:
         from aiohttp import web
@@ -9120,6 +9189,7 @@ async def _coop_http_app():
         loc_id  = str(b.get('loc_id', 'market'))
         bhp = _COOP_BOSS_HP.get(boss_id, 300)
         sid = _coop_gen_sid()
+        # Создатель сразу помечается ready — в лобби лишний клик не нужен.
         sess = {
             'sid': sid, 'state': 'waiting',
             'boss_id': boss_id, 'loc_id': loc_id,
@@ -9128,12 +9198,19 @@ async def _coop_http_app():
             'boss_def': _COOP_BOSS_DEF.get(boss_id, 25),
             'turn_uid': uid, 'log': [],
             'players': [{'uid': uid, 'name': name, 'atk': atk, 'def': def_,
-                         'hp': hp, 'max_hp': maxhp}],
-            'created_at': time.time(),
+                         'hp': hp, 'max_hp': maxhp, 'ready': True}],
+            'created_at':     time.time(),
+            'host_uid':       uid,
+            'first_ready_at': time.time(),
+            'autostart_at':   0,
         }
         _coop_sessions[sid] = sess
+        # share-ссылка через startapp — открывает WebApp у получателя сразу
+        # на нужной сессии. Если бот username неизвестен, отдаём пустую строку.
+        share_link = (f"https://t.me/{BOT_USERNAME}?startapp=coop_{sid}"
+                      if BOT_USERNAME else "")
         logger.info("Coop session %s created by %s", sid, uid)
-        return await _cors(web.json_response(sess))
+        return await _cors(web.json_response({**sess, 'share_link': share_link}))
 
     async def h_join(req):
         sid = req.match_info['sid'].upper()
@@ -9147,24 +9224,60 @@ async def _coop_http_app():
         try:
             b = await req.json()
         except Exception:
-            return await _cors(web.json_response({'error': 'bad json'}, status=400))
+            b = {}
         uid   = str(b.get('uid', ''))
-        name  = str(b.get('name', 'Игрок'))[:32]
-        atk   = int(b.get('atk', 20))
-        def_  = int(b.get('def', 10))
-        hp    = int(b.get('hp', 100))
-        maxhp = int(b.get('maxhp', 100))
+        if not uid:
+            return await _cors(web.json_response({'error': 'no uid'}, status=400))
+        # Если игрок пришёл через startapp-инвайт, в URL нет hp/atk/def —
+        # подтянем актуальные стартовые характеристики из БД.
+        fallback = await _coop_fetch_char_stats(uid) if uid else {}
+        name  = str(b.get('name')  or fallback.get('name')  or 'Игрок')[:32]
+        atk   = int(b.get('atk')   or fallback.get('atk')   or 20)
+        def_  = int(b.get('def')   or fallback.get('def')   or 10)
+        hp    = int(b.get('hp')    or fallback.get('hp')    or 100)
+        maxhp = int(b.get('maxhp') or fallback.get('maxhp') or 100)
         if not any(p['uid'] == uid for p in sess['players']):
             sess['players'].append({'uid': uid, 'name': name, 'atk': atk, 'def': def_,
-                                    'hp': hp, 'max_hp': maxhp})
-            _coop_add_log(sess, f"{name} вступил в бой.", 'sys')
-        return await _cors(web.json_response(sess))
+                                    'hp': hp, 'max_hp': maxhp, 'ready': False})
+            _coop_add_log(sess, f"{name} зашёл в лобби.", 'sys')
+        _coop_evaluate_lobby(sess)
+        share_link = (f"https://t.me/{BOT_USERNAME}?startapp=coop_{sid}"
+                      if BOT_USERNAME else "")
+        return await _cors(web.json_response({**sess, 'share_link': share_link}))
 
     async def h_get(req):
         sid = req.match_info['sid'].upper()
         if sid not in _coop_sessions:
             return await _cors(web.json_response({'error': 'Not found'}, status=404))
-        return await _cors(web.json_response(_coop_sessions[sid]))
+        sess = _coop_sessions[sid]
+        # Каждый GET двигает состояние лобби — это удобно: поллинг с фронта
+        # сам по себе обеспечивает автостарт и таймауты.
+        _coop_evaluate_lobby(sess)
+        share_link = (f"https://t.me/{BOT_USERNAME}?startapp=coop_{sid}"
+                      if BOT_USERNAME else "")
+        return await _cors(web.json_response({**sess, 'share_link': share_link}))
+
+    async def h_ready(req):
+        sid = req.match_info['sid'].upper()
+        if sid not in _coop_sessions:
+            return await _cors(web.json_response({'error': 'Not found'}, status=404))
+        sess = _coop_sessions[sid]
+        if sess['state'] != 'waiting':
+            return await _cors(web.json_response({'error': 'Not waiting'}, status=409))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        uid   = str(b.get('uid', ''))
+        ready = bool(b.get('ready', True))
+        pl = next((p for p in sess['players'] if p['uid'] == uid), None)
+        if not pl:
+            return await _cors(web.json_response({'error': 'not in session'}, status=404))
+        pl['ready'] = ready
+        if ready and not sess.get('first_ready_at'):
+            sess['first_ready_at'] = time.time()
+        _coop_evaluate_lobby(sess)
+        return await _cors(web.json_response(sess))
 
     async def h_start(req):
         sid = req.match_info['sid'].upper()
@@ -10053,6 +10166,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/coop/create',       h_create)
     aio_app.router.add_post('/coop/{sid}/join',   h_join)
     aio_app.router.add_get ('/coop/{sid}',        h_get)
+    aio_app.router.add_post('/coop/{sid}/ready',  h_ready)
     aio_app.router.add_post('/coop/{sid}/start',  h_start)
     aio_app.router.add_post('/coop/{sid}/attack', h_attack)
     aio_app.router.add_post('/coop/{sid}/cancel', h_cancel)
@@ -10090,6 +10204,13 @@ def main():
             logger.info("init_db() выполнен (миграции применены)")
         except Exception as _e:
             logger.exception("init_db() упал: %s", _e)
+        # Запоминаем username бота для share-ссылок кооператива.
+        try:
+            global BOT_USERNAME
+            BOT_USERNAME = (await application.bot.get_me()).username or ""
+            logger.info("BOT_USERNAME = %s", BOT_USERNAME)
+        except Exception as _e:
+            logger.warning("Не удалось получить username бота: %s", _e)
         # Запускаем HTTP API (co-op + найм/увольнение) на :8080 в фоне
         # ВНУТРИ работающего event-loop’а, иначе get_event_loop() падает.
         try:

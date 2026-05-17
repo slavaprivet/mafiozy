@@ -1846,17 +1846,21 @@ body.on-subpage .time-display-box { display: none !important; }
   <div id="coop-waitroom" style="display:none">
     <div class="coop-section">
       <div class="coop-wait-box">
-        <div class="coop-wait-title">🕐 Ожидание игроков</div>
+        <div class="coop-wait-title">🕐 Лобби — позови друзей</div>
         <div style="font-size:12px;color:var(--muted)">Код сессии:</div>
         <div class="coop-wait-code" id="coop-session-code">—</div>
-        <div class="coop-wait-hint">Скинь код другу — пусть вводит в разделе Кооператив → Войти</div>
-        <div class="coop-timer" id="coop-countdown">60</div>
-        <div style="font-size:11px;color:var(--muted)">секунд до автостарта</div>
-        <div class="coop-players-in" id="coop-players-in"></div>
-        <button class="coop-start-btn" id="coop-start-btn" onclick="coopStartBattle()" disabled>
-          ▶ Начать бой
+        <button class="coop-create-btn" id="coop-invite-btn" onclick="coopInviteFriends()"
+                style="background:linear-gradient(135deg,#2196f3,#1565c0);margin:8px 0">
+          📤 Пригласить друзей
         </button>
-        <button class="coop-cancel-btn" onclick="coopCancelSession()">Отменить</button>
+        <div class="coop-wait-hint" id="coop-wait-hint">Когда все нажмут ✅ — бой начнётся через 5 сек.</div>
+        <div class="coop-timer" id="coop-countdown">—</div>
+        <div style="font-size:11px;color:var(--muted)" id="coop-countdown-label">сек.</div>
+        <div class="coop-players-in" id="coop-players-in"></div>
+        <button class="coop-start-btn" id="coop-start-btn" onclick="coopToggleReady()">
+          ✅ Готов
+        </button>
+        <button class="coop-cancel-btn" onclick="coopCancelSession()">Выйти из лобби</button>
       </div>
     </div>
   </div>
@@ -1989,6 +1993,7 @@ const DATA = {
              return {uid, name: decodeURIComponent(name||''), emoji: emoji||'🔫', role: role||'mercenary'};
            }),
   api:     p('api',''),  // co-op API base URL (e.g. https://xxx.ngrok.io)
+  bot:     p('bot',''),  // bot username (без @) — для t.me/<bot>?startapp=... ссылок
   // Co-op battle state (set by bot when session active)
   coopSid:      pi('coop_sid', 0),
   coopStatus:   p('coop_status', ''),   // waiting | battle | won | lost
@@ -5221,21 +5226,19 @@ function coopMyUidStr() {
   return coopMyUid;
 }
 
-const _coopInviteSet = new Set();
-
 function renderCoopLobby() {
   if (DATA.coopSid > 0) { _coopShowFromData(); return; }
   coopShowLobby();
   _renderCoopBossSelector();
+  // Инвайт-чекбоксы убраны — теперь зовём в сессию share-ссылкой из лобби
+  // ожидания. Здесь показываем подсказку и текущий состав банды (если есть).
   const listEl = document.getElementById('coop-gang-list');
   if (DATA.gang && DATA.gang.length > 0) {
     listEl.innerHTML = '';
     DATA.gang.slice(0, 8).forEach(m => {
       const row = document.createElement('div');
       row.className = 'coop-member-row';
-      const chk = `<input type="checkbox" id="inv_${m.uid}" style="accent-color:var(--gold);width:18px;height:18px;flex-shrink:0"
-        onchange="if(this.checked)_coopInviteSet.add('${m.uid}');else _coopInviteSet.delete('${m.uid}')">`;
-      row.innerHTML = `${chk}
+      row.innerHTML = `
         <div class="coop-member-avatar">${m.emoji || '👤'}</div>
         <div class="coop-member-info">
           <div class="coop-member-name">${m.name || 'Игрок'}</div>
@@ -5244,7 +5247,7 @@ function renderCoopLobby() {
       listEl.appendChild(row);
     });
   } else {
-    listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 4px">Нет игроков в банде. Пригласи друзей через реф-ссылку в боте!</div>';
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 4px">Создай сессию и кинь другу ссылку — он сразу попадёт в лобби.</div>';
   }
 }
 
@@ -5385,17 +5388,72 @@ function coopShowJoin() {
   document.getElementById('coop-join-input').value = '';
 }
 
-function coopCreateSession() {
-  if (!tg || !tg.sendData) { showToast('Только в Telegram', '⚠️'); return; }
+// Сессия создаётся напрямую через HTTP API кооперации. Раньше шло через
+// tg.sendData → бот → создание сессии + закрытие мини-аппа; теперь интерактив
+// не прерывается, и сразу получаем share-ссылку для приглашения друзей.
+async function coopCreateSession() {
+  if (!coopApi()) { showToast('Сервер кооперации не настроен', '⚠️'); return; }
   const bossEl = document.getElementById('coop-boss-sel');
   const distEl = document.getElementById('coop-dist-sel');
   const bossId = bossEl ? bossEl.value : 'kosoy';
   const locId  = distEl ? distEl.value : 'market';
-  const inviteUids = Array.from(_coopInviteSet);
-  if (inviteUids.length === 0 && DATA.gang && DATA.gang.length > 0) {
-    showToast('Выбери хотя бы одного союзника!', '⚠️'); return;
+  const btn = document.getElementById('coop-create-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Создаю...'; }
+  try {
+    const resp = await fetch(coopApi() + '/coop/create', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        uid: coopMyUidStr(), name: DATA.name,
+        atk: DATA.atk, def: DATA.def, hp: DATA.hp, maxhp: DATA.maxhp,
+        boss_id: bossId, loc_id: locId,
+      }),
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    coopSid = data.sid;
+    _coopEnterWaitRoom(data);
+  } catch(e) {
+    showToast('Ошибка создания: ' + e.message, '❌');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🗡 Создать сессию'; }
   }
-  tg.sendData(JSON.stringify({a:'coop_create_hub',boss_id:bossId,loc_id:locId,invite_uids:inviteUids}));
+}
+
+// Тёплая копия последней share-ссылки — нужна и для inviteFriends, и для toast.
+let _coopShareLink = '';
+
+// Открыть стандартный Telegram-шейринг с приглашением в сессию. Друг
+// получает t.me/<bot>?startapp=coop_<sid> — у него откроется наш мини-апп
+// сразу в лобби (если уже зарегистрирован) или его попросят написать /start.
+function coopInviteFriends() {
+  const link = _coopShareLink;
+  if (!link) { showToast('Ссылка ещё не готова — обнови экран', '⚠️'); return; }
+  const text = '🗡 Заходи в Мафиози — есть свободный слот в моей бригаде!';
+  const url = 'https://t.me/share/url?url=' + encodeURIComponent(link) +
+              '&text=' + encodeURIComponent(text);
+  if (tg && tg.openTelegramLink) { tg.openTelegramLink(url); return; }
+  // Фолбэк, если по какой-то причине нет TG API: копируем в буфер.
+  try {
+    navigator.clipboard.writeText(link);
+    showToast('Ссылка скопирована', '📋');
+  } catch(e) { showToast(link, '🔗'); }
+}
+
+// Переключатель готовности на бэке. Возвращает обновлённый стейт сессии.
+async function coopToggleReady() {
+  if (!coopSid || !coopApi()) return;
+  const me = (coopState?.players || []).find(p => p.uid === coopMyUidStr());
+  const next = !(me && me.ready);
+  try {
+    const resp = await fetch(coopApi() + '/coop/' + coopSid + '/ready', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ uid: coopMyUidStr(), ready: next }),
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    coopState = data;
+    _coopRenderWaitPlayers(data);
+  } catch(e) { showToast('Ошибка готовности: ' + e.message, '❌'); }
 }
 
 async function coopJoinSession() {
@@ -5414,48 +5472,110 @@ async function coopJoinSession() {
   } catch(e) { showToast('Ошибка: '+e.message,'❌'); }
 }
 
+// Старт ожидания: серверный поллинг каждые 1.5 сек двигает state.
+// Локальный countdown — это просто ОТРАЖЕНИЕ серверного autostart_at,
+// чтобы UI обновлялся плавно даже между пингами.
 function _coopEnterWaitRoom(data) {
   coopState = data;
+  _coopShareLink = data.share_link || '';
   document.getElementById('coop-lobby').style.display    = 'none';
   document.getElementById('coop-join-view').style.display= 'none';
   document.getElementById('coop-waitroom').style.display = '';
   document.getElementById('coop-session-code').textContent = coopSid;
-  let secs = 60;
   _coopStopWait();
   _coopRenderWaitPlayers(data);
-  coopWaitTimer = setInterval(()=>{ secs--;
-    const el=document.getElementById('coop-countdown'); if(el)el.textContent=Math.max(0,secs);
-    if(secs<=0){_coopStopWait();coopStartBattle();}
-  },1000);
+  // Тик каждые 200мс — обновляем отсчёт автостарта (server-driven).
+  coopWaitTimer = setInterval(_coopTickWait, 200);
   _coopStopPoll();
-  coopPollTimer = setInterval(_coopPollWait, 2000);
+  coopPollTimer = setInterval(_coopPollWait, 1500);
+}
+
+function _coopTickWait() {
+  if (!coopState) return;
+  const el = document.getElementById('coop-countdown');
+  if (!el) return;
+  const autostartAt = coopState.autostart_at || 0;
+  if (autostartAt > 0) {
+    // server time → серверный таймстемп, у нас локальный. Чтобы не возиться
+    // с синхронизацией, дергаем простую дельту от первого тика поллинга:
+    // показываем оставшиеся секунды только пока серверный поллинг
+    // приносит свежий autostart_at. Без поллинга отображение замрёт —
+    // это нормально, оно тут же оживёт после следующего ответа.
+    const remain = Math.max(0, Math.ceil(autostartAt - (Date.now()/1000)));
+    el.textContent = remain;
+    el.style.color = '#5be58a';
+  } else if ((coopState.first_ready_at || 0) > 0) {
+    // Кто-то нажал «Готов» — показываем сколько секунд осталось до
+    // отмены сессии. coop_ready_window = 30 сек на бэке.
+    const remain = Math.max(0, Math.ceil((coopState.first_ready_at + 30) - (Date.now()/1000)));
+    el.textContent = remain;
+    el.style.color = '#ffb84d';
+  } else {
+    el.textContent = '—';
+    el.style.color = '#666';
+  }
 }
 
 function _coopRenderWaitPlayers(data) {
-  const el=document.getElementById('coop-players-in'); if(!el)return;
-  el.innerHTML='';
-  const players=data.players||[];
-  for(let i=0;i<4;i++){
-    const slot=document.createElement('div');
-    if(players[i]){
-      slot.className='coop-player-slot';
-      const isMe=players[i].uid===coopMyUidStr();
-      slot.innerHTML=`<span>🤵</span> <span>${players[i].name}${isMe?' (ты)':''}</span>`;
-    }else{slot.className='coop-player-slot empty';slot.textContent='Слот '+(i+1)+' — свободен';}
+  if (!data) return;
+  _coopShareLink = data.share_link || _coopShareLink;
+  const el = document.getElementById('coop-players-in');
+  if (!el) return;
+  el.innerHTML = '';
+  const players = data.players || [];
+  const myUid   = coopMyUidStr();
+  for (let i = 0; i < 4; i++) {
+    const slot = document.createElement('div');
+    if (players[i]) {
+      const p = players[i];
+      const isMe = p.uid === myUid;
+      slot.className = 'coop-player-slot' + (p.ready ? ' ready' : '');
+      slot.innerHTML = `<span>🤵</span>
+        <span style="flex:1">${p.name}${isMe ? ' (ты)' : ''}</span>
+        <span style="font-size:13px;color:${p.ready ? '#5be58a' : 'var(--muted)'}">${p.ready ? '✅ готов' : '⏳ ждём'}</span>`;
+    } else {
+      slot.className = 'coop-player-slot empty';
+      slot.textContent = 'Слот ' + (i+1) + ' — свободен';
+    }
     el.appendChild(slot);
   }
-  const startBtn=document.getElementById('coop-start-btn');
-  if(startBtn)startBtn.disabled=players.length<2;
+  // Кнопка «Готов / Не готов» вместо «Начать бой».
+  const startBtn = document.getElementById('coop-start-btn');
+  if (startBtn) {
+    const me = players.find(p => p.uid === myUid);
+    if (!me) {
+      startBtn.style.display = 'none';
+    } else {
+      startBtn.style.display = '';
+      startBtn.disabled = false;
+      startBtn.onclick = coopToggleReady;
+      startBtn.textContent = me.ready ? '❎ Не готов' : '✅ Готов';
+      startBtn.style.background = me.ready
+        ? 'linear-gradient(135deg,#7a3540,#4a1f28)'
+        : 'linear-gradient(135deg,#27ae60,#1a7a40)';
+    }
+  }
 }
 
 async function _coopPollWait() {
-  if(!coopSid)return;
-  try{
-    const resp=await fetch(coopApi()+'/coop/'+coopSid); if(!resp.ok)return;
-    const data=await resp.json(); coopState=data; _coopRenderWaitPlayers(data);
-    if(data.state==='battle'){_coopStopWait();_coopStopPoll();_coopEnterBattle(data);}
-    else if(data.state==='cancelled'){_coopStopWait();_coopStopPoll();showToast('Сессия отменена','❌');coopShowLobby();}
-  }catch(e){}
+  if (!coopSid) return;
+  try {
+    const resp = await fetch(coopApi() + '/coop/' + coopSid);
+    if (!resp.ok) return;
+    const data = await resp.json();
+    coopState = data;
+    _coopRenderWaitPlayers(data);
+    if (data.state === 'battle') {
+      _coopStopWait(); _coopStopPoll(); _coopEnterBattle(data);
+    } else if (data.state === 'cancelled') {
+      _coopStopWait(); _coopStopPoll();
+      const reason = data.cancel_reason === 'ready_timeout'
+        ? 'Кто-то не подтвердил готовность'
+        : 'Сессия отменена';
+      showToast(reason, '❌');
+      coopShowLobby();
+    }
+  } catch(e) {}
 }
 
 async function coopStartBattle() {
@@ -5551,6 +5671,68 @@ function _coopShowResult(data) {
 
 function _coopStopPoll(){if(coopPollTimer){clearInterval(coopPollTimer);coopPollTimer=null;}}
 function _coopStopWait(){if(coopWaitTimer){clearInterval(coopWaitTimer);coopWaitTimer=null;}}
+
+// ── DEEP-LINK: автоджойн в лобби по startapp=coop_<sid> ──────────────────
+// Друг получает share-ссылку t.me/<bot>?startapp=coop_<sid>. Telegram
+// открывает hub.html и передаёт sid в tg.initDataUnsafe.start_param.
+// Здесь мы вытаскиваем sid и сразу делаем POST /coop/<sid>/join,
+// показывая wait-room. Если игрок не зарегистрирован (нет uid в URL и
+// нет TG-id) — показываем подсказку и кнопку «Открыть бота».
+function _coopGetStartParam() {
+  try {
+    const sp = tg?.initDataUnsafe?.start_param;
+    if (sp) return String(sp);
+  } catch(e) {}
+  // Фолбэк через URL — Telegram при startapp подставляет tgWebAppStartParam.
+  const P = new URLSearchParams(location.search);
+  return P.get('tgWebAppStartParam') || P.get('startapp') || '';
+}
+
+async function _coopAutoJoinFromInvite() {
+  const sp = _coopGetStartParam();
+  if (!sp || !sp.startsWith('coop_')) return false;
+  const sid = sp.slice(5).toUpperCase();
+  if (!sid) return false;
+  if (!coopApi()) {
+    showToast('Сервер кооперации не настроен', '⚠️');
+    return false;
+  }
+  // Без telegram id не сможем зарегистрироваться в сессии. Бот передаёт
+  // его в DATA.uid; если открыли мини-апп напрямую — берём из TG SDK.
+  const uid = coopMyUidStr();
+  if (!uid || uid.startsWith('guest_')) {
+    // Гостю показываем подсказку — пусть зайдёт через бота.
+    if (typeof nav === 'function') nav('coop');
+    showToast('Сначала напиши /start боту, потом открой ссылку снова', '⚠️');
+    return false;
+  }
+  try {
+    if (typeof nav === 'function') nav('coop');
+    const resp = await fetch(coopApi() + '/coop/' + sid + '/join', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        uid: uid, name: DATA.name,
+        atk: DATA.atk, def: DATA.def, hp: DATA.hp, maxhp: DATA.maxhp,
+      }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(()=>({}));
+      showToast('Не удалось войти: ' + (err.error || resp.status), '❌');
+      return false;
+    }
+    const data = await resp.json();
+    coopSid = sid;
+    if (data.state === 'battle') { _coopEnterBattle(data); }
+    else { _coopEnterWaitRoom(data); }
+    return true;
+  } catch(e) {
+    showToast('Ошибка входа: ' + e.message, '❌');
+    return false;
+  }
+}
+
+// Дёргаем после монтажа всего скрипта и tg.ready().
+setTimeout(() => { try { _coopAutoJoinFromInvite(); } catch(e) {} }, 250);
 
 //  AVATAR DRAWING
 // ══════════════════════════════════════════════════════════════════════
