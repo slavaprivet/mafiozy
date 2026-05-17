@@ -5747,6 +5747,13 @@ function updateGameClock(){
 setInterval(updateGameClock, 1000);  // тик каждую реальную секунду
 updateGameClock();
 
+// Приветственный тик: пробуем выкатить событие через 25 секунд после
+// загрузки хаба. Иначе игрок мог сидеть в меню минуту, потом уйти в район
+// и так ни разу не увидеть систему событий за весь сеанс.
+setTimeout(() => {
+  try { if (typeof eventTick === 'function') eventTick(); } catch(e) {}
+}, 25 * 1000);
+
 function toggleTimeInfo(){
 const modal = document.getElementById('timeInfoModal');
 modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
@@ -5762,16 +5769,16 @@ function getCurrentPhase() {
   return 'night';
 }
 function isInBattleOrMinigame() {
-  // Бой (page-battle видим)
+  // Активный бой (page-battle видим) — тогда не тикаем
   const pb = document.getElementById('page-battle');
   if (pb && getComputedStyle(pb).display !== 'none') return true;
   // Уже открыт модал события — не стакаем
   const em = document.getElementById('eventModal');
   if (em && em.classList.contains('open')) return true;
-  // Мини-апп открыт но мы на саб-странице с активной логикой?
-  // Покрываем основной кейс: если открыт оверлей результата боя.
-  const tr = document.getElementById('tac-result');
-  if (tr && getComputedStyle(tr).display === 'flex') return true;
+  // Раньше блокировались на залипшем `tac-result` — это глушило события
+  // после боя на весь сеанс, если оверлей результата не закрыли вовремя.
+  // Серверная сторона сама проверяет наличие active_battles, так что
+  // здесь нам достаточно реально видимого экрана боя.
   return false;
 }
 function eventTick(opts) {

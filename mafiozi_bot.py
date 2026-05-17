@@ -1687,7 +1687,7 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "api":      COOP_API_BASE,
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
-        "_v": "14",  # bump when hub.html is updated — breaks Telegram cache
+        "_v": "16",  # bump when hub.html is updated — breaks Telegram cache
     }
     return HUB_WEBAPP_URL + "?" + urllib.parse.urlencode(params)
 
@@ -2889,8 +2889,12 @@ STREET_EVENTS = [
 # в модальном окне в hub.html. Параллельная система к STREET_EVENTS.
 # ═══════════════════════════════════════════════════════════════════════════════
 
-HUB_EVENT_COOLDOWN  = 3 * 60   # 3 минуты реального времени = 3 игровых часа между событиями
-HUB_EVENT_CHANCE    = 0.30     # шанс события на тик (если кулдаун прошёл и не в бою)
+# События в хабе должны реально выпадать, а не теряться в кулдаунах.
+# Раньше было 3 минуты + 30% — игрок мог провести полчаса и не увидеть ни одного.
+# Теперь: 60 сек кулдаун + 60% шанс → среднее ~1.5–2 мин между событиями,
+# что заметно во время прогулок по меню.
+HUB_EVENT_COOLDOWN  = 60       # 60 сек реального времени между событиями
+HUB_EVENT_CHANCE    = 0.60     # шанс события на тик (если кулдаун прошёл и не в бою)
 
 HUB_EVENTS = [
     # ── УТРО (7) — позитив, восстановление ──────────────────────────────
