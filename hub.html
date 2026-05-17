@@ -1233,6 +1233,13 @@ body {
   padding: 8px 12px; font-size: 13px; font-weight: 700;
 }
 .coop-player-slot.empty { color: var(--muted); font-weight: 400; font-style: italic; }
+.coop-player-slot.ready { border-color: #2d8c52; box-shadow: 0 0 0 1px #2d8c5244 inset; }
+.coop-gang-add-btn {
+  padding: 5px 10px; border-radius: 8px; border: 1px solid var(--gold);
+  background: rgba(212,175,55,0.10); color: var(--gold);
+  font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap;
+}
+.coop-gang-add-btn:disabled { cursor: not-allowed; }
 .coop-start-btn {
   width: 100%; padding: 13px; border-radius: 12px; border: none; cursor: pointer;
   background: linear-gradient(135deg, #27ae60, #1a7a40);
@@ -1572,7 +1579,7 @@ body.on-subpage .time-display-box { display: none !important; }
     <div class="tile-label">Работа</div>
   </div>
 
-  <div class="tile tile-gang" onclick="nav('gang_menu')">
+  <div class="tile tile-gang" onclick="nav('gang')">
     <div class="tile-icon">🔱</div>
     <div class="tile-label">Моя банда</div>
   </div>
@@ -1907,6 +1914,27 @@ body.on-subpage .time-display-box { display: none !important; }
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════ GANG PAGE -->
+<div id="page-gang" class="subpage" style="display:none">
+  <div class="subpage-header">
+    <button class="back-btn" onclick="goBack()">← Назад</button>
+    <div class="subpage-title">🔱 Моя банда</div>
+  </div>
+  <div class="coop-section">
+    <div class="coop-intro">
+      <div class="coop-intro-icon">🔱</div>
+      <div class="coop-intro-title">Моя банда</div>
+      <div class="coop-intro-desc">
+        Игроки, которых ты привёл в семью. С каждого капает пассивный доход.<br>
+        Чтобы пополнить состав — пригласи друга в кооп-сессию и нажми «➕ В банду».
+      </div>
+    </div>
+    <div id="gang-list" style="margin-top:12px">
+      <div style="color:var(--muted);font-size:13px;padding:8px 4px">Загружаю...</div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════ DONATE PAGE -->
 <div id="page-donate" class="subpage" style="display:none">
   <div class="subpage-header">
@@ -2170,9 +2198,8 @@ function fmtNum(n) {
 }
 
 // ── SPA Navigation ────────────────────────────────────────────────────
-const CLIENT_PAGES = ['explore', 'district', 'battle', 'character', 'coop', 'donate', 'jobs', 'shop', 'inventory'];
+const CLIENT_PAGES = ['explore', 'district', 'battle', 'character', 'coop', 'donate', 'jobs', 'shop', 'inventory', 'gang'];
 const BOT_PAGES = {
-  gang_menu:   { title: '🔱 Моя банда',       icon: '🔱' },
   diamonds:    { title: '💎 Бриллианты',      icon: '💎' },
   my_contacts: { title: '🤝 Мои связи',       icon: '🤝' },
 };
@@ -2293,6 +2320,7 @@ function nav(dest, extra) {
     if (dest === 'jobs')       renderJobs();
     if (dest === 'shop')       renderShop();
     if (dest === 'inventory')  renderInventory();
+    if (dest === 'gang')       renderGangPage();
     document.getElementById('page-' + dest).style.display = '';
     document.body.classList.add('on-subpage');
   } else if (BOT_PAGES[dest]) {
@@ -5529,10 +5557,19 @@ function _coopRenderWaitPlayers(data) {
     if (players[i]) {
       const p = players[i];
       const isMe = p.uid === myUid;
+      const inGang = _gangUids.has(String(p.uid));
+      // Кнопка «В банду» — только не себе и только если ещё не в банде.
+      let gangBtn = '';
+      if (!isMe) {
+        gangBtn = inGang
+          ? `<button class="coop-gang-add-btn" disabled style="opacity:0.5">✅ в банде</button>`
+          : `<button class="coop-gang-add-btn" onclick="coopAddToGang('${p.uid}')">➕ В банду</button>`;
+      }
       slot.className = 'coop-player-slot' + (p.ready ? ' ready' : '');
       slot.innerHTML = `<span>🤵</span>
         <span style="flex:1">${p.name}${isMe ? ' (ты)' : ''}</span>
-        <span style="font-size:13px;color:${p.ready ? '#5be58a' : 'var(--muted)'}">${p.ready ? '✅ готов' : '⏳ ждём'}</span>`;
+        <span style="font-size:13px;color:${p.ready ? '#5be58a' : 'var(--muted)'};margin-right:6px">${p.ready ? '✅' : '⏳'}</span>
+        ${gangBtn}`;
     } else {
       slot.className = 'coop-player-slot empty';
       slot.textContent = 'Слот ' + (i+1) + ' — свободен';
@@ -5672,6 +5709,80 @@ function _coopShowResult(data) {
 function _coopStopPoll(){if(coopPollTimer){clearInterval(coopPollTimer);coopPollTimer=null;}}
 function _coopStopWait(){if(coopWaitTimer){clearInterval(coopWaitTimer);coopWaitTimer=null;}}
 
+// ── Банда ────────────────────────────────────────────────────────────────
+// Состав банды кешируется локально — обновляется после /friend/add и при
+// открытии страницы. Это и набор uid для блокировки кнопки «В банду» в
+// лобби (нельзя добавить уже добавленного).
+let _gangUids = new Set();
+
+async function _refreshGangCache() {
+  if (!coopApi() || !DATA.uid) return;
+  try {
+    const resp = await fetch(coopApi() + '/friend/list/' + DATA.uid);
+    if (!resp.ok) return;
+    const j = await resp.json();
+    if (j && j.ok && Array.isArray(j.gang)) {
+      _gangUids = new Set(j.gang.map(g => String(g.telegram_id)));
+      DATA.gang = j.gang.map(g => ({
+        uid: String(g.telegram_id),
+        name: g.name || 'Игрок',
+        emoji: '🤵',
+        role: 'friend',
+      }));
+    }
+  } catch(e) {}
+}
+
+async function renderGangPage() {
+  const list = document.getElementById('gang-list');
+  if (!list) return;
+  await _refreshGangCache();
+  if (!DATA.gang || DATA.gang.length === 0) {
+    list.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:14px 4px;text-align:center">
+      Банда пуста.<br>Создай кооп-сессию, позови друга и нажми «➕ В банду» в лобби.
+    </div>`;
+    return;
+  }
+  list.innerHTML = '';
+  DATA.gang.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'coop-member-row';
+    row.innerHTML = `
+      <div class="coop-member-avatar">${m.emoji || '🤵'}</div>
+      <div class="coop-member-info">
+        <div class="coop-member-name">${m.name || 'Игрок'}</div>
+        <div class="coop-member-role" style="color:var(--gold);font-size:11px">👥 В банде</div>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+async function coopAddToGang(friendUid) {
+  if (!coopApi() || !DATA.uid) { showToast('Нужно войти через бота', '⚠️'); return; }
+  const fid = String(friendUid || '').trim();
+  if (!fid || fid === String(DATA.uid)) return;
+  try {
+    const resp = await fetch(coopApi() + '/friend/add', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ host_uid: DATA.uid, friend_uid: fid }),
+    });
+    const j = await resp.json().catch(()=>({}));
+    if (!j.ok) {
+      const map = {
+        'already in gang': 'Игрок уже состоит в чьей-то банде',
+        'self':            'Себя добавить нельзя',
+        'no character':    'Этого игрока ещё нет в игре',
+      };
+      showToast(map[j.error] || ('Ошибка: ' + (j.error || resp.status)), '❌');
+      return;
+    }
+    _gangUids.add(fid);
+    showToast('Добавлен в банду! +$300', '🤝');
+    // Перерисуем игроков лобби, чтобы кнопка стала disabled.
+    if (coopState) _coopRenderWaitPlayers(coopState);
+  } catch(e) { showToast('Ошибка сети: ' + e.message, '❌'); }
+}
+
 // ── DEEP-LINK: автоджойн в лобби по startapp=coop_<sid> ──────────────────
 // Друг получает share-ссылку t.me/<bot>?startapp=coop_<sid>. Telegram
 // открывает hub.html и передаёт sid в tg.initDataUnsafe.start_param.
@@ -5733,6 +5844,14 @@ async function _coopAutoJoinFromInvite() {
 
 // Дёргаем после монтажа всего скрипта и tg.ready().
 setTimeout(() => { try { _coopAutoJoinFromInvite(); } catch(e) {} }, 250);
+
+// Преднаполняем кэш банды по DATA.gang (она прилетает из URL от бота) —
+// чтобы кнопки «В банду» в лобби сразу показывались как «уже добавлен».
+try {
+  if (Array.isArray(DATA.gang)) {
+    DATA.gang.forEach(m => { if (m && m.uid) _gangUids.add(String(m.uid)); });
+  }
+} catch(e) {}
 
 //  AVATAR DRAWING
 // ══════════════════════════════════════════════════════════════════════

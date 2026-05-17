@@ -89,6 +89,9 @@ COOP_API_BASE = os.environ.get("COOP_API_BASE", "")
 # Имя бота (без @) для построения share-ссылок: t.me/<BOT_USERNAME>?startapp=...
 # Заполняется в _post_init из bot.get_me().username.
 BOT_USERNAME  = ""
+# Ссылка на работающий telegram.Bot — нужна, чтобы из aiohttp-эндпоинтов
+# (HTTP API кооперации/банды) слать сообщения в чат без application-контекста.
+BOT_INSTANCE  = None
 CHOOSING_NAME, CHOOSING_CLASS = range(2)
 
 # ============================================================
@@ -1692,7 +1695,7 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
         "bot":      BOT_USERNAME,   # имя бота для t.me/<bot>?startapp=... share-ссылок
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
-        "_v": "17",  # bump when hub.html is updated — breaks Telegram cache
+        "_v": "18",  # bump when hub.html is updated — breaks Telegram cache
     }
     return HUB_WEBAPP_URL + "?" + urllib.parse.urlencode(params)
 
@@ -9351,6 +9354,53 @@ async def _coop_http_app():
             _coop_next_turn(sess)
         return await _cors(web.json_response({'ok': True}))
 
+    # ── Банда: добавить другого игрока к себе (одноразовое связывание) ──
+    # «Банда» хранится в characters.referred_by — то же поле, что и рефералка.
+    # Уже работает get_friends() и тайл «Моя банда». Здесь даём фронту
+    # явный способ привязать друга, с которым только что играли в коопе:
+    # one-shot, потому что referred_by нельзя переустановить.
+    async def h_friend_add(req):
+        try:
+            b = await req.json()
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad json'}, status=400))
+        try:
+            host = int(b.get('host_uid'))
+            friend = int(b.get('friend_uid'))
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uids'}, status=400))
+        if host == friend:
+            return await _cors(web.json_response({'ok': False, 'error': 'self'}))
+        host_char   = await get_character(host)
+        friend_char = await get_character(friend)
+        if not host_char or not friend_char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        if friend_char.get('referred_by'):
+            return await _cors(web.json_response({'ok': False, 'error': 'already in gang'}))
+        await update_character(friend, referred_by=host)
+        # Однократный бонус хосту — как у обычной рефералки.
+        await update_character(host, cash=(host_char.get('cash') or 0) + 300)
+        try:
+            if BOT_INSTANCE is not None:
+                await BOT_INSTANCE.send_message(
+                    chat_id=friend,
+                    text=f"🤝 *{host_char['name']}* добавил тебя в свою банду!\n"
+                         f"Теперь он получает с тебя пассивный доход. Сделка скреплена.",
+                    parse_mode="Markdown",
+                )
+        except Exception:
+            pass
+        return await _cors(web.json_response({'ok': True}))
+
+    # ── Список банды для отрисовки в главном меню ────────────────────────
+    async def h_friend_list(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        friends = await get_friends(uid)
+        return await _cors(web.json_response({'ok': True, 'gang': friends}))
+
     # ── Работа: найм/увольнение БЕЗ закрытия мини-аппа ──────────
     async def h_job_take(req):
         try:
@@ -10171,6 +10221,8 @@ async def _coop_http_app():
     aio_app.router.add_post('/coop/{sid}/attack', h_attack)
     aio_app.router.add_post('/coop/{sid}/cancel', h_cancel)
     aio_app.router.add_post('/coop/{sid}/leave',  h_leave)
+    aio_app.router.add_post('/friend/add',        h_friend_add)
+    aio_app.router.add_get ('/friend/list/{uid}', h_friend_list)
     aio_app.router.add_post('/job/{uid}/take',     h_job_take)
     aio_app.router.add_post('/job/{uid}/abandon',  h_job_abandon)
     aio_app.router.add_post('/job/{uid}/complete', h_job_complete)
@@ -10204,9 +10256,11 @@ def main():
             logger.info("init_db() выполнен (миграции применены)")
         except Exception as _e:
             logger.exception("init_db() упал: %s", _e)
-        # Запоминаем username бота для share-ссылок кооператива.
+        # Запоминаем username бота и сам Bot-инстанс — нужны для share-ссылок
+        # и для отправки нотификаций из HTTP-эндпоинтов (банда/кооп).
         try:
-            global BOT_USERNAME
+            global BOT_USERNAME, BOT_INSTANCE
+            BOT_INSTANCE = application.bot
             BOT_USERNAME = (await application.bot.get_me()).username or ""
             logger.info("BOT_USERNAME = %s", BOT_USERNAME)
         except Exception as _e:
