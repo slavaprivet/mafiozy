@@ -208,6 +208,9 @@
         <button id="grenadeBtn" title="Бросить (двойной тап — смена типа)" style="display:none;width:84px;height:84px;background:rgba(60,40,15,.92);border:2px solid #d0a040;border-radius:14px;color:#ffd76b;font-size:36px;cursor:pointer;box-shadow:0 0 14px rgba(255,180,60,.4),0 2px 8px rgba(0,0,0,.6);position:relative;touch-action:none;user-select:none">
           <span id="grenadeIcon">🧨</span>
           <span id="grenadeCount" style="position:absolute;right:4px;top:2px;font-size:11px;color:#fff;background:#a04020;border-radius:8px;padding:1px 5px;font-weight:bold">0</span>
+          <!-- Подсказка: видна только когда есть и гранаты, и молотовы,
+               т.е. имеет смысл переключать. Управляется из renderGrenadeBtn. -->
+          <span id="grenadeHint" style="display:none;position:absolute;left:0;right:0;top:2px;font-size:7px;color:#ffe6a0;opacity:.85;letter-spacing:.5px;text-align:center;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.8)">2× тап — смена</span>
           <span id="grenadeLabel" style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#ffd76b;font-weight:bold;letter-spacing:1px">БРОСИТЬ</span>
         </button>
         <!-- Кнопка стелс-килла. По умолчанию скрыта; renderBackstabHint
@@ -3375,13 +3378,13 @@ function sendResultAndClose(action) {
     .then(j => navigateToHub(j && j.state));
     return;
   }
-  // 2) Fallback: API не настроен (нет туннеля) — попробуем sendData в чат,
-  //    после чего/независимо переезжаем в hub.html.
-  const tg = (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-  if (tg && typeof tg.sendData === 'function') {
-    try { tg.sendData(JSON.stringify(payload)); } catch(e) {}
-  }
-  // Раньше тут было 300мс — сейчас навигируемся СРАЗУ, чтобы не было лага.
+  // 2) Fallback: API не настроен (нет туннеля). РАНЬШЕ тут был
+  //    tg.sendData(JSON) — но в Telegram WebApp sendData ВСЕГДА закрывает
+  //    мини-апп и отправляет данные ботом в чат. То есть навигация ниже
+  //    уже не успевала: юзера выкидывало из мини-аппа.
+  //    Поэтому просто переезжаем в hub.html — серверная синхронизация
+  //    результата подхватится при следующем заходе через бота (когда
+  //    туннель будет поднят); локального HP/cash хаб возьмёт из URL.
   navigateToHub(null);
 }
 
@@ -4398,6 +4401,7 @@ const grenadeBtnEl    = document.getElementById('grenadeBtn');
 const grenadeCntEl    = document.getElementById('grenadeCount');
 const grenadeIconEl   = document.getElementById('grenadeIcon');
 const grenadeLabelEl  = document.getElementById('grenadeLabel');
+const grenadeHintEl   = document.getElementById('grenadeHint');
 const switchBtnEl     = document.getElementById('throwSwitchBtn');
 const switchIconEl    = document.getElementById('throwSwitchIcon');
 let _lastThrowState = '';
@@ -4425,6 +4429,10 @@ function renderGrenadeBtn() {
   grenadeBtnEl.style.display = show ? 'flex' : 'none';
   grenadeBtnEl.style.alignItems = 'center';
   grenadeBtnEl.style.justifyContent = 'center';
+  // Подсказка про двойной тап — только когда есть оба типа (есть что менять).
+  if (grenadeHintEl) {
+    grenadeHintEl.style.display = (show && playerGrenades > 0 && playerMolotovs > 0) ? 'block' : 'none';
+  }
 }
 // Старая кнопка-переключатель скрыта навсегда — смена типа теперь по
 // двойному тапу на самой кнопке БРОСИТЬ. Этот элемент остался в DOM
