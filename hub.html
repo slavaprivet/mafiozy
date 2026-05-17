@@ -1260,6 +1260,24 @@ body {
 .coop-hud-hp-fill.low  { background: linear-gradient(90deg,#e67e22,#f1c40f); }
 .coop-hud-hp-fill.crit { background: linear-gradient(90deg,#c0392b,#e74c3c); }
 .coop-hud-hp-txt { font-size: 9px; color: var(--muted); text-align: right; }
+/* Банда-баннер в кооп-лобби — аватары игроков на градиентном фоне */
+.coop-banner {
+  position: relative; margin: 8px 0 14px;
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, #1a1f2e 0%, #2a1410 50%, #1a1f2e 100%);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 0 0 1px #d4af3722 inset;
+}
+.coop-banner canvas {
+  display: block; width: 100%; height: auto;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+}
+.coop-banner-label {
+  position: absolute; top: 8px; left: 10px;
+  font-size: 11px; font-weight: 900; letter-spacing: 2px;
+  color: var(--gold); text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.5); padding: 3px 8px; border-radius: 6px;
+}
 .coop-gang-add-btn {
   padding: 5px 10px; border-radius: 8px; border: 1px solid var(--gold);
   background: rgba(212,175,55,0.10); color: var(--gold);
@@ -1847,10 +1865,16 @@ body.on-subpage .time-display-box { display: none !important; }
   <!-- LOBBY VIEW -->
   <div id="coop-lobby">
     <div class="coop-section">
+      <!-- Банда-баннер: рисуется на канвасе из креатор-аватаров игроков -->
+      <div class="coop-banner" id="coop-banner-wrap">
+        <canvas id="coop-banner-canvas" width="720" height="220"></canvas>
+        <div class="coop-banner-label" id="coop-banner-label">МОЯ БРИГАДА</div>
+      </div>
+
       <div class="coop-intro">
         <div class="coop-intro-icon">🗡️</div>
         <div class="coop-intro-title">Кооперативный бой</div>
-        <div class="coop-intro-desc">Зови бандитов из банды, берите босса вместе.<br>До 4 игроков. Награды делятся поровну.</div>
+        <div class="coop-intro-desc">Зови бандитов из банды, берите босса вместе.<br>До 4 игроков. Каждому — полный куш.</div>
       </div>
 
       <div id="coop-no-api-warn" style="display:none" class="coop-no-api">
@@ -1869,19 +1893,23 @@ body.on-subpage .time-display-box { display: none !important; }
       <button class="coop-create-btn" id="coop-create-btn" onclick="coopCreateSession()">
         🗡 Создать сессию
       </button>
-      <button class="coop-create-btn" style="background:linear-gradient(135deg,#1a3a5a,#0d2035);box-shadow:none" onclick="coopShowJoin()">
-        🔗 Войти в сессию по коду
-      </button>
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">
+        После создания — нажми <b>«📤 Пригласить друзей»</b> и выбери их из контактов Telegram.<br>
+        Они откроют ссылку и сразу попадут в лобби.
+      </div>
     </div>
   </div>
 
   <!-- WAIT ROOM VIEW -->
   <div id="coop-waitroom" style="display:none">
     <div class="coop-section">
+      <!-- Баннер «БРИГАДА В СБОРЕ» — скины всех, кто реально подключился -->
+      <div class="coop-banner">
+        <canvas id="coop-waitroom-banner" width="720" height="220"></canvas>
+        <div class="coop-banner-label" id="coop-waitroom-banner-label">БРИГАДА В СБОРЕ</div>
+      </div>
       <div class="coop-wait-box">
         <div class="coop-wait-title">🕐 Лобби — позови друзей</div>
-        <div style="font-size:12px;color:var(--muted)">Код сессии:</div>
-        <div class="coop-wait-code" id="coop-session-code">—</div>
         <button class="coop-create-btn" id="coop-invite-btn" onclick="coopInviteFriends()"
                 style="background:linear-gradient(135deg,#2196f3,#1565c0);margin:8px 0">
           📤 Пригласить друзей
@@ -1894,22 +1922,6 @@ body.on-subpage .time-display-box { display: none !important; }
           ✅ Готов
         </button>
         <button class="coop-cancel-btn" onclick="coopCancelSession()">Выйти из лобби</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- JOIN SESSION VIEW -->
-  <div id="coop-join-view" style="display:none">
-    <div class="coop-section">
-      <div class="coop-wait-box">
-        <div class="coop-wait-title">🔗 Войти в сессию</div>
-        <input id="coop-join-input" type="text" maxlength="6"
-          style="text-align:center;font-size:24px;letter-spacing:4px;font-weight:900;
-                 background:var(--bg2);border:1px solid var(--border);border-radius:10px;
-                 color:#fff;padding:10px;width:100%;outline:none;"
-          placeholder="XXXXXX" />
-        <button class="coop-start-btn" onclick="coopJoinSession()">Войти</button>
-        <button class="coop-cancel-btn" onclick="coopShowLobby()">← Назад</button>
       </div>
     </div>
   </div>
@@ -5286,6 +5298,9 @@ function renderCoopLobby() {
   if (DATA.coopSid > 0) { _coopShowFromData(); return; }
   coopShowLobby();
   _renderCoopBossSelector();
+  // Баннер-фотка банды — отдельно от выбора босса, чтобы каждый раз при
+  // открытии вкладки отображались актуальные аватарки.
+  try { renderCoopBanner(); } catch(e) {}
   // Инвайт-чекбоксы убраны — теперь зовём в сессию share-ссылкой из лобби
   // ожидания. Здесь показываем подсказку и текущий состав банды (если есть).
   const listEl = document.getElementById('coop-gang-list');
@@ -5371,7 +5386,6 @@ function _coopShowWaitroomFromData() {
   document.getElementById('coop-battle').style.display   = 'none';
   document.getElementById('coop-result').style.display   = 'none';
   document.getElementById('coop-waitroom').style.display = '';
-  document.getElementById('coop-session-code').textContent = String(DATA.coopSid);
   document.getElementById('coop-countdown').textContent    = '';
   const playersEl = document.getElementById('coop-players-in');
   playersEl.innerHTML = '';
@@ -5432,16 +5446,9 @@ function _coopShowBattleFromData() {
 function coopShowLobby() {
   document.getElementById('coop-lobby').style.display = '';
   document.getElementById('coop-waitroom').style.display = 'none';
-  document.getElementById('coop-join-view').style.display = 'none';
   document.getElementById('coop-battle').style.display = 'none';
   document.getElementById('coop-result').style.display = 'none';
   _coopStopPoll();
-}
-
-function coopShowJoin() {
-  document.getElementById('coop-lobby').style.display = 'none';
-  document.getElementById('coop-join-view').style.display = '';
-  document.getElementById('coop-join-input').value = '';
 }
 
 // Сессия создаётся напрямую через HTTP API кооперации. Раньше шло через
@@ -5512,22 +5519,6 @@ async function coopToggleReady() {
   } catch(e) { showToast('Ошибка готовности: ' + e.message, '❌'); }
 }
 
-async function coopJoinSession() {
-  const code = (document.getElementById('coop-join-input')||{value:''}).value.trim().toUpperCase();
-  if (!code || code.length < 4) { showToast('Введи код сессии', '⚠️'); return; }
-  if (!coopApi()) { showToast('Сервер не настроен', '⚠️'); return; }
-  try {
-    const resp = await fetch(coopApi() + '/coop/' + code + '/join', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({uid:coopMyUidStr(),name:DATA.name,atk:DATA.atk,def:DATA.def,hp:session.hp,maxhp:DATA.maxhp,init_data:tg?.initData||''})
-    });
-    if (!resp.ok) { const err=await resp.json().catch(()=>({})); throw new Error(err.error||'HTTP '+resp.status); }
-    const data = await resp.json();
-    coopSid = code;
-    if (data.state==='battle') _coopEnterBattle(data); else _coopEnterWaitRoom(data);
-  } catch(e) { showToast('Ошибка: '+e.message,'❌'); }
-}
-
 // Старт ожидания: серверный поллинг каждые 1.5 сек двигает state.
 // Локальный countdown — это просто ОТРАЖЕНИЕ серверного autostart_at,
 // чтобы UI обновлялся плавно даже между пингами.
@@ -5539,11 +5530,10 @@ function _coopEnterWaitRoom(data) {
   // показанные, дальше ловим только новые.
   _coopLastLogLen = (data.log || []).length;
   document.getElementById('coop-lobby').style.display    = 'none';
-  document.getElementById('coop-join-view').style.display= 'none';
   document.getElementById('coop-waitroom').style.display = '';
-  document.getElementById('coop-session-code').textContent = coopSid;
   _coopStopWait();
   _coopRenderWaitPlayers(data);
+  _coopRenderWaitroomBanner(data);
   // Тик каждые 200мс — обновляем отсчёт автостарта (server-driven).
   coopWaitTimer = setInterval(_coopTickWait, 200);
   _coopStopPoll();
@@ -5635,6 +5625,7 @@ async function _coopPollWait() {
     coopState = data;
     _coopProcessNewLogs(data);
     _coopRenderWaitPlayers(data);
+    _coopRenderWaitroomBanner(data);
     if (data.state === 'battle') {
       _coopStopWait(); _coopStopPoll(); _coopEnterBattle(data);
     } else if (data.state === 'cancelled') {
@@ -5869,6 +5860,129 @@ function _coopShowResult(data) {
 
 function _coopStopPoll(){if(coopPollTimer){clearInterval(coopPollTimer);coopPollTimer=null;}}
 function _coopStopWait(){if(coopWaitTimer){clearInterval(coopWaitTimer);coopWaitTimer=null;}}
+
+// ── Банда-баннер ─────────────────────────────────────────────────────────
+// Универсальный рендер «фотографии банды» из креатор-аватаров. Принимает
+// canvas и список фигур (look-объектов). Используется в двух местах:
+// • coop-lobby — «МОЯ БРИГАДА» (я + члены банды из БД)
+// • coop-waitroom — «БРИГАДА В СБОРЕ» (реальные подключившиеся игроки)
+function _coopDrawBanner(canvas, figures) {
+  if (!canvas || !figures || !figures.length) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Фон-улица: градиент + полосы асфальта + виньетка.
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#1a1c26'); grad.addColorStop(1, '#0d0e14');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#22242e';
+  for (let i = 0; i < W; i += 36) ctx.fillRect(i, H - 30, 22, 3);
+  const vg = ctx.createRadialGradient(W/2, H/2, H*0.3, W/2, H/2, W*0.7);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+  const n = figures.length;
+  const slotW = W / n;
+  const sc    = Math.min(slotW * 0.85, H * 0.9) / 220;
+
+  figures.forEach((f, i) => {
+    const cx = slotW * (i + 0.5);
+    const px = x => cx + x * sc;
+    const py = y => H * 0.94 - y * sc;
+    const skinCol = SKINS[f.skin] || SKINS[0];
+    const ready  = !!f.ready;
+    // Подложка-кружок: золотая для меня, зелёная для готовых, серая иначе.
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, H * 0.55, slotW * 0.42, 0, Math.PI * 2);
+    ctx.fillStyle = f.isMe ? 'rgba(212,175,55,0.10)'
+                  : (ready ? 'rgba(91,229,138,0.10)' : 'rgba(255,255,255,0.04)');
+    ctx.fill();
+    ctx.strokeStyle = f.isMe ? '#d4af37' : (ready ? '#5be58a' : '#555');
+    ctx.lineWidth = f.isMe ? 2 : 1;
+    ctx.stroke();
+    ctx.restore();
+
+    if ((f.gender|0) === 0) drawMaleAvatar(ctx, px, py, sc, skinCol, f.body, f.face, f.hair, f.hat);
+    else                    drawFemaleAvatar(ctx, px, py, sc, skinCol, f.body, f.face, f.hair, f.hat);
+
+    // Имя + значок готовности под фигурой.
+    ctx.font = '700 ' + Math.round(slotW * 0.07) + 'px sans-serif';
+    ctx.fillStyle = f.isMe ? '#d4af37' : (ready ? '#5be58a' : '#dde');
+    ctx.textAlign = 'center';
+    const label = (ready ? '✅ ' : '') + (f.name || '').slice(0, 12);
+    ctx.fillText(label, cx, H - 8);
+  });
+}
+
+// Баннер на главном экране кооперации — моя бригада из БД.
+async function renderCoopBanner() {
+  const cvs = document.getElementById('coop-banner-canvas');
+  const lbl = document.getElementById('coop-banner-label');
+  if (!cvs) return;
+  const meLook = {
+    name: DATA.name || 'Ты',
+    gender: DATA.gender|0, skin: DATA.skin|0,
+    body: DATA.body|0, face: DATA.face|0, hair: DATA.hair|0, hat: DATA.hat|0,
+    isMe: true,
+  };
+  let gangLooks = [];
+  if (coopApi() && DATA.uid) {
+    try {
+      const resp = await fetch(coopApi() + '/friend/list/' + DATA.uid);
+      if (resp.ok) {
+        const j = await resp.json();
+        if (j && j.ok && Array.isArray(j.gang)) {
+          gangLooks = j.gang.slice(0, 4).map(g => {
+            let look = {};
+            try { look = JSON.parse(g.look_json || '{}'); } catch(e) {}
+            return {
+              name: g.name || 'Игрок',
+              gender: look.gender|0, skin: look.skin|0,
+              body: look.body|0, face: look.face|0, hair: look.hair|0, hat: look.hat|0,
+            };
+          });
+        }
+      }
+    } catch(e) {}
+  }
+  const figures = [meLook].concat(gangLooks);
+  if (lbl) lbl.textContent = gangLooks.length
+    ? `МОЯ БРИГАДА · ${figures.length}`
+    : 'МОЯ БРИГАДА · ты пока один';
+  _coopDrawBanner(cvs, figures);
+}
+
+// Баннер в комнате ожидания — реальные подключившиеся игроки сессии.
+// Скины приходят с сервера в players[].look (см. _coop_fetch_char_stats).
+function _coopRenderWaitroomBanner(data) {
+  const cvs = document.getElementById('coop-waitroom-banner');
+  const lbl = document.getElementById('coop-waitroom-banner-label');
+  if (!cvs) return;
+  const myUid = coopMyUidStr();
+  const players = (data && data.players) || [];
+  const figures = players.slice(0, 4).map(p => {
+    const look = p.look || {};
+    return {
+      name: p.name || 'Игрок',
+      gender: look.gender|0, skin: look.skin|0,
+      body: look.body|0, face: look.face|0, hair: look.hair|0, hat: look.hat|0,
+      isMe: p.uid === myUid,
+      ready: !!p.ready,
+    };
+  });
+  if (!figures.length) {
+    // На пустой комнате не оставляем прозрачный canvas — рисуем тебя одного.
+    figures.push({
+      name: DATA.name || 'Ты', isMe: true, ready: true,
+      gender: DATA.gender|0, skin: DATA.skin|0,
+      body: DATA.body|0, face: DATA.face|0, hair: DATA.hair|0, hat: DATA.hat|0,
+    });
+  }
+  if (lbl) lbl.textContent = `БРИГАДА В СБОРЕ · ${figures.length}/4`;
+  _coopDrawBanner(cvs, figures);
+}
 
 // Верхний HUD в бою: 4 компактные ячейки с HP-баром каждого игрока,
 // чтобы было видно состояние всей команды без скролла. Пустые слоты

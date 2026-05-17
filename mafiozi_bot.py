@@ -1260,11 +1260,13 @@ async def cancel_all_coop(user_id: int):
         await db.commit()
 
 async def get_friends(telegram_id: int) -> list:
-    """Возвращает всех игроков, приглашённых этим пользователем."""
+    """Возвращает всех игроков, приглашённых этим пользователем.
+    look_json нужен фронту для отрисовки аватарок в «банда-баннере»
+    кооп-лобби, поэтому его тоже отдаём."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
-            "SELECT telegram_id, name, level FROM characters WHERE referred_by = ?",
+            "SELECT telegram_id, name, level, look_json FROM characters WHERE referred_by = ?",
             (telegram_id,)
         ) as cur:
             rows = await cur.fetchall()
@@ -1695,7 +1697,7 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
         "bot":      BOT_USERNAME,   # имя бота для t.me/<bot>?startapp=... share-ссылок
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
-        "_v": "19",  # bump when hub.html is updated — breaks Telegram cache
+        "_v": "20",  # bump when hub.html is updated — breaks Telegram cache
     }
     return HUB_WEBAPP_URL + "?" + urllib.parse.urlencode(params)
 
@@ -9184,9 +9186,10 @@ async def _coop_grant_rewards(sess: dict) -> None:
 
 
 async def _coop_fetch_char_stats(uid_str: str) -> dict:
-    """Подтянуть актуальные характеристики из БД по telegram_id.
-    Нужно, когда игрок открыл WebApp напрямую через startapp deep-link и
-    в URL нет hp/atk/def — тогда мы заполняем join по данным из БД."""
+    """Подтянуть актуальные характеристики + внешность из БД по telegram_id.
+    Внешность (look) нужна фронту для рендера баннера «БРИГАДА В СБОРЕ» —
+    рисуем скин каждого подключившегося игрока. Нужно также, когда игрок
+    открыл WebApp через startapp deep-link и в URL нет hp/atk/def."""
     try:
         uid_int = int(uid_str)
     except Exception:
@@ -9194,12 +9197,26 @@ async def _coop_fetch_char_stats(uid_str: str) -> dict:
     char = await get_character(uid_int)
     if not char:
         return {}
+    look = {}
+    try:
+        if char.get('look_json'):
+            look = json.loads(char['look_json']) or {}
+    except Exception:
+        look = {}
     return {
         'name':  str(char.get('name') or 'Игрок')[:32],
         'atk':   int(char.get('attack')   or 20),
         'def':   int(char.get('defense')  or 10),
         'hp':    int(char.get('hp')       or 100),
         'maxhp': int(char.get('max_hp')   or 100),
+        'look':  {
+            'gender': int(look.get('gender', 0) or 0),
+            'skin':   int(look.get('skin',   0) or 0),
+            'body':   int(look.get('body',   0) or 0),
+            'face':   int(look.get('face',   0) or 0),
+            'hair':   int(look.get('hair',   0) or 0),
+            'hat':    int(look.get('hat',    0) or 0),
+        },
     }
 
 
@@ -9233,6 +9250,10 @@ async def _coop_http_app():
         loc_id  = str(b.get('loc_id', 'market'))
         bhp = _COOP_BOSS_HP.get(boss_id, 300)
         sid = _coop_gen_sid()
+        # Внешность хоста — тянем из БД для баннера «БРИГАДА В СБОРЕ»,
+        # body-параметры можно не передавать с фронта.
+        host_fallback = await _coop_fetch_char_stats(uid) if uid else {}
+        host_look     = host_fallback.get('look') or {}
         # Создатель сразу помечается ready — в лобби лишний клик не нужен.
         sess = {
             'sid': sid, 'state': 'waiting',
@@ -9242,7 +9263,8 @@ async def _coop_http_app():
             'boss_def': _COOP_BOSS_DEF.get(boss_id, 25),
             'turn_uid': uid, 'log': [],
             'players': [{'uid': uid, 'name': name, 'atk': atk, 'def': def_,
-                         'hp': hp, 'max_hp': maxhp, 'ready': True}],
+                         'hp': hp, 'max_hp': maxhp, 'ready': True,
+                         'look': host_look}],
             'created_at':     time.time(),
             'host_uid':       uid,
             'first_ready_at': time.time(),
@@ -9273,16 +9295,18 @@ async def _coop_http_app():
         if not uid:
             return await _cors(web.json_response({'error': 'no uid'}, status=400))
         # Если игрок пришёл через startapp-инвайт, в URL нет hp/atk/def —
-        # подтянем актуальные стартовые характеристики из БД.
+        # подтянем актуальные стартовые характеристики и look из БД.
         fallback = await _coop_fetch_char_stats(uid) if uid else {}
         name  = str(b.get('name')  or fallback.get('name')  or 'Игрок')[:32]
         atk   = int(b.get('atk')   or fallback.get('atk')   or 20)
         def_  = int(b.get('def')   or fallback.get('def')   or 10)
         hp    = int(b.get('hp')    or fallback.get('hp')    or 100)
         maxhp = int(b.get('maxhp') or fallback.get('maxhp') or 100)
+        look  = fallback.get('look') or {}
         if not any(p['uid'] == uid for p in sess['players']):
             sess['players'].append({'uid': uid, 'name': name, 'atk': atk, 'def': def_,
-                                    'hp': hp, 'max_hp': maxhp, 'ready': False})
+                                    'hp': hp, 'max_hp': maxhp, 'ready': False,
+                                    'look': look})
             # Тип 'join' — фронт ловит его и показывает тост сверху-слева.
             _coop_add_log(sess, f"➕ {name} подключился к сессии.", 'join')
         _coop_evaluate_lobby(sess)
