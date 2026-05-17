@@ -318,7 +318,8 @@
       const KEEP = ['name','lvl','cls','uid','hp','maxhp','mp','maxmp','cash','dia',
         'kills','wanted','wanted_g','jail_until','cap_until','job_until','srv_now',
         'contacts','job','gender','skin','body','face','hair','hat','has_look',
-        'atk','def','weapon','prop','gang','api','_v','job_cd','bgren','bmol','bcash'];
+        'atk','def','weapon','prop','gang','api','_v','job_cd','bgren','bmol','bcash',
+        'bot'];
       KEEP.forEach(k => { if (sp.has(k)) out.set(k, sp.get(k)); });
       // gren/mol — отдаём бэкап «как было до боя», чтобы хаб не обнулил
       if (sp.has('bgren')) out.set('gren', sp.get('bgren'));
@@ -526,7 +527,16 @@ const QP = {
   bcash:       _qInt('bcash', 0),  // деньги ДО боя — если API молчит, отдадим как есть
   bgren:       _qInt('bgren', 0),  // гранаты ДО боя — для синхронизации UI
   bmol:        _qInt('bmol',  0),  // молотовы ДО боя — переключатель в HUD
+  coop_sid:    (_UP.get('coop_sid') || '').toUpperCase(), // ID кооп-сессии (если играем в команде)
 };
+// ── CO-OP режим ────────────────────────────────────────────────────
+// Если в URL есть coop_sid + api + uid — играем в кооп-бою. Сервер
+// синхронизирует HP босса, позиции игроков и win/loss-стейт.
+// Миньонов кооп НЕ синхронизирует (v1) — каждый воюет со своей
+// копией миньонов; общий только босс и список союзников.
+window.COOP_ACTIVE = !!(QP.coop_sid && QP.api && QP.uid);
+const COOP_SID = QP.coop_sid;
+const COOP_MY_UID = String(QP.uid || '');
 // Множитель района: ×1.0 (рынок, mlvl=1) → ×2.9 (резиденция, mlvl=20)
 const LOC_REWARD_MUL = 1 + 0.10 * Math.max(0, QP.mlvl - 1);
 
@@ -992,6 +1002,13 @@ function spawnGorePart(r, c, dirAngle, kind, victim) {
 // dirAngle — направление импульса (откуда летит пуля/откуда взрыв) для брызг.
 function damageActor(v, dmg, dirAngle, weaponKey) {
   if (!v || v.hp <= 0) return;
+  // CO-OP: считаем суммарный урон по боссу за тик — этот клиент сообщит
+  // его серверу в ближайшем coopTick(). Сервер уменьшит shared boss_hp.
+  // Capped to remaining hp, чтобы не передавать «overkill» — он считается
+  // визуально, но HP босса всё равно был бы 0.
+  if (window.COOP_ACTIVE && v.isBoss && dmg > 0) {
+    coopPendingBossDmg += Math.min(v.hp, dmg);
+  }
   const wasAlive = v.hp > 0;
   const prevHp = v.hp;
   v.hp = Math.max(0, v.hp - dmg);
@@ -3401,6 +3418,39 @@ function render() {
   }
   // игрок
   items.push({ depth: player.r + player.c, draw: () => drawCharacter(player, true) });
+  // CO-OP: союзники по серверным позициям. Рендерим как обычных персонажей
+  // их собственным look'ом. У них нет fireCD/cantShootT и т.п. — просто
+  // фигурка под именем. Stale (не пинговал >6с) — не показываем.
+  if (window.COOP_ACTIVE && coopOthers && coopOthers.length) {
+    coopOthers.forEach(o => {
+      if (!o || o.stale) return;
+      // Лёгкий "ally" объект для drawCharacter. Поля совместимы.
+      const ally = {
+        r: o.y, c: o.x, angle: o.ang || 0,
+        hp: o.alive ? (o.hp || 1) : 0,
+        hpMax: o.max_hp || 100,
+        look: o.look || {},
+        walkPhase: (performance.now() / 120) % (Math.PI * 2),
+        moving: true,
+        isAlly: true,
+        name: o.name || '',
+      };
+      items.push({ depth: o.y + o.x, draw: () => {
+        drawCharacter(ally, false);
+        // имя союзника над головой
+        try {
+          const p = w2s(ally.r, ally.c);
+          ctx.font = 'bold 11px system-ui,sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = 'rgba(0,0,0,0.65)';
+          ctx.fillText(ally.name, p.x + 1, p.y - 52);
+          ctx.fillStyle = '#5be58a';
+          ctx.fillText(ally.name, p.x, p.y - 53);
+          ctx.textAlign = 'left';
+        } catch(e) {}
+      }});
+    });
+  }
   // враги (живые + трупы — трупы остаются на земле)
   enemies.forEach(e => {
     items.push({ depth: e.r + e.c, draw: () => drawCharacter(e, false) });
@@ -3438,6 +3488,127 @@ function render() {
 
 // ── UPDATE ─────────────────────────────────────────────────────────
 let gamePaused = true; // снимается при выборе тактики в катсцене
+
+// ── CO-OP синхронизация (v1: общие — boss HP и позиции игроков) ────────
+// Каждые COOP_TICK_MS клиент шлёт серверу свою позицию/HP/урон по боссу
+// и получает обратно общий boss_hp + список союзников.
+// Миньоны/AI/пули НЕ синхронизированы — у каждого свой инстанс боя,
+// объединяет команду общий босс и видимость союзников на карте.
+let coopPendingBossDmg = 0;
+let coopReportedDeath  = false;
+let coopOthers         = [];      // [{uid,name,x,y,ang,hp,max_hp,alive,look,...}]
+let coopServerBossHP   = -1;      // -1 — ещё не пришло
+let coopServerState    = 'battle';
+let coopPollTimer      = null;
+let coopFinishHandled  = false;
+const COOP_TICK_MS = 250;
+const COOP_RETURN_DELAY_MS = 3500;  // через сколько после win/loss возврат в хаб
+
+async function coopTick() {
+  if (!window.COOP_ACTIVE) return;
+  // Не отправляем тики, если мы уже завершили бой и ждём редиректа —
+  // лишний шум для сервера и фокус: финальный showResultScene уже идёт.
+  if (coopFinishHandled) return;
+  const body = {
+    uid:    COOP_MY_UID,
+    x:      +player.c.toFixed(2),
+    y:      +player.r.toFixed(2),
+    ang:    +(player.angle || 0).toFixed(3),
+    hp:     Math.max(0, Math.round(player.hp)),
+    alive:  player.hp > 0,
+    weapon: currentWeapon || '',
+  };
+  if (coopPendingBossDmg > 0) {
+    body.boss_dmg = Math.round(coopPendingBossDmg);
+    coopPendingBossDmg = 0;
+  }
+  if (player.hp <= 0 && !coopReportedDeath) {
+    body.died = true;
+    coopReportedDeath = true;
+  }
+  try {
+    const r = await fetch(QP.api + '/coop/' + COOP_SID + '/iso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      keepalive: true,
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    coopServerBossHP = d.boss_hp;
+    coopServerState  = d.state;
+    coopOthers       = d.others || [];
+    // Boss HP: serv canonical. Если серверный < локального — кто-то ещё
+    // бил, синкаемся (визуально опускаем бар). Если выше локального
+    // (не должно случаться) — берём серверное всё равно, оно правда.
+    const boss = enemies.find(e => e.isBoss);
+    if (boss && coopServerBossHP >= 0 && boss.hp > 0) {
+      if (coopServerBossHP <= 0) {
+        boss.hp = 0;  // checkFightEnd подхватит → showResultScene
+      } else if (coopServerBossHP < boss.hp) {
+        boss.hp = coopServerBossHP;
+      }
+    }
+    // Обработка серверного финала — даже если локально ещё «живём».
+    if (coopServerState === 'won' && !coopFinishHandled) {
+      coopFinishHandled = true;
+      if (!fightStats.result) {
+        fightStats.result = 'won';
+        fightStats.endMs  = performance.now();
+        setTimeout(showResultScene, 800);
+      }
+    } else if (coopServerState === 'lost' && !coopFinishHandled) {
+      coopFinishHandled = true;
+      if (!fightStats.result) {
+        fightStats.result = 'lost';
+        fightStats.endMs  = performance.now();
+        setTimeout(showResultScene, 800);
+      }
+    } else if (coopServerState === 'cancelled' && !coopFinishHandled) {
+      coopFinishHandled = true;
+      stopCoopSync();
+      // Хост вышел — все вылетают в хаб без результата.
+      try {
+        if (typeof window.__bareQuitToHub === 'function') {
+          setTimeout(window.__bareQuitToHub, 600);
+        }
+      } catch(e) {}
+    }
+  } catch(e) {
+    // Сетевой сбой — следующий тик попробует ещё раз. Локально игра
+    // продолжается на «последнем известном» серверном состоянии.
+  }
+}
+
+function startCoopSync() {
+  if (!window.COOP_ACTIVE) return;
+  // Первый тик через 80мс — даём катсцене закрыться, не запускаем 5 запросов
+  // в первую же секунду пока ещё ничего не изменилось.
+  setTimeout(coopTick, 80);
+  coopPollTimer = setInterval(coopTick, COOP_TICK_MS);
+}
+
+function stopCoopSync() {
+  if (coopPollTimer) { clearInterval(coopPollTimer); coopPollTimer = null; }
+}
+
+// При закрытии вкладки/выходе — шлём leave, чтобы команда увидела
+// дисконнект мгновенно, а не через 6 сек по таймауту stale.
+window.addEventListener('beforeunload', () => {
+  if (!window.COOP_ACTIVE) return;
+  try {
+    const url  = QP.api + '/coop/' + COOP_SID + '/leave';
+    const data = JSON.stringify({ uid: COOP_MY_UID });
+    // sendBeacon не блокирует unload и работает даже когда страница уже закрывается.
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
+    } else {
+      fetch(url, { method:'POST', headers:{'Content-Type':'application/json'},
+                   body:data, keepalive:true }).catch(()=>{});
+    }
+  } catch(e) {}
+});
+
 // ── Stats боя ──────────────────────────────────────────────────────
 const fightStats = {
   startMs: 0,      // performance.now() в момент старта (после катсцены)
@@ -3540,7 +3711,7 @@ function sendResultAndClose(action) {
     // Переносим ВСЕ исходные параметры боёвки кроме чисто-боевых.
     // gren/mol тоже скипаем — мы сами пересчитаем актуальное число (исходный
     // URL содержит значение ДО боя, а игрок мог что-то кинуть).
-    const skip = new Set(['boss','loc','exp','cash','mlvl','minions','bname','bhp','bemoji','view','gren','mol']);
+    const skip = new Set(['boss','loc','exp','cash','mlvl','minions','bname','bhp','bemoji','view','gren','mol','coop_sid']);
     _UP.forEach((v, k) => { if (!skip.has(k)) out.set(k, v); });
     // Расчётный остаток метательного — bgren/bmol минус то, что игрок кинул.
     const grenLeft = Math.max(0, (QP.bgren || 0) - (fightStats.grenUsed || 0));
@@ -3580,6 +3751,22 @@ function sendResultAndClose(action) {
     window.location.href = 'hub.html?' + out.toString();
   }
 
+  // CO-OP: серверная coop-сессия УЖЕ начислила награды (_coop_grant_rewards
+  // делает это атомарно при boss_hp<=0). Вызывать /battle/{uid}/result не
+  // нужно и даже вредно — он насчитает ещё одно начисление + засчитает
+  // килл боссу. Тихо стопаем синку и сразу едем в хаб (cash актуальный
+  // подхватится при следующем открытии WebApp через бота).
+  if (window.COOP_ACTIVE) {
+    try { stopCoopSync(); } catch(e) {}
+    // Доложить серверу, что вышли — иначе ещё 6 сек будем висеть как stale.
+    try {
+      const url = QP.api + '/coop/' + COOP_SID + '/leave';
+      const data = JSON.stringify({ uid: COOP_MY_UID });
+      if (navigator.sendBeacon) navigator.sendBeacon(url, new Blob([data], {type:'application/json'}));
+    } catch(e) {}
+    navigateToHub(null);
+    return;
+  }
   // 1) HTTP API: пишем результат в БД молча, без сообщений в чат.
   //    Таймаут 1.5 сек — иначе на слабой сети висим до 5с и юзер думает «лаг».
   //    Если не уложились — переезжаем без серверного state'а, хаб подхватит
@@ -4992,6 +5179,7 @@ function showTutorial() {
     cat.style.display = 'none';
     gamePaused = false;
     fightStatsBegin();
+    startCoopSync();
     if (mode === 'frontal') {
       setAlert(2, 'manual');
     }

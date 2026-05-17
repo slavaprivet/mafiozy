@@ -1697,7 +1697,7 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
         "bot":      BOT_USERNAME,   # имя бота для t.me/<bot>?startapp=... share-ссылок
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
-        "_v": "20",  # bump when hub.html is updated — breaks Telegram cache
+        "_v": "21",  # bump when hub.html is updated — breaks Telegram cache
     }
     return HUB_WEBAPP_URL + "?" + urllib.parse.urlencode(params)
 
@@ -1914,7 +1914,7 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
     params = {
         # Кеш-бастер для Telegram WebApp: подними при каждом релизе боёвки
         # — иначе TG держит старый HTML в кеше и игроки видят прошлую версию.
-        "_v":     "15",
+        "_v":     "16",
         "name":   urllib.parse.quote(char["name"][:20]),
         "hp":     char["hp"],
         "maxhp":  char["max_hp"],
@@ -9138,10 +9138,34 @@ def _coop_evaluate_lobby(sess: dict, now: float = None) -> None:
         if now >= sess['autostart_at']:
             sess['state'] = 'battle'
             sess['autostart_at'] = 0
+            _coop_init_iso(sess)
             _coop_add_log(sess, "Бой начался!", 'sys')
     else:
         # Если кто-то «отжался» от готовности — гасим автостарт.
         sess['autostart_at'] = 0
+
+
+def _coop_init_iso(sess: dict) -> None:
+    """При переходе в state='battle' раскладываем стартовое состояние для
+    iso-боёвки. Сидим единый seed на сессию — все клиенты получают его и
+    генерируют одинаковую карту/спавны (Mulberry32 на фронте). Сами позиции
+    игроков клиенты досылают через /coop/{sid}/iso как только окажутся в бою."""
+    if sess.get('iso_inited'):
+        return
+    sess['iso_inited'] = True
+    import random as _r
+    sess['seed'] = _r.randint(1, 999999999)
+    sess['iso'] = {
+        'players': {
+            p['uid']: {
+                'x': 0.0, 'y': 0.0, 'ang': 0.0,
+                'hp': p['hp'], 'max_hp': p['max_hp'],
+                'alive': True,
+                'weapon': '',
+                'last_update': 0.0,  # 0 = ещё не подключился к iso
+            } for p in sess['players']
+        }
+    }
 
 
 async def _coop_grant_rewards(sess: dict) -> None:
@@ -9355,6 +9379,7 @@ async def _coop_http_app():
         sess = _coop_sessions[sid]
         if sess['state'] == 'waiting':
             sess['state'] = 'battle'
+            _coop_init_iso(sess)
             _coop_add_log(sess, "Бой начался!", 'sys')
         return await _cors(web.json_response(sess))
 
@@ -9403,6 +9428,94 @@ async def _coop_http_app():
             return await _cors(web.json_response(sess))
         _coop_next_turn(sess)
         return await _cors(web.json_response(sess))
+
+    # ── ISO-coop тик: клиент шлёт своё состояние и урон по боссу, сервер
+    # отдаёт shared boss_hp, состояние сессии и позиции остальных игроков.
+    # Это «жирный» эндпоинт — клиенты опрашивают его каждые ~250мс.
+    # Сервер не симулирует AI, только хранит позиции и применяет урон.
+    # Каждый клиент рендерит свою копию миньонов независимо; синхронизирован
+    # только босс (HP) и игроки между собой.
+    async def h_iso(req):
+        sid = req.match_info['sid'].upper()
+        if sid not in _coop_sessions:
+            return await _cors(web.json_response({'error': 'Not found'}, status=404))
+        sess = _coop_sessions[sid]
+        try:
+            b = await req.json()
+        except Exception:
+            return await _cors(web.json_response({'error': 'bad json'}, status=400))
+        uid = str(b.get('uid', ''))
+        if not uid:
+            return await _cors(web.json_response({'error': 'no uid'}, status=400))
+        if not any(p['uid'] == uid for p in sess['players']):
+            return await _cors(web.json_response({'error': 'not in session'}, status=403))
+        # Если бой ещё не стартовал по флагу — стартуем (на случай если клиент
+        # успел доехать до iso раньше, чем _coop_evaluate_lobby отработал).
+        if not sess.get('iso_inited'):
+            _coop_init_iso(sess)
+            if sess.get('state') == 'waiting':
+                sess['state'] = 'battle'
+        iso = sess['iso']
+        me = iso['players'].setdefault(uid, {})
+        # Обновляем свою позицию/угол/HP/alive/оружие — то, что прислал клиент.
+        for k in ('x', 'y', 'ang', 'hp', 'alive', 'weapon'):
+            if k in b:
+                me[k] = b[k]
+        me['last_update'] = time.time()
+        # Урон по боссу: суммарный за тик. Клиент стреляет локально → считает
+        # сколько HP снял → присылает дельту. Сервер применяет к общему HP.
+        bdmg = int(b.get('boss_dmg', 0) or 0)
+        if bdmg > 0 and sess.get('boss_hp', 0) > 0 and sess.get('state') == 'battle':
+            sess['boss_hp'] = max(0, sess['boss_hp'] - bdmg)
+            if sess['boss_hp'] <= 0:
+                sess['state'] = 'won'
+                _coop_add_log(sess, "🏆 Босс повержен! Победа.", 'sys')
+                await _coop_grant_rewards(sess)
+        # Игрок умер — отражаем в sess.players (для расчётов «все ли пали»).
+        if b.get('died') and sess.get('state') == 'battle':
+            for pp in sess['players']:
+                if pp['uid'] == uid and pp['hp'] > 0:
+                    pp['hp'] = 0
+                    _coop_add_log(sess, f"💀 {pp['name']} убит.", 'death')
+                    break
+            alive = [pp for pp in sess['players']
+                     if pp['hp'] > 0 and not pp.get('left')]
+            if not alive:
+                sess['state'] = 'lost'
+                _coop_add_log(sess, "💀 Все пали. Поражение.", 'sys')
+        # Ответ: shared state + позиции остальных. Свою не дублируем.
+        now = time.time()
+        others = []
+        for pl in sess['players']:
+            if pl['uid'] == uid:
+                continue
+            ip = iso['players'].get(pl['uid'], {})
+            stale = (now - (ip.get('last_update') or 0)) > 6.0
+            others.append({
+                'uid':     pl['uid'],
+                'name':    pl['name'],
+                'look':    pl.get('look') or {},
+                'hp':      pl['hp'],
+                'max_hp':  pl['max_hp'],
+                'x':       ip.get('x', 0),
+                'y':       ip.get('y', 0),
+                'ang':     ip.get('ang', 0),
+                'alive':   bool(ip.get('alive', pl['hp'] > 0)) and not pl.get('left') and not stale,
+                'weapon':  ip.get('weapon', ''),
+                'left':    bool(pl.get('left')),
+                'stale':   stale,
+            })
+        return await _cors(web.json_response({
+            'state':         sess.get('state'),
+            'boss_hp':       sess.get('boss_hp', 0),
+            'boss_max_hp':   sess.get('boss_max_hp', 0),
+            'seed':          sess.get('seed', 0),
+            'host_uid':      sess.get('host_uid', ''),
+            'others':        others,
+            'cancel_reason': sess.get('cancel_reason', ''),
+            'reward_cash':   sess.get('reward_cash', 0),
+            'reward_exp':    sess.get('reward_exp', 0),
+        }))
 
     async def h_cancel(req):
         sid = req.match_info['sid'].upper()
@@ -10323,6 +10436,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/coop/{sid}/ready',  h_ready)
     aio_app.router.add_post('/coop/{sid}/start',  h_start)
     aio_app.router.add_post('/coop/{sid}/attack', h_attack)
+    aio_app.router.add_post('/coop/{sid}/iso',    h_iso)
     aio_app.router.add_post('/coop/{sid}/cancel', h_cancel)
     aio_app.router.add_post('/coop/{sid}/leave',  h_leave)
     aio_app.router.add_post('/friend/add',        h_friend_add)

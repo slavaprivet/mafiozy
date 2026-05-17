@@ -5735,11 +5735,33 @@ async function coopCancelSession() {
 
 function _coopEnterBattle(data) {
   coopState=data;
-  document.getElementById('coop-waitroom').style.display='none';
-  document.getElementById('coop-lobby').style.display='none';
-  document.getElementById('coop-battle').style.display='';
-  _coopRenderBattle(data); _coopStopPoll();
-  coopPollTimer=setInterval(_coopPollBattle,1800);
+  // CO-OP в ISO: вместо пошагового UI в хабе — едем в demo_isometric.html
+  // с coop_sid. Сервер дальше синхронизирует boss_hp и игроков между
+  // клиентами через /coop/{sid}/iso. Каждый игрок открывает СВОЙ инстанс
+  // iso, видит своих миньонов, но общий босс/тиммейтов берёт с сервера.
+  _coopStopWait(); _coopStopPoll();
+  const params = new URLSearchParams(location.search);
+  params.set('boss',   data.boss_id);
+  params.set('loc',    data.loc_id || 'market');
+  params.set('name',   DATA.name || 'Игрок');
+  // hp/atk/def/maxhp — берём из текущей сессии хаба, как при соло-бое.
+  // Это стартовые стат игрока, не серверные (серверные уже в data.players).
+  params.set('hp',     (session && session.hp != null ? session.hp : DATA.hp) || DATA.maxhp || 100);
+  params.set('maxhp',  DATA.maxhp || 100);
+  params.set('atk',    DATA.atk   || 30);
+  params.set('def',    DATA.def   || 10);
+  params.set('weapon', DATA.weapon || 'nagan');
+  const boss = BOSS_DATA[data.boss_id] || {};
+  params.set('exp',   boss.exp  || 0);
+  params.set('cash',  boss.cash || 0);
+  const loc = LOC_DATA[data.loc_id] || {};
+  params.set('mlvl',  loc.minLvl || 1);
+  params.set('bcash', DATA.cash || 0);
+  params.set('bgren', DATA.gren || 0);
+  params.set('bmol',  DATA.mol  || 0);
+  params.set('minions', boss.minions || 3);
+  params.set('coop_sid', data.sid);
+  window.location.href = 'demo_isometric.html?' + params.toString();
 }
 
 function _coopRenderBattle(data) {
