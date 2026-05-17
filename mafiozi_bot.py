@@ -508,7 +508,7 @@ JOBS = {
 }
 ITEMS = {
     # ── Расходники-метательные ─────────────────────────────────────
-    "grenade":       {"name": "💣 Граната",          "type": "throwable", "dmg_min": 80,  "dmg_max": 130, "price": 200, "desc": "Урон 80-130, без ответки. Кидаешь — враг разлетается."},
+    "grenade":       {"name": "💣 Граната",          "type": "throwable", "dmg_min": 80,  "dmg_max": 130, "price": 50,  "desc": "Урон 80-130, без ответки. Кидаешь — враг разлетается."},
     "molotov":       {"name": "🔥 Коктейль Молотова","type": "throwable", "dmg_min": 50,  "dmg_max": 80,  "burn_per_turn": 25, "burn_turns": 2, "price": 130, "desc": "Урон 50-80, плюс горит 2 хода по 25. Без ответки."},
     "medkit_small":  {"name": "🩹 Малая аптечка",    "type": "potion",   "heal": 55,  "price": 25,  "desc": "Восстанавливает 55 HP"},
     "medkit_medium": {"name": "🏥 Аптечка",          "type": "potion",   "heal": 130, "price": 60,  "desc": "Восстанавливает 130 HP"},

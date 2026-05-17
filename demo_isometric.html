@@ -195,7 +195,14 @@
          (строка ammo-row). Кнопка перезарядки удалена — перезарядка
          автоматическая (по правому стику при 0 пуль). -->
     <div id="combatUI" style="position:absolute;right:14px;bottom:110px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none">
-      <div style="display:flex;gap:8px;pointer-events:auto">
+      <div style="display:flex;gap:8px;pointer-events:auto;align-items:flex-end">
+        <!-- Кнопка БРОСИТЬ ГРАНАТУ. Видна, только если у игрока есть гранаты.
+             Зажми и тяни в стороны — корректируешь точку броска. Отпустишь — летит. -->
+        <button id="grenadeBtn" title="Бросить гранату" style="display:none;width:72px;height:72px;background:rgba(60,40,15,.92);border:2px solid #d0a040;border-radius:14px;color:#ffd76b;font-size:30px;cursor:pointer;box-shadow:0 0 14px rgba(255,180,60,.4),0 2px 8px rgba(0,0,0,.6);position:relative;touch-action:none;user-select:none">
+          <span>🧨</span>
+          <span id="grenadeCount" style="position:absolute;right:4px;top:2px;font-size:11px;color:#fff;background:#a04020;border-radius:8px;padding:1px 5px;font-weight:bold">0</span>
+          <span style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#ffd76b;font-weight:bold;letter-spacing:1px">БРОСИТЬ</span>
+        </button>
         <!-- Кнопка стелс-килла. По умолчанию скрыта; renderBackstabHint
              показывает её, если игрок стоит за спиной у врага. -->
         <button id="meleeBtn" title="Стелс-килл" style="display:none;width:72px;height:72px;background:rgba(80,20,20,.92);border:2px solid #c83030;border-radius:14px;color:#ff5050;font-size:34px;cursor:pointer;box-shadow:0 0 16px rgba(255,40,40,.45),0 2px 8px rgba(0,0,0,.6);position:relative;animation:meleePulse 1s ease-in-out infinite">
@@ -366,6 +373,11 @@ const QP = {
   minions:     _qInt('minions', 3),// сколько миньонов у босса (2..18) — от этого размер карты
   api:         _UP.get('api') || '', // base URL HTTP API бота (из cloudflare-туннеля)
   uid:         _UP.get('uid') || '', // telegram-id игрока — для эндпойнта /battle/{uid}/result
+  // Бэкапы стат игрока на момент входа в бой — используются для восстановления
+  // в hub.html, если HTTP API не ответил (таймаут/нет туннеля). Без них при
+  // потере state.cash хаб подхватывает 0 → визуально «деньги пропали».
+  bcash:       _qInt('bcash', 0),  // деньги ДО боя — если API молчит, отдадим как есть
+  bgren:       _qInt('bgren', 0),  // гранаты ДО боя — для синхронизации UI
 };
 // Множитель района: ×1.0 (рынок, mlvl=1) → ×2.9 (резиденция, mlvl=20)
 const LOC_REWARD_MUL = 1 + 0.10 * Math.max(0, QP.mlvl - 1);
@@ -430,7 +442,22 @@ const BOSS_CFG = (() => {
 // игроку больше не доступно: всё, что не огнестрел или не алиас → 'pistol'.
 // Конфиги в WEAPON_FX_CFG сохранены — нужны для анимации стелс-килла.
 const ISO_WEAPONS = new Set(['pistol','pistol_heavy','pistol_gold','shotgun','smg','rifle','sniper','rpg']);
-const WEAPON_ALIASES = { nagan:'pistol', tt:'pistol', pm:'pistol', glock:'pistol', revolver:'pistol_heavy', desert_eagle:'pistol_heavy', ak:'rifle', m4:'rifle', ump:'smg', mp5:'smg' };
+// Алиасы маппят item_id из магазина бота на ISO-модель боёвки. Если оружия
+// нет в ISO_WEAPONS и нет в этом маппинге — падаем в 'pistol' (fallback).
+const WEAPON_ALIASES = {
+  // лёгкие пистолеты
+  nagan: 'pistol', tt: 'pistol', tt_pistol: 'pistol', pm: 'pistol', glock: 'pistol',
+  // тяжёлые пистолеты
+  revolver: 'pistol_heavy', desert_eagle: 'pistol_heavy', deagle: 'pistol_heavy',
+  // премиум — золотой
+  golden_colt: 'pistol_gold',
+  // дробовик
+  sawn_off: 'shotgun',
+  // smg / пистолет-пулемёт
+  uzi: 'smg', ump: 'smg', mp5: 'smg', tommy_gun: 'smg', golden_uzi: 'smg',
+  // винтовка/штурмовая
+  ak: 'rifle', ak74: 'rifle', m4: 'rifle', m16: 'rifle',
+};
 const INITIAL_WEAPON = (QP.weapon && (ISO_WEAPONS.has(QP.weapon) ? QP.weapon : (WEAPON_ALIASES[QP.weapon] || 'pistol'))) || 'pistol';
 
 // ── Сложность арены ────────────────────────────────────────────────
@@ -637,6 +664,60 @@ function placePowderBarrels() {
 }
 placePowderBarrels();
 
+// ── РЫНОЧНЫЙ ДЕКОР ──────────────────────────────────────────────────
+// Только для CURRENT_LOC === 'market'. Заменяем часть обычных
+// ящиков (тип 2) и бочек (тип 3) на яркие декоративные объекты, и
+// расставляем 2 «якоря» — ряд палаток и кучу фруктовых ящиков.
+// Делаем это БЕЗ увеличения общего числа клеток-укрытий — карта не
+// «засирается», просто меняется внешний вид.
+function placeMarketDecor() {
+  if (CURRENT_LOC !== 'market') return;
+  const room = BOSS_ROOM;
+  // 1) Заменяем случайные существующие ящики/бочки на декор
+  const DECOR_POOL = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+  for (let r = room.r1 + 2; r < ROWS - 1; r++) {
+    for (let c = 1; c < COLS - 1; c++) {
+      const t = MAP[r][c];
+      if (t === 2 || t === 3) {
+        if (Math.random() < 0.7) {
+          MAP[r][c] = DECOR_POOL[Math.floor(Math.random() * DECOR_POOL.length)];
+        }
+      }
+    }
+  }
+  // 2) ЯКОРНАЯ РАССТАНОВКА — несколько групп для атмосферы.
+  // Каждая ставится с проверкой что клетка свободна и достаточно далеко
+  // от спавна игрока (3+ тайла), чтобы не получить препятствие в лицо.
+  const placeIf = (r, c, t) => {
+    if (r < 1 || r >= ROWS - 1 || c < 1 || c >= COLS - 1) return;
+    if (MAP[r][c] !== 0 && MAP[r][c] !== 2 && MAP[r][c] !== 3) return;
+    const pl = SPAWNS.player;
+    if (Math.hypot(r + 0.5 - pl[0], c + 0.5 - pl[1]) < 3) return;
+    MAP[r][c] = t;
+  };
+  // Группа палаток: ряд из 2-3 разноцветных палаток
+  const tentR = Math.floor((room.r1 + ROWS) / 2);
+  const tentC = 3 + Math.floor(Math.random() * Math.max(1, COLS - 8));
+  placeIf(tentR, tentC,     6);
+  placeIf(tentR, tentC + 2, 7);
+  placeIf(tentR, tentC + 4, 8);
+  // Куча фруктовых ящиков рядом друг с другом
+  const fr = tentR + 2;
+  const fc = tentC + 1;
+  placeIf(fr, fc,     9);
+  placeIf(fr, fc + 1, 10);
+  placeIf(fr + 1, fc, 16);
+  // Тележка с мешками — у другого края
+  const cr = Math.floor((room.r1 + ROWS) / 2) + 1;
+  const cc = Math.max(2, tentC - 4);
+  placeIf(cr,     cc,     13);
+  placeIf(cr,     cc + 1, 12);
+  // Газовый баллон и бочка с водой — рядом, для «индустриального» уголка
+  placeIf(cr + 2, cc,     14);
+  placeIf(cr + 2, cc + 1, 11);
+}
+placeMarketDecor();
+
 // Описание типов клеток (цвета переопределяются темой района).
 // Тип 5 — пороховая бочка: эпичный взрыв при попадании, большой радиус
 // и урон. На карте раскидывается рандомно по несколько штук (placePowderBarrels).
@@ -646,6 +727,22 @@ const COVER_TYPES = {
   3: { name: 'barrel',       h: 0.95, topColor: THEME.barrelTop, sideColor: THEME.barrelSide,shape: 'cyl', hp: 35, explodeOnBreak: true },
   4: { name: 'car',          h: 0.55, topColor: THEME.carTop,    sideColor: THEME.carSide,   shape: 'box', hp: 120 },
   5: { name: 'powder_barrel',h: 0.95, topColor: '#2a1812',       sideColor: '#a82820',       shape: 'cyl', hp: 18, explodeOnBreak: true, powder: true },
+  // ── РЫНОЧНЫЙ ДЕКОР: яркие палатки, фрукты, телеги. Раскидывается ТОЛЬКО на
+  //    рынке (см. placeMarketDecor ниже). Все укрытия хрупкие (легко простреливаются),
+  //    но визуально оживляют сцену. Цвета фиксированы — не привязаны к THEME.
+  6:  { name: 'tent_red',    h: 1.05, topColor: '#c43030', sideColor: '#7a1818', shape: 'box', hp: 45,  marketDecor: true },
+  7:  { name: 'tent_blue',   h: 1.05, topColor: '#3068b8', sideColor: '#1a3c70', shape: 'box', hp: 45,  marketDecor: true },
+  8:  { name: 'tent_yellow', h: 1.05, topColor: '#d8a020', sideColor: '#8a6010', shape: 'box', hp: 45,  marketDecor: true },
+  9:  { name: 'fruit_crate', h: 0.55, topColor: '#8a5a30', sideColor: '#4a2c10', shape: 'box', hp: 35,  marketDecor: true, decor: 'fruits' },
+  10: { name: 'veg_crate',   h: 0.55, topColor: '#7a5a28', sideColor: '#3a2810', shape: 'box', hp: 35,  marketDecor: true, decor: 'veggies' },
+  11: { name: 'water_barrel',h: 0.95, topColor: '#3a6a98', sideColor: '#1e3a5a', shape: 'cyl', hp: 40,  marketDecor: true },
+  12: { name: 'sacks',       h: 0.75, topColor: '#c8b078', sideColor: '#705828', shape: 'box', hp: 35,  marketDecor: true, decor: 'sacks' },
+  13: { name: 'cart',        h: 0.55, topColor: '#7a4828', sideColor: '#3a2010', shape: 'box', hp: 60,  marketDecor: true, decor: 'cart' },
+  14: { name: 'gas_tank',    h: 0.95, topColor: '#cd3030', sideColor: '#811616', shape: 'cyl', hp: 22,  explodeOnBreak: true, marketDecor: true, decor: 'gas' },
+  15: { name: 'planter',     h: 0.45, topColor: '#3a7820', sideColor: '#704a18', shape: 'cyl', hp: 28,  marketDecor: true, decor: 'planter' },
+  16: { name: 'crates_tall', h: 1.10, topColor: '#a06838', sideColor: '#603018', shape: 'box', hp: 60,  marketDecor: true, decor: 'stack' },
+  17: { name: 'carpet_stand',h: 1.20, topColor: '#a02a4a', sideColor: '#601830', shape: 'box', hp: 40,  marketDecor: true, decor: 'carpet' },
+  18: { name: 'trash_can',   h: 0.80, topColor: '#3a3a3a', sideColor: '#1a1a1a', shape: 'cyl', hp: 30,  marketDecor: true, decor: 'trash' },
 };
 
 // HP для каждой ячейки укрытия (инициализируется при старте)
@@ -878,12 +975,15 @@ function canEnemySeeCorpse(e, dead) {
 // Сложность стелса по району: на рынке игрок учится подкрадываться —
 // большой радиус, широкий конус спины. С каждой локацией требования
 // ужесточаются (нужно подойти ближе и точнее за спину).
+// Параметры стелса: чем больше dist+arc, тем легче подкрасться.
+// На рынке/порту/казино/заводе — учимся стелсу: широкие радиусы, мягкий конус.
+// На резиденции — единственное место с реально хардкорным стелсом.
 const STEALTH_CFG = {
-  market:  { dist: 2.0, arc: 0.48 },  // легко — для новичков
-  port:    { dist: 1.7, arc: 0.40 },
-  casino:  { dist: 1.6, arc: 0.36 },
-  factory: { dist: 1.5, arc: 0.32 },
-  mansion: { dist: 1.4, arc: 0.30 },  // нужно реально вплотную и точно сзади
+  market:  { dist: 3.2, arc: 0.62 },  // совсем легко — для первых попыток
+  port:    { dist: 2.8, arc: 0.56 },
+  casino:  { dist: 2.5, arc: 0.50 },
+  factory: { dist: 2.2, arc: 0.44 },
+  mansion: { dist: 1.4, arc: 0.30 },  // только тут нужно вплотную и точно сзади
 };
 
 function isPlayerBehind(e) {
@@ -1094,6 +1194,16 @@ const _DISTRICT_MINIONS = {
   mansion: [{w:'rifle',      fc:500,  hp:130}, {w:'sniper',      fc:1700, hp:115}, {w:'shotgun',       fc:1200,hp:125}],
 };
 const _minions = _DISTRICT_MINIONS[CURRENT_LOC] || _DISTRICT_MINIONS.market;
+// Доля «стоящих» миньонов (sentry) — те, кто не патрулирует, а стоит на месте и
+// периодически поворачивается. Это даёт игроку реальный шанс выйти со спины
+// на ранних локациях. На резиденции все патрулируют — там стелс хардкорный.
+const _SENTRY_SHARE = {
+  market:  0.85, // почти все стоят
+  port:    0.65,
+  casino:  0.45,
+  factory: 0.25,
+  mansion: 0.00, // никто — всё реально подвижное, нужно ловить угол
+};
 // Зона кабинета — используется как `confined` для босса и охраны.
 // Пока тревога < combat, они патрулируют только внутри стен кабинета.
 const _roomBounds = () => ({ r0: BOSS_ROOM.r0, r1: BOSS_ROOM.r1, c0: BOSS_ROOM.c0, c1: BOSS_ROOM.c1 });
@@ -1106,16 +1216,25 @@ const enemies = [
 ];
 // Миньонов — сколько прислали из хаба. Архетипы оружия циклятся (3 разных
 // «класса» на район). Первые N — охрана в кабинете, остальные снаружи.
+// Часть миньонов получает флаг sentry — стоят на месте и медленно крутятся
+// (см. _SENTRY_SHARE). Это упрощает стелс на рынке/порту/казино.
+const _sentryShare = _SENTRY_SHARE[CURRENT_LOC] != null ? _SENTRY_SHARE[CURRENT_LOC] : 0;
 for (let i = 0; i < SPAWNS.minions.length; i++) {
   const cfg = _minions[i % _minions.length];
   const pos = SPAWNS.minions[i];
   const inRoom = i < SPAWNS.guardsInside;
+  // Sentry — для миньонов СНАРУЖИ кабинета (внутри пусть бродят между стенами).
+  const isSentry = !inRoom && Math.random() < _sentryShare;
   enemies.push({
-    r: pos[0], c: pos[1], hp: cfg.hp, hpMax: cfg.hp, angle: 0,
+    r: pos[0], c: pos[1], hp: cfg.hp, hpMax: cfg.hp, angle: Math.random() * Math.PI * 2,
     look: rndLook(), isBoss: false,
     weapon: cfg.w, fireCD: cfg.fc, sightR: 4,
     aiState: 'patrol', repositionT: 0, walkPhase: 0,
     confined: inRoom ? _roomBounds() : null,
+    isSentry: isSentry,
+    // Таймер «следующего поворота» для sentry — каждые 2.5-6 сек разворачивается
+    // на случайный угол. Между поворотами стоит неподвижно (= шанс зайти со спины).
+    sentryTurnT: isSentry ? (1.5 + Math.random() * 3) : 0,
   });
 }
 
@@ -1177,8 +1296,24 @@ const bullets = [];
 const muzzles = []; // вспышки у дула: {r, c, life, max, angle}
 const corpses = []; // {r, c, life}
 const explosions = []; // {r, c, life, max, radius}
+const shrapnels = []; // осколки от взрыва игрока: {r,c,z,vr,vc,vz,rot,vrot,life,max}
 
 let currentWeapon = INITIAL_WEAPON;
+
+// Гранаты игрока — кол-во читаем из URL (bgren = состояние ДО боя).
+// На бросок уменьшаем; на возврат в хаб бэк удалит из инвентаря fightStats.grenUsed штук.
+let playerGrenades = Math.max(0, QP.bgren | 0);
+// Режим прицеливания броска: пока true — рендерим маркер цели,
+// игрок таскает палец → точка двигается; отпустит → бросок.
+const grenAim = {
+  active: false,    // зажата ли кнопка
+  id: null,         // touch id если с мобилы
+  startX: 0, startY: 0, // экранные координаты начала тапа
+  curX: 0,  curY: 0,    // текущие
+  tr: 0, tc: 0,         // целевые r/c в мире
+  // Базовая дальность броска от центра игрока — растёт с тягой пальца.
+  range: 4.5,
+};
 
 // Камера
 const cam = { x: 0, y: 0 };
@@ -1307,6 +1442,37 @@ function drawCover(r, c, type) {
       ctx.ellipse(cx, cy - H * (1 - t), wx * 0.4, wy * 0.4, 0, 0, Math.PI);
       ctx.stroke();
     });
+    // Декоративные цилиндры рынка: газ — красный «X»-маркер, цветочный
+    // горшок — букетик-точки, мусорка — крышка с ручкой. Чисто визуал, чтобы
+    // отличать на сцене без подписи.
+    if (cfg.decor === 'gas') {
+      ctx.save();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold ' + Math.round(wx * 0.32) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('⚠', cx, cy - H + 1);
+      ctx.restore();
+    } else if (cfg.decor === 'planter') {
+      // букетик зелени на крышке — несколько точек
+      const greens = ['#5fa53c', '#7bd450', '#3a8228', '#9ec85a'];
+      for (let i = 0; i < 7; i++) {
+        const ang = i * 0.9;
+        ctx.fillStyle = greens[i % greens.length];
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(ang) * wx * 0.18, cy - H + Math.sin(ang) * wy * 0.18 - 2, wx*0.07, 0, Math.PI*2);
+        ctx.fill();
+      }
+      // 1-2 цветочка
+      ctx.fillStyle = '#e84080';
+      ctx.beginPath(); ctx.arc(cx - wx*0.08, cy - H - 3, wx*0.06, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ffd060';
+      ctx.beginPath(); ctx.arc(cx + wx*0.10, cy - H - 4, wx*0.06, 0, Math.PI*2); ctx.fill();
+    } else if (cfg.decor === 'trash') {
+      // ручка на крышке мусорки
+      ctx.fillStyle = '#5a5a5a';
+      ctx.fillRect(cx - wx*0.10, cy - H - 2, wx*0.20, 2);
+    }
     // Пороховая (нефтяная) бочка — рисуем поверх стандартного цилиндра:
     //  • яркие жёлтые обручи (как на настоящих 200-литровых барелях),
     //  • тёмное «дно» крышки с тонким металлическим бликом по краю,
@@ -1399,6 +1565,130 @@ function drawCover(r, c, type) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    // ── ДОПОЛНИТЕЛЬНЫЙ ДЕКОР ПОВЕРХ КРЫШКИ (только для рыночных типов) ──
+    // Каждый decor-тип получает уникальный «штрих» — это и делает мир рынка
+    // живым. Никакой логики игры, чисто визуал поверх стандартного бокса.
+    if (cfg.decor === 'fruits') {
+      // 6 ярких кружков «фруктов» на крышке (яблоки/помидоры/апельсины)
+      const palette = ['#e83040', '#e8c020', '#e87030', '#a0d020', '#c83030', '#f8b840'];
+      for (let i = 0; i < 7; i++) {
+        const t = (i * 0.37) % 1;
+        const ang = i * 2.1;
+        const ox = Math.cos(ang) * wx * 0.22;
+        const oy = Math.sin(ang) * wy * 0.22;
+        ctx.fillStyle = palette[i % palette.length];
+        ctx.beginPath();
+        ctx.arc(base.x + ox, base.y - H + oy - 1, wx * 0.10, 0, Math.PI*2);
+        ctx.fill();
+      }
+    } else if (cfg.decor === 'veggies') {
+      // зелень + морковки — более длинные мазки
+      const palette = ['#5aa030', '#d86028', '#7ab040', '#e8b020'];
+      for (let i = 0; i < 6; i++) {
+        const ang = i * 1.6;
+        const ox = Math.cos(ang) * wx * 0.20;
+        const oy = Math.sin(ang) * wy * 0.20;
+        ctx.fillStyle = palette[i % palette.length];
+        ctx.save();
+        ctx.translate(base.x + ox, base.y - H + oy);
+        ctx.rotate(ang);
+        ctx.fillRect(-wx*0.10, -wy*0.05, wx*0.20, wy*0.10);
+        ctx.restore();
+      }
+    } else if (cfg.decor === 'sacks') {
+      // 2 «холмика» — куль с зерном/мукой
+      ctx.fillStyle = lighten(cfg.topColor, 10);
+      [[-wx*0.15, -wy*0.08], [wx*0.15, wy*0.05]].forEach(([dx, dy]) => {
+        ctx.beginPath();
+        ctx.ellipse(base.x + dx, base.y - H + dy, wx*0.22, wy*0.22, 0, 0, Math.PI*2);
+        ctx.fill();
+      });
+      // тонкая верёвка-завязка
+      ctx.strokeStyle = '#5a4020';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(base.x - wx*0.15, base.y - H - wy*0.15);
+      ctx.lineTo(base.x - wx*0.05, base.y - H - wy*0.05);
+      ctx.stroke();
+    } else if (cfg.decor === 'cart') {
+      // 2 колеса по бокам, дышло-палка
+      ctx.fillStyle = '#1a1010';
+      [[-wx*0.6, wy*0.3], [wx*0.6, wy*0.3]].forEach(([dx, dy]) => {
+        ctx.beginPath();
+        ctx.ellipse(base.x + dx, base.y + dy, wx*0.15, wy*0.15, 0, 0, Math.PI*2);
+        ctx.fill();
+      });
+      ctx.strokeStyle = '#5a3a1a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(base.x, base.y - H * 0.5);
+      ctx.lineTo(base.x + wx*0.9, base.y - H * 0.2);
+      ctx.stroke();
+    } else if (cfg.decor === 'stack') {
+      // высокая стопка ящиков — линии разделения досок
+      ctx.strokeStyle = 'rgba(0,0,0,.6)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) {
+        const yy = base.y - H * (i * 0.25);
+        ctx.beginPath();
+        ctx.moveTo(left.x + wx * 0.1, yy);
+        ctx.lineTo(right.x - wx * 0.1, yy);
+        ctx.stroke();
+      }
+    } else if (cfg.decor === 'carpet') {
+      // вертикальные узкие полосы — ковры на стойке
+      const stripes = ['#e8c060', '#208080', '#c83838', '#208038'];
+      for (let i = 0; i < stripes.length; i++) {
+        const t = (i + 0.5) / stripes.length;
+        const cx = lerp(top.x, right.x, t);
+        const cy = lerp(top.y, right.y, t);
+        const bx = lerp(left.x, bot.x, t);
+        const by = lerp(left.y, bot.y, t);
+        ctx.strokeStyle = stripes[i];
+        ctx.lineWidth = Math.max(2, wx * 0.05);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+      }
+    }
+    // Палатка (типы 6-8): рисуем «крышу-навес» поверх — треугольный пик
+    if (cfg.name && cfg.name.indexOf('tent_') === 0) {
+      ctx.save();
+      // конёк-палка
+      const peakY = top.y - H * 0.35;
+      ctx.fillStyle = lighten(cfg.topColor, 30);
+      ctx.beginPath();
+      ctx.moveTo(top.x, peakY);
+      ctx.lineTo(right.x, right.y);
+      ctx.lineTo(bot.x,   bot.y);
+      ctx.lineTo(left.x,  left.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.45)';
+      ctx.stroke();
+      // полосатый узор на крыше
+      ctx.strokeStyle = 'rgba(255,255,255,.4)';
+      ctx.lineWidth = 1.5;
+      for (let i = 1; i < 4; i++) {
+        const t = i / 4;
+        ctx.beginPath();
+        ctx.moveTo(lerp(top.x, right.x, t), lerp(peakY, right.y, t));
+        ctx.lineTo(lerp(top.x, left.x,  t), lerp(peakY, left.y,  t));
+        ctx.stroke();
+      }
+      // флажок на вершине
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(top.x - 1, peakY - 8, 1.5, 6);
+      ctx.fillStyle = '#ffe060';
+      ctx.beginPath();
+      ctx.moveTo(top.x, peakY - 8);
+      ctx.lineTo(top.x + 6, peakY - 6);
+      ctx.lineTo(top.x, peakY - 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   // Трещины при HP < 50% (только для разрушаемых)
@@ -1436,6 +1726,9 @@ function drawCover(r, c, type) {
     }
   }
 }
+
+// Линейная интерполяция — нужно для декора (ковры/палатки) в drawCover.
+function lerp(a, b, t) { return a + (b - a) * t; }
 
 function lighten(hex, percent) {
   const c = hex.replace('#','');
@@ -2761,6 +3054,62 @@ function drawExplosion(e) {
   ctx.fill();
 }
 
+// Осколок — летящий металлический фрагмент. Спавнятся в triggerExplosion при
+// {fromPlayer:true}. Чисто визуальная сущность (урон уже посчитан радиусом).
+function drawShrapnel(s) {
+  const p = w2s(s.r, s.c);
+  const t = Math.max(0, s.life / s.max);
+  // тёмный осколок с тонкой светлой кромкой
+  ctx.save();
+  ctx.translate(p.x, p.y - isoH(s.z));
+  ctx.rotate(s.rot);
+  ctx.globalAlpha = t;
+  ctx.fillStyle = '#2a2a30';
+  ctx.fillRect(-3, -1, 6, 2);
+  ctx.fillStyle = 'rgba(255,200,120,0.6)';
+  ctx.fillRect(-3, -1, 2, 1);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+// Прицел гранаты — круг урона + пунктирная линия от игрока к точке броска.
+function drawGrenadeAim() {
+  const p = w2s(grenAim.tr, grenAim.tc);
+  const pl = w2s(player.r, player.c);
+  // Линия трассы (пунктир)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,200,60,0.8)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath();
+  ctx.moveTo(pl.x, pl.y - isoH(0.5));
+  ctx.lineTo(p.x,  p.y  - isoH(0.05));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  // Зона взрыва — пульсирующий красный овал
+  const radPx = 2.4 * TS * 0.55;
+  const pulse = 0.85 + 0.15 * Math.sin(performance.now() * 0.012);
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,70,40,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, radPx * pulse, radPx * pulse * ISO_Y, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,90,40,0.95)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, radPx * pulse, radPx * pulse * ISO_Y, 0, 0, Math.PI*2);
+  ctx.stroke();
+  // Перекрестье в центре
+  ctx.strokeStyle = 'rgba(255,210,80,0.9)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 8, p.y); ctx.lineTo(p.x + 8, p.y);
+  ctx.moveTo(p.x, p.y - 6); ctx.lineTo(p.x, p.y + 6);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function render() {
   ctx.fillStyle = '#0b0d12';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2827,6 +3176,9 @@ function render() {
   explosions.forEach(drawExplosion);
   coverBreaks.forEach(drawCoverBreak);
   hitSparks.forEach(drawHitSpark);
+  shrapnels.forEach(drawShrapnel);
+  // Маркер прицела гранаты — поверх всего, видно даже сквозь дым
+  if (grenAim.active) drawGrenadeAim();
   // капли крови И части тела В ПОЛЁТЕ (поверх персонажей)
   bloodDrops.forEach(d => { if (!d.splat) drawBloodDrop(d); });
   goreParts.forEach(g => { if (!g.landed) drawGorePart(g); });
@@ -2841,6 +3193,7 @@ const fightStats = {
   startMs: 0,      // performance.now() в момент старта (после катсцены)
   endMs: 0,
   shots: 0,
+  grenUsed: 0,     // сколько гранат игрок успел кинуть за бой (для бэка: gu=)
   killsCounted: new Set(), // индексы убитых врагов
   result: null,    // 'won' | 'lost' | null
 };
@@ -2848,6 +3201,7 @@ function fightStatsBegin() {
   fightStats.startMs = performance.now();
   fightStats.endMs = 0;
   fightStats.shots = 0;
+  fightStats.grenUsed = 0;
   fightStats.killsCounted = new Set();
   fightStats.result = null;
 }
@@ -2902,7 +3256,7 @@ function sendResultAndClose(action) {
     a: fightStats.result === 'won' ? 'battle_won' : 'battle_lost',
     php: Math.max(0, Math.round(player.hp)),
     pmp: 0,
-    gu: 0,
+    gu: fightStats.grenUsed || 0,
     boss: QP.boss,
     loc: CURRENT_LOC,
     nav: action, // 'district' | 'menu' — пока не используется на бэке
@@ -2948,6 +3302,13 @@ function sendResultAndClose(action) {
       const lost = (typeof fightStats !== 'undefined' && fightStats.result === 'lost');
       const liveHp = Math.max(0, Math.round(player.hp));
       out.set('hp', lost ? 1 : Math.max(1, liveHp));
+      // ВАЖНО: без state из API хаб НЕ знает текущий cash → подхватит 0.
+      // Отдаём бэкап (cash на момент входа в бой) — на проигрыше деньги
+      // и так не меняются, на победе бот добавит награду при следующем
+      // открытии меню. Лучше показать «как было», чем «обнулилось».
+      if (QP.bcash > 0) out.set('cash', QP.bcash);
+      const grenLeft = Math.max(0, (QP.bgren || 0) - (fightStats.grenUsed || 0));
+      out.set('gren', grenLeft);
     }
     // Роутинг в хабе: 'district' → сразу страница района, 'menu' → главная.
     if (action === 'district') {
@@ -3038,8 +3399,9 @@ function update(dt) {
     player._stepT = 0;
   }
 
-  // Прицеливание и стрельба
-  if (player.hp > 0 && joyR.active && (Math.abs(joyR.dx) > 0.15 || Math.abs(joyR.dy) > 0.15)) {
+  // Прицеливание и стрельба. ВАЖНО: пока aim-режим гранаты активен — не стреляем.
+  // Иначе при удержании 🧨 правый стик случайно выпускает пули, что путает игрока.
+  if (player.hp > 0 && !grenAim.active && joyR.active && (Math.abs(joyR.dx) > 0.15 || Math.abs(joyR.dy) > 0.15)) {
     // Аналогично: переводим экран → мир
     const d = joyR.dx, s = joyR.dy / ISO_Y;
     const dc = (s + d) * 0.5;
@@ -3128,6 +3490,19 @@ function update(dt) {
   for (let i = hitSparks.length - 1; i >= 0; i--) {
     hitSparks[i].life -= dt * 1000;
     if (hitSparks[i].life <= 0) hitSparks.splice(i, 1);
+  }
+
+  // Осколки от гранаты — летят по баллистике и затухают
+  for (let i = shrapnels.length - 1; i >= 0; i--) {
+    const s = shrapnels[i];
+    s.r += s.vr * dt; s.c += s.vc * dt; s.z += s.vz * dt;
+    s.vz -= 6.5 * dt;            // гравитация
+    s.vr *= (1 - dt * 2.2);       // трение в воздухе
+    s.vc *= (1 - dt * 2.2);
+    s.rot += s.vrot * dt;
+    if (s.z < 0) { s.z = 0; s.vz = 0; s.vr *= 0.5; s.vc *= 0.5; }
+    s.life -= dt * 1000;
+    if (s.life <= 0) shrapnels.splice(i, 1);
   }
 
   // Капли крови — летят дугой, оседают как лужи
@@ -3335,6 +3710,22 @@ function triggerExplosion(r, c, dmg, radius) {
   // Визуал — раздуваем кружок-вспышку пропорционально радиусу, для большого
   // взрыва ещё и продлеваем life, чтобы был заметен.
   explosions.push({ r, c, life: R >= 2.8 ? 800 : 600, max: R >= 2.8 ? 800 : 600, radius: R - 0.2 });
+  // Осколки — 12-16 штук разлетающихся фрагментов. Чисто визуал, урон уже считается
+  // радиусом ниже. Делает взрыв «жирнее» и читаемее как от гранаты.
+  const SHRAP_N = 12 + Math.floor(Math.random() * 5);
+  for (let i = 0; i < SHRAP_N; i++) {
+    const a  = (i / SHRAP_N) * Math.PI * 2 + Math.random() * 0.4;
+    const sp = 3.0 + Math.random() * 4.5;
+    shrapnels.push({
+      r, c, z: 0.4 + Math.random() * 0.3,
+      vr: Math.sin(a) * sp,
+      vc: Math.cos(a) * sp,
+      vz: 0.8 + Math.random() * 1.6,
+      rot: Math.random() * Math.PI,
+      vrot: (Math.random() - 0.5) * 12,
+      life: 700 + Math.random() * 300, max: 900,
+    });
+  }
   // урон врагам в радиусе (взрыв = дополнительный шанс отрыва конечностей)
   enemies.forEach(e => {
     if (e.hp <= 0) return;
@@ -3570,6 +3961,20 @@ function updateEnemyAI(e, dt) {
     e.aiState = 'patrol';
     // Общая тревога снимает привязку к комнате — все выходят воевать
     if (alertLevel >= 2 && e.confined) e.confined = null;
+    // SENTRY: стоит на месте до тревоги, только периодически поворачивается.
+    // Тревога ≥ 1 — отключает sentry-режим, идёт патрулировать как все.
+    if (e.isSentry && alertLevel < 1) {
+      e.sentryTurnT = Math.max(0, (e.sentryTurnT || 0) - dt);
+      if (e.sentryTurnT <= 0) {
+        // Случайный поворот: ±90..180° от текущего угла, дальше стоим 2.5-6 сек.
+        const turn = (Math.random() < 0.5 ? -1 : 1) * (Math.PI * 0.5 + Math.random() * Math.PI * 0.5);
+        e.angle += turn;
+        e.sentryTurnT = 2.5 + Math.random() * 3.5;
+      }
+      // Не двигаемся, walkPhase затухает
+      e.walkPhase *= 0.85;
+      return;
+    }
     if (e.repositionT <= 0 || e.targetR == null) {
       // Если враг сидит в «кабинете» — бродит только внутри его стен,
       // иначе — случайная точка по всей карте.
@@ -3663,8 +4068,9 @@ function startTouch(x, y, id) {
     aimBase.style.top  = (y - 55) + 'px';
     aimBase.classList.add('on');
     aimKnob.style.transform = 'translate(0,0)';
-    // первый выстрел сразу, как только палец легли (только если игрок жив)
-    if (player.hp > 0 && player.fireCD <= 0) {
+    // первый выстрел сразу, как только палец легли (только если игрок жив
+    // и не целится гранатой — иначе при удержании 🧨 случайный выстрел).
+    if (player.hp > 0 && player.fireCD <= 0 && !grenAim.active) {
       // нужно, чтобы был angle — будем считать что нажал = смотрит вверх если не двигает
       player.angle = -Math.PI / 2;
       tryFirePlayer();
@@ -3923,6 +4329,112 @@ function renderBackstabHint() {
   meleeBtnEl.style.justifyContent = 'center';
 }
 
+// ── ГРАНАТА: бросок игроком ────────────────────────────────────────
+// Кнопка 🧨 видна, только если в инвентаре есть гранаты. Touch на ней
+// включает aim-режим: рисуем зону взрыва впереди игрока, палец двигает
+// её относительно стартовой точки тапа (1 тайл ≈ 24 пикселя на экране
+// — ровно так, чтобы влезало в кадр и было читаемо). Отпускание = бросок.
+const grenadeBtnEl   = document.getElementById('grenadeBtn');
+const grenadeCntEl   = document.getElementById('grenadeCount');
+let _lastGrenCount = -1;
+function renderGrenadeBtn() {
+  if (playerGrenades !== _lastGrenCount) {
+    _lastGrenCount = playerGrenades;
+    grenadeCntEl.textContent = String(playerGrenades);
+  }
+  // Скрываем, если 0 или игрок мёртв
+  const show = playerGrenades > 0 && player.hp > 0;
+  grenadeBtnEl.style.display = show ? 'flex' : 'none';
+  grenadeBtnEl.style.alignItems = 'center';
+  grenadeBtnEl.style.justifyContent = 'center';
+}
+function _grenAimUpdate(px, py) {
+  // Сдвиг пальца относительно центра кнопки → сдвиг прицела в мире.
+  // 1 пиксель → ~1/48 тайла (на TS=96 это ≈половина тайла на 24px пальца).
+  // Дальность ограничиваем 1.5..9 тайлов от игрока.
+  const dx = px - grenAim.startX;
+  const dy = py - grenAim.startY;
+  const baseAng = (typeof joyR !== 'undefined' && (Math.abs(joyR.dx) > 0.1 || Math.abs(joyR.dy) > 0.1))
+    ? Math.atan2(joyR.dy / Math.max(1e-3, ISO_Y) - joyR.dx, joyR.dy / Math.max(1e-3, ISO_Y) + joyR.dx)
+    : player.angle;
+  // Стартовая точка: 4.5 тайла перед игроком в направлении его взгляда
+  const r0 = player.r + Math.sin(baseAng) * grenAim.range;
+  const c0 = player.c + Math.cos(baseAng) * grenAim.range;
+  // Сдвиг пальца: dy/ISO_Y → r, dx → c (изометрический screen↔world)
+  const dR = (dy / ISO_Y - dx) / (TS || 64);
+  const dC = (dy / ISO_Y + dx) / (TS || 64);
+  let tr = r0 + dR;
+  let tc = c0 + dC;
+  // Ограничим радиус от игрока 1.5..9
+  const drr = tr - player.r, dcc = tc - player.c;
+  const dist = Math.hypot(drr, dcc);
+  if (dist < 1.5) { tr = player.r + drr / (dist || 1) * 1.5; tc = player.c + dcc / (dist || 1) * 1.5; }
+  if (dist > 9.0) { tr = player.r + drr / (dist || 1) * 9.0; tc = player.c + dcc / (dist || 1) * 9.0; }
+  grenAim.tr = tr; grenAim.tc = tc;
+  grenAim.curX = px; grenAim.curY = py;
+}
+function startGrenadeAim(px, py, touchId) {
+  if (playerGrenades <= 0 || player.hp <= 0) return;
+  grenAim.active = true;
+  grenAim.id = (touchId != null) ? touchId : null;
+  grenAim.startX = px; grenAim.startY = py;
+  _grenAimUpdate(px, py);
+}
+function throwPlayerGrenade() {
+  if (!grenAim.active) return;
+  grenAim.active = false;
+  if (playerGrenades <= 0 || player.hp <= 0) return;
+  playerGrenades -= 1;
+  if (typeof fightStats !== 'undefined') fightStats.grenUsed = (fightStats.grenUsed || 0) + 1;
+  // Бросок: грубо в направлении прицела. Урон 110 в радиусе 2.5 — заметно мощнее
+  // обычного выстрела, но требует подойти и не быть в радиусе самому.
+  throwGrenade(player, grenAim.tr, grenAim.tc, 'player', { kind: 'grenade', dmg: 110, fromPlayer: true });
+  // Звук броска уже играет внутри throwGrenade (_playThrowSound). Тревога вверх.
+  setAlert(2, 'shot');
+}
+function cancelGrenadeAim() { grenAim.active = false; }
+
+// Маус — на десктопе. Тач — на мобиле.
+grenadeBtnEl.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  startGrenadeAim(e.clientX, e.clientY, null);
+});
+window.addEventListener('mousemove', (e) => {
+  if (!grenAim.active || grenAim.id != null) return;
+  _grenAimUpdate(e.clientX, e.clientY);
+});
+window.addEventListener('mouseup', (e) => {
+  if (!grenAim.active || grenAim.id != null) return;
+  throwPlayerGrenade();
+});
+grenadeBtnEl.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!e.changedTouches.length) return;
+  const t = e.changedTouches[0];
+  startGrenadeAim(t.clientX, t.clientY, t.identifier);
+}, { passive: false });
+window.addEventListener('touchmove', (e) => {
+  if (!grenAim.active || grenAim.id == null) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === grenAim.id) {
+      _grenAimUpdate(t.clientX, t.clientY);
+      e.preventDefault();
+      break;
+    }
+  }
+}, { passive: false });
+window.addEventListener('touchend', (e) => {
+  if (!grenAim.active || grenAim.id == null) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === grenAim.id) { throwPlayerGrenade(); break; }
+  }
+}, { passive: false });
+window.addEventListener('touchcancel', (e) => {
+  if (!grenAim.active) return;
+  cancelGrenadeAim();
+});
+
 let lastT = performance.now();
 function loop(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000);
@@ -3958,6 +4470,7 @@ function loop(t) {
   renderHudWepIcon();
   renderAlertBanner();
   renderBackstabHint();
+  renderGrenadeBtn();
 
   // Индикатор патронов и перезарядки в HUD сверху:
   //  • ammoBarFill — жёлтая шкала «текущие / обойма» (как HP-бар).
