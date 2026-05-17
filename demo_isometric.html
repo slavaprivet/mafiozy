@@ -938,16 +938,34 @@ function damageActor(v, dmg, dirAngle, weaponKey) {
 // 2 = бой (🔴 "Тебя обнаружили")
 let alertLevel = 0;
 let alertDecayT = 0;          // сек после последнего "контакта" — для остывания
-const FOV_HALF_RAD = Math.PI / 2.5;   // ±36° → конус 72°
+// Зрение и реакция врагов по локациям. На рынке игрок учится: короткое
+// зрение, узкий конус, и ещё ~0.9 сек на «успеть спрятаться», прежде чем
+// тревога превратится в стрельбу. На резиденции — почти мгновенно палят.
+//   sightR    — максимальная дистанция, на которой видно игрока (тайлы).
+//   fovHalf   — половина угла конуса (радианы). 36° → Math.PI/5.
+//   reactTime — сколько секунд враг должен непрерывно видеть игрока,
+//               прежде чем поднять тревогу до боя (≥2).
+//   hearMul   — множитель радиуса слуха относительно sightR (бег слышен).
+const STEALTH_VIS = {
+  market:  { sightR: 3.0, fovHalf: Math.PI / 3.6, reactTime: 0.95, hearMul: 1.4 },
+  port:    { sightR: 3.4, fovHalf: Math.PI / 3.2, reactTime: 0.70, hearMul: 1.5 },
+  casino:  { sightR: 3.8, fovHalf: Math.PI / 2.9, reactTime: 0.50, hearMul: 1.55 },
+  factory: { sightR: 4.0, fovHalf: Math.PI / 2.7, reactTime: 0.30, hearMul: 1.6 },
+  mansion: { sightR: 4.5, fovHalf: Math.PI / 2.4, reactTime: 0.12, hearMul: 1.7 },
+};
+function _vis() { return STEALTH_VIS[CURRENT_LOC] || STEALTH_VIS.market; }
 const ALERT_DECAY_TIME = 9;            // сек на спад до spuasus после потери игрока
 const SUSPECT_TO_CALM_TIME = 14;       // сек на возврат к "спокойно"
 
-// Может ли враг видеть игрока (с учётом FOV)
+// Может ли враг видеть игрока (с учётом FOV). sightR врага клампим
+// сверху локационным STEALTH_VIS — на рынке зрение всегда короткое.
 function canEnemySeePlayer(e) {
   if (!e || e.hp <= 0 || player.hp <= 0) return false;
   const dx = player.c - e.c, dy = player.r - e.r;
   const dist = Math.hypot(dx, dy);
-  if (dist > e.sightR) return false;
+  const vis = _vis();
+  const effR = Math.min(e.sightR, vis.sightR);
+  if (dist > effR) return false;
   if (!hasLOS(e.r, e.c, player.r, player.c)) return false;
   // В режиме боя — 360°: уже знают где ты
   if (alertLevel >= 2) return true;
@@ -958,7 +976,7 @@ function canEnemySeePlayer(e) {
   let diff = angToPlayer - e.angle;
   while (diff >  Math.PI) diff -= 2 * Math.PI;
   while (diff < -Math.PI) diff += 2 * Math.PI;
-  return Math.abs(diff) <= FOV_HALF_RAD;
+  return Math.abs(diff) <= vis.fovHalf;
 }
 
 // Может ли враг увидеть труп (для перехода в "подозрение")
@@ -973,7 +991,7 @@ function canEnemySeeCorpse(e, dead) {
   let diff = ang - e.angle;
   while (diff >  Math.PI) diff -= 2 * Math.PI;
   while (diff < -Math.PI) diff += 2 * Math.PI;
-  return Math.abs(diff) <= FOV_HALF_RAD;
+  return Math.abs(diff) <= _vis().fovHalf;
 }
 
 // Игрок ЗА СПИНОЙ у врага (для стелс-килла)
@@ -3893,8 +3911,26 @@ function updateEnemyAI(e, dt) {
   const playerAlive = player.hp > 0;
   // Учитываем FOV: вне боя враг видит ТОЛЬКО в конусе перед собой
   const canSee = canEnemySeePlayer(e);
-  // Если увидел игрока — мгновенно бой
-  if (canSee && playerAlive) setAlert(2, 'sight');
+  // Время реакции: пока враг видит игрока меньше reactTime секунд —
+  // это лишь подозрение (можно ещё успеть выйти из конуса). Как только
+  // выдержал — поднимаем до боя. Если потерял из виду — таймер забывает
+  // быстрее, чем накапливался, чтобы стелс был играбельным.
+  const vis = _vis();
+  if (canSee && playerAlive && alertLevel < 2) {
+    e.sawT = (e.sawT || 0) + dt;
+    setAlert(1, 'sight_partial');           // знак «?» / подозрение
+    if (e.sawT >= vis.reactTime) {
+      setAlert(2, 'sight');
+    }
+  } else if (canSee && alertLevel >= 2) {
+    e.sawT = vis.reactTime;                 // фиксируем «полное» обнаружение
+  } else {
+    e.sawT = Math.max(0, (e.sawT || 0) - dt * 1.4);
+  }
+  // Враг открывает огонь / переходит к стрельбе только если тревога
+  // подтверждена (alertLevel === 2). Иначе остаётся в патруле — это и
+  // даёт игроку «окно реакции» в стелсе.
+  const isCombat = canSee && alertLevel >= 2;
 
   // Босс в режиме rush — игнорирует обычное поведение, прёт на игрока
   if (e.isBoss && e.rushT > 0 && playerAlive) {
@@ -3938,7 +3974,7 @@ function updateEnemyAI(e, dt) {
     }
   }
 
-  if (canSee) {
+  if (isCombat) {
     e.angle = angleToPlayer;
     const cfg = WEAPON_FX_CFG[e.weapon] || WEAPON_FX_CFG.pistol;
     const optRange = (cfg.range || 8) * 0.7;
@@ -3968,7 +4004,7 @@ function updateEnemyAI(e, dt) {
     }
     // движемся к targetR/C если оно задано и далеко
     moveTowardsTarget(e, dt, e.isBoss ? 2.2 : 2.8);
-  } else if (playerAlive && distToPlayer < e.sightR * 1.6 && (player.isRunning || alertLevel >= 1)) {
+  } else if (playerAlive && distToPlayer < e.sightR * vis.hearMul && (player.isRunning || alertLevel >= 2)) {
     // Слышим игрока — но только если он БЕЖИТ (шум шагов) или уже идёт тревога.
     // Идёшь медленно и тревоги нет → тебя не слышат, можно красться рядом.
     if (e.confined) e.confined = null; // выходит из кабинета на звук
@@ -4008,7 +4044,11 @@ function updateEnemyAI(e, dt) {
         const cc = c0p + Math.random() * (c1p - c0p);
         if (!isBlocked(rr, cc)) { e.targetR = rr; e.targetC = cc; break; }
       }
-      e.repositionT = 2.5 + Math.random() * 2.5;
+      // Дольше стоим на месте после прибытия в точку: 4.5..8.5 сек.
+      // Это даёт игроку окно зайти со спины пока патруль «отдыхает» —
+      // раньше враг каждые 2.5–5 сек выбирал новую точку и постоянно
+      // вращал угол, в спину было не подкрасться.
+      e.repositionT = 4.5 + Math.random() * 4.0;
     }
     moveTowardsTarget(e, dt, 1.6);
   }
