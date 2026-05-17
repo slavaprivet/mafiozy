@@ -1976,6 +1976,7 @@ const DATA = {
   atk:     pi('atk', 20),
   def:     pi('def', 10),
   gren:    pi('gren', 0),
+  mol:     pi('mol',  0),
   med_s:   pi('med_s', 0),
   med_m:   pi('med_m', 0),
   med_l:   pi('med_l', 0),
@@ -4948,6 +4949,7 @@ function startBattle(bossId, locId){
   // Гранаты тоже передаём — боёвка показывает их количество и спишет использованные.
   params.set('bcash', DATA.cash || 0);
   params.set('bgren', DATA.gren || 0);
+  params.set('bmol',  DATA.mol  || 0);
   // Сила босса = количество миньонов (2..18 в BOSS_DATA). Боёвка из этого
   // считает размер карты — чем больше миньонов, тем крупнее арена.
   params.set('minions', boss.minions || 3);

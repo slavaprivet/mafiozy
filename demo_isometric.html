@@ -196,12 +196,19 @@
          автоматическая (по правому стику при 0 пуль). -->
     <div id="combatUI" style="position:absolute;right:14px;bottom:110px;z-index:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none">
       <div style="display:flex;gap:8px;pointer-events:auto;align-items:flex-end">
-        <!-- Кнопка БРОСИТЬ ГРАНАТУ. Видна, только если у игрока есть гранаты.
+        <!-- Маленький переключатель граната↔молотов. Виден, только если у игрока
+             есть И гранаты, И молотовы — иначе менять не на что. -->
+        <button id="throwSwitchBtn" title="Сменить" style="display:none;width:42px;height:72px;background:rgba(40,40,50,.92);border:2px solid #6a7488;border-radius:14px;color:#fff;font-size:18px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.55);position:relative;touch-action:none;user-select:none;line-height:1;padding:0">
+          <span style="display:block;font-size:10px;color:#aab2c8;margin-top:6px">смена</span>
+          <span id="throwSwitchIcon" style="display:block;font-size:24px;margin-top:4px">🔥</span>
+          <span style="display:block;font-size:9px;color:#aab2c8;margin-top:4px">⇄</span>
+        </button>
+        <!-- Кнопка БРОСИТЬ. Видна, только если у игрока есть гранаты или молотовы.
              Зажми и тяни в стороны — корректируешь точку броска. Отпустишь — летит. -->
-        <button id="grenadeBtn" title="Бросить гранату" style="display:none;width:72px;height:72px;background:rgba(60,40,15,.92);border:2px solid #d0a040;border-radius:14px;color:#ffd76b;font-size:30px;cursor:pointer;box-shadow:0 0 14px rgba(255,180,60,.4),0 2px 8px rgba(0,0,0,.6);position:relative;touch-action:none;user-select:none">
-          <span>🧨</span>
+        <button id="grenadeBtn" title="Бросить" style="display:none;width:72px;height:72px;background:rgba(60,40,15,.92);border:2px solid #d0a040;border-radius:14px;color:#ffd76b;font-size:30px;cursor:pointer;box-shadow:0 0 14px rgba(255,180,60,.4),0 2px 8px rgba(0,0,0,.6);position:relative;touch-action:none;user-select:none">
+          <span id="grenadeIcon">🧨</span>
           <span id="grenadeCount" style="position:absolute;right:4px;top:2px;font-size:11px;color:#fff;background:#a04020;border-radius:8px;padding:1px 5px;font-weight:bold">0</span>
-          <span style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#ffd76b;font-weight:bold;letter-spacing:1px">БРОСИТЬ</span>
+          <span id="grenadeLabel" style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#ffd76b;font-weight:bold;letter-spacing:1px">БРОСИТЬ</span>
         </button>
         <!-- Кнопка стелс-килла. По умолчанию скрыта; renderBackstabHint
              показывает её, если игрок стоит за спиной у врага. -->
@@ -378,6 +385,7 @@ const QP = {
   // потере state.cash хаб подхватывает 0 → визуально «деньги пропали».
   bcash:       _qInt('bcash', 0),  // деньги ДО боя — если API молчит, отдадим как есть
   bgren:       _qInt('bgren', 0),  // гранаты ДО боя — для синхронизации UI
+  bmol:        _qInt('bmol',  0),  // молотовы ДО боя — переключатель в HUD
 };
 // Множитель района: ×1.0 (рынок, mlvl=1) → ×2.9 (резиденция, mlvl=20)
 const LOC_REWARD_MUL = 1 + 0.10 * Math.max(0, QP.mlvl - 1);
@@ -1297,9 +1305,15 @@ const shrapnels = []; // осколки от взрыва игрока: {r,c,z,v
 
 let currentWeapon = INITIAL_WEAPON;
 
-// Гранаты игрока — кол-во читаем из URL (bgren = состояние ДО боя).
-// На бросок уменьшаем; на возврат в хаб бэк удалит из инвентаря fightStats.grenUsed штук.
+// Гранаты и молотовы игрока — кол-во читаем из URL (bgren/bmol = состояние ДО боя).
+// На бросок уменьшаем; на возврат в хаб бэк удалит из инвентаря fightStats.grenUsed/molUsed штук.
 let playerGrenades = Math.max(0, QP.bgren | 0);
+let playerMolotovs = Math.max(0, QP.bmol  | 0);
+// Активный тип броска. При входе в бой выбираем то, чего больше, и того,
+// что в наличии. Переключатель в HUD позволяет менять налету.
+let throwKind = (playerGrenades >= playerMolotovs) ? 'grenade' : 'molotov';
+if (playerGrenades === 0 && playerMolotovs > 0) throwKind = 'molotov';
+if (playerMolotovs === 0 && playerGrenades > 0) throwKind = 'grenade';
 // Режим прицеливания броска: пока true — рендерим маркер цели,
 // игрок таскает палец → точка двигается; отпустит → бросок.
 const grenAim = {
@@ -3191,6 +3205,7 @@ const fightStats = {
   endMs: 0,
   shots: 0,
   grenUsed: 0,     // сколько гранат игрок успел кинуть за бой (для бэка: gu=)
+  molUsed:  0,     // сколько коктейлей Молотова кинул (для бэка: mu=)
   killsCounted: new Set(), // индексы убитых врагов
   result: null,    // 'won' | 'lost' | null
 };
@@ -3199,6 +3214,7 @@ function fightStatsBegin() {
   fightStats.endMs = 0;
   fightStats.shots = 0;
   fightStats.grenUsed = 0;
+  fightStats.molUsed  = 0;
   fightStats.killsCounted = new Set();
   fightStats.result = null;
 }
@@ -3254,6 +3270,7 @@ function sendResultAndClose(action) {
     php: Math.max(0, Math.round(player.hp)),
     pmp: 0,
     gu: fightStats.grenUsed || 0,
+    mu: fightStats.molUsed  || 0,
     boss: QP.boss,
     loc: CURRENT_LOC,
     nav: action, // 'district' | 'menu' — пока не используется на бэке
@@ -3278,9 +3295,16 @@ function sendResultAndClose(action) {
   // добавляет ?view=district&loc=<...>, чтобы хаб открыл нужный экран сразу.
   function navigateToHub(state) {
     const out = new URLSearchParams();
-    // Переносим ВСЕ исходные параметры боёвки кроме чисто-боевых
-    const skip = new Set(['boss','loc','exp','cash','mlvl','minions','bname','bhp','bemoji','view']);
+    // Переносим ВСЕ исходные параметры боёвки кроме чисто-боевых.
+    // gren/mol тоже скипаем — мы сами пересчитаем актуальное число (исходный
+    // URL содержит значение ДО боя, а игрок мог что-то кинуть).
+    const skip = new Set(['boss','loc','exp','cash','mlvl','minions','bname','bhp','bemoji','view','gren','mol']);
     _UP.forEach((v, k) => { if (!skip.has(k)) out.set(k, v); });
+    // Расчётный остаток метательного — bgren/bmol минус то, что игрок кинул.
+    const grenLeft = Math.max(0, (QP.bgren || 0) - (fightStats.grenUsed || 0));
+    const molLeft  = Math.max(0, (QP.bmol  || 0) - (fightStats.molUsed  || 0));
+    out.set('gren', grenLeft);
+    out.set('mol',  molLeft);
     // Обновлённое состояние перетирает соответствующие поля
     if (state) {
       if (state.hp    != null) out.set('hp',    state.hp);
@@ -3304,8 +3328,7 @@ function sendResultAndClose(action) {
       // и так не меняются, на победе бот добавит награду при следующем
       // открытии меню. Лучше показать «как было», чем «обнулилось».
       if (QP.bcash > 0) out.set('cash', QP.bcash);
-      const grenLeft = Math.max(0, (QP.bgren || 0) - (fightStats.grenUsed || 0));
-      out.set('gren', grenLeft);
+      // gren/mol уже выставлены выше (одинаково для обоих веток).
     }
     // Роутинг в хабе: 'district' → сразу страница района, 'menu' → главная.
     if (action === 'district') {
@@ -4331,20 +4354,63 @@ function renderBackstabHint() {
 // включает aim-режим: рисуем зону взрыва впереди игрока, палец двигает
 // её относительно стартовой точки тапа (1 тайл ≈ 24 пикселя на экране
 // — ровно так, чтобы влезало в кадр и было читаемо). Отпускание = бросок.
-const grenadeBtnEl   = document.getElementById('grenadeBtn');
-const grenadeCntEl   = document.getElementById('grenadeCount');
-let _lastGrenCount = -1;
+const grenadeBtnEl    = document.getElementById('grenadeBtn');
+const grenadeCntEl    = document.getElementById('grenadeCount');
+const grenadeIconEl   = document.getElementById('grenadeIcon');
+const grenadeLabelEl  = document.getElementById('grenadeLabel');
+const switchBtnEl     = document.getElementById('throwSwitchBtn');
+const switchIconEl    = document.getElementById('throwSwitchIcon');
+let _lastThrowState = '';
 function renderGrenadeBtn() {
-  if (playerGrenades !== _lastGrenCount) {
-    _lastGrenCount = playerGrenades;
-    grenadeCntEl.textContent = String(playerGrenades);
+  // Если активного типа уже нет в инвентаре — авто-переключаем на другой.
+  if (throwKind === 'grenade' && playerGrenades <= 0 && playerMolotovs > 0) throwKind = 'molotov';
+  if (throwKind === 'molotov' && playerMolotovs <= 0 && playerGrenades > 0) throwKind = 'grenade';
+  const curCount = (throwKind === 'grenade') ? playerGrenades : playerMolotovs;
+  // Стейт-ключ — чтобы не перерисовывать DOM на каждый кадр.
+  const stateKey = throwKind + ':' + curCount + ':' + playerGrenades + ':' + playerMolotovs + ':' + (player.hp > 0 ? 1 : 0);
+  if (stateKey !== _lastThrowState) {
+    _lastThrowState = stateKey;
+    grenadeCntEl.textContent = String(curCount);
+    grenadeIconEl.textContent = (throwKind === 'molotov') ? '🔥' : '🧨';
+    grenadeLabelEl.textContent = (throwKind === 'molotov') ? 'МОЛОТОВ' : 'БРОСИТЬ';
+    // Цветовая граница: молотов оранжевый, граната жёлтая.
+    grenadeBtnEl.style.borderColor = (throwKind === 'molotov') ? '#d06a20' : '#d0a040';
+    grenadeBtnEl.style.color       = (throwKind === 'molotov') ? '#ff9450' : '#ffd76b';
+    grenadeBtnEl.style.boxShadow   = (throwKind === 'molotov')
+      ? '0 0 14px rgba(255,120,40,.45),0 2px 8px rgba(0,0,0,.6)'
+      : '0 0 14px rgba(255,180,60,.4),0 2px 8px rgba(0,0,0,.6)';
+    // Иконка на кнопке смены — показываем то, на что ПЕРЕКЛЮЧИТСЯ при тапе.
+    switchIconEl.textContent = (throwKind === 'molotov') ? '🧨' : '🔥';
   }
-  // Скрываем, если 0 или игрок мёртв
-  const show = playerGrenades > 0 && player.hp > 0;
+  const anyThrowable = (playerGrenades + playerMolotovs) > 0;
+  const show = anyThrowable && player.hp > 0;
   grenadeBtnEl.style.display = show ? 'flex' : 'none';
   grenadeBtnEl.style.alignItems = 'center';
   grenadeBtnEl.style.justifyContent = 'center';
+  // Переключатель виден только если есть И гранаты, И молотовы.
+  const showSwitch = show && playerGrenades > 0 && playerMolotovs > 0;
+  switchBtnEl.style.display = showSwitch ? 'flex' : 'none';
+  switchBtnEl.style.flexDirection = 'column';
+  switchBtnEl.style.alignItems = 'center';
+  switchBtnEl.style.justifyContent = 'flex-start';
 }
+// Тап по переключателю — меняем тип броска. Чтобы случайный тап на нём не
+// триггерил начало прицеливания — обрабатываем именно click, и блокируем
+// стандартный touch (passive listener подложил бы preventDefault, что нам
+// и нужно).
+switchBtnEl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (playerGrenades <= 0 || playerMolotovs <= 0) return;
+  throwKind = (throwKind === 'grenade') ? 'molotov' : 'grenade';
+  _lastThrowState = '';   // форс-перерисовка
+  // Если в этот момент уже целились — отменяем, чтоб не бросить «не тем».
+  cancelGrenadeAim();
+});
+// Глотаем touchstart на кнопке смены — иначе window.touchstart ниже
+// решит, что начался aim, и центр прицела «прыгнет» от центра кнопки.
+switchBtnEl.addEventListener('touchstart', (e) => {
+  e.stopPropagation();
+}, { passive: true });
 function _grenAimUpdate(px, py) {
   // Сдвиг пальца относительно центра кнопки → сдвиг прицела в мире.
   // 1 пиксель → ~1/48 тайла (на TS=96 это ≈половина тайла на 24px пальца).
@@ -4371,7 +4437,10 @@ function _grenAimUpdate(px, py) {
   grenAim.curX = px; grenAim.curY = py;
 }
 function startGrenadeAim(px, py, touchId) {
-  if (playerGrenades <= 0 || player.hp <= 0) return;
+  // Нечего кидать — не входим в режим прицеливания
+  if (player.hp <= 0) return;
+  if (throwKind === 'grenade' && playerGrenades <= 0) return;
+  if (throwKind === 'molotov' && playerMolotovs <= 0) return;
   grenAim.active = true;
   grenAim.id = (touchId != null) ? touchId : null;
   grenAim.startX = px; grenAim.startY = py;
@@ -4380,13 +4449,20 @@ function startGrenadeAim(px, py, touchId) {
 function throwPlayerGrenade() {
   if (!grenAim.active) return;
   grenAim.active = false;
-  if (playerGrenades <= 0 || player.hp <= 0) return;
-  playerGrenades -= 1;
-  if (typeof fightStats !== 'undefined') fightStats.grenUsed = (fightStats.grenUsed || 0) + 1;
-  // Бросок: грубо в направлении прицела. Урон 110 в радиусе 2.5 — заметно мощнее
-  // обычного выстрела, но требует подойти и не быть в радиусе самому.
-  throwGrenade(player, grenAim.tr, grenAim.tc, 'player', { kind: 'grenade', dmg: 110, fromPlayer: true });
-  // Звук броска уже играет внутри throwGrenade (_playThrowSound). Тревога вверх.
+  if (player.hp <= 0) return;
+  if (throwKind === 'grenade') {
+    if (playerGrenades <= 0) return;
+    playerGrenades -= 1;
+    if (typeof fightStats !== 'undefined') fightStats.grenUsed = (fightStats.grenUsed || 0) + 1;
+    throwGrenade(player, grenAim.tr, grenAim.tc, 'player', { kind: 'grenade', dmg: 110, fromPlayer: true });
+  } else {
+    if (playerMolotovs <= 0) return;
+    playerMolotovs -= 1;
+    if (typeof fightStats !== 'undefined') fightStats.molUsed = (fightStats.molUsed || 0) + 1;
+    // Молотов: 50-80 разовый + DoT через лужу огня (spawnFirePuddle внутри throwGrenade).
+    throwGrenade(player, grenAim.tr, grenAim.tc, 'player', { kind: 'molotov', dmg: 60, fromPlayer: true });
+  }
+  // Тревога вверх — взрыв/коктейль слышен.
   setAlert(2, 'shot');
 }
 function cancelGrenadeAim() { grenAim.active = false; }

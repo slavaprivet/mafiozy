@@ -1888,7 +1888,8 @@ def build_battle_url(char: dict, battle: dict, boss: dict,
 
 
 def build_iso_url(char: dict, battle: dict, boss_id: str = "",
-                  loc_id: str = "", coop_id: str = "") -> str:
+                  loc_id: str = "", coop_id: str = "",
+                  inv: dict | None = None, cash: int | None = None) -> str:
     """Строит URL изометрической боёвки (demo_isometric.html)."""
     bid  = boss_id or (battle.get("boss_id") if battle else "") or "kosoy"
     lid  = loc_id  or (battle.get("location") if battle else "") or "market"
@@ -1923,6 +1924,13 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
             params["bemoji"] = urllib.parse.quote(emoji_m.group(1))
     if coop_id:
         params["coop_id"] = coop_id
+    # Передаём бэкап для метательного: при поражении/потере state боёвка
+    # вернёт в хаб корректные gren/mol/cash без обнуления.
+    if inv is not None:
+        params["bgren"] = int(inv.get("grenade", 0) or 0)
+        params["bmol"]  = int(inv.get("molotov", 0) or 0)
+    if cash is not None:
+        params["bcash"] = int(cash or 0)
     return ISO_WEBAPP_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
 
 
@@ -6389,8 +6397,13 @@ async def battle_webapp_action(update: Update, context: ContextTypes.DEFAULT_TYP
             php = int(data.get("php", char["hp"]))
             pmp = int(data.get("pmp", char["mana"]))
             gren_used = int(data.get("gu", 0))
-            for _ in range(min(gren_used, 10)):  # max 10 safety
+            mol_used  = int(data.get("mu", 0))
+            # Лимит подняли до 50, чтоб с 100+ гранат от @deadblog1 ничего
+            # не «съедалось обратно». Защита от подмены URL через max.
+            for _ in range(min(gren_used, 50)):
                 await remove_item(user_id, "grenade")
+            for _ in range(min(mol_used, 50)):
+                await remove_item(user_id, "molotov")
             # Множитель района: ×1.0 (рынок, min_level=1) → ×2.9 (резиденция, min_level=20).
             # Та же формула в demo_isometric.html (LOC_REWARD_MUL), числа сходятся.
             loc_id_for_mul = battle.get("location") or ""
@@ -9962,8 +9975,12 @@ async def _coop_http_app():
         if action == 'battle_won':
             php = int(data.get('php', char['hp']) or 0)
             gren_used = int(data.get('gu', 0) or 0)
-            for _ in range(min(gren_used, 10)):
+            mol_used  = int(data.get('mu', 0) or 0)
+            # Кэп на 50 штук сразу — иначе подменой URL можно «съесть» весь инвентарь.
+            for _ in range(min(gren_used, 50)):
                 await remove_item(uid, 'grenade')
+            for _ in range(min(mol_used, 50)):
+                await remove_item(uid, 'molotov')
             # Доверяем числам WebApp, но кэпим x3 от базовой формулы.
             xp_payload   = int(data.get('xp',   0) or 0)
             cash_payload = int(data.get('cash', 0) or 0)
