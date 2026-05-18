@@ -273,6 +273,15 @@
           <span id="medkitCount" style="position:absolute;top:-6px;right:-6px;background:#0c4a8a;border:2px solid #bcd9ff;border-radius:50%;min-width:22px;height:22px;font-size:11px;line-height:18px;color:#fff;font-weight:bold;padding:0 4px">0</span>
           <span style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#bcd9ff;font-weight:bold;letter-spacing:1px">АПТЕЧКА</span>
         </button>
+        <!-- Phase 9: кнопка ВЗЛОМАТЬ. Видна когда рядом сейф и навык
+             safecracker_level >= safe.level. Зажми — взлом начинается,
+             отпусти раньше — прогресс сбрасывается. ~2.5 сек на вскрытие.
+             Если skill ниже уровня сейфа — кнопка серая с ❌ и не работает. -->
+        <button id="safeBtn" title="Взломать сейф" style="display:none;width:84px;height:84px;background:rgba(40,30,12,.92);border:2px solid #d0a040;border-radius:14px;color:#ffd76b;font-size:34px;cursor:pointer;box-shadow:0 0 16px rgba(208,160,64,.45),0 2px 8px rgba(0,0,0,.6);position:relative;touch-action:none;user-select:none">
+          <span id="safeIcon">🔓</span>
+          <span id="safeLabel" style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#ffd76b;font-weight:bold;letter-spacing:1px">ВЗЛОМАТЬ</span>
+          <span id="safeLockTag" style="display:none;position:absolute;top:-6px;right:-6px;background:#5a1818;border:2px solid #ff5050;border-radius:50%;min-width:22px;height:22px;font-size:11px;line-height:18px;color:#fff;font-weight:bold;padding:0 4px">Lv?</span>
+        </button>
       </div>
     </div>
     <div id="hitFlash" style="position:absolute;inset:0;background:rgba(255,40,40,0);pointer-events:none;z-index:7;transition:background .1s"></div>
@@ -537,6 +546,13 @@ const QP = {
   minions:     _qInt('minions', 3),// сколько миньонов у босса (2..18) — от этого размер карты
   api:         _UP.get('api') || '', // base URL HTTP API бота (из cloudflare-туннеля)
   uid:         _UP.get('uid') || '', // telegram-id игрока — для эндпойнта /battle/{uid}/result
+  // Phase 9: уровни 5 прокачиваемых навыков (0..5). Приходят из хаба
+  // через URL (см. build_hub_url → hub.html → location.search forward).
+  safeLvl:     _qInt('safe_lvl', 0),  // вскрывает сейфы уровня ≤ safeLvl
+  markLvl:     _qInt('mark_lvl', 0),  // +урон из любого оружия
+  stlhLvl:     _qInt('stlh_lvl', 0),  // уменьшает FOV врагов
+  tghLvl:      _qInt('tgh_lvl',  0),  // +max HP
+  hstLvl:      _qInt('hst_lvl',  0),  // +% к деньгам (применяется на сервере)
   // Бэкапы стат игрока на момент входа в бой — используются для восстановления
   // в hub.html, если HTTP API не ответил (таймаут/нет туннеля). Без них при
   // потере state.cash хаб подхватывает 0 → визуально «деньги пропали».
@@ -842,6 +858,50 @@ function placePowderBarrels() {
 }
 placePowderBarrels();
 
+// ── Phase 9: СЕЙФЫ на карте ──
+// Количество сейфов растёт с рангом района (mlvl). Уровень каждого сейфа
+// = случайный 1..mlvl (т.е. на резиденции Lv5 будут сейфы всех уровней).
+// 25% сейфов — большие (визуально крупнее + сервер даёт х4 денег).
+// Игрок может вскрыть сейф уровня ≤ safecracker_level.
+function placeSafes() {
+  // Ранг района — берём из QP.mlvl (минимальный уровень локации, 1..5).
+  const rank = Math.max(1, Math.min(5, QP.mlvl | 0 || 1));
+  const n = 3 + Math.floor(Math.random() * Math.max(1, rank));  // ранг 1: 3..3, ранг 5: 3..7
+  const minDistFromSpawn = 3;
+  const room = BOSS_ROOM;
+  const allSpawns = [SPAWNS.player, SPAWNS.boss, ...SPAWNS.minions];
+  let placed = 0, tries = 0;
+  while (placed < n && tries < n * 100) {
+    tries++;
+    // Сейфы кладём вне комнаты босса (босс охраняет вход) — в основном поле.
+    const r = (room.r1 + 2) + Math.floor(Math.random() * Math.max(1, ROWS - room.r1 - 4));
+    const c = 2 + Math.floor(Math.random() * Math.max(1, COLS - 4));
+    if (r < 1 || r >= ROWS - 1 || c < 1 || c >= COLS - 1) continue;
+    if (MAP[r][c] !== 0) continue;
+    const tooCloseSpawn = allSpawns.some(([sr, sc]) =>
+      Math.hypot(sr - (r + 0.5), sc - (c + 0.5)) < minDistFromSpawn);
+    if (tooCloseSpawn) continue;
+    // Не вплотную к другим сейфам
+    const tooCloseSafe = safes.some(s =>
+      Math.hypot(s.r - r, s.c - c) < 3);
+    if (tooCloseSafe) continue;
+    const big = Math.random() < 0.25;
+    const level = 1 + Math.floor(Math.random() * rank);
+    MAP[r][c] = big ? 31 : 30;
+    safes.push({
+      r, c,
+      level,
+      big,
+      opened: false,
+      openProgress: 0,   // 0..1, тикает в update() пока игрок рядом и держит кнопку
+      flashT: 0,         // лёгкое пульсирование «можно взломать»
+      cashShown: 0,      // показывалось ли уже сообщение о добыче
+    });
+    placed++;
+  }
+}
+placeSafes();
+
 // ── РЫНОЧНЫЙ ДЕКОР ──────────────────────────────────────────────────
 // Только для CURRENT_LOC === 'market'. Заменяем часть обычных
 // ящиков (тип 2) и бочек (тип 3) на яркие декоративные объекты, и
@@ -915,7 +975,17 @@ const COVER_TYPES = {
   16: { name: 'crates_tall', h: 1.10, topColor: '#a06838', sideColor: '#603018', shape: 'box', hp: 60,  marketDecor: true, decor: 'stack' },
   17: { name: 'carpet_stand',h: 1.20, topColor: '#a02a4a', sideColor: '#601830', shape: 'box', hp: 40,  marketDecor: true, decor: 'carpet' },
   18: { name: 'trash_can',   h: 0.80, topColor: '#3a3a3a', sideColor: '#1a1a1a', shape: 'cyl', hp: 30,  marketDecor: true, decor: 'trash' },
+  // ── Phase 9: СЕЙФЫ ──
+  // Тип 30 = обычный сейф, тип 31 = большой сейф. Оба h=-1 (неразрушимы пулями),
+  // shape='safe' — drawCover делегирует отрисовку drawSafe(), беря данные из массива safes[].
+  // hp:-1 — пуля не пробивает, не взрывается.
+  30: { name: 'safe',      h: 0.80, topColor: '#3a3a3a', sideColor: '#1a1a1a', shape: 'safe', hp: -1, isSafe: true, big: false },
+  31: { name: 'safe_big',  h: 1.15, topColor: '#3a3a3a', sideColor: '#1a1a1a', shape: 'safe', hp: -1, isSafe: true, big: true  },
 };
+
+// ── СЕЙФЫ: метаданные. Сам массив safes[] заполнится в placeSafes() ниже ──
+// Каждый элемент: { r, c, level, big, opened, openProgress (0..1), cashShown }
+const safes = [];
 
 // HP для каждой ячейки укрытия (инициализируется при старте)
 const coverHP = [];
@@ -940,6 +1010,8 @@ function damageCoverAt(r, c, dmg) {
   // искра от попадания
   spawnHitSpark(r, c, t);
   if (t === 1) return true; // стена — неразрушима
+  // Phase 9: сейф — неразрушим, как стена. Пуля останавливается.
+  if (t === 30 || t === 31) return true;
   const cfg = COVER_TYPES[t];
   coverHP[ri][ci] -= dmg;
   if (coverHP[ri][ci] <= 0) {
@@ -1161,6 +1233,12 @@ function _hearMulFor(e) {
   return 0.35 + 0.65 * (1 + Math.cos(a)) / 2;
 }
 function _vis() { return STEALTH_VIS[CURRENT_LOC] || STEALTH_VIS.market; }
+// Phase 9: множитель радиуса обзора врагов от навыка «Тень».
+// Lv 0..5 → 1.0 / 0.9 / 0.8 / 0.7 / 0.6 / 0.5
+function _stealthMul() {
+  const l = Math.max(0, Math.min(5, QP.stlhLvl | 0));
+  return 1 - 0.1 * l;
+}
 const ALERT_DECAY_TIME = 9;            // сек на спад до spuasus после потери игрока
 const SUSPECT_TO_CALM_TIME = 14;       // сек на возврат к "спокойно"
 
@@ -1171,7 +1249,8 @@ function canEnemySeePlayer(e) {
   const dx = player.c - e.c, dy = player.r - e.r;
   const dist = Math.hypot(dx, dy);
   const vis = _vis();
-  const effR = Math.min(e.sightR, vis.sightR);
+  // Phase 9: множитель навыка «Тень» уменьшает effR (0..-50%)
+  const effR = Math.min(e.sightR, vis.sightR) * _stealthMul();
   if (dist > effR) return false;
   if (!hasLOS(e.r, e.c, player.r, player.c)) return false;
   // В режиме боя — 360°: уже знают где ты
@@ -1369,10 +1448,16 @@ function savePlayerLook(look) {
   try { localStorage.setItem('mafiozi_demo_look', JSON.stringify(look)); } catch(e) {}
 }
 
+// Phase 9: бонус к максимальному HP от навыка «Крепыш».
+// Lv 0..5 → +0 / +15 / +30 / +50 / +75 / +110.
+const TGH_HP_BONUS = [0, 15, 30, 50, 75, 110];
+const _tghBonus = TGH_HP_BONUS[Math.max(0, Math.min(5, QP.tghLvl | 0))];
 // Игрок — стартовая позиция (центр карты, гарантированно открытый тайл)
 const player = {
   r: SPAWNS.player[0], c: SPAWNS.player[1],
-  hp: QP.playerHP, hpMax: QP.playerMax,
+  // К стартовому HP/maxHP плюсуем бонус Крепыша — играем сразу с увеличенным запасом.
+  hp:    QP.playerHP + _tghBonus,
+  hpMax: QP.playerMax + _tghBonus,
   atk: QP.playerAtk, def: QP.playerDef,
   name: QP.playerName,
   angle: 0,
@@ -1723,6 +1808,13 @@ function drawTile(r, c) {
 
 function drawCover(r, c, type) {
   const cfg = COVER_TYPES[type]; if (!cfg) return;
+  // Phase 9: сейфы — отдельная отрисовка через drawSafe(s), берём метаданные
+  // из массива safes[]. Делегируем сразу, дальнейший код drawCover не нужен.
+  if (cfg.shape === 'safe') {
+    const s = safes.find(x => x.r === r && x.c === c);
+    if (s) drawSafe(s, cfg);
+    return;
+  }
   const base = w2s(r + 0.5, c + 0.5);  // центр тайла (r/c — индекс ячейки)
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
   const H = isoH(cfg.h);
@@ -3014,7 +3106,8 @@ function drawVisionCone(e) {
   // же кадре катсцены и пустой чёрный экран. Берём из _vis(), как везде.
   const vis  = _vis();
   const half = vis.fovHalf;
-  const R    = Math.min(e.sightR || 4, vis.sightR);
+  // Phase 9: «Тень» уменьшает визуальный радиус конуса синхронно с canEnemySeePlayer
+  const R    = Math.min(e.sightR || 4, vis.sightR) * _stealthMul();
   // 21 луч в пределах конуса. Для каждого считаем до какой длины он
   // доходит, прежде чем упрётся в стену/укрытие — конус обрезается
   // препятствиями, не проходит сквозь стены.
@@ -3173,6 +3266,193 @@ function drawAimGuide() {
     ctx.moveTo(aX, aY); ctx.lineTo(bX, bY);
     ctx.stroke();
     ctx.restore();
+  }
+}
+
+// ── Phase 9: ОТРИСОВКА СЕЙФА ────────────────────────────────────────
+// Корпус-куб с дверцей. На дверце: круглая ручка-«вертушка», цифровой
+// замок-табличка с уровнем (Lv N). Большие сейфы крупнее (h=1.15 vs 0.80).
+// Когда opened=true — дверца «раскрыта», внутри золотое свечение.
+// Когда openProgress > 0 — поверх рисуется прогресс-бар-кольцо.
+function drawSafe(s, cfg) {
+  const r = s.r, c = s.c;
+  const base = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(cfg.h);
+  const isBig = !!s.big;
+  // ── ТЕНЬ ──
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.beginPath();
+  ctx.moveTo(base.x,        base.y - wy);
+  ctx.lineTo(base.x + wx,   base.y);
+  ctx.lineTo(base.x,        base.y + wy);
+  ctx.lineTo(base.x - wx,   base.y);
+  ctx.closePath();
+  ctx.fill();
+  // ── ОСНОВНОЙ КУБ корпуса (тёмный металл + блик) ──
+  // Левая (заднелевая) грань
+  ctx.fillStyle = '#1a1a1f';
+  ctx.beginPath();
+  ctx.moveTo(base.x - wx, base.y);
+  ctx.lineTo(base.x,      base.y + wy);
+  ctx.lineTo(base.x,      base.y + wy - H);
+  ctx.lineTo(base.x - wx, base.y - H);
+  ctx.closePath();
+  ctx.fill();
+  // Правая (фронтальная) грань — здесь будет ДВЕРЦА
+  const frontGrad = ctx.createLinearGradient(base.x, base.y - H, base.x + wx, base.y);
+  frontGrad.addColorStop(0,    '#34343a');
+  frontGrad.addColorStop(0.55, '#26262c');
+  frontGrad.addColorStop(1,    '#16161c');
+  ctx.fillStyle = frontGrad;
+  ctx.beginPath();
+  ctx.moveTo(base.x,      base.y + wy);
+  ctx.lineTo(base.x + wx, base.y);
+  ctx.lineTo(base.x + wx, base.y - H);
+  ctx.lineTo(base.x,      base.y + wy - H);
+  ctx.closePath();
+  ctx.fill();
+  // Окантовка дверцы (рамка золотым у больших сейфов, серебристым у обычных)
+  ctx.strokeStyle = isBig ? '#d0a040' : '#6a6a72';
+  ctx.lineWidth = isBig ? 2 : 1.2;
+  ctx.beginPath();
+  // Внутренняя рамка дверцы — отступ внутрь от грани
+  const dx = wx * 0.18, dy = wy * 0.18, dh = H * 0.12;
+  ctx.moveTo(base.x + dx,           base.y + wy - dy);
+  ctx.lineTo(base.x + wx - dx*0.4,  base.y - dy*0.4);
+  ctx.lineTo(base.x + wx - dx*0.4,  base.y - H + dh);
+  ctx.lineTo(base.x + dx,           base.y + wy - H + dh);
+  ctx.closePath();
+  ctx.stroke();
+  // Верхняя крышка
+  ctx.fillStyle = '#2a2a32';
+  ctx.beginPath();
+  ctx.moveTo(base.x,        base.y - H + wy);
+  ctx.lineTo(base.x + wx,   base.y - H);
+  ctx.lineTo(base.x,        base.y - H - wy);
+  ctx.lineTo(base.x - wx,   base.y - H);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = isBig ? '#d0a040' : '#4a4a52';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  // ── ДВЕРЦА: ручка-«вертушка» + замок ──
+  // Центр дверцы (на фронтальной грани, чуть выше середины)
+  const doorCx = base.x + wx * 0.55;
+  const doorCy = base.y - H * 0.55 + wy * 0.10;
+  if (s.opened) {
+    // Дверца открыта: золотое свечение внутри
+    ctx.save();
+    ctx.shadowColor = '#ffd76b';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#3d2e10';
+    ctx.beginPath();
+    ctx.ellipse(doorCx - wx * 0.05, doorCy, wx * 0.30, H * 0.30, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // Несколько монеток-точек внутри
+    ctx.fillStyle = '#ffd76b';
+    for (let i = 0; i < 6; i++) {
+      const ang = i * 1.0;
+      const rr = wx * 0.10 * Math.sqrt(Math.random());
+      ctx.beginPath();
+      ctx.arc(doorCx - wx * 0.05 + Math.cos(ang) * rr,
+              doorCy + Math.sin(ang) * rr * 0.6,
+              wx * 0.045, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Открытая «створка» — тонкая линия слева от двери (она «откинута» в сторону)
+    ctx.strokeStyle = '#1a1a1f';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(doorCx - wx * 0.20, doorCy - H * 0.20);
+    ctx.lineTo(doorCx - wx * 0.35, doorCy - H * 0.15);
+    ctx.lineTo(doorCx - wx * 0.35, doorCy + H * 0.20);
+    ctx.lineTo(doorCx - wx * 0.20, doorCy + H * 0.25);
+    ctx.stroke();
+  } else {
+    // Дверца закрыта: ручка-вертушка по центру
+    const rrR = (isBig ? wx * 0.18 : wx * 0.14);
+    // Кольцо (внешнее)
+    ctx.fillStyle = isBig ? '#d0a040' : '#8a8a92';
+    ctx.beginPath();
+    ctx.arc(doorCx, doorCy, rrR, 0, Math.PI * 2);
+    ctx.fill();
+    // Внутренний круг (тёмный)
+    ctx.fillStyle = '#16161a';
+    ctx.beginPath();
+    ctx.arc(doorCx, doorCy, rrR * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+    // Крестообразная «ручка-вертушка» — 4 спицы
+    ctx.strokeStyle = isBig ? '#ffd76b' : '#aab2bc';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
+      const a = (s.flashT || 0) + i * Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(doorCx + Math.cos(a) * rrR * 0.20,
+                 doorCy + Math.sin(a) * rrR * 0.20);
+      ctx.lineTo(doorCx + Math.cos(a) * rrR * 0.95,
+                 doorCy + Math.sin(a) * rrR * 0.95);
+      ctx.stroke();
+    }
+    // ── ТАБЛИЧКА с уровнем (под ручкой) ──
+    const tagW = wx * 0.32, tagH = H * 0.14;
+    const tagX = doorCx - tagW / 2;
+    const tagY = doorCy + rrR * 1.2;
+    ctx.fillStyle = '#0c0c10';
+    ctx.fillRect(tagX, tagY, tagW, tagH);
+    ctx.strokeStyle = isBig ? '#d0a040' : '#5a5a62';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(tagX, tagY, tagW, tagH);
+    ctx.fillStyle = isBig ? '#ffd76b' : '#aab2bc';
+    ctx.font = 'bold ' + Math.round(tagH * 0.85) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Lv ' + s.level, tagX + tagW / 2, tagY + tagH / 2 + 1);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    // Лёгкий пульсирующий блик если игрок рядом и может вскрыть (выставляется в update)
+    if (s._canCrack) {
+      const pulse = 0.5 + 0.5 * Math.sin((s.flashT || 0) * 6);
+      ctx.save();
+      ctx.globalAlpha = 0.35 * pulse;
+      ctx.shadowColor = '#7be58a';
+      ctx.shadowBlur = 12;
+      ctx.strokeStyle = '#7be58a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(doorCx, doorCy, rrR + 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    // Прогресс взлома: золотое кольцо вокруг ручки
+    if (s.openProgress > 0 && s.openProgress < 1) {
+      ctx.save();
+      ctx.strokeStyle = '#ffd76b';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#ffd76b';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(doorCx, doorCy, rrR + 5,
+              -Math.PI / 2,
+              -Math.PI / 2 + Math.PI * 2 * s.openProgress);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  // ── Метка $$ для больших сейфов (наверху) ──
+  if (isBig && !s.opened) {
+    ctx.save();
+    ctx.fillStyle = '#ffd76b';
+    ctx.font = 'bold ' + Math.round(wx * 0.30) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#8a6018';
+    ctx.shadowBlur = 4;
+    ctx.fillText('$$', base.x, base.y - H - 2);
+    ctx.restore();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
   }
 }
 
@@ -3563,6 +3843,23 @@ function render() {
   goreParts.forEach(g => { if (!g.landed) drawGorePart(g); });
   // реплики-пузыри в самом верху
   chatBubbles.forEach(drawChatBubble);
+  // Phase 9: всплывающие сообщения о добыче из сейфов (+N$ парят вверх).
+  for (const lp of lootPopups) {
+    if (lp.life <= 0) continue;
+    const p = w2s(lp.r, lp.c);
+    const alpha = Math.min(1, lp.life / 500);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = 'bold 18px system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(0,0,0,.85)';
+    ctx.fillStyle = lp.color;
+    ctx.strokeText(lp.text, p.x, p.y - 40 - lp.dy);
+    ctx.fillText  (lp.text, p.x, p.y - 40 - lp.dy);
+    ctx.restore();
+    ctx.textAlign = 'left';
+  }
   // Phase 8: downed-overlay поверх всего. У своего игрока — крупная плашка
   // с countdown. У других — компактная подсказка «E — поднять» если рядом.
   drawDownedOverlay();
@@ -4391,6 +4688,14 @@ function update(dt) {
   // тик красной вспышки урона
   if (player.hitT > 0) player.hitT = Math.max(0, player.hitT - dt);
 
+  // Phase 9: попапы добычи из сейфов — поднимаются вверх и фейдятся.
+  for (let i = lootPopups.length - 1; i >= 0; i--) {
+    const lp = lootPopups[i];
+    lp.life -= dt;
+    lp.dy   += dt * 0.025;  // плавно вверх (40 px за 1.8 сек)
+    if (lp.life <= 0) lootPopups.splice(i, 1);
+  }
+
   // AI врагов. В coop_sim (Path V) — серверный AI; клиент только
   // интерполирует позиции, локальный updateEnemyAI пропускаем для
   // server-owned врагов. Если по какой-то причине у нас остались
@@ -4879,8 +5184,11 @@ function fireWeapon(p, weaponKey, team) {
   const burst = cfg.burst || 1;
   const burstInt = cfg.burstInterval || 0;
 
-  // Урон врагов ослаблен, иначе их 4 валят за секунду
-  const dmgMul = (tm === 'enemy') ? 0.35 : 1;
+  // Урон врагов ослаблен, иначе их 4 валят за секунду.
+  // Phase 9: бонус «Меткий стрелок» Lv 0..5 → +0/5/10/20/35/55% урон игрока.
+  const MARK_BONUS = [0, 0.05, 0.10, 0.20, 0.35, 0.55];
+  const markMul = 1 + MARK_BONUS[Math.max(0, Math.min(5, QP.markLvl | 0))];
+  const dmgMul = (tm === 'enemy') ? 0.35 : markMul;
   // Точка вылета пули — конец дула. muzzleD задан per-weapon (0.5..1.15 тайлов).
   const muzD = cfg.muzzleD != null ? cfg.muzzleD : 0.5;
   const spawnOne = (a) => {
@@ -5618,6 +5926,183 @@ if (reviveBtnEl) {
   reviveBtnEl.addEventListener('touchend', fire, { passive: false });
 }
 
+// ── Phase 9: СЕЙФЫ — ВЗАИМОДЕЙСТВИЕ ─────────────────────────────────
+// Кнопка ВЗЛОМАТЬ работает по принципу hold-to-fill:
+//  • когда рядом сейф и навык safecracker_level >= safe.level — кнопка
+//    активна (золотая). Удерживай — прогресс заполняется (~2.5 сек).
+//  • отпустил раньше — прогресс сбрасывается.
+//  • прогресс достиг 100% → сейф открыт, шлём POST /safe/{uid}/loot
+//    серверу, тот делает roll и возвращает количество долларов.
+const SAFE_INTERACT_RANGE = 1.6;     // на сколько тайлов нужно подойти
+const SAFE_CRACK_TIME_S   = 2.5;     // время взлома (Lv1 базовое; +0.5с за каждый Lv сейфа)
+const safeBtnEl     = document.getElementById('safeBtn');
+const safeLabelEl   = document.getElementById('safeLabel');
+const safeIconEl    = document.getElementById('safeIcon');
+const safeLockTagEl = document.getElementById('safeLockTag');
+let _safeHeld    = false;     // кнопка зажата прямо сейчас
+let _safeActive  = null;       // ссылка на сейф, который сейчас взламываем
+let _lastSafeVis = '';
+function pickSafeTarget() {
+  // Ищем ближайший НЕвскрытый сейф в радиусе SAFE_INTERACT_RANGE
+  let best = null, bestD = SAFE_INTERACT_RANGE;
+  for (const s of safes) {
+    if (s.opened) continue;
+    const d = Math.hypot(player.r - (s.r + 0.5), player.c - (s.c + 0.5));
+    if (d < bestD) { bestD = d; best = s; }
+  }
+  return best;
+}
+function renderSafeBtn() {
+  if (!safeBtnEl) return;
+  // Сбрасываем флаг подсветки на всех сейфах перед пересчётом.
+  for (const s of safes) s._canCrack = false;
+  const target = pickSafeTarget();
+  const playerSC = (QP.safeLvl | 0);
+  let show = false, canCrack = false, lockReason = '';
+  if (target && player.hp > 0) {
+    show = true;
+    if (playerSC >= target.level) {
+      canCrack = true;
+      target._canCrack = true;
+    } else {
+      lockReason = 'Lv' + target.level;
+    }
+  }
+  // Если ушли от сейфа — сбрасываем прогресс активного взлома
+  if (_safeActive && _safeActive !== target) {
+    _safeActive.openProgress = 0;
+    _safeActive = null;
+    _safeHeld = false;
+  }
+  const key = (show ? '1' : '0') + '|' + (canCrack ? 'g' : 'r') + '|' + (target ? target.level : 0) + '|' + (target ? (target.big ? 'B' : 's') : 'x');
+  if (key === _lastSafeVis) return;
+  _lastSafeVis = key;
+  safeBtnEl.style.display = show ? 'flex' : 'none';
+  safeBtnEl.style.alignItems = 'center';
+  safeBtnEl.style.justifyContent = 'center';
+  if (show) {
+    if (canCrack) {
+      safeBtnEl.style.background = 'rgba(40,30,12,.92)';
+      safeBtnEl.style.borderColor = target.big ? '#ffd76b' : '#d0a040';
+      safeBtnEl.style.color = '#ffd76b';
+      safeBtnEl.style.opacity = '1';
+      safeIconEl.textContent = target.big ? '💰' : '🔓';
+      safeLabelEl.textContent = 'ВЗЛОМАТЬ';
+      safeLockTagEl.style.display = 'none';
+    } else {
+      safeBtnEl.style.background = 'rgba(40,12,12,.92)';
+      safeBtnEl.style.borderColor = '#a04040';
+      safeBtnEl.style.color = '#ff8080';
+      safeBtnEl.style.opacity = '.7';
+      safeIconEl.textContent = '🔒';
+      safeLabelEl.textContent = 'НИЗКИЙ LV';
+      safeLockTagEl.style.display = 'block';
+      safeLockTagEl.textContent = lockReason;
+    }
+  }
+}
+function tickSafeProgress(t) {
+  // Анимация «вертушки» на каждом сейфе — крутится со временем (для красоты).
+  for (const s of safes) {
+    if (!s.opened) s.flashT = (s.flashT || 0) + (t / 1000) * 0.6;
+  }
+  // Активный взлом
+  if (!_safeHeld || !_safeActive) return;
+  const target = _safeActive;
+  if (target.opened) { _safeHeld = false; _safeActive = null; return; }
+  // Игрок должен быть достаточно близко
+  const d = Math.hypot(player.r - (target.r + 0.5), player.c - (target.c + 0.5));
+  if (d > SAFE_INTERACT_RANGE + 0.3) {
+    target.openProgress = 0;
+    _safeActive = null; _safeHeld = false;
+    return;
+  }
+  // Skill check
+  if ((QP.safeLvl | 0) < target.level) { _safeHeld = false; _safeActive = null; return; }
+  const crackTime = SAFE_CRACK_TIME_S + (target.level - 1) * 0.5;  // 2.5..4.5 сек
+  target.openProgress = Math.min(1, target.openProgress + (t / 1000) / crackTime);
+  if (target.openProgress >= 1) {
+    target.opened = true;
+    target.openProgress = 1;
+    _safeHeld = false;
+    _safeActive = null;
+    // Звук открытия (если есть generic chest)
+    try { if (typeof playSfx === 'function') playSfx('hit'); } catch(e){}
+    // Шлём серверу — он сам рандомит cash + применяет hustler-бонус
+    lootSafe(target);
+  }
+}
+// Всплывающие сообщения о добыче из сейфов (массив активных попапов)
+// Каждый элемент: { r, c, text, color, life, max, dy }
+const lootPopups = [];
+function pushLootPopup(s, text, color) {
+  lootPopups.push({
+    r: s.r + 0.5, c: s.c + 0.5,
+    text: text, color: color || '#ffd76b',
+    life: 1800, max: 1800, dy: 0,
+  });
+}
+async function lootSafe(s) {
+  // Сразу показываем «💰 …» пока ждём ответ сервера
+  pushLootPopup(s, '💰 …', '#ffd76b');
+  // DEMO / нет API → локальный расчёт (применяем бонус Дельца тоже локально)
+  if (!QP.api || !QP.uid) {
+    const HUST_BONUS = [0, 0.05, 0.10, 0.20, 0.30, 0.45];
+    const hMul = 1 + HUST_BONUS[Math.max(0, Math.min(5, QP.hstLvl | 0))];
+    const base = Math.floor((100 + s.level * 250) * (0.7 + Math.random() * 0.6));
+    const gained = Math.round((s.big ? base * 4 : base) * hMul);
+    s.cashShown = gained;
+    pushLootPopup(s, '+' + gained + '$', '#ffd76b');
+    return;
+  }
+  try {
+    const res = await fetch(`${QP.api}/safe/${QP.uid}/loot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ safe_lvl: s.level, big: !!s.big }),
+    });
+    const j = await res.json();
+    if (j && j.ok) {
+      s.cashShown = j.gained;
+      pushLootPopup(s, '+' + j.gained + '$', '#ffd76b');
+    } else {
+      pushLootPopup(s, '⚠️ ' + (j && j.error || 'ошибка'), '#ff7070');
+    }
+  } catch (e) {
+    pushLootPopup(s, '⚠️ офлайн', '#ff7070');
+  }
+}
+if (safeBtnEl) {
+  const press = (ev) => {
+    if (ev) { try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {} }
+    const target = pickSafeTarget();
+    if (!target) return;
+    if ((QP.safeLvl | 0) < target.level) {
+      // Сигналим что навык низковат
+      try { safeBtnEl.animate(
+        [{transform:'translateX(-3px)'},{transform:'translateX(3px)'},{transform:'translateX(0)'}],
+        {duration:180}); } catch(e){}
+      return;
+    }
+    _safeHeld = true;
+    _safeActive = target;
+  };
+  const release = (ev) => {
+    if (ev) { try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {} }
+    _safeHeld = false;
+    if (_safeActive && !_safeActive.opened) {
+      _safeActive.openProgress = 0;
+    }
+    _safeActive = null;
+  };
+  safeBtnEl.addEventListener('pointerdown', press);
+  safeBtnEl.addEventListener('pointerup',   release);
+  safeBtnEl.addEventListener('pointercancel', release);
+  safeBtnEl.addEventListener('pointerleave', release);
+  safeBtnEl.addEventListener('touchstart', press,   { passive: false });
+  safeBtnEl.addEventListener('touchend',   release, { passive: false });
+}
+
 // ── ГРАНАТА: бросок игроком ────────────────────────────────────────
 // Кнопка 🧨 видна, только если в инвентаре есть гранаты. Touch на ней
 // включает aim-режим: рисуем зону взрыва впереди игрока, палец двигает
@@ -5870,6 +6355,8 @@ function loop(t) {
   renderReviveHint();
   renderMedkitHint();
   renderGrenadeBtn();
+  renderSafeBtn();
+  tickSafeProgress(t);
 
   // Индикатор патронов и перезарядки в HUD сверху:
   //  • ammoBarFill — жёлтая шкала «текущие / обойма» (как HP-бар).

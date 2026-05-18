@@ -824,10 +824,17 @@ async def init_db():
             ("job_cooldowns_json", "TEXT DEFAULT NULL"),
             # Кулдаун событий мини-аппа (события по игровому времени)
             ("last_hub_event_at", "INTEGER DEFAULT 0"),
-            # Phase 9: Навыки. Пока один навык — взломщик сейфов (1..5).
-            # Level 0 = вообще не умеет; level N даёт право вскрывать сейфы
-            # уровня ≤ N. Сейфы лежат на карте боя в районах разного ранга.
+            # Phase 9: 5 прокачиваемых навыков (0..5).
+            #  safecracker — вскрывает сейфы на боях (уровень ≤ skill_lvl)
+            #  marksman    — +урон из любого оружия
+            #  stealth     — уменьшает радиус обзора врагов в бою
+            #  toughness   — +max HP в бою
+            #  hustler     — +% к деньгам с боёв и работ
             ("safecracker_level", "INTEGER DEFAULT 0"),
+            ("marksman_level",    "INTEGER DEFAULT 0"),
+            ("stealth_level",     "INTEGER DEFAULT 0"),
+            ("toughness_level",   "INTEGER DEFAULT 0"),
+            ("hustler_level",     "INTEGER DEFAULT 0"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -1857,8 +1864,12 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "med_s":    med_s,
         "med_m":    med_m,
         "med_l":    med_l,
-        # Phase 9: уровень навыка взломщика сейфов (0..5).
+        # Phase 9: 5 прокачиваемых навыков (0..5).
         "safe_lvl": int(char.get("safecracker_level") or 0),
+        "mark_lvl": int(char.get("marksman_level")    or 0),
+        "stlh_lvl": int(char.get("stealth_level")     or 0),
+        "tgh_lvl":  int(char.get("toughness_level")   or 0),
+        "hst_lvl":  int(char.get("hustler_level")     or 0),
         "weapon":   weapon,
         "prop":     prop_str,
         "gang":     gang_str,
@@ -11528,6 +11539,10 @@ async def _coop_http_app():
                         pay += min(count - 10, 30) * 5
             else:
                 pay = 0
+            # Phase 9: бонус «Делец» (hustler_level) +5/10/20/30/45% к выплате
+            hst = int(char.get('hustler_level') or 0)
+            hst_bonus = [0, 5, 10, 20, 30, 45][max(0, min(5, hst))] / 100.0
+            pay = int(round(pay * (1.0 + hst_bonus)))
             cur_cop  = char.get('wanted_stars', 0) or 0
             cur_gang = char.get('wanted_gangs', 0) or 0
             new_cop  = min(3, cur_cop  + cop_added)
@@ -12093,6 +12108,91 @@ async def _coop_http_app():
             'captured': captured,
         }))
 
+    # === HTTP: прокачка навыка из hub.html (страница «Мои навыки») ===
+    # Списывает деньги, инкрементит уровень на +1. Возвращает свежий cash
+    # и новый уровень. Без сообщений в чат — мини-апп показывает toast.
+    SKILL_COL_MAP = {
+        'safecracker': 'safecracker_level',
+        'marksman':    'marksman_level',
+        'stealth':     'stealth_level',
+        'toughness':   'toughness_level',
+        'hustler':     'hustler_level',
+    }
+    SKILL_COSTS = [0, 500, 2000, 5000, 12000, 30000]
+
+    async def h_skill_upgrade(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        skill = str(b.get('skill', ''))
+        col   = SKILL_COL_MAP.get(skill)
+        if not col:
+            return await _cors(web.json_response({'ok': False, 'error': 'unknown skill'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        cur = int(char.get(col) or 0)
+        if cur >= 5:
+            return await _cors(web.json_response({'ok': False, 'error': 'maxed'}))
+        cost = SKILL_COSTS[cur + 1]
+        cash = int(char.get('cash') or 0)
+        if cash < cost:
+            return await _cors(web.json_response({'ok': False, 'error': 'no cash'}))
+        new_lvl = cur + 1
+        await update_character(uid, cash=cash - cost, **{col: new_lvl})
+        char2 = await get_character(uid)
+        return await _cors(web.json_response({
+            'ok':    True,
+            'cash':  int(char2.get('cash') or 0),
+            'level': new_lvl,
+        }))
+
+    # === HTTP: вскрытый сейф из боёвки — серверный roll и начисление ===
+    # Клиент шлёт только {safe_lvl, big}. Сервер сам рандомит сумму, чтобы
+    # читер не мог накрутить cash, и применяет бонус Дельца.
+    async def h_safe_loot(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        try:
+            safe_lvl = max(1, min(5, int(b.get('safe_lvl', 1))))
+        except Exception:
+            safe_lvl = 1
+        big = bool(b.get('big', False))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        # Серверная валидация: уровень сейфа ≤ навык игрока
+        sc = int(char.get('safecracker_level') or 0)
+        if safe_lvl > sc:
+            return await _cors(web.json_response({'ok': False, 'error': 'skill too low'}))
+        # Roll: маленький 100 + lvl*250 ± 30%; большой — х4.
+        import random as _rnd
+        base = int(round((100 + safe_lvl * 250) * (0.7 + _rnd.random() * 0.6)))
+        if big:
+            base *= 4
+        # Бонус Дельца: +5/10/20/30/45%
+        hst = int(char.get('hustler_level') or 0)
+        hst_bonus = [0, 5, 10, 20, 30, 45][min(5, max(0, hst))] / 100.0
+        gained = int(round(base * (1.0 + hst_bonus)))
+        new_cash = int(char.get('cash') or 0) + gained
+        await update_character(uid, cash=new_cash)
+        return await _cors(web.json_response({
+            'ok':     True,
+            'cash':   new_cash,
+            'gained': gained,
+        }))
+
     # === HTTP: результат боя из demo_isometric.html ===
     # Закрывает запись битвы, начисляет опыт/деньги/убийства, обновляет HP
     # и возвращает свежее состояние персонажа в JSON. В чат бот ничего не
@@ -12142,6 +12242,10 @@ async def _coop_http_app():
             base_cash = round(boss['cash'] * loc_mul)
             exp_gain  = min(xp_payload,   base_exp  * 3) if xp_payload  > 0 else base_exp
             cash_gain = min(cash_payload, base_cash * 3) if cash_payload > 0 else base_cash
+            # Phase 9: бонус «Делец» (hustler_level) +5/10/20/30/45% к деньгам.
+            hst = int(char.get('hustler_level') or 0)
+            hst_bonus = [0, 5, 10, 20, 30, 45][max(0, min(5, hst))] / 100.0
+            cash_gain = int(round(cash_gain * (1.0 + hst_bonus)))
             if battle:
                 await end_battle(uid)
             await update_character(uid,
@@ -12224,6 +12328,8 @@ async def _coop_http_app():
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
     aio_app.router.add_post('/inv/{uid}/equip',    h_inv_equip)
     aio_app.router.add_post('/battle/{uid}/result', h_battle_result)
+    aio_app.router.add_post('/skill/{uid}/upgrade', h_skill_upgrade)
+    aio_app.router.add_post('/safe/{uid}/loot',     h_safe_loot)
 
     from aiohttp import web as _web
     runner = _web.AppRunner(aio_app)
