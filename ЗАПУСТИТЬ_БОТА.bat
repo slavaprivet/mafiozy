@@ -10,6 +10,18 @@ echo   Mafiozi - launching bot + tunnel
 echo  ================================
 echo.
 
+REM ── Гасим старые экземпляры бота и туннеля. Без этого может работать
+REM    два инстанса одновременно: Telegram пинг-понгит между ними и юзер
+REM    видит то старую то новую версию ответов бота.
+echo [..] Гашу старые python.exe / cloudflared.exe ^(если есть^)...
+taskkill /F /IM cloudflared.exe >nul 2>&1
+REM Внимание: killим только python от ЭТОЙ папки чтобы не убить чужие IDE.
+wmic process where "name='python.exe' and commandline like '%%mafiozi_bot.py%%'" delete >nul 2>&1
+wmic process where "name='python.exe' and commandline like '%%start_with_tunnel.py%%'" delete >nul 2>&1
+ping -n 2 127.0.0.1 >nul
+echo [OK] чисто.
+echo.
+
 python --version >nul 2>&1
 if errorlevel 1 goto :no_python
 echo [OK] Python found
