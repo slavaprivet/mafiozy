@@ -3762,6 +3762,44 @@ function simHandleEvents(events) {
       if (ev.to_uid === COOP_MY_UID) {
         player.hitT = Math.max(player.hitT || 0, 0.25);
       }
+    } else if (ev.type === 'enemy_grenade_throw') {
+      // Босс бросил гранату — рисуем параболу. AoE-урон серверный (когда
+      // pending_aoe сработает, сервер пришлёт aoe_hit + enemy_grenade_explode).
+      try {
+        throwGrenade(
+          { r: ev.from_y, c: ev.from_x },
+          ev.to_y, ev.to_x,
+          'enemy',
+          { kind: ev.kind || 'grenade', dmg: 0 }
+        );
+      } catch(e) {}
+    } else if (ev.type === 'enemy_grenade_explode') {
+      // Локальный визуал взрыва — звук уже есть в throwGrenade при k>=1,
+      // но т.к. мы передаём dmg=0, triggerExplosion может не вызваться.
+      // Гарантируем VFX взрыва через explosions[].
+      try {
+        explosions.push({ r: ev.y, c: ev.x, life: 700, max: 700, radius: (ev.radius || 3) - 0.2 });
+        _tone({freq:160,freqEnd:50,dur:0.30,type:'sawtooth',vol:0.30});
+        _noise({dur:0.20,vol:0.25,filter:'lowpass',filterFreq:500});
+      } catch(e) {}
+    } else if (ev.type === 'boss_rush_start') {
+      // Босс рванул — тревожный гул для всех.
+      try { _tone({freq:90,freqEnd:140,dur:0.40,type:'sawtooth',vol:0.32}); } catch(e) {}
+    } else if (ev.type === 'boss_rush_hit') {
+      // Босс ударил кого-то — если меня, добавляем доп. красную вспышку.
+      if (ev.uid === COOP_MY_UID) {
+        player.hitT = Math.max(player.hitT || 0, 0.45);
+      }
+      try { _tone({freq:80,freqEnd:30,dur:0.18,type:'square',vol:0.28}); } catch(e) {}
+    } else if (ev.type === 'aoe_hit') {
+      // AoE-удар по игроку (граната босса). Если по мне — красная вспышка.
+      if (ev.uid === COOP_MY_UID) {
+        player.hitT = Math.max(player.hitT || 0, 0.35);
+      }
+    } else if (ev.type === 'boss_phase') {
+      // Босс перешёл в фазу ярости. Phase 1 = жёлтый, phase 2 = красный.
+      // Простой звук-сигнал — visualy баннер пока не делаем (Phase 8).
+      try { _tone({freq:180,freqEnd:520,dur:0.55,type:'triangle',vol:0.22}); } catch(e) {}
     } else if (ev.type === 'grenade_throw') {
       // Тиммейт бросил гранату/Молотов. Не дублируем для себя — у нас
       // уже играется локально. Для тиммейтов спавним «зрительский» вариант:

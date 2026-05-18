@@ -1914,7 +1914,7 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
     params = {
         # Кеш-бастер для Telegram WebApp: подними при каждом релизе боёвки
         # — иначе TG держит старый HTML в кеше и игроки видят прошлую версию.
-        "_v":     "21",
+        "_v":     "22",
         "name":   urllib.parse.quote(char["name"][:20]),
         "hp":     char["hp"],
         "maxhp":  char["max_hp"],
@@ -9404,6 +9404,13 @@ def _coop_spawn_world(sim: 'IsoBattleSim') -> None:
         'fov_arc':        2.20,  # ~126° — босс внимательнее
         '_alerted_at':    0.0,
         '_corpse_check':  0.0,
+        # Phase 7: фазы по HP и кулдауны спецок
+        '_phase':         0,    # 0 (>50% hp), 1 (25-50%), 2 (<25%)
+        '_rush_until':    0.0,  # окончание текущего рывка (active если > now)
+        '_rush_cd':       0.0,  # когда можно следующий рывок
+        '_rush_target':   '',
+        '_gren_cd':       0.0,
+        '_phase_changed_at': 0.0,
     }
     sim.enemies = [boss]
 
@@ -9464,6 +9471,7 @@ class IsoBattleSim:
         'last_tick_at', 'players', 'enemies', 'boss', 'bullets',
         'events', 'connections', 'alive', 'started_at',
         'map_cols', 'map_rows', 'boss_room', 'player_spawn',
+        'pending_aoe',
     )
 
     def __init__(self, sid: str, sess: dict):
@@ -9493,6 +9501,9 @@ class IsoBattleSim:
         self.map_rows = 0
         self.boss_room = None
         self.player_spawn = (0, 0)
+        # Phase 7: отложенный AoE-урон (брошенные боссом гранаты).
+        # Каждый элемент: {trigger_at, x, y, radius, dmg, kind}.
+        self.pending_aoe = []
 
     def add_player(self, uid: str, name: str, look: dict,
                    hp: int, max_hp: int, atk: int, def_: int) -> None:
@@ -9638,6 +9649,163 @@ class IsoBattleSim:
                 })
                 return
 
+    def _apply_aoe_to_players(self, x: float, y: float, radius: float,
+                              dmg: int, src_id: int) -> None:
+        """AoE-урон по живым игрокам в радиусе. Используется на взрыве
+        боссовой гранаты. Урон с фоллофом: max → в эпицентре, min → на границе."""
+        for p in self.players.values():
+            if not p.get('alive') or p.get('hp', 0) <= 0:
+                continue
+            dx = p['x'] - x
+            dy = p['y'] - y
+            d = (dx * dx + dy * dy) ** 0.5
+            if d > radius:
+                continue
+            falloff = max(0.25, 1.0 - d / radius)
+            applied = max(5, int(dmg * falloff - p.get('def', 10) // 4))
+            p['hp'] = max(0, p['hp'] - applied)
+            self.events.append({
+                'type':    'aoe_hit',
+                'uid':     p['uid'],
+                'dmg':     applied,
+                'from_id': src_id,
+            })
+            if p['hp'] <= 0:
+                p['alive'] = False
+                for pp in self.sess.get('players', []):
+                    if pp['uid'] == p['uid'] and pp['hp'] > 0:
+                        pp['hp'] = 0
+                        _coop_add_log(self.sess, f"💀 {pp['name']} убит.", 'death')
+                        break
+                self.events.append({
+                    'type':  'player_dead',
+                    'uid':   p['uid'],
+                    'by_id': src_id,
+                })
+        # Проверка глобал-loss
+        alive_p = [pp for pp in self.sess.get('players', [])
+                   if pp['hp'] > 0 and not pp.get('left')]
+        if not alive_p and self.sess.get('state') == 'battle':
+            self.sess['state'] = 'lost'
+            _coop_add_log(self.sess, "💀 Все пали. Поражение.", 'sys')
+
+    def _tick_boss_specials(self, boss: dict, now_sec: float, dt: float,
+                            alive_players: list) -> bool:
+        """Спецки босса (Phase 7): фазы по HP, рывок при <50%, бросок
+        гранаты при <25%. Возвращает True если босс выполняет действие,
+        которое перебивает обычный combat-tick (например, активный рывок)."""
+        import math as _m
+        # Phase update by HP ratio
+        hp_ratio = boss.get('hp', 1) / max(1, boss.get('max_hp', 1))
+        new_phase = 0 if hp_ratio > 0.5 else (1 if hp_ratio > 0.25 else 2)
+        if new_phase != boss.get('_phase', 0):
+            boss['_phase'] = new_phase
+            boss['_phase_changed_at'] = now_sec
+            self.events.append({
+                'type':     'boss_phase',
+                'phase':    new_phase,
+                'enemy_id': boss['id'],
+            })
+
+        # Если уже идёт рывок — продолжаем его.
+        if now_sec < boss.get('_rush_until', 0):
+            tgt_uid = boss.get('_rush_target', '')
+            tgt = self.players.get(tgt_uid)
+            if not tgt or not tgt.get('alive'):
+                boss['_rush_until'] = 0
+                return False
+            dr = tgt['y'] - boss['r']
+            dc = tgt['x'] - boss['c']
+            d = (dr * dr + dc * dc) ** 0.5
+            if d < 1.2:
+                # Контакт — наносим удар и заканчиваем рывок.
+                dmg = 55 if new_phase < 2 else 75
+                tgt_def = int(tgt.get('def', 10))
+                applied = max(15, dmg - tgt_def // 3)
+                tgt['hp'] = max(0, tgt['hp'] - applied)
+                self.events.append({
+                    'type':    'boss_rush_hit',
+                    'uid':     tgt_uid,
+                    'dmg':     applied,
+                    'enemy_id': boss['id'],
+                })
+                boss['_rush_until'] = 0
+                boss['_rush_cd'] = now_sec + (3.0 if new_phase >= 2 else 5.0)
+                if tgt['hp'] <= 0:
+                    tgt['alive'] = False
+                    for pp in self.sess.get('players', []):
+                        if pp['uid'] == tgt_uid and pp['hp'] > 0:
+                            pp['hp'] = 0
+                            _coop_add_log(self.sess, f"💀 {pp['name']} убит боссом.", 'death')
+                            break
+                    self.events.append({
+                        'type': 'player_dead', 'uid': tgt_uid, 'by_id': boss['id'],
+                    })
+                return True
+            # Движение по таргету — скорость рывка 5 клеток/сек.
+            speed = 5.0
+            norm = d or 1.0
+            boss['r'] += (dr / norm) * speed * dt
+            boss['c'] += (dc / norm) * speed * dt
+            boss['ang'] = _m.atan2(dr, dc)
+            boss['walk_phase'] = (boss.get('walk_phase', 0) + dt * 18) % 6.2832
+            boss['ai_state'] = 'rush'
+            boss['r'] = max(1.5, min(self.map_rows - 2, boss['r']))
+            boss['c'] = max(1.5, min(self.map_cols - 2, boss['c']))
+            return True
+
+        # Триггер нового рывка — фаза 1+ и cooldown истёк.
+        if new_phase >= 1 and now_sec >= boss.get('_rush_cd', 0) and alive_players:
+            # Ближайший игрок в пределах 14 клеток.
+            best = None
+            best_d = 14.0
+            for p in alive_players:
+                dr = p['y'] - boss['r']
+                dc = p['x'] - boss['c']
+                d  = (dr * dr + dc * dc) ** 0.5
+                if d < best_d:
+                    best_d = d
+                    best = p
+            if best is not None:
+                boss['_rush_target'] = best['uid']
+                boss['_rush_until']  = now_sec + 2.2
+                boss['_rush_cd']     = now_sec + 8.0  # пересчитаем на контакте
+                boss['ai_state']     = 'rush'
+                self.events.append({
+                    'type':    'boss_rush_start',
+                    'enemy_id': boss['id'],
+                    'target_uid': best['uid'],
+                })
+                return True
+
+        # Триггер броска гранаты — фаза 1+ и свой cooldown.
+        if new_phase >= 1 and now_sec >= boss.get('_gren_cd', 0) and alive_players:
+            import random as _r
+            target = alive_players[_r.randrange(len(alive_players))]
+            # Бросок: ставим pending AoE через 1.5 сек, рассылаем event.
+            self.events.append({
+                'type':   'enemy_grenade_throw',
+                'enemy_id': boss['id'],
+                'from_x': round(boss['c'], 2),
+                'from_y': round(boss['r'], 2),
+                'to_x':   round(target['x'], 2),
+                'to_y':   round(target['y'], 2),
+                'kind':   'grenade',
+                'fuse':   1.5,
+            })
+            self.pending_aoe.append({
+                'trigger_at': now_sec + 1.5,
+                'x':      target['x'],
+                'y':      target['y'],
+                'radius': 3.0,
+                'dmg':    50 if new_phase < 2 else 70,
+                'src_id': boss['id'],
+                'kind':   'grenade',
+            })
+            boss['_gren_cd'] = now_sec + (6.0 if new_phase >= 2 else 9.0)
+            return False  # бросок не перебивает обычный combat-tick
+        return False
+
     def apply_stealth_kill(self, uid: str, enemy_id: int) -> None:
         """Стелс-килл от клиента: одношот, если враг не в alert. Босс
         иммунен — даёт 50% max_hp вместо лечения. В Phase 4 не валидируем
@@ -9690,10 +9858,34 @@ class IsoBattleSim:
                     continue
                 alive_players.append(pl)
 
+        # Phase 7: обработка отложенного AoE-урона (брошенные боссом
+        # гранаты). Триггер по времени; применяем разово, удаляем.
+        if self.pending_aoe:
+            still = []
+            for a in self.pending_aoe:
+                if now_sec >= a['trigger_at']:
+                    self._apply_aoe_to_players(
+                        a['x'], a['y'], a['radius'], a['dmg'], a.get('src_id', 0))
+                    self.events.append({
+                        'type': 'enemy_grenade_explode',
+                        'x':     a['x'],
+                        'y':     a['y'],
+                        'radius': a['radius'],
+                        'kind':  a.get('kind', 'grenade'),
+                    })
+                else:
+                    still.append(a)
+            self.pending_aoe = still
+
         for e in self.enemies:
             if not e.get('alive'):
                 continue
             is_boss = bool(e.get('is_boss'))
+            # Phase 7: спецки босса. Если активный рывок — он перебивает
+            # обычный combat-tick. Гранатный бросок не перебивает (босс
+            # может ещё и стрелять параллельно).
+            if is_boss and self._tick_boss_specials(e, now_sec, dt, alive_players):
+                continue
             # Параметры по типу: босс видит/стреляет дальше и больнее.
             sight_r = 11.0 if is_boss else 6.5
             shoot_r =  9.0 if is_boss else 5.0
