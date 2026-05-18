@@ -6625,11 +6625,22 @@ async function renderBusinesses() {
   }
   // ОБЫЧНЫЙ режим: с сервера
   const api = DATA.api, uid = jobUidStr();
+  // Сервер не настроен — показываем каталог без owned-инфо как preview.
+  // Это лучше чем «Не удалось загрузить»: игрок видит чтО можно купить
+  // когда туннель оживёт. Купить нельзя — но при попытке выскочит toast.
+  if (!api) {
+    const previewItems = DEMO_BUSINESSES_CATALOG.map(b => Object.assign({}, b, { owned: false }));
+    if (cashEl) cashEl.innerHTML = `💵 Наличные: $${_fmtCash(DATA.cash || 0)} <span style="margin-left:14px;color:#ff8;font-weight:400;font-size:12px">(сервер недоступен — перезапусти бота)</span>`;
+    list.innerHTML = '';
+    previewItems.forEach(b => { _bizCatalogCache[b.id] = b; list.appendChild(renderBizCard(b)); });
+    return;
+  }
   list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Загрузка…</div>';
   try {
     const res = await fetch(`${api}/biz/${uid}/list`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const j = await res.json();
-    if (!j.ok) throw new Error('list failed');
+    if (!j.ok) throw new Error(j.error || 'list failed');
     if (cashEl) cashEl.innerHTML = `💵 Наличные: $${_fmtCash(j.cash || 0)}`;
     list.innerHTML = '';
     (j.businesses || []).forEach(b => {
@@ -6637,7 +6648,14 @@ async function renderBusinesses() {
       list.appendChild(renderBizCard(b));
     });
   } catch(e) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:#ff7070">Не удалось загрузить</div>';
+    // Конкретизируем причину — пользователю проще диагностировать.
+    const reason = (e && e.message) ? String(e.message).slice(0,80) : 'ошибка сети';
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:#ff7070">
+      Не удалось загрузить<br>
+      <span style="color:#888;font-size:12px">${reason}</span><br>
+      <span style="color:#888;font-size:12px">Проверь что бот запущен через ЗАПУСТИТЬ_БОТА.bat</span>
+    </div>`;
+    console.error('[biz/list] failed:', e);
   }
 }
 function renderBizCard(b) {
