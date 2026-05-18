@@ -5761,6 +5761,11 @@ function _coopEnterBattle(data) {
   params.set('bmol',  DATA.mol  || 0);
   params.set('minions', boss.minions || 3);
   params.set('coop_sid', data.sid);
+  // Path V (Phase 2+): включаем server-authoritative симулятор через WS.
+  // demo_isometric.html по этому флагу не запускает локальный AI миньонов,
+  // а рендерит врагов из снапшотов сервера. Удалим этот set чтобы быстро
+  // откатиться на V1 (HTTP polling, без серверного AI) — оба пути живут.
+  params.set('coop_sim', '1');
   window.location.href = 'demo_isometric.html?' + params.toString();
 }
 

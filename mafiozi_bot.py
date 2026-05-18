@@ -1697,7 +1697,7 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
         "bot":      BOT_USERNAME,   # имя бота для t.me/<bot>?startapp=... share-ссылок
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
-        "_v": "21",  # bump when hub.html is updated — breaks Telegram cache
+        "_v": "22",  # bump when hub.html is updated — breaks Telegram cache
     }
     return HUB_WEBAPP_URL + "?" + urllib.parse.urlencode(params)
 
@@ -1914,7 +1914,7 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
     params = {
         # Кеш-бастер для Telegram WebApp: подними при каждом релизе боёвки
         # — иначе TG держит старый HTML в кеше и игроки видят прошлую версию.
-        "_v":     "16",
+        "_v":     "17",
         "name":   urllib.parse.quote(char["name"][:20]),
         "hp":     char["hp"],
         "maxhp":  char["max_hp"],
@@ -9228,6 +9228,203 @@ async def _coop_grant_rewards(sess: dict) -> None:
 ISO_SIM_TICK_HZ = 20
 ISO_SIM_TICK_DT = 1.0 / ISO_SIM_TICK_HZ
 
+# Данные боссов из JS-реестра — для серверного спавна. Имя/look/weapon
+# берём отсюда, чтобы клиент мог отрендерить полученного из снапшота босса
+# одним и тем же спрайтом независимо от того, есть ли BOSS_REGISTRY в его HTML.
+_COOP_BOSS_DATA = {
+    'kosoy':      {'name':'Косой',     'emoji':'😈','weapon':'pistol',       'look':{'gender':0,'skin':2,'body':0,'face':1,'hair':3,'hat':0}},
+    'bychok':     {'name':'Бычок',     'emoji':'🐂','weapon':'pistol_heavy', 'look':{'gender':0,'skin':1,'body':2,'face':2,'hair':0,'hat':0}},
+    'zhigan':     {'name':'Жиган',     'emoji':'🪒','weapon':'pistol',       'look':{'gender':0,'skin':2,'body':1,'face':3,'hair':4,'hat':2}},
+    'shustryy':   {'name':'Шустрый',   'emoji':'🏃','weapon':'pistol',       'look':{'gender':0,'skin':1,'body':0,'face':1,'hair':5,'hat':0}},
+    'tolsty':     {'name':'Толстый',   'emoji':'🐷','weapon':'pistol_heavy', 'look':{'gender':0,'skin':1,'body':2,'face':4,'hair':2,'hat':3}},
+    'kaban':      {'name':'Кабан',     'emoji':'🦏','weapon':'shotgun',      'look':{'gender':0,'skin':2,'body':2,'face':5,'hair':1,'hat':1}},
+    'bukhgalter': {'name':'Бухгалтер', 'emoji':'🧮','weapon':'pistol',       'look':{'gender':0,'skin':0,'body':1,'face':0,'hair':6,'hat':4}},
+    'kontrabas':  {'name':'Контрабас', 'emoji':'📦','weapon':'smg',          'look':{'gender':0,'skin':1,'body':1,'face':3,'hair':3,'hat':2}},
+    'legenda':    {'name':'Легенда',   'emoji':'👑','weapon':'pistol_gold',  'look':{'gender':0,'skin':1,'body':1,'face':6,'hair':0,'hat':1}},
+    'professor':  {'name':'Профессор', 'emoji':'🎓','weapon':'pistol',       'look':{'gender':0,'skin':0,'body':0,'face':4,'hair':6,'hat':4}},
+    'artist':     {'name':'Артист',    'emoji':'🎭','weapon':'pistol_gold',  'look':{'gender':0,'skin':1,'body':1,'face':2,'hair':4,'hat':0}},
+    'svalshchik': {'name':'Сдатчик',   'emoji':'♟️','weapon':'smg',          'look':{'gender':0,'skin':1,'body':0,'face':5,'hair':1,'hat':0}},
+    'buryy':      {'name':'Бурый',     'emoji':'🐻','weapon':'shotgun',      'look':{'gender':0,'skin':2,'body':2,'face':5,'hair':0,'hat':0}},
+    'khirurg':    {'name':'Хирург',    'emoji':'🩺','weapon':'pistol_heavy', 'look':{'gender':0,'skin':0,'body':0,'face':0,'hair':6,'hat':0}},
+    'tigr':       {'name':'Тигр',      'emoji':'🐯','weapon':'rifle',        'look':{'gender':0,'skin':1,'body':1,'face':6,'hair':2,'hat':0}},
+    'palach':     {'name':'Палач',     'emoji':'🪓','weapon':'shotgun',      'look':{'gender':0,'skin':1,'body':2,'face':5,'hair':0,'hat':1}},
+    'sedoy':      {'name':'Седой',     'emoji':'👴','weapon':'pistol_heavy', 'look':{'gender':0,'skin':0,'body':1,'face':6,'hair':7,'hat':1}},
+    'prizrak':    {'name':'Призрак',   'emoji':'👻','weapon':'sniper',       'look':{'gender':0,'skin':0,'body':0,'face':4,'hair':6,'hat':0}},
+    'don_karlo':  {'name':'Дон Карло', 'emoji':'🤵','weapon':'shotgun',      'look':{'gender':0,'skin':1,'body':2,'face':4,'hair':1,'hat':1}},
+    'vizir':      {'name':'Визирь',    'emoji':'🎯','weapon':'rifle',        'look':{'gender':0,'skin':1,'body':1,'face':6,'hair':2,'hat':3}},
+}
+
+# Количество миньонов на босса — порт BOSS_DATA.*.minions из hub.html.
+# Размер арены и сложность боя зависят от этого числа.
+_COOP_BOSS_MINIONS = {
+    'kosoy':2,  'bychok':5,  'shustryy':7,  'zhigan':10, 'tolsty':6, 'kaban':8,
+    'bukhgalter':7, 'kontrabas':9, 'legenda':8, 'professor':10, 'artist':9,
+    'svalshchik':7, 'buryy':10, 'khirurg':12, 'tigr':11, 'palach':10,
+    'sedoy':14, 'prizrak':12, 'don_karlo':18, 'vizir':15,
+}
+
+# Архетипы миньонов по районам — порт _DISTRICT_MINIONS из JS.
+# Каждый бой выбираем случайно из пула; от района зависят оружие+HP.
+_COOP_DISTRICT_MINIONS = {
+    'market':  [{'w':'pistol','fc':700,'hp':60},{'w':'pistol','fc':650,'hp':55},{'w':'pistol_heavy','fc':850,'hp':65},{'w':'shotgun','fc':1400,'hp':70},{'w':'smg','fc':1100,'hp':60},{'w':'pistol_gold','fc':500,'hp':65}],
+    'port':    [{'w':'pistol','fc':600,'hp':80},{'w':'smg','fc':1100,'hp':75},{'w':'pistol_heavy','fc':850,'hp':85},{'w':'shotgun','fc':1400,'hp':90},{'w':'rifle','fc':600,'hp':80},{'w':'pistol_gold','fc':500,'hp':80}],
+    'casino':  [{'w':'pistol_gold','fc':500,'hp':90},{'w':'smg','fc':1000,'hp':90},{'w':'pistol_heavy','fc':750,'hp':100},{'w':'shotgun','fc':1300,'hp':95},{'w':'rifle','fc':550,'hp':95},{'w':'sniper','fc':1800,'hp':80}],
+    'factory': [{'w':'shotgun','fc':1400,'hp':110},{'w':'rifle','fc':550,'hp':100},{'w':'smg','fc':900,'hp':105},{'w':'pistol_heavy','fc':700,'hp':110},{'w':'sniper','fc':1700,'hp':95},{'w':'rpg','fc':3000,'hp':115}],
+    'mansion': [{'w':'rifle','fc':500,'hp':130},{'w':'sniper','fc':1700,'hp':115},{'w':'shotgun','fc':1200,'hp':125},{'w':'rpg','fc':2800,'hp':130},{'w':'smg','fc':850,'hp':120},{'w':'pistol_gold','fc':450,'hp':115}],
+}
+
+# Шанс редкой пушки — джокер может попасться даже на рынке.
+_COOP_RARE_WEAPONS = [
+    {'w':'rpg',    'fc':3200, 'hp':70, 'chance':0.06},
+    {'w':'sniper', 'fc':2000, 'hp':65, 'chance':0.05},
+]
+
+# Имена-NPC для миньонов (зачитываются при появлении). Не критично — лишь
+# чтобы у каждого миньона было хоть какое-то имя в HUD/логах. Реальная
+# проработка персонажей будет в фазе 6+.
+_COOP_MINION_NAMES = [
+    'Витёк','Лёха','Палыч','Толик','Сашок','Колян','Серёга','Игорь',
+    'Дрюня','Ванька','Юрик','Семён','Жорик','Боря','Зема','Тёма',
+    'Гена','Мишаня','Денис','Артём',
+]
+
+
+def _mulberry32(seed: int):
+    """Детерминированный PRNG, синхронный с JS-версией. Хост-клиент использует
+    тот же seed → его клиентская карта и расположение врагов совпадают с
+    серверной симуляцией. PRNG state хранится в замыкании."""
+    state = [seed & 0xFFFFFFFF or 1]
+    def rand():
+        state[0] = (state[0] + 0x6D2B79F5) & 0xFFFFFFFF
+        s = state[0]
+        t = ((s ^ (s >> 15)) * (1 | s)) & 0xFFFFFFFF
+        t = ((t + ((t ^ (t >> 7)) * (61 | t))) ^ t) & 0xFFFFFFFF
+        return ((t ^ (t >> 14)) & 0xFFFFFFFF) / 4294967296
+    return rand
+
+
+def _coop_rand_look(rng) -> dict:
+    """Случайная внешность миньона. Все поля совместимы со спрайт-генератором
+    в hub.html / demo_isometric.html (gender/skin/body/face/hair/hat)."""
+    # Шанс 25% что миньон будет женщиной — для разнообразия.
+    gender = 1 if rng() < 0.25 else 0
+    return {
+        'gender': gender,
+        'skin':   int(rng() * 3),
+        'body':   int(rng() * 3),
+        'face':   int(rng() * 7),
+        'hair':   int(rng() * 8),
+        'hat':    int(rng() * 5),
+    }
+
+
+def _coop_pick_minion_arch(loc_id: str, rng) -> dict:
+    """Выбираем архетип миньона: сначала прокат на «редкую» пушку,
+    иначе — случайный из районного пула."""
+    for r in _COOP_RARE_WEAPONS:
+        if rng() < r['chance']:
+            return {'w': r['w'], 'fc': r['fc'], 'hp': r['hp']}
+    pool = _COOP_DISTRICT_MINIONS.get(loc_id) or _COOP_DISTRICT_MINIONS['market']
+    return pool[int(rng() * len(pool))]
+
+
+def _coop_spawn_world(sim: 'IsoBattleSim') -> None:
+    """Раскладываем мир для одной сессии симулятора: размеры арены,
+    позиция босса/игроков, спавны миньонов. Использует sim.seed чтобы
+    клиенты могли построить ту же карту своей Mulberry32 (фаза 2b).
+    Пока серверная карта плоская — без стен — стены клиент рисует
+    сам по seed'у; v2 это согласует."""
+    rng = _mulberry32(sim.seed)
+    boss_id = sim.boss_id or 'kosoy'
+    minions = max(2, min(18,
+        int(sim.sess.get('minions_count')
+            or _COOP_BOSS_MINIONS.get(boss_id) or 3)))
+    # Размеры арены идентичны JS-формуле (см. demo_isometric.html const COLS/ROWS).
+    cols = 22 + int(minions * 0.7)
+    rows = 30 + minions
+    sim.map_cols = cols
+    sim.map_rows = rows
+
+    # Боссовый «кабинет» — прямоугольник в углу. Босс стоит в центре кабинета.
+    # Координаты в порядке (r=row, c=col). На клиенте та же ось.
+    boss_room = {'r0': 1, 'r1': 8, 'c0': 1, 'c1': 13}
+    sim.boss_room = boss_room
+    boss_r = (boss_room['r0'] + boss_room['r1']) / 2.0
+    boss_c = (boss_room['c0'] + boss_room['c1']) / 2.0
+    # Игрок стартует в дальнем углу.
+    sim.player_spawn = (rows - 3, cols - 3)
+
+    # Босс — всегда enemies[0].
+    boss_meta = _COOP_BOSS_DATA.get(boss_id) or _COOP_BOSS_DATA['kosoy']
+    boss = {
+        'id':         0,
+        'is_boss':    True,
+        'r':          float(boss_r),
+        'c':          float(boss_c),
+        'ang':        0.0,
+        'hp':         int(sim.sess.get('boss_hp', 300)),
+        'max_hp':     int(sim.sess.get('boss_max_hp', 300)),
+        'name':       boss_meta['name'],
+        'emoji':      boss_meta.get('emoji', ''),
+        'look':       boss_meta['look'],
+        'weapon':     boss_meta['weapon'],
+        'alive':      True,
+        'ai_state':   'patrol',
+        'walk_phase': 0.0,
+        'is_sentry':  True,  # босс стоит в кабинете (v2 — без сложного AI)
+        # Внутренние поля AI (не в snapshot)
+        '_dir_r':         0.0,
+        '_dir_c':         0.0,
+        '_patrol_until':  0.0,
+        '_home_r':        float(boss_r),
+        '_home_c':        float(boss_c),
+    }
+    sim.enemies = [boss]
+
+    # Миньоны — половина в кабинете (охрана), половина снаружи.
+    guards_inside = max(1, minions // 3)
+    for i in range(minions):
+        arch = _coop_pick_minion_arch(sim.loc_id, rng)
+        if i < guards_inside:
+            # В кабинете босса (внутри стен)
+            r = boss_room['r0'] + 1 + rng() * (boss_room['r1'] - boss_room['r0'] - 1)
+            c = boss_room['c0'] + 1 + rng() * (boss_room['c1'] - boss_room['c0'] - 1)
+        else:
+            # Снаружи — где-то в средней-нижней части арены
+            r = 4 + rng() * (rows - 8)
+            c = (boss_room['c1'] + 2) + rng() * (cols - boss_room['c1'] - 4)
+        name = _COOP_MINION_NAMES[i % len(_COOP_MINION_NAMES)]
+        look = _coop_rand_look(rng)
+        # Sentry-флаг: ~50% стоят на месте. Иначе бродят небольшими шагами.
+        is_sentry = (rng() < 0.5)
+        e = {
+            'id':         i + 1,
+            'is_boss':    False,
+            'r':          float(r),
+            'c':          float(c),
+            'ang':        rng() * 6.2832,
+            'hp':         int(arch['hp']),
+            'max_hp':     int(arch['hp']),
+            'name':       name,
+            'look':       look,
+            'weapon':     arch['w'],
+            'alive':      True,
+            'ai_state':   'patrol',
+            'walk_phase': 0.0,
+            'is_sentry':  is_sentry,
+            # AI internals
+            '_dir_r':        0.0,
+            '_dir_c':        0.0,
+            '_patrol_until': 0.0,
+            '_home_r':       float(r),
+            '_home_c':       float(c),
+            '_fc_ms':        int(arch['fc']),  # cooldown стрельбы (для фазы 3)
+        }
+        sim.enemies.append(e)
+    logger.info("IsoSim spawn: sid=%s boss=%s minions=%d cols=%d rows=%d",
+                sim.sid, boss_id, minions, cols, rows)
+
+
 class IsoBattleSim:
     """Серверная симуляция iso-боя для одной кооп-сессии.
     Phase 1: хранит игроков + минимальный broadcast. Без AI/врагов."""
@@ -9235,6 +9432,7 @@ class IsoBattleSim:
         'sid', 'sess', 'boss_id', 'loc_id', 'seed', 'tick_no',
         'last_tick_at', 'players', 'enemies', 'boss', 'bullets',
         'events', 'connections', 'alive', 'started_at',
+        'map_cols', 'map_rows', 'boss_room', 'player_spawn',
     )
 
     def __init__(self, sid: str, sess: dict):
@@ -9259,6 +9457,11 @@ class IsoBattleSim:
         # uid -> aiohttp WebSocketResponse
         self.connections = {}
         self.alive = True
+        # Размеры арены + ключевые точки — заполняет _coop_spawn_world.
+        self.map_cols = 0
+        self.map_rows = 0
+        self.boss_room = None
+        self.player_spawn = (0, 0)
 
     def add_player(self, uid: str, name: str, look: dict,
                    hp: int, max_hp: int, atk: int, def_: int) -> None:
@@ -9329,13 +9532,92 @@ class IsoBattleSim:
                 _coop_add_log(self.sess, "💀 Все пали. Поражение.", 'sys')
 
     def tick(self, dt: float) -> None:
-        """Один шаг симуляции. Phase 1 — пусто, только счётчик."""
+        """Один шаг симуляции (Phase 2: простой patrol-AI миньонов).
+        Чейз/стрельба миньонов и босс-спецки — в фазах 3+."""
         self.tick_no += 1
-        # Phase 2+ здесь будет:
-        #   - обновление AI миньонов (patrol/chase/shoot)
-        #   - движение по входу клиента (joy_x/joy_y) если physics серверный
-        #   - продвижение пуль / коллизии / урон
-        #   - проверка win/loss по состоянию персонажей
+        now_sec = self.tick_no * ISO_SIM_TICK_DT
+        # Patrol-AI для миньонов. Босс пока не двигается (его AI в фазе 3).
+        # Sentry-миньоны стоят на месте и медленно крутятся.
+        import random as _r
+        import math as _m
+        for e in self.enemies:
+            if not e.get('alive') or e.get('is_boss'):
+                continue
+            if e.get('is_sentry'):
+                # Стоит на месте, иногда меняет угол.
+                if now_sec >= e.get('_patrol_until', 0):
+                    e['ang'] = _r.random() * 6.2832
+                    e['_patrol_until'] = now_sec + 2.5 + _r.random() * 4.0
+                continue
+            # Roaming: каждые 2-5 сек берём новый случайный таргет в
+            # пределах 4 клеток от «домашней» позиции и идём к нему.
+            if now_sec >= e.get('_patrol_until', 0):
+                home_r = e.get('_home_r', e['r'])
+                home_c = e.get('_home_c', e['c'])
+                ang = _r.random() * 6.2832
+                dist = 2.0 + _r.random() * 2.0
+                tr = home_r + _m.sin(ang) * dist
+                tc = home_c + _m.cos(ang) * dist
+                # Bound в карте
+                tr = max(2.0, min(self.map_rows - 3, tr))
+                tc = max(2.0, min(self.map_cols - 3, tc))
+                dr = tr - e['r']
+                dc = tc - e['c']
+                norm = (dr * dr + dc * dc) ** 0.5 or 1.0
+                speed = 1.5  # тайлов/сек
+                e['_dir_r'] = (dr / norm) * speed
+                e['_dir_c'] = (dc / norm) * speed
+                e['ang'] = _m.atan2(dc, dr) if False else _m.atan2(dr, dc)
+                # angle: 0 = вправо по col (как в drawCharacter — atan2(dr,dc))
+                e['ang'] = _m.atan2(dr, dc)
+                e['_patrol_until'] = now_sec + 2.0 + _r.random() * 3.0
+            # Шагаем
+            e['r'] += e['_dir_r'] * dt
+            e['c'] += e['_dir_c'] * dt
+            # Анимация ходьбы
+            e['walk_phase'] = (e.get('walk_phase', 0) + dt * 8.0) % 6.2832
+            # Bound на всякий
+            e['r'] = max(1.5, min(self.map_rows - 2, e['r']))
+            e['c'] = max(1.5, min(self.map_cols - 2, e['c']))
+
+    def apply_hit(self, uid: str, enemy_id: int, dmg: int) -> None:
+        """Клиент репортит попадание по серверному врагу. Server-authoritative:
+        здесь финальное решение, жив враг или нет. Если босс умер — запускаем
+        стандартный win-flow (state='won', _coop_grant_rewards)."""
+        if dmg <= 0:
+            return
+        for e in self.enemies:
+            if e.get('id') != enemy_id or not e.get('alive'):
+                continue
+            applied = min(e['hp'], dmg)
+            e['hp'] = max(0, e['hp'] - dmg)
+            # Событие для broadcast: рисуем общую кровь/искру/гиб у всех.
+            self.events.append({
+                'type':  'hit',
+                'enemy_id': enemy_id,
+                'dmg':   applied,
+                'by_uid': uid,
+            })
+            if e['hp'] <= 0:
+                e['alive'] = False
+                e['ai_state'] = 'dead'
+                self.events.append({
+                    'type': 'kill',
+                    'enemy_id': enemy_id,
+                    'is_boss': bool(e.get('is_boss')),
+                    'by_uid': uid,
+                })
+                # Если убит босс — общий выигрыш, рассылаем награды.
+                if e.get('is_boss') and self.sess.get('state') == 'battle':
+                    self.sess['boss_hp'] = 0
+                    self.sess['state'] = 'won'
+                    _coop_add_log(self.sess, "🏆 Босс повержен! Победа.", 'sys')
+                    asyncio.create_task(_coop_grant_rewards(self.sess))
+            else:
+                # Для босса синкаем sess.boss_hp — старый HUD/код это смотрит.
+                if e.get('is_boss'):
+                    self.sess['boss_hp'] = e['hp']
+            return
 
     def make_snapshot(self) -> dict:
         """Готовим снапшот для рассылки. Чем меньше — тем легче на мобиле."""
@@ -9359,10 +9641,34 @@ class IsoBattleSim:
                     'left':   bool(p['left']),
                 } for p in self.players.values()
             ],
-            # Phase 2+ заполнятся серверными enemies/boss/bullets.
-            'enemies': self.enemies,
-            'boss':    self.boss,
-            'events':  self.events,
+            # Phase 2: компактный enemies-снапшот. Внутренние AI-поля
+            # (_dir_r/_dir_c/_patrol_until/_home_*/_fc_ms) отдаём только
+            # на сервер, клиенту они не нужны — экономим трафик.
+            'enemies': [
+                {
+                    'id':         e['id'],
+                    'is_boss':    bool(e.get('is_boss')),
+                    'r':          round(e['r'], 2),
+                    'c':          round(e['c'], 2),
+                    'ang':        round(e['ang'], 3),
+                    'hp':         int(e['hp']),
+                    'max_hp':     int(e['max_hp']),
+                    'name':       e.get('name', ''),
+                    'look':       e.get('look', {}),
+                    'weapon':     e.get('weapon', ''),
+                    'alive':      bool(e.get('alive', True)),
+                    'walk_phase': round(e.get('walk_phase', 0), 2),
+                    'ai_state':   e.get('ai_state', 'patrol'),
+                    'is_sentry':  bool(e.get('is_sentry')),
+                } for e in self.enemies
+            ],
+            # Размеры арены + boss-room — клиент использует это для бэкдропа
+            # (стен/декора), если хочет согласовать раскладку с сервером.
+            'map_cols':    self.map_cols,
+            'map_rows':    self.map_rows,
+            'boss_room':   self.boss_room,
+            'player_spawn': list(self.player_spawn),
+            'events':      list(self.events),  # копия — events очистим после broadcast
             'cancel_reason': self.sess.get('cancel_reason', ''),
             'reward_cash':   self.sess.get('reward_cash', 0),
             'reward_exp':    self.sess.get('reward_exp', 0),
@@ -9405,6 +9711,10 @@ def _coop_init_sim(sess: dict) -> 'IsoBattleSim':
             atk    = p.get('atk',    20),
             def_   = p.get('def',    10),
         )
+    # Phase 2: разворачиваем боссa+миньонов на серверной арене.
+    # До этого вызова enemies пустой; после — есть готовый мир, который
+    # уйдёт первым же снапшотом ко всем подключённым клиентам.
+    _coop_spawn_world(sim)
     sess['iso_sim'] = sim
     asyncio.create_task(_iso_run_sim_loop(sim))
     logger.info("IsoSim: started sid=%s seed=%s boss=%s",
@@ -9727,6 +10037,18 @@ async def _coop_http_app():
                     t = pkt.get('t') or pkt.get('type')
                     if t == 'input':
                         sim.apply_input(uid, pkt.get('d') or pkt.get('data') or {})
+                    elif t == 'hit':
+                        # Клиент репортит попадание в серверного врага.
+                        # Phase 2: сервер ему верит (нет валидации LoS).
+                        # Phase 5 добавит raycast-проверку на стороне сервера.
+                        d = pkt.get('d') or {}
+                        try:
+                            eid = int(d.get('enemy_id', -1))
+                            dmg = int(d.get('dmg', 0))
+                        except Exception:
+                            eid, dmg = -1, 0
+                        if eid >= 0 and dmg > 0:
+                            sim.apply_hit(uid, eid, dmg)
                     elif t == 'ping':
                         # Эхо для замера RTT клиентом.
                         try:

@@ -1007,8 +1007,23 @@ function damageActor(v, dmg, dirAngle, weaponKey) {
   // его серверу в ближайшем coopTick(). Сервер уменьшит shared boss_hp.
   // Capped to remaining hp, чтобы не передавать «overkill» — он считается
   // визуально, но HP босса всё равно был бы 0.
-  if (window.COOP_ACTIVE && v.isBoss && dmg > 0) {
+  // V1 path (HTTP polling): копим dmg по боссу для следующего coopTick'а.
+  // В V2 (coop_sim) этого не делаем — всё идёт через t:'hit' ниже.
+  if (window.COOP_ACTIVE && !QP.coop_sim && v.isBoss && dmg > 0) {
     coopPendingBossDmg += Math.min(v.hp, dmg);
+  }
+  // Phase 2 (Path V): урон по server-owned врагу репортится в WS как
+  // событие 'hit'. Сервер авторитативно применит к shared HP, остальные
+  // клиенты увидят падение в следующем snapshot'е. Боссу это эквивалентно
+  // V1-шному boss_dmg (enemy_id=0 на сервере).
+  if (QP.coop_sim && v && v._serverOwned && v._serverId != null && dmg > 0 &&
+      simWs && simWs.readyState === 1) {
+    try {
+      simWs.send(JSON.stringify({
+        t: 'hit',
+        d: { enemy_id: v._serverId, dmg: Math.round(Math.min(v.hp, dmg)) },
+      }));
+    } catch(e) {}
   }
   const wasAlive = v.hp > 0;
   const prevHp = v.hp;
@@ -3707,10 +3722,95 @@ function simSendInput() {
   if (performance.now() - _simPingT > 1000) simSendPing();
 }
 
+// Интерполяция позиций server-owned врагов между двумя последними
+// снапшотами. Без неё на 20 Гц симуляции движение выглядит ступеньками;
+// с интерполяцией 60 FPS клиента «дотягивает» позицию плавно. Берём
+// время с последнего snap'а и линейно идём от prev → targ.
+function simInterpolateEnemies(now, dt) {
+  const dur = 50; // ms — частота snapshot'ов на сервере (20 Гц)
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies[i];
+    if (!e || !e._serverOwned || e._targR == null) continue;
+    const t = Math.min(1, Math.max(0, (now - (e._snapAt || now)) / dur));
+    e.r = (e._prevR != null ? e._prevR : e._targR) + (e._targR - (e._prevR != null ? e._prevR : e._targR)) * t;
+    e.c = (e._prevC != null ? e._prevC : e._targC) + (e._targC - (e._prevC != null ? e._prevC : e._targC)) * t;
+    // Угол — берём целевой (без интерполяции, чтобы не «крутился через ноль»)
+    if (e._targAng != null) e.angle = e._targAng;
+    // Анимация ходьбы — двигаемся → шаг
+    if (e.alive !== false && Math.abs(e._targR - (e._prevR ?? e._targR)) + Math.abs(e._targC - (e._prevC ?? e._targC)) > 0.01) {
+      e.moving = true;
+      e.walkPhase = (e.walkPhase || 0) + dt * 8;
+    } else {
+      e.moving = false;
+    }
+  }
+}
+
+// Применяем enemies[] из снапшота. Первый раз — создаём массив,
+// дальше — обновляем in-place (preserves animation continuity).
+function simApplyEnemies(srvEnemies) {
+  if (!srvEnemies) return;
+  // Если структура поменялась (кто-то умер) — пересоздаём массив.
+  // Простой случай: длина одинакова → обновляем по индексу.
+  if (enemies.length !== srvEnemies.length) {
+    enemies.length = 0;
+    for (let i = 0; i < srvEnemies.length; i++) {
+      const se = srvEnemies[i];
+      enemies.push({
+        r: se.r, c: se.c, angle: se.ang,
+        hp: se.hp, hpMax: se.max_hp,
+        look: se.look || {}, isBoss: !!se.is_boss,
+        weapon: se.weapon || 'pistol',
+        walkPhase: se.walk_phase || 0,
+        name: se.name || '',
+        emoji: se.is_boss ? (BOSS_CFG.emoji || '👤') : '',
+        aiState: se.ai_state || 'patrol',
+        _serverOwned: true,
+        _serverId: se.id,
+        _prevR: se.r, _prevC: se.c, _prevAng: se.ang,
+        _targR: se.r, _targC: se.c, _targAng: se.ang,
+        _snapAt: performance.now(),
+        // Локальные поля для совместимости с рендером
+        moving: false, fireCD: 0, lostParts: {},
+        confined: null,
+        // Sentry-флаг для AI-fallback (если когда-то перейдёт обратно)
+        isSentry: !!se.is_sentry,
+      });
+    }
+  } else {
+    for (let i = 0; i < srvEnemies.length; i++) {
+      const se = srvEnemies[i];
+      const e = enemies[i];
+      if (!e) continue;
+      e._prevR = e.r;
+      e._prevC = e.c;
+      e._prevAng = e.angle;
+      e._targR = se.r;
+      e._targC = se.c;
+      e._targAng = se.ang;
+      e._snapAt = performance.now();
+      e.hp = se.hp;
+      e.hpMax = se.max_hp;
+      e.aiState = se.ai_state || 'patrol';
+      // alive-флаг: сервер сказал мёртв → ставим hp=0 чтобы checkFightEnd
+      // и render обнаружили труп.
+      if (se.alive === false && e.hp > 0) e.hp = 0;
+      if (se.weapon) e.weapon = se.weapon;
+      e._serverOwned = true;
+      e._serverId = se.id;
+      if (se.is_boss != null) e.isBoss = !!se.is_boss;
+    }
+  }
+}
+
 function simHandleSnap(d) {
   if (!d) return;
   coopServerState  = d.state || 'battle';
   coopServerBossHP = d.boss_hp;
+  // Phase 2: серверный enemies — применяем (если есть).
+  if (Array.isArray(d.enemies) && d.enemies.length) {
+    simApplyEnemies(d.enemies);
+  }
   // Серверный список игроков: разделяем на «свой» и «остальные».
   // Phase 1: координаты идут как клиентские — равносильно V1.
   const players = d.players || [];
@@ -3962,8 +4062,17 @@ function update(dt) {
   // тик красной вспышки урона
   if (player.hitT > 0) player.hitT = Math.max(0, player.hitT - dt);
 
-  // AI врагов
-  enemies.forEach(e => updateEnemyAI(e, dt));
+  // AI врагов. В coop_sim (Path V) — серверный AI; клиент только
+  // интерполирует позиции, локальный updateEnemyAI пропускаем для
+  // server-owned врагов. Если по какой-то причине у нас остались
+  // не-server-owned (например снапшот ещё не пришёл) — гоняем AI как
+  // раньше, чтобы не получить «застывший» начальный спавн.
+  if (QP.coop_sim) {
+    simInterpolateEnemies(performance.now(), dt);
+    enemies.forEach(e => { if (!e._serverOwned) updateEnemyAI(e, dt); });
+  } else {
+    enemies.forEach(e => updateEnemyAI(e, dt));
+  }
 
   // Если игрок мёртв — пропускаем управление
   if (player.hp <= 0) {
