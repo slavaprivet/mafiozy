@@ -3817,6 +3817,12 @@ function simApplyEnemies(srvEnemies) {
         confined: null,
         // Sentry-флаг для AI-fallback (если когда-то перейдёт обратно)
         isSentry: !!se.is_sentry,
+        // Phase 4: alert + FOV — клиент рендерит конус и баннер.
+        // alerted: server alert_level (0/1/2). fovAngle совместим с
+        // drawVisionCone, ширина — серверный fov_arc.
+        alerted: se.alert_level || 0,
+        fovAngle: se.fov_arc || 1.85,
+        viewDist: se.is_boss ? 11 : 6.5,
       });
     }
   } else {
@@ -3841,7 +3847,18 @@ function simApplyEnemies(srvEnemies) {
       e._serverOwned = true;
       e._serverId = se.id;
       if (se.is_boss != null) e.isBoss = !!se.is_boss;
+      // Phase 4: alert/fov — серверные значения
+      if (se.alert_level != null) e.alerted = se.alert_level;
+      if (se.fov_arc != null) e.fovAngle = se.fov_arc;
     }
+    // Phase 4: глобальный alertLevel = максимум по живым серверным
+    // врагам. Это даёт общий «🔴 ТРЕВОГА» баннер у всех клиентов:
+    // если один заметил — у всех в команде красная плашка.
+    let maxAlert = 0;
+    for (const e of enemies) {
+      if (e.hp > 0 && (e.alerted || 0) > maxAlert) maxAlert = e.alerted;
+    }
+    alertLevel = maxAlert;
   }
 }
 
@@ -5030,6 +5047,13 @@ function _doStealthKill() {
   if (_meleeFiring) return;
   if (player.hp <= 0) return;
   const back = findBackstabTarget();
+  // CO-OP sim: репортим стелс-килл серверу. Сервер применит максимум,
+  // а локальный fireWeapon ниже сыграет анимацию ножа. Парный t:'hit'
+  // на damageActor серверу no-op'нется (enemy уже dead в apply_hit).
+  if (back && QP.coop_sim && back._serverOwned && back._serverId != null &&
+      simWs && simWs.readyState === 1) {
+    try { simWs.send(JSON.stringify({ t: 'stealth_kill', d: { enemy_id: back._serverId } })); } catch(e) {}
+  }
   if (!back) {
     // Цель пропала (враг повернулся / игрок отбежал). НЕ стреляем —
     // мигнём кнопкой чтоб дать визуальную обратную связь.

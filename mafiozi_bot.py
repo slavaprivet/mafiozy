@@ -1914,7 +1914,7 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
     params = {
         # Кеш-бастер для Telegram WebApp: подними при каждом релизе боёвки
         # — иначе TG держит старый HTML в кеше и игроки видят прошлую версию.
-        "_v":     "18",
+        "_v":     "19",
         "name":   urllib.parse.quote(char["name"][:20]),
         "hp":     char["hp"],
         "maxhp":  char["max_hp"],
@@ -9397,6 +9397,13 @@ def _coop_spawn_world(sim: 'IsoBattleSim') -> None:
         '_patrol_until':  0.0,
         '_home_r':        float(boss_r),
         '_home_c':        float(boss_c),
+        # Phase 4: босс начинает с alert_level=0 (стелс может сработать).
+        # FOV у босса шире — он более внимательный. Иммунен к одношоту через
+        # stealth — apply_stealth_kill для босса наносит 50% max_hp.
+        'alert_level':    0,
+        'fov_arc':        2.20,  # ~126° — босс внимательнее
+        '_alerted_at':    0.0,
+        '_corpse_check':  0.0,
     }
     sim.enemies = [boss]
 
@@ -9438,6 +9445,11 @@ def _coop_spawn_world(sim: 'IsoBattleSim') -> None:
             '_home_r':       float(r),
             '_home_c':       float(c),
             '_fc_ms':        int(arch['fc']),  # cooldown стрельбы (для фазы 3)
+            # Phase 4: тревога/конус зрения
+            'alert_level':   0,    # 0=спокоен, 2=в бою (1 в будущем=suspicious)
+            'fov_arc':       1.85, # ~106° (radians) — стандартный конус зрения
+            '_alerted_at':   0.0,
+            '_corpse_check': 0.0,
         }
         sim.enemies.append(e)
     logger.info("IsoSim spawn: sid=%s boss=%s minions=%d cols=%d rows=%d",
@@ -9552,11 +9564,117 @@ class IsoBattleSim:
                 self.sess['state'] = 'lost'
                 _coop_add_log(self.sess, "💀 Все пали. Поражение.", 'sys')
 
+    def _can_see(self, e: dict, target: dict, sight_r: float) -> tuple:
+        """Видит ли враг цель: дистанция + FOV (угол). В alert_level=2 враг
+        «видит» в радиусе sight_r ВО ВСЕ стороны (combat-awareness). В
+        alert_level=0/1 — только в конусе fov_arc относительно своего угла.
+        Возвращает (visible: bool, dist: float)."""
+        import math as _m
+        dr = target['y'] - e['r']
+        dc = target['x'] - e['c']
+        d = (dr * dr + dc * dc) ** 0.5
+        if d > sight_r:
+            return (False, d)
+        if e.get('alert_level', 0) >= 2:
+            return (True, d)
+        # FOV: разница углов между «куда смотрит» и «куда стоит цель»
+        target_ang = _m.atan2(dr, dc)
+        diff = (target_ang - e.get('ang', 0))
+        # нормализуем в [-pi, pi]
+        while diff > _m.pi:  diff -= 2 * _m.pi
+        while diff < -_m.pi: diff += 2 * _m.pi
+        fov = e.get('fov_arc', 1.85)
+        return (abs(diff) <= fov / 2, d)
+
+    def _alert(self, e: dict, level: int, now_sec: float) -> None:
+        """Поднимаем тревогу у врага. На переход из спокойного в боевой
+        кладём событие 'alert' (клиент рисует баннер) и пропагируем по
+        ближайшим соратникам (радиус 8 клеток)."""
+        prev = e.get('alert_level', 0)
+        if level <= prev:
+            return
+        e['alert_level'] = level
+        e['_alerted_at'] = now_sec
+        if level >= 2:
+            self.events.append({
+                'type':     'alert',
+                'enemy_id': e['id'],
+                'level':    level,
+            })
+            # Пропагация: ВСЕ живые враги в радиусе 8 — тоже в бой.
+            # Это «он орёт — все слышат» механика.
+            for other in self.enemies:
+                if other is e or not other.get('alive'):
+                    continue
+                if other.get('alert_level', 0) >= 2:
+                    continue
+                dr = other['r'] - e['r']
+                dc = other['c'] - e['c']
+                if (dr * dr + dc * dc) ** 0.5 <= 8.0:
+                    other['alert_level'] = 2
+                    other['_alerted_at'] = now_sec
+
+    def _check_corpse_alert(self, e: dict, now_sec: float) -> None:
+        """Враг увидел труп товарища — поднимает тревогу. Проверка раз в
+        0.6 сек чтобы не убивать CPU O(N²) каждый тик."""
+        if e.get('alert_level', 0) >= 2:
+            return
+        if e.get('is_boss'):
+            return  # босс не реагирует на трупы (его дело — кабинет)
+        if now_sec - e.get('_corpse_check', 0) < 0.6:
+            return
+        e['_corpse_check'] = now_sec
+        for c in self.enemies:
+            if c is e or c.get('alive') or c.get('is_boss'):
+                continue
+            dr = c['r'] - e['r']
+            dc = c['c'] - e['c']
+            if (dr * dr + dc * dc) ** 0.5 <= 4.0:
+                self._alert(e, 2, now_sec)
+                self.events.append({
+                    'type':     'corpse_seen',
+                    'enemy_id': e['id'],
+                    'corpse_id': c['id'],
+                })
+                return
+
+    def apply_stealth_kill(self, uid: str, enemy_id: int) -> None:
+        """Стелс-килл от клиента: одношот, если враг не в alert. Босс
+        иммунен — даёт 50% max_hp вместо лечения. В Phase 4 не валидируем
+        «реально ли игрок за спиной» — клиент сам проверяет (findBackstabTarget)."""
+        for e in self.enemies:
+            if e.get('id') != enemy_id or not e.get('alive'):
+                continue
+            if e.get('alert_level', 0) >= 2:
+                # Уже в бою — нельзя стелс-килл.
+                return
+            if e.get('is_boss'):
+                self.apply_hit(uid, enemy_id, e.get('max_hp', 300) // 2)
+                self.events.append({
+                    'type':     'stealth_hit_boss',
+                    'enemy_id': enemy_id,
+                    'by_uid':   uid,
+                })
+                return
+            applied = e['hp']
+            e['hp'] = 0
+            e['alive'] = False
+            e['ai_state'] = 'dead'
+            self.events.append({
+                'type':     'stealth_kill',
+                'enemy_id': enemy_id,
+                'by_uid':   uid,
+                'dmg':      applied,
+            })
+            return
+
     def tick(self, dt: float) -> None:
-        """Один шаг симуляции (Phase 3: patrol + chase + shoot).
-        Враг видит игрока в радиусе sight_r → поворачивается + бежит к нему
-        (chase) → попадает в shoot_r → стреляет с кулдауном (shoot). Когда
-        нет цели — обычное патрулирование (как в Phase 2)."""
+        """Один шаг симуляции (Phase 4: + FOV + alert state + corpse detection).
+        Враг видит игрока ТОЛЬКО в конусе fov_arc относительно своего угла,
+        пока не в боевой тревоге. Один заметил → alert_level=2 → паника
+        пропагируется по соседям в радиусе 8 клеток. Труп товарища в
+        радиусе 4 клеток поднимает тревогу. Stealth-килл одношотит
+        non-alert миньона, боссу — 50% HP."""
         self.tick_no += 1
         now_sec = self.tick_no * ISO_SIM_TICK_DT
         import math as _m
@@ -9581,19 +9699,22 @@ class IsoBattleSim:
             shoot_r =  9.0 if is_boss else 5.0
             fc_ms   = (1400 if is_boss else int(e.get('_fc_ms', 1000)))
 
-            # Ищем ближайшего видимого игрока (без LoS в Phase 3 — просто
-            # дистанция; raycast/стены добавим в фазе 5).
+            # Корпус-детект: проверяем что не лежит ли товарищ рядом.
+            self._check_corpse_alert(e, now_sec)
+
+            # Ищем ближайшего игрока, КОТОРОГО ВИДИМ через FOV. В alert=0
+            # это узкий конус; в alert=2 круговое восприятие в радиусе.
             target = None
             target_d = sight_r + 1
             for p in alive_players:
-                dr = p['y'] - e['r']
-                dc = p['x'] - e['c']
-                d  = (dr * dr + dc * dc) ** 0.5
-                if d < target_d:
+                visible, d = self._can_see(e, p, sight_r)
+                if visible and d < target_d:
                     target_d = d
                     target = p
 
             if target is not None:
+                # Первое обнаружение — поднимаем тревогу + пропагация.
+                self._alert(e, 2, now_sec)
                 # Поворачиваемся к цели.
                 dr = target['y'] - e['r']
                 dc = target['x'] - e['c']
@@ -9781,6 +9902,10 @@ class IsoBattleSim:
                     'walk_phase': round(e.get('walk_phase', 0), 2),
                     'ai_state':   e.get('ai_state', 'patrol'),
                     'is_sentry':  bool(e.get('is_sentry')),
+                    # Phase 4: тревога + ширина конуса зрения — клиент
+                    # рисует FOV-cone (зелёный/жёлтый/красный) и баннер.
+                    'alert_level': int(e.get('alert_level', 0)),
+                    'fov_arc':    round(e.get('fov_arc', 1.85), 3),
                 } for e in self.enemies
             ],
             # Размеры арены + boss-room — клиент использует это для бэкдропа
@@ -10170,6 +10295,17 @@ async def _coop_http_app():
                             eid, dmg = -1, 0
                         if eid >= 0 and dmg > 0:
                             sim.apply_hit(uid, eid, dmg)
+                    elif t == 'stealth_kill':
+                        # Phase 4: стелс-килл за спиной. Клиент уже
+                        # проверил findBackstabTarget; сервер дополнительно
+                        # отказывает если враг уже в alert. Боссу — 50% hp.
+                        d = pkt.get('d') or {}
+                        try:
+                            eid = int(d.get('enemy_id', -1))
+                        except Exception:
+                            eid = -1
+                        if eid >= 0:
+                            sim.apply_stealth_kill(uid, eid)
                     elif t == 'ping':
                         # Эхо для замера RTT клиентом.
                         try:
