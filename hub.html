@@ -1682,10 +1682,16 @@ body.on-subpage .time-display-box { display: none !important; }
     <div class="dist-hp-bar-bg"><div class="dist-hp-bar-fill" id="dist-hp-bar" style="width:100%"></div></div>
     <div class="dist-hp-val" id="dist-hp-val">100/100</div>
   </div>
-  <!-- Gather action -->
-  <div class="gather-section">
+  <!-- Gather action (на рынке скрыта — бутылок больше нет) -->
+  <div class="gather-section" id="gather-section">
     <button class="gather-btn" id="gather-btn" onclick="doGather()">🍺 Собрать</button>
     <div class="gather-cd-text" id="gather-cd-text"></div>
+  </div>
+  <!-- Dossier (досье «Розыскивается» — карточки боссов района) -->
+  <div class="hospital-section" style="margin-top:8px">
+    <button class="hospital-btn" id="dossier-btn" onclick="showDossier()" style="background:linear-gradient(135deg,#3d2810,#5a3d18);border-color:#8b6332;color:#ffd76b">
+      📜 Досье на боссов
+    </button>
   </div>
   <!-- Hospital -->
   <div class="hospital-section">
@@ -1708,6 +1714,38 @@ body.on-subpage .time-display-box { display: none !important; }
     <div class="modal-line" id="hosp-cost-line">💵 Лечение: 100$</div>
     <button class="modal-btn modal-btn-heal" onclick="doHospitalHeal()">💊 Вылечиться</button>
     <button class="modal-btn modal-btn-close" onclick="document.getElementById('hospital-modal').style.display='none'">Закрыть</button>
+  </div>
+</div>
+
+<!-- ══ DOSSIER MODAL — «Розыскивается» ══ -->
+<div class="modal-overlay" id="dossier-modal" style="display:none">
+  <div class="modal-box" style="max-width:520px;background:linear-gradient(180deg,#1a1408,#0f0a05);border:2px solid #8b6332">
+    <div class="modal-title" id="doss-title" style="color:#ffd76b;text-align:center;font-family:Georgia,serif;letter-spacing:2px">
+      📜 ДОСЬЕ
+    </div>
+    <div id="doss-list" style="margin:12px 0;max-height:60vh;overflow-y:auto"></div>
+    <button class="modal-btn modal-btn-close" onclick="document.getElementById('dossier-modal').style.display='none'">Закрыть</button>
+  </div>
+</div>
+
+<!-- ══ DOSSIER FILE MODAL — карточка одного босса ══ -->
+<div class="modal-overlay" id="dossier-file-modal" style="display:none">
+  <div class="modal-box" style="max-width:480px;background:linear-gradient(180deg,#1f1809,#100a04);border:2px solid #c8a050">
+    <div style="text-align:center;color:#ffd76b;font-family:Georgia,serif;letter-spacing:3px;font-size:11px;border-top:1px solid #8b6332;border-bottom:1px solid #8b6332;padding:6px 0;margin-bottom:10px">
+      РОЗЫСКИВАЕТСЯ&nbsp;·&nbsp;ЖИВЫМ&nbsp;ИЛИ&nbsp;МЁРТВЫМ
+    </div>
+    <div id="doss-file-emoji" style="text-align:center;font-size:56px;line-height:1;margin:6px 0">😈</div>
+    <div id="doss-file-name" style="text-align:center;color:#ffd76b;font-size:18px;font-weight:bold;font-family:Georgia,serif">Имя</div>
+    <div id="doss-file-title" style="text-align:center;color:#c8a050;font-style:italic;font-size:13px;margin-bottom:8px">Титул</div>
+    <div id="doss-file-stats" style="text-align:center;color:#ddd;font-size:13px;margin-bottom:10px">❤️ HP · ⚔️ ATK · 🛡 DEF</div>
+    <div id="doss-file-quote" style="background:rgba(0,0,0,.4);padding:8px 12px;border-left:3px solid #c8a050;color:#e8d8a8;font-style:italic;font-size:13px;margin-bottom:10px">«цитата»</div>
+    <div style="color:#c8a050;font-size:12px;font-weight:bold;letter-spacing:1px;margin-bottom:4px">📖 БИОГРАФИЯ</div>
+    <div id="doss-file-bio" style="color:#ddd;font-size:13px;line-height:1.5;margin-bottom:12px">…</div>
+    <div id="doss-file-reward" style="text-align:center;color:#ffd76b;font-size:13px;font-weight:bold;padding-top:8px;border-top:1px solid #8b6332">💰 Награда: …</div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="modal-btn modal-btn-close" style="flex:1" onclick="document.getElementById('dossier-file-modal').style.display='none'; document.getElementById('dossier-modal').style.display='flex'">⬅ К списку</button>
+      <button class="modal-btn modal-btn-close" style="flex:1" onclick="document.getElementById('dossier-file-modal').style.display='none'">Закрыть</button>
+    </div>
   </div>
 </div>
 
@@ -2545,9 +2583,35 @@ const BOSS_DATA = {
   vizir:     {name:'🎯 Визирь',   title:'Правая рука Дона',      hp:1050,atk:140,def:78, exp:300, cash:1500,minions:15, quote:'Дон знает о твоём визите.'},
 };
 
+// «Розыскивается» — биография каждого босса для досье в hub'е. Зеркало
+// BOSS_BIO из mafiozi_bot.py. Текст обновляется в обоих местах синхронно.
+const BOSS_BIO = {
+  kosoy: 'В детстве воровал шапки у одноклассников, в 14 — кошельки у пассажиров троллейбуса. Получил кличку за врождённое косоглазие, которое сам считает «преимуществом» — никто не понимает, куда он смотрит. На рынке его знают все ларёчники: проще дать пятак, чем потом искать пропавший товар.',
+  bychok: 'Бывший борец-вольник, выгнан из спортшколы за поломанные носы партнёров. Поднялся как «крыша» рыночных торговцев — берёт натурой и наликом. Раз в неделю обходит ряды лично; те, кто платит вовремя, получают «защиту от конкурентов» (а заодно от самого Бычка).',
+  zhigan: 'Карманник в третьем поколении. Дед учил его на тёрке в трамвае, отец — на Курском вокзале, сам Жиган выпускник колонии для несовершеннолетних. Носит при себе паспорт жертвы — «на удачу». Поговаривают, что именно у него один из ключей к подпольной сети документов.',
+  shustryy: 'Бегун-любитель, мастер спорта по марафону до того, как сел за гоп-стоп. На рынке работает «толкачом» — отвлекает, толкает, исчезает. Поймать его пешком невозможно: тренируется каждое утро в 6:00, обед — в столовке ИТК.',
+  tolsty: 'Смотрящий за портом уже двенадцать лет. Начинал грузчиком — в одиночку тащил 100-кг мешки сахара по трапу. Поднялся на «недоучётах» при разгрузке. Жирный, медленный, но ни один контейнер не пройдёт без его подписи; за подпись просит долю или огнестрел.',
+  kaban: 'Бригадир докеров, бывший прапорщик стройбата. Дисциплина у его бригады армейская: опоздал — штраф, спорил — выгнал. Любит командовать, ненавидит когда лезут «через голову». Голыми руками гнёт арматуру, пьёт водку гранёными стаканами без закуски.',
+  bukhgalter: 'Когда-то главный бухгалтер совхоза «Заря» — пока совхоз не сгорел вместе с документацией. Сейчас ведёт «вторую кассу» порта: знает, кому, сколько и за что. Носит очки, костюм-тройку, всегда улыбается. Под рубашкой — браунинг и кобура, сшитая на заказ.',
+  kontrabas: 'Бывший моряк-загранплаватель, привозил из Турции «всё что попросят». Спалился на партии электроники в 90-х, отсидел, вернулся в порт уже хозяином схемы. Сейчас через его людей идут сигареты, парфюм и иногда — то, о чём вслух не говорят.',
+  legenda: 'Имя его не произносят вслух — называют просто «Он». Сидел трижды, выходил в авторитете. В казино его знают по голосу: подходит к столу, кладёт стопку купюр, молча кивает крупье. Проиграть Легенда не может — по понятиям, не положено.',
+  professor: 'Кандидат экономических наук, защитился в 92-м, ушёл «в схемы» в 93-м. Просчитал десятки финансовых пирамид и обналички. В казино ведёт «свой» стол — играет только с теми, кто пришёл проиграться. Тех, кто пришёл выиграть, к его столу не пускают.',
+  artist: 'Бывший актёр погорелого театра — играл Гамлета, теперь играет разводки. Может за пять минут стать кем угодно: священником, инспектором, сантехником, племянником вашего соседа. Главный босс казино — потому что лучше всех знает, что человек хочет услышать.',
+  svalshchik: 'Слил в 89-м всю свою бригаду — отсидел минимально, остальные получили по 8-12 лет. Когда вышли, ждали с ножами; Сдатчик пришёл первым — к их домам. Никто не вернулся. С тех пор работает в одиночку, доверять перестали даже его собственному имени.',
+  buryy: 'Старая закалка — мотал срок ещё при Брежневе, на Колыме. Молодых называет «щенками», уважает только тех, кто прошёл зону. На промзоне его слово — закон; те, кто не понял, лежат в заброшенных цехах. Татуировок столько, что кожи под ними почти не видно.',
+  khirurg: 'Учился на хирурга, дошёл до 5 курса — выгнали за «эксперименты» в морге. Сейчас «зашивает» проблемы группировки: тихо, без следов, без свидетелей. Носит с собой скальпель — не для понта, использует. Боли не чувствует ни своей, ни чужой.',
+  tigr: 'Профессиональный киллер, ставка — 50К долларов и больше. На счету минимум двенадцать заказов, ни одного раскрытого. Стреляет с двух рук, промахивается раз в пять лет. Главный босс промзоны — потому что туда приезжают «решать», а решать без Тигра нельзя.',
+  palach: 'Исполнитель приговоров «по понятиям». К нему приходят, когда нужно наказать так, чтобы поняли все. Орудие — топор, унаследованный от деда-лесника. Палач не говорит на работе — только смотрит. Этого хватает.',
+  sedoy: 'Поседел в 28, сейчас ему за 60. Прошёл всё: воровские сходки, перестроечный передел, бандитские девяностые, олигархов нулевых. Сидит в резиденции советником у Дона — формально на пенсии, фактически решает кто будет жить дальше.',
+  prizrak: 'Никто не видел его лица. Никто не знает настоящего имени. Только результаты: пропавшие свидетели, выгоревшие документы, замёрзшие «при отопительном сезоне» конкуренты. Дон вызывает его, когда другие уже не справились.',
+  don_karlo: 'Крёстный отец всех пяти районов. Поднялся в 80-х на цеховиках, в 90-х пережил две войны и трёх «преемников». Сейчас живёт в особняке, встречается только с теми, кого знает 20+ лет. Сделать «предложение» Дону Карло — значит подписать себе приговор.',
+  vizir: 'Правая рука Дона уже пятнадцать лет. Считается, что без его одобрения Дон не делает ни одного шага. Холодный аналитик: где Дон видит врага — Визирь видит ресурс, где Дон жмёт на курок — Визирь сначала просчитывает последствия. Тех, кто угрожает Дону, находят без головы.',
+};
+
 const LOC_DATA = {
+  // Рынок: фича «🍺 Собирать бутылки» убрана. gatherBtn=null — кнопка скрыта.
   market:  {icon:'🏪', name:'Рынок',           minLvl:1,  bosses:['kosoy','bychok','shustryy','zhigan'],
-            gatherBtn:'🍺 Собрать бутылки',   cdKey:'gather_market',  cdMs:3600000, cashMin:1,   cashMax:5,   perLvl:0.5},
+            gatherBtn:null,                    cdKey:'gather_market',  cdMs:3600000, cashMin:0,   cashMax:0,   perLvl:0},
   port:    {icon:'⚓', name:'Порт',             minLvl:5,  bosses:['tolsty','kaban','kontrabas','bukhgalter'],
             gatherBtn:'🐟 Разгрузить улов',   cdKey:'gather_port',    cdMs:3600000, cashMin:20,  cashMax:60,  perLvl:3},
   casino:  {icon:'🎰', name:'Казино',           minLvl:10, bosses:['legenda','professor','svalshchik','artist'],
@@ -2696,6 +2760,58 @@ function updateHospitalBtn() {
 }
 
 // ── HOSPITAL ──────────────────────────────────────────────────────────
+// ── DOSSIER (Розыскивается) ──────────────────────────────────────────
+// Открывает модалку со списком боссов района. Тап на босса — отдельная
+// карточка-«постер» с биографией. Зеркало Telegram-команды dossier_<loc>.
+function showDossier() {
+  const locId = currentLocId;
+  const loc = LOC_DATA[locId];
+  if (!loc) return;
+  const title = '📜 ДОСЬЕ — ' + (loc.icon || '') + ' ' + loc.name;
+  document.getElementById('doss-title').textContent = title;
+  const list = document.getElementById('doss-list');
+  list.innerHTML = '';
+  const mainBoss = (loc.bosses && loc.bosses[loc.bosses.length - 1]) || '';  // последний обычно главный
+  // Подберём «главного» по max hp как в LOCATION_MAIN_BOSS (zhigan/bukhgalter/artist/tigr/don_karlo)
+  const MAIN = {market:'zhigan',port:'bukhgalter',casino:'artist',factory:'tigr',mansion:'don_karlo'};
+  const main = MAIN[locId] || mainBoss;
+  loc.bosses.forEach(bid => {
+    const b = BOSS_DATA[bid] || {};
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:6px;background:rgba(0,0,0,.35);border-left:3px solid #8b6332;border-radius:6px;cursor:pointer';
+    row.onclick = function() { showDossierFile(bid); };
+    const emoji = (b.name || '').match(/^(\p{Extended_Pictographic}+)/u);
+    row.innerHTML =
+      '<div style="font-size:28px">' + (emoji ? emoji[1] : '👤') + '</div>' +
+      '<div style="flex:1">' +
+        '<div style="color:#ffd76b;font-weight:bold">' + (b.name || bid) + (bid === main ? ' 👑' : '') + '</div>' +
+        '<div style="color:#aab2c8;font-size:12px;font-style:italic">' + (b.title || '') + '</div>' +
+      '</div>' +
+      '<div style="color:#c8a050;font-size:18px">›</div>';
+    list.appendChild(row);
+  });
+  document.getElementById('dossier-modal').style.display = 'flex';
+}
+
+function showDossierFile(bid) {
+  const b = BOSS_DATA[bid];
+  if (!b) return;
+  const emoji = (b.name || '').match(/^(\p{Extended_Pictographic}+)/u);
+  document.getElementById('doss-file-emoji').textContent = emoji ? emoji[1] : '👤';
+  // Имя без эмодзи
+  document.getElementById('doss-file-name').textContent = (b.name || '').replace(/^\p{Extended_Pictographic}+\s*/u, '');
+  document.getElementById('doss-file-title').textContent = b.title || '';
+  document.getElementById('doss-file-stats').textContent =
+    '❤️ HP ' + b.hp + '   ⚔️ ATK ' + b.atk + '   🛡 DEF ' + b.def;
+  document.getElementById('doss-file-quote').textContent = '«' + (b.quote || '') + '»';
+  document.getElementById('doss-file-bio').textContent =
+    BOSS_BIO[bid] || 'Тёмная лошадка района. Подробности уточняются.';
+  document.getElementById('doss-file-reward').textContent =
+    '💰 Награда: +' + b.cash + '$  ·  +' + b.exp + ' XP';
+  document.getElementById('dossier-modal').style.display = 'none';
+  document.getElementById('dossier-file-modal').style.display = 'flex';
+}
+
 function showHospital() {
   const locId = currentLocId;
   const hosp  = HOSPITAL_NAMES[locId] || {name:'🏥 Больница', doc:'Доктор'};
@@ -2729,6 +2845,13 @@ function doHospitalHeal() {
 // ── GATHER ACTION ─────────────────────────────────────────────────────
 function renderGatherBtn(locId) {
   const loc = LOC_DATA[locId];
+  const section = document.getElementById('gather-section');
+  // На рынке «Собирать бутылки» убрано как фича — секцию прячем целиком.
+  if (!loc.gatherBtn) {
+    if (section) section.style.display = 'none';
+    return;
+  }
+  if (section) section.style.display = '';
   const btn = document.getElementById('gather-btn');
   const cdTxt = document.getElementById('gather-cd-text');
   let lastTs = 0;
