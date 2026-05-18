@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- Принудительный no-cache для Telegram-webview. Без этого TG-клиенты
+     (особенно iOS) держат HTML по host'у и query-string-cache-bust не
+     помогает. Эти три заголовка просят клиент всегда дёргать свежак. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <!-- Предзагрузка боёвки: в TG-вебвью игра уже лежит в кэше к моменту,
      когда игрок жмёт «В бой» — переход без задержки на загрузку html/js. -->
 <link rel="prefetch" href="demo_isometric.html" as="document">

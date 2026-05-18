@@ -12252,6 +12252,22 @@ def main():
             logger.info("HTTP API task scheduled (listening on :8080)")
         except Exception as _e:
             logger.warning("HTTP API не запустился: %s", _e)
+        # Принудительно переустанавливаем default menu button (синяя «🍔»
+        # внизу чата). Без этого она ведёт на статичный URL из @BotFather,
+        # без нашего `?_v=...` cache-bust'а — и юзер видит вечный кеш.
+        # После каждого рестарта бота кнопка указывает на свежий URL.
+        try:
+            from telegram import MenuButtonWebApp, WebAppInfo as _WAI
+            _menu_url = HUB_WEBAPP_URL + f"?_v={_file_cache_bust('hub.html')}"
+            await application.bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="🏠 МЕНЮ",
+                    web_app=_WAI(url=_menu_url),
+                )
+            )
+            logger.info("Default menu button → %s", _menu_url)
+        except Exception as _e:
+            logger.warning("Не удалось переустановить menu button: %s", _e)
 
     app = Application.builder().token(BOT_TOKEN).post_init(_post_init).build()
 
