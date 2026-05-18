@@ -104,16 +104,23 @@ ISO_WEBAPP_URL       = "https://slavaprivet.github.io/mafiozi-battle/demo_isomet
 CREATOR_WEBAPP_URL   = "https://slavaprivet.github.io/mafiozi-battle/creator.html"
 HUB_WEBAPP_URL       = "https://slavaprivet.github.io/mafiozi-battle/hub.html"
 
-# Авто-cache-bust: значение `_v` = mtime локального HTML-файла. При любой
-# правке hub.html/demo_isometric.html и последующем github_upload меняется
-# timestamp → меняется `_v` → Telegram-клиент видит новый URL и обязан
-# заново скачать HTML. Раньше приходилось бампить вручную, теперь — само.
+# Авто-cache-bust: значение `_v` = mtime локального HTML-файла + текущий
+# timestamp бота. mtime гарантирует, что если файл реально изменился — URL
+# тоже; добавочный timestamp пробивает любой агрессивный TG-кеш (некоторые
+# клиенты держат HTML по URL-без-querystring). Раз в минуту значение хвоста
+# меняется, и TG обязан скачать. Лишнего трафика не даёт — Telegram сам
+# дедуплицирует по реальному содержимому.
+import time as _time_for_v
 def _file_cache_bust(filename: str) -> str:
     try:
         path = os.path.join(_HERE, filename)
-        return str(int(os.path.getmtime(path)))
+        mtime = int(os.path.getmtime(path))
     except Exception:
-        return "fallback"
+        mtime = 0
+    # Округляем текущий timestamp до минут — внутри минуты `_v` не меняется
+    # (одна и та же кнопка в чате открывает тот же URL), но между разными
+    # `/start` уже свежак.
+    return f"{mtime}-{int(_time_for_v.time()) // 60}"
 
 # Co-op API base URL — публичный адрес бота (ngrok / VPS).
 # Пример: "https://abc123.ngrok-free.app"
