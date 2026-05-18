@@ -1914,7 +1914,7 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
     params = {
         # Кеш-бастер для Telegram WebApp: подними при каждом релизе боёвки
         # — иначе TG держит старый HTML в кеше и игроки видят прошлую версию.
-        "_v":     "20",
+        "_v":     "21",
         "name":   urllib.parse.quote(char["name"][:20]),
         "hp":     char["hp"],
         "maxhp":  char["max_hp"],
@@ -10295,6 +10295,27 @@ async def _coop_http_app():
                             eid, dmg = -1, 0
                         if eid >= 0 and dmg > 0:
                             sim.apply_hit(uid, eid, dmg)
+                    elif t == 'grenade':
+                        # Phase 6: бросок гранаты/Молотова. Сервер только
+                        # рассылает событие — клиент-метатель сам считает
+                        # AoE-урон через локальный triggerExplosion +
+                        # damageActor + t:'hit' (как обычные пули). Остальные
+                        # клиенты получают 'grenade_throw' и анимируют
+                        # параболу + взрыв. Логика серверного AoE — Phase 7+
+                        # (нужно знать какие враги в радиусе на сервере,
+                        # пока этого не делаем — выйдет double-damage).
+                        d = pkt.get('d') or {}
+                        p = sim.players.get(uid)
+                        if p:
+                            sim.events.append({
+                                'type':   'grenade_throw',
+                                'uid':    uid,
+                                'from_x': round(float(d.get('from_x', p.get('x', 0))), 2),
+                                'from_y': round(float(d.get('from_y', p.get('y', 0))), 2),
+                                'to_x':   round(float(d.get('to_x', 0)), 2),
+                                'to_y':   round(float(d.get('to_y', 0)), 2),
+                                'kind':   str(d.get('kind', 'grenade'))[:16],
+                            })
                     elif t == 'shoot':
                         # Phase 5: клиент стрельнул — рассылаем событие всем
                         # игрокам в сессии, чтобы они увидели muzzle flash

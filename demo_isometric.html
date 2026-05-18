@@ -3762,6 +3762,20 @@ function simHandleEvents(events) {
       if (ev.to_uid === COOP_MY_UID) {
         player.hitT = Math.max(player.hitT || 0, 0.25);
       }
+    } else if (ev.type === 'grenade_throw') {
+      // Тиммейт бросил гранату/Молотов. Не дублируем для себя — у нас
+      // уже играется локально. Для тиммейтов спавним «зрительский» вариант:
+      // dmg=0 чтоб damageActor по нашим врагам не выстрелил (метатель
+      // уже репортит t:'hit' и сервер применит).
+      if (ev.uid === COOP_MY_UID) continue;
+      try {
+        throwGrenade(
+          { r: ev.from_y, c: ev.from_x },
+          ev.to_y, ev.to_x,
+          'player',
+          { kind: ev.kind || 'grenade', dmg: 0, fromPlayer: false }
+        );
+      } catch(e) {}
     } else if (ev.type === 'player_shot') {
       // Тиммейт выстрелил — рисуем muzzle flash у его позиции и
       // играем звук оружия. Не делаем это для своего uid (мы уже
@@ -5384,6 +5398,18 @@ function throwPlayerGrenade(endX, endY) {
   }
   // Тревога вверх — взрыв/коктейль слышен.
   setAlert(2, 'shot');
+  // Phase 6: репортим бросок серверу — он разошлёт другим клиентам,
+  // те анимируют параболу гранаты+взрыв у себя.
+  if (QP.coop_sim && simWs && simWs.readyState === 1) {
+    try { simWs.send(JSON.stringify({
+      t: 'grenade',
+      d: {
+        from_x: player.c, from_y: player.r,
+        to_x: grenAim.tc, to_y: grenAim.tr,
+        kind: throwKind,
+      },
+    })); } catch(e) {}
+  }
 }
 function cancelGrenadeAim() { grenAim.active = false; }
 
