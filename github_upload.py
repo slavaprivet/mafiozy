@@ -1,17 +1,27 @@
 import urllib.request, json, base64, os, sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
+
+# Если запущено двойным кликом — ждём Enter перед закрытием окна.
+# Если из bat (NO_PAUSE=1) или через pipe — выходим сразу.
+def _wait_for_enter():
+    import sys as _s, os as _o
+    if _o.environ.get("NO_PAUSE") or not _s.stdin.isatty():
+        return
+    try: input("Press Enter to exit...")
+    except (EOFError, KeyboardInterrupt): pass
+
 _TOKEN_FILE = os.path.join(_HERE, ".token")
 try:
     with open(_TOKEN_FILE, "r", encoding="utf-8") as _f:
         TOKEN = _f.read().strip()
     if not TOKEN.startswith("ghp_"):
         print(f"[!] .token не похож на GitHub-токен (должен начинаться с 'ghp_')")
-        input("Press Enter to exit..."); sys.exit(1)
+        _wait_for_enter(); sys.exit(1)
 except FileNotFoundError:
     print(f"[!] Файл .token не найден: {_TOKEN_FILE}")
     print(f"    Создай его и впиши туда свой GitHub-токен одной строкой.")
-    input("Press Enter to exit..."); sys.exit(1)
+    _wait_for_enter(); sys.exit(1)
 
 REPO  = "slavaprivet/mafiozi-battle"
 SRC   = os.path.join(_HERE, "battle.html")

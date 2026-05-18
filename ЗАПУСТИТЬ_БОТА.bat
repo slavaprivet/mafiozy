@@ -94,23 +94,27 @@ if errorlevel 1 goto :bot_broken
 REM ── Auto-deploy hub.html + demo_isometric.html на GitHub Pages ───
 REM Чтобы Telegram-WebApp всегда видел свежий HTML. Без этого юзер
 REM правит локально, но TG читает с GitHub Pages — там старая версия.
-REM Скрипты сами сравнят SHA и пропустят upload если файл не менялся.
+REM NO_PAUSE=1 — скрипты пропускают интерактивные input(); <nul даёт
+REM сразу EOF на stdin если они всё-таки запросят.
 if exist ".token" (
+    set NO_PAUSE=1
     echo.
     echo [..] Деплой hub.html на GitHub Pages...
-    echo. | venv\Scripts\python github_upload_hub.py >nul 2>&1
+    venv\Scripts\python github_upload_hub.py <nul
     if errorlevel 1 (
         echo [!] Деплой hub.html не прошёл — мини-апп будет на старой версии.
     ) else (
         echo [OK] hub.html задеплоен.
     )
+    echo.
     echo [..] Деплой demo_isometric.html на GitHub Pages...
-    echo. | venv\Scripts\python github_upload_iso.py >nul 2>&1
+    venv\Scripts\python github_upload_iso.py <nul
     if errorlevel 1 (
         echo [!] Деплой demo_isometric.html не прошёл — боёвка на старой версии.
     ) else (
         echo [OK] demo_isometric.html задеплоен.
     )
+    set NO_PAUSE=
     echo.
 ) else (
     echo [!] .token не найден — пропускаю авто-деплой HTML.

@@ -5,16 +5,26 @@
 import urllib.request, urllib.error, json, base64, os, sys, hashlib, datetime, time
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
+
+# Если запущено двойным кликом — ждём Enter перед закрытием окна.
+# Если из bat (NO_PAUSE=1) или через pipe — выходим сразу.
+def _wait_for_enter():
+    import sys as _s, os as _o
+    if _o.environ.get("NO_PAUSE") or not _s.stdin.isatty():
+        return
+    try: input("Press Enter to exit...")
+    except (EOFError, KeyboardInterrupt): pass
+
 _TOKEN_FILE = os.path.join(_HERE, ".token")
 try:
     with open(_TOKEN_FILE, "r", encoding="utf-8") as _f:
         TOKEN = _f.read().strip()
     if not TOKEN.startswith("ghp_"):
         print("[!] .token не похож на GitHub-токен (должен начинаться с 'ghp_')")
-        input("Press Enter to exit..."); sys.exit(1)
+        _wait_for_enter(); sys.exit(1)
 except FileNotFoundError:
     print(f"[!] Файл .token не найден: {_TOKEN_FILE}")
-    input("Press Enter to exit..."); sys.exit(1)
+    _wait_for_enter(); sys.exit(1)
 
 REPO   = "slavaprivet/mafiozi-battle"
 BRANCH = "main"
@@ -33,7 +43,7 @@ try:
         raw = f.read()
 except FileNotFoundError:
     print(f"[!] Не нашёл {SRC}")
-    input("Press Enter to exit..."); sys.exit(1)
+    _wait_for_enter(); sys.exit(1)
 
 local_sha = hashlib.sha256(raw).hexdigest()
 content_b64 = base64.b64encode(raw).decode()
@@ -79,7 +89,7 @@ old_sha = info.get("sha") if code == 200 else None
 print(f"      HTTP {code}   remote-blob: {old_sha[:12] if old_sha else '(новый файл)'}")
 if code not in (200, 404):
     print(f"[!] ОШИБКА: {info.get('message', info)}")
-    input("Press Enter to exit..."); sys.exit(1)
+    _wait_for_enter(); sys.exit(1)
 
 print(f"\n[3/4] PUT {FILE} ...")
 payload = {"message": f"hub.html build {stamp}", "content": content_b64, "branch": BRANCH}
@@ -90,7 +100,7 @@ resp, code = gh("PUT", f"/repos/{REPO}/contents/{FILE}", payload)
 if code not in (200, 201):
     print(f"[!] HTTP {code} — ЗАЛИВКА УПАЛА")
     print(f"    Ответ: {json.dumps(resp, ensure_ascii=False)[:500]}")
-    input("Press Enter to exit..."); sys.exit(2)
+    _wait_for_enter(); sys.exit(2)
 
 commit_sha  = (resp.get("commit") or {}).get("sha", "")
 content_sha = (resp.get("content") or {}).get("sha", "")
