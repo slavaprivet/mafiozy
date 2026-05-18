@@ -332,21 +332,8 @@ RAID_GANGS = [
 
 # ── Активности на районах (уникальные для каждого) ───────────────────────────
 GATHER_ACTIONS = {
-    "market": {
-        "btn":          "🍺 Собирать бутылки",
-        "title":        "🍺 Собирал бутылки",
-        "cooldown_key": "bottles_last",
-        "cooldown":     3600,
-        "base_min": 1,  "base_max": 5,   "per_level": 0.5,
-        "phrases": [
-            "Пошарил по урнам возле ларьков. Нашёл несколько стекляшек.",
-            "Обошёл рынок по кругу. Бутылки сдал в приёмку.",
-            "Старушки уже разобрали половину. Но тебе что-то досталось.",
-            "Полчаса хождения по жаре — и вот результат.",
-            "Рынок небогатый. Зато честный заработок.",
-        ],
-        "wait_msg": "Ты уже прошёлся по рынку. Бутылок больше нет.",
-    },
+    # «Собирать бутылки» на рынке — убрано по продюсерскому решению (мелочь
+    # ломала темп и не вписывалась в нуар). Остальные gather-действия живы.
     "port": {
         "btn":          "🐟 Разгрузить улов",
         "title":        "🐟 Разгружал улов",
@@ -3955,7 +3942,8 @@ async def show_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🔫 Разобраться с кем-нибудь", callback_data=f"hunt_{loc_id}")],
         [InlineKeyboardButton("🕵️ Выследить босса",           callback_data=f"track_{loc_id}")],
         [InlineKeyboardButton("📜 Досье на боссов",          callback_data=f"dossier_{loc_id}")],
-        [InlineKeyboardButton(GATHER_ACTIONS[loc_id]["btn"], callback_data=f"gather_{loc_id}")],
+        # gather-кнопка опциональна: на рынке её нет (бутылки убраны).
+        *([[InlineKeyboardButton(GATHER_ACTIONS[loc_id]["btn"], callback_data=f"gather_{loc_id}")]] if loc_id in GATHER_ACTIONS else []),
         [InlineKeyboardButton(f"🎰 {CASINO_DATA[loc_id]['name']}", callback_data=f"casino_{loc_id}")],
         [InlineKeyboardButton("🏥 Больница",                  callback_data=f"hospital_{loc_id}")],
         [InlineKeyboardButton("⬅️ Назад",                     callback_data="explore")],
