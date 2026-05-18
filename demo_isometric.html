@@ -252,10 +252,15 @@
            и при тапе мимо палец попадал на правый стик → случайный выстрел.
            Перенесён ВНИЗ отдельным рядом — не путается с гранатами,
            не задевает зону прицеливания. -->
-      <div style="display:flex;pointer-events:auto;align-items:flex-end">
+      <div style="display:flex;pointer-events:auto;align-items:flex-end;gap:8px">
         <button id="meleeBtn" title="Стелс-килл" style="display:none;width:84px;height:84px;background:rgba(80,20,20,.92);border:2px solid #c83030;border-radius:14px;color:#ff5050;font-size:36px;cursor:pointer;box-shadow:0 0 16px rgba(255,40,40,.45),0 2px 8px rgba(0,0,0,.6);position:relative;animation:meleePulse 1s ease-in-out infinite">
           <span id="meleeIcon">🔪</span>
           <span id="meleeLabel" style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#ff8080;font-weight:bold;letter-spacing:1px">УБИТЬ</span>
+        </button>
+        <!-- Phase 8: revive-кнопка. Показывается только если рядом downed-тиммейт. -->
+        <button id="reviveBtn" title="Поднять союзника" style="display:none;width:84px;height:84px;background:rgba(20,60,30,.92);border:2px solid #30c860;border-radius:14px;color:#7be58a;font-size:36px;cursor:pointer;box-shadow:0 0 16px rgba(40,255,80,.45),0 2px 8px rgba(0,0,0,.6);position:relative;animation:meleePulse 1s ease-in-out infinite">
+          <span>🤝</span>
+          <span style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#7be58a;font-weight:bold;letter-spacing:1px">ПОДНЯТЬ</span>
         </button>
       </div>
     </div>
@@ -3448,28 +3453,46 @@ function render() {
   if (window.COOP_ACTIVE && coopOthers && coopOthers.length) {
     coopOthers.forEach(o => {
       if (!o || o.stale) return;
+      const isDowned = !!o.downed;
       // Лёгкий "ally" объект для drawCharacter. Поля совместимы.
+      // У downed: hp=1 чтоб не рендерился как труп, но визуально лежит.
       const ally = {
         r: o.y, c: o.x, angle: o.ang || 0,
-        hp: o.alive ? (o.hp || 1) : 0,
+        hp: isDowned ? 1 : (o.alive ? (o.hp || 1) : 0),
         hpMax: o.max_hp || 100,
         look: o.look || {},
         walkPhase: (performance.now() / 120) % (Math.PI * 2),
-        moving: true,
+        moving: !isDowned,
         isAlly: true,
         name: o.name || '',
       };
       items.push({ depth: o.y + o.x, draw: () => {
-        drawCharacter(ally, false);
-        // имя союзника над головой
+        // Downed: рисуем «лежит» — пол-прозрачно, ниже по экрану, лужа.
         try {
-          const p = w2s(ally.r, ally.c);
+          if (isDowned) {
+            const p = w2s(ally.r, ally.c);
+            ctx.save();
+            ctx.globalAlpha = 0.6;
+            ctx.translate(0, 14);
+            // лужа под телом
+            ctx.fillStyle = 'rgba(120,8,8,0.55)';
+            ctx.beginPath();
+            ctx.ellipse(p.x, p.y - 4, 22, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          drawCharacter(ally, false);
+          if (isDowned) ctx.restore();
+          // имя/статус союзника над головой
+          const p2 = w2s(ally.r, ally.c);
           ctx.font = 'bold 11px system-ui,sans-serif';
           ctx.textAlign = 'center';
           ctx.fillStyle = 'rgba(0,0,0,0.65)';
-          ctx.fillText(ally.name, p.x + 1, p.y - 52);
-          ctx.fillStyle = '#5be58a';
-          ctx.fillText(ally.name, p.x, p.y - 53);
+          const lbl = isDowned
+            ? (ally.name + ' — РАНЕН ' + Math.ceil(o.down_remaining || 0) + 'с')
+            : ally.name;
+          ctx.fillText(lbl, p2.x + 1, p2.y - 52);
+          ctx.fillStyle = isDowned ? '#ff6b6b' : '#5be58a';
+          ctx.fillText(lbl, p2.x, p2.y - 53);
           ctx.textAlign = 'left';
         } catch(e) {}
       }});
@@ -3508,6 +3531,74 @@ function render() {
   goreParts.forEach(g => { if (!g.landed) drawGorePart(g); });
   // реплики-пузыри в самом верху
   chatBubbles.forEach(drawChatBubble);
+  // Phase 8: downed-overlay поверх всего. У своего игрока — крупная плашка
+  // с countdown. У других — компактная подсказка «E — поднять» если рядом.
+  drawDownedOverlay();
+}
+
+// Подсказка/плашка для downed-state.
+// — Свой downed: чёрный полупрозрачный экран + «ТЫ РАНЕН (XXс)»
+// — Рядом downed-союзник: подсказка «E — поднять {имя}» (только если сам жив)
+function drawDownedOverlay() {
+  if (!window.COOP_ACTIVE) return;
+  const W = canvas.width, H = canvas.height;
+  if (coopMyDowned) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(60,0,0,0.45)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ff5555';
+    ctx.font = 'bold 38px system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🩸 ТЫ РАНЕН', W / 2, H / 2 - 20);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 22px system-ui,sans-serif';
+    ctx.fillText('Ждите союзника — ' + Math.ceil(coopMyDownRemain) + 'с', W / 2, H / 2 + 18);
+    ctx.font = '14px system-ui,sans-serif';
+    ctx.fillStyle = '#ffd';
+    ctx.fillText('Подбежит и нажмёт «E» — поднимет.', W / 2, H / 2 + 46);
+    ctx.textAlign = 'left';
+    ctx.restore();
+    return;
+  }
+  // Я жив — ищу downed-тиммейта в радиусе 1.8 клеток.
+  const target = findReviveTarget();
+  if (!target) return;
+  ctx.save();
+  ctx.font = 'bold 16px system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  const msg = '🤝 Нажмите E — поднять ' + target.name;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(W / 2 - 180, H - 110, 360, 36);
+  ctx.fillStyle = '#7be58a';
+  ctx.fillText(msg, W / 2, H - 87);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+// Возвращает ближайшего downed-союзника в радиусе COOP_REVIVE_RADIUS
+// или null. Использует те же координаты что и server (clamp 1.8 клеток).
+const COOP_REVIVE_RADIUS_CLIENT = 1.8;
+function findReviveTarget() {
+  if (!coopOthers || !coopOthers.length) return null;
+  if (player.hp <= 0) return null;
+  let best = null, bestD = COOP_REVIVE_RADIUS_CLIENT;
+  for (const o of coopOthers) {
+    if (!o || !o.downed || o.stale) continue;
+    const d = Math.hypot(player.r - o.y, player.c - o.x);
+    if (d < bestD) { bestD = d; best = o; }
+  }
+  return best;
+}
+
+// Шлёт серверу запрос на подъём. Работает через WS (Path V) — сервер
+// сам валидирует дистанцию/статусы.
+function coopSendRevive(targetUid) {
+  if (!targetUid) return;
+  try {
+    if (typeof simWs !== 'undefined' && simWs && simWs.readyState === 1) {
+      simWs.send(JSON.stringify({ t: 'revive', d: { target_uid: String(targetUid) } }));
+    }
+  } catch(e) {}
 }
 
 // ── UPDATE ─────────────────────────────────────────────────────────
@@ -3525,6 +3616,10 @@ let coopServerBossHP   = -1;      // -1 — ещё не пришло
 let coopServerState    = 'battle';
 let coopPollTimer      = null;
 let coopFinishHandled  = false;
+// Phase 8: downed-state. coopMyDowned=true — я лежу, нужно ждать тиммейта.
+// coopMyDownRemain — секунд до окончательной смерти (sync с сервером).
+let coopMyDowned       = false;
+let coopMyDownRemain   = 0;
 const COOP_TICK_MS = 250;
 const COOP_RETURN_DELAY_MS = 3500;  // через сколько после win/loss возврат в хаб
 
@@ -3839,6 +3934,16 @@ function simHandleEvents(events) {
     } else if (ev.type === 'player_dead') {
       // Тиммейт умер — пометим в coopOthers (он перестанет рендериться живым).
       // В будущей фазе можно «помощь!» тост или иконку.
+    } else if (ev.type === 'player_downed') {
+      // Тиммейт упал — подаём звук+toast, чтобы все услышали что нужна помощь.
+      try { _tone({freq:240, freqEnd:120, dur:0.45, type:'sine', vol:0.18}); } catch(e) {}
+      if (ev.uid === COOP_MY_UID) {
+        // Сам ранен — звук резче.
+        try { _tone({freq:140, freqEnd:60, dur:0.6, type:'sawtooth', vol:0.22}); } catch(e) {}
+      }
+    } else if (ev.type === 'player_revived') {
+      // Союзника подняли — короткий звон+toast.
+      try { _tone({freq:740, freqEnd:1100, dur:0.25, type:'sine', vol:0.18}); } catch(e) {}
     }
   }
 }
@@ -3963,6 +4068,9 @@ function simHandleSnap(d) {
   for (const p of players) {
     if (p.uid === COOP_MY_UID) {
       // Свой — обновляем local hp из server. Server-auth с Phase 3.
+      // Phase 8: downed-state — сервер ставит hp=0+downed=true. Локально
+      // НЕ переходим в death-screen, а лежим под overlay. На revive
+      // сервер вернёт hp>0 и downed=false автоматом.
       if (typeof p.hp === 'number') {
         const prevHp = player.hp;
         if (p.hp < prevHp) {
@@ -3972,6 +4080,9 @@ function simHandleSnap(d) {
         player.hp   = Math.max(0, p.hp);
         player.hpMax = p.max_hp || player.hpMax;
       }
+      // Запоминаем downed-state. coopMyDowned читается в HUD/инпуте.
+      coopMyDowned    = !!p.downed;
+      coopMyDownRemain = +p.down_remaining || 0;
       continue;
     }
     coopOthers.push({
@@ -3982,6 +4093,8 @@ function simHandleSnap(d) {
       weapon: p.weapon || '',
       left: !!p.left,
       stale: false,
+      downed: !!p.downed,
+      down_remaining: +p.down_remaining || 0,
     });
   }
   // Синк HP босса — как в HTTP-варианте.
@@ -4054,6 +4167,9 @@ function checkFightEnd() {
   // его в снапшоте. simHandleSnap дёрнет showResultScene с правильным
   // результатом для команды (а не моя личная смерть = проигрыш).
   if (QP.coop_sim) return;
+  // Phase 8: если я в downed-state — это НЕ конец боя. Жду revive от
+  // тиммейта или окончательной смерти от сервера (он сменит state='lost').
+  if (coopMyDowned) return;
   // Считаем убитых
   for (let i = 0; i < enemies.length; i++) {
     if (enemies[i].hp <= 0 && !fightStats.killsCounted.has(i)) {
@@ -5173,6 +5289,14 @@ function _doStealthKill() {
 // в tryFirePlayer при попытке стрельбы с пустым магазином. На десктопе
 // оставлен хоткей R на случай ручной перезарядки до опустошения обоймы.
 window.addEventListener('keydown', (e) => { if (e.key === 'r' || e.key === 'R') manualReload(); });
+// Phase 8: E — поднять ближайшего downed-союзника. Сервер сам отвергнет
+// если расстояние >1.8 клеток или цель не downed (см. apply_revive).
+window.addEventListener('keydown', (e) => {
+  if ((e.key === 'e' || e.key === 'E') && window.COOP_ACTIVE && !coopMyDowned) {
+    const t = (typeof findReviveTarget === 'function') ? findReviveTarget() : null;
+    if (t) coopSendRevive(t.uid);
+  }
+});
 
 // Кнопки «🎲 Перс» / «↻ Респ» удалены из HUD — это были демо-фичи
 // (перегенерация внешности и респ игрока/врагов). В продовой боёвке
@@ -5304,6 +5428,33 @@ function renderBackstabHint() {
   meleeBtnEl.style.display = hasTarget ? 'flex' : 'none';
   meleeBtnEl.style.alignItems = 'center';
   meleeBtnEl.style.justifyContent = 'center';
+}
+
+// Phase 8: revive-кнопка. Показываем когда рядом downed-союзник И я сам жив.
+const reviveBtnEl = document.getElementById('reviveBtn');
+let _lastReviveVis = false;
+function renderReviveHint() {
+  if (!reviveBtnEl) return;
+  const t = (window.COOP_ACTIVE && !coopMyDowned)
+    ? (typeof findReviveTarget === 'function' ? findReviveTarget() : null)
+    : null;
+  const show = !!t;
+  if (show === _lastReviveVis) return;
+  _lastReviveVis = show;
+  reviveBtnEl.style.display = show ? 'flex' : 'none';
+  reviveBtnEl.style.alignItems = 'center';
+  reviveBtnEl.style.justifyContent = 'center';
+}
+if (reviveBtnEl) {
+  // Touch+click — на тач-устройствах TouchEnd срабатывает раньше Click.
+  const fire = (ev) => {
+    if (ev) { try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {} }
+    if (!window.COOP_ACTIVE || coopMyDowned) return;
+    const t = (typeof findReviveTarget === 'function') ? findReviveTarget() : null;
+    if (t) coopSendRevive(t.uid);
+  };
+  reviveBtnEl.addEventListener('click', fire);
+  reviveBtnEl.addEventListener('touchend', fire, { passive: false });
 }
 
 // ── ГРАНАТА: бросок игроком ────────────────────────────────────────
@@ -5555,6 +5706,7 @@ function loop(t) {
   renderHudWepIcon();
   renderAlertBanner();
   renderBackstabHint();
+  renderReviveHint();
   renderGrenadeBtn();
 
   // Индикатор патронов и перезарядки в HUD сверху:

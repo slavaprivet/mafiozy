@@ -9172,7 +9172,12 @@ async def _coop_grant_rewards(sess: dict) -> None:
     """Полный куш каждому живому/не-ливнувшему игроку. Победа в коопе
     раньше шла через бот-handler (web_app_data), HTTP-сесcии награды не
     выдавали вообще. Теперь начисляем тут — без дележа, full reward
-    each, ровно как просил продюсер. Ливнувших (`left=True`) пропускаем."""
+    each, ровно как просил продюсер. Ливнувших (`left=True`) пропускаем.
+
+    Лут (boss.drop): один ролл на команду — если выпал, достаётся
+    случайному выжившему игроку, у которого этого предмета ещё нет
+    (паспорт от Жигана у всех сразу — это перебор и ломает экономику).
+    Если ни у кого нет места — лут просто сгорает."""
     if sess.get('rewarded'):
         return
     boss = BOSSES.get(sess.get('boss_id') or '') or {}
@@ -9182,6 +9187,7 @@ async def _coop_grant_rewards(sess: dict) -> None:
         sess['rewarded'] = True
         return
     granted = []
+    eligible_uids = []  # uid_int кандидатов на лут
     for pl in sess.get('players') or []:
         if pl.get('left'):
             continue
@@ -9199,6 +9205,7 @@ async def _coop_grant_rewards(sess: dict) -> None:
             kills=(char.get('kills') or 0) + 1,
         )
         granted.append(pl['name'])
+        eligible_uids.append((uid_int, pl['name']))
     sess['rewarded']    = True
     sess['reward_cash'] = reward_cash
     sess['reward_exp']  = reward_exp
@@ -9207,6 +9214,47 @@ async def _coop_grant_rewards(sess: dict) -> None:
         _coop_add_log(sess,
             f"💵 Каждому: +${reward_cash} · +{reward_exp} XP ({names})",
             'sys')
+    # ── Лут от босса (паспорт от Жигана и т.п.). Один ролл на команду.
+    drop = boss.get('drop')
+    if drop and eligible_uids:
+        drop_item, drop_chance = drop
+        if random.random() < drop_chance:
+            # Кандидаты: те, у кого этого предмета ещё нет. Если предмет
+            # стэкается (medkit и т.п.) — всем подойдёт, у passport
+            # ограничение «один на аккаунт» проверяем явно.
+            candidates = []
+            for uid_int, name in eligible_uids:
+                inv = await get_inventory(uid_int)
+                if drop_item == 'passport' and drop_item in (inv or {}):
+                    continue
+                candidates.append((uid_int, name))
+            if candidates:
+                winner_uid, winner_name = random.choice(candidates)
+                await add_item(winner_uid, drop_item)
+                item_name = (ITEMS.get(drop_item) or {}).get('name', drop_item)
+                sess['reward_drop'] = {
+                    'item':    drop_item,
+                    'to_uid':  str(winner_uid),
+                    'to_name': winner_name,
+                }
+                _coop_add_log(sess,
+                    f"🎁 Дроп: {item_name} → {winner_name}",
+                    'sys')
+            else:
+                _coop_add_log(sess,
+                    "💭 Лут выпал, но у всех уже есть...",
+                    'sys')
+    # Fallback-лут как в соло: 30% шанс трофейного medkit/энергетика
+    # каждому. Только если у босса нет «уникального» drop'а.
+    elif eligible_uids and random.random() < 0.3:
+        loot = random.choice(['medkit_small', 'energy_drink'])
+        for uid_int, _ in eligible_uids:
+            try:
+                await add_item(uid_int, loot)
+            except Exception:
+                pass
+        item_name = (ITEMS.get(loot) or {}).get('name', loot)
+        _coop_add_log(sess, f"🎁 Трофей каждому: {item_name}", 'sys')
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -9227,6 +9275,24 @@ async def _coop_grant_rewards(sess: dict) -> None:
 
 ISO_SIM_TICK_HZ = 20
 ISO_SIM_TICK_DT = 1.0 / ISO_SIM_TICK_HZ
+
+# Anti-cheat: rate-limit на t:'hit' от клиента — uid -> [timestamps за 1с].
+# Если бот спамит хиты быстрее 40/сек (пистолет ~12-15, автомат ~13), сервер
+# их молча дропает. Это не убивает легитимный огонь, но ломает однокадровый
+# one-shot-всё-что-движется.
+_hit_rate: dict[str, list[float]] = {}
+
+# Phase 8: downed-state параметры.
+# DOWN_MAX_SEC — сколько игрок лежит до окончательной смерти, если никто
+#                не поднял. 30с — реальный шанс союзнику добежать через
+#                всю арену, но и не вечно (давит на темп).
+# REVIVE_RADIUS — расстояние, на котором союзник может поднять. 1.8 клеток
+#                ≈ «впритык», чтобы под огнём ещё надо было подбежать.
+# REVIVE_HP_FRAC — процент max_hp на подъёме. 0.5 — не one-shot но и не full,
+#                чтобы поднимать было «дорого тактически».
+COOP_DOWN_MAX_SEC = 30.0
+COOP_REVIVE_RADIUS = 1.8
+COOP_REVIVE_HP_FRAC = 0.5
 
 # Данные боссов из JS-реестра — для серверного спавна. Имя/look/weapon
 # берём отсюда, чтобы клиент мог отрендерить полученного из снапшота босса
@@ -9530,6 +9596,14 @@ class IsoBattleSim:
             'alive':  True,
             'left':   False,
             'last_input_at': 0.0,
+            # Phase 8: downed-state (как в L4D). Игрок при hp<=0 не уходит
+            # сразу в труп, а лежит до 30 секунд — союзник может поднять
+            # подойдя на расстояние 1.8 клеток и нажав revive. Если никто
+            # не успел или все остальные тоже легли — окончательная смерть.
+            'downed':         False,
+            'down_at':        0.0,   # время ухода в downed (sim-time)
+            'revive_count':   0,     # сколько раз был поднят (для статов)
+            'was_revived_by': '',    # uid поднявшего — для подсветки
         }
 
     def apply_input(self, uid: str, data: dict) -> None:
@@ -9560,8 +9634,10 @@ class IsoBattleSim:
         p['last_input_at'] = time.time()
         # boss_dmg от клиента — пока сохраняем совместимость с V1.
         # Phase 5+: урон по боссу будет считаться серверным raycast'ом.
+        # Anti-cheat: clamp 500 за один тик, мёртвый не наносит урон.
         bdmg = int(data.get('boss_dmg', 0) or 0)
-        if bdmg > 0:
+        if bdmg > 0 and p.get('alive'):
+            bdmg = min(bdmg, 500)
             sess = self.sess
             if sess.get('boss_hp', 0) > 0 and sess.get('state') == 'battle':
                 sess['boss_hp'] = max(0, sess['boss_hp'] - bdmg)
@@ -9608,7 +9684,13 @@ class IsoBattleSim:
     def _alert(self, e: dict, level: int, now_sec: float) -> None:
         """Поднимаем тревогу у врага. На переход из спокойного в боевой
         кладём событие 'alert' (клиент рисует баннер) и пропагируем по
-        ближайшим соратникам (радиус 8 клеток)."""
+        ВСЕМ живым врагам на арене.
+
+        Раньше пропагация шла только в радиусе 8 — миньон с другого края
+        мансиона мог не услышать тревогу и игрок проскальзывал мимо. В
+        коопе это особенно ломалось: один союзник спалился — другие
+        бегают за углом ничего не подозревая. Теперь стелс — это «один
+        раз → все знают», как в Splinter Cell на тревоге."""
         prev = e.get('alert_level', 0)
         if level <= prev:
             return
@@ -9620,18 +9702,18 @@ class IsoBattleSim:
                 'enemy_id': e['id'],
                 'level':    level,
             })
-            # Пропагация: ВСЕ живые враги в радиусе 8 — тоже в бой.
-            # Это «он орёт — все слышат» механика.
+            # Пропагация: ВСЕ живые миньоны на арене сразу в бой. Босс не
+            # триггерится этим путём — у него своя логика входа в фазу 2
+            # (по HP-порогу), пусть сидит в кабинете до своего HP-триггера.
             for other in self.enemies:
                 if other is e or not other.get('alive'):
                     continue
+                if other.get('is_boss'):
+                    continue
                 if other.get('alert_level', 0) >= 2:
                     continue
-                dr = other['r'] - e['r']
-                dc = other['c'] - e['c']
-                if (dr * dr + dc * dc) ** 0.5 <= 8.0:
-                    other['alert_level'] = 2
-                    other['_alerted_at'] = now_sec
+                other['alert_level'] = 2
+                other['_alerted_at'] = now_sec
 
     def _check_corpse_alert(self, e: dict, now_sec: float) -> None:
         """Враг увидел труп товарища — поднимает тревогу. Проверка раз в
@@ -9657,10 +9739,107 @@ class IsoBattleSim:
                 })
                 return
 
+    def _player_goes_down(self, p: dict, by_id: int = 0,
+                          by_uid: str = '') -> None:
+        """Игрок переходит в downed-state (hp дошёл до 0). Никаких эвентов
+        смерти — только 'player_downed'. Если игрок уже downed (повторный
+        урон по лежачему — AoE-залёт), не делаем ничего: добивание идёт
+        только по таймеру или когда все остальные легли."""
+        if p.get('downed'):
+            return
+        now_sec = self.tick_no * ISO_SIM_TICK_DT
+        p['downed']    = True
+        p['alive']     = False
+        p['hp']        = 0
+        p['down_at']   = now_sec
+        p['firing']    = False
+        # sess.players[uid].hp оставляем 1 (а не 0) — это значит «команда
+        # ещё жива, есть кого спасать». 0 в sess.players включает loss-check.
+        for pp in self.sess.get('players', []):
+            if pp['uid'] == p['uid'] and pp.get('hp', 0) > 0:
+                pp['hp'] = 1
+                _coop_add_log(self.sess,
+                    f"🩸 {pp['name']} истекает кровью — поднимите ({int(COOP_DOWN_MAX_SEC)}с)!",
+                    'death')
+                break
+        self.events.append({
+            'type':   'player_downed',
+            'uid':    p['uid'],
+            'by_id':  by_id,
+            'by_uid': by_uid,
+            'max_sec': COOP_DOWN_MAX_SEC,
+        })
+
+    def _player_dies_for_real(self, p: dict, reason: str = 'timeout') -> None:
+        """Игрок умирает окончательно — либо вышло время downed, либо был
+        добит, либо упал последним и некому поднять. Чистим downed, ставим
+        sess.players.hp=0 (тригерит loss-check в other handlers)."""
+        if not p.get('alive') and not p.get('downed'):
+            return  # уже мёртв
+        p['alive']  = False
+        p['downed'] = False
+        p['hp']     = 0
+        for pp in self.sess.get('players', []):
+            if pp['uid'] == p['uid']:
+                pp['hp'] = 0
+                _coop_add_log(self.sess, f"💀 {pp['name']} убит.", 'death')
+                break
+        self.events.append({
+            'type':   'player_dead',
+            'uid':    p['uid'],
+            'reason': reason,
+        })
+        alive_p = [pp for pp in self.sess.get('players', [])
+                   if pp.get('hp', 0) > 0 and not pp.get('left')]
+        if not alive_p and self.sess.get('state') == 'battle':
+            self.sess['state'] = 'lost'
+            _coop_add_log(self.sess, "💀 Все пали. Поражение.", 'sys')
+
+    def apply_revive(self, uid: str, target_uid: str) -> None:
+        """Игрок uid поднимает downed-союзника target_uid. Проверки:
+        — caller жив (не downed/dead)
+        — target downed (не dead и не alive)
+        — дистанция ≤ COOP_REVIVE_RADIUS
+        На подъёме: target.alive=True, downed=False, hp = max_hp * fraction,
+        sess.players[target].hp синхронизируется. Эвент 'player_revived'."""
+        caller = self.players.get(uid)
+        target = self.players.get(target_uid)
+        if not caller or not target:
+            return
+        if not caller.get('alive') or caller.get('downed'):
+            return
+        if not target.get('downed'):
+            return
+        dx = caller.get('x', 0) - target.get('x', 0)
+        dy = caller.get('y', 0) - target.get('y', 0)
+        if (dx * dx + dy * dy) > (COOP_REVIVE_RADIUS * COOP_REVIVE_RADIUS):
+            return
+        new_hp = max(1, int(target.get('max_hp', 100) * COOP_REVIVE_HP_FRAC))
+        target['downed']     = False
+        target['alive']      = True
+        target['hp']         = new_hp
+        target['revive_count'] = int(target.get('revive_count', 0)) + 1
+        target['was_revived_by'] = uid
+        target['down_at']    = 0.0
+        for pp in self.sess.get('players', []):
+            if pp['uid'] == target_uid:
+                pp['hp'] = new_hp
+                _coop_add_log(self.sess,
+                    f"🤝 {caller.get('name','?')} поднял {pp['name']} ({new_hp} HP)",
+                    'sys')
+                break
+        self.events.append({
+            'type':   'player_revived',
+            'uid':    target_uid,
+            'by_uid': uid,
+            'hp':     new_hp,
+        })
+
     def _apply_aoe_to_players(self, x: float, y: float, radius: float,
                               dmg: int, src_id: int) -> None:
         """AoE-урон по живым игрокам в радиусе. Используется на взрыве
-        боссовой гранаты. Урон с фоллофом: max → в эпицентре, min → на границе."""
+        боссовой гранаты. Урон с фоллофом: max → в эпицентре, min → на границе.
+        Игрок при hp<=0 уходит в downed-state, а не сразу в труп."""
         for p in self.players.values():
             if not p.get('alive') or p.get('hp', 0) <= 0:
                 continue
@@ -9679,12 +9858,7 @@ class IsoBattleSim:
                 'from_id': src_id,
             })
             if p['hp'] <= 0:
-                p['alive'] = False
-                for pp in self.sess.get('players', []):
-                    if pp['uid'] == p['uid'] and pp['hp'] > 0:
-                        pp['hp'] = 0
-                        _coop_add_log(self.sess, f"💀 {pp['name']} убит.", 'death')
-                        break
+                self._player_goes_down(p, by_id=src_id)
                 self.events.append({
                     'type':  'player_dead',
                     'uid':   p['uid'],
@@ -9817,10 +9991,20 @@ class IsoBattleSim:
     def apply_stealth_kill(self, uid: str, enemy_id: int) -> None:
         """Стелс-килл от клиента: одношот, если враг не в alert. Босс
         иммунен — даёт 50% max_hp вместо лечения. В Phase 4 не валидируем
-        «реально ли игрок за спиной» — клиент сам проверяет (findBackstabTarget)."""
+        «реально ли игрок за спиной» — клиент сам проверяет (findBackstabTarget).
+
+        Anti-cheat: мёртвый/downed не может стелс-килить. Дистанция между
+        игроком и жертвой — не больше 3 клеток, иначе клиент мухлюет."""
+        shooter = self.players.get(uid)
+        if not shooter or not shooter.get('alive'):
+            return
         for e in self.enemies:
             if e.get('id') != enemy_id or not e.get('alive'):
                 continue
+            dr = e['r'] - shooter.get('y', 0)
+            dc = e['c'] - shooter.get('x', 0)
+            if (dr * dr + dc * dc) > 9.0:  # 3^2 клетки
+                return
             if e.get('alert_level', 0) >= 2:
                 # Уже в бою — нельзя стелс-килл.
                 return
@@ -9857,6 +10041,9 @@ class IsoBattleSim:
         import random as _r
 
         # Активные цели для AI — живые игроки, не оторванные от сессии.
+        # downed-игроки сюда не попадают (alive=False у них), AI на них не
+        # стреляет — это «уважение к лежачему», иначе револ-патроны добьют
+        # за 2 сек и поднимать некого.
         alive_players = []
         for pl in self.players.values():
             if pl.get('alive') and pl.get('hp', 0) > 0 and not pl.get('left'):
@@ -9865,6 +10052,21 @@ class IsoBattleSim:
                 if (time.time() - pl.get('last_input_at', 0)) > 3.0:
                     continue
                 alive_players.append(pl)
+
+        # Downed-timeout: лежачие, которых не успели поднять за DOWN_MAX_SEC,
+        # окончательно умирают. Тут же если на арене не осталось ни одного
+        # alive — добиваем оставшихся downed (некому поднимать).
+        any_alive = bool(alive_players)
+        for pl in list(self.players.values()):
+            if not pl.get('downed'):
+                continue
+            elapsed = now_sec - pl.get('down_at', now_sec)
+            if elapsed >= COOP_DOWN_MAX_SEC:
+                self._player_dies_for_real(pl, reason='bleed_out')
+            elif not any_alive:
+                # Все остальные тоже легли — нет смысла дать таймеру тикать,
+                # бой проигран, добиваем сразу.
+                self._player_dies_for_real(pl, reason='no_one_left')
 
         # Phase 7: обработка отложенного AoE-урона (брошенные боссом
         # гранаты). Триггер по времени; применяем разово, удаляем.
@@ -10002,35 +10204,37 @@ class IsoBattleSim:
             'dmg':      dmg,
             'weapon':   e.get('weapon', 'pistol'),
         })
-        # Если игрок умер — обнуляем в sess.players (для расчёта «все ли пали»),
-        # эмитим event 'player_dead'.
+        # Если игрок упал до 0 HP — уходит в downed-state, не в труп.
+        # Союзник может поднять в COOP_DOWN_MAX_SEC секунд. Если все
+        # тиммейты тоже легли — tick() добьёт их таймером.
         if target['hp'] <= 0:
-            target['alive'] = False
-            for pp in self.sess.get('players', []):
-                if pp['uid'] == target['uid'] and pp['hp'] > 0:
-                    pp['hp'] = 0
-                    _coop_add_log(self.sess, f"💀 {pp['name']} убит.", 'death')
-                    break
-            self.events.append({
-                'type': 'player_dead',
-                'uid':  target['uid'],
-                'by_id': e['id'],
-            })
-            alive_p = [pp for pp in self.sess.get('players', [])
-                       if pp['hp'] > 0 and not pp.get('left')]
-            if not alive_p and self.sess.get('state') == 'battle':
-                self.sess['state'] = 'lost'
-                _coop_add_log(self.sess, "💀 Все пали. Поражение.", 'sys')
+            self._player_goes_down(target, by_id=e['id'])
 
     def apply_hit(self, uid: str, enemy_id: int, dmg: int) -> None:
         """Клиент репортит попадание по серверному врагу. Server-authoritative:
         здесь финальное решение, жив враг или нет. Если босс умер — запускаем
-        стандартный win-flow (state='won', _coop_grant_rewards)."""
+        стандартный win-flow (state='won', _coop_grant_rewards).
+
+        Anti-cheat: мёртвый игрок не может репортить хиты (иначе bot может
+        читать WS и спамить t:'hit' даже из могилы). Урон clamp'ается сверху
+        — клиент не должен прислать dmg>500, это явная подделка. Дистанция
+        sanity: дальше 30 клеток — отказ (raycast не пробьёт пол-арены)."""
         if dmg <= 0:
             return
+        # Hit-by-self prevention: мёртвый/downed не репортит хиты.
+        shooter = self.players.get(uid)
+        if not shooter or not shooter.get('alive'):
+            return
+        # Damage clamp: пистолет/винтовка ~30-120, RPG ~250. 500 — потолок.
+        dmg = min(int(dmg), 500)
         for e in self.enemies:
             if e.get('id') != enemy_id or not e.get('alive'):
                 continue
+            # Distance sanity: между шутером и врагом не должно быть >30 клеток.
+            dr = e['r'] - shooter.get('y', 0)
+            dc = e['c'] - shooter.get('x', 0)
+            if (dr * dr + dc * dc) > 900.0:  # 30^2
+                return
             applied = min(e['hp'], dmg)
             e['hp'] = max(0, e['hp'] - dmg)
             # Событие для broadcast: рисуем общую кровь/искру/гиб у всех.
@@ -10081,6 +10285,14 @@ class IsoBattleSim:
                     'alive':  bool(p['alive']),
                     'weapon': p['weapon'],
                     'left':   bool(p['left']),
+                    # Phase 8: downed-state + сколько секунд осталось до
+                    # окончательной смерти. Клиент рисует HUD-таймер и
+                    # рендерит лежащую фигуру.
+                    'downed':  bool(p.get('downed')),
+                    'down_remaining': max(0, round(
+                        COOP_DOWN_MAX_SEC -
+                        (self.tick_no * ISO_SIM_TICK_DT - p.get('down_at', 0)), 1
+                    )) if p.get('downed') else 0,
                 } for p in self.players.values()
             ],
             # Phase 2: компактный enemies-снапшот. Внутренние AI-поля
@@ -10487,6 +10699,15 @@ async def _coop_http_app():
                         # Клиент репортит попадание в серверного врага.
                         # Phase 2: сервер ему верит (нет валидации LoS).
                         # Phase 5 добавит raycast-проверку на стороне сервера.
+                        # Anti-cheat: rate-limit 40 хитов/сек на uid.
+                        # Бот, который читал WS и спамил t:'hit' каждый тик —
+                        # упирается в этот лимит и не убивает босса в один кадр.
+                        now_ts = time.time()
+                        hits_log = _hit_rate.setdefault(uid, [])
+                        hits_log[:] = [t0 for t0 in hits_log if now_ts - t0 < 1.0]
+                        if len(hits_log) >= 40:
+                            continue
+                        hits_log.append(now_ts)
                         d = pkt.get('d') or {}
                         try:
                             eid = int(d.get('enemy_id', -1))
@@ -10506,7 +10727,7 @@ async def _coop_http_app():
                         # пока этого не делаем — выйдет double-damage).
                         d = pkt.get('d') or {}
                         p = sim.players.get(uid)
-                        if p:
+                        if p and p.get('alive'):
                             sim.events.append({
                                 'type':   'grenade_throw',
                                 'uid':    uid,
@@ -10525,7 +10746,7 @@ async def _coop_http_app():
                         # будет в Phase 6+.
                         d = pkt.get('d') or {}
                         p = sim.players.get(uid)
-                        if p:
+                        if p and p.get('alive'):
                             ang = float(d.get('ang', p.get('ang', 0)))
                             wep = str(d.get('weapon', p.get('weapon', 'pistol')))[:32]
                             sim.events.append({
@@ -10536,6 +10757,13 @@ async def _coop_http_app():
                                 'ang':    round(ang, 3),
                                 'weapon': wep,
                             })
+                    elif t == 'revive':
+                        # Phase 8: игрок поднимает downed-союзника. Все
+                        # проверки внутри apply_revive (дистанция, статусы).
+                        d = pkt.get('d') or {}
+                        target_uid = str(d.get('target_uid', '') or d.get('uid', ''))
+                        if target_uid:
+                            sim.apply_revive(uid, target_uid)
                     elif t == 'stealth_kill':
                         # Phase 4: стелс-килл за спиной. Клиент уже
                         # проверил findBackstabTarget; сервер дополнительно
@@ -10608,8 +10836,11 @@ async def _coop_http_app():
         me['last_update'] = time.time()
         # Урон по боссу: суммарный за тик. Клиент стреляет локально → считает
         # сколько HP снял → присылает дельту. Сервер применяет к общему HP.
+        # Anti-cheat: clamp 500, мёртвый не наносит урон.
         bdmg = int(b.get('boss_dmg', 0) or 0)
-        if bdmg > 0 and sess.get('boss_hp', 0) > 0 and sess.get('state') == 'battle':
+        if bdmg > 0 and me.get('alive', True) and (me.get('hp') or 0) > 0 \
+           and sess.get('boss_hp', 0) > 0 and sess.get('state') == 'battle':
+            bdmg = min(bdmg, 500)
             sess['boss_hp'] = max(0, sess['boss_hp'] - bdmg)
             if sess['boss_hp'] <= 0:
                 sess['state'] = 'won'
