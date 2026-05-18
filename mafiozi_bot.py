@@ -1914,7 +1914,7 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
     params = {
         # Кеш-бастер для Telegram WebApp: подними при каждом релизе боёвки
         # — иначе TG держит старый HTML в кеше и игроки видят прошлую версию.
-        "_v":     "19",
+        "_v":     "20",
         "name":   urllib.parse.quote(char["name"][:20]),
         "hp":     char["hp"],
         "maxhp":  char["max_hp"],
@@ -10295,6 +10295,26 @@ async def _coop_http_app():
                             eid, dmg = -1, 0
                         if eid >= 0 and dmg > 0:
                             sim.apply_hit(uid, eid, dmg)
+                    elif t == 'shoot':
+                        # Phase 5: клиент стрельнул — рассылаем событие всем
+                        # игрокам в сессии, чтобы они увидели muzzle flash
+                        # и услышали выстрел тиммейта. Сама механика урона
+                        # по врагам идёт через t:'hit' (этот клиент локально
+                        # детектит попадание). Урон серверным raycast'ом
+                        # будет в Phase 6+.
+                        d = pkt.get('d') or {}
+                        p = sim.players.get(uid)
+                        if p:
+                            ang = float(d.get('ang', p.get('ang', 0)))
+                            wep = str(d.get('weapon', p.get('weapon', 'pistol')))[:32]
+                            sim.events.append({
+                                'type':   'player_shot',
+                                'uid':    uid,
+                                'from_x': round(p.get('x', 0), 2),
+                                'from_y': round(p.get('y', 0), 2),
+                                'ang':    round(ang, 3),
+                                'weapon': wep,
+                            })
                     elif t == 'stealth_kill':
                         # Phase 4: стелс-килл за спиной. Клиент уже
                         # проверил findBackstabTarget; сервер дополнительно

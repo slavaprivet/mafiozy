@@ -1383,6 +1383,14 @@ function tryFirePlayer() {
   if (typeof fightStats !== 'undefined') fightStats.shots++;
   a.cur -= 1;
   if (a.cur <= 0) startReload(a, cfg);
+  // Phase 5: сообщаем серверу что выстрелили — он разошлёт event
+  // 'player_shot' всем тиммейтам для muzzle flash + звука.
+  if (QP.coop_sim && simWs && simWs.readyState === 1) {
+    try { simWs.send(JSON.stringify({
+      t: 'shoot',
+      d: { ang: player.angle, weapon: currentWeapon },
+    })); } catch(e) {}
+  }
 }
 
 function manualReload() {
@@ -3754,6 +3762,23 @@ function simHandleEvents(events) {
       if (ev.to_uid === COOP_MY_UID) {
         player.hitT = Math.max(player.hitT || 0, 0.25);
       }
+    } else if (ev.type === 'player_shot') {
+      // Тиммейт выстрелил — рисуем muzzle flash у его позиции и
+      // играем звук оружия. Не делаем это для своего uid (мы уже
+      // отрисовали локально через fireWeapon).
+      if (ev.uid === COOP_MY_UID) continue;
+      const muzD = 0.6;
+      muzzles.push({
+        r: ev.from_y + Math.sin(ev.ang) * muzD,
+        c: ev.from_x + Math.cos(ev.ang) * muzD,
+        angle: ev.ang,
+        life: 90, max: 90,
+      });
+      try {
+        const cfg = WEAPON_FX_CFG[ev.weapon];
+        if (cfg && cfg.sound) cfg.sound();
+        else { _tone({freq:800,freqEnd:200,dur:0.06,type:'square',vol:0.10}); _noise({dur:0.04,vol:0.08}); }
+      } catch(e) {}
     } else if (ev.type === 'kill') {
       // Враг убит — visual подхватится через alive=false в следующем snap'е
       // (рисуется лежащим). Phase 5 добавит гиб-эффект на event.
