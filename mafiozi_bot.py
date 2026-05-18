@@ -9209,6 +9209,243 @@ async def _coop_grant_rewards(sess: dict) -> None:
             'sys')
 
 
+# ══════════════════════════════════════════════════════════════════
+# ISO BATTLE SIMULATOR (Path V — server-authoritative)
+# ══════════════════════════════════════════════════════════════════
+# Полная симуляция боя на сервере: AI миньонов/босса, пули, физика,
+# гранаты — всё крутится тут, клиент только рендерит снапшоты.
+# Phase 1 = СКЕЛЕТ: класс + tick-loop + WebSocket transport.
+# AI/враги/пули — пока пустые, будут добавлены в фазах 2-5.
+# Цель Phase 1 — поднять инфраструктуру и переключить трафик с
+# HTTP polling на WS, чтобы дальше уже наращивать симуляцию.
+#
+# Симулятор крутится 20 Гц (50мс/тик). Каждый клиент держит ОДНО
+# постоянное WebSocket-соединение, шлёт через него input в любой
+# момент, получает снапшоты каждый тик. Это даёт минимальный
+# latency (~50-100мс по сети + 50мс тик-интервал) и не съедает
+# батарею на повторных HTTP-запросах — критично для мобильника.
+
+ISO_SIM_TICK_HZ = 20
+ISO_SIM_TICK_DT = 1.0 / ISO_SIM_TICK_HZ
+
+class IsoBattleSim:
+    """Серверная симуляция iso-боя для одной кооп-сессии.
+    Phase 1: хранит игроков + минимальный broadcast. Без AI/врагов."""
+    __slots__ = (
+        'sid', 'sess', 'boss_id', 'loc_id', 'seed', 'tick_no',
+        'last_tick_at', 'players', 'enemies', 'boss', 'bullets',
+        'events', 'connections', 'alive', 'started_at',
+    )
+
+    def __init__(self, sid: str, sess: dict):
+        self.sid = sid
+        self.sess = sess
+        self.boss_id = sess.get('boss_id', '')
+        self.loc_id  = sess.get('loc_id', 'market')
+        self.seed    = int(sess.get('seed') or 0)
+        self.tick_no = 0
+        self.started_at = time.time()
+        self.last_tick_at = self.started_at
+        # uid (str) -> player state dict
+        self.players = {}
+        # Phase 2+: server-spawned enemies. Пока пусто.
+        self.enemies = []
+        # Phase 3+: серверный AI босса.
+        self.boss = {}
+        # Phase 5+: серверные пули (raycast).
+        self.bullets = []
+        # Phase 3+: события за последний тик (выстрелы, взрывы) для broadcast.
+        self.events = []
+        # uid -> aiohttp WebSocketResponse
+        self.connections = {}
+        self.alive = True
+
+    def add_player(self, uid: str, name: str, look: dict,
+                   hp: int, max_hp: int, atk: int, def_: int) -> None:
+        """Заводим игрока в симуляции. Стартовая позиция — (0,0); реальную
+        пришлёт клиент через input сразу после WS-коннекта."""
+        if uid in self.players:
+            return
+        self.players[uid] = {
+            'uid':    uid,
+            'name':   name,
+            'look':   look or {},
+            'x':      0.0,
+            'y':      0.0,
+            'ang':    0.0,
+            'hp':     int(hp),
+            'max_hp': int(max_hp),
+            'atk':    int(atk),
+            'def':    int(def_),
+            # Phase 2+ будет «полным» input'ом (joy_x, joy_y, aim_x, aim_y,
+            # firing, weapon). Сейчас клиент сам считает физику и шлёт
+            # уже посчитанные x/y — равносильно V1 поверх WS.
+            'firing': False,
+            'weapon': '',
+            'alive':  True,
+            'left':   False,
+            'last_input_at': 0.0,
+        }
+
+    def apply_input(self, uid: str, data: dict) -> None:
+        """Применяем инпут от клиента к состоянию игрока. В Phase 1
+        принимаем уже посчитанные клиентом x/y/ang/hp — клиент авторитетен
+        для собственного игрока, как в V1. Phase 2+: примем joy_x/joy_y
+        и физику будет считать сервер (тогда серверный x/y победят)."""
+        p = self.players.get(uid)
+        if not p:
+            return
+        if 'x'      in data: p['x']      = float(data['x'])
+        if 'y'      in data: p['y']      = float(data['y'])
+        if 'ang'    in data: p['ang']    = float(data['ang'])
+        if 'hp'     in data: p['hp']     = max(0, int(data['hp']))
+        if 'alive'  in data: p['alive']  = bool(data['alive'])
+        if 'firing' in data: p['firing'] = bool(data['firing'])
+        if 'weapon' in data: p['weapon'] = str(data['weapon'])[:32]
+        p['last_input_at'] = time.time()
+        # boss_dmg от клиента — пока сохраняем совместимость с V1.
+        # Phase 5+: урон по боссу будет считаться серверным raycast'ом.
+        bdmg = int(data.get('boss_dmg', 0) or 0)
+        if bdmg > 0:
+            sess = self.sess
+            if sess.get('boss_hp', 0) > 0 and sess.get('state') == 'battle':
+                sess['boss_hp'] = max(0, sess['boss_hp'] - bdmg)
+                if sess['boss_hp'] <= 0:
+                    sess['state'] = 'won'
+                    _coop_add_log(sess, "🏆 Босс повержен! Победа.", 'sys')
+                    # Запускаем выдачу наград в отдельной таске —
+                    # apply_input синхронный, await нельзя.
+                    asyncio.create_task(_coop_grant_rewards(sess))
+        if data.get('died') and self.sess.get('state') == 'battle':
+            for pp in self.sess.get('players', []):
+                if pp['uid'] == uid and pp['hp'] > 0:
+                    pp['hp'] = 0
+                    _coop_add_log(self.sess, f"💀 {pp['name']} убит.", 'death')
+                    break
+            alive = [pp for pp in self.sess.get('players', [])
+                     if pp['hp'] > 0 and not pp.get('left')]
+            if not alive:
+                self.sess['state'] = 'lost'
+                _coop_add_log(self.sess, "💀 Все пали. Поражение.", 'sys')
+
+    def tick(self, dt: float) -> None:
+        """Один шаг симуляции. Phase 1 — пусто, только счётчик."""
+        self.tick_no += 1
+        # Phase 2+ здесь будет:
+        #   - обновление AI миньонов (patrol/chase/shoot)
+        #   - движение по входу клиента (joy_x/joy_y) если physics серверный
+        #   - продвижение пуль / коллизии / урон
+        #   - проверка win/loss по состоянию персонажей
+
+    def make_snapshot(self) -> dict:
+        """Готовим снапшот для рассылки. Чем меньше — тем легче на мобиле."""
+        return {
+            'tick':         self.tick_no,
+            'state':        self.sess.get('state', 'battle'),
+            'boss_hp':      self.sess.get('boss_hp', 0),
+            'boss_max_hp':  self.sess.get('boss_max_hp', 0),
+            'players': [
+                {
+                    'uid':    p['uid'],
+                    'name':   p['name'],
+                    'look':   p['look'],
+                    'x':      round(p['x'], 2),
+                    'y':      round(p['y'], 2),
+                    'ang':    round(p['ang'], 3),
+                    'hp':     p['hp'],
+                    'max_hp': p['max_hp'],
+                    'alive':  bool(p['alive']),
+                    'weapon': p['weapon'],
+                    'left':   bool(p['left']),
+                } for p in self.players.values()
+            ],
+            # Phase 2+ заполнятся серверными enemies/boss/bullets.
+            'enemies': self.enemies,
+            'boss':    self.boss,
+            'events':  self.events,
+            'cancel_reason': self.sess.get('cancel_reason', ''),
+            'reward_cash':   self.sess.get('reward_cash', 0),
+            'reward_exp':    self.sess.get('reward_exp', 0),
+        }
+
+    async def broadcast(self) -> None:
+        """Шлём снапшот всем подключённым по WS. Раз в тик. Дохлые соединения
+        выкидываем — клиент сам переподключится."""
+        if not self.connections:
+            return
+        snap = self.make_snapshot()
+        msg  = json.dumps({'t': 'snap', 'd': snap}, ensure_ascii=False)
+        dead = []
+        for uid, ws in list(self.connections.items()):
+            try:
+                await ws.send_str(msg)
+            except Exception:
+                dead.append(uid)
+        for uid in dead:
+            self.connections.pop(uid, None)
+        # Events — однократные, после рассылки очищаем буфер.
+        self.events.clear()
+
+
+def _coop_init_sim(sess: dict) -> 'IsoBattleSim':
+    """Создаёт симуляцию для сессии и запускает фоновый tick-loop.
+    Идемпотентен — повторный вызов вернёт уже существующую."""
+    if sess.get('iso_sim'):
+        return sess['iso_sim']
+    if not sess.get('iso_inited'):
+        _coop_init_iso(sess)
+    sim = IsoBattleSim(sess.get('sid', '???'), sess)
+    for p in sess.get('players', []):
+        sim.add_player(
+            uid    = p['uid'],
+            name   = p['name'],
+            look   = p.get('look') or {},
+            hp     = p.get('hp',     100),
+            max_hp = p.get('max_hp', 100),
+            atk    = p.get('atk',    20),
+            def_   = p.get('def',    10),
+        )
+    sess['iso_sim'] = sim
+    asyncio.create_task(_iso_run_sim_loop(sim))
+    logger.info("IsoSim: started sid=%s seed=%s boss=%s",
+                sim.sid, sim.seed, sim.boss_id)
+    return sim
+
+
+async def _iso_run_sim_loop(sim: 'IsoBattleSim') -> None:
+    """Фоновая asyncio-задача: tick 20 Гц + broadcast. Останавливается
+    когда сессия завершилась (won/lost/cancelled) И через 30 сек после
+    последнего инпута (даём клиентам прочитать финальный снапшот)."""
+    grace_until = 0
+    try:
+        while sim.alive:
+            tnow = time.time()
+            dt   = tnow - sim.last_tick_at
+            sim.last_tick_at = tnow
+            try:
+                sim.tick(dt)
+                await sim.broadcast()
+            except Exception:
+                logger.exception("IsoSim tick error sid=%s", sim.sid)
+            # Условие выхода: сессия не в active-стейте + нет активных коннектов
+            # + истёк grace-период. Иначе клиенты могут не успеть прочитать
+            # финал и попасть на 410-ответ.
+            state = sim.sess.get('state', 'battle')
+            if state not in ('battle', 'waiting'):
+                if grace_until == 0:
+                    grace_until = tnow + 30.0
+                if tnow >= grace_until and not sim.connections:
+                    break
+            # Sleep до следующего тика. Не идём в минус — если тик долгий
+            # (>50мс), просто пропускаем sleep, чтобы догнать.
+            elapsed = time.time() - tnow
+            await asyncio.sleep(max(0.0, ISO_SIM_TICK_DT - elapsed))
+    finally:
+        sim.alive = False
+        sim.sess.pop('iso_sim', None)
+        logger.info("IsoSim: stopped sid=%s tick=%d", sim.sid, sim.tick_no)
+
+
 async def _coop_fetch_char_stats(uid_str: str) -> dict:
     """Подтянуть актуальные характеристики + внешность из БД по telegram_id.
     Внешность (look) нужна фронту для рендера баннера «БРИГАДА В СБОРЕ» —
@@ -9428,6 +9665,93 @@ async def _coop_http_app():
             return await _cors(web.json_response(sess))
         _coop_next_turn(sess)
         return await _cors(web.json_response(sess))
+
+    # ── WebSocket симулятора (Path V) — постоянный канал клиент↔сервер.
+    # Клиент подключается с ?uid=... — мы создаём/находим IsoBattleSim,
+    # регистрируем коннект, дальше шлём snapshot каждые 50мс и принимаем
+    # input от клиента в любой момент. На обрыв соединения убираем из
+    # connections — если игрок переподключится, найдём ту же сессию.
+    # Phase 1: транспорт работает, симуляция «пустая» (только эхо позиций).
+    async def h_ws_sim(req):
+        sid = req.match_info['sid'].upper()
+        if sid not in _coop_sessions:
+            return web.Response(status=404, text='Session not found')
+        sess = _coop_sessions[sid]
+        uid  = req.query.get('uid', '').strip()
+        if not uid:
+            return web.Response(status=400, text='uid required')
+        if not any(p['uid'] == uid for p in sess.get('players') or []):
+            return web.Response(status=403, text='Not a participant')
+        # Сессия должна быть в бою — лобби через старые HTTP-ручки.
+        if sess.get('state') not in ('battle', 'won', 'lost'):
+            if sess.get('state') == 'waiting':
+                sess['state'] = 'battle'
+                _coop_init_iso(sess)
+            else:
+                return web.Response(status=410, text='Session closed')
+        ws = web.WebSocketResponse(heartbeat=20)
+        await ws.prepare(req)
+        # Симуляция создаётся лениво — первый WS-коннект её и поднимает.
+        sim = _coop_init_sim(sess)
+        # Если уже был коннект с этим uid (reconnect) — закрываем старый.
+        old = sim.connections.get(uid)
+        if old is not None:
+            try: await old.close(code=4000, message=b'replaced')
+            except Exception: pass
+        sim.connections[uid] = ws
+        # Hello-кадр: метаданные, чтобы клиент сразу знал tick rate.
+        try:
+            await ws.send_str(json.dumps({
+                't': 'hello',
+                'd': {
+                    'sid':       sid,
+                    'your_uid':  uid,
+                    'tick_hz':   ISO_SIM_TICK_HZ,
+                    'seed':      sim.seed,
+                    'host_uid':  sess.get('host_uid', ''),
+                    'boss_id':   sess.get('boss_id', ''),
+                    'loc_id':    sess.get('loc_id', ''),
+                    'srv_now':   time.time(),
+                },
+            }, ensure_ascii=False))
+        except Exception:
+            pass
+        logger.info("IsoSim WS open sid=%s uid=%s", sid, uid)
+        try:
+            async for msg in ws:
+                if msg.type == web.WSMsgType.TEXT:
+                    try:
+                        pkt = json.loads(msg.data)
+                    except Exception:
+                        continue
+                    t = pkt.get('t') or pkt.get('type')
+                    if t == 'input':
+                        sim.apply_input(uid, pkt.get('d') or pkt.get('data') or {})
+                    elif t == 'ping':
+                        # Эхо для замера RTT клиентом.
+                        try:
+                            await ws.send_str(json.dumps({
+                                't': 'pong',
+                                'd': {'cli_t': pkt.get('d', {}).get('t', 0),
+                                      'srv_t': time.time()},
+                            }))
+                        except Exception:
+                            break
+                    elif t == 'leave':
+                        break
+                elif msg.type == web.WSMsgType.ERROR:
+                    logger.warning("WS error sid=%s uid=%s: %s",
+                                   sid, uid, ws.exception())
+                    break
+        except Exception:
+            logger.exception("WS handler crashed sid=%s uid=%s", sid, uid)
+        finally:
+            # Если этот ws всё ещё в connections — выкидываем (мог быть
+            # уже перезаписан reconnect'ом, тогда не трогаем).
+            if sim.connections.get(uid) is ws:
+                sim.connections.pop(uid, None)
+            logger.info("IsoSim WS close sid=%s uid=%s", sid, uid)
+        return ws
 
     # ── ISO-coop тик: клиент шлёт своё состояние и урон по боссу, сервер
     # отдаёт shared boss_hp, состояние сессии и позиции остальных игроков.
@@ -10437,6 +10761,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/coop/{sid}/start',  h_start)
     aio_app.router.add_post('/coop/{sid}/attack', h_attack)
     aio_app.router.add_post('/coop/{sid}/iso',    h_iso)
+    aio_app.router.add_get ('/coop/{sid}/sim',    h_ws_sim)  # Path V: WebSocket
     aio_app.router.add_post('/coop/{sid}/cancel', h_cancel)
     aio_app.router.add_post('/coop/{sid}/leave',  h_leave)
     aio_app.router.add_post('/friend/add',        h_friend_add)

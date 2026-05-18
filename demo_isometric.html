@@ -528,6 +528,7 @@ const QP = {
   bgren:       _qInt('bgren', 0),  // гранаты ДО боя — для синхронизации UI
   bmol:        _qInt('bmol',  0),  // молотовы ДО боя — переключатель в HUD
   coop_sid:    (_UP.get('coop_sid') || '').toUpperCase(), // ID кооп-сессии (если играем в команде)
+  coop_sim:    (_UP.get('coop_sim') === '1'),          // Path V: WebSocket симулятор
 };
 // ── CO-OP режим ────────────────────────────────────────────────────
 // Если в URL есть coop_sid + api + uid — играем в кооп-бою. Сервер
@@ -3582,6 +3583,9 @@ async function coopTick() {
 
 function startCoopSync() {
   if (!window.COOP_ACTIVE) return;
+  // Path V: если в URL coop_sim=1 — поднимаем WebSocket к симулятору.
+  // Иначе старый HTTP-polling (V1).
+  if (QP.coop_sim) { simWsConnect(); return; }
   // Первый тик через 80мс — даём катсцене закрыться, не запускаем 5 запросов
   // в первую же секунду пока ещё ничего не изменилось.
   setTimeout(coopTick, 80);
@@ -3590,6 +3594,163 @@ function startCoopSync() {
 
 function stopCoopSync() {
   if (coopPollTimer) { clearInterval(coopPollTimer); coopPollTimer = null; }
+  if (simWs) {
+    try { simWs.close(1000, 'client-stop'); } catch(e) {}
+    simWs = null;
+  }
+  if (simInputTimer) { clearInterval(simInputTimer); simInputTimer = null; }
+}
+
+// ── Path V: WebSocket клиент к серверному симулятору ─────────────────
+// Постоянное соединение к /coop/{sid}/sim. Отправляем input каждые
+// 50мс, получаем snapshot каждый тик (20Гц). В Phase 1 snapshot
+// содержит только players[] — миньоны/босс пока на клиенте.
+let simWs           = null;
+let simWsConnected  = false;
+let simInputTimer   = null;
+let simReconnectAt  = 0;
+let simHello        = null;          // данные первого hello-кадра от сервера
+let simSrvRttMs     = 0;             // последний замер RTT (для HUD/отладки)
+const SIM_INPUT_HZ  = 20;
+const SIM_INPUT_MS  = 1000 / SIM_INPUT_HZ;
+
+function _simWsUrl() {
+  // QP.api = "https://xxx.trycloudflare.com" → wss://xxx.trycloudflare.com
+  // (если http://localhost — тогда ws://). Cloudflare и любой прокси с
+  // TLS даёт wss; на чистом http тестируем через ws.
+  const api = (QP.api || '').replace(/\/+$/, '');
+  if (!api) return '';
+  const scheme = api.startsWith('https://') ? 'wss://' :
+                 api.startsWith('http://')  ? 'ws://'  : 'wss://';
+  const host   = api.replace(/^https?:\/\//, '');
+  return scheme + host + '/coop/' + COOP_SID + '/sim?uid=' + encodeURIComponent(COOP_MY_UID);
+}
+
+function simWsConnect() {
+  if (!window.COOP_ACTIVE || !QP.coop_sim) return;
+  if (simWs && (simWs.readyState === 0 || simWs.readyState === 1)) return;
+  const url = _simWsUrl();
+  if (!url) { console.warn('[sim] no api URL'); return; }
+  console.log('[sim] connecting', url);
+  try { simWs = new WebSocket(url); } catch(e) { simWs = null; return _simWsReconnectLater(); }
+  simWs.onopen = () => {
+    simWsConnected = true;
+    console.log('[sim] open');
+    // Начинаем слать input ровно один раз в SIM_INPUT_MS мс.
+    if (simInputTimer) clearInterval(simInputTimer);
+    simInputTimer = setInterval(simSendInput, SIM_INPUT_MS);
+    // Сразу первый ping чтобы померить RTT.
+    simSendPing();
+  };
+  simWs.onmessage = (ev) => {
+    let pkt;
+    try { pkt = JSON.parse(ev.data); } catch(e) { return; }
+    const t = pkt.t || pkt.type;
+    const d = pkt.d || pkt.data || {};
+    if (t === 'snap')  simHandleSnap(d);
+    else if (t === 'hello') {
+      simHello = d;
+      console.log('[sim] hello', d);
+    }
+    else if (t === 'pong') {
+      const cli_t = d.cli_t || 0;
+      if (cli_t) simSrvRttMs = Math.max(0, Math.round((performance.now() - cli_t)));
+    }
+  };
+  simWs.onerror = (e) => { console.warn('[sim] error', e); };
+  simWs.onclose = (ev) => {
+    simWsConnected = false;
+    if (simInputTimer) { clearInterval(simInputTimer); simInputTimer = null; }
+    console.log('[sim] close', ev.code, ev.reason);
+    // Реконнект, если не нарочно закрыли. Линейный backoff до 5 сек.
+    if (!coopFinishHandled && coopServerState !== 'cancelled') {
+      _simWsReconnectLater();
+    }
+  };
+}
+
+function _simWsReconnectLater() {
+  const delay = Math.min(5000, 600 + (performance.now() - simReconnectAt > 30000 ? 0 : 1200));
+  simReconnectAt = performance.now();
+  setTimeout(simWsConnect, delay);
+}
+
+let _simPingT = 0;
+function simSendPing() {
+  if (!simWs || simWs.readyState !== 1) return;
+  _simPingT = performance.now();
+  try { simWs.send(JSON.stringify({ t: 'ping', d: { t: _simPingT } })); } catch(e) {}
+}
+
+function simSendInput() {
+  if (!simWs || simWs.readyState !== 1) return;
+  // В Phase 1 шлём то же что и HTTP-вариант: посчитанную позицию + урон.
+  // В Phase 2+ будем слать joy_x/joy_y и сервер сам посчитает движение.
+  const payload = {
+    x:      +player.c.toFixed(2),
+    y:      +player.r.toFixed(2),
+    ang:    +(player.angle || 0).toFixed(3),
+    hp:     Math.max(0, Math.round(player.hp)),
+    alive:  player.hp > 0,
+    weapon: currentWeapon || '',
+  };
+  if (coopPendingBossDmg > 0) {
+    payload.boss_dmg = Math.round(coopPendingBossDmg);
+    coopPendingBossDmg = 0;
+  }
+  if (player.hp <= 0 && !coopReportedDeath) {
+    payload.died = true;
+    coopReportedDeath = true;
+  }
+  try { simWs.send(JSON.stringify({ t: 'input', d: payload })); } catch(e) {}
+  // Раз в ~1 сек шлём пинг чтобы поддерживать RTT.
+  if (performance.now() - _simPingT > 1000) simSendPing();
+}
+
+function simHandleSnap(d) {
+  if (!d) return;
+  coopServerState  = d.state || 'battle';
+  coopServerBossHP = d.boss_hp;
+  // Серверный список игроков: разделяем на «свой» и «остальные».
+  // Phase 1: координаты идут как клиентские — равносильно V1.
+  const players = d.players || [];
+  coopOthers = players
+    .filter(p => p.uid !== COOP_MY_UID)
+    .map(p => ({
+      uid: p.uid, name: p.name, look: p.look || {},
+      hp:  p.hp,  max_hp: p.max_hp,
+      x:   p.x,   y: p.y, ang: p.ang,
+      alive: !!p.alive,
+      weapon: p.weapon || '',
+      left: !!p.left,
+      stale: false,
+    }));
+  // Синк HP босса — как в HTTP-варианте.
+  const boss = enemies.find(e => e.isBoss);
+  if (boss && coopServerBossHP >= 0 && boss.hp > 0) {
+    if (coopServerBossHP <= 0) boss.hp = 0;
+    else if (coopServerBossHP < boss.hp) boss.hp = coopServerBossHP;
+  }
+  // Реакция на финал — та же логика что в coopTick().
+  if (coopServerState === 'won' && !coopFinishHandled) {
+    coopFinishHandled = true;
+    if (!fightStats.result) {
+      fightStats.result = 'won';
+      fightStats.endMs  = performance.now();
+      setTimeout(showResultScene, 800);
+    }
+  } else if (coopServerState === 'lost' && !coopFinishHandled) {
+    coopFinishHandled = true;
+    if (!fightStats.result) {
+      fightStats.result = 'lost';
+      fightStats.endMs  = performance.now();
+      setTimeout(showResultScene, 800);
+    }
+  } else if (coopServerState === 'cancelled' && !coopFinishHandled) {
+    coopFinishHandled = true;
+    stopCoopSync();
+    try { if (typeof window.__bareQuitToHub === 'function') setTimeout(window.__bareQuitToHub, 600); } catch(e) {}
+  }
 }
 
 // При закрытии вкладки/выходе — шлём leave, чтобы команда увидела
