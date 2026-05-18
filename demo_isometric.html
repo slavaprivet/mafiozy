@@ -3722,6 +3722,48 @@ function simSendInput() {
   if (performance.now() - _simPingT > 1000) simSendPing();
 }
 
+// Применение serverside-событий за последний тик. Сейчас: выстрелы
+// врагов (muzzle flash + звук), смерти миньонов (можно добавить
+// гиб-эффект), смерть игроков (можно добавить тост). В Phase 5 сюда
+// добавим визуальные пули от сервера, гранаты, взрывы.
+function simHandleEvents(events) {
+  for (const ev of events) {
+    if (!ev) continue;
+    if (ev.type === 'shot') {
+      // Muzzle flash у врага. Угол — от стрелявшего к цели (используем
+      // координаты, чтобы вспышка смотрела туда же, куда летит пуля).
+      const dr = (ev.to_r - ev.from_r);
+      const dc = (ev.to_c - ev.from_c);
+      const angle = Math.atan2(dr, dc);
+      const muzD = 0.6;
+      muzzles.push({
+        r: ev.from_r + Math.sin(angle) * muzD,
+        c: ev.from_c + Math.cos(angle) * muzD,
+        angle: angle,
+        life: 90, max: 90,
+      });
+      // Звук — короткий тон по оружию. Не громко (другие игроки далеко).
+      try {
+        const wep = ev.weapon || 'pistol';
+        const cfg = WEAPON_FX_CFG[wep];
+        if (cfg && cfg.sound) cfg.sound();
+        else { _tone({freq:800,freqEnd:200,dur:0.06,type:'square',vol:0.12}); _noise({dur:0.04,vol:0.10}); }
+      } catch(e) {}
+      // Если стреляли по мне — короткая красная вспышка (на случай если
+      // server-hp уже синкнулся раньше и hitT не сработал).
+      if (ev.to_uid === COOP_MY_UID) {
+        player.hitT = Math.max(player.hitT || 0, 0.25);
+      }
+    } else if (ev.type === 'kill') {
+      // Враг убит — visual подхватится через alive=false в следующем snap'е
+      // (рисуется лежащим). Phase 5 добавит гиб-эффект на event.
+    } else if (ev.type === 'player_dead') {
+      // Тиммейт умер — пометим в coopOthers (он перестанет рендериться живым).
+      // В будущей фазе можно «помощь!» тост или иконку.
+    }
+  }
+}
+
 // Интерполяция позиций server-owned врагов между двумя последними
 // снапшотами. Без неё на 20 Гц симуляции движение выглядит ступеньками;
 // с интерполяцией 60 FPS клиента «дотягивает» позицию плавно. Берём
@@ -3811,12 +3853,32 @@ function simHandleSnap(d) {
   if (Array.isArray(d.enemies) && d.enemies.length) {
     simApplyEnemies(d.enemies);
   }
+  // Phase 3: события за прошлый серверный тик — выстрелы/смерти/киллы.
+  // Рисуем muzzle flash у стрелявшего врага и играем звук пистолета.
+  // Полноценные пули будут в Phase 5 (серверный raycast).
+  if (Array.isArray(d.events) && d.events.length) {
+    simHandleEvents(d.events);
+  }
   // Серверный список игроков: разделяем на «свой» и «остальные».
-  // Phase 1: координаты идут как клиентские — равносильно V1.
+  // Phase 3: server-authoritative HP — синкаем свой player.hp из снапшота,
+  // на дропе мигаем красным (hitT) как при локальном попадании.
   const players = d.players || [];
-  coopOthers = players
-    .filter(p => p.uid !== COOP_MY_UID)
-    .map(p => ({
+  coopOthers = [];
+  for (const p of players) {
+    if (p.uid === COOP_MY_UID) {
+      // Свой — обновляем local hp из server. Server-auth с Phase 3.
+      if (typeof p.hp === 'number') {
+        const prevHp = player.hp;
+        if (p.hp < prevHp) {
+          // Получили урон от сервера — красная вспышка.
+          player.hitT = Math.max(player.hitT || 0, 0.3);
+        }
+        player.hp   = Math.max(0, p.hp);
+        player.hpMax = p.max_hp || player.hpMax;
+      }
+      continue;
+    }
+    coopOthers.push({
       uid: p.uid, name: p.name, look: p.look || {},
       hp:  p.hp,  max_hp: p.max_hp,
       x:   p.x,   y: p.y, ang: p.ang,
@@ -3824,7 +3886,8 @@ function simHandleSnap(d) {
       weapon: p.weapon || '',
       left: !!p.left,
       stale: false,
-    }));
+    });
+  }
   // Синк HP босса — как в HTTP-варианте.
   const boss = enemies.find(e => e.isBoss);
   if (boss && coopServerBossHP >= 0 && boss.hp > 0) {
@@ -3891,6 +3954,10 @@ function fightStatsBegin() {
 }
 function checkFightEnd() {
   if (fightStats.result) return;
+  // В coop_sim сервер сам определяет финал (state='won'/'lost') и присылает
+  // его в снапшоте. simHandleSnap дёрнет showResultScene с правильным
+  // результатом для команды (а не моя личная смерть = проигрыш).
+  if (QP.coop_sim) return;
   // Считаем убитых
   for (let i = 0; i < enemies.length; i++) {
     if (enemies[i].hp <= 0 && !fightStats.killsCounted.has(i)) {

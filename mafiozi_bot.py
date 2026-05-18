@@ -1914,7 +1914,7 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
     params = {
         # Кеш-бастер для Telegram WebApp: подними при каждом релизе боёвки
         # — иначе TG держит старый HTML в кеше и игроки видят прошлую версию.
-        "_v":     "17",
+        "_v":     "18",
         "name":   urllib.parse.quote(char["name"][:20]),
         "hp":     char["hp"],
         "maxhp":  char["max_hp"],
@@ -9273,6 +9273,25 @@ _COOP_DISTRICT_MINIONS = {
     'mansion': [{'w':'rifle','fc':500,'hp':130},{'w':'sniper','fc':1700,'hp':115},{'w':'shotgun','fc':1200,'hp':125},{'w':'rpg','fc':2800,'hp':130},{'w':'smg','fc':850,'hp':120},{'w':'pistol_gold','fc':450,'hp':115}],
 }
 
+# Базовый урон оружия (порт из WEAPON_FX_CFG в demo_isometric.html).
+# Сервер использует это значение когда враг стреляет в игрока. У клиента
+# те же цифры — для рендера и для V1 fallback. Финальный урон по игроку
+# = base - player.def // 4, минимум 5.
+_COOP_WEAPON_DMG = {
+    'pistol':       12,
+    'pistol_heavy': 18,
+    'pistol_gold':  16,
+    'shotgun':      28,
+    'smg':          10,
+    'rifle':        22,
+    'sniper':       45,
+    'rpg':          60,
+    # Холодное (на сервере миньоны его не носят, но fallback)
+    'fists':         8,
+    'bat':          14,
+    'knife':        20,
+}
+
 # Шанс редкой пушки — джокер может попасться даже на рынке.
 _COOP_RARE_WEAPONS = [
     {'w':'rpg',    'fc':3200, 'hp':70, 'chance':0.06},
@@ -9501,7 +9520,9 @@ class IsoBattleSim:
         if 'x'      in data: p['x']      = float(data['x'])
         if 'y'      in data: p['y']      = float(data['y'])
         if 'ang'    in data: p['ang']    = float(data['ang'])
-        if 'hp'     in data: p['hp']     = max(0, int(data['hp']))
+        # HP — server-authoritative с Phase 3. Клиент НЕ может выставить
+        # свой hp (иначе перетирает урон от серверного _enemy_shoots).
+        # Лечилки/реген в будущих фазах будут серверной механикой.
         if 'alive'  in data: p['alive']  = bool(data['alive'])
         if 'firing' in data: p['firing'] = bool(data['firing'])
         if 'weapon' in data: p['weapon'] = str(data['weapon'])[:32]
@@ -9532,53 +9553,153 @@ class IsoBattleSim:
                 _coop_add_log(self.sess, "💀 Все пали. Поражение.", 'sys')
 
     def tick(self, dt: float) -> None:
-        """Один шаг симуляции (Phase 2: простой patrol-AI миньонов).
-        Чейз/стрельба миньонов и босс-спецки — в фазах 3+."""
+        """Один шаг симуляции (Phase 3: patrol + chase + shoot).
+        Враг видит игрока в радиусе sight_r → поворачивается + бежит к нему
+        (chase) → попадает в shoot_r → стреляет с кулдауном (shoot). Когда
+        нет цели — обычное патрулирование (как в Phase 2)."""
         self.tick_no += 1
         now_sec = self.tick_no * ISO_SIM_TICK_DT
-        # Patrol-AI для миньонов. Босс пока не двигается (его AI в фазе 3).
-        # Sentry-миньоны стоят на месте и медленно крутятся.
-        import random as _r
         import math as _m
+        import random as _r
+
+        # Активные цели для AI — живые игроки, не оторванные от сессии.
+        alive_players = []
+        for pl in self.players.values():
+            if pl.get('alive') and pl.get('hp', 0) > 0 and not pl.get('left'):
+                # Stale-проверка: если клиент >3 сек не шлёт input — пропускаем,
+                # AI не должен «висеть» на оторванном игроке.
+                if (time.time() - pl.get('last_input_at', 0)) > 3.0:
+                    continue
+                alive_players.append(pl)
+
         for e in self.enemies:
-            if not e.get('alive') or e.get('is_boss'):
+            if not e.get('alive'):
+                continue
+            is_boss = bool(e.get('is_boss'))
+            # Параметры по типу: босс видит/стреляет дальше и больнее.
+            sight_r = 11.0 if is_boss else 6.5
+            shoot_r =  9.0 if is_boss else 5.0
+            fc_ms   = (1400 if is_boss else int(e.get('_fc_ms', 1000)))
+
+            # Ищем ближайшего видимого игрока (без LoS в Phase 3 — просто
+            # дистанция; raycast/стены добавим в фазе 5).
+            target = None
+            target_d = sight_r + 1
+            for p in alive_players:
+                dr = p['y'] - e['r']
+                dc = p['x'] - e['c']
+                d  = (dr * dr + dc * dc) ** 0.5
+                if d < target_d:
+                    target_d = d
+                    target = p
+
+            if target is not None:
+                # Поворачиваемся к цели.
+                dr = target['y'] - e['r']
+                dc = target['x'] - e['c']
+                e['ang'] = _m.atan2(dr, dc)
+                e['_target_uid'] = target['uid']
+                if target_d <= shoot_r:
+                    # Стреляем — с кулдауном.
+                    last = e.get('_last_shot_at', 0)
+                    if (now_sec - last) * 1000 >= fc_ms:
+                        e['_last_shot_at'] = now_sec
+                        self._enemy_shoots(e, target)
+                    e['ai_state'] = 'shoot'
+                    # На стрельбе не двигаемся (но walkPhase затухает).
+                    e['walk_phase'] = e.get('walk_phase', 0) * 0.85
+                else:
+                    # Chase: бежим к игроку. Sentry-миньоны тоже могут
+                    # шевельнуться в shoot_r — для теста пока не разрешаем
+                    # им двигаться (sentry = «стационарный охранник»).
+                    if not is_boss and not e.get('is_sentry'):
+                        speed = 2.4
+                        norm = target_d or 1.0
+                        e['r'] += (dr / norm) * speed * dt
+                        e['c'] += (dc / norm) * speed * dt
+                        e['walk_phase'] = (e.get('walk_phase', 0) + dt * 9) % 6.2832
+                    e['ai_state'] = 'chase'
+                # Bound
+                e['r'] = max(1.5, min(self.map_rows - 2, e['r']))
+                e['c'] = max(1.5, min(self.map_cols - 2, e['c']))
+                continue
+
+            # Нет цели — обычное патрулирование (вынесенное из Phase 2).
+            e['_target_uid'] = None
+            e['ai_state'] = 'patrol'
+            if is_boss:
+                # Босс не патрулирует — стоит в кабинете, ждёт.
                 continue
             if e.get('is_sentry'):
-                # Стоит на месте, иногда меняет угол.
                 if now_sec >= e.get('_patrol_until', 0):
                     e['ang'] = _r.random() * 6.2832
                     e['_patrol_until'] = now_sec + 2.5 + _r.random() * 4.0
                 continue
-            # Roaming: каждые 2-5 сек берём новый случайный таргет в
-            # пределах 4 клеток от «домашней» позиции и идём к нему.
             if now_sec >= e.get('_patrol_until', 0):
                 home_r = e.get('_home_r', e['r'])
                 home_c = e.get('_home_c', e['c'])
-                ang = _r.random() * 6.2832
+                ang  = _r.random() * 6.2832
                 dist = 2.0 + _r.random() * 2.0
-                tr = home_r + _m.sin(ang) * dist
-                tc = home_c + _m.cos(ang) * dist
-                # Bound в карте
-                tr = max(2.0, min(self.map_rows - 3, tr))
-                tc = max(2.0, min(self.map_cols - 3, tc))
+                tr = max(2.0, min(self.map_rows - 3, home_r + _m.sin(ang) * dist))
+                tc = max(2.0, min(self.map_cols - 3, home_c + _m.cos(ang) * dist))
                 dr = tr - e['r']
                 dc = tc - e['c']
                 norm = (dr * dr + dc * dc) ** 0.5 or 1.0
-                speed = 1.5  # тайлов/сек
+                speed = 1.5
                 e['_dir_r'] = (dr / norm) * speed
                 e['_dir_c'] = (dc / norm) * speed
-                e['ang'] = _m.atan2(dc, dr) if False else _m.atan2(dr, dc)
-                # angle: 0 = вправо по col (как в drawCharacter — atan2(dr,dc))
-                e['ang'] = _m.atan2(dr, dc)
+                e['ang']    = _m.atan2(dr, dc)
                 e['_patrol_until'] = now_sec + 2.0 + _r.random() * 3.0
-            # Шагаем
             e['r'] += e['_dir_r'] * dt
             e['c'] += e['_dir_c'] * dt
-            # Анимация ходьбы
             e['walk_phase'] = (e.get('walk_phase', 0) + dt * 8.0) % 6.2832
-            # Bound на всякий
             e['r'] = max(1.5, min(self.map_rows - 2, e['r']))
             e['c'] = max(1.5, min(self.map_cols - 2, e['c']))
+
+    def _enemy_shoots(self, e: dict, target: dict) -> None:
+        """Враг стрелял в игрока. Считаем урон, применяем, кладём событие
+        для рассылки. Промахи (~25%) не учитываются — это «жизнь без LoS»
+        даёт игроку шанс убежать за угол."""
+        import random as _r
+        if _r.random() < 0.25:
+            return  # промах — лёгкая компенсация отсутствию LoS
+        base = _COOP_WEAPON_DMG.get(e.get('weapon', 'pistol'), 12)
+        # Защита игрока уменьшает урон. Минимум 5 — чтобы враг всегда хоть
+        # что-то наносил (играть весело только если есть угроза).
+        target_def = int(target.get('def', 10))
+        dmg = max(5, int(base * (0.85 + _r.random() * 0.30) - target_def // 4))
+        target['hp'] = max(0, target['hp'] - dmg)
+        # Событие «выстрел» — клиент нарисует муз-флаш и пулю (фаза 5+).
+        self.events.append({
+            'type':   'shot',
+            'from_id':  e['id'],
+            'from_r':   round(e['r'], 2),
+            'from_c':   round(e['c'], 2),
+            'to_uid':   target['uid'],
+            'to_r':     round(target['y'], 2),
+            'to_c':     round(target['x'], 2),
+            'dmg':      dmg,
+            'weapon':   e.get('weapon', 'pistol'),
+        })
+        # Если игрок умер — обнуляем в sess.players (для расчёта «все ли пали»),
+        # эмитим event 'player_dead'.
+        if target['hp'] <= 0:
+            target['alive'] = False
+            for pp in self.sess.get('players', []):
+                if pp['uid'] == target['uid'] and pp['hp'] > 0:
+                    pp['hp'] = 0
+                    _coop_add_log(self.sess, f"💀 {pp['name']} убит.", 'death')
+                    break
+            self.events.append({
+                'type': 'player_dead',
+                'uid':  target['uid'],
+                'by_id': e['id'],
+            })
+            alive_p = [pp for pp in self.sess.get('players', [])
+                       if pp['hp'] > 0 and not pp.get('left')]
+            if not alive_p and self.sess.get('state') == 'battle':
+                self.sess['state'] = 'lost'
+                _coop_add_log(self.sess, "💀 Все пали. Поражение.", 'sys')
 
     def apply_hit(self, uid: str, enemy_id: int, dmg: int) -> None:
         """Клиент репортит попадание по серверному врагу. Server-authoritative:
