@@ -3618,6 +3618,7 @@ function startCoopSync() {
 function stopCoopSync() {
   if (coopPollTimer) { clearInterval(coopPollTimer); coopPollTimer = null; }
   if (simWs) {
+    simIntentionalClose = true;  // блокируем авто-реконнект в onclose
     try { simWs.close(1000, 'client-stop'); } catch(e) {}
     simWs = null;
   }
@@ -3634,6 +3635,7 @@ let simInputTimer   = null;
 let simReconnectAt  = 0;
 let simHello        = null;          // данные первого hello-кадра от сервера
 let simSrvRttMs     = 0;             // последний замер RTT (для HUD/отладки)
+let simIntentionalClose = false;     // флаг: закрыли намеренно (stopCoopSync) → не реконнектить
 const SIM_INPUT_HZ  = 20;
 const SIM_INPUT_MS  = 1000 / SIM_INPUT_HZ;
 
@@ -3686,7 +3688,7 @@ function simWsConnect() {
     if (simInputTimer) { clearInterval(simInputTimer); simInputTimer = null; }
     console.log('[sim] close', ev.code, ev.reason);
     // Реконнект, если не нарочно закрыли. Линейный backoff до 5 сек.
-    if (!coopFinishHandled && coopServerState !== 'cancelled') {
+    if (!simIntentionalClose && !coopFinishHandled && coopServerState !== 'cancelled') {
       _simWsReconnectLater();
     }
   };

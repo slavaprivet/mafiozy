@@ -9540,13 +9540,21 @@ class IsoBattleSim:
         p = self.players.get(uid)
         if not p:
             return
+        # Server-auth: позицию принимаем (свой игрок авторитативен для
+        # своей позиции в Phase 3/7 — client-side prediction). Если игрок
+        # уже мёртв — игнорируем движение, чтобы труп не «дёргался».
+        if not p.get('alive'):
+            # Дохлый игрок может только переотправить heartbeat (ang/weapon
+            # пропускаем), позиция остаётся последней.
+            if 'firing' in data: p['firing'] = bool(data['firing'])
+            p['last_input_at'] = time.time()
+            return
         if 'x'      in data: p['x']      = float(data['x'])
         if 'y'      in data: p['y']      = float(data['y'])
         if 'ang'    in data: p['ang']    = float(data['ang'])
-        # HP — server-authoritative с Phase 3. Клиент НЕ может выставить
-        # свой hp (иначе перетирает урон от серверного _enemy_shoots).
-        # Лечилки/реген в будущих фазах будут серверной механикой.
-        if 'alive'  in data: p['alive']  = bool(data['alive'])
+        # HP и ALIVE — server-authoritative с Phase 3. Клиент НЕ может
+        # выставить свой hp/alive (иначе стейл-инпут перетирает урон от
+        # серверного _enemy_shoots и оживляет мёртвого игрока).
         if 'firing' in data: p['firing'] = bool(data['firing'])
         if 'weapon' in data: p['weapon'] = str(data['weapon'])[:32]
         p['last_input_at'] = time.time()
