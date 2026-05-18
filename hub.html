@@ -1644,9 +1644,12 @@ body.on-subpage .time-display-box { display: none !important; }
     <div class="tile-label">Мои связи</div>
   </div>
 
-  <div class="tile tile-creator" onclick="openCreator()">
-    <div class="tile-icon">🎨</div>
-    <div class="tile-label">Мой гангстер</div>
+  <!-- Тайл «Мои навыки» — заменил «Мой гангстер» (тот переехал в досье
+       как кнопка «Сменить образ»). Здесь — прокачка навыка взломщика
+       сейфов. Дальше сюда же добавим следующие навыки (стрельба, стелс). -->
+  <div class="tile tile-creator" onclick="nav('skills')">
+    <div class="tile-icon">🎯</div>
+    <div class="tile-label">Мои навыки</div>
   </div>
 
 </div>
@@ -1840,6 +1843,68 @@ body.on-subpage .time-display-box { display: none !important; }
       <div class="char-row"><span class="char-label">💵 Наличные</span><span class="char-value" id="cs-cash">—</span></div>
       <div class="char-row"><span class="char-label">💎 Бриллианты</span><span class="char-value" id="cs-dia">—</span></div>
       <div class="char-row"><span class="char-label">💼 Работа</span><span class="char-value" id="cs-job">—</span></div>
+    </div>
+    <!-- Кнопка перешла сюда из главного меню: теперь смена образа из досье. -->
+    <button class="modal-btn modal-btn-heal" style="margin:14px;background:linear-gradient(135deg,#3d2810,#5a3d18);color:#ffd76b" onclick="openCreator()">
+      🎨 Сменить образ
+    </button>
+  </div>
+</div>
+
+<!-- ══ SUB-PAGE: МОИ НАВЫКИ ══ -->
+<div id="page-skills" class="subpage" style="display:none">
+  <div class="subpage-header">
+    <button class="back-btn" onclick="goBack()">← Назад</button>
+    <div class="subpage-title">🎯 Мои навыки</div>
+  </div>
+  <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+    <!-- Навык: взломщик сейфов -->
+    <div class="char-card" style="padding:14px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <div style="font-size:42px;line-height:1">🔓</div>
+        <div style="flex:1">
+          <div style="color:#ffd76b;font-weight:bold;font-size:16px">Взломщик сейфов</div>
+          <div style="color:#aab2c8;font-size:12px">Открывает сейфы на картах боёв</div>
+        </div>
+        <div style="text-align:right">
+          <div style="color:#aab2c8;font-size:11px">УРОВЕНЬ</div>
+          <div id="skill-safe-lvl" style="color:#ffd76b;font-size:24px;font-weight:bold">0</div>
+        </div>
+      </div>
+      <div style="color:#ddd;font-size:13px;line-height:1.5;margin-bottom:10px" id="skill-safe-desc">
+        Прокачивай, чтобы вскрывать сейфы на боях. Чем выше уровень — тем
+        более жирные сейфы откроешь. Каждое поднятие — больше денег
+        каждый бой.
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px">
+        <div style="flex:1">
+          <div style="color:#aab2c8;font-size:11px">СЛЕДУЮЩИЙ УРОВЕНЬ</div>
+          <div id="skill-safe-next" style="color:#fff;font-size:13px">Lv.1 — открывает сейфы в Рынке</div>
+        </div>
+        <button class="modal-btn modal-btn-heal" id="skill-safe-upgrade-btn" style="flex:0 0 auto;padding:10px 14px;background:linear-gradient(135deg,#1a3a1a,#2d6f2d);color:#7be58a" onclick="upgradeSkill('safecracker')">
+          💵 <span id="skill-safe-cost">500</span>$
+        </button>
+      </div>
+      <div id="skill-safe-hint" style="color:#ff7070;font-size:11px;margin-top:8px;display:none">Недостаточно денег</div>
+    </div>
+    <!-- Заготовка под будущие навыки -->
+    <div class="char-card" style="padding:14px;opacity:.5">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:42px;line-height:1">🔒</div>
+        <div style="flex:1">
+          <div style="color:#aab2c8;font-weight:bold;font-size:16px">Меткий стрелок</div>
+          <div style="color:#aab2c8;font-size:12px">Скоро…</div>
+        </div>
+      </div>
+    </div>
+    <div class="char-card" style="padding:14px;opacity:.5">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:42px;line-height:1">🔒</div>
+        <div style="flex:1">
+          <div style="color:#aab2c8;font-weight:bold;font-size:16px">Тень (стелс)</div>
+          <div style="color:#aab2c8;font-size:12px">Скоро…</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2096,6 +2161,8 @@ const DATA = {
   med_s:   pi('med_s', 0),
   med_m:   pi('med_m', 0),
   med_l:   pi('med_l', 0),
+  // Phase 9: навык «Взломщик сейфов». 0 — не умеет, 5 — мастер.
+  safe_lvl: pi('safe_lvl', 0),
   // Базовое оружие игрока — обычный пистолет («наган»). В магазине его
   // больше нет: это стартовый ствол, выдаётся даром каждому персонажу.
   weapon:  p('weapon', '') || 'nagan',
@@ -2282,7 +2349,7 @@ function fmtNum(n) {
 }
 
 // ── SPA Navigation ────────────────────────────────────────────────────
-const CLIENT_PAGES = ['explore', 'district', 'battle', 'character', 'coop', 'donate', 'jobs', 'shop', 'inventory', 'gang'];
+const CLIENT_PAGES = ['explore', 'district', 'battle', 'character', 'coop', 'donate', 'jobs', 'shop', 'inventory', 'gang', 'skills'];
 const BOT_PAGES = {
   diamonds:    { title: '💎 Бриллианты',      icon: '💎' },
   my_contacts: { title: '🤝 Мои связи',       icon: '🤝' },
@@ -2405,6 +2472,7 @@ function nav(dest, extra) {
     if (dest === 'shop')       renderShop();
     if (dest === 'inventory')  renderInventory();
     if (dest === 'gang')       renderGangPage();
+    if (dest === 'skills')     renderSkillsPage();
     document.getElementById('page-' + dest).style.display = '';
     document.body.classList.add('on-subpage');
   } else if (BOT_PAGES[dest]) {

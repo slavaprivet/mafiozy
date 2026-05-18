@@ -824,6 +824,10 @@ async def init_db():
             ("job_cooldowns_json", "TEXT DEFAULT NULL"),
             # Кулдаун событий мини-аппа (события по игровому времени)
             ("last_hub_event_at", "INTEGER DEFAULT 0"),
+            # Phase 9: Навыки. Пока один навык — взломщик сейфов (1..5).
+            # Level 0 = вообще не умеет; level N даёт право вскрывать сейфы
+            # уровня ≤ N. Сейфы лежат на карте боя в районах разного ранга.
+            ("safecracker_level", "INTEGER DEFAULT 0"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -1853,6 +1857,8 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "med_s":    med_s,
         "med_m":    med_m,
         "med_l":    med_l,
+        # Phase 9: уровень навыка взломщика сейфов (0..5).
+        "safe_lvl": int(char.get("safecracker_level") or 0),
         "weapon":   weapon,
         "prop":     prop_str,
         "gang":     gang_str,
