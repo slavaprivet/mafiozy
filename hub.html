@@ -5023,6 +5023,12 @@ function startBattle(bossId, locId){
   params.set('bcash', DATA.cash || 0);
   params.set('bgren', DATA.gren || 0);
   params.set('bmol',  DATA.mol  || 0);
+  // Аптечки из инвентаря — нужны в коопе для подъёма тиммейта (Phase 8).
+  // ВНЕ коопа неиспользованы, но всё равно передаём — пусть юзер видит
+  // запас в HUD на случай self-heal в будущем.
+  params.set('bms',   DATA.med_s || 0);
+  params.set('bmm',   DATA.med_m || 0);
+  params.set('bml',   DATA.med_l || 0);
   // Сила босса = количество миньонов (2..18 в BOSS_DATA). Боёвка из этого
   // считает размер карты — чем больше миньонов, тем крупнее арена.
   params.set('minions', boss.minions || 3);
@@ -5759,6 +5765,9 @@ function _coopEnterBattle(data) {
   params.set('bcash', DATA.cash || 0);
   params.set('bgren', DATA.gren || 0);
   params.set('bmol',  DATA.mol  || 0);
+  params.set('bms',   DATA.med_s || 0);
+  params.set('bmm',   DATA.med_m || 0);
+  params.set('bml',   DATA.med_l || 0);
   params.set('minions', boss.minions || 3);
   params.set('coop_sid', data.sid);
   // Path V (Phase 2+): включаем server-authoritative симулятор через WS.

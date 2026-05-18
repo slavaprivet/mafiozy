@@ -167,6 +167,141 @@ LOCATION_MAIN_BOSS = {
     "mansion": "don_karlo",
 }
 
+# Досье «Розыскивается» — биография каждого босса. Показывается в Telegram
+# на отдельной карточке при тапе по «📜 Досье на боссов» в меню локации.
+# Тон — короткий нуар: пара фраз про прошлое, чем известен, кого боится / на
+# чём поднялся. Без «лишнего пафоса», как реальная криминальная сводка.
+BOSS_BIO = {
+    "kosoy": (
+        "В детстве воровал шапки у одноклассников, в 14 — кошельки у пассажиров "
+        "троллейбуса. Получил кличку за врождённое косоглазие, которое сам считает "
+        "«преимуществом» — никто не понимает, куда он смотрит. На рынке его знают "
+        "все ларёчники: проще дать пятак, чем потом искать пропавший товар."
+    ),
+    "bychok": (
+        "Бывший борец-вольник, выгнан из спортшколы за поломанные носы партнёров. "
+        "Поднялся как «крыша» рыночных торговцев — берёт натурой и наликом. Раз в "
+        "неделю обходит ряды лично; те, кто платит вовремя, получают «защиту от "
+        "конкурентов» (а заодно от самого Бычка)."
+    ),
+    "zhigan": (
+        "Карманник в третьем поколении. Дед учил его на тёрке в трамвае, отец — на "
+        "Курском вокзале, сам Жиган выпускник колонии для несовершеннолетних. "
+        "Носит при себе паспорт жертвы — «на удачу». Поговаривают, что именно у "
+        "него один из ключей к подпольной сети документов."
+    ),
+    "shustryy": (
+        "Бегун-любитель, мастер спорта по марафону до того, как сел за гоп-стоп. "
+        "На рынке работает «толкачом» — отвлекает, толкает, исчезает. Поймать его "
+        "пешком невозможно: тренируется каждое утро в 6:00, обед — в столовке ИТК."
+    ),
+    "tolsty": (
+        "Смотрящий за портом уже двенадцать лет. Начинал грузчиком — в одиночку "
+        "тащил 100-кг мешки сахара по трапу. Поднялся на «недоучётах» при разгрузке. "
+        "Жирный, медленный, но ни один контейнер не пройдёт без его подписи; "
+        "за подпись просит долю или огнестрел."
+    ),
+    "kaban": (
+        "Бригадир докеров, бывший прапорщик стройбата. Дисциплина у его бригады "
+        "армейская: опоздал — штраф, спорил — выгнал. Любит командовать, "
+        "ненавидит когда лезут «через голову». Голыми руками гнёт арматуру, "
+        "пьёт водку гранёными стаканами без закуски."
+    ),
+    "bukhgalter": (
+        "Когда-то главный бухгалтер совхоза «Заря» — пока совхоз не сгорел вместе "
+        "с документацией. Сейчас ведёт «вторую кассу» порта: знает, кому, сколько "
+        "и за что. Носит очки, костюм-тройку, всегда улыбается. Под рубашкой — "
+        "браунинг и кобура, сшитая на заказ."
+    ),
+    "kontrabas": (
+        "Бывший моряк-загранплаватель, привозил из Турции «всё что попросят». "
+        "Спалился на партии электроники в 90-х, отсидел, вернулся в порт уже "
+        "хозяином схемы. Сейчас через его людей идут сигареты, парфюм и иногда — "
+        "то, о чём вслух не говорят."
+    ),
+    "legenda": (
+        "Имя его не произносят вслух — называют просто «Он». Сидел трижды, "
+        "выходил в авторитете. В казино его знают по голосу: подходит к столу, "
+        "кладёт стопку купюр, молча кивает крупье. Проиграть Легенда не может — "
+        "по понятиям, не положено."
+    ),
+    "professor": (
+        "Кандидат экономических наук, защитился в 92-м, ушёл «в схемы» в 93-м. "
+        "Просчитал десятки финансовых пирамид и обналички. В казино ведёт «свой» "
+        "стол — играет только с теми, кто пришёл проиграться. Тех, кто пришёл "
+        "выиграть, к его столу не пускают."
+    ),
+    "artist": (
+        "Бывший актёр погорелого театра — играл Гамлета, теперь играет "
+        "разводки. Может за пять минут стать кем угодно: священником, инспектором, "
+        "сантехником, племянником вашего соседа. Главный босс казино — потому "
+        "что лучше всех знает, что человек хочет услышать."
+    ),
+    "svalshchik": (
+        "Слил в 89-м всю свою бригаду — отсидел минимально, остальные получили "
+        "по 8-12 лет. Когда вышли, ждали с ножами; Сдатчик пришёл первым — "
+        "к их домам. Никто не вернулся. С тех пор работает в одиночку, "
+        "доверять перестали даже его собственному имени."
+    ),
+    "buryy": (
+        "Старая закалка — мотал срок ещё при Брежневе, на Колыме. Молодых "
+        "называет «щенками», уважает только тех, кто прошёл зону. На промзоне "
+        "его слово — закон; те, кто не понял, лежат в заброшенных цехах. "
+        "Татуировок столько, что кожи под ними почти не видно."
+    ),
+    "khirurg": (
+        "Учился на хирурга, дошёл до 5 курса — выгнали за «эксперименты» в морге. "
+        "Сейчас «зашивает» проблемы группировки: тихо, без следов, без свидетелей. "
+        "Носит с собой скальпель — не для понта, использует. Боли не чувствует "
+        "ни своей, ни чужой."
+    ),
+    "tigr": (
+        "Профессиональный киллер, ставка — 50К долларов и больше. На счету "
+        "минимум двенадцать заказов, ни одного раскрытого. Стреляет с двух рук, "
+        "промахивается раз в пять лет. Главный босс промзоны — потому что туда "
+        "приезжают «решать», а решать без Тигра нельзя."
+    ),
+    "palach": (
+        "Исполнитель приговоров «по понятиям». К нему приходят, когда нужно "
+        "наказать так, чтобы поняли все. Орудие — топор, унаследованный от деда-"
+        "лесника. Палач не говорит на работе — только смотрит. Этого хватает."
+    ),
+    "sedoy": (
+        "Поседел в 28, сейчас ему за 60. Прошёл всё: воровские сходки, "
+        "перестроечный передел, бандитские девяностые, олигархов нулевых. "
+        "Сидит в резиденции советником у Дона — формально на пенсии, фактически "
+        "решает кто будет жить дальше."
+    ),
+    "prizrak": (
+        "Никто не видел его лица. Никто не знает настоящего имени. Только "
+        "результаты: пропавшие свидетели, выгоревшие документы, замёрзшие "
+        "«при отопительном сезоне» конкуренты. Дон вызывает его, когда другие "
+        "уже не справились."
+    ),
+    "don_karlo": (
+        "Крёстный отец всех пяти районов. Поднялся в 80-х на цеховиках, в 90-х "
+        "пережил две войны и трёх «преемников». Сейчас живёт в особняке, "
+        "встречается только с теми, кого знает 20+ лет. Сделать «предложение» "
+        "Дону Карло — значит подписать себе приговор."
+    ),
+    "vizir": (
+        "Правая рука Дона уже пятнадцать лет. Считается, что без его одобрения "
+        "Дон не делает ни одного шага. Холодный аналитик: где Дон видит "
+        "врага — Визирь видит ресурс, где Дон жмёт на курок — Визирь сначала "
+        "просчитывает последствия. Тех, кто угрожает Дону, находят без головы."
+    ),
+    "mansion_gang": (
+        "Личная охрана резиденции Дона — двенадцать стволов, отобранных лично "
+        "Визирем из ветеранов локальных войн. На территорию особняка не "
+        "пропускают без приглашения; пропустить без приглашения может только "
+        "ствол охраны — и только один раз."
+    ),
+    "raid_boss": (
+        "Чужая банда, пришедшая отжать твой район. Кто конкретно — узнаешь "
+        "позже, если выживешь. Сейчас важно одно: они уже здесь."
+    ),
+}
+
 HUNT_COOLDOWN  = 2 * 60   # 2 минуты между боями
 
 # ── Система рейдов на районы ─────────────────────────────────────────────────
@@ -1939,12 +2074,34 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
         params["coop_id"] = coop_id
     # Передаём бэкап для метательного: при поражении/потере state боёвка
     # вернёт в хаб корректные gren/mol/cash без обнуления.
+    # Аптечки (med_s/m/l) — тоже из инвентаря; в бою юзер может потратить
+    # их на тиммейта (Phase 8 revive-flow), затем backend спишет использованные.
     if inv is not None:
         params["bgren"] = int(inv.get("grenade", 0) or 0)
         params["bmol"]  = int(inv.get("molotov", 0) or 0)
+        params["bms"]   = int(inv.get("medkit_small", 0) or 0)
+        params["bmm"]   = int(inv.get("medkit_medium", 0) or 0)
+        params["bml"]   = int(inv.get("medkit_large", 0) or 0)
     if cash is not None:
         params["bcash"] = int(cash or 0)
     return ISO_WEBAPP_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
+
+
+async def build_iso_url_for_user(char: dict, battle: dict, user_id: int,
+                                 boss_id: str = "", loc_id: str = "",
+                                 coop_id: str = "",
+                                 cash: int | None = None) -> str:
+    """Async-обёртка над build_iso_url: сама подтягивает инвентарь игрока,
+    чтобы в боёвку всегда передавались актуальные gren/mol/medkits. Раньше
+    sync-версия требовала чтобы caller сам передал inv — мало кто это делал,
+    в итоге в бою кнопки гранат/аптечек были невидимы. Использовать вместо
+    голого build_iso_url везде, где есть user_id."""
+    try:
+        inv = await get_inventory(user_id)
+    except Exception:
+        inv = {}
+    return build_iso_url(char, battle, boss_id=boss_id, loc_id=loc_id,
+                         coop_id=coop_id, inv=inv, cash=cash)
 
 
 def back_kb(cb: str = "main_menu"):
@@ -3617,6 +3774,111 @@ class _StreetEvents:
             ]])
         )
 
+async def show_dossier(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Раздел «Розыскивается»: список боссов района с кнопками — нажми и
+    откроется индивидуальная карточка с биографией, цитатой и наградой за
+    голову. Вход — кнопка «📜 Досье на боссов» в меню локации."""
+    query = update.callback_query
+    await query.answer()
+    loc_id = query.data.replace("dossier_", "")
+    loc = LOCATIONS.get(loc_id)
+    if not loc:
+        await query.answer("Локация не найдена", show_alert=True)
+        return
+    main_boss_id = LOCATION_MAIN_BOSS.get(loc_id, "")
+    lines = [
+        f"📜 *Досье — {loc['name']}*",
+        f"_{loc['desc']}_",
+        "",
+        "🔻 *Розыскиваются:*",
+    ]
+    buttons = []
+    for boss_id in loc["bosses"]:
+        b = BOSSES.get(boss_id) or {}
+        marker = " 👑" if boss_id == main_boss_id else ""
+        lines.append(f"  •  {b.get('name','?')} — _{b.get('title','')}_{marker}")
+        buttons.append([InlineKeyboardButton(
+            f"📋 {b.get('name','?')}", callback_data=f"dosfile_{loc_id}_{boss_id}"
+        )])
+    buttons.append([InlineKeyboardButton("⬅️ К району", callback_data=f"location_{loc_id}")])
+    text = "\n".join(lines)
+    # Меняем именно текст карточки — фото района не трогаем, оно осталось выше.
+    try:
+        await query.edit_message_text(
+            text, parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(buttons),
+        )
+    except Exception:
+        # Если предыдущее сообщение было с фото — edit_message_text упадёт,
+        # шлём новое отдельно.
+        await context.bot.send_message(
+            chat_id=query.message.chat_id, text=text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(buttons),
+        )
+
+
+async def show_dossier_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Карточка одного босса — «Розыскивается»-постер. Показывает emoji,
+    кличку, титул, статы, цитату, биографию и награду. Кнопка «⚔ В бой» уводит
+    в обычный hunt-prep на этого босса."""
+    query = update.callback_query
+    await query.answer()
+    raw = query.data.replace("dosfile_", "")
+    # data: dosfile_<loc>_<boss>. loc на одно подчёркивание (market/port/…)
+    # boss может быть multi-word — split один раз.
+    try:
+        loc_id, boss_id = raw.split("_", 1)
+    except ValueError:
+        await query.answer("Ошибка", show_alert=True)
+        return
+    boss = BOSSES.get(boss_id)
+    loc  = LOCATIONS.get(loc_id)
+    if not boss or not loc:
+        await query.answer("Не найдено", show_alert=True)
+        return
+    bio = BOSS_BIO.get(boss_id) or "Тёмная лошадка района. Подробности уточняются."
+    is_main = (boss_id == LOCATION_MAIN_BOSS.get(loc_id))
+    crown = " 👑 *(главный босс района)*" if is_main else ""
+    # ASCII-постер «Розыскивается». Юникод-рамку держим простой — TG её
+    # на маленьких экранах не дробит.
+    text = (
+        "```\n"
+        "╔══════════════════════╗\n"
+        "║   РОЗЫСКИВАЕТСЯ      ║\n"
+        "║      ЖИВЫМ ИЛИ       ║\n"
+        "║       МЁРТВЫМ        ║\n"
+        "╚══════════════════════╝\n"
+        "```\n"
+        f"*{boss['name']}*{crown}\n"
+        f"_{boss['title']}_\n"
+        f"📍 Замечен: {loc['name']}\n\n"
+        f"❤️ HP: *{boss['hp']}*  ⚔️ Атака: *{boss['attack']}*  🛡 Защита: *{boss['defense']}*\n\n"
+        f"💬 _«{boss['quote']}»_\n\n"
+        f"📖 *Биография:*\n{bio}\n\n"
+        f"💰 *Награда за голову:* +{boss['cash']}$ · +{boss['exp']} XP"
+    )
+    if boss.get('drop'):
+        drop_item, drop_chance = boss['drop']
+        drop_name = (ITEMS.get(drop_item) or {}).get('name', drop_item)
+        text += f"\n🎁 Возможный лут: {drop_name} ({int(drop_chance*100)}%)"
+    buttons = [
+        [InlineKeyboardButton(f"⚔ В район ({loc['name']})", callback_data=f"hunt_{loc_id}")],
+        [InlineKeyboardButton("⬅️ К досье района", callback_data=f"dossier_{loc_id}")],
+    ]
+    try:
+        await query.edit_message_text(
+            text, parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(buttons),
+        )
+    except Exception:
+        await context.bot.send_message(
+            chat_id=query.message.chat_id, text=text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(buttons),
+        )
+
+
 async def show_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -3692,6 +3954,7 @@ async def show_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )]] if ctrl and ctrl["telegram_id"] == user_id else []),
         [InlineKeyboardButton("🔫 Разобраться с кем-нибудь", callback_data=f"hunt_{loc_id}")],
         [InlineKeyboardButton("🕵️ Выследить босса",           callback_data=f"track_{loc_id}")],
+        [InlineKeyboardButton("📜 Досье на боссов",          callback_data=f"dossier_{loc_id}")],
         [InlineKeyboardButton(GATHER_ACTIONS[loc_id]["btn"], callback_data=f"gather_{loc_id}")],
         [InlineKeyboardButton(f"🎰 {CASINO_DATA[loc_id]['name']}", callback_data=f"casino_{loc_id}")],
         [InlineKeyboardButton("🏥 Больница",                  callback_data=f"hospital_{loc_id}")],
@@ -3837,7 +4100,7 @@ async def hunt(update: Update, context: ContextTypes.DEFAULT_TYPE):
         has_potions = any(ITEMS.get(i, {}).get("type") == "potion" and q > 0 for i, q in inv.items())
         _opr = await get_property(user_id)
         _pn, _pm = _best_prop_skill(_opr)
-        url = build_iso_url(char, existing)
+        url = build_iso_url(char, existing, inv=inv)
         await _edit_text(query,
             f"⚔️ *Бой ещё не закончен!*\n\n"
             f"Противник: *{boss['name']}* — ❤️ {existing['boss_hp']} HP\n\n"
@@ -4884,7 +5147,7 @@ async def _start_coop_battle_for_all(bot, session_id: int, host_id: int, prep: d
             _opr     = await get_property(ap["uid"])
             _pn, _pm = _best_prop_skill(_opr)
             others   = [p["name"] for p in accepted if p["uid"] != ap["uid"]]
-            url      = build_iso_url(ap_char, ap_battle, coop_id=str(session_id))
+            url      = build_iso_url(ap_char, ap_battle, coop_id=str(session_id), inv=ap_inv)
             others_line = " | ".join(f"👥{n}" for n in others) if others else "только ты"
             await bot.send_message(
                 chat_id=ap["uid"],
@@ -5057,7 +5320,7 @@ async def hunt_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             has_potions_coop = any(ITEMS.get(i,{}).get("type")=="potion" and q>0 for i,q in inv_coop.items())
             _opr_c = await get_property(user_id)
             _pn_c, _pm_c = _best_prop_skill(_opr_c)
-            url_host = build_iso_url(char, battle_data_coop, coop_id=str(coop_sid))
+            url_host = build_iso_url(char, battle_data_coop, coop_id=str(coop_sid), inv=inv_coop)
 
             team_line = " | ".join(f"👥{n}" for n in team_names)
             await context.bot.send_message(
@@ -5083,7 +5346,7 @@ async def hunt_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     _opr_ap = await get_property(ap["uid"])
                     _pn_ap, _pm_ap = _best_prop_skill(_opr_ap)
                     others_names = [char["name"]] + [p["name"] for p in accepted_players if p["uid"] != ap["uid"]]
-                    url_ap = build_iso_url(ap_char, ap_battle, coop_id=str(coop_sid))
+                    url_ap = build_iso_url(ap_char, ap_battle, coop_id=str(coop_sid), inv=ap_inv)
                     others_line = " | ".join(f"👥{n}" for n in others_names)
                     await context.bot.send_message(
                         chat_id=ap["uid"],
@@ -5114,7 +5377,7 @@ async def hunt_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     battle_data = await get_battle(user_id)
     _opr = await get_property(user_id)
     _pn, _pm = _best_prop_skill(_opr)
-    url = build_iso_url(char, battle_data)
+    url = build_iso_url(char, battle_data, inv=inv)
 
     party_line = ""
     if real_party:
@@ -5730,7 +5993,7 @@ async def battle_grenade_webapp(update: Update, context: ContextTypes.DEFAULT_TY
         return
     has_potions = any(ITEMS.get(i, {}).get("type") == "potion" and q > 0 for i, q in inv.items())
     battle_upd = await get_battle(user_id)
-    url = build_iso_url(char, battle_upd)
+    url = build_iso_url(char, battle_upd, inv=inv)
     gren_btn = [[InlineKeyboardButton(f"💣 Ещё гранату ×{grenades_left}", callback_data="battle_grenade_webapp")]] if grenades_left > 0 else []
     await _edit_text(query,
         f"💣 *Граната!* Взрыв — *{nade_dmg} урона!* (контратаки нет)\n"
@@ -6421,6 +6684,13 @@ async def battle_webapp_action(update: Update, context: ContextTypes.DEFAULT_TYP
                 await remove_item(user_id, "grenade")
             for _ in range(min(mol_used, 50)):
                 await remove_item(user_id, "molotov")
+            # Phase 8: списываем аптечки, потраченные в бою (на тиммейтов / себя).
+            for _ in range(min(int(data.get("msU", 0)), 50)):
+                await remove_item(user_id, "medkit_small")
+            for _ in range(min(int(data.get("mmU", 0)), 50)):
+                await remove_item(user_id, "medkit_medium")
+            for _ in range(min(int(data.get("mlU", 0)), 50)):
+                await remove_item(user_id, "medkit_large")
             # Множитель района: ×1.0 (рынок, min_level=1) → ×2.9 (резиденция, min_level=20).
             # Та же формула в demo_isometric.html (LOC_REWARD_MUL), числа сходятся.
             loc_id_for_mul = battle.get("location") or ""
@@ -6881,7 +7151,7 @@ async def battle_webapp_action(update: Update, context: ContextTypes.DEFAULT_TYP
     battle_upd = dict(battle); battle_upd["boss_hp"] = boss_hp; battle_upd["party"] = party
 
     log_str = result_text.strip().replace("*", "") + "\n" + boss_counter_text.replace("*", "")
-    url = build_iso_url(char_upd, battle_upd)
+    url = build_iso_url(char_upd, battle_upd, inv=inv)
 
     # ── Проверяем co-op сессию ──────────────────────────────────────────
     coop_session = await get_coop_by_participant(user_id)
@@ -6912,7 +7182,7 @@ async def battle_webapp_action(update: Update, context: ContextTypes.DEFAULT_TYP
         _next_opr = await get_property(next_player_id)
         _next_pn, _next_pm = _best_prop_skill(_next_opr)
         _next_pp_ok = 1 if coop_session["host_id"] == next_player_id else 0
-        next_url = build_iso_url(next_char, next_battle)
+        next_url = build_iso_url(next_char, next_battle, inv=next_inv)
         next_name = next_char["name"] if next_char else "партнёр"
         # Отправляем ход следующему игроку
         try:
@@ -8904,7 +9174,7 @@ async def raid_battle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ITEMS.get(i, {}).get("type") == "potion" and q > 0
                 for i, q in inv_coop.items()
             )
-            url_coop = build_iso_url(char, battle_data_coop)
+            url_coop = build_iso_url(char, battle_data_coop, inv=inv_coop)
             await _edit_text(query,
                 f"⚔️ *СОВМЕСТНАЯ ЗАЩИТА!*\n\n"
                 f"👊 *{raid_boss['name']}* — ❤️ {raid['boss_hp']}/{raid['boss_hp_max']} HP\n\n"
@@ -8943,7 +9213,7 @@ async def raid_battle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     battle_data = await get_battle(user_id)
     inv = await get_inventory(user_id)
     has_potions = any(ITEMS.get(i, {}).get("type") == "potion" and q > 0 for i, q in inv.items())
-    url = build_iso_url(char, battle_data)
+    url = build_iso_url(char, battle_data, inv=inv)
 
     loc_name = LOCATIONS.get(raid["location_id"], {}).get("name", raid["location_id"])
     await _edit_text(query,
@@ -9834,6 +10104,67 @@ class IsoBattleSim:
             'by_uid': uid,
             'hp':     new_hp,
         })
+
+    def apply_medkit(self, uid: str, target_uid: str, kind: str,
+                     size: str, heal: int) -> None:
+        """Phase 8: использование аптечки. Логика по kind:
+        — heal_self: лечит себя на heal HP (cap = max_hp)
+        — heal_ally: лечит союзника, нужен в радиусе REVIVE_RADIUS
+        — revive: поднимает downed-союзника с hp=heal (cap = max_hp)
+        Серверная проверка alive/downed/дистанции — самая важная часть, иначе
+        бот может call'ить use_medkit с heal:99999 и хилить тиммейта-чита."""
+        caller = self.players.get(uid)
+        if not caller or not caller.get('alive') or caller.get('downed'):
+            return
+        target = self.players.get(target_uid)
+        if not target:
+            return
+        heal = max(1, min(int(heal), 280))
+        # Дистанция (для ally/revive — не для self).
+        if kind != 'heal_self':
+            dx = caller.get('x', 0) - target.get('x', 0)
+            dy = caller.get('y', 0) - target.get('y', 0)
+            if (dx * dx + dy * dy) > (COOP_REVIVE_RADIUS * COOP_REVIVE_RADIUS):
+                return
+        if kind == 'revive':
+            if not target.get('downed'):
+                return
+            target['downed']     = False
+            target['alive']      = True
+            target['hp']         = min(target.get('max_hp', 100), heal)
+            target['revive_count'] = int(target.get('revive_count', 0)) + 1
+            target['was_revived_by'] = uid
+            target['down_at']    = 0.0
+            for pp in self.sess.get('players', []):
+                if pp['uid'] == target_uid:
+                    pp['hp'] = target['hp']
+                    _coop_add_log(self.sess,
+                        f"💊 {caller.get('name','?')} поднял {pp['name']} "
+                        f"аптечкой ({target['hp']} HP)",
+                        'sys')
+                    break
+            self.events.append({
+                'type': 'player_revived', 'uid': target_uid,
+                'by_uid': uid, 'hp': target['hp'], 'via': 'medkit',
+            })
+        else:
+            # heal_self / heal_ally
+            if not target.get('alive') or target.get('downed'):
+                return
+            new_hp = min(target.get('max_hp', 100), target.get('hp', 0) + heal)
+            applied = new_hp - target.get('hp', 0)
+            if applied <= 0:
+                return
+            target['hp'] = new_hp
+            # sess.players hp синкаем тоже — иначе loss-check может зацепиться.
+            for pp in self.sess.get('players', []):
+                if pp['uid'] == target_uid:
+                    pp['hp'] = new_hp
+                    break
+            self.events.append({
+                'type': 'medkit_heal', 'uid': target_uid,
+                'by_uid': uid, 'amount': applied, 'size': size,
+            })
 
     def _apply_aoe_to_players(self, x: float, y: float, radius: float,
                               dmg: int, src_id: int) -> None:
@@ -10764,6 +11095,22 @@ async def _coop_http_app():
                         target_uid = str(d.get('target_uid', '') or d.get('uid', ''))
                         if target_uid:
                             sim.apply_revive(uid, target_uid)
+                    elif t == 'use_medkit':
+                        # Phase 8: использование аптечки на тиммейте или себе.
+                        # Клиент-side списание из инвентаря, backend подхватит
+                        # после боя (msU/mmU/mlU в payload). Тут только HP.
+                        d = pkt.get('d') or {}
+                        target_uid = str(d.get('target_uid', '') or '')
+                        kind = str(d.get('kind', 'heal_self'))[:16]
+                        size = str(d.get('size', 'small'))[:8]
+                        try:
+                            heal = int(d.get('heal', 0))
+                        except Exception:
+                            heal = 0
+                        # Clamp heal на случай подделки (max 280 — large medkit).
+                        heal = max(1, min(heal, 280))
+                        if target_uid:
+                            sim.apply_medkit(uid, target_uid, kind, size, heal)
                     elif t == 'stealth_kill':
                         # Phase 4: стелс-килл за спиной. Клиент уже
                         # проверил findBackstabTarget; сервер дополнительно
@@ -11743,6 +12090,13 @@ async def _coop_http_app():
                 await remove_item(uid, 'grenade')
             for _ in range(min(mol_used, 50)):
                 await remove_item(uid, 'molotov')
+            # Phase 8: списываем аптечки (через WS-эндпоинт результата боя).
+            for _ in range(min(int(data.get('msU', 0) or 0), 50)):
+                await remove_item(uid, 'medkit_small')
+            for _ in range(min(int(data.get('mmU', 0) or 0), 50)):
+                await remove_item(uid, 'medkit_medium')
+            for _ in range(min(int(data.get('mlU', 0) or 0), 50)):
+                await remove_item(uid, 'medkit_large')
             # Доверяем числам WebApp, но кэпим x3 от базовой формулы.
             xp_payload   = int(data.get('xp',   0) or 0)
             cash_payload = int(data.get('cash', 0) or 0)
@@ -11886,6 +12240,8 @@ def main():
     app.add_handler(CallbackQueryHandler(main_menu,             pattern="^main_menu$"))
     app.add_handler(CallbackQueryHandler(explore,               pattern="^explore$"))
     app.add_handler(CallbackQueryHandler(show_location,         pattern="^location_"))
+    app.add_handler(CallbackQueryHandler(show_dossier,          pattern="^dossier_"))
+    app.add_handler(CallbackQueryHandler(show_dossier_file,     pattern="^dosfile_"))
     app.add_handler(CallbackQueryHandler(hunt_friends_list,     pattern="^hunt_friends_list$"))
     app.add_handler(CallbackQueryHandler(hunt_back_prep,        pattern="^hunt_back_prep$"))
     app.add_handler(CallbackQueryHandler(hunt_invite_friend,    pattern="^hunt_invite_friend_"))
