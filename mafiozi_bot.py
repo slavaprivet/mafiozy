@@ -18,20 +18,43 @@ from telegram.ext import (
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ⬇️ ТОКЕН БОТА читаем из файла .bot-token (он в .gitignore — не попадёт в репозиторий)
+# ⬇️ ТОКЕН БОТА читаем из файла .bot-token (он в .gitignore — не попадёт в репозиторий).
+# Fallback: bot-token-backup.txt в этой же папке или на десктопе пользователя.
 import sys as _sys
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _BOT_TOKEN_FILE = os.path.join(_HERE, ".bot-token")
-try:
-    with open(_BOT_TOKEN_FILE, "r", encoding="utf-8") as _f:
-        BOT_TOKEN = _f.read().strip()
-except FileNotFoundError:
+_TOKEN_FALLBACKS = [
+    _BOT_TOKEN_FILE,
+    os.path.join(_HERE, "bot-token-backup.txt"),
+    os.path.join(_HERE, "..", "..", "..", "bot-token-backup.txt"),
+    os.path.join(os.path.expanduser("~"), "Desktop", "bot-token-backup.txt"),
+]
+BOT_TOKEN = ""
+_token_src = ""
+for _p in _TOKEN_FALLBACKS:
+    try:
+        with open(_p, "r", encoding="utf-8") as _f:
+            _candidate = _f.read().strip()
+        if _candidate and ":" in _candidate:
+            BOT_TOKEN = _candidate
+            _token_src = _p
+            break
+    except (FileNotFoundError, PermissionError, OSError):
+        continue
+if not BOT_TOKEN:
     print(f"[!] Файл .bot-token не найден: {_BOT_TOKEN_FILE}")
-    print(f"    Создай его и впиши туда токен от @BotFather одной строкой.")
+    print(f"    Не найден и bot-token-backup.txt в типичных местах.")
+    print(f"    Создай .bot-token рядом со скриптом и впиши туда токен от @BotFather.")
     _sys.exit(1)
-if not BOT_TOKEN or ":" not in BOT_TOKEN:
-    print(f"[!] .bot-token пустой или не похож на токен Telegram-бота (формат: 12345:AAA...)")
-    _sys.exit(1)
+if _token_src != _BOT_TOKEN_FILE:
+    print(f"[i] BOT_TOKEN подхвачен из fallback: {_token_src}")
+    # Сразу копируем в .bot-token чтобы в следующий раз стартовало без fallback.
+    try:
+        with open(_BOT_TOKEN_FILE, "w", encoding="utf-8") as _f:
+            _f.write(BOT_TOKEN)
+        print(f"    Скопировал в {_BOT_TOKEN_FILE} — больше fallback не понадобится.")
+    except OSError:
+        pass
 
 DB_PATH = "mafiozi.db"
 

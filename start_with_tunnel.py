@@ -106,14 +106,42 @@ def start_bot(api_url):
     return subprocess.call([sys.executable, str(BOT)], env=env)
 
 
+def _hold_window(reason: str):
+    """Не даём окну закрыться — иначе при двойном клике юзер не успеет
+    прочитать ошибку. Срабатывает на любом неудачном завершении."""
+    print()
+    print("=" * 60)
+    print(f"[!] {reason}")
+    print("=" * 60)
+    print("Окно НЕ закрывается автоматически — посмотри вывод выше.")
+    print("Самые частые причины:")
+    print("  1) Нет файла .bot-token рядом со скриптом (скопируй из")
+    print("     bot-token-backup.txt с десктопа).")
+    print("  2) Не хватает зависимости — поставь:")
+    print("     pip install python-telegram-bot aiosqlite aiohttp")
+    print("  3) Конфликт getUpdates — другой инстанс бота уже запущен,")
+    print("     закрой остальные окна с ботом и попробуй снова.")
+    print()
+    try:
+        input("Нажми Enter чтобы закрыть окно... ")
+    except (EOFError, KeyboardInterrupt):
+        pass
+
+
 def main():
     if not BOT.exists():
         log(f"[!] Не нашёл {BOT.name} рядом со скриптом.")
+        _hold_window("mafiozi_bot.py не найден в этой папке.")
         sys.exit(1)
     download_cloudflared()
     api_url, tun_proc = start_tunnel()
+    rc = 1
+    crashed = False
     try:
         rc = start_bot(api_url)
+    except Exception as e:
+        crashed = True
+        log(f"[!] Бот упал с исключением: {e}")
     finally:
         if tun_proc and tun_proc.poll() is None:
             log("Гашу туннель...")
@@ -121,6 +149,8 @@ def main():
                 tun_proc.terminate()
             except Exception:
                 pass
+    if rc != 0 or crashed:
+        _hold_window(f"Бот завершился с кодом {rc}. Прокрути вверх — там traceback.")
     sys.exit(rc)
 
 
