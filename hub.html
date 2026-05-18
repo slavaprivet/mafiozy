@@ -1734,7 +1734,11 @@ body.on-subpage .time-display-box { display: none !important; }
     <div style="text-align:center;color:#ffd76b;font-family:Georgia,serif;letter-spacing:3px;font-size:11px;border-top:1px solid #8b6332;border-bottom:1px solid #8b6332;padding:6px 0;margin-bottom:10px">
       РОЗЫСКИВАЕТСЯ&nbsp;·&nbsp;ЖИВЫМ&nbsp;ИЛИ&nbsp;МЁРТВЫМ
     </div>
-    <div id="doss-file-emoji" style="text-align:center;font-size:56px;line-height:1;margin:6px 0">😈</div>
+    <!-- Canvas-портрет босса. Рисуется через drawChar() при открытии. -->
+    <div style="text-align:center;margin:6px 0">
+      <canvas id="doss-file-portrait" width="180" height="220"
+              style="background:radial-gradient(circle at 50% 35%, #2a1f10, #0a0604);border:2px solid #8b6332;border-radius:8px;display:inline-block"></canvas>
+    </div>
     <div id="doss-file-name" style="text-align:center;color:#ffd76b;font-size:18px;font-weight:bold;font-family:Georgia,serif">Имя</div>
     <div id="doss-file-title" style="text-align:center;color:#c8a050;font-style:italic;font-size:13px;margin-bottom:8px">Титул</div>
     <div id="doss-file-stats" style="text-align:center;color:#ddd;font-size:13px;margin-bottom:10px">❤️ HP · ⚔️ ATK · 🛡 DEF</div>
@@ -2583,6 +2587,32 @@ const BOSS_DATA = {
   vizir:     {name:'🎯 Визирь',   title:'Правая рука Дона',      hp:1050,atk:140,def:78, exp:300, cash:1500,minions:15, quote:'Дон знает о твоём визите.'},
 };
 
+// Look-портреты боссов (зеркало _COOP_BOSS_DATA[*].look из mafiozi_bot.py).
+// Используются в досье — рисуем через drawChar() на canvas внутри карточки.
+// Каждый объект: {gender, skin, body, face, hair, hat}.
+const BOSS_LOOK = {
+  kosoy:      {gender:0, skin:2, body:0, face:1, hair:3, hat:0},
+  bychok:     {gender:0, skin:1, body:2, face:2, hair:0, hat:0},
+  zhigan:     {gender:0, skin:2, body:1, face:3, hair:4, hat:2},
+  shustryy:   {gender:0, skin:1, body:0, face:1, hair:5, hat:0},
+  tolsty:     {gender:0, skin:1, body:2, face:4, hair:2, hat:3},
+  kaban:      {gender:0, skin:2, body:2, face:5, hair:1, hat:1},
+  bukhgalter: {gender:0, skin:0, body:1, face:0, hair:6, hat:4},
+  kontrabas:  {gender:0, skin:1, body:1, face:3, hair:3, hat:2},
+  legenda:    {gender:0, skin:1, body:1, face:6, hair:0, hat:1},
+  professor:  {gender:0, skin:0, body:0, face:4, hair:6, hat:4},
+  artist:     {gender:0, skin:1, body:1, face:2, hair:4, hat:0},
+  svalshchik: {gender:0, skin:1, body:0, face:5, hair:1, hat:0},
+  buryy:      {gender:0, skin:2, body:2, face:5, hair:0, hat:0},
+  khirurg:    {gender:0, skin:0, body:0, face:0, hair:6, hat:0},
+  tigr:       {gender:0, skin:1, body:1, face:6, hair:2, hat:0},
+  palach:     {gender:0, skin:1, body:2, face:5, hair:0, hat:1},
+  sedoy:      {gender:0, skin:0, body:1, face:6, hair:7, hat:1},
+  prizrak:    {gender:0, skin:0, body:0, face:4, hair:6, hat:0},
+  don_karlo:  {gender:0, skin:1, body:2, face:4, hair:1, hat:1},
+  vizir:      {gender:0, skin:1, body:1, face:6, hair:2, hat:3},
+};
+
 // «Розыскивается» — биография каждого босса для досье в hub'е. Зеркало
 // BOSS_BIO из mafiozi_bot.py. Текст обновляется в обоих местах синхронно.
 const BOSS_BIO = {
@@ -2780,15 +2810,21 @@ function showDossier() {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:6px;background:rgba(0,0,0,.35);border-left:3px solid #8b6332;border-radius:6px;cursor:pointer';
     row.onclick = function() { showDossierFile(bid); };
-    const emoji = (b.name || '').match(/^(\p{Extended_Pictographic}+)/u);
+    // Мини-портрет 56x70 (тот же drawChar что и в крупной карточке).
+    const portraitId = 'doss-mini-' + bid;
     row.innerHTML =
-      '<div style="font-size:28px">' + (emoji ? emoji[1] : '👤') + '</div>' +
+      '<canvas id="' + portraitId + '" width="56" height="70" style="background:radial-gradient(circle at 50% 35%, #2a1f10, #0a0604);border:1px solid #8b6332;border-radius:4px;flex-shrink:0"></canvas>' +
       '<div style="flex:1">' +
         '<div style="color:#ffd76b;font-weight:bold">' + (b.name || bid) + (bid === main ? ' 👑' : '') + '</div>' +
         '<div style="color:#aab2c8;font-size:12px;font-style:italic">' + (b.title || '') + '</div>' +
       '</div>' +
       '<div style="color:#c8a050;font-size:18px">›</div>';
     list.appendChild(row);
+    // Рисуем после insert — иначе canvas не в DOM.
+    const cv = document.getElementById(portraitId);
+    if (cv && BOSS_LOOK[bid]) {
+      try { drawChar(cv.getContext('2d'), cv.width, cv.height, BOSS_LOOK[bid]); } catch(e) {}
+    }
   });
   document.getElementById('dossier-modal').style.display = 'flex';
 }
@@ -2796,8 +2832,19 @@ function showDossier() {
 function showDossierFile(bid) {
   const b = BOSS_DATA[bid];
   if (!b) return;
-  const emoji = (b.name || '').match(/^(\p{Extended_Pictographic}+)/u);
-  document.getElementById('doss-file-emoji').textContent = emoji ? emoji[1] : '👤';
+  // Рисуем портрет через drawChar — тот же движок что в creator.html.
+  const cv = document.getElementById('doss-file-portrait');
+  const cx = cv.getContext('2d');
+  const look = BOSS_LOOK[bid];
+  if (look) {
+    try { drawChar(cx, cv.width, cv.height, look); } catch(e) {}
+  } else {
+    cx.clearRect(0, 0, cv.width, cv.height);
+    cx.font = '80px serif';
+    cx.textAlign = 'center';
+    const emoji = (b.name || '').match(/^(\p{Extended_Pictographic}+)/u);
+    cx.fillText(emoji ? emoji[1] : '👤', cv.width / 2, cv.height / 2 + 24);
+  }
   // Имя без эмодзи
   document.getElementById('doss-file-name').textContent = (b.name || '').replace(/^\p{Extended_Pictographic}+\s*/u, '');
   document.getElementById('doss-file-title').textContent = b.title || '';
@@ -2806,8 +2853,11 @@ function showDossierFile(bid) {
   document.getElementById('doss-file-quote').textContent = '«' + (b.quote || '') + '»';
   document.getElementById('doss-file-bio').textContent =
     BOSS_BIO[bid] || 'Тёмная лошадка района. Подробности уточняются.';
+  // Награда — тот же формат что в списке врагов: cash как диапазон,
+  // exp фиксированное (×1.33 верхняя граница, как в renderBossList).
+  const cashRange = Math.round(b.cash * 1.33);
   document.getElementById('doss-file-reward').textContent =
-    '💰 Награда: +' + b.cash + '$  ·  +' + b.exp + ' XP';
+    '💰 Награда: +' + b.cash + '-' + cashRange + '$  ·  +' + b.exp + ' XP';
   document.getElementById('dossier-modal').style.display = 'none';
   document.getElementById('dossier-file-modal').style.display = 'flex';
 }
@@ -2900,8 +2950,15 @@ function renderBossList(locId) {
     const card = document.createElement('div');
     card.className = 'boss-card';
     const cashRange = Math.round(b.cash * 1.33);
+    const hasLook = !!BOSS_LOOK[bossId];
+    const portraitId = 'boss-portrait-' + bossId;
+    // Если есть look — рисуем canvas-портрет (тот же что в досье),
+    // иначе fallback на эмодзи как раньше.
+    const iconHtml = hasLook
+      ? `<canvas id="${portraitId}" width="64" height="80" style="background:radial-gradient(circle at 50% 35%, #2a1f10, #0a0604);border:1px solid #5a3d18;border-radius:6px"></canvas>`
+      : `<div class="boss-icon">${b.name.match(/^./u)[0]}</div>`;
     card.innerHTML = `
-      <div class="boss-icon">${b.name.match(/^./u)[0]}</div>
+      ${iconHtml}
       <div class="boss-info">
         <div class="boss-name">${b.name}</div>
         <div class="boss-title">${b.title}</div>
@@ -2921,6 +2978,12 @@ function renderBossList(locId) {
       </button>
     `;
     list.appendChild(card);
+    if (hasLook) {
+      const cv = document.getElementById(portraitId);
+      if (cv) {
+        try { drawChar(cv.getContext('2d'), cv.width, cv.height, BOSS_LOOK[bossId]); } catch(e) {}
+      }
+    }
   });
 }
 
