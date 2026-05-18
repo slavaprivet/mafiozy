@@ -5158,6 +5158,18 @@ function startBattle(bossId, locId){
   params.set('bms',   DATA.med_s || 0);
   params.set('bmm',   DATA.med_m || 0);
   params.set('bml',   DATA.med_l || 0);
+  // Look игрока. Раньше боёвка читала look из localStorage — там сидел
+  // random с первой сессии. Поэтому смена образа в хабе на бой не влияла.
+  // Теперь передаём look через URL → demo_isometric перетрёт localStorage.
+  if (DATA.hasLook) {
+    params.set('gender',   DATA.gender|0);
+    params.set('skin',     DATA.skin|0);
+    params.set('body',     DATA.body|0);
+    params.set('face',     DATA.face|0);
+    params.set('hair',     DATA.hair|0);
+    params.set('hat',      DATA.hat|0);
+    params.set('has_look', 1);
+  }
   // Сила босса = количество миньонов (2..18 в BOSS_DATA). Боёвка из этого
   // считает размер карты — чем больше миньонов, тем крупнее арена.
   params.set('minions', boss.minions || 3);
@@ -5917,6 +5929,15 @@ function _coopEnterBattle(data) {
   params.set('bms',   DATA.med_s || 0);
   params.set('bmm',   DATA.med_m || 0);
   params.set('bml',   DATA.med_l || 0);
+  if (DATA.hasLook) {
+    params.set('gender',   DATA.gender|0);
+    params.set('skin',     DATA.skin|0);
+    params.set('body',     DATA.body|0);
+    params.set('face',     DATA.face|0);
+    params.set('hair',     DATA.hair|0);
+    params.set('hat',      DATA.hat|0);
+    params.set('has_look', 1);
+  }
   params.set('minions', boss.minions || 3);
   params.set('coop_sid', data.sid);
   // Path V (Phase 2+): включаем server-authoritative симулятор через WS.

@@ -1341,10 +1341,26 @@ function damageCovers(r, c, radius, dmg) {
 
 // Look игрока — из LocalStorage (или рандом при первом запуске)
 function loadPlayerLook() {
+  // 1) Если хаб прислал look через URL (?has_look=1&gender=...&skin=...) —
+  //    это «правда»: юзер сменил образ в креаторе, БД обновилась, нам
+  //    нужно нарисовать именно его. Перетираем localStorage этим look'ом.
+  try {
+    if ((QP.has_look | 0) === 1) {
+      const fromUrl = {
+        gender: QP.gender | 0, skin: QP.skin | 0,
+        body:   QP.body   | 0, face: QP.face | 0,
+        hair:   QP.hair   | 0, hat:  QP.hat  | 0,
+      };
+      try { localStorage.setItem('mafiozi_demo_look', JSON.stringify(fromUrl)); } catch(e) {}
+      return fromUrl;
+    }
+  } catch(e) {}
+  // 2) Иначе берём сохранённый из прошлой сессии (legacy / demo-режим).
   try {
     const saved = localStorage.getItem('mafiozi_demo_look');
     if (saved) return JSON.parse(saved);
   } catch(e) {}
+  // 3) Совсем нет — генерируем random и запоминаем.
   const fresh = rndLook();
   try { localStorage.setItem('mafiozi_demo_look', JSON.stringify(fresh)); } catch(e) {}
   return fresh;
