@@ -5206,7 +5206,7 @@ function afterBattle(stayInDistrict, fromButton) {
 }
 
 // ── TOAST NOTIFICATION ────────────────────────────────────────────────
-function showToast(msg, icon) {
+function showToast(msg, icon, durationMs) {
   let t = document.getElementById('toast-msg');
   if (!t) {
     t = document.createElement('div');
@@ -5229,7 +5229,7 @@ function showToast(msg, icon) {
   t._timer = setTimeout(() => {
     t.style.opacity = '0';
     setTimeout(() => { t.style.display = 'none'; }, 300);
-  }, 2500);
+  }, Math.max(500, durationMs | 0) || 2500);
 }
 
 // ── Render: Досье ──────────────────────────────────────────────────────
@@ -5455,13 +5455,33 @@ function coopShowLobby() {
   document.getElementById('coop-battle').style.display = 'none';
   document.getElementById('coop-result').style.display = 'none';
   _coopStopPoll();
+  // Если бот стартанул без туннеля — DATA.api пустой, кооп физически
+  // не работает. Показываем warn-баннер и блокируем кнопку, чтобы юзер
+  // не тыкал в пустоту.
+  const noApi = !coopApi();
+  const warn = document.getElementById('coop-no-api-warn');
+  const btn  = document.getElementById('coop-create-btn');
+  if (warn) {
+    warn.style.display = noApi ? 'block' : 'none';
+    if (noApi) {
+      warn.innerHTML = '⚠️ <b>Сервер кооператива не настроен.</b><br>'
+        + 'Бот запущен без туннеля — кооп физически не работает.<br>'
+        + 'Перезапусти бота через <code>start_with_tunnel.py</code> '
+        + 'и снова открой меню через <code>/start</code>.';
+    }
+  }
+  if (btn) {
+    btn.disabled = noApi;
+    btn.style.opacity = noApi ? '0.5' : '';
+    btn.textContent = noApi ? '🚫 Сервер не настроен' : '🗡 Создать сессию';
+  }
 }
 
 // Сессия создаётся напрямую через HTTP API кооперации. Раньше шло через
 // tg.sendData → бот → создание сессии + закрытие мини-аппа; теперь интерактив
 // не прерывается, и сразу получаем share-ссылку для приглашения друзей.
 async function coopCreateSession() {
-  if (!coopApi()) { showToast('Сервер кооперации не настроен', '⚠️'); return; }
+  if (!coopApi()) { showToast('Бот без туннеля. /start в Telegram заново.', '⚠️', 6000); return; }
   const bossEl = document.getElementById('coop-boss-sel');
   const distEl = document.getElementById('coop-dist-sel');
   const bossId = bossEl ? bossEl.value : 'kosoy';
@@ -6153,7 +6173,7 @@ async function _coopAutoJoinFromInvite() {
   const sid = sp.slice(5).toUpperCase();
   if (!sid) return false;
   if (!coopApi()) {
-    showToast('Сервер кооперации не настроен', '⚠️');
+    showToast('Бот без туннеля. /start в Telegram заново.', '⚠️', 6000);
     return false;
   }
   // Без telegram id не сможем зарегистрироваться в сессии. Бот передаёт
