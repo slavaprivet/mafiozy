@@ -37,13 +37,25 @@ echo [OK] venv ready
 REM ── базовые зависимости ──────────────────────────────
 echo [..] Checking telegram + aiosqlite...
 venv\Scripts\python -c "import telegram, aiosqlite" 2>nul
-if not errorlevel 1 goto :base_ok
+if not errorlevel 1 goto :check_ptb_version
 echo     installing python-telegram-bot + aiosqlite ...
 REM Зовём pip МОДУЛЕМ (python -m pip), а не venv\Scripts\pip.exe — иначе
 REM в путях с кириллицей шим pip.exe ломается ("Fatal error in launcher:
 REM Unable to create process ...").
-venv\Scripts\python -m pip install --disable-pip-version-check "python-telegram-bot>=21.0" aiosqlite==0.19.0
+venv\Scripts\python -m pip install --disable-pip-version-check "python-telegram-bot>=22.0" aiosqlite==0.19.0
 venv\Scripts\python -c "import telegram, aiosqlite" 2>nul
+if errorlevel 1 goto :base_failed
+goto :base_ok
+
+:check_ptb_version
+REM Python 3.13+ + старые python-telegram-bot 21.x → AttributeError на
+REM _Updater__polling_cleanup_cb (Updater имеет __slots__ без этого слота).
+REM Фикс — 22.0+. Проверяем версию и форс-апгрейдим если ниже.
+venv\Scripts\python -c "import telegram, sys; v=telegram.__version__.split('.'); sys.exit(0 if int(v[0])>=22 else 1)" 2>nul
+if not errorlevel 1 goto :base_ok
+echo [..] python-telegram-bot устарел ^(нужен 22.0+ для Python 3.13/3.14^), обновляю...
+venv\Scripts\python -m pip install --disable-pip-version-check --upgrade "python-telegram-bot>=22.0"
+venv\Scripts\python -c "import telegram, sys; v=telegram.__version__.split('.'); sys.exit(0 if int(v[0])>=22 else 1)" 2>nul
 if errorlevel 1 goto :base_failed
 
 :base_ok
