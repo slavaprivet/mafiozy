@@ -104,6 +104,17 @@ ISO_WEBAPP_URL       = "https://slavaprivet.github.io/mafiozi-battle/demo_isomet
 CREATOR_WEBAPP_URL   = "https://slavaprivet.github.io/mafiozi-battle/creator.html"
 HUB_WEBAPP_URL       = "https://slavaprivet.github.io/mafiozi-battle/hub.html"
 
+# Авто-cache-bust: значение `_v` = mtime локального HTML-файла. При любой
+# правке hub.html/demo_isometric.html и последующем github_upload меняется
+# timestamp → меняется `_v` → Telegram-клиент видит новый URL и обязан
+# заново скачать HTML. Раньше приходилось бампить вручную, теперь — само.
+def _file_cache_bust(filename: str) -> str:
+    try:
+        path = os.path.join(_HERE, filename)
+        return str(int(os.path.getmtime(path)))
+    except Exception:
+        return "fallback"
+
 # Co-op API base URL — публичный адрес бота (ngrok / VPS).
 # Пример: "https://abc123.ngrok-free.app"
 # Оставь пустым — кооператив будет отключён в мини-приложении.
@@ -1842,7 +1853,9 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
         "bot":      BOT_USERNAME,   # имя бота для t.me/<bot>?startapp=... share-ссылок
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
-        "_v": "27",  # bump when hub.html is updated — breaks Telegram cache
+        # cache-buster теперь auto = mtime hub.html. Ручной bump не нужен —
+        # отредактировал файл → значение поменялось → TG скачивает свежее.
+        "_v": _file_cache_bust("hub.html"),
     }
     return HUB_WEBAPP_URL + "?" + urllib.parse.urlencode(params)
 
@@ -2057,9 +2070,10 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
         "tigr","palach","sedoy","prizrak","don_karlo","vizir",
     }
     params = {
-        # Кеш-бастер для Telegram WebApp: подними при каждом релизе боёвки
-        # — иначе TG держит старый HTML в кеше и игроки видят прошлую версию.
-        "_v":     "27",
+        # Кеш-бастер для Telegram WebApp: auto = mtime demo_isometric.html.
+        # При любой правке HTML значение меняется автоматически — TG больше
+        # не «прилипает» к кешу прошлой версии боёвки.
+        "_v":     _file_cache_bust("demo_isometric.html"),
         "name":   urllib.parse.quote(char["name"][:20]),
         "hp":     char["hp"],
         "maxhp":  char["max_hp"],

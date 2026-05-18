@@ -91,6 +91,35 @@ echo [..] Checking bot file syntax...
 venv\Scripts\python check_bot.py
 if errorlevel 1 goto :bot_broken
 
+REM ── Auto-deploy hub.html + demo_isometric.html на GitHub Pages ───
+REM Чтобы Telegram-WebApp всегда видел свежий HTML. Без этого юзер
+REM правит локально, но TG читает с GitHub Pages — там старая версия.
+REM Скрипты сами сравнят SHA и пропустят upload если файл не менялся.
+if exist ".token" (
+    echo.
+    echo [..] Деплой hub.html на GitHub Pages...
+    echo. | venv\Scripts\python github_upload_hub.py >nul 2>&1
+    if errorlevel 1 (
+        echo [!] Деплой hub.html не прошёл — мини-апп будет на старой версии.
+    ) else (
+        echo [OK] hub.html задеплоен.
+    )
+    echo [..] Деплой demo_isometric.html на GitHub Pages...
+    echo. | venv\Scripts\python github_upload_iso.py >nul 2>&1
+    if errorlevel 1 (
+        echo [!] Деплой demo_isometric.html не прошёл — боёвка на старой версии.
+    ) else (
+        echo [OK] demo_isometric.html задеплоен.
+    )
+    echo.
+) else (
+    echo [!] .token не найден — пропускаю авто-деплой HTML.
+    echo     Положи GitHub Personal Access Token ^(ghp_...^) в файл .token
+    echo     рядом со скриптом, чтобы при каждом запуске hub.html и
+    echo     demo_isometric.html автоматически уезжали на GitHub Pages.
+    echo.
+)
+
 echo.
 echo [..] Starting Cloudflare tunnel + bot...
 echo      Stop with Ctrl+C or close this window
