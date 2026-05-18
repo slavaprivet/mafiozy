@@ -1,15 +1,15 @@
 import urllib.request, json, base64, os, sys
+import builtins as _builtins, sys as _sys, os as _os
+def _maybe_input(prompt=""):
+    # Если запущено из bat (NO_PAUSE=1) или stdin не от терминала — выходим.
+    if _os.environ.get("NO_PAUSE") or not _sys.stdin.isatty():
+        return ""
+    try: return _orig_input(prompt)
+    except (EOFError, KeyboardInterrupt): return ""
+_orig_input = _builtins.input
+_builtins.input = _maybe_input
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-
-# Если запущено двойным кликом — ждём Enter перед закрытием окна.
-# Если из bat (NO_PAUSE=1) или через pipe — выходим сразу.
-def _wait_for_enter():
-    import sys as _s, os as _o
-    if _o.environ.get("NO_PAUSE") or not _s.stdin.isatty():
-        return
-    try: input("Press Enter to exit...")
-    except (EOFError, KeyboardInterrupt): pass
 
 _TOKEN_FILE = os.path.join(_HERE, ".token")
 try:
@@ -17,11 +17,11 @@ try:
         TOKEN = _f.read().strip()
     if not TOKEN.startswith("ghp_"):
         print(f"[!] .token не похож на GitHub-токен (должен начинаться с 'ghp_')")
-        _wait_for_enter(); sys.exit(1)
+        input("Press Enter to exit..."); sys.exit(1)
 except FileNotFoundError:
     print(f"[!] Файл .token не найден: {_TOKEN_FILE}")
     print(f"    Создай его и впиши туда свой GitHub-токен одной строкой.")
-    _wait_for_enter(); sys.exit(1)
+    input("Press Enter to exit..."); sys.exit(1)
 
 REPO  = "slavaprivet/mafiozi-battle"
 SRC   = os.path.join(_HERE, "battle.html")
