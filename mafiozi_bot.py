@@ -10837,6 +10837,29 @@ WORLD_MAP_ROWS = 60   # тайлы (Y)
 WORLD_VIEW_R   = 30   # тайлы, в радиусе которых шлём остальных игроков
 WORLD_AFK_TIMEOUT_S = 30  # без инпута дольше — выкидываем (cleanup)
 
+# ── PVP-зона (open-world) ────────────────────────────────────────
+# Квадрат на карте. Координаты СИНХРОНИЗИРОВАНЫ с клиентом (world.html):
+# ARENA_POI r=28 c=52, размер ±4 → [24..32] × [48..56]. Если меняешь
+# тут — поправь и в world.html POI 'arena'.
+WORLD_ARENA_R0 = 24
+WORLD_ARENA_R1 = 32
+WORLD_ARENA_C0 = 48
+WORLD_ARENA_C1 = 56
+WORLD_PVP_HP        = 100      # стартовый HP в PVP
+WORLD_PVP_RESPAWN_S = 5.0      # сколько лежать после смерти
+WORLD_PVP_SHOT_CD_S = 0.40     # cooldown между выстрелами (~150 RPM)
+WORLD_PVP_DMG_MIN   = 18
+WORLD_PVP_DMG_MAX   = 28
+WORLD_PVP_RANGE     = 6.0      # макс. дистанция выстрела (тайлы)
+WORLD_PVP_HIT_R     = 0.6      # радиус «головы» цели для попадания
+# Спавн после смерти и в начале — центральный перекрёсток.
+WORLD_SPAWN_R = 24.0
+WORLD_SPAWN_C = 24.0
+
+def _world_in_arena(x: float, y: float) -> bool:
+    return (WORLD_ARENA_R0 <= y <= WORLD_ARENA_R1 and
+            WORLD_ARENA_C0 <= x <= WORLD_ARENA_C1)
+
 class WorldSim:
     """Глобальная симуляция открытого мира — один экземпляр на сервер.
     Хранит позиции всех онлайн-игроков, рассылает снапшоты 15 Гц.
@@ -10861,13 +10884,9 @@ class WorldSim:
                 self.players[uid]['look'] = look
             self.players[uid]['last_seen'] = time.time()
             return
-        # Спавн на центральной площади. WORLD_MAP_COLS=60, BLOCK=8.
-        # Центр карты ~ (30,30), там в build_map стоит парк-перекрёсток.
-        # Беру (28,28) — это дорога (28 % 8 == 4, но для центра делаем
-        # перекрёсток кратный 8 → дорога). Корректнее — 24 (24%8==0).
-        # Разброс ±0.4 чтобы двое игроков не залипли в одной точке.
-        sx = 24 + random.uniform(-0.4, 0.4)
-        sy = 24 + random.uniform(-0.4, 0.4)
+        # Спавн на центральной площади (24,24) — кратно блоку, дорога.
+        sx = WORLD_SPAWN_C + random.uniform(-0.4, 0.4)
+        sy = WORLD_SPAWN_R + random.uniform(-0.4, 0.4)
         self.players[uid] = {
             'uid':       uid,
             'name':      name,
@@ -10879,6 +10898,13 @@ class WorldSim:
             'last_seen': time.time(),
             'last_chat': '',
             'last_chat_t': 0.0,
+            # ── PVP-стейт (всегда инициализирован, активен только в зоне)
+            'hp':           WORLD_PVP_HP,
+            'last_shot_t':  0.0,
+            'dead_until':   0.0,   # epoch sec; >0 → лежит, респаун ждёт
+            'last_killer':  '',    # uid того кто убил (для UI «убит X»)
+            'kills':        0,
+            'deaths':       0,
         }
 
     def remove(self, uid: str) -> None:
@@ -10931,12 +10957,97 @@ class WorldSim:
         p['last_chat']   = t
         p['last_chat_t'] = time.time()
 
+    def apply_shoot(self, uid: str, d: dict) -> dict | None:
+        """Игрок жмёт «Огонь». Валидируем PVP-зону, cooldown, raycast.
+        Возвращает event-payload для broadcast'а (или None если выстрел
+        отвергнут). Сам broadcast делает run_loop через очередь events."""
+        shooter = self.players.get(uid)
+        if not shooter:
+            return None
+        now = time.time()
+        # Должен быть живой и внутри арены
+        if shooter['dead_until'] > now:
+            return None
+        if not _world_in_arena(shooter['x'], shooter['y']):
+            return None
+        # Cooldown
+        if now - shooter['last_shot_t'] < WORLD_PVP_SHOT_CD_S:
+            return None
+        shooter['last_shot_t'] = now
+        try:
+            ang = float(d.get('ang', shooter['ang']))
+        except Exception:
+            ang = shooter['ang']
+        # Raycast — ищем ближайшего другого игрока в зоне, прямо по лучу.
+        import math as _m
+        dx, dy = _m.cos(ang), _m.sin(ang)
+        sx, sy = shooter['x'], shooter['y']
+        best_uid = None
+        best_t   = WORLD_PVP_RANGE   # параметрическое расстояние вдоль луча
+        for other_uid, p in self.players.items():
+            if other_uid == uid:
+                continue
+            if p['dead_until'] > now:
+                continue
+            if not _world_in_arena(p['x'], p['y']):
+                continue
+            # Параметрическое попадание: t = (P - S) . dir
+            ox, oy = p['x'] - sx, p['y'] - sy
+            t_proj = ox * dx + oy * dy
+            if t_proj < 0 or t_proj > WORLD_PVP_RANGE:
+                continue
+            # Перпендикулярная дистанция от точки до луча
+            px = ox - t_proj * dx
+            py = oy - t_proj * dy
+            perp = (px*px + py*py) ** 0.5
+            if perp > WORLD_PVP_HIT_R:
+                continue
+            if t_proj < best_t:
+                best_t   = t_proj
+                best_uid = other_uid
+        ev = {
+            't':       'shot',
+            'd': {
+                'uid':   uid,
+                'ang':   round(ang, 3),
+                'range': WORLD_PVP_RANGE,
+                'hit':   best_uid is not None,
+                'hit_t': round(best_t, 3) if best_uid is not None else None,
+                'target': best_uid,
+            },
+        }
+        if best_uid is not None:
+            tgt = self.players[best_uid]
+            dmg = random.randint(WORLD_PVP_DMG_MIN, WORLD_PVP_DMG_MAX)
+            tgt['hp'] = max(0, tgt['hp'] - dmg)
+            ev['d']['dmg']        = dmg
+            ev['d']['target_hp']  = tgt['hp']
+            if tgt['hp'] <= 0:
+                tgt['dead_until']  = now + WORLD_PVP_RESPAWN_S
+                tgt['last_killer'] = uid
+                tgt['deaths']     += 1
+                shooter['kills']  += 1
+                ev['d']['killed']  = True
+        return ev
+
+    def _maybe_respawn(self, now: float) -> None:
+        """Игроки лежавшие до now — респаунятся: HP полное, телепорт
+        на стартовую точку. Вызывается каждый тик из run_loop."""
+        for p in self.players.values():
+            if 0 < p['dead_until'] <= now:
+                p['dead_until'] = 0.0
+                p['hp']         = WORLD_PVP_HP
+                p['x']          = WORLD_SPAWN_C + random.uniform(-0.4, 0.4)
+                p['y']          = WORLD_SPAWN_R + random.uniform(-0.4, 0.4)
+                p['last_killer']= ''
+
     def snapshot_for(self, uid: str) -> dict:
         """Снапшот для конкретного игрока: видит себя точно + всех в радиусе."""
         me = self.players.get(uid)
         if not me:
             return {'t': 'snap', 'd': {'me': None, 'others': []}}
         mx, my = me['x'], me['y']
+        now = time.time()
         others = []
         for other_uid, p in self.players.items():
             if other_uid == uid:
@@ -10952,16 +11063,23 @@ class WorldSim:
                 'y':    round(p['y'], 2),
                 'ang':  round(p['ang'], 2),
                 'w':    bool(p.get('walking')),
+                'hp':   int(p.get('hp', WORLD_PVP_HP)),
+                'dead': bool(p.get('dead_until', 0) > now),
                 # Чат-баббл «живёт» 4 сек после получения
-                'chat': p['last_chat'] if (time.time() - p['last_chat_t']) < 4.0 else '',
+                'chat': p['last_chat'] if (now - p['last_chat_t']) < 4.0 else '',
             })
         return {
             't': 'snap',
             'd': {
                 'me': {
-                    'x': round(mx, 2),
-                    'y': round(my, 2),
-                    'srv_now': round(time.time(), 2),
+                    'x':            round(mx, 2),
+                    'y':            round(my, 2),
+                    'hp':           int(me.get('hp', WORLD_PVP_HP)),
+                    'dead':         bool(me.get('dead_until', 0) > now),
+                    'respawn_in':   round(max(0.0, me.get('dead_until', 0) - now), 1),
+                    'kills':        int(me.get('kills', 0)),
+                    'deaths':       int(me.get('deaths', 0)),
+                    'srv_now':      round(now, 2),
                 },
                 'others': others,
                 'tick': self.tick_no,
@@ -10989,6 +11107,8 @@ async def _world_run_loop(world: 'WorldSim') -> None:
             t0 = time.time()
             world.tick_no += 1
             world.last_tick_at = t0
+            # Респаун PVP-смертников
+            world._maybe_respawn(t0)
             # AFK cleanup — если давно не было инпута, выкидываем
             stale = []
             for uid, p in world.players.items():
@@ -12500,6 +12620,18 @@ async def _coop_http_app():
                     'map_cols':  WORLD_MAP_COLS,
                     'map_rows':  WORLD_MAP_ROWS,
                     'srv_now':   round(time.time(), 2),
+                    # PVP-параметры — клиент должен знать зону, чтобы
+                    # рисовать кнопку «Огонь» и валидировать локально.
+                    'arena': {
+                        'r0': WORLD_ARENA_R0, 'r1': WORLD_ARENA_R1,
+                        'c0': WORLD_ARENA_C0, 'c1': WORLD_ARENA_C1,
+                    },
+                    'pvp': {
+                        'cd':       WORLD_PVP_SHOT_CD_S,
+                        'range':    WORLD_PVP_RANGE,
+                        'max_hp':   WORLD_PVP_HP,
+                        'respawn':  WORLD_PVP_RESPAWN_S,
+                    },
                 },
             }, ensure_ascii=False))
         except Exception:
@@ -12519,6 +12651,25 @@ async def _coop_http_app():
                         world.apply_input(uid, d)
                     elif t == 'chat':
                         world.apply_chat(uid, str(d.get('text', ''))[:80])
+                    elif t == 'shoot':
+                        ev = world.apply_shoot(uid, d)
+                        if ev is not None:
+                            # Broadcast выстрела/попадания всем подключённым.
+                            # Шлём ВСЕМ кто рядом с любым из участников (стрелок
+                            # и цель) — клиенты увидят трассер.
+                            shooter = world.players.get(uid)
+                            if shooter:
+                                payload = json.dumps(ev, ensure_ascii=False)
+                                for other_uid, other_ws in list(world.connections.items()):
+                                    other_p = world.players.get(other_uid)
+                                    if not other_p or other_ws.closed:
+                                        continue
+                                    dxs = other_p['x'] - shooter['x']
+                                    dys = other_p['y'] - shooter['y']
+                                    if (dxs*dxs + dys*dys) > WORLD_VIEW_R * WORLD_VIEW_R:
+                                        continue
+                                    try: await other_ws.send_str(payload)
+                                    except Exception: pass
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass

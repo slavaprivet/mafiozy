@@ -6640,14 +6640,29 @@ drawAvatar();
 // и postBattleRoute() просто не вызывался. Переехал сюда, в первый
 // скрипт, рядом с openDistrict — чтобы вызов был гарантирован.
 function postBattleRoute() {
-  if (P.get('view') !== 'district') return;
-  const locId = P.get('loc');
+  const view = P.get('view');
+  if (view !== 'district' && view !== 'shop') return;
   try {
     const pm = document.getElementById('page-main');
     if (pm) pm.style.display = 'none';
     document.querySelectorAll('.subpage').forEach(p => p.style.display = 'none');
     document.body.classList.add('on-subpage');
   } catch(e) {}
+  // view=shop: открываем магазин (как nav('shop')). Если back=world —
+  // подсвечиваем заголовок и показываем кнопку «← В город» (привязана
+  // ниже в installShopBackButton). Логика покупки/инвентаря не меняется —
+  // owned-флаг уже единый, дубликата не будет.
+  if (view === 'shop') {
+    try {
+      if (typeof nav === 'function') nav('shop');
+      else if (typeof renderShop === 'function') renderShop();
+    } catch(e) {}
+    installShopBackButton();
+    window.scrollTo(0, 0);
+    return;
+  }
+  // view=district — старое поведение (возврат из боя в район).
+  const locId = P.get('loc');
   try {
     if (locId && LOC_DATA[locId] && typeof openDistrict === 'function') {
       openDistrict(locId);
@@ -6658,6 +6673,36 @@ function postBattleRoute() {
     try { if (typeof nav === 'function') nav('explore'); } catch(_) {}
   }
   window.scrollTo(0, 0);
+}
+
+// Кнопка «← В город» наверху магазина — появляется только если игрок
+// зашёл из открытого мира (?back=world). Клик возвращает в world.html
+// со всеми текущими параметрами хаба.
+function installShopBackButton() {
+  if (P.get('back') !== 'world') return;
+  const page = document.getElementById('page-shop');
+  if (!page || page.querySelector('.shop-world-back')) return;
+  const bar = document.createElement('div');
+  bar.className = 'shop-world-back';
+  bar.style.cssText = 'position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(135deg,#3a1f50,#1a0f24);border-bottom:1px solid #5a2058;margin:-8px -8px 8px;';
+  bar.innerHTML = `
+    <button class="shop-world-back-btn" style="background:rgba(0,0,0,.4);border:1px solid #aa50aa;border-radius:8px;color:#ffd76b;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">← В город</button>
+    <div style="font-size:12px;color:#b89cc8;flex:1">Покупки из города и из меню — единый инвентарь</div>
+  `;
+  page.insertBefore(bar, page.firstChild);
+  bar.querySelector('.shop-world-back-btn').addEventListener('click', () => {
+    // Возврат: world.html в той же папке с теми же параметрами api/uid/name/look.
+    const u = new URL('world.html', location.href);
+    // Переносим только ключевые параметры (не view, не back).
+    ['api','uid','name','gender','skin','body','face','hair','hat','has_look'].forEach(k => {
+      const v = P.get(k);
+      if (v) u.searchParams.set(k, v);
+    });
+    // hub-параметр чтобы world знал куда вернуться
+    u.searchParams.set('hub', encodeURIComponent(location.href.split('?')[0]));
+    u.searchParams.set('v',   Date.now());
+    window.location.href = u.toString();
+  });
 }
 // Откладываем до конца текущего тика — выше в этом скрипте есть код,
 // который ставит page-main в `display: ''` при init. Если выполнить

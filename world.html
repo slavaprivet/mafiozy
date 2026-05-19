@@ -94,6 +94,46 @@ body.in-pvp #zoneBtn { top: 104px; }
   display: none;
 }
 
+/* Кнопка «🔫 Огонь» — большая, справа над чатом, только в PVP-зоне */
+#fireBtn {
+  position: absolute; right: 24px; bottom: 100px;
+  width: 88px; height: 88px; border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #ff6464, #a01818);
+  border: 3px solid #ffd76b; color: #fff; cursor: pointer;
+  font-size: 32px; font-weight: 800; line-height: 84px; text-align: center;
+  box-shadow: 0 6px 20px rgba(255,40,40,.55), inset 0 -4px 8px rgba(0,0,0,.4);
+  display: none; z-index: 5; user-select: none;
+  font-family: inherit;
+}
+#fireBtn.cd { filter: grayscale(.6) brightness(.55); }
+#fireBtn:active { transform: scale(.94); }
+
+/* HP-бар игрока в PVP — над кнопкой огня */
+#pvpHud {
+  position: absolute; right: 14px; bottom: 196px;
+  display: none; z-index: 5;
+  background: rgba(20,24,32,.85); border: 1px solid #4a5060;
+  border-radius: 10px; padding: 8px 10px; min-width: 130px;
+  font-family: inherit;
+}
+#pvpHud .row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #c8d0dc; }
+#pvpHud .barOuter { flex: 1; height: 10px; background: #1a1d24; border-radius: 5px; overflow: hidden; }
+#pvpHud .barInner { height: 100%; background: linear-gradient(90deg, #c0392b, #e74c3c); transition: width .25s ease; }
+#pvpHud .stats { font-size: 11px; color: #ffd76b; margin-top: 4px; text-align: right; }
+
+/* Экран смерти */
+#deathOverlay {
+  position: absolute; inset: 0; z-index: 15;
+  background: rgba(20,0,0,.65); display: none;
+  align-items: center; justify-content: center; flex-direction: column;
+  color: #fff; font-family: inherit;
+}
+#deathOverlay.show { display: flex; }
+#deathOverlay .skull { font-size: 80px; }
+#deathOverlay .title { font-size: 24px; font-weight: 800; margin-top: 4px; color: #ff5a5a; }
+#deathOverlay .by    { font-size: 14px; color: #c8d0dc; margin-top: 6px; }
+#deathOverlay .cnt   { font-size: 16px; color: #ffd76b; margin-top: 14px; font-weight: 700; }
+
 /* Баннер «вы в PVP-зоне» */
 #pvpBanner {
   position: absolute; left: 50%; transform: translateX(-50%); top: 56px;
@@ -225,20 +265,43 @@ body.in-pvp #zoneBtn { top: 104px; }
   <div id="errorBanner"></div>
   <div id="toast"></div>
 
-  <!-- Чёрный рынок (модал, скрыт по умолчанию) -->
+  <div id="pvpHud">
+    <div class="row">
+      <span>❤️</span>
+      <div class="barOuter"><div class="barInner" id="pvpHpBar" style="width:100%"></div></div>
+      <span id="pvpHpTxt">100</span>
+    </div>
+    <div class="stats"><span id="pvpKills">0</span>💀 / <span id="pvpDeaths">0</span>🪦</div>
+  </div>
+  <button id="fireBtn">🔫</button>
+
+  <div id="deathOverlay">
+    <div class="skull">💀</div>
+    <div class="title">УБИТ</div>
+    <div class="by" id="deathBy">&nbsp;</div>
+    <div class="cnt">Респаун через <span id="deathCnt">5</span> сек</div>
+  </div>
+
+  <!-- Чёрный рынок (модал-диалог продавца, скрыт по умолчанию) -->
   <div id="shopOverlay">
     <div id="shopModal">
       <div id="shopHeader">
         <div class="icon">🌌</div>
         <div>
-          <div class="title">Чёрный рынок</div>
-          <div class="sub">Тут продают без вопросов</div>
+          <div class="title">Барыга Витёк</div>
+          <div class="sub">Шепчет себе под нос</div>
         </div>
         <button class="close" id="shopClose">✕</button>
       </div>
-      <div id="shopItems"></div>
-      <div style="font-size:11px;color:#7a6090;text-align:center;padding-top:6px">
-        Покупка пока в разработке. Скоро будет синк с инвентарём.
+      <div style="background:rgba(0,0,0,.35);border:1px solid #3a2540;border-radius:10px;padding:14px;margin-bottom:14px;font-size:14px;color:#e0d0e8;line-height:1.5;font-style:italic">
+        — О, свой человек… Заглянешь на рынок? Цены лучше, чем в городе,
+        товар без штампов. Только тссс — копам ни слова.
+      </div>
+      <button id="shopGoBtn" style="width:100%;background:linear-gradient(135deg,#5a2058,#8a3088);border:1px solid #aa50aa;border-radius:10px;color:#fff;padding:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.3px">
+        🌌 Заглянуть на рынок
+      </button>
+      <div style="font-size:11px;color:#7a6090;text-align:center;padding-top:10px">
+        Магазин откроется в меню. Покупка через единый кошелёк — что купишь тут, появится и в инвентаре.
       </div>
     </div>
   </div>
@@ -458,6 +521,21 @@ function w2s(r, c) {
 }
 function isoH(h) { return h * TS * 0.55; }
 
+// ── PVP-стейт (клиент) ──────────────────────────────────────────
+// Серверные параметры PVP — приходят в hello, тут дефолты.
+const PVP = {
+  cd: 0.40, range: 6.0, max_hp: 100, respawn: 5.0,
+};
+// HP игрока (синхронизируется с сервером в snap.me.hp)
+let myHp = 100;
+let myDead = false;
+let myDeathBy = '';       // uid того кто убил (последний)
+let myDeathLeft = 0;      // сколько сек до респауна
+let myKills = 0, myDeaths = 0;
+let lastShotClientT = 0;  // локальный cooldown (предотвращает спам)
+// Активные трассеры пуль на клиенте — рисуем 0.18 сек, потом исчезают.
+const bullets = [];       // {sx, sy, ex, ey, t0, ttl}
+
 // ── Локальный игрок (predict) ───────────────────────────────────
 // Спавн на перекрёстке (24,24) — это дорога (24%8==0). Сервер всё
 // равно перетрёт первым же снапшотом, но локально нам важно стартовать
@@ -606,27 +684,60 @@ function wsConnect() {
     let pkt; try { pkt = JSON.parse(ev.data); } catch(e) { return; }
     if (pkt.t === 'hello') {
       const d = pkt.d || {};
-      // Принимаем серверные размеры ТОЛЬКО если они НЕ меньше клиентских.
-      // Иначе POI/спавн уедут за границы — а клиенту 60×60, сервер мог
-      // быть не перезапущен (старая версия 40×40).
       const srvC = d.map_cols || MAP_COLS;
       const srvR = d.map_rows || MAP_ROWS;
       if (srvC < MAP_COLS || srvR < MAP_ROWS) {
-        setError('⚠️ Сервер бота не обновлён до 60×60. Перезапусти ЗАПУСТИТЬ_БОТА.bat — иначе ты не сможешь дойти до новых районов.');
+        setError('⚠️ Сервер бота не обновлён до 60×60. Перезапусти ЗАПУСТИТЬ_БОТА.bat — иначе ты не сможешь дойти до новых районов и PVP не заработает.');
         setTimeout(() => setError(null), 8000);
-        // Не уменьшаем клиентскую карту — рисуем 60×60, но игрок будет
-        // ограничен серверным clamp'ом (~40 тайлов). Видно красивый
-        // город, но физически дойти можно только до старых районов.
       } else {
         MAP_COLS = srvC; MAP_ROWS = srvR; buildMap();
+      }
+      if (d.pvp) Object.assign(PVP, d.pvp);
+      // Если сервер шлёт арену — синкаемся (на случай если мы ошиблись)
+      // Сейчас не пересоздаём её, только параметры урона/cd/радиуса/HP.
+    } else if (pkt.t === 'shot') {
+      // Серверный broadcast выстрела. Рисуем трассер и при попадании —
+      // эффект на цели.
+      const sd = pkt.d || {};
+      const shooter = (sd.uid === QP.uid) ? player : (() => {
+        const o = others.get(sd.uid);
+        return o ? { r: o.y, c: o.x, ang: o.ang } : null;
+      })();
+      if (shooter) {
+        const ang = sd.ang || shooter.ang || 0;
+        const rng = sd.hit ? (sd.hit_t || 0) : (sd.range || PVP.range);
+        bullets.push({
+          sr: shooter.r, sc: shooter.c,
+          er: shooter.r + Math.sin(ang) * rng,
+          ec: shooter.c + Math.cos(ang) * rng,
+          t0: performance.now(),
+          ttl: 180,
+          hit: !!sd.hit,
+        });
+      }
+      // Если убили нашего игрока — попадание в нас, можно мигнуть экраном
+      if (sd.killed && sd.target === QP.uid) {
+        myDeathBy = (sd.uid === QP.uid) ? 'самоубийство' : (others.get(sd.uid)?.name || 'неизвестный');
       }
     } else if (pkt.t === 'snap') {
       const d = pkt.d || {};
       // Подтягиваем себя к серверной позиции (lightweight reconcile)
       if (d.me) {
-        // Если разъехались сильно — телепортируем (rare)
         const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
         if (dist > 3.0) { player.r = d.me.y; player.c = d.me.x; }
+        // PVP: HP, dead-state, счёт
+        if (typeof d.me.hp === 'number')      myHp = d.me.hp;
+        if (typeof d.me.kills === 'number')   myKills = d.me.kills;
+        if (typeof d.me.deaths === 'number')  myDeaths = d.me.deaths;
+        const wasDead = myDead;
+        myDead = !!d.me.dead;
+        myDeathLeft = d.me.respawn_in || 0;
+        if (!wasDead && myDead) {
+          // Только что умер — экран смерти
+        } else if (wasDead && !myDead) {
+          // Респаун — сбрасываем причину смерти
+          myDeathBy = '';
+        }
       }
       const seen = new Set();
       const list = d.others || [];
@@ -637,13 +748,16 @@ function wsConnect() {
           p = { x: o.x, y: o.y, ang: o.ang || 0, w: !!o.w,
                 tx: o.x, ty: o.y, tAng: o.ang || 0,
                 name: o.name || '?', look: o.look || {}, chat: '',
-                chatT: 0, lastT: performance.now() };
+                chatT: 0, lastT: performance.now(),
+                hp: o.hp || PVP.max_hp, dead: !!o.dead };
           others.set(o.uid, p);
         } else {
           p.tx = o.x; p.ty = o.y; p.tAng = o.ang || 0; p.w = !!o.w;
           p.name = o.name || p.name;
           if (o.look) p.look = o.look;
           if (o.chat && o.chat !== p.chat) { p.chat = o.chat; p.chatT = performance.now(); }
+          if (typeof o.hp === 'number') p.hp = o.hp;
+          p.dead = !!o.dead;
           p.lastT = performance.now();
         }
       }
@@ -731,40 +845,77 @@ function showToast(msg, ms = 2200) {
   _toastT = setTimeout(() => _toastEl.classList.remove('show'), ms);
 }
 
-// ── Чёрный рынок (UI) ───────────────────────────────────────────
-const SHOP_ITEMS = [
-  { id: 'tt',      icon: '🔫', name: 'ТТ-33',         desc: 'Старый знакомый. Урон средний, скорость средняя.',  price:  450 },
-  { id: 'pm',      icon: '🔫', name: 'ПМ Макаров',    desc: 'Карманный, тихий. Минус — слабая отдача в магазине.', price:  280 },
-  { id: 'gren',    icon: '💣', name: 'Граната Ф-1',   desc: 'AOE-урон, разлёт 5м. Берегите голову.',               price:  120 },
-  { id: 'mol',     icon: '🍾', name: 'Коктейль Молотова', desc: 'Поджигает землю на 5 секунд. Идеально против группы.', price: 200 },
-  { id: 'med_l',   icon: '💊', name: 'Большая аптечка', desc: 'Восстанавливает 100 HP.',                            price:  300 },
-];
+// ── Чёрный рынок (диалог продавца → редирект в hub-магазин) ─────
+// UI самого магазина живёт в hub (единый source of truth для инвентаря).
+// Здесь только диалог продавца с одной кнопкой «Заглянуть на рынок».
 const _shopOverlay = document.getElementById('shopOverlay');
-const _shopItems   = document.getElementById('shopItems');
-function buildShopUI() {
-  _shopItems.innerHTML = '';
-  for (const it of SHOP_ITEMS) {
-    const row = document.createElement('div');
-    row.className = 'shop-item';
-    row.innerHTML = `
-      <div class="pic">${it.icon}</div>
-      <div class="info">
-        <div class="name">${it.name}</div>
-        <div class="desc">${it.desc}</div>
-      </div>
-      <button class="buy">${it.price} 💵</button>
-    `;
-    row.querySelector('.buy').addEventListener('click', () => {
-      showToast(`«${it.name}» — синк с инвентарём скоро 💜`);
-    });
-    _shopItems.appendChild(row);
-  }
-}
-buildShopUI();
 function openShop()  { _shopOverlay.classList.add('open'); }
 function closeShop() { _shopOverlay.classList.remove('open'); }
 document.getElementById('shopClose').addEventListener('click', closeShop);
 _shopOverlay.addEventListener('click', (e) => { if (e.target === _shopOverlay) closeShop(); });
+// ── PVP UI: кнопка «Огонь», HP-бар, экран смерти ────────────────
+const _fireBtn   = document.getElementById('fireBtn');
+const _pvpHud    = document.getElementById('pvpHud');
+const _pvpHpBar  = document.getElementById('pvpHpBar');
+const _pvpHpTxt  = document.getElementById('pvpHpTxt');
+const _pvpKills  = document.getElementById('pvpKills');
+const _pvpDeaths = document.getElementById('pvpDeaths');
+const _deathOv   = document.getElementById('deathOverlay');
+const _deathBy   = document.getElementById('deathBy');
+const _deathCnt  = document.getElementById('deathCnt');
+function fire() {
+  if (myDead) return;
+  if (!inArena(player.r, player.c)) return;
+  const now = performance.now();
+  if (now - lastShotClientT < PVP.cd * 1000) return;   // лок. cooldown
+  lastShotClientT = now;
+  // Локальный мигающий visual cooldown
+  _fireBtn.classList.add('cd');
+  setTimeout(() => _fireBtn.classList.remove('cd'), PVP.cd * 1000);
+  sendShoot(player.ang);
+}
+_fireBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); }, { passive: false });
+// Доп. клавиша на десктопе — пробел
+window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !chatOpen) { e.preventDefault(); fire(); } });
+
+function updatePvpUI() {
+  const inPvp = inArena(player.r, player.c);
+  // HUD и кнопка огня видны только в зоне
+  _pvpHud.style.display  = inPvp ? 'block' : 'none';
+  _fireBtn.style.display = (inPvp && !myDead) ? 'block' : 'none';
+  // HP-бар (показывает реальное серверное HP, не локальный predict)
+  const pct = Math.max(0, Math.min(100, (myHp / (PVP.max_hp || 100)) * 100));
+  _pvpHpBar.style.width = pct + '%';
+  _pvpHpTxt.textContent = Math.max(0, Math.round(myHp));
+  _pvpKills.textContent  = myKills;
+  _pvpDeaths.textContent = myDeaths;
+  // Экран смерти
+  if (myDead) {
+    if (!_deathOv.classList.contains('show')) _deathOv.classList.add('show');
+    _deathBy.textContent = myDeathBy ? `Тебя завалил ${myDeathBy}` : '';
+    _deathCnt.textContent = Math.max(0, Math.ceil(myDeathLeft));
+  } else if (_deathOv.classList.contains('show')) {
+    _deathOv.classList.remove('show');
+  }
+}
+
+document.getElementById('shopGoBtn').addEventListener('click', () => {
+  // Редирект в hub.html?view=shop&back=world. Hub откроет страницу
+  // магазина, наверху появится кнопка «← В город» (возврат сюда).
+  let target = '';
+  try { target = decodeURIComponent(QP.hubUrl || ''); } catch(e) { target = QP.hubUrl || ''; }
+  if (!target) target = 'hub.html';
+  try {
+    const u = new URL(target, location.href);
+    u.searchParams.set('view', 'shop');
+    u.searchParams.set('back', 'world');
+    u.searchParams.set('v',    Date.now());
+    window.location.href = u.toString();
+  } catch(e) {
+    const sep = target.includes('?') ? '&' : '?';
+    window.location.href = `${target}${sep}view=shop&back=world&v=${Date.now()}`;
+  }
+});
 
 function sendInput() {
   if (!ws || ws.readyState !== 1) return;
@@ -782,6 +933,10 @@ function sendInput() {
 function sendChat(text) {
   if (!ws || ws.readyState !== 1) return;
   try { ws.send(JSON.stringify({ t: 'chat', d: { text: String(text || '').slice(0, 80) } })); } catch(e) {}
+}
+function sendShoot(ang) {
+  if (!ws || ws.readyState !== 1) return;
+  try { ws.send(JSON.stringify({ t: 'shoot', d: { ang: +ang.toFixed(3) } })); } catch(e) {}
 }
 
 // ── Update / Render ────────────────────────────────────────────
@@ -821,6 +976,7 @@ function update(dt) {
   // Поиск ближайшего POI: если игрок в радиусе ENTER_R тайлов от вывески,
   // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
   updateZoneBtn();
+  updatePvpUI();
   // Интерполяция других игроков
   for (const [, o] of others) {
     o.x += (o.tx - o.x) * Math.min(1, dt * 8);
@@ -1302,11 +1458,13 @@ function drawPOI(r, c, poi) {
 // look: {gender, skin, body, face, hair, hat} → используем для цветов.
 const SKIN_TONES = ['#f5cba7', '#d49b6a', '#a06a3f', '#6e4528', '#3f2918'];
 const HAIR_TONES = ['#1a1a1a', '#6b4423', '#c8a050', '#9c4a4a', '#3a3a3a'];
-function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf) {
+function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, isDead) {
   // x,y — экранные координаты (центр клетки). Рисуем фигурку «над» полом.
   const skin = SKIN_TONES[(look.skin | 0) % SKIN_TONES.length];
   const hair = HAIR_TONES[(look.hair | 0) % HAIR_TONES.length];
   const hatId = (look.hat | 0) % 4; // 0=без, 1=кепка, 2=шляпа, 3=шапка
+  // Если мёртв — рисуем призрака (полупрозрачный)
+  if (isDead) ctx.globalAlpha = 0.35;
   // Тень
   ctx.fillStyle = 'rgba(0,0,0,.45)';
   ctx.beginPath();
@@ -1395,6 +1553,17 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf) {
     ctx.fillText(chat, x, by + 15);
     ctx.textAlign = 'left';
   }
+  // HP-бар над именем (если есть hp/maxHp и игрок не на 100%)
+  if (typeof hp === 'number' && typeof maxHp === 'number' && hp < maxHp && hp > 0) {
+    const bw = 30, bh = 4;
+    const bx = x - bw / 2, by = y - 50;
+    ctx.fillStyle = 'rgba(0,0,0,.7)';
+    ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+    const pct = Math.max(0, Math.min(1, hp / maxHp));
+    ctx.fillStyle = pct > 0.5 ? '#5aff5a' : pct > 0.25 ? '#ffd76b' : '#ff5a5a';
+    ctx.fillRect(bx, by, bw * pct, bh);
+  }
+  if (isDead) ctx.globalAlpha = 1;
 }
 function roundRect(x, y, w, h, r) {
   ctx.beginPath();
@@ -1447,7 +1616,8 @@ function render() {
     const p = w2s(player.r + 0.5, player.c + 0.5);
     const myChat = (_localChat && performance.now() - _localChatT < 3500) ? _localChat : null;
     drawPerson(p.x, p.y, player.ang, QP.has_look ? QP.look : {skin:1,body:1,face:0,hair:0,hat:0,gender:0},
-               player.walking ? player.walkPhase : 0, QP.name, myChat, true);
+               player.walking ? player.walkPhase : 0, QP.name, myChat, true,
+               myHp, PVP.max_hp, myDead);
   } });
   // Другие
   for (const [, o] of others) {
@@ -1455,15 +1625,54 @@ function render() {
       const p = w2s(o.y + 0.5, o.x + 0.5);
       const phase = (o.w ? (o._walkPhase || 0) : 0);
       const chat = (o.chat && performance.now() - o.chatT < 4000) ? o.chat : null;
-      drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, o.name, chat, false);
+      drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, o.name, chat, false,
+                 o.hp, PVP.max_hp, o.dead);
     } });
   }
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
+  // Пули — трассеры поверх всего (живут 0.18 сек)
+  drawBullets();
   // Стрелки-указатели на POI, которые сейчас за пределами видимости.
   drawPOIArrows(r0, r1, c0, c1);
   // Мини-карта
   drawMinimap();
+}
+
+// ── Пули ────────────────────────────────────────────────────────
+function drawBullets() {
+  const now = performance.now();
+  // Чистка старых
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    if (now - bullets[i].t0 > bullets[i].ttl) bullets.splice(i, 1);
+  }
+  ctx.save();
+  for (const b of bullets) {
+    const t = (now - b.t0) / b.ttl;
+    if (t >= 1) continue;
+    const a = 1 - t;
+    const s = w2s(b.sr + 0.5, b.sc + 0.5);
+    const e = w2s(b.er + 0.5, b.ec + 0.5);
+    // Тонкий жёлтый трассер с лёгким glow'ом
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = '#ffd76b';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#ffd76b';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y - 18);  // от уровня плеч
+    ctx.lineTo(e.x, e.y - 18);
+    ctx.stroke();
+    // Вспышка попадания
+    if (b.hit && t > 0.4) {
+      ctx.globalAlpha = a * 0.9;
+      ctx.fillStyle = '#ff6464';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y - 18, 6 + t * 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
 }
 
 // ── Стрелки на POI ──────────────────────────────────────────────
