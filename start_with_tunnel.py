@@ -164,10 +164,13 @@ def publish_coop_api_json(api_url: str):
     if old_sha:
         payload["sha"] = old_sha
     resp, code = gh("PUT", f"/repos/{repo}/contents/{fname}", payload)
+    # На Windows-cp1251 unicode-стрелки/значки в print падают с
+    # 'charmap' codec error — обходим через ASCII-safe формат.
     if code in (200, 201):
-        log(f"coop_api.json опубликован → https://slavaprivet.github.io/mafiozi-battle/{fname}")
+        log(f"coop_api.json published OK: https://slavaprivet.github.io/mafiozi-battle/{fname}")
     else:
-        log(f"[!] coop_api.json PUT HTTP {code}: {resp}")
+        msg = str(resp)[:200].encode("ascii", "replace").decode("ascii")
+        log(f"[!] coop_api.json PUT HTTP {code}: {msg}")
 
 
 def start_bot(api_url):
