@@ -172,42 +172,70 @@ window.addEventListener('resize', resizeCanvas);
 // ── Карта (статичная) ──────────────────────────────────────────
 // Размер задаст сервер в hello-кадре, но дублируем дефолты на случай оффлайна.
 let MAP_COLS = 40, MAP_ROWS = 40;
-const TS     = 38;           // размер тайла на экране (1 ось)
-const ISO_Y  = 0.5;          // ужатие по Y (изометрия 2:1)
-// Сетка кварталов — каждые 6 тайлов «дорога», между ними «дом» (тип 1).
-// Тип 0 — улица (проходимая), 1 — здание (стена, непроходимо).
+const TS     = 56;           // размер тайла на экране — крупнее, как в боях
+const ISO_Y  = 0.55;         // ужатие по Y (тот же угол что в demo_isometric)
+// Блок города: 8×8 тайлов. Дорога занимает 2 тайла шириной, тротуар
+// ещё 1 тайл, внутри 4×4 — здание. Тип 0 — улица (проходимая),
+// 1 — стена/здание (непроходимо), 2 — машина (декор/укрытие, тоже блокирует).
+const BLOCK = 8;
 let MAP = [];
 function buildMap() {
   MAP = [];
   for (let r = 0; r < MAP_ROWS; r++) {
     const row = [];
     for (let c = 0; c < MAP_COLS; c++) {
-      // Граница — стена
+      // Граница карты — стена
       if (r === 0 || r === MAP_ROWS - 1 || c === 0 || c === MAP_COLS - 1) {
         row.push(1); continue;
       }
-      // Каждые 6 рядов/колонок — дорога (тип 0). Остальное — здания внутри блоков.
-      const onRoadR = (r % 6 === 0);
-      const onRoadC = (c % 6 === 0);
+      // Дорога — две клетки шириной (mod 8 = 0 или 1)
+      const onRoadR = (r % BLOCK <= 1);
+      const onRoadC = (c % BLOCK <= 1);
       if (onRoadR || onRoadC) { row.push(0); continue; }
-      // Внутри квартала — здания, но с отступом 1 тайл (тротуар вокруг).
-      // Считаем расстояние до ближайшей дороги по каждой оси.
-      const nearestRoadR = Math.min(r % 6, 6 - (r % 6));
-      const nearestRoadC = Math.min(c % 6, 6 - (c % 6));
-      if (nearestRoadR <= 1 || nearestRoadC <= 1) { row.push(0); continue; }
+      // Тротуар — третья клетка от границы блока (mod 8 = 2 или 7)
+      const sideR = (r % BLOCK === 2) || (r % BLOCK === BLOCK - 1);
+      const sideC = (c % BLOCK === 2) || (c % BLOCK === BLOCK - 1);
+      if (sideR || sideC) { row.push(0); continue; }
+      // Иначе — здание (4×4 в центре блока)
       row.push(1);
     }
     MAP.push(row);
+  }
+  // Декор на тротуарах: пачки ящиков, машины у бордюра, бочки.
+  // Псевдослучайно, но детерминированно — чтобы у всех игроков было
+  // одинаково (без сетевой синхронизации).
+  function det(r, c, k) { return ((r * 73 + c * 131 + k * 17) % 1000) / 1000; }
+  for (let r = 2; r < MAP_ROWS - 2; r++) {
+    for (let c = 2; c < MAP_COLS - 2; c++) {
+      if (MAP[r][c] !== 0) continue;
+      // Только на тротуаре (sideR/sideC), не на дороге
+      const onRoadR = (r % BLOCK <= 1);
+      const onRoadC = (c % BLOCK <= 1);
+      if (onRoadR || onRoadC) continue;
+      const x = det(r, c, 1);
+      if (x < 0.035)       MAP[r][c] = 3; // ящик
+      else if (x < 0.060)  MAP[r][c] = 4; // бочка
+      else if (x < 0.075)  MAP[r][c] = 5; // мусорка
+    }
+  }
+  // Машины — припаркованные ВДОЛЬ дороги (на второй полосе)
+  for (let r = 2; r < MAP_ROWS - 2; r++) {
+    for (let c = 2; c < MAP_COLS - 2; c++) {
+      if (MAP[r][c] !== 0) continue;
+      if ((r % BLOCK !== 1) && (c % BLOCK !== 1)) continue; // только дальняя полоса
+      const x = det(r, c, 7);
+      if (x < 0.08) MAP[r][c] = 2; // машина
+    }
   }
 }
 buildMap();
 
 // Камера следит за игроком. Инициализируем смещением в точку спавна
-// игрока (18,18) — на дороге кратной 6. Иначе первый кадр выглядит
-// сдвинутым и пока камера лерпится, видишь чёрные поля.
+// игрока (18,18) — на дороге блока 8 (см. buildMap, mod 8 ≤ 1 = road).
+// При смене TS не забудь обновить эту константу (используется TS=56, ISO_Y=0.55).
 const cam = {
-  x: (18 - 18) * 38 * 0.5,                // 0
-  y: (18 + 18) * 38 * 0.5 * 0.5,          // 36 * 38 * 0.25 = 342
+  x: (18 - 18) * 56 * 0.5,                // 0
+  y: (18 + 18) * 56 * 0.5 * 0.55,         // ~554
 };
 
 // Преобразование тайл→экран и обратно
@@ -484,16 +512,15 @@ function update(dt) {
 function drawTile(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
-  // Чередующиеся плитки тротуара
-  const t = MAP[r][c];
-  // Дорога / тротуар (0)
-  const isRoadRow = (r % 6 === 0);
-  const isRoadCol = (c % 6 === 0);
+  // Тип поверхности — дорога/тротуар
+  const onRoadR = (r % BLOCK <= 1);
+  const onRoadC = (c % BLOCK <= 1);
+  const isRoad  = (onRoadR || onRoadC);
   let color;
-  if (isRoadRow || isRoadCol) {
-    color = ((r + c) % 2 === 0) ? '#1a1a1d' : '#161618'; // дорога — асфальт
+  if (isRoad) {
+    color = ((r + c) % 2 === 0) ? '#1c1c20' : '#181820'; // асфальт
   } else {
-    color = ((r + c) % 2 === 0) ? '#252820' : '#1d2018'; // тротуар — серый
+    color = ((r + c) % 2 === 0) ? '#2e2e28' : '#262620'; // тротуар (плитка)
   }
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -503,13 +530,165 @@ function drawTile(r, c) {
   ctx.lineTo(p.x - wx, p.y);
   ctx.closePath();
   ctx.fill();
-  // Жёлтая разметка по центру дорог
-  if ((r % 6 === 0 && r > 0 && r < MAP_ROWS - 1 && (c % 2 === 0))) {
-    ctx.fillStyle = '#6a5818';
+  // Лёгкая обводка между плитками тротуара
+  if (!isRoad) {
+    ctx.strokeStyle = 'rgba(0,0,0,.18)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  // Жёлтая прерывистая разметка по центру дороги (только горизонтальные полосы)
+  if (onRoadR && !onRoadC && (r % BLOCK === 0) && (c % 3 === 0)) {
+    ctx.fillStyle = '#a68a18';
+    ctx.fillRect(p.x - wx * 0.18, p.y - 1.5, wx * 0.36, 3);
+  }
+  // По центру вертикальных дорог — белые круги (фары/люки)
+  if (onRoadC && !onRoadR && (c % BLOCK === 0) && (r % 4 === 0)) {
+    ctx.fillStyle = '#3a3a3a';
     ctx.beginPath();
-    ctx.ellipse(p.x, p.y, 4, 2, 0, 0, Math.PI * 2);
+    ctx.ellipse(p.x, p.y, wx * 0.10, wy * 0.10, 0, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+// Машина — припаркована на тайле, занимает ~80% площади
+function drawCar(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(0.55);
+  // Палитра — рандомно по координатам
+  const palettes = [
+    ['#3a5a8a', '#22386a'], ['#8a3030', '#5a1818'],
+    ['#3a3a3a', '#1f1f1f'], ['#5a5a3a', '#3a3a1a'],
+    ['#2f6a3a', '#1a3a22'],
+  ];
+  const [top, side] = palettes[((r * 7 + c * 11) % palettes.length + palettes.length) % palettes.length];
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  ctx.moveTo(p.x,      p.y - wy * 0.8);
+  ctx.lineTo(p.x + wx * 0.8, p.y);
+  ctx.lineTo(p.x,      p.y + wy * 0.8);
+  ctx.lineTo(p.x - wx * 0.8, p.y);
+  ctx.closePath();
+  ctx.fill();
+  // Корпус
+  ctx.fillStyle = side;
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx * 0.8, p.y);
+  ctx.lineTo(p.x,            p.y + wy * 0.8);
+  ctx.lineTo(p.x,            p.y + wy * 0.8 - H);
+  ctx.lineTo(p.x - wx * 0.8, p.y - H);
+  ctx.closePath();
+  ctx.fill();
+  const fGrad = ctx.createLinearGradient(p.x, p.y - H, p.x + wx, p.y);
+  fGrad.addColorStop(0, top); fGrad.addColorStop(1, side);
+  ctx.fillStyle = fGrad;
+  ctx.beginPath();
+  ctx.moveTo(p.x,            p.y + wy * 0.8);
+  ctx.lineTo(p.x + wx * 0.8, p.y);
+  ctx.lineTo(p.x + wx * 0.8, p.y - H);
+  ctx.lineTo(p.x,            p.y + wy * 0.8 - H);
+  ctx.closePath();
+  ctx.fill();
+  // Крыша
+  ctx.fillStyle = top;
+  ctx.beginPath();
+  ctx.moveTo(p.x,            p.y - H + wy * 0.8);
+  ctx.lineTo(p.x + wx * 0.8, p.y - H);
+  ctx.lineTo(p.x,            p.y - H - wy * 0.8);
+  ctx.lineTo(p.x - wx * 0.8, p.y - H);
+  ctx.closePath();
+  ctx.fill();
+  // Окна — две тёмные полоски на правой грани
+  ctx.fillStyle = 'rgba(150,200,240,.35)';
+  ctx.fillRect(p.x + wx * 0.10, p.y - H + 4, wx * 0.20, H - 12);
+  ctx.fillRect(p.x + wx * 0.45, p.y - H + 4, wx * 0.20, H - 12);
+}
+
+// Ящик — невысокий, ~70% ширины тайла
+function drawCrate(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(0.6);
+  const top = '#a87040', side = '#603820';
+  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy * 0.7); ctx.lineTo(p.x + wx * 0.7, p.y);
+  ctx.lineTo(p.x, p.y + wy * 0.7); ctx.lineTo(p.x - wx * 0.7, p.y);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = side;
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx * 0.7, p.y); ctx.lineTo(p.x, p.y + wy * 0.7);
+  ctx.lineTo(p.x, p.y + wy * 0.7 - H); ctx.lineTo(p.x - wx * 0.7, p.y - H);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = top;
+  ctx.beginPath();
+  ctx.moveTo(p.x,            p.y + wy * 0.7); ctx.lineTo(p.x + wx * 0.7, p.y);
+  ctx.lineTo(p.x + wx * 0.7, p.y - H); ctx.lineTo(p.x, p.y + wy * 0.7 - H);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#c08858';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - H + wy * 0.7); ctx.lineTo(p.x + wx * 0.7, p.y - H);
+  ctx.lineTo(p.x, p.y - H - wy * 0.7); ctx.lineTo(p.x - wx * 0.7, p.y - H);
+  ctx.closePath(); ctx.fill();
+}
+
+// Бочка — цилиндр
+function drawBarrel(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(0.9);
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + 2, p.y + 3, wx * 0.36, wy * 0.36, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const grd = ctx.createLinearGradient(p.x - wx * 0.32, p.y, p.x + wx * 0.32, p.y);
+  grd.addColorStop(0, '#6a1a1a'); grd.addColorStop(0.5, '#a23030'); grd.addColorStop(1, '#6a1a1a');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, wx * 0.32, wy * 0.32, 0, 0, Math.PI, false);
+  ctx.lineTo(p.x + wx * 0.32, p.y - H);
+  ctx.ellipse(p.x, p.y - H, wx * 0.32, wy * 0.32, 0, 0, Math.PI, true);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#a23030';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y - H, wx * 0.32, wy * 0.32, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Обручи
+  ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 1;
+  [0.3, 0.7].forEach(t => {
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y - H * (1 - t), wx * 0.32, wy * 0.32, 0, 0, Math.PI);
+    ctx.stroke();
+  });
+}
+
+// Мусорный бак
+function drawDumpster(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(0.75);
+  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy * 0.7); ctx.lineTo(p.x + wx * 0.7, p.y);
+  ctx.lineTo(p.x, p.y + wy * 0.7); ctx.lineTo(p.x - wx * 0.7, p.y);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#2a3a1a';
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx * 0.7, p.y); ctx.lineTo(p.x, p.y + wy * 0.7);
+  ctx.lineTo(p.x, p.y + wy * 0.7 - H); ctx.lineTo(p.x - wx * 0.7, p.y - H);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#3a5a28';
+  ctx.beginPath();
+  ctx.moveTo(p.x,            p.y + wy * 0.7); ctx.lineTo(p.x + wx * 0.7, p.y);
+  ctx.lineTo(p.x + wx * 0.7, p.y - H); ctx.lineTo(p.x, p.y + wy * 0.7 - H);
+  ctx.closePath(); ctx.fill();
+  // Крышка приоткрыта
+  ctx.fillStyle = '#5a8038';
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx * 0.75, p.y - H - 2); ctx.lineTo(p.x, p.y - H + wy * 0.7);
+  ctx.lineTo(p.x + wx * 0.75, p.y - H - 2); ctx.lineTo(p.x, p.y - H - wy * 0.7);
+  ctx.closePath(); ctx.fill();
 }
 
 function drawBuilding(r, c) {
@@ -689,21 +868,26 @@ function roundRect(x, y, w, h, r) {
 function render() {
   ctx.fillStyle = '#0a0a10';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  // Viewport culling
-  const VIS_R = 16;
+  // Viewport culling (под более крупный TS уменьшаем радиус)
+  const VIS_R = 12;
   const r0 = Math.max(0, Math.floor(player.r - VIS_R));
   const r1 = Math.min(MAP_ROWS, Math.ceil(player.r + VIS_R));
   const c0 = Math.max(0, Math.floor(player.c - VIS_R));
   const c1 = Math.min(MAP_COLS, Math.ceil(player.c + VIS_R));
-  // 1) Пол (только тайлы дорог/тротуаров)
+  // 1) Пол — везде где НЕ здание (под машинами/ящиками тротуар виден)
   for (let r = r0; r < r1; r++)
     for (let c = c0; c < c1; c++)
-      if (MAP[r][c] === 0) drawTile(r, c);
-  // 2) Объекты с depth-sort (здания + игроки)
+      if (MAP[r][c] !== 1) drawTile(r, c);
+  // 2) Объекты с depth-sort
   const items = [];
   for (let r = r0; r < r1; r++) {
     for (let c = c0; c < c1; c++) {
-      if (MAP[r][c] === 1) items.push({ depth: r + c, draw: () => drawBuilding(r, c) });
+      const t = MAP[r][c];
+      if (t === 1) items.push({ depth: r + c, draw: () => drawBuilding(r, c) });
+      else if (t === 2) items.push({ depth: r + c, draw: () => drawCar(r, c) });
+      else if (t === 3) items.push({ depth: r + c, draw: () => drawCrate(r, c) });
+      else if (t === 4) items.push({ depth: r + c, draw: () => drawBarrel(r, c) });
+      else if (t === 5) items.push({ depth: r + c, draw: () => drawDumpster(r, c) });
     }
   }
   // Игрок
