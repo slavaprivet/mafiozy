@@ -1751,7 +1751,12 @@ body.on-subpage .time-display-box { display: none !important; }
     <div style="text-align:center;color:#ffd76b;font-family:Georgia,serif;letter-spacing:3px;font-size:11px;border-top:1px solid #8b6332;border-bottom:1px solid #8b6332;padding:6px 0;margin-bottom:10px">
       РОЗЫСКИВАЕТСЯ&nbsp;·&nbsp;ЖИВЫМ&nbsp;ИЛИ&nbsp;МЁРТВЫМ
     </div>
-    <div id="doss-file-emoji" style="text-align:center;font-size:56px;line-height:1;margin:6px 0">😈</div>
+    <!-- Canvas-портрет босса (drawChar). Если look нет — текстовый fallback. -->
+    <div style="text-align:center;margin:6px 0">
+      <canvas id="doss-file-portrait" width="180" height="220"
+              style="background:radial-gradient(circle at 50% 35%, #2a1f10, #0a0604);border:2px solid #8b6332;border-radius:8px;display:inline-block"></canvas>
+    </div>
+    <div id="doss-file-emoji" style="display:none;text-align:center;font-size:56px;line-height:1;margin:6px 0">😈</div>
     <div id="doss-file-name" style="text-align:center;color:#ffd76b;font-size:18px;font-weight:bold;font-family:Georgia,serif">Имя</div>
     <div id="doss-file-title" style="text-align:center;color:#c8a050;font-style:italic;font-size:13px;margin-bottom:8px">Титул</div>
     <div id="doss-file-stats" style="text-align:center;color:#ddd;font-size:13px;margin-bottom:10px">❤️ HP · ⚔️ ATK · 🛡 DEF</div>
@@ -2621,6 +2626,301 @@ function getBossTaunt(bossId) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  CREATOR-PORTRAIT для досье и списка боссов на районе.
+//  Тот же drawChar() что в creator.html / demo_isometric / world.html.
+//  BOSS_LOOK — зеркало _COOP_BOSS_DATA[*].look из mafiozi_bot.py.
+//  Раньше портреты были, потом их откатили (commit 6934eeb) — оставлю
+//  только маленький блок без дублирования helper-функций. drawChar
+//  рисует body/face/hair/hat в одном офскрин-canvas, ровно как боец.
+// ═══════════════════════════════════════════════════════════════════
+const SKINS = ['#FDDBB4','#F0C27F','#D4935A','#A0622A','#7A3B10','#C8A882'];
+const HAIR_COLORS_M = ['#1a0e00','#3d2200','#8b6333','#b8860b','#888','#111'];
+const HAIR_COLORS_F = ['#1a0e00','#8b1a1a','#b8860b','#3d2200','#888','#c87050','#e0c080'];
+
+function drawChar(ctx, W, H, opts) {
+  const { gender, skin, body, face, hair, hat } = opts;
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2;
+  const sc = Math.min(W, H) / 220;
+  function px(x) { return cx + x * sc; }
+  function py(y) { return H * 0.92 - y * sc; }
+  const skinCol = SKINS[skin] || SKINS[0];
+  if (gender === 0) _drawMaleHub(ctx, px, py, sc, skinCol, body, face, hair, hat);
+  else              _drawFemaleHub(ctx, px, py, sc, skinCol, body, face, hair, hat);
+}
+function _drawMaleHub(ctx, px, py, sc, skinCol, body, face, hair, hat) {
+  const bodyDefs = [
+    { sw: 34, sh: 80, nw: 14, nh: 22, hw: 26 },
+    { sw: 44, sh: 85, nw: 16, nh: 22, hw: 30 },
+    { sw: 58, sh: 82, nw: 18, nh: 20, hw: 36 },
+    { sw: 52, sh: 92, nw: 16, nh: 24, hw: 32 },
+  ];
+  const bd = bodyDefs[body] || bodyDefs[1];
+  const suitCol = ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4];
+  const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9'][face % 4];
+  ctx.fillStyle = suitCol;
+  const legW = bd.sw * 0.38, legH = 55 * sc;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.22), py(legH), legW*sc, legH, 4*sc); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(px(bd.sw*0.22 - legW), py(legH), legW*sc, legH, 4*sc); ctx.fill();
+  ctx.fillStyle = '#111';
+  [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*bd.sw*0.1), py(2), 10*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill(); });
+  ctx.fillStyle = suitCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
+  ctx.fillStyle = '#ddd';
+  ctx.beginPath(); ctx.roundRect(px(-7), py(bd.sh), 14*sc, bd.sh*0.7*sc, 2*sc); ctx.fill();
+  ctx.fillStyle = tieCol;
+  ctx.beginPath();
+  ctx.moveTo(px(-5), py(bd.sh-4)); ctx.lineTo(px(5), py(bd.sh-4));
+  ctx.lineTo(px(3), py(bd.sh*0.32)); ctx.lineTo(px(0), py(bd.sh*0.25));
+  ctx.lineTo(px(-3), py(bd.sh*0.32)); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = suitCol;
+  ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-2)); ctx.lineTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.sw/2), py(bd.sh-20)); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-2)); ctx.lineTo(px(bd.sw/2), py(bd.sh)); ctx.lineTo(px(bd.sw/2), py(bd.sh-20)); ctx.closePath(); ctx.fill();
+  const armLen = body===3?65:60, armW = body===3?13:10;
+  ctx.fillStyle = suitCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2-armW*sc+2), py(bd.sh), armW*sc, armLen*sc, 5*sc); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(px(bd.sw/2-2), py(bd.sh), armW*sc, armLen*sc, 5*sc); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(-bd.sw/2-armW*sc/2+2), py(armLen-10), 7*sc, 9*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px(bd.sw/2+armW*sc/2-2), py(armLen-10), 7*sc, 9*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.nw/2), py(bd.sh+bd.nh), bd.nw*sc, bd.nh*sc, 4*sc); ctx.fill();
+  const headH = bd.hw*1.22;
+  const headY = bd.sh + bd.nh + headH;
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+headH/2), bd.hw/2*sc, headH/2*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+5), bd.hw/2.2*sc, 10*sc, 0, 0, Math.PI); ctx.fill();
+  const eyeY = bd.sh + bd.nh + headH*0.55;
+  const eyeSpan = bd.hw*0.22;
+  const mouthY = bd.sh + bd.nh + headH*0.18;
+  _drawFaceMHub(ctx, face, px, py, eyeY, eyeSpan, mouthY, bd, sc);
+  if (hair > 0) _drawHairMHub(ctx, hair, px, py, bd, headY, headH, sc);
+  if (hat > 0)  _drawHatHub(ctx, hat, px, py, bd, headY, headH, sc);
+}
+function _drawFemaleHub(ctx, px, py, sc, skinCol, body, face, hair, hat) {
+  const bodyDefs = [
+    { sw: 30, sh: 78, nw: 12, nh: 20, hw: 24, hip: 32 },
+    { sw: 36, sh: 80, nw: 13, nh: 20, hw: 27, hip: 40 },
+    { sw: 48, sh: 76, nw: 15, nh: 18, hw: 32, hip: 54 },
+    { sw: 34, sh: 85, nw: 13, nh: 22, hw: 26, hip: 38 },
+  ];
+  const bd = bodyDefs[body] || bodyDefs[1];
+  const dressCol = ['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a'][body % 4];
+  const accentCol = ['#e8c96e','#c0392b','#8e44ad','#2980b9'][face % 4];
+  ctx.fillStyle = dressCol;
+  ctx.beginPath();
+  ctx.moveTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.hip/2), py(0));
+  ctx.lineTo(px(bd.hip/2), py(0)); ctx.lineTo(px(bd.sw/2), py(bd.sh));
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#111';
+  [-1,1].forEach(s => {
+    ctx.beginPath(); ctx.ellipse(px(s*bd.hip*0.18), py(3), 8*sc, 4*sc, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px(s*bd.hip*0.18+4*sc), py(0), 3*sc, 8*sc, 1*sc); ctx.fill();
+  });
+  ctx.fillStyle = dressCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
+  ctx.fillStyle = '#f0e8e0';
+  ctx.beginPath(); ctx.roundRect(px(-6), py(bd.sh), 12*sc, bd.sh*0.65*sc, 2*sc); ctx.fill();
+  ctx.fillStyle = dressCol;
+  ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-4)); ctx.lineTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.sw/2), py(bd.sh-18)); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-4)); ctx.lineTo(px(bd.sw/2), py(bd.sh)); ctx.lineTo(px(bd.sw/2), py(bd.sh-18)); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = accentCol;
+  ctx.beginPath(); ctx.arc(px(-8), py(bd.sh-10), 4*sc, 0, Math.PI*2); ctx.fill();
+  const armLen = 58, armW = 8;
+  ctx.fillStyle = dressCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2-armW*sc+2), py(bd.sh), armW*sc, armLen*sc, 4*sc); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(px(bd.sw/2-2), py(bd.sh), armW*sc, armLen*sc, 4*sc); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(-bd.sw/2-armW*sc/2+2), py(armLen-10), 6*sc, 8*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px(bd.sw/2+armW*sc/2-2), py(armLen-10), 6*sc, 8*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.nw/2), py(bd.sh+bd.nh), bd.nw*sc, bd.nh*sc, 4*sc); ctx.fill();
+  ctx.strokeStyle = accentCol; ctx.lineWidth = 2*sc;
+  ctx.beginPath();
+  ctx.arc(px(0), py(bd.sh+bd.nh+bd.nh*0.5), (bd.nw*0.7)*sc, Math.PI*0.2, Math.PI*0.8);
+  ctx.stroke();
+  const headH = bd.hw*1.18;
+  const headY = bd.sh + bd.nh + headH;
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+headH/2), bd.hw/2*sc, headH/2*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+4), bd.hw/2.3*sc, 9*sc, 0, 0, Math.PI); ctx.fill();
+  const eyeY = bd.sh + bd.nh + headH*0.55;
+  const eyeSpan = bd.hw*0.22;
+  const mouthY = bd.sh + bd.nh + headH*0.18;
+  _drawFaceFHub(ctx, face, px, py, eyeY, eyeSpan, mouthY, bd, sc);
+  if (hair > 0) _drawHairFHub(ctx, hair, px, py, bd, headY, headH, sc);
+  if (hat > 0)  _drawHatHub(ctx, hat, px, py, bd, headY, headH, sc);
+}
+function _drawFaceMHub(ctx, faceId, px, py, eyeY, eyeSpan, mouthY, bd, sc) {
+  const eyeR = 4*sc;
+  ctx.fillStyle = '#fff';
+  [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*eyeSpan), py(eyeY), eyeR*1.3, eyeR, 0, 0, Math.PI*2); ctx.fill(); });
+  const pupilCol = ['#1a0a00','#1a0020','#002010','#100020'][faceId%4];
+  ctx.fillStyle = pupilCol;
+  const lookX = faceId===1?1.5:faceId===5?-0.5:0;
+  [-1,1].forEach(s => { ctx.beginPath(); ctx.arc(px(s*eyeSpan+lookX*sc), py(eyeY), eyeR*0.65, 0, Math.PI*2); ctx.fill(); });
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 2.5*sc; ctx.lineCap = 'round';
+  const browAngles = [0,-0.3,0,0.15,0.2,0.25,-0.2,-0.15,0,0.1];
+  const bAngle = browAngles[faceId]||0;
+  [-1,1].forEach(s => {
+    ctx.save(); ctx.translate(px(s*eyeSpan), py(eyeY+9)); ctx.rotate(s*bAngle);
+    ctx.beginPath(); ctx.moveTo(-8*sc,0); ctx.lineTo(8*sc,0); ctx.stroke(); ctx.restore();
+  });
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 2*sc;
+  if (faceId===0) { ctx.beginPath(); ctx.moveTo(px(-8),py(mouthY)); ctx.lineTo(px(8),py(mouthY)); ctx.stroke(); }
+  else if (faceId===1) { ctx.beginPath(); ctx.moveTo(px(-9),py(mouthY+3)); ctx.quadraticCurveTo(px(0),py(mouthY-4),px(9),py(mouthY+3)); ctx.stroke(); }
+  else if (faceId===5) { ctx.beginPath(); ctx.moveTo(px(-8),py(mouthY+4)); ctx.quadraticCurveTo(px(0),py(mouthY-2),px(8),py(mouthY+4)); ctx.stroke(); }
+  else if (faceId===6) { ctx.beginPath(); ctx.moveTo(px(-6),py(mouthY)); ctx.quadraticCurveTo(px(3),py(mouthY+5),px(9),py(mouthY+2)); ctx.stroke(); }
+  else { ctx.beginPath(); ctx.moveTo(px(-8),py(mouthY)); ctx.quadraticCurveTo(px(0),py(mouthY+3),px(8),py(mouthY)); ctx.stroke(); }
+  if (faceId===2) {
+    ctx.fillStyle = '#2a1800';
+    ctx.beginPath(); ctx.ellipse(px(0),py(mouthY-12),14*sc,16*sc,0,0,Math.PI); ctx.fill();
+    [-1,1].forEach(s=>{ctx.beginPath();ctx.ellipse(px(s*14),py(mouthY+4),5*sc,10*sc,0,0,Math.PI*2);ctx.fill();});
+  }
+  if (faceId===3) {
+    ctx.fillStyle='#1a0e00';
+    ctx.beginPath();ctx.ellipse(px(-5),py(mouthY+6),7*sc,4*sc,0.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(px(5),py(mouthY+6),7*sc,4*sc,-0.3,0,Math.PI*2);ctx.fill();
+  }
+  if (faceId===4) {
+    ctx.strokeStyle='#cc5555';ctx.lineWidth=2*sc;
+    ctx.beginPath();ctx.moveTo(px(-10),py(eyeY+8));ctx.lineTo(px(-4),py(mouthY+8));ctx.stroke();
+  }
+  if (faceId===7) {
+    ctx.strokeStyle='#a06060';ctx.lineWidth=2*sc;
+    ctx.beginPath();ctx.moveTo(px(0),py(eyeY-4));ctx.lineTo(px(3),py(eyeY-10));ctx.lineTo(px(-1),py(eyeY-16));ctx.stroke();
+  }
+  if (faceId===8) {
+    ctx.fillStyle='#eee';ctx.beginPath();ctx.roundRect(px(7),py(mouthY-1),18*sc,4*sc,2*sc);ctx.fill();
+    ctx.fillStyle='#e8c96e';ctx.beginPath();ctx.roundRect(px(22),py(mouthY-1),5*sc,4*sc,1*sc);ctx.fill();
+  }
+}
+function _drawFaceFHub(ctx, faceId, px, py, eyeY, eyeSpan, mouthY, bd, sc) {
+  const eyeR = 4.2*sc;
+  const eyeColors = ['#1a3a5a','#3a1a1a','#1a3a1a','#3a1a3a','#2a2a1a','#1a2a3a','#3a0a0a','#1a1a2a','#3a2a0a','#0a2a3a'];
+  ctx.fillStyle = eyeColors[faceId%eyeColors.length]+'66';
+  [-1,1].forEach(s=>{ctx.beginPath();ctx.ellipse(px(s*eyeSpan),py(eyeY+2),eyeR*1.8,eyeR*0.7,0,0,Math.PI*2);ctx.fill();});
+  ctx.fillStyle='#fff';
+  [-1,1].forEach(s=>{ctx.beginPath();ctx.ellipse(px(s*eyeSpan),py(eyeY),eyeR*1.4,eyeR,0,0,Math.PI*2);ctx.fill();});
+  ctx.fillStyle='#1a0a30';
+  [-1,1].forEach(s=>{ctx.beginPath();ctx.arc(px(s*eyeSpan),py(eyeY),eyeR*0.7,0,Math.PI*2);ctx.fill();});
+  ctx.strokeStyle='#331a00';ctx.lineWidth=1.8*sc;ctx.lineCap='round';
+  [-1,1].forEach(s=>{
+    ctx.beginPath();ctx.moveTo(px(s*eyeSpan-8),py(eyeY+10));ctx.quadraticCurveTo(px(s*eyeSpan),py(eyeY+12),px(s*eyeSpan+8*s),py(eyeY+9));ctx.stroke();
+  });
+  const lipColors=['#c0392b','#e74c3c','#c0392b','#ff1493','#a04040','#d35400','#e91e63','#880000','#c0392b','#8e44ad'];
+  ctx.fillStyle = lipColors[faceId%lipColors.length];
+  ctx.beginPath();
+  ctx.moveTo(px(-8),py(mouthY));
+  ctx.quadraticCurveTo(px(-4),py(mouthY+5),px(0),py(mouthY+3));
+  ctx.quadraticCurveTo(px(4),py(mouthY+5),px(8),py(mouthY));
+  ctx.quadraticCurveTo(px(4),py(mouthY-3),px(0),py(mouthY-2));
+  ctx.quadraticCurveTo(px(-4),py(mouthY-3),px(-8),py(mouthY));
+  ctx.closePath();ctx.fill();
+}
+function _drawHairMHub(ctx, hairId, px, py, bd, headY, headH, sc) {
+  const hc = HAIR_COLORS_M[hairId % HAIR_COLORS_M.length];
+  const hw = bd.hw / 2;
+  ctx.fillStyle = hc; ctx.strokeStyle = hc;
+  if (hairId===1) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY-5),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===2) {
+    ctx.fillStyle=hc;
+    ctx.beginPath();ctx.ellipse(px(0),py(headY+2),hw*sc,9*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(px(-4*sc),py(headY+14),hw*0.8*sc,16*sc,-0.2,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===3) {
+    ctx.beginPath();ctx.moveTo(px(-4),py(headY-2));ctx.lineTo(px(-3),py(headY+28));ctx.lineTo(px(3),py(headY+28));ctx.lineTo(px(4),py(headY-2));ctx.closePath();ctx.fill();
+  } else if (hairId===4) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===5) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    [-1,1].forEach(s=>{ctx.lineWidth=8*sc;ctx.strokeStyle=hc;ctx.beginPath();ctx.moveTo(px(s*hw),py(headY));ctx.quadraticCurveTo(px(s*(hw+5)),py(headY-20),px(s*(hw+1)),py(headY-70));ctx.stroke();});
+  } else if (hairId===6) {
+    for(let i=-3;i<=3;i++){ctx.beginPath();ctx.arc(px(i*7),py(headY+5),7*sc,0,Math.PI*2);ctx.fill();}
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,8*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===7) {
+    ctx.beginPath();ctx.ellipse(px(-4),py(headY+4),hw*0.9*sc,9*sc,-0.2,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.roundRect(px(-14),py(headY+5),14*sc,8*sc,3*sc);ctx.fill();
+  } else if (hairId===8) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===9) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY+1),hw*sc,6*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  }
+}
+function _drawHairFHub(ctx, hairId, px, py, bd, headY, headH, sc) {
+  const hc = HAIR_COLORS_F[hairId % HAIR_COLORS_F.length];
+  const hw = bd.hw / 2;
+  ctx.fillStyle = hc;
+  if (hairId===1) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    ctx.lineWidth=10*sc;ctx.strokeStyle=hc;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(px(hw-2),py(headY));ctx.quadraticCurveTo(px(hw+10),py(headY-15),px(hw+5),py(headY-40));ctx.stroke();
+  } else if (hairId===2) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===3) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    [-1,1].forEach(s=>{ctx.lineWidth=10*sc;ctx.strokeStyle=hc;ctx.beginPath();ctx.moveTo(px(s*hw),py(headY));ctx.quadraticCurveTo(px(s*(hw+6)),py(headY-30),px(s*(hw+3)),py(headY-80));ctx.stroke();});
+  } else {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  }
+}
+function _drawHatHub(ctx, hatId, px, py, bd, headY, headH, sc) {
+  const hw = bd.hw / 2;
+  const eyeY = headY - headH * 0.45;
+  if (hatId===1) {
+    ctx.fillStyle = '#1a0e00';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY+2), (hw+10)*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px(-hw+2), py(headY+2+26), (hw*2-4)*sc, 26*sc, 4*sc); ctx.fill();
+    ctx.fillStyle = '#e8c96e';
+    ctx.fillRect(px(-hw+2), py(headY+2+4+2), (hw*2-4)*sc, 4*sc);
+  } else if (hatId===2) {
+    ctx.fillStyle = '#1a2e3a';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY), hw*sc, 14*sc, 0, Math.PI, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(px(hw*0.5), py(headY), (hw+6)*sc, 4*sc, 0.15, 0, Math.PI); ctx.fill();
+    ctx.fillStyle = '#e8c96e';
+    ctx.beginPath(); ctx.arc(px(0), py(headY+12), 3*sc, 0, Math.PI*2); ctx.fill();
+  } else if (hatId===3) {
+    ctx.fillStyle = '#8b0000';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY+4), (hw+1)*sc, (headH*0.5+2)*sc, 0, Math.PI*0.5, Math.PI*2.5); ctx.fill();
+  } else if (hatId===4) {
+    ctx.fillStyle = '#5c3d11';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY+3), (hw+14)*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(px(-hw+2), py(headY+3));
+    ctx.lineTo(px(-hw+6), py(headY+3+32));
+    ctx.lineTo(px(-3),    py(headY+3+36));
+    ctx.lineTo(px(3),     py(headY+3+36));
+    ctx.lineTo(px(hw-6),  py(headY+3+32));
+    ctx.lineTo(px(hw-2),  py(headY+3));
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+// look для каждого босса — какой персонаж рисуется в досье.
+const BOSS_LOOK = {
+  kosoy:      {gender:0, skin:2, body:0, face:1, hair:3, hat:0},
+  bychok:     {gender:0, skin:1, body:2, face:2, hair:0, hat:0},
+  zhigan:     {gender:0, skin:2, body:1, face:3, hair:4, hat:2},
+  shustryy:   {gender:0, skin:1, body:0, face:1, hair:5, hat:0},
+  tolsty:     {gender:0, skin:1, body:2, face:4, hair:2, hat:3},
+  kaban:      {gender:0, skin:2, body:2, face:5, hair:1, hat:1},
+  bukhgalter: {gender:0, skin:0, body:1, face:0, hair:6, hat:4},
+  kontrabas:  {gender:0, skin:1, body:1, face:3, hair:3, hat:2},
+  legenda:    {gender:0, skin:1, body:1, face:6, hair:0, hat:1},
+  professor:  {gender:0, skin:0, body:0, face:4, hair:6, hat:4},
+  artist:     {gender:0, skin:1, body:1, face:2, hair:4, hat:0},
+  svalshchik: {gender:0, skin:1, body:0, face:5, hair:1, hat:0},
+  buryy:      {gender:0, skin:2, body:2, face:5, hair:0, hat:0},
+  khirurg:    {gender:0, skin:0, body:0, face:0, hair:6, hat:0},
+  tigr:       {gender:0, skin:1, body:1, face:6, hair:2, hat:0},
+  palach:     {gender:0, skin:1, body:2, face:5, hair:0, hat:1},
+  sedoy:      {gender:0, skin:0, body:1, face:6, hair:7, hat:1},
+  prizrak:    {gender:0, skin:0, body:0, face:4, hair:6, hat:0},
+  don_karlo:  {gender:0, skin:1, body:2, face:4, hair:1, hat:1},
+  vizir:      {gender:0, skin:1, body:1, face:6, hair:2, hat:3},
+};
+
 const BOSS_DATA = {
   kosoy:     {name:'😈 Косой',    title:'Мелкий воришка',        hp:150, atk:28, def:10, exp:22,  cash:80,  minions:2,  quote:'Да я тебя знаешь как...'},
   bychok:    {name:'🐂 Бычок',    title:'Рыночный рэкетир',      hp:200, atk:34, def:15, exp:30,  cash:110, minions:5,  quote:'Чё уставился, баран?'},
@@ -2841,15 +3141,25 @@ function showDossier() {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:6px;background:rgba(0,0,0,.35);border-left:3px solid #8b6332;border-radius:6px;cursor:pointer';
     row.onclick = function() { showDossierFile(bid); };
+    // Если есть BOSS_LOOK — рисуем мини-портрет через drawChar, иначе эмодзи.
+    const hasLook = !!BOSS_LOOK[bid];
+    const portraitId = 'doss-mini-' + bid;
     const emoji = (b.name || '').match(/^(\p{Extended_Pictographic}+)/u);
+    const iconHtml = hasLook
+      ? '<canvas id="' + portraitId + '" width="56" height="70" style="background:radial-gradient(circle at 50% 35%, #2a1f10, #0a0604);border:1px solid #8b6332;border-radius:4px;flex-shrink:0"></canvas>'
+      : '<div style="font-size:28px">' + (emoji ? emoji[1] : '👤') + '</div>';
     row.innerHTML =
-      '<div style="font-size:28px">' + (emoji ? emoji[1] : '👤') + '</div>' +
+      iconHtml +
       '<div style="flex:1">' +
         '<div style="color:#ffd76b;font-weight:bold">' + (b.name || bid) + (bid === main ? ' 👑' : '') + '</div>' +
         '<div style="color:#aab2c8;font-size:12px;font-style:italic">' + (b.title || '') + '</div>' +
       '</div>' +
       '<div style="color:#c8a050;font-size:18px">›</div>';
     list.appendChild(row);
+    if (hasLook) {
+      const cv = document.getElementById(portraitId);
+      if (cv) { try { drawChar(cv.getContext('2d'), cv.width, cv.height, BOSS_LOOK[bid]); } catch(e) {} }
+    }
   });
   document.getElementById('dossier-modal').style.display = 'flex';
 }
@@ -2857,8 +3167,23 @@ function showDossier() {
 function showDossierFile(bid) {
   const b = BOSS_DATA[bid];
   if (!b) return;
-  const emoji = (b.name || '').match(/^(\p{Extended_Pictographic}+)/u);
-  document.getElementById('doss-file-emoji').textContent = emoji ? emoji[1] : '👤';
+  // Рисуем большой портрет босса. Если look есть — drawChar на canvas.
+  // Иначе показываем эмодзи-fallback.
+  const cv = document.getElementById('doss-file-portrait');
+  const em = document.getElementById('doss-file-emoji');
+  const look = BOSS_LOOK[bid];
+  if (cv && look) {
+    cv.style.display = 'inline-block';
+    if (em) em.style.display = 'none';
+    try { drawChar(cv.getContext('2d'), cv.width, cv.height, look); } catch(e) {}
+  } else {
+    if (cv) cv.style.display = 'none';
+    if (em) {
+      em.style.display = 'block';
+      const emoji = (b.name || '').match(/^(\p{Extended_Pictographic}+)/u);
+      em.textContent = emoji ? emoji[1] : '👤';
+    }
+  }
   // Имя без эмодзи
   document.getElementById('doss-file-name').textContent = (b.name || '').replace(/^\p{Extended_Pictographic}+\s*/u, '');
   document.getElementById('doss-file-title').textContent = b.title || '';
