@@ -1650,6 +1650,14 @@ body.on-subpage .time-display-box { display: none !important; }
     <div class="tile-label">Мои связи</div>
   </div>
 
+  <!-- Phase 10: открытый онлайн-мир. Кнопка ведёт в world.html где
+       все игроки видят друг друга в реальном времени через WebSocket. -->
+  <div class="tile tile-creator" id="tile-world" onclick="openWorld()" style="position:relative">
+    <div class="tile-icon">🌆</div>
+    <div class="tile-label">Город онлайн</div>
+    <div style="position:absolute;top:6px;right:8px;background:#2a8a3a;color:#fff;font-size:9px;font-weight:bold;padding:2px 6px;border-radius:6px;letter-spacing:.5px">NEW</div>
+  </div>
+
 </div>
 
 </div><!-- #page-main -->
@@ -5485,6 +5493,34 @@ function openCreator() {
                '&face=' + DATA.face + '&hair=' + DATA.hair + '&hat=' + DATA.hat +
                '&has_look=' + DATA.hasLook + '&dia=' + DATA.dia + '&new=' + isNew + '&v=' + v;
   window.location.href = 'https://slavaprivet.github.io/mafiozi-battle/creator.html?' + look;
+}
+
+// Phase 10: вход в общий онлайн-мир (world.html по WebSocket).
+// Если API не настроен (нет туннеля) — показываем тост, ничего не делаем.
+function openWorld() {
+  if (!DATA.api || !DATA.uid) {
+    showToast('Город онлайн доступен только при работающем сервере (туннеле)', '⚠️');
+    return;
+  }
+  // Передаём api, uid, имя и look — клиент откроет WS и нарисует тебя.
+  const params = new URLSearchParams();
+  params.set('api',   DATA.api);
+  params.set('uid',   String(DATA.uid));
+  params.set('name',  encodeURIComponent(DATA.name || 'Игрок'));
+  // URL-кодим текущий URL хаба чтобы потом вернуться без потерь параметров.
+  params.set('hub',   encodeURIComponent(location.href));
+  if (DATA.hasLook) {
+    params.set('gender',   DATA.gender|0);
+    params.set('skin',     DATA.skin|0);
+    params.set('body',     DATA.body|0);
+    params.set('face',     DATA.face|0);
+    params.set('hair',     DATA.hair|0);
+    params.set('hat',      DATA.hat|0);
+    params.set('has_look', 1);
+  }
+  // Cache-buster — чтобы Telegram не подсунул старую версию.
+  params.set('v', Date.now());
+  window.location.href = 'world.html?' + params.toString();
 }
 
 // ── Ripple effect ──────────────────────────────────────────────────────

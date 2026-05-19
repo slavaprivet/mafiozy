@@ -10825,6 +10825,199 @@ async def _iso_run_sim_loop(sim: 'IsoBattleSim') -> None:
         logger.info("IsoSim: stopped sid=%s tick=%d", sim.sid, sim.tick_no)
 
 
+# ════════════════════════════════════════════════════════════════
+#  ОБЩИЙ МИР (Open-World Hub)
+#  Одна глобальная комната где все онлайн-игроки видят друг друга,
+#  бегают по городу и общаются. WebSocket `/world/sim?uid=...`.
+# ════════════════════════════════════════════════════════════════
+WORLD_TICK_HZ = 15
+WORLD_TICK_DT = 1.0 / WORLD_TICK_HZ
+WORLD_MAP_COLS = 40   # тайлы (Х) — городская сетка
+WORLD_MAP_ROWS = 40   # тайлы (Y)
+WORLD_VIEW_R   = 25   # тайлы, в радиусе которых шлём остальных игроков
+WORLD_AFK_TIMEOUT_S = 30  # без инпута дольше — выкидываем (cleanup)
+
+class WorldSim:
+    """Глобальная симуляция открытого мира — один экземпляр на сервер.
+    Хранит позиции всех онлайн-игроков, рассылает снапшоты 15 Гц.
+    Без AI/врагов/пуль — это социальный хаб."""
+    __slots__ = (
+        'tick_no', 'last_tick_at', 'players', 'connections',
+        'alive', 'started_at',
+    )
+
+    def __init__(self):
+        self.tick_no       = 0
+        self.started_at    = time.time()
+        self.last_tick_at  = self.started_at
+        self.players       = {}   # uid (str) -> {x,y,ang,name,look,hp,last_seen}
+        self.connections   = {}   # uid (str) -> aiohttp WebSocketResponse
+        self.alive         = True
+
+    def add_or_update(self, uid: str, name: str, look: dict) -> None:
+        if uid in self.players:
+            self.players[uid]['name'] = name
+            if look:
+                self.players[uid]['look'] = look
+            self.players[uid]['last_seen'] = time.time()
+            return
+        # Спавн в центре карты
+        sx = WORLD_MAP_COLS / 2 + random.uniform(-2, 2)
+        sy = WORLD_MAP_ROWS / 2 + random.uniform(-2, 2)
+        self.players[uid] = {
+            'uid':       uid,
+            'name':      name,
+            'look':      look or {},
+            'x':         float(sx),
+            'y':         float(sy),
+            'ang':       0.0,
+            'walking':   False,
+            'last_seen': time.time(),
+            'last_chat': '',
+            'last_chat_t': 0.0,
+        }
+
+    def remove(self, uid: str) -> None:
+        self.players.pop(uid, None)
+        self.connections.pop(uid, None)
+
+    def apply_input(self, uid: str, d: dict) -> None:
+        """Клиент шлёт свою предполагаемую позицию. Phase 1: верим (без
+        anti-cheat). Phase 2+ можно валидировать скорость/коллизии."""
+        p = self.players.get(uid)
+        if not p:
+            return
+        try:
+            nx = float(d.get('x', p['x']))
+            ny = float(d.get('y', p['y']))
+        except Exception:
+            return
+        # Clamp в границы карты с небольшим отступом
+        nx = max(0.5, min(WORLD_MAP_COLS - 0.5, nx))
+        ny = max(0.5, min(WORLD_MAP_ROWS - 0.5, ny))
+        # Phase 1: лимит скорости — не больше 8 тайлов/сек.
+        # Считаем по dt с прошлого инпута. Если прыжок больше — режем.
+        last_t = p.get('_input_t', 0.0)
+        now    = time.time()
+        if last_t > 0:
+            max_step = 8.0 * (now - last_t) + 0.5
+            dx = nx - p['x']; dy = ny - p['y']
+            dist = (dx*dx + dy*dy) ** 0.5
+            if dist > max_step and max_step > 0:
+                k = max_step / dist
+                nx = p['x'] + dx * k
+                ny = p['y'] + dy * k
+        p['_input_t'] = now
+        p['x']        = nx
+        p['y']        = ny
+        try:
+            p['ang']     = float(d.get('ang', p['ang']))
+            p['walking'] = bool(d.get('w', False))
+        except Exception:
+            pass
+        p['last_seen'] = now
+
+    def apply_chat(self, uid: str, text: str) -> None:
+        p = self.players.get(uid)
+        if not p:
+            return
+        t = (text or '').strip()[:80]
+        if not t:
+            return
+        p['last_chat']   = t
+        p['last_chat_t'] = time.time()
+
+    def snapshot_for(self, uid: str) -> dict:
+        """Снапшот для конкретного игрока: видит себя точно + всех в радиусе."""
+        me = self.players.get(uid)
+        if not me:
+            return {'t': 'snap', 'd': {'me': None, 'others': []}}
+        mx, my = me['x'], me['y']
+        others = []
+        for other_uid, p in self.players.items():
+            if other_uid == uid:
+                continue
+            dx = p['x'] - mx; dy = p['y'] - my
+            if (dx*dx + dy*dy) > WORLD_VIEW_R * WORLD_VIEW_R:
+                continue
+            others.append({
+                'uid':  other_uid,
+                'name': p['name'],
+                'look': p['look'],
+                'x':    round(p['x'], 2),
+                'y':    round(p['y'], 2),
+                'ang':  round(p['ang'], 2),
+                'w':    bool(p.get('walking')),
+                # Чат-баббл «живёт» 4 сек после получения
+                'chat': p['last_chat'] if (time.time() - p['last_chat_t']) < 4.0 else '',
+            })
+        return {
+            't': 'snap',
+            'd': {
+                'me': {
+                    'x': round(mx, 2),
+                    'y': round(my, 2),
+                    'srv_now': round(time.time(), 2),
+                },
+                'others': others,
+                'tick': self.tick_no,
+            }
+        }
+
+
+# Глобальный экземпляр мира — создаётся лениво при первом коннекте.
+_WORLD: 'WorldSim | None' = None
+_WORLD_LOCK = asyncio.Lock() if hasattr(asyncio, 'Lock') else None
+
+def _world_get() -> 'WorldSim':
+    global _WORLD
+    if _WORLD is None or not _WORLD.alive:
+        _WORLD = WorldSim()
+        asyncio.create_task(_world_run_loop(_WORLD))
+        logger.info("WorldSim: started")
+    return _WORLD
+
+
+async def _world_run_loop(world: 'WorldSim') -> None:
+    """Tick-loop: 15 Гц. Рассылает снапшоты + чистит AFK-игроков."""
+    try:
+        while world.alive:
+            t0 = time.time()
+            world.tick_no += 1
+            world.last_tick_at = t0
+            # AFK cleanup — если давно не было инпута, выкидываем
+            stale = []
+            for uid, p in world.players.items():
+                if t0 - p.get('last_seen', t0) > WORLD_AFK_TIMEOUT_S:
+                    stale.append(uid)
+            for uid in stale:
+                ws = world.connections.pop(uid, None)
+                world.players.pop(uid, None)
+                if ws is not None:
+                    try: await ws.close(code=4001, message=b'afk')
+                    except Exception: pass
+                logger.info("WorldSim: kicked AFK uid=%s", uid)
+            # Broadcast (если игроков нет — пропускаем но не выключаем)
+            if world.players:
+                for uid, ws in list(world.connections.items()):
+                    if ws.closed:
+                        world.connections.pop(uid, None)
+                        continue
+                    try:
+                        await ws.send_str(json.dumps(world.snapshot_for(uid),
+                                                     ensure_ascii=False))
+                    except Exception:
+                        world.connections.pop(uid, None)
+            # Засыпаем 1 тик
+            elapsed = time.time() - t0
+            await asyncio.sleep(max(0.0, WORLD_TICK_DT - elapsed))
+    except Exception as e:
+        logger.error("WorldSim: loop crash: %r", e)
+    finally:
+        world.alive = False
+        logger.info("WorldSim: stopped tick=%d", world.tick_no)
+
+
 async def _coop_fetch_char_stats(uid_str: str) -> dict:
     """Подтянуть актуальные характеристики + внешность из БД по telegram_id.
     Внешность (look) нужна фронту для рендера баннера «БРИГАДА В СБОРЕ» —
@@ -12257,6 +12450,86 @@ async def _coop_http_app():
             'gained': gained,
         }))
 
+    # === WS: общий мир (Open-World) /world/sim?uid=... ===
+    # Подключение к глобальной комнате. Сервер шлёт снапшоты позиций
+    # всех онлайн-игроков. Клиент шлёт свои инпуты (позиция, угол, walking)
+    # и опционально 'chat' (короткое сообщение над головой).
+    async def h_world_ws(req):
+        uid = req.query.get('uid', '').strip()
+        if not uid or not uid.isdigit():
+            return web.Response(status=400, text='uid required')
+        try:
+            uid_int = int(uid)
+        except Exception:
+            return web.Response(status=400, text='bad uid')
+        char = await get_character(uid_int)
+        if not char:
+            return web.Response(status=404, text='no character')
+        # Готовим имя и look для других игроков
+        name = (char.get('name') or 'Игрок')[:24]
+        look = {}
+        if char.get('look_json'):
+            try:
+                look = json.loads(char['look_json'])
+            except Exception:
+                look = {}
+
+        ws = web.WebSocketResponse(heartbeat=20)
+        await ws.prepare(req)
+
+        world = _world_get()
+        # Закрываем старый коннект этого же uid (reconnect)
+        old = world.connections.get(uid)
+        if old is not None and old is not ws:
+            try: await old.close(code=4000, message=b'replaced')
+            except Exception: pass
+        world.add_or_update(uid, name, look)
+        world.connections[uid] = ws
+
+        # Hello-кадр
+        try:
+            await ws.send_str(json.dumps({
+                't': 'hello',
+                'd': {
+                    'your_uid':  uid,
+                    'tick_hz':   WORLD_TICK_HZ,
+                    'map_cols':  WORLD_MAP_COLS,
+                    'map_rows':  WORLD_MAP_ROWS,
+                    'srv_now':   round(time.time(), 2),
+                },
+            }, ensure_ascii=False))
+        except Exception:
+            pass
+        logger.info("WorldSim: WS open uid=%s online=%d", uid, len(world.players))
+
+        try:
+            async for msg in ws:
+                if msg.type == web.WSMsgType.TEXT:
+                    try:
+                        pkt = json.loads(msg.data)
+                    except Exception:
+                        continue
+                    t = pkt.get('t') or pkt.get('type')
+                    d = pkt.get('d') or {}
+                    if t == 'input':
+                        world.apply_input(uid, d)
+                    elif t == 'chat':
+                        world.apply_chat(uid, str(d.get('text', ''))[:80])
+                    elif t == 'ping':
+                        try: await ws.send_str(json.dumps({'t': 'pong'}))
+                        except Exception: pass
+                elif msg.type == web.WSMsgType.ERROR:
+                    break
+        except Exception as e:
+            logger.warning("WorldSim WS exception uid=%s: %r", uid, e)
+        finally:
+            cur = world.connections.get(uid)
+            if cur is ws:
+                world.connections.pop(uid, None)
+            world.remove(uid)
+            logger.info("WorldSim: WS closed uid=%s online=%d", uid, len(world.players))
+        return ws
+
     # === HTTP: результат боя из demo_isometric.html ===
     # Закрывает запись битвы, начисляет опыт/деньги/убийства, обновляет HP
     # и возвращает свежее состояние персонажа в JSON. В чат бот ничего не
@@ -12394,6 +12667,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/battle/{uid}/result', h_battle_result)
     aio_app.router.add_post('/skill/{uid}/upgrade', h_skill_upgrade)
     aio_app.router.add_post('/safe/{uid}/loot',     h_safe_loot)
+    aio_app.router.add_get ('/world/sim',           h_world_ws)  # общий мир
 
     from aiohttp import web as _web
     runner = _web.AppRunner(aio_app)

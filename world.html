@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>🌆 Город — Мафиози</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+#stage { position: fixed; inset: 0; overflow: hidden; }
+#gc    { display: block; width: 100%; height: 100%; touch-action: none; background: #0a0a10; }
+
+/* Верхняя плашка: онлайн + кнопка выхода */
+#topBar {
+  position: absolute; top: env(safe-area-inset-top, 6px); left: 0; right: 0;
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+  pointer-events: none; z-index: 5;
+}
+#topBar > * { pointer-events: auto; }
+#btnHome {
+  background: rgba(20,24,32,.85); border: 1px solid #3a4452; border-radius: 10px;
+  color: #fff; padding: 8px 12px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+#onlineTag {
+  margin-left: auto; background: rgba(20,40,20,.85); border: 1px solid #4a7a4a;
+  border-radius: 10px; padding: 8px 12px; font-size: 12px; color: #7be58a;
+  font-weight: 700; display: flex; align-items: center; gap: 6px;
+}
+#onlineTag .dot { width: 8px; height: 8px; border-radius: 50%; background: #2ecc71;
+  box-shadow: 0 0 8px #2ecc71; animation: pulseDot 1.4s ease-in-out infinite; }
+@keyframes pulseDot { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+#connectingOverlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px; background: rgba(0,0,0,.6); color: #fff;
+  z-index: 10; pointer-events: none;
+}
+#connectingOverlay.hide { display: none; }
+#connectingOverlay .spin {
+  width: 36px; height: 36px; border: 4px solid #2a3a55; border-top-color: #ffd76b;
+  border-radius: 50%; animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Левый стик движения */
+#joyL {
+  position: absolute; left: 24px; bottom: 24px;
+  width: 130px; height: 130px; border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(120,120,140,.18), rgba(40,50,70,.12) 60%, rgba(20,30,50,.10));
+  border: 2px solid rgba(120,140,180,.25); touch-action: none; z-index: 4;
+}
+#joyL .knob {
+  position: absolute; width: 60px; height: 60px; left: 35px; top: 35px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #4a5a78, #2a3548);
+  border: 2px solid rgba(180,200,230,.45); box-shadow: 0 4px 10px rgba(0,0,0,.5);
+}
+
+/* Чат-инпут */
+#chatBar {
+  position: absolute; right: 14px; bottom: 30px; display: flex; gap: 6px;
+  align-items: center; z-index: 4;
+}
+#chatInput {
+  width: 0; opacity: 0; transition: width .2s ease, opacity .2s ease;
+  background: rgba(20,24,32,.92); border: 1px solid #3a4452; border-radius: 10px;
+  padding: 10px 12px; font-size: 14px; color: #fff; outline: none;
+  font-family: inherit;
+}
+#chatInput.open { width: min(220px, 50vw); opacity: 1; }
+#btnChat {
+  background: rgba(40,60,100,.92); border: 2px solid #5aa8ff; border-radius: 14px;
+  color: #bcd9ff; font-size: 22px; cursor: pointer; width: 56px; height: 56px;
+}
+
+/* Floating «Зайти в район» — для перехода к боям */
+#zoneBtn {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 64px;
+  background: linear-gradient(135deg, #1f6a32, #2f9e4f); color: #fff;
+  border: 1px solid #3aa055; border-radius: 12px; padding: 10px 18px;
+  font-size: 13px; font-weight: 700; cursor: pointer; display: none; z-index: 5;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5);
+  font-family: inherit;
+}
+
+#errorBanner {
+  position: absolute; left: 14px; right: 14px; top: 60px;
+  background: rgba(80,20,20,.92); border: 1px solid #c83030; border-radius: 10px;
+  color: #ffb0b0; padding: 10px 14px; font-size: 12px; text-align: center; z-index: 8;
+  display: none;
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="gc"></canvas>
+
+  <div id="topBar">
+    <button id="btnHome">← Меню</button>
+    <div id="onlineTag"><span class="dot"></span><span id="onlineN">…</span> онлайн</div>
+  </div>
+
+  <button id="zoneBtn"></button>
+
+  <div id="joyL"><div class="knob"></div></div>
+
+  <div id="chatBar">
+    <input id="chatInput" placeholder="Сообщение…" maxlength="80">
+    <button id="btnChat">💬</button>
+  </div>
+
+  <div id="errorBanner"></div>
+
+  <div id="connectingOverlay">
+    <div class="spin"></div>
+    <div id="connectingMsg">Подключаюсь к городу…</div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  ОБЩИЙ МИР — клиент. Подключается к /world/sim по WebSocket.
+//  Архитектура такая же как в demo_isometric (изометрия), но без AI:
+//  только игроки, их позиции, имена и чат-баббл над головой.
+// ════════════════════════════════════════════════════════════════
+
+const _UP = new URLSearchParams(location.search);
+function _q(k, d) { return _UP.get(k) || d; }
+function _qInt(k, d) { const v = parseInt(_UP.get(k)); return isFinite(v) ? v : d; }
+function _qStr(k, d) { try { return decodeURIComponent(_UP.get(k) || '') || d; } catch(e){ return d; } }
+const QP = {
+  api:  _UP.get('api') || '',
+  uid:  _UP.get('uid') || '',
+  name: _qStr('name', 'Игрок'),
+  hubUrl: _UP.get('hub') || '',
+  look: {
+    gender: _qInt('gender', 0),
+    skin:   _qInt('skin', 0),
+    body:   _qInt('body', 1),
+    face:   _qInt('face', 0),
+    hair:   _qInt('hair', 0),
+    hat:    _qInt('hat', 0),
+  },
+  has_look: _qInt('has_look', 0),
+};
+
+// ── Telegram WebApp ─────────────────────────────────────────────
+const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
+try { if (tg) { tg.ready(); tg.expand(); } } catch(e) {}
+
+// ── Canvas ──────────────────────────────────────────────────────
+const canvas = document.getElementById('gc');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = window.innerWidth, H = window.innerHeight;
+  canvas.width  = Math.floor(W * dpr);
+  canvas.height = Math.floor(H * dpr);
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ── Карта (статичная) ──────────────────────────────────────────
+// Размер задаст сервер в hello-кадре, но дублируем дефолты на случай оффлайна.
+let MAP_COLS = 40, MAP_ROWS = 40;
+const TS     = 38;           // размер тайла на экране (1 ось)
+const ISO_Y  = 0.5;          // ужатие по Y (изометрия 2:1)
+// Сетка кварталов — каждые 6 тайлов «дорога», между ними «дом» (тип 1).
+// Тип 0 — улица (проходимая), 1 — здание (стена, непроходимо).
+let MAP = [];
+function buildMap() {
+  MAP = [];
+  for (let r = 0; r < MAP_ROWS; r++) {
+    const row = [];
+    for (let c = 0; c < MAP_COLS; c++) {
+      // Граница — стена
+      if (r === 0 || r === MAP_ROWS - 1 || c === 0 || c === MAP_COLS - 1) {
+        row.push(1); continue;
+      }
+      // Каждые 6 рядов/колонок — дорога (тип 0). Остальное — здания внутри блоков.
+      const onRoadR = (r % 6 === 0);
+      const onRoadC = (c % 6 === 0);
+      if (onRoadR || onRoadC) { row.push(0); continue; }
+      // Внутри квартала — здания, но с отступом 1 тайл (тротуар вокруг).
+      // Считаем расстояние до ближайшей дороги по каждой оси.
+      const nearestRoadR = Math.min(r % 6, 6 - (r % 6));
+      const nearestRoadC = Math.min(c % 6, 6 - (c % 6));
+      if (nearestRoadR <= 1 || nearestRoadC <= 1) { row.push(0); continue; }
+      row.push(1);
+    }
+    MAP.push(row);
+  }
+}
+buildMap();
+
+// Камера следит за игроком
+const cam = { x: 0, y: 0 };
+
+// Преобразование тайл→экран и обратно
+function w2s(r, c) {
+  const stage = document.getElementById('stage');
+  const cx = stage.clientWidth / 2;
+  const cy = stage.clientHeight / 2;
+  return {
+    x: cx + (c - r) * TS * 0.5 - cam.x,
+    y: cy + (c + r) * TS * 0.5 * ISO_Y - cam.y,
+  };
+}
+function isoH(h) { return h * TS * 0.55; }
+
+// ── Локальный игрок (predict) ───────────────────────────────────
+const player = {
+  r: MAP_ROWS / 2,
+  c: MAP_COLS / 2,
+  ang: 0,
+  walking: false,
+  walkPhase: 0,
+  hp: 100,
+};
+
+// Другие игроки (актуальные позиции + цель интерполяции)
+const others = new Map();   // uid -> {x, y, ang, w, name, look, chat,
+                            //         tx, ty, tAng, lastT}
+
+// ── Joystick ────────────────────────────────────────────────────
+const joyL = { active: false, dx: 0, dy: 0, id: -1, sx: 0, sy: 0 };
+const joyLEl = document.getElementById('joyL');
+const joyLKnob = joyLEl.querySelector('.knob');
+function joyLMove(x, y) {
+  const r = joyLEl.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const dx = x - cx, dy = y - cy;
+  const max = r.width / 2 - 12;
+  const d = Math.hypot(dx, dy);
+  const k = d > max ? max / d : 1;
+  joyL.dx = (dx * k) / max;
+  joyL.dy = (dy * k) / max;
+  joyLKnob.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
+}
+function joyLEnd() {
+  joyL.active = false; joyL.dx = 0; joyL.dy = 0; joyL.id = -1;
+  joyLKnob.style.transform = '';
+}
+joyLEl.addEventListener('touchstart', (e) => {
+  const t = e.changedTouches[0];
+  if (!t) return;
+  joyL.active = true; joyL.id = t.identifier;
+  joyL.sx = t.clientX; joyL.sy = t.clientY;
+  joyLMove(t.clientX, t.clientY);
+  e.preventDefault();
+}, { passive: false });
+joyLEl.addEventListener('touchmove', (e) => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyL.id) { joyLMove(t.clientX, t.clientY); e.preventDefault(); break; }
+  }
+}, { passive: false });
+joyLEl.addEventListener('touchend',    (e) => { for (const t of e.changedTouches) if (t.identifier === joyL.id) { joyLEnd(); break; } });
+joyLEl.addEventListener('touchcancel', () => joyLEnd());
+// Mouse fallback (десктоп)
+joyLEl.addEventListener('mousedown', (e) => { joyL.active = true; joyLMove(e.clientX, e.clientY); e.preventDefault(); });
+window.addEventListener('mousemove',  (e) => { if (joyL.active) joyLMove(e.clientX, e.clientY); });
+window.addEventListener('mouseup',    () => { if (joyL.active) joyLEnd(); });
+
+// ── Коллизии ───────────────────────────────────────────────────
+function isBlocked(r, c) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS) return true;
+  return MAP[ri][ci] !== 0;
+}
+function tryMove(obj, dr, dc) {
+  const pad = 0.3;
+  let nr = obj.r + dr;
+  if (!isBlocked(nr - pad, obj.c) && !isBlocked(nr + pad, obj.c) &&
+      !isBlocked(nr, obj.c - pad) && !isBlocked(nr, obj.c + pad)) {
+    obj.r = nr;
+  }
+  let nc = obj.c + dc;
+  if (!isBlocked(obj.r - pad, nc) && !isBlocked(obj.r + pad, nc) &&
+      !isBlocked(obj.r, nc - pad) && !isBlocked(obj.r, nc + pad)) {
+    obj.c = nc;
+  }
+}
+
+// ── WebSocket ──────────────────────────────────────────────────
+let ws = null;
+let wsConnected = false;
+let lastInputSent = 0;
+let onlineCount = 1;
+
+function wsUrl() {
+  if (!QP.api) return '';
+  // QP.api это https?://... → ws(s)://...
+  const base = QP.api.replace(/^http/, 'ws').replace(/\/+$/, '');
+  const params = new URLSearchParams({ uid: QP.uid });
+  return `${base}/world/sim?${params.toString()}`;
+}
+
+function setError(msg) {
+  const el = document.getElementById('errorBanner');
+  if (!el) return;
+  if (msg) { el.textContent = msg; el.style.display = 'block'; }
+  else el.style.display = 'none';
+}
+function setConnecting(msg) {
+  const ov = document.getElementById('connectingOverlay');
+  const mm = document.getElementById('connectingMsg');
+  if (msg) { if (mm) mm.textContent = msg; ov.classList.remove('hide'); }
+  else ov.classList.add('hide');
+}
+
+function wsConnect() {
+  const url = wsUrl();
+  if (!url) {
+    setConnecting('Сервер недоступен. Запусти бота с туннелем.');
+    return;
+  }
+  try { ws = new WebSocket(url); } catch(e) { setError('Не удалось подключиться'); return; }
+  ws.onopen = () => {
+    wsConnected = true;
+    setConnecting(null);
+    setError(null);
+  };
+  ws.onmessage = (ev) => {
+    let pkt; try { pkt = JSON.parse(ev.data); } catch(e) { return; }
+    if (pkt.t === 'hello') {
+      const d = pkt.d || {};
+      MAP_COLS = d.map_cols || MAP_COLS;
+      MAP_ROWS = d.map_rows || MAP_ROWS;
+      buildMap();
+      // Перецентрируем игрока (вдруг сервер шлёт спавн)
+      player.r = MAP_ROWS / 2;
+      player.c = MAP_COLS / 2;
+    } else if (pkt.t === 'snap') {
+      const d = pkt.d || {};
+      // Подтягиваем себя к серверной позиции (lightweight reconcile)
+      if (d.me) {
+        // Если разъехались сильно — телепортируем (rare)
+        const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
+        if (dist > 3.0) { player.r = d.me.y; player.c = d.me.x; }
+      }
+      const seen = new Set();
+      const list = d.others || [];
+      for (const o of list) {
+        seen.add(o.uid);
+        let p = others.get(o.uid);
+        if (!p) {
+          p = { x: o.x, y: o.y, ang: o.ang || 0, w: !!o.w,
+                tx: o.x, ty: o.y, tAng: o.ang || 0,
+                name: o.name || '?', look: o.look || {}, chat: '',
+                chatT: 0, lastT: performance.now() };
+          others.set(o.uid, p);
+        } else {
+          p.tx = o.x; p.ty = o.y; p.tAng = o.ang || 0; p.w = !!o.w;
+          p.name = o.name || p.name;
+          if (o.look) p.look = o.look;
+          if (o.chat && o.chat !== p.chat) { p.chat = o.chat; p.chatT = performance.now(); }
+          p.lastT = performance.now();
+        }
+      }
+      // Удаляем тех кого больше нет в радиусе
+      for (const uid of Array.from(others.keys())) {
+        if (!seen.has(uid)) others.delete(uid);
+      }
+      onlineCount = list.length + 1;
+      const el = document.getElementById('onlineN');
+      if (el) el.textContent = onlineCount;
+    }
+  };
+  ws.onerror = () => { setError('Ошибка соединения'); };
+  ws.onclose = () => {
+    wsConnected = false;
+    setConnecting('Связь потеряна. Переподключаюсь…');
+    setTimeout(wsConnect, 2000);
+  };
+}
+
+function sendInput() {
+  if (!ws || ws.readyState !== 1) return;
+  const now = performance.now();
+  if (now - lastInputSent < 75) return;   // ~13 Гц
+  lastInputSent = now;
+  try {
+    ws.send(JSON.stringify({
+      t: 'input',
+      d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
+           ang: +player.ang.toFixed(2), w: !!player.walking }
+    }));
+  } catch(e) {}
+}
+function sendChat(text) {
+  if (!ws || ws.readyState !== 1) return;
+  try { ws.send(JSON.stringify({ t: 'chat', d: { text: String(text || '').slice(0, 80) } })); } catch(e) {}
+}
+
+// ── Update / Render ────────────────────────────────────────────
+let prevT = performance.now();
+function update(dt) {
+  // Движение игрока по джойстику
+  const speed = 5.0; // тайлов/сек
+  player.walking = false;
+  if (joyL.active && (Math.abs(joyL.dx) > 0.08 || Math.abs(joyL.dy) > 0.08)) {
+    const d = joyL.dx, s = joyL.dy / ISO_Y;
+    const dc = (s + d) * 0.5;
+    const dr = (s - d) * 0.5;
+    const mag = Math.hypot(dr, dc) || 1;
+    const mv = Math.min(1, Math.hypot(joyL.dx, joyL.dy));
+    tryMove(player, dr / mag * speed * dt * mv, dc / mag * speed * dt * mv);
+    player.ang = Math.atan2(dr, dc);
+    player.walking = mv > 0.15;
+    player.walkPhase += dt * 10 * mv;
+  }
+  // Камера следит за игроком (плавно)
+  const p = w2s(player.r + 0.5, player.c + 0.5);
+  cam.x += (p.x - window.innerWidth / 2 - cam.x) * 0.0; // already centred
+  cam.y += (p.y - window.innerHeight / 2 - cam.y) * 0.0;
+  // Интерполяция других игроков
+  for (const [, o] of others) {
+    o.x += (o.tx - o.x) * Math.min(1, dt * 8);
+    o.y += (o.ty - o.y) * Math.min(1, dt * 8);
+    let aDiff = o.tAng - o.ang;
+    while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
+    while (aDiff < -Math.PI) aDiff += Math.PI * 2;
+    o.ang += aDiff * Math.min(1, dt * 8);
+    if (o.w) o._walkPhase = (o._walkPhase || 0) + dt * 10;
+  }
+  sendInput();
+}
+
+function drawTile(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  // Чередующиеся плитки тротуара
+  const t = MAP[r][c];
+  // Дорога / тротуар (0)
+  const isRoadRow = (r % 6 === 0);
+  const isRoadCol = (c % 6 === 0);
+  let color;
+  if (isRoadRow || isRoadCol) {
+    color = ((r + c) % 2 === 0) ? '#1a1a1d' : '#161618'; // дорога — асфальт
+  } else {
+    color = ((r + c) % 2 === 0) ? '#252820' : '#1d2018'; // тротуар — серый
+  }
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(p.x,      p.y - wy);
+  ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x,      p.y + wy);
+  ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath();
+  ctx.fill();
+  // Жёлтая разметка по центру дорог
+  if ((r % 6 === 0 && r > 0 && r < MAP_ROWS - 1 && (c % 2 === 0))) {
+    ctx.fillStyle = '#6a5818';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, 4, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawBuilding(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  // Высота здания — псевдослучайная по координатам (детерминированная)
+  const seed = ((r * 73 + c * 131) % 7) / 7;
+  const H = isoH(1.3 + seed * 1.4);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.5)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy);
+  ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x, p.y + wy);
+  ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath();
+  ctx.fill();
+  // Палитра для каждого квартала разная
+  const blockId = Math.floor(r / 6) * 7 + Math.floor(c / 6);
+  const palettes = [
+    ['#3a2a18', '#1f1810'], ['#1f2c3a', '#101820'],
+    ['#3a1f2a', '#1f1018'], ['#2a3a1f', '#181f10'],
+    ['#3a3a1f', '#1f1f10'], ['#2a1f3a', '#10101f'],
+  ];
+  const [top, side] = palettes[blockId % palettes.length];
+  // Левая грань
+  ctx.fillStyle = side;
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx, p.y);
+  ctx.lineTo(p.x,      p.y + wy);
+  ctx.lineTo(p.x,      p.y + wy - H);
+  ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath();
+  ctx.fill();
+  // Правая грань
+  const fGrad = ctx.createLinearGradient(p.x, p.y - H, p.x + wx, p.y);
+  fGrad.addColorStop(0, top);
+  fGrad.addColorStop(1, side);
+  ctx.fillStyle = fGrad;
+  ctx.beginPath();
+  ctx.moveTo(p.x,      p.y + wy);
+  ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x + wx, p.y - H);
+  ctx.lineTo(p.x,      p.y + wy - H);
+  ctx.closePath();
+  ctx.fill();
+  // Крыша
+  ctx.fillStyle = top;
+  ctx.beginPath();
+  ctx.moveTo(p.x,        p.y - H + wy);
+  ctx.lineTo(p.x + wx,   p.y - H);
+  ctx.lineTo(p.x,        p.y - H - wy);
+  ctx.lineTo(p.x - wx,   p.y - H);
+  ctx.closePath();
+  ctx.fill();
+  // Окошки на правой грани (несколько горизонтальных рядов)
+  const winCols = 2, winRows = Math.max(2, Math.floor(H / 16));
+  for (let wr = 0; wr < winRows; wr++) {
+    for (let wc = 0; wc < winCols; wc++) {
+      const wxp = p.x + wx * (0.18 + wc * 0.36);
+      const wyp = p.y - H * (0.18 + wr * (0.7 / Math.max(1, winRows)));
+      const lit = ((r * 17 + c * 31 + wr * 5 + wc) % 4 === 0);
+      ctx.fillStyle = lit ? '#ffd76b' : '#1a1410';
+      ctx.fillRect(wxp - 3, wyp - 4, 6, 6);
+    }
+  }
+}
+
+// Упрощённая отрисовка персонажа (в стиле demo_isometric, но компактнее).
+// look: {gender, skin, body, face, hair, hat} → используем для цветов.
+const SKIN_TONES = ['#f5cba7', '#d49b6a', '#a06a3f', '#6e4528', '#3f2918'];
+const HAIR_TONES = ['#1a1a1a', '#6b4423', '#c8a050', '#9c4a4a', '#3a3a3a'];
+function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf) {
+  // x,y — экранные координаты (центр клетки). Рисуем фигурку «над» полом.
+  const skin = SKIN_TONES[(look.skin | 0) % SKIN_TONES.length];
+  const hair = HAIR_TONES[(look.hair | 0) % HAIR_TONES.length];
+  const hatId = (look.hat | 0) % 4; // 0=без, 1=кепка, 2=шляпа, 3=шапка
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 4, 11, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Ноги (анимация шага)
+  const swing = Math.sin(walkPhase || 0) * 3;
+  ctx.fillStyle = '#1a1a25';
+  ctx.fillRect(x - 5, y - 4, 4, 12 + swing);
+  ctx.fillRect(x + 1, y - 4, 4, 12 - swing);
+  // Туловище — цвет «пиджак» зависит от gender
+  ctx.fillStyle = (look.gender ? '#7a3a5a' : '#2a3a5a');
+  ctx.beginPath();
+  ctx.ellipse(x, y - 12, 8, 11, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Рубашка-пуговицы
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(x - 1, y - 18, 2, 12);
+  // Голова
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.arc(x, y - 26, 7, 0, Math.PI * 2);
+  ctx.fill();
+  // Волосы / шляпа
+  if (hatId === 0) {
+    ctx.fillStyle = hair;
+    ctx.beginPath();
+    ctx.arc(x, y - 28, 7, Math.PI, 0);
+    ctx.fill();
+  } else if (hatId === 1) {
+    // Кепка
+    ctx.fillStyle = '#1f1f25';
+    ctx.fillRect(x - 7, y - 31, 14, 4);
+    ctx.fillRect(x - 9, y - 28, 5, 2);
+  } else if (hatId === 2) {
+    // Федора
+    ctx.fillStyle = '#181820';
+    ctx.fillRect(x - 9, y - 28, 18, 2);
+    ctx.fillRect(x - 6, y - 33, 12, 5);
+    ctx.fillStyle = '#c83030';
+    ctx.fillRect(x - 6, y - 30, 12, 1);
+  } else {
+    // Шапка
+    ctx.fillStyle = '#3a3a4a';
+    ctx.beginPath();
+    ctx.ellipse(x, y - 31, 8, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Глаза — точки. Направление по ang.
+  ctx.fillStyle = '#101010';
+  const eDx = Math.cos(ang) * 1.2;
+  ctx.fillRect(x - 2.5 + eDx, y - 27, 1.5, 1.5);
+  ctx.fillRect(x + 1 + eDx,   y - 27, 1.5, 1.5);
+
+  // Имя над головой
+  if (name) {
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(0,0,0,.7)';
+    ctx.fillText(name, x + 1, y - 42);
+    ctx.fillStyle = isSelf ? '#ffd76b' : '#7be58a';
+    ctx.fillText(name, x, y - 43);
+    ctx.textAlign = 'left';
+  }
+  // Чат-баббл
+  if (chat) {
+    const W = Math.min(180, ctx.measureText(chat).width + 18);
+    const H = 22;
+    const bx = x - W / 2, by = y - 62;
+    ctx.fillStyle = 'rgba(20,24,32,.92)';
+    ctx.strokeStyle = '#4a5060';
+    ctx.lineWidth = 1;
+    roundRect(bx, by, W, H, 6);
+    ctx.fill(); ctx.stroke();
+    // хвостик
+    ctx.beginPath();
+    ctx.moveTo(x - 4, by + H);
+    ctx.lineTo(x + 4, by + H);
+    ctx.lineTo(x,     by + H + 5);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(20,24,32,.92)';
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(chat, x, by + 15);
+    ctx.textAlign = 'left';
+  }
+}
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y,     x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x,     y + h, r);
+  ctx.arcTo(x,     y + h, x,     y,     r);
+  ctx.arcTo(x,     y,     x + w, y,     r);
+  ctx.closePath();
+}
+
+function render() {
+  ctx.fillStyle = '#0a0a10';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Viewport culling
+  const VIS_R = 16;
+  const r0 = Math.max(0, Math.floor(player.r - VIS_R));
+  const r1 = Math.min(MAP_ROWS, Math.ceil(player.r + VIS_R));
+  const c0 = Math.max(0, Math.floor(player.c - VIS_R));
+  const c1 = Math.min(MAP_COLS, Math.ceil(player.c + VIS_R));
+  // 1) Пол (только тайлы дорог/тротуаров)
+  for (let r = r0; r < r1; r++)
+    for (let c = c0; c < c1; c++)
+      if (MAP[r][c] === 0) drawTile(r, c);
+  // 2) Объекты с depth-sort (здания + игроки)
+  const items = [];
+  for (let r = r0; r < r1; r++) {
+    for (let c = c0; c < c1; c++) {
+      if (MAP[r][c] === 1) items.push({ depth: r + c, draw: () => drawBuilding(r, c) });
+    }
+  }
+  // Игрок
+  items.push({ depth: player.r + player.c + 0.001, draw: () => {
+    const p = w2s(player.r + 0.5, player.c + 0.5);
+    drawPerson(p.x, p.y, player.ang, QP.has_look ? QP.look : {skin:1,body:1,face:0,hair:0,hat:0,gender:0},
+               player.walking ? player.walkPhase : 0, QP.name, null, true);
+  } });
+  // Другие
+  for (const [, o] of others) {
+    items.push({ depth: o.y + o.x + 0.001, draw: () => {
+      const p = w2s(o.y + 0.5, o.x + 0.5);
+      const phase = (o.w ? (o._walkPhase || 0) : 0);
+      const chat = (o.chat && performance.now() - o.chatT < 4000) ? o.chat : null;
+      drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, o.name, chat, false);
+    } });
+  }
+  items.sort((a, b) => a.depth - b.depth);
+  items.forEach(i => i.draw());
+}
+
+function frame() {
+  const t = performance.now();
+  let dt = (t - prevT) / 1000;
+  prevT = t;
+  if (dt > 0.1) dt = 0.1;
+  update(dt);
+  render();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ── Кнопка возврата в хаб ──────────────────────────────────────
+document.getElementById('btnHome').addEventListener('click', () => {
+  if (QP.hubUrl) { window.location.href = decodeURIComponent(QP.hubUrl); return; }
+  // Fallback: t.me/<bot>?startapp=hub
+  try {
+    if (tg) { tg.close(); return; }
+  } catch(e) {}
+  window.history.back();
+});
+
+// ── Чат ────────────────────────────────────────────────────────
+const chatInput = document.getElementById('chatInput');
+const btnChat   = document.getElementById('btnChat');
+let chatOpen = false;
+function openChat() {
+  chatOpen = true;
+  chatInput.classList.add('open');
+  setTimeout(() => chatInput.focus(), 50);
+}
+function closeChat() {
+  chatOpen = false;
+  chatInput.classList.remove('open');
+  chatInput.blur();
+}
+btnChat.addEventListener('click', () => {
+  if (!chatOpen) openChat();
+  else {
+    const t = chatInput.value.trim();
+    if (t) { sendChat(t); chatInput.value = ''; }
+    closeChat();
+  }
+});
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const t = chatInput.value.trim();
+    if (t) { sendChat(t); chatInput.value = ''; }
+    closeChat();
+  } else if (e.key === 'Escape') closeChat();
+});
+
+// ── Старт ──────────────────────────────────────────────────────
+if (!QP.api || !QP.uid) {
+  setConnecting('Сервер недоступен. Запусти бота с туннелем и зайди заново.');
+} else {
+  wsConnect();
+}
+</script>
+</body>
+</html>
