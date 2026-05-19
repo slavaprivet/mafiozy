@@ -126,6 +126,14 @@ if exist ".token" (
     ) else (
         echo [OK] demo_isometric.html задеплоен.
     )
+    echo.
+    echo [..] Деплой world.html на GitHub Pages...
+    venv\Scripts\python github_upload_world.py <nul
+    if errorlevel 1 (
+        echo [!] Деплой world.html не прошёл — открытый мир на старой версии.
+    ) else (
+        echo [OK] world.html задеплоен.
+    )
     set NO_PAUSE=
     echo.
 ) else (
