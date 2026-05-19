@@ -2222,7 +2222,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ref_id = None
 
     # ── Обработка ссылки на кооп-лобби (?start=coop_XXXX) ──────────
-    # Друг получает share-ссылку t.me/<bot>?startapp=coop_<sid>. У старых
+    # Друг получает share-ссылку t.me/<bot>?start=coop_<sid>. У старых
     # клиентов Telegram это открывается как /start coop_<sid> в чате с ботом
     # (не как Main Mini App). Отдаём ему правильную WebApp-кнопку с api+uid,
     # иначе hub.html скажет «Бот без туннеля» — она по умолчанию ничего
@@ -11143,9 +11143,12 @@ async def _coop_http_app():
             'autostart_at':   0,
         }
         _coop_sessions[sid] = sess
-        # share-ссылка через startapp — открывает WebApp у получателя сразу
-        # на нужной сессии. Если бот username неизвестен, отдаём пустую строку.
-        share_link = (f"https://t.me/{BOT_USERNAME}?startapp=coop_{sid}"
+        # share-ссылка через ?start=coop_<sid> — открывает чат с ботом,
+        # бот ловит args[0]="coop_<sid>" в cmd_start и отдаёт юзеру кнопку
+        # «Войти в лобби» с актуальным WebApp URL (api+uid+coop_sid).
+        # Раньше использовали ?startapp=... — требует настройки Main Mini App
+        # в BotFather, не у всех клиентов работает. ?start= — универсально.
+        share_link = (f"https://t.me/{BOT_USERNAME}?start=coop_{sid}"
                       if BOT_USERNAME else "")
         logger.info("Coop session %s created by %s", sid, uid)
         return await _cors(web.json_response({**sess, 'share_link': share_link}))
@@ -11182,7 +11185,7 @@ async def _coop_http_app():
             # Тип 'join' — фронт ловит его и показывает тост сверху-слева.
             _coop_add_log(sess, f"➕ {name} подключился к сессии.", 'join')
         _coop_evaluate_lobby(sess)
-        share_link = (f"https://t.me/{BOT_USERNAME}?startapp=coop_{sid}"
+        share_link = (f"https://t.me/{BOT_USERNAME}?start=coop_{sid}"
                       if BOT_USERNAME else "")
         return await _cors(web.json_response({**sess, 'share_link': share_link}))
 
@@ -11194,7 +11197,7 @@ async def _coop_http_app():
         # Каждый GET двигает состояние лобби — это удобно: поллинг с фронта
         # сам по себе обеспечивает автостарт и таймауты.
         _coop_evaluate_lobby(sess)
-        share_link = (f"https://t.me/{BOT_USERNAME}?startapp=coop_{sid}"
+        share_link = (f"https://t.me/{BOT_USERNAME}?start=coop_{sid}"
                       if BOT_USERNAME else "")
         return await _cors(web.json_response({**sess, 'share_link': share_link}))
 
