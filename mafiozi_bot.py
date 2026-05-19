@@ -10868,8 +10868,9 @@ async def _iso_run_sim_loop(sim: 'IsoBattleSim') -> None:
 # ════════════════════════════════════════════════════════════════
 WORLD_TICK_HZ = 15
 WORLD_TICK_DT = 1.0 / WORLD_TICK_HZ
-WORLD_MAP_COLS = 40   # тайлы (Х) — городская сетка
-WORLD_MAP_ROWS = 40   # тайлы (Y)
+WORLD_MAP_COLS = 60   # тайлы (Х) — городская сетка (расширено с 40 до 60
+WORLD_MAP_ROWS = 60   #     чтобы клиент world.html не показывал баннер о
+                      #     несовместимости и игрок видел сам себя)
 WORLD_VIEW_R   = 25   # тайлы, в радиусе которых шлём остальных игроков
 WORLD_AFK_TIMEOUT_S = 30  # без инпута дольше — выкидываем (cleanup)
 
