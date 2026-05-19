@@ -11572,7 +11572,7 @@ async def _coop_http_app():
                 pay = 0
             # Phase 9: бонус «Делец» (hustler_level) +5/10/20/30/45% к выплате
             hst = int(char.get('hustler_level') or 0)
-            hst_bonus = [0, 5, 10, 20, 30, 45][max(0, min(5, hst))] / 100.0
+            hst_bonus = [0, 5, 10, 15, 22, 30][max(0, min(5, hst))] / 100.0
             pay = int(round(pay * (1.0 + hst_bonus)))
             cur_cop  = char.get('wanted_stars', 0) or 0
             cur_gang = char.get('wanted_gangs', 0) or 0
@@ -12237,7 +12237,7 @@ async def _coop_http_app():
             base *= 4
         # Бонус Дельца: +5/10/20/30/45%
         hst = int(char.get('hustler_level') or 0)
-        hst_bonus = [0, 5, 10, 20, 30, 45][min(5, max(0, hst))] / 100.0
+        hst_bonus = [0, 5, 10, 15, 22, 30][min(5, max(0, hst))] / 100.0
         gained = int(round(base * (1.0 + hst_bonus)))
         new_cash = int(char.get('cash') or 0) + gained
         # Запись кулдауна (только этого босса; не разрастается)
@@ -12308,7 +12308,7 @@ async def _coop_http_app():
             cash_gain = min(cash_payload, base_cash * 3) if cash_payload > 0 else base_cash
             # Phase 9: бонус «Делец» (hustler_level) +5/10/20/30/45% к деньгам.
             hst = int(char.get('hustler_level') or 0)
-            hst_bonus = [0, 5, 10, 20, 30, 45][max(0, min(5, hst))] / 100.0
+            hst_bonus = [0, 5, 10, 15, 22, 30][max(0, min(5, hst))] / 100.0
             cash_gain = int(round(cash_gain * (1.0 + hst_bonus)))
             if battle:
                 await end_battle(uid)

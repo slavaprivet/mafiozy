@@ -273,15 +273,29 @@
           <span id="medkitCount" style="position:absolute;top:-6px;right:-6px;background:#0c4a8a;border:2px solid #bcd9ff;border-radius:50%;min-width:22px;height:22px;font-size:11px;line-height:18px;color:#fff;font-weight:bold;padding:0 4px">0</span>
           <span style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#bcd9ff;font-weight:bold;letter-spacing:1px">АПТЕЧКА</span>
         </button>
-        <!-- Phase 9: кнопка ВЗЛОМАТЬ. Видна когда рядом сейф и навык
-             safecracker_level >= safe.level. Зажми — взлом начинается,
-             отпусти раньше — прогресс сбрасывается. ~2.5 сек на вскрытие.
-             Если skill ниже уровня сейфа — кнопка серая с ❌ и не работает. -->
-        <button id="safeBtn" title="Взломать сейф" style="display:none;width:84px;height:84px;background:rgba(40,30,12,.92);border:2px solid #d0a040;border-radius:14px;color:#ffd76b;font-size:34px;cursor:pointer;box-shadow:0 0 16px rgba(208,160,64,.45),0 2px 8px rgba(0,0,0,.6);position:relative;touch-action:none;user-select:none">
-          <span id="safeIcon">🔓</span>
-          <span id="safeLabel" style="position:absolute;left:0;right:0;bottom:3px;font-size:9px;color:#ffd76b;font-weight:bold;letter-spacing:1px">ВЗЛОМАТЬ</span>
-          <span id="safeLockTag" style="display:none;position:absolute;top:-6px;right:-6px;background:#5a1818;border:2px solid #ff5050;border-radius:50%;min-width:22px;height:22px;font-size:11px;line-height:18px;color:#fff;font-weight:bold;padding:0 4px">Lv?</span>
-        </button>
+        <!-- Phase 9: HUD-кнопка взлома сейфа убрана. Теперь взаимодействие
+             идёт через плавающую кнопку #safePromptBtn, которая появляется
+             прямо над ближайшим сейфом (см. ниже в #stage). -->
+
+      </div>
+    </div>
+    <!-- Phase 9: плавающая кнопка вскрытия сейфа. Позиционируется JS-ом
+         поверх ближайшего сейфа (через w2s → пиксели). Зажми — крутится
+         прогресс, отпустишь — сбросится. Если skill < safe.level —
+         кнопка красная с замком «🔒 Lv N» и не реагирует. -->
+    <div id="safePromptBtn" style="display:none;position:absolute;z-index:6;pointer-events:auto;transform:translate(-50%,-100%);user-select:none;touch-action:none">
+      <div id="safePromptInner" style="position:relative;padding:8px 14px;background:linear-gradient(135deg,#3d2810,#5a3d18);border:2px solid #d0a040;border-radius:14px;color:#ffd76b;font-size:13px;font-weight:bold;text-align:center;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.6),0 0 16px rgba(208,160,64,.35);letter-spacing:.5px">
+        <div style="display:flex;align-items:center;gap:6px;justify-content:center">
+          <span id="safePromptIcon" style="font-size:18px">🔓</span>
+          <span id="safePromptLabel">ВСКРЫТЬ СЕЙФ</span>
+        </div>
+        <div id="safePromptHint" style="font-size:10px;color:#bca668;font-weight:normal;margin-top:2px;letter-spacing:0">удерживай</div>
+        <!-- Полоска прогресса (золотая) внизу кнопки -->
+        <div id="safePromptBar" style="position:absolute;left:6px;right:6px;bottom:4px;height:3px;background:rgba(0,0,0,.55);border-radius:2px;overflow:hidden">
+          <div id="safePromptBarFill" style="height:100%;width:0;background:linear-gradient(90deg,#ffd76b,#ffb540);transition:width .08s linear"></div>
+        </div>
+        <!-- Маленькая «стрелочка вниз» — указывает на сейф -->
+        <div style="position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid #d0a040"></div>
       </div>
     </div>
     <div id="hitFlash" style="position:absolute;inset:0;background:rgba(255,40,40,0);pointer-events:none;z-index:7;transition:background .1s"></div>
@@ -1227,10 +1241,10 @@ function _hearMulFor(e) {
 }
 function _vis() { return STEALTH_VIS[CURRENT_LOC] || STEALTH_VIS.market; }
 // Phase 9: множитель радиуса обзора врагов от навыка «Тень».
-// Lv 0..5 → 1.0 / 0.9 / 0.8 / 0.7 / 0.6 / 0.5
+// Сбалансировано: Lv 0..5 → 1.0 / 0.92 / 0.84 / 0.76 / 0.68 / 0.60
+const STLH_VIS_MUL = [1.00, 0.92, 0.84, 0.76, 0.68, 0.60];
 function _stealthMul() {
-  const l = Math.max(0, Math.min(5, QP.stlhLvl | 0));
-  return 1 - 0.1 * l;
+  return STLH_VIS_MUL[Math.max(0, Math.min(5, QP.stlhLvl | 0))];
 }
 const ALERT_DECAY_TIME = 9;            // сек на спад до spuasus после потери игрока
 const SUSPECT_TO_CALM_TIME = 14;       // сек на возврат к "спокойно"
@@ -1442,8 +1456,8 @@ function savePlayerLook(look) {
 }
 
 // Phase 9: бонус к максимальному HP от навыка «Крепыш».
-// Lv 0..5 → +0 / +15 / +30 / +50 / +75 / +110.
-const TGH_HP_BONUS = [0, 15, 30, 50, 75, 110];
+// Сбалансировано: Lv 0..5 → +0 / +10 / +20 / +35 / +55 / +80.
+const TGH_HP_BONUS = [0, 10, 20, 35, 55, 80];
 const _tghBonus = TGH_HP_BONUS[Math.max(0, Math.min(5, QP.tghLvl | 0))];
 // Игрок — стартовая позиция (центр карты, гарантированно открытый тайл)
 const player = {
@@ -3334,16 +3348,32 @@ function drawSafe(s, cfg) {
   const doorCx = base.x + wx * 0.55;
   const doorCy = base.y - H * 0.55 + wy * 0.10;
   if (s.opened) {
-    // Дверца открыта: золотое свечение внутри
+    // ── РЫВОК ОТКРЫТИЯ (~700мс) — дверца отлетает влево ──
+    // openAnimT 0..1: интерполируем «угол» откинутой створки от 0 до полного
+    const t = (s.openAnimT != null) ? s.openAnimT : 1;
+    // Внутренний «карман» — золотое свечение глубины
     ctx.save();
     ctx.shadowColor = '#ffd76b';
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = 18 + (1 - t) * 12;
     ctx.fillStyle = '#3d2e10';
     ctx.beginPath();
     ctx.ellipse(doorCx - wx * 0.05, doorCy, wx * 0.30, H * 0.30, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
-    // Несколько монеток-точек внутри
+    // ВСПЫШКА в первый момент — яркое расширяющееся кольцо
+    if (s.flashT2 != null && s.flashT2 > 0) {
+      ctx.save();
+      ctx.globalAlpha = s.flashT2 * 0.75;
+      ctx.fillStyle = '#fff6c0';
+      ctx.shadowColor = '#ffd76b';
+      ctx.shadowBlur = 26;
+      const fr = wx * (0.4 + (1 - s.flashT2) * 0.9);
+      ctx.beginPath();
+      ctx.arc(doorCx, doorCy, fr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    // Несколько монеток-точек внутри (стационарных, после анимации)
     ctx.fillStyle = '#ffd76b';
     for (let i = 0; i < 6; i++) {
       const ang = i * 1.0;
@@ -3354,15 +3384,29 @@ function drawSafe(s, cfg) {
               wx * 0.045, 0, Math.PI * 2);
       ctx.fill();
     }
-    // Открытая «створка» — тонкая линия слева от двери (она «откинута» в сторону)
-    ctx.strokeStyle = '#1a1a1f';
-    ctx.lineWidth = 2;
+    // ── Отлетевшая дверца — рисуем СТВОРКУ под наклоном слева от сейфа ──
+    // Угол поворота: 0 (закрыта) → -1.4 рад (~80° раскрыта)
+    const openAng = -1.4 * (1 - Math.pow(1 - t, 2));  // ease-out
+    ctx.save();
+    // «Петля» в левом верхнем углу дверцы — там она крепится
+    const hingeX = doorCx - wx * 0.18;
+    const hingeY = doorCy - H * 0.20;
+    ctx.translate(hingeX, hingeY);
+    ctx.rotate(openAng);
+    // Сама створка — прямоугольник с подложкой и обводкой
+    const doorW = wx * 0.42;
+    const doorH = H * 0.50;
+    ctx.fillStyle = '#26262c';
+    ctx.fillRect(0, 0, doorW, doorH);
+    ctx.strokeStyle = isBig ? '#d0a040' : '#6a6a72';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(0, 0, doorW, doorH);
+    // Маленькая ручка-кружок на створке
+    ctx.fillStyle = isBig ? '#d0a040' : '#8a8a92';
     ctx.beginPath();
-    ctx.moveTo(doorCx - wx * 0.20, doorCy - H * 0.20);
-    ctx.lineTo(doorCx - wx * 0.35, doorCy - H * 0.15);
-    ctx.lineTo(doorCx - wx * 0.35, doorCy + H * 0.20);
-    ctx.lineTo(doorCx - wx * 0.20, doorCy + H * 0.25);
-    ctx.stroke();
+    ctx.arc(doorW * 0.78, doorH * 0.5, doorH * 0.10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   } else {
     // Дверца закрыта: ручка-вертушка по центру
     const rrR = (isBig ? wx * 0.18 : wx * 0.14);
@@ -3836,6 +3880,8 @@ function render() {
   goreParts.forEach(g => { if (!g.landed) drawGorePart(g); });
   // реплики-пузыри в самом верху
   chatBubbles.forEach(drawChatBubble);
+  // Phase 9: монетки разлетающиеся из вскрытых сейфов — поверх всех укрытий
+  drawSafeCoins();
   // Phase 9: всплывающие сообщения о добыче из сейфов (+N$ парят вверх).
   for (const lp of lootPopups) {
     if (lp.life <= 0) continue;
@@ -4688,6 +4734,16 @@ function update(dt) {
     lp.dy   += dt * 0.025;  // плавно вверх (40 px за 1.8 сек)
     if (lp.life <= 0) lootPopups.splice(i, 1);
   }
+  // Phase 9: монетки от вскрытых сейфов + анимация рывка открытия
+  updateSafeCoins(dt);
+  for (const s of safes) {
+    if (s.opened && s.openAnimT != null) {
+      s.openAnimT = Math.min(1, s.openAnimT + dt / 700);  // 700мс
+    }
+    if (s.flashT2 != null) {
+      s.flashT2 = Math.max(0, s.flashT2 - dt / 600);     // 600мс
+    }
+  }
 
   // AI врагов. В coop_sim (Path V) — серверный AI; клиент только
   // интерполирует позиции, локальный updateEnemyAI пропускаем для
@@ -5178,8 +5234,10 @@ function fireWeapon(p, weaponKey, team) {
   const burstInt = cfg.burstInterval || 0;
 
   // Урон врагов ослаблен, иначе их 4 валят за секунду.
-  // Phase 9: бонус «Меткий стрелок» Lv 0..5 → +0/5/10/20/35/55% урон игрока.
-  const MARK_BONUS = [0, 0.05, 0.10, 0.20, 0.35, 0.55];
+  // Phase 9: бонус «Меткий стрелок» Lv 0..5 → +0/4/8/14/22/32% урон игрока.
+  // Сбалансировано — Lv5 даёт +32% (а не +55%): тренировка ощутима,
+  // но не убивает интерес к покупке более крутых пушек.
+  const MARK_BONUS = [0, 0.04, 0.08, 0.14, 0.22, 0.32];
   const markMul = 1 + MARK_BONUS[Math.max(0, Math.min(5, QP.markLvl | 0))];
   const dmgMul = (tm === 'enemy') ? 0.35 : markMul;
   // Точка вылета пули — конец дула. muzzleD задан per-weapon (0.5..1.15 тайлов).
@@ -5920,23 +5978,23 @@ if (reviveBtnEl) {
 }
 
 // ── Phase 9: СЕЙФЫ — ВЗАИМОДЕЙСТВИЕ ─────────────────────────────────
-// Кнопка ВЗЛОМАТЬ работает по принципу hold-to-fill:
-//  • когда рядом сейф и навык safecracker_level >= safe.level — кнопка
-//    активна (золотая). Удерживай — прогресс заполняется (~2.5 сек).
-//  • отпустил раньше — прогресс сбрасывается.
-//  • прогресс достиг 100% → сейф открыт, шлём POST /safe/{uid}/loot
-//    серверу, тот делает roll и возвращает количество долларов.
-const SAFE_INTERACT_RANGE = 1.6;     // на сколько тайлов нужно подойти
-const SAFE_CRACK_TIME_S   = 2.5;     // время взлома (Lv1 базовое; +0.5с за каждый Lv сейфа)
-const safeBtnEl     = document.getElementById('safeBtn');
-const safeLabelEl   = document.getElementById('safeLabel');
-const safeIconEl    = document.getElementById('safeIcon');
-const safeLockTagEl = document.getElementById('safeLockTag');
-let _safeHeld    = false;     // кнопка зажата прямо сейчас
-let _safeActive  = null;       // ссылка на сейф, который сейчас взламываем
-let _lastSafeVis = '';
+// Плавающая кнопка #safePromptBtn появляется поверх ближайшего сейфа
+// когда игрок подходит на SAFE_INTERACT_RANGE тайлов. Удерживай —
+// прогресс золотой полоски заполняется (~2.5..4.5 сек, чем выше уровень
+// сейфа — тем дольше). Отпустил раньше — прогресс сбрасывается.
+// Если skill < safe.level — кнопка красная «🔒 НУЖЕН Lv N», не реагирует.
+const SAFE_INTERACT_RANGE = 1.7;
+const SAFE_CRACK_TIME_S   = 2.5;
+const safePromptEl     = document.getElementById('safePromptBtn');
+const safePromptInner  = document.getElementById('safePromptInner');
+const safePromptIcon   = document.getElementById('safePromptIcon');
+const safePromptLabel  = document.getElementById('safePromptLabel');
+const safePromptHint   = document.getElementById('safePromptHint');
+const safePromptBarFill= document.getElementById('safePromptBarFill');
+let _safeHeld    = false;
+let _safeActive  = null;
+let _lastSafePromptKey = '';
 function pickSafeTarget() {
-  // Ищем ближайший НЕвскрытый сейф в радиусе SAFE_INTERACT_RANGE
   let best = null, bestD = SAFE_INTERACT_RANGE;
   for (const s of safes) {
     if (s.opened) continue;
@@ -5946,53 +6004,64 @@ function pickSafeTarget() {
   return best;
 }
 function renderSafeBtn() {
-  if (!safeBtnEl) return;
-  // Сбрасываем флаг подсветки на всех сейфах перед пересчётом.
+  if (!safePromptEl) return;
   for (const s of safes) s._canCrack = false;
   const target = pickSafeTarget();
   const playerSC = (QP.safeLvl | 0);
-  let show = false, canCrack = false, lockReason = '';
+  let show = false, canCrack = false;
   if (target && player.hp > 0) {
     show = true;
     if (playerSC >= target.level) {
       canCrack = true;
       target._canCrack = true;
-    } else {
-      lockReason = 'Lv' + target.level;
     }
   }
-  // Если ушли от сейфа — сбрасываем прогресс активного взлома
+  // Ушли от сейфа — сбрасываем взлом
   if (_safeActive && _safeActive !== target) {
     _safeActive.openProgress = 0;
     _safeActive = null;
     _safeHeld = false;
   }
-  const key = (show ? '1' : '0') + '|' + (canCrack ? 'g' : 'r') + '|' + (target ? target.level : 0) + '|' + (target ? (target.big ? 'B' : 's') : 'x');
-  if (key === _lastSafeVis) return;
-  _lastSafeVis = key;
-  safeBtnEl.style.display = show ? 'flex' : 'none';
-  safeBtnEl.style.alignItems = 'center';
-  safeBtnEl.style.justifyContent = 'center';
-  if (show) {
+  if (!show) {
+    if (_lastSafePromptKey !== 'hidden') {
+      safePromptEl.style.display = 'none';
+      _lastSafePromptKey = 'hidden';
+    }
+    return;
+  }
+  // Позиционируем кнопку поверх сейфа (в координатах stage)
+  const p = w2s(target.r + 0.5, target.c + 0.5);
+  const sz = (typeof TS !== 'undefined' ? TS : 38);
+  safePromptEl.style.left = (p.x) + 'px';
+  safePromptEl.style.top  = (p.y - sz * 0.95) + 'px';
+  safePromptEl.style.display = 'block';
+  // Обновляем внешний вид только при смене состояния (key) — иначе DOM-thrash
+  const key = (canCrack ? 'g' : 'r') + '|' + target.level + '|' + (target.big ? 'B' : 's');
+  if (key !== _lastSafePromptKey) {
+    _lastSafePromptKey = key;
     if (canCrack) {
-      safeBtnEl.style.background = 'rgba(40,30,12,.92)';
-      safeBtnEl.style.borderColor = target.big ? '#ffd76b' : '#d0a040';
-      safeBtnEl.style.color = '#ffd76b';
-      safeBtnEl.style.opacity = '1';
-      safeIconEl.textContent = target.big ? '💰' : '🔓';
-      safeLabelEl.textContent = 'ВЗЛОМАТЬ';
-      safeLockTagEl.style.display = 'none';
+      safePromptInner.style.background = 'linear-gradient(135deg,#3d2810,#5a3d18)';
+      safePromptInner.style.borderColor = target.big ? '#ffd76b' : '#d0a040';
+      safePromptInner.style.color = '#ffd76b';
+      safePromptInner.style.boxShadow = '0 4px 14px rgba(0,0,0,.6),0 0 18px rgba(208,160,64,.45)';
+      safePromptIcon.textContent  = target.big ? '💰' : '🔓';
+      safePromptLabel.textContent = target.big ? 'ВСКРЫТЬ БОЛЬШОЙ СЕЙФ' : 'ВСКРЫТЬ СЕЙФ';
+      safePromptHint.textContent  = 'удерживай · Lv' + target.level;
+      safePromptHint.style.color  = '#bca668';
     } else {
-      safeBtnEl.style.background = 'rgba(40,12,12,.92)';
-      safeBtnEl.style.borderColor = '#a04040';
-      safeBtnEl.style.color = '#ff8080';
-      safeBtnEl.style.opacity = '.7';
-      safeIconEl.textContent = '🔒';
-      safeLabelEl.textContent = 'НИЗКИЙ LV';
-      safeLockTagEl.style.display = 'block';
-      safeLockTagEl.textContent = lockReason;
+      safePromptInner.style.background = 'linear-gradient(135deg,#3a1010,#5a1818)';
+      safePromptInner.style.borderColor = '#a04040';
+      safePromptInner.style.color = '#ff9090';
+      safePromptInner.style.boxShadow = '0 4px 14px rgba(0,0,0,.6),0 0 16px rgba(180,40,40,.35)';
+      safePromptIcon.textContent  = '🔒';
+      safePromptLabel.textContent = 'НУЖЕН ВЗЛОМЩИК Lv' + target.level;
+      safePromptHint.textContent  = 'прокачай навык в хабе';
+      safePromptHint.style.color  = '#d0a0a0';
     }
   }
+  // Прогресс-полоска (обновляем каждый кадр пока держим)
+  const pct = (canCrack && _safeActive === target) ? (target.openProgress * 100) : 0;
+  safePromptBarFill.style.width = pct.toFixed(0) + '%';
 }
 function tickSafeProgress(t) {
   // Анимация «вертушки» на каждом сейфе — крутится со временем (для красоты).
@@ -6017,13 +6086,98 @@ function tickSafeProgress(t) {
   if (target.openProgress >= 1) {
     target.opened = true;
     target.openProgress = 1;
+    target.openAnimT = 0;       // 0..1 — рывок открытия (~700 мс)
+    target.flashT2   = 1;       // 1→0 — вспышка золотого света
     _safeHeld = false;
     _safeActive = null;
-    // Звук открытия (если есть generic chest)
-    try { if (typeof playSfx === 'function') playSfx('hit'); } catch(e){}
+    // Звук открытия — низкий «клац» + хвост «бр-р-р» монеток
+    try {
+      _tone({freq:160, freqEnd:60, dur:0.22, type:'square', vol:0.32});
+      _noise({dur:0.30, vol:0.18, filter:'highpass', filterFreq:3200});
+      setTimeout(() => {
+        for (let i = 0; i < 5; i++) setTimeout(() => {
+          _tone({freq:1400+Math.random()*400, freqEnd:600, dur:0.08, type:'sine', vol:0.16});
+        }, i * 55);
+      }, 120);
+    } catch(e){}
+    // Вибро-фидбэк
+    try { if (navigator.vibrate) navigator.vibrate([20, 30, 30]); } catch(e){}
+    // Спавним 8-12 монеток разлетающихся от центра сейфа
+    const cx = target.c + 0.5, cr = target.r + 0.5;
+    const N = 8 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < N; i++) {
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.9;
+      const v   = 0.06 + Math.random() * 0.05;
+      safeCoins.push({
+        r: cr, c: cx,
+        vr: Math.sin(ang) * v - 0.08,    // вверх + чуть в сторону
+        vc: Math.cos(ang) * v,
+        z:  6 + Math.random() * 4,       // визуальная «высота над полом»
+        vz: 0.18 + Math.random() * 0.12, // взлёт
+        spin: Math.random() * Math.PI * 2,
+        spinV: (Math.random() - 0.5) * 0.4,
+        life: 900 + Math.random() * 400,
+        max:  1200,
+        big:  !!target.big,
+      });
+    }
     // Шлём серверу — он сам рандомит cash + применяет hustler-бонус
     lootSafe(target);
   }
+}
+
+// Монетки от вскрытого сейфа: летят вверх + в сторону, потом падают
+// с гравитацией. Рендерятся в render() поверх укрытий (см. ниже).
+const safeCoins = [];
+function updateSafeCoins(dt) {
+  const sec = dt / 1000;
+  const g = 0.55; // тайлы/сек² ~ ощущается как гравитация
+  for (let i = safeCoins.length - 1; i >= 0; i--) {
+    const k = safeCoins[i];
+    k.life -= dt;
+    if (k.life <= 0) { safeCoins.splice(i, 1); continue; }
+    k.r += k.vr * sec * 4;
+    k.c += k.vc * sec * 4;
+    k.z += k.vz * sec * 14;
+    k.vz -= g * sec * 0.5;
+    k.spin += k.spinV;
+    // Не падаем ниже пола (визуально)
+    if (k.z < 0) { k.z = 0; k.vz = Math.abs(k.vz) * 0.3; k.life *= 0.6; }
+  }
+}
+function drawSafeCoins() {
+  for (const k of safeCoins) {
+    const p = w2s(k.r, k.c);
+    const alpha = Math.min(1, k.life / 400);
+    const cx = p.x, cy = p.y - k.z;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx, cy);
+    ctx.rotate(k.spin);
+    const rr = k.big ? 5.5 : 4;
+    // Тело монеты — золотой круг
+    ctx.fillStyle = k.big ? '#ffd76b' : '#ffc940';
+    ctx.beginPath();
+    // «Овал» имитирует вращение по оси (по X сжимается)
+    const sx = Math.abs(Math.cos(k.spin * 1.5));
+    ctx.ellipse(0, 0, rr * Math.max(0.25, sx), rr, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Тонкая обводка
+    ctx.strokeStyle = '#a07820';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    // Символ $ если ракурс «к нам»
+    if (sx > 0.55) {
+      ctx.fillStyle = '#7a5818';
+      ctx.font = 'bold 6px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', 0, 0.5);
+    }
+    ctx.restore();
+  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
 }
 // Всплывающие сообщения о добыче из сейфов (массив активных попапов)
 // Каждый элемент: { r, c, text, color, life, max, dy }
@@ -6040,7 +6194,8 @@ async function lootSafe(s) {
   pushLootPopup(s, '💰 …', '#ffd76b');
   // DEMO / нет API → локальный расчёт (применяем бонус Дельца тоже локально)
   if (!QP.api || !QP.uid) {
-    const HUST_BONUS = [0, 0.05, 0.10, 0.20, 0.30, 0.45];
+    // Сбалансировано: +5/10/15/22/30% (а не +45% как раньше)
+    const HUST_BONUS = [0, 0.05, 0.10, 0.15, 0.22, 0.30];
     const hMul = 1 + HUST_BONUS[Math.max(0, Math.min(5, QP.hstLvl | 0))];
     const base = Math.floor((100 + s.level * 250) * (0.7 + Math.random() * 0.6));
     const gained = Math.round((s.big ? base * 4 : base) * hMul);
@@ -6069,16 +6224,18 @@ async function lootSafe(s) {
     pushLootPopup(s, '⚠️ офлайн', '#ff7070');
   }
 }
-if (safeBtnEl) {
+if (safePromptEl) {
   const press = (ev) => {
     if (ev) { try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {} }
     const target = pickSafeTarget();
     if (!target) return;
     if ((QP.safeLvl | 0) < target.level) {
-      // Сигналим что навык низковат
-      try { safeBtnEl.animate(
-        [{transform:'translateX(-3px)'},{transform:'translateX(3px)'},{transform:'translateX(0)'}],
-        {duration:180}); } catch(e){}
+      // Сигнал «не хватает уровня» — лёгкая тряска кнопки
+      try { safePromptEl.animate(
+        [{transform:'translate(-50%,-100%) translateX(-4px)'},
+         {transform:'translate(-50%,-100%) translateX(4px)'},
+         {transform:'translate(-50%,-100%) translateX(0)'}],
+        {duration:200}); } catch(e){}
       return;
     }
     _safeHeld = true;
@@ -6092,12 +6249,12 @@ if (safeBtnEl) {
     }
     _safeActive = null;
   };
-  safeBtnEl.addEventListener('pointerdown', press);
-  safeBtnEl.addEventListener('pointerup',   release);
-  safeBtnEl.addEventListener('pointercancel', release);
-  safeBtnEl.addEventListener('pointerleave', release);
-  safeBtnEl.addEventListener('touchstart', press,   { passive: false });
-  safeBtnEl.addEventListener('touchend',   release, { passive: false });
+  safePromptEl.addEventListener('pointerdown', press);
+  safePromptEl.addEventListener('pointerup',   release);
+  safePromptEl.addEventListener('pointercancel', release);
+  safePromptEl.addEventListener('pointerleave', release);
+  safePromptEl.addEventListener('touchstart', press,   { passive: false });
+  safePromptEl.addEventListener('touchend',   release, { passive: false });
 }
 
 // ── ГРАНАТА: бросок игроком ────────────────────────────────────────
