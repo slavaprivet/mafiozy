@@ -12635,6 +12635,26 @@ async def _coop_http_app():
             logger.info("WorldSim: WS closed uid=%s online=%d", uid, len(world.players))
         return ws
 
+    # === HTTP: список онлайн-игроков для баннера Кооператива ===
+    # Hub-страница «Кооператив» опрашивает раз в 8 сек и рисует скины
+    # всех игроков, которые сейчас активны в открытом мире. Это даёт
+    # сразу видимое ощущение «нас тут много», даже до того как ты позвал
+    # друзей в банду. Без авторизации — просто список (uid+name+look).
+    async def h_world_online(req):
+        world = _WORLD
+        if world is None or not world.alive:
+            return await _cors(web.json_response({'ok': True, 'players': [], 'count': 0}))
+        out = []
+        for uid, p in list(world.players.items()):
+            out.append({
+                'uid':  uid,
+                'name': p.get('name') or 'Игрок',
+                'look': p.get('look') or {},
+            })
+        return await _cors(web.json_response({
+            'ok': True, 'count': len(out), 'players': out,
+        }))
+
     # === HTTP: результат боя из demo_isometric.html ===
     # Закрывает запись битвы, начисляет опыт/деньги/убийства, обновляет HP
     # и возвращает свежее состояние персонажа в JSON. В чат бот ничего не
@@ -12773,6 +12793,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/skill/{uid}/upgrade', h_skill_upgrade)
     aio_app.router.add_post('/safe/{uid}/loot',     h_safe_loot)
     aio_app.router.add_get ('/world/sim',           h_world_ws)  # общий мир
+    aio_app.router.add_get ('/world/online',        h_world_online)  # для баннера в Кооперативе
 
     from aiohttp import web as _web
     runner = _web.AppRunner(aio_app)

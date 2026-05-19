@@ -2444,6 +2444,9 @@ function confirmBuyPack(packId){
 }
 
 function nav(dest, extra) {
+  // Останавливаем поллинг «онлайн-баннера» при уходе с экрана Кооператива.
+  // Если идём ОБРАТНО в coop — он перезапустится через renderCoopLobby().
+  if (dest !== 'coop') { try { _coopStopOnlinePoll(); } catch(e) {} }
   document.getElementById('page-main').style.display = 'none';
   document.querySelectorAll('.subpage').forEach(p => p.style.display = 'none');
 
@@ -5616,9 +5619,10 @@ function renderCoopLobby() {
   if (DATA.coopSid > 0) { _coopShowFromData(); return; }
   coopShowLobby();
   _renderCoopBossSelector();
-  // Баннер-фотка банды — отдельно от выбора босса, чтобы каждый раз при
-  // открытии вкладки отображались актуальные аватарки.
+  // Баннер «СЕЙЧАС В ИГРЕ» — себя + всех онлайн. Поллинг каждые 8 сек,
+  // чтобы новые игроки появлялись в баннере без перезагрузки экрана.
   try { renderCoopBanner(); } catch(e) {}
+  try { _coopStartOnlinePoll(); } catch(e) {}
   // Инвайт-чекбоксы убраны — теперь зовём в сессию share-ссылкой из лобби
   // ожидания. Здесь показываем подсказку и текущий состав банды (если есть).
   const listEl = document.getElementById('coop-gang-list');
@@ -6323,42 +6327,81 @@ function _coopDrawBanner(canvas, figures) {
   });
 }
 
-// Баннер на главном экране кооперации — моя бригада из БД.
+// Баннер на главном экране кооперации.
+// Показываем СЕБЯ + всех других онлайн-игроков из открытого мира.
+// Раньше показывалась только «моя банда» (друзья из БД), и пока банда
+// пуста — был один силуэт. Теперь видно весь онлайн — сразу понятно
+// что в игре есть с кем сходить в кооп.
 async function renderCoopBanner() {
   const cvs = document.getElementById('coop-banner-canvas');
   const lbl = document.getElementById('coop-banner-label');
   if (!cvs) return;
+  const meUid = String(DATA.uid || '');
   const meLook = {
     name: DATA.name || 'Ты',
     gender: DATA.gender|0, skin: DATA.skin|0,
     body: DATA.body|0, face: DATA.face|0, hair: DATA.hair|0, hat: DATA.hat|0,
     isMe: true,
   };
-  let gangLooks = [];
-  if (coopApi() && DATA.uid) {
+  // Подтягиваем актуальный API если в DATA.api он мёртвый.
+  if (!coopApi()) { await _coopFetchApiFallback(); }
+  let onlineLooks = [];
+  if (coopApi()) {
     try {
-      const resp = await fetch(coopApi() + '/friend/list/' + DATA.uid);
+      const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      if (ctl) setTimeout(() => ctl.abort(), 4000);
+      const resp = await fetch(coopApi() + '/world/online', {
+        cache: 'no-store', signal: ctl ? ctl.signal : undefined,
+      });
       if (resp.ok) {
         const j = await resp.json();
-        if (j && j.ok && Array.isArray(j.gang)) {
-          gangLooks = j.gang.slice(0, 4).map(g => {
-            let look = {};
-            try { look = JSON.parse(g.look_json || '{}'); } catch(e) {}
-            return {
-              name: g.name || 'Игрок',
-              gender: look.gender|0, skin: look.skin|0,
-              body: look.body|0, face: look.face|0, hair: look.hair|0, hat: look.hat|0,
-            };
-          });
+        if (j && Array.isArray(j.players)) {
+          onlineLooks = j.players
+            .filter(p => String(p.uid) !== meUid)   // себя добавим отдельно
+            .slice(0, 7)                            // макс 7 + я = 8 фигурок
+            .map(p => {
+              const look = p.look || {};
+              return {
+                name: p.name || 'Игрок',
+                gender: look.gender|0, skin: look.skin|0,
+                body: look.body|0, face: look.face|0, hair: look.hair|0, hat: look.hat|0,
+                online: true,
+              };
+            });
         }
       }
     } catch(e) {}
   }
-  const figures = [meLook].concat(gangLooks);
-  if (lbl) lbl.textContent = gangLooks.length
-    ? `МОЯ БРИГАДА · ${figures.length}`
-    : 'МОЯ БРИГАДА · ты пока один';
+  const figures = [meLook].concat(onlineLooks);
+  const others = figures.length - 1;
+  if (lbl) {
+    lbl.textContent = others > 0
+      ? `СЕЙЧАС В ИГРЕ · ${figures.length} (онлайн)`
+      : 'СЕЙЧАС В ИГРЕ · только ты — позови друзей';
+  }
   _coopDrawBanner(cvs, figures);
+}
+
+// Авто-обновление баннера: пока открыт экран Кооператива — рефрешим
+// список онлайн каждые 8 сек, чтобы новые игроки появлялись сами.
+let _coopOnlineTimer = null;
+function _coopStartOnlinePoll() {
+  _coopStopOnlinePoll();
+  _coopOnlineTimer = setInterval(() => {
+    // Перерисовываем только если экран кооператива открыт И мы НЕ в лобби
+    // (в лобби своя картинка — _coopRenderWaitroomBanner).
+    const sec = document.getElementById('view-coop');
+    const lobby = document.getElementById('coop-lobby');
+    const waitroom = document.getElementById('coop-waitroom');
+    const lobbyVisible = lobby && lobby.style.display !== 'none';
+    const waitroomVisible = waitroom && waitroom.style.display !== 'none';
+    if (sec && sec.style.display !== 'none' && lobbyVisible && !waitroomVisible) {
+      renderCoopBanner();
+    }
+  }, 8000);
+}
+function _coopStopOnlinePoll() {
+  if (_coopOnlineTimer) { clearInterval(_coopOnlineTimer); _coopOnlineTimer = null; }
 }
 
 // Баннер в комнате ожидания — реальные подключившиеся игроки сессии.

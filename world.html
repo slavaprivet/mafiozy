@@ -2207,77 +2207,100 @@ function drawBullets() {
 }
 
 // ── Стрелки на POI ──────────────────────────────────────────────
-// Стрелка рисуется ТОЛЬКО для далёких POI (> 18 тайлов от игрока).
-// Прижимается в УГОЛ экрана (один из 4) с прозрачностью 0.65 — не
-// мешает игровому полю и не зависает в середине грани.
+// Стрелка рисуется для далёких POI (> 14 тайлов от игрока) и кладётся
+// в один из 4 углов экрана в зависимости от направления на POI.
+// Если в один угол летят несколько POI — стопкой ВНИЗ/ВВЕРХ от угла.
+// Учитываем UI: мини-карта (TR), джойстик (BL), кнопка чата (BR),
+// zoneBtn (центр сверху). Все 4 угла получают сдвинутый якорь чтобы
+// не накладываться на эти элементы.
 function drawPOIArrows(r0, r1, c0, c1) {
   const W = canvas.width / (window.devicePixelRatio || 1);
   const H = canvas.height / (window.devicePixelRatio || 1);
   const cx = W / 2, cy = H / 2;
-  // Зоны углов: где можно ставить стрелки. Каждый угол даёт 2 слота
-  // (один прижатый ближе к горизонтали, один — к вертикали), чтобы
-  // несколько POI в одну сторону не сваливались в одну точку.
-  // По 1 углу = по 4 фиксированных места. Углы выбраны так, чтобы НЕ
-  // лезть на мини-карту (правый верх), zoneBtn (верх центр), кнопку
-  // чата (правый низ) и джойстик (левый низ).
-  const M = 36;  // отступ от края
-  const SLOTS = [
-    // [name, x, y]
-    ['TL', M,     M],          // левый верхний — свободный угол
-    ['TR', W-M,   M-1],        // правый верхний помечен НО мы НЕ ставим
-                               //   туда из-за мини-карты — фильтруем ниже
-    ['BL', M,     H-M],        // левый нижний помечен НО джойстик…
-    ['BR', W-M,   H-M],        // правый нижний помечен НО кнопка чата
-  ];
-  // Реально пользоваться будем только TL — он гарантированно свободен.
-  // Если стрелок несколько — раскладываем их вертикально вниз от TL.
-  const used = [];
-  // Собираем кандидатов с углом (направлением к POI) и дистанцией
-  const cands = [];
+  const M = 36;                // отступ от края
+  const MINI = 140;            // высота резерва под мини-карту (правый верх)
+  const JOY  = 170;            // высота резерва под джойстик (левый низ)
+  const CHAT = 90;             // высота резерва под кнопку чата (правый низ)
+  // Якоря 4 углов: x, y, direction (-1 вверх/+1 вниз — куда стопка растёт).
+  const ANCHORS = {
+    TL: { x: M,     y: M,             dir: +1 },
+    TR: { x: W - M, y: M + MINI,      dir: +1 },   // под мини-картой
+    BL: { x: M,     y: H - M - JOY,   dir: -1 },   // над джойстиком
+    BR: { x: W - M, y: H - M - CHAT,  dir: -1 },   // над кнопкой чата
+  };
+  // Раскладываем кандидатов по углам по направлению (dx, dy) от центра.
+  // TL: dx<0 && dy<0, TR: dx>0 && dy<0, BL: dx<0 && dy>0, BR: dx>0 && dy>0.
+  const buckets = { TL: [], TR: [], BL: [], BR: [] };
   for (const poi of POI) {
     const visible = poi.r >= r0 && poi.r < r1 && poi.c >= c0 && poi.c < c1;
     if (visible) continue;
     const dr = poi.r - player.r, dc = poi.c - player.c;
     const dist = Math.hypot(dr, dc);
-    if (dist < 18) continue;
+    if (dist < 14) continue;
     const sp = w2s(poi.r + 0.5, poi.c + 0.5);
     const dx = sp.x - cx, dy = sp.y - cy;
     const len = Math.hypot(dx, dy) || 1;
-    cands.push({ poi, ndx: dx/len, ndy: dy/len, dist });
+    const ndx = dx / len, ndy = dy / len;
+    const ang = Math.atan2(dy, dx);
+    const key = (dy < 0)
+      ? (dx < 0 ? 'TL' : 'TR')
+      : (dx < 0 ? 'BL' : 'BR');
+    buckets[key].push({ poi, ndx, ndy, ang, dist });
   }
-  // Сортируем по дистанции (ближайшие — выше в списке)
-  cands.sort((a, b) => a.dist - b.dist);
-  // Раскладываем по слотам в ЛЕВОМ ВЕРХНЕМ углу — вертикально вниз
-  for (let i = 0; i < cands.length; i++) {
-    const c = cands[i];
-    const ax = M;
-    const ay = M + i * 36;  // 36px между стрелками
-    if (ay > H * 0.45) break;  // не лезем слишком вниз
-    // Рендер стрелки
-    const dx = c.ndx, dy = c.ndy;
-    ctx.save();
-    ctx.globalAlpha = 0.65;
-    ctx.translate(ax, ay);
-    ctx.rotate(Math.atan2(dy, dx));
-    ctx.fillStyle = 'rgba(20,24,32,.85)';
-    ctx.strokeStyle = '#ffd76b';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 14, 0, Math.PI * 2);
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#ffd76b';
-    ctx.beginPath();
-    ctx.moveTo(9, 0); ctx.lineTo(0, -5); ctx.lineTo(0, 5); ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-    ctx.save();
-    ctx.globalAlpha = 0.65;
-    ctx.font = '12px system-ui, "Segoe UI Emoji", sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(c.poi.icon, ax - dx * 3, ay - dy * 3);
-    ctx.restore();
-    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  // В каждом углу: сортируем по дистанции (ближайший — у самого угла).
+  // Раскладываем стопкой по dir, шаг ~38 пикселей.
+  const STEP = 38;
+  const MAX_PER_CORNER = 3;
+  for (const key of Object.keys(buckets)) {
+    const arr = buckets[key];
+    if (!arr.length) continue;
+    arr.sort((a, b) => a.dist - b.dist);
+    const anc = ANCHORS[key];
+    for (let i = 0; i < Math.min(arr.length, MAX_PER_CORNER); i++) {
+      const c = arr[i];
+      const ax = anc.x;
+      const ay = anc.y + anc.dir * i * STEP;
+      _drawPOIArrow(ax, ay, c.ndx, c.ndy, c.poi);
+    }
   }
+}
+
+// Рисует одну стрелку-«компас» в (ax, ay): кружок-фон, стрелка указывает
+// в направлении (dx, dy), рядом — иконка POI.
+function _drawPOIArrow(ax, ay, dx, dy, poi) {
+  ctx.save();
+  ctx.globalAlpha = 0.78;
+  ctx.translate(ax, ay);
+  ctx.rotate(Math.atan2(dy, dx));
+  ctx.fillStyle = 'rgba(20,24,32,.85)';
+  ctx.strokeStyle = '#ffd76b';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(0, 0, 15, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#ffd76b';
+  ctx.beginPath();
+  ctx.moveTo(10, 0); ctx.lineTo(0, -6); ctx.lineTo(0, 6); ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  // Иконка — не вращается. Кладём её СО СТОРОНЫ ОТ КРАЯ внутрь экрана,
+  // чтобы не уехать за пределы canvas. Сдвигаем строго к центру экрана.
+  const cx = (canvas.width  / (window.devicePixelRatio || 1)) / 2;
+  const cy = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+  const tdx = cx - ax, tdy = cy - ay;
+  const tl = Math.hypot(tdx, tdy) || 1;
+  const ox = (tdx / tl) * 22;
+  const oy = (tdy / tl) * 22;
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.font = '13px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.fillText(poi.icon, ax + ox + 1, ay + oy + 1);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(poi.icon, ax + ox, ay + oy);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
 // ── Мини-карта ──────────────────────────────────────────────────
