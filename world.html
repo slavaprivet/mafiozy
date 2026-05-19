@@ -502,6 +502,226 @@ function inArena(r, c) {
 
 buildMap();
 
+// ── Живой город: NPC прохожие + машины + светофоры ──────────────
+// Локальная симуляция (у каждого клиента своя — это декор, не мультиплеер).
+// Светофоры синхронизированы по системному времени, так что у всех
+// клиентов фазы выглядят одинаково (важно если когда-то добавим
+// синхронизацию NPC между игроками).
+
+// Светофор: глобальный цикл 16 сек.
+// 0-6: зелёный E-W (горизонтальные машины едут), красный N-S (вертикальные стоят)
+// 6-8: жёлтый (все тормозят)
+// 8-14: зелёный N-S, красный E-W
+// 14-16: жёлтый
+function trafficPhase() {
+  const t = (performance.now() / 1000) % 16;
+  if (t < 6)       return { ew: 'g', ns: 'r' };
+  else if (t < 8)  return { ew: 'y', ns: 'r' };
+  else if (t < 14) return { ew: 'r', ns: 'g' };
+  else             return { ew: 'r', ns: 'y' };
+}
+
+// NPC — простые прохожие на тротуарах. Бродят по случайным waypoint-ам.
+const NPCS = [];
+function spawnNpc(seed) {
+  // Ищем случайный бордюрный тайл (тип 9)
+  for (let tries = 0; tries < 50; tries++) {
+    const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
+    const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
+    if (MAP[r][c] === 9 || MAP[r][c] === 8) {
+      return {
+        r: r + 0.5, c: c + 0.5,
+        tr: r + 0.5, tc: c + 0.5,
+        speed: 0.8 + Math.random() * 0.7,
+        ang: 0,
+        walkPhase: 0,
+        idleUntil: 0,
+        look: {
+          gender: Math.random() < 0.5 ? 0 : 1,
+          skin:   Math.floor(Math.random() * 5),
+          body:   Math.floor(Math.random() * 3),
+          face:   Math.floor(Math.random() * 4),
+          hair:   Math.floor(Math.random() * 5),
+          hat:    Math.floor(Math.random() * 4),
+        },
+      };
+    }
+  }
+  return null;
+}
+function pickNpcWaypoint(npc) {
+  // Берём случайный близкий бордюрный тайл (в радиусе 8)
+  for (let tries = 0; tries < 30; tries++) {
+    const dr = Math.floor(Math.random() * 16) - 8;
+    const dc = Math.floor(Math.random() * 16) - 8;
+    const nr = Math.floor(npc.r + dr), nc = Math.floor(npc.c + dc);
+    if (nr < 1 || nr >= MAP_ROWS-1 || nc < 1 || nc >= MAP_COLS-1) continue;
+    if (MAP[nr][nc] === 9 || MAP[nr][nc] === 8) {
+      npc.tr = nr + 0.5; npc.tc = nc + 0.5;
+      return;
+    }
+  }
+}
+function initNpcs() {
+  NPCS.length = 0;
+  for (let i = 0; i < 20; i++) {
+    const n = spawnNpc(i);
+    if (n) { pickNpcWaypoint(n); NPCS.push(n); }
+  }
+}
+
+function updateNpcs(dt) {
+  for (const n of NPCS) {
+    if (performance.now() < n.idleUntil) {
+      n.walkPhase = 0;
+      continue;
+    }
+    const dr = n.tr - n.r, dc = n.tc - n.c;
+    const d  = Math.hypot(dr, dc);
+    if (d < 0.4) {
+      // Дошли — иногда стоим 1-3 сек, потом новый waypoint
+      if (Math.random() < 0.4) n.idleUntil = performance.now() + 1000 + Math.random() * 2000;
+      pickNpcWaypoint(n);
+      continue;
+    }
+    const sp = n.speed * dt;
+    n.r += (dr / d) * sp;
+    n.c += (dc / d) * sp;
+    n.ang = Math.atan2(dr, dc);
+    n.walkPhase += dt * 8;
+  }
+}
+
+// ── Машины (умные, с моделями) ──────────────────────────────────
+// 5 моделей × разные палитры. Каждая едет по полосе дороги,
+// останавливается на красный, перед другими машинами, и перед игроком.
+const CAR_MODELS = [
+  { name: 'sedan',    L: 1.7, W: 0.85, palette: ['#3a5a8a','#22386a'], roof: '#1a2848', wheelR: 0.16 },
+  { name: 'taxi',     L: 1.7, W: 0.85, palette: ['#ffd700','#b89400'], roof: '#1a1a1a', wheelR: 0.16, taxi: true },
+  { name: 'sport',    L: 1.6, W: 0.78, palette: ['#c8202a','#7a0d18'], roof: '#1a0a10', wheelR: 0.15, sport: true },
+  { name: 'pickup',   L: 1.9, W: 0.92, palette: ['#3a3a3a','#1f1f1f'], roof: '#0f0f0f', wheelR: 0.18, pickup: true },
+  { name: 'van',      L: 2.0, W: 0.95, palette: ['#2f6a3a','#1a3a22'], roof: '#152818', wheelR: 0.18, van: true },
+];
+const CARS = [];
+function spawnCar(idx) {
+  // Найдём случайный тайл-дорогу и зададим направление вдоль полосы.
+  // Полоса 1 = ехать на восток (c+), полоса 0 = ехать на запад (c-).
+  // Для вертикальных дорог: полоса 1 = на юг (r+), полоса 0 = на север (r-).
+  for (let tries = 0; tries < 100; tries++) {
+    const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
+    const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
+    if (MAP[r][c] !== 0) continue;
+    const onRoadR = (r % BLOCK <= 1);
+    const onRoadC = (c % BLOCK <= 1);
+    if (!onRoadR && !onRoadC) continue;
+    // Горизонтальная дорога — движение по E/W
+    let dirDx = 0, dirDy = 0;
+    if (onRoadR && !onRoadC) {
+      // Полоса r%8==0 → восток (+c), r%8==1 → запад (-c)
+      dirDx = (r % BLOCK === 0) ? 1 : -1;
+    } else if (onRoadC && !onRoadR) {
+      // Полоса c%8==0 → юг (+r), c%8==1 → север (-r)
+      dirDy = (c % BLOCK === 0) ? 1 : -1;
+    } else {
+      // Перекрёсток — пропускаем, машина там не должна спавниться
+      continue;
+    }
+    const model = CAR_MODELS[idx % CAR_MODELS.length];
+    return {
+      r: r + 0.5, c: c + 0.5,
+      vr: dirDy * (1.5 + Math.random() * 0.8),
+      vc: dirDx * (1.5 + Math.random() * 0.8),
+      dirDx, dirDy,
+      model,
+      braking: false,
+      // Жёлтые мигалки для такси/спорткара
+      flash: 0,
+    };
+  }
+  return null;
+}
+function initCars() {
+  CARS.length = 0;
+  for (let i = 0; i < 8; i++) {
+    const c = spawnCar(i);
+    if (c) CARS.push(c);
+  }
+}
+
+function carCanGo(car, dt) {
+  // Проверяем 1.5 тайла впереди — игрок, машина, светофор-красный
+  const ahead = 1.5;
+  const fr = car.r + car.dirDy * ahead;
+  const fc = car.c + car.dirDx * ahead;
+  // Игрок? (если он на дороге — тормозим)
+  const distToPlayer = Math.hypot(player.r - fr, player.c - fc);
+  if (distToPlayer < 1.4 && MAP[Math.floor(player.r)] && MAP[Math.floor(player.r)][Math.floor(player.c)] === 0) {
+    return false;
+  }
+  // Машина впереди?
+  for (const other of CARS) {
+    if (other === car) continue;
+    const d = Math.hypot(other.r - fr, other.c - fc);
+    if (d < 1.1) return false;
+  }
+  // Светофор — если близко к перекрёстку и фаза не «зелёная для нас»
+  const phase = trafficPhase();
+  // Найдём ближайший перекрёсток впереди
+  // (перекрёсток = тайл где r%8<=1 И c%8<=1, не наш текущий)
+  for (let look = 0; look < 3; look++) {
+    const lr = Math.floor(car.r + car.dirDy * (look + 0.5));
+    const lc = Math.floor(car.c + car.dirDx * (look + 0.5));
+    if (lr < 0 || lc < 0 || lr >= MAP_ROWS || lc >= MAP_COLS) break;
+    const isIntersect = (lr % BLOCK <= 1) && (lc % BLOCK <= 1);
+    if (!isIntersect) continue;
+    // Не сам тайл (мы уже в нём)
+    if (lr === Math.floor(car.r) && lc === Math.floor(car.c)) continue;
+    // Какая фаза для нас?
+    const ourPhase = (car.dirDx !== 0) ? phase.ew : phase.ns;
+    if (ourPhase === 'r') return false;
+    if (ourPhase === 'y' && look <= 1) return false;   // на жёлтый тормозим если близко
+    break;
+  }
+  return true;
+}
+
+function updateCars(dt) {
+  for (const car of CARS) {
+    const canGo = carCanGo(car, dt);
+    car.braking = !canGo;
+    if (canGo) {
+      car.r += car.vr * dt;
+      car.c += car.vc * dt;
+    }
+    // Если выехал за границу — переспаунить в новой точке
+    if (car.r < 1 || car.r > MAP_ROWS - 2 || car.c < 1 || car.c > MAP_COLS - 2) {
+      const ni = CARS.indexOf(car);
+      const fresh = spawnCar(ni);
+      if (fresh) Object.assign(car, fresh);
+    }
+    // На перекрёстке иногда поворачиваем (с вероятностью 25%)
+    const ri = Math.floor(car.r), ci = Math.floor(car.c);
+    if (MAP[ri] && MAP[ri][ci] === 0) {
+      const isIntersect = (ri % BLOCK <= 1) && (ci % BLOCK <= 1);
+      const justEntered = !car._lastIntersect || car._lastIntersect.r !== ri || car._lastIntersect.c !== ci;
+      if (isIntersect && justEntered && Math.random() < 0.25) {
+        // Поворот: меняем направление перпендикулярно
+        const newDx = car.dirDy, newDy = car.dirDx;
+        if (newDx !== 0 || newDy !== 0) {
+          car.dirDx = newDx; car.dirDy = newDy;
+          const sp = Math.hypot(car.vr, car.vc) || 1.8;
+          car.vr = newDy * sp; car.vc = newDx * sp;
+        }
+      }
+      car._lastIntersect = isIntersect ? { r: ri, c: ci } : null;
+    }
+    if (car.model.taxi || car.model.sport) car.flash += dt;
+  }
+}
+
+initNpcs();
+initCars();
+
 // Камера следит за игроком. Спавн — (24,24): перекрёсток в центре карты.
 const SPAWN_R = 24, SPAWN_C = 24;
 const cam = {
@@ -987,6 +1207,9 @@ function update(dt) {
     o.ang += aDiff * Math.min(1, dt * 8);
     if (o.w) o._walkPhase = (o._walkPhase || 0) + dt * 10;
   }
+  // Локальная симуляция декора: прохожие + машины
+  updateNpcs(dt);
+  updateCars(dt);
   sendInput();
 }
 
@@ -1196,6 +1419,178 @@ function drawArenaPerimeter() {
   ctx.closePath();
   ctx.stroke();
   ctx.restore();
+}
+
+// ── Красивая отрисовка движущейся машины (5 моделей) ────────────
+// Машина рисуется по ориентации dirDx/dirDy. Корпус-параллелепипед,
+// колёса, окна, фары (ночью светят), мигалки у такси/спорткара.
+function drawCarPretty(car) {
+  const p = w2s(car.r, car.c);
+  const m = car.model;
+  // Расчёт длины/ширины в экранных пикселях. По длине вдоль направления.
+  const TSPX = TS;   // 1 тайл = TS пикселей по плоскости (в проекции *0.5 + *0.5*ISO_Y)
+  const isHoriz = (car.dirDx !== 0);
+  // В изометрии «длина по c» проецируется как (cdif * TS/2, cdif * TS/2 * ISO_Y).
+  // Для простоты — рисуем спрайт-объёмом ориентированный по направлению.
+  const L = m.L * TSPX * 0.5;   // длина в экранных пикселях
+  const W = m.W * TSPX * 0.5 * (isHoriz ? ISO_Y : 1);
+  const H = isoH(0.55);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  if (isHoriz) {
+    ctx.ellipse(p.x + 2, p.y + 4, L * 0.5, W * 0.6, 0, 0, Math.PI * 2);
+  } else {
+    ctx.ellipse(p.x + 2, p.y + 4, W * 0.6, L * 0.5, 0, 0, Math.PI * 2);
+  }
+  ctx.fill();
+  // Корпус — рисуем как параллелограмм-«коробку» в изометрии
+  const [topC, sideC] = m.palette;
+  // Нижняя плита (тень снизу корпуса)
+  ctx.fillStyle = sideC;
+  ctx.beginPath();
+  if (isHoriz) {
+    ctx.moveTo(p.x - L*0.5, p.y);
+    ctx.lineTo(p.x + L*0.5, p.y);
+    ctx.lineTo(p.x + L*0.5, p.y - H);
+    ctx.lineTo(p.x - L*0.5, p.y - H);
+  } else {
+    ctx.moveTo(p.x - W*0.5, p.y - L*0.4);
+    ctx.lineTo(p.x + W*0.5, p.y - L*0.4);
+    ctx.lineTo(p.x + W*0.5, p.y + L*0.4);
+    ctx.lineTo(p.x - W*0.5, p.y + L*0.4);
+  }
+  ctx.closePath(); ctx.fill();
+  // Верх корпуса с лёгким градиентом
+  const gr = ctx.createLinearGradient(p.x, p.y - H, p.x, p.y);
+  gr.addColorStop(0, topC); gr.addColorStop(1, sideC);
+  ctx.fillStyle = gr;
+  if (isHoriz) {
+    ctx.fillRect(p.x - L*0.5, p.y - H, L, H * 0.6);
+  } else {
+    ctx.fillRect(p.x - W*0.5, p.y - L*0.4, W, L * 0.8);
+  }
+  // Окна — лобовое и кабина (для пикапа — только кабина впереди)
+  ctx.fillStyle = 'rgba(150,200,240,.55)';
+  if (isHoriz) {
+    // Лобовое + заднее (для седана) / только кабина (для пикапа сзади грузовик)
+    if (m.pickup) {
+      ctx.fillRect(p.x - L*0.45, p.y - H + 2, L*0.30, H - 6);   // кабина
+      // Кузов сзади (приоткрытый)
+      ctx.fillStyle = '#22222a';
+      ctx.fillRect(p.x - L*0.15, p.y - H + 4, L*0.6, H - 10);
+    } else if (m.van) {
+      ctx.fillRect(p.x - L*0.45, p.y - H + 2, L*0.20, H - 6);  // только лобовое
+      // Боковая дверь — белая полоса
+      ctx.fillStyle = '#ddd';
+      ctx.fillRect(p.x - L*0.15, p.y - H * 0.5, L*0.4, 4);
+    } else {
+      ctx.fillRect(p.x - L*0.42, p.y - H + 2, L*0.18, H - 6);   // лобовое
+      ctx.fillRect(p.x + L*0.24, p.y - H + 2, L*0.18, H - 6);   // заднее
+      // Боковые окна
+      ctx.fillStyle = 'rgba(80,130,180,.35)';
+      ctx.fillRect(p.x - L*0.20, p.y - H + 4, L*0.40, H - 10);
+    }
+  } else {
+    if (m.pickup) {
+      ctx.fillRect(p.x - W*0.4, p.y - L*0.35, W*0.8, L*0.18);
+      ctx.fillStyle = '#22222a';
+      ctx.fillRect(p.x - W*0.35, p.y - L*0.10, W*0.7, L*0.4);
+    } else if (m.van) {
+      ctx.fillRect(p.x - W*0.4, p.y - L*0.35, W*0.8, L*0.15);
+    } else {
+      ctx.fillRect(p.x - W*0.4, p.y - L*0.35, W*0.8, L*0.15);
+      ctx.fillRect(p.x - W*0.4, p.y + L*0.20, W*0.8, L*0.15);
+      ctx.fillStyle = 'rgba(80,130,180,.35)';
+      ctx.fillRect(p.x - W*0.4, p.y - L*0.15, W*0.8, L*0.30);
+    }
+  }
+  // Крыша (плоская)
+  ctx.fillStyle = m.roof;
+  if (isHoriz) {
+    ctx.fillRect(p.x - L*0.45, p.y - H - 1, L*0.9, 3);
+  } else {
+    ctx.fillRect(p.x - W*0.45, p.y - L*0.38, W*0.9, L*0.76);
+  }
+  // Фары — две жёлтые точки на «передней» части (по направлению)
+  ctx.fillStyle = '#fff4b8';
+  ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 6;
+  if (isHoriz) {
+    const fx = p.x + car.dirDx * L * 0.48;
+    ctx.beginPath(); ctx.arc(fx, p.y - 3, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(fx, p.y - H + 3, 2, 0, Math.PI * 2); ctx.fill();
+  } else {
+    const fy = p.y + car.dirDy * L * 0.42;
+    ctx.beginPath(); ctx.arc(p.x - W*0.25, fy, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x + W*0.25, fy, 2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  // Стоп-сигналы (красные) если тормозит — на «задней» части
+  if (car.braking) {
+    ctx.fillStyle = '#ff4040';
+    ctx.shadowColor = '#ff4040'; ctx.shadowBlur = 5;
+    if (isHoriz) {
+      const fx = p.x - car.dirDx * L * 0.48;
+      ctx.beginPath(); ctx.arc(fx, p.y - 3, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(fx, p.y - H + 3, 2, 0, Math.PI * 2); ctx.fill();
+    } else {
+      const fy = p.y - car.dirDy * L * 0.42;
+      ctx.beginPath(); ctx.arc(p.x - W*0.25, fy, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x + W*0.25, fy, 2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+  }
+  // Мигалка такси («ШАШЕЧКИ» спереди + жёлтый знак сверху)
+  if (m.taxi) {
+    ctx.fillStyle = '#000';
+    if (isHoriz) ctx.fillRect(p.x - L*0.05, p.y - H - 4, L*0.10, 3);
+    else ctx.fillRect(p.x - W*0.10, p.y - L*0.04, W*0.20, 3);
+    ctx.fillStyle = (Math.floor(car.flash * 4) % 2) ? '#ffd700' : '#000';
+    if (isHoriz) ctx.fillRect(p.x - L*0.04, p.y - H - 3.5, L*0.08, 2);
+  }
+  // Полоса спорткара (белая по центру корпуса)
+  if (m.sport) {
+    ctx.fillStyle = '#fff';
+    if (isHoriz) ctx.fillRect(p.x - L*0.45, p.y - H + 4, L*0.9, 2);
+    else ctx.fillRect(p.x - 1, p.y - L*0.38, 2, L*0.76);
+  }
+}
+
+// ── Светофор на перекрёстке (рисуется как столб на тайле) ───────
+// Только на тайлах перекрёстков (r%8<=1 И c%8<=1). 4 светофора в углах
+// сразу затратно — рисуем по одному на «север-западном» углу каждого.
+function drawTrafficLight(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const phase = trafficPhase();
+  const H = isoH(1.1);
+  // Столб
+  ctx.fillStyle = '#1a1a22';
+  ctx.fillRect(p.x - 1.5, p.y - H, 3, H);
+  // Корпус — два «глаза»
+  ctx.fillStyle = '#181820';
+  ctx.fillRect(p.x - 5, p.y - H - 18, 10, 18);
+  // Лампы — для E-W (верхний) и для N-S (нижний)
+  function lamp(cy, color, lit) {
+    const halo = ctx.createRadialGradient(p.x, p.y - H - cy, 1, p.x, p.y - H - cy, lit ? 9 : 3);
+    if (lit) {
+      halo.addColorStop(0, color);
+      halo.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath(); ctx.arc(p.x, p.y - H - cy, 9, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = lit ? color : '#0a0a0a';
+    ctx.beginPath(); ctx.arc(p.x, p.y - H - cy, 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+  const ewC = phase.ew === 'g' ? '#5aff5a' : phase.ew === 'y' ? '#ffd700' : '#ff5050';
+  const nsC = phase.ns === 'g' ? '#5aff5a' : phase.ns === 'y' ? '#ffd700' : '#ff5050';
+  lamp(13, ewC, true);
+  lamp(4,  nsC, true);
+}
+
+// ── NPC прохожий (упрощённый человечек) ──────────────────────────
+function drawNpc(npc) {
+  const p = w2s(npc.r, npc.c);
+  drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null, false);
 }
 
 // Машина — припаркована на тайле, занимает ~80% площади
@@ -1611,6 +2006,25 @@ function render() {
       else if (t === 7) items.push({ depth: r + c, draw: () => drawLamp(r, c) });
     }
   }
+  // Светофоры на перекрёстках (тайл где r%8<=1 И c%8<=1).
+  // Берём «северо-западный» угол каждого блока.
+  for (let r = r0; r < r1; r++) {
+    if (r % BLOCK !== 1) continue;
+    for (let c = c0; c < c1; c++) {
+      if (c % BLOCK !== 1) continue;
+      items.push({ depth: r + c - 0.3, draw: () => drawTrafficLight(r, c) });
+    }
+  }
+  // NPC прохожие
+  for (const npc of NPCS) {
+    if (npc.r < r0 || npc.r >= r1 || npc.c < c0 || npc.c >= c1) continue;
+    items.push({ depth: npc.r + npc.c + 0.0005, draw: () => drawNpc(npc) });
+  }
+  // Машины (движущиеся)
+  for (const car of CARS) {
+    if (car.r < r0 || car.r >= r1 || car.c < c0 || car.c >= c1) continue;
+    items.push({ depth: car.r + car.c + 0.0008, draw: () => drawCarPretty(car) });
+  }
   // Игрок (со своим чат-баблом из последнего смайлика, чтобы сразу видеть)
   items.push({ depth: player.r + player.c + 0.001, draw: () => {
     const p = w2s(player.r + 0.5, player.c + 0.5);
@@ -1830,18 +2244,28 @@ function closeChat() {
   emojiBar.classList.remove('open');
   chatInput.blur();
 }
+function _submitChat(t) {
+  if (!t) return;
+  sendChat(t);
+  // Локальное эхо над своей головой — чтобы сразу видеть, без ожидания
+  // обратного снапа от сервера.
+  _localChat = t.slice(0, 80);
+  _localChatT = performance.now();
+}
 btnChat.addEventListener('click', () => {
   if (!chatOpen) openChat();
   else {
     const t = chatInput.value.trim();
-    if (t) { sendChat(t); chatInput.value = ''; }
+    _submitChat(t);
+    chatInput.value = '';
     closeChat();
   }
 });
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     const t = chatInput.value.trim();
-    if (t) { sendChat(t); chatInput.value = ''; }
+    _submitChat(t);
+    chatInput.value = '';
     closeChat();
   } else if (e.key === 'Escape') closeChat();
 });
