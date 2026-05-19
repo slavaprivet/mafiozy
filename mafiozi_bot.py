@@ -11082,9 +11082,10 @@ class WorldSim:
                     'srv_now':      round(now, 2),
                     # Авторитативный look из БД — клиент перепишет свой.
                     # Если в hub.html в DATA.gender/skin/... попали нули,
-                    # тут будет нормальный перс из creator.
+                    # тут будет нормальный перс из creator. ИМЯ НЕ ШЛЁМ —
+                    # в БД оно может быть дефолтное «Гангстер», а в URL
+                    # из hub приходит правильное имя пользователя.
                     'look':         me.get('look', {}),
-                    'name':         me.get('name', 'Игрок'),
                 },
                 'others': others,
                 'tick': self.tick_no,

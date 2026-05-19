@@ -342,6 +342,15 @@ const QP = {
 // ── Telegram WebApp ─────────────────────────────────────────────
 const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
 try { if (tg) { tg.ready(); tg.expand(); } } catch(e) {}
+// Если из hub пришло дефолтное «Гангстер» (потому что бот не пробросил
+// ?name=...), пытаемся вытащить настоящее имя из Telegram initDataUnsafe.
+try {
+  if ((QP.name === 'Гангстер' || QP.name === 'Игрок') && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    const u = tg.initDataUnsafe.user;
+    const real = (u.first_name || u.username || '').trim();
+    if (real) QP.name = real.slice(0, 24);
+  }
+} catch(e) {}
 // Запрещаем вертикальный свайп вниз чтобы свайп по джойстику не закрывал
 // мини-апп. API 7.7+; на старых версиях просто игнорируется.
 try { if (tg && typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); } catch(e) {}
@@ -998,9 +1007,9 @@ function wsConnect() {
           QP.look = Object.assign({}, QP.look, d.me.look);
           QP.has_look = 1;
         }
-        if (d.me.name && d.me.name.length > 0 && d.me.name !== 'Игрок') {
-          QP.name = d.me.name;
-        }
+        // ИМЯ НЕ ТРОГАЕМ — берём только из URL (DATA.name в hub).
+        // В БД может лежать старое/дефолтное «Гангстер», перезапись его
+        // на свой вычитала бы из под игрока его «Вячеслав».
       }
       const seen = new Set();
       const list = d.others || [];
