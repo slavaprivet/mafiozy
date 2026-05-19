@@ -198,8 +198,12 @@ function buildMap() {
 }
 buildMap();
 
-// Камера следит за игроком
-const cam = { x: 0, y: 0 };
+// Камера следит за игроком. Инициализируем смещением в точку спавна,
+// чтобы первый кадр отрисовался уже с игроком в центре экрана.
+const cam = {
+  x: (MAP_COLS / 2 - MAP_ROWS / 2) * 38 * 0.5,
+  y: (MAP_COLS / 2 + MAP_ROWS / 2) * 38 * 0.5 * 0.5,
+};
 
 // Преобразование тайл→экран и обратно
 function w2s(r, c) {
@@ -414,10 +418,13 @@ function update(dt) {
     player.walking = mv > 0.15;
     player.walkPhase += dt * 10 * mv;
   }
-  // Камера следит за игроком (плавно)
-  const p = w2s(player.r + 0.5, player.c + 0.5);
-  cam.x += (p.x - window.innerWidth / 2 - cam.x) * 0.0; // already centred
-  cam.y += (p.y - window.innerHeight / 2 - cam.y) * 0.0;
+  // Камера следит за игроком — держим его ровно по центру экрана.
+  // Целевое смещение камеры = изометрические координаты игрока
+  // (то самое что прибавляется в w2s до вычитания cam). Плавно.
+  const targetCamX = (player.c - player.r) * TS * 0.5;
+  const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
+  cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
+  cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
   // Интерполяция других игроков
   for (const [, o] of others) {
     o.x += (o.tx - o.x) * Math.min(1, dt * 8);
