@@ -13,9 +13,12 @@ import os
 import re
 import sys
 import time
+import json
+import base64
 import shutil
 import subprocess
 import urllib.request
+import urllib.error
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -93,7 +96,78 @@ def start_tunnel():
     log(f"ТУННЕЛЬ ГОТОВ: {url}")
     log("Теперь открой мини-апп в Telegram — найм/увольнение НЕ закроют его.")
     log("=" * 60)
+    # Публикуем актуальный URL на GitHub Pages: hub.html у друзей, которые
+    # пришли по share-ссылке (там в URL нет ?api=), теперь сможет подтянуть
+    # его автоматически через fetch coop_api.json. Без этого «Бот без туннеля».
+    try:
+        publish_coop_api_json(url)
+    except Exception as _e:
+        log(f"[!] Публикация coop_api.json упала: {_e}")
+        log("    Кооп-инвайты через share-ссылку могут не работать у новых юзеров.")
     return url, proc
+
+
+def publish_coop_api_json(api_url: str):
+    """Записывает coop_api.json в GitHub-репо mafiozi-battle (GitHub Pages).
+    Содержимое: {"base": "<api_url>", "ts": <unix>}. hub.html у юзеров
+    без api= в URL читает этот файл и использует base как COOP_API_BASE.
+
+    Использует .token (GitHub Personal Access Token) рядом с этим скриптом.
+    Если токена нет — тихо скипаем (для деплоев без auto-publish можно
+    хардкодить api в URL хаба, как раньше)."""
+    token_path = HERE / ".token"
+    if not token_path.exists():
+        log("[!] .token не найден — coop_api.json не публикуется.")
+        log("    У друзей без бот-кнопки лобби работать не будет.")
+        return
+    token = token_path.read_text(encoding="utf-8").strip()
+    if not token.startswith("ghp_"):
+        log("[!] .token не похож на GitHub PAT (нет 'ghp_' префикса).")
+        return
+
+    repo   = "slavaprivet/mafiozi-battle"
+    branch = "main"
+    fname  = "coop_api.json"
+    body   = {"base": api_url, "ts": int(time.time())}
+    content_b64 = base64.b64encode(json.dumps(body, ensure_ascii=False).encode()).decode()
+
+    def gh(method, path, payload=None):
+        req = urllib.request.Request(
+            "https://api.github.com" + path,
+            json.dumps(payload).encode() if payload else None,
+            method=method,
+        )
+        req.add_header("Authorization", "token " + token)
+        req.add_header("Accept", "application/vnd.github.v3+json")
+        req.add_header("User-Agent", "mafiozi-coop-api-publisher")
+        if payload:
+            req.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return json.loads(r.read()), r.status
+        except urllib.error.HTTPError as e:
+            try:
+                return json.loads(e.read()), e.code
+            except Exception:
+                return {"message": str(e)}, e.code
+
+    # 1) Узнаём текущий SHA (нужен GitHub-у для PUT — иначе 422 conflict).
+    info, code = gh("GET", f"/repos/{repo}/contents/{fname}?ref={branch}")
+    old_sha = info.get("sha") if code == 200 else None
+
+    # 2) PUT новый файл.
+    payload = {
+        "message": f"coop_api.json update ({api_url})",
+        "content": content_b64,
+        "branch":  branch,
+    }
+    if old_sha:
+        payload["sha"] = old_sha
+    resp, code = gh("PUT", f"/repos/{repo}/contents/{fname}", payload)
+    if code in (200, 201):
+        log(f"coop_api.json опубликован → https://slavaprivet.github.io/mafiozi-battle/{fname}")
+    else:
+        log(f"[!] coop_api.json PUT HTTP {code}: {resp}")
 
 
 def start_bot(api_url):

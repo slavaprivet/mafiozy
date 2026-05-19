@@ -5554,7 +5554,29 @@ let coopPollTimer = null;
 let coopWaitTimer = null;
 let coopMyUid = null;
 
-function coopApi() { return DATA.api || ''; }
+function coopApi() { return DATA.api || _COOP_API_FALLBACK || ''; }
+
+// ── Динамический фолбэк COOP_API_BASE ─────────────────────────────────────
+// Когда друг открывает мини-апп через share-ссылку (t.me/<bot>?startapp=...),
+// у него в URL НЕТ api= (Telegram не умеет прокинуть динамический cloudflare
+// URL в Main Mini App). Тогда тянем актуальный URL из coop_api.json,
+// который start_with_tunnel.py публикует на GitHub Pages при каждом старте.
+let _COOP_API_FALLBACK = '';
+async function _coopFetchApiFallback() {
+  if (DATA.api) return DATA.api;  // уже знаем — фолбэк не нужен
+  try {
+    const r = await fetch('https://slavaprivet.github.io/mafiozi-battle/coop_api.json?t=' + Date.now(), {
+      cache: 'no-store',
+    });
+    if (!r.ok) return '';
+    const j = await r.json();
+    if (j && typeof j.base === 'string' && j.base.startsWith('https://')) {
+      _COOP_API_FALLBACK = j.base;
+      return j.base;
+    }
+  } catch(e) {}
+  return '';
+}
 
 // Возвращает реальный Telegram-ID. Приоритет: DATA.uid (из URL от бота) →
 // tg.initDataUnsafe.user.id → гость. Для HTTP-API нужен int — гостевой
@@ -6466,6 +6488,12 @@ async function _coopAutoJoinFromInvite() {
   if (!sp || !sp.startsWith('coop_')) return false;
   const sid = sp.slice(5).toUpperCase();
   if (!sid) return false;
+  // Если в URL нет api= (классика: друг пришёл по share-ссылке через
+  // Main Mini App), пробуем подтянуть актуальный URL из coop_api.json
+  // на GitHub Pages — его пишет бот при старте туннеля.
+  if (!coopApi()) {
+    await _coopFetchApiFallback();
+  }
   if (!coopApi()) {
     showToast('Бот без туннеля. /start в Telegram заново.', '⚠️', 6000);
     return false;

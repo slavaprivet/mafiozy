@@ -9492,7 +9492,7 @@ def _coop_next_turn(sess: dict):
 # COOP_READY_WINDOW сек — если кто-то не нажмёт за это время, сессия
 # отменяется автоматически.
 COOP_READY_AUTOSTART = 5    # сек до автостарта когда все готовы
-COOP_READY_WINDOW    = 30   # сек на нажатие «Готов» всеми
+COOP_READY_WINDOW    = 60   # сек на нажатие «Готов» всеми (минута — друг успевает дойти из чата)
 
 
 def _coop_evaluate_lobby(sess: dict, now: float = None) -> None:
