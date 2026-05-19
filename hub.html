@@ -1639,17 +1639,15 @@ body.on-subpage .time-display-box { display: none !important; }
     <div class="tile-label">Бриллианты</div>
   </div>
 
-  <div class="tile tile-contacts" id="tile-contacts" onclick="nav('my_contacts')">
-    <div class="tile-icon">🤝</div>
-    <div class="tile-label">Мои связи</div>
-  </div>
-
-  <!-- Тайл «Мои навыки» — заменил «Мой гангстер» (тот переехал в досье
-       как кнопка «Сменить образ»). Здесь — прокачка навыка взломщика
-       сейфов. Дальше сюда же добавим следующие навыки (стрельба, стелс). -->
+  <!-- Тайл «Мои навыки» поменян местами с «Мои связи» по запросу пользователя -->
   <div class="tile tile-creator" onclick="nav('skills')">
     <div class="tile-icon">🎯</div>
     <div class="tile-label">Мои навыки</div>
+  </div>
+
+  <div class="tile tile-contacts" id="tile-contacts" onclick="nav('my_contacts')">
+    <div class="tile-icon">🤝</div>
+    <div class="tile-label">Мои связи</div>
   </div>
 
 </div>
@@ -1844,9 +1842,12 @@ body.on-subpage .time-display-box { display: none !important; }
       <div class="char-row"><span class="char-label">💎 Бриллианты</span><span class="char-value" id="cs-dia">—</span></div>
       <div class="char-row"><span class="char-label">💼 Работа</span><span class="char-value" id="cs-job">—</span></div>
     </div>
-    <!-- Кнопка перешла сюда из главного меню: теперь смена образа из досье. -->
-    <button class="modal-btn modal-btn-heal" style="margin:14px;background:linear-gradient(135deg,#3d2810,#5a3d18);color:#ffd76b" onclick="openCreator()">
+    <!-- Кнопка перешла сюда из главного меню: теперь смена образа из досье.
+         Подпись «стоит 5 💎» — чтобы юзер сразу видел что смена платная
+         (первое создание бесплатно, повторная смена — 5 бриллиантов).  -->
+    <button class="modal-btn modal-btn-heal" style="margin:14px;background:linear-gradient(135deg,#3d2810,#5a3d18);color:#ffd76b;display:block;text-align:center;line-height:1.3" onclick="openCreator()">
       🎨 Сменить образ
+      <div style="font-size:11px;color:#bca668;font-weight:normal;margin-top:3px">смена стоит 5 💎</div>
     </button>
   </div>
 </div>
@@ -2128,6 +2129,8 @@ const DATA = {
   stlh_lvl: pi('stlh_lvl', 0),
   tgh_lvl:  pi('tgh_lvl',  0),
   hst_lvl:  pi('hst_lvl',  0),
+  // JSON-строка кулдаунов сейфов: {"boss_id": last_loot_ts, ...}
+  safe_cd_raw: p('safe_cd', ''),
   // Базовое оружие игрока — обычный пистолет («наган»). В магазине его
   // больше нет: это стартовый ствол, выдаётся даром каждому персонажу.
   weapon:  p('weapon', '') || 'nagan',
@@ -5155,6 +5158,22 @@ function findFreeSpawnPos(grid,ROWS,COLS,avoidR,avoidC,minDist){
   return null;
 }
 
+// Phase 9: сейф ready для конкретного босса (кулдаун 1ч после взлома).
+// Серверный JSON приходит в DATA.safe_cd_raw как {"boss_id": last_ts}.
+const SAFE_RESPAWN_S = 3600;
+function _safeCDMap() {
+  try { return JSON.parse(DATA.safe_cd_raw || '{}') || {}; }
+  catch(e) { return {}; }
+}
+function isSafeReadyForBoss(bossId) {
+  if (!bossId) return false;
+  const cds = _safeCDMap();
+  const last = (cds[bossId] | 0) || 0;
+  // srv_now — серверное время в DATA. Если нет — берём локальное.
+  const now = (DATA.srv_now | 0) || Math.floor(Date.now() / 1000);
+  return (now - last) >= SAFE_RESPAWN_S;
+}
+
 function startBattle(bossId, locId){
   // Открываем нашу единую боёвку (demo_isometric.html) в том же WebApp-контейнере.
   // Параметры — те же, что бот собирает в build_iso_url: имя/HP/maxhp/атак/защита/оружие/босс/район.
@@ -5206,6 +5225,8 @@ function startBattle(bossId, locId){
   // Сила босса = количество миньонов (2..18 в BOSS_DATA). Боёвка из этого
   // считает размер карты — чем больше миньонов, тем крупнее арена.
   params.set('minions', boss.minions || 3);
+  // Phase 9: готов ли сейф на этом боссе? (кулдаун 1ч после успешного взлома)
+  params.set('safe_ok', isSafeReadyForBoss(bossId) ? '1' : '0');
   window.location.href = 'demo_isometric.html?' + params.toString();
 }
 
@@ -5972,6 +5993,8 @@ function _coopEnterBattle(data) {
     params.set('has_look', 1);
   }
   params.set('minions', boss.minions || 3);
+  // Phase 9: сейф на боссе готов или нет (кулдаун 1ч)
+  params.set('safe_ok', isSafeReadyForBoss(data.boss_id) ? '1' : '0');
   params.set('coop_sid', data.sid);
   // Path V (Phase 2+): включаем server-authoritative симулятор через WS.
   // demo_isometric.html по этому флагу не запускает локальный AI миньонов,

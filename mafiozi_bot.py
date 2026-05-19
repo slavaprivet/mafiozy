@@ -835,6 +835,9 @@ async def init_db():
             ("stealth_level",     "INTEGER DEFAULT 0"),
             ("toughness_level",   "INTEGER DEFAULT 0"),
             ("hustler_level",     "INTEGER DEFAULT 0"),
+            # Кулдауны сейфов per (uid, boss_id). JSON {"kosoy": 1715000000, ...}
+            # Сейф появляется на карте каждого босса раз в час (SAFE_RESPAWN_S).
+            ("safe_cooldowns_json", "TEXT DEFAULT NULL"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -1870,6 +1873,9 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "stlh_lvl": int(char.get("stealth_level")     or 0),
         "tgh_lvl":  int(char.get("toughness_level")   or 0),
         "hst_lvl":  int(char.get("hustler_level")     or 0),
+        # JSON {"boss_id": last_loot_ts}. Хаб сам считает кулдауны и
+        # пробрасывает в боёвку только safe_ok=0/1 для текущего босса.
+        "safe_cd":  (char.get("safe_cooldowns_json") or "")[:1200],
         "weapon":   weapon,
         "prop":     prop_str,
         "gang":     gang_str,
@@ -12152,10 +12158,14 @@ async def _coop_http_app():
             'level': new_lvl,
         }))
 
+    # Кулдаун сейфа на одного босса (секунд). 1 час по запросу пользователя.
+    SAFE_RESPAWN_S = 3600
+
     # === HTTP: вскрытый сейф из боёвки — серверный roll и начисление ===
-    # Клиент шлёт только {safe_lvl, big}. Сервер сам рандомит сумму, чтобы
-    # читер не мог накрутить cash, и применяет бонус Дельца.
+    # Клиент шлёт {safe_lvl, big, boss}. Сервер: валидация навыка, проверка
+    # кулдауна на boss_id (1 час), roll cash, бонус Дельца, запись cooldown.
     async def h_safe_loot(req):
+        import json as _json, time as _time, random as _rnd
         try:
             uid = int(req.match_info['uid'])
         except Exception:
@@ -12168,16 +12178,32 @@ async def _coop_http_app():
             safe_lvl = max(1, min(5, int(b.get('safe_lvl', 1))))
         except Exception:
             safe_lvl = 1
-        big = bool(b.get('big', False))
+        big     = bool(b.get('big', False))
+        boss_id = str(b.get('boss', '') or '')[:32]
+        if not boss_id:
+            return await _cors(web.json_response({'ok': False, 'error': 'no boss'}, status=400))
         char = await get_character(uid)
         if not char:
             return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
-        # Серверная валидация: уровень сейфа ≤ навык игрока
+        # Валидация: уровень сейфа ≤ навык игрока
         sc = int(char.get('safecracker_level') or 0)
         if safe_lvl > sc:
             return await _cors(web.json_response({'ok': False, 'error': 'skill too low'}))
+        # Кулдаун на этом боссе
+        try:
+            cds = _json.loads(char.get('safe_cooldowns_json') or '{}') or {}
+            if not isinstance(cds, dict):
+                cds = {}
+        except Exception:
+            cds = {}
+        now = int(_time.time())
+        last = int(cds.get(boss_id, 0) or 0)
+        if now - last < SAFE_RESPAWN_S:
+            return await _cors(web.json_response({
+                'ok': False, 'error': 'on cooldown',
+                'remaining': int(SAFE_RESPAWN_S - (now - last)),
+            }))
         # Roll: маленький 100 + lvl*250 ± 30%; большой — х4.
-        import random as _rnd
         base = int(round((100 + safe_lvl * 250) * (0.7 + _rnd.random() * 0.6)))
         if big:
             base *= 4
@@ -12186,7 +12212,17 @@ async def _coop_http_app():
         hst_bonus = [0, 5, 10, 20, 30, 45][min(5, max(0, hst))] / 100.0
         gained = int(round(base * (1.0 + hst_bonus)))
         new_cash = int(char.get('cash') or 0) + gained
-        await update_character(uid, cash=new_cash)
+        # Запись кулдауна (только этого босса; не разрастается)
+        cds[boss_id] = now
+        # Подчищаем устаревшие записи (>7 дней), чтобы JSON не пух
+        try:
+            cds = {k: v for k, v in cds.items()
+                   if isinstance(v, (int, float)) and now - int(v) < 7 * 24 * 3600}
+        except Exception:
+            pass
+        await update_character(uid,
+                               cash=new_cash,
+                               safe_cooldowns_json=_json.dumps(cds))
         return await _cors(web.json_response({
             'ok':     True,
             'cash':   new_cash,

@@ -348,7 +348,10 @@ const playerDia   = parseInt(urlP.get('dia')) || 0;
 let changeLookMode = false;   // режим смены образа (платный)
 let viewAngle      = 0;       // 0=спереди 1=вправо 2=сзади 3=влево
 
-const ROT_LABELS = ['Спереди','Вправо','Сзади','Влево'];
+// Боковые ракурсы (1 и 3) убраны — drawChar нативно их не рисует, был
+// просто сплющенный фронтальный кадр, выглядел плохо. Оставили
+// «Спереди»/«Сзади» (0/2) — переключаются обоими кнопками. По кругу.
+const ROT_LABELS = ['Спереди','Сзади'];
 
 // ── SKIN COLORS ────────────────────────────────────────────────────────────
 const SKINS = ['#FDDBB4','#F0C27F','#D4935A','#A0622A','#7A3B10','#C8A882'];
@@ -1066,25 +1069,18 @@ const mainCtx = mainCanvas.getContext('2d');
 function redraw() {
   const W = 220, H = 280;
   mainCtx.clearRect(0, 0, W, H);
-  if (viewAngle === 0) {
-    drawChar(mainCtx, W, H, state);
-  } else if (viewAngle === 2) {
+  // 0 = спереди, 1 = сзади. Других ракурсов нет (см. ROT_LABELS).
+  if (viewAngle === 1) {
     drawChar(mainCtx, W, H, {...state, _back: true});
   } else {
-    // Side view — squish horizontally
-    const mirror = viewAngle === 3;
-    mainCtx.save();
-    mainCtx.translate(W / 2, 0);
-    mainCtx.scale(mirror ? -0.38 : 0.38, 1);
-    mainCtx.translate(-W / 2, 0);
     drawChar(mainCtx, W, H, state);
-    mainCtx.restore();
   }
 }
 
 // ── ROTATION ──────────────────────────────────────────────────────────────
-function rotateLeft()  { viewAngle = (viewAngle + 3) % 4; document.getElementById('rot-label').textContent = ROT_LABELS[viewAngle]; redraw(); }
-function rotateRight() { viewAngle = (viewAngle + 1) % 4; document.getElementById('rot-label').textContent = ROT_LABELS[viewAngle]; redraw(); }
+// Теперь всего 2 ракурса (спереди/сзади). Обе кнопки крутят по кругу.
+function rotateLeft()  { viewAngle = (viewAngle + 1) % 2; document.getElementById('rot-label').textContent = ROT_LABELS[viewAngle]; redraw(); }
+function rotateRight() { viewAngle = (viewAngle + 1) % 2; document.getElementById('rot-label').textContent = ROT_LABELS[viewAngle]; redraw(); }
 
 // ── VIEW MODE ─────────────────────────────────────────────────────────────
 function initViewMode() {

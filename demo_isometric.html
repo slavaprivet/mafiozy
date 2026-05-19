@@ -553,6 +553,9 @@ const QP = {
   stlhLvl:     _qInt('stlh_lvl', 0),  // уменьшает FOV врагов
   tghLvl:      _qInt('tgh_lvl',  0),  // +max HP
   hstLvl:      _qInt('hst_lvl',  0),  // +% к деньгам (применяется на сервере)
+  // Phase 9: 1 если сейф на этом боссе готов (хаб уже учёл кулдаун 1ч).
+  // Если 0 — сейфов на карте не будет вообще (уже сегодня взяли тут куш).
+  safeOk:      _qInt('safe_ok', 1),
   // Бэкапы стат игрока на момент входа в бой — используются для восстановления
   // в hub.html, если HTTP API не ответил (таймаут/нет туннеля). Без них при
   // потере state.cash хаб подхватывает 0 → визуально «деньги пропали».
@@ -858,22 +861,20 @@ function placePowderBarrels() {
 }
 placePowderBarrels();
 
-// ── Phase 9: СЕЙФЫ на карте ──
-// Количество сейфов растёт с рангом района (mlvl). Уровень каждого сейфа
-// = случайный 1..mlvl (т.е. на резиденции Lv5 будут сейфы всех уровней).
-// 25% сейфов — большие (визуально крупнее + сервер даёт х4 денег).
-// Игрок может вскрыть сейф уровня ≤ safecracker_level.
+// ── Phase 9: СЕЙФ на карте (макс 1 шт, кулдаун 1ч на босса) ──
+// Спавним РОВНО ОДИН сейф если safeOk=1. Уровень сейфа = ранг района.
+// 30% шанс что сейф «большой» (визуально крупнее + сервер даёт х4 денег).
+// Если safeOk=0 (взяли куш меньше часа назад на этом боссе) — сейфов нет.
 function placeSafes() {
-  // Ранг района — берём из QP.mlvl (минимальный уровень локации, 1..5).
+  if (!QP.safeOk) return;  // кулдаун на этом боссе ещё не сгорел
   const rank = Math.max(1, Math.min(5, QP.mlvl | 0 || 1));
-  const n = 3 + Math.floor(Math.random() * Math.max(1, rank));  // ранг 1: 3..3, ранг 5: 3..7
   const minDistFromSpawn = 3;
   const room = BOSS_ROOM;
   const allSpawns = [SPAWNS.player, SPAWNS.boss, ...SPAWNS.minions];
-  let placed = 0, tries = 0;
-  while (placed < n && tries < n * 100) {
-    tries++;
-    // Сейфы кладём вне комнаты босса (босс охраняет вход) — в основном поле.
+  const big   = Math.random() < 0.30;
+  const level = rank;  // уровень сейфа = ранг карты
+  for (let tries = 0; tries < 200; tries++) {
+    // Сейф вне комнаты босса — в основном поле карты
     const r = (room.r1 + 2) + Math.floor(Math.random() * Math.max(1, ROWS - room.r1 - 4));
     const c = 2 + Math.floor(Math.random() * Math.max(1, COLS - 4));
     if (r < 1 || r >= ROWS - 1 || c < 1 || c >= COLS - 1) continue;
@@ -881,23 +882,15 @@ function placeSafes() {
     const tooCloseSpawn = allSpawns.some(([sr, sc]) =>
       Math.hypot(sr - (r + 0.5), sc - (c + 0.5)) < minDistFromSpawn);
     if (tooCloseSpawn) continue;
-    // Не вплотную к другим сейфам
-    const tooCloseSafe = safes.some(s =>
-      Math.hypot(s.r - r, s.c - c) < 3);
-    if (tooCloseSafe) continue;
-    const big = Math.random() < 0.25;
-    const level = 1 + Math.floor(Math.random() * rank);
     MAP[r][c] = big ? 31 : 30;
     safes.push({
-      r, c,
-      level,
-      big,
+      r, c, level, big,
       opened: false,
-      openProgress: 0,   // 0..1, тикает в update() пока игрок рядом и держит кнопку
-      flashT: 0,         // лёгкое пульсирование «можно взломать»
-      cashShown: 0,      // показывалось ли уже сообщение о добыче
+      openProgress: 0,
+      flashT: 0,
+      cashShown: 0,
     });
-    placed++;
+    return;
   }
 }
 placeSafes();
@@ -6059,7 +6052,11 @@ async function lootSafe(s) {
     const res = await fetch(`${QP.api}/safe/${QP.uid}/loot`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ safe_lvl: s.level, big: !!s.big }),
+      body: JSON.stringify({
+        safe_lvl: s.level,
+        big:      !!s.big,
+        boss:     QP.boss || '',   // кулдаун пишется per (uid, boss_id)
+      }),
     });
     const j = await res.json();
     if (j && j.ok) {
