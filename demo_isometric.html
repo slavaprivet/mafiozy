@@ -299,9 +299,16 @@
       </div>
     </div>
     <div id="hitFlash" style="position:absolute;inset:0;background:rgba(255,40,40,0);pointer-events:none;z-index:7;transition:background .1s"></div>
-    <div id="gameOver" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.55);z-index:8;color:#ff5050;font-size:32px;font-weight:bold;text-shadow:0 0 12px #800;pointer-events:none">
+    <div id="gameOver" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:rgba(0,0,0,.65);z-index:8;color:#ff5050;font-size:32px;font-weight:bold;text-shadow:0 0 12px #800;pointer-events:none">
       <div>☠ ВЫ МЕРТВЫ ☠</div>
-      <div style="font-size:13px;color:#ccc;font-weight:normal;margin-top:8px;pointer-events:auto">выйди в район и попробуй ещё раз</div>
+      <div style="font-size:13px;color:#ccc;font-weight:normal;margin-top:4px">Этот бой засчитывается как поражение.</div>
+      <!-- Кнопка для немедленного выхода. pointer-events:auto чтобы клик
+           проходил даже когда родитель none. Тот же путь что и 🚪 в углу,
+           но визуально явный — после смерти юзер не должен искать. -->
+      <button id="btnGameOverExit"
+              style="margin-top:8px;padding:14px 22px;background:linear-gradient(180deg,#5a2020,#3a1010);border:2px solid #c83030;border-radius:10px;color:#ff8080;font-size:15px;font-weight:bold;cursor:pointer;min-width:220px;pointer-events:auto;text-shadow:none">
+        🚪 Выйти в район
+      </button>
     </div>
     <!-- Мини-обучение появляется на 2 секунды после старта боя (см. showTutorial). -->
     <div id="tutorial">
@@ -6649,6 +6656,11 @@ function showTutorial() {
   // сломанный confirm()-путь, который не работает в Telegram WebApp.
   const cb2 = document.getElementById('btnCatBack');
   if (cb2) cb2.onclick = () => forceQuitToHub(true);
+  // Кнопка выхода на экране смерти — без неё юзер должен искать угловое
+  // 🚪. Через тот же forceQuitToHub(true) — поражение засчитается, едем
+  // в район.
+  const goExit = document.getElementById('btnGameOverExit');
+  if (goExit) goExit.onclick = () => forceQuitToHub(true);
 })();
 
 requestAnimationFrame(loop);
