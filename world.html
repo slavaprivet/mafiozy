@@ -80,10 +80,12 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
   position: absolute; left: 50%; transform: translateX(-50%); top: 64px;
   background: linear-gradient(135deg, #1f6a32, #2f9e4f); color: #fff;
   border: 1px solid #3aa055; border-radius: 12px; padding: 10px 18px;
-  font-size: 13px; font-weight: 700; cursor: pointer; display: none; z-index: 5;
+  font-size: 13px; font-weight: 700; cursor: pointer; display: none; z-index: 7;
   box-shadow: 0 4px 12px rgba(0,0,0,.5);
   font-family: inherit;
 }
+/* Когда виден PVP-баннер — кнопка съезжает ниже него */
+body.in-pvp #zoneBtn { top: 104px; }
 
 #errorBanner {
   position: absolute; left: 14px; right: 14px; top: 60px;
@@ -91,6 +93,143 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
   color: #ffb0b0; padding: 10px 14px; font-size: 12px; text-align: center; z-index: 8;
   display: none;
 }
+
+/* Кнопка «🔫 Огонь» — большая, справа над чатом, только в PVP-зоне */
+#fireBtn {
+  position: absolute; right: 24px; bottom: 100px;
+  width: 88px; height: 88px; border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #ff6464, #a01818);
+  border: 3px solid #ffd76b; color: #fff; cursor: pointer;
+  font-size: 32px; font-weight: 800; line-height: 84px; text-align: center;
+  box-shadow: 0 6px 20px rgba(255,40,40,.55), inset 0 -4px 8px rgba(0,0,0,.4);
+  display: none; z-index: 5; user-select: none;
+  font-family: inherit;
+}
+#fireBtn.cd { filter: grayscale(.6) brightness(.55); }
+#fireBtn:active { transform: scale(.94); }
+
+/* HP-бар игрока в PVP — над кнопкой огня */
+#pvpHud {
+  position: absolute; right: 14px; bottom: 196px;
+  display: none; z-index: 5;
+  background: rgba(20,24,32,.85); border: 1px solid #4a5060;
+  border-radius: 10px; padding: 8px 10px; min-width: 130px;
+  font-family: inherit;
+}
+#pvpHud .row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #c8d0dc; }
+#pvpHud .barOuter { flex: 1; height: 10px; background: #1a1d24; border-radius: 5px; overflow: hidden; }
+#pvpHud .barInner { height: 100%; background: linear-gradient(90deg, #c0392b, #e74c3c); transition: width .25s ease; }
+#pvpHud .stats { font-size: 11px; color: #ffd76b; margin-top: 4px; text-align: right; }
+
+/* Экран смерти */
+#deathOverlay {
+  position: absolute; inset: 0; z-index: 15;
+  background: rgba(20,0,0,.65); display: none;
+  align-items: center; justify-content: center; flex-direction: column;
+  color: #fff; font-family: inherit;
+}
+#deathOverlay.show { display: flex; }
+#deathOverlay .skull { font-size: 80px; }
+#deathOverlay .title { font-size: 24px; font-weight: 800; margin-top: 4px; color: #ff5a5a; }
+#deathOverlay .by    { font-size: 14px; color: #c8d0dc; margin-top: 6px; }
+#deathOverlay .cnt   { font-size: 16px; color: #ffd76b; margin-top: 14px; font-weight: 700; }
+
+/* Баннер «вы в PVP-зоне» */
+#pvpBanner {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 56px;
+  background: linear-gradient(135deg, #5a1010, #a02020);
+  border: 2px solid #ff3030; border-radius: 12px;
+  padding: 8px 16px; font-size: 12px; font-weight: 800; color: #ffd0d0;
+  letter-spacing: .5px; display: none; z-index: 6;
+  box-shadow: 0 4px 16px rgba(255,40,40,.45);
+  animation: pvpPulse 1.4s ease-in-out infinite;
+  font-family: inherit;
+}
+@keyframes pvpPulse {
+  0%,100% { box-shadow: 0 4px 16px rgba(255,40,40,.45); }
+  50%     { box-shadow: 0 4px 28px rgba(255,80,80,.85); }
+}
+
+/* Быстрые смайлики над чат-инпутом */
+#emojiBar {
+  position: absolute; right: 14px; bottom: 92px; display: none;
+  gap: 4px; align-items: center; z-index: 4;
+  background: rgba(20,24,32,.92); border: 1px solid #3a4452;
+  border-radius: 10px; padding: 4px 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.5);
+}
+#emojiBar.open { display: flex; }
+#emojiBar .em {
+  background: transparent; border: none; cursor: pointer; padding: 4px 6px;
+  font-size: 20px; line-height: 1; border-radius: 6px;
+}
+#emojiBar .em:active { background: rgba(255,215,107,.20); }
+
+/* Мини-карта в правом верхнем углу */
+#mapHud {
+  position: absolute; right: 14px; top: 56px; z-index: 4;
+  width: 132px; height: 132px;
+  background: rgba(8,10,16,.85);
+  border: 2px solid #4a5060; border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.6);
+  pointer-events: none;
+}
+#mapHud canvas { display: block; width: 100%; height: 100%; border-radius: 8px; }
+
+/* Чёрный рынок — модал */
+#shopOverlay {
+  position: absolute; inset: 0; z-index: 20;
+  background: rgba(0,0,0,.75); display: none;
+  align-items: center; justify-content: center;
+  font-family: inherit;
+}
+#shopOverlay.open { display: flex; }
+#shopModal {
+  width: min(360px, 92vw); max-height: 86vh; overflow-y: auto;
+  background: linear-gradient(160deg, #1a0f24, #150818);
+  border: 2px solid #5a2058; border-radius: 16px; padding: 16px;
+  color: #fff; box-shadow: 0 8px 32px rgba(80,20,80,.55);
+}
+#shopHeader {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+}
+#shopHeader .icon { font-size: 28px; }
+#shopHeader .title { font-size: 17px; font-weight: 800; color: #ffd76b; }
+#shopHeader .sub   { font-size: 11px; color: #b8a070; margin-top: 1px; }
+#shopHeader .close {
+  margin-left: auto; background: rgba(0,0,0,.4); border: 1px solid #555;
+  color: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer;
+  font-size: 13px;
+}
+.shop-item {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0,0,0,.35); border: 1px solid #3a2540;
+  border-radius: 10px; padding: 10px; margin-bottom: 8px;
+}
+.shop-item .pic { font-size: 26px; flex-shrink: 0; width: 36px; text-align: center; }
+.shop-item .info { flex: 1; min-width: 0; }
+.shop-item .name { font-size: 14px; font-weight: 700; color: #fff; }
+.shop-item .desc { font-size: 11px; color: #b89cc8; margin-top: 2px; }
+.shop-item .buy {
+  background: linear-gradient(135deg, #5a2058, #8a3088);
+  border: 1px solid #aa50aa; border-radius: 8px;
+  color: #fff; padding: 8px 12px; font-size: 12px; font-weight: 700;
+  cursor: pointer; flex-shrink: 0;
+  font-family: inherit;
+}
+.shop-item .buy:active { transform: scale(.96); }
+
+/* Toast — короткое всплывающее уведомление */
+#toast {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: 110px; background: rgba(20,24,32,.95);
+  border: 1px solid #5a2058; border-radius: 10px;
+  color: #ffd76b; padding: 10px 16px; font-size: 13px;
+  z-index: 30; display: none; box-shadow: 0 4px 12px rgba(0,0,0,.6);
+  font-family: inherit;
+}
+#toast.show { display: block; animation: toastIn .25s ease; }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
 </style>
 </head>
 <body>
@@ -103,19 +242,69 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
   </div>
 
   <button id="zoneBtn"></button>
+  <div id="pvpBanner">⚠️ ВЫ В PVP-ЗОНЕ ⚠️</div>
+
+  <div id="mapHud"><canvas id="mapCanvas" width="132" height="132"></canvas></div>
 
   <div id="joyL"><div class="knob"></div></div>
+
+  <div id="emojiBar">
+    <button class="em" data-e="😂">😂</button>
+    <button class="em" data-e="🔥">🔥</button>
+    <button class="em" data-e="💀">💀</button>
+    <button class="em" data-e="👍">👍</button>
+    <button class="em" data-e="❤️">❤️</button>
+    <button class="em" data-e="🤝">🤝</button>
+  </div>
 
   <div id="chatBar">
     <input id="chatInput" placeholder="Сообщение…" maxlength="80">
     <button id="btnChat">💬</button>
   </div>
 
-  <!-- Debug-оверлей. Показывает joyL.dx/dy и позицию игрока — нужно
-       чтобы продиагностировать почему джойстик не ловит touch на iOS. -->
-  <div id="dbgOverlay" style="position:absolute;left:10px;top:62px;background:rgba(0,0,0,.6);color:#7be58a;font:11px/1.3 monospace;padding:6px 8px;border-radius:6px;z-index:9;pointer-events:none;white-space:pre">…</div>
-
   <div id="errorBanner"></div>
+  <div id="toast"></div>
+
+  <div id="pvpHud">
+    <div class="row">
+      <span>❤️</span>
+      <div class="barOuter"><div class="barInner" id="pvpHpBar" style="width:100%"></div></div>
+      <span id="pvpHpTxt">100</span>
+    </div>
+    <div class="stats"><span id="pvpKills">0</span>💀 / <span id="pvpDeaths">0</span>🪦</div>
+  </div>
+  <button id="fireBtn">🔫</button>
+
+  <div id="deathOverlay">
+    <div class="skull">💀</div>
+    <div class="title">УБИТ</div>
+    <div class="by" id="deathBy">&nbsp;</div>
+    <div class="cnt">Респаун через <span id="deathCnt">5</span> сек</div>
+  </div>
+
+  <!-- Чёрный рынок (модал-диалог продавца, скрыт по умолчанию) -->
+  <div id="shopOverlay">
+    <div id="shopModal">
+      <div id="shopHeader">
+        <div class="icon">🌌</div>
+        <div>
+          <div class="title">Барыга Витёк</div>
+          <div class="sub">Шепчет себе под нос</div>
+        </div>
+        <button class="close" id="shopClose">✕</button>
+      </div>
+      <div style="background:rgba(0,0,0,.35);border:1px solid #3a2540;border-radius:10px;padding:14px;margin-bottom:14px;font-size:14px;color:#e0d0e8;line-height:1.5;font-style:italic">
+        — О, свой человек… Заглянешь на рынок? Цены лучше, чем в городе,
+        товар без штампов. Только тссс — копам ни слова.
+      </div>
+      <button id="shopGoBtn" style="width:100%;background:linear-gradient(135deg,#5a2058,#8a3088);border:1px solid #aa50aa;border-radius:10px;color:#fff;padding:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.3px">
+        🌌 Заглянуть на рынок
+      </button>
+      <div style="font-size:11px;color:#7a6090;text-align:center;padding-top:10px">
+        Магазин откроется в меню. Покупка через единый кошелёк — что купишь тут, появится и в инвентаре.
+      </div>
+    </div>
+  </div>
 
   <div id="connectingOverlay">
     <div class="spin"></div>
@@ -138,6 +327,7 @@ const QP = {
   api:  _UP.get('api') || '',
   uid:  _UP.get('uid') || '',
   name: _qStr('name', 'Игрок'),
+  lvl:  _qInt('lvl', 1),
   hubUrl: _UP.get('hub') || '',
   look: {
     gender: _qInt('gender', 0),
@@ -152,31 +342,26 @@ const QP = {
 
 // ── Telegram WebApp ─────────────────────────────────────────────
 const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
+try { if (tg) { tg.ready(); tg.expand(); } } catch(e) {}
+// Если из hub пришло дефолтное «Гангстер» (потому что бот не пробросил
+// ?name=...), пытаемся вытащить настоящее имя из Telegram initDataUnsafe.
 try {
-  if (tg) {
-    tg.ready();
-    tg.expand();
-    // Bot API 7.7+: отключает свайп вниз закрывающий мини-апп.
-    // Без этого джойстик при свайпе пальцем вниз тянет за собой плашку
-    // Telegram и сворачивает приложение.
-    if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
-    // Bot API 8.0+: запрос фуллскрина (если доступно)
-    if (typeof tg.requestFullscreen === 'function') {
-      try { tg.requestFullscreen(); } catch(_) {}
-    }
-    // На случай если confirmation окно — выключаем
-    if (typeof tg.enableClosingConfirmation === 'function') {
-      // Не включаем подтверждение — пусть выходит сразу
-    }
+  if ((QP.name === 'Гангстер' || QP.name === 'Игрок') && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    const u = tg.initDataUnsafe.user;
+    const real = (u.first_name || u.username || '').trim();
+    if (real) QP.name = real.slice(0, 24);
   }
 } catch(e) {}
-// Дополнительная страховка: глушим любой touchmove на body вне инпутов,
-// чтобы Safari/TG не интерпретировал жест как pull-to-close.
-document.body.addEventListener('touchmove', (e) => {
-  // Не блокируем тач если он внутри текстового инпута чата
-  const target = e.target;
-  if (target && target.tagName === 'INPUT') return;
-  e.preventDefault();
+// Запрещаем вертикальный свайп вниз чтобы свайп по джойстику не закрывал
+// мини-апп. API 7.7+; на старых версиях просто игнорируется.
+try { if (tg && typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); } catch(e) {}
+// На всякий случай — глушим touchmove на body (но не на canvas/joystick,
+// они и так останавливают через preventDefault выше).
+document.addEventListener('touchmove', (e) => {
+  // Если событие началось НЕ из интерактивного контрола — гасим (для iOS
+  // часто свайп-вниз снизу закрывает webapp).
+  if (e.touches.length > 1) return;  // не мешаем pinch
+  if (e.cancelable) e.preventDefault();
 }, { passive: false });
 
 // ── Canvas ──────────────────────────────────────────────────────
@@ -196,15 +381,43 @@ window.addEventListener('resize', resizeCanvas);
 
 // ── Карта (статичная) ──────────────────────────────────────────
 // Размер задаст сервер в hello-кадре, но дублируем дефолты на случай оффлайна.
-let MAP_COLS = 40, MAP_ROWS = 40;
+let MAP_COLS = 60, MAP_ROWS = 60;
 const TS     = 56;           // размер тайла на экране — крупнее, как в боях
 const ISO_Y  = 0.55;         // ужатие по Y (тот же угол что в demo_isometric)
 // Блок города: 8×8 тайлов. Дорога занимает 2 тайла шириной, тротуар
-// ещё 1 тайл, внутри 4×4 — здание. Тип 0 — улица (проходимая),
-// 1 — стена/здание (непроходимо), 2 — машина (декор/укрытие, тоже блокирует).
+// ещё 1 тайл, внутри 4×4 — здание (или парк/арена).
+// Типы тайлов:
+//   0 = улица/тротуар (проходимая)
+//   1 = здание (непроходимо)
+//   2 = машина припаркована (блокирует)
+//   3 = ящик
+//   4 = бочка
+//   5 = мусорка
+//   6 = дерево (декор, блокирует)
+//   7 = фонарь (декор, не блокирует — низкий столб)
+//   8 = трава/газон (проходимо, зелёный пол)
+//   9 = бордюр (декор, проходимо, чуть выше асфальта)
 const BLOCK = 8;
 let MAP = [];
+// «Парк-блоки» — координаты центра блока (по сетке 8×8), которые НЕ застраиваем
+// зданиями, а заливаем газоном с деревьями. Детерминированный набор:
+// 1 парк на каждые ~6 блоков. Раскидаем по карте красиво.
+const PARK_BLOCKS = new Set();
+function isParkBlock(br, bc) { return PARK_BLOCKS.has(br + ',' + bc); }
+
 function buildMap() {
+  // Подбираем парк-блоки: каждый 3-й/5-й по диагонали (детерминистично)
+  PARK_BLOCKS.clear();
+  const blocksR = Math.floor(MAP_ROWS / BLOCK);
+  const blocksC = Math.floor(MAP_COLS / BLOCK);
+  for (let br = 0; br < blocksR; br++) {
+    for (let bc = 0; bc < blocksC; bc++) {
+      // Хеш для детерминированности
+      const h = ((br * 17 + bc * 31) % 11);
+      if (h === 0 || h === 7) PARK_BLOCKS.add(br + ',' + bc);
+    }
+  }
+
   MAP = [];
   for (let r = 0; r < MAP_ROWS; r++) {
     const row = [];
@@ -220,27 +433,48 @@ function buildMap() {
       // Тротуар — третья клетка от границы блока (mod 8 = 2 или 7)
       const sideR = (r % BLOCK === 2) || (r % BLOCK === BLOCK - 1);
       const sideC = (c % BLOCK === 2) || (c % BLOCK === BLOCK - 1);
-      if (sideR || sideC) { row.push(0); continue; }
+      if (sideR || sideC) { row.push(9); continue; }   // бордюр-плитка
+      // Если это парк-блок — внутри 4×4 заливаем травой
+      const br = Math.floor(r / BLOCK), bc = Math.floor(c / BLOCK);
+      if (isParkBlock(br, bc)) { row.push(8); continue; }
       // Иначе — здание (4×4 в центре блока)
       row.push(1);
     }
     MAP.push(row);
   }
-  // Декор на тротуарах: пачки ящиков, машины у бордюра, бочки.
-  // Псевдослучайно, но детерминированно — чтобы у всех игроков было
-  // одинаково (без сетевой синхронизации).
+
   function det(r, c, k) { return ((r * 73 + c * 131 + k * 17) % 1000) / 1000; }
+
+  // Деревья — внутри парк-блоков (по нескольку в каждом)
   for (let r = 2; r < MAP_ROWS - 2; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
-      if (MAP[r][c] !== 0) continue;
-      // Только на тротуаре (sideR/sideC), не на дороге
-      const onRoadR = (r % BLOCK <= 1);
-      const onRoadC = (c % BLOCK <= 1);
-      if (onRoadR || onRoadC) continue;
+      if (MAP[r][c] !== 8) continue;
+      const x = det(r, c, 3);
+      if (x < 0.30) MAP[r][c] = 6;          // дерево
+    }
+  }
+  // Фонари — на бордюре через каждые 4 тайла (углы кварталов)
+  for (let r = 2; r < MAP_ROWS - 2; r++) {
+    for (let c = 2; c < MAP_COLS - 2; c++) {
+      if (MAP[r][c] !== 9) continue;
+      const onCornerR = (r % BLOCK === 2) || (r % BLOCK === BLOCK - 1);
+      const onCornerC = (c % BLOCK === 2) || (c % BLOCK === BLOCK - 1);
+      if (!onCornerR && !onCornerC) continue;
+      // Углы кварталов — точки где r%8 ∈ {2,7} И c%8 ∈ {2,7}
+      if (onCornerR && onCornerC) MAP[r][c] = 7;
+      // Доп. фонари по бордюру каждые 4 тайла
+      else if ((r % 4 === 0) && onCornerC) MAP[r][c] = 7;
+      else if ((c % 4 === 0) && onCornerR) MAP[r][c] = 7;
+    }
+  }
+  // Декор на бордюре: ящики, бочки, мусорки
+  for (let r = 2; r < MAP_ROWS - 2; r++) {
+    for (let c = 2; c < MAP_COLS - 2; c++) {
+      if (MAP[r][c] !== 9) continue;
       const x = det(r, c, 1);
-      if (x < 0.035)       MAP[r][c] = 3; // ящик
-      else if (x < 0.060)  MAP[r][c] = 4; // бочка
-      else if (x < 0.075)  MAP[r][c] = 5; // мусорка
+      if (x < 0.025)       MAP[r][c] = 3; // ящик
+      else if (x < 0.040)  MAP[r][c] = 4; // бочка
+      else if (x < 0.052)  MAP[r][c] = 5; // мусорка
     }
   }
   // Машины — припаркованные ВДОЛЬ дороги (на второй полосе)
@@ -249,18 +483,293 @@ function buildMap() {
       if (MAP[r][c] !== 0) continue;
       if ((r % BLOCK !== 1) && (c % BLOCK !== 1)) continue; // только дальняя полоса
       const x = det(r, c, 7);
-      if (x < 0.08) MAP[r][c] = 2; // машина
+      if (x < 0.06) MAP[r][c] = 2; // машина
+    }
+  }
+  // Гарантируем — все POI-тайлы стоят на здании (тип 1), иначе вывеска
+  // окажется в воздухе. Если PARK_BLOCKS «съел» POI-здание — заменяем
+  // тайл на 1.
+  for (const p of POI) {
+    if (p.r > 0 && p.r < MAP_ROWS - 1 && p.c > 0 && p.c < MAP_COLS - 1) {
+      MAP[p.r][p.c] = 1;
     }
   }
 }
+
+// ── POI районов ────────────────────────────────────────────────
+// Расставлены по карте 60×60 на тайлах-зданиях (r%8 ∈ [3..6], c%8 ∈ [3..6]).
+// При тайле кратном 8+4 — точно центр здания. Дополнительные POI:
+// 🌌 Чёрный рынок (купить оружие), 🎯 PVP-арена (стрелять в др. игроков).
+const POI = [
+  { id: 'market',  r: 12, c: 12, icon: '🏪', name: 'Рынок',        minLvl: 1  },
+  { id: 'port',    r: 12, c: 44, icon: '⚓', name: 'Порт',          minLvl: 5  },
+  { id: 'casino',  r: 36, c: 12, icon: '🎰', name: 'Казино',        minLvl: 10 },
+  { id: 'factory', r: 36, c: 44, icon: '🏭', name: 'Промзона',      minLvl: 15 },
+  { id: 'mansion', r: 52, c: 28, icon: '🏛', name: 'Резиденция',    minLvl: 20 },
+  // Особые POI
+  { id: 'blackmarket', r:  4, c: 28, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
+  { id: 'arena',       r: 28, c: 52, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
+];
+const POI_BY_RC = new Map();   // ключ "r,c" → POI
+POI.forEach(p => POI_BY_RC.set(p.r + ',' + p.c, p));
+
+// PVP-зона — квадрат 8×8 вокруг POI «арена»
+const ARENA_POI = POI.find(p => p.id === 'arena');
+const ARENA_R0 = ARENA_POI.r - 4, ARENA_R1 = ARENA_POI.r + 4;
+const ARENA_C0 = ARENA_POI.c - 4, ARENA_C1 = ARENA_POI.c + 4;
+function inArena(r, c) {
+  return r >= ARENA_R0 && r <= ARENA_R1 && c >= ARENA_C0 && c <= ARENA_C1;
+}
+
 buildMap();
 
-// Камера следит за игроком. Инициализируем смещением в точку спавна
-// игрока (18,18) — на дороге блока 8 (см. buildMap, mod 8 ≤ 1 = road).
-// При смене TS не забудь обновить эту константу (используется TS=56, ISO_Y=0.55).
+// ── Живой город: NPC прохожие + машины + светофоры ──────────────
+// Локальная симуляция (у каждого клиента своя — это декор, не мультиплеер).
+// Светофоры синхронизированы по системному времени, так что у всех
+// клиентов фазы выглядят одинаково (важно если когда-то добавим
+// синхронизацию NPC между игроками).
+
+// Светофор: глобальный цикл 16 сек.
+// 0-6: зелёный E-W (горизонтальные машины едут), красный N-S (вертикальные стоят)
+// 6-8: жёлтый (все тормозят)
+// 8-14: зелёный N-S, красный E-W
+// 14-16: жёлтый
+function trafficPhase() {
+  const t = (performance.now() / 1000) % 16;
+  if (t < 6)       return { ew: 'g', ns: 'r' };
+  else if (t < 8)  return { ew: 'y', ns: 'r' };
+  else if (t < 14) return { ew: 'r', ns: 'g' };
+  else             return { ew: 'r', ns: 'y' };
+}
+
+// NPC — простые прохожие на тротуарах. Бродят по случайным waypoint-ам.
+const NPCS = [];
+function spawnNpc(seed) {
+  // Ищем случайный бордюрный тайл (тип 9), вне PVP-арены
+  for (let tries = 0; tries < 80; tries++) {
+    const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
+    const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
+    if (inArena(r, c)) continue;
+    if (MAP[r][c] === 9 || MAP[r][c] === 8) {
+      return {
+        r: r + 0.5, c: c + 0.5,
+        tr: r + 0.5, tc: c + 0.5,
+        speed: 0.8 + Math.random() * 0.7,
+        ang: 0,
+        walkPhase: 0,
+        idleUntil: 0,
+        look: {
+          gender: Math.random() < 0.5 ? 0 : 1,
+          skin:   Math.floor(Math.random() * 5),
+          body:   Math.floor(Math.random() * 3),
+          face:   Math.floor(Math.random() * 4),
+          hair:   Math.floor(Math.random() * 5),
+          hat:    Math.floor(Math.random() * 4),
+        },
+      };
+    }
+  }
+  return null;
+}
+// Проходимо ли для NPC: только бордюр (9) или газон (8), и НЕ внутри
+// PVP-арены (туда NPC не лезут, чтобы не мешать игрокам стреляться).
+function npcPassable(r, c) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
+  if (inArena(ri, ci)) return false;
+  const t = MAP[ri][ci];
+  return (t === 9 || t === 8);
+}
+function pickNpcWaypoint(npc) {
+  // Близкий waypoint в радиусе 4 — чтобы прямой путь почти всегда
+  // не пересекал здания. Дополнительная проверка: путь должен идти
+  // только по проходимым тайлам (sample каждые 0.5 тайла).
+  for (let tries = 0; tries < 30; tries++) {
+    const dr = (Math.random() * 8) - 4;
+    const dc = (Math.random() * 8) - 4;
+    const nr = npc.r + dr, nc = npc.c + dc;
+    if (!npcPassable(nr, nc)) continue;
+    // Проверяем что прямой путь не пересекает стены
+    const steps = Math.max(2, Math.ceil(Math.hypot(dr, dc) * 2));
+    let blocked = false;
+    for (let s = 1; s <= steps; s++) {
+      const k = s / steps;
+      const pr = npc.r + dr * k;
+      const pc = npc.c + dc * k;
+      if (!npcPassable(pr, pc)) { blocked = true; break; }
+    }
+    if (blocked) continue;
+    npc.tr = nr; npc.tc = nc;
+    return;
+  }
+  // Не нашли — стоим на месте до следующего тика
+  npc.tr = npc.r; npc.tc = npc.c;
+}
+function initNpcs() {
+  NPCS.length = 0;
+  for (let i = 0; i < 20; i++) {
+    const n = spawnNpc(i);
+    if (n) { pickNpcWaypoint(n); NPCS.push(n); }
+  }
+}
+
+function updateNpcs(dt) {
+  for (const n of NPCS) {
+    if (performance.now() < n.idleUntil) {
+      n.walkPhase = 0;
+      continue;
+    }
+    const dr = n.tr - n.r, dc = n.tc - n.c;
+    const d  = Math.hypot(dr, dc);
+    if (d < 0.4) {
+      // Дошли — иногда стоим 1-3 сек, потом новый waypoint
+      if (Math.random() < 0.4) n.idleUntil = performance.now() + 1000 + Math.random() * 2000;
+      pickNpcWaypoint(n);
+      continue;
+    }
+    const sp = n.speed * dt;
+    n.r += (dr / d) * sp;
+    n.c += (dc / d) * sp;
+    n.ang = Math.atan2(dr, dc);
+    n.walkPhase += dt * 8;
+  }
+}
+
+// ── Машины (умные, с моделями) ──────────────────────────────────
+// 5 моделей × разные палитры. Каждая едет по полосе дороги,
+// останавливается на красный, перед другими машинами, и перед игроком.
+const CAR_MODELS = [
+  { name: 'sedan',    L: 1.7, W: 0.85, palette: ['#3a5a8a','#22386a'], roof: '#1a2848', wheelR: 0.16 },
+  { name: 'taxi',     L: 1.7, W: 0.85, palette: ['#ffd700','#b89400'], roof: '#1a1a1a', wheelR: 0.16, taxi: true },
+  { name: 'sport',    L: 1.6, W: 0.78, palette: ['#c8202a','#7a0d18'], roof: '#1a0a10', wheelR: 0.15, sport: true },
+  { name: 'pickup',   L: 1.9, W: 0.92, palette: ['#3a3a3a','#1f1f1f'], roof: '#0f0f0f', wheelR: 0.18, pickup: true },
+  { name: 'van',      L: 2.0, W: 0.95, palette: ['#2f6a3a','#1a3a22'], roof: '#152818', wheelR: 0.18, van: true },
+];
+const CARS = [];
+function spawnCar(idx) {
+  // Найдём случайный тайл-дорогу и зададим направление вдоль полосы.
+  // Полоса 1 = ехать на восток (c+), полоса 0 = ехать на запад (c-).
+  // Для вертикальных дорог: полоса 1 = на юг (r+), полоса 0 = на север (r-).
+  for (let tries = 0; tries < 100; tries++) {
+    const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
+    const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
+    if (MAP[r][c] !== 0) continue;
+    const onRoadR = (r % BLOCK <= 1);
+    const onRoadC = (c % BLOCK <= 1);
+    if (!onRoadR && !onRoadC) continue;
+    // Горизонтальная дорога — движение по E/W
+    let dirDx = 0, dirDy = 0;
+    if (onRoadR && !onRoadC) {
+      // Полоса r%8==0 → восток (+c), r%8==1 → запад (-c)
+      dirDx = (r % BLOCK === 0) ? 1 : -1;
+    } else if (onRoadC && !onRoadR) {
+      // Полоса c%8==0 → юг (+r), c%8==1 → север (-r)
+      dirDy = (c % BLOCK === 0) ? 1 : -1;
+    } else {
+      // Перекрёсток — пропускаем, машина там не должна спавниться
+      continue;
+    }
+    const model = CAR_MODELS[idx % CAR_MODELS.length];
+    return {
+      r: r + 0.5, c: c + 0.5,
+      vr: dirDy * (1.5 + Math.random() * 0.8),
+      vc: dirDx * (1.5 + Math.random() * 0.8),
+      dirDx, dirDy,
+      model,
+      braking: false,
+      // Жёлтые мигалки для такси/спорткара
+      flash: 0,
+    };
+  }
+  return null;
+}
+function initCars() {
+  CARS.length = 0;
+  for (let i = 0; i < 8; i++) {
+    const c = spawnCar(i);
+    if (c) CARS.push(c);
+  }
+}
+
+function carCanGo(car, dt) {
+  // Проверяем 1.5 тайла впереди — игрок, машина, светофор-красный
+  const ahead = 1.5;
+  const fr = car.r + car.dirDy * ahead;
+  const fc = car.c + car.dirDx * ahead;
+  // Игрок? (если он на дороге — тормозим)
+  const distToPlayer = Math.hypot(player.r - fr, player.c - fc);
+  if (distToPlayer < 1.4 && MAP[Math.floor(player.r)] && MAP[Math.floor(player.r)][Math.floor(player.c)] === 0) {
+    return false;
+  }
+  // Машина впереди?
+  for (const other of CARS) {
+    if (other === car) continue;
+    const d = Math.hypot(other.r - fr, other.c - fc);
+    if (d < 1.1) return false;
+  }
+  // Светофор — если близко к перекрёстку и фаза не «зелёная для нас»
+  const phase = trafficPhase();
+  // Найдём ближайший перекрёсток впереди
+  // (перекрёсток = тайл где r%8<=1 И c%8<=1, не наш текущий)
+  for (let look = 0; look < 3; look++) {
+    const lr = Math.floor(car.r + car.dirDy * (look + 0.5));
+    const lc = Math.floor(car.c + car.dirDx * (look + 0.5));
+    if (lr < 0 || lc < 0 || lr >= MAP_ROWS || lc >= MAP_COLS) break;
+    const isIntersect = (lr % BLOCK <= 1) && (lc % BLOCK <= 1);
+    if (!isIntersect) continue;
+    // Не сам тайл (мы уже в нём)
+    if (lr === Math.floor(car.r) && lc === Math.floor(car.c)) continue;
+    // Какая фаза для нас?
+    const ourPhase = (car.dirDx !== 0) ? phase.ew : phase.ns;
+    if (ourPhase === 'r') return false;
+    if (ourPhase === 'y' && look <= 1) return false;   // на жёлтый тормозим если близко
+    break;
+  }
+  return true;
+}
+
+function updateCars(dt) {
+  for (const car of CARS) {
+    const canGo = carCanGo(car, dt);
+    car.braking = !canGo;
+    if (canGo) {
+      car.r += car.vr * dt;
+      car.c += car.vc * dt;
+    }
+    // Если выехал за границу — переспаунить в новой точке
+    if (car.r < 1 || car.r > MAP_ROWS - 2 || car.c < 1 || car.c > MAP_COLS - 2) {
+      const ni = CARS.indexOf(car);
+      const fresh = spawnCar(ni);
+      if (fresh) Object.assign(car, fresh);
+    }
+    // На перекрёстке иногда поворачиваем (с вероятностью 25%)
+    const ri = Math.floor(car.r), ci = Math.floor(car.c);
+    if (MAP[ri] && MAP[ri][ci] === 0) {
+      const isIntersect = (ri % BLOCK <= 1) && (ci % BLOCK <= 1);
+      const justEntered = !car._lastIntersect || car._lastIntersect.r !== ri || car._lastIntersect.c !== ci;
+      if (isIntersect && justEntered && Math.random() < 0.25) {
+        // Поворот: меняем направление перпендикулярно
+        const newDx = car.dirDy, newDy = car.dirDx;
+        if (newDx !== 0 || newDy !== 0) {
+          car.dirDx = newDx; car.dirDy = newDy;
+          const sp = Math.hypot(car.vr, car.vc) || 1.8;
+          car.vr = newDy * sp; car.vc = newDx * sp;
+        }
+      }
+      car._lastIntersect = isIntersect ? { r: ri, c: ci } : null;
+    }
+    if (car.model.taxi || car.model.sport) car.flash += dt;
+  }
+}
+
+initNpcs();
+initCars();
+
+// Камера следит за игроком. Спавн — (24,24): перекрёсток в центре карты.
+const SPAWN_R = 24, SPAWN_C = 24;
 const cam = {
-  x: (18 - 18) * 56 * 0.5,                // 0
-  y: (18 + 18) * 56 * 0.5 * 0.55,         // ~554
+  x: (SPAWN_C - SPAWN_R) * TS * 0.5,
+  y: (SPAWN_C + SPAWN_R) * TS * 0.5 * ISO_Y,
 };
 
 // Преобразование тайл→экран и обратно
@@ -275,12 +784,28 @@ function w2s(r, c) {
 }
 function isoH(h) { return h * TS * 0.55; }
 
+// ── PVP-стейт (клиент) ──────────────────────────────────────────
+// Серверные параметры PVP — приходят в hello, тут дефолты.
+const PVP = {
+  cd: 0.40, range: 6.0, max_hp: 100, respawn: 5.0,
+};
+// HP игрока (синхронизируется с сервером в snap.me.hp)
+let myHp = 100;
+let myDead = false;
+let myDeathBy = '';       // uid того кто убил (последний)
+let myDeathLeft = 0;      // сколько сек до респауна
+let myKills = 0, myDeaths = 0;
+let lastShotClientT = 0;  // локальный cooldown (предотвращает спам)
+// Активные трассеры пуль на клиенте — рисуем 0.18 сек, потом исчезают.
+const bullets = [];       // {sx, sy, ex, ey, t0, ttl}
+
 // ── Локальный игрок (predict) ───────────────────────────────────
-// Спавн на дороге (тайлы кратные 6 в buildMap → проходимо).
-// Точное значение всё равно перетрёт сервер первым же снапшотом.
+// Спавн на перекрёстке (24,24) — это дорога (24%8==0). Сервер всё
+// равно перетрёт первым же снапшотом, но локально нам важно стартовать
+// не в стене и не в нулевой точке.
 const player = {
-  r: 18,
-  c: 18,
+  r: SPAWN_R,
+  c: SPAWN_C,
   ang: 0,
   walking: false,
   walkPhase: 0,
@@ -357,10 +882,13 @@ window.addEventListener('keyup', (e) => {
 });
 
 // ── Коллизии ───────────────────────────────────────────────────
+// Проходимые тайлы: 0 (дорога), 7 (фонарь — рисуется как столб
+// над тайлом, но сам тайл-пол свободен), 8 (трава), 9 (бордюр).
+const PASSABLE = new Set([0, 7, 8, 9]);
 function isBlocked(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS) return true;
-  return MAP[ri][ci] !== 0;
+  return !PASSABLE.has(MAP[ri][ci]);
 }
 function tryMove(obj, dr, dc) {
   const pad = 0.3;
@@ -419,19 +947,70 @@ function wsConnect() {
     let pkt; try { pkt = JSON.parse(ev.data); } catch(e) { return; }
     if (pkt.t === 'hello') {
       const d = pkt.d || {};
-      MAP_COLS = d.map_cols || MAP_COLS;
-      MAP_ROWS = d.map_rows || MAP_ROWS;
-      buildMap();
-      // Сервер пришлёт точную позицию первым же snap. Локальное значение
-      // (18,18) уже на дороге — не сбрасываем его на центр карты, чтобы
-      // не попасть на тайл здания и не залипнуть до прихода первого snap.
+      const srvC = d.map_cols || MAP_COLS;
+      const srvR = d.map_rows || MAP_ROWS;
+      if (srvC < MAP_COLS || srvR < MAP_ROWS) {
+        setError('⚠️ Сервер бота не обновлён до 60×60. Перезапусти ЗАПУСТИТЬ_БОТА.bat — иначе ты не сможешь дойти до новых районов и PVP не заработает.');
+        setTimeout(() => setError(null), 8000);
+      } else {
+        MAP_COLS = srvC; MAP_ROWS = srvR; buildMap();
+      }
+      if (d.pvp) Object.assign(PVP, d.pvp);
+      // Если сервер шлёт арену — синкаемся (на случай если мы ошиблись)
+      // Сейчас не пересоздаём её, только параметры урона/cd/радиуса/HP.
+    } else if (pkt.t === 'shot') {
+      // Серверный broadcast выстрела. Рисуем трассер и при попадании —
+      // эффект на цели.
+      const sd = pkt.d || {};
+      const shooter = (sd.uid === QP.uid) ? player : (() => {
+        const o = others.get(sd.uid);
+        return o ? { r: o.y, c: o.x, ang: o.ang } : null;
+      })();
+      if (shooter) {
+        const ang = sd.ang || shooter.ang || 0;
+        const rng = sd.hit ? (sd.hit_t || 0) : (sd.range || PVP.range);
+        bullets.push({
+          sr: shooter.r, sc: shooter.c,
+          er: shooter.r + Math.sin(ang) * rng,
+          ec: shooter.c + Math.cos(ang) * rng,
+          t0: performance.now(),
+          ttl: 180,
+          hit: !!sd.hit,
+        });
+      }
+      // Если убили нашего игрока — попадание в нас, можно мигнуть экраном
+      if (sd.killed && sd.target === QP.uid) {
+        myDeathBy = (sd.uid === QP.uid) ? 'самоубийство' : (others.get(sd.uid)?.name || 'неизвестный');
+      }
     } else if (pkt.t === 'snap') {
       const d = pkt.d || {};
       // Подтягиваем себя к серверной позиции (lightweight reconcile)
       if (d.me) {
-        // Если разъехались сильно — телепортируем (rare)
         const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
         if (dist > 3.0) { player.r = d.me.y; player.c = d.me.x; }
+        // PVP: HP, dead-state, счёт
+        if (typeof d.me.hp === 'number')      myHp = d.me.hp;
+        if (typeof d.me.kills === 'number')   myKills = d.me.kills;
+        if (typeof d.me.deaths === 'number')  myDeaths = d.me.deaths;
+        const wasDead = myDead;
+        myDead = !!d.me.dead;
+        myDeathLeft = d.me.respawn_in || 0;
+        if (!wasDead && myDead) {
+          // Только что умер — экран смерти
+        } else if (wasDead && !myDead) {
+          // Респаун — сбрасываем причину смерти
+          myDeathBy = '';
+        }
+        // Сервер шлёт авторитативный look (из БД через creator) — перетираем
+        // QP.look, чтобы рисовался ТОТ перс которого ты создал в creator,
+        // даже если hub.html не подсунул правильные параметры в URL.
+        if (d.me.look && (d.me.look.skin !== undefined || d.me.look.hair !== undefined)) {
+          QP.look = Object.assign({}, QP.look, d.me.look);
+          QP.has_look = 1;
+        }
+        // ИМЯ НЕ ТРОГАЕМ — берём только из URL (DATA.name в hub).
+        // В БД может лежать старое/дефолтное «Гангстер», перезапись его
+        // на свой вычитала бы из под игрока его «Вячеслав».
       }
       const seen = new Set();
       const list = d.others || [];
@@ -442,13 +1021,16 @@ function wsConnect() {
           p = { x: o.x, y: o.y, ang: o.ang || 0, w: !!o.w,
                 tx: o.x, ty: o.y, tAng: o.ang || 0,
                 name: o.name || '?', look: o.look || {}, chat: '',
-                chatT: 0, lastT: performance.now() };
+                chatT: 0, lastT: performance.now(),
+                hp: o.hp || PVP.max_hp, dead: !!o.dead };
           others.set(o.uid, p);
         } else {
           p.tx = o.x; p.ty = o.y; p.tAng = o.ang || 0; p.w = !!o.w;
           p.name = o.name || p.name;
           if (o.look) p.look = o.look;
           if (o.chat && o.chat !== p.chat) { p.chat = o.chat; p.chatT = performance.now(); }
+          if (typeof o.hp === 'number') p.hp = o.hp;
+          p.dead = !!o.dead;
           p.lastT = performance.now();
         }
       }
@@ -469,6 +1051,150 @@ function wsConnect() {
   };
 }
 
+// ── Близость к POI / кнопка входа ──────────────────────────────
+const ENTER_R = 3.2;   // тайлы — порог появления кнопки
+let _zoneCur = null;   // текущий «активный» POI
+const _zoneEl = document.getElementById('zoneBtn');
+const _pvpBn  = document.getElementById('pvpBanner');
+function updateZoneBtn() {
+  let best = null, bestD2 = ENTER_R * ENTER_R;
+  for (const poi of POI) {
+    const dr = poi.r - player.r, dc = poi.c - player.c;
+    const d2 = dr * dr + dc * dc;
+    if (d2 < bestD2) { best = poi; bestD2 = d2; }
+  }
+  if (best !== _zoneCur) {
+    _zoneCur = best;
+    if (best) {
+      let label;
+      if (best.special === 'shop')        label = `${best.icon} Зайти на «${best.name}»`;
+      else if (best.special === 'arena')  label = `${best.icon} Войти на «${best.name}»`;
+      else                                label = `${best.icon} Зайти в район «${best.name}»`;
+      _zoneEl.textContent = label;
+      _zoneEl.style.display = 'block';
+    } else {
+      _zoneEl.style.display = 'none';
+    }
+  }
+  // PVP-баннер — показывается всегда когда игрок физически в зоне арены
+  const inPvp = inArena(player.r, player.c);
+  if (inPvp && _pvpBn.style.display !== 'block') {
+    _pvpBn.style.display = 'block';
+    document.body.classList.add('in-pvp');
+  } else if (!inPvp && _pvpBn.style.display === 'block') {
+    _pvpBn.style.display = 'none';
+    document.body.classList.remove('in-pvp');
+  }
+}
+_zoneEl.addEventListener('click', () => {
+  if (!_zoneCur) return;
+  // Спец-POI: открываем модал/баннер прямо в мире, никуда не переходим.
+  if (_zoneCur.special === 'shop')   { openShop();   return; }
+  if (_zoneCur.special === 'arena')  { showToast('🎯 Вы внутри PVP-зоны. Огонь скоро добавим.'); return; }
+  // Проверка ранга — как в hub. Если ниже minLvl района — не пускаем.
+  if (QP.lvl < _zoneCur.minLvl) {
+    showToast(`🔒 Нужен ранг ${_zoneCur.minLvl}+ (у тебя ${QP.lvl})`, 2800);
+    return;
+  }
+  // Обычный район → возврат в hub с view=district&loc=<id>.
+  const locId = _zoneCur.id;
+  let target = '';
+  try { target = decodeURIComponent(QP.hubUrl || ''); } catch(e) { target = QP.hubUrl || ''; }
+  if (!target) target = 'hub.html';
+  try {
+    const u = new URL(target, location.href);
+    u.searchParams.set('view', 'district');
+    u.searchParams.set('loc',  locId);
+    u.searchParams.set('v',    Date.now());
+    window.location.href = u.toString();
+  } catch(e) {
+    const sep = target.includes('?') ? '&' : '?';
+    window.location.href = `${target}${sep}view=district&loc=${locId}&v=${Date.now()}`;
+  }
+});
+
+// ── Toast (короткие уведомления) ────────────────────────────────
+const _toastEl = document.getElementById('toast');
+let _toastT = null;
+function showToast(msg, ms = 2200) {
+  _toastEl.textContent = msg;
+  _toastEl.classList.add('show');
+  if (_toastT) clearTimeout(_toastT);
+  _toastT = setTimeout(() => _toastEl.classList.remove('show'), ms);
+}
+
+// ── Чёрный рынок (диалог продавца → редирект в hub-магазин) ─────
+// UI самого магазина живёт в hub (единый source of truth для инвентаря).
+// Здесь только диалог продавца с одной кнопкой «Заглянуть на рынок».
+const _shopOverlay = document.getElementById('shopOverlay');
+function openShop()  { _shopOverlay.classList.add('open'); }
+function closeShop() { _shopOverlay.classList.remove('open'); }
+document.getElementById('shopClose').addEventListener('click', closeShop);
+_shopOverlay.addEventListener('click', (e) => { if (e.target === _shopOverlay) closeShop(); });
+// ── PVP UI: кнопка «Огонь», HP-бар, экран смерти ────────────────
+const _fireBtn   = document.getElementById('fireBtn');
+const _pvpHud    = document.getElementById('pvpHud');
+const _pvpHpBar  = document.getElementById('pvpHpBar');
+const _pvpHpTxt  = document.getElementById('pvpHpTxt');
+const _pvpKills  = document.getElementById('pvpKills');
+const _pvpDeaths = document.getElementById('pvpDeaths');
+const _deathOv   = document.getElementById('deathOverlay');
+const _deathBy   = document.getElementById('deathBy');
+const _deathCnt  = document.getElementById('deathCnt');
+function fire() {
+  if (myDead) return;
+  if (!inArena(player.r, player.c)) return;
+  const now = performance.now();
+  if (now - lastShotClientT < PVP.cd * 1000) return;   // лок. cooldown
+  lastShotClientT = now;
+  // Локальный мигающий visual cooldown
+  _fireBtn.classList.add('cd');
+  setTimeout(() => _fireBtn.classList.remove('cd'), PVP.cd * 1000);
+  sendShoot(player.ang);
+}
+_fireBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); }, { passive: false });
+// Доп. клавиша на десктопе — пробел
+window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !chatOpen) { e.preventDefault(); fire(); } });
+
+function updatePvpUI() {
+  const inPvp = inArena(player.r, player.c);
+  // HUD и кнопка огня видны только в зоне
+  _pvpHud.style.display  = inPvp ? 'block' : 'none';
+  _fireBtn.style.display = (inPvp && !myDead) ? 'block' : 'none';
+  // HP-бар (показывает реальное серверное HP, не локальный predict)
+  const pct = Math.max(0, Math.min(100, (myHp / (PVP.max_hp || 100)) * 100));
+  _pvpHpBar.style.width = pct + '%';
+  _pvpHpTxt.textContent = Math.max(0, Math.round(myHp));
+  _pvpKills.textContent  = myKills;
+  _pvpDeaths.textContent = myDeaths;
+  // Экран смерти
+  if (myDead) {
+    if (!_deathOv.classList.contains('show')) _deathOv.classList.add('show');
+    _deathBy.textContent = myDeathBy ? `Тебя завалил ${myDeathBy}` : '';
+    _deathCnt.textContent = Math.max(0, Math.ceil(myDeathLeft));
+  } else if (_deathOv.classList.contains('show')) {
+    _deathOv.classList.remove('show');
+  }
+}
+
+document.getElementById('shopGoBtn').addEventListener('click', () => {
+  // Редирект в hub.html?view=shop&back=world. Hub откроет страницу
+  // магазина, наверху появится кнопка «← В город» (возврат сюда).
+  let target = '';
+  try { target = decodeURIComponent(QP.hubUrl || ''); } catch(e) { target = QP.hubUrl || ''; }
+  if (!target) target = 'hub.html';
+  try {
+    const u = new URL(target, location.href);
+    u.searchParams.set('view', 'shop');
+    u.searchParams.set('back', 'world');
+    u.searchParams.set('v',    Date.now());
+    window.location.href = u.toString();
+  } catch(e) {
+    const sep = target.includes('?') ? '&' : '?';
+    window.location.href = `${target}${sep}view=shop&back=world&v=${Date.now()}`;
+  }
+});
+
 function sendInput() {
   if (!ws || ws.readyState !== 1) return;
   const now = performance.now();
@@ -485,6 +1211,10 @@ function sendInput() {
 function sendChat(text) {
   if (!ws || ws.readyState !== 1) return;
   try { ws.send(JSON.stringify({ t: 'chat', d: { text: String(text || '').slice(0, 80) } })); } catch(e) {}
+}
+function sendShoot(ang) {
+  if (!ws || ws.readyState !== 1) return;
+  try { ws.send(JSON.stringify({ t: 'shoot', d: { ang: +ang.toFixed(3) } })); } catch(e) {}
 }
 
 // ── Update / Render ────────────────────────────────────────────
@@ -521,6 +1251,10 @@ function update(dt) {
   const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
   cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
   cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
+  // Поиск ближайшего POI: если игрок в радиусе ENTER_R тайлов от вывески,
+  // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
+  updateZoneBtn();
+  updatePvpUI();
   // Интерполяция других игроков
   for (const [, o] of others) {
     o.x += (o.tx - o.x) * Math.min(1, dt * 8);
@@ -531,21 +1265,34 @@ function update(dt) {
     o.ang += aDiff * Math.min(1, dt * 8);
     if (o.w) o._walkPhase = (o._walkPhase || 0) + dt * 10;
   }
+  // Локальная симуляция декора: прохожие + машины
+  updateNpcs(dt);
+  updateCars(dt);
   sendInput();
 }
 
 function drawTile(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
-  // Тип поверхности — дорога/тротуар
+  const t = MAP[r][c];
+  // Тип поверхности — дорога/тротуар/трава/арена-пол
   const onRoadR = (r % BLOCK <= 1);
   const onRoadC = (c % BLOCK <= 1);
   const isRoad  = (onRoadR || onRoadC);
   let color;
-  if (isRoad) {
+  if (t === 8 || t === 6) {
+    // Трава (под деревом тоже трава видна)
+    color = ((r + c) % 2 === 0) ? '#2a4a22' : '#234020';
+  } else if (isRoad) {
     color = ((r + c) % 2 === 0) ? '#1c1c20' : '#181820'; // асфальт
   } else {
     color = ((r + c) % 2 === 0) ? '#2e2e28' : '#262620'; // тротуар (плитка)
+  }
+  // Если внутри PVP-арены — красноватый оттенок поверх
+  if (inArena(r, c)) {
+    // Чуть смешаем с темно-красным
+    color = (t === 8 || t === 6) ? '#3a3a18' :
+            isRoad                ? '#2a1818' : '#3a2020';
   }
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -555,24 +1302,375 @@ function drawTile(r, c) {
   ctx.lineTo(p.x - wx, p.y);
   ctx.closePath();
   ctx.fill();
-  // Лёгкая обводка между плитками тротуара
-  if (!isRoad) {
+  // Обводка плиток (тротуар)
+  if (!isRoad && t !== 8 && t !== 6) {
     ctx.strokeStyle = 'rgba(0,0,0,.18)';
     ctx.lineWidth = 1;
     ctx.stroke();
+  }
+  // Травинки на газоне (декоративные точки)
+  if (t === 8) {
+    const k = ((r * 53 + c * 89) % 7);
+    if (k < 4) {
+      ctx.fillStyle = '#3a6a30';
+      ctx.fillRect(p.x - 3 + (k - 2), p.y - 2, 1, 2);
+      ctx.fillRect(p.x + 2 - (k - 2), p.y + 1, 1, 2);
+    }
   }
   // Жёлтая прерывистая разметка по центру дороги (только горизонтальные полосы)
   if (onRoadR && !onRoadC && (r % BLOCK === 0) && (c % 3 === 0)) {
     ctx.fillStyle = '#a68a18';
     ctx.fillRect(p.x - wx * 0.18, p.y - 1.5, wx * 0.36, 3);
   }
-  // По центру вертикальных дорог — белые круги (фары/люки)
+  // По центру вертикальных дорог — серые люки
   if (onRoadC && !onRoadR && (c % BLOCK === 0) && (r % 4 === 0)) {
     ctx.fillStyle = '#3a3a3a';
     ctx.beginPath();
     ctx.ellipse(p.x, p.y, wx * 0.10, wy * 0.10, 0, 0, Math.PI * 2);
     ctx.fill();
   }
+  // Бордюр — тонкая светлая полоска по краю плитки, прилегающему к дороге
+  if (t === 9) {
+    // Прилегаем к дороге если соседний тайл — road
+    const nN = (r > 0 && MAP[r-1][c] === 0);
+    const nS = (r < MAP_ROWS-1 && MAP[r+1][c] === 0);
+    const nE = (c < MAP_COLS-1 && MAP[r][c+1] === 0);
+    const nW = (c > 0 && MAP[r][c-1] === 0);
+    ctx.fillStyle = '#cfc9b0';
+    if (nN) { ctx.beginPath(); ctx.moveTo(p.x, p.y - wy); ctx.lineTo(p.x + wx, p.y); ctx.lineTo(p.x + wx*0.92, p.y + 1); ctx.lineTo(p.x, p.y - wy + 2); ctx.closePath(); ctx.fill(); }
+    if (nS) { ctx.beginPath(); ctx.moveTo(p.x - wx, p.y); ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x, p.y + wy - 2); ctx.lineTo(p.x - wx*0.92, p.y - 1); ctx.closePath(); ctx.fill(); }
+    if (nE) { ctx.beginPath(); ctx.moveTo(p.x + wx, p.y); ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x, p.y + wy - 2); ctx.lineTo(p.x + wx*0.92, p.y + 1); ctx.closePath(); ctx.fill(); }
+    if (nW) { ctx.beginPath(); ctx.moveTo(p.x - wx, p.y); ctx.lineTo(p.x, p.y - wy); ctx.lineTo(p.x, p.y - wy + 2); ctx.lineTo(p.x - wx*0.92, p.y + 1); ctx.closePath(); ctx.fill(); }
+  }
+}
+
+// Дерево — крона из 3 кругов на стволе. Лёгкое покачивание (sin от времени).
+function drawTree(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(0.4);
+  const sway = Math.sin(performance.now() / 800 + r * 0.5 + c * 0.7) * 1.5;
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + 3, p.y + 4, wx * 0.32, wy * 0.32, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Ствол
+  ctx.fillStyle = '#3a2a18';
+  ctx.fillRect(p.x - 3, p.y - H, 6, H + 2);
+  // Крона — 3 круга разного оттенка зелёного
+  const greens = ['#3a6a2a', '#4a8a3a', '#5aa05a'];
+  const baseY = p.y - H - 18;
+  ctx.fillStyle = greens[0];
+  ctx.beginPath();
+  ctx.arc(p.x - 7 + sway * 0.4, baseY + 4, 11, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = greens[1];
+  ctx.beginPath();
+  ctx.arc(p.x + 7 - sway * 0.4, baseY + 6, 11, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = greens[2];
+  ctx.beginPath();
+  ctx.arc(p.x + sway, baseY - 4, 13, 0, Math.PI * 2); ctx.fill();
+  // Блик
+  ctx.fillStyle = 'rgba(255,255,255,.18)';
+  ctx.beginPath();
+  ctx.arc(p.x + 3 + sway, baseY - 6, 4, 0, Math.PI * 2); ctx.fill();
+}
+
+// Уличный фонарь — высокий столб с лампой и пятном света на земле.
+function drawLamp(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const H = isoH(1.4);
+  // Пятно света на земле (большое и тёплое)
+  const lightGrd = ctx.createRadialGradient(p.x, p.y, 4, p.x, p.y, 36);
+  lightGrd.addColorStop(0, 'rgba(255,220,140,.40)');
+  lightGrd.addColorStop(1, 'rgba(255,220,140,0)');
+  ctx.fillStyle = lightGrd;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 36, 0, Math.PI * 2); ctx.fill();
+  // Столб
+  ctx.fillStyle = '#1a1a22';
+  ctx.fillRect(p.x - 1.5, p.y - H, 3, H);
+  // Кронштейн
+  ctx.fillRect(p.x, p.y - H, 8, 2);
+  // Лампа — жёлтый ромбик с гало
+  const lampX = p.x + 9, lampY = p.y - H + 1;
+  const halo = ctx.createRadialGradient(lampX, lampY, 1, lampX, lampY, 12);
+  halo.addColorStop(0, 'rgba(255,235,160,.95)');
+  halo.addColorStop(1, 'rgba(255,235,160,0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(lampX, lampY, 12, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffe48a';
+  ctx.beginPath();
+  ctx.arc(lampX, lampY, 3, 0, Math.PI * 2); ctx.fill();
+}
+
+// Чёрный рынок — тент палатки вместо здания. Тёмно-фиолетовый, со светящимися
+// фонариками, чтобы выделяться. Рисуем поверх drawBuilding (если её НЕТ
+// в коде вызывающего, то сами как-будто здание).
+function drawBlackmarket(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(1.0);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.5)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy); ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath(); ctx.fill();
+  // Стены тента — насыщенный пурпур
+  ctx.fillStyle = '#3a1840';
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx, p.y); ctx.lineTo(p.x, p.y + wy);
+  ctx.lineTo(p.x, p.y + wy - H); ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath(); ctx.fill();
+  const g = ctx.createLinearGradient(p.x, p.y - H, p.x + wx, p.y);
+  g.addColorStop(0, '#5a2058'); g.addColorStop(1, '#3a1840');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x + wx, p.y - H); ctx.lineTo(p.x, p.y + wy - H);
+  ctx.closePath(); ctx.fill();
+  // Полосатый тент-крыша (фиолетовый + чёрный)
+  for (let i = 0; i < 4; i++) {
+    ctx.fillStyle = (i % 2 === 0) ? '#5a2058' : '#1a0820';
+    ctx.beginPath();
+    ctx.moveTo(p.x - wx + i * wx/4,     p.y - H);
+    ctx.lineTo(p.x - wx + (i+1) * wx/4, p.y - H);
+    ctx.lineTo(p.x + (i+1) * wx/4 - wx, p.y - H - wy * (i+1)/8);
+    ctx.lineTo(p.x + i * wx/4 - wx,     p.y - H - wy * i/8);
+    ctx.closePath(); ctx.fill();
+  }
+  // Гирлянды-огоньки по краю крыши (4 цветных точки, пульсация)
+  const t = performance.now() / 300;
+  const colors = ['#ff5a5a', '#5affff', '#ffd76b', '#a5ff5a'];
+  for (let i = 0; i < 4; i++) {
+    const px = p.x - wx + (i + 0.5) * wx / 2;
+    const py = p.y - H - wy * (i / 8) + 2;
+    const k = 0.6 + 0.4 * Math.sin(t + i);
+    ctx.fillStyle = colors[i];
+    ctx.globalAlpha = k;
+    ctx.beginPath();
+    ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Указатель «вы в PVP-зоне» — большая прозрачная плита поверх тайла,
+// рисуется отдельным проходом ПОВЕРХ всего пола (через drawArenaOverlay).
+function drawArenaPerimeter() {
+  // Рисуем красную пунктирную линию по периметру арены, ровно по границе тайлов.
+  const corners = [
+    [ARENA_R0, ARENA_C0], [ARENA_R0, ARENA_C1 + 1],
+    [ARENA_R1 + 1, ARENA_C1 + 1], [ARENA_R1 + 1, ARENA_C0],
+  ];
+  const scr = corners.map(([r, c]) => w2s(r, c));
+  ctx.save();
+  ctx.strokeStyle = '#ff4040';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([8, 6]);
+  ctx.shadowColor = '#ff4040';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(scr[0].x, scr[0].y);
+  for (let i = 1; i < scr.length; i++) ctx.lineTo(scr[i].x, scr[i].y);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ── Красивая отрисовка машины В ИЗОМЕТРИИ ──────────────────────
+// Машина — настоящий объёмный параллелепипед (как здания/ящики),
+// ориентированный по направлению движения. 4 угла основания в
+// координатах карты → переводим через w2s в экран, рисуем грани.
+function drawCarPretty(car) {
+  const m = car.model;
+  // Половинные размеры машины в координатах карты вдоль её направления
+  // и поперёк. Если едет по c (dirDx≠0) — L вдоль c, W вдоль r. Иначе наоборот.
+  const isHoriz = (car.dirDx !== 0);
+  const halfL = m.L * 0.45;
+  const halfW = m.W * 0.45;
+  const H     = isoH(m.height || 0.55);
+  // 4 угла основания в координатах карты. front = в направлении движения.
+  // Раскладываем по «вперёд/назад» вдоль направления + «лево/право» поперёк.
+  let fr_r, fr_c, br_r, br_c, fl_r, fl_c, bl_r, bl_c;
+  if (isHoriz) {
+    // dirDx = ±1
+    fr_r = car.r - halfW; fr_c = car.c + car.dirDx * halfL;   // front-right (право от водителя)
+    fl_r = car.r + halfW; fl_c = car.c + car.dirDx * halfL;
+    br_r = car.r - halfW; br_c = car.c - car.dirDx * halfL;
+    bl_r = car.r + halfW; bl_c = car.c - car.dirDx * halfL;
+  } else {
+    // dirDy = ±1
+    fr_r = car.r + car.dirDy * halfL; fr_c = car.c + halfW;
+    fl_r = car.r + car.dirDy * halfL; fl_c = car.c - halfW;
+    br_r = car.r - car.dirDy * halfL; br_c = car.c + halfW;
+    bl_r = car.r - car.dirDy * halfL; bl_c = car.c - halfW;
+  }
+  const FR = w2s(fr_r + 0.5, fr_c + 0.5);
+  const FL = w2s(fl_r + 0.5, fl_c + 0.5);
+  const BR = w2s(br_r + 0.5, br_c + 0.5);
+  const BL = w2s(bl_r + 0.5, bl_c + 0.5);
+  // Тень — ромб по основанию, чуть смещён
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  ctx.moveTo(FR.x + 2, FR.y + 3); ctx.lineTo(FL.x + 2, FL.y + 3);
+  ctx.lineTo(BL.x + 2, BL.y + 3); ctx.lineTo(BR.x + 2, BR.y + 3);
+  ctx.closePath(); ctx.fill();
+  // Тёмная палитра
+  const [topC, sideC] = m.palette;
+  // Какие грани видны (всегда видны 2 из 4 + крыша).
+  // В изометрии «вид сверху-справа» → всегда видны грани смотрящие
+  // на +y экрана. Используем тот же приём что в drawBuilding:
+  // рисуем две «боковые» (front и right) → они образуют видимые стороны.
+  // Front-side (между FR и FL по полу → подъём → крыша)
+  function sideQuad(a, b, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y - H);
+    ctx.lineTo(a.x, a.y - H);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Определяем какие 2 грани смотрят «к камере» (вниз-вправо).
+  // В нашей изометрии низ экрана — это max (r+c). Выбираем 2 ребра у
+  // которых средняя y (на земле) больше — те и видны.
+  const edges = [
+    { a: FR, b: FL, name: 'front' },
+    { a: FL, b: BL, name: 'left'  },
+    { a: BL, b: BR, name: 'back'  },
+    { a: BR, b: FR, name: 'right' },
+  ];
+  edges.sort((x, y) => ((y.a.y + y.b.y) - (x.a.y + x.b.y)));
+  const visible = edges.slice(0, 2);
+  // Один край рисуем гладким (topC), другой с градиентом (sideC)
+  for (let i = 0; i < visible.length; i++) {
+    const e = visible[i];
+    const col = (i === 0) ? sideC : topC;
+    sideQuad(e.a, e.b, col);
+  }
+  // Крыша — ромб поднятый на H
+  ctx.fillStyle = m.roof || topC;
+  ctx.beginPath();
+  ctx.moveTo(FR.x, FR.y - H); ctx.lineTo(FL.x, FL.y - H);
+  ctx.lineTo(BL.x, BL.y - H); ctx.lineTo(BR.x, BR.y - H);
+  ctx.closePath(); ctx.fill();
+  // Окна — синяя полоса на верхней части видимых граней
+  ctx.fillStyle = 'rgba(150,200,240,.45)';
+  for (const e of visible) {
+    ctx.beginPath();
+    ctx.moveTo(e.a.x + (e.b.x - e.a.x) * 0.10, e.a.y - H * 0.85);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.90, e.b.y - H * 0.85);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.90, e.b.y - H * 0.30);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.10, e.a.y - H * 0.30);
+    ctx.closePath(); ctx.fill();
+  }
+  // Колёса — 4 тёмных овала у углов основания
+  ctx.fillStyle = '#0a0a0a';
+  for (const corner of [FR, FL, BR, BL]) {
+    ctx.beginPath();
+    ctx.ellipse(corner.x, corner.y, 3.5, 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Фары (жёлтые с glow) на front-грани, в направлении движения
+  const fronEdge = edges.find(e => e.name === 'front');
+  ctx.fillStyle = '#fff4b8';
+  ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 6;
+  const fmid_x = (fronEdge.a.x + fronEdge.b.x) / 2;
+  const fmid_y = (fronEdge.a.y + fronEdge.b.y) / 2;
+  ctx.beginPath();
+  ctx.arc(fronEdge.a.x * 0.7 + fronEdge.b.x * 0.3,
+          fronEdge.a.y * 0.7 + fronEdge.b.y * 0.3 - H * 0.25, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(fronEdge.a.x * 0.3 + fronEdge.b.x * 0.7,
+          fronEdge.a.y * 0.3 + fronEdge.b.y * 0.7 - H * 0.25, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // Стоп-сигналы — красные на задней грани, если тормозит
+  if (car.braking) {
+    const backEdge = edges.find(e => e.name === 'back');
+    ctx.fillStyle = '#ff4040';
+    ctx.shadowColor = '#ff4040'; ctx.shadowBlur = 5;
+    ctx.beginPath();
+    ctx.arc(backEdge.a.x * 0.7 + backEdge.b.x * 0.3,
+            backEdge.a.y * 0.7 + backEdge.b.y * 0.3 - H * 0.30, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(backEdge.a.x * 0.3 + backEdge.b.x * 0.7,
+            backEdge.a.y * 0.3 + backEdge.b.y * 0.7 - H * 0.30, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // Шашечки такси — на крыше (центр), мигающая жёлтая лампа
+  if (m.taxi) {
+    const cx = (FR.x + FL.x + BR.x + BL.x) / 4;
+    const cy = (FR.y + FL.y + BR.y + BL.y) / 4 - H;
+    ctx.fillStyle = (Math.floor(car.flash * 4) % 2) ? '#ffd700' : '#1a1a1a';
+    ctx.fillRect(cx - 4, cy - 3, 8, 4);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(cx - 4, cy + 1, 8, 1);
+  }
+  // Полоса спорткара — белая лента по крыше вдоль направления движения
+  if (m.sport) {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo((FR.x + BR.x)/2, (FR.y + BR.y)/2 - H);
+    ctx.lineTo((FL.x + BL.x)/2, (FL.y + BL.y)/2 - H);
+    const w = 1.5;
+    ctx.lineTo((FL.x + BL.x)/2 + w, (FL.y + BL.y)/2 - H + w);
+    ctx.lineTo((FR.x + BR.x)/2 + w, (FR.y + BR.y)/2 - H + w);
+    ctx.closePath(); ctx.fill();
+  }
+  // Открытый кузов пикапа — тёмная вмятина на задней части крыши
+  if (m.pickup) {
+    ctx.fillStyle = '#0c0c0c';
+    ctx.beginPath();
+    ctx.moveTo((FR.x + BR.x)/2 + (BR.x - FR.x)*0.05, (FR.y + BR.y)/2 + (BR.y - FR.y)*0.05 - H + 0.5);
+    ctx.lineTo(BR.x, BR.y - H + 0.5);
+    ctx.lineTo(BL.x, BL.y - H + 0.5);
+    ctx.lineTo((FL.x + BL.x)/2 + (BL.x - FL.x)*0.05, (FL.y + BL.y)/2 + (BL.y - FL.y)*0.05 - H + 0.5);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+// ── Светофор на перекрёстке (рисуется как столб на тайле) ───────
+// Только на тайлах перекрёстков (r%8<=1 И c%8<=1). 4 светофора в углах
+// сразу затратно — рисуем по одному на «север-западном» углу каждого.
+function drawTrafficLight(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const phase = trafficPhase();
+  const H = isoH(1.1);
+  // Столб
+  ctx.fillStyle = '#1a1a22';
+  ctx.fillRect(p.x - 1.5, p.y - H, 3, H);
+  // Корпус — два «глаза»
+  ctx.fillStyle = '#181820';
+  ctx.fillRect(p.x - 5, p.y - H - 18, 10, 18);
+  // Лампы — для E-W (верхний) и для N-S (нижний)
+  function lamp(cy, color, lit) {
+    const halo = ctx.createRadialGradient(p.x, p.y - H - cy, 1, p.x, p.y - H - cy, lit ? 9 : 3);
+    if (lit) {
+      halo.addColorStop(0, color);
+      halo.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath(); ctx.arc(p.x, p.y - H - cy, 9, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = lit ? color : '#0a0a0a';
+    ctx.beginPath(); ctx.arc(p.x, p.y - H - cy, 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+  const ewC = phase.ew === 'g' ? '#5aff5a' : phase.ew === 'y' ? '#ffd700' : '#ff5050';
+  const nsC = phase.ns === 'g' ? '#5aff5a' : phase.ns === 'y' ? '#ffd700' : '#ff5050';
+  lamp(13, ewC, true);
+  lamp(4,  nsC, true);
+}
+
+// ── NPC прохожий (упрощённый человечек) ──────────────────────────
+function drawNpc(npc) {
+  const p = w2s(npc.r, npc.c);
+  drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null, false);
 }
 
 // Машина — припаркована на тайле, занимает ~80% площади
@@ -782,384 +1880,172 @@ function drawBuilding(r, c) {
   }
 }
 
-// ════════════════════════════════════════════════════════════════
-// CHARACTER RENDERER (drawChar/drawMale/drawFemale/drawFace*/drawHair*/drawHat
-// — копия из demo_isometric.html, чтобы рендерить ТОГО ЖЕ персонажа что в
-// бою. Спрайт кешируется по look-полям через getSprite.
-// ════════════════════════════════════════════════════════════════
-const SKINS = ['#FDDBB4','#F0C27F','#D4935A','#A0622A','#7A3B10','#C8A882'];
-const HAIR_COLORS_M = ['#1a0e00','#3d2200','#8b6333','#b8860b','#888','#111'];
-const HAIR_COLORS_F = ['#1a0e00','#8b1a1a','#b8860b','#3d2200','#888','#c87050','#e0c080'];
-
-function drawChar(ctx, W, H, opts) {
-  const { gender, skin, body, face, hair, hat, _back } = opts;
-  ctx.clearRect(0, 0, W, H);
-  const cx = W / 2;
-  const sc = Math.min(W, H) / 220;
-  function px(x) { return cx + x * sc; }
-  function py(y) { return H * 0.92 - y * sc; }
-  const skinCol = SKINS[skin] || SKINS[0];
-  if (gender === 0) drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, !!_back);
-  else              drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, !!_back);
-}
-
-function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, isBack) {
-  const bodyDefs = [
-    { sw: 34, sh: 80, nw: 14, nh: 22, hw: 26 },
-    { sw: 44, sh: 85, nw: 16, nh: 22, hw: 30 },
-    { sw: 58, sh: 82, nw: 18, nh: 20, hw: 36 },
-    { sw: 52, sh: 92, nw: 16, nh: 24, hw: 32 },
-  ];
-  const bd = bodyDefs[body] || bodyDefs[1];
-  const suitCol = ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4];
-  const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9'][face % 4];
-  ctx.fillStyle = suitCol;
-  const legW = bd.sw * 0.38; const legH = 55 * sc;
-  ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.22), py(legH), legW*sc, legH, 4*sc); ctx.fill();
-  ctx.beginPath(); ctx.roundRect(px(bd.sw*0.22 - legW), py(legH), legW*sc, legH, 4*sc); ctx.fill();
-  ctx.fillStyle = '#111';
-  [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*bd.sw*0.1), py(2), 10*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill(); });
-  ctx.fillStyle = suitCol;
-  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
-  if (!isBack) {
-    ctx.fillStyle = '#ddd';
-    ctx.beginPath(); ctx.roundRect(px(-7), py(bd.sh), 14*sc, bd.sh*0.7*sc, 2*sc); ctx.fill();
-    ctx.fillStyle = tieCol;
-    ctx.beginPath();
-    ctx.moveTo(px(-5), py(bd.sh-4)); ctx.lineTo(px(5), py(bd.sh-4));
-    ctx.lineTo(px(3), py(bd.sh*0.32)); ctx.lineTo(px(0), py(bd.sh*0.25));
-    ctx.lineTo(px(-3), py(bd.sh*0.32)); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = suitCol;
-    ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-2)); ctx.lineTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.sw/2), py(bd.sh-20)); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-2)); ctx.lineTo(px(bd.sw/2), py(bd.sh)); ctx.lineTo(px(bd.sw/2), py(bd.sh-20)); ctx.closePath(); ctx.fill();
-  }
-  const armLen = body===3?65:60, armW = body===3?13:10;
-  ctx.fillStyle = suitCol;
-  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2-armW*sc+2), py(bd.sh), armW*sc, armLen*sc, 5*sc); ctx.fill();
-  ctx.beginPath(); ctx.roundRect(px(bd.sw/2-2), py(bd.sh), armW*sc, armLen*sc, 5*sc); ctx.fill();
-  ctx.fillStyle = skinCol;
-  ctx.beginPath(); ctx.ellipse(px(-bd.sw/2-armW*sc/2+2), py(armLen-10), 7*sc, 9*sc, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(px(bd.sw/2+armW*sc/2-2), py(armLen-10), 7*sc, 9*sc, 0, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = skinCol;
-  ctx.beginPath(); ctx.roundRect(px(-bd.nw/2), py(bd.sh+bd.nh), bd.nw*sc, bd.nh*sc, 4*sc); ctx.fill();
-  const headH = bd.hw*1.22;
-  const headY = bd.sh + bd.nh + headH;
-  ctx.fillStyle = skinCol;
-  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+headH/2), bd.hw/2*sc, headH/2*sc, 0, 0, Math.PI*2); ctx.fill();
-  if (!isBack) { ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+5), bd.hw/2.2*sc, 10*sc, 0, 0, Math.PI); ctx.fill(); }
-  if (!isBack) {
-    const eyeY = bd.sh + bd.nh + headH*0.55;
-    const eyeSpan = bd.hw*0.22;
-    const mouthY = bd.sh + bd.nh + headH*0.18;
-    drawFaceM(ctx, face, px, py, eyeY, eyeSpan, mouthY, bd, sc);
-    if (hair > 0) drawHairM(ctx, hair, px, py, bd, headY, headH, sc);
-    if (hat > 0)  drawHat(ctx, hat, px, py, bd, headY, headH, sc);
-  }
-}
-
-function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, isBack) {
-  const bodyDefs = [
-    { sw: 30, sh: 78, nw: 12, nh: 20, hw: 24, hip: 32 },
-    { sw: 36, sh: 80, nw: 13, nh: 20, hw: 27, hip: 40 },
-    { sw: 48, sh: 76, nw: 15, nh: 18, hw: 32, hip: 54 },
-    { sw: 34, sh: 85, nw: 13, nh: 22, hw: 26, hip: 38 },
-  ];
-  const bd = bodyDefs[body] || bodyDefs[1];
-  const dressCol = ['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a'][body % 4];
-  const accentCol = ['#e8c96e','#c0392b','#8e44ad','#2980b9'][face % 4];
-  ctx.fillStyle = dressCol;
+// POI — большая вывеска НАД крышей здания. Рисуется поверх drawBuilding(r,c)
+// в том же тайле. Размер таблички адаптивен; для привлечения внимания
+// добавлен пульсирующий «гало»-блик за иконкой.
+function drawPOI(r, c, poi) {
+  const p = w2s(r + 0.5, c + 0.5);
+  // Та же формула высоты, что и в drawBuilding — чтобы знак сел ровно на крышу.
+  const seed = ((r * 73 + c * 131) % 7) / 7;
+  const H = isoH(1.3 + seed * 1.4);
+  const topY = p.y - H - TS * 0.18;   // чуть выше крыши
+  // Заблокирован ли по уровню (для районов; шопы/арены — нет)
+  const locked = poi.special !== 'shop' && poi.special !== 'arena' && QP.lvl < poi.minLvl;
+  // Цвет акцента — золотой если доступен, серо-красный если закрыт
+  const accent = locked ? '#9a3030' : '#ffd76b';
+  // Пульсирующее свечение (на фоне) — у закрытых тусклее
+  const t = performance.now() / 600;
+  const pulse = 0.6 + 0.4 * Math.sin(t + r * 0.3 + c * 0.5);
+  const haloR = 24 + pulse * 8;
+  const grd = ctx.createRadialGradient(p.x, topY - 6, 2, p.x, topY - 6, haloR);
+  grd.addColorStop(0, locked
+    ? `rgba(180,60,60,${0.35 * pulse})`
+    : `rgba(255,215,107,${0.55 * pulse})`);
+  grd.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grd;
   ctx.beginPath();
-  ctx.moveTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.hip/2), py(0));
-  ctx.lineTo(px(bd.hip/2), py(0)); ctx.lineTo(px(bd.sw/2), py(bd.sh));
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#111';
-  [-1,1].forEach(s => {
-    ctx.beginPath(); ctx.ellipse(px(s*bd.hip*0.18), py(3), 8*sc, 4*sc, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(px(s*bd.hip*0.18+4*sc), py(0), 3*sc, 8*sc, 1*sc); ctx.fill();
-  });
-  ctx.fillStyle = dressCol;
-  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
-  if (!isBack) {
-    ctx.fillStyle = '#f0e8e0';
-    ctx.beginPath(); ctx.roundRect(px(-6), py(bd.sh), 12*sc, bd.sh*0.65*sc, 2*sc); ctx.fill();
-    ctx.fillStyle = dressCol;
-    ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-4)); ctx.lineTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.sw/2), py(bd.sh-18)); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-4)); ctx.lineTo(px(bd.sw/2), py(bd.sh)); ctx.lineTo(px(bd.sw/2), py(bd.sh-18)); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = accentCol;
-    ctx.beginPath(); ctx.arc(px(-8), py(bd.sh-10), 4*sc, 0, Math.PI*2); ctx.fill();
-  }
-  const armLen = 58, armW = 8;
-  ctx.fillStyle = dressCol;
-  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2-armW*sc+2), py(bd.sh), armW*sc, armLen*sc, 4*sc); ctx.fill();
-  ctx.beginPath(); ctx.roundRect(px(bd.sw/2-2), py(bd.sh), armW*sc, armLen*sc, 4*sc); ctx.fill();
-  ctx.fillStyle = skinCol;
-  ctx.beginPath(); ctx.ellipse(px(-bd.sw/2-armW*sc/2+2), py(armLen-10), 6*sc, 8*sc, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(px(bd.sw/2+armW*sc/2-2), py(armLen-10), 6*sc, 8*sc, 0, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = skinCol;
-  ctx.beginPath(); ctx.roundRect(px(-bd.nw/2), py(bd.sh+bd.nh), bd.nw*sc, bd.nh*sc, 4*sc); ctx.fill();
-  ctx.strokeStyle = accentCol; ctx.lineWidth = 2*sc;
-  ctx.beginPath();
-  ctx.arc(px(0), py(bd.sh+bd.nh+bd.nh*0.5), (bd.nw*0.7)*sc, Math.PI*0.2, Math.PI*0.8);
-  ctx.stroke();
-  const headH = bd.hw*1.18;
-  const headY = bd.sh + bd.nh + headH;
-  ctx.fillStyle = skinCol;
-  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+headH/2), bd.hw/2*sc, headH/2*sc, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+4), bd.hw/2.3*sc, 9*sc, 0, 0, Math.PI); ctx.fill();
-  const eyeY = bd.sh + bd.nh + headH*0.55;
-  const eyeSpan = bd.hw*0.22;
-  const mouthY = bd.sh + bd.nh + headH*0.18;
-  if (!isBack) {
-    drawFaceF(ctx, face, px, py, eyeY, eyeSpan, mouthY, bd, sc);
-    if (hair > 0) drawHairF(ctx, hair, px, py, bd, headY, headH, sc);
-    if (hat > 0)  drawHat(ctx, hat, px, py, bd, headY, headH, sc);
-  }
-}
-
-function drawFaceM(ctx, faceId, px, py, eyeY, eyeSpan, mouthY, bd, sc) {
-  const eyeR = 4*sc;
-  ctx.fillStyle = '#fff';
-  [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*eyeSpan), py(eyeY), eyeR*1.3, eyeR, 0, 0, Math.PI*2); ctx.fill(); });
-  const pupilCol = ['#1a0a00','#1a0020','#002010','#100020'][faceId%4];
-  ctx.fillStyle = pupilCol;
-  const lookX = faceId===1?1.5:faceId===5?-0.5:0;
-  [-1,1].forEach(s => { ctx.beginPath(); ctx.arc(px(s*eyeSpan+lookX*sc), py(eyeY), eyeR*0.65, 0, Math.PI*2); ctx.fill(); });
-  ctx.strokeStyle = '#333'; ctx.lineWidth = 2.5*sc; ctx.lineCap = 'round';
-  const browAngles = [0,-0.3,0,0.15,0.2,0.25,-0.2,-0.15,0,0.1];
-  const bAngle = browAngles[faceId]||0;
-  [-1,1].forEach(s => {
-    ctx.save(); ctx.translate(px(s*eyeSpan), py(eyeY+9)); ctx.rotate(s*bAngle);
-    ctx.beginPath(); ctx.moveTo(-8*sc,0); ctx.lineTo(8*sc,0); ctx.stroke(); ctx.restore();
-  });
-  ctx.strokeStyle = '#333'; ctx.lineWidth = 2*sc;
-  if (faceId===0) { ctx.beginPath(); ctx.moveTo(px(-8),py(mouthY)); ctx.lineTo(px(8),py(mouthY)); ctx.stroke(); }
-  else if (faceId===1) { ctx.beginPath(); ctx.moveTo(px(-9),py(mouthY+3)); ctx.quadraticCurveTo(px(0),py(mouthY-4),px(9),py(mouthY+3)); ctx.stroke(); }
-  else if (faceId===5) { ctx.beginPath(); ctx.moveTo(px(-8),py(mouthY+4)); ctx.quadraticCurveTo(px(0),py(mouthY-2),px(8),py(mouthY+4)); ctx.stroke(); }
-  else if (faceId===6) { ctx.beginPath(); ctx.moveTo(px(-6),py(mouthY)); ctx.quadraticCurveTo(px(3),py(mouthY+5),px(9),py(mouthY+2)); ctx.stroke(); }
-  else { ctx.beginPath(); ctx.moveTo(px(-8),py(mouthY)); ctx.quadraticCurveTo(px(0),py(mouthY+3),px(8),py(mouthY)); ctx.stroke(); }
-  if (faceId===2) {
-    ctx.fillStyle = '#2a1800';
-    ctx.beginPath(); ctx.ellipse(px(0),py(mouthY-12),14*sc,16*sc,0,0,Math.PI); ctx.fill();
-    [-1,1].forEach(s=>{ctx.beginPath();ctx.ellipse(px(s*14),py(mouthY+4),5*sc,10*sc,0,0,Math.PI*2);ctx.fill();});
-  }
-  if (faceId===3) {
-    ctx.fillStyle='#1a0e00';
-    ctx.beginPath();ctx.ellipse(px(-5),py(mouthY+6),7*sc,4*sc,0.3,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(px(5),py(mouthY+6),7*sc,4*sc,-0.3,0,Math.PI*2);ctx.fill();
-  }
-}
-
-function drawFaceF(ctx, faceId, px, py, eyeY, eyeSpan, mouthY, bd, sc) {
-  const eyeR = 4.2*sc;
-  const eyeColors = ['#1a3a5a','#3a1a1a','#1a3a1a','#3a1a3a','#2a2a1a','#1a2a3a','#3a0a0a','#1a1a2a','#3a2a0a','#0a2a3a'];
-  ctx.fillStyle = eyeColors[faceId%eyeColors.length]+'66';
-  [-1,1].forEach(s=>{ctx.beginPath();ctx.ellipse(px(s*eyeSpan),py(eyeY+2),eyeR*1.8,eyeR*0.7,0,0,Math.PI*2);ctx.fill();});
-  ctx.fillStyle='#fff';
-  [-1,1].forEach(s=>{ctx.beginPath();ctx.ellipse(px(s*eyeSpan),py(eyeY),eyeR*1.4,eyeR,0,0,Math.PI*2);ctx.fill();});
-  ctx.fillStyle='#1a0a30';
-  [-1,1].forEach(s=>{ctx.beginPath();ctx.arc(px(s*eyeSpan),py(eyeY),eyeR*0.7,0,Math.PI*2);ctx.fill();});
-  ctx.strokeStyle='#331a00';ctx.lineWidth=1.8*sc;ctx.lineCap='round';
-  [-1,1].forEach(s=>{
-    ctx.beginPath();ctx.moveTo(px(s*eyeSpan-8),py(eyeY+10));ctx.quadraticCurveTo(px(s*eyeSpan),py(eyeY+12),px(s*eyeSpan+8*s),py(eyeY+9));ctx.stroke();
-  });
-  const lipColors=['#c0392b','#e74c3c','#c0392b','#ff1493','#a04040','#d35400','#e91e63','#880000','#c0392b','#8e44ad'];
-  ctx.fillStyle = lipColors[faceId%lipColors.length];
-  ctx.beginPath();
-  ctx.moveTo(px(-8),py(mouthY));
-  ctx.quadraticCurveTo(px(-4),py(mouthY+5),px(0),py(mouthY+3));
-  ctx.quadraticCurveTo(px(4),py(mouthY+5),px(8),py(mouthY));
-  ctx.quadraticCurveTo(px(4),py(mouthY-3),px(0),py(mouthY-2));
-  ctx.quadraticCurveTo(px(-4),py(mouthY-3),px(-8),py(mouthY));
-  ctx.closePath();ctx.fill();
-}
-
-function drawHairM(ctx, hairId, px, py, bd, headY, headH, sc) {
-  const hc = HAIR_COLORS_M[hairId % HAIR_COLORS_M.length];
-  const hw = bd.hw / 2;
-  ctx.fillStyle = hc; ctx.strokeStyle = hc;
-  if (hairId===1) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY-5),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-  } else if (hairId===2) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY+2),hw*sc,9*sc,0,Math.PI,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(px(-4*sc),py(headY+14),hw*0.8*sc,16*sc,-0.2,Math.PI,Math.PI*2);ctx.fill();
-  } else if (hairId===3) {
-    ctx.beginPath();ctx.moveTo(px(-4),py(headY-2));ctx.lineTo(px(-3),py(headY+28));ctx.lineTo(px(3),py(headY+28));ctx.lineTo(px(4),py(headY-2));ctx.closePath();ctx.fill();
-  } else if (hairId===4) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-  } else if (hairId===5) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-    [-1,1].forEach(s=>{ctx.lineWidth=8*sc;ctx.strokeStyle=hc;ctx.beginPath();ctx.moveTo(px(s*hw),py(headY));ctx.quadraticCurveTo(px(s*(hw+5)),py(headY-20),px(s*(hw+1)),py(headY-70));ctx.stroke();});
-  } else if (hairId===6) {
-    for(let i=-3;i<=3;i++){ctx.beginPath();ctx.arc(px(i*7),py(headY+5),7*sc,0,Math.PI*2);ctx.fill();}
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,8*sc,0,Math.PI,Math.PI*2);ctx.fill();
-  } else if (hairId===7) {
-    ctx.beginPath();ctx.ellipse(px(-4),py(headY+4),hw*0.9*sc,9*sc,-0.2,Math.PI,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.roundRect(px(-14),py(headY+5),14*sc,8*sc,3*sc);ctx.fill();
-  } else if (hairId===8) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-  } else if (hairId===9) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY+1),hw*sc,6*sc,0,Math.PI,Math.PI*2);ctx.fill();
-  }
-}
-
-function drawHairF(ctx, hairId, px, py, bd, headY, headH, sc) {
-  const hc = HAIR_COLORS_F[hairId % HAIR_COLORS_F.length];
-  const hw = bd.hw / 2;
-  ctx.fillStyle = hc;
-  if (hairId===1) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-    ctx.lineWidth=10*sc;ctx.strokeStyle=hc;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(px(hw-2),py(headY));ctx.quadraticCurveTo(px(hw+10),py(headY-15),px(hw+5),py(headY-40));ctx.stroke();
-  } else if (hairId===2) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-    [-1,1].forEach(s=>{ctx.lineWidth=10*sc;ctx.strokeStyle=hc;ctx.beginPath();ctx.moveTo(px(s*hw),py(headY));ctx.lineTo(px(s*(hw+2)),py(headY-25));ctx.stroke();});
-  } else if (hairId===3) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-    [-1,1].forEach(s=>{ctx.lineWidth=10*sc;ctx.strokeStyle=hc;ctx.beginPath();ctx.moveTo(px(s*hw),py(headY));ctx.quadraticCurveTo(px(s*(hw+6)),py(headY-30),px(s*(hw+3)),py(headY-80));ctx.stroke();});
-  } else if (hairId===4) {
-    for(let i=-3;i<=3;i++){ctx.beginPath();ctx.arc(px(i*6),py(headY+6),7*sc,0,Math.PI*2);ctx.fill();}
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,8*sc,0,Math.PI,Math.PI*2);ctx.fill();
-  } else if (hairId===5) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-  } else if (hairId===6) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(px(4),py(headY+22),10*sc,0,Math.PI*2);ctx.fill();
-  } else if (hairId===7) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-    [-1,1].forEach(s=>{
-      ctx.lineWidth=9*sc;ctx.strokeStyle=hc;
-      ctx.beginPath();
-      ctx.moveTo(px(s*hw),py(headY));
-      ctx.quadraticCurveTo(px(s*(hw+8)),py(headY-20),px(s*(hw+2)),py(headY-40));
-      ctx.quadraticCurveTo(px(s*(hw+10)),py(headY-55),px(s*(hw+4)),py(headY-70));
-      ctx.stroke();
-    });
-  } else if (hairId===8) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
-  } else if (hairId===9) {
-    ctx.beginPath();ctx.ellipse(px(0),py(headY-2),(hw+2)*sc,12*sc,0,Math.PI,Math.PI*2);ctx.fill();
-  }
-}
-
-function drawHat(ctx, hatId, px, py, bd, headY, headH, sc) {
-  const hw = bd.hw / 2;
-  const eyeY = headY - headH * 0.45;
-  if (hatId===1) {
-    ctx.fillStyle = '#1a0e00';
-    ctx.beginPath(); ctx.ellipse(px(0), py(headY+2), (hw+10)*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(px(-hw+2), py(headY+2+26), (hw*2-4)*sc, 26*sc, 4*sc); ctx.fill();
-    ctx.fillStyle = '#e8c96e';
-    ctx.fillRect(px(-hw+2), py(headY+2+4+2), (hw*2-4)*sc, 4*sc);
-  } else if (hatId===2) {
-    ctx.fillStyle = '#1a2e3a';
-    ctx.beginPath(); ctx.ellipse(px(0), py(headY), hw*sc, 14*sc, 0, Math.PI, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(px(hw*0.5), py(headY), (hw+6)*sc, 4*sc, 0.15, 0, Math.PI); ctx.fill();
-    ctx.fillStyle = '#e8c96e';
-    ctx.beginPath(); ctx.arc(px(0), py(headY+12), 3*sc, 0, Math.PI*2); ctx.fill();
-  } else if (hatId===3) {
-    ctx.fillStyle = '#8b0000';
-    ctx.beginPath(); ctx.ellipse(px(0), py(headY+4), (hw+1)*sc, (headH*0.5+2)*sc, 0, Math.PI*0.5, Math.PI*2.5); ctx.fill();
-  } else if (hatId===4) {
-    ctx.fillStyle = '#5c3d11';
-    ctx.beginPath(); ctx.ellipse(px(0), py(headY+3), (hw+14)*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(px(-hw+2), py(headY+3));
-    ctx.lineTo(px(-hw+6), py(headY+3+32));
-    ctx.lineTo(px(-3),    py(headY+3+36));
-    ctx.lineTo(px(3),     py(headY+3+36));
-    ctx.lineTo(px(hw-6),  py(headY+3+32));
-    ctx.lineTo(px(hw-2),  py(headY+3));
-    ctx.closePath(); ctx.fill();
-  } else if (hatId===5) {
-    const span = hw*0.55, lensW = (hw*0.55)*sc, lensH = 9*sc, gap = hw*0.08;
-    ctx.strokeStyle='#111'; ctx.lineWidth = 2*sc; ctx.fillStyle='#1a3a5a88';
-    ctx.beginPath(); ctx.roundRect(px(-(span+gap)), py(eyeY+5), lensW, lensH, 3*sc); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.roundRect(px(gap),         py(eyeY+5), lensW, lensH, 3*sc); ctx.fill(); ctx.stroke();
-  } else if (hatId===6) {
-    ctx.fillStyle = '#111';
-    ctx.beginPath(); ctx.ellipse(px(-11), py(eyeY), 9*sc, 7*sc, 0, 0, Math.PI*2); ctx.fill();
-  } else if (hatId===7) {
-    ctx.fillStyle = '#2c2c4e';
-    ctx.beginPath(); ctx.ellipse(px(-3), py(headY+8), (hw+4)*sc, 13*sc, -0.15, Math.PI*0.05, Math.PI*1.95); ctx.fill();
-  } else if (hatId===8) {
-    ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath(); ctx.ellipse(px(0), py(headY+2), (hw+16)*sc, 6*sc, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(px(-hw+4), py(headY+2+30), (hw*2-8)*sc, 30*sc, [2*sc,2*sc,0,0]); ctx.fill();
-  }
-}
-
-// Кеш спрайтов
-const SPRITE_W = 110, SPRITE_H = 200;
-const _spriteCache = new Map();
-function getSprite(look) {
-  const key = [look.gender|0, look.skin|0, look.body|0, look.face|0, look.hair|0, look.hat|0].join('.');
-  if (_spriteCache.has(key)) return _spriteCache.get(key);
-  const off = document.createElement('canvas');
-  off.width = SPRITE_W; off.height = SPRITE_H;
-  drawChar(off.getContext('2d'), SPRITE_W, SPRITE_H, look);
-  _spriteCache.set(key, off);
-  return off;
-}
-
-// ── Финальная отрисовка персонажа на карте (с тенью, спрайтом, именем, чатом) ──
-function drawPerson(x, y, ang, look, walkPhase, moving, name, chat, isSelf) {
-  const bob = Math.sin(walkPhase || 0) * 2.5;
-  // Тень
-  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
-  ctx.fillStyle = 'rgba(0,0,0,.55)';
-  ctx.beginPath();
-  ctx.ellipse(x, y + 2, wx * 0.32, wy * 0.55, 0, 0, Math.PI * 2);
+  ctx.arc(p.x, topY - 6, haloR, 0, Math.PI * 2);
   ctx.fill();
-  // Спрайт
-  const sprite = getSprite(look || {});
-  const scale = 1.7;             // меньше чем в боёвке (там 1.95) — карта мельче
-  const sh = TS * scale;
-  const sw = sh * 0.72;
-  // Анимация ходьбы — наклон корпуса + лёгкое сжатие на шаге.
-  const moveK = moving ? 1 : 0.15;
-  const ph = walkPhase || 0;
-  const lean    = Math.sin(ph) * 0.06 * moveK;
-  const squashY = 1 - Math.abs(Math.sin(ph * 2)) * 0.04 * moveK;
-  const squashX = 1 + Math.abs(Math.sin(ph * 2)) * 0.02 * moveK;
-  ctx.save();
-  ctx.translate(x, y + bob);
-  ctx.rotate(lean);
-  ctx.scale(squashX, squashY);
-  ctx.drawImage(sprite, Math.round(-sw / 2), Math.round(-sh * 0.94), sw, sh);
-  ctx.restore();
+  // Подложка-щит
+  const labelW = 92, labelH = 38;
+  const lx = p.x - labelW / 2, ly = topY - labelH;
+  ctx.fillStyle = 'rgba(20,18,12,.92)';
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2;
+  roundRect(lx, ly, labelW, labelH, 6);
+  ctx.fill(); ctx.stroke();
+  // Иконка-эмодзи слева, название справа
+  ctx.font = '20px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = accent;
+  // Если заблокирован — рисуем замок поверх иконки
+  ctx.fillText(locked ? '🔒' : poi.icon, lx + 6, ly + labelH / 2);
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.fillStyle = locked ? '#d8a8a8' : '#ffe9aa';
+  ctx.fillText(poi.name, lx + 32, ly + labelH / 2 - 5);
+  ctx.font = '9px system-ui, sans-serif';
+  ctx.fillStyle = locked ? '#b88080' : '#b8a070';
+  ctx.fillText(`ранг ${poi.minLvl}+`, lx + 32, ly + labelH / 2 + 8);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  // Маркер на крыше
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.arc(p.x, ly + labelH + 4, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// Упрощённая отрисовка персонажа (в стиле demo_isometric, но компактнее).
+// look: {gender, skin, body, face, hair, hat} → используем для цветов.
+const SKIN_TONES = ['#f5cba7', '#d49b6a', '#a06a3f', '#6e4528', '#3f2918'];
+const HAIR_TONES = ['#1a1a1a', '#6b4423', '#c8a050', '#9c4a4a', '#3a3a3a'];
+function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, isDead) {
+  // x,y — экранные координаты (центр клетки). Рисуем фигурку «над» полом.
+  const skin = SKIN_TONES[(look.skin | 0) % SKIN_TONES.length];
+  const hair = HAIR_TONES[(look.hair | 0) % HAIR_TONES.length];
+  const hatId = (look.hat | 0) % 4; // 0=без, 1=кепка, 2=шляпа, 3=шапка
+  // Если мёртв — рисуем призрака (полупрозрачный)
+  if (isDead) ctx.globalAlpha = 0.35;
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 4, 11, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Ноги (анимация шага)
+  const swing = Math.sin(walkPhase || 0) * 3;
+  ctx.fillStyle = '#1a1a25';
+  ctx.fillRect(x - 5, y - 4, 4, 12 + swing);
+  ctx.fillRect(x + 1, y - 4, 4, 12 - swing);
+  // Туловище — цвет «пиджак» зависит от gender
+  ctx.fillStyle = (look.gender ? '#7a3a5a' : '#2a3a5a');
+  ctx.beginPath();
+  ctx.ellipse(x, y - 12, 8, 11, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Рубашка-пуговицы
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(x - 1, y - 18, 2, 12);
+  // Голова
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.arc(x, y - 26, 7, 0, Math.PI * 2);
+  ctx.fill();
+  // Волосы / шляпа
+  if (hatId === 0) {
+    ctx.fillStyle = hair;
+    ctx.beginPath();
+    ctx.arc(x, y - 28, 7, Math.PI, 0);
+    ctx.fill();
+  } else if (hatId === 1) {
+    // Кепка
+    ctx.fillStyle = '#1f1f25';
+    ctx.fillRect(x - 7, y - 31, 14, 4);
+    ctx.fillRect(x - 9, y - 28, 5, 2);
+  } else if (hatId === 2) {
+    // Федора
+    ctx.fillStyle = '#181820';
+    ctx.fillRect(x - 9, y - 28, 18, 2);
+    ctx.fillRect(x - 6, y - 33, 12, 5);
+    ctx.fillStyle = '#c83030';
+    ctx.fillRect(x - 6, y - 30, 12, 1);
+  } else {
+    // Шапка
+    ctx.fillStyle = '#3a3a4a';
+    ctx.beginPath();
+    ctx.ellipse(x, y - 31, 8, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Глаза — точки. Направление по ang.
+  ctx.fillStyle = '#101010';
+  const eDx = Math.cos(ang) * 1.2;
+  ctx.fillRect(x - 2.5 + eDx, y - 27, 1.5, 1.5);
+  ctx.fillRect(x + 1 + eDx,   y - 27, 1.5, 1.5);
+
   // Имя над головой
   if (name) {
     ctx.font = 'bold 12px system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(0,0,0,.85)';
-    ctx.strokeText(name, x, y - sh * 0.86);
+    ctx.fillStyle = 'rgba(0,0,0,.7)';
+    ctx.fillText(name, x + 1, y - 42);
     ctx.fillStyle = isSelf ? '#ffd76b' : '#7be58a';
-    ctx.fillText(name, x, y - sh * 0.86);
+    ctx.fillText(name, x, y - 43);
     ctx.textAlign = 'left';
   }
   // Чат-баббл
   if (chat) {
-    ctx.font = '12px system-ui, sans-serif';
     const W = Math.min(180, ctx.measureText(chat).width + 18);
     const H = 22;
-    const bx = x - W / 2, by = y - sh * 0.86 - H - 6;
+    const bx = x - W / 2, by = y - 62;
     ctx.fillStyle = 'rgba(20,24,32,.92)';
     ctx.strokeStyle = '#4a5060';
     ctx.lineWidth = 1;
     roundRect(bx, by, W, H, 6);
     ctx.fill(); ctx.stroke();
+    // хвостик
     ctx.beginPath();
     ctx.moveTo(x - 4, by + H);
     ctx.lineTo(x + 4, by + H);
     ctx.lineTo(x,     by + H + 5);
     ctx.closePath();
+    ctx.fillStyle = 'rgba(20,24,32,.92)';
     ctx.fill();
     ctx.fillStyle = '#fff';
+    ctx.font = '12px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(chat, x, by + 15);
     ctx.textAlign = 'left';
   }
+  // HP-бар над именем (если есть hp/maxHp и игрок не на 100%)
+  if (typeof hp === 'number' && typeof maxHp === 'number' && hp < maxHp && hp > 0) {
+    const bw = 30, bh = 4;
+    const bx = x - bw / 2, by = y - 50;
+    ctx.fillStyle = 'rgba(0,0,0,.7)';
+    ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+    const pct = Math.max(0, Math.min(1, hp / maxHp));
+    ctx.fillStyle = pct > 0.5 ? '#5aff5a' : pct > 0.25 ? '#ffd76b' : '#ff5a5a';
+    ctx.fillRect(bx, by, bw * pct, bh);
+  }
+  if (isDead) ctx.globalAlpha = 1;
 }
 function roundRect(x, y, w, h, r) {
   ctx.beginPath();
@@ -1184,39 +2070,258 @@ function render() {
   for (let r = r0; r < r1; r++)
     for (let c = c0; c < c1; c++)
       if (MAP[r][c] !== 1) drawTile(r, c);
+  // 1.5) Граница PVP-арены — красный пунктир поверх пола
+  drawArenaPerimeter();
   // 2) Объекты с depth-sort
   const items = [];
   for (let r = r0; r < r1; r++) {
     for (let c = c0; c < c1; c++) {
       const t = MAP[r][c];
-      if (t === 1) items.push({ depth: r + c, draw: () => drawBuilding(r, c) });
+      const poi = POI_BY_RC.get(r + ',' + c);
+      if (t === 1) {
+        items.push({ depth: r + c, draw: () => {
+          if (poi && poi.special === 'shop')      drawBlackmarket(r, c);
+          else                                    drawBuilding(r, c);
+          if (poi) drawPOI(r, c, poi);
+        }});
+      }
       else if (t === 2) items.push({ depth: r + c, draw: () => drawCar(r, c) });
       else if (t === 3) items.push({ depth: r + c, draw: () => drawCrate(r, c) });
       else if (t === 4) items.push({ depth: r + c, draw: () => drawBarrel(r, c) });
       else if (t === 5) items.push({ depth: r + c, draw: () => drawDumpster(r, c) });
+      else if (t === 6) items.push({ depth: r + c, draw: () => drawTree(r, c) });
+      else if (t === 7) items.push({ depth: r + c, draw: () => drawLamp(r, c) });
     }
   }
-  // Игрок (свой) — берём look из QP, если игрок настроил образ; иначе дефолт.
+  // Светофоры на перекрёстках (тайл где r%8<=1 И c%8<=1).
+  // Берём «северо-западный» угол каждого блока.
+  for (let r = r0; r < r1; r++) {
+    if (r % BLOCK !== 1) continue;
+    for (let c = c0; c < c1; c++) {
+      if (c % BLOCK !== 1) continue;
+      items.push({ depth: r + c - 0.3, draw: () => drawTrafficLight(r, c) });
+    }
+  }
+  // NPC прохожие
+  for (const npc of NPCS) {
+    if (npc.r < r0 || npc.r >= r1 || npc.c < c0 || npc.c >= c1) continue;
+    items.push({ depth: npc.r + npc.c + 0.0005, draw: () => drawNpc(npc) });
+  }
+  // Машины (движущиеся)
+  for (const car of CARS) {
+    if (car.r < r0 || car.r >= r1 || car.c < c0 || car.c >= c1) continue;
+    items.push({ depth: car.r + car.c + 0.0008, draw: () => drawCarPretty(car) });
+  }
+  // Игрок (со своим чат-баблом из последнего смайлика, чтобы сразу видеть).
+  // Look берём всегда из URL — даже если has_look=0, параметры есть
+  // (дефолты =0 в _qInt) и они хотя бы стабильны между перезагрузками.
   items.push({ depth: player.r + player.c + 0.001, draw: () => {
     const p = w2s(player.r + 0.5, player.c + 0.5);
-    const myLook = QP.has_look ? QP.look : { gender:0, skin:1, body:1, face:0, hair:0, hat:0 };
-    drawPerson(p.x, p.y, player.ang, myLook,
-               player.walkPhase, player.walking, QP.name, null, true);
+    const myChat = (_localChat && performance.now() - _localChatT < 3500) ? _localChat : null;
+    drawPerson(p.x, p.y, player.ang, QP.look,
+               player.walking ? player.walkPhase : 0, QP.name, myChat, true,
+               myHp, PVP.max_hp, myDead);
   } });
   // Другие
   for (const [, o] of others) {
     items.push({ depth: o.y + o.x + 0.001, draw: () => {
       const p = w2s(o.y + 0.5, o.x + 0.5);
-      const phase = (o._walkPhase || 0);
+      const phase = (o.w ? (o._walkPhase || 0) : 0);
       const chat = (o.chat && performance.now() - o.chatT < 4000) ? o.chat : null;
-      drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, !!o.w, o.name, chat, false);
+      drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, o.name, chat, false,
+                 o.hp, PVP.max_hp, o.dead);
     } });
   }
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
+  // Пули — трассеры поверх всего (живут 0.18 сек)
+  drawBullets();
+  // Стрелки-указатели на POI, которые сейчас за пределами видимости.
+  drawPOIArrows(r0, r1, c0, c1);
+  // Мини-карта
+  drawMinimap();
 }
 
-let _dbgEl = null;
+// ── Пули ────────────────────────────────────────────────────────
+function drawBullets() {
+  const now = performance.now();
+  // Чистка старых
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    if (now - bullets[i].t0 > bullets[i].ttl) bullets.splice(i, 1);
+  }
+  ctx.save();
+  for (const b of bullets) {
+    const t = (now - b.t0) / b.ttl;
+    if (t >= 1) continue;
+    const a = 1 - t;
+    const s = w2s(b.sr + 0.5, b.sc + 0.5);
+    const e = w2s(b.er + 0.5, b.ec + 0.5);
+    // Тонкий жёлтый трассер с лёгким glow'ом
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = '#ffd76b';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#ffd76b';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y - 18);  // от уровня плеч
+    ctx.lineTo(e.x, e.y - 18);
+    ctx.stroke();
+    // Вспышка попадания
+    if (b.hit && t > 0.4) {
+      ctx.globalAlpha = a * 0.9;
+      ctx.fillStyle = '#ff6464';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y - 18, 6 + t * 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+// ── Стрелки на POI ──────────────────────────────────────────────
+// Стрелка рисуется ТОЛЬКО для далёких POI (> 18 тайлов от игрока).
+// Прижимается в самый угол экрана (margin 28) с прозрачностью 0.65 —
+// не загораживает игровое поле.
+function drawPOIArrows(r0, r1, c0, c1) {
+  const W = canvas.width / (window.devicePixelRatio || 1);
+  const H = canvas.height / (window.devicePixelRatio || 1);
+  const cx = W / 2, cy = H / 2;
+  // Зарезервированные зоны (UI) — туда не лезем:
+  //  - правый верхний угол: мини-карта (~ 156×156)
+  //  - верх центр: zoneBtn/pvpBanner
+  //  - правый низ: кнопка чата
+  const RESERVED = [
+    { x: W - 160, y: 0,        w: 160, h: 160 },           // мини-карта
+    { x: W / 2 - 140, y: 50, w: 280, h: 60 },              // zoneBtn
+    { x: W - 90, y: H - 100, w: 90, h: 100 },              // кнопка чата
+    { x: 0, y: H - 200, w: 170, h: 200 },                  // джойстик
+  ];
+  function hitsReserved(ax, ay) {
+    const PAD = 24;
+    return RESERVED.some(z => ax > z.x - PAD && ax < z.x + z.w + PAD
+                           && ay > z.y - PAD && ay < z.y + z.h + PAD);
+  }
+  const marginX = 28, marginY = 28;
+  for (const poi of POI) {
+    const visible = poi.r >= r0 && poi.r < r1 && poi.c >= c0 && poi.c < c1;
+    if (visible) continue;
+    // Близко (<18 тайлов) — скоро появится в кадре, стрелка не нужна
+    const dr = poi.r - player.r, dc = poi.c - player.c;
+    if (Math.hypot(dr, dc) < 18) continue;
+    const sp = w2s(poi.r + 0.5, poi.c + 0.5);
+    let dx = sp.x - cx, dy = sp.y - cy;
+    const len = Math.hypot(dx, dy) || 1;
+    dx /= len; dy /= len;
+    const maxX = (W / 2) - marginX, maxY = (H / 2) - marginY;
+    const k = Math.min(maxX / Math.abs(dx || 1e-3), maxY / Math.abs(dy || 1e-3));
+    let ax = cx + dx * k, ay = cy + dy * k;
+    // Если попадает в зарезервированную UI-зону — пытаемся «уползти»
+    // вдоль края немного в сторону, чтобы не накладываться.
+    let tries = 0;
+    while (hitsReserved(ax, ay) && tries < 6) {
+      // Смещаем по нормали к радиусу на 24px
+      const nx = -dy, ny = dx;
+      ax += nx * 24; ay += ny * 24;
+      tries++;
+    }
+    if (hitsReserved(ax, ay)) continue;  // не вышло — скрываем эту стрелку
+    ctx.save();
+    ctx.globalAlpha = 0.65;
+    ctx.translate(ax, ay);
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.fillStyle = 'rgba(20,24,32,.85)';
+    ctx.strokeStyle = '#ffd76b';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffd76b';
+    ctx.beginPath();
+    ctx.moveTo(9, 0); ctx.lineTo(0, -5); ctx.lineTo(0, 5); ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = 0.65;
+    ctx.font = '12px system-ui, "Segoe UI Emoji", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(poi.icon, ax - dx * 3, ay - dy * 3);
+    ctx.restore();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+}
+
+// ── Мини-карта ──────────────────────────────────────────────────
+const _miniCtx = document.getElementById('mapCanvas').getContext('2d');
+const MINI_W = 132, MINI_H = 132;
+function drawMinimap() {
+  const ctx2 = _miniCtx;
+  ctx2.clearRect(0, 0, MINI_W, MINI_H);
+  // Фон
+  ctx2.fillStyle = '#0a0d14';
+  ctx2.fillRect(0, 0, MINI_W, MINI_H);
+  const sx = MINI_W / MAP_COLS, sy = MINI_H / MAP_ROWS;
+  // Тайлы: рисуем только дороги (светлее) + здания (темнее) — крупными
+  // пикселями, без обводки. Для скорости — раз в 4 кадра.
+  if ((_miniTick++ & 3) === 0) {
+    _miniBakedDirty = true;
+  }
+  if (_miniBakedDirty) {
+    bakeMini();
+    _miniBakedDirty = false;
+  }
+  ctx2.drawImage(_miniBaked, 0, 0);
+  // PVP-зона — красный прямоугольник
+  ctx2.fillStyle = 'rgba(255,40,40,.30)';
+  ctx2.fillRect(ARENA_C0 * sx, ARENA_R0 * sy, (ARENA_C1 - ARENA_C0 + 1) * sx, (ARENA_R1 - ARENA_R0 + 1) * sy);
+  ctx2.strokeStyle = 'rgba(255,80,80,.85)';
+  ctx2.lineWidth = 1;
+  ctx2.strokeRect(ARENA_C0 * sx + 0.5, ARENA_R0 * sy + 0.5,
+                  (ARENA_C1 - ARENA_C0 + 1) * sx, (ARENA_R1 - ARENA_R0 + 1) * sy);
+  // POI — цветные точки
+  for (const poi of POI) {
+    ctx2.fillStyle = poi.special === 'shop' ? '#c870ff' :
+                     poi.special === 'arena' ? '#ff5050' : '#ffd76b';
+    ctx2.beginPath();
+    ctx2.arc((poi.c + 0.5) * sx, (poi.r + 0.5) * sy, 3, 0, Math.PI * 2);
+    ctx2.fill();
+  }
+  // Другие игроки — зелёные точки
+  ctx2.fillStyle = '#5aff80';
+  for (const [, o] of others) {
+    ctx2.beginPath();
+    ctx2.arc((o.x + 0.5) * sx, (o.y + 0.5) * sy, 2, 0, Math.PI * 2);
+    ctx2.fill();
+  }
+  // Игрок — белая точка с обводкой
+  ctx2.fillStyle = '#fff';
+  ctx2.strokeStyle = '#000';
+  ctx2.lineWidth = 1.5;
+  ctx2.beginPath();
+  ctx2.arc((player.c + 0.5) * sx, (player.r + 0.5) * sy, 3.5, 0, Math.PI * 2);
+  ctx2.fill(); ctx2.stroke();
+}
+let _miniTick = 0, _miniBakedDirty = true;
+const _miniBaked = document.createElement('canvas');
+_miniBaked.width = MINI_W; _miniBaked.height = MINI_H;
+function bakeMini() {
+  const b = _miniBaked.getContext('2d');
+  b.clearRect(0, 0, MINI_W, MINI_H);
+  const sx = MINI_W / MAP_COLS, sy = MINI_H / MAP_ROWS;
+  for (let r = 0; r < MAP_ROWS; r++) {
+    for (let c = 0; c < MAP_COLS; c++) {
+      const t = MAP[r][c];
+      let col;
+      if (t === 1)      col = '#3a3340';   // здание
+      else if (t === 8 || t === 6) col = '#2a4a22'; // парк/дерево
+      else if (t === 9) col = '#33343a';   // бордюр
+      else if (t === 7) col = '#ffe48a';   // фонарь
+      else              col = '#181820';   // дорога
+      b.fillStyle = col;
+      b.fillRect(c * sx, r * sy, Math.ceil(sx) + 0.5, Math.ceil(sy) + 0.5);
+    }
+  }
+}
+
 function frame() {
   const t = performance.now();
   let dt = (t - prevT) / 1000;
@@ -1224,14 +2329,6 @@ function frame() {
   if (dt > 0.1) dt = 0.1;
   update(dt);
   render();
-  // Debug — обновляем 5 раз/сек, не каждый кадр (CSS лагает)
-  if (!_dbgEl) _dbgEl = document.getElementById('dbgOverlay');
-  if (_dbgEl && (t % 200) < 20) {
-    _dbgEl.textContent =
-      `joy ${joyL.active?'ON':'  '} dx=${joyL.dx.toFixed(2)} dy=${joyL.dy.toFixed(2)}\n` +
-      `pos r=${player.r.toFixed(1)} c=${player.c.toFixed(1)}\n` +
-      `ws ${wsConnected?'OK':'..'} online=${onlineCount}`;
-  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -1246,35 +2343,61 @@ document.getElementById('btnHome').addEventListener('click', () => {
   window.history.back();
 });
 
-// ── Чат ────────────────────────────────────────────────────────
+// ── Чат + быстрые смайлики ─────────────────────────────────────
 const chatInput = document.getElementById('chatInput');
 const btnChat   = document.getElementById('btnChat');
+const emojiBar  = document.getElementById('emojiBar');
 let chatOpen = false;
 function openChat() {
   chatOpen = true;
   chatInput.classList.add('open');
+  emojiBar.classList.add('open');
   setTimeout(() => chatInput.focus(), 50);
 }
 function closeChat() {
   chatOpen = false;
   chatInput.classList.remove('open');
+  emojiBar.classList.remove('open');
   chatInput.blur();
+}
+function _submitChat(t) {
+  if (!t) return;
+  sendChat(t);
+  // Локальное эхо над своей головой — чтобы сразу видеть, без ожидания
+  // обратного снапа от сервера.
+  _localChat = t.slice(0, 80);
+  _localChatT = performance.now();
 }
 btnChat.addEventListener('click', () => {
   if (!chatOpen) openChat();
   else {
     const t = chatInput.value.trim();
-    if (t) { sendChat(t); chatInput.value = ''; }
+    _submitChat(t);
+    chatInput.value = '';
     closeChat();
   }
 });
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     const t = chatInput.value.trim();
-    if (t) { sendChat(t); chatInput.value = ''; }
+    _submitChat(t);
+    chatInput.value = '';
     closeChat();
   } else if (e.key === 'Escape') closeChat();
 });
+// Быстрые смайлики: тап → мгновенная отправка
+emojiBar.querySelectorAll('.em').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const ch = btn.getAttribute('data-e');
+    if (!ch) return;
+    sendChat(ch);
+    // Локальный «эхо»-баббл над собой, чтобы сразу видеть
+    _localChat = ch;
+    _localChatT = performance.now();
+  });
+});
+let _localChat = '', _localChatT = 0;
 
 // ── Старт ──────────────────────────────────────────────────────
 if (!QP.api || !QP.uid) {
