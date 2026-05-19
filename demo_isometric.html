@@ -4751,6 +4751,15 @@ function update(dt) {
   // тик красной вспышки урона
   if (player.hitT > 0) player.hitT = Math.max(0, player.hitT - dt);
 
+  // Прицеливание гранаты: если режим активен и палец на гранате стоит
+  // (без движения), но юзер крутит правый стик — _grenAimUpdate сам по
+  // себе не вызывается. Дёргаем его каждый кадр с последним известным
+  // pointer-position, чтобы baseAng подхватил свежий joyR.dx/dy.
+  if (typeof grenAim !== 'undefined' && grenAim.active &&
+      typeof grenAim.curX === 'number' && typeof grenAim.curY === 'number') {
+    _grenAimUpdate(grenAim.curX, grenAim.curY);
+  }
+
   // Phase 9: попапы добычи из сейфов — поднимаются вверх и фейдятся.
   for (let i = lootPopups.length - 1; i >= 0; i--) {
     const lp = lootPopups[i];
