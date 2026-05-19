@@ -524,10 +524,11 @@ function trafficPhase() {
 // NPC — простые прохожие на тротуарах. Бродят по случайным waypoint-ам.
 const NPCS = [];
 function spawnNpc(seed) {
-  // Ищем случайный бордюрный тайл (тип 9)
-  for (let tries = 0; tries < 50; tries++) {
+  // Ищем случайный бордюрный тайл (тип 9), вне PVP-арены
+  for (let tries = 0; tries < 80; tries++) {
     const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
     const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
+    if (inArena(r, c)) continue;
     if (MAP[r][c] === 9 || MAP[r][c] === 8) {
       return {
         r: r + 0.5, c: c + 0.5,
@@ -549,18 +550,39 @@ function spawnNpc(seed) {
   }
   return null;
 }
+// Проходимо ли для NPC: только бордюр (9) или газон (8), и НЕ внутри
+// PVP-арены (туда NPC не лезут, чтобы не мешать игрокам стреляться).
+function npcPassable(r, c) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
+  if (inArena(ri, ci)) return false;
+  const t = MAP[ri][ci];
+  return (t === 9 || t === 8);
+}
 function pickNpcWaypoint(npc) {
-  // Берём случайный близкий бордюрный тайл (в радиусе 8)
+  // Близкий waypoint в радиусе 4 — чтобы прямой путь почти всегда
+  // не пересекал здания. Дополнительная проверка: путь должен идти
+  // только по проходимым тайлам (sample каждые 0.5 тайла).
   for (let tries = 0; tries < 30; tries++) {
-    const dr = Math.floor(Math.random() * 16) - 8;
-    const dc = Math.floor(Math.random() * 16) - 8;
-    const nr = Math.floor(npc.r + dr), nc = Math.floor(npc.c + dc);
-    if (nr < 1 || nr >= MAP_ROWS-1 || nc < 1 || nc >= MAP_COLS-1) continue;
-    if (MAP[nr][nc] === 9 || MAP[nr][nc] === 8) {
-      npc.tr = nr + 0.5; npc.tc = nc + 0.5;
-      return;
+    const dr = (Math.random() * 8) - 4;
+    const dc = (Math.random() * 8) - 4;
+    const nr = npc.r + dr, nc = npc.c + dc;
+    if (!npcPassable(nr, nc)) continue;
+    // Проверяем что прямой путь не пересекает стены
+    const steps = Math.max(2, Math.ceil(Math.hypot(dr, dc) * 2));
+    let blocked = false;
+    for (let s = 1; s <= steps; s++) {
+      const k = s / steps;
+      const pr = npc.r + dr * k;
+      const pc = npc.c + dc * k;
+      if (!npcPassable(pr, pc)) { blocked = true; break; }
     }
+    if (blocked) continue;
+    npc.tr = nr; npc.tc = nc;
+    return;
   }
+  // Не нашли — стоим на месте до следующего тика
+  npc.tr = npc.r; npc.tc = npc.c;
 }
 function initNpcs() {
   NPCS.length = 0;
@@ -1421,138 +1443,160 @@ function drawArenaPerimeter() {
   ctx.restore();
 }
 
-// ── Красивая отрисовка движущейся машины (5 моделей) ────────────
-// Машина рисуется по ориентации dirDx/dirDy. Корпус-параллелепипед,
-// колёса, окна, фары (ночью светят), мигалки у такси/спорткара.
+// ── Красивая отрисовка машины В ИЗОМЕТРИИ ──────────────────────
+// Машина — настоящий объёмный параллелепипед (как здания/ящики),
+// ориентированный по направлению движения. 4 угла основания в
+// координатах карты → переводим через w2s в экран, рисуем грани.
 function drawCarPretty(car) {
-  const p = w2s(car.r, car.c);
   const m = car.model;
-  // Расчёт длины/ширины в экранных пикселях. По длине вдоль направления.
-  const TSPX = TS;   // 1 тайл = TS пикселей по плоскости (в проекции *0.5 + *0.5*ISO_Y)
+  // Половинные размеры машины в координатах карты вдоль её направления
+  // и поперёк. Если едет по c (dirDx≠0) — L вдоль c, W вдоль r. Иначе наоборот.
   const isHoriz = (car.dirDx !== 0);
-  // В изометрии «длина по c» проецируется как (cdif * TS/2, cdif * TS/2 * ISO_Y).
-  // Для простоты — рисуем спрайт-объёмом ориентированный по направлению.
-  const L = m.L * TSPX * 0.5;   // длина в экранных пикселях
-  const W = m.W * TSPX * 0.5 * (isHoriz ? ISO_Y : 1);
-  const H = isoH(0.55);
-  // Тень
+  const halfL = m.L * 0.45;
+  const halfW = m.W * 0.45;
+  const H     = isoH(m.height || 0.55);
+  // 4 угла основания в координатах карты. front = в направлении движения.
+  // Раскладываем по «вперёд/назад» вдоль направления + «лево/право» поперёк.
+  let fr_r, fr_c, br_r, br_c, fl_r, fl_c, bl_r, bl_c;
+  if (isHoriz) {
+    // dirDx = ±1
+    fr_r = car.r - halfW; fr_c = car.c + car.dirDx * halfL;   // front-right (право от водителя)
+    fl_r = car.r + halfW; fl_c = car.c + car.dirDx * halfL;
+    br_r = car.r - halfW; br_c = car.c - car.dirDx * halfL;
+    bl_r = car.r + halfW; bl_c = car.c - car.dirDx * halfL;
+  } else {
+    // dirDy = ±1
+    fr_r = car.r + car.dirDy * halfL; fr_c = car.c + halfW;
+    fl_r = car.r + car.dirDy * halfL; fl_c = car.c - halfW;
+    br_r = car.r - car.dirDy * halfL; br_c = car.c + halfW;
+    bl_r = car.r - car.dirDy * halfL; bl_c = car.c - halfW;
+  }
+  const FR = w2s(fr_r + 0.5, fr_c + 0.5);
+  const FL = w2s(fl_r + 0.5, fl_c + 0.5);
+  const BR = w2s(br_r + 0.5, br_c + 0.5);
+  const BL = w2s(bl_r + 0.5, bl_c + 0.5);
+  // Тень — ромб по основанию, чуть смещён
   ctx.fillStyle = 'rgba(0,0,0,.45)';
   ctx.beginPath();
-  if (isHoriz) {
-    ctx.ellipse(p.x + 2, p.y + 4, L * 0.5, W * 0.6, 0, 0, Math.PI * 2);
-  } else {
-    ctx.ellipse(p.x + 2, p.y + 4, W * 0.6, L * 0.5, 0, 0, Math.PI * 2);
-  }
-  ctx.fill();
-  // Корпус — рисуем как параллелограмм-«коробку» в изометрии
-  const [topC, sideC] = m.palette;
-  // Нижняя плита (тень снизу корпуса)
-  ctx.fillStyle = sideC;
-  ctx.beginPath();
-  if (isHoriz) {
-    ctx.moveTo(p.x - L*0.5, p.y);
-    ctx.lineTo(p.x + L*0.5, p.y);
-    ctx.lineTo(p.x + L*0.5, p.y - H);
-    ctx.lineTo(p.x - L*0.5, p.y - H);
-  } else {
-    ctx.moveTo(p.x - W*0.5, p.y - L*0.4);
-    ctx.lineTo(p.x + W*0.5, p.y - L*0.4);
-    ctx.lineTo(p.x + W*0.5, p.y + L*0.4);
-    ctx.lineTo(p.x - W*0.5, p.y + L*0.4);
-  }
+  ctx.moveTo(FR.x + 2, FR.y + 3); ctx.lineTo(FL.x + 2, FL.y + 3);
+  ctx.lineTo(BL.x + 2, BL.y + 3); ctx.lineTo(BR.x + 2, BR.y + 3);
   ctx.closePath(); ctx.fill();
-  // Верх корпуса с лёгким градиентом
-  const gr = ctx.createLinearGradient(p.x, p.y - H, p.x, p.y);
-  gr.addColorStop(0, topC); gr.addColorStop(1, sideC);
-  ctx.fillStyle = gr;
-  if (isHoriz) {
-    ctx.fillRect(p.x - L*0.5, p.y - H, L, H * 0.6);
-  } else {
-    ctx.fillRect(p.x - W*0.5, p.y - L*0.4, W, L * 0.8);
+  // Тёмная палитра
+  const [topC, sideC] = m.palette;
+  // Какие грани видны (всегда видны 2 из 4 + крыша).
+  // В изометрии «вид сверху-справа» → всегда видны грани смотрящие
+  // на +y экрана. Используем тот же приём что в drawBuilding:
+  // рисуем две «боковые» (front и right) → они образуют видимые стороны.
+  // Front-side (между FR и FL по полу → подъём → крыша)
+  function sideQuad(a, b, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y - H);
+    ctx.lineTo(a.x, a.y - H);
+    ctx.closePath();
+    ctx.fill();
   }
-  // Окна — лобовое и кабина (для пикапа — только кабина впереди)
-  ctx.fillStyle = 'rgba(150,200,240,.55)';
-  if (isHoriz) {
-    // Лобовое + заднее (для седана) / только кабина (для пикапа сзади грузовик)
-    if (m.pickup) {
-      ctx.fillRect(p.x - L*0.45, p.y - H + 2, L*0.30, H - 6);   // кабина
-      // Кузов сзади (приоткрытый)
-      ctx.fillStyle = '#22222a';
-      ctx.fillRect(p.x - L*0.15, p.y - H + 4, L*0.6, H - 10);
-    } else if (m.van) {
-      ctx.fillRect(p.x - L*0.45, p.y - H + 2, L*0.20, H - 6);  // только лобовое
-      // Боковая дверь — белая полоса
-      ctx.fillStyle = '#ddd';
-      ctx.fillRect(p.x - L*0.15, p.y - H * 0.5, L*0.4, 4);
-    } else {
-      ctx.fillRect(p.x - L*0.42, p.y - H + 2, L*0.18, H - 6);   // лобовое
-      ctx.fillRect(p.x + L*0.24, p.y - H + 2, L*0.18, H - 6);   // заднее
-      // Боковые окна
-      ctx.fillStyle = 'rgba(80,130,180,.35)';
-      ctx.fillRect(p.x - L*0.20, p.y - H + 4, L*0.40, H - 10);
-    }
-  } else {
-    if (m.pickup) {
-      ctx.fillRect(p.x - W*0.4, p.y - L*0.35, W*0.8, L*0.18);
-      ctx.fillStyle = '#22222a';
-      ctx.fillRect(p.x - W*0.35, p.y - L*0.10, W*0.7, L*0.4);
-    } else if (m.van) {
-      ctx.fillRect(p.x - W*0.4, p.y - L*0.35, W*0.8, L*0.15);
-    } else {
-      ctx.fillRect(p.x - W*0.4, p.y - L*0.35, W*0.8, L*0.15);
-      ctx.fillRect(p.x - W*0.4, p.y + L*0.20, W*0.8, L*0.15);
-      ctx.fillStyle = 'rgba(80,130,180,.35)';
-      ctx.fillRect(p.x - W*0.4, p.y - L*0.15, W*0.8, L*0.30);
-    }
+  // Определяем какие 2 грани смотрят «к камере» (вниз-вправо).
+  // В нашей изометрии низ экрана — это max (r+c). Выбираем 2 ребра у
+  // которых средняя y (на земле) больше — те и видны.
+  const edges = [
+    { a: FR, b: FL, name: 'front' },
+    { a: FL, b: BL, name: 'left'  },
+    { a: BL, b: BR, name: 'back'  },
+    { a: BR, b: FR, name: 'right' },
+  ];
+  edges.sort((x, y) => ((y.a.y + y.b.y) - (x.a.y + x.b.y)));
+  const visible = edges.slice(0, 2);
+  // Один край рисуем гладким (topC), другой с градиентом (sideC)
+  for (let i = 0; i < visible.length; i++) {
+    const e = visible[i];
+    const col = (i === 0) ? sideC : topC;
+    sideQuad(e.a, e.b, col);
   }
-  // Крыша (плоская)
-  ctx.fillStyle = m.roof;
-  if (isHoriz) {
-    ctx.fillRect(p.x - L*0.45, p.y - H - 1, L*0.9, 3);
-  } else {
-    ctx.fillRect(p.x - W*0.45, p.y - L*0.38, W*0.9, L*0.76);
+  // Крыша — ромб поднятый на H
+  ctx.fillStyle = m.roof || topC;
+  ctx.beginPath();
+  ctx.moveTo(FR.x, FR.y - H); ctx.lineTo(FL.x, FL.y - H);
+  ctx.lineTo(BL.x, BL.y - H); ctx.lineTo(BR.x, BR.y - H);
+  ctx.closePath(); ctx.fill();
+  // Окна — синяя полоса на верхней части видимых граней
+  ctx.fillStyle = 'rgba(150,200,240,.45)';
+  for (const e of visible) {
+    ctx.beginPath();
+    ctx.moveTo(e.a.x + (e.b.x - e.a.x) * 0.10, e.a.y - H * 0.85);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.90, e.b.y - H * 0.85);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.90, e.b.y - H * 0.30);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.10, e.a.y - H * 0.30);
+    ctx.closePath(); ctx.fill();
   }
-  // Фары — две жёлтые точки на «передней» части (по направлению)
+  // Колёса — 4 тёмных овала у углов основания
+  ctx.fillStyle = '#0a0a0a';
+  for (const corner of [FR, FL, BR, BL]) {
+    ctx.beginPath();
+    ctx.ellipse(corner.x, corner.y, 3.5, 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Фары (жёлтые с glow) на front-грани, в направлении движения
+  const fronEdge = edges.find(e => e.name === 'front');
   ctx.fillStyle = '#fff4b8';
   ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 6;
-  if (isHoriz) {
-    const fx = p.x + car.dirDx * L * 0.48;
-    ctx.beginPath(); ctx.arc(fx, p.y - 3, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(fx, p.y - H + 3, 2, 0, Math.PI * 2); ctx.fill();
-  } else {
-    const fy = p.y + car.dirDy * L * 0.42;
-    ctx.beginPath(); ctx.arc(p.x - W*0.25, fy, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x + W*0.25, fy, 2, 0, Math.PI * 2); ctx.fill();
-  }
+  const fmid_x = (fronEdge.a.x + fronEdge.b.x) / 2;
+  const fmid_y = (fronEdge.a.y + fronEdge.b.y) / 2;
+  ctx.beginPath();
+  ctx.arc(fronEdge.a.x * 0.7 + fronEdge.b.x * 0.3,
+          fronEdge.a.y * 0.7 + fronEdge.b.y * 0.3 - H * 0.25, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(fronEdge.a.x * 0.3 + fronEdge.b.x * 0.7,
+          fronEdge.a.y * 0.3 + fronEdge.b.y * 0.7 - H * 0.25, 2.2, 0, Math.PI * 2);
+  ctx.fill();
   ctx.shadowBlur = 0;
-  // Стоп-сигналы (красные) если тормозит — на «задней» части
+  // Стоп-сигналы — красные на задней грани, если тормозит
   if (car.braking) {
+    const backEdge = edges.find(e => e.name === 'back');
     ctx.fillStyle = '#ff4040';
     ctx.shadowColor = '#ff4040'; ctx.shadowBlur = 5;
-    if (isHoriz) {
-      const fx = p.x - car.dirDx * L * 0.48;
-      ctx.beginPath(); ctx.arc(fx, p.y - 3, 2, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(fx, p.y - H + 3, 2, 0, Math.PI * 2); ctx.fill();
-    } else {
-      const fy = p.y - car.dirDy * L * 0.42;
-      ctx.beginPath(); ctx.arc(p.x - W*0.25, fy, 2, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(p.x + W*0.25, fy, 2, 0, Math.PI * 2); ctx.fill();
-    }
+    ctx.beginPath();
+    ctx.arc(backEdge.a.x * 0.7 + backEdge.b.x * 0.3,
+            backEdge.a.y * 0.7 + backEdge.b.y * 0.3 - H * 0.30, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(backEdge.a.x * 0.3 + backEdge.b.x * 0.7,
+            backEdge.a.y * 0.3 + backEdge.b.y * 0.7 - H * 0.30, 1.8, 0, Math.PI * 2);
+    ctx.fill();
     ctx.shadowBlur = 0;
   }
-  // Мигалка такси («ШАШЕЧКИ» спереди + жёлтый знак сверху)
+  // Шашечки такси — на крыше (центр), мигающая жёлтая лампа
   if (m.taxi) {
+    const cx = (FR.x + FL.x + BR.x + BL.x) / 4;
+    const cy = (FR.y + FL.y + BR.y + BL.y) / 4 - H;
+    ctx.fillStyle = (Math.floor(car.flash * 4) % 2) ? '#ffd700' : '#1a1a1a';
+    ctx.fillRect(cx - 4, cy - 3, 8, 4);
     ctx.fillStyle = '#000';
-    if (isHoriz) ctx.fillRect(p.x - L*0.05, p.y - H - 4, L*0.10, 3);
-    else ctx.fillRect(p.x - W*0.10, p.y - L*0.04, W*0.20, 3);
-    ctx.fillStyle = (Math.floor(car.flash * 4) % 2) ? '#ffd700' : '#000';
-    if (isHoriz) ctx.fillRect(p.x - L*0.04, p.y - H - 3.5, L*0.08, 2);
+    ctx.fillRect(cx - 4, cy + 1, 8, 1);
   }
-  // Полоса спорткара (белая по центру корпуса)
+  // Полоса спорткара — белая лента по крыше вдоль направления движения
   if (m.sport) {
     ctx.fillStyle = '#fff';
-    if (isHoriz) ctx.fillRect(p.x - L*0.45, p.y - H + 4, L*0.9, 2);
-    else ctx.fillRect(p.x - 1, p.y - L*0.38, 2, L*0.76);
+    ctx.beginPath();
+    ctx.moveTo((FR.x + BR.x)/2, (FR.y + BR.y)/2 - H);
+    ctx.lineTo((FL.x + BL.x)/2, (FL.y + BL.y)/2 - H);
+    const w = 1.5;
+    ctx.lineTo((FL.x + BL.x)/2 + w, (FL.y + BL.y)/2 - H + w);
+    ctx.lineTo((FR.x + BR.x)/2 + w, (FR.y + BR.y)/2 - H + w);
+    ctx.closePath(); ctx.fill();
+  }
+  // Открытый кузов пикапа — тёмная вмятина на задней части крыши
+  if (m.pickup) {
+    ctx.fillStyle = '#0c0c0c';
+    ctx.beginPath();
+    ctx.moveTo((FR.x + BR.x)/2 + (BR.x - FR.x)*0.05, (FR.y + BR.y)/2 + (BR.y - FR.y)*0.05 - H + 0.5);
+    ctx.lineTo(BR.x, BR.y - H + 0.5);
+    ctx.lineTo(BL.x, BL.y - H + 0.5);
+    ctx.lineTo((FL.x + BL.x)/2 + (BL.x - FL.x)*0.05, (FL.y + BL.y)/2 + (BL.y - FL.y)*0.05 - H + 0.5);
+    ctx.closePath(); ctx.fill();
   }
 }
 
