@@ -111,16 +111,21 @@ HUB_WEBAPP_URL       = "https://slavaprivet.github.io/mafiozi-battle/hub.html"
 # меняется, и TG обязан скачать. Лишнего трафика не даёт — Telegram сам
 # дедуплицирует по реальному содержимому.
 import time as _time_for_v
+# Старт-таймстамп текущего процесса бота — стабильный для всех URL'ов в рамках
+# одного запуска. При перезапуске меняется → ВСЕ URL'ы мини-аппа становятся
+# новыми → Telegram WebView гарантированно не отдаёт кэш предыдущего инстанса.
+# Раньше использовалось округление до минут, но если бот рестартовал в ту же
+# минуту — _v совпадал и у друга открывалась старая версия из кэша.
+BOT_START_TS = int(_time_for_v.time())
 def _file_cache_bust(filename: str) -> str:
     try:
         path = os.path.join(_HERE, filename)
         mtime = int(os.path.getmtime(path))
     except Exception:
         mtime = 0
-    # Округляем текущий timestamp до минут — внутри минуты `_v` не меняется
-    # (одна и та же кнопка в чате открывает тот же URL), но между разными
-    # `/start` уже свежак.
-    return f"{mtime}-{int(_time_for_v.time()) // 60}"
+    # mtime файла + старт бота → меняется и при правке файла, и при рестарте
+    # без правок (например, после редеплоя на новый туннель).
+    return f"{mtime}-{BOT_START_TS}"
 
 # Co-op API base URL — публичный адрес бота (ngrok / VPS).
 # Пример: "https://abc123.ngrok-free.app"
@@ -838,6 +843,12 @@ async def init_db():
             # Кулдауны сейфов per (uid, boss_id). JSON {"kosoy": 1715000000, ...}
             # Сейф появляется на карте каждого босса раз в час (SAFE_RESPAWN_S).
             ("safe_cooldowns_json", "TEXT DEFAULT NULL"),
+            # Отложенный coop_sid: если друг перешёл по инвайт-ссылке, но у него
+            # ещё не создан персонаж — сохраняем sid сюда. После завершения
+            # creator-flow build_hub_url прокинет coop_sid в URL и хаб сразу
+            # сделает /coop/<sid>/join. Колонка очищается после первого
+            # успешного построения URL с coop_sid.
+            ("pending_coop_sid",   "TEXT DEFAULT NULL"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -1822,6 +1833,15 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
             look = json.loads(char["look_json"])
         except Exception:
             pass
+    # Если был отложенный кооп-инвайт (друг кликнул ссылку до регистрации) —
+    # добавляем coop_sid в URL и сразу обнуляем колонку, чтобы не зацикливать
+    # автоджойн на последующие /start. Хаб поймает coop_sid и сделает join.
+    pending_coop_sid = (char.get("pending_coop_sid") or "").strip()
+    if pending_coop_sid and user_id:
+        try:
+            await update_character(user_id, pending_coop_sid=None)
+        except Exception:
+            pass
 
     gren = 0; mol = 0; med_s = 0; med_m = 0; med_l = 0
     weapon = char.get("weapon") or ""
@@ -1908,10 +1928,13 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
         "bot":      BOT_USERNAME,   # имя бота для t.me/<bot>?startapp=... share-ссылок
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
-        # cache-buster теперь auto = mtime hub.html. Ручной bump не нужен —
-        # отредактировал файл → значение поменялось → TG скачивает свежее.
+        # cache-buster: mtime файла + BOT_START_TS — каждый перезапуск
+        # бота гарантированно даёт новый _v → Telegram не отдаёт кэш.
         "_v": _file_cache_bust("hub.html"),
     }
+    # Отложенный кооп-инвайт: добавляем coop_sid → hub.html сделает auto-join.
+    if pending_coop_sid:
+        params["coop_sid"] = pending_coop_sid
     return HUB_WEBAPP_URL + "?" + urllib.parse.urlencode(params)
 
 
@@ -2278,6 +2301,22 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception as _e:
                 logger.warning("coop deep-link для %s упал: %s", user_id, _e)
                 # Падаем в обычный /start — пусть юзер хотя бы попадёт в меню.
+        elif coop_sid_param:
+            # Друг есть в БД (например прошёл /start раньше) но не создал
+            # look_json — сохраняем coop_sid → после creator URL хаба будет
+            # с этим coop_sid и хаб сделает auto-join в лобби.
+            if _char_pre:
+                try:
+                    await update_character(user_id, pending_coop_sid=coop_sid_param)
+                except Exception as _e:
+                    logger.warning("pending_coop_sid save для %s упал: %s", user_id, _e)
+            else:
+                # Совсем новый юзер: char нет вовсе. Сохраняем в user_data
+                # на время сессии (переживёт ввод имени/класса). После
+                # create_character — перенесём в БД.
+                if context.user_data is not None:
+                    context.user_data['pending_coop_sid'] = coop_sid_param
+            # Не выходим — даём пройти обычный flow регистрации/creator.
 
     char = await get_character(user_id)
     if char:
@@ -2391,6 +2430,16 @@ async def choose_class(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await create_character(user.id, user.username or "", name, char_class)
     # Флаг подписки: раз дошёл до регистрации — значит подписан
     await update_character(user.id, channel_verified=1)
+    # Если друг пришёл по кооп-инвайту и не был зарегистрирован — переносим
+    # сохранённый в user_data sid в БД. build_hub_url подхватит и сделает
+    # auto-join в лобби после creator-flow.
+    pending_sid = context.user_data.get('pending_coop_sid') if context.user_data else None
+    if pending_sid:
+        try:
+            await update_character(user.id, pending_coop_sid=pending_sid)
+        except Exception:
+            pass
+        context.user_data.pop('pending_coop_sid', None)
     # Привязываем реферала если есть + разовый бонус пригласившему
     ref_id = context.user_data.get("ref_id")
     if ref_id:
