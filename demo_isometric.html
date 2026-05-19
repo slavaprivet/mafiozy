@@ -416,7 +416,13 @@
   });
   // Глобальный onerror: если инициализация боёвки упала — подсветим кнопку,
   // чтоб юзер её заметил. Watchdog ниже параллельно покажет panic overlay.
-  window.addEventListener('error', () => {
+  // ТАКЖЕ: пишем ошибку в localStorage и console — для дебага зависания.
+  window.addEventListener('error', (ev) => {
+    try {
+      const info = { msg: ev.message, src: ev.filename, line: ev.lineno, col: ev.colno, stack: ev.error && ev.error.stack };
+      console.error('[ISO-INIT-ERR]', info);
+      try { localStorage.setItem('_iso_last_error', JSON.stringify(info)); } catch(e) {}
+    } catch(e) {}
     try {
       if (!qb) return;
       qb.style.background = '#a04020';
@@ -875,6 +881,12 @@ function placePowderBarrels() {
 }
 placePowderBarrels();
 
+// ── СЕЙФЫ: метаданные. Сам массив safes[] заполняется в placeSafes() ──
+// Каждый элемент: { r, c, level, big, opened, openProgress (0..1), cashShown }
+// ВАЖНО: объявление должно стоять ДО placeSafes() — иначе TDZ-ошибка
+// (Cannot access 'safes' before initialization) ломает инициализацию боя.
+const safes = [];
+
 // ── Phase 9: СЕЙФ на карте (макс 1 шт, кулдаун 1ч на босса) ──
 // Спавним РОВНО ОДИН сейф если safeOk=1. Уровень сейфа = ранг района.
 // 30% шанс что сейф «большой» (визуально крупнее + сервер даёт х4 денег).
@@ -989,10 +1001,6 @@ const COVER_TYPES = {
   30: { name: 'safe',      h: 0.80, topColor: '#3a3a3a', sideColor: '#1a1a1a', shape: 'safe', hp: -1, isSafe: true, big: false },
   31: { name: 'safe_big',  h: 1.15, topColor: '#3a3a3a', sideColor: '#1a1a1a', shape: 'safe', hp: -1, isSafe: true, big: true  },
 };
-
-// ── СЕЙФЫ: метаданные. Сам массив safes[] заполнится в placeSafes() ниже ──
-// Каждый элемент: { r, c, level, big, opened, openProgress (0..1), cashShown }
-const safes = [];
 
 // HP для каждой ячейки укрытия (инициализируется при старте)
 const coverHP = [];
