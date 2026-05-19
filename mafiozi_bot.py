@@ -11080,6 +11080,11 @@ class WorldSim:
                     'kills':        int(me.get('kills', 0)),
                     'deaths':       int(me.get('deaths', 0)),
                     'srv_now':      round(now, 2),
+                    # Авторитативный look из БД — клиент перепишет свой.
+                    # Если в hub.html в DATA.gender/skin/... попали нули,
+                    # тут будет нормальный перс из creator.
+                    'look':         me.get('look', {}),
+                    'name':         me.get('name', 'Игрок'),
                 },
                 'others': others,
                 'tick': self.tick_no,

@@ -872,9 +872,9 @@ window.addEventListener('keyup', (e) => {
 });
 
 // ── Коллизии ───────────────────────────────────────────────────
-// Проходимые тайлы: 0 (дорога), 7 (фонарь — низкий столб, обходим),
-// 8 (трава), 9 (бордюр/плитка). Всё остальное — блок.
-const PASSABLE = new Set([0, 8, 9]);
+// Проходимые тайлы: 0 (дорога), 7 (фонарь — рисуется как столб
+// над тайлом, но сам тайл-пол свободен), 8 (трава), 9 (бордюр).
+const PASSABLE = new Set([0, 7, 8, 9]);
 function isBlocked(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS) return true;
@@ -990,6 +990,16 @@ function wsConnect() {
         } else if (wasDead && !myDead) {
           // Респаун — сбрасываем причину смерти
           myDeathBy = '';
+        }
+        // Сервер шлёт авторитативный look (из БД через creator) — перетираем
+        // QP.look, чтобы рисовался ТОТ перс которого ты создал в creator,
+        // даже если hub.html не подсунул правильные параметры в URL.
+        if (d.me.look && (d.me.look.skin !== undefined || d.me.look.hair !== undefined)) {
+          QP.look = Object.assign({}, QP.look, d.me.look);
+          QP.has_look = 1;
+        }
+        if (d.me.name && d.me.name.length > 0 && d.me.name !== 'Игрок') {
+          QP.name = d.me.name;
         }
       }
       const seen = new Set();
