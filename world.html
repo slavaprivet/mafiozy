@@ -111,10 +111,6 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
     <button id="btnChat">💬</button>
   </div>
 
-  <!-- Debug-оверлей. Показывает joyL.dx/dy и позицию игрока — нужно
-       чтобы продиагностировать почему джойстик не ловит touch на iOS. -->
-  <div id="dbgOverlay" style="position:absolute;left:10px;top:62px;background:rgba(0,0,0,.6);color:#7be58a;font:11px/1.3 monospace;padding:6px 8px;border-radius:6px;z-index:9;pointer-events:none;white-space:pre">…</div>
-
   <div id="errorBanner"></div>
 
   <div id="connectingOverlay">
@@ -229,6 +225,21 @@ function buildMap() {
   }
 }
 buildMap();
+
+// ── POI районов ────────────────────────────────────────────────
+// 5 районов привязаны к фиксированным тайлам-зданиям (см. buildMap:
+// в каждом блоке 8×8 здание занимает 4×4 в центре, координаты типа
+// (r%8 ∈ [3..6]). Беру r=4, c=4 разных блоков → точно здание).
+// Клик по подходу к POI → возврат в hub с view=district&loc=<id>.
+const POI = [
+  { id: 'market',  r:  4, c: 12, icon: '🏪', name: 'Рынок',        minLvl: 1  },
+  { id: 'port',    r:  4, c: 28, icon: '⚓', name: 'Порт',          minLvl: 5  },
+  { id: 'casino',  r: 20, c:  4, icon: '🎰', name: 'Казино',        minLvl: 10 },
+  { id: 'mansion', r: 20, c: 20, icon: '🏛', name: 'Резиденция',    minLvl: 20 },
+  { id: 'factory', r: 28, c: 28, icon: '🏭', name: 'Промзона',      minLvl: 15 },
+];
+const POI_BY_RC = new Map();   // ключ "r,c" → POI
+POI.forEach(p => POI_BY_RC.set(p.r + ',' + p.c, p));
 
 // Камера следит за игроком. Инициализируем смещением в точку спавна
 // игрока (18,18) — на дороге блока 8 (см. buildMap, mod 8 ≤ 1 = road).
@@ -444,6 +455,52 @@ function wsConnect() {
   };
 }
 
+// ── Близость к POI / кнопка входа ──────────────────────────────
+const ENTER_R = 3.2;   // тайлы — порог появления кнопки
+let _zoneCur = null;   // текущий «активный» POI
+const _zoneEl = document.getElementById('zoneBtn');
+function updateZoneBtn() {
+  let best = null, bestD2 = ENTER_R * ENTER_R;
+  for (const poi of POI) {
+    const dr = poi.r - player.r, dc = poi.c - player.c;
+    const d2 = dr * dr + dc * dc;
+    if (d2 < bestD2) { best = poi; bestD2 = d2; }
+  }
+  if (best !== _zoneCur) {
+    _zoneCur = best;
+    if (best) {
+      _zoneEl.textContent = `${best.icon} Зайти в район «${best.name}»`;
+      _zoneEl.style.display = 'block';
+    } else {
+      _zoneEl.style.display = 'none';
+    }
+  }
+}
+_zoneEl.addEventListener('click', () => {
+  if (!_zoneCur) return;
+  // Собираем URL хаба + view=district&loc=<id>. Если QP.hubUrl есть —
+  // приклеиваем параметры к нему (могут уже быть). Иначе — fallback на
+  // window.history.back и просто сообщение в TG.
+  const locId = _zoneCur.id;
+  let target = '';
+  try { target = decodeURIComponent(QP.hubUrl || ''); } catch(e) { target = QP.hubUrl || ''; }
+  if (!target) {
+    // Минимальный fallback — ссылка на hub.html в той же папке
+    target = 'hub.html';
+  }
+  try {
+    const u = new URL(target, location.href);
+    u.searchParams.set('view', 'district');
+    u.searchParams.set('loc',  locId);
+    u.searchParams.set('v',    Date.now());
+    window.location.href = u.toString();
+  } catch(e) {
+    // На случай если URL невалидный — простая конкатенация
+    const sep = target.includes('?') ? '&' : '?';
+    window.location.href = `${target}${sep}view=district&loc=${locId}&v=${Date.now()}`;
+  }
+});
+
 function sendInput() {
   if (!ws || ws.readyState !== 1) return;
   const now = performance.now();
@@ -496,6 +553,9 @@ function update(dt) {
   const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
   cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
   cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
+  // Поиск ближайшего POI: если игрок в радиусе ENTER_R тайлов от вывески,
+  // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
+  updateZoneBtn();
   // Интерполяция других игроков
   for (const [, o] of others) {
     o.x += (o.tx - o.x) * Math.min(1, dt * 8);
@@ -757,6 +817,55 @@ function drawBuilding(r, c) {
   }
 }
 
+// POI — большая вывеска НАД крышей здания. Рисуется поверх drawBuilding(r,c)
+// в том же тайле. Размер таблички адаптивен; для привлечения внимания
+// добавлен пульсирующий «гало»-блик за иконкой.
+function drawPOI(r, c, poi) {
+  const p = w2s(r + 0.5, c + 0.5);
+  // Та же формула высоты, что и в drawBuilding — чтобы знак сел ровно на крышу.
+  const seed = ((r * 73 + c * 131) % 7) / 7;
+  const H = isoH(1.3 + seed * 1.4);
+  const topY = p.y - H - TS * 0.18;   // чуть выше крыши
+  // Пульсирующее свечение (на фоне)
+  const t = performance.now() / 600;
+  const pulse = 0.6 + 0.4 * Math.sin(t + r * 0.3 + c * 0.5);
+  const haloR = 24 + pulse * 8;
+  const grd = ctx.createRadialGradient(p.x, topY - 6, 2, p.x, topY - 6, haloR);
+  grd.addColorStop(0, `rgba(255,215,107,${0.55 * pulse})`);
+  grd.addColorStop(1, 'rgba(255,215,107,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(p.x, topY - 6, haloR, 0, Math.PI * 2);
+  ctx.fill();
+  // Подложка-щит (тёмная с золотой обводкой)
+  const labelW = 92, labelH = 38;
+  const lx = p.x - labelW / 2, ly = topY - labelH;
+  ctx.fillStyle = 'rgba(20,18,12,.92)';
+  ctx.strokeStyle = '#ffd76b';
+  ctx.lineWidth = 2;
+  roundRect(lx, ly, labelW, labelH, 6);
+  ctx.fill(); ctx.stroke();
+  // Иконка-эмодзи слева, название справа
+  ctx.font = '20px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffd76b';
+  ctx.fillText(poi.icon, lx + 6, ly + labelH / 2);
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.fillStyle = '#ffe9aa';
+  ctx.fillText(poi.name, lx + 32, ly + labelH / 2 - 5);
+  ctx.font = '9px system-ui, sans-serif';
+  ctx.fillStyle = '#b8a070';
+  ctx.fillText(`lvl ${poi.minLvl}+`, lx + 32, ly + labelH / 2 + 8);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  // Маркер на крыше (точка)
+  ctx.fillStyle = '#ffd76b';
+  ctx.beginPath();
+  ctx.arc(p.x, ly + labelH + 4, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 // Упрощённая отрисовка персонажа (в стиле demo_isometric, но компактнее).
 // look: {gender, skin, body, face, hair, hat} → используем для цветов.
 const SKIN_TONES = ['#f5cba7', '#d49b6a', '#a06a3f', '#6e4528', '#3f2918'];
@@ -883,7 +992,13 @@ function render() {
   for (let r = r0; r < r1; r++) {
     for (let c = c0; c < c1; c++) {
       const t = MAP[r][c];
-      if (t === 1) items.push({ depth: r + c, draw: () => drawBuilding(r, c) });
+      if (t === 1) {
+        const poi = POI_BY_RC.get(r + ',' + c);
+        items.push({ depth: r + c, draw: () => {
+          drawBuilding(r, c);
+          if (poi) drawPOI(r, c, poi);
+        }});
+      }
       else if (t === 2) items.push({ depth: r + c, draw: () => drawCar(r, c) });
       else if (t === 3) items.push({ depth: r + c, draw: () => drawCrate(r, c) });
       else if (t === 4) items.push({ depth: r + c, draw: () => drawBarrel(r, c) });
@@ -909,7 +1024,6 @@ function render() {
   items.forEach(i => i.draw());
 }
 
-let _dbgEl = null;
 function frame() {
   const t = performance.now();
   let dt = (t - prevT) / 1000;
@@ -917,14 +1031,6 @@ function frame() {
   if (dt > 0.1) dt = 0.1;
   update(dt);
   render();
-  // Debug — обновляем 5 раз/сек, не каждый кадр (CSS лагает)
-  if (!_dbgEl) _dbgEl = document.getElementById('dbgOverlay');
-  if (_dbgEl && (t % 200) < 20) {
-    _dbgEl.textContent =
-      `joy ${joyL.active?'ON':'  '} dx=${joyL.dx.toFixed(2)} dy=${joyL.dy.toFixed(2)}\n` +
-      `pos r=${player.r.toFixed(1)} c=${player.c.toFixed(1)}\n` +
-      `ws ${wsConnected?'OK':'..'} online=${onlineCount}`;
-  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
