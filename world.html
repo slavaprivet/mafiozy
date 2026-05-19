@@ -352,6 +352,33 @@ try {
     if (real) QP.name = real.slice(0, 24);
   }
 } catch(e) {}
+// Fallback uid из Telegram SDK — у друга, который открыл инвайт через
+// startapp/?start=, в URL может не быть uid. Бэк требует uid.isdigit()
+// для коннекта в /world/sim — иначе 400 и «друг не двигается».
+try {
+  if ((!QP.uid || !/^\d+$/.test(QP.uid)) && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    const tid = tg.initDataUnsafe.user.id;
+    if (tid) QP.uid = String(tid);
+  }
+} catch(e) {}
+// Fallback api из coop_api.json (тот же механизм что в hub.html).
+// Без api WebSocket к world/sim вообще не строится.
+async function _fetchApiFallback() {
+  try {
+    const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    if (ctl) setTimeout(() => ctl.abort(), 3000);
+    const r = await fetch('https://slavaprivet.github.io/mafiozi-battle/coop_api.json?t=' + Date.now(), {
+      cache: 'no-store', signal: ctl ? ctl.signal : undefined,
+    });
+    if (!r.ok) return '';
+    const j = await r.json();
+    if (j && typeof j.base === 'string' && j.base.startsWith('https://')) {
+      QP.api = j.base;
+      return j.base;
+    }
+  } catch(e) {}
+  return '';
+}
 // Запрещаем вертикальный свайп вниз чтобы свайп по джойстику не закрывал
 // мини-апп. API 7.7+; на старых версиях просто игнорируется.
 try { if (tg && typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); } catch(e) {}
@@ -2403,11 +2430,24 @@ emojiBar.querySelectorAll('.em').forEach(btn => {
 let _localChat = '', _localChatT = 0;
 
 // ── Старт ──────────────────────────────────────────────────────
-if (!QP.api || !QP.uid) {
-  setConnecting('Сервер недоступен. Запусти бота с туннелем и зайди заново.');
-} else {
+(async () => {
+  // Если api нет в URL — пробуем подтянуть свежий из coop_api.json.
+  // Это спасает кейс когда друг открыл мир через какую-то старую кнопку
+  // без &api=..., либо туннель сменился пока хаб ещё был открыт.
+  if (!QP.api) {
+    setConnecting('Ищу сервер…');
+    await _fetchApiFallback();
+  }
+  if (!QP.uid || !/^\d+$/.test(QP.uid)) {
+    setConnecting('Нет Telegram ID. Открой через /start в боте.');
+    return;
+  }
+  if (!QP.api) {
+    setConnecting('Сервер недоступен. Запусти бота с туннелем и зайди заново.');
+    return;
+  }
   wsConnect();
-}
+})();
 </script>
 </body>
 </html>

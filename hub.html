@@ -5829,21 +5829,39 @@ async function coopCreateSession() {
 // Тёплая копия последней share-ссылки — нужна и для inviteFriends, и для toast.
 let _coopShareLink = '';
 
+// Если сервер не вернул share_link (BOT_USERNAME ещё не известен на бэке
+// до первого get_me) — собираем линк клиентски из DATA.bot и coopSid.
+// Так инвайт не теряется даже на первом запуске бота.
+function _coopBuildShareLink() {
+  if (_coopShareLink) return _coopShareLink;
+  const bot = (DATA.bot || '').trim();
+  if (bot && coopSid) {
+    _coopShareLink = `https://t.me/${bot}?start=coop_${coopSid}`;
+    return _coopShareLink;
+  }
+  return '';
+}
+
 // Открыть стандартный Telegram-шейринг с приглашением в сессию. Друг
-// получает t.me/<bot>?startapp=coop_<sid> — у него откроется наш мини-апп
-// сразу в лобби (если уже зарегистрирован) или его попросят написать /start.
+// получает t.me/<bot>?start=coop_<sid> — Telegram открывает чат с ботом,
+// бот ловит args[0]="coop_<sid>" и отдаёт WebApp-кнопку "Войти в лобби".
 function coopInviteFriends() {
-  const link = _coopShareLink;
-  if (!link) { showToast('Ссылка ещё не готова — обнови экран', '⚠️'); return; }
+  const link = _coopBuildShareLink();
+  if (!link) {
+    showToast('Ссылка ещё не готова — обнови экран и попробуй снова', '⚠️', 4000);
+    return;
+  }
   const text = '🗡 Заходи в Мафиози — есть свободный слот в моей бригаде!';
   const url = 'https://t.me/share/url?url=' + encodeURIComponent(link) +
               '&text=' + encodeURIComponent(text);
-  if (tg && tg.openTelegramLink) { tg.openTelegramLink(url); return; }
-  // Фолбэк, если по какой-то причине нет TG API: копируем в буфер.
+  if (tg && tg.openTelegramLink) {
+    try { tg.openTelegramLink(url); return; } catch(e) {}
+  }
+  // Фолбэк: копируем в буфер и показываем самим.
   try {
     navigator.clipboard.writeText(link);
-    showToast('Ссылка скопирована', '📋');
-  } catch(e) { showToast(link, '🔗'); }
+    showToast('Ссылка скопирована: ' + link.slice(0, 40) + '…', '📋', 5000);
+  } catch(e) { showToast(link, '🔗', 8000); }
 }
 
 // Переключатель готовности на бэке. Возвращает обновлённый стейт сессии.
@@ -5868,7 +5886,10 @@ async function coopToggleReady() {
 // чтобы UI обновлялся плавно даже между пингами.
 function _coopEnterWaitRoom(data) {
   coopState = data;
+  // Сначала пробуем сервер, если он не прислал — собираем клиентски
+  // (BOT_USERNAME может быть пуст до первого get_me на бэке).
   _coopShareLink = data.share_link || '';
+  if (!_coopShareLink) _coopBuildShareLink();
   // На стороне сервера в логе уже могут быть join-события с момента
   // создания — они не должны спамить плашками. Засчитываем их как уже
   // показанные, дальше ловим только новые.
@@ -5913,6 +5934,7 @@ function _coopTickWait() {
 function _coopRenderWaitPlayers(data) {
   if (!data) return;
   _coopShareLink = data.share_link || _coopShareLink;
+  if (!_coopShareLink) _coopBuildShareLink();
   const el = document.getElementById('coop-players-in');
   if (!el) return;
   el.innerHTML = '';

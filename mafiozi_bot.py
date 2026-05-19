@@ -10893,8 +10893,12 @@ WORLD_TICK_DT = 1.0 / WORLD_TICK_HZ
 WORLD_MAP_COLS = 60   # тайлы (Х) — городская сетка (расширено с 40 до 60
 WORLD_MAP_ROWS = 60   #     чтобы клиент world.html не показывал баннер о
                       #     несовместимости и игрок видел сам себя)
-WORLD_VIEW_R   = 25   # тайлы, в радиусе которых шлём остальных игроков
-WORLD_AFK_TIMEOUT_S = 30  # без инпута дольше — выкидываем (cleanup)
+WORLD_VIEW_R   = 40   # тайлы, в радиусе которых шлём остальных игроков
+                      # (40 = почти вся карта 60×60 — друзья всегда видны
+                      # друг друга даже на разных концах)
+WORLD_AFK_TIMEOUT_S = 90  # без инпута дольше — выкидываем (cleanup).
+                          # Было 30с — друг просто стоял и его кикало,
+                          # тогда у хоста оставался «фантом» имени.
 
 class WorldSim:
     """Глобальная симуляция открытого мира — один экземпляр на сервер.
@@ -10920,12 +10924,31 @@ class WorldSim:
                 self.players[uid]['look'] = look
             self.players[uid]['last_seen'] = time.time()
             return
-        # Спавн строго на дороге (тайлы кратные 6 в build_map → проходимо).
-        # Центральный перекрёсток ~ (18,18) при карте 40×40. Маленький
-        # разброс ±0.4 чтобы двое игроков не оказались в одной точке,
-        # но никто не выпал на тайл здания (порог проходимости pad=0.3).
-        sx = 18 + random.uniform(-0.4, 0.4)
-        sy = 18 + random.uniform(-0.4, 0.4)
+        # Спавн на одной из дорог рядом с центром карты, НО разнесённый —
+        # раньше все падали в (18,18) ±0.4 → игроки слипались в одну точку
+        # и тело друга накладывалось на твоё, виден был только никнейм.
+        # Сейчас: 8 фиксированных точек по периметру центрального района,
+        # все на дорожной сетке (col%8 в {0,1} или row%8 в {0,1}).
+        # Выбираем самую дальнюю от других игроков — друзья сразу видят
+        # друг друга, но не сливаются.
+        SPAWN_POINTS = [
+            (24, 32), (32, 24), (40, 32), (32, 40),
+            (24, 24), (40, 40), (24, 40), (40, 24),
+        ]
+        best = None
+        best_dist = -1.0
+        for (sy, sx) in SPAWN_POINTS:
+            if not self.players:
+                best = (sy, sx); break
+            md = min(((p['x']-sx)**2 + (p['y']-sy)**2) for p in self.players.values())
+            if md > best_dist:
+                best_dist = md
+                best = (sy, sx)
+        sy, sx = best or (32, 32)
+        # Маленький разброс ±0.3 чтобы коллизии при равном спавне не
+        # стопорили обоих в одной клетке, но никто не выпадет на здание.
+        sx += random.uniform(-0.3, 0.3)
+        sy += random.uniform(-0.3, 0.3)
         self.players[uid] = {
             'uid':       uid,
             'name':      name,
@@ -10937,6 +10960,12 @@ class WorldSim:
             'last_seen': time.time(),
             'last_chat': '',
             'last_chat_t': 0.0,
+            # PVP-поля чтобы snapshot_for всегда мог их слать без if'ов
+            'hp':        100,
+            'max_hp':    100,
+            'dead':      False,
+            'kills':     0,
+            'deaths':    0,
         }
 
     def remove(self, uid: str) -> None:
@@ -11012,6 +11041,12 @@ class WorldSim:
                 'w':    bool(p.get('walking')),
                 # Чат-баббл «живёт» 4 сек после получения
                 'chat': p['last_chat'] if (time.time() - p['last_chat_t']) < 4.0 else '',
+                # PVP — клиент рисует HP-бар над головой если hp<max_hp.
+                # Без этих полей клиент видел дефолтный maxHp и считал
+                # друга «полным здоровьем», но во время респауна показ
+                # призрака не работал.
+                'hp':     int(p.get('hp', 100)),
+                'dead':   bool(p.get('dead', False)),
             })
         return {
             't': 'snap',
@@ -11020,6 +11055,11 @@ class WorldSim:
                     'x': round(mx, 2),
                     'y': round(my, 2),
                     'srv_now': round(time.time(), 2),
+                    'hp':      int(me.get('hp', 100)),
+                    'kills':   int(me.get('kills', 0)),
+                    'deaths':  int(me.get('deaths', 0)),
+                    'dead':    bool(me.get('dead', False)),
+                    'look':    me.get('look') or {},
                 },
                 'others': others,
                 'tick': self.tick_no,
