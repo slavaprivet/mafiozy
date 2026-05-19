@@ -5517,15 +5517,15 @@ function openWorld() {
   params.set('name',  encodeURIComponent(DATA.name || 'Игрок'));
   // URL-кодим текущий URL хаба чтобы потом вернуться без потерь параметров.
   params.set('hub',   encodeURIComponent(location.href));
-  if (DATA.hasLook) {
-    params.set('gender',   DATA.gender|0);
-    params.set('skin',     DATA.skin|0);
-    params.set('body',     DATA.body|0);
-    params.set('face',     DATA.face|0);
-    params.set('hair',     DATA.hair|0);
-    params.set('hat',      DATA.hat|0);
-    params.set('has_look', 1);
-  }
+  // Look передаём ВСЕГДА (раньше только при hasLook — но если флаг
+  // потерян/false, в world был дефолт-моряк, не похожий на твоего перса).
+  params.set('gender',   DATA.gender|0);
+  params.set('skin',     DATA.skin|0);
+  params.set('body',     DATA.body|0);
+  params.set('face',     DATA.face|0);
+  params.set('hair',     DATA.hair|0);
+  params.set('hat',      DATA.hat|0);
+  params.set('has_look', DATA.hasLook ? 1 : 0);
   // Cache-buster — чтобы Telegram не подсунул старую версию.
   params.set('v', Date.now());
   window.location.href = 'world.html?' + params.toString();

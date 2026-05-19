@@ -342,6 +342,17 @@ const QP = {
 // ── Telegram WebApp ─────────────────────────────────────────────
 const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
 try { if (tg) { tg.ready(); tg.expand(); } } catch(e) {}
+// Запрещаем вертикальный свайп вниз чтобы свайп по джойстику не закрывал
+// мини-апп. API 7.7+; на старых версиях просто игнорируется.
+try { if (tg && typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); } catch(e) {}
+// На всякий случай — глушим touchmove на body (но не на canvas/joystick,
+// они и так останавливают через preventDefault выше).
+document.addEventListener('touchmove', (e) => {
+  // Если событие началось НЕ из интерактивного контрола — гасим (для iOS
+  // часто свайп-вниз снизу закрывает webapp).
+  if (e.touches.length > 1) return;  // не мешаем pinch
+  if (e.cancelable) e.preventDefault();
+}, { passive: false });
 
 // ── Canvas ──────────────────────────────────────────────────────
 const canvas = document.getElementById('gc');
@@ -2069,11 +2080,13 @@ function render() {
     if (car.r < r0 || car.r >= r1 || car.c < c0 || car.c >= c1) continue;
     items.push({ depth: car.r + car.c + 0.0008, draw: () => drawCarPretty(car) });
   }
-  // Игрок (со своим чат-баблом из последнего смайлика, чтобы сразу видеть)
+  // Игрок (со своим чат-баблом из последнего смайлика, чтобы сразу видеть).
+  // Look берём всегда из URL — даже если has_look=0, параметры есть
+  // (дефолты =0 в _qInt) и они хотя бы стабильны между перезагрузками.
   items.push({ depth: player.r + player.c + 0.001, draw: () => {
     const p = w2s(player.r + 0.5, player.c + 0.5);
     const myChat = (_localChat && performance.now() - _localChatT < 3500) ? _localChat : null;
-    drawPerson(p.x, p.y, player.ang, QP.has_look ? QP.look : {skin:1,body:1,face:0,hair:0,hat:0,gender:0},
+    drawPerson(p.x, p.y, player.ang, QP.look,
                player.walking ? player.walkPhase : 0, QP.name, myChat, true,
                myHp, PVP.max_hp, myDead);
   } });
@@ -2134,46 +2147,73 @@ function drawBullets() {
 }
 
 // ── Стрелки на POI ──────────────────────────────────────────────
-// Если POI вне видимости (не попал в r0..r1/c0..c1) — рисуем стрелку
-// у края экрана в направлении этого POI с подписью района.
+// Стрелка рисуется ТОЛЬКО для далёких POI (> 18 тайлов от игрока).
+// Прижимается в самый угол экрана (margin 28) с прозрачностью 0.65 —
+// не загораживает игровое поле.
 function drawPOIArrows(r0, r1, c0, c1) {
   const W = canvas.width / (window.devicePixelRatio || 1);
   const H = canvas.height / (window.devicePixelRatio || 1);
   const cx = W / 2, cy = H / 2;
-  const margin = 64;
+  // Зарезервированные зоны (UI) — туда не лезем:
+  //  - правый верхний угол: мини-карта (~ 156×156)
+  //  - верх центр: zoneBtn/pvpBanner
+  //  - правый низ: кнопка чата
+  const RESERVED = [
+    { x: W - 160, y: 0,        w: 160, h: 160 },           // мини-карта
+    { x: W / 2 - 140, y: 50, w: 280, h: 60 },              // zoneBtn
+    { x: W - 90, y: H - 100, w: 90, h: 100 },              // кнопка чата
+    { x: 0, y: H - 200, w: 170, h: 200 },                  // джойстик
+  ];
+  function hitsReserved(ax, ay) {
+    const PAD = 24;
+    return RESERVED.some(z => ax > z.x - PAD && ax < z.x + z.w + PAD
+                           && ay > z.y - PAD && ay < z.y + z.h + PAD);
+  }
+  const marginX = 28, marginY = 28;
   for (const poi of POI) {
     const visible = poi.r >= r0 && poi.r < r1 && poi.c >= c0 && poi.c < c1;
     if (visible) continue;
-    // Координаты POI в экранной системе (без clamp)
+    // Близко (<18 тайлов) — скоро появится в кадре, стрелка не нужна
+    const dr = poi.r - player.r, dc = poi.c - player.c;
+    if (Math.hypot(dr, dc) < 18) continue;
     const sp = w2s(poi.r + 0.5, poi.c + 0.5);
     let dx = sp.x - cx, dy = sp.y - cy;
     const len = Math.hypot(dx, dy) || 1;
     dx /= len; dy /= len;
-    // Пересечение направления с прямоугольником-рамкой
-    const maxX = (W / 2) - margin, maxY = (H / 2) - margin;
+    const maxX = (W / 2) - marginX, maxY = (H / 2) - marginY;
     const k = Math.min(maxX / Math.abs(dx || 1e-3), maxY / Math.abs(dy || 1e-3));
-    const ax = cx + dx * k, ay = cy + dy * k;
-    // Сама стрелка — треугольник в сторону POI + кружок-фон
+    let ax = cx + dx * k, ay = cy + dy * k;
+    // Если попадает в зарезервированную UI-зону — пытаемся «уползти»
+    // вдоль края немного в сторону, чтобы не накладываться.
+    let tries = 0;
+    while (hitsReserved(ax, ay) && tries < 6) {
+      // Смещаем по нормали к радиусу на 24px
+      const nx = -dy, ny = dx;
+      ax += nx * 24; ay += ny * 24;
+      tries++;
+    }
+    if (hitsReserved(ax, ay)) continue;  // не вышло — скрываем эту стрелку
     ctx.save();
+    ctx.globalAlpha = 0.65;
     ctx.translate(ax, ay);
     ctx.rotate(Math.atan2(dy, dx));
-    // Фон-круг
     ctx.fillStyle = 'rgba(20,24,32,.85)';
     ctx.strokeStyle = '#ffd76b';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.arc(0, 0, 18, 0, Math.PI * 2);
+    ctx.arc(0, 0, 14, 0, Math.PI * 2);
     ctx.fill(); ctx.stroke();
-    // Треугольник «→»
     ctx.fillStyle = '#ffd76b';
     ctx.beginPath();
-    ctx.moveTo(12, 0); ctx.lineTo(0, -7); ctx.lineTo(0, 7); ctx.closePath();
+    ctx.moveTo(9, 0); ctx.lineTo(0, -5); ctx.lineTo(0, 5); ctx.closePath();
     ctx.fill();
     ctx.restore();
-    // Эмодзи в центре стрелки (без поворота)
-    ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
+    ctx.save();
+    ctx.globalAlpha = 0.65;
+    ctx.font = '12px system-ui, "Segoe UI Emoji", sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(poi.icon, ax - dx * 4, ay - dy * 4);
+    ctx.fillText(poi.icon, ax - dx * 3, ay - dy * 3);
+    ctx.restore();
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   }
 }
