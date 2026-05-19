@@ -152,7 +152,32 @@ const QP = {
 
 // ── Telegram WebApp ─────────────────────────────────────────────
 const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
-try { if (tg) { tg.ready(); tg.expand(); } } catch(e) {}
+try {
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    // Bot API 7.7+: отключает свайп вниз закрывающий мини-апп.
+    // Без этого джойстик при свайпе пальцем вниз тянет за собой плашку
+    // Telegram и сворачивает приложение.
+    if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
+    // Bot API 8.0+: запрос фуллскрина (если доступно)
+    if (typeof tg.requestFullscreen === 'function') {
+      try { tg.requestFullscreen(); } catch(_) {}
+    }
+    // На случай если confirmation окно — выключаем
+    if (typeof tg.enableClosingConfirmation === 'function') {
+      // Не включаем подтверждение — пусть выходит сразу
+    }
+  }
+} catch(e) {}
+// Дополнительная страховка: глушим любой touchmove на body вне инпутов,
+// чтобы Safari/TG не интерпретировал жест как pull-to-close.
+document.body.addEventListener('touchmove', (e) => {
+  // Не блокируем тач если он внутри текстового инпута чата
+  const target = e.target;
+  if (target && target.tagName === 'INPUT') return;
+  e.preventDefault();
+}, { passive: false });
 
 // ── Canvas ──────────────────────────────────────────────────────
 const canvas = document.getElementById('gc');
@@ -757,99 +782,380 @@ function drawBuilding(r, c) {
   }
 }
 
-// Упрощённая отрисовка персонажа (в стиле demo_isometric, но компактнее).
-// look: {gender, skin, body, face, hair, hat} → используем для цветов.
-const SKIN_TONES = ['#f5cba7', '#d49b6a', '#a06a3f', '#6e4528', '#3f2918'];
-const HAIR_TONES = ['#1a1a1a', '#6b4423', '#c8a050', '#9c4a4a', '#3a3a3a'];
-function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf) {
-  // x,y — экранные координаты (центр клетки). Рисуем фигурку «над» полом.
-  const skin = SKIN_TONES[(look.skin | 0) % SKIN_TONES.length];
-  const hair = HAIR_TONES[(look.hair | 0) % HAIR_TONES.length];
-  const hatId = (look.hat | 0) % 4; // 0=без, 1=кепка, 2=шляпа, 3=шапка
-  // Тень
-  ctx.fillStyle = 'rgba(0,0,0,.45)';
-  ctx.beginPath();
-  ctx.ellipse(x, y + 4, 11, 4, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Ноги (анимация шага)
-  const swing = Math.sin(walkPhase || 0) * 3;
-  ctx.fillStyle = '#1a1a25';
-  ctx.fillRect(x - 5, y - 4, 4, 12 + swing);
-  ctx.fillRect(x + 1, y - 4, 4, 12 - swing);
-  // Туловище — цвет «пиджак» зависит от gender
-  ctx.fillStyle = (look.gender ? '#7a3a5a' : '#2a3a5a');
-  ctx.beginPath();
-  ctx.ellipse(x, y - 12, 8, 11, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Рубашка-пуговицы
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(x - 1, y - 18, 2, 12);
-  // Голова
-  ctx.fillStyle = skin;
-  ctx.beginPath();
-  ctx.arc(x, y - 26, 7, 0, Math.PI * 2);
-  ctx.fill();
-  // Волосы / шляпа
-  if (hatId === 0) {
-    ctx.fillStyle = hair;
-    ctx.beginPath();
-    ctx.arc(x, y - 28, 7, Math.PI, 0);
-    ctx.fill();
-  } else if (hatId === 1) {
-    // Кепка
-    ctx.fillStyle = '#1f1f25';
-    ctx.fillRect(x - 7, y - 31, 14, 4);
-    ctx.fillRect(x - 9, y - 28, 5, 2);
-  } else if (hatId === 2) {
-    // Федора
-    ctx.fillStyle = '#181820';
-    ctx.fillRect(x - 9, y - 28, 18, 2);
-    ctx.fillRect(x - 6, y - 33, 12, 5);
-    ctx.fillStyle = '#c83030';
-    ctx.fillRect(x - 6, y - 30, 12, 1);
-  } else {
-    // Шапка
-    ctx.fillStyle = '#3a3a4a';
-    ctx.beginPath();
-    ctx.ellipse(x, y - 31, 8, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  // Глаза — точки. Направление по ang.
-  ctx.fillStyle = '#101010';
-  const eDx = Math.cos(ang) * 1.2;
-  ctx.fillRect(x - 2.5 + eDx, y - 27, 1.5, 1.5);
-  ctx.fillRect(x + 1 + eDx,   y - 27, 1.5, 1.5);
+// ════════════════════════════════════════════════════════════════
+// CHARACTER RENDERER (drawChar/drawMale/drawFemale/drawFace*/drawHair*/drawHat
+// — копия из demo_isometric.html, чтобы рендерить ТОГО ЖЕ персонажа что в
+// бою. Спрайт кешируется по look-полям через getSprite.
+// ════════════════════════════════════════════════════════════════
+const SKINS = ['#FDDBB4','#F0C27F','#D4935A','#A0622A','#7A3B10','#C8A882'];
+const HAIR_COLORS_M = ['#1a0e00','#3d2200','#8b6333','#b8860b','#888','#111'];
+const HAIR_COLORS_F = ['#1a0e00','#8b1a1a','#b8860b','#3d2200','#888','#c87050','#e0c080'];
 
+function drawChar(ctx, W, H, opts) {
+  const { gender, skin, body, face, hair, hat, _back } = opts;
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2;
+  const sc = Math.min(W, H) / 220;
+  function px(x) { return cx + x * sc; }
+  function py(y) { return H * 0.92 - y * sc; }
+  const skinCol = SKINS[skin] || SKINS[0];
+  if (gender === 0) drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, !!_back);
+  else              drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, !!_back);
+}
+
+function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, isBack) {
+  const bodyDefs = [
+    { sw: 34, sh: 80, nw: 14, nh: 22, hw: 26 },
+    { sw: 44, sh: 85, nw: 16, nh: 22, hw: 30 },
+    { sw: 58, sh: 82, nw: 18, nh: 20, hw: 36 },
+    { sw: 52, sh: 92, nw: 16, nh: 24, hw: 32 },
+  ];
+  const bd = bodyDefs[body] || bodyDefs[1];
+  const suitCol = ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4];
+  const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9'][face % 4];
+  ctx.fillStyle = suitCol;
+  const legW = bd.sw * 0.38; const legH = 55 * sc;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.22), py(legH), legW*sc, legH, 4*sc); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(px(bd.sw*0.22 - legW), py(legH), legW*sc, legH, 4*sc); ctx.fill();
+  ctx.fillStyle = '#111';
+  [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*bd.sw*0.1), py(2), 10*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill(); });
+  ctx.fillStyle = suitCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
+  if (!isBack) {
+    ctx.fillStyle = '#ddd';
+    ctx.beginPath(); ctx.roundRect(px(-7), py(bd.sh), 14*sc, bd.sh*0.7*sc, 2*sc); ctx.fill();
+    ctx.fillStyle = tieCol;
+    ctx.beginPath();
+    ctx.moveTo(px(-5), py(bd.sh-4)); ctx.lineTo(px(5), py(bd.sh-4));
+    ctx.lineTo(px(3), py(bd.sh*0.32)); ctx.lineTo(px(0), py(bd.sh*0.25));
+    ctx.lineTo(px(-3), py(bd.sh*0.32)); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = suitCol;
+    ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-2)); ctx.lineTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.sw/2), py(bd.sh-20)); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-2)); ctx.lineTo(px(bd.sw/2), py(bd.sh)); ctx.lineTo(px(bd.sw/2), py(bd.sh-20)); ctx.closePath(); ctx.fill();
+  }
+  const armLen = body===3?65:60, armW = body===3?13:10;
+  ctx.fillStyle = suitCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2-armW*sc+2), py(bd.sh), armW*sc, armLen*sc, 5*sc); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(px(bd.sw/2-2), py(bd.sh), armW*sc, armLen*sc, 5*sc); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(-bd.sw/2-armW*sc/2+2), py(armLen-10), 7*sc, 9*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px(bd.sw/2+armW*sc/2-2), py(armLen-10), 7*sc, 9*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.nw/2), py(bd.sh+bd.nh), bd.nw*sc, bd.nh*sc, 4*sc); ctx.fill();
+  const headH = bd.hw*1.22;
+  const headY = bd.sh + bd.nh + headH;
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+headH/2), bd.hw/2*sc, headH/2*sc, 0, 0, Math.PI*2); ctx.fill();
+  if (!isBack) { ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+5), bd.hw/2.2*sc, 10*sc, 0, 0, Math.PI); ctx.fill(); }
+  if (!isBack) {
+    const eyeY = bd.sh + bd.nh + headH*0.55;
+    const eyeSpan = bd.hw*0.22;
+    const mouthY = bd.sh + bd.nh + headH*0.18;
+    drawFaceM(ctx, face, px, py, eyeY, eyeSpan, mouthY, bd, sc);
+    if (hair > 0) drawHairM(ctx, hair, px, py, bd, headY, headH, sc);
+    if (hat > 0)  drawHat(ctx, hat, px, py, bd, headY, headH, sc);
+  }
+}
+
+function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, isBack) {
+  const bodyDefs = [
+    { sw: 30, sh: 78, nw: 12, nh: 20, hw: 24, hip: 32 },
+    { sw: 36, sh: 80, nw: 13, nh: 20, hw: 27, hip: 40 },
+    { sw: 48, sh: 76, nw: 15, nh: 18, hw: 32, hip: 54 },
+    { sw: 34, sh: 85, nw: 13, nh: 22, hw: 26, hip: 38 },
+  ];
+  const bd = bodyDefs[body] || bodyDefs[1];
+  const dressCol = ['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a'][body % 4];
+  const accentCol = ['#e8c96e','#c0392b','#8e44ad','#2980b9'][face % 4];
+  ctx.fillStyle = dressCol;
+  ctx.beginPath();
+  ctx.moveTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.hip/2), py(0));
+  ctx.lineTo(px(bd.hip/2), py(0)); ctx.lineTo(px(bd.sw/2), py(bd.sh));
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#111';
+  [-1,1].forEach(s => {
+    ctx.beginPath(); ctx.ellipse(px(s*bd.hip*0.18), py(3), 8*sc, 4*sc, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px(s*bd.hip*0.18+4*sc), py(0), 3*sc, 8*sc, 1*sc); ctx.fill();
+  });
+  ctx.fillStyle = dressCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
+  if (!isBack) {
+    ctx.fillStyle = '#f0e8e0';
+    ctx.beginPath(); ctx.roundRect(px(-6), py(bd.sh), 12*sc, bd.sh*0.65*sc, 2*sc); ctx.fill();
+    ctx.fillStyle = dressCol;
+    ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-4)); ctx.lineTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.sw/2), py(bd.sh-18)); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-4)); ctx.lineTo(px(bd.sw/2), py(bd.sh)); ctx.lineTo(px(bd.sw/2), py(bd.sh-18)); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = accentCol;
+    ctx.beginPath(); ctx.arc(px(-8), py(bd.sh-10), 4*sc, 0, Math.PI*2); ctx.fill();
+  }
+  const armLen = 58, armW = 8;
+  ctx.fillStyle = dressCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.sw/2-armW*sc+2), py(bd.sh), armW*sc, armLen*sc, 4*sc); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(px(bd.sw/2-2), py(bd.sh), armW*sc, armLen*sc, 4*sc); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(-bd.sw/2-armW*sc/2+2), py(armLen-10), 6*sc, 8*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px(bd.sw/2+armW*sc/2-2), py(armLen-10), 6*sc, 8*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.roundRect(px(-bd.nw/2), py(bd.sh+bd.nh), bd.nw*sc, bd.nh*sc, 4*sc); ctx.fill();
+  ctx.strokeStyle = accentCol; ctx.lineWidth = 2*sc;
+  ctx.beginPath();
+  ctx.arc(px(0), py(bd.sh+bd.nh+bd.nh*0.5), (bd.nw*0.7)*sc, Math.PI*0.2, Math.PI*0.8);
+  ctx.stroke();
+  const headH = bd.hw*1.18;
+  const headY = bd.sh + bd.nh + headH;
+  ctx.fillStyle = skinCol;
+  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+headH/2), bd.hw/2*sc, headH/2*sc, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(px(0), py(bd.sh+bd.nh+4), bd.hw/2.3*sc, 9*sc, 0, 0, Math.PI); ctx.fill();
+  const eyeY = bd.sh + bd.nh + headH*0.55;
+  const eyeSpan = bd.hw*0.22;
+  const mouthY = bd.sh + bd.nh + headH*0.18;
+  if (!isBack) {
+    drawFaceF(ctx, face, px, py, eyeY, eyeSpan, mouthY, bd, sc);
+    if (hair > 0) drawHairF(ctx, hair, px, py, bd, headY, headH, sc);
+    if (hat > 0)  drawHat(ctx, hat, px, py, bd, headY, headH, sc);
+  }
+}
+
+function drawFaceM(ctx, faceId, px, py, eyeY, eyeSpan, mouthY, bd, sc) {
+  const eyeR = 4*sc;
+  ctx.fillStyle = '#fff';
+  [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*eyeSpan), py(eyeY), eyeR*1.3, eyeR, 0, 0, Math.PI*2); ctx.fill(); });
+  const pupilCol = ['#1a0a00','#1a0020','#002010','#100020'][faceId%4];
+  ctx.fillStyle = pupilCol;
+  const lookX = faceId===1?1.5:faceId===5?-0.5:0;
+  [-1,1].forEach(s => { ctx.beginPath(); ctx.arc(px(s*eyeSpan+lookX*sc), py(eyeY), eyeR*0.65, 0, Math.PI*2); ctx.fill(); });
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 2.5*sc; ctx.lineCap = 'round';
+  const browAngles = [0,-0.3,0,0.15,0.2,0.25,-0.2,-0.15,0,0.1];
+  const bAngle = browAngles[faceId]||0;
+  [-1,1].forEach(s => {
+    ctx.save(); ctx.translate(px(s*eyeSpan), py(eyeY+9)); ctx.rotate(s*bAngle);
+    ctx.beginPath(); ctx.moveTo(-8*sc,0); ctx.lineTo(8*sc,0); ctx.stroke(); ctx.restore();
+  });
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 2*sc;
+  if (faceId===0) { ctx.beginPath(); ctx.moveTo(px(-8),py(mouthY)); ctx.lineTo(px(8),py(mouthY)); ctx.stroke(); }
+  else if (faceId===1) { ctx.beginPath(); ctx.moveTo(px(-9),py(mouthY+3)); ctx.quadraticCurveTo(px(0),py(mouthY-4),px(9),py(mouthY+3)); ctx.stroke(); }
+  else if (faceId===5) { ctx.beginPath(); ctx.moveTo(px(-8),py(mouthY+4)); ctx.quadraticCurveTo(px(0),py(mouthY-2),px(8),py(mouthY+4)); ctx.stroke(); }
+  else if (faceId===6) { ctx.beginPath(); ctx.moveTo(px(-6),py(mouthY)); ctx.quadraticCurveTo(px(3),py(mouthY+5),px(9),py(mouthY+2)); ctx.stroke(); }
+  else { ctx.beginPath(); ctx.moveTo(px(-8),py(mouthY)); ctx.quadraticCurveTo(px(0),py(mouthY+3),px(8),py(mouthY)); ctx.stroke(); }
+  if (faceId===2) {
+    ctx.fillStyle = '#2a1800';
+    ctx.beginPath(); ctx.ellipse(px(0),py(mouthY-12),14*sc,16*sc,0,0,Math.PI); ctx.fill();
+    [-1,1].forEach(s=>{ctx.beginPath();ctx.ellipse(px(s*14),py(mouthY+4),5*sc,10*sc,0,0,Math.PI*2);ctx.fill();});
+  }
+  if (faceId===3) {
+    ctx.fillStyle='#1a0e00';
+    ctx.beginPath();ctx.ellipse(px(-5),py(mouthY+6),7*sc,4*sc,0.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(px(5),py(mouthY+6),7*sc,4*sc,-0.3,0,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawFaceF(ctx, faceId, px, py, eyeY, eyeSpan, mouthY, bd, sc) {
+  const eyeR = 4.2*sc;
+  const eyeColors = ['#1a3a5a','#3a1a1a','#1a3a1a','#3a1a3a','#2a2a1a','#1a2a3a','#3a0a0a','#1a1a2a','#3a2a0a','#0a2a3a'];
+  ctx.fillStyle = eyeColors[faceId%eyeColors.length]+'66';
+  [-1,1].forEach(s=>{ctx.beginPath();ctx.ellipse(px(s*eyeSpan),py(eyeY+2),eyeR*1.8,eyeR*0.7,0,0,Math.PI*2);ctx.fill();});
+  ctx.fillStyle='#fff';
+  [-1,1].forEach(s=>{ctx.beginPath();ctx.ellipse(px(s*eyeSpan),py(eyeY),eyeR*1.4,eyeR,0,0,Math.PI*2);ctx.fill();});
+  ctx.fillStyle='#1a0a30';
+  [-1,1].forEach(s=>{ctx.beginPath();ctx.arc(px(s*eyeSpan),py(eyeY),eyeR*0.7,0,Math.PI*2);ctx.fill();});
+  ctx.strokeStyle='#331a00';ctx.lineWidth=1.8*sc;ctx.lineCap='round';
+  [-1,1].forEach(s=>{
+    ctx.beginPath();ctx.moveTo(px(s*eyeSpan-8),py(eyeY+10));ctx.quadraticCurveTo(px(s*eyeSpan),py(eyeY+12),px(s*eyeSpan+8*s),py(eyeY+9));ctx.stroke();
+  });
+  const lipColors=['#c0392b','#e74c3c','#c0392b','#ff1493','#a04040','#d35400','#e91e63','#880000','#c0392b','#8e44ad'];
+  ctx.fillStyle = lipColors[faceId%lipColors.length];
+  ctx.beginPath();
+  ctx.moveTo(px(-8),py(mouthY));
+  ctx.quadraticCurveTo(px(-4),py(mouthY+5),px(0),py(mouthY+3));
+  ctx.quadraticCurveTo(px(4),py(mouthY+5),px(8),py(mouthY));
+  ctx.quadraticCurveTo(px(4),py(mouthY-3),px(0),py(mouthY-2));
+  ctx.quadraticCurveTo(px(-4),py(mouthY-3),px(-8),py(mouthY));
+  ctx.closePath();ctx.fill();
+}
+
+function drawHairM(ctx, hairId, px, py, bd, headY, headH, sc) {
+  const hc = HAIR_COLORS_M[hairId % HAIR_COLORS_M.length];
+  const hw = bd.hw / 2;
+  ctx.fillStyle = hc; ctx.strokeStyle = hc;
+  if (hairId===1) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY-5),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===2) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY+2),hw*sc,9*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(px(-4*sc),py(headY+14),hw*0.8*sc,16*sc,-0.2,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===3) {
+    ctx.beginPath();ctx.moveTo(px(-4),py(headY-2));ctx.lineTo(px(-3),py(headY+28));ctx.lineTo(px(3),py(headY+28));ctx.lineTo(px(4),py(headY-2));ctx.closePath();ctx.fill();
+  } else if (hairId===4) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===5) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    [-1,1].forEach(s=>{ctx.lineWidth=8*sc;ctx.strokeStyle=hc;ctx.beginPath();ctx.moveTo(px(s*hw),py(headY));ctx.quadraticCurveTo(px(s*(hw+5)),py(headY-20),px(s*(hw+1)),py(headY-70));ctx.stroke();});
+  } else if (hairId===6) {
+    for(let i=-3;i<=3;i++){ctx.beginPath();ctx.arc(px(i*7),py(headY+5),7*sc,0,Math.PI*2);ctx.fill();}
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,8*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===7) {
+    ctx.beginPath();ctx.ellipse(px(-4),py(headY+4),hw*0.9*sc,9*sc,-0.2,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.roundRect(px(-14),py(headY+5),14*sc,8*sc,3*sc);ctx.fill();
+  } else if (hairId===8) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===9) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY+1),hw*sc,6*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawHairF(ctx, hairId, px, py, bd, headY, headH, sc) {
+  const hc = HAIR_COLORS_F[hairId % HAIR_COLORS_F.length];
+  const hw = bd.hw / 2;
+  ctx.fillStyle = hc;
+  if (hairId===1) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    ctx.lineWidth=10*sc;ctx.strokeStyle=hc;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(px(hw-2),py(headY));ctx.quadraticCurveTo(px(hw+10),py(headY-15),px(hw+5),py(headY-40));ctx.stroke();
+  } else if (hairId===2) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    [-1,1].forEach(s=>{ctx.lineWidth=10*sc;ctx.strokeStyle=hc;ctx.beginPath();ctx.moveTo(px(s*hw),py(headY));ctx.lineTo(px(s*(hw+2)),py(headY-25));ctx.stroke();});
+  } else if (hairId===3) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    [-1,1].forEach(s=>{ctx.lineWidth=10*sc;ctx.strokeStyle=hc;ctx.beginPath();ctx.moveTo(px(s*hw),py(headY));ctx.quadraticCurveTo(px(s*(hw+6)),py(headY-30),px(s*(hw+3)),py(headY-80));ctx.stroke();});
+  } else if (hairId===4) {
+    for(let i=-3;i<=3;i++){ctx.beginPath();ctx.arc(px(i*6),py(headY+6),7*sc,0,Math.PI*2);ctx.fill();}
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,8*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===5) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===6) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(px(4),py(headY+22),10*sc,0,Math.PI*2);ctx.fill();
+  } else if (hairId===7) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    [-1,1].forEach(s=>{
+      ctx.lineWidth=9*sc;ctx.strokeStyle=hc;
+      ctx.beginPath();
+      ctx.moveTo(px(s*hw),py(headY));
+      ctx.quadraticCurveTo(px(s*(hw+8)),py(headY-20),px(s*(hw+2)),py(headY-40));
+      ctx.quadraticCurveTo(px(s*(hw+10)),py(headY-55),px(s*(hw+4)),py(headY-70));
+      ctx.stroke();
+    });
+  } else if (hairId===8) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY),hw*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if (hairId===9) {
+    ctx.beginPath();ctx.ellipse(px(0),py(headY-2),(hw+2)*sc,12*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawHat(ctx, hatId, px, py, bd, headY, headH, sc) {
+  const hw = bd.hw / 2;
+  const eyeY = headY - headH * 0.45;
+  if (hatId===1) {
+    ctx.fillStyle = '#1a0e00';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY+2), (hw+10)*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px(-hw+2), py(headY+2+26), (hw*2-4)*sc, 26*sc, 4*sc); ctx.fill();
+    ctx.fillStyle = '#e8c96e';
+    ctx.fillRect(px(-hw+2), py(headY+2+4+2), (hw*2-4)*sc, 4*sc);
+  } else if (hatId===2) {
+    ctx.fillStyle = '#1a2e3a';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY), hw*sc, 14*sc, 0, Math.PI, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(px(hw*0.5), py(headY), (hw+6)*sc, 4*sc, 0.15, 0, Math.PI); ctx.fill();
+    ctx.fillStyle = '#e8c96e';
+    ctx.beginPath(); ctx.arc(px(0), py(headY+12), 3*sc, 0, Math.PI*2); ctx.fill();
+  } else if (hatId===3) {
+    ctx.fillStyle = '#8b0000';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY+4), (hw+1)*sc, (headH*0.5+2)*sc, 0, Math.PI*0.5, Math.PI*2.5); ctx.fill();
+  } else if (hatId===4) {
+    ctx.fillStyle = '#5c3d11';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY+3), (hw+14)*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(px(-hw+2), py(headY+3));
+    ctx.lineTo(px(-hw+6), py(headY+3+32));
+    ctx.lineTo(px(-3),    py(headY+3+36));
+    ctx.lineTo(px(3),     py(headY+3+36));
+    ctx.lineTo(px(hw-6),  py(headY+3+32));
+    ctx.lineTo(px(hw-2),  py(headY+3));
+    ctx.closePath(); ctx.fill();
+  } else if (hatId===5) {
+    const span = hw*0.55, lensW = (hw*0.55)*sc, lensH = 9*sc, gap = hw*0.08;
+    ctx.strokeStyle='#111'; ctx.lineWidth = 2*sc; ctx.fillStyle='#1a3a5a88';
+    ctx.beginPath(); ctx.roundRect(px(-(span+gap)), py(eyeY+5), lensW, lensH, 3*sc); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.roundRect(px(gap),         py(eyeY+5), lensW, lensH, 3*sc); ctx.fill(); ctx.stroke();
+  } else if (hatId===6) {
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.ellipse(px(-11), py(eyeY), 9*sc, 7*sc, 0, 0, Math.PI*2); ctx.fill();
+  } else if (hatId===7) {
+    ctx.fillStyle = '#2c2c4e';
+    ctx.beginPath(); ctx.ellipse(px(-3), py(headY+8), (hw+4)*sc, 13*sc, -0.15, Math.PI*0.05, Math.PI*1.95); ctx.fill();
+  } else if (hatId===8) {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath(); ctx.ellipse(px(0), py(headY+2), (hw+16)*sc, 6*sc, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px(-hw+4), py(headY+2+30), (hw*2-8)*sc, 30*sc, [2*sc,2*sc,0,0]); ctx.fill();
+  }
+}
+
+// Кеш спрайтов
+const SPRITE_W = 110, SPRITE_H = 200;
+const _spriteCache = new Map();
+function getSprite(look) {
+  const key = [look.gender|0, look.skin|0, look.body|0, look.face|0, look.hair|0, look.hat|0].join('.');
+  if (_spriteCache.has(key)) return _spriteCache.get(key);
+  const off = document.createElement('canvas');
+  off.width = SPRITE_W; off.height = SPRITE_H;
+  drawChar(off.getContext('2d'), SPRITE_W, SPRITE_H, look);
+  _spriteCache.set(key, off);
+  return off;
+}
+
+// ── Финальная отрисовка персонажа на карте (с тенью, спрайтом, именем, чатом) ──
+function drawPerson(x, y, ang, look, walkPhase, moving, name, chat, isSelf) {
+  const bob = Math.sin(walkPhase || 0) * 2.5;
+  // Тень
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 2, wx * 0.32, wy * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Спрайт
+  const sprite = getSprite(look || {});
+  const scale = 1.7;             // меньше чем в боёвке (там 1.95) — карта мельче
+  const sh = TS * scale;
+  const sw = sh * 0.72;
+  // Анимация ходьбы — наклон корпуса + лёгкое сжатие на шаге.
+  const moveK = moving ? 1 : 0.15;
+  const ph = walkPhase || 0;
+  const lean    = Math.sin(ph) * 0.06 * moveK;
+  const squashY = 1 - Math.abs(Math.sin(ph * 2)) * 0.04 * moveK;
+  const squashX = 1 + Math.abs(Math.sin(ph * 2)) * 0.02 * moveK;
+  ctx.save();
+  ctx.translate(x, y + bob);
+  ctx.rotate(lean);
+  ctx.scale(squashX, squashY);
+  ctx.drawImage(sprite, Math.round(-sw / 2), Math.round(-sh * 0.94), sw, sh);
+  ctx.restore();
   // Имя над головой
   if (name) {
     ctx.font = 'bold 12px system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(0,0,0,.7)';
-    ctx.fillText(name, x + 1, y - 42);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,.85)';
+    ctx.strokeText(name, x, y - sh * 0.86);
     ctx.fillStyle = isSelf ? '#ffd76b' : '#7be58a';
-    ctx.fillText(name, x, y - 43);
+    ctx.fillText(name, x, y - sh * 0.86);
     ctx.textAlign = 'left';
   }
   // Чат-баббл
   if (chat) {
+    ctx.font = '12px system-ui, sans-serif';
     const W = Math.min(180, ctx.measureText(chat).width + 18);
     const H = 22;
-    const bx = x - W / 2, by = y - 62;
+    const bx = x - W / 2, by = y - sh * 0.86 - H - 6;
     ctx.fillStyle = 'rgba(20,24,32,.92)';
     ctx.strokeStyle = '#4a5060';
     ctx.lineWidth = 1;
     roundRect(bx, by, W, H, 6);
     ctx.fill(); ctx.stroke();
-    // хвостик
     ctx.beginPath();
     ctx.moveTo(x - 4, by + H);
     ctx.lineTo(x + 4, by + H);
     ctx.lineTo(x,     by + H + 5);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(20,24,32,.92)';
     ctx.fill();
     ctx.fillStyle = '#fff';
-    ctx.font = '12px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(chat, x, by + 15);
     ctx.textAlign = 'left';
@@ -890,19 +1196,20 @@ function render() {
       else if (t === 5) items.push({ depth: r + c, draw: () => drawDumpster(r, c) });
     }
   }
-  // Игрок
+  // Игрок (свой) — берём look из QP, если игрок настроил образ; иначе дефолт.
   items.push({ depth: player.r + player.c + 0.001, draw: () => {
     const p = w2s(player.r + 0.5, player.c + 0.5);
-    drawPerson(p.x, p.y, player.ang, QP.has_look ? QP.look : {skin:1,body:1,face:0,hair:0,hat:0,gender:0},
-               player.walking ? player.walkPhase : 0, QP.name, null, true);
+    const myLook = QP.has_look ? QP.look : { gender:0, skin:1, body:1, face:0, hair:0, hat:0 };
+    drawPerson(p.x, p.y, player.ang, myLook,
+               player.walkPhase, player.walking, QP.name, null, true);
   } });
   // Другие
   for (const [, o] of others) {
     items.push({ depth: o.y + o.x + 0.001, draw: () => {
       const p = w2s(o.y + 0.5, o.x + 0.5);
-      const phase = (o.w ? (o._walkPhase || 0) : 0);
+      const phase = (o._walkPhase || 0);
       const chat = (o.chat && performance.now() - o.chatT < 4000) ? o.chat : null;
-      drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, o.name, chat, false);
+      drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, !!o.w, o.name, chat, false);
     } });
   }
   items.sort((a, b) => a.depth - b.depth);
