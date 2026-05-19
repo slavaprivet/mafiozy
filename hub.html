@@ -5554,28 +5554,42 @@ let coopPollTimer = null;
 let coopWaitTimer = null;
 let coopMyUid = null;
 
-function coopApi() { return DATA.api || _COOP_API_FALLBACK || ''; }
+// Приоритет: свежий _COOP_API_FRESH (подтянутый из coop_api.json при загрузке
+// мини-аппа) > DATA.api (из URL — может оказаться мёртвым, если юзер открыл
+// хаб ДО перезапуска бота).
+function coopApi() { return _COOP_API_FRESH || DATA.api || ''; }
 
-// ── Динамический фолбэк COOP_API_BASE ─────────────────────────────────────
-// Когда друг открывает мини-апп через share-ссылку (t.me/<bot>?startapp=...),
-// у него в URL НЕТ api= (Telegram не умеет прокинуть динамический cloudflare
-// URL в Main Mini App). Тогда тянем актуальный URL из coop_api.json,
-// который start_with_tunnel.py публикует на GitHub Pages при каждом старте.
-let _COOP_API_FALLBACK = '';
+// ── Свежий COOP_API_BASE из coop_api.json ─────────────────────────────────
+// При каждом старте бота start_with_tunnel.py пишет новый Cloudflare-URL в
+// https://slavaprivet.github.io/mafiozi-battle/coop_api.json. Если хаб уже
+// был открыт на старом URL — DATA.api будет указывать на мёртвый туннель,
+// fetch на него виснет. Поэтому ВСЕГДА (не только когда DATA.api пуст)
+// подтягиваем актуальный base при загрузке и в начале каждого coop-действия.
+let _COOP_API_FRESH = '';
 async function _coopFetchApiFallback() {
-  if (DATA.api) return DATA.api;  // уже знаем — фолбэк не нужен
   try {
+    const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    if (ctl) setTimeout(() => ctl.abort(), 3000);
     const r = await fetch('https://slavaprivet.github.io/mafiozi-battle/coop_api.json?t=' + Date.now(), {
       cache: 'no-store',
+      signal: ctl ? ctl.signal : undefined,
     });
     if (!r.ok) return '';
     const j = await r.json();
     if (j && typeof j.base === 'string' && j.base.startsWith('https://')) {
-      _COOP_API_FALLBACK = j.base;
+      _COOP_API_FRESH = j.base;
       return j.base;
     }
   } catch(e) {}
   return '';
+}
+
+// Хелпер: fetch с таймаутом — иначе мёртвый туннель висит «⏳ Создаю...»
+// бесконечно (по умолчанию fetch не имеет таймаута).
+async function _coopFetch(url, opts = {}, timeoutMs = 8000) {
+  const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  if (ctl) setTimeout(() => ctl.abort(), timeoutMs);
+  return fetch(url, { ...opts, signal: ctl ? ctl.signal : undefined });
 }
 
 // Возвращает реальный Telegram-ID. Приоритет: DATA.uid (из URL от бота) →
@@ -5779,6 +5793,9 @@ function coopShowLobby() {
 // tg.sendData → бот → создание сессии + закрытие мини-аппа; теперь интерактив
 // не прерывается, и сразу получаем share-ссылку для приглашения друзей.
 async function coopCreateSession() {
+  // ВСЕГДА сначала тянем актуальный туннель — DATA.api мог устареть, если
+  // юзер открыл хаб до перезапуска бота. Это убирает зависание «⏳ Создаю...».
+  await _coopFetchApiFallback();
   if (!coopApi()) { showToast('Бот без туннеля. /start в Telegram заново.', '⚠️', 6000); return; }
   const bossEl = document.getElementById('coop-boss-sel');
   const distEl = document.getElementById('coop-dist-sel');
@@ -5787,7 +5804,7 @@ async function coopCreateSession() {
   const btn = document.getElementById('coop-create-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Создаю...'; }
   try {
-    const resp = await fetch(coopApi() + '/coop/create', {
+    const resp = await _coopFetch(coopApi() + '/coop/create', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         uid: coopMyUidStr(), name: DATA.name,
@@ -5800,7 +5817,10 @@ async function coopCreateSession() {
     coopSid = data.sid;
     _coopEnterWaitRoom(data);
   } catch(e) {
-    showToast('Ошибка создания: ' + e.message, '❌');
+    const msg = e.name === 'AbortError'
+      ? 'Сервер бота не отвечает. Перезапусти ЗАПУСТИТЬ_БОТА.bat.'
+      : ('Ошибка создания: ' + e.message);
+    showToast(msg, '❌', 6000);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🗡 Создать сессию'; }
   }
