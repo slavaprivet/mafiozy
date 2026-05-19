@@ -2221,6 +2221,42 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except ValueError:
             ref_id = None
 
+    # ── Обработка ссылки на кооп-лобби (?start=coop_XXXX) ──────────
+    # Друг получает share-ссылку t.me/<bot>?startapp=coop_<sid>. У старых
+    # клиентов Telegram это открывается как /start coop_<sid> в чате с ботом
+    # (не как Main Mini App). Отдаём ему правильную WebApp-кнопку с api+uid,
+    # иначе hub.html скажет «Бот без туннеля» — она по умолчанию ничего
+    # не знает про текущий COOP_API_BASE.
+    coop_sid_param = None
+    if args and args[0].lower().startswith("coop_"):
+        coop_sid_param = args[0][5:].upper()
+        if coop_sid_param and _char_pre and _char_pre.get("look_json"):
+            try:
+                contacts_n = len(await get_contacts(user_id))
+            except Exception:
+                contacts_n = 0
+            try:
+                hub_url = await build_hub_url(_char_pre, contacts_n, user_id)
+                # coop_sid передаём отдельным query — hub.html подхватит
+                # его и сразу сделает /coop/<sid>/join (см. _coopAutoJoinFromInvite).
+                join_url = hub_url + ("&" if "?" in hub_url else "?") + \
+                           "coop_sid=" + coop_sid_param
+                await update.message.reply_text(
+                    f"🤝 *Тебя пригласили в кооп-разборку!*\n\n"
+                    f"Лобби: `{coop_sid_param}`\n\n"
+                    f"_Нажми кнопку чтобы войти._",
+                    parse_mode="Markdown",
+                    reply_markup=ReplyKeyboardMarkup(
+                        [[KeyboardButton("🕐 Войти в лобби",
+                                         web_app=WebAppInfo(url=join_url))]],
+                        resize_keyboard=True, one_time_keyboard=True
+                    )
+                )
+                return ConversationHandler.END
+            except Exception as _e:
+                logger.warning("coop deep-link для %s упал: %s", user_id, _e)
+                # Падаем в обычный /start — пусть юзер хотя бы попадёт в меню.
+
     char = await get_character(user_id)
     if char:
         # Если пришёл по реф-ссылке и ещё не привязан — привязываем

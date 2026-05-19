@@ -6451,7 +6451,14 @@ function _coopGetStartParam() {
   } catch(e) {}
   // Фолбэк через URL — Telegram при startapp подставляет tgWebAppStartParam.
   const P = new URLSearchParams(location.search);
-  return P.get('tgWebAppStartParam') || P.get('startapp') || '';
+  const direct = P.get('tgWebAppStartParam') || P.get('startapp');
+  if (direct) return direct;
+  // Бот может передать coop_sid явным query-параметром (мы так делаем
+  // когда юзер пришёл через /start coop_<sid> — там просто отдаём кнопку
+  // с готовым URL, в котором уже всё есть). Превращаем в startapp-формат.
+  const csid = P.get('coop_sid');
+  if (csid && csid !== '0' && csid !== '') return 'coop_' + csid;
+  return '';
 }
 
 async function _coopAutoJoinFromInvite() {
