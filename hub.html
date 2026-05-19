@@ -1650,13 +1650,8 @@ body.on-subpage .time-display-box { display: none !important; }
     <div class="tile-label">Мои связи</div>
   </div>
 
-  <!-- Phase 10: открытый онлайн-мир. Кнопка ведёт в world.html где
-       все игроки видят друг друга в реальном времени через WebSocket. -->
-  <div class="tile tile-creator" id="tile-world" onclick="openWorld()" style="position:relative">
-    <div class="tile-icon">🌆</div>
-    <div class="tile-label">Город онлайн</div>
-    <div style="position:absolute;top:6px;right:8px;background:#2a8a3a;color:#fff;font-size:9px;font-weight:bold;padding:2px 6px;border-radius:6px;letter-spacing:.5px">NEW</div>
-  </div>
+  <!-- Phase 10: кнопка «Город онлайн» переехала на страницу «Районы»
+       (см. #page-explore ниже). Здесь её больше нет. -->
 
 </div>
 
@@ -1667,6 +1662,19 @@ body.on-subpage .time-display-box { display: none !important; }
   <div class="subpage-header">
     <button class="back-btn" onclick="goBack()">← Назад</button>
     <div class="subpage-title">🗺️ Районы</div>
+  </div>
+  <!-- Phase 10: вход в общий онлайн-мир сверху на странице районов.
+       Альтернатива «зайти в район для боя» — выйти на улицу к другим
+       игрокам в реальном времени. -->
+  <div style="padding:12px 14px 0">
+    <button onclick="openWorld()" style="display:flex;width:100%;align-items:center;justify-content:center;gap:8px;padding:14px;background:linear-gradient(135deg,#1f4a6a,#2c6a9e);color:#fff;border:1px solid #4a90c0;border-radius:12px;font-size:14px;font-weight:700;font-family:inherit;letter-spacing:.3px;cursor:pointer;box-shadow:0 2px 0 rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.12);text-shadow:0 1px 0 rgba(0,0,0,.4);-webkit-tap-highlight-color:transparent;position:relative">
+      <span style="font-size:20px;line-height:1">🌆</span>
+      <span>В открытый мир</span>
+      <span style="font-size:11px;background:#2a8a3a;color:#fff;font-weight:700;padding:2px 6px;border-radius:6px;letter-spacing:.5px">NEW</span>
+    </button>
+    <div style="color:#aab2c8;font-size:11px;text-align:center;margin-top:6px;line-height:1.4">
+      Все игроки онлайн в одном городе. Беги по улицам, общайся в чате.
+    </div>
   </div>
   <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px" id="district-list"></div>
 </div>
