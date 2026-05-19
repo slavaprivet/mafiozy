@@ -606,12 +606,20 @@ function wsConnect() {
     let pkt; try { pkt = JSON.parse(ev.data); } catch(e) { return; }
     if (pkt.t === 'hello') {
       const d = pkt.d || {};
-      MAP_COLS = d.map_cols || MAP_COLS;
-      MAP_ROWS = d.map_rows || MAP_ROWS;
-      buildMap();
-      // Сервер пришлёт точную позицию первым же snap. Локальное значение
-      // (18,18) уже на дороге — не сбрасываем его на центр карты, чтобы
-      // не попасть на тайл здания и не залипнуть до прихода первого snap.
+      // Принимаем серверные размеры ТОЛЬКО если они НЕ меньше клиентских.
+      // Иначе POI/спавн уедут за границы — а клиенту 60×60, сервер мог
+      // быть не перезапущен (старая версия 40×40).
+      const srvC = d.map_cols || MAP_COLS;
+      const srvR = d.map_rows || MAP_ROWS;
+      if (srvC < MAP_COLS || srvR < MAP_ROWS) {
+        setError('⚠️ Сервер бота не обновлён до 60×60. Перезапусти ЗАПУСТИТЬ_БОТА.bat — иначе ты не сможешь дойти до новых районов.');
+        setTimeout(() => setError(null), 8000);
+        // Не уменьшаем клиентскую карту — рисуем 60×60, но игрок будет
+        // ограничен серверным clamp'ом (~40 тайлов). Видно красивый
+        // город, но физически дойти можно только до старых районов.
+      } else {
+        MAP_COLS = srvC; MAP_ROWS = srvR; buildMap();
+      }
     } else if (pkt.t === 'snap') {
       const d = pkt.d || {};
       // Подтягиваем себя к серверной позиции (lightweight reconcile)
