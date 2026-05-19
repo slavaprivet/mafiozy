@@ -1763,19 +1763,44 @@ def get_effective_defense(char: dict) -> int:
     return char["defense"] + bonus
 
 async def check_level_up(telegram_id: int, char: dict) -> str:
-    needed = exp_for_level(char["level"])
-    if char["exp"] < needed:
+    # Циклом, чтобы за один бой можно было поднять несколько уровней разом
+    # (раньше срабатывал только один level-up, и остаток опыта «висел» до
+    # следующего боя — было непонятно, почему за крупный бой ранг почти не
+    # двигается).
+    start_level = char["level"]
+    level   = int(char["level"])
+    exp     = int(char["exp"])
+    max_hp  = int(char["max_hp"])
+    max_mp  = int(char["max_mana"])
+    attack  = int(char["attack"])
+    defense = int(char["defense"])
+    while True:
+        needed = exp_for_level(level)
+        if exp < needed:
+            break
+        exp     -= needed
+        level   += 1
+        max_hp  += 20
+        max_mp  += 10
+        attack  += 3
+        defense += 2
+        # Защита от бесконечного цикла (max 50 уровней за раз)
+        if level - start_level >= 50:
+            break
+    if level == start_level:
         return ""
-    new_level = char["level"] + 1
     await update_character(telegram_id,
-        level=new_level, exp=char["exp"] - needed,
-        max_hp=char["max_hp"] + 20, hp=char["max_hp"] + 20,
-        max_mana=char["max_mana"] + 10, mana=char["max_mana"] + 10,
-        attack=char["attack"] + 3, defense=char["defense"] + 2
+        level=level, exp=exp,
+        max_hp=max_hp, hp=max_hp,
+        max_mana=max_mp, mana=max_mp,
+        attack=attack, defense=defense,
     )
     return (f"\n\n🎖️ *ПОВЫШЕНИЕ РАНГА!*\n"
-            f"Ранг {char['level']} → {new_level}\n"
-            f"❤️+20 HP | ⚡+10 энергии | 🔫+3 атаки | 🛡️+2 защиты")
+            f"Ранг {start_level} → {level}\n"
+            f"❤️+{(level-start_level)*20} HP | "
+            f"⚡+{(level-start_level)*10} энергии | "
+            f"🔫+{(level-start_level)*3} атаки | "
+            f"🛡️+{(level-start_level)*2} защиты")
 
 # ============================================================
 # КЛАВИАТУРЫ
@@ -11846,7 +11871,10 @@ async def _coop_http_app():
         # 'nagan' — базовый ствол персонажа, выдаётся при создании.
         # Эти id остаются в ITEMS для бэк-совместимости со старыми
         # сохранениями, но в каталог магазина не попадают.
-        _HIDE_FROM_SHOP = {'zatochka', 'machete', 'katana', 'spiked_bat', 'nagan'}
+        # zatochka/machete/katana/spiked_bat — ближний бой (механика melee
+        # убрана); nagan — стартовый ствол (выдаётся бесплатно); energy_drink
+        # — мана-зелье (новая боёвка не использует энергию).
+        _HIDE_FROM_SHOP = {'zatochka', 'machete', 'katana', 'spiked_bat', 'nagan', 'energy_drink'}
         items = []
         for iid, it in ITEMS.items():
             t = it.get('type')

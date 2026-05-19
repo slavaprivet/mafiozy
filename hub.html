@@ -1842,6 +1842,12 @@ body.on-subpage .time-display-box { display: none !important; }
       <div class="char-row"><span class="char-label">💎 Бриллианты</span><span class="char-value" id="cs-dia">—</span></div>
       <div class="char-row"><span class="char-label">💼 Работа</span><span class="char-value" id="cs-job">—</span></div>
     </div>
+    <!-- Phase 9: блок «Мои навыки» — 5 строк с уровнями (★★★☆☆).
+         Заполняется renderCharSkills() из SKILLS_META при открытии досье. -->
+    <div class="char-card">
+      <div class="char-card-title">Мои навыки</div>
+      <div id="cs-skills-list"></div>
+    </div>
     <!-- Кнопка перешла сюда из главного меню: теперь смена образа из досье.
          Подпись «стоит 5 💎» — чтобы юзер сразу видел что смена платная
          (первое создание бесплатно, повторная смена — 5 бриллиантов).  -->
@@ -5439,6 +5445,37 @@ function renderCharacter() {
   document.getElementById('cs-cash').textContent   = fmtNum(DATA.cash) + ' $';
   document.getElementById('cs-dia').textContent    = fmtNum(DATA.dia) + ' 💎';
   document.getElementById('cs-job').textContent    = DATA.job || 'Безработный';
+  renderCharSkills();
+}
+
+// Phase 9: рендер блока «Мои навыки» в досье. SKILLS_META объявлен ниже
+// (в секции прокачки навыков) — на момент первого вызова renderCharacter
+// этот файл уже распарсен полностью, так что массив всегда есть.
+function renderCharSkills() {
+  const box = document.getElementById('cs-skills-list');
+  if (!box || typeof SKILLS_META === 'undefined') return;
+  box.innerHTML = '';
+  for (const sk of SKILLS_META) {
+    const lvl = (DATA[sk.dataKey] | 0);
+    const stars = '★'.repeat(lvl) + '☆'.repeat(5 - lvl);
+    // Текущий эффект — короткое описание из levelDesc[lvl]
+    const eff = sk.levelDesc[lvl] || '';
+    const row = document.createElement('div');
+    row.className = 'char-row';
+    row.style.flexWrap = 'wrap';
+    row.innerHTML = `
+      <span class="char-label" style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:18px">${sk.icon}</span>
+        <span>${sk.name}</span>
+      </span>
+      <span class="char-value" style="text-align:right">
+        <span style="color:#d0a040;letter-spacing:2px;font-size:12px">${stars}</span>
+        <span style="color:#aab2c8;font-size:11px;margin-left:6px">Lv ${lvl}</span>
+      </span>
+      <div style="flex-basis:100%;color:#9aa4b8;font-size:11px;margin-top:2px;line-height:1.35;${lvl === 0 ? 'opacity:.55' : ''}">${eff}</div>
+    `;
+    box.appendChild(row);
+  }
 }
 
 function openCreator() {
@@ -6793,16 +6830,18 @@ const DEMO_SHOP_ITEMS = [
   {id:'medkit_small', name:'🩹 Малая аптечка',  type:'potion', desc:'Восстанавливает 55 HP',              price:25,   heal:55},
   {id:'medkit_medium',name:'🏥 Аптечка',        type:'potion', desc:'Восстанавливает 130 HP',             price:60,   heal:130},
   {id:'medkit_large', name:'💉 Большая аптечка',type:'potion', desc:'Восстанавливает 280 HP',             price:120,  heal:280},
-  {id:'energy_drink', name:'⚡ Энергетик',      type:'potion', desc:'Восстанавливает 55 энергии',         price:45,   mana:55},
+  // energy_drink убран — в новой боёвке нет mana/энергии, восстанавливать
+  // нечего. Запись остаётся в ITEMS на сервере (на случай если у кого-то
+  // в инвентаре остался) но в магазин/демо больше не попадает.
 ];
 
 // Локальный демо-инвентарь (несколько предметов чтоб видно было)
+// zatochka/energy_drink убраны — ближний бой и мана не используются.
 let _demoInventory = {
-  zatochka: 1,
   nagan: 1,
   leather_jacket: 1,
   medkit_small: 3,
-  energy_drink: 2,
+  grenade: 2,
 };
 let _demoEquippedWeapon = 'nagan';
 let _demoEquippedArmor  = 'leather_jacket';
@@ -7570,19 +7609,19 @@ function renderSkillsPage() {
         <div style="color:#7be58a;font-size:11px;margin-bottom:2px">СЕЙЧАС:</div>
         <div style="color:#fff;font-size:13px">${sk.levelDesc[lvl]}</div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <div style="flex:1;min-width:0">
-          <div style="color:#aab2c8;font-size:11px">СЛЕДУЮЩИЙ УРОВЕНЬ</div>
-          <div style="color:#fff;font-size:13px;white-space:normal">${nextDesc}</div>
-        </div>
-        ${maxed ? `
-          <div style="flex:0 0 auto;padding:10px 14px;background:linear-gradient(135deg,#3d2810,#5a3d18);color:#ffd76b;border:1px solid #6a5028;border-radius:8px;font-size:12px;font-weight:bold">🏆 MAX</div>
-        ` : `
-          <button class="modal-btn modal-btn-heal" style="flex:0 0 auto;padding:10px 14px;background:linear-gradient(135deg,${canBuy?'#1a3a1a,#2d6f2d':'#3a1a1a,#5a1a1a'});color:${canBuy?'#7be58a':'#ff9090'};${canBuy?'':'opacity:.65;'}" onclick="upgradeSkill('${sk.id}')">
-            💵 ${fmtNum(cost)}$
-          </button>
-        `}
+      <div style="background:rgba(40,30,15,.35);border:1px solid #3a2a14;border-radius:8px;padding:8px 10px;margin-bottom:10px">
+        <div style="color:#aab2c8;font-size:11px;margin-bottom:2px">СЛЕДУЮЩИЙ УРОВЕНЬ</div>
+        <div style="color:#fff;font-size:13px;white-space:normal;line-height:1.4">${nextDesc}</div>
       </div>
+      ${maxed ? `
+        <div style="width:100%;padding:12px;background:linear-gradient(135deg,#3d2810,#5a3d18);color:#ffd76b;border:1px solid #6a5028;border-radius:8px;font-size:14px;font-weight:bold;text-align:center">🏆 МАКС. УРОВЕНЬ</div>
+      ` : `
+        <button class="modal-btn modal-btn-heal" style="width:100%;padding:13px 14px;background:linear-gradient(135deg,${canBuy?'#1a3a1a,#2d6f2d':'#3a1a1a,#5a1a1a'});color:${canBuy?'#7be58a':'#ff9090'};${canBuy?'':'opacity:.7;'};border:1px solid ${canBuy?'#4a8a4a':'#6a3a3a'};border-radius:8px;font-size:14px;font-weight:bold;letter-spacing:.4px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="upgradeSkill('${sk.id}')">
+          <span>${canBuy ? '💵 Прокачать' : '🔒 Прокачать'}</span>
+          <span style="font-size:13px;opacity:.95">— ${fmtNum(cost)} $</span>
+        </button>
+        ${!canBuy ? `<div style="color:#ff7070;font-size:11px;margin-top:6px;text-align:center">Не хватает ${fmtNum(cost - cash)}$</div>` : ''}
+      `}
     `;
     list.appendChild(card);
   }
