@@ -10861,9 +10861,12 @@ class WorldSim:
                 self.players[uid]['look'] = look
             self.players[uid]['last_seen'] = time.time()
             return
-        # Спавн в центре карты
-        sx = WORLD_MAP_COLS / 2 + random.uniform(-2, 2)
-        sy = WORLD_MAP_ROWS / 2 + random.uniform(-2, 2)
+        # Спавн строго на дороге (тайлы кратные 6 в build_map → проходимо).
+        # Центральный перекрёсток ~ (18,18) при карте 40×40. Маленький
+        # разброс ±0.4 чтобы двое игроков не оказались в одной точке,
+        # но никто не выпал на тайл здания (порог проходимости pad=0.3).
+        sx = 18 + random.uniform(-0.4, 0.4)
+        sy = 18 + random.uniform(-0.4, 0.4)
         self.players[uid] = {
             'uid':       uid,
             'name':      name,
