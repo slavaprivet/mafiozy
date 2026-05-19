@@ -327,6 +327,7 @@ const QP = {
   api:  _UP.get('api') || '',
   uid:  _UP.get('uid') || '',
   name: _qStr('name', 'Игрок'),
+  lvl:  _qInt('lvl', 1),
   hubUrl: _UP.get('hub') || '',
   look: {
     gender: _qInt('gender', 0),
@@ -1090,6 +1091,11 @@ _zoneEl.addEventListener('click', () => {
   // Спец-POI: открываем модал/баннер прямо в мире, никуда не переходим.
   if (_zoneCur.special === 'shop')   { openShop();   return; }
   if (_zoneCur.special === 'arena')  { showToast('🎯 Вы внутри PVP-зоны. Огонь скоро добавим.'); return; }
+  // Проверка ранга — как в hub. Если ниже minLvl района — не пускаем.
+  if (QP.lvl < _zoneCur.minLvl) {
+    showToast(`🔒 Нужен ранг ${_zoneCur.minLvl}+ (у тебя ${QP.lvl})`, 2800);
+    return;
+  }
   // Обычный район → возврат в hub с view=district&loc=<id>.
   const locId = _zoneCur.id;
   let target = '';
@@ -1883,22 +1889,28 @@ function drawPOI(r, c, poi) {
   const seed = ((r * 73 + c * 131) % 7) / 7;
   const H = isoH(1.3 + seed * 1.4);
   const topY = p.y - H - TS * 0.18;   // чуть выше крыши
-  // Пульсирующее свечение (на фоне)
+  // Заблокирован ли по уровню (для районов; шопы/арены — нет)
+  const locked = poi.special !== 'shop' && poi.special !== 'arena' && QP.lvl < poi.minLvl;
+  // Цвет акцента — золотой если доступен, серо-красный если закрыт
+  const accent = locked ? '#9a3030' : '#ffd76b';
+  // Пульсирующее свечение (на фоне) — у закрытых тусклее
   const t = performance.now() / 600;
   const pulse = 0.6 + 0.4 * Math.sin(t + r * 0.3 + c * 0.5);
   const haloR = 24 + pulse * 8;
   const grd = ctx.createRadialGradient(p.x, topY - 6, 2, p.x, topY - 6, haloR);
-  grd.addColorStop(0, `rgba(255,215,107,${0.55 * pulse})`);
-  grd.addColorStop(1, 'rgba(255,215,107,0)');
+  grd.addColorStop(0, locked
+    ? `rgba(180,60,60,${0.35 * pulse})`
+    : `rgba(255,215,107,${0.55 * pulse})`);
+  grd.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = grd;
   ctx.beginPath();
   ctx.arc(p.x, topY - 6, haloR, 0, Math.PI * 2);
   ctx.fill();
-  // Подложка-щит (тёмная с золотой обводкой)
+  // Подложка-щит
   const labelW = 92, labelH = 38;
   const lx = p.x - labelW / 2, ly = topY - labelH;
   ctx.fillStyle = 'rgba(20,18,12,.92)';
-  ctx.strokeStyle = '#ffd76b';
+  ctx.strokeStyle = accent;
   ctx.lineWidth = 2;
   roundRect(lx, ly, labelW, labelH, 6);
   ctx.fill(); ctx.stroke();
@@ -1906,18 +1918,19 @@ function drawPOI(r, c, poi) {
   ctx.font = '20px system-ui, "Segoe UI Emoji", sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#ffd76b';
-  ctx.fillText(poi.icon, lx + 6, ly + labelH / 2);
+  ctx.fillStyle = accent;
+  // Если заблокирован — рисуем замок поверх иконки
+  ctx.fillText(locked ? '🔒' : poi.icon, lx + 6, ly + labelH / 2);
   ctx.font = 'bold 11px system-ui, sans-serif';
-  ctx.fillStyle = '#ffe9aa';
+  ctx.fillStyle = locked ? '#d8a8a8' : '#ffe9aa';
   ctx.fillText(poi.name, lx + 32, ly + labelH / 2 - 5);
   ctx.font = '9px system-ui, sans-serif';
-  ctx.fillStyle = '#b8a070';
-  ctx.fillText(`lvl ${poi.minLvl}+`, lx + 32, ly + labelH / 2 + 8);
+  ctx.fillStyle = locked ? '#b88080' : '#b8a070';
+  ctx.fillText(`ранг ${poi.minLvl}+`, lx + 32, ly + labelH / 2 + 8);
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
-  // Маркер на крыше (точка)
-  ctx.fillStyle = '#ffd76b';
+  // Маркер на крыше
+  ctx.fillStyle = accent;
   ctx.beginPath();
   ctx.arc(p.x, ly + labelH + 4, 3, 0, Math.PI * 2);
   ctx.fill();

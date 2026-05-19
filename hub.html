@@ -5249,6 +5249,10 @@ function startBattle(bossId, locId){
   params.set('minions', boss.minions || 3);
   // Phase 9: готов ли сейф на этом боссе? (кулдаун 1ч после успешного взлома)
   params.set('safe_ok', isSafeReadyForBoss(bossId) ? '1' : '0');
+  // Cache-buster — Telegram WebView любит держать старую версию
+  // demo_isometric.html в кэше, и без свежего параметра URL переход
+  // может «висеть» (грузится белый экран старой битой версии).
+  params.set('v', Date.now());
   window.location.href = 'demo_isometric.html?' + params.toString();
 }
 
@@ -5515,6 +5519,8 @@ function openWorld() {
   params.set('api',   DATA.api);
   params.set('uid',   String(DATA.uid));
   params.set('name',  encodeURIComponent(DATA.name || 'Игрок'));
+  // Уровень — для проверки доступа к районам в открытом мире
+  params.set('lvl',   DATA.level || 1);
   // URL-кодим текущий URL хаба чтобы потом вернуться без потерь параметров.
   params.set('hub',   encodeURIComponent(location.href));
   // Look передаём ВСЕГДА (раньше только при hasLook — но если флаг
