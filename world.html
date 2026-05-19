@@ -111,6 +111,10 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
     <button id="btnChat">💬</button>
   </div>
 
+  <!-- Debug-оверлей. Показывает joyL.dx/dy и позицию игрока — нужно
+       чтобы продиагностировать почему джойстик не ловит touch на iOS. -->
+  <div id="dbgOverlay" style="position:absolute;left:10px;top:62px;background:rgba(0,0,0,.6);color:#7be58a;font:11px/1.3 monospace;padding:6px 8px;border-radius:6px;z-index:9;pointer-events:none;white-space:pre">…</div>
+
   <div id="errorBanner"></div>
 
   <div id="connectingOverlay">
@@ -235,6 +239,8 @@ const others = new Map();   // uid -> {x, y, ang, w, name, look, chat,
                             //         tx, ty, tAng, lastT}
 
 // ── Joystick ────────────────────────────────────────────────────
+// Pointer events работают и на touch, и на mouse, и не теряются когда
+// палец уезжает со стика (move/up слушаем на window, а не на joyL).
 const joyL = { active: false, dx: 0, dy: 0, id: -1, sx: 0, sy: 0 };
 const joyLEl = document.getElementById('joyL');
 const joyLKnob = joyLEl.querySelector('.knob');
@@ -253,25 +259,49 @@ function joyLEnd() {
   joyL.active = false; joyL.dx = 0; joyL.dy = 0; joyL.id = -1;
   joyLKnob.style.transform = '';
 }
+joyLEl.addEventListener('pointerdown', (e) => {
+  joyL.active = true; joyL.id = e.pointerId;
+  joyL.sx = e.clientX; joyL.sy = e.clientY;
+  joyLMove(e.clientX, e.clientY);
+  try { joyLEl.setPointerCapture(e.pointerId); } catch(_) {}
+  e.preventDefault();
+}, { passive: false });
+window.addEventListener('pointermove', (e) => {
+  if (joyL.active && (joyL.id === -1 || e.pointerId === joyL.id)) {
+    joyLMove(e.clientX, e.clientY);
+  }
+});
+window.addEventListener('pointerup',     () => { if (joyL.active) joyLEnd(); });
+window.addEventListener('pointercancel', () => { if (joyL.active) joyLEnd(); });
+// Fallback на старые touch-устройства где pointer events недоступны
 joyLEl.addEventListener('touchstart', (e) => {
-  const t = e.changedTouches[0];
-  if (!t) return;
-  joyL.active = true; joyL.id = t.identifier;
-  joyL.sx = t.clientX; joyL.sy = t.clientY;
+  if (joyL.active) return;
+  const t = e.changedTouches[0]; if (!t) return;
+  joyL.active = true; joyL.id = -1;
   joyLMove(t.clientX, t.clientY);
   e.preventDefault();
 }, { passive: false });
-joyLEl.addEventListener('touchmove', (e) => {
-  for (const t of e.changedTouches) {
-    if (t.identifier === joyL.id) { joyLMove(t.clientX, t.clientY); e.preventDefault(); break; }
-  }
+window.addEventListener('touchmove', (e) => {
+  if (!joyL.active) return;
+  const t = e.changedTouches[0]; if (!t) return;
+  joyLMove(t.clientX, t.clientY);
 }, { passive: false });
-joyLEl.addEventListener('touchend',    (e) => { for (const t of e.changedTouches) if (t.identifier === joyL.id) { joyLEnd(); break; } });
-joyLEl.addEventListener('touchcancel', () => joyLEnd());
-// Mouse fallback (десктоп)
-joyLEl.addEventListener('mousedown', (e) => { joyL.active = true; joyLMove(e.clientX, e.clientY); e.preventDefault(); });
-window.addEventListener('mousemove',  (e) => { if (joyL.active) joyLMove(e.clientX, e.clientY); });
-window.addEventListener('mouseup',    () => { if (joyL.active) joyLEnd(); });
+window.addEventListener('touchend',    () => { if (joyL.active) joyLEnd(); });
+window.addEventListener('touchcancel', () => { if (joyL.active) joyLEnd(); });
+// Клавиатура (для теста с десктопа)
+const _keyState = { up:false, down:false, left:false, right:false };
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'w' || e.key === 'ArrowUp')    _keyState.up    = true;
+  if (e.key === 's' || e.key === 'ArrowDown')  _keyState.down  = true;
+  if (e.key === 'a' || e.key === 'ArrowLeft')  _keyState.left  = true;
+  if (e.key === 'd' || e.key === 'ArrowRight') _keyState.right = true;
+});
+window.addEventListener('keyup', (e) => {
+  if (e.key === 'w' || e.key === 'ArrowUp')    _keyState.up    = false;
+  if (e.key === 's' || e.key === 'ArrowDown')  _keyState.down  = false;
+  if (e.key === 'a' || e.key === 'ArrowLeft')  _keyState.left  = false;
+  if (e.key === 'd' || e.key === 'ArrowRight') _keyState.right = false;
+});
 
 // ── Коллизии ───────────────────────────────────────────────────
 function isBlocked(r, c) {
@@ -407,15 +437,25 @@ function sendChat(text) {
 // ── Update / Render ────────────────────────────────────────────
 let prevT = performance.now();
 function update(dt) {
-  // Движение игрока по джойстику
+  // Сводный ввод: джойстик + клавиатура.
+  // Клавиатура полезна для теста с PC; на мобильном — игнорируется.
+  let inDx = joyL.dx, inDy = joyL.dy;
+  if (_keyState.left)  inDx -= 1;
+  if (_keyState.right) inDx += 1;
+  if (_keyState.up)    inDy -= 1;
+  if (_keyState.down)  inDy += 1;
+  // Нормализация если выходит за круг
+  const inMag = Math.hypot(inDx, inDy);
+  if (inMag > 1) { inDx /= inMag; inDy /= inMag; }
+
   const speed = 5.0; // тайлов/сек
   player.walking = false;
-  if (joyL.active && (Math.abs(joyL.dx) > 0.08 || Math.abs(joyL.dy) > 0.08)) {
-    const d = joyL.dx, s = joyL.dy / ISO_Y;
+  if (Math.abs(inDx) > 0.08 || Math.abs(inDy) > 0.08) {
+    const d = inDx, s = inDy / ISO_Y;
     const dc = (s + d) * 0.5;
     const dr = (s - d) * 0.5;
     const mag = Math.hypot(dr, dc) || 1;
-    const mv = Math.min(1, Math.hypot(joyL.dx, joyL.dy));
+    const mv = Math.min(1, Math.hypot(inDx, inDy));
     tryMove(player, dr / mag * speed * dt * mv, dc / mag * speed * dt * mv);
     player.ang = Math.atan2(dr, dc);
     player.walking = mv > 0.15;
@@ -685,6 +725,7 @@ function render() {
   items.forEach(i => i.draw());
 }
 
+let _dbgEl = null;
 function frame() {
   const t = performance.now();
   let dt = (t - prevT) / 1000;
@@ -692,6 +733,14 @@ function frame() {
   if (dt > 0.1) dt = 0.1;
   update(dt);
   render();
+  // Debug — обновляем 5 раз/сек, не каждый кадр (CSS лагает)
+  if (!_dbgEl) _dbgEl = document.getElementById('dbgOverlay');
+  if (_dbgEl && (t % 200) < 20) {
+    _dbgEl.textContent =
+      `joy ${joyL.active?'ON':'  '} dx=${joyL.dx.toFixed(2)} dy=${joyL.dy.toFixed(2)}\n` +
+      `pos r=${player.r.toFixed(1)} c=${player.c.toFixed(1)}\n` +
+      `ws ${wsConnected?'OK':'..'} online=${onlineCount}`;
+  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
