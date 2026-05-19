@@ -1993,13 +1993,35 @@ async def contacts_kb(user_id: int) -> ReplyKeyboardMarkup:
         one_time_keyboard=False,
     )
 
-def creator_kb() -> ReplyKeyboardMarkup:
-    """Reply keyboard with creator WebApp button (sendData works only for KeyboardButton)."""
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton("🎨 Создать гангстера", web_app=WebAppInfo(url=CREATOR_WEBAPP_URL))]],
-        resize_keyboard=True,
-        one_time_keyboard=True,
-    )
+async def creator_kb(user_id: int = None) -> ReplyKeyboardMarkup:
+    """Reply keyboard с двумя WebApp-кнопками: «🎨 Создать гангстера» (creator)
+    и «🏠 Главное меню» (hub).
+
+    Раньше тут была только creator-кнопка с one_time_keyboard=True. Это
+    создавало баг: у нового друга при /start (когда look_json пустой) бот
+    отдавал только creator_kb, и кнопки «Главное меню» НЕ БЫЛО — юзер
+    застревал на сообщении про гангстера и не понимал куда жать чтобы
+    открыть игру (если хотел проверить хаб без создания look-а).
+
+    Теперь обе кнопки рядом + клавиатура остаётся (one_time убран),
+    чтобы юзер мог переключаться между creator и хабом."""
+    rows = [
+        [KeyboardButton("🎨 Создать гангстера", web_app=WebAppInfo(url=CREATOR_WEBAPP_URL))],
+    ]
+    if user_id:
+        try:
+            char = await get_character(user_id) or {}
+            contacts_n = 0
+            try:
+                contacts_n = len(await get_contacts(user_id))
+            except Exception:
+                pass
+            hub_url = await build_hub_url(char, contacts_n, user_id)
+            rows.append([KeyboardButton("🏠 Главное меню",
+                                        web_app=WebAppInfo(url=hub_url))])
+        except Exception as _e:
+            logger.warning("creator_kb hub_url для %s упал: %s", user_id, _e)
+    return ReplyKeyboardMarkup(rows, resize_keyboard=True, one_time_keyboard=False)
 
 
 KNIFE_WEAPONS  = {"zatochka"}
@@ -2311,7 +2333,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "Выбери телосложение, лицо, причёску и аксессуары.\n\n"
                 "Это займёт меньше минуты 👇",
                 parse_mode="Markdown",
-                reply_markup=creator_kb()
+                reply_markup=await creator_kb(user_id)
             )
             return ConversationHandler.END
 
@@ -2408,7 +2430,7 @@ async def choose_class(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "Нажми кнопку ниже — займёт меньше минуты 👇"
             ),
             parse_mode="Markdown",
-            reply_markup=creator_kb()
+            reply_markup=await creator_kb(update.effective_user.id)
         )
     except Exception:
         pass
@@ -2438,7 +2460,7 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Прежде чем войти в игру — настрой внешность своего персонажа.\n"
             "Выбери телосложение, лицо, причёску и аксессуары 👇",
             parse_mode="Markdown",
-            reply_markup=creator_kb()
+            reply_markup=await creator_kb(user_id)
         )
         return
 
