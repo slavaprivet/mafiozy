@@ -1879,9 +1879,16 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
     _job_started = char.get("job_started") or 0
     _job_until   = (_job_started + JOB_DURATION) if (char.get("job") and _job_started) else 0
 
+    # Опыт: пробрасываем exp/exp_need чтобы hub рисовал прогресс-бар.
+    # exp_for_level возвращает «сколько нужно для перехода на следующий».
+    _cur_lvl = int(char.get("level", 1))
+    _cur_exp = int(char.get("exp", 0) or 0)
+    _need_exp = exp_for_level(_cur_lvl)
     params = {
         "name":     str(char.get("name", "")),
         "lvl":      char.get("level", 1),
+        "exp":      _cur_exp,
+        "exp_need": _need_exp,
         "cls":      char.get("class", "fixer"),
         "hp":       char.get("hp", 0),
         "maxhp":    char.get("max_hp", 100),
@@ -12231,10 +12238,15 @@ async def _coop_http_app():
         # 'nagan' — базовый ствол персонажа, выдаётся при создании.
         # Эти id остаются в ITEMS для бэк-совместимости со старыми
         # сохранениями, но в каталог магазина не попадают.
-        # zatochka/machete/katana/spiked_bat — ближний бой (механика melee
-        # убрана); nagan — стартовый ствол (выдаётся бесплатно); energy_drink
-        # — мана-зелье (новая боёвка не использует энергию).
-        _HIDE_FROM_SHOP = {'zatochka', 'machete', 'katana', 'spiked_bat', 'nagan', 'energy_drink'}
+        # zatochka/machete/katana/spiked_bat/knuckles/chain — ближний бой
+        # (механика melee убрана), nagan — стартовый ствол (выдаётся
+        # бесплатно), energy_drink — мана-зелье (новая боёвка не использует
+        # энергию). knuckles/chain раньше выпадали в рулетке казино — там
+        # их тоже не должно быть, но фильтр магазина важнее всего.
+        _HIDE_FROM_SHOP = {
+            'zatochka', 'machete', 'katana', 'spiked_bat',
+            'knuckles', 'chain', 'nagan', 'energy_drink',
+        }
         items = []
         for iid, it in ITEMS.items():
             t = it.get('type')

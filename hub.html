@@ -1576,6 +1576,11 @@ body.on-subpage .time-display-box { display: none !important; }
       <div class="stat-label"><span>⚡ Энергия</span><span id="mp-val">—</span></div>
       <div class="stat-bar-bg"><div class="stat-bar-fill bar-mana" id="mp-bar" style="width:0%"></div></div>
     </div>
+    <!-- Опыт до следующего ранга — то же оформление что у HP/энергии. -->
+    <div class="stat-row">
+      <div class="stat-label"><span>⭐ Опыт</span><span id="exp-val">—</span></div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill bar-exp" id="exp-bar" style="width:0%;background:linear-gradient(90deg,#f0c030,#ffd76b)"></div></div>
+    </div>
 
     <div class="money-row">
       <div class="money-chip" onclick="nav('donate')" style="cursor:pointer" title="Купить баксы">
@@ -2113,6 +2118,8 @@ function pi(k, def=0) { return parseInt(P.get(k)) || def; }
 const DATA = {
   name:    p('name','Гангстер'),
   level:   pi('lvl', 1),
+  exp:     pi('exp', 0),
+  expNeed: pi('exp_need', 100),
   cls:     p('cls','fixer'),
   uid:     pi('uid', 0),
   job_cd:  (function(){ try { return JSON.parse(p('job_cd','') || '{}'); } catch(e){ return {}; } })(),
@@ -2195,6 +2202,18 @@ document.getElementById('hero-name').textContent = DATA.name;
 document.getElementById('hero-rank').textContent = `★ Ранг ${DATA.level}`;
 document.getElementById('hp-val').textContent  = `${DATA.hp} / ${DATA.maxhp}`;
 document.getElementById('mp-val').textContent  = `${DATA.mp} / ${DATA.maxmp}`;
+// Прогресс опыта: текущий exp / нужный для следующего ранга. Раньше
+// этих полей не было в URL вовсе — после боя exp в БД рос, но в UI
+// игрок этого не видел и думал «не копится».
+(function _renderExpBar() {
+  const cur  = Math.max(0, DATA.exp | 0);
+  const need = Math.max(1, DATA.expNeed | 0);
+  const pct  = Math.min(100, Math.round(cur / need * 100));
+  const valEl = document.getElementById('exp-val');
+  const barEl = document.getElementById('exp-bar');
+  if (valEl) valEl.textContent = `${cur} / ${need}`;
+  if (barEl) barEl.style.width = pct + '%';
+})();
 document.getElementById('cash-val').textContent = fmtNum(DATA.cash);
 document.getElementById('dia-val').textContent  = fmtNum(DATA.dia);
 // (skull removed)
