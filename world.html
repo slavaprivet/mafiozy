@@ -372,7 +372,11 @@ async function _fetchApiFallback() {
     });
     if (!r.ok) return '';
     const j = await r.json();
-    if (j && typeof j.base === 'string' && j.base.startsWith('https://')) {
+    // Защита от плейсхолдера: 'https://api.trycloudflare.com' (без поддомена)
+    // означает что бот не публиковал реальный URL — туннеля нет.
+    // Quick-туннель ВСЕГДА имеет форму https://{words}-{words}.trycloudflare.com.
+    if (j && typeof j.base === 'string' && /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)+\//.test(j.base + '/')
+        && j.base !== 'https://api.trycloudflare.com') {
       QP.api = j.base;
       return j.base;
     }
@@ -961,10 +965,12 @@ function setConnecting(msg) {
 function wsConnect() {
   const url = wsUrl();
   if (!url) {
-    setConnecting('Сервер недоступен. Запусти бота с туннелем.');
+    setConnecting('⚠️ Бот не запущен. Открой ЗАПУСТИТЬ_БОТА.bat — без него онлайн-мир работать не может.');
+    // Через 6 сек ещё раз тянем coop_api.json — вдруг бот успел стартануть.
+    setTimeout(() => { _fetchApiFallback().then(u => { if (u) wsConnect(); }); }, 6000);
     return;
   }
-  try { ws = new WebSocket(url); } catch(e) { setError('Не удалось подключиться'); return; }
+  try { ws = new WebSocket(url); } catch(e) { setError('⚠️ Бот не запущен — открой ЗАПУСТИТЬ_БОТА.bat'); return; }
   ws.onopen = () => {
     wsConnected = true;
     setConnecting(null);
@@ -1071,10 +1077,10 @@ function wsConnect() {
       if (el) el.textContent = onlineCount;
     }
   };
-  ws.onerror = () => { setError('Ошибка соединения'); };
+  ws.onerror = () => { setError('⚠️ Бот не отвечает — проверь ЗАПУСТИТЬ_БОТА.bat'); };
   ws.onclose = () => {
     wsConnected = false;
-    setConnecting('Связь потеряна. Переподключаюсь…');
+    setConnecting('Связь потеряна. Переподключаюсь… (если бот выключен — открой ЗАПУСТИТЬ_БОТА.bat)');
     setTimeout(wsConnect, 2000);
   };
 }

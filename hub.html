@@ -1753,8 +1753,8 @@ body.on-subpage .time-display-box { display: none !important; }
 <!-- ══ DOSSIER FILE MODAL — карточка одного босса ══ -->
 <div class="modal-overlay" id="dossier-file-modal" style="display:none">
   <div class="modal-box" style="max-width:480px;background:linear-gradient(180deg,#1f1809,#100a04);border:2px solid #c8a050">
-    <div style="text-align:center;color:#ffd76b;font-family:Georgia,serif;letter-spacing:3px;font-size:11px;border-top:1px solid #8b6332;border-bottom:1px solid #8b6332;padding:6px 0;margin-bottom:10px">
-      РОЗЫСКИВАЕТСЯ&nbsp;·&nbsp;ЖИВЫМ&nbsp;ИЛИ&nbsp;МЁРТВЫМ
+    <div style="text-align:center;color:#ffd76b;font-family:Georgia,serif;letter-spacing:1.5px;font-size:10px;border-top:1px solid #8b6332;border-bottom:1px solid #8b6332;padding:6px 14px;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+      РОЗЫСКИВАЕТСЯ&nbsp;·&nbsp;ЖИВЫМ ИЛИ МЁРТВЫМ
     </div>
     <!-- Canvas-портрет босса (drawChar). Если look нет — текстовый fallback. -->
     <div style="text-align:center;margin:6px 0">
@@ -2903,7 +2903,7 @@ function showDossier() {
     const portraitId = 'doss-mini-' + bid;
     const emoji = (b.name || '').match(/^(\p{Extended_Pictographic}+)/u);
     const iconHtml = hasLook
-      ? '<canvas id="' + portraitId + '" width="56" height="70" style="background:radial-gradient(circle at 50% 35%, #2a1f10, #0a0604);border:1px solid #8b6332;border-radius:4px;flex-shrink:0"></canvas>'
+      ? '<canvas id="' + portraitId + '" width="80" height="100" style="background:radial-gradient(circle at 50% 35%, #2a1f10, #0a0604);border:1px solid #8b6332;border-radius:4px;flex-shrink:0"></canvas>'
       : '<div style="font-size:28px">' + (emoji ? emoji[1] : '👤') + '</div>';
     row.innerHTML =
       iconHtml +
@@ -3464,8 +3464,10 @@ function drawMaleFull(ctx, px, py, sc, skinCol, body, face, hair, hat, isBack) {
     { sw: 52, sh: 92, nw: 16, nh: 24, hw: 32 },
   ];
   const bd = bodyDefs[body] || bodyDefs[1];
-  const suitCol = ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4];
-  const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9'][face % 4];
+  // Расширенная палитра костюмов: явно различимы даже на 80×100 мини-аватарках в досье.
+  // body+face комбинируются — даже у боссов с одинаковым body костюмы отличаются.
+  const suitCol = ['#1f2a44','#2d4a2a','#5a2424','#3a2a4a','#1a3a3a','#4a3a1a','#3a1a3a','#2a2a1a'][(body * 2 + face) % 8];
+  const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9','#27ae60','#e67e22','#16a085','#ecf0f1'][(face + body) % 8];
   ctx.fillStyle = suitCol;
   const legW = bd.sw * 0.38; const legH = 55 * sc;
   ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.22), py(legH), legW*sc, legH, 4*sc); ctx.fill();
@@ -5661,12 +5663,28 @@ async function _coopFetchApiFallback() {
     });
     if (!r.ok) return '';
     const j = await r.json();
-    if (j && typeof j.base === 'string' && j.base.startsWith('https://')) {
+    // Защита от плейсхолдера: 'https://api.trycloudflare.com' (без поддомена)
+    // = бот не публиковал реальный URL. Quick-туннель ВСЕГДА имеет форму
+    // https://{words}-{words}.trycloudflare.com — с поддоменом.
+    if (j && typeof j.base === 'string' && /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)+\//.test(j.base + '/')
+        && j.base !== 'https://api.trycloudflare.com') {
       _COOP_API_FRESH = j.base;
       return j.base;
     }
   } catch(e) {}
   return '';
+}
+
+// Единое понятное сообщение когда бот/туннель недоступен. Раньше юзер видел
+// «Load failed» (iOS Safari) или «Ошибка соединения» — не понимая что делать.
+// Теперь всегда честно говорим: подними бота через ЗАПУСТИТЬ_БОТА.bat.
+function _botDownMsg() { return '⚠️ Бот не запущен. Открой ЗАПУСТИТЬ_БОТА.bat'; }
+function _botDownHtml() {
+  return '<div style="padding:20px;text-align:center;color:#ff8a4a;line-height:1.5">'
+    + '⚠️ <b>Бот не запущен</b><br>'
+    + '<span style="color:#aaa;font-size:12px">Открой ЗАПУСТИТЬ_БОТА.bat на компе с ботом —<br>'
+    + 'без него онлайн-часть (кооп, мир, бизнес, рынок, инвентарь) не работает.</span>'
+    + '</div>';
 }
 
 // Хелпер: fetch с таймаутом — иначе мёртвый туннель висит «⏳ Создаю...»
@@ -5903,9 +5921,10 @@ async function coopCreateSession() {
     coopSid = data.sid;
     _coopEnterWaitRoom(data);
   } catch(e) {
-    const msg = e.name === 'AbortError'
-      ? 'Сервер бота не отвечает. Перезапусти ЗАПУСТИТЬ_БОТА.bat.'
-      : ('Ошибка создания: ' + e.message);
+    // «Load failed» (iOS Safari) и AbortError → бот не отвечает. Не светим
+    // юзеру технический message — даём чёткую инструкцию.
+    const isNetErr = e.name === 'AbortError' || /load failed|failed to fetch|network/i.test(e.message || '');
+    const msg = isNetErr ? _botDownMsg() : ('Ошибка создания: ' + e.message);
     showToast(msg, '❌', 6000);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🗡 Создать сессию'; }
@@ -7143,21 +7162,23 @@ async function renderBusinesses() {
     data.forEach(b => { _bizCatalogCache[b.id] = b; list.appendChild(renderBizCard(b)); });
     return;
   }
-  // ОБЫЧНЫЙ режим: с сервера
-  const api = DATA.api, uid = jobUidStr();
+  // ОБЫЧНЫЙ режим: с сервера. ВАЖНО: берём ЖИВОЙ api через coopApi()
+  // (свежий URL из coop_api.json), а не устаревший DATA.api из URL.
+  await _coopFetchApiFallback();
+  const api = coopApi() || DATA.api, uid = jobUidStr();
   // Сервер не настроен — показываем каталог без owned-инфо как preview.
   // Это лучше чем «Не удалось загрузить»: игрок видит чтО можно купить
   // когда туннель оживёт. Купить нельзя — но при попытке выскочит toast.
   if (!api) {
     const previewItems = DEMO_BUSINESSES_CATALOG.map(b => Object.assign({}, b, { owned: false }));
-    if (cashEl) cashEl.innerHTML = `💵 Наличные: $${_fmtCash(DATA.cash || 0)} <span style="margin-left:14px;color:#ff8;font-weight:400;font-size:12px">(сервер недоступен — перезапусти бота)</span>`;
+    if (cashEl) cashEl.innerHTML = `💵 Наличные: $${_fmtCash(DATA.cash || 0)} <span style="margin-left:14px;color:#ff8;font-weight:400;font-size:12px">(бот не запущен — запусти ЗАПУСТИТЬ_БОТА.bat)</span>`;
     list.innerHTML = '';
     previewItems.forEach(b => { _bizCatalogCache[b.id] = b; list.appendChild(renderBizCard(b)); });
     return;
   }
   list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Загрузка…</div>';
   try {
-    const res = await fetch(`${api}/biz/${uid}/list`);
+    const res = await _coopFetch(`${api}/biz/${uid}/list`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'list failed');
@@ -7168,13 +7189,7 @@ async function renderBusinesses() {
       list.appendChild(renderBizCard(b));
     });
   } catch(e) {
-    // Конкретизируем причину — пользователю проще диагностировать.
-    const reason = (e && e.message) ? String(e.message).slice(0,80) : 'ошибка сети';
-    list.innerHTML = `<div style="padding:20px;text-align:center;color:#ff7070">
-      Не удалось загрузить<br>
-      <span style="color:#888;font-size:12px">${reason}</span><br>
-      <span style="color:#888;font-size:12px">Проверь что бот запущен через ЗАПУСТИТЬ_БОТА.bat</span>
-    </div>`;
+    list.innerHTML = _botDownHtml();
     console.error('[biz/list] failed:', e);
   }
 }
@@ -7261,7 +7276,7 @@ async function bizBuy(bizId) {
     renderBusinesses();
     return;
   }
-  const api = DATA.api, uid = jobUidStr();
+  const api = coopApi() || DATA.api, uid = jobUidStr();
   if (!api || !uid) return;
   try {
     const res = await fetch(`${api}/biz/${uid}/buy`, {
@@ -7278,7 +7293,7 @@ async function bizBuy(bizId) {
     showToast('🏢 Бизнес куплен!', '✅');
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     renderBusinesses();
-  } catch(e) { showToast('Ошибка соединения', '⚠️'); }
+  } catch(e) { showToast(_botDownMsg(), '⚠️', 5000); }
 }
 async function bizCollect(bizId) {
   // DEMO
@@ -7315,7 +7330,7 @@ async function bizCollect(bizId) {
     renderBusinesses();
     return;
   }
-  const api = DATA.api, uid = jobUidStr();
+  const api = coopApi() || DATA.api, uid = jobUidStr();
   if (!api || !uid) return;
   try {
     const res = await fetch(`${api}/biz/${uid}/collect`, {
@@ -7332,7 +7347,7 @@ async function bizCollect(bizId) {
     }
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     renderBusinesses();
-  } catch(e) { showToast('Ошибка соединения', '⚠️'); }
+  } catch(e) { showToast(_botDownMsg(), '⚠️', 5000); }
 }
 function showBusinessEventModal(ev) {
   const txt = document.getElementById('event-modal-text');
@@ -7366,10 +7381,13 @@ async function renderShop() {
     _renderShopList();
     return;
   }
-  const api = DATA.api, uid = jobUidStr();
+  // Берём ЖИВОЙ api (coop_api.json), а не устаревший DATA.api.
+  await _coopFetchApiFallback();
+  const api = coopApi() || DATA.api, uid = jobUidStr();
+  if (!api || !uid) { list.innerHTML = _botDownHtml(); return; }
   list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Загрузка…</div>';
   try {
-    const res = await fetch(`${api}/shop/${uid}/list`);
+    const res = await _coopFetch(`${api}/shop/${uid}/list`);
     const j = await res.json();
     if (!j.ok) throw new Error('shop list failed');
     _shopState.items    = j.items || [];
@@ -7377,7 +7395,7 @@ async function renderShop() {
     _shopState.diamonds = j.diamonds || 0;
     _renderShopList();
   } catch(e) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:#ff7070">Не удалось загрузить</div>';
+    list.innerHTML = _botDownHtml();
   }
 }
 function _renderShopList() {
@@ -7700,11 +7718,11 @@ async function shopBuy(itemId) {
     _renderShopList();
     return;
   }
-  const api = DATA.api, uid = jobUidStr();
+  const api = coopApi() || DATA.api, uid = jobUidStr();
   // Раньше тут был тихий return — игроку казалось, что «кнопка не работает».
   // Теперь объясняем причину: бот без туннеля cloudflared не отдаёт API.
   if (!api || !uid) {
-    showToast('Сервер недоступен. Перезапусти бота через ЗАПУСТИТЬ_БОТА.bat', '⚠️');
+    showToast(_botDownMsg(), '⚠️');
     return;
   }
   try {
@@ -7728,7 +7746,7 @@ async function shopBuy(itemId) {
     showToast('🛒 Куплено!', '✅');
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     _renderShopList();
-  } catch(e) { showToast('Ошибка соединения', '⚠️'); }
+  } catch(e) { showToast(_botDownMsg(), '⚠️', 5000); }
 }
 
 // ── НАВЫКИ (5 штук, прокачка за наличные) ─────────────────────────────
@@ -7901,8 +7919,8 @@ async function upgradeSkill(skillId) {
     return;
   }
 
-  const api = DATA.api, uid = jobUidStr();
-  if (!api || !uid) { showToast('Сервер недоступен. Перезапусти бота через ЗАПУСТИТЬ_БОТА.bat', '⚠️'); return; }
+  const api = coopApi() || DATA.api, uid = jobUidStr();
+  if (!api || !uid) { showToast(_botDownMsg(), '⚠️'); return; }
   try {
     const res = await fetch(`${api}/skill/${uid}/upgrade`, {
       method: 'POST',
@@ -7923,7 +7941,7 @@ async function upgradeSkill(skillId) {
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     renderSkillsPage();
   } catch (e) {
-    showToast('Ошибка соединения', '⚠️');
+    showToast(_botDownMsg(), '⚠️', 5000);
   }
 }
 
@@ -7948,10 +7966,13 @@ async function renderInventory() {
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     return;
   }
-  const api = DATA.api, uid = jobUidStr();
+  // Берём ЖИВОЙ api (coop_api.json), а не устаревший DATA.api.
+  await _coopFetchApiFallback();
+  const api = coopApi() || DATA.api, uid = jobUidStr();
+  if (!api || !uid) { list.innerHTML = _botDownHtml(); return; }
   list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Загрузка…</div>';
   try {
-    const res = await fetch(`${api}/inv/${uid}/list`);
+    const res = await _coopFetch(`${api}/inv/${uid}/list`);
     const j = await res.json();
     if (!j.ok) throw new Error('inv list failed');
     _invState.items           = j.items || [];
@@ -7961,7 +7982,7 @@ async function renderInventory() {
     _renderInventoryList();
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
   } catch(e) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:#ff7070">Не удалось загрузить</div>';
+    list.innerHTML = _botDownHtml();
   }
 }
 function _renderInventoryList() {
@@ -8074,9 +8095,9 @@ async function invEquip(itemId, slotForUnequip) {
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     return;
   }
-  const api = DATA.api, uid = jobUidStr();
+  const api = coopApi() || DATA.api, uid = jobUidStr();
   if (!api || !uid) {
-    showToast('Сервер недоступен. Перезапусти бота через ЗАПУСТИТЬ_БОТА.bat', '⚠️');
+    showToast(_botDownMsg(), '⚠️');
     return;
   }
   try {
@@ -8094,7 +8115,7 @@ async function invEquip(itemId, slotForUnequip) {
     showToast(itemId ? '✅ Надето' : 'Снято', '🎒');
     _renderInventoryList();
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
-  } catch(e) { showToast('Ошибка соединения', '⚠️'); }
+  } catch(e) { showToast(_botDownMsg(), '⚠️', 5000); }
 }
 
 async function bizRestore(bizId) {
@@ -8118,7 +8139,7 @@ async function bizRestore(bizId) {
     renderBusinesses();
     return;
   }
-  const api = DATA.api, uid = jobUidStr();
+  const api = coopApi() || DATA.api, uid = jobUidStr();
   if (!api || !uid) return;
   try {
     const res = await fetch(`${api}/biz/${uid}/restore`, {
@@ -8135,7 +8156,7 @@ async function bizRestore(bizId) {
     showToast(j.success ? '🔧 Бизнес восстановлен!' : '😖 Не получилось, попробуй ещё', j.success ? '✅' : '⚠️');
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     renderBusinesses();
-  } catch(e) { showToast('Ошибка соединения', '⚠️'); }
+  } catch(e) { showToast(_botDownMsg(), '⚠️', 5000); }
 }
 
 // === JOBS v2 (mini-app) ============================================
@@ -8477,12 +8498,12 @@ async function actTake(jobId){
   DATA.job = _prevJob; DATA.job_until = _prevUntil;
   renderJobs();
   if (typeof renderStatusBar === 'function') renderStatusBar();
-  showToast('Сервер недоступен. Перезапусти бота через ЗАПУСТИТЬ_БОТА.bat', '⚠️');
+  showToast(_botDownMsg(), '⚠️');
 }
 async function actCollect(){
   const api = (typeof coopApi === 'function') ? coopApi() : (DATA.api || '');
   if (!api){
-    showToast('Сервер недоступен. Перезапусти бота через ЗАПУСТИТЬ_БОТА.bat', '⚠️');
+    showToast(_botDownMsg(), '⚠️');
     return;
   }
   // До 2 повторов на случай флапа Cloudflare-туннеля
@@ -8584,7 +8605,7 @@ async function actAbandon(){
   DATA.job = _prevJob; DATA.job_until = _prevUntil;
   renderJobs();
   if (typeof renderStatusBar === 'function') renderStatusBar();
-  showToast('Сервер недоступен. Перезапусти бота через ЗАПУСТИТЬ_БОТА.bat', '⚠️');
+  showToast(_botDownMsg(), '⚠️');
 }
 function actCaptivityBail(){
   if (!tg || !tg.sendData) return;
@@ -8645,8 +8666,10 @@ function gz_drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, isBack=fal
     { sw: 52, sh: 92, nw: 16, nh: 24, hw: 32 },
   ];
   const bd = bodyDefs[body] || bodyDefs[1];
-  const suitCol = ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4];
-  const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9'][face % 4];
+  // Расширенная палитра костюмов: явно различимы даже на 80×100 мини-аватарках в досье.
+  // body+face комбинируются — даже у боссов с одинаковым body костюмы отличаются.
+  const suitCol = ['#1f2a44','#2d4a2a','#5a2424','#3a2a4a','#1a3a3a','#4a3a1a','#3a1a3a','#2a2a1a'][(body * 2 + face) % 8];
+  const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9','#27ae60','#e67e22','#16a085','#ecf0f1'][(face + body) % 8];
 
   // Legs
   ctx.fillStyle = suitCol;
