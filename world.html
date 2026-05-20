@@ -2619,29 +2619,30 @@ function drawBullets() {
 
 // ── Стрелки на POI ──────────────────────────────────────────────
 // Стрелка рисуется для далёких POI (> 14 тайлов от игрока) и кладётся
-// в один из 4 углов экрана в зависимости от направления на POI.
-// Если в один угол летят несколько POI — стопкой ВНИЗ/ВВЕРХ от угла.
-// Учитываем UI: мини-карта (TR), джойстик (BL), кнопка чата (BR),
-// zoneBtn (центр сверху). Все 4 угла получают сдвинутый якорь чтобы
-// не накладываться на эти элементы.
+// НА ГРАНИ экрана с той стороны, куда направлен POI от центра экрана.
+// Это стандартный compass-edge подход (как в open-world играх): стрелка
+// «упирается» в край экрана, не закрывая центр и персонажа.
+// Раньше было «по 4 углам», но из-за DPR-clamp (resizeCanvas clamp'ит
+// devicePixelRatio до 2 на ретине) координаты сжимались к центру и
+// стрелки попадали почти на персонажа.
 function drawPOIArrows(r0, r1, c0, c1) {
-  const W = canvas.width / (window.devicePixelRatio || 1);
-  const H = canvas.height / (window.devicePixelRatio || 1);
+  // ВАЖНО: используем CSS pixels (innerWidth/Height), а не canvas.width
+  // делёный на window.devicePixelRatio — в resizeCanvas DPR заклеймён до 2,
+  // и формула canvas.width/dpr на iPhone давала «ужатый» W.
+  const W = window.innerWidth;
+  const H = window.innerHeight;
   const cx = W / 2, cy = H / 2;
-  const M = 36;                // отступ от края
-  const MINI = 140;            // высота резерва под мини-карту (правый верх)
-  const JOY  = 170;            // высота резерва под джойстик (левый низ)
-  const CHAT = 90;             // высота резерва под кнопку чата (правый низ)
-  // Якоря 4 углов: x, y, direction (-1 вверх/+1 вниз — куда стопка растёт).
-  const ANCHORS = {
-    TL: { x: M,     y: M,             dir: +1 },
-    TR: { x: W - M, y: M + MINI,      dir: +1 },   // под мини-картой
-    BL: { x: M,     y: H - M - JOY,   dir: -1 },   // над джойстиком
-    BR: { x: W - M, y: H - M - CHAT,  dir: -1 },   // над кнопкой чата
-  };
-  // Раскладываем кандидатов по углам по направлению (dx, dy) от центра.
-  // TL: dx<0 && dy<0, TR: dx>0 && dy<0, BL: dx<0 && dy>0, BR: dx>0 && dy>0.
-  const buckets = { TL: [], TR: [], BL: [], BR: [] };
+  // Отступы под UI: top-left «Меню», top-right мини-карта, bottom-left
+  // джойстик, bottom-right кнопка чата. Если стрелка попадает в зону —
+  // прижимаем её к свободному ребру.
+  const PAD = 30;                  // от края экрана
+  const SAFE_TL = { w: 110, h: 50 };   // кнопка «Меню»
+  const SAFE_TR = { w: 200, h: 200 };  // мини-карта + «N онлайн»
+  const SAFE_BL = { w: 200, h: 220 };  // джойстик
+  const SAFE_BR = { w: 80,  h: 110 };  // кнопка чата
+  // Кандидаты: все POI за пределами видимости + достаточно далёкие.
+  // Каждому считаем точку пересечения луча из центра экрана с
+  // прямоугольником (PAD..W-PAD) × (PAD..H-PAD).
   for (const poi of POI) {
     const visible = poi.r >= r0 && poi.r < r1 && poi.c >= c0 && poi.c < c1;
     if (visible) continue;
@@ -2652,27 +2653,28 @@ function drawPOIArrows(r0, r1, c0, c1) {
     const dx = sp.x - cx, dy = sp.y - cy;
     const len = Math.hypot(dx, dy) || 1;
     const ndx = dx / len, ndy = dy / len;
-    const ang = Math.atan2(dy, dx);
-    const key = (dy < 0)
-      ? (dx < 0 ? 'TL' : 'TR')
-      : (dx < 0 ? 'BL' : 'BR');
-    buckets[key].push({ poi, ndx, ndy, ang, dist });
-  }
-  // В каждом углу: сортируем по дистанции (ближайший — у самого угла).
-  // Раскладываем стопкой по dir, шаг ~38 пикселей.
-  const STEP = 38;
-  const MAX_PER_CORNER = 3;
-  for (const key of Object.keys(buckets)) {
-    const arr = buckets[key];
-    if (!arr.length) continue;
-    arr.sort((a, b) => a.dist - b.dist);
-    const anc = ANCHORS[key];
-    for (let i = 0; i < Math.min(arr.length, MAX_PER_CORNER); i++) {
-      const c = arr[i];
-      const ax = anc.x;
-      const ay = anc.y + anc.dir * i * STEP;
-      _drawPOIArrow(ax, ay, c.ndx, c.ndy, c.poi);
-    }
+    // Параметрически: (cx + t*dx, cy + t*dy) пересекает прямоугольник.
+    // Берём минимальный положительный t среди 4 рёбер.
+    const xMin = PAD, xMax = W - PAD, yMin = PAD, yMax = H - PAD;
+    let t = Infinity;
+    if (dx > 0) t = Math.min(t, (xMax - cx) / dx);
+    if (dx < 0) t = Math.min(t, (xMin - cx) / dx);
+    if (dy > 0) t = Math.min(t, (yMax - cy) / dy);
+    if (dy < 0) t = Math.min(t, (yMin - cy) / dy);
+    let ax = cx + t * dx;
+    let ay = cy + t * dy;
+    // Сдвиг от UI-зон: если стрелка попала в зону угла — выталкиваем её
+    // по ближайшему ребру (вверх/вниз/влево/вправо). Без этого стрелка
+    // прячется под мини-карту или джойстик.
+    const NEAR_TOP    = ay < PAD + 20;
+    const NEAR_BOTTOM = ay > H - PAD - 20;
+    const NEAR_LEFT   = ax < PAD + 20;
+    const NEAR_RIGHT  = ax > W - PAD - 20;
+    if (NEAR_TOP && NEAR_LEFT  && ax < SAFE_TL.w && ay < SAFE_TL.h) ay = SAFE_TL.h + PAD;
+    if (NEAR_TOP && NEAR_RIGHT && (W - ax) < SAFE_TR.w && ay < SAFE_TR.h) ay = SAFE_TR.h + PAD;
+    if (NEAR_BOTTOM && NEAR_LEFT  && ax < SAFE_BL.w && (H - ay) < SAFE_BL.h) ay = H - SAFE_BL.h - PAD;
+    if (NEAR_BOTTOM && NEAR_RIGHT && (W - ax) < SAFE_BR.w && (H - ay) < SAFE_BR.h) ay = H - SAFE_BR.h - PAD;
+    _drawPOIArrow(ax, ay, ndx, ndy, poi);
   }
 }
 
