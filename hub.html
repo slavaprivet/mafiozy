@@ -6783,12 +6783,73 @@ async function _coopCheckPending() {
     const r = await _coopFetch(coopApi() + '/coop/pending/' + uid, {}, 4000);
     if (!r.ok) return;
     const j = await r.json();
-    if (j && j.sid && !_notifyShown.has(j.sid)) {
+    if (!j || !j.sid) return;
+    if (j.is_own) {
+      // Своя активная сессия (хост нажал «назад», игрок переоткрыл хаб).
+      // Без модалки — сразу в waitroom. _notifyShown отмечаем чтобы push
+      // с этим же sid не показал модалку поверх.
+      _notifyShown.add(j.sid);
+      coopSid = String(j.sid).toUpperCase();
+      if (typeof nav === 'function') nav('coop');
+      try {
+        const r2 = await _coopFetch(coopApi() + '/coop/' + j.sid, {}, 4000);
+        if (r2.ok) {
+          const sess = await r2.json();
+          if (sess.state === 'battle') { _coopEnterBattle(sess); }
+          else { _coopEnterWaitRoom(sess); }
+        }
+      } catch(e) {}
+      return;
+    }
+    // Чужое приглашение — показываем модалку (как раньше).
+    if (!_notifyShown.has(j.sid)) {
       await _coopAutoJoinFromInvite(j.sid);
     }
   } catch(e) {}
 }
 setTimeout(() => { try { _coopCheckPending(); } catch(e) {} }, 800);
+
+// ── RUNTIME-ОБНОВЛЕНИЕ ────────────────────────────────────────────────
+// Юзеру больше не нужно /start после деплоя hub.html. Опрашиваем бэк:
+// если /app/version отличается от _v в нашем URL — значит, бот видит
+// свежий файл, а мы открыты со старого кэшированного URL. Делаем
+// location.replace с новым _v — браузер запросит свежий html. Опрос:
+// один раз на старте + раз в 90 сек + на visibilitychange (вернулись
+// из бэкграунда → сразу проверка).
+const _CLIENT_V = String(P.get('_v') || '');
+let _appVerLastCheck = 0;
+async function _appVersionCheck() {
+  _appVerLastCheck = Date.now();
+  if (!coopApi()) await _coopFetchApiFallback();
+  if (!coopApi()) return;
+  try {
+    const r = await _coopFetch(coopApi() + '/app/version', {}, 4000);
+    if (!r.ok) return;
+    const j = await r.json();
+    const srvV = String(j && j.version || '');
+    if (!srvV || !_CLIENT_V) return;
+    if (srvV === _CLIENT_V) return;
+    console.log('[app] update available:', _CLIENT_V, '→', srvV);
+    // Бамп _v и cache-buster параметра — GitHub Pages CDN/Telegram WebView
+    // обязаны перезагрузить из-за нового query.
+    const u = new URL(location.href);
+    u.searchParams.set('_v', srvV);
+    u.searchParams.set('_av', srvV);
+    // Если юзер в разгар кооп-боя — не дёргаем (потеряет state). Подождём
+    // следующего тика когда вернётся в меню.
+    if (coopSid && (typeof DATA !== 'undefined') &&
+        (DATA.coopStatus === 'battle' || DATA.coopStatus === 'waiting')) return;
+    location.replace(u.toString());
+  } catch(e) {}
+}
+setTimeout(_appVersionCheck, 2200);
+setInterval(_appVersionCheck, 90000);
+document.addEventListener('visibilitychange', () => {
+  // Когда юзер вернулся в мини-апп после паузы > 30 сек — проверяем апдейт.
+  if (document.visibilityState === 'visible' && (Date.now() - _appVerLastCheck) > 30000) {
+    _appVersionCheck();
+  }
+});
 
 // ── IN-GAME COOP INVITE — поллер уведомлений + модалка ────────────────
 // Хост создаёт кооп-сессию → сервер кладёт уведомление каждому его другу-игроку

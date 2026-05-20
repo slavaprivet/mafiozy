@@ -9634,8 +9634,9 @@ def _coop_next_turn(sess: dict):
 # COOP_READY_AUTOSTART сек. Первое нажатие открывает окно готовности
 # COOP_READY_WINDOW сек — если кто-то не нажмёт за это время, сессия
 # отменяется автоматически.
-COOP_READY_AUTOSTART = 5    # сек до автостарта когда все готовы
-COOP_READY_WINDOW    = 60   # сек на нажатие «Готов» всеми (минута — друг успевает дойти из чата)
+COOP_READY_AUTOSTART = 5     # сек до автостарта когда все готовы
+COOP_READY_WINDOW    = 60    # сек на нажатие «Готов» всеми после первого «Готов»
+COOP_LOBBY_TTL_SEC   = 120   # 2 мин на сессию в waiting (от created_at). Не началась — сгорает.
 
 
 def _coop_evaluate_lobby(sess: dict, now: float = None) -> None:
@@ -9648,6 +9649,16 @@ def _coop_evaluate_lobby(sess: dict, now: float = None) -> None:
         now = time.time()
     players = sess.get('players') or []
     ready_uids = [p['uid'] for p in players if p.get('ready')]
+
+    # Общий TTL сессии в waiting: 2 минуты от создания. Если хост ушёл,
+    # друзей не нашлось и автостарт не сработал — сессия сгорает. Это
+    # защищает от «зомби-лобби», висящих в _coop_sessions часами.
+    created_at = sess.get('created_at') or now
+    if now - created_at > COOP_LOBBY_TTL_SEC:
+        sess['state'] = 'cancelled'
+        sess['cancel_reason'] = 'lobby_ttl'
+        _coop_add_log(sess, "⏱ Сессия не началась за 2 минуты — сгорела.", 'sys')
+        return
 
     # Таймаут готовности: после первого «Готов» даём COOP_READY_WINDOW сек —
     # если не все нажали, отменяем. Если ни один не нажал — таймер не идёт.
@@ -11318,6 +11329,14 @@ async def _coop_http_app():
         boss_id = str(b.get('boss_id', 'kosoy'))
         loc_id  = str(b.get('loc_id', 'market'))
         bhp = _COOP_BOSS_HP.get(boss_id, 300)
+        # Если у хоста уже есть незавершённая waiting-сессия (нажал «назад»
+        # и снова создаёт) — гасим её, чтобы не плодить зомби-лобби. Игроки,
+        # которые ещё опрашивают старый sid, получат state='cancelled' и
+        # вернутся в лобби.
+        for _old_sid, _old in list(_coop_sessions.items()):
+            if _old.get('host_uid') == uid and _old.get('state') == 'waiting' and _old_sid != '':
+                _old['state'] = 'cancelled'
+                _old['cancel_reason'] = 'host_new_session'
         sid = _coop_gen_sid()
         # Внешность хоста — тянем из БД для баннера «БРИГАДА В СБОРЕ»,
         # body-параметры можно не передавать с фронта.
@@ -12911,13 +12930,15 @@ async def _coop_http_app():
             })
 
     async def h_coop_pending(req):
-        """Отдаёт hub.html ожидающий pending_coop_sid и обнуляет его в БД.
-        Юзкейс: друг кликнул share-ссылку → /start coop_SID сохранил pending в
-        БД, но юзер открыл хаб через старую кэшированную кнопку «Главное меню»
-        с URL без coop_sid. Хаб дёргает этот эндпоинт на init, получает sid и
-        показывает модалку «Войти/Отказаться» — точь-в-точь как при свежей
-        inline-кнопке. Сбрасываем после отдачи, чтобы не зацикливать на
-        последующих переоткрытиях."""
+        """Возвращает либо приглашение (pending_coop_sid из БД, одноразово),
+        либо «свою» активную сессию (где uid — host или участник в waiting/
+        battle). Юзкейсы:
+        - друг кликнул share-ссылку и тыкнул кэшированную «Главное меню»
+          → URL без coop_sid → этот endpoint отдаёт invite → модалка.
+        - хост создал сессию, нажал «назад» в хабе → закрыл мини-апп → снова
+          зашёл → этот endpoint видит свою активную waiting и отдаёт sid →
+          хаб сразу показывает waitroom без модалки (см. is_own=True).
+        """
         uid_s = str(req.match_info.get('uid', ''))
         if not uid_s.isdigit():
             return await _cors(web.json_response({'ok': False, 'sid': ''}))
@@ -12929,18 +12950,51 @@ async def _coop_http_app():
             char = await get_character(uid_int)
         except Exception:
             char = None
-        sid = ''
+        # 1) Pending invite — одноразовая доставка. Если sess умерла —
+        # игнорируем (модалка с мёртвым sid бесит).
+        invite_sid = ''
         if char:
-            sid = (char.get('pending_coop_sid') or '').strip()
-            if sid:
+            invite_sid = (char.get('pending_coop_sid') or '').strip()
+            if invite_sid:
                 try:
                     await update_character(uid_int, pending_coop_sid=None)
                 except Exception:
                     pass
-        # Возвращаем только если сессия ещё жива — иначе модалка с мёртвым sid.
-        if sid and sid.upper() not in _coop_sessions:
-            sid = ''
-        return await _cors(web.json_response({'ok': True, 'sid': sid}))
+        if invite_sid:
+            up = invite_sid.upper()
+            s = _coop_sessions.get(up)
+            if not s or s.get('state') not in ('waiting', 'battle'):
+                invite_sid = ''
+        if invite_sid:
+            return await _cors(web.json_response({
+                'ok': True, 'sid': invite_sid, 'is_own': False,
+            }))
+        # 2) Активная своя сессия. Перебираем _coop_sessions, ищем где этот
+        # uid уже фигурирует как игрок в живой waiting/battle. Возвращаем
+        # первую найденную — пусть фронт сразу едет в waitroom.
+        uid_str = str(uid_int)
+        for s_id, s in _coop_sessions.items():
+            if s.get('state') not in ('waiting', 'battle'):
+                continue
+            if any(str(p.get('uid')) == uid_str for p in (s.get('players') or [])):
+                return await _cors(web.json_response({
+                    'ok': True, 'sid': s_id, 'is_own': True,
+                }))
+        return await _cors(web.json_response({'ok': True, 'sid': '', 'is_own': False}))
+
+    async def h_app_version(req):
+        """Отдаёт текущую «версию» приложения. Используется hub.html для
+        runtime-обновления: клиент сравнивает с _v из своего URL и если
+        бэк отдаёт другое — делает location.replace со свежим _v.
+        Это убирает необходимость /start каждый раз после деплоя.
+
+        Версия = тот же _file_cache_bust('hub.html'), что бот вкладывает в
+        URL хаба при /start. Сравнение строкой — простое и надёжное."""
+        try:
+            v = _file_cache_bust('hub.html')
+        except Exception:
+            v = str(int(time.time()))
+        return await _cors(web.json_response({'ok': True, 'version': str(v)}))
 
     async def h_notify_poll(req):
         """Возвращает и очищает очередь уведомлений для данного uid.
@@ -12993,6 +13047,7 @@ async def _coop_http_app():
     aio_app.router.add_get ('/world/online',        h_world_online)  # для баннера в Кооперативе
     aio_app.router.add_get ('/notify/{uid}/poll',   h_notify_poll)   # in-game приглашения в кооп
     aio_app.router.add_get ('/coop/pending/{uid}',  h_coop_pending)  # ожидающий coop_sid из pending_coop_sid в БД
+    aio_app.router.add_get ('/app/version',         h_app_version)   # runtime-обновление hub без /start
 
     from aiohttp import web as _web
     runner = _web.AppRunner(aio_app)
