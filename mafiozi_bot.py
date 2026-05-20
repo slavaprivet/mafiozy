@@ -2274,11 +2274,14 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ref_id = None
 
     # ── Обработка ссылки на кооп-лобби (?start=coop_XXXX) ──────────
-    # Друг получает share-ссылку t.me/<bot>?start=coop_<sid>. Бот НЕ шлёт
-    # отдельное «🤝 Тебя пригласили в кооп-разборку!» в чат — для онлайн-друзей
-    # есть in-game модалка через INVITE_QUEUE. Здесь только сохраняем coop_sid:
-    # обычное /start откроет «Главное меню», build_hub_url увидит
-    # pending_coop_sid и хаб сделает auto-join в лобби.
+    # Друг получает share-ссылку t.me/<bot>?start=coop_<sid>. Сохраняем
+    # coop_sid в pending_coop_sid (для следующих /start) и СРАЗУ отправляем
+    # отдельное короткое сообщение с inline web-app кнопкой, в URL которой
+    # уже зашит правильный coop_sid. Это надёжнее чем рассчитывать на
+    # обновление reply-keyboard: ReplyKeyboard у клиента Telegram бывает
+    # кэширована со старым URL — друг тыкает «Главное меню» и попадает в
+    # хаб БЕЗ coop_sid → создаёт своё пустое лобби. Inline-кнопка имеет
+    # точный URL в момент клика и эту проблему обходит.
     coop_sid_param = None
     if args and args[0].lower().startswith("coop_"):
         coop_sid_param = args[0][5:].upper()
@@ -2288,14 +2291,38 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await update_character(user_id, pending_coop_sid=coop_sid_param)
                 except Exception as _e:
                     logger.warning("pending_coop_sid save для %s упал: %s", user_id, _e)
+                # Шлём inline-кнопку с правильным URL ТОЛЬКО если друг уже
+                # прошёл регистрацию и создал персонажа. Иначе сначала creator —
+                # после него pending_coop_sid подхватится в build_hub_url.
+                if _char_pre.get("look_json"):
+                    try:
+                        contacts_n = len(await get_contacts(user_id))
+                    except Exception:
+                        contacts_n = 0
+                    try:
+                        hub_url = await build_hub_url(_char_pre, contacts_n, user_id)
+                        join_url = hub_url + ("&" if "?" in hub_url else "?") + \
+                                   "coop_sid=" + coop_sid_param
+                        await update.message.reply_text(
+                            f"🗡 Лобби `{coop_sid_param}`",
+                            parse_mode="Markdown",
+                            reply_markup=InlineKeyboardMarkup([[
+                                InlineKeyboardButton("🗡 Открыть лобби",
+                                                     web_app=WebAppInfo(url=join_url))
+                            ]])
+                        )
+                        return ConversationHandler.END
+                    except Exception as _e:
+                        logger.warning("coop deep-link inline для %s упал: %s", user_id, _e)
             else:
                 # Совсем новый юзер: char нет вовсе. Сохраняем в user_data
                 # на время сессии (переживёт ввод имени/класса). После
                 # create_character — перенесём в БД.
                 if context.user_data is not None:
                     context.user_data['pending_coop_sid'] = coop_sid_param
-            # Не выходим — даём пройти обычный /start flow (главное меню или
-            # creator). hub.html подхватит pending_coop_sid и сделает auto-join.
+            # Если до return не дошли (новичок или _char_pre без look_json) —
+            # даём пройти обычный /start flow (creator или главное меню).
+            # hub.html подхватит pending_coop_sid и сделает auto-join.
 
     char = await get_character(user_id)
     if char:

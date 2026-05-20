@@ -2422,11 +2422,48 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
     ctx.fillStyle = pct > 0.5 ? '#5aff5a' : pct > 0.25 ? '#ffd76b' : '#ff5a5a';
     ctx.fillRect(bx, by, bw * pct, bh);
   }
-  // Чат-баббл — над именем (и над HP если есть)
+  // Чат-баббл — над именем (и над HP если есть). Длинный текст переносится
+  // на несколько строк (word-wrap), макс 4 строки — баббл растёт по высоте,
+  // не по ширине. Раньше длинная фраза тянула баббл шире 180px и буквы
+  // вылезали в обе стороны от персонажа.
   if (chat) {
     ctx.font = '12px system-ui, sans-serif';
-    const W = Math.min(180, ctx.measureText(chat).width + 18);
-    const H = 22;
+    const MAX_W = 180, PAD_X = 9, LINE_H = 14, MAX_LINES = 4;
+    const innerW = MAX_W - PAD_X * 2;
+    // Разбиваем по словам с word-wrap. Если одно «слово» длиннее innerW —
+    // режем посимвольно.
+    const words = String(chat).split(/\s+/).filter(Boolean);
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+      const tryLine = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(tryLine).width <= innerW) { cur = tryLine; continue; }
+      if (cur) lines.push(cur);
+      // длинное слово — режем
+      if (ctx.measureText(w).width > innerW) {
+        let buf = '';
+        for (const ch of w) {
+          if (ctx.measureText(buf + ch).width > innerW && buf) { lines.push(buf); buf = ch; }
+          else buf += ch;
+        }
+        cur = buf;
+      } else { cur = w; }
+      if (lines.length >= MAX_LINES) break;
+    }
+    if (cur && lines.length < MAX_LINES) lines.push(cur);
+    if (lines.length > MAX_LINES) lines.length = MAX_LINES;
+    // Если последняя строка обрезана — добавляем «…» в конец.
+    const totalWordsRendered = lines.join(' ').split(/\s+/).filter(Boolean).length;
+    if (totalWordsRendered < words.length && lines.length === MAX_LINES) {
+      let last = lines[MAX_LINES - 1];
+      while (ctx.measureText(last + '…').width > innerW && last.length > 1) last = last.slice(0, -1);
+      lines[MAX_LINES - 1] = last + '…';
+    }
+    // Ширина баббла = max ширины строки, но не больше MAX_W.
+    let maxLineW = 0;
+    for (const l of lines) maxLineW = Math.max(maxLineW, ctx.measureText(l).width);
+    const W = Math.min(MAX_W, Math.max(40, maxLineW + PAD_X * 2));
+    const H = lines.length * LINE_H + 8;
     const bx = x - W / 2, by = chatY - H;
     ctx.fillStyle = 'rgba(20,24,32,.92)';
     ctx.strokeStyle = '#4a5060';
@@ -2442,7 +2479,9 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
     ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
-    ctx.fillText(chat, x, by + 15);
+    for (let i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i], x, by + 12 + i * LINE_H);
+    }
     ctx.textAlign = 'left';
   }
   if (isDead) ctx.globalAlpha = 1;
