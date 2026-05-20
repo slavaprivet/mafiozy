@@ -12910,6 +12910,38 @@ async def _coop_http_app():
                 },
             })
 
+    async def h_coop_pending(req):
+        """Отдаёт hub.html ожидающий pending_coop_sid и обнуляет его в БД.
+        Юзкейс: друг кликнул share-ссылку → /start coop_SID сохранил pending в
+        БД, но юзер открыл хаб через старую кэшированную кнопку «Главное меню»
+        с URL без coop_sid. Хаб дёргает этот эндпоинт на init, получает sid и
+        показывает модалку «Войти/Отказаться» — точь-в-точь как при свежей
+        inline-кнопке. Сбрасываем после отдачи, чтобы не зацикливать на
+        последующих переоткрытиях."""
+        uid_s = str(req.match_info.get('uid', ''))
+        if not uid_s.isdigit():
+            return await _cors(web.json_response({'ok': False, 'sid': ''}))
+        try:
+            uid_int = int(uid_s)
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'sid': ''}))
+        try:
+            char = await get_character(uid_int)
+        except Exception:
+            char = None
+        sid = ''
+        if char:
+            sid = (char.get('pending_coop_sid') or '').strip()
+            if sid:
+                try:
+                    await update_character(uid_int, pending_coop_sid=None)
+                except Exception:
+                    pass
+        # Возвращаем только если сессия ещё жива — иначе модалка с мёртвым sid.
+        if sid and sid.upper() not in _coop_sessions:
+            sid = ''
+        return await _cors(web.json_response({'ok': True, 'sid': sid}))
+
     async def h_notify_poll(req):
         """Возвращает и очищает очередь уведомлений для данного uid.
         Используется hub.html для in-game приглашений в кооп. Уведомления
@@ -12960,6 +12992,7 @@ async def _coop_http_app():
     aio_app.router.add_get ('/world/sim',           h_world_ws)  # общий мир
     aio_app.router.add_get ('/world/online',        h_world_online)  # для баннера в Кооперативе
     aio_app.router.add_get ('/notify/{uid}/poll',   h_notify_poll)   # in-game приглашения в кооп
+    aio_app.router.add_get ('/coop/pending/{uid}',  h_coop_pending)  # ожидающий coop_sid из pending_coop_sid в БД
 
     from aiohttp import web as _web
     runner = _web.AppRunner(aio_app)

@@ -6722,10 +6722,18 @@ async function _coopJoinBySid(sid) {
 // тихий auto-join: вместо этого показываем ту же модалку «Войти / Отказаться»
 // что и при in-game push. Клик по ссылке ≠ согласие войти — может, друг
 // открыл просто посмотреть. Модалка унифицирует UX обоих путей.
-async function _coopAutoJoinFromInvite() {
-  const sp = _coopGetStartParam();
-  if (!sp || !sp.startsWith('coop_')) return false;
-  const sid = sp.slice(5).toUpperCase();
+//
+// forceSid (опционально) — если передан, sid берётся напрямую (источник:
+// /coop/pending/{uid}). Иначе тянем из start_param/URL.
+async function _coopAutoJoinFromInvite(forceSid) {
+  let sid;
+  if (forceSid) {
+    sid = String(forceSid).toUpperCase();
+  } else {
+    const sp = _coopGetStartParam();
+    if (!sp || !sp.startsWith('coop_')) return false;
+    sid = sp.slice(5).toUpperCase();
+  }
   if (!sid) return false;
   if (!coopApi()) await _coopFetchApiFallback();
   if (!coopApi()) {
@@ -6759,6 +6767,28 @@ async function _coopAutoJoinFromInvite() {
 
 // Дёргаем после монтажа всего скрипта и tg.ready().
 setTimeout(() => { try { _coopAutoJoinFromInvite(); } catch(e) {} }, 250);
+
+// Проверяем pending_coop_sid на бэке. Юзкейс: друг кликнул share-ссылку,
+// бот сохранил pending в БД, но друг открыл хаб через старую кэшированную
+// кнопку «Главное меню» с URL без coop_sid → _coopAutoJoinFromInvite()
+// выше ничего не нашёл. Этот опрос идёт напрямую к бэку и забирает sid,
+// который сохранился при /start coop_<SID>. Один раз — после обнуления
+// бэк больше ничего не отдаст.
+async function _coopCheckPending() {
+  if (!coopApi()) await _coopFetchApiFallback();
+  if (!coopApi()) return;
+  const uid = coopMyUidStr();
+  if (!uid || uid.startsWith('guest_')) return;
+  try {
+    const r = await _coopFetch(coopApi() + '/coop/pending/' + uid, {}, 4000);
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j && j.sid && !_notifyShown.has(j.sid)) {
+      await _coopAutoJoinFromInvite(j.sid);
+    }
+  } catch(e) {}
+}
+setTimeout(() => { try { _coopCheckPending(); } catch(e) {} }, 800);
 
 // ── IN-GAME COOP INVITE — поллер уведомлений + модалка ────────────────
 // Хост создаёт кооп-сессию → сервер кладёт уведомление каждому его другу-игроку
