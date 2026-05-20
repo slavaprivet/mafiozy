@@ -941,6 +941,22 @@ async def init_db():
                 PRIMARY KEY (inviter_id, friend_id)
             )
         """)
+        # Общий «банк банды»: пирамида referred_by → лидер. Каждое
+        # эмерджентное событие (инкассатор и т.п.) откладывает 20%
+        # от награды в пул лидера. Раз в 3 дня лидер делит пул
+        # поровну между всеми членами банды (включая себя).
+        # leader_id всегда «корень» реферальной пирамиды (самый верхний
+        # пригласивший игрок). pool в копейках/центах хранить не надо —
+        # в этом проекте все деньги целочисленные ($).
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS gang_pools (
+                leader_id    INTEGER PRIMARY KEY,
+                pool         INTEGER DEFAULT 0,
+                last_payout  INTEGER DEFAULT 0,
+                total_earned INTEGER DEFAULT 0,
+                last_event_t INTEGER DEFAULT 0
+            )
+        """)
         await db.execute("""
             CREATE TABLE IF NOT EXISTS contacts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1459,6 +1475,78 @@ async def get_friends(telegram_id: int) -> list:
         ) as cur:
             rows = await cur.fetchall()
     return [dict(r) for r in rows]
+
+# ── «Банк банды» (общий пул реферальной пирамиды) ────────────────
+# Лидер банды = тот игрок, к чьей реферальной ветке ты привязан.
+# Если у тебя есть referred_by → лидер = твой пригласивший.
+# Если ты сам кого-то приглашал — ты лидер своей банды.
+# Если ни того, ни другого — банды нет (lone wolf), пул не работает.
+GANG_PAYOUT_CD = 3 * 24 * 3600   # 3 дня в секундах между выплатами
+GANG_SHARE_PCT = 20              # 20% от событий уходит в банк банды
+
+async def get_gang_leader_id(telegram_id: int) -> int | None:
+    """Возвращает leader_id для игрока, или None если он lone-wolf."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT referred_by FROM characters WHERE telegram_id=?", (telegram_id,)
+        ) as cur:
+            row = await cur.fetchone()
+        if row and row['referred_by']:
+            return int(row['referred_by'])
+        # Я сам никем не приглашён — проверяем, есть ли у меня рефералы.
+        async with db.execute(
+            "SELECT 1 FROM characters WHERE referred_by=? LIMIT 1", (telegram_id,)
+        ) as cur:
+            row2 = await cur.fetchone()
+        if row2:
+            return int(telegram_id)
+    return None
+
+async def get_gang_members(leader_id: int) -> list:
+    """Возвращает всех членов банды (лидер + его приглашённые)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT telegram_id, name, level, look_json FROM characters "
+            "WHERE telegram_id=? OR referred_by=? ORDER BY telegram_id=? DESC, level DESC",
+            (leader_id, leader_id, leader_id)
+        ) as cur:
+            rows = await cur.fetchall()
+    return [dict(r) for r in rows]
+
+async def gang_pool_add(leader_id: int, amount: int) -> int:
+    """Откладывает amount в банк банды лидера. Возвращает новый pool."""
+    if amount <= 0 or not leader_id:
+        return 0
+    now = int(time.time())
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO gang_pools (leader_id, pool, total_earned, last_event_t) "
+            "VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(leader_id) DO UPDATE SET "
+            "  pool = pool + ?, total_earned = total_earned + ?, last_event_t = ?",
+            (leader_id, amount, amount, now, amount, amount, now)
+        )
+        await db.commit()
+        async with db.execute(
+            "SELECT pool FROM gang_pools WHERE leader_id=?", (leader_id,)
+        ) as cur:
+            row = await cur.fetchone()
+    return int(row[0]) if row else 0
+
+async def get_gang_pool(leader_id: int) -> dict:
+    """Возвращает {pool, last_payout, total_earned, last_event_t}."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT pool, last_payout, total_earned, last_event_t "
+            "FROM gang_pools WHERE leader_id=?", (leader_id,)
+        ) as cur:
+            row = await cur.fetchone()
+    if not row:
+        return {'pool': 0, 'last_payout': 0, 'total_earned': 0, 'last_event_t': 0}
+    return dict(row)
 
 async def get_friend_collect(inviter_id: int, friend_id: int) -> int:
     """Возвращает timestamp последнего сбора с этого друга."""
@@ -12189,6 +12277,141 @@ async def _coop_http_app():
         friends = await get_friends(uid)
         return await _cors(web.json_response({'ok': True, 'gang': friends}))
 
+    # ── Банк банды (gang pool) ─────────────────────────────────────
+    # Состояние общего банка банды этого игрока: текущая сумма,
+    # сколько до следующей выплаты, список членов, доля каждого.
+    async def h_gang_pool(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        leader_id = await get_gang_leader_id(uid)
+        if not leader_id:
+            return await _cors(web.json_response({
+                'ok': True, 'in_gang': False,
+                'reason': 'lone_wolf',
+            }))
+        members = await get_gang_members(leader_id)
+        pool_data = await get_gang_pool(leader_id)
+        now = int(time.time())
+        last_payout = int(pool_data.get('last_payout') or 0)
+        # Если выплат ещё не было — считаем что готова сразу (cooldown
+        # отсчитывается от первой выплаты). Без этого первый забор
+        # пришлось бы ждать 3 дня после регистрации.
+        if last_payout <= 0:
+            seconds_left = 0
+        else:
+            seconds_left = max(0, GANG_PAYOUT_CD - (now - last_payout))
+        member_count = max(1, len(members))
+        pool = int(pool_data.get('pool') or 0)
+        share = pool // member_count if pool > 0 else 0
+        # Имя лидера (для членов которые НЕ лидеры — показываем кто заберёт)
+        leader_name = ''
+        for m in members:
+            if int(m['telegram_id']) == int(leader_id):
+                leader_name = m.get('name') or 'Лидер'
+                break
+        return await _cors(web.json_response({
+            'ok':            True,
+            'in_gang':       True,
+            'is_leader':     (int(uid) == int(leader_id)),
+            'leader_id':     int(leader_id),
+            'leader_name':   leader_name,
+            'members':       members,
+            'member_count':  member_count,
+            'pool':          pool,
+            'total_earned':  int(pool_data.get('total_earned') or 0),
+            'last_payout':   last_payout,
+            'last_event_t':  int(pool_data.get('last_event_t') or 0),
+            'cooldown_left': seconds_left,
+            'cooldown_full': GANG_PAYOUT_CD,
+            'share':         share,
+            'claim_ready':   (seconds_left == 0 and pool > 0),
+        }))
+
+    # Забрать общий банк банды. Делит на всех членов поровну
+    # (включая лидера). Только лидер может нажать. Cooldown 3 дня.
+    async def h_gang_claim(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        leader_id = await get_gang_leader_id(uid)
+        if not leader_id:
+            return await _cors(web.json_response({'ok': False, 'error': 'lone_wolf'}))
+        if int(uid) != int(leader_id):
+            return await _cors(web.json_response({'ok': False, 'error': 'not_leader',
+                                                  'leader_id': leader_id}))
+        pool_data = await get_gang_pool(leader_id)
+        pool = int(pool_data.get('pool') or 0)
+        if pool <= 0:
+            return await _cors(web.json_response({'ok': False, 'error': 'empty_pool'}))
+        now = int(time.time())
+        last_payout = int(pool_data.get('last_payout') or 0)
+        if last_payout > 0 and (now - last_payout) < GANG_PAYOUT_CD:
+            seconds_left = GANG_PAYOUT_CD - (now - last_payout)
+            return await _cors(web.json_response({
+                'ok': False, 'error': 'cooldown',
+                'cooldown_left': seconds_left,
+            }))
+        members = await get_gang_members(leader_id)
+        if not members:
+            return await _cors(web.json_response({'ok': False, 'error': 'no_members'}))
+        share = pool // len(members)
+        if share <= 0:
+            return await _cors(web.json_response({'ok': False, 'error': 'too_small'}))
+        # Раздаём всем (включая лидера). Остаток (pool % len) уходит лидеру —
+        # как организатору, плюс это избегает «застрявших копеек» в пуле.
+        remainder = pool - share * len(members)
+        payouts = []
+        for m in members:
+            mid = int(m['telegram_id'])
+            extra = remainder if mid == int(leader_id) else 0
+            try:
+                ch = await get_character(mid)
+                if not ch:
+                    continue
+                new_cash = int(ch.get('cash') or 0) + share + extra
+                await update_character(mid, cash=new_cash)
+                payouts.append({
+                    'telegram_id': mid,
+                    'name':        m.get('name') or '',
+                    'amount':      share + extra,
+                })
+            except Exception as _e:
+                logger.warning("gang claim payout failed for %s: %r", mid, _e)
+        # Обнуляем пул и сбрасываем cooldown
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "UPDATE gang_pools SET pool=0, last_payout=? WHERE leader_id=?",
+                (now, leader_id)
+            )
+            await db.commit()
+        # Уведомим членов банды через бота, если возможно (не критично)
+        if BOT_INSTANCE is not None:
+            leader_name = next((m.get('name') for m in members
+                                if int(m['telegram_id']) == int(leader_id)), 'Лидер')
+            for p in payouts:
+                if p['telegram_id'] == int(leader_id):
+                    continue
+                try:
+                    await BOT_INSTANCE.send_message(
+                        chat_id=p['telegram_id'],
+                        text=(f"💼 Доход от банды: *{leader_name}* раздал куш — "
+                              f"тебе *+{p['amount']}\\$*."),
+                        parse_mode='Markdown',
+                    )
+                except Exception:
+                    pass
+        return await _cors(web.json_response({
+            'ok':         True,
+            'total':      pool,
+            'share':      share,
+            'remainder':  remainder,
+            'members':    len(members),
+            'payouts':    payouts,
+        }))
+
     # ── Работа: найм/увольнение БЕЗ закрытия мини-аппа ──────────
     async def h_job_take(req):
         try:
@@ -13118,16 +13341,34 @@ async def _coop_http_app():
                                 except Exception: pass
                         kill_pkt = world.apply_event_shoot(uid, target_id, dmg)
                         if kill_pkt:
-                            # Начисляем деньги добившему — атомарно в БД
+                            # Делим награду: 80% игроку лично, 20% — в банк
+                            # его банды (реферальная пирамида). Если игрок
+                            # не в банде, забирает все 100%.
                             try:
                                 killer_uid_int = int(kill_pkt['killer_uid'])
+                                total_reward   = int(kill_pkt['reward'])
+                                leader_id      = await get_gang_leader_id(killer_uid_int)
+                                if leader_id:
+                                    share_to_gang = total_reward * GANG_SHARE_PCT // 100
+                                    share_to_self = total_reward - share_to_gang
+                                else:
+                                    share_to_gang = 0
+                                    share_to_self = total_reward
                                 ch = await get_character(killer_uid_int)
                                 if ch:
-                                    new_cash = int(ch.get('cash') or 0) + int(kill_pkt['reward'])
+                                    new_cash = int(ch.get('cash') or 0) + share_to_self
                                     await update_character(killer_uid_int, cash=new_cash)
-                                    logger.info("WorldSim: inkassator killed by uid=%s name=%s +%d$ → %d$",
-                                                killer_uid_int, kill_pkt.get('killer_name'),
-                                                kill_pkt['reward'], new_cash)
+                                if share_to_gang > 0 and leader_id:
+                                    await gang_pool_add(leader_id, share_to_gang)
+                                # Дополняем kill_pkt инфой про сплит
+                                kill_pkt['gang_share']  = share_to_gang
+                                kill_pkt['solo_share']  = share_to_self
+                                kill_pkt['gang_leader'] = leader_id or 0
+                                logger.info("WorldSim: inkassator killed uid=%s name=%s "
+                                            "+%d self / +%d gang(leader=%s) of %d total",
+                                            killer_uid_int, kill_pkt.get('killer_name'),
+                                            share_to_self, share_to_gang,
+                                            leader_id, total_reward)
                             except Exception as _e:
                                 logger.warning("WorldSim: inkass reward write failed: %r", _e)
                             # Broadcast «Х забрал куш Y$» всем
@@ -13427,6 +13668,8 @@ async def _coop_http_app():
     aio_app.router.add_post('/coop/{sid}/leave',  h_leave)
     aio_app.router.add_post('/friend/add',        h_friend_add)
     aio_app.router.add_get ('/friend/list/{uid}', h_friend_list)
+    aio_app.router.add_get ('/gang/{uid}/pool',   h_gang_pool)
+    aio_app.router.add_post('/gang/{uid}/claim',  h_gang_claim)
     aio_app.router.add_post('/job/{uid}/take',     h_job_take)
     aio_app.router.add_post('/job/{uid}/abandon',  h_job_abandon)
     aio_app.router.add_post('/job/{uid}/complete', h_job_complete)

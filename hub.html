@@ -6606,13 +6606,22 @@ async function renderGangPage() {
   const list = document.getElementById('gang-list');
   if (!list) return;
   await _refreshGangCache();
+  // Сразу рисуем «банк банды» — даже если рефералов ещё нет, у юзера
+  // может быть pool накопленный пока у него был друг (если друг ушёл).
+  // Пул всегда виден если он подвязан к лидеру.
+  list.innerHTML = '<div id="gang-pool-block" style="margin-bottom:14px"></div>'
+                 + '<div id="gang-members-block"></div>';
+  renderGangPool();
+  const membersBlock = document.getElementById('gang-members-block');
   if (!DATA.gang || DATA.gang.length === 0) {
-    list.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:14px 4px;text-align:center">
-      Банда пуста.<br>Создай кооп-сессию, позови друга и нажми «➕ В банду» в лобби.
+    membersBlock.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:14px 4px;text-align:center">
+      Пока ты один. Чтобы у вас был общий «доход банды» — пригласи друга
+      по реф-ссылке (он зарегистрируется через твой /start). Все доходы
+      от событий открытого мира (например, инкассатор) пойдут в общий банк.
     </div>`;
     return;
   }
-  list.innerHTML = '';
+  membersBlock.innerHTML = '';
   DATA.gang.forEach(m => {
     const row = document.createElement('div');
     row.className = 'coop-member-row';
@@ -6622,8 +6631,152 @@ async function renderGangPage() {
         <div class="coop-member-name">${m.name || 'Игрок'}</div>
         <div class="coop-member-role" style="color:var(--gold);font-size:11px">👥 В банде</div>
       </div>`;
-    list.appendChild(row);
+    membersBlock.appendChild(row);
   });
+}
+
+// ── Банк банды (gang pool) ─────────────────────────────────────
+// Раз в 3 дня лидер может забрать общий пул — деньги делятся поровну
+// между всеми членами банды. 20% от инкассатора и других событий
+// открытого мира уходит сюда автоматически.
+let _gangPoolState = null;
+async function renderGangPool() {
+  const block = document.getElementById('gang-pool-block');
+  if (!block) return;
+  if (!coopApi() || !DATA.uid) {
+    block.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:10px;text-align:center;
+      background:rgba(255,255,255,.03);border:1px solid #2a2030;border-radius:10px">
+      Войди через бота, чтобы видеть банк банды.</div>`;
+    return;
+  }
+  try {
+    const r = await fetch(coopApi() + '/gang/' + encodeURIComponent(DATA.uid) + '/pool',
+                          { cache: 'no-store' });
+    const j = await r.json().catch(()=>({}));
+    if (!j.ok) {
+      block.innerHTML = '';
+      return;
+    }
+    _gangPoolState = j;
+    if (!j.in_gang) {
+      // Lone wolf — никого не пригласил и сам никем не приглашён.
+      block.innerHTML = `<div style="padding:12px 14px;background:linear-gradient(135deg,#1a1a26,#10101a);
+        border:1px solid #2a2540;border-radius:12px">
+        <div style="color:var(--gold);font-weight:700;margin-bottom:6px">💼 Банк банды</div>
+        <div style="color:var(--muted);font-size:12px;line-height:1.4">
+          Ты не в банде. Пригласи друга по реферальной ссылке боту — и каждый ваш
+          куш (например с инкассатора в городе) будет на 20% копиться в общем
+          банке. Раз в 3 дня лидер забирает — деньги делятся поровну между всеми.
+        </div>
+      </div>`;
+      return;
+    }
+    const pool       = j.pool || 0;
+    const share      = j.share || 0;
+    const members    = j.member_count || 1;
+    const totalEarn  = j.total_earned || 0;
+    const cdLeft     = j.cooldown_left || 0;
+    const isLeader   = !!j.is_leader;
+    const leaderName = j.leader_name || 'Лидер';
+    const ready      = !!j.claim_ready;
+    const cdFmt      = _fmtGangCooldown(cdLeft);
+    // Внешний вид зависит от готовности к выплате
+    const accent = ready ? '#50d878' : (pool > 0 ? '#ffd76b' : '#5a708a');
+    const bg     = ready ? 'linear-gradient(135deg,#1a3a22,#0a1a10)'
+                         : (pool > 0 ? 'linear-gradient(135deg,#2a2010,#1a1408)'
+                                     : 'linear-gradient(135deg,#1a1a26,#10101a)');
+    const claimBtn = isLeader && ready ? `
+      <button id="gang-claim-btn" style="width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,#50d878,#2aa050);
+        border:1px solid #80f0a0;border-radius:10px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">
+        💰 Забрать куш и раздать (${share}\$ каждому ×${members})
+      </button>` : isLeader && pool > 0 ? `
+      <div style="margin-top:10px;padding:8px;background:rgba(255,215,107,.08);border:1px dashed #5a4828;border-radius:8px;
+        text-align:center;font-size:12px;color:var(--gold)">
+        ⏳ Следующая выплата через ${cdFmt}
+      </div>` : !isLeader && pool > 0 ? `
+      <div style="margin-top:10px;padding:8px;background:rgba(255,215,107,.06);border:1px dashed #4a3818;border-radius:8px;
+        text-align:center;font-size:12px;color:var(--muted)">
+        Куш заберёт лидер банды (${leaderName})${cdLeft>0?` через ${cdFmt}`:''}
+      </div>` : '';
+    block.innerHTML = `
+      <div style="padding:14px 16px;background:${bg};border:2px solid ${accent};border-radius:12px;
+        box-shadow:0 4px 16px rgba(0,0,0,.4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:14px;font-weight:800;color:${accent}">💼 Банк банды</div>
+          <div style="font-size:11px;color:var(--muted)">${members} в банде</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+          <div style="font-size:11px;color:var(--muted)">В банке сейчас</div>
+          <div style="font-size:22px;font-weight:900;color:${accent};text-shadow:0 0 12px ${accent}55">
+            ${pool.toLocaleString('ru')}\$
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
+          <span>Доля каждого при выплате</span><span style="color:#fff">${share}\$</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
+          <span>Всего собрано за всё время</span><span style="color:#fff">${totalEarn.toLocaleString('ru')}\$</span>
+        </div>
+        ${claimBtn}
+        <div style="margin-top:8px;font-size:10.5px;color:var(--muted);line-height:1.4">
+          20% с каждого события (например, инкассатор в городе) идёт сюда.
+          Чем больше людей в банде — тем чаще куш и больше доля.
+        </div>
+      </div>`;
+    if (isLeader && ready) {
+      document.getElementById('gang-claim-btn').addEventListener('click', claimGangPool);
+    }
+  } catch(e) {
+    block.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:10px;text-align:center">
+      Не удалось загрузить банк банды.</div>`;
+  }
+}
+
+function _fmtGangCooldown(sec) {
+  sec = Math.max(0, Math.floor(sec || 0));
+  if (sec < 60) return sec + ' сек';
+  const days = Math.floor(sec / 86400);
+  const hours = Math.floor((sec % 86400) / 3600);
+  const mins  = Math.floor((sec % 3600) / 60);
+  if (days >= 1) return days + 'д ' + hours + 'ч';
+  if (hours >= 1) return hours + 'ч ' + mins + 'м';
+  return mins + 'м';
+}
+
+async function claimGangPool() {
+  const btn = document.getElementById('gang-claim-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Раздаю…'; }
+  try {
+    const r = await fetch(coopApi() + '/gang/' + encodeURIComponent(DATA.uid) + '/claim',
+                          { method: 'POST', cache: 'no-store' });
+    const j = await r.json().catch(()=>({}));
+    if (!j.ok) {
+      const errMap = {
+        'lone_wolf':  'Ты не в банде — пригласи кого-нибудь',
+        'not_leader': 'Только лидер банды может забрать куш',
+        'empty_pool': 'В банке пока пусто',
+        'cooldown':   'Ещё рано — куш забирают раз в 3 дня',
+        'no_members': 'В банде никого нет',
+        'too_small':  'Куш слишком мал чтобы делить',
+      };
+      showToast(errMap[j.error] || ('Ошибка: ' + (j.error || r.status)), '❌');
+      renderGangPool();
+      return;
+    }
+    showToast(`💰 +${j.share}\$ тебе и ещё ${j.members - 1} члену банды`, '🎉', 4500);
+    // Обновляем баланс игрока локально (cash изменилась на сервере)
+    if (typeof DATA.cash === 'number') {
+      DATA.cash += j.share + (j.remainder || 0);
+      if (typeof renderTopBar === 'function') try { renderTopBar(); } catch(e) {}
+      if (typeof updateBalance === 'function') try { updateBalance(); } catch(e) {}
+    }
+    renderGangPool();
+  } catch(e) {
+    showToast('Сеть: ' + e.message, '❌');
+    renderGangPool();
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function coopAddToGang(friendUid) {
