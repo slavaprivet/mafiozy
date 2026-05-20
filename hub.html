@@ -6712,10 +6712,43 @@ async function _coopJoinBySid(sid) {
   }
 }
 
+// Когда друг пришёл по share-ссылке (?start=coop_<sid>), мы НЕ делаем
+// тихий auto-join: вместо этого показываем ту же модалку «Войти / Отказаться»
+// что и при in-game push. Клик по ссылке ≠ согласие войти — может, друг
+// открыл просто посмотреть. Модалка унифицирует UX обоих путей.
 async function _coopAutoJoinFromInvite() {
   const sp = _coopGetStartParam();
   if (!sp || !sp.startsWith('coop_')) return false;
-  return _coopJoinBySid(sp.slice(5));
+  const sid = sp.slice(5).toUpperCase();
+  if (!sid) return false;
+  if (!coopApi()) await _coopFetchApiFallback();
+  if (!coopApi()) {
+    showToast(_botDownMsg(), '⚠️', 6000);
+    return false;
+  }
+  // Тянем детали сессии чтобы в модалке был не голый SID, а имя хоста +
+  // босс + район. Если запрос упал — покажем модалку с дефолтами.
+  let host_name = 'Друг', boss_name = '', loc_name = '';
+  try {
+    const r = await _coopFetch(coopApi() + '/coop/' + sid, {}, 4000);
+    if (r.ok) {
+      const j = await r.json();
+      const hostUid = String(j.host_uid || '');
+      const hostP = (j.players || []).find(p => String(p.uid) === hostUid) || (j.players || [])[0];
+      if (hostP && hostP.name) host_name = hostP.name;
+      const bd = (typeof BOSS_DATA !== 'undefined') ? BOSS_DATA[j.boss_id] : null;
+      const ld = (typeof LOC_DATA  !== 'undefined') ? LOC_DATA[j.loc_id]   : null;
+      boss_name = bd ? bd.name : (j.boss_id || '');
+      loc_name  = ld ? (ld.icon + ' ' + ld.name) : (j.loc_id || '');
+    }
+  } catch(e) {}
+  // Дедуп с in-game push: если та же sid уже показывалась — не повторяем.
+  if (_notifyShown.has(sid)) return false;
+  _notifyShown.add(sid);
+  _showCoopInviteModal({
+    type:'coop_invite', sid, host_name, boss_name, loc_name,
+  });
+  return true;
 }
 
 // Дёргаем после монтажа всего скрипта и tg.ready().
