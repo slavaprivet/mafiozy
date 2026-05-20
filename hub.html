@@ -6669,33 +6669,27 @@ function _coopGetStartParam() {
   return '';
 }
 
-async function _coopAutoJoinFromInvite() {
-  const sp = _coopGetStartParam();
-  if (!sp || !sp.startsWith('coop_')) return false;
-  const sid = sp.slice(5).toUpperCase();
+// Общий join по sid — используется и автоджойном по share-ссылке,
+// и in-game модалкой приглашения. На входе делает: подтягивает свежий API,
+// проверяет uid, переходит на страницу «Кооператив», POST'ит /coop/<sid>/join,
+// показывает waitroom/battle.
+async function _coopJoinBySid(sid) {
+  sid = String(sid || '').toUpperCase();
   if (!sid) return false;
-  // Если в URL нет api= (классика: друг пришёл по share-ссылке через
-  // Main Mini App), пробуем подтянуть актуальный URL из coop_api.json
-  // на GitHub Pages — его пишет бот при старте туннеля.
+  if (!coopApi()) await _coopFetchApiFallback();
   if (!coopApi()) {
-    await _coopFetchApiFallback();
-  }
-  if (!coopApi()) {
-    showToast('Бот без туннеля. /start в Telegram заново.', '⚠️', 6000);
+    showToast(_botDownMsg(), '⚠️', 6000);
     return false;
   }
-  // Без telegram id не сможем зарегистрироваться в сессии. Бот передаёт
-  // его в DATA.uid; если открыли мини-апп напрямую — берём из TG SDK.
   const uid = coopMyUidStr();
   if (!uid || uid.startsWith('guest_')) {
-    // Гостю показываем подсказку — пусть зайдёт через бота.
     if (typeof nav === 'function') nav('coop');
     showToast('Сначала напиши /start боту, потом открой ссылку снова', '⚠️');
     return false;
   }
   try {
     if (typeof nav === 'function') nav('coop');
-    const resp = await fetch(coopApi() + '/coop/' + sid + '/join', {
+    const resp = await _coopFetch(coopApi() + '/coop/' + sid + '/join', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         uid: uid, name: DATA.name,
@@ -6718,8 +6712,89 @@ async function _coopAutoJoinFromInvite() {
   }
 }
 
+async function _coopAutoJoinFromInvite() {
+  const sp = _coopGetStartParam();
+  if (!sp || !sp.startsWith('coop_')) return false;
+  return _coopJoinBySid(sp.slice(5));
+}
+
 // Дёргаем после монтажа всего скрипта и tg.ready().
 setTimeout(() => { try { _coopAutoJoinFromInvite(); } catch(e) {} }, 250);
+
+// ── IN-GAME COOP INVITE — поллер уведомлений + модалка ────────────────
+// Хост создаёт кооп-сессию → сервер кладёт уведомление каждому его другу-игроку
+// в INVITE_QUEUE. Пока мини-апп открыт, hub.html раз в 12 сек поллит
+// /notify/{uid}/poll. Если приходит coop_invite — показываем модалку
+// «Войти / Отказаться». TTL уведомления на сервере 60 сек.
+let _notifyTimer = null;
+const _notifyShown = new Set();   // sid'ы уже показанных, чтобы не моргать дважды
+let _coopInviteOpen = false;
+
+async function _notifyPoll() {
+  // Не дёргаем во время кооп-битвы — игрок уже в деле.
+  if (coopSid && (DATA.coopStatus === 'battle' || DATA.coopStatus === 'waiting')) return;
+  if (_coopInviteOpen) return;  // ждём ответа на предыдущую модалку
+  if (!coopApi()) return;
+  const uid = coopMyUidStr();
+  if (!uid || uid.startsWith('guest_')) return;
+  try {
+    const resp = await _coopFetch(coopApi() + '/notify/' + uid + '/poll', {}, 4000);
+    if (!resp.ok) return;
+    const j = await resp.json();
+    if (!j.ok || !Array.isArray(j.items) || !j.items.length) return;
+    for (const n of j.items) {
+      if (n.type === 'coop_invite' && n.sid && !_notifyShown.has(n.sid)) {
+        _notifyShown.add(n.sid);
+        _showCoopInviteModal(n);
+        break;   // показываем по одному; следующий — в следующем тике
+      }
+    }
+  } catch(e) {}
+}
+
+function _startNotifyPolling() {
+  if (_notifyTimer) return;
+  setTimeout(_notifyPoll, 1500);            // первый запрос — после старта
+  _notifyTimer = setInterval(_notifyPoll, 12000);
+}
+
+function _showCoopInviteModal(n) {
+  _coopInviteOpen = true;
+  let modal = document.getElementById('coopInviteModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'coopInviteModal';
+    modal.className = 'modal-overlay';
+    modal.style.zIndex = 9999;
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:380px;background:linear-gradient(180deg,#1a1408,#0f0a05);border:2px solid #c8a050;text-align:center">
+        <div style="color:#ffd76b;font-family:Georgia,serif;letter-spacing:1px;font-size:13px;border-bottom:1px solid #8b6332;padding-bottom:6px;margin-bottom:10px">
+          🗡 ПРИГЛАШЕНИЕ В БАНДУ
+        </div>
+        <div id="ci-host" style="color:#ffd76b;font-size:16px;font-weight:bold;margin-bottom:6px">Друг</div>
+        <div id="ci-text" style="color:#ddd;font-size:13px;line-height:1.5;margin-bottom:4px">собирает банду</div>
+        <div id="ci-boss" style="color:#c8a050;font-size:14px;margin-bottom:14px">босс</div>
+        <div style="display:flex;gap:8px">
+          <button id="ci-no"  class="modal-btn modal-btn-close" style="flex:1">❌ Не сейчас</button>
+          <button id="ci-yes" class="modal-btn" style="flex:1;background:linear-gradient(135deg,#27ae60,#1a7a40);color:#fff;border:none;font-weight:bold">✅ Войти</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  modal.querySelector('#ci-host').textContent = n.host_name || 'Друг';
+  modal.querySelector('#ci-text').textContent = 'собирает банду на босса';
+  modal.querySelector('#ci-boss').textContent = (n.boss_name || '') + ' · ' + (n.loc_name || '');
+  modal.style.display = 'flex';
+  const closeModal = () => { modal.style.display = 'none'; _coopInviteOpen = false; };
+  modal.querySelector('#ci-no').onclick = closeModal;
+  modal.querySelector('#ci-yes').onclick = async () => {
+    closeModal();
+    await _coopJoinBySid(n.sid);
+  };
+}
+
+// Стартуем поллер после tg.ready (см. setTimeout ниже на 250мс — той же группой).
+setTimeout(() => { try { _startNotifyPolling(); } catch(e) {} }, 1000);
 
 // Преднаполняем кэш банды по DATA.gang (она прилетает из URL от бота) —
 // чтобы кнопки «В банду» в лобби сразу показывались как «уже добавлен».

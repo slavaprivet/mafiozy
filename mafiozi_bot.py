@@ -9510,6 +9510,72 @@ import string as _string
 
 _coop_sessions: dict = {}   # sid -> session dict
 
+# In-game приглашения в кооп: in-memory очередь уведомлений на каждого uid.
+# При создании кооп-сессии хостом — каждому его друг-игроку (по get_friends)
+# добавляется элемент {type:'coop_invite', sid, host_name, boss_name, loc_name, ts}.
+# Клиент hub.html поллит GET /notify/{uid}/poll каждые ~12 сек и показывает
+# модалку «Войти / Отказаться». TTL уведомления — 60 сек, после хост уже либо
+# в бою, либо отменил.
+INVITE_QUEUE: dict = {}   # uid (str) -> list[dict]
+_INVITE_TTL_SEC = 60
+
+
+# Имена локаций и боссов для текста уведомления. Дублируем из BOSS_DATA в
+# hub.html — на клиенте уже есть полный словарь, но боту нужно отдавать
+# СВЯЗНЫЙ текст уведомления (имя босса с эмодзи, имя района), чтобы клиент
+# мог просто отрисовать as-is без зависимости от своих констант.
+_COOP_BOSS_DISPLAY = {
+    'kosoy':'😈 Косой','bychok':'🐂 Бычок','shustryy':'🏃 Шустрый','zhigan':'🪒 Жиган',
+    'tolsty':'🐷 Толстый','kaban':'🦏 Кабан','bukhgalter':'🧮 Бухгалтер','kontrabas':'📦 Контрабас',
+    'legenda':'👑 Легенда','professor':'🎓 Профессор','artist':'🎭 Артист','svalshchik':'♟ Сдатчик',
+    'buryy':'🐻 Бурый','khirurg':'🩺 Хирург','palach':'🪓 Палач','tigr':'🐯 Тигр',
+    'sedoy':'👴 Седой','prizrak':'👻 Призрак','vizir':'🎯 Визирь','don_karlo':'🤵 Дон Карло',
+}
+_COOP_LOC_DISPLAY = {
+    'market':'🏪 Рынок','port':'⚓ Порт','casino':'🎰 Казино',
+    'factory':'🏭 Промзона','mansion':'🏛 Резиденция',
+}
+
+
+async def _notify_friends_about_coop(host_uid: int, sid: str, host_name: str,
+                                     boss_id: str, loc_id: str) -> None:
+    """Кладёт уведомление в INVITE_QUEUE каждому игроку-другу хоста.
+    Друг = тот, кого хост пригласил в бот (referred_by). Гарантий доставки нет:
+    если друг не открыт в мини-аппе или поллер не дёрнется в течение 60 сек —
+    уведомление протухнет. Это just-in-time push; share-ссылка остаётся как
+    основной канал на случай если друг офлайн."""
+    try:
+        friends = await get_friends(int(host_uid))
+    except Exception:
+        return
+    if not friends:
+        return
+    boss_name = _COOP_BOSS_DISPLAY.get(boss_id, boss_id)
+    loc_name  = _COOP_LOC_DISPLAY.get(loc_id, loc_id)
+    now = int(time.time())
+    for f in friends:
+        try:
+            fid = int(f.get('telegram_id') or 0)
+        except Exception:
+            continue
+        if not fid or fid == int(host_uid):
+            continue
+        uid_key = str(fid)
+        q = INVITE_QUEUE.setdefault(uid_key, [])
+        # Дедуп: если для этого sid уведомление уже лежит — заменим (не плодим).
+        q[:] = [n for n in q if not (n.get('type') == 'coop_invite' and n.get('sid') == sid)]
+        q.append({
+            'type': 'coop_invite',
+            'sid': sid,
+            'host_uid': int(host_uid),
+            'host_name': host_name,
+            'boss_id':   boss_id,
+            'boss_name': boss_name,
+            'loc_id':    loc_id,
+            'loc_name':  loc_name,
+            'ts': now,
+        })
+
 
 def _coop_gen_sid() -> str:
     import random as _r
@@ -11283,6 +11349,14 @@ async def _coop_http_app():
         share_link = (f"https://t.me/{BOT_USERNAME}?start=coop_{sid}"
                       if BOT_USERNAME else "")
         logger.info("Coop session %s created by %s", sid, uid)
+        # In-game push приглашение: всем друзьям хоста, кто откроет мини-апп
+        # в ближайшие 60 сек, прилетит модалка «Войти / Отказаться». Не блокирует
+        # ответ — если БД медленная, юзер получает share_link без задержки.
+        try:
+            asyncio.create_task(_notify_friends_about_coop(
+                int(uid) if uid.isdigit() else 0, sid, name, boss_id, loc_id))
+        except Exception:
+            pass
         return await _cors(web.json_response({**sess, 'share_link': share_link}))
 
     async def h_join(req):
@@ -12835,6 +12909,22 @@ async def _coop_http_app():
                 },
             })
 
+    async def h_notify_poll(req):
+        """Возвращает и очищает очередь уведомлений для данного uid.
+        Используется hub.html для in-game приглашений в кооп. Уведомления
+        старше _INVITE_TTL_SEC отфильтровываются — после боя/отмены толку
+        от них уже нет."""
+        uid = str(req.match_info.get('uid', ''))
+        if not uid or uid == '0':
+            return await _cors(web.json_response({'ok': False, 'items': []}))
+        now = int(time.time())
+        q = INVITE_QUEUE.get(uid, [])
+        fresh = [n for n in q if now - int(n.get('ts', 0)) < _INVITE_TTL_SEC]
+        # Одноразовая доставка: очищаем после prosmotr'а. Клиент сам решает
+        # показать модалку или проигнорировать (например если уже в бою).
+        INVITE_QUEUE[uid] = []
+        return await _cors(web.json_response({'ok': True, 'items': fresh}))
+
     aio_app = web.Application()
     aio_app.router.add_route('OPTIONS', '/{path_info:.*}', h_options)
     aio_app.router.add_post('/coop/create',       h_create)
@@ -12868,6 +12958,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/safe/{uid}/loot',     h_safe_loot)
     aio_app.router.add_get ('/world/sim',           h_world_ws)  # общий мир
     aio_app.router.add_get ('/world/online',        h_world_online)  # для баннера в Кооперативе
+    aio_app.router.add_get ('/notify/{uid}/poll',   h_notify_poll)   # in-game приглашения в кооп
 
     from aiohttp import web as _web
     runner = _web.AppRunner(aio_app)
