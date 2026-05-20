@@ -923,6 +923,16 @@ function isBlocked(r, c) {
 }
 function tryMove(obj, dr, dc) {
   const pad = 0.3;
+  // ESCAPE MODE: если игрок ЗАЛИП в blocked-тайле (карта обновилась под
+  // ним, сервер телепортировал в здание, hello-пакет перестроил MAP) —
+  // разрешаем любое движение без коллизий, пока не выберется на свободную
+  // клетку. Иначе застревает навсегда и не может ходить.
+  const stuck = isBlocked(obj.r, obj.c);
+  if (stuck) {
+    obj.r += dr;
+    obj.c += dc;
+    return;
+  }
   let nr = obj.r + dr;
   if (!isBlocked(nr - pad, obj.c) && !isBlocked(nr + pad, obj.c) &&
       !isBlocked(nr, obj.c - pad) && !isBlocked(nr, obj.c + pad)) {

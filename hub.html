@@ -6758,7 +6758,7 @@ async function _coopAutoJoinFromInvite(forceSid) {
   } catch(e) {}
   // Дедуп с in-game push: если та же sid уже показывалась — не повторяем.
   if (_notifyShown.has(sid)) return false;
-  _notifyShown.add(sid);
+  _notifyShownAdd(sid);
   _showCoopInviteModal({
     type:'coop_invite', sid, host_name, boss_name, loc_name,
   });
@@ -6788,7 +6788,7 @@ async function _coopCheckPending() {
       // Своя активная сессия (хост нажал «назад», игрок переоткрыл хаб).
       // Без модалки — сразу в waitroom. _notifyShown отмечаем чтобы push
       // с этим же sid не показал модалку поверх.
-      _notifyShown.add(j.sid);
+      _notifyShownAdd(j.sid);
       coopSid = String(j.sid).toUpperCase();
       if (typeof nav === 'function') nav('coop');
       try {
@@ -6857,7 +6857,23 @@ document.addEventListener('visibilitychange', () => {
 // /notify/{uid}/poll. Если приходит coop_invite — показываем модалку
 // «Войти / Отказаться». TTL уведомления на сервере 60 сек.
 let _notifyTimer = null;
-const _notifyShown = new Set();   // sid'ы уже показанных, чтобы не моргать дважды
+// sid'ы уже показанных приглашений. Загружаем из localStorage — чтобы
+// после боя/перезагрузки одна и та же модалка не выскакивала повторно
+// (раньше после конца боя пуш мог снова сработать, т.к. set обнулялся).
+const _notifyShown = (() => {
+  try {
+    const raw = localStorage.getItem('coop_shown_sids') || '[]';
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr.slice(-50) : []);  // последние 50
+  } catch(e) { return new Set(); }
+})();
+function _notifyShownAdd(sid) {
+  _notifyShownAdd(sid);
+  try {
+    localStorage.setItem('coop_shown_sids',
+      JSON.stringify(Array.from(_notifyShown).slice(-50)));
+  } catch(e) {}
+}
 let _coopInviteOpen = false;
 
 async function _notifyPoll() {
@@ -6874,7 +6890,7 @@ async function _notifyPoll() {
     if (!j.ok || !Array.isArray(j.items) || !j.items.length) return;
     for (const n of j.items) {
       if (n.type === 'coop_invite' && n.sid && !_notifyShown.has(n.sid)) {
-        _notifyShown.add(n.sid);
+        _notifyShownAdd(n.sid);
         _showCoopInviteModal(n);
         break;   // показываем по одному; следующий — в следующем тике
       }

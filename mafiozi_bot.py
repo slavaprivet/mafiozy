@@ -12999,14 +12999,26 @@ async def _coop_http_app():
     async def h_notify_poll(req):
         """Возвращает и очищает очередь уведомлений для данного uid.
         Используется hub.html для in-game приглашений в кооп. Уведомления
-        старше _INVITE_TTL_SEC отфильтровываются — после боя/отмены толку
-        от них уже нет."""
+        старше _INVITE_TTL_SEC и с мёртвыми/завершёнными sid'ами
+        отфильтровываются — нет смысла слать модалку для боя, который
+        уже закончился."""
         uid = str(req.match_info.get('uid', ''))
         if not uid or uid == '0':
             return await _cors(web.json_response({'ok': False, 'items': []}))
         now = int(time.time())
         q = INVITE_QUEUE.get(uid, [])
-        fresh = [n for n in q if now - int(n.get('ts', 0)) < _INVITE_TTL_SEC]
+        fresh = []
+        for n in q:
+            if now - int(n.get('ts', 0)) >= _INVITE_TTL_SEC:
+                continue
+            sid = (n.get('sid') or '').upper()
+            # Сессия должна быть жива и в waiting (после старта боя
+            # приглашать поздно). Раньше после конца боя клиент мог снова
+            # получать модалку для протухшего sid.
+            s = _coop_sessions.get(sid)
+            if not s or s.get('state') != 'waiting':
+                continue
+            fresh.append(n)
         # Одноразовая доставка: очищаем после prosmotr'а. Клиент сам решает
         # показать модалку или проигнорировать (например если уже в бою).
         INVITE_QUEUE[uid] = []
