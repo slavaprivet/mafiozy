@@ -4667,7 +4667,9 @@ function sendResultAndClose(action) {
     // Переносим ВСЕ исходные параметры боёвки кроме чисто-боевых.
     // gren/mol тоже скипаем — мы сами пересчитаем актуальное число (исходный
     // URL содержит значение ДО боя, а игрок мог что-то кинуть).
-    const skip = new Set(['boss','loc','exp','cash','mlvl','minions','bname','bhp','bemoji','view','gren','mol','med_s','med_m','med_l','coop_sid']);
+    // exp/exp_need НЕ скипаем — иначе хаб видит exp=0 после боя и игрок
+    // думает «опыт сбросился, ранг не вырос», хотя БД считает корректно.
+    const skip = new Set(['boss','loc','cash','mlvl','minions','bname','bhp','bemoji','view','gren','mol','med_s','med_m','med_l','coop_sid']);
     _UP.forEach((v, k) => { if (!skip.has(k)) out.set(k, v); });
     // Расчётный остаток метательного — bgren/bmol минус то, что игрок кинул.
     const grenLeft = Math.max(0, (QP.bgren || 0) - (fightStats.grenUsed || 0));
@@ -4680,15 +4682,17 @@ function sendResultAndClose(action) {
     out.set('med_l', Math.max(0, (QP.bml || 0) - (fightStats.medLUsed || 0)));
     // Обновлённое состояние перетирает соответствующие поля
     if (state) {
-      if (state.hp    != null) out.set('hp',    state.hp);
-      if (state.maxhp != null) out.set('maxhp', state.maxhp);
-      if (state.mp    != null) out.set('mp',    state.mp);
-      if (state.maxmp != null) out.set('maxmp', state.maxmp);
-      if (state.cash  != null) out.set('cash',  state.cash);
-      if (state.lvl   != null) out.set('lvl',   state.lvl);
-      if (state.atk   != null) out.set('atk',   state.atk);
-      if (state.def   != null) out.set('def',   state.def);
-      if (state.kills != null) out.set('kills', state.kills);
+      if (state.hp       != null) out.set('hp',       state.hp);
+      if (state.maxhp    != null) out.set('maxhp',    state.maxhp);
+      if (state.mp       != null) out.set('mp',       state.mp);
+      if (state.maxmp    != null) out.set('maxmp',    state.maxmp);
+      if (state.cash     != null) out.set('cash',     state.cash);
+      if (state.lvl      != null) out.set('lvl',      state.lvl);
+      if (state.exp      != null) out.set('exp',      state.exp);
+      if (state.exp_need != null) out.set('exp_need', state.exp_need);
+      if (state.atk      != null) out.set('atk',      state.atk);
+      if (state.def      != null) out.set('def',      state.def);
+      if (state.kills    != null) out.set('kills',    state.kills);
     } else {
       // API недоступен — отдаём актуальный HP из боёвки, чтобы хаб
       // не «откатил» здоровье к стартовому. При проигрыше — ровно 1 HP,
