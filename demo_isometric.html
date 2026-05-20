@@ -360,6 +360,28 @@
 
 <script>
 // ════════════════════════════════════════════════════════════════
+//  Куда возвращаться после боя: hub.html (стандарт) ИЛИ world.html
+//  (когда боёвка открыта через POI района прямо из города). Если
+//  страница загружена в iframe (overlay поверх world.html), вместо
+//  тяжёлого редиректа шлём postMessage родителю — он закроет overlay
+//  и игрок останется в городе на той же позиции, без перезагрузки.
+// ════════════════════════════════════════════════════════════════
+function _exitFromBattle(outParams) {
+  let qs = '';
+  try { qs = outParams ? outParams.toString() : ''; } catch(e) {}
+  let back = '';
+  try { back = new URLSearchParams(location.search).get('back') || ''; } catch(e) {}
+  if (back === 'world' && window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage({ type: 'battle_done', params: qs }, '*');
+      return;
+    } catch(e) {}
+  }
+  const dest = (back === 'world') ? 'world.html' : 'hub.html';
+  window.location.href = qs ? (dest + '?' + qs) : dest;
+}
+
+// ════════════════════════════════════════════════════════════════
 //  HARD FAILSAFE: кнопка «🚪 Выйти» работает ВСЕГДА, даже если ниже
 //  по скрипту произойдёт ошибка инициализации (поломанный URL,
 //  кэш, etc). Цепляем обработчик первым делом, до любой логики.
@@ -381,9 +403,9 @@
       if (sp.has('bcash')) out.set('cash', sp.get('bcash'));
       out.set('view', 'district');
       if (sp.get('loc')) out.set('loc', sp.get('loc'));
-      window.location.href = 'hub.html?' + out.toString();
+      _exitFromBattle(out);
     } catch(e) {
-      window.location.href = 'hub.html';
+      _exitFromBattle(null);
     }
   }
   // Делаем bareQuitToHub доступной снаружи (watchdog ниже её зовёт).
@@ -4712,7 +4734,7 @@ function sendResultAndClose(action) {
       out.set('view', 'district');
       out.set('loc',  CURRENT_LOC);
     }
-    window.location.href = 'hub.html?' + out.toString();
+    _exitFromBattle(out);
   }
 
   // CO-OP: серверная coop-сессия УЖЕ начислила награды (_coop_grant_rewards
@@ -6676,7 +6698,7 @@ function showTutorial() {
       const loc = sp.get('loc');
       if (loc) out.set('loc', loc);
     }
-    window.location.href = 'hub.html?' + out.toString();
+    _exitFromBattle(out);
   }
   // btnQuit уже обвешан в самом верху скрипта (failsafe-блок _wireQuitFailsafe):
   // двойной тап без confirm(). НЕ перезаписываем здесь — это бы вернуло

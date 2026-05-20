@@ -176,6 +176,34 @@ body.in-pvp #zoneBtn { top: 104px; }
 }
 #mapHud canvas { display: block; width: 100%; height: 100%; border-radius: 8px; }
 
+/* Боёвка района — iframe-оверлей поверх города. Кликнул POI района
+   → бот собирает URL → грузим demo_isometric в iframe. Закончил бой
+   → iframe шлёт postMessage → закрываем оверлей и игрок снова в городе. */
+#battleOverlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: #000; display: none;
+}
+#battleOverlay.open { display: block; }
+#battleOverlay iframe {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  border: 0; background: #000;
+}
+#battleClose {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(0,0,0,.72); border: 1px solid #5a2058;
+  color: #ffd76b; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+#battleLoading {
+  position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center;
+  color: #ffd76b; font-size: 14px; font-weight: 700;
+  background: rgba(0,0,0,.85); pointer-events: none;
+}
+#battleLoading.hide { display: none; }
+
 /* Чёрный рынок — модал */
 #shopOverlay {
   position: absolute; inset: 0; z-index: 20;
@@ -280,6 +308,13 @@ body.in-pvp #zoneBtn { top: 104px; }
     <div class="title">УБИТ</div>
     <div class="by" id="deathBy">&nbsp;</div>
     <div class="cnt">Респаун через <span id="deathCnt">5</span> сек</div>
+  </div>
+
+  <!-- Боёвка района — iframe поверх города (открыт при клике POI района) -->
+  <div id="battleOverlay">
+    <button id="battleClose" title="Выйти из боя">✕</button>
+    <div id="battleLoading">Загружаем район…</div>
+    <iframe id="battleFrame" src="about:blank" allow="autoplay; fullscreen"></iframe>
   </div>
 
   <!-- Чёрный рынок (модал-диалог продавца, скрыт по умолчанию) -->
@@ -1169,21 +1204,84 @@ _zoneEl.addEventListener('click', () => {
     showToast(`🔒 Нужен ранг ${_zoneCur.minLvl}+ (у тебя ${QP.lvl})`, 2800);
     return;
   }
-  // Обычный район → возврат в hub с view=district&loc=<id>.
-  const locId = _zoneCur.id;
-  let target = '';
-  try { target = decodeURIComponent(QP.hubUrl || ''); } catch(e) { target = QP.hubUrl || ''; }
-  if (!target) target = 'hub.html';
-  try {
-    const u = new URL(target, location.href);
-    u.searchParams.set('view', 'district');
-    u.searchParams.set('loc',  locId);
-    u.searchParams.set('v',    Date.now());
-    window.location.href = u.toString();
-  } catch(e) {
-    const sep = target.includes('?') ? '&' : '?';
-    window.location.href = `${target}${sep}view=district&loc=${locId}&v=${Date.now()}`;
+  // Обычный район → открываем боёвку (demo_isometric) в iframe поверх
+  // города. Бэк сам соберёт URL с актуальным снаряжением игрока из БД.
+  openDistrictBattle(_zoneCur.id);
+});
+
+// ── Боёвка района — iframe overlay поверх города ───────────────
+const _battleOv     = document.getElementById('battleOverlay');
+const _battleFrame  = document.getElementById('battleFrame');
+const _battleLoad   = document.getElementById('battleLoading');
+const _battleClose  = document.getElementById('battleClose');
+let _battleOpen = false;
+
+async function openDistrictBattle(locId) {
+  // Без свежего api боёвку не запустить — пробуем подтянуть из coop_api.json.
+  if (!QP.api) await _fetchApiFallback();
+  if (!QP.api) {
+    showToast('⚠️ Сервер недоступен — открой ЗАПУСТИТЬ_БОТА.bat', 3000);
+    return;
   }
+  if (!QP.uid) {
+    showToast('Нет Telegram ID — открой через бота', 2400);
+    return;
+  }
+  // Показываем оверлей сразу — юзер сразу видит реакцию на клик.
+  _battleLoad.classList.remove('hide');
+  _battleLoad.textContent = 'Загружаем район…';
+  _battleFrame.src = 'about:blank';
+  _battleOv.classList.add('open');
+  _battleOpen = true;
+  try {
+    const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    if (ctl) setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch(
+      `${QP.api}/world/battle_url/${encodeURIComponent(QP.uid)}?loc=${encodeURIComponent(locId)}`,
+      { cache: 'no-store', signal: ctl ? ctl.signal : undefined }
+    );
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok || !j.url) {
+      const err = j && j.error || ('HTTP ' + r.status);
+      _battleLoad.textContent = '⚠️ Не удалось открыть район: ' + err;
+      setTimeout(closeBattleOverlay, 2400);
+      return;
+    }
+    // URL уже содержит &back=world (бэк добавил) — demo_isometric при
+    // выходе из боя пришлёт postMessage сюда вместо редиректа в hub.
+    _battleFrame.src = j.url;
+  } catch(e) {
+    _battleLoad.textContent = '⚠️ Сервер не ответил. Бот работает?';
+    setTimeout(closeBattleOverlay, 2400);
+  }
+}
+
+function closeBattleOverlay() {
+  _battleOv.classList.remove('open');
+  _battleOpen = false;
+  // Освобождаем iframe чтобы он не продолжал крутить тяжёлый game-loop в фоне.
+  _battleFrame.src = 'about:blank';
+  _battleLoad.classList.remove('hide');
+}
+
+_battleClose.addEventListener('click', () => {
+  // Спрашиваем пацифистский confirm: если бой идёт — юзер может случайно
+  // зафейлить прогресс. confirm() в TG WebApp на мобильнике может не показаться,
+  // поэтому если он не сработал — закрываем без вопроса.
+  let ok = true;
+  try { ok = confirm('Выйти из боя? Прогресс потеряется.'); } catch(e) { ok = true; }
+  if (ok) closeBattleOverlay();
+});
+
+// postMessage от demo_isometric.html — бой завершён (победа/смерть/выход).
+window.addEventListener('message', (ev) => {
+  const d = ev && ev.data;
+  if (!d || typeof d !== 'object') return;
+  if (d.type !== 'battle_done') return;
+  // Параметры из боя (out.toString()) — там обновлённые cash/hp/kills/gren/mol.
+  // Пока в city не реинтегрируем их (нет state-машины), просто закрываем
+  // оверлей. Свежие значения подтянутся при следующем заходе через hub.
+  closeBattleOverlay();
 });
 
 // ── Toast (короткие уведомления) ────────────────────────────────

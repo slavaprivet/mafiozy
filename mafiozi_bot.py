@@ -12821,6 +12821,46 @@ async def _coop_http_app():
             'ok': True, 'count': len(out), 'players': out,
         }))
 
+    # === HTTP: построить URL боёвки для района прямо из города ===
+    # world.html при клике по POI района дёргает этот endpoint вместо
+    # редиректа в hub. Бот собирает полный demo_isometric URL (со всем
+    # снаряжением игрока из БД) — клиент открывает его в iframe-overlay.
+    # Возвращает {'ok': True, 'url': '...'} либо ошибку с понятным reason.
+    async def h_world_battle_url(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        loc_id = (req.query.get('loc') or '').strip()
+        if loc_id not in LOCATIONS:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad loc'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        loc = LOCATIONS[loc_id]
+        if int(char.get('level') or 1) < int(loc.get('min_level') or 1):
+            return await _cors(web.json_response({
+                'ok': False, 'error': 'low_level',
+                'min_level': loc['min_level'], 'level': char.get('level') or 1,
+            }, status=403))
+        bosses = loc.get('bosses') or []
+        if not bosses:
+            return await _cors(web.json_response({'ok': False, 'error': 'no bosses'}, status=500))
+        # Берём ГЛАВНОГО босса района (последнего в списке) — как делает
+        # hub.html: `loc.bosses[loc.bosses.length - 1]`.
+        boss_id = bosses[-1]
+        battle = {'location': loc_id, 'boss_id': boss_id}
+        url = await build_iso_url_for_user(
+            char, battle, uid, boss_id=boss_id, loc_id=loc_id,
+            cash=int(char.get('cash') or 0),
+        )
+        # Маркер «вернуться в город, а не в hub» — обрабатывает demo_isometric.
+        if '?' in url:
+            url = url + '&back=world'
+        else:
+            url = url + '?back=world'
+        return await _cors(web.json_response({'ok': True, 'url': url, 'boss_id': boss_id}))
+
     # === HTTP: результат боя из demo_isometric.html ===
     # Закрывает запись битвы, начисляет опыт/деньги/убийства, обновляет HP
     # и возвращает свежее состояние персонажа в JSON. В чат бот ничего не
@@ -13057,6 +13097,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/safe/{uid}/loot',     h_safe_loot)
     aio_app.router.add_get ('/world/sim',           h_world_ws)  # общий мир
     aio_app.router.add_get ('/world/online',        h_world_online)  # для баннера в Кооперативе
+    aio_app.router.add_get ('/world/battle_url/{uid}', h_world_battle_url)  # боёвка из POI района
     aio_app.router.add_get ('/notify/{uid}/poll',   h_notify_poll)   # in-game приглашения в кооп
     aio_app.router.add_get ('/coop/pending/{uid}',  h_coop_pending)  # ожидающий coop_sid из pending_coop_sid в БД
     aio_app.router.add_get ('/app/version',         h_app_version)   # runtime-обновление hub без /start
