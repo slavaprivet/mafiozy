@@ -5661,7 +5661,7 @@ async function _coopFetchApiFallback() {
       cache: 'no-store',
       signal: ctl ? ctl.signal : undefined,
     });
-    if (!r.ok) return '';
+    if (!r.ok) { console.warn('[coop_api.json] r not ok', r.status); return ''; }
     const j = await r.json();
     // Защита от плейсхолдера: 'https://api.trycloudflare.com' (без поддомена)
     // = бот не публиковал реальный URL. Quick-туннель ВСЕГДА имеет форму
@@ -5669,9 +5669,11 @@ async function _coopFetchApiFallback() {
     if (j && typeof j.base === 'string' && /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)+\//.test(j.base + '/')
         && j.base !== 'https://api.trycloudflare.com') {
       _COOP_API_FRESH = j.base;
+      console.log('[coop_api.json] fresh api =', j.base);
       return j.base;
     }
-  } catch(e) {}
+    console.warn('[coop_api.json] rejected base =', j && j.base);
+  } catch(e) { console.warn('[coop_api.json] fetch failed', e); }
   return '';
 }
 
@@ -5921,11 +5923,15 @@ async function coopCreateSession() {
     coopSid = data.sid;
     _coopEnterWaitRoom(data);
   } catch(e) {
-    // «Load failed» (iOS Safari) и AbortError → бот не отвечает. Не светим
-    // юзеру технический message — даём чёткую инструкцию.
-    const isNetErr = e.name === 'AbortError' || /load failed|failed to fetch|network/i.test(e.message || '');
-    const msg = isNetErr ? _botDownMsg() : ('Ошибка создания: ' + e.message);
-    showToast(msg, '❌', 6000);
+    // Диагностика: всегда показываем реальную причину (URL + ошибка), чтобы
+    // если бот «запущен по факту, но клиент не видит» — можно было сразу
+    // понять что не так. Раньше любую net-ошибку прятали за «Бот не запущен»,
+    // и реальные сетевые проблемы (CORS, протухший api в URL мини-аппа,
+    // CDN-кэш hub.html) выглядели как «бот выключен».
+    const apiNow = coopApi() || '(пусто)';
+    const msg = 'Ошибка: ' + (e.message || e.name || 'unknown') + ' · ' + apiNow.replace(/^https:\/\//, '');
+    showToast(msg, '❌', 9000);
+    console.error('[coop/create] failed', e, 'api=', apiNow);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🗡 Создать сессию'; }
   }
