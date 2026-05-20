@@ -11035,19 +11035,55 @@ WORLD_AFK_TIMEOUT_S = 90  # без инпута дольше — выкидыв�
 class WorldSim:
     """Глобальная симуляция открытого мира — один экземпляр на сервер.
     Хранит позиции всех онлайн-игроков, рассылает снапшоты 15 Гц.
-    Без AI/врагов/пуль — это социальный хаб."""
+    Эмерджентные события: инкассатор (см. tick_event / apply_event_shoot)."""
     __slots__ = (
         'tick_no', 'last_tick_at', 'players', 'connections',
         'alive', 'started_at',
+        'event', '_event_next_at',
     )
 
+    # ── Эмерджентные события: параметры ────────────────────────────
+    # Каждые EVENT_INTERVAL сек на карте появляется инкассатор-NPC с
+    # эскортом из 3 полицейских. Едут от «банка» к «казино». Конвой
+    # отстреливается — каждый NPC сам ищет ближайшего игрока в радиусе
+    # видимости и шлёт пакет 'inkass_shot' (трассер + урон). На убийстве
+    # инкассатора killer получает EVENT_REWARD в БД, всему миру летит
+    # 'inkassator_killed' с ником и наградой. Полицейские наград не дают.
+    EVENT_FIRST_DELAY  = 25.0      # первый конвой через 25с после старта мира
+    EVENT_INTERVAL     = 180.0     # пауза между событиями (3 мин)
+    INKASS_SPEED       = 0.9       # тайлов/сек — медленнее обычной машины
+    INKASS_HP          = 220       # запас здоровья (~8 чистых попаданий)
+    INKASS_REWARD      = 500
+    INKASS_FIRE_R      = 9.0       # макс. дистанция игрок→цель для попадания
+    BOSS_SHOOT_R       = 7.0       # инкассатор бьёт в этом радиусе
+    BOSS_SHOOT_DMG     = 20
+    BOSS_SHOOT_CD      = 1.8       # сек между выстрелами
+    GUARD_HP           = 75
+    GUARD_SHOOT_R      = 7.5
+    GUARD_SHOOT_DMG    = 14
+    GUARD_SHOOT_CD     = 1.6
+    PLAYER_RESPAWN_S   = 5.0       # сколько лежим мёртвым в мире
+    # Формация конвоя (локально, в координатах «вперёд/право»):
+    #   oy > 0  → впереди инкассатора по направлению движения,
+    #   oy < 0  → сзади. ox > 0 — справа от него.
+    GUARD_OFFSETS      = ((-0.9, -1.5), (0.9, -1.5), (0.0, -2.7))
+    # Маршрут: от Чёрного рынка (r=4, c=28) к Казино (r=36, c=12).
+    INKASS_START_X     = 26.0
+    INKASS_START_Y     = 5.0
+    INKASS_END_X       = 13.0
+    INKASS_END_Y       = 35.0
+
     def __init__(self):
-        self.tick_no       = 0
-        self.started_at    = time.time()
-        self.last_tick_at  = self.started_at
-        self.players       = {}   # uid (str) -> {x,y,ang,name,look,hp,last_seen}
-        self.connections   = {}   # uid (str) -> aiohttp WebSocketResponse
-        self.alive         = True
+        self.tick_no         = 0
+        self.started_at      = time.time()
+        self.last_tick_at    = self.started_at
+        self.players         = {}   # uid (str) -> {x,y,ang,name,look,hp,last_seen}
+        self.connections     = {}   # uid (str) -> aiohttp WebSocketResponse
+        self.alive           = True
+        # Активное эмерджентное событие (dict) или None.
+        self.event           = None
+        # Когда заспавнить следующее (unix-секунды).
+        self._event_next_at  = self.started_at + self.EVENT_FIRST_DELAY
 
     def add_or_update(self, uid: str, name: str, look: dict) -> None:
         if uid in self.players:
@@ -11163,6 +11199,215 @@ class WorldSim:
         p['last_chat']   = t
         p['last_chat_t'] = time.time()
 
+    # ── Эмерджентные события: инкассатор + полицейский эскорт ─────
+    def spawn_event(self) -> None:
+        """Конвой: 1 инкассатор + 3 полицейских с AI. Кладёт в self.event."""
+        import math as _m
+        dx = self.INKASS_END_X - self.INKASS_START_X
+        dy = self.INKASS_END_Y - self.INKASS_START_Y
+        start_ang = _m.atan2(dy, dx)
+        e = {
+            'kind':        'inkassator',
+            'id':          int(time.time()),
+            'reward':      int(self.INKASS_REWARD),
+            'finished':    False,
+            'outcome':     '',
+            'killer_uid':  '',
+            'killer_name': '',
+            'started_at':  time.time(),
+            'boss': {
+                'id':       'b',
+                'x':        float(self.INKASS_START_X),
+                'y':        float(self.INKASS_START_Y),
+                'ang':      start_ang,
+                'hp':       int(self.INKASS_HP),
+                'max_hp':   int(self.INKASS_HP),
+                'alive':    True,
+                '_shot_t':  0.0,
+            },
+            'guards': [],
+        }
+        cos_a = _m.cos(start_ang); sin_a = _m.sin(start_ang)
+        for i, (ox, oy) in enumerate(self.GUARD_OFFSETS):
+            gx = self.INKASS_START_X + ox * cos_a - oy * sin_a
+            gy = self.INKASS_START_Y + ox * sin_a + oy * cos_a
+            e['guards'].append({
+                'id':       f'g{i}',
+                'x':        float(gx),
+                'y':        float(gy),
+                'ang':      start_ang,
+                'hp':       int(self.GUARD_HP),
+                'max_hp':   int(self.GUARD_HP),
+                'alive':    True,
+                'ox':       float(ox),
+                'oy':       float(oy),
+                '_shot_t':  0.0,
+            })
+        self.event = e
+        logger.info("WorldSim: spawned inkassator convoy id=%s (%.1f,%.1f → %.1f,%.1f) + %d guards",
+                    e['id'], self.INKASS_START_X, self.INKASS_START_Y,
+                    self.INKASS_END_X, self.INKASS_END_Y, len(e['guards']))
+
+    def tick_event(self, dt: float) -> list:
+        """Тикает событие. Возвращает list пакетов для broadcast:
+        - 'inkassator_spawned' — конвой выехал (всем игрокам)
+        - 'inkass_shot'        — NPC выстрелил в игрока (trace+dmg)
+        - 'inkassator_escaped' — конвой дошёл до цели без отстрела
+        Сам 'inkassator_killed' формируется в apply_event_shoot."""
+        pkts = []
+        now = time.time()
+        # 1) Спавн нового конвоя по таймеру
+        if self.event is None:
+            if now >= self._event_next_at:
+                self.spawn_event()
+                e = self.event
+                pkts.append({
+                    'kind':    'inkassator_spawned',
+                    'id':      e['id'],
+                    'start_x': e['boss']['x'],
+                    'start_y': e['boss']['y'],
+                    'end_x':   self.INKASS_END_X,
+                    'end_y':   self.INKASS_END_Y,
+                    'reward':  e['reward'],
+                })
+            return pkts
+        e = self.event
+        if e.get('finished'):
+            return pkts
+        import math as _m
+        boss = e['boss']
+        # 2) Движение инкассатора к цели
+        if boss['alive']:
+            dx = self.INKASS_END_X - boss['x']
+            dy = self.INKASS_END_Y - boss['y']
+            dist = (dx*dx + dy*dy) ** 0.5
+            if dist < 0.4:
+                e['finished'] = True
+                e['outcome']  = 'escaped'
+                self._event_next_at = now + self.EVENT_INTERVAL
+                return pkts
+            step = self.INKASS_SPEED * dt
+            if step > dist:
+                step = dist
+            boss['x']  += (dx / dist) * step
+            boss['y']  += (dy / dist) * step
+            # Угол движения держим только пока никто не стреляет; AI ниже
+            # перепишет ang в сторону таргета на момент выстрела.
+            boss['ang'] = _m.atan2(dy, dx)
+        # 3) Полицейские держат формацию вокруг инкассатора
+        move_ang = boss['ang'] if boss['alive'] else 0.0
+        cos_a = _m.cos(move_ang); sin_a = _m.sin(move_ang)
+        for g in e['guards']:
+            if not g['alive']:
+                continue
+            tgx = boss['x'] + g['ox'] * cos_a - g['oy'] * sin_a
+            tgy = boss['y'] + g['ox'] * sin_a + g['oy'] * cos_a
+            gdx = tgx - g['x']; gdy = tgy - g['y']
+            gd = (gdx*gdx + gdy*gdy) ** 0.5
+            if gd > 0.001:
+                gstep = (self.INKASS_SPEED * 1.25) * dt
+                if gstep > gd:
+                    gstep = gd
+                g['x'] += (gdx / gd) * gstep
+                g['y'] += (gdy / gd) * gstep
+                # Угол движения — но AI ниже перепишет если стреляет
+                if gd > 0.25:
+                    g['ang'] = _m.atan2(gdy, gdx)
+        # 4) AI стрельбы — boss и каждый guard ищут ближайшего живого игрока
+        actors = []
+        if boss['alive']:
+            actors.append((boss, self.BOSS_SHOOT_R, self.BOSS_SHOOT_CD, self.BOSS_SHOOT_DMG))
+        for g in e['guards']:
+            if g['alive']:
+                actors.append((g, self.GUARD_SHOOT_R, self.GUARD_SHOOT_CD, self.GUARD_SHOOT_DMG))
+        for actor, shoot_r, cd, dmg in actors:
+            if now - actor['_shot_t'] < cd:
+                continue
+            best_uid = None
+            best_d   = shoot_r
+            for p_uid, p in self.players.items():
+                if p.get('dead'):
+                    continue
+                pd = ((p['x'] - actor['x'])**2 + (p['y'] - actor['y'])**2) ** 0.5
+                if pd < best_d:
+                    best_d   = pd
+                    best_uid = p_uid
+            if best_uid is None:
+                continue
+            target = self.players[best_uid]
+            actor['ang']    = _m.atan2(target['y'] - actor['y'],
+                                       target['x'] - actor['x'])
+            actor['_shot_t'] = now
+            target['hp']    = int(max(0, int(target.get('hp', 100)) - dmg))
+            killed = False
+            if target['hp'] <= 0:
+                target['hp']           = 0
+                target['dead']         = True
+                target['deaths']       = int(target.get('deaths', 0)) + 1
+                target['_respawn_at']  = now + self.PLAYER_RESPAWN_S
+                killed = True
+            pkts.append({
+                'kind':       'inkass_shot',
+                'shooter_id': actor['id'],   # 'b' / 'g0' / 'g1' / 'g2'
+                'sx':         round(actor['x'], 2),
+                'sy':         round(actor['y'], 2),
+                'target_uid': best_uid,
+                'tx':         round(target['x'], 2),
+                'ty':         round(target['y'], 2),
+                'dmg':        int(dmg),
+                'killed':     killed,
+            })
+        # 5) Респаун мёртвых игроков
+        for p_uid, p in self.players.items():
+            if p.get('dead') and now >= p.get('_respawn_at', 0):
+                p['dead'] = False
+                p['hp']   = int(p.get('max_hp', 100))
+        return pkts
+
+    def apply_event_shoot(self, uid: str, target_id: str = 'b',
+                          dmg: int = 25) -> dict | None:
+        """Игрок стреляет в одну из целей конвоя ('b' / 'g0' / 'g1' / 'g2').
+        Возвращает kill-пакет если ИНКАССАТОР добит (награда), иначе None.
+        Anti-cheat: игрок должен быть в радиусе INKASS_FIRE_R от цели."""
+        if not self.event or self.event.get('finished'):
+            return None
+        shooter = self.players.get(uid)
+        if not shooter or shooter.get('dead'):
+            return None
+        e = self.event
+        target = None
+        if target_id == 'b':
+            target = e['boss']
+        else:
+            for g in e['guards']:
+                if g['id'] == target_id:
+                    target = g
+                    break
+        if not target or not target.get('alive'):
+            return None
+        d_sq = (shooter['x'] - target['x'])**2 + (shooter['y'] - target['y'])**2
+        if d_sq > self.INKASS_FIRE_R * self.INKASS_FIRE_R:
+            return None
+        dmg = max(1, min(80, int(dmg)))
+        target['hp'] -= dmg
+        if target['hp'] <= 0:
+            target['hp']    = 0
+            target['alive'] = False
+            if target_id == 'b':
+                e['finished']    = True
+                e['outcome']     = 'killed'
+                e['killer_uid']  = str(uid)
+                killer_name = (shooter.get('name') or 'Игрок')[:24]
+                e['killer_name'] = killer_name
+                self._event_next_at = time.time() + self.EVENT_INTERVAL
+                return {
+                    'kind':        'inkassator_killed',
+                    'killer_uid':  str(uid),
+                    'killer_name': killer_name,
+                    'reward':      int(e['reward']),
+                }
+        return None
+
     def snapshot_for(self, uid: str) -> dict:
         """Снапшот для конкретного игрока: видит себя точно + всех в радиусе."""
         me = self.players.get(uid)
@@ -11193,21 +11438,58 @@ class WorldSim:
                 'hp':     int(p.get('hp', 100)),
                 'dead':   bool(p.get('dead', False)),
             })
+        # Активное эмерджентное событие (инкассатор + эскорт) — шлём
+        # всем клиентам одинаково, независимо от радиуса. Карта 60×60 —
+        # стрелка «событие где-то там» полезна и на дальнем конце.
+        ev_payload = None
+        if self.event and not self.event.get('finished'):
+            e = self.event
+            b = e['boss']
+            ev_payload = {
+                'kind':   e['kind'],
+                'id':     e['id'],
+                'reward': int(e.get('reward') or 0),
+                'boss': {
+                    'id':     b['id'],
+                    'x':      round(b['x'], 2),
+                    'y':      round(b['y'], 2),
+                    'ang':    round(b['ang'], 2),
+                    'hp':     max(0, int(b['hp'])),
+                    'max_hp': int(b['max_hp']),
+                    'alive':  bool(b['alive']),
+                },
+                'guards': [{
+                    'id':     g['id'],
+                    'x':      round(g['x'], 2),
+                    'y':      round(g['y'], 2),
+                    'ang':    round(g['ang'], 2),
+                    'hp':     max(0, int(g['hp'])),
+                    'max_hp': int(g['max_hp']),
+                    'alive':  bool(g['alive']),
+                } for g in e['guards']],
+            }
+        now_t = time.time()
+        respawn_in = 0
+        if me.get('dead') and me.get('_respawn_at'):
+            respawn_in = max(0, int(round(me['_respawn_at'] - now_t)))
         return {
             't': 'snap',
             'd': {
                 'me': {
-                    'x': round(mx, 2),
-                    'y': round(my, 2),
-                    'srv_now': round(time.time(), 2),
+                    'x':       round(mx, 2),
+                    'y':       round(my, 2),
+                    'srv_now': round(now_t, 2),
                     'hp':      int(me.get('hp', 100)),
+                    'max_hp':  int(me.get('max_hp', 100)),
                     'kills':   int(me.get('kills', 0)),
                     'deaths':  int(me.get('deaths', 0)),
                     'dead':    bool(me.get('dead', False)),
+                    'respawn_in': respawn_in,
                     'look':    me.get('look') or {},
                 },
                 'others': others,
-                'tick': self.tick_no,
+                'event':  ev_payload,
+                'tick':   self.tick_no,
             }
         }
 
@@ -11226,7 +11508,8 @@ def _world_get() -> 'WorldSim':
 
 
 async def _world_run_loop(world: 'WorldSim') -> None:
-    """Tick-loop: 15 Гц. Рассылает снапшоты + чистит AFK-игроков."""
+    """Tick-loop: 15 Гц. Рассылает снапшоты + чистит AFK-игроков
+    + тикает эмерджентные события (инкассатор)."""
     try:
         while world.alive:
             t0 = time.time()
@@ -11244,6 +11527,33 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     try: await ws.close(code=4001, message=b'afk')
                     except Exception: pass
                 logger.info("WorldSim: kicked AFK uid=%s", uid)
+            # Эмерджентные события — двигаем конвой, спавним новых, AI
+            # стрельбы. tick_event возвращает list пакетов на broadcast
+            # (inkassator_spawned / inkass_shot / inkassator_escaped).
+            # Тикаем ТОЛЬКО если в мире есть кто-то — чтобы конвой не
+            # «умчался» пока никто не видел и не висел спавн в пустоте.
+            if world.players:
+                ev_pkts = world.tick_event(WORLD_TICK_DT) or []
+                # Проверяем, не дошёл ли конвой до цели — добавляем escape-пакет
+                # (tick_event только помечает finished='escaped', но не шлёт)
+                if (world.event is not None
+                        and world.event.get('finished')
+                        and world.event.get('outcome') == 'escaped'):
+                    ev_pkts.append({
+                        'kind': 'inkassator_escaped',
+                        'id':   world.event.get('id'),
+                    })
+                    world.event = None  # очищаем — следующий по таймеру
+                # Broadcast всех event-пакетов
+                if ev_pkts:
+                    blob = [json.dumps({'t': 'event', 'd': p}, ensure_ascii=False)
+                            for p in ev_pkts]
+                    for u2, ws2 in list(world.connections.items()):
+                        for s in blob:
+                            try: await ws2.send_str(s)
+                            except Exception:
+                                world.connections.pop(u2, None)
+                                break
             # Broadcast (если игроков нет — пропускаем но не выключаем)
             if world.players:
                 for uid, ws in list(world.connections.items()):
@@ -12786,6 +13096,45 @@ async def _coop_http_app():
                         world.apply_input(uid, d)
                     elif t == 'chat':
                         world.apply_chat(uid, str(d.get('text', ''))[:80])
+                    elif t == 'event_shoot':
+                        # Игрок стреляет в конвой. d = {target:'b'|'g0'..'g2', dmg:25}
+                        target_id = str(d.get('target') or 'b')[:3]
+                        dmg = int(d.get('dmg') or 25)
+                        # Trace для всех клиентов (даже промах — слышим выстрел)
+                        shooter = world.players.get(uid)
+                        if shooter:
+                            trace_pkt = json.dumps({
+                                't': 'event',
+                                'd': {
+                                    'kind': 'player_shot',
+                                    'shooter_uid': uid,
+                                    'sx': round(shooter['x'], 2),
+                                    'sy': round(shooter['y'], 2),
+                                    'target': target_id,
+                                },
+                            }, ensure_ascii=False)
+                            for u2, ws2 in list(world.connections.items()):
+                                try: await ws2.send_str(trace_pkt)
+                                except Exception: pass
+                        kill_pkt = world.apply_event_shoot(uid, target_id, dmg)
+                        if kill_pkt:
+                            # Начисляем деньги добившему — атомарно в БД
+                            try:
+                                killer_uid_int = int(kill_pkt['killer_uid'])
+                                ch = await get_character(killer_uid_int)
+                                if ch:
+                                    new_cash = int(ch.get('cash') or 0) + int(kill_pkt['reward'])
+                                    await update_character(killer_uid_int, cash=new_cash)
+                                    logger.info("WorldSim: inkassator killed by uid=%s name=%s +%d$ → %d$",
+                                                killer_uid_int, kill_pkt.get('killer_name'),
+                                                kill_pkt['reward'], new_cash)
+                            except Exception as _e:
+                                logger.warning("WorldSim: inkass reward write failed: %r", _e)
+                            # Broadcast «Х забрал куш Y$» всем
+                            kill_blob = json.dumps({'t': 'event', 'd': kill_pkt}, ensure_ascii=False)
+                            for u2, ws2 in list(world.connections.items()):
+                                try: await ws2.send_str(kill_blob)
+                                except Exception: pass
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass

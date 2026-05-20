@@ -176,6 +176,42 @@ body.in-pvp #zoneBtn { top: 104px; }
 }
 #mapHud canvas { display: block; width: 100%; height: 100%; border-radius: 8px; }
 
+/* Большой баннер событий (инкассатор выехал / X забрал куш) —
+   привлекает внимание всех онлайн-игроков, видно даже на маленьком
+   экране. Появляется сверху, висит 3-6 сек, плавно уезжает. */
+#eventBanner {
+  position: absolute; top: 60px; left: 50%;
+  transform: translate(-50%, -100%);
+  width: min(380px, 92vw);
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #4a1212, #2a0808);
+  border: 2px solid #b8202a;
+  border-radius: 12px;
+  color: #fff;
+  z-index: 25;
+  box-shadow: 0 8px 32px rgba(184, 32, 42, .5);
+  pointer-events: none;
+  opacity: 0;
+  transition: transform .35s cubic-bezier(.16,1,.3,1), opacity .35s ease;
+  text-align: center;
+}
+#eventBanner.show { transform: translate(-50%, 0); opacity: 1; }
+#eventBanner.spawn   { border-color: #ffd76b; background: linear-gradient(135deg, #4a3a08, #2a2004); box-shadow: 0 8px 32px rgba(255,215,107,.4); }
+#eventBanner.win     { border-color: #50d878; background: linear-gradient(135deg, #0a4020, #04201a); box-shadow: 0 8px 32px rgba(80,216,120,.5); }
+#eventBanner.lose    { border-color: #c850a8; background: linear-gradient(135deg, #3a0a3a, #1a041a); box-shadow: 0 8px 32px rgba(200,80,168,.45); }
+#eventBanner.neutral { border-color: #5a708a; background: linear-gradient(135deg, #1a2a3a, #0a141e); box-shadow: 0 8px 32px rgba(90,112,138,.4); }
+#eventBanner .et { font-size: 17px; font-weight: 800; letter-spacing: .3px; line-height: 1.15; }
+#eventBanner .em { font-size: 12px; color: #d8d2c8; margin-top: 4px; line-height: 1.35; }
+
+/* Красная вспышка по краям экрана когда в игрока попали */
+#hitFlash {
+  position: absolute; inset: 0; z-index: 9;
+  pointer-events: none; opacity: 0;
+  box-shadow: inset 0 0 80px 30px rgba(220, 40, 50, .55);
+  transition: opacity .12s ease-out;
+}
+#hitFlash.show { opacity: 1; }
+
 /* Боёвка района — iframe-оверлей поверх города. Кликнул POI района
    → бот собирает URL → грузим demo_isometric в iframe. Закончил бой
    → iframe шлёт postMessage → закрываем оверлей и игрок снова в городе. */
@@ -309,6 +345,15 @@ body.in-pvp #zoneBtn { top: 104px; }
     <div class="by" id="deathBy">&nbsp;</div>
     <div class="cnt">Респаун через <span id="deathCnt">5</span> сек</div>
   </div>
+
+  <!-- Большой баннер эмерджентных событий (инкассатор/куш). Управляется
+       JS-функцией showEventBanner(title, msg, duration_ms, style). -->
+  <div id="eventBanner">
+    <div class="et" id="eventBannerT">&nbsp;</div>
+    <div class="em" id="eventBannerM">&nbsp;</div>
+  </div>
+  <!-- Красная вспышка при попадании в игрока -->
+  <div id="hitFlash"></div>
 
   <!-- Боёвка района — iframe поверх города (открыт при клике POI района) -->
   <div id="battleOverlay">
@@ -995,6 +1040,75 @@ let onlineCount = 1;
 // «бот не отвечает» при единичном моргании, и для эскалации сообщения).
 let wsFailStreak = 0;
 
+// ── Эмерджентные события ────────────────────────────────────────
+// worldEvent = серверный snap.d.event (boss + guards) ИЛИ null.
+// На клиенте мы только РЕНДЕРИМ это; вся логика (движение, AI,
+// стрельба, награда) — на сервере.
+let worldEvent = null;
+// Доп. трассеры пуль от NPC-эскорта → игрок (или игрок → эскорт)
+// и таймстампы выстрелов для эффекта вспышки на дуле.
+let lastBossShotAt = new Map();  // npc_id ('b'/'g0'/'g1'/'g2') → ms-timestamp вспышки
+
+function handleEventPacket(d) {
+  const kind = d && d.kind;
+  if (!kind) return;
+  if (kind === 'inkassator_spawned') {
+    showEventBanner(
+      '🚨 ИНКАССАТОР ВЫЕХАЛ!',
+      `Конвой едет от Чёрного рынка в Казино. Перехвати — получишь +${d.reward||500}$!`,
+      6000, 'spawn'
+    );
+  } else if (kind === 'inkassator_killed') {
+    const me = (String(d.killer_uid) === String(QP.uid));
+    const name = (d.killer_name || 'Кто-то');
+    if (me) {
+      showEventBanner('💰 +' + (d.reward||500) + '$ — куш твой!',
+        'Ты забрал инкассатора. Деньги уже на счёте.', 5500, 'win');
+    } else {
+      showEventBanner('💼 Инкассатора грабанули',
+        name + ' забрал куш ' + (d.reward||500) + '$ — успей в следующий раз.',
+        4500, 'lose');
+    }
+    worldEvent = null;
+  } else if (kind === 'inkassator_escaped') {
+    showEventBanner('💼 Инкассатор уехал',
+      'Никто не успел перехватить. Следующий через 3 мин.', 3500, 'neutral');
+    worldEvent = null;
+  } else if (kind === 'inkass_shot') {
+    // NPC выстрелил в игрока — трассер + вспышка
+    bullets.push({
+      sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
+      t0: performance.now(), ttl: 180, hit: true, fromNpc: true,
+    });
+    if (d.shooter_id) lastBossShotAt.set(d.shooter_id, performance.now());
+    // Если попало в меня — мигнём экраном
+    if (d.target_uid && String(d.target_uid) === String(QP.uid)) {
+      flashHitOverlay();
+      if (d.killed) myDeathBy = 'Конвой инкассатора';
+    }
+  } else if (kind === 'player_shot') {
+    // Один из игроков стрельнул в конвой — трассер от стрелка к цели
+    // Координаты цели берём из текущего worldEvent (boss или guard)
+    if (!worldEvent) return;
+    let tx = 0, ty = 0;
+    if (d.target === 'b') {
+      tx = worldEvent.boss.x; ty = worldEvent.boss.y;
+    } else {
+      const g = (worldEvent.guards || []).find(x => x.id === d.target);
+      if (!g) return;
+      tx = g.x; ty = g.y;
+    }
+    bullets.push({
+      sr: d.sy, sc: d.sx, er: ty, ec: tx,
+      t0: performance.now(), ttl: 160, hit: true, fromPlayer: true,
+    });
+  }
+}
+
+// Кратковременная красная вспышка по краю экрана при попадании в игрока.
+let _hitFlashUntil = 0;
+function flashHitOverlay() { _hitFlashUntil = performance.now() + 350; }
+
 function wsUrl() {
   if (!QP.api) return '';
   // QP.api это https?://... → ws(s)://...
@@ -1130,6 +1244,19 @@ function wsConnect() {
       onlineCount = list.length + 1;
       const el = document.getElementById('onlineN');
       if (el) el.textContent = onlineCount;
+      // ── Эмерджентное событие (инкассатор + 3 полицейских) ────────
+      // Сервер шлёт всю структуру конвоя в d.event. Кладём её в
+      // worldEvent — render-loop сам отрисует NPC и HP-бары.
+      worldEvent = d.event || null;
+      // Если игрок мёртв от полиции — серверный respawn timer тащим в HUD
+      if (d.me && typeof d.me.respawn_in === 'number') {
+        myDeathLeft = d.me.respawn_in;
+      }
+      if (d.me && typeof d.me.max_hp === 'number') {
+        PVP.max_hp = d.me.max_hp;
+      }
+    } else if (pkt.t === 'event') {
+      handleEventPacket(pkt.d || {});
     }
   };
   ws.onerror = () => {
@@ -1294,6 +1421,30 @@ function showToast(msg, ms = 2200) {
   _toastT = setTimeout(() => _toastEl.classList.remove('show'), ms);
 }
 
+// ── Большой баннер эмерджентных событий ─────────────────────────
+const _evBanner = document.getElementById('eventBanner');
+const _evBannerT = document.getElementById('eventBannerT');
+const _evBannerM = document.getElementById('eventBannerM');
+let _evBannerT_id = null;
+function showEventBanner(title, msg, ms = 4000, style = 'spawn') {
+  if (!_evBanner) return;
+  _evBannerT.textContent = title || '';
+  _evBannerM.textContent = msg || '';
+  _evBanner.classList.remove('spawn','win','lose','neutral');
+  _evBanner.classList.add(style || 'spawn');
+  _evBanner.classList.add('show');
+  if (_evBannerT_id) clearTimeout(_evBannerT_id);
+  _evBannerT_id = setTimeout(() => _evBanner.classList.remove('show'), ms);
+}
+
+// ── Hit-flash (красная рамка когда в игрока попали) ─────────────
+const _hitFlashEl = document.getElementById('hitFlash');
+function _updateHitFlash() {
+  if (!_hitFlashEl) return;
+  const on = performance.now() < _hitFlashUntil;
+  _hitFlashEl.classList.toggle('show', on);
+}
+
 // ── Чёрный рынок (диалог продавца → редирект в hub-магазин) ─────
 // UI самого магазина живёт в hub (единый source of truth для инвентаря).
 // Здесь только диалог продавца с одной кнопкой «Заглянуть на рынок».
@@ -1312,13 +1463,55 @@ const _pvpDeaths = document.getElementById('pvpDeaths');
 const _deathOv   = document.getElementById('deathOverlay');
 const _deathBy   = document.getElementById('deathBy');
 const _deathCnt  = document.getElementById('deathCnt');
+// Найти ближайшую живую цель конвоя в радиусе огня. Возвращает
+// {id:'b'|'g0'..'g2', x, y, d} или null. Игрок наводится автоматически —
+// на телефоне точно прицелиться по маленькому NPC сложно.
+const FIRE_R_CONVOY = 8.5;
+function findNearestConvoyTarget() {
+  if (!worldEvent) return null;
+  const pr = player.r, pc = player.c;
+  let best = null;
+  const try_ = (npc) => {
+    if (!npc || !npc.alive) return;
+    const dx = npc.x - pc, dy = npc.y - pr;
+    const d = Math.hypot(dx, dy);
+    if (d > FIRE_R_CONVOY) return;
+    if (!best || d < best.d) {
+      best = { id: npc.id, x: npc.x, y: npc.y, d };
+    }
+  };
+  // Сначала ставим в приоритет полицейских — они активно стреляют,
+  // выгоднее убрать их раньше. На равной дистанции — guard, потом boss.
+  for (const g of (worldEvent.guards || [])) try_(g);
+  try_(worldEvent.boss);
+  return best;
+}
+
 function fire() {
   if (myDead) return;
-  if (!inArena(player.r, player.c)) return;
   const now = performance.now();
   if (now - lastShotClientT < PVP.cd * 1000) return;   // лок. cooldown
+  // Приоритет: конвой (эмерджентное событие) > PVP-арена.
+  const ct = findNearestConvoyTarget();
+  if (ct) {
+    lastShotClientT = now;
+    _fireBtn.classList.add('cd');
+    setTimeout(() => _fireBtn.classList.remove('cd'), PVP.cd * 1000);
+    // Поворот игрока к цели (визуально приятнее)
+    player.ang = Math.atan2(ct.y - player.r, ct.x - player.c);
+    // Локальный трассер сразу — без ожидания подтверждения сервера
+    bullets.push({
+      sr: player.r, sc: player.c, er: ct.y, ec: ct.x,
+      t0: now, ttl: 160, hit: true, fromPlayer: true,
+    });
+    try {
+      ws && ws.send(JSON.stringify({ t: 'event_shoot',
+        d: { target: ct.id, dmg: 25 } }));
+    } catch(e) {}
+    return;
+  }
+  if (!inArena(player.r, player.c)) return;
   lastShotClientT = now;
-  // Локальный мигающий visual cooldown
   _fireBtn.classList.add('cd');
   setTimeout(() => _fireBtn.classList.remove('cd'), PVP.cd * 1000);
   sendShoot(player.ang);
@@ -1328,10 +1521,13 @@ _fireBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); },
 window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !chatOpen) { e.preventDefault(); fire(); } });
 
 function updatePvpUI() {
-  const inPvp = inArena(player.r, player.c);
-  // HUD и кнопка огня видны только в зоне
-  _pvpHud.style.display  = inPvp ? 'block' : 'none';
-  _fireBtn.style.display = (inPvp && !myDead) ? 'block' : 'none';
+  const inPvp     = inArena(player.r, player.c);
+  const convoyT   = findNearestConvoyTarget();
+  // HUD виден в PVP-зоне ИЛИ когда HP неполный (тебя кто-то ранил из конвоя)
+  const showHud   = inPvp || myHp < (PVP.max_hp || 100);
+  _pvpHud.style.display  = showHud ? 'block' : 'none';
+  // Кнопка огня — в арене или когда конвой в радиусе огня (auto-aim)
+  _fireBtn.style.display = ((inPvp || convoyT) && !myDead) ? 'block' : 'none';
   // HP-бар (показывает реальное серверное HP, не локальный predict)
   const pct = Math.max(0, Math.min(100, (myHp / (PVP.max_hp || 100)) * 100));
   _pvpHpBar.style.width = pct + '%';
@@ -1346,6 +1542,8 @@ function updatePvpUI() {
   } else if (_deathOv.classList.contains('show')) {
     _deathOv.classList.remove('show');
   }
+  // Hit-flash overlay тик (плавно гаснет 350мс после попадания)
+  _updateHitFlash();
 }
 
 document.getElementById('shopGoBtn').addEventListener('click', () => {
@@ -1842,6 +2040,49 @@ function drawTrafficLight(r, c) {
 function drawNpc(npc) {
   const p = w2s(npc.r, npc.c);
   drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null, false);
+}
+
+// Эмерджентное событие: NPC конвоя (инкассатор или полицейский).
+// isBoss=true → инкассатор (тёмный костюм, эмодзи 💼 над головой);
+// false → полицейский (синяя форма с фуражкой 👮).
+const _CONVOY_BOSS_LOOK   = { gender:0, skin:1, body:2, face:2, hair:1, hat:1 };
+const _CONVOY_GUARD_LOOK  = { gender:0, skin:1, body:1, face:0, hair:1, hat:5 };
+function drawConvoyNpc(npc, isBoss) {
+  const p = w2s(npc.y + 0.5, npc.x + 0.5);
+  const look = isBoss ? _CONVOY_BOSS_LOOK : _CONVOY_GUARD_LOOK;
+  const walkPhase = (performance.now() * 0.008) % (Math.PI * 2);
+  // Под полицейским — синяя «подсветка» круга (отличает их от прохожих)
+  if (!isBoss) {
+    ctx.fillStyle = 'rgba(80, 140, 240, .35)';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y + 6, 16, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = 'rgba(255, 215, 107, .35)';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y + 6, 18, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  drawPerson(p.x, p.y, npc.ang || 0, look, walkPhase, null, null, false,
+             npc.hp, npc.max_hp, false);
+  // Вспышка на дуле во время выстрела (последние 120мс)
+  const flashAt = lastBossShotAt.get(npc.id) || 0;
+  if (performance.now() - flashAt < 120) {
+    ctx.fillStyle = '#fff4b8';
+    ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(p.x + Math.cos(npc.ang || 0) * 12, p.y - 14 + Math.sin(npc.ang || 0) * 6, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // Иконка-эмодзи над головой (отличает роль)
+  ctx.font = '14px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText(isBoss ? '💼' : '👮', p.x, p.y - 44);
+  ctx.shadowBlur = 0;
 }
 
 // Машина — припаркована на тайле, занимает ~80% площади
@@ -2688,6 +2929,18 @@ function render() {
     if (car.r < r0 || car.r >= r1 || car.c < c0 || car.c >= c1) continue;
     items.push({ depth: car.r + car.c + 0.0008, draw: () => drawCarPretty(car) });
   }
+  // Конвой инкассатора (boss + 3 полицейских) — если событие активно
+  if (worldEvent) {
+    const b = worldEvent.boss;
+    if (b && b.alive && b.y >= r0 && b.y < r1 && b.x >= c0 && b.x < c1) {
+      items.push({ depth: b.y + b.x + 0.0009, draw: () => drawConvoyNpc(b, true) });
+    }
+    for (const g of (worldEvent.guards || [])) {
+      if (!g.alive) continue;
+      if (g.y < r0 || g.y >= r1 || g.x < c0 || g.x >= c1) continue;
+      items.push({ depth: g.y + g.x + 0.0009, draw: () => drawConvoyNpc(g, false) });
+    }
+  }
   // Игрок (со своим чат-баблом из последнего смайлика, чтобы сразу видеть).
   // Look берём всегда из URL — даже если has_look=0, параметры есть
   // (дефолты =0 в _qInt) и они хотя бы стабильны между перезагрузками.
@@ -2714,6 +2967,8 @@ function render() {
   drawBullets();
   // Стрелки-указатели на POI, которые сейчас за пределами видимости.
   drawPOIArrows(r0, r1, c0, c1);
+  // Стрелка-указатель на инкассатора если он за пределами экрана
+  drawEventArrow(r0, r1, c0, c1);
   // Мини-карта
   drawMinimap();
 }
@@ -2853,6 +3108,60 @@ function _drawPOIArrow(ax, ay, dx, dy, poi) {
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
+// Стрелка-указатель на конвой инкассатора если он за пределами видимости.
+// В отличие от POI — красная (опасная цель), мигает + показывает дистанцию.
+function drawEventArrow(r0, r1, c0, c1) {
+  if (!worldEvent || !worldEvent.boss || !worldEvent.boss.alive) return;
+  const b = worldEvent.boss;
+  const visible = b.y >= r0 && b.y < r1 && b.x >= c0 && b.x < c1;
+  if (visible) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  const cx = W / 2, cy = H / 2;
+  const sp = w2s(b.y + 0.5, b.x + 0.5);
+  const dx = sp.x - cx, dy = sp.y - cy;
+  const len = Math.hypot(dx, dy) || 1;
+  const PAD = 50;
+  const xMin = PAD, xMax = W - PAD, yMin = PAD, yMax = H - PAD;
+  let t = Infinity;
+  if (dx > 0) t = Math.min(t, (xMax - cx) / dx);
+  if (dx < 0) t = Math.min(t, (xMin - cx) / dx);
+  if (dy > 0) t = Math.min(t, (yMax - cy) / dy);
+  if (dy < 0) t = Math.min(t, (yMin - cy) / dy);
+  const ax = cx + t * dx, ay = cy + t * dy;
+  // Мигание 2 Гц чтобы цеплять глаз
+  const pulse = (Math.sin(performance.now() * 0.012) + 1) * 0.5;
+  const dist  = Math.hypot(b.y - player.r, b.x - player.c);
+  ctx.save();
+  ctx.translate(ax, ay);
+  ctx.rotate(Math.atan2(dy, dx));
+  ctx.shadowColor = '#ff5050'; ctx.shadowBlur = 14 + pulse * 10;
+  ctx.fillStyle = 'rgba(40,8,8,.92)';
+  ctx.strokeStyle = '#ff8060';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(0, 0, 19, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ffce60';
+  ctx.beginPath();
+  ctx.moveTo(13, 0); ctx.lineTo(0, -8); ctx.lineTo(0, 8); ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  // Иконка 💼 + расстояние под стрелкой
+  ctx.save();
+  ctx.font = '15px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText('💼', ax, ay);
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.fillStyle = '#ffd76b';
+  ctx.fillText(Math.round(dist) + 'м', ax, ay + 24);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
 // ── Мини-карта ──────────────────────────────────────────────────
 const _miniCtx = document.getElementById('mapCanvas').getContext('2d');
 const MINI_W = 132, MINI_H = 132;
@@ -2894,6 +3203,24 @@ function drawMinimap() {
     ctx2.beginPath();
     ctx2.arc((o.x + 0.5) * sx, (o.y + 0.5) * sy, 2, 0, Math.PI * 2);
     ctx2.fill();
+  }
+  // Конвой инкассатора — золотая (boss) и синие (полицейские) точки
+  if (worldEvent) {
+    if (worldEvent.boss && worldEvent.boss.alive) {
+      const pulse = (Math.sin(performance.now() * 0.012) + 1) * 0.5;
+      ctx2.fillStyle = '#ffd76b';
+      ctx2.beginPath();
+      ctx2.arc((worldEvent.boss.x + 0.5) * sx, (worldEvent.boss.y + 0.5) * sy,
+               3.5 + pulse * 1.5, 0, Math.PI * 2);
+      ctx2.fill();
+    }
+    ctx2.fillStyle = '#6aa8ff';
+    for (const g of (worldEvent.guards || [])) {
+      if (!g.alive) continue;
+      ctx2.beginPath();
+      ctx2.arc((g.x + 0.5) * sx, (g.y + 0.5) * sy, 2.2, 0, Math.PI * 2);
+      ctx2.fill();
+    }
   }
   // Игрок — белая точка с обводкой
   ctx2.fillStyle = '#fff';
