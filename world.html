@@ -227,30 +227,52 @@ body.in-pvp #zoneBtn { top: 104px; }
   50%     { box-shadow: 0 0 0 6px rgba(255,80,80,0); }
 }
 
-/* Полоса выбора оружия — горизонтальный ряд иконок над джойстиком огня */
+/* HUD-карточка оружия — порт из demo_isometric. Слева внизу (рядом с
+ * левым стиком): иконка нарисованного оружия + название. Тап на ней
+ * разворачивает popover со всеми купленными стволами из «Барахла». */
 #weaponBar {
-  position: absolute; right: 14px; bottom: 162px;
-  display: none; z-index: 6; gap: 6px; padding: 4px;
-  background: rgba(20,24,32,.85); border: 1px solid #3a4452;
-  border-radius: 12px;
-  font-family: inherit;
+  position: absolute; left: 8px; bottom: 168px;
+  display: none; z-index: 6;
+  background: linear-gradient(180deg, rgba(20,24,32,.92) 0%, rgba(10,12,18,.85) 100%);
+  border: 1px solid #3a4452; border-radius: 10px;
+  padding: 6px 10px; gap: 8px; align-items: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
+  font-size: 12px; font-weight: 700; color: #ffd76b;
+  text-shadow: 0 1px 2px #000;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
-#weaponBar .wslot {
-  width: 38px; height: 38px; border-radius: 8px;
-  background: rgba(50,50,60,.6); border: 1px solid #555;
-  font-size: 18px; cursor: pointer; padding: 0;
-  color: #fff; display: flex; align-items: center; justify-content: center;
+#weaponBar.show { display: flex; }
+#weaponBar canvas#wepHudIcon { width: 60px; height: 18px; display: block; }
+#weaponBar .wepHudName { white-space: nowrap; max-width: 110px;
+  overflow: hidden; text-overflow: ellipsis; }
+#weaponBar .wepHudArrow { color: #8a92a8; font-size: 10px; }
+/* Поповер выбора оружия — поднимается над weaponBar при тапе */
+#weaponPick {
+  position: absolute; left: 8px; bottom: 220px;
+  display: none; z-index: 7;
+  background: linear-gradient(180deg, rgba(20,24,32,.95) 0%, rgba(10,12,18,.92) 100%);
+  border: 1px solid #3a4452; border-radius: 10px;
+  padding: 6px; gap: 4px; flex-direction: column;
+  box-shadow: 0 6px 18px rgba(0,0,0,.6);
+  max-height: 260px; overflow-y: auto;
+}
+#weaponPick.show { display: flex; }
+#weaponPick .wpick {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 8px; border-radius: 6px;
+  background: rgba(50,50,60,.5); border: 1px solid #555;
+  color: #fff; font-size: 12px; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-#weaponBar .wslot.active {
-  background: linear-gradient(135deg, #fff080, #c89028);
-  border-color: #fff; color: #000;
-  box-shadow: 0 0 10px rgba(255,215,107,.6);
+#weaponPick .wpick.active {
+  background: linear-gradient(135deg, rgba(255,240,128,.25), rgba(200,144,40,.25));
+  border-color: #ffd76b; color: #ffd76b;
 }
-#weaponBar .wslot .dmg {
-  position: absolute; font-size: 9px; transform: translate(8px, 9px);
-  color: #ffd76b; font-weight: 800; pointer-events: none;
-}
+#weaponPick .wpick canvas { width: 50px; height: 16px; display: block; flex-shrink: 0; }
+#weaponPick .wpick .wpName { flex: 1; }
+#weaponPick .wpick .wpCount { color: #8a92a8; font-size: 10px; }
 
 /* HP-бар игрока в PVP — над кнопкой огня */
 #pvpHud {
@@ -461,7 +483,12 @@ body.in-pvp #zoneBtn { top: 104px; }
     <div class="icon">🔫</div>
   </div>
   <!-- Полоса выбора оружия (из инвентаря) -->
-  <div id="weaponBar"></div>
+  <div id="weaponBar" title="Сменить ствол">
+    <canvas id="wepHudIcon" width="120" height="36"></canvas>
+    <span class="wepHudName" id="wepHudName">пистолет</span>
+    <span class="wepHudArrow">▾</span>
+  </div>
+  <div id="weaponPick"></div>
   <!-- Countdown до следующего инкассатора -->
   <div id="cdHud">⏱ До инкассатора —:—</div>
   <!-- PvP-зона активна (можно стрелять в игроков) -->
@@ -2095,7 +2122,11 @@ function updatePvpUI() {
   _pvpHud.style.display  = showHud ? 'block' : 'none';
   _fireBtn.style.display = 'none';   // полностью убран — стрельба через joyR
   if (joyREl) joyREl.style.display = canShoot ? 'block' : 'none';
-  if (_weaponBarEl) _weaponBarEl.style.display = (canShoot && _myWeapons.length > 0) ? 'flex' : 'none';
+  if (_weaponBarEl) {
+    const showBar = canShoot && _myWeapons.length > 0;
+    _weaponBarEl.classList.toggle('show', showBar);
+    if (!showBar) closeWeaponPick();
+  }
   const pct = Math.max(0, Math.min(100, (myHp / (PVP.max_hp || 100)) * 100));
   _pvpHpBar.style.width = pct + '%';
   _pvpHpTxt.textContent = Math.max(0, Math.round(myHp));
@@ -2184,18 +2215,104 @@ let pvpActive   = false;
 const _cdHudEl    = document.getElementById('cdHud');
 const _pvpZoneEl  = document.getElementById('pvpZone');
 
-// ── Weapon switcher ─────────────────────────────────────────────
-// Дергаем /inv/{uid}/list, фильтруем только weapon-предметы, рисуем
-// горизонтальную полоску иконок. Тап меняет currentWeapon. Сейчас
-// показываем первые 6 (чтобы влезало на телефоне).
-const _weaponBarEl = document.getElementById('weaponBar');
-let _myWeapons = [];   // [{id, name, icon, dmg}]
-// Иконки оружия — соответствуют ITEMS из бота. Минимальный набор.
-const WEAPON_ICON = {
-  pistol:'🔫', nagan:'🔫', pistol_heavy:'🔫', pistol_gold:'⭐',
-  shotgun:'💥', smg:'⚡', tommy_gun:'🏛', rifle:'🎯',
-  sniper:'🎯', rpg:'🚀',
+// ── Weapon HUD bar (порт из demo_isometric) ─────────────────────
+// Слева внизу — карточка с РИСОВАННЫМ оружием (drawFirearm на маленький
+// canvas) + название. Тап разворачивает popover со всеми купленными
+// стволами из «Барахла» (/inv/{uid}/list). Активный — подсвечен.
+const _weaponBarEl  = document.getElementById('weaponBar');
+const _weaponPickEl = document.getElementById('weaponPick');
+const _wepHudCanvas = document.getElementById('wepHudIcon');
+const _wepHudCtx    = _wepHudCanvas.getContext('2d');
+const _wepHudName   = document.getElementById('wepHudName');
+let _myWeapons = [];   // [{id, name, count}]
+let _wepPickOpen = false;
+
+// Красивые названия — copy из demo_isometric.WEAPON_LABELS.
+const WEAPON_LABELS = {
+  pistol:'пистолет', nagan:'наган', pistol_heavy:'тяж.пистолет', pistol_gold:'золотой',
+  shotgun:'дробовик', smg:'ПП', tommy_gun:'томми-ган',
+  rifle:'винтовка', sniper:'снайперка', rpg:'РПГ',
 };
+function weaponLabel(w) { return WEAPON_LABELS[w] || w; }
+
+// Рисуем оружие в маленький canvas (HUD-иконка). Используем уже
+// существующий drawFirearm — он умеет принимать любой ctx через
+// последний параметр. Очищаем canvas, рисуем горизонтальный ствол.
+function drawWeaponHudIcon(ctx, canvas, weapon) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!weapon) return;
+  const cx = canvas.width * 0.30;
+  const cy = canvas.height * 0.50;
+  drawFirearm(weapon, cx, cy, 1, 0, 1.4, ctx);
+}
+
+function renderWeaponHud() {
+  if (!_wepHudCtx) return;
+  drawWeaponHudIcon(_wepHudCtx, _wepHudCanvas, currentWeapon);
+  if (_wepHudName) _wepHudName.textContent = weaponLabel(currentWeapon);
+}
+
+function renderWeaponPick() {
+  if (!_weaponPickEl) return;
+  _weaponPickEl.innerHTML = '';
+  for (const w of _myWeapons) {
+    const row = document.createElement('div');
+    row.className = 'wpick' + (w.id === currentWeapon ? ' active' : '');
+    // canvas с рисованным оружием
+    const cv = document.createElement('canvas');
+    cv.width = 100; cv.height = 32;
+    const cvCtx = cv.getContext('2d');
+    drawWeaponHudIcon(cvCtx, cv, w.id);
+    row.appendChild(cv);
+    const nm = document.createElement('span');
+    nm.className = 'wpName';
+    nm.textContent = weaponLabel(w.id);
+    row.appendChild(nm);
+    if (w.count && w.count > 1) {
+      const c = document.createElement('span');
+      c.className = 'wpCount';
+      c.textContent = '×' + w.count;
+      row.appendChild(c);
+    }
+    row.addEventListener('click', (e) => {
+      e.preventDefault();
+      currentWeapon = w.id;
+      renderWeaponHud();
+      renderWeaponPick();
+      closeWeaponPick();
+      showToast(weaponLabel(w.id), '🔫', 1200);
+    });
+    _weaponPickEl.appendChild(row);
+  }
+}
+
+function openWeaponPick() {
+  _wepPickOpen = true;
+  _weaponPickEl.classList.add('show');
+  renderWeaponPick();
+}
+function closeWeaponPick() {
+  _wepPickOpen = false;
+  if (_weaponPickEl) _weaponPickEl.classList.remove('show');
+}
+function toggleWeaponPick() {
+  if (_wepPickOpen) closeWeaponPick(); else openWeaponPick();
+}
+
+if (_weaponBarEl) {
+  _weaponBarEl.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (_myWeapons.length < 2) return;   // ничего не переключать
+    toggleWeaponPick();
+  });
+}
+// Клик вне popover'а — закрываем
+document.addEventListener('pointerdown', (e) => {
+  if (!_wepPickOpen) return;
+  if (_weaponPickEl.contains(e.target) || _weaponBarEl.contains(e.target)) return;
+  closeWeaponPick();
+});
+
 async function loadMyWeapons() {
   if (!QP.api || !QP.uid) return;
   try {
@@ -2204,47 +2321,34 @@ async function loadMyWeapons() {
     const j = await r.json().catch(()=>({}));
     if (!j || !Array.isArray(j.items)) return;
     _myWeapons = [];
+    // Гарантируем стартовый пистолет даже если сервер забыл
+    const seen = new Set();
     for (const it of j.items) {
       const id = it.id || it.item_id;
       if (!id) continue;
       if (it.type && it.type !== 'weapon') continue;
-      // Только огнестрел известный серверу
-      if (!(id in WEAPON_ICON)) continue;
-      _myWeapons.push({
-        id, name: it.name || id,
-        icon: WEAPON_ICON[id] || '🔫',
-        count: it.count || 1,
-      });
+      if (!(id in WEAPON_FX_CFG)) continue;   // только known firearms
+      if (seen.has(id)) continue;
+      seen.add(id);
+      _myWeapons.push({ id, name: it.name || weaponLabel(id),
+                        count: it.count || 1 });
     }
-    // Pistol гарантированно есть (стартовый)
+    if (!seen.has('pistol')) {
+      _myWeapons.unshift({ id: 'pistol', name: 'пистолет', count: 1 });
+    }
     if (!_myWeapons.find(w => w.id === currentWeapon)) {
-      if (_myWeapons.length > 0) currentWeapon = _myWeapons[0].id;
+      currentWeapon = _myWeapons[0].id;
     }
-    renderWeaponBar();
+    renderWeaponHud();
+    if (_wepPickOpen) renderWeaponPick();
   } catch(e) { /* тихо */ }
 }
-function renderWeaponBar() {
-  if (!_weaponBarEl) return;
-  _weaponBarEl.innerHTML = '';
-  // Сначала ставим текущее, потом остальные. До 6 штук.
-  const list = _myWeapons.slice(0, 6);
-  for (const w of list) {
-    const b = document.createElement('button');
-    b.className = 'wslot' + (w.id === currentWeapon ? ' active' : '');
-    b.textContent = w.icon;
-    b.title = w.name;
-    b.addEventListener('click', (e) => {
-      e.preventDefault();
-      currentWeapon = w.id;
-      renderWeaponBar();
-      showToast(w.name, '🔫', 1200);
-    });
-    _weaponBarEl.appendChild(b);
-  }
-}
-// Подгружаем оружие при загрузке мира (и потом раз в 60с — на случай покупки в магазине)
+// Подгружаем оружие при загрузке мира (и потом раз в 60с — на случай
+// покупки в магазине пока игрок в мире)
 loadMyWeapons();
 setInterval(loadMyWeapons, 60000);
+// Первый рендер — даже без сети чтобы был дефолтный пистолет
+renderWeaponHud();
 
 document.getElementById('shopGoBtn').addEventListener('click', () => {
   // Редирект в hub.html?view=shop&back=world. Hub откроет страницу
