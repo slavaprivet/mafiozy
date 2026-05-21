@@ -1419,15 +1419,10 @@ function handleEventPacket(d) {
 let _hitFlashUntil = 0;
 function flashHitOverlay() { _hitFlashUntil = performance.now() + 350; }
 
-// Текущий режим (PvP / PvE). Сохраняется в localStorage между сессиями
-// и шлётся серверу как query-параметр при подключении к /world/sim.
-let myMode = (function() {
-  try {
-    const m = localStorage.getItem('mafiozi_world_mode');
-    if (m === 'pvp' || m === 'pve') return m;
-  } catch(e) {}
-  return '';   // пусто = режим не выбран, нужен модал
-})();
+// Текущий режим (PvP / PvE). По требованию юзера — выбирается КАЖДЫЙ
+// раз при заходе в мир, никаких сохранений. Шлётся серверу как
+// query-параметр при подключении к /world/sim.
+let myMode = '';   // всегда пусто на старте → модал обязательно
 
 // Показать модал выбора PvP/PvE. onPick(picked) — callback с 'pvp'/'pve'.
 function showModeModal(onPick) {
@@ -1444,14 +1439,11 @@ function showModeModal(onPick) {
   pve.onclick = () => close('pve');
 }
 
-// Принудительно сменить режим — вызывается из «Меню» -> «Сменить режим».
-// Очищаем localStorage и предлагаем выбор; после выбора перезагружаем
-// страницу (это проще и надёжнее чем live-switch — сессия WS пересоздаётся).
+// Кнопка «сменить» в HUD — просто перезагрузка страницы. После reload
+// startup-блок снова покажет модал (myMode='' на старте). Игрок выберет
+// заново. Не используем localStorage/URL — режим всегда заново.
 function switchModeFlow() {
-  showModeModal((picked) => {
-    try { localStorage.setItem('mafiozi_world_mode', picked); } catch(e) {}
-    location.reload();
-  });
+  location.reload();
 }
 
 function wsUrl() {
@@ -4924,19 +4916,13 @@ let _localChat = '', _localChatT = 0;
     setConnecting('Сервер недоступен. Запусти бота с туннелем и зайди заново.');
     return;
   }
-  // Если режим ещё не выбран (первый вход в мир) — показываем модал.
-  // После выбора сохраняем в localStorage и подключаемся.
-  if (!myMode) {
-    showModeModal(/*onPick*/(picked) => {
-      myMode = picked;
-      try { localStorage.setItem('mafiozi_world_mode', picked); } catch(e) {}
-      _refreshModeHud();
-      wsConnect();
-    });
-    return;
-  }
-  _refreshModeHud();
-  wsConnect();
+  // Режим выбирается ПРИ КАЖДОМ заходе в мир — без сохранения. Модал
+  // показываем всегда, пока игрок не нажмёт PvP или PvE.
+  showModeModal(/*onPick*/(picked) => {
+    myMode = picked;
+    _refreshModeHud();
+    wsConnect();
+  });
 })();
 </script>
 </body>
