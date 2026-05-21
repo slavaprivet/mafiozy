@@ -4575,10 +4575,10 @@ function weaponTip(w) { return (FIREARM_TIP[w] || 16); }
 function drawWeaponInHands(x, y, ang, weapon, scale /*shotAtMs ignored: см. drawMuzzles*/) {
   if (!weapon) return;
   const { hx, hy, sx, sy } = handAnchor(x, y, ang);
-  // Масштаб как gunScale у миньона demo: (TS / 60). scale — лёгкая
-  // подкрутка (NPC 0.95, игрок 0.9). Вспышка дула теперь живёт отдельно
-  // в muzzles[] (см. spawnMuzzle / drawMuzzles), точь-в-точь как в demo.
-  const sc = (scale || 0.9) * (TS / 60) * 1.5;
+  // Масштаб ровно как в demo: gunScale = 1.0 * (TS / 60) для миньона,
+  // 1.3 * (TS / 60) для босса. scale — лёгкая подкрутка (NPC 0.95,
+  // игрок 1.0). Вспышка дула живёт отдельно в muzzles[] (см. drawMuzzles).
+  const sc = (scale || 1.0) * (TS / 60);
   drawFirearm(weapon, hx, hy, sx, sy, sc);
 }
 
