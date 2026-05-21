@@ -1296,7 +1296,9 @@ let wsFailStreak = 0;
 let worldEvent = null;
 // Доп. трассеры пуль от NPC-эскорта → игрок (или игрок → эскорт)
 // и таймстампы выстрелов для эффекта вспышки на дуле.
-let lastBossShotAt = new Map();  // npc_id ('b'/'g0'/'g1'/'g2'/'copXXX') → ms-timestamp вспышки
+let lastBossShotAt   = new Map();  // npc_id ('b'/'g0'/'g1'/'g2'/'copXXX') → ms-timestamp вспышки
+let lastPlayerShotAt = new Map();  // other_uid → ms-timestamp последнего выстрела
+let lastPlayerWeapon = new Map();  // other_uid → weapon_key последнего выстрела
 
 // ── Wanted-система + копы в городе ──────────────────────────────
 let worldCops = [];      // массив копов от сервера
@@ -1356,11 +1358,17 @@ function handleEventPacket(d) {
       t0: performance.now(), ttl: 160, hit: true, fromPlayer: true,
     });
   } else if (kind === 'pvp_shot') {
-    // PvP: игрок стреляет в другого игрока (в активной зоне инкассатора)
+    // PvP: игрок стреляет в другого игрока (в активной зоне инкассатора
+    // или в постоянной PvP-арене).
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
       t0: performance.now(), ttl: 180, hit: true, fromPlayer: true,
     });
+    // Запоминаем оружие и время — для вспышки на дуле и визуала
+    if (d.shooter_uid) {
+      lastPlayerShotAt.set(String(d.shooter_uid), performance.now());
+      if (d.weapon) lastPlayerWeapon.set(String(d.shooter_uid), String(d.weapon));
+    }
     const meIsShooter = (String(d.shooter_uid) === String(QP.uid));
     const meIsTarget  = (String(d.target_uid)  === String(QP.uid));
     if (meIsTarget) {
@@ -1868,7 +1876,10 @@ function fire(angle = null) {
   }
   if (myDead) return;
   const now = performance.now();
-  if (now - lastShotClientT < PVP.cd * 1000) return;
+  // Cooldown зависит от выбранного оружия (как в demo_isometric):
+  // smg/tommy быстрые ~0.2с, sniper медленный ~1.2с, rpg ~1.8с.
+  const cdSec = weaponCd(currentWeapon);
+  if (now - lastShotClientT < cdSec * 1000) return;
   let dirX = 1, dirY = 0;
   if (typeof angle === 'number') {
     dirX = Math.cos(angle); dirY = Math.sin(angle);
@@ -1929,7 +1940,11 @@ function fire(angle = null) {
   lastShotClientT = now;
   _fireBtn.classList.add('cd');
   joyREl.classList.add('cd');
-  setTimeout(() => { _fireBtn.classList.remove('cd'); joyREl.classList.remove('cd'); }, PVP.cd * 1000);
+  // Cd снимаем в момент когда реально можно снова стрелять (зависит от оружия)
+  setTimeout(() => {
+    _fireBtn.classList.remove('cd');
+    joyREl.classList.remove('cd');
+  }, cdSec * 1000);
   if (chosenConvoy) {
     bullets.push({
       sr: player.r, sc: player.c, er: chosenConvoy.y, ec: chosenConvoy.x,
@@ -3350,16 +3365,11 @@ function drawConvoyNpc(npc, isBoss) {
   }
   drawPerson(p.x, p.y, npc.ang || 0, look, walkPhase, null, null, false,
              npc.hp, npc.max_hp, false);
-  // Вспышка на дуле во время выстрела (последние 120мс)
+  // Оружие в руке + вспышка дула (через универсальный drawWeaponInHands).
+  // Boss несёт shotgun (главарь конвоя), guards — smg.
+  const wep = isBoss ? 'shotgun' : 'smg';
   const flashAt = lastBossShotAt.get(npc.id) || 0;
-  if (performance.now() - flashAt < 120) {
-    ctx.fillStyle = '#fff4b8';
-    ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.arc(p.x + Math.cos(npc.ang || 0) * 12, p.y - 14 + Math.sin(npc.ang || 0) * 6, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  }
+  drawWeaponInHands(p.x, p.y, npc.ang || 0, wep, 0.95, flashAt);
   // Иконка-эмодзи над головой (отличает роль)
   ctx.font = '14px system-ui, sans-serif';
   ctx.textAlign = 'center';
@@ -3459,17 +3469,10 @@ function drawCopNpc(cop) {
   ctx.restore();
   drawPerson(p.x, p.y, cop.ang || 0, look, walkPhase, null, null, false,
              cop.hp, cop.max_hp, false);
-  // Вспышка дула (сервер пишет в lastBossShotAt при cop_shot)
+  // Оружие копа — служебный pistol_heavy. Вспышка дула — через тот
+  // же универсальный helper, что и для игроков.
   const flashAt = lastBossShotAt.get(cop.id) || 0;
-  if (t - flashAt < 120) {
-    ctx.fillStyle = '#fff4b8';
-    ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.arc(p.x + Math.cos(cop.ang || 0) * 12,
-            p.y - 14 + Math.sin(cop.ang || 0) * 6, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  }
+  drawWeaponInHands(p.x, p.y, cop.ang || 0, 'pistol_heavy', 0.95, flashAt);
   // Эмодзи 🚓 над головой + мигающая сирена сверху
   ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
   ctx.textAlign = 'center';
@@ -4289,6 +4292,187 @@ function getSprite(look) {
 // Отрисовка персонажа в мире: тень + спрайт из creator-кеша + имя/чат/HP.
 // Размер фигуры подобран под TS=56: высота спрайта ~ 1.7×TS, чтобы перс
 // был чуть больше тайла (как в demo_isometric с scale 1.95).
+// ── Cooldown по оружию (секунды) и helper для позиции «руки» ──────
+// Значения подобраны под фильтр баланса: smg/tommy быстрые с малым
+// уроном, sniper/rpg медленные с большим. Соответствует ощущениям
+// из demo_isometric.
+const WEAPON_CD = {
+  pistol:       0.40,
+  nagan:        0.45,
+  pistol_heavy: 0.55,
+  pistol_gold:  0.50,
+  shotgun:      0.85,
+  smg:          0.20,
+  tommy_gun:    0.25,
+  rifle:        0.50,
+  sniper:       1.20,
+  rpg:          1.80,
+};
+function weaponCd(w) {
+  return WEAPON_CD[w] || 0.40;
+}
+
+// Точка «хвата» (рука персонажа) — середина тела со смещением вперёд
+// по направлению прицела. (x, y) — точка ног (как в drawPerson),
+// ang — угол прицела в радианах.
+function handAnchor(x, y, ang) {
+  const sh = TS * 1.7;
+  const bodyY = y - sh * 0.55;
+  const fwd   = 9;     // как далеко рука выносится вперёд
+  return {
+    hx: x + Math.cos(ang) * fwd,
+    hy: bodyY + Math.sin(ang) * 4,
+  };
+}
+
+// ── Визуал оружия в руках (порт из demo_isometric.html) ───────────
+// Полностью совместимо с тем, как стволы рисуются в боёвке против
+// босса. hx,hy — точка хвата (рука персонажа); sx,sy — единичный
+// вектор направления выстрела; scale — общий множитель (1.0 = норма).
+function drawFirearm(wepKey, hx, hy, sx, sy, scale, ctxOverride) {
+  const c = ctxOverride || ctx;
+  if (!c) return;
+  const angle = Math.atan2(sy, sx);
+  const sc = scale || 1;
+  // Зеркалим если игрок смотрит «влево» — чтобы магазин/прицел
+  // всегда были сверху.
+  const flip = (Math.cos(angle) < 0) ? -1 : 1;
+  c.save();
+  c.translate(hx, hy);
+  c.rotate(angle);
+  c.scale(1, flip);
+  c.shadowColor = 'rgba(0,0,0,.5)';
+  c.shadowBlur = 3;
+  switch (wepKey) {
+    case 'pistol':
+    case 'nagan': {
+      c.fillStyle = '#2a2a30'; c.fillRect(-2*sc, -3*sc, 16*sc, 5*sc);
+      c.fillStyle = '#1a1a20'; c.fillRect(0, -5*sc, 13*sc, 2*sc);
+      c.fillStyle = '#3a3a3a'; c.fillRect(11*sc, -6*sc, 1.5*sc, 1.5*sc);
+      c.fillStyle = '#1a1010'; c.fillRect(-3*sc, 1*sc, 5*sc, 7*sc);
+      break;
+    }
+    case 'pistol_heavy': {
+      c.fillStyle = '#2a2226'; c.fillRect(-3*sc, -4*sc, 22*sc, 6*sc);
+      c.fillStyle = '#1a1216'; c.fillRect(0, -6*sc, 18*sc, 2*sc);
+      c.fillStyle = '#3a3a3a'; c.fillRect(16*sc, -7*sc, 2*sc, 1.5*sc);
+      c.fillStyle = '#5a3a1a'; c.fillRect(-4*sc, 1*sc, 6*sc, 8*sc);
+      c.fillStyle = '#3a2410'; c.fillRect(-4*sc, 1*sc, 6*sc, 1*sc);
+      break;
+    }
+    case 'pistol_gold': {
+      c.fillStyle = '#c89030'; c.fillRect(-3*sc, -4*sc, 20*sc, 6*sc);
+      c.fillStyle = '#ffd76b'; c.fillRect(0, -6*sc, 16*sc, 2*sc);
+      c.fillStyle = '#a06010'; c.fillRect(0, 0, 16*sc, 1*sc);
+      c.fillStyle = '#3a1a0a'; c.fillRect(-4*sc, 1*sc, 6*sc, 7*sc);
+      c.fillStyle = '#e8c96e'; c.fillRect(-3*sc, 2*sc, 1*sc, 5*sc);
+      break;
+    }
+    case 'shotgun': {
+      c.fillStyle = '#5a3a1a'; c.fillRect(-15*sc, -2*sc, 13*sc, 6*sc);
+      c.fillStyle = '#3a2410'; c.fillRect(-15*sc, 3*sc, 13*sc, 1*sc);
+      c.fillStyle = '#2a2628'; c.fillRect(-3*sc, -4*sc, 30*sc, 4*sc);
+      c.fillStyle = '#4a3a1a'; c.fillRect(8*sc, -1*sc, 9*sc, 4*sc);
+      c.fillStyle = '#1a1618'; c.fillRect(24*sc, -5*sc, 4*sc, 2*sc);
+      c.fillStyle = '#1a1010'; c.fillRect(-4*sc, 1*sc, 5*sc, 7*sc);
+      break;
+    }
+    case 'smg':
+    case 'tommy_gun': {
+      c.fillStyle = '#1a1a20'; c.fillRect(-4*sc, -3*sc, 22*sc, 5*sc);
+      c.fillStyle = '#0a0a0c'; c.fillRect(16*sc, -4*sc, 5*sc, 2*sc);
+      c.fillStyle = '#2a2a32'; c.fillRect(2*sc, 2*sc, 4.5*sc, 11*sc);
+      c.fillStyle = '#1a1a20'; c.fillRect(13*sc, 1*sc, 3.5*sc, 6*sc);
+      c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
+      c.fillStyle = '#2a2a30'; c.fillRect(2*sc, -5*sc, 6*sc, 2*sc);
+      break;
+    }
+    case 'rifle': {
+      c.fillStyle = '#5a3a1a'; c.fillRect(-15*sc, -2*sc, 13*sc, 6*sc);
+      c.fillStyle = '#3a2410'; c.fillRect(-15*sc, 3*sc, 13*sc, 1*sc);
+      c.fillStyle = '#2a2a30'; c.fillRect(-3*sc, -3*sc, 34*sc, 4*sc);
+      c.fillStyle = '#3a3a40'; c.fillRect(2*sc, -5*sc, 5*sc, 2*sc);
+      c.fillRect(26*sc, -5*sc, 2*sc, 2*sc);
+      c.fillStyle = '#1a1010'; c.fillRect(-1*sc, 1*sc, 4*sc, 9*sc);
+      c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
+      break;
+    }
+    case 'sniper': {
+      c.fillStyle = '#5a3a1a'; c.fillRect(-16*sc, -2*sc, 14*sc, 7*sc);
+      c.fillStyle = '#3a2410'; c.fillRect(-16*sc, 4*sc, 14*sc, 1*sc);
+      c.fillStyle = '#2a352a'; c.fillRect(-3*sc, -2.5*sc, 44*sc, 3*sc);
+      c.fillStyle = '#1a251a'; c.fillRect(40*sc, -4*sc, 5*sc, 2*sc);
+      c.fillStyle = '#0a0a0c'; c.fillRect(2*sc, -8*sc, 14*sc, 4*sc);
+      c.fillStyle = '#1a1a20'; c.fillRect(2*sc, -9*sc, 14*sc, 1.5*sc);
+      c.fillStyle = '#3a3a45'; c.fillRect(15*sc, -7*sc, 1*sc, 3*sc);
+      c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
+      c.strokeStyle = '#1a1a20'; c.lineWidth = 1.3*sc;
+      c.beginPath();
+      c.moveTo(32*sc, 0); c.lineTo(35*sc, 8*sc);
+      c.moveTo(32*sc, 0); c.lineTo(29*sc, 8*sc);
+      c.stroke();
+      break;
+    }
+    case 'rpg': {
+      c.fillStyle = '#3a4a30'; c.fillRect(-20*sc, -5*sc, 52*sc, 8*sc);
+      c.fillStyle = '#2a3a20'; c.fillRect(-20*sc, -6*sc, 52*sc, 1.2*sc);
+      c.fillStyle = '#5a6a45'; c.fillRect(-20*sc, 2*sc, 52*sc, 1*sc);
+      c.fillStyle = '#2a1a10';
+      c.beginPath();
+      c.moveTo(32*sc, -5*sc); c.lineTo(44*sc, 0); c.lineTo(32*sc, 3*sc);
+      c.closePath(); c.fill();
+      c.fillStyle = '#5a2010'; c.fillRect(28*sc, -5*sc, 4*sc, 8*sc);
+      c.fillStyle = '#2a2a30'; c.fillRect(-2*sc, -8*sc, 5*sc, 3*sc);
+      c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 3*sc, 5*sc, 9*sc);
+      break;
+    }
+    default: {
+      c.fillStyle = '#333'; c.fillRect(0, -2*sc, 16*sc, 4*sc);
+    }
+  }
+  c.shadowBlur = 0;
+  c.restore();
+}
+
+// Длина ствола «вперёд» — где появляется вспышка дула и откуда летит пуля.
+// Числа примерно соответствуют графической длине из drawFirearm выше.
+const FIREARM_TIP = {
+  pistol: 14, nagan: 14,
+  pistol_heavy: 20, pistol_gold: 18,
+  shotgun: 28, smg: 22, tommy_gun: 22,
+  rifle: 32, sniper: 44, rpg: 46,
+};
+function weaponTip(w) { return (FIREARM_TIP[w] || 16); }
+
+// Рендер: оружие + вспышка дула. Вспышка живёт 80мс после выстрела.
+// shotAtMs — performance.now() момента последнего выстрела (для self
+// это lastShotClientT, для других игроков и NPC — lastBossShotAt.get(id)).
+function drawWeaponInHands(x, y, ang, weapon, scale, shotAtMs) {
+  if (!weapon) return;
+  const { hx, hy } = handAnchor(x, y, ang);
+  const sc = scale || 0.9;
+  drawFirearm(weapon, hx, hy, Math.cos(ang), Math.sin(ang), sc);
+  // Вспышка дула — короткая (80мс) после выстрела.
+  if (typeof shotAtMs === 'number' && shotAtMs > 0 &&
+      performance.now() - shotAtMs < 80) {
+    const tip = weaponTip(weapon) * sc;
+    const fx = hx + Math.cos(ang) * tip;
+    const fy = hy + Math.sin(ang) * tip;
+    ctx.save();
+    ctx.fillStyle = '#fff4b8';
+    ctx.shadowColor = '#ffd870';
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.arc(fx, fy, 4 * sc, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ff8030';
+    ctx.beginPath();
+    ctx.arc(fx, fy, 2.5 * sc, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, isDead) {
   if (isDead) ctx.globalAlpha = 0.35;
   // Тень под ногами
@@ -4328,15 +4512,36 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
     ctx.fillText(name, x, nameY);
     ctx.textAlign = 'left';
   }
-  // HP-бар над именем (если hp < maxHp)
-  if (typeof hp === 'number' && typeof maxHp === 'number' && hp < maxHp && hp > 0) {
-    const bw = 36, bh = 4;
-    const bx = x - bw / 2, by = hpY;
+  // HP-бар — стилистически один-в-один с demo_isometric (боёвка боссов).
+  // Показываем когда жив И (это я сам ИЛИ hp неполный). Свой бар видим
+  // всегда чтобы понимать состояние; чужие — только когда раненые.
+  if (!isDead && typeof hp === 'number' && typeof maxHp === 'number' && hp > 0 &&
+      (isSelf || hp < maxHp)) {
+    const barW = TS * 0.5, barH = 4;
+    const by   = hpY;
+    // Тёмная подложка (рамка)
     ctx.fillStyle = 'rgba(0,0,0,.7)';
-    ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
-    const pct = Math.max(0, Math.min(1, hp / maxHp));
-    ctx.fillStyle = pct > 0.5 ? '#5aff5a' : pct > 0.25 ? '#ffd76b' : '#ff5a5a';
-    ctx.fillRect(bx, by, bw * pct, bh);
+    ctx.fillRect(x - barW/2 - 1, by - 1, barW + 2, barH + 2);
+    const hpRatio = Math.max(0, Math.min(1, hp / maxHp));
+    // Цвета как в demo_isometric: зелёный → жёлтый → красный
+    ctx.fillStyle = hpRatio > 0.5 ? '#5dd55d'
+                  : hpRatio > 0.25 ? '#dda53a'
+                  : '#dd3a3a';
+    ctx.fillRect(x - barW/2, by, barW * hpRatio, barH);
+  }
+  // «☠ МЕРТВ» над трупом — как в основной боёвке
+  if (isDead) {
+    const ty = y - TS * 0.7;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.font = 'bold ' + Math.floor(TS * 0.22) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#000';
+    ctx.fillText('☠ МЕРТВ', x + 1, ty + 1);
+    ctx.fillStyle = '#ff4444';
+    ctx.fillText('☠ МЕРТВ', x, ty);
+    ctx.restore();
+    ctx.textAlign = 'left';
   }
   // Чат-баббл — над именем (и над HP если есть). Длинный текст переносится
   // на несколько строк (word-wrap), макс 4 строки — баббл растёт по высоте,
@@ -4496,13 +4701,24 @@ function render() {
   // Look берём всегда из URL — даже если has_look=0, параметры есть
   // (дефолты =0 в _qInt) и они хотя бы стабильны между перезагрузками.
   items.push({ depth: player.r + player.c + 0.001, draw: () => {
-    const p = w2s(player.r + 0.5, player.c + 0.5);
+    let px = w2s(player.r + 0.5, player.c + 0.5).x;
+    let py = w2s(player.r + 0.5, player.c + 0.5).y;
+    // Отдача — лёгкое смещение НАЗАД от прицела ~80мс после выстрела
+    const sinceShot = performance.now() - lastShotClientT;
+    if (sinceShot < 90 && lastShotClientT > 0) {
+      const k = (1 - sinceShot / 90) * 3.5;
+      px -= Math.cos(player.ang) * k;
+      py -= Math.sin(player.ang) * k;
+    }
     const myChat = (_localChat && performance.now() - _localChatT < 3500) ? _localChat : null;
-    drawPerson(p.x, p.y, player.ang, QP.look,
+    drawPerson(px, py, player.ang, QP.look,
                player.walking ? player.walkPhase : 0, QP.name, myChat, true,
                myHp, PVP.max_hp, myDead);
-    if (myWanted > 0) drawWantedStars(p.x, p.y, myWanted);
-    drawModeTag(p.x, p.y, myMode || 'pvp');
+    if (myMode !== 'pve' && !myDead) {
+      drawWeaponInHands(px, py, player.ang, currentWeapon, 0.9, lastShotClientT);
+    }
+    if (myWanted > 0) drawWantedStars(px, py, myWanted);
+    drawModeTag(px, py, myMode || 'pvp');
   } });
   // Другие
   for (const [, o] of others) {
@@ -4512,6 +4728,14 @@ function render() {
       const chat = (o.chat && performance.now() - o.chatT < 4000) ? o.chat : null;
       drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, o.name, chat, false,
                  o.hp, PVP.max_hp, o.dead);
+      // Оружие в руке другого игрока — если PvP и жив. Сервер пока не
+      // шлёт оружие в snapshot.others, поэтому показываем то что прислал
+      // последним событием pvp_shot (lastPlayerWeapon), либо pistol.
+      if ((o.mode || 'pvp') !== 'pve' && !o.dead) {
+        const otherW = lastPlayerWeapon.get(String(o.uid)) || 'pistol';
+        const otherShotT = lastPlayerShotAt.get(String(o.uid)) || 0;
+        drawWeaponInHands(p.x, p.y, o.ang || 0, otherW, 0.85, otherShotT);
+      }
       if (o.wanted > 0) drawWantedStars(p.x, p.y, o.wanted);
       drawModeTag(p.x, p.y, o.mode || 'pvp');
     } });
