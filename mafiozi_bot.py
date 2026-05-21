@@ -12201,12 +12201,12 @@ class WorldSim:
                         target['deaths']      = int(target.get('deaths', 0)) + 1
                         target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
                         killed = True
-                        # При 2+ звёздах копы пакуют в наручники → тюрьма
-                        if t_lvl >= 2:
-                            target['_jail_until'] = int(now + self.JAIL_DURATION_S)
-                            target['_wanted']     = 0.0
-                            target['_cop_kills']  = 0
-                            jailed = True
+                        # ЛЮБАЯ смерть от копа = автозак → участок.
+                        # Звёзды обнуляются после освобождения через 60с.
+                        target['_jail_until'] = int(now + self.JAIL_DURATION_S)
+                        target['_wanted']     = 0.0
+                        target['_cop_kills']  = 0
+                        jailed = True
                     pkts.append({
                         'kind':       'cop_shot',
                         'cop_id':     cop['id'],
@@ -14173,23 +14173,51 @@ async def _coop_http_app():
                                     try: await ws2.send_str(hit_blob)
                                     except Exception: pass
                     elif t == 'open_fire':
-                        # Игрок стреляет в городе вне PvP-зоны (по никому).
-                        # Сразу 1 звезда розыска + копы выезжают. Если уже
-                        # были звёзды — только обновляем _last_shot_t (decay).
-                        # d = {x, y, weapon} (x/y игнорим — берём из state)
+                        # Игрок стреляет в городе вне PvP-зоны.
+                        # d = {x, y, weapon, civilian: bool}
+                        # - civilian=true (выстрел в мирного NPC) → +2★, бой
+                        #   без предупреждения. Уважительной причины НЕТ.
+                        # - стрельба возле полиц участка (≤6 тайлов от
+                        #   JAIL_X/Y) → СРАЗУ 3★, тяжёлый штурм с пулемётом.
+                        # - просто «в пустоту» → 1★, патруль приедет
+                        #   предупредить.
                         p = world.players.get(uid)
                         if p and not p.get('dead') and p.get('_mode') != 'pve':
-                            # В PvP-арене не штрафуем — там стрелять можно.
-                            if not world._in_arena(p.get('x', 0), p.get('y', 0)):
+                            in_arena = world._in_arena(p.get('x', 0), p.get('y', 0))
+                            if not in_arena:
+                                px = p.get('x', 0); py = p.get('y', 0)
+                                # Зона полиц участка — радиус 6 от JAIL_X/Y
+                                near_station = ((px - world.JAIL_X) ** 2
+                                              + (py - world.JAIL_Y) ** 2) <= 36.0
                                 first_shot = (int(p.get('_wanted') or 0) < 1)
-                                world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
-                                if first_shot:
-                                    # Баннер "🔫 NICK открыл огонь!" всем в мире
+                                civilian = bool(d.get('civilian') if isinstance(d, dict) else False)
+                                if near_station:
+                                    # Атаковал участок — сразу максимум
+                                    p['_wanted'] = world.WANTED_MAX
+                                    p['_last_shot_t'] = time.time()
+                                    p['_cop_kills'] = world.COP_KILLS_TO_SWAT
+                                elif civilian:
+                                    # Стрельба по гражданским — сразу 2★
+                                    p['_wanted'] = max(p.get('_wanted') or 0, 2.0)
+                                    p['_last_shot_t'] = time.time()
+                                else:
+                                    # Обычная стрельба «в воздух» — 1★
+                                    world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
+                                if first_shot or civilian or near_station:
+                                    # Баннер всем
                                     nm = (p.get('name') or '')[:20]
+                                    title = '🔫'
+                                    if near_station:
+                                        title = '🚨 ШТУРМ УЧАСТКА:'
+                                    elif civilian:
+                                        title = '💀 РАССТРЕЛ:'
                                     banner = json.dumps({'t': 'event', 'd': {
                                         'kind': 'open_fire',
                                         'shooter_uid': str(uid),
                                         'shooter_name': nm,
+                                        'reason': ('station' if near_station
+                                                   else ('civilian' if civilian
+                                                         else 'air')),
                                     }}, ensure_ascii=False)
                                     for u2, ws2 in list(world.connections.items()):
                                         try: await ws2.send_str(banner)

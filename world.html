@@ -1550,13 +1550,23 @@ function handleEventPacket(d) {
     });
     spawnImpact(d.ty, d.tx, wp);
   } else if (kind === 'open_fire') {
-    // Игрок открыл огонь в городе вне PvP-зоны — баннер всем в мире.
-    // Самого стрелка не дёргаем (у него уже свой toast/HUD wanted).
+    // Игрок открыл огонь в городе вне PvP-зоны. Баннер всем (кроме стрелка)
+    // с указанием тяжести: обычно / расстрел гражданских / штурм участка.
     if (String(d.shooter_uid) !== String(QP.uid)) {
       const nm = d.shooter_name || 'Кто-то';
-      showEventBanner('🔫 ' + nm.toUpperCase() + ' открыл огонь!',
-        'Где-то в городе началась стрельба — копы выехали на место.',
-        3200, 'lose');
+      const reason = d.reason || 'air';
+      let title, msg;
+      if (reason === 'station') {
+        title = '🚨 ШТУРМ УЧАСТКА: ' + nm.toUpperCase();
+        msg = 'Атакует полицейский участок! Тяжёлая техника выезжает.';
+      } else if (reason === 'civilian') {
+        title = '💀 ' + nm.toUpperCase() + ' РАССТРЕЛИВАЕТ ЛЮДЕЙ';
+        msg = 'Расстрел мирных — копы открывают огонь без предупреждения.';
+      } else {
+        title = '🔫 ' + nm.toUpperCase() + ' открыл огонь!';
+        msg = 'Где-то в городе началась стрельба — копы выехали на место.';
+      }
+      showEventBanner(title, msg, 3200, 'lose');
     }
   }
 }
@@ -2102,14 +2112,31 @@ function fire(angle = null) {
   const meInArena = inArena(player.r, player.c);
   const lawful    = meInArena || pvpActive || chosenConvoy || chosenCop;
   if (!lawful) {
+    // Проверка: летит ли пуля в мирного NPC прохожего (стрельба в людей)?
+    // Если да — сервер даст СРАЗУ 2★ без предупреждения (бой). Прицеливаемся
+    // конусом 0.6 рад вокруг dir, дистанция до 6 тайлов.
+    let civilianHit = false;
+    for (const npc of NPCS) {
+      const dx = npc.c - player.c, dy = npc.r - player.r;
+      const d  = Math.hypot(dx, dy);
+      if (d > 6) continue;
+      const dn = d > 0.001 ? d : 1;
+      const dot = (dx * dirX + dy * dirY) / dn;
+      if (dot > 0.85) { civilianHit = true; break; }
+    }
     try {
       ws && ws.send(JSON.stringify({ t: 'open_fire',
         d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
-             weapon: currentWeapon } }));
+             weapon: currentWeapon,
+             civilian: civilianHit } }));
     } catch(e) {}
     // На первом «нелегальном» выстреле подсказка — что только что нарушил
     if (myWanted < 1) {
-      showToast('🚓 Стрельба в городе запрещена — копы выехали', '⚠️', 2500);
+      showToast(civilianHit
+        ? '💀 Ты выстрелил в мирного — копы атакуют!'
+        : '🚓 Стрельба в городе запрещена — копы выехали',
+        civilianHit ? '🚨' : '⚠️',
+        civilianHit ? 3500 : 2500);
     }
   }
   if (chosenConvoy) {
