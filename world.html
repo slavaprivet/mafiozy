@@ -1365,14 +1365,14 @@ function handleEventPacket(d) {
       'Никто не успел перехватить. Следующий через 10 мин.', 3500, 'neutral');
     worldEvent = null;
   } else if (kind === 'inkass_shot') {
-    // NPC выстрелил в игрока — трассер + вспышка
+    // NPC выстрелил в игрока — трассер + вспышка. При miss=true пуля
+    // летит мимо (sx/sy → tx/ty уже сдвинуты на сервере), экраном не мигаем.
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
-      t0: performance.now(), ttl: 180, hit: true, fromNpc: true,
+      t0: performance.now(), ttl: 180, hit: !d.miss, fromNpc: true,
     });
     if (d.shooter_id) lastBossShotAt.set(d.shooter_id, performance.now());
-    // Если попало в меня — мигнём экраном
-    if (d.target_uid && String(d.target_uid) === String(QP.uid)) {
+    if (!d.miss && d.target_uid && String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
       if (d.killed) myDeathBy = 'Конвой инкассатора';
     }
@@ -1432,13 +1432,14 @@ function handleEventPacket(d) {
         `За тобой выехал патруль. Звёзд: ${myWanted}.`, 2200, 'lose');
     }
   } else if (kind === 'cop_shot') {
-    // Коп выстрелил в игрока — трассер + вспышка на дуле
+    // Коп выстрелил в игрока — трассер + вспышка на дуле. При miss=true
+    // пуля летит мимо (tx/ty уже со сдвигом), не мигаем экраном.
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
-      t0: performance.now(), ttl: 180, hit: true, fromNpc: true,
+      t0: performance.now(), ttl: 180, hit: !d.miss, fromNpc: true,
     });
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
-    if (String(d.target_uid) === String(QP.uid)) {
+    if (!d.miss && String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
       if (d.killed) {
         myDeathBy = d.jailed ? 'Копы (тюрьма)' : 'Копы';
@@ -2275,8 +2276,15 @@ function update(dt) {
   // Hold-to-fire: пока правый стик удерживается в направлении —
   // автоматически стреляем с cooldown'ом по оружию (fire() сам
   // проверяет cd через weaponCd). Отпустил стик — перестал стрелять.
+  // ВАЖНО: угол стика — в ЭКРАННЫХ координатах. Чтобы пуля летела
+  // туда куда смотришь стиком, переводим в мировые через ISO_Y
+  // (так же как делает движение и demo_isometric).
+  // PvE — режим наблюдателя, стрельба отключена.
   if (joyR.active && joyR.hasAim && myMode !== 'pve' && !myDead) {
-    fire(Math.atan2(joyR.dy, joyR.dx));
+    const d = joyR.dx, s = joyR.dy / ISO_Y;
+    const dc = (s + d) * 0.5;
+    const dr = (s - d) * 0.5;
+    fire(Math.atan2(dr, dc));
   }
   // Интерполяция других игроков
   for (const [, o] of others) {

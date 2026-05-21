@@ -11362,13 +11362,16 @@ class WorldSim:
     INKASS_HP          = 600       # больше hp — конвой можно долбить дольше
     INKASS_REWARD      = 1500      # награда чуть больше, раз событие реже
     INKASS_FIRE_R      = 10.5      # макс. дистанция игрок→цель для попадания
+    # Темп огня и урон скопированы с боссов demo_isometric.html.
+    # Боссы там стреляют 500-1400ms, разный калибр; миньоны 700-850ms.
+    # У нас инкассатор = «босс», guard'ы = «миньоны».
     BOSS_SHOOT_R       = 8.0
-    BOSS_SHOOT_DMG     = 18
-    BOSS_SHOOT_CD      = 1.6
+    BOSS_SHOOT_DMG     = 22         # ≈ pistol_heavy/4 как у боссов demo
+    BOSS_SHOOT_CD      = 1.0        # 1000ms — средний босс demo
     GUARD_HP           = 120
     GUARD_SHOOT_R      = 8.5
-    GUARD_SHOOT_DMG    = 14
-    GUARD_SHOOT_CD     = 1.3
+    GUARD_SHOOT_DMG    = 16
+    GUARD_SHOOT_CD     = 0.85       # 850ms — как обычный миньон demo
     GUARD_CHASE_SPEED  = 1.6       # охотится за стрелявшим (быстрее конвоя)
     GUARD_CHASE_R      = 12.0      # радиус «вижу врага» когда отстал от конвоя
     GUARD_RETURN_R     = 18.0      # если отстал дальше — возвращается в формацию
@@ -11418,9 +11421,14 @@ class WorldSim:
     COPS_PER_STAR       = 2         # сколько копов спавнится на каждую звезду
     COP_HP              = 110
     COP_SHOOT_R         = 8.5
-    COP_SHOOT_DMG       = 16
-    COP_SHOOT_CD        = 1.4
+    COP_SHOOT_DMG       = 18        # коп — pistol_heavy, чуть больнее охранника
+    COP_SHOOT_CD        = 0.95      # ≈ 950ms — как миньон demo
     COP_CHASE_SPEED     = 2.0       # быстрее обычной машины
+    COP_OPT_RANGE       = 5.5       # оптимальная боевая дистанция (тайлы)
+    COP_STRAFE_T        = 1.3       # как часто меняем стрейф (секунды)
+    COP_STRAFE_OFF      = 1.6       # амплитуда стрейфа (тайлы перпендикулярно)
+    COP_MISS_CHANCE     = 0.28      # разброс: ≈28% выстрелов мимо (как aimErr миньона)
+    NPC_MISS_CHANCE_BOSS = 0.16     # как у босса demo (aimErr меньше)
     COP_RESPAWN_GAP_S   = 4.0       # пауза перед спавном нового копа
     COP_DESPAWN_R       = 25.0      # если коп отстал — деспаун
     JAIL_DURATION_S     = 60        # минута в тюрьме
@@ -11783,7 +11791,25 @@ class WorldSim:
             actor['ang']    = _m.atan2(target['y'] - actor['y'],
                                        target['x'] - actor['x'])
             actor['_shot_t'] = now
-            target['hp']    = int(max(0, int(target.get('hp', 100)) - dmg))
+            # Разброс прицела как у боссов demo: босс — 16%, охрана — 28% мимо.
+            # При промахе трассер уходит на ~1.3 тайла вбок (перпендикулярно).
+            is_boss = (actor is boss)
+            miss_p  = self.NPC_MISS_CHANCE_BOSS if is_boss else self.COP_MISS_CHANCE
+            miss    = random.random() < miss_p
+            if miss:
+                shot_dmg = 0
+                dx_ap = target['x'] - actor['x']
+                dy_ap = target['y'] - actor['y']
+                d_ap  = (dx_ap*dx_ap + dy_ap*dy_ap) ** 0.5 or 1.0
+                px_ap, py_ap = -dy_ap / d_ap, dx_ap / d_ap   # перпендикуляр
+                jitter = 1.0 + random.random() * 0.8
+                side   = 1.0 if random.random() < 0.5 else -1.0
+                tx = target['x'] + px_ap * jitter * side
+                ty = target['y'] + py_ap * jitter * side
+            else:
+                shot_dmg = dmg
+                tx = target['x']; ty = target['y']
+            target['hp']    = int(max(0, int(target.get('hp', 100)) - shot_dmg))
             killed = False
             if target['hp'] <= 0:
                 target['hp']           = 0
@@ -11797,10 +11823,11 @@ class WorldSim:
                 'sx':         round(actor['x'], 2),
                 'sy':         round(actor['y'], 2),
                 'target_uid': chosen_uid,
-                'tx':         round(target['x'], 2),
-                'ty':         round(target['y'], 2),
-                'dmg':        int(dmg),
+                'tx':         round(tx, 2),
+                'ty':         round(ty, 2),
+                'dmg':        int(shot_dmg),
                 'killed':     killed,
+                'miss':       bool(miss),
             })
         # 5) Респаун мёртвых игроков — в тюрьме если jail_until > now
         for p_uid, p in self.players.items():
@@ -11975,6 +12002,11 @@ class WorldSim:
             'target_uid': target_uid or '',
             '_shot_t':    0.0,
             '_spawn_t':   time.time(),
+            # Стрейф во время стрельбы (копируем поведение боссов demo):
+            # каждые COP_STRAFE_T выбираем новое перпендикулярное смещение
+            # цели → коп не стоит на месте под огнём, как enemy в demo.
+            '_strafe_t':  0.0,
+            '_strafe_s':  0.0,   # знак: -1 / +1 / 0 (перпендикулярно линии «коп→игрок»)
         }
         self.cops.append(cop)
         return cop
@@ -12064,7 +12096,10 @@ class WorldSim:
                     'x':      round(sx, 2),
                     'y':      round(sy, 2),
                 })
-        # 5) Движение + стрельба каждого копа
+        # 5) Движение + стрельба каждого копа.
+        # Поведение скопировано с боссов demo_isometric: держим optRange,
+        # каждые ~1.3с выбираем новое перпендикулярное направление стрейфа,
+        # часть выстрелов промахиваются (aimErr → MISS_CHANCE).
         for cop in self.cops:
             target = self.players.get(cop['target_uid'])
             if not target or target.get('dead'):
@@ -12072,19 +12107,63 @@ class WorldSim:
             dx = target['x'] - cop['x']
             dy = target['y'] - cop['y']
             dist = (dx*dx + dy*dy) ** 0.5
-            desired = 4.5
-            if dist > desired + 0.2:
-                step = self.COP_CHASE_SPEED * dt
-                if step > dist - desired: step = dist - desired
-                cop['x'] += (dx / dist) * step
-                cop['y'] += (dy / dist) * step
+            # Угол всегда смотрит на цель (как enemy в demo)
             if dist > 0.05:
                 cop['ang'] = _m.atan2(dy, dx)
+            opt = self.COP_OPT_RANGE
+            # Тайминг стрейфа — меняем сторону каждые COP_STRAFE_T
+            cop['_strafe_t'] = max(0.0, cop.get('_strafe_t', 0.0) - dt)
+            if cop['_strafe_t'] <= 0.0:
+                cop['_strafe_t'] = self.COP_STRAFE_T * (0.7 + random.random() * 0.6)
+                # Случайно: -1 / 0 / +1. Иногда стоим (s=0), чаще стрейфим.
+                cop['_strafe_s'] = random.choice([-1.0, -1.0, 1.0, 1.0, 0.0])
+            # Перпендикуляр к линии «коп→игрок» (поворот на 90°)
+            if dist > 0.05:
+                nx, ny = dx / dist, dy / dist
+                px, py = -ny, nx   # перпендикуляр
+            else:
+                nx = ny = px = py = 0.0
+            # Целевая точка для движения: либо ближе к opt (если далеко),
+            # либо стрейф вбок (если на боевой дистанции).
+            if dist > opt + 0.8:
+                # Подходим к игроку (chase)
+                step = self.COP_CHASE_SPEED * dt
+                cop['x'] += nx * step
+                cop['y'] += ny * step
+            elif dist < opt - 0.8:
+                # Слишком близко — отступаем (back-pedal), как босс
+                step = self.COP_CHASE_SPEED * 0.7 * dt
+                cop['x'] -= nx * step
+                cop['y'] -= ny * step
+            else:
+                # На боевой дистанции — стрейф вбок
+                step = self.COP_CHASE_SPEED * 0.65 * dt * cop['_strafe_s']
+                cop['x'] += px * step
+                cop['y'] += py * step
+            # Не лезем в стены
+            if _world_is_wall(int(cop['y']), int(cop['x'])):
+                # Откатываемся обратно: следующий тик попробует стрейф в другую сторону
+                cop['x'] -= (px * (self.COP_CHASE_SPEED * 0.65 * dt * cop['_strafe_s']))
+                cop['y'] -= (py * (self.COP_CHASE_SPEED * 0.65 * dt * cop['_strafe_s']))
+                cop['_strafe_s'] = -cop.get('_strafe_s', 0.0)
             # Стрельба
             if dist <= self.COP_SHOOT_R and (now - cop['_shot_t']) >= self.COP_SHOOT_CD:
                 if _world_los(cop['x'], cop['y'], target['x'], target['y']):
                     cop['_shot_t'] = now
-                    dmg = self.COP_SHOOT_DMG
+                    # Разброс прицела как у миньонов demo — ~28% выстрелов мимо.
+                    # При промахе трассер чуть сбоку от игрока (jitter ≈ 1.3 тайла
+                    # перпендикулярно линии выстрела), дамаг = 0.
+                    miss = random.random() < self.COP_MISS_CHANCE
+                    if miss:
+                        dmg = 0
+                        jitter = 1.0 + random.random() * 0.8
+                        side = 1.0 if random.random() < 0.5 else -1.0
+                        # px,py уже посчитан выше как перпендикуляр коп→игрок
+                        tx = target['x'] + px * jitter * side
+                        ty = target['y'] + py * jitter * side
+                    else:
+                        dmg = self.COP_SHOOT_DMG
+                        tx = target['x']; ty = target['y']
                     target['hp'] = int(max(0, int(target.get('hp', 100)) - dmg))
                     killed = False
                     jailed = False
@@ -12105,11 +12184,12 @@ class WorldSim:
                         'sx':         round(cop['x'], 2),
                         'sy':         round(cop['y'], 2),
                         'target_uid': cop['target_uid'],
-                        'tx':         round(target['x'], 2),
-                        'ty':         round(target['y'], 2),
+                        'tx':         round(tx, 2),
+                        'ty':         round(ty, 2),
                         'dmg':        int(dmg),
                         'killed':     killed,
                         'jailed':     jailed,
+                        'miss':       bool(miss),
                     })
         return pkts
 
