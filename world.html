@@ -1860,7 +1860,6 @@ let currentWeapon = (QP.weapon || 'pistol');
 // auto-aim (тап fire без правого стика). Возвращает {id, x, y, d} или null.
 const FIRE_R_CONVOY = 9.5;
 function findNearestConvoyTarget() {
-  if (!worldEvent) return null;
   const pr = player.r, pc = player.c;
   let best = null;
   const try_ = (npc) => {
@@ -1872,8 +1871,22 @@ function findNearestConvoyTarget() {
       best = { id: npc.id, x: npc.x, y: npc.y, d };
     }
   };
-  for (const g of (worldEvent.guards || [])) try_(g);
-  try_(worldEvent.boss);
+  if (worldEvent) {
+    for (const g of (worldEvent.guards || [])) try_(g);
+    try_(worldEvent.boss);
+  }
+  // Если конвоя рядом нет — auto-aim ловит копов: им тоже нужен прицел.
+  if (!best && worldCops && worldCops.length) {
+    for (const c of worldCops) {
+      if (!c || c.hp <= 0) continue;
+      const dx = c.x - pc, dy = c.y - pr;
+      const d = Math.hypot(dx, dy);
+      if (d > FIRE_R_CONVOY) continue;
+      if (!best || d < best.d) {
+        best = { id: c.id, x: c.x, y: c.y, d };
+      }
+    }
+  }
   return best;
 }
 
@@ -2273,18 +2286,21 @@ function update(dt) {
   // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
   updateZoneBtn();
   updatePvpUI();
-  // Hold-to-fire: пока правый стик удерживается в направлении —
-  // автоматически стреляем с cooldown'ом по оружию (fire() сам
-  // проверяет cd через weaponCd). Отпустил стик — перестал стрелять.
-  // ВАЖНО: угол стика — в ЭКРАННЫХ координатах. Чтобы пуля летела
-  // туда куда смотришь стиком, переводим в мировые через ISO_Y
-  // (так же как делает движение и demo_isometric).
+  // Hold-to-fire: пока правый стик удерживается — стреляем с cooldown'ом.
+  //  • стик сдвинут (hasAim)  → ручной прицел, угол через ISO_Y коррекцию
+  //    (как в demo: screen-space → world-space, иначе ствол смотрит в небо).
+  //  • стик активен, но не сдвинут → auto-aim, fire() сам ищет ближайшую
+  //    цель (конвой/коп) через findNearestConvoyTarget().
   // PvE — режим наблюдателя, стрельба отключена.
-  if (joyR.active && joyR.hasAim && myMode !== 'pve' && !myDead) {
-    const d = joyR.dx, s = joyR.dy / ISO_Y;
-    const dc = (s + d) * 0.5;
-    const dr = (s - d) * 0.5;
-    fire(Math.atan2(dr, dc));
+  if (joyR.active && myMode !== 'pve' && !myDead) {
+    if (joyR.hasAim) {
+      const d = joyR.dx, s = joyR.dy / ISO_Y;
+      const dc = (s + d) * 0.5;
+      const dr = (s - d) * 0.5;
+      fire(Math.atan2(dr, dc));
+    } else {
+      fire(null);   // auto-aim
+    }
   }
   // Интерполяция других игроков
   for (const [, o] of others) {
@@ -4376,13 +4392,27 @@ function weaponCd(w) {
 // иначе оружие визуально «над головой» из-за того что у спрайта
 // сверху есть запас под шляпы). (x, y) — точка ног (как в drawPerson),
 // ang — угол прицела в радианах.
+// Точка вылета пули и хвата оружия. Скопировано из demo_isometric:
+// плечо на ~17% высоты спрайта от верха, рука вытягивается по
+// изометрическому направлению (через ISO_Y, иначе ствол «улетал» в
+// небо). armLen — длина руки, дальше идёт ствол через drawFirearm.
 function handAnchor(x, y, ang) {
   const sh = TS * 1.7;
-  const bodyY = y - sh * 0.32;   // ~30% от земли = пояс
-  const fwd   = 11;              // как далеко рука выносится вперёд
+  const dx = Math.cos(ang), dy = Math.sin(ang);
+  const sx = (dx - dy) * 0.5;
+  const sy = (dx + dy) * 0.5 * ISO_Y;
+  const dirLen = Math.hypot(sx, sy) || 1;
+  const perpX = -sy / dirLen;
+  const perpY =  sx / dirLen;
+  const shoulderD = TS * 0.10;
+  const shY = y - sh * 0.17;          // плечо
+  const hxBase = x + perpX * shoulderD;
+  const hyBase = shY + perpY * shoulderD;
+  const armLen = TS * 0.36;
   return {
-    hx: x + Math.cos(ang) * fwd,
-    hy: bodyY + Math.sin(ang) * 6,
+    hx: hxBase + sx * armLen,
+    hy: hyBase + sy * armLen,
+    sx, sy,                            // изометрический unit-вектор
   };
 }
 
@@ -4510,15 +4540,18 @@ function weaponTip(w) { return (FIREARM_TIP[w] || 16); }
 // это lastShotClientT, для других игроков и NPC — lastBossShotAt.get(id)).
 function drawWeaponInHands(x, y, ang, weapon, scale, shotAtMs) {
   if (!weapon) return;
-  const { hx, hy } = handAnchor(x, y, ang);
-  const sc = scale || 0.9;
-  drawFirearm(weapon, hx, hy, Math.cos(ang), Math.sin(ang), sc);
+  const { hx, hy, sx, sy } = handAnchor(x, y, ang);
+  // Масштаб как у миньона demo: gunScale = (TS / 60). scale из параметра
+  // позволяет чуть подкрутить (для NPC 0.95, для игрока 0.9 → итоговый
+  // размер близок к demo при TS=46).
+  const sc = (scale || 0.9) * (TS / 60) * 1.5;
+  drawFirearm(weapon, hx, hy, sx, sy, sc);
   // Вспышка дула — короткая (80мс) после выстрела.
   if (typeof shotAtMs === 'number' && shotAtMs > 0 &&
       performance.now() - shotAtMs < 80) {
     const tip = weaponTip(weapon) * sc;
-    const fx = hx + Math.cos(ang) * tip;
-    const fy = hy + Math.sin(ang) * tip;
+    const fx = hx + sx * tip;
+    const fy = hy + sy * tip;
     ctx.save();
     ctx.fillStyle = '#fff4b8';
     ctx.shadowColor = '#ffd870';
