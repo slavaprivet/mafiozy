@@ -1847,14 +1847,20 @@ def get_status_points(owned_items: list, kills: int = 0) -> int:
 # ── Проверка подписки на канал ────────────────────────────────────────────────
 
 async def is_subscribed(bot, user_id: int) -> bool:
-    """Проверяет, подписан ли пользователь на CHANNEL_ID.
-    Требует чтобы бот был администратором канала — иначе всех пропускает."""
+    """Проверяет, подписан ли пользователь на CHANNEL_ID (группу/канал).
+    Чтобы это работало, бот должен быть АДМИНОМ группы/канала — иначе
+    Telegram возвращает 'Bad Request: user not found' / 'chat not found',
+    и проверку провалить нельзя. При ошибке возвращаем False — игрок
+    увидит кнопку 'Подписаться'. Если бот не админ → проверка зависнет;
+    в этом случае поправь права бота в группе через @BotFather → ChatMembers."""
     try:
         member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
         return member.status in ("member", "administrator", "creator")
-    except Exception:
-        # Бот не администратор канала или другая ошибка — пропускаем
-        return True
+    except Exception as e:
+        logger.warning("is_subscribed(%s) для %s упала: %s — "
+                       "бот должен быть админом группы %s",
+                       CHANNEL_ID, user_id, e, CHANNEL_ID)
+        return False
 
 def subscription_required_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
@@ -2680,8 +2686,9 @@ async def choose_class(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = context.user_data.get("char_name", "Безымянный")
     user = update.effective_user
     await create_character(user.id, user.username or "", name, char_class)
-    # Флаг подписки: раз дошёл до регистрации — значит подписан
-    await update_character(user.id, channel_verified=1)
+    # channel_verified выставляется ТОЛЬКО реальной проверкой is_subscribed
+    # (в cmd_start и check_subscription). Раньше тут стоял auto-set=1, что
+    # обнуляло всю проверку подписки навсегда после первого /start.
     # Если друг пришёл по кооп-инвайту и не был зарегистрирован — переносим
     # сохранённый в user_data sid в БД. build_hub_url подхватит и сделает
     # auto-join в лобби после creator-flow.
