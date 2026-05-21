@@ -297,18 +297,46 @@ body.in-pvp #zoneBtn { top: 104px; }
 #weaponPick .wpick .wpName { flex: 1; }
 #weaponPick .wpick .wpCount { color: #8a92a8; font-size: 10px; }
 
-/* HP-бар игрока в PVP — над кнопкой огня */
-#pvpHud {
-  position: absolute; right: 14px; bottom: 196px;
-  display: none; z-index: 5;
-  background: rgba(20,24,32,.85); border: 1px solid #4a5060;
-  border-radius: 10px; padding: 8px 10px; min-width: 130px;
+/* HUD игрока — порт из demo_isometric. Прибит к topBar слева, под кнопкой
+   «← Меню». Содержит HP-бар на всю ширину, цифры current/max, эмодзи
+   времени суток и счётчик kills/deaths. */
+#hudPlayer {
+  position: absolute; left: 8px; top: calc(env(safe-area-inset-top, 6px) + 46px);
+  z-index: 5; display: none; flex-direction: column; gap: 4px;
+  background: linear-gradient(180deg, rgba(20,24,32,.92) 0%, rgba(10,12,18,.85) 100%);
+  border: 1px solid #3a4452; border-radius: 10px;
+  padding: 8px 10px; min-width: 200px; max-width: 60vw;
+  box-shadow: 0 4px 14px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
   font-family: inherit;
 }
-#pvpHud .row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #c8d0dc; }
-#pvpHud .barOuter { flex: 1; height: 10px; background: #1a1d24; border-radius: 5px; overflow: hidden; }
-#pvpHud .barInner { height: 100%; background: linear-gradient(90deg, #c0392b, #e74c3c); transition: width .25s ease; }
-#pvpHud .stats { font-size: 11px; color: #ffd76b; margin-top: 4px; text-align: right; }
+#hudPlayer.show { display: flex; }
+#hudPlayer .hp-row, #hudPlayer .kd-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: #cfd6e6; white-space: nowrap;
+}
+#hudPlayer .hp-row .label, #hudPlayer .kd-row .label {
+  color: #8a92a8; font-size: 10px; font-weight: 700;
+}
+#hudPlayer .hp-nums { display: inline-flex; align-items: baseline; gap: 1px; white-space: nowrap; }
+#hudPlayer .hp-nums #hpMaxVal { color: #5a6478; }
+#hpBarBig {
+  flex: 1; min-width: 80px; height: 12px;
+  background: #1a1e26; border: 1px solid #3a4452; border-radius: 6px;
+  overflow: hidden; position: relative;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.6);
+}
+#hpBarFill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg,#5dd55d,#3aa53a);
+  transition: width .2s, background .2s;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+}
+#hpBarFill.low  { background: linear-gradient(90deg,#ffd24a,#cf8a20); }
+#hpBarFill.crit { background: linear-gradient(90deg,#ff5050,#a02020); }
+#hudPlayer .kd-row { justify-content: space-between; }
+#hudPlayer .kd-row .clock { color: #ffd76b; font-weight: 700; font-size: 11px; }
+#hudPlayer .kd-row .kd { color: #ffd76b; font-size: 11px; font-weight: 700; }
+#hudPlayer .kd-row .kd .neg { color: #ff8888; }
 
 /* Экран смерти */
 #deathOverlay {
@@ -578,13 +606,19 @@ body.in-pvp #zoneBtn { top: 104px; }
   <div id="errorBanner"></div>
   <div id="toast"></div>
 
-  <div id="pvpHud">
-    <div class="row">
-      <span>❤️</span>
-      <div class="barOuter"><div class="barInner" id="pvpHpBar" style="width:100%"></div></div>
-      <span id="pvpHpTxt">100</span>
+  <div id="hudPlayer">
+    <div class="hp-row">
+      <span class="label">HP</span>
+      <div id="hpBarBig"><div id="hpBarFill"></div></div>
+      <span class="hp-nums">
+        <span id="hpVal">100</span><span style="color:#5a6478">/</span><span id="hpMaxVal">100</span>
+      </span>
     </div>
-    <div class="stats"><span id="pvpKills">0</span>💀 / <span id="pvpDeaths">0</span>🪦</div>
+    <div class="kd-row">
+      <span class="label" id="timeEmoji" title="Время в городе">☀️</span>
+      <span class="clock" id="gameClock">12:00</span>
+      <span class="kd"><span id="hudKills">0</span>💀 / <span id="hudDeaths">0</span>🪦</span>
+    </div>
   </div>
   <button id="fireBtn">🔫</button>
 
@@ -2291,11 +2325,61 @@ document.getElementById('shopClose').addEventListener('click', closeShop);
 _shopOverlay.addEventListener('click', (e) => { if (e.target === _shopOverlay) closeShop(); });
 // ── PVP UI: кнопка «Огонь», HP-бар, экран смерти ────────────────
 const _fireBtn   = document.getElementById('fireBtn');
-const _pvpHud    = document.getElementById('pvpHud');
-const _pvpHpBar  = document.getElementById('pvpHpBar');
-const _pvpHpTxt  = document.getElementById('pvpHpTxt');
-const _pvpKills  = document.getElementById('pvpKills');
-const _pvpDeaths = document.getElementById('pvpDeaths');
+const _hudPlayer = document.getElementById('hudPlayer');
+const _hpBarFill = document.getElementById('hpBarFill');
+const _hpVal     = document.getElementById('hpVal');
+const _hpMaxVal  = document.getElementById('hpMaxVal');
+const _hudKills  = document.getElementById('hudKills');
+const _hudDeaths = document.getElementById('hudDeaths');
+const _timeEmoji = document.getElementById('timeEmoji');
+const _gameClock = document.getElementById('gameClock');
+
+// ── Игровое время в городе ─────────────────────────────────────
+// Та же модель что в hub.html: 1 реальная секунда = 1 игровая минута.
+// Старт в 12:00. Используется для day/night-тинта рендера и для эмодзи
+// часов в HUD-карточке.
+let _gameMinutes = 12 * 60;     // 12:00
+function getGameHour() { return Math.floor(_gameMinutes / 60) % 24; }
+function getGameMinute() { return _gameMinutes % 60; }
+function _phaseEmoji(h) {
+  if (h >= 6  && h < 12) return '🌅';
+  if (h >= 12 && h < 18) return '☀️';
+  if (h >= 18 && h < 22) return '🌆';
+  return '🌙';
+}
+function updateGameClock() {
+  const h = getGameHour(), m = getGameMinute();
+  if (_gameClock) _gameClock.textContent =
+    String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+  if (_timeEmoji) _timeEmoji.textContent = _phaseEmoji(h);
+  _gameMinutes = (_gameMinutes + 1) % 1440;
+}
+setInterval(updateGameClock, 1000);
+updateGameClock();
+
+// Альфа ночного тинта по часу. Утром/днём 0, ночью до 0.55.
+// Плавные переходы на восходе (5-7) и закате (17-19, 19-22).
+function getNightAlpha() {
+  const m = _gameMinutes;
+  const t = m / 60;   // часовая дробь
+  if (t >= 7 && t < 17) return 0;                       // ясный день
+  if (t >= 5 && t < 7)  return 0.55 * (1 - (t - 5) / 2); // рассвет
+  if (t >= 17 && t < 19) return 0.30 * ((t - 17) / 2);   // закат → 0.30
+  if (t >= 19 && t < 22) return 0.30 + 0.20 * ((t - 19) / 3); // вечер → 0.50
+  if (t >= 22)           return 0.50 + 0.05 * ((t - 22) / 2); // ночь → 0.55
+  return 0.55;                                            // 0..5 — глубокая ночь
+}
+// Финальный overlay поверх рендера мира (НЕ поверх HTML UI).
+// Цвет — глубокий синий с лёгким фиолетом, как сумерки. UI остаётся
+// поверх canvas с собственной z-стопкой, его не затрагивает.
+function drawNightTint() {
+  const a = getNightAlpha();
+  if (a <= 0.001) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(8, 14, 36, ' + a.toFixed(3) + ')';
+  ctx.fillRect(0, 0, gc.width, gc.height);
+  ctx.restore();
+}
 const _deathOv   = document.getElementById('deathOverlay');
 const _deathBy   = document.getElementById('deathBy');
 const _deathCnt  = document.getElementById('deathCnt');
@@ -2531,9 +2615,10 @@ function updatePvpUI() {
   // ощущение полноценной боёвки.
   const isPve      = (myMode === 'pve');
   const canShoot   = !isPve && !myDead;
-  // HP-бар виден когда стреляешь / ранен / в зоне
-  const showHud    = !isPve && (inPvp || pvpActive || myHp < (PVP.max_hp || 100));
-  _pvpHud.style.display  = showHud ? 'block' : 'none';
+  // HUD-карточку показываем всегда (часы + K/D + HP). Если игрок в чисто
+  // PvE-режиме (мирный наблюдатель) — скрываем. В обычном городе с
+  // настоящим аккаунтом HUD виден постоянно.
+  _hudPlayer.classList.toggle('show', !isPve);
   _fireBtn.style.display = 'none';   // полностью убран — стрельба через joyR
   if (joyREl) joyREl.style.display = canShoot ? 'block' : 'none';
   if (_weaponBarEl) {
@@ -2542,11 +2627,15 @@ function updatePvpUI() {
     _weaponBarEl.classList.toggle('show', canShoot);
     if (!canShoot) closeWeaponPick();
   }
-  const pct = Math.max(0, Math.min(100, (myHp / (PVP.max_hp || 100)) * 100));
-  _pvpHpBar.style.width = pct + '%';
-  _pvpHpTxt.textContent = Math.max(0, Math.round(myHp));
-  _pvpKills.textContent  = myKills;
-  _pvpDeaths.textContent = myDeaths;
+  const maxHp = (PVP.max_hp || 100);
+  const pct = Math.max(0, Math.min(100, (myHp / maxHp) * 100));
+  _hpBarFill.style.width = pct + '%';
+  _hpBarFill.classList.toggle('low',  pct <= 50 && pct > 25);
+  _hpBarFill.classList.toggle('crit', pct <= 25);
+  _hpVal.textContent     = Math.max(0, Math.round(myHp));
+  _hpMaxVal.textContent  = maxHp;
+  _hudKills.textContent  = myKills;
+  _hudDeaths.textContent = myDeaths;
   if (myDead) {
     if (!_deathOv.classList.contains('show')) _deathOv.classList.add('show');
     _deathBy.textContent = myDeathBy ? `Тебя завалил ${myDeathBy}` : '';
@@ -5962,6 +6051,9 @@ function render() {
   // Снимаем shake-трансформ ПЕРЕД UI-слоем (стрелки POI / мини-карта),
   // чтобы UI не дёргался во время отдачи камеры.
   if (shakeNow > 0.05) ctx.restore();
+  // Ночной тинт — поверх ВСЕХ объектов мира, но ПОД UI-слоем (стрелки,
+  // мини-карта рисуются после, чтобы остаться читаемыми).
+  drawNightTint();
   // Стрелки-указатели на POI, которые сейчас за пределами видимости.
   drawPOIArrows(r0, r1, c0, c1);
   // Стрелка-указатель на инкассатора если он за пределами экрана
