@@ -11290,10 +11290,14 @@ def _world_is_wall(r: int, c: int) -> bool:
         return True
     BLOCK = 8
     rm = r % BLOCK; cm = c % BLOCK
-    if rm <= 1 or cm <= 1:
-        return False  # дорога
-    if rm == 2 or rm == BLOCK - 1 or cm == 2 or cm == BLOCK - 1:
-        return False  # тротуар
+    # Дорога — ТРИ клетки шириной (mod ∈ {0,1,2}). Должно совпадать
+    # с client buildMap() в world.html, иначе серверная LOS-проверка
+    # будет считать стенами тайлы которые клиент рисует как дорогу.
+    if rm <= 2 or cm <= 2:
+        return False
+    # Тротуар — mod ∈ {3, BLOCK-1}
+    if rm == 3 or rm == BLOCK - 1 or cm == 3 or cm == BLOCK - 1:
+        return False
     br = r // BLOCK; bc = c // BLOCK
     h = (br * 17 + bc * 31) % 11
     if h == 0 or h == 7:

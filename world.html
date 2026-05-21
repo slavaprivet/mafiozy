@@ -728,18 +728,20 @@ function buildMap() {
       if (r === 0 || r === MAP_ROWS - 1 || c === 0 || c === MAP_COLS - 1) {
         row.push(1); continue;
       }
-      // Дорога — две клетки шириной (mod 8 = 0 или 1)
-      const onRoadR = (r % BLOCK <= 1);
-      const onRoadC = (c % BLOCK <= 1);
+      // Дорога — ТРИ клетки шириной (mod 8 ∈ {0,1,2}). Шире чем раньше
+      // (было 2 тайла) — между зданиями ощутимо просторнее.
+      const onRoadR = (r % BLOCK <= 2);
+      const onRoadC = (c % BLOCK <= 2);
       if (onRoadR || onRoadC) { row.push(0); continue; }
-      // Тротуар — третья клетка от границы блока (mod 8 = 2 или 7)
-      const sideR = (r % BLOCK === 2) || (r % BLOCK === BLOCK - 1);
-      const sideC = (c % BLOCK === 2) || (c % BLOCK === BLOCK - 1);
+      // Тротуар — клетка сразу за дорогой и у границы блока
+      // (mod 8 ∈ {3, 7}).
+      const sideR = (r % BLOCK === 3) || (r % BLOCK === BLOCK - 1);
+      const sideC = (c % BLOCK === 3) || (c % BLOCK === BLOCK - 1);
       if (sideR || sideC) { row.push(9); continue; }   // бордюр-плитка
-      // Если это парк-блок — внутри 4×4 заливаем травой
+      // Парк-блок — газон внутри
       const br = Math.floor(r / BLOCK), bc = Math.floor(c / BLOCK);
       if (isParkBlock(br, bc)) { row.push(8); continue; }
-      // Иначе — здание (4×4 в центре блока)
+      // Здание — внутренний квадрат 3×3 (mod ∈ {4,5,6})
       row.push(1);
     }
     MAP.push(row);
@@ -755,16 +757,15 @@ function buildMap() {
       if (x < 0.30) MAP[r][c] = 6;          // дерево
     }
   }
-  // Фонари — на бордюре через каждые 4 тайла (углы кварталов)
+  // Фонари — на бордюре через каждые 4 тайла (углы кварталов).
+  // Тротуар теперь на тайлах 3 и 7 (BLOCK-1), не 2 и 7 как раньше.
   for (let r = 2; r < MAP_ROWS - 2; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
       if (MAP[r][c] !== 9) continue;
-      const onCornerR = (r % BLOCK === 2) || (r % BLOCK === BLOCK - 1);
-      const onCornerC = (c % BLOCK === 2) || (c % BLOCK === BLOCK - 1);
+      const onCornerR = (r % BLOCK === 3) || (r % BLOCK === BLOCK - 1);
+      const onCornerC = (c % BLOCK === 3) || (c % BLOCK === BLOCK - 1);
       if (!onCornerR && !onCornerC) continue;
-      // Углы кварталов — точки где r%8 ∈ {2,7} И c%8 ∈ {2,7}
       if (onCornerR && onCornerC) MAP[r][c] = 7;
-      // Доп. фонари по бордюру каждые 4 тайла
       else if ((r % 4 === 0) && onCornerC) MAP[r][c] = 7;
       else if ((c % 4 === 0) && onCornerR) MAP[r][c] = 7;
     }
@@ -779,13 +780,13 @@ function buildMap() {
       else if (x < 0.052)  MAP[r][c] = 5; // мусорка
     }
   }
-  // Машины — припаркованные ВДОЛЬ дороги (на второй полосе)
+  // Припаркованные машины — на крайней полосе у тротуара (тайл 2)
   for (let r = 2; r < MAP_ROWS - 2; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
       if (MAP[r][c] !== 0) continue;
-      if ((r % BLOCK !== 1) && (c % BLOCK !== 1)) continue; // только дальняя полоса
+      if ((r % BLOCK !== 2) && (c % BLOCK !== 2)) continue; // крайняя полоса у бордюра
       const x = det(r, c, 7);
-      if (x < 0.06) MAP[r][c] = 2; // машина
+      if (x < 0.05) MAP[r][c] = 2; // машина (чуть реже теперь — улицы шире)
     }
   }
   // Гарантируем — все POI-тайлы стоят на здании (тип 1), иначе вывеска
@@ -956,19 +957,24 @@ function spawnCar(idx) {
     const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
     const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
     if (MAP[r][c] !== 0) continue;
-    const onRoadR = (r % BLOCK <= 1);
-    const onRoadC = (c % BLOCK <= 1);
+    const onRoadR = (r % BLOCK <= 2);
+    const onRoadC = (c % BLOCK <= 2);
     if (!onRoadR && !onRoadC) continue;
-    // Горизонтальная дорога — движение по E/W
+    // Горизонтальная дорога 3 тайла (0,1,2). Полосы:
+    //   r%8==0 → восток (+c), r%8==2 → запад (-c), r%8==1 — медиана (skip).
     let dirDx = 0, dirDy = 0;
     if (onRoadR && !onRoadC) {
-      // Полоса r%8==0 → восток (+c), r%8==1 → запад (-c)
-      dirDx = (r % BLOCK === 0) ? 1 : -1;
+      const lane = r % BLOCK;
+      if (lane === 0) dirDx = 1;
+      else if (lane === 2) dirDx = -1;
+      else continue;   // средняя полоса — медиана
     } else if (onRoadC && !onRoadR) {
-      // Полоса c%8==0 → юг (+r), c%8==1 → север (-r)
-      dirDy = (c % BLOCK === 0) ? 1 : -1;
+      const lane = c % BLOCK;
+      if (lane === 0) dirDy = 1;
+      else if (lane === 2) dirDy = -1;
+      else continue;
     } else {
-      // Перекрёсток — пропускаем, машина там не должна спавниться
+      // Перекрёсток (3×3) — не спавним
       continue;
     }
     const model = CAR_MODELS[idx % CAR_MODELS.length];
@@ -1017,7 +1023,7 @@ function carCanGo(car, dt) {
     const lr = Math.floor(car.r + car.dirDy * (look + 0.5));
     const lc = Math.floor(car.c + car.dirDx * (look + 0.5));
     if (lr < 0 || lc < 0 || lr >= MAP_ROWS || lc >= MAP_COLS) break;
-    const isIntersect = (lr % BLOCK <= 1) && (lc % BLOCK <= 1);
+    const isIntersect = (lr % BLOCK <= 2) && (lc % BLOCK <= 2);
     if (!isIntersect) continue;
     // Не сам тайл (мы уже в нём)
     if (lr === Math.floor(car.r) && lc === Math.floor(car.c)) continue;
@@ -2256,9 +2262,9 @@ function drawTile(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
   const t = MAP[r][c];
-  // Тип поверхности — дорога/тротуар/трава/арена-пол
-  const onRoadR = (r % BLOCK <= 1);
-  const onRoadC = (c % BLOCK <= 1);
+  // Тип поверхности — дорога (3 тайла) / тротуар (1) / трава / арена-пол
+  const onRoadR = (r % BLOCK <= 2);
+  const onRoadC = (c % BLOCK <= 2);
   const isRoad  = (onRoadR || onRoadC);
   let color;
   if (t === 8 || t === 6) {
@@ -2298,13 +2304,13 @@ function drawTile(r, c) {
       ctx.fillRect(p.x + 2 - (k - 2), p.y + 1, 1, 2);
     }
   }
-  // Жёлтая прерывистая разметка по центру дороги (только горизонтальные полосы)
-  if (onRoadR && !onRoadC && (r % BLOCK === 0) && (c % 3 === 0)) {
+  // Жёлтая прерывистая разметка по центру дороги (центр 3-тайловой полосы = mod 1)
+  if (onRoadR && !onRoadC && (r % BLOCK === 1) && (c % 3 === 0)) {
     ctx.fillStyle = '#a68a18';
     ctx.fillRect(p.x - wx * 0.18, p.y - 1.5, wx * 0.36, 3);
   }
-  // По центру вертикальных дорог — серые люки
-  if (onRoadC && !onRoadR && (c % BLOCK === 0) && (r % 4 === 0)) {
+  // По центру вертикальных дорог — серые люки (центр = mod 1)
+  if (onRoadC && !onRoadR && (c % BLOCK === 1) && (r % 4 === 0)) {
     ctx.fillStyle = '#3a3a3a';
     ctx.beginPath();
     ctx.ellipse(p.x, p.y, wx * 0.10, wy * 0.10, 0, 0, Math.PI * 2);
@@ -4671,12 +4677,12 @@ function render() {
       else if (t === 7) items.push({ depth: r + c, draw: () => drawLamp(r, c) });
     }
   }
-  // Светофоры на перекрёстках (тайл где r%8<=1 И c%8<=1).
-  // Берём «северо-западный» угол каждого блока.
+  // Светофоры на перекрёстках. Перекрёсток теперь 3×3 (mod ∈ {0,1,2});
+  // «северо-восточный» угол около бордюра — это тайл (2, 2).
   for (let r = r0; r < r1; r++) {
-    if (r % BLOCK !== 1) continue;
+    if (r % BLOCK !== 2) continue;
     for (let c = c0; c < c1; c++) {
-      if (c % BLOCK !== 1) continue;
+      if (c % BLOCK !== 2) continue;
       items.push({ depth: r + c - 0.3, draw: () => drawTrafficLight(r, c) });
     }
   }
