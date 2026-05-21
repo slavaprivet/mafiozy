@@ -59,9 +59,13 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
 }
 
 /* Чат-инпут */
+/* Чат-кнопка — справа НАД правым джойстиком (раньше перекрывала его).
+   Инпут раскрывается ВЛЕВО (flex-direction: row-reverse) — кнопка
+   остаётся прижата к правому краю, поле бежит к центру экрана. */
 #chatBar {
-  position: absolute; right: 14px; bottom: 30px; display: flex; gap: 6px;
-  align-items: center; z-index: 4;
+  position: absolute; right: 14px; bottom: 168px;
+  display: flex; flex-direction: row-reverse; gap: 6px;
+  align-items: center; z-index: 6;
 }
 #chatInput {
   width: 0; opacity: 0; transition: width .2s ease, opacity .2s ease;
@@ -69,10 +73,10 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
   padding: 10px 12px; font-size: 14px; color: #fff; outline: none;
   font-family: inherit;
 }
-#chatInput.open { width: min(220px, 50vw); opacity: 1; }
+#chatInput.open { width: min(240px, 56vw); opacity: 1; }
 #btnChat {
   background: rgba(40,60,100,.92); border: 2px solid #5aa8ff; border-radius: 14px;
-  color: #bcd9ff; font-size: 22px; cursor: pointer; width: 56px; height: 56px;
+  color: #bcd9ff; font-size: 22px; cursor: pointer; width: 48px; height: 48px;
 }
 
 /* Floating «Зайти в район» — для перехода к боям */
@@ -4710,7 +4714,7 @@ function render() {
       px -= Math.cos(player.ang) * k;
       py -= Math.sin(player.ang) * k;
     }
-    const myChat = (_localChat && performance.now() - _localChatT < 3500) ? _localChat : null;
+    const myChat = (_localChat && performance.now() - _localChatT < chatDuration(_localChat)) ? _localChat : null;
     drawPerson(px, py, player.ang, QP.look,
                player.walking ? player.walkPhase : 0, QP.name, myChat, true,
                myHp, PVP.max_hp, myDead);
@@ -4725,7 +4729,7 @@ function render() {
     items.push({ depth: o.y + o.x + 0.001, draw: () => {
       const p = w2s(o.y + 0.5, o.x + 0.5);
       const phase = (o.w ? (o._walkPhase || 0) : 0);
-      const chat = (o.chat && performance.now() - o.chatT < 4000) ? o.chat : null;
+      const chat = (o.chat && performance.now() - o.chatT < chatDuration(o.chat)) ? o.chat : null;
       drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, o.name, chat, false,
                  o.hp, PVP.max_hp, o.dead);
       // Оружие в руке другого игрока — если PvP и жив. Сервер пока не
@@ -5124,6 +5128,14 @@ emojiBar.querySelectorAll('.em').forEach(btn => {
   });
 });
 let _localChat = '', _localChatT = 0;
+
+// Длительность отображения чат-баббла зависит от длины текста.
+// Короткое «👍» — 2.5с, длинное (~80 символов) — почти 9с, абсолютный
+// максимум 15с чтобы баббл не висел вечно если игрок отошёл.
+function chatDuration(text) {
+  if (!text) return 2500;
+  return Math.min(15000, 2500 + String(text).length * 80);
+}
 
 // ── Старт ──────────────────────────────────────────────────────
 (async () => {

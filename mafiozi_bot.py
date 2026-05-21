@@ -12172,8 +12172,10 @@ class WorldSim:
                 'y':    round(p['y'], 2),
                 'ang':  round(p['ang'], 2),
                 'w':    bool(p.get('walking')),
-                # Чат-баббл «живёт» 4 сек после получения
-                'chat': p['last_chat'] if (time.time() - p['last_chat_t']) < 4.0 else '',
+                # Чат-баббл живёт до 16с (длинные сообщения дольше). Точная
+                # длительность вычисляется клиентом по длине текста; здесь
+                # просто широкое окно чтобы не отрезать раньше времени.
+                'chat': p['last_chat'] if (time.time() - p['last_chat_t']) < 16.0 else '',
                 # PVP/Wanted поля — клиент рисует HP-бар и звёзды
                 'hp':     int(p.get('hp', 100)),
                 'dead':   bool(p.get('dead', False)),
