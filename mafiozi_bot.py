@@ -11335,11 +11335,14 @@ def _dist_to_segment(px: float, py: float,
 class WorldSim:
     """Глобальная симуляция открытого мира — один экземпляр на сервер.
     Хранит позиции всех онлайн-игроков, рассылает снапшоты 15 Гц.
-    Эмерджентные события: инкассатор (см. tick_event / apply_event_shoot)."""
+    Эмерджентные события: инкассатор (см. tick_event / apply_event_shoot).
+    Wanted-система: за стрельбу по игрокам растут звёзды, спавнятся копы,
+    при 3 звёздах копы могут убить → отправка в тюрьму."""
     __slots__ = (
         'tick_no', 'last_tick_at', 'players', 'connections',
         'alive', 'started_at',
         'event', '_event_next_at',
+        'cops', '_next_cop_id', '_last_wanted_decay',
     )
 
     # ── Эмерджентные события: параметры ────────────────────────────
@@ -11391,6 +11394,31 @@ class WorldSim:
     INKASS_START_Y     = 5.0
     INKASS_END_X       = 13.0
     INKASS_END_Y       = 35.0
+    # ── Wanted-система + копы ──────────────────────────────────────
+    # При стрельбе по другим игрокам у стрелка растут звёзды розыска
+    # (0..3). На каждую звезду в городе спавнятся копы которые активно
+    # ищут wanted-игрока. При 3 звёздах копы могут убить и отправить
+    # в тюрьму на JAIL_DURATION_S. Стрельба по конвою инкассатора
+    # звёзды НЕ повышает (это уже бандитское событие, копы в нём занят).
+    WANTED_PER_HIT      = 0.5       # за попадание по игроку
+    WANTED_PER_KILL     = 1.0       # за убийство игрока
+    WANTED_PER_COP_HIT  = 0.4       # за стрельбу в копа (чтобы не было exploit)
+    WANTED_PER_COP_KILL = 1.0
+    WANTED_MAX          = 3.0
+    WANTED_DECAY_S      = 90.0      # через сколько секунд бездействия -1 звезда
+    COPS_PER_STAR       = 2         # сколько копов спавнится на каждую звезду
+    COP_HP              = 110
+    COP_SHOOT_R         = 8.5
+    COP_SHOOT_DMG       = 16
+    COP_SHOOT_CD        = 1.4
+    COP_CHASE_SPEED     = 2.0       # быстрее обычной машины
+    COP_RESPAWN_GAP_S   = 4.0       # пауза перед спавном нового копа
+    COP_DESPAWN_R       = 25.0      # если коп отстал — деспаун
+    JAIL_DURATION_S     = 60        # минута в тюрьме
+    JAIL_X              = 56.0      # тюрьма в правом-нижнем углу карты
+    JAIL_Y              = 56.0
+    # Радиус «тюремной зоны» — игрок не может выйти пока jail_until
+    JAIL_R              = 3.5
 
     def __init__(self):
         self.tick_no         = 0
@@ -11403,13 +11431,24 @@ class WorldSim:
         self.event           = None
         # Когда заспавнить следующее (unix-секунды).
         self._event_next_at  = self.started_at + self.EVENT_FIRST_DELAY
+        # Wanted-система: копы в городе (dict list) и счётчик id.
+        self.cops                = []
+        self._next_cop_id        = 1
+        self._last_wanted_decay  = self.started_at
 
-    def add_or_update(self, uid: str, name: str, look: dict) -> None:
+    def add_or_update(self, uid: str, name: str, look: dict,
+                       wanted: float = 0.0, jail_until: int = 0) -> None:
         if uid in self.players:
             self.players[uid]['name'] = name
             if look:
                 self.players[uid]['look'] = look
             self.players[uid]['last_seen'] = time.time()
+            # Перетягиваем wanted из БД только если в мире был 0 — иначе
+            # уже накопил в текущей сессии и DB-значение устарело.
+            if not self.players[uid].get('_wanted'):
+                self.players[uid]['_wanted'] = float(wanted or 0)
+            if jail_until:
+                self.players[uid]['_jail_until'] = int(jail_until)
             return
         # Спавн: первый игрок — центр карты (на дороге 32,32). Остальные —
         # на ближайшей дороге РЯДОМ с уже играющим (хостом), чтобы сразу
@@ -11466,7 +11505,15 @@ class WorldSim:
             'dead':      False,
             'kills':     0,
             'deaths':    0,
+            # Wanted система — загружаются из БД при коннекте
+            '_wanted':       float(wanted or 0.0),
+            '_jail_until':   int(jail_until or 0),
+            '_last_shot_t':  0.0,   # для wanted decay
         }
+        # Если игрок зашёл с активным jail_until — спавним в тюрьму
+        if jail_until and jail_until > time.time():
+            self.players[uid]['x'] = self.JAIL_X
+            self.players[uid]['y'] = self.JAIL_Y
 
     def remove(self, uid: str) -> None:
         self.players.pop(uid, None)
@@ -11486,6 +11533,15 @@ class WorldSim:
         # Clamp в границы карты с небольшим отступом
         nx = max(0.5, min(WORLD_MAP_COLS - 0.5, nx))
         ny = max(0.5, min(WORLD_MAP_ROWS - 0.5, ny))
+        # В тюрьме — нельзя выходить за её радиус (JAIL_R).
+        # Клиент может слать координаты «снаружи», мы тянем обратно.
+        if (p.get('_jail_until') or 0) > time.time():
+            dx = nx - self.JAIL_X; dy = ny - self.JAIL_Y
+            d_cell = (dx*dx + dy*dy) ** 0.5
+            if d_cell > self.JAIL_R:
+                k = self.JAIL_R / d_cell if d_cell > 0.001 else 0
+                nx = self.JAIL_X + dx * k
+                ny = self.JAIL_Y + dy * k
         # Phase 1: лимит скорости — не больше 8 тайлов/сек.
         # Считаем по dt с прошлого инпута. Если прыжок больше — режем.
         last_t = p.get('_input_t', 0.0)
@@ -11729,11 +11785,15 @@ class WorldSim:
                 'dmg':        int(dmg),
                 'killed':     killed,
             })
-        # 5) Респаун мёртвых игроков
+        # 5) Респаун мёртвых игроков — в тюрьме если jail_until > now
         for p_uid, p in self.players.items():
             if p.get('dead') and now >= p.get('_respawn_at', 0):
                 p['dead'] = False
                 p['hp']   = int(p.get('max_hp', 100))
+                if (p.get('_jail_until') or 0) > now:
+                    # Спавн в тюрьме (правый-нижний угол карты)
+                    p['x'] = self.JAIL_X + random.uniform(-1.0, 1.0)
+                    p['y'] = self.JAIL_Y + random.uniform(-1.0, 1.0)
         return pkts
 
     def apply_event_shoot(self, uid: str, target_id: str = 'b',
@@ -11830,6 +11890,11 @@ class WorldSim:
             target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
             shooter['kills']      = int(shooter.get('kills', 0)) + 1
             killed = True
+        # Wanted: попадание = +0.5, убийство = +1 (минус 0.5 уже учтённое)
+        self._bump_wanted(shooter, self.WANTED_PER_HIT)
+        if killed:
+            self._bump_wanted(shooter,
+                              self.WANTED_PER_KILL - self.WANTED_PER_HIT)
         return {
             'kind':       'pvp_shot',
             'shooter_uid': str(uid),
@@ -11854,6 +11919,207 @@ class WorldSim:
             self.INKASS_END_X,   self.INKASS_END_Y,
         ) < self.PVP_HOT_R
 
+    # ── Wanted-система: копы в городе ──────────────────────────────
+    def _bump_wanted(self, shooter: dict, amount: float) -> None:
+        """Добавляет звёзды стрелку (cap WANTED_MAX), фиксирует время
+        для decay-таймера."""
+        if not shooter:
+            return
+        shooter['_wanted']      = min(self.WANTED_MAX,
+                                       (shooter.get('_wanted') or 0) + amount)
+        shooter['_last_shot_t'] = time.time()
+
+    def spawn_cop(self, x: float, y: float, target_uid: str = '') -> dict:
+        self._next_cop_id += 1
+        cop = {
+            'id':         f'cop{self._next_cop_id}',
+            'x':          float(x),
+            'y':          float(y),
+            'ang':        0.0,
+            'hp':         int(self.COP_HP),
+            'max_hp':     int(self.COP_HP),
+            'alive':      True,
+            'target_uid': target_uid or '',
+            '_shot_t':    0.0,
+            '_spawn_t':   time.time(),
+        }
+        self.cops.append(cop)
+        return cop
+
+    def tick_cops(self, dt: float) -> list:
+        """Двигает копов, спавнит новых по wanted-уровню, стреляет
+        в стрелявших. Возвращает list пакетов для broadcast."""
+        import math as _m
+        pkts = []
+        now = time.time()
+        # 1) Снимаем decay звёзд раз в 30с
+        if now - self._last_wanted_decay > 30.0:
+            for uid, p in self.players.items():
+                last_shot = p.get('_last_shot_t', 0) or 0
+                if last_shot <= 0:
+                    continue
+                if (p.get('_wanted') or 0) <= 0:
+                    continue
+                if now - last_shot > self.WANTED_DECAY_S:
+                    p['_wanted'] = max(0, (p.get('_wanted') or 0) - 1)
+                    # сбрасываем таймер чтобы следующее снижение пошло
+                    p['_last_shot_t'] = now
+            self._last_wanted_decay = now
+        # 2) Список wanted-игроков (звёзд ≥ 1, не в тюрьме, живы)
+        wanted_players = []
+        for uid, p in self.players.items():
+            if p.get('dead'):
+                continue
+            if (p.get('_jail_until') or 0) > now:
+                continue
+            if int(p.get('_wanted') or 0) >= 1:
+                wanted_players.append(p)
+        # 3) Чистим мёртвых копов и тех чей target пропал/убежал
+        survivors = []
+        for cop in self.cops:
+            if not cop['alive']:
+                continue
+            t = self.players.get(cop['target_uid'])
+            # Если target пропал или ушёл из мира — переназначаем
+            if not t or t.get('dead') or (t.get('_jail_until') or 0) > now:
+                if wanted_players:
+                    # Берём ближайшего wanted
+                    best = min(wanted_players,
+                               key=lambda wp: (wp['x']-cop['x'])**2 + (wp['y']-cop['y'])**2)
+                    cop['target_uid'] = best['uid']
+                    t = best
+                else:
+                    continue   # копу некого ловить — деспаун
+            # Если коп далеко от текущего таргета — деспаун
+            d = ((t['x']-cop['x'])**2 + (t['y']-cop['y'])**2) ** 0.5
+            if d > self.COP_DESPAWN_R:
+                continue
+            survivors.append(cop)
+        self.cops = survivors
+        # 4) Спавн новых копов до нужного количества (COPS_PER_STAR * total stars)
+        if wanted_players:
+            total_stars = sum(int(p.get('_wanted') or 0) for p in wanted_players)
+            needed = min(8, total_stars * self.COPS_PER_STAR)
+            attempts = 0
+            while len(self.cops) < needed and attempts < 8:
+                attempts += 1
+                target = random.choice(wanted_players)
+                ang  = random.random() * 2 * _m.pi
+                dist = 10 + random.random() * 4
+                sx = target['x'] + _m.cos(ang) * dist
+                sy = target['y'] + _m.sin(ang) * dist
+                sx = max(2, min(WORLD_MAP_COLS - 2, sx))
+                sy = max(2, min(WORLD_MAP_ROWS - 2, sy))
+                # Не спавним в стену — пробуем перейти на ближайшую дорогу
+                if _world_is_wall(int(sy), int(sx)):
+                    found = False
+                    for _ in range(8):
+                        ang2  = random.random() * 2 * _m.pi
+                        dist2 = 10 + random.random() * 4
+                        sx2 = max(2, min(WORLD_MAP_COLS - 2,
+                                         target['x'] + _m.cos(ang2) * dist2))
+                        sy2 = max(2, min(WORLD_MAP_ROWS - 2,
+                                         target['y'] + _m.sin(ang2) * dist2))
+                        if not _world_is_wall(int(sy2), int(sx2)):
+                            sx, sy = sx2, sy2; found = True; break
+                    if not found:
+                        break
+                cop = self.spawn_cop(sx, sy, target['uid'])
+                pkts.append({
+                    'kind':   'cop_spawned',
+                    'cop_id': cop['id'],
+                    'x':      round(sx, 2),
+                    'y':      round(sy, 2),
+                })
+        # 5) Движение + стрельба каждого копа
+        for cop in self.cops:
+            target = self.players.get(cop['target_uid'])
+            if not target or target.get('dead'):
+                continue
+            dx = target['x'] - cop['x']
+            dy = target['y'] - cop['y']
+            dist = (dx*dx + dy*dy) ** 0.5
+            desired = 4.5
+            if dist > desired + 0.2:
+                step = self.COP_CHASE_SPEED * dt
+                if step > dist - desired: step = dist - desired
+                cop['x'] += (dx / dist) * step
+                cop['y'] += (dy / dist) * step
+            if dist > 0.05:
+                cop['ang'] = _m.atan2(dy, dx)
+            # Стрельба
+            if dist <= self.COP_SHOOT_R and (now - cop['_shot_t']) >= self.COP_SHOOT_CD:
+                if _world_los(cop['x'], cop['y'], target['x'], target['y']):
+                    cop['_shot_t'] = now
+                    dmg = self.COP_SHOOT_DMG
+                    target['hp'] = int(max(0, int(target.get('hp', 100)) - dmg))
+                    killed = False
+                    jailed = False
+                    if target['hp'] <= 0:
+                        target['hp']          = 0
+                        target['dead']        = True
+                        target['deaths']      = int(target.get('deaths', 0)) + 1
+                        target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                        killed = True
+                        # При 2+ звёздах копы отправляют в тюрьму
+                        if (target.get('_wanted') or 0) >= 2:
+                            target['_jail_until'] = int(now + self.JAIL_DURATION_S)
+                            target['_wanted']     = 0.0
+                            jailed = True
+                    pkts.append({
+                        'kind':       'cop_shot',
+                        'cop_id':     cop['id'],
+                        'sx':         round(cop['x'], 2),
+                        'sy':         round(cop['y'], 2),
+                        'target_uid': cop['target_uid'],
+                        'tx':         round(target['x'], 2),
+                        'ty':         round(target['y'], 2),
+                        'dmg':        int(dmg),
+                        'killed':     killed,
+                        'jailed':     jailed,
+                    })
+        return pkts
+
+    def apply_cop_shoot(self, uid: str, cop_id: str,
+                        weapon: str = '') -> dict | None:
+        """Игрок стреляет в копа. Возвращает hit-пакет для broadcast,
+        либо None если выстрел отклонён (нет копа/LOS/дальность)."""
+        shooter = self.players.get(uid)
+        if not shooter or shooter.get('dead'):
+            return None
+        if (shooter.get('_jail_until') or 0) > time.time():
+            return None   # в тюрьме — нельзя стрелять
+        cop = next((c for c in self.cops if c['id'] == cop_id and c.get('alive')), None)
+        if not cop:
+            return None
+        d_sq = (shooter['x'] - cop['x'])**2 + (shooter['y'] - cop['y'])**2
+        if d_sq > self.INKASS_FIRE_R * self.INKASS_FIRE_R:
+            return None
+        if not _world_los(shooter['x'], shooter['y'], cop['x'], cop['y']):
+            return None
+        dmg = max(5, min(150, int(self.WEAPON_DMG.get(weapon, 25))))
+        cop['hp'] -= dmg
+        # Wanted: стрельба по копу — серьёзный exploit-блок
+        self._bump_wanted(shooter, self.WANTED_PER_COP_HIT)
+        killed = False
+        if cop['hp'] <= 0:
+            cop['hp']    = 0
+            cop['alive'] = False
+            self._bump_wanted(shooter,
+                              self.WANTED_PER_COP_KILL - self.WANTED_PER_COP_HIT)
+            killed = True
+        return {
+            'kind':        'cop_hit',
+            'cop_id':      cop_id,
+            'shooter_uid': str(uid),
+            'sx':          round(shooter['x'], 2),
+            'sy':          round(shooter['y'], 2),
+            'tx':          round(cop['x'], 2),
+            'ty':          round(cop['y'], 2),
+            'dmg':         int(dmg),
+            'killed':      killed,
+        }
+
     def snapshot_for(self, uid: str) -> dict:
         """Снапшот для конкретного игрока: видит себя точно + всех в радиусе."""
         me = self.players.get(uid)
@@ -11877,12 +12143,10 @@ class WorldSim:
                 'w':    bool(p.get('walking')),
                 # Чат-баббл «живёт» 4 сек после получения
                 'chat': p['last_chat'] if (time.time() - p['last_chat_t']) < 4.0 else '',
-                # PVP — клиент рисует HP-бар над головой если hp<max_hp.
-                # Без этих полей клиент видел дефолтный maxHp и считал
-                # друга «полным здоровьем», но во время респауна показ
-                # призрака не работал.
+                # PVP/Wanted поля — клиент рисует HP-бар и звёзды
                 'hp':     int(p.get('hp', 100)),
                 'dead':   bool(p.get('dead', False)),
+                'wanted': int(min(3, round(p.get('_wanted') or 0))),
             })
         # Активное эмерджентное событие (инкассатор + эскорт) — шлём
         # всем клиентам одинаково, независимо от радиуса. Карта 60×60 —
@@ -11932,6 +12196,23 @@ class WorldSim:
             next_event_in = -1   # «прямо сейчас идёт»
         # Игрок в PvP-зоне (можно стрелять/быть подстреленным)
         me_in_pvp = self._in_pvp_zone(mx, my)
+        # Wanted-звёзды (0..3 целое — для UI), сколько до выхода из тюрьмы
+        my_wanted   = int(min(3, round(me.get('_wanted') or 0)))
+        my_jail_in  = max(0, int(round((me.get('_jail_until') or 0) - now_t)))
+        # Шлём ВСЕ живые копы всем клиентам (карта 60×60, их 0..8)
+        cops_payload = []
+        for cop in self.cops:
+            if not cop.get('alive'):
+                continue
+            cops_payload.append({
+                'id':         cop['id'],
+                'x':          round(cop['x'], 2),
+                'y':          round(cop['y'], 2),
+                'ang':        round(cop['ang'], 2),
+                'hp':         max(0, int(cop['hp'])),
+                'max_hp':     int(cop['max_hp']),
+                'target_uid': cop.get('target_uid') or '',
+            })
         return {
             't': 'snap',
             'd': {
@@ -11945,10 +12226,13 @@ class WorldSim:
                     'deaths':  int(me.get('deaths', 0)),
                     'dead':    bool(me.get('dead', False)),
                     'respawn_in': respawn_in,
+                    'wanted':     my_wanted,
+                    'jail_in':    my_jail_in,
                     'look':    me.get('look') or {},
                 },
                 'others':        others,
                 'event':         ev_payload,
+                'cops':          cops_payload,
                 'next_event_in': next_event_in,
                 'pvp_active':    me_in_pvp,
                 'tick':          self.tick_no,
@@ -11989,13 +12273,13 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     try: await ws.close(code=4001, message=b'afk')
                     except Exception: pass
                 logger.info("WorldSim: kicked AFK uid=%s", uid)
-            # Эмерджентные события — двигаем конвой, спавним новых, AI
-            # стрельбы. tick_event возвращает list пакетов на broadcast
-            # (inkassator_spawned / inkass_shot / inkassator_escaped).
-            # Тикаем ТОЛЬКО если в мире есть кто-то — чтобы конвой не
-            # «умчался» пока никто не видел и не висел спавн в пустоте.
+            # Эмерджентные события + копы — двигаем конвой и копов,
+            # спавним новых, AI стрельбы. Возвращают list пакетов на
+            # broadcast (inkassator_spawned/inkass_shot/inkassator_escaped/
+            # cop_spawned/cop_shot). Тикаем только если в мире кто-то есть.
             if world.players:
                 ev_pkts = world.tick_event(WORLD_TICK_DT) or []
+                ev_pkts.extend(world.tick_cops(WORLD_TICK_DT) or [])
                 # Проверяем, не дошёл ли конвой до цели — добавляем escape-пакет
                 # (tick_event только помечает finished='escaped', но не шлёт)
                 if (world.event is not None
@@ -13606,7 +13890,9 @@ async def _coop_http_app():
         if old is not None and old is not ws:
             try: await old.close(code=4000, message=b'replaced')
             except Exception: pass
-        world.add_or_update(uid, name, look)
+        world.add_or_update(uid, name, look,
+                            wanted=float(char.get('wanted') or 0),
+                            jail_until=int(char.get('jail_until') or 0))
         world.connections[uid] = ws
 
         # Hello-кадр
@@ -13704,13 +13990,24 @@ async def _coop_http_app():
                         if target_uid:
                             hit_pkt = world.apply_player_shoot(uid, target_uid, weapon)
                             if hit_pkt:
-                                # Имена для красивого баннера «X убил Y»
                                 shooter_p = world.players.get(uid)
                                 target_p  = world.players.get(target_uid)
                                 if shooter_p:
                                     hit_pkt['shooter_name'] = (shooter_p.get('name') or '')[:24]
                                 if target_p:
                                     hit_pkt['target_name']  = (target_p.get('name') or '')[:24]
+                                hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
+                                for u2, ws2 in list(world.connections.items()):
+                                    try: await ws2.send_str(hit_blob)
+                                    except Exception: pass
+                    elif t == 'cop_shoot':
+                        # Игрок стреляет в копа (тоже копит wanted).
+                        # d = {target: 'cop123', weapon: 'pistol'}
+                        cop_id = str(d.get('target') or '')[:16]
+                        weapon = str(d.get('weapon') or '')[:24]
+                        if cop_id:
+                            hit_pkt = world.apply_cop_shoot(uid, cop_id, weapon)
+                            if hit_pkt:
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
@@ -13726,6 +14023,17 @@ async def _coop_http_app():
             cur = world.connections.get(uid)
             if cur is ws:
                 world.connections.pop(uid, None)
+            # Перед удалением — сохраняем wanted+jail в БД, чтобы при
+            # перезаходе они не сбросились в 0.
+            try:
+                p_save = world.players.get(uid)
+                if p_save:
+                    await update_character(int(uid),
+                        wanted=int(min(3, round(p_save.get('_wanted') or 0))),
+                        jail_until=int(p_save.get('_jail_until') or 0),
+                    )
+            except Exception as _e:
+                logger.warning("WorldSim: failed to persist wanted/jail for %s: %r", uid, _e)
             world.remove(uid)
             logger.info("WorldSim: WS closed uid=%s online=%d", uid, len(world.players))
         return ws

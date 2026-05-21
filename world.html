@@ -151,6 +151,38 @@ body.in-pvp #zoneBtn { top: 104px; }
   color: #ffae90; z-index: 8; display: none; font-family: inherit;
   pointer-events: none; animation: pvpPulse 1.4s ease-in-out infinite;
 }
+/* Wanted-звёзды — мой HUD-индикатор слева сверху */
+#wantedHud {
+  position: absolute; left: 14px; top: 60px;
+  background: rgba(20,10,10,.88); border: 1px solid #b8202a;
+  border-radius: 10px; padding: 4px 9px; font-size: 13px; font-weight: 800;
+  color: #ffd76b; z-index: 8; display: none; font-family: inherit;
+  pointer-events: none; letter-spacing: 1px;
+  box-shadow: 0 4px 12px rgba(184,32,42,.4);
+}
+#wantedHud.lvl1 { border-color: #ffd76b; }
+#wantedHud.lvl2 { border-color: #ff8030; animation: pvpPulse 1.6s ease-in-out infinite; }
+#wantedHud.lvl3 { border-color: #ff3030; animation: pvpPulse .8s ease-in-out infinite; }
+/* Большой оверлей «В ТЮРЬМЕ» — поверх всего, скрывает большую часть UI */
+#jailOverlay {
+  position: absolute; inset: 0; z-index: 35;
+  background: rgba(8,5,10,.85); display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  pointer-events: none; font-family: inherit; text-align: center;
+  /* Стенка тюрьмы — вертикальные полосы */
+  background-image: repeating-linear-gradient(
+    90deg, transparent, transparent 32px,
+    rgba(120,120,120,.18) 32px, rgba(120,120,120,.18) 38px,
+    transparent 38px, transparent 70px,
+    rgba(180,180,180,.15) 70px, rgba(180,180,180,.15) 74px
+  );
+}
+#jailOverlay.show { display: flex; }
+#jailOverlay .icon  { font-size: 64px; line-height: 1; margin-bottom: 8px; filter: drop-shadow(0 4px 12px rgba(0,0,0,.7)); }
+#jailOverlay .title { font-size: 28px; font-weight: 900; color: #ffd76b; letter-spacing: 3px; text-shadow: 0 2px 6px #000, 0 0 16px rgba(255,215,107,.55); }
+#jailOverlay .msg   { font-size: 14px; color: #c8d0dc; margin-top: 6px; max-width: 90vw; }
+#jailOverlay .cnt   { font-size: 42px; font-weight: 900; color: #fff; margin-top: 14px; text-shadow: 0 0 16px rgba(255,215,107,.6); font-variant-numeric: tabular-nums; }
+#jailOverlay .cnt_label { font-size: 11px; color: #888; margin-top: 4px; letter-spacing: 2px; }
 @keyframes pvpPulse {
   0%,100% { box-shadow: 0 0 0 0 rgba(255,80,80,.5); }
   50%     { box-shadow: 0 0 0 6px rgba(255,80,80,0); }
@@ -395,6 +427,16 @@ body.in-pvp #zoneBtn { top: 104px; }
   <div id="cdHud">⏱ До инкассатора —:—</div>
   <!-- PvP-зона активна (можно стрелять в игроков) -->
   <div id="pvpZone">🔫 ЗОНА PvP</div>
+  <!-- Wanted-индикатор (звёзды розыска) -->
+  <div id="wantedHud">⭐</div>
+  <!-- Большой оверлей «В тюрьме» — поверх всего пока сидишь -->
+  <div id="jailOverlay">
+    <div class="icon">⛓</div>
+    <div class="title">В ТЮРЬМЕ</div>
+    <div class="msg">Тебя взяли копы. Подожди, выйдешь скоро.</div>
+    <div class="cnt" id="jailCnt">00:00</div>
+    <div class="cnt_label">ДО ОСВОБОЖДЕНИЯ</div>
+  </div>
 
   <div id="emojiBar">
     <button class="em" data-e="😂">😂</button>
@@ -1199,7 +1241,12 @@ let wsFailStreak = 0;
 let worldEvent = null;
 // Доп. трассеры пуль от NPC-эскорта → игрок (или игрок → эскорт)
 // и таймстампы выстрелов для эффекта вспышки на дуле.
-let lastBossShotAt = new Map();  // npc_id ('b'/'g0'/'g1'/'g2') → ms-timestamp вспышки
+let lastBossShotAt = new Map();  // npc_id ('b'/'g0'/'g1'/'g2'/'copXXX') → ms-timestamp вспышки
+
+// ── Wanted-система + копы в городе ──────────────────────────────
+let worldCops = [];      // массив копов от сервера
+let myWanted  = 0;       // 0..3 звёзды у меня
+let myJailIn  = 0;       // секунд до выхода из тюрьмы (0 = не в тюрьме)
 
 function handleEventPacket(d) {
   const kind = d && d.kind;
@@ -1280,6 +1327,36 @@ function handleEventPacket(d) {
           `${sName} завалил ${tName} в зоне инкассатора.`, 2500, 'neutral');
       }
     }
+  } else if (kind === 'cop_spawned') {
+    // Новый коп вышел из-за угла — короткое уведомление + локальный
+    // marker эффект (можно не показывать вообще, чтобы не спамить)
+    if (myWanted >= 1) {
+      showEventBanner('🚓 Копы выехали',
+        `За тобой выехал патруль. Звёзд: ${myWanted}.`, 2200, 'lose');
+    }
+  } else if (kind === 'cop_shot') {
+    // Коп выстрелил в игрока — трассер + вспышка на дуле
+    bullets.push({
+      sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
+      t0: performance.now(), ttl: 180, hit: true, fromNpc: true,
+    });
+    if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
+    if (String(d.target_uid) === String(QP.uid)) {
+      flashHitOverlay();
+      if (d.killed) {
+        myDeathBy = d.jailed ? 'Копы (тюрьма)' : 'Копы';
+      }
+    }
+    if (d.killed && d.jailed && String(d.target_uid) === String(QP.uid)) {
+      showEventBanner('⛓ ТЮРЬМА',
+        `Копы взяли тебя живым. Минута за решёткой.`, 4000, 'lose');
+    }
+  } else if (kind === 'cop_hit') {
+    // Игрок попал в копа — трассер
+    bullets.push({
+      sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
+      t0: performance.now(), ttl: 160, hit: true, fromPlayer: true,
+    });
   }
 }
 
@@ -1436,6 +1513,12 @@ function wsConnect() {
       if (typeof d.next_event_in === 'number') nextEventIn = d.next_event_in;
       // Игрок сейчас в активной PvP-зоне? (вокруг маршрута, пока конвой жив)
       pvpActive = !!d.pvp_active;
+      // Wanted-система: копы в городе, мои звёзды и тюрьма
+      worldCops = d.cops || [];
+      if (d.me) {
+        if (typeof d.me.wanted === 'number')  myWanted = d.me.wanted;
+        if (typeof d.me.jail_in === 'number') myJailIn = d.me.jail_in;
+      }
     } else if (pkt.t === 'event') {
       handleEventPacket(pkt.d || {});
     }
@@ -1714,6 +1797,11 @@ function fire(angle = null) {
       dirX = Math.cos(player.ang); dirY = Math.sin(player.ang);
     }
   }
+  // В тюрьме стрелять нельзя
+  if (myJailIn > 0) {
+    showToast('⛓ Ты в тюрьме — стрелять нельзя', '🚫', 1500);
+    return;
+  }
   // Что под прицелом?
   // 1) Конвой в радиусе огня + по направлению (или auto-aim)
   let chosenConvoy = null;
@@ -1731,11 +1819,23 @@ function fire(angle = null) {
       if (!chosenConvoy || d < chosenConvoy.d) chosenConvoy = { id: t.id, x: t.x, y: t.y, d };
     }
   }
-  // 2) PvP-игрок
-  const pvpTarget = !chosenConvoy ? findPvpTargetAlongAim(dirX, dirY) : null;
-  if (!chosenConvoy && !pvpTarget && !inArena(player.r, player.c)) {
-    // Промах в пустоту — игнорим чтобы не спамить серверу
-    return;
+  // 2) Коп в радиусе огня + конусе
+  let chosenCop = null;
+  if (!chosenConvoy && worldCops && worldCops.length) {
+    for (const c of worldCops) {
+      const dx = c.x - player.c, dy = c.y - player.r;
+      const d = Math.hypot(dx, dy);
+      if (d > FIRE_R_CONVOY) continue;
+      const dn = d > 0.001 ? d : 1;
+      const dot = (dx * dirX + dy * dirY) / dn;
+      if (dot < 0.55) continue;
+      if (!chosenCop || d < chosenCop.d) chosenCop = { id: c.id, x: c.x, y: c.y, d };
+    }
+  }
+  // 3) PvP-игрок (в активной зоне инкассатора)
+  const pvpTarget = (!chosenConvoy && !chosenCop) ? findPvpTargetAlongAim(dirX, dirY) : null;
+  if (!chosenConvoy && !chosenCop && !pvpTarget && !inArena(player.r, player.c)) {
+    return;   // промах в пустоту — не спамим
   }
   lastShotClientT = now;
   _fireBtn.classList.add('cd');
@@ -1752,6 +1852,17 @@ function fire(angle = null) {
     } catch(e) {}
     return;
   }
+  if (chosenCop) {
+    bullets.push({
+      sr: player.r, sc: player.c, er: chosenCop.y, ec: chosenCop.x,
+      t0: now, ttl: 160, hit: true, fromPlayer: true,
+    });
+    try {
+      ws && ws.send(JSON.stringify({ t: 'cop_shoot',
+        d: { target: chosenCop.id, weapon: currentWeapon } }));
+    } catch(e) {}
+    return;
+  }
   if (pvpTarget) {
     bullets.push({
       sr: player.r, sc: player.c, er: pvpTarget.y, ec: pvpTarget.x,
@@ -1763,7 +1874,7 @@ function fire(angle = null) {
     } catch(e) {}
     return;
   }
-  // Старый PVP-арена-режим (если конвоя нет)
+  // Старый PVP-арена-режим (если конвоя/копов/PvP нет)
   sendShoot(player.ang);
 }
 _fireBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); }, { passive: false });
@@ -1817,7 +1928,33 @@ function updatePvpUI() {
     _pvpZoneEl.style.display = (pvpActive && !myDead) ? 'block' : 'none';
     document.body.classList.toggle('in-pvp', !!pvpActive);
   }
+  // Wanted HUD — звёзды слева сверху
+  if (_wantedHudEl) {
+    if (myWanted > 0) {
+      _wantedHudEl.textContent = '⭐'.repeat(myWanted) + ' WANTED';
+      _wantedHudEl.classList.remove('lvl1','lvl2','lvl3');
+      _wantedHudEl.classList.add('lvl' + myWanted);
+      _wantedHudEl.style.display = 'block';
+    } else {
+      _wantedHudEl.style.display = 'none';
+    }
+  }
+  // Jail overlay — большой блок при сидении в тюрьме
+  if (_jailOvEl) {
+    if (myJailIn > 0) {
+      _jailOvEl.classList.add('show');
+      const m = Math.floor(myJailIn / 60);
+      const s = myJailIn % 60;
+      _jailCntEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    } else {
+      _jailOvEl.classList.remove('show');
+    }
+  }
 }
+// Refs для wanted+jail HUD
+const _wantedHudEl = document.getElementById('wantedHud');
+const _jailOvEl    = document.getElementById('jailOverlay');
+const _jailCntEl   = document.getElementById('jailCnt');
 
 // ── Countdown / PvP-zone state из snap ──────────────────────────
 let nextEventIn = 0;
@@ -2054,36 +2191,112 @@ function drawTile(r, c) {
   }
 }
 
-// Дерево — крона из 3 кругов на стволе. Лёгкое покачивание (sin от времени).
+// ── Дерево — 3 типа (лиственное/хвойное/малое лиственное) ──────
+// Тип выбирается детерминированно по (r,c). Лёгкое покачивание
+// от ветра (sin), тень мягкая эллиптическая с прозрачностью,
+// крона с несколькими цветовыми слоями для глубины.
 function drawTree(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
-  const H = isoH(0.4);
-  const sway = Math.sin(performance.now() / 800 + r * 0.5 + c * 0.7) * 1.5;
-  // Тень
-  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  const treeType = ((r * 11 + c * 17) % 3 + 3) % 3;
+  const tt = performance.now() / 1000;
+  const sway = Math.sin(tt + r * 0.5 + c * 0.7) * 1.6;
+  // ── Мягкая тень эллипсом на земле (под кроной) ──────────────
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.32)';
+  ctx.filter = 'blur(1px)';
   ctx.beginPath();
-  ctx.ellipse(p.x + 3, p.y + 4, wx * 0.32, wy * 0.32, 0, 0, Math.PI * 2);
+  ctx.ellipse(p.x + 4, p.y + 3, wx * 0.35, wy * 0.30, 0, 0, Math.PI * 2);
   ctx.fill();
-  // Ствол
-  ctx.fillStyle = '#3a2a18';
-  ctx.fillRect(p.x - 3, p.y - H, 6, H + 2);
-  // Крона — 3 круга разного оттенка зелёного
-  const greens = ['#3a6a2a', '#4a8a3a', '#5aa05a'];
-  const baseY = p.y - H - 18;
-  ctx.fillStyle = greens[0];
-  ctx.beginPath();
-  ctx.arc(p.x - 7 + sway * 0.4, baseY + 4, 11, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = greens[1];
-  ctx.beginPath();
-  ctx.arc(p.x + 7 - sway * 0.4, baseY + 6, 11, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = greens[2];
-  ctx.beginPath();
-  ctx.arc(p.x + sway, baseY - 4, 13, 0, Math.PI * 2); ctx.fill();
-  // Блик
-  ctx.fillStyle = 'rgba(255,255,255,.18)';
-  ctx.beginPath();
-  ctx.arc(p.x + 3 + sway, baseY - 6, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  if (treeType === 0) {
+    // ─── ДУБ — крупное лиственное, объёмная округлая крона ───
+    const H = isoH(0.55);
+    // Ствол — толстый коричневый с тёмной стороной
+    ctx.fillStyle = '#5a3a20';
+    ctx.fillRect(p.x - 4, p.y - H, 8, H + 2);
+    ctx.fillStyle = '#3a2410';
+    ctx.fillRect(p.x + 1, p.y - H, 3, H + 2);
+    // Кольца на стволе (текстура)
+    ctx.strokeStyle = 'rgba(20,10,4,.5)';
+    ctx.lineWidth = 0.5;
+    for (let k = 0; k < 3; k++) {
+      const yk = p.y - 2 - k * 6;
+      ctx.beginPath(); ctx.moveTo(p.x - 4, yk); ctx.lineTo(p.x + 4, yk); ctx.stroke();
+    }
+    // Крона — 5 кругов слоями (внизу тёмные, сверху светлые)
+    const baseY = p.y - H - 16;
+    const greens = [
+      { c: '#2a4a1a', r: 13, dx: -8, dy:  6 },
+      { c: '#3a6a2a', r: 14, dx:  8, dy:  4 },
+      { c: '#4a8a3a', r: 12, dx:  0, dy:  0 },
+      { c: '#5aa050', r: 11, dx: -5, dy: -6 },
+      { c: '#6abc6a', r:  9, dx:  6, dy: -8 },
+    ];
+    for (const cb of greens) {
+      ctx.fillStyle = cb.c;
+      ctx.beginPath();
+      ctx.arc(p.x + cb.dx + sway * 0.3, baseY + cb.dy, cb.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Светлый блик солнца
+    ctx.fillStyle = 'rgba(255,255,200,.20)';
+    ctx.beginPath();
+    ctx.arc(p.x + 5 + sway, baseY - 10, 6, 0, Math.PI * 2); ctx.fill();
+  } else if (treeType === 1) {
+    // ─── СОСНА — треугольная крона ярусами ─────────────────────
+    const H = isoH(0.7);
+    // Ствол — серый
+    ctx.fillStyle = '#3a2818';
+    ctx.fillRect(p.x - 2, p.y - H, 4, H + 2);
+    ctx.fillStyle = '#1f1408';
+    ctx.fillRect(p.x, p.y - H, 2, H + 2);
+    // 3 яруса хвои — снизу самый широкий, сверху узкий, чередующиеся оттенки
+    const baseY = p.y - H - 4;
+    const tiers = [
+      { y:  0, w: 14, c: '#1a4a1a' },
+      { y: -9, w: 11, c: '#2a5a2a' },
+      { y:-17, w:  8, c: '#3a6a3a' },
+      { y:-23, w:  4, c: '#4a7a4a' },
+    ];
+    for (const tr of tiers) {
+      const yy = baseY + tr.y;
+      ctx.fillStyle = tr.c;
+      ctx.beginPath();
+      ctx.moveTo(p.x - tr.w + sway * 0.2, yy);
+      ctx.lineTo(p.x + tr.w - sway * 0.2, yy);
+      ctx.lineTo(p.x + sway * 0.3, yy - 9);
+      ctx.closePath(); ctx.fill();
+      // Светлая кромка на верхнем-правом ребре
+      ctx.fillStyle = 'rgba(180,220,150,.30)';
+      ctx.beginPath();
+      ctx.moveTo(p.x + sway * 0.3, yy - 9);
+      ctx.lineTo(p.x + tr.w - sway * 0.2, yy);
+      ctx.lineTo(p.x + tr.w * 0.6, yy - 1);
+      ctx.closePath(); ctx.fill();
+    }
+  } else {
+    // ─── МАЛОЕ ЛИСТВЕННОЕ — куст-подлесок ──────────────────────
+    const H = isoH(0.30);
+    // Ствол короткий
+    ctx.fillStyle = '#3a2418';
+    ctx.fillRect(p.x - 2, p.y - H, 4, H + 1);
+    // Шарообразная крона из 3 кругов
+    const baseY = p.y - H - 8;
+    ctx.fillStyle = '#2a5028';
+    ctx.beginPath();
+    ctx.arc(p.x - 5 + sway * 0.3, baseY + 4, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3a7038';
+    ctx.beginPath();
+    ctx.arc(p.x + 5 - sway * 0.3, baseY + 5, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#4a8a4a';
+    ctx.beginPath();
+    ctx.arc(p.x + sway * 0.4, baseY - 2, 10, 0, Math.PI * 2); ctx.fill();
+    // Блик
+    ctx.fillStyle = 'rgba(255,255,180,.22)';
+    ctx.beginPath();
+    ctx.arc(p.x + 3 + sway, baseY - 4, 3, 0, Math.PI * 2); ctx.fill();
+  }
 }
 
 // Уличный фонарь — высокий столб с лампой и пятном света на земле.
@@ -3048,6 +3261,81 @@ function drawConvoyNpc(npc, isBoss) {
   ctx.shadowBlur = 0;
 }
 
+// Звёзды wanted над головой (1..3 шт) с пульсацией и тенью.
+function drawWantedStars(px, py, n) {
+  if (!n) return;
+  n = Math.max(1, Math.min(3, n));
+  const t = performance.now() / 400;
+  const pulse = 0.85 + 0.15 * Math.sin(t);
+  const starY = py - 64;   // выше имени
+  const gap   = 12;
+  const start = px - (gap * (n - 1)) / 2;
+  ctx.save();
+  ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i < n; i++) {
+    const sx = start + i * gap;
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+    ctx.fillStyle = '#000';
+    ctx.fillText('⭐', sx + 1, starY + 1);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#ffd76b';
+    ctx.fillText('⭐', sx, starY);
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// ── Городской коп (wanted-система) ─────────────────────────────
+// Похож на полицейского из конвоя, но с пульсирующей сирено-подсветкой
+// (синий-красный) — чтобы игроки сразу понимали что это «опасность».
+function drawCopNpc(cop) {
+  const p = w2s(cop.y + 0.5, cop.x + 0.5);
+  const look = _CONVOY_GUARD_LOOK;
+  const t = performance.now();
+  const walkPhase = (t * 0.008) % (Math.PI * 2);
+  // Сирена — большой пульсирующий ореол синий/красный (переключается)
+  const sirenPhase = Math.floor(t / 250) % 2;   // меняется 4 раза в секунду
+  const sirenCol   = sirenPhase ? 'rgba(60,120,255,.55)' : 'rgba(255,40,40,.55)';
+  ctx.save();
+  ctx.fillStyle = sirenCol;
+  ctx.shadowColor = sirenPhase ? '#3a78ff' : '#ff3030';
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 6, 20, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  drawPerson(p.x, p.y, cop.ang || 0, look, walkPhase, null, null, false,
+             cop.hp, cop.max_hp, false);
+  // Вспышка дула (сервер пишет в lastBossShotAt при cop_shot)
+  const flashAt = lastBossShotAt.get(cop.id) || 0;
+  if (t - flashAt < 120) {
+    ctx.fillStyle = '#fff4b8';
+    ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(p.x + Math.cos(cop.ang || 0) * 12,
+            p.y - 14 + Math.sin(cop.ang || 0) * 6, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // Эмодзи 🚓 над головой + мигающая сирена сверху
+  ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText('🚓', p.x, p.y - 44);
+  // Маленький мигающий маркер на самом верху
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = sirenPhase ? '#3a78ff' : '#ff3030';
+  ctx.beginPath();
+  ctx.arc(p.x, p.y - 52, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.textAlign = 'left';
+}
+
 // Машина — припаркована на тайле, занимает ~80% площади
 function drawCar(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
@@ -3195,8 +3483,11 @@ function drawBuilding(r, c) {
   // Высота здания — псевдослучайная по координатам (детерминированная)
   const seed = ((r * 73 + c * 131) % 7) / 7;
   const H = isoH(1.3 + seed * 1.4);
-  // Тень
-  ctx.fillStyle = 'rgba(0,0,0,.5)';
+  const t = performance.now() / 1000;
+  // Тип здания: 0=жилое, 1=офисное, 2=низкое с магазином, 3=высотка
+  const bldType = ((r * 11 + c * 7) % 4 + 4) % 4;
+  // Тень — мягкая с альфой
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
   ctx.beginPath();
   ctx.moveTo(p.x, p.y - wy);
   ctx.lineTo(p.x + wx, p.y);
@@ -3204,14 +3495,20 @@ function drawBuilding(r, c) {
   ctx.lineTo(p.x - wx, p.y);
   ctx.closePath();
   ctx.fill();
-  // Палитра для каждого квартала разная
-  const blockId = Math.floor(r / 6) * 7 + Math.floor(c / 6);
-  const palettes = [
-    ['#3a2a18', '#1f1810'], ['#1f2c3a', '#101820'],
-    ['#3a1f2a', '#1f1018'], ['#2a3a1f', '#181f10'],
-    ['#3a3a1f', '#1f1f10'], ['#2a1f3a', '#10101f'],
+  // Палитры: каждому типу свой набор оттенков
+  const palettesByType = [
+    // жилое — тёплые кирпично-коричневые
+    [['#5a3e28', '#2a1c10'], ['#4a3a20', '#251c10'], ['#4a2e1a', '#26170c']],
+    // офисное — холодные сине-серые
+    [['#2a3e58', '#10182a'], ['#3a4858', '#171f2a'], ['#1f2e3a', '#0c161f']],
+    // низкое с магазином — тёмно-бежевое
+    [['#5a4838', '#2a1f18'], ['#4a3828', '#28190c']],
+    // высотка — холодная стальная
+    [['#3a4050', '#181c24'], ['#283040', '#10141c'], ['#2a3848', '#0e131c']],
   ];
-  const [top, side] = palettes[blockId % palettes.length];
+  const palList = palettesByType[bldType];
+  const palIdx = ((r * 17 + c * 31) % palList.length + palList.length) % palList.length;
+  const [top, side] = palList[palIdx];
   // Левая грань
   ctx.fillStyle = side;
   ctx.beginPath();
@@ -3233,7 +3530,7 @@ function drawBuilding(r, c) {
   ctx.lineTo(p.x,      p.y + wy - H);
   ctx.closePath();
   ctx.fill();
-  // Крыша
+  // Крыша — слегка светлее верхнего тона
   ctx.fillStyle = top;
   ctx.beginPath();
   ctx.moveTo(p.x,        p.y - H + wy);
@@ -3242,15 +3539,144 @@ function drawBuilding(r, c) {
   ctx.lineTo(p.x - wx,   p.y - H);
   ctx.closePath();
   ctx.fill();
-  // Окошки на правой грани (несколько горизонтальных рядов)
-  const winCols = 2, winRows = Math.max(2, Math.floor(H / 16));
-  for (let wr = 0; wr < winRows; wr++) {
-    for (let wc = 0; wc < winCols; wc++) {
-      const wxp = p.x + wx * (0.18 + wc * 0.36);
-      const wyp = p.y - H * (0.18 + wr * (0.7 / Math.max(1, winRows)));
-      const lit = ((r * 17 + c * 31 + wr * 5 + wc) % 4 === 0);
-      ctx.fillStyle = lit ? '#ffd76b' : '#1a1410';
-      ctx.fillRect(wxp - 3, wyp - 4, 6, 6);
+  // Тёмная вертикальная полоса — стык двух граней (визуальная глубина)
+  ctx.strokeStyle = 'rgba(0,0,0,.45)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x, p.y + wy - H);
+  ctx.stroke();
+  // ── Окна (разные стили в зависимости от типа) ────────────────
+  const winRows = Math.max(2, Math.floor(H / 14));
+  if (bldType === 1 || bldType === 3) {
+    // Офисное/высотка — сетка маленьких окон, на обеих видимых гранях
+    const cols = 3;
+    for (let face = 0; face < 2; face++) {
+      // face=0 → правая грань (p.x..p.x+wx, по diagonal), face=1 → левая
+      for (let wr = 0; wr < winRows; wr++) {
+        for (let wc = 0; wc < cols; wc++) {
+          const k = (wc + 0.5) / cols;
+          let wxp, wyp;
+          if (face === 0) {
+            wxp = p.x + wx * k;
+            wyp = p.y + wy * (1 - k) - H * (0.18 + wr * (0.7 / Math.max(1, winRows)));
+          } else {
+            wxp = p.x - wx * k;
+            wyp = p.y + wy * (1 - k) - H * (0.18 + wr * (0.7 / Math.max(1, winRows)));
+          }
+          const lit = ((r * 17 + c * 31 + wr * 5 + wc * 3 + face) % 5 < 2);
+          if (lit) {
+            ctx.fillStyle = '#ffe9a0';
+            ctx.shadowColor = '#ffd070';
+            ctx.shadowBlur = 4;
+          } else {
+            ctx.fillStyle = '#1a1a24';
+            ctx.shadowBlur = 0;
+          }
+          ctx.fillRect(wxp - 1.5, wyp - 3, 3, 5);
+        }
+      }
+    }
+    ctx.shadowBlur = 0;
+  } else {
+    // Жилое/магазин — крупнее окна с переплётами
+    const cols = 2;
+    for (let wr = 0; wr < winRows; wr++) {
+      for (let wc = 0; wc < cols; wc++) {
+        const wxp = p.x + wx * (0.20 + wc * 0.34);
+        const wyp = p.y - H * (0.20 + wr * (0.7 / Math.max(1, winRows)));
+        const lit = ((r * 17 + c * 31 + wr * 5 + wc) % 4 === 0);
+        ctx.fillStyle = lit ? '#ffd76b' : '#16181f';
+        ctx.fillRect(wxp - 4, wyp - 5, 8, 8);
+        // Переплёт окна (крест)
+        ctx.strokeStyle = lit ? 'rgba(120,80,20,.55)' : 'rgba(0,0,0,.5)';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(wxp - 4, wyp - 1); ctx.lineTo(wxp + 4, wyp - 1);
+        ctx.moveTo(wxp, wyp - 5);     ctx.lineTo(wxp, wyp + 3);
+        ctx.stroke();
+      }
+    }
+  }
+  // ── Балкон на жилом доме (стрелочка вперёд+поручни) ───────────
+  if (bldType === 0 && winRows >= 2) {
+    const balY = p.y - H * 0.50;
+    ctx.fillStyle = 'rgba(60,40,28,.85)';
+    ctx.fillRect(p.x + wx * 0.10, balY, wx * 0.55, 3);
+    // Поручни — тонкие вертикальные палочки
+    ctx.strokeStyle = '#3a2818';
+    ctx.lineWidth = 0.7;
+    for (let i = 0; i < 6; i++) {
+      const bx = p.x + wx * (0.12 + i * 0.09);
+      ctx.beginPath();
+      ctx.moveTo(bx, balY); ctx.lineTo(bx, balY - 5);
+      ctx.stroke();
+    }
+    // Перила
+    ctx.beginPath();
+    ctx.moveTo(p.x + wx * 0.10, balY - 5);
+    ctx.lineTo(p.x + wx * 0.66, balY - 5);
+    ctx.stroke();
+  }
+  // ── Вывеска магазина на низком доме (горизонтальная полоса) ───
+  if (bldType === 2 && winRows <= 3) {
+    const sgnY = p.y - H + wy * 0.05;
+    const sgnH = 7;
+    // Подложка вывески
+    ctx.fillStyle = '#2a1812';
+    ctx.fillRect(p.x + 2, sgnY, wx - 4, sgnH);
+    ctx.strokeStyle = '#ffd76b';
+    ctx.lineWidth = 0.7;
+    ctx.strokeRect(p.x + 2, sgnY, wx - 4, sgnH);
+    // Шрифт вывески — по координатам выбирается случайное имя
+    const names = ['BAR', 'CAFE', '24/7', 'PIZZA', 'BREAD', 'TACO'];
+    const nm = names[((r + c) % names.length + names.length) % names.length];
+    ctx.save();
+    ctx.font = 'bold 7px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffd76b';
+    ctx.fillText(nm, p.x + wx * 0.5, sgnY + sgnH / 2);
+    ctx.restore();
+  }
+  // ── Антенна / спутниковая тарелка на крыше (детерминированно) ─
+  const rooftop = ((r * 13 + c * 19) % 5);
+  if (rooftop === 0 || (bldType === 3 && rooftop === 1)) {
+    // Антенна — вертикальный шест с тремя поперечинами
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1.2;
+    const ax = p.x + wx * 0.15, ay = p.y - H;
+    const aH = 14;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay); ctx.lineTo(ax, ay - aH);
+    for (let i = 1; i <= 3; i++) {
+      const ah = ay - (aH * i) / 4;
+      ctx.moveTo(ax - 3, ah); ctx.lineTo(ax + 3, ah);
+    }
+    ctx.stroke();
+    // Красный огонёк на верхушке (мигает)
+    const blink = (Math.sin(t * 3) > 0.4) ? '#ff4040' : '#400a0a';
+    ctx.fillStyle = blink;
+    ctx.beginPath();
+    ctx.arc(ax, ay - aH, 1.5, 0, Math.PI * 2); ctx.fill();
+  } else if (rooftop === 1) {
+    // Спутниковая тарелка
+    ctx.fillStyle = '#c8c8c8';
+    ctx.beginPath();
+    ctx.ellipse(p.x - wx * 0.10, p.y - H + 2, 5, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(p.x - wx * 0.10, p.y - H + 2);
+    ctx.lineTo(p.x - wx * 0.08, p.y - H - 3);
+    ctx.stroke();
+  } else if (rooftop === 2 && bldType !== 3) {
+    // Кондиционер — серая коробка с решёткой
+    const acX = p.x + wx * 0.35, acY = p.y - H + 1;
+    ctx.fillStyle = '#5a5a5a';
+    ctx.fillRect(acX - 3, acY - 4, 6, 5);
+    ctx.fillStyle = '#3a3a3a';
+    for (let i = 0; i < 3; i++) {
+      ctx.fillRect(acX - 3, acY - 4 + i * 2, 6, 0.8);
     }
   }
 }
@@ -3911,6 +4337,12 @@ function render() {
       items.push({ depth: g.y + g.x + 0.0009, draw: () => drawConvoyNpc(g, false) });
     }
   }
+  // Копы города (wanted-система) — отдельный массив, рисуются как
+  // полицейские но с эффектом «опасность» (мигающий синий-красный glow)
+  for (const cop of worldCops) {
+    if (cop.y < r0 || cop.y >= r1 || cop.x < c0 || cop.x >= c1) continue;
+    items.push({ depth: cop.y + cop.x + 0.0011, draw: () => drawCopNpc(cop) });
+  }
   // Игрок (со своим чат-баблом из последнего смайлика, чтобы сразу видеть).
   // Look берём всегда из URL — даже если has_look=0, параметры есть
   // (дефолты =0 в _qInt) и они хотя бы стабильны между перезагрузками.
@@ -3920,6 +4352,7 @@ function render() {
     drawPerson(p.x, p.y, player.ang, QP.look,
                player.walking ? player.walkPhase : 0, QP.name, myChat, true,
                myHp, PVP.max_hp, myDead);
+    if (myWanted > 0) drawWantedStars(p.x, p.y, myWanted);
   } });
   // Другие
   for (const [, o] of others) {
@@ -3929,6 +4362,7 @@ function render() {
       const chat = (o.chat && performance.now() - o.chatT < 4000) ? o.chat : null;
       drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, o.name, chat, false,
                  o.hp, PVP.max_hp, o.dead);
+      if (o.wanted > 0) drawWantedStars(p.x, p.y, o.wanted);
     } });
   }
   items.sort((a, b) => a.depth - b.depth);
@@ -4192,6 +4626,23 @@ function drawMinimap() {
       ctx2.fill();
     }
   }
+  // Копы в городе (wanted-система) — пульсирующие красные точки
+  if (worldCops && worldCops.length) {
+    const copPulse = (Math.sin(performance.now() * 0.018) + 1) * 0.5;
+    for (const cop of worldCops) {
+      ctx2.fillStyle = '#ff3030';
+      ctx2.beginPath();
+      ctx2.arc((cop.x + 0.5) * sx, (cop.y + 0.5) * sy,
+               2.4 + copPulse * 1.2, 0, Math.PI * 2);
+      ctx2.fill();
+    }
+  }
+  // Тюрьма — серый квадратик в углу карты (всегда виден)
+  ctx2.fillStyle = '#5a5a6a';
+  ctx2.fillRect(56 * sx - 2, 56 * sy - 2, 4, 4);
+  ctx2.strokeStyle = '#aaa';
+  ctx2.lineWidth = 0.8;
+  ctx2.strokeRect(56 * sx - 2.5, 56 * sy - 2.5, 5, 5);
   // Игрок — белая точка с обводкой
   ctx2.fillStyle = '#fff';
   ctx2.strokeStyle = '#000';
