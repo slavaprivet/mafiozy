@@ -1190,20 +1190,8 @@ function joyRMove(x, y) {
   joyREl.classList.toggle('aiming', joyR.hasAim);
 }
 function joyREnd() {
-  // На отпускании — стреляем (в направление если был сдвиг, иначе auto-aim)
-  if (joyR.active) {
-    if (joyR.hasAim) {
-      // Конвертация экранных dx/dy → угол в мировых координатах.
-      // На экране ось X = вправо, Y = вниз. В мировой системе (изометрия)
-      // direction соответствует Math.atan2(joyR.dy, joyR.dx) с инверсией
-      // оси (изометрия повёрнута на 45°). Простой подход: угол на экране
-      // соответствует мировому углу 1:1 в нашей проекции — игрок смотрит
-      // в этом же направлении (мы храним player.ang в мировых rad).
-      fire(Math.atan2(joyR.dy, joyR.dx));
-    } else {
-      fire(null);  // auto-aim
-    }
-  }
+  // Hold-to-fire: на отпускании НЕ стреляем (стрельба идёт пока стик
+  // удерживается, см. auto-fire в update). Просто сбрасываем состояние.
   joyR.active = false; joyR.dx = 0; joyR.dy = 0; joyR.id = -1; joyR.hasAim = false;
   joyRKnob.style.transform = '';
   joyREl.classList.remove('aiming');
@@ -2242,6 +2230,12 @@ function update(dt) {
   // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
   updateZoneBtn();
   updatePvpUI();
+  // Hold-to-fire: пока правый стик удерживается в направлении —
+  // автоматически стреляем с cooldown'ом по оружию (fire() сам
+  // проверяет cd через weaponCd). Отпустил стик — перестал стрелять.
+  if (joyR.active && joyR.hasAim && myMode !== 'pve' && !myDead) {
+    fire(Math.atan2(joyR.dy, joyR.dx));
+  }
   // Интерполяция других игроков
   for (const [, o] of others) {
     o.x += (o.tx - o.x) * Math.min(1, dt * 8);
