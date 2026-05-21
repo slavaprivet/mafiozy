@@ -1142,9 +1142,14 @@ function joyLMove(x, y) {
   joyLKnob.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
 }
 function joyLEnd() {
-  joyL.active = false; joyL.dx = 0; joyL.dy = 0; joyL.id = -1;
+  joyL.active = false; joyL.dx = 0; joyL.dy = 0;
+  joyL.id = -1; joyL._touchId = null;
   joyLKnob.style.transform = '';
 }
+// pointerdown/up на самом стике используют setPointerCapture — он
+// гарантирует что pointermove приходит к ЭТОМУ элементу, не утекая
+// в window. pointer events более надёжны чем touch, поэтому
+// pointermove на window мы НЕ слушаем (это и было источником бага).
 joyLEl.addEventListener('pointerdown', (e) => {
   joyL.active = true; joyL.id = e.pointerId;
   joyL.sx = e.clientX; joyL.sy = e.clientY;
@@ -1152,28 +1157,41 @@ joyLEl.addEventListener('pointerdown', (e) => {
   try { joyLEl.setPointerCapture(e.pointerId); } catch(_) {}
   e.preventDefault();
 }, { passive: false });
-window.addEventListener('pointermove', (e) => {
-  if (joyL.active && (joyL.id === -1 || e.pointerId === joyL.id)) {
+joyLEl.addEventListener('pointermove', (e) => {
+  if (joyL.active && e.pointerId === joyL.id) {
     joyLMove(e.clientX, e.clientY);
   }
 });
-window.addEventListener('pointerup',     () => { if (joyL.active) joyLEnd(); });
-window.addEventListener('pointercancel', () => { if (joyL.active) joyLEnd(); });
-// Fallback на старые touch-устройства где pointer events недоступны
+joyLEl.addEventListener('pointerup',     (e) => { if (joyL.active && e.pointerId === joyL.id) joyLEnd(); });
+joyLEl.addEventListener('pointercancel', (e) => { if (joyL.active && e.pointerId === joyL.id) joyLEnd(); });
+// Fallback на touch — с фильтром по identifier, чтобы движения другого
+// пальца (например на правом стике) НЕ дёргали левый. Это был баг:
+// без identifier window touchmove от joyR-пальца переписывал позицию joyL.
 joyLEl.addEventListener('touchstart', (e) => {
   if (joyL.active) return;
   const t = e.changedTouches[0]; if (!t) return;
-  joyL.active = true; joyL.id = -1;
+  joyL.active = true; joyL.id = -1; joyL._touchId = t.identifier;
   joyLMove(t.clientX, t.clientY);
   e.preventDefault();
 }, { passive: false });
 window.addEventListener('touchmove', (e) => {
-  if (!joyL.active) return;
-  const t = e.changedTouches[0]; if (!t) return;
-  joyLMove(t.clientX, t.clientY);
+  if (!joyL.active || joyL._touchId == null) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyL._touchId) { joyLMove(t.clientX, t.clientY); break; }
+  }
 }, { passive: false });
-window.addEventListener('touchend',    () => { if (joyL.active) joyLEnd(); });
-window.addEventListener('touchcancel', () => { if (joyL.active) joyLEnd(); });
+window.addEventListener('touchend', (e) => {
+  if (!joyL.active || joyL._touchId == null) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyL._touchId) { joyLEnd(); break; }
+  }
+});
+window.addEventListener('touchcancel', (e) => {
+  if (!joyL.active || joyL._touchId == null) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyL._touchId) { joyLEnd(); break; }
+  }
+});
 
 // ── Правый стик (прицел+огонь) ─────────────────────────────────
 // Тянешь джойстик в направлении выстрела (как Brawl Stars). Отпустил —
@@ -1198,37 +1216,55 @@ function joyRMove(x, y) {
 function joyREnd() {
   // Hold-to-fire: на отпускании НЕ стреляем (стрельба идёт пока стик
   // удерживается, см. auto-fire в update). Просто сбрасываем состояние.
-  joyR.active = false; joyR.dx = 0; joyR.dy = 0; joyR.id = -1; joyR.hasAim = false;
+  joyR.active = false; joyR.dx = 0; joyR.dy = 0;
+  joyR.id = -1; joyR._touchId = null; joyR.hasAim = false;
   joyRKnob.style.transform = '';
   joyREl.classList.remove('aiming');
 }
+// pointer events — на самом элементе со setPointerCapture. Так
+// pointermove приходит только сюда, не утекает в window и не дёргает
+// левый стик (это и был баг — окно ловило события от ОБОИХ пальцев).
 joyREl.addEventListener('pointerdown', (e) => {
   joyR.active = true; joyR.id = e.pointerId;
   joyRMove(e.clientX, e.clientY);
   try { joyREl.setPointerCapture(e.pointerId); } catch(_) {}
   e.preventDefault();
 }, { passive: false });
-window.addEventListener('pointermove', (e) => {
-  if (joyR.active && (joyR.id === -1 || e.pointerId === joyR.id)) {
+joyREl.addEventListener('pointermove', (e) => {
+  if (joyR.active && e.pointerId === joyR.id) {
     joyRMove(e.clientX, e.clientY);
   }
 });
-window.addEventListener('pointerup',     () => { if (joyR.active) joyREnd(); });
-window.addEventListener('pointercancel', () => { if (joyR.active) joyREnd(); });
+joyREl.addEventListener('pointerup',     (e) => { if (joyR.active && e.pointerId === joyR.id) joyREnd(); });
+joyREl.addEventListener('pointercancel', (e) => { if (joyR.active && e.pointerId === joyR.id) joyREnd(); });
+// Touch fallback с фильтром по identifier — каждый стик отвечает
+// только на свой палец. Без этого movement правого пальца перетирал
+// позицию левого через window touchmove.
 joyREl.addEventListener('touchstart', (e) => {
   if (joyR.active) return;
   const t = e.changedTouches[0]; if (!t) return;
-  joyR.active = true; joyR.id = -1;
+  joyR.active = true; joyR.id = -1; joyR._touchId = t.identifier;
   joyRMove(t.clientX, t.clientY);
   e.preventDefault();
 }, { passive: false });
 window.addEventListener('touchmove', (e) => {
-  if (!joyR.active) return;
-  const t = e.changedTouches[0]; if (!t) return;
-  joyRMove(t.clientX, t.clientY);
+  if (!joyR.active || joyR._touchId == null) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyR._touchId) { joyRMove(t.clientX, t.clientY); break; }
+  }
 }, { passive: false });
-window.addEventListener('touchend',    () => { if (joyR.active) joyREnd(); });
-window.addEventListener('touchcancel', () => { if (joyR.active) joyREnd(); });
+window.addEventListener('touchend', (e) => {
+  if (!joyR.active || joyR._touchId == null) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyR._touchId) { joyREnd(); break; }
+  }
+});
+window.addEventListener('touchcancel', (e) => {
+  if (!joyR.active || joyR._touchId == null) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyR._touchId) { joyREnd(); break; }
+  }
+});
 
 // Клавиатура (для теста с десктопа)
 const _keyState = { up:false, down:false, left:false, right:false };
