@@ -14056,6 +14056,28 @@ async def _coop_http_app():
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
                                     except Exception: pass
+                    elif t == 'open_fire':
+                        # Игрок стреляет в городе вне PvP-зоны (по никому).
+                        # Сразу 1 звезда розыска + копы выезжают. Если уже
+                        # были звёзды — только обновляем _last_shot_t (decay).
+                        # d = {x, y, weapon} (x/y игнорим — берём из state)
+                        p = world.players.get(uid)
+                        if p and not p.get('dead') and p.get('_mode') != 'pve':
+                            # В PvP-арене не штрафуем — там стрелять можно.
+                            if not world._in_arena(p.get('x', 0), p.get('y', 0)):
+                                first_shot = (int(p.get('_wanted') or 0) < 1)
+                                world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
+                                if first_shot:
+                                    # Баннер "🔫 NICK открыл огонь!" всем в мире
+                                    nm = (p.get('name') or '')[:20]
+                                    banner = json.dumps({'t': 'event', 'd': {
+                                        'kind': 'open_fire',
+                                        'shooter_uid': str(uid),
+                                        'shooter_name': nm,
+                                    }}, ensure_ascii=False)
+                                    for u2, ws2 in list(world.connections.items()):
+                                        try: await ws2.send_str(banner)
+                                        except Exception: pass
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass

@@ -1489,6 +1489,15 @@ function handleEventPacket(d) {
       weapon: wp,
     });
     spawnImpact(d.ty, d.tx, wp);
+  } else if (kind === 'open_fire') {
+    // Игрок открыл огонь в городе вне PvP-зоны — баннер всем в мире.
+    // Самого стрелка не дёргаем (у него уже свой toast/HUD wanted).
+    if (String(d.shooter_uid) !== String(QP.uid)) {
+      const nm = d.shooter_name || 'Кто-то';
+      showEventBanner('🔫 ' + nm.toUpperCase() + ' открыл огонь!',
+        'Где-то в городе началась стрельба — копы выехали на место.',
+        3200, 'lose');
+    }
   }
 }
 
@@ -2020,6 +2029,22 @@ function fire(angle = null) {
   const muzR = player.r + Math.sin(player.ang) * muzD;
   const muzC = player.c + Math.cos(player.ang) * muzD;
   spawnShot(muzR, muzC, player.ang, currentWeapon, true);
+  // Стрельба в городе вне PvP-зоны = НЕЗАКОННО. Шлём серверу open_fire —
+  // сервер бампает wanted, копы выезжают. inArena(ARENA_R0..R1) — постоянная
+  // PvP-арена. pvpActive — пока идёт событие инкассатора (PvP открыто везде).
+  const meInArena = inArena(player.r, player.c);
+  const lawful    = meInArena || pvpActive || chosenConvoy || chosenCop;
+  if (!lawful) {
+    try {
+      ws && ws.send(JSON.stringify({ t: 'open_fire',
+        d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
+             weapon: currentWeapon } }));
+    } catch(e) {}
+    // На первом «нелегальном» выстреле подсказка — что только что нарушил
+    if (myWanted < 1) {
+      showToast('🚓 Стрельба в городе запрещена — копы выехали', '⚠️', 2500);
+    }
+  }
   if (chosenConvoy) {
     bullets.push({
       sr: player.r, sc: player.c, er: chosenConvoy.y, ec: chosenConvoy.x,
