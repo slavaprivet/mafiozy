@@ -1166,6 +1166,12 @@ const shells  = [];       // {x,y,vx,vy,vz,z,rot,vrot,life,max}
 const impacts = [];       // {r,c,parts:[{vr,vc,life,max,color,isBlood,size}]}
 // Пятна крови на земле — splat-ы живут 8 сек после попадания.
 const bloodSplats = [];   // {r,c,radius,life,max,rot}
+// Анимации ареста — локальный спавн автозака, который приезжает к жертве,
+// загружает её и уезжает в участок. ~4 секунды. См. spawnArrestAnim().
+const arrestAnims = [];   // {target_uid, startMs, fromR/C, atR/C, jailR/C, dir}
+// uid игроков которых сейчас «грузят/везут в автозак» — их обычный спрайт
+// не рисуется (виден только автозак). Обновляется в drawArrestAnims.
+const _arrestHidden = new Set();
 // Camera-shake: при выстреле/попадании короткий толчок. Декремент в цикле.
 let camShake = 0;
 function addShake(p) { camShake = Math.min(8, camShake + p); }
@@ -1554,10 +1560,14 @@ function handleEventPacket(d) {
         myDeathBy = d.jailed ? 'Копы (тюрьма)' : 'Копы';
       }
     }
-    if (d.killed && d.jailed && String(d.target_uid) === String(QP.uid)) {
-      // Большая красная overlay-анимация «АРЕСТ» на 2.5с, после неё JAIL.
-      showArrestOverlay();
-      addShake(7);
+    if (d.killed && d.jailed) {
+      // Спавним локальный автозак у точки смерти — все клиенты видят
+      // как полиция забирает жертву. Для самого жертвы — overlay+shake.
+      spawnArrestAnim(d.target_uid, d.ty, d.tx);
+      if (String(d.target_uid) === String(QP.uid)) {
+        showArrestOverlay();
+        addShake(7);
+      }
     }
   } else if (kind === 'cop_hit') {
     // Игрок попал в копа — трассер + кровь
@@ -1599,6 +1609,99 @@ function showArrestOverlay() {
   if (!el) return;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Анимация ареста: автозак приезжает к жертве, забирает, везёт в участок.
+// Длится ~4.5 секунды. Жертва должна быть dead на сервере. Этапы:
+//   0.0-1.2с: ARRIVING — автозак летит к (atR, atC) от точки на грани экрана
+//   1.2-1.8с: LOADING  — автозак стоит, текст «ЗАГРУЗКА...»
+//   1.8-4.5с: DRIVING  — автозак едет к (jailR, jailC) и исчезает
+function spawnArrestAnim(targetUid, atR, atC) {
+  // Стартовая точка автозака — за пределами экрана в случайном
+  // направлении, чтобы выглядело будто он приехал «с улицы»
+  const ang = Math.random() * Math.PI * 2;
+  const dist = 14;
+  const fromR = atR + Math.sin(ang) * dist;
+  const fromC = atC + Math.cos(ang) * dist;
+  // Куда едет после загрузки — в координаты участка (POI 'police')
+  const jail = POI.find(p => p.id === 'police') || { r: 56, c: 56 };
+  arrestAnims.push({
+    target_uid: String(targetUid),
+    startMs:    performance.now(),
+    fromR, fromC,
+    atR, atC,
+    jailR: jail.r + 0.5, jailC: jail.c + 0.5,
+  });
+}
+
+// Обновляет _arrestHidden из активных анимаций (для скрытия спрайтов).
+// Вызывается в начале render() ДО items.forEach.
+function updateArrestHiding() {
+  _arrestHidden.clear();
+  const now = performance.now();
+  for (const a of arrestAnims) {
+    const dt = now - a.startMs;
+    if (dt >= 1200 && dt < 4500) _arrestHidden.add(a.target_uid);
+  }
+}
+
+// Рендер автозаков-аресту. Возвращает Set('uid') игроков которые сейчас
+// «в автозаке» — их обычный спрайт скрывается в renderOthers.
+function drawArrestAnims() {
+  const now = performance.now();
+  const hidden = new Set();
+  for (let i = arrestAnims.length - 1; i >= 0; i--) {
+    const a = arrestAnims[i];
+    const dt = now - a.startMs;
+    if (dt > 4500) { arrestAnims.splice(i, 1); continue; }
+    let vr, vc, ang;
+    if (dt < 1200) {
+      // ARRIVING
+      const t = dt / 1200;
+      vr = a.fromR + (a.atR - a.fromR) * t;
+      vc = a.fromC + (a.atC - a.fromC) * t;
+      ang = Math.atan2(a.atR - a.fromR, a.atC - a.fromC);
+    } else if (dt < 1800) {
+      // LOADING — стоит на месте
+      vr = a.atR; vc = a.atC;
+      ang = Math.atan2(a.jailR - a.atR, a.jailC - a.atC);
+      hidden.add(a.target_uid);   // прячем спрайт жертвы (загружается)
+    } else {
+      // DRIVING в участок
+      const t = (dt - 1800) / 2700;
+      vr = a.atR + (a.jailR - a.atR) * t;
+      vc = a.atC + (a.jailC - a.atC) * t;
+      ang = Math.atan2(a.jailR - a.atR, a.jailC - a.atC);
+      hidden.add(a.target_uid);
+    }
+    // Конвертируем угол в dirDx/dirDy для drawCarPretty (он рисует
+    // в системе единичных направлений). Берём ближайшее «осевое».
+    let dirDx = 0, dirDy = 0;
+    if (Math.abs(Math.cos(ang)) > Math.abs(Math.sin(ang))) {
+      dirDx = Math.cos(ang) > 0 ? 1 : -1;
+    } else {
+      dirDy = Math.sin(ang) > 0 ? 1 : -1;
+    }
+    drawCarPretty({
+      r: vr, c: vc, dirDx, dirDy,
+      model: POLICE_MODELS.paddyvan,
+      flash: (now % 1000) / 1000, braking: (dt > 1100 && dt < 1900),
+    });
+    // Если LOADING — рисуем текст «ЗАГРУЗКА...» над автозаком
+    if (dt >= 1200 && dt < 1800) {
+      const p = w2s(vr + 0.5, vc + 0.5);
+      ctx.save();
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#000';
+      ctx.fillText('ЗАГРУЗКА...', p.x + 1, p.y - 38);
+      ctx.fillStyle = '#ffd76b';
+      ctx.fillText('ЗАГРУЗКА...', p.x, p.y - 39);
+      ctx.restore();
+      ctx.textAlign = 'left';
+    }
+  }
+  return hidden;
 }
 
 // Текущий режим (PvP / PvE). По требованию юзера — выбирается КАЖДЫЙ
@@ -5232,6 +5335,8 @@ function roundRect(x, y, w, h, r) {
 function render() {
   ctx.fillStyle = '#0a0a10';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Обновляем список «скрытых» игроков (которые сейчас в автозаке)
+  updateArrestHiding();
   // Camera-shake: толкаем всё рендеренное на случайный микро-сдвиг.
   // Сила в camShake (0..8), затухает в каждом кадре. Заворачиваем
   // всё в save/restore чтобы UI поверх (вспышки/баннеры) не дёргался.
@@ -5348,6 +5453,8 @@ function render() {
   // Другие
   for (const [, o] of others) {
     items.push({ depth: o.y + o.x + 0.001, draw: () => {
+      // Игрок сейчас «в автозаке» (LOADING/DRIVING) — не рисуем его
+      if (_arrestHidden.has(String(o.uid))) return;
       const p = w2s(o.y + 0.5, o.x + 0.5);
       const phase = (o.w ? (o._walkPhase || 0) : 0);
       const chat = (o.chat && performance.now() - o.chatT < chatDuration(o.chat)) ? o.chat : null;
@@ -5372,6 +5479,8 @@ function render() {
   drawBloodSplats();
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
+  // Автозаки ареста — поверх персонажей (LOADING-фаза скрывает спрайт)
+  drawArrestAnims();
   // Гильзы — мелкие латунные кубики на земле, под трассерами
   drawShells();
   // Пули — трассеры поверх всего (живут 0.18 сек)
