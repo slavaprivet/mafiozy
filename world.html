@@ -876,7 +876,9 @@ const POI = [
   // Особые POI
   { id: 'blackmarket', r:  4, c: 28, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
   { id: 'arena',       r: 28, c: 52, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
-  { id: 'hospital',    r: 24, c: 24, icon: '🏥', name: 'Больница',     minLvl: 1, special: 'hospital' },
+  // Больница — северо-восточный квартал, на отдельном здании-квартале
+  // (не на спавне). Серверный респаун рядом на дороге (см. HOSPITAL_X/Y).
+  { id: 'hospital',    r: 20, c: 36, icon: '🏥', name: 'Больница',     minLvl: 1, special: 'hospital' },
   // Отделение полиции — координаты совпадают с серверной тюрьмой
   // (JAIL_X=56, JAIL_Y=56). При 3★ копы пакуют в наручники и везут сюда.
   { id: 'police',      r: 56, c: 56, icon: '🚔', name: 'Участок',      minLvl: 1, special: 'jail'  },
@@ -2535,9 +2537,10 @@ function updatePvpUI() {
   _fireBtn.style.display = 'none';   // полностью убран — стрельба через joyR
   if (joyREl) joyREl.style.display = canShoot ? 'block' : 'none';
   if (_weaponBarEl) {
-    const showBar = canShoot && _myWeapons.length > 0;
-    _weaponBarEl.classList.toggle('show', showBar);
-    if (!showBar) closeWeaponPick();
+    // Бар показываем всегда пока можно стрелять — даже без купленных стволов
+    // (popover покажет дефолтный pistol). См. weaponsForPick().
+    _weaponBarEl.classList.toggle('show', canShoot);
+    if (!canShoot) closeWeaponPick();
   }
   const pct = Math.max(0, Math.min(100, (myHp / (PVP.max_hp || 100)) * 100));
   _pvpHpBar.style.width = pct + '%';
@@ -2664,10 +2667,18 @@ function renderWeaponHud() {
   if (_wepHudName) _wepHudName.textContent = weaponLabel(currentWeapon);
 }
 
+// Возвращает список стволов для popover'а. Если в инвентаре пусто —
+// подсовываем «pistol» как базовый, чтобы UI был интерактивный с первого
+// входа (без покупок в «Барахле»).
+function weaponsForPick() {
+  if (_myWeapons && _myWeapons.length > 0) return _myWeapons;
+  return [{ id: 'pistol', name: 'пистолет', count: 1 }];
+}
+
 function renderWeaponPick() {
   if (!_weaponPickEl) return;
   _weaponPickEl.innerHTML = '';
-  for (const w of _myWeapons) {
+  for (const w of weaponsForPick()) {
     const row = document.createElement('div');
     row.className = 'wpick' + (w.id === currentWeapon ? ' active' : '');
     // canvas с рисованным оружием
@@ -2714,7 +2725,8 @@ function toggleWeaponPick() {
 if (_weaponBarEl) {
   _weaponBarEl.addEventListener('click', (e) => {
     e.preventDefault();
-    if (_myWeapons.length < 2) return;   // ничего не переключать
+    // Popover открываем всегда — даже если в инвентаре пусто, покажем
+    // дефолтный pistol (см. weaponsForPick).
     toggleWeaponPick();
   });
 }
