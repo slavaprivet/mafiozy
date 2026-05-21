@@ -7268,10 +7268,27 @@ async function showPendingNotifications() {
     fetch(coopApi() + '/notify/' + encodeURIComponent(DATA.uid) + '/seen',
           { method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ ids }) }).catch(()=>{});
-    // Аккуратно стэкаем баннеры с задержкой
-    j.items.forEach((it, idx) => {
-      setTimeout(() => _showNotifBanner(it), idx * 1100);
-    });
+    // Если много (>5) — складываем в один summary-баннер чтобы не спамить
+    // юзеру 20-секундной серией поп-апов.
+    if (j.items.length > 5) {
+      let totalCash = 0;
+      const byKind = {};
+      for (const it of j.items) {
+        totalCash += parseInt(it.amount) || 0;
+        byKind[it.kind] = (byKind[it.kind] || 0) + 1;
+      }
+      const summary = {
+        kind:  'gang_payout',
+        title: `📬 ${j.items.length} начислений за время отсутствия`,
+        msg:   `Итого +${totalCash.toLocaleString('ru')}\$. Открой раздел «Моя банда» / «Бизнес» / «Работа» чтобы увидеть детали.`,
+      };
+      setTimeout(() => _showNotifBanner(summary), 0);
+    } else {
+      // Аккуратно стэкаем — каждый показывается 4с, новый затирает предыдущий
+      j.items.forEach((it, idx) => {
+        setTimeout(() => _showNotifBanner(it), idx * 1500);
+      });
+    }
     // Если пришёл денежный платёж — поднимем локальный кэш
     let cashDelta = 0;
     for (const it of j.items) {
@@ -7287,7 +7304,11 @@ async function showPendingNotifications() {
   } catch(e) { /* тихо — не критично */ }
 }
 
-// Большой баннер уведомления (в стиле эмерджентных событий из мира)
+// Большой баннер уведомления (в стиле эмерджентных событий из мира).
+// Используем единый div и переиспользуем — но ОБЯЗАТЕЛЬНО очищаем
+// предыдущий hide-таймер, иначе при стэке (idx*1100 < 4200) баннер
+// успевает мигнуть-уехать прежде чем новый покажет.
+let _notifHideTimer = null;
 function _showNotifBanner(it) {
   const styleMap = {
     gang_payout: { bg:'#0a4020', border:'#50d878', icon:'💼' },
@@ -7306,6 +7327,7 @@ function _showNotifBanner(it) {
       + 'opacity:0;pointer-events:none;font-family:inherit';
     document.body.appendChild(el);
   }
+  if (_notifHideTimer) { clearTimeout(_notifHideTimer); _notifHideTimer = null; }
   el.style.background = `linear-gradient(135deg, ${st.bg}, ${_darker(st.bg)})`;
   el.style.border = '2px solid ' + st.border;
   el.innerHTML = `
@@ -7316,9 +7338,10 @@ function _showNotifBanner(it) {
     el.style.transform = 'translate(-50%, 0)';
     el.style.opacity   = '1';
   });
-  setTimeout(() => {
+  _notifHideTimer = setTimeout(() => {
     el.style.transform = 'translate(-50%, -100%)';
     el.style.opacity   = '0';
+    _notifHideTimer = null;
   }, 4200);
 }
 function _darker(hex) {
