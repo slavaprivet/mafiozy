@@ -1936,11 +1936,11 @@ function fire(angle = null) {
       if (!chosenCop || d < chosenCop.d) chosenCop = { id: c.id, x: c.x, y: c.y, d };
     }
   }
-  // 3) PvP-игрок (в активной зоне инкассатора)
+  // 3) PvP-игрок (в активной зоне инкассатора или в арене)
   const pvpTarget = (!chosenConvoy && !chosenCop) ? findPvpTargetAlongAim(dirX, dirY) : null;
-  if (!chosenConvoy && !chosenCop && !pvpTarget && !inArena(player.r, player.c)) {
-    return;   // промах в пустоту — не спамим
-  }
+  // Если цели нет — стреляем «в пустоту» с визуальным эффектом
+  // (трассер летит вперёд + отдача + cd). Локально, серверу не шлём.
+  const noTarget = !chosenConvoy && !chosenCop && !pvpTarget;
   lastShotClientT = now;
   _fireBtn.classList.add('cd');
   joyREl.classList.add('cd');
@@ -1982,8 +1982,18 @@ function fire(angle = null) {
     } catch(e) {}
     return;
   }
-  // Без цели на арене — ничего не шлём (старый sendShoot не работал,
-  // сервер 'shoot' не обрабатывал; PvP-арена теперь через player_shoot).
+  if (noTarget) {
+    // Стрельба «в пустоту» — серверу не шлём (нет цели), но локально
+    // делаем трассер на ~6 тайлов вперёд по направлению. Игрок видит
+    // что джойстик работает (вспышка дула + отдача уже выставлены выше).
+    const range = 6.5;
+    bullets.push({
+      sr: player.r, sc: player.c,
+      er: player.r + dirY * range,
+      ec: player.c + dirX * range,
+      t0: now, ttl: 140, hit: false, fromPlayer: true,
+    });
+  }
 }
 _fireBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); }, { passive: false });
 // Доп. клавиша на десктопе — пробел
@@ -1992,15 +2002,17 @@ window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !chatOpen)
 function updatePvpUI() {
   const inPvp      = inArena(player.r, player.c);
   const convoyT    = findNearestConvoyTarget();
-  // PvE-наблюдатели НЕ стреляют вообще — все боевые UI скрыты
+  // PvE-наблюдатели НЕ стреляют вообще — все боевые UI скрыты.
+  // PvP — ВСЕГДА показываем правый стик и weapon-bar (как в demo_isometric):
+  // даже если стрелять не в кого, ствол в руке и стик готов — это даёт
+  // ощущение полноценной боёвки.
   const isPve      = (myMode === 'pve');
-  const canShoot   = !isPve && (inPvp || pvpActive || convoyT) && !myDead;
+  const canShoot   = !isPve && !myDead;
+  // HP-бар виден когда стреляешь / ранен / в зоне
   const showHud    = !isPve && (inPvp || pvpActive || myHp < (PVP.max_hp || 100));
   _pvpHud.style.display  = showHud ? 'block' : 'none';
-  _fireBtn.style.display = canShoot ? 'block' : 'none';
-  // Правый стик показываем когда есть кому стрелять
+  _fireBtn.style.display = 'none';   // полностью убран — стрельба через joyR
   if (joyREl) joyREl.style.display = canShoot ? 'block' : 'none';
-  // Weapon bar — только если есть оружие в инвентаре И не PvE
   if (_weaponBarEl) _weaponBarEl.style.display = (canShoot && _myWeapons.length > 0) ? 'flex' : 'none';
   const pct = Math.max(0, Math.min(100, (myHp / (PVP.max_hp || 100)) * 100));
   _pvpHpBar.style.width = pct + '%';
@@ -4316,16 +4328,17 @@ function weaponCd(w) {
   return WEAPON_CD[w] || 0.40;
 }
 
-// Точка «хвата» (рука персонажа) — середина тела со смещением вперёд
-// по направлению прицела. (x, y) — точка ног (как в drawPerson),
+// Точка «хвата» (рука персонажа) — на уровне пояса/бёдер (НЕ плеч,
+// иначе оружие визуально «над головой» из-за того что у спрайта
+// сверху есть запас под шляпы). (x, y) — точка ног (как в drawPerson),
 // ang — угол прицела в радианах.
 function handAnchor(x, y, ang) {
   const sh = TS * 1.7;
-  const bodyY = y - sh * 0.55;
-  const fwd   = 9;     // как далеко рука выносится вперёд
+  const bodyY = y - sh * 0.32;   // ~30% от земли = пояс
+  const fwd   = 11;              // как далеко рука выносится вперёд
   return {
     hx: x + Math.cos(ang) * fwd,
-    hy: bodyY + Math.sin(ang) * 4,
+    hy: bodyY + Math.sin(ang) * 6,
   };
 }
 
