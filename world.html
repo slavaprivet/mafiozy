@@ -2115,55 +2115,355 @@ function drawLamp(r, c) {
   ctx.arc(lampX, lampY, 3, 0, Math.PI * 2); ctx.fill();
 }
 
-// Чёрный рынок — тент палатки вместо здания. Тёмно-фиолетовый, со светящимися
-// фонариками, чтобы выделяться. Рисуем поверх drawBuilding (если её НЕТ
-// в коде вызывающего, то сами как-будто здание).
+// ── ЧЁРНЫЙ РЫНОК — подпольная лавка, кирпич+граффити, бочка с огнём ──
+// Узкое тёмное здание-склад, неоновая вывеска «🌌 DEALS» с глюком,
+// перед входом бочка с огнём (анимация) и пара ящиков с оружием.
 function drawBlackmarket(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
-  const H = isoH(1.0);
+  const H = isoH(1.8);
+  const t = performance.now() / 1000;
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy); ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath(); ctx.fill();
+  // Левая грань — кирпич тёмно-фиолетовый
+  ctx.fillStyle = '#1a0820';
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx, p.y); ctx.lineTo(p.x, p.y + wy);
+  ctx.lineTo(p.x, p.y + wy - H); ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath(); ctx.fill();
+  // Кирпичный паттерн на левой грани
+  ctx.strokeStyle = 'rgba(80,30,80,.35)';
+  ctx.lineWidth = 0.6;
+  for (let row = 0; row < 8; row++) {
+    const y0 = p.y - H * (row / 8) - wy * 0.05;
+    ctx.beginPath();
+    ctx.moveTo(p.x - wx, y0); ctx.lineTo(p.x, y0 + wy);
+    ctx.stroke();
+  }
+  // Правая грань — градиент пурпур→чёрный
+  const g = ctx.createLinearGradient(p.x, p.y - H, p.x + wx, p.y);
+  g.addColorStop(0, '#3a1840'); g.addColorStop(1, '#1a0820');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x + wx, p.y - H); ctx.lineTo(p.x, p.y + wy - H);
+  ctx.closePath(); ctx.fill();
+  // Граффити на правой грани (зелёная буква-тэг)
+  ctx.save();
+  ctx.font = 'bold italic 14px system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(120,255,140,.55)';
+  ctx.shadowColor = '#3aff5a'; ctx.shadowBlur = 4;
+  ctx.fillText('$X', p.x + wx * 0.20, p.y - H * 0.35);
+  ctx.restore();
+  // Крыша — плоская, тёмная
+  ctx.fillStyle = '#0a0410';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - H + wy); ctx.lineTo(p.x + wx, p.y - H);
+  ctx.lineTo(p.x, p.y - H - wy); ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath(); ctx.fill();
+  // Заколоченные окна (доски крестом)
+  for (let wr = 0; wr < 2; wr++) {
+    const wxp = p.x + wx * 0.25;
+    const wyp = p.y - H * (0.35 + wr * 0.30);
+    ctx.fillStyle = '#1a1410';
+    ctx.fillRect(wxp - 4, wyp - 5, 8, 9);
+    ctx.strokeStyle = '#3a2818'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(wxp - 5, wyp - 5); ctx.lineTo(wxp + 5, wyp + 4); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(wxp - 5, wyp + 4); ctx.lineTo(wxp + 5, wyp - 5); ctx.stroke();
+  }
+  // Неоновая вывеска «🌌 DEALS» с глюком (иногда мигает)
+  const sgnY = p.y - H - wy * 0.2;
+  const sgnW = wx * 1.4, sgnH = 16;
+  // Эффект «глюка» — иногда вывеска тускнеет на секунду
+  const glitch = Math.sin(t * 7) > 0.95 ? 0.25 : 1.0;
+  const pulse = 0.7 + 0.3 * Math.sin(t * 4);
+  ctx.save();
+  ctx.shadowColor = '#3aff8a';
+  ctx.shadowBlur = 16 * pulse * glitch;
+  ctx.fillStyle = 'rgba(8,18,12,.92)';
+  ctx.fillRect(p.x - sgnW / 2, sgnY - sgnH / 2, sgnW, sgnH);
+  ctx.strokeStyle = '#3aff8a';
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = glitch;
+  ctx.strokeRect(p.x - sgnW / 2, sgnY - sgnH / 2, sgnW, sgnH);
+  ctx.restore();
+  ctx.save();
+  ctx.font = 'bold 12px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = '#5aff8a'; ctx.shadowBlur = 8 * pulse;
+  ctx.fillStyle = '#5aff8a';
+  ctx.globalAlpha = glitch;
+  ctx.fillText('🌌 DEALS', p.x, sgnY + 1);
+  ctx.restore();
+  // Бочка с огнём перед входом (на тайле, ниже-правее правой грани)
+  const barrelX = p.x + wx * 0.35;
+  const barrelY = p.y + wy * 0.30;
+  // Сама бочка
+  ctx.fillStyle = '#3a1810';
+  ctx.fillRect(barrelX - 4, barrelY - 6, 8, 10);
+  ctx.fillStyle = '#5a2818';
+  ctx.fillRect(barrelX - 4, barrelY - 6, 8, 2);
+  // Огонь (анимация — 2 «языка пламени» переливаются)
+  const flameH = 8 + Math.sin(t * 8) * 2;
+  ctx.save();
+  ctx.shadowColor = '#ff7028'; ctx.shadowBlur = 10;
+  ctx.fillStyle = '#ffce20';
+  ctx.beginPath();
+  ctx.moveTo(barrelX, barrelY - 6 - flameH);
+  ctx.lineTo(barrelX - 4, barrelY - 6);
+  ctx.lineTo(barrelX + 4, barrelY - 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#ff5a20';
+  const flameH2 = 5 + Math.cos(t * 11) * 1.5;
+  ctx.beginPath();
+  ctx.moveTo(barrelX, barrelY - 6 - flameH2);
+  ctx.lineTo(barrelX - 2.5, barrelY - 6);
+  ctx.lineTo(barrelX + 2.5, barrelY - 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  // Ящик с оружием рядом
+  const crateX = p.x - wx * 0.3;
+  const crateY = p.y + wy * 0.20;
+  ctx.fillStyle = '#5a3818';
+  ctx.fillRect(crateX - 5, crateY - 5, 10, 7);
+  ctx.fillStyle = '#7a5028';
+  ctx.fillRect(crateX - 5, crateY - 5, 10, 2);
+  ctx.strokeStyle = '#2a1810'; ctx.lineWidth = 0.6;
+  ctx.strokeRect(crateX - 5, crateY - 5, 10, 7);
+  // Эмодзи оружия выглядывает из ящика
+  ctx.font = '8px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('🔫', crateX, crateY - 5);
+  ctx.textAlign = 'left';
+}
+
+// ── ПРОМЗОНА — фабрика с дымящимися трубами, ржавчиной ──────────
+// Серая бетонная коробка выше обычных домов, на крыше 2 кирпичные
+// трубы, из них непрерывно поднимаются облачка дыма (анимация),
+// ржавые акценты на стенах, жёлтые предупреждающие полосы.
+function drawFactoryBuilding(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(2.0);
+  const t = performance.now() / 1000;
   // Тень
   ctx.fillStyle = 'rgba(0,0,0,.5)';
   ctx.beginPath();
   ctx.moveTo(p.x, p.y - wy); ctx.lineTo(p.x + wx, p.y);
   ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x - wx, p.y);
   ctx.closePath(); ctx.fill();
-  // Стены тента — насыщенный пурпур
-  ctx.fillStyle = '#3a1840';
+  // Левая грань — серый бетон
+  ctx.fillStyle = '#2a2e34';
   ctx.beginPath();
   ctx.moveTo(p.x - wx, p.y); ctx.lineTo(p.x, p.y + wy);
   ctx.lineTo(p.x, p.y + wy - H); ctx.lineTo(p.x - wx, p.y - H);
   ctx.closePath(); ctx.fill();
+  // Правая грань — градиент
   const g = ctx.createLinearGradient(p.x, p.y - H, p.x + wx, p.y);
-  g.addColorStop(0, '#5a2058'); g.addColorStop(1, '#3a1840');
+  g.addColorStop(0, '#4a4e54'); g.addColorStop(1, '#1f242a');
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x + wx, p.y);
   ctx.lineTo(p.x + wx, p.y - H); ctx.lineTo(p.x, p.y + wy - H);
   ctx.closePath(); ctx.fill();
-  // Полосатый тент-крыша (фиолетовый + чёрный)
-  for (let i = 0; i < 4; i++) {
-    ctx.fillStyle = (i % 2 === 0) ? '#5a2058' : '#1a0820';
+  // Ржавые потёки на правой грани (3 вертикальные полосы)
+  ctx.strokeStyle = 'rgba(180,80,30,.45)';
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < 3; i++) {
+    const sx = p.x + wx * (0.20 + i * 0.30);
     ctx.beginPath();
-    ctx.moveTo(p.x - wx + i * wx/4,     p.y - H);
-    ctx.lineTo(p.x - wx + (i+1) * wx/4, p.y - H);
-    ctx.lineTo(p.x + (i+1) * wx/4 - wx, p.y - H - wy * (i+1)/8);
-    ctx.lineTo(p.x + i * wx/4 - wx,     p.y - H - wy * i/8);
+    ctx.moveTo(sx, p.y - H * 0.85);
+    ctx.lineTo(sx + Math.sin(i) * 2, p.y - H * 0.10);
+    ctx.stroke();
+  }
+  // Крыша — плоская тёмная
+  ctx.fillStyle = '#1a1d22';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - H + wy); ctx.lineTo(p.x + wx, p.y - H);
+  ctx.lineTo(p.x, p.y - H - wy); ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath(); ctx.fill();
+  // Жёлтая предупреждающая полоса по верху правой грани
+  ctx.save();
+  ctx.fillStyle = '#ffd200';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y + wy - H + 4);
+  ctx.lineTo(p.x + wx, p.y - H + 4);
+  ctx.lineTo(p.x + wx, p.y - H + 7);
+  ctx.lineTo(p.x, p.y + wy - H + 7);
+  ctx.closePath(); ctx.fill();
+  // Чёрные полоски «опасно»
+  ctx.fillStyle = '#000';
+  for (let s = 0; s < 5; s++) {
+    const sx = p.x + (wx * s) / 5 + 2;
+    ctx.beginPath();
+    ctx.moveTo(sx, p.y + wy - H + 4 + (wy * s / 5) * 0.15);
+    ctx.lineTo(sx + 3, p.y + wy - H + 4 + (wy * s / 5) * 0.15);
+    ctx.lineTo(sx + 5, p.y + wy - H + 7 + (wy * s / 5) * 0.15);
+    ctx.lineTo(sx + 2, p.y + wy - H + 7 + (wy * s / 5) * 0.15);
     ctx.closePath(); ctx.fill();
   }
-  // Гирлянды-огоньки по краю крыши (4 цветных точки, пульсация)
-  const t = performance.now() / 300;
-  const colors = ['#ff5a5a', '#5affff', '#ffd76b', '#a5ff5a'];
-  for (let i = 0; i < 4; i++) {
-    const px = p.x - wx + (i + 0.5) * wx / 2;
-    const py = p.y - H - wy * (i / 8) + 2;
-    const k = 0.6 + 0.4 * Math.sin(t + i);
-    ctx.fillStyle = colors[i];
-    ctx.globalAlpha = k;
-    ctx.beginPath();
-    ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // Маленькие промышленные окна-щели на правой грани
+  ctx.fillStyle = '#5a8aa8';
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 4; col++) {
+      const wxp = p.x + wx * (0.18 + col * 0.20);
+      const wyp = p.y - H * (0.30 + row * 0.18);
+      ctx.fillRect(wxp - 2, wyp - 1, 4, 2);
+    }
   }
-  ctx.globalAlpha = 1;
+  // Две кирпичные трубы на крыше (правая выше, левая короче)
+  const drawStack = (sx, sy, sh, sw) => {
+    // Тело трубы
+    ctx.fillStyle = '#6a3818';
+    ctx.fillRect(sx - sw, sy - sh, sw * 2, sh);
+    // Тёмная сторона
+    ctx.fillStyle = '#3a1808';
+    ctx.fillRect(sx, sy - sh, sw, sh);
+    // Тёмный верх (ободок)
+    ctx.fillStyle = '#2a0e04';
+    ctx.fillRect(sx - sw - 1, sy - sh - 2, sw * 2 + 2, 3);
+  };
+  const stack1X = p.x - wx * 0.25, stack1Y = p.y - H + wy * 0.10;
+  const stack2X = p.x + wx * 0.10, stack2Y = p.y - H - wy * 0.10;
+  drawStack(stack1X, stack1Y, 14, 3.5);
+  drawStack(stack2X, stack2Y, 20, 4);
+  // Дым из труб — 3 облачка на трубу, поднимаются вверх и растворяются
+  const drawSmoke = (sx, sy) => {
+    for (let i = 0; i < 3; i++) {
+      const phase = ((t * 0.5 + i * 0.33) % 1);  // 0..1
+      const dy   = -phase * 32;
+      const dx   = Math.sin(phase * 6 + i) * 4;
+      const rad  = 4 + phase * 6;
+      const alpha = (1 - phase) * 0.45;
+      ctx.fillStyle = `rgba(160,160,170,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(sx + dx, sy + dy, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+  drawSmoke(stack1X, stack1Y - 14);
+  drawSmoke(stack2X, stack2Y - 20);
+}
+
+// ── РЕЗИДЕНЦИЯ — белый особняк с колоннами и золотым куполом ─────
+// Презентабельный мраморный фасад с 3 колоннами, треугольным
+// фронтоном, золотым куполом сверху и зелёной живой изгородью внизу.
+function drawMansionBuilding(r, c) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(2.2);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.5)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy); ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath(); ctx.fill();
+  // Левая грань — мрамор молочный
+  ctx.fillStyle = '#c8bfa8';
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx, p.y); ctx.lineTo(p.x, p.y + wy);
+  ctx.lineTo(p.x, p.y + wy - H); ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath(); ctx.fill();
+  // Правая грань — градиент белый→светло-серый
+  const g = ctx.createLinearGradient(p.x, p.y - H, p.x + wx, p.y);
+  g.addColorStop(0, '#f0e8d0'); g.addColorStop(1, '#a89878');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x + wx, p.y - H); ctx.lineTo(p.x, p.y + wy - H);
+  ctx.closePath(); ctx.fill();
+  // 3 дорические колонны на правой грани (вертикальные белые столбы)
+  for (let i = 0; i < 3; i++) {
+    const cx = p.x + wx * (0.20 + i * 0.28);
+    // Капитель сверху
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(cx - 3.5, p.y - H * 0.85, 7, 4);
+    // Тело колонны
+    ctx.fillStyle = '#e8e0c8';
+    ctx.fillRect(cx - 2.5, p.y - H * 0.85, 5, H * 0.75);
+    // Тёмная вертикальная грань (тень)
+    ctx.fillStyle = 'rgba(60,40,20,.35)';
+    ctx.fillRect(cx + 1.5, p.y - H * 0.85, 1, H * 0.75);
+    // База колонны
+    ctx.fillStyle = '#a89878';
+    ctx.fillRect(cx - 3.5, p.y - H * 0.10 + wy * 0.0, 7, 3);
+  }
+  // Треугольный фронтон (между крышей и колоннами)
+  ctx.save();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.moveTo(p.x + wx * 0.15, p.y - H * 0.85);
+  ctx.lineTo(p.x + wx * 0.95, p.y - H * 0.85);
+  ctx.lineTo(p.x + wx * 0.55, p.y - H * 0.95);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#a89878';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.restore();
+  // Крыша — плоская с тёмно-зелёным оттенком (медь окислилась)
+  ctx.fillStyle = '#2a6a4a';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - H + wy); ctx.lineTo(p.x + wx, p.y - H);
+  ctx.lineTo(p.x, p.y - H - wy); ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath(); ctx.fill();
+  // Золотой купол по центру крыши
+  const domeX = p.x, domeY = p.y - H;
+  // База купола (золотое кольцо)
+  ctx.fillStyle = '#8a6028';
+  ctx.beginPath();
+  ctx.ellipse(domeX, domeY, wx * 0.30, wy * 0.30, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Сам купол
+  const domeGrad = ctx.createRadialGradient(domeX - 4, domeY - 10, 2, domeX, domeY - 8, wx * 0.32);
+  domeGrad.addColorStop(0, '#ffe890');
+  domeGrad.addColorStop(0.5, '#c89028');
+  domeGrad.addColorStop(1, '#5a3010');
+  ctx.fillStyle = domeGrad;
+  ctx.beginPath();
+  ctx.ellipse(domeX, domeY - 6, wx * 0.32, isoH(0.7), 0, Math.PI, 0, false);
+  ctx.fill();
+  // Шпиль и крест/звезда сверху купола
+  ctx.fillStyle = '#ffd76b';
+  ctx.fillRect(domeX - 1, domeY - 6 - isoH(0.7) - 6, 2, 6);
+  ctx.font = '10px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('✦', domeX, domeY - 6 - isoH(0.7) - 7);
+  // Большая входная дверь по центру (тёмная)
+  const doorX = p.x + wx * 0.50;
+  ctx.fillStyle = '#3a2818';
+  ctx.fillRect(doorX - 5, p.y - H * 0.10, 10, H * 0.20);
+  // Золотая ручка
+  ctx.fillStyle = '#ffd76b';
+  ctx.fillRect(doorX + 2, p.y - H * 0.02, 2, 2);
+  // Живая изгородь перед фасадом (зелёные круги)
+  ctx.fillStyle = '#1a5a2a';
+  for (let i = 0; i < 4; i++) {
+    const bx = p.x + wx * (0.10 + i * 0.22) - wx * 0.15;
+    const by = p.y + wy * 0.40 - i * 1.5;
+    ctx.beginPath();
+    ctx.arc(bx, by, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#2a8a3a';
+  for (let i = 0; i < 4; i++) {
+    const bx = p.x + wx * (0.10 + i * 0.22) - wx * 0.15;
+    const by = p.y + wy * 0.40 - i * 1.5 - 2;
+    ctx.beginPath();
+    ctx.arc(bx, by, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.textAlign = 'left';
 }
 
 // ── КАЗИНО — неоновая вывеска CASINO, красная дорожка, золотая отделка ──
@@ -3565,6 +3865,8 @@ function render() {
           if      (poi && poi.id === 'casino')    drawCasinoBuilding(r, c);
           else if (poi && poi.id === 'market')    drawMarketBuilding(r, c);
           else if (poi && poi.id === 'port')      drawPortBuilding(r, c);
+          else if (poi && poi.id === 'factory')   drawFactoryBuilding(r, c);
+          else if (poi && poi.id === 'mansion')   drawMansionBuilding(r, c);
           else if (poi && poi.special === 'shop') drawBlackmarket(r, c);
           else                                    drawBuilding(r, c);
           if (poi) drawPOI(r, c, poi);
