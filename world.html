@@ -331,16 +331,24 @@ body.in-pvp #zoneBtn { top: 104px; }
 }
 #emojiBar .em:active { background: rgba(255,215,107,.20); }
 
-/* Мини-карта в правом верхнем углу */
+/* Мини-карта в правом верхнем углу — стилистика как HUD demo:
+ * двойная рамка с фасочным glow, тёмный градиент, скруглённые углы. */
 #mapHud {
   position: absolute; right: 14px; top: 56px; z-index: 4;
-  width: 132px; height: 132px;
-  background: rgba(8,10,16,.85);
-  border: 2px solid #4a5060; border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.6);
+  width: 160px; height: 160px;
+  background: linear-gradient(180deg, rgba(20,24,32,.94) 0%, rgba(10,12,18,.92) 100%);
+  border: 1px solid #4a5468; border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.6),
+              inset 0 1px 0 rgba(255,255,255,.05),
+              inset 0 0 0 1px rgba(0,0,0,.45);
+  padding: 4px;
   pointer-events: none;
 }
-#mapHud canvas { display: block; width: 100%; height: 100%; border-radius: 8px; }
+#mapHud canvas {
+  display: block; width: 100%; height: 100%; border-radius: 8px;
+  background: #0a0d14;
+  box-shadow: inset 0 0 8px rgba(0,0,0,.7);
+}
 
 /* Большой баннер событий (инкассатор выехал / X забрал куш) —
    привлекает внимание всех онлайн-игроков, видно даже на маленьком
@@ -474,7 +482,7 @@ body.in-pvp #zoneBtn { top: 104px; }
   <button id="zoneBtn"></button>
   <div id="pvpBanner">⚠️ ВЫ В PVP-ЗОНЕ ⚠️</div>
 
-  <div id="mapHud"><canvas id="mapCanvas" width="132" height="132"></canvas></div>
+  <div id="mapHud"><canvas id="mapCanvas" width="304" height="304"></canvas></div>
 
   <div id="joyL"><div class="knob"></div></div>
   <!-- Правый стик: прицел+огонь (Brawl-Stars style) -->
@@ -5216,89 +5224,146 @@ function drawEventArrow(r0, r1, c0, c1) {
 }
 
 // ── Мини-карта ──────────────────────────────────────────────────
-const _miniCtx = document.getElementById('mapCanvas').getContext('2d');
-const MINI_W = 132, MINI_H = 132;
+// Стилистика HUD demo: тёмная подложка, чёткие тайлы (дороги светлее,
+// здания темнее), POI рисуются ЭМОДЗИ прямо на карте, игрок — стрелка
+// по углу взгляда, копы пульсируют красным, конвой золотой/синий.
+const _miniCanvas = document.getElementById('mapCanvas');
+const _miniCtx = _miniCanvas.getContext('2d');
+const MINI_W = _miniCanvas.width;
+const MINI_H = _miniCanvas.height;
 function drawMinimap() {
   const ctx2 = _miniCtx;
   ctx2.clearRect(0, 0, MINI_W, MINI_H);
-  // Фон
-  ctx2.fillStyle = '#0a0d14';
-  ctx2.fillRect(0, 0, MINI_W, MINI_H);
   const sx = MINI_W / MAP_COLS, sy = MINI_H / MAP_ROWS;
-  // Тайлы: рисуем только дороги (светлее) + здания (темнее) — крупными
-  // пикселями, без обводки. Для скорости — раз в 4 кадра.
-  if ((_miniTick++ & 3) === 0) {
-    _miniBakedDirty = true;
-  }
-  if (_miniBakedDirty) {
-    bakeMini();
-    _miniBakedDirty = false;
-  }
+  // Базовый рендер тайлов — кешируем (раз в 4 кадра инвалидируем)
+  if ((_miniTick++ & 3) === 0) _miniBakedDirty = true;
+  if (_miniBakedDirty) { bakeMini(); _miniBakedDirty = false; }
   ctx2.drawImage(_miniBaked, 0, 0);
-  // PVP-зона — красный прямоугольник
-  ctx2.fillStyle = 'rgba(255,40,40,.30)';
-  ctx2.fillRect(ARENA_C0 * sx, ARENA_R0 * sy, (ARENA_C1 - ARENA_C0 + 1) * sx, (ARENA_R1 - ARENA_R0 + 1) * sy);
+  // PVP-арена — пульсирующая красная зона
+  const arenaPulse = 0.20 + Math.abs(Math.sin(performance.now() * 0.003)) * 0.18;
+  ctx2.fillStyle = `rgba(255,40,40,${arenaPulse})`;
+  ctx2.fillRect(ARENA_C0 * sx, ARENA_R0 * sy,
+                (ARENA_C1 - ARENA_C0 + 1) * sx, (ARENA_R1 - ARENA_R0 + 1) * sy);
   ctx2.strokeStyle = 'rgba(255,80,80,.85)';
-  ctx2.lineWidth = 1;
+  ctx2.lineWidth = 1.5;
+  ctx2.setLineDash([3, 2]);
   ctx2.strokeRect(ARENA_C0 * sx + 0.5, ARENA_R0 * sy + 0.5,
                   (ARENA_C1 - ARENA_C0 + 1) * sx, (ARENA_R1 - ARENA_R0 + 1) * sy);
-  // POI — цветные точки
+  ctx2.setLineDash([]);
+  // Тюрьма (как POI 🚓) — серый домик в правом-нижнем углу карты
+  const jailX = 56, jailY = 56, jailSize = 8;
+  ctx2.fillStyle = 'rgba(90,90,110,.85)';
+  ctx2.fillRect(jailX * sx - jailSize/2, jailY * sy - jailSize/2, jailSize, jailSize);
+  ctx2.strokeStyle = '#9aa';
+  ctx2.lineWidth = 1;
+  ctx2.strokeRect(jailX * sx - jailSize/2 + 0.5, jailY * sy - jailSize/2 + 0.5,
+                  jailSize - 1, jailSize - 1);
+  // POI — эмодзи с подложкой (как в demo HUD)
+  ctx2.textAlign = 'center';
+  ctx2.textBaseline = 'middle';
+  ctx2.font = 'bold 14px "Segoe UI Emoji", system-ui, sans-serif';
   for (const poi of POI) {
-    ctx2.fillStyle = poi.special === 'shop' ? '#c870ff' :
-                     poi.special === 'arena' ? '#ff5050' : '#ffd76b';
-    ctx2.beginPath();
-    ctx2.arc((poi.c + 0.5) * sx, (poi.r + 0.5) * sy, 3, 0, Math.PI * 2);
-    ctx2.fill();
+    const x = (poi.c + 0.5) * sx;
+    const y = (poi.r + 0.5) * sy;
+    // Цветной кружок-фон под эмодзи
+    const ringCol = poi.special === 'shop'  ? 'rgba(200,112,255,.85)' :
+                    poi.special === 'arena' ? 'rgba(255,80,80,.85)'   :
+                                              'rgba(255,215,107,.85)';
+    ctx2.fillStyle = 'rgba(0,0,0,.55)';
+    ctx2.beginPath(); ctx2.arc(x, y, 9, 0, Math.PI * 2); ctx2.fill();
+    ctx2.strokeStyle = ringCol;
+    ctx2.lineWidth = 1.5;
+    ctx2.beginPath(); ctx2.arc(x, y, 9, 0, Math.PI * 2); ctx2.stroke();
+    // Эмодзи сверху
+    ctx2.fillStyle = '#000';
+    ctx2.fillText(poi.icon, x + 0.6, y + 0.6);
+    ctx2.fillStyle = '#fff';
+    ctx2.fillText(poi.icon, x, y);
   }
-  // Другие игроки — зелёные точки
-  ctx2.fillStyle = '#5aff80';
+  // Другие игроки — точки с обводкой, цвет по mode (PvE сине-серый,
+  // PvP яркий зелёный «союзник» с тонкой пульсацией)
+  const playerPulse = (Math.sin(performance.now() * 0.006) + 1) * 0.5;
   for (const [, o] of others) {
+    const isPve = (o.mode === 'pve');
+    const x = (o.x + 0.5) * sx, y = (o.y + 0.5) * sy;
+    ctx2.fillStyle = '#000';
+    ctx2.beginPath(); ctx2.arc(x, y, 4.5, 0, Math.PI * 2); ctx2.fill();
+    ctx2.fillStyle = isPve ? '#7aa0c8' : '#5aff80';
     ctx2.beginPath();
-    ctx2.arc((o.x + 0.5) * sx, (o.y + 0.5) * sy, 2, 0, Math.PI * 2);
+    ctx2.arc(x, y, isPve ? 3 : (3 + playerPulse * 0.5), 0, Math.PI * 2);
     ctx2.fill();
+    // Wanted — золотая корона над точкой
+    if (o.wanted && o.wanted > 0) {
+      ctx2.fillStyle = '#ffd76b';
+      ctx2.beginPath();
+      ctx2.arc(x, y - 6, 2, 0, Math.PI * 2);
+      ctx2.fill();
+    }
   }
-  // Конвой инкассатора — золотая (boss) и синие (полицейские) точки
+  // Конвой инкассатора — пульсирующий золотой (boss) и синие (охрана)
   if (worldEvent) {
     if (worldEvent.boss && worldEvent.boss.alive) {
       const pulse = (Math.sin(performance.now() * 0.012) + 1) * 0.5;
+      const x = (worldEvent.boss.x + 0.5) * sx;
+      const y = (worldEvent.boss.y + 0.5) * sy;
+      // Свечение
+      ctx2.fillStyle = `rgba(255,215,107,${0.25 + pulse * 0.25})`;
+      ctx2.beginPath(); ctx2.arc(x, y, 9 + pulse * 3, 0, Math.PI * 2); ctx2.fill();
       ctx2.fillStyle = '#ffd76b';
-      ctx2.beginPath();
-      ctx2.arc((worldEvent.boss.x + 0.5) * sx, (worldEvent.boss.y + 0.5) * sy,
-               3.5 + pulse * 1.5, 0, Math.PI * 2);
-      ctx2.fill();
+      ctx2.strokeStyle = '#000';
+      ctx2.lineWidth = 1;
+      ctx2.beginPath(); ctx2.arc(x, y, 5, 0, Math.PI * 2);
+      ctx2.fill(); ctx2.stroke();
     }
-    ctx2.fillStyle = '#6aa8ff';
     for (const g of (worldEvent.guards || [])) {
       if (!g.alive) continue;
-      ctx2.beginPath();
-      ctx2.arc((g.x + 0.5) * sx, (g.y + 0.5) * sy, 2.2, 0, Math.PI * 2);
-      ctx2.fill();
+      const x = (g.x + 0.5) * sx, y = (g.y + 0.5) * sy;
+      ctx2.fillStyle = '#000';
+      ctx2.beginPath(); ctx2.arc(x, y, 4.5, 0, Math.PI * 2); ctx2.fill();
+      ctx2.fillStyle = '#6aa8ff';
+      ctx2.beginPath(); ctx2.arc(x, y, 3, 0, Math.PI * 2); ctx2.fill();
     }
   }
-  // Копы в городе (wanted-система) — пульсирующие красные точки
+  // Копы в городе (wanted-система) — пульсирующие красные иконки
   if (worldCops && worldCops.length) {
-    const copPulse = (Math.sin(performance.now() * 0.018) + 1) * 0.5;
+    const copPulse = (Math.sin(performance.now() * 0.020) + 1) * 0.5;
     for (const cop of worldCops) {
+      if (cop.hp <= 0) continue;
+      const x = (cop.x + 0.5) * sx, y = (cop.y + 0.5) * sy;
+      // Сирено-ореол
+      ctx2.fillStyle = `rgba(255,48,48,${0.25 + copPulse * 0.35})`;
+      ctx2.beginPath(); ctx2.arc(x, y, 7 + copPulse * 3, 0, Math.PI * 2); ctx2.fill();
       ctx2.fillStyle = '#ff3030';
-      ctx2.beginPath();
-      ctx2.arc((cop.x + 0.5) * sx, (cop.y + 0.5) * sy,
-               2.4 + copPulse * 1.2, 0, Math.PI * 2);
-      ctx2.fill();
+      ctx2.strokeStyle = '#000';
+      ctx2.lineWidth = 1;
+      ctx2.beginPath(); ctx2.arc(x, y, 4, 0, Math.PI * 2);
+      ctx2.fill(); ctx2.stroke();
     }
   }
-  // Тюрьма — серый квадратик в углу карты (всегда виден)
-  ctx2.fillStyle = '#5a5a6a';
-  ctx2.fillRect(56 * sx - 2, 56 * sy - 2, 4, 4);
-  ctx2.strokeStyle = '#aaa';
-  ctx2.lineWidth = 0.8;
-  ctx2.strokeRect(56 * sx - 2.5, 56 * sy - 2.5, 5, 5);
-  // Игрок — белая точка с обводкой
+  // Игрок — белая СТРЕЛКА в направлении взгляда (вместо точки)
+  const px = (player.c + 0.5) * sx;
+  const py = (player.r + 0.5) * sy;
+  ctx2.save();
+  ctx2.translate(px, py);
+  ctx2.rotate(player.ang || 0);
   ctx2.fillStyle = '#fff';
   ctx2.strokeStyle = '#000';
-  ctx2.lineWidth = 1.5;
+  ctx2.lineWidth = 2;
   ctx2.beginPath();
-  ctx2.arc((player.c + 0.5) * sx, (player.r + 0.5) * sy, 3.5, 0, Math.PI * 2);
-  ctx2.fill(); ctx2.stroke();
+  ctx2.moveTo(8, 0);          // нос стрелки
+  ctx2.lineTo(-5, 5);
+  ctx2.lineTo(-3, 0);
+  ctx2.lineTo(-5, -5);
+  ctx2.closePath();
+  ctx2.fill();
+  ctx2.stroke();
+  ctx2.restore();
+  // Мой wanted — золотая звёздочка над стрелкой
+  if (myWanted > 0) {
+    ctx2.fillStyle = '#ffd76b';
+    ctx2.font = 'bold 12px "Segoe UI Emoji", sans-serif';
+    ctx2.fillText('★'.repeat(Math.min(3, myWanted)), px, py - 10);
+  }
 }
 let _miniTick = 0, _miniBakedDirty = true;
 const _miniBaked = document.createElement('canvas');
@@ -5310,15 +5375,35 @@ function bakeMini() {
   for (let r = 0; r < MAP_ROWS; r++) {
     for (let c = 0; c < MAP_COLS; c++) {
       const t = MAP[r][c];
+      // Тип поверхности: дорога/тротуар/здание/парк
+      const onRoadR = (r % BLOCK <= 2);
+      const onRoadC = (c % BLOCK <= 2);
+      const isRoad  = (onRoadR || onRoadC);
       let col;
-      if (t === 1)      col = '#3a3340';   // здание
-      else if (t === 8 || t === 6) col = '#2a4a22'; // парк/дерево
-      else if (t === 9) col = '#33343a';   // бордюр
-      else if (t === 7) col = '#ffe48a';   // фонарь
-      else              col = '#181820';   // дорога
+      if (t === 1)              col = '#2a2530';                  // здание (тёмное)
+      else if (t === 8 || t === 6) col = ((r + c) & 1) ? '#2a4a22' : '#243d1c';
+      else if (t === 9)         col = '#33343a';                  // бордюр
+      else if (t === 7)         col = '#ffe48a';                  // фонарь
+      else if (isRoad)          col = ((r + c) & 1) ? '#2a2a32' : '#222228';
+      else                      col = ((r + c) & 1) ? '#3a3530' : '#332e2a';  // тротуар
       b.fillStyle = col;
       b.fillRect(c * sx, r * sy, Math.ceil(sx) + 0.5, Math.ceil(sy) + 0.5);
     }
+  }
+  // Сетка районов — тонкие линии каждые BLOCK тайлов
+  b.strokeStyle = 'rgba(255,215,107,.10)';
+  b.lineWidth = 1;
+  for (let k = 0; k < MAP_ROWS; k += BLOCK) {
+    b.beginPath();
+    b.moveTo(0, k * sy + 0.5);
+    b.lineTo(MINI_W, k * sy + 0.5);
+    b.stroke();
+  }
+  for (let k = 0; k < MAP_COLS; k += BLOCK) {
+    b.beginPath();
+    b.moveTo(k * sx + 0.5, 0);
+    b.lineTo(k * sx + 0.5, MINI_H);
+    b.stroke();
   }
 }
 
