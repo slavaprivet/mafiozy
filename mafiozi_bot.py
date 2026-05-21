@@ -943,18 +943,36 @@ async def init_db():
         """)
         # Общий «банк банды»: пирамида referred_by → лидер. Каждое
         # эмерджентное событие (инкассатор и т.п.) откладывает 20%
-        # от награды в пул лидера. Раз в 3 дня лидер делит пул
-        # поровну между всеми членами банды (включая себя).
-        # leader_id всегда «корень» реферальной пирамиды (самый верхний
-        # пригласивший игрок). pool в копейках/центах хранить не надо —
-        # в этом проекте все деньги целочисленные ($).
+        # от награды в пул лидера. Раз в 3 дня СЕРВЕР сам делит пул
+        # поровну между всеми членами банды (включая лидера) — без
+        # ручного клика. Кладём расписание в next_payout.
         await db.execute("""
             CREATE TABLE IF NOT EXISTS gang_pools (
                 leader_id    INTEGER PRIMARY KEY,
                 pool         INTEGER DEFAULT 0,
                 last_payout  INTEGER DEFAULT 0,
                 total_earned INTEGER DEFAULT 0,
-                last_event_t INTEGER DEFAULT 0
+                last_event_t INTEGER DEFAULT 0,
+                next_payout  INTEGER DEFAULT 0
+            )
+        """)
+        # Миграция: добавить next_payout если БД старая
+        try:
+            await db.execute("ALTER TABLE gang_pools ADD COLUMN next_payout INTEGER DEFAULT 0")
+        except Exception:
+            pass
+        # Очередь уведомлений для показа баннером при следующем заходе
+        # игрока в мир (доход от банды / бизнес / работа / событие и т.п.)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS pending_notifications (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id INTEGER,
+                kind        TEXT,
+                title       TEXT,
+                msg         TEXT,
+                amount      INTEGER DEFAULT 0,
+                ts          INTEGER DEFAULT 0,
+                seen        INTEGER DEFAULT 0
             )
         """)
         await db.execute("""
@@ -1516,17 +1534,25 @@ async def get_gang_members(leader_id: int) -> list:
     return [dict(r) for r in rows]
 
 async def gang_pool_add(leader_id: int, amount: int) -> int:
-    """Откладывает amount в банк банды лидера. Возвращает новый pool."""
+    """Откладывает amount в банк банды лидера. Возвращает новый pool.
+    При ПЕРВОМ депозите в пустой банк выставляет next_payout = now + cd —
+    выплата произойдёт автоматически через GANG_PAYOUT_CD."""
     if amount <= 0 or not leader_id:
         return 0
     now = int(time.time())
+    next_payout = now + GANG_PAYOUT_CD
     async with aiosqlite.connect(DB_PATH) as db:
+        # INSERT: ставим next_payout сразу.
+        # UPDATE: сохраняем существующий next_payout если он есть,
+        # иначе (он был 0 — банк опустошился после выплаты) ставим заново.
         await db.execute(
-            "INSERT INTO gang_pools (leader_id, pool, total_earned, last_event_t) "
-            "VALUES (?, ?, ?, ?) "
+            "INSERT INTO gang_pools (leader_id, pool, total_earned, last_event_t, next_payout) "
+            "VALUES (?, ?, ?, ?, ?) "
             "ON CONFLICT(leader_id) DO UPDATE SET "
-            "  pool = pool + ?, total_earned = total_earned + ?, last_event_t = ?",
-            (leader_id, amount, amount, now, amount, amount, now)
+            "  pool = pool + ?, total_earned = total_earned + ?, last_event_t = ?, "
+            "  next_payout = CASE WHEN next_payout > 0 THEN next_payout ELSE ? END",
+            (leader_id, amount, amount, now, next_payout,
+             amount, amount, now, next_payout)
         )
         await db.commit()
         async with db.execute(
@@ -1536,17 +1562,149 @@ async def gang_pool_add(leader_id: int, amount: int) -> int:
     return int(row[0]) if row else 0
 
 async def get_gang_pool(leader_id: int) -> dict:
-    """Возвращает {pool, last_payout, total_earned, last_event_t}."""
+    """Возвращает {pool, last_payout, total_earned, last_event_t, next_payout}."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
-            "SELECT pool, last_payout, total_earned, last_event_t "
+            "SELECT pool, last_payout, total_earned, last_event_t, next_payout "
             "FROM gang_pools WHERE leader_id=?", (leader_id,)
         ) as cur:
             row = await cur.fetchone()
     if not row:
-        return {'pool': 0, 'last_payout': 0, 'total_earned': 0, 'last_event_t': 0}
+        return {'pool': 0, 'last_payout': 0, 'total_earned': 0,
+                'last_event_t': 0, 'next_payout': 0}
     return dict(row)
+
+# ── Очередь уведомлений ────────────────────────────────────────
+# Каждый раз когда игрок что-то получает «фоном» (выплата с банды,
+# доход с бизнеса, начисление за работу, награда от события и т.п.)
+# мы кладём запись в pending_notifications. При следующем заходе в
+# мир/хаб клиент через /notify/{uid}/pending получает массив, рисует
+# баннеры в стиле эмерджентных событий и помечает как seen.
+async def queue_notification(telegram_id: int, kind: str, title: str,
+                              msg: str, amount: int = 0) -> None:
+    if not telegram_id:
+        return
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "INSERT INTO pending_notifications (telegram_id, kind, title, msg, amount, ts) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (int(telegram_id), kind, title[:80], msg[:200],
+                 int(amount), int(time.time()))
+            )
+            await db.commit()
+    except Exception as _e:
+        logger.warning("queue_notification failed: %r", _e)
+
+async def get_pending_notifications(telegram_id: int) -> list:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT id, kind, title, msg, amount, ts FROM pending_notifications "
+            "WHERE telegram_id=? AND seen=0 ORDER BY ts ASC LIMIT 20",
+            (telegram_id,)
+        ) as cur:
+            rows = await cur.fetchall()
+    return [dict(r) for r in rows]
+
+async def mark_notifications_seen(telegram_id: int, ids: list) -> None:
+    if not ids:
+        return
+    async with aiosqlite.connect(DB_PATH) as db:
+        placeholders = ','.join('?' * len(ids))
+        await db.execute(
+            f"UPDATE pending_notifications SET seen=1 "
+            f"WHERE telegram_id=? AND id IN ({placeholders})",
+            (int(telegram_id), *[int(i) for i in ids])
+        )
+        await db.commit()
+
+async def auto_payout_one_gang(leader_id: int, pool: int) -> dict:
+    """Делит pool поровну между членами банды, начисляет cash,
+    кладёт уведомления для каждого, обнуляет pool и сдвигает таймер.
+    Возвращает {'share', 'members', 'remainder'}."""
+    members = await get_gang_members(leader_id)
+    if not members or pool <= 0:
+        return {'share': 0, 'members': 0, 'remainder': 0}
+    share = pool // len(members)
+    remainder = pool - share * len(members)
+    leader_name = next((m.get('name') for m in members
+                        if int(m['telegram_id']) == int(leader_id)), 'Лидер')
+    if share <= 0 and remainder <= 0:
+        return {'share': 0, 'members': len(members), 'remainder': 0}
+    now = int(time.time())
+    for m in members:
+        mid = int(m['telegram_id'])
+        extra = remainder if mid == int(leader_id) else 0
+        amt = share + extra
+        if amt <= 0:
+            continue
+        try:
+            ch = await get_character(mid)
+            if not ch:
+                continue
+            new_cash = int(ch.get('cash') or 0) + amt
+            await update_character(mid, cash=new_cash)
+            # Очередь уведомлений — баннер при заходе
+            await queue_notification(
+                mid, 'gang_payout',
+                f'💼 Доход от банды +{amt}$',
+                f'«{leader_name}» собрал куш — твоя доля {amt}$ уже на счёте.',
+                amount=amt,
+            )
+            # Telegram-уведомление (best-effort)
+            if BOT_INSTANCE is not None and mid != int(leader_id):
+                try:
+                    await BOT_INSTANCE.send_message(
+                        chat_id=mid,
+                        text=(f"💼 Авто-выплата с банды: твоя доля *+{amt}\\$* "
+                              f"(лидер: {leader_name}). Открой /start чтобы забрать."),
+                        parse_mode='Markdown',
+                    )
+                except Exception:
+                    pass
+        except Exception as _e:
+            logger.warning("auto_payout to %s failed: %r", mid, _e)
+    # Обнуляем пул и сбрасываем расписание (новый набор начнётся при
+    # первом событии — gang_pool_add выставит next_payout заново).
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE gang_pools SET pool=0, last_payout=?, next_payout=0 "
+            "WHERE leader_id=?",
+            (now, leader_id)
+        )
+        await db.commit()
+    logger.info("Gang auto-payout: leader=%s pool=%d → %d × %d members (rem %d)",
+                leader_id, pool, share, len(members), remainder)
+    return {'share': share, 'members': len(members), 'remainder': remainder}
+
+async def _gang_payout_loop():
+    """Фоновая задача: раз в 60 сек сканирует gang_pools на готовые
+    выплаты. ВСЕ выплаты автоматические — лидеру ничего нажимать не
+    надо. Запускается из main()._post_init одновременно с HTTP API."""
+    await asyncio.sleep(15)  # стартуем после init_db
+    while True:
+        try:
+            now = int(time.time())
+            async with aiosqlite.connect(DB_PATH) as db:
+                db.row_factory = aiosqlite.Row
+                async with db.execute(
+                    "SELECT leader_id, pool FROM gang_pools "
+                    "WHERE pool > 0 AND next_payout > 0 AND next_payout <= ?",
+                    (now,)
+                ) as cur:
+                    ready = [dict(r) for r in await cur.fetchall()]
+            for row in ready:
+                try:
+                    await auto_payout_one_gang(int(row['leader_id']),
+                                                int(row['pool']))
+                except Exception as _e:
+                    logger.warning("gang auto-payout crash leader=%s: %r",
+                                   row['leader_id'], _e)
+        except Exception as _e:
+            logger.warning("gang payout loop tick failed: %r", _e)
+        await asyncio.sleep(60)
 
 async def get_friend_collect(inviter_id: int, friend_id: int) -> int:
     """Возвращает timestamp последнего сбора с этого друга."""
@@ -11120,6 +11278,60 @@ WORLD_AFK_TIMEOUT_S = 90  # без инпута дольше — выкидыв�
                           # Было 30с — друг просто стоял и его кикало,
                           # тогда у хоста оставался «фантом» имени.
 
+# ── Карта города на сервере (детерминистично, совпадает с world.html) ──
+# Чтобы серверная боёвка проверяла «есть ли стена между стрелком и целью»
+# и AI не стрелял сквозь здания, реконструируем тайл-сетку из той же
+# формулы, что и client buildMap(). BLOCK=8, road=0/1, sidewalk=2/7,
+# park-блок (детерминистичный хеш) — газон.
+def _world_is_wall(r: int, c: int) -> bool:
+    if r < 0 or r >= WORLD_MAP_ROWS or c < 0 or c >= WORLD_MAP_COLS:
+        return True
+    if r == 0 or r == WORLD_MAP_ROWS - 1 or c == 0 or c == WORLD_MAP_COLS - 1:
+        return True
+    BLOCK = 8
+    rm = r % BLOCK; cm = c % BLOCK
+    if rm <= 1 or cm <= 1:
+        return False  # дорога
+    if rm == 2 or rm == BLOCK - 1 or cm == 2 or cm == BLOCK - 1:
+        return False  # тротуар
+    br = r // BLOCK; bc = c // BLOCK
+    h = (br * 17 + bc * 31) % 11
+    if h == 0 or h == 7:
+        return False  # парк
+    return True
+
+def _world_los(sx: float, sy: float, tx: float, ty: float) -> bool:
+    """Можно ли провести прямую пулю из (sx,sy) в (tx,ty) не задев здания.
+    Sampling каждые 0.5 тайла — компромисс между точностью и скоростью."""
+    dx = tx - sx; dy = ty - sy
+    dist = (dx*dx + dy*dy) ** 0.5
+    if dist < 0.01:
+        return True
+    steps = max(3, int(dist * 2.4))
+    for i in range(1, steps):
+        k = i / steps
+        x = sx + dx * k
+        y = sy + dy * k
+        if _world_is_wall(int(y), int(x)):
+            return False
+    return True
+
+def _dist_to_segment(px: float, py: float,
+                      ax: float, ay: float, bx: float, by: float) -> float:
+    """Расстояние от точки (px,py) до отрезка A-B. Нужно для проверки
+    «игрок в PvP-зоне маршрута инкассатора»."""
+    abx = bx - ax; aby = by - ay
+    L2 = abx*abx + aby*aby
+    if L2 < 1e-6:
+        dx = px - ax; dy = py - ay
+        return (dx*dx + dy*dy) ** 0.5
+    t = ((px - ax) * abx + (py - ay) * aby) / L2
+    if t < 0: t = 0
+    elif t > 1: t = 1
+    cx = ax + abx * t; cy = ay + aby * t
+    dx = px - cx; dy = py - cy
+    return (dx*dx + dy*dy) ** 0.5
+
 class WorldSim:
     """Глобальная симуляция открытого мира — один экземпляр на сервер.
     Хранит позиции всех онлайн-игроков, рассылает снапшоты 15 Гц.
@@ -11137,24 +11349,43 @@ class WorldSim:
     # видимости и шлёт пакет 'inkass_shot' (трассер + урон). На убийстве
     # инкассатора killer получает EVENT_REWARD в БД, всему миру летит
     # 'inkassator_killed' с ником и наградой. Полицейские наград не дают.
-    EVENT_FIRST_DELAY  = 25.0      # первый конвой через 25с после старта мира
-    EVENT_INTERVAL     = 180.0     # пауза между событиями (3 мин)
-    INKASS_SPEED       = 0.9       # тайлов/сек — медленнее обычной машины
-    INKASS_HP          = 220       # запас здоровья (~8 чистых попаданий)
-    INKASS_REWARD      = 500
-    INKASS_FIRE_R      = 9.0       # макс. дистанция игрок→цель для попадания
-    BOSS_SHOOT_R       = 7.0       # инкассатор бьёт в этом радиусе
-    BOSS_SHOOT_DMG     = 20
-    BOSS_SHOOT_CD      = 1.8       # сек между выстрелами
-    GUARD_HP           = 75
-    GUARD_SHOOT_R      = 7.5
+    EVENT_FIRST_DELAY  = 45.0      # первый конвой через 45с после старта мира
+    EVENT_INTERVAL     = 600.0     # пауза между событиями (10 мин)
+    INKASS_SPEED       = 0.85      # тайлов/сек — медленно но без застоя
+    INKASS_HP          = 600       # больше hp — конвой можно долбить дольше
+    INKASS_REWARD      = 1500      # награда чуть больше, раз событие реже
+    INKASS_FIRE_R      = 10.5      # макс. дистанция игрок→цель для попадания
+    BOSS_SHOOT_R       = 8.0
+    BOSS_SHOOT_DMG     = 18
+    BOSS_SHOOT_CD      = 1.6
+    GUARD_HP           = 120
+    GUARD_SHOOT_R      = 8.5
     GUARD_SHOOT_DMG    = 14
-    GUARD_SHOOT_CD     = 1.6
+    GUARD_SHOOT_CD     = 1.3
+    GUARD_CHASE_SPEED  = 1.6       # охотится за стрелявшим (быстрее конвоя)
+    GUARD_CHASE_R      = 12.0      # радиус «вижу врага» когда отстал от конвоя
+    GUARD_RETURN_R     = 18.0      # если отстал дальше — возвращается в формацию
     PLAYER_RESPAWN_S   = 5.0       # сколько лежим мёртвым в мире
+    # PvP-зона ВО ВРЕМЯ события: пока конвой жив, игроки могут стрелять
+    # друг в друга в радиусе PVP_HOT_R от линии маршрута. Это создаёт
+    # конкуренцию: подбежал к кушу — попал под огонь не только конвоя,
+    # но и других охотников. Когда конвой убит/ушёл — PvP отключается.
+    PVP_HOT_R          = 15.0      # тайлы от линии маршрута
+    PVP_SHOT_DMG_DEF   = 28        # урон по игроку дефолтный (если оружие не указано)
+    PVP_SHOT_R         = 9.0
+    PVP_SHOT_CD        = 0.45      # сек серверный antispam между выстрелами игрока
+    # Урон оружием — берётся при event_shoot и player_shoot.
+    # Совпадает с WEAPON_FX_CFG из demo_isometric.html (с округлением).
+    WEAPON_DMG = {
+        'pistol':       25, 'nagan':       22,
+        'pistol_heavy': 38, 'pistol_gold': 50,
+        'shotgun':      55, 'smg':         18, 'tommy_gun': 22,
+        'rifle':        45, 'sniper':      85, 'rpg':       110,
+    }
     # Формация конвоя (локально, в координатах «вперёд/право»):
     #   oy > 0  → впереди инкассатора по направлению движения,
     #   oy < 0  → сзади. ox > 0 — справа от него.
-    GUARD_OFFSETS      = ((-0.9, -1.5), (0.9, -1.5), (0.0, -2.7))
+    GUARD_OFFSETS      = ((-1.1, -1.7), (1.1, -1.7), (0.0, -3.0))
     # Маршрут: от Чёрного рынка (r=4, c=28) к Казино (r=36, c=12).
     INKASS_START_X     = 26.0
     INKASS_START_Y     = 5.0
@@ -11312,6 +11543,9 @@ class WorldSim:
                 'max_hp':   int(self.INKASS_HP),
                 'alive':    True,
                 '_shot_t':  0.0,
+                # Threat: какого игрока запомнил как угрозу + когда последний раз вспоминал
+                '_threat_uid':   '',
+                '_threat_until': 0.0,
             },
             'guards': [],
         }
@@ -11330,6 +11564,10 @@ class WorldSim:
                 'ox':       float(ox),
                 'oy':       float(oy),
                 '_shot_t':  0.0,
+                # AI-state: 'formation' (держит конвой) или 'chase' (охотится)
+                '_state':       'formation',
+                '_threat_uid':  '',
+                '_threat_until': 0.0,
             })
         self.event = e
         logger.info("WorldSim: spawned inkassator convoy id=%s (%.1f,%.1f → %.1f,%.1f) + %d guards",
@@ -11364,7 +11602,7 @@ class WorldSim:
             return pkts
         import math as _m
         boss = e['boss']
-        # 2) Движение инкассатора к цели
+        # 2) Движение инкассатора к цели (всегда строго по маршруту)
         if boss['alive']:
             dx = self.INKASS_END_X - boss['x']
             dy = self.INKASS_END_Y - boss['y']
@@ -11379,29 +11617,61 @@ class WorldSim:
                 step = dist
             boss['x']  += (dx / dist) * step
             boss['y']  += (dy / dist) * step
-            # Угол движения держим только пока никто не стреляет; AI ниже
-            # перепишет ang в сторону таргета на момент выстрела.
             boss['ang'] = _m.atan2(dy, dx)
-        # 3) Полицейские держат формацию вокруг инкассатора
+        # 3) Полицейские: либо держат формацию вокруг конвоя, либо охотятся
+        # за стрелявшим (threat memory). Когда threat истёк или цель пропала —
+        # возвращаются в формацию.
         move_ang = boss['ang'] if boss['alive'] else 0.0
         cos_a = _m.cos(move_ang); sin_a = _m.sin(move_ang)
         for g in e['guards']:
             if not g['alive']:
                 continue
-            tgx = boss['x'] + g['ox'] * cos_a - g['oy'] * sin_a
-            tgy = boss['y'] + g['ox'] * sin_a + g['oy'] * cos_a
-            gdx = tgx - g['x']; gdy = tgy - g['y']
-            gd = (gdx*gdx + gdy*gdy) ** 0.5
-            if gd > 0.001:
-                gstep = (self.INKASS_SPEED * 1.25) * dt
-                if gstep > gd:
-                    gstep = gd
-                g['x'] += (gdx / gd) * gstep
-                g['y'] += (gdy / gd) * gstep
-                # Угол движения — но AI ниже перепишет если стреляет
-                if gd > 0.25:
-                    g['ang'] = _m.atan2(gdy, gdx)
-        # 4) AI стрельбы — boss и каждый guard ищут ближайшего живого игрока
+            # Решаем режим: chase если есть жив threat в радиусе слышимости
+            threat_uid = g.get('_threat_uid', '')
+            threat_alive = (threat_uid and threat_uid in self.players
+                            and not self.players[threat_uid].get('dead'))
+            threat_in_range = False
+            if threat_alive:
+                tp = self.players[threat_uid]
+                td = ((tp['x'] - g['x'])**2 + (tp['y'] - g['y'])**2) ** 0.5
+                threat_in_range = td < self.GUARD_CHASE_R
+                # Если убежал слишком далеко — забываем
+                if td > self.GUARD_RETURN_R:
+                    g['_threat_uid'] = ''
+                    threat_alive = False
+            if threat_alive and threat_in_range and now < g.get('_threat_until', 0):
+                g['_state'] = 'chase'
+                target_p = self.players[threat_uid]
+                # Идём НЕ прямо к игроку, а на дистанцию выстрела ~5 тайлов
+                tx = target_p['x']; ty = target_p['y']
+                gdx = tx - g['x']; gdy = ty - g['y']
+                gd = (gdx*gdx + gdy*gdy) ** 0.5
+                # Останавливаемся на дистанции 4.5 от цели — стреляем оттуда
+                desired = 4.5
+                if gd > desired + 0.2:
+                    step = self.GUARD_CHASE_SPEED * dt
+                    if step > gd - desired:
+                        step = gd - desired
+                    g['x'] += (gdx / gd) * step
+                    g['y'] += (gdy / gd) * step
+                g['ang'] = _m.atan2(gdy, gdx) if gd > 0.1 else g.get('ang', 0)
+            else:
+                # Формация — целевая позиция относительно конвоя
+                g['_state'] = 'formation'
+                tgx = boss['x'] + g['ox'] * cos_a - g['oy'] * sin_a
+                tgy = boss['y'] + g['ox'] * sin_a + g['oy'] * cos_a
+                gdx = tgx - g['x']; gdy = tgy - g['y']
+                gd = (gdx*gdx + gdy*gdy) ** 0.5
+                if gd > 0.001:
+                    gstep = (self.INKASS_SPEED * 1.25 + (1.0 if gd > 2.0 else 0.0)) * dt
+                    if gstep > gd:
+                        gstep = gd
+                    g['x'] += (gdx / gd) * gstep
+                    g['y'] += (gdy / gd) * gstep
+                    if gd > 0.25:
+                        g['ang'] = _m.atan2(gdy, gdx)
+        # 4) AI стрельбы — boss и каждый guard ищут цель: сначала «помнимая
+        # угроза», иначе ближайший игрок В РАДИУСЕ и С ЛИНИЕЙ ОБЗОРА
         actors = []
         if boss['alive']:
             actors.append((boss, self.BOSS_SHOOT_R, self.BOSS_SHOOT_CD, self.BOSS_SHOOT_DMG))
@@ -11411,18 +11681,32 @@ class WorldSim:
         for actor, shoot_r, cd, dmg in actors:
             if now - actor['_shot_t'] < cd:
                 continue
-            best_uid = None
-            best_d   = shoot_r
-            for p_uid, p in self.players.items():
-                if p.get('dead'):
-                    continue
-                pd = ((p['x'] - actor['x'])**2 + (p['y'] - actor['y'])**2) ** 0.5
-                if pd < best_d:
+            chosen_uid = None
+            # Сначала пытаемся стрелять в memorized threat
+            tu = actor.get('_threat_uid', '')
+            if tu and tu in self.players and not self.players[tu].get('dead'):
+                tp = self.players[tu]
+                td = ((tp['x'] - actor['x'])**2 + (tp['y'] - actor['y'])**2) ** 0.5
+                if td < shoot_r and _world_los(actor['x'], actor['y'], tp['x'], tp['y']):
+                    chosen_uid = tu
+            # Иначе ищем ближайшего живого с LOS
+            if chosen_uid is None:
+                best_uid = None
+                best_d   = shoot_r
+                for p_uid, p in self.players.items():
+                    if p.get('dead'):
+                        continue
+                    pd = ((p['x'] - actor['x'])**2 + (p['y'] - actor['y'])**2) ** 0.5
+                    if pd >= best_d:
+                        continue
+                    if not _world_los(actor['x'], actor['y'], p['x'], p['y']):
+                        continue
                     best_d   = pd
                     best_uid = p_uid
-            if best_uid is None:
+                chosen_uid = best_uid
+            if chosen_uid is None:
                 continue
-            target = self.players[best_uid]
+            target = self.players[chosen_uid]
             actor['ang']    = _m.atan2(target['y'] - actor['y'],
                                        target['x'] - actor['x'])
             actor['_shot_t'] = now
@@ -11436,10 +11720,10 @@ class WorldSim:
                 killed = True
             pkts.append({
                 'kind':       'inkass_shot',
-                'shooter_id': actor['id'],   # 'b' / 'g0' / 'g1' / 'g2'
+                'shooter_id': actor['id'],
                 'sx':         round(actor['x'], 2),
                 'sy':         round(actor['y'], 2),
-                'target_uid': best_uid,
+                'target_uid': chosen_uid,
                 'tx':         round(target['x'], 2),
                 'ty':         round(target['y'], 2),
                 'dmg':        int(dmg),
@@ -11453,10 +11737,10 @@ class WorldSim:
         return pkts
 
     def apply_event_shoot(self, uid: str, target_id: str = 'b',
-                          dmg: int = 25) -> dict | None:
+                          weapon: str = '') -> dict | None:
         """Игрок стреляет в одну из целей конвоя ('b' / 'g0' / 'g1' / 'g2').
         Возвращает kill-пакет если ИНКАССАТОР добит (награда), иначе None.
-        Anti-cheat: игрок должен быть в радиусе INKASS_FIRE_R от цели."""
+        Проверки: дистанция INKASS_FIRE_R, прямая видимость (LOS, нет стен)."""
         if not self.event or self.event.get('finished'):
             return None
         shooter = self.players.get(uid)
@@ -11476,8 +11760,13 @@ class WorldSim:
         d_sq = (shooter['x'] - target['x'])**2 + (shooter['y'] - target['y'])**2
         if d_sq > self.INKASS_FIRE_R * self.INKASS_FIRE_R:
             return None
-        dmg = max(1, min(80, int(dmg)))
+        if not _world_los(shooter['x'], shooter['y'], target['x'], target['y']):
+            return None  # стена между стрелком и целью — пуля не доходит
+        dmg = max(5, min(150, int(self.WEAPON_DMG.get(weapon, 25))))
         target['hp'] -= dmg
+        # Threat memory: NPC запоминает кто его ранил, реагирует следующие 12с
+        target['_threat_uid']   = str(uid)
+        target['_threat_until'] = time.time() + 12.0
         if target['hp'] <= 0:
             target['hp']    = 0
             target['alive'] = False
@@ -11495,6 +11784,75 @@ class WorldSim:
                     'reward':      int(e['reward']),
                 }
         return None
+
+    def apply_player_shoot(self, uid: str, target_uid: str,
+                           weapon: str = '') -> dict | None:
+        """PvP: игрок стреляет в другого игрока. Работает ТОЛЬКО пока активно
+        событие и оба находятся в PVP-зоне маршрута. Возвращает hit-пакет
+        для broadcast (всем клиентам — трассер + урон), или None если выстрел
+        отклонён (нет зоны, нет LOS, кд)."""
+        if not self.event or self.event.get('finished'):
+            return None  # PvP включается только во время события
+        shooter = self.players.get(uid)
+        target  = self.players.get(target_uid)
+        if not shooter or not target:
+            return None
+        if shooter.get('dead') or target.get('dead'):
+            return None
+        if str(uid) == str(target_uid):
+            return None
+        # Серверный antispam cooldown (на случай если клиент жмёт быстрее)
+        now = time.time()
+        last_t = float(shooter.get('_pvp_shot_t', 0.0) or 0.0)
+        if now - last_t < self.PVP_SHOT_CD:
+            return None
+        shooter['_pvp_shot_t'] = now
+        # Оба должны быть в активной PvP-зоне (вокруг маршрута)
+        if not self._in_pvp_zone(shooter['x'], shooter['y']):
+            return None
+        if not self._in_pvp_zone(target['x'], target['y']):
+            return None
+        # Дистанция
+        d_sq = (shooter['x'] - target['x'])**2 + (shooter['y'] - target['y'])**2
+        if d_sq > self.PVP_SHOT_R * self.PVP_SHOT_R:
+            return None
+        # Прямая видимость
+        if not _world_los(shooter['x'], shooter['y'], target['x'], target['y']):
+            return None
+        dmg = int(self.WEAPON_DMG.get(weapon, self.PVP_SHOT_DMG_DEF))
+        dmg = max(5, min(150, dmg))
+        target['hp'] = int(max(0, int(target.get('hp', 100)) - dmg))
+        killed = False
+        if target['hp'] <= 0:
+            target['hp']          = 0
+            target['dead']        = True
+            target['deaths']      = int(target.get('deaths', 0)) + 1
+            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+            shooter['kills']      = int(shooter.get('kills', 0)) + 1
+            killed = True
+        return {
+            'kind':       'pvp_shot',
+            'shooter_uid': str(uid),
+            'target_uid':  str(target_uid),
+            'sx':          round(shooter['x'], 2),
+            'sy':          round(shooter['y'], 2),
+            'tx':          round(target['x'], 2),
+            'ty':          round(target['y'], 2),
+            'dmg':         int(dmg),
+            'killed':      killed,
+            'weapon':      weapon or '',
+        }
+
+    def _in_pvp_zone(self, x: float, y: float) -> bool:
+        """Точка лежит в PvP-зоне ВО ВРЕМЯ активного события (расстояние
+        до отрезка маршрута меньше PVP_HOT_R). Когда события нет — PvP off."""
+        if not self.event or self.event.get('finished'):
+            return False
+        return _dist_to_segment(
+            x, y,
+            self.INKASS_START_X, self.INKASS_START_Y,
+            self.INKASS_END_X,   self.INKASS_END_Y,
+        ) < self.PVP_HOT_R
 
     def snapshot_for(self, uid: str) -> dict:
         """Снапшот для конкретного игрока: видит себя точно + всех в радиусе."""
@@ -11554,12 +11912,26 @@ class WorldSim:
                     'hp':     max(0, int(g['hp'])),
                     'max_hp': int(g['max_hp']),
                     'alive':  bool(g['alive']),
+                    'state':  g.get('_state', 'formation'),
                 } for g in e['guards']],
+                # Маршрут — клиент рисует PvP-зону вокруг линии
+                'route_sx': self.INKASS_START_X,
+                'route_sy': self.INKASS_START_Y,
+                'route_ex': self.INKASS_END_X,
+                'route_ey': self.INKASS_END_Y,
+                'pvp_r':    self.PVP_HOT_R,
             }
         now_t = time.time()
         respawn_in = 0
         if me.get('dead') and me.get('_respawn_at'):
             respawn_in = max(0, int(round(me['_respawn_at'] - now_t)))
+        # Cooldown до следующего инкассатора (для countdown UI на всех клиентах)
+        if self.event is None:
+            next_event_in = max(0, int(round(self._event_next_at - now_t)))
+        else:
+            next_event_in = -1   # «прямо сейчас идёт»
+        # Игрок в PvP-зоне (можно стрелять/быть подстреленным)
+        me_in_pvp = self._in_pvp_zone(mx, my)
         return {
             't': 'snap',
             'd': {
@@ -11575,9 +11947,11 @@ class WorldSim:
                     'respawn_in': respawn_in,
                     'look':    me.get('look') or {},
                 },
-                'others': others,
-                'event':  ev_payload,
-                'tick':   self.tick_no,
+                'others':        others,
+                'event':         ev_payload,
+                'next_event_in': next_event_in,
+                'pvp_active':    me_in_pvp,
+                'tick':          self.tick_no,
             }
         }
 
@@ -12294,18 +12668,11 @@ async def _coop_http_app():
         members = await get_gang_members(leader_id)
         pool_data = await get_gang_pool(leader_id)
         now = int(time.time())
-        last_payout = int(pool_data.get('last_payout') or 0)
-        # Если выплат ещё не было — считаем что готова сразу (cooldown
-        # отсчитывается от первой выплаты). Без этого первый забор
-        # пришлось бы ждать 3 дня после регистрации.
-        if last_payout <= 0:
-            seconds_left = 0
-        else:
-            seconds_left = max(0, GANG_PAYOUT_CD - (now - last_payout))
+        next_payout = int(pool_data.get('next_payout') or 0)
+        seconds_left = max(0, next_payout - now) if next_payout > 0 else 0
         member_count = max(1, len(members))
         pool = int(pool_data.get('pool') or 0)
         share = pool // member_count if pool > 0 else 0
-        # Имя лидера (для членов которые НЕ лидеры — показываем кто заберёт)
         leader_name = ''
         for m in members:
             if int(m['telegram_id']) == int(leader_id):
@@ -12321,96 +12688,48 @@ async def _coop_http_app():
             'member_count':  member_count,
             'pool':          pool,
             'total_earned':  int(pool_data.get('total_earned') or 0),
-            'last_payout':   last_payout,
+            'last_payout':   int(pool_data.get('last_payout') or 0),
             'last_event_t':  int(pool_data.get('last_event_t') or 0),
+            'next_payout':   next_payout,
             'cooldown_left': seconds_left,
             'cooldown_full': GANG_PAYOUT_CD,
             'share':         share,
-            'claim_ready':   (seconds_left == 0 and pool > 0),
+            'auto_payout':   True,
         }))
 
-    # Забрать общий банк банды. Делит на всех членов поровну
-    # (включая лидера). Только лидер может нажать. Cooldown 3 дня.
+    # Старый ручной claim больше не поддерживается — сервер раздаёт
+    # автоматически по next_payout. Эндпоинт оставлен для совместимости
+    # со старыми клиентами hub.html, возвращает понятную ошибку.
     async def h_gang_claim(req):
+        return await _cors(web.json_response({
+            'ok': False, 'error': 'auto_only',
+            'msg': 'Выплата теперь автоматическая раз в 3 дня.',
+        }))
+
+    # ── Очередь уведомлений ────────────────────────────────────────
+    # Клиент при заходе в мир/хаб дёргает /notify/{uid}/pending,
+    # получает массив платежей за время отсутствия (банда/бизнес/
+    # работа/события), рисует их баннерами и сразу шлёт /notify/{uid}/seen
+    # со списком id'ов чтобы не показывать повторно.
+    async def h_notify_pending(req):
         try:
             uid = int(req.match_info['uid'])
         except Exception:
             return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
-        leader_id = await get_gang_leader_id(uid)
-        if not leader_id:
-            return await _cors(web.json_response({'ok': False, 'error': 'lone_wolf'}))
-        if int(uid) != int(leader_id):
-            return await _cors(web.json_response({'ok': False, 'error': 'not_leader',
-                                                  'leader_id': leader_id}))
-        pool_data = await get_gang_pool(leader_id)
-        pool = int(pool_data.get('pool') or 0)
-        if pool <= 0:
-            return await _cors(web.json_response({'ok': False, 'error': 'empty_pool'}))
-        now = int(time.time())
-        last_payout = int(pool_data.get('last_payout') or 0)
-        if last_payout > 0 and (now - last_payout) < GANG_PAYOUT_CD:
-            seconds_left = GANG_PAYOUT_CD - (now - last_payout)
-            return await _cors(web.json_response({
-                'ok': False, 'error': 'cooldown',
-                'cooldown_left': seconds_left,
-            }))
-        members = await get_gang_members(leader_id)
-        if not members:
-            return await _cors(web.json_response({'ok': False, 'error': 'no_members'}))
-        share = pool // len(members)
-        if share <= 0:
-            return await _cors(web.json_response({'ok': False, 'error': 'too_small'}))
-        # Раздаём всем (включая лидера). Остаток (pool % len) уходит лидеру —
-        # как организатору, плюс это избегает «застрявших копеек» в пуле.
-        remainder = pool - share * len(members)
-        payouts = []
-        for m in members:
-            mid = int(m['telegram_id'])
-            extra = remainder if mid == int(leader_id) else 0
-            try:
-                ch = await get_character(mid)
-                if not ch:
-                    continue
-                new_cash = int(ch.get('cash') or 0) + share + extra
-                await update_character(mid, cash=new_cash)
-                payouts.append({
-                    'telegram_id': mid,
-                    'name':        m.get('name') or '',
-                    'amount':      share + extra,
-                })
-            except Exception as _e:
-                logger.warning("gang claim payout failed for %s: %r", mid, _e)
-        # Обнуляем пул и сбрасываем cooldown
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute(
-                "UPDATE gang_pools SET pool=0, last_payout=? WHERE leader_id=?",
-                (now, leader_id)
-            )
-            await db.commit()
-        # Уведомим членов банды через бота, если возможно (не критично)
-        if BOT_INSTANCE is not None:
-            leader_name = next((m.get('name') for m in members
-                                if int(m['telegram_id']) == int(leader_id)), 'Лидер')
-            for p in payouts:
-                if p['telegram_id'] == int(leader_id):
-                    continue
-                try:
-                    await BOT_INSTANCE.send_message(
-                        chat_id=p['telegram_id'],
-                        text=(f"💼 Доход от банды: *{leader_name}* раздал куш — "
-                              f"тебе *+{p['amount']}\\$*."),
-                        parse_mode='Markdown',
-                    )
-                except Exception:
-                    pass
-        return await _cors(web.json_response({
-            'ok':         True,
-            'total':      pool,
-            'share':      share,
-            'remainder':  remainder,
-            'members':    len(members),
-            'payouts':    payouts,
-        }))
+        items = await get_pending_notifications(uid)
+        return await _cors(web.json_response({'ok': True, 'items': items,
+                                              'count': len(items)}))
+
+    async def h_notify_seen(req):
+        try:
+            uid = int(req.match_info['uid'])
+            body = await req.json()
+            ids = body.get('ids') or []
+            ids = [int(x) for x in ids if str(x).isdigit() or isinstance(x, int)]
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad request'}, status=400))
+        await mark_notifications_seen(uid, ids)
+        return await _cors(web.json_response({'ok': True, 'marked': len(ids)}))
 
     # ── Работа: найм/увольнение БЕЗ закрытия мини-аппа ──────────
     async def h_job_take(req):
@@ -13320,9 +13639,9 @@ async def _coop_http_app():
                     elif t == 'chat':
                         world.apply_chat(uid, str(d.get('text', ''))[:80])
                     elif t == 'event_shoot':
-                        # Игрок стреляет в конвой. d = {target:'b'|'g0'..'g2', dmg:25}
+                        # Игрок стреляет в конвой. d = {target:'b'|'g0'..'g2', weapon:'pistol'}
                         target_id = str(d.get('target') or 'b')[:3]
-                        dmg = int(d.get('dmg') or 25)
+                        weapon    = str(d.get('weapon') or '')[:24]
                         # Trace для всех клиентов (даже промах — слышим выстрел)
                         shooter = world.players.get(uid)
                         if shooter:
@@ -13334,12 +13653,13 @@ async def _coop_http_app():
                                     'sx': round(shooter['x'], 2),
                                     'sy': round(shooter['y'], 2),
                                     'target': target_id,
+                                    'weapon': weapon,
                                 },
                             }, ensure_ascii=False)
                             for u2, ws2 in list(world.connections.items()):
                                 try: await ws2.send_str(trace_pkt)
                                 except Exception: pass
-                        kill_pkt = world.apply_event_shoot(uid, target_id, dmg)
+                        kill_pkt = world.apply_event_shoot(uid, target_id, weapon)
                         if kill_pkt:
                             # Делим награду: 80% игроку лично, 20% — в банк
                             # его банды (реферальная пирамида). Если игрок
@@ -13376,6 +13696,25 @@ async def _coop_http_app():
                             for u2, ws2 in list(world.connections.items()):
                                 try: await ws2.send_str(kill_blob)
                                 except Exception: pass
+                    elif t == 'player_shoot':
+                        # PvP: игрок стреляет в другого игрока. Работает только
+                        # в активной зоне инкассатора. d = {target_uid, weapon}
+                        target_uid = str(d.get('target_uid') or '')
+                        weapon     = str(d.get('weapon') or '')[:24]
+                        if target_uid:
+                            hit_pkt = world.apply_player_shoot(uid, target_uid, weapon)
+                            if hit_pkt:
+                                # Имена для красивого баннера «X убил Y»
+                                shooter_p = world.players.get(uid)
+                                target_p  = world.players.get(target_uid)
+                                if shooter_p:
+                                    hit_pkt['shooter_name'] = (shooter_p.get('name') or '')[:24]
+                                if target_p:
+                                    hit_pkt['target_name']  = (target_p.get('name') or '')[:24]
+                                hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
+                                for u2, ws2 in list(world.connections.items()):
+                                    try: await ws2.send_str(hit_blob)
+                                    except Exception: pass
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass
@@ -13668,8 +14007,10 @@ async def _coop_http_app():
     aio_app.router.add_post('/coop/{sid}/leave',  h_leave)
     aio_app.router.add_post('/friend/add',        h_friend_add)
     aio_app.router.add_get ('/friend/list/{uid}', h_friend_list)
-    aio_app.router.add_get ('/gang/{uid}/pool',   h_gang_pool)
-    aio_app.router.add_post('/gang/{uid}/claim',  h_gang_claim)
+    aio_app.router.add_get ('/gang/{uid}/pool',     h_gang_pool)
+    aio_app.router.add_post('/gang/{uid}/claim',    h_gang_claim)
+    aio_app.router.add_get ('/notify/{uid}/pending', h_notify_pending)
+    aio_app.router.add_post('/notify/{uid}/seen',    h_notify_seen)
     aio_app.router.add_post('/job/{uid}/take',     h_job_take)
     aio_app.router.add_post('/job/{uid}/abandon',  h_job_abandon)
     aio_app.router.add_post('/job/{uid}/complete', h_job_complete)
@@ -13727,6 +14068,12 @@ def main():
             logger.info("HTTP API task scheduled (listening on :8080)")
         except Exception as _e:
             logger.warning("HTTP API не запустился: %s", _e)
+        # Авто-выплата банк-пулов раз в 3 дня (сканер каждые 60 сек)
+        try:
+            asyncio.create_task(_gang_payout_loop())
+            logger.info("Gang auto-payout loop scheduled (60s tick)")
+        except Exception as _e:
+            logger.warning("Gang payout loop не запустился: %s", _e)
         # Синюю кнопку menu button у бота убираем по просьбе продюсера —
         # навигация и так есть в /start через inline-кнопки. Ставим Default
         # (показывает список команд) вместо WebApp-кнопки, которая
