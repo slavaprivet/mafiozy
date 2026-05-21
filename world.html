@@ -1104,8 +1104,64 @@ let myDeathBy = '';       // uid того кто убил (последний)
 let myDeathLeft = 0;      // сколько сек до респауна
 let myKills = 0, myDeaths = 0;
 let lastShotClientT = 0;  // локальный cooldown (предотвращает спам)
-// Активные трассеры пуль на клиенте — рисуем 0.18 сек, потом исчезают.
-const bullets = [];       // {sx, sy, ex, ey, t0, ttl}
+// Активные пули на клиенте — летящие объекты с реальной физикой (как в
+// demo_isometric). Каждая пуля движется со speed тайлов/сек по вектору
+// vr/vc от точки выстрела к цели. По истечении maxDist (расстояние от
+// стрелка до цели) пуля исчезает — визуально совпадает с моментом
+// «попадания». Поле .hit — попадёт ли по цели (для финального эффекта).
+const bullets = [];       // {r,c,vr,vc,dist,maxDist,color,thick,hit,...}
+// ── Параметры оружия (копия из demo_isometric, без аудио-полей) ───
+// Используется только для визуала пуль (скорость, цвет, толщина) и для
+// расчёта дальности. Урон/КД диктует сервер (см. mafiozi_bot.py).
+const WEAPON_FX_CFG = {
+  pistol:       { range: 8,  color: '#ffea80', spread: 0.05, dmg: 22, muzzleD: 0.75 },
+  nagan:        { range: 8,  color: '#ffea80', spread: 0.06, dmg: 22, muzzleD: 0.75 },
+  pistol_heavy: { range: 9,  color: '#ffb060', spread: 0.04, dmg: 38, thick: true, muzzleD: 0.80 },
+  pistol_gold:  { range: 9,  color: '#ffd76b', spread: 0.03, dmg: 28, muzzleD: 0.75 },
+  shotgun:      { range: 5,  color: '#ffaa50', spread: 0.35, dmg: 14, pellets: 6, muzzleD: 1.00 },
+  smg:          { range: 7,  color: '#ffea80', spread: 0.12, dmg: 14, burst: 3, muzzleD: 0.95 },
+  tommy_gun:    { range: 7,  color: '#ffea80', spread: 0.14, dmg: 14, burst: 3, muzzleD: 0.95 },
+  rifle:        { range: 11, color: '#ffea80', spread: 0.02, dmg: 55, muzzleD: 1.05 },
+  sniper:       { range: 16, color: '#ff5050', spread: 0,    dmg: 130, thick: true, tracer: true, muzzleD: 1.15 },
+  rpg:          { range: 11, color: '#ff6020', spread: 0,    dmg: 90, thick: true, explosive: true, muzzleD: 1.10 },
+};
+const BULLET_SPEED = 18;  // тайлов/сек — как в demo (const speed = 18)
+// Визуальные вспышки дула (как в demo). spawn'ятся в момент выстрела,
+// живут ~80мс, рисуются drawMuzzle. m: { r,c,life,max,angle,color }
+const muzzles = [];
+
+// spawnBullet(sr,sc, er,ec, opts) — создаёт летящую пулю от точки
+// выстрела к цели. Скорость и направление считаются из вектора;
+// maxDist = реальное расстояние до цели, чтобы пуля «прилетела»
+// в момент попадания (или промаха со сдвигом).
+function spawnBullet(sr, sc, er, ec, opts) {
+  opts = opts || {};
+  const dr = er - sr, dc = ec - sc;
+  const dist = Math.hypot(dr, dc) || 0.001;
+  const speed = opts.speed || BULLET_SPEED;
+  const wcfg = WEAPON_FX_CFG[opts.weapon] || {};
+  bullets.push({
+    r: sr, c: sc,
+    vr: (dr / dist) * speed,
+    vc: (dc / dist) * speed,
+    dist: 0,
+    maxDist: dist,
+    color: opts.color || wcfg.color || '#ffd76b',
+    thick: opts.thick != null ? opts.thick : !!wcfg.thick,
+    hit:   opts.hit !== false,
+    fromPlayer: !!opts.fromPlayer,
+    fromNpc:    !!opts.fromNpc,
+  });
+}
+// spawnMuzzle(r,c, angle, weapon) — вспышка дула. Живёт 80мс.
+function spawnMuzzle(r, c, angle, weapon) {
+  const wcfg = WEAPON_FX_CFG[weapon] || {};
+  muzzles.push({
+    r, c, angle,
+    life: 80, max: 80,
+    color: wcfg.color || '#ffd76b',
+  });
+}
 
 // ── Локальный игрок (predict) ───────────────────────────────────
 // Спавн на перекрёстке (24,24) — это дорога (24%8==0). Сервер всё
@@ -1365,12 +1421,11 @@ function handleEventPacket(d) {
       'Никто не успел перехватить. Следующий через 10 мин.', 3500, 'neutral');
     worldEvent = null;
   } else if (kind === 'inkass_shot') {
-    // NPC выстрелил в игрока — трассер + вспышка. При miss=true пуля
-    // летит мимо (sx/sy → tx/ty уже сдвинуты на сервере), экраном не мигаем.
-    bullets.push({
-      sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
-      t0: performance.now(), ttl: 180, hit: !d.miss, fromNpc: true,
-    });
+    // NPC выстрелил в игрока — летящая пуля + вспышка дула. При miss=true
+    // tx/ty уже сдвинуты на сервере, пуля визуально пролетает мимо.
+    const wep = (d.shooter_id === 'b') ? 'shotgun' : 'smg';
+    spawnBullet(d.sy, d.sx, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wep });
+    spawnMuzzle(d.sy, d.sx, Math.atan2(d.ty - d.sy, d.tx - d.sx), wep);
     if (d.shooter_id) lastBossShotAt.set(d.shooter_id, performance.now());
     if (!d.miss && d.target_uid && String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
@@ -1387,17 +1442,13 @@ function handleEventPacket(d) {
       if (!g) return;
       tx = g.x; ty = g.y;
     }
-    bullets.push({
-      sr: d.sy, sc: d.sx, er: ty, ec: tx,
-      t0: performance.now(), ttl: 160, hit: true, fromPlayer: true,
-    });
+    spawnBullet(d.sy, d.sx, ty, tx, { hit: true, fromPlayer: true, weapon: d.weapon });
+    spawnMuzzle(d.sy, d.sx, Math.atan2(ty - d.sy, tx - d.sx), d.weapon);
   } else if (kind === 'pvp_shot') {
     // PvP: игрок стреляет в другого игрока (в активной зоне инкассатора
     // или в постоянной PvP-арене).
-    bullets.push({
-      sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
-      t0: performance.now(), ttl: 180, hit: true, fromPlayer: true,
-    });
+    spawnBullet(d.sy, d.sx, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: d.weapon });
+    spawnMuzzle(d.sy, d.sx, Math.atan2(d.ty - d.sy, d.tx - d.sx), d.weapon);
     // Запоминаем оружие и время — для вспышки на дуле и визуала
     if (d.shooter_uid) {
       lastPlayerShotAt.set(String(d.shooter_uid), performance.now());
@@ -1432,12 +1483,10 @@ function handleEventPacket(d) {
         `За тобой выехал патруль. Звёзд: ${myWanted}.`, 2200, 'lose');
     }
   } else if (kind === 'cop_shot') {
-    // Коп выстрелил в игрока — трассер + вспышка на дуле. При miss=true
-    // пуля летит мимо (tx/ty уже со сдвигом), не мигаем экраном.
-    bullets.push({
-      sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
-      t0: performance.now(), ttl: 180, hit: !d.miss, fromNpc: true,
-    });
+    // Коп выстрелил в игрока — летящая пуля + вспышка дула. При miss=true
+    // пуля визуально пролетает мимо (tx/ty уже сдвинуты на сервере).
+    spawnBullet(d.sy, d.sx, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: 'pistol_heavy' });
+    spawnMuzzle(d.sy, d.sx, Math.atan2(d.ty - d.sy, d.tx - d.sx), 'pistol_heavy');
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
     if (!d.miss && String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
@@ -1450,11 +1499,9 @@ function handleEventPacket(d) {
         `Копы взяли тебя живым. Минута за решёткой.`, 4000, 'lose');
     }
   } else if (kind === 'cop_hit') {
-    // Игрок попал в копа — трассер
-    bullets.push({
-      sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
-      t0: performance.now(), ttl: 160, hit: true, fromPlayer: true,
-    });
+    // Игрок попал в копа — летящая пуля
+    spawnBullet(d.sy, d.sx, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: d.weapon });
+    spawnMuzzle(d.sy, d.sx, Math.atan2(d.ty - d.sy, d.tx - d.sx), d.weapon);
   }
 }
 
@@ -1552,14 +1599,11 @@ function wsConnect() {
       if (shooter) {
         const ang = sd.ang || shooter.ang || 0;
         const rng = sd.hit ? (sd.hit_t || 0) : (sd.range || PVP.range);
-        bullets.push({
-          sr: shooter.r, sc: shooter.c,
-          er: shooter.r + Math.sin(ang) * rng,
-          ec: shooter.c + Math.cos(ang) * rng,
-          t0: performance.now(),
-          ttl: 180,
-          hit: !!sd.hit,
-        });
+        spawnBullet(shooter.r, shooter.c,
+          shooter.r + Math.sin(ang) * rng,
+          shooter.c + Math.cos(ang) * rng,
+          { hit: !!sd.hit, fromPlayer: true, weapon: sd.weapon });
+        spawnMuzzle(shooter.r, shooter.c, ang, sd.weapon);
       }
       // Если убили нашего игрока — попадание в нас, можно мигнуть экраном
       if (sd.killed && sd.target === QP.uid) {
@@ -1993,11 +2037,11 @@ function fire(angle = null) {
     _fireBtn.classList.remove('cd');
     joyREl.classList.remove('cd');
   }, cdSec * 1000);
+  // Вспышка дула — единый источник для всех 4 веток ниже (попал/мимо)
+  spawnMuzzle(player.r, player.c, Math.atan2(dirY, dirX), currentWeapon);
   if (chosenConvoy) {
-    bullets.push({
-      sr: player.r, sc: player.c, er: chosenConvoy.y, ec: chosenConvoy.x,
-      t0: now, ttl: 160, hit: true, fromPlayer: true,
-    });
+    spawnBullet(player.r, player.c, chosenConvoy.y, chosenConvoy.x,
+      { hit: true, fromPlayer: true, weapon: currentWeapon });
     try {
       ws && ws.send(JSON.stringify({ t: 'event_shoot',
         d: { target: chosenConvoy.id, weapon: currentWeapon } }));
@@ -2005,10 +2049,8 @@ function fire(angle = null) {
     return;
   }
   if (chosenCop) {
-    bullets.push({
-      sr: player.r, sc: player.c, er: chosenCop.y, ec: chosenCop.x,
-      t0: now, ttl: 160, hit: true, fromPlayer: true,
-    });
+    spawnBullet(player.r, player.c, chosenCop.y, chosenCop.x,
+      { hit: true, fromPlayer: true, weapon: currentWeapon });
     try {
       ws && ws.send(JSON.stringify({ t: 'cop_shoot',
         d: { target: chosenCop.id, weapon: currentWeapon } }));
@@ -2016,10 +2058,8 @@ function fire(angle = null) {
     return;
   }
   if (pvpTarget) {
-    bullets.push({
-      sr: player.r, sc: player.c, er: pvpTarget.y, ec: pvpTarget.x,
-      t0: now, ttl: 160, hit: true, fromPlayer: true,
-    });
+    spawnBullet(player.r, player.c, pvpTarget.y, pvpTarget.x,
+      { hit: true, fromPlayer: true, weapon: currentWeapon });
     try {
       ws && ws.send(JSON.stringify({ t: 'player_shoot',
         d: { target_uid: pvpTarget.uid, weapon: currentWeapon } }));
@@ -2027,16 +2067,14 @@ function fire(angle = null) {
     return;
   }
   if (noTarget) {
-    // Стрельба «в пустоту» — серверу не шлём (нет цели), но локально
-    // делаем трассер на ~6 тайлов вперёд по направлению. Игрок видит
-    // что джойстик работает (вспышка дула + отдача уже выставлены выше).
-    const range = 6.5;
-    bullets.push({
-      sr: player.r, sc: player.c,
-      er: player.r + dirY * range,
-      ec: player.c + dirX * range,
-      t0: now, ttl: 140, hit: false, fromPlayer: true,
-    });
+    // Стрельба «в пустоту» — пуля летит на range тайлов в направлении
+    // прицела с реальной физикой (как в demo). Серверу не шлём (нет цели).
+    const wcfg = WEAPON_FX_CFG[currentWeapon] || {};
+    const range = wcfg.range || 7;
+    spawnBullet(player.r, player.c,
+      player.r + dirY * range,
+      player.c + dirX * range,
+      { hit: false, fromPlayer: true, weapon: currentWeapon });
   }
 }
 _fireBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); }, { passive: false });
@@ -2286,21 +2324,15 @@ function update(dt) {
   // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
   updateZoneBtn();
   updatePvpUI();
-  // Hold-to-fire: пока правый стик удерживается — стреляем с cooldown'ом.
-  //  • стик сдвинут (hasAim)  → ручной прицел, угол через ISO_Y коррекцию
-  //    (как в demo: screen-space → world-space, иначе ствол смотрит в небо).
-  //  • стик активен, но не сдвинут → auto-aim, fire() сам ищет ближайшую
-  //    цель (конвой/коп) через findNearestConvoyTarget().
+  // Hold-to-fire: пока правый стик СДВИНУТ — стреляем с cooldown'ом по
+  // оружию. Без сдвига — не стреляем (auto-aim убран, целимся вручную).
+  // Угол стика → world-space через ISO_Y коррекцию (как в demo).
   // PvE — режим наблюдателя, стрельба отключена.
-  if (joyR.active && myMode !== 'pve' && !myDead) {
-    if (joyR.hasAim) {
-      const d = joyR.dx, s = joyR.dy / ISO_Y;
-      const dc = (s + d) * 0.5;
-      const dr = (s - d) * 0.5;
-      fire(Math.atan2(dr, dc));
-    } else {
-      fire(null);   // auto-aim
-    }
+  if (joyR.active && joyR.hasAim && myMode !== 'pve' && !myDead) {
+    const d = joyR.dx, s = joyR.dy / ISO_Y;
+    const dc = (s + d) * 0.5;
+    const dr = (s - d) * 0.5;
+    fire(Math.atan2(dr, dc));
   }
   // Интерполяция других игроков
   for (const [, o] of others) {
@@ -2315,6 +2347,8 @@ function update(dt) {
   // Локальная симуляция декора: прохожие + машины
   updateNpcs(dt);
   updateCars(dt);
+  // Пули и вспышки — двигаем тут, рисуем потом в render()
+  updateProjectiles(dt);
   sendInput();
 }
 
@@ -4538,33 +4572,14 @@ function weaponTip(w) { return (FIREARM_TIP[w] || 16); }
 // Рендер: оружие + вспышка дула. Вспышка живёт 80мс после выстрела.
 // shotAtMs — performance.now() момента последнего выстрела (для self
 // это lastShotClientT, для других игроков и NPC — lastBossShotAt.get(id)).
-function drawWeaponInHands(x, y, ang, weapon, scale, shotAtMs) {
+function drawWeaponInHands(x, y, ang, weapon, scale /*shotAtMs ignored: см. drawMuzzles*/) {
   if (!weapon) return;
   const { hx, hy, sx, sy } = handAnchor(x, y, ang);
-  // Масштаб как у миньона demo: gunScale = (TS / 60). scale из параметра
-  // позволяет чуть подкрутить (для NPC 0.95, для игрока 0.9 → итоговый
-  // размер близок к demo при TS=46).
+  // Масштаб как gunScale у миньона demo: (TS / 60). scale — лёгкая
+  // подкрутка (NPC 0.95, игрок 0.9). Вспышка дула теперь живёт отдельно
+  // в muzzles[] (см. spawnMuzzle / drawMuzzles), точь-в-точь как в demo.
   const sc = (scale || 0.9) * (TS / 60) * 1.5;
   drawFirearm(weapon, hx, hy, sx, sy, sc);
-  // Вспышка дула — короткая (80мс) после выстрела.
-  if (typeof shotAtMs === 'number' && shotAtMs > 0 &&
-      performance.now() - shotAtMs < 80) {
-    const tip = weaponTip(weapon) * sc;
-    const fx = hx + sx * tip;
-    const fy = hy + sy * tip;
-    ctx.save();
-    ctx.fillStyle = '#fff4b8';
-    ctx.shadowColor = '#ffd870';
-    ctx.shadowBlur = 14;
-    ctx.beginPath();
-    ctx.arc(fx, fy, 4 * sc, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ff8030';
-    ctx.beginPath();
-    ctx.arc(fx, fy, 2.5 * sc, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
 }
 
 function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, isDead) {
@@ -4838,6 +4853,7 @@ function render() {
   items.forEach(i => i.draw());
   // Пули — трассеры поверх всего (живут 0.18 сек)
   drawBullets();
+  drawMuzzles();
   // Стрелки-указатели на POI, которые сейчас за пределами видимости.
   drawPOIArrows(r0, r1, c0, c1);
   // Стрелка-указатель на инкассатора если он за пределами экрана
@@ -4847,39 +4863,99 @@ function render() {
 }
 
 // ── Пули ────────────────────────────────────────────────────────
-function drawBullets() {
-  const now = performance.now();
-  // Чистка старых
+// Движение пуль и затухание вспышек. Вызывается из update(dt) (frame).
+// Пули летят с BULLET_SPEED, по достижении maxDist удаляются (но перед
+// удалением drawBullets успеет нарисовать вспышку попадания).
+function updateProjectiles(dt) {
+  const ddt = Math.min(dt, 0.05);
   for (let i = bullets.length - 1; i >= 0; i--) {
-    if (now - bullets[i].t0 > bullets[i].ttl) bullets.splice(i, 1);
-  }
-  ctx.save();
-  for (const b of bullets) {
-    const t = (now - b.t0) / b.ttl;
-    if (t >= 1) continue;
-    const a = 1 - t;
-    const s = w2s(b.sr + 0.5, b.sc + 0.5);
-    const e = w2s(b.er + 0.5, b.ec + 0.5);
-    // Тонкий жёлтый трассер с лёгким glow'ом
-    ctx.globalAlpha = a;
-    ctx.strokeStyle = '#ffd76b';
-    ctx.lineWidth = 2;
-    ctx.shadowColor = '#ffd76b';
-    ctx.shadowBlur = 6;
-    ctx.beginPath();
-    ctx.moveTo(s.x, s.y - 18);  // от уровня плеч
-    ctx.lineTo(e.x, e.y - 18);
-    ctx.stroke();
-    // Вспышка попадания
-    if (b.hit && t > 0.4) {
-      ctx.globalAlpha = a * 0.9;
-      ctx.fillStyle = '#ff6464';
-      ctx.beginPath();
-      ctx.arc(e.x, e.y - 18, 6 + t * 8, 0, Math.PI * 2);
-      ctx.fill();
+    const b = bullets[i];
+    b.r += b.vr * ddt;
+    b.c += b.vc * ddt;
+    b.dist += Math.hypot(b.vr, b.vc) * ddt;
+    if (b.dist >= b.maxDist) {
+      // оставляем флаг для финального drawBullets — он отрисует вспышку
+      b._finished = true;
     }
   }
+  for (let i = muzzles.length - 1; i >= 0; i--) {
+    const m = muzzles[i];
+    m.life -= ddt * 1000;
+    if (m.life <= 0) muzzles.splice(i, 1);
+  }
+}
+
+// Рендер пуль — порт drawBullet из demo. Короткий цветной трассер с глоу.
+function drawBullets() {
+  ctx.save();
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    const p1 = w2s(b.r + 0.5, b.c + 0.5);
+    const p2 = w2s(b.r - b.vr * 0.05 + 0.5, b.c - b.vc * 0.05 + 0.5);
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth = b.thick ? 4 : 2.5;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = b.color;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(p2.x, p2.y - 18);  // на уровне пояса (как и оружие)
+    ctx.lineTo(p1.x, p1.y - 18);
+    ctx.stroke();
+    if (b._finished) {
+      if (b.hit) {
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#ff6464';
+        ctx.shadowColor = '#ff6464';
+        ctx.beginPath();
+        ctx.arc(p1.x, p1.y - 18, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      bullets.splice(i, 1);
+    }
+  }
+  ctx.shadowBlur = 0;
   ctx.restore();
+}
+
+// Вспышки дула — порт drawMuzzle из demo. 3 слоя: ореол, лучи, ядро.
+function drawMuzzles() {
+  for (const m of muzzles) {
+    const t = m.life / m.max;
+    const p = w2s(m.r + 0.5, m.c + 0.5);
+    const cx = p.x, cy = p.y - 18;
+    // 1. ореол
+    ctx.save();
+    ctx.shadowColor = '#ff9020';
+    ctx.shadowBlur = 26 * t;
+    ctx.fillStyle = `rgba(255,150,40,${t * 0.55})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, TS * 0.45 * t, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // 2. лучи-звезда вперёд по углу выстрела
+    const ang = m.angle || 0;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(ang);
+    ctx.fillStyle = `rgba(255,230,140,${t * 0.85})`;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(TS * 0.55 * t, -TS * 0.05 * t);
+    ctx.lineTo(TS * 0.75 * t, 0);
+    ctx.lineTo(TS * 0.55 * t,  TS * 0.05 * t);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    // 3. ярко-белое ядро
+    ctx.save();
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur = 14 * t;
+    ctx.fillStyle = `rgba(255,255,240,${t * 0.95})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, TS * 0.15 * t, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 // ── Стрелки на POI ──────────────────────────────────────────────
