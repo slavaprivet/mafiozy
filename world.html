@@ -980,6 +980,23 @@ const CAR_MODELS = [
   { name: 'pickup',   L: 1.9, W: 0.92, palette: ['#3a3a3a','#1f1f1f'], roof: '#0f0f0f', wheelR: 0.18, pickup: true },
   { name: 'van',      L: 2.0, W: 0.95, palette: ['#2f6a3a','#1a3a22'], roof: '#152818', wheelR: 0.18, van: true },
 ];
+// Полицейские модели — отдельный pool, используется ТОЛЬКО для патрулей
+// и спецсобытий (не спавнятся как обычные машины). Эти модели имеют
+// мигалки, надписи POLICE, цветную палитру (бело-чёрная или чёрная для
+// SWAT). Используются в drawCopVehicle/spawnPatrol.
+const POLICE_MODELS = {
+  cruiser:    { name: 'cruiser', L: 1.8, W: 0.88,
+                palette: ['#f0f0f0','#2c2c2c'], roof: '#101010',
+                wheelR: 0.18, police: true, height: 0.55 },
+  // Автозак — длинный, с решётчатым задним отсеком
+  paddyvan:   { name: 'paddyvan', L: 2.2, W: 1.05,
+                palette: ['#101018','#000'], roof: '#1a1a22',
+                wheelR: 0.20, paddyvan: true, height: 0.75 },
+  // Бронемашина SWAT с пулемётом на крыше — большая, чёрная, с башней
+  swat_truck: { name: 'swat_truck', L: 2.4, W: 1.15,
+                palette: ['#0c0c14','#000'], roof: '#1a1a22',
+                wheelR: 0.22, swat_truck: true, height: 0.85 },
+};
 const CARS = [];
 function spawnCar(idx) {
   // Найдём случайный тайл-дорогу и зададим направление вдоль полосы.
@@ -3516,6 +3533,118 @@ function drawCarPretty(car) {
     ctx.lineTo(BL.x, BL.y - H + 0.5);
     ctx.lineTo((FL.x + BL.x)/2 + (BL.x - FL.x)*0.05, (FL.y + BL.y)/2 + (BL.y - FL.y)*0.05 - H + 0.5);
     ctx.closePath(); ctx.fill();
+  }
+  // ── ПОЛИЦЕЙСКИЕ ДЕТАЛИ ─────────────────────────────────────────
+  // Все 3 модели (police/paddyvan/swat_truck) имеют мигалки на крыше.
+  // Цвет переключается синий↔красный синхронно с сиренами копов.
+  if (m.police || m.paddyvan || m.swat_truck) {
+    const cx = (FR.x + FL.x + BR.x + BL.x) / 4;
+    const cy = (FR.y + FL.y + BR.y + BL.y) / 4 - H;
+    const t  = performance.now();
+    const sirenPhase = Math.floor(t / 200) % 2;   // 5 раз в секунду
+    // Мигалка — короткий брусок поперёк крыши
+    const lampW = 8, lampH = 3;
+    // Левая половина (синяя/красная)
+    ctx.shadowColor = sirenPhase ? '#3a78ff' : '#ff3030';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = sirenPhase ? '#3a78ff' : '#7a1010';
+    ctx.fillRect(cx - lampW, cy - lampH, lampW, lampH);
+    // Правая половина (противоположная)
+    ctx.shadowColor = sirenPhase ? '#ff3030' : '#3a78ff';
+    ctx.fillStyle = sirenPhase ? '#7a1010' : '#3a78ff';
+    ctx.fillRect(cx, cy - lampH, lampW, lampH);
+    ctx.shadowBlur = 0;
+    // Чёрно-белая полоса POLICE на боку (для cruiser) — простая зебра
+    if (m.police) {
+      ctx.fillStyle = '#1a1a1a';
+      for (const e of visible) {
+        ctx.beginPath();
+        ctx.moveTo(e.a.x + (e.b.x - e.a.x) * 0.05, e.a.y - H * 0.50);
+        ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.95, e.b.y - H * 0.50);
+        ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.95, e.b.y - H * 0.35);
+        ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.05, e.a.y - H * 0.35);
+        ctx.closePath(); ctx.fill();
+      }
+      // Шильдик POLICE — белый текст
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 5px sans-serif';
+      ctx.textAlign = 'center';
+      for (const e of visible) {
+        const mx = (e.a.x + e.b.x) / 2;
+        const my = (e.a.y + e.b.y) / 2 - H * 0.42;
+        ctx.fillText('POLICE', mx, my);
+      }
+      ctx.textAlign = 'left';
+    }
+    // Автозак — тёмная задняя половина с решётчатым окном
+    if (m.paddyvan) {
+      // Задняя «коробка» — большая высокая часть кузова уже включена в H,
+      // но рисуем решётку поверх задних граней (тех что ближе к back).
+      const backEdge = edges.find(e => e.name === 'back');
+      if (backEdge) {
+        // Решётка 4 вертикальных прута
+        ctx.strokeStyle = '#5a5a60';
+        ctx.lineWidth = 1.2;
+        for (let i = 1; i < 5; i++) {
+          const tx = i / 5;
+          const xL = backEdge.a.x + (backEdge.b.x - backEdge.a.x) * tx;
+          const yL = backEdge.a.y + (backEdge.b.y - backEdge.a.y) * tx;
+          ctx.beginPath();
+          ctx.moveTo(xL, yL - H * 0.30);
+          ctx.lineTo(xL, yL - H * 0.85);
+          ctx.stroke();
+        }
+        // Горизонтальные перекладины
+        ctx.beginPath();
+        ctx.moveTo(backEdge.a.x, backEdge.a.y - H * 0.58);
+        ctx.lineTo(backEdge.b.x, backEdge.b.y - H * 0.58);
+        ctx.stroke();
+      }
+      // Большая надпись POLICE на боку
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 6px sans-serif';
+      ctx.textAlign = 'center';
+      for (const e of visible) {
+        const mx = (e.a.x + e.b.x) / 2;
+        const my = (e.a.y + e.b.y) / 2 - H * 0.5;
+        ctx.fillText('POLICE', mx, my);
+      }
+      ctx.textAlign = 'left';
+    }
+    // SWAT-броневик — башня с пулемётом сверху + красные буквы SWAT на боку
+    if (m.swat_truck) {
+      // Башня — куб 8×8 в центре крыши
+      ctx.fillStyle = '#1a1a22';
+      ctx.fillRect(cx - 6, cy - 14, 12, 8);
+      // Пулемёт — длинный чёрный ствол с компенсатором, торчит вперёд
+      const frontEdge2 = edges.find(e => e.name === 'front');
+      if (frontEdge2) {
+        const dx = (frontEdge2.a.x + frontEdge2.b.x) / 2 - cx;
+        const dy = (frontEdge2.a.y + frontEdge2.b.y) / 2 - cy;
+        const dn = Math.hypot(dx, dy) || 1;
+        const ux = dx / dn, uy = dy / dn;
+        ctx.fillStyle = '#0a0a0a';
+        ctx.lineWidth = 0;
+        // Корпус ствола (прямоугольник вытянутый в направлении front)
+        ctx.save();
+        ctx.translate(cx, cy - 10);
+        ctx.rotate(Math.atan2(uy, ux));
+        ctx.fillRect(0, -1.5, 18, 3);
+        // Компенсатор — расширение на конце
+        ctx.fillRect(15, -2.5, 4, 5);
+        ctx.restore();
+      }
+      // Красная надпись SWAT
+      ctx.fillStyle = '#ff4040';
+      ctx.font = 'bold 7px sans-serif';
+      ctx.textAlign = 'center';
+      for (const e of visible) {
+        const mx = (e.a.x + e.b.x) / 2;
+        const my = (e.a.y + e.b.y) / 2 - H * 0.5;
+        ctx.fillText('SWAT', mx, my);
+      }
+      ctx.textAlign = 'left';
+    }
   }
 }
 
