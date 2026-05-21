@@ -217,6 +217,29 @@ body.in-pvp #zoneBtn { top: 104px; }
   );
 }
 #jailOverlay.show { display: flex; }
+/* Короткая (2.5с) анимация ареста: наручники + текст «АРЕСТ» + красный flash.
+   Появляется когда копы убили wanted≥2 — игрок ещё «без сознания», его пакуют
+   и везут в участок (jailOverlay появится после). */
+#arrestOverlay {
+  position: absolute; inset: 0; z-index: 38;
+  display: none; pointer-events: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(circle, rgba(50,0,0,.55), rgba(0,0,0,.85));
+  font-family: inherit; text-align: center;
+}
+#arrestOverlay.show { display: flex; animation: arrestIn .35s ease-out; }
+#arrestOverlay .ico   { font-size: 96px; line-height: 1;
+  filter: drop-shadow(0 6px 22px rgba(0,0,0,.8));
+  animation: arrestShake .25s ease-in-out 4 alternate; }
+#arrestOverlay .title { font-size: 44px; font-weight: 900; color: #ff5050;
+  letter-spacing: 6px; margin-top: 14px;
+  text-shadow: 0 2px 8px #000, 0 0 24px rgba(255,80,80,.8); }
+#arrestOverlay .sub   { font-size: 13px; color: #ffe8e8;
+  letter-spacing: 2px; margin-top: 6px; opacity: .9; }
+@keyframes arrestIn   { from { opacity: 0; transform: scale(.85); }
+                        to   { opacity: 1; transform: scale(1); } }
+@keyframes arrestShake{ 0% { transform: rotate(-6deg); }
+                        100% { transform: rotate(6deg); } }
 #jailOverlay .icon  { font-size: 64px; line-height: 1; margin-bottom: 8px; filter: drop-shadow(0 4px 12px rgba(0,0,0,.7)); }
 #jailOverlay .title { font-size: 28px; font-weight: 900; color: #ffd76b; letter-spacing: 3px; text-shadow: 0 2px 6px #000, 0 0 16px rgba(255,215,107,.55); }
 #jailOverlay .msg   { font-size: 14px; color: #c8d0dc; margin-top: 6px; max-width: 90vw; }
@@ -495,6 +518,12 @@ body.in-pvp #zoneBtn { top: 104px; }
     <div class="msg">Тебя взяли копы. Подожди, выйдешь скоро.</div>
     <div class="cnt" id="jailCnt">00:00</div>
     <div class="cnt_label">ДО ОСВОБОЖДЕНИЯ</div>
+  </div>
+  <!-- Короткий (2.5с) overlay ареста — наручники + 'АРЕСТ' -->
+  <div id="arrestOverlay">
+    <div class="ico">🚔</div>
+    <div class="title">АРЕСТ</div>
+    <div class="sub">тебя везут в участок</div>
   </div>
 
   <div id="emojiBar">
@@ -812,6 +841,9 @@ const POI = [
   // Особые POI
   { id: 'blackmarket', r:  4, c: 28, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
   { id: 'arena',       r: 28, c: 52, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
+  // Отделение полиции — координаты совпадают с серверной тюрьмой
+  // (JAIL_X=56, JAIL_Y=56). При 3★ копы пакуют в наручники и везут сюда.
+  { id: 'police',      r: 56, c: 56, icon: '🚔', name: 'Участок',      minLvl: 1, special: 'jail'  },
 ];
 const POI_BY_RC = new Map();   // ключ "r,c" → POI
 POI.forEach(p => POI_BY_RC.set(p.r + ',' + p.c, p));
@@ -948,6 +980,23 @@ const CAR_MODELS = [
   { name: 'pickup',   L: 1.9, W: 0.92, palette: ['#3a3a3a','#1f1f1f'], roof: '#0f0f0f', wheelR: 0.18, pickup: true },
   { name: 'van',      L: 2.0, W: 0.95, palette: ['#2f6a3a','#1a3a22'], roof: '#152818', wheelR: 0.18, van: true },
 ];
+// Полицейские модели — отдельный pool, используется ТОЛЬКО для патрулей
+// и спецсобытий (не спавнятся как обычные машины). Эти модели имеют
+// мигалки, надписи POLICE, цветную палитру (бело-чёрная или чёрная для
+// SWAT). Используются в drawCopVehicle/spawnPatrol.
+const POLICE_MODELS = {
+  cruiser:    { name: 'cruiser', L: 1.8, W: 0.88,
+                palette: ['#f0f0f0','#2c2c2c'], roof: '#101010',
+                wheelR: 0.18, police: true, height: 0.55 },
+  // Автозак — длинный, с решётчатым задним отсеком
+  paddyvan:   { name: 'paddyvan', L: 2.2, W: 1.05,
+                palette: ['#101018','#000'], roof: '#1a1a22',
+                wheelR: 0.20, paddyvan: true, height: 0.75 },
+  // Бронемашина SWAT с пулемётом на крыше — большая, чёрная, с башней
+  swat_truck: { name: 'swat_truck', L: 2.4, W: 1.15,
+                palette: ['#0c0c14','#000'], roof: '#1a1a22',
+                wheelR: 0.22, swat_truck: true, height: 0.85 },
+};
 const CARS = [];
 function spawnCar(idx) {
   // Найдём случайный тайл-дорогу и зададим направление вдоль полосы.
@@ -977,7 +1026,14 @@ function spawnCar(idx) {
       // Перекрёсток (3×3) — не спавним
       continue;
     }
-    const model = CAR_MODELS[idx % CAR_MODELS.length];
+    // 12% машин в городе — полицейские патрули (cruiser).
+    // Реже — paddyvan (3%). SWAT-truck по городу не катается (только
+    // спавнится сервером при wanted 3★, отдельно от CARS).
+    let model;
+    const rnd = Math.random();
+    if (rnd < 0.03)      model = POLICE_MODELS.paddyvan;
+    else if (rnd < 0.15) model = POLICE_MODELS.cruiser;
+    else                 model = CAR_MODELS[idx % CAR_MODELS.length];
     return {
       r: r + 0.5, c: c + 0.5,
       vr: dirDy * (1.5 + Math.random() * 0.8),
@@ -1105,7 +1161,27 @@ let myDeathLeft = 0;      // сколько сек до респауна
 let myKills = 0, myDeaths = 0;
 let lastShotClientT = 0;  // локальный cooldown (предотвращает спам)
 // Активные трассеры пуль на клиенте — рисуем 0.18 сек, потом исчезают.
-const bullets = [];       // {sx, sy, ex, ey, t0, ttl}
+const bullets = [];       // {sr,sc,er,ec,t0,ttl,weapon,thick,color,hit}
+// Вспышки у дула. Спавнятся на КАЖДЫЙ выстрел (свой/чужой/коп/конвой) и
+// живут ~110мс. Рисуются 4-лучевой звёздочкой по направлению выстрела —
+// порт из demo_isometric.html для приятной тактильности боя.
+const muzzles = [];       // {r,c,ang,life,max,weapon}
+// Гильзы — мелкие частицы вылетают вбок от ствола при огнестреле,
+// падают на землю с гравитацией, ~600мс жизни.
+const shells  = [];       // {x,y,vx,vy,vz,z,rot,vrot,life,max}
+// Импакт-частицы при попадании пули в цель (брызги крови + искры).
+const impacts = [];       // {r,c,parts:[{vr,vc,life,max,color,isBlood,size}]}
+// Пятна крови на земле — splat-ы живут 8 сек после попадания.
+const bloodSplats = [];   // {r,c,radius,life,max,rot}
+// Анимации ареста — локальный спавн автозака, который приезжает к жертве,
+// загружает её и уезжает в участок. ~4 секунды. См. spawnArrestAnim().
+const arrestAnims = [];   // {target_uid, startMs, fromR/C, atR/C, jailR/C, dir}
+// uid игроков которых сейчас «грузят/везут в автозак» — их обычный спрайт
+// не рисуется (виден только автозак). Обновляется в drawArrestAnims.
+const _arrestHidden = new Set();
+// Camera-shake: при выстреле/попадании короткий толчок. Декремент в цикле.
+let camShake = 0;
+function addShake(p) { camShake = Math.min(8, camShake + p); }
 
 // ── Локальный игрок (predict) ───────────────────────────────────
 // Спавн на перекрёстке (24,24) — это дорога (24%8==0). Сервер всё
@@ -1335,9 +1411,12 @@ let lastPlayerShotAt = new Map();  // other_uid → ms-timestamp последн�
 let lastPlayerWeapon = new Map();  // other_uid → weapon_key последнего выстрела
 
 // ── Wanted-система + копы в городе ──────────────────────────────
-let worldCops = [];      // массив копов от сервера
+let worldCops = [];      // массив копов от сервера (перезаписывается каждый snap)
 let myWanted  = 0;       // 0..3 звёзды у меня
 let myJailIn  = 0;       // секунд до выхода из тюрьмы (0 = не в тюрьме)
+// Локальные надписи копов (cop_warn от сервера) — храним отдельно от
+// snapshot чтобы фразы не стирались каждые 75мс при перезаписи d.cops.
+const _copChats = new Map();  // cop_id → {text, untilMs}
 
 function handleEventPacket(d) {
   const kind = d && d.kind;
@@ -1369,11 +1448,17 @@ function handleEventPacket(d) {
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
       t0: performance.now(), ttl: 180, hit: true, fromNpc: true,
+      weapon: 'pistol_heavy',
     });
     if (d.shooter_id) lastBossShotAt.set(d.shooter_id, performance.now());
+    // Вспышка + звук в мире у точки выстрела (chunk громкости по дистанции)
+    spawnShot(d.sy, d.sx, Math.atan2(d.ty - d.sy, d.tx - d.sx),
+              'pistol_heavy', false);
+    spawnImpact(d.ty, d.tx, 'pistol_heavy');
     // Если попало в меня — мигнём экраном
     if (d.target_uid && String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
+      addShake(3.5);
       if (d.killed) myDeathBy = 'Конвой инкассатора';
     }
   } else if (kind === 'player_shot') {
@@ -1387,16 +1472,22 @@ function handleEventPacket(d) {
       if (!g) return;
       tx = g.x; ty = g.y;
     }
+    const wp = d.weapon || 'pistol';
     bullets.push({
       sr: d.sy, sc: d.sx, er: ty, ec: tx,
       t0: performance.now(), ttl: 160, hit: true, fromPlayer: true,
+      weapon: wp,
     });
+    spawnShot(d.sy, d.sx, Math.atan2(ty - d.sy, tx - d.sx), wp, false);
+    spawnImpact(ty, tx, wp);
   } else if (kind === 'pvp_shot') {
     // PvP: игрок стреляет в другого игрока (в активной зоне инкассатора
     // или в постоянной PvP-арене).
+    const wp = d.weapon || 'pistol';
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
       t0: performance.now(), ttl: 180, hit: true, fromPlayer: true,
+      weapon: wp,
     });
     // Запоминаем оружие и время — для вспышки на дуле и визуала
     if (d.shooter_uid) {
@@ -1405,8 +1496,11 @@ function handleEventPacket(d) {
     }
     const meIsShooter = (String(d.shooter_uid) === String(QP.uid));
     const meIsTarget  = (String(d.target_uid)  === String(QP.uid));
+    spawnShot(d.sy, d.sx, Math.atan2(d.ty - d.sy, d.tx - d.sx), wp, meIsShooter);
+    spawnImpact(d.ty, d.tx, wp);
     if (meIsTarget) {
       flashHitOverlay();
+      addShake(3);
       if (d.killed) {
         myDeathBy = d.shooter_name || 'игрок';
       }
@@ -1425,41 +1519,197 @@ function handleEventPacket(d) {
       }
     }
   } else if (kind === 'cop_spawned') {
-    // Новый коп вышел из-за угла — короткое уведомление + локальный
-    // marker эффект (можно не показывать вообще, чтобы не спамить)
+    // Новый коп вышел из-за угла — короткое уведомление по типу.
     if (myWanted >= 1) {
-      showEventBanner('🚓 Копы выехали',
-        `За тобой выехал патруль. Звёзд: ${myWanted}.`, 2200, 'lose');
+      const ck = d.cop_kind || 'patrol';
+      if (ck === 'swat') {
+        showEventBanner('🪖 СПЕЦНАЗ!',
+          'Тяжёлый отряд с автоматами и базуками — беги или умри.', 3500, 'lose');
+        addShake(5);
+      } else if (ck === 'combat') {
+        showEventBanner('🚓 Копы открыли огонь',
+          `Бой! Звёзд: ${myWanted}.`, 2400, 'lose');
+      }
+      // patrol — без баннера (он сам подойдёт и предупредит).
     }
+  } else if (kind === 'cop_warn') {
+    // Патруль (1★) подошёл и говорит фразу. Кладём в _copChats —
+    // snapshot перезаписывает worldCops каждый тик, прямое поле пропадёт.
+    if (d.cop_id) {
+      _copChats.set(String(d.cop_id), {
+        text: d.text || 'Прекрати стрельбу!',
+        untilMs: performance.now() + 6000,
+      });
+    }
+    // Тост игроку (если это его патруль) — чтобы точно понял
+    if (String(d.target_uid) === String(QP.uid)) {
+      showToast('🚓 ' + (d.text || 'Прекрати стрельбу!'),
+                '⚠️', 4500);
+    }
+  } else if (kind === 'cop_leave') {
+    // Патруль уехал — чат больше не нужен.
+    if (d.cop_id) _copChats.delete(String(d.cop_id));
   } else if (kind === 'cop_shot') {
     // Коп выстрелил в игрока — трассер + вспышка на дуле
+    const wp = d.weapon || 'pistol_heavy';
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
       t0: performance.now(), ttl: 180, hit: true, fromNpc: true,
+      weapon: wp,
     });
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
+    spawnShot(d.sy, d.sx, Math.atan2(d.ty - d.sy, d.tx - d.sx), wp, false);
+    spawnImpact(d.ty, d.tx, wp);
     if (String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
+      addShake(3);
       if (d.killed) {
         myDeathBy = d.jailed ? 'Копы (тюрьма)' : 'Копы';
       }
     }
-    if (d.killed && d.jailed && String(d.target_uid) === String(QP.uid)) {
-      showEventBanner('⛓ ТЮРЬМА',
-        `Копы взяли тебя живым. Минута за решёткой.`, 4000, 'lose');
+    if (d.killed && d.jailed) {
+      // Спавним локальный автозак у точки смерти — все клиенты видят
+      // как полиция забирает жертву. Для самого жертвы — overlay+shake.
+      spawnArrestAnim(d.target_uid, d.ty, d.tx);
+      if (String(d.target_uid) === String(QP.uid)) {
+        showArrestOverlay();
+        addShake(7);
+      }
     }
   } else if (kind === 'cop_hit') {
-    // Игрок попал в копа — трассер
+    // Игрок попал в копа — трассер + кровь
+    const wp = d.weapon || currentWeapon;
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
       t0: performance.now(), ttl: 160, hit: true, fromPlayer: true,
+      weapon: wp,
     });
+    spawnImpact(d.ty, d.tx, wp);
+  } else if (kind === 'open_fire') {
+    // Игрок открыл огонь в городе вне PvP-зоны. Баннер всем (кроме стрелка)
+    // с указанием тяжести: обычно / расстрел гражданских / штурм участка.
+    if (String(d.shooter_uid) !== String(QP.uid)) {
+      const nm = d.shooter_name || 'Кто-то';
+      const reason = d.reason || 'air';
+      let title, msg;
+      if (reason === 'station') {
+        title = '🚨 ШТУРМ УЧАСТКА: ' + nm.toUpperCase();
+        msg = 'Атакует полицейский участок! Тяжёлая техника выезжает.';
+      } else if (reason === 'civilian') {
+        title = '💀 ' + nm.toUpperCase() + ' РАССТРЕЛИВАЕТ ЛЮДЕЙ';
+        msg = 'Расстрел мирных — копы открывают огонь без предупреждения.';
+      } else {
+        title = '🔫 ' + nm.toUpperCase() + ' открыл огонь!';
+        msg = 'Где-то в городе началась стрельба — копы выехали на место.';
+      }
+      showEventBanner(title, msg, 3200, 'lose');
+    }
   }
 }
 
 // Кратковременная красная вспышка по краю экрана при попадании в игрока.
 let _hitFlashUntil = 0;
 function flashHitOverlay() { _hitFlashUntil = performance.now() + 350; }
+// Overlay ареста — короткая (~2.5с) анимация перед окном тюрьмы.
+function showArrestOverlay() {
+  const el = document.getElementById('arrestOverlay');
+  if (!el) return;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Анимация ареста: автозак приезжает к жертве, забирает, везёт в участок.
+// Длится ~4.5 секунды. Жертва должна быть dead на сервере. Этапы:
+//   0.0-1.2с: ARRIVING — автозак летит к (atR, atC) от точки на грани экрана
+//   1.2-1.8с: LOADING  — автозак стоит, текст «ЗАГРУЗКА...»
+//   1.8-4.5с: DRIVING  — автозак едет к (jailR, jailC) и исчезает
+function spawnArrestAnim(targetUid, atR, atC) {
+  // Стартовая точка автозака — за пределами экрана в случайном
+  // направлении, чтобы выглядело будто он приехал «с улицы»
+  const ang = Math.random() * Math.PI * 2;
+  const dist = 14;
+  const fromR = atR + Math.sin(ang) * dist;
+  const fromC = atC + Math.cos(ang) * dist;
+  // Куда едет после загрузки — в координаты участка (POI 'police')
+  const jail = POI.find(p => p.id === 'police') || { r: 56, c: 56 };
+  arrestAnims.push({
+    target_uid: String(targetUid),
+    startMs:    performance.now(),
+    fromR, fromC,
+    atR, atC,
+    jailR: jail.r + 0.5, jailC: jail.c + 0.5,
+  });
+}
+
+// Обновляет _arrestHidden из активных анимаций (для скрытия спрайтов).
+// Вызывается в начале render() ДО items.forEach.
+function updateArrestHiding() {
+  _arrestHidden.clear();
+  const now = performance.now();
+  for (const a of arrestAnims) {
+    const dt = now - a.startMs;
+    if (dt >= 1200 && dt < 4500) _arrestHidden.add(a.target_uid);
+  }
+}
+
+// Рендер автозаков-аресту. Возвращает Set('uid') игроков которые сейчас
+// «в автозаке» — их обычный спрайт скрывается в renderOthers.
+function drawArrestAnims() {
+  const now = performance.now();
+  const hidden = new Set();
+  for (let i = arrestAnims.length - 1; i >= 0; i--) {
+    const a = arrestAnims[i];
+    const dt = now - a.startMs;
+    if (dt > 4500) { arrestAnims.splice(i, 1); continue; }
+    let vr, vc, ang;
+    if (dt < 1200) {
+      // ARRIVING
+      const t = dt / 1200;
+      vr = a.fromR + (a.atR - a.fromR) * t;
+      vc = a.fromC + (a.atC - a.fromC) * t;
+      ang = Math.atan2(a.atR - a.fromR, a.atC - a.fromC);
+    } else if (dt < 1800) {
+      // LOADING — стоит на месте
+      vr = a.atR; vc = a.atC;
+      ang = Math.atan2(a.jailR - a.atR, a.jailC - a.atC);
+      hidden.add(a.target_uid);   // прячем спрайт жертвы (загружается)
+    } else {
+      // DRIVING в участок
+      const t = (dt - 1800) / 2700;
+      vr = a.atR + (a.jailR - a.atR) * t;
+      vc = a.atC + (a.jailC - a.atC) * t;
+      ang = Math.atan2(a.jailR - a.atR, a.jailC - a.atC);
+      hidden.add(a.target_uid);
+    }
+    // Конвертируем угол в dirDx/dirDy для drawCarPretty (он рисует
+    // в системе единичных направлений). Берём ближайшее «осевое».
+    let dirDx = 0, dirDy = 0;
+    if (Math.abs(Math.cos(ang)) > Math.abs(Math.sin(ang))) {
+      dirDx = Math.cos(ang) > 0 ? 1 : -1;
+    } else {
+      dirDy = Math.sin(ang) > 0 ? 1 : -1;
+    }
+    drawCarPretty({
+      r: vr, c: vc, dirDx, dirDy,
+      model: POLICE_MODELS.paddyvan,
+      flash: (now % 1000) / 1000, braking: (dt > 1100 && dt < 1900),
+    });
+    // Если LOADING — рисуем текст «ЗАГРУЗКА...» над автозаком
+    if (dt >= 1200 && dt < 1800) {
+      const p = w2s(vr + 0.5, vc + 0.5);
+      ctx.save();
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#000';
+      ctx.fillText('ЗАГРУЗКА...', p.x + 1, p.y - 38);
+      ctx.fillStyle = '#ffd76b';
+      ctx.fillText('ЗАГРУЗКА...', p.x, p.y - 39);
+      ctx.restore();
+      ctx.textAlign = 'left';
+    }
+  }
+  return hidden;
+}
 
 // Текущий режим (PvP / PvE). По требованию юзера — выбирается КАЖДЫЙ
 // раз при заходе в мир, никаких сохранений. Шлётся серверу как
@@ -1979,6 +2229,45 @@ function fire(angle = null) {
     _fireBtn.classList.remove('cd');
     joyREl.classList.remove('cd');
   }, cdSec * 1000);
+  // ВСПЫШКА ДУЛА + ЗВУК + ОТДАЧА + ГИЛЬЗА. Координаты — конец ствола
+  // (вынос вперёд на ~0.5 тайла), направление — player.ang.
+  const muzD = 0.55;
+  const muzR = player.r + Math.sin(player.ang) * muzD;
+  const muzC = player.c + Math.cos(player.ang) * muzD;
+  spawnShot(muzR, muzC, player.ang, currentWeapon, true);
+  // Стрельба в городе вне PvP-зоны = НЕЗАКОННО. Шлём серверу open_fire —
+  // сервер бампает wanted, копы выезжают. inArena(ARENA_R0..R1) — постоянная
+  // PvP-арена. pvpActive — пока идёт событие инкассатора (PvP открыто везде).
+  const meInArena = inArena(player.r, player.c);
+  const lawful    = meInArena || pvpActive || chosenConvoy || chosenCop;
+  if (!lawful) {
+    // Проверка: летит ли пуля в мирного NPC прохожего (стрельба в людей)?
+    // Если да — сервер даст СРАЗУ 2★ без предупреждения (бой). Прицеливаемся
+    // конусом 0.6 рад вокруг dir, дистанция до 6 тайлов.
+    let civilianHit = false;
+    for (const npc of NPCS) {
+      const dx = npc.c - player.c, dy = npc.r - player.r;
+      const d  = Math.hypot(dx, dy);
+      if (d > 6) continue;
+      const dn = d > 0.001 ? d : 1;
+      const dot = (dx * dirX + dy * dirY) / dn;
+      if (dot > 0.85) { civilianHit = true; break; }
+    }
+    try {
+      ws && ws.send(JSON.stringify({ t: 'open_fire',
+        d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
+             weapon: currentWeapon,
+             civilian: civilianHit } }));
+    } catch(e) {}
+    // На первом «нелегальном» выстреле подсказка — что только что нарушил
+    if (myWanted < 1) {
+      showToast(civilianHit
+        ? '💀 Ты выстрелил в мирного — копы атакуют!'
+        : '🚓 Стрельба в городе запрещена — копы выехали',
+        civilianHit ? '🚨' : '⚠️',
+        civilianHit ? 3500 : 2500);
+    }
+  }
   if (chosenConvoy) {
     bullets.push({
       sr: player.r, sc: player.c, er: chosenConvoy.y, ec: chosenConvoy.x,
@@ -3355,6 +3644,118 @@ function drawCarPretty(car) {
     ctx.lineTo((FL.x + BL.x)/2 + (BL.x - FL.x)*0.05, (FL.y + BL.y)/2 + (BL.y - FL.y)*0.05 - H + 0.5);
     ctx.closePath(); ctx.fill();
   }
+  // ── ПОЛИЦЕЙСКИЕ ДЕТАЛИ ─────────────────────────────────────────
+  // Все 3 модели (police/paddyvan/swat_truck) имеют мигалки на крыше.
+  // Цвет переключается синий↔красный синхронно с сиренами копов.
+  if (m.police || m.paddyvan || m.swat_truck) {
+    const cx = (FR.x + FL.x + BR.x + BL.x) / 4;
+    const cy = (FR.y + FL.y + BR.y + BL.y) / 4 - H;
+    const t  = performance.now();
+    const sirenPhase = Math.floor(t / 200) % 2;   // 5 раз в секунду
+    // Мигалка — короткий брусок поперёк крыши
+    const lampW = 8, lampH = 3;
+    // Левая половина (синяя/красная)
+    ctx.shadowColor = sirenPhase ? '#3a78ff' : '#ff3030';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = sirenPhase ? '#3a78ff' : '#7a1010';
+    ctx.fillRect(cx - lampW, cy - lampH, lampW, lampH);
+    // Правая половина (противоположная)
+    ctx.shadowColor = sirenPhase ? '#ff3030' : '#3a78ff';
+    ctx.fillStyle = sirenPhase ? '#7a1010' : '#3a78ff';
+    ctx.fillRect(cx, cy - lampH, lampW, lampH);
+    ctx.shadowBlur = 0;
+    // Чёрно-белая полоса POLICE на боку (для cruiser) — простая зебра
+    if (m.police) {
+      ctx.fillStyle = '#1a1a1a';
+      for (const e of visible) {
+        ctx.beginPath();
+        ctx.moveTo(e.a.x + (e.b.x - e.a.x) * 0.05, e.a.y - H * 0.50);
+        ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.95, e.b.y - H * 0.50);
+        ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.95, e.b.y - H * 0.35);
+        ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.05, e.a.y - H * 0.35);
+        ctx.closePath(); ctx.fill();
+      }
+      // Шильдик POLICE — белый текст
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 5px sans-serif';
+      ctx.textAlign = 'center';
+      for (const e of visible) {
+        const mx = (e.a.x + e.b.x) / 2;
+        const my = (e.a.y + e.b.y) / 2 - H * 0.42;
+        ctx.fillText('POLICE', mx, my);
+      }
+      ctx.textAlign = 'left';
+    }
+    // Автозак — тёмная задняя половина с решётчатым окном
+    if (m.paddyvan) {
+      // Задняя «коробка» — большая высокая часть кузова уже включена в H,
+      // но рисуем решётку поверх задних граней (тех что ближе к back).
+      const backEdge = edges.find(e => e.name === 'back');
+      if (backEdge) {
+        // Решётка 4 вертикальных прута
+        ctx.strokeStyle = '#5a5a60';
+        ctx.lineWidth = 1.2;
+        for (let i = 1; i < 5; i++) {
+          const tx = i / 5;
+          const xL = backEdge.a.x + (backEdge.b.x - backEdge.a.x) * tx;
+          const yL = backEdge.a.y + (backEdge.b.y - backEdge.a.y) * tx;
+          ctx.beginPath();
+          ctx.moveTo(xL, yL - H * 0.30);
+          ctx.lineTo(xL, yL - H * 0.85);
+          ctx.stroke();
+        }
+        // Горизонтальные перекладины
+        ctx.beginPath();
+        ctx.moveTo(backEdge.a.x, backEdge.a.y - H * 0.58);
+        ctx.lineTo(backEdge.b.x, backEdge.b.y - H * 0.58);
+        ctx.stroke();
+      }
+      // Большая надпись POLICE на боку
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 6px sans-serif';
+      ctx.textAlign = 'center';
+      for (const e of visible) {
+        const mx = (e.a.x + e.b.x) / 2;
+        const my = (e.a.y + e.b.y) / 2 - H * 0.5;
+        ctx.fillText('POLICE', mx, my);
+      }
+      ctx.textAlign = 'left';
+    }
+    // SWAT-броневик — башня с пулемётом сверху + красные буквы SWAT на боку
+    if (m.swat_truck) {
+      // Башня — куб 8×8 в центре крыши
+      ctx.fillStyle = '#1a1a22';
+      ctx.fillRect(cx - 6, cy - 14, 12, 8);
+      // Пулемёт — длинный чёрный ствол с компенсатором, торчит вперёд
+      const frontEdge2 = edges.find(e => e.name === 'front');
+      if (frontEdge2) {
+        const dx = (frontEdge2.a.x + frontEdge2.b.x) / 2 - cx;
+        const dy = (frontEdge2.a.y + frontEdge2.b.y) / 2 - cy;
+        const dn = Math.hypot(dx, dy) || 1;
+        const ux = dx / dn, uy = dy / dn;
+        ctx.fillStyle = '#0a0a0a';
+        ctx.lineWidth = 0;
+        // Корпус ствола (прямоугольник вытянутый в направлении front)
+        ctx.save();
+        ctx.translate(cx, cy - 10);
+        ctx.rotate(Math.atan2(uy, ux));
+        ctx.fillRect(0, -1.5, 18, 3);
+        // Компенсатор — расширение на конце
+        ctx.fillRect(15, -2.5, 4, 5);
+        ctx.restore();
+      }
+      // Красная надпись SWAT
+      ctx.fillStyle = '#ff4040';
+      ctx.font = 'bold 7px sans-serif';
+      ctx.textAlign = 'center';
+      for (const e of visible) {
+        const mx = (e.a.x + e.b.x) / 2;
+        const my = (e.a.y + e.b.y) / 2 - H * 0.5;
+        ctx.fillText('SWAT', mx, my);
+      }
+      ctx.textAlign = 'left';
+    }
+  }
 }
 
 // ── Светофор на перекрёстке (рисуется как столб на тайле) ───────
@@ -3472,6 +3873,35 @@ function drawModeTag(px, py, mode) {
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
+// Таймер обратного отсчёта над головой jailed-игрока + иконка наручников.
+// Показывается ИНТЕРАКТИВНО: чужие jailed игроки сидят в участке (правый-
+// нижний угол карты, JAIL_X=56,Y=56) — над каждым видно сколько ему сидеть.
+function drawJailTimer(px, py, secLeft) {
+  if (secLeft <= 0) return;
+  const m = Math.floor(secLeft / 60);
+  const s = secLeft % 60;
+  const txt = (m > 0 ? `${m}:${String(s).padStart(2,'0')}` : `${s}с`);
+  const y = py - 78;
+  ctx.save();
+  ctx.font = 'bold 11px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // Подложка
+  const w = ctx.measureText('⛓ ' + txt).width + 10;
+  const h = 16;
+  ctx.fillStyle = 'rgba(20,10,10,.92)';
+  ctx.strokeStyle = '#ff6060';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(px - w/2, y - h/2, w, h, 4)
+                : ctx.rect(px - w/2, y - h/2, w, h);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#ffae90';
+  ctx.fillText('⛓ ' + txt, px, y);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
 // Звёзды wanted над головой (1..3 шт) с пульсацией и тенью.
 function drawWantedStars(px, py, n) {
   if (!n) return;
@@ -3501,43 +3931,149 @@ function drawWantedStars(px, py, n) {
 }
 
 // ── Городской коп (wanted-система) ─────────────────────────────
-// Похож на полицейского из конвоя, но с пульсирующей сирено-подсветкой
-// (синий-красный) — чтобы игроки сразу понимали что это «опасность».
+// kind: 'patrol' (мирный), 'combat' (бой), 'swat' (спецназ в масках).
+// Спецназ — чёрная униформа, маска, мощные стволы (smg/sniper/rpg).
+const _COP_LOOKS = {
+  patrol: { gender:0, skin:1, body:1, face:0, hair:1, hat:5 },
+  combat: { gender:0, skin:1, body:1, face:0, hair:1, hat:5 },
+  swat:   { gender:0, skin:0, body:3, face:3, hair:0, hat:6 },
+};
 function drawCopNpc(cop) {
   const p = w2s(cop.y + 0.5, cop.x + 0.5);
-  const look = _CONVOY_GUARD_LOOK;
+  const kind = cop.kind || 'patrol';
+  const look = _COP_LOOKS[kind] || _COP_LOOKS.combat;
   const t = performance.now();
   const walkPhase = (t * 0.008) % (Math.PI * 2);
-  // Сирена — большой пульсирующий ореол синий/красный (переключается)
-  const sirenPhase = Math.floor(t / 250) % 2;   // меняется 4 раза в секунду
-  const sirenCol   = sirenPhase ? 'rgba(60,120,255,.55)' : 'rgba(255,40,40,.55)';
+  // Сирена — патруль/бой синий-красный, спецназ чёрно-красный (агрессивнее)
+  const sirenPhase = Math.floor(t / (kind === 'swat' ? 180 : 250)) % 2;
+  let sirenCol, sirenGlow;
+  if (kind === 'swat') {
+    sirenCol  = sirenPhase ? 'rgba(20,20,20,.75)' : 'rgba(255,40,40,.65)';
+    sirenGlow = sirenPhase ? '#000' : '#ff3030';
+  } else {
+    sirenCol  = sirenPhase ? 'rgba(60,120,255,.55)' : 'rgba(255,40,40,.55)';
+    sirenGlow = sirenPhase ? '#3a78ff' : '#ff3030';
+  }
   ctx.save();
   ctx.fillStyle = sirenCol;
-  ctx.shadowColor = sirenPhase ? '#3a78ff' : '#ff3030';
-  ctx.shadowBlur = 14;
+  ctx.shadowColor = sirenGlow;
+  ctx.shadowBlur = kind === 'swat' ? 18 : 14;
   ctx.beginPath();
-  ctx.ellipse(p.x, p.y + 6, 20, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(p.x, p.y + 6, kind === 'swat' ? 22 : 20, 8, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
   drawPerson(p.x, p.y, cop.ang || 0, look, walkPhase, null, null, false,
              cop.hp, cop.max_hp, false);
-  // Оружие копа — служебный pistol_heavy. Вспышка дула — через тот
-  // же универсальный helper, что и для игроков.
+  // Оружие копа — приходит с сервера. Вспышка через universal helper.
+  const weapon = cop.weapon ||
+                 (kind === 'swat' ? 'smg' : (kind === 'combat' ? 'pistol_heavy' : 'pistol'));
   const flashAt = lastBossShotAt.get(cop.id) || 0;
-  drawWeaponInHands(p.x, p.y, cop.ang || 0, 'pistol_heavy', 0.95, flashAt);
-  // Эмодзи 🚓 над головой + мигающая сирена сверху
+  // SWAT-щит: рисуется СПЕРЕДИ персонажа (под рукой с оружием). Чёрный
+  // с белой надписью POLICE, отражает (визуально) пули — частицы при
+  // попадании искрят сильнее. Рисуем ДО оружия чтобы ствол был сверху.
+  if (kind === 'swat') {
+    drawSwatShield(p.x, p.y, cop.ang || 0);
+  }
+  drawWeaponInHands(p.x, p.y, cop.ang || 0, weapon, 0.95, flashAt);
+  // Каска с забралом — чёрный шлем + светлая полоска забрала.
+  // Рисуется поверх головы спрайта (top of body).
+  if (kind === 'swat') {
+    drawSwatHelmet(p.x, p.y);
+  }
+  // Эмодзи над головой по типу: 🚓 патруль, 👮 бой, 🪖 спецназ
+  const icon = (kind === 'swat') ? '🪖' : (kind === 'combat' ? '👮' : '🚓');
   ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
   ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
-  ctx.fillText('🚓', p.x, p.y - 44);
+  ctx.fillText(icon, p.x, p.y - 44);
   // Маленький мигающий маркер на самом верху
   ctx.shadowBlur = 0;
-  ctx.fillStyle = sirenPhase ? '#3a78ff' : '#ff3030';
+  ctx.fillStyle = sirenGlow;
   ctx.beginPath();
   ctx.arc(p.x, p.y - 52, 2.5, 0, Math.PI * 2);
   ctx.fill();
+  // Чат-баббл если есть предупреждение (cop_warn) — берём из _copChats
+  const chatRec = _copChats.get(cop.id);
+  if (chatRec && performance.now() < chatRec.untilMs) {
+    drawCopChat(p.x, p.y, chatRec.text);
+  } else if (chatRec) {
+    _copChats.delete(cop.id);
+  }
   ctx.textAlign = 'left';
+}
+
+// SWAT-щит — чёрный прямоугольник с белой надписью POLICE перед спецназом.
+// Поворачивается вместе с прицелом (закрывает грудь от пуль).
+function drawSwatShield(x, y, ang) {
+  const sh = TS * 1.7;
+  const bodyY = y - sh * 0.34;
+  // Щит чуть впереди по направлению взгляда
+  const fwd = 9;
+  const sx = x + Math.cos(ang) * fwd;
+  const sy = bodyY + Math.sin(ang) * 5;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(ang + Math.PI / 2);
+  // Тело щита — чёрный овал
+  ctx.fillStyle = '#0e0e10';
+  ctx.strokeStyle = '#404040';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(-10, -14, 20, 28, 4)
+                : ctx.rect(-10, -14, 20, 28);
+  ctx.fill(); ctx.stroke();
+  // Белая надпись POLICE
+  ctx.fillStyle = '#e8e8f0';
+  ctx.font = 'bold 5px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('POLICE', 0, 0);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// Каска спецназа — чёрный шлем со светлой полоской забрала на голове спрайта.
+function drawSwatHelmet(x, y) {
+  const sh = TS * 1.7;
+  const headY = y - sh * 0.85;     // примерно где голова
+  ctx.save();
+  // Шлем — чёрный полуовал
+  ctx.fillStyle = '#1a1a1e';
+  ctx.strokeStyle = '#3a3a40';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(x, headY, 7, 6, 0, Math.PI, 2 * Math.PI);
+  ctx.fill(); ctx.stroke();
+  // Забрало — узкая горизонтальная полоса (тёмный пластик)
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(x - 6, headY - 1, 12, 3);
+  // Блик на забрале
+  ctx.fillStyle = 'rgba(120,160,220,.5)';
+  ctx.fillRect(x - 5, headY - 0.5, 4, 1.2);
+  ctx.restore();
+}
+
+// Чат-баббл копа (только для cop_warn).
+function drawCopChat(x, y, text) {
+  ctx.save();
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const w = Math.min(180, ctx.measureText(text).width + 14);
+  const h = 22;
+  const by = y - 78;
+  ctx.fillStyle = 'rgba(255,40,40,.92)';
+  ctx.strokeStyle = '#ff8080';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(x - w/2, by - h/2, w, h, 6)
+                : ctx.rect(x - w/2, by - h/2, w, h);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.fillText(text, x, by);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
 // Машина — припаркована на тайле, занимает ~80% площади
@@ -3939,6 +4475,121 @@ function drawPOI(r, c, poi) {
   ctx.beginPath();
   ctx.arc(p.x, ly + labelH + 4, 3, 0, Math.PI * 2);
   ctx.fill();
+}
+
+// Парковка у полицейского участка + башня с пулемётом на крыше.
+// Рисуется ОДИН раз поверх POI 'police' через addPoliceStationItems.
+// Парковочные тайлы (54..58, 54..58) — припаркованные cruiser/paddyvan/swat
+function drawPoliceStationDecor(stationR, stationC) {
+  // Парковочная разметка — белые линии на земле (под полицейскими авто).
+  // 3 парковочных места справа и снизу от POI.
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,.55)';
+  ctx.lineWidth = 1.2;
+  const slots = [
+    { r: stationR - 1, c: stationC + 1, dirDx: -1, dirDy: 0, model: 'cruiser'    },
+    { r: stationR + 1, c: stationC + 1, dirDx: -1, dirDy: 0, model: 'paddyvan'   },
+    { r: stationR + 1, c: stationC - 1, dirDx:  0, dirDy:-1, model: 'swat_truck' },
+  ];
+  for (const sl of slots) {
+    // Линии разметки парковки
+    const corners = [
+      w2s(sl.r - 0.45, sl.c - 0.40),
+      w2s(sl.r - 0.45, sl.c + 0.40),
+      w2s(sl.r + 0.45, sl.c + 0.40),
+      w2s(sl.r + 0.45, sl.c - 0.40),
+    ];
+    ctx.beginPath();
+    ctx.moveTo(corners[0].x, corners[0].y);
+    for (const cn of corners) ctx.lineTo(cn.x, cn.y);
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.restore();
+  // Сами припаркованные машины — статичные (speed=0).
+  for (const sl of slots) {
+    drawCarPretty({
+      r: sl.r, c: sl.c, dirDx: sl.dirDx, dirDy: sl.dirDy,
+      model: POLICE_MODELS[sl.model], flash: 0, braking: false,
+    });
+  }
+  // Башня с пулемётом на крыше станции — активируется если ЛЮБОЙ игрок
+  // в зоне (≤7 тайлов) и имеет wanted ≥ 3. Стреляет в него.
+  const turret = _findStationThreat(stationR, stationC);
+  drawStationTurret(stationR, stationC, turret);
+}
+
+// Поиск ближайшей угрозы (wanted≥3 игрок в радиусе) — для башни-пулемёта.
+function _findStationThreat(sR, sC) {
+  // Я сам ближе всех ко мне ;)
+  if (myWanted >= 3 && !myDead) {
+    const d = Math.hypot(player.r - sR, player.c - sC);
+    if (d <= 7.5) return { r: player.r, c: player.c, uid: QP.uid };
+  }
+  // Другие звёздные игроки
+  for (const [uid, o] of others) {
+    if (o.dead || (o.wanted || 0) < 3) continue;
+    const d = Math.hypot(o.y - sR, o.x - sC);
+    if (d <= 7.5) return { r: o.y, c: o.x, uid };
+  }
+  return null;
+}
+
+// Башня с пулемётом на крыше — крутится на цель и периодически стреляет.
+// Стрельба чисто локальная (для антуража) — серверу копы и так пакуют.
+let _lastTurretShotAt = 0;
+function drawStationTurret(sR, sC, threat) {
+  const p = w2s(sR + 0.5, sC + 0.5);
+  const H = isoH(2.4);  // выше крыши обычного здания
+  const cx = p.x, cy = p.y - H;
+  // Постамент-башня — тёмный цилиндр
+  ctx.save();
+  ctx.fillStyle = '#1a1a22';
+  ctx.strokeStyle = '#3a3a40';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 10, 5, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  // Ствол пулемёта — направлен к цели если есть, иначе на 0°
+  let ang = 0;
+  if (threat) ang = Math.atan2(threat.r - sR, threat.c - sC);
+  ctx.translate(cx, cy - 4);
+  ctx.rotate(ang);
+  // Корпус ствола
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, -2, 20, 4);
+  // Компенсатор/глушитель на конце
+  ctx.fillRect(17, -3, 5, 6);
+  // Стрельба раз в 0.6с если есть цель
+  const now = performance.now();
+  if (threat && now - _lastTurretShotAt > 600) {
+    _lastTurretShotAt = now;
+    const muzR = sR + Math.sin(ang) * 1.4;
+    const muzC = sC + Math.cos(ang) * 1.4;
+    bullets.push({
+      sr: muzR, sc: muzC, er: threat.r, ec: threat.c,
+      t0: now, ttl: 160, hit: true, fromNpc: true, weapon: 'rifle',
+    });
+    spawnShot(muzR, muzC, ang, 'rifle',
+              String(threat.uid) === String(QP.uid));
+    spawnImpact(threat.r, threat.c, 'rifle');
+    if (String(threat.uid) === String(QP.uid)) {
+      flashHitOverlay();
+      addShake(4);
+    }
+  }
+  ctx.restore();
+  // Подпись «POLICE TURRET» на основании
+  if (threat) {
+    ctx.save();
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff4040';
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+    ctx.fillText('⚠ ТУРЕЛЬ АКТИВНА', cx, cy - 18);
+    ctx.restore();
+    ctx.textAlign = 'left';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -4348,20 +4999,161 @@ function getSprite(look) {
 // Значения подобраны под фильтр баланса: smg/tommy быстрые с малым
 // уроном, sniper/rpg медленные с большим. Соответствует ощущениям
 // из demo_isometric.
-const WEAPON_CD = {
-  pistol:       0.40,
-  nagan:        0.45,
-  pistol_heavy: 0.55,
-  pistol_gold:  0.50,
-  shotgun:      0.85,
-  smg:          0.20,
-  tommy_gun:    0.25,
-  rifle:        0.50,
-  sniper:       1.20,
-  rpg:          1.80,
+// ── Аудио: однострочный синтезатор тонов/шума (порт из demo_isometric)
+// AudioContext создаётся лениво по первому пользовательскому жесту, иначе
+// браузеры блокируют autoplay. _tone — пиковый осциллятор с фейдом,
+// _noise — белый шум через фильтр. Громкость общая (sfxVol).
+let _audioCtx = null;
+let _sfxVol   = 0.5;
+function _ac() {
+  if (_audioCtx) return _audioCtx;
+  try {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) { _audioCtx = null; }
+  return _audioCtx;
+}
+function _tone({ freq=440, freqEnd, dur=0.1, type='square', vol=0.2 }) {
+  const ac = _ac(); if (!ac) return;
+  const o = ac.createOscillator();
+  const g = ac.createGain();
+  o.type = type; o.frequency.value = freq;
+  if (typeof freqEnd === 'number') {
+    o.frequency.linearRampToValueAtTime(freqEnd, ac.currentTime + dur);
+  }
+  g.gain.value = vol * _sfxVol;
+  g.gain.linearRampToValueAtTime(0.0001, ac.currentTime + dur);
+  o.connect(g); g.connect(ac.destination);
+  o.start(); o.stop(ac.currentTime + dur + 0.02);
+}
+function _noise({ dur=0.1, vol=0.18, filter='highpass', filterFreq=600 }) {
+  const ac = _ac(); if (!ac) return;
+  const n = Math.floor(ac.sampleRate * dur);
+  const buf = ac.createBuffer(1, n, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1);
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const f = ac.createBiquadFilter(); f.type = filter; f.frequency.value = filterFreq;
+  const g = ac.createGain();
+  g.gain.value = vol * _sfxVol;
+  g.gain.linearRampToValueAtTime(0.0001, ac.currentTime + dur);
+  src.connect(f); f.connect(g); g.connect(ac.destination);
+  src.start(); src.stop(ac.currentTime + dur + 0.02);
+}
+// Разбудить аудио на первом тапе/клике (firefox/ios safari)
+window.addEventListener('pointerdown', () => {
+  const ac = _ac();
+  if (ac && ac.state === 'suspended') ac.resume();
+}, { once: true });
+
+// ── Конфиг оружия — звук, отдача, цвет трассера, разброс, дробь.
+// Порт из demo_isometric WEAPON_FX_CFG. cd — секунды. tip — длина ствола
+// в пикселях (для muzzle). thick=true делает трассер толще + светится.
+const WEAPON_FX = {
+  pistol:       { cd:0.40, sound:()=>{ _tone({freq:300,freqEnd:80,dur:0.08,type:'square',vol:0.30}); _noise({dur:0.05,vol:0.18}); },
+                  color:'#ffea80', recoil:1.4, shake:1.2, tip:14, spread:0 },
+  nagan:        { cd:0.45, sound:()=>{ _tone({freq:340,freqEnd:90,dur:0.09,type:'square',vol:0.32}); _noise({dur:0.05,vol:0.18}); },
+                  color:'#ffe080', recoil:1.5, shake:1.3, tip:14, spread:0 },
+  pistol_heavy: { cd:0.55, sound:()=>{ _tone({freq:200,freqEnd:50,dur:0.13,type:'square',vol:0.36}); _noise({dur:0.07,vol:0.22,filter:'lowpass',filterFreq:800}); },
+                  color:'#ffb060', recoil:2.0, shake:1.8, tip:20, spread:0, thick:true },
+  pistol_gold:  { cd:0.50, sound:()=>{ _tone({freq:620,freqEnd:200,dur:0.10,type:'sawtooth',vol:0.30}); _tone({freq:1200,freqEnd:400,dur:0.08,type:'sine',vol:0.14}); _noise({dur:0.05,vol:0.15}); },
+                  color:'#ffd76b', recoil:1.6, shake:1.4, tip:18, spread:0 },
+  shotgun:      { cd:0.85, sound:()=>{ _tone({freq:120,freqEnd:30,dur:0.18,type:'square',vol:0.42}); _noise({dur:0.14,vol:0.32,filter:'lowpass',filterFreq:500}); },
+                  color:'#ffaa50', recoil:3.5, shake:3.8, tip:28, spread:0.32, pellets:6, thick:true },
+  smg:          { cd:0.20, sound:()=>{ _tone({freq:380,freqEnd:120,dur:0.05,type:'square',vol:0.18}); _noise({dur:0.03,vol:0.12}); },
+                  color:'#ffea80', recoil:0.9, shake:0.9, tip:22, spread:0.10 },
+  tommy_gun:    { cd:0.25, sound:()=>{ _tone({freq:340,freqEnd:140,dur:0.06,type:'square',vol:0.22}); _noise({dur:0.04,vol:0.14}); },
+                  color:'#ffce70', recoil:1.0, shake:1.0, tip:22, spread:0.08 },
+  rifle:        { cd:0.50, sound:()=>{ _tone({freq:260,freqEnd:80,dur:0.10,type:'square',vol:0.34}); _noise({dur:0.07,vol:0.22,filter:'lowpass',filterFreq:1500}); },
+                  color:'#ffea80', recoil:2.4, shake:2.0, tip:32, spread:0.02, thick:true },
+  sniper:       { cd:1.20, sound:()=>{ _tone({freq:80,freqEnd:25,dur:0.40,type:'sawtooth',vol:0.42}); _noise({dur:0.18,vol:0.28,filter:'lowpass',filterFreq:400}); _tone({freq:1800,freqEnd:200,dur:0.30,type:'sine',vol:0.10}); },
+                  color:'#ff5050', recoil:5.0, shake:5.0, tip:44, spread:0, thick:true },
+  rpg:          { cd:1.80, sound:()=>{ _tone({freq:60,freqEnd:20,dur:0.50,type:'sawtooth',vol:0.45}); _noise({dur:0.40,vol:0.35,filter:'lowpass',filterFreq:300}); setTimeout(()=>{ _tone({freq:200,freqEnd:40,dur:0.30,type:'square',vol:0.42}); _noise({dur:0.30,vol:0.40}); }, 240); },
+                  color:'#ff6020', recoil:6.0, shake:7.0, tip:46, spread:0, thick:true },
 };
-function weaponCd(w) {
-  return WEAPON_CD[w] || 0.40;
+function weaponFx(w) { return WEAPON_FX[w] || WEAPON_FX.pistol; }
+function weaponCd(w) { return weaponFx(w).cd; }
+// Backwards-compat: оставить WEAPON_CD как алиас (старый код мог читать)
+const WEAPON_CD = new Proxy({}, { get: (_, k) => weaponFx(k).cd });
+
+// ── Спавн вспышки дула + гильзы + camera shake для любого выстрела.
+// Универсальный helper: spawnShot(world_r, world_c, ang, weapon, isMyShot).
+// Вызывается из fire() (свой выстрел), а также из обработчиков серверных
+// событий cop_shot/inkass_shot/pvp_shot/player_shot (выстрелы NPC и других
+// игроков). Звук играем только если выстрел близко к камере или это я сам.
+function spawnShot(wr, wc, ang, weapon, isMyShot) {
+  const fx = weaponFx(weapon);
+  // Расстояние до игрока — для громкости и отсечения далёких звуков
+  const dx = wc - player.c, dy = wr - player.r;
+  const d  = Math.hypot(dx, dy);
+  // Вспышка у дула — дублирует mini-flash в drawWeaponInHands, но
+  // эта живёт дольше и рисует лучи + ядро в мировых координатах
+  // (для NPC/чужих игроков она важна, у них нет своего timer'а)
+  muzzles.push({ r: wr, c: wc, ang: ang || 0,
+                 life: 110, max: 110, weapon });
+  // Гильзы — 1-3шт вылетают вбок от ствола. Для огнестрела (не melee)
+  const nShells = (weapon === 'shotgun') ? 2 :
+                  (weapon === 'rpg' || weapon === 'sniper') ? 0 : 1;
+  for (let i = 0; i < nShells; i++) {
+    const side = ang + Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+    shells.push({
+      r: wr, c: wc, z: 0.3,
+      vr: Math.sin(side) * (0.6 + Math.random() * 0.6),
+      vc: Math.cos(side) * (0.6 + Math.random() * 0.6),
+      vz: 1.2 + Math.random() * 0.8,
+      rot: Math.random() * Math.PI,
+      vrot: (Math.random() - 0.5) * 10,
+      life: 700, max: 700,
+    });
+  }
+  // Звук — только если близко (8 тайлов) ИЛИ я сам стрелял
+  if (isMyShot || d < 8.5) {
+    const volMul = isMyShot ? 1.0 : Math.max(0.25, 1 - d / 9);
+    try {
+      const oldVol = _sfxVol;
+      _sfxVol = oldVol * volMul;
+      fx.sound();
+      _sfxVol = oldVol;
+    } catch (e) {}
+  }
+  // Camera shake — только на свой выстрел (чужие не должны трясти экран)
+  if (isMyShot) addShake(fx.shake || 1);
+}
+
+// ── Импакт-частицы при попадании пули в цель (NPC/игрок/коп).
+// Брызги крови + капли разлетаются + splat пятно на земле (живёт 8 сек).
+function spawnImpact(wr, wc, weapon) {
+  const fx = weaponFx(weapon);
+  const parts = [];
+  // Больше частиц для тяжёлого оружия — мяснее.
+  const N = (fx.thick ? 12 : 8);
+  for (let i = 0; i < N; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 0.5 + Math.random() * 1.2 * (fx.thick ? 1.4 : 1.0);
+    // 70% частиц — кровь (красная), 30% — искры цвета оружия
+    const isBlood = Math.random() < 0.7;
+    parts.push({
+      vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+      life: 280 + Math.random() * 280, max: 560,
+      color: isBlood
+        ? (Math.random() < 0.4 ? '#8a0a0a' : '#d02020')   // тёмная/яркая кровь
+        : (fx.color || '#ffd76b'),
+      isBlood,
+      size: isBlood ? (2.2 + Math.random() * 1.6) : (1.6 + Math.random() * 0.8),
+    });
+  }
+  impacts.push({ r: wr, c: wc, parts });
+  // Splat — тёмное пятно крови на земле, живёт долго (8с) чтобы остаться
+  // следом боя. Кол-во зависит от оружия (тяжёлое — больше).
+  const splatN = fx.thick ? 3 : 1;
+  for (let i = 0; i < splatN; i++) {
+    bloodSplats.push({
+      r: wr + (Math.random() - 0.5) * 0.6,
+      c: wc + (Math.random() - 0.5) * 0.6,
+      radius: 4 + Math.random() * 5 * (fx.thick ? 1.4 : 1.0),
+      life: 8000, max: 8000,
+      rot: Math.random() * Math.PI,
+    });
+  }
 }
 
 // Точка «хвата» (рука персонажа) — на уровне пояса/бёдер (НЕ плеч,
@@ -4370,7 +5162,9 @@ function weaponCd(w) {
 // ang — угол прицела в радианах.
 function handAnchor(x, y, ang) {
   const sh = TS * 1.7;
-  const bodyY = y - sh * 0.32;   // ~30% от земли = пояс
+  // Опустили хват ещё ниже: было 0.32 → 0.18 → 0.10. При TS=56 (sh≈95)
+  // оружие на уровне руки опущенной у пояса — не у плеч.
+  const bodyY = y - sh * 0.10;
   const fwd   = 11;              // как далеко рука выносится вперёд
   return {
     hx: x + Math.cos(ang) * fwd,
@@ -4502,28 +5296,20 @@ function weaponTip(w) { return (FIREARM_TIP[w] || 16); }
 // это lastShotClientT, для других игроков и NPC — lastBossShotAt.get(id)).
 function drawWeaponInHands(x, y, ang, weapon, scale, shotAtMs) {
   if (!weapon) return;
-  const { hx, hy } = handAnchor(x, y, ang);
+  let { hx, hy } = handAnchor(x, y, ang);
   const sc = scale || 0.9;
-  drawFirearm(weapon, hx, hy, Math.cos(ang), Math.sin(ang), sc);
-  // Вспышка дула — короткая (80мс) после выстрела.
-  if (typeof shotAtMs === 'number' && shotAtMs > 0 &&
-      performance.now() - shotAtMs < 80) {
-    const tip = weaponTip(weapon) * sc;
-    const fx = hx + Math.cos(ang) * tip;
-    const fy = hy + Math.sin(ang) * tip;
-    ctx.save();
-    ctx.fillStyle = '#fff4b8';
-    ctx.shadowColor = '#ffd870';
-    ctx.shadowBlur = 14;
-    ctx.beginPath();
-    ctx.arc(fx, fy, 4 * sc, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ff8030';
-    ctx.beginPath();
-    ctx.arc(fx, fy, 2.5 * sc, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+  // Recoil-kick: ствол отскакивает назад на kPx за первые 80мс после
+  // выстрела. Сила берётся из WEAPON_FX.recoil — тяжёлые пушки бьют сильнее.
+  if (typeof shotAtMs === 'number' && shotAtMs > 0) {
+    const dt = performance.now() - shotAtMs;
+    if (dt < 110) {
+      const fx = weaponFx(weapon);
+      const k  = (1 - dt / 110) * (fx.recoil || 1.0) * 2.2;
+      hx -= Math.cos(ang) * k;
+      hy -= Math.sin(ang) * k;
+    }
   }
+  drawFirearm(weapon, hx, hy, Math.cos(ang), Math.sin(ang), sc);
 }
 
 function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, isDead) {
@@ -4673,6 +5459,21 @@ function roundRect(x, y, w, h, r) {
 function render() {
   ctx.fillStyle = '#0a0a10';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Обновляем список «скрытых» игроков (которые сейчас в автозаке)
+  updateArrestHiding();
+  // Camera-shake: толкаем всё рендеренное на случайный микро-сдвиг.
+  // Сила в camShake (0..8), затухает в каждом кадре. Заворачиваем
+  // всё в save/restore чтобы UI поверх (вспышки/баннеры) не дёргался.
+  const shakeNow = camShake;
+  if (shakeNow > 0.05) {
+    ctx.save();
+    const sx = (Math.random() - 0.5) * shakeNow;
+    const sy = (Math.random() - 0.5) * shakeNow;
+    ctx.translate(sx, sy);
+    camShake *= 0.78;
+  } else {
+    camShake = 0;
+  }
   // Viewport culling (под более крупный TS уменьшаем радиус)
   const VIS_R = 12;
   const r0 = Math.max(0, Math.floor(player.r - VIS_R));
@@ -4703,6 +5504,8 @@ function render() {
           else if (poi && poi.special === 'shop') drawBlackmarket(r, c);
           else                                    drawBuilding(r, c);
           if (poi) drawPOI(r, c, poi);
+          // У полицейского участка — парковка с техникой + турель на крыше
+          if (poi && poi.id === 'police') drawPoliceStationDecor(r, c);
         }});
       }
       else if (t === 2) items.push({ depth: r + c, draw: () => drawCar(r, c) });
@@ -4776,6 +5579,8 @@ function render() {
   // Другие
   for (const [, o] of others) {
     items.push({ depth: o.y + o.x + 0.001, draw: () => {
+      // Игрок сейчас «в автозаке» (LOADING/DRIVING) — не рисуем его
+      if (_arrestHidden.has(String(o.uid))) return;
       const p = w2s(o.y + 0.5, o.x + 0.5);
       const phase = (o.w ? (o._walkPhase || 0) : 0);
       const chat = (o.chat && performance.now() - o.chatT < chatDuration(o.chat)) ? o.chat : null;
@@ -4791,12 +5596,28 @@ function render() {
       }
       if (o.wanted > 0) drawWantedStars(p.x, p.y, o.wanted);
       drawModeTag(p.x, p.y, o.mode || 'pvp');
+      // Таймер «бан N сек» над головой если другой игрок сейчас в тюрьме
+      if ((o.jail_in || 0) > 0) drawJailTimer(p.x, p.y, o.jail_in);
     } });
   }
+  // Splat'ы крови — на земле, ПОД персонажами (depth-sort кладёт их
+  // в самый низ списка через прямой вызов до items)
+  drawBloodSplats();
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
+  // Автозаки ареста — поверх персонажей (LOADING-фаза скрывает спрайт)
+  drawArrestAnims();
+  // Гильзы — мелкие латунные кубики на земле, под трассерами
+  drawShells();
   // Пули — трассеры поверх всего (живут 0.18 сек)
   drawBullets();
+  // Вспышки у дула (4-лучевая звёздочка) — поверх трассеров
+  drawMuzzles();
+  // Импакт-частицы (искры, кровь) — поверх всего
+  drawImpacts();
+  // Снимаем shake-трансформ ПЕРЕД UI-слоем (стрелки POI / мини-карта),
+  // чтобы UI не дёргался во время отдачи камеры.
+  if (shakeNow > 0.05) ctx.restore();
   // Стрелки-указатели на POI, которые сейчас за пределами видимости.
   drawPOIArrows(r0, r1, c0, c1);
   // Стрелка-указатель на инкассатора если он за пределами экрана
@@ -4806,9 +5627,11 @@ function render() {
 }
 
 // ── Пули ────────────────────────────────────────────────────────
+// Цветной трассер по оружию (color/thick из WEAPON_FX). Жёлтое ядро,
+// светящийся хвост. Импакт (b.hit) рисуется отдельным spawnImpact, тут
+// уже не дублируем.
 function drawBullets() {
   const now = performance.now();
-  // Чистка старых
   for (let i = bullets.length - 1; i >= 0; i--) {
     if (now - bullets[i].t0 > bullets[i].ttl) bullets.splice(i, 1);
   }
@@ -4819,24 +5642,193 @@ function drawBullets() {
     const a = 1 - t;
     const s = w2s(b.sr + 0.5, b.sc + 0.5);
     const e = w2s(b.er + 0.5, b.ec + 0.5);
-    // Тонкий жёлтый трассер с лёгким glow'ом
+    const fx = weaponFx(b.weapon || 'pistol');
+    const col = fx.color || '#ffd76b';
+    // Трассер летит за пулей — рисуем линию от sr→er но затемняем к концу
     ctx.globalAlpha = a;
-    ctx.strokeStyle = '#ffd76b';
-    ctx.lineWidth = 2;
-    ctx.shadowColor = '#ffd76b';
-    ctx.shadowBlur = 6;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = fx.thick ? 3.5 : 2;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = col;
+    ctx.shadowBlur = fx.thick ? 14 : 8;
     ctx.beginPath();
     ctx.moveTo(s.x, s.y - 18);  // от уровня плеч
     ctx.lineTo(e.x, e.y - 18);
     ctx.stroke();
-    // Вспышка попадания
-    if (b.hit && t > 0.4) {
-      ctx.globalAlpha = a * 0.9;
-      ctx.fillStyle = '#ff6464';
+    // Яркое ядро в начале трассера (вспышка вылета)
+    if (t < 0.25) {
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 16;
       ctx.beginPath();
-      ctx.arc(e.x, e.y - 18, 6 + t * 8, 0, Math.PI * 2);
+      ctx.arc(s.x, s.y - 18, fx.thick ? 4 : 2.6, 0, Math.PI * 2);
       ctx.fill();
     }
+  }
+  ctx.restore();
+}
+
+// ── Muzzle-flash (вспышка у дула) — 4-лучевая звёздочка + glow ─────
+// Порт из demo_isometric drawMuzzle. Живёт ~110мс, затухает.
+function drawMuzzles() {
+  const now = performance.now();
+  ctx.save();
+  for (let i = muzzles.length - 1; i >= 0; i--) {
+    const m = muzzles[i];
+    const dt = now - (m._lastT || (m._lastT = now));
+    m._lastT = now;
+    m.life -= dt;
+    if (m.life <= 0) { muzzles.splice(i, 1); continue; }
+    const t  = m.life / m.max;             // 1→0
+    const p  = w2s(m.r + 0.5, m.c + 0.5);
+    const cx = p.x, cy = p.y - 22;          // на уровне рук
+    const fx = weaponFx(m.weapon);
+    const sizeMul = fx.thick ? 1.4 : 1.0;
+    // 1) Мягкий оранжевый ореол
+    ctx.shadowColor = '#ff9020';
+    ctx.shadowBlur  = 28 * t * sizeMul;
+    ctx.fillStyle   = 'rgba(255,150,40,' + (t * 0.55) + ')';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 14 * t * sizeMul, 0, Math.PI * 2);
+    ctx.fill();
+    // 2) 4-лучевая «звёздочка» от дула — длинный луч вперёд + 3 искры
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(m.ang || 0);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle  = 'rgba(255,230,140,' + (t * 0.9) + ')';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(22 * t * sizeMul, -2 * t);
+    ctx.lineTo(30 * t * sizeMul, 0);
+    ctx.lineTo(22 * t * sizeMul,  2 * t);
+    ctx.closePath();
+    ctx.fill();
+    // 3 коротких боковых искры
+    ctx.fillStyle = 'rgba(255,200,100,' + (t * 0.7) + ')';
+    for (let k = 0; k < 3; k++) {
+      const a = (k - 1) * 0.6;
+      const len = (8 + Math.random() * 5) * t * sizeMul;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len * 0.4);
+      ctx.lineTo(0, 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    // 3) Белое ядро по центру
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur  = 14 * t;
+    ctx.fillStyle   = 'rgba(255,255,240,' + (t * 0.95) + ')';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5 * t * sizeMul, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── Гильзы (shells) ────────────────────────────────────────────────
+// Маленькие латунные прямоугольники, падают с гравитацией, крутятся.
+function drawShells() {
+  const now = performance.now();
+  for (let i = shells.length - 1; i >= 0; i--) {
+    const s = shells[i];
+    const dt = now - (s._lastT || (s._lastT = now));
+    s._lastT = now;
+    const dts = Math.min(0.06, dt / 1000);
+    s.life -= dt;
+    if (s.life <= 0) { shells.splice(i, 1); continue; }
+    // Физика: горизонталь идёт vc/vr, вертикаль vz с гравитацией.
+    s.r += s.vr * dts; s.c += s.vc * dts;
+    s.z += s.vz * dts; s.vz -= 5.5 * dts;
+    if (s.z < 0) { s.z = 0; s.vz *= -0.35; s.vc *= 0.6; s.vr *= 0.6; }
+    s.rot += s.vrot * dts;
+    const p = w2s(s.r + 0.5, s.c + 0.5);
+    const cx = p.x, cy = p.y - 18 - s.z * 18;
+    const a = Math.min(1, s.life / 300);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(cx, cy);
+    ctx.rotate(s.rot);
+    ctx.fillStyle = '#c8a050';
+    ctx.fillRect(-2, -1, 4, 2);
+    ctx.fillStyle = '#806030';
+    ctx.fillRect(-2, -1, 1, 2);
+    ctx.restore();
+  }
+}
+
+// ── Пятна крови на земле (живут 8с, медленно затухают) ────────────
+function drawBloodSplats() {
+  const now = performance.now();
+  for (let i = bloodSplats.length - 1; i >= 0; i--) {
+    const s = bloodSplats[i];
+    const dt = now - (s._lastT || (s._lastT = now));
+    s._lastT = now;
+    s.life -= dt;
+    if (s.life <= 0) { bloodSplats.splice(i, 1); continue; }
+    const a = Math.min(0.55, s.life / s.max * 0.55);
+    const p = w2s(s.r + 0.5, s.c + 0.5);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(s.rot);
+    // Главное пятно (овал)
+    ctx.fillStyle = '#5a0808';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s.radius, s.radius * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 2 капли рядом
+    ctx.fillStyle = '#7a0a0a';
+    ctx.beginPath();
+    ctx.arc(s.radius * 0.7, -s.radius * 0.3, s.radius * 0.25, 0, Math.PI * 2);
+    ctx.arc(-s.radius * 0.5, s.radius * 0.35, s.radius * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ── Импакт-частицы (искры/кровь при попадании) ─────────────────────
+function drawImpacts() {
+  const now = performance.now();
+  ctx.save();
+  for (let i = impacts.length - 1; i >= 0; i--) {
+    const imp = impacts[i];
+    const p = w2s(imp.r + 0.5, imp.c + 0.5);
+    let aliveAny = false;
+    for (const pt of imp.parts) {
+      const dt = now - (pt._lastT || (pt._lastT = now));
+      pt._lastT = now;
+      const dts = Math.min(0.05, dt / 1000);
+      pt.life -= dt;
+      if (pt.life <= 0) continue;
+      aliveAny = true;
+      pt._x = (pt._x || 0) + pt.vc * dts * 22;
+      pt._y = (pt._y || 0) + pt.vr * dts * 22;
+      pt.vr += 12 * dts;        // гравитация для падения капель
+      const t = Math.max(0, pt.life / pt.max);
+      ctx.globalAlpha = t;
+      ctx.fillStyle = pt.color;
+      if (pt.isBlood) {
+        // Кровь — без glow, рисуем как непрозрачные капли
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(p.x + pt._x, p.y - 18 + pt._y,
+                (pt.size || 2.4) * (0.6 + t * 0.4), 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Искра — с glow
+        ctx.shadowColor = pt.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(p.x + pt._x, p.y - 18 + pt._y,
+                (pt.size || 1.8) + t * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    if (!aliveAny) impacts.splice(i, 1);
   }
   ctx.restore();
 }
