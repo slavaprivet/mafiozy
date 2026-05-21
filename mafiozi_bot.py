@@ -11394,6 +11394,11 @@ class WorldSim:
     INKASS_START_Y     = 5.0
     INKASS_END_X       = 13.0
     INKASS_END_Y       = 35.0
+    # PvP-арена — постоянная зона где можно стрелять в других игроков
+    # БЕЗ wanted-штрафа (это «полигон»). Координаты совпадают с client
+    # world.html: POI arena (r=28,c=52), ARENA = квадрат 8×8 вокруг.
+    ARENA_R0 = 24; ARENA_R1 = 32
+    ARENA_C0 = 48; ARENA_C1 = 56
     # ── Wanted-система + копы ──────────────────────────────────────
     # При стрельбе по другим игрокам у стрелка растут звёзды розыска
     # (0..3). На каждую звезду в городе спавнятся копы которые активно
@@ -11867,10 +11872,13 @@ class WorldSim:
         if now - last_t < self.PVP_SHOT_CD:
             return None
         shooter['_pvp_shot_t'] = now
-        # Оба должны быть в активной PvP-зоне (вокруг маршрута)
-        if not self._in_pvp_zone(shooter['x'], shooter['y']):
-            return None
-        if not self._in_pvp_zone(target['x'], target['y']):
+        # Оба должны быть либо в активной PvP-зоне (вокруг маршрута
+        # инкассатора, временная hot-zone), либо в постоянной PvP-арене.
+        both_in_pvp_zone = (self._in_pvp_zone(shooter['x'], shooter['y']) and
+                            self._in_pvp_zone(target['x'], target['y']))
+        both_in_arena    = (self._in_arena(shooter['x'], shooter['y']) and
+                            self._in_arena(target['x'], target['y']))
+        if not (both_in_pvp_zone or both_in_arena):
             return None
         # Дистанция
         d_sq = (shooter['x'] - target['x'])**2 + (shooter['y'] - target['y'])**2
@@ -11890,11 +11898,13 @@ class WorldSim:
             target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
             shooter['kills']      = int(shooter.get('kills', 0)) + 1
             killed = True
-        # Wanted: попадание = +0.5, убийство = +1 (минус 0.5 уже учтённое)
-        self._bump_wanted(shooter, self.WANTED_PER_HIT)
-        if killed:
-            self._bump_wanted(shooter,
-                              self.WANTED_PER_KILL - self.WANTED_PER_HIT)
+        # Wanted: попадание = +0.5, убийство = +1 (минус 0.5 уже учтённое).
+        # Но в АРЕНЕ — это легальный полигон, копы не реагируют.
+        if not both_in_arena:
+            self._bump_wanted(shooter, self.WANTED_PER_HIT)
+            if killed:
+                self._bump_wanted(shooter,
+                                  self.WANTED_PER_KILL - self.WANTED_PER_HIT)
         return {
             'kind':       'pvp_shot',
             'shooter_uid': str(uid),
@@ -11918,6 +11928,11 @@ class WorldSim:
             self.INKASS_START_X, self.INKASS_START_Y,
             self.INKASS_END_X,   self.INKASS_END_Y,
         ) < self.PVP_HOT_R
+
+    def _in_arena(self, x: float, y: float) -> bool:
+        """Точка лежит в постоянной PvP-арене (квадрат 8×8 вокруг POI 🎯)."""
+        return (self.ARENA_C0 <= x <= self.ARENA_C1 + 1
+                and self.ARENA_R0 <= y <= self.ARENA_R1 + 1)
 
     # ── Wanted-система: копы в городе ──────────────────────────────
     def _bump_wanted(self, shooter: dict, amount: float) -> None:

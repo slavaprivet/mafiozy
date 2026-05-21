@@ -118,19 +118,10 @@ body.in-pvp #zoneBtn { top: 104px; }
 }
 #joyR.cd { filter: grayscale(.5) brightness(.55); }
 
-/* Кнопка «🔫 Огонь» (auto-aim для тех кто не любит стик) */
-#fireBtn {
-  position: absolute; right: 168px; bottom: 56px;
-  width: 64px; height: 64px; border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, #ff8484, #a02020);
-  border: 2px solid #ffd76b; color: #fff; cursor: pointer;
-  font-size: 24px; font-weight: 800; line-height: 60px; text-align: center;
-  box-shadow: 0 4px 14px rgba(255,40,40,.45);
-  display: none; z-index: 5; user-select: none;
-  font-family: inherit;
-}
-#fireBtn.cd { filter: grayscale(.6) brightness(.55); }
-#fireBtn:active { transform: scale(.94); }
+/* Кнопка «🔫 Огонь» — оставлена только в DOM для совместимости со
+   старым JS-кодом который дёргает её classList. Визуально полностью
+   скрыта: стрельба через правый джойстик (joyR). */
+#fireBtn { display: none !important; }
 
 /* Countdown «До инкассатора» — небольшой баннер сверху, виден всем */
 #cdHud {
@@ -1752,15 +1743,18 @@ function findNearestConvoyTarget() {
   return best;
 }
 
-// Найти живого ИГРОКА на которого направлен наш прицел (в pvp-зоне).
-// dirX/dirY — единичный вектор направления выстрела. Возвращаем игрока
-// который ближе всего к лучу (cone-style aim).
+// Найти живого ИГРОКА на которого направлен наш прицел.
+// Работает в двух случаях: 1) горячая PvP-зона вокруг конвоя, либо
+// 2) постоянная PvP-арена (POI 🎯). На сервере та же проверка.
 const PVP_FIRE_R = 8.5;
 function findPvpTargetAlongAim(dirX, dirY) {
-  if (!pvpActive) return null;
+  const meInArena = inArena(player.r, player.c);
+  if (!pvpActive && !meInArena) return null;
   let best = null;
   for (const [uid, o] of others) {
     if (o.dead) continue;
+    // Если я в арене — то и таргет должен быть в арене (на сервере та же логика)
+    if (meInArena && !inArena(o.y, o.x)) continue;
     const dx = o.x - player.c, dy = o.y - player.r;
     const d = Math.hypot(dx, dy);
     if (d > PVP_FIRE_R) continue;
@@ -1874,8 +1868,8 @@ function fire(angle = null) {
     } catch(e) {}
     return;
   }
-  // Старый PVP-арена-режим (если конвоя/копов/PvP нет)
-  sendShoot(player.ang);
+  // Без цели на арене — ничего не шлём (старый sendShoot не работал,
+  // сервер 'shoot' не обрабатывал; PvP-арена теперь через player_shoot).
 }
 _fireBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); }, { passive: false });
 // Доп. клавиша на десктопе — пробел
@@ -4435,7 +4429,7 @@ function drawPOIArrows(r0, r1, c0, c1) {
   const SAFE_TL = { w: 110, h: 50 };   // кнопка «Меню»
   const SAFE_TR = { w: 200, h: 200 };  // мини-карта + «N онлайн»
   const SAFE_BL = { w: 200, h: 220 };  // джойстик
-  const SAFE_BR = { w: 80,  h: 110 };  // кнопка чата
+  const SAFE_BR = { w: 180, h: 320 };  // правый джойстик + HP-HUD + чат
   // Кандидаты: все POI за пределами видимости + достаточно далёкие.
   // Каждому считаем точку пересечения луча из центра экрана с
   // прямоугольником (PAD..W-PAD) × (PAD..H-PAD).
