@@ -1794,7 +1794,14 @@ const joyR = { active: false, id: null, ox: 0, oy: 0, dx: 0, dy: 0 };
 function resize() {
   const stage = document.getElementById('stage');
   const w = stage.clientWidth, h = stage.clientHeight;
-  dpr = window.devicePixelRatio || 1;
+  // КРИТИЧНО для производительности: cap dpr до 2. На iPhone 14 native
+  // devicePixelRatio = 3 → canvas рисуется в 9× больше пикселей чем при
+  // dpr=1, GPU/CPU не успевают, fps проседает. Cap=2 даёт визуально
+  // почти неотличимое качество (Retina всё ещё чёткая) при ×2.25 меньше
+  // нагрузке. То же сделано в world.html. Если хочется идеальной чёткости
+  // на топовых девайсах — можно поднять до 3, но Telegram-WebView это
+  // не успевает рендерить даже на iPhone 15 Pro в нашей боёвке.
+  dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = Math.floor(w * dpr);
   canvas.height = Math.floor(h * dpr);
   canvas.style.width = w + 'px';
