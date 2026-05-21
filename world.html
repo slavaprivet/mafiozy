@@ -1145,8 +1145,10 @@ const muzzles = [];       // {r,c,ang,life,max,weapon}
 // Гильзы — мелкие частицы вылетают вбок от ствола при огнестреле,
 // падают на землю с гравитацией, ~600мс жизни.
 const shells  = [];       // {x,y,vx,vy,vz,z,rot,vrot,life,max}
-// Импакт-частицы при попадании пули в цель (4-6 искр + кровь).
-const impacts = [];       // {x,y,parts:[{vx,vy,life,max,color}]}
+// Импакт-частицы при попадании пули в цель (брызги крови + искры).
+const impacts = [];       // {r,c,parts:[{vr,vc,life,max,color,isBlood,size}]}
+// Пятна крови на земле — splat-ы живут 8 сек после попадания.
+const bloodSplats = [];   // {r,c,radius,life,max,rot}
 // Camera-shake: при выстреле/попадании короткий толчок. Декремент в цикле.
 let camShake = 0;
 function addShake(p) { camShake = Math.min(8, camShake + p); }
@@ -3727,7 +3729,18 @@ function drawCopNpc(cop) {
   const weapon = cop.weapon ||
                  (kind === 'swat' ? 'smg' : (kind === 'combat' ? 'pistol_heavy' : 'pistol'));
   const flashAt = lastBossShotAt.get(cop.id) || 0;
+  // SWAT-щит: рисуется СПЕРЕДИ персонажа (под рукой с оружием). Чёрный
+  // с белой надписью POLICE, отражает (визуально) пули — частицы при
+  // попадании искрят сильнее. Рисуем ДО оружия чтобы ствол был сверху.
+  if (kind === 'swat') {
+    drawSwatShield(p.x, p.y, cop.ang || 0);
+  }
   drawWeaponInHands(p.x, p.y, cop.ang || 0, weapon, 0.95, flashAt);
+  // Каска с забралом — чёрный шлем + светлая полоска забрала.
+  // Рисуется поверх головы спрайта (top of body).
+  if (kind === 'swat') {
+    drawSwatHelmet(p.x, p.y);
+  }
   // Эмодзи над головой по типу: 🚓 патруль, 👮 бой, 🪖 спецназ
   const icon = (kind === 'swat') ? '🪖' : (kind === 'combat' ? '👮' : '🚓');
   ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
@@ -3749,6 +3762,57 @@ function drawCopNpc(cop) {
     _copChats.delete(cop.id);
   }
   ctx.textAlign = 'left';
+}
+
+// SWAT-щит — чёрный прямоугольник с белой надписью POLICE перед спецназом.
+// Поворачивается вместе с прицелом (закрывает грудь от пуль).
+function drawSwatShield(x, y, ang) {
+  const sh = TS * 1.7;
+  const bodyY = y - sh * 0.34;
+  // Щит чуть впереди по направлению взгляда
+  const fwd = 9;
+  const sx = x + Math.cos(ang) * fwd;
+  const sy = bodyY + Math.sin(ang) * 5;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(ang + Math.PI / 2);
+  // Тело щита — чёрный овал
+  ctx.fillStyle = '#0e0e10';
+  ctx.strokeStyle = '#404040';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(-10, -14, 20, 28, 4)
+                : ctx.rect(-10, -14, 20, 28);
+  ctx.fill(); ctx.stroke();
+  // Белая надпись POLICE
+  ctx.fillStyle = '#e8e8f0';
+  ctx.font = 'bold 5px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('POLICE', 0, 0);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// Каска спецназа — чёрный шлем со светлой полоской забрала на голове спрайта.
+function drawSwatHelmet(x, y) {
+  const sh = TS * 1.7;
+  const headY = y - sh * 0.85;     // примерно где голова
+  ctx.save();
+  // Шлем — чёрный полуовал
+  ctx.fillStyle = '#1a1a1e';
+  ctx.strokeStyle = '#3a3a40';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(x, headY, 7, 6, 0, Math.PI, 2 * Math.PI);
+  ctx.fill(); ctx.stroke();
+  // Забрало — узкая горизонтальная полоса (тёмный пластик)
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(x - 6, headY - 1, 12, 3);
+  // Блик на забрале
+  ctx.fillStyle = 'rgba(120,160,220,.5)';
+  ctx.fillRect(x - 5, headY - 0.5, 4, 1.2);
+  ctx.restore();
 }
 
 // Чат-баббл копа (только для cop_warn).
@@ -4702,21 +4766,40 @@ function spawnShot(wr, wc, ang, weapon, isMyShot) {
 }
 
 // ── Импакт-частицы при попадании пули в цель (NPC/игрок/коп).
-// Спавн в точке (er,ec) трассера если bullet.hit === true.
+// Брызги крови + капли разлетаются + splat пятно на земле (живёт 8 сек).
 function spawnImpact(wr, wc, weapon) {
   const fx = weaponFx(weapon);
   const parts = [];
-  const N = (weapon === 'shotgun') ? 4 : 6;
+  // Больше частиц для тяжёлого оружия — мяснее.
+  const N = (fx.thick ? 12 : 8);
   for (let i = 0; i < N; i++) {
     const a = Math.random() * Math.PI * 2;
-    const sp = 0.4 + Math.random() * 0.8;
+    const sp = 0.5 + Math.random() * 1.2 * (fx.thick ? 1.4 : 1.0);
+    // 70% частиц — кровь (красная), 30% — искры цвета оружия
+    const isBlood = Math.random() < 0.7;
     parts.push({
       vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
-      life: 280 + Math.random() * 180, max: 460,
-      color: (i < 2) ? '#ff4040' : (fx.color || '#ffd76b'),
+      life: 280 + Math.random() * 280, max: 560,
+      color: isBlood
+        ? (Math.random() < 0.4 ? '#8a0a0a' : '#d02020')   // тёмная/яркая кровь
+        : (fx.color || '#ffd76b'),
+      isBlood,
+      size: isBlood ? (2.2 + Math.random() * 1.6) : (1.6 + Math.random() * 0.8),
     });
   }
   impacts.push({ r: wr, c: wc, parts });
+  // Splat — тёмное пятно крови на земле, живёт долго (8с) чтобы остаться
+  // следом боя. Кол-во зависит от оружия (тяжёлое — больше).
+  const splatN = fx.thick ? 3 : 1;
+  for (let i = 0; i < splatN; i++) {
+    bloodSplats.push({
+      r: wr + (Math.random() - 0.5) * 0.6,
+      c: wc + (Math.random() - 0.5) * 0.6,
+      radius: 4 + Math.random() * 5 * (fx.thick ? 1.4 : 1.0),
+      life: 8000, max: 8000,
+      rot: Math.random() * Math.PI,
+    });
+  }
 }
 
 // Точка «хвата» (рука персонажа) — на уровне пояса/бёдер (НЕ плеч,
@@ -5155,6 +5238,9 @@ function render() {
       if ((o.jail_in || 0) > 0) drawJailTimer(p.x, p.y, o.jail_in);
     } });
   }
+  // Splat'ы крови — на земле, ПОД персонажами (depth-sort кладёт их
+  // в самый низ списка через прямой вызов до items)
+  drawBloodSplats();
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
   // Гильзы — мелкие латунные кубики на земле, под трассерами
@@ -5310,6 +5396,36 @@ function drawShells() {
   }
 }
 
+// ── Пятна крови на земле (живут 8с, медленно затухают) ────────────
+function drawBloodSplats() {
+  const now = performance.now();
+  for (let i = bloodSplats.length - 1; i >= 0; i--) {
+    const s = bloodSplats[i];
+    const dt = now - (s._lastT || (s._lastT = now));
+    s._lastT = now;
+    s.life -= dt;
+    if (s.life <= 0) { bloodSplats.splice(i, 1); continue; }
+    const a = Math.min(0.55, s.life / s.max * 0.55);
+    const p = w2s(s.r + 0.5, s.c + 0.5);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(s.rot);
+    // Главное пятно (овал)
+    ctx.fillStyle = '#5a0808';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s.radius, s.radius * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 2 капли рядом
+    ctx.fillStyle = '#7a0a0a';
+    ctx.beginPath();
+    ctx.arc(s.radius * 0.7, -s.radius * 0.3, s.radius * 0.25, 0, Math.PI * 2);
+    ctx.arc(-s.radius * 0.5, s.radius * 0.35, s.radius * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 // ── Импакт-частицы (искры/кровь при попадании) ─────────────────────
 function drawImpacts() {
   const now = performance.now();
@@ -5325,17 +5441,28 @@ function drawImpacts() {
       pt.life -= dt;
       if (pt.life <= 0) continue;
       aliveAny = true;
-      pt._x = (pt._x || 0) + pt.vc * dts * 18;
-      pt._y = (pt._y || 0) + pt.vr * dts * 18;
-      pt.vr += 8 * dts;        // мини-гравитация
+      pt._x = (pt._x || 0) + pt.vc * dts * 22;
+      pt._y = (pt._y || 0) + pt.vr * dts * 22;
+      pt.vr += 12 * dts;        // гравитация для падения капель
       const t = Math.max(0, pt.life / pt.max);
       ctx.globalAlpha = t;
       ctx.fillStyle = pt.color;
-      ctx.shadowColor = pt.color;
-      ctx.shadowBlur = 6;
-      ctx.beginPath();
-      ctx.arc(p.x + pt._x, p.y - 18 + pt._y, 1.8 + t * 1.2, 0, Math.PI * 2);
-      ctx.fill();
+      if (pt.isBlood) {
+        // Кровь — без glow, рисуем как непрозрачные капли
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(p.x + pt._x, p.y - 18 + pt._y,
+                (pt.size || 2.4) * (0.6 + t * 0.4), 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Искра — с glow
+        ctx.shadowColor = pt.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(p.x + pt._x, p.y - 18 + pt._y,
+                (pt.size || 1.8) + t * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     if (!aliveAny) impacts.splice(i, 1);
   }
