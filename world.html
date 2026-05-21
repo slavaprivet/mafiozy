@@ -6522,17 +6522,47 @@ const chatInput = document.getElementById('chatInput');
 const btnChat   = document.getElementById('btnChat');
 const emojiBar  = document.getElementById('emojiBar');
 let chatOpen = false;
+
+// ── Anti-keyboard-resize: при открытии чата мобильная клавиатура
+// уменьшает window.innerHeight, и все absolute-элементы с `bottom: …`
+// «разъезжаются». Фиксируем #stage на начальную высоту, а chatBar
+// поднимаем над клавиатурой через visualViewport. После закрытия
+// чата возвращаем layout.
+const _stage = document.getElementById('stage');
+const _chatBar = document.getElementById('chatBar');
+const _initialStageH = window.innerHeight;
+function _syncChatBarOverKb() {
+  if (!window.visualViewport || !_chatBar) return;
+  const vv = window.visualViewport;
+  // Высота клавиатуры = инициальный экран минус видимый viewport.
+  const kbH = Math.max(0, _initialStageH - vv.height - vv.offsetTop);
+  if (chatOpen && kbH > 40) {
+    _chatBar.style.bottom = (168 + kbH) + 'px';
+  } else {
+    _chatBar.style.bottom = '';   // вернуть к CSS-значению
+  }
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', _syncChatBarOverKb);
+  window.visualViewport.addEventListener('scroll', _syncChatBarOverKb);
+}
+
 function openChat() {
   chatOpen = true;
+  // Замораживаем layout до момента, пока клавиатура не открылась —
+  // иначе #stage сожмётся под visualViewport и absolute-иконки уедут.
+  _stage.style.height = _initialStageH + 'px';
   chatInput.classList.add('open');
   emojiBar.classList.add('open');
-  setTimeout(() => chatInput.focus(), 50);
+  setTimeout(() => { chatInput.focus(); _syncChatBarOverKb(); }, 50);
 }
 function closeChat() {
   chatOpen = false;
   chatInput.classList.remove('open');
   emojiBar.classList.remove('open');
   chatInput.blur();
+  _chatBar.style.bottom = '';
+  _stage.style.height = '';   // вернуть в `inset: 0`
 }
 function _submitChat(t) {
   if (!t) return;
