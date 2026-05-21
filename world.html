@@ -5162,7 +5162,9 @@ function spawnImpact(wr, wc, weapon) {
 // ang — угол прицела в радианах.
 function handAnchor(x, y, ang) {
   const sh = TS * 1.7;
-  const bodyY = y - sh * 0.32;   // ~30% от земли = пояс
+  // Опустили хват ещё ниже: было 0.32 → 0.18 → 0.10. При TS=56 (sh≈95)
+  // оружие на уровне руки опущенной у пояса — не у плеч.
+  const bodyY = y - sh * 0.10;
   const fwd   = 11;              // как далеко рука выносится вперёд
   return {
     hx: x + Math.cos(ang) * fwd,
