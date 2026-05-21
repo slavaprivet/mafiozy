@@ -11436,6 +11436,12 @@ class WorldSim:
     JAIL_Y              = 56.0
     # Радиус «тюремной зоны» — игрок не может выйти пока jail_until
     JAIL_R              = 3.5
+    # Госпиталь — точка респауна после смерти НЕ в тюрьму. Координаты
+    # совпадают с POI «🏥 Больница» на клиенте — центральный перекрёсток
+    # (r=24,c=24), это дорога, не стена. Тебя убил коп с 0-1 звёздами
+    # или конвой — выйдешь у госпиталя, а не там где умер.
+    HOSPITAL_X          = 24.0
+    HOSPITAL_Y          = 24.0
 
     def __init__(self):
         self.tick_no         = 0
@@ -11829,15 +11835,20 @@ class WorldSim:
                 'killed':     killed,
                 'miss':       bool(miss),
             })
-        # 5) Респаун мёртвых игроков — в тюрьме если jail_until > now
+        # 5) Респаун мёртвых игроков:
+        #    • jail_until > now → спавн в тюрьме (правый-нижний угол)
+        #    • иначе → спавн у ГОСПИТАЛЯ (а не там где умер). Тебя завалил
+        #      коп/конвой — выходишь из больницы в районе Рынка.
         for p_uid, p in self.players.items():
             if p.get('dead') and now >= p.get('_respawn_at', 0):
                 p['dead'] = False
                 p['hp']   = int(p.get('max_hp', 100))
                 if (p.get('_jail_until') or 0) > now:
-                    # Спавн в тюрьме (правый-нижний угол карты)
                     p['x'] = self.JAIL_X + random.uniform(-1.0, 1.0)
                     p['y'] = self.JAIL_Y + random.uniform(-1.0, 1.0)
+                else:
+                    p['x'] = self.HOSPITAL_X + random.uniform(-1.0, 1.0)
+                    p['y'] = self.HOSPITAL_Y + random.uniform(-1.0, 1.0)
         return pkts
 
     def apply_event_shoot(self, uid: str, target_id: str = 'b',
