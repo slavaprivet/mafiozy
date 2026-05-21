@@ -14442,6 +14442,10 @@ def main():
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", cmd_start)],
         states={
+            # КРИТИЧНО: без этого хендлера новый игрок написал ник и
+            # бот «висит» — диалог не знает что делать с текстом в
+            # состоянии CHOOSING_NAME, сообщение игнорируется.
+            CHOOSING_NAME:  [MessageHandler(filters.TEXT & ~filters.COMMAND, choose_name)],
             CHOOSING_CLASS: [CallbackQueryHandler(choose_class, pattern="^class_")],
         },
         fallbacks=[CommandHandler("start", cmd_start)],
