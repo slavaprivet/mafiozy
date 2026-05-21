@@ -142,6 +142,20 @@ body.in-pvp #zoneBtn { top: 104px; }
   color: #ffae90; z-index: 8; display: none; font-family: inherit;
   pointer-events: none; animation: pvpPulse 1.4s ease-in-out infinite;
 }
+/* Индикатор режима PvP/PvE — слева сверху под «Меню», кликабельный */
+#modeHud {
+  position: absolute; left: 14px; top: 110px;
+  background: rgba(20,24,32,.86); border: 1px solid #4a5060;
+  border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: 700;
+  color: #d8d8e8; z-index: 6; cursor: pointer; font-family: inherit;
+  letter-spacing: .3px; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#modeHud:active { background: rgba(40,50,70,.95); }
+#modeHud.pvp { border-color: #b8202a; color: #ffae90; }
+#modeHud.pve { border-color: #2a6a4a; color: #a8d0ff; }
+#modeHud .sw { color: #ffd76b; margin-left: 6px; font-size: 10px; font-weight: 800; }
+
 /* Wanted-звёзды — мой HUD-индикатор слева сверху */
 #wantedHud {
   position: absolute; left: 14px; top: 60px;
@@ -154,6 +168,36 @@ body.in-pvp #zoneBtn { top: 104px; }
 #wantedHud.lvl1 { border-color: #ffd76b; }
 #wantedHud.lvl2 { border-color: #ff8030; animation: pvpPulse 1.6s ease-in-out infinite; }
 #wantedHud.lvl3 { border-color: #ff3030; animation: pvpPulse .8s ease-in-out infinite; }
+/* Модал выбора режима PvP / PvE при первом входе в мир */
+#modeModal {
+  position: absolute; inset: 0; z-index: 80;
+  background: rgba(0,0,0,.80);
+  display: none; align-items: center; justify-content: center;
+  font-family: inherit;
+}
+#modeModal.show { display: flex; }
+#modeModal .box {
+  width: min(360px, 92vw);
+  background: linear-gradient(160deg, #1a1c28, #0e0f18);
+  border: 2px solid #4a5060;
+  border-radius: 16px;
+  padding: 18px;
+  color: #fff;
+  box-shadow: 0 8px 32px rgba(0,0,0,.7);
+}
+#modeModal .ttl { font-size: 17px; font-weight: 800; color: #ffd76b; text-align: center; }
+#modeModal .sub { font-size: 12px; color: #a0a8b8; text-align: center; margin-top: 4px; line-height: 1.35; }
+#modeModal .opts { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+#modeModal .opt {
+  background: rgba(40,50,70,.55); border: 1.5px solid #4a5060;
+  border-radius: 12px; padding: 12px 14px; cursor: pointer;
+  color: #fff; font-family: inherit; text-align: left;
+}
+#modeModal .opt:hover { background: rgba(60,70,100,.65); border-color: #6080a8; }
+#modeModal .opt.pvp { border-color: #b8202a; background: linear-gradient(135deg, #2a1010, #1a0808); }
+#modeModal .opt.pve { border-color: #2a6a4a; background: linear-gradient(135deg, #0a2a1a, #051a10); }
+#modeModal .opt .row1 { font-size: 15px; font-weight: 800; }
+#modeModal .opt .row2 { font-size: 11px; color: #c8c8d4; margin-top: 4px; line-height: 1.4; }
 /* Большой оверлей «В ТЮРЬМЕ» — поверх всего, скрывает большую часть UI */
 #jailOverlay {
   position: absolute; inset: 0; z-index: 35;
@@ -420,6 +464,26 @@ body.in-pvp #zoneBtn { top: 104px; }
   <div id="pvpZone">🔫 ЗОНА PvP</div>
   <!-- Wanted-индикатор (звёзды розыска) -->
   <div id="wantedHud">⭐</div>
+  <!-- Индикатор режима PvP/PvE (тап → выбрать другой режим) -->
+  <div id="modeHud" title="Сменить режим">🔫 PvP <span class="sw">сменить</span></div>
+  <!-- Модал выбора режима PvP/PvE (первый вход в мир) -->
+  <div id="modeModal">
+    <div class="box">
+      <div class="ttl">🎮 Как ты входишь в город?</div>
+      <div class="sub">Можно сменить потом — кнопка «Меню» → «Сменить режим»</div>
+      <div class="opts">
+        <button class="opt pvp" id="modeOptPvp">
+          <div class="row1">🔫 PvP — Бандит</div>
+          <div class="row2">Перехватывай инкассатора, стреляй в игроков в горячей зоне, дерись с копами. Можешь погибнуть и сесть в тюрьму, зато весь куш — твой.</div>
+        </button>
+        <button class="opt pve" id="modeOptPve">
+          <div class="row1">🕵️ PvE — Наблюдатель</div>
+          <div class="row2">Просто чекни район: погуляй, посмотри на город, других игроков. Пули в тебя не попадают, копы тебя игнорируют. Стрелять нельзя.</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Большой оверлей «В тюрьме» — поверх всего пока сидишь -->
   <div id="jailOverlay">
     <div class="icon">⛓</div>
@@ -1262,7 +1326,7 @@ function handleEventPacket(d) {
     worldEvent = null;
   } else if (kind === 'inkassator_escaped') {
     showEventBanner('💼 Инкассатор уехал',
-      'Никто не успел перехватить. Следующий через 3 мин.', 3500, 'neutral');
+      'Никто не успел перехватить. Следующий через 10 мин.', 3500, 'neutral');
     worldEvent = null;
   } else if (kind === 'inkass_shot') {
     // NPC выстрелил в игрока — трассер + вспышка
@@ -1355,11 +1419,46 @@ function handleEventPacket(d) {
 let _hitFlashUntil = 0;
 function flashHitOverlay() { _hitFlashUntil = performance.now() + 350; }
 
+// Текущий режим (PvP / PvE). Сохраняется в localStorage между сессиями
+// и шлётся серверу как query-параметр при подключении к /world/sim.
+let myMode = (function() {
+  try {
+    const m = localStorage.getItem('mafiozi_world_mode');
+    if (m === 'pvp' || m === 'pve') return m;
+  } catch(e) {}
+  return '';   // пусто = режим не выбран, нужен модал
+})();
+
+// Показать модал выбора PvP/PvE. onPick(picked) — callback с 'pvp'/'pve'.
+function showModeModal(onPick) {
+  const m = document.getElementById('modeModal');
+  if (!m) { onPick('pvp'); return; }
+  m.classList.add('show');
+  const pvp = document.getElementById('modeOptPvp');
+  const pve = document.getElementById('modeOptPve');
+  const close = (picked) => {
+    m.classList.remove('show');
+    if (typeof onPick === 'function') onPick(picked);
+  };
+  pvp.onclick = () => close('pvp');
+  pve.onclick = () => close('pve');
+}
+
+// Принудительно сменить режим — вызывается из «Меню» -> «Сменить режим».
+// Очищаем localStorage и предлагаем выбор; после выбора перезагружаем
+// страницу (это проще и надёжнее чем live-switch — сессия WS пересоздаётся).
+function switchModeFlow() {
+  showModeModal((picked) => {
+    try { localStorage.setItem('mafiozi_world_mode', picked); } catch(e) {}
+    location.reload();
+  });
+}
+
 function wsUrl() {
   if (!QP.api) return '';
   // QP.api это https?://... → ws(s)://...
   const base = QP.api.replace(/^http/, 'ws').replace(/\/+$/, '');
-  const params = new URLSearchParams({ uid: QP.uid });
+  const params = new URLSearchParams({ uid: QP.uid, mode: myMode || 'pvp' });
   return `${base}/world/sim?${params.toString()}`;
 }
 
@@ -1771,6 +1870,10 @@ function findPvpTargetAlongAim(dirX, dirY) {
 // fire(angle): если angle задан — стреляем в эту сторону, иначе auto-aim.
 // Учитывает текущее оружие; приоритеты: конвой → игрок в pvp-зоне.
 function fire(angle = null) {
+  if (myMode === 'pve') {
+    showToast('🕵️ Ты в режиме наблюдателя — стрелять нельзя', 'ℹ️', 1500);
+    return;
+  }
   if (myDead) return;
   const now = performance.now();
   if (now - lastShotClientT < PVP.cd * 1000) return;
@@ -1878,14 +1981,15 @@ window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !chatOpen)
 function updatePvpUI() {
   const inPvp      = inArena(player.r, player.c);
   const convoyT    = findNearestConvoyTarget();
-  const canShoot   = (inPvp || pvpActive || convoyT) && !myDead;
-  // HUD виден в PVP-зоне ИЛИ когда HP неполный (тебя ранили) ИЛИ в pvp-зоне инкассатора
-  const showHud   = inPvp || pvpActive || myHp < (PVP.max_hp || 100);
+  // PvE-наблюдатели НЕ стреляют вообще — все боевые UI скрыты
+  const isPve      = (myMode === 'pve');
+  const canShoot   = !isPve && (inPvp || pvpActive || convoyT) && !myDead;
+  const showHud    = !isPve && (inPvp || pvpActive || myHp < (PVP.max_hp || 100));
   _pvpHud.style.display  = showHud ? 'block' : 'none';
   _fireBtn.style.display = canShoot ? 'block' : 'none';
   // Правый стик показываем когда есть кому стрелять
   if (joyREl) joyREl.style.display = canShoot ? 'block' : 'none';
-  // Weapon bar показываем если можем стрелять и есть оружие в инвентаре
+  // Weapon bar — только если есть оружие в инвентаре И не PvE
   if (_weaponBarEl) _weaponBarEl.style.display = (canShoot && _myWeapons.length > 0) ? 'flex' : 'none';
   const pct = Math.max(0, Math.min(100, (myHp / (PVP.max_hp || 100)) * 100));
   _pvpHpBar.style.width = pct + '%';
@@ -1949,6 +2053,25 @@ function updatePvpUI() {
 const _wantedHudEl = document.getElementById('wantedHud');
 const _jailOvEl    = document.getElementById('jailOverlay');
 const _jailCntEl   = document.getElementById('jailCnt');
+const _modeHudEl   = document.getElementById('modeHud');
+if (_modeHudEl) {
+  _modeHudEl.addEventListener('click', () => switchModeFlow());
+}
+// Лейбл индикатора режима обновляем сразу как myMode известен.
+function _refreshModeHud() {
+  if (!_modeHudEl) return;
+  const m = myMode || 'pvp';
+  if (m === 'pve') {
+    _modeHudEl.innerHTML = '🕵 PvE <span class="sw">сменить</span>';
+    _modeHudEl.classList.remove('pvp');
+    _modeHudEl.classList.add('pve');
+  } else {
+    _modeHudEl.innerHTML = '🔫 PvP <span class="sw">сменить</span>';
+    _modeHudEl.classList.remove('pve');
+    _modeHudEl.classList.add('pvp');
+  }
+}
+_refreshModeHud();
 
 // ── Countdown / PvP-zone state из snap ──────────────────────────
 let nextEventIn = 0;
@@ -3255,6 +3378,46 @@ function drawConvoyNpc(npc, isBoss) {
   ctx.shadowBlur = 0;
 }
 
+// Тег режима (PvP/PvE) — маленький бейдж под именем игрока.
+// PvP — красный (опасный), PvE — серый (мирный наблюдатель).
+function drawModeTag(px, py, mode) {
+  const isPve = (mode === 'pve');
+  const txt   = isPve ? '🕵 PvE' : '🔫 PvP';
+  const bg    = isPve ? 'rgba(40,60,80,.85)' : 'rgba(80,20,20,.85)';
+  const border = isPve ? '#5a7090' : '#b8202a';
+  const fg    = isPve ? '#a8d0ff' : '#ffae90';
+  ctx.save();
+  ctx.font = 'bold 9px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const w = ctx.measureText(txt).width + 8;
+  const h = 12;
+  const tagY = py - 50;   // чуть ниже звёзд wanted
+  // Подложка
+  ctx.fillStyle = bg;
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 0.8;
+  const x = px - w / 2;
+  // Скруглённый прямоугольник вручную
+  const rad = 4;
+  ctx.beginPath();
+  ctx.moveTo(x + rad, tagY - h / 2);
+  ctx.lineTo(x + w - rad, tagY - h / 2);
+  ctx.quadraticCurveTo(x + w, tagY - h / 2, x + w, tagY - h / 2 + rad);
+  ctx.lineTo(x + w, tagY + h / 2 - rad);
+  ctx.quadraticCurveTo(x + w, tagY + h / 2, x + w - rad, tagY + h / 2);
+  ctx.lineTo(x + rad, tagY + h / 2);
+  ctx.quadraticCurveTo(x, tagY + h / 2, x, tagY + h / 2 - rad);
+  ctx.lineTo(x, tagY - h / 2 + rad);
+  ctx.quadraticCurveTo(x, tagY - h / 2, x + rad, tagY - h / 2);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = fg;
+  ctx.fillText(txt, px, tagY + 0.5);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
 // Звёзды wanted над головой (1..3 шт) с пульсацией и тенью.
 function drawWantedStars(px, py, n) {
   if (!n) return;
@@ -4347,6 +4510,7 @@ function render() {
                player.walking ? player.walkPhase : 0, QP.name, myChat, true,
                myHp, PVP.max_hp, myDead);
     if (myWanted > 0) drawWantedStars(p.x, p.y, myWanted);
+    drawModeTag(p.x, p.y, myMode || 'pvp');
   } });
   // Другие
   for (const [, o] of others) {
@@ -4357,6 +4521,7 @@ function render() {
       drawPerson(p.x, p.y, o.ang || 0, o.look || {}, phase, o.name, chat, false,
                  o.hp, PVP.max_hp, o.dead);
       if (o.wanted > 0) drawWantedStars(p.x, p.y, o.wanted);
+      drawModeTag(p.x, p.y, o.mode || 'pvp');
     } });
   }
   items.sort((a, b) => a.depth - b.depth);
@@ -4747,8 +4912,6 @@ let _localChat = '', _localChatT = 0;
 // ── Старт ──────────────────────────────────────────────────────
 (async () => {
   // Если api нет в URL — пробуем подтянуть свежий из coop_api.json.
-  // Это спасает кейс когда друг открыл мир через какую-то старую кнопку
-  // без &api=..., либо туннель сменился пока хаб ещё был открыт.
   if (!QP.api) {
     setConnecting('Ищу сервер…');
     await _fetchApiFallback();
@@ -4761,6 +4924,18 @@ let _localChat = '', _localChatT = 0;
     setConnecting('Сервер недоступен. Запусти бота с туннелем и зайди заново.');
     return;
   }
+  // Если режим ещё не выбран (первый вход в мир) — показываем модал.
+  // После выбора сохраняем в localStorage и подключаемся.
+  if (!myMode) {
+    showModeModal(/*onPick*/(picked) => {
+      myMode = picked;
+      try { localStorage.setItem('mafiozi_world_mode', picked); } catch(e) {}
+      _refreshModeHud();
+      wsConnect();
+    });
+    return;
+  }
+  _refreshModeHud();
   wsConnect();
 })();
 </script>

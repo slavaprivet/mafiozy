@@ -11442,12 +11442,14 @@ class WorldSim:
         self._last_wanted_decay  = self.started_at
 
     def add_or_update(self, uid: str, name: str, look: dict,
-                       wanted: float = 0.0, jail_until: int = 0) -> None:
+                       wanted: float = 0.0, jail_until: int = 0,
+                       mode: str = 'pvp') -> None:
         if uid in self.players:
             self.players[uid]['name'] = name
             if look:
                 self.players[uid]['look'] = look
             self.players[uid]['last_seen'] = time.time()
+            self.players[uid]['_mode'] = mode if mode in ('pvp', 'pve') else 'pvp'
             # Перетягиваем wanted из БД только если в мире был 0 — иначе
             # уже накопил в текущей сессии и DB-значение устарело.
             if not self.players[uid].get('_wanted'):
@@ -11514,6 +11516,10 @@ class WorldSim:
             '_wanted':       float(wanted or 0.0),
             '_jail_until':   int(jail_until or 0),
             '_last_shot_t':  0.0,   # для wanted decay
+            # Режим игры в открытом мире: 'pvp' (можно стрелять и тебя
+            # тоже могут) или 'pve' (наблюдатель — выстрелы не проходят,
+            # AI копов/конвоя игнорирует, нет правого стика и оружия)
+            '_mode':         (mode if mode in ('pvp', 'pve') else 'pvp'),
         }
         # Если игрок зашёл с активным jail_until — спавним в тюрьму
         if jail_until and jail_until > time.time():
@@ -11750,13 +11756,15 @@ class WorldSim:
                 td = ((tp['x'] - actor['x'])**2 + (tp['y'] - actor['y'])**2) ** 0.5
                 if td < shoot_r and _world_los(actor['x'], actor['y'], tp['x'], tp['y']):
                     chosen_uid = tu
-            # Иначе ищем ближайшего живого с LOS
+            # Иначе ищем ближайшего живого с LOS (PvE-игроки невидимы для AI)
             if chosen_uid is None:
                 best_uid = None
                 best_d   = shoot_r
                 for p_uid, p in self.players.items():
                     if p.get('dead'):
                         continue
+                    if p.get('_mode') == 'pve':
+                        continue   # PvE — наблюдатели, конвой их игнорирует
                     pd = ((p['x'] - actor['x'])**2 + (p['y'] - actor['y'])**2) ** 0.5
                     if pd >= best_d:
                         continue
@@ -11810,6 +11818,9 @@ class WorldSim:
             return None
         shooter = self.players.get(uid)
         if not shooter or shooter.get('dead'):
+            return None
+        # PvE-наблюдатели не участвуют в событиях
+        if shooter.get('_mode') == 'pve':
             return None
         e = self.event
         target = None
@@ -11865,6 +11876,9 @@ class WorldSim:
         if shooter.get('dead') or target.get('dead'):
             return None
         if str(uid) == str(target_uid):
+            return None
+        # PvE-наблюдатели не могут стрелять и в них не попадают
+        if shooter.get('_mode') == 'pve' or target.get('_mode') == 'pve':
             return None
         # Серверный antispam cooldown (на случай если клиент жмёт быстрее)
         now = time.time()
@@ -12104,6 +12118,8 @@ class WorldSim:
             return None
         if (shooter.get('_jail_until') or 0) > time.time():
             return None   # в тюрьме — нельзя стрелять
+        if shooter.get('_mode') == 'pve':
+            return None   # PvE — нельзя стрелять
         cop = next((c for c in self.cops if c['id'] == cop_id and c.get('alive')), None)
         if not cop:
             return None
@@ -12162,6 +12178,7 @@ class WorldSim:
                 'hp':     int(p.get('hp', 100)),
                 'dead':   bool(p.get('dead', False)),
                 'wanted': int(min(3, round(p.get('_wanted') or 0))),
+                'mode':   p.get('_mode') or 'pvp',
             })
         # Активное эмерджентное событие (инкассатор + эскорт) — шлём
         # всем клиентам одинаково, независимо от радиуса. Карта 60×60 —
@@ -12243,6 +12260,7 @@ class WorldSim:
                     'respawn_in': respawn_in,
                     'wanted':     my_wanted,
                     'jail_in':    my_jail_in,
+                    'mode':       me.get('_mode') or 'pvp',
                     'look':    me.get('look') or {},
                 },
                 'others':        others,
@@ -13905,9 +13923,14 @@ async def _coop_http_app():
         if old is not None and old is not ws:
             try: await old.close(code=4000, message=b'replaced')
             except Exception: pass
+        # Режим (PvP/PvE) приходит из URL ?mode=pvp / pve. По умолчанию pvp.
+        ws_mode = (req.query.get('mode') or 'pvp').lower()
+        if ws_mode not in ('pvp', 'pve'):
+            ws_mode = 'pvp'
         world.add_or_update(uid, name, look,
                             wanted=float(char.get('wanted') or 0),
-                            jail_until=int(char.get('jail_until') or 0))
+                            jail_until=int(char.get('jail_until') or 0),
+                            mode=ws_mode)
         world.connections[uid] = ws
 
         # Hello-кадр
@@ -14168,11 +14191,17 @@ async def _coop_http_app():
             cash_gain = int(round(cash_gain * (1.0 + hst_bonus)))
             if battle:
                 await end_battle(uid)
+            # КРИТИЧНО: перечитываем чара ИМЕННО перед update_character —
+            # если игрок во время боя взломал сейф (через /safe/{uid}/loot),
+            # cash в БД уже больше чем в `char` (снимок из начала функции).
+            # Без refetch update_character перезаписал бы cash старым
+            # значением + наградой босса → деньги от сейфа стирались.
+            fresh = await get_character(uid) or char
             await update_character(uid,
                 hp=max(1, php), mana=char.get('mana', 0),
-                exp=char['exp'] + exp_gain,
-                cash=char['cash'] + cash_gain,
-                kills=char['kills'] + 1)
+                exp=fresh['exp']   + exp_gain,
+                cash=fresh['cash'] + cash_gain,
+                kills=fresh['kills'] + 1)
             updated = await get_character(uid)
             try:
                 await check_level_up(uid, updated)
