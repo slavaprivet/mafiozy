@@ -1026,7 +1026,14 @@ function spawnCar(idx) {
       // Перекрёсток (3×3) — не спавним
       continue;
     }
-    const model = CAR_MODELS[idx % CAR_MODELS.length];
+    // 12% машин в городе — полицейские патрули (cruiser).
+    // Реже — paddyvan (3%). SWAT-truck по городу не катается (только
+    // спавнится сервером при wanted 3★, отдельно от CARS).
+    let model;
+    const rnd = Math.random();
+    if (rnd < 0.03)      model = POLICE_MODELS.paddyvan;
+    else if (rnd < 0.15) model = POLICE_MODELS.cruiser;
+    else                 model = CAR_MODELS[idx % CAR_MODELS.length];
     return {
       r: r + 0.5, c: c + 0.5,
       vr: dirDy * (1.5 + Math.random() * 0.8),
@@ -4470,6 +4477,121 @@ function drawPOI(r, c, poi) {
   ctx.fill();
 }
 
+// Парковка у полицейского участка + башня с пулемётом на крыше.
+// Рисуется ОДИН раз поверх POI 'police' через addPoliceStationItems.
+// Парковочные тайлы (54..58, 54..58) — припаркованные cruiser/paddyvan/swat
+function drawPoliceStationDecor(stationR, stationC) {
+  // Парковочная разметка — белые линии на земле (под полицейскими авто).
+  // 3 парковочных места справа и снизу от POI.
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,.55)';
+  ctx.lineWidth = 1.2;
+  const slots = [
+    { r: stationR - 1, c: stationC + 1, dirDx: -1, dirDy: 0, model: 'cruiser'    },
+    { r: stationR + 1, c: stationC + 1, dirDx: -1, dirDy: 0, model: 'paddyvan'   },
+    { r: stationR + 1, c: stationC - 1, dirDx:  0, dirDy:-1, model: 'swat_truck' },
+  ];
+  for (const sl of slots) {
+    // Линии разметки парковки
+    const corners = [
+      w2s(sl.r - 0.45, sl.c - 0.40),
+      w2s(sl.r - 0.45, sl.c + 0.40),
+      w2s(sl.r + 0.45, sl.c + 0.40),
+      w2s(sl.r + 0.45, sl.c - 0.40),
+    ];
+    ctx.beginPath();
+    ctx.moveTo(corners[0].x, corners[0].y);
+    for (const cn of corners) ctx.lineTo(cn.x, cn.y);
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.restore();
+  // Сами припаркованные машины — статичные (speed=0).
+  for (const sl of slots) {
+    drawCarPretty({
+      r: sl.r, c: sl.c, dirDx: sl.dirDx, dirDy: sl.dirDy,
+      model: POLICE_MODELS[sl.model], flash: 0, braking: false,
+    });
+  }
+  // Башня с пулемётом на крыше станции — активируется если ЛЮБОЙ игрок
+  // в зоне (≤7 тайлов) и имеет wanted ≥ 3. Стреляет в него.
+  const turret = _findStationThreat(stationR, stationC);
+  drawStationTurret(stationR, stationC, turret);
+}
+
+// Поиск ближайшей угрозы (wanted≥3 игрок в радиусе) — для башни-пулемёта.
+function _findStationThreat(sR, sC) {
+  // Я сам ближе всех ко мне ;)
+  if (myWanted >= 3 && !myDead) {
+    const d = Math.hypot(player.r - sR, player.c - sC);
+    if (d <= 7.5) return { r: player.r, c: player.c, uid: QP.uid };
+  }
+  // Другие звёздные игроки
+  for (const [uid, o] of others) {
+    if (o.dead || (o.wanted || 0) < 3) continue;
+    const d = Math.hypot(o.y - sR, o.x - sC);
+    if (d <= 7.5) return { r: o.y, c: o.x, uid };
+  }
+  return null;
+}
+
+// Башня с пулемётом на крыше — крутится на цель и периодически стреляет.
+// Стрельба чисто локальная (для антуража) — серверу копы и так пакуют.
+let _lastTurretShotAt = 0;
+function drawStationTurret(sR, sC, threat) {
+  const p = w2s(sR + 0.5, sC + 0.5);
+  const H = isoH(2.4);  // выше крыши обычного здания
+  const cx = p.x, cy = p.y - H;
+  // Постамент-башня — тёмный цилиндр
+  ctx.save();
+  ctx.fillStyle = '#1a1a22';
+  ctx.strokeStyle = '#3a3a40';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 10, 5, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  // Ствол пулемёта — направлен к цели если есть, иначе на 0°
+  let ang = 0;
+  if (threat) ang = Math.atan2(threat.r - sR, threat.c - sC);
+  ctx.translate(cx, cy - 4);
+  ctx.rotate(ang);
+  // Корпус ствола
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, -2, 20, 4);
+  // Компенсатор/глушитель на конце
+  ctx.fillRect(17, -3, 5, 6);
+  // Стрельба раз в 0.6с если есть цель
+  const now = performance.now();
+  if (threat && now - _lastTurretShotAt > 600) {
+    _lastTurretShotAt = now;
+    const muzR = sR + Math.sin(ang) * 1.4;
+    const muzC = sC + Math.cos(ang) * 1.4;
+    bullets.push({
+      sr: muzR, sc: muzC, er: threat.r, ec: threat.c,
+      t0: now, ttl: 160, hit: true, fromNpc: true, weapon: 'rifle',
+    });
+    spawnShot(muzR, muzC, ang, 'rifle',
+              String(threat.uid) === String(QP.uid));
+    spawnImpact(threat.r, threat.c, 'rifle');
+    if (String(threat.uid) === String(QP.uid)) {
+      flashHitOverlay();
+      addShake(4);
+    }
+  }
+  ctx.restore();
+  // Подпись «POLICE TURRET» на основании
+  if (threat) {
+    ctx.save();
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff4040';
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+    ctx.fillText('⚠ ТУРЕЛЬ АКТИВНА', cx, cy - 18);
+    ctx.restore();
+    ctx.textAlign = 'left';
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  CREATOR-PERSO — портировано из demo_isometric.html (drawChar и др.)
 //  Тот же набор рисовалок что в боёвке + creator → персонаж в открытом
@@ -5380,6 +5502,8 @@ function render() {
           else if (poi && poi.special === 'shop') drawBlackmarket(r, c);
           else                                    drawBuilding(r, c);
           if (poi) drawPOI(r, c, poi);
+          // У полицейского участка — парковка с техникой + турель на крыше
+          if (poi && poi.id === 'police') drawPoliceStationDecor(r, c);
         }});
       }
       else if (t === 2) items.push({ depth: r + c, draw: () => drawCar(r, c) });
