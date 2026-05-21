@@ -1347,9 +1347,12 @@ let lastPlayerShotAt = new Map();  // other_uid → ms-timestamp последн�
 let lastPlayerWeapon = new Map();  // other_uid → weapon_key последнего выстрела
 
 // ── Wanted-система + копы в городе ──────────────────────────────
-let worldCops = [];      // массив копов от сервера
+let worldCops = [];      // массив копов от сервера (перезаписывается каждый snap)
 let myWanted  = 0;       // 0..3 звёзды у меня
 let myJailIn  = 0;       // секунд до выхода из тюрьмы (0 = не в тюрьме)
+// Локальные надписи копов (cop_warn от сервера) — храним отдельно от
+// snapshot чтобы фразы не стирались каждые 75мс при перезаписи d.cops.
+const _copChats = new Map();  // cop_id → {text, untilMs}
 
 function handleEventPacket(d) {
   const kind = d && d.kind;
@@ -1452,12 +1455,36 @@ function handleEventPacket(d) {
       }
     }
   } else if (kind === 'cop_spawned') {
-    // Новый коп вышел из-за угла — короткое уведомление + локальный
-    // marker эффект (можно не показывать вообще, чтобы не спамить)
+    // Новый коп вышел из-за угла — короткое уведомление по типу.
     if (myWanted >= 1) {
-      showEventBanner('🚓 Копы выехали',
-        `За тобой выехал патруль. Звёзд: ${myWanted}.`, 2200, 'lose');
+      const ck = d.cop_kind || 'patrol';
+      if (ck === 'swat') {
+        showEventBanner('🪖 СПЕЦНАЗ!',
+          'Тяжёлый отряд с автоматами и базуками — беги или умри.', 3500, 'lose');
+        addShake(5);
+      } else if (ck === 'combat') {
+        showEventBanner('🚓 Копы открыли огонь',
+          `Бой! Звёзд: ${myWanted}.`, 2400, 'lose');
+      }
+      // patrol — без баннера (он сам подойдёт и предупредит).
     }
+  } else if (kind === 'cop_warn') {
+    // Патруль (1★) подошёл и говорит фразу. Кладём в _copChats —
+    // snapshot перезаписывает worldCops каждый тик, прямое поле пропадёт.
+    if (d.cop_id) {
+      _copChats.set(String(d.cop_id), {
+        text: d.text || 'Прекрати стрельбу!',
+        untilMs: performance.now() + 6000,
+      });
+    }
+    // Тост игроку (если это его патруль) — чтобы точно понял
+    if (String(d.target_uid) === String(QP.uid)) {
+      showToast('🚓 ' + (d.text || 'Прекрати стрельбу!'),
+                '⚠️', 4500);
+    }
+  } else if (kind === 'cop_leave') {
+    // Патруль уехал — чат больше не нужен.
+    if (d.cop_id) _copChats.delete(String(d.cop_id));
   } else if (kind === 'cop_shot') {
     // Коп выстрелил в игрока — трассер + вспышка на дуле
     const wp = d.weapon || 'pistol_heavy';
@@ -3567,43 +3594,87 @@ function drawWantedStars(px, py, n) {
 }
 
 // ── Городской коп (wanted-система) ─────────────────────────────
-// Похож на полицейского из конвоя, но с пульсирующей сирено-подсветкой
-// (синий-красный) — чтобы игроки сразу понимали что это «опасность».
+// kind: 'patrol' (мирный), 'combat' (бой), 'swat' (спецназ в масках).
+// Спецназ — чёрная униформа, маска, мощные стволы (smg/sniper/rpg).
+const _COP_LOOKS = {
+  patrol: { gender:0, skin:1, body:1, face:0, hair:1, hat:5 },
+  combat: { gender:0, skin:1, body:1, face:0, hair:1, hat:5 },
+  swat:   { gender:0, skin:0, body:3, face:3, hair:0, hat:6 },
+};
 function drawCopNpc(cop) {
   const p = w2s(cop.y + 0.5, cop.x + 0.5);
-  const look = _CONVOY_GUARD_LOOK;
+  const kind = cop.kind || 'patrol';
+  const look = _COP_LOOKS[kind] || _COP_LOOKS.combat;
   const t = performance.now();
   const walkPhase = (t * 0.008) % (Math.PI * 2);
-  // Сирена — большой пульсирующий ореол синий/красный (переключается)
-  const sirenPhase = Math.floor(t / 250) % 2;   // меняется 4 раза в секунду
-  const sirenCol   = sirenPhase ? 'rgba(60,120,255,.55)' : 'rgba(255,40,40,.55)';
+  // Сирена — патруль/бой синий-красный, спецназ чёрно-красный (агрессивнее)
+  const sirenPhase = Math.floor(t / (kind === 'swat' ? 180 : 250)) % 2;
+  let sirenCol, sirenGlow;
+  if (kind === 'swat') {
+    sirenCol  = sirenPhase ? 'rgba(20,20,20,.75)' : 'rgba(255,40,40,.65)';
+    sirenGlow = sirenPhase ? '#000' : '#ff3030';
+  } else {
+    sirenCol  = sirenPhase ? 'rgba(60,120,255,.55)' : 'rgba(255,40,40,.55)';
+    sirenGlow = sirenPhase ? '#3a78ff' : '#ff3030';
+  }
   ctx.save();
   ctx.fillStyle = sirenCol;
-  ctx.shadowColor = sirenPhase ? '#3a78ff' : '#ff3030';
-  ctx.shadowBlur = 14;
+  ctx.shadowColor = sirenGlow;
+  ctx.shadowBlur = kind === 'swat' ? 18 : 14;
   ctx.beginPath();
-  ctx.ellipse(p.x, p.y + 6, 20, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(p.x, p.y + 6, kind === 'swat' ? 22 : 20, 8, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
   drawPerson(p.x, p.y, cop.ang || 0, look, walkPhase, null, null, false,
              cop.hp, cop.max_hp, false);
-  // Оружие копа — служебный pistol_heavy. Вспышка дула — через тот
-  // же универсальный helper, что и для игроков.
+  // Оружие копа — приходит с сервера. Вспышка через universal helper.
+  const weapon = cop.weapon ||
+                 (kind === 'swat' ? 'smg' : (kind === 'combat' ? 'pistol_heavy' : 'pistol'));
   const flashAt = lastBossShotAt.get(cop.id) || 0;
-  drawWeaponInHands(p.x, p.y, cop.ang || 0, 'pistol_heavy', 0.95, flashAt);
-  // Эмодзи 🚓 над головой + мигающая сирена сверху
+  drawWeaponInHands(p.x, p.y, cop.ang || 0, weapon, 0.95, flashAt);
+  // Эмодзи над головой по типу: 🚓 патруль, 👮 бой, 🪖 спецназ
+  const icon = (kind === 'swat') ? '🪖' : (kind === 'combat' ? '👮' : '🚓');
   ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
   ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
-  ctx.fillText('🚓', p.x, p.y - 44);
+  ctx.fillText(icon, p.x, p.y - 44);
   // Маленький мигающий маркер на самом верху
   ctx.shadowBlur = 0;
-  ctx.fillStyle = sirenPhase ? '#3a78ff' : '#ff3030';
+  ctx.fillStyle = sirenGlow;
   ctx.beginPath();
   ctx.arc(p.x, p.y - 52, 2.5, 0, Math.PI * 2);
   ctx.fill();
+  // Чат-баббл если есть предупреждение (cop_warn) — берём из _copChats
+  const chatRec = _copChats.get(cop.id);
+  if (chatRec && performance.now() < chatRec.untilMs) {
+    drawCopChat(p.x, p.y, chatRec.text);
+  } else if (chatRec) {
+    _copChats.delete(cop.id);
+  }
   ctx.textAlign = 'left';
+}
+
+// Чат-баббл копа (только для cop_warn).
+function drawCopChat(x, y, text) {
+  ctx.save();
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const w = Math.min(180, ctx.measureText(text).width + 14);
+  const h = 22;
+  const by = y - 78;
+  ctx.fillStyle = 'rgba(255,40,40,.92)';
+  ctx.strokeStyle = '#ff8080';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(x - w/2, by - h/2, w, h, 6)
+                : ctx.rect(x - w/2, by - h/2, w, h);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.fillText(text, x, by);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
 // Машина — припаркована на тайле, занимает ~80% площади

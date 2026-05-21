@@ -11415,12 +11415,26 @@ class WorldSim:
     WANTED_PER_COP_KILL = 1.0
     WANTED_MAX          = 3.0
     WANTED_DECAY_S      = 90.0      # через сколько секунд бездействия -1 звезда
-    COPS_PER_STAR       = 2         # сколько копов спавнится на каждую звезду
-    COP_HP              = 110
+    # Эскалация копов по wanted-уровню:
+    #   1★ = «патруль» — 2 обычных копа, подходят, ПРЕДУПРЕЖДАЮТ текстом,
+    #         уезжают через 12с если игрок не стреляет.
+    #   2★ = «бой» — 5 копов pistol_heavy, открывают огонь.
+    #   3★ = «спецназ» — 5 спецназовцев в масках с smg/sniper/rpg, жестко
+    #         пакуют в наручники, везут в участок (jail на 60с).
+    # 3★ срабатывает автоматически когда игрок убил 5+ копов с 2★.
+    COP_KILLS_TO_SWAT   = 5         # сколько копов надо убить чтобы пришёл спецназ
+    COP_PATROL_COUNT    = 2         # сколько копов выезжает на 1★
+    COP_COMBAT_COUNT    = 5         # на 2★/3★
+    COP_PATROL_WARN_S   = 12.0      # сколько секунд патруль ждёт мирного игрока
+    COP_HP              = 110       # HP обычного копа (1★/2★)
+    COP_SWAT_HP         = 220       # HP спецназа (3★)
     COP_SHOOT_R         = 8.5
-    COP_SHOOT_DMG       = 16
+    COP_SHOOT_DMG       = 16        # урон обычного копа
+    COP_SWAT_DMG        = 32        # урон спецназа (с smg/rpg)
     COP_SHOOT_CD        = 1.4
+    COP_SWAT_CD         = 0.9       # спецназ стреляет быстрее
     COP_CHASE_SPEED     = 2.0       # быстрее обычной машины
+    COP_PATROL_SPEED    = 1.4       # патруль идёт неспешно
     COP_RESPAWN_GAP_S   = 4.0       # пауза перед спавном нового копа
     COP_DESPAWN_R       = 25.0      # если коп отстал — деспаун
     JAIL_DURATION_S     = 60        # минута в тюрьме
@@ -11962,22 +11976,64 @@ class WorldSim:
                                        (shooter.get('_wanted') or 0) + amount)
         shooter['_last_shot_t'] = time.time()
 
-    def spawn_cop(self, x: float, y: float, target_uid: str = '') -> dict:
+    def spawn_cop(self, x: float, y: float, target_uid: str = '',
+                  kind: str = 'patrol') -> dict:
+        """kind: 'patrol' (1★ — мирный обход, может предупредить и уйти),
+                 'combat' (2★ — обычный коп открывает огонь),
+                 'swat'   (3★ — спецназ в маске, smg/rpg, мощнее)."""
         self._next_cop_id += 1
+        hp = int(self.COP_SWAT_HP if kind == 'swat' else self.COP_HP)
+        # Оружие копа — определяет урон и визуал клиента (drawWeaponInHands).
+        if kind == 'swat':
+            # Спецназ: 60% smg (бой), 30% sniper (тяжёлый), 10% rpg (паника)
+            r = random.random()
+            weapon = 'smg' if r < 0.6 else ('sniper' if r < 0.9 else 'rpg')
+        elif kind == 'combat':
+            weapon = 'pistol_heavy'
+        else:
+            weapon = 'pistol'
         cop = {
             'id':         f'cop{self._next_cop_id}',
             'x':          float(x),
             'y':          float(y),
             'ang':        0.0,
-            'hp':         int(self.COP_HP),
-            'max_hp':     int(self.COP_HP),
+            'hp':         hp,
+            'max_hp':     hp,
             'alive':      True,
+            'kind':       kind,
+            'weapon':     weapon,
             'target_uid': target_uid or '',
             '_shot_t':    0.0,
             '_spawn_t':   time.time(),
+            '_warn_t':    0.0,         # когда последний раз орали «прекрати»
+            '_warn_said': False,       # уже сказал «прекрати»?
         }
         self.cops.append(cop)
         return cop
+
+    def _wanted_level(self, p: dict) -> int:
+        """Уровень розыска игрока 1..3 с учётом эскалации:
+            wanted ≥1 → 1★ (предупреждение)
+            wanted ≥2 → 2★ (бой обычными копами)
+            если убил ≥COP_KILLS_TO_SWAT копов в текущей сессии — 3★ (спецназ)."""
+        w = int(p.get('_wanted') or 0)
+        if w <= 0:
+            return 0
+        if int(p.get('_cop_kills') or 0) >= self.COP_KILLS_TO_SWAT:
+            return 3
+        if w >= 2:
+            return 2
+        return 1
+
+    def _cop_kind_for_level(self, lvl: int) -> str:
+        if lvl >= 3: return 'swat'
+        if lvl >= 2: return 'combat'
+        return 'patrol'
+
+    def _cops_needed_for_level(self, lvl: int) -> int:
+        if lvl >= 2: return self.COP_COMBAT_COUNT   # 5 на бой
+        if lvl == 1: return self.COP_PATROL_COUNT   # 2 на патруль-предупреждение
+        return 0
 
     def tick_cops(self, dt: float) -> list:
         """Двигает копов, спавнит новых по wanted-уровню, стреляет
@@ -11995,30 +12051,50 @@ class WorldSim:
                     continue
                 if now - last_shot > self.WANTED_DECAY_S:
                     p['_wanted'] = max(0, (p.get('_wanted') or 0) - 1)
-                    # сбрасываем таймер чтобы следующее снижение пошло
+                    # При снятии звёзд сбрасываем и счётчик убитых копов
+                    if (p.get('_wanted') or 0) < 2:
+                        p['_cop_kills'] = 0
                     p['_last_shot_t'] = now
             self._last_wanted_decay = now
-        # 2) Список wanted-игроков (звёзд ≥ 1, не в тюрьме, живы)
-        wanted_players = []
+        # 2) Wanted-игроки + их эффективный уровень
+        wanted_targets = []     # [(player, level), ...]
         for uid, p in self.players.items():
             if p.get('dead'):
                 continue
             if (p.get('_jail_until') or 0) > now:
                 continue
-            if int(p.get('_wanted') or 0) >= 1:
-                wanted_players.append(p)
-        # 3) Чистим мёртвых копов и тех чей target пропал/убежал
+            lvl = self._wanted_level(p)
+            if lvl >= 1:
+                wanted_targets.append((p, lvl))
+        # 3) Чистим мёртвых копов и тех чей target пропал/убежал.
+        #    Также: 1★-патруль уезжает через COP_PATROL_WARN_S если игрок
+        #    с тех пор не стрелял (lawful опять).
         survivors = []
         for cop in self.cops:
             if not cop['alive']:
                 continue
             t = self.players.get(cop['target_uid'])
-            # Если target пропал или ушёл из мира — переназначаем
-            if not t or t.get('dead') or (t.get('_jail_until') or 0) > now:
-                if wanted_players:
-                    # Берём ближайшего wanted
-                    best = min(wanted_players,
-                               key=lambda wp: (wp['x']-cop['x'])**2 + (wp['y']-cop['y'])**2)
+            cur_lvl = self._wanted_level(t) if t else 0
+            # Патруль с 1★: если игрок не стрелял COP_PATROL_WARN_S сек
+            # после предупреждения — уезжает (despawn).
+            if cop.get('kind') == 'patrol' and cop.get('_warn_said'):
+                if t and cur_lvl >= 1 and (now - cop.get('_warn_t', 0)) > self.COP_PATROL_WARN_S:
+                    last_shot = t.get('_last_shot_t', 0) or 0
+                    if (now - last_shot) > self.COP_PATROL_WARN_S * 0.8:
+                        # Игрок мирно стоит — патруль уходит
+                        pkts.append({
+                            'kind':   'cop_leave',
+                            'cop_id': cop['id'],
+                        })
+                        continue
+            # Если target пропал или ушёл в тюрьму — переназначаем на
+            # ближайший wanted с уровнем >= уровня этого копа.
+            if not t or t.get('dead') or (t.get('_jail_until') or 0) > now or cur_lvl < 1:
+                matching = [(p, lv) for (p, lv) in wanted_targets
+                            if cop.get('kind') == 'patrol' or lv >= 2]
+                if matching:
+                    best, _ = min(matching,
+                                  key=lambda pl: (pl[0]['x']-cop['x'])**2 + (pl[0]['y']-cop['y'])**2)
                     cop['target_uid'] = best['uid']
                     t = best
                 else:
@@ -12029,21 +12105,23 @@ class WorldSim:
                 continue
             survivors.append(cop)
         self.cops = survivors
-        # 4) Спавн новых копов до нужного количества (COPS_PER_STAR * total stars)
-        if wanted_players:
-            total_stars = sum(int(p.get('_wanted') or 0) for p in wanted_players)
-            needed = min(8, total_stars * self.COPS_PER_STAR)
+        # 4) Спавн новых копов до нужного количества по эффективному уровню.
+        for (target, lvl) in wanted_targets:
+            kind = self._cop_kind_for_level(lvl)
+            need = self._cops_needed_for_level(lvl)
+            # Сколько копов нужного типа уже едут на этого таргета?
+            have = sum(1 for c in self.cops
+                       if c.get('target_uid') == target['uid']
+                       and c.get('kind') == kind)
             attempts = 0
-            while len(self.cops) < needed and attempts < 8:
+            while have < need and attempts < 6:
                 attempts += 1
-                target = random.choice(wanted_players)
                 ang  = random.random() * 2 * _m.pi
                 dist = 10 + random.random() * 4
                 sx = target['x'] + _m.cos(ang) * dist
                 sy = target['y'] + _m.sin(ang) * dist
                 sx = max(2, min(WORLD_MAP_COLS - 2, sx))
                 sy = max(2, min(WORLD_MAP_ROWS - 2, sy))
-                # Не спавним в стену — пробуем перейти на ближайшую дорогу
                 if _world_is_wall(int(sy), int(sx)):
                     found = False
                     for _ in range(8):
@@ -12057,34 +12135,63 @@ class WorldSim:
                             sx, sy = sx2, sy2; found = True; break
                     if not found:
                         break
-                cop = self.spawn_cop(sx, sy, target['uid'])
+                cop = self.spawn_cop(sx, sy, target['uid'], kind=kind)
+                have += 1
                 pkts.append({
                     'kind':   'cop_spawned',
                     'cop_id': cop['id'],
                     'x':      round(sx, 2),
                     'y':      round(sy, 2),
+                    'cop_kind':  kind,
+                    'weapon': cop['weapon'],
                 })
-        # 5) Движение + стрельба каждого копа
+        # 5) Движение + стрельба каждого копа.
         for cop in self.cops:
             target = self.players.get(cop['target_uid'])
             if not target or target.get('dead'):
                 continue
+            t_lvl = self._wanted_level(target)
             dx = target['x'] - cop['x']
             dy = target['y'] - cop['y']
             dist = (dx*dx + dy*dy) ** 0.5
-            desired = 4.5
+            # Патруль (1★) подходит ближе для разговора и НЕ стреляет первым
+            is_patrol = (cop.get('kind') == 'patrol')
+            desired   = 3.0 if is_patrol else 4.5
+            speed     = self.COP_PATROL_SPEED if is_patrol else self.COP_CHASE_SPEED
             if dist > desired + 0.2:
-                step = self.COP_CHASE_SPEED * dt
+                step = speed * dt
                 if step > dist - desired: step = dist - desired
                 cop['x'] += (dx / dist) * step
                 cop['y'] += (dy / dist) * step
             if dist > 0.05:
                 cop['ang'] = _m.atan2(dy, dx)
-            # Стрельба
-            if dist <= self.COP_SHOOT_R and (now - cop['_shot_t']) >= self.COP_SHOOT_CD:
+            # ПАТРУЛЬ (1★): подходит, говорит «прекрати стрелять», ждёт.
+            # Если игрок выстрелил ещё раз — wanted поднимется и патруль
+            # автоматически становится не-patrol в следующих волнах спавна.
+            if is_patrol:
+                if (not cop['_warn_said']) and dist <= 4.0:
+                    cop['_warn_said'] = True
+                    cop['_warn_t']    = now
+                    pkts.append({
+                        'kind':       'cop_warn',
+                        'cop_id':     cop['id'],
+                        'target_uid': cop['target_uid'],
+                        'text':       random.choice([
+                            'Прекрати стрельбу или будут проблемы!',
+                            'Опусти оружие, мафиози!',
+                            'Это последнее предупреждение!',
+                        ]),
+                    })
+                # Патруль НЕ стреляет — только предупреждает
+                continue
+            # БОЙ (2★/3★): стреляет, урон по типу копа
+            shoot_cd = self.COP_SWAT_CD if cop['kind'] == 'swat' else self.COP_SHOOT_CD
+            if dist <= self.COP_SHOOT_R and (now - cop['_shot_t']) >= shoot_cd:
                 if _world_los(cop['x'], cop['y'], target['x'], target['y']):
                     cop['_shot_t'] = now
-                    dmg = self.COP_SHOOT_DMG
+                    base_dmg = self.COP_SWAT_DMG if cop['kind'] == 'swat' else self.COP_SHOOT_DMG
+                    # RPG спецназа: AOE-урон + большой kick
+                    dmg = base_dmg + (20 if cop.get('weapon') == 'rpg' else 0)
                     target['hp'] = int(max(0, int(target.get('hp', 100)) - dmg))
                     killed = False
                     jailed = False
@@ -12094,14 +12201,17 @@ class WorldSim:
                         target['deaths']      = int(target.get('deaths', 0)) + 1
                         target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
                         killed = True
-                        # При 2+ звёздах копы отправляют в тюрьму
-                        if (target.get('_wanted') or 0) >= 2:
+                        # При 2+ звёздах копы пакуют в наручники → тюрьма
+                        if t_lvl >= 2:
                             target['_jail_until'] = int(now + self.JAIL_DURATION_S)
                             target['_wanted']     = 0.0
+                            target['_cop_kills']  = 0
                             jailed = True
                     pkts.append({
                         'kind':       'cop_shot',
                         'cop_id':     cop['id'],
+                        'cop_kind':   cop.get('kind', 'combat'),
+                        'weapon':     cop.get('weapon', 'pistol_heavy'),
                         'sx':         round(cop['x'], 2),
                         'sy':         round(cop['y'], 2),
                         'target_uid': cop['target_uid'],
@@ -12142,6 +12252,8 @@ class WorldSim:
             cop['alive'] = False
             self._bump_wanted(shooter,
                               self.WANTED_PER_COP_KILL - self.WANTED_PER_COP_HIT)
+            # Счётчик убитых копов — при ≥COP_KILLS_TO_SWAT приедет спецназ
+            shooter['_cop_kills'] = int(shooter.get('_cop_kills') or 0) + 1
             killed = True
         return {
             'kind':        'cop_hit',
@@ -12250,6 +12362,8 @@ class WorldSim:
                 'hp':         max(0, int(cop['hp'])),
                 'max_hp':     int(cop['max_hp']),
                 'target_uid': cop.get('target_uid') or '',
+                'kind':       cop.get('kind') or 'patrol',
+                'weapon':     cop.get('weapon') or 'pistol',
             })
         return {
             't': 'snap',
