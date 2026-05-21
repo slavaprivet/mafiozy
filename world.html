@@ -217,6 +217,29 @@ body.in-pvp #zoneBtn { top: 104px; }
   );
 }
 #jailOverlay.show { display: flex; }
+/* Короткая (2.5с) анимация ареста: наручники + текст «АРЕСТ» + красный flash.
+   Появляется когда копы убили wanted≥2 — игрок ещё «без сознания», его пакуют
+   и везут в участок (jailOverlay появится после). */
+#arrestOverlay {
+  position: absolute; inset: 0; z-index: 38;
+  display: none; pointer-events: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(circle, rgba(50,0,0,.55), rgba(0,0,0,.85));
+  font-family: inherit; text-align: center;
+}
+#arrestOverlay.show { display: flex; animation: arrestIn .35s ease-out; }
+#arrestOverlay .ico   { font-size: 96px; line-height: 1;
+  filter: drop-shadow(0 6px 22px rgba(0,0,0,.8));
+  animation: arrestShake .25s ease-in-out 4 alternate; }
+#arrestOverlay .title { font-size: 44px; font-weight: 900; color: #ff5050;
+  letter-spacing: 6px; margin-top: 14px;
+  text-shadow: 0 2px 8px #000, 0 0 24px rgba(255,80,80,.8); }
+#arrestOverlay .sub   { font-size: 13px; color: #ffe8e8;
+  letter-spacing: 2px; margin-top: 6px; opacity: .9; }
+@keyframes arrestIn   { from { opacity: 0; transform: scale(.85); }
+                        to   { opacity: 1; transform: scale(1); } }
+@keyframes arrestShake{ 0% { transform: rotate(-6deg); }
+                        100% { transform: rotate(6deg); } }
 #jailOverlay .icon  { font-size: 64px; line-height: 1; margin-bottom: 8px; filter: drop-shadow(0 4px 12px rgba(0,0,0,.7)); }
 #jailOverlay .title { font-size: 28px; font-weight: 900; color: #ffd76b; letter-spacing: 3px; text-shadow: 0 2px 6px #000, 0 0 16px rgba(255,215,107,.55); }
 #jailOverlay .msg   { font-size: 14px; color: #c8d0dc; margin-top: 6px; max-width: 90vw; }
@@ -495,6 +518,12 @@ body.in-pvp #zoneBtn { top: 104px; }
     <div class="msg">Тебя взяли копы. Подожди, выйдешь скоро.</div>
     <div class="cnt" id="jailCnt">00:00</div>
     <div class="cnt_label">ДО ОСВОБОЖДЕНИЯ</div>
+  </div>
+  <!-- Короткий (2.5с) overlay ареста — наручники + 'АРЕСТ' -->
+  <div id="arrestOverlay">
+    <div class="ico">🚔</div>
+    <div class="title">АРЕСТ</div>
+    <div class="sub">тебя везут в участок</div>
   </div>
 
   <div id="emojiBar">
@@ -812,6 +841,9 @@ const POI = [
   // Особые POI
   { id: 'blackmarket', r:  4, c: 28, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
   { id: 'arena',       r: 28, c: 52, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
+  // Отделение полиции — координаты совпадают с серверной тюрьмой
+  // (JAIL_X=56, JAIL_Y=56). При 3★ копы пакуют в наручники и везут сюда.
+  { id: 'police',      r: 56, c: 56, icon: '🚔', name: 'Участок',      minLvl: 1, special: 'jail'  },
 ];
 const POI_BY_RC = new Map();   // ключ "r,c" → POI
 POI.forEach(p => POI_BY_RC.set(p.r + ',' + p.c, p));
@@ -1504,8 +1536,9 @@ function handleEventPacket(d) {
       }
     }
     if (d.killed && d.jailed && String(d.target_uid) === String(QP.uid)) {
-      showEventBanner('⛓ ТЮРЬМА',
-        `Копы взяли тебя живым. Минута за решёткой.`, 4000, 'lose');
+      // Большая красная overlay-анимация «АРЕСТ» на 2.5с, после неё JAIL.
+      showArrestOverlay();
+      addShake(7);
     }
   } else if (kind === 'cop_hit') {
     // Игрок попал в копа — трассер + кровь
@@ -1531,6 +1564,13 @@ function handleEventPacket(d) {
 // Кратковременная красная вспышка по краю экрана при попадании в игрока.
 let _hitFlashUntil = 0;
 function flashHitOverlay() { _hitFlashUntil = performance.now() + 350; }
+// Overlay ареста — короткая (~2.5с) анимация перед окном тюрьмы.
+function showArrestOverlay() {
+  const el = document.getElementById('arrestOverlay');
+  if (!el) return;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
 
 // Текущий режим (PvP / PvE). По требованию юзера — выбирается КАЖДЫЙ
 // раз при заходе в мир, никаких сохранений. Шлётся серверу как
@@ -3565,6 +3605,35 @@ function drawModeTag(px, py, mode) {
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
+// Таймер обратного отсчёта над головой jailed-игрока + иконка наручников.
+// Показывается ИНТЕРАКТИВНО: чужие jailed игроки сидят в участке (правый-
+// нижний угол карты, JAIL_X=56,Y=56) — над каждым видно сколько ему сидеть.
+function drawJailTimer(px, py, secLeft) {
+  if (secLeft <= 0) return;
+  const m = Math.floor(secLeft / 60);
+  const s = secLeft % 60;
+  const txt = (m > 0 ? `${m}:${String(s).padStart(2,'0')}` : `${s}с`);
+  const y = py - 78;
+  ctx.save();
+  ctx.font = 'bold 11px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // Подложка
+  const w = ctx.measureText('⛓ ' + txt).width + 10;
+  const h = 16;
+  ctx.fillStyle = 'rgba(20,10,10,.92)';
+  ctx.strokeStyle = '#ff6060';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(px - w/2, y - h/2, w, h, 4)
+                : ctx.rect(px - w/2, y - h/2, w, h);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#ffae90';
+  ctx.fillText('⛓ ' + txt, px, y);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
 // Звёзды wanted над головой (1..3 шт) с пульсацией и тенью.
 function drawWantedStars(px, py, n) {
   if (!n) return;
@@ -5055,6 +5124,8 @@ function render() {
       }
       if (o.wanted > 0) drawWantedStars(p.x, p.y, o.wanted);
       drawModeTag(p.x, p.y, o.mode || 'pvp');
+      // Таймер «бан N сек» над головой если другой игрок сейчас в тюрьме
+      if ((o.jail_in || 0) > 0) drawJailTimer(p.x, p.y, o.jail_in);
     } });
   }
   items.sort((a, b) => a.depth - b.depth);

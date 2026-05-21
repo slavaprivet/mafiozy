@@ -12280,6 +12280,7 @@ class WorldSim:
             dx = p['x'] - mx; dy = p['y'] - my
             if (dx*dx + dy*dy) > WORLD_VIEW_R * WORLD_VIEW_R:
                 continue
+            jail_left = max(0, int(round((p.get('_jail_until') or 0) - time.time())))
             others.append({
                 'uid':  other_uid,
                 'name': p['name'],
@@ -12297,6 +12298,7 @@ class WorldSim:
                 'dead':   bool(p.get('dead', False)),
                 'wanted': int(min(3, round(p.get('_wanted') or 0))),
                 'mode':   p.get('_mode') or 'pvp',
+                'jail_in': jail_left,
             })
         # Активное эмерджентное событие (инкассатор + эскорт) — шлём
         # всем клиентам одинаково, независимо от радиуса. Карта 60×60 —
