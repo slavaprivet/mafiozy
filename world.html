@@ -1105,7 +1105,19 @@ let myDeathLeft = 0;      // сколько сек до респауна
 let myKills = 0, myDeaths = 0;
 let lastShotClientT = 0;  // локальный cooldown (предотвращает спам)
 // Активные трассеры пуль на клиенте — рисуем 0.18 сек, потом исчезают.
-const bullets = [];       // {sx, sy, ex, ey, t0, ttl}
+const bullets = [];       // {sr,sc,er,ec,t0,ttl,weapon,thick,color,hit}
+// Вспышки у дула. Спавнятся на КАЖДЫЙ выстрел (свой/чужой/коп/конвой) и
+// живут ~110мс. Рисуются 4-лучевой звёздочкой по направлению выстрела —
+// порт из demo_isometric.html для приятной тактильности боя.
+const muzzles = [];       // {r,c,ang,life,max,weapon}
+// Гильзы — мелкие частицы вылетают вбок от ствола при огнестреле,
+// падают на землю с гравитацией, ~600мс жизни.
+const shells  = [];       // {x,y,vx,vy,vz,z,rot,vrot,life,max}
+// Импакт-частицы при попадании пули в цель (4-6 искр + кровь).
+const impacts = [];       // {x,y,parts:[{vx,vy,life,max,color}]}
+// Camera-shake: при выстреле/попадании короткий толчок. Декремент в цикле.
+let camShake = 0;
+function addShake(p) { camShake = Math.min(8, camShake + p); }
 
 // ── Локальный игрок (predict) ───────────────────────────────────
 // Спавн на перекрёстке (24,24) — это дорога (24%8==0). Сервер всё
@@ -1369,11 +1381,17 @@ function handleEventPacket(d) {
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
       t0: performance.now(), ttl: 180, hit: true, fromNpc: true,
+      weapon: 'pistol_heavy',
     });
     if (d.shooter_id) lastBossShotAt.set(d.shooter_id, performance.now());
+    // Вспышка + звук в мире у точки выстрела (chunk громкости по дистанции)
+    spawnShot(d.sy, d.sx, Math.atan2(d.ty - d.sy, d.tx - d.sx),
+              'pistol_heavy', false);
+    spawnImpact(d.ty, d.tx, 'pistol_heavy');
     // Если попало в меня — мигнём экраном
     if (d.target_uid && String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
+      addShake(3.5);
       if (d.killed) myDeathBy = 'Конвой инкассатора';
     }
   } else if (kind === 'player_shot') {
@@ -1387,16 +1405,22 @@ function handleEventPacket(d) {
       if (!g) return;
       tx = g.x; ty = g.y;
     }
+    const wp = d.weapon || 'pistol';
     bullets.push({
       sr: d.sy, sc: d.sx, er: ty, ec: tx,
       t0: performance.now(), ttl: 160, hit: true, fromPlayer: true,
+      weapon: wp,
     });
+    spawnShot(d.sy, d.sx, Math.atan2(ty - d.sy, tx - d.sx), wp, false);
+    spawnImpact(ty, tx, wp);
   } else if (kind === 'pvp_shot') {
     // PvP: игрок стреляет в другого игрока (в активной зоне инкассатора
     // или в постоянной PvP-арене).
+    const wp = d.weapon || 'pistol';
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
       t0: performance.now(), ttl: 180, hit: true, fromPlayer: true,
+      weapon: wp,
     });
     // Запоминаем оружие и время — для вспышки на дуле и визуала
     if (d.shooter_uid) {
@@ -1405,8 +1429,11 @@ function handleEventPacket(d) {
     }
     const meIsShooter = (String(d.shooter_uid) === String(QP.uid));
     const meIsTarget  = (String(d.target_uid)  === String(QP.uid));
+    spawnShot(d.sy, d.sx, Math.atan2(d.ty - d.sy, d.tx - d.sx), wp, meIsShooter);
+    spawnImpact(d.ty, d.tx, wp);
     if (meIsTarget) {
       flashHitOverlay();
+      addShake(3);
       if (d.killed) {
         myDeathBy = d.shooter_name || 'игрок';
       }
@@ -1433,13 +1460,18 @@ function handleEventPacket(d) {
     }
   } else if (kind === 'cop_shot') {
     // Коп выстрелил в игрока — трассер + вспышка на дуле
+    const wp = d.weapon || 'pistol_heavy';
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
       t0: performance.now(), ttl: 180, hit: true, fromNpc: true,
+      weapon: wp,
     });
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
+    spawnShot(d.sy, d.sx, Math.atan2(d.ty - d.sy, d.tx - d.sx), wp, false);
+    spawnImpact(d.ty, d.tx, wp);
     if (String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
+      addShake(3);
       if (d.killed) {
         myDeathBy = d.jailed ? 'Копы (тюрьма)' : 'Копы';
       }
@@ -1449,11 +1481,14 @@ function handleEventPacket(d) {
         `Копы взяли тебя живым. Минута за решёткой.`, 4000, 'lose');
     }
   } else if (kind === 'cop_hit') {
-    // Игрок попал в копа — трассер
+    // Игрок попал в копа — трассер + кровь
+    const wp = d.weapon || currentWeapon;
     bullets.push({
       sr: d.sy, sc: d.sx, er: d.ty, ec: d.tx,
       t0: performance.now(), ttl: 160, hit: true, fromPlayer: true,
+      weapon: wp,
     });
+    spawnImpact(d.ty, d.tx, wp);
   }
 }
 
@@ -1979,6 +2014,12 @@ function fire(angle = null) {
     _fireBtn.classList.remove('cd');
     joyREl.classList.remove('cd');
   }, cdSec * 1000);
+  // ВСПЫШКА ДУЛА + ЗВУК + ОТДАЧА + ГИЛЬЗА. Координаты — конец ствола
+  // (вынос вперёд на ~0.5 тайла), направление — player.ang.
+  const muzD = 0.55;
+  const muzR = player.r + Math.sin(player.ang) * muzD;
+  const muzC = player.c + Math.cos(player.ang) * muzD;
+  spawnShot(muzR, muzC, player.ang, currentWeapon, true);
   if (chosenConvoy) {
     bullets.push({
       sr: player.r, sc: player.c, er: chosenConvoy.y, ec: chosenConvoy.x,
@@ -4348,20 +4389,142 @@ function getSprite(look) {
 // Значения подобраны под фильтр баланса: smg/tommy быстрые с малым
 // уроном, sniper/rpg медленные с большим. Соответствует ощущениям
 // из demo_isometric.
-const WEAPON_CD = {
-  pistol:       0.40,
-  nagan:        0.45,
-  pistol_heavy: 0.55,
-  pistol_gold:  0.50,
-  shotgun:      0.85,
-  smg:          0.20,
-  tommy_gun:    0.25,
-  rifle:        0.50,
-  sniper:       1.20,
-  rpg:          1.80,
+// ── Аудио: однострочный синтезатор тонов/шума (порт из demo_isometric)
+// AudioContext создаётся лениво по первому пользовательскому жесту, иначе
+// браузеры блокируют autoplay. _tone — пиковый осциллятор с фейдом,
+// _noise — белый шум через фильтр. Громкость общая (sfxVol).
+let _audioCtx = null;
+let _sfxVol   = 0.5;
+function _ac() {
+  if (_audioCtx) return _audioCtx;
+  try {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) { _audioCtx = null; }
+  return _audioCtx;
+}
+function _tone({ freq=440, freqEnd, dur=0.1, type='square', vol=0.2 }) {
+  const ac = _ac(); if (!ac) return;
+  const o = ac.createOscillator();
+  const g = ac.createGain();
+  o.type = type; o.frequency.value = freq;
+  if (typeof freqEnd === 'number') {
+    o.frequency.linearRampToValueAtTime(freqEnd, ac.currentTime + dur);
+  }
+  g.gain.value = vol * _sfxVol;
+  g.gain.linearRampToValueAtTime(0.0001, ac.currentTime + dur);
+  o.connect(g); g.connect(ac.destination);
+  o.start(); o.stop(ac.currentTime + dur + 0.02);
+}
+function _noise({ dur=0.1, vol=0.18, filter='highpass', filterFreq=600 }) {
+  const ac = _ac(); if (!ac) return;
+  const n = Math.floor(ac.sampleRate * dur);
+  const buf = ac.createBuffer(1, n, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1);
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const f = ac.createBiquadFilter(); f.type = filter; f.frequency.value = filterFreq;
+  const g = ac.createGain();
+  g.gain.value = vol * _sfxVol;
+  g.gain.linearRampToValueAtTime(0.0001, ac.currentTime + dur);
+  src.connect(f); f.connect(g); g.connect(ac.destination);
+  src.start(); src.stop(ac.currentTime + dur + 0.02);
+}
+// Разбудить аудио на первом тапе/клике (firefox/ios safari)
+window.addEventListener('pointerdown', () => {
+  const ac = _ac();
+  if (ac && ac.state === 'suspended') ac.resume();
+}, { once: true });
+
+// ── Конфиг оружия — звук, отдача, цвет трассера, разброс, дробь.
+// Порт из demo_isometric WEAPON_FX_CFG. cd — секунды. tip — длина ствола
+// в пикселях (для muzzle). thick=true делает трассер толще + светится.
+const WEAPON_FX = {
+  pistol:       { cd:0.40, sound:()=>{ _tone({freq:300,freqEnd:80,dur:0.08,type:'square',vol:0.30}); _noise({dur:0.05,vol:0.18}); },
+                  color:'#ffea80', recoil:1.4, shake:1.2, tip:14, spread:0 },
+  nagan:        { cd:0.45, sound:()=>{ _tone({freq:340,freqEnd:90,dur:0.09,type:'square',vol:0.32}); _noise({dur:0.05,vol:0.18}); },
+                  color:'#ffe080', recoil:1.5, shake:1.3, tip:14, spread:0 },
+  pistol_heavy: { cd:0.55, sound:()=>{ _tone({freq:200,freqEnd:50,dur:0.13,type:'square',vol:0.36}); _noise({dur:0.07,vol:0.22,filter:'lowpass',filterFreq:800}); },
+                  color:'#ffb060', recoil:2.0, shake:1.8, tip:20, spread:0, thick:true },
+  pistol_gold:  { cd:0.50, sound:()=>{ _tone({freq:620,freqEnd:200,dur:0.10,type:'sawtooth',vol:0.30}); _tone({freq:1200,freqEnd:400,dur:0.08,type:'sine',vol:0.14}); _noise({dur:0.05,vol:0.15}); },
+                  color:'#ffd76b', recoil:1.6, shake:1.4, tip:18, spread:0 },
+  shotgun:      { cd:0.85, sound:()=>{ _tone({freq:120,freqEnd:30,dur:0.18,type:'square',vol:0.42}); _noise({dur:0.14,vol:0.32,filter:'lowpass',filterFreq:500}); },
+                  color:'#ffaa50', recoil:3.5, shake:3.8, tip:28, spread:0.32, pellets:6, thick:true },
+  smg:          { cd:0.20, sound:()=>{ _tone({freq:380,freqEnd:120,dur:0.05,type:'square',vol:0.18}); _noise({dur:0.03,vol:0.12}); },
+                  color:'#ffea80', recoil:0.9, shake:0.9, tip:22, spread:0.10 },
+  tommy_gun:    { cd:0.25, sound:()=>{ _tone({freq:340,freqEnd:140,dur:0.06,type:'square',vol:0.22}); _noise({dur:0.04,vol:0.14}); },
+                  color:'#ffce70', recoil:1.0, shake:1.0, tip:22, spread:0.08 },
+  rifle:        { cd:0.50, sound:()=>{ _tone({freq:260,freqEnd:80,dur:0.10,type:'square',vol:0.34}); _noise({dur:0.07,vol:0.22,filter:'lowpass',filterFreq:1500}); },
+                  color:'#ffea80', recoil:2.4, shake:2.0, tip:32, spread:0.02, thick:true },
+  sniper:       { cd:1.20, sound:()=>{ _tone({freq:80,freqEnd:25,dur:0.40,type:'sawtooth',vol:0.42}); _noise({dur:0.18,vol:0.28,filter:'lowpass',filterFreq:400}); _tone({freq:1800,freqEnd:200,dur:0.30,type:'sine',vol:0.10}); },
+                  color:'#ff5050', recoil:5.0, shake:5.0, tip:44, spread:0, thick:true },
+  rpg:          { cd:1.80, sound:()=>{ _tone({freq:60,freqEnd:20,dur:0.50,type:'sawtooth',vol:0.45}); _noise({dur:0.40,vol:0.35,filter:'lowpass',filterFreq:300}); setTimeout(()=>{ _tone({freq:200,freqEnd:40,dur:0.30,type:'square',vol:0.42}); _noise({dur:0.30,vol:0.40}); }, 240); },
+                  color:'#ff6020', recoil:6.0, shake:7.0, tip:46, spread:0, thick:true },
 };
-function weaponCd(w) {
-  return WEAPON_CD[w] || 0.40;
+function weaponFx(w) { return WEAPON_FX[w] || WEAPON_FX.pistol; }
+function weaponCd(w) { return weaponFx(w).cd; }
+// Backwards-compat: оставить WEAPON_CD как алиас (старый код мог читать)
+const WEAPON_CD = new Proxy({}, { get: (_, k) => weaponFx(k).cd });
+
+// ── Спавн вспышки дула + гильзы + camera shake для любого выстрела.
+// Универсальный helper: spawnShot(world_r, world_c, ang, weapon, isMyShot).
+// Вызывается из fire() (свой выстрел), а также из обработчиков серверных
+// событий cop_shot/inkass_shot/pvp_shot/player_shot (выстрелы NPC и других
+// игроков). Звук играем только если выстрел близко к камере или это я сам.
+function spawnShot(wr, wc, ang, weapon, isMyShot) {
+  const fx = weaponFx(weapon);
+  // Расстояние до игрока — для громкости и отсечения далёких звуков
+  const dx = wc - player.c, dy = wr - player.r;
+  const d  = Math.hypot(dx, dy);
+  // Вспышка у дула — дублирует mini-flash в drawWeaponInHands, но
+  // эта живёт дольше и рисует лучи + ядро в мировых координатах
+  // (для NPC/чужих игроков она важна, у них нет своего timer'а)
+  muzzles.push({ r: wr, c: wc, ang: ang || 0,
+                 life: 110, max: 110, weapon });
+  // Гильзы — 1-3шт вылетают вбок от ствола. Для огнестрела (не melee)
+  const nShells = (weapon === 'shotgun') ? 2 :
+                  (weapon === 'rpg' || weapon === 'sniper') ? 0 : 1;
+  for (let i = 0; i < nShells; i++) {
+    const side = ang + Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+    shells.push({
+      r: wr, c: wc, z: 0.3,
+      vr: Math.sin(side) * (0.6 + Math.random() * 0.6),
+      vc: Math.cos(side) * (0.6 + Math.random() * 0.6),
+      vz: 1.2 + Math.random() * 0.8,
+      rot: Math.random() * Math.PI,
+      vrot: (Math.random() - 0.5) * 10,
+      life: 700, max: 700,
+    });
+  }
+  // Звук — только если близко (8 тайлов) ИЛИ я сам стрелял
+  if (isMyShot || d < 8.5) {
+    const volMul = isMyShot ? 1.0 : Math.max(0.25, 1 - d / 9);
+    try {
+      const oldVol = _sfxVol;
+      _sfxVol = oldVol * volMul;
+      fx.sound();
+      _sfxVol = oldVol;
+    } catch (e) {}
+  }
+  // Camera shake — только на свой выстрел (чужие не должны трясти экран)
+  if (isMyShot) addShake(fx.shake || 1);
+}
+
+// ── Импакт-частицы при попадании пули в цель (NPC/игрок/коп).
+// Спавн в точке (er,ec) трассера если bullet.hit === true.
+function spawnImpact(wr, wc, weapon) {
+  const fx = weaponFx(weapon);
+  const parts = [];
+  const N = (weapon === 'shotgun') ? 4 : 6;
+  for (let i = 0; i < N; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 0.4 + Math.random() * 0.8;
+    parts.push({
+      vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+      life: 280 + Math.random() * 180, max: 460,
+      color: (i < 2) ? '#ff4040' : (fx.color || '#ffd76b'),
+    });
+  }
+  impacts.push({ r: wr, c: wc, parts });
 }
 
 // Точка «хвата» (рука персонажа) — на уровне пояса/бёдер (НЕ плеч,
@@ -4502,28 +4665,20 @@ function weaponTip(w) { return (FIREARM_TIP[w] || 16); }
 // это lastShotClientT, для других игроков и NPC — lastBossShotAt.get(id)).
 function drawWeaponInHands(x, y, ang, weapon, scale, shotAtMs) {
   if (!weapon) return;
-  const { hx, hy } = handAnchor(x, y, ang);
+  let { hx, hy } = handAnchor(x, y, ang);
   const sc = scale || 0.9;
-  drawFirearm(weapon, hx, hy, Math.cos(ang), Math.sin(ang), sc);
-  // Вспышка дула — короткая (80мс) после выстрела.
-  if (typeof shotAtMs === 'number' && shotAtMs > 0 &&
-      performance.now() - shotAtMs < 80) {
-    const tip = weaponTip(weapon) * sc;
-    const fx = hx + Math.cos(ang) * tip;
-    const fy = hy + Math.sin(ang) * tip;
-    ctx.save();
-    ctx.fillStyle = '#fff4b8';
-    ctx.shadowColor = '#ffd870';
-    ctx.shadowBlur = 14;
-    ctx.beginPath();
-    ctx.arc(fx, fy, 4 * sc, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ff8030';
-    ctx.beginPath();
-    ctx.arc(fx, fy, 2.5 * sc, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+  // Recoil-kick: ствол отскакивает назад на kPx за первые 80мс после
+  // выстрела. Сила берётся из WEAPON_FX.recoil — тяжёлые пушки бьют сильнее.
+  if (typeof shotAtMs === 'number' && shotAtMs > 0) {
+    const dt = performance.now() - shotAtMs;
+    if (dt < 110) {
+      const fx = weaponFx(weapon);
+      const k  = (1 - dt / 110) * (fx.recoil || 1.0) * 2.2;
+      hx -= Math.cos(ang) * k;
+      hy -= Math.sin(ang) * k;
+    }
   }
+  drawFirearm(weapon, hx, hy, Math.cos(ang), Math.sin(ang), sc);
 }
 
 function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, isDead) {
@@ -4673,6 +4828,19 @@ function roundRect(x, y, w, h, r) {
 function render() {
   ctx.fillStyle = '#0a0a10';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Camera-shake: толкаем всё рендеренное на случайный микро-сдвиг.
+  // Сила в camShake (0..8), затухает в каждом кадре. Заворачиваем
+  // всё в save/restore чтобы UI поверх (вспышки/баннеры) не дёргался.
+  const shakeNow = camShake;
+  if (shakeNow > 0.05) {
+    ctx.save();
+    const sx = (Math.random() - 0.5) * shakeNow;
+    const sy = (Math.random() - 0.5) * shakeNow;
+    ctx.translate(sx, sy);
+    camShake *= 0.78;
+  } else {
+    camShake = 0;
+  }
   // Viewport culling (под более крупный TS уменьшаем радиус)
   const VIS_R = 12;
   const r0 = Math.max(0, Math.floor(player.r - VIS_R));
@@ -4795,8 +4963,17 @@ function render() {
   }
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
+  // Гильзы — мелкие латунные кубики на земле, под трассерами
+  drawShells();
   // Пули — трассеры поверх всего (живут 0.18 сек)
   drawBullets();
+  // Вспышки у дула (4-лучевая звёздочка) — поверх трассеров
+  drawMuzzles();
+  // Импакт-частицы (искры, кровь) — поверх всего
+  drawImpacts();
+  // Снимаем shake-трансформ ПЕРЕД UI-слоем (стрелки POI / мини-карта),
+  // чтобы UI не дёргался во время отдачи камеры.
+  if (shakeNow > 0.05) ctx.restore();
   // Стрелки-указатели на POI, которые сейчас за пределами видимости.
   drawPOIArrows(r0, r1, c0, c1);
   // Стрелка-указатель на инкассатора если он за пределами экрана
@@ -4806,9 +4983,11 @@ function render() {
 }
 
 // ── Пули ────────────────────────────────────────────────────────
+// Цветной трассер по оружию (color/thick из WEAPON_FX). Жёлтое ядро,
+// светящийся хвост. Импакт (b.hit) рисуется отдельным spawnImpact, тут
+// уже не дублируем.
 function drawBullets() {
   const now = performance.now();
-  // Чистка старых
   for (let i = bullets.length - 1; i >= 0; i--) {
     if (now - bullets[i].t0 > bullets[i].ttl) bullets.splice(i, 1);
   }
@@ -4819,24 +4998,152 @@ function drawBullets() {
     const a = 1 - t;
     const s = w2s(b.sr + 0.5, b.sc + 0.5);
     const e = w2s(b.er + 0.5, b.ec + 0.5);
-    // Тонкий жёлтый трассер с лёгким glow'ом
+    const fx = weaponFx(b.weapon || 'pistol');
+    const col = fx.color || '#ffd76b';
+    // Трассер летит за пулей — рисуем линию от sr→er но затемняем к концу
     ctx.globalAlpha = a;
-    ctx.strokeStyle = '#ffd76b';
-    ctx.lineWidth = 2;
-    ctx.shadowColor = '#ffd76b';
-    ctx.shadowBlur = 6;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = fx.thick ? 3.5 : 2;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = col;
+    ctx.shadowBlur = fx.thick ? 14 : 8;
     ctx.beginPath();
     ctx.moveTo(s.x, s.y - 18);  // от уровня плеч
     ctx.lineTo(e.x, e.y - 18);
     ctx.stroke();
-    // Вспышка попадания
-    if (b.hit && t > 0.4) {
-      ctx.globalAlpha = a * 0.9;
-      ctx.fillStyle = '#ff6464';
+    // Яркое ядро в начале трассера (вспышка вылета)
+    if (t < 0.25) {
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 16;
       ctx.beginPath();
-      ctx.arc(e.x, e.y - 18, 6 + t * 8, 0, Math.PI * 2);
+      ctx.arc(s.x, s.y - 18, fx.thick ? 4 : 2.6, 0, Math.PI * 2);
       ctx.fill();
     }
+  }
+  ctx.restore();
+}
+
+// ── Muzzle-flash (вспышка у дула) — 4-лучевая звёздочка + glow ─────
+// Порт из demo_isometric drawMuzzle. Живёт ~110мс, затухает.
+function drawMuzzles() {
+  const now = performance.now();
+  ctx.save();
+  for (let i = muzzles.length - 1; i >= 0; i--) {
+    const m = muzzles[i];
+    const dt = now - (m._lastT || (m._lastT = now));
+    m._lastT = now;
+    m.life -= dt;
+    if (m.life <= 0) { muzzles.splice(i, 1); continue; }
+    const t  = m.life / m.max;             // 1→0
+    const p  = w2s(m.r + 0.5, m.c + 0.5);
+    const cx = p.x, cy = p.y - 22;          // на уровне рук
+    const fx = weaponFx(m.weapon);
+    const sizeMul = fx.thick ? 1.4 : 1.0;
+    // 1) Мягкий оранжевый ореол
+    ctx.shadowColor = '#ff9020';
+    ctx.shadowBlur  = 28 * t * sizeMul;
+    ctx.fillStyle   = 'rgba(255,150,40,' + (t * 0.55) + ')';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 14 * t * sizeMul, 0, Math.PI * 2);
+    ctx.fill();
+    // 2) 4-лучевая «звёздочка» от дула — длинный луч вперёд + 3 искры
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(m.ang || 0);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle  = 'rgba(255,230,140,' + (t * 0.9) + ')';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(22 * t * sizeMul, -2 * t);
+    ctx.lineTo(30 * t * sizeMul, 0);
+    ctx.lineTo(22 * t * sizeMul,  2 * t);
+    ctx.closePath();
+    ctx.fill();
+    // 3 коротких боковых искры
+    ctx.fillStyle = 'rgba(255,200,100,' + (t * 0.7) + ')';
+    for (let k = 0; k < 3; k++) {
+      const a = (k - 1) * 0.6;
+      const len = (8 + Math.random() * 5) * t * sizeMul;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len * 0.4);
+      ctx.lineTo(0, 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    // 3) Белое ядро по центру
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur  = 14 * t;
+    ctx.fillStyle   = 'rgba(255,255,240,' + (t * 0.95) + ')';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5 * t * sizeMul, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── Гильзы (shells) ────────────────────────────────────────────────
+// Маленькие латунные прямоугольники, падают с гравитацией, крутятся.
+function drawShells() {
+  const now = performance.now();
+  for (let i = shells.length - 1; i >= 0; i--) {
+    const s = shells[i];
+    const dt = now - (s._lastT || (s._lastT = now));
+    s._lastT = now;
+    const dts = Math.min(0.06, dt / 1000);
+    s.life -= dt;
+    if (s.life <= 0) { shells.splice(i, 1); continue; }
+    // Физика: горизонталь идёт vc/vr, вертикаль vz с гравитацией.
+    s.r += s.vr * dts; s.c += s.vc * dts;
+    s.z += s.vz * dts; s.vz -= 5.5 * dts;
+    if (s.z < 0) { s.z = 0; s.vz *= -0.35; s.vc *= 0.6; s.vr *= 0.6; }
+    s.rot += s.vrot * dts;
+    const p = w2s(s.r + 0.5, s.c + 0.5);
+    const cx = p.x, cy = p.y - 18 - s.z * 18;
+    const a = Math.min(1, s.life / 300);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(cx, cy);
+    ctx.rotate(s.rot);
+    ctx.fillStyle = '#c8a050';
+    ctx.fillRect(-2, -1, 4, 2);
+    ctx.fillStyle = '#806030';
+    ctx.fillRect(-2, -1, 1, 2);
+    ctx.restore();
+  }
+}
+
+// ── Импакт-частицы (искры/кровь при попадании) ─────────────────────
+function drawImpacts() {
+  const now = performance.now();
+  ctx.save();
+  for (let i = impacts.length - 1; i >= 0; i--) {
+    const imp = impacts[i];
+    const p = w2s(imp.r + 0.5, imp.c + 0.5);
+    let aliveAny = false;
+    for (const pt of imp.parts) {
+      const dt = now - (pt._lastT || (pt._lastT = now));
+      pt._lastT = now;
+      const dts = Math.min(0.05, dt / 1000);
+      pt.life -= dt;
+      if (pt.life <= 0) continue;
+      aliveAny = true;
+      pt._x = (pt._x || 0) + pt.vc * dts * 18;
+      pt._y = (pt._y || 0) + pt.vr * dts * 18;
+      pt.vr += 8 * dts;        // мини-гравитация
+      const t = Math.max(0, pt.life / pt.max);
+      ctx.globalAlpha = t;
+      ctx.fillStyle = pt.color;
+      ctx.shadowColor = pt.color;
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(p.x + pt._x, p.y - 18 + pt._y, 1.8 + t * 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (!aliveAny) impacts.splice(i, 1);
   }
   ctx.restore();
 }
