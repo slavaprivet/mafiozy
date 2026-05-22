@@ -942,7 +942,7 @@ function buildMap() {
   // Особые POI (больница/участок/арена/чёрный рынок) НЕ трогаем — у них
   // своя сцена.
   const CAPTURABLE_IDS = new Set(['market','port','casino','factory','mansion']);
-  const CLEAR_RADIUS = 5;   // 11×11 центрально очищено — почти весь квартал свободен
+  const CLEAR_RADIUS = 4;   // 9×9 центрально очищено — почти весь квартал свободен
   for (const p of POI) {
     if (!CAPTURABLE_IDS.has(p.id)) continue;
     for (let r = p.r - CLEAR_RADIUS; r <= p.r + CLEAR_RADIUS; r++) {
@@ -996,7 +996,7 @@ function inArena(r, c) {
 // Захватываемые POI (особые — больница/участок/арена/чёрный рынок — НЕ
 // захватываются). Зона = квартал 7×7 вокруг POI. PvE-игроки в захвате
 // и обороне не участвуют (см. серверный гейтинг).
-const TERRITORY_RADIUS = 6;          // ⇒ квадрат 13×13 (синхронно с TERR_RADIUS на сервере)
+const TERRITORY_RADIUS = 5;          // ⇒ квадрат 11×11 (×1.5 от исходного 7×7, синхронно с TERR_RADIUS на сервере)
 const CAPTURE_TIME_MS  = 30 * 1000;  // 30 секунд удержания
 const CAPTURE_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24ч между захватами одной зоны одним игроком
 const INCOME_DELAY_MS = 30 * 60 * 1000;          // доход начинает капать через 30 мин
@@ -1979,6 +1979,14 @@ function handleEventPacket(d) {
       showEventBanner(`${d.icon} @${d.by_name} контролирует ${d.name}`,
         'Доход с района пойдёт в его банду.', 4000, 'neutral');
     }
+  } else if (kind === 'territory_fight') {
+    // PvP-перестрелка в захватываемой зоне — баннер ВСЕМ. Сервер сам
+    // антиспамит (раз в 30с на район), так что показываем без условий.
+    showEventBanner(
+      `${d.icon || '🔫'} Перестрелка за район «${d.name}»`,
+      'В зоне идёт бой за контроль района.',
+      4000, 'lose'
+    );
   } else if (kind === 'territory_income') {
     // Микро-уведомление только владельцу — «капнуло в копилку».
     if (String(d.owner_uid) === String(QP.uid)) {
@@ -7068,24 +7076,30 @@ function drawMinimap() {
       ctx2.strokeRect(x + ringR - 1 + 0.5, y - ringR - 3 + 0.5, 5, 4);
     }
   }
-  // Другие игроки — точки с обводкой, цвет по mode (PvE сине-серый,
-  // PvP яркий зелёный «союзник» с тонкой пульсацией)
+  // Другие игроки — точки с обводкой и светящимся ореолом (видно лучше).
+  // PvE — голубовато-серый; PvP — яркий зелёный «союзник» с пульсацией.
   const playerPulse = (Math.sin(performance.now() * 0.006) + 1) * 0.5;
   for (const [, o] of others) {
     const isPve = (o.mode === 'pve');
     const x = (o.x + 0.5) * sx, y = (o.y + 0.5) * sy;
+    // Светящийся ореол — притягивает взгляд
+    ctx2.fillStyle = isPve ? 'rgba(122,160,200,.35)' : 'rgba(90,255,128,.45)';
+    ctx2.beginPath(); ctx2.arc(x, y, 7 + playerPulse * 1.5, 0, Math.PI * 2); ctx2.fill();
+    // Тёмный контур
     ctx2.fillStyle = '#000';
-    ctx2.beginPath(); ctx2.arc(x, y, 4.5, 0, Math.PI * 2); ctx2.fill();
-    ctx2.fillStyle = isPve ? '#7aa0c8' : '#5aff80';
+    ctx2.beginPath(); ctx2.arc(x, y, 5.5, 0, Math.PI * 2); ctx2.fill();
+    // Ярко-цветная точка
+    ctx2.fillStyle = isPve ? '#9ad0ff' : '#7affa0';
     ctx2.beginPath();
-    ctx2.arc(x, y, isPve ? 3 : (3 + playerPulse * 0.5), 0, Math.PI * 2);
+    ctx2.arc(x, y, isPve ? 4 : (4 + playerPulse * 0.6), 0, Math.PI * 2);
     ctx2.fill();
-    // Wanted — золотая корона над точкой
+    // Wanted — золотая звезда над точкой
     if (o.wanted && o.wanted > 0) {
       ctx2.fillStyle = '#ffd76b';
-      ctx2.beginPath();
-      ctx2.arc(x, y - 6, 2, 0, Math.PI * 2);
-      ctx2.fill();
+      ctx2.font = 'bold 9px "Segoe UI Emoji", sans-serif';
+      ctx2.textAlign = 'center';
+      ctx2.fillText('★', x, y - 7);
+      ctx2.textAlign = 'left';
     }
   }
   // Конвой инкассатора — пульсирующий золотой (boss) и синие (охрана)
@@ -7128,29 +7142,46 @@ function drawMinimap() {
       ctx2.fill(); ctx2.stroke();
     }
   }
-  // Игрок — белая СТРЕЛКА в направлении взгляда (вместо точки)
+  // Игрок — ЯРКАЯ ЖЁЛТАЯ СТРЕЛКА в направлении взгляда. Под ней —
+  // пульсирующее свечение чтобы было хорошо видно среди прочих точек.
   const px = (player.c + 0.5) * sx;
   const py = (player.r + 0.5) * sy;
+  const mePulse = (Math.sin(performance.now() * 0.008) + 1) * 0.5;
+  // Внешний ореол (большой, мягкий)
+  ctx2.fillStyle = `rgba(255,215,107,${0.30 + mePulse * 0.25})`;
+  ctx2.beginPath(); ctx2.arc(px, py, 13 + mePulse * 4, 0, Math.PI * 2); ctx2.fill();
+  // Внутренний ореол ярче
+  ctx2.fillStyle = `rgba(255,250,200,${0.45 + mePulse * 0.20})`;
+  ctx2.beginPath(); ctx2.arc(px, py, 9, 0, Math.PI * 2); ctx2.fill();
   ctx2.save();
   ctx2.translate(px, py);
   ctx2.rotate(player.ang || 0);
-  ctx2.fillStyle = '#fff';
+  // Чёрная обводка пожирнее для контраста
+  ctx2.fillStyle = '#fff8b0';
   ctx2.strokeStyle = '#000';
-  ctx2.lineWidth = 2;
+  ctx2.lineWidth = 2.5;
   ctx2.beginPath();
-  ctx2.moveTo(8, 0);          // нос стрелки
-  ctx2.lineTo(-5, 5);
-  ctx2.lineTo(-3, 0);
-  ctx2.lineTo(-5, -5);
+  ctx2.moveTo(12, 0);         // нос стрелки крупнее (8→12)
+  ctx2.lineTo(-7, 7);
+  ctx2.lineTo(-4, 0);
+  ctx2.lineTo(-7, -7);
   ctx2.closePath();
+  ctx2.stroke();
   ctx2.fill();
+  // Светлая «линия блика» вдоль оси — придаёт объём
+  ctx2.strokeStyle = 'rgba(255,255,255,.85)';
+  ctx2.lineWidth = 1;
+  ctx2.beginPath();
+  ctx2.moveTo(11, 0); ctx2.lineTo(-3, 0);
   ctx2.stroke();
   ctx2.restore();
   // Мой wanted — золотая звёздочка над стрелкой
   if (myWanted > 0) {
     ctx2.fillStyle = '#ffd76b';
-    ctx2.font = 'bold 12px "Segoe UI Emoji", sans-serif';
-    ctx2.fillText('★'.repeat(Math.min(3, myWanted)), px, py - 10);
+    ctx2.font = 'bold 13px "Segoe UI Emoji", sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.fillText('★'.repeat(Math.min(3, myWanted)), px, py - 14);
+    ctx2.textAlign = 'left';
   }
 }
 let _miniTick = 0, _miniBakedDirty = true;

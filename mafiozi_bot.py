@@ -11359,6 +11359,7 @@ class WorldSim:
         # одновременно брать РАЗНЫЕ районы. Один игрок может владеть
         # хоть всеми 5 районами сразу.
         'territories', 'active_captures', '_capture_cooldowns',
+        '_territory_fight_at',
     )
 
     # ── Эмерджентные события: параметры ────────────────────────────
@@ -11481,11 +11482,12 @@ class WorldSim:
         'factory': {'name': 'Промзона',   'icon': '🏭', 'r': 46, 'c': 56, 'income': 160},
         'mansion': {'name': 'Резиденция', 'icon': '🏛', 'r': 66, 'c': 36, 'income': 250},
     }
-    TERR_RADIUS         = 6              # 13×13 (зона побольше — есть где разогнаться в перестрелке)
+    TERR_RADIUS         = 5              # 11×11 (×1.5 от исходного 7×7)
     CAPTURE_TIME_S      = 30.0
     CAPTURE_COOLDOWN_S  = 24 * 3600      # 24ч между захватами одной зоны одним игроком
     INCOME_DELAY_S      = 30 * 60        # доход стартует через 30 мин после захвата
     INCOME_TICK_S       = 10 * 60        # +income каждые 10 мин
+    TERR_FIGHT_BANNER_CD = 30.0          # «Перестрелка за район X» — раз в 30с на район
     HOSPITAL_Y          = 23.0
 
     def __init__(self):
@@ -11515,6 +11517,9 @@ class WorldSim:
         self.territories         = {}
         self.active_captures     = {}
         self._capture_cooldowns  = {}
+        # last_banner_at[tid] — время последнего «🔫 Перестрелка за район X»
+        # для антиспама. Шлём раз в TERR_FIGHT_BANNER_CD сек на район.
+        self._territory_fight_at = {}
 
     def add_or_update(self, uid: str, name: str, look: dict,
                        wanted: float = 0.0, jail_until: int = 0,
@@ -11986,13 +11991,26 @@ class WorldSim:
             return None
         shooter['_pvp_shot_t'] = now
         # Оба должны быть либо в активной PvP-зоне (вокруг маршрута
-        # инкассатора, временная hot-zone), либо в постоянной PvP-арене.
+        # инкассатора), либо в постоянной PvP-арене, либо в ОДНОЙ и той же
+        # захватываемой территории (для борьбы за район).
         both_in_pvp_zone = (self._in_pvp_zone(shooter['x'], shooter['y']) and
                             self._in_pvp_zone(target['x'], target['y']))
         both_in_arena    = (self._in_arena(shooter['x'], shooter['y']) and
                             self._in_arena(target['x'], target['y']))
-        if not (both_in_pvp_zone or both_in_arena):
+        s_tid, _ = self._territory_at(shooter['x'], shooter['y'])
+        t_tid, _ = self._territory_at(target['x'], target['y'])
+        both_in_territory = bool(s_tid) and (s_tid == t_tid)
+        if not (both_in_pvp_zone or both_in_arena or both_in_territory):
             return None
+        # Friendly fire OFF: союзники по банде не наносят урон друг другу
+        # В ГОРОДЕ (арена — полигон, там FF разрешён).
+        if not both_in_arena:
+            sh_leader = shooter.get('_gang_leader')
+            tg_leader = target.get('_gang_leader')
+            if sh_leader and tg_leader and sh_leader == tg_leader:
+                # Все ивенты (trace на клиенте) уже улетели — но пакет hit
+                # не возвращаем (никакого урона, никаких звёзд).
+                return None
         # Дистанция
         d_sq = (shooter['x'] - target['x'])**2 + (shooter['y'] - target['y'])**2
         if d_sq > self.PVP_SHOT_R * self.PVP_SHOT_R:
@@ -12012,12 +12030,18 @@ class WorldSim:
             shooter['kills']      = int(shooter.get('kills', 0)) + 1
             killed = True
         # Wanted: попадание = +0.5, убийство = +1 (минус 0.5 уже учтённое).
-        # Но в АРЕНЕ — это легальный полигон, копы не реагируют.
-        if not both_in_arena:
+        # Но в АРЕНЕ и в захватываемой ТЕРРИТОРИИ — это легальный PvP
+        # (полигон / война за район), копы не реагируют.
+        if not both_in_arena and not both_in_territory:
             self._bump_wanted(shooter, self.WANTED_PER_HIT)
             if killed:
                 self._bump_wanted(shooter,
                                   self.WANTED_PER_KILL - self.WANTED_PER_HIT)
+        # Если PvP-разборка идёт в захватываемой зоне — оставляем «hot»
+        # маркер: следующий ws-обработчик пошлёт баннер «🔫 Перестрелка
+        # за район X» (раз в TERR_FIGHT_BANNER_CD сек).
+        if both_in_territory:
+            shooter['_pvp_terr_hit'] = s_tid
         return {
             'kind':       'pvp_shot',
             'shooter_uid': str(uid),
@@ -14419,6 +14443,15 @@ async def _coop_http_app():
                             wanted=float(char.get('wanted') or 0),
                             jail_until=int(char.get('jail_until') or 0),
                             mode=ws_mode)
+        # Кэшируем leader_id игрока — для friendly-fire OFF в банде
+        # и для определения «лично/банда» при выплате дохода с района.
+        try:
+            leader_id = await get_gang_leader_id(uid_int)
+        except Exception:
+            leader_id = None
+        p_ref = world.players.get(uid)
+        if p_ref is not None:
+            p_ref['_gang_leader'] = leader_id
         world.connections[uid] = ws
 
         # Hello-кадр
@@ -14532,6 +14565,27 @@ async def _coop_http_app():
                                     cap_cancel = world.cancel_capture_on_player_killed(target_uid)
                                     if cap_cancel:
                                         blob = json.dumps({'t': 'event', 'd': cap_cancel}, ensure_ascii=False)
+                                        for u2, ws2 in list(world.connections.items()):
+                                            try: await ws2.send_str(blob)
+                                            except Exception: pass
+                                # «🔫 Перестрелка за район Х» — antispam раз в
+                                # TERR_FIGHT_BANNER_CD сек на район.
+                                sh = world.players.get(uid)
+                                hot_tid = sh.get('_pvp_terr_hit') if sh else None
+                                if hot_tid:
+                                    sh['_pvp_terr_hit'] = None
+                                    last_at = world._territory_fight_at.get(hot_tid, 0)
+                                    now_b   = time.time()
+                                    if now_b - last_at >= world.TERR_FIGHT_BANNER_CD:
+                                        world._territory_fight_at[hot_tid] = now_b
+                                        td_def = world.TERRITORIES_DEF.get(hot_tid, {})
+                                        fight_pkt = {
+                                            'kind':  'territory_fight',
+                                            'tid':   hot_tid,
+                                            'name':  td_def.get('name') or hot_tid,
+                                            'icon':  td_def.get('icon') or '🔫',
+                                        }
+                                        blob = json.dumps({'t': 'event', 'd': fight_pkt}, ensure_ascii=False)
                                         for u2, ws2 in list(world.connections.items()):
                                             try: await ws2.send_str(blob)
                                             except Exception: pass
