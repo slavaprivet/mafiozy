@@ -11354,6 +11354,8 @@ class WorldSim:
         'alive', 'started_at',
         'event', '_event_next_at',
         'cops', '_next_cop_id', '_last_wanted_decay',
+        # Territory capture (см. ниже TERRITORIES, CAPTURE_TIME_S, etc.)
+        'territories', 'active_capture', '_capture_cooldowns',
     )
 
     # ── Эмерджентные события: параметры ────────────────────────────
@@ -11463,6 +11465,24 @@ class WorldSim:
     # перекрёсток. Тебя убил коп с 0-1 звёздами или конвой — выйдешь
     # у больницы, а не там где умер.
     HOSPITAL_X          = 43.0
+    # ── Захват районов ─────────────────────────────────────────────
+    # 5 захватываемых POI (координаты — как в world.html). Зона = 7×7
+    # вокруг центра. PvE-игроки в захвате не участвуют.
+    # income — сколько $ капает в копилку банды каждые 10 мин (через
+    # 30 мин после захвата). Если игрок не в банде — в его «личную»
+    # копилку (та же таблица gang_pools, забирается через 3 дня).
+    TERRITORIES_DEF = {
+        'market':  {'name': 'Рынок',      'icon': '🏪', 'r': 16, 'c': 16, 'income':  50},
+        'port':    {'name': 'Порт',       'icon': '⚓', 'r': 16, 'c': 56, 'income':  80},
+        'casino':  {'name': 'Казино',     'icon': '🎰', 'r': 46, 'c': 16, 'income': 120},
+        'factory': {'name': 'Промзона',   'icon': '🏭', 'r': 46, 'c': 56, 'income': 160},
+        'mansion': {'name': 'Резиденция', 'icon': '🏛', 'r': 66, 'c': 36, 'income': 250},
+    }
+    TERR_RADIUS         = 3              # 7×7
+    CAPTURE_TIME_S      = 30.0
+    CAPTURE_COOLDOWN_S  = 24 * 3600      # 24ч между захватами одной зоны одним игроком
+    INCOME_DELAY_S      = 30 * 60        # доход стартует через 30 мин после захвата
+    INCOME_TICK_S       = 10 * 60        # +income каждые 10 мин
     HOSPITAL_Y          = 23.0
 
     def __init__(self):
@@ -11480,6 +11500,14 @@ class WorldSim:
         self.cops                = []
         self._next_cop_id        = 1
         self._last_wanted_decay  = self.started_at
+        # Захват районов.
+        #   territories[tid] = {owner_uid, owner_name, gang_tag, color,
+        #                        captured_at, last_payout_at}
+        #   active_capture   = {tid, by_uid, by_name, color, started_at} | None
+        #   _capture_cooldowns[(uid,tid)] = expires_at_unix
+        self.territories         = {}
+        self.active_capture      = None
+        self._capture_cooldowns  = {}
 
     def add_or_update(self, uid: str, name: str, look: dict,
                        wanted: float = 0.0, jail_until: int = 0,
@@ -12357,6 +12385,180 @@ class WorldSim:
             'killed':      killed,
         }
 
+    # ── Захват районов: вспомогательное ────────────────────────────
+    @staticmethod
+    def _terr_color(key: str) -> str:
+        """Стабильный hsl-цвет по uid/имени — чтобы на всех клиентах
+        флаг банды выглядел одинаково. То же что ownerColor() в world.html."""
+        h = 0
+        for ch in key:
+            h = (h * 31 + ord(ch)) & 0xFFFFFFFF
+        return 'hsl(%d, 75%%, 55%%)' % (h % 360)
+
+    def _territory_at(self, x: float, y: float):
+        """Возвращает (tid, def_dict) если (x,y) внутри какой-то захватываемой
+        зоны 7×7. world-coord: x = c (столбец), y = r (строка)."""
+        for tid, td in self.TERRITORIES_DEF.items():
+            if abs(x - td['c']) <= self.TERR_RADIUS and abs(y - td['r']) <= self.TERR_RADIUS:
+                return tid, td
+        return None, None
+
+    def _cancel_active_capture(self, reason: str) -> dict | None:
+        """Сбрасывает текущий захват и возвращает event-пакет для broadcast
+        (или None если ничего не было)."""
+        ac = self.active_capture
+        if not ac:
+            return None
+        self.active_capture = None
+        return {
+            'kind':    'territory_capture_cancelled',
+            'tid':     ac['tid'],
+            'by_uid':  ac['by_uid'],
+            'by_name': ac['by_name'],
+            'reason':  reason,
+        }
+
+    def apply_capture_try(self, uid: str) -> dict | None:
+        """Игрок просит начать захват зоны под собой. Возвращает event-пакет
+        для broadcast (start/denied) или None если ничего не происходит.
+        Правила:
+          - PvE не участвуют (тихий no-op);
+          - в зоне уже идёт захват → отказ;
+          - игрок на 24ч кулдауне для этой зоны → отказ;
+          - зона уже у этого игрока (захватывать свою же бесполезно) → отказ;
+          - игрок мёртв/в тюрьме → отказ.
+        """
+        p = self.players.get(uid)
+        if not p:
+            return None
+        if (p.get('_mode') or 'pvp') == 'pve':
+            return None
+        if p.get('dead'):
+            return None
+        if (p.get('_jail_until') or 0) > time.time():
+            return None
+        tid, td = self._territory_at(p.get('x', 0), p.get('y', 0))
+        if not tid:
+            return None
+        if self.active_capture is not None:
+            return None  # уже идёт захват в этой/другой зоне — игнор
+        now = time.time()
+        cd_key = (uid, tid)
+        cd_until = self._capture_cooldowns.get(cd_key, 0)
+        if cd_until > now:
+            return {
+                'kind':    'territory_capture_denied',
+                'tid':     tid,
+                'by_uid':  uid,
+                'reason':  'cooldown',
+                'wait_s':  int(round(cd_until - now)),
+            }
+        cur_owner = self.territories.get(tid)
+        if cur_owner and str(cur_owner.get('owner_uid')) == str(uid):
+            return None  # своя территория — нет смысла захватывать
+        color = self._terr_color(str(uid))
+        self.active_capture = {
+            'tid':        tid,
+            'by_uid':     str(uid),
+            'by_name':    (p.get('name') or '')[:24],
+            'color':      color,
+            'started_at': now,
+        }
+        return {
+            'kind':       'territory_capture_started',
+            'tid':        tid,
+            'by_uid':     self.active_capture['by_uid'],
+            'by_name':    self.active_capture['by_name'],
+            'color':      color,
+            'started_at': round(now, 2),
+            'duration_s': self.CAPTURE_TIME_S,
+        }
+
+    def apply_capture_cancel(self, uid: str) -> dict | None:
+        ac = self.active_capture
+        if not ac or str(ac.get('by_uid')) != str(uid):
+            return None
+        return self._cancel_active_capture('player_left')
+
+    def tick_capture(self, dt: float) -> list:
+        """Тикает активный захват + выплачивает доход районов в банду.
+        Возвращает list event-пакетов для broadcast."""
+        out: list = []
+        now = time.time()
+        # 1) Активный захват
+        ac = self.active_capture
+        if ac:
+            holder = self.players.get(str(ac['by_uid']))
+            cancel_reason = None
+            if not holder:
+                cancel_reason = 'disconnected'
+            elif holder.get('dead'):
+                cancel_reason = 'killed'
+            elif (holder.get('_jail_until') or 0) > now:
+                cancel_reason = 'jailed'
+            elif (holder.get('_mode') or 'pvp') == 'pve':
+                cancel_reason = 'mode_changed'
+            else:
+                tid_now, _ = self._territory_at(holder.get('x', 0), holder.get('y', 0))
+                if tid_now != ac['tid']:
+                    cancel_reason = 'left_zone'
+            if cancel_reason:
+                pkt = self._cancel_active_capture(cancel_reason)
+                if pkt: out.append(pkt)
+            elif (now - ac['started_at']) >= self.CAPTURE_TIME_S:
+                tid = ac['tid']
+                td  = self.TERRITORIES_DEF.get(tid, {})
+                self.territories[tid] = {
+                    'owner_uid':      str(ac['by_uid']),
+                    'owner_name':     ac['by_name'],
+                    'gang_tag':       '',           # подтянем при выплате
+                    'color':          ac['color'],
+                    'captured_at':    now,
+                    'last_payout_at': now,
+                }
+                self._capture_cooldowns[(str(ac['by_uid']), tid)] = now + self.CAPTURE_COOLDOWN_S
+                self.active_capture = None
+                out.append({
+                    'kind':        'territory_captured',
+                    'tid':         tid,
+                    'name':        td.get('name') or tid,
+                    'icon':        td.get('icon') or '🏴',
+                    'by_uid':      str(ac['by_uid']),
+                    'by_name':     ac['by_name'],
+                    'color':       ac['color'],
+                    'captured_at': round(now, 2),
+                })
+        # 2) Доход районов — оба условия: ≥30 мин с захвата И ≥10 мин с последней выплаты.
+        #    Сама запись в gang_pool делается асинхронно в _world_run_loop —
+        #    тут только формируем «нужно выплатить»-пакеты.
+        for tid, terr in list(self.territories.items()):
+            if (now - terr['captured_at']) < self.INCOME_DELAY_S:
+                continue
+            if (now - terr['last_payout_at']) < self.INCOME_TICK_S:
+                continue
+            td = self.TERRITORIES_DEF.get(tid, {})
+            income = int(td.get('income') or 50)
+            terr['last_payout_at'] = now
+            out.append({
+                'kind':       'territory_income',
+                'tid':        tid,
+                'name':       td.get('name') or tid,
+                'icon':       td.get('icon') or '🏴',
+                'owner_uid':  terr['owner_uid'],
+                'owner_name': terr['owner_name'],
+                'amount':     income,
+            })
+        return out
+
+    def cancel_capture_on_player_killed(self, victim_uid: str) -> dict | None:
+        """Если убитый — текущий захватчик, сбрасываем захват и возвращаем
+        event-пакет. Вызывается из apply_player_shoot/apply_cop_shoot после
+        фактической смерти."""
+        ac = self.active_capture
+        if ac and str(ac.get('by_uid')) == str(victim_uid):
+            return self._cancel_active_capture('killed')
+        return None
+
     def snapshot_for(self, uid: str) -> dict:
         """Снапшот для конкретного игрока: видит себя точно + всех в радиусе."""
         me = self.players.get(uid)
@@ -12457,6 +12659,38 @@ class WorldSim:
                 'kind':       cop.get('kind') or 'patrol',
                 'weapon':     cop.get('weapon') or 'pistol',
             })
+        # Захват районов: владельцы + активный прогресс. Передаём всем
+        # клиентам одинаково (5 районов — копеечный объём).
+        terr_payload = {}
+        for tid, t in self.territories.items():
+            terr_payload[tid] = {
+                'owner_uid':   t['owner_uid'],
+                'owner_name':  t['owner_name'],
+                'gang_tag':    t.get('gang_tag') or '',
+                'color':       t['color'],
+                'captured_at': round(t['captured_at'], 2),
+            }
+        cap_payload = None
+        if self.active_capture:
+            ac = self.active_capture
+            elapsed = max(0.0, now_t - ac['started_at'])
+            cap_payload = {
+                'tid':        ac['tid'],
+                'by_uid':     ac['by_uid'],
+                'by_name':    ac['by_name'],
+                'color':      ac['color'],
+                'started_at': round(ac['started_at'], 2),
+                'elapsed':    round(elapsed, 2),
+                'duration_s': self.CAPTURE_TIME_S,
+            }
+        # Кулдаун до возможности захватить (текущая моя территория, для UI)
+        my_terr_cd = 0
+        if not me.get('dead'):
+            tid_me, _ = self._territory_at(mx, my)
+            if tid_me:
+                cd_until = self._capture_cooldowns.get((uid, tid_me), 0)
+                if cd_until > now_t:
+                    my_terr_cd = int(round(cd_until - now_t))
         return {
             't': 'snap',
             'd': {
@@ -12474,6 +12708,7 @@ class WorldSim:
                     'jail_in':    my_jail_in,
                     'mode':       me.get('_mode') or 'pvp',
                     'look':    me.get('look') or {},
+                    'terr_cd':  my_terr_cd,
                 },
                 'others':        others,
                 'event':         ev_payload,
@@ -12481,6 +12716,8 @@ class WorldSim:
                 'next_event_in': next_event_in,
                 'pvp_active':    me_in_pvp,
                 'tick':          self.tick_no,
+                'territories':    terr_payload,
+                'active_capture': cap_payload,
             }
         }
 
@@ -12535,6 +12772,26 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                         'id':   world.event.get('id'),
                     })
                     world.event = None  # очищаем — следующий по таймеру
+                # Захват районов: тик + начисление дохода в gang_pool.
+                cap_pkts = world.tick_capture(WORLD_TICK_DT) or []
+                for cp in cap_pkts:
+                    if cp.get('kind') == 'territory_income':
+                        try:
+                            owner_uid_int = int(cp['owner_uid'])
+                            amount        = int(cp['amount'])
+                            # Доход идёт в копилку банды владельца — а если он
+                            # не в банде, то на свою «копилку лидера» (та же
+                            # таблица gang_pools: забирается через 3 дня).
+                            leader_id = await get_gang_leader_id(owner_uid_int)
+                            target_leader = leader_id or owner_uid_int
+                            await gang_pool_add(target_leader, amount)
+                            cp['gang_leader'] = target_leader
+                            cp['is_personal'] = (leader_id is None)
+                            logger.info("WorldSim: territory income tid=%s owner=%s +$%d → leader=%s",
+                                        cp.get('tid'), owner_uid_int, amount, target_leader)
+                        except Exception as _e:
+                            logger.warning("WorldSim: territory income failed: %r", _e)
+                ev_pkts.extend(cap_pkts)
                 # Broadcast всех event-пакетов
                 if ev_pkts:
                     blob = [json.dumps({'t': 'event', 'd': p}, ensure_ascii=False)
@@ -14262,6 +14519,22 @@ async def _coop_http_app():
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
                                     except Exception: pass
+                    elif t == 'capture_try':
+                        # Игрок жмёт «начать захват» зоны под собой.
+                        # PvE отсеивается на сервере (apply_capture_try).
+                        pkt = world.apply_capture_try(uid)
+                        if pkt:
+                            blob = json.dumps({'t': 'event', 'd': pkt}, ensure_ascii=False)
+                            for u2, ws2 in list(world.connections.items()):
+                                try: await ws2.send_str(blob)
+                                except Exception: pass
+                    elif t == 'capture_cancel':
+                        pkt = world.apply_capture_cancel(uid)
+                        if pkt:
+                            blob = json.dumps({'t': 'event', 'd': pkt}, ensure_ascii=False)
+                            for u2, ws2 in list(world.connections.items()):
+                                try: await ws2.send_str(blob)
+                                except Exception: pass
                     elif t == 'open_fire':
                         # Игрок стреляет в городе вне PvP-зоны.
                         # d = {x, y, weapon, civilian: bool}
