@@ -12787,8 +12787,20 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                             await gang_pool_add(target_leader, amount)
                             cp['gang_leader'] = target_leader
                             cp['is_personal'] = (leader_id is None)
+                            # При ПЕРВОЙ выплате подтягиваем имя лидера и
+                            # кладём как gang_tag — флаг района на карте
+                            # покажет банду, а не владельца индивидуально.
+                            tid = cp.get('tid')
+                            terr = world.territories.get(tid)
+                            if terr is not None and not terr.get('gang_tag') and leader_id:
+                                try:
+                                    lch = await get_character(int(leader_id))
+                                    if lch and lch.get('name'):
+                                        terr['gang_tag'] = (lch.get('name') or '')[:12]
+                                except Exception:
+                                    pass
                             logger.info("WorldSim: territory income tid=%s owner=%s +$%d → leader=%s",
-                                        cp.get('tid'), owner_uid_int, amount, target_leader)
+                                        tid, owner_uid_int, amount, target_leader)
                         except Exception as _e:
                             logger.warning("WorldSim: territory income failed: %r", _e)
                 ev_pkts.extend(cap_pkts)
@@ -14507,6 +14519,15 @@ async def _coop_http_app():
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
                                     except Exception: pass
+                                # Если жертва — активный захватчик, мгновенно
+                                # сбиваем захват, чтобы не ждать тика.
+                                if hit_pkt.get('killed'):
+                                    cap_cancel = world.cancel_capture_on_player_killed(target_uid)
+                                    if cap_cancel:
+                                        blob = json.dumps({'t': 'event', 'd': cap_cancel}, ensure_ascii=False)
+                                        for u2, ws2 in list(world.connections.items()):
+                                            try: await ws2.send_str(blob)
+                                            except Exception: pass
                     elif t == 'cop_shoot':
                         # Игрок стреляет в копа (тоже копит wanted).
                         # d = {target: 'cop123', weapon: 'pistol'}

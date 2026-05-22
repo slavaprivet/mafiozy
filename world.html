@@ -6758,6 +6758,42 @@ function drawMinimap() {
   ctx2.strokeRect(ARENA_C0 * sx + 0.5, ARENA_R0 * sy + 0.5,
                   (ARENA_C1 - ARENA_C0 + 1) * sx, (ARENA_R1 - ARENA_R0 + 1) * sy);
   ctx2.setLineDash([]);
+  // Захватываемые районы — заливка зоны цветом владельца / захватчика.
+  // Ничейные — лёгкий dashed-контур (что зона существует и её можно брать).
+  const tPulse = 0.45 + 0.5 * Math.abs(Math.sin(performance.now() * 0.004));
+  for (const t of TERRITORIES) {
+    const x = t.c0 * sx, y = t.r0 * sy;
+    const w = (t.c1 - t.c0 + 1) * sx;
+    const h = (t.r1 - t.r0 + 1) * sy;
+    const owner = territoryOwners[t.id];
+    const capturing = activeCapture && activeCapture.tid === t.id;
+    if (capturing) {
+      const col = activeCapture.color || ownerColor(activeCapture.byId);
+      ctx2.fillStyle = col.replace('hsl', 'hsla').replace(')', `,${0.25 + 0.25 * tPulse})`);
+      ctx2.fillRect(x, y, w, h);
+      ctx2.strokeStyle = col;
+      ctx2.lineWidth = 1.6;
+      ctx2.setLineDash([3, 2]);
+      ctx2.strokeRect(x + 0.5, y + 0.5, w, h);
+      ctx2.setLineDash([]);
+    } else if (owner) {
+      const ownerKey = owner.owner_uid || owner.ownerId || owner.owner_name;
+      const col = owner.color || ownerColor(ownerKey);
+      // Светим зону цветом владельца — но мягче, чем активный захват
+      ctx2.fillStyle = col.replace('hsl', 'hsla').replace(')', ',.20)');
+      ctx2.fillRect(x, y, w, h);
+      ctx2.strokeStyle = col;
+      ctx2.lineWidth = 1.4;
+      ctx2.strokeRect(x + 0.5, y + 0.5, w, h);
+    } else {
+      // Ничейная — тонкий золотой dashed как «можно захватить»
+      ctx2.strokeStyle = 'rgba(255,215,107,.55)';
+      ctx2.lineWidth = 1;
+      ctx2.setLineDash([2, 3]);
+      ctx2.strokeRect(x + 0.5, y + 0.5, w, h);
+      ctx2.setLineDash([]);
+    }
+  }
   // Тюрьма (как POI 🚓) — серый домик в правом-нижнем углу карты
   const jailX = 56, jailY = 56, jailSize = 8;
   ctx2.fillStyle = 'rgba(90,90,110,.85)';
@@ -6773,21 +6809,60 @@ function drawMinimap() {
   for (const poi of POI) {
     const x = (poi.c + 0.5) * sx;
     const y = (poi.r + 0.5) * sy;
-    // Цветной кружок-фон под эмодзи
-    const ringCol = poi.special === 'shop'     ? 'rgba(200,112,255,.85)' :
-                    poi.special === 'arena'    ? 'rgba(255,80,80,.85)'   :
-                    poi.special === 'hospital' ? 'rgba(80,220,120,.90)'  :
-                                                 'rgba(255,215,107,.85)';
+    // Капturable POI — особое выделение (флаг и пульсация по статусу).
+    const isCap = TERRITORY_BY_ID.has(poi.id);
+    let ringCol, ringW = 1.5, ringR = 9, pulseR = 0;
+    if (poi.special === 'shop')     ringCol = 'rgba(200,112,255,.85)';
+    else if (poi.special === 'arena')    ringCol = 'rgba(255,80,80,.85)';
+    else if (poi.special === 'hospital') ringCol = 'rgba(80,220,120,.90)';
+    else if (poi.special === 'jail')     ringCol = 'rgba(180,180,200,.85)';
+    else if (isCap) {
+      const own = territoryOwners[poi.id];
+      const capActive = activeCapture && activeCapture.tid === poi.id;
+      if (capActive) {
+        ringCol = activeCapture.color || ownerColor(activeCapture.byId);
+        ringW = 2.5; pulseR = 4 * tPulse;
+      } else if (own) {
+        const ownerKey = own.owner_uid || own.ownerId || own.owner_name;
+        ringCol = own.color || ownerColor(ownerKey);
+        ringW = 2.2;
+      } else {
+        // Ничейный захватываемый — золотая пульсация, чтобы выделялся
+        ringCol = 'rgba(255,215,107,.95)';
+        ringW = 2; pulseR = 2.5 * tPulse;
+      }
+    } else {
+      ringCol = 'rgba(255,215,107,.85)';
+    }
+    // Свечение-ореол для активного захвата / ничейной зоны
+    if (pulseR > 0) {
+      // Мягкий золотой ореол — подходит и для активного захвата, и для
+      // ничейной зоны (привлекает внимание к доступным точкам).
+      ctx2.fillStyle = 'rgba(255,215,107,.22)';
+      ctx2.beginPath(); ctx2.arc(x, y, ringR + pulseR, 0, Math.PI * 2); ctx2.fill();
+    }
+    // Тёмная подложка-кружок + цветная обводка
     ctx2.fillStyle = 'rgba(0,0,0,.55)';
-    ctx2.beginPath(); ctx2.arc(x, y, 9, 0, Math.PI * 2); ctx2.fill();
+    ctx2.beginPath(); ctx2.arc(x, y, ringR, 0, Math.PI * 2); ctx2.fill();
     ctx2.strokeStyle = ringCol;
-    ctx2.lineWidth = 1.5;
-    ctx2.beginPath(); ctx2.arc(x, y, 9, 0, Math.PI * 2); ctx2.stroke();
+    ctx2.lineWidth = ringW;
+    ctx2.beginPath(); ctx2.arc(x, y, ringR, 0, Math.PI * 2); ctx2.stroke();
     // Эмодзи сверху
     ctx2.fillStyle = '#000';
     ctx2.fillText(poi.icon, x + 0.6, y + 0.6);
     ctx2.fillStyle = '#fff';
     ctx2.fillText(poi.icon, x, y);
+    // Мини-флажок справа от захваченного района (цвет владельца).
+    if (isCap && territoryOwners[poi.id] && !(activeCapture && activeCapture.tid === poi.id)) {
+      const own = territoryOwners[poi.id];
+      const ownerKey = own.owner_uid || own.ownerId || own.owner_name;
+      const fc = own.color || ownerColor(ownerKey);
+      ctx2.fillStyle = fc;
+      ctx2.fillRect(x + ringR - 1, y - ringR - 3, 5, 4);
+      ctx2.strokeStyle = '#000';
+      ctx2.lineWidth = 0.8;
+      ctx2.strokeRect(x + ringR - 1 + 0.5, y - ringR - 3 + 0.5, 5, 4);
+    }
   }
   // Другие игроки — точки с обводкой, цвет по mode (PvE сине-серый,
   // PvP яркий зелёный «союзник» с тонкой пульсацией)
