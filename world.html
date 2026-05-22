@@ -932,6 +932,49 @@ function inArena(r, c) {
   return r >= ARENA_R0 && r <= ARENA_R1 && c >= ARENA_C0 && c <= ARENA_C1;
 }
 
+// ── Захват районов ─────────────────────────────────────────────
+// Захватываемые POI (особые — больница/участок/арена/чёрный рынок — НЕ
+// захватываются). Зона = квартал 7×7 вокруг POI. PvE-игроки в захвате
+// и обороне не участвуют (см. серверный гейтинг).
+const TERRITORY_RADIUS = 3;          // ⇒ квадрат 7×7
+const CAPTURE_TIME_MS  = 30 * 1000;  // 30 секунд удержания
+const CAPTURE_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24ч между захватами одной зоны одним игроком
+const INCOME_DELAY_MS = 30 * 60 * 1000;          // доход начинает капать через 30 мин
+const TERRITORIES = POI
+  .filter(p => !p.special)
+  .map(p => ({
+    id: p.id, name: p.name, icon: p.icon, r: p.r, c: p.c,
+    r0: p.r - TERRITORY_RADIUS, r1: p.r + TERRITORY_RADIUS,
+    c0: p.c - TERRITORY_RADIUS, c1: p.c + TERRITORY_RADIUS,
+    // Доход в копилку банды владельца (через 30 мин после захвата, +N каждые 10 мин)
+    income: { market: 50, port: 80, casino: 120, factory: 160, mansion: 250 }[p.id] || 50,
+  }));
+const TERRITORY_BY_ID = new Map(TERRITORIES.map(t => [t.id, t]));
+
+// State владельцев (приходит с сервера; пока локально пусто).
+// { [tid]: { ownerId, ownerName, gangTag, color, capturedAt } } — null = ничейная
+const territoryOwners = Object.create(null);
+
+// Активный захват — { tid, byId, byName, startedAt, color } | null
+// Видим всем игрокам в реалтайме.
+let activeCapture = null;
+
+function territoryAt(r, c) {
+  for (const t of TERRITORIES) {
+    if (r >= t.r0 && r <= t.r1 && c >= t.c0 && c <= t.c1) return t;
+  }
+  return null;
+}
+
+// Стабильный цвет игрока по id/имени для подкраски зоны/флага.
+function ownerColor(key) {
+  if (!key) return '#888';
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  return `hsl(${hue}, 75%, 55%)`;
+}
+
 buildMap();
 
 // ── Живой город: NPC прохожие + машины + светофоры ──────────────
@@ -3897,6 +3940,58 @@ function drawArenaPerimeter() {
   ctx.restore();
 }
 
+// Периметры захватываемых районов — цвет владельца (или серый dashed для
+// ничейных). Если идёт активный захват — периметр пульсирует цветом
+// захватчика. Рисуется ПОСЛЕ пола, ДО зданий — так линия читается, а
+// постройки не «обрезают» её.
+function drawTerritoryPerimeters() {
+  const now = performance.now();
+  for (const t of TERRITORIES) {
+    const owner = territoryOwners[t.id];
+    const capturing = activeCapture && activeCapture.tid === t.id;
+    let color, dash, glow, width;
+    if (capturing) {
+      // Активный захват — пульсирующий цвет захватчика
+      const pulse = 0.5 + 0.5 * Math.sin(now / 180);
+      color = activeCapture.color || ownerColor(activeCapture.byId || activeCapture.byName);
+      dash = [10, 5];
+      glow = 10 + pulse * 6;
+      width = 2.5 + pulse * 1.2;
+    } else if (owner) {
+      // Контролируется бандой/игроком
+      color = owner.color || ownerColor(owner.ownerId || owner.ownerName);
+      dash = [];
+      glow = 6;
+      width = 2.2;
+    } else {
+      // Ничейная зона
+      color = 'rgba(180,180,180,.55)';
+      dash = [4, 8];
+      glow = 0;
+      width = 1.5;
+    }
+    const corners = [
+      [t.r0, t.c0], [t.r0, t.c1 + 1],
+      [t.r1 + 1, t.c1 + 1], [t.r1 + 1, t.c0],
+    ];
+    const scr = corners.map(([r, c]) => w2s(r, c));
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash);
+    if (glow > 0) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = glow;
+    }
+    ctx.beginPath();
+    ctx.moveTo(scr[0].x, scr[0].y);
+    for (let i = 1; i < scr.length; i++) ctx.lineTo(scr[i].x, scr[i].y);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
 // ── Красивая отрисовка машины В ИЗОМЕТРИИ ──────────────────────
 // Машина — настоящий объёмный параллелепипед (как здания/ящики),
 // ориентированный по направлению движения. 4 угла основания в
@@ -4883,6 +4978,61 @@ function drawPOI(r, c, poi) {
   ctx.beginPath();
   ctx.arc(p.x, ly + labelH + 4, 3, 0, Math.PI * 2);
   ctx.fill();
+  // Флаг владельца — если район захвачен. Развевается над вывеской.
+  const owner = territoryOwners[poi.id];
+  if (owner) {
+    const fcol = owner.color || ownerColor(owner.ownerId || owner.ownerName);
+    const fx = p.x + labelW / 2 - 6;       // правый край вывески
+    const fyTop = ly - 22;                  // верх флагштока
+    const fyBot = ly;                       // низ — крепится к вывеске
+    // Флагшток
+    ctx.strokeStyle = '#cfcfcf';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(fx, fyBot); ctx.lineTo(fx, fyTop);
+    ctx.stroke();
+    // Полотно — лёгкая волна
+    const wave = Math.sin(performance.now() / 220 + r * 0.4) * 2;
+    ctx.fillStyle = fcol;
+    ctx.beginPath();
+    ctx.moveTo(fx, fyTop);
+    ctx.lineTo(fx + 18 + wave, fyTop + 4);
+    ctx.lineTo(fx + 18 - wave, fyTop + 10);
+    ctx.lineTo(fx, fyTop + 14);
+    ctx.closePath();
+    ctx.fill();
+    // Имя владельца под флагом
+    const ownerLabel = owner.gangTag ? `[${owner.gangTag}]` : (owner.ownerName || '');
+    if (ownerLabel) {
+      ctx.font = 'bold 9px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(0,0,0,.8)';
+      ctx.fillText(ownerLabel, p.x + 1, ly + labelH + 16);
+      ctx.fillStyle = fcol;
+      ctx.fillText(ownerLabel, p.x, ly + labelH + 15);
+      ctx.textAlign = 'left';
+    }
+  }
+  // Прогресс-бар активного захвата — поверх вывески
+  if (activeCapture && activeCapture.tid === poi.id) {
+    const elapsed = Math.min(CAPTURE_TIME_MS, Date.now() - activeCapture.startedAt);
+    const frac = elapsed / CAPTURE_TIME_MS;
+    const sec  = Math.ceil((CAPTURE_TIME_MS - elapsed) / 1000);
+    const barW = labelW - 8, barH = 4;
+    const bx = lx + 4, by = ly + labelH + 8;
+    ctx.fillStyle = 'rgba(0,0,0,.85)';
+    ctx.fillRect(bx - 1, by - 1, barW + 2, barH + 2);
+    ctx.fillStyle = activeCapture.color || '#ff4040';
+    ctx.fillRect(bx, by, barW * frac, barH);
+    // Подпись «@nick захватывает … 0:18»
+    ctx.font = 'bold 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(0,0,0,.85)';
+    ctx.fillText(`@${activeCapture.byName || '?'}  ${sec}с`, p.x + 1, by + barH + 11);
+    ctx.fillStyle = '#ffe9aa';
+    ctx.fillText(`@${activeCapture.byName || '?'}  ${sec}с`, p.x, by + barH + 10);
+    ctx.textAlign = 'left';
+  }
 }
 
 // Парковка у полицейского участка + башня с пулемётом на крыше.
@@ -5937,6 +6087,8 @@ function render() {
       if (MAP[r][c] !== 1) drawTile(r, c);
   // 1.5) Граница PVP-арены — красный пунктир поверх пола
   drawArenaPerimeter();
+  // 1.6) Периметры захватываемых районов — цвет владельца / пунктир если ничейная
+  drawTerritoryPerimeters();
   // 2) Объекты с depth-sort
   const items = [];
   for (let r = r0; r < r1; r++) {
