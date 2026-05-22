@@ -3156,30 +3156,42 @@ function drawTree(r, c) {
 }
 
 // Уличный фонарь — высокий столб с лампой и пятном света на земле.
+// Свет завязан на день/ночь: днём (7-17 ч) фонари выключены, остаётся
+// только тёмный столб и серая колба. Ночью полная яркость + большое
+// пятно света на земле. Кривая берётся из getNightAlpha() — та же что
+// у общего ночного тинта, чтобы фонари «зажигались» синхронно с ним.
 function drawLamp(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const H = isoH(1.4);
-  // Пятно света на земле (большое и тёплое)
-  const lightGrd = ctx.createRadialGradient(p.x, p.y, 4, p.x, p.y, 36);
-  lightGrd.addColorStop(0, 'rgba(255,220,140,.40)');
-  lightGrd.addColorStop(1, 'rgba(255,220,140,0)');
-  ctx.fillStyle = lightGrd;
-  ctx.beginPath();
-  ctx.arc(p.x, p.y, 36, 0, Math.PI * 2); ctx.fill();
-  // Столб
+  // 0..1, где 0 = день (выключен), 1 = глубокая ночь (полная яркость).
+  // Делим на 0.55 потому что max alpha ночного тинта = 0.55.
+  const lit = Math.max(0, Math.min(1, getNightAlpha() / 0.55));
+  // Пятно света на земле — только когда фонарь горит (lit > 0).
+  if (lit > 0.05) {
+    const lightGrd = ctx.createRadialGradient(p.x, p.y, 4, p.x, p.y, 36);
+    lightGrd.addColorStop(0, 'rgba(255,220,140,' + (0.40 * lit).toFixed(3) + ')');
+    lightGrd.addColorStop(1, 'rgba(255,220,140,0)');
+    ctx.fillStyle = lightGrd;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 36, 0, Math.PI * 2); ctx.fill();
+  }
+  // Столб (виден всегда, чуть светлее днём — заметнее)
   ctx.fillStyle = '#1a1a22';
   ctx.fillRect(p.x - 1.5, p.y - H, 3, H);
-  // Кронштейн
   ctx.fillRect(p.x, p.y - H, 8, 2);
-  // Лампа — жёлтый ромбик с гало
+  // Лампа: ночью жёлтая с гало, днём — серая «холодная» колба без свечения.
   const lampX = p.x + 9, lampY = p.y - H + 1;
-  const halo = ctx.createRadialGradient(lampX, lampY, 1, lampX, lampY, 12);
-  halo.addColorStop(0, 'rgba(255,235,160,.95)');
-  halo.addColorStop(1, 'rgba(255,235,160,0)');
-  ctx.fillStyle = halo;
-  ctx.beginPath();
-  ctx.arc(lampX, lampY, 12, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#ffe48a';
+  if (lit > 0.05) {
+    const halo = ctx.createRadialGradient(lampX, lampY, 1, lampX, lampY, 12);
+    halo.addColorStop(0, 'rgba(255,235,160,' + (0.95 * lit).toFixed(3) + ')');
+    halo.addColorStop(1, 'rgba(255,235,160,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(lampX, lampY, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffe48a';
+  } else {
+    ctx.fillStyle = '#5a5a64';   // погашенная колба
+  }
   ctx.beginPath();
   ctx.arc(lampX, lampY, 3, 0, Math.PI * 2); ctx.fill();
 }
