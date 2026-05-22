@@ -781,11 +781,12 @@ window.addEventListener('resize', resizeCanvas);
 
 // ── Карта (статичная) ──────────────────────────────────────────
 // Размер задаст сервер в hello-кадре, но дублируем дефолты на случай оффлайна.
-let MAP_COLS = 60, MAP_ROWS = 60;
+let MAP_COLS = 80, MAP_ROWS = 80;
 const TS     = 56;           // размер тайла на экране — крупнее, как в боях
 const ISO_Y  = 0.55;         // ужатие по Y (тот же угол что в demo_isometric)
-// Блок города: 8×8 тайлов. Дорога занимает 2 тайла шириной, тротуар
-// ещё 1 тайл, внутри 4×4 — здание (или парк/арена).
+// Блок города: 10×10 тайлов. Дорога 4 тайла шириной, бордюр 2 тайла,
+// внутри 4×4 — здание (или парк/арена). Пространство между фронтами
+// зданий = 4+2+2 = 8 тайлов — игрок не запинается о фонарь и углы.
 // Типы тайлов:
 //   0 = улица/тротуар (проходимая)
 //   1 = здание (непроходимо)
@@ -797,7 +798,7 @@ const ISO_Y  = 0.55;         // ужатие по Y (тот же угол что
 //   7 = фонарь (декор, не блокирует — низкий столб)
 //   8 = трава/газон (проходимо, зелёный пол)
 //   9 = бордюр (декор, проходимо, чуть выше асфальта)
-const BLOCK = 8;
+const BLOCK = 10;
 let MAP = [];
 // «Парк-блоки» — координаты центра блока (по сетке 8×8), которые НЕ застраиваем
 // зданиями, а заливаем газоном с деревьями. Детерминированный набор:
@@ -826,20 +827,20 @@ function buildMap() {
       if (r === 0 || r === MAP_ROWS - 1 || c === 0 || c === MAP_COLS - 1) {
         row.push(1); continue;
       }
-      // Дорога — ТРИ клетки шириной (mod 8 ∈ {0,1,2}). Шире чем раньше
-      // (было 2 тайла) — между зданиями ощутимо просторнее.
-      const onRoadR = (r % BLOCK <= 2);
-      const onRoadC = (c % BLOCK <= 2);
+      // Дорога — ЧЕТЫРЕ клетки шириной (mod 10 ∈ {0..3}). Между фронтами
+      // зданий просторно — игрок не запинается об угол.
+      const onRoadR = (r % BLOCK <= 3);
+      const onRoadC = (c % BLOCK <= 3);
       if (onRoadR || onRoadC) { row.push(0); continue; }
-      // Тротуар — клетка сразу за дорогой и у границы блока
-      // (mod 8 ∈ {3, 7}).
-      const sideR = (r % BLOCK === 3) || (r % BLOCK === BLOCK - 1);
-      const sideC = (c % BLOCK === 3) || (c % BLOCK === BLOCK - 1);
+      // Тротуар-бордюр — клетка сразу за дорогой и у границы блока
+      // (mod 10 ∈ {4, 9}).
+      const sideR = (r % BLOCK === 4) || (r % BLOCK === BLOCK - 1);
+      const sideC = (c % BLOCK === 4) || (c % BLOCK === BLOCK - 1);
       if (sideR || sideC) { row.push(9); continue; }   // бордюр-плитка
       // Парк-блок — газон внутри
       const br = Math.floor(r / BLOCK), bc = Math.floor(c / BLOCK);
       if (isParkBlock(br, bc)) { row.push(8); continue; }
-      // Здание — внутренний квадрат 3×3 (mod ∈ {4,5,6})
+      // Здание — внутренний квадрат 4×4 (mod ∈ {5..8})
       row.push(1);
     }
     MAP.push(row);
@@ -847,44 +848,46 @@ function buildMap() {
 
   function det(r, c, k) { return ((r * 73 + c * 131 + k * 17) % 1000) / 1000; }
 
-  // Деревья — внутри парк-блоков (по нескольку в каждом)
+  // Деревья — внутри парк-блоков (плотность снижена с 30% до 20%
+  // чтобы между ними проходило 2-3 тайла свободно).
   for (let r = 2; r < MAP_ROWS - 2; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
       if (MAP[r][c] !== 8) continue;
       const x = det(r, c, 3);
-      if (x < 0.30) MAP[r][c] = 6;          // дерево
+      if (x < 0.20) MAP[r][c] = 6;          // дерево
     }
   }
-  // Фонари — на бордюре через каждые 4 тайла (углы кварталов).
-  // Тротуар теперь на тайлах 3 и 7 (BLOCK-1), не 2 и 7 как раньше.
+  // Фонари — только в углах квартала (где обе координаты на тайле бордюра
+  // BLOCK-1 или 4) И каждый второй угол по чётности br+bc. Так фонари
+  // расставлены по диагонали через квартал, а не на каждом углу.
   for (let r = 2; r < MAP_ROWS - 2; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
       if (MAP[r][c] !== 9) continue;
-      const onCornerR = (r % BLOCK === 3) || (r % BLOCK === BLOCK - 1);
-      const onCornerC = (c % BLOCK === 3) || (c % BLOCK === BLOCK - 1);
-      if (!onCornerR && !onCornerC) continue;
-      if (onCornerR && onCornerC) MAP[r][c] = 7;
-      else if ((r % 4 === 0) && onCornerC) MAP[r][c] = 7;
-      else if ((c % 4 === 0) && onCornerR) MAP[r][c] = 7;
+      const onCornerR = (r % BLOCK === 4) || (r % BLOCK === BLOCK - 1);
+      const onCornerC = (c % BLOCK === 4) || (c % BLOCK === BLOCK - 1);
+      if (!(onCornerR && onCornerC)) continue;   // только угловые тайлы
+      const br = Math.floor(r / BLOCK), bc = Math.floor(c / BLOCK);
+      if (((br + bc) & 1) === 0) MAP[r][c] = 7;
     }
   }
-  // Декор на бордюре: ящики, бочки, мусорки
+  // Декор на бордюре — плотность ×0.7 (ящики/бочки/мусорки реже).
   for (let r = 2; r < MAP_ROWS - 2; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
       if (MAP[r][c] !== 9) continue;
       const x = det(r, c, 1);
-      if (x < 0.025)       MAP[r][c] = 3; // ящик
-      else if (x < 0.040)  MAP[r][c] = 4; // бочка
-      else if (x < 0.052)  MAP[r][c] = 5; // мусорка
+      if (x < 0.018)       MAP[r][c] = 3; // ящик
+      else if (x < 0.028)  MAP[r][c] = 4; // бочка
+      else if (x < 0.036)  MAP[r][c] = 5; // мусорка
     }
   }
-  // Припаркованные машины — на крайней полосе у тротуара (тайл 2)
+  // Припаркованные машины — на крайней полосе дороги у бордюра
+  // (тайл BLOCK-2). Плотность ×0.7 (5% → 3.5%).
   for (let r = 2; r < MAP_ROWS - 2; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
       if (MAP[r][c] !== 0) continue;
-      if ((r % BLOCK !== 2) && (c % BLOCK !== 2)) continue; // крайняя полоса у бордюра
+      if ((r % BLOCK !== BLOCK - 2) && (c % BLOCK !== BLOCK - 2)) continue;
       const x = det(r, c, 7);
-      if (x < 0.05) MAP[r][c] = 2; // машина (чуть реже теперь — улицы шире)
+      if (x < 0.035) MAP[r][c] = 2; // машина
     }
   }
   // Гарантируем — все POI-тайлы стоят на здании (тип 1), иначе вывеска
@@ -898,32 +901,33 @@ function buildMap() {
 }
 
 // ── POI районов ────────────────────────────────────────────────
-// Расставлены по карте 60×60 на тайлах-зданиях (r%8 ∈ [3..6], c%8 ∈ [3..6]).
-// При тайле кратном 8+4 — точно центр здания. Дополнительные POI:
+// Расставлены по карте 80×80 на тайлах-зданиях (r%10 ∈ [5..8], c%10 ∈ [5..8]).
+// Используем r=10k+6 чтобы попасть в центр блока. Дополнительные POI:
 // 🌌 Чёрный рынок (купить оружие), 🎯 PVP-арена (стрелять в др. игроков).
 const POI = [
-  { id: 'market',  r: 12, c: 12, icon: '🏪', name: 'Рынок',        minLvl: 1  },
-  { id: 'port',    r: 12, c: 44, icon: '⚓', name: 'Порт',          minLvl: 5  },
-  { id: 'casino',  r: 36, c: 12, icon: '🎰', name: 'Казино',        minLvl: 10 },
-  { id: 'factory', r: 36, c: 44, icon: '🏭', name: 'Промзона',      minLvl: 15 },
-  { id: 'mansion', r: 52, c: 28, icon: '🏛', name: 'Резиденция',    minLvl: 20 },
+  { id: 'market',  r: 16, c: 16, icon: '🏪', name: 'Рынок',        minLvl: 1  },
+  { id: 'port',    r: 16, c: 56, icon: '⚓', name: 'Порт',          minLvl: 5  },
+  { id: 'casino',  r: 46, c: 16, icon: '🎰', name: 'Казино',        minLvl: 10 },
+  { id: 'factory', r: 46, c: 56, icon: '🏭', name: 'Промзона',      minLvl: 15 },
+  { id: 'mansion', r: 66, c: 36, icon: '🏛', name: 'Резиденция',    minLvl: 20 },
   // Особые POI
-  { id: 'blackmarket', r:  4, c: 28, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
-  { id: 'arena',       r: 28, c: 52, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
+  { id: 'blackmarket', r:  6, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
+  { id: 'arena',       r: 36, c: 66, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
   // Больница — северо-восточный квартал, на отдельном здании-квартале
   // (не на спавне). Серверный респаун рядом на дороге (см. HOSPITAL_X/Y).
-  { id: 'hospital',    r: 20, c: 36, icon: '🏥', name: 'Больница',     minLvl: 1, special: 'hospital' },
+  { id: 'hospital',    r: 26, c: 46, icon: '🏥', name: 'Больница',     minLvl: 1, special: 'hospital' },
   // Отделение полиции — координаты совпадают с серверной тюрьмой
-  // (JAIL_X=56, JAIL_Y=56). При 3★ копы пакуют в наручники и везут сюда.
-  { id: 'police',      r: 56, c: 56, icon: '🚔', name: 'Участок',      minLvl: 1, special: 'jail'  },
+  // (JAIL_X=76, JAIL_Y=76). При 3★ копы пакуют в наручники и везут сюда.
+  { id: 'police',      r: 76, c: 76, icon: '🚔', name: 'Участок',      minLvl: 1, special: 'jail'  },
 ];
 const POI_BY_RC = new Map();   // ключ "r,c" → POI
 POI.forEach(p => POI_BY_RC.set(p.r + ',' + p.c, p));
 
 // PVP-зона — квадрат 8×8 вокруг POI «арена»
 const ARENA_POI = POI.find(p => p.id === 'arena');
-const ARENA_R0 = ARENA_POI.r - 4, ARENA_R1 = ARENA_POI.r + 4;
-const ARENA_C0 = ARENA_POI.c - 4, ARENA_C1 = ARENA_POI.c + 4;
+// PVP-зона — 11×11 квадрат вокруг POI арены (под BLOCK=10 квартал + полоса).
+const ARENA_R0 = ARENA_POI.r - 5, ARENA_R1 = ARENA_POI.r + 5;
+const ARENA_C0 = ARENA_POI.c - 5, ARENA_C1 = ARENA_POI.c + 5;
 function inArena(r, c) {
   return r >= ARENA_R0 && r <= ARENA_R1 && c >= ARENA_C0 && c <= ARENA_C1;
 }
@@ -1202,7 +1206,8 @@ initNpcs();
 initCars();
 
 // Камера следит за игроком. Спавн — (24,24): перекрёсток в центре карты.
-const SPAWN_R = 24, SPAWN_C = 24;
+// Спавн в центре карты (BLOCK=10 → r=40, c=40 — это перекрёсток дороги).
+const SPAWN_R = 40, SPAWN_C = 40;
 const cam = {
   x: (SPAWN_C - SPAWN_R) * TS * 0.5,
   y: (SPAWN_C + SPAWN_R) * TS * 0.5 * ISO_Y,
