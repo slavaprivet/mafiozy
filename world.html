@@ -428,6 +428,37 @@ body.in-pvp #zoneBtn { top: 104px; }
 #eventBanner .et { font-size: 17px; font-weight: 800; letter-spacing: .3px; line-height: 1.15; }
 #eventBanner .em { font-size: 12px; color: #d8d2c8; margin-top: 4px; line-height: 1.35; }
 
+/* Баннер активного захвата района — отдельный слот, чтобы не накладываться
+   на #eventBanner (инкассатор и т.п.). Висит постоянно пока идёт захват. */
+#captureBanner {
+  position: absolute; top: 140px; left: 50%;
+  transform: translate(-50%, -100%);
+  width: min(360px, 90vw);
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(60,20,20,.96), rgba(20,8,8,.96));
+  border: 2px solid #ff6060;
+  border-radius: 10px;
+  color: #fff;
+  z-index: 24;
+  box-shadow: 0 6px 24px rgba(255,80,80,.35);
+  pointer-events: none;
+  opacity: 0;
+  transition: transform .25s cubic-bezier(.16,1,.3,1), opacity .25s ease;
+  text-align: center;
+  font-family: inherit;
+}
+#captureBanner.show { transform: translate(-50%, 0); opacity: 1; }
+#captureBanner .ct { font-size: 14px; font-weight: 800; letter-spacing: .3px; }
+#captureBanner .cm { font-size: 11px; color: #ffd9a8; margin-top: 2px; }
+#captureBanner .cb {
+  height: 4px; background: rgba(0,0,0,.5); border-radius: 2px;
+  margin-top: 6px; overflow: hidden;
+}
+#captureBanner .cb i {
+  display: block; height: 100%; background: #ff6060;
+  width: 0%; transition: width .12s linear;
+}
+
 /* Красная вспышка по краям экрана когда в игрока попали */
 #hitFlash {
   position: absolute; inset: 0; z-index: 9;
@@ -634,6 +665,12 @@ body.in-pvp #zoneBtn { top: 104px; }
   <div id="eventBanner">
     <div class="et" id="eventBannerT">&nbsp;</div>
     <div class="em" id="eventBannerM">&nbsp;</div>
+  </div>
+  <!-- Баннер активного захвата района (persistent, отдельный слот) -->
+  <div id="captureBanner">
+    <div class="ct" id="captureBannerT">&nbsp;</div>
+    <div class="cm" id="captureBannerM">&nbsp;</div>
+    <div class="cb"><i id="captureBannerB"></i></div>
   </div>
   <!-- Красная вспышка при попадании в игрока -->
   <div id="hitFlash"></div>
@@ -905,7 +942,7 @@ function buildMap() {
   // Особые POI (больница/участок/арена/чёрный рынок) НЕ трогаем — у них
   // своя сцена.
   const CAPTURABLE_IDS = new Set(['market','port','casino','factory','mansion']);
-  const CLEAR_RADIUS = 3;
+  const CLEAR_RADIUS = 5;   // 11×11 центрально очищено — почти весь квартал свободен
   for (const p of POI) {
     if (!CAPTURABLE_IDS.has(p.id)) continue;
     for (let r = p.r - CLEAR_RADIUS; r <= p.r + CLEAR_RADIUS; r++) {
@@ -959,7 +996,7 @@ function inArena(r, c) {
 // Захватываемые POI (особые — больница/участок/арена/чёрный рынок — НЕ
 // захватываются). Зона = квартал 7×7 вокруг POI. PvE-игроки в захвате
 // и обороне не участвуют (см. серверный гейтинг).
-const TERRITORY_RADIUS = 3;          // ⇒ квадрат 7×7
+const TERRITORY_RADIUS = 6;          // ⇒ квадрат 13×13 (синхронно с TERR_RADIUS на сервере)
 const CAPTURE_TIME_MS  = 30 * 1000;  // 30 секунд удержания
 const CAPTURE_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24ч между захватами одной зоны одним игроком
 const INCOME_DELAY_MS = 30 * 60 * 1000;          // доход начинает капать через 30 мин
@@ -1895,7 +1932,7 @@ function handleEventPacket(d) {
     }
   } else if (kind === 'territory_capture_started') {
     // Кто-то начал захват. Локально не дожидаемся следующего snap —
-    // сразу видим прогресс-бар над POI.
+    // сразу видим прогресс-бар над POI + persistent #captureBanner.
     activeCapture = {
       tid:       d.tid,
       byId:      d.by_uid,
@@ -1903,16 +1940,8 @@ function handleEventPacket(d) {
       color:     d.color,
       startedAt: Date.now(),
     };
-    const td = TERRITORY_BY_ID.get(d.tid);
-    const tn = (td && td.name) || d.tid;
-    const tic = (td && td.icon) || '🏴';
-    if (String(d.by_uid) === String(QP.uid)) {
-      showEventBanner(`${tic} Захват: ${tn}`,
-        'Удержи 30 секунд — район твой.', 3500, 'win');
-    } else {
-      showEventBanner(`${tic} @${d.by_name} захватывает ${tn}`,
-        'Останови его если не хочешь делиться доходом.', 3500, 'neutral');
-    }
+    // Без showEventBanner — #captureBanner и так висит постоянно,
+    // дублирующее уведомление мешало бы инкассатору.
   } else if (kind === 'territory_capture_cancelled') {
     if (activeCapture && activeCapture.tid === d.tid) activeCapture = null;
     if (String(d.by_uid) === String(QP.uid)) {
@@ -2434,6 +2463,38 @@ window.addEventListener('message', (ev) => {
 // ── Toast (короткие уведомления) ────────────────────────────────
 const _toastEl = document.getElementById('toast');
 let _toastT = null;
+// Баннер активного захвата — persistent, обновляется каждый кадр пока
+// идёт захват. По окончании скрывается. Отдельный слот ниже #eventBanner —
+// не перекрывает баннер инкассатора и прочее.
+const _capBanner  = document.getElementById('captureBanner');
+const _capBannerT = document.getElementById('captureBannerT');
+const _capBannerM = document.getElementById('captureBannerM');
+const _capBannerB = document.getElementById('captureBannerB');
+function updateCaptureBanner() {
+  if (!_capBanner) return;
+  if (!activeCapture) {
+    if (_capBanner.classList.contains('show')) _capBanner.classList.remove('show');
+    return;
+  }
+  const elapsed = Math.min(CAPTURE_TIME_MS, Date.now() - activeCapture.startedAt);
+  const frac = elapsed / CAPTURE_TIME_MS;
+  const sec  = Math.max(0, Math.ceil((CAPTURE_TIME_MS - elapsed) / 1000));
+  const td   = TERRITORY_BY_ID.get(activeCapture.tid);
+  const tName = (td && td.name) || activeCapture.tid;
+  const tIcon = (td && td.icon) || '🏴';
+  const meIs = (String(activeCapture.byId) === String(QP.uid));
+  const verb = meIs ? 'захватываешь' : 'захватывает';
+  const who  = meIs ? 'ТЫ' : ('@' + (activeCapture.byName || '?'));
+  _capBannerT.textContent = `${tIcon} ${who} ${verb} ${tName}`;
+  _capBannerM.textContent = `Удержи ещё ${sec} сек.`;
+  _capBannerB.style.width = (frac * 100).toFixed(1) + '%';
+  // Цвет — цвет захватчика
+  const col = activeCapture.color || '#ff6060';
+  _capBanner.style.borderColor = col;
+  _capBannerB.style.background = col;
+  if (!_capBanner.classList.contains('show')) _capBanner.classList.add('show');
+}
+
 function showToast(msg, ms = 2200) {
   _toastEl.textContent = msg;
   _toastEl.classList.add('show');
@@ -3136,6 +3197,7 @@ function update(dt) {
   updateZoneBtn();
   updatePvpUI();
   updateTerritoryCapture();
+  updateCaptureBanner();
   // Hold-to-fire: пока правый стик СДВИНУТ — стреляем с cooldown'ом по
   // оружию. Без сдвига — не стреляем (auto-aim убран, целимся вручную).
   // Угол стика → world-space через ISO_Y коррекцию (как в demo).
@@ -5146,38 +5208,89 @@ function drawPOI(r, c, poi) {
     ctx.lineTo(fx, fyTop + 14);
     ctx.closePath();
     ctx.fill();
-    // Имя владельца под флагом
+    // Большая надпись «🏪 Захвачено @nick» НАД зданием
     const gangTag = owner.gang_tag || owner.gangTag || '';
     const ownerName = owner.owner_name || owner.ownerName || '';
-    const ownerLabel = gangTag ? `[${gangTag}]` : ownerName;
-    if (ownerLabel) {
-      ctx.font = 'bold 9px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(0,0,0,.8)';
-      ctx.fillText(ownerLabel, p.x + 1, ly + labelH + 16);
-      ctx.fillStyle = fcol;
-      ctx.fillText(ownerLabel, p.x, ly + labelH + 15);
-      ctx.textAlign = 'left';
+    const ownerLabel = gangTag ? `[${gangTag}]` : `@${ownerName || '?'}`;
+    const ownTitle = `Захвачено ${ownerLabel}`;
+    // Подложка-плашка над POI-вывеской (ly — верх вывески, baseline)
+    const cap2Y = ly - 36;
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    const ownW = Math.max(120, ctx.measureText(ownTitle).width + 16);
+    const ownH = 18;
+    const ownX = p.x - ownW / 2;
+    ctx.fillStyle = 'rgba(10,8,4,.92)';
+    ctx.strokeStyle = fcol;
+    ctx.lineWidth = 1.5;
+    roundRect(ownX, cap2Y, ownW, ownH, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = fcol;
+    ctx.fillText(ownTitle, p.x, cap2Y + ownH / 2);
+    // Под плашкой — таймер до начала дохода (30 мин с момента захвата).
+    // Если уже капает — показываем «💰 капает в банду».
+    const capAt = (owner.captured_at || owner.capturedAt || 0) * 1000;
+    const incomeStart = capAt + 30 * 60 * 1000;
+    const remainMs = incomeStart - Date.now();
+    let infoText;
+    if (remainMs > 0) {
+      const totalSec = Math.ceil(remainMs / 1000);
+      const mm = Math.floor(totalSec / 60);
+      const ss = totalSec % 60;
+      infoText = `⏳ доход через ${mm}:${ss < 10 ? '0' : ''}${ss}`;
+    } else {
+      infoText = '💰 капает в банду';
     }
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.fillStyle = '#ffe9aa';
+    ctx.fillText(infoText, p.x, cap2Y + ownH + 8);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
   }
-  // Прогресс-бар активного захвата — поверх вывески
+  // Активный захват — крупный обратный отсчёт «30» НАД зданием +
+  // плашка с ником и прогресс-баром. Поверх вывески POI.
   if (activeCapture && activeCapture.tid === poi.id) {
     const elapsed = Math.min(CAPTURE_TIME_MS, Date.now() - activeCapture.startedAt);
     const frac = elapsed / CAPTURE_TIME_MS;
     const sec  = Math.ceil((CAPTURE_TIME_MS - elapsed) / 1000);
-    const barW = labelW - 8, barH = 4;
-    const bx = lx + 4, by = ly + labelH + 8;
-    ctx.fillStyle = 'rgba(0,0,0,.85)';
-    ctx.fillRect(bx - 1, by - 1, barW + 2, barH + 2);
-    ctx.fillStyle = activeCapture.color || '#ff4040';
-    ctx.fillRect(bx, by, barW * frac, barH);
-    // Подпись «@nick захватывает … 0:18»
-    ctx.font = 'bold 9px system-ui, sans-serif';
+    const col  = activeCapture.color || '#ff4040';
+    // Большой таймер 30→0 — крупным шрифтом высоко над зданием.
+    // Y-координата подняли выше всех других баннеров POI (флаг и т.п.).
+    const tY = ly - 48;
+    ctx.save();
+    // Лёгкая «дышащая» пульсация
+    const pulse = 0.85 + 0.15 * Math.sin(performance.now() / 220);
+    // Тень-обводка для читаемости
+    ctx.font = `bold ${Math.round(28 * pulse)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(0,0,0,.85)';
-    ctx.fillText(`@${activeCapture.byName || '?'}  ${sec}с`, p.x + 1, by + barH + 11);
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(0,0,0,.92)';
+    ctx.strokeText(String(sec), p.x, tY);
+    ctx.fillStyle = col;
+    ctx.fillText(String(sec), p.x, tY);
+    ctx.restore();
+    // Под таймером — плашка «@nick захватывает» + прогресс-бар
+    const plW = 150, plH = 22;
+    const plX = p.x - plW / 2, plY = tY + 14;
+    ctx.fillStyle = 'rgba(8,6,4,.92)';
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 1.5;
+    roundRect(plX, plY, plW, plH, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffe9aa';
-    ctx.fillText(`@${activeCapture.byName || '?'}  ${sec}с`, p.x, by + barH + 10);
+    ctx.fillText(`@${activeCapture.byName || '?'} захватывает`, p.x, plY + 8);
+    // Прогресс-бар внизу плашки
+    const barX = plX + 6, barW = plW - 12, barY = plY + plH - 5, barH = 3;
+    ctx.fillStyle = 'rgba(40,30,20,.9)';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = col;
+    ctx.fillRect(barX, barY, barW * frac, barH);
+    ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
   }
 }
