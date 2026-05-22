@@ -898,6 +898,29 @@ function buildMap() {
       MAP[p.r][p.c] = 1;
     }
   }
+  // Освобождаем «площадь» вокруг захватываемых POI 7×7 — чтобы было где
+  // вести перестрелки за район. Сносим соседние здания внутри квартала,
+  // убираем весь декор (деревья/бочки/ящики/мусорки/фонари/машины),
+  // оставляя только POI-здание + бордюр/дорогу/газон по координатам.
+  // Особые POI (больница/участок/арена/чёрный рынок) НЕ трогаем — у них
+  // своя сцена.
+  const CAPTURABLE_IDS = new Set(['market','port','casino','factory','mansion']);
+  const CLEAR_RADIUS = 3;
+  for (const p of POI) {
+    if (!CAPTURABLE_IDS.has(p.id)) continue;
+    for (let r = p.r - CLEAR_RADIUS; r <= p.r + CLEAR_RADIUS; r++) {
+      for (let c = p.c - CLEAR_RADIUS; c <= p.c + CLEAR_RADIUS; c++) {
+        if (r <= 0 || r >= MAP_ROWS - 1 || c <= 0 || c >= MAP_COLS - 1) continue;
+        if (r === p.r && c === p.c) continue;  // POI-здание оставляем
+        // Вычисляем «базовый» тип тайла по тем же правилам что в buildMap().
+        // Все здания (кроме POI) внутри радиуса сносим в плитку-площадь.
+        const onRoadR = (r % BLOCK <= 3);
+        const onRoadC = (c % BLOCK <= 3);
+        if (onRoadR || onRoadC)      MAP[r][c] = 0;       // дорога остаётся дорогой
+        else                          MAP[r][c] = 9;       // всё внутреннее → бордюр-плитка (открытая площадь)
+      }
+    }
+  }
 }
 
 // ── POI районов ────────────────────────────────────────────────
