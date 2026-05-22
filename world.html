@@ -1015,9 +1015,21 @@ const TERRITORY_BY_ID = new Map(TERRITORIES.map(t => [t.id, t]));
 // { [tid]: { ownerId, ownerName, gangTag, color, capturedAt } } — null = ничейная
 const territoryOwners = Object.create(null);
 
-// Активный захват — { tid, byId, byName, startedAt, color } | null
-// Видим всем игрокам в реалтайме.
-let activeCapture = null;
+// Активные захваты — Map<tid, { byId, byName, startedAt, color }>.
+// Несколько игроков могут параллельно захватывать РАЗНЫЕ районы.
+// Синхронизируется с сервером (snap.active_captures).
+const activeCaptures = new Map();
+// Helper: получить ЛЮБОЙ активный захват — приоритет мой, иначе первый.
+// Используется для captureBanner (один баннер на экране).
+function pickBannerCapture() {
+  let mine = null;
+  for (const ac of activeCaptures.values()) {
+    if (String(ac.byId) === String(QP.uid)) { mine = ac; break; }
+  }
+  if (mine) return mine;
+  for (const ac of activeCaptures.values()) return ac;
+  return null;
+}
 
 function territoryAt(r, c) {
   for (const t of TERRITORIES) {
@@ -1931,19 +1943,18 @@ function handleEventPacket(d) {
       spawnImpact(d.ty, d.tx, wp);
     }
   } else if (kind === 'territory_capture_started') {
-    // Кто-то начал захват. Локально не дожидаемся следующего snap —
-    // сразу видим прогресс-бар над POI + persistent #captureBanner.
-    activeCapture = {
-      tid:       d.tid,
+    // Кто-то начал захват в ЭТОЙ зоне. Локально не дожидаемся следующего
+    // snap — сразу видим прогресс-бар над POI + persistent #captureBanner.
+    activeCaptures.set(d.tid, {
       byId:      d.by_uid,
       byName:    d.by_name,
       color:     d.color,
       startedAt: Date.now(),
-    };
+    });
     // Без showEventBanner — #captureBanner и так висит постоянно,
     // дублирующее уведомление мешало бы инкассатору.
   } else if (kind === 'territory_capture_cancelled') {
-    if (activeCapture && activeCapture.tid === d.tid) activeCapture = null;
+    activeCaptures.delete(d.tid);
     if (String(d.by_uid) === String(QP.uid)) {
       const reasons = {
         left_zone: 'Ты вышел из зоны.',
@@ -2288,20 +2299,27 @@ function wsConnect() {
           territoryOwners[tid] = d.territories[tid];
         }
       }
-      if (d.active_capture !== undefined) {
-        const ac = d.active_capture;
-        if (ac) {
-          // Клиент тикает локально по startedAt — точнее чем 5 Гц снапшоты.
-          // started_at от сервера в unix-сек → переводим в Date.now() в мс.
-          activeCapture = {
-            tid:       ac.tid,
+      if (d.active_captures !== undefined) {
+        // Перетираем карту целиком — сервер источник истины. Сохраняем
+        // ЛОКАЛЬНЫЕ startedAt где они уже есть (плавнее анимация),
+        // иначе вычисляем по серверному elapsed.
+        const fresh = d.active_captures || {};
+        const freshIds = new Set(Object.keys(fresh));
+        for (const tid of Array.from(activeCaptures.keys())) {
+          if (!freshIds.has(tid)) activeCaptures.delete(tid);
+        }
+        for (const tid of freshIds) {
+          const ac = fresh[tid];
+          const prev = activeCaptures.get(tid);
+          const startedAt = prev
+            ? prev.startedAt
+            : (Date.now() - Math.round((ac.elapsed || 0) * 1000));
+          activeCaptures.set(tid, {
             byId:      ac.by_uid,
             byName:    ac.by_name,
             color:     ac.color,
-            startedAt: Date.now() - Math.round((ac.elapsed || 0) * 1000),
-          };
-        } else {
-          activeCapture = null;
+            startedAt,
+          });
         }
       }
     } else if (pkt.t === 'event') {
@@ -2341,8 +2359,12 @@ let _zoneCur = null;   // текущий «активный» POI
 const _zoneEl = document.getElementById('zoneBtn');
 const _pvpBn  = document.getElementById('pvpBanner');
 function updateZoneBtn() {
+  // Захватываемые POI (рынок/порт/казино/промзона/резиденция) больше НЕ
+  // открывают боёвку — они для захвата района. Кнопка остаётся только
+  // для специальных POI (магазин/арена/госпиталь — где есть смысл войти).
   let best = null, bestD2 = ENTER_R * ENTER_R;
   for (const poi of POI) {
+    if (!poi.special) continue;        // захватываемый — пропускаем
     const dr = poi.r - player.r, dc = poi.c - player.c;
     const d2 = dr * dr + dc * dc;
     if (d2 < bestD2) { best = poi; bestD2 = d2; }
@@ -2353,7 +2375,7 @@ function updateZoneBtn() {
       let label;
       if (best.special === 'shop')        label = `${best.icon} Зайти на «${best.name}»`;
       else if (best.special === 'arena')  label = `${best.icon} Войти на «${best.name}»`;
-      else                                label = `${best.icon} Зайти в район «${best.name}»`;
+      else                                label = `${best.icon} Зайти на «${best.name}»`;
       _zoneEl.textContent = label;
       _zoneEl.style.display = 'block';
     } else {
@@ -2472,24 +2494,36 @@ const _capBannerM = document.getElementById('captureBannerM');
 const _capBannerB = document.getElementById('captureBannerB');
 function updateCaptureBanner() {
   if (!_capBanner) return;
-  if (!activeCapture) {
+  // Берём ЛЮБОЙ активный захват — приоритет мой, иначе первый. Если в
+  // мире идёт несколько захватов параллельно — показываем самый
+  // приоритетный, остальные видны над зданиями.
+  let tid = null, ac = null;
+  for (const [t, c] of activeCaptures) {
+    if (String(c.byId) === String(QP.uid)) { tid = t; ac = c; break; }
+  }
+  if (!ac) {
+    for (const [t, c] of activeCaptures) { tid = t; ac = c; break; }
+  }
+  if (!ac) {
     if (_capBanner.classList.contains('show')) _capBanner.classList.remove('show');
     return;
   }
-  const elapsed = Math.min(CAPTURE_TIME_MS, Date.now() - activeCapture.startedAt);
+  const elapsed = Math.min(CAPTURE_TIME_MS, Date.now() - ac.startedAt);
   const frac = elapsed / CAPTURE_TIME_MS;
   const sec  = Math.max(0, Math.ceil((CAPTURE_TIME_MS - elapsed) / 1000));
-  const td   = TERRITORY_BY_ID.get(activeCapture.tid);
-  const tName = (td && td.name) || activeCapture.tid;
+  const td   = TERRITORY_BY_ID.get(tid);
+  const tName = (td && td.name) || tid;
   const tIcon = (td && td.icon) || '🏴';
-  const meIs = (String(activeCapture.byId) === String(QP.uid));
+  const meIs = (String(ac.byId) === String(QP.uid));
   const verb = meIs ? 'захватываешь' : 'захватывает';
-  const who  = meIs ? 'ТЫ' : ('@' + (activeCapture.byName || '?'));
-  _capBannerT.textContent = `${tIcon} ${who} ${verb} ${tName}`;
+  const who  = meIs ? 'ТЫ' : ('@' + (ac.byName || '?'));
+  // Если активных захватов > 1, добавляем счётчик чтобы было ясно что
+  // в мире идёт ещё что-то параллельно.
+  const more = activeCaptures.size > 1 ? ` (+${activeCaptures.size - 1})` : '';
+  _capBannerT.textContent = `${tIcon} ${who} ${verb} ${tName}${more}`;
   _capBannerM.textContent = `Удержи ещё ${sec} сек.`;
   _capBannerB.style.width = (frac * 100).toFixed(1) + '%';
-  // Цвет — цвет захватчика
-  const col = activeCapture.color || '#ff6060';
+  const col = ac.color || '#ff6060';
   _capBanner.style.borderColor = col;
   _capBannerB.style.background = col;
   if (!_capBanner.classList.contains('show')) _capBanner.classList.add('show');
@@ -3138,11 +3172,10 @@ function updateTerritoryCapture() {
   }
   _myInsideTid = curTid;
   if (!curTid) return;
-  // Уже идёт мой захват в этой зоне — ждём финиша
-  if (activeCapture && activeCapture.tid === curTid &&
-      String(activeCapture.byId) === String(QP.uid)) return;
-  // Идёт чужой захват — не лезем (нельзя одновременно)
-  if (activeCapture) return;
+  // В этой зоне уже идёт захват (свой или чужой) — ждём финиша.
+  // Игрок может владеть МНОЖЕСТВОМ районов: чужие захваты в ДРУГИХ
+  // зонах нас не блокируют.
+  if (activeCaptures.has(curTid)) return;
   // Зона уже моя — нет смысла
   const own = territoryOwners[curTid];
   if (own && String(own.ownerId || own.owner_uid) === String(QP.uid)) return;
@@ -3232,22 +3265,42 @@ function drawTile(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
   const t = MAP[r][c];
-  // Тип поверхности — дорога (3 тайла) / тротуар (1) / трава / арена-пол
+  // Тип поверхности — дорога / тротуар / трава / арена-пол
   const onRoadR = (r % BLOCK <= 2);
   const onRoadC = (c % BLOCK <= 2);
   const isRoad  = (onRoadR || onRoadC);
+  // Детерминированный hash (r,c) для выбора подварианта — каждый тайл
+  // получает СВОЙ оттенок/паттерн, но всегда тот же между кадрами.
+  // Без флага диагональной чётности город выглядел сеткой клеточек —
+  // здесь мешаем 4 hash'а в один 0..99 → достаточно вариаций.
+  const h1 = ((r * 73 + c * 131) >>> 0) % 100;       // основная вариация
+  const h2 = ((r * 257 + c * 379) >>> 0) % 100;      // вторая (для пятен)
   let color;
   if (t === 8 || t === 6) {
-    // Трава (под деревом тоже трава видна)
-    color = ((r + c) % 2 === 0) ? '#2a4a22' : '#234020';
+    // ─── ГАЗОН/ПАРК — трава с проплешинами и грунтом ──────────────
+    if (h1 < 8)        color = '#3a2a18'; // голый грунт (проплешина)
+    else if (h1 < 18)  color = '#3a4a18'; // сухая трава
+    else if (h1 < 35)  color = '#2a4a22'; // обычная зелёная
+    else if (h1 < 65)  color = '#234020'; // тёмная зелёная (тень)
+    else if (h1 < 85)  color = '#28482a'; // средняя
+    else               color = '#3a5a2a'; // светлая молодая трава
   } else if (isRoad) {
-    color = ((r + c) % 2 === 0) ? '#1c1c20' : '#181820'; // асфальт
+    // ─── АСФАЛТ — три вариации с пятнами масла/трещинами ──────────
+    if (h1 < 8)        color = '#0e0e12'; // тёмное пятно масла
+    else if (h1 < 22)  color = '#1c1c20'; // обычный асфальт A
+    else if (h1 < 55)  color = '#181820'; // обычный асфальт B
+    else if (h1 < 78)  color = '#22221e'; // потёртый асфальт (светлее)
+    else               color = '#262824'; // выцветший
   } else {
-    color = ((r + c) % 2 === 0) ? '#2e2e28' : '#262620'; // тротуар (плитка)
+    // ─── ТРОТУАР/ПЛИТКА — варианты + участки грунта ───────────────
+    if (h1 < 6)        color = '#3a3024'; // грунт между плитками
+    else if (h1 < 14)  color = '#383530'; // тёмная плитка
+    else if (h1 < 50)  color = '#2e2e28'; // обычная плитка A
+    else if (h1 < 80)  color = '#262620'; // обычная плитка B
+    else               color = '#34322a'; // светлая «новая» плитка
   }
   // Если внутри PVP-арены — красноватый оттенок поверх
   if (inArena(r, c)) {
-    // Чуть смешаем с темно-красным
     color = (t === 8 || t === 6) ? '#3a3a18' :
             isRoad                ? '#2a1818' : '#3a2020';
   }
@@ -3259,19 +3312,56 @@ function drawTile(r, c) {
   ctx.lineTo(p.x - wx, p.y);
   ctx.closePath();
   ctx.fill();
-  // Обводка плиток (тротуар)
-  if (!isRoad && t !== 8 && t !== 6) {
+  // Обводка плиток (тротуар) — только если это «целая» плитка, не грунт
+  if (!isRoad && t !== 8 && t !== 6 && h1 >= 6) {
     ctx.strokeStyle = 'rgba(0,0,0,.18)';
     ctx.lineWidth = 1;
     ctx.stroke();
   }
-  // Травинки на газоне (декоративные точки)
-  if (t === 8) {
-    const k = ((r * 53 + c * 89) % 7);
-    if (k < 4) {
+  // Дополнительный декор по hash'ам — мелкие штрихи, не сетчатые.
+  if (t === 8 || t === 6) {
+    // Травинки на газоне (4 типа в зависимости от h2)
+    if (h2 < 35) {
       ctx.fillStyle = '#3a6a30';
-      ctx.fillRect(p.x - 3 + (k - 2), p.y - 2, 1, 2);
-      ctx.fillRect(p.x + 2 - (k - 2), p.y + 1, 1, 2);
+      ctx.fillRect(p.x - 3 + (h2 % 5 - 2), p.y - 2, 1, 2);
+      ctx.fillRect(p.x + 2 - (h2 % 5 - 2), p.y + 1, 1, 2);
+    }
+    // Полевой цветок — изредка
+    if (h1 < 35 && h2 >= 88) {
+      ctx.fillStyle = (h2 & 1) ? '#e8c050' : '#e87858';
+      ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+    }
+  } else if (isRoad) {
+    // Тонкие трещины — на потёртом асфальте
+    if (h1 >= 55 && h1 < 70) {
+      ctx.strokeStyle = 'rgba(0,0,0,.35)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      const a = (h2 / 100) * Math.PI;
+      ctx.moveTo(p.x - Math.cos(a) * 4, p.y - Math.sin(a) * 2);
+      ctx.lineTo(p.x + Math.cos(a) * 4, p.y + Math.sin(a) * 2);
+      ctx.stroke();
+    }
+    // Мелкий гравий/камушки — изредка
+    if (h2 < 12) {
+      ctx.fillStyle = 'rgba(120,110,90,.4)';
+      ctx.fillRect(p.x - 2 + (h1 % 5 - 2), p.y - 1, 1, 1);
+    }
+  } else {
+    // Плитка: разметка швов между плитками — диагональные риски
+    if (h1 >= 14 && h2 < 25) {
+      ctx.strokeStyle = 'rgba(255,255,240,.06)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(p.x - wx * 0.7, p.y);
+      ctx.lineTo(p.x,             p.y - wy * 0.7);
+      ctx.stroke();
+    }
+    // На грунтовой проплешине — мелкие камешки
+    if (h1 < 6 && h2 < 40) {
+      ctx.fillStyle = 'rgba(60,40,20,.6)';
+      ctx.fillRect(p.x - 1, p.y, 1, 1);
+      ctx.fillRect(p.x + 1, p.y - 1, 1, 1);
     }
   }
   // Жёлтая прерывистая разметка по центру дороги (центр 3-тайловой полосы = mod 1)
@@ -4154,12 +4244,12 @@ function drawTerritoryPerimeters() {
   const now = performance.now();
   for (const t of TERRITORIES) {
     const owner = territoryOwners[t.id];
-    const capturing = activeCapture && activeCapture.tid === t.id;
+    const ac = activeCaptures.get(t.id);
     let color, dash, glow, width;
-    if (capturing) {
+    if (ac) {
       // Активный захват — пульсирующий цвет захватчика
       const pulse = 0.5 + 0.5 * Math.sin(now / 180);
-      color = activeCapture.color || ownerColor(activeCapture.byId || activeCapture.byName);
+      color = ac.color || ownerColor(ac.byId || ac.byName);
       dash = [10, 5];
       glow = 10 + pulse * 6;
       width = 2.5 + pulse * 1.2;
@@ -5250,11 +5340,12 @@ function drawPOI(r, c, poi) {
   }
   // Активный захват — крупный обратный отсчёт «30» НАД зданием +
   // плашка с ником и прогресс-баром. Поверх вывески POI.
-  if (activeCapture && activeCapture.tid === poi.id) {
-    const elapsed = Math.min(CAPTURE_TIME_MS, Date.now() - activeCapture.startedAt);
+  const acHere = activeCaptures.get(poi.id);
+  if (acHere) {
+    const elapsed = Math.min(CAPTURE_TIME_MS, Date.now() - acHere.startedAt);
     const frac = elapsed / CAPTURE_TIME_MS;
     const sec  = Math.ceil((CAPTURE_TIME_MS - elapsed) / 1000);
-    const col  = activeCapture.color || '#ff4040';
+    const col  = acHere.color || '#ff4040';
     // Большой таймер 30→0 — крупным шрифтом высоко над зданием.
     // Y-координата подняли выше всех других баннеров POI (флаг и т.п.).
     const tY = ly - 48;
@@ -5283,7 +5374,7 @@ function drawPOI(r, c, poi) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffe9aa';
-    ctx.fillText(`@${activeCapture.byName || '?'} захватывает`, p.x, plY + 8);
+    ctx.fillText(`@${acHere.byName || '?'} захватывает`, p.x, plY + 8);
     // Прогресс-бар внизу плашки
     const barX = plX + 6, barW = plW - 12, barY = plY + plH - 5, barH = 3;
     ctx.fillStyle = 'rgba(40,30,20,.9)';
@@ -6879,9 +6970,9 @@ function drawMinimap() {
     const w = (t.c1 - t.c0 + 1) * sx;
     const h = (t.r1 - t.r0 + 1) * sy;
     const owner = territoryOwners[t.id];
-    const capturing = activeCapture && activeCapture.tid === t.id;
-    if (capturing) {
-      const col = activeCapture.color || ownerColor(activeCapture.byId);
+    const acMini = activeCaptures.get(t.id);
+    if (acMini) {
+      const col = acMini.color || ownerColor(acMini.byId);
       ctx2.fillStyle = col.replace('hsl', 'hsla').replace(')', `,${0.25 + 0.25 * tPulse})`);
       ctx2.fillRect(x, y, w, h);
       ctx2.strokeStyle = col;
@@ -6931,9 +7022,9 @@ function drawMinimap() {
     else if (poi.special === 'jail')     ringCol = 'rgba(180,180,200,.85)';
     else if (isCap) {
       const own = territoryOwners[poi.id];
-      const capActive = activeCapture && activeCapture.tid === poi.id;
-      if (capActive) {
-        ringCol = activeCapture.color || ownerColor(activeCapture.byId);
+      const acPoi = activeCaptures.get(poi.id);
+      if (acPoi) {
+        ringCol = acPoi.color || ownerColor(acPoi.byId);
         ringW = 2.5; pulseR = 4 * tPulse;
       } else if (own) {
         const ownerKey = own.owner_uid || own.ownerId || own.owner_name;
@@ -6966,7 +7057,7 @@ function drawMinimap() {
     ctx2.fillStyle = '#fff';
     ctx2.fillText(poi.icon, x, y);
     // Мини-флажок справа от захваченного района (цвет владельца).
-    if (isCap && territoryOwners[poi.id] && !(activeCapture && activeCapture.tid === poi.id)) {
+    if (isCap && territoryOwners[poi.id] && !activeCaptures.has(poi.id)) {
       const own = territoryOwners[poi.id];
       const ownerKey = own.owner_uid || own.ownerId || own.owner_name;
       const fc = own.color || ownerColor(ownerKey);

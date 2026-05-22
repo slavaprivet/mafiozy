@@ -11355,7 +11355,10 @@ class WorldSim:
         'event', '_event_next_at',
         'cops', '_next_cop_id', '_last_wanted_decay',
         # Territory capture (см. ниже TERRITORIES, CAPTURE_TIME_S, etc.)
-        'territories', 'active_capture', '_capture_cooldowns',
+        # active_captures: dict[tid → cap] — несколько игроков могут
+        # одновременно брать РАЗНЫЕ районы. Один игрок может владеть
+        # хоть всеми 5 районами сразу.
+        'territories', 'active_captures', '_capture_cooldowns',
     )
 
     # ── Эмерджентные события: параметры ────────────────────────────
@@ -11501,12 +11504,16 @@ class WorldSim:
         self._next_cop_id        = 1
         self._last_wanted_decay  = self.started_at
         # Захват районов.
-        #   territories[tid] = {owner_uid, owner_name, gang_tag, color,
-        #                        captured_at, last_payout_at}
-        #   active_capture   = {tid, by_uid, by_name, color, started_at} | None
+        #   territories[tid]     = {owner_uid, owner_name, gang_tag, color,
+        #                            captured_at, last_payout_at}
+        #   active_captures[tid] = {by_uid, by_name, color, started_at}
+        #     — одновременно могут идти несколько захватов в РАЗНЫХ районах;
+        #       один игрок не может захватывать сразу две (физически он
+        #       только в одной зоне), но через активный захват одного
+        #       игрока в Рынке не блокируется чужой захват Порта.
         #   _capture_cooldowns[(uid,tid)] = expires_at_unix
         self.territories         = {}
-        self.active_capture      = None
+        self.active_captures     = {}
         self._capture_cooldowns  = {}
 
     def add_or_update(self, uid: str, name: str, look: dict,
@@ -12403,16 +12410,15 @@ class WorldSim:
                 return tid, td
         return None, None
 
-    def _cancel_active_capture(self, reason: str) -> dict | None:
-        """Сбрасывает текущий захват и возвращает event-пакет для broadcast
-        (или None если ничего не было)."""
-        ac = self.active_capture
+    def _cancel_active_capture(self, tid: str, reason: str) -> dict | None:
+        """Сбрасывает активный захват КОНКРЕТНОЙ зоны и возвращает event-пакет
+        для broadcast (или None если в этой зоне ничего не было)."""
+        ac = self.active_captures.pop(tid, None)
         if not ac:
             return None
-        self.active_capture = None
         return {
             'kind':    'territory_capture_cancelled',
-            'tid':     ac['tid'],
+            'tid':     tid,
             'by_uid':  ac['by_uid'],
             'by_name': ac['by_name'],
             'reason':  reason,
@@ -12423,10 +12429,12 @@ class WorldSim:
         для broadcast (start/denied) или None если ничего не происходит.
         Правила:
           - PvE не участвуют (тихий no-op);
-          - в зоне уже идёт захват → отказ;
-          - игрок на 24ч кулдауне для этой зоны → отказ;
-          - зона уже у этого игрока (захватывать свою же бесполезно) → отказ;
-          - игрок мёртв/в тюрьме → отказ.
+          - в этой зоне УЖЕ идёт захват (свой/чужой) → тихо отказываем;
+          - игрок на 24ч кулдауне для этой зоны → отказ с baner'ом;
+          - зона уже принадлежит ему → нет смысла, тихо отказываем;
+          - игрок мёртв/в тюрьме → тихо отказываем.
+        Игрок может владеть несколькими районами параллельно — никаких
+        ограничений на «одна зона на руках».
         """
         p = self.players.get(uid)
         if not p:
@@ -12440,8 +12448,8 @@ class WorldSim:
         tid, td = self._territory_at(p.get('x', 0), p.get('y', 0))
         if not tid:
             return None
-        if self.active_capture is not None:
-            return None  # уже идёт захват в этой/другой зоне — игнор
+        if tid in self.active_captures:
+            return None  # эту зону уже кто-то захватывает (свой/чужой)
         now = time.time()
         cd_key = (uid, tid)
         cd_until = self._capture_cooldowns.get(cd_key, 0)
@@ -12457,37 +12465,37 @@ class WorldSim:
         if cur_owner and str(cur_owner.get('owner_uid')) == str(uid):
             return None  # своя территория — нет смысла захватывать
         color = self._terr_color(str(uid))
-        self.active_capture = {
-            'tid':        tid,
+        cap = {
             'by_uid':     str(uid),
             'by_name':    (p.get('name') or '')[:24],
             'color':      color,
             'started_at': now,
         }
+        self.active_captures[tid] = cap
         return {
             'kind':       'territory_capture_started',
             'tid':        tid,
-            'by_uid':     self.active_capture['by_uid'],
-            'by_name':    self.active_capture['by_name'],
+            'by_uid':     cap['by_uid'],
+            'by_name':    cap['by_name'],
             'color':      color,
             'started_at': round(now, 2),
             'duration_s': self.CAPTURE_TIME_S,
         }
 
     def apply_capture_cancel(self, uid: str) -> dict | None:
-        ac = self.active_capture
-        if not ac or str(ac.get('by_uid')) != str(uid):
-            return None
-        return self._cancel_active_capture('player_left')
+        """Игрок явно отменяет СВОЙ активный захват. Ищем где он по by_uid."""
+        for tid, ac in list(self.active_captures.items()):
+            if str(ac.get('by_uid')) == str(uid):
+                return self._cancel_active_capture(tid, 'player_left')
+        return None
 
     def tick_capture(self, dt: float) -> list:
-        """Тикает активный захват + выплачивает доход районов в банду.
+        """Тикает все активные захваты + выплачивает доход районов в банду.
         Возвращает list event-пакетов для broadcast."""
         out: list = []
         now = time.time()
-        # 1) Активный захват
-        ac = self.active_capture
-        if ac:
+        # 1) Активные захваты — итерируемся ПО КОПИИ (внутри can pop).
+        for tid, ac in list(self.active_captures.items()):
             holder = self.players.get(str(ac['by_uid']))
             cancel_reason = None
             if not holder:
@@ -12500,14 +12508,14 @@ class WorldSim:
                 cancel_reason = 'mode_changed'
             else:
                 tid_now, _ = self._territory_at(holder.get('x', 0), holder.get('y', 0))
-                if tid_now != ac['tid']:
+                if tid_now != tid:
                     cancel_reason = 'left_zone'
             if cancel_reason:
-                pkt = self._cancel_active_capture(cancel_reason)
+                pkt = self._cancel_active_capture(tid, cancel_reason)
                 if pkt: out.append(pkt)
-            elif (now - ac['started_at']) >= self.CAPTURE_TIME_S:
-                tid = ac['tid']
-                td  = self.TERRITORIES_DEF.get(tid, {})
+                continue
+            if (now - ac['started_at']) >= self.CAPTURE_TIME_S:
+                td = self.TERRITORIES_DEF.get(tid, {})
                 self.territories[tid] = {
                     'owner_uid':      str(ac['by_uid']),
                     'owner_name':     ac['by_name'],
@@ -12517,7 +12525,7 @@ class WorldSim:
                     'last_payout_at': now,
                 }
                 self._capture_cooldowns[(str(ac['by_uid']), tid)] = now + self.CAPTURE_COOLDOWN_S
-                self.active_capture = None
+                self.active_captures.pop(tid, None)
                 out.append({
                     'kind':        'territory_captured',
                     'tid':         tid,
@@ -12551,12 +12559,11 @@ class WorldSim:
         return out
 
     def cancel_capture_on_player_killed(self, victim_uid: str) -> dict | None:
-        """Если убитый — текущий захватчик, сбрасываем захват и возвращаем
-        event-пакет. Вызывается из apply_player_shoot/apply_cop_shoot после
-        фактической смерти."""
-        ac = self.active_capture
-        if ac and str(ac.get('by_uid')) == str(victim_uid):
-            return self._cancel_active_capture('killed')
+        """Если убитый ведёт активный захват — сбрасываем и возвращаем
+        event-пакет. Вызывается из apply_player_shoot после kill."""
+        for tid, ac in list(self.active_captures.items()):
+            if str(ac.get('by_uid')) == str(victim_uid):
+                return self._cancel_active_capture(tid, 'killed')
         return None
 
     def snapshot_for(self, uid: str) -> dict:
@@ -12670,12 +12677,12 @@ class WorldSim:
                 'color':       t['color'],
                 'captured_at': round(t['captured_at'], 2),
             }
-        cap_payload = None
-        if self.active_capture:
-            ac = self.active_capture
+        # Активные захваты — map { tid → { by_uid, by_name, color, elapsed, ... } }.
+        # Один кадр может содержать несколько (разные игроки в разных районах).
+        cap_payload = {}
+        for tid, ac in self.active_captures.items():
             elapsed = max(0.0, now_t - ac['started_at'])
-            cap_payload = {
-                'tid':        ac['tid'],
+            cap_payload[tid] = {
                 'by_uid':     ac['by_uid'],
                 'by_name':    ac['by_name'],
                 'color':      ac['color'],
@@ -12716,8 +12723,8 @@ class WorldSim:
                 'next_event_in': next_event_in,
                 'pvp_active':    me_in_pvp,
                 'tick':          self.tick_no,
-                'territories':    terr_payload,
-                'active_capture': cap_payload,
+                'territories':     terr_payload,
+                'active_captures': cap_payload,
             }
         }
 
