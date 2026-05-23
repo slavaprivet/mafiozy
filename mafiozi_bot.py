@@ -11346,8 +11346,11 @@ async def _iso_run_sim_loop(sim: 'IsoBattleSim') -> None:
 # ════════════════════════════════════════════════════════════════
 WORLD_TICK_HZ = 15
 WORLD_TICK_DT = 1.0 / WORLD_TICK_HZ
-WORLD_MAP_COLS = 80   # тайлы (Х) — городская сетка 80×80, BLOCK=10.
-WORLD_MAP_ROWS = 80   #     Должно совпадать с MAP_COLS/MAP_ROWS в world.html
+WORLD_MAP_COLS = 80   # тайлы (Х) — городская сетка, BLOCK=10.
+WORLD_MAP_ROWS = 140  # карта 80×140: r=0..79 — основной город, r=80..99 — буфер
+                      # (тоже город, дорога ведёт на юг), r=100..139 — отдельная
+                      # большая арена с Логовом (банда там живёт и бьётся).
+                      # Должно совпадать с MAP_COLS/MAP_ROWS в world.html
                       #     (клиент проверяет hello-кадр).
 WORLD_VIEW_R   = 50   # тайлы, в радиусе которых шлём остальных игроков
                       # (50 = почти вся карта 80×80 — друзья видны через
@@ -11431,6 +11434,17 @@ class WorldSim:
         # хоть всеми 5 районами сразу.
         'territories', 'active_captures', '_capture_cooldowns',
         '_territory_fight_at',
+        # Анти-фарм: владелец должен ВЫЙТИ из зоны хотя бы раз перед
+        # повторной попыткой захвата (иначе блок 'must_reenter').
+        '_capture_needs_reenter', '_last_terr_at',
+        # 1★-кулдаун: уехавший патруль не вызывает новых N секунд.
+        '_patrol_done_at',
+        # Лог начислений district-income для hub-уведомлений.
+        '_income_log',
+        # Агрессивные районы (Логово): NPC-банда + укрытия + таймер
+        # 3-сек хадера. Сейчас захват отключён (no_capture), но AggroState
+        # всё ещё держит ботов, респаун и AI.
+        'aggro', 'aggro_covers', 'aggro_capturing_at', '_next_bot_id',
     )
 
     # ── Эмерджентные события: параметры ────────────────────────────
@@ -11556,17 +11570,28 @@ class WorldSim:
         'casino':  {'name': 'Казино',     'icon': '🎰', 'r': 46, 'c': 16, 'income': 120},
         'factory': {'name': 'Промзона',   'icon': '🏭', 'r': 46, 'c': 56, 'income': 160},
         'mansion': {'name': 'Резиденция', 'icon': '🏛', 'r': 66, 'c': 36, 'income': 250},
-        # «Логово» — агрессивный район с бандой NPC. Радиус БОЛЬШЕ (см. _territory_at).
-        # Захват только через зачистку всех ботов + 3-сек хадер. NPC спавнятся
-        # каждые AGGRO_RESPAWN_S секунд. Доход выше обычного.
-        'lair':    {'name': 'Логово',     'icon': '☠️', 'r': 36, 'c': 8,  'income': 350,
-                    'aggro': True, 'radius': 8},
+        # «Логово» — НЕзахватываемая опасная зона в ДАЛЁКОМ ЮЖНОМ КРАЮ карты.
+        # Карта 80×140, основной город r=0..79, буфер r=80..99 (тоже город),
+        # арена Логова r=100..139. Центр (120, 40), radius=20 → зона r=100..140,
+        # c=20..60. Огромная арена 41×41 целиком отдельно от города, не
+        # пересекает ничего. Респаун банды каждые AGGRO_RESPAWN_S секунд.
+        # no_capture → tick_aggro пропускает захват. Дохода нет — деньги/опыт
+        # дают за КАЖДОГО убитого бойца (см. AGGRO_REWARD_*).
+        'lair':    {'name': 'Логово',     'icon': '☠️', 'r': 120, 'c': 40,
+                    'aggro': True, 'radius': 20, 'no_capture': True},
     }
     # Тайминги агрессивного района
     AGGRO_WARN_S        = 4.0       # сколько секунд предупреждаем «проваливай»
     AGGRO_RESPAWN_S     = 10 * 60   # раз в 10 мин полная партия снова на месте
     AGGRO_CAP_HOLD_S    = 3.0       # сколько сек надо удержать после зачистки
-    AGGRO_BOTS_COUNT    = 5         # обычных бойцов
+    AGGRO_BOTS_COUNT    = 20        # обычных бойцов — рассчитано на 30+ игроков
+    # Награды за убийство бойца банды (зачисляются СРАЗУ в БД, broadcast'ятся
+    # клиенту как 'aggro_killed' пакет для toast'а). Финальная экономика
+    # подстраивается по тестам — сейчас гранд = 15$, босс = 150$.
+    AGGRO_REWARD_GRUNT_CASH = 15
+    AGGRO_REWARD_GRUNT_EXP  = 8
+    AGGRO_REWARD_BOSS_CASH  = 150
+    AGGRO_REWARD_BOSS_EXP   = 80
     AGGRO_BOT_HP        = 90
     AGGRO_BOT_DMG       = 8
     AGGRO_BOT_CD        = 1.1
@@ -12916,8 +12941,10 @@ class WorldSim:
                                      'weapon': 'pistol_heavy',
                                      'sx': round(bot['x'],2), 'sy': round(bot['y'],2),
                                      'tx': round(tx,2), 'ty': round(ty,2)})
-            # 2) Захват: если ВСЕ боты убиты — стартуем 3-сек хадер
-            if not alive_bots:
+            # 2) Захват: если ВСЕ боты убиты — стартуем 3-сек хадер.
+            #    Зоны с no_capture=True (Логово) НЕ захватываются — это просто
+            #    опасная локация. Перебил банду — она респавнится через таймер.
+            if not alive_bots and not td.get('no_capture'):
                 if st['state'] != 'capturing' and st['state'] != 'claimed_cd':
                     st['state'] = 'capturing'
                     st['capturing_at'] = now
@@ -15282,6 +15309,45 @@ async def _coop_http_app():
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
                                     except Exception: pass
+                                # Награда за убийство бойца банды. Кладём СРАЗУ
+                                # в БД (cash + exp), потом check_level_up.
+                                # Кидаем shooter'у пакет 'aggro_killed' с цифрами
+                                # для toast «+15$ +8 exp».
+                                if hit_pkt.get('killed'):
+                                    is_boss = bool(hit_pkt.get('is_boss'))
+                                    cash_r = (world.AGGRO_REWARD_BOSS_CASH if is_boss
+                                              else world.AGGRO_REWARD_GRUNT_CASH)
+                                    exp_r  = (world.AGGRO_REWARD_BOSS_EXP if is_boss
+                                              else world.AGGRO_REWARD_GRUNT_EXP)
+                                    try:
+                                        killer_uid_int = int(uid)
+                                    except (TypeError, ValueError):
+                                        killer_uid_int = None
+                                    if killer_uid_int is not None:
+                                        try:
+                                            ch = await get_character(killer_uid_int)
+                                            if ch:
+                                                new_cash = int(ch.get('cash') or 0) + cash_r
+                                                new_exp  = int(ch.get('exp')  or 0) + exp_r
+                                                await update_character(killer_uid_int,
+                                                                       cash=new_cash, exp=new_exp)
+                                                ch2 = await get_character(killer_uid_int)
+                                                if ch2:
+                                                    await check_level_up(killer_uid_int, ch2)
+                                            # Личный toast только стрелку (а не broadcast)
+                                            kp = world.connections.get(uid)
+                                            if kp is not None:
+                                                pkt = {'kind': 'aggro_killed',
+                                                       'is_boss': is_boss,
+                                                       'cash': cash_r, 'exp': exp_r}
+                                                try:
+                                                    await kp.send_str(json.dumps(
+                                                        {'t': 'event', 'd': pkt},
+                                                        ensure_ascii=False))
+                                                except Exception:
+                                                    pass
+                                        except Exception as _e:
+                                            logger.warning("WorldSim: aggro reward failed: %r", _e)
                     elif t == 'capture_try':
                         # Игрок жмёт «начать захват» зоны под собой.
                         # PvE отсеивается на сервере (apply_capture_try).

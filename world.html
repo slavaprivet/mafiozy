@@ -820,7 +820,10 @@ window.addEventListener('resize', resizeCanvas);
 
 // ── Карта (статичная) ──────────────────────────────────────────
 // Размер задаст сервер в hello-кадре, но дублируем дефолты на случай оффлайна.
-let MAP_COLS = 80, MAP_ROWS = 80;
+// Размер задаст сервер. Дефолт 80×140: r=0..79 основной город, r=80..99
+// буфер (тоже город — дорога ведёт на юг), r=100..139 — отдельная
+// арена Логова где живёт банда.
+let MAP_COLS = 80, MAP_ROWS = 140;
 const TS     = 56;           // размер тайла на экране — крупнее, как в боях
 const ISO_Y  = 0.55;         // ужатие по Y (тот же угол что в demo_isometric)
 // Блок города: 10×10 тайлов. Дорога 4 тайла шириной, бордюр 2 тайла,
@@ -972,9 +975,12 @@ const POI = [
   { id: 'casino',  r: 46, c: 16, icon: '🎰', name: 'Казино',        minLvl: 10 },
   { id: 'factory', r: 46, c: 56, icon: '🏭', name: 'Промзона',      minLvl: 15 },
   { id: 'mansion', r: 66, c: 36, icon: '🏛', name: 'Резиденция',    minLvl: 20 },
-  // Логово — агрессивный район. Захват только через зачистку банды NPC.
-  // Радиус = 8 (больше остальных), серверная зона = 17×17.
-  { id: 'lair',    r: 36, c:  8, icon: '☠️', name: 'Логово',        minLvl: 10, aggro: true, radius: 8 },
+  // Логово — НЕзахватываемая опасная зона в ДАЛЁКОМ ЮЖНОМ КРАЮ карты.
+  // Карта 80×140: r=0..79 город, r=80..99 буфер, r=100..139 арена Логова.
+  // Центр (120, 40), radius=20 → зона 41×41 целиком в арене, отдельно от
+  // города. За каждого убитого бойца — деньги+опыт (см. AGGRO_REWARD_*
+  // на сервере). Босс даёт x10 больше.
+  { id: 'lair',    r: 120, c: 40, icon: '☠️', name: 'Логово',       minLvl: 10, aggro: true, radius: 20, noCapture: true },
   // Особые POI
   { id: 'blackmarket', r:  6, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
   { id: 'arena',       r: 36, c: 66, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
@@ -1041,7 +1047,7 @@ const GANG_FLAG_DEFS = [
   { bg:'#3a1a0a', bg2:'#6a4a1a', fg:'#f1c40f', icon:'⭐' },
 ];
 const TERRITORIES = POI
-  .filter(p => !p.special)
+  .filter(p => !p.special && !p.noCapture)
   .map(p => {
     const rad = p.radius || TERRITORY_RADIUS;
     return {
@@ -1051,10 +1057,32 @@ const TERRITORIES = POI
       radius: rad,
       aggro: !!p.aggro,
       // Доход в копилку банды владельца. Лежит фолбэком — сервер шлёт точные значения.
-      income: { market: 50, port: 80, casino: 120, factory: 160, mansion: 250, lair: 350 }[p.id] || 50,
+      income: { market: 50, port: 80, casino: 120, factory: 160, mansion: 250 }[p.id] || 50,
     };
   });
 const TERRITORY_BY_ID = new Map(TERRITORIES.map(t => [t.id, t]));
+
+// Опасные зоны без захвата (Логово) — отдельный список. Боты живут по
+// всей территории, стрельба внутри легальна (PvE-район банды), но захват
+// невозможен. Сервер всё ещё держит их в TERRITORIES_DEF с aggro=True
+// для запуска AggroState и для PvP-стрельбы между игроками.
+const AGGRO_ZONES = POI
+  .filter(p => p.aggro)
+  .map(p => {
+    const rad = p.radius || TERRITORY_RADIUS;
+    return {
+      id: p.id, name: p.name, icon: p.icon, r: p.r, c: p.c,
+      r0: p.r - rad, r1: p.r + rad,
+      c0: p.c - rad, c1: p.c + rad,
+      radius: rad,
+    };
+  });
+function inAggroZone(r, c) {
+  for (const t of AGGRO_ZONES) {
+    if (Math.abs(c - t.c) <= t.radius && Math.abs(r - t.r) <= t.radius) return t;
+  }
+  return null;
+}
 
 // State владельцев (приходит с сервера; пока локально пусто).
 // { [tid]: { ownerId, ownerName, gangTag, color, capturedAt } } — null = ничейная
@@ -2129,14 +2157,18 @@ function handleEventPacket(d) {
       if (d.killed) myDeathBy = 'банда «Логова»';
     }
   } else if (kind === 'aggro_hit') {
-    // Игрок попал в бота — звук/визуал
-    if (d.killed) {
-      const me = (String(d.shooter_uid) === String(QP.uid));
-      if (me) {
-        showToast(d.is_boss
-          ? '☠️ Главарь банды убит! Зачистка района почти завершена.'
-          : '💀 Банда -1. Продолжай зачистку.', 2400);
-      }
+    // Игрок попал в бота — визуал (кровь рисуется по pkt`am). Текстовый
+    // toast про убийство БОЛЬШЕ НЕ показываем здесь — для убийств теперь
+    // отдельный пакет 'aggro_killed' с наградой (см. ниже). aggro_hit
+    // приходит ВСЕМ в зоне, а aggro_killed — только стрелку.
+  } else if (kind === 'aggro_killed') {
+    // Стрелок убил бойца банды. Сервер уже зачислил cash/exp в БД.
+    // Показываем toast с конкретной наградой.
+    const cash = d.cash || 0, exp = d.exp || 0;
+    if (d.is_boss) {
+      showToast(`☠️ Главарь убит! +$${cash} +${exp} exp`, 3500);
+    } else {
+      showToast(`💀 Боец -1  +$${cash} +${exp}`, 1800);
     }
   } else if (kind === 'aggro_capturing') {
     showEventBanner('☠️ Зачистка завершена!',
@@ -2989,15 +3021,7 @@ function fire(angle = null) {
   // PvP-арена. pvpActive — пока идёт событие инкассатора (PvP открыто везде).
   const meInArena = inArena(player.r, player.c);
   // Внутри агрессивной зоны стрельба ВСЕГДА легальна — это PvP-район банды.
-  // Узнаём по списку TERRITORIES: aggro=true и я внутри её радиуса.
-  let meInAggro = false;
-  for (const t of TERRITORIES) {
-    if (!t.aggro) continue;
-    const rad = t.radius || TERRITORY_RADIUS;
-    if (Math.abs(player.c - t.c) <= rad && Math.abs(player.r - t.r) <= rad) {
-      meInAggro = true; break;
-    }
-  }
+  const meInAggro = !!inAggroZone(player.r, player.c);
   const lawful    = meInArena || meInAggro || pvpActive || chosenConvoy || chosenCop || chosenAggro;
   if (!lawful) {
     // Проверка: летит ли пуля в мирного NPC прохожего (стрельба в людей)?
@@ -3382,6 +3406,26 @@ function sendCaptureCancel() {
   try { ws.send(JSON.stringify({ t: 'capture_cancel', d: {} })); } catch(e) {}
 }
 
+// Toast при входе в опасную зону Логова. Один раз на сессию на зону —
+// чтобы не спамить когда игрок ходит туда-обратно по краю. Сбрасывается
+// если игрок 60+ сек НЕ был в зоне.
+const _aggroHintShown = new Map();   // tid -> ts последнего выхода
+let   _lastAggroTid = null;
+function updateAggroEntryHint() {
+  const cur = inAggroZone(player.r, player.c);
+  const curTid = cur && cur.id;
+  if (curTid && curTid !== _lastAggroTid) {
+    const lastOutAt = _aggroHintShown.get(curTid) || 0;
+    if (!lastOutAt || (performance.now() - lastOutAt) > 60_000) {
+      showToast(`☠️ ${cur.name} — территория банды, чужих стреляют.`, 4000);
+    }
+    _aggroHintShown.set(curTid, 0);
+  } else if (!curTid && _lastAggroTid) {
+    _aggroHintShown.set(_lastAggroTid, performance.now());
+  }
+  _lastAggroTid = curTid;
+}
+
 // Авто-захват: если игрок стоит внутри зоны и не идёт активный захват —
 // шлём capture_try. Сервер сам проверит правила (PvE, кулдаун, владелец).
 // Если игрок вышел из зоны во время своего захвата — сервер сам сорвёт
@@ -3456,6 +3500,7 @@ function update(dt) {
   updateZoneBtn();
   updatePvpUI();
   updateTerritoryCapture();
+  updateAggroEntryHint();
   updateCaptureBanner();
   // Hold-to-fire: пока правый стик СДВИНУТ — стреляем с cooldown'ом по
   // оружию. Без сдвига — не стреляем (auto-aim убран, целимся вручную).
@@ -7526,6 +7571,20 @@ function drawMinimap() {
       ctx2.strokeRect(x + 0.5, y + 0.5, w, h);
       ctx2.setLineDash([]);
     }
+  }
+  // Опасные зоны без захвата (Логово) — пульсирующая красная подложка,
+  // чтобы игрок издалека видел границу опасной территории.
+  for (const az of AGGRO_ZONES) {
+    const x = az.c0 * sx, y = az.r0 * sy;
+    const w = (az.c1 - az.c0 + 1) * sx;
+    const h = (az.r1 - az.r0 + 1) * sy;
+    ctx2.fillStyle = `rgba(200,40,40,${0.16 + 0.10 * tPulse})`;
+    ctx2.fillRect(x, y, w, h);
+    ctx2.strokeStyle = `rgba(255,80,80,${0.55 + 0.30 * tPulse})`;
+    ctx2.lineWidth = 1.4;
+    ctx2.setLineDash([4, 3]);
+    ctx2.strokeRect(x + 0.5, y + 0.5, w, h);
+    ctx2.setLineDash([]);
   }
   // Тюрьма (как POI 🚓) — серый домик в правом-нижнем углу карты
   const jailX = 56, jailY = 56, jailSize = 8;
