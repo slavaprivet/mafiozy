@@ -1180,21 +1180,29 @@ function generateLairDecor() {
         if (MAP[r][c] === 0) continue;
         const x = det(r, c, 1);
         if (x > 0.55) continue;   // 45% заполнения
-        // Тип: внешнее кольцо — больше руин/обломков (как граница лагеря),
-        // внутреннее — палатки + костры (жилая зона)
-        const isInner = distToPoi < rad * 0.6;
+        // Кольца: внешнее = граница лагеря (руины/обломки), среднее =
+        // защитная линия (баррикады), внутреннее = жилая зона (палатки/костры).
+        const innerR = rad * 0.45;
+        const midR   = rad * 0.75;
         let type;
-        if (isInner) {
-          if      (x < 0.10) type = 'fire';
-          else if (x < 0.28) type = 'tent';
-          else if (x < 0.36) type = 'junk';
-          else if (x < 0.44) type = 'wreck';
+        if (distToPoi < innerR) {
+          // Жилая зона — много палаток, костров, мусора, бочка с огнём
+          if      (x < 0.08) type = 'firebarrel';
+          else if (x < 0.18) type = 'fire';
+          else if (x < 0.42) type = 'tent';
+          else if (x < 0.50) type = 'junk';
+          else               type = 'wreck';
+        } else if (distToPoi < midR) {
+          // Защитная линия — баррикады, костры на постах, обломки
+          if      (x < 0.20) type = 'barricade';
+          else if (x < 0.30) type = 'firebarrel';
+          else if (x < 0.40) type = 'wreck';
+          else if (x < 0.48) type = 'junk';
           else               type = 'ruin';
         } else {
-          if      (x < 0.05) type = 'fire';
-          else if (x < 0.15) type = 'tent';
-          else if (x < 0.30) type = 'junk';
-          else if (x < 0.40) type = 'wreck';
+          // Внешний периметр — руины и обломки (заброшенные дома)
+          if      (x < 0.10) type = 'wreck';
+          else if (x < 0.20) type = 'junk';
           else               type = 'ruin';
         }
         // Лёгкий jitter координат для «небрежности» лагеря
@@ -1202,6 +1210,42 @@ function generateLairDecor() {
         const jc = c + (det(r, c, 6) - 0.5) * 0.8;
         LAIR_DECOR.push({ type, r: jr, c: jc, seed: x });
       }
+    }
+    // Периметральные стены — длинные стены с граффити вдоль границы
+    // лагеря. Расставляем сегментами с разрывами (входы между стенами).
+    // Ориентация: горизонтальная (orient=0) на северной/южной сторонах,
+    // вертикальная (orient=1) на восточной/западной.
+    const wallR = rad - 2;   // на 2 тайла внутрь от границы зоны
+    const wallStep = 3;      // шаг между стенами
+    for (let off = -wallR; off <= wallR; off += wallStep) {
+      // Северная грань (r = p.r - wallR)
+      const skipN = det(p.r - wallR, p.c + off, 2) < 0.30;
+      if (!skipN) LAIR_DECOR.push({
+        type: 'wall', r: p.r - wallR, c: p.c + off,
+        seed: det(p.r - wallR, p.c + off, 11),
+        orient: 0,
+      });
+      // Южная грань (r = p.r + wallR)
+      const skipS = det(p.r + wallR, p.c + off, 2) < 0.30;
+      if (!skipS) LAIR_DECOR.push({
+        type: 'wall', r: p.r + wallR, c: p.c + off,
+        seed: det(p.r + wallR, p.c + off, 13),
+        orient: 0,
+      });
+      // Западная грань (c = p.c - wallR)
+      const skipW = det(p.r + off, p.c - wallR, 2) < 0.30;
+      if (!skipW) LAIR_DECOR.push({
+        type: 'wall', r: p.r + off, c: p.c - wallR,
+        seed: det(p.r + off, p.c - wallR, 17),
+        orient: 1,
+      });
+      // Восточная грань (c = p.c + wallR)
+      const skipE = det(p.r + off, p.c + wallR, 2) < 0.30;
+      if (!skipE) LAIR_DECOR.push({
+        type: 'wall', r: p.r + off, c: p.c + wallR,
+        seed: det(p.r + off, p.c + wallR, 19),
+        orient: 1,
+      });
     }
   }
 }
@@ -1525,13 +1569,250 @@ function drawLairWreck(d) {
   ctx.stroke();
 }
 
+// drawLairWall — длинная бетонная стена с граффити. Ориентация:
+// orient=0 — горизонтальная (вдоль X), orient=1 — вертикальная (вдоль Y).
+// На видимой грани — большой граффити-символ (череп/тег/буква).
+function drawLairWall(d) {
+  const p = w2s(d.r + 0.5, d.c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H  = isoH(1.1 + d.seed * 0.3);
+  const horiz = (d.orient === 0);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.5)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy);
+  ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x, p.y + wy);
+  ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath();
+  ctx.fill();
+  // Бетонная палитра — серый с подтёками
+  const side = '#3a3a40';
+  const top  = '#5a5a64';
+  const dark = '#1a1a20';
+  // Левая грань
+  ctx.fillStyle = side;
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx, p.y);
+  ctx.lineTo(p.x,      p.y + wy);
+  ctx.lineTo(p.x,      p.y + wy - H);
+  ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath();
+  ctx.fill();
+  // Правая грань (главная — на ней граффити)
+  ctx.fillStyle = top;
+  ctx.beginPath();
+  ctx.moveTo(p.x,      p.y + wy);
+  ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x + wx, p.y - H);
+  ctx.lineTo(p.x,      p.y + wy - H);
+  ctx.closePath();
+  ctx.fill();
+  // Крыша (тонкая полоса сверху)
+  ctx.fillStyle = '#7a7a84';
+  ctx.beginPath();
+  ctx.moveTo(p.x,        p.y - H + wy);
+  ctx.lineTo(p.x + wx,   p.y - H);
+  ctx.lineTo(p.x,        p.y - H - wy);
+  ctx.lineTo(p.x - wx,   p.y - H);
+  ctx.closePath();
+  ctx.fill();
+  // Стык — тёмная вертикаль
+  ctx.strokeStyle = 'rgba(0,0,0,.6)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x, p.y + wy - H);
+  ctx.stroke();
+  // Подтёки — тонкие вертикальные ржавые полосы
+  ctx.strokeStyle = 'rgba(120,60,30,.45)';
+  ctx.lineWidth = 0.7;
+  for (let i = 0; i < 3; i++) {
+    const k = 0.20 + i * 0.30;
+    ctx.beginPath();
+    ctx.moveTo(p.x + wx * k, p.y - H * (0.85 - i * 0.10) + wy * (1-k) * 0.6);
+    ctx.lineTo(p.x + wx * k, p.y - H * 0.10 + wy * (1-k));
+    ctx.stroke();
+  }
+  // Граффити — большой символ-тег. Выбираем по seed.
+  const tags = [
+    { sym: '☠', col: '#d84040' },
+    { sym: '✘', col: '#e0e040' },
+    { sym: 'L',  col: '#d84040' },   // Logovo
+    { sym: '☠', col: '#a040d8' },
+    { sym: '666', col: '#d84040' },
+    { sym: '$$',  col: '#40d840' },
+    { sym: 'RIP', col: '#e0e040' },
+  ];
+  const tag = tags[Math.floor(d.seed * 100) % tags.length];
+  // Граффити на правой грани (наиболее видимая)
+  ctx.save();
+  const gx = p.x + wx * 0.5;
+  const gy = p.y - H * 0.55 + wy * 0.25;
+  ctx.font = `bold ${Math.floor(H * 0.45)}px "Segoe UI Emoji", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // Тень за тегом
+  ctx.shadowColor = tag.col;
+  ctx.shadowBlur = 6;
+  // Чёрный контур + цветной фронт
+  ctx.fillStyle = '#000';
+  ctx.fillText(tag.sym, gx + 0.7, gy + 0.7);
+  ctx.fillStyle = tag.col;
+  ctx.fillText(tag.sym, gx, gy);
+  ctx.restore();
+  // Бирка-наклейка снизу — маленький жёлтый тег (заштрихованный)
+  if (d.seed > 0.5) {
+    ctx.fillStyle = '#1a1a14';
+    ctx.fillRect(p.x + wx * 0.10, p.y - 6 + wy * 0.4, 12, 4);
+    ctx.strokeStyle = '#f1c40f';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(p.x + wx * 0.10, p.y - 6 + wy * 0.4, 12, 4);
+  }
+  // Подножие — мусор/осколки бетона
+  ctx.fillStyle = dark;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + wy * 0.7, wx * 0.7, wy * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// drawLairBarricade — мешки с песком + автомобильные шины + колючка.
+// Низкое заграждение, прикрытие для бойцов.
+function drawLairBarricade(d) {
+  const p = w2s(d.r + 0.5, d.c + 0.5);
+  // Земляное пятно
+  ctx.fillStyle = 'rgba(40,30,20,.55)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 2, 13, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 3 мешка с песком (бежевые)
+  const bagCol = '#8a7a50';
+  const bagDk  = '#5a4a30';
+  for (let i = 0; i < 3; i++) {
+    const bx = p.x + (i - 1) * 7;
+    const by = p.y - 1;
+    // Тело мешка
+    ctx.fillStyle = bagCol;
+    ctx.beginPath();
+    ctx.ellipse(bx, by, 5, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Тёмная нижняя дуга
+    ctx.fillStyle = bagDk;
+    ctx.beginPath();
+    ctx.ellipse(bx, by + 1, 5, 2, 0, 0, Math.PI);
+    ctx.fill();
+    // Узел сверху
+    ctx.strokeStyle = bagDk;
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(bx - 1, by - 3); ctx.lineTo(bx + 1, by - 3);
+    ctx.stroke();
+  }
+  // Шина сверху (поверх мешков, в центре)
+  ctx.strokeStyle = '#0a0808';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y - 5, 5, 2.2, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  // Внутренний обод
+  ctx.fillStyle = '#2a2a30';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y - 5, 2.5, 1.0, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Колючая проволока — зигзаг сверху
+  ctx.strokeStyle = '#888892';
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const x1 = p.x - 10 + i * 2.2;
+    const y1 = p.y - 9 - (i & 1) * 1.5;
+    if (i === 0) ctx.moveTo(x1, y1);
+    else ctx.lineTo(x1, y1);
+  }
+  ctx.stroke();
+  // Шипы — короткие штрихи перпендикулярно
+  for (let i = 1; i < 8; i++) {
+    const x1 = p.x - 10 + i * 2.5;
+    const y1 = p.y - 8;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1 - 1.5); ctx.lineTo(x1, y1 + 1.5);
+    ctx.moveTo(x1 - 1.5, y1); ctx.lineTo(x1 + 1.5, y1);
+    ctx.stroke();
+  }
+}
+
+// drawLairFireBarrel — бочка с горящим внутри огнём. Стоит как фонарь
+// для лагеря ночью, пламя пульсирует.
+function drawLairFireBarrel(d) {
+  const p = w2s(d.r + 0.5, d.c + 0.5);
+  const t = performance.now() * 0.008 + d.seed * 6.28;
+  // Земляное пятно
+  ctx.fillStyle = 'rgba(40,20,10,.6)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 4, 8, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Бочка — чёрная с ржавыми пятнами
+  const barH = 14;
+  ctx.fillStyle = '#1a1612';
+  ctx.fillRect(p.x - 5, p.y - barH + 2, 10, barH);
+  // Обручи
+  ctx.strokeStyle = '#3a2a18';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 5, p.y - barH + 5); ctx.lineTo(p.x + 5, p.y - barH + 5);
+  ctx.moveTo(p.x - 5, p.y - 1);        ctx.lineTo(p.x + 5, p.y - 1);
+  ctx.stroke();
+  // Ржавые подтёки
+  ctx.strokeStyle = 'rgba(140,60,20,.55)';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 3, p.y - barH + 5); ctx.lineTo(p.x - 3, p.y - 1);
+  ctx.moveTo(p.x + 2, p.y - barH + 6); ctx.lineTo(p.x + 2, p.y - 2);
+  ctx.stroke();
+  // Горящие угли на верху бочки — оранжевое свечение
+  ctx.fillStyle = 'rgba(255,140,40,.90)';
+  ctx.shadowColor = '#ff6020';
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y - barH + 2, 4, 1.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Пляшущее пламя над бочкой (выше чем у обычного костра)
+  const flameH = 14 + Math.sin(t) * 2 + Math.sin(t * 2.3) * 1.5;
+  const flameW = 5 + Math.sin(t * 1.7) * 0.8;
+  const fy0 = p.y - barH + 1;
+  const fg = ctx.createLinearGradient(p.x, fy0 - flameH, p.x, fy0);
+  fg.addColorStop(0,    'rgba(255,240,80,.0)');
+  fg.addColorStop(0.30, 'rgba(255,200,40,.85)');
+  fg.addColorStop(0.70, 'rgba(255,90,20,.95)');
+  fg.addColorStop(1,    'rgba(180,40,10,.95)');
+  ctx.fillStyle = fg;
+  ctx.beginPath();
+  ctx.moveTo(p.x, fy0 - flameH);
+  ctx.quadraticCurveTo(p.x + flameW, fy0 - flameH * 0.4, p.x + flameW * 0.5, fy0);
+  ctx.lineTo(p.x - flameW * 0.5, fy0);
+  ctx.quadraticCurveTo(p.x - flameW, fy0 - flameH * 0.4, p.x, fy0 - flameH);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // Искра — летит вверх
+  if ((Math.sin(t * 3.1) + Math.cos(t * 5.7)) > 1.0) {
+    ctx.fillStyle = '#ffd060';
+    ctx.beginPath();
+    ctx.arc(p.x + Math.sin(t * 7) * 4,
+            fy0 - flameH - 4 - Math.sin(t * 4) * 3, 1.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 function drawLairDecorItem(d) {
   switch (d.type) {
-    case 'tent':  drawLairTent(d);  break;
-    case 'ruin':  drawLairRuin(d);  break;
-    case 'fire':  drawLairFire(d);  break;
-    case 'junk':  drawLairJunk(d);  break;
-    case 'wreck': drawLairWreck(d); break;
+    case 'tent':       drawLairTent(d);       break;
+    case 'ruin':       drawLairRuin(d);       break;
+    case 'fire':       drawLairFire(d);       break;
+    case 'junk':       drawLairJunk(d);       break;
+    case 'wreck':      drawLairWreck(d);      break;
+    case 'wall':       drawLairWall(d);       break;
+    case 'barricade':  drawLairBarricade(d);  break;
+    case 'firebarrel': drawLairFireBarrel(d); break;
   }
 }
 
