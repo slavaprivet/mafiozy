@@ -11716,6 +11716,10 @@ class WorldSim:
         self.city_gangs = []
         self._city_gang_next_id = 1
         self._city_gang_next_spawn_at = 0.0
+        # Гнёзда — отдельный список «nest» групп (привязаны к зданию)
+        self.gang_nests = []
+        self._gang_nest_next_id = 1
+        self._gang_nest_next_spawn_at = 60.0   # первое через минуту после старта
 
     def add_or_update(self, uid: str, name: str, look: dict,
                        wanted: float = 0.0, jail_until: int = 0,
@@ -13311,8 +13315,11 @@ class WorldSim:
                     'killed':      killed,
                     'is_boss':     (bot.get('kind') == 'aggro_boss'),
                 }
-        # Не нашли в обычных aggro-зонах — может это городская банда.
-        return self.city_gang_shoot_bot(uid, bot_id, weapon)
+        # Не нашли в обычных aggro-зонах — пробуем городскую банду, потом гнездо.
+        r = self.city_gang_shoot_bot(uid, bot_id, weapon)
+        if r is not None:
+            return r
+        return self.gang_nest_shoot_bot(uid, bot_id, weapon)
 
     # ── Бродячие городские банды ────────────────────────────────────
     # Threat-фразы — когда игрок подошёл слишком близко
@@ -13340,6 +13347,17 @@ class WorldSim:
     ]
     CITY_GANG_ACT_CD_MIN = 12.0
     CITY_GANG_ACT_CD_MAX = 28.0
+    # Бандитское гнездо — мини-зона как Логово, но временная и в городе.
+    # Заброшенное здание + 4 бойца охраняют его в радиусе 4 тайла.
+    # Зачистил всех — большая награда. Само исчезает через NEST_LIFETIME_S.
+    NEST_MAX             = 1          # одно гнездо за раз (чтобы было событие)
+    NEST_SPAWN_GAP_S     = 300.0      # 5 мин между спавнами
+    NEST_LIFETIME_S      = 600.0      # 10 мин если никто не пришёл
+    NEST_BOTS            = 4
+    NEST_GUARD_R         = 4.0        # держатся в этом радиусе от центра
+    NEST_AGGRO_R         = 6.0        # игрок ближе → hostile
+    NEST_CLEAR_CASH      = 500
+    NEST_CLEAR_EXP       = 60
 
     def _spawn_city_gang(self) -> None:
         """Спавнит маленькую группу бандитов в городе на проходимом тайле.
@@ -13649,6 +13667,272 @@ class WorldSim:
                     'dmg':         int(dmg),
                     'killed':      killed,
                     'is_boss':     False,
+                }
+        return None
+
+    # ── Бандитское гнездо ──────────────────────────────────────────
+    def _spawn_gang_nest(self) -> None:
+        """Спавним заброшенное здание-гнездо в городе с 4 охранниками.
+        Здание = центр зоны, боты вокруг него на проходимых тайлах."""
+        import math as _m
+        # Ищем подходящий участок — внутри блока (5-8 % 10) где есть стена.
+        # Не в захватываемых районах, не у тюрьмы, не у POI.
+        for _try in range(60):
+            r = random.randint(15, 70)
+            c = random.randint(15, WORLD_MAP_COLS - 15)
+            # Не у тюрьмы
+            if ((c - self.JAIL_X)**2 + (r - self.JAIL_Y)**2) < 250:
+                continue
+            # Не в захватываемой зоне
+            tid, _ = self._territory_at(c, r)
+            if tid:
+                continue
+            # Должно быть здание (стена) — anchor визуально это «дом»
+            if not _world_is_wall(r, c):
+                continue
+            # И вокруг должны быть проходимые тайлы для ботов (хотя бы 4)
+            free = 0
+            for (dr, dc) in [(-2,0),(2,0),(0,-2),(0,2),(-2,-2),(2,2),(-2,2),(2,-2)]:
+                if not _world_is_wall(r + dr, c + dc):
+                    free += 1
+            if free < 4:
+                continue
+            break
+        else:
+            return
+        gid = f'nest{self._gang_nest_next_id}'
+        self._gang_nest_next_id += 1
+        bots = []
+        for i in range(self.NEST_BOTS):
+            # Сажаем рядом со зданием на проходимый тайл
+            for _try in range(15):
+                ang = random.random() * 2 * _m.pi
+                dist = 1.8 + random.random() * 2.0
+                bx = c + _m.cos(ang) * dist
+                by = r + _m.sin(ang) * dist
+                if not _world_is_wall(int(by), int(bx)):
+                    break
+            else:
+                continue
+            self._next_bot_id += 1
+            bots.append({
+                'id':       f'cgbot{self._next_bot_id}',
+                'x':        float(bx), 'y': float(by),
+                'ang':      0.0,
+                'hp':       int(self.AGGRO_BOT_HP),
+                'max_hp':   int(self.AGGRO_BOT_HP),
+                'alive':    True,
+                'kind':     'aggro_grunt',
+                'weapon':   'pistol_heavy',
+                '_shot_t':  0.0,
+                '_act':     'idle',
+                '_act_until': 0.0,
+                'look':     {
+                    'gender': 0,
+                    'skin':   random.choice([1,2,3]),
+                    'body':   2, 'face': random.choice([0,1,2]),
+                    'hair':   random.choice([0,1,3]),
+                    'hat':    4,
+                    'gang':   1,
+                },
+            })
+        if not bots:
+            return
+        nest = {
+            'id':              gid,
+            'bots':            bots,
+            'state':           'guard',     # guard / hostile
+            '_spawned_at':     time.time(),
+            '_expires_at':     time.time() + self.NEST_LIFETIME_S,
+            '_hostile_until':  0.0,
+            '_target_uid':     None,
+            'anchor_r':        float(r),
+            'anchor_c':        float(c),
+            '_threat_t':       {},
+            '_cops_dispatched': False,
+            '_cleared':        False,
+            '_combat_uids':    set(),     # кто стрелял по гнезду — получат бонус
+        }
+        self.gang_nests.append(nest)
+
+    def tick_gang_nests(self, dt: float) -> list:
+        """AI гнёзд. Возвращает event-пакеты: gang_nest_spawned,
+        gang_nest_cleared, gang_nest_expired + обычные aggro_shot."""
+        import math as _m
+        pkts = []
+        now = time.time()
+        # Спавн нового
+        if (self.players
+                and len(self.gang_nests) < self.NEST_MAX
+                and now >= self._gang_nest_next_spawn_at):
+            before = len(self.gang_nests)
+            self._spawn_gang_nest()
+            self._gang_nest_next_spawn_at = now + self.NEST_SPAWN_GAP_S
+            if len(self.gang_nests) > before:
+                ne = self.gang_nests[-1]
+                pkts.append({
+                    'kind': 'gang_nest_spawned',
+                    'id':   ne['id'],
+                    'r':    round(ne['anchor_r'], 2),
+                    'c':    round(ne['anchor_c'], 2),
+                })
+        # Удаляем зачищенные / истёкшие
+        surviving = []
+        for ne in self.gang_nests:
+            alive_bots = [b for b in ne['bots'] if b['alive']]
+            if not alive_bots:
+                if not ne.get('_cleared'):
+                    ne['_cleared'] = True
+                    pkts.append({
+                        'kind':       'gang_nest_cleared',
+                        'id':         ne['id'],
+                        'cash':       int(self.NEST_CLEAR_CASH),
+                        'exp':        int(self.NEST_CLEAR_EXP),
+                        'bonus_uids': sorted(ne.get('_combat_uids') or set()),
+                    })
+                continue
+            if now > ne['_expires_at']:
+                pkts.append({'kind': 'gang_nest_expired', 'id': ne['id']})
+                continue
+            surviving.append(ne)
+        self.gang_nests = surviving
+        # AI каждого гнезда
+        for ne in self.gang_nests:
+            alive_bots = [b for b in ne['bots'] if b['alive']]
+            ar, ac = ne['anchor_r'], ne['anchor_c']
+            # Проверяем игроков в радиусе AGGRO_R → hostile
+            if ne['state'] == 'guard':
+                for uid, p in self.players.items():
+                    if p.get('dead') or (p.get('_mode') or 'pvp') == 'pve':
+                        continue
+                    if (p.get('_jail_until') or 0) > now:
+                        continue
+                    if ((p['x']-ac)**2 + (p['y']-ar)**2) <= self.NEST_AGGRO_R**2:
+                        ne['state'] = 'hostile'
+                        ne['_hostile_until'] = now + 60.0
+                        ne['_target_uid'] = str(uid)
+                        break
+            elif ne['state'] == 'hostile':
+                if now > ne['_hostile_until']:
+                    ne['state'] = 'guard'
+                    ne['_target_uid'] = None
+                    ne['_cops_dispatched'] = False
+            if ne['state'] == 'guard':
+                # Идём обратно к anchor если отошли
+                for bot in alive_bots:
+                    dx = ac - bot['x']; dy = ar - bot['y']
+                    dist = _m.hypot(dx, dy)
+                    if dist > self.NEST_GUARD_R:
+                        step = 0.8 * dt
+                        nx = bot['x'] + (dx/dist) * step
+                        ny = bot['y'] + (dy/dist) * step
+                        if not _world_is_wall(int(ny), int(nx)):
+                            bot['x'] = nx; bot['y'] = ny
+                            bot['ang'] = _m.atan2(dy, dx)
+            else:
+                # HOSTILE — стреляем по target_uid (как обычная городская)
+                target = self.players.get(ne['_target_uid']) if ne['_target_uid'] else None
+                if (not target or target.get('dead')
+                        or (target.get('_jail_until') or 0) > now):
+                    candidates = [p for p in self.players.values()
+                                  if not p.get('dead')
+                                  and (p.get('_mode') or 'pvp') != 'pve'
+                                  and (p.get('_jail_until') or 0) <= now
+                                  and ((p['x']-ac)**2 + (p['y']-ar)**2) <= 144]
+                    if candidates:
+                        target = min(candidates,
+                                     key=lambda p: (p['x']-ac)**2 + (p['y']-ar)**2)
+                        ne['_target_uid'] = str(target.get('uid') or '')
+                    else:
+                        # Никого не видим в радиусе 12 — возвращаемся в guard
+                        ne['state'] = 'guard'
+                        continue
+                tx, ty = target['x'], target['y']
+                for bot in alive_bots:
+                    dx = tx - bot['x']; dy = ty - bot['y']
+                    dist = _m.hypot(dx, dy) + 1e-6
+                    bot['ang'] = _m.atan2(dy, dx)
+                    # Не отходим далеко от anchor — гнездо защищают, не гонятся
+                    d_anchor = _m.hypot(bot['x'] - ac, bot['y'] - ar)
+                    if d_anchor < self.NEST_GUARD_R + 1.5 and dist > 5.0:
+                        step = 1.0 * dt
+                        nx = bot['x'] + (dx/dist) * step
+                        ny = bot['y'] + (dy/dist) * step
+                        if not _world_is_wall(int(ny), int(nx)):
+                            bot['x'] = nx; bot['y'] = ny
+                    if (dist <= self.CITY_GANG_FIRE_R
+                            and (now - bot['_shot_t']) >= self.AGGRO_BOT_CD
+                            and _world_los(bot['x'], bot['y'], tx, ty)):
+                        bot['_shot_t'] = now
+                        miss = random.random() < 0.30
+                        dmg = 0 if miss else self.AGGRO_BOT_DMG
+                        if not miss:
+                            target['hp'] = int(max(0,
+                                int(target.get('hp', 100)) - dmg))
+                        killed = False
+                        if target['hp'] <= 0 and not miss:
+                            target['hp']         = 0
+                            target['dead']       = True
+                            target['deaths']     = int(target.get('deaths', 0)) + 1
+                            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                            killed = True
+                        pkts.append({
+                            'kind':       'aggro_shot',
+                            'tid':        ne['id'],
+                            'bot_id':     bot['id'],
+                            'weapon':     bot.get('weapon', 'pistol_heavy'),
+                            'sx':         round(bot['x'], 2),
+                            'sy':         round(bot['y'], 2),
+                            'target_uid': ne['_target_uid'],
+                            'tx':         round(tx, 2),
+                            'ty':         round(ty, 2),
+                            'dmg':        int(dmg),
+                            'miss':       bool(miss),
+                            'killed':     killed,
+                        })
+        return pkts
+
+    def gang_nest_shoot_bot(self, uid: str, bot_id: str,
+                             weapon: str = '') -> dict | None:
+        """Стрельба игрока по бойцу гнезда."""
+        shooter = self.players.get(uid)
+        if not shooter or shooter.get('dead'):
+            return None
+        if (shooter.get('_jail_until') or 0) > time.time():
+            return None
+        if shooter.get('_mode') == 'pve':
+            return None
+        for ne in self.gang_nests:
+            for bot in ne['bots']:
+                if bot.get('id') != bot_id or not bot.get('alive'):
+                    continue
+                if not _world_los(shooter['x'], shooter['y'], bot['x'], bot['y']):
+                    return None
+                dmg = max(5, min(150, int(self.WEAPON_DMG.get(weapon, 25))))
+                bot['hp'] -= dmg
+                ne['state']          = 'hostile'
+                ne['_hostile_until'] = time.time() + 60.0
+                ne['_target_uid']    = str(uid)
+                ne['_combat_uids'].add(str(uid))
+                self._bump_wanted(shooter, self.WANTED_PER_HIT)
+                killed = False
+                if bot['hp'] <= 0:
+                    bot['hp']    = 0
+                    bot['alive'] = False
+                    killed = True
+                return {
+                    'kind':        'aggro_hit',
+                    'tid':         ne['id'],
+                    'bot_id':      bot_id,
+                    'shooter_uid': str(uid),
+                    'sx':          round(shooter['x'], 2),
+                    'sy':          round(shooter['y'], 2),
+                    'tx':          round(bot['x'], 2),
+                    'ty':          round(bot['y'], 2),
+                    'dmg':         int(dmg),
+                    'killed':      killed,
+                    'is_boss':     False,
+                    'is_nest':     True,    # маркер для WS-loop (награда за грунта)
                 }
         return None
 
@@ -14001,6 +14285,42 @@ class WorldSim:
                 'next_respawn':  0,
                 'is_city_gang':  True,
             }
+        # Бандитские гнёзда — те же боты через aggro_payload + отдельный
+        # nests payload с anchor (для рендера красной подсветки здания).
+        nests_payload = []
+        for ne in self.gang_nests:
+            n_bots = []
+            for bot in ne['bots']:
+                if not bot.get('alive'):
+                    continue
+                n_bots.append({
+                    'id':      bot['id'],
+                    'x':       round(bot['x'], 2),
+                    'y':       round(bot['y'], 2),
+                    'ang':     round(bot['ang'], 2),
+                    'hp':      int(bot['hp']),
+                    'max_hp':  int(bot['max_hp']),
+                    'kind':    bot['kind'],
+                    'weapon':  bot.get('weapon') or 'pistol_heavy',
+                    'look':    bot.get('look') or {},
+                    'act':     'walk',   # гнездо никогда не drink/tag
+                })
+            aggro_payload[ne['id']] = {
+                'state':         ne.get('state', 'guard'),
+                'bots':          n_bots,
+                'covers':        [],
+                'cap_left':      0,
+                'next_respawn':  0,
+                'is_nest':       True,
+            }
+            nests_payload.append({
+                'id':         ne['id'],
+                'r':          round(ne['anchor_r'], 2),
+                'c':          round(ne['anchor_c'], 2),
+                'state':      ne.get('state', 'guard'),
+                'expires_in': max(0, int(round(ne['_expires_at'] - now_t))),
+                'bots_alive': len(n_bots),
+            })
         return {
             't': 'snap',
             'd': {
@@ -14030,6 +14350,7 @@ class WorldSim:
                 'territories':     terr_payload,
                 'active_captures': cap_payload,
                 'aggro':           aggro_payload,
+                'gang_nests':      nests_payload,
             }
         }
 
@@ -14086,6 +14407,35 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     world.event = None  # очищаем — следующий по таймеру
                 # Агрессивный район — банда NPC + захват через зачистку
                 ev_pkts.extend(world.tick_aggro(WORLD_TICK_DT) or [])
+                # Бандитское гнездо в городе (мини-Логово, 4 охранника
+                # вокруг здания, появляется раз в 5 мин, живёт 10 мин).
+                nest_pkts = world.tick_gang_nests(WORLD_TICK_DT) or []
+                # Бонус всем участникам зачистки гнезда (NEST_CLEAR_CASH/EXP).
+                for np in nest_pkts:
+                    if np.get('kind') != 'gang_nest_cleared':
+                        continue
+                    bonus_cash = int(np.get('cash') or 0)
+                    bonus_exp  = int(np.get('exp')  or 0)
+                    for participant_uid in (np.get('bonus_uids') or []):
+                        try:
+                            puid = int(participant_uid)
+                        except (TypeError, ValueError):
+                            continue
+                        try:
+                            ch = await get_character(puid)
+                            if not ch:
+                                continue
+                            await update_character(
+                                puid,
+                                cash=int(ch.get('cash') or 0) + bonus_cash,
+                                exp=int(ch.get('exp') or 0) + bonus_exp,
+                            )
+                            ch2 = await get_character(puid)
+                            if ch2:
+                                await check_level_up(puid, ch2)
+                        except Exception as _e:
+                            logger.warning("WorldSim: nest reward failed: %r", _e)
+                ev_pkts.extend(nest_pkts)
                 # Бродячие городские банды (threat-фразы, hostile-fight).
                 # Threat-фразы сохраняем на боте чтобы snapshot.aggro мог
                 # их передать клиенту (как чат-баббл над головой).
@@ -16027,10 +16377,17 @@ async def _coop_http_app():
                                 # для toast «+15$ +8 exp».
                                 if hit_pkt.get('killed'):
                                     is_boss = bool(hit_pkt.get('is_boss'))
-                                    cash_r = (world.AGGRO_REWARD_BOSS_CASH if is_boss
-                                              else world.AGGRO_REWARD_GRUNT_CASH)
-                                    exp_r  = (world.AGGRO_REWARD_BOSS_EXP if is_boss
-                                              else world.AGGRO_REWARD_GRUNT_EXP)
+                                    is_nest = bool(hit_pkt.get('is_nest'))
+                                    # Нестовые грунты — толстый награждают: $50/8exp
+                                    # (vs Логово 15/8). Игрок реже на них наталкивается.
+                                    if is_nest:
+                                        cash_r, exp_r = 50, 8
+                                    elif is_boss:
+                                        cash_r = world.AGGRO_REWARD_BOSS_CASH
+                                        exp_r  = world.AGGRO_REWARD_BOSS_EXP
+                                    else:
+                                        cash_r = world.AGGRO_REWARD_GRUNT_CASH
+                                        exp_r  = world.AGGRO_REWARD_GRUNT_EXP
                                     try:
                                         killer_uid_int = int(uid)
                                     except (TypeError, ValueError):

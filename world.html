@@ -1124,6 +1124,9 @@ const activeCaptures = new Map();
 // Заполняется из snap.aggro. Боты рисуются как банда (фиолетовая футболка +
 // балаклава), укрытия — как разрушаемые ящики с HP-баром.
 const aggroZones = Object.create(null);
+// Активные бандитские гнёзда — массив объектов [{id, r, c, state,
+// expires_in, bots_alive}]. Перезаписывается с каждым snap.
+let gangNests = [];
 // Эхо: моё последнее предупреждение от банды — чтобы рисовать чат-баббл
 const _aggroWarnMsg = { until: 0, text: '', from: null };
 // Helper: получить ЛЮБОЙ активный захват — приоритет мой, иначе первый.
@@ -2887,6 +2890,28 @@ function handleEventPacket(d) {
   } else if (kind === 'city_gang_threat') {
     // Threat-фраза уже передана через snap.aggro.bots[].threat —
     // тут реакции не делаем (можно было бы звук).
+  } else if (kind === 'gang_nest_spawned') {
+    // Новое гнездо в городе — спавнинг-баннер всем игрокам.
+    showEventBanner('☠️ БАНДИТСКОЕ ГНЕЗДО!',
+      'Бойцы засели в здании. Зачисти всех за награду — пока не разошлись.',
+      5500, 'spawn');
+  } else if (kind === 'gang_nest_cleared') {
+    // Гнездо зачищено — бонус всем кто стрелял.
+    const me = (d.bonus_uids || []).some(u => String(u) === String(QP.uid));
+    if (me) {
+      showEventBanner('✅ Гнездо зачищено!',
+        `+${d.cash||500}$ +${d.exp||60} exp — отличная работа.`,
+        4500, 'win');
+    } else {
+      showEventBanner('🪦 Гнездо разгромлено',
+        'Кто-то управился раньше тебя.',
+        3500, 'spawn');
+    }
+  } else if (kind === 'gang_nest_expired') {
+    // Бандиты ушли сами — никто не пришёл их зачистить.
+    showEventBanner('💨 Банда ушла',
+      'Гнездо опустело. Будет новое через несколько минут.',
+      3000, 'spawn');
   } else if (kind === 'cop_hit') {
     // Игрок попал в копа — пуля из КОНЦА ствола стрелка + брызги крови
     {
@@ -3358,6 +3383,12 @@ function wsConnect() {
         // — interpWorldNpcs плавно подтянет, чтобы боты не «лагали»
         // (телепортировались 15 раз/сек между снапами).
         applyAggroTargets(d.aggro || {});
+      }
+      if (d.gang_nests !== undefined) {
+        // Активные бандитские гнёзда — массив [{id, r, c, state,
+        // expires_in, bots_alive}]. Локально просто кэшируем для рендера
+        // (красная подсветка здания + маркер на мини-карте).
+        gangNests = d.gang_nests || [];
       }
       if (d.active_captures !== undefined) {
         // Перетираем карту целиком — сервер источник истины. Сохраняем
@@ -5408,6 +5439,52 @@ function drawTerritoryPerimeters() {
     for (let i = 1; i < scr.length; i++) ctx.lineTo(scr[i].x, scr[i].y);
     ctx.closePath();
     ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// Пульсирующее кольцо вокруг здания-гнезда + череп над крышей.
+// Красное в guard, ярко-оранжевое мигающее в hostile.
+function drawGangNestRings() {
+  if (!gangNests || !gangNests.length) return;
+  const now = performance.now();
+  for (const ne of gangNests) {
+    // Центр здания на земле
+    const center = w2s(ne.r + 0.5, ne.c + 0.5);
+    const hostile = (ne.state === 'hostile');
+    const pulse = 0.5 + 0.5 * Math.sin(now / (hostile ? 100 : 220));
+    const radPx = TS * 0.5 * 4.2;     // ~4 тайла радиус кольца
+    // Полупрозрачная заливка-круг под зданием
+    ctx.save();
+    ctx.fillStyle = hostile
+      ? `rgba(255, 80, 40, ${0.10 + 0.10 * pulse})`
+      : `rgba(220, 40, 40, ${0.08 + 0.06 * pulse})`;
+    ctx.beginPath();
+    ctx.ellipse(center.x, center.y, radPx, radPx * ISO_Y, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Контур кольца — пунктиром
+    ctx.strokeStyle = hostile
+      ? `rgba(255, 100, 40, ${0.70 + 0.30 * pulse})`
+      : `rgba(220, 60, 60, ${0.55 + 0.25 * pulse})`;
+    ctx.lineWidth = hostile ? 2.5 : 1.8;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.ellipse(center.x, center.y, radPx, radPx * ISO_Y, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    // Череп над крышей — высокий маркер чтобы видно с улицы
+    const top = w2s(ne.r + 0.5, ne.c + 0.5);
+    top.y -= isoH(2.3);
+    ctx.save();
+    ctx.font = '20px "Segoe UI Emoji", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#000';
+    ctx.fillText('☠️', top.x + 1, top.y + 1);
+    ctx.fillStyle = hostile ? '#ff6040' : '#ff9090';
+    ctx.shadowColor = hostile ? '#ff4020' : '#ff4040';
+    ctx.shadowBlur = 10 + 6 * pulse;
+    ctx.fillText('☠️', top.x, top.y);
     ctx.restore();
   }
 }
@@ -7959,6 +8036,8 @@ function render() {
   drawArenaPerimeter();
   // 1.6) Периметры захватываемых районов — цвет владельца / пунктир если ничейная
   drawTerritoryPerimeters();
+  // 1.7) Бандитские гнёзда — пульсирующая красная подсветка вокруг здания
+  drawGangNestRings();
   // 2) Объекты с depth-sort
   const items = [];
   for (let r = r0; r < r1; r++) {
@@ -8551,6 +8630,25 @@ function drawMinimap() {
     ctx2.setLineDash([4, 3]);
     ctx2.strokeRect(x + 0.5, y + 0.5, w, h);
     ctx2.setLineDash([]);
+  }
+  // Бандитские гнёзда — маленький череп на мини-карте
+  for (const ne of gangNests) {
+    const x = (ne.c + 0.5) * sx;
+    const y = (ne.r + 0.5) * sy;
+    const hostile = (ne.state === 'hostile');
+    // Подложка-кружок
+    ctx2.fillStyle = hostile
+      ? `rgba(255,60,40,${0.60 + 0.30 * tPulse})`
+      : `rgba(200,40,40,${0.50 + 0.20 * tPulse})`;
+    ctx2.beginPath();
+    ctx2.arc(x, y, 5, 0, Math.PI * 2);
+    ctx2.fill();
+    // Череп
+    ctx2.font = 'bold 10px "Segoe UI Emoji", system-ui, sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.textBaseline = 'middle';
+    ctx2.fillStyle = '#fff';
+    ctx2.fillText('☠', x, y);
   }
   // Тюрьма (как POI 🚓) — серый домик в правом-нижнем углу карты
   const jailX = 56, jailY = 56, jailSize = 8;
