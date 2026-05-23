@@ -12202,7 +12202,7 @@ class WorldSim:
 
     def apply_player_shoot(self, uid: str, target_uid: str,
                            weapon: str = '') -> dict | None:
-        """PvP: игрок стреляет в другого игрока. Разрешено в 4 случаях:
+        """PvP: игрок стреляет в другого игрока. Разрешено в 5 случаях:
           1) Оба в активной PvP-зоне вокруг конвоя инкассатора.
           2) Оба в постоянной PvP-арене.
           3) Оба в ОДНОЙ и той же захватываемой территории (война за район).
@@ -12210,6 +12210,9 @@ class WorldSim:
              валить ВЕЗДЕ в открытом мире, оба должны быть в PvP-режиме.
              При успешном убийстве килер получает БОНТИ (+500$ +50 exp),
              а у жертвы wanted_gangs сбрасывается до 0.
+          5) Оба СИДЯТ в тюрьме (jail_until > now И физически внутри
+             загона) — тюремные разборки. Wanted не растёт, копы не
+             приезжают (они и так стоят рядом).
         Возвращает hit-пакет (для broadcast) или None если выстрел отклонён."""
         shooter = self.players.get(uid)
         target  = self.players.get(target_uid)
@@ -12240,8 +12243,18 @@ class WorldSim:
         t_tid, _ = self._territory_at(target['x'], target['y'])
         both_in_territory = bool(s_tid) and (s_tid == t_tid)
         target_is_bounty  = int(target.get('_wanted_gangs') or 0) >= 3
+        # Случай 5: оба СИДЯТ в тюрьме. Проверяем И jail_until > now,
+        # И физическую позицию внутри загона (защита от выстрела через
+        # лазер по копам / прохожим / только что освобождённым).
+        both_jailed = (
+            (shooter.get('_jail_until') or 0) > now and
+            (target.get('_jail_until') or 0)  > now and
+            self._in_jail(shooter['x'], shooter['y']) and
+            self._in_jail(target['x'],  target['y'])
+        )
         if not (both_in_pvp_zone or both_in_arena
-                or both_in_territory or target_is_bounty):
+                or both_in_territory or target_is_bounty
+                or both_jailed):
             return None
         # Friendly fire OFF: союзники по банде не наносят урон друг другу
         # В ГОРОДЕ (арена — полигон, там FF разрешён).
@@ -12279,14 +12292,22 @@ class WorldSim:
                 bounty_done = True
                 target['_wanted_gangs'] = 0
         # Wanted: попадание = +0.5, убийство = +1 (минус 0.5 уже учтённое).
-        # Но в АРЕНЕ и в захватываемой ТЕРРИТОРИИ — легальный PvP, копы
-        # не реагируют. Также при исполнении контракта — это «работа», копы
-        # не приезжают (для bounty wanted-штраф не растёт).
-        if not both_in_arena and not both_in_territory and not target_is_bounty:
+        # Но в АРЕНЕ, захватываемой ТЕРРИТОРИИ и ТЮРЬМЕ — легальный PvP,
+        # копы не реагируют. Также при исполнении контракта — это «работа»,
+        # копы не приезжают (для bounty wanted-штраф не растёт).
+        if (not both_in_arena and not both_in_territory
+                and not target_is_bounty and not both_jailed):
             self._bump_wanted(shooter, self.WANTED_PER_HIT)
             if killed:
                 self._bump_wanted(shooter,
                                   self.WANTED_PER_KILL - self.WANTED_PER_HIT)
+        # Если убил в тюрьме — у жертвы СОХРАНЯЕМ jail_until (после
+        # респауна она снова появится в загоне досиживать срок). Без
+        # этого killed-сброс мог бы её освободить раньше времени.
+        if both_jailed and killed:
+            # _jail_until НЕ трогаем; tick_respawn увидит что он > now
+            # и спавнит обратно в JAIL_SPAWNS.
+            target['_jail_released'] = False
         # Если PvP-разборка идёт в захватываемой зоне — оставляем «hot»
         # маркер: следующий ws-обработчик пошлёт баннер «🔫 Перестрелка
         # за район X» (раз в TERR_FIGHT_BANNER_CD сек).
@@ -12321,6 +12342,13 @@ class WorldSim:
         """Точка лежит в постоянной PvP-арене (квадрат 8×8 вокруг POI 🎯)."""
         return (self.ARENA_C0 <= x <= self.ARENA_C1 + 1
                 and self.ARENA_R0 <= y <= self.ARENA_R1 + 1)
+
+    def _in_jail(self, x: float, y: float) -> bool:
+        """Точка лежит в физическом загоне тюрьмы (радиус JAIL_R от центра).
+        Используется чтобы разрешить PvP-урон ТОЛЬКО между сидящими внутри."""
+        dx = x - self.JAIL_X
+        dy = y - self.JAIL_Y
+        return (dx*dx + dy*dy) <= self.JAIL_R * self.JAIL_R
 
     # ── Wanted-система: копы в городе ──────────────────────────────
     def _bump_wanted(self, shooter: dict, amount: float) -> None:
