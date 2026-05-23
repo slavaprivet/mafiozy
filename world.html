@@ -1513,6 +1513,19 @@ const bullets = [];       // {r,c,vr,vc,dist,maxDist,color,thick,hit,...}
 // ── Параметры оружия (копия из demo_isometric, без аудио-полей) ───
 // Используется только для визуала пуль (скорость, цвет, толщина) и для
 // расчёта дальности. Урон/КД диктует сервер (см. mafiozi_bot.py).
+// Алиасы: item_id из магазина (deagle/tt_pistol/m16/...) → ISO-модель в
+// WEAPON_FX_CFG. Источник правды — demo_isometric.html (там полный список).
+// loadMyWeapons() использует это: если купленный id отсутствует в FX_CFG,
+// подменяем на алиас. Без этого «Дезерт Игл», «ТТ», «М16», «Золотой Узи»
+// не появлялись в picker'е — игрок не мог их выбрать в открытом мире.
+const WEAPON_ALIASES = {
+  nagan: 'pistol', tt: 'pistol', tt_pistol: 'pistol', pm: 'pistol', glock: 'pistol',
+  revolver: 'pistol_heavy', desert_eagle: 'pistol_heavy', deagle: 'pistol_heavy',
+  golden_colt: 'pistol_gold',
+  sawn_off: 'shotgun',
+  uzi: 'smg', ump: 'smg', mp5: 'smg', tommy_gun: 'smg', golden_uzi: 'smg',
+  ak: 'rifle', ak74: 'rifle', m4: 'rifle', m16: 'rifle',
+};
 const WEAPON_FX_CFG = {
   pistol:       { range: 8,  color: '#ffea80', spread: 0.05, dmg: 22, muzzleD: 0.75, twoHanded: false },
   nagan:        { range: 8,  color: '#ffea80', spread: 0.06, dmg: 22, muzzleD: 0.75, twoHanded: false },
@@ -2902,7 +2915,7 @@ function findPvpTargetAlongAim(dirX, dirY) {
     // Косинус угла между направлением и вектором на цель
     const dn = d > 0.001 ? d : 1;
     const dot = (dx * dirX + dy * dirY) / dn;
-    if (dot < 0.65) continue;   // цель не в конусе ±50° от прицела
+    if (dot < 0.985) continue;  // ручное прицеливание: ±10° от стика
     const score = d - dot * 2;  // ближе + точнее = лучше
     if (!best || score < best.score) best = { uid, x: o.x, y: o.y, d, score };
   }
@@ -2945,7 +2958,11 @@ function fire(angle = null) {
     return;
   }
   // Что под прицелом?
-  // 1) Конвой в радиусе огня + по направлению (или auto-aim)
+  // AUTO-AIM ОТКЛЮЧЁН: цель засчитывается ТОЛЬКО если правый стик
+  // направлен строго в неё (dot >= 0.985, что соответствует ±10°).
+  // Промахнулся стиком — пуля летит в пустоту. Ниже 4 типа целей
+  // (конвой/коп/aggro/pvp) проверяются ровно тем же конусом.
+  // 1) Конвой в радиусе огня + по направлению
   let chosenConvoy = null;
   if (worldEvent) {
     const targets = [];
@@ -2957,7 +2974,7 @@ function fire(angle = null) {
       if (d > FIRE_R_CONVOY) continue;
       const dn = d > 0.001 ? d : 1;
       const dot = (dx * dirX + dy * dirY) / dn;
-      if (dot < 0.55) continue;
+      if (dot < 0.985) continue;   // ручное прицеливание: ±10° от стика, без auto-aim
       if (!chosenConvoy || d < chosenConvoy.d) chosenConvoy = { id: t.id, x: t.x, y: t.y, d };
     }
   }
@@ -2970,7 +2987,7 @@ function fire(angle = null) {
       if (d > FIRE_R_CONVOY) continue;
       const dn = d > 0.001 ? d : 1;
       const dot = (dx * dirX + dy * dirY) / dn;
-      if (dot < 0.55) continue;
+      if (dot < 0.985) continue;   // ручное прицеливание: ±10° от стика, без auto-aim
       if (!chosenCop || d < chosenCop.d) chosenCop = { id: c.id, x: c.x, y: c.y, d };
     }
   }
@@ -2986,7 +3003,7 @@ function fire(angle = null) {
         if (d > FIRE_R_CONVOY) continue;
         const dn = d > 0.001 ? d : 1;
         const dot = (dx * dirX + dy * dirY) / dn;
-        if (dot < 0.55) continue;
+        if (dot < 0.985) continue;   // ручное прицеливание: ±10° от стика, без auto-aim
         if (!chosenAggro || d < chosenAggro.d) chosenAggro = { id: bot.id, x: bot.x, y: bot.y, d };
       }
     }
@@ -3332,10 +3349,13 @@ async function loadMyWeapons() {
     // Гарантируем стартовый пистолет даже если сервер забыл
     const seen = new Set();
     for (const it of j.items) {
-      const id = it.id || it.item_id;
-      if (!id) continue;
+      const rawId = it.id || it.item_id;
+      if (!rawId) continue;
       if (it.type && it.type !== 'weapon') continue;
-      if (!(id in WEAPON_FX_CFG)) continue;   // только known firearms
+      // Применяем алиас shop-id → ISO-id (deagle → pistol_heavy и т.п.),
+      // иначе купленное в магазине оружие не появится в picker'е.
+      const id = (rawId in WEAPON_FX_CFG) ? rawId : (WEAPON_ALIASES[rawId] || null);
+      if (!id || !(id in WEAPON_FX_CFG)) continue;
       if (seen.has(id)) continue;
       seen.add(id);
       _myWeapons.push({ id, name: it.name || weaponLabel(id),
