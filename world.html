@@ -2560,6 +2560,29 @@ function handleEventPacket(d) {
         addShake(7);
       }
     }
+  } else if (kind === 'cop_shot_bot') {
+    // Коп выстрелил в бойца городской банды (cop_shot_bot пакет).
+    // Трассер от копа + brызги при попадании. UI игрока не дёргаем.
+    {
+      const wp  = d.weapon || 'pistol_heavy';
+      const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
+      const md  = (WEAPON_FX_CFG[wp] || {}).muzzleD || 0.8;
+      const sR  = d.sy + Math.sin(ang) * md;
+      const sC  = d.sx + Math.cos(ang) * md;
+      spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
+      spawnMuzzle(sR, sC, ang, wp);
+      if (!d.miss) spawnImpact(d.ty, d.tx, wp);
+    }
+    if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
+  } else if (kind === 'city_gang_combat') {
+    // Городская банда стала hostile — баннер всем игрокам поблизости.
+    // Без этого «там перестрелка» легко пропустить.
+    showEventBanner('🚨 Стрельба в городе!',
+      'Бандиты ввязались в бой. Копы выехали на разбор.',
+      4000, 'spawn');
+  } else if (kind === 'city_gang_threat') {
+    // Threat-фраза уже передана через snap.aggro.bots[].threat —
+    // тут реакции не делаем (можно было бы звук).
   } else if (kind === 'cop_hit') {
     // Игрок попал в копа — пуля из КОНЦА ствола стрелка + брызги крови
     {
@@ -5595,16 +5618,20 @@ function drawAggroBot(bot) {
   ctx.ellipse(p.x, p.y + 6, isBoss ? 22 : 16, isBoss ? 8 : 6, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+  // Threat-фраза от городской банды («Чё уставился?»). Приходит в
+  // bot.threat из serverного snapshot.aggro (поле threat). Передаём
+  // в drawPerson как chat — рисуется стандартным пузырём над головой.
+  const threatChat = (bot.threat) ? String(bot.threat) : null;
   // Босс крупнее — масштабируем человечка.
   if (isBoss) {
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.scale(1.25, 1.25);
-    drawPerson(0, 0, bot.ang || 0, look, walkPhase, null, null, false,
+    drawPerson(0, 0, bot.ang || 0, look, walkPhase, null, threatChat, false,
                bot.hp, bot.max_hp, false);
     ctx.restore();
   } else {
-    drawPerson(p.x, p.y, bot.ang || 0, look, walkPhase, null, null, false,
+    drawPerson(p.x, p.y, bot.ang || 0, look, walkPhase, null, threatChat, false,
                bot.hp, bot.max_hp, false);
   }
   // Оружие

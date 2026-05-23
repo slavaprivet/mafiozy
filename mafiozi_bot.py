@@ -11620,6 +11620,21 @@ class WorldSim:
     AGGRO_GANG_STAR_CHANCE  = 0.05   # 5% за грунта (~1 кулачок за волну)
     BOUNTY_CASH = 500    # премия за исполнение контракта (PvP-kill 3★ жертвы)
     BOUNTY_EXP  = 50
+    # ── Бродячие городские банды ───────────────────────────────────
+    # Маленькие группы бандитов (3 чел) из Логова периодически выходят
+    # в город. Сами НЕ стреляют, при подходе игрока бросают threat-фразы
+    # («Чё уставился?»). Если атакуют — становятся hostile и отвечают
+    # огнём. Хостильную банду атакуют копы — расстреливают за минуту.
+    CITY_GANG_MAX           = 2       # одновременно бродят 2 группы
+    CITY_GANG_SIZE          = 3       # бойцов в группе
+    CITY_GANG_SPAWN_GAP_S   = 240.0   # 4 мин между новыми спавнами
+    CITY_GANG_THREAT_R      = 4.0     # тайлов — порог threat-фразы
+    CITY_GANG_THREAT_CD_S   = 6.0     # cooldown threat-фраз на игрока
+    CITY_GANG_HOSTILE_S     = 30.0    # сколько секунд hostile после атаки
+    CITY_GANG_PATROL_SPEED  = 0.9     # тайлов/сек неспешная прогулка
+    CITY_GANG_CHASE_SPEED   = 1.5
+    CITY_GANG_FIRE_R        = 7.0
+    CITY_GANG_COPS_PER_GANG = 3       # копов спавним когда банда hostile
     AGGRO_BOT_HP        = 90
     AGGRO_BOT_DMG       = 8
     AGGRO_BOT_CD        = 1.1
@@ -11694,6 +11709,13 @@ class WorldSim:
         self.aggro_covers = {}
         # Время старта 3-секундного захвата после зачистки: {tid -> ts}
         self.aggro_capturing_at = {}
+        # Бродячие городские банды — отдельный список (не привязан к зонам).
+        # Каждая группа: {id, bots: [...], state: 'patrol|hostile',
+        #                _hostile_until, _target_uid, _threat_t: {uid->ts},
+        #                _patrol_wp: (x, y)}.
+        self.city_gangs = []
+        self._city_gang_next_id = 1
+        self._city_gang_next_spawn_at = 0.0
 
     def add_or_update(self, uid: str, name: str, look: dict,
                        wanted: float = 0.0, jail_until: int = 0,
@@ -12553,7 +12575,12 @@ class WorldSim:
         # optRange, каждые ~1.3с выбираем новое перпендикулярное направление
         # стрейфа, часть выстрелов промахиваются (aimErr → MISS_CHANCE).
         # Патрульные (1★) подходят, предупреждают и НЕ стреляют первыми.
-        for cop in self.cops:
+        # СПЕЦКЕЙС: cop['target_gang_id'] — атакуем бойца городской банды,
+        # а не игрока (см. _dispatch_cops_on_gang).
+        for cop in list(self.cops):
+            if cop.get('target_gang_id'):
+                pkts.extend(self._tick_cop_vs_gang(cop, dt))
+                continue
             target = self.players.get(cop['target_uid'])
             if not target or target.get('dead'):
                 continue
@@ -12664,6 +12691,91 @@ class WorldSim:
                         'jailed':     jailed,
                         'miss':       bool(miss),
                     })
+        return pkts
+
+    def _tick_cop_vs_gang(self, cop: dict, dt: float) -> list:
+        """Коп с target_gang_id атакует ближайшего живого бойца группы.
+        Если группа уничтожена или ушла в patrol — копу нечего делать,
+        будет деспаунен следующей итерацией (далеко от target_uid)."""
+        import math as _m
+        pkts = []
+        now = time.time()
+        gid = cop.get('target_gang_id')
+        g = next((x for x in self.city_gangs if x['id'] == gid), None)
+        if not g:
+            # Группы больше нет → коп уезжает
+            self.cops.remove(cop)
+            pkts.append({'kind': 'cop_leave', 'cop_id': cop['id']})
+            return pkts
+        alive_bots = [b for b in g['bots'] if b['alive']]
+        if not alive_bots or g['state'] == 'patrol':
+            # Все мертвы или сдались (вернулись в patrol после таймаута)
+            self.cops.remove(cop)
+            pkts.append({'kind': 'cop_leave', 'cop_id': cop['id']})
+            return pkts
+        target = min(alive_bots,
+                     key=lambda b: (b['x']-cop['x'])**2 + (b['y']-cop['y'])**2)
+        dx = target['x'] - cop['x']; dy = target['y'] - cop['y']
+        dist = (dx*dx + dy*dy) ** 0.5
+        if dist > 0.05:
+            cop['ang'] = _m.atan2(dy, dx)
+        # Боевое сближение с тем же strafe-AI что и при бое с игроком
+        opt = self.COP_OPT_RANGE
+        cop['_strafe_t'] = max(0.0, cop.get('_strafe_t', 0.0) - dt)
+        if cop['_strafe_t'] <= 0.0:
+            cop['_strafe_t'] = self.COP_STRAFE_T * (0.7 + random.random() * 0.6)
+            cop['_strafe_s'] = random.choice([-1.0, -1.0, 1.0, 1.0, 0.0])
+        if dist > 0.05:
+            nx, ny = dx / dist, dy / dist
+            px, py = -ny, nx
+        else:
+            nx = ny = px = py = 0.0
+        if dist > opt + 0.8:
+            step = self.COP_CHASE_SPEED * dt
+            cop['x'] += nx * step; cop['y'] += ny * step
+        elif dist < opt - 0.8:
+            step = self.COP_CHASE_SPEED * 0.7 * dt
+            cop['x'] -= nx * step; cop['y'] -= ny * step
+        else:
+            step = self.COP_CHASE_SPEED * 0.65 * dt * cop['_strafe_s']
+            cop['x'] += px * step; cop['y'] += py * step
+        if _world_is_wall(int(cop['y']), int(cop['x'])):
+            cop['x'] -= px * (self.COP_CHASE_SPEED * 0.65 * dt * cop['_strafe_s'])
+            cop['y'] -= py * (self.COP_CHASE_SPEED * 0.65 * dt * cop['_strafe_s'])
+            cop['_strafe_s'] = -cop.get('_strafe_s', 0.0)
+        if dist <= self.COP_SHOOT_R and (now - cop['_shot_t']) >= self.COP_SHOOT_CD:
+            if _world_los(cop['x'], cop['y'], target['x'], target['y']):
+                cop['_shot_t'] = now
+                miss = random.random() < self.COP_MISS_CHANCE
+                if miss:
+                    dmg = 0
+                    jitter = 1.0 + random.random() * 0.8
+                    side = 1.0 if random.random() < 0.5 else -1.0
+                    tx = target['x'] + px * jitter * side
+                    ty = target['y'] + py * jitter * side
+                else:
+                    dmg = self.COP_SHOOT_DMG
+                    tx = target['x']; ty = target['y']
+                target['hp'] = int(max(0, int(target.get('hp', 100)) - dmg))
+                killed = False
+                if target['hp'] <= 0:
+                    target['hp']    = 0
+                    target['alive'] = False
+                    killed = True
+                pkts.append({
+                    'kind':       'cop_shot_bot',
+                    'cop_id':     cop['id'],
+                    'gid':        g['id'],
+                    'bot_id':     target['id'],
+                    'weapon':     cop.get('weapon', 'pistol_heavy'),
+                    'sx':         round(cop['x'], 2),
+                    'sy':         round(cop['y'], 2),
+                    'tx':         round(tx, 2),
+                    'ty':         round(ty, 2),
+                    'dmg':        int(dmg),
+                    'killed':     killed,
+                    'miss':       bool(miss),
+                })
         return pkts
 
     def apply_cop_shoot(self, uid: str, cop_id: str,
@@ -13176,6 +13288,281 @@ class WorldSim:
                     'killed':      killed,
                     'is_boss':     (bot.get('kind') == 'aggro_boss'),
                 }
+        # Не нашли в обычных aggro-зонах — может это городская банда.
+        return self.city_gang_shoot_bot(uid, bot_id, weapon)
+
+    # ── Бродячие городские банды ────────────────────────────────────
+    CITY_GANG_PHRASES = [
+        'Чё уставился?', 'У тебя проблемы?', 'Иди мимо!',
+        'Не лезь, пацан.', 'Свободен.', 'Чё надо?',
+        'Не трогай.', 'Шевели ногами.', 'Гуляй давай.',
+    ]
+
+    def _spawn_city_gang(self) -> None:
+        """Спавнит маленькую группу бандитов в городе на проходимом тайле.
+        Не у Логова, не у тюрьмы, не в захватываемых районах."""
+        import math as _m
+        for _try in range(60):
+            x = random.uniform(12, WORLD_MAP_COLS - 12)
+            y = random.uniform(10, 70)   # только основной город (0..79)
+            # Не у тюрьмы (радиус 15)
+            if ((x - self.JAIL_X)**2 + (y - self.JAIL_Y)**2) < 225:
+                continue
+            # Не в захватываемой зоне
+            tid, _ = self._territory_at(x, y)
+            if tid:
+                continue
+            # Хотим стоять на тротуаре/дороге (не в здании)
+            if _world_is_wall(int(y), int(x)):
+                continue
+            break
+        else:
+            return  # карта плотно занята, попробуем позже
+        gid = f'cg{self._city_gang_next_id}'
+        self._city_gang_next_id += 1
+        bots = []
+        for i in range(self.CITY_GANG_SIZE):
+            self._next_bot_id += 1
+            # Разносим по тротуару рядом с центром
+            bx = x + random.uniform(-1.5, 1.5)
+            by = y + random.uniform(-1.5, 1.5)
+            bots.append({
+                'id':       f'cgbot{self._next_bot_id}',
+                'x':        float(bx), 'y': float(by),
+                'ang':      0.0,
+                'hp':       int(self.AGGRO_BOT_HP),
+                'max_hp':   int(self.AGGRO_BOT_HP),
+                'alive':    True,
+                'kind':     'aggro_grunt',
+                'weapon':   'pistol_heavy',
+                '_shot_t':  0.0,
+                'look':     {
+                    'gender': 0,
+                    'skin':   random.choice([1,2,3]),
+                    'body':   2, 'face': random.choice([0,1,2]),
+                    'hair':   random.choice([0,1,3]),
+                    'hat':    4,
+                    'gang':   1,
+                },
+            })
+        self.city_gangs.append({
+            'id':              gid,
+            'bots':            bots,
+            'state':           'patrol',
+            '_spawned_at':     time.time(),
+            '_hostile_until':  0.0,
+            '_target_uid':     None,
+            '_threat_t':       {},
+            '_patrol_wp':      (x, y),
+            '_cops_dispatched': False,
+        })
+
+    def tick_city_gangs(self, dt: float) -> list:
+        """AI для бродячих городских банд. Возвращает event-пакеты:
+        city_gang_threat (фраза над головой), aggro_shot (если стреляют)."""
+        import math as _m
+        pkts = []
+        now = time.time()
+        # Удаляем группы где все мертвы (без респауна — следующая придёт позже)
+        self.city_gangs = [g for g in self.city_gangs
+                            if any(b['alive'] for b in g['bots'])]
+        # Спавн новой группы если их меньше CITY_GANG_MAX
+        if (self.players
+                and len(self.city_gangs) < self.CITY_GANG_MAX
+                and now >= self._city_gang_next_spawn_at):
+            self._spawn_city_gang()
+            self._city_gang_next_spawn_at = now + self.CITY_GANG_SPAWN_GAP_S
+        for g in self.city_gangs:
+            alive_bots = [b for b in g['bots'] if b['alive']]
+            if not alive_bots:
+                continue
+            # Сброс hostile если время вышло И никто не атакует
+            if g['state'] == 'hostile' and now > g['_hostile_until']:
+                g['state'] = 'patrol'
+                g['_target_uid'] = None
+                g['_cops_dispatched'] = False
+            # Центр группы
+            cx = sum(b['x'] for b in alive_bots) / len(alive_bots)
+            cy = sum(b['y'] for b in alive_bots) / len(alive_bots)
+            if g['state'] == 'patrol':
+                # Threat-фразы при подходе игрока в радиусе CITY_GANG_THREAT_R
+                for uid, p in self.players.items():
+                    if p.get('dead') or (p.get('_mode') or 'pvp') == 'pve':
+                        continue
+                    if (p.get('_jail_until') or 0) > now:
+                        continue
+                    dx2 = p['x'] - cx; dy2 = p['y'] - cy
+                    if (dx2*dx2 + dy2*dy2) > self.CITY_GANG_THREAT_R**2:
+                        continue
+                    last_t = g['_threat_t'].get(uid, 0)
+                    if now - last_t < self.CITY_GANG_THREAT_CD_S:
+                        continue
+                    g['_threat_t'][uid] = now
+                    speaker = random.choice(alive_bots)
+                    pkts.append({
+                        'kind':   'city_gang_threat',
+                        'gid':    g['id'],
+                        'bot_id': speaker['id'],
+                        'text':   random.choice(self.CITY_GANG_PHRASES),
+                    })
+                    break   # одна фраза за тик
+                # Простой patrol — двигаемся к waypoint, при достижении новый
+                wx, wy = g['_patrol_wp']
+                if _m.hypot(wx - cx, wy - cy) < 1.2:
+                    for _ in range(20):
+                        nwx = cx + random.uniform(-7, 7)
+                        nwy = cy + random.uniform(-7, 7)
+                        if (8 < nwy < 72 and 8 < nwx < WORLD_MAP_COLS - 8
+                                and not _world_is_wall(int(nwy), int(nwx))):
+                            g['_patrol_wp'] = (nwx, nwy)
+                            break
+                wx, wy = g['_patrol_wp']
+                for bot in alive_bots:
+                    dx2 = wx - bot['x']; dy2 = wy - bot['y']
+                    dist = _m.hypot(dx2, dy2)
+                    if dist < 0.1:
+                        continue
+                    step = self.CITY_GANG_PATROL_SPEED * dt
+                    nx = bot['x'] + (dx2/dist) * step
+                    ny = bot['y'] + (dy2/dist) * step
+                    if not _world_is_wall(int(ny), int(nx)):
+                        bot['x'] = nx; bot['y'] = ny
+                        bot['ang'] = _m.atan2(dy2, dx2)
+            else:
+                # HOSTILE: стреляем по target_uid (или ближайшему игроку)
+                target = self.players.get(g['_target_uid']) if g['_target_uid'] else None
+                if (not target or target.get('dead')
+                        or (target.get('_jail_until') or 0) > now):
+                    candidates = [p for p in self.players.values()
+                                  if not p.get('dead')
+                                  and (p.get('_mode') or 'pvp') != 'pve'
+                                  and (p.get('_jail_until') or 0) <= now]
+                    if candidates:
+                        target = min(candidates,
+                                     key=lambda p: (p['x']-cx)**2 + (p['y']-cy)**2)
+                        g['_target_uid'] = str(target.get('uid') or '')
+                    else:
+                        target = None
+                if target is None:
+                    continue
+                tx, ty = target['x'], target['y']
+                for bot in alive_bots:
+                    dx2 = tx - bot['x']; dy2 = ty - bot['y']
+                    dist = _m.hypot(dx2, dy2) + 1e-6
+                    bot['ang'] = _m.atan2(dy2, dx2)
+                    # Приближаемся если далеко
+                    if dist > 5.5:
+                        step = self.CITY_GANG_CHASE_SPEED * dt
+                        nx = bot['x'] + (dx2/dist) * step
+                        ny = bot['y'] + (dy2/dist) * step
+                        if not _world_is_wall(int(ny), int(nx)):
+                            bot['x'] = nx; bot['y'] = ny
+                    # Стрельба (только если LOS и в дальности)
+                    if (dist <= self.CITY_GANG_FIRE_R
+                            and (now - bot['_shot_t']) >= self.AGGRO_BOT_CD
+                            and _world_los(bot['x'], bot['y'], tx, ty)):
+                        bot['_shot_t'] = now
+                        miss = random.random() < 0.35
+                        dmg  = 0 if miss else self.AGGRO_BOT_DMG
+                        if not miss:
+                            target['hp'] = int(max(0,
+                                int(target.get('hp', 100)) - dmg))
+                        killed = False
+                        if target['hp'] <= 0 and not miss:
+                            target['hp']         = 0
+                            target['dead']       = True
+                            target['deaths']     = int(target.get('deaths', 0)) + 1
+                            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                            killed = True
+                        # Реиспользуем aggro_shot — у клиента уже есть рендер
+                        pkts.append({
+                            'kind':       'aggro_shot',
+                            'tid':        g['id'],
+                            'bot_id':     bot['id'],
+                            'weapon':     bot.get('weapon', 'pistol_heavy'),
+                            'sx':         round(bot['x'], 2),
+                            'sy':         round(bot['y'], 2),
+                            'target_uid': g['_target_uid'],
+                            'tx':         round(tx, 2),
+                            'ty':         round(ty, 2),
+                            'dmg':        int(dmg),
+                            'miss':       bool(miss),
+                            'killed':     killed,
+                        })
+            # При hostile — диспатчим копов один раз (они атакуют банду).
+            if g['state'] == 'hostile' and not g['_cops_dispatched']:
+                g['_cops_dispatched'] = True
+                self._dispatch_cops_on_gang(g, cx, cy)
+                pkts.append({
+                    'kind':   'city_gang_combat',
+                    'gid':    g['id'],
+                    'x':      round(cx, 2),
+                    'y':      round(cy, 2),
+                })
+        return pkts
+
+    def _dispatch_cops_on_gang(self, g: dict, cx: float, cy: float) -> None:
+        """Спавним группу копов рядом с hostile-бандой. У копа задаётся
+        target_gang_id — в tick_cops он будет атаковать бойцов банды,
+        а не игрока."""
+        import math as _m
+        for i in range(self.CITY_GANG_COPS_PER_GANG):
+            for _try in range(8):
+                ang  = random.random() * 2 * _m.pi
+                dist = 9 + random.random() * 4
+                sx = max(2, min(WORLD_MAP_COLS - 2, cx + _m.cos(ang) * dist))
+                sy = max(2, min(WORLD_MAP_ROWS - 2, cy + _m.sin(ang) * dist))
+                if not _world_is_wall(int(sy), int(sx)):
+                    break
+            else:
+                continue
+            cop = self.spawn_cop(sx, sy, '', kind='combat')
+            cop['target_gang_id'] = g['id']
+
+    def city_gang_shoot_bot(self, uid: str, bot_id: str,
+                            weapon: str = '') -> dict | None:
+        """Игрок стреляет в бойца городской банды. Любое попадание делает
+        банду hostile. Wanted у игрока растёт (стрельба в открытом мире)."""
+        shooter = self.players.get(uid)
+        if not shooter or shooter.get('dead'):
+            return None
+        if (shooter.get('_jail_until') or 0) > time.time():
+            return None
+        if shooter.get('_mode') == 'pve':
+            return None
+        for g in self.city_gangs:
+            for bot in g['bots']:
+                if bot.get('id') != bot_id or not bot.get('alive'):
+                    continue
+                if not _world_los(shooter['x'], shooter['y'], bot['x'], bot['y']):
+                    return None
+                dmg = max(5, min(150, int(self.WEAPON_DMG.get(weapon, 25))))
+                bot['hp'] -= dmg
+                # Hostile — вся группа разворачивается на стрелка
+                g['state']          = 'hostile'
+                g['_hostile_until'] = time.time() + self.CITY_GANG_HOSTILE_S
+                g['_target_uid']    = str(uid)
+                # +0.5 wanted, копы подтянутся (отдельно ещё диспатчим
+                # _dispatch_cops_on_gang в tick).
+                self._bump_wanted(shooter, self.WANTED_PER_HIT)
+                killed = False
+                if bot['hp'] <= 0:
+                    bot['hp']    = 0
+                    bot['alive'] = False
+                    killed = True
+                return {
+                    'kind':        'aggro_hit',
+                    'tid':         g['id'],
+                    'bot_id':      bot_id,
+                    'shooter_uid': str(uid),
+                    'sx':          round(shooter['x'], 2),
+                    'sy':          round(shooter['y'], 2),
+                    'tx':          round(bot['x'], 2),
+                    'ty':          round(bot['y'], 2),
+                    'dmg':         int(dmg),
+                    'killed':      killed,
+                    'is_boss':     False,
+                }
         return None
 
     def tick_capture(self, dt: float) -> list:
@@ -13489,6 +13876,40 @@ class WorldSim:
                 'cap_left':      round(cap_left, 2),
                 'next_respawn':  next_respawn,
             }
+        # Бродячие городские банды — кладём в тот же aggro-payload по
+        # gid, чтобы клиент рисовал их через тот же drawAggroBot.
+        # Threat-сообщения сидят в bot['_threat_msg'] (см. ниже handler
+        # city_gang_threat в _world_run_loop) → передаём в snapshot.
+        for g in self.city_gangs:
+            g_bots = []
+            for bot in g['bots']:
+                if not bot.get('alive'):
+                    continue
+                b_out = {
+                    'id':      bot['id'],
+                    'x':       round(bot['x'], 2),
+                    'y':       round(bot['y'], 2),
+                    'ang':     round(bot['ang'], 2),
+                    'hp':      int(bot['hp']),
+                    'max_hp':  int(bot['max_hp']),
+                    'kind':    bot['kind'],
+                    'weapon':  bot.get('weapon') or 'pistol_heavy',
+                    'look':    bot.get('look') or {},
+                }
+                # Threat-сообщение «у тебя проблемы?» если активно
+                tmsg = bot.get('_threat_msg')
+                if tmsg and tmsg.get('until', 0) > now_t:
+                    b_out['threat']    = tmsg.get('text', '')
+                    b_out['threat_in'] = max(0, int(round(tmsg['until'] - now_t)))
+                g_bots.append(b_out)
+            aggro_payload[g['id']] = {
+                'state':         g.get('state', 'patrol'),
+                'bots':          g_bots,
+                'covers':        [],
+                'cap_left':      0,
+                'next_respawn':  0,
+                'is_city_gang':  True,
+            }
         return {
             't': 'snap',
             'd': {
@@ -13574,6 +13995,22 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     world.event = None  # очищаем — следующий по таймеру
                 # Агрессивный район — банда NPC + захват через зачистку
                 ev_pkts.extend(world.tick_aggro(WORLD_TICK_DT) or [])
+                # Бродячие городские банды (threat-фразы, hostile-fight).
+                # Threat-фразы сохраняем на боте чтобы snapshot.aggro мог
+                # их передать клиенту (как чат-баббл над головой).
+                gang_pkts = world.tick_city_gangs(WORLD_TICK_DT) or []
+                for gp in gang_pkts:
+                    if gp.get('kind') == 'city_gang_threat':
+                        bot_id = gp.get('bot_id')
+                        for cg in world.city_gangs:
+                            for cb in cg['bots']:
+                                if cb.get('id') == bot_id:
+                                    cb['_threat_msg'] = {
+                                        'text':  gp.get('text', ''),
+                                        'until': time.time() + 3.0,
+                                    }
+                                    break
+                ev_pkts.extend(gang_pkts)
                 # Глобальный респаун — воскрешает жертв ЛЮБОЙ системы
                 # (event/aggro/cops/pvp). Должно идти ПОСЛЕ всех tick_*.
                 world.tick_respawn(WORLD_TICK_DT)
