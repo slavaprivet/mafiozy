@@ -11549,6 +11549,16 @@ class WorldSim:
     JAIL_Y              = 76.0      # (совпадает с POI 'police' в world.html)
     # Радиус «тюремной зоны» — игрок не может выйти пока jail_until
     JAIL_R              = 3.5
+    # Безопасная точка СПАВНА внутри загона. Центр (76,76) — это сам
+    # POI «police», тайл-здание. Бордюр квартала проходимый только на
+    # mod%10 ∈ {4, 9}. (74, 76): 74%10=4 → бордюр + внутри загона.
+    JAIL_SPAWN_X        = 76.0
+    JAIL_SPAWN_Y        = 74.0
+    # Точка ВЫХОДА после освобождения — за лазерными воротами на юг,
+    # на дорогу. (76, 80) или дальше — мы кладём на бордюр (79, 76)
+    # вне загона, чтобы игрок 100% оказался на проходимом тайле.
+    JAIL_RELEASE_X      = 76.0
+    JAIL_RELEASE_Y      = 80.0      # за пределами JAIL_R=3.5, на дороге (80%10=0)
     # Госпиталь — точка респауна после смерти НЕ в тюрьму. POI «🏥 Больница»
     # на клиенте стоит на (r=26, c=46) — здание северо-востока на 80×80,
     # а сама точка выхода ставится на ближайшую дорогу (c=43, r=23) —
@@ -11688,7 +11698,8 @@ class WorldSim:
             # хранятся в БД (job/aggro/bounty все пишут), in-memory лишь зеркало.
             self.players[uid]['_wanted_gangs'] = max(0, min(3, int(wanted_gangs or 0)))
             if jail_until:
-                self.players[uid]['_jail_until'] = int(jail_until)
+                self.players[uid]['_jail_until']    = int(jail_until)
+                self.players[uid]['_jail_released'] = False
             return
         # Спавн: первый игрок — центр карты (на дороге 32,32). Остальные —
         # на ближайшей дороге РЯДОМ с уже играющим (хостом), чтобы сразу
@@ -11748,16 +11759,23 @@ class WorldSim:
             # Wanted система — загружаются из БД при коннекте
             '_wanted':       float(wanted or 0.0),
             '_jail_until':   int(jail_until or 0),
+            # Флаг одноразового релиза из тюрьмы (см. tick_jail_release).
+            # Если приходит с уже истёкшим jail_until — считаем что вышел
+            # сам и не телепортируем.
+            '_jail_released': (int(jail_until or 0) <= int(time.time())),
             '_last_shot_t':  0.0,   # для wanted decay
             # Режим игры в открытом мире: 'pvp' (можно стрелять и тебя
             # тоже могут) или 'pve' (наблюдатель — выстрелы не проходят,
             # AI копов/конвоя игнорирует, нет правого стика и оружия)
             '_mode':         (mode if mode in ('pvp', 'pve') else 'pvp'),
         }
-        # Если игрок зашёл с активным jail_until — спавним в тюрьму
+        # Если игрок зашёл с активным jail_until — спавним в тюрьму.
+        # Точка спавна: ВНУТРИ загона на бордюре (проходимый тайл),
+        # а не на (76,76) = POI 'police' = тайл-здание, где tryMove
+        # переключается в stuck-mode и игрок не может нормально ходить.
         if jail_until and jail_until > time.time():
-            self.players[uid]['x'] = self.JAIL_X
-            self.players[uid]['y'] = self.JAIL_Y
+            self.players[uid]['x'] = self.JAIL_SPAWN_X
+            self.players[uid]['y'] = self.JAIL_SPAWN_Y
 
     def remove(self, uid: str) -> None:
         self.players.pop(uid, None)
@@ -12072,12 +12090,45 @@ class WorldSim:
             # jail_until > now → спавн в тюрьме (правый-нижний угол),
             # иначе — у госпиталя (rebirth). Тебя завалил кто угодно —
             # выходишь из больницы в районе Рынка.
+            # ВАЖНО: спавн в тюрьму = на JAIL_SPAWN (бордюр), а не на
+            # (76,76) = POI-здание. Раньше игрок просыпался В СТЕНЕ и
+            # после окончания срока «не мог ходить» (stuck в тайле здания).
             if (p.get('_jail_until') or 0) > now:
-                p['x'] = self.JAIL_X + random.uniform(-1.0, 1.0)
-                p['y'] = self.JAIL_Y + random.uniform(-1.0, 1.0)
+                p['x'] = self.JAIL_SPAWN_X + random.uniform(-0.3, 0.3)
+                p['y'] = self.JAIL_SPAWN_Y + random.uniform(-0.3, 0.3)
             else:
                 p['x'] = self.HOSPITAL_X + random.uniform(-1.0, 1.0)
                 p['y'] = self.HOSPITAL_Y + random.uniform(-1.0, 1.0)
+
+    def tick_jail_release(self) -> None:
+        """Освобождение из тюрьмы: когда _jail_until истёк, телепортируем
+        игрока за лазерные ворота на проходимый тайл. Без этого игрок
+        оставался ВНУТРИ загона (на тайле здания — POI 'police'), и хотя
+        клиент входил в stuck-mode, ощущение «не могу ходить» оставалось.
+        Отметка `_jail_released` гарантирует одноразовый телепорт за выход.
+        Раз игрок ушёл — больше его трогать не надо."""
+        now = time.time()
+        for p in self.players.values():
+            ju = p.get('_jail_until') or 0
+            if ju <= 0:
+                continue
+            if ju > now:
+                continue  # ещё сидит
+            if p.get('_jail_released'):
+                continue  # уже вывели
+            # Только если игрок физически ВНУТРИ зоны тюрьмы (свежевыпущенный
+            # и не успевший уйти сам). Иначе телепортируем впустую.
+            dx = (p.get('x') or 0) - self.JAIL_X
+            dy = (p.get('y') or 0) - self.JAIL_Y
+            if (dx*dx + dy*dy) ** 0.5 > self.JAIL_R + 0.5:
+                p['_jail_released'] = True   # уже сам ушёл
+                p['_jail_until']    = 0
+                continue
+            # Перенос на дорогу за лазером
+            p['x'] = self.JAIL_RELEASE_X
+            p['y'] = self.JAIL_RELEASE_Y
+            p['_jail_released'] = True
+            p['_jail_until']    = 0   # окончательно сбросим — клиент перестаёт показывать overlay
 
     def apply_event_shoot(self, uid: str, target_id: str = 'b',
                           weapon: str = '') -> dict | None:
@@ -12547,9 +12598,10 @@ class WorldSim:
                         killed = True
                         # ЛЮБАЯ смерть от копа = автозак → участок.
                         # Звёзды обнуляются после освобождения через 60с.
-                        target['_jail_until'] = int(now + self.JAIL_DURATION_S)
-                        target['_wanted']     = 0.0
-                        target['_cop_kills']  = 0
+                        target['_jail_until']    = int(now + self.JAIL_DURATION_S)
+                        target['_jail_released'] = False   # новый срок → release заново
+                        target['_wanted']        = 0.0
+                        target['_cop_kills']     = 0
                         jailed = True
                     pkts.append({
                         'kind':       'cop_shot',
@@ -13479,6 +13531,10 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 # Глобальный респаун — воскрешает жертв ЛЮБОЙ системы
                 # (event/aggro/cops/pvp). Должно идти ПОСЛЕ всех tick_*.
                 world.tick_respawn(WORLD_TICK_DT)
+                # Освобождение из тюрьмы: jail_until истёк → телепорт
+                # за лазерные ворота на дорогу, чтобы игрок не остался
+                # внутри тайла-здания (POI 'police').
+                world.tick_jail_release()
                 # Захват районов: тик + начисление дохода в gang_pool.
                 cap_pkts = world.tick_capture(WORLD_TICK_DT) or []
                 for cp in cap_pkts:
