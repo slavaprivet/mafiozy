@@ -10,10 +10,17 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <!-- Предзагрузка боёвки: в TG-вебвью игра уже лежит в кэше к моменту,
-     когда игрок жмёт «В бой» — переход без задержки на загрузку html/js. -->
-<link rel="prefetch" href="demo_isometric.html" as="document">
+     когда игрок жмёт «В бой» — переход без задержки на загрузку html/js.
+     Используем world.html (актуальный открытый мир), а не старый
+     demo_isometric.html. prefetch низкоприоритетный — не мешает первому
+     рендеру hub.html. -->
+<link rel="prefetch" href="world.html" as="document">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<!-- PeerJS — для старого host-auth кооператива (Path A). Используется
+     только когда игрок САМ жмёт «Кооп: создать/войти». Грузим асинхронно,
+     чтобы не блокировать парсинг 550KB hub.html у друга при первом
+     заходе (был синхронный <script src> → белый экран до загрузки CDN). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js" async></script>
 <title>Мафиози</title>
 <style>
 :root {
@@ -1487,6 +1494,35 @@ body.on-subpage .time-display-box { display: none !important; }
 </style>
 </head>
 <body>
+
+<!-- Мгновенный loading screen. Видится сразу при первом открытии хаба
+     (друг на мобиле без кэша), пока парсятся 550KB inline JS. Скрывается
+     автоматически когда выполнится window.addEventListener('load'). -->
+<div id="bootSplash" style="position:fixed;inset:0;background:#08080f;z-index:99999;
+     display:flex;flex-direction:column;align-items:center;justify-content:center;
+     font-family:system-ui,-apple-system,sans-serif;color:#e8c96e;transition:opacity .35s">
+  <div style="font-size:42px;margin-bottom:8px;letter-spacing:2px">🎩</div>
+  <div style="font-size:18px;font-weight:700;color:#e8c96e;letter-spacing:3px">МАФИОЗИ</div>
+  <div style="margin-top:18px;width:120px;height:3px;background:#2a2018;border-radius:2px;overflow:hidden">
+    <div style="height:100%;width:35%;background:linear-gradient(90deg,#c8a030,#e8c96e);
+         animation:bootSlide 1.1s ease-in-out infinite"></div>
+  </div>
+  <div style="margin-top:14px;font-size:11px;color:#7a6a4a">Загрузка...</div>
+</div>
+<style>
+@keyframes bootSlide { 0%{transform:translateX(-100%)} 100%{transform:translateX(380%)} }
+</style>
+<script>
+// Прячем splash как только страница «load» (все ресурсы + парсинг JS закончены).
+// Это намного раньше чем закончится init онлайн-данных, но достаточно
+// чтобы юзер увидел реальный UI.
+window.addEventListener('load', () => {
+  const s = document.getElementById('bootSplash');
+  if (!s) return;
+  s.style.opacity = '0';
+  setTimeout(() => s.remove(), 400);
+});
+</script>
 
 <div class="time-display-box" onclick="toggleTimeInfo()">
 <span id="timeEmoji">☀️</span>
@@ -5368,7 +5404,23 @@ function startBattle(bossId, locId){
 
 // ── CO-OP MULTIPLAYER (PeerJS) ────────────────────────────────────────────
 let tacPeer=null,tacConn=null,tacIsHost=false,tacP2=null,tacSyncTimer=0;
+// PeerJS теперь грузится async (см. <script> наверху) — функция может
+// быть вызвана раньше чем CDN отдаст библиотеку. Если Peer ещё нет,
+// ждём 200мс и пробуем снова, показывая статус.
+function _waitForPeerJS(cb, statusEl, tries=0) {
+  if (typeof Peer !== 'undefined') { cb(); return; }
+  if (tries > 25) {
+    if (statusEl) statusEl.textContent = '❌ Не удалось загрузить P2P-библиотеку';
+    return;
+  }
+  if (statusEl && tries === 0) statusEl.textContent = '⏳ Загружаю P2P...';
+  setTimeout(() => _waitForPeerJS(cb, statusEl, tries+1), 200);
+}
 function tacCoopCreate(){
+  const statusEl = document.getElementById('coop-status');
+  _waitForPeerJS(() => tacCoopCreateImpl(), statusEl);
+}
+function tacCoopCreateImpl(){
   const code=Math.random().toString(36).substr(2,6).toUpperCase();
   document.getElementById('coop-input').value=code;
   document.getElementById('coop-status').textContent='⏳ Ожидание подключения...';
@@ -5395,6 +5447,10 @@ function tacCoopJoin(){
   tacCoopJoinRoom(code);
 }
 function tacCoopJoinRoom(code){
+  const statusEl = document.getElementById('coop-status');
+  _waitForPeerJS(() => tacCoopJoinRoomImpl(code), statusEl);
+}
+function tacCoopJoinRoomImpl(code){
   document.getElementById('coop-status').textContent='⏳ Подключение...';
   tacIsHost=false;
   if(tacPeer)tacPeer.destroy();
