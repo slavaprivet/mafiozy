@@ -2072,6 +2072,25 @@ body.on-subpage .time-display-box { display: none !important; }
     <div id="gang-list" style="margin-top:12px">
       <div style="color:var(--muted);font-size:13px;padding:8px 4px">Загружаю...</div>
     </div>
+
+    <!-- Выбор флага банды — рисуется над захваченными районами в мире -->
+    <div class="coop-intro" style="margin-top:14px">
+      <div class="coop-intro-icon">🏴</div>
+      <div class="coop-intro-title">Флаг банды</div>
+      <div class="coop-intro-desc">
+        Этот флаг увидят все игроки над зданиями районов, которые ты или
+        твоя банда контролируете в открытом мире.
+      </div>
+    </div>
+    <div id="gang-flag-current" style="margin:10px 0 8px;display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px">
+      <div id="gang-flag-current-preview" style="width:46px;height:36px;border-radius:6px;background:#1c1c24;display:flex;align-items:center;justify-content:center;font-size:11px;color:#666;border:1px solid rgba(255,255,255,0.08)">нет</div>
+      <div style="flex:1">
+        <div id="gang-flag-current-name" style="font-size:13px;color:#ddd;font-weight:700">Флаг не выбран</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">Выбери один из 30 вариантов ниже</div>
+      </div>
+      <button id="gang-flag-clear" onclick="setGangFlag(0)" style="padding:6px 10px;background:#2a1a1a;color:#c66;border:1px solid #6a3a3a;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;display:none">Снять</button>
+    </div>
+    <div id="gang-flag-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px"></div>
   </div>
 </div>
 
@@ -5615,6 +5634,12 @@ function openWorld() {
     params.set('hat',      DATA.hat|0);
     params.set('has_look', 1);
   }
+  // Флаг банды (если выбран в «Моя банда» → localStorage). Сервер
+  // прокинет его всем клиентам, мы нарисуем над захваченным зданием.
+  try {
+    const gf = parseInt(localStorage.getItem('mafiozi_gang_flag') || '0', 10);
+    if (gf > 0 && gf <= 30) params.set('gang_flag', String(gf));
+  } catch(e) {}
   // Cache-buster — чтобы Telegram не подсунул старую версию.
   params.set('v', Date.now());
   window.location.href = 'world.html?' + params.toString();
@@ -6614,6 +6639,7 @@ async function renderGangPage() {
   list.innerHTML = '<div id="gang-pool-block" style="margin-bottom:14px"></div>'
                  + '<div id="gang-members-block"></div>';
   renderGangPool();
+  renderGangFlagPicker();
   const membersBlock = document.getElementById('gang-members-block');
   if (!DATA.gang || DATA.gang.length === 0) {
     membersBlock.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:14px 4px;text-align:center">
@@ -6635,6 +6661,128 @@ async function renderGangPage() {
       </div>`;
     membersBlock.appendChild(row);
   });
+}
+
+// ── 30 флагов банды (gangster-стиль) ────────────────────────────
+// Палитра флагов: каждый — { name, bg(градиент или цвет), fg(цвет акцентов),
+// icon — emoji или символ. Используется и в hub при выборе, и в world
+// при отрисовке над зданием района.
+const GANG_FLAGS = [
+  { n:'Чёрный туз',     bg:'#0a0a10',                                   fg:'#e8d23b', icon:'♠'  },
+  { n:'Кровь Сицилии',  bg:'#7b1010',                                   fg:'#f1c40f', icon:'🩸' },
+  { n:'Зелёный $',      bg:'linear-gradient(135deg,#0c4a2a,#1a7a44)',   fg:'#ffd54a', icon:'$'  },
+  { n:'Череп',          bg:'#1a1a1a',                                   fg:'#fff',    icon:'💀' },
+  { n:'Золотой лев',    bg:'#1a0e02',                                   fg:'#f1c40f', icon:'🦁' },
+  { n:'Чикаго',         bg:'linear-gradient(135deg,#1a1a2a,#4a3a1a)',   fg:'#cda44a', icon:'🎯' },
+  { n:'Капо',           bg:'#100a0a',                                   fg:'#b86a3a', icon:'🎩' },
+  { n:'Револьвер',      bg:'#161616',                                   fg:'#aaa',    icon:'🔫' },
+  { n:'Король',         bg:'#3a0a1a',                                   fg:'#f1c40f', icon:'👑' },
+  { n:'Семья',          bg:'linear-gradient(135deg,#2a1a0a,#4a2a1a)',   fg:'#dba66a', icon:'🃏' },
+  { n:'Алмаз',          bg:'#0a0a2a',                                   fg:'#7adfff', icon:'💎' },
+  { n:'Кулак',          bg:'#330000',                                   fg:'#fff',    icon:'✊' },
+  { n:'Кобра',          bg:'#0a2a0a',                                   fg:'#7afd6c', icon:'🐍' },
+  { n:'Багровый',       bg:'linear-gradient(135deg,#5a0010,#a01030)',   fg:'#fff',    icon:'🌹' },
+  { n:'Пятёрки',        bg:'#1a1a1a',                                   fg:'#fff',    icon:'5'  },
+  { n:'Танго',          bg:'linear-gradient(135deg,#2a0a0a,#5a1a0a)',   fg:'#f1c40f', icon:'♣'  },
+  { n:'Падре',          bg:'#0a0a0a',                                   fg:'#c0392b', icon:'✝'  },
+  { n:'Молот',          bg:'#1a1a22',                                   fg:'#e67e22', icon:'🔨' },
+  { n:'Барон',          bg:'linear-gradient(135deg,#0a1a3a,#1a3a6a)',   fg:'#f1c40f', icon:'⚜'  },
+  { n:'Дикий волк',     bg:'#1a1a1a',                                   fg:'#cdd3d8', icon:'🐺' },
+  { n:'Сицилия',        bg:'linear-gradient(135deg,#5a0a0a,#0a0a0a)',   fg:'#f1c40f', icon:'⚔'  },
+  { n:'Орёл',           bg:'#0a0a0a',                                   fg:'#cda44a', icon:'🦅' },
+  { n:'Чёрная роза',    bg:'#0a0014',                                   fg:'#a04acd', icon:'🥀' },
+  { n:'Феникс',         bg:'linear-gradient(135deg,#4a0a0a,#a0500a)',   fg:'#f1c40f', icon:'🔥' },
+  { n:'Семёрки',        bg:'#0a0a14',                                   fg:'#f1c40f', icon:'7'  },
+  { n:'Заточка',        bg:'#1a1a1a',                                   fg:'#ed4',    icon:'🗡' },
+  { n:'Ангелы ада',     bg:'linear-gradient(135deg,#2a0a0a,#0a0a2a)',   fg:'#fa4',    icon:'😈' },
+  { n:'Долар',          bg:'#0a2a14',                                   fg:'#f0e44a', icon:'💵' },
+  { n:'Кости',          bg:'#0a0a0a',                                   fg:'#fff',    icon:'🎲' },
+  { n:'Корона',         bg:'linear-gradient(135deg,#3a1a0a,#6a4a1a)',   fg:'#f1c40f', icon:'⭐' },
+];
+
+function _gangFlagBgStyle(bg) {
+  return bg.indexOf('gradient') >= 0 ? `background:${bg}` : `background-color:${bg}`;
+}
+function getGangFlag() {
+  try { return parseInt(localStorage.getItem('mafiozi_gang_flag') || '0', 10) || 0; }
+  catch(e) { return 0; }
+}
+function setGangFlag(idx) {
+  // idx: 0 (снять), 1..30
+  try {
+    if (idx > 0 && idx <= GANG_FLAGS.length) localStorage.setItem('mafiozi_gang_flag', String(idx));
+    else localStorage.removeItem('mafiozi_gang_flag');
+  } catch(e) {}
+  renderGangFlagPicker();
+  if (typeof showToast === 'function') {
+    showToast(idx > 0
+      ? `Флаг банды: ${GANG_FLAGS[idx-1].n}`
+      : 'Флаг банды снят',
+      '🏴', 1800);
+  }
+}
+function renderGangFlagPicker() {
+  const grid = document.getElementById('gang-flag-grid');
+  const cur  = document.getElementById('gang-flag-current-preview');
+  const curName = document.getElementById('gang-flag-current-name');
+  const clearBtn = document.getElementById('gang-flag-clear');
+  if (!grid || !cur || !curName) return;
+  const sel = getGangFlag();
+  if (sel > 0 && sel <= GANG_FLAGS.length) {
+    const f = GANG_FLAGS[sel - 1];
+    cur.style.cssText = `width:46px;height:36px;border-radius:6px;${_gangFlagBgStyle(f.bg)};color:${f.fg};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;border:1px solid rgba(255,255,255,0.18);box-shadow:inset 0 0 0 1px rgba(0,0,0,0.4)`;
+    cur.textContent = f.icon;
+    curName.textContent = `${sel}. ${f.n}`;
+    if (clearBtn) clearBtn.style.display = '';
+  } else {
+    cur.style.cssText = 'width:46px;height:36px;border-radius:6px;background:#1c1c24;display:flex;align-items:center;justify-content:center;font-size:11px;color:#666;border:1px solid rgba(255,255,255,0.08)';
+    cur.textContent = 'нет';
+    curName.textContent = 'Флаг не выбран';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+  grid.innerHTML = '';
+  GANG_FLAGS.forEach((f, i) => {
+    const idx = i + 1;
+    const btn = document.createElement('button');
+    const isSel = (idx === sel);
+    btn.style.cssText = `position:relative;height:48px;border-radius:8px;${_gangFlagBgStyle(f.bg)};color:${f.fg};font-size:22px;font-weight:900;font-family:inherit;border:1px solid ${isSel?'#f1c40f':'rgba(255,255,255,0.08)'};box-shadow:${isSel?'0 0 0 2px rgba(241,196,15,0.4)':'none'};cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;padding:0`;
+    btn.innerHTML = `<span>${f.icon}</span><span style="position:absolute;bottom:1px;right:3px;font-size:8px;color:rgba(255,255,255,0.55);font-weight:700">${idx}</span>`;
+    btn.title = f.n;
+    btn.onclick = () => setGangFlag(idx);
+    grid.appendChild(btn);
+  });
+}
+
+// ── Pending district incomes — уведомления о доходе с захваченных
+// районов, накопившихся пока игрок был вне мира.
+async function pollDistrictIncomes() {
+  if (!coopApi() || !DATA.uid) return;
+  try {
+    const r = await fetch(coopApi() + '/world/incomes/' + encodeURIComponent(DATA.uid) + '?ack=1',
+                          { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json().catch(()=>({}));
+    if (!j.ok || !j.count) return;
+    // Группируем по tid (несколько начислений с одного района)
+    const byTid = {};
+    for (const it of (j.items || [])) {
+      const k = it.tid || '?';
+      if (!byTid[k]) byTid[k] = { name: it.name, icon: it.icon, amount: 0, count: 0 };
+      byTid[k].amount += (it.amount | 0);
+      byTid[k].count  += 1;
+    }
+    const parts = [];
+    let totalAll = 0;
+    for (const k of Object.keys(byTid)) {
+      const v = byTid[k];
+      totalAll += v.amount;
+      parts.push(`${v.icon} ${v.name}: +$${v.amount.toLocaleString('ru')}`);
+    }
+    if (typeof showToast === 'function') {
+      showToast(parts.join(' • '),
+                '💰', 6500);
+    }
+  } catch(e) {}
 }
 
 // ── Банк банды (gang pool) ─────────────────────────────────────
@@ -7078,6 +7226,12 @@ function _showCoopInviteModal(n) {
 
 // Стартуем поллер после tg.ready (см. setTimeout ниже на 250мс — той же группой).
 setTimeout(() => { try { _startNotifyPolling(); } catch(e) {} }, 1000);
+
+// Уведомление о доходе с захваченных районов — раз при старте +
+// каждые 60с пока хаб открыт. ack=1 сразу очищает у сервера, чтобы
+// одно и то же не показывалось дважды.
+setTimeout(() => { try { pollDistrictIncomes(); } catch(e) {} }, 1500);
+setInterval(() => { try { pollDistrictIncomes(); } catch(e) {} }, 60000);
 
 // Преднаполняем кэш банды по DATA.gang (она прилетает из URL от бота) —
 // чтобы кнопки «В банду» в лобби сразу показывались как «уже добавлен».

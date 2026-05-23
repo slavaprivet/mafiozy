@@ -11441,20 +11441,24 @@ class WorldSim:
     COP_KILLS_TO_SWAT   = 5         # сколько копов надо убить чтобы пришёл спецназ
     COP_PATROL_COUNT    = 2         # сколько копов выезжает на 1★
     COP_COMBAT_COUNT    = 5         # на 2★/3★
-    COP_PATROL_WARN_S   = 12.0      # сколько секунд патруль ждёт мирного игрока
-    COP_HP              = 110       # HP обычного копа (1★/2★)
-    COP_SWAT_HP         = 220       # HP спецназа (3★)
+    COP_PATROL_WARN_S   = 8.0       # сколько секунд патруль ждёт мирного игрока (укоротили)
+    # ОСЛАБЛЕНЫ — иллюзия боя, чтобы игрок не помирал каждые 5 секунд.
+    COP_HP              = 65        # HP обычного копа (был 110)
+    COP_SWAT_HP         = 130       # HP спецназа (был 220)
     COP_SHOOT_R         = 8.5
-    COP_SHOOT_DMG       = 18        # коп — pistol_heavy, чуть больнее охранника
-    COP_SWAT_DMG        = 32        # урон спецназа (с smg/rpg)
-    COP_SHOOT_CD        = 0.95      # ≈ 950ms — как миньон demo
-    COP_SWAT_CD         = 0.7       # спецназ стреляет быстрее
+    COP_SHOOT_DMG       = 9         # коп урон (был 18)
+    COP_SWAT_DMG        = 16        # урон спецназа (был 32)
+    COP_SHOOT_CD        = 1.25      # реже стреляют (было 0.95)
+    COP_SWAT_CD         = 0.95      # спецназ — стреляет быстрее (было 0.7)
     COP_CHASE_SPEED     = 2.0       # быстрее обычной машины
     COP_PATROL_SPEED    = 1.4       # патруль идёт неспешно
     COP_OPT_RANGE       = 5.5       # оптимальная боевая дистанция (тайлы)
     COP_STRAFE_T        = 1.3       # как часто меняем стрейф (секунды)
     COP_STRAFE_OFF      = 1.6       # амплитуда стрейфа (тайлы перпендикулярно)
-    COP_MISS_CHANCE     = 0.28      # разброс: ≈28% выстрелов мимо (как aimErr миньона)
+    COP_MISS_CHANCE     = 0.48      # разброс: ≈48% выстрелов мимо (было 28%)
+    # После того как 1★-патруль уехал предупредив игрока — не возвращаем
+    # к нему новых патрулей COP_PATROL_REDO_S секунд. «1 раз подошли — отошли».
+    COP_PATROL_REDO_S   = 120.0
     NPC_MISS_CHANCE_BOSS = 0.16     # как у босса demo (aimErr меньше)
     COP_RESPAWN_GAP_S   = 4.0       # пауза перед спавном нового копа
     COP_DESPAWN_R       = 25.0      # если коп отстал — деспаун
@@ -11481,11 +11485,37 @@ class WorldSim:
         'casino':  {'name': 'Казино',     'icon': '🎰', 'r': 46, 'c': 16, 'income': 120},
         'factory': {'name': 'Промзона',   'icon': '🏭', 'r': 46, 'c': 56, 'income': 160},
         'mansion': {'name': 'Резиденция', 'icon': '🏛', 'r': 66, 'c': 36, 'income': 250},
+        # «Логово» — агрессивный район с бандой NPC. Радиус БОЛЬШЕ (см. _territory_at).
+        # Захват только через зачистку всех ботов + 3-сек хадер. NPC спавнятся
+        # каждые AGGRO_RESPAWN_S секунд. Доход выше обычного.
+        'lair':    {'name': 'Логово',     'icon': '☠️', 'r': 36, 'c': 8,  'income': 350,
+                    'aggro': True, 'radius': 8},
     }
+    # Тайминги агрессивного района
+    AGGRO_WARN_S        = 4.0       # сколько секунд предупреждаем «проваливай»
+    AGGRO_RESPAWN_S     = 10 * 60   # раз в 10 мин полная партия снова на месте
+    AGGRO_CAP_HOLD_S    = 3.0       # сколько сек надо удержать после зачистки
+    AGGRO_BOTS_COUNT    = 5         # обычных бойцов
+    AGGRO_BOT_HP        = 90
+    AGGRO_BOT_DMG       = 8
+    AGGRO_BOT_CD        = 1.1
+    AGGRO_BOT_RANGE     = 7.5
+    AGGRO_BOSS_HP       = 240       # главарь — толще
+    AGGRO_BOSS_DMG_M    = 22        # сабля (ближний бой)
+    AGGRO_BOSS_DMG_R    = 14        # узи (дальний)
+    AGGRO_BOSS_CD_M     = 0.65      # частые удары саблей
+    AGGRO_BOSS_CD_R     = 0.18      # узи — почти автоматическая очередь
+    AGGRO_BOSS_RANGE_M  = 1.6       # дистанция саблей
+    AGGRO_BOSS_RANGE_R  = 9.0       # дистанция узи
+    AGGRO_COVER_HP      = 60        # HP одного укрытия (после — оно разрушается)
     TERR_RADIUS         = 5              # 11×11 (×1.5 от исходного 7×7)
     CAPTURE_TIME_S      = 30.0
-    CAPTURE_COOLDOWN_S  = 24 * 3600      # 24ч между захватами одной зоны одним игроком
-    INCOME_DELAY_S      = 30 * 60        # доход стартует через 30 мин после захвата
+    # Кулдаун теперь короткий — антифарм работает через _capture_needs_reenter:
+    # после захвата владелец должен ВЫЙТИ из зоны и снова в неё войти, иначе
+    # повторный capture_try будет блокироваться. Без re-enter нельзя «майнить»
+    # просто стоя в зоне.
+    CAPTURE_COOLDOWN_S  = 60             # 1 минута технический cd чтобы не было гонок
+    INCOME_DELAY_S      = 10 * 60        # доход стартует через 10 мин после захвата
     INCOME_TICK_S       = 10 * 60        # +income каждые 10 мин
     TERR_FIGHT_BANNER_CD = 30.0          # «Перестрелка за район X» — раз в 30с на район
     HOSPITAL_Y          = 23.0
@@ -11517,9 +11547,29 @@ class WorldSim:
         self.territories         = {}
         self.active_captures     = {}
         self._capture_cooldowns  = {}
-        # last_banner_at[tid] — время последнего «🔫 Перестрелка за район X»
-        # для антиспама. Шлём раз в TERR_FIGHT_BANNER_CD сек на район.
-        self._territory_fight_at = {}
+        # Анти-фарм: (uid, tid) попадает сюда после захвата. Пока игрок
+        # не вышел из зоны хотя бы один раз — повторный capture_try этой
+        # зоны блокируется (returns 'must_reenter'). При выходе — set discard.
+        self._capture_needs_reenter = set()
+        # Запоминаем что в прошлом тике игрок был В зоне (для детекта
+        # «вышел из зоны»): {uid: tid_or_None}
+        self._last_terr_at = {}
+        # Кулдаун 1★-патруля: после того как патруль уехал предупредив
+        # игрока, новые патрули к нему не выезжают N секунд. «1 раз
+        # подошли — отошли», а не приставали постоянно.
+        self._patrol_done_at = {}     # uid -> ts когда патруль уехал
+        # Логи начисления district-income — для уведомлений в hub.html
+        # после возвращения из мира. {uid -> list[{tid, name, amount, ts}]}
+        self._income_log = {}
+        # Агрессивные районы — состояние банд-NPC:
+        # {tid -> {bots: [...], state, last_respawn, last_kill_t,
+        #          in_combat_uids, last_warn_t}}
+        self.aggro = {}
+        self._next_bot_id = 1
+        # Укрытия в агрессивных районах: {tid -> [{x,y,hp,max_hp,r}]}
+        self.aggro_covers = {}
+        # Время старта 3-секундного захвата после зачистки: {tid -> ts}
+        self.aggro_capturing_at = {}
 
     def add_or_update(self, uid: str, name: str, look: dict,
                        wanted: float = 0.0, jail_until: int = 0,
@@ -12186,12 +12236,15 @@ class WorldSim:
             t = self.players.get(cop['target_uid'])
             cur_lvl = self._wanted_level(t) if t else 0
             # Патруль с 1★: если игрок не стрелял COP_PATROL_WARN_S сек
-            # после предупреждения — уезжает (despawn).
+            # после предупреждения — уезжает (despawn). И запоминаем что
+            # к этому игроку патруль уже подходил — больше не выезжаем
+            # COP_PATROL_REDO_S секунд (анти-приставание).
             if cop.get('kind') == 'patrol' and cop.get('_warn_said'):
                 if t and cur_lvl >= 1 and (now - cop.get('_warn_t', 0)) > self.COP_PATROL_WARN_S:
                     last_shot = t.get('_last_shot_t', 0) or 0
                     if (now - last_shot) > self.COP_PATROL_WARN_S * 0.8:
                         # Игрок мирно стоит — патруль уходит
+                        self._patrol_done_at[str(cop.get('target_uid'))] = now
                         pkts.append({
                             'kind':   'cop_leave',
                             'cop_id': cop['id'],
@@ -12218,6 +12271,17 @@ class WorldSim:
         # 4) Спавн новых копов до нужного количества по эффективному уровню.
         for (target, lvl) in wanted_targets:
             kind = self._cop_kind_for_level(lvl)
+            # 1★-патруль уже отработал к этому игроку (подошёл-предупредил-
+            # уехал). На COP_PATROL_REDO_S сек больше патрули не выезжают.
+            if kind == 'patrol':
+                done_at = self._patrol_done_at.get(str(target['uid']), 0)
+                if done_at and (now - done_at) < self.COP_PATROL_REDO_S:
+                    continue
+                # А если игрок СЕЙЧАС в зоне района — стрельба легальна,
+                # копы 1★ не суются туда (PvP-зона = «как бы своя территория»).
+                in_terr_tid, _ = self._territory_at(target.get('x', 0), target.get('y', 0))
+                if in_terr_tid:
+                    continue
             need = self._cops_needed_for_level(lvl)
             # Сколько копов нужного типа уже едут на этого таргета?
             have = sum(1 for c in self.cops
@@ -12428,9 +12492,12 @@ class WorldSim:
 
     def _territory_at(self, x: float, y: float):
         """Возвращает (tid, def_dict) если (x,y) внутри какой-то захватываемой
-        зоны 7×7. world-coord: x = c (столбец), y = r (строка)."""
+        зоны. world-coord: x = c (столбец), y = r (строка).
+        Радиус зоны может быть переопределён в TERRITORIES_DEF (поле 'radius')
+        — это используется для большого «Логова» (агрессивный район)."""
         for tid, td in self.TERRITORIES_DEF.items():
-            if abs(x - td['c']) <= self.TERR_RADIUS and abs(y - td['r']) <= self.TERR_RADIUS:
+            rad = td.get('radius', self.TERR_RADIUS)
+            if abs(x - td['c']) <= rad and abs(y - td['r']) <= rad:
                 return tid, td
         return None, None
 
@@ -12472,9 +12539,24 @@ class WorldSim:
         tid, td = self._territory_at(p.get('x', 0), p.get('y', 0))
         if not tid:
             return None
+        # Агрессивный район — захват только через зачистку бандитов, не
+        # стандартный 30-сек хадер. Сервер сам поставит capturing когда
+        # перебьют всех. Тут просто игнор.
+        if td.get('aggro'):
+            return None
         if tid in self.active_captures:
             return None  # эту зону уже кто-то захватывает (свой/чужой)
         now = time.time()
+        # Анти-фарм: после успешного захвата владелец должен ВЫЙТИ из зоны
+        # хотя бы один раз — иначе он будет автохватом «майнить» сразу как
+        # только истечёт короткий технический CD. Пока флаг стоит — отказ.
+        if (str(uid), tid) in self._capture_needs_reenter:
+            return {
+                'kind':    'territory_capture_denied',
+                'tid':     tid,
+                'by_uid':  str(uid),
+                'reason':  'must_reenter',
+            }
         cd_key = (uid, tid)
         cd_until = self._capture_cooldowns.get(cd_key, 0)
         if cd_until > now:
@@ -12513,6 +12595,357 @@ class WorldSim:
                 return self._cancel_active_capture(tid, 'player_left')
         return None
 
+    # ── Агрессивный район (Логово) ──────────────────────────────────
+    # Спавн банды NPC при первом тике / после полной зачистки. Через
+    # AGGRO_RESPAWN_S — снова приходят. AI работает поверх tick_aggro.
+    def _aggro_spawn(self, tid: str, td: dict):
+        """Спавнит партию банды + укрытия для конкретного агрессивного района."""
+        import math as _m
+        bots = []
+        cx, cy = td['c'], td['r']
+        rad = td.get('radius', self.TERR_RADIUS)
+        # 5 обычных бойцов — рандомно вокруг центра, в зоне
+        for i in range(self.AGGRO_BOTS_COUNT):
+            for _try in range(20):
+                ang  = random.random() * 2 * _m.pi
+                dist = 1.5 + random.random() * (rad - 2.0)
+                bx = cx + _m.cos(ang) * dist
+                by = cy + _m.sin(ang) * dist
+                if _world_is_wall(int(by), int(bx)):
+                    continue
+                break
+            self._next_bot_id += 1
+            # Look — банда-стиль: сиреневая футболка, балаклава или
+            # тёмные волосы. body=2 (футболка-цвет), hat=4 (балаклава/маска),
+            # hair=0/3, face=0/1. Каждый чуть разный.
+            bots.append({
+                'id':       f'gbot{self._next_bot_id}',
+                'x':        float(bx),
+                'y':        float(by),
+                'ang':      0.0,
+                'hp':       int(self.AGGRO_BOT_HP),
+                'max_hp':   int(self.AGGRO_BOT_HP),
+                'alive':    True,
+                'kind':     'aggro_grunt',
+                'weapon':   'pistol_heavy',
+                '_shot_t':  0.0,
+                '_warned':  {},   # uid -> ts когда впервые увидели → начнут стрелять через AGGRO_WARN_S
+                '_strafe_t':0.0, '_strafe_s': 0.0,
+                'look':     {
+                    'gender': 0,
+                    'skin':   random.choice([1,2,3]),
+                    'body':   2,           # сиреневая футболка
+                    'face':   random.choice([0,1,2]),
+                    'hair':   random.choice([0,1,3]),
+                    'hat':    4,           # балаклава
+                    'gang':   1,           # маркер «банда логова»
+                },
+            })
+        # Босс — главарь банды. Чуть толще, сабля + узи.
+        self._next_bot_id += 1
+        bots.append({
+            'id':       f'gboss{self._next_bot_id}',
+            'x':        float(cx),
+            'y':        float(cy),
+            'ang':      0.0,
+            'hp':       int(self.AGGRO_BOSS_HP),
+            'max_hp':   int(self.AGGRO_BOSS_HP),
+            'alive':    True,
+            'kind':     'aggro_boss',
+            'weapon':   'uzi',
+            '_shot_t':  0.0,
+            '_warned':  {},
+            '_spin_t':  0.0,    # анимация «крутится с саблей»
+            'look':     {
+                'gender': 0,
+                'skin':   1,
+                'body':   2,
+                'face':   1,
+                'hair':   0,
+                'hat':    4,           # балаклава
+                'gang':   1,
+                'boss':   1,
+            },
+        })
+        self.aggro[tid] = {
+            'bots':            bots,
+            'state':           'alive',     # alive / capturing / claimed_cd
+            'last_respawn_at': time.time(),
+            'last_kill_t':     0.0,
+            'in_combat_uids':  set(),
+            'capturing_at':    0.0,
+            'capturing_by':    None,
+        }
+        # Укрытия: 6-8 точек в зоне, рандомно но на расстоянии ≥2 друг от друга
+        covers = []
+        for _ in range(8):
+            for _try in range(20):
+                ang  = random.random() * 2 * _m.pi
+                dist = 1.5 + random.random() * (rad - 1.5)
+                cx2 = cx + _m.cos(ang) * dist
+                cy2 = cy + _m.sin(ang) * dist
+                if _world_is_wall(int(cy2), int(cx2)):
+                    continue
+                too_close = any(((cx2-cv['x'])**2 + (cy2-cv['y'])**2) < 4.0 for cv in covers)
+                if too_close:
+                    continue
+                covers.append({
+                    'x': float(cx2), 'y': float(cy2),
+                    'hp': int(self.AGGRO_COVER_HP),
+                    'max_hp': int(self.AGGRO_COVER_HP),
+                    'r': 0.5,
+                })
+                break
+        self.aggro_covers[tid] = covers
+
+    def tick_aggro(self, dt: float) -> list:
+        """AI агрессивных районов. Возвращает список event-пакетов."""
+        import math as _m
+        pkts = []
+        now  = time.time()
+        # Если первый запуск — заспавним сразу
+        for tid, td in self.TERRITORIES_DEF.items():
+            if not td.get('aggro'):
+                continue
+            if tid not in self.aggro:
+                self._aggro_spawn(tid, td)
+                pkts.append({'kind': 'aggro_spawned', 'tid': tid,
+                             'count': len(self.aggro[tid]['bots'])})
+        for tid, td in self.TERRITORIES_DEF.items():
+            if not td.get('aggro'):
+                continue
+            st  = self.aggro[tid]
+            rad = td.get('radius', self.TERR_RADIUS)
+            cx, cy = td['c'], td['r']
+            alive_bots = [b for b in st['bots'] if b['alive']]
+            # Респаун партии: state=='claimed_cd' (зачищен) или alive==0 → таймер
+            if not alive_bots and (now - st['last_respawn_at']) >= self.AGGRO_RESPAWN_S:
+                self._aggro_spawn(tid, td)
+                pkts.append({'kind': 'aggro_spawned', 'tid': tid,
+                             'count': len(self.aggro[tid]['bots'])})
+                continue
+            if not alive_bots:
+                # Ждём респауна — больше ничего не делаем для этого района
+                # (capturing уже обработан ниже)
+                pass
+            # Кто из игроков в зоне?
+            in_zone = []
+            for uid, p in self.players.items():
+                if p.get('dead'):
+                    continue
+                if abs(p.get('x',0) - cx) > rad or abs(p.get('y',0) - cy) > rad:
+                    continue
+                if (p.get('_jail_until') or 0) > now:
+                    continue
+                if (p.get('_mode') or 'pvp') == 'pve':
+                    continue
+                in_zone.append(p)
+            # 1) AI для каждого бота
+            for bot in alive_bots:
+                # Цель — ближайший игрок в зоне
+                if not in_zone:
+                    target = None
+                else:
+                    target = min(in_zone,
+                                 key=lambda pp: (pp['x']-bot['x'])**2 + (pp['y']-bot['y'])**2)
+                if target is None:
+                    continue
+                tx, ty = target['x'], target['y']
+                dx, dy = tx - bot['x'], ty - bot['y']
+                dist   = _m.hypot(dx, dy) + 1e-6
+                bot['ang'] = _m.atan2(dy, dx)
+                # WARN: первое 4 сек после входа в зону боты ОРУТ но не стреляют
+                t_uid = str(target.get('uid') or '')
+                warn_t = bot['_warned'].get(t_uid, 0)
+                if warn_t == 0:
+                    bot['_warned'][t_uid] = now
+                    pkts.append({
+                        'kind': 'aggro_warn', 'tid': tid,
+                        'bot_id': bot['id'], 'target_uid': t_uid,
+                        'text': random.choice(['Проваливай отсюда!',
+                                                'Это наша территория!',
+                                                'Уходи пока живой!',]),
+                    })
+                # Движение к цели (но не за пределы зоны!)
+                desired_dist = 1.4 if bot['kind'] == 'aggro_boss' else 4.0
+                if bot['kind'] == 'aggro_boss' and dist > self.AGGRO_BOSS_RANGE_M:
+                    # Подойти ближе для сабли. Если очень далеко — стрелять узи
+                    pass
+                speed = 1.8 if bot['kind'] == 'aggro_boss' else 1.4
+                if dist > desired_dist + 0.3:
+                    step = speed * dt
+                    nx = bot['x'] + (dx / dist) * step
+                    ny = bot['y'] + (dy / dist) * step
+                    # Не выходим за границы зоны
+                    if abs(nx - cx) <= rad and abs(ny - cy) <= rad and not _world_is_wall(int(ny), int(nx)):
+                        bot['x'] = nx; bot['y'] = ny
+                # Анимация «крутится с саблей» для босса в ближнем
+                if bot['kind'] == 'aggro_boss':
+                    bot['_spin_t'] = (bot.get('_spin_t', 0.0) + dt * 8.0) % (2 * _m.pi)
+                # Можно ли стрелять?
+                if (now - bot['_warned'].get(t_uid, now)) < self.AGGRO_WARN_S:
+                    continue
+                # Проверка LOS + дистанция
+                if not _world_los(bot['x'], bot['y'], tx, ty):
+                    continue
+                if bot['kind'] == 'aggro_boss':
+                    # Ближний бой — сабля
+                    if dist <= self.AGGRO_BOSS_RANGE_M and (now - bot['_shot_t']) >= self.AGGRO_BOSS_CD_M:
+                        bot['_shot_t'] = now
+                        dmg = int(self.AGGRO_BOSS_DMG_M)
+                        target['hp'] = max(0, int(target.get('hp',100)) - dmg)
+                        killed = target['hp'] <= 0
+                        if killed:
+                            target['dead'] = True
+                            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                            target['deaths'] = int(target.get('deaths',0)) + 1
+                        pkts.append({'kind':'aggro_melee', 'tid':tid,
+                                     'bot_id': bot['id'], 'target_uid': t_uid,
+                                     'dmg': dmg, 'killed': killed,
+                                     'sx': round(bot['x'],2), 'sy': round(bot['y'],2),
+                                     'tx': round(tx,2), 'ty': round(ty,2)})
+                    elif dist <= self.AGGRO_BOSS_RANGE_R and (now - bot['_shot_t']) >= self.AGGRO_BOSS_CD_R:
+                        # Дальний — узи
+                        bot['_shot_t'] = now
+                        miss = random.random() < 0.35
+                        dmg = 0 if miss else int(self.AGGRO_BOSS_DMG_R)
+                        if not miss:
+                            target['hp'] = max(0, int(target.get('hp',100)) - dmg)
+                            killed = target['hp'] <= 0
+                            if killed:
+                                target['dead'] = True
+                                target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                                target['deaths'] = int(target.get('deaths',0)) + 1
+                        else:
+                            killed = False
+                        pkts.append({'kind':'aggro_shot', 'tid':tid,
+                                     'bot_id': bot['id'], 'target_uid': t_uid,
+                                     'dmg': dmg, 'killed': killed, 'miss': miss,
+                                     'weapon': 'uzi',
+                                     'sx': round(bot['x'],2), 'sy': round(bot['y'],2),
+                                     'tx': round(tx,2), 'ty': round(ty,2)})
+                else:
+                    # Обычный бандит — pistol_heavy
+                    if dist <= self.AGGRO_BOT_RANGE and (now - bot['_shot_t']) >= self.AGGRO_BOT_CD:
+                        bot['_shot_t'] = now
+                        miss = random.random() < 0.30
+                        dmg  = 0 if miss else int(self.AGGRO_BOT_DMG)
+                        if not miss:
+                            target['hp'] = max(0, int(target.get('hp',100)) - dmg)
+                            killed = target['hp'] <= 0
+                            if killed:
+                                target['dead'] = True
+                                target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                                target['deaths'] = int(target.get('deaths',0)) + 1
+                        else:
+                            killed = False
+                        pkts.append({'kind':'aggro_shot', 'tid':tid,
+                                     'bot_id': bot['id'], 'target_uid': t_uid,
+                                     'dmg': dmg, 'killed': killed, 'miss': miss,
+                                     'weapon': 'pistol_heavy',
+                                     'sx': round(bot['x'],2), 'sy': round(bot['y'],2),
+                                     'tx': round(tx,2), 'ty': round(ty,2)})
+            # 2) Захват: если ВСЕ боты убиты — стартуем 3-сек хадер
+            if not alive_bots:
+                if st['state'] != 'capturing' and st['state'] != 'claimed_cd':
+                    st['state'] = 'capturing'
+                    st['capturing_at'] = now
+                    # Запоминаем кто в зоне — это финалисты, кто может получить долю
+                    st['capturing_by'] = [str(p.get('uid') or '') for p in in_zone]
+                    pkts.append({'kind': 'aggro_capturing', 'tid': tid,
+                                 'duration_s': self.AGGRO_CAP_HOLD_S,
+                                 'started_at': round(now, 2)})
+                elif st['state'] == 'capturing':
+                    if (now - st['capturing_at']) >= self.AGGRO_CAP_HOLD_S:
+                        # Захват! Только те, кто были И в combat И сейчас в зоне
+                        in_zone_uids = {str(p.get('uid') or '') for p in in_zone}
+                        combat_uids  = st['in_combat_uids']
+                        winners = (in_zone_uids & combat_uids)
+                        if winners:
+                            primary = next(iter(winners))
+                            primary_p = self.players.get(primary) or {}
+                            self.territories[tid] = {
+                                'owner_uid':      primary,
+                                'owner_name':     (primary_p.get('name') or '')[:24],
+                                'gang_tag':       '',
+                                'color':          self._terr_color(primary),
+                                'captured_at':    now,
+                                'last_payout_at': now,
+                                'co_owners':      list(winners),
+                            }
+                            self._capture_needs_reenter.update(((u, tid) for u in winners))
+                            st['last_respawn_at'] = now  # отсчёт респауна — с момента смерти банды
+                            st['state'] = 'claimed_cd'
+                            pkts.append({
+                                'kind':        'territory_captured',
+                                'tid':         tid,
+                                'name':        td.get('name') or tid,
+                                'icon':        td.get('icon') or '☠️',
+                                'by_uid':      primary,
+                                'by_name':     primary_p.get('name') or '',
+                                'color':       self._terr_color(primary),
+                                'captured_at': round(now, 2),
+                                'income':      int(td.get('income') or 50),
+                                'income_tick_s': int(self.INCOME_TICK_S),
+                                'income_delay_s': int(self.INCOME_DELAY_S),
+                                'co_owners':   list(winners),
+                            })
+                        else:
+                            # Никто в combat-команде не в зоне → захват слетает
+                            pkts.append({'kind': 'aggro_cap_failed', 'tid': tid})
+                            st['state'] = 'alive'
+                            st['last_respawn_at'] = now
+        return pkts
+
+    def aggro_shoot_bot(self, uid: str, bot_id: str, weapon: str = '') -> dict | None:
+        """Игрок стреляет в банда-бота. Из-за зоны хиты не наносятся."""
+        shooter = self.players.get(uid)
+        if not shooter or shooter.get('dead'):
+            return None
+        if (shooter.get('_jail_until') or 0) > time.time():
+            return None
+        if shooter.get('_mode') == 'pve':
+            return None
+        for tid, td in self.TERRITORIES_DEF.items():
+            if not td.get('aggro'):
+                continue
+            st = self.aggro.get(tid)
+            if not st:
+                continue
+            for bot in st['bots']:
+                if bot.get('id') != bot_id or not bot.get('alive'):
+                    continue
+                # Игрок ДОЛЖЕН быть в зоне района — иначе урон не идёт
+                rad = td.get('radius', self.TERR_RADIUS)
+                if abs(shooter['x'] - td['c']) > rad or abs(shooter['y'] - td['r']) > rad:
+                    return {'kind':'aggro_hit_denied', 'reason':'outside_zone'}
+                if not _world_los(shooter['x'], shooter['y'], bot['x'], bot['y']):
+                    return None
+                dmg = max(5, min(150, int(self.WEAPON_DMG.get(weapon, 25))))
+                bot['hp'] -= dmg
+                # Все участники боя — попадают в combat-команду района
+                st['in_combat_uids'].add(str(uid))
+                killed = False
+                if bot['hp'] <= 0:
+                    bot['hp']    = 0
+                    bot['alive'] = False
+                    killed = True
+                    st['last_kill_t'] = time.time()
+                return {
+                    'kind':        'aggro_hit',
+                    'tid':         tid,
+                    'bot_id':      bot_id,
+                    'shooter_uid': str(uid),
+                    'sx':          round(shooter['x'], 2),
+                    'sy':          round(shooter['y'], 2),
+                    'tx':          round(bot['x'], 2),
+                    'ty':          round(bot['y'], 2),
+                    'dmg':         int(dmg),
+                    'killed':      killed,
+                    'is_boss':     (bot.get('kind') == 'aggro_boss'),
+                }
+        return None
+
     def tick_capture(self, dt: float) -> list:
         """Тикает все активные захваты + выплачивает доход районов в банду.
         Возвращает list event-пакетов для broadcast."""
@@ -12549,6 +12982,9 @@ class WorldSim:
                     'last_payout_at': now,
                 }
                 self._capture_cooldowns[(str(ac['by_uid']), tid)] = now + self.CAPTURE_COOLDOWN_S
+                # Анти-фарм: владельцу нужно выйти и снова войти, иначе
+                # повторный capture_try будет блокироваться (см. apply_capture_try).
+                self._capture_needs_reenter.add((str(ac['by_uid']), tid))
                 self.active_captures.pop(tid, None)
                 out.append({
                     'kind':        'territory_captured',
@@ -12559,6 +12995,9 @@ class WorldSim:
                     'by_name':     ac['by_name'],
                     'color':       ac['color'],
                     'captured_at': round(now, 2),
+                    'income':      int(td.get('income') or 50),
+                    'income_tick_s': int(self.INCOME_TICK_S),
+                    'income_delay_s': int(self.INCOME_DELAY_S),
                 })
         # 2) Доход районов — оба условия: ≥30 мин с захвата И ≥10 мин с последней выплаты.
         #    Сама запись в gang_pool делается асинхронно в _world_run_loop —
@@ -12580,6 +13019,28 @@ class WorldSim:
                 'owner_name': terr['owner_name'],
                 'amount':     income,
             })
+            # Логируем для hub-уведомлений (показывается когда игрок
+            # вернётся в hub.html). Чистим если очередь > 30.
+            owner_uid_str = str(terr.get('owner_uid'))
+            log = self._income_log.setdefault(owner_uid_str, [])
+            log.append({
+                'tid':    tid,
+                'name':   td.get('name') or tid,
+                'icon':   td.get('icon') or '🏴',
+                'amount': int(income),
+                'ts':     int(now),
+            })
+            if len(log) > 30:
+                del log[:-30]
+        # 3) Снимаем флаг «нужно выйти и войти» если игрок реально вышел
+        #    из зоны хотя бы раз. Сравниваем текущую зону игрока с прошлой.
+        for uid, p in self.players.items():
+            cur_tid, _ = self._territory_at(p.get('x', 0), p.get('y', 0))
+            prev = self._last_terr_at.get(uid)
+            if prev and prev != cur_tid:
+                # Игрок ушёл из зоны prev → снимаем re-enter requirement
+                self._capture_needs_reenter.discard((uid, prev))
+            self._last_terr_at[uid] = cur_tid
         return out
 
     def cancel_capture_on_player_killed(self, victim_uid: str) -> dict | None:
@@ -12694,12 +13155,31 @@ class WorldSim:
         # клиентам одинаково (5 районов — копеечный объём).
         terr_payload = {}
         for tid, t in self.territories.items():
+            # Подтягиваем флаг банды владельца (если он сейчас в мире —
+            # из его look; иначе из сохранённого _owner_flag в самой territory).
+            owner_uid = str(t.get('owner_uid') or '')
+            owner_p   = self.players.get(owner_uid)
+            owner_flag = 0
+            if owner_p:
+                try:
+                    owner_flag = int((owner_p.get('look') or {}).get('flag') or 0)
+                except Exception:
+                    owner_flag = 0
+                if owner_flag:
+                    t['_owner_flag'] = owner_flag
+            else:
+                owner_flag = int(t.get('_owner_flag') or 0)
             terr_payload[tid] = {
                 'owner_uid':   t['owner_uid'],
                 'owner_name':  t['owner_name'],
                 'gang_tag':    t.get('gang_tag') or '',
                 'color':       t['color'],
                 'captured_at': round(t['captured_at'], 2),
+                'flag':        int(owner_flag or 0),
+                'income':      int(self.TERRITORIES_DEF.get(tid, {}).get('income') or 50),
+                'income_tick_s':  int(self.INCOME_TICK_S),
+                'income_delay_s': int(self.INCOME_DELAY_S),
+                'last_payout_at': round(t.get('last_payout_at', t.get('captured_at', 0)), 2),
             }
         # Активные захваты — map { tid → { by_uid, by_name, color, elapsed, ... } }.
         # Один кадр может содержать несколько (разные игроки в разных районах).
@@ -12722,6 +13202,52 @@ class WorldSim:
                 cd_until = self._capture_cooldowns.get((uid, tid_me), 0)
                 if cd_until > now_t:
                     my_terr_cd = int(round(cd_until - now_t))
+        # Агрессивные районы: текущее состояние банды + укрытия. Передаём
+        # всем игрокам — даже за пределами зоны (информация о состоянии
+        # района нужна для мини-карты).
+        aggro_payload = {}
+        for tid, st in self.aggro.items():
+            bots_out = []
+            for bot in st['bots']:
+                if not bot.get('alive'):
+                    continue
+                bots_out.append({
+                    'id':      bot['id'],
+                    'x':       round(bot['x'], 2),
+                    'y':       round(bot['y'], 2),
+                    'ang':     round(bot['ang'], 2),
+                    'hp':      int(bot['hp']),
+                    'max_hp':  int(bot['max_hp']),
+                    'kind':    bot['kind'],
+                    'weapon':  bot.get('weapon') or 'pistol_heavy',
+                    'look':    bot.get('look') or {},
+                })
+            covers_out = []
+            for cv in self.aggro_covers.get(tid, []):
+                if cv['hp'] <= 0:
+                    continue
+                covers_out.append({
+                    'x':      round(cv['x'], 2),
+                    'y':      round(cv['y'], 2),
+                    'hp':     int(cv['hp']),
+                    'max_hp': int(cv['max_hp']),
+                    'r':      float(cv.get('r') or 0.5),
+                })
+            cap_left = 0
+            if st.get('state') == 'capturing':
+                cap_left = max(0.0, self.AGGRO_CAP_HOLD_S - (now_t - st['capturing_at']))
+            # Время до следующего респауна (если все мертвы)
+            next_respawn = 0
+            if not bots_out:
+                left = self.AGGRO_RESPAWN_S - (now_t - st.get('last_respawn_at', now_t))
+                next_respawn = max(0, int(round(left)))
+            aggro_payload[tid] = {
+                'state':         st.get('state', 'alive'),
+                'bots':          bots_out,
+                'covers':        covers_out,
+                'cap_left':      round(cap_left, 2),
+                'next_respawn':  next_respawn,
+            }
         return {
             't': 'snap',
             'd': {
@@ -12749,6 +13275,7 @@ class WorldSim:
                 'tick':          self.tick_no,
                 'territories':     terr_payload,
                 'active_captures': cap_payload,
+                'aggro':           aggro_payload,
             }
         }
 
@@ -12803,6 +13330,8 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                         'id':   world.event.get('id'),
                     })
                     world.event = None  # очищаем — следующий по таймеру
+                # Агрессивный район — банда NPC + захват через зачистку
+                ev_pkts.extend(world.tick_aggro(WORLD_TICK_DT) or [])
                 # Захват районов: тик + начисление дохода в gang_pool.
                 cap_pkts = world.tick_capture(WORLD_TICK_DT) or []
                 for cp in cap_pkts:
@@ -14425,6 +14954,14 @@ async def _coop_http_app():
                 look = json.loads(char['look_json'])
             except Exception:
                 look = {}
+        # Флаг банды (1..30 или 0/пусто) прокидываем через look — он
+        # летит всем клиентам и рисуется над захваченным зданием.
+        try:
+            gf = int(req.query.get('gang_flag') or 0)
+        except Exception:
+            gf = 0
+        if 0 < gf <= 30:
+            look['flag'] = gf
 
         ws = web.WebSocketResponse(heartbeat=20)
         await ws.prepare(req)
@@ -14601,6 +15138,18 @@ async def _coop_http_app():
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
                                     except Exception: pass
+                    elif t == 'aggro_shoot':
+                        # Игрок стреляет в банда-бота агрессивного района.
+                        # d = {target: 'gbot123', weapon: 'pistol'}
+                        bot_id = str(d.get('target') or '')[:16]
+                        weapon = str(d.get('weapon') or '')[:24]
+                        if bot_id:
+                            hit_pkt = world.aggro_shoot_bot(uid, bot_id, weapon)
+                            if hit_pkt:
+                                hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
+                                for u2, ws2 in list(world.connections.items()):
+                                    try: await ws2.send_str(hit_blob)
+                                    except Exception: pass
                     elif t == 'capture_try':
                         # Игрок жмёт «начать захват» зоны под собой.
                         # PvE отсеивается на сервере (apply_capture_try).
@@ -14711,6 +15260,32 @@ async def _coop_http_app():
             })
         return await _cors(web.json_response({
             'ok': True, 'count': len(out), 'players': out,
+        }))
+
+    # === HTTP: pending-уведомления о доходе с захваченных районов ===
+    # hub.html опрашивает /world/incomes/{uid} при загрузке и показывает
+    # «💰 +N$ с района X» — даже если игрок ушёл из мира, доход капал и
+    # сохранился в _income_log.
+    async def h_world_incomes(req):
+        try:
+            uid = str(int(req.match_info['uid']))
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        world = _WORLD
+        items = []
+        total = 0
+        if world is not None and world.alive:
+            log = world._income_log.get(uid, [])
+            items = list(log)
+            total = sum(int(it.get('amount') or 0) for it in items)
+            # «mark as seen» — после прочтения сбрасываем (передаётся ?ack=1)
+            if req.query.get('ack') == '1':
+                world._income_log[uid] = []
+        return await _cors(web.json_response({
+            'ok': True,
+            'count': len(items),
+            'total': int(total),
+            'items': items,
         }))
 
     # === HTTP: построить URL боёвки для района прямо из города ===
@@ -14999,6 +15574,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/safe/{uid}/loot',     h_safe_loot)
     aio_app.router.add_get ('/world/sim',           h_world_ws)  # общий мир
     aio_app.router.add_get ('/world/online',        h_world_online)  # для баннера в Кооперативе
+    aio_app.router.add_get ('/world/incomes/{uid}', h_world_incomes)  # pending district income notifications
     aio_app.router.add_get ('/world/battle_url/{uid}', h_world_battle_url)  # боёвка из POI района
     aio_app.router.add_get ('/notify/{uid}/poll',   h_notify_poll)   # in-game приглашения в кооп
     aio_app.router.add_get ('/coop/pending/{uid}',  h_coop_pending)  # ожидающий coop_sid из pending_coop_sid в БД

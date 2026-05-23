@@ -970,6 +970,9 @@ const POI = [
   { id: 'casino',  r: 46, c: 16, icon: '🎰', name: 'Казино',        minLvl: 10 },
   { id: 'factory', r: 46, c: 56, icon: '🏭', name: 'Промзона',      minLvl: 15 },
   { id: 'mansion', r: 66, c: 36, icon: '🏛', name: 'Резиденция',    minLvl: 20 },
+  // Логово — агрессивный район. Захват только через зачистку банды NPC.
+  // Радиус = 8 (больше остальных), серверная зона = 17×17.
+  { id: 'lair',    r: 36, c:  8, icon: '☠️', name: 'Логово',        minLvl: 10, aggro: true, radius: 8 },
   // Особые POI
   { id: 'blackmarket', r:  6, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
   { id: 'arena',       r: 36, c: 66, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
@@ -998,17 +1001,57 @@ function inArena(r, c) {
 // и обороне не участвуют (см. серверный гейтинг).
 const TERRITORY_RADIUS = 5;          // ⇒ квадрат 11×11 (×1.5 от исходного 7×7, синхронно с TERR_RADIUS на сервере)
 const CAPTURE_TIME_MS  = 30 * 1000;  // 30 секунд удержания
-const CAPTURE_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24ч между захватами одной зоны одним игроком
-const INCOME_DELAY_MS = 30 * 60 * 1000;          // доход начинает капать через 30 мин
+const CAPTURE_COOLDOWN_MS = 60 * 1000;            // 1 мин технический cd; антифарм идёт через re-enter
+const INCOME_DELAY_MS = 10 * 60 * 1000;          // доход начинает капать через 10 мин
+
+// 30 флагов банды (gangster-стиль). Должны совпадать с GANG_FLAGS в hub.html
+// по индексу и форме (bg, fg, icon). bg2 — опциональный 2-й цвет для градиента.
+const GANG_FLAG_DEFS = [
+  { bg:'#0a0a10',                fg:'#e8d23b', icon:'♠'  },
+  { bg:'#7b1010',                fg:'#f1c40f', icon:'🩸' },
+  { bg:'#0c4a2a', bg2:'#1a7a44', fg:'#ffd54a', icon:'$'  },
+  { bg:'#1a1a1a',                fg:'#ffffff', icon:'💀' },
+  { bg:'#1a0e02',                fg:'#f1c40f', icon:'🦁' },
+  { bg:'#1a1a2a', bg2:'#4a3a1a', fg:'#cda44a', icon:'🎯' },
+  { bg:'#100a0a',                fg:'#b86a3a', icon:'🎩' },
+  { bg:'#161616',                fg:'#aaaaaa', icon:'🔫' },
+  { bg:'#3a0a1a',                fg:'#f1c40f', icon:'👑' },
+  { bg:'#2a1a0a', bg2:'#4a2a1a', fg:'#dba66a', icon:'🃏' },
+  { bg:'#0a0a2a',                fg:'#7adfff', icon:'💎' },
+  { bg:'#330000',                fg:'#ffffff', icon:'✊' },
+  { bg:'#0a2a0a',                fg:'#7afd6c', icon:'🐍' },
+  { bg:'#5a0010', bg2:'#a01030', fg:'#ffffff', icon:'🌹' },
+  { bg:'#1a1a1a',                fg:'#ffffff', icon:'5'  },
+  { bg:'#2a0a0a', bg2:'#5a1a0a', fg:'#f1c40f', icon:'♣'  },
+  { bg:'#0a0a0a',                fg:'#c0392b', icon:'✝'  },
+  { bg:'#1a1a22',                fg:'#e67e22', icon:'🔨' },
+  { bg:'#0a1a3a', bg2:'#1a3a6a', fg:'#f1c40f', icon:'⚜'  },
+  { bg:'#1a1a1a',                fg:'#cdd3d8', icon:'🐺' },
+  { bg:'#5a0a0a', bg2:'#0a0a0a', fg:'#f1c40f', icon:'⚔'  },
+  { bg:'#0a0a0a',                fg:'#cda44a', icon:'🦅' },
+  { bg:'#0a0014',                fg:'#a04acd', icon:'🥀' },
+  { bg:'#4a0a0a', bg2:'#a0500a', fg:'#f1c40f', icon:'🔥' },
+  { bg:'#0a0a14',                fg:'#f1c40f', icon:'7'  },
+  { bg:'#1a1a1a',                fg:'#eedd44', icon:'🗡' },
+  { bg:'#2a0a0a', bg2:'#0a0a2a', fg:'#ffaa44', icon:'😈' },
+  { bg:'#0a2a14',                fg:'#f0e44a', icon:'💵' },
+  { bg:'#0a0a0a',                fg:'#ffffff', icon:'🎲' },
+  { bg:'#3a1a0a', bg2:'#6a4a1a', fg:'#f1c40f', icon:'⭐' },
+];
 const TERRITORIES = POI
   .filter(p => !p.special)
-  .map(p => ({
-    id: p.id, name: p.name, icon: p.icon, r: p.r, c: p.c,
-    r0: p.r - TERRITORY_RADIUS, r1: p.r + TERRITORY_RADIUS,
-    c0: p.c - TERRITORY_RADIUS, c1: p.c + TERRITORY_RADIUS,
-    // Доход в копилку банды владельца (через 30 мин после захвата, +N каждые 10 мин)
-    income: { market: 50, port: 80, casino: 120, factory: 160, mansion: 250 }[p.id] || 50,
-  }));
+  .map(p => {
+    const rad = p.radius || TERRITORY_RADIUS;
+    return {
+      id: p.id, name: p.name, icon: p.icon, r: p.r, c: p.c,
+      r0: p.r - rad, r1: p.r + rad,
+      c0: p.c - rad, c1: p.c + rad,
+      radius: rad,
+      aggro: !!p.aggro,
+      // Доход в копилку банды владельца. Лежит фолбэком — сервер шлёт точные значения.
+      income: { market: 50, port: 80, casino: 120, factory: 160, mansion: 250, lair: 350 }[p.id] || 50,
+    };
+  });
 const TERRITORY_BY_ID = new Map(TERRITORIES.map(t => [t.id, t]));
 
 // State владельцев (приходит с сервера; пока локально пусто).
@@ -1019,6 +1062,13 @@ const territoryOwners = Object.create(null);
 // Несколько игроков могут параллельно захватывать РАЗНЫЕ районы.
 // Синхронизируется с сервером (snap.active_captures).
 const activeCaptures = new Map();
+
+// Агрессивные районы — { [tid]: { state, bots:[], covers:[], cap_left, next_respawn } }.
+// Заполняется из snap.aggro. Боты рисуются как банда (фиолетовая футболка +
+// балаклава), укрытия — как разрушаемые ящики с HP-баром.
+const aggroZones = Object.create(null);
+// Эхо: моё последнее предупреждение от банды — чтобы рисовать чат-баббл
+const _aggroWarnMsg = { until: 0, text: '', from: null };
 // Helper: получить ЛЮБОЙ активный захват — приоритет мой, иначе первый.
 // Используется для captureBanner (один баннер на экране).
 function pickBannerCapture() {
@@ -1139,9 +1189,70 @@ function initNpcs() {
   }
 }
 
-function updateNpcs(dt) {
+// Тригер паники: при выстреле игрока NPC в радиусе R становятся
+// panic-mode на 4-6 сек, бегут ОТ стрелка с криком «ПОМОГИТЕ!». Когда
+// отбежали на >12 тайлов или истёк panicUntil — возвращаются к обычной
+// логике. cryUntil = когда показывать чат-баббл (выводится в drawNpc).
+function triggerNpcPanic(srcR, srcC, radius) {
+  const now = performance.now();
   for (const n of NPCS) {
-    if (performance.now() < n.idleUntil) {
+    const dr = n.r - srcR, dc = n.c - srcC;
+    const d  = Math.hypot(dr, dc);
+    if (d > radius) continue;
+    n.panicUntil = now + 4000 + Math.random() * 2500;
+    n.cryUntil   = now + 1800 + Math.random() * 1200;
+    n.cryText    = (Math.random() < 0.4) ? 'ААА!!'
+                  : (Math.random() < 0.5) ? 'ПОМОГИТЕ!'
+                  : (Math.random() < 0.5) ? 'СТРЕЛЯЮТ!'
+                  : 'УБЕГАЙ!';
+    n.panicSrcR  = srcR;
+    n.panicSrcC  = srcC;
+    n.idleUntil  = 0;   // не «отдыхаем», бежим
+  }
+}
+
+function updateNpcs(dt) {
+  const now = performance.now();
+  for (const n of NPCS) {
+    // PANIC: NPC видит стрельбу — бежит ОТ источника. Скорость ×2.5.
+    if (n.panicUntil && now < n.panicUntil) {
+      const dr = n.r - (n.panicSrcR || 0);
+      const dc = n.c - (n.panicSrcC || 0);
+      const d  = Math.hypot(dr, dc) || 1;
+      // Если близко к стене — пробуем повернуть на 60-90° чтобы не застрять
+      const sp = n.speed * 2.5 * dt;
+      const stepR = (dr / d) * sp;
+      const stepC = (dc / d) * sp;
+      const nr = n.r + stepR, nc = n.c + stepC;
+      if (npcPassable(nr, nc)) {
+        n.r = nr; n.c = nc;
+      } else {
+        // Поворот: пробуем 4 направления отскока
+        const tries = [
+          [ stepC, -stepR ],
+          [-stepC,  stepR ],
+          [-stepR, -stepC ],
+          [ stepR * 0.5,  stepC * 0.5 ],
+        ];
+        for (const [dr2, dc2] of tries) {
+          if (npcPassable(n.r + dr2, n.c + dc2)) {
+            n.r += dr2; n.c += dc2; break;
+          }
+        }
+      }
+      n.ang = Math.atan2(dr, dc);
+      n.walkPhase += dt * 14;
+      // Если отбежали достаточно далеко — выходим из паники досрочно
+      if (d > 14) n.panicUntil = 0;
+      continue;
+    } else if (n.panicUntil) {
+      // Только что вышли из паники — ставим небольшой idle (отдышаться)
+      n.panicUntil = 0;
+      n.idleUntil  = now + 800 + Math.random() * 800;
+      pickNpcWaypoint(n);
+      continue;
+    }
+    if (now < n.idleUntil) {
       n.walkPhase = 0;
       continue;
     }
@@ -1149,7 +1260,7 @@ function updateNpcs(dt) {
     const d  = Math.hypot(dr, dc);
     if (d < 0.4) {
       // Дошли — иногда стоим 1-3 сек, потом новый waypoint
-      if (Math.random() < 0.4) n.idleUntil = performance.now() + 1000 + Math.random() * 2000;
+      if (Math.random() < 0.4) n.idleUntil = now + 1000 + Math.random() * 2000;
       pickNpcWaypoint(n);
       continue;
     }
@@ -1170,6 +1281,15 @@ const CAR_MODELS = [
   { name: 'sport',    L: 1.6, W: 0.78, palette: ['#c8202a','#7a0d18'], roof: '#1a0a10', wheelR: 0.15, sport: true },
   { name: 'pickup',   L: 1.9, W: 0.92, palette: ['#3a3a3a','#1f1f1f'], roof: '#0f0f0f', wheelR: 0.18, pickup: true },
   { name: 'van',      L: 2.0, W: 0.95, palette: ['#2f6a3a','#1a3a22'], roof: '#152818', wheelR: 0.18, van: true },
+  // Дополнительные модели: больше разнообразия в городе
+  { name: 'sedan2',   L: 1.7, W: 0.85, palette: ['#6a6a72','#3a3a44'], roof: '#22222a', wheelR: 0.16 },
+  { name: 'sedan3',   L: 1.7, W: 0.85, palette: ['#8a3a3a','#4a1a1a'], roof: '#2a0a0a', wheelR: 0.16 },
+  { name: 'coupe',    L: 1.55, W: 0.8,  palette: ['#1a1a1a','#0a0a0a'], roof: '#000000', wheelR: 0.15 },
+  // Спорткары — яркие, быстрые, с мигалками жёлтыми (как такси)
+  { name: 'supercar', L: 1.55, W: 0.78, palette: ['#f0a020','#a05a00'], roof: '#2a1a00', wheelR: 0.15, sport: true, fast: true },
+  { name: 'lambo',    L: 1.55, W: 0.78, palette: ['#3afd6c','#0a8a3a'], roof: '#0a3a14', wheelR: 0.15, sport: true, fast: true },
+  { name: 'ferrari',  L: 1.55, W: 0.78, palette: ['#ed1a2e','#7a0a18'], roof: '#1a0408', wheelR: 0.15, sport: true, fast: true },
+  { name: 'porsche',  L: 1.6,  W: 0.78, palette: ['#1a1afa','#0a0a8a'], roof: '#000a3a', wheelR: 0.15, sport: true, fast: true },
 ];
 // Полицейские модели — отдельный pool, используется ТОЛЬКО для патрулей
 // и спецсобытий (не спавнятся как обычные машины). Эти модели имеют
@@ -1217,18 +1337,19 @@ function spawnCar(idx) {
       // Перекрёсток (3×3) — не спавним
       continue;
     }
-    // 12% машин в городе — полицейские патрули (cruiser).
-    // Реже — paddyvan (3%). SWAT-truck по городу не катается (только
-    // спавнится сервером при wanted 3★, отдельно от CARS).
+    // 8% машин — полиция (cruiser), 2% — paddyvan. Остальное — гражданские
+    // (5 спорткаров на 4 семьи обычных = ~30% спорткары для жирного города).
     let model;
     const rnd = Math.random();
-    if (rnd < 0.03)      model = POLICE_MODELS.paddyvan;
-    else if (rnd < 0.15) model = POLICE_MODELS.cruiser;
-    else                 model = CAR_MODELS[idx % CAR_MODELS.length];
+    if (rnd < 0.02)      model = POLICE_MODELS.paddyvan;
+    else if (rnd < 0.10) model = POLICE_MODELS.cruiser;
+    else                 model = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+    // Спорткары едут заметно быстрее — добавляем визуальную скорость.
+    const speedMul = model.fast ? 1.7 : (model.sport ? 1.3 : 1.0);
     return {
       r: r + 0.5, c: c + 0.5,
-      vr: dirDy * (1.5 + Math.random() * 0.8),
-      vc: dirDx * (1.5 + Math.random() * 0.8),
+      vr: dirDy * (1.5 + Math.random() * 0.8) * speedMul,
+      vc: dirDx * (1.5 + Math.random() * 0.8) * speedMul,
       dirDx, dirDy,
       model,
       braking: false,
@@ -1240,7 +1361,9 @@ function spawnCar(idx) {
 }
 function initCars() {
   CARS.length = 0;
-  for (let i = 0; i < 8; i++) {
+  // Город стал «живее» — 18 машин вместо 8. Спорткары и полиция тоже
+  // разнообразят трафик. Спавн случайный по моделям, не по idx.
+  for (let i = 0; i < 18; i++) {
     const c = spawnCar(i);
     if (c) CARS.push(c);
   }
@@ -1965,20 +2088,61 @@ function handleEventPacket(d) {
       showEventBanner('⚠️ Захват сорван', reasons[d.reason] || 'Прогресс сброшен.', 2500, 'lose');
     }
   } else if (kind === 'territory_capture_denied') {
-    if (String(d.by_uid) === String(QP.uid) && d.reason === 'cooldown') {
-      const m = Math.ceil((d.wait_s || 0) / 60);
-      showToast(`⏳ Эту зону ты уже брал. Жди ещё ~${m} мин.`, 3500);
+    if (String(d.by_uid) === String(QP.uid)) {
+      if (d.reason === 'cooldown') {
+        const m = Math.ceil((d.wait_s || 0) / 60);
+        showToast(`⏳ Эту зону ты уже брал. Жди ещё ~${m} мин.`, 3500);
+      } else if (d.reason === 'must_reenter') {
+        showToast('🚶 Выйди из зоны и вернись, чтобы снова брать район.', 3500);
+      }
     }
   } else if (kind === 'territory_captured') {
     // Всем на экран — кто и какой район контролирует.
-    const me = (String(d.by_uid) === String(QP.uid));
+    const me = (String(d.by_uid) === String(QP.uid))
+            || (Array.isArray(d.co_owners) && d.co_owners.map(String).includes(String(QP.uid)));
+    const inc = d.income || 50;
+    const delayMin = Math.round(((d.income_delay_s|0) || 600) / 60);
     if (me) {
       showEventBanner(`${d.icon} ${d.name} — твой!`,
-        'Через 30 минут начнёт капать доход в копилку банды.', 5000, 'win');
+        `Доход $${inc}/${delayMin}м начнёт капать через ${delayMin} мин в копилку банды.`,
+        5000, 'win');
     } else {
       showEventBanner(`${d.icon} @${d.by_name} контролирует ${d.name}`,
         'Доход с района пойдёт в его банду.', 4000, 'neutral');
     }
+  } else if (kind === 'aggro_spawned') {
+    // Тихий пакет (только для логов / звуковой триггер при желании).
+  } else if (kind === 'aggro_warn') {
+    if (String(d.target_uid) === String(QP.uid)) {
+      _aggroWarnMsg.until = performance.now() + 3000;
+      _aggroWarnMsg.text  = d.text || 'Проваливай!';
+      showToast('☠️ ' + (d.text || 'Проваливай!'), 2200);
+    }
+  } else if (kind === 'aggro_shot' || kind === 'aggro_melee') {
+    // Бот стреляет/бьёт в нас — рисуем трассер/удар
+    const sR = d.sy || 0, sC = d.sx || 0, tR = d.ty || 0, tC = d.tx || 0;
+    spawnBullet(sR, sC, tR, tC, { hit: !d.miss, fromPlayer: false,
+                                   weapon: d.weapon || 'pistol_heavy' });
+    if (String(d.target_uid) === String(QP.uid) && !d.miss) {
+      try { hitFlash = performance.now() + 240; } catch(e) {}
+      if (d.killed) myDeathBy = 'банда «Логова»';
+    }
+  } else if (kind === 'aggro_hit') {
+    // Игрок попал в бота — звук/визуал
+    if (d.killed) {
+      const me = (String(d.shooter_uid) === String(QP.uid));
+      if (me) {
+        showToast(d.is_boss
+          ? '☠️ Главарь банды убит! Зачистка района почти завершена.'
+          : '💀 Банда -1. Продолжай зачистку.', 2400);
+      }
+    }
+  } else if (kind === 'aggro_capturing') {
+    showEventBanner('☠️ Зачистка завершена!',
+      `Захват «Логова» через ${Math.ceil(d.duration_s || 3)} сек — оставайся в зоне.`,
+      3500, 'win');
+  } else if (kind === 'aggro_cap_failed') {
+    showToast('⚠️ Захват «Логова» сорвался — никого из бойцов нет в зоне', 3500);
   } else if (kind === 'territory_fight') {
     // PvP-перестрелка в захватываемой зоне — баннер ВСЕМ. Сервер сам
     // антиспамит (раз в 30с на район), так что показываем без условий.
@@ -2305,6 +2469,13 @@ function wsConnect() {
         for (const k of Object.keys(territoryOwners)) delete territoryOwners[k];
         for (const tid of Object.keys(d.territories || {})) {
           territoryOwners[tid] = d.territories[tid];
+        }
+      }
+      if (d.aggro !== undefined) {
+        // Агрессивные районы: банда NPC + укрытия. Источник истины — сервер.
+        for (const k of Object.keys(aggroZones)) delete aggroZones[k];
+        for (const tid of Object.keys(d.aggro || {})) {
+          aggroZones[tid] = d.aggro[tid];
         }
       }
       if (d.active_captures !== undefined) {
@@ -2764,11 +2935,28 @@ function fire(angle = null) {
       if (!chosenCop || d < chosenCop.d) chosenCop = { id: c.id, x: c.x, y: c.y, d };
     }
   }
-  // 3) PvP-игрок (в активной зоне инкассатора или в арене)
-  const pvpTarget = (!chosenConvoy && !chosenCop) ? findPvpTargetAlongAim(dirX, dirY) : null;
+  // 3) Бот агрессивного района — стрелять можно только если я САМ в этой зоне
+  let chosenAggro = null;
+  if (!chosenConvoy && !chosenCop) {
+    for (const tid of Object.keys(aggroZones)) {
+      const az = aggroZones[tid];
+      if (!az || !az.bots) continue;
+      for (const bot of az.bots) {
+        const dx = bot.x - player.c, dy = bot.y - player.r;
+        const d  = Math.hypot(dx, dy);
+        if (d > FIRE_R_CONVOY) continue;
+        const dn = d > 0.001 ? d : 1;
+        const dot = (dx * dirX + dy * dirY) / dn;
+        if (dot < 0.55) continue;
+        if (!chosenAggro || d < chosenAggro.d) chosenAggro = { id: bot.id, x: bot.x, y: bot.y, d };
+      }
+    }
+  }
+  // 4) PvP-игрок (в активной зоне инкассатора или в арене)
+  const pvpTarget = (!chosenConvoy && !chosenCop && !chosenAggro) ? findPvpTargetAlongAim(dirX, dirY) : null;
   // Если цели нет — стреляем «в пустоту» с визуальным эффектом
   // (трассер летит вперёд + отдача + cd). Локально, серверу не шлём.
-  const noTarget = !chosenConvoy && !chosenCop && !pvpTarget;
+  const noTarget = !chosenConvoy && !chosenCop && !chosenAggro && !pvpTarget;
   lastShotClientT = now;
   _fireBtn.classList.add('cd');
   joyREl.classList.add('cd');
@@ -2785,11 +2973,25 @@ function fire(angle = null) {
   const sR = player.r + dirY * muzD;
   const sC = player.c + dirX * muzD;
   spawnMuzzle(sR, sC, Math.atan2(dirY, dirX), currentWeapon);
+  // Паника NPC: любой выстрел рядом — мирные NPC в радиусе 9 тайлов
+  // переключаются в panic. Бегут от стрелка, кричат «ПОМОГИТЕ!» по
+  // случайному паттерну. Когда отбежали — успокаиваются (см. updateNpcs).
+  try { triggerNpcPanic(player.r, player.c, 9); } catch(e) {}
   // Стрельба в городе вне PvP-зоны = НЕЗАКОННО. Шлём серверу open_fire —
   // сервер бампает wanted, копы выезжают. inArena(ARENA_R0..R1) — постоянная
   // PvP-арена. pvpActive — пока идёт событие инкассатора (PvP открыто везде).
   const meInArena = inArena(player.r, player.c);
-  const lawful    = meInArena || pvpActive || chosenConvoy || chosenCop;
+  // Внутри агрессивной зоны стрельба ВСЕГДА легальна — это PvP-район банды.
+  // Узнаём по списку TERRITORIES: aggro=true и я внутри её радиуса.
+  let meInAggro = false;
+  for (const t of TERRITORIES) {
+    if (!t.aggro) continue;
+    const rad = t.radius || TERRITORY_RADIUS;
+    if (Math.abs(player.c - t.c) <= rad && Math.abs(player.r - t.r) <= rad) {
+      meInAggro = true; break;
+    }
+  }
+  const lawful    = meInArena || meInAggro || pvpActive || chosenConvoy || chosenCop || chosenAggro;
   if (!lawful) {
     // Проверка: летит ли пуля в мирного NPC прохожего (стрельба в людей)?
     // Если да — сервер даст СРАЗУ 2★ без предупреждения (бой). Прицеливаемся
@@ -2833,6 +3035,15 @@ function fire(angle = null) {
     try {
       ws && ws.send(JSON.stringify({ t: 'cop_shoot',
         d: { target: chosenCop.id, weapon: currentWeapon } }));
+    } catch(e) {}
+    return;
+  }
+  if (chosenAggro) {
+    spawnBullet(sR, sC, chosenAggro.y, chosenAggro.x,
+      { hit: true, fromPlayer: true, weapon: currentWeapon });
+    try {
+      ws && ws.send(JSON.stringify({ t: 'aggro_shoot',
+        d: { target: chosenAggro.id, weapon: currentWeapon } }));
     } catch(e) {}
     return;
   }
@@ -4600,6 +4811,41 @@ function drawTrafficLight(r, c) {
 function drawNpc(npc) {
   const p = w2s(npc.r, npc.c);
   drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null, false);
+  // Крик «ПОМОГИТЕ!» когда NPC в панике (panicUntil > now). Чат-баббл
+  // подпрыгивает с лёгкой анимацией. cryUntil — отдельно, чтобы крик
+  // показывался лишь первые ~2 сек паники, потом NPC просто молча бежит.
+  const now = performance.now();
+  if (npc.cryUntil && now < npc.cryUntil) {
+    const txt = npc.cryText || 'А-А-А!';
+    const bob = Math.sin(now * 0.02) * 1.5;
+    const ty  = p.y - 44 + bob;
+    ctx.save();
+    ctx.font = 'bold 11px system-ui, "Segoe UI Emoji", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const w = ctx.measureText(txt).width + 12;
+    const h = 16;
+    // Плашка
+    ctx.fillStyle = 'rgba(180,30,30,.95)';
+    ctx.strokeStyle = '#ffe;';
+    ctx.lineWidth = 1.2;
+    roundRect(p.x - w/2, ty - h/2, w, h, 4);
+    ctx.fill();
+    // Текст
+    ctx.fillStyle = '#fff';
+    ctx.fillText(txt, p.x, ty + 1);
+    // Хвостик «ниточка» от рта
+    ctx.fillStyle = 'rgba(180,30,30,.95)';
+    ctx.beginPath();
+    ctx.moveTo(p.x - 3, ty + h/2 - 1);
+    ctx.lineTo(p.x + 3, ty + h/2 - 1);
+    ctx.lineTo(p.x,     ty + h/2 + 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
 }
 
 // Эмерджентное событие: NPC конвоя (инкассатор или полицейский).
@@ -4745,6 +4991,100 @@ const _COP_LOOKS = {
   combat: { gender:0, skin:1, body:1, face:0, hair:1, hat:5 },
   swat:   { gender:0, skin:0, body:3, face:3, hair:0, hat:6 },
 };
+// Рисуем банда-бота агрессивного района. Босс — крупнее, с особым ореолом.
+const _AGGRO_GRUNT_LOOK = { gender:0, skin:2, body:2, face:1, hair:0, hat:4 };
+const _AGGRO_BOSS_LOOK  = { gender:0, skin:1, body:2, face:1, hair:0, hat:4, boss:1 };
+function drawAggroBot(bot) {
+  const p = w2s(bot.y + 0.5, bot.x + 0.5);
+  const isBoss = (bot.kind === 'aggro_boss');
+  const look   = bot.look || (isBoss ? _AGGRO_BOSS_LOOK : _AGGRO_GRUNT_LOOK);
+  const walkPhase = (performance.now() * 0.008) % (Math.PI * 2);
+  // Сиреневая «аура» под ногами — отличает банду от обычных NPC
+  ctx.save();
+  ctx.fillStyle = isBoss ? 'rgba(180, 80, 255, .55)' : 'rgba(140, 70, 200, .35)';
+  ctx.shadowColor = '#a050ff';
+  ctx.shadowBlur  = isBoss ? 16 : 10;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 6, isBoss ? 22 : 16, isBoss ? 8 : 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // Босс крупнее — масштабируем человечка.
+  if (isBoss) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.scale(1.25, 1.25);
+    drawPerson(0, 0, bot.ang || 0, look, walkPhase, null, null, false,
+               bot.hp, bot.max_hp, false);
+    ctx.restore();
+  } else {
+    drawPerson(p.x, p.y, bot.ang || 0, look, walkPhase, null, null, false,
+               bot.hp, bot.max_hp, false);
+  }
+  // Оружие
+  const weapon = bot.weapon || (isBoss ? 'uzi' : 'pistol_heavy');
+  const flashAt = lastBossShotAt.get(bot.id) || 0;
+  drawWeaponInHands(p.x, p.y, bot.ang || 0, weapon, isBoss ? 1.15 : 0.95, flashAt);
+  // Босс с саблей: рисуем «крутящуюся» саблю если близко к игроку
+  if (isBoss) {
+    const tNow = performance.now() * 0.012;
+    const sabAng = (bot.ang || 0) + Math.sin(tNow) * 0.6;
+    ctx.save();
+    ctx.translate(p.x, p.y - 14);
+    ctx.rotate(sabAng);
+    ctx.strokeStyle = '#dde0ff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(22, 0);
+    ctx.stroke();
+    ctx.strokeStyle = '#7a5a30';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-4, 0);
+    ctx.lineTo(0, 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // Эмодзи над головой
+  ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText(isBoss ? '👹' : '🥷', p.x, p.y - (isBoss ? 56 : 44));
+  ctx.shadowBlur = 0;
+  ctx.textAlign = 'left';
+}
+
+// Разрушаемое укрытие — ящик/баррикада с HP-баром
+function drawCover(cv) {
+  const p = w2s(cv.y + 0.5, cv.x + 0.5);
+  const w = 18, h = 14;
+  // Корпус
+  ctx.save();
+  ctx.fillStyle = '#5a3a18';
+  ctx.strokeStyle = '#2a1a08';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(p.x - w/2, p.y - h, w, h);
+  ctx.strokeRect(p.x - w/2, p.y - h, w, h);
+  // Доски
+  ctx.strokeStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.moveTo(p.x - w/2 + 3, p.y - h); ctx.lineTo(p.x - w/2 + 3, p.y);
+  ctx.moveTo(p.x,          p.y - h); ctx.lineTo(p.x,          p.y);
+  ctx.moveTo(p.x + w/2 - 3, p.y - h); ctx.lineTo(p.x + w/2 - 3, p.y);
+  ctx.stroke();
+  ctx.restore();
+  // HP-бар если повреждено
+  if (cv.hp < cv.max_hp) {
+    const bw = w, bh = 3;
+    const bx = p.x - bw / 2, by = p.y - h - 6;
+    ctx.fillStyle = 'rgba(0,0,0,.6)';
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = '#e85030';
+    ctx.fillRect(bx, by, bw * (cv.hp / cv.max_hp), bh);
+  }
+}
+
 function drawCopNpc(cop) {
   const p = w2s(cop.y + 0.5, cop.x + 0.5);
   const kind = cop.kind || 'patrol';
@@ -5296,16 +5636,50 @@ function drawPOI(r, c, poi) {
     ctx.beginPath();
     ctx.moveTo(fx, fyBot); ctx.lineTo(fx, fyTop);
     ctx.stroke();
-    // Полотно — лёгкая волна
+    // Полотно — если у владельца выбран флаг банды (1..30), рисуем
+    // именно его (палитра + иконка). Иначе — простая цветная тряпка.
     const wave = Math.sin(performance.now() / 220 + r * 0.4) * 2;
-    ctx.fillStyle = fcol;
-    ctx.beginPath();
-    ctx.moveTo(fx, fyTop);
-    ctx.lineTo(fx + 18 + wave, fyTop + 4);
-    ctx.lineTo(fx + 18 - wave, fyTop + 10);
-    ctx.lineTo(fx, fyTop + 14);
-    ctx.closePath();
-    ctx.fill();
+    const flagIdx = owner.flag | 0;
+    const flagDef = (flagIdx > 0 && GANG_FLAG_DEFS[flagIdx-1]) ? GANG_FLAG_DEFS[flagIdx-1] : null;
+    if (flagDef) {
+      const fw = 22, fh = 16;
+      ctx.save();
+      if (flagDef.bg2) {
+        const grad = ctx.createLinearGradient(fx, fyTop, fx + fw, fyTop + fh);
+        grad.addColorStop(0, flagDef.bg);
+        grad.addColorStop(1, flagDef.bg2);
+        ctx.fillStyle = grad;
+      } else {
+        ctx.fillStyle = flagDef.bg;
+      }
+      ctx.beginPath();
+      ctx.moveTo(fx, fyTop);
+      ctx.lineTo(fx + fw + wave, fyTop + 2);
+      ctx.lineTo(fx + fw - wave, fyTop + fh);
+      ctx.lineTo(fx, fyTop + fh + 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = fcol;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.font = 'bold 11px system-ui, "Segoe UI Emoji", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = flagDef.fg;
+      ctx.fillText(flagDef.icon, fx + fw / 2, fyTop + fh / 2 + 1);
+      ctx.restore();
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+    } else {
+      ctx.fillStyle = fcol;
+      ctx.beginPath();
+      ctx.moveTo(fx, fyTop);
+      ctx.lineTo(fx + 18 + wave, fyTop + 4);
+      ctx.lineTo(fx + 18 - wave, fyTop + 10);
+      ctx.lineTo(fx, fyTop + 14);
+      ctx.closePath();
+      ctx.fill();
+    }
     // Большая надпись «🏪 Захвачено @nick» НАД зданием
     const gangTag = owner.gang_tag || owner.gangTag || '';
     const ownerName = owner.owner_name || owner.ownerName || '';
@@ -5326,22 +5700,32 @@ function drawPOI(r, c, poi) {
     ctx.textBaseline = 'middle';
     ctx.fillStyle = fcol;
     ctx.fillText(ownTitle, p.x, cap2Y + ownH / 2);
-    // Под плашкой — таймер до начала дохода (30 мин с момента захвата).
-    // Если уже капает — показываем «💰 капает в банду».
+    // Под плашкой — РЕАЛ-ТАЙМ счётчик заработка района: $X / тик,
+    // вычисляется как (income/tick_s) × сколько-секунд-уже-прошло-с-захвата.
+    // Накручивается каждый кадр — игрок видит «деньги капают вживую».
     const capAt = (owner.captured_at || owner.capturedAt || 0) * 1000;
-    const incomeStart = capAt + 30 * 60 * 1000;
-    const remainMs = incomeStart - Date.now();
+    const tickS  = (owner.income_tick_s | 0) || 600;
+    const delayS = (owner.income_delay_s | 0) || 600;
+    const inc    = (owner.income | 0) || 50;
+    const elapsedS = Math.max(0, (Date.now() - capAt) / 1000);
     let infoText;
-    if (remainMs > 0) {
-      const totalSec = Math.ceil(remainMs / 1000);
-      const mm = Math.floor(totalSec / 60);
-      const ss = totalSec % 60;
-      infoText = `⏳ доход через ${mm}:${ss < 10 ? '0' : ''}${ss}`;
+    if (elapsedS < delayS) {
+      // Ещё не начал капать — показываем сколько секунд до старта дохода,
+      // но БЕЗ скучного «30 мин». На большом таймере над зданием уже всё видно.
+      const wait = Math.max(1, Math.ceil(delayS - elapsedS));
+      const mm = Math.floor(wait / 60), ss = wait % 60;
+      infoText = `⏳ доход стартует через ${mm}:${ss < 10 ? '0' : ''}${ss}`;
     } else {
-      infoText = '💰 капает в банду';
+      // С момента старта дохода: накопленные баксы линейно растут до
+      // следующего тика. Показываем РЕАЛ-ТАЙМ счётчик «💵 +$X».
+      const sinceStart = elapsedS - delayS;
+      const accrued    = (sinceStart / tickS) * inc;
+      // Округляем визуально до 2 знаков чтобы видеть копейки растут
+      const shown = accrued.toFixed(2);
+      infoText = `💵 +$${shown} (≈$${inc}/${Math.round(tickS/60)}м)`;
     }
-    ctx.font = '10px system-ui, sans-serif';
-    ctx.fillStyle = '#ffe9aa';
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.fillStyle = elapsedS < delayS ? '#ffe9aa' : '#7fffa3';
     ctx.fillText(infoText, p.x, cap2Y + ownH + 8);
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
@@ -6514,6 +6898,19 @@ function render() {
   for (const cop of worldCops) {
     if (cop.y < r0 || cop.y >= r1 || cop.x < c0 || cop.x >= c1) continue;
     items.push({ depth: cop.y + cop.x + 0.0011, draw: () => drawCopNpc(cop) });
+  }
+  // Агрессивные районы: укрытия → банда → босс. Все вписаны в depth-сорт.
+  for (const tid of Object.keys(aggroZones)) {
+    const az = aggroZones[tid];
+    if (!az) continue;
+    for (const cv of (az.covers || [])) {
+      if (cv.y < r0 || cv.y >= r1 || cv.x < c0 || cv.x >= c1) continue;
+      items.push({ depth: cv.y + cv.x + 0.00095, draw: () => drawCover(cv) });
+    }
+    for (const bot of (az.bots || [])) {
+      if (bot.y < r0 || bot.y >= r1 || bot.x < c0 || bot.x >= c1) continue;
+      items.push({ depth: bot.y + bot.x + 0.0012, draw: () => drawAggroBot(bot) });
+    }
   }
   // Игрок (со своим чат-баблом из последнего смайлика, чтобы сразу видеть).
   // Look берём всегда из URL — даже если has_look=0, параметры есть
