@@ -6422,13 +6422,16 @@ function drawPoliceStationDecor(stationR, stationC) {
 // ЗЕЛЁНЫЙ когда срок вышел (можно выйти физически). Серверный JAIL_R
 // держит игрока внутри — лазер тут чистый визуал.
 const JAIL_CENTER_R = 76, JAIL_CENTER_C = 76;
-const JAIL_RADIUS_TILES = 3.5;
-const JAIL_GATE_HALF_RAD = 0.35;   // ширина проёма в радианах (≈40°)
+// Радиус загона — 7 тайлов (диаметр 14, 10+ игроков размещается с запасом).
+// ВАЖНО: должно совпадать с серверным JAIL_R (см. mafiozi_bot.py).
+const JAIL_RADIUS_TILES = 7.0;
+const JAIL_GATE_HALF_RAD = 0.50;   // ширина проёма в радианах (≈57°) — для нескольких игроков
 function drawJailCell(stationR, stationC) {
   const cR = stationR, cC = stationC;
   const R  = JAIL_RADIUS_TILES;
-  // Прутья по окружности с дыркой на южной стороне (Math.PI/2 в нашей системе)
-  const N = 28;
+  // Прутья по окружности с дыркой на южной стороне (Math.PI/2 в нашей системе).
+  // Раньше было N=28 на R=3.5 → шаг ~0.78. Сохраняем плотность: N ~= 8*R.
+  const N = Math.max(28, Math.round(R * 8));
   const gateA = Math.PI * 0.5;      // ворота — на юг от центра
   const gw = JAIL_GATE_HALF_RAD;
   ctx.save();
