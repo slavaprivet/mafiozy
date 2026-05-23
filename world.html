@@ -1930,6 +1930,29 @@ function triggerNpcPanic(srcR, srcC, radius) {
 
 function updateNpcs(dt) {
   const now = performance.now();
+  // Если рядом с NPC прохожим стоит бот городской банды с act='harass'
+  // — NPC паникует и убегает. Триггерим один раз в секунду на NPC.
+  for (const tid of Object.keys(aggroZones)) {
+    const az = aggroZones[tid];
+    if (!az || !az.bots) continue;
+    for (const bot of az.bots) {
+      if (bot.act !== 'harass') continue;
+      // Только city_gangs могут пугать прохожих
+      if (!String(bot.id || '').startsWith('cgbot')) continue;
+      for (const n of NPCS) {
+        if (n.panicUntil && now < n.panicUntil) continue;
+        const dr = n.r - bot.y, dc = n.c - bot.x;
+        if (Math.hypot(dr, dc) < 2.5) {
+          n.panicUntil = now + 3500 + Math.random() * 1500;
+          n.cryUntil   = now + 1800;
+          n.cryText    = (Math.random() < 0.5) ? 'ОТСТАНЬТЕ!' : 'ПОМОГИТЕ!';
+          n.panicSrcR  = bot.y;
+          n.panicSrcC  = bot.x;
+          n.idleUntil  = 0;
+        }
+      }
+    }
+  }
   for (const n of NPCS) {
     // PANIC: NPC видит стрельбу — бежит ОТ источника. Скорость ×2.5.
     if (n.panicUntil && now < n.panicUntil) {
@@ -5885,11 +5908,91 @@ const _COP_LOOKS = {
 // Рисуем банда-бота агрессивного района. Босс — крупнее, с особым ореолом.
 const _AGGRO_GRUNT_LOOK = { gender:0, skin:2, body:2, face:1, hair:0, hat:4 };
 const _AGGRO_BOSS_LOOK  = { gender:0, skin:1, body:2, face:1, hair:0, hat:4, boss:1 };
+// Бутылка пива в руке (city-gang activity 'drink')
+function drawBeerBottle(cx, cy, ang) {
+  ctx.save();
+  // Бутылка чуть смещена в сторону «руки» (как и оружие)
+  const ox = cx + Math.cos(ang) * 5;
+  const oy = cy + Math.sin(ang) * 5 - 4;
+  // Стекло — тёмно-зелёное
+  ctx.fillStyle = '#1a3a1a';
+  ctx.beginPath();
+  ctx.ellipse(ox, oy + 2, 1.6, 3.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Горлышко
+  ctx.fillRect(ox - 0.7, oy - 3, 1.4, 2.2);
+  // Этикетка — жёлтая полоска
+  ctx.fillStyle = '#f1c40f';
+  ctx.fillRect(ox - 1.4, oy + 1, 2.8, 1.4);
+  // Блик
+  ctx.strokeStyle = 'rgba(180,220,180,.5)';
+  ctx.lineWidth = 0.4;
+  ctx.beginPath();
+  ctx.moveTo(ox - 0.8, oy - 1); ctx.lineTo(ox - 0.8, oy + 3);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Баллончик с краской в руке (city-gang activity 'tag')
+function drawSprayCan(cx, cy, ang) {
+  ctx.save();
+  const ox = cx + Math.cos(ang) * 5;
+  const oy = cy + Math.sin(ang) * 5 - 4;
+  // Корпус — красный
+  ctx.fillStyle = '#a02020';
+  ctx.fillRect(ox - 1.5, oy - 2, 3, 5);
+  // Колпачок
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(ox - 1, oy - 3.5, 2, 1.5);
+  // Сопло
+  ctx.fillStyle = '#888';
+  ctx.fillRect(ox - 0.4, oy - 4.2, 0.8, 0.7);
+  // Облачко краски — мелкие точки впереди
+  const t = performance.now() * 0.012;
+  const pa = ang;
+  ctx.fillStyle = 'rgba(220,40,40,.55)';
+  for (let i = 0; i < 5; i++) {
+    const dist = 5 + i * 2;
+    const jx   = Math.sin(t + i) * 1.5;
+    const jy   = Math.cos(t + i * 1.7) * 1.5;
+    ctx.beginPath();
+    ctx.arc(ox + Math.cos(pa) * dist + jx,
+            oy + Math.sin(pa) * dist + jy - 1, 0.9 + i * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// След граффити на земле — постоянный тег под ногами таггера.
+// Цвет / символ детерминированы по bot.id (всегда одинаковые).
+function drawGraffitiOnGround(cx, cy, botId) {
+  const seed = (String(botId).split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 100;
+  const tags = ['☠', '666', 'L', '$', 'RIP', '✘'];
+  const cols = ['#d84040', '#e0e040', '#40d840', '#a040d8', '#d84040'];
+  const tag = tags[seed % tags.length];
+  const col = cols[(seed * 3) % cols.length];
+  ctx.save();
+  ctx.font = 'bold 9px "Segoe UI Emoji", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.globalAlpha = 0.65;
+  ctx.fillStyle = '#000';
+  ctx.fillText(tag, cx + 0.5, cy + 0.5);
+  ctx.fillStyle = col;
+  ctx.fillText(tag, cx, cy);
+  ctx.restore();
+}
+
 function drawAggroBot(bot) {
   const p = w2s(bot.y + 0.5, bot.x + 0.5);
   const isBoss = (bot.kind === 'aggro_boss');
   const look   = bot.look || (isBoss ? _AGGRO_BOSS_LOOK : _AGGRO_GRUNT_LOOK);
-  const walkPhase = (performance.now() * 0.008) % (Math.PI * 2);
+  // Activity городских банд — если не 'walk', стоят на месте (не качаемся).
+  const act = bot.act || 'walk';
+  const isCityGang = String(bot.id || '').startsWith('cgbot');
+  const walkPhase = (isCityGang && act !== 'walk')
+    ? 0
+    : (performance.now() * 0.008) % (Math.PI * 2);
   // Сиреневая «аура» под ногами — отличает банду от обычных NPC
   ctx.save();
   ctx.fillStyle = isBoss ? 'rgba(180, 80, 255, .55)' : 'rgba(140, 70, 200, .35)';
@@ -5915,10 +6018,19 @@ function drawAggroBot(bot) {
     drawPerson(p.x, p.y, bot.ang || 0, look, walkPhase, null, threatChat, false,
                bot.hp, bot.max_hp, false);
   }
-  // Оружие
-  const weapon = bot.weapon || (isBoss ? 'uzi' : 'pistol_heavy');
-  const flashAt = lastBossShotAt.get(bot.id) || 0;
-  drawWeaponInHands(p.x, p.y, bot.ang || 0, weapon, isBoss ? 1.15 : 0.95, flashAt);
+  // Activity-предметы (бутылка/баллончик) у городских банд в patrol
+  // заменяют оружие. В hostile-режиме всегда оружие.
+  if (isCityGang && act === 'drink') {
+    drawBeerBottle(p.x, p.y, bot.ang || 0);
+  } else if (isCityGang && act === 'tag') {
+    drawSprayCan(p.x, p.y, bot.ang || 0);
+    drawGraffitiOnGround(p.x, p.y + 12, bot.id);
+  } else {
+    // Оружие
+    const weapon = bot.weapon || (isBoss ? 'uzi' : 'pistol_heavy');
+    const flashAt = lastBossShotAt.get(bot.id) || 0;
+    drawWeaponInHands(p.x, p.y, bot.ang || 0, weapon, isBoss ? 1.15 : 0.95, flashAt);
+  }
   // Босс с саблей: рисуем «крутящуюся» саблю если близко к игроку
   if (isBoss) {
     const tNow = performance.now() * 0.012;

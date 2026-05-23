@@ -13315,11 +13315,31 @@ class WorldSim:
         return self.city_gang_shoot_bot(uid, bot_id, weapon)
 
     # ── Бродячие городские банды ────────────────────────────────────
+    # Threat-фразы — когда игрок подошёл слишком близко
     CITY_GANG_PHRASES = [
         'Чё уставился?', 'У тебя проблемы?', 'Иди мимо!',
         'Не лезь, пацан.', 'Свободен.', 'Чё надо?',
         'Не трогай.', 'Шевели ногами.', 'Гуляй давай.',
     ]
+    # Бытовые/грубые фразы — бот периодически кричит просто так (idle chatter)
+    CITY_GANG_IDLE_PHRASES = [
+        'Эта улица наша.', 'Братва, по ходу мусора рядом.',
+        'Заходи, не стесняйся... шучу, проваливай.',
+        'Сегодня кому-то прилетит.', 'Где моё пиво?',
+        'Слышь, дай закурить.', 'Гангста до конца.',
+        'Мать-перемать...', 'Эй, на районе тише.',
+        'Кто там шляется?', 'Скоро отжимать пойдём.',
+        'Че за лохи понаехали.',
+    ]
+    # Грубости при harass (когда бот «пристал» к NPC прохожему)
+    CITY_GANG_HARASS_PHRASES = [
+        'Эй ты, бабло сюда!', 'Кошелёк, быро.',
+        'Чё за хмырь?', 'Куда прёшь, лох?',
+        'А ну стоять!', 'Дай телефон, дядя.',
+        'Гражданин, шевелись!', 'Не тот район выбрал.',
+    ]
+    CITY_GANG_ACT_CD_MIN = 12.0
+    CITY_GANG_ACT_CD_MAX = 28.0
 
     def _spawn_city_gang(self) -> None:
         """Спавнит маленькую группу бандитов в городе на проходимом тайле.
@@ -13359,6 +13379,11 @@ class WorldSim:
                 'kind':     'aggro_grunt',
                 'weapon':   'pistol_heavy',
                 '_shot_t':  0.0,
+                # Activity loop: walk (двигается с группой) / idle (стоит)
+                # / drink (пьёт пиво) / tag (рисует граффити) / harass
+                # (пристаёт к NPC прохожему). Меняется раз в 12-28 сек.
+                '_act':       'walk',
+                '_act_until': time.time() + random.uniform(8, 16),
                 'look':     {
                     'gender': 0,
                     'skin':   random.choice([1,2,3]),
@@ -13408,6 +13433,41 @@ class WorldSim:
             cx = sum(b['x'] for b in alive_bots) / len(alive_bots)
             cy = sum(b['y'] for b in alive_bots) / len(alive_bots)
             if g['state'] == 'patrol':
+                # Activity loop — каждый бот раз в 12-28с выбирает занятие.
+                # Группа выглядит живой: один пьёт, второй рисует, третий
+                # пристаёт к прохожим.
+                for bot in alive_bots:
+                    if now < bot.get('_act_until', 0):
+                        continue
+                    # Распределение: walk 40%, idle 20%, drink 20%,
+                    # tag 12%, harass 8%.
+                    r = random.random()
+                    if   r < 0.40: bot['_act'] = 'walk'
+                    elif r < 0.60: bot['_act'] = 'idle'
+                    elif r < 0.80: bot['_act'] = 'drink'
+                    elif r < 0.92: bot['_act'] = 'tag'
+                    else:          bot['_act'] = 'harass'
+                    bot['_act_until'] = now + random.uniform(
+                        self.CITY_GANG_ACT_CD_MIN, self.CITY_GANG_ACT_CD_MAX)
+                    # При harass — сразу кидаем грубую фразу
+                    if bot['_act'] == 'harass':
+                        pkts.append({
+                            'kind':   'city_gang_threat',
+                            'gid':    g['id'],
+                            'bot_id': bot['id'],
+                            'text':   random.choice(self.CITY_GANG_HARASS_PHRASES),
+                        })
+                # Idle chatter — изредка кто-то из группы говорит фразу
+                # «в воздух» (без триггера от игрока). Шанс 0.5%/тик ≈
+                # раз в 13 сек на группу при 15Гц.
+                if random.random() < 0.005 and alive_bots:
+                    speaker = random.choice(alive_bots)
+                    pkts.append({
+                        'kind':   'city_gang_threat',
+                        'gid':    g['id'],
+                        'bot_id': speaker['id'],
+                        'text':   random.choice(self.CITY_GANG_IDLE_PHRASES),
+                    })
                 # Threat-фразы при подходе игрока в радиусе CITY_GANG_THREAT_R
                 for uid, p in self.players.items():
                     if p.get('dead') or (p.get('_mode') or 'pvp') == 'pve':
@@ -13441,6 +13501,10 @@ class WorldSim:
                             break
                 wx, wy = g['_patrol_wp']
                 for bot in alive_bots:
+                    # Боты не в режиме 'walk' стоят на месте (пьют/тегят/
+                    # пристают к NPC — клиент рисует визуал).
+                    if bot.get('_act') != 'walk':
+                        continue
                     dx2 = wx - bot['x']; dy2 = wy - bot['y']
                     dist = _m.hypot(dx2, dy2)
                     if dist < 0.1:
@@ -13918,6 +13982,10 @@ class WorldSim:
                     'kind':    bot['kind'],
                     'weapon':  bot.get('weapon') or 'pistol_heavy',
                     'look':    bot.get('look') or {},
+                    # Текущая активность: walk/idle/drink/tag/harass —
+                    # клиент рисует бутылку/баллончик/стоит спокойно.
+                    # В hostile-режиме act не передаём (бот стреляет).
+                    'act':     bot.get('_act') if g.get('state') == 'patrol' else 'walk',
                 }
                 # Threat-сообщение «у тебя проблемы?» если активно
                 tmsg = bot.get('_threat_msg')
