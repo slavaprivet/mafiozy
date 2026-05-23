@@ -202,19 +202,21 @@ body.in-pvp #zoneBtn { top: 104px; }
 #modeModal .opt.pve { border-color: #2a6a4a; background: linear-gradient(135deg, #0a2a1a, #051a10); }
 #modeModal .opt .row1 { font-size: 15px; font-weight: 800; }
 #modeModal .opt .row2 { font-size: 11px; color: #c8c8d4; margin-top: 4px; line-height: 1.4; }
-/* Большой оверлей «В ТЮРЬМЕ» — поверх всего, скрывает большую часть UI */
+/* Баннер «В тюрьме» — узкая полоса сверху. Не закрывает мир —
+ * игрок видит свой персонаж в загоне у участка и таймер на лазере.
+ * Раньше был большой оверлей на весь экран — заменили на сценический
+ * вариант с физическим загоном и лазерным барьером у выхода. */
 #jailOverlay {
-  position: absolute; inset: 0; z-index: 35;
-  background: rgba(8,5,10,.85); display: none;
-  flex-direction: column; align-items: center; justify-content: center;
-  pointer-events: none; font-family: inherit; text-align: center;
-  /* Стенка тюрьмы — вертикальные полосы */
-  background-image: repeating-linear-gradient(
-    90deg, transparent, transparent 32px,
-    rgba(120,120,120,.18) 32px, rgba(120,120,120,.18) 38px,
-    transparent 38px, transparent 70px,
-    rgba(180,180,180,.15) 70px, rgba(180,180,180,.15) 74px
-  );
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  z-index: 35; display: none;
+  flex-direction: row; align-items: center; gap: 10px;
+  pointer-events: none; font-family: inherit; text-align: left;
+  padding: 8px 14px;
+  background: linear-gradient(180deg, rgba(40,12,12,.94) 0%, rgba(20,4,4,.92) 100%);
+  border: 1px solid #6a2a2a; border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.5), 0 0 24px rgba(255,80,80,.25);
+  font-size: 13px; color: #ffd0d0;
+  max-width: 92vw;
 }
 #jailOverlay.show { display: flex; }
 /* Короткая (2.5с) анимация ареста: наручники + текст «АРЕСТ» + красный flash.
@@ -240,11 +242,11 @@ body.in-pvp #zoneBtn { top: 104px; }
                         to   { opacity: 1; transform: scale(1); } }
 @keyframes arrestShake{ 0% { transform: rotate(-6deg); }
                         100% { transform: rotate(6deg); } }
-#jailOverlay .icon  { font-size: 64px; line-height: 1; margin-bottom: 8px; filter: drop-shadow(0 4px 12px rgba(0,0,0,.7)); }
-#jailOverlay .title { font-size: 28px; font-weight: 900; color: #ffd76b; letter-spacing: 3px; text-shadow: 0 2px 6px #000, 0 0 16px rgba(255,215,107,.55); }
-#jailOverlay .msg   { font-size: 14px; color: #c8d0dc; margin-top: 6px; max-width: 90vw; }
-#jailOverlay .cnt   { font-size: 42px; font-weight: 900; color: #fff; margin-top: 14px; text-shadow: 0 0 16px rgba(255,215,107,.6); font-variant-numeric: tabular-nums; }
-#jailOverlay .cnt_label { font-size: 11px; color: #888; margin-top: 4px; letter-spacing: 2px; }
+#jailOverlay .icon  { font-size: 22px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.7)); }
+#jailOverlay .title { font-size: 12px; font-weight: 800; color: #ffd76b; letter-spacing: 1.5px; text-shadow: 0 1px 2px #000; }
+#jailOverlay .msg   { display: none; }
+#jailOverlay .cnt   { font-size: 18px; font-weight: 900; color: #fff; text-shadow: 0 0 8px rgba(255,215,107,.6); font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+#jailOverlay .cnt_label { display: none; }
 @keyframes pvpPulse {
   0%,100% { box-shadow: 0 0 0 0 rgba(255,80,80,.5); }
   50%     { box-shadow: 0 0 0 6px rgba(255,80,80,0); }
@@ -5828,6 +5830,118 @@ function drawPoliceStationDecor(stationR, stationC) {
   // в зоне (≤7 тайлов) и имеет wanted ≥ 3. Стреляет в него.
   const turret = _findStationThreat(stationR, stationC);
   drawStationTurret(stationR, stationC, turret);
+  // ── Загон тюрьмы вокруг участка + лазерный барьер на воротах ──
+  drawJailCell(stationR, stationC);
+}
+
+// Загон-клетка: круглый периметр радиусом JAIL_R≈3.5 тайла от центра
+// участка, с проёмом-воротами на южной стороне. Решётка из вертикальных
+// прутьев. На воротах — лазерный барьер: КРАСНЫЙ пока я сижу (myJailIn>0),
+// ЗЕЛЁНЫЙ когда срок вышел (можно выйти физически). Серверный JAIL_R
+// держит игрока внутри — лазер тут чистый визуал.
+const JAIL_CENTER_R = 76, JAIL_CENTER_C = 76;
+const JAIL_RADIUS_TILES = 3.5;
+const JAIL_GATE_HALF_RAD = 0.35;   // ширина проёма в радианах (≈40°)
+function drawJailCell(stationR, stationC) {
+  const cR = stationR, cC = stationC;
+  const R  = JAIL_RADIUS_TILES;
+  // Прутья по окружности с дыркой на южной стороне (Math.PI/2 в нашей системе)
+  const N = 28;
+  const gateA = Math.PI * 0.5;      // ворота — на юг от центра
+  const gw = JAIL_GATE_HALF_RAD;
+  ctx.save();
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2;
+    // Пропускаем прутья в зоне ворот
+    let delta = Math.abs(((a - gateA + Math.PI) % (Math.PI * 2)) - Math.PI);
+    if (delta < gw) continue;
+    const r = cR + Math.sin(a) * R;
+    const c = cC + Math.cos(a) * R;
+    const base = w2s(r, c);
+    const top  = w2s(r, c);
+    top.y -= isoH(1.0);   // высота прута
+    // Прут — тонкая металлическая палка
+    ctx.strokeStyle = '#5a5a66';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(base.x, base.y);
+    ctx.lineTo(top.x, top.y);
+    ctx.stroke();
+    // Блик-вертикаль рядом
+    ctx.strokeStyle = 'rgba(200,210,220,.35)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(base.x + 0.5, base.y);
+    ctx.lineTo(top.x + 0.5, top.y);
+    ctx.stroke();
+  }
+  // Горизонтальные обвязки сверху и снизу
+  ctx.strokeStyle = 'rgba(120,120,140,.55)';
+  ctx.lineWidth = 1.2;
+  for (const hFrac of [0.0, 1.0]) {
+    ctx.beginPath();
+    let first = true;
+    for (let i = 0; i <= N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      let delta = Math.abs(((a - gateA + Math.PI) % (Math.PI * 2)) - Math.PI);
+      if (delta < gw) { first = true; continue; }
+      const r = cR + Math.sin(a) * R;
+      const c = cC + Math.cos(a) * R;
+      const p = w2s(r, c);
+      p.y -= isoH(hFrac);
+      if (first) { ctx.moveTo(p.x, p.y); first = false; }
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+  // Лазерный барьер на воротах — два «столба» по краям проёма + луч между ними
+  const ang1 = gateA - gw;
+  const ang2 = gateA + gw;
+  const post1R = cR + Math.sin(ang1) * R, post1C = cC + Math.cos(ang1) * R;
+  const post2R = cR + Math.sin(ang2) * R, post2C = cC + Math.cos(ang2) * R;
+  // Столбы — тёмные тумбы
+  for (const [pr, pc] of [[post1R, post1C], [post2R, post2C]]) {
+    const base = w2s(pr, pc);
+    const top  = w2s(pr, pc); top.y -= isoH(1.1);
+    ctx.fillStyle = '#1a1a22';
+    ctx.fillRect(base.x - 2.5, top.y, 5, base.y - top.y);
+    ctx.strokeStyle = '#3a3a44';
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(base.x - 2.5, top.y, 5, base.y - top.y);
+  }
+  // Лучи лазера: 3 горизонтальных уровня по высоте
+  // Цвет = красный пока сижу, зелёный когда отсидел / не сижу
+  const blocked = (myJailIn > 0);
+  const lc = blocked ? '#ff4040' : '#5bff5b';
+  const glow = blocked ? 'rgba(255,80,80,.65)' : 'rgba(120,255,140,.70)';
+  // Анимация — мерцание (амплитуда меньше у зелёного, чтобы было «спокойнее»)
+  const pulse = blocked
+    ? 0.65 + Math.sin(performance.now() * 0.012) * 0.35
+    : 0.85 + Math.sin(performance.now() * 0.006) * 0.15;
+  for (const hFrac of [0.25, 0.55, 0.85]) {
+    const p1 = w2s(post1R, post1C); p1.y -= isoH(hFrac);
+    const p2 = w2s(post2R, post2C); p2.y -= isoH(hFrac);
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    // Свечение
+    ctx.shadowColor = glow;
+    ctx.shadowBlur  = blocked ? 14 : 10;
+    ctx.strokeStyle = lc;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+    ctx.stroke();
+    // Внутренний яркий пиксель
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = Math.min(1, pulse + 0.2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 // Поиск ближайшей угрозы (wanted≥3 игрок в радиусе) — для башни-пулемёта.

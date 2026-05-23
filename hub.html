@@ -2197,6 +2197,7 @@ const DATA = {
   bot:     p('bot',''),  // bot username (без @) — для t.me/<bot>?startapp=... ссылок
   gangName: p('gang_name',''),
   isGleader: pi('is_gleader', 1),
+  bossesDone: new Set(p('bosses_done','').split(',').filter(Boolean)),
   // Co-op battle state (set by bot when session active)
   coopSid:      pi('coop_sid', 0),
   coopStatus:   p('coop_status', ''),   // waiting | battle | won | lost
@@ -3062,13 +3063,17 @@ function renderBossList(locId) {
     const b = BOSS_DATA[bossId];
     if (!b) return;
     const canFight = session.hp >= 10;
+    const defeated = DATA.bossesDone && DATA.bossesDone.has(bossId);
     const card = document.createElement('div');
     card.className = 'boss-card';
     const cashRange = Math.round(b.cash * 1.33);
+    const checkBadge = defeated
+      ? '<span title="Уже побеждал" style="margin-left:6px;display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:8px;background:#1a3a1a;color:#7fff7a;border:1px solid #3a6a3a;font-size:10px;font-weight:700">✓ побеждён</span>'
+      : '';
     card.innerHTML = `
       <div class="boss-icon">${b.name.match(/^./u)[0]}</div>
       <div class="boss-info">
-        <div class="boss-name">${b.name}</div>
+        <div class="boss-name">${b.name}${checkBadge}</div>
         <div class="boss-title">${b.title}</div>
         <div class="boss-stats">
           <span class="boss-stat">❤️ ${b.hp}</span>
@@ -6636,36 +6641,101 @@ async function _refreshGangCache() {
   } catch(e) {}
 }
 
+// Множество uid'ов сейчас в открытом мире — обновляется в renderGangPage
+// и используется для зелёного/серого кружка статуса.
+let _gangOnlineSet = new Set();
+
+async function _fetchGangOnline() {
+  _gangOnlineSet = new Set();
+  const api = (DATA.api || '').replace(/\/$/, '');
+  if (!api) return;
+  try {
+    const r = await fetch(api + '/world/online');
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j && j.ok && Array.isArray(j.players)) {
+      _gangOnlineSet = new Set(j.players.map(p => String(p.uid)));
+    }
+  } catch(e) {}
+}
+
+function _gangInviteUrl() {
+  const bot = (DATA.bot || '').trim();
+  if (!bot || !DATA.uid) return '';
+  return `https://t.me/${bot}?start=ref_${DATA.uid}`;
+}
+function gangInviteFriend() {
+  const link = _gangInviteUrl();
+  if (!link) {
+    if (typeof showToast === 'function') showToast('Ссылка ещё не готова', '⚠️', 2200);
+    return;
+  }
+  const text = '🤝 Вступай в мою банду в Мафиози — будем зарабатывать вместе!';
+  const url = 'https://t.me/share/url?url=' + encodeURIComponent(link) +
+              '&text=' + encodeURIComponent(text);
+  if (tg && tg.openTelegramLink) {
+    try { tg.openTelegramLink(url); return; } catch(e) {}
+  }
+  try {
+    navigator.clipboard.writeText(link);
+    if (typeof showToast === 'function') showToast('Ссылка скопирована', '📋', 2200);
+  } catch(e) {
+    if (typeof showToast === 'function') showToast(link, '🔗', 6000);
+  }
+}
+
 async function renderGangPage() {
   const list = document.getElementById('gang-list');
   if (!list) return;
   await _refreshGangCache();
+  await _fetchGangOnline();
   // Сразу рисуем «банк банды» — даже если рефералов ещё нет, у юзера
   // может быть pool накопленный пока у него был друг (если друг ушёл).
   // Пул всегда виден если он подвязан к лидеру.
   list.innerHTML = '<div id="gang-pool-block" style="margin-bottom:14px"></div>'
-                 + '<div id="gang-members-block"></div>';
+                 + '<div id="gang-members-block"></div>'
+                 + '<div id="gang-invite-block" style="margin-top:14px"></div>';
   renderGangPool();
   renderGangNameBox();
   renderGangFlagPicker();
   const membersBlock = document.getElementById('gang-members-block');
+  const inviteBlock  = document.getElementById('gang-invite-block');
+  // Кнопка «Пригласить друга» — всегда видна (можно пригласить ещё одного)
+  if (inviteBlock) {
+    inviteBlock.innerHTML = `
+      <button onclick="gangInviteFriend()"
+              style="width:100%;padding:14px;background:linear-gradient(180deg,#1a3a1a,#0e2a0e);color:#9f9;border:1px solid #3a6a3a;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent">
+        📨 Пригласить друга в банду
+      </button>
+      <div style="font-size:11px;color:#888;margin-top:6px;text-align:center;line-height:1.4">
+        За каждого вступившего: <b style="color:#fc7">+$300 разово</b> и доля
+        с событий открытого мира.
+      </div>`;
+  }
   if (!DATA.gang || DATA.gang.length === 0) {
     membersBlock.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:14px 4px;text-align:center">
-      Пока ты один. Чтобы у вас был общий «доход банды» — пригласи друга
-      по реф-ссылке (он зарегистрируется через твой /start). Все доходы
-      от событий открытого мира (например, инкассатор) пойдут в общий банк.
+      Пока ты один. Жми кнопку ниже — пригласи активного друга, и у вас
+      будет общий доход с событий мира.
     </div>`;
     return;
   }
   membersBlock.innerHTML = '';
   DATA.gang.forEach(m => {
+    const online = _gangOnlineSet.has(String(m.uid));
+    const dotColor = online ? '#5be58a' : '#666';
+    const dotGlow  = online ? '0 0 6px #5be58a99' : 'none';
+    const statusText = online ? 'В игре' : 'Не в сети';
+    const statusCol  = online ? '#5be58a' : '#888';
     const row = document.createElement('div');
     row.className = 'coop-member-row';
     row.innerHTML = `
-      <div class="coop-member-avatar">${m.emoji || '🤵'}</div>
+      <div class="coop-member-avatar" style="position:relative">
+        ${m.emoji || '🤵'}
+        <span style="position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:${dotColor};box-shadow:${dotGlow};border:2px solid #111"></span>
+      </div>
       <div class="coop-member-info">
         <div class="coop-member-name">${m.name || 'Игрок'}</div>
-        <div class="coop-member-role" style="color:var(--gold);font-size:11px">👥 В банде</div>
+        <div class="coop-member-role" style="color:${statusCol};font-size:11px">● ${statusText}</div>
       </div>`;
     membersBlock.appendChild(row);
   });

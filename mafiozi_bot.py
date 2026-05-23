@@ -853,6 +853,9 @@ async def init_db():
             # мире районами рядом с флагом. Имеет смысл только у лидера —
             # обычные члены банды берут имя у своего leader_id.
             ("gang_name",          "TEXT DEFAULT NULL"),
+            # JSON-список boss_id'ов которых игрок хоть раз победил. Для
+            # галочки «✓ побеждал» в списке боссов района (визуальный маркер).
+            ("bosses_defeated_json", "TEXT DEFAULT NULL"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -2115,6 +2118,14 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
                 is_gang_leader = 0
         except Exception:
             pass
+    # Список побеждённых боссов — для галочки в hub
+    bosses_done_csv = ""
+    try:
+        _bd = json.loads(char.get("bosses_defeated_json") or "[]")
+        if isinstance(_bd, list):
+            bosses_done_csv = ",".join(str(x)[:24] for x in _bd if x)[:400]
+    except Exception:
+        bosses_done_csv = ""
     if user_id:
         try:
             inv = await get_inventory(user_id)
@@ -2207,6 +2218,8 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         # чужой банды показывается имя лидера, у лидера/одиночки — своё.
         "gang_name": str(gang_name_eff or "")[:16],
         "is_gleader": is_gang_leader,
+        # CSV побеждённых боссов (для галочки в списке боссов района)
+        "bosses_done": bosses_done_csv,
         # cache-buster: mtime файла + BOT_START_TS — каждый перезапуск
         # бота гарантированно даёт новый _v → Telegram не отдаёт кэш.
         "_v": _file_cache_bust("hub.html"),
@@ -14596,14 +14609,21 @@ async def _coop_http_app():
         # 'nagan' — базовый ствол персонажа, выдаётся при создании.
         # Эти id остаются в ITEMS для бэк-совместимости со старыми
         # сохранениями, но в каталог магазина не попадают.
-        # zatochka/machete/katana/spiked_bat/knuckles/chain — ближний бой
-        # (механика melee убрана), nagan — стартовый ствол (выдаётся
-        # бесплатно), energy_drink — мана-зелье (новая боёвка не использует
-        # энергию). knuckles/chain раньше выпадали в рулетке казино — там
-        # их тоже не должно быть, но фильтр магазина важнее всего.
+        # ► melee (zatochka/machete/katana/spiked_bat/knuckles/chain) —
+        #   механика ближнего боя убрана.
+        # ► nagan — стартовый ствол, выдаётся бесплатно.
+        # ► energy_drink — мана-зелье, новая боёвка не использует энергию.
+        # ► tt_pistol/deagle/m16/golden_uzi — ДУБЛИКАТЫ существующих пушек:
+        #   tt_pistol = nagan (оба → ISO 'pistol'),
+        #   deagle    = revolver (оба → 'pistol_heavy'),
+        #   m16       = ak74 (оба → 'rifle'),
+        #   golden_uzi = tommy_gun (оба → 'smg').
+        #   Визуально и по эффекту в боёвке не отличаются — игроку кажется
+        #   что покупает «фейк». Прячем, оставляем по 1 пушке на класс.
         _HIDE_FROM_SHOP = {
             'zatochka', 'machete', 'katana', 'spiked_bat',
             'knuckles', 'chain', 'nagan', 'energy_drink',
+            'tt_pistol', 'deagle', 'm16', 'golden_uzi',
         }
         items = []
         for iid, it in ITEMS.items():
@@ -14961,10 +14981,13 @@ async def _coop_http_app():
                 'ok': False, 'error': 'on cooldown',
                 'remaining': int(SAFE_RESPAWN_S - (now - last)),
             }))
-        # Roll: маленький 100 + lvl*250 ± 30%; большой — х4.
-        base = int(round((100 + safe_lvl * 250) * (0.7 + _rnd.random() * 0.6)))
+        # Roll: маленький 40 + lvl*70 ± 30%; большой — х3.
+        # Раньше: 100 + lvl*250 / x4 → давало ~1600 за раз, что в разы
+        # больше дохода с района (50/10мин). Сейф теперь sane: max safe_lvl=5
+        # → ~390 малый, ~1170 большой. Доход с района становится конкурентен.
+        base = int(round((40 + safe_lvl * 70) * (0.7 + _rnd.random() * 0.6)))
         if big:
-            base *= 4
+            base *= 3
         # Бонус Дельца: +5/10/20/30/45%
         hst = int(char.get('hustler_level') or 0)
         hst_bonus = [0, 5, 10, 15, 22, 30][min(5, max(0, hst))] / 100.0
@@ -15460,11 +15483,21 @@ async def _coop_http_app():
             # Без refetch update_character перезаписал бы cash старым
             # значением + наградой босса → деньги от сейфа стирались.
             fresh = await get_character(uid) or char
+            # Помечаем босса как побеждённого (галочка в hub-списке).
+            try:
+                _bd = json.loads(fresh.get('bosses_defeated_json') or '[]')
+                if not isinstance(_bd, list):
+                    _bd = []
+            except Exception:
+                _bd = []
+            if boss_id and boss_id not in _bd:
+                _bd.append(boss_id)
             await update_character(uid,
                 hp=max(1, php), mana=char.get('mana', 0),
                 exp=fresh['exp']   + exp_gain,
                 cash=fresh['cash'] + cash_gain,
-                kills=fresh['kills'] + 1)
+                kills=fresh['kills'] + 1,
+                bosses_defeated_json=json.dumps(_bd))
             updated = await get_character(uid)
             try:
                 await check_level_up(uid, updated)
