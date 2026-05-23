@@ -2637,6 +2637,16 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         fine_note = await apply_wanted_fine(user_id, char)
         if fine_note:
             char = await get_character(user_id)
+        # Retro-fix: если у игрока в БД exp давно перевалил нужное для
+        # перехода на следующий ранг, а level не вырос (старый баг — exp
+        # начислялся без check_level_up в coop / open-world наградах) —
+        # догоняем level-up при каждом /start.
+        try:
+            if int(char.get("exp", 0) or 0) >= exp_for_level(int(char.get("level", 1) or 1)):
+                await check_level_up(user_id, char)
+                char = await get_character(user_id)
+        except Exception:
+            pass
 
         # Проверка тюрьмы
         now_ts = int(time.time())
@@ -5381,6 +5391,12 @@ async def _process_coop_turn(update_or_query, context, session_id: int,
             pc = await get_character(pid)
             await update_character(pid, cash=pc["cash"] + reward_cash,
                                    exp=pc["exp"] + reward_exp, kills=pc["kills"] + 1)
+            try:
+                _pc2 = await get_character(pid)
+                if _pc2:
+                    await check_level_up(pid, _pc2)
+            except Exception:
+                pass
         win_text = (
             "\n".join(result_lines) + "\n\n"
             f"🏆 *Победа!* *{boss['name']}* уничтожен!\n"
@@ -7082,6 +7098,12 @@ async def battle_webapp_action(update: Update, context: ContextTypes.DEFAULT_TYP
                 if pc:
                     await update_character(p["uid"],
                         cash=pc["cash"]+reward_cash, exp=pc["exp"]+reward_exp, kills=pc["kills"]+1)
+                    try:
+                        _pc2 = await get_character(p["uid"])
+                        if _pc2:
+                            await check_level_up(p["uid"], _pc2)
+                    except Exception:
+                        pass
             await _send_coop_hub_update(context.bot, session, "won",
                 f"🏆 *ПОБЕДА!*\n{log_line}\n\n+${reward_cash} | +{reward_exp} опыта каждому!")
             return
@@ -7255,6 +7277,12 @@ async def battle_webapp_action(update: Update, context: ContextTypes.DEFAULT_TYP
                         exp=cp_char["exp"] + exp_gain,
                         cash=cp_char["cash"] + cash_gain,
                         kills=cp_char["kills"] + 1)
+                    try:
+                        _cp2 = await get_character(cp_uid)
+                        if _cp2:
+                            await check_level_up(cp_uid, _cp2)
+                    except Exception:
+                        pass
                     try:
                         await context.bot.send_message(
                             chat_id=cp_uid,
@@ -10030,6 +10058,16 @@ async def _coop_grant_rewards(sess: dict) -> None:
             exp =(char.get('exp')  or 0) + reward_exp,
             kills=(char.get('kills') or 0) + 1,
         )
+        # КРИТИЧНО: без check_level_up exp накапливается, а level не растёт.
+        # Игрок видит «опыт обнулился, ранг тот же» — потому что в build_hub_url
+        # позже exp_for_level(level) даёт нужное для текущего, новый exp его
+        # превышает, но переход в новый ранг сделать некому.
+        try:
+            _c2 = await get_character(uid_int)
+            if _c2:
+                await check_level_up(uid_int, _c2)
+        except Exception:
+            pass
         granted.append(pl['name'])
         eligible_uids.append((uid_int, pl['name']))
     sess['rewarded']    = True
