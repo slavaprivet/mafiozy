@@ -12372,6 +12372,18 @@ class WorldSim:
         dy = y - self.JAIL_Y
         return (dx*dx + dy*dy) <= self.JAIL_R * self.JAIL_R
 
+    def _in_lair_zone(self, x: float, y: float) -> bool:
+        """Точка в любой aggro-зоне (Логово). Копы туда не суются —
+        пусть банда разбирается с гостями сама. Использует TERRITORIES_DEF
+        с aggro=True (квадратная зона ±radius)."""
+        for td in self.TERRITORIES_DEF.values():
+            if not td.get('aggro'):
+                continue
+            rad = td.get('radius', self.TERR_RADIUS)
+            if abs(x - td['c']) <= rad and abs(y - td['r']) <= rad:
+                return True
+        return False
+
     # ── Wanted-система: копы в городе ──────────────────────────────
     def _bump_wanted(self, shooter: dict, amount: float) -> None:
         """Добавляет звёзды стрелку (cap WANTED_MAX), фиксирует время
@@ -12467,13 +12479,16 @@ class WorldSim:
                         p['_cop_kills'] = 0
                     p['_last_shot_t'] = now
             self._last_wanted_decay = now
-        # 2) Wanted-игроки + их эффективный уровень
+        # 2) Wanted-игроки + их эффективный уровень.
+        # Логово — «вне закона», копы туда не идут (банда сама разберётся).
         wanted_targets = []     # [(player, level), ...]
         for uid, p in self.players.items():
             if p.get('dead'):
                 continue
             if (p.get('_jail_until') or 0) > now:
                 continue
+            if self._in_lair_zone(p.get('x', 0), p.get('y', 0)):
+                continue   # копы не лезут в Логово
             lvl = self._wanted_level(p)
             if lvl >= 1:
                 wanted_targets.append((p, lvl))
@@ -12516,6 +12531,14 @@ class WorldSim:
             # Если коп далеко от текущего таргета — деспаун
             d = ((t['x']-cop['x'])**2 + (t['y']-cop['y'])**2) ** 0.5
             if d > self.COP_DESPAWN_R:
+                continue
+            # Игрок укрылся в Логово — копы перестают за ним гнаться,
+            # деспаунятся (банда Логова сама разберётся).
+            if self._in_lair_zone(t.get('x', 0), t.get('y', 0)):
+                continue
+            # Сам коп случайно зашёл в Логово — деспаун (не лезем в чужой
+            # огород).
+            if self._in_lair_zone(cop['x'], cop['y']):
                 continue
             survivors.append(cop)
         self.cops = survivors
