@@ -849,6 +849,10 @@ async def init_db():
             # сделает /coop/<sid>/join. Колонка очищается после первого
             # успешного построения URL с coop_sid.
             ("pending_coop_sid",   "TEXT DEFAULT NULL"),
+            # Название банды лидера. Рендерится над захваченными в открытом
+            # мире районами рядом с флагом. Имеет смысл только у лидера —
+            # обычные члены банды берут имя у своего leader_id.
+            ("gang_name",          "TEXT DEFAULT NULL"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -2099,6 +2103,18 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
     weapon = char.get("weapon") or ""
     prop_str = ""
     gang_str = ""
+    # Название банды: своё, если игрок — лидер/одиночка; иначе берём имя лидера.
+    gang_name_eff = (char.get("gang_name") or "")
+    is_gang_leader = 1
+    if user_id:
+        try:
+            _leader_id = await get_gang_leader_id(user_id)
+            if _leader_id and int(_leader_id) != int(user_id):
+                _lchar = await get_character(int(_leader_id))
+                gang_name_eff = ((_lchar or {}).get("gang_name") or "")
+                is_gang_leader = 0
+        except Exception:
+            pass
     if user_id:
         try:
             inv = await get_inventory(user_id)
@@ -2187,6 +2203,10 @@ async def build_hub_url(char: dict, contacts_count: int = 0, user_id: int = None
         "uid":      user_id or 0,   # реальный Telegram-ID — нужен для HTTP-API
         "bot":      BOT_USERNAME,   # имя бота для t.me/<bot>?startapp=... share-ссылок
         "job_cd":   (char.get("job_cooldowns_json") or "")[:600],
+        # Название банды (для редактирования в разделе «Моя банда»). У членов
+        # чужой банды показывается имя лидера, у лидера/одиночки — своё.
+        "gang_name": str(gang_name_eff or "")[:16],
+        "is_gleader": is_gang_leader,
         # cache-buster: mtime файла + BOT_START_TS — каждый перезапуск
         # бота гарантированно даёт новый _v → Telegram не отдаёт кэш.
         "_v": _file_cache_bust("hub.html"),
@@ -13160,15 +13180,21 @@ class WorldSim:
             owner_uid = str(t.get('owner_uid') or '')
             owner_p   = self.players.get(owner_uid)
             owner_flag = 0
+            owner_gname = ''
             if owner_p:
                 try:
-                    owner_flag = int((owner_p.get('look') or {}).get('flag') or 0)
+                    _ol = owner_p.get('look') or {}
+                    owner_flag = int(_ol.get('flag') or 0)
+                    owner_gname = str(_ol.get('gang_name') or '')[:16]
                 except Exception:
-                    owner_flag = 0
+                    owner_flag = 0; owner_gname = ''
                 if owner_flag:
                     t['_owner_flag'] = owner_flag
+                if owner_gname:
+                    t['_owner_gang_name'] = owner_gname
             else:
                 owner_flag = int(t.get('_owner_flag') or 0)
+                owner_gname = str(t.get('_owner_gang_name') or '')[:16]
             terr_payload[tid] = {
                 'owner_uid':   t['owner_uid'],
                 'owner_name':  t['owner_name'],
@@ -13176,6 +13202,7 @@ class WorldSim:
                 'color':       t['color'],
                 'captured_at': round(t['captured_at'], 2),
                 'flag':        int(owner_flag or 0),
+                'gang_name':   owner_gname,
                 'income':      int(self.TERRITORIES_DEF.get(tid, {}).get('income') or 50),
                 'income_tick_s':  int(self.INCOME_TICK_S),
                 'income_delay_s': int(self.INCOME_DELAY_S),
@@ -14054,6 +14081,35 @@ async def _coop_http_app():
             'share':         share,
             'auto_payout':   True,
         }))
+
+    # Установка/смена названия банды. Имя хранится у ЛИДЕРА: если игрок
+    # сам себе лидер — пишем в его характер. Если в чужой банде — отказ
+    # (название меняет только глава, остальные видят его имя по факту).
+    async def h_gang_name(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            body = await req.json()
+            raw  = str(body.get('name', '') or '').strip()
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad request'}, status=400))
+        # Sanitize: убираем управляющие символы и обрезаем до 16.
+        cleaned = ''.join(ch for ch in raw if ch.isprintable())
+        cleaned = ' '.join(cleaned.split())[:16]
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        leader_id = await get_gang_leader_id(uid)
+        # leader_id == None → игрок сам себе лидер (lone-wolf / глава банды).
+        if leader_id and int(leader_id) != int(uid):
+            return await _cors(web.json_response({
+                'ok': False, 'error': 'not_leader',
+                'msg': 'Название банды меняет только её основатель.',
+            }))
+        await update_character(uid, gang_name=(cleaned or None))
+        return await _cors(web.json_response({'ok': True, 'gang_name': cleaned}))
 
     # Старый ручной claim больше не поддерживается — сервер раздаёт
     # автоматически по next_payout. Эндпоинт оставлен для совместимости
@@ -14962,6 +15018,21 @@ async def _coop_http_app():
             gf = 0
         if 0 < gf <= 30:
             look['flag'] = gf
+        # Название банды владельца (для рендера над зданием). Для члена
+        # чужой банды берём имя лидера. Если в БД пусто — fallback на
+        # querystring (?gang_name=) — клиент может прислать кэш.
+        try:
+            _leader_for_name = await get_gang_leader_id(uid_int)
+            _name_src = char
+            if _leader_for_name and int(_leader_for_name) != int(uid_int):
+                _name_src = await get_character(int(_leader_for_name)) or {}
+            _gn = (_name_src.get('gang_name') or '').strip()[:16]
+            if not _gn:
+                _gn = (req.query.get('gang_name') or '').strip()[:16]
+            if _gn:
+                look['gang_name'] = _gn
+        except Exception:
+            pass
 
         ws = web.WebSocketResponse(heartbeat=20)
         await ws.prepare(req)
@@ -15553,6 +15624,7 @@ async def _coop_http_app():
     aio_app.router.add_get ('/friend/list/{uid}', h_friend_list)
     aio_app.router.add_get ('/gang/{uid}/pool',     h_gang_pool)
     aio_app.router.add_post('/gang/{uid}/claim',    h_gang_claim)
+    aio_app.router.add_post('/gang/{uid}/name',     h_gang_name)
     aio_app.router.add_get ('/notify/{uid}/pending', h_notify_pending)
     aio_app.router.add_post('/notify/{uid}/seen',    h_notify_seen)
     aio_app.router.add_post('/job/{uid}/take',     h_job_take)

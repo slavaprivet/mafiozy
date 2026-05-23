@@ -2314,6 +2314,12 @@ function wsUrl() {
   // QP.api это https?://... → ws(s)://...
   const base = QP.api.replace(/^http/, 'ws').replace(/\/+$/, '');
   const params = new URLSearchParams({ uid: QP.uid, mode: myMode || 'pvp' });
+  // Прокидываем флаг и название банды (пришли из хаба в URL мира).
+  // Сервер также подтянет из БД, но querystring даёт мгновенный эффект.
+  const gf = parseInt(_UP.get('gang_flag') || '0', 10);
+  if (gf > 0 && gf <= 30) params.set('gang_flag', String(gf));
+  const gn = (_UP.get('gang_name') || '').toString().slice(0, 16);
+  if (gn) params.set('gang_name', gn);
   return `${base}/world/sim?${params.toString()}`;
 }
 
@@ -5680,10 +5686,15 @@ function drawPOI(r, c, poi) {
       ctx.closePath();
       ctx.fill();
     }
-    // Большая надпись «🏪 Захвачено @nick» НАД зданием
-    const gangTag = owner.gang_tag || owner.gangTag || '';
+    // Большая надпись «🏪 Захвачено <банда>» НАД зданием.
+    // Приоритет: gang_name (название банды владельца, задаётся в хабе) →
+    // gang_tag (старый короткий тег) → @ник.
+    const gangName = (owner.gang_name || owner.gangName || '').toString().slice(0, 16);
+    const gangTag  = owner.gang_tag  || owner.gangTag  || '';
     const ownerName = owner.owner_name || owner.ownerName || '';
-    const ownerLabel = gangTag ? `[${gangTag}]` : `@${ownerName || '?'}`;
+    const ownerLabel = gangName
+      ? `«${gangName}»`
+      : (gangTag ? `[${gangTag}]` : `@${ownerName || '?'}`);
     const ownTitle = `Захвачено ${ownerLabel}`;
     // Подложка-плашка над POI-вывеской (ly — верх вывески, baseline)
     const cap2Y = ly - 36;

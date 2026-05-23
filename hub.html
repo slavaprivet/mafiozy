@@ -2059,6 +2059,15 @@ body.on-subpage .time-display-box { display: none !important; }
     <div class="subpage-title">🔱 Моя банда</div>
   </div>
   <div class="coop-section">
+    <!-- Название банды — редактирует только лидер/одиночка -->
+    <div id="gang-name-box" style="display:flex;gap:8px;align-items:center;margin-bottom:12px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px">
+      <div style="font-size:18px">🏷️</div>
+      <input id="gang-name-input" type="text" maxlength="16" placeholder="Название банды"
+             style="flex:1;min-width:0;padding:8px 10px;background:#15151c;color:#eee;border:1px solid #2a2a36;border-radius:8px;font-family:inherit;font-size:14px;outline:none">
+      <button id="gang-name-save" onclick="saveGangName()"
+              style="padding:8px 12px;background:#1a3a1a;color:#9f9;border:1px solid #3a6a3a;border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer">Сохранить</button>
+    </div>
+    <div id="gang-name-hint" style="font-size:11px;color:#888;margin:-4px 0 12px 4px">Это имя увидят все игроки над зданиями захваченных тобой районов.</div>
     <div id="gang-list" style="margin-top:12px">
       <div style="color:var(--muted);font-size:13px;padding:8px 4px">Загружаю...</div>
     </div>
@@ -2186,6 +2195,8 @@ const DATA = {
            }),
   api:     p('api',''),  // co-op API base URL (e.g. https://xxx.ngrok.io)
   bot:     p('bot',''),  // bot username (без @) — для t.me/<bot>?startapp=... ссылок
+  gangName: p('gang_name',''),
+  isGleader: pi('is_gleader', 1),
   // Co-op battle state (set by bot when session active)
   coopSid:      pi('coop_sid', 0),
   coopStatus:   p('coop_status', ''),   // waiting | battle | won | lost
@@ -5630,6 +5641,12 @@ function openWorld() {
     const gf = parseInt(localStorage.getItem('mafiozi_gang_flag') || '0', 10);
     if (gf > 0 && gf <= 30) params.set('gang_flag', String(gf));
   } catch(e) {}
+  // Название банды — сервер сам прочитает из БД, но прокидываем для
+  // кэша при первом коннекте до завершения загрузки.
+  try {
+    const gn = (localStorage.getItem('mafiozi_gang_name') || '').slice(0, 16);
+    if (gn) params.set('gang_name', gn);
+  } catch(e) {}
   // Cache-buster — чтобы Telegram не подсунул старую версию.
   params.set('v', Date.now());
   window.location.href = 'world.html?' + params.toString();
@@ -6629,6 +6646,7 @@ async function renderGangPage() {
   list.innerHTML = '<div id="gang-pool-block" style="margin-bottom:14px"></div>'
                  + '<div id="gang-members-block"></div>';
   renderGangPool();
+  renderGangNameBox();
   renderGangFlagPicker();
   const membersBlock = document.getElementById('gang-members-block');
   if (!DATA.gang || DATA.gang.length === 0) {
@@ -6651,6 +6669,74 @@ async function renderGangPage() {
       </div>`;
     membersBlock.appendChild(row);
   });
+}
+
+// ── Название банды (редактирует только лидер) ────────────────
+function renderGangNameBox() {
+  const inp = document.getElementById('gang-name-input');
+  const btn = document.getElementById('gang-name-save');
+  const hint = document.getElementById('gang-name-hint');
+  if (!inp || !btn) return;
+  // Берём имя из URL-параметра (актуальное с сервера); если нет —
+  // из localStorage-кэша (например, только что сохранили).
+  let cur = (DATA.gangName || '').trim();
+  if (!cur) {
+    try { cur = (localStorage.getItem('mafiozi_gang_name') || '').trim(); } catch(e) {}
+  }
+  inp.value = cur;
+  const canEdit = !!(DATA.isGleader);
+  inp.disabled = !canEdit;
+  btn.style.display = canEdit ? '' : 'none';
+  if (!canEdit && hint) {
+    hint.textContent = 'Название устанавливает основатель банды. Ты видишь его имя.';
+    inp.style.opacity = '0.7';
+  }
+}
+async function saveGangName() {
+  const inp = document.getElementById('gang-name-input');
+  const btn = document.getElementById('gang-name-save');
+  if (!inp || !btn) return;
+  const raw = (inp.value || '').trim().slice(0, 16);
+  if (!DATA.uid) {
+    if (typeof showToast === 'function') showToast('Не определён игрок', '⚠️', 2000);
+    return;
+  }
+  const api = (DATA.api || '').replace(/\/$/, '');
+  if (!api) {
+    if (typeof showToast === 'function') showToast('API недоступен', '⚠️', 2000);
+    return;
+  }
+  btn.disabled = true;
+  const oldText = btn.textContent;
+  btn.textContent = '...';
+  try {
+    const r = await fetch(`${api}/gang/${DATA.uid}/name`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ name: raw }),
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      const msg = j.msg || j.error || 'Не удалось сохранить';
+      if (typeof showToast === 'function') showToast(msg, '⚠️', 2200);
+      return;
+    }
+    const saved = (j.gang_name || '').trim();
+    DATA.gangName = saved;
+    try {
+      if (saved) localStorage.setItem('mafiozi_gang_name', saved);
+      else localStorage.removeItem('mafiozi_gang_name');
+    } catch(e) {}
+    inp.value = saved;
+    if (typeof showToast === 'function') {
+      showToast(saved ? `Банда: «${saved}»` : 'Имя банды сброшено', '🏷️', 1600);
+    }
+  } catch(e) {
+    if (typeof showToast === 'function') showToast('Сеть недоступна', '⚠️', 2000);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText;
+  }
 }
 
 // ── 30 флагов банды (gangster-стиль) ────────────────────────────
