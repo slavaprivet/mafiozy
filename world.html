@@ -1374,9 +1374,11 @@ function carCanGo(car, dt) {
   const ahead = 1.5;
   const fr = car.r + car.dirDy * ahead;
   const fc = car.c + car.dirDx * ahead;
-  // Игрок? (если он на дороге — тормозим)
+  // Игрок? Тормозим только ВПЛОТНУЮ (чтобы не сбить), радиус 0.6.
+  // Раньше было 1.4 — это создавало пробку: спавн игрока на перекрёстке
+  // (40,40) стопорил все 4 потока сразу. В GTA-стиле игрок сам уворачивается.
   const distToPlayer = Math.hypot(player.r - fr, player.c - fc);
-  if (distToPlayer < 1.4 && MAP[Math.floor(player.r)] && MAP[Math.floor(player.r)][Math.floor(player.c)] === 0) {
+  if (distToPlayer < 0.6 && MAP[Math.floor(player.r)] && MAP[Math.floor(player.r)][Math.floor(player.c)] === 0) {
     return false;
   }
   // Машина впереди?
@@ -1413,6 +1415,16 @@ function updateCars(dt) {
     if (canGo) {
       car.r += car.vr * dt;
       car.c += car.vc * dt;
+      car._stuckT = 0;
+    } else {
+      // Anti-stuck: если машина стоит > 4 сек — переспаун в новой точке.
+      // Иначе при коллизиях/багах путь машины может зависнуть навсегда.
+      car._stuckT = (car._stuckT || 0) + dt;
+      if (car._stuckT > 4) {
+        const ni = CARS.indexOf(car);
+        const fresh = spawnCar(ni);
+        if (fresh) Object.assign(car, fresh);
+      }
     }
     // Если выехал за границу — переспаунить в новой точке
     if (car.r < 1 || car.r > MAP_ROWS - 2 || car.c < 1 || car.c > MAP_COLS - 2) {
@@ -1420,22 +1432,9 @@ function updateCars(dt) {
       const fresh = spawnCar(ni);
       if (fresh) Object.assign(car, fresh);
     }
-    // На перекрёстке иногда поворачиваем (с вероятностью 25%)
-    const ri = Math.floor(car.r), ci = Math.floor(car.c);
-    if (MAP[ri] && MAP[ri][ci] === 0) {
-      const isIntersect = (ri % BLOCK <= 1) && (ci % BLOCK <= 1);
-      const justEntered = !car._lastIntersect || car._lastIntersect.r !== ri || car._lastIntersect.c !== ci;
-      if (isIntersect && justEntered && Math.random() < 0.25) {
-        // Поворот: меняем направление перпендикулярно
-        const newDx = car.dirDy, newDy = car.dirDx;
-        if (newDx !== 0 || newDy !== 0) {
-          car.dirDx = newDx; car.dirDy = newDy;
-          const sp = Math.hypot(car.vr, car.vc) || 1.8;
-          car.vr = newDy * sp; car.vc = newDx * sp;
-        }
-      }
-      car._lastIntersect = isIntersect ? { r: ri, c: ci } : null;
-    }
+    // Повороты на перекрёстках ОТКЛЮЧЕНЫ — после поворота направо машина
+    // попадает на встречную полосу и создаёт лоб-в-лоб пробку. Едем прямо
+    // до края карты, потом ре-спаун.
     if (car.model.taxi || car.model.sport) car.flash += dt;
   }
 }
