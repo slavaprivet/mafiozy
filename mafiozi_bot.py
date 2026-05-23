@@ -3137,12 +3137,11 @@ async def job_collect(update: Update, context: ContextTypes.DEFAULT_TYPE):
         updates["jail_count"]  = (char.get("jail_count", 0) or 0) + 1
         jail_triggered = True
 
-    # Триггер: 3 звезды банд → плен
+    # ПЛЕН УБРАН: вместо посадки в плен — 3 звезды банд = «контракт на
+    # голову». В открытом мире любой PvP-игрок может тебя завалить и
+    # получить BOUNTY (см. WorldSim.apply_player_shoot + handler bounty_collected).
+    # Кулачки сбрасываются автоматически при смерти от bounty-килера.
     cap_triggered = False
-    if gang_stars >= 3 and (char.get("captivity_until", 0) or 0) <= int(time.time()):
-        updates["captivity_until"] = int(time.time()) + CAPTIVITY_DURATION
-        updates["captivity_count"] = (char.get("captivity_count", 0) or 0) + 1
-        cap_triggered = True
 
     await update_character(user_id, **updates)
 
@@ -3156,15 +3155,13 @@ async def job_collect(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if jail_triggered:
         lines.append("")
         lines.append(f"🚔 *Тебя взяли копы!* Тюрьма на {JAIL_DURATION//60} мин.")
-    if cap_triggered:
+    if gang_stars >= 3:
         lines.append("")
-        lines.append(f"👊 *Тебя поймали братки!* В плену {CAPTIVITY_DURATION//60} мин.")
+        lines.append("☠️ *Тебя пометили!* На твою голову заказ — любой PvP-игрок в мире может тебя завалить и получить премию. Уйди от хвоста или дождись пока кулачки спадут.")
 
     # Какое меню показать
     if jail_triggered:
         kb = jail_kb()
-    elif cap_triggered:
-        kb = captivity_kb()
     else:
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("💼 Новый контракт", callback_data="jobs")],
@@ -11592,6 +11589,13 @@ class WorldSim:
     AGGRO_REWARD_GRUNT_EXP  = 8
     AGGRO_REWARD_BOSS_CASH  = 150
     AGGRO_REWARD_BOSS_EXP   = 80
+    # Шанс +1 к wanted_gangs (👊 кулачки) за убийство в Логове. При 3★
+    # игрок становится «носителем контракта» — его можно валить в открытом
+    # мире любому PvP-игроку за БОНТИ (см. BOUNTY_*). Боец гарантированно
+    # НЕ даёт — иначе 20 ботов = моментально 3★. Босс — +1 гарантированно.
+    AGGRO_GANG_STAR_CHANCE  = 0.05   # 5% за грунта (~1 кулачок за волну)
+    BOUNTY_CASH = 500    # премия за исполнение контракта (PvP-kill 3★ жертвы)
+    BOUNTY_EXP  = 50
     AGGRO_BOT_HP        = 90
     AGGRO_BOT_DMG       = 8
     AGGRO_BOT_CD        = 1.1
@@ -11669,7 +11673,7 @@ class WorldSim:
 
     def add_or_update(self, uid: str, name: str, look: dict,
                        wanted: float = 0.0, jail_until: int = 0,
-                       mode: str = 'pvp') -> None:
+                       mode: str = 'pvp', wanted_gangs: int = 0) -> None:
         if uid in self.players:
             self.players[uid]['name'] = name
             if look:
@@ -11680,6 +11684,9 @@ class WorldSim:
             # уже накопил в текущей сессии и DB-значение устарело.
             if not self.players[uid].get('_wanted'):
                 self.players[uid]['_wanted'] = float(wanted or 0)
+            # А вот wanted_gangs ВСЕГДА синкаем из БД при перезаходе — кулачки
+            # хранятся в БД (job/aggro/bounty все пишут), in-memory лишь зеркало.
+            self.players[uid]['_wanted_gangs'] = max(0, min(3, int(wanted_gangs or 0)))
             if jail_until:
                 self.players[uid]['_jail_until'] = int(jail_until)
             return
@@ -12126,12 +12133,15 @@ class WorldSim:
 
     def apply_player_shoot(self, uid: str, target_uid: str,
                            weapon: str = '') -> dict | None:
-        """PvP: игрок стреляет в другого игрока. Работает ТОЛЬКО пока активно
-        событие и оба находятся в PVP-зоне маршрута. Возвращает hit-пакет
-        для broadcast (всем клиентам — трассер + урон), или None если выстрел
-        отклонён (нет зоны, нет LOS, кд)."""
-        if not self.event or self.event.get('finished'):
-            return None  # PvP включается только во время события
+        """PvP: игрок стреляет в другого игрока. Разрешено в 4 случаях:
+          1) Оба в активной PvP-зоне вокруг конвоя инкассатора.
+          2) Оба в постоянной PvP-арене.
+          3) Оба в ОДНОЙ и той же захватываемой территории (война за район).
+          4) Цель — носитель контракта (wanted_gangs >= 3) — её можно
+             валить ВЕЗДЕ в открытом мире, оба должны быть в PvP-режиме.
+             При успешном убийстве килер получает БОНТИ (+500$ +50 exp),
+             а у жертвы wanted_gangs сбрасывается до 0.
+        Возвращает hit-пакет (для broadcast) или None если выстрел отклонён."""
         shooter = self.players.get(uid)
         target  = self.players.get(target_uid)
         if not shooter or not target:
@@ -12149,17 +12159,20 @@ class WorldSim:
         if now - last_t < self.PVP_SHOT_CD:
             return None
         shooter['_pvp_shot_t'] = now
-        # Оба должны быть либо в активной PvP-зоне (вокруг маршрута
-        # инкассатора), либо в постоянной PvP-арене, либо в ОДНОЙ и той же
-        # захватываемой территории (для борьбы за район).
-        both_in_pvp_zone = (self._in_pvp_zone(shooter['x'], shooter['y']) and
-                            self._in_pvp_zone(target['x'], target['y']))
+        # Проверка зоны: один из 4 случаев должен сработать.
+        in_active_event = (self.event is not None
+                           and not self.event.get('finished'))
+        both_in_pvp_zone = (in_active_event
+                            and self._in_pvp_zone(shooter['x'], shooter['y'])
+                            and self._in_pvp_zone(target['x'], target['y']))
         both_in_arena    = (self._in_arena(shooter['x'], shooter['y']) and
                             self._in_arena(target['x'], target['y']))
         s_tid, _ = self._territory_at(shooter['x'], shooter['y'])
         t_tid, _ = self._territory_at(target['x'], target['y'])
         both_in_territory = bool(s_tid) and (s_tid == t_tid)
-        if not (both_in_pvp_zone or both_in_arena or both_in_territory):
+        target_is_bounty  = int(target.get('_wanted_gangs') or 0) >= 3
+        if not (both_in_pvp_zone or both_in_arena
+                or both_in_territory or target_is_bounty):
             return None
         # Friendly fire OFF: союзники по банде не наносят урон друг другу
         # В ГОРОДЕ (арена — полигон, там FF разрешён).
@@ -12181,6 +12194,7 @@ class WorldSim:
         dmg = max(5, min(150, dmg))
         target['hp'] = int(max(0, int(target.get('hp', 100)) - dmg))
         killed = False
+        bounty_done = False
         if target['hp'] <= 0:
             target['hp']          = 0
             target['dead']        = True
@@ -12188,10 +12202,18 @@ class WorldSim:
             target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
             shooter['kills']      = int(shooter.get('kills', 0)) + 1
             killed = True
+            # Если жертва была носителем контракта — пометим, чтобы
+            # обработчик в _world_run_loop начислил бонти из БД и
+            # сбросил wanted_gangs у жертвы. Сразу обнуляем in-memory
+            # чтобы повторный hit на трупе не залип в bounty-режиме.
+            if target_is_bounty:
+                bounty_done = True
+                target['_wanted_gangs'] = 0
         # Wanted: попадание = +0.5, убийство = +1 (минус 0.5 уже учтённое).
-        # Но в АРЕНЕ и в захватываемой ТЕРРИТОРИИ — это легальный PvP
-        # (полигон / война за район), копы не реагируют.
-        if not both_in_arena and not both_in_territory:
+        # Но в АРЕНЕ и в захватываемой ТЕРРИТОРИИ — легальный PvP, копы
+        # не реагируют. Также при исполнении контракта — это «работа», копы
+        # не приезжают (для bounty wanted-штраф не растёт).
+        if not both_in_arena and not both_in_territory and not target_is_bounty:
             self._bump_wanted(shooter, self.WANTED_PER_HIT)
             if killed:
                 self._bump_wanted(shooter,
@@ -12211,6 +12233,7 @@ class WorldSim:
             'ty':          round(target['y'], 2),
             'dmg':         int(dmg),
             'killed':      killed,
+            'bounty':      bounty_done,
             'weapon':      weapon or '',
         }
 
@@ -13188,10 +13211,12 @@ class WorldSim:
                 # длительность вычисляется клиентом по длине текста; здесь
                 # просто широкое окно чтобы не отрезать раньше времени.
                 'chat': p['last_chat'] if (time.time() - p['last_chat_t']) < 16.0 else '',
-                # PVP/Wanted поля — клиент рисует HP-бар и звёзды
+                # PVP/Wanted поля — клиент рисует HP-бар и звёзды/кулачки
+                # над головой каждого игрока (см. drawPlayerStatuses).
                 'hp':     int(p.get('hp', 100)),
                 'dead':   bool(p.get('dead', False)),
                 'wanted': int(min(3, round(p.get('_wanted') or 0))),
+                'gangs':  int(min(3, p.get('_wanted_gangs') or 0)),
                 'mode':   p.get('_mode') or 'pvp',
                 'jail_in': jail_left,
             })
@@ -13380,6 +13405,7 @@ class WorldSim:
                     'dead':    bool(me.get('dead', False)),
                     'respawn_in': respawn_in,
                     'wanted':     my_wanted,
+                    'gangs':      int(min(3, me.get('_wanted_gangs') or 0)),
                     'jail_in':    my_jail_in,
                     'mode':       me.get('_mode') or 'pvp',
                     'look':    me.get('look') or {},
@@ -15154,7 +15180,8 @@ async def _coop_http_app():
         world.add_or_update(uid, name, look,
                             wanted=float(char.get('wanted') or 0),
                             jail_until=int(char.get('jail_until') or 0),
-                            mode=ws_mode)
+                            mode=ws_mode,
+                            wanted_gangs=int(char.get('wanted_gangs') or 0))
         # Кэшируем leader_id игрока — для friendly-fire OFF в банде
         # и для определения «лично/банда» при выплате дохода с района.
         try:
@@ -15280,6 +15307,45 @@ async def _coop_http_app():
                                         for u2, ws2 in list(world.connections.items()):
                                             try: await ws2.send_str(blob)
                                             except Exception: pass
+                                # БОНТИ: жертва была с 3★ кулачков → killer
+                                # получает BOUNTY_CASH+BOUNTY_EXP, у victim
+                                # сбрасываем wanted_gangs в БД + broadcast
+                                # пакета 'bounty_collected' (тост обоим).
+                                if hit_pkt.get('killed') and hit_pkt.get('bounty'):
+                                    try:
+                                        killer_uid_int = int(uid)
+                                        victim_uid_int = int(target_uid)
+                                    except (TypeError, ValueError):
+                                        killer_uid_int = victim_uid_int = None
+                                    if killer_uid_int and victim_uid_int:
+                                        try:
+                                            kch = await get_character(killer_uid_int)
+                                            if kch:
+                                                new_cash = int(kch.get('cash') or 0) + world.BOUNTY_CASH
+                                                new_exp  = int(kch.get('exp')  or 0) + world.BOUNTY_EXP
+                                                await update_character(killer_uid_int,
+                                                                       cash=new_cash, exp=new_exp)
+                                                kch2 = await get_character(killer_uid_int)
+                                                if kch2: await check_level_up(killer_uid_int, kch2)
+                                            await update_character(victim_uid_int,
+                                                                   wanted_gangs=0)
+                                            # Broadcast: всем (баннер «Контракт
+                                            # выполнен»), отдельно тосты обоим.
+                                            bounty_pkt = {
+                                                'kind':        'bounty_collected',
+                                                'killer_uid':  str(uid),
+                                                'killer_name': (hit_pkt.get('shooter_name') or ''),
+                                                'victim_uid':  str(target_uid),
+                                                'victim_name': (hit_pkt.get('target_name') or ''),
+                                                'cash':        world.BOUNTY_CASH,
+                                                'exp':         world.BOUNTY_EXP,
+                                            }
+                                            bbb = json.dumps({'t': 'event', 'd': bounty_pkt}, ensure_ascii=False)
+                                            for u2, ws2 in list(world.connections.items()):
+                                                try: await ws2.send_str(bbb)
+                                                except Exception: pass
+                                        except Exception as _e:
+                                            logger.warning("WorldSim: bounty payout failed: %r", _e)
                                 # «🔫 Перестрелка за район Х» — antispam раз в
                                 # TERR_FIGHT_BANNER_CD сек на район.
                                 sh = world.players.get(uid)
@@ -15342,20 +15408,43 @@ async def _coop_http_app():
                                     if killer_uid_int is not None:
                                         try:
                                             ch = await get_character(killer_uid_int)
+                                            # КУЛАЧКИ (👊 wanted_gangs): босс
+                                            # гарантированно +1, грунт по шансу
+                                            # AGGRO_GANG_STAR_CHANCE. Cap=3,
+                                            # выше — игрок становится носителем
+                                            # контракта, его можно валить в PvP.
+                                            gang_added = 0
                                             if ch:
+                                                cur_g = int(ch.get('wanted_gangs') or 0)
+                                                if is_boss and cur_g < 3:
+                                                    gang_added = 1
+                                                elif (not is_boss
+                                                      and cur_g < 3
+                                                      and random.random() < world.AGGRO_GANG_STAR_CHANCE):
+                                                    gang_added = 1
+                                                new_g = min(3, cur_g + gang_added)
                                                 new_cash = int(ch.get('cash') or 0) + cash_r
                                                 new_exp  = int(ch.get('exp')  or 0) + exp_r
-                                                await update_character(killer_uid_int,
-                                                                       cash=new_cash, exp=new_exp)
+                                                upd = {'cash': new_cash, 'exp': new_exp}
+                                                if gang_added:
+                                                    upd['wanted_gangs'] = new_g
+                                                await update_character(killer_uid_int, **upd)
+                                                # Зеркалим in-memory для bounty-логики
+                                                kp_obj = world.players.get(uid)
+                                                if kp_obj is not None and gang_added:
+                                                    kp_obj['_wanted_gangs'] = new_g
                                                 ch2 = await get_character(killer_uid_int)
                                                 if ch2:
                                                     await check_level_up(killer_uid_int, ch2)
-                                            # Личный toast только стрелку (а не broadcast)
+                                            # Личный toast только стрелку
                                             kp = world.connections.get(uid)
                                             if kp is not None:
                                                 pkt = {'kind': 'aggro_killed',
                                                        'is_boss': is_boss,
-                                                       'cash': cash_r, 'exp': exp_r}
+                                                       'cash': cash_r, 'exp': exp_r,
+                                                       'gang_added': gang_added,
+                                                       'gang_now': (new_g if gang_added else
+                                                                    int((ch or {}).get('wanted_gangs') or 0))}
                                                 try:
                                                     await kp.send_str(json.dumps(
                                                         {'t': 'event', 'd': pkt},
