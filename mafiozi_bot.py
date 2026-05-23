@@ -12043,21 +12043,34 @@ class WorldSim:
                 'killed':     killed,
                 'miss':       bool(miss),
             })
-        # 5) Респаун мёртвых игроков:
-        #    • jail_until > now → спавн в тюрьме (правый-нижний угол)
-        #    • иначе → спавн у ГОСПИТАЛЯ (а не там где умер). Тебя завалил
-        #      коп/конвой — выходишь из больницы в районе Рынка.
-        for p_uid, p in self.players.items():
-            if p.get('dead') and now >= p.get('_respawn_at', 0):
-                p['dead'] = False
-                p['hp']   = int(p.get('max_hp', 100))
-                if (p.get('_jail_until') or 0) > now:
-                    p['x'] = self.JAIL_X + random.uniform(-1.0, 1.0)
-                    p['y'] = self.JAIL_Y + random.uniform(-1.0, 1.0)
-                else:
-                    p['x'] = self.HOSPITAL_X + random.uniform(-1.0, 1.0)
-                    p['y'] = self.HOSPITAL_Y + random.uniform(-1.0, 1.0)
+        # Респаун вынесен в tick_respawn() — вызывается из _world_run_loop
+        # ПОСЛЕ всех tick_* (event, aggro, capture, cops), чтобы корректно
+        # воскрешать жертв ЛЮБОЙ системы (а не только событий конвоя).
         return pkts
+
+    def tick_respawn(self, dt: float) -> None:
+        """Воскрешает мёртвых игроков через PLAYER_RESPAWN_S. Раньше эта
+        логика была внутри tick_event, поэтому жертвы банды Логова
+        (которые умирают в tick_aggro) висели мёртвыми навсегда. Сейчас
+        вызывается из _world_run_loop ПОСЛЕ всех tick_* — респавн един
+        для всех источников смерти."""
+        now = time.time()
+        for p_uid, p in self.players.items():
+            if not p.get('dead'):
+                continue
+            if now < p.get('_respawn_at', 0):
+                continue
+            p['dead'] = False
+            p['hp']   = int(p.get('max_hp', 100))
+            # jail_until > now → спавн в тюрьме (правый-нижний угол),
+            # иначе — у госпиталя (rebirth). Тебя завалил кто угодно —
+            # выходишь из больницы в районе Рынка.
+            if (p.get('_jail_until') or 0) > now:
+                p['x'] = self.JAIL_X + random.uniform(-1.0, 1.0)
+                p['y'] = self.JAIL_Y + random.uniform(-1.0, 1.0)
+            else:
+                p['x'] = self.HOSPITAL_X + random.uniform(-1.0, 1.0)
+                p['y'] = self.HOSPITAL_Y + random.uniform(-1.0, 1.0)
 
     def apply_event_shoot(self, uid: str, target_id: str = 'b',
                           weapon: str = '') -> dict | None:
@@ -13437,6 +13450,9 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     world.event = None  # очищаем — следующий по таймеру
                 # Агрессивный район — банда NPC + захват через зачистку
                 ev_pkts.extend(world.tick_aggro(WORLD_TICK_DT) or [])
+                # Глобальный респаун — воскрешает жертв ЛЮБОЙ системы
+                # (event/aggro/cops/pvp). Должно идти ПОСЛЕ всех tick_*.
+                world.tick_respawn(WORLD_TICK_DT)
                 # Захват районов: тик + начисление дохода в gang_pool.
                 cap_pkts = world.tick_capture(WORLD_TICK_DT) or []
                 for cp in cap_pkts:
