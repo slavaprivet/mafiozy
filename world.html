@@ -963,6 +963,33 @@ function buildMap() {
       }
     }
   }
+  // Зона Логова — отдельный «цыганский лагерь» в радиусе 20 от центра.
+  // Сносим все обычные здания внутри (чтобы вместо офисов рисовался
+  // открытый пустырь с палатками/руинами), а декор расставляет
+  // generateLairDecor() ниже — отдельным списком, не через MAP.
+  for (const p of POI) {
+    if (!p.aggro) continue;
+    const rad = (p.radius || 20);
+    for (let r = p.r - rad; r <= p.r + rad; r++) {
+      for (let c = p.c - rad; c <= p.c + rad; c++) {
+        if (r <= 0 || r >= MAP_ROWS - 1 || c <= 0 || c >= MAP_COLS - 1) continue;
+        // Внутри зоны: сносим здания, фонари, машины, ящики — всё что
+        // не дорога. Оставляем 8/9 (газон/бордюр) как «земля лагеря».
+        const t = MAP[r][c];
+        if (t === 1 || t === 6 || t === 7 || t === 2 ||
+            t === 3 || t === 4 || t === 5) {
+          // На дороге не трогаем (дорога остаётся 0); внутри блока → земля 8
+          const onRoadR = (r % BLOCK <= 3);
+          const onRoadC = (c % BLOCK <= 3);
+          MAP[r][c] = (onRoadR || onRoadC) ? 0 : 8;
+        }
+      }
+    }
+    // POI-тайл вернём как здание (☠️-вывеска должна торчать).
+    if (p.r > 0 && p.r < MAP_ROWS - 1 && p.c > 0 && p.c < MAP_COLS - 1) {
+      MAP[p.r][p.c] = 1;
+    }
+  }
 }
 
 // ── POI районов ────────────────────────────────────────────────
@@ -1128,6 +1155,385 @@ function ownerColor(key) {
 }
 
 buildMap();
+
+// ── Декор Логова: цыганский лагерь ──────────────────────────────
+// Палатки/руины/костры/обломки машин/тряпки. Генерируется один раз
+// детерминированно по координатам зоны (одинаково у всех клиентов).
+// НЕ участвует в проходимости — чисто визуал. Объекты добавляются
+// в depth-sort вместе с обычными тайлами в render().
+const LAIR_DECOR = [];   // [{ type, r, c, seed }]
+function generateLairDecor() {
+  LAIR_DECOR.length = 0;
+  // Простой LCG seed по координате — детерминированный pseudo-random
+  function det(r, c, k) { return ((r * 73 + c * 131 + k * 37) % 1000) / 1000; }
+  for (const p of POI) {
+    if (!p.aggro) continue;
+    const rad = (p.radius || 20);
+    // Шагаем сеткой 2 тайла, в каждой клетке решаем: ставить ли что-то
+    for (let r = p.r - rad + 2; r <= p.r + rad - 2; r += 2) {
+      for (let c = p.c - rad + 2; c <= p.c + rad - 2; c += 2) {
+        if (r <= 0 || r >= MAP_ROWS - 1 || c <= 0 || c >= MAP_COLS - 1) continue;
+        // Внутреннее кольцо вокруг POI оставляем пустым (там босс/спавн)
+        const distToPoi = Math.max(Math.abs(r - p.r), Math.abs(c - p.c));
+        if (distToPoi < 3) continue;
+        // Не ставим на дороге (бо́льшая часть дорог снесена, но всё же)
+        if (MAP[r][c] === 0) continue;
+        const x = det(r, c, 1);
+        if (x > 0.55) continue;   // 45% заполнения
+        // Тип: внешнее кольцо — больше руин/обломков (как граница лагеря),
+        // внутреннее — палатки + костры (жилая зона)
+        const isInner = distToPoi < rad * 0.6;
+        let type;
+        if (isInner) {
+          if      (x < 0.10) type = 'fire';
+          else if (x < 0.28) type = 'tent';
+          else if (x < 0.36) type = 'junk';
+          else if (x < 0.44) type = 'wreck';
+          else               type = 'ruin';
+        } else {
+          if      (x < 0.05) type = 'fire';
+          else if (x < 0.15) type = 'tent';
+          else if (x < 0.30) type = 'junk';
+          else if (x < 0.40) type = 'wreck';
+          else               type = 'ruin';
+        }
+        // Лёгкий jitter координат для «небрежности» лагеря
+        const jr = r + (det(r, c, 5) - 0.5) * 0.8;
+        const jc = c + (det(r, c, 6) - 0.5) * 0.8;
+        LAIR_DECOR.push({ type, r: jr, c: jc, seed: x });
+      }
+    }
+  }
+}
+generateLairDecor();
+
+// drawLairTent — изометрический шатёр (треугольник + полосы).
+// Цвета пёстрые (бордовые/тёмно-зелёные/охра) — цыганский колорит.
+function drawLairTent(d) {
+  const p = w2s(d.r + 0.5, d.c + 0.5);
+  const wx = TS * 0.55, wy = TS * 0.55 * ISO_Y;
+  const H  = isoH(0.9 + d.seed * 0.5);
+  // Палитра — выбирается по seed
+  const pals = [
+    { side: '#6a1818', top: '#aa2a2a', stripe: '#f1c40f' },  // бордо + золото
+    { side: '#1a3a1a', top: '#2a6a2a', stripe: '#e8d23b' },  // тёмно-зелёный
+    { side: '#3a2410', top: '#6a4020', stripe: '#cdd3d8' },  // охра
+    { side: '#2a1a3a', top: '#4a2a5a', stripe: '#ffaa44' },  // фиолетовый
+    { side: '#5a3010', top: '#8a4a18', stripe: '#f0e44a' },  // рыжий
+  ];
+  const pal = pals[Math.floor(d.seed * 100) % pals.length];
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.5)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy);
+  ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x, p.y + wy);
+  ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath();
+  ctx.fill();
+  // Шатёр — две треугольные грани от основания к вершине
+  // Левая грань (тёмная)
+  ctx.fillStyle = pal.side;
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx, p.y);
+  ctx.lineTo(p.x,      p.y + wy);
+  ctx.lineTo(p.x,      p.y - H);
+  ctx.closePath();
+  ctx.fill();
+  // Правая грань (светлая)
+  ctx.fillStyle = pal.top;
+  ctx.beginPath();
+  ctx.moveTo(p.x,      p.y + wy);
+  ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x,      p.y - H);
+  ctx.closePath();
+  ctx.fill();
+  // Полосы — горизонтальные на правой грани (даёт «тент» вид)
+  ctx.strokeStyle = pal.stripe;
+  ctx.lineWidth = 0.8;
+  for (let i = 1; i <= 3; i++) {
+    const k = i / 4;
+    const y1 = p.y + wy * (1 - k) - 0; // граница: от низа правой грани
+    const y2 = p.y - H + (p.y + wy - (p.y - H)) * k * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y + wy - (H + wy) * k);
+    ctx.lineTo(p.x + wx * (1 - k), p.y - H * k + wy * (1 - k) * 0);
+    ctx.stroke();
+  }
+  // Тёмный «вход» (треугольный лаз)
+  ctx.fillStyle = '#0a0a0a';
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx * 0.20, p.y + wy * 0.45);
+  ctx.lineTo(p.x,              p.y + wy * 0.10);
+  ctx.lineTo(p.x + wx * 0.20,  p.y + wy * 0.45);
+  ctx.lineTo(p.x,              p.y + wy * 0.60);
+  ctx.closePath();
+  ctx.fill();
+  // Колышки и верёвки оттяжки
+  ctx.strokeStyle = '#1a1208';
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - H);
+  ctx.lineTo(p.x - wx * 1.15, p.y + wy * 0.45);
+  ctx.moveTo(p.x, p.y - H);
+  ctx.lineTo(p.x + wx * 1.15, p.y + wy * 0.45);
+  ctx.stroke();
+  // Флажок на вершине (треугольник)
+  ctx.fillStyle = pal.stripe;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - H);
+  ctx.lineTo(p.x + 6, p.y - H + 2);
+  ctx.lineTo(p.x, p.y - H + 5);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// drawLairRuin — разрушенная стена с выбитым окном и обугленным верхом.
+function drawLairRuin(d) {
+  const p = w2s(d.r + 0.5, d.c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H  = isoH(0.7 + d.seed * 0.8);  // ниже обычного дома — обрушено
+  // Палитра — землистый кирпич, обугленный наверху
+  const sides = [
+    ['#3a2a20', '#1a120c', '#5a4030'],
+    ['#4a382a', '#241a10', '#6a5040'],
+    ['#3a2820', '#180e08', '#52382a'],
+  ];
+  const palI = Math.floor(d.seed * 100) % sides.length;
+  const [side, dark, top] = sides[palI];
+  // Тень основания
+  ctx.fillStyle = 'rgba(0,0,0,.5)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy);
+  ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x, p.y + wy);
+  ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath();
+  ctx.fill();
+  // Левая грань — с «выщербленным» верхом (рваная линия)
+  ctx.fillStyle = side;
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx, p.y);
+  ctx.lineTo(p.x,      p.y + wy);
+  ctx.lineTo(p.x,      p.y + wy - H);
+  // Рваный верх: 3 зубца
+  const lh1 = H * (0.55 + d.seed * 0.35);
+  const lh2 = H * (0.80 - d.seed * 0.25);
+  ctx.lineTo(p.x - wx * 0.33, p.y - lh1 + wy * 0.66);
+  ctx.lineTo(p.x - wx * 0.66, p.y - lh2 + wy * 0.33);
+  ctx.lineTo(p.x - wx,        p.y - H * (0.40 + d.seed * 0.30));
+  ctx.closePath();
+  ctx.fill();
+  // Правая грань — тоже рваная
+  ctx.fillStyle = top;
+  ctx.beginPath();
+  ctx.moveTo(p.x,      p.y + wy);
+  ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x + wx, p.y - H * (0.50 + d.seed * 0.30));
+  const rh1 = H * (0.75 - d.seed * 0.20);
+  const rh2 = H * (0.55 + d.seed * 0.30);
+  ctx.lineTo(p.x + wx * 0.66, p.y - rh1 + wy * 0.33);
+  ctx.lineTo(p.x + wx * 0.33, p.y - rh2 + wy * 0.66);
+  ctx.lineTo(p.x,             p.y + wy - H);
+  ctx.closePath();
+  ctx.fill();
+  // Выбитое окно — чёрный неровный прямоугольник
+  const winY = p.y - H * 0.5;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(p.x + wx * 0.15, winY - 4, 8, 7);
+  // Осколки стекла по краям окна — мелкие штрихи
+  ctx.strokeStyle = '#9accff';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(p.x + wx * 0.15, winY - 4); ctx.lineTo(p.x + wx * 0.15 + 2, winY - 2);
+  ctx.moveTo(p.x + wx * 0.15 + 8, winY + 3); ctx.lineTo(p.x + wx * 0.15 + 6, winY + 1);
+  ctx.stroke();
+  // Граффити или подтёк — короткая красная черта
+  if (d.seed > 0.5) {
+    ctx.strokeStyle = '#8a1010';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(p.x + wx * 0.10, winY + 6);
+    ctx.lineTo(p.x + wx * 0.40, winY + 8);
+    ctx.stroke();
+  }
+  // Куча обломков у основания (правая сторона)
+  ctx.fillStyle = dark;
+  ctx.beginPath();
+  ctx.ellipse(p.x + wx * 0.5, p.y + wy * 0.5, wx * 0.45, wy * 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Кирпичики
+  ctx.fillStyle = side;
+  for (let i = 0; i < 3; i++) {
+    const bx = p.x + wx * (0.30 + i * 0.18);
+    const by = p.y + wy * (0.45 + (i & 1) * 0.12);
+    ctx.fillRect(bx, by, 3, 2);
+  }
+}
+
+// drawLairFire — костёр (пляшущее пламя + кольцо камней).
+function drawLairFire(d) {
+  const p = w2s(d.r + 0.5, d.c + 0.5);
+  const t = performance.now() * 0.008 + d.seed * 6.28;
+  // Кольцо камней
+  ctx.fillStyle = '#3a3a44';
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const sx = p.x + Math.cos(a) * 7;
+    const sy = p.y + Math.sin(a) * 3.5;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, 2.5, 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Дрова — две перекрещенные палки
+  ctx.strokeStyle = '#3a2010';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 5, p.y - 1); ctx.lineTo(p.x + 5, p.y + 1);
+  ctx.moveTo(p.x - 4, p.y + 1); ctx.lineTo(p.x + 4, p.y - 2);
+  ctx.stroke();
+  // Угли — оранжевое свечение
+  ctx.fillStyle = 'rgba(255,140,40,.85)';
+  ctx.shadowColor = '#ff6020';
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y - 1, 4, 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Пляшущее пламя
+  const flameH = 9 + Math.sin(t) * 1.5 + Math.sin(t * 2.3) * 1;
+  const flameW = 5 + Math.sin(t * 1.7) * 0.6;
+  const fg = ctx.createLinearGradient(p.x, p.y - flameH, p.x, p.y);
+  fg.addColorStop(0,    'rgba(255,240,80,.0)');
+  fg.addColorStop(0.35, 'rgba(255,180,40,.85)');
+  fg.addColorStop(0.75, 'rgba(255,90,20,.95)');
+  fg.addColorStop(1,    'rgba(180,40,10,.95)');
+  ctx.fillStyle = fg;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - flameH);
+  ctx.quadraticCurveTo(p.x + flameW, p.y - flameH * 0.4, p.x + flameW * 0.5, p.y - 1);
+  ctx.lineTo(p.x - flameW * 0.5, p.y - 1);
+  ctx.quadraticCurveTo(p.x - flameW, p.y - flameH * 0.4, p.x, p.y - flameH);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // Искра — мелкая жёлтая точка над пламенем (изредка)
+  if ((Math.sin(t * 3.1) + Math.cos(t * 5.7)) > 1.2) {
+    ctx.fillStyle = '#ffd060';
+    ctx.beginPath();
+    ctx.arc(p.x + Math.sin(t * 7) * 3, p.y - flameH - 3 - Math.sin(t * 4) * 2, 0.9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// drawLairJunk — куча мусора (тряпки/банки/бутылки).
+function drawLairJunk(d) {
+  const p = w2s(d.r + 0.5, d.c + 0.5);
+  // Грязное пятно под мусором
+  ctx.fillStyle = 'rgba(40,30,20,.55)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 2, 9, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Тряпки — цветные пятна (бордо, оливка, серый)
+  const cols = ['#7a2020', '#5a5028', '#3a3a40', '#682818', '#404a28'];
+  for (let i = 0; i < 4; i++) {
+    const ang = (d.seed * 6.28 + i * 1.5);
+    const dx = Math.cos(ang) * 3;
+    const dy = Math.sin(ang) * 1.5;
+    ctx.fillStyle = cols[(Math.floor(d.seed * 100) + i) % cols.length];
+    ctx.beginPath();
+    ctx.ellipse(p.x + dx, p.y + dy, 2.8, 1.6, ang, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Бутылка/банка — мелкий блестящий цилиндрик сбоку
+  ctx.fillStyle = '#3a4a2a';
+  ctx.fillRect(p.x + 3, p.y - 4, 2, 4);
+  ctx.fillStyle = '#7aa050';
+  ctx.fillRect(p.x + 3, p.y - 4, 2, 1);
+  // Картонная коробка справа
+  ctx.fillStyle = '#5a3818';
+  ctx.fillRect(p.x - 5, p.y - 3, 4, 3.5);
+  ctx.strokeStyle = '#3a2410';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(p.x - 5, p.y - 3, 4, 3.5);
+}
+
+// drawLairWreck — обугленный/перевёрнутый каркас машины.
+function drawLairWreck(d) {
+  const p = w2s(d.r + 0.5, d.c + 0.5);
+  // Лужа масла
+  ctx.fillStyle = 'rgba(10,8,6,.7)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 3, 11, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Каркас — тёмно-серый с ржавчиной
+  const upside = d.seed > 0.65;
+  ctx.fillStyle = '#1a1612';
+  if (upside) {
+    // Перевёрнутая — крыша вниз
+    ctx.beginPath();
+    ctx.moveTo(p.x - 9, p.y + 2);
+    ctx.lineTo(p.x + 9, p.y + 2);
+    ctx.lineTo(p.x + 7, p.y - 4);
+    ctx.lineTo(p.x - 7, p.y - 4);
+    ctx.closePath();
+    ctx.fill();
+    // Колёса вверх
+    ctx.fillStyle = '#0a0808';
+    ctx.fillRect(p.x - 8, p.y - 7, 3, 2.5);
+    ctx.fillRect(p.x + 5, p.y - 7, 3, 2.5);
+    ctx.fillRect(p.x - 8, p.y - 4, 3, 2.5);
+    ctx.fillRect(p.x + 5, p.y - 4, 3, 2.5);
+  } else {
+    // Стоит, но обугленная
+    ctx.beginPath();
+    ctx.moveTo(p.x - 10, p.y - 2);
+    ctx.lineTo(p.x + 10, p.y - 2);
+    ctx.lineTo(p.x + 8,  p.y + 3);
+    ctx.lineTo(p.x - 8,  p.y + 3);
+    ctx.closePath();
+    ctx.fill();
+    // Крыша (обгорелая, проваленная)
+    ctx.fillStyle = '#2a2018';
+    ctx.beginPath();
+    ctx.moveTo(p.x - 6, p.y - 7);
+    ctx.lineTo(p.x + 6, p.y - 7);
+    ctx.lineTo(p.x + 8, p.y - 2);
+    ctx.lineTo(p.x - 8, p.y - 2);
+    ctx.closePath();
+    ctx.fill();
+    // Выбитые «окна» — чёрные дыры
+    ctx.fillStyle = '#000';
+    ctx.fillRect(p.x - 5, p.y - 6, 4, 3);
+    ctx.fillRect(p.x + 1, p.y - 6, 4, 3);
+    // Колёса
+    ctx.fillStyle = '#0a0808';
+    ctx.fillRect(p.x - 9, p.y + 2, 3, 2.5);
+    ctx.fillRect(p.x + 6, p.y + 2, 3, 2.5);
+  }
+  // Дымок — серая полупрозрачная клякса сверху (медленно колышется)
+  const t = performance.now() * 0.0008 + d.seed * 6.28;
+  ctx.fillStyle = 'rgba(110,110,110,.30)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + Math.sin(t) * 2, p.y - 12 + Math.cos(t * 1.3), 6, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Ржавые подтёки — рыжая полоса по корпусу
+  ctx.strokeStyle = 'rgba(140,60,20,.55)';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 5, p.y - 1); ctx.lineTo(p.x - 4, p.y + 2);
+  ctx.moveTo(p.x + 3, p.y - 1); ctx.lineTo(p.x + 4, p.y + 2);
+  ctx.stroke();
+}
+
+function drawLairDecorItem(d) {
+  switch (d.type) {
+    case 'tent':  drawLairTent(d);  break;
+    case 'ruin':  drawLairRuin(d);  break;
+    case 'fire':  drawLairFire(d);  break;
+    case 'junk':  drawLairJunk(d);  break;
+    case 'wreck': drawLairWreck(d); break;
+  }
+}
 
 // ── Живой город: NPC прохожие + машины + светофоры ──────────────
 // Локальная симуляция (у каждого клиента своя — это декор, не мультиплеер).
@@ -7198,6 +7604,12 @@ function render() {
   for (const cop of worldCops) {
     if (cop.y < r0 || cop.y >= r1 || cop.x < c0 || cop.x >= c1) continue;
     items.push({ depth: cop.y + cop.x + 0.0011, draw: () => drawCopNpc(cop) });
+  }
+  // Декор Логова — палатки/руины/костры/обломки. Рисуем под ботами,
+  // под укрытиями (depth-сорт по r+c как обычные объекты).
+  for (const d of LAIR_DECOR) {
+    if (d.r < r0 || d.r >= r1 || d.c < c0 || d.c >= c1) continue;
+    items.push({ depth: d.r + d.c + 0.0007, draw: () => drawLairDecorItem(d) });
   }
   // Агрессивные районы: укрытия → банда → босс. Все вписаны в depth-сорт.
   for (const tid of Object.keys(aggroZones)) {
