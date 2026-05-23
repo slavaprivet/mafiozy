@@ -1890,6 +1890,55 @@ function applyCopsTargets(newCops) {
   worldCops = next;
 }
 
+// applyAggroTargets — то же что applyCopsTargets, но для банды Логова.
+// Сервер шлёт x/y в snap.aggro 15 раз/сек — без интерполяции боты «телепортятся»
+// каждые 66мс. Сохраняем текущие x/y, кладём серверные в tx/ty, а interpWorldNpcs
+// плавно подтягивает позицию. Сопоставление ботов по id (стабилен в пределах
+// жизни респауна — назначается из _next_bot_id на сервере).
+function applyAggroTargets(newAggro) {
+  const freshTids = new Set(Object.keys(newAggro || {}));
+  // Удаляем зоны которых больше нет
+  for (const tid of Object.keys(aggroZones)) {
+    if (!freshTids.has(tid)) delete aggroZones[tid];
+  }
+  for (const tid of freshTids) {
+    const fresh = newAggro[tid];
+    const cur   = aggroZones[tid];
+    if (!cur) {
+      // Новая зона — копируем как есть, x=tx (нет интерполяции с нуля)
+      const z = JSON.parse(JSON.stringify(fresh));
+      for (const b of (z.bots || [])) { b.tx = b.x; b.ty = b.y; }
+      aggroZones[tid] = z;
+      continue;
+    }
+    // Не-позиционные поля зоны
+    cur.state        = fresh.state;
+    cur.cap_left     = fresh.cap_left;
+    cur.next_respawn = fresh.next_respawn;
+    // Боты — мерж по id
+    const newBots = fresh.bots || [];
+    const oldById = new Map((cur.bots || []).map(b => [b.id, b]));
+    const merged = [];
+    for (const nb of newBots) {
+      const ob = oldById.get(nb.id);
+      if (ob) {
+        ob.tx    = nb.x;    ob.ty    = nb.y;
+        ob.ang   = nb.ang;
+        ob.hp    = nb.hp;   ob.max_hp = nb.max_hp;
+        ob.kind  = nb.kind;
+        ob.weapon = nb.weapon;
+        if (nb.look) ob.look = nb.look;
+        merged.push(ob);
+      } else {
+        merged.push({ ...nb, tx: nb.x, ty: nb.y });
+      }
+    }
+    cur.bots = merged;
+    // Укрытия не двигаются — перетираем как есть
+    cur.covers = fresh.covers || [];
+  }
+}
+
 // interpWorldNpcs — плавное подтягивание текущих x/y к целевым tx/ty.
 // k = 1 - exp(-dt * speed), но для простоты используем стандартный lerp
 // с коэффициентом ~8 (= ~0.13с до 99% позиции при 60fps), как для
@@ -1911,6 +1960,15 @@ function interpWorldNpcs(dt) {
     if (c.tx == null) continue;
     c.x += (c.tx - c.x) * k;
     c.y += (c.ty - c.y) * k;
+  }
+  for (const tid of Object.keys(aggroZones)) {
+    const z = aggroZones[tid];
+    if (!z) continue;
+    for (const b of (z.bots || [])) {
+      if (b.tx == null) continue;
+      b.x += (b.tx - b.x) * k;
+      b.y += (b.ty - b.y) * k;
+    }
   }
 }
 
@@ -2563,10 +2621,10 @@ function wsConnect() {
       }
       if (d.aggro !== undefined) {
         // Агрессивные районы: банда NPC + укрытия. Источник истины — сервер.
-        for (const k of Object.keys(aggroZones)) delete aggroZones[k];
-        for (const tid of Object.keys(d.aggro || {})) {
-          aggroZones[tid] = d.aggro[tid];
-        }
+        // applyAggroTargets сохраняет текущие x/y и кладёт серверные в tx/ty
+        // — interpWorldNpcs плавно подтянет, чтобы боты не «лагали»
+        // (телепортировались 15 раз/сек между снапами).
+        applyAggroTargets(d.aggro || {});
       }
       if (d.active_captures !== undefined) {
         // Перетираем карту целиком — сервер источник истины. Сохраняем
