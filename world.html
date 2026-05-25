@@ -1494,6 +1494,49 @@ function inDropZone(r, c) {
          c >= DROP_ZONE.c0 && c <= DROP_ZONE.c1;
 }
 
+// ── Пляжники (мирные NPC в купальниках/плавках) ───────────────────
+// Серверная авторитативная позиция. Локально интерполируем как для
+// других игроков (tx/ty → x/y в update).
+const beachgoers = new Map();   // id → {x, y, tx, ty, ang, tAng, act, gender, outfit, skin, hair, walkPhase}
+function applyBeachgoersSnapshot(arr) {
+  const fresh = new Set();
+  for (const b of arr) {
+    fresh.add(b.id);
+    const prev = beachgoers.get(b.id);
+    if (prev) {
+      prev.tx = b.x; prev.ty = b.y; prev.tAng = b.ang;
+      prev.act = b.act;
+    } else {
+      beachgoers.set(b.id, {
+        id: b.id, x: b.x, y: b.y, tx: b.x, ty: b.y,
+        ang: b.ang, tAng: b.ang,
+        act: b.act,
+        gender: b.gender|0, outfit: b.outfit || '#e74c3c',
+        skin:   b.skin|0,   hair:   b.hair|0,
+        walkPhase: 0,
+      });
+    }
+  }
+  for (const id of Array.from(beachgoers.keys())) {
+    if (!fresh.has(id)) beachgoers.delete(id);
+  }
+}
+function _interpBeachgoers(dt) {
+  for (const b of beachgoers.values()) {
+    b.x += (b.tx - b.x) * Math.min(1, dt * 8);
+    b.y += (b.ty - b.y) * Math.min(1, dt * 8);
+    let aD = b.tAng - b.ang;
+    while (aD >  Math.PI) aD -= Math.PI * 2;
+    while (aD < -Math.PI) aD += Math.PI * 2;
+    b.ang += aD * Math.min(1, dt * 8);
+    // Фаза покачивания при ходьбе/беге для анимации ног-рук
+    const speed = Math.hypot(b.tx - b.x, b.ty - b.y);
+    if (b.act === 'walk' || b.act === 'flee' || speed > 0.05) {
+      b.walkPhase += dt * (b.act === 'flee' ? 14 : 7);
+    }
+  }
+}
+
 // Эхо: моё последнее предупреждение от банды — чтобы рисовать чат-баббл
 const _aggroWarnMsg = { until: 0, text: '', from: null };
 // Helper: получить ЛЮБОЙ активный захват — приоритет мой, иначе первый.
@@ -3970,6 +4013,9 @@ function wsConnect() {
         // ставим в tx/ty для плавной интерполяции (как для других игроков).
         applyQuestCarsSnapshot(d.quest_cars || []);
       }
+      if (d.beachgoers !== undefined) {
+        applyBeachgoersSnapshot(d.beachgoers || []);
+      }
       if (d.active_captures !== undefined) {
         // Перетираем карту целиком — сервер источник истины. Сохраняем
         // ЛОКАЛЬНЫЕ startedAt где они уже есть (плавнее анимация),
@@ -5338,6 +5384,7 @@ function update(dt) {
       }
       // Интерполяция чужих quest_cars (которые ведут другие игроки)
       _interpQuestCars(dt);
+      _interpBeachgoers(dt);
       return;
     }
   }
@@ -8145,6 +8192,136 @@ function drawNpc(npc) {
   }
 }
 
+// Пляжник — мирный NPC в купальнике/плавках. Маленький стилизованный
+// спрайт (не используем drawPerson — у пляжников отдельный визуал:
+// открытое тело + цветной купальник, без штанов/курток). Поза зависит
+// от act: walk/flee — на ногах с покачиванием, drink — со стаканом,
+// sunbathe — лежит горизонтально на полотенце, idle — просто стоит.
+const _BEACH_SKIN = ['#f0c89c', '#d8a07c', '#a87454', '#6c4a30'];
+function drawBeachgoer(b) {
+  const p = w2s(b.y, b.x);
+  const skin = _BEACH_SKIN[b.skin % _BEACH_SKIN.length];
+  const hairCols = ['#3a2418', '#7a4a26', '#d4a44c', '#262626'];
+  const hairCol  = hairCols[b.hair % hairCols.length];
+  const act      = b.act || 'idle';
+  // Тень под NPC
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 3, 7, 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (act === 'sunbathe') {
+    // Лежит на полотенце — горизонтальная поза
+    // Полотенце
+    ctx.fillStyle = b.outfit;
+    ctx.fillRect(p.x - 12, p.y - 1, 24, 8);
+    // Тело-овал
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y + 2, 10, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Голова
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(p.x - 10, p.y + 2, 3, 0, Math.PI * 2);
+    ctx.fill();
+    // Волосы
+    ctx.fillStyle = hairCol;
+    ctx.beginPath();
+    ctx.arc(p.x - 11, p.y + 1, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Купальник — пятно посередине
+    ctx.fillStyle = b.outfit;
+    ctx.fillRect(p.x - 2, p.y + 1, 6, 3);
+    return;
+  }
+  // Стоящие позы. Высота фигурки ~ 28 px.
+  // Покачивание ног при ходьбе/беге
+  let legSwing = 0;
+  if (act === 'walk' || act === 'flee') {
+    legSwing = Math.sin(b.walkPhase) * (act === 'flee' ? 4 : 2.5);
+  }
+  // Ноги (2 палки)
+  ctx.strokeStyle = skin;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(p.x - 2, p.y - 2);
+  ctx.lineTo(p.x - 2 + legSwing * 0.5, p.y + 4);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(p.x + 2, p.y - 2);
+  ctx.lineTo(p.x + 2 - legSwing * 0.5, p.y + 4);
+  ctx.stroke();
+  // Купальник/плавки (нижняя часть туловища)
+  ctx.fillStyle = b.outfit;
+  ctx.fillRect(p.x - 4, p.y - 6, 8, 5);
+  // Туловище (открытое — кожа)
+  ctx.fillStyle = skin;
+  ctx.fillRect(p.x - 4, p.y - 13, 8, 7);
+  if (b.gender === 1) {
+    // Верх купальника — две полоски
+    ctx.fillStyle = b.outfit;
+    ctx.fillRect(p.x - 4, p.y - 12, 8, 2);
+  }
+  // Руки
+  ctx.strokeStyle = skin;
+  ctx.lineWidth = 2;
+  let armSwing = 0;
+  if (act === 'walk' || act === 'flee') {
+    armSwing = -Math.sin(b.walkPhase) * (act === 'flee' ? 4 : 2);
+  }
+  // Левая рука
+  ctx.beginPath();
+  ctx.moveTo(p.x - 4, p.y - 11);
+  ctx.lineTo(p.x - 7 + armSwing * 0.5, p.y - 5 + armSwing * 0.3);
+  ctx.stroke();
+  // Правая рука — если drink, согнута со стаканом
+  if (act === 'drink') {
+    ctx.beginPath();
+    ctx.moveTo(p.x + 4, p.y - 11);
+    ctx.lineTo(p.x + 6, p.y - 14);
+    ctx.stroke();
+    // Стакан с соком
+    ctx.fillStyle = '#fff8c8';
+    ctx.fillRect(p.x + 5, p.y - 17, 3.5, 4);
+    ctx.strokeStyle = '#aa8030';
+    ctx.lineWidth = 0.6;
+    ctx.strokeRect(p.x + 5, p.y - 17, 3.5, 4);
+    // Соломинка
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(p.x + 6.5, p.y - 17);
+    ctx.lineTo(p.x + 7.5, p.y - 20);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(p.x + 4, p.y - 11);
+    ctx.lineTo(p.x + 7 - armSwing * 0.5, p.y - 5 - armSwing * 0.3);
+    ctx.stroke();
+  }
+  // Голова
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y - 16, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+  // Волосы (шапочка сверху)
+  ctx.fillStyle = hairCol;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y - 17, 3.5, Math.PI, 0);
+  ctx.fill();
+  // Восклицательный знак при flee — над головой
+  if (act === 'flee') {
+    ctx.fillStyle = 'rgba(220,40,40,.95)';
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    const bob = Math.sin(performance.now() * 0.02) * 1.5;
+    ctx.fillText('!', p.x, p.y - 22 + bob);
+  }
+  ctx.lineCap = 'butt';
+}
+
 // Эмерджентное событие: NPC конвоя (инкассатор или полицейский).
 // isBoss=true → инкассатор (тёмный костюм, эмодзи 💼 над головой);
 // false → полицейский (синяя форма с фуражкой 👮).
@@ -10667,6 +10844,11 @@ function render() {
   for (const npc of NPCS) {
     if (npc.r < r0 || npc.r >= r1 || npc.c < c0 || npc.c >= c1) continue;
     items.push({ depth: npc.r + npc.c + 0.0005, draw: () => drawNpc(npc) });
+  }
+  // Пляжники — мирные NPC в купальниках/плавках
+  for (const b of beachgoers.values()) {
+    if (b.y < r0 || b.y >= r1 || b.x < c0 || b.x >= c1) continue;
+    items.push({ depth: b.y + b.x + 0.0004, draw: () => drawBeachgoer(b) });
   }
   // Машины (движущиеся)
   for (const car of CARS) {

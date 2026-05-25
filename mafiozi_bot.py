@@ -11463,6 +11463,8 @@ class WorldSim:
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
+        # Пляжники — мирные NPC в купальниках/плавках.
+        'beachgoers', '_beachgoer_next_id', '_beachgoer_next_spawn_at',
         # GTA-контракты Майкла: спавненные квестовые тачки.
         'quest_cars', '_quest_car_next_id',
     )
@@ -11688,6 +11690,17 @@ class WorldSim:
     CITY_GANG_CHASE_SPEED   = 1.5
     CITY_GANG_FIRE_R        = 7.0
     CITY_GANG_COPS_PER_GANG = 3       # копов спавним когда банда hostile
+    # ── Пляжники ────────────────────────────────────────────────────
+    # Мирные NPC на пляже в купальниках/плавках. Гуляют, пьют сок,
+    # загорают. При выстреле рядом — бегут в глубь пляжа.
+    BEACHGOER_MAX           = 10      # одновременно на пляже
+    BEACHGOER_SPAWN_GAP_S   = 18.0    # пополнение если меньше MAX
+    BEACHGOER_WALK_SPEED    = 1.3
+    BEACHGOER_FLEE_SPEED    = 4.2
+    BEACHGOER_FLEE_S        = 6.0     # сколько секунд паникует
+    BEACHGOER_GUNSHOT_R     = 14.0    # на каком расстоянии слышит выстрел
+    BEACHGOER_ACT_MIN_S     = 7.0
+    BEACHGOER_ACT_MAX_S     = 22.0
     AGGRO_BOT_HP        = 90
     AGGRO_BOT_DMG       = 8
     AGGRO_BOT_CD        = 1.1
@@ -11773,6 +11786,10 @@ class WorldSim:
         self.gang_nests = []
         self._gang_nest_next_id = 1
         self._gang_nest_next_spawn_at = 60.0   # первое через минуту после старта
+        # Пляжники — мирные NPC. Спавнятся когда есть игроки.
+        self.beachgoers = []
+        self._beachgoer_next_id = 1
+        self._beachgoer_next_spawn_at = 10.0   # через 10 сек после старта
         # GTA Майкла — спавненные квестовые тачки {car_id → dict}.
         # Каждая хранит: id, model, owner_uid, x, y, ang, vx, vy,
         # driver_uid (None если стоит), hp, reward, _spawn_t.
@@ -14167,6 +14184,151 @@ class WorldSim:
                         })
         return pkts
 
+    # ── Пляжники (мирные NPC) ──────────────────────────────────────
+    # Купаются, пьют сок, гуляют. При выстреле рядом — паника, бегут
+    # вглубь пляжа подальше от воды/корабля. Не атакуют, не имеют HP
+    # (минимальная сущность для атмосферы).
+    BEACH_OUTFIT_COLORS = [
+        '#e74c3c', '#f1c40f', '#3498db', '#2ecc71', '#9b59b6',
+        '#e67e22', '#1abc9c', '#ff7eb6', '#7ee69a',
+    ]
+    BEACH_ACTIVITIES = ('walk', 'idle', 'drink', 'sunbathe')
+
+    def _random_beach_pos(self) -> tuple:
+        """Случайная свободная точка на песке (BEACH_R0..BEACH_R1).
+        Избегаем зону у Майкла (пирс/корабль) и дорожек к пирсу."""
+        import math as _m
+        for _try in range(40):
+            x = random.uniform(4.0, WORLD_MAP_COLS - 4.0)
+            y = random.uniform(WORLD_BEACH_R0 + 1.0, WORLD_BEACH_R1 - 0.5)
+            # Не на тропе к пирсу
+            if 38 <= x <= 46 and y >= WORLD_BEACH_R1 - 3:
+                continue
+            if not _world_is_wall(int(y), int(x)):
+                return float(x), float(y)
+        return 30.0, WORLD_BEACH_R0 + 4.0
+
+    def _spawn_beachgoer(self) -> None:
+        x, y = self._random_beach_pos()
+        bid = f'bg{self._beachgoer_next_id}'
+        self._beachgoer_next_id += 1
+        now = time.time()
+        outfit = random.choice(self.BEACH_OUTFIT_COLORS)
+        gender = random.randint(0, 1)   # 0 — плавки, 1 — купальник
+        act = random.choice(self.BEACH_ACTIVITIES)
+        self.beachgoers.append({
+            'id':      bid,
+            'x':       float(x),
+            'y':       float(y),
+            'ang':     random.random() * 6.28,
+            '_act':    act,
+            '_act_until': now + random.uniform(
+                self.BEACHGOER_ACT_MIN_S, self.BEACHGOER_ACT_MAX_S),
+            '_target': None,           # (tx, ty) — куда идём в walk
+            '_flee_until': 0.0,
+            '_flee_dir':   None,       # (dx, dy) — куда бежим
+            'gender':  gender,
+            'outfit':  outfit,
+            'skin':    random.choice([1, 2, 3]),
+            'hair':    random.choice([0, 1, 2, 3]),
+            '_spawn_t': now,
+        })
+
+    def alert_beachgoers(self, x: float, y: float) -> None:
+        """Сообщает пляжникам в радиусе про выстрел — переключает в flee.
+        Направление бегства — от точки выстрела вглубь пляжа (к городу)."""
+        now = time.time()
+        r2 = self.BEACHGOER_GUNSHOT_R ** 2
+        for b in self.beachgoers:
+            if ((b['x'] - x) ** 2 + (b['y'] - y) ** 2) > r2:
+                continue
+            # Направление от стрелка
+            dx = b['x'] - x
+            dy = b['y'] - y
+            mag = (dx * dx + dy * dy) ** 0.5 + 1e-6
+            # Если стрелок не на пляже — все равно бежим к городу (north)
+            # То есть основной компонент = к городу (y уменьшается)
+            fdy = -1.0
+            fdx = max(-0.8, min(0.8, dx / mag))
+            b['_flee_dir']   = (fdx, fdy)
+            b['_flee_until'] = now + self.BEACHGOER_FLEE_S
+            b['_act']        = 'flee'
+            b['_act_until']  = b['_flee_until']
+            b['ang']         = 3.14159  # лицом «вверх» по карте (к городу)
+
+    def tick_beachgoers(self, dt: float) -> None:
+        """AI пляжников: гуляют / стоят / пьют сок / лежат / бегут.
+        Простой state-machine без боевых функций."""
+        import math as _m
+        now = time.time()
+        # Пополнение пока есть игроки и не достигли лимита
+        if (self.players
+                and len(self.beachgoers) < self.BEACHGOER_MAX
+                and now >= self._beachgoer_next_spawn_at):
+            self._spawn_beachgoer()
+            self._beachgoer_next_spawn_at = now + self.BEACHGOER_SPAWN_GAP_S
+        # Сканируем выстрелы игроков (по _last_shot_t). Если кто-то
+        # стрелял < 0.4 сек назад — паника на пляжников в радиусе.
+        for p in self.players.values():
+            lst = p.get('_last_shot_t') or 0
+            if lst <= 0 or (now - lst) > 0.4:
+                continue
+            if (now - lst) < (p.get('_last_beach_alert_t') or 0):
+                continue
+            # Защита от дублей: alert только если этот выстрел новее
+            # последнего что мы обрабатывали для этого игрока.
+            if lst <= (p.get('_last_beach_alert_t') or 0):
+                continue
+            p['_last_beach_alert_t'] = lst
+            self.alert_beachgoers(p['x'], p['y'])
+        for b in self.beachgoers:
+            act = b.get('_act') or 'idle'
+            # Завершение flee → возвращаемся к обычной жизни
+            if act == 'flee' and now > b.get('_flee_until', 0):
+                b['_flee_dir']  = None
+                b['_act']       = random.choice(self.BEACH_ACTIVITIES)
+                b['_act_until'] = now + random.uniform(
+                    self.BEACHGOER_ACT_MIN_S, self.BEACHGOER_ACT_MAX_S)
+                b['_target']    = None
+                continue
+            # Переключение активности
+            if act != 'flee' and now > b.get('_act_until', 0):
+                new_act = random.choice(self.BEACH_ACTIVITIES)
+                b['_act'] = new_act
+                b['_act_until'] = now + random.uniform(
+                    self.BEACHGOER_ACT_MIN_S, self.BEACHGOER_ACT_MAX_S)
+                if new_act == 'walk':
+                    tx, ty = self._random_beach_pos()
+                    b['_target'] = (tx, ty)
+                else:
+                    b['_target'] = None
+            # Движение
+            act = b['_act']
+            if act == 'flee' and b.get('_flee_dir'):
+                fdx, fdy = b['_flee_dir']
+                step = self.BEACHGOER_FLEE_SPEED * dt
+                nx = b['x'] + fdx * step
+                ny = b['y'] + fdy * step
+                # Не лезем в стены / город
+                if WORLD_BEACH_R0 - 4 <= ny < WORLD_BEACH_R1 and not _world_is_wall(int(ny), int(nx)):
+                    b['x'] = nx; b['y'] = ny
+                b['ang'] = _m.atan2(fdy, fdx)
+            elif act == 'walk' and b.get('_target'):
+                tx, ty = b['_target']
+                dx = tx - b['x']; dy = ty - b['y']
+                d = _m.hypot(dx, dy)
+                if d < 0.4:
+                    b['_target'] = None
+                    b['_act']    = 'idle'
+                    b['_act_until'] = now + random.uniform(3.0, 8.0)
+                else:
+                    step = self.BEACHGOER_WALK_SPEED * dt
+                    nx = b['x'] + (dx / d) * step
+                    ny = b['y'] + (dy / d) * step
+                    if not _world_is_wall(int(ny), int(nx)):
+                        b['x'] = nx; b['y'] = ny
+                    b['ang'] = _m.atan2(dy, dx)
+
     def gang_nest_shoot_bot(self, uid: str, bot_id: str,
                              weapon: str = '') -> dict | None:
         """Стрельба игрока по бойцу гнезда."""
@@ -14649,6 +14811,17 @@ class WorldSim:
                 'aggro':           aggro_payload,
                 'gang_nests':      nests_payload,
                 'quest_cars':      quest_cars_payload,
+                'beachgoers':      [{
+                    'id':     b['id'],
+                    'x':      round(b['x'], 2),
+                    'y':      round(b['y'], 2),
+                    'ang':    round(b['ang'], 2),
+                    'act':    b.get('_act', 'idle'),
+                    'gender': int(b.get('gender', 0)),
+                    'outfit': b.get('outfit', '#e74c3c'),
+                    'skin':   int(b.get('skin', 1)),
+                    'hair':   int(b.get('hair', 0)),
+                } for b in self.beachgoers],
             }
         }
 
@@ -14707,6 +14880,8 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 ev_pkts.extend(world.tick_aggro(WORLD_TICK_DT) or [])
                 # GTA-машины Майкла — чистим брошенные/устаревшие.
                 world.tick_quest_cars(WORLD_TICK_DT)
+                # Пляжники — мирные NPC в купальниках. AI без боевки.
+                world.tick_beachgoers(WORLD_TICK_DT)
                 # Бандитское гнездо в городе (мини-Логово, 4 охранника
                 # вокруг здания, появляется раз в 5 мин, живёт 10 мин).
                 nest_pkts = world.tick_gang_nests(WORLD_TICK_DT) or []
