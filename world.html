@@ -1261,6 +1261,32 @@ function generateBeachDecor() {
       }
     }
   }
+  // 13) Пляжная трава на границе с городом — мелкие пучки осоки,
+  //     визуально сглаживают резкий переход «асфальт→песок».
+  for (let r = BEACH_R0; r < BEACH_R0 + 3; r++) {
+    for (let c = 2; c < MAP_COLS - 2; c++) {
+      if (PATH_COLS.some(pc => Math.abs(c - pc) <= 1)) continue;
+      const h = _bhash(r, c, 11);
+      if (h < 0.18) {
+        _beachDecor.push({ kind: 'grass',
+                           r: r + 0.5 + (_bhash(r,c,12) - 0.5) * 0.6,
+                           c: c + 0.5 + (_bhash(r,c,13) - 0.5) * 0.6,
+                           variant: Math.floor(_bhash(r,c,14) * 3) });
+      }
+    }
+  }
+  // 14) Лужицы воды — на полпути между пирсом и водой, небольшие отражающие
+  //     пятна. Дают «после прилива» эффект.
+  for (const sp of [
+    { r: 163, c: 8  }, { r: 163, c: 22 }, { r: 162, c: 56 }, { r: 164, c: 74 },
+  ]) _beachDecor.push({ kind: 'puddle', r: sp.r, c: sp.c });
+  // 15) Плавающие в воде шарики/тюбинги у причала — оживляют береговую
+  //     линию недалеко от пирса (только визуально, не блокируют).
+  for (const sp of [
+    { r: 166, c: 18, col: '#e74c3c' },
+    { r: 167, c: 70, col: '#f1c40f' },
+    { r: 168, c: 50, col: '#2ecc71' },
+  ]) _beachDecor.push({ kind: 'float_ring', r: sp.r, c: sp.c, col: sp.col });
 }
 
 // ── POI районов ────────────────────────────────────────────────
@@ -5391,21 +5417,21 @@ function drawSouthTile(r, c, t, p, wx, wy) {
   const h3 = ((r * 419 + c * 569) >>> 0) % 100;
   let color;
   if (t === 14) {
-    // Песок: 9 градаций + дюнный градиент по дальности от воды.
-    // Чем ближе к воде (r → BEACH_R1), тем темнее (влажный).
-    const dToWater = Math.max(0, BEACH_R1 - r);  // 0 у воды, ~15 у города
-    const wetK     = 1 - Math.min(1, dToWater / 4);  // 0..1, 1 у самой воды
-    if      (h1 < 6)  color = '#d8bc82';  // совсем сухой светлый
-    else if (h1 < 18) color = '#c9a868';
-    else if (h1 < 32) color = '#bf9858';
-    else if (h1 < 48) color = '#b89060';
-    else if (h1 < 62) color = '#b08550';
-    else if (h1 < 75) color = '#a87a44';
-    else if (h1 < 86) color = '#9a7038';
-    else if (h1 < 94) color = '#8c6230';
-    else              color = '#dec090';  // блик дюны
-    // Если близко к воде — затемняем (мокрый песок)
-    if (wetK > 0) color = _shade(color, -0.15 * wetK);
+    // Песок: тёплая золотисто-карамельная палитра. 5 близких тонов
+    //    + блики дюн. Чем ближе к воде — тем темнее (мокрый песок).
+    const dToWater = Math.max(0, BEACH_R1 - r);   // 0 у воды, ~15 у города
+    const wetK     = 1 - Math.min(1, dToWater / 5);  // 0..1, 1 у самой воды
+    // Градиент сухой→тёплый по дальности от воды (дальше = светлее)
+    const dryK = Math.min(1, dToWater / 12);      // 0..1, 1 у города
+    if      (h1 < 18) color = '#e6c890';   // светлый тёплый
+    else if (h1 < 42) color = '#d8b478';
+    else if (h1 < 66) color = '#caa468';
+    else if (h1 < 86) color = '#b8945c';
+    else if (h1 < 95) color = '#a8844c';   // тёмные крупицы
+    else              color = '#f2dca5';   // блик дюны (солнце)
+    // Сухой песок чуть светлее, мокрый — заметно темнее и с зеленцой
+    if (dryK > 0) color = _shade(color, 0.04 * dryK);
+    if (wetK > 0) color = _shade(color, -0.22 * wetK);
   } else if (t === 15) {
     // Деревянный причал — доски с тёмными швами вдоль рядов (по r).
     const plank = ((r * 1009) >>> 0) % 4;
@@ -6633,6 +6659,74 @@ function drawCrab(r, c) {
   ctx.fillStyle = '#000';
   ctx.fillRect(p.x - 1.5, p.y - 2, 1, 1);
   ctx.fillRect(p.x + 0.5, p.y - 2, 1, 1);
+}
+
+// Пляжная трава — пучок 3-5 травинок, торчат вверх. variant: оттенок.
+function drawBeachGrass(r, c, variant) {
+  const p = w2s(r, c);
+  const cols = ['#6a8c3a', '#7ea04a', '#8aa852'];
+  const col  = cols[variant % cols.length];
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1;
+  // Лёгкий «ветер» — анимация по времени
+  const tm = performance.now() * 0.0015;
+  const sway = Math.sin(tm + r * 0.5 + c * 0.3) * 1.5;
+  for (let i = 0; i < 5; i++) {
+    const off = (i - 2) * 1.5;
+    const tipY = p.y - 5 - (i & 1 ? 1 : 0);
+    ctx.beginPath();
+    ctx.moveTo(p.x + off, p.y + 1);
+    ctx.quadraticCurveTo(p.x + off + sway * 0.5, p.y - 2,
+                         p.x + off + sway, tipY);
+    ctx.stroke();
+  }
+}
+
+// Лужица воды — отражающее тёмное пятно с лёгким бликом.
+function drawBeachPuddle(r, c) {
+  const p = w2s(r, c);
+  ctx.fillStyle = 'rgba(20,40,60,.55)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, 10, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Внутренний более светлый круг — отражение неба
+  ctx.fillStyle = 'rgba(140,180,210,.35)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y - 0.5, 8, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Маленький солнечный блик
+  const tm = performance.now() * 0.001;
+  const bx = Math.sin(tm) * 2;
+  ctx.fillStyle = 'rgba(255,255,255,.6)';
+  ctx.fillRect(p.x - 3 + bx, p.y - 1.5, 3, 1);
+}
+
+// Плавающее в воде кольцо/тюбинг — мягко покачивается на волне.
+function drawFloatRing(r, c, col) {
+  const tm = performance.now() * 0.0012;
+  const bobR = r + Math.sin(tm + c * 0.3) * 0.12;
+  const bobC = c + Math.cos(tm * 0.8 + r * 0.2) * 0.10;
+  const p = w2s(bobR, bobC);
+  // Тень в воде
+  ctx.fillStyle = 'rgba(0,0,0,.20)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 2, 9, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Внешний контур кольца
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, 9, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Внутреннее отверстие — цвет воды
+  ctx.fillStyle = '#1a3a50';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, 5, 2.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Блик
+  ctx.fillStyle = 'rgba(255,255,255,.55)';
+  ctx.beginPath();
+  ctx.ellipse(p.x - 4, p.y - 1.5, 2, 0.8, -0.4, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawTile(r, c) {
@@ -10641,6 +10735,12 @@ function render() {
       items.push({ depth: d.r + d.c - 0.1, draw: () => drawStarfish(d.r, d.c, d.col) });
     else if (d.kind === 'crab')
       items.push({ depth: d.r + d.c - 0.05, draw: () => drawCrab(d.r, d.c) });
+    else if (d.kind === 'grass')
+      items.push({ depth: d.r + d.c - 0.05, draw: () => drawBeachGrass(d.r, d.c, d.variant) });
+    else if (d.kind === 'puddle')
+      items.push({ depth: d.r + d.c - 0.15, draw: () => drawBeachPuddle(d.r, d.c) });
+    else if (d.kind === 'float_ring')
+      items.push({ depth: d.r + d.c, draw: () => drawFloatRing(d.r, d.c, d.col) });
   }
   // Конвой инкассатора (boss + 3 полицейских) — если событие активно
   if (worldEvent) {
