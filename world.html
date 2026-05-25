@@ -91,6 +91,84 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
 /* Когда виден PVP-баннер — кнопка съезжает ниже него */
 body.in-pvp #zoneBtn { top: 104px; }
 
+/* GTA-кнопка взаимодействия (поговорить с Майклом / сесть в машину /
+   выйти из машины). Стилистика — золото перекупщика. */
+#gtaActionBtn {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 64px;
+  background: linear-gradient(135deg, #8a6018, #c8902c);
+  color: #fff; border: 1px solid #e8b850; border-radius: 12px;
+  padding: 10px 18px; font-size: 13px; font-weight: 800;
+  cursor: pointer; display: none; z-index: 7;
+  box-shadow: 0 4px 14px rgba(80,40,0,.6), inset 0 1px 0 rgba(255,255,255,.15);
+  letter-spacing: 0.5px;
+}
+body.in-pvp #gtaActionBtn { top: 104px; }
+/* Если активна обычная зона-кнопка и GTA-кнопка — раздвигаем */
+#zoneBtn[style*="block"] ~ #gtaActionBtn { top: 110px; }
+/* HUD активного контракта — узкая полоса под верхней панелью с моделью+наградой */
+#gtaQuestHud {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: 8px; padding: 6px 14px;
+  background: linear-gradient(135deg, rgba(50,30,0,.92), rgba(80,55,10,.92));
+  border: 1px solid #e8b850; border-radius: 10px;
+  color: #ffd76b; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;
+  display: none; z-index: 6;
+  box-shadow: 0 3px 10px rgba(0,0,0,.6);
+  white-space: nowrap;
+}
+#gtaQuestHud .arrow { color: #fff; margin: 0 6px; }
+#gtaQuestHud .reward { color: #6cff8a; }
+
+/* Модал-меню Майкла. Затемнение фона + карточка контракта в центре. */
+#michaelModal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  display: none; z-index: 12;
+  align-items: center; justify-content: center;
+}
+#michaelModal.show { display: flex; }
+#michaelModal .card {
+  width: min(360px, 90vw); background: #14181f;
+  border: 1px solid #d8a040; border-radius: 14px; padding: 18px 18px 14px;
+  color: #fff; font-family: inherit; position: relative;
+  box-shadow: 0 12px 30px rgba(0,0,0,.7);
+}
+#michaelModal .head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+#michaelModal .head .icon { font-size: 32px; }
+#michaelModal .head .nm   { font-size: 16px; font-weight: 800; color: #ffd76b; }
+#michaelModal .head .sub  { font-size: 11px; color: #b8a880; }
+#michaelModal .talk {
+  background: rgba(255,215,107,.06); border: 1px solid rgba(255,215,107,.20);
+  border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: #e0d8b8;
+  margin-bottom: 12px; line-height: 1.45;
+}
+#michaelModal .talk b { color: #ffd76b; }
+#michaelModal .meta {
+  display: flex; justify-content: space-between; font-size: 11px;
+  color: #aaa; margin-bottom: 10px;
+}
+#michaelModal .meta .lim { color: #ffd76b; font-weight: 700; }
+#michaelModal .quest {
+  background: #1f242e; border: 1px solid #2c3340; border-radius: 10px;
+  padding: 10px; margin-bottom: 10px;
+}
+#michaelModal .quest .nm { font-size: 14px; font-weight: 700; color: #fff; }
+#michaelModal .quest .rw { font-size: 14px; font-weight: 800; color: #7ee69a; }
+#michaelModal .quest canvas { display: block; margin: 6px auto 4px;
+  background: #0c1018; border: 1px solid #2a2f3a; border-radius: 8px; }
+#michaelModal .btns { display: flex; gap: 8px; }
+#michaelModal .btn  {
+  flex: 1; padding: 11px 12px; border-radius: 10px; cursor: pointer;
+  font-size: 13px; font-weight: 800; border: none; font-family: inherit;
+  letter-spacing: 0.5px;
+}
+#michaelModal .btn.primary {
+  background: linear-gradient(135deg, #2c8d4a, #44b86a); color: #fff;
+}
+#michaelModal .btn.ghost { background: #232a36; color: #aab2c2; }
+#michaelModal .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
 #errorBanner {
   position: absolute; left: 14px; right: 14px; top: 60px;
   background: rgba(80,20,20,.92); border: 1px solid #c83030; border-radius: 10px;
@@ -564,6 +642,45 @@ body.in-pvp #zoneBtn { top: 104px; }
   </div>
 
   <button id="zoneBtn"></button>
+  <!-- GTA-кнопка: Майкл / сесть в машину / выйти. Текст и обработчик
+       задаются в updateGtaInteractions(). -->
+  <button id="gtaActionBtn"></button>
+  <!-- HUD активного контракта (под верхней панелью) -->
+  <div id="gtaQuestHud"></div>
+  <!-- Модал-меню Майкла -->
+  <div id="michaelModal">
+    <div class="card">
+      <div class="head">
+        <div class="icon">💼</div>
+        <div>
+          <div class="nm">Майкл</div>
+          <div class="sub">перекупщик в порту</div>
+        </div>
+      </div>
+      <div class="talk" id="michaelTalk">
+        Привет. Слышал, ты по тачкам? Иногда мне нужны конкретные модели —
+        угоняешь и привозишь сюда, в порт. <b>Деньги сразу на руки.</b>
+        Только не зевай — в сутки беру максимум 2 машины с одного человека.
+      </div>
+      <div class="meta">
+        <span>Сегодня: <span class="lim" id="michaelCount">0/2</span></span>
+        <span id="michaelReset"></span>
+      </div>
+      <div class="quest" id="michaelQuest" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="nm" id="michaelQuestName"></span>
+          <span class="rw" id="michaelQuestReward"></span>
+        </div>
+        <canvas id="michaelQuestCanvas" width="160" height="80"></canvas>
+        <div style="font-size:11px;color:#9aa3b3;text-align:center"
+             id="michaelQuestHint">Машина уже на карте — ищи стрелку 🎯</div>
+      </div>
+      <div class="btns">
+        <button class="btn primary" id="michaelTakeBtn">Взять заказ</button>
+        <button class="btn ghost"   id="michaelCloseBtn">Закрыть</button>
+      </div>
+    </div>
+  </div>
   <div id="pvpBanner">⚠️ ВЫ В PVP-ЗОНЕ ⚠️</div>
 
   <div id="mapHud"><canvas id="mapCanvas" width="304" height="304"></canvas></div>
@@ -1127,6 +1244,75 @@ const aggroZones = Object.create(null);
 // Активные бандитские гнёзда — массив объектов [{id, r, c, state,
 // expires_in, bots_alive}]. Перезаписывается с каждым snap.
 let gangNests = [];
+
+// ── GTA-контракты Майкла (open-world угоны) ────────────────────────
+// Майкл стоит в порту, выдаёт контракты на угон конкретной модели машины.
+// Лимит 2 угона / 24ч (хранится в БД). Активный контракт = серверная
+// quest_car видна ВСЕМ онлайн-игрокам (соревнование «успей первым»).
+// Зона сдачи — прямоугольник в порту. Выход в зоне = автопродажа.
+// Координаты совпадают с серверными WorldSim.MICHAEL_X/Y, DROP_ZONE_*.
+const MICHAEL_POS = { r: 14, c: 56 };          // тротуар перед входом в порт
+const DROP_ZONE = { r0: 12, r1: 14, c0: 54, c1: 58 };  // узкая полоса 3×5
+// Snapshot quest_cars: {id, model, x, y, ang, vx, vy, owner_uid, driver_uid,
+//                       state, reward, tx, ty, tAng}
+const questCars = new Map();    // car_id → entry
+function applyQuestCarsSnapshot(arr) {
+  const fresh = new Set();
+  for (const c of arr) {
+    fresh.add(c.id);
+    const prev = questCars.get(c.id);
+    if (prev) {
+      // Серверная позиция → tx/ty/tAng, плавная интерполяция в update()
+      prev.tx = c.x; prev.ty = c.y; prev.tAng = c.ang;
+      prev.driver_uid = c.driver_uid;
+      prev.state      = c.state;
+      prev.owner_uid  = c.owner_uid;
+      prev.model      = c.model;
+      prev.reward     = c.reward;
+      prev.vx         = c.vx; prev.vy = c.vy;
+      prev.hp         = c.hp;
+      prev.max_hp     = c.max_hp;
+      prev.wrecked    = !!c.wrecked;
+    } else {
+      questCars.set(c.id, {
+        id:   c.id,
+        model: c.model,
+        x: c.x, y: c.y, ang: c.ang,
+        tx: c.x, ty: c.y, tAng: c.ang,
+        vx: c.vx, vy: c.vy,
+        owner_uid:  c.owner_uid,
+        driver_uid: c.driver_uid,
+        state:      c.state,
+        reward:     c.reward,
+        hp:         c.hp,
+        max_hp:     c.max_hp,
+        wrecked:    !!c.wrecked,
+      });
+    }
+  }
+  // Убираем машины которые больше не приходят (доставлены / сервер их выкинул)
+  for (const id of Array.from(questCars.keys())) {
+    if (!fresh.has(id)) questCars.delete(id);
+  }
+}
+// Когда я сел в машину — её id; null если иду пешком.
+let myDrivingCarId = null;
+// Текущее состояние контракта (приходит от gta_status/gta_take_reply)
+let myGtaStatus = { count_today: 0, limit: 2, reset_in_s: 0, active: null };
+// Кулдаун между запросами статуса (не дёргаем сервер каждый кадр)
+let _gtaStatusReqAt = 0;
+function questCarAt(uid) {
+  // Машина моего контракта (если есть). uid здесь — мой uid.
+  for (const c of questCars.values()) {
+    if (String(c.owner_uid) === String(uid)) return c;
+  }
+  return null;
+}
+function inDropZone(r, c) {
+  return r >= DROP_ZONE.r0 && r <= DROP_ZONE.r1 &&
+         c >= DROP_ZONE.c0 && c <= DROP_ZONE.c1;
+}
+
 // Эхо: моё последнее предупреждение от банды — чтобы рисовать чат-баббл
 const _aggroWarnMsg = { until: 0, text: '', from: null };
 // Helper: получить ЛЮБОЙ активный захват — приоритет мой, иначе первый.
@@ -2034,6 +2220,22 @@ const CAR_MODELS = [
   { name: 'ferrari',  L: 1.55, W: 0.78, palette: ['#ed1a2e','#7a0a18'], roof: '#1a0408', wheelR: 0.15, sport: true, fast: true },
   { name: 'porsche',  L: 1.6,  W: 0.78, palette: ['#1a1afa','#0a0a8a'], roof: '#000a3a', wheelR: 0.15, sport: true, fast: true },
 ];
+// ── QUEST_CAR_MODELS — 10 эксклюзивных моделей для контрактов Майкла ──
+// Спавнятся ТОЛЬКО как квестовые цели (сервером через quest_cars). Гражданский
+// трафик (CAR_MODELS) их не содержит. id совпадает с серверным QUEST_CAR_MODELS,
+// label — для меню квеста и HUD-карточки активного контракта.
+const QUEST_CAR_MODELS = {
+  mercedes:    { id: 'mercedes',    label: 'Mercedes S-Class', L: 1.85, W: 0.92, palette: ['#c8c8d0','#82828a'], roof: '#1a1a22', wheelR: 0.17, height: 0.60, reward: 1400 },
+  bmw_m5:      { id: 'bmw_m5',      label: 'BMW M5',           L: 1.75, W: 0.88, palette: ['#1a1a22','#0a0a10'], roof: '#000', wheelR: 0.16, height: 0.55, reward: 1800, sport: true },
+  aston:       { id: 'aston',       label: 'Aston Martin',     L: 1.78, W: 0.85, palette: ['#2a4a6a','#0a1a3a'], roof: '#000a1a', wheelR: 0.16, height: 0.52, reward: 2400, sport: true },
+  ferrari_f40: { id: 'ferrari_f40', label: 'Ferrari F40',      L: 1.70, W: 0.86, palette: ['#ee0e1a','#7a0510'], roof: '#1a0408', wheelR: 0.15, height: 0.50, reward: 2800, sport: true, fast: true },
+  camaro:      { id: 'camaro',      label: 'Chevy Camaro',     L: 1.80, W: 0.92, palette: ['#fad000','#a07a00'], roof: '#1a1100', wheelR: 0.17, height: 0.54, reward: 1600, sport: true },
+  rangerover:  { id: 'rangerover',  label: 'Range Rover',      L: 1.90, W: 1.00, palette: ['#1e3a1a','#0a1a08'], roof: '#0a1a08', wheelR: 0.20, height: 0.75, reward: 1500 },
+  cadillac:    { id: 'cadillac',    label: 'Cadillac DeVille', L: 2.00, W: 0.95, palette: ['#5a5a64','#2c2c34'], roof: '#1a1a20', wheelR: 0.17, height: 0.60, reward: 1300 },
+  maserati:    { id: 'maserati',    label: 'Maserati GT',      L: 1.78, W: 0.85, palette: ['#3a3a78','#1a1a3a'], roof: '#0a0a1a', wheelR: 0.16, height: 0.52, reward: 2200, sport: true },
+  tesla:       { id: 'tesla',       label: 'Tesla Roadster',   L: 1.70, W: 0.84, palette: ['#e8e8f0','#8a8a92'], roof: '#101020', wheelR: 0.16, height: 0.50, reward: 2000, sport: true, fast: true },
+  limo:        { id: 'limo',        label: 'Лимузин',          L: 2.60, W: 0.95, palette: ['#0a0a14','#000'], roof: '#000', wheelR: 0.18, height: 0.62, reward: 2600 },
+};
 // Полицейские модели — отдельный pool, используется ТОЛЬКО для патрулей
 // и спецсобытий (не спавнятся как обычные машины). Эти модели имеют
 // мигалки, надписи POLICE, цветную палитру (бело-чёрная или чёрная для
@@ -2239,17 +2441,32 @@ const WEAPON_ALIASES = {
   uzi: 'smg', ump: 'smg', mp5: 'smg', tommy_gun: 'smg', golden_uzi: 'smg',
   ak: 'rifle', ak74: 'rifle', m4: 'rifle', m16: 'rifle',
 };
+// Сервер шлёт оружие NPC по item_id ('uzi', 'tt', 'deagle', …). Для рендера
+// (drawFirearm, muzzleD, цвет трассеров) нам нужен ISO-ключ из WEAPON_FX_CFG.
+// Без этого городские бандиты/боссы с 'uzi' рисовались дефолтной серой
+// палкой, а пуля стартовала из условной центральной точки.
+function resolveWeapon(w) {
+  if (!w) return 'pistol';
+  if (WEAPON_FX_CFG[w]) return w;
+  return WEAPON_ALIASES[w] || 'pistol';
+}
+// muzzleD пересчитан под РЕАЛЬНУЮ длину рисованного ствола в drawFirearm.
+// Формула: muzzleD ≈ armLen_tiles (0.36 = TS*0.36 / TS) + FIREARM_TIP[w] / 60
+// (60 — базовый размер тайла, на который масштабируется ствол). Раньше эти
+// значения были «на глаз» и для коротких пушек пуля заметно вылетала ИЗ-ЗА
+// ствола (особенно для pistol/shotgun) — теперь точно совпадает с кончиком
+// дула, который рисует drawFirearm.
 const WEAPON_FX_CFG = {
-  pistol:       { range: 8,  color: '#ffea80', spread: 0.05, dmg: 22, muzzleD: 0.75, twoHanded: false },
-  nagan:        { range: 8,  color: '#ffea80', spread: 0.06, dmg: 22, muzzleD: 0.75, twoHanded: false },
-  pistol_heavy: { range: 9,  color: '#ffb060', spread: 0.04, dmg: 38, thick: true, muzzleD: 0.80, twoHanded: false },
-  pistol_gold:  { range: 9,  color: '#ffd76b', spread: 0.03, dmg: 28, muzzleD: 0.75, twoHanded: false },
-  shotgun:      { range: 5,  color: '#ffaa50', spread: 0.35, dmg: 14, pellets: 6, muzzleD: 1.00, twoHanded: true },
-  smg:          { range: 7,  color: '#ffea80', spread: 0.12, dmg: 14, burst: 3, muzzleD: 0.95, twoHanded: true },
-  tommy_gun:    { range: 7,  color: '#ffea80', spread: 0.14, dmg: 14, burst: 3, muzzleD: 0.95, twoHanded: true },
-  rifle:        { range: 11, color: '#ffea80', spread: 0.02, dmg: 55, muzzleD: 1.05, twoHanded: true },
-  sniper:       { range: 16, color: '#ff5050', spread: 0,    dmg: 130, thick: true, tracer: true, muzzleD: 1.15, twoHanded: true },
-  rpg:          { range: 11, color: '#ff6020', spread: 0,    dmg: 90, thick: true, explosive: true, muzzleD: 1.10, twoHanded: true },
+  pistol:       { range: 8,  color: '#ffea80', spread: 0.05, dmg: 22, muzzleD: 0.59, twoHanded: false },
+  nagan:        { range: 8,  color: '#ffea80', spread: 0.06, dmg: 22, muzzleD: 0.59, twoHanded: false },
+  pistol_heavy: { range: 9,  color: '#ffb060', spread: 0.04, dmg: 38, thick: true, muzzleD: 0.69, twoHanded: false },
+  pistol_gold:  { range: 9,  color: '#ffd76b', spread: 0.03, dmg: 28, muzzleD: 0.66, twoHanded: false },
+  shotgun:      { range: 5,  color: '#ffaa50', spread: 0.35, dmg: 14, pellets: 6, muzzleD: 0.83, twoHanded: true },
+  smg:          { range: 7,  color: '#ffea80', spread: 0.12, dmg: 14, burst: 3, muzzleD: 0.73, twoHanded: true },
+  tommy_gun:    { range: 7,  color: '#ffea80', spread: 0.14, dmg: 14, burst: 3, muzzleD: 0.73, twoHanded: true },
+  rifle:        { range: 11, color: '#ffea80', spread: 0.02, dmg: 55, muzzleD: 0.89, twoHanded: true },
+  sniper:       { range: 16, color: '#ff5050', spread: 0,    dmg: 130, thick: true, tracer: true, muzzleD: 1.09, twoHanded: true },
+  rpg:          { range: 11, color: '#ff6020', spread: 0,    dmg: 90, thick: true, explosive: true, muzzleD: 1.13, twoHanded: true },
 };
 // Foregrip — где вторая рука держит цевье (в долях от длины ствола).
 // Использует drawWeaponInHands при twoHanded=true.
@@ -2287,7 +2504,7 @@ function spawnBullet(sr, sc, er, ec, opts) {
   const dr = er - sr, dc = ec - sc;
   const dist = Math.hypot(dr, dc) || 0.001;
   const speed = opts.speed || BULLET_SPEED;
-  const wcfg = WEAPON_FX_CFG[opts.weapon] || {};
+  const wcfg = WEAPON_FX_CFG[resolveWeapon(opts.weapon)] || {};
   bullets.push({
     r: sr, c: sc,
     vr: (dr / dist) * speed,
@@ -2303,7 +2520,7 @@ function spawnBullet(sr, sc, er, ec, opts) {
 }
 // spawnMuzzle(r,c, angle, weapon) — вспышка дула. Живёт 80мс.
 function spawnMuzzle(r, c, angle, weapon) {
-  const wcfg = WEAPON_FX_CFG[weapon] || {};
+  const wcfg = WEAPON_FX_CFG[resolveWeapon(weapon)] || {};
   muzzles.push({
     r, c, angle,
     life: 80, max: 80,
@@ -2735,7 +2952,7 @@ function handleEventPacket(d) {
     {
       const wep = (d.shooter_id === 'b') ? 'shotgun' : 'smg';
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[wep] || {}).muzzleD || 0.85;
+      const md  = (WEAPON_FX_CFG[resolveWeapon(wep)] || {}).muzzleD || 0.85;
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wep });
@@ -2761,7 +2978,7 @@ function handleEventPacket(d) {
     }
     {
       const ang = Math.atan2(ty - d.sy, tx - d.sx);
-      const md  = (WEAPON_FX_CFG[d.weapon] || {}).muzzleD || 0.8;
+      const md  = (WEAPON_FX_CFG[resolveWeapon(d.weapon)] || {}).muzzleD || 0.8;
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, ty, tx, { hit: true, fromPlayer: true, weapon: d.weapon });
@@ -2772,7 +2989,7 @@ function handleEventPacket(d) {
     // PvP: игрок стреляет в другого игрока (стартуем из конца ствола).
     {
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[d.weapon] || {}).muzzleD || 0.8;
+      const md  = (WEAPON_FX_CFG[resolveWeapon(d.weapon)] || {}).muzzleD || 0.8;
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: d.weapon });
@@ -2843,7 +3060,7 @@ function handleEventPacket(d) {
     {
       const wp  = d.weapon || 'pistol_heavy';
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[wp] || {}).muzzleD || 0.8;
+      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
@@ -2873,7 +3090,7 @@ function handleEventPacket(d) {
     {
       const wp  = d.weapon || 'pistol_heavy';
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[wp] || {}).muzzleD || 0.8;
+      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
@@ -2912,12 +3129,132 @@ function handleEventPacket(d) {
     showEventBanner('💨 Банда ушла',
       'Гнездо опустело. Будет новое через несколько минут.',
       3000, 'spawn');
+  } else if (kind === 'quest_car_spawned') {
+    // Контракт ВЗЯТ кем-то (мной или другим игроком). Машина появилась на
+    // карте — все онлайн видят как красная Феррари стоит у дороги.
+    const mineOwn = (String(d.owner_uid) === String(QP.uid));
+    const mdef = QUEST_CAR_MODELS[d.model] || { label: d.model };
+    if (mineOwn) {
+      showEventBanner(`🚗 Контракт: ${mdef.label}`,
+        `На карте появилась цель. Угоняй и вези в порт. 💵 ${d.reward}$`,
+        5000, 'spawn');
+    } else {
+      // Другой игрок взял заказ — можно «перехватить» его машину раньше его.
+      // Но deliver засчитается только владельцу контракта.
+      showToast(`🚨 Кто-то взял заказ на угон ${mdef.label}`, '🚗', 3000);
+    }
+  } else if (kind === 'quest_car_delivered') {
+    const mineOwn = (String(d.by_uid) === String(QP.uid));
+    const mdef = QUEST_CAR_MODELS[d.model] || { label: d.model };
+    if (mineOwn) {
+      showEventBanner(`✅ ${mdef.label} продан!`,
+        `+${d.reward}$ от Майкла. Подойди в порт за следующим заказом.`,
+        5500, 'win');
+      myGtaStatus.active = null;
+      myGtaStatus.count_today = (myGtaStatus.count_today | 0) + 1;
+    } else {
+      showToast(`💸 @${d.by_name} сдал ${mdef.label} — +${d.reward}$`, '🚗', 3500);
+    }
+    if (myDrivingCarId === d.car_id) myDrivingCarId = null;
+  } else if (kind === 'quest_car_gone') {
+    // Сервер удалил машину (после deliver-таймаута или ручного удаления)
+    questCars.delete(d.car_id);
+    if (myDrivingCarId === d.car_id) myDrivingCarId = null;
+  } else if (kind === 'quest_car_hit') {
+    // Боец банды попал в квестовую машину. Рисуем трассер + искры на корпусе.
+    // hp/max_hp обновляются в samp shot (snapshot тоже шлёт hp) — но в трассере
+    // обновим сразу для отзывчивости.
+    const qc = questCars.get(d.car_id);
+    if (qc) {
+      qc.hp     = d.hp;
+      qc.max_hp = d.max_hp;
+    }
+    {
+      const wp  = d.weapon || 'pistol_heavy';
+      const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
+      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
+      const sR  = d.sy + Math.sin(ang) * md;
+      const sC  = d.sx + Math.cos(ang) * md;
+      spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
+      spawnMuzzle(sR, sC, ang, wp);
+      if (!d.miss) {
+        // Искры от корпуса (не кровь) — переиспользуем spawnImpact с force-sparks
+        spawnImpact(d.ty, d.tx, wp);
+      }
+    }
+    // Если это МОЯ машина (я её веду) — лёгкое предупреждение
+    if (myDrivingCarId === d.car_id && qc && qc.hp > 0 && !d.miss) {
+      const lowHp = qc.hp / Math.max(1, qc.max_hp) < 0.35;
+      if (lowHp && (!_gtaLastWarnAt || performance.now() - _gtaLastWarnAt > 4000)) {
+        _gtaLastWarnAt = performance.now();
+        showToast('🔥 Машина горит! Прячься!', '⚠️', 2000);
+      }
+    }
+  } else if (kind === 'quest_car_destroyed') {
+    // Машина уничтожена бандой. Помечаем wrecked, спавним взрыв на её позиции.
+    const qc = questCars.get(d.car_id);
+    if (qc) {
+      qc.wrecked = true;
+      qc.state   = 'wrecked';
+      qc.x = d.x; qc.y = d.y; qc.tx = d.x; qc.ty = d.y;
+    }
+    spawnCarExplosion(d.y, d.x);
+    const mineOwn = String(d.owner_uid) === String(QP.uid);
+    if (myDrivingCarId === d.car_id) {
+      // Меня выкинуло из горящего корпуса — телепорт чуть в сторону
+      myDrivingCarId = null;
+      _exitRequested = false;
+      player.r = d.y + (Math.random() - 0.5) * 0.6;
+      player.c = d.x + (Math.random() - 0.5) * 0.6;
+    }
+    if (mineOwn) {
+      myGtaStatus.active = null;
+      const mdef = QUEST_CAR_MODELS[d.model] || { label: d.model };
+      showEventBanner('💥 Машина уничтожена',
+        `${mdef.label} сгорел под огнём банды. Заказ слетел — вернись к Майклу за новым.`,
+        5500, 'lose');
+    }
+  } else if (kind === 'gta_take_reply') {
+    if (d.ok) {
+      myGtaStatus.active = {
+        car_id: d.car_id, model: d.model, reward: d.reward,
+        x: d.x, y: d.y, state: 'idle',
+      };
+      hideMichaelMenu();
+    } else {
+      const mdef = (d.model && QUEST_CAR_MODELS[d.model]) || null;
+      if (d.reason === 'limit') {
+        const mins = Math.ceil((d.wait_s || 0) / 60);
+        showToast(`🚫 Дневной лимит ${d.limit || 2} — приходи через ~${mins} мин`,
+                  '⏳', 4000);
+      } else if (d.reason === 'has_active') {
+        showToast(`🚗 У тебя уже есть активный заказ${mdef ? ': ' + mdef.label : ''}`,
+                  '⚠️', 3000);
+      } else {
+        showToast('❌ Майкл не дал заказ. Попробуй позже.', '⚠️', 2500);
+      }
+    }
+  } else if (kind === 'gta_status') {
+    myGtaStatus.count_today = d.count_today | 0;
+    myGtaStatus.limit       = d.limit       | 0;
+    myGtaStatus.reset_in_s  = d.reset_in_s  | 0;
+    myGtaStatus.active      = d.active || null;
+    refreshMichaelMenu();
+  } else if (kind === 'gta_drive_reject') {
+    // Сервер отверг мой инпут (например, машина уже у другого водителя).
+    if (myDrivingCarId === d.car_id) {
+      myDrivingCarId = null;
+      showToast('🚫 Тебя выкинули из машины', '⚠️', 2500);
+    }
+  } else if (kind === 'gta_exit_reply') {
+    // Просто бросил машину (не доставил). Никакого баннера не надо.
+    if (myDrivingCarId === d.car_id) myDrivingCarId = null;
   } else if (kind === 'cop_hit') {
     // Игрок попал в копа — пуля из КОНЦА ствола стрелка + брызги крови
     {
       const wp  = d.weapon || currentWeapon;
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[wp] || {}).muzzleD || 0.8;
+      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: wp });
@@ -3248,6 +3585,9 @@ function wsConnect() {
       if (d.pvp) Object.assign(PVP, d.pvp);
       // Если сервер шлёт арену — синкаемся (на случай если мы ошиблись)
       // Сейчас не пересоздаём её, только параметры урона/cd/радиуса/HP.
+      // Запрашиваем GTA-статус (активный контракт + счётчик) сразу после
+      // hello — чтобы HUD при перезаходе показывал текущий заказ Майкла.
+      try { ws.send(JSON.stringify({ t: 'gta_status', d: {} })); } catch(e){}
     } else if (pkt.t === 'shot') {
       // Серверный broadcast выстрела. Рисуем трассер и при попадании —
       // эффект на цели.
@@ -3390,6 +3730,11 @@ function wsConnect() {
         // (красная подсветка здания + маркер на мини-карте).
         gangNests = d.gang_nests || [];
       }
+      if (d.quest_cars !== undefined) {
+        // GTA-квестовые машины Майкла. Серверные авторитативные позиции —
+        // ставим в tx/ty для плавной интерполяции (как для других игроков).
+        applyQuestCarsSnapshot(d.quest_cars || []);
+      }
       if (d.active_captures !== undefined) {
         // Перетираем карту целиком — сервер источник истины. Сохраняем
         // ЛОКАЛЬНЫЕ startedAt где они уже есть (плавнее анимация),
@@ -3497,6 +3842,253 @@ _zoneEl.addEventListener('click', () => {
   // города. Бэк сам соберёт URL с актуальным снаряжением игрока из БД.
   openDistrictBattle(_zoneCur.id);
 });
+
+// ── GTA: взаимодействия (Майкл / сесть-выйти из машины) ────────────
+const _gtaBtn = document.getElementById('gtaActionBtn');
+let _gtaActionKind = null;   // 'michael' | 'enter' | 'exit'
+let _gtaActionCarId = null;
+const GTA_INTERACT_R = 1.8;  // тайлов — радиус подхода к Майклу/машине
+
+function updateGtaInteractions() {
+  if (myDrivingCarId) {
+    _gtaActionKind = 'exit';
+    _gtaActionCarId = myDrivingCarId;
+    _gtaBtn.textContent = '🚪 Выйти из машины';
+    _gtaBtn.style.display = 'block';
+    return;
+  }
+  // Майкл — приоритет если рядом
+  const dmR = MICHAEL_POS.r - player.r;
+  const dmC = MICHAEL_POS.c - player.c;
+  const distMichael = Math.hypot(dmR, dmC);
+  if (distMichael <= GTA_INTERACT_R) {
+    _gtaActionKind = 'michael';
+    _gtaActionCarId = null;
+    _gtaBtn.textContent = '💼 Поговорить с Майклом';
+    _gtaBtn.style.display = 'block';
+    return;
+  }
+  // Машина — подходим к ЛЮБОЙ quest_car без водителя (можно угнать чужой
+  // контракт у соперника). Но deliver получит только owner.
+  let nearestQc = null, nearestD = GTA_INTERACT_R;
+  for (const qc of questCars.values()) {
+    if (qc.driver_uid) continue;       // занята
+    const dr = qc.y - player.r, dc = qc.x - player.c;
+    const d  = Math.hypot(dr, dc);
+    if (d < nearestD) { nearestD = d; nearestQc = qc; }
+  }
+  if (nearestQc) {
+    const mdef = QUEST_CAR_MODELS[nearestQc.model] || { label: nearestQc.model };
+    const isMine = String(nearestQc.owner_uid) === String(QP.uid);
+    _gtaActionKind = 'enter';
+    _gtaActionCarId = nearestQc.id;
+    _gtaBtn.textContent = isMine
+      ? `🚗 Сесть в ${mdef.label}`
+      : `🚗 Угнать ${mdef.label}`;
+    _gtaBtn.style.display = 'block';
+    return;
+  }
+  _gtaActionKind = null;
+  _gtaActionCarId = null;
+  _gtaBtn.style.display = 'none';
+}
+
+_gtaBtn.addEventListener('click', () => {
+  if (_gtaActionKind === 'michael') {
+    openMichaelMenu();
+  } else if (_gtaActionKind === 'enter') {
+    enterCar(_gtaActionCarId);
+  } else if (_gtaActionKind === 'exit') {
+    exitCar('manual');
+  }
+});
+
+// ── Майкл-модал ────────────────────────────────────────────────────
+const _michaelModal     = document.getElementById('michaelModal');
+const _michaelCount     = document.getElementById('michaelCount');
+const _michaelReset     = document.getElementById('michaelReset');
+const _michaelQuest     = document.getElementById('michaelQuest');
+const _michaelQuestName = document.getElementById('michaelQuestName');
+const _michaelQuestRew  = document.getElementById('michaelQuestReward');
+const _michaelQuestHint = document.getElementById('michaelQuestHint');
+const _michaelTakeBtn   = document.getElementById('michaelTakeBtn');
+const _michaelTalk      = document.getElementById('michaelTalk');
+const _michaelQuestCv   = document.getElementById('michaelQuestCanvas');
+function openMichaelMenu() {
+  _michaelModal.classList.add('show');
+  // Запрашиваем актуальный статус с сервера (счётчик угонов + активный квест)
+  try { ws && ws.send(JSON.stringify({ t: 'gta_status', d: {} })); } catch(e){}
+  refreshMichaelMenu();
+}
+function hideMichaelMenu() { _michaelModal.classList.remove('show'); }
+document.getElementById('michaelCloseBtn').addEventListener('click', hideMichaelMenu);
+_michaelModal.addEventListener('click', (e) => {
+  if (e.target === _michaelModal) hideMichaelMenu();
+});
+_michaelTakeBtn.addEventListener('click', () => {
+  try { ws && ws.send(JSON.stringify({ t: 'gta_take', d: {} })); } catch(e){}
+});
+// Рендерит карточку машины в маленький canvas — игрок видит ЧТО угонять.
+function renderQuestCarPreview(cv, modelId) {
+  const m = QUEST_CAR_MODELS[modelId];
+  if (!cv || !m) return;
+  const c = cv.getContext('2d');
+  c.clearRect(0, 0, cv.width, cv.height);
+  // Фон — лёгкая «парковочная» сетка
+  c.fillStyle = '#0c1018';
+  c.fillRect(0, 0, cv.width, cv.height);
+  c.strokeStyle = 'rgba(255,255,255,.06)';
+  for (let i = 12; i < cv.width; i += 16) {
+    c.beginPath(); c.moveTo(i, 0); c.lineTo(i, cv.height); c.stroke();
+  }
+  // Машина в центре — overlay drawCarPretty слишком завязан на w2s/cam,
+  // нарисуем простую ортогональную проекцию модели.
+  const cx = cv.width / 2, cy = cv.height / 2 + 6;
+  const len = 96 * (m.L / 1.8), wid = 36 * (m.W / 0.9);
+  // Тень
+  c.fillStyle = 'rgba(0,0,0,.55)';
+  c.beginPath(); c.ellipse(cx, cy + 10, len * 0.55, 6, 0, 0, Math.PI * 2); c.fill();
+  // Кузов
+  const [topC, sideC] = m.palette;
+  c.fillStyle = sideC;
+  c.fillRect(cx - len / 2, cy - wid / 2 + 4, len, wid - 6);
+  c.fillStyle = topC;
+  c.fillRect(cx - len / 2, cy - wid / 2, len, 8);
+  c.fillRect(cx - len / 2, cy + wid / 2 - 8, len, 8);
+  // Крыша
+  c.fillStyle = m.roof || topC;
+  c.fillRect(cx - len * 0.30, cy - wid / 2 + 6, len * 0.55, wid - 12);
+  // Окна
+  c.fillStyle = 'rgba(150,200,240,.5)';
+  c.fillRect(cx - len * 0.25, cy - wid / 2 + 9, len * 0.45, wid - 18);
+  // Фары
+  c.fillStyle = '#ffe8a0';
+  c.fillRect(cx + len / 2 - 4, cy - wid / 2 + 8, 3, 5);
+  c.fillRect(cx + len / 2 - 4, cy + wid / 2 - 13, 3, 5);
+  // Колёса
+  c.fillStyle = '#0a0a0a';
+  for (const wx of [-len * 0.32, len * 0.28]) {
+    c.fillRect(cx + wx - 4, cy - wid / 2 - 1, 8, 4);
+    c.fillRect(cx + wx - 4, cy + wid / 2 - 3, 8, 4);
+  }
+}
+function refreshMichaelMenu() {
+  if (!_michaelModal.classList.contains('show')) return;
+  const s = myGtaStatus;
+  _michaelCount.textContent = `${s.count_today | 0}/${s.limit | 2}`;
+  if (s.reset_in_s > 0) {
+    const h = Math.floor(s.reset_in_s / 3600);
+    const m = Math.floor((s.reset_in_s % 3600) / 60);
+    _michaelReset.textContent = `сброс через ${h}ч ${m}м`;
+  } else {
+    _michaelReset.textContent = '';
+  }
+  const active = s.active;
+  if (active) {
+    const mdef = QUEST_CAR_MODELS[active.model] || { label: active.model };
+    _michaelQuestName.textContent = mdef.label;
+    _michaelQuestRew.textContent  = `+${active.reward | 0}$`;
+    _michaelQuestHint.textContent = (active.state === 'driven')
+      ? 'Машина едет — вези её в зону сдачи в порту'
+      : 'Машина уже на карте — ищи стрелку 🎯';
+    renderQuestCarPreview(_michaelQuestCv, active.model);
+    _michaelQuest.style.display = 'block';
+    _michaelTakeBtn.disabled    = true;
+    _michaelTakeBtn.textContent = 'Заказ активен';
+    _michaelTalk.innerHTML = 'Заказ ты уже взял. Тащи машину сюда — <b>в зону сдачи в порту</b> и выйди из неё. Деньги получишь сразу.';
+  } else {
+    _michaelQuest.style.display = 'none';
+    const limit = s.limit | 2;
+    if ((s.count_today | 0) >= limit) {
+      _michaelTakeBtn.disabled    = true;
+      _michaelTakeBtn.textContent = 'Лимит на сегодня';
+      _michaelTalk.innerHTML = 'На сегодня хватит, парень. Завтра приходи — будут новые заказы.';
+    } else {
+      _michaelTakeBtn.disabled    = false;
+      _michaelTakeBtn.textContent = 'Взять заказ';
+      _michaelTalk.innerHTML = 'Есть пара новых заказов. Возьмёшь — я скажу <b>какую</b> модель искать. Угоняешь, везёшь сюда, в порт — <b>в зону сдачи</b> — и получаешь налик.';
+    }
+  }
+}
+
+// ── Вход/выход из машины ───────────────────────────────────────────
+// Локально: запоминаем myDrivingCarId. Сервер при первом gta_drive
+// проверит что машина свободна; если нет — пришлёт gta_drive_reject
+// и мы сбросим myDrivingCarId.
+let _exitRequested = false;   // нажали «Выйти» на ходу — тормозим, потом выходим
+function enterCar(carId) {
+  const qc = questCars.get(carId);
+  if (!qc) return;
+  if (qc.driver_uid && qc.driver_uid !== String(QP.uid)) {
+    showToast('🚗 Уже за рулём другой игрок', '🚫', 2000);
+    return;
+  }
+  myDrivingCarId = carId;
+  _exitRequested = false;
+  // Телепортируем игрока на позицию машины (потом он движется ВМЕСТЕ с ней)
+  player.r = qc.y;
+  player.c = qc.x;
+  player.ang = qc.ang;
+  // Локально помечаем чтоб все следующие тики snap не дёргали игрока в сторону
+}
+function exitCar(reason) {
+  if (!myDrivingCarId) return;
+  const qc = questCars.get(myDrivingCarId);
+  // Если едем — сначала тормозим (флаг), реальный exit пошлём из update().
+  if (qc && Math.hypot(qc.vx, qc.vy) > 0.3) {
+    _exitRequested = true;
+    showToast('⏳ Тормозим…', '🚗', 1200);
+    return;
+  }
+  const cid = myDrivingCarId;
+  try { ws && ws.send(JSON.stringify({ t: 'gta_exit', d: { car_id: cid } })); }
+  catch(e){}
+  // Локально освобождаем сразу — сервер пришлёт final reply, но игрок уже идёт.
+  myDrivingCarId = null;
+  _exitRequested = false;
+}
+let _lastDriveSentAt = 0;
+// Интерполяция чужих квестовых машин (которые ведут другие игроки или
+// которые просто стоят). Своя машина (myDrivingCarId) интерполируется
+// прямо в update() — там curVx/curVy её и двигают.
+function _interpQuestCars(dt) {
+  const k = Math.min(1, dt * 8);
+  for (const qc of questCars.values()) {
+    if (qc.id === myDrivingCarId) continue;   // свою рулим сами
+    qc.x += (qc.tx - qc.x) * k;
+    qc.y += (qc.ty - qc.y) * k;
+    let aDiff = qc.tAng - qc.ang;
+    while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
+    while (aDiff < -Math.PI) aDiff += Math.PI * 2;
+    qc.ang += aDiff * k;
+  }
+}
+
+// HUD активного контракта — узкая полоса сверху: «🚗 Угнать: Ferrari F40 — 2800$»
+const _gtaQuestHud = document.getElementById('gtaQuestHud');
+function updateGtaQuestHud() {
+  const active = myGtaStatus && myGtaStatus.active;
+  if (!active) {
+    if (_gtaQuestHud.style.display !== 'none') _gtaQuestHud.style.display = 'none';
+    return;
+  }
+  const mdef = QUEST_CAR_MODELS[active.model] || { label: active.model };
+  // Активная машина может быть В quest_cars (сервер шлёт), показываем её состояние
+  let line;
+  const qcLive = questCars.get(active.car_id);
+  if (myDrivingCarId === active.car_id) {
+    line = `🚗 ${mdef.label} <span class="arrow">→</span> в порт`
+         + ` <span class="reward">+${active.reward}$</span>`;
+  } else if (qcLive && qcLive.driver_uid && qcLive.driver_uid !== String(QP.uid)) {
+    line = `🚨 ${mdef.label} угоняет ДРУГОЙ — догоняй!`
+         + ` <span class="reward">+${active.reward}$</span>`;
+  } else {
+    line = `🎯 Угнать: ${mdef.label}`
+         + ` <span class="reward">+${active.reward}$</span>`;
+  }
+  _gtaQuestHud.innerHTML = line;
+  _gtaQuestHud.style.display = 'block';
+}
 
 // ── Боёвка района — iframe overlay поверх города ───────────────
 const _battleOv     = document.getElementById('battleOverlay');
@@ -3790,6 +4382,8 @@ function fire(angle = null) {
     return;
   }
   if (myDead) return;
+  // В машине нельзя стрелять — обе руки на руле.
+  if (myDrivingCarId) return;
   const now = performance.now();
   // Cooldown зависит от выбранного оружия (как в demo_isometric):
   // smg/tommy быстрые ~0.2с, sniper медленный ~1.2с, rpg ~1.8с.
@@ -3984,7 +4578,10 @@ function updatePvpUI() {
   // даже если стрелять не в кого, ствол в руке и стик готов — это даёт
   // ощущение полноценной боёвки.
   const isPve      = (myMode === 'pve');
-  const canShoot   = !isPve && !myDead;
+  const isDriving  = !!myDrivingCarId;
+  // В машине стрельба ОТКЛЮЧЕНА (обе руки на руле), правый стик и weaponBar
+  // скрываются. Возвращаются обратно как только вышел из машины.
+  const canShoot   = !isPve && !myDead && !isDriving;
   // HUD-карточку показываем всегда (часы + K/D + HP). Если игрок в чисто
   // PvE-режиме (мирный наблюдатель) — скрываем. В обычном городе с
   // настоящим аккаунтом HUD виден постоянно.
@@ -4356,6 +4953,117 @@ function update(dt) {
   const inMag = Math.hypot(inDx, inDy);
   if (inMag > 1) { inDx /= inMag; inDy /= inMag; }
 
+  // ── В МАШИНЕ ── левый стик = газ + руль, правый отключён ──
+  if (myDrivingCarId) {
+    const qc = questCars.get(myDrivingCarId);
+    if (!qc) {
+      // Машина пропала (сдана/удалена) — сброс
+      myDrivingCarId = null;
+    } else {
+      const CAR_MAX_SPEED   = 8.5;   // тайлов/сек (см. серверный кламп 9.0)
+      const CAR_ACCEL       = 6.0;   // как быстро разгоняемся
+      const CAR_BRAKE       = 10.0;  // торможение при отпущенном стике / exit
+      const CAR_TURN_RATE   = 3.4;   // рад/сек
+      // Текущая скорость по локальному состоянию qc
+      let curVx = qc.vx || 0, curVy = qc.vy || 0;
+      let curSpeed = Math.hypot(curVx, curVy);
+      // Если игрок попросил выйти — игнорируем стик, тормозим до 0
+      const wantingExit = _exitRequested;
+      let throttle = 0, steer = 0;
+      if (!wantingExit && (Math.abs(inDx) > 0.08 || Math.abs(inDy) > 0.08)) {
+        // Стик → желаемое направление движения в WORLD-координатах (тайлы)
+        const d = inDx, s = inDy / ISO_Y;
+        const targetAng = Math.atan2((s - d) * 0.5, (s + d) * 0.5);
+        // Плавно поворачиваем angle машины к targetAng
+        let aDiff = targetAng - qc.ang;
+        while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
+        while (aDiff < -Math.PI) aDiff += Math.PI * 2;
+        const turnStep = Math.sign(aDiff) * Math.min(Math.abs(aDiff), CAR_TURN_RATE * dt);
+        qc.ang += turnStep;
+        // Газ = магнитуда стика (0..1)
+        throttle = Math.min(1, inMag);
+      }
+      // Применяем газ/тормоз вдоль текущего угла машины
+      const dirVy = Math.sin(qc.ang);
+      const dirVx = Math.cos(qc.ang);
+      if (throttle > 0.05) {
+        curVx += dirVx * CAR_ACCEL * throttle * dt;
+        curVy += dirVy * CAR_ACCEL * throttle * dt;
+      } else {
+        // Торможение/инерция: уменьшаем длину вектора
+        const dec = (wantingExit ? CAR_BRAKE : CAR_BRAKE * 0.55) * dt;
+        if (curSpeed <= dec) { curVx = 0; curVy = 0; }
+        else {
+          const k = (curSpeed - dec) / curSpeed;
+          curVx *= k; curVy *= k;
+        }
+      }
+      // Кламп скорости
+      curSpeed = Math.hypot(curVx, curVy);
+      if (curSpeed > CAR_MAX_SPEED) {
+        const k = CAR_MAX_SPEED / curSpeed;
+        curVx *= k; curVy *= k;
+      }
+      // Применяем позицию с проверкой стен
+      const newX = qc.x + curVx * dt;
+      const newY = qc.y + curVy * dt;
+      // Машина чуть «упругая» — если в стене, остановка
+      if (MAP[Math.floor(newY)] && MAP[Math.floor(newY)][Math.floor(newX)] !== 1) {
+        qc.x = newX; qc.y = newY;
+      } else {
+        curVx = 0; curVy = 0;
+      }
+      qc.vx = curVx; qc.vy = curVy;
+      // Игрок «приклеен» к машине — позиция = центр машины
+      player.r = qc.y; player.c = qc.x; player.ang = qc.ang;
+      // Шлём серверу инпут позиции (15 Гц, синк с обычным input rate)
+      if (!_lastDriveSentAt) _lastDriveSentAt = 0;
+      const nowMs = performance.now();
+      if (nowMs - _lastDriveSentAt > 66) {   // ~15 Hz
+        _lastDriveSentAt = nowMs;
+        try {
+          ws && ws.send(JSON.stringify({ t: 'gta_drive', d: {
+            car_id: qc.id,
+            x:  +qc.x.toFixed(3),
+            y:  +qc.y.toFixed(3),
+            ang: +qc.ang.toFixed(3),
+            vx: +curVx.toFixed(3),
+            vy: +curVy.toFixed(3),
+          } }));
+        } catch(e){}
+      }
+      // Запрошен выход и машина почти стоит → реально вышли
+      if (wantingExit && curSpeed < 0.25) {
+        const cid = myDrivingCarId;
+        myDrivingCarId = null;
+        _exitRequested = false;
+        try { ws && ws.send(JSON.stringify({ t: 'gta_exit', d: { car_id: cid } })); }
+        catch(e){}
+      }
+      // Камера + UI и пропускаем обычное движение игрока пешком
+      const targetCamX = (player.c - player.r) * TS * 0.5;
+      const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
+      cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
+      cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
+      updateGtaInteractions();
+      updateZoneBtn();
+      updatePvpUI();
+      updateGtaQuestHud();
+      // Интерполяция других игроков всё равно нужна
+      for (const [, o] of others) {
+        o.x += (o.tx - o.x) * Math.min(1, dt * 8);
+        o.y += (o.ty - o.y) * Math.min(1, dt * 8);
+        let aDiff2 = o.tAng - o.ang;
+        while (aDiff2 >  Math.PI) aDiff2 -= Math.PI * 2;
+        while (aDiff2 < -Math.PI) aDiff2 += Math.PI * 2;
+        o.ang += aDiff2 * Math.min(1, dt * 8);
+      }
+      // Интерполяция чужих quest_cars (которые ведут другие игроки)
+      _interpQuestCars(dt);
+      return;
+    }
+  }
+
   const speed = 5.0; // тайлов/сек
   player.walking = false;
   // Мёртвый игрок не двигается — ждём респауна сервера, иначе появлялся
@@ -4386,6 +5094,10 @@ function update(dt) {
   updateTerritoryCapture();
   updateAggroEntryHint();
   updateCaptureBanner();
+  updateGtaInteractions();
+  updateGtaQuestHud();
+  // Интерполяция чужих quest_cars (которые ведут другие игроки)
+  _interpQuestCars(dt);
   // Hold-to-fire: пока правый стик СДВИНУТ — стреляем с cooldown'ом по
   // оружию. Без сдвига — не стреляем (auto-aim убран, целимся вручную).
   // Угол стика → world-space через ISO_Y коррекцию (как в demo).
@@ -6362,6 +7074,217 @@ function drawCar(r, c) {
   ctx.fillRect(p.x + wx * 0.45, p.y - H + 4, wx * 0.20, H - 12);
 }
 
+// ── Квестовая машина (Майкл) ─────────────────────────────────────
+// Принимает car из questCars Map. Угол ang в радианах → переиспользуем
+// drawCarPretty со «снэпом» к 4 направлениям (горизонталь/вертикаль).
+// Подсветка: золотой контур + 🎯 над крышей если это МОЙ контракт,
+// либо иконка модели + цвет владельца. Driver-uid отображается рядом.
+function drawQuestCar(qc) {
+  const m = QUEST_CAR_MODELS[qc.model];
+  if (!m) return;
+  // ang → dirDx/dirDy (4-сторонний snap)
+  const cosA = Math.cos(qc.ang), sinA = Math.sin(qc.ang);
+  let dirDx = 0, dirDy = 0;
+  if (Math.abs(cosA) >= Math.abs(sinA)) {
+    dirDx = (cosA >= 0) ? 1 : -1;
+  } else {
+    dirDy = (sinA >= 0) ? 1 : -1;
+  }
+  const isMine    = String(qc.owner_uid) === String(QP.uid);
+  const drivenByMe= myDrivingCarId === qc.id;
+  const drivenByOther = qc.driver_uid && qc.driver_uid !== String(QP.uid);
+  const cp = w2s(qc.y + 0.5, qc.x + 0.5);
+  // ── Уничтоженная (wrecked) — горящий чёрный каркас, прыгающее пламя ──
+  if (qc.wrecked) {
+    // Тёмный «обугленный» корпус: drawCarPretty с чёрной палитрой
+    const wreckedModel = Object.assign({}, m, {
+      palette: ['#1a1410', '#0a0606'],
+      roof:    '#000',
+    });
+    drawCarPretty({ r: qc.y, c: qc.x, dirDx, dirDy, model: wreckedModel });
+    // Пламя — анимированные «языки» оранжево-жёлтого, прыгают
+    const t = performance.now() * 0.005;
+    ctx.save();
+    for (let i = 0; i < 5; i++) {
+      const fx = cp.x + Math.cos(t * 1.7 + i * 1.3) * 8;
+      const fy = cp.y - 6 + Math.sin(t * 2.3 + i * 0.7) * 4 - i * 2;
+      const sz = 6 + Math.sin(t * 3 + i) * 3 + i * 0.6;
+      ctx.fillStyle = (i % 2) ? 'rgba(255,140,40,.85)' : 'rgba(255,220,80,.85)';
+      ctx.shadowColor = '#ff6020';
+      ctx.shadowBlur  = 14;
+      ctx.beginPath();
+      ctx.arc(fx, fy, sz, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Дым — серый, выше
+    for (let i = 0; i < 3; i++) {
+      const sx = cp.x + Math.cos(t + i) * 6;
+      const sy = cp.y - 30 - i * 12 - Math.sin(t * 1.5 + i) * 3;
+      ctx.fillStyle = `rgba(80,80,80,${0.45 - i * 0.10})`;
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 8 + i * 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    return;
+  }
+  // Подсветка пола — золотой круг (мой контракт) / синий (чужой свободный)
+  // / красный (за рулём другой игрок).
+  ctx.save();
+  ctx.fillStyle = drivenByOther ? 'rgba(255,80,80,.30)'
+                : isMine        ? 'rgba(255,215,80,.42)'
+                                : 'rgba(120,180,255,.28)';
+  ctx.shadowColor = isMine ? '#ffd76b' : (drivenByOther ? '#ff5050' : '#6cb4ff');
+  ctx.shadowBlur  = 18;
+  ctx.beginPath();
+  ctx.ellipse(cp.x, cp.y + 4, TS * 0.55, TS * 0.55 * ISO_Y, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // Используем drawCarPretty
+  drawCarPretty({
+    r: qc.y, c: qc.x,
+    dirDx, dirDy,
+    model: m,
+  });
+  // ── Дым на низком HP (под 35%) — машина «закопчена», валит чёрный дым
+  const hp    = qc.hp     || 0;
+  const maxHp = qc.max_hp || 1;
+  const hpR   = hp / maxHp;
+  if (hpR > 0 && hpR < 0.35) {
+    const t = performance.now() * 0.004;
+    ctx.save();
+    for (let i = 0; i < 3; i++) {
+      const sx = cp.x + Math.cos(t * 0.7 + i) * 5;
+      const sy = cp.y - 18 - i * 10 - Math.sin(t * 1.2 + i) * 3;
+      ctx.fillStyle = `rgba(40,40,40,${0.50 - i * 0.12})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 6 + i * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  // ── HP-бар над крышей (если есть hp и < max) ──
+  if (typeof hp === 'number' && hpR < 1 && hpR > 0) {
+    const barW = TS * 0.7, barH = 4;
+    const by   = cp.y - TS * 0.85;
+    ctx.fillStyle = 'rgba(0,0,0,.75)';
+    ctx.fillRect(cp.x - barW / 2 - 1, by - 1, barW + 2, barH + 2);
+    ctx.fillStyle = hpR > 0.5 ? '#5dd55d' : hpR > 0.25 ? '#dda53a' : '#dd3a3a';
+    ctx.fillRect(cp.x - barW / 2, by, barW * hpR, barH);
+  }
+  // Подсветка иконкой над крышей — для МОЕЙ цели стрелка-маркер.
+  if (isMine && !drivenByMe) {
+    const t = performance.now() * 0.004;
+    const bob = Math.sin(t) * 4;
+    ctx.font = 'bold 22px system-ui, "Segoe UI Emoji", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffd76b';
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+    ctx.fillText('🎯', cp.x, cp.y - TS * 1.4 + bob);
+    ctx.shadowBlur = 0;
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.fillStyle = '#ffd76b';
+    ctx.fillText(m.label, cp.x, cp.y - TS * 1.7 + bob);
+  }
+  ctx.textAlign = 'left';
+}
+
+// ── Майкл-перекупщик ──────────────────────────────────────────────
+// Статичный NPC в порту. При подходе ≤2 тайла — кнопка «🤵 Поговорить
+// с Майклом» в нижней панели (показывается через showInteractBtn).
+const _MICHAEL_LOOK = { gender: 0, skin: 1, body: 2, face: 2, hair: 0, hat: 1 };
+function drawMichael() {
+  const p = w2s(MICHAEL_POS.r + 0.5, MICHAEL_POS.c + 0.5);
+  const t = performance.now() * 0.004;
+  // Подсветка — золотой круг под ногами + ПОЛОСА «магии» вокруг (заметно
+  // издалека). Раньше игрок терялся среди серой плиточной площади порта.
+  ctx.save();
+  const haloR = 26 + Math.sin(t * 1.7) * 3;
+  ctx.fillStyle = 'rgba(255,215,107,.10)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 5, haloR, haloR * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,215,107,.32)';
+  ctx.shadowColor = '#ffd76b';
+  ctx.shadowBlur  = 16;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 5, 18, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // Спрайт человечка
+  const phase = (Math.sin(t) * 0.2);
+  drawPerson(p.x, p.y, 0, _MICHAEL_LOOK, phase, 'Майкл', null, false, 1, 1, false);
+  // Иконка над головой — 💼 (бизнесмен) + табличка КУПЛЮ АВТО
+  const bob = Math.sin(t * 1.6) * 2;
+  ctx.font = '20px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+  ctx.fillText('💼', p.x, p.y - 56 + bob);
+  // Жёлтая «вывеска» КУПЛЮ АВТО над головой — самый сильный визуальный маркер
+  ctx.shadowBlur = 0;
+  const labelY = p.y - 76 + bob;
+  const labelW = 78, labelH = 16;
+  ctx.fillStyle = '#1a1108';
+  ctx.fillRect(p.x - labelW / 2, labelY - labelH / 2, labelW, labelH);
+  ctx.strokeStyle = '#ffd76b';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(p.x - labelW / 2 + 0.5, labelY - labelH / 2 + 0.5, labelW - 1, labelH - 1);
+  ctx.font = 'bold 10px system-ui, sans-serif';
+  ctx.fillStyle = '#ffd76b';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('КУПЛЮ АВТО', p.x, labelY + 1);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+}
+
+// ── Зона сдачи угнанных машин ────────────────────────────────────
+// Прямоугольник на пирсе порта. Полупрозрачная золотая штриховка +
+// рамка + иконка 💰 в центре. Внутри = автопродажа при выходе.
+function drawDropZone() {
+  // 4 угла зоны (в координатах тайл). Зона узкая 3×5 — раньше была 8×8
+  // и закрашивала всю плиточную площадь порта («пляж»), теперь оставляет
+  // её видимой. Заливка ещё прозрачнее (×0.20 вместо ×0.45).
+  const a = w2s(DROP_ZONE.r0, DROP_ZONE.c0);
+  const b = w2s(DROP_ZONE.r0, DROP_ZONE.c1);
+  const c = w2s(DROP_ZONE.r1, DROP_ZONE.c1);
+  const d = w2s(DROP_ZONE.r1, DROP_ZONE.c0);
+  const t = performance.now() * 0.001;
+  const pulse = 0.32 + Math.sin(t * 1.8) * 0.10;
+  ctx.save();
+  ctx.fillStyle = `rgba(255,215,107,${pulse * 0.20})`;
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+  ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y);
+  ctx.closePath();
+  ctx.fill();
+  // Рамка ярче чем заливка — чтобы границы было видно, но фон не пропал
+  ctx.strokeStyle = `rgba(255,215,107,${0.55 + pulse * 0.3})`;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y);
+  ctx.lineTo(d.x, d.y); ctx.closePath();
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  // Иконка $ в центре зоны (над тайлами)
+  const mid = w2s((DROP_ZONE.r0 + DROP_ZONE.r1) / 2,
+                  (DROP_ZONE.c0 + DROP_ZONE.c1) / 2);
+  const bob = Math.sin(t * 2.5) * 3;
+  ctx.font = 'bold 22px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffd76b';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 8;
+  ctx.fillText('💰', mid.x, mid.y + bob);
+  ctx.font = 'bold 10px system-ui, sans-serif';
+  ctx.fillStyle = '#ffe890';
+  ctx.fillText('СДАЧА', mid.x, mid.y + 14);
+  ctx.shadowBlur = 0;
+  ctx.textAlign = 'left';
+}
+
 // Ящик — невысокий, ~70% ширины тайла
 function drawCrate(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
@@ -7661,6 +8584,48 @@ function spawnImpact(wr, wc, weapon) {
   }
 }
 
+// Кулдаун предупреждений «машина горит» — не спамим тостами
+let _gtaLastWarnAt = 0;
+
+// Взрыв машины — мощный «мясной» эффект: 36 искр + чёрный круг копоти
+// + бочка дыма. Переиспользуем impacts/bloodSplats.
+function spawnCarExplosion(wr, wc) {
+  const parts = [];
+  for (let i = 0; i < 36; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 1.5 + Math.random() * 3.5;
+    const t  = Math.random();
+    parts.push({
+      vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+      life: 600 + Math.random() * 600, max: 1200,
+      color: t < 0.4 ? '#ffe080'
+           : t < 0.75 ? '#ff7820'
+           : '#7a2010',
+      isBlood: false,
+      size: 2.0 + Math.random() * 2.4,
+    });
+  }
+  impacts.push({ r: wr, c: wc, parts });
+  // Чёрная копоть-пятно на земле
+  bloodSplats.push({
+    r: wr, c: wc, radius: 18 + Math.random() * 6,
+    life: 14000, max: 14000, rot: Math.random() * Math.PI,
+    _isSoot: true,
+  });
+  // Ещё пара частиц «отлетающих обломков» — серые
+  for (let i = 0; i < 14; i++) {
+    const a = Math.random() * Math.PI * 2;
+    parts.push({
+      vr: Math.sin(a) * (1.2 + Math.random() * 2.0),
+      vc: Math.cos(a) * (1.2 + Math.random() * 2.0),
+      life: 900 + Math.random() * 400, max: 1300,
+      color: '#3a3a3a',
+      isBlood: false,
+      size: 1.6 + Math.random() * 1.4,
+    });
+  }
+}
+
 // Точка «хвата» (рука персонажа) — на уровне пояса/бёдер (НЕ плеч,
 // иначе оружие визуально «над головой» из-за того что у спрайта
 // сверху есть запас под шляпы). (x, y) — точка ног (как в drawPerson),
@@ -7819,6 +8784,7 @@ function weaponTip(w) { return (FIREARM_TIP[w] || 16); }
 // это lastShotClientT, для других игроков и NPC — lastBossShotAt.get(id)).
 function drawWeaponInHands(x, y, ang, weapon, scale /*shotAtMs ignored: см. drawMuzzles*/) {
   if (!weapon) return;
+  weapon = resolveWeapon(weapon);   // 'uzi' → 'smg', 'deagle' → 'pistol_heavy' и т.д.
   const a = handAnchor(x, y, ang);
   const { hx, hy, sx, sy, px, shY, perpX, perpY, shoulderD } = a;
   // Масштаб ровно как в demo: gunScale = 1.0 * (TS / 60) для миньона,
@@ -8038,6 +9004,8 @@ function render() {
   drawTerritoryPerimeters();
   // 1.7) Бандитские гнёзда — пульсирующая красная подсветка вокруг здания
   drawGangNestRings();
+  // 1.8) Зона сдачи угнанных машин Майклу — золотая штриховка на пирсе
+  drawDropZone();
   // 2) Объекты с depth-sort
   const items = [];
   for (let r = r0; r < r1; r++) {
@@ -8087,6 +9055,19 @@ function render() {
     if (car.r < r0 || car.r >= r1 || car.c < c0 || car.c >= c1) continue;
     items.push({ depth: car.r + car.c + 0.0008, draw: () => drawCarPretty(car) });
   }
+  // GTA-квестовые машины (Майкл). owner_uid видит подсветку, остальные —
+  // обычную модель + красный glow если другой игрок за рулём.
+  for (const qc of questCars.values()) {
+    if (qc.y < r0 || qc.y >= r1 || qc.x < c0 || qc.x >= c1) continue;
+    items.push({ depth: qc.y + qc.x + 0.00085, draw: () => drawQuestCar(qc) });
+  }
+  // Майкл-перекупщик — статичный в порту. Рисуем только если попал во
+  // view-окно (иначе чанк за пределами экрана зря тратим CPU).
+  if (MICHAEL_POS.r >= r0 && MICHAEL_POS.r < r1 &&
+      MICHAEL_POS.c >= c0 && MICHAEL_POS.c < c1) {
+    items.push({ depth: MICHAEL_POS.r + MICHAEL_POS.c + 0.0007,
+                 draw: () => drawMichael() });
+  }
   // Конвой инкассатора (boss + 3 полицейских) — если событие активно
   if (worldEvent) {
     const b = worldEvent.boss;
@@ -8128,6 +9109,22 @@ function render() {
   // Look берём всегда из URL — даже если has_look=0, параметры есть
   // (дефолты =0 в _qInt) и они хотя бы стабильны между перезагрузками.
   items.push({ depth: player.r + player.c + 0.001, draw: () => {
+    // В машине — спрайт игрока не рисуем (виден через крышу машины);
+    // только имя/звёзды над крышей.
+    if (myDrivingCarId) {
+      const p = w2s(player.r + 0.5, player.c + 0.5);
+      const headY = p.y - TS * 0.9;
+      ctx.font = 'bold 12px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(0,0,0,.7)';
+      ctx.fillText(QP.name || 'Я', p.x + 1, headY + 1);
+      ctx.fillStyle = '#ffd76b';
+      ctx.fillText(QP.name || 'Я', p.x, headY);
+      if (myWanted > 0) drawWantedStars(p.x, p.y, myWanted);
+      if (myGangs  > 0) drawWantedGangs(p.x, p.y, myGangs);
+      ctx.textAlign = 'left';
+      return;
+    }
     let px = w2s(player.r + 0.5, player.c + 0.5).x;
     let py = w2s(player.r + 0.5, player.c + 0.5).y;
     // Отдача — лёгкое смещение НАЗАД от прицела ~80мс после выстрела
@@ -8224,9 +9221,16 @@ function updateProjectiles(dt) {
   }
 }
 
+// Высота линии пуль/вспышек над землёй — это уровень плеча стрелка.
+// В drawWeaponInHands плечо рисуется на y - sh*0.17 (где sh = TS*1.7),
+// то есть смещение = TS*0.289. Жёсткое значение 18px было правильным
+// только при TS≈62 — при зуме (TS=40..80) пули уходили выше/ниже ствола.
+function _bulletY() { return Math.round(TS * 0.289); }
+
 // Рендер пуль — порт drawBullet из demo. Короткий цветной трассер с глоу.
 function drawBullets() {
   ctx.save();
+  const dy = _bulletY();
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
     const p1 = w2s(b.r + 0.5, b.c + 0.5);
@@ -8237,8 +9241,8 @@ function drawBullets() {
     ctx.shadowColor = b.color;
     ctx.shadowBlur = 8;
     ctx.beginPath();
-    ctx.moveTo(p2.x, p2.y - 18);  // на уровне пояса (как и оружие)
-    ctx.lineTo(p1.x, p1.y - 18);
+    ctx.moveTo(p2.x, p2.y - dy);  // на уровне плеча (как и оружие)
+    ctx.lineTo(p1.x, p1.y - dy);
     ctx.stroke();
     if (b._finished) {
       if (b.hit) {
@@ -8246,7 +9250,7 @@ function drawBullets() {
         ctx.fillStyle = '#ff6464';
         ctx.shadowColor = '#ff6464';
         ctx.beginPath();
-        ctx.arc(p1.x, p1.y - 18, 7, 0, Math.PI * 2);
+        ctx.arc(p1.x, p1.y - dy, 7, 0, Math.PI * 2);
         ctx.fill();
       }
       bullets.splice(i, 1);
@@ -8258,10 +9262,11 @@ function drawBullets() {
 
 // Вспышки дула — порт drawMuzzle из demo. 3 слоя: ореол, лучи, ядро.
 function drawMuzzles() {
+  const dy = _bulletY();
   for (const m of muzzles) {
     const t = m.life / m.max;
     const p = w2s(m.r + 0.5, m.c + 0.5);
-    const cx = p.x, cy = p.y - 18;
+    const cx = p.x, cy = p.y - dy;
     // 1. ореол
     ctx.save();
     ctx.shadowColor = '#ff9020';
@@ -8314,7 +9319,8 @@ function drawShells() {
     if (s.z < 0) { s.z = 0; s.vz *= -0.35; s.vc *= 0.6; s.vr *= 0.6; }
     s.rot += s.vrot * dts;
     const p = w2s(s.r + 0.5, s.c + 0.5);
-    const cx = p.x, cy = p.y - 18 - s.z * 18;
+    // Уровень выброса гильзы = плечо стрелка. Согласовано с _bulletY().
+    const cx = p.x, cy = p.y - _bulletY() - s.z * 18;
     const a = Math.min(1, s.life / 300);
     ctx.save();
     ctx.globalAlpha = a;
@@ -8361,6 +9367,7 @@ function drawBloodSplats() {
 // ── Импакт-частицы (искры/кровь при попадании) ─────────────────────
 function drawImpacts() {
   const now = performance.now();
+  const dy = _bulletY();   // совпадает с уровнем пули в drawBullets
   ctx.save();
   for (let i = impacts.length - 1; i >= 0; i--) {
     const imp = impacts[i];
@@ -8383,7 +9390,7 @@ function drawImpacts() {
         // Кровь — без glow, рисуем как непрозрачные капли
         ctx.shadowBlur = 0;
         ctx.beginPath();
-        ctx.arc(p.x + pt._x, p.y - 18 + pt._y,
+        ctx.arc(p.x + pt._x, p.y - dy + pt._y,
                 (pt.size || 2.4) * (0.6 + t * 0.4), 0, Math.PI * 2);
         ctx.fill();
       } else {
@@ -8391,7 +9398,7 @@ function drawImpacts() {
         ctx.shadowColor = pt.color;
         ctx.shadowBlur = 6;
         ctx.beginPath();
-        ctx.arc(p.x + pt._x, p.y - 18 + pt._y,
+        ctx.arc(p.x + pt._x, p.y - dy + pt._y,
                 (pt.size || 1.8) + t * 0.6, 0, Math.PI * 2);
         ctx.fill();
       }
@@ -8459,6 +9466,41 @@ function drawPOIArrows(r0, r1, c0, c1) {
     if (NEAR_BOTTOM && NEAR_LEFT  && ax < SAFE_BL.w && (H - ay) < SAFE_BL.h) ay = H - SAFE_BL.h - PAD;
     if (NEAR_BOTTOM && NEAR_RIGHT && (W - ax) < SAFE_BR.w && (H - ay) < SAFE_BR.h) ay = H - SAFE_BR.h - PAD;
     _drawPOIArrow(ax, ay, ndx, ndy, poi);
+  }
+  // Компас-стрелка к Майклу — если игрок далеко и у него есть активный
+  // контракт (или Майкл просто не на экране). Помогает найти перекупщика
+  // в порту, чтобы не блуждать. Стрелка ЗОЛОТАЯ с иконкой 💼.
+  const mVis = MICHAEL_POS.r >= r0 && MICHAEL_POS.r < r1 &&
+               MICHAEL_POS.c >= c0 && MICHAEL_POS.c < c1;
+  if (!mVis) {
+    const dr = MICHAEL_POS.r - player.r, dc = MICHAEL_POS.c - player.c;
+    const dist = Math.hypot(dr, dc);
+    // Показываем стрелку только если действительно есть смысл идти к Майклу:
+    // или активный контракт (надо сдать), или игрок не в машине (можно
+    // взять новый заказ). Если игрок просто едет мимо — не отвлекаем.
+    const shouldShow = (myGtaStatus && myGtaStatus.active) || (!myDrivingCarId && dist > 8);
+    if (shouldShow && dist > 8) {
+      const sp = w2s(MICHAEL_POS.r + 0.5, MICHAEL_POS.c + 0.5);
+      const dx = sp.x - cx, dy = sp.y - cy;
+      const len = Math.hypot(dx, dy) || 1;
+      const ndx = dx / len, ndy = dy / len;
+      const xMin = PAD, xMax = W - PAD, yMin = PAD, yMax = H - PAD;
+      let t = Infinity;
+      if (dx > 0) t = Math.min(t, (xMax - cx) / dx);
+      if (dx < 0) t = Math.min(t, (xMin - cx) / dx);
+      if (dy > 0) t = Math.min(t, (yMax - cy) / dy);
+      if (dy < 0) t = Math.min(t, (yMin - cy) / dy);
+      let ax = cx + t * dx, ay = cy + t * dy;
+      const NEAR_TOP    = ay < PAD + 20;
+      const NEAR_BOTTOM = ay > H - PAD - 20;
+      const NEAR_LEFT   = ax < PAD + 20;
+      const NEAR_RIGHT  = ax > W - PAD - 20;
+      if (NEAR_TOP && NEAR_LEFT  && ax < SAFE_TL.w && ay < SAFE_TL.h) ay = SAFE_TL.h + PAD;
+      if (NEAR_TOP && NEAR_RIGHT && (W - ax) < SAFE_TR.w && ay < SAFE_TR.h) ay = SAFE_TR.h + PAD;
+      if (NEAR_BOTTOM && NEAR_LEFT  && ax < SAFE_BL.w && (H - ay) < SAFE_BL.h) ay = H - SAFE_BL.h - PAD;
+      if (NEAR_BOTTOM && NEAR_RIGHT && (W - ax) < SAFE_BR.w && (H - ay) < SAFE_BR.h) ay = H - SAFE_BR.h - PAD;
+      _drawPOIArrow(ax, ay, ndx, ndy, { icon: '💼' });
+    }
   }
 }
 
@@ -8649,6 +9691,25 @@ function drawMinimap() {
     ctx2.textBaseline = 'middle';
     ctx2.fillStyle = '#fff';
     ctx2.fillText('☠', x, y);
+  }
+  // Майкл-перекупщик на мини-карте — золотой 💼 у порта. Помогает игроку
+  // найти его (раньше Майкл «терялся» в углу порта рядом с захватываемым POI).
+  {
+    const mx = (MICHAEL_POS.c + 0.5) * sx;
+    const my = (MICHAEL_POS.r + 0.5) * sy;
+    const mp = 0.6 + Math.abs(Math.sin(performance.now() * 0.005)) * 0.4;
+    ctx2.fillStyle = `rgba(255,215,107,${mp})`;
+    ctx2.shadowColor = '#ffd76b';
+    ctx2.shadowBlur = 8;
+    ctx2.beginPath();
+    ctx2.arc(mx, my, 5, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.shadowBlur = 0;
+    ctx2.font = 'bold 9px "Segoe UI Emoji", system-ui, sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.textBaseline = 'middle';
+    ctx2.fillStyle = '#000';
+    ctx2.fillText('💼', mx, my);
   }
   // Тюрьма (как POI 🚓) — серый домик в правом-нижнем углу карты
   const jailX = 56, jailY = 56, jailSize = 8;

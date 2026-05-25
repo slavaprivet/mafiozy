@@ -5675,14 +5675,29 @@ function openCreator() {
 
 // Phase 10: вход в общий онлайн-мир (world.html по WebSocket).
 // Если API не настроен (нет туннеля) — показываем тост, ничего не делаем.
-function openWorld() {
-  if (!DATA.api || !DATA.uid) {
-    showToast('Город онлайн доступен только при работающем сервере (туннеле)', '⚠️');
+// ВАЖНО: DATA.api приходит из URL-параметра, который Telegram кеширует со
+// старого запуска бота → может быть пустой или указывать на мёртвый туннель.
+// Поэтому ВСЕГДА подтягиваем свежий URL из coop_api.json (как делают все
+// кооп-функции через coopApi()), а в world.html передаём именно его.
+async function openWorld() {
+  if (!DATA.uid) {
+    showToast('Сначала открой бота через /start в Telegram', '⚠️');
+    return;
+  }
+  // Свежий URL из coop_api.json (публикуется при каждом старте бота).
+  // Если DATA.api пустой — подтянет, если есть — fetch всё равно дёшев и
+  // защищает от мёртвого туннеля (юзер открыл хаб со старого URL).
+  if (!coopApi()) {
+    try { await _coopFetchApiFallback(); } catch(e) {}
+  }
+  const apiUrl = coopApi();
+  if (!apiUrl) {
+    showToast('Бот не запущен. Открой ЗАПУСТИТЬ_БОТА.bat на хосте', '⚠️', 6000);
     return;
   }
   // Передаём api, uid, имя и look — клиент откроет WS и нарисует тебя.
   const params = new URLSearchParams();
-  params.set('api',   DATA.api);
+  params.set('api',   apiUrl);
   params.set('uid',   String(DATA.uid));
   params.set('name',  encodeURIComponent(DATA.name || 'Игрок'));
   // URL-кодим текущий URL хаба чтобы потом вернуться без потерь параметров.
@@ -7307,7 +7322,11 @@ const _CLIENT_V = String(P.get('_v') || '');
 let _appVerLastCheck = 0;
 async function _appVersionCheck() {
   _appVerLastCheck = Date.now();
-  if (!coopApi()) await _coopFetchApiFallback();
+  // ВСЕГДА перетягиваем свежий URL из coop_api.json — DATA.api может
+  // указывать на мёртвый туннель от прошлого запуска бота, и тогда
+  // fetch на /app/version молча валится по таймауту, auto-update не
+  // срабатывает, юзер сидит на старом хабе пока вручную не обновит.
+  try { await _coopFetchApiFallback(); } catch(e) {}
   if (!coopApi()) return;
   try {
     const r = await _coopFetch(coopApi() + '/app/version', {}, 4000);
