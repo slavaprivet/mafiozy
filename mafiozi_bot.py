@@ -11344,7 +11344,14 @@ async def _iso_run_sim_loop(sim: 'IsoBattleSim') -> None:
 WORLD_TICK_HZ = 15
 WORLD_TICK_DT = 1.0 / WORLD_TICK_HZ
 WORLD_MAP_COLS = 80   # тайлы (Х) — городская сетка, BLOCK=10.
-WORLD_MAP_ROWS = 140  # карта 80×140: r=0..79 — основной город, r=80..99 — буфер
+WORLD_MAP_ROWS = 200  # 80×200: r=0..79 город, r=80..99 буфер, r=100..139 Логово,
+                      # r=140..149 буфер, r=150..199 — пляж/море/корабль Майкла.
+# ── Южная зона (синхронно с world.html BEACH_*/PIER_*/SHIP_*) ──
+WORLD_BEACH_R0 = 150; WORLD_BEACH_R1 = 165
+WORLD_PIER_R0  = 165; WORLD_PIER_R1  = 175
+WORLD_PIER_C0  = 36;  WORLD_PIER_C1  = 44
+WORLD_SHIP_R0  = 175; WORLD_SHIP_R1  = 185
+WORLD_SHIP_C0  = 28;  WORLD_SHIP_C1  = 56
                       # (тоже город, дорога ведёт на юг), r=100..139 — отдельная
                       # большая арена с Логовом (банда там живёт и бьётся).
                       # Должно совпадать с MAP_COLS/MAP_ROWS в world.html
@@ -11366,6 +11373,17 @@ def _world_is_wall(r: int, c: int) -> bool:
         return True
     if r == 0 or r == WORLD_MAP_ROWS - 1 or c == 0 or c == WORLD_MAP_COLS - 1:
         return True
+    # ── Южная зона: пляж/вода/причал/палуба (r >= 140) ──
+    # ДОЛЖНО совпадать с buildMap()-override'ом в world.html.
+    if r >= 140:
+        if r < WORLD_BEACH_R1:
+            return False  # песок (включая буфер 140-149) — проходим
+        # На воде проходимы только: причал (PIER) и палуба корабля (SHIP)
+        if WORLD_PIER_R0 <= r < WORLD_PIER_R1 and WORLD_PIER_C0 <= c < WORLD_PIER_C1:
+            return False
+        if WORLD_SHIP_R0 <= r < WORLD_SHIP_R1 and WORLD_SHIP_C0 <= c < WORLD_SHIP_C1:
+            return False
+        return True  # вода
     BLOCK = 10
     rm = r % BLOCK; cm = c % BLOCK
     # Дорога — ЧЕТЫРЕ клетки шириной (mod ∈ {0..3}). Должно совпадать

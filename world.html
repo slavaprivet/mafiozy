@@ -948,7 +948,18 @@ window.addEventListener('resize', resizeCanvas);
 // Размер задаст сервер. Дефолт 80×140: r=0..79 основной город, r=80..99
 // буфер (тоже город — дорога ведёт на юг), r=100..139 — отдельная
 // арена Логова где живёт банда.
-let MAP_COLS = 80, MAP_ROWS = 140;
+let MAP_COLS = 80, MAP_ROWS = 200;
+
+// ── Южная зона: пляж + море + причал + корабль ─────────────────────
+// Карта 80×200: r=0..79 город, r=80..99 буфер, r=100..139 Логово,
+// r=140..149 буфер от Логова, r=150..199 — берег и порт Майкла.
+// Координаты ДОЛЖНЫ совпадать с серверным _world_is_wall в mafiozi_bot.py.
+const BEACH_R0 = 150, BEACH_R1 = 165;   // полоса песка (15 рядов)
+const PIER_R0  = 165, PIER_R1  = 175;   // деревянный причал выступает в воду
+const PIER_C0  = 36,  PIER_C1  = 44;
+const SHIP_R0  = 175, SHIP_R1  = 185;   // корпус корабля Майкла
+const SHIP_C0  = 28,  SHIP_C1  = 56;
+// Тайл-коды южной зоны: 14 песок, 15 причал, 16 вода (БЛОК), 17 палуба.
 const TS     = 56;           // размер тайла на экране — крупнее, как в боях
 const ISO_Y  = 0.55;         // ужатие по Y (тот же угол что в demo_isometric)
 // Блок города: 10×10 тайлов. Дорога 4 тайла шириной, бордюр 2 тайла,
@@ -1115,6 +1126,24 @@ function buildMap() {
       MAP[p.r][p.c] = 1;
     }
   }
+
+  // ── Южный регион: пляж + море + пирс + корабль ──
+  // Полностью переписываем тайлы r=BEACH_R0..MAP_ROWS-1 — здесь нет
+  // обычной городской сетки. Между Логовом (r<=139) и пляжем (r>=150)
+  // остаётся буфер r=140..149 — песок-переход без декора.
+  for (let r = 140; r < MAP_ROWS - 1; r++) {
+    for (let c = 1; c < MAP_COLS - 1; c++) {
+      let t;
+      if (r < BEACH_R1) {
+        t = 14;                                              // песок (включая буфер 140-149)
+      } else {
+        t = 16;                                              // вода по умолчанию
+        if (r >= PIER_R0 && r < PIER_R1 && c >= PIER_C0 && c < PIER_C1) t = 15;  // причал
+        if (r >= SHIP_R0 && r < SHIP_R1 && c >= SHIP_C0 && c < SHIP_C1) t = 17;  // палуба
+      }
+      MAP[r][c] = t;
+    }
+  }
 }
 
 // ── POI районов ────────────────────────────────────────────────
@@ -1259,8 +1288,8 @@ let gangNests = [];
 // quest_car видна ВСЕМ онлайн-игрокам (соревнование «успей первым»).
 // Зона сдачи — прямоугольник в порту. Выход в зоне = автопродажа.
 // Координаты совпадают с серверными WorldSim.MICHAEL_X/Y, DROP_ZONE_*.
-const MICHAEL_POS = { r: 14, c: 56 };          // тротуар перед входом в порт
-const DROP_ZONE = { r0: 12, r1: 14, c0: 54, c1: 58 };  // узкая полоса 3×5
+const MICHAEL_POS = { r: 179, c: 42 };         // палуба корабля Майкла
+const DROP_ZONE = { r0: 167, r1: 173, c0: 37, c1: 43 };  // деревянный пирс — сюда подгонять угнанные тачки
 // Snapshot quest_cars: {id, model, x, y, ang, vx, vy, owner_uid, driver_uid,
 //                       state, reward, tx, ty, tAng}
 const questCars = new Map();    // car_id → entry
@@ -2713,7 +2742,9 @@ window.addEventListener('keyup', (e) => {
 // ── Коллизии ───────────────────────────────────────────────────
 // Проходимые тайлы: 0 (дорога), 7 (фонарь — рисуется как столб
 // над тайлом, но сам тайл-пол свободен), 8 (трава), 9 (бордюр).
-const PASSABLE = new Set([0, 7, 8, 9]);
+// Проходимые тайлы: 0 дорога, 7 фонарь, 8 парк, 9 бордюр,
+// 14 песок, 15 причал, 17 палуба корабля. Вода (16) и здания (1) блокируют.
+const PASSABLE = new Set([0, 7, 8, 9, 14, 15, 17]);
 function isBlocked(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS) return true;
@@ -5063,7 +5094,10 @@ function update(dt) {
       const newX = qc.x + curVx * dt;
       const newY = qc.y + curVy * dt;
       // Машина чуть «упругая» — если в стене, остановка
-      if (MAP[Math.floor(newY)] && MAP[Math.floor(newY)][Math.floor(newX)] !== 1) {
+      // Угнанная машина блокируется любым непроходимым тайлом — стены домов
+      // (1), вода (16), припаркованные машины (2), декор. Используем общий
+      // isBlocked, чтобы не въехать в море с пирса.
+      if (!isBlocked(newY, newX)) {
         qc.x = newX; qc.y = newY;
       } else {
         curVx = 0; curVy = 0;
@@ -5183,10 +5217,291 @@ function update(dt) {
   sendInput();
 }
 
+// ── Отрисовка южной зоны (пляж / вода / причал / палуба) ──────────
+function drawSouthTile(r, c, t, p, wx, wy) {
+  const h1 = ((r * 73 + c * 131) >>> 0) % 100;
+  const h2 = ((r * 257 + c * 379) >>> 0) % 100;
+  let color;
+  if (t === 14) {
+    // Песок: золотисто-бежевый с вариациями.
+    if      (h1 < 12) color = '#c9a868';  // сухой светлый
+    else if (h1 < 35) color = '#b89860';  // обычный
+    else if (h1 < 70) color = '#a8884a';  // тёмный (влажный)
+    else if (h1 < 88) color = '#bf9858';  // средний
+    else              color = '#d8b87a';  // совсем сухой
+  } else if (t === 15) {
+    // Деревянный причал — доски с тёмными швами вдоль рядов (по r).
+    const plank = ((r * 1009) >>> 0) % 4;
+    color = (plank === 0) ? '#6a4a2a' :
+            (plank === 1) ? '#5a3e26' :
+            (plank === 2) ? '#7a5630' : '#65462a';
+  } else if (t === 16) {
+    // Вода: тёмно-синяя с бликом-волной (анимация по времени).
+    const tm = performance.now() * 0.0008;
+    const wave = Math.sin((r * 0.7 + c * 0.5) + tm * 2) * 0.5 + 0.5;   // 0..1
+    if      (h1 < 25) color = '#173248';
+    else if (h1 < 70) color = '#1a3a52';
+    else              color = '#21455f';
+    // Если волна сильная — светлая полоса
+    if (wave > 0.78) color = '#3a6b8f';
+  } else {
+    // Палуба корабля — светлое дерево, доски поперёк (по c).
+    const plank = ((c * 1009) >>> 0) % 4;
+    color = (plank === 0) ? '#8a6838' :
+            (plank === 1) ? '#7a5832' : '#9a7a44';
+  }
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(p.x,      p.y - wy);
+  ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x,      p.y + wy);
+  ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath();
+  ctx.fill();
+  if (t === 15 || t === 17) {
+    // Контур доски
+    ctx.strokeStyle = 'rgba(0,0,0,.28)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  } else if (t === 14) {
+    // Иногда мелкие камушки/ракушки на песке
+    if (h2 < 8) {
+      ctx.fillStyle = (h2 & 1) ? '#fff4d8' : '#e8c898';
+      ctx.fillRect(p.x - 2 + (h1 % 5 - 2), p.y - 1, 2, 2);
+    }
+  } else if (t === 16) {
+    // Барашек на гребне волны
+    if (h2 < 18) {
+      const tm = performance.now() * 0.0012;
+      const ph = Math.sin((r * 1.1 + c * 0.7) + tm * 3);
+      if (ph > 0.85) {
+        ctx.fillStyle = 'rgba(255,255,255,.45)';
+        ctx.fillRect(p.x - 4, p.y - 1, 8, 1);
+      }
+    }
+  }
+}
+
+// Закрашенный изо-«куб» — фундамент для бортов/надстроек/контейнеров.
+function _isoBox(cr, cc, w, h, height, topCol, sideCol, darkCol) {
+  // cr, cc — центр в тайлах. w, h — полу-размеры в тайлах. height — в isoH-юнитах.
+  const H = isoH(height);
+  const base = w2s(cr, cc);
+  // 4 угла основания (sw/se/ne/nw в экранных координатах)
+  const nw = w2s(cr - h, cc - w);
+  const ne = w2s(cr - h, cc + w);
+  const se = w2s(cr + h, cc + w);
+  const sw = w2s(cr + h, cc - w);
+  // Тень на земле
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath();
+  ctx.moveTo(nw.x, nw.y); ctx.lineTo(ne.x, ne.y);
+  ctx.lineTo(se.x, se.y); ctx.lineTo(sw.x, sw.y);
+  ctx.closePath(); ctx.fill();
+  // Передний правый бок (юго-восточный)
+  ctx.fillStyle = sideCol;
+  ctx.beginPath();
+  ctx.moveTo(se.x, se.y);
+  ctx.lineTo(ne.x, ne.y);
+  ctx.lineTo(ne.x, ne.y - H);
+  ctx.lineTo(se.x, se.y - H);
+  ctx.closePath(); ctx.fill();
+  // Передний левый бок (юго-западный)
+  ctx.fillStyle = darkCol;
+  ctx.beginPath();
+  ctx.moveTo(sw.x, sw.y);
+  ctx.lineTo(se.x, se.y);
+  ctx.lineTo(se.x, se.y - H);
+  ctx.lineTo(sw.x, sw.y - H);
+  ctx.closePath(); ctx.fill();
+  // Крыша
+  ctx.fillStyle = topCol;
+  ctx.beginPath();
+  ctx.moveTo(nw.x, nw.y - H); ctx.lineTo(ne.x, ne.y - H);
+  ctx.lineTo(se.x, se.y - H); ctx.lineTo(sw.x, sw.y - H);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.35)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  return { nw, ne, se, sw, H };
+}
+
+// ── Корпус корабля + надстройка + контейнеры на палубе ──
+function drawShipHull() {
+  const SHIP_W = (SHIP_C1 - SHIP_C0) / 2;        // полу-ширина в тайлах
+  const SHIP_H = (SHIP_R1 - SHIP_R0) / 2;        // полу-длина
+  const MID_R  = (SHIP_R0 + SHIP_R1) / 2;
+  const MID_C  = (SHIP_C0 + SHIP_C1) / 2;
+  // 1) Борта корабля — рамка вокруг палубы (4 коротких "стенки" малой высоты).
+  //    Палуба сама уже нарисована как тайл 17, мы добавляем приподнятые края.
+  const RAIL_H = 0.45;
+  // Северный борт (тыл — в сторону открытого моря)
+  _isoBox(SHIP_R0 - 0.15, MID_C, SHIP_W + 0.15, 0.18, RAIL_H,
+          '#3a2818', '#28180c', '#1a0e06');
+  // Южный борт (нос к пирсу)
+  _isoBox(SHIP_R1 - 0.15, MID_C, SHIP_W + 0.15, 0.18, RAIL_H,
+          '#3a2818', '#28180c', '#1a0e06');
+  // Западный борт
+  _isoBox(MID_R, SHIP_C0 + 0.15, 0.18, SHIP_H + 0.15, RAIL_H,
+          '#3a2818', '#28180c', '#1a0e06');
+  // Восточный борт
+  _isoBox(MID_R, SHIP_C1 - 0.15, 0.18, SHIP_H + 0.15, RAIL_H,
+          '#3a2818', '#28180c', '#1a0e06');
+  // 2) Надстройка (рулевая рубка) в северной части корабля
+  _isoBox(SHIP_R0 + 1.8, MID_C, 4.0, 1.3, 1.6,
+          '#7a6a48', '#5c4e30', '#3e3420');
+  // Окна рубки — узкий чёрный пояс
+  const bridge = w2s(SHIP_R0 + 1.8, MID_C);
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.fillRect(bridge.x - 50, bridge.y - isoH(1.4), 100, 6);
+  ctx.fillStyle = 'rgba(150,210,255,.25)';
+  ctx.fillRect(bridge.x - 48, bridge.y - isoH(1.4) + 1, 96, 4);
+  // 3) Труба-дымоход с лёгким дымком
+  _isoBox(SHIP_R0 + 1.5, MID_C + 3.0, 0.6, 0.6, 3.2,
+          '#252018', '#181410', '#0c0a06');
+  // Красная полоса на трубе
+  const pipe = w2s(SHIP_R0 + 1.5, MID_C + 3.0);
+  ctx.fillStyle = '#c0392b';
+  ctx.fillRect(pipe.x - 18, pipe.y - isoH(2.4), 36, 12);
+  // Дым
+  const tm = performance.now() * 0.001;
+  for (let i = 0; i < 3; i++) {
+    const rise = (tm * 0.6 + i * 0.4) % 1;
+    const sx = pipe.x + Math.sin(tm + i * 1.7) * 8;
+    const sy = pipe.y - isoH(3.3) - rise * 50;
+    ctx.fillStyle = `rgba(180,180,180,${0.45 * (1 - rise)})`;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 8 + rise * 12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 4) Контейнеры на палубе — 3 ряда × 2 штуки, между рубкой и центром
+  const CONT_COLORS = ['#c0392b', '#2980b9', '#f39c12', '#27ae60', '#8e44ad'];
+  for (let ri = 0; ri < 2; ri++) {
+    for (let ci = 0; ci < 4; ci++) {
+      const cr = SHIP_R0 + 4.5 + ri * 1.4;
+      const cc = SHIP_C0 + 6 + ci * 5;
+      if (cr > SHIP_R1 - 1.5) continue;
+      const idx = (ri * 4 + ci) % CONT_COLORS.length;
+      const col = CONT_COLORS[idx];
+      _isoBox(cr, cc, 1.3, 0.55, 0.95,
+              col, _shade(col, -0.25), _shade(col, -0.5));
+    }
+  }
+  // 5) Контейнеры на пирсе — Майкл «выгружает» их с корабля
+  for (let i = 0; i < 3; i++) {
+    const cr = PIER_R0 + 1 + i * 2.3;
+    const cc = PIER_C0 + 1.5;
+    const col = CONT_COLORS[(i + 2) % CONT_COLORS.length];
+    _isoBox(cr, cc, 1.1, 0.5, 0.85,
+            col, _shade(col, -0.25), _shade(col, -0.5));
+  }
+}
+
+// Утилита: затемнить/осветлить HEX-цвет (k>0 — светлее, k<0 — темнее).
+function _shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, Math.min(255, ((n >> 16) & 255) + Math.round(255 * k)));
+  const g = Math.max(0, Math.min(255, ((n >>  8) & 255) + Math.round(255 * k)));
+  const b = Math.max(0, Math.min(255, ( n        & 255) + Math.round(255 * k)));
+  return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+}
+
+// ── Кран на корабле — анимация: берёт контейнер с палубы, переносит на
+//    пирс, опускает, возвращается. Циклически. ───────────────────────
+function drawShipCrane() {
+  const MID_R  = (SHIP_R0 + SHIP_R1) / 2;
+  const MID_C  = (SHIP_C0 + SHIP_C1) / 2;
+  // База крана — в середине палубы
+  const baseR = MID_R, baseC = MID_C;
+  // Башня (вертикальная мачта)
+  _isoBox(baseR, baseC, 0.5, 0.5, 4.0,
+          '#888', '#666', '#444');
+  const base = w2s(baseR, baseC);
+  const towerTop = { x: base.x, y: base.y - isoH(4.0) };
+  // Стрела крана — горизонтальная балка, поворачивается по фазе
+  const tm = performance.now() * 0.001;
+  // 8-сек цикл: 0..2 — берём контейнер с палубы (короткая стрела),
+  //             2..4 — поворот к пирсу (стрела вперёд-влево),
+  //             4..6 — опускаем на пирс,
+  //             6..8 — возврат
+  const phase = (tm * 0.125) % 1;       // 0..1 за 8 сек
+  // Угол стрелы: 0 = на палубу (на север), -PI/2 = на пирс (на юг)
+  let armAng;
+  if (phase < 0.25)      armAng = 0;                                // берёт
+  else if (phase < 0.5)  armAng = -((phase - 0.25) / 0.25) * Math.PI; // поворот
+  else if (phase < 0.75) armAng = -Math.PI;                          // опускает
+  else                   armAng = -Math.PI + ((phase - 0.75) / 0.25) * Math.PI; // обратно
+  const armLen = 90;   // пиксели
+  const armEnd = {
+    x: towerTop.x + Math.sin(armAng) * armLen,
+    y: towerTop.y - 8 + Math.cos(armAng) * armLen * 0.4,
+  };
+  // Стрела
+  ctx.strokeStyle = '#c0a040';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(towerTop.x, towerTop.y - 6);
+  ctx.lineTo(armEnd.x, armEnd.y);
+  ctx.stroke();
+  ctx.strokeStyle = '#806020';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Противовес на коротком конце (наоборот)
+  const counterEnd = {
+    x: towerTop.x - Math.sin(armAng) * 25,
+    y: towerTop.y - 8 - Math.cos(armAng) * 10,
+  };
+  ctx.fillStyle = '#444';
+  ctx.beginPath();
+  ctx.arc(counterEnd.x, counterEnd.y, 8, 0, Math.PI * 2);
+  ctx.fill();
+  // Кабина оператора на башне
+  ctx.fillStyle = '#ffd76b';
+  ctx.fillRect(towerTop.x - 7, towerTop.y - 14, 14, 10);
+  ctx.fillStyle = 'rgba(60,140,200,.7)';
+  ctx.fillRect(towerTop.x - 5, towerTop.y - 12, 10, 4);
+  // Трос — вертикально вниз от конца стрелы
+  // Высота троса меняется по фазе (опустился = выше число)
+  let cableLen;
+  if (phase < 0.25)      cableLen = 30 + (phase / 0.25) * 30;       // подъём
+  else if (phase < 0.5)  cableLen = 30;                              // транзит
+  else if (phase < 0.75) cableLen = 30 + ((phase - 0.5) / 0.25) * 50; // опускание
+  else                   cableLen = 30;                              // обратно
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(armEnd.x, armEnd.y);
+  ctx.lineTo(armEnd.x, armEnd.y + cableLen);
+  ctx.stroke();
+  // Контейнер на крюке (есть только в активной фазе)
+  const carrying = (phase >= 0.15 && phase < 0.85);
+  if (carrying) {
+    const cx = armEnd.x, cy = armEnd.y + cableLen;
+    const cw = 22, ch = 14;
+    const COLOR = ['#c0392b', '#2980b9', '#f39c12', '#27ae60'][Math.floor(tm * 0.125) % 4];
+    ctx.fillStyle = _shade(COLOR, -0.4);
+    ctx.fillRect(cx - cw / 2, cy, cw, ch);                         // тень
+    ctx.fillStyle = COLOR;
+    ctx.fillRect(cx - cw / 2, cy - 4, cw, ch);                     // верх
+    ctx.strokeStyle = 'rgba(0,0,0,.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx - cw / 2, cy - 4, cw, ch);
+    // Рифление контейнера
+    for (let i = 1; i < 5; i++) {
+      ctx.beginPath();
+      ctx.moveTo(cx - cw / 2 + i * (cw / 5), cy - 4);
+      ctx.lineTo(cx - cw / 2 + i * (cw / 5), cy - 4 + ch);
+      ctx.stroke();
+    }
+  }
+}
+
 function drawTile(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
   const t = MAP[r][c];
+  // Южная зона: пляж/вода/причал/палуба — отдельная отрисовка.
+  if (t >= 14 && t <= 17) { drawSouthTile(r, c, t, p, wx, wy); return; }
   // Тип поверхности — дорога / тротуар / трава / арена-пол
   const onRoadR = (r % BLOCK <= 2);
   const onRoadC = (c % BLOCK <= 2);
@@ -9122,6 +9437,16 @@ function render() {
       MICHAEL_POS.c >= c0 && MICHAEL_POS.c < c1) {
     items.push({ depth: MICHAEL_POS.r + MICHAEL_POS.c + 0.0007,
                  draw: () => drawMichael() });
+  }
+  // Корабль Майкла — большой меш (корпус + надстройка + кран + контейнеры).
+  // Рисуем как один объект с depth = задний край палубы, чтобы он сидел
+  // ПОЗАДИ Майкла и контейнеров на пирсе, но перед водой.
+  const SHIP_MID_R = (SHIP_R0 + SHIP_R1) / 2;
+  const SHIP_MID_C = (SHIP_C0 + SHIP_C1) / 2;
+  if (SHIP_MID_R >= r0 - 8 && SHIP_MID_R < r1 + 8 &&
+      SHIP_MID_C >= c0 - 12 && SHIP_MID_C < c1 + 12) {
+    items.push({ depth: SHIP_R0 + SHIP_C0 - 0.5, draw: () => drawShipHull() });
+    items.push({ depth: SHIP_MID_R + SHIP_MID_C + 0.5, draw: () => drawShipCrane() });
   }
   // Конвой инкассатора (boss + 3 полицейских) — если событие активно
   if (worldEvent) {
