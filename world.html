@@ -2539,6 +2539,11 @@ const cam = {
   x: (SPAWN_C - SPAWN_R) * TS * 0.5,
   y: (SPAWN_C + SPAWN_R) * TS * 0.5 * ISO_Y,
 };
+// Плавный зум камеры. В городе — 1.0. В южной зоне (пляж/пирс/корабль)
+// нет высоких зданий, открытое пространство визуально «отдаляет» вид —
+// игрок становится мелким. Компенсируем масштабом 1.18, плавно лерпим
+// при переходе. Управляется в update(dt) → применяется в render().
+let viewZoom = 1.0;
 
 // Преобразование тайл→экран и обратно
 function w2s(r, c) {
@@ -5324,6 +5329,10 @@ function update(dt) {
   const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
   cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
   cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
+  // Зум: на пляже/в порту приближаем камеру (открытое пространство визуально
+  // «отдаляет» вид без высоких зданий, игрок казался мелким).
+  const _zTarget = (player.r >= 145) ? 1.20 : 1.0;
+  viewZoom += (_zTarget - viewZoom) * Math.min(1, dt * 3.5);
   // Поиск ближайшего POI: если игрок в радиусе ENTER_R тайлов от вывески,
   // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
   updateZoneBtn();
@@ -10441,6 +10450,18 @@ function render() {
   } else {
     camShake = 0;
   }
+  // Зум камеры (для пляжа). Масштабируем вокруг центра экрана. UI (стрелки
+  // POI, ночной тинт, мини-карта) рисуются ПОСЛЕ restore — они не зумятся.
+  const _zoomActive = (viewZoom > 1.001 || viewZoom < 0.999);
+  if (_zoomActive) {
+    ctx.save();
+    const stage = document.getElementById('stage');
+    const _zcx = stage.clientWidth / 2;
+    const _zcy = stage.clientHeight / 2;
+    ctx.translate(_zcx, _zcy);
+    ctx.scale(viewZoom, viewZoom);
+    ctx.translate(-_zcx, -_zcy);
+  }
   // Viewport culling (под более крупный TS уменьшаем радиус)
   const VIS_R = 12;
   const r0 = Math.max(0, Math.floor(player.r - VIS_R));
@@ -10690,6 +10711,9 @@ function render() {
   drawMuzzles();
   // Импакт-частицы (искры, кровь) — поверх всего
   drawImpacts();
+  // Снимаем zoom-трансформ ПЕРЕД UI-слоем (стрелки POI / мини-карта),
+  // чтобы UI рисовался в нативном 1:1 без масштаба пляжа.
+  if (_zoomActive) ctx.restore();
   // Снимаем shake-трансформ ПЕРЕД UI-слоем (стрелки POI / мини-карта),
   // чтобы UI не дёргался во время отдачи камеры.
   if (shakeNow > 0.05) ctx.restore();
