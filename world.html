@@ -1164,15 +1164,16 @@ function generateBeachDecor() {
     _beachDecor.push({ kind: 'plank_path', r0: 150, r1: 165, c: pc });
   }
   // 2) Пальмы — детерминированно по пляжу (BEACH_R0..BEACH_R1).
-  //    Плотность ~10% но с зонами разрежения (избегаем дорожек).
+  //    Плотность ~18% но с зонами разрежения (избегаем дорожек и зонтиков).
+  const UMBRELLA_RC = new Set();
+  // (заранее зарезервируем, чтобы не сажать пальму под зонтиком)
   for (let r = BEACH_R0 + 1; r < BEACH_R1 - 1; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
-      // Не на дорожке
       if (PATH_COLS.some(pc => Math.abs(c - pc) <= 1)) continue;
       // Не на тропе игрока (центральная полоса c=38..46) — здесь ходят
       if (c >= 38 && c <= 46 && r >= BEACH_R1 - 3) continue;
       const h = _bhash(r, c, 1);
-      if (h < 0.10) {
+      if (h < 0.18) {
         _beachDecor.push({ kind: 'palm',
                            r: r + 0.5 + (_bhash(r,c,2) - 0.5) * 0.3,
                            c: c + 0.5 + (_bhash(r,c,3) - 0.5) * 0.3,
@@ -1199,9 +1200,46 @@ function generateBeachDecor() {
   // 4) Перевёрнутые лодки на песке (для антуража)
   _beachDecor.push({ kind: 'boat', r: 160, c: 6,  ang: 0.4,  col: '#c0392b' });
   _beachDecor.push({ kind: 'boat', r: 159, c: 74, ang: -0.5, col: '#2980b9' });
-  // 5) Спасательная вышка
-  _beachDecor.push({ kind: 'lifeguard', r: 157, c: 40 });
-  // 6) Случайные ракушки/камни (мелкие, рядом с водой)
+  // 5) Спасательная вышка — сдвинута в сторону, чтобы не перекрывать пирс
+  _beachDecor.push({ kind: 'lifeguard', r: 156, c: 26 });
+  // 6) Тропический бар на пляже — деревянная будка с соломенной крышей
+  _beachDecor.push({ kind: 'tiki_bar', r: 154, c: 56 });
+  // 7) Сёрфы прислонённые в песок группами
+  _beachDecor.push({ kind: 'surfboard', r: 152, c: 10, col: '#e74c3c', ang: -0.3 });
+  _beachDecor.push({ kind: 'surfboard', r: 152, c: 10.6, col: '#f1c40f', ang: -0.1 });
+  _beachDecor.push({ kind: 'surfboard', r: 152, c: 11.2, col: '#3498db', ang: 0.15 });
+  _beachDecor.push({ kind: 'surfboard', r: 153, c: 64, col: '#2ecc71', ang: 0.2 });
+  _beachDecor.push({ kind: 'surfboard', r: 153, c: 64.6, col: '#9b59b6', ang: 0.05 });
+  // 8) Пляжные мячи (несколько, разных цветов)
+  _beachDecor.push({ kind: 'ball', r: 159, c: 32, col1: '#e74c3c', col2: '#fff' });
+  _beachDecor.push({ kind: 'ball', r: 156, c: 50, col1: '#3498db', col2: '#f1c40f' });
+  // 9) Полотенца расстелены на песке
+  for (const tw of [
+    { r: 158, c: 19, col: '#e74c3c' },
+    { r: 161, c: 44, col: '#9b59b6' },
+    { r: 158, c: 67, col: '#1abc9c' },
+  ]) _beachDecor.push({ kind: 'towel', r: tw.r, c: tw.c, col: tw.col });
+  // 10) Песочные замки (детский антураж)
+  _beachDecor.push({ kind: 'sandcastle', r: 160, c: 16 });
+  _beachDecor.push({ kind: 'sandcastle', r: 163, c: 70 });
+  // 11) Морские звёзды и крабы у самой воды
+  for (let r = BEACH_R1 - 2; r < BEACH_R1; r++) {
+    for (let c = 4; c < MAP_COLS - 4; c++) {
+      if (PATH_COLS.some(pc => Math.abs(c - pc) <= 1)) continue;
+      const h = _bhash(r, c, 8);
+      if (h < 0.025) {
+        _beachDecor.push({ kind: 'starfish',
+                           r: r + 0.5 + (_bhash(r,c,9) - 0.5) * 0.6,
+                           c: c + 0.5 + (_bhash(r,c,10) - 0.5) * 0.6,
+                           col: (h < 0.012) ? '#e67e22' : '#e74c3c' });
+      } else if (h >= 0.95 && h < 0.98) {
+        _beachDecor.push({ kind: 'crab',
+                           r: r + 0.5,
+                           c: c + 0.5 });
+      }
+    }
+  }
+  // 12) Случайные ракушки/камни (мелкие, рядом с водой) — оставляем
   for (let r = BEACH_R1 - 3; r < BEACH_R1; r++) {
     for (let c = 4; c < MAP_COLS - 4; c++) {
       if (PATH_COLS.some(pc => Math.abs(c - pc) <= 1)) continue;
@@ -4069,13 +4107,28 @@ const _michaelQuestHint = document.getElementById('michaelQuestHint');
 const _michaelTakeBtn   = document.getElementById('michaelTakeBtn');
 const _michaelTalk      = document.getElementById('michaelTalk');
 const _michaelQuestCv   = document.getElementById('michaelQuestCanvas');
+let _michaelTimer = null;
 function openMichaelMenu() {
   _michaelModal.classList.add('show');
   // Запрашиваем актуальный статус с сервера (счётчик угонов + активный квест)
   try { ws && ws.send(JSON.stringify({ t: 'gta_status', d: {} })); } catch(e){}
   refreshMichaelMenu();
+  // Тикаем локальный таймер обратного отсчёта раз в секунду — чтобы
+  // «До следующего заказа: 5ч 23м» уменьшался в реальном времени без
+  // постоянных запросов на сервер.
+  if (_michaelTimer) clearInterval(_michaelTimer);
+  _michaelTimer = setInterval(() => {
+    if (!_michaelModal.classList.contains('show')) {
+      clearInterval(_michaelTimer); _michaelTimer = null; return;
+    }
+    if (myGtaStatus.reset_in_s > 0) myGtaStatus.reset_in_s--;
+    refreshMichaelMenu();
+  }, 1000);
 }
-function hideMichaelMenu() { _michaelModal.classList.remove('show'); }
+function hideMichaelMenu() {
+  _michaelModal.classList.remove('show');
+  if (_michaelTimer) { clearInterval(_michaelTimer); _michaelTimer = null; }
+}
 document.getElementById('michaelCloseBtn').addEventListener('click', hideMichaelMenu);
 _michaelModal.addEventListener('click', (e) => {
   if (e.target === _michaelModal) hideMichaelMenu();
@@ -4150,18 +4203,37 @@ function refreshMichaelMenu() {
     _michaelQuest.style.display = 'block';
     _michaelTakeBtn.disabled    = true;
     _michaelTakeBtn.textContent = 'Заказ активен';
-    _michaelTalk.innerHTML = 'Заказ ты уже взял. Тащи машину сюда — <b>в зону сдачи в порту</b> и выйди из неё. Деньги получишь сразу.';
+    _michaelTalk.innerHTML = 'Заказ ты уже взял. Тащи машину сюда — <b>в зону сдачи на пирсе</b> и выйди из неё. Деньги получишь сразу.';
   } else {
     _michaelQuest.style.display = 'none';
     const limit = s.limit | 2;
     if ((s.count_today | 0) >= limit) {
       _michaelTakeBtn.disabled    = true;
       _michaelTakeBtn.textContent = 'Лимит на сегодня';
-      _michaelTalk.innerHTML = 'На сегодня хватит, парень. Завтра приходи — будут новые заказы.';
+      // Таймер до следующего заказа — большой и заметный
+      const secs = s.reset_in_s | 0;
+      let timerTxt;
+      if (secs > 3600) {
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        timerTxt = `${h}ч ${m}м`;
+      } else if (secs > 60) {
+        const m = Math.floor(secs / 60);
+        const s2 = secs % 60;
+        timerTxt = `${m}м ${s2}с`;
+      } else {
+        timerTxt = `${Math.max(0, secs)}с`;
+      }
+      _michaelTalk.innerHTML =
+        'Приходи завтра, парень — будет у меня для тебя работа. ' +
+        `<br><br>До следующего заказа: <b style="color:#ffd76b">${timerTxt}</b>`;
     } else {
       _michaelTakeBtn.disabled    = false;
       _michaelTakeBtn.textContent = 'Взять заказ';
-      _michaelTalk.innerHTML = 'Есть пара новых заказов. Возьмёшь — я скажу <b>какую</b> модель искать. Угоняешь, везёшь сюда, в порт — <b>в зону сдачи</b> — и получаешь налик.';
+      _michaelTalk.innerHTML =
+        '<b>Эй, есть для тебя работка.</b> Скажу какую модель искать — ' +
+        'угоняешь, везёшь сюда на пирс, <b>в зону сдачи</b>, и получаешь налик. ' +
+        'Только не зевай — в сутки беру максимум ' + limit + ' тачки.';
     }
   }
 }
@@ -5290,14 +5362,24 @@ function update(dt) {
 function drawSouthTile(r, c, t, p, wx, wy) {
   const h1 = ((r * 73 + c * 131) >>> 0) % 100;
   const h2 = ((r * 257 + c * 379) >>> 0) % 100;
+  const h3 = ((r * 419 + c * 569) >>> 0) % 100;
   let color;
   if (t === 14) {
-    // Песок: золотисто-бежевый с вариациями.
-    if      (h1 < 12) color = '#c9a868';  // сухой светлый
-    else if (h1 < 35) color = '#b89860';  // обычный
-    else if (h1 < 70) color = '#a8884a';  // тёмный (влажный)
-    else if (h1 < 88) color = '#bf9858';  // средний
-    else              color = '#d8b87a';  // совсем сухой
+    // Песок: 9 градаций + дюнный градиент по дальности от воды.
+    // Чем ближе к воде (r → BEACH_R1), тем темнее (влажный).
+    const dToWater = Math.max(0, BEACH_R1 - r);  // 0 у воды, ~15 у города
+    const wetK     = 1 - Math.min(1, dToWater / 4);  // 0..1, 1 у самой воды
+    if      (h1 < 6)  color = '#d8bc82';  // совсем сухой светлый
+    else if (h1 < 18) color = '#c9a868';
+    else if (h1 < 32) color = '#bf9858';
+    else if (h1 < 48) color = '#b89060';
+    else if (h1 < 62) color = '#b08550';
+    else if (h1 < 75) color = '#a87a44';
+    else if (h1 < 86) color = '#9a7038';
+    else if (h1 < 94) color = '#8c6230';
+    else              color = '#dec090';  // блик дюны
+    // Если близко к воде — затемняем (мокрый песок)
+    if (wetK > 0) color = _shade(color, -0.15 * wetK);
   } else if (t === 15) {
     // Деревянный причал — доски с тёмными швами вдоль рядов (по r).
     const plank = ((r * 1009) >>> 0) % 4;
@@ -5305,14 +5387,23 @@ function drawSouthTile(r, c, t, p, wx, wy) {
             (plank === 1) ? '#5a3e26' :
             (plank === 2) ? '#7a5630' : '#65462a';
   } else if (t === 16) {
-    // Вода: тёмно-синяя с бликом-волной (анимация по времени).
+    // Вода: динамические волны с градиентом «глубже = темнее».
+    // Чем дальше от берега (r → MAP_ROWS), тем темнее. Также 2 слоя волн
+    // (короткая рябь + длинные волны) дают живую анимацию.
     const tm = performance.now() * 0.0008;
-    const wave = Math.sin((r * 0.7 + c * 0.5) + tm * 2) * 0.5 + 0.5;   // 0..1
-    if      (h1 < 25) color = '#173248';
-    else if (h1 < 70) color = '#1a3a52';
-    else              color = '#21455f';
-    // Если волна сильная — светлая полоса
-    if (wave > 0.78) color = '#3a6b8f';
+    const depth = Math.min(1, (r - PIER_R0) / 25);          // 0 у берега, 1 далеко
+    const wave1 = Math.sin((r * 0.7  + c * 0.5)  + tm * 2.0) * 0.5 + 0.5;  // длинная
+    const wave2 = Math.sin((r * 2.1  + c * 1.7)  + tm * 3.5) * 0.5 + 0.5;  // мелкая рябь
+    // Базовая палитра — три тона по h1
+    let base;
+    if      (h1 < 25) base = '#143040';
+    else if (h1 < 60) base = '#1a3a50';
+    else              base = '#1f445e';
+    color = _shade(base, -0.18 * depth);
+    // Гребни длинной волны — голубоватые
+    if (wave1 > 0.82) color = _shade(color, 0.30);
+    // Мелкая рябь — лёгкие светлые точки сверху
+    if (wave2 > 0.78 && wave1 > 0.5) color = _shade(color, 0.18);
   } else {
     // Палуба корабля — светлое дерево, доски поперёк (по c).
     const plank = ((c * 1009) >>> 0) % 4;
@@ -5333,10 +5424,49 @@ function drawSouthTile(r, c, t, p, wx, wy) {
     ctx.lineWidth = 1;
     ctx.stroke();
   } else if (t === 14) {
-    // Иногда мелкие камушки/ракушки на песке
+    // Тонкая «волна-узор» на песке — серповидные риски от ветра.
+    // Через тайл, чтоб не пестрило.
+    if (h2 < 20) {
+      ctx.strokeStyle = 'rgba(120,90,50,.28)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      const offX = (h1 % 7) - 3;
+      ctx.moveTo(p.x - 10 + offX, p.y + 2);
+      ctx.quadraticCurveTo(p.x + offX, p.y - 1, p.x + 10 + offX, p.y + 2);
+      ctx.stroke();
+    }
+    // Тень-дюна по диагонали — тонкая полоска между «гребнями»
+    if (h3 < 12) {
+      ctx.fillStyle = 'rgba(80,55,30,.16)';
+      ctx.beginPath();
+      ctx.moveTo(p.x - wx + 4, p.y - 2);
+      ctx.lineTo(p.x + wx - 4, p.y + 2);
+      ctx.lineTo(p.x + wx - 4, p.y + 4);
+      ctx.lineTo(p.x - wx + 4, p.y);
+      ctx.closePath(); ctx.fill();
+    }
+    // Мокрое пятно у самой воды
+    const dToWater = Math.max(0, BEACH_R1 - r);
+    if (dToWater <= 1 && h2 < 50) {
+      ctx.fillStyle = 'rgba(20,10,5,.10)';
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, wx * 0.6, wy * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Камушки/ракушки
     if (h2 < 8) {
       ctx.fillStyle = (h2 & 1) ? '#fff4d8' : '#e8c898';
       ctx.fillRect(p.x - 2 + (h1 % 5 - 2), p.y - 1, 2, 2);
+    }
+    // Следы лап / птичьих лапок (детерминированные «цепочки»)
+    if (h2 >= 60 && h2 < 64) {
+      ctx.fillStyle = 'rgba(70,40,20,.45)';
+      for (let i = 0; i < 3; i++) {
+        const fx = p.x - 8 + i * 6, fy = p.y + (i & 1 ? 2 : -2);
+        ctx.beginPath();
+        ctx.arc(fx, fy, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   } else if (t === 16) {
     // Барашек на гребне волны
@@ -5344,9 +5474,21 @@ function drawSouthTile(r, c, t, p, wx, wy) {
       const tm = performance.now() * 0.0012;
       const ph = Math.sin((r * 1.1 + c * 0.7) + tm * 3);
       if (ph > 0.85) {
-        ctx.fillStyle = 'rgba(255,255,255,.45)';
-        ctx.fillRect(p.x - 4, p.y - 1, 8, 1);
+        ctx.fillStyle = 'rgba(255,255,255,.55)';
+        ctx.fillRect(p.x - 5, p.y - 1, 10, 1.5);
       }
+    }
+    // Лёгкий блик отражения солнца — у поверхности (близко к берегу)
+    const tm2 = performance.now() * 0.0006;
+    const sparkle = Math.sin((r * 3.1 + c * 2.7) + tm2 * 5);
+    if (sparkle > 0.94) {
+      ctx.fillStyle = 'rgba(255,255,255,.5)';
+      ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+    }
+    // Узкая прибойная полоса у берега (r ≈ PIER_R0..PIER_R0+1)
+    if (r === PIER_R0) {
+      ctx.fillStyle = 'rgba(255,255,255,.30)';
+      ctx.fillRect(p.x - wx + 4, p.y - 1, wx * 2 - 8, 2);
     }
   }
 }
@@ -6148,6 +6290,286 @@ function drawShell(r, c) {
   ctx.lineWidth = 0.6;
   ctx.beginPath();
   ctx.moveTo(p.x - 2, p.y); ctx.lineTo(p.x + 2, p.y); ctx.stroke();
+}
+
+function drawTikiBar(r, c) {
+  const p = w2s(r, c);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 8, 36, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Деревянная стойка-будка
+  const W = 50, H = 20;
+  ctx.fillStyle = '#8a5a2a';
+  ctx.fillRect(p.x - W/2, p.y - H + 6, W, H);
+  // Передняя барная стойка (тёмная полоска)
+  ctx.fillStyle = '#5a3a1a';
+  ctx.fillRect(p.x - W/2, p.y + 2, W, 4);
+  // Доски стойки
+  ctx.strokeStyle = 'rgba(0,0,0,.4)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) {
+    const x = p.x - W/2 + i * (W/5);
+    ctx.beginPath();
+    ctx.moveTo(x, p.y - H + 6); ctx.lineTo(x, p.y + 6); ctx.stroke();
+  }
+  // Опоры по углам
+  ctx.fillStyle = '#4a2a14';
+  ctx.fillRect(p.x - W/2 - 2, p.y - H + 6, 3, H + 4);
+  ctx.fillRect(p.x + W/2 - 1, p.y - H + 6, 3, H + 4);
+  // Соломенная крыша (треугольник)
+  ctx.fillStyle = '#c89856';
+  ctx.beginPath();
+  ctx.moveTo(p.x - W/2 - 8, p.y - H + 8);
+  ctx.lineTo(p.x,           p.y - H - 12);
+  ctx.lineTo(p.x + W/2 + 8, p.y - H + 8);
+  ctx.closePath(); ctx.fill();
+  // Прядки соломы
+  ctx.strokeStyle = '#a07832';
+  ctx.lineWidth = 1;
+  for (let i = -W/2; i <= W/2; i += 4) {
+    ctx.beginPath();
+    ctx.moveTo(p.x + i, p.y - H + 6);
+    ctx.lineTo(p.x + i * 0.6, p.y - H + 1);
+    ctx.stroke();
+  }
+  // Вывеска BAR
+  ctx.fillStyle = '#1a1410';
+  ctx.fillRect(p.x - 14, p.y - H, 28, 8);
+  ctx.fillStyle = '#ffd76b';
+  ctx.font = 'bold 8px system-ui';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🍹 BAR', p.x, p.y - H + 4);
+  // Гирлянда лампочек
+  const tm = performance.now() * 0.001;
+  for (let i = 0; i < 6; i++) {
+    const lx = p.x - 24 + i * 10;
+    const ly = p.y - H - 4 + Math.sin(i * 0.7) * 2;
+    const blink = Math.sin(tm * 3 + i) * 0.5 + 0.5;
+    ctx.fillStyle = ['#e74c3c','#f1c40f','#2ecc71','#3498db','#e67e22','#9b59b6'][i];
+    ctx.globalAlpha = 0.7 + blink * 0.3;
+    ctx.beginPath(); ctx.arc(lx, ly, 2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // Бутылки на стойке
+  for (let i = 0; i < 4; i++) {
+    ctx.fillStyle = ['#27ae60','#c0392b','#16a085','#d35400'][i];
+    const bx = p.x - 16 + i * 10;
+    ctx.fillRect(bx, p.y - 5, 3, 7);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(bx, p.y - 7, 3, 2);
+  }
+}
+
+function drawSurfboard(r, c, col, ang) {
+  const p = w2s(r, c);
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(ang);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath();
+  ctx.ellipse(1, 3, 7, 18, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Доска (вертикальная, воткнута в песок)
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(0,   -22);
+  ctx.quadraticCurveTo(5,  0, 4,  10);
+  ctx.lineTo(-4, 10);
+  ctx.quadraticCurveTo(-5, 0, 0, -22);
+  ctx.closePath(); ctx.fill();
+  // Полоса
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, -20); ctx.lineTo(0, 8); ctx.stroke();
+  // Логотип кружок
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(0, -10, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(0, -10, 1, 0, Math.PI * 2); ctx.fill();
+  // Контур
+  ctx.strokeStyle = 'rgba(0,0,0,.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, -22);
+  ctx.quadraticCurveTo(5,  0, 4,  10);
+  ctx.lineTo(-4, 10);
+  ctx.quadraticCurveTo(-5, 0, 0, -22);
+  ctx.closePath(); ctx.stroke();
+  ctx.restore();
+}
+
+function drawBeachBall(r, c, col1, col2) {
+  const p = w2s(r, c);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + 2, p.y + 7, 8, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Мяч — основа
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill();
+  // Цветные сегменты (3 полосы)
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = (i & 1) ? col2 : col1;
+    ctx.beginPath();
+    const a0 = (i / 3) * Math.PI;
+    const a1 = ((i + 1) / 3) * Math.PI;
+    ctx.moveTo(p.x, p.y);
+    ctx.arc(p.x, p.y, 7, a0 - Math.PI / 2, a1 - Math.PI / 2);
+    ctx.closePath(); ctx.fill();
+  }
+  // Блик
+  ctx.fillStyle = 'rgba(255,255,255,.6)';
+  ctx.beginPath(); ctx.arc(p.x - 2, p.y - 2, 1.5, 0, Math.PI * 2); ctx.fill();
+  // Контур
+  ctx.strokeStyle = 'rgba(0,0,0,.5)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.stroke();
+}
+
+function drawBeachTowel(r, c, col) {
+  const p = w2s(r, c);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.25)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + 2, p.y + 2, 18, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Полотенце — повёрнуто в изометрию
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.scale(1, 0.55);
+  ctx.fillStyle = col;
+  ctx.fillRect(-16, -10, 32, 20);
+  // Полосы
+  ctx.fillStyle = _shade(col, 0.30);
+  for (let i = 0; i < 4; i++) {
+    ctx.fillRect(-16, -10 + i * 6, 32, 2);
+  }
+  // Контур
+  ctx.strokeStyle = 'rgba(0,0,0,.4)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(-16, -10, 32, 20);
+  ctx.restore();
+  // Кисти по углам
+  ctx.fillStyle = _shade(col, -0.3);
+  ctx.fillRect(p.x - 17, p.y - 5, 1.5, 1.5);
+  ctx.fillRect(p.x + 16, p.y - 5, 1.5, 1.5);
+  ctx.fillRect(p.x - 17, p.y + 4, 1.5, 1.5);
+  ctx.fillRect(p.x + 16, p.y + 4, 1.5, 1.5);
+}
+
+function drawSandcastle(r, c) {
+  const p = w2s(r, c);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 6, 14, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Центральная башня
+  ctx.fillStyle = '#d4a868';
+  ctx.fillRect(p.x - 6, p.y - 12, 12, 18);
+  // Башенки по углам — 2 цилиндра по бокам
+  ctx.fillRect(p.x - 11, p.y - 6, 5, 12);
+  ctx.fillRect(p.x + 6,  p.y - 6, 5, 12);
+  // Зубцы на крыше башни (3)
+  ctx.fillStyle = '#c09858';
+  ctx.fillRect(p.x - 6, p.y - 14, 3, 3);
+  ctx.fillRect(p.x - 1, p.y - 14, 3, 3);
+  ctx.fillRect(p.x + 4, p.y - 14, 3, 3);
+  // Зубцы на боковых башенках
+  ctx.fillRect(p.x - 11, p.y - 8, 2, 2);
+  ctx.fillRect(p.x - 8,  p.y - 8, 2, 2);
+  ctx.fillRect(p.x + 6,  p.y - 8, 2, 2);
+  ctx.fillRect(p.x + 9,  p.y - 8, 2, 2);
+  // Дверь арка
+  ctx.fillStyle = '#7a5430';
+  ctx.beginPath();
+  ctx.moveTo(p.x - 3, p.y + 6);
+  ctx.lineTo(p.x - 3, p.y);
+  ctx.quadraticCurveTo(p.x, p.y - 3, p.x + 3, p.y);
+  ctx.lineTo(p.x + 3, p.y + 6);
+  ctx.closePath(); ctx.fill();
+  // Флажок на центральной башне
+  const tm = performance.now() * 0.002;
+  const wave = Math.sin(tm * 4) * 1.5;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(p.x - 0.5, p.y - 22, 1, 8);
+  ctx.fillStyle = '#e74c3c';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - 22);
+  ctx.lineTo(p.x + 6 + wave, p.y - 20);
+  ctx.lineTo(p.x, p.y - 18);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawStarfish(r, c, col) {
+  const p = w2s(r, c);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + 1, p.y + 1, 5, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 5-конечная звезда
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+    const rr = (i & 1) ? 1.8 : 5;
+    const x = p.x + Math.cos(a) * rr;
+    const y = p.y + Math.sin(a) * rr * 0.5;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath(); ctx.fill();
+  // Точки на звезде
+  ctx.fillStyle = _shade(col, -0.3);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    ctx.beginPath();
+    ctx.arc(p.x + Math.cos(a) * 2.5, p.y + Math.sin(a) * 1.2, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawCrab(r, c) {
+  const p = w2s(r, c);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 2, 6, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Тело
+  ctx.fillStyle = '#c0392b';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, 5, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Лапки (6)
+  ctx.strokeStyle = '#c0392b';
+  ctx.lineWidth = 1;
+  for (let s of [-1, 1]) {
+    for (let i = 0; i < 3; i++) {
+      const y0 = p.y - 1 + i;
+      ctx.beginPath();
+      ctx.moveTo(p.x + s * 4, y0);
+      ctx.lineTo(p.x + s * 8, y0 + i - 0.5);
+      ctx.stroke();
+    }
+  }
+  // Клешни
+  ctx.fillStyle = '#9c2818';
+  ctx.beginPath();
+  ctx.ellipse(p.x - 6, p.y - 2, 2, 1.5, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(p.x + 6, p.y - 2, 2, 1.5, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // Глазки
+  ctx.fillStyle = '#000';
+  ctx.fillRect(p.x - 1.5, p.y - 2, 1, 1);
+  ctx.fillRect(p.x + 0.5, p.y - 2, 1, 1);
 }
 
 function drawTile(r, c) {
@@ -10130,6 +10552,20 @@ function render() {
       items.push({ depth: d.r + d.c, draw: () => drawLifeguardTower(d.r, d.c) });
     else if (d.kind === 'shell')
       items.push({ depth: d.r + d.c - 0.1, draw: () => drawShell(d.r, d.c) });
+    else if (d.kind === 'tiki_bar')
+      items.push({ depth: d.r + d.c, draw: () => drawTikiBar(d.r, d.c) });
+    else if (d.kind === 'surfboard')
+      items.push({ depth: d.r + d.c, draw: () => drawSurfboard(d.r, d.c, d.col, d.ang) });
+    else if (d.kind === 'ball')
+      items.push({ depth: d.r + d.c, draw: () => drawBeachBall(d.r, d.c, d.col1, d.col2) });
+    else if (d.kind === 'towel')
+      items.push({ depth: d.r + d.c - 0.1, draw: () => drawBeachTowel(d.r, d.c, d.col) });
+    else if (d.kind === 'sandcastle')
+      items.push({ depth: d.r + d.c, draw: () => drawSandcastle(d.r, d.c) });
+    else if (d.kind === 'starfish')
+      items.push({ depth: d.r + d.c - 0.1, draw: () => drawStarfish(d.r, d.c, d.col) });
+    else if (d.kind === 'crab')
+      items.push({ depth: d.r + d.c - 0.05, draw: () => drawCrab(d.r, d.c) });
   }
   // Конвой инкассатора (boss + 3 полицейских) — если событие активно
   if (worldEvent) {
