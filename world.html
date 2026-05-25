@@ -5443,27 +5443,156 @@ function drawShipHull() {
     ctx.arc(sx, sy, 8 + rise * 12, 0, Math.PI * 2);
     ctx.fill();
   }
-  // 4) Контейнеры на палубе — 3 ряда × 2 штуки, между рубкой и центром
-  const CONT_COLORS = ['#c0392b', '#2980b9', '#f39c12', '#27ae60', '#8e44ad'];
+  // 4) Контейнеры на палубе — 2 ряда × 4 штуки + случайные «штабели».
+  //    Реалистичные ISO-контейнеры с маркировкой и логотипами компаний.
+  const CONT_PRESETS = [
+    { col: '#c0392b', logo: 'MAERSK',    code: 'MAEU' },
+    { col: '#2980b9', logo: 'MSC',       code: 'MSCU' },
+    { col: '#f39c12', logo: 'HAPAG',     code: 'HLBU' },
+    { col: '#27ae60', logo: 'EVERGREEN', code: 'EGHU' },
+    { col: '#8e44ad', logo: 'ONE',       code: 'ONEU' },
+    { col: '#d35400', logo: 'COSCO',     code: 'CSNU' },
+    { col: '#34495e', logo: 'CMA-CGM',   code: 'CMAU' },
+  ];
   for (let ri = 0; ri < 2; ri++) {
     for (let ci = 0; ci < 4; ci++) {
       const cr = SHIP_R0 + 4.5 + ri * 1.4;
       const cc = SHIP_C0 + 6 + ci * 5;
       if (cr > SHIP_R1 - 1.5) continue;
-      const idx = (ri * 4 + ci) % CONT_COLORS.length;
-      const col = CONT_COLORS[idx];
-      _isoBox(cr, cc, 1.3, 0.55, 0.95,
-              col, _shade(col, -0.25), _shade(col, -0.5));
+      const idx = (ri * 4 + ci + 3) % CONT_PRESETS.length;
+      drawContainer(cr, cc, 1.3, 0.55, 0.95, CONT_PRESETS[idx], (ri * 10 + ci) * 137);
+      // Иногда — двухэтажный штабель
+      if (((ri + ci) & 1) === 0 && ci < 3) {
+        const idx2 = (idx + 2) % CONT_PRESETS.length;
+        drawContainer(cr, cc, 1.3, 0.55, 0.95, CONT_PRESETS[idx2], (ri * 10 + ci) * 213, 0.95);
+      }
     }
   }
-  // 5) Контейнеры на пирсе — Майкл «выгружает» их с корабля
+  // 5) Контейнеры на пирсе — Майкл «выгружает» их с корабля. Один штабель
+  //    с дверями развёрнутыми к пирсу, рядом — отдельная пара.
   for (let i = 0; i < 3; i++) {
     const cr = PIER_R0 + 1 + i * 2.3;
     const cc = PIER_C0 + 1.5;
-    const col = CONT_COLORS[(i + 2) % CONT_COLORS.length];
-    _isoBox(cr, cc, 1.1, 0.5, 0.85,
-            col, _shade(col, -0.25), _shade(col, -0.5));
+    drawContainer(cr, cc, 1.1, 0.5, 0.85,
+                  CONT_PRESETS[(i + 1) % CONT_PRESETS.length], i * 419);
   }
+  // Доп. одиночный контейнер у южного края пирса
+  drawContainer(PIER_R1 - 1.2, PIER_C1 - 1.4, 1.1, 0.5, 0.85,
+                CONT_PRESETS[4], 991);
+}
+
+// ── ISO-контейнер: рифлёные борта, двери, логотип компании, серийник ──
+// stackedH > 0 — рисуем поверх уже стоящего контейнера, со смещением вверх.
+function drawContainer(cr, cc, w, h, height, preset, seed, stackedH) {
+  const col      = preset.col;
+  const topCol   = _shade(col, 0.05);
+  const sideCol  = _shade(col, -0.22);
+  const darkCol  = _shade(col, -0.45);
+  const baseLift = stackedH || 0;
+  const H        = isoH(height);
+  // 4 угла основания, со сдвигом вверх если штабель
+  const lift     = isoH(baseLift);
+  const nw = w2s(cr - h, cc - w); nw.y -= lift;
+  const ne = w2s(cr - h, cc + w); ne.y -= lift;
+  const se = w2s(cr + h, cc + w); se.y -= lift;
+  const sw = w2s(cr + h, cc - w); sw.y -= lift;
+  // Тень (только если на земле)
+  if (!stackedH) {
+    ctx.fillStyle = 'rgba(0,0,0,.4)';
+    ctx.beginPath();
+    ctx.moveTo(nw.x, nw.y); ctx.lineTo(ne.x, ne.y);
+    ctx.lineTo(se.x, se.y); ctx.lineTo(sw.x, sw.y);
+    ctx.closePath(); ctx.fill();
+  }
+  // Передний правый борт (SE→NE) — рифлёный с маркировкой
+  ctx.fillStyle = sideCol;
+  ctx.beginPath();
+  ctx.moveTo(se.x, se.y);
+  ctx.lineTo(ne.x, ne.y);
+  ctx.lineTo(ne.x, ne.y - H);
+  ctx.lineTo(se.x, se.y - H);
+  ctx.closePath(); ctx.fill();
+  // Вертикальные рёбра (рифление) — 8 штук
+  ctx.strokeStyle = _shade(col, -0.55);
+  ctx.lineWidth = 1;
+  const dxR = (ne.x - se.x), dyR = (ne.y - se.y);
+  for (let i = 1; i < 8; i++) {
+    const k = i / 8;
+    const sx = se.x + dxR * k;
+    const sy = se.y + dyR * k;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy); ctx.lineTo(sx, sy - H); ctx.stroke();
+  }
+  // Логотип на правом борту — белыми буквами
+  const midR = { x: (se.x + ne.x) / 2, y: (se.y + ne.y) / 2 - H * 0.5 };
+  ctx.save();
+  ctx.translate(midR.x, midR.y);
+  const angR = Math.atan2(dyR, dxR);
+  ctx.rotate(angR);
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.max(8, Math.round(H * 0.25))}px system-ui`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(preset.logo, 0, 0);
+  ctx.restore();
+  // Передний левый борт (SW→SE) — рёбра + двери на южном торце
+  ctx.fillStyle = darkCol;
+  ctx.beginPath();
+  ctx.moveTo(sw.x, sw.y);
+  ctx.lineTo(se.x, se.y);
+  ctx.lineTo(se.x, se.y - H);
+  ctx.lineTo(sw.x, sw.y - H);
+  ctx.closePath(); ctx.fill();
+  // Двери на южном торце — 2 створки с центральной щелью + засовы
+  const dxL = (se.x - sw.x), dyL = (se.y - sw.y);
+  ctx.strokeStyle = _shade(col, -0.6);
+  ctx.lineWidth = 1.2;
+  // Центральная щель
+  ctx.beginPath();
+  ctx.moveTo(sw.x + dxL / 2, sw.y + dyL / 2);
+  ctx.lineTo(sw.x + dxL / 2, sw.y + dyL / 2 - H);
+  ctx.stroke();
+  // 4 вертикальных штанги-засова (по 2 на створку)
+  for (const k of [0.18, 0.32, 0.68, 0.82]) {
+    const bx = sw.x + dxL * k;
+    const by = sw.y + dyL * k;
+    ctx.beginPath();
+    ctx.moveTo(bx, by - H * 0.08);
+    ctx.lineTo(bx, by - H * 0.92);
+    ctx.stroke();
+    // Ручка-фиксатор посередине штанги
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(bx - 1.5, by - H * 0.5 - 1.5, 3, 3);
+  }
+  // Серийник под дверьми
+  const midL = { x: sw.x + dxL / 2, y: sw.y + dyL / 2 - H * 0.15 };
+  ctx.save();
+  ctx.translate(midL.x, midL.y);
+  ctx.rotate(Math.atan2(dyL, dxL));
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.font = `bold ${Math.max(7, Math.round(H * 0.13))}px monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const num = ((seed * 41) % 900000 + 100000) | 0;
+  ctx.fillText(`${preset.code} ${num} 1`, 0, 0);
+  ctx.restore();
+  // Крыша
+  ctx.fillStyle = topCol;
+  ctx.beginPath();
+  ctx.moveTo(nw.x, nw.y - H); ctx.lineTo(ne.x, ne.y - H);
+  ctx.lineTo(se.x, se.y - H); ctx.lineTo(sw.x, sw.y - H);
+  ctx.closePath(); ctx.fill();
+  // 4 угловых кронштейна (ISO-фитинги) — чёрные квадраты для крана
+  ctx.fillStyle = '#1a1a1a';
+  for (const corner of [nw, ne, se, sw]) {
+    ctx.fillRect(corner.x - 2.5, corner.y - H - 1, 5, 3);
+  }
+  // Контур
+  ctx.strokeStyle = 'rgba(0,0,0,.45)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(nw.x, nw.y - H); ctx.lineTo(ne.x, ne.y - H);
+  ctx.lineTo(se.x, se.y - H); ctx.lineTo(sw.x, sw.y - H);
+  ctx.closePath();
+  ctx.stroke();
 }
 
 // Утилита: затемнить/осветлить HEX-цвет (k>0 — светлее, k<0 — темнее).
@@ -5475,93 +5604,282 @@ function _shade(hex, k) {
   return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
 }
 
-// ── Кран на корабле — анимация: берёт контейнер с палубы, переносит на
-//    пирс, опускает, возвращается. Циклически. ───────────────────────
+// ── Портовый STS-кран на корабле ───────────────────────────────────
+// Реалистичная конструкция: 4 опоры с поперечинами, ферменная стрела с
+// диагональными перекладинами, кабина оператора, троллей (тележка) с
+// четырьмя тросами и спредером (рама захвата контейнера).
 function drawShipCrane() {
-  const MID_R  = (SHIP_R0 + SHIP_R1) / 2;
   const MID_C  = (SHIP_C0 + SHIP_C1) / 2;
-  // База крана — в середине палубы
-  const baseR = MID_R, baseC = MID_C;
-  // Башня (вертикальная мачта)
-  _isoBox(baseR, baseC, 0.5, 0.5, 4.0,
-          '#888', '#666', '#444');
-  const base = w2s(baseR, baseC);
-  const towerTop = { x: base.x, y: base.y - isoH(4.0) };
-  // Стрела крана — горизонтальная балка, поворачивается по фазе
-  const tm = performance.now() * 0.001;
-  // 8-сек цикл: 0..2 — берём контейнер с палубы (короткая стрела),
-  //             2..4 — поворот к пирсу (стрела вперёд-влево),
-  //             4..6 — опускаем на пирс,
-  //             6..8 — возврат
-  const phase = (tm * 0.125) % 1;       // 0..1 за 8 сек
-  // Угол стрелы: 0 = на палубу (на север), -PI/2 = на пирс (на юг)
-  let armAng;
-  if (phase < 0.25)      armAng = 0;                                // берёт
-  else if (phase < 0.5)  armAng = -((phase - 0.25) / 0.25) * Math.PI; // поворот
-  else if (phase < 0.75) armAng = -Math.PI;                          // опускает
-  else                   armAng = -Math.PI + ((phase - 0.75) / 0.25) * Math.PI; // обратно
-  const armLen = 90;   // пиксели
-  const armEnd = {
-    x: towerTop.x + Math.sin(armAng) * armLen,
-    y: towerTop.y - 8 + Math.cos(armAng) * armLen * 0.4,
-  };
-  // Стрела
-  ctx.strokeStyle = '#c0a040';
-  ctx.lineWidth = 6;
+  const baseR  = SHIP_R0 + 5.0;          // башня ближе к носу, не закрывает рубку
+  const baseC  = MID_C;
+  const tm     = performance.now() * 0.001;
+  // 10-сек цикл: 0..0.2 опускание на палубу, 0.2..0.4 подъём,
+  //              0.4..0.6 поездка к пирсу, 0.6..0.8 опускание,
+  //              0.8..1.0 возврат пустым.
+  const phase  = (tm * 0.10) % 1;
+  // Тележка (троллей) ездит по стреле — позиция в диапазоне 0..1
+  let trolley;
+  if      (phase < 0.20) trolley = 0.15;                            // над палубой
+  else if (phase < 0.40) trolley = 0.15;                            // подъём
+  else if (phase < 0.60) trolley = 0.15 + (phase - 0.40) / 0.20 * 0.70; // едет к пирсу
+  else if (phase < 0.80) trolley = 0.85;                            // над пирсом
+  else                   trolley = 0.85 - (phase - 0.80) / 0.20 * 0.70; // обратно
+  // Высота крюка — опущен/поднят
+  let hookT;
+  if      (phase < 0.20) hookT = 0.95;                              // полностью опущен
+  else if (phase < 0.40) hookT = 0.95 - (phase - 0.20) / 0.20 * 0.85;
+  else if (phase < 0.60) hookT = 0.10;                              // вверху, едет
+  else if (phase < 0.80) hookT = 0.10 + (phase - 0.60) / 0.20 * 0.85;
+  else                   hookT = 0.95 - (phase - 0.80) / 0.20 * 0.85;
+  const carrying = (phase >= 0.18 && phase < 0.82);
+  const cargoIdx = Math.floor(tm * 0.10) % 5;
+
+  // ── 1) База: 4 опоры с поперечинами (ноги портального крана) ──
+  const TOWER_H = 5.6;
+  const TOWER_TOP_Y_OFFSET = isoH(TOWER_H);
+  const baseScreen = w2s(baseR, baseC);
+  const LEG_OFFS = [
+    { dr: -1.2, dc: -1.6 },   // NW
+    { dr: -1.2, dc:  1.6 },   // NE
+    { dr:  1.2, dc:  1.6 },   // SE
+    { dr:  1.2, dc: -1.6 },   // SW
+  ];
+  const legBases = LEG_OFFS.map(o => w2s(baseR + o.dr, baseC + o.dc));
+  const legTops  = legBases.map(b => ({ x: b.x, y: b.y - TOWER_TOP_Y_OFFSET }));
+  // Тень всей башни
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
   ctx.beginPath();
-  ctx.moveTo(towerTop.x, towerTop.y - 6);
-  ctx.lineTo(armEnd.x, armEnd.y);
-  ctx.stroke();
-  ctx.strokeStyle = '#806020';
+  ctx.moveTo(legBases[0].x, legBases[0].y);
+  for (let i = 1; i < 4; i++) ctx.lineTo(legBases[i].x, legBases[i].y);
+  ctx.closePath(); ctx.fill();
+  // Ноги — жёлто-чёрные «зебры»
+  const YELLOW = '#e8b820';
+  const BLACK  = '#1a1a1a';
+  for (let i = 0; i < 4; i++) {
+    const b = legBases[i], t = legTops[i];
+    // Чёрная подложка (тень/контур)
+    ctx.strokeStyle = '#0a0a0a';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y); ctx.lineTo(t.x, t.y); ctx.stroke();
+    // Зебра — чередующиеся полосы
+    const steps = 14;
+    for (let s = 0; s < steps; s++) {
+      ctx.strokeStyle = (s & 1) ? YELLOW : BLACK;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(b.x + (t.x - b.x) * (s / steps),
+                 b.y + (t.y - b.y) * (s / steps));
+      ctx.lineTo(b.x + (t.x - b.x) * ((s + 1) / steps),
+                 b.y + (t.y - b.y) * ((s + 1) / steps));
+      ctx.stroke();
+    }
+    // Болты-фланцы у основания
+    ctx.fillStyle = '#333';
+    ctx.fillRect(b.x - 5, b.y - 3, 10, 4);
+  }
+  // Горизонтальные перекладины — ферма (X-крест между парами ног)
+  ctx.strokeStyle = '#444';
   ctx.lineWidth = 2;
-  ctx.stroke();
-  // Противовес на коротком конце (наоборот)
-  const counterEnd = {
-    x: towerTop.x - Math.sin(armAng) * 25,
-    y: towerTop.y - 8 - Math.cos(armAng) * 10,
-  };
-  ctx.fillStyle = '#444';
+  for (let lvl = 1; lvl <= 3; lvl++) {
+    const k = lvl / 4;   // 25, 50, 75% высоты
+    // Прямоугольник по периметру
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const a = legBases[i], b = legTops[i];
+      const x = a.x + (b.x - a.x) * k;
+      const y = a.y + (b.y - a.y) * k;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.stroke();
+    // Диагональные раскосы — крест-накрест между NW↔SE и NE↔SW верхнего/нижнего уровня
+    if (lvl < 3) {
+      const kNext = (lvl + 1) / 4;
+      for (const [iA, iB] of [[0, 2], [1, 3]]) {
+        const a1 = legBases[iA], b1 = legTops[iA];
+        const a2 = legBases[iB], b2 = legTops[iB];
+        ctx.beginPath();
+        ctx.moveTo(a1.x + (b1.x - a1.x) * k,     a1.y + (b1.y - a1.y) * k);
+        ctx.lineTo(a2.x + (b2.x - a2.x) * kNext, a2.y + (b2.y - a2.y) * kNext);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // ── 2) Стрела крана — горизонтальная ферма от берега к морю ──
+  // Один конец над пирсом (юг), второй уходит в море (север).
+  const ARM_TOP = { x: baseScreen.x,           y: legTops[0].y - 14 };
+  const ARM_PIER = { x: baseScreen.x,
+                     y: baseScreen.y - isoH(SHIP_R1 - SHIP_R0) * 0.05 };
+  // Стрела — на самом деле уходит в обе стороны от вершины башни по c=MID_C.
+  // В изометрии: от тайла (SHIP_R0+1, MID_C) до (PIER_R1-1, MID_C) на высоте TOWER_H.
+  const armStartW = w2s(SHIP_R0 + 0.5, MID_C);  armStartW.y -= TOWER_TOP_Y_OFFSET;
+  const armEndW   = w2s(PIER_R1 - 0.5, MID_C);  armEndW.y -= TOWER_TOP_Y_OFFSET;
+  // Верхний пояс стрелы
+  ctx.strokeStyle = YELLOW;
+  ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.arc(counterEnd.x, counterEnd.y, 8, 0, Math.PI * 2);
-  ctx.fill();
-  // Кабина оператора на башне
-  ctx.fillStyle = '#ffd76b';
-  ctx.fillRect(towerTop.x - 7, towerTop.y - 14, 14, 10);
-  ctx.fillStyle = 'rgba(60,140,200,.7)';
-  ctx.fillRect(towerTop.x - 5, towerTop.y - 12, 10, 4);
-  // Трос — вертикально вниз от конца стрелы
-  // Высота троса меняется по фазе (опустился = выше число)
-  let cableLen;
-  if (phase < 0.25)      cableLen = 30 + (phase / 0.25) * 30;       // подъём
-  else if (phase < 0.5)  cableLen = 30;                              // транзит
-  else if (phase < 0.75) cableLen = 30 + ((phase - 0.5) / 0.25) * 50; // опускание
-  else                   cableLen = 30;                              // обратно
+  ctx.moveTo(armStartW.x, armStartW.y);
+  ctx.lineTo(armEndW.x,   armEndW.y);
+  ctx.stroke();
+  // Нижний пояс
+  ctx.beginPath();
+  ctx.moveTo(armStartW.x, armStartW.y + 14);
+  ctx.lineTo(armEndW.x,   armEndW.y + 14);
+  ctx.stroke();
+  // Диагональные раскосы фермы (зигзаг)
+  ctx.strokeStyle = '#2a2010';
+  ctx.lineWidth = 1.8;
+  const armSegs = 14;
+  for (let i = 0; i < armSegs; i++) {
+    const k0 = i / armSegs, k1 = (i + 1) / armSegs;
+    const ax = armStartW.x + (armEndW.x - armStartW.x) * k0;
+    const ay = armStartW.y + (armEndW.y - armStartW.y) * k0;
+    const bx = armStartW.x + (armEndW.x - armStartW.x) * k1;
+    const by = armStartW.y + (armEndW.y - armStartW.y) * k1;
+    ctx.beginPath();
+    // Зигзаг между верхним и нижним поясом
+    if (i & 1) {
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by + 14);
+    } else {
+      ctx.moveTo(ax, ay + 14);
+      ctx.lineTo(bx, by);
+    }
+    ctx.stroke();
+    // Вертикальные стойки
+    ctx.beginPath();
+    ctx.moveTo(ax, ay); ctx.lineTo(ax, ay + 14); ctx.stroke();
+  }
+  // Финальная вертикаль на конце
+  ctx.beginPath();
+  ctx.moveTo(armEndW.x, armEndW.y); ctx.lineTo(armEndW.x, armEndW.y + 14);
+  ctx.stroke();
+
+  // ── 3) Кабина оператора — под стрелой со стороны корабля ──
+  const cabX = armStartW.x + (armEndW.x - armStartW.x) * 0.20;
+  const cabY = armStartW.y + (armEndW.y - armStartW.y) * 0.20 + 18;
+  ctx.fillStyle = '#d8d8d8';
+  ctx.fillRect(cabX - 12, cabY, 24, 16);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(cabX - 12, cabY + 14, 24, 2);
+  // Окна — большое лобовое снизу + боковые
+  ctx.fillStyle = 'rgba(60,160,220,.85)';
+  ctx.fillRect(cabX - 11, cabY + 2, 22, 8);
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(cabX - 11, cabY + 2, 22, 8);
+  // Перегородки окон
+  ctx.beginPath();
+  ctx.moveTo(cabX - 4, cabY + 2); ctx.lineTo(cabX - 4, cabY + 10);
+  ctx.moveTo(cabX + 4, cabY + 2); ctx.lineTo(cabX + 4, cabY + 10);
+  ctx.stroke();
+  // Крыша
+  ctx.fillStyle = YELLOW;
+  ctx.fillRect(cabX - 13, cabY - 2, 26, 4);
+  ctx.fillStyle = BLACK;
+  ctx.fillRect(cabX - 13, cabY,     26, 1);
+  // Антенна
   ctx.strokeStyle = '#222';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(armEnd.x, armEnd.y);
-  ctx.lineTo(armEnd.x, armEnd.y + cableLen);
+  ctx.moveTo(cabX + 8, cabY - 2); ctx.lineTo(cabX + 8, cabY - 12);
   ctx.stroke();
-  // Контейнер на крюке (есть только в активной фазе)
-  const carrying = (phase >= 0.15 && phase < 0.85);
+  ctx.fillStyle = '#e74c3c';
+  ctx.beginPath();
+  ctx.arc(cabX + 8, cabY - 12, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ── 4) Машинный отсек на тыловом конце стрелы (где противовес) ──
+  ctx.fillStyle = '#888';
+  ctx.fillRect(armStartW.x - 12, armStartW.y - 14, 24, 12);
+  ctx.fillStyle = BLACK;
+  for (let i = 0; i < 3; i++) {
+    ctx.fillRect(armStartW.x - 10 + i * 8, armStartW.y - 12, 6, 3);  // вент решётка
+  }
+  // Лебёдка-катушка
+  ctx.fillStyle = '#444';
+  ctx.fillRect(armStartW.x - 6, armStartW.y - 2, 12, 3);
+  ctx.fillStyle = '#222';
+  ctx.beginPath();
+  ctx.arc(armStartW.x, armStartW.y - 1, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ── 5) Тележка-троллей на стреле + 4 троса + спредер ──
+  const trolleyX = armStartW.x + (armEndW.x - armStartW.x) * trolley;
+  const trolleyY = armStartW.y + (armEndW.y - armStartW.y) * trolley;
+  // Тележка — узкая жёлтая коробка под нижним поясом
+  ctx.fillStyle = YELLOW;
+  ctx.fillRect(trolleyX - 8, trolleyY + 14, 16, 6);
+  ctx.fillStyle = BLACK;
+  ctx.fillRect(trolleyX - 8, trolleyY + 19, 16, 1.5);
+  // 4 малых колеса по бокам тележки (катятся по нижнему поясу)
+  ctx.fillStyle = '#222';
+  ctx.fillRect(trolleyX - 8, trolleyY + 13, 3, 3);
+  ctx.fillRect(trolleyX + 5, trolleyY + 13, 3, 3);
+  // Тросы — 4 шт, от углов тележки к спредеру
+  const SPREADER_MAX_DROP = 110;
+  const dropPx = hookT * SPREADER_MAX_DROP;
+  const spreaderY = trolleyY + 20 + dropPx;
+  const spreaderW = 26;
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 1.2;
+  for (const dx of [-7, -3, 3, 7]) {
+    ctx.beginPath();
+    ctx.moveTo(trolleyX + dx, trolleyY + 20);
+    ctx.lineTo(trolleyX + dx * 1.5, spreaderY - 2);
+    ctx.stroke();
+  }
+  // Спредер — металлическая рама захвата 20-фт контейнера
+  ctx.fillStyle = '#7a7a7a';
+  ctx.fillRect(trolleyX - spreaderW / 2, spreaderY - 4, spreaderW, 8);
+  ctx.fillStyle = '#444';
+  ctx.fillRect(trolleyX - spreaderW / 2, spreaderY + 4, spreaderW, 2);
+  // Замки-твистлоки на 4 углах рамы
+  ctx.fillStyle = '#222';
+  for (const dx of [-spreaderW/2 + 2, spreaderW/2 - 4]) {
+    ctx.fillRect(trolleyX + dx, spreaderY + 4, 4, 4);
+  }
+  // Жёлтые предупреждающие полосы на спредере
+  ctx.fillStyle = YELLOW;
+  for (let i = -10; i <= 10; i += 6) {
+    ctx.fillRect(trolleyX + i, spreaderY - 3, 3, 1.5);
+  }
+
+  // ── 6) Контейнер под спредером в активной фазе ──
   if (carrying) {
-    const cx = armEnd.x, cy = armEnd.y + cableLen;
-    const cw = 22, ch = 14;
-    const COLOR = ['#c0392b', '#2980b9', '#f39c12', '#27ae60'][Math.floor(tm * 0.125) % 4];
-    ctx.fillStyle = _shade(COLOR, -0.4);
-    ctx.fillRect(cx - cw / 2, cy, cw, ch);                         // тень
-    ctx.fillStyle = COLOR;
-    ctx.fillRect(cx - cw / 2, cy - 4, cw, ch);                     // верх
-    ctx.strokeStyle = 'rgba(0,0,0,.5)';
+    const COLORS = ['#c0392b', '#2980b9', '#f39c12', '#27ae60', '#8e44ad'];
+    const col = COLORS[cargoIdx];
+    const cw = 30, ch = 16;
+    const cx = trolleyX, cy = spreaderY + 6;
+    // Тень
+    ctx.fillStyle = _shade(col, -0.5);
+    ctx.fillRect(cx - cw / 2, cy + ch - 2, cw, 3);
+    // Корпус
+    ctx.fillStyle = col;
+    ctx.fillRect(cx - cw / 2, cy, cw, ch);
+    ctx.strokeStyle = _shade(col, -0.6);
     ctx.lineWidth = 1;
-    ctx.strokeRect(cx - cw / 2, cy - 4, cw, ch);
-    // Рифление контейнера
-    for (let i = 1; i < 5; i++) {
+    ctx.strokeRect(cx - cw / 2, cy, cw, ch);
+    // Рифление (10 рёбер)
+    for (let i = 1; i < 10; i++) {
       ctx.beginPath();
-      ctx.moveTo(cx - cw / 2 + i * (cw / 5), cy - 4);
-      ctx.lineTo(cx - cw / 2 + i * (cw / 5), cy - 4 + ch);
+      ctx.moveTo(cx - cw / 2 + i * (cw / 10), cy + 1);
+      ctx.lineTo(cx - cw / 2 + i * (cw / 10), cy + ch - 1);
       ctx.stroke();
     }
+    // ISO-фитинги по 4 углам
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(cx - cw / 2,     cy,         3, 3);
+    ctx.fillRect(cx + cw / 2 - 3, cy,         3, 3);
+    ctx.fillRect(cx - cw / 2,     cy + ch - 3, 3, 3);
+    ctx.fillRect(cx + cw / 2 - 3, cy + ch - 3, 3, 3);
+    // Логотип
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 7px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const LOGOS = ['MAERSK','MSC','HAPAG','EVERGREEN','ONE'];
+    ctx.fillText(LOGOS[cargoIdx], cx, cy + ch / 2);
   }
 }
 
