@@ -1144,6 +1144,75 @@ function buildMap() {
       MAP[r][c] = t;
     }
   }
+  generateBeachDecor();
+}
+
+// ── Детерминированный генератор пляжной атрибутики ──────────────────
+// Заполняется один раз в buildMap(); render-loop читает массив для
+// depth-sorted отрисовки. Хеш по (r,c) гарантирует одинаковую расстановку
+// между перезаходами.
+let _beachDecor = [];
+function _bhash(r, c, k) { return ((r * 73 + c * 131 + k * 17) >>> 0) % 1000 / 1000; }
+function generateBeachDecor() {
+  _beachDecor = [];
+  // 1) Длинные деревянные дорожки — несколько вертикальных полос от
+  //    границы города (r=150) вглубь пляжа к воде (r≈165). По 1 тайлу
+  //    шириной, 3-4 дорожки распределены по c. Это не блокирует игрока,
+  //    просто декор поверх песка.
+  const PATH_COLS = [18, 30, 52, 66];
+  for (const pc of PATH_COLS) {
+    _beachDecor.push({ kind: 'plank_path', r0: 150, r1: 165, c: pc });
+  }
+  // 2) Пальмы — детерминированно по пляжу (BEACH_R0..BEACH_R1).
+  //    Плотность ~10% но с зонами разрежения (избегаем дорожек).
+  for (let r = BEACH_R0 + 1; r < BEACH_R1 - 1; r++) {
+    for (let c = 2; c < MAP_COLS - 2; c++) {
+      // Не на дорожке
+      if (PATH_COLS.some(pc => Math.abs(c - pc) <= 1)) continue;
+      // Не на тропе игрока (центральная полоса c=38..46) — здесь ходят
+      if (c >= 38 && c <= 46 && r >= BEACH_R1 - 3) continue;
+      const h = _bhash(r, c, 1);
+      if (h < 0.10) {
+        _beachDecor.push({ kind: 'palm',
+                           r: r + 0.5 + (_bhash(r,c,2) - 0.5) * 0.3,
+                           c: c + 0.5 + (_bhash(r,c,3) - 0.5) * 0.3,
+                           variant: Math.floor(_bhash(r,c,4) * 3) });
+      }
+    }
+  }
+  // 3) Зонтики с шезлонгами — несколько групп по пляжу
+  const UMBRELLA_SPOTS = [
+    { r: 154, c: 12,  col: '#e74c3c' },
+    { r: 156, c: 22,  col: '#3498db' },
+    { r: 153, c: 48,  col: '#f1c40f' },
+    { r: 158, c: 58,  col: '#27ae60' },
+    { r: 155, c: 70,  col: '#9b59b6' },
+    { r: 161, c: 14,  col: '#e67e22' },
+    { r: 162, c: 62,  col: '#16a085' },
+  ];
+  for (const sp of UMBRELLA_SPOTS) {
+    _beachDecor.push({ kind: 'umbrella', r: sp.r, c: sp.c, col: sp.col });
+    // 2 шезлонга по бокам зонтика
+    _beachDecor.push({ kind: 'chair', r: sp.r + 0.6, c: sp.c - 0.9, ang: 0.2 });
+    _beachDecor.push({ kind: 'chair', r: sp.r + 0.6, c: sp.c + 0.9, ang: -0.2 });
+  }
+  // 4) Перевёрнутые лодки на песке (для антуража)
+  _beachDecor.push({ kind: 'boat', r: 160, c: 6,  ang: 0.4,  col: '#c0392b' });
+  _beachDecor.push({ kind: 'boat', r: 159, c: 74, ang: -0.5, col: '#2980b9' });
+  // 5) Спасательная вышка
+  _beachDecor.push({ kind: 'lifeguard', r: 157, c: 40 });
+  // 6) Случайные ракушки/камни (мелкие, рядом с водой)
+  for (let r = BEACH_R1 - 3; r < BEACH_R1; r++) {
+    for (let c = 4; c < MAP_COLS - 4; c++) {
+      if (PATH_COLS.some(pc => Math.abs(c - pc) <= 1)) continue;
+      const h = _bhash(r, c, 5);
+      if (h < 0.04) {
+        _beachDecor.push({ kind: 'shell',
+                           r: r + 0.5 + (_bhash(r,c,6) - 0.5) * 0.6,
+                           c: c + 0.5 + (_bhash(r,c,7) - 0.5) * 0.6 });
+      }
+    }
+  }
 }
 
 // ── POI районов ────────────────────────────────────────────────
@@ -1288,7 +1357,7 @@ let gangNests = [];
 // quest_car видна ВСЕМ онлайн-игрокам (соревнование «успей первым»).
 // Зона сдачи — прямоугольник в порту. Выход в зоне = автопродажа.
 // Координаты совпадают с серверными WorldSim.MICHAEL_X/Y, DROP_ZONE_*.
-const MICHAEL_POS = { r: 179, c: 42 };         // палуба корабля Майкла
+const MICHAEL_POS = { r: 183, c: 42 };         // нос корабля Майкла — лицом к пирсу, не за краном
 const DROP_ZONE = { r0: 167, r1: 173, c0: 37, c1: 43 };  // деревянный пирс — сюда подгонять угнанные тачки
 // Snapshot quest_cars: {id, model, x, y, ang, vx, vy, owner_uid, driver_uid,
 //                       state, reward, tx, ty, tAng}
@@ -5496,6 +5565,273 @@ function drawShipCrane() {
   }
 }
 
+// ── Пляжный декор: пальмы / зонты / шезлонги / дорожки / лодки ─────
+function drawPalmTree(r, c, variant) {
+  const p = w2s(r, c);
+  const tm = performance.now() * 0.001;
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + 4, p.y + 4, 18, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Ствол — изогнутый коричневый
+  const trunkH = isoH(2.4 + variant * 0.2);
+  const lean = (variant - 1) * 4;   // -4, 0, +4 — лёгкий наклон
+  ctx.strokeStyle = '#6b4422';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+  ctx.quadraticCurveTo(p.x + lean / 2, p.y - trunkH * 0.55,
+                       p.x + lean,     p.y - trunkH);
+  ctx.stroke();
+  // Светлая «жилка» на стволе
+  ctx.strokeStyle = '#8a5530';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  // Кольца на стволе
+  ctx.strokeStyle = 'rgba(0,0,0,.35)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 4; i++) {
+    const ry = p.y - (trunkH * i) / 5;
+    const rx = p.x + (lean * i) / 5;
+    ctx.beginPath();
+    ctx.moveTo(rx - 4, ry); ctx.lineTo(rx + 4, ry); ctx.stroke();
+  }
+  // Крона — 6 листьев лучами, лёгкое покачивание
+  const top = { x: p.x + lean, y: p.y - trunkH };
+  const sway = Math.sin(tm * 1.4 + r * 0.5 + c * 0.3) * 0.08;
+  const fronds = 6;
+  for (let i = 0; i < fronds; i++) {
+    const a = (i / fronds) * Math.PI * 2 + sway + variant * 0.5;
+    const lx = top.x + Math.cos(a) * 28;
+    const ly = top.y + Math.sin(a) * 14 - 6;
+    // Лист — толстый конус с пилообразным краем
+    ctx.fillStyle = (i & 1) ? '#1e5e2c' : '#256d34';
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y - 4);
+    ctx.quadraticCurveTo((top.x + lx) / 2 + Math.cos(a + Math.PI / 2) * 6,
+                         (top.y + ly) / 2 + Math.sin(a + Math.PI / 2) * 3,
+                         lx, ly);
+    ctx.quadraticCurveTo((top.x + lx) / 2 - Math.cos(a + Math.PI / 2) * 6,
+                         (top.y + ly) / 2 - Math.sin(a + Math.PI / 2) * 3,
+                         top.x, top.y - 4);
+    ctx.closePath(); ctx.fill();
+    // Жилка
+    ctx.strokeStyle = '#143820';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y - 4); ctx.lineTo(lx, ly); ctx.stroke();
+  }
+  // 3 кокоса под кроной
+  for (let i = 0; i < 3; i++) {
+    const a = (i - 1) * 0.6;
+    ctx.fillStyle = '#3a2010';
+    ctx.beginPath();
+    ctx.arc(top.x + Math.cos(a) * 8, top.y + 2 + Math.abs(Math.sin(a)) * 3,
+            3.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawBeachUmbrella(r, c, col) {
+  const p = w2s(r, c);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + 4, p.y + 6, 22, 11, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Ножка
+  const poleH = isoH(2.6);
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y - poleH); ctx.stroke();
+  // Купол — полусфера в 8 секторах (полосы)
+  const topY = p.y - poleH;
+  const R = 28;
+  for (let i = 0; i < 8; i++) {
+    const a0 = (i / 8) * Math.PI - Math.PI;
+    const a1 = ((i + 1) / 8) * Math.PI - Math.PI;
+    ctx.fillStyle = (i & 1) ? col : '#fff';
+    ctx.beginPath();
+    ctx.moveTo(topY, topY);   // dummy
+    ctx.moveTo(p.x, topY);
+    ctx.lineTo(p.x + Math.cos(a0) * R, topY + Math.sin(a0) * R * 0.45);
+    ctx.lineTo(p.x + Math.cos(a1) * R, topY + Math.sin(a1) * R * 0.45);
+    ctx.closePath(); ctx.fill();
+  }
+  // Контур купола
+  ctx.strokeStyle = 'rgba(0,0,0,.5)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(p.x, topY, R, Math.PI, 0, false);
+  ctx.scale(1, 0.45);
+  ctx.stroke();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);   // reset scale
+}
+
+function drawBeachChair(r, c, ang) {
+  const p = w2s(r, c);
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(ang);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.fillRect(-16, -4, 32, 12);
+  // Деревянная рама лежака
+  ctx.fillStyle = '#8a5a2a';
+  ctx.fillRect(-15, -7, 30, 4);
+  ctx.fillRect(-15, -3, 30, 3);
+  // Полосатая ткань (бежево-синие полосы)
+  ctx.fillStyle = '#e8d4a0';
+  ctx.fillRect(-14, -8, 28, 5);
+  for (let i = 0; i < 5; i++) {
+    ctx.fillStyle = (i & 1) ? '#3079b8' : '#e8d4a0';
+    ctx.fillRect(-14 + i * 6, -8, 5, 5);
+  }
+  // Подголовник — приподнятый край (слева)
+  ctx.fillStyle = '#8a5a2a';
+  ctx.beginPath();
+  ctx.moveTo(-15, -7); ctx.lineTo(-22, -14); ctx.lineTo(-19, -14);
+  ctx.lineTo(-12, -7); ctx.closePath(); ctx.fill();
+  // Ножки
+  ctx.fillStyle = '#5a3a18';
+  ctx.fillRect(-13, 0, 2, 5);
+  ctx.fillRect(11, 0, 2, 5);
+  ctx.restore();
+}
+
+function drawPlankPath(r0, r1, c) {
+  // Горизонтальные доски (поперёк направления ходьбы) — 4 широкие доски,
+  // лежат прямо на песке.
+  for (let r = r0; r < r1; r += 0.6) {
+    const p = w2s(r, c);
+    ctx.fillStyle = 'rgba(0,0,0,.32)';
+    ctx.beginPath();
+    ctx.moveTo(p.x - 18, p.y + 6);
+    ctx.lineTo(p.x + 18, p.y + 6);
+    ctx.lineTo(p.x + 18, p.y + 9);
+    ctx.lineTo(p.x - 18, p.y + 9);
+    ctx.closePath(); ctx.fill();
+    // Доска
+    const tone = ((r * 13) | 0) % 3;
+    ctx.fillStyle = tone === 0 ? '#a37640' :
+                    tone === 1 ? '#8e6532' : '#7a5628';
+    ctx.beginPath();
+    ctx.moveTo(p.x - 18, p.y - 4);
+    ctx.lineTo(p.x + 18, p.y - 4);
+    ctx.lineTo(p.x + 22, p.y + 4);
+    ctx.lineTo(p.x - 22, p.y + 4);
+    ctx.closePath(); ctx.fill();
+    // Контур
+    ctx.strokeStyle = 'rgba(0,0,0,.4)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // Гвозди
+    ctx.fillStyle = '#3a2810';
+    ctx.fillRect(p.x - 14, p.y - 2, 1.5, 1.5);
+    ctx.fillRect(p.x + 13, p.y - 2, 1.5, 1.5);
+  }
+}
+
+function drawBeachedBoat(r, c, ang, col) {
+  const p = w2s(r, c);
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(ang);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.ellipse(2, 4, 36, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Корпус — перевёрнутая, видим днище
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(-34, 0);
+  ctx.quadraticCurveTo(-30, -10, 0, -12);
+  ctx.quadraticCurveTo(30, -10, 34, 0);
+  ctx.quadraticCurveTo(0, 6, -34, 0);
+  ctx.closePath(); ctx.fill();
+  // Киль
+  ctx.strokeStyle = _shade(col, -0.5);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-32, -2); ctx.lineTo(32, -2); ctx.stroke();
+  // Полоса по борту
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-30, 0); ctx.lineTo(30, 0); ctx.stroke();
+  ctx.restore();
+}
+
+function drawLifeguardTower(r, c) {
+  const p = w2s(r, c);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + 6, p.y + 5, 22, 11, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 4 ноги
+  const baseR = 12, topH = isoH(3.2);
+  ctx.strokeStyle = '#6a4a22';
+  ctx.lineWidth = 3;
+  for (const [dx, dy] of [[-baseR,-6],[baseR,-6],[-baseR,6],[baseR,6]]) {
+    ctx.beginPath();
+    ctx.moveTo(p.x + dx, p.y + dy);
+    ctx.lineTo(p.x + dx * 0.5, p.y + dy * 0.5 - topH);
+    ctx.stroke();
+  }
+  // Платформа (домик)
+  const cy = p.y - topH;
+  ctx.fillStyle = '#d35400';
+  ctx.fillRect(p.x - 14, cy - 4, 28, 14);
+  ctx.fillStyle = '#a04018';
+  ctx.fillRect(p.x - 14, cy + 8, 28, 2);
+  // Крыша красная двускатная
+  ctx.fillStyle = '#c0392b';
+  ctx.beginPath();
+  ctx.moveTo(p.x - 16, cy - 4);
+  ctx.lineTo(p.x,      cy - 16);
+  ctx.lineTo(p.x + 16, cy - 4);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#7a2418';
+  ctx.lineWidth = 1; ctx.stroke();
+  // Окно
+  ctx.fillStyle = 'rgba(60,140,200,.7)';
+  ctx.fillRect(p.x - 9, cy, 18, 8);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(p.x - 9, cy, 18, 8);
+  // Флаг сверху
+  const tm = performance.now() * 0.002;
+  const wave = Math.sin(tm * 3) * 3;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(p.x - 1, cy - 24, 1.5, 12);
+  ctx.fillStyle = '#e74c3c';
+  ctx.beginPath();
+  ctx.moveTo(p.x, cy - 24);
+  ctx.lineTo(p.x + 10 + wave, cy - 22);
+  ctx.lineTo(p.x, cy - 18);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawShell(r, c) {
+  const p = w2s(r, c);
+  const tone = ((r * 41 + c * 17) | 0) % 4;
+  ctx.fillStyle = tone === 0 ? '#fff4d8' :
+                  tone === 1 ? '#e8c898' :
+                  tone === 2 ? '#d8b08c' : '#c89878';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, 3, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(120,80,60,.5)';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 2, p.y); ctx.lineTo(p.x + 2, p.y); ctx.stroke();
+}
+
 function drawTile(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
@@ -9408,8 +9744,11 @@ function render() {
   }
   // Светофоры на перекрёстках. Перекрёсток теперь 3×3 (mod ∈ {0,1,2});
   // «северо-восточный» угол около бордюра — это тайл (2, 2).
+  // В южной зоне (r>=140) — пляж/море/корабль, городских перекрёстков
+  // нет, светофоры там не нужны.
   for (let r = r0; r < r1; r++) {
     if (r % BLOCK !== 2) continue;
+    if (r >= 140) continue;
     for (let c = c0; c < c1; c++) {
       if (c % BLOCK !== 2) continue;
       items.push({ depth: r + c - 0.3, draw: () => drawTrafficLight(r, c) });
@@ -9446,7 +9785,33 @@ function render() {
   if (SHIP_MID_R >= r0 - 8 && SHIP_MID_R < r1 + 8 &&
       SHIP_MID_C >= c0 - 12 && SHIP_MID_C < c1 + 12) {
     items.push({ depth: SHIP_R0 + SHIP_C0 - 0.5, draw: () => drawShipHull() });
-    items.push({ depth: SHIP_MID_R + SHIP_MID_C + 0.5, draw: () => drawShipCrane() });
+    // Кран — depth по СЕВЕРНОЙ половине корабля, чтобы Майкл (нос, r=183)
+    // и контейнеры на пирсе НЕ перекрывались стрелой.
+    items.push({ depth: (SHIP_R0 + 1) + SHIP_MID_C, draw: () => drawShipCrane() });
+  }
+  // Пляжный декор — пальмы, зонтики, шезлонги, дорожки, лодки, вышка.
+  for (const d of _beachDecor) {
+    if (d.kind === 'plank_path') {
+      if (d.r1 < r0 || d.r0 >= r1) continue;
+      if (d.c < c0 || d.c >= c1) continue;
+      // Длинная дорожка из досок — depth по верхнему краю (r0)
+      items.push({ depth: d.r0 + d.c - 0.5,
+                   draw: () => drawPlankPath(d.r0, d.r1, d.c) });
+      continue;
+    }
+    if (d.r < r0 || d.r >= r1 || d.c < c0 || d.c >= c1) continue;
+    if (d.kind === 'palm')
+      items.push({ depth: d.r + d.c, draw: () => drawPalmTree(d.r, d.c, d.variant) });
+    else if (d.kind === 'umbrella')
+      items.push({ depth: d.r + d.c, draw: () => drawBeachUmbrella(d.r, d.c, d.col) });
+    else if (d.kind === 'chair')
+      items.push({ depth: d.r + d.c, draw: () => drawBeachChair(d.r, d.c, d.ang) });
+    else if (d.kind === 'boat')
+      items.push({ depth: d.r + d.c, draw: () => drawBeachedBoat(d.r, d.c, d.ang, d.col) });
+    else if (d.kind === 'lifeguard')
+      items.push({ depth: d.r + d.c, draw: () => drawLifeguardTower(d.r, d.c) });
+    else if (d.kind === 'shell')
+      items.push({ depth: d.r + d.c - 0.1, draw: () => drawShell(d.r, d.c) });
   }
   // Конвой инкассатора (boss + 3 полицейских) — если событие активно
   if (worldEvent) {
