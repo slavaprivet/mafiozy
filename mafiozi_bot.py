@@ -11442,6 +11442,9 @@ class WorldSim:
         # 3-сек хадера. Сейчас захват отключён (no_capture), но AggroState
         # всё ещё держит ботов, респаун и AI.
         'aggro', 'aggro_covers', 'aggro_capturing_at', '_next_bot_id',
+        # Бродячие городские банды + бандитское гнездо.
+        'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
+        'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
     )
 
     # ── Эмерджентные события: параметры ────────────────────────────
@@ -13356,8 +13359,8 @@ class WorldSim:
     NEST_BOTS            = 4
     NEST_GUARD_R         = 4.0        # держатся в этом радиусе от центра
     NEST_AGGRO_R         = 6.0        # игрок ближе → hostile
-    NEST_CLEAR_CASH      = 500
-    NEST_CLEAR_EXP       = 60
+    NEST_CLEAR_CASH      = 150
+    NEST_CLEAR_EXP       = 25
 
     def _spawn_city_gang(self) -> None:
         """Спавнит маленькую группу бандитов в городе на проходимом тайле.
