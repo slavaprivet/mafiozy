@@ -5416,16 +5416,16 @@ function drawSouthTile(r, c, t, p, wx, wy) {
     // Вода: динамические волны с градиентом «глубже = темнее».
     // Чем дальше от берега (r → MAP_ROWS), тем темнее. Также 2 слоя волн
     // (короткая рябь + длинные волны) дают живую анимацию.
-    const tm = performance.now() * 0.0008;
+    const _tmW = performance.now() * 0.0008;
     const depth = Math.min(1, (r - PIER_R0) / 25);          // 0 у берега, 1 далеко
-    const wave1 = Math.sin((r * 0.7  + c * 0.5)  + tm * 2.0) * 0.5 + 0.5;  // длинная
-    const wave2 = Math.sin((r * 2.1  + c * 1.7)  + tm * 3.5) * 0.5 + 0.5;  // мелкая рябь
+    const wave1 = Math.sin((r * 0.7  + c * 0.5)  + _tmW * 2.0) * 0.5 + 0.5;  // длинная
+    const wave2 = Math.sin((r * 2.1  + c * 1.7)  + _tmW * 3.5) * 0.5 + 0.5;  // мелкая рябь
     // Базовая палитра — три тона по h1
     let base;
     if      (h1 < 25) base = '#143040';
     else if (h1 < 60) base = '#1a3a50';
     else              base = '#1f445e';
-    color = _shade(base, -0.18 * depth);
+    color = _shade(base, -0.22 * depth);
     // Гребни длинной волны — голубоватые
     if (wave1 > 0.82) color = _shade(color, 0.30);
     // Мелкая рябь — лёгкие светлые точки сверху
@@ -5495,26 +5495,63 @@ function drawSouthTile(r, c, t, p, wx, wy) {
       }
     }
   } else if (t === 16) {
-    // Барашек на гребне волны
-    if (h2 < 18) {
-      const tm = performance.now() * 0.0012;
-      const ph = Math.sin((r * 1.1 + c * 0.7) + tm * 3);
-      if (ph > 0.85) {
-        ctx.fillStyle = 'rgba(255,255,255,.55)';
-        ctx.fillRect(p.x - 5, p.y - 1, 10, 1.5);
+    const tm = performance.now() * 0.001;
+    // 1) Длинная пенная волна — выраженный белый изогнутый «барашек»
+    //    идущий по диагонали. Чаще, более крупный, с тенью под собой.
+    const longW = Math.sin((r * 0.6 + c * 0.45) + tm * 1.8);
+    if (longW > 0.55) {
+      const k = (longW - 0.55) / 0.45;          // 0..1 — насыщенность пены
+      ctx.strokeStyle = `rgba(240,250,255,${0.35 + 0.45 * k})`;
+      ctx.lineWidth = 1.4 + k * 1.2;
+      ctx.beginPath();
+      ctx.moveTo(p.x - wx * 0.7, p.y + 1);
+      ctx.quadraticCurveTo(p.x, p.y - 2 - k * 2, p.x + wx * 0.7, p.y + 1);
+      ctx.stroke();
+      // Тёмная ложбина-тень под гребнем
+      ctx.strokeStyle = `rgba(8,18,28,${0.18 + 0.18 * k})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(p.x - wx * 0.6, p.y + 3);
+      ctx.quadraticCurveTo(p.x, p.y + 1, p.x + wx * 0.6, p.y + 3);
+      ctx.stroke();
+    }
+    // 2) Мелкая искрящаяся рябь — короткие штрихи. Плотнее раньше.
+    const ripple = Math.sin((r * 2.3 + c * 1.9) + tm * 3.2);
+    if (ripple > 0.78) {
+      ctx.strokeStyle = 'rgba(220,235,250,.50)';
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.moveTo(p.x - 6, p.y);
+      ctx.lineTo(p.x - 2, p.y);
+      ctx.moveTo(p.x + 3, p.y + 1);
+      ctx.lineTo(p.x + 7, p.y + 1);
+      ctx.stroke();
+    }
+    // 3) Точечные блики солнца — крупнее, золотистые
+    const sparkle = Math.sin((r * 3.1 + c * 2.7) + tm * 4);
+    if (sparkle > 0.90) {
+      ctx.fillStyle = 'rgba(255,240,200,.65)';
+      ctx.fillRect(p.x - 1, p.y - 1, 2.5, 2.5);
+    }
+    // 4) Прибой у берега — толстая ДВИЖУЩАЯСЯ пенная полоса
+    //    на 2-х первых рядах воды (r=PIER_R0, PIER_R0+1).
+    if (r <= PIER_R0 + 1) {
+      const rowK = (r === PIER_R0) ? 1.0 : 0.55;
+      // Накат: ширина пены модулируется sin по c и времени
+      const surf = Math.sin(c * 0.5 + tm * 2.2) * 0.5 + 0.5;
+      const len  = (wx * 2 - 8) * (0.6 + 0.4 * surf);
+      ctx.fillStyle = `rgba(255,255,255,${0.40 * rowK + 0.35 * surf * rowK})`;
+      ctx.fillRect(p.x - len / 2, p.y - 1, len, 2.5 + rowK);
+      // Лёгкие пенные брызги вверху накатной кромки
+      if (rowK === 1.0 && surf > 0.7) {
+        ctx.fillStyle = 'rgba(255,255,255,.6)';
+        for (let i = 0; i < 3; i++) {
+          const sx2 = p.x - 8 + i * 8 + (h1 % 5 - 2);
+          ctx.beginPath();
+          ctx.arc(sx2, p.y - 3, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
-    }
-    // Лёгкий блик отражения солнца — у поверхности (близко к берегу)
-    const tm2 = performance.now() * 0.0006;
-    const sparkle = Math.sin((r * 3.1 + c * 2.7) + tm2 * 5);
-    if (sparkle > 0.94) {
-      ctx.fillStyle = 'rgba(255,255,255,.5)';
-      ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
-    }
-    // Узкая прибойная полоса у берега (r ≈ PIER_R0..PIER_R0+1)
-    if (r === PIER_R0) {
-      ctx.fillStyle = 'rgba(255,255,255,.30)';
-      ctx.fillRect(p.x - wx + 4, p.y - 1, wx * 2 - 8, 2);
     }
   }
 }
