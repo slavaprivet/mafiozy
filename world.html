@@ -1163,22 +1163,31 @@ function generateBeachDecor() {
   for (const pc of PATH_COLS) {
     _beachDecor.push({ kind: 'plank_path', r0: 150, r1: 165, c: pc });
   }
-  // 2) Пальмы — детерминированно по пляжу (BEACH_R0..BEACH_R1).
-  //    Плотность ~18% но с зонами разрежения (избегаем дорожек и зонтиков).
-  const UMBRELLA_RC = new Set();
-  // (заранее зарезервируем, чтобы не сажать пальму под зонтиком)
+  // 2) Пальмы — детерминированно по пляжу. Плотность снижена с 18% до 7%
+  //    + минимальная дистанция между пальмами 2.5 тайла, чтобы не было
+  //    «леса» и куч. Также сторонимся центральной тропы и зонтиков.
+  const _palms = [];
+  const MIN_PALM_D2 = 2.5 * 2.5;
   for (let r = BEACH_R0 + 1; r < BEACH_R1 - 1; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
       if (PATH_COLS.some(pc => Math.abs(c - pc) <= 1)) continue;
       // Не на тропе игрока (центральная полоса c=38..46) — здесь ходят
       if (c >= 38 && c <= 46 && r >= BEACH_R1 - 3) continue;
       const h = _bhash(r, c, 1);
-      if (h < 0.18) {
-        _beachDecor.push({ kind: 'palm',
-                           r: r + 0.5 + (_bhash(r,c,2) - 0.5) * 0.3,
-                           c: c + 0.5 + (_bhash(r,c,3) - 0.5) * 0.3,
-                           variant: Math.floor(_bhash(r,c,4) * 3) });
+      if (h >= 0.07) continue;
+      const pr = r + 0.5 + (_bhash(r,c,2) - 0.5) * 0.4;
+      const pc = c + 0.5 + (_bhash(r,c,3) - 0.5) * 0.4;
+      // Минимальная дистанция до уже расставленных пальм
+      let tooClose = false;
+      for (const p of _palms) {
+        const dr = p.r - pr, dc = p.c - pc;
+        if (dr*dr + dc*dc < MIN_PALM_D2) { tooClose = true; break; }
       }
+      if (tooClose) continue;
+      const palm = { kind: 'palm', r: pr, c: pc,
+                     variant: Math.floor(_bhash(r,c,4) * 3) };
+      _palms.push(palm);
+      _beachDecor.push(palm);
     }
   }
   // 3) Зонтики с шезлонгами — несколько групп по пляжу
@@ -1204,12 +1213,13 @@ function generateBeachDecor() {
   _beachDecor.push({ kind: 'lifeguard', r: 156, c: 26 });
   // 6) Тропический бар на пляже — деревянная будка с соломенной крышей
   _beachDecor.push({ kind: 'tiki_bar', r: 154, c: 56 });
-  // 7) Сёрфы прислонённые в песок группами
-  _beachDecor.push({ kind: 'surfboard', r: 152, c: 10, col: '#e74c3c', ang: -0.3 });
-  _beachDecor.push({ kind: 'surfboard', r: 152, c: 10.6, col: '#f1c40f', ang: -0.1 });
-  _beachDecor.push({ kind: 'surfboard', r: 152, c: 11.2, col: '#3498db', ang: 0.15 });
-  _beachDecor.push({ kind: 'surfboard', r: 153, c: 64, col: '#2ecc71', ang: 0.2 });
-  _beachDecor.push({ kind: 'surfboard', r: 153, c: 64.6, col: '#9b59b6', ang: 0.05 });
+  // 7) Сёрфы — по одному в разных точках пляжа (раньше стояли кучками
+  //    по 3 шт впритык на одной точке — выглядело как куча хлама).
+  _beachDecor.push({ kind: 'surfboard', r: 152, c: 8,  col: '#e74c3c', ang: -0.3 });
+  _beachDecor.push({ kind: 'surfboard', r: 156, c: 34, col: '#f1c40f', ang: -0.1 });
+  _beachDecor.push({ kind: 'surfboard', r: 153, c: 51, col: '#3498db', ang:  0.15 });
+  _beachDecor.push({ kind: 'surfboard', r: 162, c: 24, col: '#2ecc71', ang:  0.2 });
+  _beachDecor.push({ kind: 'surfboard', r: 159, c: 72, col: '#9b59b6', ang:  0.05 });
   // 8) Пляжные мячи (несколько, разных цветов)
   _beachDecor.push({ kind: 'ball', r: 159, c: 32, col1: '#e74c3c', col2: '#fff' });
   _beachDecor.push({ kind: 'ball', r: 156, c: 50, col1: '#3498db', col2: '#f1c40f' });
