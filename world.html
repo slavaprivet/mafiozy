@@ -1521,6 +1521,42 @@ function applyBeachgoersSnapshot(arr) {
     if (!fresh.has(id)) beachgoers.delete(id);
   }
 }
+// ── Охрана Майкла (чёрные рубашки) ────────────────────────────────
+const michaelGuards = new Map();   // id → {x, y, tx, ty, ang, tAng, hp, max_hp, state, weapon, lastShotAt}
+function applyMichaelGuardsSnapshot(arr) {
+  const fresh = new Set();
+  for (const g of arr) {
+    fresh.add(g.id);
+    const prev = michaelGuards.get(g.id);
+    if (prev) {
+      prev.tx = g.x; prev.ty = g.y; prev.tAng = g.ang;
+      prev.hp = g.hp; prev.max_hp = g.max_hp;
+      prev.state = g.state; prev.weapon = g.weapon;
+    } else {
+      michaelGuards.set(g.id, {
+        id: g.id, x: g.x, y: g.y, tx: g.x, ty: g.y,
+        ang: g.ang, tAng: g.ang,
+        hp: g.hp, max_hp: g.max_hp,
+        state: g.state, weapon: g.weapon,
+        lastShotAt: 0,
+      });
+    }
+  }
+  for (const id of Array.from(michaelGuards.keys())) {
+    if (!fresh.has(id)) michaelGuards.delete(id);
+  }
+}
+function _interpMichaelGuards(dt) {
+  for (const g of michaelGuards.values()) {
+    g.x += (g.tx - g.x) * Math.min(1, dt * 8);
+    g.y += (g.ty - g.y) * Math.min(1, dt * 8);
+    let aD = g.tAng - g.ang;
+    while (aD >  Math.PI) aD -= Math.PI * 2;
+    while (aD < -Math.PI) aD += Math.PI * 2;
+    g.ang += aD * Math.min(1, dt * 8);
+  }
+}
+
 function _interpBeachgoers(dt) {
   for (const b of beachgoers.values()) {
     b.x += (b.tx - b.x) * Math.min(1, dt * 8);
@@ -3285,6 +3321,45 @@ function handleEventPacket(d) {
   } else if (kind === 'cop_leave') {
     // Патруль уехал — чат больше не нужен.
     if (d.cop_id) _copChats.delete(String(d.cop_id));
+  } else if (kind === 'mg_shot') {
+    // Охрана Майкла выстрелила в игрока. Трассер + вспышка дула.
+    {
+      const wp  = d.weapon || 'pistol_heavy';
+      const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
+      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
+      const sR  = d.sy + Math.sin(ang) * md;
+      const sC  = d.sx + Math.cos(ang) * md;
+      spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
+      spawnMuzzle(sR, sC, ang, wp);
+      if (!d.miss) spawnImpact(d.ty, d.tx, wp);
+    }
+    if (d.guard_id) {
+      const g = michaelGuards.get(d.guard_id);
+      if (g) g.lastShotAt = performance.now();
+    }
+    if (!d.miss && String(d.target_uid) === String(QP.uid)) {
+      flashHitOverlay();
+      addShake(3);
+      if (d.killed) myDeathBy = 'Охрана Майкла';
+    }
+  } else if (kind === 'mg_hit') {
+    // Игрок попал в охранника — трассер от стрелка + кровь.
+    {
+      const wp  = d.weapon || (currentWeapon || 'pistol');
+      const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
+      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
+      const sR  = d.sy + Math.sin(ang) * md;
+      const sC  = d.sx + Math.cos(ang) * md;
+      spawnBullet(sR, sC, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: wp });
+      spawnMuzzle(sR, sC, ang, wp);
+      spawnImpact(d.ty, d.tx, wp);
+    }
+    if (d.killed && d.guard_id) {
+      // Локально удаляем из карты — следующий snap либо вернёт его респаун,
+      // либо подтвердит что мёртв. Без локальной правки рисуем мёртвого
+      // ещё 200 мс — выглядит как лаг.
+      michaelGuards.delete(d.guard_id);
+    }
   } else if (kind === 'cop_shot') {
     // Коп выстрелил в игрока — пуля из КОНЦА ствола (pistol_heavy/smg/rpg).
     // При miss=true tx/ty уже сдвинуты на сервере.
@@ -4015,6 +4090,9 @@ function wsConnect() {
       }
       if (d.beachgoers !== undefined) {
         applyBeachgoersSnapshot(d.beachgoers || []);
+      }
+      if (d.michael_guards !== undefined) {
+        applyMichaelGuardsSnapshot(d.michael_guards || []);
       }
       if (d.active_captures !== undefined) {
         // Перетираем карту целиком — сервер источник истины. Сохраняем
@@ -4781,11 +4859,24 @@ function fire(angle = null) {
       }
     }
   }
-  // 4) PvP-игрок (в активной зоне инкассатора или в арене)
-  const pvpTarget = (!chosenConvoy && !chosenCop && !chosenAggro) ? findPvpTargetAlongAim(dirX, dirY) : null;
+  // 4) Охранник Майкла — стрелять можно, но это разозлит охрану
+  let chosenMg = null;
+  if (!chosenConvoy && !chosenCop && !chosenAggro) {
+    for (const g of michaelGuards.values()) {
+      const dx = g.x - player.c, dy = g.y - player.r;
+      const d  = Math.hypot(dx, dy);
+      if (d > FIRE_R_CONVOY) continue;
+      const dn = d > 0.001 ? d : 1;
+      const dot = (dx * dirX + dy * dirY) / dn;
+      if (dot < 0.985) continue;
+      if (!chosenMg || d < chosenMg.d) chosenMg = { id: g.id, x: g.x, y: g.y, d };
+    }
+  }
+  // 5) PvP-игрок (в активной зоне инкассатора или в арене)
+  const pvpTarget = (!chosenConvoy && !chosenCop && !chosenAggro && !chosenMg) ? findPvpTargetAlongAim(dirX, dirY) : null;
   // Если цели нет — стреляем «в пустоту» с визуальным эффектом
   // (трассер летит вперёд + отдача + cd). Локально, серверу не шлём.
-  const noTarget = !chosenConvoy && !chosenCop && !chosenAggro && !pvpTarget;
+  const noTarget = !chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && !pvpTarget;
   lastShotClientT = now;
   _fireBtn.classList.add('cd');
   joyREl.classList.add('cd');
@@ -4812,7 +4903,7 @@ function fire(angle = null) {
   const meInArena = inArena(player.r, player.c);
   // Внутри агрессивной зоны стрельба ВСЕГДА легальна — это PvP-район банды.
   const meInAggro = !!inAggroZone(player.r, player.c);
-  const lawful    = meInArena || meInAggro || pvpActive || chosenConvoy || chosenCop || chosenAggro;
+  const lawful    = meInArena || meInAggro || pvpActive || chosenConvoy || chosenCop || chosenAggro || chosenMg;
   if (!lawful) {
     // Проверка: летит ли пуля в мирного NPC прохожего (стрельба в людей)?
     // Если да — сервер даст СРАЗУ 2★ без предупреждения (бой). Прицеливаемся
@@ -4865,6 +4956,15 @@ function fire(angle = null) {
     try {
       ws && ws.send(JSON.stringify({ t: 'aggro_shoot',
         d: { target: chosenAggro.id, weapon: currentWeapon } }));
+    } catch(e) {}
+    return;
+  }
+  if (chosenMg) {
+    spawnBullet(sR, sC, chosenMg.y, chosenMg.x,
+      { hit: true, fromPlayer: true, weapon: currentWeapon });
+    try {
+      ws && ws.send(JSON.stringify({ t: 'mg_shoot',
+        d: { target: chosenMg.id, weapon: currentWeapon } }));
     } catch(e) {}
     return;
   }
@@ -5385,6 +5485,7 @@ function update(dt) {
       // Интерполяция чужих quest_cars (которые ведут другие игроки)
       _interpQuestCars(dt);
       _interpBeachgoers(dt);
+      _interpMichaelGuards(dt);
       return;
     }
   }
@@ -8322,6 +8423,45 @@ function drawBeachgoer(b) {
   ctx.lineCap = 'butt';
 }
 
+// Охранник Майкла — головорез в чёрной рубашке с пистолетом. Стоит
+// статично возле Майкла. При огне в зоне Майкла открывает огонь.
+const _MG_LOOK = { gender: 0, skin: 1, body: 2, face: 0, hair: 1, hat: 0, gang: 0 };
+function drawMichaelGuard(g) {
+  const p = w2s(g.y, g.x);
+  // Тёмная подсветка под охранником — отличает от обычных NPC
+  ctx.fillStyle = (g.state === 'hostile')
+    ? 'rgba(220,40,40,.35)' : 'rgba(40,40,40,.50)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 6, 16, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Используем drawPerson — но потом сверху перерисуем рубашку чёрным
+  drawPerson(p.x, p.y, g.ang || 0, _MG_LOOK, 0, null, null, false,
+             g.hp, g.max_hp, false);
+  // Чёрная рубашка поверх — узкий прямоугольник на туловище
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(p.x - 7, p.y - 14, 14, 11);
+  // Воротник
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(p.x - 5, p.y - 14, 10, 2);
+  // Пуговицы
+  ctx.fillStyle = '#444';
+  ctx.fillRect(p.x - 0.5, p.y - 12, 1, 1);
+  ctx.fillRect(p.x - 0.5, p.y - 9,  1, 1);
+  ctx.fillRect(p.x - 0.5, p.y - 6,  1, 1);
+  // Оружие в руке
+  const flashAt = g.lastShotAt || 0;
+  drawWeaponInHands(p.x, p.y, g.ang || 0,
+                    g.weapon || 'pistol_heavy', 0.95, flashAt);
+  // Иконка-щит над головой (отличает: охрана Майкла)
+  ctx.font = '12px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillStyle = (g.state === 'hostile') ? '#ff4040' : '#ffd76b';
+  ctx.fillText('🛡', p.x, p.y - 42);
+  ctx.shadowBlur = 0;
+}
+
 // Эмерджентное событие: NPC конвоя (инкассатор или полицейский).
 // isBoss=true → инкассатор (тёмный костюм, эмодзи 💼 над головой);
 // false → полицейский (синяя форма с фуражкой 👮).
@@ -10849,6 +10989,11 @@ function render() {
   for (const b of beachgoers.values()) {
     if (b.y < r0 || b.y >= r1 || b.x < c0 || b.x >= c1) continue;
     items.push({ depth: b.y + b.x + 0.0004, draw: () => drawBeachgoer(b) });
+  }
+  // Охрана Майкла — в чёрных рубашках, по бокам Майкла на палубе
+  for (const g of michaelGuards.values()) {
+    if (g.y < r0 || g.y >= r1 || g.x < c0 || g.x >= c1) continue;
+    items.push({ depth: g.y + g.x + 0.0007, draw: () => drawMichaelGuard(g) });
   }
   // Машины (движущиеся)
   for (const car of CARS) {
