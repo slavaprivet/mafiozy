@@ -11465,6 +11465,8 @@ class WorldSim:
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
         # Пляжники — мирные NPC в купальниках/плавках.
         'beachgoers', '_beachgoer_next_id', '_beachgoer_next_spawn_at',
+        # Охрана Майкла на корабле.
+        'michael_guards', '_mg_next_id', '_mg_respawn_at',
         # GTA-контракты Майкла: спавненные квестовые тачки.
         'quest_cars', '_quest_car_next_id',
     )
@@ -11701,6 +11703,18 @@ class WorldSim:
     BEACHGOER_GUNSHOT_R     = 14.0    # на каком расстоянии слышит выстрел
     BEACHGOER_ACT_MIN_S     = 7.0
     BEACHGOER_ACT_MAX_S     = 22.0
+    # ── Охрана Майкла ──────────────────────────────────────────────
+    # Двое головорезов в чёрных рубашках стоят возле Майкла на палубе.
+    # Если кто-то открыл огонь в радиусе MICHAEL_PROTECT_R или стрелял
+    # лично в Майкла/охрану — становятся hostile и расстреливают стрелка.
+    MICHAEL_GUARD_COUNT     = 2
+    MICHAEL_GUARD_HP        = 280
+    MICHAEL_GUARD_DMG       = 18
+    MICHAEL_GUARD_CD        = 1.1
+    MICHAEL_GUARD_RANGE     = 9.0
+    MICHAEL_GUARD_HOSTILE_S = 30.0
+    MICHAEL_GUARD_RESPAWN_S = 90.0      # сколько ждать перед респауном павшего
+    MICHAEL_PROTECT_R       = 10.0      # радиус «зоны Майкла» — выстрел тут = hostile
     AGGRO_BOT_HP        = 90
     AGGRO_BOT_DMG       = 8
     AGGRO_BOT_CD        = 1.1
@@ -11790,6 +11804,11 @@ class WorldSim:
         self.beachgoers = []
         self._beachgoer_next_id = 1
         self._beachgoer_next_spawn_at = 10.0   # через 10 сек после старта
+        # Охрана Майкла — спавнится сразу при init (2 человека возле него)
+        self.michael_guards = []
+        self._mg_next_id = 1
+        self._mg_respawn_at = 0.0
+        self._spawn_michael_guards()
         # GTA Майкла — спавненные квестовые тачки {car_id → dict}.
         # Каждая хранит: id, model, owner_uid, x, y, ang, vx, vy,
         # driver_uid (None если стоит), hp, reward, _spawn_t.
@@ -14268,12 +14287,10 @@ class WorldSim:
             self._spawn_beachgoer()
             self._beachgoer_next_spawn_at = now + self.BEACHGOER_SPAWN_GAP_S
         # Сканируем выстрелы игроков (по _last_shot_t). Если кто-то
-        # стрелял < 0.4 сек назад — паника на пляжников в радиусе.
-        for p in self.players.values():
+        # стрелял < 0.4 сек назад — паника на пляжников + охрана Майкла.
+        for puid, p in self.players.items():
             lst = p.get('_last_shot_t') or 0
             if lst <= 0 or (now - lst) > 0.4:
-                continue
-            if (now - lst) < (p.get('_last_beach_alert_t') or 0):
                 continue
             # Защита от дублей: alert только если этот выстрел новее
             # последнего что мы обрабатывали для этого игрока.
@@ -14281,6 +14298,7 @@ class WorldSim:
                 continue
             p['_last_beach_alert_t'] = lst
             self.alert_beachgoers(p['x'], p['y'])
+            self.alert_michael_guards(str(puid), p['x'], p['y'])
         for b in self.beachgoers:
             act = b.get('_act') or 'idle'
             # Завершение flee → возвращаемся к обычной жизни
@@ -14328,6 +14346,182 @@ class WorldSim:
                     if not _world_is_wall(int(ny), int(nx)):
                         b['x'] = nx; b['y'] = ny
                     b['ang'] = _m.atan2(dy, dx)
+
+    # ── Охрана Майкла ──────────────────────────────────────────────
+    # Два охранника стоят на палубе по бокам от Майкла. Реагируют на
+    # стрельбу в зоне MICHAEL_PROTECT_R от Майкла — становятся hostile
+    # на стрелка и расстреливают его pistol_heavy'ом. Если игрок убил
+    # обоих — респаун через MICHAEL_GUARD_RESPAWN_S секунд.
+    def _spawn_michael_guards(self) -> None:
+        """Спавним 2 охранника на палубе по бокам Майкла."""
+        positions = [
+            (self.MICHAEL_X - 2.5, self.MICHAEL_Y),   # слева
+            (self.MICHAEL_X + 2.5, self.MICHAEL_Y),   # справа
+        ]
+        for (gx, gy) in positions[:self.MICHAEL_GUARD_COUNT]:
+            gid = f'mg{self._mg_next_id}'
+            self._mg_next_id += 1
+            self.michael_guards.append({
+                'id':         gid,
+                'x':          float(gx),
+                'y':          float(gy),
+                'ang':        0.0,
+                'hp':         int(self.MICHAEL_GUARD_HP),
+                'max_hp':     int(self.MICHAEL_GUARD_HP),
+                'alive':      True,
+                'weapon':     'pistol_heavy',
+                '_shot_t':    0.0,
+                '_state':     'guard',
+                '_target_uid': None,
+                '_hostile_until': 0.0,
+                '_home_x':    float(gx),
+                '_home_y':    float(gy),
+            })
+
+    def alert_michael_guards(self, shooter_uid: str, sx: float, sy: float) -> None:
+        """Переключаем охрану в hostile на shooter если выстрел случился
+        в радиусе MICHAEL_PROTECT_R от Майкла."""
+        dx = sx - self.MICHAEL_X
+        dy = sy - self.MICHAEL_Y
+        if (dx * dx + dy * dy) > self.MICHAEL_PROTECT_R * self.MICHAEL_PROTECT_R:
+            return
+        now = time.time()
+        for g in self.michael_guards:
+            if not g.get('alive'):
+                continue
+            g['_state']          = 'hostile'
+            g['_target_uid']     = str(shooter_uid)
+            g['_hostile_until']  = now + self.MICHAEL_GUARD_HOSTILE_S
+
+    def tick_michael_guards(self, dt: float) -> list:
+        """AI охраны Майкла. Возвращает event-пакеты mg_shot."""
+        import math as _m
+        pkts = []
+        now = time.time()
+        # Респаун если все мертвы
+        alive_any = any(g.get('alive') for g in self.michael_guards)
+        if not alive_any:
+            if self._mg_respawn_at <= 0:
+                self._mg_respawn_at = now + self.MICHAEL_GUARD_RESPAWN_S
+            elif now >= self._mg_respawn_at:
+                self.michael_guards = []
+                self._spawn_michael_guards()
+                self._mg_respawn_at = 0.0
+            return pkts
+        else:
+            self._mg_respawn_at = 0.0
+        # AI каждого живого
+        for g in self.michael_guards:
+            if not g.get('alive'):
+                continue
+            # Сброс hostile если время вышло
+            if g['_state'] == 'hostile' and now > g.get('_hostile_until', 0):
+                g['_state']      = 'guard'
+                g['_target_uid'] = None
+            if g['_state'] == 'guard':
+                # Поворачиваемся к ближайшему живому игроку (декоративно)
+                nearest = None; nd2 = 999.0
+                for p in self.players.values():
+                    if p.get('dead'):
+                        continue
+                    dd = (p['x'] - g['x'])**2 + (p['y'] - g['y'])**2
+                    if dd < nd2:
+                        nd2 = dd; nearest = p
+                if nearest:
+                    g['ang'] = _m.atan2(nearest['y'] - g['y'],
+                                        nearest['x'] - g['x'])
+                continue
+            # HOSTILE — стреляем по target_uid
+            target = self.players.get(g['_target_uid']) if g['_target_uid'] else None
+            if (not target or target.get('dead')
+                    or (target.get('_jail_until') or 0) > now):
+                g['_state']      = 'guard'
+                g['_target_uid'] = None
+                continue
+            tx, ty = target['x'], target['y']
+            dx = tx - g['x']; dy = ty - g['y']
+            dist = _m.hypot(dx, dy) + 1e-6
+            g['ang'] = _m.atan2(dy, dx)
+            if (dist <= self.MICHAEL_GUARD_RANGE
+                    and (now - g['_shot_t']) >= self.MICHAEL_GUARD_CD
+                    and _world_los(g['x'], g['y'], tx, ty)):
+                g['_shot_t'] = now
+                miss = random.random() < 0.30
+                dmg = 0 if miss else self.MICHAEL_GUARD_DMG
+                if not miss:
+                    target['hp'] = int(max(0,
+                        int(target.get('hp', 100)) - dmg))
+                killed = False
+                if target['hp'] <= 0 and not miss:
+                    target['hp']     = 0
+                    target['dead']   = True
+                    target['deaths'] = int(target.get('deaths', 0)) + 1
+                    target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                    killed = True
+                pkts.append({
+                    'kind':       'mg_shot',
+                    'guard_id':   g['id'],
+                    'weapon':     g['weapon'],
+                    'sx':         round(g['x'], 2),
+                    'sy':         round(g['y'], 2),
+                    'target_uid': g['_target_uid'],
+                    'tx':         round(tx, 2),
+                    'ty':         round(ty, 2),
+                    'dmg':        int(dmg),
+                    'miss':       bool(miss),
+                    'killed':     killed,
+                })
+        return pkts
+
+    def apply_mg_shoot(self, uid: str, guard_id: str,
+                        weapon: str = '') -> dict | None:
+        """Игрок стреляет в охранника Майкла. Возвращает hit-пакет."""
+        shooter = self.players.get(uid)
+        if not shooter or shooter.get('dead'):
+            return None
+        if (shooter.get('_jail_until') or 0) > time.time():
+            return None
+        if shooter.get('_mode') == 'pve':
+            return None
+        g = next((x for x in self.michael_guards
+                   if x['id'] == guard_id and x.get('alive')), None)
+        if not g:
+            return None
+        d_sq = (shooter['x'] - g['x'])**2 + (shooter['y'] - g['y'])**2
+        if d_sq > (self.MICHAEL_GUARD_RANGE + 4) ** 2:
+            return None
+        if not _world_los(shooter['x'], shooter['y'], g['x'], g['y']):
+            return None
+        dmg = max(5, min(150, int(self.WEAPON_DMG.get(weapon, 25))))
+        g['hp'] -= dmg
+        # Хостайл на стрелка вне зависимости от радиуса (попали → агро)
+        g['_state']         = 'hostile'
+        g['_target_uid']    = str(uid)
+        g['_hostile_until'] = time.time() + self.MICHAEL_GUARD_HOSTILE_S
+        # И все остальные охранники тоже хостайл (защищают коллегу)
+        for og in self.michael_guards:
+            if og is g or not og.get('alive'):
+                continue
+            og['_state']         = 'hostile'
+            og['_target_uid']    = str(uid)
+            og['_hostile_until'] = time.time() + self.MICHAEL_GUARD_HOSTILE_S
+        self._bump_wanted(shooter, self.WANTED_PER_HIT)
+        killed = False
+        if g['hp'] <= 0:
+            g['hp']    = 0
+            g['alive'] = False
+            killed = True
+        return {
+            'kind':        'mg_hit',
+            'guard_id':    guard_id,
+            'shooter_uid': str(uid),
+            'sx':          round(shooter['x'], 2),
+            'sy':          round(shooter['y'], 2),
+            'tx':          round(g['x'], 2),
+            'ty':          round(g['y'], 2),
+            'dmg':         int(dmg),
+            'killed':      killed,
+        }
 
     def gang_nest_shoot_bot(self, uid: str, bot_id: str,
                              weapon: str = '') -> dict | None:
@@ -14822,6 +15016,16 @@ class WorldSim:
                     'skin':   int(b.get('skin', 1)),
                     'hair':   int(b.get('hair', 0)),
                 } for b in self.beachgoers],
+                'michael_guards': [{
+                    'id':     g['id'],
+                    'x':      round(g['x'], 2),
+                    'y':      round(g['y'], 2),
+                    'ang':    round(g['ang'], 2),
+                    'hp':     int(g['hp']),
+                    'max_hp': int(g['max_hp']),
+                    'state':  g.get('_state', 'guard'),
+                    'weapon': g.get('weapon', 'pistol_heavy'),
+                } for g in self.michael_guards if g.get('alive')],
             }
         }
 
@@ -14882,6 +15086,9 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 world.tick_quest_cars(WORLD_TICK_DT)
                 # Пляжники — мирные NPC в купальниках. AI без боевки.
                 world.tick_beachgoers(WORLD_TICK_DT)
+                # Охрана Майкла — стреляет если кто-то открыл огонь рядом.
+                mg_pkts = world.tick_michael_guards(WORLD_TICK_DT) or []
+                ev_pkts.extend(mg_pkts)
                 # Бандитское гнездо в городе (мини-Логово, 4 охранника
                 # вокруг здания, появляется раз в 5 мин, живёт 10 мин).
                 nest_pkts = world.tick_gang_nests(WORLD_TICK_DT) or []
@@ -16829,6 +17036,17 @@ async def _coop_http_app():
                         weapon = str(d.get('weapon') or '')[:24]
                         if cop_id:
                             hit_pkt = world.apply_cop_shoot(uid, cop_id, weapon)
+                            if hit_pkt:
+                                hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
+                                for u2, ws2 in list(world.connections.items()):
+                                    try: await ws2.send_str(hit_blob)
+                                    except Exception: pass
+                    elif t == 'mg_shoot':
+                        # Игрок стреляет в охранника Майкла.
+                        guard_id = str(d.get('target') or '')[:16]
+                        weapon   = str(d.get('weapon') or '')[:24]
+                        if guard_id:
+                            hit_pkt = world.apply_mg_shoot(uid, guard_id, weapon)
                             if hit_pkt:
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
                                 for u2, ws2 in list(world.connections.items()):
