@@ -11463,6 +11463,8 @@ class WorldSim:
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
+        # GTA-контракты Майкла: спавненные квестовые тачки.
+        'quest_cars', '_quest_car_next_id',
     )
 
     # ── Эмерджентные события: параметры ────────────────────────────
@@ -11522,6 +11524,34 @@ class WorldSim:
     # world.html: POI arena (r=28,c=52), ARENA = квадрат 8×8 вокруг.
     ARENA_R0 = 24; ARENA_R1 = 32
     ARENA_C0 = 48; ARENA_C1 = 56
+    # ── GTA-контракты Майкла ───────────────────────────────────────
+    # Майкл стоит на палубе корабля в южной зоне. Игрок подходит,
+    # берёт заказ (max GTA_DAILY_LIMIT в сутки), сервер спавнит квестовую
+    # машину рандомной модели в случайном районе города. Игрок угоняет её
+    # и пригоняет в DROP_ZONE на пирсе — автопродажа + награда.
+    MICHAEL_X    = 42.0
+    MICHAEL_Y    = 179.0
+    # DROP_ZONE на пирсе — прямоугольник в тайл-координатах.
+    DROP_R0 = 167; DROP_R1 = 173
+    DROP_C0 = 37;  DROP_C1 = 43
+    GTA_DAILY_LIMIT = 2
+    GTA_RESET_S     = 24 * 3600
+    # 10 моделей квестовых тачек: label, reward (cash). Совпадает по ключу
+    # с QUEST_CAR_MODELS в world.html (визуал берётся оттуда).
+    QUEST_CAR_MODELS = {
+        'ferrari_f40':    {'label': 'Ferrari F40',     'reward': 2800},
+        'lambo_countach': {'label': 'Lambo Countach',  'reward': 2600},
+        'porsche_911':    {'label': 'Porsche 911',     'reward': 2200},
+        'delorean':       {'label': 'DeLorean DMC-12', 'reward': 2000},
+        'aston_db5':      {'label': 'Aston DB5',       'reward': 2400},
+        'corvette_c3':    {'label': 'Corvette C3',     'reward': 1800},
+        'mustang_67':     {'label': 'Mustang 67',      'reward': 1700},
+        'cadillac_eldo':  {'label': 'Cadillac Eldo',   'reward': 1900},
+        'jaguar_e':       {'label': 'Jaguar E-Type',   'reward': 2300},
+        'mercedes_300':   {'label': 'Mercedes 300SL',  'reward': 2500},
+    }
+    QUEST_CAR_HP        = 220       # машина может погибнуть под огнём
+    QUEST_CAR_MAX_SPEED = 9.0       # тайлов/сек — на сервере жёсткий потолок
     # ── Wanted-система + копы ──────────────────────────────────────
     # При стрельбе по другим игрокам у стрелка растут звёзды розыска
     # (0..3). На каждую звезду в городе спавнятся копы которые активно
@@ -11741,6 +11771,14 @@ class WorldSim:
         self.gang_nests = []
         self._gang_nest_next_id = 1
         self._gang_nest_next_spawn_at = 60.0   # первое через минуту после старта
+        # GTA Майкла — спавненные квестовые тачки {car_id → dict}.
+        # Каждая хранит: id, model, owner_uid, x, y, ang, vx, vy,
+        # driver_uid (None если стоит), hp, reward, _spawn_t.
+        # Позиция машины пока driver_uid=None — статичная (где заспавнили).
+        # Когда игрок jumps в неё — driver_uid=uid, и его клиент шлёт gta_drive
+        # с новыми x/y; мы только клампим и пере-broadcast'им.
+        self.quest_cars = {}
+        self._quest_car_next_id = 1
 
     def add_or_update(self, uid: str, name: str, look: dict,
                        wanted: float = 0.0, jail_until: int = 0,
@@ -11899,6 +11937,209 @@ class WorldSim:
             return
         p['last_chat']   = t
         p['last_chat_t'] = time.time()
+
+    # ── GTA-контракты Майкла ──────────────────────────────────────
+    def _in_drop_zone(self, x: float, y: float) -> bool:
+        return (self.DROP_R0 <= y < self.DROP_R1 and
+                self.DROP_C0 <= x < self.DROP_C1)
+
+    def _random_city_road_pos(self) -> tuple:
+        """Случайная клетка дороги в основном городе (r<80)."""
+        for _ in range(60):
+            r = random.randint(3, 75)
+            c = random.randint(3, 75)
+            # Должна быть дорога (mod ∈ {0..3} согласно _world_is_wall)
+            if (r % 10) <= 3 or (c % 10) <= 3:
+                if not _world_is_wall(r, c):
+                    return float(c) + 0.5, float(r) + 0.5
+        return 40.5, 40.5  # fallback центр
+
+    def gta_take(self, uid: str) -> dict:
+        """Игрок просит у Майкла новый заказ. Возвращает reply-dict для send_str."""
+        p = self.players.get(uid)
+        if not p:
+            return {'ok': False, 'reason': 'no_player'}
+        now = time.time()
+        # Сброс суточного счётчика
+        if (p.get('_gta_reset_at') or 0) <= now:
+            p['_gta_count']    = 0
+            p['_gta_reset_at'] = now + self.GTA_RESET_S
+        if p.get('_gta_active_car_id'):
+            qc = self.quest_cars.get(p['_gta_active_car_id'])
+            if qc:
+                return {'ok': False, 'reason': 'has_active',
+                        'model': qc.get('model')}
+        if p.get('_gta_count', 0) >= self.GTA_DAILY_LIMIT:
+            return {'ok': False, 'reason': 'limit',
+                    'wait_s': int(max(0, p['_gta_reset_at'] - now)),
+                    'limit':  self.GTA_DAILY_LIMIT}
+        # Проверка близости к Майклу
+        dx = p['x'] - self.MICHAEL_X; dy = p['y'] - self.MICHAEL_Y
+        if (dx*dx + dy*dy) > 3.0 * 3.0:
+            return {'ok': False, 'reason': 'too_far'}
+        # Выбираем модель и место спавна
+        model = random.choice(list(self.QUEST_CAR_MODELS.keys()))
+        mdef  = self.QUEST_CAR_MODELS[model]
+        sx, sy = self._random_city_road_pos()
+        cid = f'q{self._quest_car_next_id}'
+        self._quest_car_next_id += 1
+        qc = {
+            'id':         cid,
+            'model':      model,
+            'owner_uid':  uid,
+            'driver_uid': None,
+            'x':          sx,
+            'y':          sy,
+            'ang':        0.0,
+            'vx':         0.0,
+            'vy':         0.0,
+            'hp':         self.QUEST_CAR_HP,
+            'reward':     int(mdef['reward']),
+            'state':      'idle',
+            'wrecked':    False,
+            '_spawn_t':   now,
+            '_last_drive_t': 0.0,
+        }
+        self.quest_cars[cid] = qc
+        p['_gta_count']         = p.get('_gta_count', 0) + 1
+        p['_gta_active_car_id'] = cid
+        return {'ok': True, 'car_id': cid, 'model': model,
+                'reward': mdef['reward'], 'x': sx, 'y': sy}
+
+    def gta_enter(self, uid: str, car_id: str) -> dict:
+        p = self.players.get(uid)
+        qc = self.quest_cars.get(car_id)
+        if not p or not qc:
+            return {'ok': False, 'reason': 'gone'}
+        if qc.get('wrecked'):
+            return {'ok': False, 'reason': 'wrecked'}
+        # Близость
+        dx = p['x'] - qc['x']; dy = p['y'] - qc['y']
+        if (dx*dx + dy*dy) > 2.5 * 2.5:
+            return {'ok': False, 'reason': 'too_far'}
+        if qc.get('driver_uid') and qc['driver_uid'] != uid:
+            return {'ok': False, 'reason': 'busy'}
+        qc['driver_uid'] = uid
+        qc['state']      = 'driving'
+        qc['_last_drive_t'] = time.time()
+        return {'ok': True, 'car_id': car_id}
+
+    def gta_drive(self, uid: str, car_id: str, x, y, ang, vx, vy) -> dict | None:
+        qc = self.quest_cars.get(car_id)
+        if not qc or qc.get('driver_uid') != uid or qc.get('wrecked'):
+            return {'ok': False, 'reason': 'rejected'}
+        try:
+            x = float(x); y = float(y); ang = float(ang)
+            vx = float(vx); vy = float(vy)
+        except Exception:
+            return None
+        # Кламп скорости и позиции
+        speed = (vx*vx + vy*vy) ** 0.5
+        if speed > self.QUEST_CAR_MAX_SPEED:
+            k = self.QUEST_CAR_MAX_SPEED / speed
+            vx *= k; vy *= k
+        x = max(0.5, min(WORLD_MAP_COLS - 0.5, x))
+        y = max(0.5, min(WORLD_MAP_ROWS - 0.5, y))
+        qc['x']  = x; qc['y']  = y; qc['ang'] = ang
+        qc['vx'] = vx; qc['vy'] = vy
+        qc['_last_drive_t'] = time.time()
+        # Pesc игрок-водитель «прикреплён» к машине — синкаем p['x']/p['y']
+        p = self.players.get(uid)
+        if p:
+            p['x'] = x; p['y'] = y; p['ang'] = ang
+            p['_input_t'] = time.time()
+        return None  # nothing to send back per-tick
+
+    async def gta_exit(self, uid: str, car_id: str) -> dict:
+        """Игрок вышел из машины. Если стоит в DROP_ZONE — автопродажа."""
+        qc = self.quest_cars.get(car_id)
+        p  = self.players.get(uid)
+        if not qc or not p:
+            return {'ok': False, 'reason': 'gone'}
+        if qc.get('driver_uid') != uid:
+            return {'ok': False, 'reason': 'not_driver'}
+        qc['driver_uid']     = None
+        qc['vx'] = 0.0; qc['vy'] = 0.0
+        qc['state'] = 'idle'
+        # Проверяем — машина в drop zone?
+        if self._in_drop_zone(qc['x'], qc['y']):
+            reward = int(qc.get('reward', 0))
+            # Начисляем cash в БД
+            try:
+                async with aiosqlite.connect(DB_PATH) as db:
+                    await db.execute(
+                        "UPDATE characters SET cash = cash + ? WHERE telegram_id = ?",
+                        (reward, int(uid)))
+                    await db.commit()
+            except Exception as _e:
+                logger.exception("gta_exit cash add failed: %s", _e)
+            # Удаляем машину из мира
+            self.quest_cars.pop(car_id, None)
+            p['_gta_active_car_id'] = None
+            return {'ok': True, 'delivered': True, 'reward': reward,
+                    'car_id': car_id, 'model': qc.get('model')}
+        return {'ok': True, 'delivered': False, 'car_id': car_id}
+
+    def gta_status(self, uid: str) -> dict:
+        """Снапшот GTA для HUD: счётчик, ресет, активный заказ."""
+        p = self.players.get(uid)
+        if not p:
+            return {'count_today': 0, 'limit': self.GTA_DAILY_LIMIT,
+                    'reset_in_s': 0, 'active': None}
+        now = time.time()
+        if (p.get('_gta_reset_at') or 0) <= now:
+            p['_gta_count']    = 0
+            p['_gta_reset_at'] = now + self.GTA_RESET_S
+        active = None
+        cid = p.get('_gta_active_car_id')
+        if cid and cid in self.quest_cars:
+            qc = self.quest_cars[cid]
+            active = {
+                'car_id': cid, 'model': qc.get('model'),
+                'reward': int(qc.get('reward', 0)),
+                'x':      round(qc.get('x', 0.0), 2),
+                'y':      round(qc.get('y', 0.0), 2),
+                'state':  qc.get('state', 'idle'),
+            }
+        else:
+            # Машина была уничтожена/собрана — снимаем active
+            if cid:
+                p['_gta_active_car_id'] = None
+        return {
+            'count_today': int(p.get('_gta_count', 0)),
+            'limit':       self.GTA_DAILY_LIMIT,
+            'reset_in_s':  int(max(0, (p.get('_gta_reset_at') or 0) - now)),
+            'active':      active,
+        }
+
+    def tick_quest_cars(self, dt: float) -> None:
+        """Чистка устаревших машин. Стационарные тачки (без водителя) живут
+        до 3 минут; брошенные — до 30 сек; разбитые — до 10 сек."""
+        now = time.time()
+        to_drop = []
+        for cid, qc in self.quest_cars.items():
+            age = now - qc.get('_spawn_t', now)
+            last_drive = qc.get('_last_drive_t', 0)
+            driver = qc.get('driver_uid')
+            if qc.get('wrecked') and (now - qc.get('_wrecked_at', now)) > 10:
+                to_drop.append(cid); continue
+            if driver and (now - last_drive) > 8:
+                # Водитель отвалился / молчит
+                qc['driver_uid'] = None
+                qc['state']      = 'idle'
+            if not driver:
+                # Idle тачка — кейс смерти если игрок взял заказ давно и не пришёл
+                if age > 180 and last_drive == 0:
+                    to_drop.append(cid); continue
+                if last_drive > 0 and (now - last_drive) > 30:
+                    to_drop.append(cid); continue
+        for cid in to_drop:
+            qc = self.quest_cars.pop(cid, None)
+            if qc:
+                owner = qc.get('owner_uid')
+                p = self.players.get(owner)
+                if p and p.get('_gta_active_car_id') == cid:
+                    p['_gta_active_car_id'] = None
 
     # ── Эмерджентные события: инкассатор + полицейский эскорт ─────
     def spawn_event(self) -> None:
@@ -14342,6 +14583,26 @@ class WorldSim:
                 'expires_in': max(0, int(round(ne['_expires_at'] - now_t))),
                 'bots_alive': len(n_bots),
             })
+        # Квестовые тачки Майкла — шлём всем рядом (или всем сразу — их мало).
+        # Каждый клиент рендерит их с подсветкой (своя/чужая/свободная).
+        quest_cars_payload = []
+        for qc in self.quest_cars.values():
+            quest_cars_payload.append({
+                'id':         qc['id'],
+                'model':      qc['model'],
+                'x':          round(qc['x'], 2),
+                'y':          round(qc['y'], 2),
+                'ang':        round(qc.get('ang', 0.0), 2),
+                'vx':         round(qc.get('vx', 0.0), 2),
+                'vy':         round(qc.get('vy', 0.0), 2),
+                'owner_uid':  qc.get('owner_uid'),
+                'driver_uid': qc.get('driver_uid'),
+                'state':      qc.get('state', 'idle'),
+                'reward':     int(qc.get('reward', 0)),
+                'hp':         int(qc.get('hp', self.QUEST_CAR_HP)),
+                'max_hp':     int(self.QUEST_CAR_HP),
+                'wrecked':    bool(qc.get('wrecked', False)),
+            })
         return {
             't': 'snap',
             'd': {
@@ -14372,6 +14633,7 @@ class WorldSim:
                 'active_captures': cap_payload,
                 'aggro':           aggro_payload,
                 'gang_nests':      nests_payload,
+                'quest_cars':      quest_cars_payload,
             }
         }
 
@@ -14428,6 +14690,8 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     world.event = None  # очищаем — следующий по таймеру
                 # Агрессивный район — банда NPC + захват через зачистку
                 ev_pkts.extend(world.tick_aggro(WORLD_TICK_DT) or [])
+                # GTA-машины Майкла — чистим брошенные/устаревшие.
+                world.tick_quest_cars(WORLD_TICK_DT)
                 # Бандитское гнездо в городе (мини-Логово, 4 охранника
                 # вокруг здания, появляется раз в 5 мин, живёт 10 мин).
                 nest_pkts = world.tick_gang_nests(WORLD_TICK_DT) or []
@@ -16529,6 +16793,84 @@ async def _coop_http_app():
                                         except Exception: pass
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
+                        except Exception: pass
+                    elif t == 'gta_take':
+                        reply = world.gta_take(uid)
+                        # Персональный ответ заказчику
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='gta_take_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(world.gta_status(uid),
+                                                          kind='gta_status')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                        # Broadcast всем: новая квестовая тачка на карте.
+                        if reply.get('ok'):
+                            spawn_pkt = json.dumps({'t': 'event', 'd': {
+                                'kind':    'quest_car_spawned',
+                                'car_id':  reply['car_id'],
+                                'model':   reply['model'],
+                                'reward':  reply['reward'],
+                                'by_uid':  uid,
+                                'x':       reply['x'], 'y': reply['y'],
+                            }}, ensure_ascii=False)
+                            for _u2, _ws2 in list(world.connections.items()):
+                                try: await _ws2.send_str(spawn_pkt)
+                                except Exception: pass
+                    elif t == 'gta_enter':
+                        reply = world.gta_enter(uid, str(d.get('car_id') or ''))
+                        if not reply.get('ok'):
+                            try:
+                                await ws.send_str(json.dumps(
+                                    {'t': 'event', 'd': dict(reply,
+                                                              kind='gta_drive_reject',
+                                                              car_id=d.get('car_id'))},
+                                    ensure_ascii=False))
+                            except Exception: pass
+                    elif t == 'gta_drive':
+                        world.gta_drive(uid, str(d.get('car_id') or ''),
+                                        d.get('x'), d.get('y'),
+                                        d.get('ang'), d.get('vx'), d.get('vy'))
+                    elif t == 'gta_exit':
+                        reply = await world.gta_exit(uid, str(d.get('car_id') or ''))
+                        if reply.get('delivered'):
+                            # Broadcast всем — машина доставлена + награда
+                            p_me = world.players.get(uid) or {}
+                            nm   = (p_me.get('name') or 'Игрок')[:24]
+                            deliv = json.dumps({'t': 'event', 'd': {
+                                'kind':    'quest_car_delivered',
+                                'car_id':  reply.get('car_id'),
+                                'model':   reply.get('model'),
+                                'reward':  reply.get('reward'),
+                                'by_uid':  uid,
+                                'by_name': nm,
+                            }}, ensure_ascii=False)
+                            for _u2, _ws2 in list(world.connections.items()):
+                                try: await _ws2.send_str(deliv)
+                                except Exception: pass
+                        else:
+                            try:
+                                await ws.send_str(json.dumps(
+                                    {'t': 'event', 'd': dict(reply, kind='gta_exit_reply')},
+                                    ensure_ascii=False))
+                            except Exception: pass
+                        # Свежий статус
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(world.gta_status(uid),
+                                                          kind='gta_status')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'gta_status':
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(world.gta_status(uid),
+                                                          kind='gta_status')},
+                                ensure_ascii=False))
                         except Exception: pass
                 elif msg.type == web.WSMsgType.ERROR:
                     break
