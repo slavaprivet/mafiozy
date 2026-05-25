@@ -12013,12 +12013,14 @@ class WorldSim:
             return {'ok': False, 'reason': 'gone'}
         if qc.get('wrecked'):
             return {'ok': False, 'reason': 'wrecked'}
+        # Контракт персональный: машину видят все, но угонять её может
+        # только владелец заказа. Никакого «успей первым».
+        if str(qc.get('owner_uid')) != str(uid):
+            return {'ok': False, 'reason': 'not_yours'}
         # Близость
         dx = p['x'] - qc['x']; dy = p['y'] - qc['y']
         if (dx*dx + dy*dy) > 2.5 * 2.5:
             return {'ok': False, 'reason': 'too_far'}
-        if qc.get('driver_uid') and qc['driver_uid'] != uid:
-            return {'ok': False, 'reason': 'busy'}
         qc['driver_uid'] = uid
         qc['state']      = 'driving'
         qc['_last_drive_t'] = time.time()
@@ -12026,8 +12028,17 @@ class WorldSim:
 
     def gta_drive(self, uid: str, car_id: str, x, y, ang, vx, vy) -> dict | None:
         qc = self.quest_cars.get(car_id)
-        if not qc or qc.get('driver_uid') != uid or qc.get('wrecked'):
+        if not qc or qc.get('wrecked'):
             return {'ok': False, 'reason': 'rejected'}
+        # Машина только для владельца контракта. Защита от чужого gta_drive
+        # без предварительного gta_enter (старый клиент / прямая инъекция).
+        if str(qc.get('owner_uid')) != str(uid):
+            return {'ok': False, 'reason': 'not_yours'}
+        if qc.get('driver_uid') != uid:
+            # owner_uid совпал — авто-усаживаем в машину (на случай если клиент
+            # пропустил gta_enter — например, после реконнекта).
+            qc['driver_uid'] = uid
+            qc['state']      = 'driving'
         try:
             x = float(x); y = float(y); ang = float(ang)
             vx = float(vx); vy = float(vy)
@@ -14583,8 +14594,10 @@ class WorldSim:
                 'expires_in': max(0, int(round(ne['_expires_at'] - now_t))),
                 'bots_alive': len(n_bots),
             })
-        # Квестовые тачки Майкла — шлём всем рядом (или всем сразу — их мало).
-        # Каждый клиент рендерит их с подсветкой (своя/чужая/свободная).
+        # Квестовые тачки Майкла — шлём всем (их мало). Машину видят все,
+        # но сесть и угнать её может только owner_uid (контракт персональный,
+        # никакого «успей первым»). Клиент рендерит чужие как «не твой
+        # контракт» и не даёт сесть.
         quest_cars_payload = []
         for qc in self.quest_cars.values():
             quest_cars_payload.append({
