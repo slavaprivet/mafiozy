@@ -42,6 +42,13 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
   width: 36px; height: 36px; border: 4px solid #2a3a55; border-top-color: #ffd76b;
   border-radius: 50%; animation: spin 1s linear infinite;
 }
+#hardRefreshBtn {
+  margin-top: 14px; padding: 12px 22px; font-size: 14px; font-weight: 700;
+  letter-spacing: .5px; color: #1a1410; background: linear-gradient(180deg,#ffd76b,#d99a2a);
+  border: none; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,.45);
+  pointer-events: auto; cursor: pointer; display: none;
+}
+#hardRefreshBtn:active { transform: translateY(1px); filter: brightness(.9); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Левый стик движения */
@@ -828,6 +835,7 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   <div id="connectingOverlay">
     <div class="spin"></div>
     <div id="connectingMsg">Подключаюсь к городу…</div>
+    <button id="hardRefreshBtn" type="button">🔄 ПРОБИТЬ КЭШ</button>
   </div>
 </div>
 
@@ -3550,9 +3558,56 @@ function setError(msg) {
 function setConnecting(msg) {
   const ov = document.getElementById('connectingOverlay');
   const mm = document.getElementById('connectingMsg');
-  if (msg) { if (mm) mm.textContent = msg; ov.classList.remove('hide'); }
-  else ov.classList.add('hide');
+  const rb = document.getElementById('hardRefreshBtn');
+  if (msg) {
+    if (mm) mm.textContent = msg;
+    ov.classList.remove('hide');
+    // Кнопка появляется только при потере связи (любая фраза с «потеря» или «не отвеч»).
+    if (rb) rb.style.display = /потер|не отвеч|недоступ|не запущ/i.test(msg) ? 'inline-block' : 'none';
+  } else {
+    ov.classList.add('hide');
+    if (rb) rb.style.display = 'none';
+  }
 }
+
+// ── Жёсткий сброс кэша Telegram WebView ─────────────────────────
+// Чистим всё что может держать старый api/world.html, и переоткрываем
+// хаб со свежим cache-buster. Хаб подтянет coop_api.json и откроет мир
+// с актуальным URL туннеля.
+async function hardRefreshCache() {
+  const btn = document.getElementById('hardRefreshBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Чищу…'; }
+  try { ws && ws.close(); } catch(e) {}
+  try { localStorage.clear(); } catch(e) {}
+  try { sessionStorage.clear(); } catch(e) {}
+  // Cache API (PWA Service Worker storage)
+  try {
+    if (window.caches && caches.keys) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch(e) {}
+  // Service Worker — снимаем регистрацию
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch(e) {}
+  // Куда возвращаемся: исходный hub-URL из параметра ?hub=…
+  const ts = Date.now();
+  let target = '';
+  try {
+    const raw = _UP.get('hub') || '';
+    if (raw) target = decodeURIComponent(raw);
+  } catch(e) {}
+  if (!target) target = 'https://slavaprivet.github.io/mafiozi-battle/hub.html';
+  // Добавляем агрессивный cache-buster — ТГ WebView обязан перезагрузить
+  target += (target.includes('?') ? '&' : '?') + '__bust=' + ts + '&__rnd=' + Math.random().toString(36).slice(2);
+  try { location.replace(target); }
+  catch(e) { location.href = target; }
+}
+document.getElementById('hardRefreshBtn').addEventListener('click', hardRefreshCache);
 
 function wsConnect() {
   const url = wsUrl();
