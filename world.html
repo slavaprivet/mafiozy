@@ -176,6 +176,78 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 #michaelModal .btn.ghost { background: #232a36; color: #aab2c2; }
 #michaelModal .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
+/* Lockpick — мини-игра взлома замка при угоне гражданской тачки.
+   Бегунок ходит туда-обратно по шкале, надо тапать когда он в
+   зелёной зоне. Сложность зависит от навыка sc_lvl (0..5):
+   шире зона + медленнее бегунок + больше промахов до сирены. */
+#lockpickModal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.78);
+  display: none; z-index: 14;
+  align-items: center; justify-content: center;
+}
+#lockpickModal.show { display: flex; }
+#lockpickModal .lp-card {
+  width: min(340px, 92vw); background: #14181f;
+  border: 2px solid #2a78d8; border-radius: 14px; padding: 18px;
+  color: #fff; position: relative; font-family: inherit;
+  box-shadow: 0 12px 30px rgba(0,0,0,.7);
+}
+#lockpickModal .lp-x {
+  position: absolute; right: 8px; top: 6px;
+  font-size: 22px; color: #888; cursor: pointer;
+  width: 28px; height: 28px; line-height: 28px;
+  text-align: center; user-select: none;
+}
+#lockpickModal .lp-x:hover { color: #fff; }
+#lockpickModal .lp-title {
+  font-size: 16px; font-weight: 800; color: #ffd76b;
+  text-align: center; letter-spacing: 1px;
+}
+#lockpickModal .lp-sub {
+  font-size: 12px; color: #aab2c2; text-align: center;
+  margin: 6px 0 12px; line-height: 1.4;
+}
+#lockpickModal #lpBar {
+  display: block; width: 100%; max-width: 320px;
+  background: #0a0d14; border: 1px solid #2a2f3a;
+  border-radius: 6px; margin: 0 auto;
+}
+#lockpickModal .lp-progress {
+  display: flex; gap: 18px; justify-content: center;
+  margin: 10px 0 12px; font-size: 16px; letter-spacing: 3px;
+}
+#lockpickModal .lp-progress .lp-hits   { color: #7ee69a; }
+#lockpickModal .lp-progress .lp-misses { color: #ff7070; }
+#lockpickModal #lpTap {
+  display: block; width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #2c8d4a, #44b86a);
+  color: #fff; border: none; border-radius: 10px;
+  font-size: 16px; font-weight: 800; font-family: inherit;
+  cursor: pointer; letter-spacing: 1px;
+  -webkit-tap-highlight-color: transparent;
+}
+#lockpickModal #lpTap:active { transform: scale(0.97); }
+#lockpickModal #lpTap:disabled { opacity: 0.55; cursor: not-allowed; }
+#lockpickModal.alarm .lp-card {
+  border-color: #ff3030;
+  animation: lpAlarmFlash .28s ease-in-out infinite;
+}
+#lockpickModal .lp-alarm {
+  display: none; margin-top: 10px; text-align: center;
+  font-size: 13px; font-weight: 800; color: #ff7070;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255,48,48,.7);
+}
+#lockpickModal.alarm .lp-alarm { display: block; animation: lpAlarmText .28s ease-in-out infinite; }
+@keyframes lpAlarmFlash {
+  0%, 100% { box-shadow: 0 0 24px rgba(255,48,48,.55); }
+  50%      { box-shadow: 0 0 38px rgba(255,48,48,.95); }
+}
+@keyframes lpAlarmText {
+  0%, 100% { color: #ff7070; }
+  50%      { color: #fff; }
+}
+
 #errorBanner {
   position: absolute; left: 14px; right: 14px; top: 60px;
   background: rgba(80,20,20,.92); border: 1px solid #c83030; border-radius: 10px;
@@ -777,6 +849,24 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   <!-- PvP-зона активна (можно стрелять в игроков) -->
   <div id="pvpZone">🔫 ЗОНА PvP</div>
   <!-- Wanted-индикатор (звёзды розыска) -->
+  <!-- Мини-игра взлома замка. Открывается при нажатии «Угнать» — пока
+       игрок не сделает N успешных тапов в зелёной зоне, машина не угоняется.
+       Чем выше навык safecracker — тем шире зона, медленнее бегунок, меньше
+       попаданий нужно. Закрытие крестиком отменяет угон. -->
+  <div id="lockpickModal">
+    <div class="lp-card">
+      <div class="lp-x" id="lpClose" title="Отмена">×</div>
+      <div class="lp-title">🔓 ВЗЛОМ ЗАМКА</div>
+      <div class="lp-sub" id="lpSub">Тапни когда бегунок в зелёной зоне</div>
+      <canvas id="lpBar" width="320" height="42"></canvas>
+      <div class="lp-progress" id="lpProgress">
+        <span class="lp-hits"></span>
+        <span class="lp-misses"></span>
+      </div>
+      <button id="lpTap">ТАП</button>
+      <div class="lp-alarm" id="lpAlarm">🚨 Сигналка орёт! Копы услышат!</div>
+    </div>
+  </div>
   <div id="wantedHud">⭐</div>
   <!-- HUD-виджет активного квеста Майкла: фото машины + название + статус.
        Показывается только когда myGtaStatus.active есть и модал Майкла закрыт. -->
@@ -4648,33 +4738,179 @@ _gtaBtn.addEventListener('click', () => {
   }
 });
 
+// ── Lockpick: мини-игра взлома при угоне гражданской тачки ───────
+// Бегунок ходит по шкале туда-обратно. Тап «ТАП» — если в зелёной
+// зоне, +1 хит; зона прыгает в новое место. Иначе +1 промах.
+// Сложность от sc_lvl (0..5): зона шире и бегунок медленнее на
+// высоких уровнях, лимит промахов выше.
+// Колбэк onResult('success' | 'fail' | 'cancel'):
+//   success — угон, witness как раньше (если рядом NPC)
+//   fail    — сигналка → угон засчитан, но witness=true (копы выехали)
+//   cancel  — игрок закрыл крестиком, ничего не происходит
+const _lpModal    = document.getElementById('lockpickModal');
+const _lpCanvas   = document.getElementById('lpBar');
+const _lpCtx      = _lpCanvas.getContext('2d');
+const _lpHitsEl   = _lpModal.querySelector('.lp-hits');
+const _lpMissesEl = _lpModal.querySelector('.lp-misses');
+const _lpTapBtn   = document.getElementById('lpTap');
+const _lpCloseBtn = document.getElementById('lpClose');
+const _lpSubEl    = document.getElementById('lpSub');
+let _lpState = null;
+
+function _lpDots(filled, total, on, off) {
+  return on.repeat(filled) + off.repeat(Math.max(0, total - filled));
+}
+
+function openLockpick(scLvl, onResult) {
+  if (_lpState) return;
+  scLvl = Math.max(0, Math.min(5, scLvl | 0));
+  const cycleMs  = 480 + scLvl * 88;        // 480..920 ms полный проход
+  const zoneFrac = 0.12 + scLvl * 0.036;    // 0.12..0.30 от ширины
+  const needHits = 3;
+  const maxMiss  = 2 + scLvl;               // 2..7 — лимит промахов
+  _lpState = {
+    onResult, cycleMs, zoneFrac, needHits, maxMiss,
+    hits: 0, misses: 0,
+    zoneStart: Math.random() * (1 - zoneFrac),
+    raf: 0, t0: performance.now(), done: false,
+  };
+  _lpModal.classList.remove('alarm');
+  _lpHitsEl.textContent   = _lpDots(0, needHits, '●', '○');
+  _lpMissesEl.textContent = _lpDots(0, maxMiss,  '✕', '·');
+  _lpSubEl.textContent = `Тапни ${needHits} раза когда бегунок в зелёной зоне`;
+  _lpTapBtn.disabled = false;
+  _lpTapBtn.textContent = 'ТАП';
+  _lpModal.classList.add('show');
+  _lpState.raf = requestAnimationFrame(_lpFrame);
+}
+
+function _lpClose(reason) {
+  if (!_lpState) return;
+  const cb = _lpState.onResult;
+  if (_lpState.raf) cancelAnimationFrame(_lpState.raf);
+  _lpState.done = true;
+  _lpState = null;
+  _lpModal.classList.remove('show', 'alarm');
+  try { cb && cb(reason); } catch(e){}
+}
+
+function _lpNeedlePos() {
+  if (!_lpState) return 0;
+  const t = (performance.now() - _lpState.t0) % _lpState.cycleMs;
+  const phase = t / _lpState.cycleMs;
+  return phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+}
+
+function _lpFrame() {
+  if (!_lpState || _lpState.done) return;
+  const W = _lpCanvas.width, H = _lpCanvas.height;
+  const ctx = _lpCtx;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#1a1f2a';
+  ctx.fillRect(0, 0, W, H);
+  const zx = _lpState.zoneStart * W;
+  const zw = _lpState.zoneFrac  * W;
+  const grd = ctx.createLinearGradient(zx, 0, zx + zw, 0);
+  grd.addColorStop(0,   'rgba(60,180,90,.7)');
+  grd.addColorStop(0.5, 'rgba(120,255,140,.95)');
+  grd.addColorStop(1,   'rgba(60,180,90,.7)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(zx, 4, zw, H - 8);
+  ctx.strokeStyle = '#7ee69a';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(zx + 0.5, 4.5, zw - 1, H - 9);
+  ctx.fillStyle = '#2a3040';
+  for (let i = 0; i <= 10; i++) {
+    const x = (i / 10) * (W - 1);
+    ctx.fillRect(x, H - 5, 1, 4);
+  }
+  const nx = _lpNeedlePos() * W;
+  ctx.fillStyle = '#ffd76b';
+  ctx.shadowColor = '#ffd76b';
+  ctx.shadowBlur = 10;
+  ctx.fillRect(nx - 2, 2, 4, H - 4);
+  ctx.shadowBlur = 0;
+  _lpState.raf = requestAnimationFrame(_lpFrame);
+}
+
+function _lpTap() {
+  if (!_lpState || _lpState.done) return;
+  const pos = _lpNeedlePos();
+  const inZone = pos >= _lpState.zoneStart
+              && pos <= _lpState.zoneStart + _lpState.zoneFrac;
+  if (inZone) {
+    _lpState.hits++;
+    try { hapticHit && hapticHit(); } catch(e){}
+    _lpHitsEl.textContent = _lpDots(_lpState.hits, _lpState.needHits, '●', '○');
+    if (_lpState.hits >= _lpState.needHits) {
+      _lpTapBtn.disabled = true;
+      _lpTapBtn.textContent = '✅ ОТКРЫТО';
+      setTimeout(() => _lpClose('success'), 260);
+      return;
+    }
+    _lpState.zoneStart = Math.random() * (1 - _lpState.zoneFrac);
+  } else {
+    _lpState.misses++;
+    try { hapticHit && hapticHit(); } catch(e){}
+    _lpMissesEl.textContent = _lpDots(_lpState.misses, _lpState.maxMiss, '✕', '·');
+    if (_lpState.misses >= _lpState.maxMiss) {
+      _lpTapBtn.disabled = true;
+      _lpTapBtn.textContent = '🚨 СИГНАЛКА';
+      _lpModal.classList.add('alarm');
+      setTimeout(() => _lpClose('fail'), 1200);
+      return;
+    }
+  }
+}
+_lpTapBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); _lpTap(); });
+_lpCloseBtn.addEventListener('click', () => _lpClose('cancel'));
+_lpModal.addEventListener('click', (e) => {
+  if (e.target === _lpModal) _lpClose('cancel');
+});
+
 // ── Угон гражданской машины (через сервер) ──────────────────────
 // Шлём серверу civilian_carjack — он создаёт серверный quest_car-civilian
 // (виден всем игрокам), удаляет локальную AI-машину из CARS, сажает нас
 // за руль. Все следующее управление — общий путь quest-машины (see update()).
+// Перед серверным запросом — мини-игра lockpick (см. openLockpick выше).
 function hijackCivilianCar(car) {
   if (!car || myDrivingCarId) return;
-  // Локально убираем эту AI-тачку — серверная (видимая всем) появится её
-  // место. Других клиентов это не касается: у них трафик свой.
-  const idx = CARS.indexOf(car);
-  if (idx >= 0) CARS.splice(idx, 1);
-  // Шлём серверу запрос на угон. В ответе будет civilian_hijack_reply.
-  let witnessNpc = false;
-  for (const npc of NPCS) {
-    if (npc.dead) continue;
-    const dx = npc.c - player.c, dy = npc.r - player.r;
-    if (dx * dx + dy * dy <= 100) { witnessNpc = true; break; }
-  }
-  try {
-    ws && ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
-      x: +car.c.toFixed(2), y: +car.r.toFixed(2),
-      witness: witnessNpc,
-    } }));
-  } catch(e) {}
-  // Анимация посадки — короткая вспышка + хаптик + тост
-  playEnterCarAnim(car.r, car.c);
-  showToast(witnessNpc ? '🚗 Угнал — тебя заметили!' : '🚗 Угнал тачку', '✅', 1800);
-  hapticHit();
+  const scLvl = (myGtaStatus && (myGtaStatus.sc_lvl | 0)) || 0;
+  openLockpick(scLvl, (res) => {
+    if (res === 'cancel') return;
+    // Проверяем что машина ещё рядом — за время мини-игры могла уехать
+    if (!CARS.includes(car)) {
+      showToast('🚗 Тачка уехала', '⚠️', 1600);
+      return;
+    }
+    const dr = car.r - player.r, dc = car.c - player.c;
+    if (Math.hypot(dr, dc) > GTA_INTERACT_R + 1.0) {
+      showToast('🚗 Тачка уехала', '⚠️', 1600);
+      return;
+    }
+    const idx = CARS.indexOf(car);
+    if (idx >= 0) CARS.splice(idx, 1);
+    let witnessNpc = false;
+    for (const npc of NPCS) {
+      if (npc.dead) continue;
+      const dx = npc.c - player.c, dy = npc.r - player.r;
+      if (dx * dx + dy * dy <= 100) { witnessNpc = true; break; }
+    }
+    const witness = witnessNpc || res === 'fail';
+    try {
+      ws && ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
+        x: +car.c.toFixed(2), y: +car.r.toFixed(2),
+        witness: witness,
+      } }));
+    } catch(e) {}
+    playEnterCarAnim(car.r, car.c);
+    if (res === 'fail') {
+      showToast('🚨 Сигналка орёт — копы услышали!', '⚠️', 2600);
+    } else {
+      showToast(witnessNpc ? '🚗 Угнал — тебя заметили!' : '🚗 Угнал тачку', '✅', 1800);
+    }
+    hapticHit();
+  });
 }
 
 // ── Майкл-модал ────────────────────────────────────────────────────
