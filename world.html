@@ -2489,6 +2489,9 @@ function spawnNpc(seed) {
         ang: 0,
         walkPhase: 0,
         idleUntil: 0,
+        // Локальное HP — мирный NPC выдерживает 2-3 попадания pistol,
+        // 1 rifle. При hp<=0 → n.dead=true, рисуется лежащим (splat).
+        hp: 60, max_hp: 60,
         look: {
           gender: Math.random() < 0.5 ? 0 : 1,
           skin:   Math.floor(Math.random() * 5),
@@ -2501,6 +2504,53 @@ function spawnNpc(seed) {
     }
   }
   return null;
+}
+
+// Найти NPC в линии огня от точки (sR,sC) в направлении (dirY,dirX).
+// Возвращает {npc, point: {r,c}} ближайшего попадания или null.
+// Конус ±0.45 тайла перпендикулярно линии, до maxRange тайлов.
+function _raycastNpc(sR, sC, dirY, dirX, maxRange) {
+  let best = null, bestD = maxRange;
+  for (const n of NPCS) {
+    if (n.dead) continue;
+    const dr = n.r - sR, dc = n.c - sC;
+    const along = dr * dirY + dc * dirX;
+    if (along < 0 || along > maxRange) continue;
+    const perp = Math.abs(dr * dirX - dc * dirY);
+    if (perp > 0.45) continue;
+    if (along < bestD) {
+      bestD = along;
+      best = { npc: n, point: { r: sR + dirY * along, c: sC + dirX * along } };
+    }
+  }
+  return best;
+}
+
+// Локальное попадание пули в мирного NPC: knockback назад + кровь +
+// hp вычитается. При hp<=0 → dead (тело остаётся как splat).
+function hitNpc(npc, dirY, dirX, weapon, damage) {
+  if (!npc || npc.dead) return;
+  npc.hp = Math.max(0, (npc.hp | 0) - (damage | 0));
+  // Knockback — толкаем NPC назад по направлению пули на полтайла
+  const kb = 0.35;
+  const nr = npc.r + dirY * kb, nc = npc.c + dirX * kb;
+  if (npcPassable(nr, nc)) { npc.r = nr; npc.c = nc; }
+  // Flinch — короткая остановка («попал», NPC замер)
+  npc.idleUntil = performance.now() + 250;
+  if (npc.hp <= 0) {
+    npc.dead = true;
+    npc.deadAt = performance.now();
+    // Большой splat крови на месте смерти
+    for (let i = 0; i < 4; i++) {
+      bloodSplats.push({
+        r: npc.r + (Math.random() - 0.5) * 0.5,
+        c: npc.c + (Math.random() - 0.5) * 0.5,
+        radius: 6 + Math.random() * 4,
+        life: 14000, max: 14000,
+        rot: Math.random() * Math.PI,
+      });
+    }
+  }
 }
 // Проходимо ли для NPC: только бордюр (9) или газон (8), и НЕ внутри
 // PVP-арены (туда NPC не лезут, чтобы не мешать игрокам стреляться).
@@ -2691,6 +2741,7 @@ function updateNpcs(dt) {
     }
   }
   for (const n of NPCS) {
+    if (n.dead) continue;   // труп не двигается
     // SNITCH: NPC — свидетель стрельбы/угона, бежит в полицию.
     // По достижении радиуса POLICE_REPORT_RADIUS — шлёт открытие огня
     // серверу (witness=true), сервер бамапает wanted, локально тост.
@@ -3120,6 +3171,11 @@ function resolveWeapon(w) {
 // значения были «на глаз» и для коротких пушек пуля заметно вылетала ИЗ-ЗА
 // ствола (особенно для pistol/shotgun) — теперь точно совпадает с кончиком
 // дула, который рисует drawFirearm.
+//
+// ВАЖНО: muzzleD задан под scale=1.0. Игрок рисуется со scale=0.9, NPC/копы
+// со scale=0.95, босс 1.15. Поэтому в callers используем weaponMuzzleD(w, sc)
+// (см. ниже) — он умножает на актуальный scale, иначе пуля вылетает мимо
+// конца ствола (заметно у длинных rifle/sniper).
 const WEAPON_FX_CFG = {
   pistol:       { range: 8,  color: '#ffea80', spread: 0.05, dmg: 22, muzzleD: 0.59, twoHanded: false },
   nagan:        { range: 8,  color: '#ffea80', spread: 0.06, dmg: 22, muzzleD: 0.59, twoHanded: false },
@@ -3138,7 +3194,20 @@ const FIREARM_FOREGRIP = {
   shotgun: 0.40, smg: 0.36, tommy_gun: 0.36,
   rifle: 0.42, sniper: 0.46, rpg: 0.42,
 };
-const BULLET_SPEED = 18;  // тайлов/сек — как в demo (const speed = 18)
+const BULLET_SPEED = 12;  // тайлов/сек — снижено с 18 для «полёта» пули
+const ARM_TILES = 0.36;   // длина руки в тайлах (см. handAnchor armLen)
+// Реальная дистанция от центра тела до конца ствола с учётом scale.
+// Используем в spawnBullet/spawnMuzzle чтобы пуля стартовала ровно с
+// кончика рисованного ствола (а не «из груди» или из-за дула).
+function weaponMuzzleD(weapon, scale) {
+  const w   = resolveWeapon(weapon);
+  const tip = FIREARM_TIP_DEFER[w] != null ? FIREARM_TIP_DEFER[w] : 16;
+  return (ARM_TILES + tip / 60) * (scale || 1.0);
+}
+// FIREARM_TIP объявлен ниже в файле — здесь только прокси-объект, его
+// заполняем после объявления FIREARM_TIP. Без этого weaponMuzzleD выше
+// получит undefined и вернёт ARM_TILES + 16/60.
+const FIREARM_TIP_DEFER = {};
 // Визуальные вспышки дула (как в demo). spawn'ятся в момент выстрела,
 // живут ~80мс, рисуются drawMuzzle. m: { r,c,life,max,angle,color }
 const muzzles = [];
@@ -3718,7 +3787,7 @@ function handleEventPacket(d) {
     {
       const wep = (d.shooter_id === 'b') ? 'shotgun' : 'smg';
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[resolveWeapon(wep)] || {}).muzzleD || 0.85;
+      const md  = weaponMuzzleD(wep, 0.95);
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wep });
@@ -3744,7 +3813,7 @@ function handleEventPacket(d) {
     }
     {
       const ang = Math.atan2(ty - d.sy, tx - d.sx);
-      const md  = (WEAPON_FX_CFG[resolveWeapon(d.weapon)] || {}).muzzleD || 0.8;
+      const md  = weaponMuzzleD(d.weapon, 0.95);
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, ty, tx, { hit: true, fromPlayer: true, weapon: d.weapon });
@@ -3755,7 +3824,7 @@ function handleEventPacket(d) {
     // PvP: игрок стреляет в другого игрока (стартуем из конца ствола).
     {
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[resolveWeapon(d.weapon)] || {}).muzzleD || 0.8;
+      const md  = weaponMuzzleD(d.weapon, 0.95);
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: d.weapon });
@@ -3825,7 +3894,7 @@ function handleEventPacket(d) {
     {
       const wp  = d.weapon || 'pistol_heavy';
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
+      const md  = weaponMuzzleD(wp, 0.95);
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
@@ -3846,7 +3915,7 @@ function handleEventPacket(d) {
     {
       const wp  = d.weapon || (currentWeapon || 'pistol');
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
+      const md  = weaponMuzzleD(wp, 0.95);
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: wp });
@@ -3865,7 +3934,7 @@ function handleEventPacket(d) {
     {
       const wp  = d.weapon || 'pistol_heavy';
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
+      const md  = weaponMuzzleD(wp, 0.95);
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
@@ -3895,7 +3964,7 @@ function handleEventPacket(d) {
     {
       const wp  = d.weapon || 'pistol_heavy';
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
+      const md  = weaponMuzzleD(wp, 0.95);
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
@@ -3989,7 +4058,7 @@ function handleEventPacket(d) {
     {
       const wp  = d.weapon || 'pistol_heavy';
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
+      const md  = weaponMuzzleD(wp, 0.95);
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
@@ -4150,7 +4219,7 @@ function handleEventPacket(d) {
     {
       const wp  = d.weapon || currentWeapon;
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (WEAPON_FX_CFG[resolveWeapon(wp)] || {}).muzzleD || 0.8;
+      const md  = weaponMuzzleD(wp, 0.95);
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: wp });
@@ -5925,11 +5994,11 @@ function fire(angle = null) {
     _fireBtn.classList.remove('cd');
     joyREl.classList.remove('cd');
   }, cdSec * 1000);
-  // Стартовая точка пули — конец ствола (как в demo: r + dr * muzzleD).
-  // Без этого пуля «вырывается из груди», что особенно заметно у
-  // длинных стволов (rifle/sniper). Вспышка дула рисуется в той же точке.
+  // Стартовая точка пули — конец ствола (учитываем scale 0.9 у игрока).
+  // Без этого пуля «вырывается из груди» (на коротких) или из «впереди дула»
+  // (на длинных rifle/sniper). Вспышка дула рисуется в той же точке.
   const wcfg = WEAPON_FX_CFG[currentWeapon] || {};
-  const muzD = wcfg.muzzleD || 0.75;
+  const muzD = weaponMuzzleD(currentWeapon, 0.9);
   const sR = player.r + dirY * muzD;
   const sC = player.c + dirX * muzD;
   const _shotAng = Math.atan2(dirY, dirX);
@@ -5946,7 +6015,8 @@ function fire(angle = null) {
   // Даёт ощущение «веса» удара (как в Hotline Miami / Hyper Light Drifter).
   const _hitSomeone = !!(chosenConvoy || chosenCop || chosenAggro || chosenMg || pvpTarget);
   if (_hitSomeone) {
-    triggerHitStop(weaponFx(currentWeapon).thick ? 55 : 35);
+    triggerHitStop(weaponFx(currentWeapon).thick ? 100 : 65);
+    addShake(weaponFx(currentWeapon).thick ? 3.5 : 2);
     hapticHit();
   }
   // Паника NPC: любой выстрел рядом — мирные NPC в радиусе 9 тайлов
@@ -6031,13 +6101,25 @@ function fire(angle = null) {
     return;
   }
   if (noTarget) {
-    // Стрельба «в пустоту» — пуля летит на range тайлов в направлении
-    // прицела с реальной физикой (как в demo).
+    // Нет серверной цели — проверим что в линии огня есть мирный NPC.
+    // Если да — попадаем по нему ЛОКАЛЬНО (hp/flinch/кровь), иначе
+    // пуля улетает в пустоту на range тайлов.
     const range = wcfg.range || 7;
-    spawnBullet(sR, sC,
-      sR + dirY * range,
-      sC + dirX * range,
-      { hit: false, fromPlayer: true, weapon: currentWeapon });
+    const hitN = _raycastNpc(sR, sC, dirY, dirX, range);
+    if (hitN) {
+      spawnBullet(sR, sC, hitN.point.r, hitN.point.c,
+        { hit: true, fromPlayer: true, weapon: currentWeapon });
+      spawnImpact(hitN.point.r, hitN.point.c, currentWeapon);
+      hitNpc(hitN.npc, dirY, dirX, currentWeapon, wcfg.dmg || 20);
+      triggerHitStop(wcfg.thick ? 95 : 65);
+      addShake(wcfg.thick ? 3 : 1.5);
+      hapticHit();
+    } else {
+      spawnBullet(sR, sC,
+        sR + dirY * range,
+        sC + dirX * range,
+        { hit: false, fromPlayer: true, weapon: currentWeapon });
+    }
   }
 }
 _fireBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); }, { passive: false });
@@ -9423,7 +9505,8 @@ function drawTrafficLight(r, c) {
 // ── NPC прохожий (упрощённый человечек) ──────────────────────────
 function drawNpc(npc) {
   const p = w2s(npc.r, npc.c);
-  drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null, false);
+  drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null, !!npc.dead);
+  if (npc.dead) return;   // трупам не показываем чат-баббл
   // Крик «ПОМОГИТЕ!» когда NPC в панике (panicUntil > now). Чат-баббл
   // подпрыгивает с лёгкой анимацией. cryUntil — отдельно, чтобы крик
   // показывался лишь первые ~2 сек паники, потом NPC просто молча бежит.
@@ -11855,21 +11938,21 @@ function spawnShot(wr, wc, ang, weapon, isMyShot) {
 function spawnImpact(wr, wc, weapon) {
   const fx = weaponFx(weapon);
   const parts = [];
-  // Больше частиц для тяжёлого оружия — мяснее.
-  const N = (fx.thick ? 12 : 8);
+  // Больше частиц для тяжёлого — мяснее. Кровь крупнее и летит дальше.
+  const N = (fx.thick ? 22 : 16);
   for (let i = 0; i < N; i++) {
     const a = Math.random() * Math.PI * 2;
-    const sp = 0.5 + Math.random() * 1.2 * (fx.thick ? 1.4 : 1.0);
-    // 70% частиц — кровь (красная), 30% — искры цвета оружия
-    const isBlood = Math.random() < 0.7;
+    const sp = 0.8 + Math.random() * 1.8 * (fx.thick ? 1.5 : 1.0);
+    // 75% частиц — кровь (красная), 25% — искры цвета оружия
+    const isBlood = Math.random() < 0.75;
     parts.push({
       vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
-      life: 280 + Math.random() * 280, max: 560,
+      life: 380 + Math.random() * 360, max: 740,
       color: isBlood
-        ? (Math.random() < 0.4 ? '#8a0a0a' : '#d02020')   // тёмная/яркая кровь
+        ? (Math.random() < 0.4 ? '#8a0a0a' : '#e02020')
         : (fx.color || '#ffd76b'),
       isBlood,
-      size: isBlood ? (2.2 + Math.random() * 1.6) : (1.6 + Math.random() * 0.8),
+      size: isBlood ? (2.8 + Math.random() * 2.4) : (1.8 + Math.random() * 1.0),
     });
   }
   impacts.push({ r: wr, c: wc, parts });
@@ -12089,6 +12172,8 @@ const FIREARM_TIP = {
   rifle: 32, sniper: 44, rpg: 46,
 };
 function weaponTip(w) { return (FIREARM_TIP[w] || 16); }
+// Зеркалим в FIREARM_TIP_DEFER — нужно для weaponMuzzleD выше в файле
+Object.assign(FIREARM_TIP_DEFER, FIREARM_TIP);
 
 // Рендер: оружие + вспышка дула. Вспышка живёт 80мс после выстрела.
 // shotAtMs — performance.now() момента последнего выстрела (для self
@@ -12101,39 +12186,49 @@ function drawWeaponInHands(x, y, ang, weapon, scale /*shotAtMs ignored: см. dr
   // Масштаб ровно как в demo: gunScale = 1.0 * (TS / 60) для миньона,
   // 1.3 * (TS / 60) для босса. scale — лёгкая подкрутка.
   const sc = (scale || 1.0) * (TS / 60);
-  // 1. ОСНОВНАЯ рука — от плеча до точки хвата. Тёмный рукав, чтобы
-  //    отделить от тела. (sh1X, sh1Y) — плечо со стороны рабочей руки.
+  const wcfg = WEAPON_FX_CFG[weapon] || {};
+  const armW = wcfg.twoHanded ? 5.0 : 4.5;   // двуручка чуть жирнее
+  // 1. ОСНОВНАЯ рука — от плеча до точки хвата. Сначала тёмный обвод,
+  //    затем сам рукав — рука читается на любом фоне.
   const sh1X = px + perpX * shoulderD;
   const sh1Y = shY + perpY * shoulderD;
-  ctx.strokeStyle = '#1a1a1a';
-  ctx.lineWidth = 3.5;
   ctx.lineCap = 'round';
+  ctx.strokeStyle = '#0a0a0a';
+  ctx.lineWidth = armW + 1.8;
   ctx.beginPath();
-  ctx.moveTo(sh1X, sh1Y);
-  ctx.lineTo(hx, hy);
-  ctx.stroke();
+  ctx.moveTo(sh1X, sh1Y); ctx.lineTo(hx, hy); ctx.stroke();
+  ctx.strokeStyle = '#252830';
+  ctx.lineWidth = armW;
+  ctx.beginPath();
+  ctx.moveTo(sh1X, sh1Y); ctx.lineTo(hx, hy); ctx.stroke();
+  // Кисть на рукояти — обведённый кружок цвета кожи
+  ctx.fillStyle = '#0a0a0a';
+  ctx.beginPath(); ctx.arc(hx, hy, 4.0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#d8b48a';
+  ctx.beginPath(); ctx.arc(hx, hy, 3.0, 0, Math.PI * 2); ctx.fill();
   // 2. Само оружие
   drawFirearm(weapon, hx, hy, sx, sy, sc);
-  // 3. Для двуручного — вторая рука с противоположного плеча на цевье.
-  //    Игрок держит автомат/винтовку/дробовик ДВУМЯ руками (как в demo).
-  const wcfg = WEAPON_FX_CFG[weapon] || {};
+  // 3. Двуручка — вторая рука с противоположного плеча на цевье.
+  //    Перекрывает ствол (рисуется ПОВЕРХ оружия), как и должно быть.
   if (wcfg.twoHanded) {
     const fgT = FIREARM_FOREGRIP[weapon] || 0.36;
     const sh2X = px - perpX * shoulderD;
     const sh2Y = shY - perpY * shoulderD;
     const fgX  = hx + sx * TS * fgT;
     const fgY  = hy + sy * TS * fgT;
-    ctx.strokeStyle = '#1a1a1a';
-    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = '#0a0a0a';
+    ctx.lineWidth = armW + 1.8;
     ctx.beginPath();
-    ctx.moveTo(sh2X, sh2Y);
-    ctx.lineTo(fgX,  fgY);
-    ctx.stroke();
-    // Кисть на цевье — маленький кружок цвета кожи
+    ctx.moveTo(sh2X, sh2Y); ctx.lineTo(fgX, fgY); ctx.stroke();
+    ctx.strokeStyle = '#252830';
+    ctx.lineWidth = armW;
+    ctx.beginPath();
+    ctx.moveTo(sh2X, sh2Y); ctx.lineTo(fgX, fgY); ctx.stroke();
+    // Кисть на цевье — больше, с обводом
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath(); ctx.arc(fgX, fgY, 4.2, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#d8b48a';
-    ctx.beginPath();
-    ctx.arc(fgX, fgY, 3, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(fgX, fgY, 3.2, 0, Math.PI * 2); ctx.fill();
   }
 }
 
