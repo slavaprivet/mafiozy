@@ -683,7 +683,9 @@ body.in-pvp #gtaActionBtn { top: 104px; }
              id="michaelQuestHint">Машина уже на карте — ищи стрелку 🎯</div>
       </div>
       <div class="btns">
-        <button class="btn primary" id="michaelTakeBtn">Взять заказ</button>
+        <button class="btn primary" id="michaelTakeBtn">Взять заказ (угон)</button>
+        <button class="btn primary" id="michaelBoxBtn"
+                style="background:#3a4a5e;border-color:#5a7a9e;color:#a8c8e8;">📦 Взять коробку</button>
         <button class="btn ghost"   id="michaelCloseBtn">Закрыть</button>
       </div>
     </div>
@@ -3562,6 +3564,48 @@ function handleEventPacket(d) {
     myGtaStatus.reset_in_s  = d.reset_in_s  | 0;
     myGtaStatus.active      = d.active || null;
     refreshMichaelMenu();
+  } else if (kind === 'box_status') {
+    myBoxStatus.count_today = d.count_today | 0;
+    myBoxStatus.limit       = d.limit       | 0;
+    myBoxStatus.reset_in_s  = d.reset_in_s  | 0;
+    myBoxStatus.active      = d.active || null;
+    refreshMichaelMenu();
+  } else if (kind === 'box_take_reply') {
+    if (d.ok) {
+      myBoxStatus.active = {
+        pickup_x: d.pickup_x, pickup_y: d.pickup_y,
+        dropoff_x: d.dropoff_x, dropoff_y: d.dropoff_y,
+        addr: d.addr, reward: d.reward, state: 'pending',
+      };
+      hideMichaelMenu();
+      showToast(`📦 Возьми ящик на пирсе → ${d.addr}. Награда: ${d.reward}$`, '💼', 4000);
+    } else if (d.reason === 'limit') {
+      const mins = Math.ceil((d.wait_s || 0) / 60);
+      showToast(`🚫 Сегодня уже ${d.limit || 5} доставок — приходи через ~${mins} мин`, '⏳', 4000);
+    } else if (d.reason === 'has_active') {
+      showToast('📦 У тебя уже есть активная доставка', '⚠️', 2500);
+    } else {
+      showToast('❌ Майкл не дал контракт. Попробуй позже.', '⚠️', 2500);
+    }
+  } else if (kind === 'box_pickup_reply') {
+    if (d.ok) {
+      if (myBoxStatus.active) myBoxStatus.active.state = 'carrying';
+      showToast('📦 Коробка у тебя — везти по адресу', '✅', 2500);
+    } else if (d.reason === 'too_far') {
+      showToast('🚫 Подойди ближе к пирсу', '⚠️', 1500);
+    }
+  } else if (kind === 'box_deliver_reply') {
+    if (d.ok) {
+      const r = d.reward | 0;
+      myBoxStatus.active = null;
+      showEventBanner('📦 Доставлено!',
+        `${d.addr} — получено +${r}$. Возвращайся к Майклу за новой работой.`,
+        4500, 'win');
+    } else if (d.reason === 'too_far') {
+      showToast('🚫 Не там, ищи правильный адрес', '⚠️', 1500);
+    } else if (d.reason === 'wrong_state') {
+      showToast('📦 Сначала возьми коробку в порту', '⚠️', 2500);
+    }
   } else if (kind === 'gta_drive_reject') {
     // Сервер отверг мой инпут (например, машина уже у другого водителя).
     if (myDrivingCarId === d.car_id) {
@@ -4247,6 +4291,29 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
+  // Box-доставка: pickup (взять коробку) или dropoff (сдать)
+  if (myBoxStatus.active) {
+    const bq = myBoxStatus.active;
+    if (bq.state === 'pending') {
+      const dx = bq.pickup_x - player.c, dy = bq.pickup_y - player.r;
+      if (Math.hypot(dx, dy) <= 2.5) {
+        _gtaActionKind = 'box_pickup';
+        _gtaActionCarId = null;
+        _gtaBtn.textContent = '📦 Взять коробку';
+        _gtaBtn.style.display = 'block';
+        return;
+      }
+    } else if (bq.state === 'carrying') {
+      const dx = bq.dropoff_x - player.c, dy = bq.dropoff_y - player.r;
+      if (Math.hypot(dx, dy) <= 3.0) {
+        _gtaActionKind = 'box_deliver';
+        _gtaActionCarId = null;
+        _gtaBtn.textContent = `📦 Сдать (${bq.reward}$)`;
+        _gtaBtn.style.display = 'block';
+        return;
+      }
+    }
+  }
   // 1) Машина моего контракта — приоритет (сесть за руль)
   let nearestQc = null, nearestD = GTA_INTERACT_R;
   let nearestKind = null;   // 'driver' | 'passenger'
@@ -4288,6 +4355,10 @@ _gtaBtn.addEventListener('click', () => {
     enterCar(_gtaActionCarId, _gtaActionEnterAs || 'driver');
   } else if (_gtaActionKind === 'exit') {
     exitCar('manual');
+  } else if (_gtaActionKind === 'box_pickup') {
+    try { ws && ws.send(JSON.stringify({ t: 'box_pickup', d: {} })); } catch(e){}
+  } else if (_gtaActionKind === 'box_deliver') {
+    try { ws && ws.send(JSON.stringify({ t: 'box_deliver', d: {} })); } catch(e){}
   }
 });
 
@@ -4307,6 +4378,7 @@ function openMichaelMenu() {
   _michaelModal.classList.add('show');
   // Запрашиваем актуальный статус с сервера (счётчик угонов + активный квест)
   try { ws && ws.send(JSON.stringify({ t: 'gta_status', d: {} })); } catch(e){}
+  try { ws && ws.send(JSON.stringify({ t: 'box_status', d: {} })); } catch(e){}
   refreshMichaelMenu();
   // Тикаем локальный таймер обратного отсчёта раз в секунду — чтобы
   // «До следующего заказа: 5ч 23м» уменьшался в реальном времени без
@@ -4331,6 +4403,14 @@ _michaelModal.addEventListener('click', (e) => {
 _michaelTakeBtn.addEventListener('click', () => {
   try { ws && ws.send(JSON.stringify({ t: 'gta_take', d: {} })); } catch(e){}
 });
+// Кнопка «📦 Взять коробку» — альтернативная работа от Майкла
+const _michaelBoxBtn = document.getElementById('michaelBoxBtn');
+_michaelBoxBtn.addEventListener('click', () => {
+  try { ws && ws.send(JSON.stringify({ t: 'box_take', d: {} })); } catch(e){}
+});
+// Состояние box-доставки (приходит от box_status / box_take_reply)
+let myBoxStatus = { count_today: 0, limit: 5, reset_in_s: 0, active: null };
+let _boxStatusReqAt = 0;
 // Рендерит карточку машины в маленький canvas — игрок видит ЧТО угонять.
 function renderQuestCarPreview(cv, modelId) {
   const m = QUEST_CAR_MODELS[modelId];
@@ -4424,12 +4504,26 @@ function refreshMichaelMenu() {
         `<br><br>До следующего заказа: <b style="color:#ffd76b">${timerTxt}</b>`;
     } else {
       _michaelTakeBtn.disabled    = false;
-      _michaelTakeBtn.textContent = 'Взять заказ';
+      _michaelTakeBtn.textContent = 'Взять заказ (угон)';
       _michaelTalk.innerHTML =
-        '<b>Эй, есть для тебя работка.</b> Скажу какую модель искать — ' +
-        'угоняешь, везёшь сюда на пирс, <b>в зону сдачи</b>, и получаешь налик. ' +
-        'Только не зевай — в сутки беру максимум ' + limit + ' тачки.';
+        '<b>Эй, есть для тебя работка.</b> Угон тачек или таскать ящики — ' +
+        'выбирай. По угону в сутки беру максимум ' + limit + ' тачки, ' +
+        'по коробкам — ' + (myBoxStatus.limit | 5) + ' ходок.';
     }
+  }
+  // Кнопка box-доставки
+  const bs = myBoxStatus;
+  if (bs.active) {
+    _michaelBoxBtn.disabled = true;
+    _michaelBoxBtn.textContent = (bs.active.state === 'pending')
+      ? '📦 Возьми ящик на пирсе'
+      : `📦 Везёшь: ${bs.active.addr || ''}`;
+  } else if ((bs.count_today | 0) >= (bs.limit | 5)) {
+    _michaelBoxBtn.disabled = true;
+    _michaelBoxBtn.textContent = '📦 Коробок на сегодня хватит';
+  } else {
+    _michaelBoxBtn.disabled = false;
+    _michaelBoxBtn.textContent = `📦 Взять коробку (${bs.count_today | 0}/${bs.limit | 5})`;
   }
 }
 
@@ -9359,6 +9453,49 @@ function drawDropZone() {
   ctx.textAlign = 'left';
 }
 
+// ── Маркеры box-доставки (pickup на пирсе, dropoff в городе) ────
+// Показываем зелёный кружок-маркер на земле в нужной точке + пульс.
+// Когда state=pending → светится pickup. Когда carrying → dropoff.
+function drawBoxQuestMarkers() {
+  const bq = myBoxStatus && myBoxStatus.active;
+  if (!bq) return;
+  const isPickup = (bq.state === 'pending');
+  const tx = isPickup ? bq.pickup_x  : bq.dropoff_x;
+  const ty = isPickup ? bq.pickup_y  : bq.dropoff_y;
+  const p  = w2s(ty, tx);
+  const tm = performance.now() * 0.003;
+  const pulse = 0.55 + Math.sin(tm) * 0.30;
+  // Радиальный градиент-подсветка
+  const grad = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, 38);
+  const col = isPickup ? 'rgba(120,200,255,' : 'rgba(120,255,140,';
+  grad.addColorStop(0, col + `${0.55 * pulse})`);
+  grad.addColorStop(1, col + '0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 38, 0, Math.PI * 2);
+  ctx.fill();
+  // Тонкое кольцо
+  ctx.strokeStyle = isPickup ? '#6ec8ff' : '#7ee69a';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y, 22, 11, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Иконка-эмодзи с подпрыгиванием
+  const bob = Math.sin(tm * 1.7) * 3;
+  ctx.font = 'bold 22px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+  ctx.fillText(isPickup ? '📦' : '🏠', p.x, p.y - 16 + bob);
+  ctx.font = 'bold 10px system-ui, sans-serif';
+  ctx.fillStyle = isPickup ? '#a8d8ff' : '#a8f0bd';
+  ctx.fillText(isPickup ? 'ВЗЯТЬ' : (bq.addr || 'СДАТЬ'), p.x, p.y + 4);
+  ctx.shadowBlur = 0;
+  ctx.textAlign = 'left';
+}
+
 // Ящик — невысокий, ~70% ширины тайла
 function drawCrate(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
@@ -11208,6 +11345,8 @@ function render() {
   drawGangNestRings();
   // 1.8) Зона сдачи угнанных машин Майклу — золотая штриховка на пирсе
   drawDropZone();
+  // 1.9) Маркеры box-доставки (pickup на пирсе, dropoff в городе)
+  drawBoxQuestMarkers();
   // 2) Объекты с depth-sort
   const items = [];
   for (let r = r0; r < r1; r++) {
