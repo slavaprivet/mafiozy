@@ -1239,23 +1239,26 @@ function generateBeachDecor() {
   for (const pc of PATH_COLS) {
     _beachDecor.push({ kind: 'plank_path', r0: 150, r1: 165, c: pc });
   }
-  // 2) Пальмы — детерминированно по пляжу. Плотность снижена с 18% до 7%
-  //    + минимальная дистанция между пальмами 2.5 тайла, чтобы не было
-  //    «леса» и куч. Также сторонимся центральной тропы и зонтиков.
+  // 2) Пальмы — Poisson-like grid placement. Делим пляж на «соты» 4×4 тайла,
+  //    в каждой соте максимум 1 пальма со случайным сдвигом. Плюс глобальная
+  //    мин-дистанция 4.0 — гарантия что соседние клетки не дают пары впритык.
+  //    Это даёт равномерное «реальное» распределение без куч и без леса.
   const _palms = [];
-  const MIN_PALM_D2 = 2.5 * 2.5;
-  for (let r = BEACH_R0 + 1; r < BEACH_R1 - 1; r++) {
-    for (let c = 2; c < MAP_COLS - 2; c++) {
-      if (PATH_COLS.some(pc => Math.abs(c - pc) <= 1)) continue;
-      // Не на тропе игрока (центральная полоса c=38..46) — здесь ходят
-      if (c >= 38 && c <= 46 && r >= BEACH_R1 - 3) continue;
-      // Не на асфальтовой дороге к Майклу (c=40..43, по всей длине пляжа)
-      if (c >= 39 && c <= 44) continue;
-      const h = _bhash(r, c, 1);
-      if (h >= 0.07) continue;
-      const pr = r + 0.5 + (_bhash(r,c,2) - 0.5) * 0.4;
-      const pc = c + 0.5 + (_bhash(r,c,3) - 0.5) * 0.4;
-      // Минимальная дистанция до уже расставленных пальм
+  const MIN_PALM_D2 = 4.0 * 4.0;
+  const CELL = 4;   // размер ячейки в тайлах
+  for (let cr = BEACH_R0 + 1; cr < BEACH_R1 - 1; cr += CELL) {
+    for (let cc = 2; cc < MAP_COLS - 2; cc += CELL) {
+      // Бросок «есть ли пальма в этой соте» (детерминированный)
+      if (_bhash(cr, cc, 1) > 0.55) continue;
+      // Случайный сдвиг внутри соты
+      const pr = cr + _bhash(cr, cc, 2) * (CELL - 0.5);
+      const pc = cc + _bhash(cr, cc, 3) * (CELL - 0.5);
+      const cInt = Math.floor(pc);
+      // Не на дорожках/тропе/асфальте к Майклу
+      if (PATH_COLS.some(pcol => Math.abs(cInt - pcol) <= 1)) continue;
+      if (cInt >= 38 && cInt <= 46 && pr >= BEACH_R1 - 3) continue;
+      if (cInt >= 39 && cInt <= 44) continue;
+      // Глобальная мин-дистанция
       let tooClose = false;
       for (const p of _palms) {
         const dr = p.r - pr, dc = p.c - pc;
@@ -1263,11 +1266,21 @@ function generateBeachDecor() {
       }
       if (tooClose) continue;
       const palm = { kind: 'palm', r: pr, c: pc,
-                     variant: Math.floor(_bhash(r,c,4) * 3) };
+                     variant: Math.floor(_bhash(cr, cc, 4) * 3) };
       _palms.push(palm);
       _beachDecor.push(palm);
     }
   }
+  // Хелпер: точка занята пальмой? (для последующих объектов — не ставим
+  // зонт/сёрф/лодку поверх пальмы)
+  const _farFromPalm = (r, c, minD = 1.5) => {
+    const d2 = minD * minD;
+    for (const p of _palms) {
+      const dr = p.r - r, dc = p.c - c;
+      if (dr*dr + dc*dc < d2) return false;
+    }
+    return true;
+  };
   // 3) Зонтики с шезлонгами — несколько групп по пляжу
   const UMBRELLA_SPOTS = [
     { r: 154, c: 12,  col: '#e74c3c' },
@@ -1279,10 +1292,16 @@ function generateBeachDecor() {
     { r: 162, c: 62,  col: '#16a085' },
   ];
   for (const sp of UMBRELLA_SPOTS) {
-    _beachDecor.push({ kind: 'umbrella', r: sp.r, c: sp.c, col: sp.col });
+    // Если пальма стоит близко — сдвигаем точку зонтика по c на ±2 тайла,
+    // чтобы декор не сливался в одну кучу
+    let pc = sp.c;
+    if (!_farFromPalm(sp.r, pc, 1.8)) {
+      pc = sp.c + 2.2; if (!_farFromPalm(sp.r, pc, 1.8)) pc = sp.c - 2.2;
+    }
+    _beachDecor.push({ kind: 'umbrella', r: sp.r, c: pc, col: sp.col });
     // 2 шезлонга по бокам зонтика
-    _beachDecor.push({ kind: 'chair', r: sp.r + 0.6, c: sp.c - 0.9, ang: 0.2 });
-    _beachDecor.push({ kind: 'chair', r: sp.r + 0.6, c: sp.c + 0.9, ang: -0.2 });
+    _beachDecor.push({ kind: 'chair', r: sp.r + 0.6, c: pc - 0.9, ang: 0.2 });
+    _beachDecor.push({ kind: 'chair', r: sp.r + 0.6, c: pc + 0.9, ang: -0.2 });
   }
   // 4) Перевёрнутые лодки на песке (для антуража)
   _beachDecor.push({ kind: 'boat', r: 160, c: 6,  ang: 0.4,  col: '#c0392b' });
@@ -1559,7 +1578,7 @@ function applyQuestCarsSnapshot(arr) {
 // Когда я сел в машину — её id; null если иду пешком.
 let myDrivingCarId = null;
 // Текущее состояние контракта (приходит от gta_status/gta_take_reply)
-let myGtaStatus = { count_today: 0, limit: 2, reset_in_s: 0, active: null };
+let myGtaStatus = { count_today: 0, limit: 2, reset_in_s: 0, sc_lvl: 0, active: null };
 // Кулдаун между запросами статуса (не дёргаем сервер каждый кадр)
 let _gtaStatusReqAt = 0;
 function questCarAt(uid) {
@@ -3652,6 +3671,12 @@ function handleEventPacket(d) {
         5500, 'win');
       myGtaStatus.active = null;
       myGtaStatus.count_today = (myGtaStatus.count_today | 0) + 1;
+      if (d.skill_up) {
+        myGtaStatus.sc_lvl = d.new_sc_lvl | 0;
+        showEventBanner('🔓 Навык взломщика +1',
+          `Теперь у тебя уровень ${d.new_sc_lvl}. Открылись более сложные заказы.`,
+          5000, 'win');
+      }
       updateQuestCarHud();
     } else {
       showToast(`💸 @${d.by_name} сдал ${mdef.label} — +${d.reward}$`, '🚗', 3500);
@@ -3733,6 +3758,12 @@ function handleEventPacket(d) {
       } else if (d.reason === 'has_active') {
         showToast(`🚗 У тебя уже есть активный заказ${mdef ? ': ' + mdef.label : ''}`,
                   '⚠️', 3000);
+      } else if (d.reason === 'pve_mode') {
+        showToast('🕵️ В режиме PvE Майкл не даёт заказы. Переключись в PvP.',
+                  '⚠️', 3500);
+      } else if (d.reason === 'no_skill') {
+        showToast('🔓 Все тачки Майкла сложнее твоего навыка. Прокачай взломщика.',
+                  '⚠️', 3500);
       } else {
         showToast('❌ Майкл не дал заказ. Попробуй позже.', '⚠️', 2500);
       }
@@ -3741,6 +3772,7 @@ function handleEventPacket(d) {
     myGtaStatus.count_today = d.count_today | 0;
     myGtaStatus.limit       = d.limit       | 0;
     myGtaStatus.reset_in_s  = d.reset_in_s  | 0;
+    myGtaStatus.sc_lvl      = d.sc_lvl      | 0;
     myGtaStatus.active      = d.active || null;
     updateQuestCarHud();
     refreshMichaelMenu();
@@ -4738,15 +4770,34 @@ function updateQuestCarHud() {
   if (!a || modalOpen) { _qcHud.classList.remove('show'); return; }
   const mdef = QUEST_CAR_MODELS[a.model] || { label: a.model || '—' };
   _qcHudName.textContent = mdef.label;
+  const lockStr = ((a.lock_lvl | 0) > 0) ? ` · 🔓${a.lock_lvl}` : '';
   _qcHudSub.innerHTML = (a.state === 'driven')
-    ? 'Везёшь в порт · <span class="qhd-rew">+' + (a.reward | 0) + '$</span>'
-    : 'Найди по стрелке 🎯 · <span class="qhd-rew">+' + (a.reward | 0) + '$</span>';
+    ? 'Везёшь в порт · <span class="qhd-rew">+' + (a.reward | 0) + '$</span>' + lockStr
+    : 'Найди по стрелке 🎯 · <span class="qhd-rew">+' + (a.reward | 0) + '$</span>' + lockStr;
   renderQuestCarPreview(_qcHudCv, a.model);
   _qcHud.classList.add('show');
 }
 
 function refreshMichaelMenu() {
   if (!_michaelModal.classList.contains('show')) return;
+  // PvE-режим — Майкл вообще не даёт работу. Только надпись.
+  if (myMode === 'pve') {
+    _michaelCount.textContent = '—';
+    _michaelReset.textContent = '';
+    _michaelQuest.style.display = 'none';
+    _michaelTakeBtn.disabled    = true;
+    _michaelTakeBtn.textContent = '🕵️ Нужен режим PvP';
+    if (_michaelBoxBtn) {
+      _michaelBoxBtn.disabled = true;
+      _michaelBoxBtn.textContent = '🕵️ Нужен режим PvP';
+    }
+    _michaelTalk.innerHTML =
+      '<b>Слушай, наблюдатель.</b> Работа у меня уголовная — стволы, угоны, ' +
+      'погони. В режиме <b style="color:#a8d0ff">PvE</b> такого нет. ' +
+      'Переключись в <b style="color:#ffae90">PvP</b> и возвращайся — ' +
+      'тогда и поговорим о деле.';
+    return;
+  }
   const s = myGtaStatus;
   _michaelCount.textContent = `${s.count_today | 0}/${s.limit | 2}`;
   if (s.reset_in_s > 0) {
@@ -4760,7 +4811,8 @@ function refreshMichaelMenu() {
   if (active) {
     const mdef = QUEST_CAR_MODELS[active.model] || { label: active.model };
     _michaelQuestName.textContent = mdef.label;
-    _michaelQuestRew.textContent  = `+${active.reward | 0}$`;
+    const lockTxt = ((active.lock_lvl | 0) > 0) ? `  🔓${active.lock_lvl}` : '';
+    _michaelQuestRew.textContent  = `+${active.reward | 0}$${lockTxt}`;
     _michaelQuestHint.textContent = (active.state === 'driven')
       ? 'Машина едет — вези её в зону сдачи в порту'
       : 'Машина уже на карте — ищи стрелку 🎯';
@@ -4795,10 +4847,16 @@ function refreshMichaelMenu() {
     } else {
       _michaelTakeBtn.disabled    = false;
       _michaelTakeBtn.textContent = 'Взять заказ (угон)';
+      const scLvl = s.sc_lvl | 0;
+      const scStars = '★'.repeat(scLvl) + '☆'.repeat(Math.max(0, 5 - scLvl));
       _michaelTalk.innerHTML =
         '<b>Эй, есть для тебя работка.</b> Угон тачек или таскать ящики — ' +
         'выбирай. По угону в сутки беру максимум ' + limit + ' тачки, ' +
-        'по коробкам — ' + (myBoxStatus.limit | 5) + ' ходок.';
+        'по коробкам — ' + (myBoxStatus.limit | 5) + ' ходок.<br><br>' +
+        '<span style="color:#ffd76b">Твой навык 🔓 взломщик:</span> ' +
+        `<b>${scStars}</b> <span style="color:#aaa">(уровень ${scLvl}/5)</span><br>` +
+        '<span style="color:#aaa;font-size:11px">Чем выше — тем более крутые тачки тебе дают. ' +
+        'Прокачивай в hub-меню «Мои навыки».</span>';
     }
   }
   // Кнопка box-доставки
@@ -6101,10 +6159,10 @@ function update(dt) {
   const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
   cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
   cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
-  // Зум: на пляже/в порту приближаем камеру (открытое пространство визуально
-  // «отдаляет» вид без высоких зданий, игрок казался мелким).
-  const _zTarget = (player.r >= 145) ? 1.20 : 1.0;
-  viewZoom += (_zTarget - viewZoom) * Math.min(1, dt * 3.5);
+  // Зум: одинаковый везде. Раньше на пляже включался zoom=1.20, но из-за
+  // резкого перехода у города + пустого пространства это ощущалось как
+  // «камера дёргается / отдаляется». Унифицировано: 1.0 везде.
+  viewZoom += (1.0 - viewZoom) * Math.min(1, dt * 3.5);
   // Поиск ближайшего POI: если игрок в радиусе ENTER_R тайлов от вывески,
   // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
   updateZoneBtn();
@@ -9017,7 +9075,7 @@ function drawBeachgoer(b) {
   ctx.moveTo(p.x - 4, p.y - 11);
   ctx.lineTo(p.x - 7 + armSwing * 0.5, p.y - 5 + armSwing * 0.3);
   ctx.stroke();
-  // Правая рука — если drink, согнута со стаканом
+  // Правая рука — если drink/icecream, согнута со «вкусняшкой»
   if (act === 'drink') {
     ctx.beginPath();
     ctx.moveTo(p.x + 4, p.y - 11);
@@ -9036,6 +9094,38 @@ function drawBeachgoer(b) {
     ctx.moveTo(p.x + 6.5, p.y - 17);
     ctx.lineTo(p.x + 7.5, p.y - 20);
     ctx.stroke();
+  } else if (act === 'icecream') {
+    // Рука к рожку
+    ctx.beginPath();
+    ctx.moveTo(p.x + 4, p.y - 11);
+    ctx.lineTo(p.x + 6, p.y - 14);
+    ctx.stroke();
+    // Рожок (треугольник, светло-коричневый)
+    ctx.fillStyle = '#c89858';
+    ctx.beginPath();
+    ctx.moveTo(p.x + 5.2, p.y - 15.5);
+    ctx.lineTo(p.x + 8.0, p.y - 15.5);
+    ctx.lineTo(p.x + 6.6, p.y - 19);
+    ctx.closePath();
+    ctx.fill();
+    // Сеточка на рожке
+    ctx.strokeStyle = '#8a6028';
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(p.x + 5.5, p.y - 16.5); ctx.lineTo(p.x + 7.7, p.y - 16.5);
+    ctx.moveTo(p.x + 5.9, p.y - 17.5); ctx.lineTo(p.x + 7.3, p.y - 17.5);
+    ctx.stroke();
+    // Шарик мороженого (цветной по skin index — каждый разное)
+    const ICE_COLORS = ['#f8e8c0', '#f0a8b0', '#c0e8b0', '#b0d8f0'];
+    ctx.fillStyle = ICE_COLORS[(b.hair || 0) % ICE_COLORS.length];
+    ctx.beginPath();
+    ctx.arc(p.x + 6.6, p.y - 17.5, 2.0, 0, Math.PI * 2);
+    ctx.fill();
+    // Маленький блик
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.beginPath();
+    ctx.arc(p.x + 6.0, p.y - 18.0, 0.7, 0, Math.PI * 2);
+    ctx.fill();
   } else {
     ctx.beginPath();
     ctx.moveTo(p.x + 4, p.y - 11);

@@ -11555,18 +11555,23 @@ class WorldSim:
     GTA_RESET_S     = 24 * 3600
     # 10 моделей квестовых тачек: label, reward (cash). Совпадает по ключу
     # с QUEST_CAR_MODELS в world.html (визуал берётся оттуда).
+    # lock_lvl 0..5 — требуется навык safecracker для угона. 0 = новичок,
+    # 5 = мастер. Машины посложнее платят больше — и косвенно качают навык
+    # (при доставке тачки с lock_lvl >= твоего → +XP, см. gta_exit).
     QUEST_CAR_MODELS = {
-        'ferrari_f40':    {'label': 'Ferrari F40',     'reward': 2800},
-        'lambo_countach': {'label': 'Lambo Countach',  'reward': 2600},
-        'porsche_911':    {'label': 'Porsche 911',     'reward': 2200},
-        'delorean':       {'label': 'DeLorean DMC-12', 'reward': 2000},
-        'aston_db5':      {'label': 'Aston DB5',       'reward': 2400},
-        'corvette_c3':    {'label': 'Corvette C3',     'reward': 1800},
-        'mustang_67':     {'label': 'Mustang 67',      'reward': 1700},
-        'cadillac_eldo':  {'label': 'Cadillac Eldo',   'reward': 1900},
-        'jaguar_e':       {'label': 'Jaguar E-Type',   'reward': 2300},
-        'mercedes_300':   {'label': 'Mercedes 300SL',  'reward': 2500},
+        'ferrari_f40':    {'label': 'Ferrari F40',     'reward': 2800, 'lock_lvl': 5},
+        'lambo_countach': {'label': 'Lambo Countach',  'reward': 2600, 'lock_lvl': 4},
+        'porsche_911':    {'label': 'Porsche 911',     'reward': 2200, 'lock_lvl': 2},
+        'delorean':       {'label': 'DeLorean DMC-12', 'reward': 2000, 'lock_lvl': 2},
+        'aston_db5':      {'label': 'Aston DB5',       'reward': 2400, 'lock_lvl': 3},
+        'corvette_c3':    {'label': 'Corvette C3',     'reward': 1800, 'lock_lvl': 0},
+        'mustang_67':     {'label': 'Mustang 67',      'reward': 1700, 'lock_lvl': 1},
+        'cadillac_eldo':  {'label': 'Cadillac Eldo',   'reward': 1900, 'lock_lvl': 1},
+        'jaguar_e':       {'label': 'Jaguar E-Type',   'reward': 2300, 'lock_lvl': 2},
+        'mercedes_300':   {'label': 'Mercedes 300SL',  'reward': 2500, 'lock_lvl': 3},
     }
+    # Сколько успешных доставок тачки сложнее своего skill → +1 уровень
+    SAFECRACKER_XP_PER_LEVEL = 5
     QUEST_CAR_HP        = 220       # машина может погибнуть под огнём
     QUEST_CAR_MAX_SPEED = 9.0       # тайлов/сек — на сервере жёсткий потолок
     # ── Wanted-система + копы ──────────────────────────────────────
@@ -12026,11 +12031,15 @@ class WorldSim:
                     return float(c) + 0.5, float(r) + 0.5
         return 40.5, 40.5  # fallback центр
 
-    def gta_take(self, uid: str) -> dict:
-        """Игрок просит у Майкла новый заказ. Возвращает reply-dict для send_str."""
+    async def gta_take(self, uid: str) -> dict:
+        """Игрок просит у Майкла новый заказ. Возвращает reply-dict для send_str.
+        Async — читает safecracker_level из БД для фильтрации моделей по сложности."""
         p = self.players.get(uid)
         if not p:
             return {'ok': False, 'reason': 'no_player'}
+        # PvE-режим — Майкл не даёт заказы. Это работа уголовника, не туриста.
+        if (p.get('_mode') or 'pvp') == 'pve':
+            return {'ok': False, 'reason': 'pve_mode'}
         now = time.time()
         # Сброс суточного счётчика
         if (p.get('_gta_reset_at') or 0) <= now:
@@ -12049,9 +12058,27 @@ class WorldSim:
         dx = p['x'] - self.MICHAEL_X; dy = p['y'] - self.MICHAEL_Y
         if (dx*dx + dy*dy) > 3.0 * 3.0:
             return {'ok': False, 'reason': 'too_far'}
-        # Выбираем модель и место спавна
-        model = random.choice(list(self.QUEST_CAR_MODELS.keys()))
-        mdef  = self.QUEST_CAR_MODELS[model]
+        # Загружаем актуальный skill из БД (safecracker_level). Не кешируем —
+        # игрок мог прокачаться через hub, между запросами на gta_take.
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                db.row_factory = aiosqlite.Row
+                cur = await db.execute(
+                    "SELECT safecracker_level FROM characters WHERE telegram_id=?",
+                    (int(uid),))
+                row = await cur.fetchone()
+            sc_lvl = int(row['safecracker_level']) if row and row['safecracker_level'] is not None else 0
+        except Exception:
+            sc_lvl = 0
+        p['_safecracker_lvl'] = sc_lvl
+        # Фильтруем доступные модели по навыку взлома игрока
+        avail = [(m, mdef) for m, mdef in self.QUEST_CAR_MODELS.items()
+                 if int(mdef.get('lock_lvl', 0)) <= sc_lvl]
+        if not avail:
+            return {'ok': False, 'reason': 'no_skill', 'min_lvl': 0,
+                    'sc_lvl': sc_lvl}
+        # Выбираем модель и место спавна (предпочтительно сложнее — реже падает)
+        model, mdef = random.choice(avail)
         sx, sy = self._random_city_road_pos()
         cid = f'q{self._quest_car_next_id}'
         self._quest_car_next_id += 1
@@ -12068,6 +12095,7 @@ class WorldSim:
             'vy':         0.0,
             'hp':         self.QUEST_CAR_HP,
             'reward':     int(mdef['reward']),
+            'lock_lvl':   int(mdef.get('lock_lvl', 0)),
             'state':      'idle',
             'wrecked':    False,
             '_spawn_t':   now,
@@ -12077,7 +12105,9 @@ class WorldSim:
         p['_gta_count']         = p.get('_gta_count', 0) + 1
         p['_gta_active_car_id'] = cid
         return {'ok': True, 'car_id': cid, 'model': model,
-                'reward': mdef['reward'], 'x': sx, 'y': sy}
+                'reward': mdef['reward'], 'x': sx, 'y': sy,
+                'lock_lvl': int(mdef.get('lock_lvl', 0)),
+                'sc_lvl':   sc_lvl}
 
     def gta_enter(self, uid: str, car_id: str) -> dict:
         p = self.players.get(uid)
@@ -12170,12 +12200,35 @@ class WorldSim:
         # Проверяем — машина в drop zone?
         if self._in_drop_zone(qc['x'], qc['y']):
             reward = int(qc.get('reward', 0))
-            # Начисляем cash в БД
+            lock_lvl = int(qc.get('lock_lvl', 0))
+            cur_sc   = int(p.get('_safecracker_lvl', 0))
+            # XP-логика: если угнали тачку сложнее текущего уровня → +1 XP.
+            # Каждые SAFECRACKER_XP_PER_LEVEL таких доставок — навык растёт на 1.
+            skill_up  = False
+            new_sc    = cur_sc
+            sc_xp     = int(p.get('_safecracker_xp', 0))
+            xp_gain   = 0
+            if cur_sc < 5 and lock_lvl >= cur_sc:
+                xp_gain = 1
+                sc_xp += 1
+                if sc_xp >= self.SAFECRACKER_XP_PER_LEVEL:
+                    sc_xp = 0
+                    new_sc = cur_sc + 1
+                    skill_up = True
+                p['_safecracker_xp'] = sc_xp
+            # Начисляем cash + (опционально) обновляем skill в БД
             try:
                 async with aiosqlite.connect(DB_PATH) as db:
-                    await db.execute(
-                        "UPDATE characters SET cash = cash + ? WHERE telegram_id = ?",
-                        (reward, int(uid)))
+                    if skill_up:
+                        await db.execute(
+                            "UPDATE characters SET cash = cash + ?, "
+                            "safecracker_level = ? WHERE telegram_id = ?",
+                            (reward, new_sc, int(uid)))
+                        p['_safecracker_lvl'] = new_sc
+                    else:
+                        await db.execute(
+                            "UPDATE characters SET cash = cash + ? WHERE telegram_id = ?",
+                            (reward, int(uid)))
                     await db.commit()
             except Exception as _e:
                 logger.exception("gta_exit cash add failed: %s", _e)
@@ -12183,7 +12236,9 @@ class WorldSim:
             self.quest_cars.pop(car_id, None)
             p['_gta_active_car_id'] = None
             return {'ok': True, 'delivered': True, 'reward': reward,
-                    'car_id': car_id, 'model': qc.get('model')}
+                    'car_id': car_id, 'model': qc.get('model'),
+                    'lock_lvl': lock_lvl, 'xp_gain': xp_gain,
+                    'skill_up': skill_up, 'new_sc_lvl': new_sc}
         return {'ok': True, 'delivered': False, 'car_id': car_id}
 
     def gta_status(self, uid: str) -> dict:
@@ -12203,6 +12258,7 @@ class WorldSim:
             active = {
                 'car_id': cid, 'model': qc.get('model'),
                 'reward': int(qc.get('reward', 0)),
+                'lock_lvl': int(qc.get('lock_lvl', 0)),
                 'x':      round(qc.get('x', 0.0), 2),
                 'y':      round(qc.get('y', 0.0), 2),
                 'state':  qc.get('state', 'idle'),
@@ -12215,6 +12271,7 @@ class WorldSim:
             'count_today': int(p.get('_gta_count', 0)),
             'limit':       self.GTA_DAILY_LIMIT,
             'reset_in_s':  int(max(0, (p.get('_gta_reset_at') or 0) - now)),
+            'sc_lvl':      int(p.get('_safecracker_lvl', 0)),
             'active':      active,
         }
 
@@ -14268,7 +14325,7 @@ class WorldSim:
         '#e74c3c', '#f1c40f', '#3498db', '#2ecc71', '#9b59b6',
         '#e67e22', '#1abc9c', '#ff7eb6', '#7ee69a',
     ]
-    BEACH_ACTIVITIES = ('walk', 'idle', 'drink', 'sunbathe')
+    BEACH_ACTIVITIES = ('walk', 'idle', 'drink', 'sunbathe', 'icecream', 'icecream')
 
     def _random_beach_pos(self) -> tuple:
         """Случайная свободная точка на песке (BEACH_R0..BEACH_R1).
@@ -14413,6 +14470,9 @@ class WorldSim:
         p = self.players.get(uid)
         if not p:
             return {'ok': False, 'reason': 'no_player'}
+        # PvE-режим — наблюдатели не работают на Майкла
+        if (p.get('_mode') or 'pvp') == 'pve':
+            return {'ok': False, 'reason': 'pve_mode'}
         now = time.time()
         if (p.get('_box_reset_at') or 0) <= now:
             p['_box_count']    = 0
@@ -17414,7 +17474,7 @@ async def _coop_http_app():
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass
                     elif t == 'gta_take':
-                        reply = world.gta_take(uid)
+                        reply = await world.gta_take(uid)
                         # Персональный ответ заказчику
                         try:
                             await ws.send_str(json.dumps(
@@ -17434,6 +17494,7 @@ async def _coop_http_app():
                                 'car_id':  reply['car_id'],
                                 'model':   reply['model'],
                                 'reward':  reply['reward'],
+                                'lock_lvl': reply.get('lock_lvl', 0),
                                 'by_uid':  uid,
                                 'x':       reply['x'], 'y': reply['y'],
                             }}, ensure_ascii=False)
@@ -17467,6 +17528,9 @@ async def _coop_http_app():
                                 'reward':  reply.get('reward'),
                                 'by_uid':  uid,
                                 'by_name': nm,
+                                'lock_lvl': reply.get('lock_lvl', 0),
+                                'skill_up': reply.get('skill_up', False),
+                                'new_sc_lvl': reply.get('new_sc_lvl', 0),
                             }}, ensure_ascii=False)
                             for _u2, _ws2 in list(world.connections.items()):
                                 try: await _ws2.send_str(deliv)
