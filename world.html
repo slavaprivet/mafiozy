@@ -4694,10 +4694,13 @@ function updateGtaInteractions() {
   // полицию (cop_cruiser/paddyvan/swat_truck) — её не угнать без последствий
   // более тяжёлых чем wanted. И горящие/повреждённые тоже пропускаем.
   let nearestCiv = null, nearestCivD = GTA_INTERACT_R;
+  const nowAlarm = performance.now();
   for (const car of CARS) {
     if (!car || !car.model) continue;
     const nm = car.model.name || '';
     if (nm === 'cop_cruiser' || nm === 'paddyvan' || nm === 'swat_truck') continue;
+    // Сигналка ещё орёт — повторно ломать ту же тачку нельзя
+    if (car._alarmedUntil && car._alarmedUntil > nowAlarm) continue;
     const dr = car.r - player.r, dc = car.c - player.c;
     const d  = Math.hypot(dr, dc);
     if (d > nearestCivD) continue;
@@ -4888,6 +4891,16 @@ function hijackCivilianCar(car) {
       showToast('🚗 Тачка уехала', '⚠️', 1600);
       return;
     }
+    if (res === 'fail') {
+      // Сигналка сработала — тачка НЕ угоняется, остаётся в трафике.
+      // На крыше 10 сек горят сирены; в эти 10 сек кнопка «Угнать» на
+      // этой машине не появляется (см. updateGtaInteractions).
+      car._alarmedUntil = performance.now() + 10000;
+      showToast('🚨 Сигналка орёт — валим!', '⚠️', 2400);
+      hapticHit();
+      return;
+    }
+    // success — обычный угон, witness = только если рядом живой NPC
     const idx = CARS.indexOf(car);
     if (idx >= 0) CARS.splice(idx, 1);
     let witnessNpc = false;
@@ -4896,19 +4909,14 @@ function hijackCivilianCar(car) {
       const dx = npc.c - player.c, dy = npc.r - player.r;
       if (dx * dx + dy * dy <= 100) { witnessNpc = true; break; }
     }
-    const witness = witnessNpc || res === 'fail';
     try {
       ws && ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
         x: +car.c.toFixed(2), y: +car.r.toFixed(2),
-        witness: witness,
+        witness: witnessNpc,
       } }));
     } catch(e) {}
     playEnterCarAnim(car.r, car.c);
-    if (res === 'fail') {
-      showToast('🚨 Сигналка орёт — копы услышали!', '⚠️', 2600);
-    } else {
-      showToast(witnessNpc ? '🚗 Угнал — тебя заметили!' : '🚗 Угнал тачку', '✅', 1800);
-    }
+    showToast(witnessNpc ? '🚗 Угнал — тебя заметили!' : '🚗 Угнал тачку', '✅', 1800);
     hapticHit();
   });
 }
@@ -9127,6 +9135,28 @@ function drawCarPretty(car) {
       }
       ctx.textAlign = 'left';
     }
+  }
+  // ── Сигналка угнанной тачки (lockpick fail) ──────────────────
+  // Мигалка красно-оранжевая на крыше + восклицательный знак сверху.
+  // Длительность 10 с, после — пропадает (см. hijackCivilianCar).
+  if (car._alarmedUntil && car._alarmedUntil > performance.now()) {
+    const cx = (FR.x + FL.x + BR.x + BL.x) / 4;
+    const cy = (FR.y + FL.y + BR.y + BL.y) / 4 - H;
+    const t  = performance.now();
+    const ph = Math.floor(t / 140) % 2;
+    ctx.shadowColor = ph ? '#ff3030' : '#ffb030';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle  = ph ? '#ff3030' : '#ffb030';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 2, 3.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Восклицательный знак над крышей — тревога
+    ctx.fillStyle = '#ff5050';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('!', cx, cy - 8 - (ph ? 1 : 0));
+    ctx.textAlign = 'left';
   }
 }
 
