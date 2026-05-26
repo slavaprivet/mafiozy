@@ -2778,6 +2778,87 @@ const _arrestHidden = new Set();
 let camShake = 0;
 function addShake(p) { camShake = Math.min(8, camShake + p); }
 
+// ── Кинематографичные эффекты стрельбы ──────────────────────────
+// Дымок от ствола: 2-3 клуба растут и тают, относительно лёгкая физика
+// (всплывают вверх+вбок). Живут ~550мс. {r,c,vr,vc,rad,life,max}
+const smokePuffs = [];
+// Shockwave-кольца: круги расширяются и затухают. Используются у дула
+// (маленькое, ~150мс) и в импакте (большое, ~250мс). {r,c,rad,maxRad,life,max,color,thick}
+const shockwaves = [];
+// Векторная отдача камеры (kick) — толкает камеру В СТОРОНУ противоположную
+// выстрелу. Затухает экспоненциально каждый кадр. Применяется в render().
+let camKickX = 0, camKickY = 0;
+// Screen-flash: короткая белая/жёлтая вспышка экрана при тяжёлом выстреле.
+// 0..1 alpha, затухает быстро. Не зависит от позиции игрока — overlay.
+let screenFlash = 0;
+let screenFlashColor = '#fff';
+// Hit-stop: до этого timestamp (ms) frame() пропускает update() — visual
+// фризится на ~40мс при попадании, даёт ощущение «веса» удара.
+let hitStopUntil = 0;
+// Захват последнего угла выстрела (для kick) — нужен потому что spawnMuzzle
+// вызывается перед addKick в fire(), а сам угол передаётся напрямую.
+function spawnSmokePuff(r, c, angle) {
+  // Дым выходит назад вдоль ствола с небольшим разбросом
+  for (let i = 0; i < 2; i++) {
+    const a = angle + (Math.random() - 0.5) * 0.7;
+    const sp = 0.6 + Math.random() * 0.5;
+    smokePuffs.push({
+      r, c,
+      vr: Math.sin(a) * sp * 0.4 - 0.3,   // чуть вверх (отриц. vr = вверх в иксометрии)
+      vc: Math.cos(a) * sp * 0.4,
+      rad: 4 + Math.random() * 3,
+      life: 450 + Math.random() * 250, max: 700,
+    });
+  }
+}
+function spawnShockwave(r, c, opts) {
+  opts = opts || {};
+  shockwaves.push({
+    r, c,
+    rad: opts.rad0 || 4,
+    maxRad: opts.maxRad || 22,
+    life: opts.life || 180, max: opts.life || 180,
+    color: opts.color || '#fff5c0',
+    thick: opts.thick || 2,
+  });
+}
+function addKick(angle, power) {
+  // Камера толкается в противоположную сторону выстрелу
+  const k = Math.max(0.5, power || 1) * 2.4;
+  camKickX += -Math.cos(angle) * k;
+  camKickY += -Math.sin(angle) * k;
+  // Кэп — чтобы не улетало при очередях
+  const lim = 14;
+  if (camKickX >  lim) camKickX =  lim;
+  if (camKickX < -lim) camKickX = -lim;
+  if (camKickY >  lim) camKickY =  lim;
+  if (camKickY < -lim) camKickY = -lim;
+}
+function fireScreenFlash(weapon) {
+  // Только тяжёлые пушки дают полноэкранную вспышку
+  const w = weapon || '';
+  if (w === 'rpg')    { screenFlash = Math.max(screenFlash, 0.45); screenFlashColor = '#ffb060'; }
+  else if (w === 'sniper')  { screenFlash = Math.max(screenFlash, 0.32); screenFlashColor = '#ffe0a0'; }
+  else if (w === 'shotgun') { screenFlash = Math.max(screenFlash, 0.22); screenFlashColor = '#ffd080'; }
+  else if (w === 'rifle' || w === 'pistol_heavy') { screenFlash = Math.max(screenFlash, 0.14); screenFlashColor = '#fff2c0'; }
+}
+function triggerHitStop(ms) {
+  const until = performance.now() + (ms || 40);
+  if (until > hitStopUntil) hitStopUntil = until;
+}
+function hapticFire(weapon) {
+  if (!navigator.vibrate) return;
+  const w = weapon || '';
+  let ms = 10;
+  if (w === 'rpg' || w === 'sniper') ms = 35;
+  else if (w === 'shotgun' || w === 'rifle' || w === 'pistol_heavy') ms = 18;
+  try { navigator.vibrate(ms); } catch(e) {}
+}
+function hapticHit() {
+  if (!navigator.vibrate) return;
+  try { navigator.vibrate([15, 20, 25]); } catch(e) {}
+}
+
 // spawnBullet(sr,sc, er,ec, opts) — создаёт летящую пулю от точки
 // выстрела к цели. Скорость и направление считаются из вектора;
 // maxDist = реальное расстояние до цели, чтобы пуля «прилетела»
@@ -2801,14 +2882,33 @@ function spawnBullet(sr, sc, er, ec, opts) {
     fromNpc:    !!opts.fromNpc,
   });
 }
-// spawnMuzzle(r,c, angle, weapon) — вспышка дула. Живёт 80мс.
+// spawnMuzzle(r,c, angle, weapon) — вспышка дула. Живёт 120мс (стало длиннее
+// чтобы лепестки пламени успели разлететься). Плюс: маленькое shockwave-кольцо
+// у ствола + 2 клуба дыма (порохового), стелющиеся вверх.
 function spawnMuzzle(r, c, angle, weapon) {
-  const wcfg = WEAPON_FX_CFG[resolveWeapon(weapon)] || {};
+  const w = resolveWeapon(weapon);
+  const wcfg = WEAPON_FX_CFG[w] || {};
+  const heavy = !!wcfg.thick;
   muzzles.push({
     r, c, angle,
-    life: 80, max: 80,
+    life: heavy ? 140 : 110, max: heavy ? 140 : 110,
     color: wcfg.color || '#ffd76b',
+    weapon: w,
+    // Фиксированный «сид» для лепестков пламени — каждая вспышка уникальна,
+    // но в течение своей жизни лепестки не «прыгают» от кадра к кадру.
+    seed: Math.random() * 1000,
+    heavy,
   });
+  // Shockwave у дула — короткая белая волна, расширяется на ~0.7 TS
+  spawnShockwave(r, c, {
+    rad0: 3,
+    maxRad: heavy ? 32 : 22,
+    life: heavy ? 200 : 150,
+    color: heavy ? '#ffd070' : '#fff5c0',
+    thick: heavy ? 2.5 : 1.8,
+  });
+  // Дымок из ствола — клубы тянутся назад
+  spawnSmokePuff(r, c, angle);
 }
 
 // ── Локальный игрок (predict) ───────────────────────────────────
@@ -5039,7 +5139,23 @@ function fire(angle = null) {
   const muzD = wcfg.muzzleD || 0.75;
   const sR = player.r + dirY * muzD;
   const sC = player.c + dirX * muzD;
-  spawnMuzzle(sR, sC, Math.atan2(dirY, dirX), currentWeapon);
+  const _shotAng = Math.atan2(dirY, dirX);
+  spawnMuzzle(sR, sC, _shotAng, currentWeapon);
+  // Кинематографичный отклик НА МОЙ выстрел: отдача камеры в обратную
+  // сторону, screen-flash для тяжёлых, вибрация телефона.
+  {
+    const _wfx = weaponFx(currentWeapon);
+    addKick(_shotAng, _wfx.recoil || 1.4);
+    fireScreenFlash(currentWeapon);
+    hapticFire(currentWeapon);
+  }
+  // Hit-stop при попадании в живую цель — кратковременный фриз кадра.
+  // Даёт ощущение «веса» удара (как в Hotline Miami / Hyper Light Drifter).
+  const _hitSomeone = !!(chosenConvoy || chosenCop || chosenAggro || chosenMg || pvpTarget);
+  if (_hitSomeone) {
+    triggerHitStop(weaponFx(currentWeapon).thick ? 55 : 35);
+    hapticHit();
+  }
   // Паника NPC: любой выстрел рядом — мирные NPC в радиусе 9 тайлов
   // переключаются в panic. Бегут от стрелка, кричат «ПОМОГИТЕ!» по
   // случайному паттерну. Когда отбежали — успокаиваются (см. updateNpcs).
@@ -10897,6 +11013,14 @@ function spawnImpact(wr, wc, weapon) {
     });
   }
   impacts.push({ r: wr, c: wc, parts });
+  // Shockwave при попадании — оранжевое расширяющееся кольцо
+  spawnShockwave(wr, wc, {
+    rad0: 2,
+    maxRad: fx.thick ? 36 : 24,
+    life: fx.thick ? 280 : 220,
+    color: fx.thick ? '#ff6020' : '#ffaa40',
+    thick: fx.thick ? 2.8 : 2.0,
+  });
   // Splat — тёмное пятно крови на земле, живёт долго (8с) чтобы остаться
   // следом боя. Кол-во зависит от оружия (тяжёлое — больше).
   const splatN = fx.thick ? 3 : 1;
@@ -11302,16 +11426,18 @@ function render() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   // Обновляем список «скрытых» игроков (которые сейчас в автозаке)
   updateArrestHiding();
-  // Camera-shake: толкаем всё рендеренное на случайный микро-сдвиг.
-  // Сила в camShake (0..8), затухает в каждом кадре. Заворачиваем
-  // всё в save/restore чтобы UI поверх (вспышки/баннеры) не дёргался.
+  // Camera-shake + векторная отдача (kick). Шейк — случайный микро-сдвиг,
+  // kick — направленный толчок в обратную сторону от выстрела (живёт ~3 кадра).
+  // Заворачиваем всё в save/restore чтобы UI поверх (вспышки/баннеры) не дёргался.
   const shakeNow = camShake;
-  if (shakeNow > 0.05) {
+  const kickActive = (Math.abs(camKickX) + Math.abs(camKickY)) > 0.1;
+  const transformActive = (shakeNow > 0.05) || kickActive;
+  if (transformActive) {
     ctx.save();
-    const sx = (Math.random() - 0.5) * shakeNow;
-    const sy = (Math.random() - 0.5) * shakeNow;
+    const sx = (Math.random() - 0.5) * shakeNow + camKickX;
+    const sy = (Math.random() - 0.5) * shakeNow + camKickY;
     ctx.translate(sx, sy);
-    camShake *= 0.78;
+    if (shakeNow > 0.05) camShake *= 0.78;
   } else {
     camShake = 0;
   }
@@ -11589,17 +11715,21 @@ function render() {
   drawArrestAnims();
   // Гильзы — мелкие латунные кубики на земле, под трассерами
   drawShells();
+  // Дымок — ПОД трассерами/вспышками, чтобы пуля «выходила» из дыма
+  drawSmokePuffs();
   // Пули — трассеры поверх всего (живут 0.18 сек)
   drawBullets();
   drawMuzzles();
+  // Shockwave-кольца (вспышка у дула + кольцо при попадании)
+  drawShockwaves();
   // Импакт-частицы (искры, кровь) — поверх всего
   drawImpacts();
   // Снимаем zoom-трансформ ПЕРЕД UI-слоем (стрелки POI / мини-карта),
   // чтобы UI рисовался в нативном 1:1 без масштаба пляжа.
   if (_zoomActive) ctx.restore();
-  // Снимаем shake-трансформ ПЕРЕД UI-слоем (стрелки POI / мини-карта),
+  // Снимаем shake/kick-трансформ ПЕРЕД UI-слоем (стрелки POI / мини-карта),
   // чтобы UI не дёргался во время отдачи камеры.
-  if (shakeNow > 0.05) ctx.restore();
+  if (transformActive) ctx.restore();
   // Ночной тинт — поверх ВСЕХ объектов мира, но ПОД UI-слоем (стрелки,
   // мини-карта рисуются после, чтобы остаться читаемыми).
   drawNightTint();
@@ -11609,6 +11739,15 @@ function render() {
   drawEventArrow(r0, r1, c0, c1);
   // Мини-карта
   drawMinimap();
+  // Screen-flash от тяжёлого выстрела — короткая полупрозрачная заливка
+  // поверх всего. Не зависит от позиции/зума, всегда покрывает экран.
+  if (screenFlash > 0.005) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.6, screenFlash);
+    ctx.fillStyle = screenFlashColor || '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
 }
 
 // ── Пули ────────────────────────────────────────────────────────
@@ -11632,6 +11771,31 @@ function updateProjectiles(dt) {
     m.life -= ddt * 1000;
     if (m.life <= 0) muzzles.splice(i, 1);
   }
+  // Shockwave-кольца: расширяются, теряют life, удаляются по нулю.
+  for (let i = shockwaves.length - 1; i >= 0; i--) {
+    const s = shockwaves[i];
+    s.life -= ddt * 1000;
+    if (s.life <= 0) { shockwaves.splice(i, 1); continue; }
+    const t = 1 - s.life / s.max;       // 0..1 расширение
+    s.rad = (s.rad0 || 3) + (s.maxRad - (s.rad0 || 3)) * t;
+  }
+  // Дымок: клубы плывут с замедлением, растут, тают.
+  for (let i = smokePuffs.length - 1; i >= 0; i--) {
+    const p = smokePuffs[i];
+    p.life -= ddt * 1000;
+    if (p.life <= 0) { smokePuffs.splice(i, 1); continue; }
+    p.r += p.vr * ddt;
+    p.c += p.vc * ddt;
+    p.vr *= 0.92; p.vc *= 0.92;          // замедление
+    p.rad += ddt * 14;                    // растёт
+  }
+  // Затухание векторной отдачи камеры (kick) и screen-flash
+  camKickX *= Math.pow(0.001, ddt);       // быстрое экспон. затухание (~3 кадра)
+  camKickY *= Math.pow(0.001, ddt);
+  if (Math.abs(camKickX) < 0.05) camKickX = 0;
+  if (Math.abs(camKickY) < 0.05) camKickY = 0;
+  screenFlash *= Math.pow(0.005, ddt);    // ~150мс полураспад
+  if (screenFlash < 0.01) screenFlash = 0;
 }
 
 // Высота линии пуль/вспышек над землёй — это уровень плеча стрелка.
@@ -11640,30 +11804,57 @@ function updateProjectiles(dt) {
 // только при TS≈62 — при зуме (TS=40..80) пули уходили выше/ниже ствола.
 function _bulletY() { return Math.round(TS * 0.289); }
 
-// Рендер пуль — порт drawBullet из demo. Короткий цветной трассер с глоу.
+// Рендер пуль — кометный шлейф: длинный градиент от ядра к хвосту + glow.
+// Голова пули — яркое белое ядро в цвет оружия, хвост плавно гаснет
+// в прозрачность. Толщина и длина зависят от thick (тяжёлые пушки).
 function drawBullets() {
   ctx.save();
   const dy = _bulletY();
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
-    const p1 = w2s(b.r + 0.5, b.c + 0.5);
-    const p2 = w2s(b.r - b.vr * 0.05 + 0.5, b.c - b.vc * 0.05 + 0.5);
-    ctx.strokeStyle = b.color;
-    ctx.lineWidth = b.thick ? 4 : 2.5;
+    // Длина шлейфа в долях секунды скорости (0.18..0.28 — заметно, но
+    // не превращается в «лазерную линию» через полэкрана)
+    const trailT = b.thick ? 0.28 : 0.20;
+    const ph = w2s(b.r + 0.5, b.c + 0.5);                          // head
+    const pt = w2s(b.r - b.vr * trailT + 0.5,
+                   b.c - b.vc * trailT + 0.5);                     // tail
+    const hx = ph.x,           hy = ph.y - dy;
+    const tx = pt.x,           ty = pt.y - dy;
+    // Градиентный шлейф (linear gradient вдоль траектории)
+    const grad = ctx.createLinearGradient(tx, ty, hx, hy);
+    grad.addColorStop(0,   'rgba(255,255,255,0)');
+    grad.addColorStop(0.4, b.color + '');                          // средний — цвет оружия
+    grad.addColorStop(1,   '#ffffff');                             // голова — белая
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = b.thick ? 5 : 3;
     ctx.lineCap = 'round';
     ctx.shadowColor = b.color;
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = b.thick ? 14 : 9;
     ctx.beginPath();
-    ctx.moveTo(p2.x, p2.y - dy);  // на уровне плеча (как и оружие)
-    ctx.lineTo(p1.x, p1.y - dy);
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(hx, hy);
     ctx.stroke();
+    // Ядро головы — ярко-белая точка, делает пулю «живой»
+    ctx.shadowBlur = b.thick ? 18 : 12;
+    ctx.shadowColor = '#fff';
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(hx, hy, b.thick ? 2.6 : 1.8, 0, Math.PI * 2);
+    ctx.fill();
     if (b._finished) {
       if (b.hit) {
-        ctx.shadowBlur = 12;
-        ctx.fillStyle = '#ff6464';
-        ctx.shadowColor = '#ff6464';
+        // Вспышка попадания — двойное яркое кольцо
+        ctx.shadowBlur = 16;
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = '#fff';
         ctx.beginPath();
-        ctx.arc(p1.x, p1.y - dy, 7, 0, Math.PI * 2);
+        ctx.arc(hx, hy, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = '#ff7040';
+        ctx.shadowColor = '#ff5020';
+        ctx.beginPath();
+        ctx.arc(hx, hy, 8, 0, Math.PI * 2);
         ctx.fill();
       }
       bullets.splice(i, 1);
@@ -11673,46 +11864,120 @@ function drawBullets() {
   ctx.restore();
 }
 
-// Вспышки дула — порт drawMuzzle из demo. 3 слоя: ореол, лучи, ядро.
+// Вспышки дула — кинематографичные: ореол + лучи-звезда + хаотичные
+// лепестки пламени (per-shot seed → каждая вспышка уникальна, но в течение
+// своей жизни лепестки не «прыгают»). Тяжёлые пушки дают вспышку крупнее.
 function drawMuzzles() {
   const dy = _bulletY();
   for (const m of muzzles) {
-    const t = m.life / m.max;
+    const t = m.life / m.max;        // 1..0
+    const t2 = Math.sqrt(t);         // более «жирная» нелинейность для размера
     const p = w2s(m.r + 0.5, m.c + 0.5);
     const cx = p.x, cy = p.y - dy;
-    // 1. ореол
+    // Совместимость: spawnShot пишет .ang, spawnMuzzle — .angle
+    const ang = (m.angle != null ? m.angle : (m.ang || 0));
+    const heavy = !!m.heavy;
+    const sizeMul = heavy ? 1.45 : 1.0;
+    const seed = m.seed || 0;
+    // 1. ореол (большая мягкая клякса)
     ctx.save();
     ctx.shadowColor = '#ff9020';
-    ctx.shadowBlur = 26 * t;
+    ctx.shadowBlur = 32 * t2 * sizeMul;
     ctx.fillStyle = `rgba(255,150,40,${t * 0.55})`;
     ctx.beginPath();
-    ctx.arc(cx, cy, TS * 0.45 * t, 0, Math.PI * 2);
+    ctx.arc(cx, cy, TS * 0.50 * t2 * sizeMul, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
-    // 2. лучи-звезда вперёд по углу выстрела
-    const ang = m.angle || 0;
+    // 2. лепестки пламени (5 шт., разные углы и длины — детерминированно по seed)
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(ang);
-    ctx.fillStyle = `rgba(255,230,140,${t * 0.85})`;
+    const petals = heavy ? 6 : 5;
+    for (let k = 0; k < petals; k++) {
+      // Псевдослучайный угол вокруг основного направления, фиксированный per-shot
+      const s1 = Math.sin(seed + k * 13.37) * 0.5 + 0.5;
+      const s2 = Math.sin(seed * 1.7 + k * 7.11) * 0.5 + 0.5;
+      const dev = (s1 - 0.5) * (heavy ? 0.9 : 0.7);    // отклонение от прицельной оси
+      const len = TS * (0.55 + s2 * 0.45) * t2 * sizeMul;
+      const wid = TS * (0.06 + s1 * 0.06) * t2;
+      ctx.fillStyle = `rgba(255,${200 + Math.floor(s2 * 50)},${80 + Math.floor(s1 * 60)},${t * 0.85})`;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(dev) * len * 0.6, Math.sin(dev) * len * 0.6 - wid);
+      ctx.lineTo(Math.cos(dev) * len,       Math.sin(dev) * len);
+      ctx.lineTo(Math.cos(dev) * len * 0.6, Math.sin(dev) * len * 0.6 + wid);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Центральный главный «луч» — самый яркий
+    ctx.fillStyle = `rgba(255,245,200,${t * 0.95})`;
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.lineTo(TS * 0.55 * t, -TS * 0.05 * t);
-    ctx.lineTo(TS * 0.75 * t, 0);
-    ctx.lineTo(TS * 0.55 * t,  TS * 0.05 * t);
+    ctx.lineTo(TS * 0.62 * t2 * sizeMul, -TS * 0.07 * t2);
+    ctx.lineTo(TS * 0.85 * t2 * sizeMul, 0);
+    ctx.lineTo(TS * 0.62 * t2 * sizeMul,  TS * 0.07 * t2);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
     // 3. ярко-белое ядро
     ctx.save();
     ctx.shadowColor = '#fff';
-    ctx.shadowBlur = 14 * t;
-    ctx.fillStyle = `rgba(255,255,240,${t * 0.95})`;
+    ctx.shadowBlur = 16 * t * sizeMul;
+    ctx.fillStyle = `rgba(255,255,240,${Math.min(1, t * 1.05)})`;
     ctx.beginPath();
-    ctx.arc(cx, cy, TS * 0.15 * t, 0, Math.PI * 2);
+    ctx.arc(cx, cy, TS * 0.17 * t2 * sizeMul, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
+}
+
+// ── Shockwave-кольца (вспышка у дула + кольцо при попадании) ────
+// Расширяющееся кольцо с затуханием альфы. Толщина обводки тоже падает,
+// чтобы кольцо «таяло». Рендерится на уровне плеча — там же где пули.
+function drawShockwaves() {
+  const dy = _bulletY();
+  ctx.save();
+  for (const s of shockwaves) {
+    const t = s.life / s.max;       // 1..0
+    const p = w2s(s.r + 0.5, s.c + 0.5);
+    ctx.globalAlpha = Math.max(0, t * 0.75);
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = (s.thick || 2) * (0.4 + t * 0.6);
+    ctx.shadowColor = s.color;
+    ctx.shadowBlur = 8 * t;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y - dy, s.rad, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+// ── Дымок из ствола ────────────────────────────────────────────
+// Мягкие серые клубы. Прозрачность ~ life/max, радиус растёт.
+function drawSmokePuffs() {
+  const dy = _bulletY();
+  ctx.save();
+  for (const p of smokePuffs) {
+    const t = p.life / p.max;        // 1..0
+    const sp = w2s(p.r + 0.5, p.c + 0.5);
+    ctx.globalAlpha = Math.max(0, t * 0.42);
+    // Радиальный градиент — клуб с мягкими краями
+    const g = ctx.createRadialGradient(
+      sp.x, sp.y - dy, 0,
+      sp.x, sp.y - dy, p.rad
+    );
+    g.addColorStop(0,   'rgba(200,200,200,0.9)');
+    g.addColorStop(0.6, 'rgba(170,170,170,0.5)');
+    g.addColorStop(1,   'rgba(140,140,140,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(sp.x, sp.y - dy, p.rad, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 // ── Гильзы (shells) ────────────────────────────────────────────────
@@ -12349,8 +12614,15 @@ function frame() {
   let dt = (t - prevT) / 1000;
   prevT = t;
   if (dt > 0.1) dt = 0.1;
-  update(dt);
-  render();
+  // Hit-stop: пока hitStopUntil не прошёл, пропускаем игровой update,
+  // но всё равно рендерим — это даёт визуальный фриз ~40-55мс при
+  // попадании в живую цель. Чувствуется как «вес» удара.
+  if (t < hitStopUntil) {
+    render();
+  } else {
+    update(dt);
+    render();
+  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
