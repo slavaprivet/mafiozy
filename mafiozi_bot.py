@@ -17318,13 +17318,13 @@ async def _coop_http_app():
                                 except Exception: pass
                     elif t == 'open_fire':
                         # Игрок стреляет в городе вне PvP-зоны.
-                        # d = {x, y, weapon, civilian: bool}
-                        # - civilian=true (выстрел в мирного NPC) → +2★, бой
-                        #   без предупреждения. Уважительной причины НЕТ.
-                        # - стрельба возле полиц участка (≤6 тайлов от
-                        #   JAIL_X/Y) → СРАЗУ 3★, тяжёлый штурм с пулемётом.
-                        # - просто «в пустоту» → 1★, патруль приедет
-                        #   предупредить.
+                        # d = {x, y, weapon, civilian: bool, witness: bool}
+                        # ИЗМЕНЕНО: wanted бампается только если есть СВИДЕТЕЛЬ —
+                        # коп в радиусе 14, другой игрок в радиусе 14, мирный NPC
+                        # в радиусе 10 (приходит флагом witness от клиента — сервер
+                        # не хранит civilians). Если ни одного нет — стрелял
+                        # «в глухом дворе», звёзды не растут. Стрельба возле
+                        # участка/выстрел в мирного — всегда видно, как раньше.
                         p = world.players.get(uid)
                         if p and not p.get('dead') and p.get('_mode') != 'pve':
                             in_arena = world._in_arena(p.get('x', 0), p.get('y', 0))
@@ -17335,7 +17335,27 @@ async def _coop_http_app():
                                               + (py - world.JAIL_Y) ** 2) <= 36.0
                                 first_shot = (int(p.get('_wanted') or 0) < 1)
                                 civilian = bool(d.get('civilian') if isinstance(d, dict) else False)
-                                if near_station:
+                                witness_npc = bool(d.get('witness') if isinstance(d, dict) else False)
+                                # Свидетели на стороне сервера: копы и другие игроки
+                                SIGHT_R2 = 14.0 * 14.0
+                                cop_sees = any(
+                                    c.get('alive') and ((c['x'] - px) ** 2 + (c['y'] - py) ** 2) <= SIGHT_R2
+                                    for c in world.cops
+                                )
+                                player_sees = any(
+                                    (str(uid2) != str(uid)
+                                     and not pp.get('dead')
+                                     and (pp.get('_jail_until') or 0) <= time.time()
+                                     and ((pp.get('x', 0) - px) ** 2 + (pp.get('y', 0) - py) ** 2) <= SIGHT_R2)
+                                    for uid2, pp in world.players.items()
+                                )
+                                has_witness = (near_station or civilian
+                                               or cop_sees or player_sees or witness_npc)
+                                if not has_witness:
+                                    # Тихий выстрел — никто не видел, wanted не растёт,
+                                    # баннер тоже не шлём. Сам стрелок просто стреляет.
+                                    pass
+                                elif near_station:
                                     # Атаковал участок — сразу максимум
                                     p['_wanted'] = world.WANTED_MAX
                                     p['_last_shot_t'] = time.time()
@@ -17345,9 +17365,9 @@ async def _coop_http_app():
                                     p['_wanted'] = max(p.get('_wanted') or 0, 2.0)
                                     p['_last_shot_t'] = time.time()
                                 else:
-                                    # Обычная стрельба «в воздух» — 1★
+                                    # Обычная стрельба, но свидетель есть — 1★
                                     world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
-                                if first_shot or civilian or near_station:
+                                if has_witness and (first_shot or civilian or near_station):
                                     # Баннер всем
                                     nm = (p.get('name') or '')[:20]
                                     title = '🔫'
@@ -17366,6 +17386,30 @@ async def _coop_http_app():
                                     for u2, ws2 in list(world.connections.items()):
                                         try: await ws2.send_str(banner)
                                         except Exception: pass
+                    elif t == 'civilian_carjack':
+                        # Игрок угнал гражданскую тачку. Бамп wanted только
+                        # если есть свидетель (NPC от клиента, коп или другой
+                        # игрок в радиусе 14). Логика идентична open_fire.
+                        p = world.players.get(uid)
+                        if p and not p.get('dead') and p.get('_mode') != 'pve':
+                            px = p.get('x', 0); py = p.get('y', 0)
+                            witness_npc = bool(d.get('witness') if isinstance(d, dict) else False)
+                            SIGHT_R2 = 14.0 * 14.0
+                            cop_sees = any(
+                                c.get('alive') and ((c['x'] - px) ** 2 + (c['y'] - py) ** 2) <= SIGHT_R2
+                                for c in world.cops
+                            )
+                            player_sees = any(
+                                (str(uid2) != str(uid)
+                                 and not pp.get('dead')
+                                 and ((pp.get('x', 0) - px) ** 2 + (pp.get('y', 0) - py) ** 2) <= SIGHT_R2)
+                                for uid2, pp in world.players.items()
+                            )
+                            if witness_npc or cop_sees or player_sees:
+                                # Угон при свидетелях → 1★ (как обычная стрельба
+                                # с свидетелем). Никакой эскалации, копы приедут
+                                # как обычно по wanted-системе.
+                                world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass

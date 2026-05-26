@@ -257,6 +257,42 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 #wantedHud.lvl1 { border-color: #ffd76b; }
 #wantedHud.lvl2 { border-color: #ff8030; animation: pvpPulse 1.6s ease-in-out infinite; }
 #wantedHud.lvl3 { border-color: #ff3030; animation: pvpPulse .8s ease-in-out infinite; }
+
+/* HUD-виджет активного квеста Майкла — показывает ФОТО угоняемой машины
+   прямо на основном экране, чтоб игрок видел ЧТО искать. Висит слева
+   сверху под wantedHud. Скрывается когда квеста нет или открыт модал. */
+#questCarHud {
+  position: absolute; left: 14px; top: 96px;
+  background: linear-gradient(135deg, rgba(20,16,8,.94), rgba(10,8,4,.94));
+  border: 2px solid #ffd76b;
+  border-radius: 10px;
+  padding: 6px 8px 6px 8px;
+  z-index: 9;
+  display: none;
+  box-shadow: 0 4px 14px rgba(255,215,107,.35);
+  font-family: inherit; color: #fff;
+  pointer-events: none;
+  width: 168px;
+}
+#questCarHud.show { display: block; }
+#questCarHud .qhd-row { display: flex; align-items: center; gap: 6px; }
+#questCarHud canvas {
+  width: 100%; height: 56px; display: block;
+  border-radius: 6px; background: #0a0d14;
+  margin-top: 2px;
+}
+#questCarHud .qhd-t {
+  font-size: 10px; font-weight: 700; color: #ffd76b;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+#questCarHud .qhd-name {
+  font-size: 13px; font-weight: 800; color: #fff;
+  margin-top: 3px; line-height: 1.1;
+}
+#questCarHud .qhd-sub {
+  font-size: 10px; color: #d8c8a0; margin-top: 2px;
+}
+#questCarHud .qhd-rew { color: #50d878; font-weight: 800; }
 /* Модал выбора режима PvP / PvE при первом входе в мир */
 #modeModal {
   position: absolute; inset: 0; z-index: 80;
@@ -507,13 +543,42 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   transition: transform .35s cubic-bezier(.16,1,.3,1), opacity .35s ease;
   text-align: center;
 }
-#eventBanner.show { transform: translate(-50%, 0); opacity: 1; }
+#eventBanner.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
 #eventBanner.spawn   { border-color: #ffd76b; background: linear-gradient(135deg, #4a3a08, #2a2004); box-shadow: 0 8px 32px rgba(255,215,107,.4); }
 #eventBanner.win     { border-color: #50d878; background: linear-gradient(135deg, #0a4020, #04201a); box-shadow: 0 8px 32px rgba(80,216,120,.5); }
 #eventBanner.lose    { border-color: #c850a8; background: linear-gradient(135deg, #3a0a3a, #1a041a); box-shadow: 0 8px 32px rgba(200,80,168,.45); }
 #eventBanner.neutral { border-color: #5a708a; background: linear-gradient(135deg, #1a2a3a, #0a141e); box-shadow: 0 8px 32px rgba(90,112,138,.4); }
-#eventBanner .et { font-size: 17px; font-weight: 800; letter-spacing: .3px; line-height: 1.15; }
+#eventBanner .et { font-size: 17px; font-weight: 800; letter-spacing: .3px; line-height: 1.15; padding-right: 22px; }
 #eventBanner .em { font-size: 12px; color: #d8d2c8; margin-top: 4px; line-height: 1.35; }
+/* Крестик закрытия — справа сверху, круглая красная кнопка. Кликабельна
+   только когда баннер показан (pointer-events: auto через .show). */
+#eventBanner .bx {
+  position: absolute; top: 6px; right: 6px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(220, 40, 50, .95);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900; line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  user-select: none;
+  transition: transform .15s ease, background .15s ease;
+}
+#eventBanner .bx:hover, #eventBanner .bx:active { background: #ff4050; transform: scale(1.12); }
+/* Крестик на тосте — справа, тонкий. Появляется только если ms ≥ 2500. */
+#toast .tx {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: rgba(220, 40, 50, .85);
+  color: #fff;
+  font-size: 11px; font-weight: 900; line-height: 1;
+  margin-left: 10px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+#toast.show { pointer-events: auto; }
 
 /* Баннер активного захвата района — отдельный слот, чтобы не накладываться
    на #eventBanner (инкассатор и т.п.). Висит постоянно пока идёт захват. */
@@ -713,6 +778,14 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   <div id="pvpZone">🔫 ЗОНА PvP</div>
   <!-- Wanted-индикатор (звёзды розыска) -->
   <div id="wantedHud">⭐</div>
+  <!-- HUD-виджет активного квеста Майкла: фото машины + название + статус.
+       Показывается только когда myGtaStatus.active есть и модал Майкла закрыт. -->
+  <div id="questCarHud">
+    <div class="qhd-t">🎯 Заказ Майкла</div>
+    <canvas id="questCarHudCv" width="160" height="56"></canvas>
+    <div class="qhd-name" id="questCarHudName">—</div>
+    <div class="qhd-sub" id="questCarHudSub">—</div>
+  </div>
   <!-- Индикатор режима PvP/PvE (тап → выбрать другой режим) -->
   <div id="modeHud" title="Сменить режим">🔫 PvP <span class="sw">сменить</span></div>
   <!-- Модал выбора режима PvP/PvE (первый вход в мир) -->
@@ -791,6 +864,7 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   <!-- Большой баннер эмерджентных событий (инкассатор/куш). Управляется
        JS-функцией showEventBanner(title, msg, duration_ms, style). -->
   <div id="eventBanner">
+    <div class="bx" id="eventBannerX" title="Закрыть">×</div>
     <div class="et" id="eventBannerT">&nbsp;</div>
     <div class="em" id="eventBannerM">&nbsp;</div>
   </div>
@@ -2621,6 +2695,8 @@ function carCanGo(car, dt) {
 
 function updateCars(dt) {
   for (const car of CARS) {
+    // Угнанная игроком тачка не управляется AI — мы её ведём вручную
+    if (car === _hijackedCar) continue;
     const canGo = carCanGo(car, dt);
     car.braking = !canGo;
     if (canGo) {
@@ -3576,6 +3652,7 @@ function handleEventPacket(d) {
         5500, 'win');
       myGtaStatus.active = null;
       myGtaStatus.count_today = (myGtaStatus.count_today | 0) + 1;
+      updateQuestCarHud();
     } else {
       showToast(`💸 @${d.by_name} сдал ${mdef.label} — +${d.reward}$`, '🚗', 3500);
     }
@@ -3633,6 +3710,7 @@ function handleEventPacket(d) {
     }
     if (mineOwn) {
       myGtaStatus.active = null;
+      updateQuestCarHud();
       const mdef = QUEST_CAR_MODELS[d.model] || { label: d.model };
       showEventBanner('💥 Машина уничтожена',
         `${mdef.label} сгорел под огнём банды. Заказ слетел — вернись к Майклу за новым.`,
@@ -3645,6 +3723,7 @@ function handleEventPacket(d) {
         x: d.x, y: d.y, state: 'idle',
       };
       hideMichaelMenu();
+      updateQuestCarHud();
     } else {
       const mdef = (d.model && QUEST_CAR_MODELS[d.model]) || null;
       if (d.reason === 'limit') {
@@ -3663,6 +3742,7 @@ function handleEventPacket(d) {
     myGtaStatus.limit       = d.limit       | 0;
     myGtaStatus.reset_in_s  = d.reset_in_s  | 0;
     myGtaStatus.active      = d.active || null;
+    updateQuestCarHud();
     refreshMichaelMenu();
   } else if (kind === 'box_status') {
     myBoxStatus.count_today = d.count_today | 0;
@@ -4364,11 +4444,16 @@ _zoneEl.addEventListener('click', () => {
 
 // ── GTA: взаимодействия (Майкл / сесть-выйти из машины) ────────────
 const _gtaBtn = document.getElementById('gtaActionBtn');
-let _gtaActionKind = null;   // 'michael' | 'enter' | 'exit'
+let _gtaActionKind = null;   // 'michael' | 'enter' | 'exit' | 'hijack'
 let _gtaActionCarId = null;
 let _gtaActionEnterAs = null;   // 'driver' | 'passenger'
 let myIsPassenger = false;      // если я сижу пассажиром — не управляю машиной
 const GTA_INTERACT_R = 1.8;  // тайлов — радиус подхода к Майклу/машине
+// Угнанная civilian-тачка (CAR-объект из массива CARS). Локальная сущность —
+// другие игроки её не видят (трафик сейчас чисто клиентский). Управление
+// аналогично quest-машинам, но без серверной синхронизации позиции.
+let _hijackedCar = null;
+let _hijackedCarRef = null;     // ссылка для кнопки «Угнать» до клика
 
 function updateGtaInteractions() {
   if (myDrivingCarId) {
@@ -4377,6 +4462,13 @@ function updateGtaInteractions() {
     _gtaBtn.textContent = myIsPassenger
       ? '🚪 Выйти (пассажир)'
       : '🚪 Выйти из машины';
+    _gtaBtn.style.display = 'block';
+    return;
+  }
+  // Угнанная civilian-тачка (отдельная ветка от quest-машин)
+  if (_hijackedCar) {
+    _gtaActionKind = 'exit_hijack';
+    _gtaBtn.textContent = '🚪 Выйти из машины';
     _gtaBtn.style.display = 'block';
     return;
   }
@@ -4443,8 +4535,35 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
+  // Гражданская тачка из трафика — можно угнать как в GTA. Игнорируем
+  // полицию (cop_cruiser/paddyvan/swat_truck) — её не угнать без последствий
+  // более тяжёлых чем wanted. И горящие/повреждённые тоже пропускаем.
+  let nearestCiv = null, nearestCivD = GTA_INTERACT_R;
+  for (const car of CARS) {
+    if (!car || !car.model) continue;
+    const nm = car.model.name || '';
+    if (nm === 'cop_cruiser' || nm === 'paddyvan' || nm === 'swat_truck') continue;
+    const dr = car.r - player.r, dc = car.c - player.c;
+    const d  = Math.hypot(dr, dc);
+    if (d > nearestCivD) continue;
+    nearestCiv = car; nearestCivD = d;
+  }
+  if (nearestCiv) {
+    _gtaActionKind = 'hijack';
+    _hijackedCarRef = nearestCiv;
+    const CIV_LABELS = {
+      sedan: 'седан', taxi: 'такси', sport: 'спорткар',
+      pickup: 'пикап', van: 'фургон', minivan: 'минивэн',
+      hatchback: 'хетчбэк', wagon: 'универсал',
+    };
+    const label = CIV_LABELS[(nearestCiv.model && nearestCiv.model.name) || ''] || 'тачку';
+    _gtaBtn.textContent = `🚗 Угнать ${label}`;
+    _gtaBtn.style.display = 'block';
+    return;
+  }
   _gtaActionKind = null;
   _gtaActionCarId = null;
+  _hijackedCarRef = null;
   _gtaBtn.style.display = 'none';
 }
 
@@ -4455,12 +4574,59 @@ _gtaBtn.addEventListener('click', () => {
     enterCar(_gtaActionCarId, _gtaActionEnterAs || 'driver');
   } else if (_gtaActionKind === 'exit') {
     exitCar('manual');
+  } else if (_gtaActionKind === 'hijack') {
+    hijackCivilianCar(_hijackedCarRef);
+  } else if (_gtaActionKind === 'exit_hijack') {
+    exitHijackedCar();
   } else if (_gtaActionKind === 'box_pickup') {
     try { ws && ws.send(JSON.stringify({ t: 'box_pickup', d: {} })); } catch(e){}
   } else if (_gtaActionKind === 'box_deliver') {
     try { ws && ws.send(JSON.stringify({ t: 'box_deliver', d: {} })); } catch(e){}
   }
 });
+
+// ── Угон гражданской машины (локально) ───────────────────────────
+// Игрок «выкидывает водителя» (AI пропадает) и сам управляет тачкой.
+// Машина остаётся в массиве CARS, но AI её не двигает (updateCars
+// skip'ает car если car === _hijackedCar). Сервер получает open_fire-
+// аналог `civilian_carjack` — бамп wanted только если есть свидетель.
+function hijackCivilianCar(car) {
+  if (!car || _hijackedCar || myDrivingCarId) return;
+  _hijackedCar = car;
+  // Игрок «приклеен» к машине (player.r/c = центр машины)
+  player.r = car.r;
+  player.c = car.c;
+  // Начальный угол — куда машина смотрела
+  if (car.dirDx || car.dirDy) {
+    player.ang = Math.atan2(car.dirDy || 0, car.dirDx || 1);
+  }
+  // Шлём на сервер событие — пусть бампнет wanted (если есть свидетель)
+  let witnessNpc = false;
+  for (const npc of NPCS) {
+    if (npc.dead) continue;
+    const dx = npc.c - player.c, dy = npc.r - player.r;
+    if (dx * dx + dy * dy <= 100) { witnessNpc = true; break; }
+  }
+  try {
+    ws && ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
+      x: +player.c.toFixed(2), y: +player.r.toFixed(2),
+      witness: witnessNpc,
+    } }));
+  } catch(e) {}
+  showToast(witnessNpc ? '🚗 Угнал — тебя заметили!' : '🚗 Угнал тачку', '✅', 1800);
+  hapticHit();
+}
+function exitHijackedCar() {
+  if (!_hijackedCar) return;
+  // Машину оставляем стоять — AI возобновит движение через carCanGo/updateCars.
+  _hijackedCar.vr = 0; _hijackedCar.vc = 0;
+  _hijackedCar._stuckT = 0;
+  // Вышли — на шаг сбоку от машины (чтоб не залипнуть)
+  player.c += 0.6;
+  _hijackedCar = null;
+  _hijackedCarRef = null;
+  showToast('🚪 Вышел из машины', '', 1200);
+}
 
 // ── Майкл-модал ────────────────────────────────────────────────────
 const _michaelModal     = document.getElementById('michaelModal');
@@ -4476,6 +4642,7 @@ const _michaelQuestCv   = document.getElementById('michaelQuestCanvas');
 let _michaelTimer = null;
 function openMichaelMenu() {
   _michaelModal.classList.add('show');
+  updateQuestCarHud();   // скроет HUD-виджет (модал теперь показывает превью)
   // Запрашиваем актуальный статус с сервера (счётчик угонов + активный квест)
   try { ws && ws.send(JSON.stringify({ t: 'gta_status', d: {} })); } catch(e){}
   try { ws && ws.send(JSON.stringify({ t: 'box_status', d: {} })); } catch(e){}
@@ -4495,6 +4662,7 @@ function openMichaelMenu() {
 function hideMichaelMenu() {
   _michaelModal.classList.remove('show');
   if (_michaelTimer) { clearInterval(_michaelTimer); _michaelTimer = null; }
+  updateQuestCarHud();   // вернёт HUD-виджет с фото машины
 }
 document.getElementById('michaelCloseBtn').addEventListener('click', hideMichaelMenu);
 _michaelModal.addEventListener('click', (e) => {
@@ -4555,6 +4723,28 @@ function renderQuestCarPreview(cv, modelId) {
     c.fillRect(cx + wx - 4, cy + wid / 2 - 3, 8, 4);
   }
 }
+// HUD-виджет активного квеста на основном экране — показывает превью
+// машины которую нужно угнать. Обновляется каждый раз когда меняется
+// myGtaStatus.active, и при открытии/закрытии модала Майкла.
+const _qcHud      = document.getElementById('questCarHud');
+const _qcHudCv    = document.getElementById('questCarHudCv');
+const _qcHudName  = document.getElementById('questCarHudName');
+const _qcHudSub   = document.getElementById('questCarHudSub');
+function updateQuestCarHud() {
+  if (!_qcHud) return;
+  const a = myGtaStatus && myGtaStatus.active;
+  // Скрываем виджет если модал Майкла открыт (там и так есть превью)
+  const modalOpen = _michaelModal && _michaelModal.classList.contains('show');
+  if (!a || modalOpen) { _qcHud.classList.remove('show'); return; }
+  const mdef = QUEST_CAR_MODELS[a.model] || { label: a.model || '—' };
+  _qcHudName.textContent = mdef.label;
+  _qcHudSub.innerHTML = (a.state === 'driven')
+    ? 'Везёшь в порт · <span class="qhd-rew">+' + (a.reward | 0) + '$</span>'
+    : 'Найди по стрелке 🎯 · <span class="qhd-rew">+' + (a.reward | 0) + '$</span>';
+  renderQuestCarPreview(_qcHudCv, a.model);
+  _qcHud.classList.add('show');
+}
+
 function refreshMichaelMenu() {
   if (!_michaelModal.classList.contains('show')) return;
   const s = myGtaStatus;
@@ -4858,8 +5048,30 @@ function updateCaptureBanner() {
   if (!_capBanner.classList.contains('show')) _capBanner.classList.add('show');
 }
 
+// Anti-spam: запоминаем последний показанный текст и время — если тот же
+// текст пришёл в окне 800мс, игнорируем. Защита от очередей событий типа
+// «началась перестрелка» × 5 раз подряд.
+let _toastLast = { txt: '', t: 0 };
 function showToast(msg, ms = 2200) {
-  _toastEl.textContent = msg;
+  const now = performance.now();
+  if (msg === _toastLast.txt && (now - _toastLast.t) < 800) return;
+  _toastLast = { txt: msg, t: now };
+  // Если длинный — добавляем крестик закрытия
+  if (ms >= 2500) {
+    _toastEl.innerHTML = '';
+    const span = document.createElement('span');
+    span.textContent = msg;
+    const x = document.createElement('span');
+    x.className = 'tx'; x.textContent = '×'; x.title = 'Закрыть';
+    x.addEventListener('click', () => {
+      _toastEl.classList.remove('show');
+      if (_toastT) { clearTimeout(_toastT); _toastT = null; }
+    });
+    _toastEl.appendChild(span);
+    _toastEl.appendChild(x);
+  } else {
+    _toastEl.textContent = msg;
+  }
   _toastEl.classList.add('show');
   if (_toastT) clearTimeout(_toastT);
   _toastT = setTimeout(() => _toastEl.classList.remove('show'), ms);
@@ -4869,9 +5081,21 @@ function showToast(msg, ms = 2200) {
 const _evBanner = document.getElementById('eventBanner');
 const _evBannerT = document.getElementById('eventBannerT');
 const _evBannerM = document.getElementById('eventBannerM');
+const _evBannerX = document.getElementById('eventBannerX');
 let _evBannerT_id = null;
+let _evBannerLast = { txt: '', t: 0 };
+function closeEventBanner() {
+  if (!_evBanner) return;
+  _evBanner.classList.remove('show');
+  if (_evBannerT_id) { clearTimeout(_evBannerT_id); _evBannerT_id = null; }
+}
 function showEventBanner(title, msg, ms = 4000, style = 'spawn') {
   if (!_evBanner) return;
+  // Anti-spam: тот же баннер в окне 1200мс игнорируем
+  const key = (title || '') + '|' + (msg || '');
+  const now = performance.now();
+  if (key === _evBannerLast.txt && (now - _evBannerLast.t) < 1200) return;
+  _evBannerLast = { txt: key, t: now };
   _evBannerT.textContent = title || '';
   _evBannerM.textContent = msg || '';
   _evBanner.classList.remove('spawn','win','lose','neutral');
@@ -4879,6 +5103,12 @@ function showEventBanner(title, msg, ms = 4000, style = 'spawn') {
   _evBanner.classList.add('show');
   if (_evBannerT_id) clearTimeout(_evBannerT_id);
   _evBannerT_id = setTimeout(() => _evBanner.classList.remove('show'), ms);
+}
+if (_evBannerX) {
+  _evBannerX.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeEventBanner();
+  });
 }
 
 // ── Hit-flash (красная рамка когда в игрока попали) ─────────────
@@ -5180,11 +5410,20 @@ function fire(angle = null) {
       const dot = (dx * dirX + dy * dirY) / dn;
       if (dot > 0.85) { civilianHit = true; break; }
     }
+    // Свидетель: любой мирный NPC в радиусе 10 тайлов и не убежавший.
+    // Если рядом ни души — wanted на сервере не вырастет (тихий выстрел).
+    let witnessNpc = false;
+    for (const npc of NPCS) {
+      if (npc.dead) continue;
+      const dx = npc.c - player.c, dy = npc.r - player.r;
+      if (dx * dx + dy * dy <= 100) { witnessNpc = true; break; }
+    }
     try {
       ws && ws.send(JSON.stringify({ t: 'open_fire',
         d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
              weapon: currentWeapon,
-             civilian: civilianHit } }));
+             civilian: civilianHit,
+             witness:  witnessNpc } }));
     } catch(e) {}
     // На первом «нелегальном» выстреле подсказка — что только что нарушил
     if (myWanted < 1) {
@@ -5775,6 +6014,68 @@ function update(dt) {
       _interpMichaelGuards(dt);
       return;
     }
+  }
+
+  // ── В УГНАННОЙ civilian-тачке ── упрощённое управление как в quest-cars,
+  // но позиция локальная (синк только через обычный input игрока).
+  if (_hijackedCar) {
+    const car = _hijackedCar;
+    const CAR_MAX_SPEED = 8.0, CAR_ACCEL = 5.5, CAR_BRAKE = 6.0, CAR_TURN = 3.2;
+    // Текущая «джойстик-скорость» — пишем в car.vc/vr (переиспользуем поля)
+    let curVx = car.vc || 0, curVy = car.vr || 0;
+    let curSpeed = Math.hypot(curVx, curVy);
+    let throttle = 0;
+    if (Math.abs(inDx) > 0.08 || Math.abs(inDy) > 0.08) {
+      const d = inDx, s = inDy / ISO_Y;
+      const targetAng = Math.atan2((s - d) * 0.5, (s + d) * 0.5);
+      let aDiff = targetAng - player.ang;
+      while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
+      while (aDiff < -Math.PI) aDiff += Math.PI * 2;
+      player.ang += Math.sign(aDiff) * Math.min(Math.abs(aDiff), CAR_TURN * dt);
+      throttle = Math.min(1, inMag);
+    }
+    const dirVx = Math.cos(player.ang);
+    const dirVy = Math.sin(player.ang);
+    if (throttle > 0.05) {
+      curVx += dirVx * CAR_ACCEL * throttle * dt;
+      curVy += dirVy * CAR_ACCEL * throttle * dt;
+    } else {
+      const dec = CAR_BRAKE * 0.6 * dt;
+      if (curSpeed <= dec) { curVx = 0; curVy = 0; }
+      else { const k = (curSpeed - dec) / curSpeed; curVx *= k; curVy *= k; }
+    }
+    curSpeed = Math.hypot(curVx, curVy);
+    if (curSpeed > CAR_MAX_SPEED) {
+      const k = CAR_MAX_SPEED / curSpeed; curVx *= k; curVy *= k;
+    }
+    const newX = car.c + curVx * dt;
+    const newY = car.r + curVy * dt;
+    if (!isBlocked(newY, newX)) { car.c = newX; car.r = newY; }
+    else { curVx = 0; curVy = 0; }
+    car.vc = curVx; car.vr = curVy;
+    // Игрок «приклеен» к машине
+    player.r = car.r; player.c = car.c;
+    // Камера, UI и выходим — обычное движение пешком пропускаем.
+    const targetCamX = (player.c - player.r) * TS * 0.5;
+    const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
+    cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
+    cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
+    updateGtaInteractions();
+    updateZoneBtn();
+    updatePvpUI();
+    updateGtaQuestHud();
+    for (const [, o] of others) {
+      o.x += (o.tx - o.x) * Math.min(1, dt * 8);
+      o.y += (o.ty - o.y) * Math.min(1, dt * 8);
+      let aDiff2 = o.tAng - o.ang;
+      while (aDiff2 >  Math.PI) aDiff2 -= Math.PI * 2;
+      while (aDiff2 < -Math.PI) aDiff2 += Math.PI * 2;
+      o.ang += aDiff2 * Math.min(1, dt * 8);
+    }
+    _interpQuestCars(dt);
+    _interpBeachgoers(dt);
+    _interpMichaelGuards(dt);
+    return;
   }
 
   const speed = 5.0; // тайлов/сек
