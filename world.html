@@ -1173,6 +1173,8 @@ function generateBeachDecor() {
       if (PATH_COLS.some(pc => Math.abs(c - pc) <= 1)) continue;
       // Не на тропе игрока (центральная полоса c=38..46) — здесь ходят
       if (c >= 38 && c <= 46 && r >= BEACH_R1 - 3) continue;
+      // Не на асфальтовой дороге к Майклу (c=40..43, по всей длине пляжа)
+      if (c >= 39 && c <= 44) continue;
       const h = _bhash(r, c, 1);
       if (h >= 0.07) continue;
       const pr = r + 0.5 + (_bhash(r,c,2) - 0.5) * 0.4;
@@ -1226,7 +1228,7 @@ function generateBeachDecor() {
   // 9) Полотенца расстелены на песке
   for (const tw of [
     { r: 158, c: 19, col: '#e74c3c' },
-    { r: 161, c: 44, col: '#9b59b6' },
+    { r: 161, c: 46, col: '#9b59b6' },
     { r: 158, c: 67, col: '#1abc9c' },
   ]) _beachDecor.push({ kind: 'towel', r: tw.r, c: tw.c, col: tw.col });
   // 10) Песочные замки (детский антураж)
@@ -5576,7 +5578,17 @@ function drawSouthTile(r, c, t, p, wx, wy) {
   const h2 = ((r * 257 + c * 379) >>> 0) % 100;
   const h3 = ((r * 419 + c * 569) >>> 0) % 100;
   let color;
-  if (t === 14) {
+  // Полоса асфальта от города к пирсу через пляж (c=40..43, r=140..164).
+  // Совпадает с городской вертикальной дорогой → игрок может проехать
+  // на машине от города прямо к Майклу. Тип тайла остаётся 14 (песок,
+  // проходимый), но рендерим как асфальт.
+  const onRoadToMichael = (t === 14 && c >= 40 && c <= 43);
+  let isRoadTile = false;
+  if (onRoadToMichael) {
+    isRoadTile = true;
+    t = 14; // сохраняем песок-проходимость, но рендер ниже — асфальт
+  }
+  if (t === 14 && !isRoadTile) {
     // Песок: тёплая золотисто-карамельная палитра. 5 близких тонов
     //    + блики дюн. Чем ближе к воде — тем темнее (мокрый песок).
     const dToWater = Math.max(0, BEACH_R1 - r);   // 0 у воды, ~15 у города
@@ -5603,6 +5615,20 @@ function drawSouthTile(r, c, t, p, wx, wy) {
     // Сухой песок чуть светлее, мокрый — заметно темнее и с зеленцой
     if (dryK > 0) color = _shade(color, 0.04 * dryK);
     if (wetK > 0) color = _shade(color, -0.22 * wetK);
+  } else if (isRoadTile) {
+    // Асфальтовая дорога к Майклу. Чем ближе к пирсу — тем больше
+    // песка занесло на асфальт (по краям дороги).
+    const sandIngress = Math.max(0, (r - 145) / 20);  // 0 у города, 1 у пирса
+    color = '#36363a';
+    // Текстура дорожного покрытия
+    if      (h1 < 22) color = '#3c3c40';
+    else if (h1 > 88) color = '#2c2c30';
+    // Песок на обочине (c=40 и c=43 края, ближе к пирсу песка больше)
+    const edgeK = (c === 40 || c === 43) ? 1 : (c === 41 || c === 42 ? 0.35 : 0);
+    const sandMix = sandIngress * edgeK;
+    if (sandMix > 0 && h2 < sandMix * 70) {
+      color = (h1 < 50) ? '#b8945c' : '#caa468';
+    }
   } else if (t === 15) {
     // Деревянный причал — доски с тёмными швами вдоль рядов (по r).
     const plank = ((r * 1009) >>> 0) % 4;
@@ -5641,7 +5667,25 @@ function drawSouthTile(r, c, t, p, wx, wy) {
   ctx.lineTo(p.x - wx, p.y);
   ctx.closePath();
   ctx.fill();
-  if (t === 15 || t === 17) {
+  if (isRoadTile) {
+    // Дорожная разметка: пунктир по центру (между c=41 и c=42),
+    // короткие белые штрихи через каждый 2-й ряд.
+    if ((c === 41 || c === 42) && (r % 2 === 0)) {
+      const edgeOff = (c === 41) ? wx * 0.20 : -wx * 0.20;
+      ctx.fillStyle = 'rgba(245,235,170,.85)';
+      ctx.fillRect(p.x + edgeOff - 1, p.y - 2, 2, 4);
+    }
+    // Тёмные швы по краям дороги (там где переход в песок/тротуар)
+    if (c === 40 || c === 43) {
+      ctx.strokeStyle = 'rgba(0,0,0,.25)';
+      ctx.lineWidth = 0.8;
+      const sx2 = (c === 40) ? -wx : wx;
+      ctx.beginPath();
+      ctx.moveTo(p.x,        p.y - wy);
+      ctx.lineTo(p.x + sx2,  p.y);
+      ctx.stroke();
+    }
+  } else if (t === 15 || t === 17) {
     // Контур доски
     ctx.strokeStyle = 'rgba(0,0,0,.28)';
     ctx.lineWidth = 1;
