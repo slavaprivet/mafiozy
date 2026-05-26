@@ -2507,20 +2507,22 @@ function spawnNpc(seed) {
 }
 
 // Найти NPC в линии огня от точки (sR,sC) в направлении (dirY,dirX).
-// Возвращает {npc, point: {r,c}} ближайшего попадания или null.
-// Конус ±0.45 тайла перпендикулярно линии, до maxRange тайлов.
+// Возвращает {npc, point: {r,c}, dist} ближайшего попадания или null.
+// Конус ±0.65 тайла перпендикулярно линии — толще среднего человека
+// (~0.5 тайла шириной), чтобы попадания не проходили «сквозь».
 function _raycastNpc(sR, sC, dirY, dirX, maxRange) {
   let best = null, bestD = maxRange;
   for (const n of NPCS) {
     if (n.dead) continue;
     const dr = n.r - sR, dc = n.c - sC;
     const along = dr * dirY + dc * dirX;
-    if (along < 0 || along > maxRange) continue;
+    if (along < 0.2 || along > maxRange) continue;   // не стреляем в себя
     const perp = Math.abs(dr * dirX - dc * dirY);
-    if (perp > 0.45) continue;
+    if (perp > 0.65) continue;
     if (along < bestD) {
       bestD = along;
-      best = { npc: n, point: { r: sR + dirY * along, c: sC + dirX * along } };
+      best = { npc: n, point: { r: sR + dirY * along, c: sC + dirX * along },
+               dist: along };
     }
   }
   return best;
@@ -3548,10 +3550,33 @@ function isBlocked(r, c) {
 }
 function tryMove(obj, dr, dc) {
   const pad = 0.3;
-  // ESCAPE MODE: если игрок ЗАЛИП в blocked-тайле (карта обновилась под
-  // ним, сервер телепортировал в здание, hello-пакет перестроил MAP) —
-  // разрешаем любое движение без коллизий, пока не выберется на свободную
-  // клетку. Иначе застревает навсегда и не может ходить.
+  // ТЮРЬМА: пока сижу (myJailIn > 0) — клиент сам держит игрока внутри
+  // решётки. Проверяем РАНЬШЕ stuck-mode (центр участка может быть на
+  // здании-блокере, иначе stuck-mode пропустит шаг наружу). Скольжение
+  // вдоль решётки — игрок упирается в стену без анимации возврата.
+  const isMe = (obj === player);
+  const jailed = isMe && myJailIn > 0;
+  if (jailed) {
+    let nr = obj.r + dr, nc = obj.c + dc;
+    const d2r = nr - JAIL_CENTER_R, d2c = nc - JAIL_CENTER_C;
+    const d2  = Math.hypot(d2r, d2c);
+    if (d2 > JAIL_RADIUS_TILES - 0.3) {
+      // Скользим вдоль решётки — оставляем только касательное движение
+      const ang = Math.atan2(d2r, d2c);
+      const projR = (obj.r - JAIL_CENTER_R), projC = (obj.c - JAIL_CENTER_C);
+      const projL = Math.hypot(projR, projC) || 1;
+      // Возвращаемся на радиус, чтобы тело не «утопало» в прутьях
+      const targetD = Math.min(d2, JAIL_RADIUS_TILES - 0.3);
+      obj.r = JAIL_CENTER_R + Math.sin(ang) * targetD;
+      obj.c = JAIL_CENTER_C + Math.cos(ang) * targetD;
+      return;
+    }
+    obj.r = nr; obj.c = nc;
+    return;
+  }
+  // ESCAPE MODE: если игрок ЗАЛИП в blocked-тайле — пропускаем коллизии,
+  // пока не выберется. Иначе застревает навсегда. После тюрьмы, потому что
+  // центр участка тоже считается зданием.
   const stuck = isBlocked(obj.r, obj.c);
   if (stuck) {
     obj.r += dr;
@@ -4134,8 +4159,19 @@ function handleEventPacket(d) {
         car_id: d.car_id, model: d.model, reward: d.reward,
         x: d.x, y: d.y, state: 'idle',
       };
-      hideMichaelMenu();
+      // НЕ закрываем модал сразу — показываем фотку и название
+      // машины которую дал Майкл. Игрок видит ЧТО ему нужно угнать,
+      // потом сам закроет крестиком (или авто-закрытие через 5 сек).
+      refreshMichaelMenu();
       updateQuestCarHud();
+      const mdef = QUEST_CAR_MODELS[d.model] || { label: d.model };
+      showEventBanner(
+        `🎯 Заказ: ${mdef.label}`,
+        `Стрелка на карте укажет где она. Угони и пригони в порт. +${d.reward}$`,
+        4500, 'win');
+      setTimeout(() => {
+        if (_michaelModal.classList.contains('show')) hideMichaelMenu();
+      }, 5000);
     } else {
       const mdef = (d.model && QUEST_CAR_MODELS[d.model]) || null;
       if (d.reason === 'limit') {
@@ -6055,6 +6091,27 @@ function fire(angle = null) {
       showToast('👀 Прохожие побежали в участок — догони и заткни', '⚠️', 3000);
     }
   }
+  // Raycast по мирным NPC ВСЕГДА. Если NPC физически ближе серверной
+  // цели — пуля попадает в него (он стоит ровно на линии огня). Иначе
+  // используем серверную цель (chosenConvoy/Cop/Aggro/Mg/pvpTarget).
+  const range = wcfg.range || 7;
+  const hitN  = _raycastNpc(sR, sC, dirY, dirX, range);
+  // Дистанция до серверной цели по линии огня
+  const _serverTarget = chosenConvoy || chosenCop || chosenAggro || chosenMg || pvpTarget;
+  const _serverDist = _serverTarget
+    ? ((_serverTarget.y - sR) * dirY + (_serverTarget.x - sC) * dirX)
+    : Infinity;
+  const npcPriority = hitN && (!_serverTarget || hitN.dist < _serverDist - 0.5);
+  if (npcPriority) {
+    spawnBullet(sR, sC, hitN.point.r, hitN.point.c,
+      { hit: true, fromPlayer: true, weapon: currentWeapon });
+    spawnImpact(hitN.point.r, hitN.point.c, currentWeapon);
+    hitNpc(hitN.npc, dirY, dirX, currentWeapon, wcfg.dmg || 20);
+    triggerHitStop(wcfg.thick ? 100 : 65);
+    addShake(wcfg.thick ? 3.5 : 2);
+    hapticHit();
+    return;
+  }
   if (chosenConvoy) {
     spawnBullet(sR, sC, chosenConvoy.y, chosenConvoy.x,
       { hit: true, fromPlayer: true, weapon: currentWeapon });
@@ -6100,27 +6157,11 @@ function fire(angle = null) {
     } catch(e) {}
     return;
   }
-  if (noTarget) {
-    // Нет серверной цели — проверим что в линии огня есть мирный NPC.
-    // Если да — попадаем по нему ЛОКАЛЬНО (hp/flinch/кровь), иначе
-    // пуля улетает в пустоту на range тайлов.
-    const range = wcfg.range || 7;
-    const hitN = _raycastNpc(sR, sC, dirY, dirX, range);
-    if (hitN) {
-      spawnBullet(sR, sC, hitN.point.r, hitN.point.c,
-        { hit: true, fromPlayer: true, weapon: currentWeapon });
-      spawnImpact(hitN.point.r, hitN.point.c, currentWeapon);
-      hitNpc(hitN.npc, dirY, dirX, currentWeapon, wcfg.dmg || 20);
-      triggerHitStop(wcfg.thick ? 95 : 65);
-      addShake(wcfg.thick ? 3 : 1.5);
-      hapticHit();
-    } else {
-      spawnBullet(sR, sC,
-        sR + dirY * range,
-        sC + dirX * range,
-        { hit: false, fromPlayer: true, weapon: currentWeapon });
-    }
-  }
+  // Пуля улетает в пустоту на range тайлов (raycast уже отработал)
+  spawnBullet(sR, sC,
+    sR + dirY * range,
+    sC + dirX * range,
+    { hit: false, fromPlayer: true, weapon: currentWeapon });
 }
 _fireBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); }, { passive: false });
 // Доп. клавиша на десктопе — пробел
