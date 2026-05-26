@@ -11467,6 +11467,8 @@ class WorldSim:
         'beachgoers', '_beachgoer_next_id', '_beachgoer_next_spawn_at',
         # Охрана Майкла на корабле.
         'michael_guards', '_mg_next_id', '_mg_respawn_at',
+        # Box-доставка от Майкла: uid → {pickup, dropoff, state, reward}.
+        'box_quests',
         # GTA-контракты Майкла: спавненные квестовые тачки.
         'quest_cars', '_quest_car_next_id',
     )
@@ -11715,6 +11717,27 @@ class WorldSim:
     MICHAEL_GUARD_HOSTILE_S = 30.0
     MICHAEL_GUARD_RESPAWN_S = 90.0      # сколько ждать перед респауном павшего
     MICHAEL_PROTECT_R       = 10.0      # радиус «зоны Майкла» — выстрел тут = hostile
+    # ── Работа «таскать коробки» ──────────────────────────────────
+    # Альтернатива угону тачек: Майкл выдаёт контракт «возьми ящик
+    # в порту, отвези по адресу X». 5 в сутки, отдельный лимит.
+    BOX_DAILY_LIMIT     = 5
+    BOX_RESET_S         = 24 * 3600
+    BOX_REWARD_MIN      = 220
+    BOX_REWARD_MAX      = 480
+    BOX_PICKUP_R        = 2.0        # радиус подбора коробки в порту
+    BOX_DROPOFF_R       = 2.5        # радиус сдачи у здания
+    # Точка погрузки — пирс рядом с краном (склад с контейнерами).
+    BOX_PICKUP_X        = 32.0
+    BOX_PICKUP_Y        = 169.0
+    # Точки доставки — здания в разных районах города.
+    BOX_DROPOFFS = [
+        ('Склад на улице Лэйк',     16.0,  16.0),
+        ('Магазин на Промышленной', 56.0,  46.0),
+        ('Гаражи у Резиденции',     36.0,  66.0),
+        ('Кафе «У Лу»',             16.0,  46.0),
+        ('Прачечная Восток',        66.0,  26.0),
+        ('Ломбард на Бэйкер',       26.0,  36.0),
+    ]
     AGGRO_BOT_HP        = 90
     AGGRO_BOT_DMG       = 8
     AGGRO_BOT_CD        = 1.1
@@ -11809,6 +11832,8 @@ class WorldSim:
         self._mg_next_id = 1
         self._mg_respawn_at = 0.0
         self._spawn_michael_guards()
+        # Box-доставка: активный контракт игрока (uid → quest dict)
+        self.box_quests = {}
         # GTA Майкла — спавненные квестовые тачки {car_id → dict}.
         # Каждая хранит: id, model, owner_uid, x, y, ang, vx, vy,
         # driver_uid (None если стоит), hp, reward, _spawn_t.
@@ -14369,6 +14394,115 @@ class WorldSim:
                     if not _world_is_wall(int(ny), int(nx)):
                         b['x'] = nx; b['y'] = ny
                     b['ang'] = _m.atan2(dy, dx)
+
+    # ── Box-доставка ───────────────────────────────────────────────
+    # Игрок берёт у Майкла второй тип работы: «возьми ящик на пирсе,
+    # доставь в здание X». Простая логика: 3 фазы — pending (берёшь
+    # коробку), carrying (несёшь), delivered (получаешь cash).
+    def box_take(self, uid: str) -> dict:
+        """Взять у Майкла новый контракт на доставку коробки."""
+        p = self.players.get(uid)
+        if not p:
+            return {'ok': False, 'reason': 'no_player'}
+        now = time.time()
+        if (p.get('_box_reset_at') or 0) <= now:
+            p['_box_count']    = 0
+            p['_box_reset_at'] = now + self.BOX_RESET_S
+        if str(uid) in self.box_quests:
+            return {'ok': False, 'reason': 'has_active'}
+        if p.get('_box_count', 0) >= self.BOX_DAILY_LIMIT:
+            return {'ok': False, 'reason': 'limit',
+                    'wait_s': int(max(0, p['_box_reset_at'] - now)),
+                    'limit':  self.BOX_DAILY_LIMIT}
+        # Близость к Майклу
+        dx = p['x'] - self.MICHAEL_X; dy = p['y'] - self.MICHAEL_Y
+        if (dx*dx + dy*dy) > 3.0 * 3.0:
+            return {'ok': False, 'reason': 'too_far'}
+        addr_name, dx2, dy2 = random.choice(self.BOX_DROPOFFS)
+        reward = random.randint(self.BOX_REWARD_MIN, self.BOX_REWARD_MAX)
+        quest = {
+            'uid':        str(uid),
+            'pickup_x':   self.BOX_PICKUP_X,
+            'pickup_y':   self.BOX_PICKUP_Y,
+            'dropoff_x':  float(dx2),
+            'dropoff_y':  float(dy2),
+            'addr':       addr_name,
+            'reward':     int(reward),
+            'state':      'pending',
+            '_taken_at':  now,
+        }
+        self.box_quests[str(uid)] = quest
+        p['_box_count'] = p.get('_box_count', 0) + 1
+        return {'ok': True,
+                'pickup_x':  quest['pickup_x'], 'pickup_y':  quest['pickup_y'],
+                'dropoff_x': quest['dropoff_x'], 'dropoff_y': quest['dropoff_y'],
+                'addr':      quest['addr'],
+                'reward':    quest['reward']}
+
+    def box_pickup(self, uid: str) -> dict:
+        """Игрок подошёл к pickup и взял коробку — переходим в carrying."""
+        p = self.players.get(uid)
+        q = self.box_quests.get(str(uid))
+        if not p or not q:
+            return {'ok': False, 'reason': 'no_quest'}
+        if q['state'] != 'pending':
+            return {'ok': False, 'reason': 'wrong_state'}
+        dx = p['x'] - q['pickup_x']; dy = p['y'] - q['pickup_y']
+        if (dx*dx + dy*dy) > self.BOX_PICKUP_R * self.BOX_PICKUP_R:
+            return {'ok': False, 'reason': 'too_far'}
+        q['state'] = 'carrying'
+        return {'ok': True, 'state': 'carrying'}
+
+    async def box_deliver(self, uid: str) -> dict:
+        """Игрок подошёл к dropoff и сдал коробку — начисляем cash."""
+        p = self.players.get(uid)
+        q = self.box_quests.get(str(uid))
+        if not p or not q:
+            return {'ok': False, 'reason': 'no_quest'}
+        if q['state'] != 'carrying':
+            return {'ok': False, 'reason': 'wrong_state'}
+        dx = p['x'] - q['dropoff_x']; dy = p['y'] - q['dropoff_y']
+        if (dx*dx + dy*dy) > self.BOX_DROPOFF_R * self.BOX_DROPOFF_R:
+            return {'ok': False, 'reason': 'too_far'}
+        reward = int(q.get('reward') or 0)
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute(
+                    "UPDATE characters SET cash = cash + ? WHERE telegram_id = ?",
+                    (reward, int(uid)))
+                await db.commit()
+        except Exception as _e:
+            logger.exception("box_deliver cash add failed: %s", _e)
+        self.box_quests.pop(str(uid), None)
+        return {'ok': True, 'state': 'delivered', 'reward': reward,
+                'addr': q.get('addr')}
+
+    def box_status(self, uid: str) -> dict:
+        """Снапшот box-работы: счётчик + активный контракт."""
+        p = self.players.get(uid)
+        if not p:
+            return {'count_today': 0, 'limit': self.BOX_DAILY_LIMIT,
+                    'reset_in_s': 0, 'active': None}
+        now = time.time()
+        if (p.get('_box_reset_at') or 0) <= now:
+            p['_box_count']    = 0
+            p['_box_reset_at'] = now + self.BOX_RESET_S
+        q = self.box_quests.get(str(uid))
+        active = None
+        if q:
+            active = {
+                'pickup_x':  q['pickup_x'], 'pickup_y':  q['pickup_y'],
+                'dropoff_x': q['dropoff_x'], 'dropoff_y': q['dropoff_y'],
+                'addr':      q['addr'],
+                'reward':    int(q['reward']),
+                'state':     q['state'],
+            }
+        return {
+            'count_today': int(p.get('_box_count', 0)),
+            'limit':       self.BOX_DAILY_LIMIT,
+            'reset_in_s':  int(max(0, (p.get('_box_reset_at') or 0) - now)),
+            'active':      active,
+        }
 
     # ── Охрана Майкла ──────────────────────────────────────────────
     # Два охранника стоят на палубе по бокам от Майкла. Реагируют на
@@ -17302,6 +17436,34 @@ async def _coop_http_app():
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(world.gta_status(uid),
                                                           kind='gta_status')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'box_take':
+                        reply = world.box_take(uid)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='box_take_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'box_pickup':
+                        reply = world.box_pickup(uid)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='box_pickup_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'box_deliver':
+                        reply = await world.box_deliver(uid)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='box_deliver_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'box_status':
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(world.box_status(uid),
+                                                          kind='box_status')},
                                 ensure_ascii=False))
                         except Exception: pass
                 elif msg.type == web.WSMsgType.ERROR:
