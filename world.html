@@ -1448,6 +1448,7 @@ function applyQuestCarsSnapshot(arr) {
       // Серверная позиция → tx/ty/tAng, плавная интерполяция в update()
       prev.tx = c.x; prev.ty = c.y; prev.tAng = c.ang;
       prev.driver_uid = c.driver_uid;
+      prev.passenger_uids = c.passenger_uids || [];
       prev.state      = c.state;
       prev.owner_uid  = c.owner_uid;
       prev.model      = c.model;
@@ -1465,6 +1466,7 @@ function applyQuestCarsSnapshot(arr) {
         vx: c.vx, vy: c.vy,
         owner_uid:  c.owner_uid,
         driver_uid: c.driver_uid,
+        passenger_uids: c.passenger_uids || [],
         state:      c.state,
         reward:     c.reward,
         hp:         c.hp,
@@ -4220,13 +4222,17 @@ _zoneEl.addEventListener('click', () => {
 const _gtaBtn = document.getElementById('gtaActionBtn');
 let _gtaActionKind = null;   // 'michael' | 'enter' | 'exit'
 let _gtaActionCarId = null;
+let _gtaActionEnterAs = null;   // 'driver' | 'passenger'
+let myIsPassenger = false;      // если я сижу пассажиром — не управляю машиной
 const GTA_INTERACT_R = 1.8;  // тайлов — радиус подхода к Майклу/машине
 
 function updateGtaInteractions() {
   if (myDrivingCarId) {
     _gtaActionKind = 'exit';
     _gtaActionCarId = myDrivingCarId;
-    _gtaBtn.textContent = '🚪 Выйти из машины';
+    _gtaBtn.textContent = myIsPassenger
+      ? '🚪 Выйти (пассажир)'
+      : '🚪 Выйти из машины';
     _gtaBtn.style.display = 'block';
     return;
   }
@@ -4241,23 +4247,32 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
-  // Машина — подходим к ЛЮБОЙ quest_car без водителя (можно угнать чужой
-  // контракт у соперника). Но deliver получит только owner.
+  // 1) Машина моего контракта — приоритет (сесть за руль)
   let nearestQc = null, nearestD = GTA_INTERACT_R;
+  let nearestKind = null;   // 'driver' | 'passenger'
   for (const qc of questCars.values()) {
-    if (qc.driver_uid) continue;       // занята
     const dr = qc.y - player.r, dc = qc.x - player.c;
     const d  = Math.hypot(dr, dc);
-    if (d < nearestD) { nearestD = d; nearestQc = qc; }
+    if (d > GTA_INTERACT_R) continue;
+    const isMine = String(qc.owner_uid) === String(QP.uid);
+    if (isMine && !qc.driver_uid) {
+      if (d < nearestD) { nearestD = d; nearestQc = qc; nearestKind = 'driver'; }
+    } else if (!isMine && qc.driver_uid && qc.driver_uid !== String(QP.uid)) {
+      // Чужая машина с водителем — можно сесть пассажиром, если есть место.
+      const plist = qc.passenger_uids || [];
+      if (plist.length < 1) {
+        if (d < nearestD) { nearestD = d; nearestQc = qc; nearestKind = 'passenger'; }
+      }
+    }
   }
   if (nearestQc) {
     const mdef = QUEST_CAR_MODELS[nearestQc.model] || { label: nearestQc.model };
-    const isMine = String(nearestQc.owner_uid) === String(QP.uid);
     _gtaActionKind = 'enter';
     _gtaActionCarId = nearestQc.id;
-    _gtaBtn.textContent = isMine
-      ? `🚗 Сесть в ${mdef.label}`
-      : `🚗 Угнать ${mdef.label}`;
+    _gtaActionEnterAs = nearestKind;
+    _gtaBtn.textContent = (nearestKind === 'passenger')
+      ? `🚗 Сесть пассажиром (${mdef.label})`
+      : `🚗 Сесть в ${mdef.label}`;
     _gtaBtn.style.display = 'block';
     return;
   }
@@ -4270,7 +4285,7 @@ _gtaBtn.addEventListener('click', () => {
   if (_gtaActionKind === 'michael') {
     openMichaelMenu();
   } else if (_gtaActionKind === 'enter') {
-    enterCar(_gtaActionCarId);
+    enterCar(_gtaActionCarId, _gtaActionEnterAs || 'driver');
   } else if (_gtaActionKind === 'exit') {
     exitCar('manual');
   }
@@ -4423,19 +4438,34 @@ function refreshMichaelMenu() {
 // проверит что машина свободна; если нет — пришлёт gta_drive_reject
 // и мы сбросим myDrivingCarId.
 let _exitRequested = false;   // нажали «Выйти» на ходу — тормозим, потом выходим
-function enterCar(carId) {
+function enterCar(carId, asKind) {
   const qc = questCars.get(carId);
   if (!qc) return;
-  // Контракт персональный: тачку видят все, но угнать её может только
-  // тот, кто взял заказ у Майкла. Никакого «успей первым».
-  if (String(qc.owner_uid) !== String(QP.uid)) {
-    showToast('🚫 Это не твой контракт', '🤷', 2000);
+  const isMine = (String(qc.owner_uid) === String(QP.uid));
+  // Если я не владелец — пытаемся сесть пассажиром.
+  if (!isMine) {
+    if (!qc.driver_uid) {
+      showToast('🚫 Это не твой контракт', '🤷', 2000);
+      return;
+    }
+    if ((qc.passenger_uids || []).length >= 1) {
+      showToast('🚗 Пассажирское место занято', '🚫', 2000);
+      return;
+    }
+    // Серверу шлём явный gta_enter — он проверит дистанцию и место
+    try { ws && ws.send(JSON.stringify({ t: 'gta_enter', d: { car_id: carId } })); }
+    catch(e) {}
+    myDrivingCarId = carId;
+    myIsPassenger  = true;
+    _exitRequested = false;
+    showToast('🚗 Сел пассажиром', '✅', 1500);
     return;
   }
   if (qc.driver_uid && qc.driver_uid !== String(QP.uid)) {
     showToast('🚗 Уже за рулём другой игрок', '🚫', 2000);
     return;
   }
+  myIsPassenger = false;
   myDrivingCarId = carId;
   _exitRequested = false;
   // Телепортируем игрока на позицию машины (потом он движется ВМЕСТЕ с ней)
@@ -4447,6 +4477,15 @@ function enterCar(carId) {
 function exitCar(reason) {
   if (!myDrivingCarId) return;
   const qc = questCars.get(myDrivingCarId);
+  // Пассажир: можно выйти на ходу, без тормозов
+  if (myIsPassenger) {
+    const cid = myDrivingCarId;
+    try { ws && ws.send(JSON.stringify({ t: 'gta_exit', d: { car_id: cid } })); }
+    catch(e){}
+    myDrivingCarId = null;
+    myIsPassenger  = false;
+    return;
+  }
   // Если едем — сначала тормозим (флаг), реальный exit пошлём из update().
   if (qc && Math.hypot(qc.vx, qc.vy) > 0.3) {
     _exitRequested = true;
@@ -5394,6 +5433,30 @@ function update(dt) {
     if (!qc) {
       // Машина пропала (сдана/удалена) — сброс
       myDrivingCarId = null;
+      myIsPassenger  = false;
+    } else if (myIsPassenger) {
+      // Я пассажир — не управляю. Просто следую за машиной (позиция
+      // приходит из снапшота через interp, а локально клампим player к ней).
+      player.r = qc.y; player.c = qc.x; player.ang = qc.ang;
+      const targetCamX = (player.c - player.r) * TS * 0.5;
+      const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
+      cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
+      cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
+      // Если водитель вышел/пропал, или меня выкинули из пассажиров,
+      // освобождаем myDrivingCarId
+      if (!qc.driver_uid ||
+          !(qc.passenger_uids || []).map(String).includes(String(QP.uid))) {
+        myDrivingCarId = null;
+        myIsPassenger  = false;
+      }
+      updateGtaInteractions();
+      updateZoneBtn();
+      updatePvpUI();
+      updateGtaQuestHud();
+      _interpQuestCars(dt);
+      _interpBeachgoers(dt);
+      _interpMichaelGuards(dt);
+      return;
     } else {
       const CAR_MAX_SPEED   = 8.5;   // тайлов/сек (см. серверный кламп 9.0)
       const CAR_ACCEL       = 6.0;   // как быстро разгоняемся

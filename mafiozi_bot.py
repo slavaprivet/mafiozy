@@ -12026,6 +12026,7 @@ class WorldSim:
             'model':      model,
             'owner_uid':  uid,
             'driver_uid': None,
+            'passenger_uids': [],   # до 1 пассажира (2-местная машина)
             'x':          sx,
             'y':          sy,
             'ang':        0.0,
@@ -12051,18 +12052,29 @@ class WorldSim:
             return {'ok': False, 'reason': 'gone'}
         if qc.get('wrecked'):
             return {'ok': False, 'reason': 'wrecked'}
-        # Контракт персональный: машину видят все, но угонять её может
-        # только владелец заказа. Никакого «успей первым».
-        if str(qc.get('owner_uid')) != str(uid):
-            return {'ok': False, 'reason': 'not_yours'}
-        # Близость
+        # Близость к машине нужна и водителю, и пассажиру
         dx = p['x'] - qc['x']; dy = p['y'] - qc['y']
         if (dx*dx + dy*dy) > 2.5 * 2.5:
             return {'ok': False, 'reason': 'too_far'}
-        qc['driver_uid'] = uid
-        qc['state']      = 'driving'
-        qc['_last_drive_t'] = time.time()
-        return {'ok': True, 'car_id': car_id}
+        is_owner = (str(qc.get('owner_uid')) == str(uid))
+        if is_owner:
+            # Владелец садится за руль
+            qc['driver_uid'] = uid
+            qc['state']      = 'driving'
+            qc['_last_drive_t'] = time.time()
+            return {'ok': True, 'car_id': car_id, 'as': 'driver'}
+        # Не владелец — пытается сесть пассажиром. Нужно чтобы за рулём
+        # сидел водитель (иначе кто-то «угнал» бы чужой контракт через
+        # пассажирское место). И в машине должно быть свободное место.
+        if not qc.get('driver_uid'):
+            return {'ok': False, 'reason': 'not_yours'}
+        plist = qc.setdefault('passenger_uids', [])
+        if str(uid) in [str(x) for x in plist]:
+            return {'ok': True, 'car_id': car_id, 'as': 'passenger'}
+        if len(plist) >= 1:
+            return {'ok': False, 'reason': 'full'}
+        plist.append(str(uid))
+        return {'ok': True, 'car_id': car_id, 'as': 'passenger'}
 
     def gta_drive(self, uid: str, car_id: str, x, y, ang, vx, vy) -> dict | None:
         qc = self.quest_cars.get(car_id)
@@ -12097,6 +12109,12 @@ class WorldSim:
         if p:
             p['x'] = x; p['y'] = y; p['ang'] = ang
             p['_input_t'] = time.time()
+        # Пассажиры тоже «приклеены» к машине и движутся с ней
+        for puid in (qc.get('passenger_uids') or []):
+            pp = self.players.get(str(puid))
+            if pp:
+                pp['x'] = x; pp['y'] = y; pp['ang'] = ang
+                pp['_input_t'] = time.time()
         return None  # nothing to send back per-tick
 
     async def gta_exit(self, uid: str, car_id: str) -> dict:
@@ -12105,6 +12123,11 @@ class WorldSim:
         p  = self.players.get(uid)
         if not qc or not p:
             return {'ok': False, 'reason': 'gone'}
+        # Пассажир выходит — просто убираем из списка, машина продолжает ехать
+        plist = qc.setdefault('passenger_uids', [])
+        if str(uid) in [str(x) for x in plist]:
+            qc['passenger_uids'] = [x for x in plist if str(x) != str(uid)]
+            return {'ok': True, 'delivered': False, 'car_id': car_id, 'was_passenger': True}
         if qc.get('driver_uid') != uid:
             return {'ok': False, 'reason': 'not_driver'}
         qc['driver_uid']     = None
@@ -14968,6 +14991,7 @@ class WorldSim:
                 'vy':         round(qc.get('vy', 0.0), 2),
                 'owner_uid':  qc.get('owner_uid'),
                 'driver_uid': qc.get('driver_uid'),
+                'passenger_uids': list(qc.get('passenger_uids') or []),
                 'state':      qc.get('state', 'idle'),
                 'reward':     int(qc.get('reward', 0)),
                 'hp':         int(qc.get('hp', self.QUEST_CAR_HP)),
