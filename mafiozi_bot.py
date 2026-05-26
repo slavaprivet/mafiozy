@@ -2298,12 +2298,21 @@ async def _send_coop_hub_update(bot, session: dict, status: str, message: str = 
 
 async def contacts_kb(user_id: int) -> ReplyKeyboardMarkup:
     """Reply keyboard with hub WebApp button.
-    KeyboardButton is required so tg.sendData() works inside the Mini App."""
+    KeyboardButton is required so tg.sendData() works inside the Mini App.
+
+    В подпись зашиваем последние 4 символа BOT_START_TS — Telegram-клиент
+    кеширует reply-keyboard по тексту кнопки, и если новая клава внешне
+    идентична старой, может не обновить web_app.url внутри (а там у нас
+    свежий туннель и cache-buster _v). С разным текстом — гарантированно
+    обновляет. Юзеру это просто «v.1234», подёргивается раз в рестарт.
+    """
     char = await get_character(user_id)
     contacts = await get_contacts(user_id)
     hub_url = await build_hub_url(char or {}, len(contacts), user_id)
+    ver_tag = f"v.{BOT_START_TS % 10000:04d}"
     return ReplyKeyboardMarkup(
-        [[KeyboardButton("🏠 Главное меню", web_app=WebAppInfo(url=hub_url))]],
+        [[KeyboardButton(f"🏠 Главное меню · {ver_tag}",
+                         web_app=WebAppInfo(url=hub_url))]],
         resize_keyboard=True,
         one_time_keyboard=False,
     )
