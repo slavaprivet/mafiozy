@@ -2591,15 +2591,44 @@ function spawnEjectedDriver(carR, carC) {
 // Пометить NPC как «свидетеля» — он побежит в участок жаловаться.
 // Вызывается из стрельбы игрока: ближайший NPC в линии огня. Радиус
 // и направление проверяет caller. Если NPC уже snitching — продляем.
-function markNpcSnitch(npc) {
+function markNpcSnitch(npc, customCry) {
   if (!npc || npc.dead) return;
   const now = performance.now();
   npc.snitching   = true;
   npc.snitchUntil = now + 60000;
   npc.cryUntil    = now + 2000;
-  npc.cryText     = 'КОПЫ!! ПОМОГИТЕ!!';
+  npc.cryText     = customCry || 'КОПЫ!! ПОМОГИТЕ!!';
   npc.panicUntil  = 0;   // snitch перекрывает panic — он бежит к копам
   npc.idleUntil   = 0;
+}
+
+// Главная функция «свидетели заметили нарушение». Применяется ко всем
+// NPC в радиусе. С шансом snitchChance (по умолчанию 90%) NPC бежит в
+// участок (snitching). Остальные — просто паникуют (panic + убегают).
+// cryHints — массив возможных криков для snitch, для panic свои.
+function triggerWitnessChain(srcR, srcC, radius, opts) {
+  opts = opts || {};
+  const snitchChance = (opts.snitchChance != null) ? opts.snitchChance : 0.9;
+  const snitchCries  = opts.snitchCries  || ['КОПЫ!! ПОМОГИТЕ!!', 'УГНАЛИ!!', 'ВЫЗЫВАЙТЕ ПОЛИЦИЮ!'];
+  const panicCries   = opts.panicCries   || ['ААА!!', 'ПОМОГИТЕ!', 'УБЕГАЙ!'];
+  const now = performance.now();
+  const r2  = radius * radius;
+  for (const n of NPCS) {
+    if (n.dead) continue;
+    if (n.snitching && now < n.snitchUntil) continue;   // уже стучит
+    const dr = n.r - srcR, dc = n.c - srcC;
+    if (dr * dr + dc * dc > r2) continue;
+    if (Math.random() < snitchChance) {
+      markNpcSnitch(n, snitchCries[Math.floor(Math.random() * snitchCries.length)]);
+    } else {
+      n.panicUntil = now + 4000 + Math.random() * 2500;
+      n.cryUntil   = now + 1800 + Math.random() * 1000;
+      n.cryText    = panicCries[Math.floor(Math.random() * panicCries.length)];
+      n.panicSrcR  = srcR;
+      n.panicSrcC  = srcC;
+      n.idleUntil  = 0;
+    }
+  }
 }
 
 // Когда NPC-свидетель добежал до участка — шлём серверу open_fire с
@@ -5069,9 +5098,15 @@ function _completeHijack(car) {
 
 function hijackCivilianCar(car) {
   if (!car || myDrivingCarId) return;
-  // Едущая тачка — без lockpick, водитель-NPC выкидывается и бежит стучать
+  // Едущая тачка — без lockpick, водитель-NPC выкидывается и бежит
+  // стучать. Плюс окружающие прохожие тоже видят кражу — 90% стучат.
   if (!car.parked) {
     spawnEjectedDriver(car.r, car.c);
+    triggerWitnessChain(car.r, car.c, 9, {
+      snitchChance: 0.9,
+      snitchCries: ['УГНАЛИ ТАЧКУ!!', 'ВЫЗЫВАЙТЕ КОПОВ!', 'ОН ВОР!!'],
+      panicCries:  ['ОЙ!', 'УХОДИМ!', 'УГНАЛИ!'],
+    });
     _completeHijack(car);
     showToast('🚗 Выкинул водителя — поехали!', '✅', 1800);
     return;
@@ -5091,7 +5126,13 @@ function hijackCivilianCar(car) {
     }
     if (res === 'fail') {
       // Сигналка — тачка остаётся, на крыше мигалки 10 с, повтор нельзя.
+      // Окружающие прохожие слышат вой сирены — 90% бегут стучать.
       car._alarmedUntil = performance.now() + 10000;
+      triggerWitnessChain(car.r, car.c, 12, {
+        snitchChance: 0.9,
+        snitchCries: ['СИГНАЛКА!! ВОРЫ!', 'ЗВОНИТЕ КОПАМ!', 'ТАЧКУ ЛОМАЮТ!'],
+        panicCries:  ['ОЙ!', 'СТРАШНО!'],
+      });
       showToast('🚨 Сигналка орёт — валим!', '⚠️', 2400);
       hapticHit();
       return;
@@ -5922,24 +5963,15 @@ function fire(angle = null) {
   if (!lawful) {
     // НОВАЯ механика wanted:
     //   - мгновенный +1 только если КОП видел выстрел сам (witness=true)
-    //   - мирный NPC, попавший под прицел, становится snitch — бежит в
-    //     участок и даёт +1 если добежит (см. markNpcSnitch / updateNpcs)
-    //   - стрельба «в воздух» без копов и NPC рядом = тихая, без wanted
+    //   - все мирные NPC в радиусе слышимости: 90% бегут в участок
+    //     (snitch), 10% просто паникуют. snitch даёт +1 если добежал.
+    //   - убил всех свидетелей до того как добежали — wanted не вырастет
     const copNear = _copInRadius(player.r, player.c, 12);
-    let snitchVictim = null;
-    let snitchVictimD = 1e9;
-    for (const npc of NPCS) {
-      if (npc.dead || npc.snitching) continue;
-      const dx = npc.c - player.c, dy = npc.r - player.r;
-      const d  = Math.hypot(dx, dy);
-      if (d > 7) continue;
-      const dn = d > 0.001 ? d : 1;
-      const dot = (dx * dirX + dy * dirY) / dn;
-      // Конус ~0.5 рад вокруг направления выстрела (≈30°)
-      if (dot < 0.85) continue;
-      if (d < snitchVictimD) { snitchVictim = npc; snitchVictimD = d; }
-    }
-    if (snitchVictim) markNpcSnitch(snitchVictim);
+    triggerWitnessChain(player.r, player.c, 10, {
+      snitchChance: 0.9,
+      snitchCries: ['ОН СТРЕЛЯЕТ!!', 'КОПЫ!! ПОМОГИТЕ!!', 'ЗВОНИТЕ В 911!'],
+      panicCries:  ['ААА!!', 'УБЕГАЙ!', 'СТРЕЛЯЮТ!'],
+    });
     try {
       ws && ws.send(JSON.stringify({ t: 'open_fire',
         d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
@@ -5947,11 +5979,10 @@ function fire(angle = null) {
              civilian: false,
              witness:  copNear } }));
     } catch(e) {}
-    // На первом «нелегальном» выстреле — мягкая подсказка
     if (myWanted < 1 && copNear) {
       showToast('🚓 Коп видел выстрел — копы едут', '⚠️', 2500);
-    } else if (myWanted < 1 && snitchVictim) {
-      showToast('👀 Прохожий побежал в участок — догони и заткни', '⚠️', 3000);
+    } else if (myWanted < 1) {
+      showToast('👀 Прохожие побежали в участок — догони и заткни', '⚠️', 3000);
     }
   }
   if (chosenConvoy) {
