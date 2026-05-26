@@ -9400,16 +9400,35 @@ function drawBuilding(r, c) {
   ctx.lineTo(p.x - wx, p.y);
   ctx.closePath();
   ctx.fill();
-  // Палитры: каждому типу свой набор оттенков
+  // Палитры: каждому типу свой богатый набор. Город перестаёт быть
+  // монохромным — рядом стоят кирпичный + бирюзовый + охра + горчичный.
   const palettesByType = [
-    // жилое — тёплые кирпично-коричневые
-    [['#5a3e28', '#2a1c10'], ['#4a3a20', '#251c10'], ['#4a2e1a', '#26170c']],
-    // офисное — холодные сине-серые
-    [['#2a3e58', '#10182a'], ['#3a4858', '#171f2a'], ['#1f2e3a', '#0c161f']],
-    // низкое с магазином — тёмно-бежевое
-    [['#5a4838', '#2a1f18'], ['#4a3828', '#28190c']],
-    // высотка — холодная стальная
-    [['#3a4050', '#181c24'], ['#283040', '#10141c'], ['#2a3848', '#0e131c']],
+    // жилое — кирпичные тёплые + цветные штукатурки (Куба-стиль)
+    [['#5a3e28', '#2a1c10'],   // кирпично-коричневый
+     ['#4a3a20', '#251c10'],   // тёмно-горчичный
+     ['#7c3a2e', '#3a160c'],   // тёмно-красный
+     ['#3e7060', '#162820'],   // мятный/изумруд
+     ['#7a6038', '#3a2812'],   // охра
+     ['#6c5478', '#221830'],   // лавандово-серый
+     ['#a06a48', '#4a2a14']],  // терракот
+    // офисное — холодные сине-стальные + слегка тонированные
+    [['#2a3e58', '#10182a'],
+     ['#3a4858', '#171f2a'],
+     ['#1f2e3a', '#0c161f'],
+     ['#3e3050', '#16101e'],   // фиолет-сталь
+     ['#28486a', '#0c1828']],  // глубокий синий
+    // низкое с магазином — пёстрые, с акцентом
+    [['#5a4838', '#2a1f18'],
+     ['#4a3828', '#28190c'],
+     ['#8a4a2a', '#3a1e10'],   // оранжевая штукатурка
+     ['#4a7a3a', '#1f3018'],   // оливковая
+     ['#a08038', '#3e2e10']],  // песочно-горчичная
+    // высотка — холодная стальная + редкие зелёные стеклянные
+    [['#3a4050', '#181c24'],
+     ['#283040', '#10141c'],
+     ['#2a3848', '#0e131c'],
+     ['#2a4a3a', '#0e1c14'],   // зелёное стекло
+     ['#403848', '#181420']],  // тёмная сталь
   ];
   const palList = palettesByType[bldType];
   const palIdx = ((r * 17 + c * 31) % palList.length + palList.length) % palList.length;
@@ -9583,6 +9602,103 @@ function drawBuilding(r, c) {
     for (let i = 0; i < 3; i++) {
       ctx.fillRect(acX - 3, acY - 4 + i * 2, 6, 0.8);
     }
+  }
+  // ── Дополнительные уникальные детали (детерминированно по r,c) ─
+  // Делают город разнообразным: бельё на верёвке, цветочные ящики,
+  // граффити на стене, пожарная лестница, разноцветная маркиза.
+  const detail = ((r * 23 + c * 41) % 9);
+  if (bldType === 0 && detail === 0 && winRows >= 2) {
+    // Бельё на верёвке между окнами (только жилые)
+    const lY = p.y - H * 0.55;
+    ctx.strokeStyle = 'rgba(180,170,140,.8)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(p.x + wx * 0.05, lY);
+    ctx.lineTo(p.x + wx * 0.75, lY + 1);
+    ctx.stroke();
+    const shirtCols = ['#e74c3c', '#3498db', '#f1c40f', '#fff', '#2ecc71'];
+    for (let i = 0; i < 4; i++) {
+      const sx = p.x + wx * (0.12 + i * 0.16);
+      ctx.fillStyle = shirtCols[(i + r + c) % shirtCols.length];
+      ctx.fillRect(sx - 2, lY + 1, 4, 5);
+    }
+  }
+  if (bldType === 0 && detail === 1) {
+    // Цветочный ящик под одним из окон (жилые)
+    const boxY = p.y - H * 0.38;
+    const boxX = p.x + wx * 0.22;
+    ctx.fillStyle = '#5a3a1c';
+    ctx.fillRect(boxX - 5, boxY, 10, 3);
+    // Цветочки 3 шт
+    const flowerCols = ['#e74c3c', '#f1c40f', '#fff', '#9b59b6'];
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = flowerCols[(i + r * 7) % flowerCols.length];
+      ctx.beginPath();
+      ctx.arc(boxX - 3 + i * 3, boxY - 1, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  if ((bldType === 0 || bldType === 2) && detail === 2) {
+    // Граффити-тег на стене (полоса краски + кривые буквы)
+    const grafY = p.y - H * 0.20;
+    const grafCols = ['#e91e63', '#03a9f4', '#ffeb3b', '#76ff03'];
+    ctx.fillStyle = grafCols[(r + c) % grafCols.length];
+    ctx.font = 'italic bold 8px "Comic Sans MS", system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const tags = ['MAFIA', 'GANG', '187', 'BOSS', 'KILL'];
+    ctx.save();
+    ctx.translate(p.x + wx * 0.45, grafY);
+    ctx.rotate(-0.04);
+    ctx.fillText(tags[(r * 3 + c) % tags.length], 0, 0);
+    ctx.restore();
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+  }
+  if (bldType === 1 || bldType === 3) {
+    if (detail === 3) {
+      // Пожарная лестница зигзагом на правой грани (офис/высотка)
+      ctx.strokeStyle = 'rgba(40,40,48,.95)';
+      ctx.lineWidth = 0.8;
+      const segs = Math.max(2, Math.floor(winRows / 1));
+      for (let s = 0; s < segs; s++) {
+        const k = s / segs;
+        const k1 = (s + 1) / segs;
+        const x1 = p.x + wx * 0.55;
+        const y1 = p.y - H * (0.15 + k * 0.7) + wy * (1 - 0.55) * 0.3;
+        const x2 = p.x + wx * 0.85;
+        const y2 = p.y - H * (0.15 + k1 * 0.7) + wy * (1 - 0.85) * 0.3;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+    }
+  }
+  if (bldType === 2 && detail === 4) {
+    // Цветной навес (маркиза) над входом магазина — полосы
+    const aY = p.y - H * 0.18;
+    const stripeCols = [['#c0392b','#fff'],['#2980b9','#fff'],['#27ae60','#fff']];
+    const pair = stripeCols[(r + c) % stripeCols.length];
+    for (let i = 0; i < 6; i++) {
+      ctx.fillStyle = pair[i & 1];
+      ctx.beginPath();
+      ctx.moveTo(p.x + wx * (0.08 + i * 0.10),     aY);
+      ctx.lineTo(p.x + wx * (0.08 + (i+1) * 0.10), aY);
+      ctx.lineTo(p.x + wx * (0.04 + (i+1) * 0.10), aY + 4);
+      ctx.lineTo(p.x + wx * (0.04 + i * 0.10),     aY + 4);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  if (detail === 5 && bldType !== 3) {
+    // Дверь — тёмная плашка у основания, для разнообразия
+    const dY = p.y + wy * 0.30;
+    const dX = p.x + wx * 0.10;
+    ctx.fillStyle = '#1a0e08';
+    ctx.fillRect(dX - 3, dY - 8, 6, 8);
+    // Дверная ручка
+    ctx.fillStyle = '#d4a040';
+    ctx.fillRect(dX + 1.5, dY - 4, 1.2, 1.2);
   }
 }
 
