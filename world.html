@@ -2714,8 +2714,6 @@ function carCanGo(car, dt) {
 
 function updateCars(dt) {
   for (const car of CARS) {
-    // Угнанная игроком тачка не управляется AI — мы её ведём вручную
-    if (car === _hijackedCar) continue;
     const canGo = carCanGo(car, dt);
     car.braking = !canGo;
     if (canGo) {
@@ -3651,16 +3649,21 @@ function handleEventPacket(d) {
   } else if (kind === 'quest_car_spawned') {
     // Контракт ВЗЯТ кем-то (мной или другим игроком). Машина появилась на
     // карте — все онлайн видят как красная Феррари стоит у дороги.
-    const mineOwn = (String(d.owner_uid) === String(QP.uid));
-    const mdef = QUEST_CAR_MODELS[d.model] || { label: d.model };
-    if (mineOwn) {
-      showEventBanner(`🚗 Контракт: ${mdef.label}`,
-        `На карте появилась цель. Угоняй и вези в порт. 💵 ${d.reward}$`,
-        5000, 'spawn');
+    // Civilian-угон (без контракта) — баннеров не показываем, тихо.
+    if (d.civilian) {
+      // ничего — игрок уже видит свою тачку, остальным не интересно
     } else {
-      // Другой игрок взял заказ — можно «перехватить» его машину раньше его.
-      // Но deliver засчитается только владельцу контракта.
-      showToast(`🚨 Кто-то взял заказ на угон ${mdef.label}`, '🚗', 3000);
+      const mineOwn = (String(d.owner_uid) === String(QP.uid));
+      const mdef = QUEST_CAR_MODELS[d.model] || { label: d.model };
+      if (mineOwn) {
+        showEventBanner(`🚗 Контракт: ${mdef.label}`,
+          `На карте появилась цель. Угоняй и вези в порт. 💵 ${d.reward}$`,
+          5000, 'spawn');
+      } else {
+        // Другой игрок взял заказ — можно «перехватить» его машину раньше его.
+        // Но deliver засчитается только владельцу контракта.
+        showToast(`🚨 Кто-то взял заказ на угон ${mdef.label}`, '🚗', 3000);
+      }
     }
   } else if (kind === 'quest_car_delivered') {
     const mineOwn = (String(d.by_uid) === String(QP.uid));
@@ -3740,6 +3743,33 @@ function handleEventPacket(d) {
       showEventBanner('💥 Машина уничтожена',
         `${mdef.label} сгорел под огнём банды. Заказ слетел — вернись к Майклу за новым.`,
         5500, 'lose');
+    }
+  } else if (kind === 'civilian_hijack_reply') {
+    if (d.ok) {
+      // Сервер создал нам quest-car-civilian. Сразу садимся за руль —
+      // сервер уже поставил driver_uid. Локальный snapshot questCars
+      // догонит через 1 кадр, поэтому пока создаём болванку.
+      if (!questCars.has(d.car_id)) {
+        questCars.set(d.car_id, {
+          id: d.car_id, model: d.model,
+          owner_uid: null, driver_uid: String(QP.uid),
+          passenger_uids: [],
+          x: d.x, y: d.y, ang: player.ang || 0,
+          vx: 0, vy: 0,
+          hp: 220, max_hp: 220,
+          state: 'driven', wrecked: false,
+          civilian: true, lock_lvl: 0, reward: 0,
+        });
+      }
+      myDrivingCarId = d.car_id;
+      myIsPassenger  = false;
+      _exitRequested = false;
+      player.r = d.y;
+      player.c = d.x;
+    } else if (d.reason === 'busy') {
+      showToast('🚗 Сначала выйди из текущей машины', '⚠️', 2200);
+    } else {
+      showToast('❌ Не получилось угнать', '⚠️', 2000);
     }
   } else if (kind === 'gta_take_reply') {
     if (d.ok) {
@@ -4481,11 +4511,21 @@ let _gtaActionCarId = null;
 let _gtaActionEnterAs = null;   // 'driver' | 'passenger'
 let myIsPassenger = false;      // если я сижу пассажиром — не управляю машиной
 const GTA_INTERACT_R = 1.8;  // тайлов — радиус подхода к Майклу/машине
-// Угнанная civilian-тачка (CAR-объект из массива CARS). Локальная сущность —
-// другие игроки её не видят (трафик сейчас чисто клиентский). Управление
-// аналогично quest-машинам, но без серверной синхронизации позиции.
-let _hijackedCar = null;
-let _hijackedCarRef = null;     // ссылка для кнопки «Угнать» до клика
+// Ссылка на CAR-объект для кнопки «Угнать» (до клика). При угоне шлём WS
+// civilian_carjack, сервер создаёт quest_car-civilian — видимый ВСЕМ игрокам.
+let _hijackedCarRef = null;
+// Анимация посадки: метка времени до которой рисуется вспышка «хлопок двери»
+let _carEnterAnimUntil = 0;
+let _carEnterAnimR = 0, _carEnterAnimC = 0;
+function playEnterCarAnim(r, c) {
+  _carEnterAnimUntil = performance.now() + 380;
+  _carEnterAnimR = r; _carEnterAnimC = c;
+  // Используем shockwave-кольцо как «вспышку» открывшейся двери
+  spawnShockwave(r, c, {
+    rad0: 4, maxRad: 36, life: 320,
+    color: '#ffd76b', thick: 2.2,
+  });
+}
 
 function updateGtaInteractions() {
   if (myDrivingCarId) {
@@ -4494,13 +4534,6 @@ function updateGtaInteractions() {
     _gtaBtn.textContent = myIsPassenger
       ? '🚪 Выйти (пассажир)'
       : '🚪 Выйти из машины';
-    _gtaBtn.style.display = 'block';
-    return;
-  }
-  // Угнанная civilian-тачка (отдельная ветка от quest-машин)
-  if (_hijackedCar) {
-    _gtaActionKind = 'exit_hijack';
-    _gtaBtn.textContent = '🚪 Выйти из машины';
     _gtaBtn.style.display = 'block';
     return;
   }
@@ -4608,8 +4641,6 @@ _gtaBtn.addEventListener('click', () => {
     exitCar('manual');
   } else if (_gtaActionKind === 'hijack') {
     hijackCivilianCar(_hijackedCarRef);
-  } else if (_gtaActionKind === 'exit_hijack') {
-    exitHijackedCar();
   } else if (_gtaActionKind === 'box_pickup') {
     try { ws && ws.send(JSON.stringify({ t: 'box_pickup', d: {} })); } catch(e){}
   } else if (_gtaActionKind === 'box_deliver') {
@@ -4617,22 +4648,17 @@ _gtaBtn.addEventListener('click', () => {
   }
 });
 
-// ── Угон гражданской машины (локально) ───────────────────────────
-// Игрок «выкидывает водителя» (AI пропадает) и сам управляет тачкой.
-// Машина остаётся в массиве CARS, но AI её не двигает (updateCars
-// skip'ает car если car === _hijackedCar). Сервер получает open_fire-
-// аналог `civilian_carjack` — бамп wanted только если есть свидетель.
+// ── Угон гражданской машины (через сервер) ──────────────────────
+// Шлём серверу civilian_carjack — он создаёт серверный quest_car-civilian
+// (виден всем игрокам), удаляет локальную AI-машину из CARS, сажает нас
+// за руль. Все следующее управление — общий путь quest-машины (see update()).
 function hijackCivilianCar(car) {
-  if (!car || _hijackedCar || myDrivingCarId) return;
-  _hijackedCar = car;
-  // Игрок «приклеен» к машине (player.r/c = центр машины)
-  player.r = car.r;
-  player.c = car.c;
-  // Начальный угол — куда машина смотрела
-  if (car.dirDx || car.dirDy) {
-    player.ang = Math.atan2(car.dirDy || 0, car.dirDx || 1);
-  }
-  // Шлём на сервер событие — пусть бампнет wanted (если есть свидетель)
+  if (!car || myDrivingCarId) return;
+  // Локально убираем эту AI-тачку — серверная (видимая всем) появится её
+  // место. Других клиентов это не касается: у них трафик свой.
+  const idx = CARS.indexOf(car);
+  if (idx >= 0) CARS.splice(idx, 1);
+  // Шлём серверу запрос на угон. В ответе будет civilian_hijack_reply.
   let witnessNpc = false;
   for (const npc of NPCS) {
     if (npc.dead) continue;
@@ -4641,23 +4667,14 @@ function hijackCivilianCar(car) {
   }
   try {
     ws && ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
-      x: +player.c.toFixed(2), y: +player.r.toFixed(2),
+      x: +car.c.toFixed(2), y: +car.r.toFixed(2),
       witness: witnessNpc,
     } }));
   } catch(e) {}
+  // Анимация посадки — короткая вспышка + хаптик + тост
+  playEnterCarAnim(car.r, car.c);
   showToast(witnessNpc ? '🚗 Угнал — тебя заметили!' : '🚗 Угнал тачку', '✅', 1800);
   hapticHit();
-}
-function exitHijackedCar() {
-  if (!_hijackedCar) return;
-  // Машину оставляем стоять — AI возобновит движение через carCanGo/updateCars.
-  _hijackedCar.vr = 0; _hijackedCar.vc = 0;
-  _hijackedCar._stuckT = 0;
-  // Вышли — на шаг сбоку от машины (чтоб не залипнуть)
-  player.c += 0.6;
-  _hijackedCar = null;
-  _hijackedCarRef = null;
-  showToast('🚪 Вышел из машины', '', 1200);
 }
 
 // ── Майкл-модал ────────────────────────────────────────────────────
@@ -4937,6 +4954,9 @@ function exitCar(reason) {
   const cid = myDrivingCarId;
   try { ws && ws.send(JSON.stringify({ t: 'gta_exit', d: { car_id: cid } })); }
   catch(e){}
+  // Анимация высадки — короткая вспышка «хлопок двери» в точке игрока
+  playEnterCarAnim(player.r, player.c);
+  hapticHit();
   // Локально освобождаем сразу — сервер пришлёт final reply, но игрок уже идёт.
   myDrivingCarId = null;
   _exitRequested = false;
@@ -5966,9 +5986,10 @@ function update(dt) {
       return;
     } else {
       const CAR_MAX_SPEED   = 8.5;   // тайлов/сек (см. серверный кламп 9.0)
-      const CAR_ACCEL       = 6.0;   // как быстро разгоняемся
-      const CAR_BRAKE       = 10.0;  // торможение при отпущенном стике / exit
-      const CAR_TURN_RATE   = 3.4;   // рад/сек
+      const CAR_ACCEL       = 7.5;   // как быстро разгоняемся (было 6.0 — увеличил отзывчивость)
+      const CAR_BRAKE       = 9.0;   // торможение при отпущенном стике / exit
+      const CAR_TURN_RATE   = 2.6;   // рад/сек (было 3.4 — плавнее повороты)
+      const CAR_DRIFT_GRIP  = 4.0;   // как быстро вектор скорости поворачивает к направлению машины
       // Текущая скорость по локальному состоянию qc
       let curVx = qc.vx || 0, curVy = qc.vy || 0;
       let curSpeed = Math.hypot(curVx, curVy);
@@ -6008,6 +6029,21 @@ function update(dt) {
       if (curSpeed > CAR_MAX_SPEED) {
         const k = CAR_MAX_SPEED / curSpeed;
         curVx *= k; curVy *= k;
+      }
+      // Drift-grip: постепенно подравниваем вектор скорости к направлению
+      // машины (как сцепление шин с асфальтом). Без этого после поворота
+      // машина «продолжает скользить» в старую сторону — выглядит топорно.
+      if (curSpeed > 0.3) {
+        const dirNormX = Math.cos(qc.ang);
+        const dirNormY = Math.sin(qc.ang);
+        // Длина проекции скорости на новое направление
+        const proj = curVx * dirNormX + curVy * dirNormY;
+        // Целевой вектор = направление × скорость (сохраняем магнитуду)
+        const targetVx = dirNormX * Math.abs(proj);
+        const targetVy = dirNormY * Math.abs(proj);
+        const k = Math.min(1, CAR_DRIFT_GRIP * dt);
+        curVx += (targetVx - curVx) * k;
+        curVy += (targetVy - curVy) * k;
       }
       // Применяем позицию с проверкой стен
       const newX = qc.x + curVx * dt;
@@ -6072,68 +6108,6 @@ function update(dt) {
       _interpMichaelGuards(dt);
       return;
     }
-  }
-
-  // ── В УГНАННОЙ civilian-тачке ── упрощённое управление как в quest-cars,
-  // но позиция локальная (синк только через обычный input игрока).
-  if (_hijackedCar) {
-    const car = _hijackedCar;
-    const CAR_MAX_SPEED = 8.0, CAR_ACCEL = 5.5, CAR_BRAKE = 6.0, CAR_TURN = 3.2;
-    // Текущая «джойстик-скорость» — пишем в car.vc/vr (переиспользуем поля)
-    let curVx = car.vc || 0, curVy = car.vr || 0;
-    let curSpeed = Math.hypot(curVx, curVy);
-    let throttle = 0;
-    if (Math.abs(inDx) > 0.08 || Math.abs(inDy) > 0.08) {
-      const d = inDx, s = inDy / ISO_Y;
-      const targetAng = Math.atan2((s - d) * 0.5, (s + d) * 0.5);
-      let aDiff = targetAng - player.ang;
-      while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
-      while (aDiff < -Math.PI) aDiff += Math.PI * 2;
-      player.ang += Math.sign(aDiff) * Math.min(Math.abs(aDiff), CAR_TURN * dt);
-      throttle = Math.min(1, inMag);
-    }
-    const dirVx = Math.cos(player.ang);
-    const dirVy = Math.sin(player.ang);
-    if (throttle > 0.05) {
-      curVx += dirVx * CAR_ACCEL * throttle * dt;
-      curVy += dirVy * CAR_ACCEL * throttle * dt;
-    } else {
-      const dec = CAR_BRAKE * 0.6 * dt;
-      if (curSpeed <= dec) { curVx = 0; curVy = 0; }
-      else { const k = (curSpeed - dec) / curSpeed; curVx *= k; curVy *= k; }
-    }
-    curSpeed = Math.hypot(curVx, curVy);
-    if (curSpeed > CAR_MAX_SPEED) {
-      const k = CAR_MAX_SPEED / curSpeed; curVx *= k; curVy *= k;
-    }
-    const newX = car.c + curVx * dt;
-    const newY = car.r + curVy * dt;
-    if (!isBlocked(newY, newX)) { car.c = newX; car.r = newY; }
-    else { curVx = 0; curVy = 0; }
-    car.vc = curVx; car.vr = curVy;
-    // Игрок «приклеен» к машине
-    player.r = car.r; player.c = car.c;
-    // Камера, UI и выходим — обычное движение пешком пропускаем.
-    const targetCamX = (player.c - player.r) * TS * 0.5;
-    const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
-    cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
-    cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
-    updateGtaInteractions();
-    updateZoneBtn();
-    updatePvpUI();
-    updateGtaQuestHud();
-    for (const [, o] of others) {
-      o.x += (o.tx - o.x) * Math.min(1, dt * 8);
-      o.y += (o.ty - o.y) * Math.min(1, dt * 8);
-      let aDiff2 = o.tAng - o.ang;
-      while (aDiff2 >  Math.PI) aDiff2 -= Math.PI * 2;
-      while (aDiff2 < -Math.PI) aDiff2 += Math.PI * 2;
-      o.ang += aDiff2 * Math.min(1, dt * 8);
-    }
-    _interpQuestCars(dt);
-    _interpBeachgoers(dt);
-    _interpMichaelGuards(dt);
-    return;
   }
 
   const speed = 5.0; // тайлов/сек

@@ -12109,6 +12109,50 @@ class WorldSim:
                 'lock_lvl': int(mdef.get('lock_lvl', 0)),
                 'sc_lvl':   sc_lvl}
 
+    # ── Угон гражданской тачки (любая, не от Майкла) ──────────────
+    # Создаёт серверный quest_car-civilian: без owner, без награды, без лимита
+    # daily. Видна ВСЕМ игрокам как обычная quest-car (через стандартный
+    # snapshot+spawn pkt). Машина живёт долго даже при простое (см. tick).
+    CIVILIAN_HIJACK_MODELS = ('corvette_c3', 'mustang_67', 'cadillac_eldo',
+                              'delorean', 'jaguar_e')
+    def civilian_hijack_start(self, uid: str) -> dict:
+        p = self.players.get(uid)
+        if not p:
+            return {'ok': False, 'reason': 'no_player'}
+        # Уже за рулём чего-то (квест или civilian)? Сначала выйди.
+        for _cid, _qc in self.quest_cars.items():
+            if str(_qc.get('driver_uid') or '') == str(uid):
+                return {'ok': False, 'reason': 'busy'}
+        model = random.choice(self.CIVILIAN_HIJACK_MODELS)
+        mdef  = self.QUEST_CAR_MODELS.get(model) or {}
+        sx, sy = float(p['x']), float(p['y'])
+        cid = f'civ{self._quest_car_next_id}'
+        self._quest_car_next_id += 1
+        qc = {
+            'id':         cid,
+            'model':      model,
+            'owner_uid':  None,           # civilian — без владельца
+            'driver_uid': str(uid),       # сразу за рулём
+            'passenger_uids': [],
+            'x':          sx,
+            'y':          sy,
+            'ang':        float(p.get('ang', 0.0)),
+            'vx':         0.0,
+            'vy':         0.0,
+            'hp':         self.QUEST_CAR_HP,
+            'reward':     0,
+            'lock_lvl':   0,
+            'state':      'driven',
+            'wrecked':    False,
+            'civilian':   True,           # флаг — не считаем как quest-доставку
+            '_spawn_t':   time.time(),
+            '_last_drive_t': time.time(),
+        }
+        self.quest_cars[cid] = qc
+        # НЕ ставим _gta_active_car_id — civilian не считается квестом Майкла
+        return {'ok': True, 'car_id': cid, 'model': model,
+                'x': sx, 'y': sy, 'civilian': True}
+
     def gta_enter(self, uid: str, car_id: str) -> dict:
         p = self.players.get(uid)
         qc = self.quest_cars.get(car_id)
@@ -12197,6 +12241,10 @@ class WorldSim:
         qc['driver_uid']     = None
         qc['vx'] = 0.0; qc['vy'] = 0.0
         qc['state'] = 'idle'
+        # Civilian-машина: НЕ сдаётся в порту, просто высадка. Стоит на месте.
+        if qc.get('civilian'):
+            return {'ok': True, 'delivered': False, 'car_id': car_id,
+                    'civilian': True}
         # Проверяем — машина в drop zone?
         if self._in_drop_zone(qc['x'], qc['y']):
             reward = int(qc.get('reward', 0))
@@ -12291,10 +12339,14 @@ class WorldSim:
                 qc['driver_uid'] = None
                 qc['state']      = 'idle'
             if not driver:
-                # Idle тачка — кейс смерти если игрок взял заказ давно и не пришёл
-                if age > 180 and last_drive == 0:
+                is_civ = bool(qc.get('civilian'))
+                # Civilian-угнанная без водителя живёт долго (5 мин) —
+                # игрок может вернуться. Квестовая Майкла — быстро (30 сек).
+                idle_limit = 300 if is_civ else 30
+                spawn_limit = 600 if is_civ else 180
+                if age > spawn_limit and last_drive == 0:
                     to_drop.append(cid); continue
-                if last_drive > 0 and (now - last_drive) > 30:
+                if last_drive > 0 and (now - last_drive) > idle_limit:
                     to_drop.append(cid); continue
         for cid in to_drop:
             qc = self.quest_cars.pop(cid, None)
@@ -17447,29 +17499,50 @@ async def _coop_http_app():
                                         try: await ws2.send_str(banner)
                                         except Exception: pass
                     elif t == 'civilian_carjack':
-                        # Игрок угнал гражданскую тачку. Бамп wanted только
-                        # если есть свидетель (NPC от клиента, коп или другой
-                        # игрок в радиусе 14). Логика идентична open_fire.
+                        # Игрок угнал гражданскую тачку. Создаём серверный
+                        # quest_car-civilian (виден всем игрокам). Бамп wanted
+                        # при свидетеле (коп r≤14, игрок r≤14, NPC от клиента).
                         p = world.players.get(uid)
                         if p and not p.get('dead') and p.get('_mode') != 'pve':
                             px = p.get('x', 0); py = p.get('y', 0)
-                            witness_npc = bool(d.get('witness') if isinstance(d, dict) else False)
-                            SIGHT_R2 = 14.0 * 14.0
-                            cop_sees = any(
-                                c.get('alive') and ((c['x'] - px) ** 2 + (c['y'] - py) ** 2) <= SIGHT_R2
-                                for c in world.cops
-                            )
-                            player_sees = any(
-                                (str(uid2) != str(uid)
-                                 and not pp.get('dead')
-                                 and ((pp.get('x', 0) - px) ** 2 + (pp.get('y', 0) - py) ** 2) <= SIGHT_R2)
-                                for uid2, pp in world.players.items()
-                            )
-                            if witness_npc or cop_sees or player_sees:
-                                # Угон при свидетелях → 1★ (как обычная стрельба
-                                # с свидетелем). Никакой эскалации, копы приедут
-                                # как обычно по wanted-системе.
-                                world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
+                            reply = world.civilian_hijack_start(uid)
+                            # Персональный ответ — клиент по нему сетит myDrivingCarId
+                            try:
+                                await ws.send_str(json.dumps(
+                                    {'t': 'event', 'd': dict(reply,
+                                                              kind='civilian_hijack_reply')},
+                                    ensure_ascii=False))
+                            except Exception: pass
+                            if reply.get('ok'):
+                                # Broadcast spawn всем (как для quest_car, но civilian=True)
+                                spawn_pkt = json.dumps({'t': 'event', 'd': {
+                                    'kind':     'quest_car_spawned',
+                                    'car_id':   reply['car_id'],
+                                    'model':    reply['model'],
+                                    'reward':   0,
+                                    'lock_lvl': 0,
+                                    'civilian': True,
+                                    'by_uid':   uid,
+                                    'x':        reply['x'], 'y': reply['y'],
+                                }}, ensure_ascii=False)
+                                for _u2, _ws2 in list(world.connections.items()):
+                                    try: await _ws2.send_str(spawn_pkt)
+                                    except Exception: pass
+                                # Wanted-bump при свидетеле
+                                witness_npc = bool(d.get('witness') if isinstance(d, dict) else False)
+                                SIGHT_R2 = 14.0 * 14.0
+                                cop_sees = any(
+                                    c.get('alive') and ((c['x'] - px) ** 2 + (c['y'] - py) ** 2) <= SIGHT_R2
+                                    for c in world.cops
+                                )
+                                player_sees = any(
+                                    (str(uid2) != str(uid)
+                                     and not pp.get('dead')
+                                     and ((pp.get('x', 0) - px) ** 2 + (pp.get('y', 0) - py) ** 2) <= SIGHT_R2)
+                                    for uid2, pp in world.players.items()
+                                )
+                                if witness_npc or cop_sees or player_sees:
+                                    world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass
