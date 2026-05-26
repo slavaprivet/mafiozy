@@ -2544,6 +2544,76 @@ function initNpcs() {
   }
 }
 
+// Координаты полицейского участка (центр POI 'police'). Используется
+// в snitch-логике (NPC-свидетели бегут сюда жаловаться) и в jail-cage.
+const POLICE_STATION_R = 76, POLICE_STATION_C = 76;
+const POLICE_REPORT_RADIUS = 5.5;   // на этом расстоянии NPC «достучался»
+
+// Есть ли в радиусе живой коп — для witness-флага в open_fire/carjack.
+// Сервер должен сразу же бамапнуть wanted, если копы видели сами.
+function _copInRadius(r, c, radius) {
+  if (!Array.isArray(worldCops)) return false;
+  const r2 = radius * radius;
+  for (const cp of worldCops) {
+    if (!cp || cp.alive === false) continue;
+    const dr = (cp.ty != null ? cp.ty : cp.y) - r;
+    const dc = (cp.tx != null ? cp.tx : cp.x) - c;
+    if (dr * dr + dc * dc <= r2) return true;
+  }
+  return false;
+}
+
+// Спавн NPC «выкинутый водитель» — когда угоняем едущую тачку. NPC
+// появляется на месте машины и сразу snitching=true → бежит в полицию.
+function spawnEjectedDriver(carR, carC) {
+  const npc = {
+    r: carR + 0.2, c: carC + 0.2,
+    tr: carR, tc: carC,
+    speed: 1.6,
+    ang: 0, walkPhase: 0, idleUntil: 0,
+    look: {
+      gender: Math.random() < 0.5 ? 0 : 1,
+      skin: Math.floor(Math.random() * 5),
+      body: Math.floor(Math.random() * 3),
+      face: Math.floor(Math.random() * 4),
+      hair: Math.floor(Math.random() * 5),
+      hat:  Math.floor(Math.random() * 4),
+    },
+    snitching: true,
+    snitchUntil: performance.now() + 90000,
+    cryUntil: performance.now() + 2200,
+    cryText: 'УГНАЛИ!! КОПЫ!!',
+    ejected: true,
+  };
+  NPCS.push(npc);
+}
+
+// Пометить NPC как «свидетеля» — он побежит в участок жаловаться.
+// Вызывается из стрельбы игрока: ближайший NPC в линии огня. Радиус
+// и направление проверяет caller. Если NPC уже snitching — продляем.
+function markNpcSnitch(npc) {
+  if (!npc || npc.dead) return;
+  const now = performance.now();
+  npc.snitching   = true;
+  npc.snitchUntil = now + 60000;
+  npc.cryUntil    = now + 2000;
+  npc.cryText     = 'КОПЫ!! ПОМОГИТЕ!!';
+  npc.panicUntil  = 0;   // snitch перекрывает panic — он бежит к копам
+  npc.idleUntil   = 0;
+}
+
+// Когда NPC-свидетель добежал до участка — шлём серверу open_fire с
+// witness=true (без civilian), сервер даёт wanted +1. Локально — тост.
+function _snitchReport() {
+  try {
+    ws && ws.send(JSON.stringify({ t: 'open_fire',
+      d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
+           weapon: currentWeapon || 'fists',
+           civilian: false, witness: true } }));
+  } catch(e) {}
+  showToast('🚓 Свидетель настучал — wanted +1', '🚨', 2400);
+}
+
 // Тригер паники: при выстреле игрока NPC в радиусе R становятся
 // panic-mode на 4-6 сек, бегут ОТ стрелка с криком «ПОМОГИТЕ!». Когда
 // отбежали на >12 тайлов или истёк panicUntil — возвращаются к обычной
@@ -2592,6 +2662,52 @@ function updateNpcs(dt) {
     }
   }
   for (const n of NPCS) {
+    // SNITCH: NPC — свидетель стрельбы/угона, бежит в полицию.
+    // По достижении радиуса POLICE_REPORT_RADIUS — шлёт открытие огня
+    // серверу (witness=true), сервер бамапает wanted, локально тост.
+    // Если истёк snitchUntil (60 с) — флаг сбрасывается, NPC возвращается
+    // к обычной жизни (или паникует).
+    if (n.snitching && now < n.snitchUntil) {
+      const dr = POLICE_STATION_R - n.r, dc = POLICE_STATION_C - n.c;
+      const d  = Math.hypot(dr, dc);
+      if (d < POLICE_REPORT_RADIUS) {
+        n.snitching = false;
+        n.snitchUntil = 0;
+        n.cryUntil = now + 1500;
+        n.cryText  = 'ВОТ ОН!!';
+        _snitchReport();
+        // Дальше пусть просто стоит «отдыхает» — обычная логика подхватит
+        n.idleUntil = now + 2000;
+        continue;
+      }
+      // Двигаемся к участку, скорость ×2 (бег). По возможности только
+      // по проходимым тайлам, иначе скользим к разрешённому соседу.
+      const sp = n.speed * 2.0 * dt;
+      const stepR = (dr / Math.max(0.001, d)) * sp;
+      const stepC = (dc / Math.max(0.001, d)) * sp;
+      const nr = n.r + stepR, nc = n.c + stepC;
+      if (npcPassable(nr, nc)) {
+        n.r = nr; n.c = nc;
+      } else {
+        // Обходим препятствие — пробуем 4 направления
+        const tries = [
+          [ stepC, -stepR ], [-stepC,  stepR ],
+          [ stepR * 0.5, 0 ], [ 0, stepC * 0.5 ],
+        ];
+        for (const [dr2, dc2] of tries) {
+          if (npcPassable(n.r + dr2, n.c + dc2)) {
+            n.r += dr2; n.c += dc2; break;
+          }
+        }
+      }
+      n.ang = Math.atan2(dr, dc);
+      n.walkPhase += dt * 14;
+      continue;
+    } else if (n.snitching) {
+      // Истёк таймер — сбрасываем (не успел добежать)
+      n.snitching = false;
+      n.snitchUntil = 0;
+    }
     // PANIC: NPC видит стрельбу — бежит ОТ источника. Скорость ×2.5.
     if (n.panicUntil && now < n.panicUntil) {
       const dr = n.r - (n.panicSrcR || 0);
@@ -2753,6 +2869,50 @@ function spawnCar(idx) {
   }
   return null;
 }
+// Припаркованная тачка — стоит на тротуаре (тип 9) или газоне (8)
+// рядом с дорогой. vr/vc = 0, parked=true. Угоняется только через
+// мини-игру взлома (lockpick). Не движется и не участвует в траффике.
+function spawnParkedCar() {
+  for (let tries = 0; tries < 200; tries++) {
+    const r = 3 + Math.floor(Math.random() * (MAP_ROWS - 6));
+    const c = 3 + Math.floor(Math.random() * (MAP_COLS - 6));
+    if (inArena(r, c)) continue;
+    const tHere = MAP[r] && MAP[r][c];
+    if (tHere !== 9 && tHere !== 8) continue;
+    // Рядом должна быть дорога (тип 0) — это «у обочины»
+    let nearRoad = false;
+    let roadDx = 0, roadDy = 0;
+    for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const tt = MAP[r + dr] && MAP[r + dr][c + dc];
+      if (tt === 0) { nearRoad = true; roadDx = dc; roadDy = dr; break; }
+    }
+    if (!nearRoad) continue;
+    // Машина не должна налезать на других парковочных рядом (мин. 2 тайла)
+    let overlap = false;
+    for (const ex of CARS) {
+      if (!ex.parked) continue;
+      if (Math.abs(ex.r - (r + 0.5)) < 2 && Math.abs(ex.c - (c + 0.5)) < 2) {
+        overlap = true; break;
+      }
+    }
+    if (overlap) continue;
+    // Направление — вдоль дороги (перпендикулярно вектору к дороге)
+    let dirDx, dirDy;
+    if (roadDx !== 0) { dirDx = 0; dirDy = Math.random() < 0.5 ? 1 : -1; }
+    else              { dirDx = Math.random() < 0.5 ? 1 : -1; dirDy = 0; }
+    const model = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+    return {
+      r: r + 0.5, c: c + 0.5,
+      vr: 0, vc: 0,
+      dirDx, dirDy,
+      model,
+      braking: false, flash: 0,
+      parked: true,
+    };
+  }
+  return null;
+}
+
 function initCars() {
   CARS.length = 0;
   // Город стал «живее» — 18 машин вместо 8. Спорткары и полиция тоже
@@ -2760,6 +2920,12 @@ function initCars() {
   for (let i = 0; i < 18; i++) {
     const c = spawnCar(i);
     if (c) CARS.push(c);
+  }
+  // Парковочные тачки — 10 штук у тротуаров рядом со зданиями. Угоняются
+  // только через мини-игру взлома (это «закрытые на ключ» машины).
+  for (let i = 0; i < 10; i++) {
+    const p = spawnParkedCar();
+    if (p) CARS.push(p);
   }
 }
 
@@ -2804,6 +2970,9 @@ function carCanGo(car, dt) {
 
 function updateCars(dt) {
   for (const car of CARS) {
+    // Парковочные тачки — статичные, не двигаются, не уезжают, не
+    // респаунятся за границей карты. Только рисуются + угоняются по lockpick.
+    if (car.parked) { car.braking = false; continue; }
     const canGo = carCanGo(car, dt);
     car.braking = !canGo;
     if (canGo) {
@@ -4875,13 +5044,42 @@ _lpModal.addEventListener('click', (e) => {
 // Шлём серверу civilian_carjack — он создаёт серверный quest_car-civilian
 // (виден всем игрокам), удаляет локальную AI-машину из CARS, сажает нас
 // за руль. Все следующее управление — общий путь quest-машины (see update()).
-// Перед серверным запросом — мини-игра lockpick (см. openLockpick выше).
+//
+// Два сценария:
+//   1) Едущая тачка — она «незаперта» (водитель за рулём). Lockpick не нужен.
+//      Угоняем сразу. Из машины ВЫХОДИТ бывший водитель (NPC), который
+//      бежит стучать в полицию → если добежит, выставит wanted.
+//   2) Припаркованная (car.parked) — закрыта на ключ. Запускаем lockpick.
+//      Успех = тихий угон. Провал = сигналка 10с, повтор недоступен.
+//      Отмена = ничего.
+function _completeHijack(car) {
+  const idx = CARS.indexOf(car);
+  if (idx >= 0) CARS.splice(idx, 1);
+  try {
+    ws && ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
+      x: +car.c.toFixed(2), y: +car.r.toFixed(2),
+      // Witness отправляем ТОЛЬКО если рядом коп — он видел угон сам.
+      // Мирные NPC, если что, побегут стучать (см. spawnEjectedDriver).
+      witness: _copInRadius(player.r, player.c, 10),
+    } }));
+  } catch(e) {}
+  playEnterCarAnim(car.r, car.c);
+  hapticHit();
+}
+
 function hijackCivilianCar(car) {
   if (!car || myDrivingCarId) return;
+  // Едущая тачка — без lockpick, водитель-NPC выкидывается и бежит стучать
+  if (!car.parked) {
+    spawnEjectedDriver(car.r, car.c);
+    _completeHijack(car);
+    showToast('🚗 Выкинул водителя — поехали!', '✅', 1800);
+    return;
+  }
+  // Припаркованная — взлом замка
   const scLvl = (myGtaStatus && (myGtaStatus.sc_lvl | 0)) || 0;
   openLockpick(scLvl, (res) => {
     if (res === 'cancel') return;
-    // Проверяем что машина ещё рядом — за время мини-игры могла уехать
     if (!CARS.includes(car)) {
       showToast('🚗 Тачка уехала', '⚠️', 1600);
       return;
@@ -4892,32 +5090,14 @@ function hijackCivilianCar(car) {
       return;
     }
     if (res === 'fail') {
-      // Сигналка сработала — тачка НЕ угоняется, остаётся в трафике.
-      // На крыше 10 сек горят сирены; в эти 10 сек кнопка «Угнать» на
-      // этой машине не появляется (см. updateGtaInteractions).
+      // Сигналка — тачка остаётся, на крыше мигалки 10 с, повтор нельзя.
       car._alarmedUntil = performance.now() + 10000;
       showToast('🚨 Сигналка орёт — валим!', '⚠️', 2400);
       hapticHit();
       return;
     }
-    // success — обычный угон, witness = только если рядом живой NPC
-    const idx = CARS.indexOf(car);
-    if (idx >= 0) CARS.splice(idx, 1);
-    let witnessNpc = false;
-    for (const npc of NPCS) {
-      if (npc.dead) continue;
-      const dx = npc.c - player.c, dy = npc.r - player.r;
-      if (dx * dx + dy * dy <= 100) { witnessNpc = true; break; }
-    }
-    try {
-      ws && ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
-        x: +car.c.toFixed(2), y: +car.r.toFixed(2),
-        witness: witnessNpc,
-      } }));
-    } catch(e) {}
-    playEnterCarAnim(car.r, car.c);
-    showToast(witnessNpc ? '🚗 Угнал — тебя заметили!' : '🚗 Угнал тачку', '✅', 1800);
-    hapticHit();
+    _completeHijack(car);
+    showToast('🚗 Угнал тачку', '✅', 1600);
   });
 }
 
@@ -5168,14 +5348,34 @@ function enterCar(carId, asKind) {
     showToast('🚗 Уже за рулём другой игрок', '🚫', 2000);
     return;
   }
-  myIsPassenger = false;
-  myDrivingCarId = carId;
-  _exitRequested = false;
-  // Телепортируем игрока на позицию машины (потом он движется ВМЕСТЕ с ней)
-  player.r = qc.y;
-  player.c = qc.x;
-  player.ang = qc.ang;
-  // Локально помечаем чтоб все следующие тики snap не дёргали игрока в сторону
+  // Первая посадка в квестовую машину Майкла — запускаем lockpick (она
+  // же заперта, заказ Майкла). После успеха помечаем qc._lockpicked,
+  // чтобы при повторных пересадках не повторять мини-игру.
+  const needLockpick = !qc._lockpicked && !qc.civilian;
+  const _seat = () => {
+    qc._lockpicked = true;
+    myIsPassenger = false;
+    myDrivingCarId = carId;
+    _exitRequested = false;
+    player.r = qc.y;
+    player.c = qc.x;
+    player.ang = qc.ang;
+    playEnterCarAnim(qc.y, qc.x);
+  };
+  if (needLockpick) {
+    const scLvl = (myGtaStatus && (myGtaStatus.sc_lvl | 0)) || 0;
+    openLockpick(scLvl, (res) => {
+      if (res === 'cancel') return;
+      if (res === 'fail') {
+        showToast('🚨 Сигналка орёт — отойди и попробуй ещё', '⚠️', 2400);
+        hapticHit();
+        return;
+      }
+      _seat();
+    });
+    return;
+  }
+  _seat();
 }
 function exitCar(reason) {
   if (!myDrivingCarId) return;
@@ -5720,40 +5920,38 @@ function fire(angle = null) {
   const meInAggro = !!inAggroZone(player.r, player.c);
   const lawful    = meInArena || meInAggro || pvpActive || chosenConvoy || chosenCop || chosenAggro || chosenMg;
   if (!lawful) {
-    // Проверка: летит ли пуля в мирного NPC прохожего (стрельба в людей)?
-    // Если да — сервер даст СРАЗУ 2★ без предупреждения (бой). Прицеливаемся
-    // конусом 0.6 рад вокруг dir, дистанция до 6 тайлов.
-    let civilianHit = false;
+    // НОВАЯ механика wanted:
+    //   - мгновенный +1 только если КОП видел выстрел сам (witness=true)
+    //   - мирный NPC, попавший под прицел, становится snitch — бежит в
+    //     участок и даёт +1 если добежит (см. markNpcSnitch / updateNpcs)
+    //   - стрельба «в воздух» без копов и NPC рядом = тихая, без wanted
+    const copNear = _copInRadius(player.r, player.c, 12);
+    let snitchVictim = null;
+    let snitchVictimD = 1e9;
     for (const npc of NPCS) {
+      if (npc.dead || npc.snitching) continue;
       const dx = npc.c - player.c, dy = npc.r - player.r;
       const d  = Math.hypot(dx, dy);
-      if (d > 6) continue;
+      if (d > 7) continue;
       const dn = d > 0.001 ? d : 1;
       const dot = (dx * dirX + dy * dirY) / dn;
-      if (dot > 0.85) { civilianHit = true; break; }
+      // Конус ~0.5 рад вокруг направления выстрела (≈30°)
+      if (dot < 0.85) continue;
+      if (d < snitchVictimD) { snitchVictim = npc; snitchVictimD = d; }
     }
-    // Свидетель: любой мирный NPC в радиусе 10 тайлов и не убежавший.
-    // Если рядом ни души — wanted на сервере не вырастет (тихий выстрел).
-    let witnessNpc = false;
-    for (const npc of NPCS) {
-      if (npc.dead) continue;
-      const dx = npc.c - player.c, dy = npc.r - player.r;
-      if (dx * dx + dy * dy <= 100) { witnessNpc = true; break; }
-    }
+    if (snitchVictim) markNpcSnitch(snitchVictim);
     try {
       ws && ws.send(JSON.stringify({ t: 'open_fire',
         d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
              weapon: currentWeapon,
-             civilian: civilianHit,
-             witness:  witnessNpc } }));
+             civilian: false,
+             witness:  copNear } }));
     } catch(e) {}
-    // На первом «нелегальном» выстреле подсказка — что только что нарушил
-    if (myWanted < 1) {
-      showToast(civilianHit
-        ? '💀 Ты выстрелил в мирного — копы атакуют!'
-        : '🚓 Стрельба в городе запрещена — копы выехали',
-        civilianHit ? '🚨' : '⚠️',
-        civilianHit ? 3500 : 2500);
+    // На первом «нелегальном» выстреле — мягкая подсказка
+    if (myWanted < 1 && copNear) {
+      showToast('🚓 Коп видел выстрел — копы едут', '⚠️', 2500);
+    } else if (myWanted < 1 && snitchVictim) {
+      showToast('👀 Прохожий побежал в участок — догони и заткни', '⚠️', 3000);
     }
   }
   if (chosenConvoy) {
