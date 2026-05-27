@@ -2518,7 +2518,8 @@ function _raycastNpc(sR, sC, dirY, dirX, maxRange) {
     const along = dr * dirY + dc * dirX;
     if (along < 0.2 || along > maxRange) continue;   // не стреляем в себя
     const perp = Math.abs(dr * dirX - dc * dirY);
-    if (perp > 0.65) continue;
+    // Конус ±0.95 (было 0.65) — игрок чаще попадает по бегущим в панике NPC.
+    if (perp > 0.95) continue;
     if (along < bestD) {
       bestD = along;
       best = { npc: n, point: { r: sR + dirY * along, c: sC + dirX * along },
@@ -2589,16 +2590,33 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
   if (npc.hp <= 0) {
     npc.dead = true;
     npc.deadAt = performance.now();
-    // Большой splat крови на месте смерти
-    for (let i = 0; i < 4; i++) {
+    // Большой splat крови на месте смерти + взрыв-фонтан частиц по сторонам
+    for (let i = 0; i < 6; i++) {
       bloodSplats.push({
-        r: npc.r + (Math.random() - 0.5) * 0.5,
-        c: npc.c + (Math.random() - 0.5) * 0.5,
-        radius: 6 + Math.random() * 4,
+        r: npc.r + (Math.random() - 0.5) * 0.7,
+        c: npc.c + (Math.random() - 0.5) * 0.7,
+        radius: 7 + Math.random() * 5,
         life: 14000, max: 14000,
         rot: Math.random() * Math.PI,
       });
     }
+    // Кровь брызгами в стороны (как в spawnImpact, но круговой выброс)
+    const parts = [];
+    for (let i = 0; i < 14; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 1.0 + Math.random() * 2.4;
+      parts.push({
+        vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+        life: 500 + Math.random() * 400, max: 900,
+        color: Math.random() < 0.8 ? '#a01010' : '#3a0a0a',
+        isBlood: true,
+        size: 2.0 + Math.random() * 2.0,
+      });
+    }
+    impacts.push({ r: npc.r, c: npc.c, parts });
+    // Короткий предсмертный крик (если ещё не кричал — выставляем cryUntil)
+    npc.cryText  = ['АА!', 'НЕТ!', 'ПОМО…'][Math.floor(Math.random()*3)];
+    npc.cryUntil = performance.now() + 600;
   }
 }
 // Проходимо ли для NPC: только бордюр (9) или газон (8), и НЕ внутри
@@ -2926,17 +2944,19 @@ const CAR_MODELS = [
 // Спавнятся ТОЛЬКО как квестовые цели (сервером через quest_cars). Гражданский
 // трафик (CAR_MODELS) их не содержит. id совпадает с серверным QUEST_CAR_MODELS,
 // label — для меню квеста и HUD-карточки активного контракта.
+// id-ы СОВПАДАЮТ с серверным QUEST_CAR_MODELS в mafiozi_bot.py — иначе
+// фото машины Майкла будет пустым (QUEST_CAR_MODELS[id]→undefined).
 const QUEST_CAR_MODELS = {
-  mercedes:    { id: 'mercedes',    label: 'Mercedes S-Class', L: 1.85, W: 0.92, palette: ['#c8c8d0','#82828a'], roof: '#1a1a22', wheelR: 0.17, height: 0.60, reward: 1400 },
-  bmw_m5:      { id: 'bmw_m5',      label: 'BMW M5',           L: 1.75, W: 0.88, palette: ['#1a1a22','#0a0a10'], roof: '#000', wheelR: 0.16, height: 0.55, reward: 1800, sport: true },
-  aston:       { id: 'aston',       label: 'Aston Martin',     L: 1.78, W: 0.85, palette: ['#2a4a6a','#0a1a3a'], roof: '#000a1a', wheelR: 0.16, height: 0.52, reward: 2400, sport: true },
-  ferrari_f40: { id: 'ferrari_f40', label: 'Ferrari F40',      L: 1.70, W: 0.86, palette: ['#ee0e1a','#7a0510'], roof: '#1a0408', wheelR: 0.15, height: 0.50, reward: 2800, sport: true, fast: true },
-  camaro:      { id: 'camaro',      label: 'Chevy Camaro',     L: 1.80, W: 0.92, palette: ['#fad000','#a07a00'], roof: '#1a1100', wheelR: 0.17, height: 0.54, reward: 1600, sport: true },
-  rangerover:  { id: 'rangerover',  label: 'Range Rover',      L: 1.90, W: 1.00, palette: ['#1e3a1a','#0a1a08'], roof: '#0a1a08', wheelR: 0.20, height: 0.75, reward: 1500 },
-  cadillac:    { id: 'cadillac',    label: 'Cadillac DeVille', L: 2.00, W: 0.95, palette: ['#5a5a64','#2c2c34'], roof: '#1a1a20', wheelR: 0.17, height: 0.60, reward: 1300 },
-  maserati:    { id: 'maserati',    label: 'Maserati GT',      L: 1.78, W: 0.85, palette: ['#3a3a78','#1a1a3a'], roof: '#0a0a1a', wheelR: 0.16, height: 0.52, reward: 2200, sport: true },
-  tesla:       { id: 'tesla',       label: 'Tesla Roadster',   L: 1.70, W: 0.84, palette: ['#e8e8f0','#8a8a92'], roof: '#101020', wheelR: 0.16, height: 0.50, reward: 2000, sport: true, fast: true },
-  limo:        { id: 'limo',        label: 'Лимузин',          L: 2.60, W: 0.95, palette: ['#0a0a14','#000'], roof: '#000', wheelR: 0.18, height: 0.62, reward: 2600 },
+  ferrari_f40:    { id: 'ferrari_f40',    label: 'Ferrari F40',     L: 1.70, W: 0.86, palette: ['#ee0e1a','#7a0510'], roof: '#1a0408', wheelR: 0.15, height: 0.50, reward: 2800, sport: true, fast: true },
+  lambo_countach: { id: 'lambo_countach', label: 'Lambo Countach',  L: 1.70, W: 0.86, palette: ['#fad000','#a07a00'], roof: '#1a1100', wheelR: 0.15, height: 0.45, reward: 2600, sport: true, fast: true },
+  porsche_911:    { id: 'porsche_911',    label: 'Porsche 911',     L: 1.65, W: 0.80, palette: ['#3a3a78','#1a1a3a'], roof: '#0a0a1a', wheelR: 0.15, height: 0.50, reward: 2200, sport: true, fast: true },
+  delorean:       { id: 'delorean',       label: 'DeLorean DMC-12', L: 1.75, W: 0.85, palette: ['#c8c8d0','#82828a'], roof: '#1a1a22', wheelR: 0.16, height: 0.50, reward: 2000, sport: true },
+  aston_db5:      { id: 'aston_db5',      label: 'Aston DB5',       L: 1.78, W: 0.85, palette: ['#2a4a6a','#0a1a3a'], roof: '#000a1a', wheelR: 0.16, height: 0.52, reward: 2400, sport: true },
+  corvette_c3:    { id: 'corvette_c3',    label: 'Corvette C3',     L: 1.75, W: 0.86, palette: ['#e62810','#7a1010'], roof: '#1a0408', wheelR: 0.15, height: 0.48, reward: 1800, sport: true },
+  mustang_67:     { id: 'mustang_67',     label: 'Mustang 67',      L: 1.78, W: 0.88, palette: ['#1e3a1a','#0a1a08'], roof: '#0a1a08', wheelR: 0.16, height: 0.55, reward: 1700, sport: true },
+  cadillac_eldo:  { id: 'cadillac_eldo',  label: 'Cadillac Eldo',   L: 2.00, W: 0.95, palette: ['#5a5a64','#2c2c34'], roof: '#1a1a20', wheelR: 0.17, height: 0.60, reward: 1900 },
+  jaguar_e:       { id: 'jaguar_e',       label: 'Jaguar E-Type',   L: 1.80, W: 0.84, palette: ['#1a1a22','#0a0a10'], roof: '#000', wheelR: 0.16, height: 0.50, reward: 2300, sport: true },
+  mercedes_300:   { id: 'mercedes_300',   label: 'Mercedes 300SL',  L: 1.78, W: 0.85, palette: ['#c8c8d0','#82828a'], roof: '#1a1a22', wheelR: 0.16, height: 0.52, reward: 2500, sport: true },
 };
 // Полицейские модели — отдельный pool, используется ТОЛЬКО для патрулей
 // и спецсобытий (не спавнятся как обычные машины). Эти модели имеют
@@ -5506,9 +5526,22 @@ let myBoxStatus = { count_today: 0, limit: 5, reset_in_s: 0, active: null };
 let _boxStatusReqAt = 0;
 // Рендерит карточку машины в маленький canvas — игрок видит ЧТО угонять.
 function renderQuestCarPreview(cv, modelId) {
-  const m = QUEST_CAR_MODELS[modelId];
-  if (!cv || !m) return;
+  if (!cv) return;
+  let m = QUEST_CAR_MODELS[modelId];
+  // Фолбэк: если сервер прислал id который мы не знаем, не оставляем пустой
+  // canvas — берём ближайшую серебристую модель + рисуем «?» сверху.
   const c = cv.getContext('2d');
+  if (!m) {
+    c.clearRect(0, 0, cv.width, cv.height);
+    c.fillStyle = '#0c1018';
+    c.fillRect(0, 0, cv.width, cv.height);
+    c.fillStyle = '#ffd76b';
+    c.font = 'bold 18px system-ui, sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('? ' + (modelId || ''), cv.width / 2, cv.height / 2);
+    c.textBaseline = 'alphabetic'; c.textAlign = 'left';
+    return;
+  }
   c.clearRect(0, 0, cv.width, cv.height);
   // Фон — лёгкая «парковочная» сетка
   c.fillStyle = '#0c1018';
@@ -6872,25 +6905,32 @@ function update(dt) {
         qc.x = newX; qc.y = newY;
       } else {
         const impact = curSpeed;
-        curVx = -curVx * 0.25; curVy = -curVy * 0.25; // отскок 25%
-        if (impact > 3.5) reportCarCrash(qc, impact, 'wall');
+        // Просто остановка о стену + лёгкий урон только при ощутимой скорости.
+        curVx = 0; curVy = 0;
+        if (impact > 5.5) reportCarCrash(qc, impact, 'wall');
       }
-      // Столкновение с NPC-трафиком (декоративный CARS) — урон обеим сторонам,
-      // NPC-машина мгновенно «разбита» (исчезает облаком искр + переспаун).
-      for (const npcCar of CARS) {
-        if (npcCar.parked) continue;
-        if (npcCar._wrecked) continue;
-        const dd = Math.hypot(npcCar.r - qc.y, npcCar.c - qc.x);
-        if (dd < 1.1) {
-          const impact = curSpeed + Math.hypot(npcCar.vr || 0, npcCar.vc || 0) * 0.5;
-          if (impact > 2.0) {
+      // Столкновение с NPC-трафиком (декоративный CARS). Включается только
+      // если мы реально в неё «врезались на скорости» (curSpeed>4) и игрок
+      // не только что сел в машину (грейс-период 1.2 сек защищает от мгновенного
+      // wreck при спавне поверх соседней машины).
+      if (!qc._enteredAt) qc._enteredAt = performance.now();
+      const enterGrace = (performance.now() - qc._enteredAt) < 1200;
+      if (!enterGrace && curSpeed > 4.0) {
+        for (const npcCar of CARS) {
+          if (npcCar.parked) continue;
+          if (npcCar._wrecked) continue;
+          if (npcCar.gang) continue;             // бандитов не таранить случайно
+          const dd = Math.hypot(npcCar.r - qc.y, npcCar.c - qc.x);
+          if (dd < 1.0) {
+            const impact = curSpeed + Math.hypot(npcCar.vr || 0, npcCar.vc || 0) * 0.5;
             reportCarCrash(qc, impact, 'car');
             spawnCarExplosion(npcCar.r, npcCar.c);
-            npcCar._wrecked = true;
+            npcCar._wrecked   = true;
             npcCar._respawnAt = performance.now() + 600;
+            // Лёгкое торможение, не отбрасывание — иначе застреваешь
+            curVx *= 0.3; curVy *= 0.3;
+            break;
           }
-          curVx *= -0.4; curVy *= -0.4;
-          break;
         }
       }
       qc.vx = curVx; qc.vy = curVy;
@@ -6969,10 +7009,12 @@ function update(dt) {
   const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
   cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
   cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
-  // Зум: одинаковый везде. Раньше на пляже включался zoom=1.20, но из-за
-  // резкого перехода у города + пустого пространства это ощущалось как
-  // «камера дёргается / отдаляется». Унифицировано: 1.0 везде.
-  viewZoom += (1.0 - viewZoom) * Math.min(1, dt * 3.5);
+  // Зум: на пляже немного приближаем (1.18) — там нет высоких зданий,
+  // и игрок без зума выглядит слишком мелким. Лерпим плавно, дёрганья
+  // больше нет благодаря медленному коэффициенту.
+  const beachZone = (player.r >= 140);
+  const targetZoom = beachZone ? 1.18 : 1.0;
+  viewZoom += (targetZoom - viewZoom) * Math.min(1, dt * 2.0);
   // Поиск ближайшего POI: если игрок в радиусе ENTER_R тайлов от вывески,
   // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
   updateZoneBtn();
@@ -10077,8 +10119,13 @@ function drawTrafficLight(r, c) {
 // ── NPC прохожий (упрощённый человечек) ──────────────────────────
 function drawNpc(npc) {
   const p = w2s(npc.r, npc.c);
-  drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null, !!npc.dead);
-  if (npc.dead) return;   // трупам не показываем чат-баббл
+  drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null,
+             !!npc.dead, npc.deadAt || 0);
+  // Свежий труп — даём показаться предсмертному крику (cryUntil) ещё ~700мс
+  if (npc.dead) {
+    const fresh = (performance.now() - (npc.deadAt || 0)) < 800;
+    if (!fresh) return;
+  }
   // Крик «ПОМОГИТЕ!» когда NPC в панике (panicUntil > now). Чат-баббл
   // подпрыгивает с лёгкой анимацией. cryUntil — отдельно, чтобы крик
   // показывался лишь первые ~2 сек паники, потом NPC просто молча бежит.
@@ -12946,8 +12993,16 @@ function drawWeaponInHands(x, y, ang, weapon, scale /*shotAtMs ignored: см. dr
   }
 }
 
-function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, isDead) {
-  if (isDead) ctx.globalAlpha = 0.35;
+function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, isDead, deadAt) {
+  // Анимация падения: первые 400мс — поворот 0→90° и смещение вниз; дальше
+  // — статично лежит с alpha 0.55. До этого было просто globalAlpha 0.35 без
+  // движения — выглядело как «исчезает», не как «упал».
+  let fallK = 1;             // 0 = только что умер, 1 = упал полностью
+  if (isDead) {
+    const ageMs = deadAt ? (performance.now() - deadAt) : 9999;
+    fallK = Math.min(1, Math.max(0, ageMs / 400));
+    ctx.globalAlpha = 0.55 + (1 - fallK) * 0.35;   // 0.90→0.55
+  }
   // Тень под ногами
   ctx.fillStyle = 'rgba(0,0,0,.55)';
   ctx.beginPath();
@@ -12958,14 +13013,22 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
   const sh = TS * 1.7;
   const sw = sh * 0.72;
   const ph = walkPhase || 0;
-  const bob = Math.sin(ph) * 1.6;
-  const squashY = 1 - Math.abs(Math.sin(ph * 2)) * 0.04;
-  const lean = Math.sin(ph) * 0.04;
+  const bob = isDead ? 0 : Math.sin(ph) * 1.6;
+  const squashY = isDead ? 1 : (1 - Math.abs(Math.sin(ph * 2)) * 0.04);
+  const lean = isDead ? (Math.PI / 2 * fallK) : Math.sin(ph) * 0.04;
   ctx.save();
-  ctx.translate(x, y + bob);
-  ctx.rotate(lean);
-  ctx.scale(1, squashY);
-  ctx.drawImage(sprite, Math.round(-sw/2), Math.round(-sh*0.94), sw, sh);
+  // Когда падает — смещение оси к ногам, чтобы спрайт «лёг» на землю,
+  // а не вращался вокруг центра.
+  if (isDead) {
+    ctx.translate(x, y);
+    ctx.rotate(lean);
+    ctx.drawImage(sprite, Math.round(-sw/2), Math.round(-sh*0.94), sw, sh);
+  } else {
+    ctx.translate(x, y + bob);
+    ctx.rotate(lean);
+    ctx.scale(1, squashY);
+    ctx.drawImage(sprite, Math.round(-sw/2), Math.round(-sh*0.94), sw, sh);
+  }
   ctx.restore();
 
   // Верхушка спрайта: фигура нарисована от y до y - sh*0.94. Над ней
