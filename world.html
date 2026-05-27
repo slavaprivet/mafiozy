@@ -9540,51 +9540,147 @@ function drawCarPretty(car) {
   ctx.moveTo(FR.x, FR.y - H); ctx.lineTo(FL.x, FL.y - H);
   ctx.lineTo(BL.x, BL.y - H); ctx.lineTo(BR.x, BR.y - H);
   ctx.closePath(); ctx.fill();
-  // Окна — синяя полоса на верхней части видимых граней
-  ctx.fillStyle = 'rgba(150,200,240,.45)';
+  // Окна — стеклянная полоса с градиентом + блик (отражение)
   for (const e of visible) {
+    const g = ctx.createLinearGradient(e.a.x, e.a.y - H * 0.85, e.b.x, e.b.y - H * 0.30);
+    g.addColorStop(0, 'rgba(180,220,250,.65)');
+    g.addColorStop(1, 'rgba(60,110,160,.40)');
+    ctx.fillStyle = g;
     ctx.beginPath();
     ctx.moveTo(e.a.x + (e.b.x - e.a.x) * 0.10, e.a.y - H * 0.85);
     ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.90, e.b.y - H * 0.85);
     ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.90, e.b.y - H * 0.30);
     ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.10, e.a.y - H * 0.30);
     ctx.closePath(); ctx.fill();
+    // Блик-полоса — тонкая косая «отражение»
+    ctx.strokeStyle = 'rgba(255,255,255,.40)';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(e.a.x + (e.b.x - e.a.x) * 0.30, e.a.y - H * 0.78);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.50, e.b.y - H * 0.55);
+    ctx.stroke();
   }
-  // Колёса — 4 тёмных овала у углов основания
-  ctx.fillStyle = '#0a0a0a';
+  // B-pillar (стойка между дверями) — не для спорткаров
+  if (!m.sport && !m.fast) {
+    ctx.strokeStyle = 'rgba(0,0,0,.55)';
+    ctx.lineWidth = 1.0;
+    for (const e of visible) {
+      const px = e.a.x + (e.b.x - e.a.x) * 0.50;
+      const py = e.a.y + (e.b.y - e.a.y) * 0.50;
+      ctx.beginPath();
+      ctx.moveTo(px, py - H * 0.85);
+      ctx.lineTo(px, py - H * 0.30);
+      ctx.stroke();
+    }
+  }
+  // Хромированные ручки на дверях
+  if (!m.swat_truck && !m.paddyvan) {
+    ctx.fillStyle = '#c8c8d0';
+    for (const e of visible) {
+      const px = e.a.x + (e.b.x - e.a.x) * 0.32;
+      const py = e.a.y + (e.b.y - e.a.y) * 0.32 - H * 0.42;
+      ctx.fillRect(px - 1.5, py, 3, 0.8);
+    }
+  }
+  // Колёса — 4 чёрных овала + хромированный обод (диск)
   for (const corner of [FR, FL, BR, BL]) {
+    ctx.fillStyle = '#0a0a0a';
     ctx.beginPath();
-    ctx.ellipse(corner.x, corner.y, 3.5, 1.8, 0, 0, Math.PI * 2);
+    ctx.ellipse(corner.x, corner.y, 3.8, 2.0, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Диск-обод — серый кружок внутри
+    ctx.fillStyle = '#8c8c94';
+    ctx.beginPath();
+    ctx.ellipse(corner.x, corner.y, 2.0, 1.0, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Центральная гайка
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath();
+    ctx.arc(corner.x, corner.y, 0.6, 0, Math.PI * 2);
     ctx.fill();
   }
-  // Фары (жёлтые с glow) на front-грани, в направлении движения
+  // Выхлоп — маленькое тёмное отверстие в нижнем углу задней грани
+  // (только для движущихся машин — у припаркованных он не виден)
+  if (!car.parked) {
+    const backEdge2 = edges.find(e => e.name === 'back');
+    if (backEdge2) {
+      const ex = backEdge2.a.x * 0.80 + backEdge2.b.x * 0.20;
+      const ey = backEdge2.a.y * 0.80 + backEdge2.b.y * 0.20 - 1;
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.arc(ex, ey, 1.0, 0, Math.PI * 2);
+      ctx.fill();
+      // Дымок выхлопа — белёсое облачко если едет
+      if (Math.hypot(car.vr || 0, car.vc || 0) > 0.5) {
+        const t2 = performance.now() * 0.003;
+        ctx.fillStyle = `rgba(180,180,180,${0.35 + 0.10 * Math.sin(t2 + car.r * 1.3)})`;
+        ctx.beginPath();
+        ctx.arc(ex - 2, ey - 2 + Math.sin(t2) * 0.5, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  // Фары (жёлтые с glow) на front-грани, в направлении движения.
+  // Усилены: двойной круг (внешний glow + ядро), белёсый «конус» света
+  // вперёд для движущихся машин.
   const fronEdge = edges.find(e => e.name === 'front');
-  ctx.fillStyle = '#fff4b8';
-  ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 6;
-  const fmid_x = (fronEdge.a.x + fronEdge.b.x) / 2;
-  const fmid_y = (fronEdge.a.y + fronEdge.b.y) / 2;
-  ctx.beginPath();
-  ctx.arc(fronEdge.a.x * 0.7 + fronEdge.b.x * 0.3,
-          fronEdge.a.y * 0.7 + fronEdge.b.y * 0.3 - H * 0.25, 2.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(fronEdge.a.x * 0.3 + fronEdge.b.x * 0.7,
-          fronEdge.a.y * 0.3 + fronEdge.b.y * 0.7 - H * 0.25, 2.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  // Стоп-сигналы — красные на задней грани, если тормозит
-  if (car.braking) {
-    const backEdge = edges.find(e => e.name === 'back');
-    ctx.fillStyle = '#ff4040';
-    ctx.shadowColor = '#ff4040'; ctx.shadowBlur = 5;
-    ctx.beginPath();
-    ctx.arc(backEdge.a.x * 0.7 + backEdge.b.x * 0.3,
-            backEdge.a.y * 0.7 + backEdge.b.y * 0.3 - H * 0.30, 1.8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(backEdge.a.x * 0.3 + backEdge.b.x * 0.7,
-            backEdge.a.y * 0.3 + backEdge.b.y * 0.7 - H * 0.30, 1.8, 0, Math.PI * 2);
-    ctx.fill();
+  if (fronEdge) {
+    const lx1 = fronEdge.a.x * 0.78 + fronEdge.b.x * 0.22;
+    const ly1 = fronEdge.a.y * 0.78 + fronEdge.b.y * 0.22 - H * 0.22;
+    const lx2 = fronEdge.a.x * 0.22 + fronEdge.b.x * 0.78;
+    const ly2 = fronEdge.a.y * 0.22 + fronEdge.b.y * 0.78 - H * 0.22;
+    // Glow-ореол
+    ctx.fillStyle = 'rgba(255,244,184,.35)';
+    ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(lx1, ly1, 3.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(lx2, ly2, 3.6, 0, Math.PI * 2); ctx.fill();
+    // Ядро — яркое
+    ctx.fillStyle = '#fffae0';
+    ctx.shadowBlur = 4;
+    ctx.beginPath(); ctx.arc(lx1, ly1, 2.1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(lx2, ly2, 2.1, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Конус света на асфальте — только когда едет
+    if (!car.parked && Math.hypot(car.vr || 0, car.vc || 0) > 0.3) {
+      const fmx = (fronEdge.a.x + fronEdge.b.x) / 2;
+      const fmy = (fronEdge.a.y + fronEdge.b.y) / 2;
+      const lcx = (FR.x + FL.x + BR.x + BL.x) / 4;
+      const lcy = (FR.y + FL.y + BR.y + BL.y) / 4;
+      const dx = fmx - lcx, dy = fmy - lcy;
+      const dn = Math.hypot(dx, dy) || 1;
+      const ux = dx / dn, uy = dy / dn;
+      const beamLen = 28, beamHalfW = 9;
+      const px = -uy, py = ux;
+      const cg = ctx.createRadialGradient(fmx, fmy, 1, fmx + ux * beamLen, fmy + uy * beamLen, beamLen);
+      cg.addColorStop(0, 'rgba(255,244,184,.32)');
+      cg.addColorStop(1, 'rgba(255,244,184,0)');
+      ctx.fillStyle = cg;
+      ctx.beginPath();
+      ctx.moveTo(fmx + px * 1.5, fmy + py * 1.5);
+      ctx.lineTo(fmx + ux * beamLen + px * beamHalfW, fmy + uy * beamLen + py * beamHalfW);
+      ctx.lineTo(fmx + ux * beamLen - px * beamHalfW, fmy + uy * beamLen - py * beamHalfW);
+      ctx.lineTo(fmx - px * 1.5, fmy - py * 1.5);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  // Задние габариты + стоп. Габариты — всегда тускло-красные; при
+  // торможении/остановке — ярко-красные с glow.
+  const backEdge = edges.find(e => e.name === 'back');
+  if (backEdge) {
+    const bx1 = backEdge.a.x * 0.78 + backEdge.b.x * 0.22;
+    const by1 = backEdge.a.y * 0.78 + backEdge.b.y * 0.22 - H * 0.27;
+    const bx2 = backEdge.a.x * 0.22 + backEdge.b.x * 0.78;
+    const by2 = backEdge.a.y * 0.22 + backEdge.b.y * 0.78 - H * 0.27;
+    if (car.braking) {
+      ctx.fillStyle = '#ff4040';
+      ctx.shadowColor = '#ff4040'; ctx.shadowBlur = 6;
+    } else {
+      ctx.fillStyle = '#a02020';
+      ctx.shadowBlur = 0;
+    }
+    ctx.beginPath(); ctx.arc(bx1, by1, 1.8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx2, by2, 1.8, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
   }
   // Шашечки такси — на крыше (центр), мигающая жёлтая лампа
@@ -9751,6 +9847,200 @@ function drawCarPretty(car) {
     ctx.fillText('!', cx, cy - 8 - (ph ? 1 : 0));
     ctx.textAlign = 'left';
   }
+}
+
+// ── Билборды над городом ───────────────────────────────────────
+// Большие рекламные щиты на крышах зданий: столб + большой щит с
+// иллюстрацией и текстом. Рендерятся в depth-sort после здания.
+// Координаты — реально тайлы-здания (MAP[r][c]==1) в разных кварталах.
+// Если выбрать тротуар (9) или дорогу — depth-sort не заходит в этот блок
+// и drawBillboard просто не вызывается.
+const BILLBOARDS = [
+  { r: 18, c: 26, theme: 'mafia',   text: 'CORLEONE',   sub: 'мы помним' },
+  { r: 18, c: 66, theme: 'burger',  text: 'BIG BURGER', sub: 'двойной чиз $5' },
+  { r: 26, c: 18, theme: 'casino',  text: 'GOLDEN CHIP',sub: 'удача ждёт' },
+  { r: 26, c: 58, theme: 'cola',    text: 'COLA NIGHT', sub: 'пей и танцуй' },
+  { r: 58, c: 18, theme: 'gun',     text: 'AMMO 24/7',  sub: 'патроны оптом' },
+  { r: 58, c: 26, theme: 'pizza',   text: 'TONY PIZZA', sub: 'доставка 30 мин' },
+  { r: 58, c: 58, theme: 'noir',    text: 'NIGHTSHADE', sub: 'джаз и виски' },
+  { r: 66, c: 18, theme: 'cars',    text: 'AUTO BROS',  sub: 'тюнинг • запчасти' },
+  { r: 66, c: 58, theme: 'fight',   text: 'FIGHT CLUB', sub: 'правил нет' },
+  { r: 66, c: 66, theme: 'jewel',   text: 'DIAMOND CO.',sub: 'эксклюзив' },
+];
+const BILLBOARD_BY_RC = new Map();
+BILLBOARDS.forEach(b => BILLBOARD_BY_RC.set(b.r + ',' + b.c, b));
+
+function drawBillboard(b) {
+  // Высота крыши здания (та же формула что в drawBuilding)
+  const seed = ((b.r * 73 + b.c * 131) % 7) / 7;
+  const H = isoH(1.3 + seed * 1.4);
+  const p = w2s(b.r + 0.5, b.c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  // Двойные столбы — крепятся к ближней (правой) грани крыши
+  const baseX = p.x + wx * 0.20;
+  const baseY = p.y - H + wy * 0.20;
+  const poleH = 14;
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(baseX - 5, baseY - poleH, 1.5, poleH);
+  ctx.fillRect(baseX + 14, baseY - poleH, 1.5, poleH);
+  // Щит — большой прямоугольник со рамкой
+  const sW = 44, sH = 22;
+  const sx = baseX - 8;
+  const sy = baseY - poleH - sH + 2;
+  // Темы: цвет фона + цвет акцента
+  const themes = {
+    mafia:  { bg: '#1a0606', fg: '#f1c40f', icon: '🎩' },
+    burger: { bg: '#3a2010', fg: '#ffd76b', icon: '🍔' },
+    casino: { bg: '#2a0a1a', fg: '#ffd700', icon: '🎰' },
+    cola:   { bg: '#7a0a0a', fg: '#fff',    icon: '🥤' },
+    gun:    { bg: '#0a0a0a', fg: '#ff4040', icon: '🔫' },
+    pizza:  { bg: '#3a0a0a', fg: '#ff8030', icon: '🍕' },
+    noir:   { bg: '#100018', fg: '#e0c8ff', icon: '🎷' },
+    cars:   { bg: '#10141c', fg: '#3afd6c', icon: '🚗' },
+    fight:  { bg: '#0a0a0a', fg: '#ff5050', icon: '🥊' },
+    jewel:  { bg: '#0a0a1a', fg: '#7adfff', icon: '💎' },
+  };
+  const th = themes[b.theme] || themes.mafia;
+  // Тень-фон щита
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.fillRect(sx + 2, sy + 2, sW, sH);
+  // Фон щита
+  const grd = ctx.createLinearGradient(sx, sy, sx, sy + sH);
+  grd.addColorStop(0, th.bg);
+  grd.addColorStop(1, '#000');
+  ctx.fillStyle = grd;
+  ctx.fillRect(sx, sy, sW, sH);
+  // Рамка
+  ctx.strokeStyle = th.fg;
+  ctx.lineWidth = 1.4;
+  ctx.strokeRect(sx + 0.5, sy + 0.5, sW - 1, sH - 1);
+  // Лампочки по краю (мигают)
+  const tBlink = Math.floor(performance.now() / 250) % 2;
+  ctx.fillStyle = tBlink ? th.fg : '#3a3010';
+  for (let i = 0; i < 6; i++) {
+    ctx.fillRect(sx + 2 + i * 7, sy + 1.5, 1.5, 1.5);
+    ctx.fillRect(sx + 2 + i * 7, sy + sH - 3, 1.5, 1.5);
+  }
+  // Иконка
+  ctx.font = 'bold 11px "Segoe UI Emoji", system-ui';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = th.fg;
+  ctx.fillText(th.icon, sx + 3, sy + sH * 0.40);
+  // Основной текст
+  ctx.font = 'bold 6.5px system-ui, sans-serif';
+  ctx.fillStyle = th.fg;
+  ctx.fillText(b.text, sx + 14, sy + sH * 0.35);
+  // Подзаголовок
+  ctx.font = '5.5px system-ui, sans-serif';
+  ctx.fillStyle = '#cfcfd6';
+  ctx.fillText(b.sub, sx + 4, sy + sH * 0.72);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+}
+
+// ── Бурдж-Халифа — особая башня в городе ────────────────────────
+// Координаты «башни». Ставим в центральном квартале, заметно издалека.
+// Это специальное здание поверх обычного drawBuilding(r,c).
+const BURJ_POS = { r: 36, c: 36 };
+function drawBurjKhalifa() {
+  const r = BURJ_POS.r, c = BURJ_POS.c;
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  // Ступенчатая башня: 6 сегментов, каждый меньше предыдущего
+  const segs = 6;
+  const baseH = isoH(2.4);    // высота основной части
+  const totalH = baseH * segs; // условная общая
+  // Цвета — серебристо-голубое стекло с подсветкой снизу→верх
+  for (let i = 0; i < segs; i++) {
+    const kw = 1 - i * 0.13;
+    const w1 = wx * kw;
+    const h1 = wy * kw;
+    const baseY = p.y - baseH * i;
+    const segH = baseH * 1.05;
+    // Левая грань
+    const gLeft = ctx.createLinearGradient(p.x - w1, baseY, p.x, baseY + h1);
+    gLeft.addColorStop(0, '#2a3a4a');
+    gLeft.addColorStop(1, '#0a1018');
+    ctx.fillStyle = gLeft;
+    ctx.beginPath();
+    ctx.moveTo(p.x - w1, baseY);
+    ctx.lineTo(p.x,      baseY + h1);
+    ctx.lineTo(p.x,      baseY + h1 - segH);
+    ctx.lineTo(p.x - w1, baseY - segH);
+    ctx.closePath(); ctx.fill();
+    // Правая грань (стеклянная — светлее)
+    const gRight = ctx.createLinearGradient(p.x, baseY - segH * 0.8, p.x + w1, baseY);
+    gRight.addColorStop(0, '#4a6a8a');
+    gRight.addColorStop(1, '#1a2840');
+    ctx.fillStyle = gRight;
+    ctx.beginPath();
+    ctx.moveTo(p.x,      baseY + h1);
+    ctx.lineTo(p.x + w1, baseY);
+    ctx.lineTo(p.x + w1, baseY - segH);
+    ctx.lineTo(p.x,      baseY + h1 - segH);
+    ctx.closePath(); ctx.fill();
+    // Стеклянные горизонтальные полоски — окна высотки
+    ctx.strokeStyle = 'rgba(180,220,255,.20)';
+    ctx.lineWidth = 0.5;
+    for (let k = 0; k < 6; k++) {
+      const yy = baseY + h1 - segH * (0.10 + k * 0.14);
+      ctx.beginPath();
+      ctx.moveTo(p.x - w1 * 0.9, yy - h1 * 0.9);
+      ctx.lineTo(p.x,            yy);
+      ctx.lineTo(p.x + w1 * 0.9, yy - h1 * 0.9);
+      ctx.stroke();
+    }
+    // Верхняя «полка»-крыша сегмента
+    ctx.fillStyle = '#0e141c';
+    ctx.beginPath();
+    ctx.moveTo(p.x,         baseY + h1 - segH);
+    ctx.lineTo(p.x + w1,    baseY - segH);
+    ctx.lineTo(p.x,         baseY - h1 - segH);
+    ctx.lineTo(p.x - w1,    baseY - segH);
+    ctx.closePath(); ctx.fill();
+  }
+  // Шпиль наверху — длинная тонкая стрела
+  const topY = p.y - baseH * segs;
+  const spireH = 38;
+  ctx.fillStyle = '#3a4a5a';
+  ctx.beginPath();
+  ctx.moveTo(p.x - 2, topY);
+  ctx.lineTo(p.x + 2, topY);
+  ctx.lineTo(p.x + 0.5, topY - spireH);
+  ctx.lineTo(p.x - 0.5, topY - spireH);
+  ctx.closePath(); ctx.fill();
+  // Красный авиамаяк на вершине шпиля
+  const blink = (Math.sin(performance.now() / 350) > 0.2) ? '#ff4040' : '#400a0a';
+  ctx.fillStyle = blink;
+  ctx.shadowColor = '#ff4040';
+  ctx.shadowBlur = blink === '#ff4040' ? 14 : 0;
+  ctx.beginPath();
+  ctx.arc(p.x, topY - spireH - 2, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // Прожекторная подсветка снизу — золотистое сияние у основания
+  const glow = ctx.createRadialGradient(p.x, p.y - baseH * 0.3, 4, p.x, p.y - baseH * 0.3, 60);
+  glow.addColorStop(0, 'rgba(255,200,120,.20)');
+  glow.addColorStop(1, 'rgba(255,200,120,0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y - baseH * 0.3, 60, 0, Math.PI * 2);
+  ctx.fill();
+  // Шильдик с названием — высоко на втором сегменте
+  const labelY = p.y - baseH * 1.4;
+  ctx.fillStyle = 'rgba(10,10,16,.92)';
+  ctx.fillRect(p.x - 24, labelY - 7, 48, 14);
+  ctx.strokeStyle = '#ffd76b';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(p.x - 23.5, labelY - 6.5, 47, 13);
+  ctx.font = 'bold 8px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffd76b';
+  ctx.fillText('BURJ MAFIA', p.x, labelY);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
 }
 
 // ── Светофор на перекрёстке (рисуется как столб на тайле) ───────
@@ -10983,25 +11273,37 @@ function drawBuilding(r, c) {
      ['#3e7060', '#162820'],   // мятный/изумруд
      ['#7a6038', '#3a2812'],   // охра
      ['#6c5478', '#221830'],   // лавандово-серый
-     ['#a06a48', '#4a2a14']],  // терракот
+     ['#a06a48', '#4a2a14'],   // терракот
+     ['#945a28', '#3a1f08'],   // тыквенный
+     ['#3a5878', '#101f30'],   // приглушённо-синий
+     ['#7a2828', '#2e0a0a'],   // винный
+     ['#406a4a', '#15281a']],  // нефритовый
     // офисное — холодные сине-стальные + слегка тонированные
     [['#2a3e58', '#10182a'],
      ['#3a4858', '#171f2a'],
      ['#1f2e3a', '#0c161f'],
      ['#3e3050', '#16101e'],   // фиолет-сталь
-     ['#28486a', '#0c1828']],  // глубокий синий
+     ['#28486a', '#0c1828'],   // глубокий синий
+     ['#1c3e3a', '#08181a'],   // бирюзово-стальной
+     ['#34344a', '#101020'],   // графитовый
+     ['#48586a', '#1c2430']],  // светло-серый офис
     // низкое с магазином — пёстрые, с акцентом
     [['#5a4838', '#2a1f18'],
      ['#4a3828', '#28190c'],
      ['#8a4a2a', '#3a1e10'],   // оранжевая штукатурка
      ['#4a7a3a', '#1f3018'],   // оливковая
-     ['#a08038', '#3e2e10']],  // песочно-горчичная
+     ['#a08038', '#3e2e10'],   // песочно-горчичная
+     ['#6e2a6e', '#2a0e2a'],   // лиловая (магазин одежды)
+     ['#2a6e8a', '#0c2e3a'],   // голубая (пекарня)
+     ['#a04848', '#3a1010']],  // алая (пиццерия)
     // высотка — холодная стальная + редкие зелёные стеклянные
     [['#3a4050', '#181c24'],
      ['#283040', '#10141c'],
      ['#2a3848', '#0e131c'],
      ['#2a4a3a', '#0e1c14'],   // зелёное стекло
-     ['#403848', '#181420']],  // тёмная сталь
+     ['#403848', '#181420'],   // тёмная сталь
+     ['#2c4a5e', '#0c1e2e'],   // синий хай-тек
+     ['#48404a', '#1c1820']],  // пурпурный графит
   ];
   const palList = palettesByType[bldType];
   const palIdx = ((r * 17 + c * 31) % palList.length + palList.length) % palList.length;
@@ -11175,6 +11477,56 @@ function drawBuilding(r, c) {
     for (let i = 0; i < 3; i++) {
       ctx.fillRect(acX - 3, acY - 4 + i * 2, 6, 0.8);
     }
+  } else if (rooftop === 3 && bldType !== 3) {
+    // Водонапорный бак — деревянный цилиндр на ножках (Нью-Йорк стиль)
+    const tx = p.x - wx * 0.25, ty = p.y - H - 5;
+    ctx.fillStyle = '#5a3a1c';
+    ctx.fillRect(tx - 4, ty - 6, 8, 8);
+    // Полоски досок
+    ctx.strokeStyle = '#3a2410';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(tx - 4, ty - 6 + i * 2.5);
+      ctx.lineTo(tx + 4, ty - 6 + i * 2.5);
+      ctx.stroke();
+    }
+    // Конус-крышка
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath();
+    ctx.moveTo(tx - 4, ty - 6);
+    ctx.lineTo(tx + 4, ty - 6);
+    ctx.lineTo(tx, ty - 10);
+    ctx.closePath(); ctx.fill();
+    // Ножки
+    ctx.strokeStyle = '#2a1c10';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(tx - 3, ty + 2); ctx.lineTo(tx - 3, ty + 5);
+    ctx.moveTo(tx + 3, ty + 2); ctx.lineTo(tx + 3, ty + 5);
+    ctx.stroke();
+  } else if (rooftop === 4 && bldType === 3) {
+    // Хай-тек — стеклянный купол на крыше высотки + красный маячок
+    const dx = p.x, dy = p.y - H + 2;
+    const grd2 = ctx.createRadialGradient(dx - 2, dy - 5, 1, dx, dy, 7);
+    grd2.addColorStop(0, 'rgba(160,210,250,.85)');
+    grd2.addColorStop(1, 'rgba(40,60,90,.65)');
+    ctx.fillStyle = grd2;
+    ctx.beginPath();
+    ctx.ellipse(dx, dy, 7, 4, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.strokeStyle = '#1a1a22';
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+    // Мигающий красный маячок
+    const blink2 = (Math.sin(t * 2.5) > 0.3) ? '#ff4040' : '#400a0a';
+    ctx.fillStyle = blink2;
+    ctx.shadowColor = '#ff4040';
+    ctx.shadowBlur = blink2 === '#ff4040' ? 8 : 0;
+    ctx.beginPath();
+    ctx.arc(dx, dy - 5, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
   }
   // ── Дополнительные уникальные детали (детерминированно по r,c) ─
   // Делают город разнообразным: бельё на верёвке, цветочные ящики,
@@ -12798,6 +13150,11 @@ function render() {
       const poi = POI_BY_RC.get(r + ',' + c);
       if (t === 1) {
         items.push({ depth: r + c, draw: () => {
+          // Бурдж — особое здание поверх обычного тайла
+          if (r === BURJ_POS.r && c === BURJ_POS.c) {
+            drawBurjKhalifa();
+            return;
+          }
           // Каждый POI — своя стилизованная постройка. Остальные
           // тайлы — обычные дома (drawBuilding с разными палитрами).
           if      (poi && poi.id === 'casino')    drawCasinoBuilding(r, c);
@@ -12808,6 +13165,9 @@ function render() {
           else if (poi && poi.special === 'shop') drawBlackmarket(r, c);
           else                                    drawBuilding(r, c);
           if (poi) drawPOI(r, c, poi);
+          // Билборд над крышей — если на этом тайле есть запись
+          const bb = BILLBOARD_BY_RC.get(r + ',' + c);
+          if (bb) drawBillboard(bb);
           // У полицейского участка — парковка с техникой + турель на крыше
           if (poi && poi.id === 'police') drawPoliceStationDecor(r, c);
         }});
