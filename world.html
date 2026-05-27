@@ -2769,16 +2769,315 @@ function maintainNpcPopulation(now) {
 const POLICE_STATION_R = 76, POLICE_STATION_C = 76;
 const POLICE_REPORT_RADIUS = 5.5;   // на этом расстоянии NPC «достучался»
 
+// ── Городские службы (клиентский «живой мир») ───────────────────────
+// Эти сервисы — декорация для эффекта песочницы. Серверные копы по
+// wanted-системе тоже работают (см. tick_cops в mafiozi_bot.py).
+// А ниже — фоновые патрули копов + скорая на трупы + пожарные на пожары.
+const HOSPITAL_R     = 26, HOSPITAL_C     = 46;   // POI 'hospital'
+const FIRE_STATION_R = 56, FIRE_STATION_C = 26;   // свободный квартал
+
+// Патрульные копы в городе. Ходят как NPC, считаются «видимыми копами»
+// для witness-цепочки (_copInRadius). Не стреляют — на агрессию реагирует
+// серверная система wanted, эти копы только декорация.
+const CITY_COPS_TARGET = 6;
+const cityCops = [];
+let _cityCopId = 0;
+
+function spawnCityCop() {
+  for (let tries = 0; tries < 60; tries++) {
+    const r = 4 + Math.floor(Math.random() * 72);
+    const c = 4 + Math.floor(Math.random() * (MAP_COLS - 8));
+    if (r >= 80) continue;          // только в городской части карты
+    if (inArena(r, c)) continue;
+    if (!MAP[r]) continue;
+    const t = MAP[r][c];
+    if (t !== 9 && t !== 8) continue;
+    // Не спаунить близко к игроку (чтобы не появлялся в кадре)
+    const dr = r - player.r, dc = c - player.c;
+    if (Math.hypot(dr, dc) < 18) continue;
+    return {
+      id: 'citycop_' + (++_cityCopId),
+      x: c + 0.5, y: r + 0.5,
+      tx: c + 0.5, ty: r + 0.5,
+      ang: 0, walkPhase: 0,
+      kind: 'patrol',
+      weapon: 'pistol',
+      hp: 100, max_hp: 100,
+      alive: true,
+      speed: 1.0 + Math.random() * 0.5,
+      _wayUntil: 0,
+    };
+  }
+  return null;
+}
+
+function pickCityCopWaypoint(cop) {
+  for (let tries = 0; tries < 30; tries++) {
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 5 + Math.random() * 7;
+    const tr = Math.floor(cop.y + Math.sin(ang) * dist);
+    const tc = Math.floor(cop.x + Math.cos(ang) * dist);
+    if (tr < 2 || tr >= 80 || tc < 2 || tc >= MAP_COLS - 2) continue;
+    if (MAP[tr] && (MAP[tr][tc] === 9 || MAP[tr][tc] === 8)) {
+      cop.tx = tc + 0.5; cop.ty = tr + 0.5;
+      return;
+    }
+  }
+  cop.tx = cop.x; cop.ty = cop.y;
+}
+
+function initCityCops() {
+  for (let i = 0; i < CITY_COPS_TARGET; i++) {
+    const c = spawnCityCop();
+    if (c) { pickCityCopWaypoint(c); cityCops.push(c); }
+  }
+}
+
+let _cityCopsLastSpawnAt = 0;
+function updateCityCops(dt) {
+  const now = performance.now();
+  // Поддержание численности
+  if (cityCops.length < CITY_COPS_TARGET && now - _cityCopsLastSpawnAt > 2500) {
+    _cityCopsLastSpawnAt = now;
+    const c = spawnCityCop();
+    if (c) { pickCityCopWaypoint(c); cityCops.push(c); }
+  }
+  for (let i = cityCops.length - 1; i >= 0; i--) {
+    const cop = cityCops[i];
+    if (!cop.alive) { cityCops.splice(i, 1); continue; }
+    const dr = cop.ty - cop.y, dc = cop.tx - cop.x;
+    const d = Math.hypot(dr, dc);
+    if (d < 0.3 || now > cop._wayUntil) {
+      cop._wayUntil = now + 4000 + Math.random() * 3000;
+      pickCityCopWaypoint(cop);
+      continue;
+    }
+    const step = cop.speed * dt;
+    const nx = cop.x + (dc / d) * step;
+    const ny = cop.y + (dr / d) * step;
+    if (npcPassable(ny, nx)) {
+      cop.x = nx; cop.y = ny;
+      cop.ang = Math.atan2(dr, dc);
+      cop.walkPhase += dt * 6;
+    } else {
+      cop._wayUntil = 0;
+    }
+  }
+}
+
+// ── Спецтранспорт: скорая и пожарная ────────────────────────────────
+// Один общий массив `serviceVehicles`. У каждой — состояние
+// go_to_scene → working → returning → done.
+const serviceVehicles = [];
+let _svcVehId = 0;
+
+function _vehiclePassable(r, c) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
+  if (inArena(ri, ci)) return false;
+  if (!MAP[ri]) return false;
+  const t = MAP[ri][ci];
+  // Машины служб едут по дорогам И тротуарам/газону (упрощение, без pathfind)
+  return (t === 0 || t === 9 || t === 8);
+}
+
+function _vehicleStep(v, dt) {
+  const dr = v.target.y - v.y, dc = v.target.x - v.x;
+  const d = Math.hypot(dr, dc);
+  if (d < 0.6) return true;
+  const step = v.speed * dt;
+  const nx = v.x + (dc / d) * step;
+  const ny = v.y + (dr / d) * step;
+  if (_vehiclePassable(ny, nx)) {
+    v.x = nx; v.y = ny;
+    v.ang = Math.atan2(dr, dc);
+    return false;
+  }
+  // Boxed in — пробуем 4 ортогональных сдвига
+  const sideR = -dc / d, sideC = dr / d;
+  const tries = [
+    [ sideR,  sideC], [-sideR, -sideC],
+    [(dr / d) * 0.5,  sideC * 0.7], [(dr / d) * 0.5, -sideC * 0.7],
+  ];
+  for (const [tdr, tdc] of tries) {
+    const ny2 = v.y + tdr * step, nx2 = v.x + tdc * step;
+    if (_vehiclePassable(ny2, nx2)) {
+      v.x = nx2; v.y = ny2;
+      v.ang = Math.atan2(tdr, tdc);
+      return false;
+    }
+  }
+  // Совсем заклинило — телепорт на ближайшую дорогу
+  for (let radius = 1; radius <= 4; radius++) {
+    for (let dr2 = -radius; dr2 <= radius; dr2++) {
+      for (let dc2 = -radius; dc2 <= radius; dc2++) {
+        const r2 = Math.floor(v.y) + dr2;
+        const c2 = Math.floor(v.x) + dc2;
+        if (MAP[r2] && MAP[r2][c2] === 0) {
+          v.x = c2 + 0.5; v.y = r2 + 0.5;
+          return false;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function spawnAmbulance(targetR, targetC, npc) {
+  serviceVehicles.push({
+    id: 'amb_' + (++_svcVehId), kind: 'ambulance',
+    x: HOSPITAL_C + 0.5, y: HOSPITAL_R + 0.5,
+    ang: 0, speed: 7,
+    target: { x: targetC, y: targetR },
+    state: 'go_to_scene',
+    workUntil: 0,
+    payload: { npc },
+    homeR: HOSPITAL_R, homeC: HOSPITAL_C,
+  });
+}
+
+function spawnFireTruck(targetR, targetC, fireRef, carRef) {
+  // Не дублировать — если в радиусе 3 уже едет пожарка, ничего не делаем
+  for (const v of serviceVehicles) {
+    if (v.kind !== 'firetruck' || v.state === 'done') continue;
+    const dr = v.target.y - targetR, dc = v.target.x - targetC;
+    if (Math.hypot(dr, dc) < 3) return;
+  }
+  serviceVehicles.push({
+    id: 'fire_' + (++_svcVehId), kind: 'firetruck',
+    x: FIRE_STATION_C + 0.5, y: FIRE_STATION_R + 0.5,
+    ang: 0, speed: 6,
+    target: { x: targetC, y: targetR },
+    state: 'go_to_scene',
+    workUntil: 0,
+    payload: { fireRef, carRef },
+    homeR: FIRE_STATION_R, homeC: FIRE_STATION_C,
+  });
+}
+
+function updateServiceVehicles(dt) {
+  const now = performance.now();
+  for (let i = serviceVehicles.length - 1; i >= 0; i--) {
+    const v = serviceVehicles[i];
+    if (v.state === 'done') { serviceVehicles.splice(i, 1); continue; }
+    if (v.state === 'go_to_scene') {
+      if (_vehicleStep(v, dt)) {
+        v.state = 'working';
+        v.workUntil = now + (v.kind === 'ambulance' ? 2500 : 4000);
+      }
+    } else if (v.state === 'working') {
+      if (now < v.workUntil) continue;
+      if (v.kind === 'ambulance' && v.payload.npc) {
+        v.payload.npc._evacuated = true;
+        v.payload.npc.deadAt = now - 60000;  // дать prune'у выкинуть из NPCS
+      }
+      if (v.kind === 'firetruck') {
+        const fr = v.payload.fireRef;
+        if (fr && fr.life > 0) fr.life = 0;
+        const cr = v.payload.carRef;
+        if (cr && cr._wrecked) cr._burnedOut = true;
+      }
+      v.state = 'returning';
+      v.target = { x: v.homeC + 0.5, y: v.homeR + 0.5 };
+    } else if (v.state === 'returning') {
+      if (_vehicleStep(v, dt)) v.state = 'done';
+    }
+  }
+}
+
+let _nextEmergencyScan = 0;
+function dispatchEmergencyServices() {
+  const now = performance.now();
+  if (now < _nextEmergencyScan) return;
+  _nextEmergencyScan = now + 1500;
+
+  // Скорая на трупы: жди 2 сек чтобы было ощущение реакции
+  for (const n of NPCS) {
+    if (!n.dead || n._evacuated || n._ambulanceDispatched) continue;
+    if (!n.deadAt || now - n.deadAt < 2000) continue;
+    n._ambulanceDispatched = true;
+    spawnAmbulance(n.r, n.c, n);
+  }
+
+  // Пожарные на огненные лужи (молотовы)
+  if (typeof firePuddles !== 'undefined' && Array.isArray(firePuddles)) {
+    for (const fp of firePuddles) {
+      if (!fp || fp.life <= 0 || fp._fireTruckDispatched) continue;
+      fp._fireTruckDispatched = true;
+      spawnFireTruck(fp.r, fp.c, fp, null);
+    }
+  }
+
+  // Пожарные на взорванные машины
+  if (typeof CARS !== 'undefined' && Array.isArray(CARS)) {
+    for (const car of CARS) {
+      if (!car || !car._wrecked || car._fireTruckDispatched) continue;
+      car._fireTruckDispatched = true;
+      spawnFireTruck(car.r, car.c, null, car);
+    }
+  }
+}
+
+function drawServiceVehicle(v) {
+  const p = w2s(v.y, v.x);
+  const isAmb = v.kind === 'ambulance';
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(v.ang);
+  // Корпус
+  ctx.fillStyle = isAmb ? '#ffffff' : '#c83020';
+  ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
+  ctx.fillRect(-20, -11, 40, 22);
+  ctx.strokeRect(-20, -11, 40, 22);
+  // Полоса
+  ctx.fillStyle = isAmb ? '#e02020' : '#ffe040';
+  ctx.fillRect(-20, -2, 40, 4);
+  // Кабина
+  ctx.fillStyle = isAmb ? '#d8d8d8' : '#902020';
+  ctx.fillRect(8, -9, 12, 18);
+  // Стёкла
+  ctx.fillStyle = '#9cc0d8';
+  ctx.fillRect(11, -7, 7, 14);
+  // Эмблема на боку
+  ctx.fillStyle = isAmb ? '#e02020' : '#ffe040';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(isAmb ? '+' : 'F', -6, 0);
+  ctx.restore();
+  // Мигалка (без поворота, поверх)
+  const t = performance.now();
+  const blink = Math.floor(t / 200) % 2;
+  const flashCol = isAmb
+    ? (blink ? '#ff3030' : '#3070ff')
+    : (blink ? '#ff3030' : '#ffe040');
+  ctx.save();
+  ctx.fillStyle = flashCol;
+  ctx.shadowColor = flashCol; ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y - 14, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 // Есть ли в радиусе живой коп — для witness-флага в open_fire/carjack.
 // Сервер должен сразу же бамапнуть wanted, если копы видели сами.
 function _copInRadius(r, c, radius) {
-  if (!Array.isArray(worldCops)) return false;
   const r2 = radius * radius;
-  for (const cp of worldCops) {
-    if (!cp || cp.alive === false) continue;
-    const dr = (cp.ty != null ? cp.ty : cp.y) - r;
-    const dc = (cp.tx != null ? cp.tx : cp.x) - c;
-    if (dr * dr + dc * dc <= r2) return true;
+  if (Array.isArray(worldCops)) {
+    for (const cp of worldCops) {
+      if (!cp || cp.alive === false) continue;
+      const dr = (cp.ty != null ? cp.ty : cp.y) - r;
+      const dc = (cp.tx != null ? cp.tx : cp.x) - c;
+      if (dr * dr + dc * dc <= r2) return true;
+    }
+  }
+  // Городские патрульные тоже считаются «свидетелями в форме»
+  if (Array.isArray(cityCops)) {
+    for (const cp of cityCops) {
+      if (!cp || cp.alive === false) continue;
+      const dr = cp.y - r, dc = cp.x - c;
+      if (dr * dr + dc * dc <= r2) return true;
+    }
   }
   return false;
 }
@@ -3764,6 +4063,9 @@ const player = {
   walkPhase: 0,
   hp: 100,
 };
+// Городские патрульные копы (нужен уже инициализированный player —
+// чтобы не спаунить рядом с ним). NPC и машины уже стартовали выше.
+initCityCops();
 // Если начальный спавн (40,40) случайно попал в блокирующий тайл —
 // ищем ближайший проходимый тайл-дорогу. Это спасает от «застрял в коробке
 // при старте». isBlocked объявлен ниже, поэтому отложенно делаем.
@@ -7504,9 +7806,12 @@ function update(dt) {
     o.ang += aDiff * Math.min(1, dt * 8);
     if (o.w) o._walkPhase = (o._walkPhase || 0) + dt * 10;
   }
-  // Локальная симуляция декора: прохожие + машины
+  // Локальная симуляция декора: прохожие + машины + службы
   updateNpcs(dt);
   updateCars(dt);
+  updateCityCops(dt);
+  updateServiceVehicles(dt);
+  dispatchEmergencyServices();
   updateGangAggression(dt);
   _updateTargetLock(dt);
   // Анти-застрял: если игрок физически в блокирующем тайле (попал
@@ -13743,6 +14048,7 @@ function render() {
   }
   // NPC прохожие
   for (const npc of NPCS) {
+    if (npc._evacuated) continue;   // труп увезла скорая
     if (npc.r < r0 || npc.r >= r1 || npc.c < c0 || npc.c >= c1) continue;
     items.push({ depth: npc.r + npc.c + 0.0005, draw: () => drawNpc(npc) });
   }
@@ -13847,6 +14153,17 @@ function render() {
   for (const cop of worldCops) {
     if (cop.y < r0 || cop.y >= r1 || cop.x < c0 || cop.x >= c1) continue;
     items.push({ depth: cop.y + cop.x + 0.0011, draw: () => drawCopNpc(cop) });
+  }
+  // Фоновые патрульные копы — гуляют по городу всегда
+  for (const cop of cityCops) {
+    if (!cop.alive) continue;
+    if (cop.y < r0 || cop.y >= r1 || cop.x < c0 || cop.x >= c1) continue;
+    items.push({ depth: cop.y + cop.x + 0.0010, draw: () => drawCopNpc(cop) });
+  }
+  // Спецтранспорт (скорая/пожарная)
+  for (const v of serviceVehicles) {
+    if (v.y < r0 || v.y >= r1 || v.x < c0 || v.x >= c1) continue;
+    items.push({ depth: v.y + v.x + 0.0012, draw: () => drawServiceVehicle(v) });
   }
   // Декор Логова — палатки/руины/костры/обломки. Рисуем под ботами,
   // под укрытиями (depth-сорт по r+c как обычные объекты).
