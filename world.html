@@ -326,22 +326,22 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   pointer-events: none; letter-spacing: 1px;
   box-shadow: 0 4px 12px rgba(184,32,42,.4);
 }
-/* Деньги-HUD — справа от кнопки «Меню» (top bar). Показывает баксы и
-   алмазы, рядом всплывают «+15$ / +1💎» при начислениях. */
+/* Деньги-HUD — компактная плашка ВНУТРИ HP-полосы (правый край).
+   Раньше висел сверху и перекрывался плашкой «В тюрьме» / таймером
+   инкассатора. Теперь приклеен к HP-бару — место освобождено. */
 #moneyHud {
-  position: absolute; left: 96px; top: 14px;
+  position: absolute; left: 200px; top: 52px;
   display: flex; gap: 6px; z-index: 9;
   pointer-events: none; font-family: inherit;
 }
 #moneyHud .mh-pill {
-  background: rgba(10,12,18,.88); border: 1px solid #2a3a44;
-  border-radius: 10px; padding: 3px 9px; font-size: 13px; font-weight: 800;
-  color: #fff; box-shadow: 0 3px 10px rgba(0,0,0,.45);
-  display: flex; align-items: center; gap: 4px;
+  background: rgba(10,12,18,.88); border: 1px solid #2a6a3a;
+  border-radius: 8px; padding: 2px 8px; font-size: 12px; font-weight: 800;
+  color: #5dd55d; box-shadow: 0 2px 6px rgba(0,0,0,.5);
+  display: flex; align-items: center; gap: 3px;
 }
-#moneyHud .mh-cash { color: #5dd55d; border-color: #2a6a3a; }
-#moneyHud .mh-dia  { color: #7adfff; border-color: #2a586a; }
-#moneyHud .mh-ico  { font-size: 11px; opacity: .9; }
+#moneyHud .mh-cash { }
+#moneyHud .mh-ico  { font-size: 10px; opacity: .85; }
 /* Поп-апы изменения (+25$ / +1💎) — вылетают вверх и тают */
 .mh-pop {
   position: absolute; left: 110px; top: 14px;
@@ -13241,8 +13241,10 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
   // ещё нужно место для имени / hp-бара / чата.
   const topY = y - sh * 0.94;       // голова персонажа
   const nameY = topY - 8;            // имя сразу над головой
-  const hpY   = nameY - 8;           // HP-бар над именем
-  const chatY = nameY - 30;          // чат-баббл выше всего
+  // HP-бар поднимаем выше имени на 14px (было 8) — иначе тонкая полоса
+  // визуально «перечёркивает» строчные буквы ника.
+  const hpY   = nameY - 14;
+  const chatY = nameY - 34;          // чат-баббл ещё выше
 
   // Имя над головой
   if (name) {
