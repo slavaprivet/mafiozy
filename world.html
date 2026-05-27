@@ -6345,6 +6345,18 @@ function fire(angle = null) {
       dirX = Math.cos(player.ang); dirY = Math.sin(player.ang);
     }
   }
+  // Soft target-lock: если есть локнутая цель И моё прицеливание попадает
+  // в конус ±25° на неё — корректируем направление прямо в цель. Если
+  // отбил стик от цели — корректировка не применяется (free-aim).
+  // Продлеваем таймер лока т.к. был выстрел.
+  {
+    const adj = applyTargetLockToAim(dirX, dirY);
+    if (adj.dirX !== dirX || adj.dirY !== dirY) {
+      dirX = adj.dirX; dirY = adj.dirY;
+      player.ang = Math.atan2(dirY, dirX);
+      lockedExpireAt = performance.now() + TARGET_LOCK_TIMEOUT_MS;
+    }
+  }
   // В тюрьме стрелять МОЖНО — но урон серверная сторона разрешит
   // только если цель тоже сидит (тюремные разборки). По копам/прохожим
   // через лазер не пройдёт — сервер отклонит выстрел.
@@ -7331,6 +7343,7 @@ function update(dt) {
   updateNpcs(dt);
   updateCars(dt);
   updateGangAggression(dt);
+  _updateTargetLock(dt);
   // Пули и вспышки — двигаем тут, рисуем потом в render()
   updateProjectiles(dt);
   // Конвой и копы — плавно подтягиваем к целевым серверным позициям
@@ -13751,6 +13764,8 @@ function render() {
   // стика. Игрок ВИДИТ куда выстрелит ДО нажатия. Рисуется ПОД пулями,
   // чтобы трассер «вылетал» из лазера.
   drawAimLaser();
+  // Target-lock — пульсирующий красный круг над захваченной целью
+  drawTargetLock();
   // Дымок — ПОД трассерами/вспышками, чтобы пуля «выходила» из дыма
   drawSmokePuffs();
   // Пули — трассеры поверх всего (живут 0.18 сек)
@@ -13888,6 +13903,226 @@ function _bulletY() { return Math.round(TS * 0.289); }
 // конца дальности оружия (или до первой стены), + reticle-кружок там
 // где пуля «приземлится». Видно ровно куда полетит пуля. Рисуется
 // только когда правый стик сдвинут, игрок жив и не в машине.
+// ── Soft Target-Lock ────────────────────────────────────────────
+// Тап по экрану ловим в `tryTapLock`: пробегаемся по всем потенциальным
+// целям (NPC прохожие / копы / aggro-боты / охрана Майкла / гангстерские
+// машины / другие игроки в PvP-радиусе / конвой), берём ту что ближе
+// всех к точке тапа. Сохраняем в lockedTarget.
+// В fire() при наличии lockedTarget + лазер близко к нему (±~25°) —
+// корректируем dirX/dirY чтобы пуля летела ТОЧНО в цель. Иначе лазер
+// работает как раньше (free-aim).
+// PvP-арена — лок отключён (хардкор-режим, только free-aim).
+const TARGET_LOCK_TIMEOUT_MS = 4000;
+const TARGET_LOCK_HALF_ANGLE = 25 * Math.PI / 180;   // ±25°
+let lockedTarget = null;        // {kind, id, getPos(): {r,c,alive}} либо null
+let lockedExpireAt = 0;
+
+function _lockTargetEntry(kind, id, getPos, getName) {
+  return { kind, id, getPos, getName: getName || (() => '') };
+}
+// Возвращает screen-расстояние от (sx, sy) до объекта (r, c). Если нет —
+// Infinity. Используется в tryTapLock для выбора ближайшей цели к пальцу.
+function _screenDistToCell(r, c, sx, sy) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const dx = p.x - sx, dy = p.y - sy;
+  return Math.hypot(dx, dy);
+}
+function tryTapLock(canvasX, canvasY) {
+  // Не локаемся на арене (free-aim only) и когда я мёртв / в машине / PvE
+  if (myDead || myMode === 'pve' || myDrivingCarId) return false;
+  if (inArena(player.r, player.c)) return false;
+  const MAX_PX = 50;          // палец рядом — не дальше 50 пикселей от спрайта
+  let best = null, bestD = MAX_PX;
+  // 1) NPC прохожие
+  for (const n of NPCS) {
+    if (n.dead) continue;
+    const d = _screenDistToCell(n.r, n.c, canvasX, canvasY);
+    if (d < bestD) {
+      bestD = d;
+      best = _lockTargetEntry('npc', NPCS.indexOf(n),
+        () => n.dead ? null : { r: n.r, c: n.c }, () => '');
+    }
+  }
+  // 2) Боты «Логова» (aggro_zones из снапа)
+  for (const z of Object.values(aggroZones || {})) {
+    for (const b of (z.bots || [])) {
+      if (!b.alive) continue;
+      const d = _screenDistToCell(b.y, b.x, canvasX, canvasY);
+      if (d < bestD) {
+        bestD = d;
+        const bid = b.id;
+        best = _lockTargetEntry('aggro_bot', bid, () => {
+          for (const z2 of Object.values(aggroZones || {})) {
+            const bb = (z2.bots || []).find(x => x.id === bid);
+            if (bb && bb.alive) return { r: bb.y, c: bb.x };
+          }
+          return null;
+        }, () => 'банда');
+      }
+    }
+  }
+  // 3) Копы (worldCops)
+  for (const c of (worldCops || [])) {
+    if (!c) continue;
+    const d = _screenDistToCell(c.y, c.x, canvasX, canvasY);
+    if (d < bestD) {
+      bestD = d;
+      const cid = c.id;
+      best = _lockTargetEntry('cop', cid, () => {
+        const cc = (worldCops || []).find(x => x.id === cid);
+        return cc ? { r: cc.y, c: cc.x } : null;
+      }, () => 'коп');
+    }
+  }
+  // 4) Конвой (worldEvent)
+  if (worldEvent && !worldEvent.finished) {
+    const all = [];
+    if (worldEvent.boss && worldEvent.boss.alive) all.push(worldEvent.boss);
+    for (const g of (worldEvent.guards || [])) if (g.alive) all.push(g);
+    for (const t of all) {
+      const d = _screenDistToCell(t.y, t.x, canvasX, canvasY);
+      if (d < bestD) {
+        bestD = d;
+        const tid = t.id;
+        best = _lockTargetEntry('convoy', tid, () => {
+          if (!worldEvent) return null;
+          const items = [worldEvent.boss, ...(worldEvent.guards || [])];
+          const tt = items.find(x => x && x.id === tid);
+          return tt && tt.alive ? { r: tt.y, c: tt.x } : null;
+        }, () => 'конвой');
+      }
+    }
+  }
+  // 5) Охрана Майкла
+  for (const g of michaelGuards.values()) {
+    const d = _screenDistToCell(g.y, g.x, canvasX, canvasY);
+    if (d < bestD) {
+      bestD = d;
+      const gid = g.id;
+      best = _lockTargetEntry('mg', gid, () => {
+        const gg = michaelGuards.get(gid);
+        return gg ? { r: gg.y, c: gg.x } : null;
+      }, () => 'охрана');
+    }
+  }
+  // 6) Другие игроки (для PvP в активной зоне)
+  for (const [uid, o] of others) {
+    if (o.dead) continue;
+    const d = _screenDistToCell(o.y, o.x, canvasX, canvasY);
+    if (d < bestD) {
+      bestD = d;
+      const u = uid;
+      best = _lockTargetEntry('player', u, () => {
+        const oo = others.get(u);
+        return oo && !oo.dead ? { r: oo.y, c: oo.x } : null;
+      }, () => o.name || '?');
+    }
+  }
+  // 7) Гангстерские машины
+  for (const car of CARS) {
+    if (!car || !car.gang || car._wrecked) continue;
+    const d = _screenDistToCell(car.r, car.c, canvasX, canvasY);
+    if (d < bestD) {
+      bestD = d;
+      const cref = car;
+      best = _lockTargetEntry('gang_car', null, () => {
+        return cref._wrecked ? null : { r: cref.r, c: cref.c };
+      }, () => 'банда');
+    }
+  }
+  if (best) {
+    lockedTarget = best;
+    lockedExpireAt = performance.now() + TARGET_LOCK_TIMEOUT_MS;
+    return true;
+  }
+  // Тап в пустоту — снимаем лок
+  if (lockedTarget) { lockedTarget = null; lockedExpireAt = 0; }
+  return false;
+}
+// Каждый кадр проверяем: цель ещё жива? в радиусе? таймер не истёк?
+function _updateTargetLock(dt) {
+  if (!lockedTarget) return;
+  const now = performance.now();
+  if (now > lockedExpireAt) { lockedTarget = null; return; }
+  const pos = lockedTarget.getPos();
+  if (!pos) { lockedTarget = null; return; }
+  // Цель слишком далеко — снимаем
+  const dd = Math.hypot(pos.r - player.r, pos.c - player.c);
+  const wcfg = WEAPON_FX_CFG[resolveWeapon(currentWeapon)] || { range: 8 };
+  if (dd > (wcfg.range || 8) + 2) {
+    lockedTarget = null;
+    return;
+  }
+}
+// Рисует «🎯 LOCKED» — пульсирующий красный круг над целью
+function drawTargetLock() {
+  if (!lockedTarget) return;
+  const pos = lockedTarget.getPos();
+  if (!pos) return;
+  const p = w2s(pos.r + 0.5, pos.c + 0.5);
+  const t = performance.now() * 0.005;
+  const pulse = 0.7 + 0.3 * Math.sin(t * 3);
+  const y = p.y - TS * 1.2;
+  ctx.save();
+  // Внешнее кольцо
+  ctx.strokeStyle = `rgba(255, 64, 64, ${0.65 + 0.25 * pulse})`;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = '#ff3030';
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.arc(p.x, y, 16 * pulse, 0, Math.PI * 2);
+  ctx.stroke();
+  // Внутренний кружок
+  ctx.fillStyle = '#ff4040';
+  ctx.beginPath();
+  ctx.arc(p.x, y, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  // 4 лепестка-уголка (как у тактического прицела)
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const r1 = 10 * pulse, r2 = 18 * pulse;
+  ctx.moveTo(p.x - r2, y - r2); ctx.lineTo(p.x - r1, y - r2); ctx.lineTo(p.x - r2, y - r1);
+  ctx.moveTo(p.x + r2, y - r2); ctx.lineTo(p.x + r1, y - r2); ctx.lineTo(p.x + r2, y - r1);
+  ctx.moveTo(p.x - r2, y + r2); ctx.lineTo(p.x - r1, y + r2); ctx.lineTo(p.x - r2, y + r1);
+  ctx.moveTo(p.x + r2, y + r2); ctx.lineTo(p.x + r1, y + r2); ctx.lineTo(p.x + r2, y + r1);
+  ctx.stroke();
+  // Текст «LOCKED»
+  ctx.font = 'bold 9px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ff5050';
+  ctx.fillText('LOCKED', p.x, y - 22);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+// Корректирует (dirX, dirY) в сторону locked-цели если она в пределах
+// конуса ±TARGET_LOCK_HALF_ANGLE. Иначе возвращает исходные значения.
+function applyTargetLockToAim(dirX, dirY) {
+  if (!lockedTarget) return { dirX, dirY };
+  const pos = lockedTarget.getPos();
+  if (!pos) return { dirX, dirY };
+  const dx = pos.c - player.c, dy = pos.r - player.r;
+  const d = Math.hypot(dx, dy) || 1;
+  const tx = dx / d, ty = dy / d;
+  // Угол между текущим прицелом и направлением на цель
+  const dot = dirX * tx + dirY * ty;
+  if (dot < Math.cos(TARGET_LOCK_HALF_ANGLE)) return { dirX, dirY };
+  // Внутри конуса — корректируем точно в цель
+  return { dirX: tx, dirY: ty };
+}
+
+// Обработчик тапа на canvas — пытается захватить цель. Не блокируем
+// если тап внутри зоны UI/джойстиков (там pointerdown идёт сначала).
+canvas.addEventListener('pointerdown', (e) => {
+  // Если тап попал в UI-элемент — не локаемся (overlapping pointers
+  // считаем по target). Canvas получает event только если палец на нём.
+  if (e.target !== canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  tryTapLock(x, y);
+}, { passive: true });
+
 function drawAimLaser() {
   if (myDead) return;
   if (myMode === 'pve') return;
