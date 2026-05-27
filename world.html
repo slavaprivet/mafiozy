@@ -5148,9 +5148,10 @@ function handleEventPacket(d) {
       showToast('☠️ ' + (d.text || 'Проваливай!'), 2200);
     }
   } else if (kind === 'aggro_shot' || kind === 'aggro_melee') {
-    // Бот стреляет/бьёт в нас — пуля из конца ствола + вспышка + удар.
-    // Раньше пуля стартовала из центра бота и без muzzle — выглядело как
-    // «hp падает, а пуль не видно». Приводим к стилю cop_shot/inkass_shot.
+    // Бот стреляет/бьёт. Пуля летит со скоростью d.bullet_speed (физика
+    // dodge: если игрок отскочит до того как пуля долетит — пройдёт мимо).
+    // Урон и killed-обработка приходят отдельным пакетом 'aggro_apply'.
+    // Для aggro_melee (сабля босса) — мгновенно (старая логика).
     {
       const wep = d.weapon || 'pistol_heavy';
       const sR0 = d.sy || 0, sC0 = d.sx || 0;
@@ -5159,11 +5160,27 @@ function handleEventPacket(d) {
       const md  = weaponMuzzleD(wep, 0.95);
       const sR  = sR0 + Math.sin(ang) * md;
       const sC  = sC0 + Math.cos(ang) * md;
-      spawnBullet(sR, sC, tR, tC, { hit: !d.miss, fromNpc: true, weapon: wep });
+      const opts = { hit: true, fromNpc: true, weapon: wep };
+      // Серверная скорость в тайлах/сек — пуля видимая, можно dodge'нуть
+      if (typeof d.bullet_speed === 'number' && d.bullet_speed > 0) {
+        opts.speed = d.bullet_speed;
+      }
+      spawnBullet(sR, sC, tR, tC, opts);
       spawnMuzzle(sR, sC, ang, wep);
-      if (!d.miss) spawnImpact(tR, tC, wep);
+      spawnImpact(tR, tC, wep);
     }
     if (d.bot_id) lastBossShotAt.set(d.bot_id, performance.now());
+    // Aggro_melee (сабля) применяется мгновенно — урон в d.dmg/killed
+    if (kind === 'aggro_melee' && String(d.target_uid) === String(QP.uid)
+        && !d.miss) {
+      try { hitFlash = performance.now() + 240; } catch(e) {}
+      flashHitOverlay();
+      addShake(3.0);
+      if (d.killed) myDeathBy = 'банда «Логова»';
+    }
+  } else if (kind === 'aggro_apply') {
+    // Серверный отложенный hit-check: пуля долетела, проверка попадания.
+    // d.miss=true → игрок успел увернуться, никакого урона. Иначе hit-flash.
     if (String(d.target_uid) === String(QP.uid) && !d.miss) {
       try { hitFlash = performance.now() + 240; } catch(e) {}
       flashHitOverlay();
@@ -14567,7 +14584,7 @@ function tryTapLock(canvasX, canvasY) {
   // Не локаемся на арене (free-aim only) и когда я мёртв / в машине / PvE
   if (myDead || myMode === 'pve' || myDrivingCarId) return false;
   if (inArena(player.r, player.c)) return false;
-  const MAX_PX = 50;          // палец рядом — не дальше 50 пикселей от спрайта
+  const MAX_PX = 80;          // палец рядом — не дальше 80 пикселей от спрайта
   let best = null, bestD = MAX_PX;
   // 1) NPC прохожие
   for (const n of NPCS) {

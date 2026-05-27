@@ -11763,6 +11763,35 @@ class WorldSim:
     AGGRO_BOSS_CD_R     = 0.18      # узи — почти автоматическая очередь
     AGGRO_BOSS_RANGE_M  = 1.6       # дистанция саблей
     AGGRO_BOSS_RANGE_R  = 9.0       # дистанция узи
+    # ── Физика пуль ботов (dodge-механика) ───────────────────────────
+    # speed = тайлов/сек (низкая → легко увернуться); dmg + range + cd
+    # перекрывают AGGRO_BOT_* константы выше, когда бот реально палит
+    # из конкретного оружия. ИСПОЛЬЗУЕТСЯ в _enqueue_bot_shot.
+    AGGRO_WEAPON_STATS = {
+        'pistol':       {'speed': 14.0, 'dmg':  7, 'range':  6.0, 'cd': 1.0},
+        'pistol_heavy': {'speed': 13.0, 'dmg':  9, 'range':  6.5, 'cd': 1.1},
+        'pistol_gold':  {'speed': 14.0, 'dmg': 10, 'range':  6.5, 'cd': 1.0},
+        'shotgun':      {'speed': 11.0, 'dmg': 18, 'range':  4.5, 'cd': 1.7},
+        'smg':          {'speed': 16.0, 'dmg':  6, 'range':  7.0, 'cd': 0.5},
+        'uzi':          {'speed': 16.0, 'dmg':  6, 'range':  7.0, 'cd': 0.55},
+        'rifle':        {'speed': 20.0, 'dmg': 12, 'range':  9.0, 'cd': 1.0},
+        'sniper':       {'speed': 32.0, 'dmg': 28, 'range': 14.0, 'cd': 2.6},
+        'rpg':          {'speed':  8.0, 'dmg': 40, 'range': 10.0, 'cd': 3.5},
+    }
+    # Вес выбора пушки при спауне бандита Логова/городской банды.
+    # Базук/снайперок — мало (1 на 3-4 банды), пистолетов — много.
+    AGGRO_BOT_WEAPON_WEIGHTS = [
+        ('pistol',       28),
+        ('pistol_heavy', 22),
+        ('smg',          18),
+        ('shotgun',      14),
+        ('rifle',        10),
+        ('sniper',        5),
+        ('rpg',           3),
+    ]
+    # Радиус «вокруг точки попадания», в котором игрок ещё считается
+    # стоящим под пулей. Если убежал дальше — пуля прошла мимо.
+    BULLET_DODGE_R   = 1.3
     AGGRO_COVER_HP      = 60        # HP одного укрытия (после — оно разрушается)
     TERR_RADIUS         = 5              # 11×11 (×1.5 от исходного 7×7)
     CAPTURE_TIME_S      = 30.0
@@ -11833,6 +11862,11 @@ class WorldSim:
         self.city_gangs = []
         self._city_gang_next_id = 1
         self._city_gang_next_spawn_at = 0.0
+        # Очередь физических пуль ботов (dodge-механика). Каждый shot
+        # имеет apply_at — момент, когда пуля долетит до цели. Если к
+        # этому моменту игрок ушёл из радиуса BULLET_DODGE_R от точки
+        # удара (tx,ty), пуля считается мимо. См. tick_pending_bot_shots.
+        self._pending_bot_shots = []
         # Гнёзда — отдельный список «nest» групп (привязаны к зданию)
         self.gang_nests = []
         self._gang_nest_next_id = 1
@@ -13541,7 +13575,7 @@ class WorldSim:
                 'max_hp':   int(self.AGGRO_BOT_HP),
                 'alive':    True,
                 'kind':     'aggro_grunt',
-                'weapon':   'pistol_heavy',
+                'weapon':   self._pick_aggro_weapon(),
                 '_shot_t':  0.0,
                 '_warned':  {},   # uid -> ts когда впервые увидели → начнут стрелять через AGGRO_WARN_S
                 '_strafe_t':0.0, '_strafe_s': 0.0,
@@ -13611,6 +13645,90 @@ class WorldSim:
                 })
                 break
         self.aggro_covers[tid] = covers
+
+    def _pick_aggro_weapon(self) -> str:
+        """Случайное оружие из AGGRO_BOT_WEAPON_WEIGHTS с учётом весов."""
+        total = sum(w for _, w in self.AGGRO_BOT_WEAPON_WEIGHTS)
+        r = random.random() * total
+        cum = 0.0
+        for wid, w in self.AGGRO_BOT_WEAPON_WEIGHTS:
+            cum += w
+            if r < cum:
+                return wid
+        return self.AGGRO_BOT_WEAPON_WEIGHTS[0][0]
+
+    def _enqueue_bot_shot(self, *, target, sx, sy, tx, ty, weapon,
+                          bot_id, tid):
+        """Кладёт выстрел бота в очередь. Урон применится через
+        dist/speed секунд (см. tick_pending_bot_shots). Возвращает
+        пакет 'aggro_shot' для немедленной отправки клиенту (трассер)."""
+        stats = self.AGGRO_WEAPON_STATS.get(
+            weapon, self.AGGRO_WEAPON_STATS['pistol'])
+        speed = float(stats['speed'])
+        dmg   = int(stats['dmg'])
+        dist  = ((tx - sx) ** 2 + (ty - sy) ** 2) ** 0.5
+        eta_s = dist / max(1.0, speed)
+        now   = time.time()
+        self._pending_bot_shots.append({
+            'target_uid': str(target.get('uid') or ''),
+            'sx': sx, 'sy': sy,
+            'tx': tx, 'ty': ty,
+            'dmg': dmg, 'weapon': weapon,
+            'bot_id': bot_id, 'tid': tid,
+            'apply_at': now + eta_s,
+        })
+        return {
+            'kind':       'aggro_shot',
+            'tid':        tid,
+            'bot_id':     bot_id,
+            'target_uid': str(target.get('uid') or ''),
+            'weapon':     weapon,
+            'bullet_speed': speed,
+            'sx': round(sx, 2), 'sy': round(sy, 2),
+            'tx': round(tx, 2), 'ty': round(ty, 2),
+        }
+
+    def tick_pending_bot_shots(self) -> list:
+        """Применяет накопленные выстрелы ботов когда пуля «долетела».
+        Игрок может УВЕРНУТЬСЯ, если к этому моменту отошёл дальше
+        BULLET_DODGE_R от точки удара. Шлёт пакеты 'aggro_apply'."""
+        now = time.time()
+        pkts = []
+        survivors = []
+        for s in self._pending_bot_shots:
+            if now < s['apply_at']:
+                survivors.append(s)
+                continue
+            target = self.players.get(s['target_uid'])
+            if not target or target.get('dead'):
+                continue
+            dx = target.get('x', 0) - s['tx']
+            dy = target.get('y', 0) - s['ty']
+            d2 = dx * dx + dy * dy
+            dodge_r2 = self.BULLET_DODGE_R * self.BULLET_DODGE_R
+            miss = (d2 > dodge_r2)
+            killed = False
+            dmg = 0
+            if not miss:
+                dmg = s['dmg']
+                target['hp'] = max(0, int(target.get('hp', 100)) - dmg)
+                if target['hp'] <= 0:
+                    target['dead'] = True
+                    target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                    target['deaths'] = int(target.get('deaths', 0)) + 1
+                    killed = True
+            pkts.append({
+                'kind':       'aggro_apply',
+                'tid':        s['tid'],
+                'bot_id':     s['bot_id'],
+                'target_uid': s['target_uid'],
+                'weapon':     s['weapon'],
+                'miss':       miss,
+                'dmg':        dmg,
+                'killed':     killed,
+            })
+        self._pending_bot_shots = survivors
+        return pkts
 
     def tick_aggro(self, dt: float) -> list:
         """AI агрессивных районов. Возвращает список event-пакетов."""
@@ -13719,46 +13837,28 @@ class WorldSim:
                                      'sx': round(bot['x'],2), 'sy': round(bot['y'],2),
                                      'tx': round(tx,2), 'ty': round(ty,2)})
                     elif dist <= self.AGGRO_BOSS_RANGE_R and (now - bot['_shot_t']) >= self.AGGRO_BOSS_CD_R:
-                        # Дальний — узи
+                        # Дальний — узи. Урон отложен (см. tick_pending_bot_shots),
+                        # игрок может увернуться отбежав в сторону.
                         bot['_shot_t'] = now
-                        miss = random.random() < 0.35
-                        dmg = 0 if miss else int(self.AGGRO_BOSS_DMG_R)
-                        if not miss:
-                            target['hp'] = max(0, int(target.get('hp',100)) - dmg)
-                            killed = target['hp'] <= 0
-                            if killed:
-                                target['dead'] = True
-                                target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                                target['deaths'] = int(target.get('deaths',0)) + 1
-                        else:
-                            killed = False
-                        pkts.append({'kind':'aggro_shot', 'tid':tid,
-                                     'bot_id': bot['id'], 'target_uid': t_uid,
-                                     'dmg': dmg, 'killed': killed, 'miss': miss,
-                                     'weapon': 'uzi',
-                                     'sx': round(bot['x'],2), 'sy': round(bot['y'],2),
-                                     'tx': round(tx,2), 'ty': round(ty,2)})
+                        pkts.append(self._enqueue_bot_shot(
+                            target=target, sx=bot['x'], sy=bot['y'],
+                            tx=tx, ty=ty, weapon='uzi',
+                            bot_id=bot['id'], tid=tid))
                 else:
-                    # Обычный бандит — pistol_heavy
-                    if dist <= self.AGGRO_BOT_RANGE and (now - bot['_shot_t']) >= self.AGGRO_BOT_CD:
+                    # Обычный бандит — оружие назначено при спауне (рандом
+                    # из AGGRO_BOT_WEAPON_WEIGHTS). dmg/cd/range берутся
+                    # из AGGRO_WEAPON_STATS.
+                    weapon = bot.get('weapon') or 'pistol'
+                    stats  = self.AGGRO_WEAPON_STATS.get(
+                        weapon, self.AGGRO_WEAPON_STATS['pistol'])
+                    w_range = float(stats.get('range', self.AGGRO_BOT_RANGE))
+                    w_cd    = float(stats.get('cd',    self.AGGRO_BOT_CD))
+                    if dist <= w_range and (now - bot['_shot_t']) >= w_cd:
                         bot['_shot_t'] = now
-                        miss = random.random() < 0.30
-                        dmg  = 0 if miss else int(self.AGGRO_BOT_DMG)
-                        if not miss:
-                            target['hp'] = max(0, int(target.get('hp',100)) - dmg)
-                            killed = target['hp'] <= 0
-                            if killed:
-                                target['dead'] = True
-                                target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                                target['deaths'] = int(target.get('deaths',0)) + 1
-                        else:
-                            killed = False
-                        pkts.append({'kind':'aggro_shot', 'tid':tid,
-                                     'bot_id': bot['id'], 'target_uid': t_uid,
-                                     'dmg': dmg, 'killed': killed, 'miss': miss,
-                                     'weapon': 'pistol_heavy',
-                                     'sx': round(bot['x'],2), 'sy': round(bot['y'],2),
-                                     'tx': round(tx,2), 'ty': round(ty,2)})
+                        pkts.append(self._enqueue_bot_shot(
+                            target=target, sx=bot['x'], sy=bot['y'],
+                            tx=tx, ty=ty, weapon=weapon,
+                            bot_id=bot['id'], tid=tid))
             # 2) Захват: если ВСЕ боты убиты — стартуем 3-сек хадер.
             #    Зоны с no_capture=True (Логово) НЕ захватываются — это просто
             #    опасная локация. Перебил банду — она респавнится через таймер.
@@ -13940,7 +14040,7 @@ class WorldSim:
                 'max_hp':   int(self.AGGRO_BOT_HP),
                 'alive':    True,
                 'kind':     'aggro_grunt',
-                'weapon':   'pistol_heavy',
+                'weapon':   self._pick_aggro_weapon(),
                 '_shot_t':  0.0,
                 # Activity loop: walk (двигается с группой) / idle (стоит)
                 # / drink (пьёт пиво) / tag (рисует граффити) / harass
@@ -14107,38 +14207,21 @@ class WorldSim:
                         ny = bot['y'] + (dy2/dist) * step
                         if not _world_is_wall(int(ny), int(nx)):
                             bot['x'] = nx; bot['y'] = ny
-                    # Стрельба (только если LOS и в дальности)
-                    if (dist <= self.CITY_GANG_FIRE_R
-                            and (now - bot['_shot_t']) >= self.AGGRO_BOT_CD
+                    # Стрельба: оружие у бота назначено при спауне (рандом).
+                    # Урон отложен — пуля летит со speed, можно увернуться.
+                    weapon = bot.get('weapon') or 'pistol_heavy'
+                    w_stats = self.AGGRO_WEAPON_STATS.get(
+                        weapon, self.AGGRO_WEAPON_STATS['pistol'])
+                    w_range = float(w_stats.get('range', self.CITY_GANG_FIRE_R))
+                    w_cd    = float(w_stats.get('cd',    self.AGGRO_BOT_CD))
+                    if (dist <= w_range
+                            and (now - bot['_shot_t']) >= w_cd
                             and _world_los(bot['x'], bot['y'], tx, ty)):
                         bot['_shot_t'] = now
-                        miss = random.random() < 0.35
-                        dmg  = 0 if miss else self.AGGRO_BOT_DMG
-                        if not miss:
-                            target['hp'] = int(max(0,
-                                int(target.get('hp', 100)) - dmg))
-                        killed = False
-                        if target['hp'] <= 0 and not miss:
-                            target['hp']         = 0
-                            target['dead']       = True
-                            target['deaths']     = int(target.get('deaths', 0)) + 1
-                            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                            killed = True
-                        # Реиспользуем aggro_shot — у клиента уже есть рендер
-                        pkts.append({
-                            'kind':       'aggro_shot',
-                            'tid':        g['id'],
-                            'bot_id':     bot['id'],
-                            'weapon':     bot.get('weapon', 'pistol_heavy'),
-                            'sx':         round(bot['x'], 2),
-                            'sy':         round(bot['y'], 2),
-                            'target_uid': g['_target_uid'],
-                            'tx':         round(tx, 2),
-                            'ty':         round(ty, 2),
-                            'dmg':        int(dmg),
-                            'miss':       bool(miss),
-                            'killed':     killed,
-                        })
+                        pkts.append(self._enqueue_bot_shot(
+                            target=target, sx=bot['x'], sy=bot['y'],
+                            tx=tx, ty=ty, weapon=weapon,
+                            bot_id=bot['id'], tid=g['id']))
             # При hostile — диспатчим копов один раз (они атакуют банду).
             if g['state'] == 'hostile' and not g['_cops_dispatched']:
                 g['_cops_dispatched'] = True
@@ -14268,7 +14351,7 @@ class WorldSim:
                 'max_hp':   int(self.AGGRO_BOT_HP),
                 'alive':    True,
                 'kind':     'aggro_grunt',
-                'weapon':   'pistol_heavy',
+                'weapon':   self._pick_aggro_weapon(),
                 '_shot_t':  0.0,
                 '_act':     'idle',
                 '_act_until': 0.0,
@@ -14405,36 +14488,19 @@ class WorldSim:
                         ny = bot['y'] + (dy/dist) * step
                         if not _world_is_wall(int(ny), int(nx)):
                             bot['x'] = nx; bot['y'] = ny
-                    if (dist <= self.CITY_GANG_FIRE_R
-                            and (now - bot['_shot_t']) >= self.AGGRO_BOT_CD
+                    weapon = bot.get('weapon') or 'pistol_heavy'
+                    w_stats = self.AGGRO_WEAPON_STATS.get(
+                        weapon, self.AGGRO_WEAPON_STATS['pistol'])
+                    w_range = float(w_stats.get('range', self.CITY_GANG_FIRE_R))
+                    w_cd    = float(w_stats.get('cd',    self.AGGRO_BOT_CD))
+                    if (dist <= w_range
+                            and (now - bot['_shot_t']) >= w_cd
                             and _world_los(bot['x'], bot['y'], tx, ty)):
                         bot['_shot_t'] = now
-                        miss = random.random() < 0.30
-                        dmg = 0 if miss else self.AGGRO_BOT_DMG
-                        if not miss:
-                            target['hp'] = int(max(0,
-                                int(target.get('hp', 100)) - dmg))
-                        killed = False
-                        if target['hp'] <= 0 and not miss:
-                            target['hp']         = 0
-                            target['dead']       = True
-                            target['deaths']     = int(target.get('deaths', 0)) + 1
-                            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                            killed = True
-                        pkts.append({
-                            'kind':       'aggro_shot',
-                            'tid':        ne['id'],
-                            'bot_id':     bot['id'],
-                            'weapon':     bot.get('weapon', 'pistol_heavy'),
-                            'sx':         round(bot['x'], 2),
-                            'sy':         round(bot['y'], 2),
-                            'target_uid': ne['_target_uid'],
-                            'tx':         round(tx, 2),
-                            'ty':         round(ty, 2),
-                            'dmg':        int(dmg),
-                            'miss':       bool(miss),
-                            'killed':     killed,
-                        })
+                        pkts.append(self._enqueue_bot_shot(
+                            target=target, sx=bot['x'], sy=bot['y'],
+                            tx=tx, ty=ty, weapon=weapon,
+                            bot_id=bot['id'], tid=ne['id']))
         return pkts
 
     # ── Пляжники (мирные NPC) ──────────────────────────────────────
@@ -15433,6 +15499,9 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     world.event = None  # очищаем — следующий по таймеру
                 # Агрессивный район — банда NPC + захват через зачистку
                 ev_pkts.extend(world.tick_aggro(WORLD_TICK_DT) or [])
+                # Отложенные пули ботов (dodge-механика): применяем
+                # урон ПОСЛЕ того как пуля «долетит» до точки удара.
+                ev_pkts.extend(world.tick_pending_bot_shots() or [])
                 # GTA-машины Майкла — чистим брошенные/устаревшие.
                 world.tick_quest_cars(WORLD_TICK_DT)
                 # Пляжники — мирные NPC в купальниках. AI без боевки.
