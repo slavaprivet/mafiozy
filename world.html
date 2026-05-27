@@ -901,7 +901,6 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   <div id="wantedHud">⭐</div>
   <div id="moneyHud">
     <div class="mh-pill mh-cash"><span class="mh-ico">💵</span><span id="moneyCash">0</span></div>
-    <div class="mh-pill mh-dia"><span class="mh-ico">💎</span><span id="moneyDia">0</span></div>
   </div>
   <!-- HUD-виджет активного квеста Майкла: фото машины + название + статус.
        Показывается только когда myGtaStatus.active есть и модал Майкла закрыт. -->
@@ -3453,7 +3452,10 @@ const FIREARM_FOREGRIP = {
   shotgun: 0.40, smg: 0.36, tommy_gun: 0.36,
   rifle: 0.42, sniper: 0.46, rpg: 0.42,
 };
-const BULLET_SPEED = 12;  // тайлов/сек — снижено с 18 для «полёта» пули
+// Тайлов/сек. Было 12 — пуля видимо «летела», но сервер отнимал hp мгновенно,
+// и игрок видел «hp упало, а пули нет». 22 — баланс между видимостью трассера
+// и тем, что попадание совпадает с -hp на экране (~0.4 сек на полную дистанцию).
+const BULLET_SPEED = 22;
 const ARM_TILES = 0.36;   // длина руки в тайлах (см. handAnchor armLen)
 // Реальная дистанция от центра тела до конца ствола с учётом scale.
 // Используем в spawnBullet/spawnMuzzle чтобы пуля стартовала ровно с
@@ -4580,12 +4582,26 @@ function handleEventPacket(d) {
       showToast('☠️ ' + (d.text || 'Проваливай!'), 2200);
     }
   } else if (kind === 'aggro_shot' || kind === 'aggro_melee') {
-    // Бот стреляет/бьёт в нас — рисуем трассер/удар
-    const sR = d.sy || 0, sC = d.sx || 0, tR = d.ty || 0, tC = d.tx || 0;
-    spawnBullet(sR, sC, tR, tC, { hit: !d.miss, fromPlayer: false,
-                                   weapon: d.weapon || 'pistol_heavy' });
+    // Бот стреляет/бьёт в нас — пуля из конца ствола + вспышка + удар.
+    // Раньше пуля стартовала из центра бота и без muzzle — выглядело как
+    // «hp падает, а пуль не видно». Приводим к стилю cop_shot/inkass_shot.
+    {
+      const wep = d.weapon || 'pistol_heavy';
+      const sR0 = d.sy || 0, sC0 = d.sx || 0;
+      const tR  = d.ty || 0, tC  = d.tx || 0;
+      const ang = Math.atan2(tR - sR0, tC - sC0);
+      const md  = weaponMuzzleD(wep, 0.95);
+      const sR  = sR0 + Math.sin(ang) * md;
+      const sC  = sC0 + Math.cos(ang) * md;
+      spawnBullet(sR, sC, tR, tC, { hit: !d.miss, fromNpc: true, weapon: wep });
+      spawnMuzzle(sR, sC, ang, wep);
+      if (!d.miss) spawnImpact(tR, tC, wep);
+    }
+    if (d.bot_id) lastBossShotAt.set(d.bot_id, performance.now());
     if (String(d.target_uid) === String(QP.uid) && !d.miss) {
       try { hitFlash = performance.now() + 240; } catch(e) {}
+      flashHitOverlay();
+      addShake(3.0);
       if (d.killed) myDeathBy = 'банда «Логова»';
     }
   } else if (kind === 'aggro_hit') {
@@ -4950,9 +4966,10 @@ function wsConnect() {
           updateMoneyHud();
         }
         if (typeof d.me.diamonds === 'number') {
-          const prev = myDiamonds;
+          // Алмазы — донатная валюта. За активности в мире не начисляются,
+          // поэтому всплывашки «+💎» не показываем — только тихо обновляем
+          // счётчик (например после покупки в хабе).
           myDiamonds = d.me.diamonds;
-          if (myDiamonds > prev && prev > 0) showCashDelta(myDiamonds - prev, 'diamond');
           updateMoneyHud();
         }
         const wasDead = myDead;
@@ -6219,14 +6236,23 @@ function findPvpTargetAlongAim(dirX, dirY) {
   return best;
 }
 
-// fire(angle): если angle задан — стреляем в эту сторону, иначе auto-aim.
-// Учитывает текущее оружие; приоритеты: конвой → игрок в pvp-зоне.
+// fire(angle): если angle задан — стреляем в эту сторону, иначе берём
+// направление из правого стика (если активен), и только потом — player.ang.
+// Это лечит «первый выстрел уходит в сторону ходьбы»: при тапе по fireBtn
+// или Space, если стик уже сдвинут, стреляем именно по стику.
 function fire(angle = null) {
   if (myMode === 'pve') {
     showToast('🕵️ Ты в режиме наблюдателя — стрелять нельзя', 'ℹ️', 1500);
     return;
   }
   if (myDead) return;
+  // Авто-fallback: angle не задан, но правый стик сдвинут — берём его.
+  if (angle === null && joyR && joyR.active && joyR.hasAim) {
+    const _d = joyR.dx, _s = joyR.dy / ISO_Y;
+    const _dc = (_s + _d) * 0.5;
+    const _dr = (_s - _d) * 0.5;
+    angle = Math.atan2(_dr, _dc);
+  }
   // В машине нельзя стрелять — обе руки на руле.
   if (myDrivingCarId) return;
   const now = performance.now();
