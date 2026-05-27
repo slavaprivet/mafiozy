@@ -12171,6 +12171,15 @@ class WorldSim:
             qc['state']      = 'driving'
             qc['_last_drive_t'] = time.time()
             return {'ok': True, 'car_id': car_id, 'as': 'driver'}
+        # Гражданская брошенная (без owner и без водителя) — пускаем любого
+        # игрока за руль. Это позволяет ВЕРНУТЬСЯ в свою угнанную тачку
+        # после того как ты вышел и отошёл.
+        if qc.get('civilian') and not qc.get('driver_uid'):
+            qc['driver_uid']    = str(uid)
+            qc['owner_uid']     = str(uid)   # дальше gta_drive не отклонит
+            qc['state']         = 'driving'
+            qc['_last_drive_t'] = time.time()
+            return {'ok': True, 'car_id': car_id, 'as': 'driver'}
         # Не владелец — пытается сесть пассажиром. Нужно чтобы за рулём
         # сидел водитель (иначе кто-то «угнал» бы чужой контракт через
         # пассажирское место). И в машине должно быть свободное место.

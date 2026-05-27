@@ -2662,6 +2662,16 @@ function npcPassable(r, c) {
   const t = MAP[ri][ci];
   return (t === 9 || t === 8);
 }
+// Расширенная проходимость для NPC-снитча (бежит к копам через всю карту).
+// Разрешает дорогу (0) дополнительно к тротуару/газону. Не позволяет
+// зайти в здания/воду/декор — иначе NPC лезли бы сквозь стены.
+function npcPassableForSnitch(r, c) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
+  if (inArena(ri, ci)) return false;
+  const t = MAP[ri][ci];
+  return (t === 0 || t === 9 || t === 8);
+}
 function pickNpcWaypoint(npc) {
   // Близкий waypoint в радиусе 4 — чтобы прямой путь почти всегда
   // не пересекал здания. Дополнительная проверка: путь должен идти
@@ -2861,22 +2871,25 @@ function updateNpcs(dt) {
         n.idleUntil = now + 2000;
         continue;
       }
-      // Двигаемся к участку, скорость ×2 (бег). По возможности только
-      // по проходимым тайлам, иначе скользим к разрешённому соседу.
-      const sp = n.speed * 2.0 * dt;
+      // Двигаемся к участку, скорость ×2 (бег). Снитчам разрешена дорога
+      // (тип 0) — они спешат, перебегают улицу. Обычные NPC по дорогам
+      // не ходят, поэтому в свежем коде они просто застревали у бордюра.
+      const sp = n.speed * 2.4 * dt;
       const stepR = (dr / Math.max(0.001, d)) * sp;
       const stepC = (dc / Math.max(0.001, d)) * sp;
       const nr = n.r + stepR, nc = n.c + stepC;
-      if (npcPassable(nr, nc)) {
+      if (npcPassableForSnitch(nr, nc)) {
         n.r = nr; n.c = nc;
       } else {
-        // Обходим препятствие — пробуем 4 направления
+        // Обходим препятствие — пробуем 4 направления (тоже с разрешением
+        // дорог), плюс шаги вдвое короче.
         const tries = [
-          [ stepC, -stepR ], [-stepC,  stepR ],
+          [ stepC * 0.7, -stepR * 0.7 ], [-stepC * 0.7,  stepR * 0.7 ],
           [ stepR * 0.5, 0 ], [ 0, stepC * 0.5 ],
+          [ stepR * 0.3, stepC * 0.3 ],
         ];
         for (const [dr2, dc2] of tries) {
-          if (npcPassable(n.r + dr2, n.c + dc2)) {
+          if (npcPassableForSnitch(n.r + dr2, n.c + dc2)) {
             n.r += dr2; n.c += dc2; break;
           }
         }
@@ -5314,6 +5327,10 @@ function updateGtaInteractions() {
     const isMine = String(qc.owner_uid) === String(QP.uid);
     if (isMine && !qc.driver_uid) {
       if (d < nearestD) { nearestD = d; nearestQc = qc; nearestKind = 'driver'; }
+    } else if (qc.civilian && !qc.driver_uid) {
+      // Брошенная гражданская тачка (без owner и без водителя) — её
+      // можно снова угнать. Считаем как «сесть за руль».
+      if (d < nearestD) { nearestD = d; nearestQc = qc; nearestKind = 'driver'; }
     } else if (!isMine && qc.driver_uid && qc.driver_uid !== String(QP.uid)) {
       // Чужая машина с водителем — можно сесть пассажиром, если есть место.
       const plist = qc.passenger_uids || [];
@@ -5901,6 +5918,13 @@ function exitCar(reason) {
   playEnterCarAnim(player.r, player.c);
   hapticHit();
   // Локально освобождаем сразу — сервер пришлёт final reply, но игрок уже идёт.
+  // Также чистим qc.driver_uid локально, иначе updateGtaInteractions не
+  // покажет кнопку «Сесть в...» до прихода snap (~200мс задержка).
+  if (qc && qc.driver_uid === String(QP.uid)) {
+    qc.driver_uid = null;
+    qc.state = 'idle';
+    qc.vx = 0; qc.vy = 0;
+  }
   myDrivingCarId = null;
   _exitRequested = false;
 }
@@ -6988,8 +7012,11 @@ function update(dt) {
       const CAR_MAX_SPEED   = 13.0;  // тайлов/сек
       const CAR_ACCEL       = 14.0;  // быстрый отклик на газ
       const CAR_BRAKE       = 14.0;  // торможение при отпущенном стике / exit
-      const CAR_TURN_RATE   = 4.2;   // рад/сек — резвый руль
-      const CAR_DRIFT_GRIP  = 6.5;   // быстрее «прилипает» к новому направлению
+      // Поворот — НЕ моментальный разворот, а угловая скорость. На большой
+      // скорости легче маневрировать, на стоящей машине поворот замедленный
+      // (нельзя «развернуться на месте» как пешеход).
+      const CAR_TURN_RATE_BASE = 2.4;  // рад/сек у машины едущей средне
+      const CAR_DRIFT_GRIP     = 4.0;  // плавнее прилипает к новому направлению
       // Текущая скорость по локальному состоянию qc
       let curVx = qc.vx || 0, curVy = qc.vy || 0;
       let curSpeed = Math.hypot(curVx, curVy);
@@ -7000,11 +7027,21 @@ function update(dt) {
         // Стик → желаемое направление движения в WORLD-координатах (тайлы)
         const d = inDx, s = inDy / ISO_Y;
         const targetAng = Math.atan2((s - d) * 0.5, (s + d) * 0.5);
-        // Плавно поворачиваем angle машины к targetAng
+        // Плавно поворачиваем angle машины к targetAng. Угловая скорость
+        // зависит от скорости движения (как настоящая машина):
+        //   v < 1   — поворот в 4 раза медленнее (нельзя крутиться на месте)
+        //   v = 4   — нормально
+        //   v > 8   — чуть быстрее (на скорости рулится острее)
+        // Плюс отклонение стика мало → турн-рейт ограничен пропорционально.
+        let speedK = 1.0;
+        if (curSpeed < 1.0)      speedK = 0.25 + curSpeed * 0.75;     // 0.25..1.0
+        else if (curSpeed > 8.0) speedK = 1.0 + Math.min(0.3, (curSpeed - 8) * 0.05);
+        const stickK = Math.min(1, inMag * 1.2);    // <0.83 стика → плавный
+        const turnRate = CAR_TURN_RATE_BASE * speedK * stickK;
         let aDiff = targetAng - qc.ang;
         while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
         while (aDiff < -Math.PI) aDiff += Math.PI * 2;
-        const turnStep = Math.sign(aDiff) * Math.min(Math.abs(aDiff), CAR_TURN_RATE * dt);
+        const turnStep = Math.sign(aDiff) * Math.min(Math.abs(aDiff), turnRate * dt);
         qc.ang += turnStep;
         // Газ = магнитуда стика (0..1)
         throttle = Math.min(1, inMag);
