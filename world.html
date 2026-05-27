@@ -2528,6 +2528,53 @@ function _raycastNpc(sR, sC, dirY, dirX, maxRange) {
   return best;
 }
 
+// Луч от пули по бандитским машинам (CARS where model.gang). Корпус машины
+// крупнее людей — perp до 0.9. Возвращает {car, point, dist} либо null.
+function _raycastGangCar(sR, sC, dirY, dirX, maxRange) {
+  let best = null, bestD = maxRange;
+  for (const car of CARS) {
+    if (!car || !car.gang) continue;
+    if (car._wrecked) continue;
+    const dr = car.r - sR, dc = car.c - sC;
+    const along = dr * dirY + dc * dirX;
+    if (along < 0.2 || along > maxRange) continue;
+    const perp = Math.abs(dr * dirX - dc * dirY);
+    if (perp > 0.9) continue;
+    if (along < bestD) {
+      bestD = along;
+      best = { car, point: { r: sR + dirY * along, c: sC + dirX * along },
+               dist: along };
+    }
+  }
+  return best;
+}
+
+// Попадание пули в бандитскую тачку: -dmg к gangHp. При 0 — взрыв + шлём
+// серверу gang_threat (там бампается wanted_gangs). Возвращает true если
+// машина разрушена этим выстрелом.
+let _lastGangThreatAt = 0;
+function hitGangCar(car, damage) {
+  if (!car || car._wrecked) return false;
+  car.gangHp = Math.max(0, (car.gangHp | 0) - (damage | 0));
+  // Лёгкая встряска корпуса
+  car._shakeUntil = performance.now() + 200;
+  if (car.gangHp <= 0) {
+    spawnCarExplosion(car.r, car.c);
+    car._wrecked   = true;
+    car._respawnAt = performance.now() + 9999999;  // не респаунить — это уникальный кортеж
+  }
+  // Антиспам: бампаем gang не чаще раза в 1.5 сек (за вертикальный кортеж)
+  const now = performance.now();
+  if (now - _lastGangThreatAt > 1500) {
+    _lastGangThreatAt = now;
+    try {
+      ws && ws.send(JSON.stringify({ t: 'gang_threat',
+        d: { x: +car.c.toFixed(2), y: +car.r.toFixed(2) } }));
+    } catch(e) {}
+  }
+  return car._wrecked;
+}
+
 // Локальное попадание пули в мирного NPC: knockback назад + кровь +
 // hp вычитается. При hp<=0 → dead (тело остаётся как splat).
 function hitNpc(npc, dirY, dirX, weapon, damage) {
@@ -2851,6 +2898,14 @@ function updateNpcs(dt) {
 // ── Машины (умные, с моделями) ──────────────────────────────────
 // 5 моделей × разные палитры. Каждая едет по полосе дороги,
 // останавливается на красный, перед другими машинами, и перед игроком.
+// Сиреневые «бандитские» модели — для кортежей и логова. Большие, тёмные,
+// с фиолетовым отливом. При попадании пули — +1 кулачок банды (см. gangConvoys).
+const GANG_CAR_MODELS = [
+  // Линкольн — длинный седан, чёрно-сиреневый
+  { name: 'linc_gang',  L: 2.10, W: 0.95, palette: ['#5a3a7a','#2a1a4a'], roof: '#1a0a2a', wheelR: 0.18, height: 0.62, gang: true, label: 'Lincoln' },
+  // Джип — высокий, броневой
+  { name: 'jeep_gang',  L: 1.95, W: 1.05, palette: ['#6a4090','#321a52'], roof: '#1a0a2a', wheelR: 0.22, height: 0.78, gang: true, label: 'Jeep' },
+];
 const CAR_MODELS = [
   { name: 'sedan',    L: 1.7, W: 0.85, palette: ['#3a5a8a','#22386a'], roof: '#1a2848', wheelR: 0.16 },
   { name: 'taxi',     L: 1.7, W: 0.85, palette: ['#ffd700','#b89400'], roof: '#1a1a1a', wheelR: 0.16, taxi: true },
@@ -2995,6 +3050,56 @@ function spawnParkedCar() {
   return null;
 }
 
+// ── Кортеж банды (Линкольны/джипы) ───────────────────────────────
+// Каждые ~75 сек по городу проезжает 3 сиреневые машины гуськом по
+// одной полосе. Можно атаковать (выстрел/таран) — получишь кулачок.
+// Машины из этого кортежа имеют флаг model.gang=true.
+let _convoyNextAt = 0;
+function spawnGangConvoy() {
+  // Берём случайную точку дороги и направление (как spawnCar)
+  for (let tries = 0; tries < 60; tries++) {
+    const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
+    const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
+    if (MAP[r] === undefined || MAP[r][c] !== 0) continue;
+    if (r > 80) continue;   // только в самом городе, не на пляже/в логове
+    const onRoadR = (r % BLOCK <= 2);
+    const onRoadC = (c % BLOCK <= 2);
+    if (!onRoadR && !onRoadC) continue;
+    let dirDx = 0, dirDy = 0;
+    if (onRoadR && !onRoadC) {
+      const lane = r % BLOCK;
+      if (lane === 0)      dirDx = 1;
+      else if (lane === 2) dirDx = -1;
+      else continue;
+    } else if (onRoadC && !onRoadR) {
+      const lane = c % BLOCK;
+      if (lane === 0)      dirDy = 1;
+      else if (lane === 2) dirDy = -1;
+      else continue;
+    } else {
+      continue;
+    }
+    // 3 машины подряд, расстояние 2 тайла между ними
+    const baseSpeed = 1.6;
+    const N = 3;
+    for (let i = 0; i < N; i++) {
+      const off = -i * 2.4;
+      const model = GANG_CAR_MODELS[i === 0 ? 0 : (1 + ((i + Math.random()*9) | 0) % (GANG_CAR_MODELS.length - 1))]
+                 || GANG_CAR_MODELS[i % GANG_CAR_MODELS.length];
+      CARS.push({
+        r: r + 0.5 + dirDy * off, c: c + 0.5 + dirDx * off,
+        vr: dirDy * baseSpeed, vc: dirDx * baseSpeed,
+        dirDx, dirDy, model,
+        braking: false, flash: 0,
+        gang: true,                     // кортеж банды
+        gangHp: 70, gangHpMax: 70,
+      });
+    }
+    return true;
+  }
+  return false;
+}
+
 function initCars() {
   CARS.length = 0;
   // Город стал «живее» — 18 машин вместо 8. Спорткары и полиция тоже
@@ -3008,6 +3113,33 @@ function initCars() {
   for (let i = 0; i < 10; i++) {
     const p = spawnParkedCar();
     if (p) CARS.push(p);
+  }
+  // Логово банды — гангстерская парковка в одном из дальних кварталов.
+  // Это 3 сиреневые машины стоят рядом. Их можно расстрелять (+кулачки).
+  spawnGangLair();
+  // Первый кортеж через 25 сек после старта
+  _convoyNextAt = performance.now() + 25000;
+}
+
+// Спавн фиксированной парковки банды — 3 машины подряд у тротуара.
+// Адрес: r=58, c=14 (северо-западный квартал) — далеко от спавна, чтобы
+// игрок до него реально шёл/ехал.
+function spawnGangLair() {
+  const LAIR_R = 58, LAIR_C = 14;
+  // 3 машины в ряд вдоль тротуара
+  for (let i = 0; i < 3; i++) {
+    const model = GANG_CAR_MODELS[i % GANG_CAR_MODELS.length];
+    CARS.push({
+      r: LAIR_R + 0.5 + i * 1.4,
+      c: LAIR_C + 0.5,
+      vr: 0, vc: 0,
+      dirDx: 0, dirDy: 1,
+      model,
+      braking: false, flash: 0,
+      parked: true, gang: true,
+      gangHp: 90, gangHpMax: 90,
+      _isLair: true,
+    });
   }
 }
 
@@ -3050,11 +3182,81 @@ function carCanGo(car, dt) {
   return true;
 }
 
+// Кортежи и логово банды стреляют по игроку если у него кулачки > 0.
+// Простая видимость: дистанция < 8 тайл + нет стены между. Раз в ~1.5 сек.
+let _gangFireNextAt = 0;
+function updateGangAggression(dt) {
+  if (myDead || myMode === 'pve') return;
+  if ((myGangs || 0) <= 0) return;
+  const now = performance.now();
+  if (now < _gangFireNextAt) return;
+  // Выберем стреляющего: ближайшая живая gang-машина в радиусе 8 тайл
+  let shooter = null, bestD = 8;
+  for (const car of CARS) {
+    if (!car || !car.gang || car._wrecked) continue;
+    const d = Math.hypot(car.r - player.r, car.c - player.c);
+    if (d > bestD) continue;
+    // LOS — простой raycast по 6 точкам, если попадаем в стену — пропускаем
+    let blocked = false;
+    for (let i = 1; i < 6; i++) {
+      const t = i / 6;
+      const rr = car.r + (player.r - car.r) * t;
+      const cc = car.c + (player.c - car.c) * t;
+      const ri = Math.floor(rr), ci = Math.floor(cc);
+      if (MAP[ri] && MAP[ri][ci] === 1) { blocked = true; break; }
+    }
+    if (blocked) continue;
+    bestD = d; shooter = car;
+  }
+  if (!shooter) return;
+  // Стреляем в игрока с разбросом
+  const dmg = 8 + (Math.random() * 6 | 0);
+  const ang = Math.atan2(player.r - shooter.r, player.c - shooter.c);
+  const muzR = shooter.r + Math.sin(ang) * 0.4;
+  const muzC = shooter.c + Math.cos(ang) * 0.4;
+  const missR = (Math.random() - 0.5) * 0.7;
+  const missC = (Math.random() - 0.5) * 0.7;
+  const tR = player.r + missR;
+  const tC = player.c + missC;
+  const isHit = (Math.abs(missR) < 0.35 && Math.abs(missC) < 0.35);
+  spawnBullet(muzR, muzC, tR, tC, { hit: isHit, fromNpc: true, weapon: 'pistol_heavy' });
+  spawnMuzzle(muzR, muzC, ang, 'pistol_heavy');
+  if (isHit) {
+    spawnImpact(tR, tC, 'pistol_heavy');
+    addShake(1.8);
+    // Шлём серверу — он уменьшит мой hp авторитативно (anti-cheat проверит
+    // что у меня действительно есть кулачки и рядом есть gang-источник).
+    try {
+      ws && ws.send(JSON.stringify({ t: 'gang_dmg', d: {
+        dmg, sx: +shooter.c.toFixed(2), sy: +shooter.r.toFixed(2),
+      } }));
+    } catch(e) {}
+  }
+  _gangFireNextAt = now + 1400 + Math.random() * 600;
+}
+
 function updateCars(dt) {
+  // Раз в 60-90 сек выпускаем кортеж по городу
+  if (performance.now() >= _convoyNextAt) {
+    if (spawnGangConvoy()) {
+      _convoyNextAt = performance.now() + 60000 + Math.random() * 30000;
+    } else {
+      _convoyNextAt = performance.now() + 5000;   // дороги заняты, попробуем позже
+    }
+  }
   for (const car of CARS) {
     // Парковочные тачки — статичные, не двигаются, не уезжают, не
     // респаунятся за границей карты. Только рисуются + угоняются по lockpick.
     if (car.parked) { car.braking = false; continue; }
+    // Разбитая в столкновении NPC-машина — переспаун через ~600мс
+    if (car._wrecked) {
+      if (performance.now() >= (car._respawnAt || 0)) {
+        const ni = CARS.indexOf(car);
+        const fresh = spawnCar(ni);
+        if (fresh) Object.assign(car, fresh);
+      }
+      continue;
+    }
     const canGo = carCanGo(car, dt);
     car.braking = !canGo;
     if (canGo) {
@@ -4339,6 +4541,10 @@ function handleEventPacket(d) {
     } else {
       showToast(`💀 Боец -1  +$${cash} +${exp}${gAdd}`, 1900);
     }
+  } else if (kind === 'gang_threat') {
+    // Стрельба по кортежу/логову — кулачки банды +1. Сервер обновил БД.
+    myGangs = d.gang_now || (myGangs + 1);
+    showToast(`👊 Кулачки банды +1  (${myGangs}/3)`, '⚠️', 3200);
   } else if (kind === 'bounty_collected') {
     // Контракт исполнен — кто-то завалил носителя 3★ кулачков.
     // Killer: личный toast «+$500 +50 exp», victim: «тебя завалили»,
@@ -6096,6 +6302,18 @@ function fire(angle = null) {
   // используем серверную цель (chosenConvoy/Cop/Aggro/Mg/pvpTarget).
   const range = wcfg.range || 7;
   const hitN  = _raycastNpc(sR, sC, dirY, dirX, range);
+  // Raycast по бандитским машинам в кортеже — приоритет если ближе NPC.
+  const hitG  = _raycastGangCar(sR, sC, dirY, dirX, range);
+  if (hitG && (!hitN || hitG.dist < hitN.dist)) {
+    spawnBullet(sR, sC, hitG.point.r, hitG.point.c,
+      { hit: true, fromPlayer: true, weapon: currentWeapon });
+    spawnImpact(hitG.point.r, hitG.point.c, currentWeapon);
+    hitGangCar(hitG.car, wcfg.dmg || 20);
+    triggerHitStop(40);
+    addShake(2);
+    hapticHit();
+    return;
+  }
   // Дистанция до серверной цели по линии огня
   const _serverTarget = chosenConvoy || chosenCop || chosenAggro || chosenMg || pvpTarget;
   const _serverDist = _serverTarget
@@ -6581,11 +6799,13 @@ function update(dt) {
       _interpMichaelGuards(dt);
       return;
     } else {
-      const CAR_MAX_SPEED   = 8.5;   // тайлов/сек (см. серверный кламп 9.0)
-      const CAR_ACCEL       = 7.5;   // как быстро разгоняемся (было 6.0 — увеличил отзывчивость)
-      const CAR_BRAKE       = 9.0;   // торможение при отпущенном стике / exit
-      const CAR_TURN_RATE   = 2.6;   // рад/сек (было 3.4 — плавнее повороты)
-      const CAR_DRIFT_GRIP  = 4.0;   // как быстро вектор скорости поворачивает к направлению машины
+      // Машина должна ощущаться быстрее и поворотливее пешего хода
+      // (пешая скорость = 5 тайл/сек). Серверный кламп QUEST_CAR_MAX_SPEED=14.
+      const CAR_MAX_SPEED   = 13.0;  // тайлов/сек
+      const CAR_ACCEL       = 14.0;  // быстрый отклик на газ
+      const CAR_BRAKE       = 14.0;  // торможение при отпущенном стике / exit
+      const CAR_TURN_RATE   = 4.2;   // рад/сек — резвый руль
+      const CAR_DRIFT_GRIP  = 6.5;   // быстрее «прилипает» к новому направлению
       // Текущая скорость по локальному состоянию qc
       let curVx = qc.vx || 0, curVy = qc.vy || 0;
       let curSpeed = Math.hypot(curVx, curVy);
@@ -6644,14 +6864,34 @@ function update(dt) {
       // Применяем позицию с проверкой стен
       const newX = qc.x + curVx * dt;
       const newY = qc.y + curVy * dt;
-      // Машина чуть «упругая» — если в стене, остановка
+      // Машина чуть «упругая» — если в стене, остановка + урон при ударе.
       // Угнанная машина блокируется любым непроходимым тайлом — стены домов
       // (1), вода (16), припаркованные машины (2), декор. Используем общий
       // isBlocked, чтобы не въехать в море с пирса.
       if (!isBlocked(newY, newX)) {
         qc.x = newX; qc.y = newY;
       } else {
-        curVx = 0; curVy = 0;
+        const impact = curSpeed;
+        curVx = -curVx * 0.25; curVy = -curVy * 0.25; // отскок 25%
+        if (impact > 3.5) reportCarCrash(qc, impact, 'wall');
+      }
+      // Столкновение с NPC-трафиком (декоративный CARS) — урон обеим сторонам,
+      // NPC-машина мгновенно «разбита» (исчезает облаком искр + переспаун).
+      for (const npcCar of CARS) {
+        if (npcCar.parked) continue;
+        if (npcCar._wrecked) continue;
+        const dd = Math.hypot(npcCar.r - qc.y, npcCar.c - qc.x);
+        if (dd < 1.1) {
+          const impact = curSpeed + Math.hypot(npcCar.vr || 0, npcCar.vc || 0) * 0.5;
+          if (impact > 2.0) {
+            reportCarCrash(qc, impact, 'car');
+            spawnCarExplosion(npcCar.r, npcCar.c);
+            npcCar._wrecked = true;
+            npcCar._respawnAt = performance.now() + 600;
+          }
+          curVx *= -0.4; curVy *= -0.4;
+          break;
+        }
       }
       qc.vx = curVx; qc.vy = curVy;
       // Игрок «приклеен» к машине — позиция = центр машины
@@ -6767,6 +7007,7 @@ function update(dt) {
   // Локальная симуляция декора: прохожие + машины
   updateNpcs(dt);
   updateCars(dt);
+  updateGangAggression(dt);
   // Пули и вспышки — двигаем тут, рисуем потом в render()
   updateProjectiles(dt);
   // Конвой и копы — плавно подтягиваем к целевым серверным позициям
@@ -10385,26 +10626,58 @@ function drawQuestCar(qc) {
   ctx.ellipse(cp.x, cp.y + 4, TS * 0.55, TS * 0.55 * ISO_Y, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+  // Тряска корпуса после удара — короткая жёсткая вибрация (280мс)
+  let _shakeRX = 0, _shakeRY = 0;
+  if (qc._shakeUntil && performance.now() < qc._shakeUntil) {
+    const left = (qc._shakeUntil - performance.now()) / 280;
+    const mag  = (qc._shakeMag || 3) * left * 0.18;
+    _shakeRX = (Math.random() - 0.5) * mag;
+    _shakeRY = (Math.random() - 0.5) * mag;
+  }
   // Используем drawCarPretty
   drawCarPretty({
-    r: qc.y, c: qc.x,
+    r: qc.y + _shakeRY, c: qc.x + _shakeRX,
     dirDx, dirDy,
     model: m,
   });
-  // ── Дым на низком HP (под 35%) — машина «закопчена», валит чёрный дым
+  // ── Дым/огонь на низком HP ──
+  //   < 50%  — лёгкий дымок из-под капота
+  //   < 25%  — густой чёрный дым + первые огоньки
+  //   < 12%  — горящий капот (прыгающие языки пламени) → перед взрывом
   const hp    = qc.hp     || 0;
   const maxHp = qc.max_hp || 1;
   const hpR   = hp / maxHp;
-  if (hpR > 0 && hpR < 0.35) {
+  if (hpR > 0 && hpR < 0.50) {
     const t = performance.now() * 0.004;
+    // Точка «капота» — впереди по направлению машины (dirDx/dirDy уже выше)
+    const hoodOff = 0.45; // тайла впереди от центра
+    const hoodWorld = w2s(qc.y + dirDy * hoodOff, qc.x + dirDx * hoodOff);
     ctx.save();
-    for (let i = 0; i < 3; i++) {
-      const sx = cp.x + Math.cos(t * 0.7 + i) * 5;
-      const sy = cp.y - 18 - i * 10 - Math.sin(t * 1.2 + i) * 3;
-      ctx.fillStyle = `rgba(40,40,40,${0.50 - i * 0.12})`;
+    // Дым — всегда когда hpR<0.5, чем ниже hp тем гуще
+    const smokeCount = hpR < 0.25 ? 4 : 2;
+    const smokeAlpha = hpR < 0.25 ? 0.65 : 0.40;
+    for (let i = 0; i < smokeCount; i++) {
+      const sx = hoodWorld.x + Math.cos(t * 0.7 + i) * 5;
+      const sy = hoodWorld.y - 14 - i * 10 - Math.sin(t * 1.2 + i) * 3;
+      ctx.fillStyle = `rgba(40,40,40,${smokeAlpha - i * 0.10})`;
       ctx.beginPath();
-      ctx.arc(sx, sy, 6 + i * 3, 0, Math.PI * 2);
+      ctx.arc(sx, sy, 5 + i * 3, 0, Math.PI * 2);
       ctx.fill();
+    }
+    // Огонь капота при hp<12% (или <22% — пара огоньков).
+    if (hpR < 0.22) {
+      const flames = hpR < 0.12 ? 5 : 2;
+      for (let i = 0; i < flames; i++) {
+        const fx = hoodWorld.x + Math.cos(t * 2.5 + i * 1.3) * 5;
+        const fy = hoodWorld.y - 4 + Math.sin(t * 3.5 + i * 0.9) * 3 - i * 1.5;
+        const sz = 4 + Math.sin(t * 4 + i) * 2 + (hpR < 0.12 ? 2 : 0);
+        ctx.fillStyle = (i % 2) ? 'rgba(255,140,40,.90)' : 'rgba(255,220,80,.90)';
+        ctx.shadowColor = '#ff6020';
+        ctx.shadowBlur  = 12;
+        ctx.beginPath();
+        ctx.arc(fx, fy, sz, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     ctx.restore();
   }
@@ -12021,6 +12294,54 @@ function spawnImpact(wr, wc, weapon) {
 
 // Кулдаун предупреждений «машина горит» — не спамим тостами
 let _gtaLastWarnAt = 0;
+
+// Авария: клиент отправляет урон серверу + локальные эффекты (искры, тряска).
+// kind: 'wall' / 'car' / 'other'. impact — скорость в момент удара (тайл/с).
+let _lastCrashAt = 0;
+function reportCarCrash(qc, impact, kind) {
+  const now = performance.now();
+  if (now - _lastCrashAt < 250) return;   // антиспам столкновений
+  _lastCrashAt = now;
+  // Урон: квадратично от скорости (импульс ~ v²). max клам ~80 за столкновение.
+  const dmg = Math.min(80, Math.round(impact * impact * 1.4));
+  if (dmg <= 0) return;
+  // Локальные эффекты — искры из точки удара + дым
+  const parts = [];
+  for (let i = 0; i < 12; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 0.8 + Math.random() * 2.2;
+    parts.push({
+      vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+      life: 350 + Math.random() * 350, max: 700,
+      color: Math.random() < 0.5 ? '#ffe080' : '#ffaa40',
+      isBlood: false,
+      size: 1.4 + Math.random() * 1.4,
+    });
+  }
+  impacts.push({ r: qc.y, c: qc.x, parts });
+  // Метка тряски: drawQuestCar читает qc._shakeUntil для жесть-вибрации
+  qc._shakeUntil = now + 280;
+  qc._shakeMag   = Math.min(6, impact * 0.6);
+  // Глобальная экранная тряска — используем существующий camShake/addShake
+  addShake(Math.min(8, impact * 0.7));
+  // Шлём серверу — пусть уменьшит hp в авторитативном состоянии
+  try {
+    ws && ws.send(JSON.stringify({ t: 'gta_crash', d: {
+      car_id: qc.id, dmg, kind: kind || 'wall',
+    } }));
+  } catch(e){}
+  // Локально предскажем hp чтобы дым/огонь появились мгновенно (сервер
+  // на ближайшем снапшоте подтвердит).
+  if (typeof qc.hp === 'number') {
+    qc.hp = Math.max(0, qc.hp - dmg);
+  }
+  // Тост-предупреждение если ниже 35%
+  const hpR = (qc.hp || 0) / Math.max(1, qc.max_hp || 1);
+  if (hpR < 0.35 && now - _gtaLastWarnAt > 4000) {
+    _gtaLastWarnAt = now;
+    showToast(hpR < 0.15 ? '🔥 Машина горит — выходи!' : '💨 Машина дымит', '🚗', 1800);
+  }
+}
 
 // Взрыв машины — мощный «мясной» эффект: 36 искр + чёрный круг копоти
 // + бочка дыма. Переиспользуем impacts/bloodSplats.

@@ -11573,7 +11573,7 @@ class WorldSim:
     # Сколько успешных доставок тачки сложнее своего skill → +1 уровень
     SAFECRACKER_XP_PER_LEVEL = 5
     QUEST_CAR_HP        = 220       # машина может погибнуть под огнём
-    QUEST_CAR_MAX_SPEED = 9.0       # тайлов/сек — на сервере жёсткий потолок
+    QUEST_CAR_MAX_SPEED = 14.0      # тайлов/сек — на сервере жёсткий потолок
     # ── Wanted-система + копы ──────────────────────────────────────
     # При стрельбе по другим игрокам у стрелка растут звёзды розыска
     # (0..3). На каждую звезду в городе спавнятся копы которые активно
@@ -12225,6 +12225,50 @@ class WorldSim:
                 pp['_input_t'] = time.time()
         return None  # nothing to send back per-tick
 
+    def gta_crash(self, uid: str, car_id: str, dmg: int, kind: str) -> dict | None:
+        """Игрок врезался в стену/машину. Уменьшаем hp, при 0 — wrecked.
+        Возвращает {'destroyed': bool, 'x','y','hp','max_hp','owner_uid'} либо None."""
+        qc = self.quest_cars.get(car_id)
+        if not qc or qc.get('wrecked'):
+            return None
+        # Только водитель/пассажир может слать gta_crash (защита от инъекций)
+        if (str(qc.get('driver_uid')) != str(uid) and
+                str(uid) not in [str(x) for x in qc.get('passenger_uids', [])]):
+            return None
+        try:
+            dmg = int(dmg)
+        except Exception:
+            return None
+        dmg = max(0, min(100, dmg))   # анти-чит кламп
+        if dmg <= 0:
+            return None
+        cur_hp = int(qc.get('hp', self.QUEST_CAR_HP))
+        new_hp = max(0, cur_hp - dmg)
+        qc['hp'] = new_hp
+        if new_hp <= 0 and not qc.get('wrecked'):
+            qc['wrecked']    = True
+            qc['state']      = 'wrecked'
+            qc['_wrecked_at']= time.time()
+            qc['vx'] = 0.0; qc['vy'] = 0.0
+            return {
+                'destroyed': True,
+                'x':         float(qc.get('x', 0)),
+                'y':         float(qc.get('y', 0)),
+                'hp':        0,
+                'max_hp':    int(self.QUEST_CAR_HP),
+                'owner_uid': str(qc.get('owner_uid') or ''),
+                'car_id':    car_id,
+            }
+        return {
+            'destroyed': False,
+            'x':         float(qc.get('x', 0)),
+            'y':         float(qc.get('y', 0)),
+            'hp':        int(new_hp),
+            'max_hp':    int(self.QUEST_CAR_HP),
+            'owner_uid': str(qc.get('owner_uid') or ''),
+            'car_id':    car_id,
+        }
+
     async def gta_exit(self, uid: str, car_id: str) -> dict:
         """Игрок вышел из машины. Если стоит в DROP_ZONE — автопродажа."""
         qc = self.quest_cars.get(car_id)
@@ -12607,6 +12651,19 @@ class WorldSim:
                 continue
             p['dead'] = False
             p['hp']   = int(p.get('max_hp', 100))
+            # После смерти кулачки банд обнуляются (как и при тюремном выкупе).
+            # Аналогично — wanted-копы. Это разгружает раннюю игру: умер —
+            # появился чистым. Push в БД через background-таск.
+            had_g = int(p.get('_wanted_gangs') or 0)
+            had_w = float(p.get('_wanted') or 0)
+            if had_g > 0 or had_w > 0:
+                p['_wanted_gangs'] = 0
+                p['_wanted']       = 0.0
+                try:
+                    asyncio.create_task(update_character(
+                        int(p_uid), wanted_gangs=0, wanted_stars=0))
+                except Exception:
+                    pass
             # jail_until > now → спавн в тюрьме (правый-нижний угол),
             # иначе — у госпиталя (rebirth). Тебя завалил кто угодно —
             # выходишь из больницы в районе Рынка.
@@ -17588,6 +17645,71 @@ async def _coop_http_app():
                         world.gta_drive(uid, str(d.get('car_id') or ''),
                                         d.get('x'), d.get('y'),
                                         d.get('ang'), d.get('vx'), d.get('vy'))
+                    elif t == 'gang_dmg':
+                        # Бандиты стреляют по игроку с кулачками. Урон применяем
+                        # авторитативно — только если у игрока действительно
+                        # есть wanted_gangs>0 (anti-cheat).
+                        p_obj = world.players.get(uid)
+                        if p_obj is not None and not p_obj.get('dead'):
+                            cur_g = int(p_obj.get('_wanted_gangs') or 0)
+                            if cur_g > 0:
+                                try:
+                                    dmg = int(d.get('dmg') or 0)
+                                except Exception:
+                                    dmg = 0
+                                dmg = max(0, min(30, dmg))   # кламп
+                                if dmg > 0:
+                                    cur_hp = int(p_obj.get('hp') or 0)
+                                    new_hp = max(0, cur_hp - dmg)
+                                    p_obj['hp'] = new_hp
+                                    if new_hp <= 0:
+                                        p_obj['dead']        = True
+                                        p_obj['deaths']      = int(p_obj.get('deaths', 0)) + 1
+                                        p_obj['_respawn_at'] = time.time() + world.PLAYER_RESPAWN_S
+                        # Игрок выстрелил в бандитский кортеж/логово — +1 кулачок.
+                        # Анти-спам: один бамп раз в 4 сек на uid.
+                        p_obj = world.players.get(uid)
+                        if p_obj is not None:
+                            now_gt = time.time()
+                            last_gt = float(p_obj.get('_gang_threat_at') or 0)
+                            if now_gt - last_gt >= 4.0:
+                                p_obj['_gang_threat_at'] = now_gt
+                                try:
+                                    uid_int = int(uid)
+                                    ch_gt = await get_character(uid_int)
+                                    if ch_gt:
+                                        cur_g = int(ch_gt.get('wanted_gangs') or 0)
+                                        if cur_g < 3:
+                                            new_g = min(3, cur_g + 1)
+                                            await update_character(uid_int, wanted_gangs=new_g)
+                                            p_obj['_wanted_gangs'] = new_g
+                                            # Личный тост
+                                            try:
+                                                await ws.send_str(json.dumps({'t': 'event', 'd': {
+                                                    'kind':       'gang_threat',
+                                                    'gang_now':   new_g,
+                                                    'gang_added': 1,
+                                                }}, ensure_ascii=False))
+                                            except Exception: pass
+                                except (TypeError, ValueError):
+                                    pass
+                                except Exception as _e:
+                                    logger.warning("gang_threat handler failed: %r", _e)
+                    elif t == 'gta_crash':
+                        rep = world.gta_crash(uid, str(d.get('car_id') or ''),
+                                              d.get('dmg', 0), str(d.get('kind') or 'wall'))
+                        if rep is not None:
+                            if rep.get('destroyed'):
+                                pkt = json.dumps({'t': 'event', 'd': dict(rep,
+                                    kind='quest_car_destroyed')}, ensure_ascii=False)
+                            else:
+                                pkt = json.dumps({'t': 'event', 'd': dict(rep,
+                                    kind='quest_car_hit', miss=False,
+                                    weapon='', sx=rep['x'], sy=rep['y'],
+                                    tx=rep['x'], ty=rep['y'])}, ensure_ascii=False)
+                            for _u3, _ws3 in list(world.connections.items()):
+                                try: await _ws3.send_str(pkt)
+                                except Exception: pass
                     elif t == 'gta_exit':
                         reply = await world.gta_exit(uid, str(d.get('car_id') or ''))
                         if reply.get('delivered'):
