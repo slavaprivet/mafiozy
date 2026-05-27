@@ -2872,88 +2872,188 @@ function updateCityCops(dt) {
 const serviceVehicles = [];
 let _svcVehId = 0;
 
-function _vehiclePassable(r, c) {
+// Спецтранспорт едет ПО ДОРОГАМ (тип 0). На последнем участке (от
+// ближайшего к цели дорожного тайла до самой цели) разрешён выезд на
+// тротуар/газон, иначе скорая не может подъехать к телу на бордюре.
+function _vehicleRoadPassable(r, c) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
+  if (inArena(ri, ci)) return false;
+  if (!MAP[ri]) return false;
+  return MAP[ri][ci] === 0;
+}
+function _vehicleOffroadPassable(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
   if (inArena(ri, ci)) return false;
   if (!MAP[ri]) return false;
   const t = MAP[ri][ci];
-  // Машины служб едут по дорогам И тротуарам/газону (упрощение, без pathfind)
   return (t === 0 || t === 9 || t === 8);
 }
 
+// Ближайший дорожный тайл (тип 0) к точке (r,c) в радиусе до 12.
+function _nearestRoadTile(r, c) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (MAP[ri] && MAP[ri][ci] === 0) return { r: ri, c: ci };
+  for (let radius = 1; radius <= 12; radius++) {
+    for (let dr = -radius; dr <= radius; dr++) {
+      for (let dc = -radius; dc <= radius; dc++) {
+        if (Math.abs(dr) !== radius && Math.abs(dc) !== radius) continue;
+        const rr = ri + dr, cc = ci + dc;
+        if (MAP[rr] && MAP[rr][cc] === 0) return { r: rr, c: cc };
+      }
+    }
+  }
+  return null;
+}
+
+// BFS по дорожным тайлам от старта до цели. Возвращает массив
+// {r, c} (центры тайлов) или null. Узлы — 4-связные.
+function _bfsRoadPath(startR, startC, goalR, goalC) {
+  const start = _nearestRoadTile(startR, startC);
+  const goal  = _nearestRoadTile(goalR,  goalC);
+  if (!start || !goal) return null;
+  const COLS = MAP_COLS | 0;
+  const key  = (r, c) => r * COLS + c;
+  const startK = key(start.r, start.c);
+  const goalK  = key(goal.r,  goal.c);
+  if (startK === goalK) return [{ r: start.r + 0.5, c: start.c + 0.5 }];
+  const cameFrom = new Map();
+  cameFrom.set(startK, -1);
+  const queue = [startK];
+  let head = 0;
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+  let found = false;
+  while (head < queue.length) {
+    const k = queue[head++];
+    if (k === goalK) { found = true; break; }
+    const r = (k / COLS) | 0, c = k % COLS;
+    for (const [dr, dc] of dirs) {
+      const nr = r + dr, nc = c + dc;
+      if (nr < 1 || nr >= MAP_ROWS - 1 || nc < 1 || nc >= MAP_COLS - 1) continue;
+      if (!MAP[nr] || MAP[nr][nc] !== 0) continue;
+      if (inArena(nr, nc)) continue;
+      const nk = nr * COLS + nc;
+      if (cameFrom.has(nk)) continue;
+      cameFrom.set(nk, k);
+      queue.push(nk);
+    }
+  }
+  if (!found) return null;
+  // Восстанавливаем путь
+  const path = [];
+  let cur = goalK;
+  while (cur !== -1) {
+    const r = (cur / COLS) | 0, c = cur % COLS;
+    path.push({ r: r + 0.5, c: c + 0.5 });
+    cur = cameFrom.get(cur);
+  }
+  path.reverse();
+  return path;
+}
+
+// Один шаг машины службы по своему пути. Возвращает true когда машина
+// прибыла к финальной цели (с учётом «слезть с дороги» на последнем
+// сегменте). path — массив дорожных waypoint'ов, finalTarget — где
+// должна остановиться (на тротуаре/газоне у трупа).
 function _vehicleStep(v, dt) {
-  const dr = v.target.y - v.y, dc = v.target.x - v.x;
-  const d = Math.hypot(dr, dc);
-  if (d < 0.6) return true;
   const step = v.speed * dt;
-  const nx = v.x + (dc / d) * step;
-  const ny = v.y + (dr / d) * step;
-  if (_vehiclePassable(ny, nx)) {
+  // Если идём по дорожному пути
+  if (v.path && v.pathIdx < v.path.length) {
+    const wp = v.path[v.pathIdx];
+    const dr = wp.r - v.y, dc = wp.c - v.x;
+    const d = Math.hypot(dr, dc);
+    if (d < 0.35) {
+      v.pathIdx++;
+      return false;
+    }
+    const nx = v.x + (dc / d) * step;
+    const ny = v.y + (dr / d) * step;
     v.x = nx; v.y = ny;
     v.ang = Math.atan2(dr, dc);
     return false;
   }
-  // Boxed in — пробуем 4 ортогональных сдвига
+  // Последний участок — едем напрямую к точке (можно по тротуару/газону)
+  const ft = v.finalTarget;
+  if (!ft) return true;
+  const dr = ft.y - v.y, dc = ft.x - v.x;
+  const d = Math.hypot(dr, dc);
+  if (d < 0.5) return true;
+  const nx = v.x + (dc / d) * step;
+  const ny = v.y + (dr / d) * step;
+  if (_vehicleOffroadPassable(ny, nx)) {
+    v.x = nx; v.y = ny;
+    v.ang = Math.atan2(dr, dc);
+    return false;
+  }
+  // Боковой обход на финальном участке
   const sideR = -dc / d, sideC = dr / d;
-  const tries = [
-    [ sideR,  sideC], [-sideR, -sideC],
-    [(dr / d) * 0.5,  sideC * 0.7], [(dr / d) * 0.5, -sideC * 0.7],
-  ];
+  const tries = [[sideR, sideC], [-sideR, -sideC]];
   for (const [tdr, tdc] of tries) {
     const ny2 = v.y + tdr * step, nx2 = v.x + tdc * step;
-    if (_vehiclePassable(ny2, nx2)) {
+    if (_vehicleOffroadPassable(ny2, nx2)) {
       v.x = nx2; v.y = ny2;
       v.ang = Math.atan2(tdr, tdc);
       return false;
     }
   }
-  // Совсем заклинило — телепорт на ближайшую дорогу
-  for (let radius = 1; radius <= 4; radius++) {
-    for (let dr2 = -radius; dr2 <= radius; dr2++) {
-      for (let dc2 = -radius; dc2 <= radius; dc2++) {
-        const r2 = Math.floor(v.y) + dr2;
-        const c2 = Math.floor(v.x) + dc2;
-        if (MAP[r2] && MAP[r2][c2] === 0) {
-          v.x = c2 + 0.5; v.y = r2 + 0.5;
-          return false;
-        }
-      }
-    }
-  }
-  return false;
+  // Совсем заклинило — считаем что прибыли (труп всё равно рядом)
+  return true;
+}
+
+// Гаражные «двери» — ближайшие дорожные тайлы от больницы/пожарки
+// (POI на здании, машина не может стартовать прямо на нём).
+function _hospitalDoor() {
+  const d = _nearestRoadTile(HOSPITAL_R, HOSPITAL_C);
+  return d ? { r: d.r + 0.5, c: d.c + 0.5 } : { r: HOSPITAL_R, c: HOSPITAL_C };
+}
+function _fireStationDoor() {
+  const d = _nearestRoadTile(FIRE_STATION_R, FIRE_STATION_C);
+  return d ? { r: d.r + 0.5, c: d.c + 0.5 } : { r: FIRE_STATION_R, c: FIRE_STATION_C };
+}
+
+function _setVehicleRoute(v, fromR, fromC, toR, toC) {
+  const path = _bfsRoadPath(fromR, fromC, toR, toC);
+  v.path = path || [];
+  v.pathIdx = 0;
+  v.finalTarget = { x: toC, y: toR };
 }
 
 function spawnAmbulance(targetR, targetC, npc) {
-  serviceVehicles.push({
+  const door = _hospitalDoor();
+  const v = {
     id: 'amb_' + (++_svcVehId), kind: 'ambulance',
-    x: HOSPITAL_C + 0.5, y: HOSPITAL_R + 0.5,
-    ang: 0, speed: 7,
-    target: { x: targetC, y: targetR },
-    state: 'go_to_scene',
-    workUntil: 0,
+    x: door.c, y: door.r,
+    ang: 0, speed: 12,                    // скорая — быстро
+    state: 'go_to_scene', workUntil: 0,
     payload: { npc },
     homeR: HOSPITAL_R, homeC: HOSPITAL_C,
-  });
+    path: [], pathIdx: 0, finalTarget: null,
+  };
+  _setVehicleRoute(v, door.r, door.c, targetR, targetC);
+  serviceVehicles.push(v);
 }
 
 function spawnFireTruck(targetR, targetC, fireRef, carRef) {
   // Не дублировать — если в радиусе 3 уже едет пожарка, ничего не делаем
   for (const v of serviceVehicles) {
     if (v.kind !== 'firetruck' || v.state === 'done') continue;
-    const dr = v.target.y - targetR, dc = v.target.x - targetC;
+    const ft = v.finalTarget || { x: 0, y: 0 };
+    const dr = ft.y - targetR, dc = ft.x - targetC;
     if (Math.hypot(dr, dc) < 3) return;
   }
-  serviceVehicles.push({
+  const door = _fireStationDoor();
+  const v = {
     id: 'fire_' + (++_svcVehId), kind: 'firetruck',
-    x: FIRE_STATION_C + 0.5, y: FIRE_STATION_R + 0.5,
-    ang: 0, speed: 6,
-    target: { x: targetC, y: targetR },
-    state: 'go_to_scene',
-    workUntil: 0,
+    x: door.c, y: door.r,
+    ang: 0, speed: 10,                    // пожарка чуть тяжелее
+    state: 'go_to_scene', workUntil: 0,
     payload: { fireRef, carRef },
     homeR: FIRE_STATION_R, homeC: FIRE_STATION_C,
-  });
+    path: [], pathIdx: 0, finalTarget: null,
+  };
+  _setVehicleRoute(v, door.r, door.c, targetR, targetC);
+  serviceVehicles.push(v);
 }
 
 function updateServiceVehicles(dt) {
@@ -2961,6 +3061,13 @@ function updateServiceVehicles(dt) {
   for (let i = serviceVehicles.length - 1; i >= 0; i--) {
     const v = serviceVehicles[i];
     if (v.state === 'done') { serviceVehicles.splice(i, 1); continue; }
+    // Безопасник: если машина 25 сек катается, но никуда не приехала
+    // (например, BFS не построил путь из-за изменения карты) — убрать.
+    v._aliveT = (v._aliveT || 0) + dt;
+    if (v._aliveT > 25 && v.state !== 'working') {
+      v.state = 'done';
+      continue;
+    }
     if (v.state === 'go_to_scene') {
       if (_vehicleStep(v, dt)) {
         v.state = 'working';
@@ -2979,7 +3086,7 @@ function updateServiceVehicles(dt) {
         if (cr && cr._wrecked) cr._burnedOut = true;
       }
       v.state = 'returning';
-      v.target = { x: v.homeC + 0.5, y: v.homeR + 0.5 };
+      _setVehicleRoute(v, v.y, v.x, v.homeR, v.homeC);
     } else if (v.state === 'returning') {
       if (_vehicleStep(v, dt)) v.state = 'done';
     }
