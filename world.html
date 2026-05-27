@@ -70,7 +70,7 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
    Инпут раскрывается ВЛЕВО (flex-direction: row-reverse) — кнопка
    остаётся прижата к правому краю, поле бежит к центру экрана. */
 #chatBar {
-  position: absolute; right: 14px; bottom: 168px;
+  position: absolute; right: 14px; bottom: 240px;
   display: flex; flex-direction: row-reverse; gap: 6px;
   align-items: center; z-index: 6;
 }
@@ -281,11 +281,12 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 #joyR.cd { filter: grayscale(.5) brightness(.55); }
 
 /* Кнопка «🔫 Огонь» — основной триггер в open world (после захвата
-   цели). Висит над правым стиком (bottom 24-154) и над иконкой чата
-   (bottom 168-216, right 14-62), чтобы её не заслоняло. На PvP-арене
-   скрывается через JS (там free-aim стиком, fireBtn не нужен). */
+   цели). Висит сразу над правым стиком (bottom 150 vs стиковский 24-154,
+   удобно под большой палец). Иконка чата теперь висит ВЫШЕ (bottom 240),
+   чтобы не накладывалась. На PvP-арене скрывается через JS (там free-aim
+   стиком, fireBtn не нужен). */
 #fireBtn {
-  position: absolute; right: 32px; bottom: 230px;
+  position: absolute; right: 32px; bottom: 150px;
   width: 70px; height: 70px; border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #ff5050, #a01010);
   border: 2px solid #fff4b8; box-shadow: 0 6px 20px rgba(255,40,40,.55);
@@ -15416,7 +15417,7 @@ function _syncChatBarOverKb() {
   // Высота клавиатуры = инициальный экран минус видимый viewport.
   const kbH = Math.max(0, _initialStageH - vv.height - vv.offsetTop);
   if (chatOpen && kbH > 40) {
-    _chatBar.style.bottom = (168 + kbH) + 'px';
+    _chatBar.style.bottom = (240 + kbH) + 'px';
   } else {
     _chatBar.style.bottom = '';   // вернуть к CSS-значению
   }
