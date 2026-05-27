@@ -14416,7 +14416,7 @@ const TARGET_LOCK_HALF_ANGLE = 25 * Math.PI / 180;   // ±25°
 // где id = "kind:targetId". Auto-aim в fire() стреляет в БЛИЖАЙШУЮ к
 // игроку из живых меток. Тап по уже помеченной = снять метку.
 const lockedTargets = new Map();   // id → { entry, expireAt }
-const MAX_LOCKS = 4;               // ограничение чтобы экран не зарос
+const MAX_LOCKS = 5;               // ограничение чтобы экран не зарос
 // Legacy single-target API (для совместимости с местами где было
 // lockedTarget). Возвращает ближайшую активную метку либо null.
 function getActiveTarget() {
