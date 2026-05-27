@@ -13661,6 +13661,10 @@ function render() {
   drawArrestAnims();
   // Гильзы — мелкие латунные кубики на земле, под трассерами
   drawShells();
+  // Прицельный лазер — пунктирная линия от игрока в направлении правого
+  // стика. Игрок ВИДИТ куда выстрелит ДО нажатия. Рисуется ПОД пулями,
+  // чтобы трассер «вылетал» из лазера.
+  drawAimLaser();
   // Дымок — ПОД трассерами/вспышками, чтобы пуля «выходила» из дыма
   drawSmokePuffs();
   // Пули — трассеры поверх всего (живут 0.18 сек)
@@ -13794,6 +13798,91 @@ function _bulletY() { return Math.round(TS * 0.289); }
 // Рендер пуль — кометный шлейф: длинный градиент от ядра к хвосту + glow.
 // Голова пули — яркое белое ядро в цвет оружия, хвост плавно гаснет
 // в прозрачность. Толщина и длина зависят от thick (тяжёлые пушки).
+// Прицельный лазер игрока: красная пунктирная линия от точки дула до
+// конца дальности оружия (или до первой стены), + reticle-кружок там
+// где пуля «приземлится». Видно ровно куда полетит пуля. Рисуется
+// только когда правый стик сдвинут, игрок жив и не в машине.
+function drawAimLaser() {
+  if (myDead) return;
+  if (myMode === 'pve') return;
+  if (myDrivingCarId) return;       // в машине стрелять нельзя
+  if (!joyR || !joyR.active || !joyR.hasAim) return;
+  // Направление в WORLD-координатах (как в fire())
+  const _d = joyR.dx, _s = joyR.dy / ISO_Y;
+  const _dc = (_s + _d) * 0.5;
+  const _dr = (_s - _d) * 0.5;
+  const mag = Math.hypot(_dr, _dc) || 1;
+  const dirY = _dr / mag, dirX = _dc / mag;
+  // Стартовая точка — конец ствола игрока
+  const wcfg = WEAPON_FX_CFG[resolveWeapon(currentWeapon)] || { range: 8 };
+  const range = wcfg.range || 8;
+  const muzD  = weaponMuzzleD(currentWeapon, 0.9);
+  const sR = player.r + dirY * muzD;
+  const sC = player.c + dirX * muzD;
+  // Финал — конец дальности ИЛИ первое препятствие (стена/здание) на пути
+  let endR = sR + dirY * range, endC = sC + dirX * range;
+  // Ray-march по тайлам с шагом 0.25
+  const steps = Math.ceil(range / 0.25);
+  for (let i = 1; i <= steps; i++) {
+    const t = i * 0.25;
+    const rr = sR + dirY * t;
+    const cc = sC + dirX * t;
+    if (isBlocked(rr, cc)) {
+      endR = sR + dirY * (t - 0.25);
+      endC = sC + dirX * (t - 0.25);
+      break;
+    }
+  }
+  // Перевод в экранные координаты
+  const p0 = w2s(sR + 0.5, sC + 0.5);
+  const p1 = w2s(endR + 0.5, endC + 0.5);
+  const bulletY = Math.round(TS * 0.289);
+  ctx.save();
+  // Пунктирный лазер — длинные тире, плавная анимация бегущих штрихов
+  const dashShift = (performance.now() * 0.03) % 12;
+  ctx.setLineDash([8, 6]);
+  ctx.lineDashOffset = -dashShift;
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(255,72,72,.55)';
+  ctx.shadowColor = '#ff3030';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(p0.x, p0.y - bulletY);
+  ctx.lineTo(p1.x, p1.y - bulletY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
+  // Reticle — точка-прицел на конце лазера: внешнее ядро, мерцающий
+  // внутренний круг, четыре «лепестка» как у тактического прицела.
+  const t = performance.now() * 0.005;
+  const pulse = 0.7 + 0.3 * Math.sin(t * 3);
+  const rx = p1.x, ry = p1.y - bulletY;
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = '#ff4040';
+  // Внешнее кольцо
+  ctx.strokeStyle = 'rgba(255,80,80,.85)';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.arc(rx, ry, 7 * pulse, 0, Math.PI * 2);
+  ctx.stroke();
+  // Внутренняя точка
+  ctx.fillStyle = '#ff4040';
+  ctx.beginPath();
+  ctx.arc(rx, ry, 2.4, 0, Math.PI * 2);
+  ctx.fill();
+  // Тактические лепестки (4 штрихa)
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255,80,80,.9)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(rx - 11, ry); ctx.lineTo(rx - 5, ry);
+  ctx.moveTo(rx + 5, ry);  ctx.lineTo(rx + 11, ry);
+  ctx.moveTo(rx, ry - 11); ctx.lineTo(rx, ry - 5);
+  ctx.moveTo(rx, ry + 5);  ctx.lineTo(rx, ry + 11);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawBullets() {
   ctx.save();
   const dy = _bulletY();
