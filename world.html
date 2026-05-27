@@ -3409,6 +3409,44 @@ function w2s(r, c) {
     y: cy + (c + r) * TS * 0.5 * ISO_Y - cam.y,
   };
 }
+// Обратное преобразование «экран → мир»: пиксели в (r, c) тайла. Нужно
+// чтобы стартовая точка пули совпадала ровно с визуальным кончиком ствола
+// (drawWeaponInHands). Принимает y-координату УЖЕ С УЧЁТОМ _bulletY()
+// смещения вверх по плечу — поэтому в fire() берём screen.y без минусования.
+function s2w(x, y) {
+  const stage = document.getElementById('stage');
+  const cx = stage.clientWidth / 2;
+  const cy = stage.clientHeight / 2;
+  const dx = (x - cx + cam.x);
+  const dy = (y - cy + cam.y);
+  // dx = (c - r) * TS/2  →  c-r = dx / (TS/2)
+  // dy = (c + r) * TS/2 * ISO_Y → c+r = dy / (TS/2 * ISO_Y)
+  const cMinusR = dx / (TS * 0.5);
+  const cPlusR  = dy / (TS * 0.5 * ISO_Y);
+  return {
+    c: (cMinusR + cPlusR) / 2 - 0.5,
+    r: (cPlusR - cMinusR) / 2 - 0.5,
+  };
+}
+// Возвращает мировую точку (r, c) КОНЦА СТВОЛА игрока с текущим оружием
+// при заданном угле прицела. Используем тот же handAnchor + FIREARM_TIP
+// что и drawWeaponInHands — гарантирует «пуля вылетает из дула», а не
+// «из груди» или «из-за спины».
+function muzzleWorldPoint(angleRad) {
+  const wep = resolveWeapon(currentWeapon);
+  const tip = FIREARM_TIP[wep] || 16;
+  const playerScale = 0.9;
+  const sc = playerScale * (TS / 60);
+  // Экранная позиция игрока (центр клетки)
+  const ps = w2s(player.r + 0.5, player.c + 0.5);
+  // Точка хвата руки (см. handAnchor) — она в ЭКРАННЫХ пикселях
+  const a = handAnchor(ps.x, ps.y, angleRad);
+  // Конец ствола = хват + длина ствола вдоль ISO-направления
+  const mx = a.hx + a.sx * tip * sc;
+  const my = a.hy + a.sy * tip * sc;
+  // Конвертируем обратно в мир
+  return s2w(mx, my);
+}
 function isoH(h) { return h * TS * 0.55; }
 
 // ── PVP-стейт (клиент) ──────────────────────────────────────────
@@ -3684,6 +3722,26 @@ const player = {
   walkPhase: 0,
   hp: 100,
 };
+// Если начальный спавн (40,40) случайно попал в блокирующий тайл —
+// ищем ближайший проходимый тайл-дорогу. Это спасает от «застрял в коробке
+// при старте». isBlocked объявлен ниже, поэтому отложенно делаем.
+function _ensureSpawnSafe() {
+  if (!isBlocked(player.r, player.c)) return;
+  for (let radius = 1; radius <= 12; radius++) {
+    for (let dr = -radius; dr <= radius; dr++) {
+      for (let dc = -radius; dc <= radius; dc++) {
+        if (Math.abs(dr) !== radius && Math.abs(dc) !== radius) continue;
+        const rr = player.r + dr, cc = player.c + dc;
+        if (!isBlocked(rr, cc)) {
+          player.r = rr; player.c = cc;
+          return;
+        }
+      }
+    }
+  }
+}
+// Вызываем после полной инициализации MAP (isBlocked готова).
+setTimeout(_ensureSpawnSafe, 0);
 
 // Другие игроки (актуальные позиции + цель интерполяции)
 const others = new Map();   // uid -> {x, y, ang, w, name, look, chat,
@@ -6373,7 +6431,7 @@ function fire(angle = null) {
     if (adj.dirX !== dirX || adj.dirY !== dirY) {
       dirX = adj.dirX; dirY = adj.dirY;
       player.ang = Math.atan2(dirY, dirX);
-      lockedExpireAt = performance.now() + TARGET_LOCK_TIMEOUT_MS;
+      _renewAllLocks();
     }
   }
   // В тюрьме стрелять МОЖНО — но урон серверная сторона разрешит
@@ -6460,10 +6518,14 @@ function fire(angle = null) {
   // Без этого пуля «вырывается из груди» (на коротких) или из «впереди дула»
   // (на длинных rifle/sniper). Вспышка дула рисуется в той же точке.
   const wcfg = WEAPON_FX_CFG[currentWeapon] || {};
-  const muzD = weaponMuzzleD(currentWeapon, 0.9);
-  const sR = player.r + dirY * muzD;
-  const sC = player.c + dirX * muzD;
   const _shotAng = Math.atan2(dirY, dirX);
+  // Стартовая точка пули — РЕАЛЬНЫЙ кончик ствола, рассчитанный через
+  // handAnchor + FIREARM_TIP в пикселях и переведённый обратно в мир.
+  // Это гарантирует что пуля вылетает РОВНО из дула на экране, а не
+  // «из спины» или «из груди».
+  const muzPt = muzzleWorldPoint(_shotAng);
+  const sR = muzPt.r;
+  const sC = muzPt.c;
   spawnMuzzle(sR, sC, _shotAng, currentWeapon);
   // Кинематографичный отклик НА МОЙ выстрел: отдача камеры в обратную
   // сторону, screen-flash для тяжёлых, вибрация телефона.
@@ -6642,9 +6704,9 @@ function updatePvpUI() {
   // настоящим аккаунтом HUD виден постоянно.
   _hudPlayer.classList.toggle('show', !isPve);
   // Кнопка огня видна только когда можно стрелять и есть смысл (open world
-  // с захваченной целью ИЛИ PvP-арена с free-aim). Иначе скрыта.
+  // с хотя бы одной меткой ИЛИ PvP-арена с free-aim). Иначе скрыта.
   const meInArenaUi = inArena(player.r, player.c);
-  const showFireBtn = canShoot && (meInArenaUi || !!lockedTarget);
+  const showFireBtn = canShoot && (meInArenaUi || lockedTargets.size > 0);
   _fireBtn.style.display = showFireBtn ? 'flex' : 'none';
   if (joyREl) joyREl.style.display = canShoot ? 'block' : 'none';
   if (_weaponBarEl) {
@@ -7377,15 +7439,17 @@ function update(dt) {
         const dr = (s - d) * 0.5;
         fire(Math.atan2(dr, dc));
       }
-    } else if (lockedTarget) {
-      // ОТКРЫТЫЙ МИР: стреляем ТОЛЬКО когда есть лок. Игрок «триггерит»
-      // выстрел стиком (любое направление) или fireBtn'ом.
+    } else if (lockedTargets.size) {
+      // ОТКРЫТЫЙ МИР: стреляем ТОЛЬКО когда есть лок. Auto-aim бьёт в
+      // БЛИЖАЙШУЮ из помеченных целей. Триггер — стик в любую сторону
+      // или fireBtn.
       const triggered = (joyR.active && joyR.hasAim) || _fireBtnDown;
       if (triggered) {
-        const pos = lockedTarget.getPos();
+        const active = getActiveTarget();
+        const pos = active && active.getPos();
         if (pos) {
           const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
-          player.ang = ang;     // оружие развёрнуто к цели
+          player.ang = ang;
           fire(ang);
         }
       }
@@ -7406,11 +7470,18 @@ function update(dt) {
   updateCars(dt);
   updateGangAggression(dt);
   _updateTargetLock(dt);
-  // Если есть locked-цель и не в арене — player.ang ВСЕГДА смотрит на
-  // цель. Это решает баг «пуля летит из спины»: оружие в руках развёрнуто
-  // к цели независимо от того куда идёт игрок.
-  if (lockedTarget && !inArena(player.r, player.c) && !myDrivingCarId && !myDead) {
-    const pos = lockedTarget.getPos();
+  // Анти-застрял: если игрок физически в блокирующем тайле (попал
+  // через лаг сервера, спавн в здание, etc) — раз в кадр толкаем его
+  // на ближайший проходимый тайл. Без этого «коробку» не выйти.
+  if (!myDead && !myDrivingCarId && isBlocked(player.r, player.c)) {
+    _ensureSpawnSafe();
+  }
+  // Если есть метки и не в арене — player.ang ВСЕГДА смотрит на
+  // БЛИЖАЙШУЮ из них. Это решает баг «пуля летит из спины»: оружие
+  // в руках развёрнуто к жертве независимо от того куда идёт игрок.
+  if (lockedTargets.size && !inArena(player.r, player.c) && !myDrivingCarId && !myDead) {
+    const active = getActiveTarget();
+    const pos = active && active.getPos();
     if (pos) {
       player.ang = Math.atan2(pos.r - player.r, pos.c - player.c);
     }
@@ -13983,10 +14054,33 @@ function _bulletY() { return Math.round(TS * 0.289); }
 // корректируем dirX/dirY чтобы пуля летела ТОЧНО в цель. Иначе лазер
 // работает как раньше (free-aim).
 // PvP-арена — лок отключён (хардкор-режим, только free-aim).
-const TARGET_LOCK_TIMEOUT_MS = 4000;
+const TARGET_LOCK_TIMEOUT_MS = 5000;
 const TARGET_LOCK_HALF_ANGLE = 25 * Math.PI / 180;   // ±25°
-let lockedTarget = null;        // {kind, id, getPos(): {r,c,alive}} либо null
-let lockedExpireAt = 0;
+// Multi-lock: можно пометить НЕСКОЛЬКО целей одновременно. Map<id, entry>
+// где id = "kind:targetId". Auto-aim в fire() стреляет в БЛИЖАЙШУЮ к
+// игроку из живых меток. Тап по уже помеченной = снять метку.
+const lockedTargets = new Map();   // id → { entry, expireAt }
+const MAX_LOCKS = 4;               // ограничение чтобы экран не зарос
+// Legacy single-target API (для совместимости с местами где было
+// lockedTarget). Возвращает ближайшую активную метку либо null.
+function getActiveTarget() {
+  let best = null, bestD = Infinity;
+  for (const { entry } of lockedTargets.values()) {
+    const pos = entry.getPos();
+    if (!pos) continue;
+    const d = Math.hypot(pos.r - player.r, pos.c - player.c);
+    if (d < bestD) { bestD = d; best = entry; }
+  }
+  return best;
+}
+// Совместимость со старым кодом: lockedTarget/lockedExpireAt теперь
+// геттеры на «ближайшую живую метку» / «макс expireAt из всех».
+Object.defineProperty(window, 'lockedTarget', {
+  get: () => getActiveTarget(),
+  set: () => {},   // запись игнорируем — multi-lock управляется через lockedTargets
+});
+let lockedExpireAt = 0;            // используется только для авто-продления
+
 // Auto-lock через удержание прицельного лазера на цели: если лазер
 // поверх врага N мс подряд — захватываем без тапа.
 const AUTO_LOCK_HOLD_MS = 550;
@@ -14107,59 +14201,74 @@ function tryTapLock(canvasX, canvasY) {
     }
   }
   if (best) {
-    lockedTarget = best;
-    lockedExpireAt = performance.now() + TARGET_LOCK_TIMEOUT_MS;
+    const id = _lockId(best);
+    // Тап по УЖЕ ЗАЛОЧЕННОЙ цели — снимаем метку
+    if (lockedTargets.has(id)) {
+      lockedTargets.delete(id);
+      return true;
+    }
+    // Иначе добавляем новую метку (если слот свободен)
+    if (lockedTargets.size >= MAX_LOCKS) {
+      // Освобождаем самую старую
+      const oldestId = lockedTargets.keys().next().value;
+      lockedTargets.delete(oldestId);
+    }
+    lockedTargets.set(id, {
+      entry: best,
+      expireAt: performance.now() + TARGET_LOCK_TIMEOUT_MS,
+    });
     return true;
   }
-  // Тап в пустоту — снимаем лок
-  if (lockedTarget) { lockedTarget = null; lockedExpireAt = 0; }
+  // Тап в пустоту — снимаем ВСЕ метки
+  if (lockedTargets.size) lockedTargets.clear();
   return false;
 }
 // Каждый кадр проверяем: цель ещё жива? в радиусе? таймер не истёк?
 function _updateTargetLock(dt) {
-  // 1) Auto-lock через удержание лазера: пробегаем все потенциальные цели,
-  // считаем какая ЛЕЖИТ НА ЛИНИИ прицела (perp <0.9 тайла) и в дальности.
-  // Если такая же цель остаётся под лазером AUTO_LOCK_HOLD_MS — захват.
+  // 1) Auto-lock через удержание лазера: цель в луче + в кандидатах AUTO_LOCK_HOLD_MS
+  // → добавляем в lockedTargets (если ещё не там).
   const now = performance.now();
   if (joyR && joyR.active && joyR.hasAim && !myDrivingCarId && !myDead
       && myMode !== 'pve' && !inArena(player.r, player.c)) {
-    // Направление прицела
     const _d = joyR.dx, _s = joyR.dy / ISO_Y;
     const _dc = (_s + _d) * 0.5, _dr = (_s - _d) * 0.5;
     const mag = Math.hypot(_dr, _dc) || 1;
     const dirY = _dr / mag, dirX = _dc / mag;
     const cand = _findLaserTarget(dirY, dirX);
-    if (cand && (!lockedTarget || _lockId(cand) !== _lockId(lockedTarget))) {
-      // Это новый кандидат — если он же был кандидатом ранее, копим таймер
-      if (_autoLockCandidate && _lockId(_autoLockCandidate) === _lockId(cand)) {
+    // Если кандидат уже залочен — не копим таймер, ищем другого
+    const candId = cand ? _lockId(cand) : null;
+    if (cand && !lockedTargets.has(candId)) {
+      if (_autoLockCandidate && _lockId(_autoLockCandidate) === candId) {
         if (now - _autoLockStartAt >= AUTO_LOCK_HOLD_MS) {
-          lockedTarget = cand;
-          lockedExpireAt = now + TARGET_LOCK_TIMEOUT_MS;
+          if (lockedTargets.size >= MAX_LOCKS) {
+            const oldestId = lockedTargets.keys().next().value;
+            lockedTargets.delete(oldestId);
+          }
+          lockedTargets.set(candId, { entry: cand, expireAt: now + TARGET_LOCK_TIMEOUT_MS });
           _autoLockCandidate = null;
         }
       } else {
         _autoLockCandidate = cand;
         _autoLockStartAt = now;
       }
-    } else if (!cand) {
-      // Лазер сошёл с цели — сбрасываем накопленный таймер
+    } else {
       _autoLockCandidate = null;
     }
   } else {
     _autoLockCandidate = null;
   }
-  // 2) Валидация существующего лока
-  if (!lockedTarget) return;
-  if (now > lockedExpireAt) { lockedTarget = null; return; }
-  const pos = lockedTarget.getPos();
-  if (!pos) { lockedTarget = null; return; }
-  // Цель слишком далеко — снимаем
-  const dd = Math.hypot(pos.r - player.r, pos.c - player.c);
+  // 2) Валидация всех меток: жива? в дальности? таймер цел?
   const wcfg = WEAPON_FX_CFG[resolveWeapon(currentWeapon)] || { range: 8 };
-  if (dd > (wcfg.range || 8) + 2) {
-    lockedTarget = null;
-    return;
+  const maxR = (wcfg.range || 8) + 2;
+  const toDelete = [];
+  for (const [id, m] of lockedTargets) {
+    if (now > m.expireAt) { toDelete.push(id); continue; }
+    const pos = m.entry.getPos();
+    if (!pos) { toDelete.push(id); continue; }
+    const dd = Math.hypot(pos.r - player.r, pos.c - player.c);
+    if (dd > maxR) { toDelete.push(id); continue; }
   }
+  for (const id of toDelete) lockedTargets.delete(id);
 }
 // Уникальный id для сравнения двух target-entry (один и тот же NPC vs новый)
 function _lockId(t) {
@@ -14254,59 +14363,76 @@ function drawTargetLockProgress() {
 }
 function drawTargetLock() {
   drawTargetLockProgress();
-  if (!lockedTarget) return;
-  const pos = lockedTarget.getPos();
-  if (!pos) return;
-  const p = w2s(pos.r + 0.5, pos.c + 0.5);
+  if (!lockedTargets.size) return;
+  // Активная (ближайшая) метка — её визуально выделяем
+  const active = getActiveTarget();
+  const activeId = active ? _lockId(active) : null;
   const t = performance.now() * 0.005;
   const pulse = 0.7 + 0.3 * Math.sin(t * 3);
-  const y = p.y - TS * 1.2;
   ctx.save();
-  // Внешнее кольцо
-  ctx.strokeStyle = `rgba(255, 64, 64, ${0.65 + 0.25 * pulse})`;
-  ctx.lineWidth = 2.5;
-  ctx.shadowColor = '#ff3030';
-  ctx.shadowBlur = 12;
-  ctx.beginPath();
-  ctx.arc(p.x, y, 16 * pulse, 0, Math.PI * 2);
-  ctx.stroke();
-  // Внутренний кружок
-  ctx.fillStyle = '#ff4040';
-  ctx.beginPath();
-  ctx.arc(p.x, y, 2.5, 0, Math.PI * 2);
-  ctx.fill();
-  // 4 лепестка-уголка (как у тактического прицела)
-  ctx.shadowBlur = 0;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  const r1 = 10 * pulse, r2 = 18 * pulse;
-  ctx.moveTo(p.x - r2, y - r2); ctx.lineTo(p.x - r1, y - r2); ctx.lineTo(p.x - r2, y - r1);
-  ctx.moveTo(p.x + r2, y - r2); ctx.lineTo(p.x + r1, y - r2); ctx.lineTo(p.x + r2, y - r1);
-  ctx.moveTo(p.x - r2, y + r2); ctx.lineTo(p.x - r1, y + r2); ctx.lineTo(p.x - r2, y + r1);
-  ctx.moveTo(p.x + r2, y + r2); ctx.lineTo(p.x + r1, y + r2); ctx.lineTo(p.x + r2, y + r1);
-  ctx.stroke();
-  // Текст «LOCKED»
-  ctx.font = 'bold 9px system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#ff5050';
-  ctx.fillText('LOCKED', p.x, y - 22);
-  ctx.textAlign = 'left';
+  for (const [id, m] of lockedTargets) {
+    const pos = m.entry.getPos();
+    if (!pos) continue;
+    const p = w2s(pos.r + 0.5, pos.c + 0.5);
+    const y = p.y - TS * 1.2;
+    const isActive = (id === activeId);
+    const baseR = isActive ? 18 : 13;
+    const col   = isActive ? '#ff4040' : '#ff8080';
+    const strokeA = isActive ? (0.85 + 0.15 * pulse) : 0.65;
+    // Кольцо
+    ctx.strokeStyle = `rgba(255, ${isActive?64:120}, ${isActive?64:120}, ${strokeA})`;
+    ctx.lineWidth = isActive ? 2.8 : 1.8;
+    ctx.shadowColor = '#ff3030';
+    ctx.shadowBlur = isActive ? 14 : 6;
+    ctx.beginPath();
+    ctx.arc(p.x, y, baseR * (isActive ? pulse : 1), 0, Math.PI * 2);
+    ctx.stroke();
+    // Точка
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(p.x, y, isActive ? 2.5 : 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    // 4 уголка только у активной
+    if (isActive) {
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const r1 = 10 * pulse, r2 = 18 * pulse;
+      ctx.moveTo(p.x - r2, y - r2); ctx.lineTo(p.x - r1, y - r2); ctx.lineTo(p.x - r2, y - r1);
+      ctx.moveTo(p.x + r2, y - r2); ctx.lineTo(p.x + r1, y - r2); ctx.lineTo(p.x + r2, y - r1);
+      ctx.moveTo(p.x - r2, y + r2); ctx.lineTo(p.x - r1, y + r2); ctx.lineTo(p.x - r2, y + r1);
+      ctx.moveTo(p.x + r2, y + r2); ctx.lineTo(p.x + r1, y + r2); ctx.lineTo(p.x + r2, y + r1);
+      ctx.stroke();
+      // Текст «LOCKED»
+      ctx.font = 'bold 9px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ff5050';
+      ctx.fillText('LOCKED', p.x, y - 22);
+      ctx.textAlign = 'left';
+    }
+  }
   ctx.restore();
 }
 // Корректирует (dirX, dirY) в сторону locked-цели если она в пределах
 // конуса ±TARGET_LOCK_HALF_ANGLE. Иначе возвращает исходные значения.
 function applyTargetLockToAim(dirX, dirY) {
-  if (!lockedTarget) return { dirX, dirY };
-  const pos = lockedTarget.getPos();
+  const tgt = getActiveTarget();
+  if (!tgt) return { dirX, dirY };
+  const pos = tgt.getPos();
   if (!pos) return { dirX, dirY };
   const dx = pos.c - player.c, dy = pos.r - player.r;
   const d = Math.hypot(dx, dy) || 1;
   const tx = dx / d, ty = dy / d;
-  // Угол между текущим прицелом и направлением на цель
   const dot = dirX * tx + dirY * ty;
   if (dot < Math.cos(TARGET_LOCK_HALF_ANGLE)) return { dirX, dirY };
-  // Внутри конуса — корректируем точно в цель
   return { dirX: tx, dirY: ty };
+}
+// Продлевает таймер всех активных меток (вызывается при выстреле)
+function _renewAllLocks() {
+  const now = performance.now();
+  for (const m of lockedTargets.values()) {
+    m.expireAt = now + TARGET_LOCK_TIMEOUT_MS;
+  }
 }
 
 // Обработчик тапа на canvas — пытается захватить цель. Не блокируем
