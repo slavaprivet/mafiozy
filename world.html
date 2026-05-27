@@ -279,17 +279,18 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 }
 #joyR.cd { filter: grayscale(.5) brightness(.55); }
 
-/* Кнопка «🔫 Огонь» — основной триггер стрельбы в open world (после
-   тапа по цели). Большой красный круг в правом-нижнем углу, ниже joyR.
-   На арене (PvP) скрывается через JS — там стрельба идёт стиком. */
+/* Кнопка «🔫 Огонь» — основной триггер в open world (после захвата
+   цели). НЕ перекрывает правый стик: висит ВЫШЕ него (bottom 150 vs
+   стиковский ~22). На PvP-арене скрывается через JS (там free-aim
+   стиком, fireBtn не нужен). */
 #fireBtn {
-  position: absolute; right: 18px; bottom: 22px;
-  width: 76px; height: 76px; border-radius: 50%;
+  position: absolute; right: 32px; bottom: 150px;
+  width: 70px; height: 70px; border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #ff5050, #a01010);
   border: 2px solid #fff4b8; box-shadow: 0 6px 20px rgba(255,40,40,.55);
   display: flex; align-items: center; justify-content: center;
-  font-size: 32px; color: #fff;
-  z-index: 12; user-select: none; -webkit-user-select: none;
+  font-size: 30px; color: #fff;
+  z-index: 13; user-select: none; -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: transform .08s ease-out;
 }
@@ -13986,6 +13987,11 @@ const TARGET_LOCK_TIMEOUT_MS = 4000;
 const TARGET_LOCK_HALF_ANGLE = 25 * Math.PI / 180;   // ±25°
 let lockedTarget = null;        // {kind, id, getPos(): {r,c,alive}} либо null
 let lockedExpireAt = 0;
+// Auto-lock через удержание прицельного лазера на цели: если лазер
+// поверх врага N мс подряд — захватываем без тапа.
+const AUTO_LOCK_HOLD_MS = 550;
+let _autoLockCandidate = null;     // target-entry-объект (как из tryTapLock)
+let _autoLockStartAt   = 0;
 
 function _lockTargetEntry(kind, id, getPos, getName) {
   return { kind, id, getPos, getName: getName || (() => '') };
@@ -14111,8 +14117,39 @@ function tryTapLock(canvasX, canvasY) {
 }
 // Каждый кадр проверяем: цель ещё жива? в радиусе? таймер не истёк?
 function _updateTargetLock(dt) {
-  if (!lockedTarget) return;
+  // 1) Auto-lock через удержание лазера: пробегаем все потенциальные цели,
+  // считаем какая ЛЕЖИТ НА ЛИНИИ прицела (perp <0.9 тайла) и в дальности.
+  // Если такая же цель остаётся под лазером AUTO_LOCK_HOLD_MS — захват.
   const now = performance.now();
+  if (joyR && joyR.active && joyR.hasAim && !myDrivingCarId && !myDead
+      && myMode !== 'pve' && !inArena(player.r, player.c)) {
+    // Направление прицела
+    const _d = joyR.dx, _s = joyR.dy / ISO_Y;
+    const _dc = (_s + _d) * 0.5, _dr = (_s - _d) * 0.5;
+    const mag = Math.hypot(_dr, _dc) || 1;
+    const dirY = _dr / mag, dirX = _dc / mag;
+    const cand = _findLaserTarget(dirY, dirX);
+    if (cand && (!lockedTarget || _lockId(cand) !== _lockId(lockedTarget))) {
+      // Это новый кандидат — если он же был кандидатом ранее, копим таймер
+      if (_autoLockCandidate && _lockId(_autoLockCandidate) === _lockId(cand)) {
+        if (now - _autoLockStartAt >= AUTO_LOCK_HOLD_MS) {
+          lockedTarget = cand;
+          lockedExpireAt = now + TARGET_LOCK_TIMEOUT_MS;
+          _autoLockCandidate = null;
+        }
+      } else {
+        _autoLockCandidate = cand;
+        _autoLockStartAt = now;
+      }
+    } else if (!cand) {
+      // Лазер сошёл с цели — сбрасываем накопленный таймер
+      _autoLockCandidate = null;
+    }
+  } else {
+    _autoLockCandidate = null;
+  }
+  // 2) Валидация существующего лока
+  if (!lockedTarget) return;
   if (now > lockedExpireAt) { lockedTarget = null; return; }
   const pos = lockedTarget.getPos();
   if (!pos) { lockedTarget = null; return; }
@@ -14124,8 +14161,99 @@ function _updateTargetLock(dt) {
     return;
   }
 }
-// Рисует «🎯 LOCKED» — пульсирующий красный круг над целью
+// Уникальный id для сравнения двух target-entry (один и тот же NPC vs новый)
+function _lockId(t) {
+  if (!t) return '';
+  return t.kind + ':' + String(t.id);
+}
+// Поиск цели В ЛУЧЕ от игрока в направлении (dirY, dirX). Возвращает
+// ближайшую (по дистанции) сущность в конусе perp<0.9. Используется для
+// auto-lock через удержание лазера.
+function _findLaserTarget(dirY, dirX) {
+  const wcfg = WEAPON_FX_CFG[resolveWeapon(currentWeapon)] || { range: 8 };
+  const maxR = (wcfg.range || 8);
+  let best = null, bestAlong = maxR;
+  function _check(r, c, entry) {
+    const dr = r - player.r, dc = c - player.c;
+    const along = dr * dirY + dc * dirX;
+    if (along < 0.4 || along > maxR) return;
+    const perp = Math.abs(dr * dirX - dc * dirY);
+    if (perp > 0.9) return;
+    if (along < bestAlong) { bestAlong = along; best = entry; }
+  }
+  for (const n of NPCS) {
+    if (n.dead) continue;
+    _check(n.r, n.c, _lockTargetEntry('npc', NPCS.indexOf(n),
+      () => n.dead ? null : { r: n.r, c: n.c }));
+  }
+  for (const z of Object.values(aggroZones || {})) {
+    for (const b of (z.bots || [])) {
+      if (!b.alive) continue;
+      const bid = b.id;
+      _check(b.y, b.x, _lockTargetEntry('aggro_bot', bid, () => {
+        for (const z2 of Object.values(aggroZones || {})) {
+          const bb = (z2.bots || []).find(x => x.id === bid);
+          if (bb && bb.alive) return { r: bb.y, c: bb.x };
+        }
+        return null;
+      }));
+    }
+  }
+  for (const c of (worldCops || [])) {
+    if (!c) continue;
+    const cid = c.id;
+    _check(c.y, c.x, _lockTargetEntry('cop', cid, () => {
+      const cc = (worldCops || []).find(x => x.id === cid);
+      return cc ? { r: cc.y, c: cc.x } : null;
+    }));
+  }
+  for (const g of michaelGuards.values()) {
+    const gid = g.id;
+    _check(g.y, g.x, _lockTargetEntry('mg', gid, () => {
+      const gg = michaelGuards.get(gid);
+      return gg ? { r: gg.y, c: gg.x } : null;
+    }));
+  }
+  for (const [uid, o] of others) {
+    if (o.dead) continue;
+    _check(o.y, o.x, _lockTargetEntry('player', uid, () => {
+      const oo = others.get(uid);
+      return oo && !oo.dead ? { r: oo.y, c: oo.x } : null;
+    }));
+  }
+  for (const car of CARS) {
+    if (!car || !car.gang || car._wrecked) continue;
+    const cref = car;
+    _check(car.r, car.c, _lockTargetEntry('gang_car', 'c' + CARS.indexOf(car), () => {
+      return cref._wrecked ? null : { r: cref.r, c: cref.c };
+    }));
+  }
+  return best;
+}
+// Рисует «🎯 LOCKED» — пульсирующий красный круг над целью.
+// Также рисует progress-кольцо над auto-lock кандидатом (если игрок
+// удерживает лазер на враге — кольцо заполняется до AUTO_LOCK_HOLD_MS).
+function drawTargetLockProgress() {
+  if (!_autoLockCandidate) return;
+  const pos = _autoLockCandidate.getPos();
+  if (!pos) return;
+  const elapsed = performance.now() - _autoLockStartAt;
+  const k = Math.min(1, elapsed / AUTO_LOCK_HOLD_MS);
+  if (k < 0.05) return;
+  const p = w2s(pos.r + 0.5, pos.c + 0.5);
+  const y = p.y - TS * 1.2;
+  ctx.save();
+  ctx.strokeStyle = `rgba(255, 220, 80, 0.95)`;
+  ctx.lineWidth = 3;
+  ctx.shadowColor = '#ffd76b';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(p.x, y, 14, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
 function drawTargetLock() {
+  drawTargetLockProgress();
   if (!lockedTarget) return;
   const pos = lockedTarget.getPos();
   if (!pos) return;
