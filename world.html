@@ -3398,6 +3398,25 @@ let lastShotClientT = 0;  // локальный cooldown (предотвраща
 // стрелка до цели) пуля исчезает — визуально совпадает с моментом
 // «попадания». Поле .hit — попадёт ли по цели (для финального эффекта).
 const bullets = [];       // {r,c,vr,vc,dist,maxDist,color,thick,hit,...}
+// Floating texts — всплывающие подписи в МИРЕ (а не на UI), например «+150$»
+// над головой игрока при награде, «-12» при попадании пулей и т.п.
+// Каждый: {r,c,text,color,life,max,dy} — dy растёт со временем, текст
+// поднимается вверх и тает за life.
+const floatTexts = [];
+function spawnFloatText(r, c, text, opts) {
+  opts = opts || {};
+  floatTexts.push({
+    r, c,
+    text: String(text),
+    color: opts.color || '#7be58a',
+    life:  opts.life  || 1400,
+    max:   opts.life  || 1400,
+    dy:    0,
+    size:  opts.size  || 16,
+    weight: opts.weight || 900,
+    stroke: opts.stroke || 'rgba(0,0,0,.75)',
+  });
+}
 // ── Параметры оружия (копия из demo_isometric, без аудио-полей) ───
 // Используется только для визуала пуль (скорость, цвет, толщина) и для
 // расчёта дальности. Урон/КД диктует сервер (см. mafiozi_bot.py).
@@ -4317,8 +4336,10 @@ function handleEventPacket(d) {
         5500, 'win');
       if ((d.reward | 0) > 0) {
         myCash += (d.reward | 0);
-        showCashDelta(d.reward | 0, 'cash');
         updateMoneyHud();
+        spawnFloatText(player.r, player.c, '+$' + (d.reward | 0), {
+          color: '#7be58a', size: 20, life: 1800,
+        });
       }
       myGtaStatus.active = null;
       myGtaStatus.count_today = (myGtaStatus.count_today | 0) + 1;
@@ -4619,9 +4640,13 @@ function handleEventPacket(d) {
     } else {
       showToast(`💀 Боец -1  +$${cash} +${exp}${gAdd}`, 1900);
     }
-    // Локально инкрементим HUD — сервер при следующем snap пришлёт точное
-    // значение, но всплывашка должна быть мгновенной (snap идёт ~раз в 200мс).
-    if (cash > 0) { myCash += cash; showCashDelta(cash, 'cash'); updateMoneyHud(); }
+    // Локально инкрементим HUD + всплывашка «+$» над головой игрока.
+    if (cash > 0) {
+      myCash += cash; updateMoneyHud();
+      spawnFloatText(player.r, player.c, '+$' + cash, {
+        color: '#7be58a', size: 16, life: 1400,
+      });
+    }
   } else if (kind === 'gang_threat') {
     // Стрельба по кортежу/логову — кулачки банды +1. Сервер обновил БД.
     myGangs = d.gang_now || (myGangs + 1);
@@ -4638,8 +4663,10 @@ function handleEventPacket(d) {
         4500, 'win');
       if ((d.cash | 0) > 0) {
         myCash += (d.cash | 0);
-        showCashDelta(d.cash | 0, 'cash');
         updateMoneyHud();
+        spawnFloatText(player.r, player.c, '+$' + (d.cash | 0), {
+          color: '#ffd76b', size: 22, life: 2000,
+        });
       }
     } else if (meVictim) {
       showEventBanner('☠️ Тебя завалили по контракту',
@@ -4962,7 +4989,15 @@ function wsConnect() {
         if (typeof d.me.cash === 'number') {
           const prev = myCash;
           myCash = d.me.cash;
-          if (myCash > prev && prev > 0) showCashDelta(myCash - prev, 'cash');
+          // Если cash вырос между snap'ами (но локально мы это не зачли —
+          // например, награда от сервера которую клиент не предсказал) —
+          // всплывашка над головой. prev>0 — чтобы не было «+10000$» при
+          // первом подключении.
+          if (myCash > prev && prev > 0) {
+            spawnFloatText(player.r, player.c, '+$' + (myCash - prev), {
+              color: '#7be58a', size: 16, life: 1400,
+            });
+          }
           updateMoneyHud();
         }
         if (typeof d.me.diamonds === 'number') {
@@ -13589,6 +13624,8 @@ function render() {
   drawShockwaves();
   // Импакт-частицы (искры, кровь) — поверх всего
   drawImpacts();
+  // Всплывающие тексты «+150$» — над персонажами, поверх боевых эффектов
+  drawFloatTexts();
   // Снимаем zoom-трансформ ПЕРЕД UI-слоем (стрелки POI / мини-карта),
   // чтобы UI рисовался в нативном 1:1 без масштаба пляжа.
   if (_zoomActive) ctx.restore();
@@ -13619,8 +13656,47 @@ function render() {
 // Движение пуль и затухание вспышек. Вызывается из update(dt) (frame).
 // Пули летят с BULLET_SPEED, по достижении maxDist удаляются (но перед
 // удалением drawBullets успеет нарисовать вспышку попадания).
+// Обновление всплывающих текстов (см. spawnFloatText). Поднимаются вверх
+// и тают за life. Вызывается из updateProjectiles.
+function updateFloatTexts(dt) {
+  const ddt = Math.min(dt, 0.05);
+  for (let i = floatTexts.length - 1; i >= 0; i--) {
+    const f = floatTexts[i];
+    f.life -= ddt * 1000;
+    f.dy   += ddt * 24;          // ~24px/сек вверх
+    if (f.life <= 0) floatTexts.splice(i, 1);
+  }
+}
+// Рисует поверх всего: «+150$» вылетает из точки (r,c) и плывёт вверх
+// с фейдом. Размер/цвет берёт из самого объекта.
+function drawFloatTexts() {
+  if (!floatTexts.length) return;
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const f of floatTexts) {
+    const p = w2s(f.r + 0.5, f.c + 0.5);
+    const a = Math.max(0, f.life / f.max);
+    const easeOut = 1 - Math.pow(1 - (1 - a), 2);   // мягкое затухание
+    ctx.globalAlpha = easeOut;
+    // Над головой персонажа (~TS*1.0 выше точки ног) + текущее dy подъёма
+    const y = p.y - TS * 1.05 - f.dy;
+    ctx.font = 'bold ' + f.size + 'px system-ui, sans-serif';
+    // Обводка для читаемости на любом фоне
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = f.stroke;
+    ctx.strokeText(f.text, p.x, y);
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, p.x, y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+}
 function updateProjectiles(dt) {
   const ddt = Math.min(dt, 0.05);
+  updateFloatTexts(dt);
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
     b.r += b.vr * ddt;
