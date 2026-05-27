@@ -279,10 +279,22 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 }
 #joyR.cd { filter: grayscale(.5) brightness(.55); }
 
-/* Кнопка «🔫 Огонь» — оставлена только в DOM для совместимости со
-   старым JS-кодом который дёргает её classList. Визуально полностью
-   скрыта: стрельба через правый джойстик (joyR). */
-#fireBtn { display: none !important; }
+/* Кнопка «🔫 Огонь» — основной триггер стрельбы в open world (после
+   тапа по цели). Большой красный круг в правом-нижнем углу, ниже joyR.
+   На арене (PvP) скрывается через JS — там стрельба идёт стиком. */
+#fireBtn {
+  position: absolute; right: 18px; bottom: 22px;
+  width: 76px; height: 76px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff5050, #a01010);
+  border: 2px solid #fff4b8; box-shadow: 0 6px 20px rgba(255,40,40,.55);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; color: #fff;
+  z-index: 12; user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .08s ease-out;
+}
+#fireBtn:active { transform: scale(0.92); }
+#fireBtn.cd { opacity: .55; filter: grayscale(.4); }
 
 /* Countdown «До инкассатора» — небольшой баннер сверху, виден всем */
 #cdHud {
@@ -6314,7 +6326,13 @@ function fire(angle = null) {
     return;
   }
   if (myDead) return;
-  // Авто-fallback: angle не задан, но правый стик сдвинут — берём его.
+  // Авто-fallback: angle не задан.
+  //   1) если есть locked-цель — стреляем В НЕЁ (auto-aim после тапа)
+  //   2) иначе если правый стик сдвинут — берём его направление
+  if (angle === null && lockedTarget) {
+    const pos = lockedTarget.getPos();
+    if (pos) angle = Math.atan2(pos.r - player.r, pos.c - player.c);
+  }
   if (angle === null && joyR && joyR.active && joyR.hasAim) {
     const _d = joyR.dx, _s = joyR.dy / ISO_Y;
     const _dc = (_s + _d) * 0.5;
@@ -6582,9 +6600,29 @@ function fire(angle = null) {
     sC + dirX * range,
     { hit: false, fromPlayer: true, weapon: currentWeapon });
 }
-_fireBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); fire(); }, { passive: false });
+// _fireBtnDown — флаг «кнопка стрельбы удерживается». В open world это
+// триггер для автоогня по locked-цели (см. блок hold-to-fire в update).
+let _fireBtnDown = false;
+_fireBtn.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  _fireBtnDown = true;
+  // Сразу один выстрел — на случай если игрок просто тапнул (а не держит)
+  fire();
+}, { passive: false });
+_fireBtn.addEventListener('pointerup',     () => { _fireBtnDown = false; });
+_fireBtn.addEventListener('pointercancel', () => { _fireBtnDown = false; });
+_fireBtn.addEventListener('pointerleave',  () => { _fireBtnDown = false; });
 // Доп. клавиша на десктопе — пробел
-window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !chatOpen) { e.preventDefault(); fire(); } });
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !chatOpen) {
+    e.preventDefault();
+    _fireBtnDown = true;
+    fire();
+  }
+});
+window.addEventListener('keyup', (e) => {
+  if (e.code === 'Space') _fireBtnDown = false;
+});
 
 function updatePvpUI() {
   const inPvp      = inArena(player.r, player.c);
@@ -6602,7 +6640,11 @@ function updatePvpUI() {
   // PvE-режиме (мирный наблюдатель) — скрываем. В обычном городе с
   // настоящим аккаунтом HUD виден постоянно.
   _hudPlayer.classList.toggle('show', !isPve);
-  _fireBtn.style.display = 'none';   // полностью убран — стрельба через joyR
+  // Кнопка огня видна только когда можно стрелять и есть смысл (open world
+  // с захваченной целью ИЛИ PvP-арена с free-aim). Иначе скрыта.
+  const meInArenaUi = inArena(player.r, player.c);
+  const showFireBtn = canShoot && (meInArenaUi || !!lockedTarget);
+  _fireBtn.style.display = showFireBtn ? 'flex' : 'none';
   if (joyREl) joyREl.style.display = canShoot ? 'block' : 'none';
   if (_weaponBarEl) {
     // Бар показываем всегда пока можно стрелять — даже без купленных стволов
@@ -7319,15 +7361,34 @@ function update(dt) {
   updateGtaQuestHud();
   // Интерполяция чужих quest_cars (которые ведут другие игроки)
   _interpQuestCars(dt);
-  // Hold-to-fire: пока правый стик СДВИНУТ — стреляем с cooldown'ом по
-  // оружию. Без сдвига — не стреляем (auto-aim убран, целимся вручную).
-  // Угол стика → world-space через ISO_Y коррекцию (как в demo).
-  // PvE — режим наблюдателя, стрельба отключена.
-  if (joyR.active && joyR.hasAim && myMode !== 'pve' && !myDead) {
-    const d = joyR.dx, s = joyR.dy / ISO_Y;
-    const dc = (s + d) * 0.5;
-    const dr = (s - d) * 0.5;
-    fire(Math.atan2(dr, dc));
+  // Стрельба в открытом мире: ОБЯЗАТЕЛЕН lockedTarget (см. tryTapLock).
+  // Тапнул цель → стик/fireBtn = стрелять автоматически в неё. Без лока
+  // правый стик просто крутит лазер-прицел (для визуала), но огонь не
+  // ведётся — игрок должен сначала выбрать кого валить тапом.
+  // В PvP-арене (inArena) — старая логика free-aim, лок выключен.
+  if (myMode !== 'pve' && !myDead && !myDrivingCarId) {
+    const meInArena = inArena(player.r, player.c);
+    if (meInArena) {
+      // АРЕНА: hold-to-fire по стику, как раньше — хардкорный free-aim
+      if (joyR.active && joyR.hasAim) {
+        const d = joyR.dx, s = joyR.dy / ISO_Y;
+        const dc = (s + d) * 0.5;
+        const dr = (s - d) * 0.5;
+        fire(Math.atan2(dr, dc));
+      }
+    } else if (lockedTarget) {
+      // ОТКРЫТЫЙ МИР: стреляем ТОЛЬКО когда есть лок. Игрок «триггерит»
+      // выстрел стиком (любое направление) или fireBtn'ом.
+      const triggered = (joyR.active && joyR.hasAim) || _fireBtnDown;
+      if (triggered) {
+        const pos = lockedTarget.getPos();
+        if (pos) {
+          const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
+          player.ang = ang;     // оружие развёрнуто к цели
+          fire(ang);
+        }
+      }
+    }
   }
   // Интерполяция других игроков
   for (const [, o] of others) {
@@ -7344,6 +7405,15 @@ function update(dt) {
   updateCars(dt);
   updateGangAggression(dt);
   _updateTargetLock(dt);
+  // Если есть locked-цель и не в арене — player.ang ВСЕГДА смотрит на
+  // цель. Это решает баг «пуля летит из спины»: оружие в руках развёрнуто
+  // к цели независимо от того куда идёт игрок.
+  if (lockedTarget && !inArena(player.r, player.c) && !myDrivingCarId && !myDead) {
+    const pos = lockedTarget.getPos();
+    if (pos) {
+      player.ang = Math.atan2(pos.r - player.r, pos.c - player.c);
+    }
+  }
   // Пули и вспышки — двигаем тут, рисуем потом в render()
   updateProjectiles(dt);
   // Конвой и копы — плавно подтягиваем к целевым серверным позициям
