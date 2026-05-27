@@ -326,6 +326,37 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   pointer-events: none; letter-spacing: 1px;
   box-shadow: 0 4px 12px rgba(184,32,42,.4);
 }
+/* Деньги-HUD — справа от кнопки «Меню» (top bar). Показывает баксы и
+   алмазы, рядом всплывают «+15$ / +1💎» при начислениях. */
+#moneyHud {
+  position: absolute; left: 96px; top: 14px;
+  display: flex; gap: 6px; z-index: 9;
+  pointer-events: none; font-family: inherit;
+}
+#moneyHud .mh-pill {
+  background: rgba(10,12,18,.88); border: 1px solid #2a3a44;
+  border-radius: 10px; padding: 3px 9px; font-size: 13px; font-weight: 800;
+  color: #fff; box-shadow: 0 3px 10px rgba(0,0,0,.45);
+  display: flex; align-items: center; gap: 4px;
+}
+#moneyHud .mh-cash { color: #5dd55d; border-color: #2a6a3a; }
+#moneyHud .mh-dia  { color: #7adfff; border-color: #2a586a; }
+#moneyHud .mh-ico  { font-size: 11px; opacity: .9; }
+/* Поп-апы изменения (+25$ / +1💎) — вылетают вверх и тают */
+.mh-pop {
+  position: absolute; left: 110px; top: 14px;
+  font-size: 13px; font-weight: 900;
+  pointer-events: none; z-index: 11;
+  animation: mhPop 1100ms ease-out forwards;
+  text-shadow: 0 1px 2px rgba(0,0,0,.7);
+}
+.mh-pop.cash    { color: #7be58a; }
+.mh-pop.diamond { color: #b8ecff; }
+@keyframes mhPop {
+  0%   { opacity: 0; transform: translateY(0); }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-26px); }
+}
 #wantedHud.lvl1 { border-color: #ffd76b; }
 #wantedHud.lvl2 { border-color: #ff8030; animation: pvpPulse 1.6s ease-in-out infinite; }
 #wantedHud.lvl3 { border-color: #ff3030; animation: pvpPulse .8s ease-in-out infinite; }
@@ -868,6 +899,10 @@ body.in-pvp #gtaActionBtn { top: 104px; }
     </div>
   </div>
   <div id="wantedHud">⭐</div>
+  <div id="moneyHud">
+    <div class="mh-pill mh-cash"><span class="mh-ico">💵</span><span id="moneyCash">0</span></div>
+    <div class="mh-pill mh-dia"><span class="mh-ico">💎</span><span id="moneyDia">0</span></div>
+  </div>
   <!-- HUD-виджет активного квеста Майкла: фото машины + название + статус.
        Показывается только когда myGtaStatus.active есть и модал Майкла закрыт. -->
   <div id="questCarHud">
@@ -3995,6 +4030,8 @@ let lastPlayerWeapon = new Map();  // other_uid → weapon_key последне�
 // игрок-специфичные поля (звёзды, тюрьма).
 let myWanted  = 0;       // 0..3 звёзды копов у меня
 let myGangs   = 0;       // 0..3 кулачки банд (при 3 — «контракт» открыт)
+let myCash    = 0;       // текущий баланс игрока (синкается из snap.me.cash)
+let myDiamonds= 0;       // алмазы (snap.me.diamonds)
 let myJailIn  = 0;       // секунд до выхода из тюрьмы (0 = не в тюрьме)
 let myTerrCd  = 0;       // секунд до возможности снова захватить ТЕКУЩУЮ зону (0 = можно)
 let _lastCaptureTryAt = 0;  // антиспам отправки capture_try (мс)
@@ -4276,6 +4313,11 @@ function handleEventPacket(d) {
       showEventBanner(`✅ ${mdef.label} продан!`,
         `+${d.reward}$ от Майкла. Подойди в порт за следующим заказом.`,
         5500, 'win');
+      if ((d.reward | 0) > 0) {
+        myCash += (d.reward | 0);
+        showCashDelta(d.reward | 0, 'cash');
+        updateMoneyHud();
+      }
       myGtaStatus.active = null;
       myGtaStatus.count_today = (myGtaStatus.count_today | 0) + 1;
       if (d.skill_up) {
@@ -4561,6 +4603,9 @@ function handleEventPacket(d) {
     } else {
       showToast(`💀 Боец -1  +$${cash} +${exp}${gAdd}`, 1900);
     }
+    // Локально инкрементим HUD — сервер при следующем snap пришлёт точное
+    // значение, но всплывашка должна быть мгновенной (snap идёт ~раз в 200мс).
+    if (cash > 0) { myCash += cash; showCashDelta(cash, 'cash'); updateMoneyHud(); }
   } else if (kind === 'gang_threat') {
     // Стрельба по кортежу/логову — кулачки банды +1. Сервер обновил БД.
     myGangs = d.gang_now || (myGangs + 1);
@@ -4575,6 +4620,11 @@ function handleEventPacket(d) {
       showEventBanner('💰 Контракт исполнен!',
         `Завалил @${d.victim_name || '?'} — премия +$${d.cash} +${d.exp} exp.`,
         4500, 'win');
+      if ((d.cash | 0) > 0) {
+        myCash += (d.cash | 0);
+        showCashDelta(d.cash | 0, 'cash');
+        updateMoneyHud();
+      }
     } else if (meVictim) {
       showEventBanner('☠️ Тебя завалили по контракту',
         `@${d.killer_name || '?'} получил премию. Кулачки сброшены.`,
@@ -4893,6 +4943,18 @@ function wsConnect() {
         if (typeof d.me.hp === 'number')      myHp = d.me.hp;
         if (typeof d.me.kills === 'number')   myKills = d.me.kills;
         if (typeof d.me.deaths === 'number')  myDeaths = d.me.deaths;
+        if (typeof d.me.cash === 'number') {
+          const prev = myCash;
+          myCash = d.me.cash;
+          if (myCash > prev && prev > 0) showCashDelta(myCash - prev, 'cash');
+          updateMoneyHud();
+        }
+        if (typeof d.me.diamonds === 'number') {
+          const prev = myDiamonds;
+          myDiamonds = d.me.diamonds;
+          if (myDiamonds > prev && prev > 0) showCashDelta(myDiamonds - prev, 'diamond');
+          updateMoneyHud();
+        }
         const wasDead = myDead;
         myDead = !!d.me.dead;
         myDeathLeft = d.me.respawn_in || 0;
@@ -6509,6 +6571,34 @@ function updatePvpUI() {
       _jailOvEl.classList.remove('show');
     }
   }
+}
+// Деньги-HUD: обновление цифр и всплывающий поп-ап «+15$ / +1💎» при
+// начислениях. Вызывается из snap (когда сервер сообщает новое значение)
+// и локально при event'ах вознаграждения.
+const _moneyCashEl = document.getElementById('moneyCash');
+const _moneyDiaEl  = document.getElementById('moneyDia');
+function formatMoney(n) {
+  n = Math.max(0, n | 0);
+  if (n >= 1000000) return (n / 1000000).toFixed(1).replace('.0','') + 'M';
+  if (n >= 10000)   return (n / 1000).toFixed(0) + 'k';
+  return String(n);
+}
+function updateMoneyHud() {
+  if (_moneyCashEl) _moneyCashEl.textContent = formatMoney(myCash);
+  if (_moneyDiaEl)  _moneyDiaEl.textContent  = formatMoney(myDiamonds);
+}
+function showCashDelta(amount, kind) {
+  if (!amount) return;
+  const sign = amount > 0 ? '+' : '';
+  const sym  = kind === 'diamond' ? '💎' : '$';
+  const el = document.createElement('div');
+  el.className = 'mh-pop ' + (kind === 'diamond' ? 'diamond' : 'cash');
+  el.textContent = sign + amount + sym;
+  // Сдвиг чтобы попапы не наезжали друг на друга
+  el.style.top = (14 + Math.random() * 8) + 'px';
+  el.style.left = (kind === 'diamond' ? 180 : 110) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
 }
 // Refs для wanted+jail HUD
 const _wantedHudEl = document.getElementById('wantedHud');
@@ -12794,24 +12884,33 @@ function spawnCarExplosion(wr, wc) {
 function handAnchor(x, y, ang) {
   const sh = TS * 1.7;
   const dx = Math.cos(ang), dy = Math.sin(ang);
-  const sx = (dx - dy) * 0.5;
-  const sy = (dx + dy) * 0.5 * ISO_Y;
-  const dirLen = Math.hypot(sx, sy) || 1;
-  const perpX = -sy / dirLen;
-  const perpY =  sx / dirLen;
+  // ISO-проекция направления. Делим на длину, чтобы дальше умножать на
+  // armLen в ПИКСЕЛЯХ и не получать косых рук.
+  const sxRaw = (dx - dy) * 0.5;
+  const syRaw = (dx + dy) * 0.5 * ISO_Y;
+  const isoLen = Math.hypot(sxRaw, syRaw) || 1;
+  const sx = sxRaw / isoLen;          // единичный ISO-вектор направления
+  const sy = syRaw / isoLen;
+  // Перпендикуляр — направление от центра тела к плечу. Знак переключаем
+  // по ang: когда игрок наводит на запад/северо-запад (dx<0), правая рука
+  // оказывается с дальней стороны — оружие визуально «лезло через спину».
+  // Зеркалим, чтобы оно всегда было «перед» туловищем.
+  const shoulderSide = (dx < 0) ? -1 : 1;
+  const perpX = -sy * shoulderSide;
+  const perpY =  sx * shoulderSide;
   const shoulderD = TS * 0.10;
-  // Опустили хват ещё ниже: было 0.32 → 0.18 → 0.17. При TS=56 (sh≈95)
-  // оружие на уровне руки опущенной у пояса — не у плеч.
-  const shY = y - sh * 0.17;          // плечо
+  // Плечо на уровне ~17% высоты от верха спрайта — это пояс/бёдра, чтобы
+  // оружие читалось как «в опущенных руках», а не у головы.
+  const shY = y - sh * 0.17;
   const hxBase = x + perpX * shoulderD;
   const hyBase = shY + perpY * shoulderD;
   const armLen = TS * 0.36;
   return {
-    hx: hxBase + sx * armLen,         // точка хвата (конец вытянутой руки)
+    hx: hxBase + sx * armLen,
     hy: hyBase + sy * armLen,
-    sx, sy,                            // изометрический unit-вектор
-    px: x, shY,                        // центр тела + Y плеча
-    perpX, perpY, shoulderD,           // для второго плеча (twoHanded)
+    sx, sy,                            // единичный ISO-вектор направления
+    px: x, shY,
+    perpX, perpY, shoulderD,
   };
 }
 

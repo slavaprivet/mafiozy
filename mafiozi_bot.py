@@ -12327,6 +12327,8 @@ class WorldSim:
             # Удаляем машину из мира
             self.quest_cars.pop(car_id, None)
             p['_gta_active_car_id'] = None
+            # Синхронизируем _cash для HUD клиента
+            p['_cash'] = int(p.get('_cash', 0)) + reward
             return {'ok': True, 'delivered': True, 'reward': reward,
                     'car_id': car_id, 'model': qc.get('model'),
                     'lock_lvl': lock_lvl, 'xp_gain': xp_gain,
@@ -14652,6 +14654,8 @@ class WorldSim:
         except Exception as _e:
             logger.exception("box_deliver cash add failed: %s", _e)
         self.box_quests.pop(str(uid), None)
+        # Синхронизируем _cash для HUD клиента
+        p['_cash'] = int(p.get('_cash', 0)) + reward
         return {'ok': True, 'state': 'delivered', 'reward': reward,
                 'addr': q.get('addr')}
 
@@ -15329,6 +15333,8 @@ class WorldSim:
                     'mode':       me.get('_mode') or 'pvp',
                     'look':    me.get('look') or {},
                     'terr_cd':  my_terr_cd,
+                    'cash':     int(me.get('_cash') or 0),
+                    'diamonds': int(me.get('_diamonds') or 0),
                 },
                 'others':        others,
                 'event':         ev_payload,
@@ -17189,6 +17195,15 @@ async def _coop_http_app():
         p_ref = world.players.get(uid)
         if p_ref is not None:
             p_ref['_gang_leader'] = leader_id
+            # Кэшируем cash/diamonds в memory, чтобы HUD клиента видел
+            # актуальные значения и реагировал на начисления без get_character
+            # каждый раз.
+            try:
+                p_ref['_cash']     = int(char.get('cash') or 0)
+                p_ref['_diamonds'] = int(char.get('diamonds') or 0)
+            except Exception:
+                p_ref['_cash'] = p_ref.get('_cash', 0)
+                p_ref['_diamonds'] = p_ref.get('_diamonds', 0)
         world.connections[uid] = ws
 
         # Hello-кадр
@@ -17323,6 +17338,9 @@ async def _coop_http_app():
                                                 new_exp  = int(kch.get('exp')  or 0) + world.BOUNTY_EXP
                                                 await update_character(killer_uid_int,
                                                                        cash=new_cash, exp=new_exp)
+                                                kp_obj = world.players.get(uid)
+                                                if kp_obj is not None:
+                                                    kp_obj['_cash'] = new_cash
                                                 kch2 = await get_character(killer_uid_int)
                                                 if kch2: await check_level_up(killer_uid_int, kch2)
                                             await update_character(victim_uid_int,
@@ -17445,10 +17463,12 @@ async def _coop_http_app():
                                                 if gang_added:
                                                     upd['wanted_gangs'] = new_g
                                                 await update_character(killer_uid_int, **upd)
-                                                # Зеркалим in-memory для bounty-логики
+                                                # Зеркалим in-memory для bounty-логики и HUD
                                                 kp_obj = world.players.get(uid)
-                                                if kp_obj is not None and gang_added:
-                                                    kp_obj['_wanted_gangs'] = new_g
+                                                if kp_obj is not None:
+                                                    if gang_added:
+                                                        kp_obj['_wanted_gangs'] = new_g
+                                                    kp_obj['_cash'] = new_cash
                                                 ch2 = await get_character(killer_uid_int)
                                                 if ch2:
                                                     await check_level_up(killer_uid_int, ch2)
