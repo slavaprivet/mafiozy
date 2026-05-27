@@ -1070,6 +1070,7 @@ const QP = {
   uid:  _UP.get('uid') || '',
   name: _qStr('name', 'Игрок'),
   lvl:  _qInt('lvl', 1),
+  mark_lvl: _qInt('mark_lvl', 0),   // навык «Меткий стрелок», 0..5
   hubUrl: _UP.get('hub') || '',
   look: {
     gender: _qInt('gender', 0),
@@ -14416,7 +14417,9 @@ const TARGET_LOCK_HALF_ANGLE = 25 * Math.PI / 180;   // ±25°
 // где id = "kind:targetId". Auto-aim в fire() стреляет в БЛИЖАЙШУЮ к
 // игроку из живых меток. Тап по уже помеченной = снять метку.
 const lockedTargets = new Map();   // id → { entry, expireAt }
-const MAX_LOCKS = 5;               // ограничение чтобы экран не зарос
+// Лимит одновременных меток зависит от навыка «Меткий стрелок»
+// (mark_lvl 0..5 → 1..5 меток). При Lv4 и Lv5 кап одинаковый (5).
+const MAX_LOCKS = Math.max(1, Math.min(5, (QP.mark_lvl | 0) + 1));
 // Legacy single-target API (для совместимости с местами где было
 // lockedTarget). Возвращает ближайшую активную метку либо null.
 function getActiveTarget() {
