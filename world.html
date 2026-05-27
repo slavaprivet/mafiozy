@@ -3821,6 +3821,13 @@ window.addEventListener('touchcancel', (e) => {
 // стреляем туда. Если просто тапнул без сдвига — auto-aim (ближайшая цель).
 // JoyR виден только когда есть оружие/цель (см. updateJoyRVisibility).
 const joyR = { active: false, dx: 0, dy: 0, id: -1, hasAim: false };
+// Фаза текущего удержания стика (только в open world, не в арене).
+// 'aim'  — pointerdown произошёл когда локов не было: водишь лазером,
+//          набираешь auto-lock'и. Стрельба ОТКЛЮЧЕНА до отпускания.
+// 'fire' — pointerdown произошёл когда уже был хотя бы один лок:
+//          держим стик → стреляем по ближайшему locked-врагу.
+// 'idle' — стик не зажат.
+let _stickPhase = 'idle';
 const joyREl = document.getElementById('joyR');
 const joyRKnob = joyREl.querySelector('.knob');
 function joyRMove(x, y) {
@@ -3843,12 +3850,19 @@ function joyREnd() {
   joyR.id = -1; joyR._touchId = null; joyR.hasAim = false;
   joyRKnob.style.transform = '';
   joyREl.classList.remove('aiming');
+  _stickPhase = 'idle';
+}
+// Решаем фазу при начале нового удержания: если уже есть локи —
+// стреляем; если локов нет — это сессия прицеливания (только auto-lock).
+function _beginStickSession() {
+  _stickPhase = (typeof lockedTargets !== 'undefined' && lockedTargets.size > 0) ? 'fire' : 'aim';
 }
 // pointer events — на самом элементе со setPointerCapture. Так
 // pointermove приходит только сюда, не утекает в window и не дёргает
 // левый стик (это и был баг — окно ловило события от ОБОИХ пальцев).
 joyREl.addEventListener('pointerdown', (e) => {
   joyR.active = true; joyR.id = e.pointerId;
+  _beginStickSession();
   joyRMove(e.clientX, e.clientY);
   try { joyREl.setPointerCapture(e.pointerId); } catch(_) {}
   e.preventDefault();
@@ -3867,6 +3881,7 @@ joyREl.addEventListener('touchstart', (e) => {
   if (joyR.active) return;
   const t = e.changedTouches[0]; if (!t) return;
   joyR.active = true; joyR.id = -1; joyR._touchId = t.identifier;
+  _beginStickSession();
   joyRMove(t.clientX, t.clientY);
   e.preventDefault();
 }, { passive: false });
@@ -7441,9 +7456,12 @@ function update(dt) {
       }
     } else if (lockedTargets.size) {
       // ОТКРЫТЫЙ МИР: стреляем ТОЛЬКО когда есть лок. Auto-aim бьёт в
-      // БЛИЖАЙШУЮ из помеченных целей. Триггер — стик в любую сторону
-      // или fireBtn.
-      const triggered = (joyR.active && joyR.hasAim) || _fireBtnDown;
+      // БЛИЖАЙШУЮ из помеченных целей. Стик стреляет только если
+      // удержание началось при уже существующих локах (_stickPhase ===
+      // 'fire'). Первое зажатие при 0 локов = фаза 'aim': только набор
+      // auto-lock'ов, без выстрелов. fireBtn стреляет всегда.
+      const stickFires = (joyR.active && joyR.hasAim && _stickPhase === 'fire');
+      const triggered = stickFires || _fireBtnDown;
       if (triggered) {
         const active = getActiveTarget();
         const pos = active && active.getPos();
