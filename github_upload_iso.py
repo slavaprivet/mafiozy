@@ -109,40 +109,31 @@ print(f"      HTTP {code} OK")
 print(f"      commit  : {commit_sha[:12]}")
 print(f"      content : {content_sha[:12]}")
 
-print(f"\n[4/4] Качаю обратно с raw.githubusercontent.com и сверяю SHA...")
-raw_url = f"https://raw.githubusercontent.com/{REPO}/{BRANCH}/{FILE}"
+print(f"\n[4/4] Быстрая проверка через GitHub API (без CDN raw)...")
 verified = False
-for attempt in range(1, 7):
-    try:
-        req = urllib.request.Request(raw_url)
-        req.add_header("Cache-Control", "no-cache")
-        req.add_header("Pragma", "no-cache")
-        with urllib.request.urlopen(req, timeout=30) as r:
-            remote_raw = r.read()
-        remote_sha = hashlib.sha256(remote_raw).hexdigest()
-        if remote_sha == local_sha:
-            print(f"      Попытка {attempt}: SHA совпали ({remote_sha[:16]}...)   OK")
-            verified = True
-            break
-        print(f"      Попытка {attempt}: пока старая версия ({remote_sha[:16]}...), жду 3 сек...")
-        time.sleep(3)
-    except Exception as e:
-        print(f"      Попытка {attempt}: {e}, жду 3 сек...")
-        time.sleep(3)
+info2, code2 = gh("GET", f"/repos/{REPO}/contents/{FILE}?ref={BRANCH}")
+if code2 == 200:
+    new_blob = info2.get("sha") or ""
+    if new_blob and new_blob == content_sha:
+        print(f"      API подтвердил новый blob {new_blob[:12]} — файл в репо.")
+        verified = True
+    else:
+        print(f"      API blob {new_blob[:12]} ≠ PUT content {content_sha[:12]} (странно)")
+else:
+    print(f"      API ответ HTTP {code2} — не смогли подтвердить, но PUT уже прошёл.")
 
 print()
 print("=" * 64)
 if verified:
-    print(" UPLOAD OK И ПРОВЕРЕН")
+    print(" UPLOAD OK")
     print(f" Время       : {stamp}")
     print(f" Pages-URL   : https://slavaprivet.github.io/mafiozi-battle/{FILE}")
-    print(f" Raw-URL     : {raw_url}")
     print()
     print(" Дальше: в Telegram /start — мини-апп подхватит свежую версию.")
+    print(" (CDN GitHub Pages обновляется ~10-60 сек после коммита.)")
 else:
-    print(" UPLOAD ПРОШЁЛ, НО ВЕРИФИКАЦИЯ НЕ ДОЖДАЛАСЬ ОБНОВЛЕНИЯ.")
-    print(" Открой ссылку ниже в браузере (Ctrl+F5) — должна быть свежая версия:")
-    print(f"   {raw_url}")
-    print(" Если открывается старая — подожди минуту, GitHub-CDN иногда тормозит.")
+    print(" PUT прошёл, но контрольную проверку не прошли. Файл скорее всего")
+    print(" уже залит — открой Pages-URL в браузере и проверь:")
+    print(f"   https://slavaprivet.github.io/mafiozi-battle/{FILE}")
 print("=" * 64)
 input("\nPress Enter to exit...")

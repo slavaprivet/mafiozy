@@ -7116,16 +7116,100 @@ function update(dt) {
         for (const npcCar of CARS) {
           if (npcCar.parked) continue;
           if (npcCar._wrecked) continue;
-          if (npcCar.gang) continue;             // бандитов не таранить случайно
           const dd = Math.hypot(npcCar.r - qc.y, npcCar.c - qc.x);
-          if (dd < 1.0) {
-            const impact = curSpeed + Math.hypot(npcCar.vr || 0, npcCar.vc || 0) * 0.5;
-            reportCarCrash(qc, impact, 'car');
+          if (dd >= 1.0) continue;
+          const impact = curSpeed + Math.hypot(npcCar.vr || 0, npcCar.vc || 0) * 0.5;
+          // Гангстерская машина — таран!  Большой урон обеим сторонам +
+          // gang_threat бамп кулачка. Игроку через сервер срезаем hp.
+          if (npcCar.gang) {
+            reportCarCrash(qc, impact + 4, 'gang_car');
             spawnCarExplosion(npcCar.r, npcCar.c);
             npcCar._wrecked   = true;
-            npcCar._respawnAt = performance.now() + 600;
-            // Лёгкое торможение, не отбрасывание — иначе застреваешь
-            curVx *= 0.3; curVy *= 0.3;
+            npcCar._respawnAt = performance.now() + 9999999;
+            // Игрок получает значительный урон (примерно 25 hp за таран на
+            // скорости 8). Серверный handler gang_dmg сам проверяет анти-чит.
+            try {
+              ws && ws.send(JSON.stringify({ t: 'gang_dmg', d: {
+                dmg: Math.min(40, Math.round(impact * 3.5)),
+                sx: +npcCar.c.toFixed(2), sy: +npcCar.r.toFixed(2),
+                ram: true,
+              } }));
+              ws && ws.send(JSON.stringify({ t: 'gang_threat',
+                d: { x: +npcCar.c.toFixed(2), y: +npcCar.r.toFixed(2) } }));
+            } catch(e){}
+            addShake(7);
+            try { hitFlash = performance.now() + 320; } catch(e){}
+            spawnFloatText(qc.y, qc.x, 'RAMMED!', {
+              color: '#ff4040', size: 22, life: 1600,
+            });
+            curVx *= -0.3; curVy *= -0.3;
+            break;
+          }
+          // Обычная гражданская — взрываем, лёгкий урон нам
+          reportCarCrash(qc, impact, 'car');
+          spawnCarExplosion(npcCar.r, npcCar.c);
+          npcCar._wrecked   = true;
+          npcCar._respawnAt = performance.now() + 600;
+          curVx *= 0.3; curVy *= 0.3;
+          break;
+        }
+        // Сбиваем пешеходов: NPC на дороге попал под колесо
+        if (curSpeed > 5.0) {
+          for (const npc of NPCS) {
+            if (npc.dead) continue;
+            const dd = Math.hypot(npc.r - qc.y, npc.c - qc.x);
+            if (dd > 0.75) continue;
+            // Knockback по направлению машины + смерть
+            npc.hp = 0;
+            npc.dead = true;
+            npc.deadAt = performance.now();
+            const ang = Math.atan2(curVy, curVx);
+            npc.r += Math.sin(ang) * 0.6;
+            npc.c += Math.cos(ang) * 0.6;
+            // Кровь
+            for (let i = 0; i < 5; i++) {
+              bloodSplats.push({
+                r: npc.r + (Math.random() - 0.5) * 0.7,
+                c: npc.c + (Math.random() - 0.5) * 0.7,
+                radius: 7 + Math.random() * 4,
+                life: 14000, max: 14000,
+                rot: Math.random() * Math.PI,
+              });
+            }
+            // Брызги-частицы
+            const parts = [];
+            for (let i = 0; i < 16; i++) {
+              const a = Math.random() * Math.PI * 2;
+              const sp = 1.2 + Math.random() * 2.5;
+              parts.push({
+                vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+                life: 500 + Math.random() * 400, max: 900,
+                color: '#a01010',
+                isBlood: true,
+                size: 2.2 + Math.random() * 2.0,
+              });
+            }
+            impacts.push({ r: npc.r, c: npc.c, parts });
+            // Сообщаем серверу (как стрельба со свидетелями)
+            try {
+              const copNear = _copInRadius(qc.y, qc.x, 12);
+              ws && ws.send(JSON.stringify({ t: 'open_fire', d: {
+                x: +qc.x.toFixed(2), y: +qc.y.toFixed(2),
+                weapon: 'car', civilian: false, witness: copNear,
+              } }));
+            } catch(e) {}
+            triggerWitnessChain(qc.y, qc.x, 9, {
+              snitchChance: 0.95,
+              snitchCries: ['СБИЛИ!! КОПЫ!!', 'УБИЙЦА!!', 'ВЫЗЫВАЙТЕ 911!'],
+              panicCries:  ['ААА!!', 'ОН СБИЛ!', 'УБЕГАЙ!'],
+            });
+            // Сообщение игроку — большое «RUN OVER!»
+            spawnFloatText(qc.y, qc.x, 'RUN OVER!', {
+              color: '#ff6020', size: 22, life: 1500,
+            });
+            addShake(3);
+            // Гасим скорость самую малость — машина проезжает, не застревает
+            curVx *= 0.92; curVy *= 0.92;
             break;
           }
         }
