@@ -4125,7 +4125,12 @@ function applyAggroTargets(newAggro) {
     if (!cur) {
       // Новая зона — копируем как есть, x=tx (нет интерполяции с нуля)
       const z = JSON.parse(JSON.stringify(fresh));
-      for (const b of (z.bots || [])) { b.tx = b.x; b.ty = b.y; }
+      // Сервер шлёт ТОЛЬКО живых ботов (фильтрация на стороне python),
+      // но поле alive в payload не кладёт. Без alive=true фильтры
+      // вида `if (!b.alive) continue;` в tryTapLock/_findLaserTarget/
+      // raycast'е считают всех ботов мёртвыми → лок не ставился, пули
+      // проходили насквозь. Нормализуем здесь.
+      for (const b of (z.bots || [])) { b.tx = b.x; b.ty = b.y; b.alive = true; }
       aggroZones[tid] = z;
       continue;
     }
@@ -4145,10 +4150,11 @@ function applyAggroTargets(newAggro) {
         ob.hp    = nb.hp;   ob.max_hp = nb.max_hp;
         ob.kind  = nb.kind;
         ob.weapon = nb.weapon;
+        ob.alive = true;   // см. коммент выше — снэп всегда содержит только живых
         if (nb.look) ob.look = nb.look;
         merged.push(ob);
       } else {
-        merged.push({ ...nb, tx: nb.x, ty: nb.y });
+        merged.push({ ...nb, tx: nb.x, ty: nb.y, alive: true });
       }
     }
     cur.bots = merged;
