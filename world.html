@@ -2527,13 +2527,20 @@ function trafficPhase() {
 
 // NPC — простые прохожие на тротуарах. Бродят по случайным waypoint-ам.
 const NPCS = [];
+// Целевое число ЖИВЫХ NPC одновременно. Карта 200×80 = 16000 тайлов,
+// 60 даёт ~1 NPC на 266 тайлов — заметно живее чем было (было 20).
+const NPC_TARGET = 60;
+// Спавнибельные тайлы: 9 бордюр (тротуар), 8 парк (трава), 14 песок
+// (пляж — туристы), 15 причал (рыбаки/прохожие). Дорогу (0) пропускаем
+// — там тачки, NPC будут под колёса.
+const NPC_SPAWN_TILES = new Set([8, 9, 14, 15]);
 function spawnNpc(seed) {
-  // Ищем случайный бордюрный тайл (тип 9), вне PVP-арены
+  // Ищем случайный спавнибельный тайл вне PVP-арены
   for (let tries = 0; tries < 80; tries++) {
     const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
     const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
     if (inArena(r, c)) continue;
-    if (MAP[r][c] === 9 || MAP[r][c] === 8) {
+    if (NPC_SPAWN_TILES.has(MAP[r][c])) {
       return {
         r: r + 0.5, c: c + 0.5,
         tr: r + 0.5, tc: c + 0.5,
@@ -2671,14 +2678,14 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     npc.cryUntil = performance.now() + 600;
   }
 }
-// Проходимо ли для NPC: только бордюр (9) или газон (8), и НЕ внутри
-// PVP-арены (туда NPC не лезут, чтобы не мешать игрокам стреляться).
+// Проходимо ли для NPC: бордюр (9), газон (8), пляжный песок (14),
+// причал (15). Дорога (0) — НЕТ (там тачки). НЕ внутри PVP-арены.
 function npcPassable(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
   if (inArena(ri, ci)) return false;
   const t = MAP[ri][ci];
-  return (t === 9 || t === 8);
+  return (t === 9 || t === 8 || t === 14 || t === 15);
 }
 // Расширенная проходимость для NPC-снитча (бежит к копам через всю карту).
 // Разрешает дорогу (0) дополнительно к тротуару/газону. Не позволяет
@@ -2717,10 +2724,40 @@ function pickNpcWaypoint(npc) {
 }
 function initNpcs() {
   NPCS.length = 0;
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < NPC_TARGET; i++) {
     const n = spawnNpc(i);
     if (n) { pickNpcWaypoint(n); NPCS.push(n); }
   }
+}
+// Респавн: каждые ~2 сек считаем живых NPC и подсыпаем недостающих
+// до NPC_TARGET. Трупы (n.dead) остаются на земле (splat-анимация), но
+// в общий пул живых не входят. Чтобы не «появлялись на глазах» —
+// спавн вдали от игрока: ≥ 14 тайлов (за пределом видимого экрана).
+let _lastNpcRespawnAt = 0;
+function _npcRespawnTick(now) {
+  if (now - _lastNpcRespawnAt < 2000) return;
+  _lastNpcRespawnAt = now;
+  let alive = 0;
+  for (const n of NPCS) if (!n.dead) alive++;
+  let need = NPC_TARGET - alive;
+  if (need <= 0) return;
+  // Подсыпаем не больше 3 за тик чтобы не было «волной»
+  if (need > 3) need = 3;
+  for (let i = 0; i < need; i++) {
+    const n = _spawnNpcAwayFromPlayer();
+    if (n) { pickNpcWaypoint(n); NPCS.push(n); }
+  }
+}
+function _spawnNpcAwayFromPlayer() {
+  const MIN_DIST = 14;
+  for (let tries = 0; tries < 40; tries++) {
+    const cand = spawnNpc(0);
+    if (!cand) continue;
+    const dr = cand.r - player.r, dc = cand.c - player.c;
+    if (Math.hypot(dr, dc) < MIN_DIST) continue;
+    return cand;
+  }
+  return null;
 }
 
 // Координаты полицейского участка (центр POI 'police'). Используется
@@ -2846,6 +2883,7 @@ function triggerNpcPanic(srcR, srcC, radius) {
 
 function updateNpcs(dt) {
   const now = performance.now();
+  _npcRespawnTick(now);
   // Если рядом с NPC прохожим стоит бот городской банды с act='harass'
   // — NPC паникует и убегает. Триггерим один раз в секунду на NPC.
   for (const tid of Object.keys(aggroZones)) {
