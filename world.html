@@ -255,10 +255,11 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   display: none;
 }
 
-/* Правый стик — прицел+огонь (как в demo_isometric).
-   Тянешь — на экране виден прицельный «нос» в направлении выстрела;
-   отпустил → стреляешь в эту сторону. Если просто тапнул без сдвига —
-   стреляешь в auto-aim (ближайшая цель). */
+/* Правый стик — ТОЛЬКО прицел/маркировка целей (open-world).
+   Тянешь на врага — он магнитится в lockedTargets (auto-lock).
+   Тап по врагу — мгновенная метка. Стрельбу запускает кнопка fireBtn
+   (или Space на десктопе). На PvP-арене стик возвращает свою старую
+   free-aim роль с hold-to-fire. */
 #joyR {
   position: absolute; right: 24px; bottom: 24px;
   width: 130px; height: 130px; border-radius: 50%;
@@ -7425,9 +7426,8 @@ function update(dt) {
   // Интерполяция чужих quest_cars (которые ведут другие игроки)
   _interpQuestCars(dt);
   // Стрельба в открытом мире: ОБЯЗАТЕЛЕН lockedTarget (см. tryTapLock).
-  // Тапнул цель → стик/fireBtn = стрелять автоматически в неё. Без лока
-  // правый стик просто крутит лазер-прицел (для визуала), но огонь не
-  // ведётся — игрок должен сначала выбрать кого валить тапом.
+  // Правый стик ТОЛЬКО метит цели (тап + удержание лазера = auto-lock).
+  // Стрелять можно ИСКЛЮЧИТЕЛЬНО кнопкой fireBtn (или Space на десктопе).
   // В PvP-арене (inArena) — старая логика free-aim, лок выключен.
   if (myMode !== 'pve' && !myDead && !myDrivingCarId) {
     const meInArena = inArena(player.r, player.c);
@@ -7440,11 +7440,9 @@ function update(dt) {
         fire(Math.atan2(dr, dc));
       }
     } else if (lockedTargets.size) {
-      // ОТКРЫТЫЙ МИР: стреляем ТОЛЬКО когда есть лок. Auto-aim бьёт в
-      // БЛИЖАЙШУЮ из помеченных целей. Триггер — стик в любую сторону
-      // или fireBtn.
-      const triggered = (joyR.active && joyR.hasAim) || _fireBtnDown;
-      if (triggered) {
+      // ОТКРЫТЫЙ МИР: стреляем ТОЛЬКО кнопкой fireBtn. Стик к огню не
+      // привязан — он только метит. Огонь идёт в БЛИЖАЙШУЮ из меток.
+      if (_fireBtnDown) {
         const active = getActiveTarget();
         const pos = active && active.getPos();
         if (pos) {
