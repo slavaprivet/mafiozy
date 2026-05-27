@@ -1664,15 +1664,20 @@ function applyQuestCarsSnapshot(arr) {
     fresh.add(c.id);
     const prev = questCars.get(c.id);
     if (prev) {
-      // Серверная позиция → tx/ty/tAng, плавная интерполяция в update()
-      prev.tx = c.x; prev.ty = c.y; prev.tAng = c.ang;
+      // Своей машиной рулю Я — не даём серверному эху затирать локальные
+      // x/y/vx/vy. Иначе из-за лага между моими gta_drive (15 Гц) и snap
+      // машина «откатывается» в старую позицию и разгон не идёт.
+      const isMyDrive = (myDrivingCarId === c.id && !myIsPassenger);
+      if (!isMyDrive) {
+        prev.tx = c.x; prev.ty = c.y; prev.tAng = c.ang;
+        prev.vx = c.vx; prev.vy = c.vy;
+      }
       prev.driver_uid = c.driver_uid;
       prev.passenger_uids = c.passenger_uids || [];
       prev.state      = c.state;
       prev.owner_uid  = c.owner_uid;
       prev.model      = c.model;
       prev.reward     = c.reward;
-      prev.vx         = c.vx; prev.vy = c.vy;
       prev.hp         = c.hp;
       prev.max_hp     = c.max_hp;
       prev.wrecked    = !!c.wrecked;
@@ -3846,7 +3851,13 @@ function tryMove(obj, dr, dc) {
   // здании-блокере, иначе stuck-mode пропустит шаг наружу). Скольжение
   // вдоль решётки — игрок упирается в стену без анимации возврата.
   const isMe = (obj === player);
-  const jailed = isMe && myJailIn > 0;
+  // ТЮРЬМА: пока myJailIn > 0 и игрок физически ВНУТРИ зоны участка —
+  // держим его в радиусе. Если игрок снаружи (только что респаунился /
+  // сервер не успел телепортировать в тюрьму / уже отпущен но клиент
+  // ещё не получил jail_in=0) — пропускаем jail-логику, чтобы он не
+  // «прилипал» к окружности и не зависал.
+  const curD = isMe ? Math.hypot(obj.r - JAIL_CENTER_R, obj.c - JAIL_CENTER_C) : 0;
+  const jailed = isMe && myJailIn > 0 && curD <= JAIL_RADIUS_TILES + 0.5;
   if (jailed) {
     let nr = obj.r + dr, nc = obj.c + dc;
     const d2r = nr - JAIL_CENTER_R, d2c = nc - JAIL_CENTER_C;
@@ -3854,8 +3865,6 @@ function tryMove(obj, dr, dc) {
     if (d2 > JAIL_RADIUS_TILES - 0.3) {
       // Скользим вдоль решётки — оставляем только касательное движение
       const ang = Math.atan2(d2r, d2c);
-      const projR = (obj.r - JAIL_CENTER_R), projC = (obj.c - JAIL_CENTER_C);
-      const projL = Math.hypot(projR, projC) || 1;
       // Возвращаемся на радиус, чтобы тело не «утопало» в прутьях
       const targetD = Math.min(d2, JAIL_RADIUS_TILES - 0.3);
       obj.r = JAIL_CENTER_R + Math.sin(ang) * targetD;
