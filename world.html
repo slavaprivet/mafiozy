@@ -281,11 +281,11 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 #joyR.cd { filter: grayscale(.5) brightness(.55); }
 
 /* Кнопка «🔫 Огонь» — основной триггер в open world (после захвата
-   цели). НЕ перекрывает правый стик: висит ВЫШЕ него (bottom 150 vs
-   стиковский ~22). На PvP-арене скрывается через JS (там free-aim
-   стиком, fireBtn не нужен). */
+   цели). Висит над правым стиком (bottom 24-154) и над иконкой чата
+   (bottom 168-216, right 14-62), чтобы её не заслоняло. На PvP-арене
+   скрывается через JS (там free-aim стиком, fireBtn не нужен). */
 #fireBtn {
-  position: absolute; right: 32px; bottom: 150px;
+  position: absolute; right: 32px; bottom: 230px;
   width: 70px; height: 70px; border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #ff5050, #a01010);
   border: 2px solid #fff4b8; box-shadow: 0 6px 20px rgba(255,40,40,.55);
@@ -2716,11 +2716,50 @@ function pickNpcWaypoint(npc) {
   // Не нашли — стоим на месте до следующего тика
   npc.tr = npc.r; npc.tc = npc.c;
 }
+const TARGET_NPC_COUNT = 60;       // живых прохожих в городе
+const NPC_RESPAWN_MIN_DIST = 22;   // не спаунить ближе этого к игроку
+let _nextNpcRespawnAt = 0;
+
 function initNpcs() {
   NPCS.length = 0;
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < TARGET_NPC_COUNT; i++) {
     const n = spawnNpc(i);
     if (n) { pickNpcWaypoint(n); NPCS.push(n); }
+  }
+}
+
+// Раз в ~1.2 с проверяем сколько живых NPC. Если меньше TARGET — спауним
+// добор. Спаун идёт ТОЛЬКО на тайлах вне видимости (дальше NPC_RESPAWN_MIN_DIST
+// от игрока), чтобы прохожие не появлялись «из ниоткуда» на глазах.
+// Параллельно пруним стационарные трупы (через 60 с после смерти) — это и
+// чистит память, и освобождает слоты в NPCS.length.
+function maintainNpcPopulation(now) {
+  if (now < _nextNpcRespawnAt) return;
+  _nextNpcRespawnAt = now + 1200;
+  // Пруним старые трупы (n.deadAt + 60s)
+  for (let i = NPCS.length - 1; i >= 0; i--) {
+    const n = NPCS[i];
+    if (n.dead && n.deadAt && now - n.deadAt > 60000) {
+      NPCS.splice(i, 1);
+    }
+  }
+  // Считаем живых
+  let alive = 0;
+  for (const n of NPCS) if (!n.dead) alive++;
+  const need = TARGET_NPC_COUNT - alive;
+  if (need <= 0) return;
+  // Доспауниваем не более 3 за тик, чтобы не лагало
+  const batch = Math.min(3, need);
+  for (let k = 0; k < batch; k++) {
+    let placed = null;
+    for (let tries = 0; tries < 16; tries++) {
+      const n = spawnNpc(NPCS.length + k * 17);
+      if (!n) continue;
+      const dr = n.r - player.r, dc = n.c - player.c;
+      if (Math.hypot(dr, dc) < NPC_RESPAWN_MIN_DIST) continue;
+      placed = n; break;
+    }
+    if (placed) { pickNpcWaypoint(placed); NPCS.push(placed); }
   }
 }
 
@@ -2847,6 +2886,7 @@ function triggerNpcPanic(srcR, srcC, radius) {
 
 function updateNpcs(dt) {
   const now = performance.now();
+  maintainNpcPopulation(now);
   // Если рядом с NPC прохожим стоит бот городской банды с act='harass'
   // — NPC паникует и убегает. Триггерим один раз в секунду на NPC.
   for (const tid of Object.keys(aggroZones)) {
