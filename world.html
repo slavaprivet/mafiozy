@@ -66,11 +66,13 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
 }
 
 /* Чат-инпут */
-/* Чат-кнопка — справа НАД правым джойстиком (раньше перекрывала его).
+/* Чат-кнопка — справа НАД fireBtn'ом (fireBtn кончается на bottom 220).
+   Раньше bottom 168 → попадала прямо в fireBtn (z-index 13 > 6 у чата),
+   тап по 💬 уходил в выстрел. Теперь bottom 232 = чистый зазор 12px.
    Инпут раскрывается ВЛЕВО (flex-direction: row-reverse) — кнопка
    остаётся прижата к правому краю, поле бежит к центру экрана. */
 #chatBar {
-  position: absolute; right: 14px; bottom: 168px;
+  position: absolute; right: 14px; bottom: 232px;
   display: flex; flex-direction: row-reverse; gap: 6px;
   align-items: center; z-index: 6;
 }
@@ -606,9 +608,10 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   50%     { box-shadow: 0 4px 28px rgba(255,80,80,.85); }
 }
 
-/* Быстрые смайлики над чат-инпутом */
+/* Быстрые смайлики над чат-инпутом. Чат теперь на bottom 232, поэтому
+   эмодзи-полоска поднялась тоже — bottom 288 = прямо над чатом. */
 #emojiBar {
-  position: absolute; right: 14px; bottom: 92px; display: none;
+  position: absolute; right: 14px; bottom: 288px; display: none;
   gap: 4px; align-items: center; z-index: 4;
   background: rgba(20,24,32,.92); border: 1px solid #3a4452;
   border-radius: 10px; padding: 4px 6px;
