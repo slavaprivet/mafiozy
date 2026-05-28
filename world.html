@@ -2855,6 +2855,71 @@ function _maybeAuthorityChatter(now) {
   });
 }
 let _nextNpcChatterAt = 0;
+// «NPC-клиенты» приходят к купленным бизнесам. Симуляция жизни.
+let _nextBizClientAt = 0;
+const BIZ_VISIT_ANNOUNCE = [
+  'Зайду в магазин', 'Пора потратить деньги', 'Надо заскочить',
+  'Зайду на минутку', 'Купить надо', 'Перерыв на кофе',
+  'Дай-ка зайду', 'Деньги в кармане жгут',
+];
+const BIZ_VISIT_THANKS = [
+  'Спасибо!', 'Сервис на 5+', 'Зайду ещё!', 'Отличное место',
+  'Рекомендую', 'Лучший в городе', 'Понравилось', 'Класс!',
+  'Топовое обслуживание', 'Удачно зашёл',
+];
+function _updateBizClients(now) {
+  if (now > _nextBizClientAt && myBusinesses.size) {
+    _nextBizClientAt = now + 6000 + Math.random() * 8000;
+    const ownedNearby = [];
+    for (const b of BUSINESS_POIS) {
+      const o = myBusinesses.get(b.id);
+      if (!o || !o.owned) continue;
+      const dr = b.r - player.r, dc = b.c - player.c;
+      if (Math.hypot(dr, dc) > 22) continue;
+      ownedNearby.push(b);
+    }
+    if (ownedNearby.length) {
+      const biz = ownedNearby[Math.floor(Math.random() * ownedNearby.length)];
+      const cands = NPCS.filter(n =>
+        !n.dead && !n._evacuated && !(n.panicUntil > now) &&
+        !n.snitching && !n._clientOfBiz &&
+        Math.hypot(n.r - biz.r, n.c - biz.c) < 14
+      );
+      if (cands.length) {
+        const n = cands[Math.floor(Math.random() * cands.length)];
+        n._clientOfBiz = biz.id;
+        n._clientStage = 'going';
+        n._clientUntil = now + 18000;
+        n.tr = biz.r; n.tc = biz.c;
+        n.cryText  = BIZ_VISIT_ANNOUNCE[Math.floor(Math.random() * BIZ_VISIT_ANNOUNCE.length)];
+        n.cryUntil = now + 1800;
+      }
+    }
+  }
+  // Обновление состояний клиентов
+  for (const n of NPCS) {
+    if (!n._clientOfBiz) continue;
+    if (now > n._clientUntil) {
+      n._clientOfBiz = null;
+      n._clientStage = null;
+      continue;
+    }
+    const biz = BUSINESS_POIS.find(x => x.id === n._clientOfBiz);
+    if (!biz) { n._clientOfBiz = null; continue; }
+    const d = Math.hypot(n.r - biz.r, n.c - biz.c);
+    if (n._clientStage === 'going' && d < 2.0) {
+      n._clientStage = 'thanking';
+      n.cryText = BIZ_VISIT_THANKS[Math.floor(Math.random() * BIZ_VISIT_THANKS.length)];
+      n.cryUntil = now + 3500;
+      n._clientUntil = now + 4500;   // уйдёт после фразы
+      // Цель — отойти от бизнеса в случайную сторону
+      const ang = Math.random() * Math.PI * 2;
+      n.tr = biz.r + Math.sin(ang) * 6;
+      n.tc = biz.c + Math.cos(ang) * 6;
+    }
+  }
+}
+
 function _maybeIdleChatter(now) {
   if (now < _nextNpcChatterAt) return;
   _nextNpcChatterAt = now + 8000 + Math.random() * 10000;   // 8..18с
@@ -3595,6 +3660,7 @@ function triggerNpcPanic(srcR, srcC, radius) {
 function updateNpcs(dt) {
   const now = performance.now();
   maintainNpcPopulation(now);
+  _updateBizClients(now);
   _maybeIdleChatter(now);
   _maybeAuthorityChatter(now);
   // Если рядом с NPC прохожим стоит бот городской банды с act='harass'
@@ -3716,7 +3782,12 @@ function updateNpcs(dt) {
     const dr = n.tr - n.r, dc = n.tc - n.c;
     const d  = Math.hypot(dr, dc);
     if (d < 0.4) {
-      // Дошли — иногда стоим 1-3 сек, потом новый waypoint
+      // Дошли — клиенты бизнесов остаются у точки до окончания визита
+      if (n._clientOfBiz && n._clientStage === 'thanking') {
+        n.idleUntil = now + 1500;
+        continue;
+      }
+      // Иначе — стоим 1-3 сек и новый случайный waypoint
       if (Math.random() < 0.4) n.idleUntil = now + 1000 + Math.random() * 2000;
       pickNpcWaypoint(n);
       continue;
@@ -6214,6 +6285,40 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
+  // Бизнес-POI — купить если рядом и не наш; собрать если наш с доходом
+  const bizNear = _nearestBusinessPoi();
+  if (bizNear) {
+    const own = myBusinesses.get(bizNear.id);
+    if (!own || !own.owned) {
+      _gtaActionKind = 'biz_buy';
+      _gtaActionCarId = bizNear.id;
+      _gtaBtn.textContent = `🏪 ${bizNear.emoji} Купить за $${bizNear.price.toLocaleString('ru')}`;
+      _gtaBtn.style.display = 'block';
+      return;
+    }
+    if (own.pending && own.pending > 0) {
+      _gtaActionKind = 'biz_collect';
+      _gtaActionCarId = bizNear.id;
+      _gtaBtn.textContent = `💰 Забрать $${own.pending}`;
+      _gtaBtn.style.display = 'block';
+      return;
+    }
+    // Куплен, но дохода нет — просто инфо-плашка
+    _gtaActionKind = 'biz_info';
+    _gtaActionCarId = bizNear.id;
+    _gtaBtn.textContent = `✅ ${bizNear.emoji} ${bizNear.name} — твой`;
+    _gtaBtn.style.display = 'block';
+    return;
+  }
+  // Чёрный рынок — если подошёл к POI 'blackmarket' (r=6, c=36)
+  const dxBM = 36 - player.c, dyBM = 6 - player.r;
+  if (Math.hypot(dxBM, dyBM) <= 2.5) {
+    _gtaActionKind = 'blackmarket';
+    _gtaActionCarId = null;
+    _gtaBtn.textContent = '🌌 Чёрный рынок — открыть';
+    _gtaBtn.style.display = 'block';
+    return;
+  }
   // Box-доставка: pickup (взять коробку) или dropoff (сдать)
   if (myBoxStatus.active) {
     const bq = myBoxStatus.active;
@@ -6318,8 +6423,91 @@ _gtaBtn.addEventListener('click', () => {
     try { ws && ws.send(JSON.stringify({ t: 'box_pickup', d: {} })); } catch(e){}
   } else if (_gtaActionKind === 'box_deliver') {
     try { ws && ws.send(JSON.stringify({ t: 'box_deliver', d: {} })); } catch(e){}
+  } else if (_gtaActionKind === 'biz_buy') {
+    buyBusinessHere(_gtaActionCarId);
+  } else if (_gtaActionKind === 'biz_collect') {
+    collectBusinessHere(_gtaActionCarId);
+  } else if (_gtaActionKind === 'biz_info') {
+    showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
+  } else if (_gtaActionKind === 'blackmarket') {
+    openBlackmarketShop();
   }
 });
+
+// ── HTTP-API: бизнесы и чёрный рынок ───────────────────────────────
+function buyBusinessHere(biz_id) {
+  const b = BUSINESS_POIS.find(x => x.id === biz_id);
+  if (!b || !QP.api || !QP.uid) {
+    showToast('Бизнес не найден или нет подключения', '⚠️');
+    return;
+  }
+  showToast(`💼 Покупаю ${b.name}...`, '⏳', 1500);
+  fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/buy`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ biz_id }),
+  }).then(r => r.json()).then(j => {
+    if (j.ok) {
+      myBusinesses.set(b.id, { owned: true, pending: 0, status: 'ok' });
+      myCash = j.cash || myCash;
+      updateMoneyHud();
+      showEventBanner(`🎉 Куплено: ${b.emoji} ${b.name}`,
+        `Доход капает раз в сутки. Подходи к точке или открывай «Мой бизнес».`,
+        4000, 'win');
+      _bizLastSync = 0;
+      syncMyBusinesses();
+    } else if (j.error === 'no cash') {
+      showToast('💸 Не хватает денег', '⚠️', 2200);
+    } else if (j.error === 'already owned') {
+      showToast('Этот бизнес уже твой', '✅', 2000);
+      _bizLastSync = 0;
+      syncMyBusinesses();
+    } else {
+      showToast(`Не удалось: ${j.error || 'ошибка'}`, '⚠️', 2500);
+    }
+  }).catch(e => {
+    showToast('Сервер не отвечает', '⚠️', 2500);
+  });
+}
+
+function collectBusinessHere(biz_id) {
+  if (!QP.api || !QP.uid) return;
+  fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/collect`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ biz_id }),
+  }).then(r => r.json()).then(j => {
+    if (j.ok) {
+      const got = j.collected || 0;
+      myCash = j.cash || myCash;
+      updateMoneyHud();
+      if (got > 0) {
+        showToast(`💰 +$${got}`, '✅', 1900);
+        spawnFloatText(player.r, player.c, '+$' + got,
+                       { color: '#7be58a', size: 18, life: 1600 });
+      }
+      _bizLastSync = 0;
+      syncMyBusinesses();
+    } else {
+      showToast(`Не удалось забрать: ${j.error || 'ошибка'}`, '⚠️', 2500);
+    }
+  }).catch(() => showToast('Сервер не отвечает', '⚠️', 2200));
+}
+
+function openBlackmarketShop() {
+  // Чёрный рынок — открываем магазин в hub. Передаём cur URL чтоб
+  // потом вернулись назад в мир (hub потом откроет мир).
+  if (QP.hubUrl) {
+    let href;
+    try { href = decodeURIComponent(QP.hubUrl); } catch(e){ href = QP.hubUrl; }
+    // Подсовываем якорь #shop чтобы hub.html сразу открыл нужный раздел
+    if (href.includes('#')) href = href.replace(/#.*$/, '#shop');
+    else href = href + '#shop';
+    window.location.href = href;
+  } else {
+    showToast('Чёрный рынок: доступен через hub в меню', 'ℹ️', 3000);
+  }
+}
 
 // ── Lockpick: мини-игра взлома при угоне гражданской тачки ───────
 // Бегунок ходит по шкале туда-обратно. Тап «ТАП» — если в зелёной
@@ -8371,6 +8559,7 @@ function update(dt) {
   updateServiceVehicles(dt);
   dispatchEmergencyServices();
   updateHospitalHeal();
+  syncMyBusinesses();
   updateGangAggression(dt);
   _updateTargetLock(dt);
   // Анти-застрял: если игрок физически в блокирующем тайле (попал
@@ -11356,6 +11545,97 @@ function drawBillboard(b) {
   ctx.font = '5.5px system-ui, sans-serif';
   ctx.fillStyle = '#cfcfd6';
   ctx.fillText(b.sub, sx + 4, sy + sH * 0.72);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+}
+
+// ── Бизнесы (физические точки в мире) ───────────────────────────
+// Каждый бизнес из BUSINESSES (в mafiozi_bot.py) можно купить:
+// 1) через меню «Мой бизнес» в hub.html
+// 2) физически подойдя к точке в мире — gta-кнопка «🏪 Купить за $N»
+// Серверный endpoint один и тот же — POST /biz/{uid}/buy.
+// «Доля в порту» (id: 'port') продаётся у Майкла, в мире её НЕТ.
+const BUSINESS_POIS = [
+  { id: 'coffee',     emoji: '☕', name: 'Кофейня «У Дона»', r: 33, c: 13, price:   3000 },
+  { id: 'carwash',    emoji: '🚗', name: 'Автомойка',         r: 23, c: 25, price:   5000 },
+  { id: 'barbershop', emoji: '💈', name: 'Парикмахерская',    r: 53, c: 23, price:   7500 },
+  { id: 'pizza',      emoji: '🍕', name: 'Пиццерия',          r: 53, c: 53, price:  12000 },
+  { id: 'garage',     emoji: '🔧', name: 'Гараж-СТО',         r: 13, c: 63, price:  18000 },
+  { id: 'bar',        emoji: '🍸', name: 'Бар Чёрная вдова',  r: 43, c: 33, price:  28000 },
+  { id: 'club',       emoji: '🎰', name: 'Подпольный клуб',   r: 63, c: 53, price:  45000 },
+  { id: 'warehouse',  emoji: '📦', name: 'Склад',             r: 73, c: 23, price:  70000 },
+  { id: 'casino',     emoji: '🎲', name: 'Казино',            r: 13, c: 45, price: 120000 },
+];
+// Локальный статус бизнесов: biz_id → {owned, pending, blocked_until}
+const myBusinesses = new Map();
+let _bizLastSync = 0;
+function syncMyBusinesses() {
+  if (!QP.api || !QP.uid) return;
+  const now = performance.now();
+  if (now - _bizLastSync < 15000) return;
+  _bizLastSync = now;
+  fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/list`, { cache: 'no-store' })
+    .then(r => r.json())
+    .then(j => {
+      myBusinesses.clear();
+      for (const b of (j.businesses || [])) {
+        if (b.bought_at) {
+          myBusinesses.set(b.biz_id, {
+            owned: true,
+            pending: b.pending || 0,
+            status: b.status || 'ok',
+          });
+        }
+      }
+    })
+    .catch(() => {});
+}
+
+// Найти ближайший бизнес-POI в радиусе GTA_INTERACT_R от игрока
+function _nearestBusinessPoi() {
+  let best = null, bestD = 2.0;
+  for (const b of BUSINESS_POIS) {
+    const dr = b.r - player.r, dc = b.c - player.c;
+    const d  = Math.hypot(dr, dc);
+    if (d < bestD) { bestD = d; best = b; }
+  }
+  return best;
+}
+
+function drawBusinessPoi(b) {
+  const p = w2s(b.r + 0.5, b.c + 0.5);
+  const own = myBusinesses.get(b.id);
+  const owned = !!(own && own.owned);
+  const pulseAt = (Math.sin(performance.now() * 0.004) + 1) * 0.5;
+  // Подложка-вывеска (узкая, золотая если куплено / зелёная иначе)
+  const bgCol = owned ? '#0a2a18' : '#1a1828';
+  const fgCol = owned ? '#7eff9a' : '#ffd76b';
+  const W = 38, H = 22;
+  ctx.fillStyle = bgCol;
+  ctx.fillRect(p.x - W / 2, p.y - 60, W, H);
+  ctx.strokeStyle = fgCol;
+  ctx.lineWidth = 1.4;
+  ctx.strokeRect(p.x - W / 2 + 0.5, p.y - 60 + 0.5, W - 1, H - 1);
+  // Эмодзи
+  ctx.font = 'bold 14px "Segoe UI Emoji", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(b.emoji, p.x, p.y - 50);
+  // Подпись: куплено $или цена
+  ctx.font = 'bold 8px system-ui, sans-serif';
+  ctx.fillStyle = fgCol;
+  const tag = owned
+    ? ((own.pending && own.pending > 0) ? `+$${own.pending}` : 'мой')
+    : `$${b.price.toLocaleString('ru')}`;
+  ctx.fillText(tag, p.x, p.y - 42);
+  // Сияние «есть доход» — мигает если pending > 0
+  if (owned && own.pending && own.pending > 0) {
+    ctx.fillStyle = `rgba(126,255,154,${0.18 + 0.22 * pulseAt})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y - 50, 22 + pulseAt * 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
 }
@@ -15298,6 +15578,11 @@ function render() {
   for (const lm of CITY_LANDMARKS) {
     if (lm.r < r0 || lm.r >= r1 || lm.c < c0 || lm.c >= c1) continue;
     items.push({ depth: lm.r + lm.c + 0.0001, draw: () => drawLandmark(lm) });
+  }
+  // Бизнес-POI — вывески над зданиями (купить / собрать доход)
+  for (const b of BUSINESS_POIS) {
+    if (b.r < r0 || b.r >= r1 || b.c < c0 || b.c >= c1) continue;
+    items.push({ depth: b.r + b.c - 0.4, draw: () => drawBusinessPoi(b) });
   }
   // Декор пляжа (турники, лежаки, замки, рампы и т.д.)
   for (const d of BEACH_DECOR) {
