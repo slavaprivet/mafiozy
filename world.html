@@ -128,13 +128,47 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 
 /* Модал-меню Майкла. Затемнение фона + карточка контракта в центре. */
 #michaelModal,
-#bizConfirmModal {
+#bizConfirmModal,
+#fireStationModal {
   position: fixed; inset: 0; background: rgba(0,0,0,.7);
   display: none; z-index: 12;
   align-items: center; justify-content: center;
 }
 #michaelModal.show,
-#bizConfirmModal.show { display: flex; }
+#bizConfirmModal.show,
+#fireStationModal.show { display: flex; }
+/* Модалка пожарной части — карточка похожа на bizConfirm, но с красно-
+   оранжевой каймой. Внутри: счётчик огнетушителей в инвентаре, таймер
+   до следующего бесплатного и кнопка «Взять огнетушитель». */
+#fireStationModal .card {
+  width: min(360px, 90vw); background: #14181f;
+  border: 1px solid #ff8030; border-radius: 14px; padding: 18px 18px 14px;
+  color: #fff; font-family: inherit; position: relative;
+  box-shadow: 0 12px 30px rgba(60,16,0,.7);
+}
+#fireStationModal .head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+#fireStationModal .head .icon { font-size: 32px; }
+#fireStationModal .head .nm   { font-size: 16px; font-weight: 800; color: #ff8030; }
+#fireStationModal .head .sub  { font-size: 11px; color: #b89080; }
+#fireStationModal .talk {
+  background: rgba(255,128,48,.06); border: 1px solid rgba(255,128,48,.22);
+  border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: #e0d0c0;
+  margin-bottom: 12px; line-height: 1.45;
+}
+#fireStationModal .meta {
+  display: flex; justify-content: space-between; font-size: 11px;
+  color: #aaa; margin-bottom: 10px;
+}
+#fireStationModal .meta .lim { color: #ff8030; font-weight: 700; }
+#fireStationModal .btns { display: flex; gap: 8px; }
+#fireStationModal .btn {
+  flex: 1; padding: 11px 12px; border-radius: 10px; cursor: pointer;
+  font-size: 13px; font-weight: 800; border: none; font-family: inherit;
+  letter-spacing: 0.5px;
+}
+#fireStationModal .btn.primary { background: linear-gradient(135deg, #c85020, #ff8030); color: #fff; }
+#fireStationModal .btn.primary:disabled { background: #3a2820; color: #7a6050; cursor: not-allowed; }
+#fireStationModal .btn.ghost   { background: #232a36; color: #aab2c2; }
 /* bizConfirmModal заимствует разметку и стили .card/.head/.talk/.meta/.btns
    от michaelModal — повторно описываем их с тем же селектором. */
 #bizConfirmModal .card {
@@ -330,6 +364,28 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 }
 #fireBtn:active { transform: scale(0.92); }
 #fireBtn.cd { opacity: .55; filter: grayscale(.4); }
+
+/* Кнопка «🧯 Потушить» — справа от стика, чуть выше fireBtn. Видна
+   только когда у тебя есть огнетушитель И рядом горит wrecked-car.
+   Бейдж справа сверху — количество шт. в инвентаре. */
+#extinguishBtn {
+  position: absolute; right: 32px; bottom: 232px;
+  width: 60px; height: 60px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffe070, #c87020);
+  border: 2px solid #fff4b8; box-shadow: 0 6px 18px rgba(255,160,40,.55);
+  display: none; align-items: center; justify-content: center;
+  font-size: 26px; z-index: 13; user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .08s ease-out;
+}
+#extinguishBtn:active { transform: scale(0.92); }
+#extinguishBtn .badge {
+  position: absolute; top: -4px; right: -4px;
+  background: #c83020; color: #fff; border: 1.5px solid #fff;
+  border-radius: 10px; padding: 1px 5px; font-size: 10px; font-weight: 800;
+  min-width: 14px; text-align: center;
+  font-family: inherit;
+}
 
 /* Countdown «До инкассатора» — небольшой баннер сверху, виден всем */
 #cdHud {
@@ -932,6 +988,31 @@ body.in-pvp #gtaActionBtn { top: 104px; }
       </div>
     </div>
   </div>
+  <!-- Модалка Пожарной части. Бесплатный огнетушитель раз в 60 секунд,
+       максимум 3 штуки в инвентаре. Тушит ближайшую горящую тачку. -->
+  <div id="fireStationModal">
+    <div class="card">
+      <div class="head">
+        <div class="icon">🚒</div>
+        <div>
+          <div class="nm">Пожарная часть</div>
+          <div class="sub">снабжение огнетушителями</div>
+        </div>
+      </div>
+      <div class="talk" id="fsTalk">
+        Бери огнетушитель — пригодится, если рядом горит тачка. Тушит мгновенно.
+        В инвентаре максимум 3 шт. Снабжение бесплатное, но не чаще раза в минуту.
+      </div>
+      <div class="meta">
+        <span>🧯 В инвентаре: <span class="lim" id="fsCount">0</span> / 3</span>
+        <span id="fsCdWrap" style="display:none">⏱ Следующий: <span class="lim" id="fsCd">—</span></span>
+      </div>
+      <div class="btns">
+        <button class="btn primary" id="fsTake">🧯 Взять огнетушитель</button>
+        <button class="btn ghost"   id="fsClose">Закрыть</button>
+      </div>
+    </div>
+  </div>
   <div id="pvpBanner">⚠️ ВЫ В PVP-ЗОНЕ ⚠️</div>
 
   <div id="mapHud"><canvas id="mapCanvas" width="304" height="304"></canvas></div>
@@ -1051,6 +1132,9 @@ body.in-pvp #gtaActionBtn { top: 104px; }
     </div>
   </div>
   <button id="fireBtn">🔫</button>
+  <!-- Огнетушитель — появляется когда у тебя есть хоть один + рядом
+       горит уничтоженная тачка. Бейдж = кол-во в инвентаре. -->
+  <button id="extinguishBtn">🧯<span class="badge" id="extBadge">0</span></button>
 
   <div id="deathOverlay">
     <div class="skull">💀</div>
@@ -6398,6 +6482,7 @@ function updateZoneBtn() {
       let label;
       if (best.special === 'shop')        label = `${best.icon} Зайти на «${best.name}»`;
       else if (best.special === 'arena')  label = `${best.icon} Войти на «${best.name}»`;
+      else if (best.special === 'firestation') label = `${best.icon} Зайти в «${best.name}»`;
       else                                label = `${best.icon} Зайти на «${best.name}»`;
       _zoneEl.textContent = label;
       _zoneEl.style.display = 'block';
@@ -6418,8 +6503,9 @@ function updateZoneBtn() {
 _zoneEl.addEventListener('click', () => {
   if (!_zoneCur) return;
   // Спец-POI: открываем модал/баннер прямо в мире, никуда не переходим.
-  if (_zoneCur.special === 'shop')   { openShop();   return; }
-  if (_zoneCur.special === 'arena')  { showToast('🎯 Вы внутри PVP-зоны. Огонь скоро добавим.'); return; }
+  if (_zoneCur.special === 'shop')        { openShop();   return; }
+  if (_zoneCur.special === 'arena')       { showToast('🎯 Вы внутри PVP-зоны. Огонь скоро добавим.'); return; }
+  if (_zoneCur.special === 'firestation') { openFireStationModal(); return; }
   // Проверка ранга — как в hub. Если ниже minLvl района — не пускаем.
   if (QP.lvl < _zoneCur.minLvl) {
     showToast(`🔒 Нужен ранг ${_zoneCur.minLvl}+ (у тебя ${QP.lvl})`, 2800);
@@ -6691,6 +6777,146 @@ function buyBusinessHere(biz_id) {
   }).catch(e => {
     showToast('Сервер не отвечает', '⚠️', 2500);
   });
+}
+
+// ── Огнетушитель: инвентарь + покупка на Пожарной части ───────────
+// State хранится в localStorage:
+//   world.extinguishers  — число шт. в инвентаре (0..EXT_MAX)
+//   world.extLastTakeMs  — когда брал последний раз (для cooldown)
+// Снабжение бесплатное, но не чаще EXT_CD_MS между выдачами.
+const EXT_MAX    = 3;
+const EXT_CD_MS  = 60 * 1000;
+const EXT_USE_R  = 2.5;   // радиус действия — в тайлах
+let extinguisherCount = (() => {
+  const n = +localStorage.getItem('world.extinguishers') | 0;
+  return Math.max(0, Math.min(EXT_MAX, n));
+})();
+let _extLastTake = +localStorage.getItem('world.extLastTakeMs') || 0;
+function _saveExtState() {
+  try {
+    localStorage.setItem('world.extinguishers', String(extinguisherCount));
+    localStorage.setItem('world.extLastTakeMs', String(_extLastTake));
+  } catch (e) {}
+}
+// Ближайшая горящая wrecked-машина в радиусе EXT_USE_R от игрока,
+// которую ещё можно тушить (не _burnedOut). null если нет.
+function _nearestBurningCar() {
+  let best = null, bestD = EXT_USE_R + 0.01;
+  for (const car of CARS) {
+    if (!car._wrecked || car._burnedOut) continue;
+    const d = Math.hypot(car.r - player.r, car.c - player.c);
+    if (d < bestD) { bestD = d; best = car; }
+  }
+  return best;
+}
+// Открывает модалку пожарной части. Подтягивает текущие счётчики и
+// показывает таймер до следующей бесплатной выдачи (если кулдаун жив).
+function openFireStationModal() {
+  const m = document.getElementById('fireStationModal');
+  document.getElementById('fsCount').textContent = String(extinguisherCount);
+  _refreshFsModalState();
+  m.classList.add('show');
+  _startFsTick();
+}
+function _refreshFsModalState() {
+  const btn = document.getElementById('fsTake');
+  const cdWrap = document.getElementById('fsCdWrap');
+  const cdEl = document.getElementById('fsCd');
+  const countEl = document.getElementById('fsCount');
+  const talk = document.getElementById('fsTalk');
+  countEl.textContent = String(extinguisherCount);
+  // ВАЖНО: Date.now() (wall clock) а не performance.now() — последний
+  // сбрасывается при перезагрузке, тогда сохранённый cooldown теряет смысл.
+  const now = Date.now();
+  const since = now - _extLastTake;
+  const ready = since >= EXT_CD_MS;
+  if (extinguisherCount >= EXT_MAX) {
+    btn.disabled = true;
+    btn.textContent = '🧯 Инвентарь полный';
+    cdWrap.style.display = 'none';
+    talk.textContent = 'Карманы и так полные — 3 огнетушителя, больше не унесёшь.';
+  } else if (!ready) {
+    btn.disabled = true;
+    const sec = Math.max(1, Math.ceil((EXT_CD_MS - since) / 1000));
+    btn.textContent = `⏱ Ещё ${sec} сек`;
+    cdWrap.style.display = '';
+    cdEl.textContent = `${sec} сек`;
+  } else {
+    btn.disabled = false;
+    btn.textContent = '🧯 Взять огнетушитель';
+    cdWrap.style.display = 'none';
+  }
+}
+// Таймер обновления внутри открытой модалки — каждые 500мс
+let _fsModalTick = null;
+function _startFsTick() {
+  if (_fsModalTick) return;
+  _fsModalTick = setInterval(() => {
+    const m = document.getElementById('fireStationModal');
+    if (!m.classList.contains('show')) { clearInterval(_fsModalTick); _fsModalTick = null; return; }
+    _refreshFsModalState();
+  }, 500);
+}
+document.getElementById('fsClose').addEventListener('click', () => {
+  document.getElementById('fireStationModal').classList.remove('show');
+});
+document.getElementById('fsTake').addEventListener('click', () => {
+  const now = Date.now();
+  if (extinguisherCount >= EXT_MAX) {
+    showToast('🧯 Больше не унесёшь', '⚠️', 1600);
+    return;
+  }
+  if (now - _extLastTake < EXT_CD_MS) {
+    const sec = Math.max(1, Math.ceil((EXT_CD_MS - (now - _extLastTake)) / 1000));
+    showToast(`⏱ Ещё ${sec} сек`, '⏳', 1600);
+    return;
+  }
+  extinguisherCount++;
+  _extLastTake = now;
+  _saveExtState();
+  _updateExtBadge();
+  _refreshFsModalState();
+  showToast('🧯 +1 огнетушитель', '✅', 1500);
+});
+
+function _updateExtBadge() {
+  const el = document.getElementById('extBadge');
+  if (el) el.textContent = String(extinguisherCount);
+}
+_updateExtBadge();
+
+// Использование огнетушителя: тушит ближайшую горящую тачку.
+function useExtinguisher() {
+  if (extinguisherCount <= 0) { showToast('Нечего использовать', '⚠️', 1500); return; }
+  const car = _nearestBurningCar();
+  if (!car) { showToast('Рядом ничего не горит', '⚠️', 1500); return; }
+  car._burnedOut = true;
+  extinguisherCount--;
+  _saveExtState();
+  _updateExtBadge();
+  // Эффект: облачко дыма-вспышка
+  spawnFloatText(car.r, car.c, 'Потушено', { color: '#ffd76b', size: 16, life: 1400 });
+  spawnShockwave(car.r, car.c, { rad0: 6, maxRad: 36, life: 480, color: '#ffd76b', thick: 2.0 });
+  showToast('🧯 Потушено', '✅', 1400);
+}
+document.getElementById('extinguishBtn').addEventListener('click', useExtinguisher);
+
+// Показывает/прячет кнопку «🧯» — видна когда есть огнетушитель + рядом
+// горит wrecked-машина. Не дёргает DOM каждый кадр без необходимости.
+let _extBtnVisible = false;
+let _extBadgeLast  = -1;
+function updateExtinguishBtn() {
+  const btn = document.getElementById('extinguishBtn');
+  const want = extinguisherCount > 0 && !!_nearestBurningCar()
+               && !myDead && !myDrivingCarId;
+  if (want !== _extBtnVisible) {
+    btn.style.display = want ? 'flex' : 'none';
+    _extBtnVisible = want;
+  }
+  if (extinguisherCount !== _extBadgeLast) {
+    document.getElementById('extBadge').textContent = String(extinguisherCount);
+    _extBadgeLast = extinguisherCount;
+  }
 }
 
 function collectBusinessHere(biz_id) {
@@ -8734,6 +8960,7 @@ function update(dt) {
   updateCaptureBanner();
   updateGtaInteractions();
   updateGtaQuestHud();
+  updateExtinguishBtn();
   // Интерполяция чужих quest_cars (которые ведут другие игроки)
   _interpQuestCars(dt);
   // Стрельба в открытом мире: ОБЯЗАТЕЛЕН lockedTarget (см. tryTapLock).
@@ -18617,6 +18844,36 @@ function drawMinimap() {
       ctx2.lineWidth = 0.8;
       ctx2.strokeRect(x + ringR - 1 + 0.5, y - ringR - 3 + 0.5, 5, 4);
     }
+  }
+  // Бизнесы на минимапе — маленькие эмодзи в цветных кружочках.
+  // Купленные — золотое кольцо + мерцание при наличии дохода. Свободные —
+  // тонкое серое кольцо. Размер заметно меньше POI чтобы не мешать.
+  ctx2.font = 'bold 8px "Segoe UI Emoji", system-ui, sans-serif';
+  ctx2.textAlign = 'center';
+  ctx2.textBaseline = 'middle';
+  const bizPulse = (Math.sin(performance.now() * 0.005) + 1) * 0.5;
+  for (const b of BUSINESS_POIS) {
+    const x = (b.c + 0.5) * sx;
+    const y = (b.r + 0.5) * sy;
+    const own = myBusinesses.get(b.id);
+    const owned = !!(own && own.owned);
+    const hasIncome = owned && own.pending && own.pending > 0;
+    const r = 6;
+    // Свечение если есть невыбранный доход
+    if (hasIncome) {
+      ctx2.fillStyle = `rgba(126,255,154,${0.20 + 0.25 * bizPulse})`;
+      ctx2.beginPath(); ctx2.arc(x, y, r + 3 + bizPulse * 1.5, 0, Math.PI * 2); ctx2.fill();
+    }
+    // Подложка
+    ctx2.fillStyle = 'rgba(0,0,0,.6)';
+    ctx2.beginPath(); ctx2.arc(x, y, r, 0, Math.PI * 2); ctx2.fill();
+    // Кольцо
+    ctx2.strokeStyle = owned ? 'rgba(126,255,154,.95)' : 'rgba(170,170,170,.65)';
+    ctx2.lineWidth = owned ? 1.4 : 1;
+    ctx2.beginPath(); ctx2.arc(x, y, r, 0, Math.PI * 2); ctx2.stroke();
+    // Эмодзи
+    ctx2.fillStyle = '#fff';
+    ctx2.fillText(b.emoji, x, y);
   }
   // Другие игроки — точки с обводкой и светящимся ореолом (видно лучше).
   // Синий = онлайн нейтрал. Красный = в бою (я атакую / меня атакуют —
