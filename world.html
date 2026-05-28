@@ -4113,7 +4113,15 @@ const POLICE_MODELS = {
                 wheelR: 0.22, swat_truck: true, height: 0.85 },
 };
 const CARS = [];
-function spawnCar(idx) {
+// Минимальное расстояние от игрока, на котором мы можем «телепортнуть» машину
+// при респауне (stuck/выехала-с-дороги). Меньше — игрок видит, как тачка
+// исчезает на глазах, что воспринимается как баг. Не применяется к
+// первоначальному initCars — там игрока ещё нет.
+const CAR_RESPAWN_MIN_DIST = 18;
+function spawnCar(idx, opts) {
+  // opts.awayFromPlayer — если true, отвергаем точки в радиусе
+  // CAR_RESPAWN_MIN_DIST от игрока. Используется при респауне stuck/out-of-road.
+  const awayFromPlayer = !!(opts && opts.awayFromPlayer);
   // Найдём случайный тайл-дорогу и зададим направление вдоль полосы.
   // Полоса 1 = ехать на восток (c+), полоса 0 = ехать на запад (c-).
   // Для вертикальных дорог: полоса 1 = на юг (r+), полоса 0 = на север (r-).
@@ -4121,6 +4129,10 @@ function spawnCar(idx) {
     const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
     const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
     if (MAP[r][c] !== 0) continue;
+    if (awayFromPlayer && typeof player !== 'undefined' && player) {
+      const dx = c - player.c, dy = r - player.r;
+      if (dx * dx + dy * dy < CAR_RESPAWN_MIN_DIST * CAR_RESPAWN_MIN_DIST) continue;
+    }
     const onRoadR = (r % BLOCK <= 2);
     const onRoadC = (c % BLOCK <= 2);
     if (!onRoadR && !onRoadC) continue;
@@ -4280,10 +4292,10 @@ function spawnGangConvoy() {
 
 function initCars() {
   CARS.length = 0;
-  // Город стал «живее» — 24 машины. Спорткары, джипы, скорая и пожарка
-  // в трафике (ambient) — разнообразят город. Спавн случайный по моделям,
-  // не по idx.
-  for (let i = 0; i < 24; i++) {
+  // Город «живой» — 20 машин в трафике. 24 давало слишком плотные пробки
+  // и частые stuck-респауны (тачки телепортировались на глазах игрока).
+  // Спорткары, джипы, скорая и пожарка (ambient) разнообразят трафик.
+  for (let i = 0; i < 20; i++) {
     const c = spawnCar(i);
     if (c) CARS.push(c);
   }
@@ -4427,11 +4439,13 @@ function updateCars(dt) {
     // Парковочные тачки — статичные, не двигаются, не уезжают, не
     // респаунятся за границей карты. Только рисуются + угоняются по lockpick.
     if (car.parked) { car.braking = false; continue; }
-    // Разбитая в столкновении NPC-машина — переспаун через ~600мс
+    // Разбитая в столкновении NPC-машина — переспаун через ~600мс.
+    // Wrecked-тачки респаунятся ПОДАЛЬШЕ — иначе игрок видит как остов
+    // мгновенно «превращается» в новую машину.
     if (car._wrecked) {
       if (performance.now() >= (car._respawnAt || 0)) {
         const ni = CARS.indexOf(car);
-        const fresh = spawnCar(ni);
+        const fresh = spawnCar(ni, { awayFromPlayer: true });
         if (fresh) Object.assign(car, fresh);
       }
       continue;
@@ -4443,30 +4457,30 @@ function updateCars(dt) {
       car.c += car.vc * dt;
       car._stuckT = 0;
     } else {
-      // Anti-stuck: если машина стоит > 4 сек — переспаун в новой точке.
-      // Иначе при коллизиях/багах путь машины может зависнуть навсегда.
+      // Anti-stuck: если машина стоит — даём ей шанс разъехаться.
+      // 8 сек (было 4) — за это время пробка обычно рассасывается.
+      // Респаун всегда в точке ≥18 тайлов от игрока, чтобы не было
+      // эффекта «исчезла на глазах».
       car._stuckT = (car._stuckT || 0) + dt;
-      if (car._stuckT > 4) {
+      if (car._stuckT > 8) {
         const ni = CARS.indexOf(car);
-        const fresh = spawnCar(ni);
+        const fresh = spawnCar(ni, { awayFromPlayer: true });
         if (fresh) Object.assign(car, fresh);
       }
     }
-    // Если выехал за границу — переспаунить в новой точке
+    // Если выехал за границу — переспаунить (далеко от игрока)
     if (car.r < 1 || car.r > MAP_ROWS - 2 || car.c < 1 || car.c > MAP_COLS - 2) {
       const ni = CARS.indexOf(car);
-      const fresh = spawnCar(ni);
+      const fresh = spawnCar(ni, { awayFromPlayer: true });
       if (fresh) Object.assign(car, fresh);
     }
-    // Машина выехала с асфальта (на пляж/в дом/в траву) — переспаун.
-    // Раньше машины уезжали по дороге на юг и упирались в песок, торча
-    // на пляже как памятник. Теперь как только под колёсами не «улица»
-    // — машина исчезает и появляется в новой точке города.
+    // Машина выехала с асфальта (на пляж/в дом/в траву) — переспаун
+    // (далеко от игрока).
     const cr = Math.floor(car.r), cc = Math.floor(car.c);
     if (cr >= 0 && cr < MAP_ROWS && cc >= 0 && cc < MAP_COLS &&
         MAP[cr][cc] !== 0) {
       const ni = CARS.indexOf(car);
-      const fresh = spawnCar(ni);
+      const fresh = spawnCar(ni, { awayFromPlayer: true });
       if (fresh) Object.assign(car, fresh);
       continue;
     }
