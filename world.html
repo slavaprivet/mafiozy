@@ -691,6 +691,24 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   animation: pvpPulse 1.4s ease-in-out infinite;
   font-family: inherit;
 }
+/* Угроза копов при перевозке коробки Майкла. Жёлтое предупреждение
+   когда коп рядом (4-6 тайл), красное — критическое (≤4 тайл). */
+#boxCopWarn {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 56px;
+  border-radius: 12px; padding: 8px 16px; font-size: 12px; font-weight: 800;
+  letter-spacing: .5px; display: none; z-index: 6;
+  box-shadow: 0 4px 16px rgba(0,0,0,.45);
+  animation: pvpPulse 1.0s ease-in-out infinite;
+  font-family: inherit;
+}
+#boxCopWarn.warn {
+  background: linear-gradient(135deg, #4a3a08, #a87018);
+  border: 2px solid #ffce40; color: #fff4b8;
+}
+#boxCopWarn.danger {
+  background: linear-gradient(135deg, #5a1010, #c02020);
+  border: 2px solid #ff3030; color: #ffd0d0;
+}
 @keyframes pvpPulse {
   0%,100% { box-shadow: 0 4px 16px rgba(255,40,40,.45); }
   50%     { box-shadow: 0 4px 28px rgba(255,80,80,.85); }
@@ -1014,6 +1032,7 @@ body.in-pvp #gtaActionBtn { top: 104px; }
     </div>
   </div>
   <div id="pvpBanner">⚠️ ВЫ В PVP-ЗОНЕ ⚠️</div>
+  <div id="boxCopWarn">⚠️ КОПЫ РЯДОМ — УХОДИ!</div>
 
   <div id="mapHud"><canvas id="mapCanvas" width="304" height="304"></canvas></div>
 
@@ -7232,6 +7251,78 @@ _michaelBoxBtn.addEventListener('click', () => {
 // Состояние box-доставки (приходит от box_status / box_take_reply)
 let myBoxStatus = { count_today: 0, limit: 5, reset_in_s: 0, active: null };
 let _boxStatusReqAt = 0;
+
+// ── Box-quest: угроза от копов при перевозке и обработка fail ──────
+// Когда несу коробку и коп в радиусе ≤ BOX_COP_FAIL_R — груз
+// перехвачен (fail). В радиусе ≤ BOX_COP_WARN_R — большой жёлтый
+// баннер «КОПЫ! УХОДИ!». При взрыве моей машины (driver) тоже fail.
+const BOX_COP_WARN_R = 6.5;
+const BOX_COP_FAIL_R = 2.2;
+const _boxCopBanner = document.getElementById('boxCopWarn');
+let _boxLastThreatTick = 0;
+function updateBoxThreat(dt) {
+  if (!myBoxStatus.active || myBoxStatus.active.state !== 'carrying') {
+    if (_boxCopBanner && _boxCopBanner.style.display === 'block') {
+      _boxCopBanner.style.display = 'none';
+    }
+    return;
+  }
+  // Игрок-«носитель»: либо я пеший, либо за рулём машины (qc.x, qc.y).
+  let pr = player.r, pc = player.c;
+  if (myDrivingCarId) {
+    const qc = questCars.get(myDrivingCarId);
+    if (qc) { pr = qc.y; pc = qc.x; }
+    // Если машина уничтожена под носителем — груз тоже потерян
+    if (qc && qc.wrecked) { _boxFail('explosion'); return; }
+  }
+  // Раз в 200мс — поиск ближайшего копа
+  _boxLastThreatTick += dt;
+  if (_boxLastThreatTick < 0.2) return;
+  _boxLastThreatTick = 0;
+  let nearestD = Infinity;
+  if (Array.isArray(worldCops)) {
+    for (const cp of worldCops) {
+      if (cp.hp <= 0) continue;
+      const d = Math.hypot(cp.y - pr, cp.x - pc);
+      if (d < nearestD) nearestD = d;
+    }
+  }
+  if (nearestD <= BOX_COP_FAIL_R) {
+    _boxFail('cops');
+    return;
+  }
+  if (nearestD <= BOX_COP_WARN_R) {
+    _boxCopBanner.className = (nearestD <= BOX_COP_FAIL_R + 1.5) ? 'danger' : 'warn';
+    _boxCopBanner.textContent = (nearestD <= BOX_COP_FAIL_R + 1.5)
+      ? `🚨 КОП ВПЛОТНУЮ — ${nearestD.toFixed(1)} тайла!`
+      : `⚠️ КОПЫ РЯДОМ (${nearestD.toFixed(1)} тайла) — УХОДИ!`;
+    _boxCopBanner.style.display = 'block';
+  } else if (_boxCopBanner.style.display === 'block') {
+    _boxCopBanner.style.display = 'none';
+  }
+}
+// Очищает active-box локально и показывает большой fail-баннер.
+function _boxFail(reason) {
+  if (!myBoxStatus.active) return;
+  // Серверу шлём отказ — он не уменьшит лимит, груз остаётся уничтоженным.
+  try {
+    ws && ws.send(JSON.stringify({ t: 'box_abandon', d: { reason } }));
+  } catch(e) {}
+  myBoxStatus.active = null;
+  if (_boxCopBanner) _boxCopBanner.style.display = 'none';
+  // Баннер «груз потерян»
+  if (reason === 'cops') {
+    showEventBanner('🚓 ГРУЗ ПЕРЕХВАЧЕН',
+      'Копы накрыли тебя с коробкой. Доставка провалена.',
+      4000, 'lose');
+  } else if (reason === 'explosion') {
+    showEventBanner('💥 ГРУЗ УНИЧТОЖЕН',
+      'Машина взорвалась — коробка сгорела вместе с ней.',
+      4000, 'lose');
+  } else {
+    showEventBanner('❌ ДОСТАВКА ПРОВАЛЕНА', '', 3000, 'lose');
+  }
+}
 // Рендерит карточку машины в маленький canvas — игрок видит ЧТО угонять.
 function renderQuestCarPreview(cv, modelId) {
   if (!cv) return;
@@ -8993,6 +9084,7 @@ function update(dt) {
       updateZoneBtn();
       updatePvpUI();
       updateGtaQuestHud();
+      updateBoxThreat(dt);
       // Интерполяция других игроков всё равно нужна
       for (const [, o] of others) {
         o.x += (o.tx - o.x) * Math.min(1, dt * 8);
@@ -9049,6 +9141,7 @@ function update(dt) {
   updateGtaInteractions();
   updateGtaQuestHud();
   updateExtinguishBtn();
+  updateBoxThreat(dt);
   // Интерполяция чужих quest_cars (которые ведут другие игроки)
   _interpQuestCars(dt);
   // Стрельба в открытом мире: ОБЯЗАТЕЛЕН lockedTarget (см. tryTapLock).
@@ -15266,6 +15359,9 @@ function drawBoxQuestMarkers() {
   const isPickup = (bq.state === 'pending');
   const tx = isPickup ? bq.pickup_x  : bq.dropoff_x;
   const ty = isPickup ? bq.pickup_y  : bq.dropoff_y;
+  // Guard: если сервер не прислал координаты (или active это локальный
+  // заглушка-fail-state) — не рисуем маркер.
+  if (!Number.isFinite(tx) || !Number.isFinite(ty)) return;
   const p  = w2s(ty, tx);
   const tm = performance.now() * 0.003;
   const pulse = 0.55 + Math.sin(tm) * 0.30;
@@ -17662,6 +17758,8 @@ function render() {
   drawSkidMarks();
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
+  // Коробка над игроком/машиной если несу груз Майкла
+  drawCarriedBox();
   // Автозаки ареста — поверх персонажей (LOADING-фаза скрывает спрайт)
   drawArrestAnims();
   // Гильзы — мелкие латунные кубики на земле, под трассерами
@@ -18602,6 +18700,65 @@ function drawBloodSplats() {
     ctx.fill();
     ctx.restore();
   }
+}
+
+// ── Коробка над головой/машиной при carrying-box ──────────────────
+// Рисует объёмный 📦 (коричневый ящик с верхней крышкой и крестом
+// клейкой ленты). В машине — над крышей; пешком — над головой, с
+// лёгкой bob-анимацией. Видна на тебе и на других игроках через
+// флаги carriers_uids в myBoxStatus (для MVP — только локально).
+function drawCarriedBox() {
+  if (!myBoxStatus || !myBoxStatus.active) return;
+  if (myBoxStatus.active.state !== 'carrying') return;
+  const t = performance.now();
+  const bob = Math.sin(t * 0.006) * 1.2;
+  let bx, by;
+  if (myDrivingCarId) {
+    // Берём текущую позицию своего quest_car (driver)
+    const qc = questCars.get(myDrivingCarId);
+    if (qc) {
+      const p = w2s(qc.y + 0.5, qc.x + 0.5);
+      bx = p.x; by = p.y - TS * 0.95;
+    } else {
+      const p = w2s(player.r + 0.5, player.c + 0.5);
+      bx = p.x; by = p.y - TS * 0.8;
+    }
+  } else {
+    const p = w2s(player.r + 0.5, player.c + 0.5);
+    bx = p.x; by = p.y - TS * 0.85 + bob;
+  }
+  // Объёмный ящик: верхняя крышка + правая грань + передняя
+  const w = 14, h = 11;
+  // Тень
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.fillRect(bx - w/2 + 1, by + h - 1, w, 2);
+  // Левая (передняя) грань
+  ctx.fillStyle = '#8a5a30';
+  ctx.fillRect(bx - w/2, by, w * 0.55, h);
+  // Правая грань
+  ctx.fillStyle = '#5a3a1c';
+  ctx.fillRect(bx - w/2 + w * 0.55, by, w * 0.45, h);
+  // Крышка (трапеция сверху)
+  ctx.fillStyle = '#a87040';
+  ctx.beginPath();
+  ctx.moveTo(bx - w/2,         by);
+  ctx.lineTo(bx + w/2,         by);
+  ctx.lineTo(bx + w/2 - 1.5,   by - 2.5);
+  ctx.lineTo(bx - w/2 + 1.5,   by - 2.5);
+  ctx.closePath(); ctx.fill();
+  // Контур
+  ctx.strokeStyle = '#2a1810';
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(bx - w/2, by, w, h);
+  // Клейкая лента — кросс по диагонали + горизонталь
+  ctx.strokeStyle = '#d8a060';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(bx, by + 1); ctx.lineTo(bx, by + h - 1);     // вертикаль
+  ctx.moveTo(bx - w/2 + 1, by + h/2); ctx.lineTo(bx + w/2 - 1, by + h/2); // горизонталь
+  ctx.stroke();
+  ctx.restore();
 }
 
 // ── Тормозные следы шин ───────────────────────────────────────────
