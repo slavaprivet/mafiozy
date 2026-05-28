@@ -1607,6 +1607,9 @@ const POI = [
   // Больница — северо-восточный квартал, на отдельном здании-квартале
   // (не на спавне). Серверный респаун рядом на дороге (см. HOSPITAL_X/Y).
   { id: 'hospital',    r: 26, c: 46, icon: '🏥', name: 'Больница',     minLvl: 1, special: 'hospital' },
+  // Пожарная часть — отсюда выезжают пожарки на взорванные машины.
+  // Координаты должны совпадать с FIRE_STATION_R/C (см. ниже).
+  { id: 'firestation', r: 56, c: 26, icon: '🚒', name: 'Пожарная часть', minLvl: 1, special: 'firestation' },
   // Отделение полиции — координаты совпадают с серверной тюрьмой
   // (JAIL_X=76, JAIL_Y=76). При 3★ копы пакуют в наручники и везут сюда.
   { id: 'police',      r: 76, c: 76, icon: '🚔', name: 'Участок',      minLvl: 1, special: 'jail'  },
@@ -3227,14 +3230,28 @@ function _vehicleStep(v, dt) {
     const wp = v.path[v.pathIdx];
     const dr = wp.r - v.y, dc = wp.c - v.x;
     const d = Math.hypot(dr, dc);
-    if (d < 0.35) {
+    // Порог waypoint — не меньше 0.35, и не меньше шага: при больших dt
+    // машина прыгает за waypoint и колеблется. Берём max от обоих.
+    const wpThresh = Math.max(0.35, step * 1.1);
+    if (d < wpThresh) {
       v.pathIdx++;
       return false;
     }
-    const nx = v.x + (dc / d) * step;
-    const ny = v.y + (dr / d) * step;
-    v.x = nx; v.y = ny;
-    v.ang = Math.atan2(dr, dc);
+    // Ограничиваем шаг расстоянием до waypoint — не «перепрыгивать» его.
+    const k = Math.min(step, d) / d;
+    const nx = v.x + dc * k;
+    const ny = v.y + dr * k;
+    // Защита: не давать вылететь сквозь здание/арену. Если новая позиция
+    // попала в здание (t=1) — не двигаемся (BFS-путь корректен по дорогам,
+    // но при глюках карты этот предохранитель ловит баги).
+    if (_vehicleRoadPassable(ny, nx) || _vehicleOffroadPassable(ny, nx)) {
+      v.x = nx; v.y = ny;
+      v.ang = Math.atan2(dr, dc);
+    } else {
+      // Тайл заблокирован — пробуем добраться до waypoint боковым шагом.
+      // Если совсем заклинило, пропускаем waypoint (не повисаем).
+      v.pathIdx++;
+    }
     return false;
   }
   // Последний участок — едем напрямую к точке (можно по тротуару/газону)
@@ -3243,8 +3260,9 @@ function _vehicleStep(v, dt) {
   const dr = ft.y - v.y, dc = ft.x - v.x;
   const d = Math.hypot(dr, dc);
   if (d < 0.5) return true;
-  const nx = v.x + (dc / d) * step;
-  const ny = v.y + (dr / d) * step;
+  const k = Math.min(step, d) / d;
+  const nx = v.x + dc * k;
+  const ny = v.y + dr * k;
   if (_vehicleOffroadPassable(ny, nx)) {
     v.x = nx; v.y = ny;
     v.ang = Math.atan2(dr, dc);
@@ -3284,11 +3302,19 @@ function _setVehicleRoute(v, fromR, fromC, toR, toC) {
 }
 
 function spawnAmbulance(targetR, targetC, npc) {
+  // Не дублировать — если в радиусе 3 уже едет другая скорая на ту же
+  // зону, ничего не делаем. Без этого 10 трупов рядом порождают 10 машин.
+  for (const v of serviceVehicles) {
+    if (v.kind !== 'ambulance' || v.state === 'done') continue;
+    const ft = v.finalTarget || { x: 0, y: 0 };
+    const dr = ft.y - targetR, dc = ft.x - targetC;
+    if (Math.hypot(dr, dc) < 3) return;
+  }
   const door = _hospitalDoor();
   const v = {
     id: 'amb_' + (++_svcVehId), kind: 'ambulance',
     x: door.c, y: door.r,
-    ang: 0, speed: 12,                    // скорая — быстро
+    ang: 0, speed: 4.0,                   // чуть быстрее обычных машин (с сиреной)
     state: 'go_to_scene', workUntil: 0,
     payload: { npc },
     homeR: HOSPITAL_R, homeC: HOSPITAL_C,
@@ -3310,7 +3336,7 @@ function spawnFireTruck(targetR, targetC, fireRef, carRef) {
   const v = {
     id: 'fire_' + (++_svcVehId), kind: 'firetruck',
     x: door.c, y: door.r,
-    ang: 0, speed: 10,                    // пожарка чуть тяжелее
+    ang: 0, speed: 3.5,                   // пожарка чуть тяжелее, ниже скорой
     state: 'go_to_scene', workUntil: 0,
     payload: { fireRef, carRef },
     homeR: FIRE_STATION_R, homeC: FIRE_STATION_C,
@@ -3325,14 +3351,28 @@ function updateServiceVehicles(dt) {
   for (let i = serviceVehicles.length - 1; i >= 0; i--) {
     const v = serviceVehicles[i];
     if (v.state === 'done') { serviceVehicles.splice(i, 1); continue; }
-    // Безопасник: если машина 25 сек катается, но никуда не приехала
-    // (например, BFS не построил путь из-за изменения карты) — убрать.
-    v._aliveT = (v._aliveT || 0) + dt;
-    if (v._aliveT > 25 && v.state !== 'working') {
+    // Безопасник: считаем сколько машина НЕ двигается. Если 6 сек подряд
+    // не сдвинулась — застряла (BFS пустой, путь блокирован) → done.
+    // Раньше тут было общее «живёт >25 сек» — на длинных маршрутах
+    // машина исчезала в пути.
+    const px = v._prevX, py = v._prevY;
+    if (px != null && py != null) {
+      const moved = Math.hypot(v.x - px, v.y - py);
+      if (moved > 0.04 || v.state === 'working') v._lastMoveT = now;
+    } else {
+      v._lastMoveT = now;
+    }
+    v._prevX = v.x; v._prevY = v.y;
+    if (now - v._lastMoveT > 6000) {
       v.state = 'done';
       continue;
     }
     if (v.state === 'go_to_scene') {
+      // Если цель — труп, пересчитываем finalTarget на текущую позицию
+      // (труп мог сдвинуться от взрыва/тачки).
+      if (v.kind === 'ambulance' && v.payload.npc && !v.payload.npc._evacuated) {
+        v.finalTarget = { x: v.payload.npc.c, y: v.payload.npc.r };
+      }
       if (_vehicleStep(v, dt)) {
         v.state = 'working';
         v.workUntil = now + (v.kind === 'ambulance' ? 2500 : 4000);
@@ -3344,8 +3384,6 @@ function updateServiceVehicles(dt) {
         v.payload.npc.deadAt = now - 60000;  // дать prune'у выкинуть из NPCS
       }
       if (v.kind === 'firetruck') {
-        const fr = v.payload.fireRef;
-        if (fr && fr.life > 0) fr.life = 0;
         const cr = v.payload.carRef;
         if (cr && cr._wrecked) cr._burnedOut = true;
       }
@@ -3369,15 +3407,6 @@ function dispatchEmergencyServices() {
     if (!n.deadAt || now - n.deadAt < 2000) continue;
     n._ambulanceDispatched = true;
     spawnAmbulance(n.r, n.c, n);
-  }
-
-  // Пожарные на огненные лужи (молотовы)
-  if (typeof firePuddles !== 'undefined' && Array.isArray(firePuddles)) {
-    for (const fp of firePuddles) {
-      if (!fp || fp.life <= 0 || fp._fireTruckDispatched) continue;
-      fp._fireTruckDispatched = true;
-      spawnFireTruck(fp.r, fp.c, fp, null);
-    }
   }
 
   // Пожарные на взорванные машины
@@ -3553,6 +3582,17 @@ function drawPet(pet) {
 function drawServiceVehicle(v) {
   const p = w2s(v.y, v.x);
   const isAmb = v.kind === 'ambulance';
+  // Прогресс-бар «работы» — пока скорая грузит труп / пожарка тушит.
+  // Показываем только реальным машинам в состоянии working (припаркованные
+  // у станции вызываются как мок без state).
+  let workFrac = 0;
+  let workLabel = null;
+  if (v.state === 'working' && v.workUntil) {
+    const total = isAmb ? 2500 : 4000;
+    const remain = Math.max(0, v.workUntil - performance.now());
+    workFrac = 1 - remain / total;
+    workLabel = isAmb ? 'Погрузка' : 'Тушение';
+  }
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(v.ang);
@@ -3589,6 +3629,25 @@ function drawServiceVehicle(v) {
   ctx.arc(p.x, p.y - 14, 4.5, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+  // Прогресс-бар + подпись пока машина «работает» (грузит труп / тушит).
+  if (workLabel) {
+    const barW = 36, barH = 4;
+    const bx = p.x - barW / 2, by = p.y - 30;
+    ctx.save();
+    // Подложка
+    ctx.fillStyle = 'rgba(0,0,0,.6)';
+    ctx.fillRect(bx - 1, by - 1, barW + 2, barH + 2);
+    // Прогресс
+    ctx.fillStyle = isAmb ? '#3ec070' : '#ffb040';
+    ctx.fillRect(bx, by, barW * workFrac, barH);
+    // Подпись
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(workLabel, p.x, by - 2);
+    ctx.restore();
+  }
 }
 
 // Есть ли в радиусе живой коп — для witness-флага в open_fire/carjack.
@@ -3925,6 +3984,15 @@ const CAR_MODELS = [
   { name: 'classic',     L: 2.10, W: 0.92, palette: ['#503020','#2a1810'], roof: '#1a0e08', wheelR: 0.18, classic: true, height: 0.58 },
   { name: 'classic2',    L: 2.10, W: 0.92, palette: ['#0a3a3a','#04181a'], roof: '#000', wheelR: 0.18, classic: true, height: 0.58 },
 ];
+// ── Эмердженси-трафик (ambient) ──
+// Скорая и пожарка СПОКОЙНО курсируют по городу, не отвечая на вызовы —
+// просто «фон» живого мегаполиса. Реальные вызовы обслуживает спецтранспорт
+// (serviceVehicles) с другим рендером и состояниями. Здесь только модельки
+// + мигалка через флаг model.emergency в рендер-цикле CARS.
+const EMERGENCY_AMBIENT_MODELS = [
+  { name: 'ambulance_amb', L: 2.00, W: 1.00, palette: ['#f5f5f5','#c8c8c8'], roof: '#e8e8e8', wheelR: 0.20, height: 0.90, emergency: 'amb',  stripe: '#e02020' },
+  { name: 'firetruck_amb', L: 2.30, W: 1.05, palette: ['#c83020','#7a1810'], roof: '#902020', wheelR: 0.22, height: 0.95, emergency: 'fire', stripe: '#ffe040' },
+];
 // ── QUEST_CAR_MODELS — 10 эксклюзивных моделей для контрактов Майкла ──
 // Спавнятся ТОЛЬКО как квестовые цели (сервером через quest_cars). Гражданский
 // трафик (CAR_MODELS) их не содержит. id совпадает с серверным QUEST_CAR_MODELS,
@@ -3989,13 +4057,34 @@ function spawnCar(idx) {
       // Перекрёсток (3×3) — не спавним
       continue;
     }
-    // 8% машин — полиция (cruiser), 2% — paddyvan. Остальное — гражданские
-    // (5 спорткаров на 4 семьи обычных = ~30% спорткары для жирного города).
+    // Распределение моделей в трафике (на основе rnd 0..1):
+    //   0.00..0.02 — paddyvan (автозак)
+    //   0.02..0.10 — cruiser (полицейский седан)
+    //   0.10..0.13 — ambient скорая
+    //   0.13..0.15 — ambient пожарка
+    //   0.15..1.00 — гражданские: 35% весу спорткарам, 25% джипам/SUV,
+    //                остальное — обычная палитра моделей.
     let model;
     const rnd = Math.random();
     if (rnd < 0.02)      model = POLICE_MODELS.paddyvan;
     else if (rnd < 0.10) model = POLICE_MODELS.cruiser;
-    else                 model = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+    else if (rnd < 0.13) model = EMERGENCY_AMBIENT_MODELS[0];  // ambulance
+    else if (rnd < 0.15) model = EMERGENCY_AMBIENT_MODELS[1];  // firetruck
+    else {
+      // Внутри гражданских — взвешенный выбор: спорткары и SUV/джипы чаще,
+      // чтобы город не выглядел как «парк семейных седанов».
+      const r2 = Math.random();
+      let pool;
+      if (r2 < 0.35) {
+        pool = CAR_MODELS.filter(m => m.sport || m.muscle || m.fast);
+      } else if (r2 < 0.60) {
+        pool = CAR_MODELS.filter(m => m.suv || m.pickup || m.van);
+      } else {
+        pool = CAR_MODELS;
+      }
+      if (!pool.length) pool = CAR_MODELS;
+      model = pool[Math.floor(Math.random() * pool.length)];
+    }
     // Спорткары едут заметно быстрее — добавляем визуальную скорость.
     const speedMul = model.fast ? 1.7 : (model.sport ? 1.3 : 1.0);
     return {
@@ -4107,9 +4196,10 @@ function spawnGangConvoy() {
 
 function initCars() {
   CARS.length = 0;
-  // Город стал «живее» — 18 машин вместо 8. Спорткары и полиция тоже
-  // разнообразят трафик. Спавн случайный по моделям, не по idx.
-  for (let i = 0; i < 18; i++) {
+  // Город стал «живее» — 24 машины. Спорткары, джипы, скорая и пожарка
+  // в трафике (ambient) — разнообразят город. Спавн случайный по моделям,
+  // не по idx.
+  for (let i = 0; i < 24; i++) {
     const c = spawnCar(i);
     if (c) CARS.push(c);
   }
@@ -10719,6 +10809,93 @@ function drawMansionBuilding(r, c) {
     ctx.arc(bx, by, 3, 0, Math.PI * 2);
     ctx.fill();
   }
+  // ── Ворота-столбы перед фасадом ──
+  // Два каменных столба слева и справа от входа, на каждом золотой шар.
+  const gateOffsets = [
+    { dx: -0.05, dy:  0.85 },   // ближе к камере
+    { dx:  0.90, dy:  0.40 },   // дальше от камеры
+  ];
+  for (const go of gateOffsets) {
+    const gx = p.x + wx * go.dx - wx * 0.05;
+    const gy = p.y + wy * go.dy;
+    // Столб
+    ctx.fillStyle = '#3a2818';
+    ctx.fillRect(gx - 2.5, gy - 14, 5, 14);
+    ctx.fillStyle = '#5a4028';
+    ctx.fillRect(gx - 3, gy - 16, 6, 2);
+    ctx.fillStyle = '#8a7048';
+    ctx.fillRect(gx - 3, gy, 6, 2);
+    // Золотой шар наверху
+    ctx.fillStyle = '#ffd76b';
+    ctx.shadowColor = '#ffe060'; ctx.shadowBlur = 5;
+    ctx.beginPath();
+    ctx.arc(gx, gy - 18, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  // Кованая ограда между столбами (волнистые прутья)
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 0.6;
+  for (let i = 0; i < 6; i++) {
+    const k = i / 5;
+    const gx1 = p.x + wx * (-0.05 + (0.90 - (-0.05)) * k) - wx * 0.05;
+    const gy1 = p.y + wy * (0.85 + (0.40 - 0.85) * k);
+    ctx.beginPath();
+    ctx.moveTo(gx1, gy1 - 11);
+    ctx.lineTo(gx1, gy1);
+    ctx.stroke();
+  }
+  // Горизонтальная перекладина
+  ctx.beginPath();
+  ctx.moveTo(p.x + wx * (-0.05) - wx * 0.05, p.y + wy * 0.85 - 9);
+  ctx.lineTo(p.x + wx * 0.90 - wx * 0.05, p.y + wy * 0.40 - 9);
+  ctx.stroke();
+  // ── Фонтан перед фасадом по центру ──
+  const fnX = p.x + wx * 0.40, fnY = p.y + wy * 0.20;
+  // Каменная чаша (эллипс)
+  ctx.fillStyle = '#a8967a';
+  ctx.beginPath();
+  ctx.ellipse(fnX, fnY, 8, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#5a4828';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  // Вода в чаше
+  ctx.fillStyle = '#5aacd8';
+  ctx.beginPath();
+  ctx.ellipse(fnX, fnY - 0.5, 7, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Центральная колонна фонтана
+  ctx.fillStyle = '#c8b690';
+  ctx.fillRect(fnX - 1.2, fnY - 6, 2.4, 6);
+  // Брызги (3 струи)
+  const tt = performance.now() / 200;
+  ctx.fillStyle = 'rgba(140,210,250,.7)';
+  for (let i = 0; i < 3; i++) {
+    const sy = fnY - 6 - 4 - Math.abs(Math.sin(tt + i * 0.6)) * 4;
+    ctx.beginPath();
+    ctx.arc(fnX + (i - 1) * 1.5, sy, 0.9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // ── Охранник у двери (стилизованная фигурка) ──
+  const grdX = p.x + wx * 0.40, grdY = p.y + wy * 0.05;
+  // Тело — чёрный костюм
+  ctx.fillStyle = '#1a1a22';
+  ctx.fillRect(grdX - 2.5, grdY - 4, 5, 8);
+  // Голова
+  ctx.fillStyle = '#d8b08a';
+  ctx.beginPath();
+  ctx.arc(grdX, grdY - 6, 2, 0, Math.PI * 2);
+  ctx.fill();
+  // Очки
+  ctx.fillStyle = '#000';
+  ctx.fillRect(grdX - 1.8, grdY - 6.5, 3.6, 0.8);
+  // Наушник-провод
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 0.4;
+  ctx.beginPath();
+  ctx.moveTo(grdX + 1.5, grdY - 6); ctx.lineTo(grdX + 2.5, grdY - 3);
+  ctx.stroke();
   ctx.textAlign = 'left';
 }
 
@@ -10838,16 +11015,101 @@ function drawCasinoBuilding(r, c) {
   ctx.fillStyle = '#ffd76b';
   ctx.fillText('🎰 CASINO', p.x, sgnY + 1);
   ctx.restore();
+  // ── JACKPOT-табло над неоновой вывеской ──
+  const jpY = sgnY - sgnH / 2 - 14;
+  const jpW = wx * 1.0, jpH = 11;
+  ctx.fillStyle = '#1a0808';
+  ctx.fillRect(p.x - jpW / 2, jpY, jpW, jpH);
+  ctx.strokeStyle = '#ffd76b';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(p.x - jpW / 2, jpY, jpW, jpH);
+  // Бегущая надпись JACKPOT $999,999 — сумма мерцает
+  const jp = 999000 + Math.floor((Math.sin(t * 2) + 1) * 1500);
+  ctx.save();
+  ctx.font = 'bold 7px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = (Math.floor(t * 4) % 2) ? '#ffd76b' : '#ff7030';
+  ctx.shadowColor = ctx.fillStyle;
+  ctx.shadowBlur = 4;
+  ctx.fillText(`JACKPOT $${jp.toLocaleString('ru')}`, p.x, jpY + jpH / 2 + 1);
+  ctx.restore();
+  // ── Лимузин у входа (статичный, чёрный, длинный) ──
+  // Рисуем простым прямоугольником в проекции, не используя drawCarPretty
+  // (нет car-объекта). Размещаем правее красной дорожки.
+  const limX = p.x + wx * 1.25;
+  const limY = p.y + wy * 0.55;
+  const limL = 26, limW = 9;
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.5)';
+  ctx.beginPath();
+  ctx.ellipse(limX + 2, limY + 2, limL * 0.55, limW * 0.65, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Корпус (длинный чёрный)
+  const limGrad = ctx.createLinearGradient(limX, limY - limW, limX, limY + limW);
+  limGrad.addColorStop(0, '#1a1a22');
+  limGrad.addColorStop(1, '#000');
+  ctx.fillStyle = limGrad;
+  ctx.fillRect(limX - limL / 2, limY - limW / 2, limL, limW);
+  ctx.strokeStyle = '#3a3a44';
+  ctx.lineWidth = 0.6;
+  ctx.strokeRect(limX - limL / 2, limY - limW / 2, limL, limW);
+  // Окна — тонированные (5 узких полос)
+  ctx.fillStyle = '#3a4a6a';
+  for (let i = 0; i < 5; i++) {
+    ctx.fillRect(limX - limL / 2 + 2 + i * 4.5, limY - limW / 2 + 1.5, 3, 3);
+  }
+  // Колёса (4 чёрных овала)
+  ctx.fillStyle = '#0a0a0a';
+  ctx.beginPath();
+  ctx.ellipse(limX - limL / 2 + 4,  limY + limW / 2, 2.5, 1.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(limX + limL / 2 - 4,  limY + limW / 2, 2.5, 1.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Фары — мерцающий жёлтый
+  ctx.fillStyle = '#ffe070';
+  ctx.shadowColor = '#ffe070'; ctx.shadowBlur = 4;
+  ctx.fillRect(limX + limL / 2 - 1, limY - limW / 2 + 1, 1.5, 2);
+  ctx.fillRect(limX + limL / 2 - 1, limY + limW / 2 - 3, 1.5, 2);
+  ctx.shadowBlur = 0;
+  // ── Швейцар у входа (в красной форме) ──
+  const dmX = p.x + wx * 0.30, dmY = p.y + wy * 0.20;
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  ctx.ellipse(dmX, dmY + 5, 4, 1.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Тело — красный мундир
+  ctx.fillStyle = '#a02030';
+  ctx.fillRect(dmX - 2.5, dmY - 4, 5, 8);
+  // Золотые пуговицы
+  ctx.fillStyle = '#ffd76b';
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.arc(dmX, dmY - 2 + i * 2, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Голова
+  ctx.fillStyle = '#d8b08a';
+  ctx.beginPath();
+  ctx.arc(dmX, dmY - 6, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  // Цилиндр-шляпа
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(dmX - 2.5, dmY - 10, 5, 1);
+  ctx.fillRect(dmX - 2, dmY - 14, 4, 4);
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
-// ── РЫНОК — три полосатых тента-палатки на здании-помосте ─────────
-// Восточный базар: разноцветные шатры (красно-белый/жёлто-зелёный),
-// прилавки внизу, эмодзи товаров (фрукты/мясо) парят над прилавками.
+// ── РЫНОК — настоящий восточный базар ─────────────────────────────
+// Каменная платформа-площадь с 5 палатками разных цветов, гирлянды
+// флажков между палатками, корзины с фруктами и мешки на полу,
+// ковёр-дорожка, эмодзи товаров парят над прилавками.
 function drawMarketBuilding(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
-  const baseH = isoH(0.45);   // низкая платформа-помост
+  const baseH = isoH(0.35);
   const t = performance.now() / 800;
   // Тень
   ctx.fillStyle = 'rgba(0,0,0,.5)';
@@ -10855,75 +11117,229 @@ function drawMarketBuilding(r, c) {
   ctx.moveTo(p.x, p.y - wy); ctx.lineTo(p.x + wx, p.y);
   ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x - wx, p.y);
   ctx.closePath(); ctx.fill();
-  // Платформа-пол (две грани)
-  ctx.fillStyle = '#4a3a28';
+  // ── Каменная платформа-площадь ──
+  ctx.fillStyle = '#5a4a38';
   ctx.beginPath();
   ctx.moveTo(p.x - wx, p.y); ctx.lineTo(p.x, p.y + wy);
   ctx.lineTo(p.x, p.y + wy - baseH); ctx.lineTo(p.x - wx, p.y - baseH);
   ctx.closePath(); ctx.fill();
   const gpf = ctx.createLinearGradient(p.x, p.y - baseH, p.x + wx, p.y);
-  gpf.addColorStop(0, '#6a5038'); gpf.addColorStop(1, '#3a2a18');
+  gpf.addColorStop(0, '#7a6048'); gpf.addColorStop(1, '#3a2a18');
   ctx.fillStyle = gpf;
   ctx.beginPath();
   ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x + wx, p.y);
   ctx.lineTo(p.x + wx, p.y - baseH); ctx.lineTo(p.x, p.y + wy - baseH);
   ctx.closePath(); ctx.fill();
-  // Верх платформы
-  ctx.fillStyle = '#7a5a3a';
+  // Верх платформы — мощёный камень (плитки)
+  ctx.fillStyle = '#9a8060';
   ctx.beginPath();
   ctx.moveTo(p.x, p.y - baseH + wy); ctx.lineTo(p.x + wx, p.y - baseH);
   ctx.lineTo(p.x, p.y - baseH - wy); ctx.lineTo(p.x - wx, p.y - baseH);
   ctx.closePath(); ctx.fill();
-  // Три палатки на платформе с разными цветами
+  // Плиточный узор (5 параллельных линий)
+  ctx.strokeStyle = 'rgba(60,40,20,.35)';
+  ctx.lineWidth = 0.6;
+  for (let k = -2; k <= 2; k++) {
+    ctx.beginPath();
+    ctx.moveTo(p.x + (k / 5) * wx, p.y - baseH - wy + (k + 2) * wy * 0.2);
+    ctx.lineTo(p.x + (k / 5) * wx + wx, p.y - baseH + (k + 2) * wy * 0.2);
+    ctx.stroke();
+  }
+  // Красно-золотой ковёр-дорожка по диагонали посередине
+  ctx.save();
+  ctx.fillStyle = '#a02828';
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx * 0.40, p.y - baseH + wy * 0.15);
+  ctx.lineTo(p.x + wx * 0.45, p.y - baseH - wy * 0.45);
+  ctx.lineTo(p.x + wx * 0.55, p.y - baseH - wy * 0.30);
+  ctx.lineTo(p.x - wx * 0.30, p.y - baseH + wy * 0.30);
+  ctx.closePath(); ctx.fill();
+  // Золотой узор-кисточки на ковре
+  ctx.strokeStyle = '#ffd76b';
+  ctx.lineWidth = 0.5;
+  for (let k = 0; k < 4; k++) {
+    const a = 0.15 + k * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(p.x - wx * (0.40 - a * 0.8), p.y - baseH + wy * (0.15 - a * 0.45));
+    ctx.lineTo(p.x - wx * (0.30 - a * 0.8), p.y - baseH + wy * (0.30 - a * 0.45));
+    ctx.stroke();
+  }
+  ctx.restore();
+  // ── 5 палаток (расположены в шахматном порядке) ──
   const tents = [
-    { dx: -0.45, dy: -0.25, c1: '#c83030', c2: '#fff', goods: '🍎' },
-    { dx:  0.45, dy: -0.25, c1: '#ffce20', c2: '#1f8a3a', goods: '🥩' },
-    { dx:  0.00, dy:  0.30, c1: '#3070c8', c2: '#fff', goods: '🐟' },
+    { dx: -0.50, dy: -0.30, c1: '#c83030', c2: '#fff',    goods: '🍎', label: 'ФРУКТЫ' },
+    { dx:  0.10, dy: -0.45, c1: '#ffce20', c2: '#1f8a3a', goods: '🍇', label: 'ОВОЩИ' },
+    { dx:  0.55, dy: -0.20, c1: '#a040c0', c2: '#ffe070', goods: '🌶️', label: 'СПЕЦИИ' },
+    { dx: -0.20, dy:  0.05, c1: '#3070c8', c2: '#fff',    goods: '🐟', label: 'РЫБА' },
+    { dx:  0.35, dy:  0.20, c1: '#e07028', c2: '#3a1a08', goods: '🥩', label: 'МЯСО' },
   ];
+  // Сортируем по depth (низ-вверх) — задние палатки рисуем первыми
+  tents.sort((a, b) => (a.dy * 1.5 + a.dx) - (b.dy * 1.5 + b.dx));
   for (const tn of tents) {
     const tx = p.x + tn.dx * wx;
     const ty = p.y - baseH + tn.dy * wy;
-    const tentH = isoH(0.7);
-    const tw = wx * 0.55;
-    // Опоры (4 столбика)
+    const tentH = isoH(0.65);
+    const tw = wx * 0.42;
+    // Опоры (2 столбика по бокам)
     ctx.fillStyle = '#3a2818';
-    ctx.fillRect(tx - tw * 0.35, ty - tentH, 1.5, tentH);
-    ctx.fillRect(tx + tw * 0.35, ty - tentH, 1.5, tentH);
-    // Прилавок-столешница
+    ctx.fillRect(tx - tw * 0.42, ty - tentH, 1.5, tentH);
+    ctx.fillRect(tx + tw * 0.42, ty - tentH, 1.5, tentH);
+    // Прилавок (доска на ножках)
     ctx.fillStyle = '#5a4030';
-    ctx.beginPath();
-    ctx.moveTo(tx - tw * 0.5, ty - tentH * 0.35);
-    ctx.lineTo(tx + tw * 0.5, ty - tentH * 0.35);
-    ctx.lineTo(tx + tw * 0.5, ty - tentH * 0.25);
-    ctx.lineTo(tx - tw * 0.5, ty - tentH * 0.25);
-    ctx.closePath(); ctx.fill();
-    // Полосатая ткань-крыша тента (4 чередующиеся полосы)
-    for (let s = 0; s < 4; s++) {
-      const x0 = tx - tw * 0.5 + (tw * s) / 4;
-      const x1 = tx - tw * 0.5 + (tw * (s + 1)) / 4;
+    ctx.fillRect(tx - tw * 0.45, ty - tentH * 0.36, tw * 0.9, 3);
+    ctx.strokeStyle = '#3a2818';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(tx - tw * 0.45, ty - tentH * 0.36, tw * 0.9, 3);
+    // Корзинки с товаром перед прилавком (3 круглые)
+    for (let i = 0; i < 3; i++) {
+      const bx = tx - tw * 0.32 + i * tw * 0.32;
+      const by = ty - tentH * 0.20;
+      // Корзина
+      ctx.fillStyle = '#6a4a28';
+      ctx.beginPath();
+      ctx.ellipse(bx, by, 3.5, 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Содержимое (точки разного цвета)
+      ctx.fillStyle = tn.c1;
+      for (let k = 0; k < 4; k++) {
+        ctx.beginPath();
+        ctx.arc(bx - 2 + k * 1.3, by - 1.2 + ((k % 2) ? -0.5 : 0.5), 0.9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // Полосатая ткань-крыша тента (5 чередующихся полос)
+    for (let s = 0; s < 5; s++) {
+      const x0 = tx - tw * 0.5 + (tw * s) / 5;
+      const x1 = tx - tw * 0.5 + (tw * (s + 1)) / 5;
       ctx.fillStyle = (s % 2 === 0) ? tn.c1 : tn.c2;
       ctx.beginPath();
       ctx.moveTo(x0, ty - tentH);
       ctx.lineTo(x1, ty - tentH);
-      ctx.lineTo(x1, ty - tentH * 0.65);
-      ctx.lineTo(x0, ty - tentH * 0.65);
+      ctx.lineTo(x1, ty - tentH * 0.62);
+      ctx.lineTo(x0, ty - tentH * 0.62);
       ctx.closePath(); ctx.fill();
     }
-    // Бахрома по нижней кромке тента (волнистая)
+    // Шпиль-маковка на тенте
+    ctx.fillStyle = tn.c2;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty - tentH - 4);
+    ctx.lineTo(tx - 2, ty - tentH);
+    ctx.lineTo(tx + 2, ty - tentH);
+    ctx.closePath(); ctx.fill();
+    // Бахрома по нижней кромке тента (треугольнички)
     ctx.fillStyle = tn.c1;
-    for (let s = 0; s < 5; s++) {
-      const x0 = tx - tw * 0.5 + (tw * s) / 5;
+    for (let s = 0; s < 6; s++) {
+      const x0 = tx - tw * 0.5 + (tw * s) / 6;
       ctx.beginPath();
-      ctx.moveTo(x0, ty - tentH * 0.65);
-      ctx.lineTo(x0 + tw / 10, ty - tentH * 0.5);
-      ctx.lineTo(x0 + tw / 5, ty - tentH * 0.65);
+      ctx.moveTo(x0, ty - tentH * 0.62);
+      ctx.lineTo(x0 + tw / 12, ty - tentH * 0.50);
+      ctx.lineTo(x0 + tw / 6, ty - tentH * 0.62);
       ctx.closePath(); ctx.fill();
     }
-    // Эмодзи товара парит над прилавком (лёгкая bob-анимация)
-    const bob = Math.sin(t + tn.dx * 5) * 1.5;
-    ctx.font = '12px system-ui, "Segoe UI Emoji", sans-serif';
+    // Эмодзи товара парит над прилавком (легкая bob-анимация)
+    const bob = Math.sin(t + tn.dx * 5) * 1.2;
+    ctx.font = '11px system-ui, "Segoe UI Emoji", sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(tn.goods, tx, ty - tentH * 0.45 + bob);
+    // Маленькая подпись на бахроме
+    ctx.font = 'bold 5px system-ui, sans-serif';
+    ctx.fillStyle = '#1a0808';
+    ctx.fillText(tn.label, tx, ty - tentH * 0.62 + 6);
+  }
+  // ── Гирлянда флажков между крайними палатками ──
+  const garlandPoints = [
+    { x: p.x - wx * 0.50, y: p.y - baseH - isoH(0.65) - 0.30 * wy },
+    { x: p.x + wx * 0.10, y: p.y - baseH - isoH(0.65) - 0.45 * wy - 5 },
+    { x: p.x + wx * 0.55, y: p.y - baseH - isoH(0.65) - 0.20 * wy },
+  ];
+  ctx.strokeStyle = 'rgba(60,40,20,.85)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(garlandPoints[0].x, garlandPoints[0].y - 4);
+  ctx.quadraticCurveTo(
+    (garlandPoints[0].x + garlandPoints[1].x) / 2,
+    (garlandPoints[0].y + garlandPoints[1].y) / 2 + 4,
+    garlandPoints[1].x, garlandPoints[1].y - 4);
+  ctx.quadraticCurveTo(
+    (garlandPoints[1].x + garlandPoints[2].x) / 2,
+    (garlandPoints[1].y + garlandPoints[2].y) / 2 + 4,
+    garlandPoints[2].x, garlandPoints[2].y - 4);
+  ctx.stroke();
+  // Флажки на гирлянде (8 шт)
+  const flagCols = ['#e74c3c', '#f1c40f', '#27ae60', '#3498db', '#9b59b6'];
+  for (let i = 0; i < 9; i++) {
+    const tFrac = i / 9;
+    // Параметризуем по двум сегментам гирлянды
+    let fx, fy;
+    if (tFrac < 0.5) {
+      const k = tFrac * 2;
+      const mx = (garlandPoints[0].x + garlandPoints[1].x) / 2;
+      const my = (garlandPoints[0].y + garlandPoints[1].y) / 2 + 4;
+      fx = (1 - k) * (1 - k) * garlandPoints[0].x +
+           2 * (1 - k) * k * mx +
+           k * k * garlandPoints[1].x;
+      fy = (1 - k) * (1 - k) * (garlandPoints[0].y - 4) +
+           2 * (1 - k) * k * my +
+           k * k * (garlandPoints[1].y - 4);
+    } else {
+      const k = (tFrac - 0.5) * 2;
+      const mx = (garlandPoints[1].x + garlandPoints[2].x) / 2;
+      const my = (garlandPoints[1].y + garlandPoints[2].y) / 2 + 4;
+      fx = (1 - k) * (1 - k) * garlandPoints[1].x +
+           2 * (1 - k) * k * mx +
+           k * k * garlandPoints[2].x;
+      fy = (1 - k) * (1 - k) * (garlandPoints[1].y - 4) +
+           2 * (1 - k) * k * my +
+           k * k * (garlandPoints[2].y - 4);
+    }
+    // Сам флажок — треугольник
+    ctx.fillStyle = flagCols[i % flagCols.length];
+    ctx.beginPath();
+    ctx.moveTo(fx, fy);
+    ctx.lineTo(fx + 3, fy + 5);
+    ctx.lineTo(fx - 3, fy + 5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // ── Мешки и амфоры на углу платформы ──
+  // Три мешка с зерном (полукруги)
+  ctx.fillStyle = '#c8b48a';
+  ctx.strokeStyle = '#5a4628';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 3; i++) {
+    const sx = p.x - wx * 0.65 + i * 4;
+    const sy = p.y - baseH + wy * 0.45 - i * 1.5;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, 3, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Узелок наверху
+    ctx.fillStyle = '#7a5a30';
+    ctx.beginPath();
+    ctx.arc(sx, sy - 3, 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#c8b48a';
+  }
+  // Две амфоры с маслом справа
+  for (let i = 0; i < 2; i++) {
+    const ax = p.x + wx * 0.70 + i * 3;
+    const ay = p.y - baseH + wy * 0.30 + i * 2;
+    ctx.fillStyle = '#7a5028';
+    ctx.beginPath();
+    ctx.ellipse(ax, ay, 2.5, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Горлышко
+    ctx.fillStyle = '#5a3818';
+    ctx.fillRect(ax - 1, ay - 6, 2, 2);
+    // Ручки
+    ctx.strokeStyle = '#3a2410';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(ax - 2.5, ay - 2);
+    ctx.quadraticCurveTo(ax - 4, ay, ax - 2.5, ay + 2);
+    ctx.moveTo(ax + 2.5, ay - 2);
+    ctx.quadraticCurveTo(ax + 4, ay, ax + 2.5, ay + 2);
+    ctx.stroke();
   }
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
@@ -11037,7 +11453,71 @@ function drawPortBuilding(r, c) {
   // Крюк
   ctx.fillStyle = '#aaa';
   ctx.fillRect(hookX - 2, hookY + craneH * 0.55, 4, 3);
-  // Маленький якорь-эмодзи на одном из контейнеров для атмосферы
+  // Надписи на контейнерах — крупные трафаретные буквы
+  ctx.save();
+  ctx.font = 'bold 6px system-ui, sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,.6)';
+  ctx.shadowBlur = 2;
+  ctx.fillText('CARGO', p.x - wx * 0.30 + 4, p.y - baseH - wy * 0.10 - isoH(0.55) * 0.45);
+  ctx.fillText('MAFIA', p.x + wx * 0.30 + 4, p.y - baseH + wy * 0.10 - isoH(0.55) * 0.45);
+  ctx.fillText('CO.',   p.x + 4, p.y - baseH - wy * 0.30 - isoH(0.55) * 0.45);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Бочки с топливом справа от площадки (2 штуки, оранжевая опасность)
+  for (let i = 0; i < 2; i++) {
+    const bx = p.x + wx * 0.65 + i * 5;
+    const by = p.y - baseH + wy * 0.50 + i * 2;
+    ctx.fillStyle = '#c83020';
+    ctx.beginPath();
+    ctx.ellipse(bx, by, 3, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Кольца
+    ctx.strokeStyle = '#1a0808';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(bx - 3, by - 1.5); ctx.lineTo(bx + 3, by - 1.5);
+    ctx.moveTo(bx - 3, by + 1.5); ctx.lineTo(bx + 3, by + 1.5);
+    ctx.stroke();
+    // Жёлтое предупреждение
+    ctx.fillStyle = '#ffd200';
+    ctx.fillRect(bx - 1.5, by - 0.5, 3, 1);
+  }
+  // Канатная катушка (большая шпуля)
+  const rX = p.x - wx * 0.60, rY = p.y - baseH + wy * 0.30;
+  ctx.fillStyle = '#3a2818';
+  ctx.beginPath();
+  ctx.ellipse(rX, rY, 5, 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#7a5828';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.ellipse(rX, rY - i * 0.7, 5 - i * 0.5, 2.5 - i * 0.3, 0, Math.PI, 0, true);
+    ctx.stroke();
+  }
+  // Чайки — 3 птицы летят над портом, плавно покачиваются
+  const seagulls = [
+    { ox: -0.35, oy: -1.0, ph: 0 },
+    { ox:  0.10, oy: -1.3, ph: 1.3 },
+    { ox:  0.45, oy: -0.9, ph: 2.6 },
+  ];
+  for (const sg of seagulls) {
+    const sgx = p.x + sg.ox * wx + Math.sin(t * 0.6 + sg.ph) * 3;
+    const sgy = p.y - baseH - isoH(2.0) + sg.oy * wy + Math.sin(t * 1.2 + sg.ph) * 2;
+    // Крылья — две дужки в форме «M»
+    ctx.strokeStyle = '#f0f0f0';
+    ctx.lineWidth = 1.2;
+    const wave = Math.sin(t * 4 + sg.ph) * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(sgx - 4, sgy + 1);
+    ctx.quadraticCurveTo(sgx - 2, sgy - 2 + wave, sgx, sgy);
+    ctx.quadraticCurveTo(sgx + 2, sgy - 2 + wave, sgx + 4, sgy + 1);
+    ctx.stroke();
+  }
+  // Якорь-эмодзи на одном из контейнеров
   ctx.font = '11px system-ui, "Segoe UI Emoji", sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('⚓', p.x + wx * 0.30, p.y - baseH + wy * 0.10 - isoH(0.55) * 0.5);
@@ -11162,6 +11642,60 @@ function drawGangNestRings() {
     ctx.shadowBlur = 10 + 6 * pulse;
     ctx.fillText('☠️', top.x, top.y);
     ctx.restore();
+  }
+}
+
+// Отрисовка УНИЧТОЖЕННОЙ машины (после столкновения) — обугленный
+// остов с пламенем. Если её уже потушили пожарные (car._burnedOut),
+// вместо огня — только тонкий струящийся дым.
+function drawWreckedCar(car) {
+  // Тёмная палитра — обугленный остов; модель та же.
+  const burnedModel = Object.assign({}, car.model, {
+    palette: ['#2a2520', '#16120e'],
+    roof: '#16120e',
+  });
+  drawCarPretty(Object.assign({}, car, { model: burnedModel }));
+  const p = w2s(car.r + 0.5, car.c + 0.5);
+  const t = performance.now() * 0.006;
+  if (!car._burnedOut) {
+    // Пляшущее пламя над крышей
+    const flameH = 14 + Math.sin(t) * 2.5;
+    const flameW = 6 + Math.sin(t * 1.7) * 0.8;
+    const fy0 = p.y - 6;
+    const fg = ctx.createLinearGradient(p.x, fy0 - flameH, p.x, fy0);
+    fg.addColorStop(0,    '#ffe070');
+    fg.addColorStop(0.45, '#ff7020');
+    fg.addColorStop(1,    '#a01010');
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.moveTo(p.x, fy0 - flameH);
+    ctx.quadraticCurveTo(p.x + flameW, fy0 - flameH * 0.4,
+                         p.x + flameW * 0.5, fy0);
+    ctx.lineTo(p.x - flameW * 0.5, fy0);
+    ctx.quadraticCurveTo(p.x - flameW, fy0 - flameH * 0.4,
+                         p.x, fy0 - flameH);
+    ctx.closePath();
+    ctx.fill();
+    // Искорка
+    ctx.fillStyle = '#fff5b0';
+    ctx.beginPath();
+    ctx.arc(p.x + Math.sin(t * 7) * 3,
+            fy0 - flameH - 3 - Math.sin(t * 4) * 2,
+            1.0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // Тонкий серый дым (после тушения) — три «облачка», поднимаются.
+    for (let i = 0; i < 4; i++) {
+      const phase = (t * 0.5 + i * 0.7);
+      const off = i * 6;
+      const a = Math.max(0, 0.5 - i * 0.12);
+      ctx.fillStyle = `rgba(150,152,160,${a})`;
+      ctx.beginPath();
+      ctx.arc(p.x + Math.sin(phase) * 2.5,
+              p.y - 10 - off,
+              2.4 + i * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 }
 
@@ -11901,6 +12435,415 @@ const BUSINESS_POIS = [
   { id: 'warehouse',  emoji: '📦', name: 'Склад',              r: 73, c: 23, price:  70000, daily_min: 2400, daily_max: 3300, desc: 'Большой склад на окраине. Хранение «чувствительного» груза.' },
   { id: 'casino',     emoji: '🎲', name: 'Казино',             r: 13, c: 45, price: 120000, daily_min: 4000, daily_max: 5500, desc: 'Своё казино — мечта каждого. Высокий доход, высокий риск.' },
 ];
+// Быстрый поиск бизнеса по тайлу (r,c) — для рендера уникальных зданий.
+const BUSINESS_BY_RC = new Map();
+BUSINESS_POIS.forEach(b => BUSINESS_BY_RC.set(b.r + ',' + b.c, b));
+
+// ── Уникальные здания бизнесов ────────────────────────────────────
+// Каждый бизнес рисуется СВОИМ силуэтом — кофейня выглядит как кофейня,
+// автомойка как автомойка и т.д. Поверх drawBuilding больше не идёт
+// (полная замена). Вывеска-эмодзи через drawBusinessPoi остаётся.
+//
+// Общий приём: рисуем параллелепипед-базу с типовой палитрой, потом
+// клеим сверху уникальные детали (вывеска, маркиза, столб парикмахерской,
+// дымоход пиццерии, ворота гаража, неон бара и т.д.).
+function _bizBase(r, c, palette, heightUnits) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(heightUnits);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy); ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath(); ctx.fill();
+  const [top, side, roof] = palette;
+  // Левая грань
+  ctx.fillStyle = side;
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx, p.y); ctx.lineTo(p.x, p.y + wy);
+  ctx.lineTo(p.x, p.y + wy - H); ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath(); ctx.fill();
+  // Правая грань (с лёгким градиентом)
+  const g = ctx.createLinearGradient(p.x, p.y - H, p.x + wx, p.y);
+  g.addColorStop(0, top); g.addColorStop(1, side);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x + wx, p.y - H); ctx.lineTo(p.x, p.y + wy - H);
+  ctx.closePath(); ctx.fill();
+  // Крыша
+  ctx.fillStyle = roof || top;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - H + wy); ctx.lineTo(p.x + wx, p.y - H);
+  ctx.lineTo(p.x, p.y - H - wy); ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath(); ctx.fill();
+  // Тёмная вертикальная полоса — стык граней
+  ctx.strokeStyle = 'rgba(0,0,0,.45)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x, p.y + wy - H);
+  ctx.stroke();
+  return { p, wx, wy, H };
+}
+
+// Вывеска на правой грани (фасадная). text — короткое слово, accent — цвет.
+function _bizSign(p, wx, wy, H, text, bg, fg) {
+  const sgnY = p.y - H + wy * 0.05;
+  const sgnH = 9;
+  ctx.fillStyle = bg;
+  ctx.fillRect(p.x + 2, sgnY, wx - 4, sgnH);
+  ctx.strokeStyle = fg;
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(p.x + 2, sgnY, wx - 4, sgnH);
+  ctx.save();
+  ctx.font = 'bold 7.5px system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = fg;
+  ctx.fillText(text, p.x + wx * 0.5, sgnY + sgnH / 2);
+  ctx.restore();
+}
+
+// Мерцающая неоновая вывеска (для бара/клуба).
+function _bizNeon(p, wx, wy, H, text, blinkColors) {
+  const t = performance.now() / 300;
+  const phase = Math.floor(t) % blinkColors.length;
+  const col = blinkColors[phase];
+  ctx.save();
+  ctx.shadowColor = col;
+  ctx.shadowBlur = 10;
+  ctx.font = 'bold 9px system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = col;
+  ctx.fillText(text, p.x + wx * 0.5, p.y - H + wy * 0.18);
+  ctx.restore();
+}
+
+function drawBusinessBuilding(r, c, b) {
+  const t = performance.now() / 1000;
+  switch (b.id) {
+    case 'coffee': {
+      // Кофейня — уютное приземистое здание, тёплая коричневая палитра,
+      // красно-белая полосатая маркиза, столик с двумя стульями на тротуаре.
+      const { p, wx, wy, H } = _bizBase(r, c, ['#8a5a30', '#3a2410', '#5a3a1c'], 1.0);
+      // Большое окно-витрина на правой грани
+      const winY = p.y - H * 0.55;
+      ctx.fillStyle = '#ffd76b';
+      ctx.shadowColor = '#ffb060'; ctx.shadowBlur = 6;
+      ctx.fillRect(p.x + wx * 0.20, winY, wx * 0.50, H * 0.40);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#3a2410'; ctx.lineWidth = 0.8;
+      ctx.strokeRect(p.x + wx * 0.20, winY, wx * 0.50, H * 0.40);
+      // Полосатая маркиза над витриной (красно-белые полоски)
+      const aY = winY - 5;
+      for (let i = 0; i < 6; i++) {
+        ctx.fillStyle = (i & 1) ? '#fff' : '#c0392b';
+        ctx.beginPath();
+        ctx.moveTo(p.x + wx * (0.20 + i * 0.085),       aY);
+        ctx.lineTo(p.x + wx * (0.20 + (i + 1) * 0.085), aY);
+        ctx.lineTo(p.x + wx * (0.17 + (i + 1) * 0.085), aY + 5);
+        ctx.lineTo(p.x + wx * (0.17 + i * 0.085),       aY + 5);
+        ctx.closePath(); ctx.fill();
+      }
+      // Дверь — узкая тёмная плашка
+      ctx.fillStyle = '#1a0e08';
+      ctx.fillRect(p.x + wx * 0.08, p.y + wy * 0.30 - 10, 5, 10);
+      // Вывеска "COFFEE"
+      _bizSign(p, wx, wy, H, 'COFFEE', '#2a1810', '#ffd76b');
+      // Дымоход на крыше с тонким дымком
+      const chX = p.x - wx * 0.15, chY = p.y - H - 2;
+      ctx.fillStyle = '#3a2410';
+      ctx.fillRect(chX - 2, chY - 6, 4, 6);
+      // Дымок
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = `rgba(200,200,210,${0.35 - i * 0.1})`;
+        ctx.beginPath();
+        ctx.arc(chX + Math.sin(t * 2 + i) * 1.2,
+                chY - 8 - i * 4, 1.5 + i * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+    case 'carwash': {
+      // Автомойка — низкое голубое здание с большим проёмом-туннелем,
+      // лужа воды у входа, надпись WASH.
+      const { p, wx, wy, H } = _bizBase(r, c, ['#3a78a8', '#1c3e58', '#2c5a7a'], 0.9);
+      // Тёмный проём-арка на правой грани (вход в туннель мойки)
+      const arX = p.x + wx * 0.20, arY = p.y - H * 0.20;
+      ctx.fillStyle = '#0a1828';
+      ctx.beginPath();
+      ctx.moveTo(arX, p.y + wy * 0.20);
+      ctx.lineTo(arX + wx * 0.50, p.y);
+      ctx.lineTo(arX + wx * 0.50, arY);
+      ctx.quadraticCurveTo(arX + wx * 0.25, arY - H * 0.15, arX, arY);
+      ctx.closePath(); ctx.fill();
+      // Синие шторки/щётки внутри (две вертикальные полосы)
+      ctx.fillStyle = '#4a9aca';
+      ctx.fillRect(arX + wx * 0.15, arY - 2, 2, H * 0.30);
+      ctx.fillRect(arX + wx * 0.32, arY - 2, 2, H * 0.30);
+      // Капли воды на полу перед входом — серия эллипсов
+      for (let i = 0; i < 4; i++) {
+        ctx.fillStyle = `rgba(140,180,220,.55)`;
+        ctx.beginPath();
+        ctx.ellipse(p.x + wx * (0.05 + i * 0.10) + wy * 0.10,
+                    p.y + wy * (0.45 - i * 0.05), 3, 1.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Вывеска WASH
+      _bizSign(p, wx, wy, H, 'CAR WASH', '#0a1828', '#9adcf0');
+      break;
+    }
+    case 'barbershop': {
+      // Парикмахерская — белое здание, классический red-white-blue столб
+      // у двери, большая зеркальная витрина.
+      const { p, wx, wy, H } = _bizBase(r, c, ['#e8e0d0', '#9c9080', '#a89a82'], 1.0);
+      // Витрина с зеркалами
+      ctx.fillStyle = '#aab8c8';
+      ctx.fillRect(p.x + wx * 0.18, p.y - H * 0.55, wx * 0.55, H * 0.40);
+      ctx.strokeStyle = '#3a3028'; ctx.lineWidth = 0.8;
+      ctx.strokeRect(p.x + wx * 0.18, p.y - H * 0.55, wx * 0.55, H * 0.40);
+      // Дверь
+      ctx.fillStyle = '#3a2818';
+      ctx.fillRect(p.x + wx * 0.08, p.y + wy * 0.20 - 11, 5, 11);
+      // Знаменитый barber pole — крутящийся красно-бело-синий столб у двери
+      const poleX = p.x + wx * 0.04, poleY = p.y + wy * 0.15;
+      const poleH = 14;
+      // Подставки
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fillRect(poleX - 2.5, poleY - poleH - 2, 5, 2);
+      ctx.fillRect(poleX - 2.5, poleY,             5, 2);
+      // Цилиндр (имитация вращения через смещение полосок)
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(poleX - 2, poleY - poleH, 4, poleH);
+      ctx.clip();
+      const offset = (t * 8) % 6;
+      for (let i = -2; i < poleH / 2 + 2; i++) {
+        const y = poleY - poleH + i * 6 + offset;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(poleX - 2, y,     4, 2);
+        ctx.fillStyle = '#c0392b';
+        ctx.fillRect(poleX - 2, y + 2, 4, 2);
+        ctx.fillStyle = '#1a4a8a';
+        ctx.fillRect(poleX - 2, y + 4, 4, 2);
+      }
+      ctx.restore();
+      // Вывеска BARBER
+      _bizSign(p, wx, wy, H, 'BARBER', '#1a0810', '#e8e0d0');
+      break;
+    }
+    case 'pizza': {
+      // Пиццерия — итальянский колорит (красно-зелёный фасад + кремовая
+      // крыша), дымоход с дымом, надпись PIZZA.
+      const { p, wx, wy, H } = _bizBase(r, c, ['#c8302a', '#5a1010', '#3a8a3a'], 1.0);
+      // Зелёная нижняя полоса (под цвет флага Италии)
+      ctx.fillStyle = '#3a8a3a';
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y + wy);
+      ctx.lineTo(p.x + wx, p.y);
+      ctx.lineTo(p.x + wx, p.y - H * 0.18);
+      ctx.lineTo(p.x, p.y + wy - H * 0.18);
+      ctx.closePath(); ctx.fill();
+      // Окно-витрина с золотым светом
+      ctx.fillStyle = '#ffd76b';
+      ctx.shadowColor = '#ffa040'; ctx.shadowBlur = 8;
+      ctx.fillRect(p.x + wx * 0.22, p.y - H * 0.60, wx * 0.45, H * 0.35);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#1a0808'; ctx.lineWidth = 0.8;
+      ctx.strokeRect(p.x + wx * 0.22, p.y - H * 0.60, wx * 0.45, H * 0.35);
+      // Дверь с аркой
+      ctx.fillStyle = '#1a0808';
+      ctx.fillRect(p.x + wx * 0.06, p.y + wy * 0.15 - 12, 6, 12);
+      // Большой дымоход с интенсивным дымом (печь!)
+      const chX = p.x - wx * 0.20, chY = p.y - H - 2;
+      ctx.fillStyle = '#5a3010';
+      ctx.fillRect(chX - 3, chY - 8, 6, 8);
+      ctx.strokeStyle = '#3a1a08';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(chX - 3, chY - 8, 6, 8);
+      // Тёплый дымок (4 кольца)
+      for (let i = 0; i < 4; i++) {
+        const a = Math.max(0, 0.55 - i * 0.12);
+        ctx.fillStyle = `rgba(220,210,200,${a})`;
+        ctx.beginPath();
+        ctx.arc(chX + Math.sin(t * 1.8 + i * 0.6) * 2,
+                chY - 10 - i * 5, 2.5 + i * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Вывеска PIZZA
+      _bizSign(p, wx, wy, H, 'PIZZA', '#1a0808', '#ffd76b');
+      break;
+    }
+    case 'garage': {
+      // Гараж-СТО — серый ангар с большими роллетными воротами,
+      // ремонтные знаки, шестерёнка над воротами.
+      const { p, wx, wy, H } = _bizBase(r, c, ['#5a5a5a', '#2a2a2a', '#3a3a3a'], 1.0);
+      // Большие ворота-роллеты на правой грани
+      const gtX = p.x + wx * 0.18, gtY = p.y - H * 0.55;
+      const gtW = wx * 0.55, gtH = H * 0.65;
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(gtX, gtY, gtW, gtH);
+      // Горизонтальные полосы роллет
+      ctx.strokeStyle = '#3a3a3a';
+      ctx.lineWidth = 0.6;
+      for (let i = 1; i < 8; i++) {
+        const yL = gtY + (gtH / 8) * i;
+        ctx.beginPath();
+        ctx.moveTo(gtX, yL); ctx.lineTo(gtX + gtW, yL);
+        ctx.stroke();
+      }
+      // Знак «STOP/ремонт» — жёлтый ромбик
+      ctx.save();
+      ctx.translate(gtX + gtW * 0.5, gtY + gtH * 0.45);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = '#ffd840';
+      ctx.fillRect(-4, -4, 8, 8);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.font = 'bold 7px system-ui';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.rotate(-Math.PI / 4);
+      ctx.fillText('🔧', 0, 0);
+      ctx.restore();
+      // Вывеска AUTO
+      _bizSign(p, wx, wy, H, 'AUTO•СТО', '#1a1a1a', '#ffd840');
+      break;
+    }
+    case 'bar': {
+      // Бар — тёмно-фиолетовое здание, неоновая мигающая надпись BAR,
+      // тёплый свет в окнах.
+      const { p, wx, wy, H } = _bizBase(r, c, ['#3a1a4a', '#1a0a28', '#2a0e3a'], 1.1);
+      // Тёплый свет в маленьких окошках
+      ctx.fillStyle = '#ffa040';
+      ctx.shadowColor = '#ff7020'; ctx.shadowBlur = 5;
+      for (let i = 0; i < 3; i++) {
+        ctx.fillRect(p.x + wx * (0.22 + i * 0.15), p.y - H * 0.40, 5, 6);
+      }
+      ctx.shadowBlur = 0;
+      // Дверь
+      ctx.fillStyle = '#0a0408';
+      ctx.fillRect(p.x + wx * 0.08, p.y + wy * 0.20 - 12, 7, 12);
+      // Неоновая вывеска BAR (мигает розовым/голубым)
+      _bizNeon(p, wx, wy, H, 'BAR', ['#ff40a0', '#40e0ff', '#ff40a0']);
+      // Полка с бутылками на крыше — для антуража (просто три цветные палочки)
+      const sX = p.x - wx * 0.20, sY = p.y - H - 2;
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(sX - 4, sY - 1, 10, 2);
+      const btCols = ['#2a8a3a', '#a02020', '#ffd76b'];
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = btCols[i];
+        ctx.fillRect(sX - 3 + i * 3, sY - 5, 1.5, 4);
+      }
+      break;
+    }
+    case 'club': {
+      // Подпольный клуб — чёрный фасад, разноцветные неоны вокруг крыши,
+      // мерцающий контур.
+      const { p, wx, wy, H } = _bizBase(r, c, ['#1a1020', '#0a0410', '#0a0410'], 1.3);
+      // Неоновая лента по верхнему краю фасада (разноцветная)
+      const ledColors = ['#ff40a0', '#40e0ff', '#ffd840', '#8aff40', '#ff40a0'];
+      const ledY = p.y - H * 0.85;
+      for (let i = 0; i < 8; i++) {
+        const phase = Math.floor(t * 4 + i) % ledColors.length;
+        const col = ledColors[phase];
+        ctx.fillStyle = col;
+        ctx.shadowColor = col; ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(p.x + wx * (0.05 + i * 0.12), ledY, 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+      // Большая дверь-ВИП с красной дорожкой эффектом
+      ctx.fillStyle = '#000';
+      ctx.fillRect(p.x + wx * 0.08, p.y + wy * 0.20 - 14, 8, 14);
+      ctx.fillStyle = '#8a0e1e';
+      ctx.fillRect(p.x + wx * 0.04, p.y + wy * 0.30, 16, 3);
+      // Неоновая вывеска CLUB
+      _bizNeon(p, wx, wy, H, 'CLUB', ['#ff40a0', '#ffd840', '#40e0ff', '#8aff40']);
+      break;
+    }
+    case 'warehouse': {
+      // Склад — низкий длинный серо-коричневый ангар, большие двойные
+      // ворота, штабель коробок у входа.
+      const { p, wx, wy, H } = _bizBase(r, c, ['#7a6048', '#3a2a1c', '#4a3a28'], 0.85);
+      // Двойные ворота
+      const gtX = p.x + wx * 0.15, gtY = p.y - H * 0.50;
+      const gtW = wx * 0.60, gtH = H * 0.65;
+      ctx.fillStyle = '#2a1c10';
+      ctx.fillRect(gtX, gtY, gtW, gtH);
+      // Разделитель створок
+      ctx.strokeStyle = '#1a0e08';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(gtX + gtW / 2, gtY); ctx.lineTo(gtX + gtW / 2, gtY + gtH);
+      ctx.stroke();
+      // Перекрёстные доски (шеврон)
+      ctx.strokeStyle = '#5a3a1c';
+      ctx.lineWidth = 0.6;
+      for (let s = 0; s < 2; s++) {
+        const xL = gtX + s * gtW / 2;
+        const xR = gtX + (s + 1) * gtW / 2;
+        ctx.beginPath();
+        ctx.moveTo(xL, gtY);          ctx.lineTo(xR, gtY + gtH);
+        ctx.moveTo(xR, gtY);          ctx.lineTo(xL, gtY + gtH);
+        ctx.stroke();
+      }
+      // Коробки у входа справа
+      ctx.fillStyle = '#9a7848';
+      ctx.fillRect(gtX + gtW + 2, p.y + wy * 0.10 - 6, 5, 6);
+      ctx.fillRect(gtX + gtW + 1, p.y + wy * 0.10 - 11, 7, 5);
+      ctx.strokeStyle = '#5a3a1c';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(gtX + gtW + 2, p.y + wy * 0.10 - 6, 5, 6);
+      ctx.strokeRect(gtX + gtW + 1, p.y + wy * 0.10 - 11, 7, 5);
+      // Вывеска STORAGE
+      _bizSign(p, wx, wy, H, 'СКЛАД', '#1a0e08', '#e8c878');
+      break;
+    }
+    case 'casino': {
+      // Бизнес-казино (поменьше POI-казино): золотая палитра, бегущие
+      // лампочки по периметру, кость на крыше.
+      const { p, wx, wy, H } = _bizBase(r, c, ['#b08840', '#5a3818', '#cca050'], 1.15);
+      // Бегущие лампочки по верхнему краю фасада
+      const phase = (t * 4) % 1;
+      for (let i = 0; i < 7; i++) {
+        const k = (i + phase) / 7;
+        const lit = ((i + Math.floor(t * 4)) & 1) === 0;
+        ctx.fillStyle = lit ? '#fff4a0' : '#5a3818';
+        if (lit) { ctx.shadowColor = '#ffd76b'; ctx.shadowBlur = 6; }
+        ctx.beginPath();
+        ctx.arc(p.x + wx * (0.05 + i * 0.13), p.y - H * 0.78, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      // Окно-витрина с тёплым светом
+      ctx.fillStyle = '#ffd76b';
+      ctx.shadowColor = '#ffa040'; ctx.shadowBlur = 6;
+      ctx.fillRect(p.x + wx * 0.22, p.y - H * 0.55, wx * 0.45, H * 0.30);
+      ctx.shadowBlur = 0;
+      // Игральная кость на крыше
+      const dX = p.x - wx * 0.15, dY = p.y - H - 6;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(dX - 4, dY - 4, 8, 8);
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 0.6;
+      ctx.strokeRect(dX - 4, dY - 4, 8, 8);
+      // Точки (5)
+      ctx.fillStyle = '#1a1a1a';
+      [[-2,-2],[2,-2],[0,0],[-2,2],[2,2]].forEach(([dx, dy]) => {
+        ctx.beginPath();
+        ctx.arc(dX + dx, dY + dy, 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      // Вывеска CASINO
+      _bizSign(p, wx, wy, H, 'CASINO', '#1a0808', '#ffd76b');
+      break;
+    }
+    default:
+      // На всякий случай fallback на обычное здание
+      drawBuilding(r, c);
+      break;
+  }
+}
 // Локальный статус бизнесов: biz_id → {owned, pending, blocked_until}
 const myBusinesses = new Map();
 let _bizLastSync = 0;
@@ -11942,34 +12885,105 @@ function drawBusinessPoi(b) {
   const own = myBusinesses.get(b.id);
   const owned = !!(own && own.owned);
   const pulseAt = (Math.sin(performance.now() * 0.004) + 1) * 0.5;
-  // Подложка-вывеска (узкая, золотая если куплено / зелёная иначе)
-  const bgCol = owned ? '#0a2a18' : '#1a1828';
-  const fgCol = owned ? '#7eff9a' : '#ffd76b';
-  const W = 38, H = 22;
-  ctx.fillStyle = bgCol;
-  ctx.fillRect(p.x - W / 2, p.y - 60, W, H);
+  // Крупная плакат-вывеска над зданием. Состояния:
+  //   куплено + есть доход → ярко-золотой фон, мерцает, показывает +$N
+  //   куплено             → тёмно-зелёный фон + «МОЁ»
+  //   на продажу          → тёмный фон + название + цена
+  const fgCol  = owned ? '#7eff9a' : '#ffd76b';
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, 1);   // placeholder
+  // Размеры вывески — заметно крупнее старой
+  const W = 96, H = 38;
+  const topY = p.y - 78;   // сдвинута выше — здания не перекрывают
+  // Лёгкая тень
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.fillRect(p.x - W / 2 + 2, topY + 2, W, H);
+  // Основной плакат — двойной градиент (тёмный верх, чуть светлее низ)
+  const g = ctx.createLinearGradient(p.x, topY, p.x, topY + H);
+  if (owned) {
+    g.addColorStop(0, '#0e3a22');
+    g.addColorStop(1, '#072216');
+  } else {
+    g.addColorStop(0, '#1c1a30');
+    g.addColorStop(1, '#0f0e1a');
+  }
+  ctx.fillStyle = g;
+  ctx.fillRect(p.x - W / 2, topY, W, H);
+  // Двойная окантовка — цвет статуса + тонкая внутренняя
   ctx.strokeStyle = fgCol;
-  ctx.lineWidth = 1.4;
-  ctx.strokeRect(p.x - W / 2 + 0.5, p.y - 60 + 0.5, W - 1, H - 1);
-  // Эмодзи
-  ctx.font = 'bold 14px "Segoe UI Emoji", system-ui, sans-serif';
-  ctx.textAlign = 'center';
+  ctx.lineWidth = 1.6;
+  ctx.strokeRect(p.x - W / 2 + 0.5, topY + 0.5, W - 1, H - 1);
+  ctx.strokeStyle = 'rgba(255,255,255,.15)';
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(p.x - W / 2 + 2.5, topY + 2.5, W - 5, H - 5);
+  // Стрелка-«указатель» снизу плаката к зданию
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 7, topY + H);
+  ctx.lineTo(p.x + 7, topY + H);
+  ctx.lineTo(p.x, topY + H + 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = fgCol;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 7, topY + H);
+  ctx.lineTo(p.x, topY + H + 7);
+  ctx.lineTo(p.x + 7, topY + H);
+  ctx.stroke();
+  // Эмодзи слева, большое
+  ctx.font = '18px "Segoe UI Emoji", system-ui, sans-serif';
+  ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff';
-  ctx.fillText(b.emoji, p.x, p.y - 50);
-  // Подпись: куплено $или цена
-  ctx.font = 'bold 8px system-ui, sans-serif';
+  ctx.fillText(b.emoji, p.x - W / 2 + 6, topY + H * 0.5);
+  // Текстовый блок справа от эмодзи
+  const tx = p.x - W / 2 + 28;
+  // Название — в одну строку (сокращаем «Кофейня «У Дона»» до «Кофейня»)
+  const shortName = (b.name || b.id).split(/[«,(]/)[0].trim();
+  ctx.font = 'bold 10px system-ui, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(shortName, tx, topY + 5);
+  // Цена / статус — крупно под названием
+  ctx.font = 'bold 12px system-ui, sans-serif';
   ctx.fillStyle = fgCol;
-  const tag = owned
-    ? ((own.pending && own.pending > 0) ? `+$${own.pending}` : 'мой')
-    : `$${b.price.toLocaleString('ru')}`;
-  ctx.fillText(tag, p.x, p.y - 42);
-  // Сияние «есть доход» — мигает если pending > 0
+  let tag;
+  if (owned) {
+    tag = (own.pending && own.pending > 0)
+      ? `+$${own.pending.toLocaleString('ru')}`
+      : '✓ МОЁ';
+  } else {
+    tag = `$${b.price.toLocaleString('ru')}`;
+  }
+  ctx.fillText(tag, tx, topY + 19);
+  // Сияние «есть доход» — мерцающий ореол вокруг плаката
   if (owned && own.pending && own.pending > 0) {
-    ctx.fillStyle = `rgba(126,255,154,${0.18 + 0.22 * pulseAt})`;
+    ctx.save();
+    ctx.shadowColor = '#7eff9a';
+    ctx.shadowBlur = 12 + pulseAt * 10;
+    ctx.strokeStyle = `rgba(126,255,154,${0.40 + 0.30 * pulseAt})`;
+    ctx.lineWidth = 1.8;
+    ctx.strokeRect(p.x - W / 2 - 0.5, topY - 0.5, W + 1, H + 1);
+    ctx.restore();
+  }
+  // Маленькая иконка-флажок у не купленных бизнесов — «ПРОДАЁТСЯ»
+  if (!owned) {
+    const fY = topY - 6;
+    ctx.fillStyle = '#c83020';
     ctx.beginPath();
-    ctx.arc(p.x, p.y - 50, 22 + pulseAt * 4, 0, Math.PI * 2);
+    ctx.moveTo(p.x + W / 2 - 18, fY);
+    ctx.lineTo(p.x + W / 2 - 2,  fY);
+    ctx.lineTo(p.x + W / 2 - 6,  fY + 6);
+    ctx.lineTo(p.x + W / 2 - 2,  fY + 12);
+    ctx.lineTo(p.x + W / 2 - 18, fY + 12);
+    ctx.closePath();
     ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 6px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('SALE', p.x + W / 2 - 12, fY + 6);
   }
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
@@ -14611,6 +15625,44 @@ function drawPoliceStationDecor(stationR, stationC) {
   drawJailCell(stationR, stationC);
 }
 
+// Декор пожарной части — две припаркованные пожарки + красно-белая
+// разметка ворот. Стоит на POI 'firestation' (см. drawTile).
+function drawFireStationDecor(stationR, stationC) {
+  ctx.save();
+  // Красно-белая «зебра» перед воротами — пол парковки
+  const slots = [
+    { r: stationR - 1, c: stationC + 1, ang: -Math.PI / 2 },
+    { r: stationR + 1, c: stationC + 1, ang: -Math.PI / 2 },
+  ];
+  for (const sl of slots) {
+    const corners = [
+      w2s(sl.r - 0.45, sl.c - 0.45),
+      w2s(sl.r - 0.45, sl.c + 0.45),
+      w2s(sl.r + 0.45, sl.c + 0.45),
+      w2s(sl.r + 0.45, sl.c - 0.45),
+    ];
+    ctx.fillStyle = 'rgba(40,40,48,.55)';
+    ctx.beginPath();
+    ctx.moveTo(corners[0].x, corners[0].y);
+    for (const cn of corners) ctx.lineTo(cn.x, cn.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.7)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+  ctx.restore();
+  // Сами припаркованные пожарки — рисуем через drawServiceVehicle (тот же
+  // тип, что выезжает на вызов). Мигалки моргают, как в полицейской.
+  for (const sl of slots) {
+    drawServiceVehicle({
+      kind: 'firetruck',
+      x: sl.c + 0.5, y: sl.r + 0.5,
+      ang: sl.ang,
+    });
+  }
+}
+
 // Загон-клетка: круглый периметр радиусом JAIL_R≈3.5 тайла от центра
 // участка, с проёмом-воротами на южной стороне. Решётка из вертикальных
 // прутьев. На воротах — лазерный барьер: КРАСНЫЙ пока я сижу (myJailIn>0),
@@ -15909,7 +16961,12 @@ function render() {
           }
           // Каждый POI — своя стилизованная постройка. Остальные
           // тайлы — обычные дома (drawBuilding с разными палитрами).
-          if      (poi && poi.id === 'casino')    drawCasinoBuilding(r, c);
+          // Бизнес-POI (купуемые) — у каждого свой силуэт (кофейня,
+          // автомойка, гараж и т.д.). Проверяем ДО общих POI-зданий и
+          // ДО обычного drawBuilding.
+          const biz = BUSINESS_BY_RC.get(r + ',' + c);
+          if      (biz)                            drawBusinessBuilding(r, c, biz);
+          else if (poi && poi.id === 'casino')    drawCasinoBuilding(r, c);
           else if (poi && poi.id === 'market')    drawMarketBuilding(r, c);
           else if (poi && poi.id === 'port')      drawPortBuilding(r, c);
           else if (poi && poi.id === 'factory')   drawFactoryBuilding(r, c);
@@ -15922,6 +16979,8 @@ function render() {
           if (bb) drawBillboard(bb);
           // У полицейского участка — парковка с техникой + турель на крыше
           if (poi && poi.id === 'police') drawPoliceStationDecor(r, c);
+          // У пожарной части — парковка с двумя пожарками.
+          if (poi && poi.id === 'firestation') drawFireStationDecor(r, c);
         }});
       }
       else if (t === 2) items.push({ depth: r + c, draw: () => drawCar(r, c) });
@@ -15979,10 +17038,33 @@ function render() {
     if (g.y < r0 || g.y >= r1 || g.x < c0 || g.x >= c1) continue;
     items.push({ depth: g.y + g.x + 0.0007, draw: () => drawMichaelGuard(g) });
   }
-  // Машины (движущиеся)
+  // Машины (движущиеся). Уничтоженные — рисуем обугленный остов с
+  // пламенем (или дымом, если потушены пожарными).
   for (const car of CARS) {
     if (car.r < r0 || car.r >= r1 || car.c < c0 || car.c >= c1) continue;
-    items.push({ depth: car.r + car.c + 0.0008, draw: () => drawCarPretty(car) });
+    items.push({ depth: car.r + car.c + 0.0008, draw: () => {
+      if (car._wrecked) { drawWreckedCar(car); return; }
+      drawCarPretty(car);
+      // Мигалка над ambient-эмердженси (скорая/пожарка в обычном трафике).
+      // Спецтранспорт по вызову (serviceVehicles) рисуется отдельно с
+      // собственной мигалкой.
+      const em = car.model && car.model.emergency;
+      if (em) {
+        const p = w2s(car.r + 0.5, car.c + 0.5);
+        const t = performance.now();
+        const blink = Math.floor(t / 200) % 2;
+        const col = (em === 'amb')
+          ? (blink ? '#ff3030' : '#3070ff')
+          : (blink ? '#ff3030' : '#ffe040');
+        ctx.save();
+        ctx.fillStyle = col;
+        ctx.shadowColor = col; ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y - 16, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }});
   }
   // GTA-квестовые машины (Майкл). owner_uid видит подсветку, остальные —
   // обычную модель + красный glow если другой игрок за рулём.
@@ -17486,6 +18568,7 @@ function drawMinimap() {
     if (poi.special === 'shop')     ringCol = 'rgba(200,112,255,.85)';
     else if (poi.special === 'arena')    ringCol = 'rgba(255,80,80,.85)';
     else if (poi.special === 'hospital') ringCol = 'rgba(80,220,120,.90)';
+    else if (poi.special === 'firestation') ringCol = 'rgba(255,120,40,.90)';
     else if (poi.special === 'jail')     ringCol = 'rgba(180,180,200,.85)';
     else if (isCap) {
       const own = territoryOwners[poi.id];
