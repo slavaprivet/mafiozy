@@ -3892,37 +3892,38 @@ const CAR_MODELS = [
   //   pickup 0.55 / cargoH 0.30 (короткая крыша + кузов)
   //   van    0.78 — высокий микроавтобус
   //   coupe  0.50 — низкий 2-дверный
-  { name: 'sedan',    L: 1.7, W: 0.85, palette: ['#3a5a8a','#22386a'], roof: '#1a2848', wheelR: 0.16, height: 0.55 },
-  { name: 'taxi',     L: 1.7, W: 0.85, palette: ['#ffd700','#b89400'], roof: '#1a1a1a', wheelR: 0.16, taxi: true,  height: 0.55 },
-  { name: 'sport',    L: 1.6, W: 0.78, palette: ['#c8202a','#7a0d18'], roof: '#1a0a10', wheelR: 0.15, sport: true, height: 0.42 },
-  { name: 'pickup',   L: 1.9, W: 0.92, palette: ['#3a3a3a','#1f1f1f'], roof: '#0f0f0f', wheelR: 0.18, pickup: true, height: 0.55, cabFrac: 0.55 },
-  { name: 'van',      L: 2.0, W: 0.95, palette: ['#2f6a3a','#1a3a22'], roof: '#152818', wheelR: 0.18, van: true,   height: 0.78 },
-  { name: 'sedan2',   L: 1.7, W: 0.85, palette: ['#6a6a72','#3a3a44'], roof: '#22222a', wheelR: 0.16, height: 0.55 },
-  { name: 'sedan3',   L: 1.7, W: 0.85, palette: ['#8a3a3a','#4a1a1a'], roof: '#2a0a0a', wheelR: 0.16, height: 0.55 },
-  { name: 'coupe',    L: 1.55, W: 0.8,  palette: ['#1a1a1a','#0a0a0a'], roof: '#000000', wheelR: 0.15, height: 0.50 },
-  // Спорткары
-  { name: 'supercar', L: 1.55, W: 0.78, palette: ['#f0a020','#a05a00'], roof: '#2a1a00', wheelR: 0.15, sport: true, fast: true, height: 0.40 },
-  { name: 'lambo',    L: 1.55, W: 0.78, palette: ['#3afd6c','#0a8a3a'], roof: '#0a3a14', wheelR: 0.15, sport: true, fast: true, height: 0.38 },
-  { name: 'ferrari',  L: 1.55, W: 0.78, palette: ['#ed1a2e','#7a0a18'], roof: '#1a0408', wheelR: 0.15, sport: true, fast: true, height: 0.40 },
-  { name: 'porsche',  L: 1.6,  W: 0.78, palette: ['#1a1afa','#0a0a8a'], roof: '#000a3a', wheelR: 0.15, sport: true, fast: true, height: 0.42 },
-  // Новые: грузовик, минивэн, хэтчбек, лимузин — больше разнообразия
-  { name: 'truck',    L: 2.20, W: 1.00, palette: ['#6a4020','#3a2210'], roof: '#1a1008', wheelR: 0.20, pickup: true, height: 0.62, cabFrac: 0.40 },
-  { name: 'minivan',  L: 1.85, W: 0.92, palette: ['#5a708a','#2f3e54'], roof: '#1a2230', wheelR: 0.17, van: true,   height: 0.70 },
-  { name: 'hatch',    L: 1.55, W: 0.82, palette: ['#a06840','#5a3818'], roof: '#1a0e08', wheelR: 0.16, height: 0.52 },
-  { name: 'limo',     L: 2.10, W: 0.88, palette: ['#0a0a14','#000000'], roof: '#000000', wheelR: 0.16, height: 0.52 },
-  // ── Внедорожники / джипы — высокие, квадратные, багажник + bullbar ──
-  { name: 'suv_black',   L: 1.95, W: 1.02, palette: ['#1a1a22','#0a0a10'], roof: '#000', wheelR: 0.24, suv: true, height: 0.85 },
-  { name: 'suv_white',   L: 1.95, W: 1.02, palette: ['#dadada','#82828a'], roof: '#3a3a44', wheelR: 0.24, suv: true, height: 0.85 },
-  { name: 'jeep_safari', L: 1.85, W: 1.05, palette: ['#3a5028','#1f2a14'], roof: '#1a2410', wheelR: 0.24, suv: true, cabrio: true, height: 0.78 },
-  { name: 'jeep_sand',   L: 1.85, W: 1.05, palette: ['#b89058','#6a4f28'], roof: '#3a2812', wheelR: 0.24, suv: true, height: 0.80 },
-  // ── Маслкары — низкие, широкие, с двумя гоночными полосами ──
-  { name: 'muscle_blue', L: 1.78, W: 0.92, palette: ['#1a3a8a','#0a1a4a'], roof: '#0a0a1a', wheelR: 0.17, muscle: true, height: 0.50, sport: true },
-  { name: 'muscle_org',  L: 1.78, W: 0.92, palette: ['#e87010','#7a3808'], roof: '#1a0a02', wheelR: 0.17, muscle: true, height: 0.50, sport: true },
+  // height — высоты разнесены сильнее (0.30..1.05), чтобы силуэты явно
+  // различались в изометрии. wheelR — теперь реально влияет на размер
+  // колеса (см. drawCarPretty: ellipse(corner.x, corner.y, wR*22, wR*12)).
+  { name: 'sedan',    L: 1.7,  W: 0.85, palette: ['#3a5a8a','#22386a'], roof: '#1a2848', wheelR: 0.18, height: 0.55 },
+  { name: 'taxi',     L: 1.7,  W: 0.85, palette: ['#ffd700','#b89400'], roof: '#1a1a1a', wheelR: 0.18, taxi: true, height: 0.55 },
+  { name: 'sport',    L: 1.45, W: 0.78, palette: ['#c8202a','#7a0d18'], roof: '#1a0a10', wheelR: 0.16, sport: true, height: 0.32 },
+  { name: 'pickup',   L: 1.95, W: 0.95, palette: ['#3a3a3a','#1f1f1f'], roof: '#0f0f0f', wheelR: 0.22, pickup: true, height: 0.62, cabFrac: 0.55 },
+  { name: 'van',      L: 2.05, W: 0.98, palette: ['#2f6a3a','#1a3a22'], roof: '#152818', wheelR: 0.20, van: true, height: 0.92 },
+  { name: 'coupe',    L: 1.50, W: 0.80, palette: ['#1a1a1a','#0a0a0a'], roof: '#000000', wheelR: 0.16, height: 0.42, sport: true },
+  // Спорткары — самые низкие и короткие, клиновидный силуэт
+  { name: 'supercar', L: 1.45, W: 0.78, palette: ['#f0a020','#a05a00'], roof: '#2a1a00', wheelR: 0.17, sport: true, fast: true, height: 0.30 },
+  { name: 'lambo',    L: 1.45, W: 0.80, palette: ['#3afd6c','#0a8a3a'], roof: '#0a3a14', wheelR: 0.17, sport: true, fast: true, height: 0.28 },
+  { name: 'ferrari',  L: 1.45, W: 0.78, palette: ['#ed1a2e','#7a0a18'], roof: '#1a0408', wheelR: 0.17, sport: true, fast: true, height: 0.30 },
+  { name: 'porsche',  L: 1.50, W: 0.78, palette: ['#1a1afa','#0a0a8a'], roof: '#000a3a', wheelR: 0.17, sport: true, fast: true, height: 0.32 },
+  // Грузовик / минивэн / хэтч / лимузин
+  { name: 'truck',    L: 2.30, W: 1.05, palette: ['#6a4020','#3a2210'], roof: '#1a1008', wheelR: 0.24, pickup: true, height: 0.72, cabFrac: 0.40 },
+  { name: 'minivan',  L: 1.90, W: 0.95, palette: ['#5a708a','#2f3e54'], roof: '#1a2230', wheelR: 0.20, van: true, height: 0.85 },
+  { name: 'hatch',    L: 1.50, W: 0.82, palette: ['#a06840','#5a3818'], roof: '#1a0e08', wheelR: 0.17, height: 0.50 },
+  { name: 'limo',     L: 2.20, W: 0.88, palette: ['#0a0a14','#000000'], roof: '#000000', wheelR: 0.17, height: 0.48 },
+  // ── Внедорожники — самые высокие (1.0+) и широкие, явно крупные колёса ──
+  { name: 'suv_black',   L: 1.95, W: 1.05, palette: ['#1a1a22','#0a0a10'], roof: '#000', wheelR: 0.28, suv: true, height: 1.00 },
+  { name: 'suv_white',   L: 1.95, W: 1.05, palette: ['#dadada','#82828a'], roof: '#3a3a44', wheelR: 0.28, suv: true, height: 1.00 },
+  { name: 'jeep_safari', L: 1.80, W: 1.05, palette: ['#3a5028','#1f2a14'], roof: '#1a2410', wheelR: 0.30, suv: true, cabrio: true, height: 0.92 },
+  { name: 'jeep_sand',   L: 1.80, W: 1.05, palette: ['#b89058','#6a4f28'], roof: '#3a2812', wheelR: 0.30, suv: true, height: 0.95 },
+  // ── Маслкары — низкие, широкие, двойные полосы. Чуть выше спорта, шире ──
+  { name: 'muscle_blue', L: 1.85, W: 0.98, palette: ['#1a3a8a','#0a1a4a'], roof: '#0a0a1a', wheelR: 0.20, muscle: true, height: 0.42, sport: true },
+  { name: 'muscle_org',  L: 1.85, W: 0.98, palette: ['#e87010','#7a3808'], roof: '#1a0a02', wheelR: 0.20, muscle: true, height: 0.42, sport: true },
   // ── Кабриолет / родстер — без крыши, видны сиденья ──
-  { name: 'roadster',    L: 1.60, W: 0.80, palette: ['#9a1a1a','#5a0a0a'], roof: '#000', wheelR: 0.15, cabrio: true, sport: true, height: 0.42 },
+  { name: 'roadster',    L: 1.55, W: 0.80, palette: ['#9a1a1a','#5a0a0a'], roof: '#000', wheelR: 0.16, cabrio: true, sport: true, height: 0.38 },
   // ── Старая классика — длинная, с подножкой и хромом ──
-  { name: 'classic',     L: 2.00, W: 0.90, palette: ['#503020','#2a1810'], roof: '#1a0e08', wheelR: 0.16, classic: true, height: 0.55 },
-  { name: 'classic2',    L: 2.00, W: 0.90, palette: ['#0a3a3a','#04181a'], roof: '#000', wheelR: 0.16, classic: true, height: 0.55 },
+  { name: 'classic',     L: 2.10, W: 0.92, palette: ['#503020','#2a1810'], roof: '#1a0e08', wheelR: 0.18, classic: true, height: 0.58 },
+  { name: 'classic2',    L: 2.10, W: 0.92, palette: ['#0a3a3a','#04181a'], roof: '#000', wheelR: 0.18, classic: true, height: 0.58 },
 ];
 // ── QUEST_CAR_MODELS — 10 эксклюзивных моделей для контрактов Майкла ──
 // Спавнятся ТОЛЬКО как квестовые цели (сервером через quest_cars). Гражданский
@@ -11308,6 +11309,33 @@ function drawCarPretty(car) {
     ctx.strokeStyle = '#1a1a1a';
     ctx.lineWidth = 0.8;
     ctx.beginPath(); ctx.arc(drvX, drvY, 1.2, 0, Math.PI * 2); ctx.stroke();
+  } else if (m.sport && !m.muscle) {
+    // СПОРТКАР — клиновидный силуэт. Крыша короткая (40-65% длины),
+    // спереди наклонный капот, сзади короткий багажник. Это даёт явно
+    // отличный силуэт от sedan/SUV даже на мелком зуме.
+    const fF = 0.32;   // где начинается крыша от переда (0=у носа)
+    const fB = 0.78;   // где заканчивается крыша от переда
+    function lerpPt(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+    const rFf = lerpPt(FR, BR, fF), rFl = lerpPt(FL, BL, fF);
+    const rBf = lerpPt(FR, BR, fB), rBl = lerpPt(FL, BL, fB);
+    // Капот — наклонный треугольник от FR-FL (низ) к rFf-rFl (верх H)
+    ctx.fillStyle = sideC;
+    ctx.beginPath();
+    ctx.moveTo(FR.x, FR.y); ctx.lineTo(FL.x, FL.y);
+    ctx.lineTo(rFl.x, rFl.y - H); ctx.lineTo(rFf.x, rFf.y - H);
+    ctx.closePath(); ctx.fill();
+    // Багажник сзади (от rBf-rBl на крыше → BR-BL на земле)
+    ctx.fillStyle = sideC;
+    ctx.beginPath();
+    ctx.moveTo(rBf.x, rBf.y - H); ctx.lineTo(rBl.x, rBl.y - H);
+    ctx.lineTo(BL.x, BL.y); ctx.lineTo(BR.x, BR.y);
+    ctx.closePath(); ctx.fill();
+    // Сама крыша — короткий ромб
+    ctx.fillStyle = m.roof || topC;
+    ctx.beginPath();
+    ctx.moveTo(rFf.x, rFf.y - H); ctx.lineTo(rFl.x, rFl.y - H);
+    ctx.lineTo(rBl.x, rBl.y - H); ctx.lineTo(rBf.x, rBf.y - H);
+    ctx.closePath(); ctx.fill();
   } else {
     // Обычная крыша — ромб поднятый на H
     ctx.fillStyle = m.roof || topC;
@@ -11392,21 +11420,27 @@ function drawCarPretty(car) {
       ctx.fillRect(px - 1.5, py, 3, 0.8);
     }
   }
-  // Колёса — 4 чёрных овала + хромированный обод (диск)
+  // Колёса — размер зависит от m.wheelR (раньше был фиксированный 3.8×2.0
+  // у всех машин, поэтому SUV и спорткар выглядели одинаково). Базовый
+  // мультипликатор подобран так, что wheelR=0.16 даёт прежние ~3.5×1.9 px.
+  const wR  = (m.wheelR || 0.18) * 22;   // внешний радиус (горизонтальная ось)
+  const wR2 = (m.wheelR || 0.18) * 12;   // вертикальная ось (изометрический сплющ)
+  const rimR  = wR * 0.52, rimR2 = wR2 * 0.52;
+  const nutR  = Math.max(0.5, wR * 0.17);
   for (const corner of [FR, FL, BR, BL]) {
     ctx.fillStyle = '#0a0a0a';
     ctx.beginPath();
-    ctx.ellipse(corner.x, corner.y, 3.8, 2.0, 0, 0, Math.PI * 2);
+    ctx.ellipse(corner.x, corner.y, wR, wR2, 0, 0, Math.PI * 2);
     ctx.fill();
     // Диск-обод — серый кружок внутри
     ctx.fillStyle = '#8c8c94';
     ctx.beginPath();
-    ctx.ellipse(corner.x, corner.y, 2.0, 1.0, 0, 0, Math.PI * 2);
+    ctx.ellipse(corner.x, corner.y, rimR, rimR2, 0, 0, Math.PI * 2);
     ctx.fill();
     // Центральная гайка
     ctx.fillStyle = '#1a1a1a';
     ctx.beginPath();
-    ctx.arc(corner.x, corner.y, 0.6, 0, Math.PI * 2);
+    ctx.arc(corner.x, corner.y, nutR, 0, Math.PI * 2);
     ctx.fill();
   }
   // Выхлоп — маленькое тёмное отверстие в нижнем углу задней грани
