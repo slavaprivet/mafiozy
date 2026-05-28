@@ -12380,6 +12380,30 @@ class WorldSim:
                     'skill_up': skill_up, 'new_sc_lvl': new_sc}
         return {'ok': True, 'delivered': False, 'car_id': car_id}
 
+    def world_heal(self, uid: str) -> dict:
+        """Полное лечение игрока — если он в радиусе POI больницы (43, 23)
+        и кулдаун 60с прошёл. Возвращает {ok, hp, cd_left_s, reason?}."""
+        p = self.players.get(uid)
+        if not p:
+            return {'ok': False, 'reason': 'gone'}
+        if p.get('dead'):
+            return {'ok': False, 'reason': 'dead'}
+        # Радиус «у входа в больницу»
+        HEAL_R = 5.5
+        dx = p.get('x', 0) - self.HOSPITAL_X
+        dy = p.get('y', 0) - self.HOSPITAL_Y
+        if (dx * dx + dy * dy) > HEAL_R * HEAL_R:
+            return {'ok': False, 'reason': 'far'}
+        now = time.time()
+        cd_until = p.get('_heal_cd_until', 0) or 0
+        if now < cd_until:
+            return {'ok': False, 'reason': 'cooldown',
+                    'cd_left_s': int(cd_until - now)}
+        max_hp = int(p.get('max_hp', 100) or 100)
+        p['hp'] = max_hp
+        p['_heal_cd_until'] = now + 60.0
+        return {'ok': True, 'hp': max_hp, 'cd_left_s': 60}
+
     def gta_status(self, uid: str) -> dict:
         """Снапшот GTA для HUD: счётчик, ресет, активный заказ."""
         p = self.players.get(uid)
@@ -17848,6 +17872,14 @@ async def _coop_http_app():
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(world.gta_status(uid),
                                                           kind='gta_status')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'world_heal':
+                        rep = world.world_heal(uid)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(rep,
+                                                          kind='world_heal_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
                     elif t == 'box_take':
