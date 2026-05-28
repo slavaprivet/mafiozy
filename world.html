@@ -4675,6 +4675,12 @@ const shells  = [];       // {x,y,vx,vy,vz,z,rot,vrot,life,max}
 const impacts = [];       // {r,c,parts:[{vr,vc,life,max,color,isBlood,size}]}
 // Пятна крови на земле — splat-ы живут 8 сек после попадания.
 const bloodSplats = [];   // {r,c,radius,life,max,rot}
+// Тормозные следы — два чёрных штриха от задних колёс при резком повороте
+// или жёстком тормозе на скорости. Затухают за 6 секунд.
+// {r, c, ang, life, max}
+const skidMarks = [];
+const SKID_MAX_LIFE = 8000;
+let _lastSkidAt = 0;
 // Анимации ареста — локальный спавн автозака, который приезжает к жертве,
 // загружает её и уезжает в участок. ~4 секунды. См. spawnArrestAnim().
 const arrestAnims = [];   // {target_uid, startMs, fromR/C, atR/C, jailR/C, dir}
@@ -8685,16 +8691,15 @@ function update(dt) {
       _interpMichaelGuards(dt);
       return;
     } else {
-      // Машина чуть быстрее пешего (5 тайл/сек), но не носится как ракета.
-      // Серверный кламп QUEST_CAR_MAX_SPEED=14 не превысим.
-      const CAR_MAX_SPEED   = 9.0;   // было 13 — реально медленнее
-      const CAR_ACCEL       = 9.0;   // было 14 — мягче разгон
-      const CAR_BRAKE       = 12.0;  // торможение при отпущенном стике / exit
-      // Поворот — НЕ моментальный разворот, а угловая скорость. На большой
-      // скорости легче маневрировать, на стоящей машине поворот замедленный
-      // (нельзя «развернуться на месте» как пешеход).
-      const CAR_TURN_RATE_BASE = 2.4;  // рад/сек у машины едущей средне
-      const CAR_DRIFT_GRIP     = 1.5;  // было 4 — на поворотах сильно несёт боком
+      // Параметры аркадной езды. Серверный кламп QUEST_CAR_MAX_SPEED=14.
+      const CAR_MAX_SPEED   = 13.0;  // было 9 — заметно живее, ниже 14 серв-клампа
+      const CAR_ACCEL       = 13.0;  // было 9 — быстрее набирает скорость
+      const CAR_BRAKE       = 16.0;  // активное торможение и exit
+      const CAR_COAST_DRAG  = 0.85;  // пассивный «накат» при отпущенном стике
+      // Поворот — угловая скорость, зависит от скорости движения. Заметно
+      // отзывчивее чем раньше, но не моментальная — машина чувствуется.
+      const CAR_TURN_RATE_BASE = 3.4;  // было 2.4 — острее руль
+      const CAR_DRIFT_GRIP     = 5.0;  // было 1.5 — шины «держат», без болтанки
       // Текущая скорость по локальному состоянию qc
       let curVx = qc.vx || 0, curVy = qc.vy || 0;
       let curSpeed = Math.hypot(curVx, curVy);
@@ -8707,14 +8712,15 @@ function update(dt) {
         const targetAng = Math.atan2((s - d) * 0.5, (s + d) * 0.5);
         // Плавно поворачиваем angle машины к targetAng. Угловая скорость
         // зависит от скорости движения (как настоящая машина):
-        //   v < 1   — поворот в 4 раза медленнее (нельзя крутиться на месте)
-        //   v = 4   — нормально
-        //   v > 8   — чуть быстрее (на скорости рулится острее)
-        // Плюс отклонение стика мало → турн-рейт ограничен пропорционально.
-        let speedK = 1.0;
-        if (curSpeed < 1.0)      speedK = 0.25 + curSpeed * 0.75;     // 0.25..1.0
-        else if (curSpeed > 8.0) speedK = 1.0 + Math.min(0.3, (curSpeed - 8) * 0.05);
-        const stickK = Math.min(1, inMag * 1.2);    // <0.83 стика → плавный
+        //   v < 1   — поворот ~70% (нельзя крутиться на месте, но на старте
+        //             машина уже слушается стик нормально)
+        //   v = 4   — нормально (×1.0)
+        //   v > 8   — заметно острее (на скорости рулит сразу)
+        let speedK;
+        if (curSpeed < 1.0)      speedK = 0.55 + curSpeed * 0.45;     // 0.55..1.0
+        else if (curSpeed > 8.0) speedK = 1.0 + Math.min(0.5, (curSpeed - 8) * 0.10);
+        else                     speedK = 1.0;
+        const stickK = Math.min(1, inMag * 1.4);    // больше «полного руля»
         const turnRate = CAR_TURN_RATE_BASE * speedK * stickK;
         let aDiff = targetAng - qc.ang;
         while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
@@ -8723,22 +8729,78 @@ function update(dt) {
         qc.ang += turnStep;
         // Газ = магнитуда стика (0..1)
         throttle = Math.min(1, inMag);
+        // Skid marks: резкий поворот на скорости → штрихи на асфальте.
+        // Условие: фактическая угловая скорость близка к лимиту И едем быстро.
+        const turnSpeed = Math.abs(turnStep) / Math.max(dt, 0.001);
+        if (turnSpeed > CAR_TURN_RATE_BASE * 0.55 && curSpeed > 5.5) {
+          const nowMs = performance.now();
+          if (nowMs - _lastSkidAt > 40) {
+            _lastSkidAt = nowMs;
+            // 2 штриха — позиции задних колёс. Модель — quest или fallback.
+            const mm = QUEST_CAR_MODELS[qc.model] || { L: 1.7, W: 0.85 };
+            const wheelOffset = (mm.W || 0.85) * 0.40;
+            const perpAng = qc.ang + Math.PI / 2;
+            const px = Math.cos(perpAng), py = Math.sin(perpAng);
+            // Сдвиг назад на полдлины машины
+            const backOff = (mm.L || 1.6) * 0.35;
+            const bx = qc.x - Math.cos(qc.ang) * backOff;
+            const by = qc.y - Math.sin(qc.ang) * backOff;
+            skidMarks.push({
+              r: by + py * wheelOffset, c: bx + px * wheelOffset,
+              ang: qc.ang, life: SKID_MAX_LIFE, max: SKID_MAX_LIFE,
+            });
+            skidMarks.push({
+              r: by - py * wheelOffset, c: bx - px * wheelOffset,
+              ang: qc.ang, life: SKID_MAX_LIFE, max: SKID_MAX_LIFE,
+            });
+            // Ограничиваем общее число чтобы не пухло
+            if (skidMarks.length > 400) skidMarks.splice(0, 80);
+          }
+        }
       }
-      // Применяем газ/тормоз вдоль текущего угла машины
+      // Применяем газ/тормоз вдоль текущего угла машины.
+      // Газ + противоположное направление (стик назад при движении вперёд) =
+      // активное торможение → горящие стоп-сигналы.
       const dirVy = Math.sin(qc.ang);
       const dirVx = Math.cos(qc.ang);
+      // Проекция текущей скорости на направление машины (signed):
+      // положительная — едем вперёд, отрицательная — назад/тормозим.
+      const forwardSpeed = curVx * dirVx + curVy * dirVy;
+      let activeBrake = false;
       if (throttle > 0.05) {
-        curVx += dirVx * CAR_ACCEL * throttle * dt;
-        curVy += dirVy * CAR_ACCEL * throttle * dt;
+        // Активное торможение только когда скорость СУЩЕСТВЕННО против
+        // желаемого направления (≥3 тайла/сек назад). Иначе при резком
+        // повороте на скорости проекция forwardSpeed на новое направление
+        // ненадолго слегка отрицательная — это НЕ тормоз, а просто инерция,
+        // которую разгребает CAR_DRIFT_GRIP.
+        if (forwardSpeed < -3.0) {
+          activeBrake = true;
+          // Гасим обратное движение быстрее
+          const dec = CAR_BRAKE * dt;
+          if (curSpeed <= dec) { curVx = 0; curVy = 0; }
+          else { const k = (curSpeed - dec) / curSpeed; curVx *= k; curVy *= k; }
+        } else {
+          curVx += dirVx * CAR_ACCEL * throttle * dt;
+          curVy += dirVy * CAR_ACCEL * throttle * dt;
+        }
       } else {
-        // Торможение/инерция: уменьшаем длину вектора
-        const dec = (wantingExit ? CAR_BRAKE : CAR_BRAKE * 0.55) * dt;
-        if (curSpeed <= dec) { curVx = 0; curVy = 0; }
-        else {
-          const k = (curSpeed - dec) / curSpeed;
+        // Отпустили газ — мягкий «накат» (как в аркаде). Если просили выход —
+        // активно жмём тормоз до полной остановки.
+        if (wantingExit) {
+          const dec = CAR_BRAKE * dt;
+          if (curSpeed <= dec) { curVx = 0; curVy = 0; }
+          else { const k = (curSpeed - dec) / curSpeed; curVx *= k; curVy *= k; }
+          activeBrake = true;
+        } else {
+          // CAR_COAST_DRAG в секунду → пассивный накат с экспоненциальным
+          // спадом. Машина проезжает заметное расстояние по инерции.
+          const k = Math.exp(-Math.log(1 / CAR_COAST_DRAG) * dt);
           curVx *= k; curVy *= k;
         }
       }
+      // Флаг для рендера стоп-сигналов: жмём тормоз или просто очень медленно
+      // едем (заходим на парковку).
+      qc.braking = activeBrake || (Math.hypot(curVx, curVy) < 0.6 && throttle < 0.05);
       // Кламп скорости
       curSpeed = Math.hypot(curVx, curVy);
       if (curSpeed > CAR_MAX_SPEED) {
@@ -8910,11 +8972,23 @@ function update(dt) {
         try { ws && ws.send(JSON.stringify({ t: 'gta_exit', d: { car_id: cid } })); }
         catch(e){}
       }
-      // Камера + UI и пропускаем обычное движение игрока пешком
-      const targetCamX = (player.c - player.r) * TS * 0.5;
-      const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
-      cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
-      cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
+      // Камера look-ahead — на скорости сдвигаем target по вектору
+      // движения, игрок видит дорогу впереди. Лерп помедленнее (×5
+      // вместо ×8), чтобы съезд камеры был плавным а не дёрганым.
+      let lookR = 0, lookC = 0;
+      const camSpeed = Math.hypot(curVx, curVy);
+      if (camSpeed > 0.5) {
+        // Максимум 2.6 тайла предугадывания на max-скорости.
+        const k = Math.min(1, camSpeed / CAR_MAX_SPEED) * 2.6;
+        lookR = (curVy / camSpeed) * k;
+        lookC = (curVx / camSpeed) * k;
+      }
+      const aimC = player.c + lookC;
+      const aimR = player.r + lookR;
+      const targetCamX = (aimC - aimR) * TS * 0.5;
+      const targetCamY = (aimC + aimR) * TS * 0.5 * ISO_Y;
+      cam.x += (targetCamX - cam.x) * Math.min(1, dt * 5);
+      cam.y += (targetCamY - cam.y) * Math.min(1, dt * 5);
       updateGtaInteractions();
       updateZoneBtn();
       updatePvpUI();
@@ -14929,11 +15003,12 @@ function drawQuestCar(qc) {
     _shakeRX = (Math.random() - 0.5) * mag;
     _shakeRY = (Math.random() - 0.5) * mag;
   }
-  // Используем drawCarPretty
+  // Используем drawCarPretty (передаём braking чтобы зажглись стоп-сигналы)
   drawCarPretty({
     r: qc.y + _shakeRY, c: qc.x + _shakeRX,
     dirDx, dirDy,
     model: m,
+    braking: !!qc.braking,
   });
   // ── Дым/огонь на низком HP ──
   //   < 50%  — лёгкий дымок из-под капота
@@ -17522,6 +17597,8 @@ function render() {
   // Splat'ы крови — на земле, ПОД персонажами (depth-sort кладёт их
   // в самый низ списка через прямой вызов до items)
   drawBloodSplats();
+  // Тормозные следы (skid marks) — тоже под персонажами и машинами
+  drawSkidMarks();
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
   // Автозаки ареста — поверх персонажей (LOADING-фаза скрывает спрайт)
@@ -18464,6 +18541,43 @@ function drawBloodSplats() {
     ctx.fill();
     ctx.restore();
   }
+}
+
+// ── Тормозные следы шин ───────────────────────────────────────────
+// Короткие тёмные штрихи на земле от задних колёс. Спавнятся в
+// driver-блоке update() при резких поворотах на скорости. Затухают
+// плавно за 6 секунд (см. SKID_MAX_LIFE).
+function drawSkidMarks() {
+  const now = performance.now();
+  for (let i = skidMarks.length - 1; i >= 0; i--) {
+    const s = skidMarks[i];
+    const dt = now - (s._lastT || (s._lastT = now));
+    s._lastT = now;
+    s.life -= dt;
+    if (s.life <= 0) { skidMarks.splice(i, 1); continue; }
+    const a = Math.max(0, Math.min(0.72, s.life / s.max * 0.72));
+    // Считаем экранные координаты точки следа и точки немного впереди —
+    // их разность задаёт направление штриха на экране (учёт изометрии).
+    const cosA = Math.cos(s.ang);
+    const sinA = Math.sin(s.ang);
+    const p  = w2s(s.r + 0.5, s.c + 0.5);
+    const p2 = w2s(s.r + 0.5 + sinA * 0.55, s.c + 0.5 + cosA * 0.55);
+    const dx = p2.x - p.x, dy = p2.y - p.y;
+    const len = Math.hypot(dx, dy);
+    const ang = Math.atan2(dy, dx);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(ang);
+    // Двойной штрих — основной чёрный + узкая серая полоска внутри для
+    // объёмности. Толще чем было — 2.8 px вместо 1.8.
+    ctx.fillStyle = '#080808';
+    ctx.fillRect(-len * 0.5, -1.4, len, 2.8);
+    ctx.fillStyle = 'rgba(60,60,60,.5)';
+    ctx.fillRect(-len * 0.5, -0.3, len, 0.6);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
 }
 
 // ── Импакт-частицы (искры/кровь при попадании) ─────────────────────
