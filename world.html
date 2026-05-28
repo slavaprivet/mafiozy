@@ -127,12 +127,44 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 #gtaQuestHud .reward { color: #6cff8a; }
 
 /* Модал-меню Майкла. Затемнение фона + карточка контракта в центре. */
-#michaelModal {
+#michaelModal,
+#bizConfirmModal {
   position: fixed; inset: 0; background: rgba(0,0,0,.7);
   display: none; z-index: 12;
   align-items: center; justify-content: center;
 }
-#michaelModal.show { display: flex; }
+#michaelModal.show,
+#bizConfirmModal.show { display: flex; }
+/* bizConfirmModal заимствует разметку и стили .card/.head/.talk/.meta/.btns
+   от michaelModal — повторно описываем их с тем же селектором. */
+#bizConfirmModal .card {
+  width: min(360px, 90vw); background: #14181f;
+  border: 1px solid #d8a040; border-radius: 14px; padding: 18px 18px 14px;
+  color: #fff; font-family: inherit; position: relative;
+  box-shadow: 0 12px 30px rgba(0,0,0,.7);
+}
+#bizConfirmModal .head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+#bizConfirmModal .head .icon { font-size: 32px; }
+#bizConfirmModal .head .nm   { font-size: 16px; font-weight: 800; color: #ffd76b; }
+#bizConfirmModal .head .sub  { font-size: 11px; color: #b8a880; }
+#bizConfirmModal .talk {
+  background: rgba(255,215,107,.06); border: 1px solid rgba(255,215,107,.20);
+  border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: #e0d8b8;
+  margin-bottom: 12px; line-height: 1.45;
+}
+#bizConfirmModal .meta {
+  display: flex; justify-content: space-between; font-size: 11px;
+  color: #aaa; margin-bottom: 10px;
+}
+#bizConfirmModal .meta .lim { color: #ffd76b; font-weight: 700; }
+#bizConfirmModal .btns { display: flex; gap: 8px; }
+#bizConfirmModal .btn {
+  flex: 1; padding: 11px 12px; border-radius: 10px; cursor: pointer;
+  font-size: 13px; font-weight: 800; border: none; font-family: inherit;
+  letter-spacing: 0.5px;
+}
+#bizConfirmModal .btn.primary { background: linear-gradient(135deg, #2c8d4a, #44b86a); color: #fff; }
+#bizConfirmModal .btn.ghost   { background: #232a36; color: #aab2c2; }
 #michaelModal .card {
   width: min(360px, 90vw); background: #14181f;
   border: 1px solid #d8a040; border-radius: 14px; padding: 18px 18px 14px;
@@ -870,6 +902,33 @@ body.in-pvp #gtaActionBtn { top: 104px; }
         <button class="btn primary" id="michaelBoxBtn"
                 style="background:#3a4a5e;border-color:#5a7a9e;color:#a8c8e8;">📦 Взять коробку</button>
         <button class="btn ghost"   id="michaelCloseBtn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+  <!-- Окно подтверждения покупки бизнеса. Открывается из gtaBtn(biz_buy):
+       показывает название, описание, цену, ожидаемый доход в сутки и
+       просит подтвердить (Да/Нет). Без подтверждения покупка не пройдёт. -->
+  <div id="bizConfirmModal">
+    <div class="card">
+      <div class="head">
+        <div class="icon" id="bizCnfIcon">🏪</div>
+        <div>
+          <div class="nm" id="bizCnfName">—</div>
+          <div class="sub" id="bizCnfSub">бизнес</div>
+        </div>
+      </div>
+      <div class="talk" id="bizCnfDesc">—</div>
+      <div class="meta">
+        <span>💵 Цена: <span class="lim" id="bizCnfPrice">—</span></span>
+        <span>📈 Доход: <span class="lim" id="bizCnfIncome">—</span></span>
+      </div>
+      <div class="meta" style="margin-top:-6px">
+        <span>⏱ Период: <span class="lim">раз в сутки</span></span>
+        <span>⌛ Окупится: <span class="lim" id="bizCnfPayback">—</span></span>
+      </div>
+      <div class="btns">
+        <button class="btn primary" id="bizCnfYes">✅ Да, купить</button>
+        <button class="btn ghost"   id="bizCnfNo">Отмена</button>
       </div>
     </div>
   </div>
@@ -3605,14 +3664,23 @@ function triggerWitnessChain(srcR, srcC, radius, opts) {
   const panicCries   = opts.panicCries   || ['ААА!!', 'ПОМОГИТЕ!', 'УБЕГАЙ!'];
   const now = performance.now();
   const r2  = radius * radius;
+  // Лимит «активных снитчей» — не больше 2 одновременно. Иначе у участка
+  // 76,76 копится 10+ NPC и каждый кадр генерирует _snitchReport → +N wanted
+  // за секунду и тормоза.
+  const MAX_SNITCHERS_TOTAL = 2;
+  let currentSnitchers = 0;
+  for (const n of NPCS) if (n.snitching && now < n.snitchUntil) currentSnitchers++;
+  let newSnitchSlots = Math.max(0, MAX_SNITCHERS_TOTAL - currentSnitchers);
   for (const n of NPCS) {
     if (n.dead) continue;
     if (n.snitching && now < n.snitchUntil) continue;   // уже стучит
     const dr = n.r - srcR, dc = n.c - srcC;
     if (dr * dr + dc * dc > r2) continue;
-    if (Math.random() < snitchChance) {
+    if (newSnitchSlots > 0 && Math.random() < snitchChance) {
       markNpcSnitch(n, snitchCries[Math.floor(Math.random() * snitchCries.length)]);
+      newSnitchSlots--;
     } else {
+      // Все остальные — только паникуют (бегут с криком), но не стучат.
       n.panicUntil = now + 4000 + Math.random() * 2500;
       n.cryUntil   = now + 1800 + Math.random() * 1000;
       n.cryText    = panicCries[Math.floor(Math.random() * panicCries.length)];
@@ -3625,7 +3693,13 @@ function triggerWitnessChain(srcR, srcC, radius, opts) {
 
 // Когда NPC-свидетель добежал до участка — шлём серверу open_fire с
 // witness=true (без civilian), сервер даёт wanted +1. Локально — тост.
+// Rate-limit: не чаще раза в 2.5 с, иначе лавина свидетелей сразу даёт
+// +3..+5 wanted за пару кадров (см. жалобу с зависанием и 3 звёздами).
+let _lastSnitchReportAt = 0;
 function _snitchReport() {
+  const now = performance.now();
+  if (now - _lastSnitchReportAt < 2500) return;   // дебаунс
+  _lastSnitchReportAt = now;
   try {
     ws && ws.send(JSON.stringify({ t: 'open_fire',
       d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
@@ -6437,7 +6511,7 @@ _gtaBtn.addEventListener('click', () => {
   } else if (_gtaActionKind === 'box_deliver') {
     try { ws && ws.send(JSON.stringify({ t: 'box_deliver', d: {} })); } catch(e){}
   } else if (_gtaActionKind === 'biz_buy') {
-    buyBusinessHere(_gtaActionCarId);
+    showBuyBizConfirm(_gtaActionCarId);
   } else if (_gtaActionKind === 'biz_collect') {
     collectBusinessHere(_gtaActionCarId);
   } else if (_gtaActionKind === 'biz_info') {
@@ -6448,6 +6522,40 @@ _gtaBtn.addEventListener('click', () => {
 });
 
 // ── HTTP-API: бизнесы и чёрный рынок ───────────────────────────────
+// showBuyBizConfirm — открывает модалку с подтверждением покупки.
+// Только после нажатия «Да, купить» вызывается buyBusinessHere().
+function showBuyBizConfirm(biz_id) {
+  const b = BUSINESS_POIS.find(x => x.id === biz_id);
+  if (!b) { showToast('Бизнес не найден', '⚠️'); return; }
+  const modal = document.getElementById('bizConfirmModal');
+  document.getElementById('bizCnfIcon').textContent  = b.emoji || '🏪';
+  document.getElementById('bizCnfName').textContent  = b.name;
+  document.getElementById('bizCnfSub').textContent   = 'покупка бизнеса';
+  document.getElementById('bizCnfDesc').textContent  = b.desc || '';
+  document.getElementById('bizCnfPrice').textContent = '$' + b.price.toLocaleString('ru');
+  const dmin = b.daily_min || 0, dmax = b.daily_max || 0;
+  document.getElementById('bizCnfIncome').textContent = dmin && dmax
+    ? `$${dmin.toLocaleString('ru')}–${dmax.toLocaleString('ru')}/сутки`
+    : '—';
+  // Окупаемость: цена / средний доход в сутки, округлим до целых суток.
+  const avg = (dmin + dmax) / 2;
+  document.getElementById('bizCnfPayback').textContent = avg > 0
+    ? Math.ceil(b.price / avg) + ' дн.'
+    : '—';
+  modal.classList.add('show');
+}
+function _closeBizConfirm() {
+  document.getElementById('bizConfirmModal').classList.remove('show');
+}
+document.getElementById('bizCnfNo').addEventListener('click', _closeBizConfirm);
+document.getElementById('bizCnfYes').addEventListener('click', () => {
+  // На «Да» — берём биз-id из заголовка (через текущий gta-target), вызываем
+  // фактическую покупку и закрываем окно.
+  _closeBizConfirm();
+  if (_gtaActionKind === 'biz_buy' && _gtaActionCarId) {
+    buyBusinessHere(_gtaActionCarId);
+  }
+});
 function buyBusinessHere(biz_id) {
   const b = BUSINESS_POIS.find(x => x.id === biz_id);
   if (!b || !QP.api || !QP.uid) {
@@ -11735,16 +11843,18 @@ function drawBillboard(b) {
 // 2) физически подойдя к точке в мире — gta-кнопка «🏪 Купить за $N»
 // Серверный endpoint один и тот же — POST /biz/{uid}/buy.
 // «Доля в порту» (id: 'port') продаётся у Майкла, в мире её НЕТ.
+// daily_min/max и desc — дублируем серверный конфиг (mafiozi_bot.BUSINESSES)
+// чтобы показывать в модалке подтверждения «Купить за X — доход Y/сутки».
 const BUSINESS_POIS = [
-  { id: 'coffee',     emoji: '☕', name: 'Кофейня «У Дона»', r: 33, c: 13, price:   3000 },
-  { id: 'carwash',    emoji: '🚗', name: 'Автомойка',         r: 23, c: 25, price:   5000 },
-  { id: 'barbershop', emoji: '💈', name: 'Парикмахерская',    r: 53, c: 23, price:   7500 },
-  { id: 'pizza',      emoji: '🍕', name: 'Пиццерия',          r: 53, c: 53, price:  12000 },
-  { id: 'garage',     emoji: '🔧', name: 'Гараж-СТО',         r: 13, c: 63, price:  18000 },
-  { id: 'bar',        emoji: '🍸', name: 'Бар Чёрная вдова',  r: 43, c: 33, price:  28000 },
-  { id: 'club',       emoji: '🎰', name: 'Подпольный клуб',   r: 63, c: 53, price:  45000 },
-  { id: 'warehouse',  emoji: '📦', name: 'Склад',             r: 73, c: 23, price:  70000 },
-  { id: 'casino',     emoji: '🎲', name: 'Казино',            r: 13, c: 45, price: 120000 },
+  { id: 'coffee',     emoji: '☕', name: 'Кофейня «У Дона»',  r: 33, c: 13, price:   3000, daily_min:  150, daily_max:  200, desc: 'Тихая кофейня на углу. Прикрытие для встреч и стабильный кэш.' },
+  { id: 'carwash',    emoji: '🚗', name: 'Автомойка',          r: 23, c: 25, price:   5000, daily_min:  220, daily_max:  300, desc: 'Удобная схема для отмыва налички. Машины моют, бабки трутся.' },
+  { id: 'barbershop', emoji: '💈', name: 'Парикмахерская',     r: 53, c: 23, price:   7500, daily_min:  300, daily_max:  400, desc: 'Классика жанра. Здесь все «свои» договариваются.' },
+  { id: 'pizza',      emoji: '🍕', name: 'Пиццерия',           r: 53, c: 53, price:  12000, daily_min:  450, daily_max:  600, desc: 'Доставка пиццы — отличная легенда для перевозок чего угодно.' },
+  { id: 'garage',     emoji: '🔧', name: 'Гараж-СТО',          r: 13, c: 63, price:  18000, daily_min:  650, daily_max:  900, desc: 'Ремонтируем тачки, варим номера, шлифуем VIN. Спрос есть.' },
+  { id: 'bar',        emoji: '🍸', name: 'Бар «Чёрная вдова»', r: 43, c: 33, price:  28000, daily_min: 1000, daily_max: 1400, desc: 'Ночной бар. Алкоголь, музыка, сделки за столиком в углу.' },
+  { id: 'club',       emoji: '🎰', name: 'Подпольный клуб',    r: 63, c: 53, price:  45000, daily_min: 1600, daily_max: 2200, desc: 'Карты, рулетка, ставки. Доходно, но налоговая чует.' },
+  { id: 'warehouse',  emoji: '📦', name: 'Склад',              r: 73, c: 23, price:  70000, daily_min: 2400, daily_max: 3300, desc: 'Большой склад на окраине. Хранение «чувствительного» груза.' },
+  { id: 'casino',     emoji: '🎲', name: 'Казино',             r: 13, c: 45, price: 120000, daily_min: 4000, daily_max: 5500, desc: 'Своё казино — мечта каждого. Высокий доход, высокий риск.' },
 ];
 // Локальный статус бизнесов: biz_id → {owned, pending, blocked_until}
 const myBusinesses = new Map();
@@ -12254,14 +12364,49 @@ function drawBeachDecor(d) {
 // Декоративные объекты — фонтаны, статуи, обелиски, триумфальная арка.
 // Размещены на свободных газонах/площадях. Не блокирующие, рисуются
 // поверх тайла, в depth-sort с обычными объектами.
+// CITY_LANDMARKS — координаты ИЗНАЧАЛЬНО пустые. Реальные позиции
+// раскидываются в _placeLandmarksInParks() сразу после buildMap(): для каждого
+// landmark выбирается центр свободного парк-блока (тайл типа 8 = газон).
+// Жалоба пользователя: половина фонтанов/статуй стояла на асфальте — здесь
+// мы гарантируем, что они на газоне.
 const CITY_LANDMARKS = [
-  { kind: 'fountain', r: 40, c: 50, name: 'Фонтан Согласия' },
-  { kind: 'statue',   r: 47, c: 18, name: 'Памятник Дону Карлеоне' },
-  { kind: 'obelisk',  r: 63, c: 37, name: 'Обелиск Победителей' },
-  { kind: 'statue',   r: 27, c: 47, name: 'Памятник Медику' },
-  { kind: 'arch',     r: 50, c: 43, name: 'Триумфальная Арка' },
-  { kind: 'fountain', r: 17, c: 47, name: 'Портовый Фонтан' },
+  { kind: 'fountain', name: 'Фонтан Согласия' },
+  { kind: 'statue',   name: 'Памятник Дону Карлеоне' },
+  { kind: 'obelisk',  name: 'Обелиск Победителей' },
+  { kind: 'statue',   name: 'Памятник Медику' },
+  { kind: 'arch',     name: 'Триумфальная Арка' },
+  { kind: 'fountain', name: 'Портовый Фонтан' },
 ];
+function _placeLandmarksInParks() {
+  // Собираем центры всех парк-блоков и сортируем — раскидываем landmark'и
+  // по самым «разнесённым» паркам, чтобы они не толпились.
+  const parks = [];
+  for (const key of PARK_BLOCKS) {
+    const [br, bc] = key.split(',').map(Number);
+    // Центр блока 10×10 — это (br*10+5, bc*10+5). Сдвинем до ближайшего тайла-газона
+    // — 8 (на случай если в центре дерево или фонарь, ищем рядом).
+    const cr0 = br * BLOCK + 5, cc0 = bc * BLOCK + 5;
+    let pick = null;
+    for (let dr = 0; dr <= 2 && !pick; dr++) {
+      for (let dc = 0; dc <= 2 && !pick; dc++) {
+        for (const [sr, sc] of [[dr,dc],[-dr,dc],[dr,-dc],[-dr,-dc]]) {
+          const rr = cr0 + sr, cc = cc0 + sc;
+          if (rr < 1 || cc < 1 || rr >= MAP_ROWS-1 || cc >= MAP_COLS-1) continue;
+          if (MAP[rr][cc] === 8) { pick = { r: rr, c: cc }; break; }
+        }
+      }
+    }
+    if (pick) parks.push(pick);
+  }
+  if (!parks.length) return;
+  // Раскидываем landmark'и равномерно (через шаг)
+  const step = Math.max(1, Math.floor(parks.length / CITY_LANDMARKS.length));
+  for (let i = 0; i < CITY_LANDMARKS.length; i++) {
+    const idx = (i * step) % parks.length;
+    CITY_LANDMARKS[i].r = parks[idx].r;
+    CITY_LANDMARKS[i].c = parks[idx].c;
+  }
+}
 
 function drawLandmark(lm) {
   const p = w2s(lm.r + 0.5, lm.c + 0.5);
@@ -15754,8 +15899,12 @@ function render() {
       items.push({ depth: r + c - 0.3, draw: () => drawTrafficLight(r, c) });
     }
   }
-  // Памятники / фонтаны / обелиски — декоративные landmark'и города
+  // Памятники / фонтаны / обелиски — декоративные landmark'и города.
+  // Ленивая инициализация позиций: при первом рендере раскидываем по
+  // парк-блокам (тайл типа 8 = газон), чтобы они не оказывались на асфальте.
+  if (CITY_LANDMARKS[0] && CITY_LANDMARKS[0].r == null) _placeLandmarksInParks();
   for (const lm of CITY_LANDMARKS) {
+    if (lm.r == null) continue;
     if (lm.r < r0 || lm.r >= r1 || lm.c < c0 || lm.c >= c1) continue;
     items.push({ depth: lm.r + lm.c + 0.0001, draw: () => drawLandmark(lm) });
   }
@@ -16200,9 +16349,11 @@ function tryTapLock(canvasX, canvasY) {
     }
   }
   // 2) Боты «Логова» (aggro_zones из снапа)
+  // alive может быть undefined в свежем снапе — трактуем «не указано» как живой.
+  // Считаем мёртвым только если b.alive === false или b.dead === true.
   for (const z of Object.values(aggroZones || {})) {
     for (const b of (z.bots || [])) {
-      if (!b.alive) continue;
+      if (b.alive === false || b.dead === true) continue;
       const d = _screenDistToCell(b.y, b.x, canvasX, canvasY);
       if (d < bestD) {
         bestD = d;
@@ -16210,7 +16361,7 @@ function tryTapLock(canvasX, canvasY) {
         best = _lockTargetEntry('aggro_bot', bid, () => {
           for (const z2 of Object.values(aggroZones || {})) {
             const bb = (z2.bots || []).find(x => x.id === bid);
-            if (bb && bb.alive) return { r: bb.y, c: bb.x };
+            if (bb && bb.alive !== false && bb.dead !== true) return { r: bb.y, c: bb.x };
           }
           return null;
         }, () => 'банда');
@@ -16383,12 +16534,12 @@ function _findLaserTarget(dirY, dirX) {
   }
   for (const z of Object.values(aggroZones || {})) {
     for (const b of (z.bots || [])) {
-      if (!b.alive) continue;
+      if (b.alive === false || b.dead === true) continue;
       const bid = b.id;
       _check(b.y, b.x, _lockTargetEntry('aggro_bot', bid, () => {
         for (const z2 of Object.values(aggroZones || {})) {
           const bb = (z2.bots || []).find(x => x.id === bid);
-          if (bb && bb.alive) return { r: bb.y, c: bb.x };
+          if (bb && bb.alive !== false && bb.dead !== true) return { r: bb.y, c: bb.x };
         }
         return null;
       }));
