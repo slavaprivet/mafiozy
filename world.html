@@ -5166,6 +5166,7 @@ function handleEventPacket(d) {
     if (!d.miss && d.target_uid && String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
       addShake(3.5);
+      _autoLockThreat('convoy', d.shooter_id);
       if (d.killed) myDeathBy = 'Конвой инкассатора';
     }
   } else if (kind === 'player_shot') {
@@ -5212,6 +5213,7 @@ function handleEventPacket(d) {
     if (meIsTarget) {
       flashHitOverlay();
       addShake(3);
+      _autoLockThreat('player', d.shooter_uid);
       if (d.killed) {
         myDeathBy = d.shooter_name || 'игрок';
       }
@@ -5279,6 +5281,7 @@ function handleEventPacket(d) {
     if (!d.miss && String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
       addShake(3);
+      _autoLockThreat('mg', d.guard_id);
       if (d.killed) myDeathBy = 'Охрана Майкла';
     }
   } else if (kind === 'mg_hit') {
@@ -5316,6 +5319,7 @@ function handleEventPacket(d) {
     if (!d.miss && String(d.target_uid) === String(QP.uid)) {
       flashHitOverlay();
       addShake(3);
+      _autoLockThreat('cop', d.cop_id);
       if (d.killed) {
         myDeathBy = d.jailed ? 'Копы (тюрьма)' : 'Копы';
       }
@@ -5705,7 +5709,13 @@ function handleEventPacket(d) {
       try { hitFlash = performance.now() + 240; } catch(e) {}
       flashHitOverlay();
       addShake(3.0);
+      _autoLockThreat('aggro_bot', d.bot_id);
       if (d.killed) myDeathBy = 'банда «Логова»';
+    }
+    // Aggro_shot — пуля летит, но цель уже известна. Если по мне — лочим стрелка
+    // сразу, не дожидаясь aggro_apply (даст время отреагировать пока пуля летит).
+    if (kind === 'aggro_shot' && String(d.target_uid) === String(QP.uid)) {
+      _autoLockThreat('aggro_bot', d.bot_id);
     }
   } else if (kind === 'aggro_apply') {
     // Серверный отложенный hit-check: пуля долетела, проверка попадания.
@@ -5714,6 +5724,7 @@ function handleEventPacket(d) {
       try { hitFlash = performance.now() + 240; } catch(e) {}
       flashHitOverlay();
       addShake(3.0);
+      _autoLockThreat('aggro_bot', d.bot_id);
       if (d.killed) myDeathBy = 'банда «Логова»';
     }
   } else if (kind === 'aggro_hit') {
@@ -16314,6 +16325,79 @@ Object.defineProperty(window, 'lockedTarget', {
   get: () => getActiveTarget(),
   set: () => {},   // запись игнорируем — multi-lock управляется через lockedTargets
 });
+// ── Авто-лок «по мне открыли огонь» ────────────────────────────
+// Когда враг попал в меня (cop_shot / aggro_shot / mg_shot / pvp_shot /
+// convoy_shot с target_uid===QP.uid и !miss) — автоматически клеим над
+// ним маркер цели. Дальше fireBtn автоматически бьёт по ближайшему
+// из залоченных (см. getActiveTarget). Лок живёт 6 с — если враг
+// продолжает стрелять, продлеваем.
+const THREAT_AUTO_LOCK_MS = 6000;
+function _autoLockThreat(kind, shooterId) {
+  if (myDead || myMode === 'pve' || myDrivingCarId) return;
+  if (!shooterId && shooterId !== 0) return;
+  let getPos = null, getName = null;
+  if (kind === 'aggro_bot') {
+    getPos = () => {
+      for (const z of Object.values(aggroZones || {})) {
+        const bb = (z.bots || []).find(x => String(x.id) === String(shooterId));
+        if (bb && bb.alive !== false && bb.dead !== true) return { r: bb.y, c: bb.x };
+      }
+      return null;
+    };
+    getName = () => 'банда';
+  } else if (kind === 'cop') {
+    getPos = () => {
+      const c = (worldCops || []).find(x => String(x.id) === String(shooterId));
+      return c ? { r: c.y, c: c.x } : null;
+    };
+    getName = () => 'коп';
+  } else if (kind === 'mg') {
+    getPos = () => {
+      const g = michaelGuards.get(shooterId) || michaelGuards.get(String(shooterId));
+      return g ? { r: g.y, c: g.x } : null;
+    };
+    getName = () => 'охрана';
+  } else if (kind === 'player') {
+    getPos = () => {
+      const o = others.get(shooterId) || others.get(String(shooterId));
+      return o && !o.dead ? { r: o.y, c: o.x } : null;
+    };
+    getName = () => {
+      const o = others.get(shooterId) || others.get(String(shooterId));
+      return (o && o.name) || '?';
+    };
+  } else if (kind === 'convoy') {
+    getPos = () => {
+      if (!worldEvent || worldEvent.finished) return null;
+      if (String(shooterId) === 'b') {
+        return worldEvent.boss && worldEvent.boss.alive
+               ? { r: worldEvent.boss.y, c: worldEvent.boss.x } : null;
+      }
+      const g = (worldEvent.guards || []).find(x => String(x.id) === String(shooterId));
+      return g && g.alive ? { r: g.y, c: g.x } : null;
+    };
+    getName = () => 'конвой';
+  } else {
+    return;
+  }
+  // Проверяем что цель ещё живая. Если getPos() = null — нет смысла лочить.
+  if (!getPos()) return;
+  const entry = _lockTargetEntry(kind, shooterId, getPos, getName);
+  const id = _lockId(entry);
+  const now = performance.now();
+  // Уже залочен — продлеваем
+  const existing = lockedTargets.get(id);
+  if (existing) {
+    existing.expireAt = now + THREAT_AUTO_LOCK_MS;
+    return;
+  }
+  // Превышен лимит ручных + авто — выкидываем самую старую (FIFO)
+  if (lockedTargets.size >= MAX_LOCKS) {
+    const oldestId = lockedTargets.keys().next().value;
+    lockedTargets.delete(oldestId);
+  }
+  lockedTargets.set(id, { entry, expireAt: now + THREAT_AUTO_LOCK_MS, auto: true });
+}
 let lockedExpireAt = 0;            // используется только для авто-продления
 
 // Auto-lock через удержание прицельного лазера на цели: если лазер
