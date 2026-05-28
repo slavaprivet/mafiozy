@@ -3836,6 +3836,19 @@ const CAR_MODELS = [
   { name: 'minivan',  L: 1.85, W: 0.92, palette: ['#5a708a','#2f3e54'], roof: '#1a2230', wheelR: 0.17, van: true,   height: 0.70 },
   { name: 'hatch',    L: 1.55, W: 0.82, palette: ['#a06840','#5a3818'], roof: '#1a0e08', wheelR: 0.16, height: 0.52 },
   { name: 'limo',     L: 2.10, W: 0.88, palette: ['#0a0a14','#000000'], roof: '#000000', wheelR: 0.16, height: 0.52 },
+  // ── Внедорожники / джипы — высокие, квадратные, багажник + bullbar ──
+  { name: 'suv_black',   L: 1.95, W: 1.02, palette: ['#1a1a22','#0a0a10'], roof: '#000', wheelR: 0.24, suv: true, height: 0.85 },
+  { name: 'suv_white',   L: 1.95, W: 1.02, palette: ['#dadada','#82828a'], roof: '#3a3a44', wheelR: 0.24, suv: true, height: 0.85 },
+  { name: 'jeep_safari', L: 1.85, W: 1.05, palette: ['#3a5028','#1f2a14'], roof: '#1a2410', wheelR: 0.24, suv: true, cabrio: true, height: 0.78 },
+  { name: 'jeep_sand',   L: 1.85, W: 1.05, palette: ['#b89058','#6a4f28'], roof: '#3a2812', wheelR: 0.24, suv: true, height: 0.80 },
+  // ── Маслкары — низкие, широкие, с двумя гоночными полосами ──
+  { name: 'muscle_blue', L: 1.78, W: 0.92, palette: ['#1a3a8a','#0a1a4a'], roof: '#0a0a1a', wheelR: 0.17, muscle: true, height: 0.50, sport: true },
+  { name: 'muscle_org',  L: 1.78, W: 0.92, palette: ['#e87010','#7a3808'], roof: '#1a0a02', wheelR: 0.17, muscle: true, height: 0.50, sport: true },
+  // ── Кабриолет / родстер — без крыши, видны сиденья ──
+  { name: 'roadster',    L: 1.60, W: 0.80, palette: ['#9a1a1a','#5a0a0a'], roof: '#000', wheelR: 0.15, cabrio: true, sport: true, height: 0.42 },
+  // ── Старая классика — длинная, с подножкой и хромом ──
+  { name: 'classic',     L: 2.00, W: 0.90, palette: ['#503020','#2a1810'], roof: '#1a0e08', wheelR: 0.16, classic: true, height: 0.55 },
+  { name: 'classic2',    L: 2.00, W: 0.90, palette: ['#0a3a3a','#04181a'], roof: '#000', wheelR: 0.16, classic: true, height: 0.55 },
 ];
 // ── QUEST_CAR_MODELS — 10 эксклюзивных моделей для контрактов Майкла ──
 // Спавнятся ТОЛЬКО как квестовые цели (сервером через quest_cars). Гражданский
@@ -11132,6 +11145,50 @@ function drawCarPretty(car) {
     ctx.lineWidth = 0.8;
     ctx.strokeRect(Math.min(midR.x, BR.x), midR.y - bedH - 1,
                    Math.abs(BR.x - midR.x), bedH);
+  } else if (m.cabrio) {
+    // Кабриолет / родстер — крыши нет. Виден интерьер: «ванна» из борта
+    // (низкая высота H*0.55), пол кузова (темный) и 2 круглых сиденья.
+    // Спереди — маленькое лобовое стекло-полоска.
+    const tubH = H * 0.55;
+    // Тёмный «пол» интерьера на высоте tubH
+    ctx.fillStyle = '#1a1410';
+    ctx.beginPath();
+    ctx.moveTo(FR.x, FR.y - tubH); ctx.lineTo(FL.x, FL.y - tubH);
+    ctx.lineTo(BL.x, BL.y - tubH); ctx.lineTo(BR.x, BR.y - tubH);
+    ctx.closePath(); ctx.fill();
+    // Полная крыша БЫЛА бы на H, но мы её не рисуем — оставляем открыто.
+    // Лобовое стекло — узкая трапеция в передней четверти, от tubH до H
+    const wsF = 0.18; // фракция глубины от переда (где заканчивается стекло)
+    const wsR1 = { x: FR.x + (BR.x - FR.x) * wsF, y: FR.y + (BR.y - FR.y) * wsF };
+    const wsL1 = { x: FL.x + (BL.x - FL.x) * wsF, y: FL.y + (BL.y - FL.y) * wsF };
+    const wsGrad = ctx.createLinearGradient(0, 0, 0, -H);
+    wsGrad.addColorStop(0, 'rgba(160,200,230,.65)');
+    wsGrad.addColorStop(1, 'rgba(80,140,180,.55)');
+    ctx.fillStyle = wsGrad;
+    ctx.beginPath();
+    ctx.moveTo(FR.x, FR.y - tubH); ctx.lineTo(FL.x, FL.y - tubH);
+    ctx.lineTo(wsL1.x, wsL1.y - H); ctx.lineTo(wsR1.x, wsR1.y - H);
+    ctx.closePath(); ctx.fill();
+    // Хром рамки лобового
+    ctx.strokeStyle = '#c8c8d0';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    // 2 сиденья — тёмные эллипсы примерно на 35% и 60% длины
+    for (const f of [0.38, 0.62]) {
+      const sx = (FR.x + FL.x) * 0.5 + ((BR.x + BL.x) * 0.5 - (FR.x + FL.x) * 0.5) * f;
+      const sy = (FR.y + FL.y) * 0.5 + ((BR.y + BL.y) * 0.5 - (FR.y + FL.y) * 0.5) * f - tubH - 1;
+      ctx.fillStyle = '#080808';
+      ctx.beginPath(); ctx.ellipse(sx, sy, 3.0, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+      // Подголовник — маленький бугорок над сидением
+      ctx.fillStyle = '#2a1a14';
+      ctx.fillRect(sx - 1.4, sy - 2.4, 2.8, 1.2);
+    }
+    // Руль — маленький кружок у переднего сиденья
+    const drvX = (FR.x + FL.x) * 0.5 + ((BR.x + BL.x) * 0.5 - (FR.x + FL.x) * 0.5) * 0.30;
+    const drvY = (FR.y + FL.y) * 0.5 + ((BR.y + BL.y) * 0.5 - (FR.y + FL.y) * 0.5) * 0.30 - tubH - 0.5;
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.arc(drvX, drvY, 1.2, 0, Math.PI * 2); ctx.stroke();
   } else {
     // Обычная крыша — ромб поднятый на H
     ctx.fillStyle = m.roof || topC;
@@ -11148,6 +11205,30 @@ function drawCarPretty(car) {
       const midB = { x: (BR.x + BL.x) / 2, y: (BR.y + BL.y) / 2 - H };
       ctx.moveTo(midF.x, midF.y); ctx.lineTo(midB.x, midB.y);
       ctx.stroke();
+    }
+    // У SUV — багажник-rack на крыше (рамка по периметру + 3 перекладины)
+    if (m.suv) {
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 0.7;
+      // Рамка по периметру крыши, с отступом 1.5px
+      const rackInset = 0.10; // отступ от края
+      function rackPt(p1, p2, f) {
+        return { x: p1.x + (p2.x - p1.x) * f, y: p1.y + (p2.y - p1.y) * f - H };
+      }
+      const r1 = rackPt(FR, FL, rackInset),     r2 = rackPt(FR, FL, 1 - rackInset);
+      const r3 = rackPt(BR, BL, 1 - rackInset), r4 = rackPt(BR, BL, rackInset);
+      ctx.beginPath();
+      ctx.moveTo(r1.x, r1.y); ctx.lineTo(r2.x, r2.y);
+      ctx.lineTo(r3.x, r3.y); ctx.lineTo(r4.x, r4.y);
+      ctx.closePath(); ctx.stroke();
+      // 3 поперечные перекладины — между r1↔r4 и r2↔r3 (вдоль длины)
+      for (let i = 1; i <= 3; i++) {
+        const t = i / 4;
+        const a = { x: r1.x + (r4.x - r1.x) * t, y: r1.y + (r4.y - r1.y) * t };
+        const b = { x: r2.x + (r3.x - r2.x) * t, y: r2.y + (r3.y - r2.y) * t };
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
     }
   }
   // Окна — стеклянная полоса с градиентом + блик (отражение)
@@ -11302,16 +11383,115 @@ function drawCarPretty(car) {
     ctx.fillStyle = '#000';
     ctx.fillRect(cx - 4, cy + 1, 8, 1);
   }
-  // Полоса спорткара — белая лента по крыше вдоль направления движения
-  if (m.sport) {
-    ctx.fillStyle = '#fff';
+  // ── Полоса спорткара / маслкара ─────────────────────────────────
+  // Точки крыши по углам
+  const rFR = { x: FR.x, y: FR.y - H };
+  const rFL = { x: FL.x, y: FL.y - H };
+  const rBR = { x: BR.x, y: BR.y - H };
+  const rBL = { x: BL.x, y: BL.y - H };
+  // Маслкар — ДВЕ толстые белые полосы вдоль направления движения
+  if (m.muscle && !m.cabrio) {
+    ctx.fillStyle = '#f4f4f4';
+    // Левая и правая полосы — на 30% и 70% поперечной ширины
+    for (const sf of [0.32, 0.68]) {
+      const f1 = { x: rFR.x + (rFL.x - rFR.x) * sf, y: rFR.y + (rFL.y - rFR.y) * sf };
+      const b1 = { x: rBR.x + (rBL.x - rBR.x) * sf, y: rBR.y + (rBL.y - rBR.y) * sf };
+      const sw = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(f1.x - sw, f1.y); ctx.lineTo(f1.x + sw, f1.y);
+      ctx.lineTo(b1.x + sw, b1.y); ctx.lineTo(b1.x - sw, b1.y);
+      ctx.closePath(); ctx.fill();
+    }
+  } else if (m.sport && !m.cabrio) {
+    // Одиночная белая полоса по центру крыши
+    const fMid = { x: (rFR.x + rFL.x) / 2, y: (rFR.y + rFL.y) / 2 };
+    const bMid = { x: (rBR.x + rBL.x) / 2, y: (rBR.y + rBL.y) / 2 };
+    ctx.fillStyle = '#f4f4f4';
     ctx.beginPath();
-    ctx.moveTo((FR.x + BR.x)/2, (FR.y + BR.y)/2 - H);
-    ctx.lineTo((FL.x + BL.x)/2, (FL.y + BL.y)/2 - H);
-    const w = 1.5;
-    ctx.lineTo((FL.x + BL.x)/2 + w, (FL.y + BL.y)/2 - H + w);
-    ctx.lineTo((FR.x + BR.x)/2 + w, (FR.y + BR.y)/2 - H + w);
+    ctx.moveTo(fMid.x - 1.5, fMid.y); ctx.lineTo(fMid.x + 1.5, fMid.y);
+    ctx.lineTo(bMid.x + 1.5, bMid.y); ctx.lineTo(bMid.x - 1.5, bMid.y);
     ctx.closePath(); ctx.fill();
+  }
+  // ── Спойлер у спорткара / маслкара ───────────────────────────────
+  // Тонкая вертикальная плашка-антикрыло сзади над крышей
+  if ((m.sport || m.muscle) && !m.cabrio) {
+    const sp1 = { x: rBR.x * 0.85 + rFR.x * 0.15, y: rBR.y * 0.85 + rFR.y * 0.15 };
+    const sp2 = { x: rBL.x * 0.85 + rFL.x * 0.15, y: rBL.y * 0.85 + rFL.y * 0.15 };
+    ctx.fillStyle = '#0a0a0a';
+    // Антикрыло: тонкая горизонтальная плашка на 3 px выше крыши
+    ctx.beginPath();
+    ctx.moveTo(sp1.x, sp1.y - 3); ctx.lineTo(sp2.x, sp2.y - 3);
+    ctx.lineTo(sp2.x, sp2.y - 1); ctx.lineTo(sp1.x, sp1.y - 1);
+    ctx.closePath(); ctx.fill();
+    // 2 «стойки» антикрыла
+    ctx.fillRect(sp1.x - 0.5, sp1.y - 3, 1, 3);
+    ctx.fillRect(sp2.x - 0.5, sp2.y - 3, 1, 3);
+  }
+  // ── Bullbar / решётка у SUV ──────────────────────────────────────
+  // Серебристая толстая полоса прямо перед фронтальной гранью.
+  if (m.suv) {
+    const frontEdgeSuv = edges.find(e => e.name === 'front');
+    if (frontEdgeSuv) {
+      // Точки выноса на 2 px вперёд от грани (в направлении движения)
+      const lcx = (FR.x + FL.x + BR.x + BL.x) / 4;
+      const lcy = (FR.y + FL.y + BR.y + BL.y) / 4;
+      const fmx = (frontEdgeSuv.a.x + frontEdgeSuv.b.x) / 2;
+      const fmy = (frontEdgeSuv.a.y + frontEdgeSuv.b.y) / 2;
+      const dx = fmx - lcx, dy = fmy - lcy;
+      const dn = Math.hypot(dx, dy) || 1;
+      const ux = dx / dn, uy = dy / dn;
+      const off = 2;
+      ctx.strokeStyle = '#c0c0c8';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(frontEdgeSuv.a.x + ux * off, frontEdgeSuv.a.y + uy * off - H * 0.18);
+      ctx.lineTo(frontEdgeSuv.b.x + ux * off, frontEdgeSuv.b.y + uy * off - H * 0.18);
+      ctx.stroke();
+      // Нижняя перекладина bullbar
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(frontEdgeSuv.a.x + ux * off, frontEdgeSuv.a.y + uy * off - H * 0.06);
+      ctx.lineTo(frontEdgeSuv.b.x + ux * off, frontEdgeSuv.b.y + uy * off - H * 0.06);
+      ctx.stroke();
+    }
+  }
+  // ── Подножка и хромированная решётка у Classic ───────────────────
+  if (m.classic) {
+    // Подножка (running board) — узкая тёмная полоса по низу боковых граней
+    for (const e of visible) {
+      if (e.name === 'front' || e.name === 'back') continue;
+      ctx.fillStyle = '#0a0a0a';
+      ctx.beginPath();
+      ctx.moveTo(e.a.x - 1, e.a.y - 1); ctx.lineTo(e.b.x - 1, e.b.y - 1);
+      ctx.lineTo(e.b.x - 1, e.b.y + 1.5); ctx.lineTo(e.a.x - 1, e.a.y + 1.5);
+      ctx.closePath(); ctx.fill();
+    }
+    // Хромированная решётка — серебристая прямоугольная панель спереди
+    const frontEdgeCl = edges.find(e => e.name === 'front');
+    if (frontEdgeCl) {
+      ctx.fillStyle = '#c8c8d0';
+      ctx.beginPath();
+      ctx.moveTo(frontEdgeCl.a.x + (frontEdgeCl.b.x - frontEdgeCl.a.x) * 0.30,
+                 frontEdgeCl.a.y + (frontEdgeCl.b.y - frontEdgeCl.a.y) * 0.30 - H * 0.22);
+      ctx.lineTo(frontEdgeCl.a.x + (frontEdgeCl.b.x - frontEdgeCl.a.x) * 0.70,
+                 frontEdgeCl.a.y + (frontEdgeCl.b.y - frontEdgeCl.a.y) * 0.70 - H * 0.22);
+      ctx.lineTo(frontEdgeCl.a.x + (frontEdgeCl.b.x - frontEdgeCl.a.x) * 0.70,
+                 frontEdgeCl.a.y + (frontEdgeCl.b.y - frontEdgeCl.a.y) * 0.70 - H * 0.05);
+      ctx.lineTo(frontEdgeCl.a.x + (frontEdgeCl.b.x - frontEdgeCl.a.x) * 0.30,
+                 frontEdgeCl.a.y + (frontEdgeCl.b.y - frontEdgeCl.a.y) * 0.30 - H * 0.05);
+      ctx.closePath(); ctx.fill();
+      // Вертикальные «рёбра» решётки
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 0.6;
+      for (let i = 1; i <= 3; i++) {
+        const ft = 0.30 + i * 0.10;
+        const gx = frontEdgeCl.a.x + (frontEdgeCl.b.x - frontEdgeCl.a.x) * ft;
+        const gy = frontEdgeCl.a.y + (frontEdgeCl.b.y - frontEdgeCl.a.y) * ft;
+        ctx.beginPath();
+        ctx.moveTo(gx, gy - H * 0.20); ctx.lineTo(gx, gy - H * 0.07);
+        ctx.stroke();
+      }
+    }
   }
   // Открытый кузов пикапа — тёмная вмятина на задней части крыши
   if (m.pickup) {
