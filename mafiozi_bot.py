@@ -11472,6 +11472,8 @@ class WorldSim:
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
+        # Очередь физических пуль ботов (dodge-механика).
+        '_pending_bot_shots',
         # Пляжники — мирные NPC в купальниках/плавках.
         'beachgoers', '_beachgoer_next_id', '_beachgoer_next_spawn_at',
         # Охрана Майкла на корабле.
