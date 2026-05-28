@@ -2735,6 +2735,62 @@ function initNpcs() {
 // от игрока), чтобы прохожие не появлялись «из ниоткуда» на глазах.
 // Параллельно пруним стационарные трупы (через 60 с после смерти) — это и
 // чистит память, и освобождает слоты в NPCS.length.
+// ── Idle chatter NPC ────────────────────────────────────────────
+// Раз в случайные 8-18с какой-нибудь NPC бросает короткую фразу.
+// Не во время паники / снитчинга / смерти. Делает город живее.
+const NPC_IDLE_PHRASES = [
+  'Эх, опять понедельник…',
+  'Дороги — кошмар!',
+  'Где тут кофе варят?',
+  'Чё за район…',
+  'Опять копы шастают',
+  'Жара дикая сегодня',
+  'Опаздываю!',
+  'Видали кто это там стоит?',
+  'Слыхал, на рынке скидки',
+  'Дай прикурить?',
+  'Уйди, не до тебя',
+  'Слишком шумно тут',
+  'Не толкайся, гражданин',
+  'Дайте пройти!',
+  'Эти банды совсем оборзели',
+  'Скорей бы домой',
+  'Где мой автобус?',
+  'Это уже третья пробка',
+  'Привет, как дела?',
+  'Видал какие тачки!',
+  'Ну и времена…',
+  'Кофе остыл, чёрт',
+  'А-а, опаздываю на смену',
+  'Доброго дня вам',
+  'У меня выходной, ура',
+  'Чё уставился?',
+  'Извините, спешу',
+  'Эх, молодёжь…',
+  'А раньше тут было тихо',
+  'Слышь, не подскажешь который час?',
+];
+let _nextNpcChatterAt = 0;
+function _maybeIdleChatter(now) {
+  if (now < _nextNpcChatterAt) return;
+  _nextNpcChatterAt = now + 8000 + Math.random() * 10000;   // 8..18с
+  // Выбираем случайного живого NPC недалеко от игрока (видим его)
+  const candidates = [];
+  for (const n of NPCS) {
+    if (n.dead || n._evacuated) continue;
+    if (n.cryUntil && n.cryUntil > now) continue;       // уже говорит
+    if (n.panicUntil && n.panicUntil > now) continue;   // в панике
+    if (n.snitching) continue;                          // снитч
+    const dr = n.r - player.r, dc = n.c - player.c;
+    if (Math.hypot(dr, dc) > 14) continue;              // далеко — не услышит
+    candidates.push(n);
+  }
+  if (!candidates.length) return;
+  const n = candidates[Math.floor(Math.random() * candidates.length)];
+  n.cryText  = NPC_IDLE_PHRASES[Math.floor(Math.random() * NPC_IDLE_PHRASES.length)];
+  n.cryUntil = now + 1800 + Math.random() * 800;
+}
+
 function maintainNpcPopulation(now) {
   if (now < _nextNpcRespawnAt) return;
   _nextNpcRespawnAt = now + 1200;
@@ -3126,6 +3182,166 @@ function dispatchEmergencyServices() {
   }
 }
 
+// ── Собаки и кошки ─────────────────────────────────────────────
+// Бегают по тротуарам как маленькие NPC. Иногда «Гав!» / «Мяу!».
+// Убивать нельзя — пули проходят сквозь (нет коллизии с raycast).
+const PETS = [];
+const PETS_TARGET = 12;
+function _spawnPet() {
+  for (let tries = 0; tries < 40; tries++) {
+    const r = 4 + Math.floor(Math.random() * 72);
+    const c = 4 + Math.floor(Math.random() * (MAP_COLS - 8));
+    if (r >= 80) continue;
+    if (inArena(r, c)) continue;
+    if (!MAP[r]) continue;
+    const t = MAP[r][c];
+    if (t !== 9 && t !== 8) continue;
+    const dr = r - player.r, dc = c - player.c;
+    if (Math.hypot(dr, dc) < 18) continue;
+    const isDog = Math.random() < 0.55;
+    const colors = isDog
+      ? ['#8a6a44', '#3a2818', '#d0a878', '#5a3018', '#c0c0c0']
+      : ['#1a1a1a', '#d8d8d8', '#a08050', '#f0c878', '#5a4030'];
+    return {
+      kind: isDog ? 'dog' : 'cat',
+      r: r + 0.5, c: c + 0.5,
+      tr: r + 0.5, tc: c + 0.5,
+      ang: 0, walkPhase: 0,
+      speed: (isDog ? 1.4 : 1.1) + Math.random() * 0.5,
+      _wayUntil: 0,
+      cryUntil: 0, cryText: '',
+      _color: colors[Math.floor(Math.random() * colors.length)],
+    };
+  }
+  return null;
+}
+function _pickPetWaypoint(pet) {
+  for (let tries = 0; tries < 20; tries++) {
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 3 + Math.random() * 5;
+    const tr = Math.floor(pet.r + Math.sin(ang) * dist);
+    const tc = Math.floor(pet.c + Math.cos(ang) * dist);
+    if (tr < 2 || tr >= 80 || tc < 2 || tc >= MAP_COLS - 2) continue;
+    if (MAP[tr] && (MAP[tr][tc] === 9 || MAP[tr][tc] === 8)) {
+      pet.tr = tr + 0.5; pet.tc = tc + 0.5;
+      return;
+    }
+  }
+  pet.tr = pet.r; pet.tc = pet.c;
+}
+function initPets() {
+  for (let i = 0; i < PETS_TARGET; i++) {
+    const p = _spawnPet();
+    if (p) { _pickPetWaypoint(p); PETS.push(p); }
+  }
+}
+let _petsLastSpawnAt = 0;
+function updatePets(dt) {
+  const now = performance.now();
+  if (PETS.length < PETS_TARGET && now - _petsLastSpawnAt > 3000) {
+    _petsLastSpawnAt = now;
+    const p = _spawnPet();
+    if (p) { _pickPetWaypoint(p); PETS.push(p); }
+  }
+  for (const pet of PETS) {
+    const dr = pet.tr - pet.r, dc = pet.tc - pet.c;
+    const d = Math.hypot(dr, dc);
+    if (d < 0.3 || now > pet._wayUntil) {
+      pet._wayUntil = now + 3000 + Math.random() * 4000;
+      _pickPetWaypoint(pet);
+      if (Math.random() < 0.35) {
+        pet.cryUntil = now + 1400;
+        pet.cryText = pet.kind === 'dog'
+          ? (Math.random() < 0.5 ? 'Гав!' : 'Гав-гав!')
+          : (Math.random() < 0.5 ? 'Мяу' : 'Мяу-у');
+      }
+      continue;
+    }
+    const step = pet.speed * dt;
+    const nx = pet.c + (dc / d) * step;
+    const ny = pet.r + (dr / d) * step;
+    if (npcPassable(ny, nx)) {
+      pet.r = ny; pet.c = nx;
+      pet.ang = Math.atan2(dr, dc);
+      pet.walkPhase += dt * 14;
+    } else {
+      pet._wayUntil = 0;
+    }
+  }
+}
+function drawPet(pet) {
+  const sp = w2s(pet.r, pet.c);
+  const wob = Math.sin(pet.walkPhase) * 1.5;
+  ctx.save();
+  ctx.translate(sp.x, sp.y);
+  ctx.rotate(pet.ang);
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath();
+  ctx.ellipse(0, 4, 7, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Тело
+  ctx.fillStyle = pet._color || '#8a6a44';
+  ctx.beginPath();
+  ctx.ellipse(0, wob * 0.3, 6, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Голова
+  ctx.beginPath();
+  ctx.arc(5, -1 + wob * 0.3, 2.8, 0, Math.PI * 2);
+  ctx.fill();
+  // Ушки
+  if (pet.kind === 'cat') {
+    ctx.beginPath();
+    ctx.moveTo(4.5, -3 + wob * 0.3);
+    ctx.lineTo(6.0, -5 + wob * 0.3);
+    ctx.lineTo(6.5, -2.5 + wob * 0.3);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(3.0, -3 + wob * 0.3);
+    ctx.lineTo(4.0, -5 + wob * 0.3);
+    ctx.lineTo(5.0, -2.5 + wob * 0.3);
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.ellipse(3.5, -2 + wob * 0.3, 1.0, 1.8, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(6.0, -2 + wob * 0.3, 1.0, 1.8, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Хвост
+  ctx.strokeStyle = pet._color || '#8a6a44';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(-5, 0);
+  ctx.quadraticCurveTo(-9, -3 + Math.sin(pet.walkPhase * 1.5) * 2, -10, -5);
+  ctx.stroke();
+  // Глаз
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(6, -1.5 + wob * 0.3, 0.7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(6.2, -1.5 + wob * 0.3, 0.35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // Звук «Гав!»/«Мяу»
+  const now = performance.now();
+  if (pet.cryUntil && pet.cryUntil > now && pet.cryText) {
+    ctx.save();
+    ctx.font = 'bold 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(pet.cryText).width + 6;
+    ctx.fillStyle = 'rgba(20,20,28,.85)';
+    ctx.fillRect(sp.x - tw / 2, sp.y - 20, tw, 12);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(pet.cryText, sp.x, sp.y - 14);
+    ctx.restore();
+  }
+}
+
 function drawServiceVehicle(v) {
   const p = w2s(v.y, v.x);
   const isAmb = v.kind === 'ambulance';
@@ -3295,6 +3511,7 @@ function triggerNpcPanic(srcR, srcC, radius) {
 function updateNpcs(dt) {
   const now = performance.now();
   maintainNpcPopulation(now);
+  _maybeIdleChatter(now);
   // Если рядом с NPC прохожим стоит бот городской банды с act='harass'
   // — NPC паникует и убегает. Триггерим один раз в секунду на NPC.
   for (const tid of Object.keys(aggroZones)) {
@@ -4174,6 +4391,7 @@ const player = {
 // Городские патрульные копы (нужен уже инициализированный player —
 // чтобы не спаунить рядом с ним). NPC и машины уже стартовали выше.
 initCityCops();
+initPets();
 // Если начальный спавн (40,40) случайно попал в блокирующий тайл —
 // ищем ближайший проходимый тайл-дорогу. Это спасает от «застрял в коробке
 // при старте». isBlocked объявлен ниже, поэтому отложенно делаем.
@@ -4198,6 +4416,23 @@ setTimeout(_ensureSpawnSafe, 0);
 // Другие игроки (актуальные позиции + цель интерполяции)
 const others = new Map();   // uid -> {x, y, ang, w, name, look, chat,
                             //         tx, ty, tAng, lastT}
+
+// Маркер «в бою с этим игроком» — для мини-карты (красная точка).
+// uid → expiresAt (ms). После TTL сбрасывается обратно в синий.
+const combatants = new Map();
+const COMBAT_TTL_MS = 8000;
+function _markCombat(uid) {
+  if (!uid) return;
+  if (String(uid) === String(QP.uid)) return;
+  combatants.set(String(uid), performance.now() + COMBAT_TTL_MS);
+}
+function _isCombatant(uid) {
+  if (!uid) return false;
+  const exp = combatants.get(String(uid));
+  if (!exp) return false;
+  if (performance.now() > exp) { combatants.delete(String(uid)); return false; }
+  return true;
+}
 
 // ── Joystick ────────────────────────────────────────────────────
 // Pointer events работают и на touch, и на mouse, и не теряются когда
@@ -4688,6 +4923,9 @@ function handleEventPacket(d) {
     }
     const meIsShooter = (String(d.shooter_uid) === String(QP.uid));
     const meIsTarget  = (String(d.target_uid)  === String(QP.uid));
+    // Маркер «в бою» — для мини-карты (красная точка). Висит 8 сек.
+    if (meIsShooter && d.target_uid) _markCombat(d.target_uid);
+    if (meIsTarget  && d.shooter_uid) _markCombat(d.shooter_uid);
     if (meIsTarget) {
       flashHitOverlay();
       addShake(3);
@@ -7977,6 +8215,7 @@ function update(dt) {
   updateNpcs(dt);
   updateCars(dt);
   updateCityCops(dt);
+  updatePets(dt);
   updateServiceVehicles(dt);
   dispatchEmergencyServices();
   updateGangAggression(dt);
@@ -14413,6 +14652,11 @@ function render() {
     if (v.y < r0 || v.y >= r1 || v.x < c0 || v.x >= c1) continue;
     items.push({ depth: v.y + v.x + 0.0012, draw: () => drawServiceVehicle(v) });
   }
+  // Собаки и кошки — небольшие зверюшки, рисуются на уровне ног
+  for (const pet of PETS) {
+    if (pet.r < r0 || pet.r >= r1 || pet.c < c0 || pet.c >= c1) continue;
+    items.push({ depth: pet.r + pet.c + 0.0003, draw: () => drawPet(pet) });
+  }
   // Декор Логова — палатки/руины/костры/обломки. Рисуем под ботами,
   // под укрытиями (depth-сорт по r+c как обычные объекты).
   for (const d of LAIR_DECOR) {
@@ -15787,21 +16031,24 @@ function drawMinimap() {
     }
   }
   // Другие игроки — точки с обводкой и светящимся ореолом (видно лучше).
-  // PvE — голубовато-серый; PvP — яркий зелёный «союзник» с пульсацией.
+  // Синий = онлайн нейтрал. Красный = в бою (я атакую / меня атакуют —
+  // см. combatants Map с TTL ~8с). После смерти — обратно синий.
   const playerPulse = (Math.sin(performance.now() * 0.006) + 1) * 0.5;
   for (const [, o] of others) {
-    const isPve = (o.mode === 'pve');
+    if (o.dead) combatants.delete(String(o.uid));
+    const inCombat = _isCombatant(o.uid) && !o.dead;
     const x = (o.x + 0.5) * sx, y = (o.y + 0.5) * sy;
-    // Светящийся ореол — притягивает взгляд
-    ctx2.fillStyle = isPve ? 'rgba(122,160,200,.35)' : 'rgba(90,255,128,.45)';
-    ctx2.beginPath(); ctx2.arc(x, y, 7 + playerPulse * 1.5, 0, Math.PI * 2); ctx2.fill();
-    // Тёмный контур
+    const haloCol = inCombat ? 'rgba(255,80,80,.55)' : 'rgba(90,160,255,.45)';
+    const dotCol  = inCombat ? '#ff4040'           : '#5aa8ff';
+    ctx2.fillStyle = haloCol;
+    ctx2.beginPath();
+    ctx2.arc(x, y, 7 + playerPulse * 1.5, 0, Math.PI * 2);
+    ctx2.fill();
     ctx2.fillStyle = '#000';
     ctx2.beginPath(); ctx2.arc(x, y, 5.5, 0, Math.PI * 2); ctx2.fill();
-    // Ярко-цветная точка
-    ctx2.fillStyle = isPve ? '#9ad0ff' : '#7affa0';
+    ctx2.fillStyle = dotCol;
     ctx2.beginPath();
-    ctx2.arc(x, y, isPve ? 4 : (4 + playerPulse * 0.6), 0, Math.PI * 2);
+    ctx2.arc(x, y, 4 + (inCombat ? playerPulse * 0.6 : 0), 0, Math.PI * 2);
     ctx2.fill();
     // Wanted — золотая звезда над точкой
     if (o.wanted && o.wanted > 0) {
