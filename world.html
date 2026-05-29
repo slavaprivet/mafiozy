@@ -8204,16 +8204,38 @@ function _completeHijack(car) {
   // ответа не пришло — сбрасываем флаг и машина продолжит ездить.
   car._hijackPending = performance.now();
   car.vr = 0; car.vc = 0;
+  // Проверяем WS перед send: если соединение закрыто/перезагружается,
+  // запрос просто молча терялся в catch и пользователь видел «нажал —
+  // ничего». Теперь явный фидбек.
+  const wsReady = !!(ws && ws.readyState === 1);
+  if (!wsReady) {
+    car._hijackPending = 0;
+    showToast('🌐 Нет соединения с сервером — пробуй ещё', '⚠️', 2000);
+    return;
+  }
   try {
-    ws && ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
+    ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
       x: +car.c.toFixed(2), y: +car.r.toFixed(2),
       // Witness отправляем ТОЛЬКО если рядом коп — он видел угон сам.
       // Мирные NPC, если что, побегут стучать (см. spawnEjectedDriver).
       witness: _copInRadius(player.r, player.c, 10),
     } }));
-  } catch(e) {}
+  } catch(e) {
+    car._hijackPending = 0;
+    showToast('🌐 Сбой отправки — пробуй ещё', '⚠️', 2000);
+    return;
+  }
   playEnterCarAnim(car.r, car.c);
   hapticHit();
+  // Failsafe-toast: если за 2.5с не приехало ни ok ни reject —
+  // пользователь видит что что-то пошло не так (раньше была тишина).
+  const _hijackStartCarId = myDrivingCarId;
+  setTimeout(() => {
+    if (myDrivingCarId && myDrivingCarId !== _hijackStartCarId) return;
+    if (!car._hijackPending) return;   // уже ответили (ok или reject)
+    car._hijackPending = 0;
+    showToast('❌ Сервер не ответил — попробуй ещё', '⚠️', 2200);
+  }, 2500);
 }
 
 function hijackCivilianCar(car) {
