@@ -2076,6 +2076,159 @@ function territoryAt(r, c) {
   return null;
 }
 
+// ── Автобусная система (чисто клиентский декор) ───────────────────
+// ОДИН автобус ездит по кольцу из 4 остановок (внутри городской дорожной
+// сетки BLOCK=10). На каждой стоит до 2 NPC «ждут». При прибытии автобуса
+// ждущие «заходят» (despawn в сторону автобуса), 1-2 пассажира «выходят»
+// и идут на тротуар, потом исчезают через ~10с. Сервер ничего не знает —
+// это локальный декор, у каждого клиента свой автобус. Допускается лёгкий
+// рассинхрон между клиентами — атмосфера «город живёт» важнее точности.
+const BUS_STOPS = [
+  // r,c — куда автобус приедет (центр полосы дороги).
+  // sign_r,sign_c — где стоит знак/навес/лавочка (тротуар у дороги).
+  { r: 21.5, c: 21.5, sign_r: 24, sign_c: 22 },
+  { r: 21.5, c: 51.5, sign_r: 24, sign_c: 52 },
+  { r: 51.5, c: 51.5, sign_r: 50, sign_c: 52 },
+  { r: 51.5, c: 21.5, sign_r: 50, sign_c: 22 },
+];
+const BUS = {
+  // Стартует чуть западнее первой остановки, чтобы первое прибытие
+  // выглядело как «приехал» а не «спавнился на месте».
+  r: BUS_STOPS[0].r, c: BUS_STOPS[0].c - 6,
+  ang: 0, speed: 5.5,
+  routeIdx: 0,                  // индекс следующей остановки
+  state: 'driving',             // 'driving' | 'stopped'
+  stopUntil: 0,
+  doorPhase: 0,                 // 0..1 — анимация открытия дверей
+};
+const _busWaiters = [];   // {stopIdx, r, c, look, walkPhase, idleT, leaving, ang}
+const _busRiders  = [];   // вышедшие пассажиры: {r,c, tgtR,tgtC, ang, look, walkPhase, life}
+
+function _busRandomLook() {
+  return {
+    gender: Math.random() < 0.5 ? 0 : 1,
+    skin:   Math.floor(Math.random() * 5),
+    body:   Math.floor(Math.random() * 3),
+    face:   Math.floor(Math.random() * 4),
+    hair:   Math.floor(Math.random() * 5),
+    hat:    Math.floor(Math.random() * 4),
+  };
+}
+function _busStopCount(stopIdx) {
+  let n = 0;
+  for (const w of _busWaiters) if (w.stopIdx === stopIdx && !w.leaving) n++;
+  return n;
+}
+function _spawnBusWaiter(stopIdx) {
+  const stop = BUS_STOPS[stopIdx];
+  const cnt  = _busStopCount(stopIdx);
+  // Распределяем 2-х waiters по разным точкам у лавочки
+  const offC = (cnt === 0 ? -0.5 : 0.5) + (Math.random() - 0.5) * 0.2;
+  const offR = (Math.random() - 0.5) * 0.4;
+  _busWaiters.push({
+    stopIdx,
+    r:    stop.sign_r + 0.7 + offR,
+    c:    stop.sign_c + 0.5 + offC,
+    ang:  Math.atan2(stop.r - (stop.sign_r + 0.7), stop.c - (stop.sign_c + 0.5)),
+    look: _busRandomLook(),
+    walkPhase: 0,
+    idleT: Math.random() * 6.28,
+    leaving: false,
+  });
+}
+function _onBusArrival(stopIdx) {
+  // Waiters у этой остановки — помечаем leaving=true, они побегут к BUS
+  // и удалятся когда подойдут вплотную (см. _tickBus).
+  for (const w of _busWaiters) {
+    if (w.stopIdx === stopIdx) w.leaving = true;
+  }
+  // Выходят 1-2 пассажира — спавнятся в позиции дверей, идут к тротуару
+  const stop = BUS_STOPS[stopIdx];
+  const cnt = 1 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < cnt; i++) {
+    const tgtR = stop.sign_r + 0.5 + (Math.random() - 0.5) * 1.2;
+    const tgtC = stop.sign_c + 0.5 + (Math.random() - 0.5) * 1.2;
+    _busRiders.push({
+      r: stop.r + (Math.random() - 0.5) * 0.3,
+      c: stop.c + (Math.random() - 0.5) * 0.3,
+      tgtR, tgtC,
+      ang: 0, walkPhase: 0,
+      look: _busRandomLook(),
+      life: 9 + Math.random() * 3,
+    });
+  }
+}
+function _tickBus(dt) {
+  const now = performance.now();
+  // 1) Регулярно спавним waiters (но не больше 2 на остановку)
+  if (!_tickBus._nextSpawnT) _tickBus._nextSpawnT = now + 400;
+  if (now >= _tickBus._nextSpawnT) {
+    _tickBus._nextSpawnT = now + 5500 + Math.random() * 3500;
+    const idx = Math.floor(Math.random() * BUS_STOPS.length);
+    if (_busStopCount(idx) < 2) _spawnBusWaiter(idx);
+  }
+  // 2) Тикаем waiters
+  for (let i = _busWaiters.length - 1; i >= 0; i--) {
+    const w = _busWaiters[i];
+    w.idleT += dt;
+    if (w.leaving) {
+      // Идём к автобусу (двери), достигнув — исчезаем
+      const dr = BUS.r - w.r, dc = BUS.c - w.c;
+      const d = Math.hypot(dr, dc);
+      if (d < 0.35) { _busWaiters.splice(i, 1); continue; }
+      const step = Math.min(d, 3.0 * dt);
+      w.r += (dr / d) * step;
+      w.c += (dc / d) * step;
+      w.walkPhase += dt * 9;
+      w.ang = Math.atan2(dr, dc);
+    } else {
+      // Idle: лёгкий поворот головы, без ходьбы. walkPhase не растёт.
+      w.ang += Math.sin(w.idleT) * dt * 0.3;
+    }
+  }
+  // 3) Тикаем вышедших пассажиров — идут к тротуару, потом исчезают
+  for (let i = _busRiders.length - 1; i >= 0; i--) {
+    const rd = _busRiders[i];
+    const dr = rd.tgtR - rd.r, dc = rd.tgtC - rd.c;
+    const d = Math.hypot(dr, dc);
+    if (d > 0.1) {
+      const step = Math.min(d, 1.8 * dt);
+      rd.r += (dr / d) * step;
+      rd.c += (dc / d) * step;
+      rd.walkPhase += dt * 7;
+      rd.ang = Math.atan2(dr, dc);
+    } else {
+      rd.life -= dt;
+      if (rd.life <= 0) { _busRiders.splice(i, 1); continue; }
+    }
+  }
+  // 4) Сам автобус
+  if (BUS.state === 'stopped') {
+    BUS.doorPhase = Math.min(1, BUS.doorPhase + dt * 2.5);
+    if (now >= BUS.stopUntil) {
+      BUS.state = 'driving';
+      BUS.routeIdx = (BUS.routeIdx + 1) % BUS_STOPS.length;
+    }
+    return;
+  }
+  BUS.doorPhase = Math.max(0, BUS.doorPhase - dt * 2.5);
+  const target = BUS_STOPS[BUS.routeIdx];
+  const dr = target.r - BUS.r;
+  const dc = target.c - BUS.c;
+  const d  = Math.hypot(dr, dc);
+  if (d < 0.32) {
+    BUS.r = target.r; BUS.c = target.c;
+    BUS.state = 'stopped';
+    BUS.stopUntil = now + 3200;
+    _onBusArrival(BUS.routeIdx);
+    return;
+  }
+  const step = Math.min(d, BUS.speed * dt);
+  BUS.r += (dr / d) * step;
+  BUS.c += (dc / d) * step;
+  BUS.ang = Math.atan2(dr, dc);
+}
+
 // Стабильный цвет игрока по id/имени для подкраски зоны/флага.
 function ownerColor(key) {
   if (!key) return '#888';
@@ -9342,6 +9495,7 @@ function update(dt) {
       _interpQuestCars(dt);
       _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
+      _tickBus(dt);
       return;
     } else {
       // Параметры аркадной езды. Серверный кламп QUEST_CAR_MAX_SPEED=14.
@@ -9660,6 +9814,7 @@ function update(dt) {
       _interpQuestCars(dt);
       _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
+      _tickBus(dt);
       return;
     }
   }
@@ -9706,6 +9861,8 @@ function update(dt) {
   updateBoxThreat(dt);
   // Интерполяция чужих quest_cars (которые ведут другие игроки)
   _interpQuestCars(dt);
+  // Локальный декор-автобус (тикает всегда, независимо от состояния игрока)
+  _tickBus(dt);
   // Стрельба в открытом мире: ОБЯЗАТЕЛЕН lockedTarget (см. tryTapLock).
   // Правый стик ТОЛЬКО метит цели (тап + удержание лазера = auto-lock).
   // Стрелять можно ИСКЛЮЧИТЕЛЬНО кнопкой fireBtn (или Space на десктопе).
@@ -14859,6 +15016,115 @@ function drawTrafficLight(r, c) {
 }
 
 // ── NPC прохожий (упрощённый человечек) ──────────────────────────
+// ── Графика автобуса и остановок ─────────────────────────────────
+// Используем drawCarPretty (уже умеет isometric корпус + тень) с
+// собственной моделью BUS_MODEL. Окна и лейбл рисуем поверх.
+const BUS_MODEL = {
+  name: 'bus', L: 2.85, W: 1.05,
+  palette: ['#ffc832', '#c89820'],
+  roof: '#a07020',
+  wheelR: 0.22, height: 1.05,
+  bus: true, label: 'BUS',
+};
+function drawBus() {
+  // 4-сторонний snap из BUS.ang (drawCarPretty работает только с
+  // dirDx/dirDy ∈ {-1,0,+1}, ровно одно из них ненулевое).
+  const cosA = Math.cos(BUS.ang), sinA = Math.sin(BUS.ang);
+  let dirDx = 0, dirDy = 0;
+  if (Math.abs(cosA) >= Math.abs(sinA)) dirDx = (cosA >= 0) ? 1 : -1;
+  else                                   dirDy = (sinA >= 0) ? 1 : -1;
+  drawCarPretty({
+    r: BUS.r, c: BUS.c,
+    dirDx, dirDy,
+    model: BUS_MODEL,
+    braking: (BUS.state === 'stopped'),
+  });
+  const p = w2s(BUS.r + 0.5, BUS.c + 0.5);
+  // Полоса окон поверх кузова — простая жёлто-чёрная лента
+  ctx.save();
+  ctx.fillStyle = 'rgba(20,20,30,.65)';
+  const winW = TS * 2.2, winH = 6;
+  ctx.fillRect(p.x - winW/2, p.y - isoH(0.85), winW, winH);
+  // Делим на 5 окон тонкими разделителями
+  ctx.fillStyle = '#a07020';
+  for (let i = 1; i < 5; i++) {
+    const sx = p.x - winW/2 + (winW / 5) * i;
+    ctx.fillRect(sx - 0.6, p.y - isoH(0.85), 1.2, winH);
+  }
+  ctx.restore();
+  // Лейбл «🚌» над крышей чтобы автобус был заметен издалека
+  ctx.save();
+  ctx.font = 'bold 11px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#000';
+  ctx.fillText('🚌 АВТОБУС', p.x + 1, p.y - isoH(1.5) + 1);
+  ctx.fillStyle = '#ffd76b';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText('🚌 АВТОБУС', p.x, p.y - isoH(1.5));
+  ctx.shadowBlur = 0;
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+function drawBusStop(stop) {
+  const p = w2s(stop.sign_r + 0.5, stop.sign_c + 0.5);
+  ctx.save();
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.30)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 6, 22, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Лавочка
+  ctx.fillStyle = '#5a3a1a';
+  ctx.fillRect(p.x - 18, p.y + 2, 36, 5);
+  ctx.fillStyle = '#3a2410';
+  ctx.fillRect(p.x - 18, p.y + 6, 36, 1.5);
+  ctx.fillStyle = '#222';
+  ctx.fillRect(p.x - 16, p.y + 7, 2, 5);
+  ctx.fillRect(p.x + 14, p.y + 7, 2, 5);
+  // Стойки навеса
+  ctx.fillStyle = '#888';
+  ctx.fillRect(p.x - 19, p.y - 26, 1.8, 32);
+  ctx.fillRect(p.x + 17, p.y - 26, 1.8, 32);
+  // Крыша навеса
+  ctx.fillStyle = '#2a4a8a';
+  ctx.beginPath();
+  ctx.moveTo(p.x - 26, p.y - 26);
+  ctx.lineTo(p.x + 26, p.y - 26);
+  ctx.lineTo(p.x + 23, p.y - 30);
+  ctx.lineTo(p.x - 23, p.y - 30);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#1a3060';
+  ctx.fillRect(p.x - 26, p.y - 26, 52, 2);
+  // Табличка «🚌» на правом столбе
+  ctx.fillStyle = '#ffd76b';
+  ctx.fillRect(p.x + 10, p.y - 24, 16, 14);
+  ctx.fillStyle = '#1a1a20';
+  ctx.fillRect(p.x + 10, p.y - 24, 16, 2);
+  ctx.font = 'bold 12px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.fillStyle = '#1a1a20';
+  ctx.textAlign = 'center';
+  ctx.fillText('🚌', p.x + 18, p.y - 12);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+function drawBusWaiter(w) {
+  const p = w2s(w.r, w.c);
+  drawPerson(p.x, p.y, w.ang, w.look, w.walkPhase, null, null,
+             false, null, null, false, 0);
+}
+function drawBusRider(rd) {
+  const p = w2s(rd.r, rd.c);
+  // Лёгкое затухание перед исчезновением — последние 1.5 сек жизни
+  let alpha = 1;
+  if (rd.life < 1.5) alpha = Math.max(0, rd.life / 1.5);
+  ctx.save();
+  if (alpha < 1) ctx.globalAlpha = alpha;
+  drawPerson(p.x, p.y, rd.ang, rd.look, rd.walkPhase, null, null,
+             false, null, null, false, 0);
+  ctx.restore();
+}
+
 function drawNpc(npc) {
   const p = w2s(npc.r, npc.c);
   drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null,
@@ -18037,6 +18303,28 @@ function render() {
   for (const b of beachgoers.values()) {
     if (b.y < r0 || b.y >= r1 || b.x < c0 || b.x >= c1) continue;
     items.push({ depth: b.y + b.x + 0.0004, draw: () => drawBeachgoer(b) });
+  }
+  // Автобусные остановки — знак, навес, лавочка. Декор у дороги.
+  for (const stop of BUS_STOPS) {
+    if (stop.sign_r < r0 || stop.sign_r >= r1 ||
+        stop.sign_c < c0 || stop.sign_c >= c1) continue;
+    // Глубина — по знаку (он стоит за лавочкой, должен быть ПОЗАДИ людей)
+    items.push({ depth: stop.sign_r + stop.sign_c - 0.05,
+                 draw: () => drawBusStop(stop) });
+  }
+  // Ожидающие на остановках — обычные пешеходы (idle стоят, leaving идут)
+  for (const w of _busWaiters) {
+    if (w.r < r0 || w.r >= r1 || w.c < c0 || w.c >= c1) continue;
+    items.push({ depth: w.r + w.c + 0.0006, draw: () => drawBusWaiter(w) });
+  }
+  // Вышедшие пассажиры — идут к тротуару
+  for (const rd of _busRiders) {
+    if (rd.r < r0 || rd.r >= r1 || rd.c < c0 || rd.c >= c1) continue;
+    items.push({ depth: rd.r + rd.c + 0.0006, draw: () => drawBusRider(rd) });
+  }
+  // Сам автобус
+  if (BUS.r >= r0 && BUS.r < r1 && BUS.c >= c0 && BUS.c < c1) {
+    items.push({ depth: BUS.r + BUS.c + 0.0009, draw: () => drawBus() });
   }
   // Охрана Майкла — в чёрных рубашках, по бокам Майкла на палубе
   for (const g of michaelGuards.values()) {
