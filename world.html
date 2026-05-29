@@ -379,6 +379,26 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   transition: transform .08s ease-out;
 }
 #extinguishBtn:active { transform: scale(0.92); }
+/* Кнопка «🏥 Точка респа» — слева внизу, видна только если есть
+   купленные бизнесы. Открывает _respawnModal для смены точки заранее
+   (не только после смерти). */
+#respawnHudBtn {
+  position: absolute; left: 32px; bottom: 232px;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #6cdc70, #2a8a32);
+  border: 2px solid #c8f0a0; box-shadow: 0 5px 14px rgba(80,200,80,.45);
+  display: none; align-items: center; justify-content: center;
+  font-size: 24px; z-index: 13; user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .08s ease-out;
+}
+#respawnHudBtn:active { transform: scale(0.92); }
+#respawnHudBtn .rp-lbl {
+  position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+  background: rgba(20,24,32,.86); color: #c8f0a0;
+  border-radius: 8px; padding: 1px 6px; font-size: 9px; font-weight: 700;
+  white-space: nowrap; font-family: inherit;
+}
 #extinguishBtn .badge {
   position: absolute; top: -4px; right: -4px;
   background: #c83020; color: #fff; border: 1.5px solid #fff;
@@ -1206,6 +1226,9 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   <!-- Огнетушитель — появляется когда у тебя есть хоть один + рядом
        горит уничтоженная тачка. Бейдж = кол-во в инвентаре. -->
   <button id="extinguishBtn">🧯<span class="badge" id="extBadge">0</span></button>
+  <!-- Кнопка смены точки респа в HUD. Показывается ТОЛЬКО если есть
+       купленные бизнесы (myOwnedBiz.length > 0). Лейбл «Респ: <место>». -->
+  <button id="respawnHudBtn" type="button">🏥<span class="rp-lbl" id="respawnHudLbl">Госпиталь</span></button>
 
   <div id="deathOverlay">
     <div class="skull">💀</div>
@@ -6638,6 +6661,7 @@ function handleEventPacket(d) {
     myRespawnPoint = String(d.point || 'hospital');
     myOwnedBiz = Array.isArray(d.owned) ? d.owned.slice() : [];
     refreshDeathRpLabel();
+    refreshRespawnHudBtn();
     if (_respawnModal && _respawnModal.classList.contains('show')) {
       refreshRespawnList();
     }
@@ -6645,6 +6669,7 @@ function handleEventPacket(d) {
     if (d.ok) {
       myRespawnPoint = String(d.respawn_point || 'hospital');
       refreshDeathRpLabel();
+      refreshRespawnHudBtn();
       if (_respawnModal && _respawnModal.classList.contains('show')) {
         refreshRespawnList();
       }
@@ -8233,6 +8258,28 @@ document.getElementById('respawnCloseBtn').addEventListener('click', hideRespawn
 _respawnModal.addEventListener('click', (e) => {
   if (e.target === _respawnModal) hideRespawnModal();
 });
+// HUD-кнопка смены точки респа — видна только если у игрока есть хоть
+// один купленный бизнес. Открывает _respawnModal без необходимости умирать.
+const _respawnHudBtn = document.getElementById('respawnHudBtn');
+const _respawnHudLbl = document.getElementById('respawnHudLbl');
+if (_respawnHudBtn) {
+  _respawnHudBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showRespawnModal();
+  });
+}
+function refreshRespawnHudBtn() {
+  if (!_respawnHudBtn) return;
+  const hasBiz = Array.isArray(myOwnedBiz) && myOwnedBiz.length > 0;
+  // Показываем только при наличии бизнесов И когда жив (на экране смерти
+  // есть отдельная кнопка в deathOverlay).
+  _respawnHudBtn.style.display = (hasBiz && !myDead && !myDrivingCarId) ? 'flex' : 'none';
+  if (_respawnHudLbl) {
+    const lbl = _respawnPointLabel(myRespawnPoint || 'hospital');
+    // Сокращаем: убираем emoji в лейбле HUD (он уже на самой кнопке)
+    _respawnHudLbl.textContent = lbl.replace(/^[^\s]+\s*/, '');
+  }
+}
 // Анимация поднятия коробки: {startT, dur, kind}. Активна 700мс после
 // box_pickup_reply ok — коробка «всплывает» от земли к финальной позиции.
 let _boxAnim = null;
@@ -9376,6 +9423,8 @@ function updatePvpUI() {
   } else if (_deathOv.classList.contains('show')) {
     _deathOv.classList.remove('show');
   }
+  // Обновляем видимость HUD-кнопки респа (скрывается на смерти/в машине)
+  try { refreshRespawnHudBtn(); } catch (e) {}
   _updateHitFlash();
   // Countdown «до инкассатора»
   if (_cdHudEl) {
