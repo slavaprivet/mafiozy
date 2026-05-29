@@ -1051,6 +1051,17 @@ async def init_db():
         await db.execute(
             "UPDATE coop_sessions SET status='cancelled' WHERE status IN ('active','pending')"
         )
+        # Кулдаун ограблений: одна точка раз в 24ч на игрока.
+        # Запись с (uid, biz_id) активна 24ч после t — потом игнорится
+        # (запросы сами фильтруют по t > now-86400).
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS shop_robs (
+                uid     INTEGER NOT NULL,
+                biz_id  TEXT NOT NULL,
+                t       INTEGER NOT NULL,
+                PRIMARY KEY (uid, biz_id)
+            )
+        """)
         # При старте — очищаем все зависшие active_battles (на случай краша)
         await db.execute("DELETE FROM active_battles")
         # Jobs v2 — снимаем старые job-id (janitor/shawarma/etc), их в новом JOBS нет.
@@ -3743,6 +3754,35 @@ def get_business(biz_id: str):
         if b["id"] == biz_id:
             return b
     return None
+
+# Координаты бизнес-POI в мире (дублируют BUSINESS_POIS в world.html). Нужны
+# для серверной anti-cheat проверки расстояния при `shop_rob`. Если игрок
+# слишком далеко от точки — отказ. NB: 'port' не грабится (это пирс Майкла).
+BUSINESS_POIS_RC = {
+    "coffee":     (33, 13),
+    "carwash":    (23, 25),
+    "barbershop": (53, 23),
+    "pizza":      (53, 53),
+    "garage":     (13, 63),
+    "bar":        (43, 33),
+    "club":       (63, 53),
+    "warehouse":  (73, 23),
+    "casino":     (13, 45),
+}
+# Награды за ограбление и сколько ★ дают. Намеренно ниже daily_max,
+# чтобы ограбления не вытесняли честный доход от бизнесов и работ.
+# 1 точка / 24ч (см. таблицу shop_robs).
+SHOP_ROB_CONFIG = {
+    "coffee":     {"money":  120, "stars": 1},
+    "carwash":    {"money":  170, "stars": 1},
+    "barbershop": {"money":  220, "stars": 1},
+    "pizza":      {"money":  320, "stars": 1},
+    "garage":     {"money":  470, "stars": 2},
+    "bar":        {"money":  720, "stars": 2},
+    "club":       {"money": 1100, "stars": 2},
+    "warehouse":  {"money": 1700, "stars": 2},
+    "casino":     {"money": 2800, "stars": 3},
+}
 
 
 def pick_business_event():
@@ -17857,6 +17897,92 @@ async def _coop_http_app():
                                 )
                                 if witness_npc or cop_sees or player_sees:
                                     world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
+                    elif t == 'shop_rob':
+                        # Игрок ограбил магазин/бизнес: d = {biz_id}
+                        # Серверная логика:
+                        #   1) проверить biz_id ∈ SHOP_ROB_CONFIG
+                        #   2) дистанция до POI ≤ 3.0 тайл (anti-cheat)
+                        #   3) не свой бизнес (нельзя ограбить себя)
+                        #   4) cooldown 24ч на эту точку (таблица shop_robs)
+                        #   5) +cash в characters, +★ wanted, broadcast баннер
+                        p = world.players.get(uid)
+                        biz_id = ''
+                        if isinstance(d, dict):
+                            biz_id = str(d.get('biz_id') or '')
+                        cfg = SHOP_ROB_CONFIG.get(biz_id)
+                        rc  = BUSINESS_POIS_RC.get(biz_id)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        elif not cfg or not rc:
+                            reply = {'ok': False, 'reason': 'bad_biz'}
+                        else:
+                            poi_r, poi_c = rc
+                            dx = float(p.get('x', 0)) - poi_c
+                            dy = float(p.get('y', 0)) - poi_r
+                            if dx*dx + dy*dy > 9.0:
+                                reply = {'ok': False, 'reason': 'too_far'}
+                            elif await world._biz_owned_sync(int(uid), biz_id):
+                                reply = {'ok': False, 'reason': 'own'}
+                            else:
+                                now_ts = int(time.time())
+                                last_t = 0
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        cur = await db.execute(
+                                            "SELECT t FROM shop_robs WHERE uid=? AND biz_id=?",
+                                            (int(uid), biz_id))
+                                        row = await cur.fetchone()
+                                        if row: last_t = int(row[0])
+                                except Exception: pass
+                                if now_ts - last_t < 86400:
+                                    left = 86400 - (now_ts - last_t)
+                                    reply = {'ok': False, 'reason': 'cooldown',
+                                             'cooldown_s': left}
+                                else:
+                                    money = int(cfg['money'])
+                                    stars = int(cfg['stars'])
+                                    # +cash
+                                    try:
+                                        async with aiosqlite.connect(DB_PATH) as db:
+                                            await db.execute(
+                                                "UPDATE characters SET cash = cash + ? "
+                                                "WHERE telegram_id = ?",
+                                                (money, int(uid)))
+                                            await db.execute(
+                                                "INSERT OR REPLACE INTO shop_robs "
+                                                "(uid, biz_id, t) VALUES (?,?,?)",
+                                                (int(uid), biz_id, now_ts))
+                                            await db.commit()
+                                    except Exception: pass
+                                    # +★ (минимум stars)
+                                    p['_wanted'] = max(p.get('_wanted') or 0,
+                                                       float(stars))
+                                    p['_last_shot_t'] = time.time()
+                                    reply = {'ok': True, 'biz_id': biz_id,
+                                             'money': money, 'stars': stars}
+                                    # Broadcast баннер всем — «🔪 ОГРАБЛЕНИЕ:»
+                                    nm = (p.get('name') or '')[:20]
+                                    try:
+                                        biz = get_business(biz_id) or {}
+                                        biz_name = biz.get('name') or biz_id
+                                    except Exception:
+                                        biz_name = biz_id
+                                    banner = json.dumps({'t': 'event', 'd': {
+                                        'kind':         'shop_robbed',
+                                        'robber_uid':   str(uid),
+                                        'robber_name':  nm,
+                                        'biz_id':       biz_id,
+                                        'biz_name':     biz_name,
+                                    }}, ensure_ascii=False)
+                                    for _u2, _ws2 in list(world.connections.items()):
+                                        try: await _ws2.send_str(banner)
+                                        except Exception: pass
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='shop_rob_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass

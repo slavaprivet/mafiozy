@@ -112,6 +112,52 @@ body.in-pvp #zoneBtn { top: 104px; }
 body.in-pvp #gtaActionBtn { top: 104px; }
 /* Если активна обычная зона-кнопка и GTA-кнопка — раздвигаем */
 #zoneBtn[style*="block"] ~ #gtaActionBtn { top: 110px; }
+
+/* Кнопка «Ограбить» — рядом с «Купить», красная криминальная */
+#robActionBtn {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 112px;
+  background: linear-gradient(135deg, #6a1818, #b22020);
+  color: #fff; border: 1px solid #ff5050; border-radius: 12px;
+  padding: 8px 16px; font-size: 12px; font-weight: 800;
+  cursor: pointer; display: none; z-index: 7;
+  box-shadow: 0 4px 14px rgba(80,0,0,.6), inset 0 1px 0 rgba(255,255,255,.15);
+  letter-spacing: 0.5px;
+}
+body.in-pvp #robActionBtn { top: 152px; }
+#zoneBtn[style*="block"] ~ #robActionBtn { top: 158px; }
+
+/* Модал прогресса ограбления */
+#robProgress {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  display: none; z-index: 14;
+  align-items: center; justify-content: center;
+}
+#robProgress.show { display: flex; }
+#robProgress .rob-card {
+  background: linear-gradient(180deg, #2a0a0a, #1a0505);
+  border: 2px solid #c83030; border-radius: 14px;
+  padding: 22px 26px; min-width: 280px; max-width: 90vw;
+  text-align: center; box-shadow: 0 10px 40px rgba(200,30,30,.4);
+}
+#robProgress .rob-title {
+  font-size: 18px; font-weight: 900; color: #ff7060;
+  letter-spacing: 1px; margin-bottom: 6px;
+}
+#robProgress .rob-sub {
+  font-size: 13px; color: #ddd; margin-bottom: 14px;
+}
+#robProgress .rob-bar {
+  background: #1a0a0a; border: 1px solid #602020; border-radius: 10px;
+  height: 16px; overflow: hidden; margin-bottom: 10px;
+}
+#robProgress #robBarFill {
+  background: linear-gradient(90deg, #ff5040, #ffb060);
+  height: 100%; width: 0%;
+  transition: width 0.1s linear;
+}
+#robProgress .rob-hint {
+  font-size: 11px; color: #886060; font-style: italic;
+}
 /* HUD активного контракта — узкая полоса под верхней панелью с моделью+наградой */
 #gtaQuestHud {
   position: absolute; left: 50%; transform: translateX(-50%);
@@ -1013,6 +1059,18 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   <!-- GTA-кнопка: Майкл / сесть в машину / выйти. Текст и обработчик
        задаются в updateGtaInteractions(). -->
   <button id="gtaActionBtn"></button>
+  <!-- Альтернативная кнопка «Ограбить» — появляется одновременно с
+       «Купить бизнес». Стиль красный, чтобы было ясно что это криминал. -->
+  <button id="robActionBtn"></button>
+  <!-- Прогресс-окно ограбления (8с таймер) -->
+  <div id="robProgress">
+    <div class="rob-card">
+      <div class="rob-title">🔪 Ограбление</div>
+      <div class="rob-sub" id="robSub">Держись на месте...</div>
+      <div class="rob-bar"><div id="robBarFill"></div></div>
+      <div class="rob-hint">Уйдёшь / умрёшь — отмена</div>
+    </div>
+  </div>
   <!-- HUD активного контракта (под верхней панелью) -->
   <div id="gtaQuestHud"></div>
   <!-- Модал-меню Майкла -->
@@ -6713,6 +6771,40 @@ function handleEventPacket(d) {
         showToast('❌ Не получилось угнать', '⚠️', 2000);
       }
     }
+  } else if (kind === 'shop_rob_reply') {
+    // Ответ сервера на ограбление. ok → +money toast, fail → причина.
+    if (d.ok) {
+      const m = +d.money | 0;
+      const s = +d.stars | 0;
+      showToast(`💰 Ограбление успешно: +$${m.toLocaleString('ru')} (${s}★)`,
+                '🔪', 3000);
+      hapticHit();
+    } else {
+      // Кассир-снитч мог уже побежать локально — отменим, чтобы не было
+      // несоответствия (сервер отверг — wanted не вырастет, снитчить не надо).
+      if (d.reason === 'cooldown') {
+        const left_s = +d.cooldown_s | 0;
+        const hh = Math.floor(left_s / 3600);
+        const mm = Math.floor((left_s % 3600) / 60);
+        const t  = hh > 0 ? `${hh}ч ${mm}м` : `${mm}м`;
+        showToast(`🕓 Эту точку уже грабил — ещё ${t} до повтора`, '⏳', 3500);
+      } else if (d.reason === 'too_far') {
+        showToast('🚶 Слишком далеко от точки', '⚠️', 2000);
+      } else if (d.reason === 'own') {
+        showToast('🏪 Это твой бизнес — нельзя ограбить себя', '⚠️', 2200);
+      } else if (d.reason === 'bad_biz') {
+        showToast('❌ Эту точку нельзя ограбить', '⚠️', 2000);
+      } else {
+        showToast('❌ Ограбление не прошло', '⚠️', 2000);
+      }
+    }
+  } else if (kind === 'shop_robbed') {
+    // Broadcast всем — кто-то ограбил магазин в городе. Баннер на 2.5с.
+    if (String(d.robber_uid) !== String(QP.uid)) {
+      const nm = d.robber_name || 'Кто-то';
+      const bn = d.biz_name || 'магазин';
+      showEventBanner(`🔪 ОГРАБЛЕНИЕ`, `${nm} ограбил «${bn}»`, 2500, 'warn');
+    }
   } else if (kind === 'gta_take_reply') {
     if (d.ok) {
       myGtaStatus.active = {
@@ -7607,6 +7699,149 @@ _zoneEl.addEventListener('click', () => {
   openDistrictBattle(_zoneCur.id);
 });
 
+// ── Ограбление магазинов/бизнесов ──────────────────────────────────
+// Альтернатива покупке: подходишь к чужому бизнесу → кнопка «🔪 Ограбить».
+// 1 точка / 24ч (сервер фильтрует по shop_robs). Малые суммы (≈0.5 daily_max
+// бизнеса), +★ wanted. NPC-кассир спавнится локально на тайле POI и через 8с
+// бежит в участок (snitch). Убьёшь кассира до окончания таймера — ★ всё
+// равно прилетит за сам факт ограбления (серверный witness), но без snitch.
+const ROB_PAYOUT_PREVIEW = {
+  coffee:     { money:  120, stars: 1 },
+  carwash:    { money:  170, stars: 1 },
+  barbershop: { money:  220, stars: 1 },
+  pizza:      { money:  320, stars: 1 },
+  garage:     { money:  470, stars: 2 },
+  bar:        { money:  720, stars: 2 },
+  club:       { money: 1100, stars: 2 },
+  warehouse:  { money: 1700, stars: 2 },
+  casino:     { money: 2800, stars: 3 },
+};
+const ROB_DURATION_MS = 8000;
+const _robBtn      = document.getElementById('robActionBtn');
+const _robModal    = document.getElementById('robProgress');
+const _robBarFill  = document.getElementById('robBarFill');
+const _robSubEl    = document.getElementById('robSub');
+let _robInProgress = false;
+let _robStartT     = 0;
+let _robTargetBiz  = null;   // POI который грабим (объект из BUSINESS_POIS)
+let _robTargetR    = 0;
+let _robTargetC    = 0;
+let _robCashierNpc = null;   // ссылка на NPC из NPCS — кассир (если жив бежит)
+
+function startRobbery(biz) {
+  if (_robInProgress) return;
+  if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
+  if (myDead) return;
+  const wsReady = !!(ws && ws.readyState === 1);
+  if (!wsReady) {
+    showToast('🌐 Нет соединения с сервером', '⚠️', 1800);
+    return;
+  }
+  _robInProgress = true;
+  _robStartT     = performance.now();
+  _robTargetBiz  = biz;
+  _robTargetR    = biz.r;
+  _robTargetC    = biz.c;
+  _robCashierNpc = _spawnCashierAt(biz.r, biz.c);
+  _robModal.classList.add('show');
+  _robBarFill.style.width = '0%';
+  _robSubEl.textContent = `🏪 ${biz.emoji} ${biz.name}`;
+  _robBtn.style.display = 'none';
+  _gtaBtn.style.display = 'none';
+  hapticHit();
+}
+
+// Спавним NPC «кассир» прямо на тайле POI. Это обычный NPC с пометкой
+// _cashier=true — он не двигается до конца таймера. Если игрок убьёт
+// его (raycast NPC попадёт) — _cashier=false, snitch не сработает.
+function _spawnCashierAt(r, c) {
+  if (typeof NPCS === 'undefined') return null;
+  // Сместим NPC на 0.5 тайла к игроку (от тайла POI) чтобы был «у входа»
+  const dr = player.r - r, dc = player.c - c;
+  const dn = Math.hypot(dr, dc) || 1;
+  const sr = r + dr / dn * 0.7;
+  const sc = c + dc / dn * 0.7;
+  const npc = {
+    r: sr, c: sc, tr: sr, tc: sc,
+    dead: false, panicUntil: 0, snitching: false, snitchUntil: 0,
+    cryUntil: 0, cryText: '',
+    speed: 1.4,
+    hp: 30, hpMax: 30,
+    // Визуально отличается — кассир
+    name: 'Кассир',
+    _cashier: true,
+    skin: { shirt: '#3a82c8', pants: '#222', hair: '#222' },
+  };
+  if (typeof pickNpcWaypoint === 'function') {
+    // На момент ограбления — стоит как вкопанный (idle до 9999)
+    npc.idleUntil = performance.now() + 9999000;
+  }
+  NPCS.push(npc);
+  return npc;
+}
+
+function cancelRobbery(reason) {
+  if (!_robInProgress) return;
+  _robInProgress = false;
+  _robModal.classList.remove('show');
+  // Кассир либо ушёл, либо остался — снимаем idle, пусть живёт.
+  if (_robCashierNpc) {
+    _robCashierNpc.idleUntil = 0;
+    _robCashierNpc = null;
+  }
+  if (reason === 'left') {
+    showToast('🏃 Ушёл — ограбление отменено', 'ℹ️', 1800);
+  } else if (reason === 'dead') {
+    // tост от смерти и так показывается
+  }
+}
+
+function finishRobbery() {
+  if (!_robInProgress) return;
+  _robInProgress = false;
+  _robModal.classList.remove('show');
+  // Кассир жив? → он становится snitch (бежит в участок). Серверной
+  // снитч-логике не нужно — клиент уже сам стучит через _snitchReport.
+  if (_robCashierNpc && !_robCashierNpc.dead && _robCashierNpc._cashier) {
+    _robCashierNpc.idleUntil = 0;
+    if (typeof markNpcSnitch === 'function') {
+      markNpcSnitch(_robCashierNpc, 'ОН МЕНЯ ОГРАБИЛ!!');
+    } else {
+      _robCashierNpc.snitching = true;
+      _robCashierNpc.snitchUntil = performance.now() + 60000;
+      _robCashierNpc.cryUntil = performance.now() + 1500;
+      _robCashierNpc.cryText  = 'ОН МЕНЯ ОГРАБИЛ!!';
+    }
+  }
+  _robCashierNpc = null;
+  // Шлём серверу — он валидирует cooldown/дистанцию/owner и начислит cash + ★
+  try {
+    ws && ws.send(JSON.stringify({ t: 'shop_rob', d: {
+      biz_id: _robTargetBiz && _robTargetBiz.id,
+    } }));
+  } catch(e) {}
+}
+
+// Тик прогресса (вызывается каждый кадр из update)
+function updateRobbery(now) {
+  if (!_robInProgress) return;
+  // Игрок отошёл? Умер? — отмена.
+  if (myDead) { cancelRobbery('dead'); return; }
+  const dr = player.r - _robTargetR, dc = player.c - _robTargetC;
+  if (Math.hypot(dr, dc) > 3.0) { cancelRobbery('left'); return; }
+  const dt = now - _robStartT;
+  const k = Math.min(1, dt / ROB_DURATION_MS);
+  _robBarFill.style.width = (k * 100).toFixed(1) + '%';
+  if (dt >= ROB_DURATION_MS) finishRobbery();
+}
+
+// Клик «🔪 Ограбить»
+if (_robBtn) {
+  _robBtn.addEventListener('click', () => {
+    if (_robTargetBiz) startRobbery(_robTargetBiz);
+  });
+}
+
 // ── GTA: взаимодействия (Майкл / сесть-выйти из машины) ────────────
 const _gtaBtn = document.getElementById('gtaActionBtn');
 let _gtaActionKind = null;   // 'michael' | 'enter' | 'exit' | 'hijack'
@@ -7631,6 +7866,11 @@ function playEnterCarAnim(r, c) {
 }
 
 function updateGtaInteractions() {
+  // Кнопка «Ограбить» по умолчанию скрыта — показывается только в
+  // блоке biz_buy (когда подошёл к чужому бизнесу). Прячем здесь чтобы
+  // не торчала после ухода от точки. Идёт ограбление — НЕ трогаем,
+  // прячется в finishRob/cancelRob.
+  if (_robBtn && !_robInProgress) _robBtn.style.display = 'none';
   if (myDrivingCarId) {
     _gtaActionKind = 'exit';
     _gtaActionCarId = myDrivingCarId;
@@ -7660,6 +7900,14 @@ function updateGtaInteractions() {
       _gtaActionCarId = bizNear.id;
       _gtaBtn.textContent = `🏪 ${bizNear.emoji} Купить за $${bizNear.price.toLocaleString('ru')}`;
       _gtaBtn.style.display = 'block';
+      // ВТОРАЯ кнопка — «Ограбить». Альтернатива покупке.
+      // Сумма и ★ серверные, сервер сам отвергнет при cooldown.
+      const rcfg = ROB_PAYOUT_PREVIEW[bizNear.id];
+      if (_robBtn && rcfg && !_robInProgress) {
+        _robTargetBiz = bizNear;
+        _robBtn.textContent = `🔪 Ограбить ($${rcfg.money}, ${rcfg.stars}★)`;
+        _robBtn.style.display = 'block';
+      }
       return;
     }
     if (own.pending && own.pending > 0) {
@@ -10351,6 +10599,7 @@ function update(dt) {
   updateCaptureBanner();
   updateGtaInteractions();
   updateGtaQuestHud();
+  updateRobbery(performance.now());
   updateExtinguishBtn();
   updateBoxThreat(dt);
   // Интерполяция чужих quest_cars (которые ведут другие игроки)
@@ -13658,48 +13907,56 @@ function drawCarPretty(car) {
       }
     }
   }
-  // Фары (жёлтые с glow) на front-грани, в направлении движения.
-  // Усилены: двойной круг (внешний glow + ядро), белёсый «конус» света
-  // вперёд для движущихся машин.
+  // Фары на front-грани, в направлении движения.
+  // День: тусклые серые лампочки. Ночь: яркие жёлтые с glow + конус
+  // света на асфальте впереди (только если едет). Привязано к
+  // getNightAlpha (та же кривая что и у фонарей).
   const fronEdge = edges.find(e => e.name === 'front');
   if (fronEdge) {
+    const _nightK = Math.max(0, Math.min(1, getNightAlpha() / 0.55));
     const lx1 = fronEdge.a.x * 0.78 + fronEdge.b.x * 0.22;
     const ly1 = fronEdge.a.y * 0.78 + fronEdge.b.y * 0.22 - H * 0.22;
     const lx2 = fronEdge.a.x * 0.22 + fronEdge.b.x * 0.78;
     const ly2 = fronEdge.a.y * 0.22 + fronEdge.b.y * 0.78 - H * 0.22;
-    // Glow-ореол
-    ctx.fillStyle = 'rgba(255,244,184,.35)';
-    ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 10;
-    ctx.beginPath(); ctx.arc(lx1, ly1, 3.6, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(lx2, ly2, 3.6, 0, Math.PI * 2); ctx.fill();
-    // Ядро — яркое
-    ctx.fillStyle = '#fffae0';
-    ctx.shadowBlur = 4;
-    ctx.beginPath(); ctx.arc(lx1, ly1, 2.1, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(lx2, ly2, 2.1, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-    // Конус света на асфальте — только когда едет
-    if (!car.parked && Math.hypot(car.vr || 0, car.vc || 0) > 0.3) {
-      const fmx = (fronEdge.a.x + fronEdge.b.x) / 2;
-      const fmy = (fronEdge.a.y + fronEdge.b.y) / 2;
-      const lcx = (FR.x + FL.x + BR.x + BL.x) / 4;
-      const lcy = (FR.y + FL.y + BR.y + BL.y) / 4;
-      const dx = fmx - lcx, dy = fmy - lcy;
-      const dn = Math.hypot(dx, dy) || 1;
-      const ux = dx / dn, uy = dy / dn;
-      const beamLen = 28, beamHalfW = 9;
-      const px = -uy, py = ux;
-      const cg = ctx.createRadialGradient(fmx, fmy, 1, fmx + ux * beamLen, fmy + uy * beamLen, beamLen);
-      cg.addColorStop(0, 'rgba(255,244,184,.32)');
-      cg.addColorStop(1, 'rgba(255,244,184,0)');
-      ctx.fillStyle = cg;
-      ctx.beginPath();
-      ctx.moveTo(fmx + px * 1.5, fmy + py * 1.5);
-      ctx.lineTo(fmx + ux * beamLen + px * beamHalfW, fmy + uy * beamLen + py * beamHalfW);
-      ctx.lineTo(fmx + ux * beamLen - px * beamHalfW, fmy + uy * beamLen - py * beamHalfW);
-      ctx.lineTo(fmx - px * 1.5, fmy - py * 1.5);
-      ctx.closePath();
-      ctx.fill();
+    if (_nightK > 0.05) {
+      // НОЧЬ: ореол + яркое ядро. Glow растёт пропорционально темноте.
+      ctx.fillStyle = 'rgba(255,244,184,' + (0.35 * _nightK).toFixed(3) + ')';
+      ctx.shadowColor = '#fff4b8'; ctx.shadowBlur = 10 * _nightK;
+      ctx.beginPath(); ctx.arc(lx1, ly1, 3.6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(lx2, ly2, 3.6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fffae0';
+      ctx.shadowBlur = 4 * _nightK;
+      ctx.beginPath(); ctx.arc(lx1, ly1, 2.1, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(lx2, ly2, 2.1, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      // Конус света на асфальте — только когда едет И ночь
+      if (!car.parked && Math.hypot(car.vr || 0, car.vc || 0) > 0.3) {
+        const fmx = (fronEdge.a.x + fronEdge.b.x) / 2;
+        const fmy = (fronEdge.a.y + fronEdge.b.y) / 2;
+        const lcx = (FR.x + FL.x + BR.x + BL.x) / 4;
+        const lcy = (FR.y + FL.y + BR.y + BL.y) / 4;
+        const dx = fmx - lcx, dy = fmy - lcy;
+        const dn = Math.hypot(dx, dy) || 1;
+        const ux = dx / dn, uy = dy / dn;
+        const beamLen = 28, beamHalfW = 9;
+        const px = -uy, py = ux;
+        const cg = ctx.createRadialGradient(fmx, fmy, 1, fmx + ux * beamLen, fmy + uy * beamLen, beamLen);
+        cg.addColorStop(0, 'rgba(255,244,184,' + (0.45 * _nightK).toFixed(3) + ')');
+        cg.addColorStop(1, 'rgba(255,244,184,0)');
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+        ctx.moveTo(fmx + px * 1.5, fmy + py * 1.5);
+        ctx.lineTo(fmx + ux * beamLen + px * beamHalfW, fmy + uy * beamLen + py * beamHalfW);
+        ctx.lineTo(fmx + ux * beamLen - px * beamHalfW, fmy + uy * beamLen - py * beamHalfW);
+        ctx.lineTo(fmx - px * 1.5, fmy - py * 1.5);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else {
+      // ДЕНЬ: тусклые серые лампочки (видны только как декор)
+      ctx.fillStyle = '#5a5a64';
+      ctx.beginPath(); ctx.arc(lx1, ly1, 1.6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(lx2, ly2, 1.6, 0, Math.PI * 2); ctx.fill();
     }
   }
   // Задние габариты + стоп. Габариты — всегда тускло-красные; при
