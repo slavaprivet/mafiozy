@@ -856,6 +856,10 @@ async def init_db():
             # JSON-список boss_id'ов которых игрок хоть раз победил. Для
             # галочки «✓ побеждал» в списке боссов района (визуальный маркер).
             ("bosses_defeated_json", "TEXT DEFAULT NULL"),
+            # Выбранная точка респавна в открытом мире. NULL/«hospital» =
+            # дефолтный спавн у госпиталя. Иначе biz_id из BUSINESSES
+            # (coffee/carwash/...) — респ рядом с купленным бизнесом.
+            ("respawn_point",      "TEXT DEFAULT NULL"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -11654,6 +11658,22 @@ class WorldSim:
     # перекрёсток. Тебя убил коп с 0-1 звёздами или конвой — выйдешь
     # у больницы, а не там где умер.
     HOSPITAL_X          = 43.0
+    # Координаты бизнесов из BUSINESS_POIS (world.html) для респавна
+    # рядом с купленным объектом. Ключ — biz_id, значение (x, y) —
+    # тайл-«дорога» возле входа, проходимый. r/c из world.html
+    # инвертированы: x=c, y=r. См. setting set_respawn_point.
+    BIZ_RESPAWN_COORDS = {
+        'coffee':     (13.0, 33.0),
+        'carwash':    (25.0, 23.0),
+        'barbershop': (23.0, 53.0),
+        'pizza':      (53.0, 53.0),
+        'garage':     (63.0, 13.0),
+        'bar':        (33.0, 43.0),
+        'club':       (53.0, 63.0),
+        'warehouse':  (23.0, 73.0),
+        'casino':     (45.0, 13.0),
+        # 'port' покупается у Майкла, физически в мире нет — респ туда не даём
+    }
     # ── Захват районов ─────────────────────────────────────────────
     # 5 захватываемых POI (координаты — как в world.html). Зона = 7×7
     # вокруг центра. PvE-игроки в захвате не участвуют.
@@ -11741,18 +11761,20 @@ class WorldSim:
     BOX_REWARD_MIN      = 220
     BOX_REWARD_MAX      = 480
     BOX_PICKUP_R        = 2.0        # радиус подбора коробки в порту
-    BOX_DROPOFF_R       = 2.5        # радиус сдачи у здания
+    BOX_DROPOFF_R       = 3.5        # радиус сдачи у здания (большие POI)
+    # Штраф-кулдаун за провал доставки (копы/взрыв) — 10 минут пока
+    # Майкл не возьмёт нового. Лимит на сутки при этом тоже расходуется.
+    BOX_FAIL_CD_S       = 10 * 60
     # Точка погрузки — пирс рядом с краном (склад с контейнерами).
     BOX_PICKUP_X        = 32.0
     BOX_PICKUP_Y        = 169.0
-    # Точки доставки — здания в разных районах города.
+    # Точки доставки — три POI на карте: Порт, Казино, Рынок. Это
+    # настоящие здания (drawPortBuilding/drawCasinoBuilding/drawMarketBuilding
+    # в world.html), а не «выдуманные адреса». Координаты совпадают с POI.
     BOX_DROPOFFS = [
-        ('Склад на улице Лэйк',     16.0,  16.0),
-        ('Магазин на Промышленной', 56.0,  46.0),
-        ('Гаражи у Резиденции',     36.0,  66.0),
-        ('Кафе «У Лу»',             16.0,  46.0),
-        ('Прачечная Восток',        66.0,  26.0),
-        ('Ломбард на Бэйкер',       26.0,  36.0),
+        ('Порт',   56.0, 16.0),
+        ('Казино', 16.0, 46.0),
+        ('Рынок',  16.0, 16.0),
     ]
     AGGRO_BOT_HP        = 90
     AGGRO_BOT_DMG       = 8
@@ -11976,6 +11998,12 @@ class WorldSim:
             # сам и не телепортируем.
             '_jail_released': (int(jail_until or 0) <= int(time.time())),
             '_last_shot_t':  0.0,   # для wanted decay
+            # Точка респавна: 'hospital' (default) или biz_id (если игрок
+            # купил бизнес и выбрал его в респавн-настройке). Подгружается
+            # из БД при коннекте через _world_load_owned_biz_for, чтобы
+            # tick_respawn мог проверить «бизнес всё ещё мой?» без I/O.
+            '_respawn_point': 'hospital',
+            '_owned_biz':     set(),
             # Режим игры в открытом мире: 'pvp' (можно стрелять и тебя
             # тоже могут) или 'pve' (наблюдатель — выстрелы не проходят,
             # AI копов/конвоя игнорирует, нет правого стика и оружия)
@@ -12001,6 +12029,12 @@ class WorldSim:
         anti-cheat). Phase 2+ можно валидировать скорость/коллизии."""
         p = self.players.get(uid)
         if not p:
+            return
+        # Мёртвый игрок не может двигаться — иначе после респавна клиент
+        # успевал прислать устаревшую позицию (с места смерти), сервер
+        # принимал её и rate-limit'ом «возвращал» игрока туда. Симптом:
+        # «после респа стою на месте, потом отбрасывает назад».
+        if p.get('dead'):
             return
         try:
             nx = float(d.get('x', p['x']))
@@ -12708,6 +12742,35 @@ class WorldSim:
         # воскрешать жертв ЛЮБОЙ системы (а не только событий конвоя).
         return pkts
 
+    def _biz_owned_sync(self, uid: int, biz_id: str) -> bool:
+        """Синхронная проверка владения бизнесом — читает из кеша
+        p['_owned_biz']. Кеш заполняется при коннекте через
+        _world_load_owned_biz_for и обновляется при покупке."""
+        p = self.players.get(str(uid))
+        if not p:
+            return False
+        return biz_id in (p.get('_owned_biz') or set())
+
+    def set_respawn_point(self, uid: str, rp: str) -> dict:
+        """Игрок выбирает где возрождаться. 'hospital' — всегда можно.
+        biz_id — только если бизнес куплен (кеш _owned_biz)."""
+        p = self.players.get(uid)
+        if not p:
+            return {'ok': False, 'reason': 'no_player'}
+        rp = str(rp or 'hospital').strip()
+        if rp != 'hospital':
+            if rp not in self.BIZ_RESPAWN_COORDS:
+                return {'ok': False, 'reason': 'bad_biz'}
+            if rp not in (p.get('_owned_biz') or set()):
+                return {'ok': False, 'reason': 'not_owned'}
+        p['_respawn_point'] = rp
+        # Сохраняем в БД, чтобы при следующем коннекте подгрузилось.
+        try:
+            asyncio.create_task(update_character(int(uid), respawn_point=rp))
+        except Exception:
+            pass
+        return {'ok': True, 'respawn_point': rp}
+
     def tick_respawn(self, dt: float) -> None:
         """Воскрешает мёртвых игроков через PLAYER_RESPAWN_S. Раньше эта
         логика была внутри tick_event, поэтому жертвы банды Логова
@@ -12746,8 +12809,25 @@ class WorldSim:
                 p['x'] = sx + random.uniform(-0.2, 0.2)
                 p['y'] = sy + random.uniform(-0.2, 0.2)
             else:
-                p['x'] = self.HOSPITAL_X + random.uniform(-1.0, 1.0)
-                p['y'] = self.HOSPITAL_Y + random.uniform(-1.0, 1.0)
+                # Выбранная игроком точка респавна (см. set_respawn_point).
+                # Если 'hospital' (default) — у госпиталя. Если biz_id и
+                # бизнес ВСЁ ЕЩЁ принадлежит игроку (проверяется на лету) —
+                # рядом с ним. Иначе fallback к госпиталю.
+                rp = p.get('_respawn_point') or 'hospital'
+                spawned = False
+                if rp != 'hospital' and rp in self.BIZ_RESPAWN_COORDS:
+                    if self._biz_owned_sync(int(p_uid), rp):
+                        bx, by = self.BIZ_RESPAWN_COORDS[rp]
+                        p['x'] = bx + random.uniform(-0.6, 0.6)
+                        p['y'] = by + random.uniform(-0.6, 0.6)
+                        spawned = True
+                if not spawned:
+                    p['x'] = self.HOSPITAL_X + random.uniform(-1.0, 1.0)
+                    p['y'] = self.HOSPITAL_Y + random.uniform(-1.0, 1.0)
+                    # Сбросим неверную точку чтобы не тратить проверку каждый
+                    # раз. Игрок может перевыбрать через клиент.
+                    if rp != 'hospital':
+                        p['_respawn_point'] = 'hospital'
 
     def tick_jail_release(self) -> None:
         """Освобождение из тюрьмы: когда _jail_until истёк, телепортируем
@@ -14695,6 +14775,12 @@ class WorldSim:
             return {'ok': False, 'reason': 'limit',
                     'wait_s': int(max(0, p['_box_reset_at'] - now)),
                     'limit':  self.BOX_DAILY_LIMIT}
+        # Штраф за провал: 10 мин нельзя брать новый. Сообщаем wait_s
+        # чтобы клиент мог показать обратный отсчёт в кнопке.
+        fail_until = float(p.get('_box_fail_until') or 0.0)
+        if fail_until > now:
+            return {'ok': False, 'reason': 'fail_cd',
+                    'wait_s': int(max(0, fail_until - now))}
         # Близость к Майклу
         dx = p['x'] - self.MICHAEL_X; dy = p['y'] - self.MICHAEL_Y
         if (dx*dx + dy*dy) > 3.0 * 3.0:
@@ -14760,6 +14846,21 @@ class WorldSim:
         return {'ok': True, 'state': 'delivered', 'reward': reward,
                 'addr': q.get('addr')}
 
+    def box_abandon(self, uid: str, reason: str = '') -> dict:
+        """Игрок потерял груз (копы/взрыв/выкинул). Очищаем квест,
+        включаем штраф-кулдаун BOX_FAIL_CD_S. Лимит на сутки уже
+        был израсходован при box_take — не возвращаем."""
+        p = self.players.get(uid)
+        q = self.box_quests.pop(str(uid), None)
+        if not p:
+            return {'ok': False, 'reason': 'no_player'}
+        if not q:
+            return {'ok': False, 'reason': 'no_quest'}
+        now = time.time()
+        p['_box_fail_until'] = now + self.BOX_FAIL_CD_S
+        return {'ok': True, 'reason': str(reason or '')[:32],
+                'wait_s': int(self.BOX_FAIL_CD_S)}
+
     def box_status(self, uid: str) -> dict:
         """Снапшот box-работы: счётчик + активный контракт."""
         p = self.players.get(uid)
@@ -14780,11 +14881,14 @@ class WorldSim:
                 'reward':    int(q['reward']),
                 'state':     q['state'],
             }
+        fail_until = float(p.get('_box_fail_until') or 0.0)
+        fail_cd_s  = int(max(0, fail_until - now))
         return {
             'count_today': int(p.get('_box_count', 0)),
             'limit':       self.BOX_DAILY_LIMIT,
             'reset_in_s':  int(max(0, (p.get('_box_reset_at') or 0) - now)),
             'active':      active,
+            'fail_cd_s':   fail_cd_s,
         }
 
     # ── Охрана Майкла ──────────────────────────────────────────────
@@ -16674,6 +16778,17 @@ async def _coop_http_app():
             )
             await db.commit()
         await update_character(uid, cash=cash - biz['price'])
+        # Обновляем in-memory кеш владений в WorldSim — чтобы set_respawn_point
+        # и tick_respawn узнали о покупке сразу, без переподключения к WS.
+        try:
+            if _WORLD is not None:
+                p_ref = _WORLD.players.get(str(uid))
+                if p_ref is not None:
+                    if not isinstance(p_ref.get('_owned_biz'), set):
+                        p_ref['_owned_biz'] = set(p_ref.get('_owned_biz') or [])
+                    p_ref['_owned_biz'].add(biz_id)
+        except Exception:
+            pass
         return await _cors(web.json_response({'ok': True, 'cash': cash - biz['price']}))
 
     async def h_biz_collect(req):
@@ -17308,6 +17423,24 @@ async def _coop_http_app():
             except Exception:
                 p_ref['_cash'] = p_ref.get('_cash', 0)
                 p_ref['_diamonds'] = p_ref.get('_diamonds', 0)
+            # Подгружаем выбранную точку респавна + список купленных бизнесов
+            # из БД, чтобы tick_respawn мог проверять без I/O в каждой итерации.
+            try:
+                rp = (char.get('respawn_point') or '').strip() or 'hospital'
+                p_ref['_respawn_point'] = rp
+            except Exception:
+                p_ref['_respawn_point'] = 'hospital'
+            try:
+                async with aiosqlite.connect(DB_PATH) as db:
+                    db.row_factory = aiosqlite.Row
+                    async with db.execute(
+                        "SELECT biz_id FROM player_businesses WHERE telegram_id=?",
+                        (uid_int,)
+                    ) as cur:
+                        rows = await cur.fetchall()
+                p_ref['_owned_biz'] = set(r['biz_id'] for r in rows)
+            except Exception:
+                p_ref['_owned_biz'] = set()
         world.connections[uid] = ws
 
         # Hello-кадр
@@ -17903,12 +18036,45 @@ async def _coop_http_app():
                                 {'t': 'event', 'd': dict(reply, kind='box_deliver_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'box_abandon':
+                        reason = (d.get('reason') if isinstance(d, dict) else '') or ''
+                        reply = world.box_abandon(uid, reason)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='box_abandon_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
                     elif t == 'box_status':
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(world.box_status(uid),
                                                           kind='box_status')},
                                 ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'set_respawn_point':
+                        # Игрок выбирает где возрождаться. d.point: 'hospital' | biz_id.
+                        # Ответ: ok + текущая точка ИЛИ ok=False + reason
+                        # (bad_biz / not_owned / no_player).
+                        rp_in = str((d.get('point') if isinstance(d, dict) else '') or 'hospital')[:16]
+                        reply = world.set_respawn_point(uid, rp_in)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='set_respawn_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'respawn_status':
+                        # Клиент при открытии UI выбора — узнаёт текущую точку
+                        # + список своих бизнесов (для меню вариантов).
+                        p = world.players.get(uid) or {}
+                        try:
+                            await ws.send_str(json.dumps({
+                                't': 'event',
+                                'd': {
+                                    'kind': 'respawn_status',
+                                    'point': p.get('_respawn_point') or 'hospital',
+                                    'owned': sorted(list(p.get('_owned_biz') or [])),
+                                }
+                            }, ensure_ascii=False))
                         except Exception: pass
                 elif msg.type == web.WSMsgType.ERROR:
                     break

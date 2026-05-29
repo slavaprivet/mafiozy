@@ -679,6 +679,58 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 #deathOverlay .title { font-size: 24px; font-weight: 800; margin-top: 4px; color: #ff5a5a; }
 #deathOverlay .by    { font-size: 14px; color: #c8d0dc; margin-top: 6px; }
 #deathOverlay .cnt   { font-size: 16px; color: #ffd76b; margin-top: 14px; font-weight: 700; }
+#deathOverlay .rp    { font-size: 12px; color: #b8c0c8; margin-top: 12px; }
+#deathOverlay .rp-btn {
+  margin-top: 8px; padding: 8px 14px; border-radius: 10px;
+  border: 1.5px solid #5a8a4a; background: linear-gradient(135deg,#1e2a18,#2a3a20);
+  color: #c8e8a0; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+#deathOverlay .rp-btn:hover { background: linear-gradient(135deg,#2a3a20,#3a4a28); }
+
+/* Модалка выбора точки респавна */
+#respawnModal {
+  position: absolute; inset: 0; z-index: 20;
+  background: rgba(0,0,0,.7); display: none;
+  align-items: center; justify-content: center;
+}
+#respawnModal.show { display: flex; }
+#respawnModal .card {
+  position: relative; background: linear-gradient(135deg, #15181f, #1a2028);
+  border: 2px solid #5a8a4a; border-radius: 14px;
+  padding: 18px; min-width: 280px; max-width: 90vw;
+  max-height: 80vh; overflow-y: auto;
+  color: #fff; font-family: inherit;
+  box-shadow: 0 0 32px rgba(90,138,74,.3);
+}
+#respawnModal .x {
+  position: absolute; top: 8px; right: 12px;
+  font-size: 22px; color: #888; cursor: pointer; line-height: 1;
+}
+#respawnModal .x:hover { color: #fff; }
+#respawnModal .head { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+#respawnModal .head .icon { font-size: 32px; }
+#respawnModal .head .nm   { font-size: 16px; font-weight: 800; color: #c8e8a0; }
+#respawnModal .head .sub  { font-size: 11px; color: #88a078; }
+#respawnModal .list { display: flex; flex-direction: column; gap: 6px; }
+#respawnModal .r-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  background: #20262e; border: 1.5px solid #2a323a;
+  cursor: pointer; user-select: none;
+}
+#respawnModal .r-item:hover { background: #262e36; border-color: #3a4a32; }
+#respawnModal .r-item.active {
+  background: linear-gradient(135deg,#1e2a18,#2a3a20);
+  border-color: #5a8a4a; box-shadow: 0 0 10px rgba(90,138,74,.4);
+}
+#respawnModal .r-item.locked {
+  opacity: .5; cursor: not-allowed;
+}
+#respawnModal .r-item .em { font-size: 22px; }
+#respawnModal .r-item .nm { font-size: 13px; font-weight: 700; color: #fff; flex: 1; }
+#respawnModal .r-item .tg { font-size: 10px; color: #7ee69a; font-weight: 700; }
+#respawnModal .r-item.locked .tg { color: #ff7878; }
+#respawnModal .hint { font-size: 10px; color: #88909a; margin-top: 10px; text-align: center; }
 
 /* Баннер «вы в PVP-зоне» */
 #pvpBanner {
@@ -1160,6 +1212,27 @@ body.in-pvp #gtaActionBtn { top: 104px; }
     <div class="title">УБИТ</div>
     <div class="by" id="deathBy">&nbsp;</div>
     <div class="cnt">Респаун через <span id="deathCnt">5</span> сек</div>
+    <div class="rp" id="deathRespawnPoint">Точка респа: 🏥 Госпиталь</div>
+    <button class="rp-btn" id="respawnSetBtn" type="button">🏥 Сменить точку респа</button>
+  </div>
+
+  <!-- Модалка выбора точки респавна. Список: Госпиталь + купленные
+       бизнесы. Открывается с экрана смерти ИЛИ из меню паузы. -->
+  <div id="respawnModal">
+    <div class="card">
+      <div class="x" id="respawnCloseBtn" title="Закрыть">×</div>
+      <div class="head">
+        <div class="icon">🏥</div>
+        <div>
+          <div class="nm">Где возрождаться</div>
+          <div class="sub">Выбери точку — после смерти появишься там</div>
+        </div>
+      </div>
+      <div class="list" id="respawnList">
+        <!-- Заполняется JS из myOwnedBiz + 'hospital' -->
+      </div>
+      <div class="hint">Бизнесы становятся доступны после покупки</div>
+    </div>
   </div>
 
   <!-- Большой баннер эмерджентных событий (инкассатор/куш). Управляется
@@ -4560,8 +4633,9 @@ function s2w(x, y) {
 // что и drawWeaponInHands — гарантирует «пуля вылетает из дула», а не
 // «из груди» или «из-за спины».
 function muzzleWorldPoint(angleRad) {
-  const wep = resolveWeapon(currentWeapon);
-  const tip = FIREARM_TIP[wep] || 16;
+  // Берём tip по РЕАЛЬНОМУ id (deagle ≠ pistol_heavy по длине ствола),
+  // с fallback'ом через weaponTip на resolved-класс.
+  const tip = weaponTip(currentWeapon);
   const playerScale = 0.9;
   const sc = playerScale * (TS / 60);
   // Экранная позиция игрока (центр клетки)
@@ -4662,10 +4736,314 @@ const WEAPON_FX_CFG = {
   rpg:          { range: 11, color: '#ff6020', spread: 0,    dmg: 90, thick: true, explosive: true, muzzleD: 1.13, twoHanded: true },
 };
 // Foregrip — где вторая рука держит цевье (в долях от длины ствола).
-// Использует drawWeaponInHands при twoHanded=true.
+// Использует drawWeaponInHands при twoHanded=true. Ключи — реальные id,
+// fallback через resolveWeapon.
 const FIREARM_FOREGRIP = {
-  shotgun: 0.40, smg: 0.36, tommy_gun: 0.36,
-  rifle: 0.42, sniper: 0.46, rpg: 0.42,
+  shotgun: 0.40, sawn_off: 0.22,
+  smg: 0.36, uzi: 0.26, mp5: 0.34, ump: 0.40, golden_uzi: 0.26,
+  tommy_gun: 0.42,
+  rifle: 0.42, ak: 0.40, ak74: 0.40, m4: 0.44, m16: 0.46,
+  sniper: 0.46, rpg: 0.42,
+};
+function weaponForegrip(w) {
+  if (FIREARM_FOREGRIP[w] != null) return FIREARM_FOREGRIP[w];
+  return FIREARM_FOREGRIP[resolveWeapon(w)] || 0.36;
+}
+// Карта силуэтов оружий. Заполняется ЗДЕСЬ (а не в конце файла), потому
+// что renderWeaponHud() на верхнем уровне вызывает drawFirearm уже до
+// рисования сцены — таблица должна быть готова. Каждая функция рисует
+// силуэт оружия: ствол вправо, хват в (0,0), масштаб через sc.
+const _FIREARM_DRAW = {
+  pistol: (c, sc) => {
+    c.fillStyle = '#2a2a30'; c.fillRect(-2*sc, -3*sc, 16*sc, 5*sc);
+    c.fillStyle = '#1a1a20'; c.fillRect(0, -5*sc, 13*sc, 2*sc);
+    c.fillStyle = '#3a3a3a'; c.fillRect(11*sc, -6*sc, 1.5*sc, 1.5*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-3*sc, 1*sc, 5*sc, 7*sc);
+  },
+  tt: (c, sc) => {
+    c.fillStyle = '#3a2a26'; c.fillRect(-3*sc, 1*sc, 5*sc, 8*sc);
+    c.fillStyle = '#5a1010'; c.beginPath();
+    c.arc(-0.5*sc, 5*sc, 1.4*sc, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#1c1c22'; c.fillRect(-1*sc, -3*sc, 17*sc, 4.5*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(2*sc, -4.5*sc, 13*sc, 1.5*sc);
+    c.fillStyle = '#0a0a10'; c.fillRect(-3*sc, -3*sc, 1.5*sc, 4*sc);
+    c.fillStyle = '#3a3a3a'; c.fillRect(13*sc, -5*sc, 1.5*sc, 1.5*sc);
+  },
+  tt_pistol: (c, sc) => _FIREARM_DRAW.tt(c, sc),
+  nagan: (c, sc) => {
+    c.fillStyle = '#1a1a1e'; c.fillRect(-3*sc, 1*sc, 5*sc, 7*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(-1*sc, -2*sc, 4*sc, 4*sc);
+    c.fillStyle = '#1a1a20';
+    c.beginPath(); c.arc(2*sc, -0.5*sc, 3.4*sc, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#3a3a44';
+    c.beginPath(); c.arc(2*sc, -0.5*sc, 2.5*sc, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#0a0a10';
+    for (let i = 0; i < 5; i++) {
+      const a = (Math.PI*2*i)/5 - Math.PI/2;
+      c.beginPath();
+      c.arc(2*sc + Math.cos(a)*1.5*sc, -0.5*sc + Math.sin(a)*1.5*sc, 0.6*sc, 0, Math.PI*2);
+      c.fill();
+    }
+    c.fillStyle = '#1c1c22'; c.fillRect(5*sc, -1.4*sc, 8*sc, 2.4*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(5*sc, -2*sc, 8*sc, 0.8*sc);
+    c.fillStyle = '#444';    c.fillRect(12*sc, -2.5*sc, 0.8*sc, 0.8*sc);
+  },
+  glock: (c, sc) => {
+    c.fillStyle = '#1a1a1e'; c.fillRect(-2*sc, -3*sc, 15*sc, 5*sc);
+    c.fillStyle = '#0e0e12'; c.fillRect(-2*sc, -3*sc, 15*sc, 1*sc);
+    c.fillStyle = '#26262c'; c.fillRect(-2*sc, 1*sc, 15*sc, 1*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(11*sc, -4*sc, 1.5*sc, 1.5*sc);
+    c.fillStyle = '#15151a'; c.fillRect(-3*sc, 2*sc, 5*sc, 7*sc);
+    c.fillStyle = '#0a0a10';
+    c.fillRect(-3*sc, 4*sc, 5*sc, 0.6*sc);
+    c.fillRect(-3*sc, 6*sc, 5*sc, 0.6*sc);
+  },
+  pm: (c, sc) => {
+    c.fillStyle = '#1c1c1e'; c.fillRect(-2*sc, -3*sc, 13*sc, 5*sc);
+    c.fillStyle = '#0e0e12'; c.fillRect(-2*sc, -4*sc, 11*sc, 1.5*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(9*sc, -5*sc, 1.5*sc, 1.5*sc);
+    c.fillStyle = '#2a1410'; c.fillRect(-3*sc, 1*sc, 5*sc, 6*sc);
+  },
+  pistol_heavy: (c, sc) => {
+    c.fillStyle = '#2a2226'; c.fillRect(-3*sc, -4*sc, 22*sc, 6*sc);
+    c.fillStyle = '#1a1216'; c.fillRect(0, -6*sc, 18*sc, 2*sc);
+    c.fillStyle = '#3a3a3a'; c.fillRect(16*sc, -7*sc, 2*sc, 1.5*sc);
+    c.fillStyle = '#5a3a1a'; c.fillRect(-4*sc, 1*sc, 6*sc, 8*sc);
+    c.fillStyle = '#3a2410'; c.fillRect(-4*sc, 1*sc, 6*sc, 1*sc);
+  },
+  desert_eagle: (c, sc) => {
+    c.fillStyle = '#3a3038'; c.fillRect(-3*sc, -4*sc, 23*sc, 6.5*sc);
+    c.fillStyle = '#5a4a55'; c.fillRect(0, -6*sc, 20*sc, 2*sc);
+    c.fillStyle = '#1a1216';
+    for (let i = 0; i < 5; i++) c.fillRect((4 + i*3)*sc, -5.4*sc, 1.6*sc, 0.7*sc);
+    c.fillStyle = '#5a5a5a'; c.fillRect(18*sc, -7*sc, 2*sc, 1.6*sc);
+    c.fillStyle = '#1a0808'; c.fillRect(-4*sc, 1*sc, 6.5*sc, 8.5*sc);
+    c.fillStyle = '#3a1a0a'; c.fillRect(-4*sc, 1*sc, 6.5*sc, 1*sc);
+  },
+  deagle: (c, sc) => _FIREARM_DRAW.desert_eagle(c, sc),
+  revolver: (c, sc) => {
+    c.fillStyle = '#1a1a22'; c.fillRect(-3*sc, 1*sc, 5*sc, 8*sc);
+    c.fillStyle = '#2a2a32'; c.fillRect(-1*sc, -2*sc, 5*sc, 4*sc);
+    c.fillStyle = '#1a1a20';
+    c.beginPath(); c.arc(2.5*sc, -0.5*sc, 4*sc, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#3a3a44';
+    c.beginPath(); c.arc(2.5*sc, -0.5*sc, 3*sc, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#0a0a10';
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI*2*i)/6 - Math.PI/2;
+      c.beginPath();
+      c.arc(2.5*sc + Math.cos(a)*1.8*sc, -0.5*sc + Math.sin(a)*1.8*sc, 0.7*sc, 0, Math.PI*2);
+      c.fill();
+    }
+    c.fillStyle = '#1c1c24'; c.fillRect(6*sc, -1.4*sc, 8*sc, 2.6*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(6*sc, -2.2*sc, 8*sc, 1*sc);
+    c.fillStyle = '#444';    c.fillRect(13*sc, -3*sc, 1*sc, 1*sc);
+  },
+  pistol_gold: (c, sc) => {
+    c.fillStyle = '#c89030'; c.fillRect(-3*sc, -4*sc, 20*sc, 6*sc);
+    c.fillStyle = '#ffd76b'; c.fillRect(0, -6*sc, 16*sc, 2*sc);
+    c.fillStyle = '#a06010'; c.fillRect(0, 0, 16*sc, 1*sc);
+    c.fillStyle = '#3a1a0a'; c.fillRect(-4*sc, 1*sc, 6*sc, 7*sc);
+    c.fillStyle = '#e8c96e'; c.fillRect(-3*sc, 2*sc, 1*sc, 5*sc);
+  },
+  golden_colt: (c, sc) => {
+    c.fillStyle = '#c89030'; c.fillRect(-3*sc, -4*sc, 20*sc, 6*sc);
+    c.fillStyle = '#ffd76b'; c.fillRect(0, -6*sc, 16*sc, 2*sc);
+    c.fillStyle = '#a06010'; c.fillRect(0, 0, 16*sc, 1*sc);
+    c.fillStyle = '#5a3010'; c.fillRect(-4*sc, 1*sc, 6*sc, 7.5*sc);
+    c.fillStyle = '#3a1a0a'; c.fillRect(-4*sc, 1*sc, 6*sc, 1*sc);
+    c.fillStyle = '#ffd76b';
+    c.beginPath(); c.arc(-1*sc, 4*sc, 0.6*sc, 0, Math.PI*2); c.fill();
+    c.beginPath(); c.arc(-1*sc, 6*sc, 0.6*sc, 0, Math.PI*2); c.fill();
+  },
+  shotgun: (c, sc) => {
+    c.fillStyle = '#5a3a1a'; c.fillRect(-15*sc, -2*sc, 13*sc, 6*sc);
+    c.fillStyle = '#3a2410'; c.fillRect(-15*sc, 3*sc, 13*sc, 1*sc);
+    c.fillStyle = '#2a2628'; c.fillRect(-3*sc, -4*sc, 30*sc, 4*sc);
+    c.fillStyle = '#4a3a1a'; c.fillRect(8*sc, -1*sc, 9*sc, 4*sc);
+    c.fillStyle = '#1a1618'; c.fillRect(24*sc, -5*sc, 4*sc, 2*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-4*sc, 1*sc, 5*sc, 7*sc);
+  },
+  sawn_off: (c, sc) => {
+    c.fillStyle = '#5a3a1a'; c.fillRect(-8*sc, -1*sc, 7*sc, 5*sc);
+    c.fillStyle = '#3a2410'; c.fillRect(-8*sc, 3*sc, 7*sc, 1*sc);
+    c.fillStyle = '#2a2628'; c.fillRect(-2*sc, -4*sc, 16*sc, 2.6*sc);
+    c.fillStyle = '#2a2628'; c.fillRect(-2*sc, -0.7*sc, 16*sc, 2.6*sc);
+    c.fillStyle = '#1a1618'; c.fillRect(-2*sc, -1.4*sc, 16*sc, 0.7*sc);
+    c.fillStyle = '#3a3a3a'; c.fillRect(12*sc, -5*sc, 1.5*sc, 1.2*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-3*sc, 1*sc, 4*sc, 7*sc);
+  },
+  smg: (c, sc) => {
+    c.fillStyle = '#1a1a20'; c.fillRect(-4*sc, -3*sc, 22*sc, 5*sc);
+    c.fillStyle = '#0a0a0c'; c.fillRect(16*sc, -4*sc, 5*sc, 2*sc);
+    c.fillStyle = '#2a2a32'; c.fillRect(2*sc, 2*sc, 4.5*sc, 11*sc);
+    c.fillStyle = '#1a1a20'; c.fillRect(13*sc, 1*sc, 3.5*sc, 6*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(2*sc, -5*sc, 6*sc, 2*sc);
+  },
+  uzi: (c, sc) => {
+    c.fillStyle = '#1a1a22'; c.fillRect(-4*sc, -3.5*sc, 14*sc, 6*sc);
+    c.fillStyle = '#0a0a10'; c.fillRect(-4*sc, -3.5*sc, 14*sc, 1*sc);
+    c.fillStyle = '#2a2a32'; c.fillRect(10*sc, -2*sc, 6*sc, 3*sc);
+    c.fillStyle = '#3a3a40'; c.fillRect(8*sc, -5*sc, 2*sc, 2*sc);
+    c.fillStyle = '#1a1a20'; c.fillRect(-2.5*sc, 2.5*sc, 4*sc, 11*sc);
+    c.fillStyle = '#3a3a40'; c.fillRect(-2.5*sc, 12.5*sc, 4*sc, 1.5*sc);
+    c.fillStyle = '#0a0a10'; c.fillRect(-3.5*sc, 0.5*sc, 6*sc, 2*sc);
+  },
+  golden_uzi: (c, sc) => {
+    c.fillStyle = '#c89030'; c.fillRect(-4*sc, -3.5*sc, 14*sc, 6*sc);
+    c.fillStyle = '#a06010'; c.fillRect(-4*sc, -3.5*sc, 14*sc, 1*sc);
+    c.fillStyle = '#ffd76b'; c.fillRect(10*sc, -2*sc, 6*sc, 3*sc);
+    c.fillStyle = '#ffe88a'; c.fillRect(8*sc, -5*sc, 2*sc, 2*sc);
+    c.fillStyle = '#c89030'; c.fillRect(-2.5*sc, 2.5*sc, 4*sc, 11*sc);
+    c.fillStyle = '#ffd76b'; c.fillRect(-2.5*sc, 12.5*sc, 4*sc, 1.5*sc);
+    c.fillStyle = '#a06010'; c.fillRect(-3.5*sc, 0.5*sc, 6*sc, 2*sc);
+  },
+  mp5: (c, sc) => {
+    c.fillStyle = '#1a1a20'; c.fillRect(-4*sc, -3*sc, 20*sc, 5*sc);
+    c.fillStyle = '#0e0e14'; c.fillRect(-4*sc, -3*sc, 20*sc, 1*sc);
+    c.fillStyle = '#2a2a32'; c.fillRect(15*sc, -2.5*sc, 5*sc, 3*sc);
+    c.fillStyle = '#1c1c24';
+    c.beginPath();
+    c.moveTo(2*sc, 2*sc);  c.lineTo(7*sc, 2*sc);
+    c.lineTo(8*sc, 12*sc); c.lineTo(1*sc, 13*sc);
+    c.closePath(); c.fill();
+    c.fillStyle = '#0a0a10'; c.fillRect(1*sc, 12.5*sc, 8*sc, 1*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
+    c.fillStyle = '#3a3a40'; c.fillRect(15*sc, -5*sc, 1*sc, 2*sc);
+  },
+  ump: (c, sc) => {
+    c.fillStyle = '#23232a'; c.fillRect(-6*sc, -3*sc, 22*sc, 5*sc);
+    c.fillStyle = '#15151a'; c.fillRect(-6*sc, -3*sc, 22*sc, 1*sc);
+    c.fillStyle = '#33333a'; c.fillRect(16*sc, -2.5*sc, 6*sc, 3*sc);
+    c.fillStyle = '#1c1c22'; c.fillRect(0*sc, 2*sc, 5*sc, 12*sc);
+    c.fillStyle = '#0a0a10'; c.fillRect(0*sc, 13.5*sc, 5*sc, 0.8*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-7*sc, 1*sc, 5*sc, 7*sc);
+    c.fillStyle = '#0a0a10';
+    for (let i = 0; i < 6; i++) c.fillRect((-3+i*2.5)*sc, -4*sc, 1.5*sc, 1*sc);
+  },
+  tommy_gun: (c, sc) => {
+    c.fillStyle = '#5a3a1a'; c.fillRect(-9*sc, -1.5*sc, 6*sc, 5*sc);
+    c.fillStyle = '#3a2410'; c.fillRect(-9*sc, 3*sc, 6*sc, 1*sc);
+    c.fillStyle = '#1c1c22'; c.fillRect(-3*sc, -3*sc, 22*sc, 5*sc);
+    c.fillStyle = '#2a2a32'; c.fillRect(-3*sc, -3*sc, 22*sc, 1*sc);
+    c.fillStyle = '#0a0a10'; c.fillRect(19*sc, -2.5*sc, 6*sc, 2.6*sc);
+    c.fillStyle = '#5a3a1a'; c.fillRect(12*sc, 2*sc, 4*sc, 7*sc);
+    c.fillStyle = '#3a2410'; c.fillRect(12*sc, 2*sc, 4*sc, 1*sc);
+    c.fillStyle = '#0a0a12';
+    c.beginPath(); c.arc(5*sc, 6*sc, 5.5*sc, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#3a3a45';
+    c.beginPath(); c.arc(5*sc, 6*sc, 4.5*sc, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#1a1a22';
+    c.beginPath(); c.arc(5*sc, 6*sc, 1.5*sc, 0, Math.PI*2); c.fill();
+    c.strokeStyle = '#0a0a12'; c.lineWidth = 0.8*sc;
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 4;
+      c.beginPath();
+      c.moveTo(5*sc + Math.cos(a)*1.5*sc, 6*sc + Math.sin(a)*1.5*sc);
+      c.lineTo(5*sc + Math.cos(a)*4.4*sc, 6*sc + Math.sin(a)*4.4*sc);
+      c.stroke();
+    }
+    c.fillStyle = '#1a1010'; c.fillRect(-4*sc, 1*sc, 4*sc, 6*sc);
+  },
+  rifle: (c, sc) => {
+    c.fillStyle = '#5a3a1a'; c.fillRect(-15*sc, -2*sc, 13*sc, 6*sc);
+    c.fillStyle = '#3a2410'; c.fillRect(-15*sc, 3*sc, 13*sc, 1*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(-3*sc, -3*sc, 34*sc, 4*sc);
+    c.fillStyle = '#3a3a40'; c.fillRect(2*sc, -5*sc, 5*sc, 2*sc);
+    c.fillRect(26*sc, -5*sc, 2*sc, 2*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-1*sc, 1*sc, 4*sc, 9*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
+  },
+  ak: (c, sc) => {
+    c.fillStyle = '#5a3a1a'; c.fillRect(-15*sc, -2*sc, 11*sc, 6*sc);
+    c.fillStyle = '#3a2410'; c.fillRect(-15*sc, 3*sc, 11*sc, 1*sc);
+    c.fillStyle = '#2a2228'; c.fillRect(-5*sc, -3*sc, 22*sc, 4*sc);
+    c.fillStyle = '#5a3a1a'; c.fillRect(8*sc, -3.5*sc, 10*sc, 1*sc);
+    c.fillStyle = '#1c1c22'; c.fillRect(17*sc, -3*sc, 14*sc, 3*sc);
+    c.fillStyle = '#3a3a40'; c.fillRect(20*sc, -5*sc, 2*sc, 2*sc);
+    c.fillStyle = '#3a3a40'; c.fillRect(28*sc, -5*sc, 1.5*sc, 2*sc);
+    c.fillStyle = '#1c1c22';
+    c.beginPath();
+    c.moveTo(-2*sc, 1*sc); c.lineTo(6*sc, 1*sc);
+    c.lineTo(8*sc, 11*sc); c.lineTo(-4*sc, 12*sc);
+    c.closePath(); c.fill();
+    c.fillStyle = '#0a0a10'; c.fillRect(-4*sc, 11.5*sc, 12.5*sc, 1*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 4.5*sc, 6.5*sc);
+  },
+  ak74: (c, sc) => {
+    c.fillStyle = '#46202a'; c.fillRect(-15*sc, -2*sc, 11*sc, 6*sc);
+    c.fillStyle = '#2a1018'; c.fillRect(-15*sc, 3*sc, 11*sc, 1*sc);
+    c.fillStyle = '#1c1c20'; c.fillRect(-5*sc, -3*sc, 22*sc, 4*sc);
+    c.fillStyle = '#46202a'; c.fillRect(8*sc, -3.5*sc, 10*sc, 1*sc);
+    c.fillStyle = '#1a1a1e'; c.fillRect(17*sc, -3*sc, 12*sc, 3*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(20*sc, -5*sc, 2*sc, 2*sc);
+    c.fillStyle = '#1a1a1e'; c.fillRect(28*sc, -3.6*sc, 4*sc, 4.2*sc);
+    c.fillStyle = '#3a3a44'; c.fillRect(28*sc, -3.6*sc, 4*sc, 1*sc);
+    c.fillStyle = '#46202a';
+    c.beginPath();
+    c.moveTo(-2*sc, 1*sc); c.lineTo(6*sc, 1*sc);
+    c.lineTo(8*sc, 11*sc); c.lineTo(-4*sc, 12*sc);
+    c.closePath(); c.fill();
+    c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 4.5*sc, 6.5*sc);
+  },
+  m4: (c, sc) => {
+    c.fillStyle = '#22222a'; c.fillRect(-14*sc, -2*sc, 11*sc, 5.5*sc);
+    c.fillStyle = '#0e0e14'; c.fillRect(-14*sc, 0.5*sc, 11*sc, 1*sc);
+    c.fillStyle = '#15151a'; c.fillRect(-5*sc, -3*sc, 24*sc, 4*sc);
+    c.fillStyle = '#1c1c22'; c.fillRect(19*sc, -2.5*sc, 13*sc, 3*sc);
+    c.fillStyle = '#0a0a10';
+    for (let i = 0; i < 8; i++) c.fillRect((-3+i*2.6)*sc, -4*sc, 1.6*sc, 1*sc);
+    c.fillStyle = '#3a3a44'; c.fillRect(29*sc, -4*sc, 1.5*sc, 1.5*sc);
+    c.fillStyle = '#1c1c22'; c.fillRect(0*sc, 1*sc, 5*sc, 11*sc);
+    c.fillStyle = '#0a0a10'; c.fillRect(0*sc, 11.5*sc, 5*sc, 1*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-6*sc, 1*sc, 5*sc, 6.5*sc);
+  },
+  m16: (c, sc) => {
+    c.fillStyle = '#22222a'; c.fillRect(-15*sc, -2*sc, 12*sc, 5.5*sc);
+    c.fillStyle = '#0e0e14'; c.fillRect(-15*sc, 0.5*sc, 12*sc, 1*sc);
+    c.fillStyle = '#15151a'; c.fillRect(-5*sc, -3*sc, 26*sc, 4*sc);
+    c.fillStyle = '#1c1c22'; c.fillRect(21*sc, -2.5*sc, 13*sc, 3*sc);
+    c.fillStyle = '#3a3a44';
+    c.beginPath();
+    c.moveTo(30*sc, -5*sc); c.lineTo(33*sc, -3*sc); c.lineTo(27*sc, -3*sc);
+    c.closePath(); c.fill();
+    c.fillStyle = '#1c1c22'; c.fillRect(0*sc, -5*sc, 12*sc, 2*sc);
+    c.fillStyle = '#0a0a10'; c.fillRect(0*sc, -5*sc, 12*sc, 0.6*sc);
+    c.fillStyle = '#1c1c22'; c.fillRect(0*sc, 1*sc, 5*sc, 11*sc);
+    c.fillStyle = '#0a0a10'; c.fillRect(0*sc, 11.5*sc, 5*sc, 1*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-6*sc, 1*sc, 5*sc, 6.5*sc);
+  },
+  sniper: (c, sc) => {
+    c.fillStyle = '#5a3a1a'; c.fillRect(-16*sc, -2*sc, 14*sc, 7*sc);
+    c.fillStyle = '#3a2410'; c.fillRect(-16*sc, 4*sc, 14*sc, 1*sc);
+    c.fillStyle = '#2a352a'; c.fillRect(-3*sc, -2.5*sc, 44*sc, 3*sc);
+    c.fillStyle = '#1a251a'; c.fillRect(40*sc, -4*sc, 5*sc, 2*sc);
+    c.fillStyle = '#0a0a0c'; c.fillRect(2*sc, -8*sc, 14*sc, 4*sc);
+    c.fillStyle = '#1a1a20'; c.fillRect(2*sc, -9*sc, 14*sc, 1.5*sc);
+    c.fillStyle = '#3a3a45'; c.fillRect(15*sc, -7*sc, 1*sc, 3*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
+    c.strokeStyle = '#1a1a20'; c.lineWidth = 1.3*sc;
+    c.beginPath();
+    c.moveTo(32*sc, 0); c.lineTo(35*sc, 8*sc);
+    c.moveTo(32*sc, 0); c.lineTo(29*sc, 8*sc);
+    c.stroke();
+  },
+  rpg: (c, sc) => {
+    c.fillStyle = '#3a4a30'; c.fillRect(-20*sc, -5*sc, 52*sc, 8*sc);
+    c.fillStyle = '#2a3a20'; c.fillRect(-20*sc, -6*sc, 52*sc, 1.2*sc);
+    c.fillStyle = '#5a6a45'; c.fillRect(-20*sc, 2*sc, 52*sc, 1*sc);
+    c.fillStyle = '#2a1a10';
+    c.beginPath();
+    c.moveTo(32*sc, -5*sc); c.lineTo(44*sc, 0); c.lineTo(32*sc, 3*sc);
+    c.closePath(); c.fill();
+    c.fillStyle = '#5a2010'; c.fillRect(28*sc, -5*sc, 4*sc, 8*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(-2*sc, -8*sc, 5*sc, 3*sc);
+    c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 3*sc, 5*sc, 9*sc);
+  },
+  _default: (c, sc) => {
+    c.fillStyle = '#333'; c.fillRect(0, -2*sc, 16*sc, 4*sc);
+  },
 };
 // Тайлов/сек. Было 12 — пуля видимо «летела», но сервер отнимал hp мгновенно,
 // и игрок видел «hp упало, а пули нет». 22 — баланс между видимостью трассера
@@ -4676,8 +5054,12 @@ const ARM_TILES = 0.36;   // длина руки в тайлах (см. handAnch
 // Используем в spawnBullet/spawnMuzzle чтобы пуля стартовала ровно с
 // кончика рисованного ствола (а не «из груди» или из-за дула).
 function weaponMuzzleD(weapon, scale) {
-  const w   = resolveWeapon(weapon);
-  const tip = FIREARM_TIP_DEFER[w] != null ? FIREARM_TIP_DEFER[w] : 16;
+  // Сначала пробуем реальный id, потом resolved-класс.
+  let tip = FIREARM_TIP_DEFER[weapon];
+  if (tip == null) {
+    const w = resolveWeapon(weapon);
+    tip = FIREARM_TIP_DEFER[w] != null ? FIREARM_TIP_DEFER[w] : 16;
+  }
   return (ARM_TILES + tip / 60) * (scale || 1.0);
 }
 // FIREARM_TIP объявлен ниже в файле — здесь только прокси-объект, его
@@ -5775,7 +6157,43 @@ function handleEventPacket(d) {
     myBoxStatus.limit       = d.limit       | 0;
     myBoxStatus.reset_in_s  = d.reset_in_s  | 0;
     myBoxStatus.active      = d.active || null;
+    const fcd = d.fail_cd_s | 0;
+    myBoxStatus.fail_cd_s     = fcd;
+    myBoxStatus._fail_until_t = fcd > 0 ? (performance.now() + fcd * 1000) : 0;
     refreshMichaelMenu();
+  } else if (kind === 'box_abandon_reply') {
+    // Сервер подтвердил отмену — фиксируем кулдаун локально сразу,
+    // чтобы кнопка Майкла показала отсчёт без ожидания box_status.
+    if (d.ok) {
+      const w = d.wait_s | 0;
+      myBoxStatus.fail_cd_s     = w;
+      myBoxStatus._fail_until_t = performance.now() + w * 1000;
+      refreshMichaelMenu();
+    }
+  } else if (kind === 'respawn_status') {
+    // Снапшот: текущая точка + список купленных бизнесов.
+    // Приходит при коннекте, при открытии модалки выбора, и после
+    // покупки нового бизнеса (сервер обновляет _owned_biz и шлёт нам).
+    myRespawnPoint = String(d.point || 'hospital');
+    myOwnedBiz = Array.isArray(d.owned) ? d.owned.slice() : [];
+    refreshDeathRpLabel();
+    if (_respawnModal && _respawnModal.classList.contains('show')) {
+      refreshRespawnList();
+    }
+  } else if (kind === 'set_respawn_reply') {
+    if (d.ok) {
+      myRespawnPoint = String(d.respawn_point || 'hospital');
+      refreshDeathRpLabel();
+      if (_respawnModal && _respawnModal.classList.contains('show')) {
+        refreshRespawnList();
+      }
+      const lbl = _respawnPointLabel(myRespawnPoint);
+      showToast(`✅ Точка респа: ${lbl}`, '🏥', 2200);
+    } else if (d.reason === 'not_owned') {
+      showToast('🔒 Сначала купи этот бизнес', '⚠️', 2200);
+    } else if (d.reason === 'bad_biz') {
+      showToast('❌ Неизвестная точка', '⚠️', 1800);
+    }
   } else if (kind === 'box_take_reply') {
     if (d.ok) {
       myBoxStatus.active = {
@@ -5790,6 +6208,15 @@ function handleEventPacket(d) {
       showToast(`🚫 Сегодня уже ${d.limit || 5} доставок — приходи через ~${mins} мин`, '⏳', 4000);
     } else if (d.reason === 'has_active') {
       showToast('📦 У тебя уже есть активная доставка', '⚠️', 2500);
+    } else if (d.reason === 'fail_cd') {
+      // Штраф за провал прошлой доставки — сохраняем дедлайн локально,
+      // чтобы кнопка Майкла тикала без лишних round-trip к серверу.
+      const w = d.wait_s | 0;
+      myBoxStatus.fail_cd_s     = w;
+      myBoxStatus._fail_until_t = performance.now() + w * 1000;
+      const mins = Math.ceil(w / 60);
+      showToast(`🚷 Майкл зол — приходи через ~${mins} мин`, '⏳', 3500);
+      refreshMichaelMenu();
     } else {
       showToast('❌ Майкл не дал контракт. Попробуй позже.', '⚠️', 2500);
     }
@@ -5797,6 +6224,7 @@ function handleEventPacket(d) {
     if (d.ok) {
       if (myBoxStatus.active) myBoxStatus.active.state = 'carrying';
       showToast('📦 Коробка у тебя — везти по адресу', '✅', 2500);
+      _boxAnim = { kind: 'pickup', startT: performance.now(), dur: 700 };
     } else if (d.reason === 'too_far') {
       showToast('🚫 Подойди ближе к пирсу', '⚠️', 1500);
     }
@@ -6271,6 +6699,9 @@ function wsConnect() {
       // Запрашиваем GTA-статус (активный контракт + счётчик) сразу после
       // hello — чтобы HUD при перезаходе показывал текущий заказ Майкла.
       try { ws.send(JSON.stringify({ t: 'gta_status', d: {} })); } catch(e){}
+      // Точка респавна + список купленных бизнесов — чтобы при выходе
+      // из dead-overlay лейбл уже знал «🏥 Госпиталь» или «☕ Кофейня».
+      try { ws.send(JSON.stringify({ t: 'respawn_status', d: {} })); } catch(e){}
     } else if (pkt.t === 'shot') {
       // Серверный broadcast выстрела. Рисуем трассер и при попадании —
       // эффект на цели.
@@ -6329,8 +6760,17 @@ function wsConnect() {
         if (!wasDead && myDead) {
           // Только что умер — экран смерти
         } else if (wasDead && !myDead) {
-          // Респаун — сбрасываем причину смерти
+          // Респаун — сбрасываем причину смерти. Принудительно
+          // телепортируемся в серверную spawn-точку: иначе клиент
+          // остаётся на месте смерти (там где dead-snapshot его
+          // оставил) и при первом движении сервер откатывает назад.
           myDeathBy = '';
+          player.r = d.me.y;
+          player.c = d.me.x;
+          // Сброс камеры на новую позицию, чтобы не «летела» туда
+          // через лерп — иначе экран дёргается на полсекунды.
+          cam.x = (player.c - player.r) * TS * 0.5;
+          cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
         }
         // Сервер шлёт авторитативный look (из БД через creator) — перетираем
         // QP.look, чтобы рисовался ТОТ перс которого ты создал в creator,
@@ -6804,6 +7244,10 @@ function buyBusinessHere(biz_id) {
         4000, 'win');
       _bizLastSync = 0;
       syncMyBusinesses();
+      // Перезапрашиваем точку респа — чтобы новый бизнес сразу появился
+      // в меню выбора как «доступный». Без этого пользователь не видит
+      // купленный объект до переподключения.
+      try { ws && ws.send(JSON.stringify({ t: 'respawn_status', d: {} })); } catch(e){}
     } else if (j.error === 'no cash') {
       showToast('💸 Не хватает денег', '⚠️', 2200);
     } else if (j.error === 'already owned') {
@@ -7249,7 +7693,79 @@ _michaelBoxBtn.addEventListener('click', () => {
   try { ws && ws.send(JSON.stringify({ t: 'box_take', d: {} })); } catch(e){}
 });
 // Состояние box-доставки (приходит от box_status / box_take_reply)
-let myBoxStatus = { count_today: 0, limit: 5, reset_in_s: 0, active: null };
+let myBoxStatus = { count_today: 0, limit: 5, reset_in_s: 0, active: null,
+                    fail_cd_s: 0, _fail_until_t: 0 };
+
+// ── Точка респавна ────────────────────────────────────────────────
+// 'hospital' = у больницы (default). Иначе biz_id ('coffee'/'bar'/...).
+// Серверная сторона: set_respawn_point / respawn_status в mafiozi_bot.
+// myOwnedBiz — кеш купленных бизнесов (только id'шники), нужен чтобы
+// показать в меню «доступно/заблокировано». Обновляется по hub_money
+// (после покупки сервер шлёт respawn_status) и при коннекте.
+let myRespawnPoint = 'hospital';
+let myOwnedBiz = [];
+const _respawnModal   = document.getElementById('respawnModal');
+const _respawnList    = document.getElementById('respawnList');
+const _respawnSetBtn  = document.getElementById('respawnSetBtn');
+const _deathRpLabel   = document.getElementById('deathRespawnPoint');
+function _respawnPointLabel(rp) {
+  if (rp === 'hospital' || !rp) return '🏥 Госпиталь';
+  const b = BUSINESS_POIS.find(x => x.id === rp);
+  return b ? `${b.emoji} ${b.name}` : '🏥 Госпиталь';
+}
+function refreshDeathRpLabel() {
+  if (_deathRpLabel) {
+    _deathRpLabel.textContent = 'Точка респа: ' + _respawnPointLabel(myRespawnPoint);
+  }
+}
+function refreshRespawnList() {
+  if (!_respawnList) return;
+  const items = [{ id: 'hospital', em: '🏥', nm: 'Госпиталь', owned: true }];
+  for (const b of BUSINESS_POIS) {
+    items.push({
+      id: b.id, em: b.emoji, nm: b.name,
+      owned: myOwnedBiz.includes(b.id),
+    });
+  }
+  _respawnList.innerHTML = '';
+  for (const it of items) {
+    const row = document.createElement('div');
+    row.className = 'r-item'
+      + (it.id === myRespawnPoint ? ' active' : '')
+      + (!it.owned ? ' locked' : '');
+    row.innerHTML =
+      `<div class="em">${it.em}</div>` +
+      `<div class="nm">${it.nm}</div>` +
+      `<div class="tg">${it.id === myRespawnPoint ? '✓ ВЫБРАНО' : (it.owned ? '' : '🔒 КУПИ')}</div>`;
+    if (it.owned) {
+      row.addEventListener('click', () => {
+        try {
+          ws && ws.send(JSON.stringify({ t: 'set_respawn_point', d: { point: it.id } }));
+        } catch(e) {}
+      });
+    }
+    _respawnList.appendChild(row);
+  }
+}
+function showRespawnModal() {
+  if (!_respawnModal) return;
+  // Запрашиваем актуальное состояние — на случай если пользователь
+  // купил новый бизнес в другой сессии и кеш в this-клиенте устарел.
+  try { ws && ws.send(JSON.stringify({ t: 'respawn_status', d: {} })); } catch(e){}
+  refreshRespawnList();
+  _respawnModal.classList.add('show');
+}
+function hideRespawnModal() {
+  if (_respawnModal) _respawnModal.classList.remove('show');
+}
+if (_respawnSetBtn) _respawnSetBtn.addEventListener('click', showRespawnModal);
+document.getElementById('respawnCloseBtn').addEventListener('click', hideRespawnModal);
+_respawnModal.addEventListener('click', (e) => {
+  if (e.target === _respawnModal) hideRespawnModal();
+});
+// Анимация поднятия коробки: {startT, dur, kind}. Активна 700мс после
+// box_pickup_reply ok — коробка «всплывает» от земли к финальной позиции.
+let _boxAnim = null;
 let _boxStatusReqAt = 0;
 
 // ── Box-quest: угроза от копов при перевозке и обработка fail ──────
@@ -7486,11 +8002,21 @@ function refreshMichaelMenu() {
   }
   // Кнопка box-доставки
   const bs = myBoxStatus;
+  // Локальный отсчёт штраф-кулдауна (за провал прошлой доставки)
+  let failLeft = 0;
+  if (bs._fail_until_t && bs._fail_until_t > performance.now()) {
+    failLeft = Math.ceil((bs._fail_until_t - performance.now()) / 1000);
+  }
   if (bs.active) {
     _michaelBoxBtn.disabled = true;
     _michaelBoxBtn.textContent = (bs.active.state === 'pending')
       ? '📦 Возьми ящик на пирсе'
       : `📦 Везёшь: ${bs.active.addr || ''}`;
+  } else if (failLeft > 0) {
+    _michaelBoxBtn.disabled = true;
+    const mm = Math.floor(failLeft / 60);
+    const ss = String(failLeft % 60).padStart(2, '0');
+    _michaelBoxBtn.textContent = `🚷 Майкл зол — ${mm}:${ss}`;
   } else if ((bs.count_today | 0) >= (bs.limit | 5)) {
     _michaelBoxBtn.disabled = true;
     _michaelBoxBtn.textContent = '📦 Коробок на сегодня хватит';
@@ -17070,93 +17596,17 @@ function drawFirearm(wepKey, hx, hy, sx, sy, scale, ctxOverride) {
   c.scale(1, flip);
   c.shadowColor = 'rgba(0,0,0,.5)';
   c.shadowBlur = 3;
-  switch (wepKey) {
-    case 'pistol':
-    case 'nagan': {
-      c.fillStyle = '#2a2a30'; c.fillRect(-2*sc, -3*sc, 16*sc, 5*sc);
-      c.fillStyle = '#1a1a20'; c.fillRect(0, -5*sc, 13*sc, 2*sc);
-      c.fillStyle = '#3a3a3a'; c.fillRect(11*sc, -6*sc, 1.5*sc, 1.5*sc);
-      c.fillStyle = '#1a1010'; c.fillRect(-3*sc, 1*sc, 5*sc, 7*sc);
-      break;
-    }
-    case 'pistol_heavy': {
-      c.fillStyle = '#2a2226'; c.fillRect(-3*sc, -4*sc, 22*sc, 6*sc);
-      c.fillStyle = '#1a1216'; c.fillRect(0, -6*sc, 18*sc, 2*sc);
-      c.fillStyle = '#3a3a3a'; c.fillRect(16*sc, -7*sc, 2*sc, 1.5*sc);
-      c.fillStyle = '#5a3a1a'; c.fillRect(-4*sc, 1*sc, 6*sc, 8*sc);
-      c.fillStyle = '#3a2410'; c.fillRect(-4*sc, 1*sc, 6*sc, 1*sc);
-      break;
-    }
-    case 'pistol_gold': {
-      c.fillStyle = '#c89030'; c.fillRect(-3*sc, -4*sc, 20*sc, 6*sc);
-      c.fillStyle = '#ffd76b'; c.fillRect(0, -6*sc, 16*sc, 2*sc);
-      c.fillStyle = '#a06010'; c.fillRect(0, 0, 16*sc, 1*sc);
-      c.fillStyle = '#3a1a0a'; c.fillRect(-4*sc, 1*sc, 6*sc, 7*sc);
-      c.fillStyle = '#e8c96e'; c.fillRect(-3*sc, 2*sc, 1*sc, 5*sc);
-      break;
-    }
-    case 'shotgun': {
-      c.fillStyle = '#5a3a1a'; c.fillRect(-15*sc, -2*sc, 13*sc, 6*sc);
-      c.fillStyle = '#3a2410'; c.fillRect(-15*sc, 3*sc, 13*sc, 1*sc);
-      c.fillStyle = '#2a2628'; c.fillRect(-3*sc, -4*sc, 30*sc, 4*sc);
-      c.fillStyle = '#4a3a1a'; c.fillRect(8*sc, -1*sc, 9*sc, 4*sc);
-      c.fillStyle = '#1a1618'; c.fillRect(24*sc, -5*sc, 4*sc, 2*sc);
-      c.fillStyle = '#1a1010'; c.fillRect(-4*sc, 1*sc, 5*sc, 7*sc);
-      break;
-    }
-    case 'smg':
-    case 'tommy_gun': {
-      c.fillStyle = '#1a1a20'; c.fillRect(-4*sc, -3*sc, 22*sc, 5*sc);
-      c.fillStyle = '#0a0a0c'; c.fillRect(16*sc, -4*sc, 5*sc, 2*sc);
-      c.fillStyle = '#2a2a32'; c.fillRect(2*sc, 2*sc, 4.5*sc, 11*sc);
-      c.fillStyle = '#1a1a20'; c.fillRect(13*sc, 1*sc, 3.5*sc, 6*sc);
-      c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
-      c.fillStyle = '#2a2a30'; c.fillRect(2*sc, -5*sc, 6*sc, 2*sc);
-      break;
-    }
-    case 'rifle': {
-      c.fillStyle = '#5a3a1a'; c.fillRect(-15*sc, -2*sc, 13*sc, 6*sc);
-      c.fillStyle = '#3a2410'; c.fillRect(-15*sc, 3*sc, 13*sc, 1*sc);
-      c.fillStyle = '#2a2a30'; c.fillRect(-3*sc, -3*sc, 34*sc, 4*sc);
-      c.fillStyle = '#3a3a40'; c.fillRect(2*sc, -5*sc, 5*sc, 2*sc);
-      c.fillRect(26*sc, -5*sc, 2*sc, 2*sc);
-      c.fillStyle = '#1a1010'; c.fillRect(-1*sc, 1*sc, 4*sc, 9*sc);
-      c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
-      break;
-    }
-    case 'sniper': {
-      c.fillStyle = '#5a3a1a'; c.fillRect(-16*sc, -2*sc, 14*sc, 7*sc);
-      c.fillStyle = '#3a2410'; c.fillRect(-16*sc, 4*sc, 14*sc, 1*sc);
-      c.fillStyle = '#2a352a'; c.fillRect(-3*sc, -2.5*sc, 44*sc, 3*sc);
-      c.fillStyle = '#1a251a'; c.fillRect(40*sc, -4*sc, 5*sc, 2*sc);
-      c.fillStyle = '#0a0a0c'; c.fillRect(2*sc, -8*sc, 14*sc, 4*sc);
-      c.fillStyle = '#1a1a20'; c.fillRect(2*sc, -9*sc, 14*sc, 1.5*sc);
-      c.fillStyle = '#3a3a45'; c.fillRect(15*sc, -7*sc, 1*sc, 3*sc);
-      c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
-      c.strokeStyle = '#1a1a20'; c.lineWidth = 1.3*sc;
-      c.beginPath();
-      c.moveTo(32*sc, 0); c.lineTo(35*sc, 8*sc);
-      c.moveTo(32*sc, 0); c.lineTo(29*sc, 8*sc);
-      c.stroke();
-      break;
-    }
-    case 'rpg': {
-      c.fillStyle = '#3a4a30'; c.fillRect(-20*sc, -5*sc, 52*sc, 8*sc);
-      c.fillStyle = '#2a3a20'; c.fillRect(-20*sc, -6*sc, 52*sc, 1.2*sc);
-      c.fillStyle = '#5a6a45'; c.fillRect(-20*sc, 2*sc, 52*sc, 1*sc);
-      c.fillStyle = '#2a1a10';
-      c.beginPath();
-      c.moveTo(32*sc, -5*sc); c.lineTo(44*sc, 0); c.lineTo(32*sc, 3*sc);
-      c.closePath(); c.fill();
-      c.fillStyle = '#5a2010'; c.fillRect(28*sc, -5*sc, 4*sc, 8*sc);
-      c.fillStyle = '#2a2a30'; c.fillRect(-2*sc, -8*sc, 5*sc, 3*sc);
-      c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 3*sc, 5*sc, 9*sc);
-      break;
-    }
-    default: {
-      c.fillStyle = '#333'; c.fillRect(0, -2*sc, 16*sc, 4*sc);
-    }
+  // Силуэты — таблица _FIREARM_DRAW (определена в начале файла). Если
+  // приходит неизвестный id, пробуем resolveWeapon (deagle → pistol_heavy
+  // и т.п.), и только потом _default. Это критично для НОВЫХ ID из
+  // инвентаря (ak, m4, uzi, deagle...) — без lookup'а они рисовались
+  // как «серая палка».
+  let drawer = _FIREARM_DRAW[wepKey];
+  if (!drawer) {
+    const resolved = (typeof resolveWeapon === 'function') ? resolveWeapon(wepKey) : wepKey;
+    drawer = _FIREARM_DRAW[resolved] || _FIREARM_DRAW._default;
   }
+  drawer(c, sc);
   c.shadowBlur = 0;
   c.restore();
 }
@@ -17164,12 +17614,33 @@ function drawFirearm(wepKey, hx, hy, sx, sy, scale, ctxOverride) {
 // Длина ствола «вперёд» — где появляется вспышка дула и откуда летит пуля.
 // Числа примерно соответствуют графической длине из drawFirearm выше.
 const FIREARM_TIP = {
-  pistol: 14, nagan: 14,
-  pistol_heavy: 20, pistol_gold: 18,
-  shotgun: 28, smg: 22, tommy_gun: 22,
-  rifle: 32, sniper: 44, rpg: 46,
+  // Пистолеты
+  pistol: 14, nagan: 14, tt: 16, tt_pistol: 16,
+  glock: 14, pm: 12, revolver: 14,
+  pistol_heavy: 20, desert_eagle: 22, deagle: 22,
+  pistol_gold: 18, golden_colt: 18,
+  // Дробовики
+  shotgun: 28, sawn_off: 14,
+  // SMG
+  smg: 22, uzi: 18, golden_uzi: 18, mp5: 22, ump: 24,
+  // Авто
+  tommy_gun: 22,
+  rifle: 32, ak: 28, ak74: 28, m4: 28, m16: 30,
+  // Снайперки / РПГ
+  sniper: 44, rpg: 46,
 };
-function weaponTip(w) { return (FIREARM_TIP[w] || 16); }
+// fallback через resolveWeapon — на случай неизвестных id ИЛИ нового
+// id, для которого ещё нет своего числа в таблице выше. Не используем
+// «или 16» вслепую: deagle без fallback'а вернёт 16 и пуля прилетит
+// «из груди» вместо длинного ствола.
+function weaponTip(w) {
+  if (FIREARM_TIP[w] != null) return FIREARM_TIP[w];
+  if (typeof resolveWeapon === 'function') {
+    const r = resolveWeapon(w);
+    if (FIREARM_TIP[r] != null) return FIREARM_TIP[r];
+  }
+  return 16;
+}
 // Зеркалим в FIREARM_TIP_DEFER — нужно для weaponMuzzleD выше в файле
 Object.assign(FIREARM_TIP_DEFER, FIREARM_TIP);
 
