@@ -4531,6 +4531,18 @@ function updateCars(dt) {
     // Парковочные тачки — статичные, не двигаются, не уезжают, не
     // респаунятся за границей карты. Только рисуются + угоняются по lockpick.
     if (car.parked) { car.braking = false; continue; }
+    // Угон в процессе — стоит на месте, ждёт civilian_hijack_reply.
+    // Failsafe: если сервер не ответил за 2с — сбрасываем флаг, машина
+    // продолжит ездить как ни в чём не бывало (вероятно угон зафейлился
+    // молча — например WS-разрыв или race с другим игроком).
+    if (car._hijackPending) {
+      if (performance.now() - car._hijackPending > 2000) {
+        car._hijackPending = 0;
+      } else {
+        car.braking = true;
+        continue;
+      }
+    }
     // Разбитая в столкновении NPC-машина — переспаун через ~600мс.
     // Wrecked-тачки респаунятся ПОДАЛЬШЕ — иначе игрок видит как остов
     // мгновенно «превращается» в новую машину.
@@ -6101,10 +6113,28 @@ function handleEventPacket(d) {
       _exitRequested = false;
       player.r = d.y;
       player.c = d.x;
-    } else if (d.reason === 'busy') {
-      showToast('🚗 Сначала выйди из текущей машины', '⚠️', 2200);
+      // Сейчас quest_car-civilian создан — пора убрать NPC-«двойника»
+      // из CARS (он стоял с _hijackPending до этого момента). Берём
+      // ближайший к позиции серверного спавна.
+      let bestIdx = -1, bestD = Infinity;
+      for (let i = 0; i < CARS.length; i++) {
+        const c = CARS[i];
+        if (!c._hijackPending) continue;
+        const dd = Math.hypot(c.r - d.y, c.c - d.x);
+        if (dd < bestD) { bestD = dd; bestIdx = i; }
+      }
+      if (bestIdx >= 0) CARS.splice(bestIdx, 1);
     } else {
-      showToast('❌ Не получилось угнать', '⚠️', 2000);
+      // Сервер не подтвердил — возвращаем NPC-машине нормальное состояние,
+      // иначе она навсегда останется «замороженной» с _hijackPending.
+      for (const c of CARS) {
+        if (c._hijackPending) { c._hijackPending = 0; }
+      }
+      if (d.reason === 'busy') {
+        showToast('🚗 Сначала выйди из текущей машины', '⚠️', 2200);
+      } else {
+        showToast('❌ Не получилось угнать', '⚠️', 2000);
+      }
     }
   } else if (kind === 'gta_take_reply') {
     if (d.ok) {
@@ -7584,8 +7614,14 @@ _lpModal.addEventListener('click', (e) => {
 //      Успех = тихий угон. Провал = сигналка 10с, повтор недоступен.
 //      Отмена = ничего.
 function _completeHijack(car) {
-  const idx = CARS.indexOf(car);
-  if (idx >= 0) CARS.splice(idx, 1);
+  // НЕ удаляем машину из CARS сразу: между splice и приходом серверного
+  // civilian_hijack_reply (~100мс RTT) клиент видел «дырку» — машина
+  // пропадала с экрана пока серверный quest_car не появится. Теперь
+  // помечаем _hijackPending, останавливаем NPC-движение, и реальный
+  // splice делается в civilian_hijack_reply (ok). Failsafe: если за 2с
+  // ответа не пришло — сбрасываем флаг и машина продолжит ездить.
+  car._hijackPending = performance.now();
+  car.vr = 0; car.vc = 0;
   try {
     ws && ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
       x: +car.c.toFixed(2), y: +car.r.toFixed(2),
