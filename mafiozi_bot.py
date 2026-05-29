@@ -1062,6 +1062,26 @@ async def init_db():
                 PRIMARY KEY (uid, biz_id)
             )
         """)
+        # Бригадир — хит-контракты. Лимит BRIGADIR_DAILY_LIMIT за сутки на игрока.
+        # Каждый append — отдельная запись (kill_t = когда сдан, или 0 если выдан).
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS brigadir_kills (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                uid     INTEGER NOT NULL,
+                t       INTEGER NOT NULL,
+                stealth INTEGER NOT NULL DEFAULT 0,
+                reward  INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        # Налёты на банк — лимит 1/24ч на игрока.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS bank_heists (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                uid     INTEGER NOT NULL,
+                t       INTEGER NOT NULL,
+                reward  INTEGER NOT NULL DEFAULT 0
+            )
+        """)
         # При старте — очищаем все зависшие active_battles (на случай краша)
         await db.execute("DELETE FROM active_battles")
         # Jobs v2 — снимаем старые job-id (janitor/shawarma/etc), их в новом JOBS нет.
@@ -3783,6 +3803,102 @@ SHOP_ROB_CONFIG = {
     "warehouse":  {"money": 1700, "stars": 2},
     "casino":     {"money": 2800, "stars": 3},
 }
+
+# Бригадир — NPC в городе, выдаёт хит-контракты на мирных NPC.
+# Стоит на тайле (43, 34) — рядом с баром. Лимит 3 контракта / 24ч,
+# награда $400 за обычный, ×2 за стелс (без свидетелей-копов).
+BRIGADIR_POS_RC      = (43, 34)
+BRIGADIR_PAYOUT      = 400
+BRIGADIR_STEALTH_MUL = 2.0
+BRIGADIR_DAILY_LIMIT = 3
+
+# Банк — кооп-налёт на 2+ игроков. POI на тайле (30, 50), радиус подхода 4.
+# Длительность вскрытия — 20с. На старте каждому участнику ставится 4★
+# (приедет SWAT). При успехе — $2000 каждому, лимит 1/24ч на игрока.
+BANK_POS_RC          = (30, 50)
+BANK_PAYOUT          = 2000
+BANK_HEIST_DURATION  = 20.0
+BANK_HEIST_RADIUS    = 4.0
+BANK_HEIST_DAILY_LIMIT = 1
+# Активные heist'ы в памяти: heist_id → {participants:set, started_at, finalized}
+_active_bank_heists = {}
+_bank_heist_next_id = 1
+
+async def _tick_bank_heists(world) -> None:
+    """Тик активных кооп-налётов: проверяем что все участники живы и рядом,
+    иначе отменяем; по истечении BANK_HEIST_DURATION — начисляем награду."""
+    now = time.time()
+    poi_r, poi_c = BANK_POS_RC
+    R2 = (BANK_HEIST_RADIUS + 1.0) ** 2   # +1 запас на сетевые лаги позиций
+    to_remove = []
+    for hid, h in list(_active_bank_heists.items()):
+        if h.get('finalized'):
+            to_remove.append(hid)
+            continue
+        # Проверка участников: жив + в радиусе
+        cancelled = False
+        for u in list(h['participants']):
+            pp = world.players.get(u)
+            if not pp or pp.get('dead'):
+                cancelled = True; break
+            dx = float(pp.get('x', 0)) - poi_c
+            dy = float(pp.get('y', 0)) - poi_r
+            if dx*dx + dy*dy > R2:
+                cancelled = True; break
+        if cancelled:
+            # Сбрасываем _heist_until у всех участников
+            for u in h['participants']:
+                pp = world.players.get(u)
+                if pp:
+                    pp['_heist_until'] = 0
+                    pp['_heist_id'] = 0
+            cancel_pkt = json.dumps({'t': 'event', 'd': {
+                'kind':     'bank_heist_cancelled',
+                'heist_id': hid,
+                'reason':   'left',
+            }}, ensure_ascii=False)
+            for u in h['participants']:
+                ws2 = world.connections.get(u)
+                if ws2:
+                    try: await ws2.send_str(cancel_pkt)
+                    except Exception: pass
+            h['finalized'] = True
+            to_remove.append(hid)
+            continue
+        # Время вышло? Начисляем награду
+        if now >= h['end_at']:
+            now_ts = int(now)
+            for u in h['participants']:
+                try:
+                    async with aiosqlite.connect(DB_PATH) as db:
+                        await db.execute(
+                            "UPDATE characters SET cash = cash + ? "
+                            "WHERE telegram_id = ?",
+                            (BANK_PAYOUT, int(u)))
+                        await db.execute(
+                            "INSERT INTO bank_heists (uid, t, reward) "
+                            "VALUES (?,?,?)",
+                            (int(u), now_ts, BANK_PAYOUT))
+                        await db.commit()
+                except Exception: pass
+                pp = world.players.get(u)
+                if pp:
+                    pp['_heist_until'] = 0
+                    pp['_heist_id'] = 0
+            fin_pkt = json.dumps({'t': 'event', 'd': {
+                'kind':     'bank_heist_finished',
+                'heist_id': hid,
+                'payout':   BANK_PAYOUT,
+            }}, ensure_ascii=False)
+            for u in h['participants']:
+                ws2 = world.connections.get(u)
+                if ws2:
+                    try: await ws2.send_str(fin_pkt)
+                    except Exception: pass
+            h['finalized'] = True
+            to_remove.append(hid)
+    for hid in to_remove:
+        _active_bank_heists.pop(hid, None)
 
 
 def pick_business_event():
@@ -15731,6 +15847,8 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 # за лазерные ворота на дорогу, чтобы игрок не остался
                 # внутри тайла-здания (POI 'police').
                 world.tick_jail_release()
+                # Кооп-налёт на банк — финиш / отмена активных heist'ов
+                await _tick_bank_heists(world)
                 # Захват районов: тик + начисление дохода в gang_pool.
                 cap_pkts = world.tick_capture(WORLD_TICK_DT) or []
                 for cp in cap_pkts:
@@ -17981,6 +18099,200 @@ async def _coop_http_app():
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(reply, kind='shop_rob_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'brigadir_take':
+                        # Игрок взял хит-контракт у Бригадира.
+                        # Проверки: жив, рядом с BRIGADIR_POS_RC (≤3),
+                        # за сутки не превышен лимит BRIGADIR_DAILY_LIMIT.
+                        # Само «выдать цель» делает клиент (помечает _hitTarget=true
+                        # у случайного NPC) — серверу важен только факт выдачи
+                        # для подсчёта лимита и потом начисление при kill.
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        else:
+                            poi_r, poi_c = BRIGADIR_POS_RC
+                            dx = float(p.get('x', 0)) - poi_c
+                            dy = float(p.get('y', 0)) - poi_r
+                            if dx*dx + dy*dy > 9.0:
+                                reply = {'ok': False, 'reason': 'too_far'}
+                            else:
+                                # Лимит: считаем kill_t за последние 24ч
+                                now_ts = int(time.time())
+                                cnt = 0
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        cur = await db.execute(
+                                            "SELECT COUNT(*) FROM brigadir_kills "
+                                            "WHERE uid=? AND t > ?",
+                                            (int(uid), now_ts - 86400))
+                                        row = await cur.fetchone()
+                                        if row: cnt = int(row[0])
+                                except Exception: pass
+                                if cnt >= BRIGADIR_DAILY_LIMIT:
+                                    reply = {'ok': False, 'reason': 'limit',
+                                             'limit': BRIGADIR_DAILY_LIMIT}
+                                else:
+                                    reply = {'ok': True,
+                                             'payout': BRIGADIR_PAYOUT,
+                                             'stealth_mul': BRIGADIR_STEALTH_MUL,
+                                             'left': BRIGADIR_DAILY_LIMIT - cnt}
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event',
+                                 'd': dict(reply, kind='brigadir_take_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'brigadir_kill':
+                        # Игрок убил цель из хит-контракта Бригадира.
+                        # d = {stealth: bool} — если выстрел не видел никто из копов.
+                        # Сервер начисляет фикс-сумму (×2 при стелсе) и пишет в
+                        # brigadir_kills — для лимита 3/24ч.
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        else:
+                            stealth = bool(d.get('stealth') if isinstance(d, dict) else False)
+                            now_ts = int(time.time())
+                            # Проверим что лимит не превышен (anti-cheat)
+                            cnt = 0
+                            try:
+                                async with aiosqlite.connect(DB_PATH) as db:
+                                    cur = await db.execute(
+                                        "SELECT COUNT(*) FROM brigadir_kills "
+                                        "WHERE uid=? AND t > ?",
+                                        (int(uid), now_ts - 86400))
+                                    row = await cur.fetchone()
+                                    if row: cnt = int(row[0])
+                            except Exception: pass
+                            if cnt >= BRIGADIR_DAILY_LIMIT:
+                                reply = {'ok': False, 'reason': 'limit'}
+                            else:
+                                reward = int(BRIGADIR_PAYOUT
+                                             * (BRIGADIR_STEALTH_MUL if stealth else 1.0))
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        await db.execute(
+                                            "UPDATE characters SET cash = cash + ? "
+                                            "WHERE telegram_id = ?",
+                                            (reward, int(uid)))
+                                        await db.execute(
+                                            "INSERT INTO brigadir_kills "
+                                            "(uid, t, stealth, reward) VALUES (?,?,?,?)",
+                                            (int(uid), now_ts, 1 if stealth else 0,
+                                             reward))
+                                        await db.commit()
+                                except Exception: pass
+                                reply = {'ok': True, 'reward': reward,
+                                         'stealth': stealth,
+                                         'left': max(0, BRIGADIR_DAILY_LIMIT - cnt - 1)}
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event',
+                                 'd': dict(reply, kind='brigadir_kill_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'bank_heist_start':
+                        # Кооп-налёт на банк. Стартует если ≥2 живых игрока
+                        # в радиусе BANK_HEIST_RADIUS от BANK_POS_RC, и
+                        # никто из участников не превысил лимит 1/24ч.
+                        # Помечаем им _heist_until — мировой tick их обработает.
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        elif p.get('_heist_until', 0) > time.time():
+                            reply = {'ok': False, 'reason': 'in_heist'}
+                        else:
+                            poi_r, poi_c = BANK_POS_RC
+                            # Кандидаты на участие: я + другие живые игроки в радиусе
+                            candidates = []
+                            R2 = BANK_HEIST_RADIUS * BANK_HEIST_RADIUS
+                            for u2, pp in world.players.items():
+                                if pp.get('dead') or pp.get('_mode') == 'pve':
+                                    continue
+                                dx = float(pp.get('x', 0)) - poi_c
+                                dy = float(pp.get('y', 0)) - poi_r
+                                if dx*dx + dy*dy > R2:
+                                    continue
+                                if pp.get('_heist_until', 0) > time.time():
+                                    continue
+                                candidates.append((str(u2), pp))
+                            # Должен быть включён инициатор
+                            if str(uid) not in [c[0] for c in candidates]:
+                                reply = {'ok': False, 'reason': 'too_far'}
+                            elif len(candidates) < 2:
+                                reply = {'ok': False, 'reason': 'no_partner'}
+                            else:
+                                # Проверка лимита 1/24ч на КАЖДОГО
+                                now_ts = int(time.time())
+                                blocked = []
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        for u2, _pp in candidates:
+                                            cur = await db.execute(
+                                                "SELECT COUNT(*) FROM bank_heists "
+                                                "WHERE uid=? AND t > ?",
+                                                (int(u2), now_ts - 86400))
+                                            row = await cur.fetchone()
+                                            if row and int(row[0]) >= BANK_HEIST_DAILY_LIMIT:
+                                                blocked.append(u2)
+                                except Exception: pass
+                                if blocked:
+                                    reply = {'ok': False, 'reason': 'limit',
+                                             'blocked': blocked}
+                                else:
+                                    # Стартуем!
+                                    global _bank_heist_next_id
+                                    hid = _bank_heist_next_id
+                                    _bank_heist_next_id += 1
+                                    end_t = time.time() + BANK_HEIST_DURATION
+                                    parts = set()
+                                    for u2, pp in candidates:
+                                        pp['_heist_until'] = end_t
+                                        pp['_heist_id'] = hid
+                                        # Сразу 4★ — приедет SWAT
+                                        world._bump_wanted(pp,
+                                            max(4.0 - float(pp.get('_wanted') or 0), 1.0))
+                                        parts.add(str(u2))
+                                    _active_bank_heists[hid] = {
+                                        'participants': parts,
+                                        'started_at':   time.time(),
+                                        'end_at':       end_t,
+                                        'finalized':    False,
+                                    }
+                                    reply = {'ok': True, 'heist_id': hid,
+                                             'duration': BANK_HEIST_DURATION,
+                                             'participants': list(parts),
+                                             'payout': BANK_PAYOUT}
+                                    # Broadcast участникам — они откроют модал
+                                    started_pkt = json.dumps({'t': 'event', 'd': {
+                                        'kind':         'bank_heist_started',
+                                        'heist_id':     hid,
+                                        'duration':     BANK_HEIST_DURATION,
+                                        'participants': list(parts),
+                                        'payout':       BANK_PAYOUT,
+                                    }}, ensure_ascii=False)
+                                    for u2 in parts:
+                                        ws2 = world.connections.get(u2)
+                                        if ws2:
+                                            try: await ws2.send_str(started_pkt)
+                                            except Exception: pass
+                                    # Глобальный баннер — пусть все знают
+                                    banner_pkt = json.dumps({'t': 'event', 'd': {
+                                        'kind':  'bank_heist_announce',
+                                        'count': len(parts),
+                                    }}, ensure_ascii=False)
+                                    for _u2, _ws2 in list(world.connections.items()):
+                                        try: await _ws2.send_str(banner_pkt)
+                                        except Exception: pass
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event',
+                                 'd': dict(reply, kind='bank_heist_start_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
                     elif t == 'ping':

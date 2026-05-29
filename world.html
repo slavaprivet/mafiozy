@@ -1868,6 +1868,8 @@ const POI = [
   { id: 'lair',    r: 120, c: 40, icon: '☠️', name: 'Логово',       minLvl: 10, aggro: true, radius: 20, noCapture: true },
   // Особые POI
   { id: 'blackmarket', r:  6, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
+  // Банк — кооп-налёт точка. Подходишь с напарником → кнопка «🏦 Налёт».
+  { id: 'bank',        r: 30, c: 50, icon: '🏦', name: 'Банк',         minLvl: 1, special: 'bank'  },
   { id: 'arena',       r: 36, c: 66, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
   // Больница — северо-восточный квартал, на отдельном здании-квартале
   // (не на спавне). Серверный респаун рядом на дороге (см. HOSPITAL_X/Y).
@@ -3152,6 +3154,21 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     // Короткий предсмертный крик (если ещё не кричал — выставляем cryUntil)
     npc.cryText  = ['АА!', 'НЕТ!', 'ПОМО…'][Math.floor(Math.random()*3)];
     npc.cryUntil = performance.now() + 600;
+    // Если убитый — цель хит-контракта Бригадира — шлём серверу.
+    // Стелс: рядом с точкой убийства нет копов в радиусе 12.
+    if (npc._hitTarget && _myHitContractActive) {
+      let stealth = true;
+      if (typeof worldCops !== 'undefined' && worldCops) {
+        for (const cp of worldCops) {
+          if (Math.hypot(cp.x - npc.c, cp.y - npc.r) < 12) { stealth = false; break; }
+        }
+      }
+      try {
+        ws && ws.send(JSON.stringify({ t: 'brigadir_kill',
+          d: { stealth: stealth } }));
+      } catch(e) {}
+      npc._hitTarget = false;   // одна цель — один kill
+    }
   }
 }
 // Проходимо ли для NPC: только бордюр (9) или газон (8), и НЕ внутри
@@ -5230,6 +5247,169 @@ function updateCars(dt) {
   }
 }
 
+// ── Случайные мировые события ────────────────────────────────────
+// Раз в 75-150с в радиусе 15-30 тайл от игрока запускаем один из:
+//   CRASH      — авария 2 машин (превращаются в _wrecked + взрыв)
+//   NPC_FIGHT  — двое прохожих дерутся, один падает через 10с
+//   STREET_FIRE— горящая мусорка (декор-огонь, потухнет через 30с)
+//   GANG_FIGHT — два бандита-NPC стреляют друг в друга 12с
+// Цель: оживить город — пока нет квестов, есть на что наткнуться.
+let _nextWorldRandomEventAt = 0;
+const _activeRandomEvents = [];   // {kind, until, ...}
+
+function _findRandomEventSpot() {
+  // 25 попыток найти проходимый тайл в радиусе 16-28 от игрока,
+  // не в загоне тюрьмы и не в арене.
+  for (let i = 0; i < 25; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const d = 16 + Math.random() * 12;
+    const r = Math.floor(player.r + Math.sin(ang) * d);
+    const c = Math.floor(player.c + Math.cos(ang) * d);
+    if (r < 3 || r >= MAP_ROWS - 3 || c < 3 || c >= MAP_COLS - 3) continue;
+    const jdr = r - JAIL_CENTER_R, jdc = c - JAIL_CENTER_C;
+    if (jdr * jdr + jdc * jdc < (JAIL_RADIUS_TILES + 2) * (JAIL_RADIUS_TILES + 2)) continue;
+    if (typeof inArena === 'function' && inArena(r, c)) continue;
+    if (!MAP[r] || MAP[r][c] === 1) continue;
+    return { r, c, tile: MAP[r][c] };
+  }
+  return null;
+}
+
+function _spawnCrashEvent() {
+  // 2 движущиеся машины недалеко друг от друга → _wrecked + взрыв.
+  // Если рядом не нашлось — оставляем одну.
+  const candidates = CARS.filter(c => !c._wrecked && !c.parked && !c._hijackPending);
+  if (candidates.length < 2) return false;
+  // Берём первую достаточно близко к игроку
+  let first = null;
+  for (const c of candidates) {
+    const d = Math.hypot(c.r - player.r, c.c - player.c);
+    if (d > 30 || d < 8) continue;
+    first = c; break;
+  }
+  if (!first) return false;
+  // Вторая — близко к первой
+  let second = null;
+  for (const c of candidates) {
+    if (c === first) continue;
+    const d = Math.hypot(c.r - first.r, c.c - first.c);
+    if (d < 2.5) { second = c; break; }
+  }
+  // Wreck первую (и если есть вторую)
+  for (const c of [first, second]) {
+    if (!c) continue;
+    c.vr = 0; c.vc = 0; c._wrecked = true;
+    c._respawnAt = performance.now() + 25000;   // через 25с переспаунится
+    spawnCarExplosion(c.r, c.c);
+  }
+  showEventBanner('💥 АВАРИЯ', 'Многомашинное ДТП на дороге', 2800, 'warn');
+  return true;
+}
+
+function _spawnNpcFightEvent() {
+  // Два живых NPC рядом друг с другом → дерутся, один через 10с падает.
+  const alive = NPCS.filter(n => !n.dead && !n.snitching && !n._cashier);
+  if (alive.length < 2) return false;
+  let a = null, b = null;
+  for (const n of alive) {
+    const d = Math.hypot(n.r - player.r, n.c - player.c);
+    if (d > 28 || d < 6) continue;
+    a = n; break;
+  }
+  if (!a) return false;
+  for (const n of alive) {
+    if (n === a) continue;
+    if (Math.hypot(n.r - a.r, n.c - a.c) < 2.0) { b = n; break; }
+  }
+  if (!b) return false;
+  // Замораживаем обоих как «бьются»
+  const tEnd = performance.now() + 10000;
+  a.idleUntil = tEnd + 100;
+  b.idleUntil = tEnd + 100;
+  a.cryUntil  = performance.now() + 9000;
+  b.cryUntil  = performance.now() + 9000;
+  a.cryText   = 'ДА Я ТЕБЯ!!';
+  b.cryText   = 'ИДИ СЮДА!';
+  _activeRandomEvents.push({
+    kind: 'npc_fight', until: tEnd,
+    finisher: () => {
+      // Один из двоих падает (50/50)
+      const loser = Math.random() < 0.5 ? a : b;
+      if (loser && !loser.dead) {
+        loser.dead = true;
+        loser.deadAt = performance.now();
+      }
+    },
+  });
+  showEventBanner('👊 ДРАКА', 'Местные выясняют отношения', 2600, 'warn');
+  return true;
+}
+
+function _spawnStreetFireEvent() {
+  // Простой вариант: бросаем wrecked-машину с пожаром на дорожный тайл
+  // рядом с игроком. Это переиспользует существующий огонь.
+  const spot = _findRandomEventSpot();
+  if (!spot || spot.tile !== 0) return false;
+  // Спавним «брошенную» горящую тачку
+  const model = (typeof CAR_MODELS !== 'undefined' && CAR_MODELS[0]) || null;
+  if (!model) return false;
+  CARS.push({
+    r: spot.r + 0.5, c: spot.c + 0.5,
+    vr: 0, vc: 0, dirDx: 0, dirDy: 1,
+    model, braking: true, flash: 0,
+    parked: true, _wrecked: true,
+    _respawnAt: performance.now() + 35000,
+    _streetFireEvent: true,
+  });
+  spawnCarExplosion(spot.r + 0.5, spot.c + 0.5);
+  showEventBanner('🔥 ПОЖАР', 'Машина горит на улице', 2600, 'warn');
+  return true;
+}
+
+function _spawnRandomWorldEvent() {
+  // Случайно один из пула. Если конкретный type не получился — пробуем
+  // следующий. Если все упали — отложим.
+  const pool = ['crash', 'npc_fight', 'street_fire'];
+  // shuffle
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  for (const kind of pool) {
+    let ok = false;
+    if (kind === 'crash')        ok = _spawnCrashEvent();
+    else if (kind === 'npc_fight') ok = _spawnNpcFightEvent();
+    else if (kind === 'street_fire') ok = _spawnStreetFireEvent();
+    if (ok) return true;
+  }
+  return false;
+}
+
+function tickRandomWorldEvents(now) {
+  // Финиши активных событий (драка → падает)
+  for (let i = _activeRandomEvents.length - 1; i >= 0; i--) {
+    const ev = _activeRandomEvents[i];
+    if (now >= ev.until) {
+      try { ev.finisher && ev.finisher(); } catch(e) {}
+      _activeRandomEvents.splice(i, 1);
+    }
+  }
+  // Спавн нового
+  if (now < _nextWorldRandomEventAt) return;
+  if (_nextWorldRandomEventAt === 0) {
+    // Первый запуск — через 30-60с после загрузки (не сразу)
+    _nextWorldRandomEventAt = now + 30000 + Math.random() * 30000;
+    return;
+  }
+  if (myDead) return;
+  if (_spawnRandomWorldEvent()) {
+    _nextWorldRandomEventAt = now + 75000 + Math.random() * 75000;
+  } else {
+    // Не получилось — попробуем через 8с
+    _nextWorldRandomEventAt = now + 8000;
+  }
+}
+
 initNpcs();
 initCars();
 
@@ -6798,6 +6978,66 @@ function handleEventPacket(d) {
         showToast('❌ Ограбление не прошло', '⚠️', 2000);
       }
     }
+  } else if (kind === 'brigadir_take_reply') {
+    // Бригадир выдал контракт (или отказал по лимиту/расстоянию).
+    if (d.ok) {
+      // Выбираем случайного живого NPC рядом с собой как цель
+      const target = _pickHitTargetNear(player.r, player.c);
+      if (!target) {
+        showToast('🤷 Рядом никого подходящего — отойди и попробуй снова', '⚠️', 2500);
+        return;
+      }
+      target._hitTarget = true;
+      _myHitTargetNpc = target;
+      _myHitContractActive = true;
+      showEventBanner(
+        '🎯 Контракт',
+        `Завали цель в городе. +$${d.payout}, стелс ×${d.stealth_mul || 2}`,
+        4000, 'win');
+    } else if (d.reason === 'limit') {
+      showToast(`🚫 Лимит ${d.limit || 3}/сутки исчерпан — приходи завтра`,
+                '⏳', 3500);
+    } else if (d.reason === 'too_far') {
+      showToast('🚶 Слишком далеко от Бригадира', '⚠️', 2000);
+    } else {
+      showToast('❌ Бригадир не дал контракт', '⚠️', 2000);
+    }
+  } else if (kind === 'brigadir_kill_reply') {
+    // Сервер начислил награду за хит. Toast + сброс активного контракта.
+    if (d.ok) {
+      const r = +d.reward | 0;
+      const left = +d.left | 0;
+      const stealthTag = d.stealth ? ' (стелс ×2)' : '';
+      showToast(`💵 Хит выполнен: +$${r}${stealthTag}. Контрактов: ${left}/сутки`,
+                '🎯', 3500);
+    }
+    _myHitContractActive = false;
+    _myHitTargetNpc = null;
+  } else if (kind === 'bank_heist_start_reply') {
+    if (!d.ok) {
+      if (d.reason === 'no_partner') {
+        showToast('🤝 Нужен напарник рядом — позови ещё игрока к банку', '⚠️', 3000);
+      } else if (d.reason === 'too_far') {
+        showToast('🚶 Подойди ближе к банку', '⚠️', 1800);
+      } else if (d.reason === 'limit') {
+        showToast('🚫 Лимит налётов исчерпан (1/сутки)', '⏳', 3000);
+      } else if (d.reason === 'in_heist') {
+        showToast('🏦 Налёт уже идёт', 'ℹ️', 1600);
+      } else {
+        showToast('❌ Не получилось начать налёт', '⚠️', 2000);
+      }
+    }
+    // ok-кейс обрабатывается через broadcast 'bank_heist_started'
+  } else if (kind === 'bank_heist_started') {
+    _onBankHeistStarted(d);
+  } else if (kind === 'bank_heist_finished') {
+    _onBankHeistFinished(d);
+  } else if (kind === 'bank_heist_cancelled') {
+    _onBankHeistCancelled(d);
+  } else if (kind === 'bank_heist_announce') {
+    // Глобальный баннер всем — кто-то делает налёт
+    showEventBanner('🏦 НАЛЁТ', `${d.count || 2} игрока берут банк!`,
+                    2500, 'warn');
   } else if (kind === 'shop_robbed') {
     // Broadcast всем — кто-то ограбил магазин в городе. Баннер на 2.5с.
     if (String(d.robber_uid) !== String(QP.uid)) {
@@ -7689,6 +7929,8 @@ _zoneEl.addEventListener('click', () => {
   if (_zoneCur.special === 'shop')        { openShop();   return; }
   if (_zoneCur.special === 'arena')       { showToast('🎯 Вы внутри PVP-зоны. Огонь скоро добавим.'); return; }
   if (_zoneCur.special === 'firestation') { openFireStationModal(); return; }
+  if (_zoneCur.special === 'bank')        { tryStartBankHeist(); return; }
+  if (_zoneCur.special === 'jail')        { return; }   // участок — без меню, GTA-кнопка сама
   // Проверка ранга — как в hub. Если ниже minLvl района — не пускаем.
   if (QP.lvl < _zoneCur.minLvl) {
     showToast(`🔒 Нужен ранг ${_zoneCur.minLvl}+ (у тебя ${QP.lvl})`, 2800);
@@ -7698,6 +7940,100 @@ _zoneEl.addEventListener('click', () => {
   // города. Бэк сам соберёт URL с актуальным снаряжением игрока из БД.
   openDistrictBattle(_zoneCur.id);
 });
+
+// ── Банк — кооп-налёт на 2+ игроков ──────────────────────────────
+// POI на тайле (30, 50). Подходишь с напарником (оба в радиусе 4) →
+// 20-секундный таймер вскрытия сейфа. На старте обоим +4★ → SWAT.
+// Успех: +$2000 каждому. Лимит 1/24ч на игрока. Отмена при уходе/смерти.
+const BANK_POS = { r: 30, c: 50 };
+const BANK_PAYOUT_PREVIEW   = 2000;
+const BANK_HEIST_DURATION_S = 20;
+let _bankHeistActive = false;
+let _bankHeistStartedAt = 0;
+let _bankHeistId = 0;
+let _bankHeistParts = [];
+
+function tryStartBankHeist() {
+  if (_bankHeistActive) return;
+  if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
+  if (myDead) return;
+  const wsReady = !!(ws && ws.readyState === 1);
+  if (!wsReady) { showToast('🌐 Нет соединения', '⚠️', 1600); return; }
+  try { ws.send(JSON.stringify({ t: 'bank_heist_start', d: {} })); } catch(e) {}
+}
+
+function _onBankHeistStarted(d) {
+  _bankHeistActive = true;
+  _bankHeistStartedAt = performance.now();
+  _bankHeistId        = +d.heist_id | 0;
+  _bankHeistParts     = d.participants || [];
+  _robModal.classList.add('show');
+  _robBarFill.style.width = '0%';
+  _robSubEl.textContent = `🏦 Вскрытие сейфа — ${_bankHeistParts.length} игрока`;
+  // Скрываем кнопки чтобы не мешали
+  if (_robBtn) _robBtn.style.display = 'none';
+  _gtaBtn.style.display = 'none';
+  showEventBanner('🏦 НАЛЁТ', `Сейф вскроется через ${BANK_HEIST_DURATION_S}с`,
+                  2500, 'warn');
+}
+
+function _onBankHeistFinished(d) {
+  _bankHeistActive = false;
+  _robModal.classList.remove('show');
+  const r = +d.payout | 0;
+  showEventBanner('💰 Сейф вскрыт',
+                  `+$${r.toLocaleString('ru')}`, 3500, 'win');
+  hapticHit();
+}
+
+function _onBankHeistCancelled(d) {
+  if (!_bankHeistActive) return;
+  _bankHeistActive = false;
+  _robModal.classList.remove('show');
+  showToast('🏃 Налёт сорвался — кто-то ушёл или умер', '⚠️', 2800);
+}
+
+// Тик прогресс-бара (отдельная функция — отрисовка локально)
+function _tickBankHeistUi(now) {
+  if (!_bankHeistActive) return;
+  const dt = now - _bankHeistStartedAt;
+  const k = Math.min(1, dt / (BANK_HEIST_DURATION_S * 1000));
+  _robBarFill.style.width = (k * 100).toFixed(1) + '%';
+}
+
+// ── Бригадир — хит-контракты в городе ──────────────────────────────
+// Стационарный NPC у бара. Меню одним кликом: «Взять контракт».
+// Сервер проверяет лимит 3/24ч и отдаёт ok → клиент помечает случайного
+// живого NPC в радиусе 25 как цель, показывает HUD-стрелку. Убил —
+// сервер начисляет $400 (×2 если рядом нет копов = стелс).
+const BRIGADIR_POS = { r: 43, c: 34 };
+const BRIGADIR_PAYOUT_PREVIEW = 400;
+let _myHitTargetNpc = null;   // ссылка на помеченного NPC (если есть)
+let _myHitContractActive = false;
+
+function _pickHitTargetNear(srcR, srcC) {
+  // Случайный живой NPC в кольце 8..25 от bri (не кассир, не цель уже,
+  // не панически бегущий)
+  const pool = [];
+  for (const n of NPCS) {
+    if (!n || n.dead || n._cashier || n._hitTarget || n.snitching) continue;
+    const d = Math.hypot(n.r - srcR, n.c - srcC);
+    if (d < 8 || d > 25) continue;
+    pool.push(n);
+  }
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function takeBrigadirContract() {
+  if (_myHitContractActive) {
+    showToast('🎯 У тебя уже есть активный контракт', '⚠️', 1800);
+    return;
+  }
+  const wsReady = !!(ws && ws.readyState === 1);
+  if (!wsReady) { showToast('🌐 Нет соединения', '⚠️', 1600); return; }
+  try { ws.send(JSON.stringify({ t: 'brigadir_take', d: {} })); } catch(e) {}
+}
 
 // ── Ограбление магазинов/бизнесов ──────────────────────────────────
 // Альтернатива покупке: подходишь к чужому бизнесу → кнопка «🔪 Ограбить».
@@ -7891,6 +8227,28 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
+  // Бригадир — хит-контракты. Подошёл → кнопка «Взять контракт».
+  const dbR = BRIGADIR_POS.r - player.r;
+  const dbC = BRIGADIR_POS.c - player.c;
+  if (Math.hypot(dbR, dbC) <= GTA_INTERACT_R) {
+    _gtaActionKind = 'brigadir';
+    _gtaActionCarId = null;
+    _gtaBtn.textContent = _myHitContractActive
+      ? '🎯 Контракт уже взят — иди убей'
+      : `👔 Взять контракт ($${BRIGADIR_PAYOUT_PREVIEW})`;
+    _gtaBtn.style.display = 'block';
+    return;
+  }
+  // Банк — кооп-налёт. Подошёл (радиус чуть больше) → кнопка «Налёт».
+  const dBR = BANK_POS.r - player.r;
+  const dBC = BANK_POS.c - player.c;
+  if (Math.hypot(dBR, dBC) <= 4.0 && !_bankHeistActive) {
+    _gtaActionKind = 'bank_heist';
+    _gtaActionCarId = null;
+    _gtaBtn.textContent = `🏦 Налёт ($${BANK_PAYOUT_PREVIEW}, нужен напарник)`;
+    _gtaBtn.style.display = 'block';
+    return;
+  }
   // Бизнес-POI — купить если рядом и не наш; собрать если наш с доходом
   const bizNear = _nearestBusinessPoi();
   if (bizNear) {
@@ -8045,6 +8403,10 @@ _gtaBtn.addEventListener('click', () => {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'blackmarket') {
     openBlackmarketShop();
+  } else if (_gtaActionKind === 'brigadir') {
+    takeBrigadirContract();
+  } else if (_gtaActionKind === 'bank_heist') {
+    tryStartBankHeist();
   }
 });
 
@@ -10600,6 +10962,8 @@ function update(dt) {
   updateGtaInteractions();
   updateGtaQuestHud();
   updateRobbery(performance.now());
+  tickRandomWorldEvents(performance.now());
+  _tickBankHeistUi(performance.now());
   updateExtinguishBtn();
   updateBoxThreat(dt);
   // Интерполяция чужих quest_cars (которые ведут другие игроки)
@@ -16922,6 +17286,93 @@ function drawMichael() {
   ctx.textAlign = 'left';
 }
 
+// Бригадир — стационарный NPC у бара. Чёрно-красная палитра, эмодзи 👔.
+// Реплика над головой когда подошёл: «Есть заказ — нужно убрать одного» /
+// «Лимит на сегодня — приходи завтра».
+const _BRIGADIR_LOOK = {
+  hair: '#1a0a0a',
+  shirt: '#2a0808',
+  pants: '#0a0808',
+  skin: '#d8b08a',
+};
+function drawBrigadir() {
+  const p = w2s(BRIGADIR_POS.r + 0.5, BRIGADIR_POS.c + 0.5);
+  const t = performance.now() * 0.004;
+  // Красная подсветка — чтоб издалека было видно «опасный» NPC
+  ctx.save();
+  const haloR = 22 + Math.sin(t * 1.7) * 2;
+  ctx.fillStyle = 'rgba(220,40,40,.12)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 5, haloR, haloR * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(220,40,40,.35)';
+  ctx.shadowColor = '#ff4040';
+  ctx.shadowBlur  = 16;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 5, 16, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // Спрайт
+  const phase = (Math.sin(t) * 0.2);
+  drawPerson(p.x, p.y, 0, _BRIGADIR_LOOK, phase, 'Бригадир',
+             null, false, 1, 1, false);
+  const bob = Math.sin(t * 1.6) * 2;
+  ctx.font = '20px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+  ctx.fillText('👔', p.x, p.y - 56 + bob);
+  ctx.shadowBlur = 0;
+  // Реплика
+  const dr = BRIGADIR_POS.r - player.r;
+  const dc = BRIGADIR_POS.c - player.c;
+  if (Math.hypot(dr, dc) <= 6.0) {
+    const txt = _myHitContractActive
+      ? 'Цель в городе. Не вернёшься без работы.'
+      : 'Есть заказ — нужно убрать одного.';
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const labelW = ctx.measureText(txt).width + 16;
+    const labelH = 18;
+    const labelY = p.y - 78 + bob;
+    ctx.fillStyle = 'rgba(20,4,4,.92)';
+    ctx.strokeStyle = '#ff5040';
+    ctx.lineWidth = 1.4;
+    roundRect(p.x - labelW / 2, labelY - labelH / 2, labelW, labelH, 5);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(20,4,4,.92)';
+    ctx.beginPath();
+    ctx.moveTo(p.x - 4, labelY + labelH / 2 - 1);
+    ctx.lineTo(p.x + 4, labelY + labelH / 2 - 1);
+    ctx.lineTo(p.x,     labelY + labelH / 2 + 6);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ff8070';
+    ctx.fillText(txt, p.x, labelY + 1);
+    ctx.textBaseline = 'alphabetic';
+  }
+  ctx.textAlign = 'left';
+}
+
+// HUD-маркер «🎯» над активной хит-целью + стрелка к экрану если цель
+// за пределами view. Рисуется поверх всего после restore.
+function drawHitTargetMarker() {
+  if (!_myHitContractActive || !_myHitTargetNpc) return;
+  const n = _myHitTargetNpc;
+  if (!n || n.dead) { _myHitContractActive = false; _myHitTargetNpc = null; return; }
+  const p = w2s(n.r + 0.5, n.c + 0.5);
+  const t = performance.now() * 0.005;
+  const bob = Math.sin(t * 3) * 3;
+  ctx.save();
+  ctx.font = '22px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#ff3030'; ctx.shadowBlur = 12;
+  ctx.fillText('🎯', p.x, p.y - 50 + bob);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
 // ── Зона сдачи угнанных машин ────────────────────────────────────
 // Прямоугольник на пирсе порта. Полупрозрачная золотая штриховка +
 // рамка + иконка 💰 в центре. Внутри = автопродажа при выходе.
@@ -19166,6 +19617,12 @@ function render() {
     items.push({ depth: MICHAEL_POS.r + MICHAEL_POS.c + 0.0007,
                  draw: () => drawMichael() });
   }
+  // Бригадир — статичный NPC у бара, выдаёт хит-контракты.
+  if (BRIGADIR_POS.r >= r0 && BRIGADIR_POS.r < r1 &&
+      BRIGADIR_POS.c >= c0 && BRIGADIR_POS.c < c1) {
+    items.push({ depth: BRIGADIR_POS.r + BRIGADIR_POS.c + 0.0007,
+                 draw: () => drawBrigadir() });
+  }
   // Корабль Майкла — большой меш (корпус + надстройка + кран + контейнеры).
   // Рисуем как один объект с depth = задний край палубы, чтобы он сидел
   // ПОЗАДИ Майкла и контейнеров на пирсе, но перед водой.
@@ -19389,6 +19846,8 @@ function render() {
   drawPOIArrows(r0, r1, c0, c1);
   // Стрелка-указатель на инкассатора если он за пределами экрана
   drawEventArrow(r0, r1, c0, c1);
+  // 🎯 над активной хит-целью Бригадира — поверх всего
+  drawHitTargetMarker();
   // Мини-карта
   drawMinimap();
   // Screen-flash от тяжёлого выстрела — короткая полупрозрачная заливка
