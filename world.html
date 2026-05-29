@@ -4977,12 +4977,17 @@ function carCanGo(car, dt) {
   const ahead = 1.5;
   const fr = car.r + car.dirDy * ahead;
   const fc = car.c + car.dirDx * ahead;
-  // Впереди загон тюрьмы — тормозим перед решёткой (визуально не въезжает
-  // в кадр; через 20с anti-stuck респаунит её далеко от игрока).
+  // Впереди загон тюрьмы — тормозим перед решёткой. Помечаем флагом,
+  // чтобы updateCars респаунил её быстрее (не дожидаясь полного anti-stuck).
+  // Иначе перед тюрьмой копится «вечная» очередь.
   {
     const jdr = fr - JAIL_CENTER_R, jdc = fc - JAIL_CENTER_C;
-    if (jdr * jdr + jdc * jdc < JAIL_RADIUS_TILES * JAIL_RADIUS_TILES) return false;
+    if (jdr * jdr + jdc * jdc < JAIL_RADIUS_TILES * JAIL_RADIUS_TILES) {
+      car._blockedByJail = true;
+      return false;
+    }
   }
+  car._blockedByJail = false;
   // Игрок? Тормозим только ВПЛОТНУЮ (чтобы не сбить), радиус 0.6.
   // Раньше было 1.4 — это создавало пробку: спавн игрока на перекрёстке
   // (40,40) стопорил все 4 потока сразу. В GTA-стиле игрок сам уворачивается.
@@ -5113,21 +5118,25 @@ function updateCars(dt) {
       car.c += car.vc * dt;
       car._stuckT = 0;
     } else {
-      // Anti-stuck: даём пробке/светофору шанс рассосаться.
-      // 20 сек (было 8) — пользователь видел как тачки «пропадают»
-      // в пробках. Плюс: пока машина в зоне видимости игрока
-      // (≤22 тайла), вообще не респауним — она просто стоит на
-      // месте сколько надо. Респаун — только когда машина далеко
-      // и игрок её не увидит.
+      // Anti-stuck по двум таймерам:
+      //   1) «мягкий» — стоит >6с И игрок далеко (>22 тайл) → респаун
+      //      незаметно. Полностью реалистично, никто не видит подмены.
+      //   2) «жёсткий» — стоит >14с независимо от дистанции игрока →
+      //      респаун всё равно. Иначе пробки перед светофором / загоном
+      //      тюрьмы стоят вечно (раньше distP-фильтр держал их вечно).
+      //   3) Машина упёрлась в решётку тюрьмы (carCanGo выставил
+      //      _blockedByJail) — респаун уже через 3с независимо от
+      //      дистанции, чтобы за ней не копилась очередь.
       car._stuckT = (car._stuckT || 0) + dt;
-      if (car._stuckT > 20) {
-        const distP = Math.hypot(car.r - player.r, car.c - player.c);
-        if (distP > 22) {
-          const ni = CARS.indexOf(car);
-          const fresh = spawnCar(ni, { awayFromPlayer: true });
-          if (fresh) Object.assign(car, fresh);
-        }
-        // Иначе ждём ещё — игрок видит, пусть стоит реалистично
+      const distP = Math.hypot(car.r - player.r, car.c - player.c);
+      let doRespawn = false;
+      if (car._blockedByJail && car._stuckT > 3) doRespawn = true;
+      else if (car._stuckT > 14) doRespawn = true;
+      else if (car._stuckT > 6 && distP > 22) doRespawn = true;
+      if (doRespawn) {
+        const ni = CARS.indexOf(car);
+        const fresh = spawnCar(ni, { awayFromPlayer: true });
+        if (fresh) Object.assign(car, fresh);
       }
     }
     // Если выехал за границу — переспаунить (далеко от игрока)
