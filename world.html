@@ -1451,6 +1451,14 @@ const ISO_Y  = 0.55;         // ужатие по Y (тот же угол что
 //   8 = трава/газон (проходимо, зелёный пол)
 //   9 = бордюр (декор, проходимо, чуть выше асфальта)
 const BLOCK = 10;
+// Загон тюрьмы — круг радиусом 7 тайл вокруг участка (76,76).
+// Машины/спавн в эту зону не заходят (тачки разворачивают-респаунят),
+// игрок изнутри не может стрелять по NPC (см. fire()).
+// drawJailCell использует эти же константы — они должны быть объявлены
+// до updateCars/fire (TDZ).
+const JAIL_CENTER_R = 76, JAIL_CENTER_C = 76;
+const JAIL_RADIUS_TILES = 7.0;
+const JAIL_GATE_HALF_RAD = 0.50;
 let MAP = [];
 // «Парк-блоки» — координаты центра блока (по сетке 8×8), которые НЕ застраиваем
 // зданиями, а заливаем газоном с деревьями. Детерминированный набор:
@@ -4398,6 +4406,11 @@ function spawnCar(idx, opts) {
     const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
     const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
     if (MAP[r][c] !== 0) continue;
+    // Не спавним внутри загона тюрьмы — там за решёткой только заключённые.
+    {
+      const jdr = r - JAIL_CENTER_R, jdc = c - JAIL_CENTER_C;
+      if (jdr * jdr + jdc * jdc < JAIL_RADIUS_TILES * JAIL_RADIUS_TILES) continue;
+    }
     if (awayFromPlayer && typeof player !== 'undefined' && player) {
       const dx = c - player.c, dy = r - player.r;
       if (dx * dx + dy * dy < CAR_RESPAWN_MIN_DIST * CAR_RESPAWN_MIN_DIST) continue;
@@ -4878,22 +4891,21 @@ function drawParkingNpc(n) {
 // на r%10 == 9 и 3..4 (со стороны квартала). Зебра — на тайлах
 // r%10 ∈ [0..2] непосредственно у выхода из квартала.
 function drawCrosswalks() {
-  // Идём по сетке кварталов и рисуем зебры на 4 сторонах
+  // Шахматка ((br+bc)%2===0) + только N/E стороны — раньше рисовалось 4
+  // зебры на каждом перекрёстке + дубли с соседями, выходило вдвое и
+  // визуально «слишком много пешеходных переходов». Теперь зебры стоят
+  // на половине перекрёстков, ~1 шт. на квартал.
   for (let br = 0; br < Math.ceil(MAP_ROWS / BLOCK); br++) {
     for (let bc = 0; bc < Math.ceil(MAP_COLS / BLOCK); bc++) {
-      // Центр перекрёстка (по геометрии BLOCK) на дороге
-      const ir = br * BLOCK + 1;   // средний тайл дорожной полосы (1)
+      if (((br + bc) & 1) !== 0) continue;
+      const ir = br * BLOCK + 1;
       const ic = bc * BLOCK + 1;
       if (ir < 1 || ir >= MAP_ROWS - 1) continue;
       if (ic < 1 || ic >= MAP_COLS - 1) continue;
-      // Зебра N (север): поперёк дороги c=ic..ic+2, на тайле r = ir + 4
+      // N (поперёк дороги c=ic..ic+2, на тайле r = ir + 4)
       _drawCrosswalkBand(ir + 4, ic, 'horizontal');
-      // Зебра S (юг): r = ir - 4 (если есть)
-      _drawCrosswalkBand(ir - 4, ic, 'horizontal');
-      // Зебра E (восток): c = ic + 4, поперёк r=ir..ir+2
+      // E (поперёк r=ir..ir+2, на тайле c = ic + 4)
       _drawCrosswalkBand(ir, ic + 4, 'vertical');
-      // Зебра W (запад): c = ic - 4
-      _drawCrosswalkBand(ir, ic - 4, 'vertical');
     }
   }
 }
@@ -4967,6 +4979,12 @@ function carCanGo(car, dt) {
   const ahead = 1.5;
   const fr = car.r + car.dirDy * ahead;
   const fc = car.c + car.dirDx * ahead;
+  // Впереди загон тюрьмы — тормозим перед решёткой (визуально не въезжает
+  // в кадр; через 20с anti-stuck респаунит её далеко от игрока).
+  {
+    const jdr = fr - JAIL_CENTER_R, jdc = fc - JAIL_CENTER_C;
+    if (jdr * jdr + jdc * jdc < JAIL_RADIUS_TILES * JAIL_RADIUS_TILES) return false;
+  }
   // Игрок? Тормозим только ВПЛОТНУЮ (чтобы не сбить), радиус 0.6.
   // Раньше было 1.4 — это создавало пробку: спавн игрока на перекрёстке
   // (40,40) стопорил все 4 потока сразу. В GTA-стиле игрок сам уворачивается.
@@ -5129,6 +5147,16 @@ function updateCars(dt) {
       const fresh = spawnCar(ni, { awayFromPlayer: true });
       if (fresh) Object.assign(car, fresh);
       continue;
+    }
+    // Заехала в загон тюрьмы — гонять там нельзя (за решёткой). Респаун.
+    {
+      const jdr = car.r - JAIL_CENTER_R, jdc = car.c - JAIL_CENTER_C;
+      if (jdr * jdr + jdc * jdc < JAIL_RADIUS_TILES * JAIL_RADIUS_TILES) {
+        const ni = CARS.indexOf(car);
+        const fresh = spawnCar(ni, { awayFromPlayer: true });
+        if (fresh) Object.assign(car, fresh);
+        continue;
+      }
     }
     // Повороты на перекрёстках ОТКЛЮЧЕНЫ — после поворота направо машина
     // попадает на встречную полосу и создаёт лоб-в-лоб пробку. Едем прямо
@@ -9165,12 +9193,20 @@ function fire(angle = null) {
     return;
   }
   if (myDead) return;
+  // В тюрьме NPC-цели запрещены (см. использование _meInJail ниже).
+  // Вычисляем здесь, чтобы и lock-on на NPC отключить.
+  const _meInJail = (myJailIn > 0) &&
+    (Math.hypot(player.r - JAIL_CENTER_R, player.c - JAIL_CENTER_C) <= JAIL_RADIUS_TILES + 0.5);
   // Авто-fallback: angle не задан.
   //   1) если есть locked-цель — стреляем В НЕЁ (auto-aim после тапа)
   //   2) иначе если правый стик сдвинут — берём его направление
   if (angle === null && lockedTarget) {
-    const pos = lockedTarget.getPos();
-    if (pos) angle = Math.atan2(pos.r - player.r, pos.c - player.c);
+    // В тюрьме лок на NPC-целей (cop/convoy/mg/aggro_bot/npc/gang_car)
+    // не наводит выстрел — только лок на сокамерника (player).
+    if (!(_meInJail && lockedTarget.kind !== 'player')) {
+      const pos = lockedTarget.getPos();
+      if (pos) angle = Math.atan2(pos.r - player.r, pos.c - player.c);
+    }
   }
   if (angle === null && joyR && joyR.active && joyR.hasAim) {
     const _d = joyR.dx, _s = joyR.dy / ISO_Y;
@@ -9180,6 +9216,7 @@ function fire(angle = null) {
   }
   // В машине нельзя стрелять — обе руки на руле.
   if (myDrivingCarId) return;
+  // _meInJail объявлен выше (нужен и для lock-on, и для блокировки NPC-целей).
   const now = performance.now();
   // Cooldown зависит от выбранного оружия (как в demo_isometric):
   // smg/tommy быстрые ~0.2с, sniper медленный ~1.2с, rpg ~1.8с.
@@ -9191,8 +9228,10 @@ function fire(angle = null) {
     player.ang = angle;
   }
   // Если англ не задан и есть конвой/игрок поблизости — авто-нацеливаемся.
+  // В тюрьме авто-aim на NPC отключаем — иначе наводилось бы на копов
+  // за решёткой.
   if (angle === null) {
-    const ct = findNearestConvoyTarget();
+    const ct = _meInJail ? null : findNearestConvoyTarget();
     if (ct) {
       const a = Math.atan2(ct.y - player.r, ct.x - player.c);
       dirX = Math.cos(a); dirY = Math.sin(a);
@@ -9214,17 +9253,16 @@ function fire(angle = null) {
       _renewAllLocks();
     }
   }
-  // В тюрьме стрелять МОЖНО — но урон серверная сторона разрешит
-  // только если цель тоже сидит (тюремные разборки). По копам/прохожим
-  // через лазер не пройдёт — сервер отклонит выстрел.
-  // Что под прицелом?
+  // В тюрьме NPC-цели запрещены: пуля пройдёт сквозь решётку «в пустоту»,
+  // но не нанесёт урона копам/конвою/прохожим (все блоки ниже пропускаются
+  // через _meInJail). PvP-цель (сосед-сокамерник) разрешена ниже.
   // AUTO-AIM ОТКЛЮЧЁН: цель засчитывается ТОЛЬКО если правый стик
   // направлен строго в неё (dot >= 0.985, что соответствует ±10°).
   // Промахнулся стиком — пуля летит в пустоту. Ниже 4 типа целей
   // (конвой/коп/aggro/pvp) проверяются ровно тем же конусом.
   // 1) Конвой в радиусе огня + по направлению
   let chosenConvoy = null;
-  if (worldEvent) {
+  if (worldEvent && !_meInJail) {
     const targets = [];
     if (worldEvent.boss && worldEvent.boss.alive) targets.push(worldEvent.boss);
     for (const g of (worldEvent.guards || [])) if (g.alive) targets.push(g);
@@ -9240,7 +9278,7 @@ function fire(angle = null) {
   }
   // 2) Коп в радиусе огня + конусе
   let chosenCop = null;
-  if (!chosenConvoy && worldCops && worldCops.length) {
+  if (!chosenConvoy && !_meInJail && worldCops && worldCops.length) {
     for (const c of worldCops) {
       const dx = c.x - player.c, dy = c.y - player.r;
       const d = Math.hypot(dx, dy);
@@ -9253,7 +9291,7 @@ function fire(angle = null) {
   }
   // 3) Бот агрессивного района — стрелять можно только если я САМ в этой зоне
   let chosenAggro = null;
-  if (!chosenConvoy && !chosenCop) {
+  if (!chosenConvoy && !chosenCop && !_meInJail) {
     for (const tid of Object.keys(aggroZones)) {
       const az = aggroZones[tid];
       if (!az || !az.bots) continue;
@@ -9270,7 +9308,7 @@ function fire(angle = null) {
   }
   // 4) Охранник Майкла — стрелять можно, но это разозлит охрану
   let chosenMg = null;
-  if (!chosenConvoy && !chosenCop && !chosenAggro) {
+  if (!chosenConvoy && !chosenCop && !chosenAggro && !_meInJail) {
     for (const g of michaelGuards.values()) {
       const dx = g.x - player.c, dy = g.y - player.r;
       const d  = Math.hypot(dx, dy);
@@ -9326,14 +9364,19 @@ function fire(angle = null) {
   // Паника NPC: любой выстрел рядом — мирные NPC в радиусе 9 тайлов
   // переключаются в panic. Бегут от стрелка, кричат «ПОМОГИТЕ!» по
   // случайному паттерну. Когда отбежали — успокаиваются (см. updateNpcs).
-  try { triggerNpcPanic(player.r, player.c, 9); } catch(e) {}
+  // Из тюрьмы не паникуем — прохожие за решёткой это игнорят.
+  if (!_meInJail) {
+    try { triggerNpcPanic(player.r, player.c, 9); } catch(e) {}
+  }
   // Стрельба в городе вне PvP-зоны = НЕЗАКОННО. Шлём серверу open_fire —
   // сервер бампает wanted, копы выезжают. inArena(ARENA_R0..R1) — постоянная
   // PvP-арена. pvpActive — пока идёт событие инкассатора (PvP открыто везде).
   const meInArena = inArena(player.r, player.c);
   // Внутри агрессивной зоны стрельба ВСЕГДА легальна — это PvP-район банды.
   const meInAggro = !!inAggroZone(player.r, player.c);
-  const lawful    = meInArena || meInAggro || pvpActive || chosenConvoy || chosenCop || chosenAggro || chosenMg;
+  // В тюрьме стрельба тоже «легальна» — я уже сижу, дальше копить wanted
+  // и звать свидетелей в участок бессмысленно (NPC сами там стоят за стенкой).
+  const lawful    = _meInJail || meInArena || meInAggro || pvpActive || chosenConvoy || chosenCop || chosenAggro || chosenMg;
   if (!lawful) {
     // НОВАЯ механика wanted:
     //   - мгновенный +1 только если КОП видел выстрел сам (witness=true)
@@ -9362,10 +9405,12 @@ function fire(angle = null) {
   // Raycast по мирным NPC ВСЕГДА. Если NPC физически ближе серверной
   // цели — пуля попадает в него (он стоит ровно на линии огня). Иначе
   // используем серверную цель (chosenConvoy/Cop/Aggro/Mg/pvpTarget).
+  // В тюрьме NPC raycast выключаем — за решёткой стоят прохожие/копы,
+  // их трогать нельзя.
   const range = wcfg.range || 7;
-  const hitN  = _raycastNpc(sR, sC, dirY, dirX, range);
+  const hitN  = _meInJail ? null : _raycastNpc(sR, sC, dirY, dirX, range);
   // Raycast по бандитским машинам в кортеже — приоритет если ближе NPC.
-  const hitG  = _raycastGangCar(sR, sC, dirY, dirX, range);
+  const hitG  = _meInJail ? null : _raycastGangCar(sR, sC, dirY, dirX, range);
   if (hitG && (!hitN || hitG.dist < hitN.dist)) {
     spawnBullet(sR, sC, hitG.point.r, hitG.point.c,
       { hit: true, fromPlayer: true, weapon: currentWeapon });
@@ -17453,11 +17498,9 @@ function drawFireStationDecor(stationR, stationC) {
 // прутьев. На воротах — лазерный барьер: КРАСНЫЙ пока я сижу (myJailIn>0),
 // ЗЕЛЁНЫЙ когда срок вышел (можно выйти физически). Серверный JAIL_R
 // держит игрока внутри — лазер тут чистый визуал.
-const JAIL_CENTER_R = 76, JAIL_CENTER_C = 76;
-// Радиус загона — 7 тайлов (диаметр 14, 10+ игроков размещается с запасом).
-// ВАЖНО: должно совпадать с серверным JAIL_R (см. mafiozi_bot.py).
-const JAIL_RADIUS_TILES = 7.0;
-const JAIL_GATE_HALF_RAD = 0.50;   // ширина проёма в радианах (≈57°) — для нескольких игроков
+// JAIL_CENTER_R/C, JAIL_RADIUS_TILES, JAIL_GATE_HALF_RAD объявлены выше
+// (рядом с BLOCK) — нужны раньше, в updateCars/fire. Радиус 7 тайл,
+// ворота ~57° на южной стороне. Серверный JAIL_R должен совпадать (mafiozi_bot.py).
 function drawJailCell(stationR, stationC) {
   const cR = stationR, cC = stationC;
   const R  = JAIL_RADIUS_TILES;
