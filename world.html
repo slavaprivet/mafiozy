@@ -4283,12 +4283,13 @@ const CAR_MODELS = [
   // height — высоты разнесены сильнее (0.30..1.05), чтобы силуэты явно
   // различались в изометрии. wheelR — теперь реально влияет на размер
   // колеса (см. drawCarPretty: ellipse(corner.x, corner.y, wR*22, wR*12)).
-  { name: 'sedan',    L: 1.7,  W: 0.85, palette: ['#3a5a8a','#22386a'], roof: '#1a2848', wheelR: 0.18, height: 0.55 },
-  { name: 'taxi',     L: 1.7,  W: 0.85, palette: ['#ffd700','#b89400'], roof: '#1a1a1a', wheelR: 0.18, taxi: true, height: 0.55 },
+  { name: 'sedan',    L: 1.7,  W: 0.85, palette: ['#3a5a8a','#22386a'], roof: '#1a2848', wheelR: 0.18, height: 0.55, sedan: true },
+  { name: 'taxi',     L: 1.7,  W: 0.85, palette: ['#ffd700','#b89400'], roof: '#1a1a1a', wheelR: 0.18, taxi: true, height: 0.55, sedan: true },
   { name: 'sport',    L: 1.45, W: 0.78, palette: ['#c8202a','#7a0d18'], roof: '#1a0a10', wheelR: 0.16, sport: true, height: 0.32 },
   { name: 'pickup',   L: 1.95, W: 0.95, palette: ['#3a3a3a','#1f1f1f'], roof: '#0f0f0f', wheelR: 0.22, pickup: true, height: 0.62, cabFrac: 0.55 },
   { name: 'van',      L: 2.05, W: 0.98, palette: ['#2f6a3a','#1a3a22'], roof: '#152818', wheelR: 0.20, van: true, height: 0.92 },
   { name: 'coupe',    L: 1.50, W: 0.80, palette: ['#1a1a1a','#0a0a0a'], roof: '#000000', wheelR: 0.16, height: 0.42, sport: true },
+  { name: 'hatch_blue', L: 1.50, W: 0.82, palette: ['#3a78c8','#1a4280'], roof: '#0a2050', wheelR: 0.17, height: 0.55, hatch: true },
   // Спорткары — самые низкие и короткие, клиновидный силуэт
   { name: 'supercar', L: 1.45, W: 0.78, palette: ['#f0a020','#a05a00'], roof: '#2a1a00', wheelR: 0.17, sport: true, fast: true, height: 0.30 },
   { name: 'lambo',    L: 1.45, W: 0.80, palette: ['#3afd6c','#0a8a3a'], roof: '#0a3a14', wheelR: 0.17, sport: true, fast: true, height: 0.28 },
@@ -4297,8 +4298,8 @@ const CAR_MODELS = [
   // Грузовик / минивэн / хэтч / лимузин
   { name: 'truck',    L: 2.30, W: 1.05, palette: ['#6a4020','#3a2210'], roof: '#1a1008', wheelR: 0.24, pickup: true, height: 0.72, cabFrac: 0.40 },
   { name: 'minivan',  L: 1.90, W: 0.95, palette: ['#5a708a','#2f3e54'], roof: '#1a2230', wheelR: 0.20, van: true, height: 0.85 },
-  { name: 'hatch',    L: 1.50, W: 0.82, palette: ['#a06840','#5a3818'], roof: '#1a0e08', wheelR: 0.17, height: 0.50 },
-  { name: 'limo',     L: 2.20, W: 0.88, palette: ['#0a0a14','#000000'], roof: '#000000', wheelR: 0.17, height: 0.48 },
+  { name: 'hatch',    L: 1.50, W: 0.82, palette: ['#a06840','#5a3818'], roof: '#1a0e08', wheelR: 0.17, height: 0.50, hatch: true },
+  { name: 'limo',     L: 2.20, W: 0.88, palette: ['#0a0a14','#000000'], roof: '#000000', wheelR: 0.17, height: 0.48, limo: true },
   // ── Внедорожники — самые высокие (1.0+) и широкие, явно крупные колёса ──
   { name: 'suv_black',   L: 1.95, W: 1.05, palette: ['#1a1a22','#0a0a10'], roof: '#000', wheelR: 0.28, suv: true, height: 1.00 },
   { name: 'suv_white',   L: 1.95, W: 1.05, palette: ['#dadada','#82828a'], roof: '#3a3a44', wheelR: 0.28, suv: true, height: 1.00 },
@@ -4553,8 +4554,258 @@ function initCars() {
   // Логово банды — гангстерская парковка в одном из дальних кварталов.
   // Это 3 сиреневые машины стоят рядом. Их можно расстрелять (+кулачки).
   spawnGangLair();
+  // Большие парковки у POI (казино, бар, клуб, автомойка, кофейня).
+  // Машины стоят рядами с белой разметкой на сером асфальте.
+  _spawnParkingLotCars();
   // Первый кортеж через 25 сек после старта
   _convoyNextAt = performance.now() + 25000;
+}
+
+// ── Парковочные зоны ─────────────────────────────────────────────
+// Большие парковки рядом с POI: серый асфальт с белой разметкой,
+// машины стоят организованными рядами. Каждый слот — фиксированное
+// место для машины (r,c,dir). Машины в init распределяются по слотам
+// с некоторой плотностью (часть слотов пустая, чтобы было видно
+// разметку).
+const PARKING_LOTS = [
+  // У Казино (POI r=13, c=45) — большая парковка под зданием
+  { r0: 15, c0: 47, r1: 17, c1: 56, dir: 'south' },
+  // У Бара «Чёрная вдова» (POI r=43, c=33) — справа
+  { r0: 44, c0: 35, r1: 46, c1: 41, dir: 'south' },
+  // У Клуба (POI r=63, c=53) — снизу
+  { r0: 65, c0: 55, r1: 67, c1: 61, dir: 'south' },
+  // У Автомойки (POI r=23, c=25) — снизу
+  { r0: 25, c0: 27, r1: 27, c1: 33, dir: 'south' },
+  // У Кофейни (POI r=33, c=13) — справа
+  { r0: 34, c0: 15, r1: 36, c1: 19, dir: 'south' },
+];
+function _spawnParkingLotCars() {
+  for (const lot of PARKING_LOTS) {
+    let dirDx = 0, dirDy = 0;
+    if (lot.dir === 'south') dirDy = -1;   // машины носом на север (выезжают вниз)
+    if (lot.dir === 'north') dirDy = 1;
+    if (lot.dir === 'east')  dirDx = -1;
+    if (lot.dir === 'west')  dirDx = 1;
+    lot.slots = [];
+    // Сетка 2×2 — каждые 2 тайла одна машина (длина 1.7 + проход)
+    for (let r = lot.r0; r <= lot.r1; r += 2) {
+      for (let c = lot.c0; c <= lot.c1; c += 2) {
+        lot.slots.push({ r: r + 0.5, c: c + 0.5, dirDx, dirDy });
+      }
+    }
+    // Заполняем ~70% слотов случайными моделями
+    for (const slot of lot.slots) {
+      if (Math.random() > 0.70) continue;
+      const m = CAR_MODELS[Math.floor(Math.random() * CAR_MODELS.length)];
+      CARS.push({
+        r: slot.r, c: slot.c,
+        vr: 0, vc: 0,
+        dirDx: slot.dirDx, dirDy: slot.dirDy,
+        model: m,
+        parked: true, _onParking: lot,
+        braking: false, flash: 0,
+      });
+    }
+  }
+}
+// Рендер парковочного покрытия — серый асфальт + белая разметка слотов.
+// Рисуется ПОД skid-marks/blood (отдельным проходом перед items.sort).
+function drawParkingLots() {
+  for (const lot of PARKING_LOTS) {
+    // Полигон зоны парковки в isometric — 4 угла через w2s
+    const A = w2s(lot.r0,     lot.c0);
+    const B = w2s(lot.r0,     lot.c1 + 1);
+    const C = w2s(lot.r1 + 1, lot.c1 + 1);
+    const D = w2s(lot.r1 + 1, lot.c0);
+    // Базовый асфальт — тёмно-серый
+    ctx.fillStyle = '#2a2c32';
+    ctx.beginPath();
+    ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y);
+    ctx.lineTo(C.x, C.y); ctx.lineTo(D.x, D.y);
+    ctx.closePath(); ctx.fill();
+    // Тонкая белая окантовка зоны
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    // Белая разметка слотов — короткие поперечные линии между местами.
+    // Для каждого слота рисуем «П»-образную разметку: 2 коротких края.
+    if (!lot.slots) continue;
+    ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.lineWidth = 1.0;
+    for (const slot of lot.slots) {
+      // Слот занимает 2×2 тайла, центр (slot.r, slot.c). Граничные линии
+      // вдоль КОРОТКОЙ оси (поперёк парковочного места).
+      // Для dir south/north — линии вертикальные (вдоль c), длина 2 тайла.
+      // Для dir east/west — линии горизонтальные.
+      const isHoriz = (slot.dirDx !== 0);
+      let p1, p2, p3, p4;
+      if (isHoriz) {
+        p1 = w2s(slot.r - 1.0, slot.c - 1.0);
+        p2 = w2s(slot.r - 1.0, slot.c + 1.0);
+        p3 = w2s(slot.r + 1.0, slot.c - 1.0);
+        p4 = w2s(slot.r + 1.0, slot.c + 1.0);
+      } else {
+        p1 = w2s(slot.r - 1.0, slot.c - 1.0);
+        p2 = w2s(slot.r + 1.0, slot.c - 1.0);
+        p3 = w2s(slot.r - 1.0, slot.c + 1.0);
+        p4 = w2s(slot.r + 1.0, slot.c + 1.0);
+      }
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+      ctx.moveTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+      ctx.stroke();
+    }
+    // Знак «P» в углу зоны (синий квадрат с белой буквой)
+    const sx = (A.x + B.x) / 2, sy = (A.y + B.y) / 2 - 4;
+    ctx.fillStyle = '#1a4a8a';
+    ctx.fillRect(sx - 7, sy - 9, 14, 12);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('P', sx, sy);
+    ctx.textAlign = 'left';
+  }
+}
+
+// ── AI «жителей» с машинами на парковках ─────────────────────────
+// Каждый житель — пара (parked car ↔ NPC). Хозяин периодически выходит,
+// идёт к ближайшему POI/тротуару, торчит там, возвращается, садится.
+// Состояния:
+//   'sitting'    — внутри машины (NPC невидим)
+//   'walking_to' — идёт к точке tgt
+//   'idle_at'    — стоит у точки, idleUntil = ms
+//   'returning'  — идёт обратно к машине
+//   'getting_in' — приближается к машине, потом state='sitting'
+// Спавн: раз в 6-10 сек случайная припаркованная машина «выпускает»
+// своего хозяина (если уже не активен). Один житель живёт ~30-60 сек,
+// потом снова сидит в машине неактивно.
+const _parkingNpcs = [];   // {car, npc, state, tgtR, tgtC, idleUntil, ang, walkPhase}
+function _spawnParkingNpc() {
+  // Выбираем припаркованную машину которая на парковке И ещё не имеет
+  // активного npc. Чтобы не плодить — не больше 1 на машину.
+  const used = new Set(_parkingNpcs.map(p => p.car));
+  const cands = CARS.filter(c => c.parked && c._onParking && !c._wrecked && !used.has(c));
+  if (!cands.length) return;
+  const car = cands[Math.floor(Math.random() * cands.length)];
+  // Цель — случайный POI или просто точка на тротуаре в радиусе 6-10 тайлов
+  let tgtR, tgtC;
+  // 50% — идти к ближайшему POI (если есть рядом)
+  if (Math.random() < 0.55 && typeof BUSINESS_POIS !== 'undefined') {
+    let nearest = null, best = 999;
+    for (const b of BUSINESS_POIS) {
+      const d = Math.hypot(b.r - car.r, b.c - car.c);
+      if (d < best && d < 12) { best = d; nearest = b; }
+    }
+    if (nearest) {
+      // Стоим рядом с POI (не НА здании — оно непроходимое)
+      tgtR = nearest.r + 1.5 + (Math.random() - 0.5) * 1.2;
+      tgtC = nearest.c + 1.0 + (Math.random() - 0.5) * 1.2;
+    }
+  }
+  // Fallback — точка в радиусе 5-8 тайлов на проходимом тайле
+  if (tgtR == null) {
+    for (let tries = 0; tries < 30; tries++) {
+      const ang = Math.random() * Math.PI * 2;
+      const rad = 4 + Math.random() * 4;
+      const rr = Math.floor(car.r + Math.sin(ang) * rad);
+      const cc = Math.floor(car.c + Math.cos(ang) * rad);
+      if (rr < 2 || rr >= MAP_ROWS - 2 || cc < 2 || cc >= MAP_COLS - 2) continue;
+      const t = MAP[rr] && MAP[rr][cc];
+      if (t === 9 || t === 8 || t === 0) { tgtR = rr + 0.5; tgtC = cc + 0.5; break; }
+    }
+  }
+  if (tgtR == null) { tgtR = car.r + 2; tgtC = car.c; }
+  _parkingNpcs.push({
+    car,
+    state: 'walking_to',
+    tgtR, tgtC,
+    r: car.r, c: car.c,
+    ang: Math.atan2(tgtR - car.r, tgtC - car.c),
+    walkPhase: 0,
+    idleUntil: 0,
+    life: 60,
+    look: {
+      gender: Math.random() < 0.5 ? 0 : 1,
+      skin:   Math.floor(Math.random() * 5),
+      body:   Math.floor(Math.random() * 3),
+      face:   Math.floor(Math.random() * 4),
+      hair:   Math.floor(Math.random() * 5),
+      hat:    Math.floor(Math.random() * 4),
+    },
+  });
+}
+function _tickParkingNpcs(dt) {
+  const now = performance.now();
+  // Спавнер
+  if (!_tickParkingNpcs._nextT) _tickParkingNpcs._nextT = now + 3000;
+  if (now >= _tickParkingNpcs._nextT && _parkingNpcs.length < 8) {
+    _tickParkingNpcs._nextT = now + 6000 + Math.random() * 5000;
+    _spawnParkingNpc();
+  }
+  // Tick жителей
+  for (let i = _parkingNpcs.length - 1; i >= 0; i--) {
+    const n = _parkingNpcs[i];
+    n.life -= dt;
+    // Машина была угнана/уничтожена — житель «теряет» машину и уходит
+    if (!n.car || n.car._wrecked || !n.car.parked) {
+      // Просто исчезаем через короткое время
+      n.life = Math.min(n.life, 4);
+    }
+    const speed = (n.state === 'returning') ? 1.5 : 1.2;
+    if (n.state === 'walking_to') {
+      const dr = n.tgtR - n.r, dc = n.tgtC - n.c;
+      const d = Math.hypot(dr, dc);
+      if (d < 0.3) {
+        n.state = 'idle_at';
+        n.idleUntil = now + 7000 + Math.random() * 8000;
+      } else {
+        const step = Math.min(d, speed * dt);
+        n.r += (dr / d) * step;
+        n.c += (dc / d) * step;
+        n.ang = Math.atan2(dr, dc);
+        n.walkPhase += dt * 7;
+      }
+    } else if (n.state === 'idle_at') {
+      // Стоит — лёгкое idle bobbing головы
+      n.ang += Math.sin(now * 0.001 + i) * dt * 0.4;
+      if (now >= n.idleUntil) n.state = 'returning';
+    } else if (n.state === 'returning') {
+      if (!n.car) { _parkingNpcs.splice(i, 1); continue; }
+      const dr = n.car.r - n.r, dc = n.car.c - n.c;
+      const d = Math.hypot(dr, dc);
+      if (d < 0.5) {
+        n.state = 'getting_in';
+        n.idleUntil = now + 400;
+      } else {
+        const step = Math.min(d, speed * dt);
+        n.r += (dr / d) * step;
+        n.c += (dc / d) * step;
+        n.ang = Math.atan2(dr, dc);
+        n.walkPhase += dt * 8;
+      }
+    } else if (n.state === 'getting_in') {
+      if (now >= n.idleUntil) {
+        // Сел в машину — «отдыхает» до следующего раунда. Чтобы не плодить,
+        // просто удалим (новый житель спавнится отдельно через _spawnParkingNpc).
+        _parkingNpcs.splice(i, 1);
+        continue;
+      }
+    }
+    if (n.life <= 0) _parkingNpcs.splice(i, 1);
+  }
+}
+function drawParkingNpc(n) {
+  // Если внутри машины (state не walking/idle/returning/getting_in) — не рисуем
+  if (n.state === 'sitting') return;
+  const p = w2s(n.r, n.c);
+  // Лёгкое затухание если жизнь кончается
+  let alpha = 1;
+  if (n.life < 1.5) alpha = Math.max(0, n.life / 1.5);
+  ctx.save();
+  if (alpha < 1) ctx.globalAlpha = alpha;
+  drawPerson(p.x, p.y, n.ang, n.look, n.walkPhase, null, null,
+             false, null, null, false, 0);
+  ctx.restore();
 }
 
 // Спавн фиксированной парковки банды — 3 машины подряд у тротуара.
@@ -9496,6 +9747,7 @@ function update(dt) {
       _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
       _tickBus(dt);
+      _tickParkingNpcs(dt);
       return;
     } else {
       // Параметры аркадной езды. Серверный кламп QUEST_CAR_MAX_SPEED=14.
@@ -9815,6 +10067,7 @@ function update(dt) {
       _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
       _tickBus(dt);
+      _tickParkingNpcs(dt);
       return;
     }
   }
@@ -9863,6 +10116,8 @@ function update(dt) {
   _interpQuestCars(dt);
   // Локальный декор-автобус (тикает всегда, независимо от состояния игрока)
   _tickBus(dt);
+  // AI «жителей» с машинами на парковках (вышел, погулял, вернулся)
+  _tickParkingNpcs(dt);
   // Стрельба в открытом мире: ОБЯЗАТЕЛЕН lockedTarget (см. tryTapLock).
   // Правый стик ТОЛЬКО метит цели (тап + удержание лазера = auto-lock).
   // Стрелять можно ИСКЛЮЧИТЕЛЬНО кнопкой fireBtn (или Space на десктопе).
@@ -12997,8 +13252,45 @@ function drawCarPretty(car) {
     ctx.moveTo(rFf.x, rFf.y - H); ctx.lineTo(rFl.x, rFl.y - H);
     ctx.lineTo(rBl.x, rBl.y - H); ctx.lineTo(rBf.x, rBf.y - H);
     ctx.closePath(); ctx.fill();
+  } else if (m.sedan || m.hatch || m.limo) {
+    // СЕДАН / ХЭТЧБЕК / ЛИМУЗИН — настоящий силуэт с капотом + кабиной +
+    // багажником. Раньше эти попадали в общий else и рисовались как
+    // плоский ромб — отсюда «фургонный» вид у всех машин. Теперь:
+    // — sedan: крыша 0.30..0.72 длины (короткая + длинный багажник)
+    // — hatch: крыша 0.28..0.92 (короткий капот + длинная крыша до зада)
+    // — limo:  крыша 0.18..0.82 (длинная средняя секция, два B-pillars)
+    let fF, fB;
+    if (m.hatch)      { fF = 0.28; fB = 0.92; }
+    else if (m.limo)  { fF = 0.18; fB = 0.82; }
+    else              { fF = 0.30; fB = 0.72; }   // sedan/coupe/classic-ish
+    function lerpRoof(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+    const rFf = lerpRoof(FR, BR, fF), rFl = lerpRoof(FL, BL, fF);
+    const rBf = lerpRoof(FR, BR, fB), rBl = lerpRoof(FL, BL, fB);
+    // Передний капот — наклонная грань от низа (FR-FL) к верху крыши (rFf-rFl)
+    ctx.fillStyle = sideC;
+    ctx.beginPath();
+    ctx.moveTo(FR.x, FR.y); ctx.lineTo(FL.x, FL.y);
+    ctx.lineTo(rFl.x, rFl.y - H); ctx.lineTo(rFf.x, rFf.y - H);
+    ctx.closePath(); ctx.fill();
+    // Задний багажник — наклонная грань от крыши вниз к BR-BL
+    ctx.fillStyle = sideC;
+    ctx.beginPath();
+    ctx.moveTo(rBf.x, rBf.y - H); ctx.lineTo(rBl.x, rBl.y - H);
+    ctx.lineTo(BL.x, BL.y); ctx.lineTo(BR.x, BR.y);
+    ctx.closePath(); ctx.fill();
+    // Сама крыша — ромб поднятый на H, занимающий fF..fB длины
+    ctx.fillStyle = m.roof || topC;
+    ctx.beginPath();
+    ctx.moveTo(rFf.x, rFf.y - H); ctx.lineTo(rFl.x, rFl.y - H);
+    ctx.lineTo(rBl.x, rBl.y - H); ctx.lineTo(rBf.x, rBf.y - H);
+    ctx.closePath(); ctx.fill();
+    // Хромированная окантовка верхней грани крыши — тонкая линия, делает
+    // силуэт чище и отделяет крышу от стёкол визуально.
+    ctx.strokeStyle = 'rgba(255,255,255,.18)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
   } else {
-    // Обычная крыша — ромб поднятый на H
+    // Обычная крыша — ромб поднятый на H (van, всё что без sedan/hatch/limo)
     ctx.fillStyle = m.roof || topC;
     ctx.beginPath();
     ctx.moveTo(FR.x, FR.y - H); ctx.lineTo(FL.x, FL.y - H);
@@ -18322,6 +18614,12 @@ function render() {
     if (rd.r < r0 || rd.r >= r1 || rd.c < c0 || rd.c >= c1) continue;
     items.push({ depth: rd.r + rd.c + 0.0006, draw: () => drawBusRider(rd) });
   }
+  // «Жители» — хозяева припаркованных машин (вышли погулять, вернутся)
+  for (const n of _parkingNpcs) {
+    if (n.state === 'sitting') continue;
+    if (n.r < r0 || n.r >= r1 || n.c < c0 || n.c >= c1) continue;
+    items.push({ depth: n.r + n.c + 0.0006, draw: () => drawParkingNpc(n) });
+  }
   // Сам автобус
   if (BUS.r >= r0 && BUS.r < r1 && BUS.c >= c0 && BUS.c < c1) {
     items.push({ depth: BUS.r + BUS.c + 0.0009, draw: () => drawBus() });
@@ -18546,6 +18844,9 @@ function render() {
       if ((o.jail_in || 0) > 0) drawJailTimer(p.x, p.y, o.jail_in);
     } });
   }
+  // Парковочный асфальт — лежит под всем, рисуется ДО кровавых пятен
+  // и тормозных следов чтобы они были видны на разметке.
+  drawParkingLots();
   // Splat'ы крови — на земле, ПОД персонажами (depth-sort кладёт их
   // в самый низ списка через прямой вызов до items)
   drawBloodSplats();
