@@ -3539,6 +3539,15 @@ function initCityCops() {
 }
 
 let _cityCopsLastSpawnAt = 0;
+// Радиус, в котором NPC-патрульный «замечает» игрока с wanted и переключается
+// в pursue. 16 тайлов ≈ полтора квартала — реалистично: патруль увидел и побежал.
+const CITYCOP_PURSUE_R = 16;
+// Дистанция захвата (на которой триггерится citycop_arrest на сервере).
+const CITYCOP_ARREST_R = 1.5;
+// Кулдаун на повторную отправку citycop_arrest (чтобы не флудить, если сервер
+// ответит не сразу). Защита от лавины пакетов.
+const CITYCOP_ARREST_CD_MS = 3000;
+let _lastCitycopArrestAt = 0;
 function updateCityCops(dt) {
   const now = performance.now();
   // Поддержание численности
@@ -3547,9 +3556,70 @@ function updateCityCops(dt) {
     const c = spawnCityCop();
     if (c) { pickCityCopWaypoint(c); cityCops.push(c); }
   }
+  // Игрок розыскной? Тогда патрульные в радиусе включают pursue.
+  // Не трогаем если игрок мёртв, в тюрьме или в машине (за рулём всё равно
+  // патруль пеший не догонит — wantedcops с тачкой это уже worldCops).
+  const playerWanted = (typeof myWanted === 'number') && myWanted >= 1
+    && !myDead && !_meInJail;
   for (let i = cityCops.length - 1; i >= 0; i--) {
     const cop = cityCops[i];
     if (!cop.alive) { cityCops.splice(i, 1); continue; }
+    // ── PURSUE MODE ────────────────────────────────────────────────
+    // Если игрок розыскной и в радиусе видимости — бежим к нему,
+    // быстрее обычного. На дистанции захвата шлём серверу citycop_arrest.
+    const dpr = player.r - cop.y, dpc = player.c - cop.x;
+    const distToPlayer = Math.hypot(dpr, dpc);
+    if (playerWanted && distToPlayer <= CITYCOP_PURSUE_R) {
+      cop._pursuing = true;
+      // Игрок в машине — бежим к точке за машиной, но не лезем под колёса.
+      // Если игрок прямо тут и НЕ в машине — пробуем арестовать.
+      if (distToPlayer <= CITYCOP_ARREST_R && !myDrivingCarId) {
+        if (now - _lastCitycopArrestAt > CITYCOP_ARREST_CD_MS) {
+          _lastCitycopArrestAt = now;
+          try {
+            ws && ws.send(JSON.stringify({ t: 'citycop_arrest', d: {
+              cop_id: cop.id,
+              x: +cop.x.toFixed(2),
+              y: +cop.y.toFixed(2),
+            } }));
+          } catch(e) {}
+        }
+        // Стоим вплотную, не бегаем кругами
+        cop.walkPhase += dt * 2;
+        continue;
+      }
+      // Бежим к игроку (speed×1.8). Чуть быстрее чем обычная скорость патруля,
+      // но медленнее боевых copов (worldCops). Игрок может убежать спринтом.
+      const sp = cop.speed * 1.8 * dt;
+      const stepC = (dpc / Math.max(0.001, distToPlayer)) * sp;
+      const stepR = (dpr / Math.max(0.001, distToPlayer)) * sp;
+      const nx = cop.x + stepC, ny = cop.y + stepR;
+      // Снитч-проходимость (тротуар + дорога + газон) — патруль может выйти
+      // на дорогу чтобы догнать.
+      if (npcPassableForSnitch(ny, nx)) {
+        cop.x = nx; cop.y = ny;
+        cop.ang = Math.atan2(dpr, dpc);
+        cop.walkPhase += dt * 12;
+      } else {
+        // Препятствие — пробуем обойти по 4 направлениям
+        const tries = [
+          [ stepR * 0.7, -stepC * 0.7 ], [-stepR * 0.7,  stepC * 0.7 ],
+          [ stepR * 0.5, 0 ], [ 0, stepC * 0.5 ],
+        ];
+        for (const [dr2, dc2] of tries) {
+          if (npcPassableForSnitch(cop.y + dr2, cop.x + dc2)) {
+            cop.x += dc2; cop.y += dr2;
+            cop.walkPhase += dt * 12;
+            break;
+          }
+        }
+      }
+      // В pursue mode таймер waypoint обнуляем — после потери цели возьмём свежий
+      cop._wayUntil = 0;
+      continue;
+    }
+    cop._pursuing = false;
+    // ── ОБЫЧНОЕ ПАТРУЛИРОВАНИЕ ─────────────────────────────────────
     const dr = cop.ty - cop.y, dc = cop.tx - cop.x;
     const d = Math.hypot(dr, dc);
     if (d < 0.3 || now > cop._wayUntil) {
@@ -7025,6 +7095,17 @@ function handleEventPacket(d) {
     }
     _myHitContractActive = false;
     _myHitTargetNpc = null;
+  } else if (kind === 'citycop_arrest_reply') {
+    // NPC-патрульный схватил тебя на улице (wanted ≥ 1). Сервер посадил
+    // в тюрьму, обнулил звёзды. Локально — тост + showArrestOverlay.
+    if (d.ok) {
+      showEventBanner(
+        '🚓 ЗАДЕРЖАН',
+        `Патруль схватил на месте. Срок: ${Math.round((d.jail_s || 60) / 60)} мин.`,
+        4200, 'lose');
+      try { showArrestOverlay && showArrestOverlay(); } catch(e) {}
+    }
+    // ok=false молча — это либо лагнувший пакет, либо сервер уже посадил
   } else if (kind === 'bank_heist_start_reply') {
     if (!d.ok) {
       if (d.reason === 'no_partner') {
@@ -16947,6 +17028,19 @@ function drawCopNpc(cop) {
   ctx.beginPath();
   ctx.arc(p.x, p.y - 52, 2.5, 0, Math.PI * 2);
   ctx.fill();
+  // NPC-патрульный в pursue mode (cityCops при wanted у игрока) — пульсирующий «!»
+  // над головой, чтобы было видно «он на меня»
+  if (cop._pursuing) {
+    const pulse = 0.7 + 0.3 * Math.sin(t * 0.012);
+    ctx.font = `${Math.round(16 * pulse + 8)}px system-ui, "Segoe UI Emoji", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#ff3030';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = '#ff4030';
+    ctx.fillText('!', p.x, p.y - 60);
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'left';
+  }
   // Чат-баббл если есть предупреждение (cop_warn) — берём из _copChats
   const chatRec = _copChats.get(cop.id);
   if (chatRec && performance.now() < chatRec.untilMs) {

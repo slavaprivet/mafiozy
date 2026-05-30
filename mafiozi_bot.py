@@ -18196,6 +18196,45 @@ async def _coop_http_app():
                                  'd': dict(reply, kind='brigadir_kill_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'citycop_arrest':
+                        # NPC-патрульный (cityCop, чисто клиентский фоновый коп)
+                        # схватил игрока с wanted ≥ 1. Серверу шлётся факт ареста,
+                        # сервер валидирует: жив, wanted ≥ 1, не в тюрьме, не в
+                        # Логове. На срок CITYCOP_JAIL_S = 5 мин (короче чем
+                        # «полный» 60-минутный jail боевых копов — это всё-таки
+                        # лёгкое задержание). Звёзды сбрасываются в 0, и в БД
+                        # тоже (wanted_stars = 0), чтобы повторная сессия не
+                        # подняла их обратно.
+                        CITYCOP_JAIL_S = 5 * 60
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead'):
+                            reply = {'ok': False, 'reason': 'dead'}
+                        elif (p.get('_jail_until') or 0) > time.time():
+                            reply = {'ok': False, 'reason': 'already_jailed'}
+                        elif float(p.get('_wanted') or 0) < 1.0:
+                            reply = {'ok': False, 'reason': 'not_wanted'}
+                        elif world._in_lair_zone(p.get('x', 0), p.get('y', 0)):
+                            reply = {'ok': False, 'reason': 'in_lair'}
+                        else:
+                            now_ts = int(time.time())
+                            p['_jail_until']    = now_ts + CITYCOP_JAIL_S
+                            p['_jail_released'] = False
+                            p['_wanted']        = 0.0
+                            p['_cop_kills']     = 0
+                            # Синхронизируем wanted_stars в БД на 0 (чтобы при
+                            # следующей сессии не «вспомнить» звёзды).
+                            try:
+                                await update_character(int(uid), wanted_stars=0)
+                            except Exception:
+                                pass
+                            reply = {'ok': True, 'jail_s': CITYCOP_JAIL_S}
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event',
+                                 'd': dict(reply, kind='citycop_arrest_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
                     elif t == 'bank_heist_start':
                         # Кооп-налёт на банк. Стартует если ≥2 живых игрока
                         # в радиусе BANK_HEIST_RADIUS от BANK_POS_RC, и
