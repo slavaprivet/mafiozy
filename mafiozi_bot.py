@@ -3812,92 +3812,177 @@ BRIGADIR_PAYOUT      = 400
 BRIGADIR_STEALTH_MUL = 2.0
 BRIGADIR_DAILY_LIMIT = 3
 
-# Банк — кооп-налёт на 2+ игроков. POI на тайле (33, 43), радиус подхода 4.
-# Длительность вскрытия — 20с. На старте каждому участнику ставится 4★
-# (приедет SWAT). При успехе — $2000 каждому, лимит 1/24ч на игрока.
-# СИНХРОН с BANK_POS в world.html.
+# Банк V2 — кооп-налёт мешками. Жмёшь налёт → сразу 4★ + спавн N мешков
+# в зоне сейфа + спавн налётного автобуса. Берёшь мешок (флаг _heistBag),
+# несёшь к автобусу, кидаешь (bus.bags++). Когда хоть кто-то сел в
+# автобус — он автопилотом гонит к dropoff. Доехал → ВСЕ мешки в bus
+# конвертируются в куш, делится поровну между ВСЕМИ участниками.
+# Таймер 180с — что не успели, то не получили. Лимит 1/24ч.
+# СИНХРОН координат с world.html.
 BANK_POS_RC          = (33, 43)
-BANK_PAYOUT          = 2000
-BANK_HEIST_DURATION  = 20.0
+BANK_PAYOUT          = 2000           # legacy, не используется в V2
+BANK_HEIST_DURATION  = 180.0          # таймер всей сессии (looting+driving)
 BANK_HEIST_RADIUS    = 4.0
 BANK_HEIST_DAILY_LIMIT = 1
+HEIST_BAGS_COUNT     = 8              # сколько мешков спавним в сейфе
+HEIST_BAG_VALUE      = 500            # $ за мешок при доставке
+HEIST_BUS_SPAWN_RC   = (35, 43)       # автобус стартует чуть южнее банка
+HEIST_DROPOFF_RC     = (65, 50)       # точка сдачи — на юге, ~30 тайлов
+HEIST_BUS_SPEED      = 6.0            # тайлов/сек на автопилоте
 # Активные heist'ы в памяти: heist_id → {participants:set, started_at, finalized}
 _active_bank_heists = {}
 _bank_heist_next_id = 1
 
+async def _heist_finalize(world, hid: int, h: dict, reason: str = 'done') -> None:
+    """Финал налёта: начисляет каждому участнику долю куша, шлёт пакет
+    окончания всем. Куш = bags_delivered * HEIST_BAG_VALUE, делится на
+    кол-во участников. Лимит 1/24ч в БД.
+    reason: 'done' (доставили) / 'timeout' (время вышло) / 'cancel' (отмена)."""
+    if h.get('finalized'):
+        return
+    h['finalized'] = True
+    loot = int(h.get('loot') or 0)
+    parts = list(h.get('participants') or [])
+    share = (loot // max(1, len(parts))) if loot > 0 else 0
+    now_ts = int(time.time())
+    for u in parts:
+        if share > 0:
+            try:
+                async with aiosqlite.connect(DB_PATH) as db:
+                    await db.execute(
+                        "UPDATE characters SET cash = cash + ? "
+                        "WHERE telegram_id = ?",
+                        (share, int(u)))
+                    await db.execute(
+                        "INSERT INTO bank_heists (uid, t, reward) VALUES (?,?,?)",
+                        (int(u), now_ts, share))
+                    await db.commit()
+            except Exception: pass
+        pp = world.players.get(u)
+        if pp:
+            pp['_heist_until'] = 0
+            pp['_heist_id'] = 0
+            pp['_heist_bag'] = None      # бросает мешок если ещё нёс
+            pp['_in_heist_bus'] = 0
+    fin_pkt = json.dumps({'t': 'event', 'd': {
+        'kind':     'bank_heist_finished',
+        'heist_id': hid,
+        'loot':     loot,
+        'share':    share,
+        'reason':   reason,
+    }}, ensure_ascii=False)
+    for u in parts:
+        ws2 = world.connections.get(u)
+        if ws2:
+            try: await ws2.send_str(fin_pkt)
+            except Exception: pass
+
+
 async def _tick_bank_heists(world) -> None:
-    """Тик активных кооп-налётов: проверяем что все участники живы и рядом,
-    иначе отменяем; по истечении BANK_HEIST_DURATION — начисляем награду."""
+    """Тик активных банк-налётов V2.
+       Логика:
+         - phase='looting': игроки бегают, кидают мешки в автобус.
+         - phase='driving': хоть один игрок сел в автобус → автобус едет
+           автопилотом к dropoff. Доехал → конвертируем bags_in_bus в loot.
+         - таймер end_at — что не успели, то пропало.
+         - Все участники умерли → отмена.
+       Бродкастим snapshot раз в 0.5с (bags-таблицу, позицию автобуса,
+       loot, time_left)."""
     now = time.time()
-    poi_r, poi_c = BANK_POS_RC
-    R2 = (BANK_HEIST_RADIUS + 1.0) ** 2   # +1 запас на сетевые лаги позиций
     to_remove = []
     for hid, h in list(_active_bank_heists.items()):
         if h.get('finalized'):
             to_remove.append(hid)
             continue
-        # Проверка участников: жив + в радиусе
-        cancelled = False
-        for u in list(h['participants']):
-            pp = world.players.get(u)
-            if not pp or pp.get('dead'):
-                cancelled = True; break
-            dx = float(pp.get('x', 0)) - poi_c
-            dy = float(pp.get('y', 0)) - poi_r
-            if dx*dx + dy*dy > R2:
-                cancelled = True; break
-        if cancelled:
-            # Сбрасываем _heist_until у всех участников
-            for u in h['participants']:
-                pp = world.players.get(u)
-                if pp:
-                    pp['_heist_until'] = 0
-                    pp['_heist_id'] = 0
-            cancel_pkt = json.dumps({'t': 'event', 'd': {
-                'kind':     'bank_heist_cancelled',
-                'heist_id': hid,
-                'reason':   'left',
-            }}, ensure_ascii=False)
-            for u in h['participants']:
-                ws2 = world.connections.get(u)
-                if ws2:
-                    try: await ws2.send_str(cancel_pkt)
-                    except Exception: pass
-            h['finalized'] = True
+        # Время вышло — финал
+        if now >= h['end_at']:
+            await _heist_finalize(world, hid, h, reason='timeout')
             to_remove.append(hid)
             continue
-        # Время вышло? Начисляем награду
-        if now >= h['end_at']:
-            now_ts = int(now)
-            for u in h['participants']:
-                try:
-                    async with aiosqlite.connect(DB_PATH) as db:
-                        await db.execute(
-                            "UPDATE characters SET cash = cash + ? "
-                            "WHERE telegram_id = ?",
-                            (BANK_PAYOUT, int(u)))
-                        await db.execute(
-                            "INSERT INTO bank_heists (uid, t, reward) "
-                            "VALUES (?,?,?)",
-                            (int(u), now_ts, BANK_PAYOUT))
-                        await db.commit()
-                except Exception: pass
-                pp = world.players.get(u)
-                if pp:
-                    pp['_heist_until'] = 0
-                    pp['_heist_id'] = 0
-            fin_pkt = json.dumps({'t': 'event', 'd': {
-                'kind':     'bank_heist_finished',
-                'heist_id': hid,
-                'payout':   BANK_PAYOUT,
+        parts = list(h.get('participants') or [])
+        # Если кто-то умер с мешком — мешок падает на землю там где умер.
+        # Другой участник может его поднять и донести.
+        for u in parts:
+            pp = world.players.get(u)
+            if not pp:
+                continue
+            bag_id = pp.get('_heist_bag')
+            if pp.get('dead') and bag_id:
+                bag = next((b for b in h['bags'] if b['id'] == bag_id), None)
+                if bag and bag.get('state') == 'carried':
+                    bag['state'] = 'dropped'
+                    bag['by']    = None
+                    bag['x']     = float(pp.get('x', bag['x']))
+                    bag['y']     = float(pp.get('y', bag['y']))
+                pp['_heist_bag'] = None
+        # Все участники умерли (никто не возродился) — финал. Деньги
+        # начисляем за то что успели доставить (h['loot']).
+        any_alive = False
+        for u in parts:
+            pp = world.players.get(u)
+            if pp and not pp.get('dead'):
+                any_alive = True; break
+        if not any_alive:
+            await _heist_finalize(world, hid, h, reason='all_dead')
+            to_remove.append(hid)
+            continue
+        # Автобус — фаза driving
+        bus = h.get('bus') or {}
+        if h.get('phase') == 'driving':
+            dx = HEIST_DROPOFF_RC[1] - bus['x']
+            dy = HEIST_DROPOFF_RC[0] - bus['y']
+            d  = (dx*dx + dy*dy) ** 0.5
+            if d < 1.5:
+                # Доехали — сдаём всё что в автобусе.
+                delivered = int(bus.get('bags_inside') or 0)
+                h['loot'] = int(h.get('loot') or 0) + delivered * HEIST_BAG_VALUE
+                h['bags_delivered'] = int(h.get('bags_delivered') or 0) + delivered
+                bus['bags_inside'] = 0
+                h['phase'] = 'done'
+                # Деньги начислятся в _heist_finalize ниже
+                await _heist_finalize(world, hid, h, reason='done')
+                to_remove.append(hid)
+                continue
+            # Едем
+            dt_tick = 0.1   # мировой tick шлёт snapshot ~10Hz
+            step = HEIST_BUS_SPEED * dt_tick
+            if step >= d:
+                bus['x'] = HEIST_DROPOFF_RC[1]
+                bus['y'] = HEIST_DROPOFF_RC[0]
+            else:
+                bus['x'] += dx * (step / d)
+                bus['y'] += dy * (step / d)
+        # Бродкаст snapshot раз в 0.5с
+        last_snap = float(h.get('_last_snap') or 0)
+        if now - last_snap > 0.5:
+            h['_last_snap'] = now
+            # Сериализуем мешки (только нужные поля)
+            bags_pub = []
+            for b in h.get('bags', []):
+                bags_pub.append({
+                    'id':       b['id'],
+                    'x':        round(b['x'], 2),
+                    'y':        round(b['y'], 2),
+                    'state':    b.get('state') or 'safe',  # 'safe' | 'carried' | 'loaded' | 'delivered'
+                    'by':       b.get('by') or None,
+                })
+            snap_pkt = json.dumps({'t': 'event', 'd': {
+                'kind':        'heist_snapshot',
+                'heist_id':    hid,
+                'phase':       h.get('phase'),
+                'bags':        bags_pub,
+                'bus':         {'x': round(bus.get('x', 0), 2),
+                                'y': round(bus.get('y', 0), 2),
+                                'bags': int(bus.get('bags_inside') or 0)},
+                'dropoff':     {'x': HEIST_DROPOFF_RC[1], 'y': HEIST_DROPOFF_RC[0]},
+                'loot':        int(h.get('loot') or 0),
+                'time_left':   max(0, int(h['end_at'] - now)),
             }}, ensure_ascii=False)
-            for u in h['participants']:
+            for u in parts:
                 ws2 = world.connections.get(u)
                 if ws2:
-                    try: await ws2.send_str(fin_pkt)
+                    try: await ws2.send_str(snap_pkt)
                     except Exception: pass
-            h['finalized'] = True
-            to_remove.append(hid)
     for hid in to_remove:
         _active_bank_heists.pop(hid, None)
 
@@ -18285,7 +18370,9 @@ async def _coop_http_app():
                                     reply = {'ok': False, 'reason': 'limit',
                                              'blocked': blocked}
                                 else:
-                                    # Стартуем!
+                                    # Стартуем! Спавним N мешков рандомно
+                                    # в радиусе 1.8 от банка, автобус на
+                                    # HEIST_BUS_SPAWN_RC, dropoff фиксированный.
                                     global _bank_heist_next_id
                                     hid = _bank_heist_next_id
                                     _bank_heist_next_id += 1
@@ -18294,29 +18381,59 @@ async def _coop_http_app():
                                     for u2, pp in candidates:
                                         pp['_heist_until'] = end_t
                                         pp['_heist_id'] = hid
+                                        pp['_heist_bag'] = None
+                                        pp['_in_heist_bus'] = 0
                                         # Сразу не ниже 4★ — приедет SWAT.
-                                        # Прямой max (не _bump_wanted), чтобы у тех
-                                        # кто уже на 5★ не стало 6+.
                                         pp['_wanted'] = max(float(pp.get('_wanted') or 0), 4.0)
                                         pp['_last_shot_t'] = time.time()
                                         parts.add(str(u2))
+                                    bags = []
+                                    for i in range(HEIST_BAGS_COUNT):
+                                        ang = random.random() * 2 * 3.14159
+                                        r   = random.uniform(0.4, 1.8)
+                                        bx  = poi_c + r * (random.random() - 0.5) * 2
+                                        by  = poi_r + r * (random.random() - 0.5) * 2
+                                        bags.append({
+                                            'id':   f'bag_{hid}_{i}',
+                                            'x':    bx,
+                                            'y':    by,
+                                            'state':'safe',     # safe | carried | loaded | delivered
+                                            'by':   None,       # uid если carried
+                                        })
                                     _active_bank_heists[hid] = {
-                                        'participants': parts,
-                                        'started_at':   time.time(),
-                                        'end_at':       end_t,
-                                        'finalized':    False,
+                                        'participants':    parts,
+                                        'started_at':      time.time(),
+                                        'end_at':          end_t,
+                                        'finalized':       False,
+                                        'phase':           'looting',
+                                        'bags':            bags,
+                                        'bus':             {'x': HEIST_BUS_SPAWN_RC[1],
+                                                            'y': HEIST_BUS_SPAWN_RC[0],
+                                                            'bags_inside': 0},
+                                        'loot':            0,
+                                        'bags_delivered':  0,
                                     }
                                     reply = {'ok': True, 'heist_id': hid,
                                              'duration': BANK_HEIST_DURATION,
                                              'participants': list(parts),
-                                             'payout': BANK_PAYOUT}
-                                    # Broadcast участникам — они откроют модал
+                                             'bags_total':  HEIST_BAGS_COUNT,
+                                             'bag_value':   HEIST_BAG_VALUE,
+                                             'dropoff':     {'x': HEIST_DROPOFF_RC[1],
+                                                             'y': HEIST_DROPOFF_RC[0]},
+                                             'bus':         {'x': HEIST_BUS_SPAWN_RC[1],
+                                                             'y': HEIST_BUS_SPAWN_RC[0]}}
+                                    # Broadcast участникам — они откроют HUD/раскладку
                                     started_pkt = json.dumps({'t': 'event', 'd': {
                                         'kind':         'bank_heist_started',
                                         'heist_id':     hid,
                                         'duration':     BANK_HEIST_DURATION,
                                         'participants': list(parts),
-                                        'payout':       BANK_PAYOUT,
+                                        'bags':         bags,
+                                        'bus':          {'x': HEIST_BUS_SPAWN_RC[1],
+                                                         'y': HEIST_BUS_SPAWN_RC[0]},
+                                        'dropoff':      {'x': HEIST_DROPOFF_RC[1],
+                                                         'y': HEIST_DROPOFF_RC[0]},
+                                        'bag_value':    HEIST_BAG_VALUE,
                                     }}, ensure_ascii=False)
                                     for u2 in parts:
                                         ws2 = world.connections.get(u2)
@@ -18337,6 +18454,74 @@ async def _coop_http_app():
                                  'd': dict(reply, kind='bank_heist_start_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'heist_pickup_bag':
+                        # Игрок поднял мешок с земли в активном банк-налёте.
+                        # Валидация: жив, состоит в hid, мешок в state='safe'
+                        # или 'dropped', близко (≤2 тайла), игрок не несёт уже.
+                        p = world.players.get(uid)
+                        bag_id = (d or {}).get('bag_id') if isinstance(d, dict) else None
+                        if not p or p.get('dead') or not bag_id:
+                            pass
+                        else:
+                            hid = int(p.get('_heist_id') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized') and str(uid) in (h.get('participants') or set()):
+                                if not p.get('_heist_bag'):
+                                    bag = next((b for b in h['bags'] if b['id'] == bag_id), None)
+                                    if bag and bag.get('state') in ('safe', 'dropped'):
+                                        dx = float(p.get('x', 0)) - float(bag['x'])
+                                        dy = float(p.get('y', 0)) - float(bag['y'])
+                                        if dx*dx + dy*dy < 4.0:   # радиус 2 тайла
+                                            bag['state'] = 'carried'
+                                            bag['by']    = str(uid)
+                                            p['_heist_bag'] = bag_id
+                    elif t == 'heist_load_bag':
+                        # Игрок с мешком подошёл к автобусу и кидает.
+                        p = world.players.get(uid)
+                        if p and not p.get('dead') and p.get('_heist_bag'):
+                            hid = int(p.get('_heist_id') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized'):
+                                bag_id = p.get('_heist_bag')
+                                bag = next((b for b in h['bags'] if b['id'] == bag_id), None)
+                                bus = h.get('bus') or {}
+                                if bag and bag.get('state') == 'carried':
+                                    dx = float(p.get('x', 0)) - float(bus.get('x', 0))
+                                    dy = float(p.get('y', 0)) - float(bus.get('y', 0))
+                                    if dx*dx + dy*dy < 9.0:   # 3 тайла
+                                        bag['state'] = 'loaded'
+                                        bag['by']    = None
+                                        bus['bags_inside'] = int(bus.get('bags_inside') or 0) + 1
+                                        p['_heist_bag'] = None
+                    elif t == 'heist_enter_bus':
+                        # Игрок сел в автобус → если он нёс мешок, тот
+                        # автоматически закидывается. Если в автобусе после
+                        # этого ≥1 мешок и фаза 'looting' — phase='driving'.
+                        p = world.players.get(uid)
+                        if p and not p.get('dead'):
+                            hid = int(p.get('_heist_id') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized'):
+                                bus = h.get('bus') or {}
+                                dx = float(p.get('x', 0)) - float(bus.get('x', 0))
+                                dy = float(p.get('y', 0)) - float(bus.get('y', 0))
+                                if dx*dx + dy*dy < 9.0:
+                                    # Авто-загрузка мешка на входе
+                                    bag_id = p.get('_heist_bag')
+                                    if bag_id:
+                                        bag = next((b for b in h['bags'] if b['id'] == bag_id), None)
+                                        if bag and bag.get('state') == 'carried':
+                                            bag['state'] = 'loaded'
+                                            bag['by']    = None
+                                            bus['bags_inside'] = int(bus.get('bags_inside') or 0) + 1
+                                        p['_heist_bag'] = None
+                                    p['_in_heist_bus'] = hid
+                                    if h.get('phase') == 'looting' and int(bus.get('bags_inside') or 0) > 0:
+                                        h['phase'] = 'driving'
+                    elif t == 'heist_exit_bus':
+                        p = world.players.get(uid)
+                        if p:
+                            p['_in_heist_bus'] = 0
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass
