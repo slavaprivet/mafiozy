@@ -7297,12 +7297,22 @@ function handleEventPacket(d) {
     _onHeistSnapshot(d);
   } else if (kind === 'bank_heist_finished') {
     _onBankHeistFinished(d);
+    // Финал — банк свободен. Если был только что мой налёт, _bankBusyUntil
+    // уже не имеет значения. Если чужой — тоже сбрасываем (для UI кнопки).
+    _bankBusyUntil = 0;
   } else if (kind === 'bank_heist_cancelled') {
     _onBankHeistCancelled(d);
+    _bankBusyUntil = 0;
   } else if (kind === 'bank_heist_announce') {
-    // Глобальный баннер всем — кто-то делает налёт
+    // Глобальный баннер всем — кто-то делает налёт. Параллельно ставим
+    // _bankBusyUntil чтобы кнопка у банка показывала «занято Xс».
+    const dur = +d.duration_s | 0 || 180;
+    _bankBusyUntil = performance.now() + dur * 1000;
     showEventBanner('🏦 НАЛЁТ', `${d.count || 2} игрока берут банк!`,
                     2500, 'warn');
+  } else if (kind === 'bank_heist_freed') {
+    // Глобальный — банк свободен (другая группа закончила)
+    _bankBusyUntil = 0;
   } else if (kind === 'shop_robbed') {
     // Broadcast всем — кто-то ограбил магазин в городе. Баннер на 2.5с.
     if (String(d.robber_uid) !== String(QP.uid)) {
@@ -8215,6 +8225,10 @@ const BANK_POS = { r: 33, c: 43 };   // СИНХРОН с BANK_POS_RC в mafiozi
 const BANK_PAYOUT_PREVIEW   = 4000;  // ориентир: 8 × 500 = 4000 max
 let _bankHeistActive = false;
 let _bankHeistId = 0;
+// Глобальный занят-таймер. Когда любой группой стартует налёт, всем
+// игрокам приходит bank_heist_announce → ставим _bankBusyUntil. Кнопка
+// у банка будет показывать «занято Xс» без необходимости жать.
+let _bankBusyUntil = 0;
 // Сессия активного налёта (приходит с сервера через bank_heist_started
 // и регулярно обновляется через heist_snapshot).
 let _heistV2 = null;
@@ -8611,6 +8625,22 @@ function updateGtaInteractions() {
   const dBR = BANK_POS.r - player.r;
   const dBC = BANK_POS.c - player.c;
   if (Math.hypot(dBR, dBC) <= 4.0 && !_bankHeistActive) {
+    const nowMs = performance.now();
+    const busyLeftMs = _bankBusyUntil - nowMs;
+    if (busyLeftMs > 0) {
+      // Чужая группа уже грабит — показываем «занято» с таймером
+      const sec = Math.max(0, Math.ceil(busyLeftMs / 1000));
+      const mm = Math.floor(sec / 60);
+      const ss = sec % 60;
+      const tStr = mm > 0
+        ? `${mm}:${ss < 10 ? '0' + ss : ss}`
+        : `${ss}с`;
+      _gtaActionKind = 'bank_busy';   // не валидный action — клик ничего не сделает
+      _gtaActionCarId = null;
+      _gtaBtn.textContent = `🏦 ЗАНЯТО — уже грабят (${tStr})`;
+      _gtaBtn.style.display = 'block';
+      return;
+    }
     _gtaActionKind = 'bank_heist';
     _gtaActionCarId = null;
     _gtaBtn.textContent = `🏦 Налёт ($${BANK_PAYOUT_PREVIEW}, нужен напарник)`;
@@ -8775,6 +8805,9 @@ _gtaBtn.addEventListener('click', () => {
     takeBrigadirContract();
   } else if (_gtaActionKind === 'bank_heist') {
     tryStartBankHeist();
+  } else if (_gtaActionKind === 'bank_busy') {
+    const sec = Math.max(0, Math.ceil((_bankBusyUntil - performance.now()) / 1000));
+    showToast(`🏦 Банк занят — ещё ${sec}с до конца чужого налёта`, '⏳', 2400);
   } else if (_gtaActionKind === 'bus_enter') {
     enterBus();
   } else if (_gtaActionKind === 'bus_exit') {

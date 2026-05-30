@@ -3876,6 +3876,15 @@ async def _heist_finalize(world, hid: int, h: dict, reason: str = 'done') -> Non
         if ws2:
             try: await ws2.send_str(fin_pkt)
             except Exception: pass
+    # Глобальный broadcast «банк свободен» — у всех онлайн-игроков снимется
+    # «занято» таймер на кнопке банка. Иначе они ждали бы до естественного
+    # истечения duration_s (180с), даже если налёт кончился раньше.
+    freed_pkt = json.dumps({'t': 'event', 'd': {
+        'kind': 'bank_heist_freed',
+    }}, ensure_ascii=False)
+    for _u, _ws in list(world.connections.items()):
+        try: await _ws.send_str(freed_pkt)
+        except Exception: pass
 
 
 async def _tick_bank_heists(world) -> None:
@@ -18454,10 +18463,13 @@ async def _coop_http_app():
                                         if ws2:
                                             try: await ws2.send_str(started_pkt)
                                             except Exception: pass
-                                    # Глобальный баннер — пусть все знают
+                                    # Глобальный баннер — все онлайн-игроки.
+                                    # duration_s даёт им таймер «занято» на
+                                    # кнопке банка.
                                     banner_pkt = json.dumps({'t': 'event', 'd': {
-                                        'kind':  'bank_heist_announce',
-                                        'count': len(parts),
+                                        'kind':       'bank_heist_announce',
+                                        'count':      len(parts),
+                                        'duration_s': int(BANK_HEIST_DURATION),
                                     }}, ensure_ascii=False)
                                     for _u2, _ws2 in list(world.connections.items()):
                                         try: await _ws2.send_str(banner_pkt)
