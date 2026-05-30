@@ -4709,6 +4709,11 @@ const QUEST_CAR_MODELS = {
   cadillac_eldo:  { id: 'cadillac_eldo',  label: 'Cadillac Eldo',   L: 2.00, W: 0.95, palette: ['#5a5a64','#2c2c34'], roof: '#1a1a20', wheelR: 0.17, height: 0.60, reward: 1900 },
   jaguar_e:       { id: 'jaguar_e',       label: 'Jaguar E-Type',   L: 1.80, W: 0.84, palette: ['#1a1a22','#0a0a10'], roof: '#000', wheelR: 0.16, height: 0.50, reward: 2300, sport: true },
   mercedes_300:   { id: 'mercedes_300',   label: 'Mercedes 300SL',  L: 1.78, W: 0.85, palette: ['#c8c8d0','#82828a'], roof: '#1a1a22', wheelR: 0.16, height: 0.52, reward: 2500, sport: true },
+  // Мотоциклы — узкий длинный корпус, открытый (без крыши), 2 колеса.
+  // Рисуются через drawBike (forks из drawQuestCar). Lock_lvl=0 — ключи
+  // в зажигании, угоняются мгновенно. Cash меньше тачек.
+  harley_chopper: { id: 'harley_chopper', label: 'Harley Chopper',  L: 1.45, W: 0.42, palette: ['#1a1a22','#0a0a10'], roof: '#1a1a22', wheelR: 0.18, height: 0.42, reward: 1200, is_bike: true },
+  ducati_750:     { id: 'ducati_750',     label: 'Ducati 750',      L: 1.30, W: 0.40, palette: ['#cc1a1a','#660808'], roof: '#1a0a0a', wheelR: 0.16, height: 0.40, reward: 1400, is_bike: true, fast: true },
 };
 // Полицейские модели — отдельный pool, используется ТОЛЬКО для патрулей
 // и спецсобытий (не спавнятся как обычные машины). Эти модели имеют
@@ -8935,9 +8940,12 @@ function updateGtaInteractions() {
     _gtaActionKind = 'enter';
     _gtaActionCarId = nearestQc.id;
     _gtaActionEnterAs = nearestKind;
+    const isBike = !!mdef.is_bike;
+    const icon   = isBike ? '🏍' : '🚗';
+    const verb   = isBike ? 'на' : 'в';
     _gtaBtn.textContent = (nearestKind === 'passenger')
-      ? `🚗 Сесть пассажиром (${mdef.label})`
-      : `🚗 Сесть в ${mdef.label}`;
+      ? `${icon} Сесть пассажиром (${mdef.label})`
+      : `${icon} Сесть ${verb} ${mdef.label}`;
     _gtaBtn.style.display = 'block';
     return;
   }
@@ -9865,12 +9873,44 @@ function renderQuestCarPreview(cv, modelId) {
   // Машина в центре — overlay drawCarPretty слишком завязан на w2s/cam,
   // нарисуем простую ортогональную проекцию модели.
   const cx = cv.width / 2, cy = cv.height / 2 + 6;
+  const [topC, sideC] = m.palette;
+  if (m.is_bike) {
+    // Мото-превью: 2 колеса, рама-бак, седло, фара. Сверху-сбоку.
+    const len = 96 * (m.L / 1.45);
+    const wheelR = 9;
+    // Тень
+    c.fillStyle = 'rgba(0,0,0,.55)';
+    c.beginPath(); c.ellipse(cx, cy + 11, len * 0.45, 4, 0, 0, Math.PI * 2); c.fill();
+    // 2 колеса
+    c.fillStyle = '#0c0c0c';
+    c.beginPath(); c.arc(cx - len * 0.42, cy + 4, wheelR, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(cx + len * 0.42, cy + 4, wheelR, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#5a5a64'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(cx - len * 0.42, cy + 4, wheelR * 0.55, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.arc(cx + len * 0.42, cy + 4, wheelR * 0.55, 0, Math.PI * 2); c.stroke();
+    // Бак
+    c.fillStyle = sideC;
+    c.fillRect(cx - len * 0.35, cy - 7, len * 0.70, 12);
+    c.fillStyle = topC;
+    c.fillRect(cx - len * 0.32, cy - 7, len * 0.65, 5);
+    // Седло
+    c.fillStyle = '#0a0a0a';
+    c.fillRect(cx - 2, cy - 13, len * 0.22, 6);
+    // Фара
+    c.fillStyle = '#ffd76b';
+    c.beginPath(); c.arc(cx + len * 0.35, cy - 1, 3.5, 0, Math.PI * 2); c.fill();
+    // Руль — палка над передним колесом
+    c.strokeStyle = '#1a1a1a'; c.lineWidth = 2.5;
+    c.beginPath(); c.moveTo(cx + len * 0.42, cy - 16); c.lineTo(cx + len * 0.42, cy - 4); c.stroke();
+    c.strokeStyle = '#1a1a1a'; c.lineWidth = 2.0;
+    c.beginPath(); c.moveTo(cx + len * 0.42 - 8, cy - 16); c.lineTo(cx + len * 0.42 + 8, cy - 16); c.stroke();
+    return;
+  }
   const len = 96 * (m.L / 1.8), wid = 36 * (m.W / 0.9);
   // Тень
   c.fillStyle = 'rgba(0,0,0,.55)';
   c.beginPath(); c.ellipse(cx, cy + 10, len * 0.55, 6, 0, 0, Math.PI * 2); c.fill();
   // Кузов
-  const [topC, sideC] = m.palette;
   c.fillStyle = sideC;
   c.fillRect(cx - len / 2, cy - wid / 2 + 4, len, wid - 6);
   c.fillStyle = topC;
@@ -15560,6 +15600,86 @@ function drawCarPretty(car) {
   }
 }
 
+// ── Изорендер мотоцикла ───────────────────────────────────────
+// Узкий длинный корпус, 2 колеса (передо/сзади), бак и седло. В отличие
+// от drawCarPretty — нет крыши, нет 3D-граней (велосипед — открытый
+// низкий объект). Параметры b: { r, c, dirDx, dirDy, model }.
+function drawBike(b) {
+  const m = b.model;
+  const isHoriz = (b.dirDx !== 0);
+  const halfL = m.L * 0.45;
+  const halfW = m.W * 0.45;
+  const H     = isoH((m.height || 0.40) * 0.45);   // мото низкий
+  // Точки переда/зада по средней линии — здесь стоят колёса
+  let fr_r, fr_c, br_r, br_c;
+  if (isHoriz) {
+    fr_r = b.r; fr_c = b.c + b.dirDx * halfL;
+    br_r = b.r; br_c = b.c - b.dirDx * halfL;
+  } else {
+    fr_r = b.r + b.dirDy * halfL; fr_c = b.c;
+    br_r = b.r - b.dirDy * halfL; br_c = b.c;
+  }
+  const F = w2s(fr_r + 0.5, fr_c + 0.5);
+  const B = w2s(br_r + 0.5, br_c + 0.5);
+  const C = w2s(b.r + 0.5, b.c + 0.5);
+  // Узкая тень под байком — эллипс
+  ctx.fillStyle = 'rgba(0,0,0,.50)';
+  ctx.beginPath();
+  ctx.ellipse(C.x + 2, C.y + 3,
+              Math.hypot(F.x - B.x, F.y - B.y) * 0.55,
+              TS * halfW * ISO_Y * 1.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 2 колеса — тёмные плоские эллипсы у концов
+  const wheelR = (m.wheelR || 0.17) * TS;
+  for (const W of [F, B]) {
+    ctx.fillStyle = '#0c0c0c';
+    ctx.beginPath();
+    ctx.ellipse(W.x, W.y, wheelR, wheelR * ISO_Y * 1.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Хром-обод
+    ctx.strokeStyle = '#5a5a64';
+    ctx.lineWidth   = 1.0;
+    ctx.beginPath();
+    ctx.ellipse(W.x, W.y, wheelR * 0.55, wheelR * 0.55 * ISO_Y * 1.1, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // Рама/бак — узкая «балка» приподнятая на H. Между серединами F и B.
+  const [topC, sideC] = m.palette;
+  const midX = (F.x + B.x) * 0.5;
+  const midY = (F.y + B.y) * 0.5 - H;
+  const frameLen = Math.hypot(F.x - B.x, F.y - B.y) * 0.62;
+  const ang = Math.atan2(F.y - B.y, F.x - B.x);
+  ctx.save();
+  ctx.translate(midX, midY);
+  ctx.rotate(ang);
+  // Корпус (бак) — длинная капля
+  ctx.fillStyle = sideC;
+  ctx.fillRect(-frameLen * 0.5, -wheelR * 0.55, frameLen, wheelR * 1.1);
+  // Светлая верхушка бака — блик
+  ctx.fillStyle = topC;
+  ctx.fillRect(-frameLen * 0.45, -wheelR * 0.55, frameLen * 0.9, wheelR * 0.45);
+  // Седло — короткая темная плита в задней трети
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(-frameLen * 0.45, -wheelR * 0.85, frameLen * 0.22, wheelR * 0.45);
+  // Фара — маленький круг впереди
+  ctx.fillStyle = '#ffd76b';
+  ctx.beginPath();
+  ctx.arc(frameLen * 0.5 - 1, 0, wheelR * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // Руль — поперечный отрезок над передним колесом
+  const handX = F.x, handY = F.y - H * 1.4;
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth   = 2.0;
+  const handW = wheelR * 1.4;
+  // Поперёк направлению движения
+  const nx = -Math.sin(ang), ny = Math.cos(ang);
+  ctx.beginPath();
+  ctx.moveTo(handX - nx * handW, handY - ny * handW);
+  ctx.lineTo(handX + nx * handW, handY + ny * handW);
+  ctx.stroke();
+}
+
 // ── Билборды над городом ───────────────────────────────────────
 // Большие рекламные щиты на крышах зданий: столб + большой щит с
 // иллюстрацией и текстом. Рендерятся в depth-sort после здания.
@@ -18105,13 +18225,22 @@ function drawQuestCar(qc) {
     _shakeRX = (Math.random() - 0.5) * mag;
     _shakeRY = (Math.random() - 0.5) * mag;
   }
-  // Используем drawCarPretty (передаём braking чтобы зажглись стоп-сигналы)
-  drawCarPretty({
-    r: qc.y + _shakeRY, c: qc.x + _shakeRX,
-    dirDx, dirDy,
-    model: m,
-    braking: !!qc.braking,
-  });
+  // Мотоцикл — отдельный изорендер (узкий корпус, 2 колеса). Иначе —
+  // обычная тачка через drawCarPretty (с braking для стоп-сигналов).
+  if (m.is_bike) {
+    drawBike({
+      r: qc.y + _shakeRY, c: qc.x + _shakeRX,
+      dirDx, dirDy,
+      model: m,
+    });
+  } else {
+    drawCarPretty({
+      r: qc.y + _shakeRY, c: qc.x + _shakeRX,
+      dirDx, dirDy,
+      model: m,
+      braking: !!qc.braking,
+    });
+  }
   // ── Дым/огонь на низком HP ──
   //   < 50%  — лёгкий дымок из-под капота
   //   < 25%  — густой чёрный дым + первые огоньки

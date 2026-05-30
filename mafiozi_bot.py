@@ -11980,6 +11980,10 @@ class WorldSim:
         'cadillac_eldo':  {'label': 'Cadillac Eldo',   'reward': 1900, 'lock_lvl': 1},
         'jaguar_e':       {'label': 'Jaguar E-Type',   'reward': 2300, 'lock_lvl': 2},
         'mercedes_300':   {'label': 'Mercedes 300SL',  'reward': 2500, 'lock_lvl': 3},
+        # Мотоциклы — открытый кузов, дёшево и быстро. lock_lvl 0 (ключи
+        # в зажигании). Дают меньше cash, но угоняются мгновенно.
+        'harley_chopper': {'label': 'Harley Chopper',  'reward': 1200, 'lock_lvl': 0, 'is_bike': True},
+        'ducati_750':     {'label': 'Ducati 750',      'reward': 1400, 'lock_lvl': 0, 'is_bike': True},
     }
     # Сколько успешных доставок тачки сложнее своего skill → +1 уровень
     SAFECRACKER_XP_PER_LEVEL = 5
@@ -12589,7 +12593,8 @@ class WorldSim:
     # daily. Видна ВСЕМ игрокам как обычная quest-car (через стандартный
     # snapshot+spawn pkt). Машина живёт долго даже при простое (см. tick).
     CIVILIAN_HIJACK_MODELS = ('corvette_c3', 'mustang_67', 'cadillac_eldo',
-                              'delorean', 'jaguar_e')
+                              'delorean', 'jaguar_e',
+                              'harley_chopper', 'ducati_750')
     def civilian_hijack_start(self, uid: str) -> dict:
         p = self.players.get(uid)
         if not p:
