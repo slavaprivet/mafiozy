@@ -5547,7 +5547,7 @@ function _spawnCrashEvent() {
     c._respawnAt = performance.now() + 25000;   // через 25с переспаунится
     spawnCarExplosion(c.r, c.c);
   }
-  showEventBanner('💥 АВАРИЯ', 'Многомашинное ДТП на дороге', 2800, 'warn');
+  pushFeedEvent('💥', 'Авария — ДТП на дороге', { accent: '#ff7030' });
   return true;
 }
 
@@ -5586,7 +5586,7 @@ function _spawnNpcFightEvent() {
       }
     },
   });
-  showEventBanner('👊 ДРАКА', 'Местные выясняют отношения', 2600, 'warn');
+  pushFeedEvent('👊', 'Драка на улице', { accent: '#ffa040' });
   return true;
 }
 
@@ -5607,7 +5607,7 @@ function _spawnStreetFireEvent() {
     _streetFireEvent: true,
   });
   spawnCarExplosion(spot.r + 0.5, spot.c + 0.5);
-  showEventBanner('🔥 ПОЖАР', 'Машина горит на улице', 2600, 'warn');
+  pushFeedEvent('🔥', 'Машина горит на улице', { accent: '#ff5050' });
   return true;
 }
 
@@ -6796,26 +6796,26 @@ function handleEventPacket(d) {
   const kind = d && d.kind;
   if (!kind) return;
   if (kind === 'inkassator_spawned') {
-    showEventBanner(
-      '🚨 ИНКАССАТОР ВЫЕХАЛ!',
-      `Конвой едет от Чёрного рынка в Казино. Перехвати — получишь +${d.reward||500}$!`,
-      6000, 'spawn'
-    );
+    // Глобально — в ленту (а не центральным баннером). Игрок видит
+    // стрелку-указатель на инкассатора через drawEventArrow.
+    pushFeedEvent('🚨', `Инкассатор выехал — куш $${d.reward||500}`,
+                  { accent: '#ff7030' });
   } else if (kind === 'inkassator_killed') {
     const me = (String(d.killer_uid) === String(QP.uid));
     const name = (d.killer_name || 'Кто-то');
     if (me) {
+      // Личная победа — большой баннер
       showEventBanner('💰 +' + (d.reward||500) + '$ — куш твой!',
         'Ты забрал инкассатора. Деньги уже на счёте.', 5500, 'win');
     } else {
-      showEventBanner('💼 Инкассатора грабанули',
-        name + ' забрал куш ' + (d.reward||500) + '$ — успей в следующий раз.',
-        4500, 'lose');
+      // Чужой успех — в ленту
+      pushFeedEvent('💼', `${name} забрал инкассатора +$${d.reward||500}`,
+                    { accent: '#ffa040' });
     }
     worldEvent = null;
   } else if (kind === 'inkassator_escaped') {
-    showEventBanner('💼 Инкассатор уехал',
-      'Никто не успел перехватить. Следующий через 10 мин.', 3500, 'neutral');
+    pushFeedEvent('💼', 'Инкассатор уехал — никто не успел',
+                  { accent: '#808080' });
     worldEvent = null;
   } else if (kind === 'inkass_shot') {
     // NPC выстрелил в игрока — пуля стартует из КОНЦА ствола (muzzleD),
@@ -7061,8 +7061,9 @@ function handleEventPacket(d) {
           5000, 'spawn');
       } else {
         // Другой игрок взял заказ — можно «перехватить» его машину раньше его.
-        // Но deliver засчитается только владельцу контракта.
-        showToast(`🚨 Кто-то взял заказ на угон ${mdef.label}`, '🚗', 3000);
+        // Но deliver засчитается только владельцу контракта. В ленту, не в тост.
+        pushFeedEvent('🚗', `Заказ Майкла: ${mdef.label} в угон`,
+                      { accent: '#9090ff' });
       }
     }
   } else if (kind === 'quest_car_delivered') {
@@ -7089,7 +7090,8 @@ function handleEventPacket(d) {
       }
       updateQuestCarHud();
     } else {
-      showToast(`💸 @${d.by_name} сдал ${mdef.label} — +${d.reward}$`, '🚗', 3500);
+      pushFeedEvent('💸', `@${d.by_name} сдал ${mdef.label} +$${d.reward}`,
+                    { accent: '#3ec070' });
     }
     if (myDrivingCarId === d.car_id) myDrivingCarId = null;
   } else if (kind === 'quest_car_gone') {
@@ -7304,21 +7306,25 @@ function handleEventPacket(d) {
     _onBankHeistCancelled(d);
     _bankBusyUntil = 0;
   } else if (kind === 'bank_heist_announce') {
-    // Глобальный баннер всем — кто-то делает налёт. Параллельно ставим
-    // _bankBusyUntil чтобы кнопка у банка показывала «занято Xс».
+    // Глобальное событие — едет в ленту, не в большой баннер. Иначе при
+    // большом онлайне центр экрана будет мигать каждые 30 сек.
     const dur = +d.duration_s | 0 || 180;
     _bankBusyUntil = performance.now() + dur * 1000;
-    showEventBanner('🏦 НАЛЁТ', `${d.count || 2} игрока берут банк!`,
-                    2500, 'warn');
+    pushFeedEvent('🏦', `${d.count || 2} игрока берут банк`,
+                  { accent: '#ff7030' });
   } else if (kind === 'bank_heist_freed') {
     // Глобальный — банк свободен (другая группа закончила)
     _bankBusyUntil = 0;
+    pushFeedEvent('✅', 'Банк свободен — можно грабить',
+                  { accent: '#3ec070' });
   } else if (kind === 'shop_robbed') {
-    // Broadcast всем — кто-то ограбил магазин в городе. Баннер на 2.5с.
+    // Broadcast всем — кто-то ограбил магазин в городе. В ленту,
+    // не центральным баннером (онлайн событие, не моё).
     if (String(d.robber_uid) !== String(QP.uid)) {
       const nm = d.robber_name || 'Кто-то';
       const bn = d.biz_name || 'магазин';
-      showEventBanner(`🔪 ОГРАБЛЕНИЕ`, `${nm} ограбил «${bn}»`, 2500, 'warn');
+      pushFeedEvent('🔪', `${nm} ограбил «${bn}»`,
+                    { accent: '#ff7030' });
     }
   } else if (kind === 'gta_take_reply') {
     if (d.ok) {
@@ -10156,6 +10162,98 @@ function showToast(msg, ms = 2200) {
   _toastEl.classList.add('show');
   if (_toastT) clearTimeout(_toastT);
   _toastT = setTimeout(() => _toastEl.classList.remove('show'), ms);
+}
+
+// ── Лента глобальных событий (для онлайн-новостей) ───────────────
+// При большом онлайне баннеров может быть много (банк-налёты, инкассатор,
+// чужие ограбления магазинов, мировые события). Если каждое крутить
+// большим центральным баннером — мигалка. Это маленькая лента справа
+// над миникартой, держит до 4 последних, новые ползут вверх, старые
+// тают за TTL_MS. Анти-дубль: если такой же текст в окне 1.5с — пропуск.
+const _feedEvents = [];
+const FEED_MAX = 4;
+const FEED_TTL_MS = 6000;
+const FEED_FADE_MS = 600;
+let _feedLast = { key: '', t: 0 };
+function pushFeedEvent(icon, text, opts) {
+  opts = opts || {};
+  const key = (icon || '') + '|' + (text || '');
+  const now = performance.now();
+  if (key === _feedLast.key && now - _feedLast.t < 1500) return;
+  _feedLast = { key, t: now };
+  _feedEvents.push({
+    icon: icon || 'ℹ️',
+    text: text || '',
+    color: opts.color || '#e6e6e6',
+    accent: opts.accent || '#ffd76b',
+    t: now,
+    ttl: opts.ttl || FEED_TTL_MS,
+  });
+  while (_feedEvents.length > FEED_MAX) _feedEvents.shift();
+}
+function drawFeedEvents() {
+  const now = performance.now();
+  // Чистим протухшие
+  while (_feedEvents.length && now - _feedEvents[0].t > _feedEvents[0].ttl) {
+    _feedEvents.shift();
+  }
+  if (!_feedEvents.length) return;
+  // Позиция: справа над миникартой. Канвас right-bottom — миникарта.
+  // Кладём ленту чуть выше и левее.
+  const W = canvas.width;
+  const H = canvas.height;
+  // Миникарта обычно в правом-нижнем углу размером ~160. Лента уходит
+  // вверх от точки выше неё.
+  const rightX = W - 16;
+  const baseY  = H - 200;   // над миникартой
+  const rowH   = 26;
+  const padX   = 10;
+  ctx.save();
+  ctx.font = 'bold 12px system-ui, sans-serif';
+  ctx.textBaseline = 'middle';
+  // Рисуем снизу вверх — последнее событие внизу
+  for (let i = _feedEvents.length - 1; i >= 0; i--) {
+    const ev = _feedEvents[i];
+    const age = now - ev.t;
+    let alpha = 1;
+    if (age < FEED_FADE_MS) alpha = age / FEED_FADE_MS;            // fade-in
+    else if (age > ev.ttl - FEED_FADE_MS) alpha = (ev.ttl - age) / FEED_FADE_MS;
+    alpha = Math.max(0, Math.min(1, alpha));
+    const idxFromBottom = _feedEvents.length - 1 - i;
+    const y = baseY - idxFromBottom * rowH;
+    // Измеряем ширину текста — плашка адаптивная
+    const fullTxt = ev.icon + '  ' + ev.text;
+    const txtW = ctx.measureText(fullTxt).width;
+    const w = Math.min(360, Math.max(180, txtW + padX * 2 + 8));
+    const x = rightX - w;
+    ctx.globalAlpha = alpha * 0.92;
+    // Фон
+    ctx.fillStyle = '#15151a';
+    if (ctx.roundRect) {
+      ctx.beginPath(); ctx.roundRect(x, y - rowH / 2, w, rowH - 4, 4); ctx.fill();
+    } else {
+      ctx.fillRect(x, y - rowH / 2, w, rowH - 4);
+    }
+    // Акцентная полоса слева (по цвету события)
+    ctx.fillStyle = ev.accent;
+    ctx.fillRect(x, y - rowH / 2, 3, rowH - 4);
+    // Текст
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = ev.color;
+    ctx.textAlign = 'left';
+    // Иконка + текст — обрезаем по ширине
+    let txt = fullTxt;
+    if (ctx.measureText(txt).width > w - padX * 2) {
+      // Грубо обрезаем по ширине
+      while (txt.length > 4 && ctx.measureText(txt + '…').width > w - padX * 2) {
+        txt = txt.slice(0, -1);
+      }
+      txt = txt + '…';
+    }
+    ctx.fillText(txt, x + padX, y - 1);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 // ── Большой баннер эмерджентных событий ─────────────────────────
@@ -20639,6 +20737,8 @@ function render() {
   drawHeistBus();
   drawHeistCarriedBag();
   drawHeistHud();
+  // Лента глобальных событий (справа над миникартой)
+  drawFeedEvents();
   // Мини-карта
   drawMinimap();
   // Screen-flash от тяжёлого выстрела — короткая полупрозрачная заливка
