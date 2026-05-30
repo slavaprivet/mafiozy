@@ -4105,8 +4105,6 @@ function drawServiceVehicle(v) {
   const p = w2s(v.y, v.x);
   const isAmb = v.kind === 'ambulance';
   // Прогресс-бар «работы» — пока скорая грузит труп / пожарка тушит.
-  // Показываем только реальным машинам в состоянии working (припаркованные
-  // у станции вызываются как мок без state).
   let workFrac = 0;
   let workLabel = null;
   if (v.state === 'working' && v.workUntil) {
@@ -4115,41 +4113,191 @@ function drawServiceVehicle(v) {
     workFrac = 1 - remain / total;
     workLabel = isAmb ? 'Погрузка' : 'Тушение';
   }
+  // Размеры корпуса. Пожарная чуть крупнее скорой (длиннее и шире).
+  const L = isAmb ? 44 : 50;   // длина
+  const W = isAmb ? 22 : 24;   // ширина
+  const hL = L / 2, hW = W / 2;
+  // Тень — большой эллипс под машиной (без поворота, иначе деформируется)
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 3, hL * 0.92, hW * 0.55, v.ang, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // Сам корпус в локальной системе координат
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(v.ang);
-  // Корпус
-  ctx.fillStyle = isAmb ? '#ffffff' : '#c83020';
-  ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
-  ctx.fillRect(-20, -11, 40, 22);
-  ctx.strokeRect(-20, -11, 40, 22);
-  // Полоса
-  ctx.fillStyle = isAmb ? '#e02020' : '#ffe040';
-  ctx.fillRect(-20, -2, 40, 4);
-  // Кабина
-  ctx.fillStyle = isAmb ? '#d8d8d8' : '#902020';
-  ctx.fillRect(8, -9, 12, 18);
-  // Стёкла
-  ctx.fillStyle = '#9cc0d8';
-  ctx.fillRect(11, -7, 7, 14);
-  // Эмблема на боку
-  ctx.fillStyle = isAmb ? '#e02020' : '#ffe040';
-  ctx.font = 'bold 12px sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(isAmb ? '+' : 'F', -6, 0);
+  if (isAmb) {
+    // ── СКОРАЯ ───────────────────────────────────────────────────
+    // Базовый корпус — белый с лёгким градиентом (объём)
+    const bodyGrad = ctx.createLinearGradient(0, -hW, 0, hW);
+    bodyGrad.addColorStop(0, '#fafafa');
+    bodyGrad.addColorStop(0.5, '#ffffff');
+    bodyGrad.addColorStop(1, '#d8d8d8');
+    ctx.fillStyle = bodyGrad;
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1.5;
+    // Слегка скруглённый прямоугольник
+    if (ctx.roundRect) {
+      ctx.beginPath(); ctx.roundRect(-hL, -hW, L, W, 3); ctx.fill(); ctx.stroke();
+    } else {
+      ctx.fillRect(-hL, -hW, L, W); ctx.strokeRect(-hL, -hW, L, W);
+    }
+    // Кабина — отдельный сегмент впереди (1/3 длины)
+    const cabL = L * 0.32;
+    const cabFrontX = hL;
+    const cabBackX  = hL - cabL;
+    ctx.fillStyle = '#e8e8e8';
+    ctx.fillRect(cabBackX, -hW + 1, cabL, W - 2);
+    // Лобовое и боковые окна кабины (бирюзовые)
+    const wsGrad = ctx.createLinearGradient(cabBackX, 0, cabFrontX, 0);
+    wsGrad.addColorStop(0, '#5890b8');
+    wsGrad.addColorStop(1, '#a8d0e8');
+    ctx.fillStyle = wsGrad;
+    ctx.fillRect(cabBackX + 3, -hW + 3, cabL - 5, W - 6);
+    // Стойка между кабиной и кузовом (тёмная вертикальная линия)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(cabBackX - 1, -hW, 2, W);
+    // Красная полоса вдоль кузова (фирменная скорая)
+    ctx.fillStyle = '#e02020';
+    ctx.fillRect(-hL + 2, -2, L * 0.65, 4);
+    // Большой красный крест на крыше (виден сверху)
+    const crossX = -hL + L * 0.32, crossY = 0;
+    ctx.fillStyle = '#e02020';
+    ctx.fillRect(crossX - 7, crossY - 2, 14, 4);
+    ctx.fillRect(crossX - 2, crossY - 7, 4, 14);
+    // Маленькие окна заднего отсека сбоку
+    ctx.fillStyle = 'rgba(120,170,200,.55)';
+    ctx.fillRect(-hL + 5, -hW + 2, 7, 4);
+    ctx.fillRect(-hL + 5,  hW - 6, 7, 4);
+    // Фары спереди (жёлтые точки)
+    ctx.fillStyle = '#ffeb80';
+    ctx.shadowColor = '#fff080'; ctx.shadowBlur = 6;
+    ctx.fillRect(cabFrontX - 2, -hW + 3, 2, 4);
+    ctx.fillRect(cabFrontX - 2,  hW - 7, 2, 4);
+    ctx.shadowBlur = 0;
+    // Колёса (4) — тёмные прямоугольники по углам
+    ctx.fillStyle = '#0a0a0a';
+    const whL = 8, whW = 3;
+    ctx.fillRect(hL - whL - 3, -hW - whW + 1, whL, whW);
+    ctx.fillRect(hL - whL - 3,  hW - 1,        whL, whW);
+    ctx.fillRect(-hL + 3,       -hW - whW + 1, whL, whW);
+    ctx.fillRect(-hL + 3,        hW - 1,        whL, whW);
+    // Надпись AMBULANCE (зеркально на боку, как у настоящих)
+    ctx.fillStyle = '#202020';
+    ctx.font = 'bold 7px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('AMBULANCE', -hL + L * 0.55, 9);
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  } else {
+    // ── ПОЖАРНАЯ ─────────────────────────────────────────────────
+    // Красный корпус с градиентом
+    const bodyGrad = ctx.createLinearGradient(0, -hW, 0, hW);
+    bodyGrad.addColorStop(0, '#a01818');
+    bodyGrad.addColorStop(0.5, '#d02828');
+    bodyGrad.addColorStop(1, '#7a1010');
+    ctx.fillStyle = bodyGrad;
+    ctx.strokeStyle = '#1a0606'; ctx.lineWidth = 1.5;
+    if (ctx.roundRect) {
+      ctx.beginPath(); ctx.roundRect(-hL, -hW, L, W, 3); ctx.fill(); ctx.stroke();
+    } else {
+      ctx.fillRect(-hL, -hW, L, W); ctx.strokeRect(-hL, -hW, L, W);
+    }
+    // Кабина (короткая, 28% длины)
+    const cabL = L * 0.28;
+    const cabFrontX = hL;
+    const cabBackX  = hL - cabL;
+    ctx.fillStyle = '#7a0808';
+    ctx.fillRect(cabBackX, -hW + 1, cabL, W - 2);
+    // Лобовое окно кабины
+    const wsGrad = ctx.createLinearGradient(cabBackX, 0, cabFrontX, 0);
+    wsGrad.addColorStop(0, '#4878a0');
+    wsGrad.addColorStop(1, '#90b8d0');
+    ctx.fillStyle = wsGrad;
+    ctx.fillRect(cabBackX + 3, -hW + 3, cabL - 5, W - 6);
+    // Стойка между кабиной и кузовом
+    ctx.fillStyle = '#1a0a06';
+    ctx.fillRect(cabBackX - 1, -hW, 2, W);
+    // Кузов — отсеки с пожарным инвентарём (тёмные «ящики» сбоку)
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    const compW = (L - cabL - 6) / 3;   // 3 отсека вдоль кузова
+    for (let i = 0; i < 3; i++) {
+      const cx = -hL + 3 + i * compW + i * 1;
+      ctx.fillRect(cx, -hW + 4, compW, 4);     // верхний ряд (стойки лестницы)
+      ctx.fillRect(cx,  hW - 8, compW, 4);     // нижний ряд
+    }
+    // Лестница на крыше (вдоль корпуса)
+    ctx.strokeStyle = '#d8d8d8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-hL + 4, -3); ctx.lineTo(cabBackX - 3, -3);
+    ctx.moveTo(-hL + 4,  3); ctx.lineTo(cabBackX - 3,  3);
+    ctx.stroke();
+    // Перекладины лестницы
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 7; i++) {
+      const lx = -hL + 6 + i * ((cabBackX - 10) / 7);
+      ctx.beginPath();
+      ctx.moveTo(lx, -3); ctx.lineTo(lx, 3); ctx.stroke();
+    }
+    // Жёлтая полоса вдоль низа (отражатель)
+    ctx.fillStyle = '#ffe040';
+    ctx.fillRect(-hL + 2, hW - 4, L - 4, 2);
+    ctx.fillRect(-hL + 2, -hW + 2, L - 4, 2);
+    // Шланг свёрнутый — кружок на боку
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath();
+    ctx.arc(-hL + L * 0.5, -hW + 4, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#d8d8d8'; ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(-hL + L * 0.5, -hW + 4, 2, 0, Math.PI * 2);
+    ctx.stroke();
+    // Фары
+    ctx.fillStyle = '#ffeb80';
+    ctx.shadowColor = '#fff080'; ctx.shadowBlur = 6;
+    ctx.fillRect(cabFrontX - 2, -hW + 3, 2, 4);
+    ctx.fillRect(cabFrontX - 2,  hW - 7, 2, 4);
+    ctx.shadowBlur = 0;
+    // Колёса (4) — крупнее чем у скорой
+    ctx.fillStyle = '#0a0a0a';
+    const whL = 9, whW = 3;
+    ctx.fillRect(hL - whL - 3, -hW - whW + 1, whL, whW);
+    ctx.fillRect(hL - whL - 3,  hW - 1,        whL, whW);
+    ctx.fillRect(-hL + 4,       -hW - whW + 1, whL, whW);
+    ctx.fillRect(-hL + 4,        hW - 1,        whL, whW);
+    // Надпись FIRE / 01 на двери кабины
+    ctx.fillStyle = '#ffe040';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('01', cabBackX + cabL * 0.5, 0);
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  }
   ctx.restore();
-  // Мигалка (без поворота, поверх)
+  // Мигалки — две на крыше (передняя и задняя), мигают противофазно
   const t = performance.now();
   const blink = Math.floor(t / 200) % 2;
-  const flashCol = isAmb
-    ? (blink ? '#ff3030' : '#3070ff')
-    : (blink ? '#ff3030' : '#ffe040');
+  const blink2 = 1 - blink;
+  const col1 = isAmb ? '#3070ff' : '#ff3030';
+  const col2 = isAmb ? '#ff3030' : '#3070ff';
   ctx.save();
-  ctx.fillStyle = flashCol;
-  ctx.shadowColor = flashCol; ctx.shadowBlur = 14;
-  ctx.beginPath();
-  ctx.arc(p.x, p.y - 14, 4.5, 0, Math.PI * 2);
-  ctx.fill();
+  // Без rotate — мигалки рисуются в экранных координатах поверх корпуса.
+  // Чуть смещаем по углу машины: «передняя» и «задняя» мигалки на крыше.
+  const offFront = Math.cos(v.ang) * (L * 0.18);
+  const offSide  = Math.sin(v.ang) * (L * 0.18);
+  const cx1 = p.x + offFront;
+  const cy1 = p.y + offSide - 2;
+  const cx2 = p.x - offFront;
+  const cy2 = p.y - offSide - 2;
+  // Передняя
+  ctx.fillStyle = blink ? col1 : col2;
+  ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.arc(cx1, cy1, 3.5, 0, Math.PI * 2); ctx.fill();
+  // Задняя
+  ctx.fillStyle = blink2 ? col1 : col2;
+  ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.arc(cx2, cy2, 3.5, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
   ctx.restore();
   // Прогресс-бар + подпись пока машина «работает» (грузит труп / тушит).
   if (workLabel) {
