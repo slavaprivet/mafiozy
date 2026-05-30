@@ -2053,6 +2053,9 @@ function applyQuestCarsSnapshot(arr) {
 }
 // Когда я сел в машину — её id; null если иду пешком.
 let myDrivingCarId = null;
+// Я еду в автобусе. Игрок невидим, камера за BUS, стрелять/двигаться
+// нельзя. Выйти — на остановке или выпрыгнуть на ходу.
+let _inBus = false;
 // Текущее состояние контракта (приходит от gta_status/gta_take_reply)
 let myGtaStatus = { count_today: 0, limit: 2, reset_in_s: 0, sc_lvl: 0, active: null };
 // Кулдаун между запросами статуса (не дёргаем сервер каждый кадр)
@@ -8318,6 +8321,28 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
+  if (_inBus) {
+    // На остановке — выходим к знаку, на ходу — выпрыгиваем.
+    _gtaActionKind = 'bus_exit';
+    _gtaActionCarId = null;
+    _gtaBtn.textContent = (BUS.state === 'stopped')
+      ? '🚪 Выйти на остановке'
+      : '🪂 Выпрыгнуть на ходу';
+    _gtaBtn.style.display = 'block';
+    return;
+  }
+  // Автобус — сесть если стоит на остановке и игрок рядом (≤3 тайла).
+  // На ходу не подсесть — двери закрыты, и это спасает от подножек.
+  if (BUS.state === 'stopped') {
+    const dbusR = BUS.r - player.r, dbusC = BUS.c - player.c;
+    if (Math.hypot(dbusR, dbusC) <= 3.0) {
+      _gtaActionKind = 'bus_enter';
+      _gtaActionCarId = null;
+      _gtaBtn.textContent = '🚌 Сесть в автобус';
+      _gtaBtn.style.display = 'block';
+      return;
+    }
+  }
   // Майкл — приоритет если рядом
   const dmR = MICHAEL_POS.r - player.r;
   const dmC = MICHAEL_POS.c - player.c;
@@ -8509,8 +8534,79 @@ _gtaBtn.addEventListener('click', () => {
     takeBrigadirContract();
   } else if (_gtaActionKind === 'bank_heist') {
     tryStartBankHeist();
+  } else if (_gtaActionKind === 'bus_enter') {
+    enterBus();
+  } else if (_gtaActionKind === 'bus_exit') {
+    exitBus();
   }
 });
+
+// ── Автобус: посадка / высадка ─────────────────────────────────────
+// Игрок может сесть в автобус когда тот стоит на остановке (см.
+// updateGtaInteractions). После посадки player скрыт и едет вместе с
+// BUS. Выйти можно в любой момент: на остановке — спавн на тротуар у
+// знака; на ходу — выпрыгиваем на ближайший проходимый тайл рядом с
+// автобусом (без штрафа — это аркада).
+function enterBus() {
+  if (_inBus || myDrivingCarId || myDead) return;
+  if (BUS.state !== 'stopped') {
+    showToast('🚌 Автобус едет — подожди остановку', '⚠️', 1800);
+    return;
+  }
+  const d = Math.hypot(BUS.r - player.r, BUS.c - player.c);
+  if (d > 3.5) {
+    showToast('🚌 Подойди ближе к автобусу', '⚠️', 1600);
+    return;
+  }
+  _inBus = true;
+  player.r = BUS.r; player.c = BUS.c; player.ang = BUS.ang;
+  // Маленькая «хлопок двери» вспышка
+  playEnterCarAnim(BUS.r, BUS.c);
+  hapticHit();
+  showToast('🚌 В пути — выйдешь когда захочешь', '✅', 1800);
+}
+
+function _findBusExitSpot(qy, qx) {
+  // Ищем ближайший тротуар/газон вокруг автобуса в радиусе 4 тайлов.
+  // Спирально перебираем offset'ы — первый проходимый и есть высадка.
+  const ri = Math.floor(qy), ci = Math.floor(qx);
+  for (let radius = 1; radius <= 4; radius++) {
+    for (let dr = -radius; dr <= radius; dr++) {
+      for (let dc = -radius; dc <= radius; dc++) {
+        if (Math.abs(dr) !== radius && Math.abs(dc) !== radius) continue;
+        const rr = ri + dr, cc = ci + dc;
+        if (rr < 1 || rr >= MAP_ROWS - 1 || cc < 1 || cc >= MAP_COLS - 1) continue;
+        if (!MAP[rr]) continue;
+        const t = MAP[rr][cc];
+        if (t === 9 || t === 8) return { r: rr + 0.5, c: cc + 0.5 };
+      }
+    }
+  }
+  // Не нашли — последний шанс: ближайшая дорожная клетка (т.к. машина
+  // может стоять буквально на дороге без тротуара поблизости).
+  return { r: qy + 0.5, c: qx + 0.5 };
+}
+
+function exitBus() {
+  if (!_inBus) return;
+  const onStop = (BUS.state === 'stopped');
+  // На остановке высаживаемся у знака (sign_r/sign_c), на ходу — на
+  // ближайший проходимый тайл рядом с автобусом.
+  let spot;
+  if (onStop) {
+    const stop = BUS_STOPS[BUS.routeIdx];
+    spot = { r: stop.sign_r + 0.5, c: stop.sign_c + 0.5 };
+  } else {
+    spot = _findBusExitSpot(BUS.r, BUS.c);
+  }
+  _inBus = false;
+  player.r = spot.r; player.c = spot.c;
+  playEnterCarAnim(spot.r, spot.c);
+  hapticHit();
+  if (!onStop) {
+    showToast('🪂 Выпрыгнул на ходу!', '✅', 1600);
+  }
+}
 
 // ── HTTP-API: бизнесы и чёрный рынок ───────────────────────────────
 // showBuyBizConfirm — открывает модалку с подтверждением покупки.
@@ -9964,8 +10060,8 @@ function fire(angle = null) {
     const _dr = (_s - _d) * 0.5;
     angle = Math.atan2(_dr, _dc);
   }
-  // В машине нельзя стрелять — обе руки на руле.
-  if (myDrivingCarId) return;
+  // В машине или в автобусе нельзя стрелять — обе руки на руле / двери закрыты.
+  if (myDrivingCarId || _inBus) return;
   // _meInJail объявлен выше (нужен и для lock-on, и для блокировки NPC-целей).
   const now = performance.now();
   // Cooldown зависит от выбранного оружия (как в demo_isometric):
@@ -10270,7 +10366,7 @@ function updatePvpUI() {
   // даже если стрелять не в кого, ствол в руке и стик готов — это даёт
   // ощущение полноценной боёвки.
   const isPve      = (myMode === 'pve');
-  const isDriving  = !!myDrivingCarId;
+  const isDriving  = !!myDrivingCarId || _inBus;
   // В машине стрельба ОТКЛЮЧЕНА (обе руки на руле), правый стик и weaponBar
   // скрываются. Возвращаются обратно как только вышел из машины.
   const canShoot   = !isPve && !myDead && !isDriving;
@@ -11029,6 +11125,51 @@ function update(dt) {
       _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
       _tickBus(dt);
+      _tickParkingNpcs(dt);
+      return;
+    }
+  }
+
+  // ── В АВТОБУСЕ ── игрок едет вместе с BUS, стик отключён ──
+  if (_inBus) {
+    // Смерть в автобусе — выкидывает (на тайл у автобуса)
+    if (myDead) {
+      _inBus = false;
+      // продолжаем нормальный пеший update ниже
+    } else {
+      // Двигаем автобус ПЕРВЫМ, потом цепляемся — иначе игрок отстаёт
+      // от BUS на 1 кадр (имя над крышей дрожит относительно корпуса).
+      _tickBus(dt);
+      player.r = BUS.r; player.c = BUS.c; player.ang = BUS.ang;
+      player.walking = false;
+      // Камера за автобусом с лёгким look-ahead вперёд по направлению
+      let lookR = 0, lookC = 0;
+      if (BUS.state === 'driving') {
+        lookR = Math.sin(BUS.ang) * 1.6;
+        lookC = Math.cos(BUS.ang) * 1.6;
+      }
+      const aimC = BUS.c + lookC;
+      const aimR = BUS.r + lookR;
+      const targetCamX = (aimC - aimR) * TS * 0.5;
+      const targetCamY = (aimC + aimR) * TS * 0.5 * ISO_Y;
+      cam.x += (targetCamX - cam.x) * Math.min(1, dt * 6);
+      cam.y += (targetCamY - cam.y) * Math.min(1, dt * 6);
+      updateGtaInteractions();
+      updateZoneBtn();
+      updatePvpUI();
+      updateGtaQuestHud();
+      // Чужие игроки интерполируются как обычно
+      for (const [, o] of others) {
+        o.x += (o.tx - o.x) * Math.min(1, dt * 8);
+        o.y += (o.ty - o.y) * Math.min(1, dt * 8);
+        let aDiff = o.tAng - o.ang;
+        while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
+        while (aDiff < -Math.PI) aDiff += Math.PI * 2;
+        o.ang += aDiff * Math.min(1, dt * 8);
+      }
+      _interpQuestCars(dt);
+      _interpBeachgoers(dt);
+      _interpMichaelGuards(dt);
       _tickParkingNpcs(dt);
       return;
     }
@@ -19871,11 +20012,11 @@ function render() {
   // Look берём всегда из URL — даже если has_look=0, параметры есть
   // (дефолты =0 в _qInt) и они хотя бы стабильны между перезагрузками.
   items.push({ depth: player.r + player.c + 0.001, draw: () => {
-    // В машине — спрайт игрока не рисуем (виден через крышу машины);
-    // только имя/звёзды над крышей.
-    if (myDrivingCarId) {
+    // В машине или в автобусе — спрайт игрока не рисуем (виден через
+    // крышу/окна); только имя/звёзды над корпусом.
+    if (myDrivingCarId || _inBus) {
       const p = w2s(player.r + 0.5, player.c + 0.5);
-      const headY = p.y - TS * 0.9;
+      const headY = p.y - TS * (_inBus ? 1.6 : 0.9);
       ctx.font = 'bold 12px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(0,0,0,.7)';
