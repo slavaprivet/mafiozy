@@ -7345,30 +7345,6 @@ function handleEventPacket(d) {
     _bankBusyUntil = 0;
     pushFeedEvent('✅', 'Банк свободен — можно грабить',
                   { accent: '#3ec070' });
-  } else if (kind === 'blackmarket_sell_car_reply') {
-    if (d.ok) {
-      // Тачка удалена сервером — выкидываем игрока из неё локально.
-      const cid = d.car_id;
-      if (myDrivingCarId === cid) {
-        myDrivingCarId = null;
-        myIsPassenger  = false;
-      }
-      // Локально тоже удаляем (snapshot уберёт, но мгновенный фидбек).
-      if (cid) questCars.delete(cid);
-      const label = d.label || d.model || 'тачка';
-      const reward = +d.reward | 0;
-      showEventBanner('💰 Сдал тачку',
-        `${label} → +$${reward.toLocaleString('ru')}`, 3000, 'win');
-      hapticHit();
-    } else {
-      const reason = d.reason || '';
-      const msg = reason === 'too_far'     ? '🌌 Подъезжай ближе к чёрному рынку'
-                : reason === 'not_in_car'  ? '🚗 Сначала сядь за руль'
-                : reason === 'quest_car'   ? '🎯 Эту тачку сдаёт Майкл'
-                : reason === 'wrecked'     ? '🔥 Тачка разбита — не возьмут'
-                : '❌ Не получилось сдать';
-      showToast(msg, '⚠️', 2400);
-    }
   } else if (kind === 'heist_guard_shot') {
     // Охранник банка выстрелил. Визуал — трассер + вспышка дула.
     // Если попал по мне — flash + shake (HP уже снят сервером, придёт
@@ -8728,21 +8704,6 @@ function updateGtaInteractions() {
   // прячется в finishRob/cancelRob.
   if (_robBtn && !_robInProgress) _robBtn.style.display = 'none';
   if (myDrivingCarId) {
-    // Гражданская угнанная тачка + рядом с чёрным рынком (6,36) → кнопка «Сдать»
-    const qc = questCars.get(myDrivingCarId);
-    if (qc && qc.civilian && !myIsPassenger) {
-      const dxBM = 36 - player.c, dyBM = 6 - player.r;
-      if ((dxBM*dxBM + dyBM*dyBM) <= 3.5 * 3.5) {
-        // Цена ~ 60% от Майкл-reward (точное значение придёт с сервера)
-        const mdef = QUEST_CAR_MODELS[qc.model] || { label: qc.model, reward: 1000 };
-        const preview = Math.max(100, Math.floor((mdef.reward || 1000) * 0.6));
-        _gtaActionKind = 'blackmarket_sell_car';
-        _gtaActionCarId = myDrivingCarId;
-        _gtaBtn.textContent = `🚗💰 Сдать ${mdef.label} (~$${preview})`;
-        _gtaBtn.style.display = 'block';
-        return;
-      }
-    }
     _gtaActionKind = 'exit';
     _gtaActionCarId = myDrivingCarId;
     _gtaBtn.textContent = myIsPassenger
@@ -9036,12 +8997,6 @@ _gtaBtn.addEventListener('click', () => {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'blackmarket') {
     openBlackmarketShop();
-  } else if (_gtaActionKind === 'blackmarket_sell_car') {
-    // Шлём серверу. Он валидирует POI/гражданка и удалит тачку из мира.
-    try {
-      ws && ws.send(JSON.stringify({ t: 'blackmarket_sell_car', d: {} }));
-    } catch(e) {}
-    hapticHit();
   } else if (_gtaActionKind === 'brigadir') {
     takeBrigadirContract();
   } else if (_gtaActionKind === 'bank_heist') {
