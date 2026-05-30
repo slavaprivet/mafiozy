@@ -3157,14 +3157,11 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     npc.cryText  = ['АА!', 'НЕТ!', 'ПОМО…'][Math.floor(Math.random()*3)];
     npc.cryUntil = performance.now() + 600;
     // Если убитый — цель хит-контракта Бригадира — шлём серверу.
-    // Стелс: рядом с точкой убийства нет копов в радиусе 12.
+    // Стелс: рядом с точкой убийства нет НИКАКИХ копов в радиусе 12.
+    // _copInRadius проверяет и worldCops (боевые), и cityCops (патруль) —
+    // иначе можно было «стелс»-завалить цель прямо при NPC-копе.
     if (npc._hitTarget && _myHitContractActive) {
-      let stealth = true;
-      if (typeof worldCops !== 'undefined' && worldCops) {
-        for (const cp of worldCops) {
-          if (Math.hypot(cp.x - npc.c, cp.y - npc.r) < 12) { stealth = false; break; }
-        }
-      }
+      const stealth = !_copInRadius(npc.r, npc.c, 12);
       try {
         ws && ws.send(JSON.stringify({ t: 'brigadir_kill',
           d: { stealth: stealth } }));
@@ -9164,6 +9161,15 @@ function updateBoxThreat(dt) {
   if (Array.isArray(worldCops)) {
     for (const cp of worldCops) {
       if (cp.hp <= 0) continue;
+      const d = Math.hypot(cp.y - pr, cp.x - pc);
+      if (d < nearestD) nearestD = d;
+    }
+  }
+  // NPC-патрульные (cityCops) — тоже копы в форме, тоже палят коробку.
+  // Без них можно было пройти прямо мимо патрульного с грузом — палево.
+  if (Array.isArray(cityCops)) {
+    for (const cp of cityCops) {
+      if (!cp.alive) continue;
       const d = Math.hypot(cp.y - pr, cp.x - pc);
       if (d < nearestD) nearestD = d;
     }
