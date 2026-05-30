@@ -3130,6 +3130,19 @@ function hitGangCar(car, damage) {
 // hp вычитается. При hp<=0 → dead (тело остаётся как splat).
 function hitNpc(npc, dirY, dirX, weapon, damage) {
   if (!npc || npc.dead) return;
+  // Серверная охрана банка: HP ведёт сервер. Локально не считаем урон
+  // и не помечаем dead — шлём heist_guard_hit на каждое попадание,
+  // сервер сам обновит hp/alive через snapshot.
+  if (npc._heistGuard && npc._heistGuardId) {
+    try {
+      ws && ws.send(JSON.stringify({ t: 'heist_guard_hit',
+        d: { guard_id: npc._heistGuardId,
+             weapon:   String(weapon || '') } }));
+    } catch(e) {}
+    // Локально только flinch — без локального dead.
+    npc.idleUntil = performance.now() + 250;
+    return;
+  }
   npc.hp = Math.max(0, (npc.hp | 0) - (damage | 0));
   // Knockback — толкаем NPC назад по направлению пули на полтайла
   const kb = 0.35;
@@ -7332,6 +7345,28 @@ function handleEventPacket(d) {
     _bankBusyUntil = 0;
     pushFeedEvent('✅', 'Банк свободен — можно грабить',
                   { accent: '#3ec070' });
+  } else if (kind === 'heist_guard_shot') {
+    // Охранник банка выстрелил. Визуал — трассер + вспышка дула.
+    // Если попал по мне — flash + shake (HP уже снят сервером, придёт
+    // в обычном snapshot игрока).
+    {
+      const wp  = d.weapon || 'pistol_heavy';
+      const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
+      const md  = (typeof weaponMuzzleD === 'function')
+                  ? weaponMuzzleD(wp, 0.95) : 0.6;
+      const sR  = d.sy + Math.sin(ang) * md;
+      const sC  = d.sx + Math.cos(ang) * md;
+      spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromPlayer: false, weapon: wp });
+      spawnMuzzle(sR, sC, ang, wp);
+      if (!d.miss) spawnImpact(d.ty, d.tx, wp);
+    }
+    if (String(d.target_uid) === String(QP.uid) && !d.miss) {
+      flashHitOverlay();
+      addShake(3);
+      if (d.killed) {
+        myDeathBy = 'Охрана банка';
+      }
+    }
   } else if (kind === 'heist_cashier_snitch') {
     // Сервер сообщил: кассиры выжили и стучат. ★ уже прибавлены серверно.
     // Локально — тост в духе магазинного снитча.
@@ -8308,6 +8343,38 @@ function _syncHeistCashiersToLocal() {
   }
 }
 
+function _syncHeistGuardsToLocal() {
+  if (!_heistV2 || typeof NPCS === 'undefined') return;
+  const list = _heistV2.guards || [];
+  const now = performance.now();
+  for (const g of list) {
+    if (!g || !g.id) continue;
+    let npc = NPCS.find(n => n && n._heistGuardId === g.id);
+    if (!npc) {
+      npc = {
+        r: +g.y, c: +g.x, tr: +g.y, tc: +g.x,
+        dead: false, panicUntil: 0, snitching: false, snitchUntil: 0,
+        cryUntil: 0, cryText: '',
+        speed: 1.4, hp: +g.hp | 60, hpMax: 60,
+        name: 'Охрана',
+        _heistGuard: true,
+        _heistGuardId: g.id,
+        // Тёмный костюм-кепка — отличается от кассиров.
+        skin: { shirt: '#222', pants: '#1a1a1a', hair: '#0e0e0e' },
+        idleUntil: now + 9999000,
+        ang: +g.ang | 0,
+      };
+      NPCS.push(npc);
+    }
+    npc.ang = +g.ang || 0;
+    if (typeof g.hp === 'number') npc.hp = g.hp;
+    if (g.alive === false && !npc.dead) {
+      npc.dead = true;
+      npc.deadAt = now;
+    }
+  }
+}
+
 function tryStartBankHeist() {
   if (_bankHeistActive) return;
   if (myDrivingCarId || _inBus) { showToast('🚗 Сначала выйди', '⚠️', 1600); return; }
@@ -8331,10 +8398,12 @@ function _onBankHeistStarted(d) {
     participants: d.participants || [],
   };
   _myHeistBagId = null;
-  // Кассиры приходят с сервером в d.cashiers (общий список — все
+  // Кассиры и охранники приходят с сервером (общий список — все
   // участники видят одинаковых). Синхим в локальный NPCS.
   _heistV2.cashiers = d.cashiers || [];
+  _heistV2.guards   = d.guards   || [];
   _syncHeistCashiersToLocal();
+  _syncHeistGuardsToLocal();
   showEventBanner('🏦 НАЛЁТ',
     `Тащи мешки в автобус и гони к схрону! ${_heistV2.bags.length} мешков, $${_heistV2.bag_value}/шт.`,
     4500, 'warn');
@@ -8360,7 +8429,9 @@ function _onHeistSnapshot(d) {
   }
   _heistV2.dropoff = d.dropoff || _heistV2.dropoff;
   _heistV2.cashiers = d.cashiers || _heistV2.cashiers || [];
+  _heistV2.guards   = d.guards   || _heistV2.guards   || [];
   _syncHeistCashiersToLocal();
+  _syncHeistGuardsToLocal();
   _heistV2.loot    = +d.loot | 0;
   _heistV2.phase   = d.phase || _heistV2.phase;
   _heistV2.time_left = +d.time_left | 0;
@@ -8391,6 +8462,7 @@ function _onBankHeistFinished(d) {
   // Снитч кассиров обрабатывает сервер (heist_cashier_snitch) — клиенту
   // ничего делать не нужно: на участников прилетит +★ к wanted напрямую,
   // плюс event для тоста (обработчик ниже в onmessage).
+  _cleanupHeistLocalNpcs();
   _heistV2 = null;
   _myHeistBagId = null;
 }
@@ -8398,9 +8470,28 @@ function _onBankHeistFinished(d) {
 function _onBankHeistCancelled(d) {
   if (!_bankHeistActive) return;
   _bankHeistActive = false;
+  _cleanupHeistLocalNpcs();
   _heistV2 = null;
   _myHeistBagId = null;
   showToast('🏃 Налёт сорвался', '⚠️', 2400);
+}
+
+// Чистим локальные NPC-кассиры/охранники после финала налёта. Иначе
+// они застрянут с idleUntil 9999000 и накопятся в NPCS при повторных
+// налётах. Мёртвых оставляем 8 сек чтобы splat успел дотлеть.
+function _cleanupHeistLocalNpcs() {
+  if (typeof NPCS === 'undefined') return;
+  const now = performance.now();
+  for (const npc of NPCS) {
+    if (!npc) continue;
+    if (npc._heistCashier || npc._heistGuard) {
+      if (!npc.dead) { npc.dead = true; npc.deadAt = now; }
+      npc.idleUntil = 0;
+      // Очистим маркеры — фильтр в NPCS-cleanup сам уберёт через TTL.
+      npc._heistCashier = false;
+      npc._heistGuard   = false;
+    }
+  }
 }
 
 // Тик прогресс-бара (отдельная функция — отрисовка локально)

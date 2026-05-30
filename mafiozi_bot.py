@@ -3842,6 +3842,13 @@ HEIST_BUS_SPEED      = 6.0            # тайлов/сек на автопил�
 HEIST_BUS_CAMP_SEC   = 8.0            # сек на месте → шины
 HEIST_BUS_CAMP_R     = 1.2            # тайлов «почти не двигался»
 HEIST_BUS_SLOW_FACTOR= 0.45           # x0.45 скорости после прокола
+# Охранники банка — стационарные NPC с пистолетами, агрессивны к
+# участникам с момента старта. Можно убить (HP 60), тогда молчат.
+BANK_GUARD_HP        = 60
+BANK_GUARD_RANGE     = 10.0           # дальность выстрела (тайлов)
+BANK_GUARD_DMG       = 18
+BANK_GUARD_CD        = 1.2            # сек между выстрелами одного охранника
+BANK_GUARD_MISS      = 0.30           # шанс промаха
 # Активные heist'ы в памяти: heist_id → {participants:set, started_at, finalized}
 _active_bank_heists = {}
 _bank_heist_next_id = 1
@@ -4036,6 +4043,63 @@ async def _tick_bank_heists(world) -> None:
                 else:
                     bus['x'] += dx * (step / d)
                     bus['y'] += dy * (step / d)
+        # AI банковских охранников. Сразу hostile ко всем участникам:
+        # выбирают ближайшего живого, проверяют дистанцию и LOS,
+        # стреляют с cooldown. Урон применяем тут же; пакет с трассером
+        # уходит участникам и их клиентам через ws.
+        import math as _gmath
+        for g in (h.get('guards') or []):
+            if not g.get('alive'):
+                continue
+            # Цель — ближайший живой участник в радиусе BANK_GUARD_RANGE
+            nearest = None; nd2 = (BANK_GUARD_RANGE * BANK_GUARD_RANGE)
+            for u in parts:
+                pp = world.players.get(u)
+                if not pp or pp.get('dead'):
+                    continue
+                dd2 = (pp['x'] - g['x'])**2 + (pp['y'] - g['y'])**2
+                if dd2 < nd2:
+                    nd2 = dd2; nearest = (u, pp)
+            if not nearest:
+                continue
+            tuid, tp = nearest
+            g['ang'] = _gmath.atan2(tp['y'] - g['y'], tp['x'] - g['x'])
+            # Cooldown + LOS
+            if (now - float(g.get('_shot_t') or 0)) < BANK_GUARD_CD:
+                continue
+            if not _world_los(g['x'], g['y'], tp['x'], tp['y']):
+                continue
+            g['_shot_t'] = now
+            miss = random.random() < BANK_GUARD_MISS
+            dmg = 0 if miss else BANK_GUARD_DMG
+            if not miss:
+                tp['hp'] = int(max(0, int(tp.get('hp', 100)) - dmg))
+            killed = False
+            if (not miss) and tp['hp'] <= 0:
+                tp['hp'] = 0
+                tp['dead'] = True
+                tp['deaths'] = int(tp.get('deaths', 0)) + 1
+                tp['_respawn_at'] = now + world.PLAYER_RESPAWN_S
+                killed = True
+            shot_pkt = json.dumps({'t': 'event', 'd': {
+                'kind':       'heist_guard_shot',
+                'heist_id':   hid,
+                'guard_id':   g['id'],
+                'weapon':     g.get('weapon') or 'pistol_heavy',
+                'sx':         round(float(g['x']), 2),
+                'sy':         round(float(g['y']), 2),
+                'target_uid': str(tuid),
+                'tx':         round(float(tp['x']), 2),
+                'ty':         round(float(tp['y']), 2),
+                'dmg':        int(dmg),
+                'miss':       bool(miss),
+                'killed':     killed,
+            }}, ensure_ascii=False)
+            for _u in parts:
+                _ws2 = world.connections.get(_u)
+                if _ws2:
+                    try: await _ws2.send_str(shot_pkt)
+                    except Exception: pass
         # Бродкаст snapshot раз в 0.5с
         last_snap = float(h.get('_last_snap') or 0)
         if now - last_snap > 0.5:
@@ -4066,6 +4130,13 @@ async def _tick_bank_heists(world) -> None:
                                  'y':  round(float(c['y']), 2),
                                  'dead': bool(c.get('dead'))}
                                 for c in (h.get('cashiers') or [])],
+                'guards':      [{'id': g['id'],
+                                 'x':  round(float(g['x']), 2),
+                                 'y':  round(float(g['y']), 2),
+                                 'ang': round(float(g.get('ang') or 0.0), 3),
+                                 'hp': int(g.get('hp') or 0),
+                                 'alive': bool(g.get('alive'))}
+                                for g in (h.get('guards') or [])],
                 'dropoff':     {'x': float(drop['x']), 'y': float(drop['y'])},
                 'loot':        int(h.get('loot') or 0),
                 'time_left':   max(0, int(h['end_at'] - now)),
@@ -18523,6 +18594,27 @@ async def _coop_http_app():
                                          'y':  BANK_POS_RC[0],
                                          'dead': False},
                                     ]
+                                    # Охранники банка — 2 стрелка по бокам POI,
+                                    # сразу hostile ко всем участникам. Стреляют
+                                    # пока живы — можно убить (BANK_GUARD_HP).
+                                    guards = [
+                                        {'id': f'gd_{hid}_l',
+                                         'x':  float(BANK_POS_RC[1] - 1.6),
+                                         'y':  float(BANK_POS_RC[0]),
+                                         'ang': 0.0,
+                                         'hp':  BANK_GUARD_HP,
+                                         'alive': True,
+                                         'weapon': 'pistol_heavy',
+                                         '_shot_t': 0.0},
+                                        {'id': f'gd_{hid}_r',
+                                         'x':  float(BANK_POS_RC[1] + 1.6),
+                                         'y':  float(BANK_POS_RC[0]),
+                                         'ang': 0.0,
+                                         'hp':  BANK_GUARD_HP,
+                                         'alive': True,
+                                         'weapon': 'pistol_heavy',
+                                         '_shot_t': 0.0},
+                                    ]
                                     _active_bank_heists[hid] = {
                                         'participants':    parts,
                                         'started_at':      time.time(),
@@ -18531,6 +18623,7 @@ async def _coop_http_app():
                                         'phase':           'looting',
                                         'bags':            bags,
                                         'cashiers':        cashiers,
+                                        'guards':          guards,
                                         'dropoff':         {'x': drop_rc[1], 'y': drop_rc[0]},
                                         'bus':             {'x': HEIST_BUS_SPAWN_RC[1],
                                                             'y': HEIST_BUS_SPAWN_RC[0],
@@ -18567,6 +18660,12 @@ async def _coop_http_app():
                                                          'y': drop_rc[0]},
                                         'bag_value':    HEIST_BAG_VALUE,
                                         'cashiers':     list(cashiers),
+                                        'guards':       [{'id': g['id'],
+                                                          'x':  g['x'],
+                                                          'y':  g['y'],
+                                                          'ang': g['ang'],
+                                                          'hp':  g['hp'],
+                                                          'alive': True} for g in guards],
                                     }}, ensure_ascii=False)
                                     for u2 in parts:
                                         ws2 = world.connections.get(u2)
@@ -18670,6 +18769,36 @@ async def _coop_http_app():
                                    and str(h_p['bus'].get('driver_uid') or '') == str(uid):
                                 h_p['bus']['driver_uid'] = None
                             p['_in_heist_bus'] = 0
+                    elif t == 'heist_guard_hit':
+                        # Игрок стреляет в охранника банка. Валидация:
+                        # дистанция ≤ BANK_GUARD_RANGE+4, LOS. Урон —
+                        # из таблицы оружия (как у Майкла-охраны).
+                        p = world.players.get(uid)
+                        gid = (d or {}).get('guard_id') if isinstance(d, dict) else None
+                        weapon = ''
+                        if isinstance(d, dict):
+                            weapon = str(d.get('weapon') or '')
+                        if p and not p.get('dead') and gid:
+                            hid = int(p.get('_heist_id') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized') \
+                                   and str(uid) in (h.get('participants') or set()):
+                                gs = h.get('guards') or []
+                                g  = next((gg for gg in gs
+                                           if gg.get('id') == gid
+                                           and gg.get('alive')), None)
+                                if g:
+                                    dx = float(p.get('x', 0)) - float(g['x'])
+                                    dy = float(p.get('y', 0)) - float(g['y'])
+                                    if dx*dx + dy*dy <= (BANK_GUARD_RANGE + 4) ** 2 \
+                                           and _world_los(p['x'], p['y'],
+                                                          g['x'], g['y']):
+                                        dmg = max(5, min(150,
+                                            int(world.WEAPON_DMG.get(weapon, 25))))
+                                        g['hp'] = int(g['hp']) - dmg
+                                        if g['hp'] <= 0:
+                                            g['hp']    = 0
+                                            g['alive'] = False
                     elif t == 'heist_cashier_hit':
                         # Игрок стреляет в NPC-кассира банка. Сервер валидирует
                         # дистанцию и помечает мёртвым. Видно всем участникам
