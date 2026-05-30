@@ -3723,10 +3723,35 @@ function _bfsRoadPath(startR, startC, goalR, goalC) {
   return path;
 }
 
+// Проверка: занят ли впереди дорожный тайл другой машиной (CARS) или
+// другим спецтранспортом. Используется чтобы скорая/пожарка не въезжала
+// в пробку «сквозь» обычные тачки. Радиус 1.3 ≈ полу-длина корпуса +
+// небольшой зазор. Самого себя в проверку не включаем.
+function _vehicleBlockedByCar(v, r, c) {
+  if (typeof CARS !== 'undefined' && Array.isArray(CARS)) {
+    for (const car of CARS) {
+      if (!car) continue;
+      const dr = car.r - r, dc = car.c - c;
+      if (dr * dr + dc * dc < 1.3 * 1.3) return true;
+    }
+  }
+  if (Array.isArray(serviceVehicles)) {
+    for (const other of serviceVehicles) {
+      if (other === v) continue;
+      const dr = other.y - r, dc = other.x - c;
+      if (dr * dr + dc * dc < 1.3 * 1.3) return true;
+    }
+  }
+  return false;
+}
+
 // Один шаг машины службы по своему пути. Возвращает true когда машина
-// прибыла к финальной цели (с учётом «слезть с дороги» на последнем
-// сегменте). path — массив дорожных waypoint'ов, finalTarget — где
-// должна остановиться (на тротуаре/газоне у трупа).
+// прибыла к финальной цели. path — массив дорожных waypoint'ов;
+// финальный подъезд тоже ИДЁТ ПО ДОРОГЕ — спецтранспорт НЕ выезжает на
+// тротуар/газон. Иначе пожарка визуально режет сквозь газон или едет по
+// пешеходному тротуару — нереалистично. Цель работы (труп/тачка) обычно
+// рядом с дорогой; если нет — машина встаёт у ближайшего дорожного
+// тайла и работает «через капот».
 function _vehicleStep(v, dt) {
   const step = v.speed * dt;
   // Если идём по дорожному пути
@@ -3745,45 +3770,27 @@ function _vehicleStep(v, dt) {
     const k = Math.min(step, d) / d;
     const nx = v.x + dc * k;
     const ny = v.y + dr * k;
-    // Защита: не давать вылететь сквозь здание/арену. Если новая позиция
-    // попала в здание (t=1) — не двигаемся (BFS-путь корректен по дорогам,
-    // но при глюках карты этот предохранитель ловит баги).
-    if (_vehicleRoadPassable(ny, nx) || _vehicleOffroadPassable(ny, nx)) {
-      v.x = nx; v.y = ny;
-      v.ang = Math.atan2(dr, dc);
-    } else {
-      // Тайл заблокирован — пробуем добраться до waypoint боковым шагом.
-      // Если совсем заклинило, пропускаем waypoint (не повисаем).
+    // Жёсткая проверка: на пути ОБЯЗАН быть дорожный тайл. Никаких
+    // тротуаров — пожарка/скорая едет только по асфальту.
+    if (!_vehicleRoadPassable(ny, nx)) {
+      // Соседний тайл вне дороги — пропускаем waypoint (BFS гарантировал
+      // что путь по дороге, но на округлении тайла может на миг выйти).
       v.pathIdx++;
+      return false;
     }
-    return false;
-  }
-  // Последний участок — едем напрямую к точке (можно по тротуару/газону)
-  const ft = v.finalTarget;
-  if (!ft) return true;
-  const dr = ft.y - v.y, dc = ft.x - v.x;
-  const d = Math.hypot(dr, dc);
-  if (d < 0.5) return true;
-  const k = Math.min(step, d) / d;
-  const nx = v.x + dc * k;
-  const ny = v.y + dr * k;
-  if (_vehicleOffroadPassable(ny, nx)) {
+    // Впереди — другая машина? Тормозим (пробка), не въезжаем в неё.
+    if (_vehicleBlockedByCar(v, ny, nx)) {
+      // Стоим, поворачиваемся к цели — сирена снаружи мигает, водитель ждёт
+      v.ang = Math.atan2(dr, dc);
+      return false;
+    }
     v.x = nx; v.y = ny;
     v.ang = Math.atan2(dr, dc);
     return false;
   }
-  // Боковой обход на финальном участке
-  const sideR = -dc / d, sideC = dr / d;
-  const tries = [[sideR, sideC], [-sideR, -sideC]];
-  for (const [tdr, tdc] of tries) {
-    const ny2 = v.y + tdr * step, nx2 = v.x + tdc * step;
-    if (_vehicleOffroadPassable(ny2, nx2)) {
-      v.x = nx2; v.y = ny2;
-      v.ang = Math.atan2(tdr, tdc);
-      return false;
-    }
-  }
-  // Совсем заклинило — считаем что прибыли (труп всё равно рядом)
+  // Путь закончился — считаем что прибыли (стоим у ближайшего к цели
+  // дорожного тайла). Финальная работа (тушение/погрузка) идёт «через
+  // капот»: труп/тачка обычно в 2-3 тайлах от дороги.
   return true;
 }
 
@@ -3855,10 +3862,12 @@ function updateServiceVehicles(dt) {
   for (let i = serviceVehicles.length - 1; i >= 0; i--) {
     const v = serviceVehicles[i];
     if (v.state === 'done') { serviceVehicles.splice(i, 1); continue; }
-    // Безопасник: считаем сколько машина НЕ двигается. Если 6 сек подряд
-    // не сдвинулась — застряла (BFS пустой, путь блокирован) → done.
-    // Раньше тут было общее «живёт >25 сек» — на длинных маршрутах
-    // машина исчезала в пути.
+    // Безопасник: считаем сколько машина НЕ двигается. 14 сек подряд
+    // без движения — точно застряла (пробка не должна столько висеть,
+    // у обычных тачек _stuckT тоже триггерит респаун за 14с). Раньше
+    // было 6 сек — слишком мало, машина исчезала в реальной пробке.
+    // Состояние working/returning игнорим — машина работает или
+    // едет домой по построенному пути.
     const px = v._prevX, py = v._prevY;
     if (px != null && py != null) {
       const moved = Math.hypot(v.x - px, v.y - py);
@@ -3867,15 +3876,18 @@ function updateServiceVehicles(dt) {
       v._lastMoveT = now;
     }
     v._prevX = v.x; v._prevY = v.y;
-    if (now - v._lastMoveT > 6000) {
+    if (now - v._lastMoveT > 14000) {
       v.state = 'done';
       continue;
     }
     if (v.state === 'go_to_scene') {
-      // Если цель — труп, пересчитываем finalTarget на текущую позицию
-      // (труп мог сдвинуться от взрыва/тачки).
-      if (v.kind === 'ambulance' && v.payload.npc && !v.payload.npc._evacuated) {
-        v.finalTarget = { x: v.payload.npc.c, y: v.payload.npc.r };
+      // BFS не нашёл путь по дорогам (цель совсем без дороги рядом) —
+      // деспауним: спецтранспорт через бездорожье не ездит, и тыкаться
+      // в стены не имеет смысла. Это редкий кейс — точка явно
+      // некорректная для вызова.
+      if (!v.path || v.path.length === 0) {
+        v.state = 'done';
+        continue;
       }
       if (_vehicleStep(v, dt)) {
         v.state = 'working';
@@ -19824,9 +19836,11 @@ function render() {
     if (cop.y < r0 || cop.y >= r1 || cop.x < c0 || cop.x >= c1) continue;
     items.push({ depth: cop.y + cop.x + 0.0010, draw: () => drawCopNpc(cop) });
   }
-  // Спецтранспорт (скорая/пожарная)
+  // Спецтранспорт (скорая/пожарная). Расширенный viewport — корпус машины
+  // ~2 тайла длиной, если бы рисовали только когда центр в viewport,
+  // машина внезапно «пропадала» на 1-2 кадра при заезде в кадр.
   for (const v of serviceVehicles) {
-    if (v.y < r0 || v.y >= r1 || v.x < c0 || v.x >= c1) continue;
+    if (v.y < r0 - 2 || v.y >= r1 + 2 || v.x < c0 - 2 || v.x >= c1 + 2) continue;
     items.push({ depth: v.y + v.x + 0.0012, draw: () => drawServiceVehicle(v) });
   }
   // Собаки и кошки — небольшие зверюшки, рисуются на уровне ног
