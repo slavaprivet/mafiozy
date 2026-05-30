@@ -2059,6 +2059,11 @@ let _inBus = false;
 // Налётный автобус V2 (банковский heist) — отдельная сессия, позиция
 // синхронится с _heistV2.bus, а не с обычным BUS-маршрутчиком.
 let _inHeistBus = false;
+// Локальная скорость автобуса (только если я водитель). Симуляция
+// клиент-сайд, серверу шлём текущие x,y — он клампит шаг.
+let _heistBusVx = 0;
+let _heistBusVy = 0;
+let _lastHeistBusDriveSentAt = 0;
 // Текущее состояние контракта (приходит от gta_status/gta_take_reply)
 let myGtaStatus = { count_today: 0, limit: 2, reset_in_s: 0, sc_lvl: 0, active: null };
 // Кулдаун между запросами статуса (не дёргаем сервер каждый кадр)
@@ -3162,6 +3167,16 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     // Короткий предсмертный крик (если ещё не кричал — выставляем cryUntil)
     npc.cryText  = ['АА!', 'НЕТ!', 'ПОМО…'][Math.floor(Math.random()*3)];
     npc.cryUntil = performance.now() + 600;
+    // Серверный кассир банка — сразу сообщим серверу. Сервер валидирует
+    // дистанцию ≤6 тайл и пометит c.dead=true в общем snapshot (все
+    // участники увидят). Локальный dead уже выставлен выше — это
+    // оптимистичный эффект для стрелявшего.
+    if (npc._heistCashier && npc._heistCashierId) {
+      try {
+        ws && ws.send(JSON.stringify({ t: 'heist_cashier_hit',
+          d: { cashier_id: npc._heistCashierId } }));
+      } catch(e) {}
+    }
     // Если убитый — цель хит-контракта Бригадира — шлём серверу.
     // Стелс: рядом с точкой убийства нет НИКАКИХ копов в радиусе 12.
     // _copInRadius проверяет и worldCops (боевые), и cityCops (патруль) —
@@ -7317,6 +7332,23 @@ function handleEventPacket(d) {
     _bankBusyUntil = 0;
     pushFeedEvent('✅', 'Банк свободен — можно грабить',
                   { accent: '#3ec070' });
+  } else if (kind === 'heist_cashier_snitch') {
+    // Сервер сообщил: кассиры выжили и стучат. ★ уже прибавлены серверно.
+    // Локально — тост в духе магазинного снитча.
+    const cnt = +d.count | 0;
+    if (cnt > 0) {
+      showToast(`📞 Кассир(${cnt}) звонит копам — +${cnt}★`, '⚠️', 2600);
+      hapticHit();
+    }
+  } else if (kind === 'heist_bus_punctured') {
+    // Сервер замедлил автобус из-за кэмпа. Шлю всем участникам.
+    if (_bankHeistActive) {
+      if (_heistV2 && _heistV2.bus) _heistV2.bus.tires_punctured = true;
+      showEventBanner('💥 ШИНЫ ПРОБИТЫ',
+        'Долго стояли — копы проколи шины. Автобус еле тащит.',
+        3800, 'warn');
+      hapticHit();
+    }
   } else if (kind === 'shop_robbed') {
     // Broadcast всем — кто-то ограбил магазин в городе. В ленту,
     // не центральным баннером (онлайн событие, не моё).
@@ -8242,6 +8274,39 @@ let _heistV2 = null;
 // источник истины — bag.by === QP.uid, но локальный флаг даёт мгновенный
 // UX без ожидания snapshot.
 let _myHeistBagId = null;
+// Серверные кассиры банка — `_heistV2.cashiers` приходит в snapshot,
+// рендерим из него. Хиты валидирует сервер (heist_cashier_hit). При
+// финале с loot>0 живые делают snitch — на сервере же.
+function _syncHeistCashiersToLocal() {
+  if (!_heistV2 || typeof NPCS === 'undefined') return;
+  const list = _heistV2.cashiers || [];
+  const now = performance.now();
+  for (const c of list) {
+    if (!c || !c.id) continue;
+    let npc = NPCS.find(n => n && n._heistCashierId === c.id);
+    if (!npc) {
+      npc = {
+        r: +c.y, c: +c.x, tr: +c.y, tc: +c.x,
+        dead: false, panicUntil: 0, snitching: false, snitchUntil: 0,
+        cryUntil: 0, cryText: '',
+        speed: 1.4, hp: 30, hpMax: 30,
+        name: 'Кассир',
+        _cashier: true,
+        _heistCashier: true,
+        _heistCashierId: c.id,
+        skin: { shirt: '#3a82c8', pants: '#222', hair: '#222' },
+        idleUntil: now + 9999000,
+      };
+      NPCS.push(npc);
+    }
+    // Серверная истина мёртв-жив — но не реверс (если на сервере живой,
+    // а локально пометили dead из-за raycast, оставим dead до подтверждения).
+    if (c.dead && !npc.dead) {
+      npc.dead = true;
+      npc.deadAt = now;
+    }
+  }
+}
 
 function tryStartBankHeist() {
   if (_bankHeistActive) return;
@@ -8266,6 +8331,10 @@ function _onBankHeistStarted(d) {
     participants: d.participants || [],
   };
   _myHeistBagId = null;
+  // Кассиры приходят с сервером в d.cashiers (общий список — все
+  // участники видят одинаковых). Синхим в локальный NPCS.
+  _heistV2.cashiers = d.cashiers || [];
+  _syncHeistCashiersToLocal();
   showEventBanner('🏦 НАЛЁТ',
     `Тащи мешки в автобус и гони к схрону! ${_heistV2.bags.length} мешков, $${_heistV2.bag_value}/шт.`,
     4500, 'warn');
@@ -8276,8 +8345,22 @@ function _onHeistSnapshot(d) {
   if (!_heistV2 || !_bankHeistActive) return;
   if (+d.heist_id !== _bankHeistId) return;
   _heistV2.bags    = d.bags || _heistV2.bags;
-  _heistV2.bus     = d.bus  || _heistV2.bus;
+  if (d.bus) {
+    // Если я за рулём — позицию автобуса локально симулирую, серверный
+    // эхо-апдейт даёт джиттер. Берём только driver_uid/bags. Иначе —
+    // полностью серверная истина (автопилот или другой водитель).
+    const drv = d.bus.driver_uid;
+    const iDrive = drv != null && String(drv) === String(QP.uid);
+    if (iDrive && _heistV2.bus) {
+      _heistV2.bus.driver_uid = drv;
+      _heistV2.bus.bags       = +d.bus.bags | 0;
+    } else {
+      _heistV2.bus = d.bus;
+    }
+  }
   _heistV2.dropoff = d.dropoff || _heistV2.dropoff;
+  _heistV2.cashiers = d.cashiers || _heistV2.cashiers || [];
+  _syncHeistCashiersToLocal();
   _heistV2.loot    = +d.loot | 0;
   _heistV2.phase   = d.phase || _heistV2.phase;
   _heistV2.time_left = +d.time_left | 0;
@@ -8305,6 +8388,9 @@ function _onBankHeistFinished(d) {
   }
   showEventBanner(title, msg, 4500, loot > 0 ? 'win' : 'lose');
   hapticHit();
+  // Снитч кассиров обрабатывает сервер (heist_cashier_snitch) — клиенту
+  // ничего делать не нужно: на участников прилетит +★ к wanted напрямую,
+  // плюс event для тоста (обработчик ниже в onmessage).
   _heistV2 = null;
   _myHeistBagId = null;
 }
@@ -8536,12 +8622,25 @@ function updateGtaInteractions() {
     return;
   }
   if (_inBus) {
-    // На остановке — выходим к знаку, на ходу — выпрыгиваем.
-    _gtaActionKind = 'bus_exit';
-    _gtaActionCarId = null;
-    _gtaBtn.textContent = (BUS.state === 'stopped')
-      ? '🚪 Выйти на остановке'
-      : '🪂 Выпрыгнуть на ходу';
+    if (_inHeistBus) {
+      // Налётный автобус — выйти можно всегда; если phase='driving',
+      // это прыжок на ходу. Мешки в автобусе остаются.
+      _gtaActionKind = 'heist_bus_exit';
+      _gtaActionCarId = null;
+      const drv = (_heistV2 && _heistV2.bus && _heistV2.bus.driver_uid != null)
+        ? String(_heistV2.bus.driver_uid) : null;
+      const iDrive = drv && drv === String(QP.uid);
+      _gtaBtn.textContent = iDrive
+        ? '🪂 Выйти (бросить руль)'
+        : '🪂 Выйти из автобуса';
+    } else {
+      // Маршрутный — на остановке выходим к знаку, на ходу выпрыгиваем.
+      _gtaActionKind = 'bus_exit';
+      _gtaActionCarId = null;
+      _gtaBtn.textContent = (BUS.state === 'stopped')
+        ? '🚪 Выйти на остановке'
+        : '🪂 Выпрыгнуть на ходу';
+    }
     _gtaBtn.style.display = 'block';
     return;
   }
@@ -8818,6 +8917,20 @@ _gtaBtn.addEventListener('click', () => {
     enterBus();
   } else if (_gtaActionKind === 'bus_exit') {
     exitBus();
+  } else if (_gtaActionKind === 'heist_bus_exit') {
+    // Выходим из налётного автобуса. Координаты — текущая позиция автобуса
+    // плюс маленький офсет, чтобы не остаться на нём же. Серверу шлём
+    // heist_exit_bus — он снимет driver_uid (если я был водителем).
+    if (_heistV2 && _heistV2.bus) {
+      const bx = _heistV2.bus.x, by = _heistV2.bus.y;
+      player.r = by + 0.6; player.c = bx + 0.6;
+    }
+    _inBus = false;
+    _inHeistBus = false;
+    _heistBusVx = 0; _heistBusVy = 0;
+    try { ws && ws.send(JSON.stringify({ t: 'heist_exit_bus', d: {} })); } catch(e) {}
+    hapticHit();
+    showToast('🚌 Вышел из автобуса', 'ℹ️', 1600);
   } else if (_gtaActionKind === 'heist_pickup') {
     try {
       ws && ws.send(JSON.stringify({ t: 'heist_pickup_bag',
@@ -8832,19 +8945,25 @@ _gtaBtn.addEventListener('click', () => {
     _myHeistBagId = null;
     hapticHit();
   } else if (_gtaActionKind === 'heist_bus_enter') {
-    // Сесть в налётный автобус. Логика как в обычном _inBus, но с
-    // привязкой к серверной позиции автобуса (которая двигается сама,
-    // когда phase='driving'). Авто-переключение фазы делает сервер.
+    // Сесть в налётный автобус. Первый сел — водитель (рулит сам).
+    // Остальные — пассажиры (едут с автобусом). Серверный driver_uid
+    // придёт ближайшим snapshot'ом (~0.5с).
     if (_heistV2) {
       _inBus = true;
       _inHeistBus = true;
+      _heistBusVx = 0; _heistBusVy = 0;
+      _lastHeistBusDriveSentAt = 0;
       player.r = _heistV2.bus.y; player.c = _heistV2.bus.x;
       playEnterCarAnim(_heistV2.bus.y, _heistV2.bus.x);
       try {
         ws && ws.send(JSON.stringify({ t: 'heist_enter_bus', d: {} }));
       } catch(e) {}
       hapticHit();
-      showToast('🚌 В автобусе — автопилот к схрону', '✅', 2000);
+      // Если в автобусе ещё нет водителя — я им буду через ~0.5с по snapshot.
+      const hasDriver = _heistV2.bus && _heistV2.bus.driver_uid != null;
+      showToast(hasDriver
+        ? '🚌 В автобусе — пассажиром'
+        : '🚌 Ты за рулём — гони к схрону!', '✅', 2200);
     }
   }
 });
@@ -11543,15 +11662,61 @@ function update(dt) {
       if (!_heistV2) {
         _inBus = false; _inHeistBus = false;
       } else {
-        const bx = _heistV2.bus.x, by = _heistV2.bus.y;
-        // Угол — по направлению к dropoff (визуальный «куда едет»).
-        const dropAng = Math.atan2(_heistV2.dropoff.y - by,
-                                   _heistV2.dropoff.x - bx);
-        player.r = by; player.c = bx; player.ang = dropAng;
+        // Кто за рулём? Первый сел = водитель. Если я водитель — рулю
+        // локально и шлю heist_bus_drive ~15Гц. Иначе еду пассажиром
+        // по серверным координатам (автопилот или другой водитель).
+        const drvUid  = (_heistV2.bus && _heistV2.bus.driver_uid != null)
+                          ? String(_heistV2.bus.driver_uid) : null;
+        const iDrive  = drvUid && drvUid === String(QP.uid);
+        let bx, by, busAng;
+        if (iDrive) {
+          // Симуляция: input → vx, vy. Шлём heist_bus_drive.
+          // Если шины пробиты (анти-кэмп) — макс. скорость падает.
+          const punct = !!(_heistV2.bus && _heistV2.bus.tires_punctured);
+          const MAX_V = punct ? 2.7 : 6.0;
+          const ACC = punct ? 7.0 : 14.0;
+          const DEC = punct ? 9.0 : 18.0;
+          if (typeof _heistBusVx !== 'number') _heistBusVx = 0;
+          if (typeof _heistBusVy !== 'number') _heistBusVy = 0;
+          const tvx = inDx * MAX_V;
+          const tvy = inDy * MAX_V;
+          const useAcc = (Math.abs(inDx) + Math.abs(inDy) > 0.08) ? ACC : DEC;
+          const dvx = tvx - _heistBusVx;
+          const dvy = tvy - _heistBusVy;
+          _heistBusVx += Math.sign(dvx) * Math.min(Math.abs(dvx), useAcc * dt);
+          _heistBusVy += Math.sign(dvy) * Math.min(Math.abs(dvy), useAcc * dt);
+          const sp = Math.hypot(_heistBusVx, _heistBusVy);
+          if (sp > MAX_V) {
+            _heistBusVx *= MAX_V / sp; _heistBusVy *= MAX_V / sp;
+          }
+          bx = Math.max(1, Math.min(98, _heistV2.bus.x + _heistBusVx * dt));
+          by = Math.max(1, Math.min(98, _heistV2.bus.y + _heistBusVy * dt));
+          busAng = (sp > 0.2)
+            ? Math.atan2(_heistBusVy, _heistBusVx)
+            : (typeof _heistV2.bus.ang === 'number' ? _heistV2.bus.ang : 0);
+          _heistV2.bus.x = bx; _heistV2.bus.y = by; _heistV2.bus.ang = busAng;
+          // Throttle (~15 Гц как у обычной тачки)
+          if (!_lastHeistBusDriveSentAt) _lastHeistBusDriveSentAt = 0;
+          const nowMs = performance.now();
+          if (nowMs - _lastHeistBusDriveSentAt > 66) {
+            _lastHeistBusDriveSentAt = nowMs;
+            try {
+              ws && ws.send(JSON.stringify({ t: 'heist_bus_drive', d: {
+                x: +bx.toFixed(3), y: +by.toFixed(3), ang: +busAng.toFixed(3),
+              } }));
+            } catch(e) {}
+          }
+        } else {
+          bx = _heistV2.bus.x; by = _heistV2.bus.y;
+          busAng = (typeof _heistV2.bus.ang === 'number')
+            ? _heistV2.bus.ang
+            : Math.atan2(_heistV2.dropoff.y - by, _heistV2.dropoff.x - bx);
+        }
+        player.r = by; player.c = bx; player.ang = busAng;
         player.walking = false;
         // Камера за автобусом + look-ahead вперёд
-        const aimC = bx + Math.cos(dropAng) * 1.6;
-        const aimR = by + Math.sin(dropAng) * 1.6;
+        const aimC = bx + Math.cos(busAng) * 1.6;
+        const aimR = by + Math.sin(busAng) * 1.6;
         const targetCamX = (aimC - aimR) * TS * 0.5;
         const targetCamY = (aimC + aimR) * TS * 0.5 * ISO_Y;
         cam.x += (targetCamX - cam.x) * Math.min(1, dt * 6);
@@ -18296,6 +18461,11 @@ function drawHeistHud() {
   const timeColor = tleft < 30 ? '#ff5050' : '#9cf';
   ctx.fillStyle = timeColor;
   ctx.fillText(`⏱ ${mm}:${ss < 10 ? '0' + ss : ss}`, x + 8, y + 70);
+  // Индикатор прокола шин — справа от таймера, красным
+  if (_heistV2.bus && _heistV2.bus.tires_punctured) {
+    ctx.fillStyle = '#ff5050';
+    ctx.fillText('💥 шины пробиты', x + 80, y + 70);
+  }
   ctx.restore();
 }
 

@@ -3827,8 +3827,21 @@ BANK_HEIST_DAILY_LIMIT = 1
 HEIST_BAGS_COUNT     = 8              # сколько мешков спавним в сейфе
 HEIST_BAG_VALUE      = 500            # $ за мешок при доставке
 HEIST_BUS_SPAWN_RC   = (35, 43)       # автобус стартует чуть южнее банка
-HEIST_DROPOFF_RC     = (65, 50)       # точка сдачи — на юге, ~30 тайлов
+# Пул точек сдачи (рандом на старте). Раскиданы по карте — игрок не
+# знает заранее, куда ехать; подсмотрит метку только после старта.
+HEIST_DROPOFFS = [
+    (65, 50),    # юг — старая (склад у моря)
+    (62, 18),    # юго-запад — заброшенная стройка
+    (20, 70),    # северо-восток — закрытый рынок
+    (75, 75),   # юго-восток — гараж у участка (рискованно)
+]
+HEIST_DROPOFF_RC     = HEIST_DROPOFFS[0]   # default fallback
 HEIST_BUS_SPEED      = 6.0            # тайлов/сек на автопилоте
+# Анти-кэмп: если автобус в фазе driving стоит почти на месте >N сек —
+# копы прокалывают шины, скорость падает (driver и сервер замедляются).
+HEIST_BUS_CAMP_SEC   = 8.0            # сек на месте → шины
+HEIST_BUS_CAMP_R     = 1.2            # тайлов «почти не двигался»
+HEIST_BUS_SLOW_FACTOR= 0.45           # x0.45 скорости после прокола
 # Активные heist'ы в памяти: heist_id → {participants:set, started_at, finalized}
 _active_bank_heists = {}
 _bank_heist_next_id = 1
@@ -3844,6 +3857,28 @@ async def _heist_finalize(world, hid: int, h: dict, reason: str = 'done') -> Non
     loot = int(h.get('loot') or 0)
     parts = list(h.get('participants') or [])
     share = (loot // max(1, len(parts))) if loot > 0 else 0
+    # Свидетели: при успехе (loot>0) каждый живой кассир — +1★ всем
+    # участникам и event 'heist_cashier_snitch' для тоста на клиенте.
+    alive_cashiers = 0
+    if loot > 0 and reason != 'cancel':
+        for c in (h.get('cashiers') or []):
+            if not c.get('dead'):
+                alive_cashiers += 1
+        if alive_cashiers > 0:
+            for u in parts:
+                pp = world.players.get(u)
+                if pp:
+                    pp['_wanted'] = float(pp.get('_wanted') or 0) + alive_cashiers
+            snitch_pkt = json.dumps({'t': 'event', 'd': {
+                'kind':     'heist_cashier_snitch',
+                'heist_id': hid,
+                'count':    alive_cashiers,
+            }}, ensure_ascii=False)
+            for u in parts:
+                ws2 = world.connections.get(u)
+                if ws2:
+                    try: await ws2.send_str(snitch_pkt)
+                    except Exception: pass
     now_ts = int(time.time())
     for u in parts:
         if share > 0:
@@ -3937,9 +3972,11 @@ async def _tick_bank_heists(world) -> None:
             continue
         # Автобус — фаза driving
         bus = h.get('bus') or {}
+        drop = h.get('dropoff') or {'x': HEIST_DROPOFF_RC[1],
+                                    'y': HEIST_DROPOFF_RC[0]}
         if h.get('phase') == 'driving':
-            dx = HEIST_DROPOFF_RC[1] - bus['x']
-            dy = HEIST_DROPOFF_RC[0] - bus['y']
+            dx = float(drop['x']) - bus['x']
+            dy = float(drop['y']) - bus['y']
             d  = (dx*dx + dy*dy) ** 0.5
             if d < 1.5:
                 # Доехали — сдаём всё что в автобусе.
@@ -3952,15 +3989,53 @@ async def _tick_bank_heists(world) -> None:
                 await _heist_finalize(world, hid, h, reason='done')
                 to_remove.append(hid)
                 continue
-            # Едем
-            dt_tick = 0.1   # мировой tick шлёт snapshot ~10Hz
-            step = HEIST_BUS_SPEED * dt_tick
-            if step >= d:
-                bus['x'] = HEIST_DROPOFF_RC[1]
-                bus['y'] = HEIST_DROPOFF_RC[0]
-            else:
-                bus['x'] += dx * (step / d)
-                bus['y'] += dy * (step / d)
+            # Анти-кэмп: если автобус почти не двигается HEIST_BUS_CAMP_SEC —
+            # копы прокалывают шины. Скорость падает в HEIST_BUS_SLOW_FACTOR.
+            lmx = float(bus.get('_last_move_x') or bus['x'])
+            lmy = float(bus.get('_last_move_y') or bus['y'])
+            lmt = float(bus.get('_last_move_t') or now)
+            if ((bus['x'] - lmx) ** 2 + (bus['y'] - lmy) ** 2) ** 0.5 > HEIST_BUS_CAMP_R:
+                bus['_last_move_x'] = bus['x']
+                bus['_last_move_y'] = bus['y']
+                bus['_last_move_t'] = now
+            elif (not bus.get('tires_punctured')) and (now - lmt) > HEIST_BUS_CAMP_SEC:
+                bus['tires_punctured'] = True
+                # Локальный «пинг» участникам, чтобы клиент мог тостнуть.
+                punct_pkt = json.dumps({'t': 'event', 'd': {
+                    'kind':     'heist_bus_punctured',
+                    'heist_id': hid,
+                }}, ensure_ascii=False)
+                for _u in parts:
+                    _ws2 = world.connections.get(_u)
+                    if _ws2:
+                        try: await _ws2.send_str(punct_pkt)
+                        except Exception: pass
+            # Валидный водитель? Тогда позицию пишет клиент через
+            # heist_bus_drive — сервер не двигает (но клампит шаг при
+            # приёме). Иначе — автопилот к dropoff как и раньше.
+            drv_uid = bus.get('driver_uid')
+            drv_valid = False
+            if drv_uid:
+                dp = world.players.get(str(drv_uid))
+                if dp and not dp.get('dead') \
+                       and int(dp.get('_in_heist_bus') or 0) == hid \
+                       and (now - float(bus.get('last_input_t') or 0)) < 1.5:
+                    drv_valid = True
+                else:
+                    # Драйвер дисконнектнулся/умер/вышел — снимаем.
+                    bus['driver_uid'] = None
+            if not drv_valid:
+                # Автопилот
+                dt_tick = 0.1   # мировой tick шлёт snapshot ~10Hz
+                cur_speed = HEIST_BUS_SPEED * (HEIST_BUS_SLOW_FACTOR
+                                               if bus.get('tires_punctured') else 1.0)
+                step = cur_speed * dt_tick
+                if step >= d:
+                    bus['x'] = float(drop['x'])
+                    bus['y'] = float(drop['y'])
+                else:
+                    bus['x'] += dx * (step / d)
+                    bus['y'] += dy * (step / d)
         # Бродкаст snapshot раз в 0.5с
         last_snap = float(h.get('_last_snap') or 0)
         if now - last_snap > 0.5:
@@ -3982,8 +4057,16 @@ async def _tick_bank_heists(world) -> None:
                 'bags':        bags_pub,
                 'bus':         {'x': round(bus.get('x', 0), 2),
                                 'y': round(bus.get('y', 0), 2),
-                                'bags': int(bus.get('bags_inside') or 0)},
-                'dropoff':     {'x': HEIST_DROPOFF_RC[1], 'y': HEIST_DROPOFF_RC[0]},
+                                'ang': round(float(bus.get('ang') or 0.0), 3),
+                                'bags': int(bus.get('bags_inside') or 0),
+                                'driver_uid': bus.get('driver_uid'),
+                                'tires_punctured': bool(bus.get('tires_punctured'))},
+                'cashiers':    [{'id': c['id'],
+                                 'x':  round(float(c['x']), 2),
+                                 'y':  round(float(c['y']), 2),
+                                 'dead': bool(c.get('dead'))}
+                                for c in (h.get('cashiers') or [])],
+                'dropoff':     {'x': float(drop['x']), 'y': float(drop['y'])},
                 'loot':        int(h.get('loot') or 0),
                 'time_left':   max(0, int(h['end_at'] - now)),
             }}, ensure_ascii=False)
@@ -18423,6 +18506,23 @@ async def _coop_http_app():
                                             'state':'safe',     # safe | carried | loaded | delivered
                                             'by':   None,       # uid если carried
                                         })
+                                    # Рандомим точку сдачи из пула — игрок не
+                                    # знает заранее, куда ехать (увидит метку
+                                    # после старта).
+                                    drop_rc = random.choice(HEIST_DROPOFFS)
+                                    # Кассиры — общий серверный список (видны всем
+                                    # участникам одинаково). Если живы к финалу
+                                    # с loot>0 — снитч (+★ участникам).
+                                    cashiers = [
+                                        {'id': f'csh_{hid}_l',
+                                         'x':  BANK_POS_RC[1] - 0.7,
+                                         'y':  BANK_POS_RC[0],
+                                         'dead': False},
+                                        {'id': f'csh_{hid}_r',
+                                         'x':  BANK_POS_RC[1] + 0.7,
+                                         'y':  BANK_POS_RC[0],
+                                         'dead': False},
+                                    ]
                                     _active_bank_heists[hid] = {
                                         'participants':    parts,
                                         'started_at':      time.time(),
@@ -18430,9 +18530,18 @@ async def _coop_http_app():
                                         'finalized':       False,
                                         'phase':           'looting',
                                         'bags':            bags,
+                                        'cashiers':        cashiers,
+                                        'dropoff':         {'x': drop_rc[1], 'y': drop_rc[0]},
                                         'bus':             {'x': HEIST_BUS_SPAWN_RC[1],
                                                             'y': HEIST_BUS_SPAWN_RC[0],
-                                                            'bags_inside': 0},
+                                                            'bags_inside': 0,
+                                                            'driver_uid':  None,
+                                                            'last_input_t': 0.0,
+                                                            'ang':         0.0,
+                                                            'tires_punctured': False,
+                                                            '_last_move_t':    time.time(),
+                                                            '_last_move_x':    float(HEIST_BUS_SPAWN_RC[1]),
+                                                            '_last_move_y':    float(HEIST_BUS_SPAWN_RC[0])},
                                         'loot':            0,
                                         'bags_delivered':  0,
                                     }
@@ -18441,8 +18550,8 @@ async def _coop_http_app():
                                              'participants': list(parts),
                                              'bags_total':  HEIST_BAGS_COUNT,
                                              'bag_value':   HEIST_BAG_VALUE,
-                                             'dropoff':     {'x': HEIST_DROPOFF_RC[1],
-                                                             'y': HEIST_DROPOFF_RC[0]},
+                                             'dropoff':     {'x': drop_rc[1],
+                                                             'y': drop_rc[0]},
                                              'bus':         {'x': HEIST_BUS_SPAWN_RC[1],
                                                              'y': HEIST_BUS_SPAWN_RC[0]}}
                                     # Broadcast участникам — они откроют HUD/раскладку
@@ -18454,9 +18563,10 @@ async def _coop_http_app():
                                         'bags':         bags,
                                         'bus':          {'x': HEIST_BUS_SPAWN_RC[1],
                                                          'y': HEIST_BUS_SPAWN_RC[0]},
-                                        'dropoff':      {'x': HEIST_DROPOFF_RC[1],
-                                                         'y': HEIST_DROPOFF_RC[0]},
+                                        'dropoff':      {'x': drop_rc[1],
+                                                         'y': drop_rc[0]},
                                         'bag_value':    HEIST_BAG_VALUE,
+                                        'cashiers':     list(cashiers),
                                     }}, ensure_ascii=False)
                                     for u2 in parts:
                                         ws2 = world.connections.get(u2)
@@ -18544,10 +18654,75 @@ async def _coop_http_app():
                                     p['_in_heist_bus'] = hid
                                     if h.get('phase') == 'looting' and int(bus.get('bags_inside') or 0) > 0:
                                         h['phase'] = 'driving'
+                                    # Первый сел → он водитель. Иначе — пассажир.
+                                    if not bus.get('driver_uid'):
+                                        bus['driver_uid']   = str(uid)
+                                        bus['last_input_t'] = time.time()
                     elif t == 'heist_exit_bus':
                         p = world.players.get(uid)
                         if p:
+                            # Если выходил водитель — bus переходит на автопилот
+                            # (driver_uid=None). Любой следующий севший
+                            # автоматически становится новым водителем.
+                            hid_p = int(p.get('_in_heist_bus') or 0)
+                            h_p   = _active_bank_heists.get(hid_p)
+                            if h_p and isinstance(h_p.get('bus'), dict) \
+                                   and str(h_p['bus'].get('driver_uid') or '') == str(uid):
+                                h_p['bus']['driver_uid'] = None
                             p['_in_heist_bus'] = 0
+                    elif t == 'heist_cashier_hit':
+                        # Игрок стреляет в NPC-кассира банка. Сервер валидирует
+                        # дистанцию и помечает мёртвым. Видно всем участникам
+                        # в следующем snapshot. Анти-чит: ≤6 тайл.
+                        p = world.players.get(uid)
+                        cid = (d or {}).get('cashier_id') if isinstance(d, dict) else None
+                        if p and not p.get('dead') and cid:
+                            hid = int(p.get('_heist_id') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized') \
+                                   and str(uid) in (h.get('participants') or set()):
+                                cs = h.get('cashiers') or []
+                                c  = next((cc for cc in cs if cc.get('id') == cid), None)
+                                if c and not c.get('dead'):
+                                    dx = float(p.get('x', 0)) - float(c['x'])
+                                    dy = float(p.get('y', 0)) - float(c['y'])
+                                    if dx*dx + dy*dy < 36.0:   # ≤6 тайл
+                                        c['dead'] = True
+                    elif t == 'heist_bus_drive':
+                        # Водитель шлёт текущую позицию автобуса (~15 Гц).
+                        # Сервер клампит шаг, чтобы не телепортироваться.
+                        p = world.players.get(uid)
+                        if p and not p.get('dead') and isinstance(d, dict):
+                            hid = int(p.get('_in_heist_bus') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized') and h.get('phase') == 'driving':
+                                bus = h.get('bus') or {}
+                                if str(bus.get('driver_uid') or '') == str(uid):
+                                    try:
+                                        nx = float(d.get('x'))
+                                        ny = float(d.get('y'))
+                                        nang = float(d.get('ang') or 0.0)
+                                    except Exception:
+                                        nx = ny = nang = None
+                                    if nx is not None:
+                                        # Клампим: между присылами ≤200мс,
+                                        # макс. дистанция = HEIST_BUS_SPEED*2 = 12 тайл
+                                        # (запас на лаги). Внутри карты.
+                                        nx = max(1.0, min(98.0, nx))
+                                        ny = max(1.0, min(98.0, ny))
+                                        ox = float(bus.get('x') or 0)
+                                        oy = float(bus.get('y') or 0)
+                                        ddx = nx - ox; ddy = ny - oy
+                                        d2 = (ddx*ddx + ddy*ddy) ** 0.5
+                                        MAX_STEP = HEIST_BUS_SPEED * 2.0
+                                        if d2 > MAX_STEP:
+                                            k = MAX_STEP / d2
+                                            nx = ox + ddx * k
+                                            ny = oy + ddy * k
+                                        bus['x'] = nx
+                                        bus['y'] = ny
+                                        bus['ang'] = nang
+                                        bus['last_input_t'] = time.time()
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass
