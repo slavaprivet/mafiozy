@@ -7279,6 +7279,13 @@ function handleEventPacket(d) {
         showToast('🚫 Лимит налётов исчерпан (1/сутки)', '⏳', 3000);
       } else if (d.reason === 'in_heist') {
         showToast('🏦 Налёт уже идёт', 'ℹ️', 1600);
+      } else if (d.reason === 'busy') {
+        // Глобальный лок — другая группа уже взяла банк
+        const sec = Math.max(0, +d.resume_in_s | 0);
+        const mm = Math.floor(sec / 60);
+        const ss = sec % 60;
+        const tStr = mm > 0 ? `${mm}м ${ss}с` : `${ss}с`;
+        showToast(`🏦 Банк уже грабят — попробуй через ${tStr}`, '⏳', 3500);
       } else {
         showToast('❌ Не получилось начать налёт', '⚠️', 2000);
       }

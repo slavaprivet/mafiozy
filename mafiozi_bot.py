@@ -18324,11 +18324,25 @@ async def _coop_http_app():
                         # Кооп-налёт на банк. Стартует если ≥2 живых игрока
                         # в радиусе BANK_HEIST_RADIUS от BANK_POS_RC, и
                         # никто из участников не превысил лимит 1/24ч.
-                        # Помечаем им _heist_until — мировой tick их обработает.
+                        # ГЛОБАЛЬНЫЙ ЛОК: только ОДНА сессия в момент времени.
+                        # Иначе при большом онлайне несколько групп будут
+                        # видеть свои мешки/автобусы в одних и тех же
+                        # координатах, копы и трафик слипнутся в кашу.
                         p = world.players.get(uid)
                         reply = {'ok': False, 'reason': 'unknown'}
+                        # Проверка глобального лока
+                        active_busy = False
+                        active_remaining = 0
+                        for _hid_busy, _h_busy in _active_bank_heists.items():
+                            if not _h_busy.get('finalized'):
+                                active_busy = True
+                                active_remaining = max(0, int(_h_busy.get('end_at', 0) - time.time()))
+                                break
                         if not p or p.get('dead') or p.get('_mode') == 'pve':
                             reply = {'ok': False, 'reason': 'dead'}
+                        elif active_busy:
+                            reply = {'ok': False, 'reason': 'busy',
+                                     'resume_in_s': active_remaining}
                         elif p.get('_heist_until', 0) > time.time():
                             reply = {'ok': False, 'reason': 'in_heist'}
                         else:
