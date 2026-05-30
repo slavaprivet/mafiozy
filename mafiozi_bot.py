@@ -3812,10 +3812,11 @@ BRIGADIR_PAYOUT      = 400
 BRIGADIR_STEALTH_MUL = 2.0
 BRIGADIR_DAILY_LIMIT = 3
 
-# Банк — кооп-налёт на 2+ игроков. POI на тайле (30, 50), радиус подхода 4.
+# Банк — кооп-налёт на 2+ игроков. POI на тайле (33, 43), радиус подхода 4.
 # Длительность вскрытия — 20с. На старте каждому участнику ставится 4★
 # (приедет SWAT). При успехе — $2000 каждому, лимит 1/24ч на игрока.
-BANK_POS_RC          = (30, 50)
+# СИНХРОН с BANK_POS в world.html.
+BANK_POS_RC          = (33, 43)
 BANK_PAYOUT          = 2000
 BANK_HEIST_DURATION  = 20.0
 BANK_HEIST_RADIUS    = 4.0
@@ -18254,9 +18255,11 @@ async def _coop_http_app():
                                     for u2, pp in candidates:
                                         pp['_heist_until'] = end_t
                                         pp['_heist_id'] = hid
-                                        # Сразу 4★ — приедет SWAT
-                                        world._bump_wanted(pp,
-                                            max(4.0 - float(pp.get('_wanted') or 0), 1.0))
+                                        # Сразу не ниже 4★ — приедет SWAT.
+                                        # Прямой max (не _bump_wanted), чтобы у тех
+                                        # кто уже на 5★ не стало 6+.
+                                        pp['_wanted'] = max(float(pp.get('_wanted') or 0), 4.0)
+                                        pp['_last_shot_t'] = time.time()
                                         parts.add(str(u2))
                                     _active_bank_heists[hid] = {
                                         'participants': parts,

@@ -1869,7 +1869,9 @@ const POI = [
   // Особые POI
   { id: 'blackmarket', r:  6, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
   // Банк — кооп-налёт точка. Подходишь с напарником → кнопка «🏦 Налёт».
-  { id: 'bank',        r: 30, c: 50, icon: '🏦', name: 'Банк',         minLvl: 1, special: 'bank'  },
+  // r=33, c=43: тайл здания (r%10=3, c%10=3), не дорога, не пересекается
+  // с бизнесами и Бригадиром (43,34). СИНХРОН с BANK_POS_RC в mafiozi_bot.py.
+  { id: 'bank',        r: 33, c: 43, icon: '🏦', name: 'Банк',         minLvl: 1, special: 'bank'  },
   { id: 'arena',       r: 36, c: 66, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
   // Больница — северо-восточный квартал, на отдельном здании-квартале
   // (не на спавне). Серверный респаун рядом на дороге (см. HOSPITAL_X/Y).
@@ -5159,10 +5161,20 @@ function updateCars(dt) {
       _convoyNextAt = performance.now() + 5000;   // дороги заняты, попробуем позже
     }
   }
-  for (const car of CARS) {
+  for (let _ci = CARS.length - 1; _ci >= 0; _ci--) {
+    const car = CARS[_ci];
     // Парковочные тачки — статичные, не двигаются, не уезжают, не
     // респаунятся за границей карты. Только рисуются + угоняются по lockpick.
-    if (car.parked) { car.braking = false; continue; }
+    if (car.parked) {
+      car.braking = false;
+      // Исключение: «брошенная горящая» машина из случайного события —
+      // её надо убрать с карты по таймеру _respawnAt, иначе горит вечно.
+      if (car._streetFireEvent && car._respawnAt &&
+          performance.now() >= car._respawnAt) {
+        CARS.splice(_ci, 1);
+      }
+      continue;
+    }
     // Угон в процессе — стоит на месте, ждёт civilian_hijack_reply.
     // Failsafe: если сервер не ответил за 2с — сбрасываем флаг, машина
     // продолжит ездить как ни в чём не бывало (вероятно угон зафейлился
@@ -7945,7 +7957,7 @@ _zoneEl.addEventListener('click', () => {
 // POI на тайле (30, 50). Подходишь с напарником (оба в радиусе 4) →
 // 20-секундный таймер вскрытия сейфа. На старте обоим +4★ → SWAT.
 // Успех: +$2000 каждому. Лимит 1/24ч на игрока. Отмена при уходе/смерти.
-const BANK_POS = { r: 30, c: 50 };
+const BANK_POS = { r: 33, c: 43 };   // СИНХРОН с BANK_POS_RC в mafiozi_bot.py
 const BANK_PAYOUT_PREVIEW   = 2000;
 const BANK_HEIST_DURATION_S = 20;
 let _bankHeistActive = false;
@@ -10964,6 +10976,15 @@ function update(dt) {
   updateRobbery(performance.now());
   tickRandomWorldEvents(performance.now());
   _tickBankHeistUi(performance.now());
+  // Хит-цель умерла НЕ от моей пули (случайная авария / коп завалил /
+  // драка NPC-NPC из мирового события) — сбрасываем зависший контракт.
+  // Иначе игрок не сможет взять новый, пока сам не убьёт уже мёртвого.
+  if (_myHitContractActive && _myHitTargetNpc &&
+      (_myHitTargetNpc.dead || !NPCS.includes(_myHitTargetNpc))) {
+    _myHitContractActive = false;
+    _myHitTargetNpc = null;
+    showToast('🎯 Цель погибла без тебя — контракт сорван', 'ℹ️', 2400);
+  }
   updateExtinguishBtn();
   updateBoxThreat(dt);
   // Интерполяция чужих quest_cars (которые ведут другие игроки)
