@@ -3849,6 +3849,10 @@ BANK_GUARD_RANGE     = 10.0           # дальность выстрела (т�
 BANK_GUARD_DMG       = 18
 BANK_GUARD_CD        = 1.2            # сек между выстрелами одного охранника
 BANK_GUARD_MISS      = 0.30           # шанс промаха
+# Чёрный рынок — POI (r=6, c=36 в world.html). Сдавать угнанные тачки.
+BLACKMARKET_POS_RC   = (6, 36)
+BLACKMARKET_RADIUS   = 3.5            # тайлов «у POI»
+BLACKMARKET_CAR_RATIO= 0.6            # 60% от Майкл-reward (без квеста)
 # Активные heist'ы в памяти: heist_id → {participants:set, started_at, finalized}
 _active_bank_heists = {}
 _bank_heist_next_id = 1
@@ -18264,6 +18268,60 @@ async def _coop_http_app():
                                 )
                                 if witness_npc or cop_sees or player_sees:
                                     world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
+                    elif t == 'blackmarket_sell_car':
+                        # Игрок сдаёт угнанную (civilian) тачку на чёрном
+                        # рынке. Проверки: жив, рядом с POI, сидит за рулём
+                        # civilian-машины. Reward = 60% от Майкл-цены модели.
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        else:
+                            poi_r, poi_c = BLACKMARKET_POS_RC
+                            dxp = float(p.get('x', 0)) - poi_c
+                            dyp = float(p.get('y', 0)) - poi_r
+                            if (dxp*dxp + dyp*dyp) > (BLACKMARKET_RADIUS * BLACKMARKET_RADIUS):
+                                reply = {'ok': False, 'reason': 'too_far'}
+                            else:
+                                # Машина игрока: ищем quest_car где он driver_uid
+                                my_qc = None; my_cid = None
+                                for _cid, _qc in world.quest_cars.items():
+                                    if str(_qc.get('driver_uid') or '') == str(uid):
+                                        my_qc = _qc; my_cid = _cid; break
+                                if not my_qc:
+                                    reply = {'ok': False, 'reason': 'not_in_car'}
+                                elif not my_qc.get('civilian'):
+                                    # Майкл-квестовая — пусть сдаёт Майклу
+                                    reply = {'ok': False, 'reason': 'quest_car'}
+                                elif my_qc.get('wrecked'):
+                                    reply = {'ok': False, 'reason': 'wrecked'}
+                                else:
+                                    model = my_qc.get('model') or ''
+                                    mdef  = world.QUEST_CAR_MODELS.get(model) or {}
+                                    base  = int(mdef.get('reward') or 1000)
+                                    reward = max(100, int(base * BLACKMARKET_CAR_RATIO))
+                                    # Удаляем тачку и начисляем cash
+                                    world.quest_cars.pop(my_cid, None)
+                                    try:
+                                        async with aiosqlite.connect(DB_PATH) as db:
+                                            await db.execute(
+                                                "UPDATE characters SET cash = cash + ? "
+                                                "WHERE telegram_id = ?",
+                                                (reward, int(uid)))
+                                            await db.commit()
+                                    except Exception: pass
+                                    p['_cash'] = int(p.get('_cash', 0)) + reward
+                                    p['_gta_active_car_id'] = None
+                                    reply = {'ok': True, 'car_id': my_cid,
+                                             'model': model,
+                                             'reward': reward,
+                                             'label': str(mdef.get('label') or model)}
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply,
+                                                          kind='blackmarket_sell_car_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
                     elif t == 'shop_rob':
                         # Игрок ограбил магазин/бизнес: d = {biz_id}
                         # Серверная логика:
