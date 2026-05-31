@@ -5972,12 +5972,13 @@ const _FIREARM_DRAW = {
     c.fillStyle = '#1a1010'; c.fillRect(-3*sc, 1*sc, 4*sc, 7*sc);
   },
   smg: (c, sc) => {
-    c.fillStyle = '#1a1a20'; c.fillRect(-4*sc, -3*sc, 22*sc, 5*sc);
-    c.fillStyle = '#0a0a0c'; c.fillRect(16*sc, -4*sc, 5*sc, 2*sc);
-    c.fillStyle = '#2a2a32'; c.fillRect(2*sc, 2*sc, 4.5*sc, 11*sc);
-    c.fillStyle = '#1a1a20'; c.fillRect(13*sc, 1*sc, 3.5*sc, 6*sc);
+    // Укорочен: было 22+5 — выглядело как длинная палка в руке игрока,
+    // визуально слипалось с самой рукой. Теперь компактный SMG ~16+3.
+    c.fillStyle = '#1a1a20'; c.fillRect(-4*sc, -3*sc, 16*sc, 5*sc);
+    c.fillStyle = '#0a0a0c'; c.fillRect(11*sc, -4*sc, 3*sc, 2*sc);
+    c.fillStyle = '#2a2a32'; c.fillRect(1*sc, 2*sc, 4.5*sc, 9*sc);
     c.fillStyle = '#1a1010'; c.fillRect(-5*sc, 1*sc, 5*sc, 7*sc);
-    c.fillStyle = '#2a2a30'; c.fillRect(2*sc, -5*sc, 6*sc, 2*sc);
+    c.fillStyle = '#2a2a30'; c.fillRect(2*sc, -5*sc, 5*sc, 2*sc);
   },
   uzi: (c, sc) => {
     c.fillStyle = '#1a1a22'; c.fillRect(-4*sc, -3.5*sc, 14*sc, 6*sc);
@@ -11055,6 +11056,12 @@ function fire(angle = null) {
   // (на длинных rifle/sniper). Вспышка дула рисуется в той же точке.
   const wcfg = WEAPON_FX_CFG[currentWeapon] || {};
   const _shotAng = Math.atan2(dirY, dirX);
+  // Поворачиваем игрока ЛИЦОМ к цели на момент выстрела — иначе
+  // drawWeaponInHands рисует пушку по player.ang (направление бега),
+  // а muzzleWorldPoint считает дуло по _shotAng (направление на врага),
+  // и пуля вылетает не из видимого ствола. Особенно заметно при
+  // autoLock когда игрок бежит вбок и стреляет в чела позади.
+  player.ang = _shotAng;
   // Стартовая точка пули — РЕАЛЬНЫЙ кончик ствола, рассчитанный через
   // handAnchor + FIREARM_TIP в пикселях и переведённый обратно в мир.
   // Это гарантирует что пуля вылетает РОВНО из дула на экране, а не
@@ -20812,8 +20819,8 @@ const FIREARM_TIP = {
   pistol_gold: 18, golden_colt: 18,
   // Дробовики
   shotgun: 28, sawn_off: 14,
-  // SMG
-  smg: 22, uzi: 18, golden_uzi: 18, mp5: 22, ump: 24,
+  // SMG (smg укорочен в _FIREARM_DRAW: corpus 16 + ствол 3 = ~17)
+  smg: 17, uzi: 18, golden_uzi: 18, mp5: 22, ump: 24,
   // Авто
   tommy_gun: 22,
   rifle: 32, ak: 28, ak74: 28, m4: 28, m16: 30,
