@@ -23129,19 +23129,34 @@ function bakeMini() {
   }
 }
 
+// Счётчик последовательных exception'ов в update/render — если падает
+// каждый кадр, нет смысла спамить console; глушим после 10. Сбрасывается
+// в 0 при первом успешном кадре.
+let _frameErrStreak = 0;
 function frame() {
   const t = performance.now();
   let dt = (t - prevT) / 1000;
   prevT = t;
   if (dt > 0.1) dt = 0.1;
-  // Hit-stop: пока hitStopUntil не прошёл, пропускаем игровой update,
-  // но всё равно рендерим — это даёт визуальный фриз ~40-55мс при
-  // попадании в живую цель. Чувствуется как «вес» удара.
-  if (t < hitStopUntil) {
-    render();
-  } else {
-    update(dt);
-    render();
+  // КРИТИЧНО: если update()/render() выкинут exception, без try/catch
+  // requestAnimationFrame(frame) ниже не выполнится — кадр перестанет
+  // вызываться, мир застынет, стик перестанет реагировать. Симптом:
+  // «играю, потом всё зависло, ничего не могу сделать». Обёртка ловит
+  // ошибку и продолжает loop — игрок видит, что мир «дёрнулся» (один
+  // потерянный кадр), но игра не умирает.
+  try {
+    if (t < hitStopUntil) {
+      render();
+    } else {
+      update(dt);
+      render();
+    }
+    _frameErrStreak = 0;
+  } catch (e) {
+    _frameErrStreak++;
+    if (_frameErrStreak < 10) {
+      console.error('[frame] caught exception:', e && e.stack || e);
+    }
   }
   requestAnimationFrame(frame);
 }
