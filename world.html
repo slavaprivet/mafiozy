@@ -21737,7 +21737,15 @@ function _autoLockThreat(kind, shooterId) {
     return;
   }
   // Проверяем что цель ещё живая. Если getPos() = null — нет смысла лочить.
-  if (!getPos()) return;
+  const pos0 = getPos();
+  if (!pos0) return;
+  // Проверка дистанции — не лочим врага если он ВНЕ радиуса стрельбы.
+  // Раньше: коп стрелял в меня с 18 тайл (прилёт пули по баллистике),
+  // _autoLockThreat ставил лок, applyTargetLockToAim тянул прицел на
+  // него → выстрелы уходили в пустоту т.к. дистанция > FIRE_R_CONVOY.
+  // Симптом из видео: множество LOCK-маркеров на дальних целях.
+  const _ddR = pos0.r - player.r, _ddC = pos0.c - player.c;
+  if (Math.hypot(_ddR, _ddC) > FIRE_R_CONVOY) return;
   const entry = _lockTargetEntry(kind, shooterId, getPos, getName);
   const id = _lockId(entry);
   const now = performance.now();
@@ -22092,6 +22100,12 @@ function drawTargetLock() {
 }
 // Корректирует (dirX, dirY) в сторону locked-цели если она в пределах
 // конуса ±TARGET_LOCK_HALF_ANGLE. Иначе возвращает исходные значения.
+// КРИТИЧНО: цель должна быть в FIRE_R_CONVOY (≤9.5 тайл). Без этой
+// проверки lock-on прилипал к врагу за 18 тайлов (например коп
+// который стрелял в меня и я успел убежать), прицел корректировался
+// на дальнюю цель, но spawnFire считал noTarget=true т.к. дистанция
+// > FIRE_R → пуля летит «в пустоту», урон НЕ наносится. Симптом:
+// «не могу нанести урон, всё работает, но HP не падает».
 function applyTargetLockToAim(dirX, dirY) {
   const tgt = getActiveTarget();
   if (!tgt) return { dirX, dirY };
@@ -22099,6 +22113,7 @@ function applyTargetLockToAim(dirX, dirY) {
   if (!pos) return { dirX, dirY };
   const dx = pos.c - player.c, dy = pos.r - player.r;
   const d = Math.hypot(dx, dy) || 1;
+  if (d > FIRE_R_CONVOY) return { dirX, dirY };
   const tx = dx / d, ty = dy / d;
   const dot = dirX * tx + dirY * ty;
   if (dot < Math.cos(TARGET_LOCK_HALF_ANGLE)) return { dirX, dirY };
