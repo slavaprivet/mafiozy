@@ -18402,51 +18402,83 @@ async def _coop_http_app():
                     elif t == 'brigadir_kill':
                         # Игрок убил цель из хит-контракта Бригадира.
                         # d = {stealth: bool} — если выстрел не видел никто из копов.
-                        # Сервер начисляет фикс-сумму (×2 при стелсе) и пишет в
-                        # brigadir_kills — для лимита 3/24ч.
+                        # НЕ ПЛАТИМ сразу — кладём награду в pending и ждём пока
+                        # игрок вернётся к Бригадиру и пришлёт brigadir_claim.
+                        # Так Бригадир-флоу = «взял → убил → пришёл назад → деньги».
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        elif p.get('_brigadir_pending'):
+                            reply = {'ok': False, 'reason': 'already_pending'}
+                        else:
+                            stealth = bool(d.get('stealth') if isinstance(d, dict) else False)
+                            reward = int(BRIGADIR_PAYOUT
+                                         * (BRIGADIR_STEALTH_MUL if stealth else 1.0))
+                            p['_brigadir_pending'] = {
+                                'reward': reward,
+                                'stealth': stealth,
+                                't': int(time.time()),
+                            }
+                            reply = {'ok': True, 'reward': reward,
+                                     'stealth': stealth,
+                                     'claim_at_brigadir': True}
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event',
+                                 'd': dict(reply, kind='brigadir_kill_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'brigadir_claim':
+                        # Игрок вернулся к Бригадиру за наградой. Платим cash,
+                        # пишем в brigadir_kills (для лимита 3/24ч), чистим pending.
                         p = world.players.get(uid)
                         reply = {'ok': False, 'reason': 'unknown'}
                         if not p or p.get('dead') or p.get('_mode') == 'pve':
                             reply = {'ok': False, 'reason': 'dead'}
                         else:
-                            stealth = bool(d.get('stealth') if isinstance(d, dict) else False)
-                            now_ts = int(time.time())
-                            # Проверим что лимит не превышен (anti-cheat)
-                            cnt = 0
-                            try:
-                                async with aiosqlite.connect(DB_PATH) as db:
-                                    cur = await db.execute(
-                                        "SELECT COUNT(*) FROM brigadir_kills "
-                                        "WHERE uid=? AND t > ?",
-                                        (int(uid), now_ts - 86400))
-                                    row = await cur.fetchone()
-                                    if row: cnt = int(row[0])
-                            except Exception: pass
-                            if cnt >= BRIGADIR_DAILY_LIMIT:
-                                reply = {'ok': False, 'reason': 'limit'}
+                            pending = p.get('_brigadir_pending')
+                            if not pending:
+                                reply = {'ok': False, 'reason': 'no_pending'}
                             else:
-                                reward = int(BRIGADIR_PAYOUT
-                                             * (BRIGADIR_STEALTH_MUL if stealth else 1.0))
-                                try:
-                                    async with aiosqlite.connect(DB_PATH) as db:
-                                        await db.execute(
-                                            "UPDATE characters SET cash = cash + ? "
-                                            "WHERE telegram_id = ?",
-                                            (reward, int(uid)))
-                                        await db.execute(
-                                            "INSERT INTO brigadir_kills "
-                                            "(uid, t, stealth, reward) VALUES (?,?,?,?)",
-                                            (int(uid), now_ts, 1 if stealth else 0,
-                                             reward))
-                                        await db.commit()
-                                except Exception: pass
-                                reply = {'ok': True, 'reward': reward,
-                                         'stealth': stealth,
-                                         'left': max(0, BRIGADIR_DAILY_LIMIT - cnt - 1)}
+                                poi_r, poi_c = BRIGADIR_POS_RC
+                                dx = float(p.get('x', 0)) - poi_c
+                                dy = float(p.get('y', 0)) - poi_r
+                                if dx*dx + dy*dy > 9.0:
+                                    reply = {'ok': False, 'reason': 'too_far'}
+                                else:
+                                    reward = int(pending.get('reward') or BRIGADIR_PAYOUT)
+                                    stealth = bool(pending.get('stealth'))
+                                    now_ts = int(time.time())
+                                    try:
+                                        async with aiosqlite.connect(DB_PATH) as db:
+                                            await db.execute(
+                                                "UPDATE characters SET cash = cash + ? "
+                                                "WHERE telegram_id = ?",
+                                                (reward, int(uid)))
+                                            await db.execute(
+                                                "INSERT INTO brigadir_kills "
+                                                "(uid, t, stealth, reward) VALUES (?,?,?,?)",
+                                                (int(uid), now_ts, 1 if stealth else 0,
+                                                 reward))
+                                            await db.commit()
+                                            # Пересчёт left после записи новой строки
+                                            cur = await db.execute(
+                                                "SELECT COUNT(*) FROM brigadir_kills "
+                                                "WHERE uid=? AND t > ?",
+                                                (int(uid), now_ts - 86400))
+                                            row = await cur.fetchone()
+                                            cnt = int(row[0]) if row else 0
+                                    except Exception:
+                                        cnt = 0
+                                    p['_brigadir_pending'] = None
+                                    reply = {'ok': True, 'reward': reward,
+                                             'stealth': stealth,
+                                             'left': max(0, BRIGADIR_DAILY_LIMIT - cnt)}
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event',
-                                 'd': dict(reply, kind='brigadir_kill_reply')},
+                                 'd': dict(reply, kind='brigadir_claim_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
                     elif t == 'citycop_arrest':

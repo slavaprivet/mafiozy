@@ -7303,16 +7303,45 @@ function handleEventPacket(d) {
       showToast('❌ Бригадир не дал контракт', '⚠️', 2000);
     }
   } else if (kind === 'brigadir_kill_reply') {
-    // Сервер начислил награду за хит. Toast + сброс активного контракта.
+    // Сервер зафиксировал убийство цели, но НЕ заплатил. Награда висит
+    // в pending, пока игрок не вернётся к Бригадиру и не нажмёт «Забрать».
+    if (d.ok) {
+      const r = +d.reward | 0;
+      const stealthTag = d.stealth ? ' (стелс ×2)' : '';
+      _myBrigadirReward = { reward: r, stealth: !!d.stealth };
+      showEventBanner(
+        '🎯 Цель завалена!',
+        `Возвращайся к Бригадиру — он выдаст куш $${r}${stealthTag}.`,
+        4500, 'win');
+    } else if (d.reason === 'already_pending') {
+      // На случай рассинхрона — у сервера уже есть невыданная награда
+      showToast('🏆 У Бригадира уже ждёт твоя награда — забери её', 'ℹ️', 2400);
+    }
+    // Цель «использована» — сама цель сбросится через 'aggro_hit'/dead,
+    // активный контракт = false, но pending reward живёт до claim.
+    _myHitContractActive = false;
+    _myHitTargetNpc = null;
+  } else if (kind === 'brigadir_claim_reply') {
+    // Бригадир выдал куш — банкнотный baner + плюсик cash в HUD.
     if (d.ok) {
       const r = +d.reward | 0;
       const left = +d.left | 0;
       const stealthTag = d.stealth ? ' (стелс ×2)' : '';
-      showToast(`💵 Хит выполнен: +$${r}${stealthTag}. Контрактов: ${left}/сутки`,
-                '🎯', 3500);
+      _myBrigadirReward = null;
+      myCash += r; updateMoneyHud();
+      spawnFloatText(player.r, player.c, '+$' + r, {
+        color: '#ffd76b', size: 22, life: 2000,
+      });
+      showEventBanner(
+        '💵 «Молодец, перспективный боец»',
+        `+$${r}${stealthTag} от Бригадира. Контрактов: ${left}/сутки.`,
+        5000, 'win');
+    } else if (d.reason === 'too_far') {
+      showToast('🚶 Подойди ближе к Бригадиру', '⚠️', 1800);
+    } else if (d.reason === 'no_pending') {
+      _myBrigadirReward = null;   // рассинхрон — у сервера ничего нет
+      showToast('Нет невыданной награды', 'ℹ️', 1600);
     }
-    _myHitContractActive = false;
-    _myHitTargetNpc = null;
   } else if (kind === 'citycop_arrest_reply') {
     // NPC-патрульный схватил тебя на улице (wanted ≥ 1). Сервер посадил
     // в тюрьму, обнулил звёзды. Локально — тост + showArrestOverlay.
@@ -8531,6 +8560,9 @@ const BRIGADIR_POS = { r: 43, c: 34 };
 const BRIGADIR_PAYOUT_PREVIEW = 400;
 let _myHitTargetNpc = null;   // ссылка на помеченного NPC (если есть)
 let _myHitContractActive = false;
+// После убийства цели — pending награда до возврата к Бригадиру.
+// { reward, stealth }. null = нечего получать. См. brigadir_kill_reply.
+let _myBrigadirReward = null;
 
 function _pickHitTargetNear(srcR, srcC) {
   // Случайный живой NPC в кольце 8..25 от bri (не кассир, не цель уже,
@@ -8547,6 +8579,10 @@ function _pickHitTargetNear(srcR, srcC) {
 }
 
 function takeBrigadirContract() {
+  if (_myBrigadirReward) {
+    showToast('🏆 Сначала забери награду за прошлый контракт', '⚠️', 2200);
+    return;
+  }
   if (_myHitContractActive) {
     showToast('🎯 У тебя уже есть активный контракт', '⚠️', 1800);
     return;
@@ -8554,6 +8590,15 @@ function takeBrigadirContract() {
   const wsReady = !!(ws && ws.readyState === 1);
   if (!wsReady) { showToast('🌐 Нет соединения', '⚠️', 1600); return; }
   try { ws.send(JSON.stringify({ t: 'brigadir_take', d: {} })); } catch(e) {}
+}
+function claimBrigadirReward() {
+  if (!_myBrigadirReward) {
+    showToast('Нет невыданной награды', 'ℹ️', 1600);
+    return;
+  }
+  const wsReady = !!(ws && ws.readyState === 1);
+  if (!wsReady) { showToast('🌐 Нет соединения', '⚠️', 1600); return; }
+  try { ws.send(JSON.stringify({ t: 'brigadir_claim', d: {} })); } catch(e) {}
 }
 
 // ── Ограбление магазинов/бизнесов ──────────────────────────────────
@@ -8783,15 +8828,24 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
-  // Бригадир — хит-контракты. Подошёл → кнопка «Взять контракт».
+  // Бригадир — хит-контракты. Подошёл → 1 из 3 состояний:
+  //   • есть pending награда       → 🏆 «Забрать награду $X»
+  //   • активный контракт          → 🎯 «иди убей» (кнопка-инфо)
+  //   • ничего                     → 👔 «Взять контракт ($400)»
   const dbR = BRIGADIR_POS.r - player.r;
   const dbC = BRIGADIR_POS.c - player.c;
   if (Math.hypot(dbR, dbC) <= GTA_INTERACT_R) {
-    _gtaActionKind = 'brigadir';
-    _gtaActionCarId = null;
-    _gtaBtn.textContent = _myHitContractActive
-      ? '🎯 Контракт уже взят — иди убей'
-      : `👔 Взять контракт ($${BRIGADIR_PAYOUT_PREVIEW})`;
+    if (_myBrigadirReward) {
+      _gtaActionKind = 'brigadir_claim';
+      _gtaActionCarId = null;
+      _gtaBtn.textContent = `🏆 Забрать награду ($${_myBrigadirReward.reward})`;
+    } else {
+      _gtaActionKind = 'brigadir';
+      _gtaActionCarId = null;
+      _gtaBtn.textContent = _myHitContractActive
+        ? '🎯 Контракт уже взят — иди убей'
+        : `👔 Взять контракт ($${BRIGADIR_PAYOUT_PREVIEW})`;
+    }
     _gtaBtn.style.display = 'block';
     return;
   }
@@ -9027,6 +9081,8 @@ _gtaBtn.addEventListener('click', () => {
     openBlackmarketShop();
   } else if (_gtaActionKind === 'brigadir') {
     takeBrigadirContract();
+  } else if (_gtaActionKind === 'brigadir_claim') {
+    claimBrigadirReward();
   } else if (_gtaActionKind === 'bank_heist') {
     tryStartBankHeist();
   } else if (_gtaActionKind === 'bank_busy') {
@@ -18537,23 +18593,87 @@ function drawBrigadir() {
   ctx.textAlign = 'left';
 }
 
-// HUD-маркер «🎯» над активной хит-целью + стрелка к экрану если цель
-// за пределами view. Рисуется поверх всего после restore.
-function drawHitTargetMarker() {
-  if (!_myHitContractActive || !_myHitTargetNpc) return;
-  const n = _myHitTargetNpc;
-  if (!n || n.dead) { _myHitContractActive = false; _myHitTargetNpc = null; return; }
-  const p = w2s(n.r + 0.5, n.c + 0.5);
-  const t = performance.now() * 0.005;
-  const bob = Math.sin(t * 3) * 3;
+// Универсальная edge-стрелка: если мировая точка (r,c) вне видимого
+// viewport — рисует на ближайшей грани экрана иконку с пульсацией и
+// дистанцией. icon — emoji, accent — цвет ободка/glow.
+function _drawEdgeArrowToWorld(r, c, icon, accent) {
+  const stage = document.getElementById('stage');
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const sp = w2s(r + 0.5, c + 0.5);
+  const PAD = 50;
+  const visible = sp.x >= PAD && sp.x <= W - PAD && sp.y >= PAD && sp.y <= H - PAD;
+  if (visible) return false;
+  const cx = W / 2, cy = H / 2;
+  const dx = sp.x - cx, dy = sp.y - cy;
+  const xMin = PAD, xMax = W - PAD, yMin = PAD, yMax = H - PAD;
+  let tEdge = Infinity;
+  if (dx > 0) tEdge = Math.min(tEdge, (xMax - cx) / dx);
+  if (dx < 0) tEdge = Math.min(tEdge, (xMin - cx) / dx);
+  if (dy > 0) tEdge = Math.min(tEdge, (yMax - cy) / dy);
+  if (dy < 0) tEdge = Math.min(tEdge, (yMin - cy) / dy);
+  const ax = cx + tEdge * dx, ay = cy + tEdge * dy;
+  const pulse = (Math.sin(performance.now() * 0.012) + 1) * 0.5;
+  const dist  = Math.hypot(r - player.r, c - player.c);
   ctx.save();
-  ctx.font = '22px system-ui, "Segoe UI Emoji", sans-serif';
-  ctx.textAlign = 'center';
+  ctx.translate(ax, ay);
+  ctx.rotate(Math.atan2(dy, dx));
+  ctx.shadowColor = accent; ctx.shadowBlur = 14 + pulse * 10;
+  ctx.fillStyle = 'rgba(20,10,10,.92)';
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(0, 0, 19, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.moveTo(13, 0); ctx.lineTo(0, -8); ctx.lineTo(0, 8); ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.font = '15px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff';
-  ctx.shadowColor = '#ff3030'; ctx.shadowBlur = 12;
-  ctx.fillText('🎯', p.x, p.y - 50 + bob);
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText(icon, ax, ay);
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.fillStyle = accent;
+  ctx.fillText(Math.round(dist) + 'м', ax, ay + 24);
   ctx.shadowBlur = 0;
   ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  return true;
+}
+
+// HUD-маркер «🎯» над активной хит-целью + edge-стрелка к ней если цель
+// за пределами view. Плюс edge-стрелка обратно к Бригадиру когда есть
+// невыданная награда — иначе игрок «теряется» после убийства и не знает
+// что куш надо забирать.
+function drawHitTargetMarker() {
+  if (_myHitContractActive && _myHitTargetNpc) {
+    const n = _myHitTargetNpc;
+    if (!n || n.dead) { _myHitContractActive = false; _myHitTargetNpc = null; }
+    else {
+      const p = w2s(n.r + 0.5, n.c + 0.5);
+      const tNow = performance.now() * 0.005;
+      const bob = Math.sin(tNow * 3) * 3;
+      ctx.save();
+      ctx.font = '22px system-ui, "Segoe UI Emoji", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = '#ff3030'; ctx.shadowBlur = 12;
+      ctx.fillText('🎯', p.x, p.y - 50 + bob);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      // Если цель за экраном — указываем грани куда смотреть
+      _drawEdgeArrowToWorld(n.r, n.c, '🎯', '#ff5050');
+    }
+  }
+  // Pending награда — стрелка-указатель на Бригадира, чтобы игрок
+  // понял что куш ждёт его обратно (после убийства цели легко уйти
+  // в другой конец карты и забыть про деньги).
+  if (_myBrigadirReward) {
+    _drawEdgeArrowToWorld(BRIGADIR_POS.r, BRIGADIR_POS.c, '🏆', '#ffd76b');
+  }
 }
 
 // ── Зона сдачи угнанных машин ────────────────────────────────────
