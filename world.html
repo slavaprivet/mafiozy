@@ -3155,6 +3155,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     npc.deadAt = performance.now();
     // Большой splat крови на месте смерти + взрыв-фонтан частиц по сторонам
     for (let i = 0; i < 6; i++) {
+      _capArr(bloodSplats, _MAX_BLOOD);
       bloodSplats.push({
         r: npc.r + (Math.random() - 0.5) * 0.7,
         c: npc.c + (Math.random() - 0.5) * 0.7,
@@ -3176,6 +3177,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
         size: 2.0 + Math.random() * 2.0,
       });
     }
+    _capArr(impacts, _MAX_IMPACTS);
     impacts.push({ r: npc.r, c: npc.c, parts });
     // Короткий предсмертный крик (если ещё не кричал — выставляем cryUntil)
     npc.cryText  = ['АА!', 'НЕТ!', 'ПОМО…'][Math.floor(Math.random()*3)];
@@ -4712,8 +4714,8 @@ const QUEST_CAR_MODELS = {
   // Мотоциклы — узкий длинный корпус, открытый (без крыши), 2 колеса.
   // Рисуются через drawBike (forks из drawQuestCar). Lock_lvl=0 — ключи
   // в зажигании, угоняются мгновенно. Cash меньше тачек.
-  harley_chopper: { id: 'harley_chopper', label: 'Harley Chopper',  L: 1.45, W: 0.42, palette: ['#1a1a22','#0a0a10'], roof: '#1a1a22', wheelR: 0.18, height: 0.42, reward: 1200, is_bike: true },
-  ducati_750:     { id: 'ducati_750',     label: 'Ducati 750',      L: 1.30, W: 0.40, palette: ['#cc1a1a','#660808'], roof: '#1a0a0a', wheelR: 0.16, height: 0.40, reward: 1400, is_bike: true, fast: true },
+  harley_chopper: { id: 'harley_chopper', label: 'Harley Chopper',  L: 1.85, W: 0.55, palette: ['#3a3a48','#15151c'], roof: '#0a0a10', wheelR: 0.24, height: 0.50, reward: 1200, is_bike: true },
+  ducati_750:     { id: 'ducati_750',     label: 'Ducati 750',      L: 1.70, W: 0.52, palette: ['#e62018','#7a0c0c'], roof: '#1a0a0a', wheelR: 0.22, height: 0.48, reward: 1400, is_bike: true, fast: true },
 };
 // Полицейские модели — отдельный pool, используется ТОЛЬКО для патрулей
 // и спецсобытий (не спавнятся как обычные машины). Эти модели имеют
@@ -6181,6 +6183,14 @@ const shells  = [];       // {x,y,vx,vy,vz,z,rot,vrot,life,max}
 const impacts = [];       // {r,c,parts:[{vr,vc,life,max,color,isBlood,size}]}
 // Пятна крови на земле — splat-ы живут 8 сек после попадания.
 const bloodSplats = [];   // {r,c,radius,life,max,rot}
+// Жёсткие потолки массивов visual-эффектов: в долгой перестрелке (банда
+// + копы шлют десятки 'aggro_shot'/'cop_shot' пакетов в секунду) без
+// капов impacts/bloodSplats/bullets разрастаются до тысяч и фризят
+// рендер. Спавнеры дропают самое старое если упёрлись в лимит.
+const _MAX_BULLETS = 80, _MAX_IMPACTS = 24, _MAX_BLOOD = 60,
+      _MAX_MUZZLES = 40, _MAX_SHOCKW = 40, _MAX_SMOKE = 60,
+      _MAX_SHELLS = 60;
+function _capArr(arr, cap) { if (arr.length >= cap) arr.shift(); }
 // Тормозные следы — два чёрных штриха от задних колёс при резком повороте
 // или жёстком тормозе на скорости. Затухают за 6 секунд.
 // {r, c, ang, life, max}
@@ -6221,6 +6231,7 @@ function spawnSmokePuff(r, c, angle) {
   for (let i = 0; i < 2; i++) {
     const a = angle + (Math.random() - 0.5) * 0.7;
     const sp = 0.6 + Math.random() * 0.5;
+    _capArr(smokePuffs, _MAX_SMOKE);
     smokePuffs.push({
       r, c,
       vr: Math.sin(a) * sp * 0.4 - 0.3,   // чуть вверх (отриц. vr = вверх в иксометрии)
@@ -6232,6 +6243,7 @@ function spawnSmokePuff(r, c, angle) {
 }
 function spawnShockwave(r, c, opts) {
   opts = opts || {};
+  _capArr(shockwaves, _MAX_SHOCKW);
   shockwaves.push({
     r, c,
     rad: opts.rad0 || 4,
@@ -6285,9 +6297,16 @@ function hapticHit() {
 function spawnBullet(sr, sc, er, ec, opts) {
   opts = opts || {};
   const dr = er - sr, dc = ec - sc;
-  const dist = Math.hypot(dr, dc) || 0.001;
+  const rawDist = Math.hypot(dr, dc);
+  // Защита от «бессмертной» пули: если src ≈ dst (дегенеративный шот —
+  // например, бот стоит вплотную к игроку или сервер прислал кривой
+  // pkt), без этого vr/vc = 0 и b.dist никогда не дорастёт до maxDist
+  // → пуля висит в bullets навсегда и тормозит рендер.
+  if (!isFinite(rawDist) || rawDist < 0.05) return;
+  const dist = rawDist;
   const speed = opts.speed || BULLET_SPEED;
   const wcfg = WEAPON_FX_CFG[resolveWeapon(opts.weapon)] || {};
+  _capArr(bullets, _MAX_BULLETS);
   bullets.push({
     r: sr, c: sc,
     vr: (dr / dist) * speed,
@@ -6308,6 +6327,7 @@ function spawnMuzzle(r, c, angle, weapon) {
   const w = resolveWeapon(weapon);
   const wcfg = WEAPON_FX_CFG[w] || {};
   const heavy = !!wcfg.thick;
+  _capArr(muzzles, _MAX_MUZZLES);
   muzzles.push({
     r, c, angle,
     life: heavy ? 140 : 110, max: heavy ? 140 : 110,
@@ -11666,6 +11686,7 @@ function update(dt) {
             npc.c += Math.cos(ang) * 0.6;
             // Кровь
             for (let i = 0; i < 5; i++) {
+              _capArr(bloodSplats, _MAX_BLOOD);
               bloodSplats.push({
                 r: npc.r + (Math.random() - 0.5) * 0.7,
                 c: npc.c + (Math.random() - 0.5) * 0.7,
@@ -11687,6 +11708,7 @@ function update(dt) {
                 size: 2.2 + Math.random() * 2.0,
               });
             }
+            _capArr(impacts, _MAX_IMPACTS);
             impacts.push({ r: npc.r, c: npc.c, parts });
             // Сообщаем серверу (как стрельба со свидетелями)
             try {
@@ -15601,16 +15623,17 @@ function drawCarPretty(car) {
 }
 
 // ── Изорендер мотоцикла ───────────────────────────────────────
-// Узкий длинный корпус, 2 колеса (передо/сзади), бак и седло. В отличие
-// от drawCarPretty — нет крыши, нет 3D-граней (велосипед — открытый
-// низкий объект). Параметры b: { r, c, dirDx, dirDy, model }.
+// Изометрия 2.5D: корпус приподнят (тень внизу + объект выше). Колёса
+// в "виде сбоку" — эллипсы вытянутые вдоль направления движения, как
+// диск который виден сбоку, а не сверху. Параметры b: { r, c, dirDx,
+// dirDy, model }.
 function drawBike(b) {
   const m = b.model;
   const isHoriz = (b.dirDx !== 0);
-  const halfL = m.L * 0.45;
-  const halfW = m.W * 0.45;
-  const H     = isoH((m.height || 0.40) * 0.45);   // мото низкий
-  // Точки переда/зада по средней линии — здесь стоят колёса
+  const halfL = m.L * 0.55;
+  const halfW = m.W * 0.50;
+  const H     = isoH(m.height || 0.42);
+  // Точки переда/зада (по центральной линии байка)
   let fr_r, fr_c, br_r, br_c;
   if (isHoriz) {
     fr_r = b.r; fr_c = b.c + b.dirDx * halfL;
@@ -15619,65 +15642,130 @@ function drawBike(b) {
     fr_r = b.r + b.dirDy * halfL; fr_c = b.c;
     br_r = b.r - b.dirDy * halfL; br_c = b.c;
   }
-  const F = w2s(fr_r + 0.5, fr_c + 0.5);
-  const B = w2s(br_r + 0.5, br_c + 0.5);
-  const C = w2s(b.r + 0.5, b.c + 0.5);
-  // Узкая тень под байком — эллипс
-  ctx.fillStyle = 'rgba(0,0,0,.50)';
+  const F  = w2s(fr_r + 0.5, fr_c + 0.5);
+  const B  = w2s(br_r + 0.5, br_c + 0.5);
+  const C  = w2s(b.r  + 0.5, b.c  + 0.5);
+  const len = Math.hypot(F.x - B.x, F.y - B.y);
+  const ang = Math.atan2(F.y - B.y, F.x - B.x);
+  const cosA = Math.cos(ang), sinA = Math.sin(ang);
+  const nx = -sinA, ny = cosA;   // нормаль (поперёк байка)
+  // ── Тень ── вытянутая «капля» под байком, чуть смещена вправо-вниз
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.save();
+  ctx.translate(C.x + 2, C.y + 4);
+  ctx.rotate(ang);
   ctx.beginPath();
-  ctx.ellipse(C.x + 2, C.y + 3,
-              Math.hypot(F.x - B.x, F.y - B.y) * 0.55,
-              TS * halfW * ISO_Y * 1.4, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, len * 0.55, TS * halfW * 0.85, 0, 0, Math.PI * 2);
   ctx.fill();
-  // 2 колеса — тёмные плоские эллипсы у концов
-  const wheelR = (m.wheelR || 0.17) * TS;
-  for (const W of [F, B]) {
-    ctx.fillStyle = '#0c0c0c';
+  ctx.restore();
+  // ── Колёса ── эллипсы вытянутые ВДОЛЬ направления (как диск сбоку).
+  // На земле (без подъёма по H) — это нижняя точка байка.
+  const wR  = (m.wheelR || 0.20) * TS * 1.4;
+  const wRY = wR * 0.45;   // высота эллипса (диск тонкий)
+  function drawWheel(P) {
+    // Тёмная резина
+    ctx.save();
+    ctx.translate(P.x, P.y);
+    ctx.rotate(ang);
+    ctx.fillStyle = '#0a0a0a';
     ctx.beginPath();
-    ctx.ellipse(W.x, W.y, wheelR, wheelR * ISO_Y * 1.1, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, wR, wRY, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Хром-обод
-    ctx.strokeStyle = '#5a5a64';
-    ctx.lineWidth   = 1.0;
+    // Внутренний диск (хром / тёмно-серый)
+    ctx.fillStyle = '#3a3a44';
     ctx.beginPath();
-    ctx.ellipse(W.x, W.y, wheelR * 0.55, wheelR * 0.55 * ISO_Y * 1.1, 0, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.ellipse(0, -0.5, wR * 0.55, wRY * 0.62, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Ступица — маленький блик
+    ctx.fillStyle = '#9a9aa6';
+    ctx.beginPath();
+    ctx.ellipse(0, -1, wR * 0.18, wRY * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Спицы — 3 короткие линии
+    ctx.strokeStyle = '#1a1a22';
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * wR * 0.55, Math.sin(a) * wRY * 0.62);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
-  // Рама/бак — узкая «балка» приподнятая на H. Между серединами F и B.
+  drawWheel(F);
+  drawWheel(B);
+  // ── Корпус (рама + бак + седло) приподнят на H ──
   const [topC, sideC] = m.palette;
   const midX = (F.x + B.x) * 0.5;
   const midY = (F.y + B.y) * 0.5 - H;
-  const frameLen = Math.hypot(F.x - B.x, F.y - B.y) * 0.62;
-  const ang = Math.atan2(F.y - B.y, F.x - B.x);
+  // Низ корпуса = верх колёс (примерно на 0..H по Y).
+  // Рама-бак — длинный овал по направлению движения.
   ctx.save();
   ctx.translate(midX, midY);
   ctx.rotate(ang);
-  // Корпус (бак) — длинная капля
+  // Боковая (тёмная) грань — нижняя половина бака
   ctx.fillStyle = sideC;
-  ctx.fillRect(-frameLen * 0.5, -wheelR * 0.55, frameLen, wheelR * 1.1);
-  // Светлая верхушка бака — блик
-  ctx.fillStyle = topC;
-  ctx.fillRect(-frameLen * 0.45, -wheelR * 0.55, frameLen * 0.9, wheelR * 0.45);
-  // Седло — короткая темная плита в задней трети
-  ctx.fillStyle = '#0a0a0a';
-  ctx.fillRect(-frameLen * 0.45, -wheelR * 0.85, frameLen * 0.22, wheelR * 0.45);
-  // Фара — маленький круг впереди
-  ctx.fillStyle = '#ffd76b';
   ctx.beginPath();
-  ctx.arc(frameLen * 0.5 - 1, 0, wheelR * 0.35, 0, Math.PI * 2);
+  ctx.ellipse(0, wRY * 0.05, len * 0.40, wRY * 0.95, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.restore();
-  // Руль — поперечный отрезок над передним колесом
-  const handX = F.x, handY = F.y - H * 1.4;
-  ctx.strokeStyle = '#1a1a1a';
-  ctx.lineWidth   = 2.0;
-  const handW = wheelR * 1.4;
-  // Поперёк направлению движения
-  const nx = -Math.sin(ang), ny = Math.cos(ang);
+  // Верхняя сторона (светлая) — блик
+  ctx.fillStyle = topC;
   ctx.beginPath();
-  ctx.moveTo(handX - nx * handW, handY - ny * handW);
-  ctx.lineTo(handX + nx * handW, handY + ny * handW);
+  ctx.ellipse(0, -wRY * 0.30, len * 0.36, wRY * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Полоса блика по верху бака — оптика «лак»
+  ctx.fillStyle = 'rgba(255,255,255,.18)';
+  ctx.beginPath();
+  ctx.ellipse(-len * 0.08, -wRY * 0.55, len * 0.22, wRY * 0.15, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Седло — приподнятое над задней частью бака, тёмно-кожаное
+  ctx.fillStyle = '#0a0a0a';
+  ctx.beginPath();
+  ctx.ellipse(-len * 0.18, -wRY * 0.55, len * 0.18, wRY * 0.40, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Глушитель — короткая хром-трубка в задне-нижней части
+  ctx.fillStyle = '#7a7a86';
+  ctx.fillRect(-len * 0.40, wRY * 0.35, len * 0.20, 3);
+  ctx.fillStyle = '#3a3a44';
+  ctx.fillRect(-len * 0.40, wRY * 0.35 + 3, len * 0.20, 1.5);
+  // Фара — жёлтый свет впереди
+  ctx.shadowColor = '#ffd76b';
+  ctx.shadowBlur  = 10;
+  ctx.fillStyle = '#ffe890';
+  ctx.beginPath();
+  ctx.ellipse(len * 0.36, -wRY * 0.10, wRY * 0.55, wRY * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // ── Руль — Г-образная вилка над передним колесом ──
+  // Стойка от верха переднего колеса вверх (на H + чуть), потом руль
+  // поперёк на handW тайла.
+  const forkTopX = F.x - sinA * 0;                      // прямо над колесом
+  const forkTopY = F.y - H - wRY * 0.6;                 // выше бака
+  ctx.strokeStyle = '#1a1a22';
+  ctx.lineWidth = 2.4;
+  // Вилка — две вертикальные линии от руля к колесу
+  ctx.beginPath();
+  ctx.moveTo(F.x - nx * wRY * 0.35, F.y - wRY * 0.55);
+  ctx.lineTo(forkTopX - nx * wRY * 0.35, forkTopY);
+  ctx.moveTo(F.x + nx * wRY * 0.35, F.y - wRY * 0.55);
+  ctx.lineTo(forkTopX + nx * wRY * 0.35, forkTopY);
   ctx.stroke();
+  // Руль — поперечная штанга
+  const handW = wR * 0.85;
+  ctx.strokeStyle = '#0a0a0a';
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.moveTo(forkTopX - nx * handW, forkTopY - ny * handW * 0.3);
+  ctx.lineTo(forkTopX + nx * handW, forkTopY + ny * handW * 0.3);
+  ctx.stroke();
+  // Ручки — серые шарики на концах руля
+  ctx.fillStyle = '#5a5a64';
+  ctx.beginPath();
+  ctx.arc(forkTopX - nx * handW, forkTopY - ny * handW * 0.3, 1.6, 0, Math.PI * 2);
+  ctx.arc(forkTopX + nx * handW, forkTopY + ny * handW * 0.3, 1.6, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // ── Билборды над городом ───────────────────────────────────────
@@ -20233,6 +20321,7 @@ function spawnImpact(wr, wc, weapon) {
       size: isBlood ? (2.8 + Math.random() * 2.4) : (1.8 + Math.random() * 1.0),
     });
   }
+  _capArr(impacts, _MAX_IMPACTS);
   impacts.push({ r: wr, c: wc, parts });
   // Shockwave при попадании — оранжевое расширяющееся кольцо
   spawnShockwave(wr, wc, {
@@ -20246,6 +20335,7 @@ function spawnImpact(wr, wc, weapon) {
   // следом боя. Кол-во зависит от оружия (тяжёлое — больше).
   const splatN = fx.thick ? 3 : 1;
   for (let i = 0; i < splatN; i++) {
+    _capArr(bloodSplats, _MAX_BLOOD);
     bloodSplats.push({
       r: wr + (Math.random() - 0.5) * 0.6,
       c: wc + (Math.random() - 0.5) * 0.6,
@@ -20282,6 +20372,7 @@ function reportCarCrash(qc, impact, kind) {
       size: 1.4 + Math.random() * 1.4,
     });
   }
+  _capArr(impacts, _MAX_IMPACTS);
   impacts.push({ r: qc.y, c: qc.x, parts });
   // Метка тряски: drawQuestCar читает qc._shakeUntil для жесть-вибрации
   qc._shakeUntil = now + 280;
@@ -20325,8 +20416,10 @@ function spawnCarExplosion(wr, wc) {
       size: 2.0 + Math.random() * 2.4,
     });
   }
+  _capArr(impacts, _MAX_IMPACTS);
   impacts.push({ r: wr, c: wc, parts });
   // Чёрная копоть-пятно на земле
+  _capArr(bloodSplats, _MAX_BLOOD);
   bloodSplats.push({
     r: wr, c: wc, radius: 18 + Math.random() * 6,
     life: 14000, max: 14000, rot: Math.random() * Math.PI,
