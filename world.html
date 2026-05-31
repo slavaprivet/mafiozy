@@ -8079,10 +8079,23 @@ function wsConnect() {
       }
     } else if (pkt.t === 'snap') {
       const d = pkt.d || {};
-      // Подтягиваем себя к серверной позиции (lightweight reconcile)
+      // Подтягиваем себя к серверной позиции (soft reconcile)
+      // Раньше мгновенно телепортировали при дельте > 3 тайла — на
+      // нестабильном инете snap-pkt задерживается на 500-1500мс и
+      // клиент «убегает» от своей же подтверждённой позиции, после
+      // чего его дёргает назад. Это юзеры видят как «пинг отбрасывает».
+      // Теперь: < 1.5 тайла — игнор (норма для лага); 1.5..10 — плавно
+      // подтягиваем 35% дельты за snap (~3.5 тайла/сек при 10 Гц snaps);
+      // > 10 — телепорт (anti-cheat / гигантский desync).
       if (d.me) {
         const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
-        if (dist > 3.0) { player.r = d.me.y; player.c = d.me.x; }
+        if (dist > 10.0) {
+          player.r = d.me.y; player.c = d.me.x;
+        } else if (dist > 1.5) {
+          const k = 0.35;
+          player.r += (d.me.y - player.r) * k;
+          player.c += (d.me.x - player.c) * k;
+        }
         // PVP: HP, dead-state, счёт
         if (typeof d.me.hp === 'number')      myHp = d.me.hp;
         if (typeof d.me.kills === 'number')   myKills = d.me.kills;
