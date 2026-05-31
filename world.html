@@ -9322,9 +9322,16 @@ function exitBus() {
 // ── HTTP-API: бизнесы и чёрный рынок ───────────────────────────────
 // showBuyBizConfirm — открывает модалку с подтверждением покупки.
 // Только после нажатия «Да, купить» вызывается buyBusinessHere().
+// Запомненный biz_id для подтверждения покупки. Раньше при клике «Да»
+// читали _gtaActionCarId/_gtaActionKind, но они переcчитываются каждый
+// кадр в updateGtaInteractions — если рядом оказывалась квест-машина
+// или другая цель, фокус слетал и fetch не уходил молча. Теперь биз-id
+// фиксируется в момент открытия модала и живёт до закрытия.
+let _pendingBuyBizId = null;
 function showBuyBizConfirm(biz_id) {
   const b = BUSINESS_POIS.find(x => x.id === biz_id);
   if (!b) { showToast('Бизнес не найден', '⚠️'); return; }
+  _pendingBuyBizId = biz_id;
   const modal = document.getElementById('bizConfirmModal');
   document.getElementById('bizCnfIcon').textContent  = b.emoji || '🏪';
   document.getElementById('bizCnfName').textContent  = b.name;
@@ -9344,14 +9351,18 @@ function showBuyBizConfirm(biz_id) {
 }
 function _closeBizConfirm() {
   document.getElementById('bizConfirmModal').classList.remove('show');
+  _pendingBuyBizId = null;
 }
 document.getElementById('bizCnfNo').addEventListener('click', _closeBizConfirm);
 document.getElementById('bizCnfYes').addEventListener('click', () => {
-  // На «Да» — берём биз-id из заголовка (через текущий gta-target), вызываем
-  // фактическую покупку и закрываем окно.
+  // Сначала фиксируем biz_id, ПОТОМ закрываем — _closeBizConfirm
+  // сбрасывает _pendingBuyBizId.
+  const biz_id = _pendingBuyBizId;
   _closeBizConfirm();
-  if (_gtaActionKind === 'biz_buy' && _gtaActionCarId) {
-    buyBusinessHere(_gtaActionCarId);
+  if (biz_id) {
+    buyBusinessHere(biz_id);
+  } else {
+    showToast('Не удалось определить бизнес — попробуй ещё раз', '⚠️', 2200);
   }
 });
 function buyBusinessHere(biz_id) {
