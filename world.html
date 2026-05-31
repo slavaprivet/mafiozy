@@ -8083,6 +8083,8 @@ function wsConnect() {
       }
     } else if (pkt.t === 'snap') {
       const d = pkt.d || {};
+      // Маркер для heartbeat-диагностики — sec since last snap
+      try { _lastSnapT = performance.now(); } catch(e){}
       // Reconcile серверной позиции с КЛИЕНТСКОЙ
       // (client-side prediction).
       //
@@ -23213,6 +23215,57 @@ function bakeMini() {
 // каждый кадр, нет смысла спамить console; глушим после 10. Сбрасывается
 // в 0 при первом успешном кадре.
 let _frameErrStreak = 0;
+// Heartbeat / Watchdog диагностика — нужно для жалоб «игра зависла
+// полностью» (юзер не может понять — JS thread помер, WS отвалился,
+// или просто FPS упал). Логируем в console раз в 3 сек:
+//   fps, bullets/muzzles/floatTexts/shockwaves/lockedTargets,
+//   NPCS, aggroBots, cops, others (snap-объекты),
+//   wsReady (WS connection state), lastSnapAgo (сек с последнего snap'а)
+// Из этого ясно: если fps>30 но lastSnapAgo>10с — WS отвалился (мир
+// застыл потому что нет обновлений). Если fps стал 0 и log оборвался —
+// JS thread заблокирован (infinite loop где-то).
+let _hbFrames = 0;
+let _hbLastT  = performance.now();
+let _lastSnapT = performance.now();
+function _heartbeat() {
+  const now = performance.now();
+  const dt = (now - _hbLastT) / 1000;
+  if (dt < 3) return;
+  const fps = (_hbFrames / dt).toFixed(1);
+  let cops = 0, aggro = 0;
+  try { if (Array.isArray(worldCops)) cops = worldCops.length; } catch(e){}
+  try {
+    for (const z of Object.values(aggroZones || {})) {
+      aggro += (z.bots || []).length;
+    }
+  } catch(e){}
+  const wsReady = (typeof ws === 'object' && ws && ws.readyState === 1) ? 'OPEN' :
+                  (ws && ws.readyState === 0) ? 'CONNECTING' :
+                  (ws && ws.readyState === 2) ? 'CLOSING' :
+                  (ws && ws.readyState === 3) ? 'CLOSED' : 'NULL';
+  const snapAgo = ((now - _lastSnapT) / 1000).toFixed(1);
+  console.log(
+    `[hb] fps=${fps} ws=${wsReady} snapAgo=${snapAgo}s ` +
+    `npc=${NPCS && NPCS.length || 0} cops=${cops} aggro=${aggro} ` +
+    `others=${others && others.size || 0} ` +
+    `bul=${bullets.length} muz=${muzzles.length} ` +
+    `floatTxt=${floatTexts.length} lock=${lockedTargets && lockedTargets.size || 0}`
+  );
+  _hbFrames = 0;
+  _hbLastT  = now;
+}
+// Анти-leak капы — если массив раздулся (баг, неудалённые элементы),
+// обрезаем хвост чтобы не сожрать память и FPS. Не должно срабатывать
+// в норме (типично 0-20 пуль, 0-5 muzzles), но защищает от худшего.
+function _capArrays() {
+  const MAX_BUL = 200, MAX_MUZ = 100, MAX_FLOAT = 100, MAX_SHOCK = 50;
+  if (bullets.length    > MAX_BUL)   bullets.length    = MAX_BUL;
+  if (muzzles.length    > MAX_MUZ)   muzzles.length    = MAX_MUZ;
+  if (floatTexts.length > MAX_FLOAT) floatTexts.length = MAX_FLOAT;
+  if (typeof shockwaves !== 'undefined' && shockwaves.length > MAX_SHOCK) {
+    shockwaves.length = MAX_SHOCK;
+  }
+}
 function frame() {
   const t = performance.now();
   let dt = (t - prevT) / 1000;
@@ -23238,6 +23291,9 @@ function frame() {
       console.error('[frame] caught exception:', e && e.stack || e);
     }
   }
+  _hbFrames++;
+  _capArrays();
+  _heartbeat();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
