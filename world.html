@@ -23147,6 +23147,28 @@ function frame() {
 }
 requestAnimationFrame(frame);
 
+// При сворачивании Telegram WebApp / переключении вкладок браузер
+// замораживает requestAnimationFrame. После возврата мог остаться
+// мусорный hitStopUntil из прошлого мгновения, или огромный dt,
+// или стик с зависшим pointerId после которого joyL.dx/dy не
+// сбрасывались. Симптом: «вернулся в бота — стою на месте, никто
+// вокруг не движется, стик не реагирует». Чистим всё на возврате.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    prevT = performance.now();
+    hitStopUntil = 0;
+    joyL.active = false; joyL.dx = 0; joyL.dy = 0;
+    joyL.id = -1; joyL._touchId = null;
+  }
+});
+// То же при focus/pageshow (Telegram WebApp на iOS любит pageshow)
+window.addEventListener('pageshow', () => {
+  prevT = performance.now();
+  hitStopUntil = 0;
+  joyL.active = false; joyL.dx = 0; joyL.dy = 0;
+  joyL.id = -1; joyL._touchId = null;
+});
+
 // ── Кнопка возврата в хаб ──────────────────────────────────────
 document.getElementById('btnHome').addEventListener('click', () => {
   if (QP.hubUrl) { window.location.href = decodeURIComponent(QP.hubUrl); return; }
