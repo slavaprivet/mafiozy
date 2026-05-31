@@ -9400,42 +9400,83 @@ document.getElementById('bizCnfYes').addEventListener('click', () => {
     showToast('Не удалось определить бизнес — попробуй ещё раз', '⚠️', 2200);
   }
 });
+// Флаг идущей покупки + локальный кеш «только что куплено» — защищает
+// от двух гонок:
+// 1) Двойной клик на «Да, купить» — отправлял два POST'а, второй мог
+//    получить already_owned и сбить UI.
+// 2) После успешного buy шёл МГНОВЕННЫЙ syncMyBusinesses → fetch /biz/list
+//    Сервер async-делал INSERT в БД (await db.commit), но fetch уходил
+//    до его завершения, /biz/list возвращал пустой ответ, myBusinesses.clear()
+//    стирал свежекупленный бизнес → клиент снова показывал «Купить».
+//    Симптом из видео IMG_5091: жму «Да», деньги вроде уходят, но через
+//    мгновение всё откатывается — будто и не покупал.
+let _bizBuyInProgress = false;
+const _recentlyBought = new Map();   // biz_id → expiresAt
+function _isRecentlyBought(biz_id) {
+  const t = _recentlyBought.get(biz_id);
+  if (!t) return false;
+  if (performance.now() > t) { _recentlyBought.delete(biz_id); return false; }
+  return true;
+}
 function buyBusinessHere(biz_id) {
   const b = BUSINESS_POIS.find(x => x.id === biz_id);
   if (!b || !QP.api || !QP.uid) {
     showToast('Бизнес не найден или нет подключения', '⚠️');
     return;
   }
+  if (_bizBuyInProgress) {
+    showToast('Уже покупаю — подожди секунду', 'ℹ️', 1500);
+    return;
+  }
+  _bizBuyInProgress = true;
   showToast(`💼 Покупаю ${b.name}...`, '⏳', 1500);
+  // Таймаут на fetch — без него на нестабильном инете промис может
+  // висеть бесконечно, _bizBuyInProgress залипает и кнопка больше
+  // не работает до перезагрузки.
+  const ctrl = new AbortController();
+  const timeoutId = setTimeout(() => ctrl.abort(), 8000);
   fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/buy`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ biz_id }),
+    signal: ctrl.signal,
   }).then(r => r.json()).then(j => {
     if (j.ok) {
       myBusinesses.set(b.id, { owned: true, pending: 0, status: 'ok' });
+      // Защита от race с syncMyBusinesses — следующие 10с сервер мог
+      // ещё не успеть закоммитить INSERT, и fresh fetch /biz/list
+      // вернёт пустой список. Без этого блока clear() в syncMyBusinesses
+      // стирал бы свежекупленный бизнес.
+      _recentlyBought.set(b.id, performance.now() + 10000);
       myCash = j.cash || myCash;
       updateMoneyHud();
       showEventBanner(`🎉 Куплено: ${b.emoji} ${b.name}`,
         `Доход капает раз в сутки. Подходи к точке или открывай «Мой бизнес».`,
         4000, 'win');
-      _bizLastSync = 0;
-      syncMyBusinesses();
-      // Перезапрашиваем точку респа — чтобы новый бизнес сразу появился
-      // в меню выбора как «доступный». Без этого пользователь не видит
-      // купленный объект до переподключения.
+      // Откладываем sync на 2 сек — сервер успеет закоммитить INSERT
+      setTimeout(() => { _bizLastSync = 0; syncMyBusinesses(); }, 2000);
       try { ws && ws.send(JSON.stringify({ t: 'respawn_status', d: {} })); } catch(e){}
     } else if (j.error === 'no cash') {
       showToast('💸 Не хватает денег', '⚠️', 2200);
     } else if (j.error === 'already owned') {
+      // Сервер говорит «уже твой» — записываем в локальный кеш,
+      // чтобы UI сразу перестал показывать «Купить».
+      myBusinesses.set(b.id, { owned: true, pending: 0, status: 'ok' });
+      _recentlyBought.set(b.id, performance.now() + 10000);
       showToast('Этот бизнес уже твой', '✅', 2000);
-      _bizLastSync = 0;
-      syncMyBusinesses();
+      setTimeout(() => { _bizLastSync = 0; syncMyBusinesses(); }, 2000);
     } else {
       showToast(`Не удалось: ${j.error || 'ошибка'}`, '⚠️', 2500);
     }
   }).catch(e => {
-    showToast('Сервер не отвечает', '⚠️', 2500);
+    if (e && e.name === 'AbortError') {
+      showToast('Сервер не отвечает (таймаут 8с)', '⚠️', 2800);
+    } else {
+      showToast('Сервер не отвечает', '⚠️', 2500);
+    }
+  }).finally(() => {
+    clearTimeout(timeoutId);
+    _bizBuyInProgress = false;
   });
 }
 
@@ -16596,6 +16637,15 @@ function syncMyBusinesses() {
   fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/list`, { cache: 'no-store' })
     .then(r => r.json())
     .then(j => {
+      // Сохраняем _recentlyBought-ентрисы перед очисткой — если сервер
+      // в этом ответе ещё не отдал свежекупленный бизнес (БД не успела
+      // зафиксировать INSERT при покупке через LTE), мы не должны его
+      // стирать локально. Иначе на UI снова появится «Купить» — баг
+      // из видео IMG_5091.
+      const preserved = new Map();
+      for (const [id, st] of myBusinesses) {
+        if (_isRecentlyBought(id)) preserved.set(id, st);
+      }
       myBusinesses.clear();
       for (const b of (j.businesses || [])) {
         if (b.bought_at) {
@@ -16605,6 +16655,10 @@ function syncMyBusinesses() {
             status: b.status || 'ok',
           });
         }
+      }
+      // Возвращаем preserved — даже если сервер их не вернул
+      for (const [id, st] of preserved) {
+        if (!myBusinesses.has(id)) myBusinesses.set(id, st);
       }
     })
     .catch(() => {});
