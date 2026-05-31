@@ -8619,6 +8619,27 @@ function _pickHitTargetNear(srcR, srcC) {
 // AI Бригадира — wandering вокруг HOME. Подошёл игрок ≤ STOP_R →
 // останавливается и поворачивается. Отошёл → выбирает новую точку в
 // радиусе WANDER_R от HOME и идёт к ней (пешком, ~1.2 тайла/сек).
+// Расширенная проходимость для Бригадира: npcPassable (тротуар/газон,
+// не здания/дорога/декор/припаркованные машины), плюс динамические
+// препятствия которых нет в MAP — квест-машины (float-координаты,
+// стоят/едут где попало) и другие игроки. Без этого Бригадир мог
+// пройти СКВОЗЬ припаркованную у бара машину Майкла или сквозь чела.
+function _brigadirPassable(r, c) {
+  if (!npcPassable(r, c)) return false;
+  for (const qc of questCars.values()) {
+    if (qc.wrecked) continue;
+    const dy = (qc.y || 0) - r;
+    const dx = (qc.x || 0) - c;
+    if (dy * dy + dx * dx < 0.7 * 0.7) return false;
+  }
+  for (const [, o] of others) {
+    if (o.dead) continue;
+    const dy = (o.y || 0) - r;
+    const dx = (o.x || 0) - c;
+    if (dy * dy + dx * dx < 0.5 * 0.5) return false;
+  }
+  return true;
+}
 function _tickBrigadir(dt) {
   const ai = BRIGADIR_AI;
   const now = performance.now();
@@ -8645,7 +8666,7 @@ function _tickBrigadir(dt) {
       const rad = Math.random() * BRIGADIR_WANDER_R;
       const nr = BRIGADIR_HOME.r + Math.sin(a) * rad;
       const nc = BRIGADIR_HOME.c + Math.cos(a) * rad;
-      if (npcPassable(nr, nc)) { ai.tgtR = nr; ai.tgtC = nc; break; }
+      if (_brigadirPassable(nr, nc)) { ai.tgtR = nr; ai.tgtC = nc; break; }
     }
     ai.idleUntil = now + 800 + Math.random() * 1400;
     return;
@@ -8655,7 +8676,7 @@ function _tickBrigadir(dt) {
   const stepR = (dr / Math.max(0.001, dToTgt)) * speed;
   const stepC = (dc / Math.max(0.001, dToTgt)) * speed;
   const nr = BRIGADIR_POS.r + stepR, nc = BRIGADIR_POS.c + stepC;
-  if (npcPassable(nr, nc)) {
+  if (_brigadirPassable(nr, nc)) {
     BRIGADIR_POS.r = nr; BRIGADIR_POS.c = nc;
   } else {
     // Перебрать новую цель в след. кадре
