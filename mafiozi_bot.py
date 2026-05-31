@@ -18370,7 +18370,10 @@ async def _coop_http_app():
                             poi_r, poi_c = BRIGADIR_POS_RC
                             dx = float(p.get('x', 0)) - poi_c
                             dy = float(p.get('y', 0)) - poi_r
-                            if dx*dx + dy*dy > 9.0:
+                            # 5² = 25: Бригадир бродит в радиусе ~2.5 от HOME,
+                            # игрок взаимодействует с дистанции до 1.8 — итого
+                            # до ~4.3 тайл от центра. Берём 5 с запасом.
+                            if dx*dx + dy*dy > 25.0:
                                 reply = {'ok': False, 'reason': 'too_far'}
                             else:
                                 # Лимит: считаем kill_t за последние 24ч
@@ -18444,7 +18447,8 @@ async def _coop_http_app():
                                 poi_r, poi_c = BRIGADIR_POS_RC
                                 dx = float(p.get('x', 0)) - poi_c
                                 dy = float(p.get('y', 0)) - poi_r
-                                if dx*dx + dy*dy > 9.0:
+                                # 5² — то же что в brigadir_take (Бригадир бродит)
+                                if dx*dx + dy*dy > 25.0:
                                     reply = {'ok': False, 'reason': 'too_far'}
                                 else:
                                     reward = int(pending.get('reward') or BRIGADIR_PAYOUT)

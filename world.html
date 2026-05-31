@@ -8556,7 +8556,24 @@ function _tickBankHeistUi(now) {}
 // Сервер проверяет лимит 3/24ч и отдаёт ok → клиент помечает случайного
 // живого NPC в радиусе 25 как цель, показывает HUD-стрелку. Убил —
 // сервер начисляет $400 (×2 если рядом нет копов = стелс).
-const BRIGADIR_POS = { r: 43, c: 34 };
+// HOME — точка спавна у бара. Бригадир бродит вокруг неё в радиусе
+// BRIGADIR_WANDER_R, при подходе игрока останавливается и поворачивается
+// к нему. Серверная проверка расстояния player↔брига расширена под это
+// (см. BRIGADIR_POS_RC в mafiozi_bot.py — было 3², стало 5²).
+// Бар «Чёрная вдова» (43, 33). HOME на тротуаре сразу south-east от
+// бара — раньше стоял на тайле дороги (0), npcPassable не пускал
+// никуда. Сейчас (44, 34) — тротуар (9), можно бродить.
+const BRIGADIR_HOME = { r: 44, c: 34 };
+const BRIGADIR_WANDER_R = 2.4;     // макс уход от HOME
+const BRIGADIR_STOP_R   = 3.5;     // подошёл игрок ближе — остановился
+const BRIGADIR_POS = { r: 44, c: 34 };   // текущая позиция (двигается)
+// Стейт AI Бригадира — обновляется в _tickBrigadir каждый кадр.
+const BRIGADIR_AI = {
+  tgtR: 44, tgtC: 34,
+  ang: 0, walkPhase: 0,
+  idleUntil: 0,
+  paused: false,
+};
 const BRIGADIR_PAYOUT_PREVIEW = 400;
 let _myHitTargetNpc = null;   // ссылка на помеченного NPC (если есть)
 let _myHitContractActive = false;
@@ -8576,6 +8593,56 @@ function _pickHitTargetNear(srcR, srcC) {
   }
   if (!pool.length) return null;
   return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// AI Бригадира — wandering вокруг HOME. Подошёл игрок ≤ STOP_R →
+// останавливается и поворачивается. Отошёл → выбирает новую точку в
+// радиусе WANDER_R от HOME и идёт к ней (пешком, ~1.2 тайла/сек).
+function _tickBrigadir(dt) {
+  const ai = BRIGADIR_AI;
+  const now = performance.now();
+  const dpr = player.r - BRIGADIR_POS.r;
+  const dpc = player.c - BRIGADIR_POS.c;
+  const dToPlayer = Math.hypot(dpr, dpc);
+  // Игрок рядом — стоп + face. walkPhase не растёт.
+  if (dToPlayer <= BRIGADIR_STOP_R) {
+    ai.paused = true;
+    ai.ang = Math.atan2(dpr, dpc);
+    return;
+  }
+  ai.paused = false;
+  // Если ещё «отдыхает» (idle между перебежками) — стоит на месте.
+  if (now < ai.idleUntil) return;
+  // Дошли до цели? Выбираем новую и короткий idle ~0.8-2с.
+  const dr = ai.tgtR - BRIGADIR_POS.r;
+  const dc = ai.tgtC - BRIGADIR_POS.c;
+  const dToTgt = Math.hypot(dr, dc);
+  if (dToTgt < 0.18) {
+    // Новый waypoint в радиусе WANDER_R от HOME, проходимый.
+    for (let tries = 0; tries < 16; tries++) {
+      const a = Math.random() * Math.PI * 2;
+      const rad = Math.random() * BRIGADIR_WANDER_R;
+      const nr = BRIGADIR_HOME.r + Math.sin(a) * rad;
+      const nc = BRIGADIR_HOME.c + Math.cos(a) * rad;
+      if (npcPassable(nr, nc)) { ai.tgtR = nr; ai.tgtC = nc; break; }
+    }
+    ai.idleUntil = now + 800 + Math.random() * 1400;
+    return;
+  }
+  // Идём пешком к цели, ~1.2 тайла/сек, обход препятствий.
+  const speed = 1.2 * dt;
+  const stepR = (dr / Math.max(0.001, dToTgt)) * speed;
+  const stepC = (dc / Math.max(0.001, dToTgt)) * speed;
+  const nr = BRIGADIR_POS.r + stepR, nc = BRIGADIR_POS.c + stepC;
+  if (npcPassable(nr, nc)) {
+    BRIGADIR_POS.r = nr; BRIGADIR_POS.c = nc;
+  } else {
+    // Перебрать новую цель в след. кадре
+    ai.idleUntil = now + 200;
+    ai.tgtR = BRIGADIR_POS.r; ai.tgtC = BRIGADIR_POS.c;
+  }
+  ai.ang = Math.atan2(dr, dc);
+  ai.walkPhase += dt * 9;
 }
 
 function takeBrigadirContract() {
@@ -12043,6 +12110,8 @@ function update(dt) {
   _tickBus(dt);
   // AI «жителей» с машинами на парковках (вышел, погулял, вернулся)
   _tickParkingNpcs(dt);
+  // Бригадир бродит у бара — стопится когда игрок подошёл, иначе walks
+  _tickBrigadir(dt);
   // Стрельба в открытом мире: ОБЯЗАТЕЛЕН lockedTarget (см. tryTapLock).
   // Правый стик ТОЛЬКО метит цели (тап + удержание лазера = auto-lock).
   // Стрелять можно ИСКЛЮЧИТЕЛЬНО кнопкой fireBtn (или Space на десктопе).
@@ -18551,9 +18620,10 @@ function drawBrigadir() {
   ctx.ellipse(p.x, p.y + 5, 16, 6, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
-  // Спрайт
-  const phase = (Math.sin(t) * 0.2);
-  drawPerson(p.x, p.y, 0, _BRIGADIR_LOOK, phase, 'Бригадир',
+  // Спрайт: если бродит — используем walkPhase из AI, если стоит у
+  // игрока — мягкое idle-покачивание (Math.sin(t)).
+  const phase = BRIGADIR_AI.paused ? (Math.sin(t) * 0.2) : BRIGADIR_AI.walkPhase;
+  drawPerson(p.x, p.y, BRIGADIR_AI.ang || 0, _BRIGADIR_LOOK, phase, 'Бригадир',
              null, false, 1, 1, false);
   const bob = Math.sin(t * 1.6) * 2;
   ctx.font = '20px system-ui, "Segoe UI Emoji", sans-serif';
