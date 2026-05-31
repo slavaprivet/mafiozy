@@ -7585,13 +7585,21 @@ function handleEventPacket(d) {
     }
   } else if (kind === 'gta_drive_reject') {
     // Сервер отверг мой инпут (например, машина уже у другого водителя).
+    // Чистим и myIsPassenger — иначе после оптимистичной посадки пассажиром
+    // (enterCar выставляет myIsPassenger=true до ответа сервера) флаг
+    // остаётся true и плавающий по сцене.
     if (myDrivingCarId === d.car_id) {
       myDrivingCarId = null;
+      myIsPassenger  = false;
+      _exitRequested = false;
       showToast('🚫 Тебя выкинули из машины', '⚠️', 2500);
     }
   } else if (kind === 'gta_exit_reply') {
     // Просто бросил машину (не доставил). Никакого баннера не надо.
-    if (myDrivingCarId === d.car_id) myDrivingCarId = null;
+    if (myDrivingCarId === d.car_id) {
+      myDrivingCarId = null;
+      myIsPassenger  = false;
+    }
   } else if (kind === 'world_heal_reply') {
     if (d.ok) {
       myHp = d.hp || (PVP.max_hp || 100);
@@ -11800,6 +11808,22 @@ function update(dt) {
             if (npc.dead) continue;
             const dd = Math.hypot(npc.r - qc.y, npc.c - qc.x);
             if (dd > 0.75) continue;
+            // Серверные кассиры/охрана банка — НЕ мочим локально. Сервер ведёт hp.
+            // Шлём heist_*_hit (как пуля), пусть авторитетно решает.
+            if (npc._heistGuard && npc._heistGuardId) {
+              try {
+                ws && ws.send(JSON.stringify({ t: 'heist_guard_hit',
+                  d: { guard_id: npc._heistGuardId, weapon: 'car' } }));
+              } catch(e) {}
+              continue;
+            }
+            if (npc._heistCashier && npc._heistCashierId) {
+              try {
+                ws && ws.send(JSON.stringify({ t: 'heist_cashier_hit',
+                  d: { cashier_id: npc._heistCashierId } }));
+              } catch(e) {}
+              continue;
+            }
             // Knockback по направлению машины + смерть
             npc.hp = 0;
             npc.dead = true;
