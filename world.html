@@ -23173,24 +23173,24 @@ requestAnimationFrame(frame);
 // При сворачивании Telegram WebApp / переключении вкладок браузер
 // замораживает requestAnimationFrame. После возврата мог остаться
 // мусорный hitStopUntil из прошлого мгновения, или огромный dt,
-// или стик с зависшим pointerId после которого joyL.dx/dy не
-// сбрасывались. Симптом: «вернулся в бота — стою на месте, никто
-// вокруг не движется, стик не реагирует». Чистим всё на возврате.
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    prevT = performance.now();
-    hitStopUntil = 0;
-    joyL.active = false; joyL.dx = 0; joyL.dy = 0;
-    joyL.id = -1; joyL._touchId = null;
-  }
-});
-// То же при focus/pageshow (Telegram WebApp на iOS любит pageshow)
-window.addEventListener('pageshow', () => {
+// или СТИКИ с зависшим pointerId — pointerup не пришёл пока вкладка
+// была скрыта, joy.active=true с устаревшим id, новые касания
+// игнорируются. Симптомы: «вернулся в бота — стою на месте» (joyL),
+// «не могу прицелиться, стрельба мимо целей» (joyR — конус ±10° не
+// попадает на врагов потому что курсор замёрз). Сбрасываем оба стика.
+function _resetSticksAndTime() {
   prevT = performance.now();
   hitStopUntil = 0;
   joyL.active = false; joyL.dx = 0; joyL.dy = 0;
   joyL.id = -1; joyL._touchId = null;
+  joyR.active = false; joyR.dx = 0; joyR.dy = 0;
+  joyR.id = -1; joyR.hasAim = false;
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) _resetSticksAndTime();
 });
+// То же при focus/pageshow (Telegram WebApp на iOS любит pageshow)
+window.addEventListener('pageshow', _resetSticksAndTime);
 
 // ── Кнопка возврата в хаб ──────────────────────────────────────
 document.getElementById('btnHome').addEventListener('click', () => {
