@@ -11340,7 +11340,12 @@ function updatePvpUI() {
   _hpMaxVal.textContent  = maxHp;
   _hudKills.textContent  = myKills;
   _hudDeaths.textContent = myDeaths;
-  if (myDead) {
+  // deathOverlay скрываем когда в тюрьме — иначе АРЕСТ + В ТЮРЬМЕ
+  // накладываются друг на друга и юзер думает что игра зависла
+  // (из дебаг-скрина: fps=60, ws=OPEN, но видно сразу два затемнения).
+  // Тюремный overlay в drawJailOverlay есть отдельно, ему deathOverlay
+  // не нужен.
+  if (myDead && !(myJailIn > 0)) {
     if (!_deathOv.classList.contains('show')) _deathOv.classList.add('show');
     _deathBy.textContent = myDeathBy ? `Тебя завалил ${myDeathBy}` : '';
     _deathCnt.textContent = Math.max(0, Math.ceil(myDeathLeft));
