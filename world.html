@@ -23247,6 +23247,18 @@ let _frameErrStreak = 0;
 let _hbFrames = 0;
 let _hbLastT  = performance.now();
 let _lastSnapT = performance.now();
+// Счётчик касаний за период hb — ловит ситуацию когда юзер «тыкает
+// в стик но реакции нет». Если touchCount > 0 а fps=60 и в state нет
+// блокировок — есть input-проблема (overlay перекрывает, joy id
+// застрял). Если touchCount = 0 — юзер вообще не трогает экран.
+let _touchCount = 0;
+let _lastTouchT = 0;
+window.addEventListener('touchstart', () => {
+  _touchCount++; _lastTouchT = performance.now();
+}, { passive: true, capture: true });
+window.addEventListener('pointerdown', () => {
+  _touchCount++; _lastTouchT = performance.now();
+}, { passive: true, capture: true });
 // Кольцевой буфер последних 4-х heartbeat строк — рисуем в debugHud
 // чтобы было видно даже без DevTools. Когда игра зависнет — последние
 // строки останутся, юзер делает скриншот и шлёт.
@@ -23276,10 +23288,20 @@ function _heartbeat() {
     `bul=${bullets.length} muz=${muzzles.length} ` +
     `floatTxt=${floatTexts.length} lock=${lockedTargets && lockedTargets.size || 0}`;
   console.log(long);
-  // Компактная строка для debugHud
+  // Компактная строка для debugHud + состояние игрока + touch-счётчик
+  const flags = [];
+  if (myDead) flags.push('DEAD');
+  if (myJailIn > 0) flags.push(`JAIL${myJailIn|0}`);
+  if (myDrivingCarId) flags.push('CAR');
+  if (typeof _inBus !== 'undefined' && _inBus) flags.push('BUS');
+  if (joyL.active) flags.push('jL');
+  if (joyR.active) flags.push('jR');
+  const flagStr = flags.length ? flags.join(',') : 'ok';
+  const touchAgo = ((now - (_lastTouchT || 0)) / 1000).toFixed(1);
   const compact = `${timeMark} fps${fps} ${wsReady.slice(0,4)} snap${snapAgo}s\n` +
     `npc${NPCS && NPCS.length || 0} cop${cops} agg${aggro} oth${others && others.size || 0}\n` +
-    `bul${bullets.length} muz${muzzles.length} ft${floatTexts.length} lk${lockedTargets && lockedTargets.size || 0}`;
+    `bul${bullets.length} muz${muzzles.length} ft${floatTexts.length} lk${lockedTargets && lockedTargets.size || 0}\n` +
+    `st:${flagStr} tch${_touchCount}/3s ago${touchAgo}s`;
   _hbHistory.push(compact);
   while (_hbHistory.length > 3) _hbHistory.shift();
   if (_hbEl) {
@@ -23291,6 +23313,7 @@ function _heartbeat() {
   }
   _hbFrames = 0;
   _hbLastT  = now;
+  _touchCount = 0;
 }
 // Анти-leak капы — если массив раздулся (баг, неудалённые элементы),
 // обрезаем хвост чтобы не сожрать память и FPS. Не должно срабатывать
