@@ -3808,8 +3808,12 @@ SHOP_ROB_CONFIG = {
 # Стоит на тайле (43, 34) — рядом с баром. Лимит 3 контракта / 24ч,
 # награда $400 за обычный, ×2 за стелс (без свидетелей-копов).
 BRIGADIR_POS_RC      = (43, 34)
-BRIGADIR_PAYOUT      = 400
-BRIGADIR_STEALTH_MUL = 2.0
+# Цель Бригадира теперь — случайный бандит из aggroZones (не прохожий
+# NPC). Стелс-бонус убран: всегда фиксированный куш BRIGADIR_PAYOUT.
+# Сумма приподнята с 400 до 700, чтобы компенсировать потерю прежнего
+# stealth-x2 (раньше за тихий kill давало 800$).
+BRIGADIR_PAYOUT      = 700
+BRIGADIR_STEALTH_MUL = 1.0
 BRIGADIR_DAILY_LIMIT = 3
 
 # Банк V2 — кооп-налёт мешками. Жмёшь налёт → сразу 4★ + спавн N мешков
@@ -18125,6 +18129,7 @@ async def _coop_http_app():
                                             kp = world.connections.get(uid)
                                             if kp is not None:
                                                 pkt = {'kind': 'aggro_killed',
+                                                       'bot_id': bot_id,
                                                        'is_boss': is_boss,
                                                        'cash': cash_r, 'exp': exp_r,
                                                        'gang_added': gang_added,

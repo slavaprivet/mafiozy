@@ -3192,18 +3192,9 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
           d: { cashier_id: npc._heistCashierId } }));
       } catch(e) {}
     }
-    // Если убитый — цель хит-контракта Бригадира — шлём серверу.
-    // Стелс: рядом с точкой убийства нет НИКАКИХ копов в радиусе 12.
-    // _copInRadius проверяет и worldCops (боевые), и cityCops (патруль) —
-    // иначе можно было «стелс»-завалить цель прямо при NPC-копе.
-    if (npc._hitTarget && _myHitContractActive) {
-      const stealth = !_copInRadius(npc.r, npc.c, 12);
-      try {
-        ws && ws.send(JSON.stringify({ t: 'brigadir_kill',
-          d: { stealth: stealth } }));
-      } catch(e) {}
-      npc._hitTarget = false;   // одна цель — один kill
-    }
+    // Цель Бригадира теперь — бандит из aggroZones, не прохожий NPC.
+    // Триггер brigadir_kill уехал в обработчик kind=='aggro_killed'
+    // (см. брайн ws-handlers ниже): там точно знаем bot_id убитого.
   }
 }
 // Проходимо ли для NPC: только бордюр (9) или газон (8), и НЕ внутри
@@ -7281,18 +7272,18 @@ function handleEventPacket(d) {
   } else if (kind === 'brigadir_take_reply') {
     // Бригадир выдал контракт (или отказал по лимиту/расстоянию).
     if (d.ok) {
-      // Выбираем случайного живого NPC рядом с собой как цель
-      const target = _pickHitTargetNear(player.r, player.c);
+      // Цель — случайный бандит из aggroZones (Логово/city_gangs/nests).
+      const target = _pickHitTargetBandit();
       if (!target) {
-        showToast('🤷 Рядом никого подходящего — отойди и попробуй снова', '⚠️', 2500);
+        showToast('🤷 Сейчас банд в городе нет — попробуй позже', '⚠️', 2800);
         return;
       }
-      target._hitTarget = true;
-      _myHitTargetNpc = target;
+      _myHitTargetBotId    = target.bot_id;
       _myHitContractActive = true;
+      _myBrigadirKillSent  = false;
       showEventBanner(
         '🎯 Контракт',
-        `Завали цель в городе. +$${d.payout}, стелс ×${d.stealth_mul || 2}`,
+        `Завали бандита в городе — куш $${d.payout}. Стрелка 🎯 укажет где.`,
         4000, 'win');
     } else if (d.reason === 'limit') {
       showToast(`🚫 Лимит ${d.limit || 3}/сутки исчерпан — приходи завтра`,
@@ -7307,20 +7298,20 @@ function handleEventPacket(d) {
     // в pending, пока игрок не вернётся к Бригадиру и не нажмёт «Забрать».
     if (d.ok) {
       const r = +d.reward | 0;
-      const stealthTag = d.stealth ? ' (стелс ×2)' : '';
-      _myBrigadirReward = { reward: r, stealth: !!d.stealth };
+      _myBrigadirReward = { reward: r };
       showEventBanner(
         '🎯 Цель завалена!',
-        `Возвращайся к Бригадиру — он выдаст куш $${r}${stealthTag}.`,
+        `Возвращайся к Бригадиру — он выдаст куш $${r}.`,
         4500, 'win');
     } else if (d.reason === 'already_pending') {
       // На случай рассинхрона — у сервера уже есть невыданная награда
       showToast('🏆 У Бригадира уже ждёт твоя награда — забери её', 'ℹ️', 2400);
     }
-    // Цель «использована» — сама цель сбросится через 'aggro_hit'/dead,
-    // активный контракт = false, но pending reward живёт до claim.
+    // Контракт исполнен, цель использована, активный = false.
+    // Pending reward живёт до claim.
     _myHitContractActive = false;
-    _myHitTargetNpc = null;
+    _myHitTargetBotId = null;
+    _myBrigadirKillSent = false;
   } else if (kind === 'brigadir_claim_reply') {
     // Бригадир выдал куш — банкнотный baner + плюсик cash в HUD.
     if (d.ok) {
@@ -7741,6 +7732,18 @@ function handleEventPacket(d) {
       spawnFloatText(player.r, player.c, '+$' + cash, {
         color: '#7be58a', size: 16, life: 1400,
       });
+    }
+    // Цель Бригадира — если только что убитый бот совпал с помеченной
+    // целью, шлём brigadir_kill. Сервер положит награду в pending,
+    // забрать у Бригадира. Stealth-флаг больше не считаем — куш
+    // фиксированный (см. mafiozi_bot.py BRIGADIR_STEALTH_MUL=1.0).
+    if (_myHitContractActive && d.bot_id &&
+        String(d.bot_id) === String(_myHitTargetBotId)) {
+      _myBrigadirKillSent = true;
+      try {
+        ws && ws.send(JSON.stringify({ t: 'brigadir_kill',
+          d: { stealth: false } }));
+      } catch(e) {}
     }
   } else if (kind === 'gang_threat') {
     // Стрельба по кортежу/логову — кулачки банды +1. Сервер обновил БД.
@@ -8596,24 +8599,47 @@ const BRIGADIR_AI = {
   paused: false,
 };
 const BRIGADIR_PAYOUT_PREVIEW = 400;
-let _myHitTargetNpc = null;   // ссылка на помеченного NPC (если есть)
+let _myHitTargetBotId = null;   // id бандита-цели из aggroZones (string)
 let _myHitContractActive = false;
+// Защита от race: когда я завалил цель, между aggro_killed (мы шлём
+// brigadir_kill) и brigadir_kill_reply сервер успевает прислать snap
+// с alive=false для этого бота. Иначе cleanup ошибочно засчитал бы
+// «цель погибла без тебя» и сбросил контракт ДО получения reply.
+let _myBrigadirKillSent = false;
 // После убийства цели — pending награда до возврата к Бригадиру.
 // { reward, stealth }. null = нечего получать. См. brigadir_kill_reply.
 let _myBrigadirReward = null;
 
-function _pickHitTargetNear(srcR, srcC) {
-  // Случайный живой NPC в кольце 8..25 от bri (не кассир, не цель уже,
-  // не панически бегущий)
+// Случайный живой бандит из aggroZones (Логово / city_gangs / nests).
+// Возвращает { bot_id, r, c } или null если нет живых ботов.
+// Раньше брали обычного NPC-прохожего — это было «бесплатное» убийство
+// без сопротивления. Теперь цель сама стреляет в игрока — реальный риск.
+function _pickHitTargetBandit() {
   const pool = [];
-  for (const n of NPCS) {
-    if (!n || n.dead || n._cashier || n._hitTarget || n.snitching) continue;
-    const d = Math.hypot(n.r - srcR, n.c - srcC);
-    if (d < 8 || d > 25) continue;
-    pool.push(n);
+  for (const z of Object.values(aggroZones || {})) {
+    for (const b of (z.bots || [])) {
+      if (b.alive === false || b.dead === true) continue;
+      if (!b.id) continue;
+      pool.push({ bot_id: String(b.id),
+                  r: +b.y || 0, c: +b.x || 0 });
+    }
   }
   if (!pool.length) return null;
   return pool[Math.floor(Math.random() * pool.length)];
+}
+// Поиск текущей цели Бригадира в aggroZones по сохранённому id.
+// Возвращает { r, c, alive } или null если бот пропал из снапа.
+function _findHitTargetBotById(bid) {
+  if (!bid) return null;
+  for (const z of Object.values(aggroZones || {})) {
+    for (const b of (z.bots || [])) {
+      if (String(b.id) === String(bid)) {
+        return { r: +b.y || 0, c: +b.x || 0,
+                 alive: !(b.alive === false || b.dead === true) };
+      }
+    }
+  }
+  return null;
 }
 
 // AI Бригадира — wandering вокруг HOME. Подошёл игрок ≤ STOP_R →
@@ -12162,14 +12188,17 @@ function update(dt) {
   updateRobbery(performance.now());
   tickRandomWorldEvents(performance.now());
   _tickBankHeistUi(performance.now());
-  // Хит-цель умерла НЕ от моей пули (случайная авария / коп завалил /
-  // драка NPC-NPC из мирового события) — сбрасываем зависший контракт.
-  // Иначе игрок не сможет взять новый, пока сам не убьёт уже мёртвого.
-  if (_myHitContractActive && _myHitTargetNpc &&
-      (_myHitTargetNpc.dead || !NPCS.includes(_myHitTargetNpc))) {
-    _myHitContractActive = false;
-    _myHitTargetNpc = null;
-    showToast('🎯 Цель погибла без тебя — контракт сорван', 'ℹ️', 2400);
+  // Хит-цель (бандит из aggroZones) пропала — либо убили без меня,
+  // либо зона зачищена/исчезла. Сбрасываем зависший контракт чтобы
+  // игрок мог взять новый. Пропускаем когда _myBrigadirKillSent —
+  // race с собственным aggro_killed (см. флаг там).
+  if (_myHitContractActive && _myHitTargetBotId && !_myBrigadirKillSent) {
+    const tgt = _findHitTargetBotById(_myHitTargetBotId);
+    if (!tgt || !tgt.alive) {
+      _myHitContractActive = false;
+      _myHitTargetBotId = null;
+      showToast('🎯 Цель погибла без тебя — контракт сорван', 'ℹ️', 2400);
+    }
   }
   updateExtinguishBtn();
   updateBoxThreat(dt);
@@ -18788,11 +18817,10 @@ function _drawEdgeArrowToWorld(r, c, icon, accent) {
 // невыданная награда — иначе игрок «теряется» после убийства и не знает
 // что куш надо забирать.
 function drawHitTargetMarker() {
-  if (_myHitContractActive && _myHitTargetNpc) {
-    const n = _myHitTargetNpc;
-    if (!n || n.dead) { _myHitContractActive = false; _myHitTargetNpc = null; }
-    else {
-      const p = w2s(n.r + 0.5, n.c + 0.5);
+  if (_myHitContractActive && _myHitTargetBotId) {
+    const tgt = _findHitTargetBotById(_myHitTargetBotId);
+    if (tgt && tgt.alive) {
+      const p = w2s(tgt.r + 0.5, tgt.c + 0.5);
       const tNow = performance.now() * 0.005;
       const bob = Math.sin(tNow * 3) * 3;
       ctx.save();
@@ -18804,7 +18832,7 @@ function drawHitTargetMarker() {
       ctx.shadowBlur = 0;
       ctx.restore();
       // Если цель за экраном — указываем грани куда смотреть
-      _drawEdgeArrowToWorld(n.r, n.c, '🎯', '#ff5050');
+      _drawEdgeArrowToWorld(tgt.r, tgt.c, '🎯', '#ff5050');
     }
   }
   // Pending награда — стрелка-указатель на Бригадира, чтобы игрок
