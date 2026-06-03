@@ -5697,6 +5697,10 @@ function tickRandomWorldEvents(now) {
 }
 
 initNpcs();
+NPCS.push({r:38.5,c:36.5,tr:38.5,tc:36.5,speed:0,ang:2.4,
+  walkPhase:0,idleUntil:Infinity,hp:200,max_hp:200,
+  cryText:'Черная борода',cryUntil:Infinity,
+  look:{gender:0,skin:2,body:1,face:2,hair:4,hat:3}});
 initCars();
 
 // Камера следит за игроком. Спавн — (24,24): перекрёсток в центре карты.
