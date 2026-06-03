@@ -3266,6 +3266,29 @@ function initNpcs() {
     const n = spawnNpc(i);
     if (n) { pickNpcWaypoint(n); NPCS.push(n); }
   }
+  const npc = { 
+    r: BURJ_POS.r, 
+    c: BURJ_POS.c, 
+    tr: BURJ_POS.r, 
+    tc: BURJ_POS.c, 
+    speed: 0.6, 
+    ang: 0, 
+    walkPhase: 0, 
+    idleUntil: 0, 
+    hp: 60, 
+    max_hp: 60,
+    name: 'Черная Борода',
+    look: { 
+      gender: 0, 
+      skin: 1, 
+      body: 1, 
+      face: 2, 
+      hair: 3, 
+      hat: 0 
+    } 
+  };
+  pickNpcWaypoint(npc); 
+  NPCS.push(npc);
 }
 
 // Раз в ~1.2 с проверяем сколько живых NPC. Если меньше TARGET — спауним
@@ -23514,38 +23537,3 @@ function chatDuration(text) {
 </script>
 </body>
 </html>
-
-
-// Добавлено ботом
-function initNpcs() {
-  NPCS.length = 0;
-  for (let i = 0; i < TARGET_NPC_COUNT; i++) {
-    const n = spawnNpc(i);
-    if (n) { 
-      pickNpcWaypoint(n); 
-      NPCS.push(n); 
-    }
-  }
-  // Черная Борода
-  const blackbeard = {
-    id: 'blackbeard',
-    name: 'Черная Борода',
-    r: BURU_MAFIA.r,
-    c: BURU_MAFIA.c,
-    state: 'idle',
-    waypoint: {
-      r: BURU_MAFIA.r,
-      c: BURU_MAFIA.c,
-    },
-    dialog: 'Привет, я Черная Борода. Я здесь, чтобы помочь тебе.',
-    behavior: 'sway',
-    label: {
-      text: 'Черная Борода',
-      color: 'black',
-      fontSize: 14,
-      offsetY: -20,
-    },
-  };
-  pickNpcWaypoint(blackbeard);
-  NPCS.push(blackbeard);
-}
