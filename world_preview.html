@@ -23517,7 +23517,7 @@ function chatDuration(text) {
 
 
 // Добавлено ботом
-function initNPCs() {
+function initNpcs() {
   NPCS.length = 0;
   for (let i = 0; i < TARGET_NPC_COUNT; i++) {
     const n = spawnNpc(i);
@@ -23530,15 +23530,15 @@ function initNPCs() {
   const blackbeard = {
     id: 'blackbeard',
     name: 'Черная Борода',
-    r: Math.floor(MAP_ROWS / 2),
-    c: Math.floor(MAP_COLS / 2),
+    r: BURU_MAFIA.r,
+    c: BURU_MAFIA.c,
     state: 'idle',
     waypoint: {
-      r: Math.floor(MAP_ROWS / 2),
-      c: Math.floor(MAP_COLS / 2),
+      r: BURU_MAFIA.r,
+      c: BURU_MAFIA.c,
     },
     dialog: 'Привет, я Черная Борода. Я здесь, чтобы помочь тебе.',
-    behavior: 'patrol',
+    behavior: 'sway',
   };
   pickNpcWaypoint(blackbeard);
   NPCS.push(blackbeard);
