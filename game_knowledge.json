@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "topic": "Добавить именного NPC у здания",
+    "request": "добавь нпс черная борода у здания buru mafia",
+    "working_code": "NPCS.push({r:38.5,c:36.5,tr:38.5,tc:36.5,speed:0,ang:2.4,\n  walkPhase:0,idleUntil:Infinity,hp:200,max_hp:200,\n  cryText:'Черная борода',cryUntil:Infinity,\n  look:{gender:0,skin:2,body:1,face:2,hair:4,hat:3}});",
+    "func_name": "",
+    "file_path": "world.html",
+    "model": "llama",
+    "created_at": "2026-06-04T02:17:52.038562"
+  }
+]
