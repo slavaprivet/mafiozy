@@ -5290,8 +5290,8 @@ function spawnCar(idx, opts) {
       dirDx, dirDy,
       model,
       braking: false,
-      // Жёлтые мигалки для такси/спорткара
       flash: 0,
+      _fuel: 55 + Math.random() * 45,   // 55–100% топлива при спауне
     };
   }
   return null;
@@ -6023,6 +6023,35 @@ function _maintainTrafficDensity(now) {
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ЗАПРАВОЧНЫЕ СТАНЦИИ — топливо для машин
+// ══════════════════════════════════════════════════════════════════════════════
+
+// 4 АЗС расставлены по городу на тротуарных тайлах рядом с дорогами.
+// r%10 == 3 → первый ряд зданий за дорогой (не сама дорога).
+const GAS_STATIONS = [
+  { r: 13, c: 13, name: 'АЗС Север-Запад' },
+  { r: 13, c: 63, name: 'АЗС Север-Восток' },
+  { r: 53, c: 33, name: 'АЗС Центр'        },
+  { r: 73, c: 63, name: 'АЗС Юг'           },
+];
+const GAS_INTERACT_R = 3.5;   // тайлов — радиус взаимодействия с АЗС
+
+// Топливо игрока в текущей угнанной/своей машине. null = не в машине.
+// Значение 0–100 (%). Устанавливается при посадке из car._fuel.
+let _myCarFuelPct = null;
+let _fuelWarnShown = false;
+const _FUEL_DRAIN_RATE = 0.12;  // % в секунду во время движения
+
+function _nearestGasStation(r, c) {
+  let best = null, bestD = Infinity;
+  for (const gs of GAS_STATIONS) {
+    const d = Math.hypot(gs.r - r, gs.c - c);
+    if (d < bestD) { bestD = d; best = gs; }
+  }
+  return { station: best, dist: bestD };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 function updateCars(dt) {
@@ -6137,6 +6166,42 @@ function updateCars(dt) {
       }
     }
     if (car.model.taxi || car.model.sport) car.flash += dt;
+
+    // ── Топливо NPC ────────────────────────────────────────────────
+    if (car._fuel === undefined) car._fuel = 55 + Math.random() * 45;
+    if (!car.braking && !car._refuelingUntil) {
+      car._fuel = Math.max(0, car._fuel - _FUEL_DRAIN_RATE * dt);
+    }
+    // Мало топлива — ищем АЗС
+    if (car._fuel < 15 && !car._wantsGas) car._wantsGas = true;
+    if (car._fuel <= 0 && !car._stalledUntil && !car._refuelingUntil) {
+      // Заглох — ждём рядом с АЗС 15с, потом полный бак
+      car._stalledUntil = now + 15000;
+      car.braking = true;
+      car._stuckT = 0;
+    }
+    if (car._stalledUntil) {
+      car.braking = true;
+      if (now >= car._stalledUntil) {
+        car._fuel = 100; car._wantsGas = false;
+        car._stalledUntil = 0; car.braking = false;
+      }
+    }
+    // Попал в радиус АЗС с пустым баком — дозаправляемся
+    if (car._wantsGas && !car._refuelingUntil && !car._stalledUntil) {
+      const { dist } = _nearestGasStation(car.r, car.c);
+      if (dist < GAS_INTERACT_R) {
+        car._refuelingUntil = now + 10000;
+        car.braking = true;
+      }
+    }
+    if (car._refuelingUntil) {
+      car.braking = true;
+      if (now >= car._refuelingUntil) {
+        car._fuel = 100; car._wantsGas = false;
+        car._refuelingUntil = 0; car.braking = false;
+      }
+    }
   }
 }
 
@@ -9542,6 +9607,17 @@ function updateGtaInteractions() {
   // прячется в finishRob/cancelRob.
   if (_robBtn && !_robInProgress) _robBtn.style.display = 'none';
   if (myDrivingCarId) {
+    // Если рядом АЗС и не пассажир — предлагаем заправиться
+    if (!myIsPassenger && _myCarFuelPct !== null) {
+      const { dist } = _nearestGasStation(player.r, player.c);
+      if (dist < GAS_INTERACT_R && _myCarFuelPct < 99) {
+        _gtaActionKind = 'refuel';
+        _gtaActionCarId = myDrivingCarId;
+        _gtaBtn.textContent = `⛽ Заправиться (${Math.round(_myCarFuelPct)}%)`;
+        _gtaBtn.style.display = 'block';
+        return;
+      }
+    }
     _gtaActionKind = 'exit';
     _gtaActionCarId = myDrivingCarId;
     _gtaBtn.textContent = myIsPassenger
@@ -9831,6 +9907,12 @@ _gtaBtn.addEventListener('click', () => {
     openMichaelMenu();
   } else if (_gtaActionKind === 'enter') {
     enterCar(_gtaActionCarId, _gtaActionEnterAs || 'driver');
+  } else if (_gtaActionKind === 'refuel') {
+    if (_myCarFuelPct !== null && _myCarFuelPct < 99) {
+      const cost = Math.round((100 - _myCarFuelPct) * 0.5);  // 0.5$ за %
+      _myCarFuelPct = 100;
+      showToast(`⛽ Заправлено! Полный бак.`, '✅', 2200);
+    }
   } else if (_gtaActionKind === 'exit') {
     exitCar('manual');
   } else if (_gtaActionKind === 'hijack') {
@@ -10426,6 +10508,8 @@ _lpModal.addEventListener('click', (e) => {
 //      Успех = тихий угон. Провал = сигналка 10с, повтор недоступен.
 //      Отмена = ничего.
 function _completeHijack(car) {
+  // Сохраняем уровень топлива угоняемой машины
+  _myCarFuelPct = (car._fuel !== undefined) ? car._fuel : (55 + Math.random() * 45);
   // НЕ удаляем машину из CARS сразу: между splice и приходом серверного
   // civilian_hijack_reply (~100мс RTT) клиент видел «дырку» — машина
   // пропадала с экрана пока серверный quest_car не появится. Теперь
@@ -11053,6 +11137,7 @@ function exitCar(reason) {
     qc.vx = 0; qc.vy = 0;
   }
   myDrivingCarId = null;
+  _myCarFuelPct  = null;
   _exitRequested = false;
   // Высадка на ближайший проходимый тайл (тротуар/газон/дорога) рядом
   // с машиной — иначе если упёрся у стенки, _ensureSpawnSafe могла
@@ -12936,6 +13021,20 @@ function update(dt) {
   // Локальная симуляция декора: прохожие + машины + службы
   updateNpcs(dt);
   updateCars(dt);
+  // Расход топлива игрока — только пока едет (не пассажир)
+  if (myDrivingCarId && !myIsPassenger && _myCarFuelPct !== null) {
+    _myCarFuelPct = Math.max(0, _myCarFuelPct - _FUEL_DRAIN_RATE * dt);
+    if (_myCarFuelPct <= 0) {
+      showToast('⛽ Топливо кончилось! Найди АЗС.', '🚨', 3000);
+      _myCarFuelPct = 0;
+      // Машина глохнет — принудительный выход
+      exitCar('out_of_fuel');
+    } else if (_myCarFuelPct < 10 && !_fuelWarnShown) {
+      _fuelWarnShown = true;
+      showToast('⛽ Мало топлива! Найди заправку.', '⚠️', 2500);
+    }
+  }
+  if (!myDrivingCarId) _fuelWarnShown = false;
   updateCityCops(dt);
   updatePets(dt);
   updateServiceVehicles(dt);
@@ -22009,6 +22108,113 @@ function render() {
     items.push({ depth: BRIGADIR_POS.r + BRIGADIR_POS.c + 0.0007,
                  draw: () => drawBrigadir() });
   }
+  // АЗС — знак с колонкой и зоной взаимодействия
+  for (const gs of GAS_STATIONS) {
+    if (gs.r < r0 - 2 || gs.r >= r1 + 2 || gs.c < c0 - 2 || gs.c >= c1 + 2) continue;
+    items.push({ depth: gs.r + gs.c - 0.1, draw: () => {
+      const p = w2s(gs.r + 0.5, gs.c + 0.5);
+      const t = performance.now();
+      // Асфальт-подложка АЗС
+      ctx.save();
+      ctx.fillStyle = '#2a2a2a';
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, 28, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Навес (крыша на двух столбах)
+      ctx.fillStyle = '#e8c840';
+      ctx.fillRect(p.x - 22, p.y - 28, 44, 5);
+      ctx.fillStyle = '#888';
+      ctx.fillRect(p.x - 18, p.y - 23, 4, 14);
+      ctx.fillRect(p.x + 14, p.y - 23, 4, 14);
+      // Колонка (pump)
+      ctx.fillStyle = '#d4382a';
+      ctx.fillRect(p.x - 6, p.y - 18, 12, 16);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(p.x - 4, p.y - 14, 8, 6);  // экран
+      ctx.fillStyle = '#39e';
+      ctx.fillRect(p.x - 3, p.y - 13, 6, 4);  // экран синий
+      // Шланг
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(p.x + 6, p.y - 10);
+      ctx.quadraticCurveTo(p.x + 16, p.y - 6, p.x + 12, p.y);
+      ctx.stroke();
+      // Знак «⛽» + название
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('⛽', p.x, p.y - 33);
+      // Пульсирующий контур зоны взаимодействия
+      const distToGs = Math.hypot(player.r - gs.r, player.c - gs.c);
+      if (distToGs < GAS_INTERACT_R + 2) {
+        const pulse = 0.5 + 0.5 * Math.sin(t * 0.005);
+        ctx.globalAlpha = 0.25 + 0.15 * pulse;
+        ctx.strokeStyle = '#f0d020';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y + 4, 32, 16, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.restore();
+    }});
+  }
+
+  // Индикатор топлива над машиной игрока (показывается при посадке)
+  if (myDrivingCarId && _myCarFuelPct !== null && !myIsPassenger) {
+    const p = w2s(player.r, player.c);
+    const pct = Math.round(_myCarFuelPct);
+    const fuelColor = pct > 30 ? '#4de040' : pct > 10 ? '#f0a020' : '#ff3030';
+    ctx.save();
+    // Фон пилюли
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.beginPath();
+    ctx.roundRect(p.x - 28, p.y - 48, 56, 18, 8);
+    ctx.fill();
+    // Иконка
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('⛽', p.x - 13, p.y - 34);
+    // Бар топлива
+    ctx.fillStyle = '#333';
+    ctx.fillRect(p.x - 5, p.y - 44, 28, 8);
+    ctx.fillStyle = fuelColor;
+    ctx.fillRect(p.x - 5, p.y - 44, Math.round(28 * pct / 100), 8);
+    // Процент
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(pct + '%', p.x + 9, p.y - 37);
+    ctx.restore();
+  }
+
+  // Индикатор топлива над машиной которую собираемся угнать
+  if (_hijackedCarRef && _hijackedCarRef._fuel !== undefined) {
+    const car = _hijackedCarRef;
+    const p = w2s(car.r, car.c);
+    const pct = Math.round(car._fuel);
+    const fuelColor = pct > 30 ? '#4de040' : pct > 10 ? '#f0a020' : '#ff3030';
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.beginPath();
+    ctx.roundRect(p.x - 28, p.y - 48, 56, 18, 8);
+    ctx.fill();
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('⛽', p.x - 13, p.y - 34);
+    ctx.fillStyle = '#333';
+    ctx.fillRect(p.x - 5, p.y - 44, 28, 8);
+    ctx.fillStyle = fuelColor;
+    ctx.fillRect(p.x - 5, p.y - 44, Math.round(28 * pct / 100), 8);
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(pct + '%', p.x + 9, p.y - 37);
+    ctx.restore();
+  }
+
   // Корабль Майкла — большой меш (корпус + надстройка + кран + контейнеры).
   // Рисуем как один объект с depth = задний край палубы, чтобы он сидел
   // ПОЗАДИ Майкла и контейнеров на пирсе, но перед водой.
