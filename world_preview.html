@@ -110,6 +110,17 @@ body.in-pvp #zoneBtn { top: 104px; }
   letter-spacing: 0.5px;
 }
 body.in-pvp #gtaActionBtn { top: 104px; }
+/* Ручной тормоз — круглая кнопка справа снизу, видна только за рулём */
+#handbrakeBtn {
+  position: absolute; right: 16px; bottom: 120px;
+  width: 54px; height: 54px; border-radius: 50%;
+  background: linear-gradient(135deg, #7a1010, #c02020);
+  border: 2px solid #ff5040; color: #fff; font-size: 22px;
+  cursor: pointer; display: none; z-index: 8;
+  box-shadow: 0 4px 14px rgba(160,0,0,.5);
+  touch-action: none; user-select: none;
+}
+#handbrakeBtn.active { background: linear-gradient(135deg, #c02020, #ff3030); box-shadow: 0 0 18px rgba(255,60,60,.8); }
 /* Если активна обычная зона-кнопка и GTA-кнопка — раздвигаем */
 #zoneBtn[style*="block"] ~ #gtaActionBtn { top: 110px; }
 
@@ -1073,6 +1084,8 @@ body.in-pvp #robActionBtn { top: 152px; }
   <!-- GTA-кнопка: Майкл / сесть в машину / выйти. Текст и обработчик
        задаются в updateGtaInteractions(). -->
   <button id="gtaActionBtn"></button>
+  <!-- Ручной тормоз — видна только за рулём -->
+  <button id="handbrakeBtn" style="display:none">⛓</button>
   <!-- Альтернативная кнопка «Ограбить» — появляется одновременно с
        «Купить бизнес». Стиль красный, чтобы было ясно что это криминал. -->
   <button id="robActionBtn"></button>
@@ -3270,6 +3283,7 @@ function pickNpcWaypoint(npc) {
 const TARGET_NPC_COUNT = 60;       // живых прохожих в городе
 const NPC_RESPAWN_MIN_DIST = 22;   // не спаунить ближе этого к игроку
 let _nextNpcRespawnAt = 0;
+let _gameMinutes = 12 * 60;        // 12:00 — нужно до initNpcs (TDZ fix)
 
 function initNpcs() {
   NPCS.length = 0;
@@ -6876,6 +6890,9 @@ function _capArr(arr, cap) { if (arr.length >= cap) arr.shift(); }
 const skidMarks = [];
 const SKID_MAX_LIFE = 8000;
 let _lastSkidAt = 0;
+// Выхлопные частицы — дым из глушителя. {r,c,vr,vc,rad,life,max,color}
+const exhaustPuffs = [];
+let _lastExhaustAt = 0;
 // Анимации ареста — локальный спавн автозака, который приезжает к жертве,
 // загружает её и уезжает в участок. ~4 секунды. См. spawnArrestAnim().
 const arrestAnims = [];   // {target_uid, startMs, fromR/C, atR/C, jailR/C, dir}
@@ -6920,6 +6937,60 @@ function spawnSmokePuff(r, c, angle) {
     });
   }
 }
+// spawnExhaust — дым из глушителя машины игрока.
+// throttle: 0=холостые, 0..1=разгон. junker=чёрный дым.
+function spawnExhaust(qc, throttle, isJunker, isSport) {
+  const now = performance.now();
+  // Интервал: холостые=160мс, разгон=55мс, ручник/пробуксовка=25мс
+  const interval = _handbrakeActive ? 25 : (throttle > 0.7 ? 55 : throttle > 0.05 ? 90 : 160);
+  if (now - _lastExhaustAt < interval) return;
+  _lastExhaustAt = now;
+
+  const m = QUEST_CAR_MODELS[qc.model];
+  const L = (m && m.L) || 1.6;
+  // Позиция глушителя — задняя часть машины, чуть вбок
+  const backAng = qc.ang + Math.PI;
+  const sideOff = (m && m.W) ? m.W * 0.25 : 0.2;
+  const exhaustR = qc.y + Math.sin(backAng) * (L * 0.52) + Math.cos(backAng) * sideOff;
+  const exhaustC = qc.x + Math.cos(backAng) * (L * 0.52) - Math.sin(backAng) * sideOff;
+
+  // Цвет: холостые=светло-серый, разгон=тёмно-серый, junker=чёрный
+  let color, count, radBase, speedMul;
+  if (isJunker) {
+    color = `rgba(20,20,20,`; count = 3; radBase = 5; speedMul = 1.4;
+  } else if (throttle > 0.7) {
+    color = `rgba(80,80,80,`; count = 2; radBase = 4; speedMul = 1.1;
+  } else if (throttle > 0.05) {
+    color = `rgba(120,120,120,`; count = 1; radBase = 3; speedMul = 0.8;
+  } else {
+    color = `rgba(160,160,160,`; count = 1; radBase = 2.5; speedMul = 0.4;
+  }
+
+  for (let i = 0; i < count; i++) {
+    const spread = (Math.random() - 0.5) * 0.4;
+    const a = backAng + spread;
+    const sp = (0.5 + Math.random() * 0.5) * speedMul;
+    exhaustPuffs.push({
+      r: exhaustR, c: exhaustC,
+      vr: Math.sin(a) * sp * 0.3 - 0.15,
+      vc: Math.cos(a) * sp * 0.3,
+      rad: radBase + Math.random() * 2,
+      life: 500 + Math.random() * 300, max: 800,
+      color,
+    });
+  }
+  // Спорткар при высоком газе — маленький огонёк из трубы
+  if (isSport && throttle > 0.8 && Math.random() < 0.3) {
+    exhaustPuffs.push({
+      r: exhaustR, c: exhaustC,
+      vr: Math.sin(backAng) * 0.3, vc: Math.cos(backAng) * 0.3,
+      rad: 3, life: 120, max: 120,
+      color: 'rgba(255,140,20,', isFire: true,
+    });
+  }
+  if (exhaustPuffs.length > 200) exhaustPuffs.splice(0, 40);
+}
+
 function spawnShockwave(r, c, opts) {
   opts = opts || {};
   _capArr(shockwaves, _MAX_SHOCKW);
@@ -9579,6 +9650,12 @@ if (_robBtn) {
 
 // ── GTA: взаимодействия (Майкл / сесть-выйти из машины) ────────────
 const _gtaBtn = document.getElementById('gtaActionBtn');
+const _handbrakeBtn = document.getElementById('handbrakeBtn');
+// Ручной тормоз — hold для дрифта
+_handbrakeBtn.addEventListener('touchstart', e => { e.preventDefault(); _handbrakeActive = true; _handbrakeBtn.classList.add('active'); }, { passive: false });
+_handbrakeBtn.addEventListener('touchend',   e => { e.preventDefault(); _handbrakeActive = false; _handbrakeBtn.classList.remove('active'); }, { passive: false });
+_handbrakeBtn.addEventListener('mousedown',  () => { _handbrakeActive = true;  _handbrakeBtn.classList.add('active'); });
+_handbrakeBtn.addEventListener('mouseup',    () => { _handbrakeActive = false; _handbrakeBtn.classList.remove('active'); });
 let _gtaActionKind = null;   // 'michael' | 'enter' | 'exit' | 'hijack'
 let _gtaActionCarId = null;
 let _gtaActionEnterAs = null;   // 'driver' | 'passenger'
@@ -9601,6 +9678,8 @@ function playEnterCarAnim(r, c) {
 }
 
 function updateGtaInteractions() {
+  // Кнопка ручника — видна только за рулём (не пассажир)
+  _handbrakeBtn.style.display = (myDrivingCarId && !myIsPassenger) ? 'flex' : 'none';
   // Кнопка «Ограбить» по умолчанию скрыта — показывается только в
   // блоке biz_buy (когда подошёл к чужому бизнесу). Прячем здесь чтобы
   // не торчала после ухода от точки. Идёт ограбление — НЕ трогаем,
@@ -11056,7 +11135,8 @@ function refreshMichaelMenu() {
 // Локально: запоминаем myDrivingCarId. Сервер при первом gta_drive
 // проверит что машина свободна; если нет — пришлёт gta_drive_reject
 // и мы сбросим myDrivingCarId.
-let _exitRequested = false;   // нажали «Выйти» на ходу — тормозим, потом выходим
+let _exitRequested   = false;   // нажали «Выйти» на ходу — тормозим, потом выходим
+let _handbrakeActive = false;   // ручной тормоз — удерживается кнопкой ⛓
 function enterCar(carId, asKind) {
   const qc = questCars.get(carId);
   if (!qc) return;
@@ -11561,7 +11641,6 @@ const _gameClock = document.getElementById('gameClock');
 // Та же модель что в hub.html: 1 реальная секунда = 1 игровая минута.
 // Старт в 12:00. Используется для day/night-тинта рендера и для эмодзи
 // часов в HUD-карточке.
-let _gameMinutes = 12 * 60;     // 12:00
 function getGameHour() { return Math.floor(_gameMinutes / 60) % 24; }
 function getGameMinute() { return _gameMinutes % 60; }
 function _phaseEmoji(h) {
@@ -12425,6 +12504,11 @@ function update(dt) {
   // Нормализация если выходит за круг
   const inMag = Math.hypot(inDx, inDy);
   if (inMag > 1) { inDx /= inMag; inDy /= inMag; }
+  // Сохраняем для курсор-рендера в drawQuestCar
+  if (myDrivingCarId) {
+    const _qcRef = questCars.get(myDrivingCarId);
+    if (_qcRef) { _qcRef._inDx = inDx; _qcRef._inDy = inDy; }
+  }
 
   // ── В МАШИНЕ ── левый стик = газ + руль, правый отключён ──
   if (myDrivingCarId) {
@@ -12460,24 +12544,37 @@ function update(dt) {
       return;
     } else {
       // Параметры аркадной езды. Серверный кламп QUEST_CAR_MAX_SPEED=14.
-      const CAR_MAX_SPEED   = 13.0;  // было 9 — заметно живее, ниже 14 серв-клампа
-      const CAR_ACCEL       = 13.0;  // было 9 — быстрее набирает скорость
-      const CAR_BRAKE       = 16.0;  // активное торможение и exit
-      const CAR_COAST_DRAG  = 0.85;  // пассивный «накат» при отпущенном стике
-      // Поворот — угловая скорость, зависит от скорости движения. Заметно
-      // отзывчивее чем раньше, но не моментальная — машина чувствуется.
-      const CAR_TURN_RATE_BASE = 3.4;  // было 2.4 — острее руль
-      const CAR_DRIFT_GRIP     = 5.0;  // было 1.5 — шины «держат», без болтанки
+      const CAR_MAX_SPEED      = 13.0;
+      const CAR_ACCEL          = 13.0;
+      const CAR_BRAKE          = 16.0;
+      const CAR_COAST_DRAG     = 0.85;
+      const CAR_TURN_RATE_BASE = 3.4;
+      // Ручной тормоз активен — сцепление резко падает (дрифт)
+      const grip = _handbrakeActive ? 1.8 : 5.0;
+      const CAR_DRIFT_GRIP     = grip;
       // Текущая скорость по локальному состоянию qc
       let curVx = qc.vx || 0, curVy = qc.vy || 0;
       let curSpeed = Math.hypot(curVx, curVy);
       // Если игрок попросил выйти — игнорируем стик, тормозим до 0
       const wantingExit = _exitRequested;
       let throttle = 0, steer = 0;
+      let _carTargetAng = qc.ang;   // для bodyRoll — обновится ниже
+      // Задний ход: машина почти стоит + стик смотрит назад → reverse
+      let inReverse = false;
+      if (!wantingExit && curSpeed < 1.2 && !_handbrakeActive &&
+          (Math.abs(inDx) > 0.08 || Math.abs(inDy) > 0.08)) {
+        const d0 = inDx, s0 = inDy / ISO_Y;
+        const wantAng = Math.atan2((s0 - d0) * 0.5, (s0 + d0) * 0.5);
+        let adf = wantAng - qc.ang;
+        while (adf >  Math.PI) adf -= Math.PI * 2;
+        while (adf < -Math.PI) adf += Math.PI * 2;
+        if (Math.abs(adf) > Math.PI * 0.65) inReverse = true;
+      }
       if (!wantingExit && (Math.abs(inDx) > 0.08 || Math.abs(inDy) > 0.08)) {
         // Стик → желаемое направление движения в WORLD-координатах (тайлы)
         const d = inDx, s = inDy / ISO_Y;
         const targetAng = Math.atan2((s - d) * 0.5, (s + d) * 0.5);
+        _carTargetAng = targetAng;
         // Плавно поворачиваем angle машины к targetAng. Угловая скорость
         // зависит от скорости движения (как настоящая машина):
         //   v < 1   — поворот ~70% (нельзя крутиться на месте, но на старте
@@ -12541,15 +12638,23 @@ function update(dt) {
         // повороте на скорости проекция forwardSpeed на новое направление
         // ненадолго слегка отрицательная — это НЕ тормоз, а просто инерция,
         // которую разгребает CAR_DRIFT_GRIP.
-        if (forwardSpeed < -3.0) {
+        if (inReverse) {
+          // Задний ход — едем назад без разворота носа
+          const revSpeed = 5.5;
+          curVx -= dirVx * CAR_ACCEL * 0.55 * throttle * dt;
+          curVy -= dirVy * CAR_ACCEL * 0.55 * throttle * dt;
+          const rs = Math.hypot(curVx, curVy);
+          if (rs > revSpeed) { curVx *= revSpeed / rs; curVy *= revSpeed / rs; }
+          qc._reversing = true;
+        } else if (forwardSpeed < -3.0) {
           activeBrake = true;
-          // Гасим обратное движение быстрее
           const dec = CAR_BRAKE * dt;
           if (curSpeed <= dec) { curVx = 0; curVy = 0; }
           else { const k = (curSpeed - dec) / curSpeed; curVx *= k; curVy *= k; }
         } else {
           curVx += dirVx * CAR_ACCEL * throttle * dt;
           curVy += dirVy * CAR_ACCEL * throttle * dt;
+          qc._reversing = false;
         }
       } else {
         // Отпустили газ — мягкий «накат» (как в аркаде). Если просили выход —
@@ -12569,6 +12674,59 @@ function update(dt) {
       // Флаг для рендера стоп-сигналов: жмём тормоз или просто очень медленно
       // едем (заходим на парковку).
       qc.braking = activeBrake || (Math.hypot(curVx, curVy) < 0.6 && throttle < 0.05);
+
+      // ── Дым выхлопа ────────────────────────────────────────────────
+      const _qcMdl = QUEST_CAR_MODELS[qc.model];
+      const _isJunker = !!(qc._junker);
+      const _isSport  = !!(_qcMdl && (_qcMdl.sport || _qcMdl.muscle || _qcMdl.fast));
+      spawnExhaust(qc, throttle, _isJunker, _isSport);
+
+      // ── Дым из-под колёс при пробуксовке (резкий старт или ручник) ─
+      const _spinSmoke = (_handbrakeActive && curSpeed > 1.5) ||
+                         (throttle > 0.85 && curSpeed < 2.5 && !inReverse);
+      if (_spinSmoke) {
+        const nowMs = performance.now();
+        if (nowMs - _lastSkidAt > 18) {
+          _lastSkidAt = nowMs;
+          const mm = _qcMdl || { L: 1.7, W: 0.85 };
+          const wOff  = (mm.W || 0.85) * 0.40;
+          const bOff  = (mm.L || 1.6) * 0.38;
+          const bAng  = qc.ang + Math.PI;
+          const perpA = qc.ang + Math.PI / 2;
+          const px = Math.cos(perpA), py = Math.sin(perpA);
+          const bx  = qc.x + Math.cos(bAng) * bOff;
+          const by  = qc.y + Math.sin(bAng) * bOff;
+          // Два следа + облачко серого дыма
+          skidMarks.push({ r: by + py * wOff, c: bx + px * wOff, ang: qc.ang, life: SKID_MAX_LIFE, max: SKID_MAX_LIFE });
+          skidMarks.push({ r: by - py * wOff, c: bx - px * wOff, ang: qc.ang, life: SKID_MAX_LIFE, max: SKID_MAX_LIFE });
+          exhaustPuffs.push({
+            r: by + (Math.random()-0.5)*0.3, c: bx + (Math.random()-0.5)*0.3,
+            vr: -0.3 - Math.random()*0.2, vc: (Math.random()-0.5)*0.2,
+            rad: 5 + Math.random()*4, life: 400, max: 400,
+            color: 'rgba(200,200,200,',
+          });
+          if (skidMarks.length > 500) skidMarks.splice(0, 80);
+        }
+      }
+
+      // ── Скидмарки при ручном тормозе (более частые) ───────────────
+      if (_handbrakeActive && curSpeed > 3) {
+        const nowMs2 = performance.now();
+        if (nowMs2 - _lastSkidAt > 30) {
+          _lastSkidAt = nowMs2;
+          const mm2   = _qcMdl || { L: 1.7, W: 0.85 };
+          const wOff2 = (mm2.W || 0.85) * 0.38;
+          const bOff2 = (mm2.L || 1.6) * 0.36;
+          const bAng2 = qc.ang + Math.PI;
+          const pA2   = qc.ang + Math.PI / 2;
+          const px2   = Math.cos(pA2), py2 = Math.sin(pA2);
+          const bx2   = qc.x + Math.cos(bAng2) * bOff2;
+          const by2   = qc.y + Math.sin(bAng2) * bOff2;
+          skidMarks.push({ r: by2 + py2*wOff2, c: bx2 + px2*wOff2, ang: qc.ang + (Math.random()-0.5)*0.25, life: SKID_MAX_LIFE, max: SKID_MAX_LIFE });
+          skidMarks.push({ r: by2 - py2*wOff2, c: bx2 - px2*wOff2, ang: qc.ang + (Math.random()-0.5)*0.25, life: SKID_MAX_LIFE, max: SKID_MAX_LIFE });
+        }
+      }
+
       // Кламп скорости
       curSpeed = Math.hypot(curVx, curVy);
       if (curSpeed > CAR_MAX_SPEED) {
@@ -12601,9 +12759,21 @@ function update(dt) {
         qc.x = newX; qc.y = newY;
       } else {
         const impact = curSpeed;
-        // Просто остановка о стену + лёгкий урон только при ощутимой скорости.
-        curVx = 0; curVy = 0;
-        if (impact > 5.5) reportCarCrash(qc, impact, 'wall');
+        // Скольжение вдоль стены: пробуем двигаться только по X или только по Y
+        const slideX = !isBlocked(qc.y, newX);
+        const slideY = !isBlocked(newY, qc.x);
+        if (slideX) {
+          qc.x = newX;
+          curVy *= 0.35;   // гасим перпендикулярную составляющую
+        } else if (slideY) {
+          qc.y = newY;
+          curVx *= 0.35;
+        } else {
+          // Прямой удар — полная остановка
+          curVx = 0; curVy = 0;
+          if (impact > 5.5) reportCarCrash(qc, impact, 'wall');
+        }
+        if (impact > 5.5 && !slideX && !slideY) reportCarCrash(qc, impact, 'wall');
       }
       // Столкновение с NPC-трафиком (декоративный CARS). Включается только
       // если мы реально в неё «врезались на скорости» (curSpeed>4) и игрок
@@ -12775,6 +12945,24 @@ function update(dt) {
       const targetCamY = (aimC + aimR) * TS * 0.5 * ISO_Y;
       cam.x += (targetCamX - cam.x) * Math.min(1, dt * 5);
       cam.y += (targetCamY - cam.y) * Math.min(1, dt * 5);
+      // Зум от скорости: стоим=1.0, макс. скорость=0.80 (видно больше дороги)
+      {
+        const sp = Math.hypot(curVx, curVy) / CAR_MAX_SPEED;
+        const tzoom = (player.r >= 140) ? 1.18 : (1.0 - Math.min(1, sp) * 0.20);
+        viewZoom += (tzoom - viewZoom) * Math.min(1, dt * 2.5);
+      }
+      // Крен/клевок кузова (для рендера)
+      qc._bodyPitch = (qc._bodyPitch || 0);
+      qc._bodyRoll  = (qc._bodyRoll  || 0);
+      const pitchTarget = activeBrake ? 0.06 : (throttle > 0.05 && !inReverse ? -0.04 : 0);
+      const rollTarget  = (() => {
+        let aDiff2 = _carTargetAng - qc.ang;
+        while (aDiff2 >  Math.PI) aDiff2 -= Math.PI * 2;
+        while (aDiff2 < -Math.PI) aDiff2 += Math.PI * 2;
+        return Math.max(-0.07, Math.min(0.07, -aDiff2 * 0.4 * Math.min(1, curSpeed / 4)));
+      })();
+      qc._bodyPitch += (pitchTarget - qc._bodyPitch) * Math.min(1, dt * 6);
+      qc._bodyRoll  += (rollTarget  - qc._bodyRoll)  * Math.min(1, dt * 6);
       updateGtaInteractions();
       updateZoneBtn();
       updatePvpUI();
@@ -19342,22 +19530,102 @@ function drawQuestCar(qc) {
     _shakeRX = (Math.random() - 0.5) * mag;
     _shakeRY = (Math.random() - 0.5) * mag;
   }
+  // Крен/клевок кузова: _bodyPitch (вперёд-назад) и _bodyRoll (влево-вправо)
+  // преобразуем в смещение позиции в тайлах (tiny, ~0.05 тайла макс)
+  const _pitch = qc._bodyPitch || 0;
+  const _roll  = qc._bodyRoll  || 0;
+  // Клевок — вдоль направления машины; крен — поперёк
+  const _pR = _shakeRY + Math.sin(qc.ang) * _pitch - Math.cos(qc.ang) * _roll;
+  const _pC = _shakeRX + Math.cos(qc.ang) * _pitch + Math.sin(qc.ang) * _roll;
   // Мотоцикл — отдельный изорендер (узкий корпус, 2 колеса). Иначе —
   // обычная тачка через drawCarPretty (с braking для стоп-сигналов).
   if (m.is_bike) {
     drawBike({
-      r: qc.y + _shakeRY, c: qc.x + _shakeRX,
+      r: qc.y + _pR, c: qc.x + _pC,
       dirDx, dirDy,
       model: m,
     });
   } else {
     drawCarPretty({
-      r: qc.y + _shakeRY, c: qc.x + _shakeRX,
+      r: qc.y + _pR, c: qc.x + _pC,
       dirDx, dirDy,
       model: m,
       braking: !!qc.braking,
     });
   }
+  // Курсор-указатель (только для машины игрока, пока едет)
+  if (drivenByMe && !myIsPassenger && (Math.abs(qc._inDx || 0) > 0.08 || Math.abs(qc._inDy || 0) > 0.08)) {
+    const cursorDist = 2.2 + Math.hypot(qc.vx || 0, qc.vy || 0) * 0.14;
+    const cAng = qc.ang;
+    const cR = qc.y + Math.sin(cAng) * cursorDist;
+    const cC = qc.x + Math.cos(cAng) * cursorDist;
+    const cp2 = w2s(cR + 0.5, cC + 0.5);
+    // Проверяем стену — меняем цвет
+    const wallAhead = isBlocked(cR, cC);
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle   = wallAhead ? 'rgba(255,60,60,0.5)' : 'rgba(255,255,255,0.4)';
+    ctx.strokeStyle = wallAhead ? '#ff3030' : '#ffffff';
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();
+    ctx.arc(cp2.x, cp2.y, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Стрелка в направлении движения
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = wallAhead ? '#ff6060' : '#ffffff';
+    ctx.lineWidth   = 2;
+    ctx.beginPath();
+    const arrowLen = 10;
+    ctx.moveTo(cp2.x, cp2.y - 5);
+    ctx.lineTo(cp2.x, cp2.y - 5 - arrowLen);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // ── Фары ночью — конус света перед машиной ───────────────────────
+  {
+    const nightA = (typeof getNightAlpha === 'function') ? getNightAlpha() : 0;
+    if (nightA > 0.05 && !qc.wrecked) {
+      const m2 = QUEST_CAR_MODELS[qc.model];
+      const L2 = (m2 && m2.L) || 1.6;
+      // Позиция передней части машины
+      const fR = qc.y + Math.sin(qc.ang) * L2 * 0.55;
+      const fC = qc.x + Math.cos(qc.ang) * L2 * 0.55;
+      const fp = w2s(fR + 0.5, fC + 0.5);
+      // Конус в направлении движения
+      const fwdLen = 90 * viewZoom;
+      const coneW  = 38 * viewZoom;
+      // Угол машины в экранных координатах (изометрия)
+      const scrAng = Math.atan2(
+        (Math.sin(qc.ang) + Math.cos(qc.ang)) * ISO_Y,
+         Math.cos(qc.ang) - Math.sin(qc.ang)
+      );
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.55, nightA * 0.8);
+      // Старые машины — жёлтый, новые — холодный белый
+      const isOld = !!(m2 && (m2.sedan || m2.pickup));
+      const clr1  = isOld ? 'rgba(255,230,140,0.6)' : 'rgba(220,240,255,0.6)';
+      const clr2  = 'rgba(0,0,0,0)';
+      const grd   = ctx.createConicalGradient
+        ? null  // fallback — radial
+        : null;
+      // Простой треугольный конус через два градиента
+      ctx.translate(fp.x, fp.y);
+      ctx.rotate(scrAng - Math.PI / 2);
+      const coneGrd = ctx.createLinearGradient(0, 0, 0, -fwdLen);
+      coneGrd.addColorStop(0, clr1);
+      coneGrd.addColorStop(1, clr2);
+      ctx.fillStyle = coneGrd;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-coneW, -fwdLen);
+      ctx.lineTo( coneW, -fwdLen);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   // ── Дым/огонь на низком HP ──
   //   < 50%  — лёгкий дымок из-под капота
   //   < 25%  — густой чёрный дым + первые огоньки
@@ -22411,6 +22679,7 @@ function render() {
   drawBloodSplats();
   // Тормозные следы (skid marks) — тоже под персонажами и машинами
   drawSkidMarks();
+  drawExhaustPuffs();
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
   // Коробка над игроком/машиной если несу груз Майкла
@@ -23479,6 +23748,40 @@ function drawSkidMarks() {
   ctx.globalAlpha = 1;
 }
 
+// ── Дым выхлопа и пробуксовки ────────────────────────────────────────
+function drawExhaustPuffs() {
+  const now = performance.now();
+  ctx.save();
+  for (let i = exhaustPuffs.length - 1; i >= 0; i--) {
+    const p = exhaustPuffs[i];
+    const dtMs = now - (p._lastT || (p._lastT = now));
+    p._lastT = now;
+    p.life -= dtMs;
+    if (p.life <= 0) { exhaustPuffs.splice(i, 1); continue; }
+    // Позиция движется вместе с вектором скорости
+    p.r += p.vr * dtMs * 0.001;
+    p.c += p.vc * dtMs * 0.001;
+    // Растём в диаметре и затухаем
+    p.rad = Math.min(p.rad * 1.01, 14);
+    const a = Math.max(0, (p.life / p.max) * (p.isFire ? 0.9 : 0.55));
+    const pos = w2s(p.r + 0.5, p.c + 0.5);
+    ctx.globalAlpha = a;
+    ctx.fillStyle   = p.color + a.toFixed(2) + ')';
+    if (p.isFire) {
+      ctx.shadowColor = '#ff8020';
+      ctx.shadowBlur  = 8;
+    } else {
+      ctx.shadowBlur  = 0;
+    }
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, p.rad * viewZoom, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur  = 0;
+  ctx.restore();
+}
+
 // ── Импакт-частицы (искры/кровь при попадании) ─────────────────────
 function drawImpacts() {
   const now = performance.now();
@@ -24371,3 +24674,62 @@ NPCS.push({r:38.5,c:37.5,tr:38.5,tc:37.5,speed:0.8,ang:2.4,
   walkPhase:0,idleUntil:0,hp:200,max_hp:200,
   cryText:'Охранник',cryUntil:Infinity,
   look:{gender:0,skin:5,body:2,face:1,hair:2,hat:5}});
+
+// Добавлено ботом
+// Добавляем нового именного NPC Валентина
+NPCS.push({
+  r: 38.5, 
+  c: 36.5, 
+  tr: 38.5, 
+  tc: 36.5, 
+  speed: 0, 
+  ang: 2.4,
+  walkPhase: 0, 
+  idleUntil: Infinity, 
+  hp: 200, 
+  max_hp: 200,
+  cryText: 'Валентин',
+  cryUntil: Infinity,
+  look: {gender: 0, skin: 2, body: 1, face: 2, hair: 4, hat: 3}
+});
+
+// Функция для получения случайного NPC в мире
+function getRandomNpc() {
+  return NPCS[Math.floor(Math.random() * NPCS.length)];
+}
+
+// Функция для квеста Валентина
+function valentinQuest() {
+  const targetNpc = getRandomNpc();
+  const player = getPlayer(); // функция для получения игрока
+  
+  // Логика принятия квеста
+  if (player.hasQuest('valentinQuest')) {
+    console.log('Вы уже выполняете квест Валентина');
+    return;
+  }
+  
+  player.hasQuest('valentinQuest', true);
+  console.log('Валентин: Привет, мне нужна твоя помощь. Отведи это сообщение другому NPC.');
+  
+  // Логика выполнения квеста
+  if (player.completedQuest('valentinQuest')) {
+    console.log('Валентин: Отличная работа! Ты выполнил квест.');
+    player.reward(500); // награда за выполнение квеста
+    player.hasQuest('valentinQuest', false);
+  }
+}
+
+// Функция для диалога с Валентином
+function talkToValentin() {
+  const player = getPlayer();
+  
+  if (player.hasQuest('valentinQuest')) {
+    console.log('Валентин: Как ты справишься с квестом?');
+  } else {
+    valentinQuest();
+  }
+}
+
+// Добавляем слушатель события для диалога с Валентином
+document.addEventListener('talkToValentin', talkToValentin);
