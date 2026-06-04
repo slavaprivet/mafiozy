@@ -3041,30 +3041,35 @@ function trafficPhase() {
 // NPC — простые прохожие на тротуарах. Бродят по случайным waypoint-ам.
 const NPCS = [];
 function spawnNpc(seed) {
-  // Ищем случайный бордюрный тайл (тип 9), вне PVP-арены
   for (let tries = 0; tries < 80; tries++) {
     const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
     const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
     if (inArena(r, c)) continue;
     if (MAP[r][c] === 9 || MAP[r][c] === 8) {
+      const arcKey = _pickArchetype();
+      const arc    = NPC_ARCHETYPES[arcKey];
+      const [spMin, spMax] = arc.speedRange;
+      const baseLook = {
+        gender: Math.random() < 0.5 ? 0 : 1,
+        skin:   Math.floor(Math.random() * 5),
+        body:   Math.floor(Math.random() * 3),
+        face:   Math.floor(Math.random() * 4),
+        hair:   Math.floor(Math.random() * 5),
+        hat:    Math.floor(Math.random() * 4),
+      };
+      // Накладываем overrides архетипа (только если поле задано)
+      for (const k of Object.keys(arc.look || {})) baseLook[k] = arc.look[k];
       return {
         r: r + 0.5, c: c + 0.5,
         tr: r + 0.5, tc: c + 0.5,
-        speed: 0.8 + Math.random() * 0.7,
+        speed: spMin + Math.random() * (spMax - spMin),
         ang: 0,
         walkPhase: 0,
         idleUntil: 0,
-        // Локальное HP — мирный NPC выдерживает 2-3 попадания pistol,
-        // 1 rifle. При hp<=0 → n.dead=true, рисуется лежащим (splat).
         hp: 60, max_hp: 60,
-        look: {
-          gender: Math.random() < 0.5 ? 0 : 1,
-          skin:   Math.floor(Math.random() * 5),
-          body:   Math.floor(Math.random() * 3),
-          face:   Math.floor(Math.random() * 4),
-          hair:   Math.floor(Math.random() * 5),
-          hat:    Math.floor(Math.random() * 4),
-        },
+        look: baseLook,
+        _arcKey: arcKey,
+        _arc: arc,
       };
     }
   }
@@ -3335,6 +3340,81 @@ const GUARD_PHRASES = [
   'Тихо тут', 'Контролируем периметр',
   'Не отвлекай', 'Опаздываем по графику',
 ];
+
+// ── Архетипы NPC ────────────────────────────────────────────────
+// speedRange: [min,max] тайл/с; idleMult: множитель паузы на waypoint;
+// panicMult: 0=не паникует; fearDist: радиус реакции на wanted-игрока;
+// hours: [от,до] — час активности (to<from = через полночь).
+const NPC_ARCHETYPES = {
+  worker:     {
+    speedRange:[0.9,1.2], idleMult:0.45, panicMult:2.6, fearDist:5, weight:22, hours:[6,20],
+    look:{body:1},
+    phrases:['Опаздываю на смену','Дайте пройти!','Работы завались',
+             'Устал как собака','Перерыв уже был?','Начальник достал'],
+  },
+  pensioner:  {
+    speedRange:[0.42,0.62], idleMult:2.8, panicMult:1.7, fearDist:7, weight:12, hours:[8,21],
+    look:{hat:2},
+    phrases:['Эх, молодёжь…','А раньше тут было тихо','Куда спешите-то',
+             'Помогите пожилому','Ноги болят','Пенсию опять задержали'],
+  },
+  student:    {
+    speedRange:[1.2,1.65], idleMult:0.25, panicMult:3.1, fearDist:5, weight:14, hours:[7,23],
+    look:{hat:0},
+    phrases:['Лекции скучные','Стипендия кончилась','Хочу спать',
+             'Сессия на носу','Чё за движ?','Здарова!'],
+  },
+  housewife:  {
+    speedRange:[0.75,1.0], idleMult:2.0, panicMult:2.4, fearDist:6, weight:12, hours:[8,21],
+    look:{},
+    phrases:['Надо купить хлеба','Муж опять задержался','Цены опять выросли',
+             'Дети достали','Скоро ужин готовить','Очередь бесконечная'],
+  },
+  businessman:{
+    speedRange:[1.1,1.4], idleMult:0.2, panicMult:2.9, fearDist:6, weight:10, hours:[7,21],
+    look:{body:2,hat:5},
+    phrases:['Переговоры сорвались','Звони после трёх','Рынок падает',
+             'Мой адвокат разберётся','Деньги не спят','Отвяжись — занят'],
+  },
+  drunk:      {
+    speedRange:[0.48,0.82], idleMult:4.5, panicMult:1.2, fearDist:3, weight:8, hours:[19,7],
+    look:{},
+    phrases:['Где я?..','Ещё по одной!','Слышь, дай денег',
+             'Всё нормально я знаю что делаю','Уважаемый… стой…','Я тебя люблю брат'],
+  },
+  bandit:     {
+    speedRange:[0.95,1.35], idleMult:1.1, panicMult:0, fearDist:0, weight:7, hours:[13,6],
+    look:{hat:3,body:1},
+    phrases:['Смотришь на что?','Иди отсюда','Мой район',
+             'Ты кто такой?','Лучше не связывайся','Деньги давай'],
+  },
+  homeless:   {
+    speedRange:[0.42,0.68], idleMult:5.5, panicMult:1.4, fearDist:8, weight:5, hours:[0,24],
+    look:{},
+    phrases:['Дай рубль…','Есть покушать?','Холодно ночью',
+             'Господа хорошие…','Пустите переночевать','Не трогайте меня'],
+  },
+};
+// Взвешенная выборка архетипа по текущему игровому часу
+function _pickArchetype() {
+  const h = getGameHour();
+  const pool = [];
+  for (const [key, a] of Object.entries(NPC_ARCHETYPES)) {
+    const [from, to] = a.hours;
+    const active = (from <= to) ? (h >= from && h < to) : (h >= from || h < to);
+    const w = active ? a.weight : Math.max(0, Math.floor(a.weight * 0.12));
+    for (let i = 0; i < w; i++) pool.push(key);
+  }
+  return pool.length ? pool[Math.floor(Math.random() * pool.length)] : 'worker';
+}
+// Целевое кол-во NPC зависит от времени суток
+function _targetNpcCount() {
+  const h = getGameHour();
+  if (h >= 23 || h < 5) return 18;
+  if (h >= 22 || h < 6) return 28;
+  return TARGET_NPC_COUNT;
+}
+
 let _nextBotChatterAt = 0;
 function _maybeAuthorityChatter(now) {
   if (now < _nextBotChatterAt) return;
@@ -3460,22 +3540,98 @@ function _updateBizClients(now) {
 
 function _maybeIdleChatter(now) {
   if (now < _nextNpcChatterAt) return;
-  _nextNpcChatterAt = now + 8000 + Math.random() * 10000;   // 8..18с
-  // Выбираем случайного живого NPC недалеко от игрока (видим его)
+  _nextNpcChatterAt = now + 8000 + Math.random() * 10000;
   const candidates = [];
   for (const n of NPCS) {
     if (n.dead || n._evacuated) continue;
-    if (n.cryUntil && n.cryUntil > now) continue;       // уже говорит
-    if (n.panicUntil && n.panicUntil > now) continue;   // в панике
-    if (n.snitching) continue;                          // снитч
+    if (n.cryUntil && n.cryUntil > now) continue;
+    if (n.panicUntil && n.panicUntil > now) continue;
+    if (n.snitching) continue;
     const dr = n.r - player.r, dc = n.c - player.c;
-    if (Math.hypot(dr, dc) > 14) continue;              // далеко — не услышит
+    if (Math.hypot(dr, dc) > 14) continue;
     candidates.push(n);
   }
   if (!candidates.length) return;
   const n = candidates[Math.floor(Math.random() * candidates.length)];
-  n.cryText  = NPC_IDLE_PHRASES[Math.floor(Math.random() * NPC_IDLE_PHRASES.length)];
+  // Используем фразы архетипа если есть
+  const pool = (n._arc && n._arc.phrases && n._arc.phrases.length)
+    ? n._arc.phrases : NPC_IDLE_PHRASES;
+  n.cryText  = pool[Math.floor(Math.random() * pool.length)];
   n.cryUntil = now + 1800 + Math.random() * 800;
+}
+
+// ── Социальные взаимодействия NPC ───────────────────────────────
+// Раз в 2-5 с ищем пару близких NPC и ставим им «диалог»:
+// оба разворачиваются лицом друг к другу, стоят 2-4 с, один говорит фразу.
+let _nextSocialAt = 0;
+function _npcSocialTick(now) {
+  if (now < _nextSocialAt) return;
+  _nextSocialAt = now + 2200 + Math.random() * 3000;
+  // Снимаем просроченные флаги разговора
+  for (const n of NPCS) {
+    if (n._talking && now > n._talking) n._talking = 0;
+  }
+  // Ищем одну пару
+  for (let i = 0; i < NPCS.length - 1; i++) {
+    const a = NPCS[i];
+    if (a.dead || (a.panicUntil > now) || a.snitching || a._talking || a._clientOfBiz) continue;
+    for (let j = i + 1; j < NPCS.length; j++) {
+      const b = NPCS[j];
+      if (b.dead || (b.panicUntil > now) || b.snitching || b._talking || b._clientOfBiz) continue;
+      const d = Math.hypot(a.r - b.r, a.c - b.c);
+      if (d < 0.7 || d > 2.4) continue;
+      // Оба должны быть в видимости игрока чтобы не тратить впустую
+      const dpA = Math.hypot(a.r - player.r, a.c - player.c);
+      if (dpA > 18) continue;
+      const dur = 2500 + Math.random() * 2000;
+      a._talking = now + dur; a.idleUntil = now + dur;
+      b._talking = now + dur; b.idleUntil = now + dur;
+      // Разворачиваем лицом друг к другу
+      a.ang = Math.atan2(b.r - a.r, b.c - a.c);
+      b.ang = a.ang + Math.PI;
+      // Один говорит фразу своего архетипа
+      if (!(a.cryUntil > now)) {
+        const pool = (a._arc && a._arc.phrases) ? a._arc.phrases : NPC_IDLE_PHRASES;
+        a.cryText  = pool[Math.floor(Math.random() * pool.length)];
+        a.cryUntil = now + 1600 + Math.random() * 500;
+      }
+      return;
+    }
+  }
+}
+
+// ── Реакция NPC на игрока (wanted / оружие рядом) ───────────────
+// Если игрок wanted≥1 и подходит близко — NPC глядит на него.
+// При wanted≥2 или очень близко — вызывает волну паники архетипного радиуса.
+// Бандиты (panicMult=0) не паникуют, зато кричат угрозу.
+function _npcCheckPlayerProximity(now) {
+  if (myDead) return;
+  const pr = player.r, pc = player.c;
+  const pw = (typeof myWanted === 'number') ? myWanted : 0;
+  for (const n of NPCS) {
+    if (n.dead || (n.panicUntil > now) || n.snitching) continue;
+    if (n._playerGlancedAt && now - n._playerGlancedAt < 3500) continue;
+    const dr = n.r - pr, dc = n.c - pc;
+    const d  = Math.hypot(dr, dc);
+    const fd = n._arc ? n._arc.fearDist : 5;
+    if (fd === 0 || d > fd) continue;
+    n._playerGlancedAt = now;
+    // Взгляд в сторону игрока
+    n.ang = Math.atan2(-dr, -dc);
+    if (pw >= 2 || (pw >= 1 && d < 2.8)) {
+      const pm = n._arc ? n._arc.panicMult : 2.5;
+      if (pm === 0) {
+        // Бандит — угрожает вместо побега
+        if (!(n.cryUntil > now) && n._arc) {
+          const pool = n._arc.phrases;
+          n.cryText  = pool[Math.floor(Math.random() * pool.length)];
+          n.cryUntil = now + 1500;
+        }
+      } else {
+        triggerNpcPanic(pr, pc, d + 2);
+      }
+    }
+  }
 }
 
 function maintainNpcPopulation(now) {
@@ -3491,7 +3647,7 @@ function maintainNpcPopulation(now) {
   // Считаем живых
   let alive = 0;
   for (const n of NPCS) if (!n.dead) alive++;
-  const need = TARGET_NPC_COUNT - alive;
+  const need = _targetNpcCount() - alive;
   if (need <= 0) return;
   // Доспауниваем не более 3 за тик, чтобы не лагало
   const batch = Math.min(3, need);
@@ -4621,6 +4777,8 @@ function updateNpcs(dt) {
   maintainNpcPopulation(now);
   _updateBizClients(now);
   _maybeIdleChatter(now);
+  _npcSocialTick(now);
+  _npcCheckPlayerProximity(now);
   _maybeAuthorityChatter(now);
   // Если рядом с NPC прохожим стоит бот городской банды с act='harass'
   // — NPC паникует и убегает. Триггерим один раз в секунду на NPC.
@@ -4696,13 +4854,15 @@ function updateNpcs(dt) {
       n.snitching = false;
       n.snitchUntil = 0;
     }
-    // PANIC: NPC видит стрельбу — бежит ОТ источника. Скорость ×2.5.
+    // PANIC: NPC видит стрельбу — бежит ОТ источника. Скорость × panicMult архетипа.
     if (n.panicUntil && now < n.panicUntil) {
+      // Бандит (panicMult=0) не паникует — сбрасываем флаг
+      if (n._arc && n._arc.panicMult === 0) { n.panicUntil = 0; }
       const dr = n.r - (n.panicSrcR || 0);
       const dc = n.c - (n.panicSrcC || 0);
       const d  = Math.hypot(dr, dc) || 1;
-      // Если близко к стене — пробуем повернуть на 60-90° чтобы не застрять
-      const sp = n.speed * 2.5 * dt;
+      const arcPanicMult = (n._arc && n._arc.panicMult) ? n._arc.panicMult : 2.5;
+      const sp = n.speed * arcPanicMult * dt;
       const stepR = (dr / d) * sp;
       const stepC = (dc / d) * sp;
       const nr = n.r + stepR, nc = n.c + stepC;
@@ -4746,8 +4906,9 @@ function updateNpcs(dt) {
         n.idleUntil = now + 1500;
         continue;
       }
-      // Иначе — стоим 1-3 сек и новый случайный waypoint
-      if (Math.random() < 0.4) n.idleUntil = now + 1000 + Math.random() * 2000;
+      // Иначе — стоим с учётом idleMult архетипа (пенсионер стоит дольше, студент — почти нет)
+      const idM = n._arc ? n._arc.idleMult : 1.0;
+      if (Math.random() < 0.4 * idM) n.idleUntil = now + (1000 + Math.random() * 2000) * idM;
       pickNpcWaypoint(n);
       continue;
     }
