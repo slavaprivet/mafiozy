@@ -12191,14 +12191,14 @@ class WorldSim:
         ('Рынок',  16.0, 16.0),
     ]
     AGGRO_BOT_HP        = 90
-    AGGRO_BOT_DMG       = 8
-    AGGRO_BOT_CD        = 1.1
+    AGGRO_BOT_DMG       = 7         # было 8 — чуть мягче
+    AGGRO_BOT_CD        = 1.5       # было 1.1 — реже стреляют, успеваешь в укрытие
     AGGRO_BOT_RANGE     = 7.5
     AGGRO_BOSS_HP       = 240       # главарь — толще
     AGGRO_BOSS_DMG_M    = 22        # сабля (ближний бой)
-    AGGRO_BOSS_DMG_R    = 14        # узи (дальний)
+    AGGRO_BOSS_DMG_R    = 10        # узи (дальний) — было 14
     AGGRO_BOSS_CD_M     = 0.65      # частые удары саблей
-    AGGRO_BOSS_CD_R     = 0.18      # узи — почти автоматическая очередь
+    AGGRO_BOSS_CD_R     = 0.50      # было 0.18 — узи больше не «автомат», очередь рваная
     AGGRO_BOSS_RANGE_M  = 1.6       # дистанция саблей
     AGGRO_BOSS_RANGE_R  = 9.0       # дистанция узи
     # ── Физика пуль ботов (dodge-механика) ───────────────────────────
