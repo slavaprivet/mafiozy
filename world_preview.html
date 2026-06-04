@@ -9909,9 +9909,18 @@ _gtaBtn.addEventListener('click', () => {
     enterCar(_gtaActionCarId, _gtaActionEnterAs || 'driver');
   } else if (_gtaActionKind === 'refuel') {
     if (_myCarFuelPct !== null && _myCarFuelPct < 99) {
-      const cost = Math.round((100 - _myCarFuelPct) * 0.5);  // 0.5$ за %
-      _myCarFuelPct = 100;
-      showToast(`⛽ Заправлено! Полный бак.`, '✅', 2200);
+      if (myCash < 5) {
+        showToast('💸 Недостаточно денег! Нужно $5', '❌', 2200);
+      } else {
+        // Оптимистично заправляем + шлём серверу для списания
+        myCash -= 5;
+        updateMoneyHud();
+        _myCarFuelPct = 100;
+        _fuelWarnShown = false;
+        spawnFloatText(player.r, player.c, '-$5', { color: '#ff8844', size: 16, life: 1400 });
+        showToast('⛽ Полный бак! -$5', '✅', 1800);
+        try { ws && ws.send(JSON.stringify({ t: 'fuel_buy', d: { cost: 5 } })); } catch(e){}
+      }
     }
   } else if (_gtaActionKind === 'exit') {
     exitCar('manual');
