@@ -2371,14 +2371,15 @@ async def creator_kb(user_id: int = None) -> ReplyKeyboardMarkup:
     if user_id:
         try:
             char = await get_character(user_id) or {}
-            contacts_n = 0
-            try:
-                contacts_n = len(await get_contacts(user_id))
-            except Exception:
-                pass
-            hub_url = await build_hub_url(char, contacts_n, user_id)
-            rows.append([KeyboardButton("🏠 Главное меню",
-                                        web_app=WebAppInfo(url=hub_url))])
+            if char.get("look_json"):  # показываем Главное меню только после создания внешности
+                contacts_n = 0
+                try:
+                    contacts_n = len(await get_contacts(user_id))
+                except Exception:
+                    pass
+                hub_url = await build_hub_url(char, contacts_n, user_id)
+                rows.append([KeyboardButton("🏠 Главное меню",
+                                            web_app=WebAppInfo(url=hub_url))])
         except Exception as _e:
             logger.warning("creator_kb hub_url для %s упал: %s", user_id, _e)
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, one_time_keyboard=False)
