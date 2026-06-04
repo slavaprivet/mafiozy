@@ -19457,9 +19457,10 @@ async def _coop_http_app():
     from aiohttp import web as _web
     runner = _web.AppRunner(aio_app)
     await runner.setup()
-    site = _web.TCPSite(runner, '0.0.0.0', 8080)
+    _api_port = int(os.environ.get("PORT", 8080))
+    site = _web.TCPSite(runner, '0.0.0.0', _api_port)
     await site.start()
-    logger.info("Co-op HTTP API listening on :8080")
+    logger.info("Co-op HTTP API listening on :%d", _api_port)
 
 
 def main():
