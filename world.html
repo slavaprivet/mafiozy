@@ -3283,6 +3283,7 @@ function pickNpcWaypoint(npc) {
 const TARGET_NPC_COUNT = 60;       // живых прохожих в городе
 const NPC_RESPAWN_MIN_DIST = 22;   // не спаунить ближе этого к игроку
 let _nextNpcRespawnAt = 0;
+let _gameMinutes = 12 * 60;        // 12:00 — нужно до initNpcs (TDZ fix)
 
 function initNpcs() {
   NPCS.length = 0;
@@ -11640,7 +11641,6 @@ const _gameClock = document.getElementById('gameClock');
 // Та же модель что в hub.html: 1 реальная секунда = 1 игровая минута.
 // Старт в 12:00. Используется для day/night-тинта рендера и для эмодзи
 // часов в HUD-карточке.
-let _gameMinutes = 12 * 60;     // 12:00
 function getGameHour() { return Math.floor(_gameMinutes / 60) % 24; }
 function getGameMinute() { return _gameMinutes % 60; }
 function _phaseEmoji(h) {
