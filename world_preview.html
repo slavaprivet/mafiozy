@@ -8046,12 +8046,12 @@ document.getElementById('hardRefreshBtn').addEventListener('click', hardRefreshC
 function wsConnect() {
   const url = wsUrl();
   if (!url) {
-    setConnecting('⚠️ Бот не запущен. Открой ЗАПУСТИТЬ_БОТА.bat — без него онлайн-мир работать не может.');
+    setConnecting('⚠️ Сервер недоступен. Переподключаюсь…');
     // Через 6 сек ещё раз тянем coop_api.json — вдруг бот успел стартануть.
     setTimeout(() => { _fetchApiFallback().then(u => { if (u) wsConnect(); }); }, 6000);
     return;
   }
-  try { ws = new WebSocket(url); } catch(e) { setError('⚠️ Бот не запущен — открой ЗАПУСТИТЬ_БОТА.bat'); return; }
+  try { ws = new WebSocket(url); } catch(e) { setError('⚠️ Сервер недоступен'); return; }
   ws.onopen = () => {
     wsConnected = true;
     wsFailStreak = 0;
@@ -8321,7 +8321,7 @@ function wsConnect() {
     // только если уже несколько попыток подряд фейлятся — иначе у юзера на
     // ровном месте мигает «бот не отвечает», хотя через 1 сек уже всё ок.
     if (wsFailStreak >= 3) {
-      setError('⚠️ Бот не отвечает — проверь ЗАПУСТИТЬ_БОТА.bat');
+      setError('⚠️ Бот не отвечает — сервер перезапускается');
     }
   };
   ws.onclose = () => {
@@ -8332,7 +8332,7 @@ function wsConnect() {
     if (wsFailStreak <= 2) {
       setConnecting('Связь потеряна. Переподключаюсь…');
     } else {
-      setConnecting('Связь потеряна. Переподключаюсь… (если бот выключен — открой ЗАПУСТИТЬ_БОТА.bat)');
+      setConnecting('Связь потеряна. Переподключаюсь…');
     }
     // КЛЮЧЕВОЕ: перед reconnect-ом тянем свежий api из coop_api.json.
     // Если cloudflared перезапустился — у нас в QP.api лежит мёртвый
@@ -10571,7 +10571,7 @@ async function openDistrictBattle(locId) {
   // Без свежего api боёвку не запустить — пробуем подтянуть из coop_api.json.
   if (!QP.api) await _fetchApiFallback();
   if (!QP.api) {
-    showToast('⚠️ Сервер недоступен — открой ЗАПУСТИТЬ_БОТА.bat', 3000);
+    showToast('⚠️ Сервер недоступен — попробуй позже', 3000);
     return;
   }
   if (!QP.uid) {

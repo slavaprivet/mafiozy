@@ -5692,7 +5692,7 @@ async function openWorld() {
   }
   const apiUrl = coopApi();
   if (!apiUrl) {
-    showToast('Бот не запущен. Открой ЗАПУСТИТЬ_БОТА.bat на хосте', '⚠️', 6000);
+    showToast('Сервер недоступен — попробуй позже', '⚠️', 6000);
     return;
   }
   // Передаём api, uid, имя и look — клиент откроет WS и нарисует тебя.
@@ -5793,12 +5793,12 @@ async function _coopFetchApiFallback() {
 // Единое понятное сообщение когда бот/туннель недоступен. Раньше юзер видел
 // «Load failed» (iOS Safari) или «Ошибка соединения» — не понимая что делать.
 // Теперь всегда честно говорим: подними бота через ЗАПУСТИТЬ_БОТА.bat.
-function _botDownMsg() { return '⚠️ Бот не запущен. Открой ЗАПУСТИТЬ_БОТА.bat'; }
+function _botDownMsg() { return '⚠️ Сервер недоступен. Попробуй позже'; }
 function _botDownHtml() {
   return '<div style="padding:20px;text-align:center;color:#ff8a4a;line-height:1.5">'
-    + '⚠️ <b>Бот не запущен</b><br>'
-    + '<span style="color:#aaa;font-size:12px">Открой ЗАПУСТИТЬ_БОТА.bat на компе с ботом —<br>'
-    + 'без него онлайн-часть (кооп, мир, бизнес, рынок, инвентарь) не работает.</span>'
+    + '⚠️ <b>Сервер недоступен</b><br>'
+    + '<span style="color:#aaa;font-size:12px">Онлайн-часть временно не работает.<br>'
+    + 'Попробуй зайти чуть позже.</span>'
     + '</div>';
 }
 
@@ -8016,7 +8016,7 @@ async function renderBusinesses() {
   // когда туннель оживёт. Купить нельзя — но при попытке выскочит toast.
   if (!api) {
     const previewItems = DEMO_BUSINESSES_CATALOG.map(b => Object.assign({}, b, { owned: false }));
-    if (cashEl) cashEl.innerHTML = `💵 Наличные: $${_fmtCash(DATA.cash || 0)} <span style="margin-left:14px;color:#ff8;font-weight:400;font-size:12px">(бот не запущен — запусти ЗАПУСТИТЬ_БОТА.bat)</span>`;
+    if (cashEl) cashEl.innerHTML = `💵 Наличные: $${_fmtCash(DATA.cash || 0)} <span style="margin-left:14px;color:#ff8;font-weight:400;font-size:12px">(сервер недоступен)</span>`;
     list.innerHTML = '';
     previewItems.forEach(b => { _bizCatalogCache[b.id] = b; list.appendChild(renderBizCard(b)); });
     return;
