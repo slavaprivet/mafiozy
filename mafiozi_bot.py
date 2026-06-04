@@ -2751,36 +2751,9 @@ async def choose_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not (2 <= len(name) <= 20):
         await update.message.reply_text("❌ Погоняло должно быть от 2 до 20 символов. Попробуй ещё раз:")
         return CHOOSING_NAME
-    context.user_data["char_name"] = name
-    await update.message.reply_text(
-        f"Значит, *{name}*. Запомню. 🚬\n\nТеперь выбери специализацию:\n\n"
-        "🔫 *Киллер* — 110HP, 30 атаки. Точный и беспощадный.\n"
-        "🥊 *Громила* — 160HP, 20 атаки, 18 защиты. Живая стена.\n"
-        "🃏 *Решала* — 120HP, 24 атаки. Универсальный боец.\n"
-        "🎩 *Аферист* — 100HP, 22 атаки + лечение. Хитрость — его сила.",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔫 Киллер",  callback_data="class_killer"),
-             InlineKeyboardButton("🥊 Громила", callback_data="class_enforcer")],
-            [InlineKeyboardButton("🃏 Решала",  callback_data="class_fixer"),
-             InlineKeyboardButton("🎩 Аферист", callback_data="class_conman")],
-        ])
-    )
-    return CHOOSING_CLASS
-
-async def choose_class(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    char_class = query.data.replace("class_", "")
-    name = context.user_data.get("char_name", "Безымянный")
     user = update.effective_user
-    await create_character(user.id, user.username or "", name, char_class)
-    # channel_verified выставляется ТОЛЬКО реальной проверкой is_subscribed
-    # (в cmd_start и check_subscription). Раньше тут стоял auto-set=1, что
-    # обнуляло всю проверку подписки навсегда после первого /start.
-    # Если друг пришёл по кооп-инвайту и не был зарегистрирован — переносим
-    # сохранённый в user_data sid в БД. build_hub_url подхватит и сделает
-    # auto-join в лобби после creator-flow.
+    await create_character(user.id, user.username or "", name, "fixer")
+    # Если друг пришёл по кооп-инвайту — переносим sid в БД
     pending_sid = context.user_data.get('pending_coop_sid') if context.user_data else None
     if pending_sid:
         try:
@@ -2793,7 +2766,6 @@ async def choose_class(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if ref_id:
         inviter = await get_character(ref_id)
         if inviter:
-            # referred_by устанавливается один раз навсегда — защита от злоупотреблений
             await update_character(user.id, referred_by=ref_id)
             await update_character(ref_id, cash=inviter["cash"] + 300)
             try:
@@ -2805,32 +2777,22 @@ async def choose_class(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             except Exception:
                 pass
-    cls = CLASSES[char_class]
-    await _edit_text(query,
-        f"🎖️ *Добро пожаловать в семью, {name}.*\n\n"
-        f"Специализация: *{cls['name']}*\n"
-        f"_{cls['desc']}_\n\n"
-        f"❤️ {cls['hp']} HP | ⚡ {cls['mana']} энергии\n"
-        f"🔫 {cls['attack']} атаки | 🛡️ {cls['defense']} защиты\n"
-        f"💵 Стартовый капитал: 0$\n\n"
-        f"Денег нет. Иди работать — кнопка *Работа* в меню.",
-        parse_mode="Markdown", reply_markup=await contacts_kb(user.id)
+    await update.message.reply_text(
+        f"🎖️ *Добро пожаловать в семью, {name}!*\n\n"
+        f"Теперь создай внешность своего гангстера 👇",
+        parse_mode="Markdown",
     )
-    # Предлагаем создать внешность сразу — с кнопкой
-    try:
-        await context.bot.send_message(
-            chat_id=update.effective_user.id,
-            text=(
-                "🎨 *Создай внешность своего гангстера!*\n\n"
-                "Причёска, лицо, телосложение, головной убор — "
-                "всё в мафиозном стиле.\n\n"
-                "Нажми кнопку ниже — займёт меньше минуты 👇"
-            ),
-            parse_mode="Markdown",
-            reply_markup=await creator_kb(update.effective_user.id)
-        )
-    except Exception:
-        pass
+    await context.bot.send_message(
+        chat_id=user.id,
+        text=(
+            "🎨 *Создай внешность своего гангстера!*\n\n"
+            "Причёска, лицо, телосложение, головной убор — "
+            "всё в мафиозном стиле.\n\n"
+            "Нажми кнопку ниже — займёт меньше минуты 👇"
+        ),
+        parse_mode="Markdown",
+        reply_markup=await creator_kb(user.id)
+    )
     return ConversationHandler.END
 
 # ============================================================
@@ -19551,7 +19513,6 @@ def main():
             # бот «висит» — диалог не знает что делать с текстом в
             # состоянии CHOOSING_NAME, сообщение игнорируется.
             CHOOSING_NAME:  [MessageHandler(filters.TEXT & ~filters.COMMAND, choose_name)],
-            CHOOSING_CLASS: [CallbackQueryHandler(choose_class, pattern="^class_")],
         },
         fallbacks=[CommandHandler("start", cmd_start)],
     )
