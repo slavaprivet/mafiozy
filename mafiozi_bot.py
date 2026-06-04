@@ -57,7 +57,7 @@ if _token_src != _BOT_TOKEN_FILE:
     except OSError:
         pass
 
-DB_PATH = "mafiozi.db"
+DB_PATH = os.path.join(os.environ.get("DB_DIR", ""), "mafiozi.db")
 
 def md(text: str) -> str:
     """Экранирует спецсимволы Markdown v1 для Telegram."""
