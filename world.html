@@ -24674,3 +24674,62 @@ NPCS.push({r:38.5,c:37.5,tr:38.5,tc:37.5,speed:0.8,ang:2.4,
   walkPhase:0,idleUntil:0,hp:200,max_hp:200,
   cryText:'Охранник',cryUntil:Infinity,
   look:{gender:0,skin:5,body:2,face:1,hair:2,hat:5}});
+
+// Добавлено ботом
+// Добавляем нового именного NPC Валентина
+NPCS.push({
+  r: 38.5, 
+  c: 36.5, 
+  tr: 38.5, 
+  tc: 36.5, 
+  speed: 0, 
+  ang: 2.4,
+  walkPhase: 0, 
+  idleUntil: Infinity, 
+  hp: 200, 
+  max_hp: 200,
+  cryText: 'Валентин',
+  cryUntil: Infinity,
+  look: {gender: 0, skin: 2, body: 1, face: 2, hair: 4, hat: 3}
+});
+
+// Функция для получения случайного NPC в мире
+function getRandomNpc() {
+  return NPCS[Math.floor(Math.random() * NPCS.length)];
+}
+
+// Функция для квеста Валентина
+function valentinQuest() {
+  const targetNpc = getRandomNpc();
+  const player = getPlayer(); // функция для получения игрока
+  
+  // Логика принятия квеста
+  if (player.hasQuest('valentinQuest')) {
+    console.log('Вы уже выполняете квест Валентина');
+    return;
+  }
+  
+  player.hasQuest('valentinQuest', true);
+  console.log('Валентин: Привет, мне нужна твоя помощь. Отведи это сообщение другому NPC.');
+  
+  // Логика выполнения квеста
+  if (player.completedQuest('valentinQuest')) {
+    console.log('Валентин: Отличная работа! Ты выполнил квест.');
+    player.reward(500); // награда за выполнение квеста
+    player.hasQuest('valentinQuest', false);
+  }
+}
+
+// Функция для диалога с Валентином
+function talkToValentin() {
+  const player = getPlayer();
+  
+  if (player.hasQuest('valentinQuest')) {
+    console.log('Валентин: Как ты справишься с квестом?');
+  } else {
+    valentinQuest();
+  }
+}
+
+// Добавляем слушатель события для диалога с Валентином
+document.addEventListener('talkToValentin', talkToValentin);
