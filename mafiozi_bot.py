@@ -29,22 +29,23 @@ _TOKEN_FALLBACKS = [
     os.path.join(_HERE, "..", "..", "..", "bot-token-backup.txt"),
     os.path.join(os.path.expanduser("~"), "Desktop", "bot-token-backup.txt"),
 ]
-BOT_TOKEN = ""
-_token_src = ""
-for _p in _TOKEN_FALLBACKS:
-    try:
-        with open(_p, "r", encoding="utf-8") as _f:
-            _candidate = _f.read().strip()
-        if _candidate and ":" in _candidate:
-            BOT_TOKEN = _candidate
-            _token_src = _p
-            break
-    except (FileNotFoundError, PermissionError, OSError):
-        continue
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
+_token_src = "env:BOT_TOKEN" if BOT_TOKEN else ""
 if not BOT_TOKEN:
-    print(f"[!] Файл .bot-token не найден: {_BOT_TOKEN_FILE}")
-    print(f"    Не найден и bot-token-backup.txt в типичных местах.")
-    print(f"    Создай .bot-token рядом со скриптом и впиши туда токен от @BotFather.")
+    for _p in _TOKEN_FALLBACKS:
+        try:
+            with open(_p, "r", encoding="utf-8") as _f:
+                _candidate = _f.read().strip()
+            if _candidate and ":" in _candidate:
+                BOT_TOKEN = _candidate
+                _token_src = _p
+                break
+        except (FileNotFoundError, PermissionError, OSError):
+            continue
+if not BOT_TOKEN:
+    print(f"[!] BOT_TOKEN не найден ни в env, ни в файлах.")
+    print(f"    На Railway: добавь переменную BOT_TOKEN в Variables сервиса.")
+    print(f"    Локально: создай .bot-token рядом со скриптом.")
     _sys.exit(1)
 if _token_src != _BOT_TOKEN_FILE:
     print(f"[i] BOT_TOKEN подхвачен из fallback: {_token_src}")
