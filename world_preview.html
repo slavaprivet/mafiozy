@@ -3057,9 +3057,8 @@ function spawnNpc(seed) {
         hair:   Math.floor(Math.random() * 5),
         hat:    Math.floor(Math.random() * 4),
       };
-      // Накладываем overrides архетипа (только если поле задано)
       for (const k of Object.keys(arc.look || {})) baseLook[k] = arc.look[k];
-      return {
+      const n = {
         r: r + 0.5, c: c + 0.5,
         tr: r + 0.5, tc: c + 0.5,
         speed: spMin + Math.random() * (spMax - spMin),
@@ -3070,7 +3069,10 @@ function spawnNpc(seed) {
         look: baseLook,
         _arcKey: arcKey,
         _arc: arc,
+        _relation: 0,   // neutral
       };
+      _initNpcEmotions(n);
+      return n;
     }
   }
   return null;
@@ -3164,12 +3166,16 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     return;
   }
   npc.hp = Math.max(0, (npc.hp | 0) - (damage | 0));
-  // Knockback — толкаем NPC назад по направлению пули на полтайла
+  // Knockback
   const kb = 0.35;
   const nr = npc.r + dirY * kb, nc = npc.c + dirX * kb;
   if (npcPassable(nr, nc)) { npc.r = nr; npc.c = nc; }
-  // Flinch — короткая остановка («попал», NPC замер)
+  // Flinch
   npc.idleUntil = performance.now() + 250;
+  // Запоминает агрессию игрока — становится враждебным
+  _npcRememberAggression(npc, 1);
+  // Соседние NPC видят попадание → слух + испуг
+  _npcSpreadRumor(npc, performance.now());
   if (npc.hp <= 0) {
     npc.dead = true;
     npc.deadAt = performance.now();
@@ -4752,6 +4758,162 @@ function _snitchReport() {
 
 // Тригер паники: при выстреле игрока NPC в радиусе R становятся
 // panic-mode на 4-6 сек, бегут ОТ стрелка с криком «ПОМОГИТЕ!». Когда
+// ════════════════════════════════════════════════════════════════
+// #5  ЭМОЦИОНАЛЬНОЕ СОСТОЯНИЕ NPC
+// ════════════════════════════════════════════════════════════════
+// Каждый NPC имеет параметры: fear (0..1), fatigue (0..1), aggression (0..1).
+// Обновляются раз в ~2 с через _tickNpcEmotions(). Влияют на скорость,
+// idle-паузы, реакции и фразы. Инициализируются при спауне случайно.
+
+function _initNpcEmotions(n) {
+  const arc = n._arc || {};
+  n._fear      = Math.random() * 0.15;
+  n._fatigue   = Math.random() * 0.3;
+  n._aggression= (arc.panicMult === 0) ? 0.5 + Math.random() * 0.5 : Math.random() * 0.15;
+  n._emLastAt  = 0;
+}
+
+let _nextEmotionTickAt = 0;
+function _tickNpcEmotions(now) {
+  if (now < _nextEmotionTickAt) return;
+  _nextEmotionTickAt = now + 2000;
+  const h = getGameHour();
+  const isNight = (h >= 22 || h < 6);
+  const pw = (typeof myWanted === 'number') ? myWanted : 0;
+  for (const n of NPCS) {
+    if (n.dead) continue;
+    if (n._fear      == null) _initNpcEmotions(n);
+    const arc = n._arc || {};
+    // Усталость растёт медленно ночью, падает днём
+    if (isNight) n._fatigue = Math.min(1, n._fatigue + 0.04);
+    else         n._fatigue = Math.max(0, n._fatigue - 0.02);
+    // Страх — растёт при недавней панике, затухает без угроз
+    if (n.panicUntil && n.panicUntil > now)
+      n._fear = Math.min(1, n._fear + 0.15);
+    else
+      n._fear = Math.max(0, n._fear - 0.05);
+    // Агрессия — бандиты не меняют, остальные растут при высоком wanted рядом
+    if (arc.panicMult !== 0) {
+      const drP = Math.hypot(n.r - player.r, n.c - player.c);
+      if (pw >= 2 && drP < 10) n._aggression = Math.min(1, n._aggression + 0.08);
+      else                      n._aggression = Math.max(0, n._aggression - 0.04);
+    }
+    // Высокая усталость — NPC идёт медленнее и чаще останавливается
+    // (применяется в updateNpcs через _npcEffectiveSpeed)
+    // Высокий страх — NPC выбирает waypoint подальше от источника угрозы
+  }
+}
+// Итоговая скорость с учётом усталости и страха
+function _npcEffectiveSpeed(n) {
+  const fatK = 1 - (n._fatigue || 0) * 0.35;   // усталость: -35% скорости макс
+  const fearK = 1 + (n._fear || 0) * 0.5;       // страх: до +50% (торопится)
+  return n.speed * fatK * fearK;
+}
+
+// ════════════════════════════════════════════════════════════════
+// #6  ПАМЯТЬ И ОТНОШЕНИЯ
+// ════════════════════════════════════════════════════════════════
+// Отношение к игроку: neutral(0) → wary(1) → hostile(2) | friendly(-1) → loyal(-2)
+// Хранится в n._relation. NPC с hostile при встрече кричит и убегает сразу.
+// NPC с friendly может подойти и поздороваться.
+// Слухи: при панике NPC передаёт n._relation соседним NPC в радиусе 5.
+
+const NPC_RELATION = { loyal:-2, friendly:-1, neutral:0, wary:1, hostile:2 };
+
+function _npcRememberAggression(n, delta) {
+  if (n._relation == null) n._relation = 0;
+  n._relation = Math.max(-2, Math.min(2, (n._relation || 0) + delta));
+  n._relUpdAt = performance.now();
+}
+
+// Распространение слухов: испуганный NPC «рассказывает» соседям что игрок опасен
+function _npcSpreadRumor(n, now) {
+  if (n._rumorSpreadAt && now - n._rumorSpreadAt < 8000) return;
+  n._rumorSpreadAt = now;
+  for (const other of NPCS) {
+    if (other === n || other.dead) continue;
+    if (Math.hypot(other.r - n.r, other.c - n.c) > 5) continue;
+    if (other._relation == null) other._relation = 0;
+    // Сосед становится чуть более осторожным
+    other._relation = Math.min(2, (other._relation || 0) + 0.5);
+    // Визуально — NPC оглядывается
+    other.ang = Math.atan2(player.r - other.r, player.c - other.c);
+    if (!(other.cryUntil > now) && Math.random() < 0.35) {
+      other.cryText  = (Math.random() < 0.5) ? 'Слыхал?' : 'Говорят, стреляли…';
+      other.cryUntil = now + 1400;
+    }
+  }
+}
+
+// Проверяем отношение к игроку: hostile NPC убегает/кричит при близком контакте
+let _nextRelationCheckAt = 0;
+function _npcRelationTick(now) {
+  if (now < _nextRelationCheckAt) return;
+  _nextRelationCheckAt = now + 1500;
+  const pr = player.r, pc = player.c;
+  for (const n of NPCS) {
+    if (n.dead || n._relation == null) continue;
+    const d = Math.hypot(n.r - pr, n.c - pc);
+    // Hostile NPC (запомнил агрессию) — паникует при виде игрока ближе 8 тайлов
+    if (n._relation >= 2 && d < 8 && !(n.panicUntil > now)) {
+      n.panicUntil = now + 4000 + Math.random() * 2000;
+      n.panicSrcR  = pr; n.panicSrcC = pc;
+      n.idleUntil  = 0;
+      if (!(n.cryUntil > now)) {
+        n.cryText  = (Math.random() < 0.5) ? 'Это ОН!' : 'Спасайтесь!';
+        n.cryUntil = now + 1800;
+      }
+      _npcSpreadRumor(n, now);
+    }
+    // Friendly NPC — при близком контакте здоровается
+    if (n._relation <= -1 && d < 3 && !(n.cryUntil > now) &&
+        !(n.panicUntil > now) && !n.snitching) {
+      n.cryText  = (Math.random() < 0.5) ? 'Привет!' : 'Рад видеть!';
+      n.cryUntil = now + 1200;
+      n.ang      = Math.atan2(pr - n.r, pc - n.c);
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// #4  РЕАКЦИЯ НА СОБЫТИЯ — архетипные варианты
+// ════════════════════════════════════════════════════════════════
+// triggerNpcPanic теперь учитывает архетип: у каждого свои фразы,
+// скорость реакции и вероятность «заморозки» перед побегом.
+// Также: при ДТП (car crash) — зеваки; при ограблении — свидетели.
+
+const _PANIC_PHRASES_BY_ARC = {
+  worker:     ['ЧТО ПРОИСХОДИТ!','СТРЕЛЯЮТ!','БЕЖИМ!','НА РАБОТЕ БЫЛО ЛУЧШЕ'],
+  pensioner:  ['ПОМОГИТЕ!','ГОСПОДИ!','КТО-НИБУДЬ!','ВЫЗОВИТЕ СКОРУЮ!'],
+  student:    ['ААА!!!','ЧО ВООБЩЕ!','СНИМАЮ!','СВАЛИТЬ НАДО!'],
+  housewife:  ['ДЕТИ МОИ!','ПОМОГИТЕ!','СПАСАЙТЕСЬ!','НЕТ-НЕТ-НЕТ!'],
+  businessman:['ЭТО БЕЗОБРАЗИЕ!','ВОТ МОЙ АДВОКАТ!','НЕ ТРОГАЙТЕ МЕНЯ!','ОХРАНА!'],
+  drunk:      ['А?.. ЧО?..','ЭТО СОН?','ЩА РАЗБЕРЁМСЯ…','ДРУЗЬЯ, СТОП'],
+  bandit:     ['ТЫ ТРУП!','ОТКУДА ПАЛЬБА?!','МОЙ СТВОЛ ГДЕ?!','ЗА МЕНЯ ОТВЕТИШЬ!'],
+  homeless:   ['НЕ ТРОГАЙТЕ!','НЕ ВИНОВАТ!','УХОДИТЕ!','СПРЯЧУСЬ…'],
+};
+
+// Реакция на аварию (machine crash) — НЕ паника, а «зеваки»:
+// ближайшие NPC разворачиваются к месту аварии и говорят реплику.
+function triggerNpcCrashWitness(crashR, crashC) {
+  const now = performance.now();
+  const WITNESS_PHRASES = ['Видал?!','Вот это да!','Вызовите ГАИ!',
+    'Всё цело?','Осторожней надо!','Лихач!','Страшно смотреть'];
+  let count = 0;
+  for (const n of NPCS) {
+    if (n.dead || count >= 4) break;
+    const d = Math.hypot(n.r - crashR, n.c - crashC);
+    if (d > 9 || n.panicUntil > now) continue;
+    n.ang      = Math.atan2(crashR - n.r, crashC - n.c);
+    n.idleUntil= now + 1800 + Math.random() * 1200;
+    if (!(n.cryUntil > now)) {
+      n.cryText  = WITNESS_PHRASES[Math.floor(Math.random() * WITNESS_PHRASES.length)];
+      n.cryUntil = now + 1600;
+    }
+    count++;
+  }
+}
+
 // отбежали на >12 тайлов или истёк panicUntil — возвращаются к обычной
 // логике. cryUntil = когда показывать чат-баббл (выводится в drawNpc).
 function triggerNpcPanic(srcR, srcC, radius) {
@@ -4760,15 +4922,34 @@ function triggerNpcPanic(srcR, srcC, radius) {
     const dr = n.r - srcR, dc = n.c - srcC;
     const d  = Math.hypot(dr, dc);
     if (d > radius) continue;
-    n.panicUntil = now + 4000 + Math.random() * 2500;
-    n.cryUntil   = now + 1800 + Math.random() * 1200;
-    n.cryText    = (Math.random() < 0.4) ? 'ААА!!'
-                  : (Math.random() < 0.5) ? 'ПОМОГИТЕ!'
-                  : (Math.random() < 0.5) ? 'СТРЕЛЯЮТ!'
-                  : 'УБЕГАЙ!';
+    // Бандит не убегает — злится и кричит
+    const arcKey = n._arcKey || 'worker';
+    const pm = n._arc ? n._arc.panicMult : 2.5;
+    if (pm === 0) {
+      if (!(n.cryUntil > now)) {
+        const pool = _PANIC_PHRASES_BY_ARC[arcKey] || _PANIC_PHRASES_BY_ARC.worker;
+        n.cryText  = pool[Math.floor(Math.random() * pool.length)];
+        n.cryUntil = now + 1600;
+      }
+      continue;
+    }
+    // Пьяный — реагирует с задержкой (0.3–0.8 с «заморозки»)
+    const freezeMs = (arcKey === 'drunk') ? 400 + Math.random() * 400
+                   : (arcKey === 'pensioner') ? 200 + Math.random() * 300
+                   : 0;
+    const panicDur = (3500 + Math.random() * 2500) * (n._arc ? n._arc.idleMult * 0.3 + 0.7 : 1);
+    n.panicUntil = now + freezeMs + panicDur;
     n.panicSrcR  = srcR;
     n.panicSrcC  = srcC;
-    n.idleUntil  = 0;   // не «отдыхаем», бежим
+    n.idleUntil  = 0;
+    // Архетипные фразы в панике
+    const pool = _PANIC_PHRASES_BY_ARC[arcKey] || _PANIC_PHRASES_BY_ARC.worker;
+    n.cryText  = pool[Math.floor(Math.random() * pool.length)];
+    n.cryUntil = now + 1800 + Math.random() * 1000;
+    // Запоминает что рядом была угроза → чуть более wary к игроку
+    _npcRememberAggression(n, 0.3);
+    // Распространяет слух соседям
+    if (Math.random() < 0.4) _npcSpreadRumor(n, now);
   }
 }
 
@@ -4779,6 +4960,8 @@ function updateNpcs(dt) {
   _maybeIdleChatter(now);
   _npcSocialTick(now);
   _npcCheckPlayerProximity(now);
+  _tickNpcEmotions(now);
+  _npcRelationTick(now);
   _maybeAuthorityChatter(now);
   // Если рядом с NPC прохожим стоит бот городской банды с act='harass'
   // — NPC паникует и убегает. Триггерим один раз в секунду на NPC.
@@ -4912,7 +5095,7 @@ function updateNpcs(dt) {
       pickNpcWaypoint(n);
       continue;
     }
-    const sp = n.speed * dt;
+    const sp = _npcEffectiveSpeed(n) * dt;
     n.r += (dr / d) * sp;
     n.c += (dc / d) * sp;
     n.ang = Math.atan2(dr, dc);
