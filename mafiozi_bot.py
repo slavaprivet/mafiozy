@@ -856,6 +856,10 @@ async def init_db():
             # JSON-список boss_id'ов которых игрок хоть раз победил. Для
             # галочки «✓ побеждал» в списке боссов района (визуальный маркер).
             ("bosses_defeated_json", "TEXT DEFAULT NULL"),
+            # Выбранная точка респавна в открытом мире. NULL/«hospital» =
+            # дефолтный спавн у госпиталя. Иначе biz_id из BUSINESSES
+            # (coffee/carwash/...) — респ рядом с купленным бизнесом.
+            ("respawn_point",      "TEXT DEFAULT NULL"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -1047,6 +1051,37 @@ async def init_db():
         await db.execute(
             "UPDATE coop_sessions SET status='cancelled' WHERE status IN ('active','pending')"
         )
+        # Кулдаун ограблений: одна точка раз в 24ч на игрока.
+        # Запись с (uid, biz_id) активна 24ч после t — потом игнорится
+        # (запросы сами фильтруют по t > now-86400).
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS shop_robs (
+                uid     INTEGER NOT NULL,
+                biz_id  TEXT NOT NULL,
+                t       INTEGER NOT NULL,
+                PRIMARY KEY (uid, biz_id)
+            )
+        """)
+        # Бригадир — хит-контракты. Лимит BRIGADIR_DAILY_LIMIT за сутки на игрока.
+        # Каждый append — отдельная запись (kill_t = когда сдан, или 0 если выдан).
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS brigadir_kills (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                uid     INTEGER NOT NULL,
+                t       INTEGER NOT NULL,
+                stealth INTEGER NOT NULL DEFAULT 0,
+                reward  INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        # Налёты на банк — лимит 1/24ч на игрока.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS bank_heists (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                uid     INTEGER NOT NULL,
+                t       INTEGER NOT NULL,
+                reward  INTEGER NOT NULL DEFAULT 0
+            )
+        """)
         # При старте — очищаем все зависшие active_battles (на случай краша)
         await db.execute("DELETE FROM active_battles")
         # Jobs v2 — снимаем старые job-id (janitor/shawarma/etc), их в новом JOBS нет.
@@ -3739,6 +3774,384 @@ def get_business(biz_id: str):
         if b["id"] == biz_id:
             return b
     return None
+
+# Координаты бизнес-POI в мире (дублируют BUSINESS_POIS в world.html). Нужны
+# для серверной anti-cheat проверки расстояния при `shop_rob`. Если игрок
+# слишком далеко от точки — отказ. NB: 'port' не грабится (это пирс Майкла).
+BUSINESS_POIS_RC = {
+    "coffee":     (33, 13),
+    "carwash":    (23, 25),
+    "barbershop": (53, 23),
+    "pizza":      (53, 53),
+    "garage":     (13, 63),
+    "bar":        (43, 33),
+    "club":       (63, 53),
+    "warehouse":  (73, 23),
+    "casino":     (13, 45),
+}
+# Награды за ограбление и сколько ★ дают. Намеренно ниже daily_max,
+# чтобы ограбления не вытесняли честный доход от бизнесов и работ.
+# 1 точка / 24ч (см. таблицу shop_robs).
+SHOP_ROB_CONFIG = {
+    "coffee":     {"money":  120, "stars": 1},
+    "carwash":    {"money":  170, "stars": 1},
+    "barbershop": {"money":  220, "stars": 1},
+    "pizza":      {"money":  320, "stars": 1},
+    "garage":     {"money":  470, "stars": 2},
+    "bar":        {"money":  720, "stars": 2},
+    "club":       {"money": 1100, "stars": 2},
+    "warehouse":  {"money": 1700, "stars": 2},
+    "casino":     {"money": 2800, "stars": 3},
+}
+
+# Бригадир — NPC в городе, выдаёт хит-контракты на мирных NPC.
+# Стоит на тайле (43, 34) — рядом с баром. Лимит 3 контракта / 24ч,
+# награда $400 за обычный, ×2 за стелс (без свидетелей-копов).
+BRIGADIR_POS_RC      = (43, 34)
+# Цель Бригадира теперь — случайный бандит из aggroZones (не прохожий
+# NPC). Стелс-бонус убран: всегда фиксированный куш BRIGADIR_PAYOUT.
+# Сумма приподнята с 400 до 700, чтобы компенсировать потерю прежнего
+# stealth-x2 (раньше за тихий kill давало 800$).
+BRIGADIR_PAYOUT      = 700
+BRIGADIR_STEALTH_MUL = 1.0
+BRIGADIR_DAILY_LIMIT = 3
+
+# Банк V2 — кооп-налёт мешками. Жмёшь налёт → сразу 4★ + спавн N мешков
+# в зоне сейфа + спавн налётного автобуса. Берёшь мешок (флаг _heistBag),
+# несёшь к автобусу, кидаешь (bus.bags++). Когда хоть кто-то сел в
+# автобус — он автопилотом гонит к dropoff. Доехал → ВСЕ мешки в bus
+# конвертируются в куш, делится поровну между ВСЕМИ участниками.
+# Таймер 180с — что не успели, то не получили. Лимит 1/24ч.
+# СИНХРОН координат с world.html.
+BANK_POS_RC          = (33, 43)
+BANK_PAYOUT          = 2000           # legacy, не используется в V2
+BANK_HEIST_DURATION  = 180.0          # таймер всей сессии (looting+driving)
+BANK_HEIST_RADIUS    = 4.0
+BANK_HEIST_DAILY_LIMIT = 1
+HEIST_BAGS_COUNT     = 8              # сколько мешков спавним в сейфе
+HEIST_BAG_VALUE      = 500            # $ за мешок при доставке
+HEIST_BUS_SPAWN_RC   = (35, 43)       # автобус стартует чуть южнее банка
+# Пул точек сдачи (рандом на старте). Раскиданы по карте — игрок не
+# знает заранее, куда ехать; подсмотрит метку только после старта.
+HEIST_DROPOFFS = [
+    (65, 50),    # юг — старая (склад у моря)
+    (62, 18),    # юго-запад — заброшенная стройка
+    (20, 70),    # северо-восток — закрытый рынок
+    (75, 75),   # юго-восток — гараж у участка (рискованно)
+]
+HEIST_DROPOFF_RC     = HEIST_DROPOFFS[0]   # default fallback
+HEIST_BUS_SPEED      = 6.0            # тайлов/сек на автопилоте
+# Анти-кэмп: если автобус в фазе driving стоит почти на месте >N сек —
+# копы прокалывают шины, скорость падает (driver и сервер замедляются).
+HEIST_BUS_CAMP_SEC   = 8.0            # сек на месте → шины
+HEIST_BUS_CAMP_R     = 1.2            # тайлов «почти не двигался»
+HEIST_BUS_SLOW_FACTOR= 0.45           # x0.45 скорости после прокола
+# Охранники банка — стационарные NPC с пистолетами, агрессивны к
+# участникам с момента старта. Можно убить (HP 60), тогда молчат.
+BANK_GUARD_HP        = 60
+BANK_GUARD_RANGE     = 10.0           # дальность выстрела (тайлов)
+BANK_GUARD_DMG       = 18
+BANK_GUARD_CD        = 1.2            # сек между выстрелами одного охранника
+BANK_GUARD_MISS      = 0.30           # шанс промаха
+# Активные heist'ы в памяти: heist_id → {participants:set, started_at, finalized}
+_active_bank_heists = {}
+_bank_heist_next_id = 1
+
+async def _heist_finalize(world, hid: int, h: dict, reason: str = 'done') -> None:
+    """Финал налёта: начисляет каждому участнику долю куша, шлёт пакет
+    окончания всем. Куш = bags_delivered * HEIST_BAG_VALUE, делится на
+    кол-во участников. Лимит 1/24ч в БД.
+    reason: 'done' (доставили) / 'timeout' (время вышло) / 'cancel' (отмена)."""
+    if h.get('finalized'):
+        return
+    h['finalized'] = True
+    loot = int(h.get('loot') or 0)
+    parts = list(h.get('participants') or [])
+    share = (loot // max(1, len(parts))) if loot > 0 else 0
+    # Свидетели: при успехе (loot>0) каждый живой кассир — +1★ всем
+    # участникам и event 'heist_cashier_snitch' для тоста на клиенте.
+    alive_cashiers = 0
+    if loot > 0 and reason != 'cancel':
+        for c in (h.get('cashiers') or []):
+            if not c.get('dead'):
+                alive_cashiers += 1
+        if alive_cashiers > 0:
+            for u in parts:
+                pp = world.players.get(u)
+                if pp:
+                    pp['_wanted'] = float(pp.get('_wanted') or 0) + alive_cashiers
+            snitch_pkt = json.dumps({'t': 'event', 'd': {
+                'kind':     'heist_cashier_snitch',
+                'heist_id': hid,
+                'count':    alive_cashiers,
+            }}, ensure_ascii=False)
+            for u in parts:
+                ws2 = world.connections.get(u)
+                if ws2:
+                    try: await ws2.send_str(snitch_pkt)
+                    except Exception: pass
+    now_ts = int(time.time())
+    for u in parts:
+        if share > 0:
+            try:
+                async with aiosqlite.connect(DB_PATH) as db:
+                    await db.execute(
+                        "UPDATE characters SET cash = cash + ? "
+                        "WHERE telegram_id = ?",
+                        (share, int(u)))
+                    await db.execute(
+                        "INSERT INTO bank_heists (uid, t, reward) VALUES (?,?,?)",
+                        (int(u), now_ts, share))
+                    await db.commit()
+            except Exception: pass
+        pp = world.players.get(u)
+        if pp:
+            pp['_heist_until'] = 0
+            pp['_heist_id'] = 0
+            pp['_heist_bag'] = None      # бросает мешок если ещё нёс
+            pp['_in_heist_bus'] = 0
+    fin_pkt = json.dumps({'t': 'event', 'd': {
+        'kind':     'bank_heist_finished',
+        'heist_id': hid,
+        'loot':     loot,
+        'share':    share,
+        'reason':   reason,
+    }}, ensure_ascii=False)
+    for u in parts:
+        ws2 = world.connections.get(u)
+        if ws2:
+            try: await ws2.send_str(fin_pkt)
+            except Exception: pass
+    # Глобальный broadcast «банк свободен» — у всех онлайн-игроков снимется
+    # «занято» таймер на кнопке банка. Иначе они ждали бы до естественного
+    # истечения duration_s (180с), даже если налёт кончился раньше.
+    freed_pkt = json.dumps({'t': 'event', 'd': {
+        'kind': 'bank_heist_freed',
+    }}, ensure_ascii=False)
+    for _u, _ws in list(world.connections.items()):
+        try: await _ws.send_str(freed_pkt)
+        except Exception: pass
+
+
+async def _tick_bank_heists(world) -> None:
+    """Тик активных банк-налётов V2.
+       Логика:
+         - phase='looting': игроки бегают, кидают мешки в автобус.
+         - phase='driving': хоть один игрок сел в автобус → автобус едет
+           автопилотом к dropoff. Доехал → конвертируем bags_in_bus в loot.
+         - таймер end_at — что не успели, то пропало.
+         - Все участники умерли → отмена.
+       Бродкастим snapshot раз в 0.5с (bags-таблицу, позицию автобуса,
+       loot, time_left)."""
+    now = time.time()
+    to_remove = []
+    for hid, h in list(_active_bank_heists.items()):
+        if h.get('finalized'):
+            to_remove.append(hid)
+            continue
+        # Время вышло — финал
+        if now >= h['end_at']:
+            await _heist_finalize(world, hid, h, reason='timeout')
+            to_remove.append(hid)
+            continue
+        parts = list(h.get('participants') or [])
+        # Если кто-то умер с мешком — мешок падает на землю там где умер.
+        # Другой участник может его поднять и донести.
+        for u in parts:
+            pp = world.players.get(u)
+            if not pp:
+                continue
+            bag_id = pp.get('_heist_bag')
+            if pp.get('dead') and bag_id:
+                bag = next((b for b in h['bags'] if b['id'] == bag_id), None)
+                if bag and bag.get('state') == 'carried':
+                    bag['state'] = 'dropped'
+                    bag['by']    = None
+                    bag['x']     = float(pp.get('x', bag['x']))
+                    bag['y']     = float(pp.get('y', bag['y']))
+                pp['_heist_bag'] = None
+        # Все участники умерли (никто не возродился) — финал. Деньги
+        # начисляем за то что успели доставить (h['loot']).
+        any_alive = False
+        for u in parts:
+            pp = world.players.get(u)
+            if pp and not pp.get('dead'):
+                any_alive = True; break
+        if not any_alive:
+            await _heist_finalize(world, hid, h, reason='all_dead')
+            to_remove.append(hid)
+            continue
+        # Автобус — фаза driving
+        bus = h.get('bus') or {}
+        drop = h.get('dropoff') or {'x': HEIST_DROPOFF_RC[1],
+                                    'y': HEIST_DROPOFF_RC[0]}
+        if h.get('phase') == 'driving':
+            dx = float(drop['x']) - bus['x']
+            dy = float(drop['y']) - bus['y']
+            d  = (dx*dx + dy*dy) ** 0.5
+            if d < 1.5:
+                # Доехали — сдаём всё что в автобусе.
+                delivered = int(bus.get('bags_inside') or 0)
+                h['loot'] = int(h.get('loot') or 0) + delivered * HEIST_BAG_VALUE
+                h['bags_delivered'] = int(h.get('bags_delivered') or 0) + delivered
+                bus['bags_inside'] = 0
+                h['phase'] = 'done'
+                # Деньги начислятся в _heist_finalize ниже
+                await _heist_finalize(world, hid, h, reason='done')
+                to_remove.append(hid)
+                continue
+            # Анти-кэмп: если автобус почти не двигается HEIST_BUS_CAMP_SEC —
+            # копы прокалывают шины. Скорость падает в HEIST_BUS_SLOW_FACTOR.
+            lmx = float(bus.get('_last_move_x') or bus['x'])
+            lmy = float(bus.get('_last_move_y') or bus['y'])
+            lmt = float(bus.get('_last_move_t') or now)
+            if ((bus['x'] - lmx) ** 2 + (bus['y'] - lmy) ** 2) ** 0.5 > HEIST_BUS_CAMP_R:
+                bus['_last_move_x'] = bus['x']
+                bus['_last_move_y'] = bus['y']
+                bus['_last_move_t'] = now
+            elif (not bus.get('tires_punctured')) and (now - lmt) > HEIST_BUS_CAMP_SEC:
+                bus['tires_punctured'] = True
+                # Локальный «пинг» участникам, чтобы клиент мог тостнуть.
+                punct_pkt = json.dumps({'t': 'event', 'd': {
+                    'kind':     'heist_bus_punctured',
+                    'heist_id': hid,
+                }}, ensure_ascii=False)
+                for _u in parts:
+                    _ws2 = world.connections.get(_u)
+                    if _ws2:
+                        try: await _ws2.send_str(punct_pkt)
+                        except Exception: pass
+            # Валидный водитель? Тогда позицию пишет клиент через
+            # heist_bus_drive — сервер не двигает (но клампит шаг при
+            # приёме). Иначе — автопилот к dropoff как и раньше.
+            drv_uid = bus.get('driver_uid')
+            drv_valid = False
+            if drv_uid:
+                dp = world.players.get(str(drv_uid))
+                if dp and not dp.get('dead') \
+                       and int(dp.get('_in_heist_bus') or 0) == hid \
+                       and (now - float(bus.get('last_input_t') or 0)) < 1.5:
+                    drv_valid = True
+                else:
+                    # Драйвер дисконнектнулся/умер/вышел — снимаем.
+                    bus['driver_uid'] = None
+            if not drv_valid:
+                # Автопилот
+                dt_tick = 0.1   # мировой tick шлёт snapshot ~10Hz
+                cur_speed = HEIST_BUS_SPEED * (HEIST_BUS_SLOW_FACTOR
+                                               if bus.get('tires_punctured') else 1.0)
+                step = cur_speed * dt_tick
+                if step >= d:
+                    bus['x'] = float(drop['x'])
+                    bus['y'] = float(drop['y'])
+                else:
+                    bus['x'] += dx * (step / d)
+                    bus['y'] += dy * (step / d)
+        # AI банковских охранников. Сразу hostile ко всем участникам:
+        # выбирают ближайшего живого, проверяют дистанцию и LOS,
+        # стреляют с cooldown. Урон применяем тут же; пакет с трассером
+        # уходит участникам и их клиентам через ws.
+        import math as _gmath
+        for g in (h.get('guards') or []):
+            if not g.get('alive'):
+                continue
+            # Цель — ближайший живой участник в радиусе BANK_GUARD_RANGE
+            nearest = None; nd2 = (BANK_GUARD_RANGE * BANK_GUARD_RANGE)
+            for u in parts:
+                pp = world.players.get(u)
+                if not pp or pp.get('dead'):
+                    continue
+                dd2 = (pp['x'] - g['x'])**2 + (pp['y'] - g['y'])**2
+                if dd2 < nd2:
+                    nd2 = dd2; nearest = (u, pp)
+            if not nearest:
+                continue
+            tuid, tp = nearest
+            g['ang'] = _gmath.atan2(tp['y'] - g['y'], tp['x'] - g['x'])
+            # Cooldown + LOS
+            if (now - float(g.get('_shot_t') or 0)) < BANK_GUARD_CD:
+                continue
+            if not _world_los(g['x'], g['y'], tp['x'], tp['y']):
+                continue
+            g['_shot_t'] = now
+            miss = random.random() < BANK_GUARD_MISS
+            dmg = 0 if miss else BANK_GUARD_DMG
+            if not miss:
+                tp['hp'] = int(max(0, int(tp.get('hp', 100)) - dmg))
+            killed = False
+            if (not miss) and tp['hp'] <= 0:
+                tp['hp'] = 0
+                tp['dead'] = True
+                tp['deaths'] = int(tp.get('deaths', 0)) + 1
+                tp['_respawn_at'] = now + world.PLAYER_RESPAWN_S
+                killed = True
+            shot_pkt = json.dumps({'t': 'event', 'd': {
+                'kind':       'heist_guard_shot',
+                'heist_id':   hid,
+                'guard_id':   g['id'],
+                'weapon':     g.get('weapon') or 'pistol_heavy',
+                'sx':         round(float(g['x']), 2),
+                'sy':         round(float(g['y']), 2),
+                'target_uid': str(tuid),
+                'tx':         round(float(tp['x']), 2),
+                'ty':         round(float(tp['y']), 2),
+                'dmg':        int(dmg),
+                'miss':       bool(miss),
+                'killed':     killed,
+            }}, ensure_ascii=False)
+            for _u in parts:
+                _ws2 = world.connections.get(_u)
+                if _ws2:
+                    try: await _ws2.send_str(shot_pkt)
+                    except Exception: pass
+        # Бродкаст snapshot раз в 0.5с
+        last_snap = float(h.get('_last_snap') or 0)
+        if now - last_snap > 0.5:
+            h['_last_snap'] = now
+            # Сериализуем мешки (только нужные поля)
+            bags_pub = []
+            for b in h.get('bags', []):
+                bags_pub.append({
+                    'id':       b['id'],
+                    'x':        round(b['x'], 2),
+                    'y':        round(b['y'], 2),
+                    'state':    b.get('state') or 'safe',  # 'safe' | 'carried' | 'loaded' | 'delivered'
+                    'by':       b.get('by') or None,
+                })
+            snap_pkt = json.dumps({'t': 'event', 'd': {
+                'kind':        'heist_snapshot',
+                'heist_id':    hid,
+                'phase':       h.get('phase'),
+                'bags':        bags_pub,
+                'bus':         {'x': round(bus.get('x', 0), 2),
+                                'y': round(bus.get('y', 0), 2),
+                                'ang': round(float(bus.get('ang') or 0.0), 3),
+                                'bags': int(bus.get('bags_inside') or 0),
+                                'driver_uid': bus.get('driver_uid'),
+                                'tires_punctured': bool(bus.get('tires_punctured'))},
+                'cashiers':    [{'id': c['id'],
+                                 'x':  round(float(c['x']), 2),
+                                 'y':  round(float(c['y']), 2),
+                                 'dead': bool(c.get('dead'))}
+                                for c in (h.get('cashiers') or [])],
+                'guards':      [{'id': g['id'],
+                                 'x':  round(float(g['x']), 2),
+                                 'y':  round(float(g['y']), 2),
+                                 'ang': round(float(g.get('ang') or 0.0), 3),
+                                 'hp': int(g.get('hp') or 0),
+                                 'alive': bool(g.get('alive'))}
+                                for g in (h.get('guards') or [])],
+                'dropoff':     {'x': float(drop['x']), 'y': float(drop['y'])},
+                'loot':        int(h.get('loot') or 0),
+                'time_left':   max(0, int(h['end_at'] - now)),
+            }}, ensure_ascii=False)
+            for u in parts:
+                ws2 = world.connections.get(u)
+                if ws2:
+                    try: await ws2.send_str(snap_pkt)
+                    except Exception: pass
+    for hid in to_remove:
+        _active_bank_heists.pop(hid, None)
 
 
 def pick_business_event():
@@ -11472,6 +11885,8 @@ class WorldSim:
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
+        # Очередь физических пуль ботов (dodge-механика).
+        '_pending_bot_shots',
         # Пляжники — мирные NPC в купальниках/плавках.
         'beachgoers', '_beachgoer_next_id', '_beachgoer_next_spawn_at',
         # Охрана Майкла на корабле.
@@ -11569,6 +11984,10 @@ class WorldSim:
         'cadillac_eldo':  {'label': 'Cadillac Eldo',   'reward': 1900, 'lock_lvl': 1},
         'jaguar_e':       {'label': 'Jaguar E-Type',   'reward': 2300, 'lock_lvl': 2},
         'mercedes_300':   {'label': 'Mercedes 300SL',  'reward': 2500, 'lock_lvl': 3},
+        # Мотоциклы — открытый кузов, дёшево и быстро. lock_lvl 0 (ключи
+        # в зажигании). Дают меньше cash, но угоняются мгновенно.
+        'harley_chopper': {'label': 'Harley Chopper',  'reward': 1200, 'lock_lvl': 0, 'is_bike': True},
+        'ducati_750':     {'label': 'Ducati 750',      'reward': 1400, 'lock_lvl': 0, 'is_bike': True},
     }
     # Сколько успешных доставок тачки сложнее своего skill → +1 уровень
     SAFECRACKER_XP_PER_LEVEL = 5
@@ -11617,7 +12036,8 @@ class WorldSim:
     NPC_MISS_CHANCE_BOSS = 0.16     # как у босса demo (aimErr меньше)
     COP_RESPAWN_GAP_S   = 4.0       # пауза перед спавном нового копа
     COP_DESPAWN_R       = 25.0      # если коп отстал — деспаун
-    JAIL_DURATION_S     = 60        # минута в тюрьме
+    JAIL_DURATION_S     = 20        # 20 сек в тюрьме (было 60 — юзер
+                                    # воспринимал минуту как «зависание»)
     JAIL_X              = 76.0      # тюрьма в правом-нижнем углу карты 80×80
     JAIL_Y              = 76.0      # (совпадает с POI 'police' в world.html)
     # Радиус «тюремной зоны» — игрок не может выйти пока jail_until.
@@ -11652,6 +12072,22 @@ class WorldSim:
     # перекрёсток. Тебя убил коп с 0-1 звёздами или конвой — выйдешь
     # у больницы, а не там где умер.
     HOSPITAL_X          = 43.0
+    # Координаты бизнесов из BUSINESS_POIS (world.html) для респавна
+    # рядом с купленным объектом. Ключ — biz_id, значение (x, y) —
+    # тайл-«дорога» возле входа, проходимый. r/c из world.html
+    # инвертированы: x=c, y=r. См. setting set_respawn_point.
+    BIZ_RESPAWN_COORDS = {
+        'coffee':     (13.0, 33.0),
+        'carwash':    (25.0, 23.0),
+        'barbershop': (23.0, 53.0),
+        'pizza':      (53.0, 53.0),
+        'garage':     (63.0, 13.0),
+        'bar':        (33.0, 43.0),
+        'club':       (53.0, 63.0),
+        'warehouse':  (23.0, 73.0),
+        'casino':     (45.0, 13.0),
+        # 'port' покупается у Майкла, физически в мире нет — респ туда не даём
+    }
     # ── Захват районов ─────────────────────────────────────────────
     # 5 захватываемых POI (координаты — как в world.html). Зона = 7×7
     # вокруг центра. PvE-игроки в захвате не участвуют.
@@ -11739,18 +12175,20 @@ class WorldSim:
     BOX_REWARD_MIN      = 220
     BOX_REWARD_MAX      = 480
     BOX_PICKUP_R        = 2.0        # радиус подбора коробки в порту
-    BOX_DROPOFF_R       = 2.5        # радиус сдачи у здания
+    BOX_DROPOFF_R       = 3.5        # радиус сдачи у здания (большие POI)
+    # Штраф-кулдаун за провал доставки (копы/взрыв) — 10 минут пока
+    # Майкл не возьмёт нового. Лимит на сутки при этом тоже расходуется.
+    BOX_FAIL_CD_S       = 10 * 60
     # Точка погрузки — пирс рядом с краном (склад с контейнерами).
     BOX_PICKUP_X        = 32.0
     BOX_PICKUP_Y        = 169.0
-    # Точки доставки — здания в разных районах города.
+    # Точки доставки — три POI на карте: Порт, Казино, Рынок. Это
+    # настоящие здания (drawPortBuilding/drawCasinoBuilding/drawMarketBuilding
+    # в world.html), а не «выдуманные адреса». Координаты совпадают с POI.
     BOX_DROPOFFS = [
-        ('Склад на улице Лэйк',     16.0,  16.0),
-        ('Магазин на Промышленной', 56.0,  46.0),
-        ('Гаражи у Резиденции',     36.0,  66.0),
-        ('Кафе «У Лу»',             16.0,  46.0),
-        ('Прачечная Восток',        66.0,  26.0),
-        ('Ломбард на Бэйкер',       26.0,  36.0),
+        ('Порт',   56.0, 16.0),
+        ('Казино', 16.0, 46.0),
+        ('Рынок',  16.0, 16.0),
     ]
     AGGRO_BOT_HP        = 90
     AGGRO_BOT_DMG       = 8
@@ -11763,6 +12201,35 @@ class WorldSim:
     AGGRO_BOSS_CD_R     = 0.18      # узи — почти автоматическая очередь
     AGGRO_BOSS_RANGE_M  = 1.6       # дистанция саблей
     AGGRO_BOSS_RANGE_R  = 9.0       # дистанция узи
+    # ── Физика пуль ботов (dodge-механика) ───────────────────────────
+    # speed = тайлов/сек (низкая → легко увернуться); dmg + range + cd
+    # перекрывают AGGRO_BOT_* константы выше, когда бот реально палит
+    # из конкретного оружия. ИСПОЛЬЗУЕТСЯ в _enqueue_bot_shot.
+    AGGRO_WEAPON_STATS = {
+        'pistol':       {'speed': 14.0, 'dmg':  7, 'range':  6.0, 'cd': 1.0},
+        'pistol_heavy': {'speed': 13.0, 'dmg':  9, 'range':  6.5, 'cd': 1.1},
+        'pistol_gold':  {'speed': 14.0, 'dmg': 10, 'range':  6.5, 'cd': 1.0},
+        'shotgun':      {'speed': 11.0, 'dmg': 18, 'range':  4.5, 'cd': 1.7},
+        'smg':          {'speed': 16.0, 'dmg':  6, 'range':  7.0, 'cd': 0.5},
+        'uzi':          {'speed': 16.0, 'dmg':  6, 'range':  7.0, 'cd': 0.55},
+        'rifle':        {'speed': 20.0, 'dmg': 12, 'range':  9.0, 'cd': 1.0},
+        'sniper':       {'speed': 32.0, 'dmg': 28, 'range': 14.0, 'cd': 2.6},
+        'rpg':          {'speed':  8.0, 'dmg': 40, 'range': 10.0, 'cd': 3.5},
+    }
+    # Вес выбора пушки при спауне бандита Логова/городской банды.
+    # Базук/снайперок — мало (1 на 3-4 банды), пистолетов — много.
+    AGGRO_BOT_WEAPON_WEIGHTS = [
+        ('pistol',       28),
+        ('pistol_heavy', 22),
+        ('smg',          18),
+        ('shotgun',      14),
+        ('rifle',        10),
+        ('sniper',        5),
+        ('rpg',           3),
+    ]
+    # Радиус «вокруг точки попадания», в котором игрок ещё считается
+    # стоящим под пулей. Если убежал дальше — пуля прошла мимо.
+    BULLET_DODGE_R   = 1.3
     AGGRO_COVER_HP      = 60        # HP одного укрытия (после — оно разрушается)
     TERR_RADIUS         = 5              # 11×11 (×1.5 от исходного 7×7)
     CAPTURE_TIME_S      = 30.0
@@ -11833,6 +12300,11 @@ class WorldSim:
         self.city_gangs = []
         self._city_gang_next_id = 1
         self._city_gang_next_spawn_at = 0.0
+        # Очередь физических пуль ботов (dodge-механика). Каждый shot
+        # имеет apply_at — момент, когда пуля долетит до цели. Если к
+        # этому моменту игрок ушёл из радиуса BULLET_DODGE_R от точки
+        # удара (tx,ty), пуля считается мимо. См. tick_pending_bot_shots.
+        self._pending_bot_shots = []
         # Гнёзда — отдельный список «nest» групп (привязаны к зданию)
         self.gang_nests = []
         self._gang_nest_next_id = 1
@@ -11940,6 +12412,12 @@ class WorldSim:
             # сам и не телепортируем.
             '_jail_released': (int(jail_until or 0) <= int(time.time())),
             '_last_shot_t':  0.0,   # для wanted decay
+            # Точка респавна: 'hospital' (default) или biz_id (если игрок
+            # купил бизнес и выбрал его в респавн-настройке). Подгружается
+            # из БД при коннекте через _world_load_owned_biz_for, чтобы
+            # tick_respawn мог проверить «бизнес всё ещё мой?» без I/O.
+            '_respawn_point': 'hospital',
+            '_owned_biz':     set(),
             # Режим игры в открытом мире: 'pvp' (можно стрелять и тебя
             # тоже могут) или 'pve' (наблюдатель — выстрелы не проходят,
             # AI копов/конвоя игнорирует, нет правого стика и оружия)
@@ -11965,6 +12443,12 @@ class WorldSim:
         anti-cheat). Phase 2+ можно валидировать скорость/коллизии."""
         p = self.players.get(uid)
         if not p:
+            return
+        # Мёртвый игрок не может двигаться — иначе после респавна клиент
+        # успевал прислать устаревшую позицию (с места смерти), сервер
+        # принимал её и rate-limit'ом «возвращал» игрока туда. Симптом:
+        # «после респа стою на месте, потом отбрасывает назад».
+        if p.get('dead'):
             return
         try:
             nx = float(d.get('x', p['x']))
@@ -12114,7 +12598,8 @@ class WorldSim:
     # daily. Видна ВСЕМ игрокам как обычная quest-car (через стандартный
     # snapshot+spawn pkt). Машина живёт долго даже при простое (см. tick).
     CIVILIAN_HIJACK_MODELS = ('corvette_c3', 'mustang_67', 'cadillac_eldo',
-                              'delorean', 'jaguar_e')
+                              'delorean', 'jaguar_e',
+                              'harley_chopper', 'ducati_750')
     def civilian_hijack_start(self, uid: str) -> dict:
         p = self.players.get(uid)
         if not p:
@@ -12343,6 +12828,30 @@ class WorldSim:
                     'lock_lvl': lock_lvl, 'xp_gain': xp_gain,
                     'skill_up': skill_up, 'new_sc_lvl': new_sc}
         return {'ok': True, 'delivered': False, 'car_id': car_id}
+
+    def world_heal(self, uid: str) -> dict:
+        """Полное лечение игрока — если он в радиусе POI больницы (43, 23)
+        и кулдаун 60с прошёл. Возвращает {ok, hp, cd_left_s, reason?}."""
+        p = self.players.get(uid)
+        if not p:
+            return {'ok': False, 'reason': 'gone'}
+        if p.get('dead'):
+            return {'ok': False, 'reason': 'dead'}
+        # Радиус «у входа в больницу»
+        HEAL_R = 5.5
+        dx = p.get('x', 0) - self.HOSPITAL_X
+        dy = p.get('y', 0) - self.HOSPITAL_Y
+        if (dx * dx + dy * dy) > HEAL_R * HEAL_R:
+            return {'ok': False, 'reason': 'far'}
+        now = time.time()
+        cd_until = p.get('_heal_cd_until', 0) or 0
+        if now < cd_until:
+            return {'ok': False, 'reason': 'cooldown',
+                    'cd_left_s': int(cd_until - now)}
+        max_hp = int(p.get('max_hp', 100) or 100)
+        p['hp'] = max_hp
+        p['_heal_cd_until'] = now + 60.0
+        return {'ok': True, 'hp': max_hp, 'cd_left_s': 60}
 
     def gta_status(self, uid: str) -> dict:
         """Снапшот GTA для HUD: счётчик, ресет, активный заказ."""
@@ -12648,6 +13157,35 @@ class WorldSim:
         # воскрешать жертв ЛЮБОЙ системы (а не только событий конвоя).
         return pkts
 
+    def _biz_owned_sync(self, uid: int, biz_id: str) -> bool:
+        """Синхронная проверка владения бизнесом — читает из кеша
+        p['_owned_biz']. Кеш заполняется при коннекте через
+        _world_load_owned_biz_for и обновляется при покупке."""
+        p = self.players.get(str(uid))
+        if not p:
+            return False
+        return biz_id in (p.get('_owned_biz') or set())
+
+    def set_respawn_point(self, uid: str, rp: str) -> dict:
+        """Игрок выбирает где возрождаться. 'hospital' — всегда можно.
+        biz_id — только если бизнес куплен (кеш _owned_biz)."""
+        p = self.players.get(uid)
+        if not p:
+            return {'ok': False, 'reason': 'no_player'}
+        rp = str(rp or 'hospital').strip()
+        if rp != 'hospital':
+            if rp not in self.BIZ_RESPAWN_COORDS:
+                return {'ok': False, 'reason': 'bad_biz'}
+            if rp not in (p.get('_owned_biz') or set()):
+                return {'ok': False, 'reason': 'not_owned'}
+        p['_respawn_point'] = rp
+        # Сохраняем в БД, чтобы при следующем коннекте подгрузилось.
+        try:
+            asyncio.create_task(update_character(int(uid), respawn_point=rp))
+        except Exception:
+            pass
+        return {'ok': True, 'respawn_point': rp}
+
     def tick_respawn(self, dt: float) -> None:
         """Воскрешает мёртвых игроков через PLAYER_RESPAWN_S. Раньше эта
         логика была внутри tick_event, поэтому жертвы банды Логова
@@ -12686,8 +13224,25 @@ class WorldSim:
                 p['x'] = sx + random.uniform(-0.2, 0.2)
                 p['y'] = sy + random.uniform(-0.2, 0.2)
             else:
-                p['x'] = self.HOSPITAL_X + random.uniform(-1.0, 1.0)
-                p['y'] = self.HOSPITAL_Y + random.uniform(-1.0, 1.0)
+                # Выбранная игроком точка респавна (см. set_respawn_point).
+                # Если 'hospital' (default) — у госпиталя. Если biz_id и
+                # бизнес ВСЁ ЕЩЁ принадлежит игроку (проверяется на лету) —
+                # рядом с ним. Иначе fallback к госпиталю.
+                rp = p.get('_respawn_point') or 'hospital'
+                spawned = False
+                if rp != 'hospital' and rp in self.BIZ_RESPAWN_COORDS:
+                    if self._biz_owned_sync(int(p_uid), rp):
+                        bx, by = self.BIZ_RESPAWN_COORDS[rp]
+                        p['x'] = bx + random.uniform(-0.6, 0.6)
+                        p['y'] = by + random.uniform(-0.6, 0.6)
+                        spawned = True
+                if not spawned:
+                    p['x'] = self.HOSPITAL_X + random.uniform(-1.0, 1.0)
+                    p['y'] = self.HOSPITAL_Y + random.uniform(-1.0, 1.0)
+                    # Сбросим неверную точку чтобы не тратить проверку каждый
+                    # раз. Игрок может перевыбрать через клиент.
+                    if rp != 'hospital':
+                        p['_respawn_point'] = 'hospital'
 
     def tick_jail_release(self) -> None:
         """Освобождение из тюрьмы: когда _jail_until истёк, телепортируем
@@ -13541,7 +14096,7 @@ class WorldSim:
                 'max_hp':   int(self.AGGRO_BOT_HP),
                 'alive':    True,
                 'kind':     'aggro_grunt',
-                'weapon':   'pistol_heavy',
+                'weapon':   self._pick_aggro_weapon(),
                 '_shot_t':  0.0,
                 '_warned':  {},   # uid -> ts когда впервые увидели → начнут стрелять через AGGRO_WARN_S
                 '_strafe_t':0.0, '_strafe_s': 0.0,
@@ -13611,6 +14166,90 @@ class WorldSim:
                 })
                 break
         self.aggro_covers[tid] = covers
+
+    def _pick_aggro_weapon(self) -> str:
+        """Случайное оружие из AGGRO_BOT_WEAPON_WEIGHTS с учётом весов."""
+        total = sum(w for _, w in self.AGGRO_BOT_WEAPON_WEIGHTS)
+        r = random.random() * total
+        cum = 0.0
+        for wid, w in self.AGGRO_BOT_WEAPON_WEIGHTS:
+            cum += w
+            if r < cum:
+                return wid
+        return self.AGGRO_BOT_WEAPON_WEIGHTS[0][0]
+
+    def _enqueue_bot_shot(self, *, target, sx, sy, tx, ty, weapon,
+                          bot_id, tid):
+        """Кладёт выстрел бота в очередь. Урон применится через
+        dist/speed секунд (см. tick_pending_bot_shots). Возвращает
+        пакет 'aggro_shot' для немедленной отправки клиенту (трассер)."""
+        stats = self.AGGRO_WEAPON_STATS.get(
+            weapon, self.AGGRO_WEAPON_STATS['pistol'])
+        speed = float(stats['speed'])
+        dmg   = int(stats['dmg'])
+        dist  = ((tx - sx) ** 2 + (ty - sy) ** 2) ** 0.5
+        eta_s = dist / max(1.0, speed)
+        now   = time.time()
+        self._pending_bot_shots.append({
+            'target_uid': str(target.get('uid') or ''),
+            'sx': sx, 'sy': sy,
+            'tx': tx, 'ty': ty,
+            'dmg': dmg, 'weapon': weapon,
+            'bot_id': bot_id, 'tid': tid,
+            'apply_at': now + eta_s,
+        })
+        return {
+            'kind':       'aggro_shot',
+            'tid':        tid,
+            'bot_id':     bot_id,
+            'target_uid': str(target.get('uid') or ''),
+            'weapon':     weapon,
+            'bullet_speed': speed,
+            'sx': round(sx, 2), 'sy': round(sy, 2),
+            'tx': round(tx, 2), 'ty': round(ty, 2),
+        }
+
+    def tick_pending_bot_shots(self) -> list:
+        """Применяет накопленные выстрелы ботов когда пуля «долетела».
+        Игрок может УВЕРНУТЬСЯ, если к этому моменту отошёл дальше
+        BULLET_DODGE_R от точки удара. Шлёт пакеты 'aggro_apply'."""
+        now = time.time()
+        pkts = []
+        survivors = []
+        for s in self._pending_bot_shots:
+            if now < s['apply_at']:
+                survivors.append(s)
+                continue
+            target = self.players.get(s['target_uid'])
+            if not target or target.get('dead'):
+                continue
+            dx = target.get('x', 0) - s['tx']
+            dy = target.get('y', 0) - s['ty']
+            d2 = dx * dx + dy * dy
+            dodge_r2 = self.BULLET_DODGE_R * self.BULLET_DODGE_R
+            miss = (d2 > dodge_r2)
+            killed = False
+            dmg = 0
+            if not miss:
+                dmg = s['dmg']
+                target['hp'] = max(0, int(target.get('hp', 100)) - dmg)
+                if target['hp'] <= 0:
+                    target['dead'] = True
+                    target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                    target['deaths'] = int(target.get('deaths', 0)) + 1
+                    killed = True
+            pkts.append({
+                'kind':       'aggro_apply',
+                'tid':        s['tid'],
+                'bot_id':     s['bot_id'],
+                'target_uid': s['target_uid'],
+                'weapon':     s['weapon'],
+                'miss':       miss,
+                'dmg':        dmg,
+                'killed':     killed,
+            })
+        self._pending_bot_shots = survivors
+        return pkts
 
     def tick_aggro(self, dt: float) -> list:
         """AI агрессивных районов. Возвращает список event-пакетов."""
@@ -13719,46 +14358,28 @@ class WorldSim:
                                      'sx': round(bot['x'],2), 'sy': round(bot['y'],2),
                                      'tx': round(tx,2), 'ty': round(ty,2)})
                     elif dist <= self.AGGRO_BOSS_RANGE_R and (now - bot['_shot_t']) >= self.AGGRO_BOSS_CD_R:
-                        # Дальний — узи
+                        # Дальний — узи. Урон отложен (см. tick_pending_bot_shots),
+                        # игрок может увернуться отбежав в сторону.
                         bot['_shot_t'] = now
-                        miss = random.random() < 0.35
-                        dmg = 0 if miss else int(self.AGGRO_BOSS_DMG_R)
-                        if not miss:
-                            target['hp'] = max(0, int(target.get('hp',100)) - dmg)
-                            killed = target['hp'] <= 0
-                            if killed:
-                                target['dead'] = True
-                                target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                                target['deaths'] = int(target.get('deaths',0)) + 1
-                        else:
-                            killed = False
-                        pkts.append({'kind':'aggro_shot', 'tid':tid,
-                                     'bot_id': bot['id'], 'target_uid': t_uid,
-                                     'dmg': dmg, 'killed': killed, 'miss': miss,
-                                     'weapon': 'uzi',
-                                     'sx': round(bot['x'],2), 'sy': round(bot['y'],2),
-                                     'tx': round(tx,2), 'ty': round(ty,2)})
+                        pkts.append(self._enqueue_bot_shot(
+                            target=target, sx=bot['x'], sy=bot['y'],
+                            tx=tx, ty=ty, weapon='uzi',
+                            bot_id=bot['id'], tid=tid))
                 else:
-                    # Обычный бандит — pistol_heavy
-                    if dist <= self.AGGRO_BOT_RANGE and (now - bot['_shot_t']) >= self.AGGRO_BOT_CD:
+                    # Обычный бандит — оружие назначено при спауне (рандом
+                    # из AGGRO_BOT_WEAPON_WEIGHTS). dmg/cd/range берутся
+                    # из AGGRO_WEAPON_STATS.
+                    weapon = bot.get('weapon') or 'pistol'
+                    stats  = self.AGGRO_WEAPON_STATS.get(
+                        weapon, self.AGGRO_WEAPON_STATS['pistol'])
+                    w_range = float(stats.get('range', self.AGGRO_BOT_RANGE))
+                    w_cd    = float(stats.get('cd',    self.AGGRO_BOT_CD))
+                    if dist <= w_range and (now - bot['_shot_t']) >= w_cd:
                         bot['_shot_t'] = now
-                        miss = random.random() < 0.30
-                        dmg  = 0 if miss else int(self.AGGRO_BOT_DMG)
-                        if not miss:
-                            target['hp'] = max(0, int(target.get('hp',100)) - dmg)
-                            killed = target['hp'] <= 0
-                            if killed:
-                                target['dead'] = True
-                                target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                                target['deaths'] = int(target.get('deaths',0)) + 1
-                        else:
-                            killed = False
-                        pkts.append({'kind':'aggro_shot', 'tid':tid,
-                                     'bot_id': bot['id'], 'target_uid': t_uid,
-                                     'dmg': dmg, 'killed': killed, 'miss': miss,
-                                     'weapon': 'pistol_heavy',
-                                     'sx': round(bot['x'],2), 'sy': round(bot['y'],2),
-                                     'tx': round(tx,2), 'ty': round(ty,2)})
+                        pkts.append(self._enqueue_bot_shot(
+                            target=target, sx=bot['x'], sy=bot['y'],
+                            tx=tx, ty=ty, weapon=weapon,
+                            bot_id=bot['id'], tid=tid))
             # 2) Захват: если ВСЕ боты убиты — стартуем 3-сек хадер.
             #    Зоны с no_capture=True (Логово) НЕ захватываются — это просто
             #    опасная локация. Перебил банду — она респавнится через таймер.
@@ -13940,7 +14561,7 @@ class WorldSim:
                 'max_hp':   int(self.AGGRO_BOT_HP),
                 'alive':    True,
                 'kind':     'aggro_grunt',
-                'weapon':   'pistol_heavy',
+                'weapon':   self._pick_aggro_weapon(),
                 '_shot_t':  0.0,
                 # Activity loop: walk (двигается с группой) / idle (стоит)
                 # / drink (пьёт пиво) / tag (рисует граффити) / harass
@@ -14107,38 +14728,21 @@ class WorldSim:
                         ny = bot['y'] + (dy2/dist) * step
                         if not _world_is_wall(int(ny), int(nx)):
                             bot['x'] = nx; bot['y'] = ny
-                    # Стрельба (только если LOS и в дальности)
-                    if (dist <= self.CITY_GANG_FIRE_R
-                            and (now - bot['_shot_t']) >= self.AGGRO_BOT_CD
+                    # Стрельба: оружие у бота назначено при спауне (рандом).
+                    # Урон отложен — пуля летит со speed, можно увернуться.
+                    weapon = bot.get('weapon') or 'pistol_heavy'
+                    w_stats = self.AGGRO_WEAPON_STATS.get(
+                        weapon, self.AGGRO_WEAPON_STATS['pistol'])
+                    w_range = float(w_stats.get('range', self.CITY_GANG_FIRE_R))
+                    w_cd    = float(w_stats.get('cd',    self.AGGRO_BOT_CD))
+                    if (dist <= w_range
+                            and (now - bot['_shot_t']) >= w_cd
                             and _world_los(bot['x'], bot['y'], tx, ty)):
                         bot['_shot_t'] = now
-                        miss = random.random() < 0.35
-                        dmg  = 0 if miss else self.AGGRO_BOT_DMG
-                        if not miss:
-                            target['hp'] = int(max(0,
-                                int(target.get('hp', 100)) - dmg))
-                        killed = False
-                        if target['hp'] <= 0 and not miss:
-                            target['hp']         = 0
-                            target['dead']       = True
-                            target['deaths']     = int(target.get('deaths', 0)) + 1
-                            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                            killed = True
-                        # Реиспользуем aggro_shot — у клиента уже есть рендер
-                        pkts.append({
-                            'kind':       'aggro_shot',
-                            'tid':        g['id'],
-                            'bot_id':     bot['id'],
-                            'weapon':     bot.get('weapon', 'pistol_heavy'),
-                            'sx':         round(bot['x'], 2),
-                            'sy':         round(bot['y'], 2),
-                            'target_uid': g['_target_uid'],
-                            'tx':         round(tx, 2),
-                            'ty':         round(ty, 2),
-                            'dmg':        int(dmg),
-                            'miss':       bool(miss),
-                            'killed':     killed,
-                        })
+                        pkts.append(self._enqueue_bot_shot(
+                            target=target, sx=bot['x'], sy=bot['y'],
+                            tx=tx, ty=ty, weapon=weapon,
+                            bot_id=bot['id'], tid=g['id']))
             # При hostile — диспатчим копов один раз (они атакуют банду).
             if g['state'] == 'hostile' and not g['_cops_dispatched']:
                 g['_cops_dispatched'] = True
@@ -14268,7 +14872,7 @@ class WorldSim:
                 'max_hp':   int(self.AGGRO_BOT_HP),
                 'alive':    True,
                 'kind':     'aggro_grunt',
-                'weapon':   'pistol_heavy',
+                'weapon':   self._pick_aggro_weapon(),
                 '_shot_t':  0.0,
                 '_act':     'idle',
                 '_act_until': 0.0,
@@ -14405,36 +15009,19 @@ class WorldSim:
                         ny = bot['y'] + (dy/dist) * step
                         if not _world_is_wall(int(ny), int(nx)):
                             bot['x'] = nx; bot['y'] = ny
-                    if (dist <= self.CITY_GANG_FIRE_R
-                            and (now - bot['_shot_t']) >= self.AGGRO_BOT_CD
+                    weapon = bot.get('weapon') or 'pistol_heavy'
+                    w_stats = self.AGGRO_WEAPON_STATS.get(
+                        weapon, self.AGGRO_WEAPON_STATS['pistol'])
+                    w_range = float(w_stats.get('range', self.CITY_GANG_FIRE_R))
+                    w_cd    = float(w_stats.get('cd',    self.AGGRO_BOT_CD))
+                    if (dist <= w_range
+                            and (now - bot['_shot_t']) >= w_cd
                             and _world_los(bot['x'], bot['y'], tx, ty)):
                         bot['_shot_t'] = now
-                        miss = random.random() < 0.30
-                        dmg = 0 if miss else self.AGGRO_BOT_DMG
-                        if not miss:
-                            target['hp'] = int(max(0,
-                                int(target.get('hp', 100)) - dmg))
-                        killed = False
-                        if target['hp'] <= 0 and not miss:
-                            target['hp']         = 0
-                            target['dead']       = True
-                            target['deaths']     = int(target.get('deaths', 0)) + 1
-                            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                            killed = True
-                        pkts.append({
-                            'kind':       'aggro_shot',
-                            'tid':        ne['id'],
-                            'bot_id':     bot['id'],
-                            'weapon':     bot.get('weapon', 'pistol_heavy'),
-                            'sx':         round(bot['x'], 2),
-                            'sy':         round(bot['y'], 2),
-                            'target_uid': ne['_target_uid'],
-                            'tx':         round(tx, 2),
-                            'ty':         round(ty, 2),
-                            'dmg':        int(dmg),
-                            'miss':       bool(miss),
-                            'killed':     killed,
-                        })
+                        pkts.append(self._enqueue_bot_shot(
+                            target=target, sx=bot['x'], sy=bot['y'],
+                            tx=tx, ty=ty, weapon=weapon,
+                            bot_id=bot['id'], tid=ne['id']))
         return pkts
 
     # ── Пляжники (мирные NPC) ──────────────────────────────────────
@@ -14603,6 +15190,12 @@ class WorldSim:
             return {'ok': False, 'reason': 'limit',
                     'wait_s': int(max(0, p['_box_reset_at'] - now)),
                     'limit':  self.BOX_DAILY_LIMIT}
+        # Штраф за провал: 10 мин нельзя брать новый. Сообщаем wait_s
+        # чтобы клиент мог показать обратный отсчёт в кнопке.
+        fail_until = float(p.get('_box_fail_until') or 0.0)
+        if fail_until > now:
+            return {'ok': False, 'reason': 'fail_cd',
+                    'wait_s': int(max(0, fail_until - now))}
         # Близость к Майклу
         dx = p['x'] - self.MICHAEL_X; dy = p['y'] - self.MICHAEL_Y
         if (dx*dx + dy*dy) > 3.0 * 3.0:
@@ -14668,6 +15261,21 @@ class WorldSim:
         return {'ok': True, 'state': 'delivered', 'reward': reward,
                 'addr': q.get('addr')}
 
+    def box_abandon(self, uid: str, reason: str = '') -> dict:
+        """Игрок потерял груз (копы/взрыв/выкинул). Очищаем квест,
+        включаем штраф-кулдаун BOX_FAIL_CD_S. Лимит на сутки уже
+        был израсходован при box_take — не возвращаем."""
+        p = self.players.get(uid)
+        q = self.box_quests.pop(str(uid), None)
+        if not p:
+            return {'ok': False, 'reason': 'no_player'}
+        if not q:
+            return {'ok': False, 'reason': 'no_quest'}
+        now = time.time()
+        p['_box_fail_until'] = now + self.BOX_FAIL_CD_S
+        return {'ok': True, 'reason': str(reason or '')[:32],
+                'wait_s': int(self.BOX_FAIL_CD_S)}
+
     def box_status(self, uid: str) -> dict:
         """Снапшот box-работы: счётчик + активный контракт."""
         p = self.players.get(uid)
@@ -14688,11 +15296,14 @@ class WorldSim:
                 'reward':    int(q['reward']),
                 'state':     q['state'],
             }
+        fail_until = float(p.get('_box_fail_until') or 0.0)
+        fail_cd_s  = int(max(0, fail_until - now))
         return {
             'count_today': int(p.get('_box_count', 0)),
             'limit':       self.BOX_DAILY_LIMIT,
             'reset_in_s':  int(max(0, (p.get('_box_reset_at') or 0) - now)),
             'active':      active,
+            'fail_cd_s':   fail_cd_s,
         }
 
     # ── Охрана Майкла ──────────────────────────────────────────────
@@ -15433,6 +16044,9 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     world.event = None  # очищаем — следующий по таймеру
                 # Агрессивный район — банда NPC + захват через зачистку
                 ev_pkts.extend(world.tick_aggro(WORLD_TICK_DT) or [])
+                # Отложенные пули ботов (dodge-механика): применяем
+                # урон ПОСЛЕ того как пуля «долетит» до точки удара.
+                ev_pkts.extend(world.tick_pending_bot_shots() or [])
                 # GTA-машины Майкла — чистим брошенные/устаревшие.
                 world.tick_quest_cars(WORLD_TICK_DT)
                 # Пляжники — мирные NPC в купальниках. AI без боевки.
@@ -15492,6 +16106,8 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 # за лазерные ворота на дорогу, чтобы игрок не остался
                 # внутри тайла-здания (POI 'police').
                 world.tick_jail_release()
+                # Кооп-налёт на банк — финиш / отмена активных heist'ов
+                await _tick_bank_heists(world)
                 # Захват районов: тик + начисление дохода в gang_pool.
                 cap_pkts = world.tick_capture(WORLD_TICK_DT) or []
                 for cp in cap_pkts:
@@ -16579,6 +17195,17 @@ async def _coop_http_app():
             )
             await db.commit()
         await update_character(uid, cash=cash - biz['price'])
+        # Обновляем in-memory кеш владений в WorldSim — чтобы set_respawn_point
+        # и tick_respawn узнали о покупке сразу, без переподключения к WS.
+        try:
+            if _WORLD is not None:
+                p_ref = _WORLD.players.get(str(uid))
+                if p_ref is not None:
+                    if not isinstance(p_ref.get('_owned_biz'), set):
+                        p_ref['_owned_biz'] = set(p_ref.get('_owned_biz') or [])
+                    p_ref['_owned_biz'].add(biz_id)
+        except Exception:
+            pass
         return await _cors(web.json_response({'ok': True, 'cash': cash - biz['price']}))
 
     async def h_biz_collect(req):
@@ -17213,6 +17840,24 @@ async def _coop_http_app():
             except Exception:
                 p_ref['_cash'] = p_ref.get('_cash', 0)
                 p_ref['_diamonds'] = p_ref.get('_diamonds', 0)
+            # Подгружаем выбранную точку респавна + список купленных бизнесов
+            # из БД, чтобы tick_respawn мог проверять без I/O в каждой итерации.
+            try:
+                rp = (char.get('respawn_point') or '').strip() or 'hospital'
+                p_ref['_respawn_point'] = rp
+            except Exception:
+                p_ref['_respawn_point'] = 'hospital'
+            try:
+                async with aiosqlite.connect(DB_PATH) as db:
+                    db.row_factory = aiosqlite.Row
+                    async with db.execute(
+                        "SELECT biz_id FROM player_businesses WHERE telegram_id=?",
+                        (uid_int,)
+                    ) as cur:
+                        rows = await cur.fetchall()
+                p_ref['_owned_biz'] = set(r['biz_id'] for r in rows)
+            except Exception:
+                p_ref['_owned_biz'] = set()
         world.connections[uid] = ws
 
         # Hello-кадр
@@ -17485,6 +18130,7 @@ async def _coop_http_app():
                                             kp = world.connections.get(uid)
                                             if kp is not None:
                                                 pkt = {'kind': 'aggro_killed',
+                                                       'bot_id': bot_id,
                                                        'is_boss': is_boss,
                                                        'cash': cash_r, 'exp': exp_r,
                                                        'gang_added': gang_added,
@@ -17629,6 +18275,630 @@ async def _coop_http_app():
                                 )
                                 if witness_npc or cop_sees or player_sees:
                                     world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
+                    elif t == 'shop_rob':
+                        # Игрок ограбил магазин/бизнес: d = {biz_id}
+                        # Серверная логика:
+                        #   1) проверить biz_id ∈ SHOP_ROB_CONFIG
+                        #   2) дистанция до POI ≤ 3.0 тайл (anti-cheat)
+                        #   3) не свой бизнес (нельзя ограбить себя)
+                        #   4) cooldown 24ч на эту точку (таблица shop_robs)
+                        #   5) +cash в characters, +★ wanted, broadcast баннер
+                        p = world.players.get(uid)
+                        biz_id = ''
+                        if isinstance(d, dict):
+                            biz_id = str(d.get('biz_id') or '')
+                        cfg = SHOP_ROB_CONFIG.get(biz_id)
+                        rc  = BUSINESS_POIS_RC.get(biz_id)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        elif not cfg or not rc:
+                            reply = {'ok': False, 'reason': 'bad_biz'}
+                        else:
+                            poi_r, poi_c = rc
+                            dx = float(p.get('x', 0)) - poi_c
+                            dy = float(p.get('y', 0)) - poi_r
+                            if dx*dx + dy*dy > 9.0:
+                                reply = {'ok': False, 'reason': 'too_far'}
+                            elif await world._biz_owned_sync(int(uid), biz_id):
+                                reply = {'ok': False, 'reason': 'own'}
+                            else:
+                                now_ts = int(time.time())
+                                last_t = 0
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        cur = await db.execute(
+                                            "SELECT t FROM shop_robs WHERE uid=? AND biz_id=?",
+                                            (int(uid), biz_id))
+                                        row = await cur.fetchone()
+                                        if row: last_t = int(row[0])
+                                except Exception: pass
+                                if now_ts - last_t < 86400:
+                                    left = 86400 - (now_ts - last_t)
+                                    reply = {'ok': False, 'reason': 'cooldown',
+                                             'cooldown_s': left}
+                                else:
+                                    money = int(cfg['money'])
+                                    stars = int(cfg['stars'])
+                                    # +cash
+                                    try:
+                                        async with aiosqlite.connect(DB_PATH) as db:
+                                            await db.execute(
+                                                "UPDATE characters SET cash = cash + ? "
+                                                "WHERE telegram_id = ?",
+                                                (money, int(uid)))
+                                            await db.execute(
+                                                "INSERT OR REPLACE INTO shop_robs "
+                                                "(uid, biz_id, t) VALUES (?,?,?)",
+                                                (int(uid), biz_id, now_ts))
+                                            await db.commit()
+                                    except Exception: pass
+                                    # +★ (минимум stars)
+                                    p['_wanted'] = max(p.get('_wanted') or 0,
+                                                       float(stars))
+                                    p['_last_shot_t'] = time.time()
+                                    reply = {'ok': True, 'biz_id': biz_id,
+                                             'money': money, 'stars': stars}
+                                    # Broadcast баннер всем — «🔪 ОГРАБЛЕНИЕ:»
+                                    nm = (p.get('name') or '')[:20]
+                                    try:
+                                        biz = get_business(biz_id) or {}
+                                        biz_name = biz.get('name') or biz_id
+                                    except Exception:
+                                        biz_name = biz_id
+                                    banner = json.dumps({'t': 'event', 'd': {
+                                        'kind':         'shop_robbed',
+                                        'robber_uid':   str(uid),
+                                        'robber_name':  nm,
+                                        'biz_id':       biz_id,
+                                        'biz_name':     biz_name,
+                                    }}, ensure_ascii=False)
+                                    for _u2, _ws2 in list(world.connections.items()):
+                                        try: await _ws2.send_str(banner)
+                                        except Exception: pass
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='shop_rob_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'brigadir_take':
+                        # Игрок взял хит-контракт у Бригадира.
+                        # Проверки: жив, рядом с BRIGADIR_POS_RC (≤3),
+                        # за сутки не превышен лимит BRIGADIR_DAILY_LIMIT.
+                        # Само «выдать цель» делает клиент (помечает _hitTarget=true
+                        # у случайного NPC) — серверу важен только факт выдачи
+                        # для подсчёта лимита и потом начисление при kill.
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        else:
+                            poi_r, poi_c = BRIGADIR_POS_RC
+                            dx = float(p.get('x', 0)) - poi_c
+                            dy = float(p.get('y', 0)) - poi_r
+                            # 5² = 25: Бригадир бродит в радиусе ~2.5 от HOME,
+                            # игрок взаимодействует с дистанции до 1.8 — итого
+                            # до ~4.3 тайл от центра. Берём 5 с запасом.
+                            if dx*dx + dy*dy > 25.0:
+                                reply = {'ok': False, 'reason': 'too_far'}
+                            else:
+                                # Лимит: считаем kill_t за последние 24ч
+                                now_ts = int(time.time())
+                                cnt = 0
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        cur = await db.execute(
+                                            "SELECT COUNT(*) FROM brigadir_kills "
+                                            "WHERE uid=? AND t > ?",
+                                            (int(uid), now_ts - 86400))
+                                        row = await cur.fetchone()
+                                        if row: cnt = int(row[0])
+                                except Exception: pass
+                                if cnt >= BRIGADIR_DAILY_LIMIT:
+                                    reply = {'ok': False, 'reason': 'limit',
+                                             'limit': BRIGADIR_DAILY_LIMIT}
+                                else:
+                                    reply = {'ok': True,
+                                             'payout': BRIGADIR_PAYOUT,
+                                             'stealth_mul': BRIGADIR_STEALTH_MUL,
+                                             'left': BRIGADIR_DAILY_LIMIT - cnt}
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event',
+                                 'd': dict(reply, kind='brigadir_take_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'brigadir_kill':
+                        # Игрок убил цель из хит-контракта Бригадира.
+                        # d = {stealth: bool} — если выстрел не видел никто из копов.
+                        # НЕ ПЛАТИМ сразу — кладём награду в pending и ждём пока
+                        # игрок вернётся к Бригадиру и пришлёт brigadir_claim.
+                        # Так Бригадир-флоу = «взял → убил → пришёл назад → деньги».
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        elif p.get('_brigadir_pending'):
+                            reply = {'ok': False, 'reason': 'already_pending'}
+                        else:
+                            stealth = bool(d.get('stealth') if isinstance(d, dict) else False)
+                            reward = int(BRIGADIR_PAYOUT
+                                         * (BRIGADIR_STEALTH_MUL if stealth else 1.0))
+                            p['_brigadir_pending'] = {
+                                'reward': reward,
+                                'stealth': stealth,
+                                't': int(time.time()),
+                            }
+                            reply = {'ok': True, 'reward': reward,
+                                     'stealth': stealth,
+                                     'claim_at_brigadir': True}
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event',
+                                 'd': dict(reply, kind='brigadir_kill_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'brigadir_claim':
+                        # Игрок вернулся к Бригадиру за наградой. Платим cash,
+                        # пишем в brigadir_kills (для лимита 3/24ч), чистим pending.
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        else:
+                            pending = p.get('_brigadir_pending')
+                            if not pending:
+                                reply = {'ok': False, 'reason': 'no_pending'}
+                            else:
+                                poi_r, poi_c = BRIGADIR_POS_RC
+                                dx = float(p.get('x', 0)) - poi_c
+                                dy = float(p.get('y', 0)) - poi_r
+                                # 5² — то же что в brigadir_take (Бригадир бродит)
+                                if dx*dx + dy*dy > 25.0:
+                                    reply = {'ok': False, 'reason': 'too_far'}
+                                else:
+                                    reward = int(pending.get('reward') or BRIGADIR_PAYOUT)
+                                    stealth = bool(pending.get('stealth'))
+                                    now_ts = int(time.time())
+                                    try:
+                                        async with aiosqlite.connect(DB_PATH) as db:
+                                            await db.execute(
+                                                "UPDATE characters SET cash = cash + ? "
+                                                "WHERE telegram_id = ?",
+                                                (reward, int(uid)))
+                                            await db.execute(
+                                                "INSERT INTO brigadir_kills "
+                                                "(uid, t, stealth, reward) VALUES (?,?,?,?)",
+                                                (int(uid), now_ts, 1 if stealth else 0,
+                                                 reward))
+                                            await db.commit()
+                                            # Пересчёт left после записи новой строки
+                                            cur = await db.execute(
+                                                "SELECT COUNT(*) FROM brigadir_kills "
+                                                "WHERE uid=? AND t > ?",
+                                                (int(uid), now_ts - 86400))
+                                            row = await cur.fetchone()
+                                            cnt = int(row[0]) if row else 0
+                                    except Exception:
+                                        cnt = 0
+                                    p['_brigadir_pending'] = None
+                                    reply = {'ok': True, 'reward': reward,
+                                             'stealth': stealth,
+                                             'left': max(0, BRIGADIR_DAILY_LIMIT - cnt)}
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event',
+                                 'd': dict(reply, kind='brigadir_claim_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'citycop_arrest':
+                        # NPC-патрульный (cityCop, чисто клиентский фоновый коп)
+                        # схватил игрока с wanted ≥ 1. Серверу шлётся факт ареста,
+                        # сервер валидирует: жив, wanted ≥ 1, не в тюрьме, не в
+                        # Логове. На срок CITYCOP_JAIL_S = 5 мин (короче чем
+                        # «полный» 60-минутный jail боевых копов — это всё-таки
+                        # лёгкое задержание). Звёзды сбрасываются в 0, и в БД
+                        # тоже (wanted_stars = 0), чтобы повторная сессия не
+                        # подняла их обратно.
+                        CITYCOP_JAIL_S = 5 * 60
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead'):
+                            reply = {'ok': False, 'reason': 'dead'}
+                        elif (p.get('_jail_until') or 0) > time.time():
+                            reply = {'ok': False, 'reason': 'already_jailed'}
+                        elif float(p.get('_wanted') or 0) < 1.0:
+                            reply = {'ok': False, 'reason': 'not_wanted'}
+                        elif world._in_lair_zone(p.get('x', 0), p.get('y', 0)):
+                            reply = {'ok': False, 'reason': 'in_lair'}
+                        else:
+                            now_ts = int(time.time())
+                            p['_jail_until']    = now_ts + CITYCOP_JAIL_S
+                            p['_jail_released'] = False
+                            p['_wanted']        = 0.0
+                            p['_cop_kills']     = 0
+                            # Синхронизируем wanted_stars в БД на 0 (чтобы при
+                            # следующей сессии не «вспомнить» звёзды).
+                            try:
+                                await update_character(int(uid), wanted_stars=0)
+                            except Exception:
+                                pass
+                            reply = {'ok': True, 'jail_s': CITYCOP_JAIL_S}
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event',
+                                 'd': dict(reply, kind='citycop_arrest_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'bank_heist_start':
+                        # Кооп-налёт на банк. Стартует если ≥2 живых игрока
+                        # в радиусе BANK_HEIST_RADIUS от BANK_POS_RC, и
+                        # никто из участников не превысил лимит 1/24ч.
+                        # ГЛОБАЛЬНЫЙ ЛОК: только ОДНА сессия в момент времени.
+                        # Иначе при большом онлайне несколько групп будут
+                        # видеть свои мешки/автобусы в одних и тех же
+                        # координатах, копы и трафик слипнутся в кашу.
+                        p = world.players.get(uid)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        # Проверка глобального лока
+                        active_busy = False
+                        active_remaining = 0
+                        for _hid_busy, _h_busy in _active_bank_heists.items():
+                            if not _h_busy.get('finalized'):
+                                active_busy = True
+                                active_remaining = max(0, int(_h_busy.get('end_at', 0) - time.time()))
+                                break
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        elif active_busy:
+                            reply = {'ok': False, 'reason': 'busy',
+                                     'resume_in_s': active_remaining}
+                        elif p.get('_heist_until', 0) > time.time():
+                            reply = {'ok': False, 'reason': 'in_heist'}
+                        else:
+                            poi_r, poi_c = BANK_POS_RC
+                            # Кандидаты на участие: я + другие живые игроки в радиусе
+                            candidates = []
+                            R2 = BANK_HEIST_RADIUS * BANK_HEIST_RADIUS
+                            for u2, pp in world.players.items():
+                                if pp.get('dead') or pp.get('_mode') == 'pve':
+                                    continue
+                                dx = float(pp.get('x', 0)) - poi_c
+                                dy = float(pp.get('y', 0)) - poi_r
+                                if dx*dx + dy*dy > R2:
+                                    continue
+                                if pp.get('_heist_until', 0) > time.time():
+                                    continue
+                                candidates.append((str(u2), pp))
+                            # Должен быть включён инициатор
+                            if str(uid) not in [c[0] for c in candidates]:
+                                reply = {'ok': False, 'reason': 'too_far'}
+                            elif len(candidates) < 2:
+                                reply = {'ok': False, 'reason': 'no_partner'}
+                            else:
+                                # Проверка лимита 1/24ч на КАЖДОГО
+                                now_ts = int(time.time())
+                                blocked = []
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        for u2, _pp in candidates:
+                                            cur = await db.execute(
+                                                "SELECT COUNT(*) FROM bank_heists "
+                                                "WHERE uid=? AND t > ?",
+                                                (int(u2), now_ts - 86400))
+                                            row = await cur.fetchone()
+                                            if row and int(row[0]) >= BANK_HEIST_DAILY_LIMIT:
+                                                blocked.append(u2)
+                                except Exception: pass
+                                if blocked:
+                                    reply = {'ok': False, 'reason': 'limit',
+                                             'blocked': blocked}
+                                else:
+                                    # Стартуем! Спавним N мешков рандомно
+                                    # в радиусе 1.8 от банка, автобус на
+                                    # HEIST_BUS_SPAWN_RC, dropoff фиксированный.
+                                    global _bank_heist_next_id
+                                    hid = _bank_heist_next_id
+                                    _bank_heist_next_id += 1
+                                    end_t = time.time() + BANK_HEIST_DURATION
+                                    parts = set()
+                                    for u2, pp in candidates:
+                                        pp['_heist_until'] = end_t
+                                        pp['_heist_id'] = hid
+                                        pp['_heist_bag'] = None
+                                        pp['_in_heist_bus'] = 0
+                                        # Сразу не ниже 4★ — приедет SWAT.
+                                        pp['_wanted'] = max(float(pp.get('_wanted') or 0), 4.0)
+                                        pp['_last_shot_t'] = time.time()
+                                        parts.add(str(u2))
+                                    bags = []
+                                    for i in range(HEIST_BAGS_COUNT):
+                                        ang = random.random() * 2 * 3.14159
+                                        r   = random.uniform(0.4, 1.8)
+                                        bx  = poi_c + r * (random.random() - 0.5) * 2
+                                        by  = poi_r + r * (random.random() - 0.5) * 2
+                                        bags.append({
+                                            'id':   f'bag_{hid}_{i}',
+                                            'x':    bx,
+                                            'y':    by,
+                                            'state':'safe',     # safe | carried | loaded | delivered
+                                            'by':   None,       # uid если carried
+                                        })
+                                    # Рандомим точку сдачи из пула — игрок не
+                                    # знает заранее, куда ехать (увидит метку
+                                    # после старта).
+                                    drop_rc = random.choice(HEIST_DROPOFFS)
+                                    # Кассиры — общий серверный список (видны всем
+                                    # участникам одинаково). Если живы к финалу
+                                    # с loot>0 — снитч (+★ участникам).
+                                    cashiers = [
+                                        {'id': f'csh_{hid}_l',
+                                         'x':  BANK_POS_RC[1] - 0.7,
+                                         'y':  BANK_POS_RC[0],
+                                         'dead': False},
+                                        {'id': f'csh_{hid}_r',
+                                         'x':  BANK_POS_RC[1] + 0.7,
+                                         'y':  BANK_POS_RC[0],
+                                         'dead': False},
+                                    ]
+                                    # Охранники банка — 2 стрелка по бокам POI,
+                                    # сразу hostile ко всем участникам. Стреляют
+                                    # пока живы — можно убить (BANK_GUARD_HP).
+                                    guards = [
+                                        {'id': f'gd_{hid}_l',
+                                         'x':  float(BANK_POS_RC[1] - 1.6),
+                                         'y':  float(BANK_POS_RC[0]),
+                                         'ang': 0.0,
+                                         'hp':  BANK_GUARD_HP,
+                                         'alive': True,
+                                         'weapon': 'pistol_heavy',
+                                         '_shot_t': 0.0},
+                                        {'id': f'gd_{hid}_r',
+                                         'x':  float(BANK_POS_RC[1] + 1.6),
+                                         'y':  float(BANK_POS_RC[0]),
+                                         'ang': 0.0,
+                                         'hp':  BANK_GUARD_HP,
+                                         'alive': True,
+                                         'weapon': 'pistol_heavy',
+                                         '_shot_t': 0.0},
+                                    ]
+                                    _active_bank_heists[hid] = {
+                                        'participants':    parts,
+                                        'started_at':      time.time(),
+                                        'end_at':          end_t,
+                                        'finalized':       False,
+                                        'phase':           'looting',
+                                        'bags':            bags,
+                                        'cashiers':        cashiers,
+                                        'guards':          guards,
+                                        'dropoff':         {'x': drop_rc[1], 'y': drop_rc[0]},
+                                        'bus':             {'x': HEIST_BUS_SPAWN_RC[1],
+                                                            'y': HEIST_BUS_SPAWN_RC[0],
+                                                            'bags_inside': 0,
+                                                            'driver_uid':  None,
+                                                            'last_input_t': 0.0,
+                                                            'ang':         0.0,
+                                                            'tires_punctured': False,
+                                                            '_last_move_t':    time.time(),
+                                                            '_last_move_x':    float(HEIST_BUS_SPAWN_RC[1]),
+                                                            '_last_move_y':    float(HEIST_BUS_SPAWN_RC[0])},
+                                        'loot':            0,
+                                        'bags_delivered':  0,
+                                    }
+                                    reply = {'ok': True, 'heist_id': hid,
+                                             'duration': BANK_HEIST_DURATION,
+                                             'participants': list(parts),
+                                             'bags_total':  HEIST_BAGS_COUNT,
+                                             'bag_value':   HEIST_BAG_VALUE,
+                                             'dropoff':     {'x': drop_rc[1],
+                                                             'y': drop_rc[0]},
+                                             'bus':         {'x': HEIST_BUS_SPAWN_RC[1],
+                                                             'y': HEIST_BUS_SPAWN_RC[0]}}
+                                    # Broadcast участникам — они откроют HUD/раскладку
+                                    started_pkt = json.dumps({'t': 'event', 'd': {
+                                        'kind':         'bank_heist_started',
+                                        'heist_id':     hid,
+                                        'duration':     BANK_HEIST_DURATION,
+                                        'participants': list(parts),
+                                        'bags':         bags,
+                                        'bus':          {'x': HEIST_BUS_SPAWN_RC[1],
+                                                         'y': HEIST_BUS_SPAWN_RC[0]},
+                                        'dropoff':      {'x': drop_rc[1],
+                                                         'y': drop_rc[0]},
+                                        'bag_value':    HEIST_BAG_VALUE,
+                                        'cashiers':     list(cashiers),
+                                        'guards':       [{'id': g['id'],
+                                                          'x':  g['x'],
+                                                          'y':  g['y'],
+                                                          'ang': g['ang'],
+                                                          'hp':  g['hp'],
+                                                          'alive': True} for g in guards],
+                                    }}, ensure_ascii=False)
+                                    for u2 in parts:
+                                        ws2 = world.connections.get(u2)
+                                        if ws2:
+                                            try: await ws2.send_str(started_pkt)
+                                            except Exception: pass
+                                    # Глобальный баннер — все онлайн-игроки.
+                                    # duration_s даёт им таймер «занято» на
+                                    # кнопке банка.
+                                    banner_pkt = json.dumps({'t': 'event', 'd': {
+                                        'kind':       'bank_heist_announce',
+                                        'count':      len(parts),
+                                        'duration_s': int(BANK_HEIST_DURATION),
+                                    }}, ensure_ascii=False)
+                                    for _u2, _ws2 in list(world.connections.items()):
+                                        try: await _ws2.send_str(banner_pkt)
+                                        except Exception: pass
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event',
+                                 'd': dict(reply, kind='bank_heist_start_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'heist_pickup_bag':
+                        # Игрок поднял мешок с земли в активном банк-налёте.
+                        # Валидация: жив, состоит в hid, мешок в state='safe'
+                        # или 'dropped', близко (≤2 тайла), игрок не несёт уже.
+                        p = world.players.get(uid)
+                        bag_id = (d or {}).get('bag_id') if isinstance(d, dict) else None
+                        if not p or p.get('dead') or not bag_id:
+                            pass
+                        else:
+                            hid = int(p.get('_heist_id') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized') and str(uid) in (h.get('participants') or set()):
+                                if not p.get('_heist_bag'):
+                                    bag = next((b for b in h['bags'] if b['id'] == bag_id), None)
+                                    if bag and bag.get('state') in ('safe', 'dropped'):
+                                        dx = float(p.get('x', 0)) - float(bag['x'])
+                                        dy = float(p.get('y', 0)) - float(bag['y'])
+                                        if dx*dx + dy*dy < 4.0:   # радиус 2 тайла
+                                            bag['state'] = 'carried'
+                                            bag['by']    = str(uid)
+                                            p['_heist_bag'] = bag_id
+                    elif t == 'heist_load_bag':
+                        # Игрок с мешком подошёл к автобусу и кидает.
+                        p = world.players.get(uid)
+                        if p and not p.get('dead') and p.get('_heist_bag'):
+                            hid = int(p.get('_heist_id') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized'):
+                                bag_id = p.get('_heist_bag')
+                                bag = next((b for b in h['bags'] if b['id'] == bag_id), None)
+                                bus = h.get('bus') or {}
+                                if bag and bag.get('state') == 'carried':
+                                    dx = float(p.get('x', 0)) - float(bus.get('x', 0))
+                                    dy = float(p.get('y', 0)) - float(bus.get('y', 0))
+                                    if dx*dx + dy*dy < 9.0:   # 3 тайла
+                                        bag['state'] = 'loaded'
+                                        bag['by']    = None
+                                        bus['bags_inside'] = int(bus.get('bags_inside') or 0) + 1
+                                        p['_heist_bag'] = None
+                    elif t == 'heist_enter_bus':
+                        # Игрок сел в автобус → если он нёс мешок, тот
+                        # автоматически закидывается. Если в автобусе после
+                        # этого ≥1 мешок и фаза 'looting' — phase='driving'.
+                        p = world.players.get(uid)
+                        if p and not p.get('dead'):
+                            hid = int(p.get('_heist_id') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized'):
+                                bus = h.get('bus') or {}
+                                dx = float(p.get('x', 0)) - float(bus.get('x', 0))
+                                dy = float(p.get('y', 0)) - float(bus.get('y', 0))
+                                if dx*dx + dy*dy < 9.0:
+                                    # Авто-загрузка мешка на входе
+                                    bag_id = p.get('_heist_bag')
+                                    if bag_id:
+                                        bag = next((b for b in h['bags'] if b['id'] == bag_id), None)
+                                        if bag and bag.get('state') == 'carried':
+                                            bag['state'] = 'loaded'
+                                            bag['by']    = None
+                                            bus['bags_inside'] = int(bus.get('bags_inside') or 0) + 1
+                                        p['_heist_bag'] = None
+                                    p['_in_heist_bus'] = hid
+                                    if h.get('phase') == 'looting' and int(bus.get('bags_inside') or 0) > 0:
+                                        h['phase'] = 'driving'
+                                    # Первый сел → он водитель. Иначе — пассажир.
+                                    if not bus.get('driver_uid'):
+                                        bus['driver_uid']   = str(uid)
+                                        bus['last_input_t'] = time.time()
+                    elif t == 'heist_exit_bus':
+                        p = world.players.get(uid)
+                        if p:
+                            # Если выходил водитель — bus переходит на автопилот
+                            # (driver_uid=None). Любой следующий севший
+                            # автоматически становится новым водителем.
+                            hid_p = int(p.get('_in_heist_bus') or 0)
+                            h_p   = _active_bank_heists.get(hid_p)
+                            if h_p and isinstance(h_p.get('bus'), dict) \
+                                   and str(h_p['bus'].get('driver_uid') or '') == str(uid):
+                                h_p['bus']['driver_uid'] = None
+                            p['_in_heist_bus'] = 0
+                    elif t == 'heist_guard_hit':
+                        # Игрок стреляет в охранника банка. Валидация:
+                        # дистанция ≤ BANK_GUARD_RANGE+4, LOS. Урон —
+                        # из таблицы оружия (как у Майкла-охраны).
+                        p = world.players.get(uid)
+                        gid = (d or {}).get('guard_id') if isinstance(d, dict) else None
+                        weapon = ''
+                        if isinstance(d, dict):
+                            weapon = str(d.get('weapon') or '')
+                        if p and not p.get('dead') and gid:
+                            hid = int(p.get('_heist_id') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized') \
+                                   and str(uid) in (h.get('participants') or set()):
+                                gs = h.get('guards') or []
+                                g  = next((gg for gg in gs
+                                           if gg.get('id') == gid
+                                           and gg.get('alive')), None)
+                                if g:
+                                    dx = float(p.get('x', 0)) - float(g['x'])
+                                    dy = float(p.get('y', 0)) - float(g['y'])
+                                    if dx*dx + dy*dy <= (BANK_GUARD_RANGE + 4) ** 2 \
+                                           and _world_los(p['x'], p['y'],
+                                                          g['x'], g['y']):
+                                        dmg = max(5, min(150,
+                                            int(world.WEAPON_DMG.get(weapon, 25))))
+                                        g['hp'] = int(g['hp']) - dmg
+                                        if g['hp'] <= 0:
+                                            g['hp']    = 0
+                                            g['alive'] = False
+                    elif t == 'heist_cashier_hit':
+                        # Игрок стреляет в NPC-кассира банка. Сервер валидирует
+                        # дистанцию и помечает мёртвым. Видно всем участникам
+                        # в следующем snapshot. Анти-чит: ≤6 тайл.
+                        p = world.players.get(uid)
+                        cid = (d or {}).get('cashier_id') if isinstance(d, dict) else None
+                        if p and not p.get('dead') and cid:
+                            hid = int(p.get('_heist_id') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized') \
+                                   and str(uid) in (h.get('participants') or set()):
+                                cs = h.get('cashiers') or []
+                                c  = next((cc for cc in cs if cc.get('id') == cid), None)
+                                if c and not c.get('dead'):
+                                    dx = float(p.get('x', 0)) - float(c['x'])
+                                    dy = float(p.get('y', 0)) - float(c['y'])
+                                    if dx*dx + dy*dy < 36.0:   # ≤6 тайл
+                                        c['dead'] = True
+                    elif t == 'heist_bus_drive':
+                        # Водитель шлёт текущую позицию автобуса (~15 Гц).
+                        # Сервер клампит шаг, чтобы не телепортироваться.
+                        p = world.players.get(uid)
+                        if p and not p.get('dead') and isinstance(d, dict):
+                            hid = int(p.get('_in_heist_bus') or 0)
+                            h = _active_bank_heists.get(hid)
+                            if h and not h.get('finalized') and h.get('phase') == 'driving':
+                                bus = h.get('bus') or {}
+                                if str(bus.get('driver_uid') or '') == str(uid):
+                                    try:
+                                        nx = float(d.get('x'))
+                                        ny = float(d.get('y'))
+                                        nang = float(d.get('ang') or 0.0)
+                                    except Exception:
+                                        nx = ny = nang = None
+                                    if nx is not None:
+                                        # Клампим: между присылами ≤200мс,
+                                        # макс. дистанция = HEIST_BUS_SPEED*2 = 12 тайл
+                                        # (запас на лаги). Внутри карты.
+                                        nx = max(1.0, min(98.0, nx))
+                                        ny = max(1.0, min(98.0, ny))
+                                        ox = float(bus.get('x') or 0)
+                                        oy = float(bus.get('y') or 0)
+                                        ddx = nx - ox; ddy = ny - oy
+                                        d2 = (ddx*ddx + ddy*ddy) ** 0.5
+                                        MAX_STEP = HEIST_BUS_SPEED * 2.0
+                                        if d2 > MAX_STEP:
+                                            k = MAX_STEP / d2
+                                            nx = ox + ddx * k
+                                            ny = oy + ddy * k
+                                        bus['x'] = nx
+                                        bus['y'] = ny
+                                        bus['ang'] = nang
+                                        bus['last_input_t'] = time.time()
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass
@@ -17779,6 +19049,14 @@ async def _coop_http_app():
                                                           kind='gta_status')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'world_heal':
+                        rep = world.world_heal(uid)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(rep,
+                                                          kind='world_heal_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
                     elif t == 'box_take':
                         reply = world.box_take(uid)
                         try:
@@ -17800,12 +19078,45 @@ async def _coop_http_app():
                                 {'t': 'event', 'd': dict(reply, kind='box_deliver_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'box_abandon':
+                        reason = (d.get('reason') if isinstance(d, dict) else '') or ''
+                        reply = world.box_abandon(uid, reason)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='box_abandon_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
                     elif t == 'box_status':
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(world.box_status(uid),
                                                           kind='box_status')},
                                 ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'set_respawn_point':
+                        # Игрок выбирает где возрождаться. d.point: 'hospital' | biz_id.
+                        # Ответ: ok + текущая точка ИЛИ ok=False + reason
+                        # (bad_biz / not_owned / no_player).
+                        rp_in = str((d.get('point') if isinstance(d, dict) else '') or 'hospital')[:16]
+                        reply = world.set_respawn_point(uid, rp_in)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='set_respawn_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'respawn_status':
+                        # Клиент при открытии UI выбора — узнаёт текущую точку
+                        # + список своих бизнесов (для меню вариантов).
+                        p = world.players.get(uid) or {}
+                        try:
+                            await ws.send_str(json.dumps({
+                                't': 'event',
+                                'd': {
+                                    'kind': 'respawn_status',
+                                    'point': p.get('_respawn_point') or 'hospital',
+                                    'owned': sorted(list(p.get('_owned_biz') or [])),
+                                }
+                            }, ensure_ascii=False))
                         except Exception: pass
                 elif msg.type == web.WSMsgType.ERROR:
                     break
