@@ -6889,6 +6889,9 @@ function _capArr(arr, cap) { if (arr.length >= cap) arr.shift(); }
 const skidMarks = [];
 const SKID_MAX_LIFE = 8000;
 let _lastSkidAt = 0;
+// Выхлопные частицы — дым из глушителя. {r,c,vr,vc,rad,life,max,color}
+const exhaustPuffs = [];
+let _lastExhaustAt = 0;
 // Анимации ареста — локальный спавн автозака, который приезжает к жертве,
 // загружает её и уезжает в участок. ~4 секунды. См. spawnArrestAnim().
 const arrestAnims = [];   // {target_uid, startMs, fromR/C, atR/C, jailR/C, dir}
@@ -6933,6 +6936,60 @@ function spawnSmokePuff(r, c, angle) {
     });
   }
 }
+// spawnExhaust — дым из глушителя машины игрока.
+// throttle: 0=холостые, 0..1=разгон. junker=чёрный дым.
+function spawnExhaust(qc, throttle, isJunker, isSport) {
+  const now = performance.now();
+  // Интервал: холостые=160мс, разгон=55мс, ручник/пробуксовка=25мс
+  const interval = _handbrakeActive ? 25 : (throttle > 0.7 ? 55 : throttle > 0.05 ? 90 : 160);
+  if (now - _lastExhaustAt < interval) return;
+  _lastExhaustAt = now;
+
+  const m = QUEST_CAR_MODELS[qc.model];
+  const L = (m && m.L) || 1.6;
+  // Позиция глушителя — задняя часть машины, чуть вбок
+  const backAng = qc.ang + Math.PI;
+  const sideOff = (m && m.W) ? m.W * 0.25 : 0.2;
+  const exhaustR = qc.y + Math.sin(backAng) * (L * 0.52) + Math.cos(backAng) * sideOff;
+  const exhaustC = qc.x + Math.cos(backAng) * (L * 0.52) - Math.sin(backAng) * sideOff;
+
+  // Цвет: холостые=светло-серый, разгон=тёмно-серый, junker=чёрный
+  let color, count, radBase, speedMul;
+  if (isJunker) {
+    color = `rgba(20,20,20,`; count = 3; radBase = 5; speedMul = 1.4;
+  } else if (throttle > 0.7) {
+    color = `rgba(80,80,80,`; count = 2; radBase = 4; speedMul = 1.1;
+  } else if (throttle > 0.05) {
+    color = `rgba(120,120,120,`; count = 1; radBase = 3; speedMul = 0.8;
+  } else {
+    color = `rgba(160,160,160,`; count = 1; radBase = 2.5; speedMul = 0.4;
+  }
+
+  for (let i = 0; i < count; i++) {
+    const spread = (Math.random() - 0.5) * 0.4;
+    const a = backAng + spread;
+    const sp = (0.5 + Math.random() * 0.5) * speedMul;
+    exhaustPuffs.push({
+      r: exhaustR, c: exhaustC,
+      vr: Math.sin(a) * sp * 0.3 - 0.15,
+      vc: Math.cos(a) * sp * 0.3,
+      rad: radBase + Math.random() * 2,
+      life: 500 + Math.random() * 300, max: 800,
+      color,
+    });
+  }
+  // Спорткар при высоком газе — маленький огонёк из трубы
+  if (isSport && throttle > 0.8 && Math.random() < 0.3) {
+    exhaustPuffs.push({
+      r: exhaustR, c: exhaustC,
+      vr: Math.sin(backAng) * 0.3, vc: Math.cos(backAng) * 0.3,
+      rad: 3, life: 120, max: 120,
+      color: 'rgba(255,140,20,', isFire: true,
+    });
+  }
+  if (exhaustPuffs.length > 200) exhaustPuffs.splice(0, 40);
+}
+
 function spawnShockwave(r, c, opts) {
   opts = opts || {};
   _capArr(shockwaves, _MAX_SHOCKW);
@@ -12617,6 +12674,59 @@ function update(dt) {
       // Флаг для рендера стоп-сигналов: жмём тормоз или просто очень медленно
       // едем (заходим на парковку).
       qc.braking = activeBrake || (Math.hypot(curVx, curVy) < 0.6 && throttle < 0.05);
+
+      // ── Дым выхлопа ────────────────────────────────────────────────
+      const _qcMdl = QUEST_CAR_MODELS[qc.model];
+      const _isJunker = !!(qc._junker);
+      const _isSport  = !!(_qcMdl && (_qcMdl.sport || _qcMdl.muscle || _qcMdl.fast));
+      spawnExhaust(qc, throttle, _isJunker, _isSport);
+
+      // ── Дым из-под колёс при пробуксовке (резкий старт или ручник) ─
+      const _spinSmoke = (_handbrakeActive && curSpeed > 1.5) ||
+                         (throttle > 0.85 && curSpeed < 2.5 && !inReverse);
+      if (_spinSmoke) {
+        const nowMs = performance.now();
+        if (nowMs - _lastSkidAt > 18) {
+          _lastSkidAt = nowMs;
+          const mm = _qcMdl || { L: 1.7, W: 0.85 };
+          const wOff  = (mm.W || 0.85) * 0.40;
+          const bOff  = (mm.L || 1.6) * 0.38;
+          const bAng  = qc.ang + Math.PI;
+          const perpA = qc.ang + Math.PI / 2;
+          const px = Math.cos(perpA), py = Math.sin(perpA);
+          const bx  = qc.x + Math.cos(bAng) * bOff;
+          const by  = qc.y + Math.sin(bAng) * bOff;
+          // Два следа + облачко серого дыма
+          skidMarks.push({ r: by + py * wOff, c: bx + px * wOff, ang: qc.ang, life: SKID_MAX_LIFE, max: SKID_MAX_LIFE });
+          skidMarks.push({ r: by - py * wOff, c: bx - px * wOff, ang: qc.ang, life: SKID_MAX_LIFE, max: SKID_MAX_LIFE });
+          exhaustPuffs.push({
+            r: by + (Math.random()-0.5)*0.3, c: bx + (Math.random()-0.5)*0.3,
+            vr: -0.3 - Math.random()*0.2, vc: (Math.random()-0.5)*0.2,
+            rad: 5 + Math.random()*4, life: 400, max: 400,
+            color: 'rgba(200,200,200,',
+          });
+          if (skidMarks.length > 500) skidMarks.splice(0, 80);
+        }
+      }
+
+      // ── Скидмарки при ручном тормозе (более частые) ───────────────
+      if (_handbrakeActive && curSpeed > 3) {
+        const nowMs2 = performance.now();
+        if (nowMs2 - _lastSkidAt > 30) {
+          _lastSkidAt = nowMs2;
+          const mm2   = _qcMdl || { L: 1.7, W: 0.85 };
+          const wOff2 = (mm2.W || 0.85) * 0.38;
+          const bOff2 = (mm2.L || 1.6) * 0.36;
+          const bAng2 = qc.ang + Math.PI;
+          const pA2   = qc.ang + Math.PI / 2;
+          const px2   = Math.cos(pA2), py2 = Math.sin(pA2);
+          const bx2   = qc.x + Math.cos(bAng2) * bOff2;
+          const by2   = qc.y + Math.sin(bAng2) * bOff2;
+          skidMarks.push({ r: by2 + py2*wOff2, c: bx2 + px2*wOff2, ang: qc.ang + (Math.random()-0.5)*0.25, life: SKID_MAX_LIFE, max: SKID_MAX_LIFE });
+          skidMarks.push({ r: by2 - py2*wOff2, c: bx2 - px2*wOff2, ang: qc.ang + (Math.random()-0.5)*0.25, life: SKID_MAX_LIFE, max: SKID_MAX_LIFE });
+        }
+      }
+
       // Кламп скорости
       curSpeed = Math.hypot(curVx, curVy);
       if (curSpeed > CAR_MAX_SPEED) {
@@ -19472,6 +19582,50 @@ function drawQuestCar(qc) {
     ctx.stroke();
     ctx.restore();
   }
+  // ── Фары ночью — конус света перед машиной ───────────────────────
+  {
+    const nightA = (typeof getNightAlpha === 'function') ? getNightAlpha() : 0;
+    if (nightA > 0.05 && !qc.wrecked) {
+      const m2 = QUEST_CAR_MODELS[qc.model];
+      const L2 = (m2 && m2.L) || 1.6;
+      // Позиция передней части машины
+      const fR = qc.y + Math.sin(qc.ang) * L2 * 0.55;
+      const fC = qc.x + Math.cos(qc.ang) * L2 * 0.55;
+      const fp = w2s(fR + 0.5, fC + 0.5);
+      // Конус в направлении движения
+      const fwdLen = 90 * viewZoom;
+      const coneW  = 38 * viewZoom;
+      // Угол машины в экранных координатах (изометрия)
+      const scrAng = Math.atan2(
+        (Math.sin(qc.ang) + Math.cos(qc.ang)) * ISO_Y,
+         Math.cos(qc.ang) - Math.sin(qc.ang)
+      );
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.55, nightA * 0.8);
+      // Старые машины — жёлтый, новые — холодный белый
+      const isOld = !!(m2 && (m2.sedan || m2.pickup));
+      const clr1  = isOld ? 'rgba(255,230,140,0.6)' : 'rgba(220,240,255,0.6)';
+      const clr2  = 'rgba(0,0,0,0)';
+      const grd   = ctx.createConicalGradient
+        ? null  // fallback — radial
+        : null;
+      // Простой треугольный конус через два градиента
+      ctx.translate(fp.x, fp.y);
+      ctx.rotate(scrAng - Math.PI / 2);
+      const coneGrd = ctx.createLinearGradient(0, 0, 0, -fwdLen);
+      coneGrd.addColorStop(0, clr1);
+      coneGrd.addColorStop(1, clr2);
+      ctx.fillStyle = coneGrd;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-coneW, -fwdLen);
+      ctx.lineTo( coneW, -fwdLen);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   // ── Дым/огонь на низком HP ──
   //   < 50%  — лёгкий дымок из-под капота
   //   < 25%  — густой чёрный дым + первые огоньки
@@ -22525,6 +22679,7 @@ function render() {
   drawBloodSplats();
   // Тормозные следы (skid marks) — тоже под персонажами и машинами
   drawSkidMarks();
+  drawExhaustPuffs();
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
   // Коробка над игроком/машиной если несу груз Майкла
@@ -23591,6 +23746,40 @@ function drawSkidMarks() {
     ctx.restore();
   }
   ctx.globalAlpha = 1;
+}
+
+// ── Дым выхлопа и пробуксовки ────────────────────────────────────────
+function drawExhaustPuffs() {
+  const now = performance.now();
+  ctx.save();
+  for (let i = exhaustPuffs.length - 1; i >= 0; i--) {
+    const p = exhaustPuffs[i];
+    const dtMs = now - (p._lastT || (p._lastT = now));
+    p._lastT = now;
+    p.life -= dtMs;
+    if (p.life <= 0) { exhaustPuffs.splice(i, 1); continue; }
+    // Позиция движется вместе с вектором скорости
+    p.r += p.vr * dtMs * 0.001;
+    p.c += p.vc * dtMs * 0.001;
+    // Растём в диаметре и затухаем
+    p.rad = Math.min(p.rad * 1.01, 14);
+    const a = Math.max(0, (p.life / p.max) * (p.isFire ? 0.9 : 0.55));
+    const pos = w2s(p.r + 0.5, p.c + 0.5);
+    ctx.globalAlpha = a;
+    ctx.fillStyle   = p.color + a.toFixed(2) + ')';
+    if (p.isFire) {
+      ctx.shadowColor = '#ff8020';
+      ctx.shadowBlur  = 8;
+    } else {
+      ctx.shadowBlur  = 0;
+    }
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, p.rad * viewZoom, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur  = 0;
+  ctx.restore();
 }
 
 // ── Импакт-частицы (искры/кровь при попадании) ─────────────────────
