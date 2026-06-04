@@ -3416,9 +3416,9 @@ function _pickArchetype() {
 // Целевое кол-во NPC зависит от времени суток
 function _targetNpcCount() {
   const h = getGameHour();
-  if (h >= 23 || h < 5) return 18;
-  if (h >= 22 || h < 6) return 28;
-  return TARGET_NPC_COUNT;
+  if (h >= 23 || h < 5) return 35;   // глубокая ночь
+  if (h >= 22 || h < 6) return 45;   // поздний вечер / раннее утро
+  return TARGET_NPC_COUNT;            // день = 60
 }
 
 let _nextBotChatterAt = 0;
@@ -5389,10 +5389,7 @@ function spawnGangConvoy() {
 
 function initCars() {
   CARS.length = 0;
-  // Город «живой» — 20 машин в трафике. 24 давало слишком плотные пробки
-  // и частые stuck-респауны (тачки телепортировались на глазах игрока).
-  // Спорткары, джипы, скорая и пожарка (ambient) разнообразят трафик.
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 32; i++) {
     const c = spawnCar(i);
     if (c) CARS.push(c);
   }
@@ -5956,7 +5953,8 @@ function updateCars(dt) {
       const distP = Math.hypot(car.r - player.r, car.c - player.c);
       let doRespawn = false;
       if (car._blockedByJail && car._stuckT > 3) doRespawn = true;
-      else if (car._stuckT > 14) doRespawn = true;
+      else if (car._stuckT > 14 && distP > 16) doRespawn = true;   // не пропадать рядом с игроком
+      else if (car._stuckT > 28) doRespawn = true;                  // крайний случай — очень долго
       else if (car._stuckT > 6 && distP > 22) doRespawn = true;
       if (doRespawn) {
         const ni = CARS.indexOf(car);
@@ -5970,11 +5968,16 @@ function updateCars(dt) {
       const fresh = spawnCar(ni, { awayFromPlayer: true });
       if (fresh) Object.assign(car, fresh);
     }
-    // Машина выехала с асфальта (на пляж/в дом/в траву) — переспаун
-    // (далеко от игрока).
+    // Машина выехала с асфальта — переспаун, но только если не рядом с игроком
     const cr = Math.floor(car.r), cc = Math.floor(car.c);
     if (cr >= 0 && cr < MAP_ROWS && cc >= 0 && cc < MAP_COLS &&
         MAP[cr][cc] !== 0) {
+      const distP2 = Math.hypot(car.r - player.r, car.c - player.c);
+      if (distP2 < 14) {
+        // Рядом с игроком — не исчезаем, просто притормозим
+        car.braking = true;
+        continue;
+      }
       const ni = CARS.indexOf(car);
       const fresh = spawnCar(ni, { awayFromPlayer: true });
       if (fresh) Object.assign(car, fresh);
