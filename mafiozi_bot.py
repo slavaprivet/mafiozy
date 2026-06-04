@@ -18194,6 +18194,21 @@ async def _coop_http_app():
                                     for u2, ws2 in list(world.connections.items()):
                                         try: await ws2.send_str(banner)
                                         except Exception: pass
+                    elif t == 'fuel_buy':
+                        # Заправка авто на АЗС: списываем $5. Клиент уже
+                        # оптимистично обновил HUD, сервер делает реальное списание.
+                        cost = 5
+                        try:
+                            async with aiosqlite.connect(DB_PATH) as _db:
+                                # Атомарный UPDATE: cash уменьшается только если
+                                # хватает денег (WHERE cash >= cost).
+                                await _db.execute(
+                                    "UPDATE characters SET cash = cash - ? "
+                                    "WHERE telegram_id = ? AND cash >= ?",
+                                    (cost, int(uid), cost))
+                                await _db.commit()
+                        except Exception:
+                            pass
                     elif t == 'civilian_carjack':
                         # Игрок угнал гражданскую тачку. Создаём серверный
                         # quest_car-civilian (виден всем игрокам). Бамп wanted

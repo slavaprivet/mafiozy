@@ -3770,7 +3770,10 @@ function updateCityCops(dt) {
     // быстрее обычного. На дистанции захвата шлём серверу citycop_arrest.
     const dpr = player.r - cop.y, dpc = player.c - cop.x;
     const distToPlayer = Math.hypot(dpr, dpc);
-    if (playerWanted && distToPlayer <= CITYCOP_PURSUE_R) {
+    // П6: скрытие в потоке — радиус обнаружения сокращается на 40%
+    const _effectivePursueR = (_trafficHideActive && myDrivingCarId)
+      ? CITYCOP_PURSUE_R * 0.6 : CITYCOP_PURSUE_R;
+    if (playerWanted && distToPlayer <= _effectivePursueR) {
       cop._pursuing = true;
       // Игрок в машине — бежим к точке за машиной, но не лезем под колёса.
       // Если игрок прямо тут и НЕ в машине — пробуем арестовать.
@@ -5287,8 +5290,8 @@ function spawnCar(idx, opts) {
       dirDx, dirDy,
       model,
       braking: false,
-      // Жёлтые мигалки для такси/спорткара
       flash: 0,
+      _fuel: 55 + Math.random() * 45,   // 55–100% топлива при спауне
     };
   }
   return null;
@@ -5389,9 +5392,10 @@ function spawnGangConvoy() {
 
 function initCars() {
   CARS.length = 0;
-  for (let i = 0; i < 32; i++) {
+  const initTarget = _getTrafficTarget();
+  for (let i = 0; i < initTarget; i++) {
     const c = spawnCar(i);
-    if (c) CARS.push(c);
+    if (c) { _assignCarGoal(c); CARS.push(c); }
   }
   // Парковочные тачки — 10 штук у тротуаров рядом со зданиями. Угоняются
   // только через мини-игру взлома (это «закрытые на ключ» машины).
@@ -5887,46 +5891,221 @@ function updateGangAggression(dt) {
   _gangFireNextAt = now + 1400 + Math.random() * 600;
 }
 
-function updateCars(dt) {
-  // Раз в 60-90 сек выпускаем кортеж по городу
-  if (performance.now() >= _convoyNextAt) {
-    if (spawnGangConvoy()) {
-      _convoyNextAt = performance.now() + 60000 + Math.random() * 30000;
+// ══════════════════════════════════════════════════════════════════════════════
+// УМНЫЙ ТРАФИК — П1–П8
+// ══════════════════════════════════════════════════════════════════════════════
+
+// П1 ── Суточный цикл плотности ──────────────────────────────────────────────
+const _TRAFFIC_DENSITY = [
+  //  0   1   2   3   4   5   6   7   8   9  10  11
+      9,  7,  6,  6,  6,  8, 14, 32, 49, 46, 28, 24,
+  // 12  13  14  15  16  17  18  19  20  21  22  23
+     22, 22, 24, 28, 38, 49, 45, 28, 22, 18, 14, 11,
+];
+function _getTrafficTarget() {
+  try { return _TRAFFIC_DENSITY[getGameHour()]; } catch(e) { return _TRAFFIC_DENSITY[12]; }
+}
+
+// П2 ── Маршрутная сеть ───────────────────────────────────────────────────────
+function _assignCarGoal(car) {
+  const h = getGameHour();
+  let pool;
+  if      (h >= 7  && h <= 9)  pool = ['work','work','work','shop','taxi_run'];
+  else if (h >= 10 && h <= 15) pool = ['shop','shop','cafe','work','route'];
+  else if (h >= 16 && h <= 19) pool = ['home','home','home','shop','taxi_run'];
+  else if (h >= 20 && h <= 22) pool = ['bar','bar','home','cafe','route'];
+  else                         pool = ['home','patrol','bar','route','route'];
+  car._goal = pool[Math.floor(Math.random() * pool.length)];
+}
+
+// П3 ── Уровень агрессии ──────────────────────────────────────────────────────
+// 0=пенсионер, 1=обычный, 2=таксист/спортсмен, 3=дорожный хам
+function _carAggrLevel(car) {
+  if (car._aggrLevel !== undefined) return car._aggrLevel;
+  let lvl;
+  if (car.model && (car.model.paddyvan || car.model.cruiser)) lvl = 1;
+  else if (car.model && car.model.taxi)   lvl = 2;
+  else if (car.model && (car.model.sport || car.model.muscle || car.model.fast)) lvl = 2;
+  else if (car.model && car.model.bus)    lvl = 0;
+  else {
+    const rr = Math.random();
+    if      (rr < 0.12) lvl = 0;
+    else if (rr < 0.85) lvl = 1;
+    else if (rr < 0.97) lvl = 2;
+    else                lvl = 3;
+  }
+  car._aggrLevel = lvl;
+  return lvl;
+}
+
+const _HONK_TEXTS = ['БИБИП!', 'ДОРОГУ!', 'ЭЙ!', 'СИГНАЛ!', '📯'];
+function _carHonkTick(car, dt) {
+  if (!car._stuckT || car.parked || car._wrecked) return;
+  const now = performance.now();
+  const lvl = _carAggrLevel(car);
+  const thresh = [999, 7, 3, 1.5][lvl] ?? 7;
+  if (car._stuckT >= thresh && !car._hornUntil) {
+    car._hornText  = _HONK_TEXTS[Math.floor(Math.random() * _HONK_TEXTS.length)];
+    car._hornUntil = now + 1600 + Math.random() * 600;
+  }
+  if (car._hornUntil && now > car._hornUntil) {
+    if (lvl >= 2 && car._stuckT > thresh) {
+      // Агрессивные гудят повторно
+      car._hornText  = _HONK_TEXTS[Math.floor(Math.random() * _HONK_TEXTS.length)];
+      car._hornUntil = now + 2000 + Math.random() * 1500;
     } else {
-      _convoyNextAt = performance.now() + 5000;   // дороги заняты, попробуем позже
+      car._hornUntil = 0;
+      car._hornText  = undefined;
+    }
+  }
+}
+
+// П7 ── Ломучие машины (junker) ───────────────────────────────────────────────
+const _JUNKER_COLORS = ['#6b4c2a','#5a3d1c','#7a5a2a','#4a3510','#6a4a1a'];
+function _maybeJunker(car) {
+  if (car._junkerChecked) return;
+  car._junkerChecked = true;
+  if (car.gang || car.parked) return;
+  if (car.model && (car.model.paddyvan || car.model.cruiser ||
+                    car.model.taxi || car.model.sport || car.model.ambulance ||
+                    car.model.firetruck || car.model.swat_truck)) return;
+  if (Math.random() < 0.08) {
+    car._junker = true;
+    car._junkerColor = _JUNKER_COLORS[Math.floor(Math.random() * _JUNKER_COLORS.length)];
+  }
+}
+
+// П6 ── Скрытие в потоке ──────────────────────────────────────────────────────
+let _trafficHideActive = false;
+function _updateTrafficHide() {
+  if (typeof myWanted !== 'number' || myWanted < 1 || myDead || myJailIn > 0) {
+    _trafficHideActive = false;
+    return;
+  }
+  let near = 0;
+  for (const c of CARS) {
+    if (c.parked || c._wrecked) continue;
+    if (Math.hypot(c.r - player.r, c.c - player.c) < 6) near++;
+  }
+  _trafficHideActive = near >= 3;
+}
+
+// П1 ── Поддержание плотности трафика ─────────────────────────────────────────
+let _lastDensityCheckAt = 0;
+function _maintainTrafficDensity(now) {
+  if (now - _lastDensityCheckAt < 4000) return;
+  _lastDensityCheckAt = now;
+  const target = _getTrafficTarget();
+  const civCars = CARS.filter(c =>
+    !c.parked && !c.gang && !c._policeEscort && !c._policeChase &&
+    !(c.model && (c.model.paddyvan || c.model.cruiser ||
+                  c.model.ambulance || c.model.firetruck || c.model.swat_truck))
+  );
+  const diff = target - civCars.length;
+  if (diff > 0) {
+    const toAdd = Math.min(diff, 3);
+    for (let i = 0; i < toAdd; i++) {
+      const car = spawnCar(CARS.length, { awayFromPlayer: true });
+      if (car) { _assignCarGoal(car); CARS.push(car); }
+    }
+  } else if (diff < -4) {
+    let removed = 0;
+    const toRemove = Math.min(-diff - 4, 2);
+    for (let i = CARS.length - 1; i >= 0 && removed < toRemove; i--) {
+      const c = CARS[i];
+      if (c.parked || c.gang || c._policeEscort || c._policeChase) continue;
+      if (c.model && (c.model.paddyvan || c.model.cruiser ||
+                      c.model.ambulance || c.model.firetruck)) continue;
+      if (Math.hypot(c.r - player.r, c.c - player.c) > 25) {
+        CARS.splice(i, 1); removed++;
+      }
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ЗАПРАВОЧНЫЕ СТАНЦИИ — топливо для машин
+// ══════════════════════════════════════════════════════════════════════════════
+
+// 4 АЗС расставлены по городу на тротуарных тайлах рядом с дорогами.
+// r%10 == 3 → первый ряд зданий за дорогой (не сама дорога).
+const GAS_STATIONS = [
+  { r: 13, c: 13, name: 'АЗС Север-Запад' },
+  { r: 13, c: 63, name: 'АЗС Север-Восток' },
+  { r: 53, c: 33, name: 'АЗС Центр'        },
+  { r: 73, c: 63, name: 'АЗС Юг'           },
+];
+const GAS_INTERACT_R = 3.5;   // тайлов — радиус взаимодействия с АЗС
+
+// Топливо игрока в текущей угнанной/своей машине. null = не в машине.
+// Значение 0–100 (%). Устанавливается при посадке из car._fuel.
+let _myCarFuelPct = null;
+let _fuelWarnShown = false;
+const _FUEL_DRAIN_RATE = 0.12;  // % в секунду во время движения
+
+function _nearestGasStation(r, c) {
+  let best = null, bestD = Infinity;
+  for (const gs of GAS_STATIONS) {
+    const d = Math.hypot(gs.r - r, gs.c - c);
+    if (d < bestD) { bestD = d; best = gs; }
+  }
+  return { station: best, dist: bestD };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function updateCars(dt) {
+  const now = performance.now();
+  _maintainTrafficDensity(now);
+  _updateTrafficHide();
+  // Раз в 60-90 сек выпускаем кортеж по городу
+  if (now >= _convoyNextAt) {
+    if (spawnGangConvoy()) {
+      _convoyNextAt = now + 60000 + Math.random() * 30000;
+    } else {
+      _convoyNextAt = now + 5000;
     }
   }
   for (let _ci = CARS.length - 1; _ci >= 0; _ci--) {
     const car = CARS[_ci];
-    // Парковочные тачки — статичные, не двигаются, не уезжают, не
-    // респаунятся за границей карты. Только рисуются + угоняются по lockpick.
+    // П8 LOD: машины дальше 32 тайлов — двигаем позицию, но пропускаем
+    // физику застревания/столкновений. Экономит ~30% CPU на большой карте.
+    const _lodDist = Math.hypot(car.r - player.r, car.c - player.c);
+    if (_lodDist > 32 && !car.parked && !car._wrecked && !car.gang) {
+      if (!car.braking) {
+        car.r += car.vr * dt;
+        car.c += car.vc * dt;
+      }
+      // Если уехал совсем за карту — лёгкий респаун
+      if (car.r < 1 || car.r > MAP_ROWS - 2 || car.c < 1 || car.c > MAP_COLS - 2) {
+        const ni = CARS.indexOf(car);
+        const fresh = spawnCar(ni, { awayFromPlayer: true });
+        if (fresh) Object.assign(car, fresh);
+      }
+      continue;
+    }
+    // Парковочные тачки — статичные.
     if (car.parked) {
       car.braking = false;
-      // Исключение: «брошенная горящая» машина из случайного события —
-      // её надо убрать с карты по таймеру _respawnAt, иначе горит вечно.
-      if (car._streetFireEvent && car._respawnAt &&
-          performance.now() >= car._respawnAt) {
+      if (car._streetFireEvent && car._respawnAt && now >= car._respawnAt) {
         CARS.splice(_ci, 1);
       }
       continue;
     }
+    // П7: инициализируем junker-флаг при первом тике
+    _maybeJunker(car);
     // Угон в процессе — стоит на месте, ждёт civilian_hijack_reply.
-    // Failsafe: если сервер не ответил за 2с — сбрасываем флаг, машина
-    // продолжит ездить как ни в чём не бывало (вероятно угон зафейлился
-    // молча — например WS-разрыв или race с другим игроком).
     if (car._hijackPending) {
-      if (performance.now() - car._hijackPending > 2000) {
+      if (now - car._hijackPending > 2000) {
         car._hijackPending = 0;
       } else {
         car.braking = true;
         continue;
       }
     }
-    // Разбитая в столкновении NPC-машина — переспаун через ~600мс.
-    // Wrecked-тачки респаунятся ПОДАЛЬШЕ — иначе игрок видит как остов
-    // мгновенно «превращается» в новую машину.
+    // Wrecked — переспаун через ~25с.
     if (car._wrecked) {
-      if (performance.now() >= (car._respawnAt || 0)) {
+      if (now >= (car._respawnAt || 0)) {
         const ni = CARS.indexOf(car);
         const fresh = spawnCar(ni, { awayFromPlayer: true });
         if (fresh) Object.assign(car, fresh);
@@ -5939,51 +6118,44 @@ function updateCars(dt) {
       car.r += car.vr * dt;
       car.c += car.vc * dt;
       car._stuckT = 0;
+      if (car._hornUntil && now > car._hornUntil) {
+        car._hornUntil = 0;
+        car._hornText  = undefined;
+      }
     } else {
-      // Anti-stuck по двум таймерам:
-      //   1) «мягкий» — стоит >6с И игрок далеко (>22 тайл) → респаун
-      //      незаметно. Полностью реалистично, никто не видит подмены.
-      //   2) «жёсткий» — стоит >14с независимо от дистанции игрока →
-      //      респаун всё равно. Иначе пробки перед светофором / загоном
-      //      тюрьмы стоят вечно (раньше distP-фильтр держал их вечно).
-      //   3) Машина упёрлась в решётку тюрьмы (carCanGo выставил
-      //      _blockedByJail) — респаун уже через 3с независимо от
-      //      дистанции, чтобы за ней не копилась очередь.
       car._stuckT = (car._stuckT || 0) + dt;
+      // П3: гудки при застревании
+      _carHonkTick(car, dt);
       const distP = Math.hypot(car.r - player.r, car.c - player.c);
+      // П7: junker глохнет быстрее (порог 4с вместо 6с)
+      const softThresh = car._junker ? 4 : 6;
       let doRespawn = false;
       if (car._blockedByJail && car._stuckT > 3) doRespawn = true;
-      else if (car._stuckT > 14 && distP > 16) doRespawn = true;   // не пропадать рядом с игроком
-      else if (car._stuckT > 28) doRespawn = true;                  // крайний случай — очень долго
-      else if (car._stuckT > 6 && distP > 22) doRespawn = true;
+      else if (car._stuckT > 14 && distP > 16)   doRespawn = true;
+      else if (car._stuckT > 28)                  doRespawn = true;
+      else if (car._stuckT > softThresh && distP > 22) doRespawn = true;
       if (doRespawn) {
+        car._hornUntil = 0; car._hornText = undefined;
         const ni = CARS.indexOf(car);
         const fresh = spawnCar(ni, { awayFromPlayer: true });
         if (fresh) Object.assign(car, fresh);
       }
     }
-    // Если выехал за границу — переспаунить (далеко от игрока)
     if (car.r < 1 || car.r > MAP_ROWS - 2 || car.c < 1 || car.c > MAP_COLS - 2) {
       const ni = CARS.indexOf(car);
       const fresh = spawnCar(ni, { awayFromPlayer: true });
       if (fresh) Object.assign(car, fresh);
     }
-    // Машина выехала с асфальта — переспаун, но только если не рядом с игроком
     const cr = Math.floor(car.r), cc = Math.floor(car.c);
     if (cr >= 0 && cr < MAP_ROWS && cc >= 0 && cc < MAP_COLS &&
         MAP[cr][cc] !== 0) {
       const distP2 = Math.hypot(car.r - player.r, car.c - player.c);
-      if (distP2 < 14) {
-        // Рядом с игроком — не исчезаем, просто притормозим
-        car.braking = true;
-        continue;
-      }
+      if (distP2 < 14) { car.braking = true; continue; }
       const ni = CARS.indexOf(car);
       const fresh = spawnCar(ni, { awayFromPlayer: true });
       if (fresh) Object.assign(car, fresh);
       continue;
     }
-    // Заехала в загон тюрьмы — гонять там нельзя (за решёткой). Респаун.
     {
       const jdr = car.r - JAIL_CENTER_R, jdc = car.c - JAIL_CENTER_C;
       if (jdr * jdr + jdc * jdc < JAIL_RADIUS_TILES * JAIL_RADIUS_TILES) {
@@ -5993,10 +6165,43 @@ function updateCars(dt) {
         continue;
       }
     }
-    // Повороты на перекрёстках ОТКЛЮЧЕНЫ — после поворота направо машина
-    // попадает на встречную полосу и создаёт лоб-в-лоб пробку. Едем прямо
-    // до края карты, потом ре-спаун.
     if (car.model.taxi || car.model.sport) car.flash += dt;
+
+    // ── Топливо NPC ────────────────────────────────────────────────
+    if (car._fuel === undefined) car._fuel = 55 + Math.random() * 45;
+    if (!car.braking && !car._refuelingUntil) {
+      car._fuel = Math.max(0, car._fuel - _FUEL_DRAIN_RATE * dt);
+    }
+    // Мало топлива — ищем АЗС
+    if (car._fuel < 15 && !car._wantsGas) car._wantsGas = true;
+    if (car._fuel <= 0 && !car._stalledUntil && !car._refuelingUntil) {
+      // Заглох — ждём рядом с АЗС 15с, потом полный бак
+      car._stalledUntil = now + 15000;
+      car.braking = true;
+      car._stuckT = 0;
+    }
+    if (car._stalledUntil) {
+      car.braking = true;
+      if (now >= car._stalledUntil) {
+        car._fuel = 100; car._wantsGas = false;
+        car._stalledUntil = 0; car.braking = false;
+      }
+    }
+    // Попал в радиус АЗС с пустым баком — дозаправляемся
+    if (car._wantsGas && !car._refuelingUntil && !car._stalledUntil) {
+      const { dist } = _nearestGasStation(car.r, car.c);
+      if (dist < GAS_INTERACT_R) {
+        car._refuelingUntil = now + 10000;
+        car.braking = true;
+      }
+    }
+    if (car._refuelingUntil) {
+      car.braking = true;
+      if (now >= car._refuelingUntil) {
+        car._fuel = 100; car._wantsGas = false;
+        car._refuelingUntil = 0; car.braking = false;
+      }
+    }
   }
 }
 
@@ -9402,6 +9607,17 @@ function updateGtaInteractions() {
   // прячется в finishRob/cancelRob.
   if (_robBtn && !_robInProgress) _robBtn.style.display = 'none';
   if (myDrivingCarId) {
+    // Если рядом АЗС и не пассажир — предлагаем заправиться
+    if (!myIsPassenger && _myCarFuelPct !== null) {
+      const { dist } = _nearestGasStation(player.r, player.c);
+      if (dist < GAS_INTERACT_R && _myCarFuelPct < 99) {
+        _gtaActionKind = 'refuel';
+        _gtaActionCarId = myDrivingCarId;
+        _gtaBtn.textContent = `⛽ Заправиться (${Math.round(_myCarFuelPct)}%)`;
+        _gtaBtn.style.display = 'block';
+        return;
+      }
+    }
     _gtaActionKind = 'exit';
     _gtaActionCarId = myDrivingCarId;
     _gtaBtn.textContent = myIsPassenger
@@ -9691,6 +9907,21 @@ _gtaBtn.addEventListener('click', () => {
     openMichaelMenu();
   } else if (_gtaActionKind === 'enter') {
     enterCar(_gtaActionCarId, _gtaActionEnterAs || 'driver');
+  } else if (_gtaActionKind === 'refuel') {
+    if (_myCarFuelPct !== null && _myCarFuelPct < 99) {
+      if (myCash < 5) {
+        showToast('💸 Недостаточно денег! Нужно $5', '❌', 2200);
+      } else {
+        // Оптимистично заправляем + шлём серверу для списания
+        myCash -= 5;
+        updateMoneyHud();
+        _myCarFuelPct = 100;
+        _fuelWarnShown = false;
+        spawnFloatText(player.r, player.c, '-$5', { color: '#ff8844', size: 16, life: 1400 });
+        showToast('⛽ Полный бак! -$5', '✅', 1800);
+        try { ws && ws.send(JSON.stringify({ t: 'fuel_buy', d: { cost: 5 } })); } catch(e){}
+      }
+    }
   } else if (_gtaActionKind === 'exit') {
     exitCar('manual');
   } else if (_gtaActionKind === 'hijack') {
@@ -10286,6 +10517,8 @@ _lpModal.addEventListener('click', (e) => {
 //      Успех = тихий угон. Провал = сигналка 10с, повтор недоступен.
 //      Отмена = ничего.
 function _completeHijack(car) {
+  // Сохраняем уровень топлива угоняемой машины
+  _myCarFuelPct = (car._fuel !== undefined) ? car._fuel : (55 + Math.random() * 45);
   // НЕ удаляем машину из CARS сразу: между splice и приходом серверного
   // civilian_hijack_reply (~100мс RTT) клиент видел «дырку» — машина
   // пропадала с экрана пока серверный quest_car не появится. Теперь
@@ -10913,6 +11146,7 @@ function exitCar(reason) {
     qc.vx = 0; qc.vy = 0;
   }
   myDrivingCarId = null;
+  _myCarFuelPct  = null;
   _exitRequested = false;
   // Высадка на ближайший проходимый тайл (тротуар/газон/дорога) рядом
   // с машиной — иначе если упёрся у стенки, _ensureSpawnSafe могла
@@ -12796,6 +13030,20 @@ function update(dt) {
   // Локальная симуляция декора: прохожие + машины + службы
   updateNpcs(dt);
   updateCars(dt);
+  // Расход топлива игрока — только пока едет (не пассажир)
+  if (myDrivingCarId && !myIsPassenger && _myCarFuelPct !== null) {
+    _myCarFuelPct = Math.max(0, _myCarFuelPct - _FUEL_DRAIN_RATE * dt);
+    if (_myCarFuelPct <= 0) {
+      showToast('⛽ Топливо кончилось! Найди АЗС.', '🚨', 3000);
+      _myCarFuelPct = 0;
+      // Машина глохнет — принудительный выход
+      exitCar('out_of_fuel');
+    } else if (_myCarFuelPct < 10 && !_fuelWarnShown) {
+      _fuelWarnShown = true;
+      showToast('⛽ Мало топлива! Найди заправку.', '⚠️', 2500);
+    }
+  }
+  if (!myDrivingCarId) _fuelWarnShown = false;
   updateCityCops(dt);
   updatePets(dt);
   updateServiceVehicles(dt);
@@ -21801,7 +22049,34 @@ function render() {
     if (car.r < r0 || car.r >= r1 || car.c < c0 || car.c >= c1) continue;
     items.push({ depth: car.r + car.c + 0.0008, draw: () => {
       if (car._wrecked) { drawWreckedCar(car); return; }
-      drawCarPretty(car);
+      // П7: junker — перекрашиваем кузов в ржавый если ещё не сделано
+      if (car._junker && car._junkerColor && car.model && car.model.palette) {
+        const origPalette = car.model.palette;
+        car.model.palette = [car._junkerColor, origPalette[1] || car._junkerColor];
+        drawCarPretty(car);
+        car.model.palette = origPalette;
+      } else {
+        drawCarPretty(car);
+      }
+      // П3: гудок-bubble над застрявшей машиной
+      if (car._hornUntil && car._hornText && performance.now() < car._hornUntil) {
+        const p = w2s(car.r, car.c);
+        ctx.save();
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        const txt = car._hornText;
+        const tw = ctx.measureText(txt).width;
+        const bx = p.x - tw / 2 - 5, by = p.y - 30;
+        ctx.fillStyle = 'rgba(255,255,200,0.92)';
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, tw + 10, 16, 4);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#333';
+        ctx.fillText(txt, p.x, by + 12);
+        ctx.restore();
+      }
       // Мигалка над ambient-эмердженси (скорая/пожарка в обычном трафике).
       // Спецтранспорт по вызову (serviceVehicles) рисуется отдельно с
       // собственной мигалкой.
@@ -21842,6 +22117,113 @@ function render() {
     items.push({ depth: BRIGADIR_POS.r + BRIGADIR_POS.c + 0.0007,
                  draw: () => drawBrigadir() });
   }
+  // АЗС — знак с колонкой и зоной взаимодействия
+  for (const gs of GAS_STATIONS) {
+    if (gs.r < r0 - 2 || gs.r >= r1 + 2 || gs.c < c0 - 2 || gs.c >= c1 + 2) continue;
+    items.push({ depth: gs.r + gs.c - 0.1, draw: () => {
+      const p = w2s(gs.r + 0.5, gs.c + 0.5);
+      const t = performance.now();
+      // Асфальт-подложка АЗС
+      ctx.save();
+      ctx.fillStyle = '#2a2a2a';
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, 28, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Навес (крыша на двух столбах)
+      ctx.fillStyle = '#e8c840';
+      ctx.fillRect(p.x - 22, p.y - 28, 44, 5);
+      ctx.fillStyle = '#888';
+      ctx.fillRect(p.x - 18, p.y - 23, 4, 14);
+      ctx.fillRect(p.x + 14, p.y - 23, 4, 14);
+      // Колонка (pump)
+      ctx.fillStyle = '#d4382a';
+      ctx.fillRect(p.x - 6, p.y - 18, 12, 16);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(p.x - 4, p.y - 14, 8, 6);  // экран
+      ctx.fillStyle = '#39e';
+      ctx.fillRect(p.x - 3, p.y - 13, 6, 4);  // экран синий
+      // Шланг
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(p.x + 6, p.y - 10);
+      ctx.quadraticCurveTo(p.x + 16, p.y - 6, p.x + 12, p.y);
+      ctx.stroke();
+      // Знак «⛽» + название
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('⛽', p.x, p.y - 33);
+      // Пульсирующий контур зоны взаимодействия
+      const distToGs = Math.hypot(player.r - gs.r, player.c - gs.c);
+      if (distToGs < GAS_INTERACT_R + 2) {
+        const pulse = 0.5 + 0.5 * Math.sin(t * 0.005);
+        ctx.globalAlpha = 0.25 + 0.15 * pulse;
+        ctx.strokeStyle = '#f0d020';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y + 4, 32, 16, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.restore();
+    }});
+  }
+
+  // Индикатор топлива над машиной игрока (показывается при посадке)
+  if (myDrivingCarId && _myCarFuelPct !== null && !myIsPassenger) {
+    const p = w2s(player.r, player.c);
+    const pct = Math.round(_myCarFuelPct);
+    const fuelColor = pct > 30 ? '#4de040' : pct > 10 ? '#f0a020' : '#ff3030';
+    ctx.save();
+    // Фон пилюли
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.beginPath();
+    ctx.roundRect(p.x - 28, p.y - 48, 56, 18, 8);
+    ctx.fill();
+    // Иконка
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('⛽', p.x - 13, p.y - 34);
+    // Бар топлива
+    ctx.fillStyle = '#333';
+    ctx.fillRect(p.x - 5, p.y - 44, 28, 8);
+    ctx.fillStyle = fuelColor;
+    ctx.fillRect(p.x - 5, p.y - 44, Math.round(28 * pct / 100), 8);
+    // Процент
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(pct + '%', p.x + 9, p.y - 37);
+    ctx.restore();
+  }
+
+  // Индикатор топлива над машиной которую собираемся угнать
+  if (_hijackedCarRef && _hijackedCarRef._fuel !== undefined) {
+    const car = _hijackedCarRef;
+    const p = w2s(car.r, car.c);
+    const pct = Math.round(car._fuel);
+    const fuelColor = pct > 30 ? '#4de040' : pct > 10 ? '#f0a020' : '#ff3030';
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.beginPath();
+    ctx.roundRect(p.x - 28, p.y - 48, 56, 18, 8);
+    ctx.fill();
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('⛽', p.x - 13, p.y - 34);
+    ctx.fillStyle = '#333';
+    ctx.fillRect(p.x - 5, p.y - 44, 28, 8);
+    ctx.fillStyle = fuelColor;
+    ctx.fillRect(p.x - 5, p.y - 44, Math.round(28 * pct / 100), 8);
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(pct + '%', p.x + 9, p.y - 37);
+    ctx.restore();
+  }
+
   // Корабль Майкла — большой меш (корпус + надстройка + кран + контейнеры).
   // Рисуем как один объект с depth = задний край палубы, чтобы он сидел
   // ПОЗАДИ Майкла и контейнеров на пирсе, но перед водой.
