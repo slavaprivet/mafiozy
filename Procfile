@@ -1,1 +1,1 @@
-web: python server.py
+web: python mafiozi_bot.py

@@ -2,4 +2,4 @@
 cmds = []
 
 [start]
-cmd = "python server.py"
+cmd = "python mafiozi_bot.py"
