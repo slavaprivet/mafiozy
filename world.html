@@ -15520,17 +15520,17 @@ function chatDuration(text) {
 
 // ── Старт ──────────────────────────────────────────────────────
 (async () => {
-  // Если api нет в URL — пробуем подтянуть свежий из coop_api.json.
-  if (!QP.api) {
-    setConnecting('Ищу сервер…');
-    await _fetchApiFallback();
-  }
+  // ВСЕГДА тянем свежий URL из coop_api.json — ?api= из URL может быть
+  // устаревшим (старый cloudflare-туннель, локальный бот). Railway-URL
+  // перезапишет его и WS подключится к живому серверу.
+  setConnecting('Ищу сервер…');
+  await _fetchApiFallback();
   if (!QP.uid || !/^\d+$/.test(QP.uid)) {
     setConnecting('Нет Telegram ID. Открой через /start в боте.');
     return;
   }
   if (!QP.api) {
-    setConnecting('Сервер недоступен. Запусти бота с туннелем и зайди заново.');
+    setConnecting('Сервер недоступен. Попробуй зайти чуть позже.');
     return;
   }
   // Режим выбирается ПРИ КАЖДОМ заходе в мир — без сохранения. Модал
