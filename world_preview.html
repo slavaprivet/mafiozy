@@ -4140,7 +4140,6 @@ function drawPet(pet) {
 function drawServiceVehicle(v) {
   const p = w2s(v.y, v.x);
   const isAmb = v.kind === 'ambulance';
-  // Прогресс-бар «работы» — пока скорая грузит труп / пожарка тушит.
   let workFrac = 0;
   let workLabel = null;
   if (v.state === 'working' && v.workUntil) {
@@ -4149,190 +4148,311 @@ function drawServiceVehicle(v) {
     workFrac = 1 - remain / total;
     workLabel = isAmb ? 'Погрузка' : 'Тушение';
   }
-  // Размеры корпуса. Пожарная чуть крупнее скорой (длиннее и шире).
-  const L = isAmb ? 44 : 50;   // длина
-  const W = isAmb ? 22 : 24;   // ширина
+  const L = isAmb ? 50 : 56;
+  const W = isAmb ? 24 : 27;
   const hL = L / 2, hW = W / 2;
-  // Тень — большой эллипс под машиной (без поворота, иначе деформируется)
+
+  // Тень
   ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.fillStyle = 'rgba(0,0,0,.40)';
   ctx.beginPath();
-  ctx.ellipse(p.x, p.y + 3, hL * 0.92, hW * 0.55, v.ang, 0, Math.PI * 2);
+  ctx.ellipse(p.x + 2, p.y + 4, hL * 0.88, hW * 0.48, v.ang, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
-  // Сам корпус в локальной системе координат
+
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(v.ang);
+
   if (isAmb) {
-    // ── СКОРАЯ ───────────────────────────────────────────────────
-    // Базовый корпус — белый с лёгким градиентом (объём)
-    const bodyGrad = ctx.createLinearGradient(0, -hW, 0, hW);
-    bodyGrad.addColorStop(0, '#fafafa');
-    bodyGrad.addColorStop(0.5, '#ffffff');
-    bodyGrad.addColorStop(1, '#d8d8d8');
-    ctx.fillStyle = bodyGrad;
-    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1.5;
-    // Слегка скруглённый прямоугольник
+    // ── СКОРАЯ (Mercedes Sprinter) ────────────────────────────────
+    const cabL  = Math.round(L * 0.30);
+    const cabFx = hL;
+    const cabBx = hL - cabL;
+    const bayBx = -hL;
+
+    // Корпус — белый, чуть холодный
+    const bodyG = ctx.createLinearGradient(0, -hW, 0, hW);
+    bodyG.addColorStop(0,   '#ececec');
+    bodyG.addColorStop(0.4, '#ffffff');
+    bodyG.addColorStop(1,   '#c4c4c4');
+    ctx.fillStyle = bodyG;
+    ctx.strokeStyle = '#252525'; ctx.lineWidth = 1.2;
     if (ctx.roundRect) {
-      ctx.beginPath(); ctx.roundRect(-hL, -hW, L, W, 3); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.roundRect(bayBx, -hW, L, W, 4); ctx.fill(); ctx.stroke();
     } else {
-      ctx.fillRect(-hL, -hW, L, W); ctx.strokeRect(-hL, -hW, L, W);
+      ctx.fillRect(bayBx, -hW, L, W); ctx.strokeRect(bayBx, -hW, L, W);
     }
-    // Кабина — отдельный сегмент впереди (1/3 длины)
-    const cabL = L * 0.32;
-    const cabFrontX = hL;
-    const cabBackX  = hL - cabL;
-    ctx.fillStyle = '#e8e8e8';
-    ctx.fillRect(cabBackX, -hW + 1, cabL, W - 2);
-    // Лобовое и боковые окна кабины (бирюзовые)
-    const wsGrad = ctx.createLinearGradient(cabBackX, 0, cabFrontX, 0);
-    wsGrad.addColorStop(0, '#5890b8');
-    wsGrad.addColorStop(1, '#a8d0e8');
-    ctx.fillStyle = wsGrad;
-    ctx.fillRect(cabBackX + 3, -hW + 3, cabL - 5, W - 6);
-    // Стойка между кабиной и кузовом (тёмная вертикальная линия)
+
+    // Кабина (чуть темнее — другой металл)
+    const cabG = ctx.createLinearGradient(cabBx, 0, cabFx, 0);
+    cabG.addColorStop(0, '#d8d8d8');
+    cabG.addColorStop(1, '#c8c8c8');
+    ctx.fillStyle = cabG;
+    ctx.fillRect(cabBx, -hW + 1, cabL, W - 2);
+
+    // B-pillar (стойка)
     ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(cabBackX - 1, -hW, 2, W);
-    // Красная полоса вдоль кузова (фирменная скорая)
-    ctx.fillStyle = '#e02020';
-    ctx.fillRect(-hL + 2, -2, L * 0.65, 4);
-    // Большой красный крест на крыше (виден сверху)
-    const crossX = -hL + L * 0.32, crossY = 0;
-    ctx.fillStyle = '#e02020';
-    ctx.fillRect(crossX - 7, crossY - 2, 14, 4);
-    ctx.fillRect(crossX - 2, crossY - 7, 4, 14);
-    // Маленькие окна заднего отсека сбоку
-    ctx.fillStyle = 'rgba(120,170,200,.55)';
-    ctx.fillRect(-hL + 5, -hW + 2, 7, 4);
-    ctx.fillRect(-hL + 5,  hW - 6, 7, 4);
-    // Фары спереди (жёлтые точки)
-    ctx.fillStyle = '#ffeb80';
-    ctx.shadowColor = '#fff080'; ctx.shadowBlur = 6;
-    ctx.fillRect(cabFrontX - 2, -hW + 3, 2, 4);
-    ctx.fillRect(cabFrontX - 2,  hW - 7, 2, 4);
+    ctx.fillRect(cabBx - 1, -hW, 2, W);
+
+    // Лобовое стекло с синим блеском
+    const wsG = ctx.createLinearGradient(cabBx, -hW, cabFx, -hW);
+    wsG.addColorStop(0, '#3a6a9c');
+    wsG.addColorStop(0.45, '#88bce0');
+    wsG.addColorStop(1,   '#b8d8f0');
+    ctx.fillStyle = wsG;
+    if (ctx.roundRect) {
+      ctx.beginPath(); ctx.roundRect(cabBx + 2, -hW + 3, cabL - 4, W - 6, 1); ctx.fill();
+    } else {
+      ctx.fillRect(cabBx + 2, -hW + 3, cabL - 4, W - 6);
+    }
+    // Блик на лобовом
+    ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(cabBx + 3, -hW + 4);
+    ctx.lineTo(cabBx + cabL * 0.60, -hW + 5);
+    ctx.stroke();
+
+    // Синяя диагональная полоса «скорой» (вдоль кузова)
+    ctx.fillStyle = '#1442a0';
+    ctx.fillRect(bayBx + 2, -3, L - cabL - 1, 6);
+    // Красные полосы выше и ниже синей
+    ctx.fillStyle = '#c81010';
+    ctx.fillRect(bayBx + 2, -hW * 0.62, L - cabL - 1, 3);
+    ctx.fillRect(bayBx + 2,  hW * 0.62 - 3, L - cabL - 1, 3);
+
+    // Красный крест + белая окантовка (вид сверху на крыше)
+    const ccx = bayBx + (L - cabL) * 0.42, ccy = 0;
+    ctx.fillStyle = '#c80000';
+    ctx.fillRect(ccx - 5.5, ccy - 2, 11, 4);
+    ctx.fillRect(ccx - 2, ccy - 5.5, 4, 11);
+    ctx.strokeStyle = 'rgba(255,255,255,.75)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.arc(ccx, ccy, 7.5, 0, Math.PI * 2); ctx.stroke();
+
+    // Окна медотсека (2 иллюминатора с каждой стороны)
+    ctx.fillStyle = 'rgba(110,165,200,.55)';
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 0.5;
+    const wdef = [[bayBx + 5, -hW + 2, 7, 3.5], [bayBx + 15, -hW + 2, 7, 3.5],
+                  [bayBx + 5,  hW - 5.5, 7, 3.5], [bayBx + 15, hW - 5.5, 7, 3.5]];
+    for (const [wx, wy, ww, wh] of wdef) {
+      ctx.fillRect(wx, wy, ww, wh); ctx.strokeRect(wx, wy, ww, wh);
+    }
+
+    // Задняя дверь медотсека — вертикальный шов + петли
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(bayBx + 2, -hW + 2); ctx.lineTo(bayBx + 2, hW - 2); ctx.stroke();
+    ctx.fillStyle = '#888';
+    ctx.fillRect(bayBx + 0.5, -4, 1.5, 8);
+
+    // Хромированный бампер + решётка
+    const bmpG = ctx.createLinearGradient(cabFx - 3, -hW, cabFx, hW);
+    bmpG.addColorStop(0, '#b8b8b8'); bmpG.addColorStop(0.5, '#f0f0f0'); bmpG.addColorStop(1, '#a0a0a0');
+    ctx.fillStyle = bmpG;
+    ctx.fillRect(cabFx - 2, -hW + 2, 2, W - 4);
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 0.5;
+    for (let gi = 0; gi < 4; gi++) {
+      const gy = -hW * 0.55 + gi * (hW * 1.1 / 3.5);
+      ctx.beginPath(); ctx.moveTo(cabFx - 4, gy); ctx.lineTo(cabFx - 2, gy); ctx.stroke();
+    }
+
+    // Фары — эллипсы с глоу
+    ctx.shadowColor = '#ffe870'; ctx.shadowBlur = 9;
+    ctx.fillStyle = '#ffee60';
+    ctx.beginPath(); ctx.ellipse(cabFx - 1.5, -hW + 4.5, 1.5, 2.5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cabFx - 1.5,  hW - 4.5, 1.5, 2.5, 0, 0, Math.PI*2); ctx.fill();
     ctx.shadowBlur = 0;
-    // Колёса (4) — тёмные прямоугольники по углам
-    ctx.fillStyle = '#0a0a0a';
-    const whL = 8, whW = 3;
-    ctx.fillRect(hL - whL - 3, -hW - whW + 1, whL, whW);
-    ctx.fillRect(hL - whL - 3,  hW - 1,        whL, whW);
-    ctx.fillRect(-hL + 3,       -hW - whW + 1, whL, whW);
-    ctx.fillRect(-hL + 3,        hW - 1,        whL, whW);
-    // Надпись AMBULANCE (зеркально на боку, как у настоящих)
-    ctx.fillStyle = '#202020';
-    ctx.font = 'bold 7px sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('AMBULANCE', -hL + L * 0.55, 9);
-    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    // Задние фонари (красные)
+    ctx.fillStyle = '#bb0000';
+    ctx.fillRect(bayBx, -hW + 3, 2, 4.5);
+    ctx.fillRect(bayBx,  hW - 7.5, 2, 4.5);
+
+    // Колёса — эллипсы с ободом и шпильками
+    const wRx = 5.5, wRy = 2.8;
+    for (const [wx, wy] of [[hL - 11, -hW - 0.5],[hL - 11, hW + 0.5],[-hL + 9, -hW - 0.5],[-hL + 9, hW + 0.5]]) {
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.ellipse(wx, wy, wRx, wRy, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#aaa';
+      ctx.beginPath(); ctx.ellipse(wx, wy, wRx * 0.56, wRy * 0.56, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#888';
+      for (let si = 0; si < 5; si++) {
+        const sa = (si / 5) * Math.PI * 2;
+        ctx.beginPath(); ctx.arc(wx + Math.cos(sa) * wRx * 0.34, wy + Math.sin(sa) * wRy * 0.34, 0.6, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    // Световая панель (маяк) на крыше медотсека
+    ctx.fillStyle = '#1a1a1a';
+    const barX = bayBx + (L - cabL) * 0.25, barWw = (L - cabL) * 0.52;
+    if (ctx.roundRect) {
+      ctx.beginPath(); ctx.roundRect(barX, -2.5, barWw, 5, 1.5); ctx.fill();
+    } else {
+      ctx.fillRect(barX, -2.5, barWw, 5);
+    }
+
   } else {
-    // ── ПОЖАРНАЯ ─────────────────────────────────────────────────
-    // Красный корпус с градиентом
-    const bodyGrad = ctx.createLinearGradient(0, -hW, 0, hW);
-    bodyGrad.addColorStop(0, '#a01818');
-    bodyGrad.addColorStop(0.5, '#d02828');
-    bodyGrad.addColorStop(1, '#7a1010');
-    ctx.fillStyle = bodyGrad;
-    ctx.strokeStyle = '#1a0606'; ctx.lineWidth = 1.5;
+    // ── ПОЖАРНАЯ (Pumper) ────────────────────────────────────────
+    const cabL  = Math.round(L * 0.26);
+    const cabFx = hL;
+    const cabBx = hL - cabL;
+    const pBx   = -hL;
+    const bodyLen = L - cabL;
+
+    // Красный корпус с глянцевым градиентом
+    const bodyG = ctx.createLinearGradient(0, -hW, 0, hW);
+    bodyG.addColorStop(0,   '#780606');
+    bodyG.addColorStop(0.3, '#c41818');
+    bodyG.addColorStop(0.55,'#dd2424');
+    bodyG.addColorStop(1,   '#5a0404');
+    ctx.fillStyle = bodyG;
+    ctx.strokeStyle = '#1a0404'; ctx.lineWidth = 1.2;
     if (ctx.roundRect) {
-      ctx.beginPath(); ctx.roundRect(-hL, -hW, L, W, 3); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.roundRect(pBx, -hW, L, W, 4); ctx.fill(); ctx.stroke();
     } else {
-      ctx.fillRect(-hL, -hW, L, W); ctx.strokeRect(-hL, -hW, L, W);
+      ctx.fillRect(pBx, -hW, L, W); ctx.strokeRect(pBx, -hW, L, W);
     }
-    // Кабина (короткая, 28% длины)
-    const cabL = L * 0.28;
-    const cabFrontX = hL;
-    const cabBackX  = hL - cabL;
-    ctx.fillStyle = '#7a0808';
-    ctx.fillRect(cabBackX, -hW + 1, cabL, W - 2);
-    // Лобовое окно кабины
-    const wsGrad = ctx.createLinearGradient(cabBackX, 0, cabFrontX, 0);
-    wsGrad.addColorStop(0, '#4878a0');
-    wsGrad.addColorStop(1, '#90b8d0');
-    ctx.fillStyle = wsGrad;
-    ctx.fillRect(cabBackX + 3, -hW + 3, cabL - 5, W - 6);
-    // Стойка между кабиной и кузовом
-    ctx.fillStyle = '#1a0a06';
-    ctx.fillRect(cabBackX - 1, -hW, 2, W);
-    // Кузов — отсеки с пожарным инвентарём (тёмные «ящики» сбоку)
-    ctx.fillStyle = 'rgba(0,0,0,.35)';
-    const compW = (L - cabL - 6) / 3;   // 3 отсека вдоль кузова
-    for (let i = 0; i < 3; i++) {
-      const cx = -hL + 3 + i * compW + i * 1;
-      ctx.fillRect(cx, -hW + 4, compW, 4);     // верхний ряд (стойки лестницы)
-      ctx.fillRect(cx,  hW - 8, compW, 4);     // нижний ряд
+
+    // Кабина
+    const cabG = ctx.createLinearGradient(cabBx, 0, cabFx, 0);
+    cabG.addColorStop(0, '#881010'); cabG.addColorStop(1, '#b81818');
+    ctx.fillStyle = cabG;
+    ctx.fillRect(cabBx, -hW + 1, cabL, W - 2);
+
+    // B-pillar
+    ctx.fillStyle = '#1a0404';
+    ctx.fillRect(cabBx - 1, -hW, 2, W);
+
+    // Лобовое (затемнённое — как у реальных пожарок)
+    const fwG = ctx.createLinearGradient(cabBx, -hW, cabFx, -hW);
+    fwG.addColorStop(0, '#182840'); fwG.addColorStop(0.5, '#2858a0'); fwG.addColorStop(1, '#3878c0');
+    ctx.fillStyle = fwG;
+    if (ctx.roundRect) {
+      ctx.beginPath(); ctx.roundRect(cabBx + 2, -hW + 3, cabL - 4, W - 6, 1); ctx.fill();
+    } else {
+      ctx.fillRect(cabBx + 2, -hW + 3, cabL - 4, W - 6);
     }
-    // Лестница на крыше (вдоль корпуса)
-    ctx.strokeStyle = '#d8d8d8';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 0.7;
+    ctx.beginPath(); ctx.moveTo(cabBx + 3, -hW + 4); ctx.lineTo(cabBx + cabL * 0.5, -hW + 5); ctx.stroke();
+
+    // Отсеки инвентаря (4 секции с ручками)
+    ctx.strokeStyle = '#4a0606'; ctx.lineWidth = 0.8;
+    const nComp = 4, compSz = bodyLen / nComp;
+    for (let ci = 1; ci < nComp; ci++) {
+      const cx = pBx + ci * compSz;
+      ctx.beginPath(); ctx.moveTo(cx, -hW + 3); ctx.lineTo(cx, hW - 3); ctx.stroke();
+    }
+    // Ручки отсеков
+    ctx.fillStyle = '#cc9020';
+    for (let ci = 0; ci < nComp; ci++) {
+      const hx = pBx + ci * compSz + compSz * 0.5 - 2.5;
+      ctx.fillRect(hx, -hW + 5, 5, 1.5);
+      ctx.fillRect(hx,  hW - 6.5, 5, 1.5);
+    }
+
+    // Лестница на крыше — алюминиевые рейлы
+    ctx.strokeStyle = '#c4c4c4'; ctx.lineWidth = 1.5;
+    const ladBx = pBx + 4, ladFx = cabBx - 5;
     ctx.beginPath();
-    ctx.moveTo(-hL + 4, -3); ctx.lineTo(cabBackX - 3, -3);
-    ctx.moveTo(-hL + 4,  3); ctx.lineTo(cabBackX - 3,  3);
+    ctx.moveTo(ladBx, -3); ctx.lineTo(ladFx, -3);
+    ctx.moveTo(ladBx,  3); ctx.lineTo(ladFx,  3);
     ctx.stroke();
-    // Перекладины лестницы
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 7; i++) {
-      const lx = -hL + 6 + i * ((cabBackX - 10) / 7);
-      ctx.beginPath();
-      ctx.moveTo(lx, -3); ctx.lineTo(lx, 3); ctx.stroke();
+    ctx.lineWidth = 0.9;
+    const nRungs = 10;
+    for (let ri = 0; ri <= nRungs; ri++) {
+      const rx = ladBx + ri * (ladFx - ladBx) / nRungs;
+      ctx.beginPath(); ctx.moveTo(rx, -3); ctx.lineTo(rx, 3); ctx.stroke();
     }
-    // Жёлтая полоса вдоль низа (отражатель)
-    ctx.fillStyle = '#ffe040';
-    ctx.fillRect(-hL + 2, hW - 4, L - 4, 2);
-    ctx.fillRect(-hL + 2, -hW + 2, L - 4, 2);
-    // Шланг свёрнутый — кружок на боку
-    ctx.fillStyle = '#1a1a1a';
-    ctx.beginPath();
-    ctx.arc(-hL + L * 0.5, -hW + 4, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#d8d8d8'; ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.arc(-hL + L * 0.5, -hW + 4, 2, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.fillStyle = '#999';
+    ctx.fillRect(ladBx - 1, -3.5, 1.5, 7); ctx.fillRect(ladFx - 0.5, -3.5, 1.5, 7);
+
+    // Жёлтые световозвращающие полосы по краям
+    ctx.fillStyle = '#e8c010';
+    ctx.fillRect(pBx + 2, -hW + 2, bodyLen - 2, 2.5);
+    ctx.fillRect(pBx + 2,  hW - 4.5, bodyLen - 2, 2.5);
+
+    // Хромированный бампер
+    const bmpG2 = ctx.createLinearGradient(cabFx - 3, -hW, cabFx, hW);
+    bmpG2.addColorStop(0, '#c0c0c0'); bmpG2.addColorStop(0.5, '#f4f4f4'); bmpG2.addColorStop(1, '#a8a8a8');
+    ctx.fillStyle = bmpG2;
+    ctx.fillRect(cabFx - 2, -hW + 2, 2, W - 4);
+
+    // Насос/водяная пушка (тумба) на середине кузова
+    const pcx = pBx + bodyLen * 0.52;
+    ctx.fillStyle = '#b8b0a0';
+    ctx.beginPath(); ctx.ellipse(pcx, 0, 4, 2.5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#808070'; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.strokeStyle = '#a0a0a0'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(pcx, 0); ctx.lineTo(pcx + 4, -3.5); ctx.stroke();
+
+    // Задняя пластина / задний бампер
+    ctx.fillStyle = '#c0c0c0';
+    ctx.fillRect(pBx, -hW + 2, 2, W - 4);
+
     // Фары
-    ctx.fillStyle = '#ffeb80';
-    ctx.shadowColor = '#fff080'; ctx.shadowBlur = 6;
-    ctx.fillRect(cabFrontX - 2, -hW + 3, 2, 4);
-    ctx.fillRect(cabFrontX - 2,  hW - 7, 2, 4);
+    ctx.shadowColor = '#ffe870'; ctx.shadowBlur = 9;
+    ctx.fillStyle = '#ffee60';
+    ctx.beginPath(); ctx.ellipse(cabFx - 2, -hW + 4.5, 1.5, 2.5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cabFx - 2,  hW - 4.5, 1.5, 2.5, 0, 0, Math.PI*2); ctx.fill();
     ctx.shadowBlur = 0;
-    // Колёса (4) — крупнее чем у скорой
-    ctx.fillStyle = '#0a0a0a';
-    const whL = 9, whW = 3;
-    ctx.fillRect(hL - whL - 3, -hW - whW + 1, whL, whW);
-    ctx.fillRect(hL - whL - 3,  hW - 1,        whL, whW);
-    ctx.fillRect(-hL + 4,       -hW - whW + 1, whL, whW);
-    ctx.fillRect(-hL + 4,        hW - 1,        whL, whW);
-    // Надпись FIRE / 01 на двери кабины
-    ctx.fillStyle = '#ffe040';
-    ctx.font = 'bold 9px sans-serif';
+    // Задние фонари
+    ctx.fillStyle = '#bb0000';
+    ctx.fillRect(pBx, -hW + 3, 2, 4.5);
+    ctx.fillRect(pBx,  hW - 7.5, 2, 4.5);
+
+    // Надпись «01» на кабине
+    ctx.fillStyle = '#f0d818';
+    ctx.font = 'bold 8px sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('01', cabBackX + cabL * 0.5, 0);
+    ctx.fillText('01', cabBx + cabL * 0.5, 0);
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+
+    // Колёса (крупнее чем у скорой)
+    const wRx = 6.5, wRy = 3.2;
+    for (const [wx, wy] of [[hL - 12, -hW - 0.5],[hL - 12, hW + 0.5],[-hL + 10, -hW - 0.5],[-hL + 10, hW + 0.5]]) {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.beginPath(); ctx.ellipse(wx, wy, wRx, wRy, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#888';
+      ctx.beginPath(); ctx.ellipse(wx, wy, wRx * 0.56, wRy * 0.56, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#666';
+      for (let si = 0; si < 6; si++) {
+        const sa = (si / 6) * Math.PI * 2;
+        ctx.beginPath(); ctx.arc(wx + Math.cos(sa) * wRx * 0.34, wy + Math.sin(sa) * wRy * 0.34, 0.7, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    // Световая панель на крыше кабины
+    ctx.fillStyle = '#1a1a1a';
+    if (ctx.roundRect) {
+      ctx.beginPath(); ctx.roundRect(cabBx + 3, -2.5, cabL - 6, 5, 1.5); ctx.fill();
+    } else {
+      ctx.fillRect(cabBx + 3, -2.5, cabL - 6, 5);
+    }
   }
   ctx.restore();
-  // Мигалки — две на крыше (передняя и задняя), мигают противофазно
+
+  // Мигалки сирены — 3 точки для скорой, 2 для пожарки; мигают противофазно
   const t = performance.now();
-  const blink = Math.floor(t / 200) % 2;
+  const blink  = Math.floor(t / 200) % 2;
   const blink2 = 1 - blink;
-  const col1 = isAmb ? '#3070ff' : '#ff3030';
-  const col2 = isAmb ? '#ff3030' : '#3070ff';
+  const col1 = isAmb ? '#2860ff' : '#ff2020';
+  const col2 = isAmb ? '#ff2828' : '#2860ff';
+  const cosA = Math.cos(v.ang), sinA = Math.sin(v.ang);
+  const offA = isAmb ? L * 0.22 : L * 0.10;
   ctx.save();
-  // Без rotate — мигалки рисуются в экранных координатах поверх корпуса.
-  // Чуть смещаем по углу машины: «передняя» и «задняя» мигалки на крыше.
-  const offFront = Math.cos(v.ang) * (L * 0.18);
-  const offSide  = Math.sin(v.ang) * (L * 0.18);
-  const cx1 = p.x + offFront;
-  const cy1 = p.y + offSide - 2;
-  const cx2 = p.x - offFront;
-  const cy2 = p.y - offSide - 2;
-  // Передняя
-  ctx.fillStyle = blink ? col1 : col2;
-  ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
-  ctx.beginPath(); ctx.arc(cx1, cy1, 3.5, 0, Math.PI * 2); ctx.fill();
-  // Задняя
-  ctx.fillStyle = blink2 ? col1 : col2;
-  ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
-  ctx.beginPath(); ctx.arc(cx2, cy2, 3.5, 0, Math.PI * 2); ctx.fill();
+  const flashPts = isAmb
+    ? [[p.x + cosA * offA, p.y + sinA * offA - 3],
+       [p.x,               p.y - 3],
+       [p.x - cosA * offA, p.y - sinA * offA - 3]]
+    : [[p.x + cosA * offA, p.y + sinA * offA - 3],
+       [p.x - cosA * offA, p.y - sinA * offA - 3]];
+  for (let fi = 0; fi < flashPts.length; fi++) {
+    const [fx, fy] = flashPts[fi];
+    ctx.fillStyle = (fi % 2 === blink) ? col1 : col2;
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 13;
+    ctx.beginPath(); ctx.arc(fx, fy, 3.2, 0, Math.PI * 2); ctx.fill();
+  }
   ctx.shadowBlur = 0;
   ctx.restore();
   // Прогресс-бар + подпись пока машина «работает» (грузит труп / тушит).
