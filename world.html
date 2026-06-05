@@ -26344,16 +26344,36 @@ function drawBankInteriorScene() {
     const isCenterOpen  = c >= centerOpenL && c < centerOpenR;
     const _c = c;
     if (!isStaffOpen && !isLoungeOpen && !isCenterOpen) {
-      // Сплошная стена — светлый мрамор как боковые
-      items.push({d: archRow + _c * .001, fn: ((__c) => () => {
+      // depth = archRow + _c — правильный изометрический порядок (выше c → позже рисуем)
+      items.push({d: archRow + _c, fn: ((__c) => () => {
         _wFace(archRow, __c, archRow, __c + 1, WC.lobbyFront, '#b0a898');
       })(_c)});
     }
   }
 
-  // Арочные проёмы — рисуются ПОВЕРХ (чуть больший d чтобы перекрыть пол)
+  // ── ПЕРЕГОРОДКИ ВНУТРИ ЗАДНЕЙ ЗОНЫ ───────────────────────────────
+  // Делят зону на: персонал (лево) | хранилище (центр) | отдых (право)
+  const partColL = Math.floor(W * .38);  // граница персонал / хранилище
+  const partColR = Math.floor(W * .62);  // граница хранилище / отдых
+  for (let pr = 0; pr < archRow; pr++) {
+    const _pr = pr;
+    // Левая перегородка (персонал | хранилище) с проходом у archRow
+    if (pr < archRow - 1) {
+      items.push({d: _pr + partColL, fn: ((__r) => () => {
+        _wFace(__r, partColL, __r + 1, partColL, WC.staffFront, '#3a4868', WC.staffSide);
+      })(_pr)});
+    }
+    // Правая перегородка (хранилище | отдых) с проходом у archRow
+    if (pr < archRow - 1) {
+      items.push({d: _pr + partColR, fn: ((__r) => () => {
+        _wFace(__r, partColR, __r + 1, partColR, WC.loungeFront, '#4a3828', WC.loungeSide);
+      })(_pr)});
+    }
+  }
+
+  // Арочные проёмы — depth = r + c (правильный изо-порядок)
   const drawArch = (r, c, label, col) => {
-    items.push({d: r + c * .001 + .1, fn: () => {
+    items.push({d: r + c + .1, fn: () => {
       const a = w2s(r, c), b = w2s(r, c + 3);
       const aH = wallH * .85, aW = (b.x - a.x);
       // Тёмный проём (фон арки)
