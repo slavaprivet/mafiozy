@@ -1924,7 +1924,7 @@ function generateBeachDecor() {
 // 🌌 Чёрный рынок (купить оружие), 🎯 PVP-арена (стрелять в др. игроков).
 const POI = [
   { id: 'market',  r: 16, c: 16, icon: '🏪', name: 'Рынок',        minLvl: 1  },
-  { id: 'port',    r: 16, c: 56, icon: '⚓', name: 'Порт',          minLvl: 5  },
+  { id: 'port',    r: 165, c: 38, icon: '⚓', name: 'Порт',          minLvl: 5  },
   { id: 'casino',  r: 46, c: 16, icon: '🎰', name: 'Казино',        minLvl: 10 },
   { id: 'factory', r: 46, c: 56, icon: '🏭', name: 'Промзона',      minLvl: 15 },
   { id: 'mansion', r: 66, c: 36, icon: '🏛', name: 'Резиденция',    minLvl: 20 },
@@ -22704,6 +22704,92 @@ function render() {
     items.push({ depth: BRIGADIR_POS.r + BRIGADIR_POS.c + 0.0007,
                  draw: () => drawBrigadir() });
   }
+  // ПОДСКАЗКИ «ВОЙТИ» — для всех POI-зданий с входом
+  // Показываются только когда игрок рядом (< enterRadius тайлов)
+  if (!_bankInt) {
+    const enterRadius = 7;
+    for (const poi of POI) {
+      if (!poi.id) continue;
+      const hasEntry = ['casino','market','port','hospital','firestation','police','lair','blackmarket'].includes(poi.id)
+                    || poi.special === 'shop' || poi.special === 'hospital' || poi.special === 'jail';
+      if (!hasEntry) continue;
+      const pd = Math.hypot(player.r - (poi.r + 0.5), player.c - (poi.c + 0.5));
+      if (pd > enterRadius + 3) continue;
+      const _poi = poi;
+      items.push({ depth: _poi.r + 1.5 + _poi.c + 0.5 + 0.5, draw: () => {
+        const now2 = performance.now();
+        const pulse = 0.5 + 0.5 * Math.sin(now2 * 0.005);
+        const ep = w2s(_poi.r + 1.5, _poi.c + 0.5);
+        const dist2 = Math.hypot(player.r - (_poi.r + 0.5), player.c - (_poi.c + 0.5));
+        if (dist2 > enterRadius + 3) return;
+        const alpha = Math.min(1, (enterRadius + 3 - dist2) / 4) * (0.7 + 0.3 * pulse);
+        const hx3 = TS * 0.5, hy3 = TS * 0.5 * ISO_Y;
+        const rad = 10 + pulse * 6;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        // Пульсирующий ромб
+        ctx.strokeStyle = '#60d8ff'; ctx.lineWidth = 2.5; ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(ep.x, ep.y - hy3 * rad / 14);
+        ctx.lineTo(ep.x + hx3 * rad / 14, ep.y);
+        ctx.lineTo(ep.x, ep.y + hy3 * rad / 14);
+        ctx.lineTo(ep.x - hx3 * rad / 14, ep.y);
+        ctx.closePath(); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = `rgba(96,216,255,${0.10 + 0.06 * pulse})`;
+        ctx.beginPath();
+        ctx.moveTo(ep.x, ep.y - hy3 * rad / 14);
+        ctx.lineTo(ep.x + hx3 * rad / 14, ep.y);
+        ctx.lineTo(ep.x, ep.y + hy3 * rad / 14);
+        ctx.lineTo(ep.x - hx3 * rad / 14, ep.y);
+        ctx.closePath(); ctx.fill();
+        // Иконка + название
+        ctx.shadowColor = '#000'; ctx.shadowBlur = 5;
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px system-ui';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText(_poi.icon + ' ' + _poi.name, ep.x, ep.y - hy3 * rad / 14 - 4);
+        const ay = ep.y - hy3 * rad / 14 - 4;
+        ctx.fillStyle = '#60d8ff';
+        ctx.beginPath();
+        ctx.moveTo(ep.x, ay + 4); ctx.lineTo(ep.x - 6, ay - 6); ctx.lineTo(ep.x + 6, ay - 6);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }});
+    }
+    // Бизнес-POI с входом
+    for (const biz of BUSINESS_POIS) {
+      const bd = Math.hypot(player.r - (biz.r + 0.5), player.c - (biz.c + 0.5));
+      if (bd > enterRadius + 3) continue;
+      const _biz = biz;
+      items.push({ depth: _biz.r + 1 + _biz.c + 0.5, draw: () => {
+        const now2 = performance.now();
+        const pulse = 0.5 + 0.5 * Math.sin(now2 * 0.005);
+        const ep = w2s(_biz.r + 0.5, _biz.c + 0.5);
+        const dist2 = Math.hypot(player.r - (_biz.r + 0.5), player.c - (_biz.c + 0.5));
+        if (dist2 > enterRadius + 3) return;
+        const alpha = Math.min(1, (enterRadius + 3 - dist2) / 4) * (0.7 + 0.3 * pulse);
+        const hx3 = TS * 0.5, hy3 = TS * 0.5 * ISO_Y;
+        const rad = 8 + pulse * 5;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = '#ffd040'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(ep.x, ep.y - hy3 * rad / 14);
+        ctx.lineTo(ep.x + hx3 * rad / 14, ep.y);
+        ctx.lineTo(ep.x, ep.y + hy3 * rad / 14);
+        ctx.lineTo(ep.x - hx3 * rad / 14, ep.y);
+        ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+        ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+        ctx.fillStyle = '#ffd040';
+        ctx.font = 'bold 10px system-ui';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText((_biz.emoji || '🏪') + ' ' + (_biz.name || ''), ep.x, ep.y - hy3 * rad / 14 - 3);
+        ctx.restore();
+      }});
+    }
+  }
+
   // БАНКИ — объёмные здания + вывески + зона фургона
   for (const bank of BANKS) {
     if (bank.r + 4 < r0 - 2 || bank.r >= r1 + 2 || bank.c + 5 < c0 - 2 || bank.c >= c1 + 2) continue;
@@ -25505,6 +25591,7 @@ function drawBankBuilding(bank) {
 
 // Нарисовать вывеску над банком
 function drawBankSign(bank) {
+  ctx.save();
   const p = w2s(bank.r + 1.5, bank.c + 1.5);
   const topY = p.y - 155;
   const W = 116, H = 48;
@@ -25582,6 +25669,7 @@ function drawBankSign(bank) {
   ctx.fillStyle = '#a09878';
   ctx.textBaseline = 'top';
   ctx.fillText(bsize, p.x - W / 2 + 28, topY + 30);
+  ctx.restore();
 }
 
 // Нарисовать зону фургона у банка
