@@ -6080,8 +6080,29 @@ const BANK_INTERACT_R = 3.5;  // радиус взаимодействия с б
 
 // Состояние активного ограбления банка (null = не активно)
 let _bankRob = null;
+// Состояние интерьера банка (null = снаружи)
+let _bankInt = null;
+// Клиентские кулдауны банков: bankId → timestamp до которого закрыт
+const _bankCooldowns = {};
 // Вес мешка: 0 = нет мешка, 1 = несу мешок (замедление)
 let _myBagWeight = 0;
+
+// Конфигурация размеров комнат банка
+const BANK_INT_CFG = {
+  small:  { W: 14, H: 10, crackTime: 10 },
+  medium: { W: 22, H: 16, crackTime: 15 },
+  large:  { W: 32, H: 24, crackTime: 20 },
+};
+// Look-объекты для NPC банка
+const _BANK_NPC_LOOKS = {
+  guard:  { gender:0, skin:1, body:1, face:0, hair:1, hat:5 },
+  teller: { gender:1, skin:2, body:0, face:1, hair:2, hat:0 },
+  staff:  { gender:0, skin:3, body:2, face:0, hair:0, hat:0 },
+  client0:{ gender:0, skin:4, body:0, face:2, hair:1, hat:0 },
+  client1:{ gender:1, skin:1, body:2, face:0, hair:3, hat:0 },
+  client2:{ gender:0, skin:2, body:2, face:1, hair:2, hat:4 },
+  client3:{ gender:1, skin:5, body:0, face:2, hair:1, hat:0 },
+};
 
 // Топливо игрока в текущей угнанной/своей машине. null = не в машине.
 // Значение 0–100 (%). Устанавливается при посадке из car._fuel.
@@ -9153,6 +9174,20 @@ let _bankZoneCur = null;  // ближайший банк в радиусе
 const _zoneEl = document.getElementById('zoneBtn');
 const _pvpBn  = document.getElementById('pvpBanner');
 function updateZoneBtn() {
+  // Если мы внутри банка — показываем кнопки интерьера
+  if (_bankInt) {
+    const int = _bankInt;
+    let label;
+    if (int.phase === 'lobby')       label = '🔓 Взломать хранилище';
+    else if (int.phase === 'cracking') label = `🔒 Взлом... ${(int.crackProg*100).toFixed(0)}%`;
+    else if (int.myBag)              label = '🚪 Выйти с мешком';
+    else                             label = '💰 Зайди в хранилище';
+    _zoneEl.textContent = label;
+    _zoneEl.style.display = 'block';
+    _zoneEl.dataset.bankId = int.bank.id;
+    return;
+  }
+
   // Проверяем близость к банкам (приоритет — своя кнопка через _bankZoneCur)
   let nearBank = null, nearBankD = BANK_INTERACT_R;
   for (const bank of BANKS) {
@@ -9164,17 +9199,15 @@ function updateZoneBtn() {
   _bankZoneCur = nearBank;
   if (nearBank) {
     let label;
-    if (!_bankRob) {
-      label = '🏦 Ограбить банк';
-    } else if (_bankRob.bank.id === nearBank.id) {
-      if (_bankRob.phase === 'entered')  label = '🔓 Взломать хранилище';
-      else if (_bankRob.phase === 'cracking') label = `🔒 Взлом... ${(_bankRob.crackProgress * 100).toFixed(0)}%`;
-      else if (_bankRob.phase === 'loading' && _bankRob.myBag) label = '🚐 Отнести мешок в фургон';
-      else if (_bankRob.phase === 'loading') label = `💰 Взять мешок ($${_bankRob.bank.reward_per_bag.toLocaleString('ru')})`;
+    if (!_bankRob && !_bankInt) {
+      label = '🏦 Войти в банк';
+    } else if (_bankRob && _bankRob.bank.id === nearBank.id) {
+      if (_bankRob.phase === 'loading' && _bankRob.myBag) label = '🚐 Отнести мешок в фургон';
+      else if (_bankRob.phase === 'loading') label = '🏦 Войти за мешком';
       else if (_bankRob.phase === 'escaping') label = '🚐 Уехать с добычей!';
       else label = '🏦 Банк';
     } else {
-      label = '🏦 Банк (занят)';
+      label = '🏦 Войти в банк';
     }
     _zoneEl.textContent = label;
     _zoneEl.style.display = 'block';
@@ -9241,30 +9274,24 @@ _zoneEl.addEventListener('click', () => {
     if (!bank) return;
     if (myDead) return;
     if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
-    // Если нет активного ограбления — начать
-    if (!_bankRob) {
-      startBankRobbery(bank);
+    // Интерьер активен — кнопка внутри банка
+    if (_bankInt && _bankInt.bank.id === bank.id) {
+      if (_bankInt.phase === 'lobby') {
+        _bankInt.phase = 'cracking';
+        _bankInt._crackStartedAt = performance.now();
+        showToast('🔒 Взламываешь хранилище — стой у прилавка', '⏳', 2200);
+        return;
+      }
+      if (_bankInt.phase === 'vault_open' && _bankInt.myBag) {
+        exitBankInterior(true);
+        return;
+      }
+      // Выйти без мешка
+      exitBankInterior(false);
       return;
     }
-    // Если ограбление именно этого банка
-    if (_bankRob.bank.id === bank.id) {
-      if (_bankRob.phase === 'entered') {
-        // Начать взлом
-        _bankRob.phase = 'cracking';
-        showToast('🔒 Взламываешь хранилище — стой на месте', '⏳', 2200);
-        return;
-      }
-      if (_bankRob.phase === 'loading' && !_bankRob.myBag) {
-        _takeBankBag();
-        return;
-      }
-      if (_bankRob.phase === 'escaping') {
-        finishBankRobbery();
-        return;
-      }
-    } else {
-      showToast('🏦 Сначала заверши текущее ограбление', '⚠️', 2000);
-    }
+    // Войти в банк
+    enterBankInterior(bank);
     return;
   }
 
@@ -13261,6 +13288,33 @@ function update(dt) {
       _tickParkingNpcs(dt);
       return;
     }
+  }
+
+  // ── ИНТЕРЬЕР БАНКА: отдельная физика и управление ──
+  if (_bankInt) {
+    const intSpeed = 4.5;
+    player.walking = false;
+    if (Math.abs(inDx)>0.08 || Math.abs(inDy)>0.08) {
+      const d=inDx, s=inDy/ISO_Y;
+      const dc=(s+d)*0.5, dr=(s-d)*0.5;
+      const mag=Math.hypot(dr,dc)||1;
+      const mv=Math.min(1,Math.hypot(inDx,inDy));
+      const mr=dr/mag*intSpeed*dt*mv, mc=dc/mag*intSpeed*dt*mv;
+      const pad=0.3;
+      const nr=player.r+mr, nc=player.c+mc;
+      if (!_isBlockedInterior(nr-pad,player.c)&&!_isBlockedInterior(nr+pad,player.c)) player.r=nr;
+      if (!_isBlockedInterior(player.r,nc-pad)&&!_isBlockedInterior(player.r,nc+pad)) player.c=nc;
+      player.ang=Math.atan2(dr,dc);
+      player.walking=mv>0.15;
+      player.walkPhase+=dt*10*mv;
+    }
+    const targetCamX=(player.c-player.r)*TS*0.5;
+    const targetCamY=(player.c+player.r)*TS*0.5*ISO_Y;
+    cam.x+=(targetCamX-cam.x)*Math.min(1,dt*8);
+    cam.y+=(targetCamY-cam.y)*Math.min(1,dt*8);
+    _updateBankInterior(dt);
+    _updateBankZoneBtn();
+    return;
   }
 
   // Замедление при несении мешка из банка
@@ -22263,6 +22317,11 @@ function roundRect(x, y, w, h, r) {
 }
 
 function render() {
+  // Если игрок внутри банка — рисуем только интерьер
+  if (_bankInt) {
+    drawBankInteriorScene();
+    return;
+  }
   ctx.fillStyle = '#0a0a10';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   // Обновляем список «скрытых» игроков (которые сейчас в автозаке)
@@ -24858,6 +24917,8 @@ function finishBankRobbery() {
   }
   showToast(`💰 Ограбление завершено! ${bags_loaded} мешков (+$${total.toLocaleString('ru')})`, '✅', 3500);
   try { hapticHit && hapticHit(); } catch(e) {}
+  // Локальный кулдаун 10 минут
+  _bankCooldowns[bank_id] = Date.now() + 10 * 60 * 1000;
   _bankRob = null;
   _myBagWeight = 0;
   const el = document.getElementById('bankRobHud');
@@ -25232,6 +25293,581 @@ function drawBankVanZone(bank) {
   ctx.fillText('ФУРГОН', cx, cy + 8);
   ctx.globalAlpha = 1;
   ctx.restore();
+}
+
+// ── BANK INTERIOR SYSTEM ──────────────────────────────────────────
+
+function _bankDoorCoord(bank) {
+  return { r: bank.r + 2.8, c: bank.c + 1.5 };
+}
+
+function _spawnBankNpcs(bank, cfg) {
+  const { W, H } = cfg;
+  const npcs = [];
+  // Охранник у входа
+  npcs.push({ type:'guard', r: H-2, c: W/2,
+    vr:0, vc:0, state:'normal', look: _BANK_NPC_LOOKS.guard,
+    walkPhase:0, ang: -Math.PI/2,
+    wanderTimer:2+Math.random()*2, wanderVr:0, wanderVc:0,
+  });
+  // Кассирша за стойкой
+  npcs.push({ type:'teller', r:3.4, c: W/2,
+    vr:0, vc:0, state:'normal', look: _BANK_NPC_LOOKS.teller,
+    walkPhase:0, ang: Math.PI/2,
+  });
+  // Сотрудник в зоне персонала (за прилавком слева)
+  npcs.push({ type:'staff', r:1.5, c:2,
+    vr:0, vc:0, state:'normal', look: _BANK_NPC_LOOKS.staff,
+    walkPhase:0, ang:0, atDesk:true,
+  });
+  if (bank.size !== 'small') {
+    npcs.push({ type:'staff', r:1.5, c: W-3,
+      vr:0, vc:0, state:'normal', look: _BANK_NPC_LOOKS.staff,
+      walkPhase:0, ang:0, atDesk:true,
+    });
+  }
+  // Клиенты в лобби
+  const clientCount = { small:2, medium:4, large:6 }[bank.size] || 2;
+  for (let i=0; i<clientCount; i++) {
+    const lookKey = `client${i%4}`;
+    npcs.push({ type:'client',
+      r: 5 + Math.random()*2.5,
+      c: 1.5 + Math.random()*(W-3),
+      vr:0, vc:0, state:'normal',
+      look: _BANK_NPC_LOOKS[lookKey] || _BANK_NPC_LOOKS.client0,
+      walkPhase: Math.random()*Math.PI*2,
+      ang: Math.random()*Math.PI*2,
+      wanderTimer: Math.random()*3,
+      wanderVr:0, wanderVc:0,
+    });
+  }
+  return npcs;
+}
+
+function enterBankInterior(bank) {
+  if (_bankInt || myDead || myDrivingCarId) return;
+  const cfg = BANK_INT_CFG[bank.size];
+  if (!cfg) return;
+  // Проверка кулдауна
+  const coolEnd = _bankCooldowns && _bankCooldowns[bank.id];
+  if (coolEnd && Date.now() < coolEnd) {
+    const sec = Math.ceil((coolEnd - Date.now())/1000);
+    const m=Math.floor(sec/60), s=sec%60;
+    showToast(`🚨 Банк закрыт — ${m}:${String(s).padStart(2,'0')}`, '⏳', 2500);
+    return;
+  }
+  const existingRob = _bankRob && _bankRob.bank.id === bank.id;
+  const vaultOpen   = !!existingRob;
+  const bagsLeft    = bank.bags - (existingRob ? _bankRob.bagsLoaded : 0);
+  if (existingRob && bagsLeft <= 0) {
+    showToast('💰 Все мешки уже взяты!', '✅', 1800); return;
+  }
+  // Спавним позиции мешков в хранилище
+  const bags=[], bagCount = vaultOpen ? bagsLeft : bank.bags;
+  for (let i=0; i<bagCount; i++) {
+    bags.push({
+      id:i, taken:false,
+      r: 0.6 + Math.random()*0.5,
+      c: 1.5 + (i/Math.max(1,bagCount-1))*(cfg.W-3) + (Math.random()-0.5)*0.5,
+    });
+  }
+  _bankInt = {
+    bank, W:cfg.W, H:cfg.H, crackTime:cfg.crackTime,
+    phase: vaultOpen ? 'vault_open' : 'lobby',
+    crackProg: vaultOpen ? 1 : 0,
+    _crackStartedAt: null,
+    bags, myBag:false,
+    _bagsLoaded: existingRob ? _bankRob.bagsLoaded : 0,
+    savedR: player.r, savedC: player.c,
+    alarmTriggered: !!existingRob,
+    startedAt: existingRob ? _bankRob.startedAt : (performance.now()/1000),
+    npcs: _spawnBankNpcs(bank, cfg),
+    panicAt: vaultOpen ? performance.now() : null,
+  };
+  player.r = cfg.H - 1.5;
+  player.c = cfg.W / 2;
+  showToast(vaultOpen
+    ? `🏦 ${bank.name} — хранилище открыто!`
+    : `🏦 ${bank.name} — взломай хранилище`, vaultOpen ? '💰' : '🔓', 2500);
+  try { hapticHit && hapticHit(); } catch(e) {}
+  if (!vaultOpen && ws && ws.readyState===1) {
+    try { ws.send(JSON.stringify({t:'bank_rob_start',d:{bank_id:bank.id}})); } catch(e){}
+  }
+  _updateBankZoneBtn();
+}
+
+function exitBankInterior(withBag) {
+  if (!_bankInt) return;
+  const int = _bankInt;
+  _bankInt = null;
+  _myBagWeight = withBag && int.myBag ? 1 : 0;
+  const door = _bankDoorCoord(int.bank);
+  player.r = door.r; player.c = door.c;
+  if (withBag && int.myBag) {
+    int._bagsLoaded++;
+    if (!_bankRob) {
+      _bankRob = { bank:int.bank, phase:'loading',
+        bagsLoaded:int._bagsLoaded, bagsMax:int.bank.bags,
+        myBag:int.myBag, policeTimer:int.bank.police_delay,
+        alarmTriggered:true, startedAt:int.startedAt,
+        crackProgress:1, crackTotal:20,
+      };
+    } else {
+      _bankRob.bagsLoaded = int._bagsLoaded;
+      _bankRob.myBag = int.myBag;
+    }
+    showToast('💰 Несёшь мешок — загрузи в фургон!','🚐',2500);
+    if (ws && ws.readyState===1) {
+      try { ws.send(JSON.stringify({t:'bank_rob_bag_loaded',
+        d:{bank_id:int.bank.id,bags:int._bagsLoaded}})); } catch(e){}
+    }
+  } else {
+    showToast('🚪 Вышел из банка','ℹ️',1200);
+  }
+  const hudEl = document.getElementById('bankRobHud');
+  if (hudEl && !_bankRob) hudEl.style.display='none';
+  _updateBankZoneBtn();
+}
+
+function _isBlockedInterior(r, c) {
+  const int = _bankInt; if (!int) return false;
+  if (r<0.4 || r>int.H-0.4) return true;
+  if (c<0.4 || c>int.W-0.4) return true;
+  // Прилавок на row 3 — проход в центре W/2±1.5
+  if (int.phase !== 'vault_open' && r < 3.5 && r > 2.9) {
+    const gL=int.W/2-1.5, gR=int.W/2+1.5;
+    if (c<gL || c>gR) return true;
+  }
+  return false;
+}
+
+function _updateBankInterior(dt) {
+  if (!_bankInt) return;
+  const int = _bankInt;
+  const now = performance.now();
+
+  // Тревога
+  if (int._crackStartedAt && !int.alarmTriggered) {
+    const crackElapsed = (now - int._crackStartedAt) / 1000;
+    if (crackElapsed > 60) {
+      int.alarmTriggered = true;
+      showToast('🚨 Тревога! Полиция едет!','🚨',2500);
+      try { hapticHit && hapticHit(); } catch(e){}
+    }
+  }
+
+  // Взлом
+  if (int.phase==='cracking' && int._crackStartedAt) {
+    int.crackProg = Math.min(1, (now - int._crackStartedAt)/1000/int.crackTime);
+    if (int.crackProg >= 1) {
+      int.phase = 'vault_open';
+      int.panicAt = now;
+      showToast('🔓 Хранилище открыто!','💰',2500);
+      try { hapticHit && hapticHit(); } catch(e){}
+      if (ws && ws.readyState===1) {
+        try { ws.send(JSON.stringify({t:'bank_rob_announce',d:{bank_id:int.bank.id}})); } catch(e){}
+      }
+    }
+  }
+
+  // Паника NPC
+  if (int.panicAt !== null) {
+    for (const npc of int.npcs) {
+      if (npc.state==='panic' || npc.state==='fled' || npc.state==='hostile') continue;
+      npc.state = (npc.type==='guard') ? 'hostile' : 'panic';
+      npc.cryUntil = now + 2500;
+      npc.cryText = npc.type==='guard' ? 'Стоять!' : (npc.type==='teller' ? 'Помогите!' : 'Ааа!');
+      // Направление бегства — к выходу (south, row H)
+      const dr = int.H+1 - npc.r, dc = int.W/2 - npc.c;
+      const mag = Math.hypot(dr,dc)||1;
+      npc.fleeVr = dr/mag * 3.5; npc.fleeVc = dc/mag * 3.5;
+    }
+  }
+
+  // Двигаем NPC
+  for (const npc of int.npcs) {
+    npc.walkPhase = (npc.walkPhase||0) + dt*9;
+
+    if (npc.state==='normal') {
+      if (npc.type==='client') {
+        npc.wanderTimer = (npc.wanderTimer||0) - dt;
+        if (npc.wanderTimer<=0) {
+          const ang = Math.random()*Math.PI*2;
+          npc.wanderVr = Math.sin(ang)*0.6; npc.wanderVc = Math.cos(ang)*0.6;
+          npc.wanderTimer = 1.5 + Math.random()*2;
+          npc.ang = Math.atan2(npc.wanderVr, npc.wanderVc);
+        }
+        const nr=npc.r+(npc.wanderVr||0)*dt, nc=npc.c+(npc.wanderVc||0)*dt;
+        if (!_isBlockedInterior(nr,npc.c)) npc.r=nr;
+        if (!_isBlockedInterior(npc.r,nc)) npc.c=nc;
+      }
+      // guard — небольшой патруль у входа
+      if (npc.type==='guard') {
+        npc.wanderTimer = (npc.wanderTimer||0) - dt;
+        if (npc.wanderTimer<=0) {
+          const baseC = int.W/2;
+          npc.wanderVc = (npc.c < baseC-1) ? 0.5 : (npc.c > baseC+1 ? -0.5 : (Math.random()>0.5?0.5:-0.5));
+          npc.wanderVr = 0;
+          npc.wanderTimer = 1+Math.random()*2;
+          npc.ang = Math.atan2(0, npc.wanderVc);
+        }
+        const nc=npc.c+(npc.wanderVc||0)*dt;
+        if (!_isBlockedInterior(npc.r,nc)) npc.c=nc;
+      }
+    }
+
+    if (npc.state==='hostile') {
+      // Охранник двигается к игроку
+      const dr=player.r-npc.r, dc=player.c-npc.c;
+      const dist=Math.hypot(dr,dc);
+      if (dist>1.2) {
+        const sp=2.5*dt/dist;
+        npc.r+=dr*sp; npc.c+=dc*sp;
+        npc.ang=Math.atan2(dr,dc);
+      } else {
+        // Подошёл — пытается «остановить», потом убегает
+        if (!npc._hostileFlipAt) npc._hostileFlipAt = now+3000;
+        if (now > npc._hostileFlipAt) {
+          npc.state='panic';
+          const dr2=int.H+1-npc.r, dc2=int.W/2-npc.c;
+          const m2=Math.hypot(dr2,dc2)||1;
+          npc.fleeVr=dr2/m2*4; npc.fleeVc=dc2/m2*4;
+        }
+      }
+    }
+
+    if (npc.state==='panic') {
+      npc.r += (npc.fleeVr||0)*dt; npc.c += (npc.fleeVc||0)*dt;
+      npc.ang = Math.atan2(npc.fleeVr||0, npc.fleeVc||0);
+      if (npc.r > int.H+0.5) npc.state='fled';
+    }
+  }
+
+  // Автоподбор мешка
+  if (int.phase==='vault_open' && !int.myBag) {
+    for (const bag of int.bags) {
+      if (bag.taken) continue;
+      if (Math.hypot(player.r-bag.r, player.c-bag.c)<1.4) {
+        bag.taken=true;
+        int.myBag={id:bag.id,value:int.bank.reward_per_bag};
+        _myBagWeight=1;
+        showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`,'💼',2200);
+        try { hapticHit && hapticHit(); } catch(e){}
+        break;
+      }
+    }
+  }
+
+  // Выход через дверь
+  if (player.r >= int.H-0.15) {
+    exitBankInterior(!!int.myBag); return;
+  }
+
+  // HUD
+  const el=document.getElementById('bankRobHud');
+  if (el) {
+    el.style.display='block';
+    const ph=document.getElementById('bankRobPhaseText');
+    const bg=document.getElementById('bankRobBagCount');
+    if (ph) ph.textContent=
+      int.phase==='lobby'   ?'🏦 В БАНКЕ':
+      int.phase==='cracking'?'🔒 ВЗЛОМ':'💰 ГРУЗИМ МЕШКИ';
+    if (bg) {
+      if (int.phase==='cracking') bg.textContent=`Взлом: ${(int.crackProg*100).toFixed(0)}%`;
+      else {
+        const taken=int.bags.filter(b=>b.taken).length+int._bagsLoaded;
+        bg.textContent=`Мешки: ${taken}/${int.bank.bags}${int.myBag?' 💼 несу':''}`;
+      }
+    }
+    const fill=document.getElementById('bankRobPoliceFill');
+    const txt=document.getElementById('bankRobPoliceText');
+    if (int.alarmTriggered && int._crackStartedAt) {
+      const frac=Math.max(0,1-(now-int._crackStartedAt)/1000/int.bank.police_delay);
+      if (fill) fill.style.width=(frac*100).toFixed(1)+'%';
+      if (txt) txt.textContent=frac>0?`🚓 Полиция через ${Math.ceil(frac*int.bank.police_delay)}с`:'🚓 Полиция здесь!';
+    } else {
+      if (fill) fill.style.width='100%';
+      if (txt) txt.textContent='⏳ Ожидание';
+    }
+  }
+}
+
+function _drawBankInteriorNpc(npc, int) {
+  if (npc.state==='fled') return;
+  const now=performance.now();
+  const p=w2s(npc.r+0.5, npc.c+0.5);
+  // Мигание при панике
+  if (npc.state==='panic'||npc.state==='hostile') {
+    const flash=Math.sin(now*0.025)>0;
+    if (!flash) { /* иногда «мигаем» при беге */ }
+  }
+  const isMoving=(npc.state==='panic'||npc.state==='hostile'||
+    (npc.state==='normal'&&npc.type!=='staff'&&npc.type!=='teller'));
+  drawPerson(p.x,p.y,npc.ang,npc.look,isMoving?npc.walkPhase:0,null,null,false,null,null,false,0);
+  // Речевой баббл
+  if (npc.cryUntil && now < npc.cryUntil) {
+    const txt=npc.cryText||'Ааа!';
+    const bob=Math.sin(now*0.022)*1.5;
+    const ty=p.y-46+bob;
+    ctx.save();
+    ctx.font='bold 10px system-ui,"Segoe UI Emoji"';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const tw=ctx.measureText(txt).width+10;
+    ctx.fillStyle='rgba(180,20,20,.9)';
+    if (ctx.roundRect) ctx.roundRect(p.x-tw/2,ty-8,tw,16,4);
+    else ctx.rect(p.x-tw/2,ty-8,tw,16);
+    ctx.fill();
+    ctx.fillStyle='#fff'; ctx.fillText(txt,p.x,ty+1);
+    // хвостик
+    ctx.fillStyle='rgba(180,20,20,.9)';
+    ctx.beginPath(); ctx.moveTo(p.x-3,ty+8); ctx.lineTo(p.x+3,ty+8);
+    ctx.lineTo(p.x,ty+13); ctx.closePath(); ctx.fill();
+    ctx.restore(); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  }
+  // Иконка охранника
+  if (npc.type==='guard' && npc.state!=='fled') {
+    ctx.save(); ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('🛡️',p.x,p.y-46); ctx.restore();
+  }
+}
+
+function drawBankInteriorScene() {
+  const int=_bankInt; if (!int) return;
+  const { W, H, phase, crackProg, bags, myBag, bank, alarmTriggered } = int;
+  const stage=document.getElementById('stage');
+  const SW=stage.clientWidth, SH=stage.clientHeight;
+  const hx=TS*0.5, hy=TS*0.5*ISO_Y;
+
+  // Фон
+  ctx.fillStyle='#060409'; ctx.fillRect(0,0,SW,SH);
+
+  const drawItems=[];
+  const wallH=isoH(2.2);
+
+  // Тайлы пола (три зоны по глубине)
+  for (let r=0; r<H; r++) {
+    for (let c=0; c<W; c++) {
+      const isVault  = r<2;
+      const isStaff  = r>=2 && r<4 && (c<3 || c>W-4);  // боковые зоны персонала
+      const isLobby  = r>=4;
+      const checker  = (r+c)%2===0;
+      let fill, stroke;
+      if (isVault) {
+        fill=checker?'#1c1828':'#14102a'; stroke='#2a2252';
+      } else if (isStaff) {
+        fill=checker?'#1a2030':'#141828'; stroke='#2a3040';
+      } else {
+        fill=checker?'#f0ead8':'#e4dcc8'; stroke='#c8c0aa';
+      }
+      drawItems.push({d:r+c, fn:()=>{
+        const p=w2s(r+0.5,c+0.5);
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y-hy); ctx.lineTo(p.x+hx,p.y);
+        ctx.lineTo(p.x,p.y+hy); ctx.lineTo(p.x-hx,p.y);
+        ctx.closePath();
+        ctx.fillStyle=fill; ctx.fill();
+        ctx.strokeStyle=stroke; ctx.lineWidth=0.5; ctx.stroke();
+      }});
+    }
+  }
+
+  // Офисные столы в зоне персонала
+  const drawDesk=(r,c,label)=>{
+    drawItems.push({d:r+c+0.1, fn:()=>{
+      const p=w2s(r+0.5,c+0.5);
+      const dw=hx*0.8, dh=hy*0.8, topH=isoH(0.5);
+      ctx.save();
+      // Столешница
+      ctx.fillStyle='#3a4060'; ctx.strokeStyle='#505878'; ctx.lineWidth=0.8;
+      ctx.beginPath();
+      ctx.moveTo(p.x,p.y-hy*0.8); ctx.lineTo(p.x+dw,p.y-dh*0.8+dh*0.5);
+      ctx.lineTo(p.x,p.y+dh*0.5); ctx.lineTo(p.x-dw,p.y-dh*0.8+dh*0.5-dh);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Монитор
+      ctx.fillStyle='#1a2a4a'; ctx.fillRect(p.x-6,p.y-topH-10,12,9);
+      ctx.strokeStyle='#4080ff'; ctx.lineWidth=0.7; ctx.strokeRect(p.x-6,p.y-topH-10,12,9);
+      // Экран светится
+      ctx.fillStyle=`rgba(40,100,220,${0.4+0.2*Math.sin(performance.now()*0.002+r)})`;
+      ctx.fillRect(p.x-5,p.y-topH-9,10,7);
+      if (label) {
+        ctx.font='6px monospace'; ctx.fillStyle='#80c0ff';
+        ctx.textAlign='center'; ctx.fillText(label,p.x,p.y-topH-4);
+      }
+      ctx.restore(); ctx.textAlign='left';
+    }});
+  };
+  drawDesk(1.5, 1.5, '▌▌');
+  drawDesk(2.5, 1.5);
+  if (W>15) { drawDesk(1.5,W-2.5,'▌▌'); drawDesk(2.5,W-2.5); }
+
+  // Мешки в хранилище
+  if (phase==='vault_open'||phase==='cracking') {
+    for (const bag of bags) {
+      if (bag.taken) continue;
+      const br=bag.r, bc=bag.c;
+      drawItems.push({d:br+bc+0.3, fn:()=>{
+        const p=w2s(br+0.5,bc+0.5);
+        const bh=isoH(0.4);
+        ctx.fillStyle='rgba(0,0,0,.4)';
+        ctx.beginPath(); ctx.ellipse(p.x,p.y+2,hx*0.35,hy*0.35,0,0,Math.PI*2); ctx.fill();
+        const g=ctx.createLinearGradient(p.x-8,p.y-bh,p.x+8,p.y);
+        g.addColorStop(0,'#2a6030'); g.addColorStop(0.5,'#3a8040'); g.addColorStop(1,'#1a4020');
+        ctx.fillStyle=g;
+        ctx.beginPath(); ctx.ellipse(p.x,p.y-bh*0.5,9,7,0,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='#4da050'; ctx.lineWidth=1; ctx.stroke();
+        ctx.fillStyle='#80e880'; ctx.font='bold 10px monospace';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('$',p.x,p.y-bh*0.5-1);
+        ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+      }});
+    }
+  }
+
+  // NPC
+  for (const npc of int.npcs) {
+    if (npc.state==='fled') continue;
+    const nr=npc.r, nc=npc.c;
+    drawItems.push({d:nr+nc, fn:()=>_drawBankInteriorNpc(npc,int)});
+  }
+
+  // Игрок
+  drawItems.push({d:player.r+player.c+0.05, fn:()=>{
+    const p=w2s(player.r+0.5,player.c+0.5);
+    drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,
+      QP.name,null,true,myHp,PVP.max_hp||100,myDead);
+    if (!myDead) drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,0.9,lastShotClientT);
+    if (myBag) {
+      ctx.font='16px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('💼',p.x,p.y-38); ctx.textAlign='left';
+    }
+  }});
+
+  drawItems.sort((a,b)=>a.d-b.d);
+  drawItems.forEach(i=>i.fn());
+
+  // Стены
+  const _wFace=(r0,c0,r1,c1,col,stk)=>{
+    const a=w2s(r0,c0), b=w2s(r1,c1);
+    ctx.fillStyle=col; ctx.strokeStyle=stk; ctx.lineWidth=0.8;
+    ctx.beginPath();
+    ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+    ctx.lineTo(b.x,b.y-wallH); ctx.lineTo(a.x,a.y-wallH);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+
+  // Северная стена с дверью хранилища
+  const vDL=Math.floor(W/2)-1, vDR=Math.floor(W/2)+1;
+  for (let c=0;c<W;c++) {
+    if (c>=vDL && c<vDR) {
+      const col=phase==='vault_open'?'#101624':'#222050';
+      _wFace(0,c,0,c+1,col,'#3848a0');
+      if (phase!=='vault_open') {
+        const a=w2s(0,c+0.5), my=a.y-wallH*0.5;
+        ctx.save(); ctx.fillStyle='#c0a020';
+        ctx.beginPath(); ctx.arc(a.x,my,4,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='#ffd040'; ctx.lineWidth=1.3;
+        for (let i=0;i<6;i++){
+          const ag=(i/6)*Math.PI*2;
+          ctx.beginPath(); ctx.moveTo(a.x,my);
+          ctx.lineTo(a.x+Math.cos(ag)*6,my+Math.sin(ag)*6); ctx.stroke();
+        }
+        ctx.restore();
+      }
+    } else {
+      _wFace(0,c,0,c+1,'#1e1830','#2c2448');
+    }
+  }
+  // Западная
+  for (let r=0;r<H;r++) _wFace(r,0,r+1,0,'#181428','#261e3c');
+  // Восточная
+  for (let r=0;r<H;r++) _wFace(r,W,r+1,W,'#161226','#22183a');
+  // Южная с выходом
+  const eDL=Math.floor(W/2)-1, eDR=Math.floor(W/2)+1;
+  for (let c=0;c<W;c++) {
+    if (c>=eDL && c<eDR) {
+      _wFace(H,c,H,c+1,'#0a0614','#5040a0');
+    } else {
+      _wFace(H,c,H,c+1,'#1e1630','#2c2448');
+    }
+  }
+  // Надпись ВЫХОД — один раз по центру
+  { const a=w2s(H,(eDL+eDR)/2);
+    ctx.save(); ctx.fillStyle='#50e050'; ctx.font='bold 8px system-ui';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('ВЫХОД',a.x,a.y-wallH*0.5); ctx.restore();
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
+
+  // Прилавок (если хранилище закрыто)
+  if (phase!=='vault_open') {
+    const gL=Math.floor(W/2)-1, gR=Math.floor(W/2)+1;
+    const cH=isoH(0.85);
+    for (let c=0;c<W;c++) {
+      if (c>=gL && c<gR) continue;
+      const p1=w2s(3,c), p2=w2s(3,c+1);
+      ctx.fillStyle='#c8b860'; ctx.strokeStyle='#907840'; ctx.lineWidth=0.8;
+      ctx.beginPath();
+      ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
+      ctx.lineTo(p2.x,p2.y-cH); ctx.lineTo(p1.x,p1.y-cH);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+  }
+
+  // Разделительная стеклянная стенка зоны персонала (горизонтальная, r=4)
+  if (W>15) {
+    const glasH=isoH(0.7);
+    for (let c=0;c<3;c++) {
+      const p1=w2s(4,c), p2=w2s(4,c+1);
+      ctx.fillStyle='rgba(100,160,220,0.18)'; ctx.strokeStyle='rgba(140,200,255,0.35)'; ctx.lineWidth=0.7;
+      ctx.beginPath();
+      ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
+      ctx.lineTo(p2.x,p2.y-glasH); ctx.lineTo(p1.x,p1.y-glasH);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    for (let c=W-3;c<W;c++) {
+      const p1=w2s(4,c), p2=w2s(4,c+1);
+      ctx.fillStyle='rgba(100,160,220,0.18)'; ctx.strokeStyle='rgba(140,200,255,0.35)'; ctx.lineWidth=0.7;
+      ctx.beginPath();
+      ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
+      ctx.lineTo(p2.x,p2.y-glasH); ctx.lineTo(p1.x,p1.y-glasH);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+  }
+
+  // Прогресс-бар взлома
+  if (phase==='cracking') {
+    const pp=w2s(3,W/2); const barW=90;
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,.8)';
+    if (ctx.roundRect) ctx.roundRect(pp.x-barW/2-4,pp.y-wallH-22,barW+8,20,4);
+    else ctx.rect(pp.x-barW/2-4,pp.y-wallH-22,barW+8,20);
+    ctx.fill();
+    ctx.fillStyle='#4888ff'; ctx.fillRect(pp.x-barW/2,pp.y-wallH-18,barW*crackProg,12);
+    ctx.fillStyle='#fff'; ctx.font='bold 10px system-ui';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(`🔒 ${(crackProg*100).toFixed(0)}%`,pp.x,pp.y-wallH-12);
+    ctx.restore(); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  }
+
+  // Подсказка вверху
+  const hint=
+    phase==='lobby'     ?'⬆ Подойди к прилавку — нажми «Взломать»':
+    phase==='cracking'  ?'⬆ Стой у прилавка — идёт взлом':
+    myBag               ?'⬇ Выходи через EXIT-дверь с мешком':
+                         '⬆ Зайди в хранилище — автоподбор мешка';
+  ctx.save();
+  ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='bold 14px system-ui';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText(`🏦 ${bank.name}`,SW/2,12);
+  ctx.fillStyle='rgba(200,200,200,.85)'; ctx.font='11px system-ui';
+  ctx.fillText(hint,SW/2,30);
+  ctx.restore(); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+
+  // Тревога — красная виньетка
+  if (alarmTriggered) {
+    const t=performance.now()*0.003;
+    const alpha=0.07+0.05*Math.sin(t*8);
+    ctx.fillStyle=`rgba(255,30,30,${alpha})`; ctx.fillRect(0,0,SW,SH);
+  }
 }
 
 // в норме (типично 0-20 пуль, 0-5 muzzles), но защищает от худшего.
