@@ -9182,9 +9182,9 @@ function updateZoneBtn() {
       else if (int.myBag)            label='🚪 Выйти с мешком';
       else                           label='💰 Иди в хранилище';
     } else if (r==='vault') {
-      label = int.myBag?'🚪 Уйти с мешком':'💰 В хранилище';
+      label = int.myBag?'🚪 Выйти с мешком':'🚪 ← В лобби';
     } else {
-      label = '← В лобби';
+      label = '🚪 ← В лобби';
     }
     _zoneEl.textContent = label;
     _zoneEl.style.display = 'block';
@@ -9291,7 +9291,7 @@ _zoneEl.addEventListener('click', () => {
         exitBankInterior(false); return;
       }
       if (int.room==='vault') {
-        if (int.myBag) _switchBankRoom('lobby');
+        _switchBankRoom('lobby');  // всегда возвращаем в лобби (с мешком или без)
         return;
       }
       _switchBankRoom('lobby'); return;
@@ -25521,7 +25521,7 @@ function _isBlockedInterior(r, c) {
   const int = _bankInt; if (!int) return false;
   const cfg = _BROOM[int.room] || _BROOM.lobby;
   const { W, H } = cfg;
-  if (r < 0.4 || r > H - 0.3) return true;
+  if (r < 0.4 || r > H - 0.1) return true;
   if (c < 0.4 || c > W - 0.4) return true;
   // Лобби: прилавок на row 3.5, проход в центре
   if (int.room === 'lobby' && r < 3.9 && r > 3.2) {
@@ -25700,7 +25700,7 @@ function _updateBankInterior(dt) {
       }
     }
     // Выход из банка (south door)
-    if (player.r>=LH-0.15) { exitBankInterior(!!int.myBag); return; }
+    if (player.r>=LH-0.6) { exitBankInterior(!!int.myBag); return; }
   }
 
   if (room==='vault') {
@@ -25720,12 +25720,12 @@ function _updateBankInterior(dt) {
       }
     }
     // Выход из хранилища → обратно в лобби
-    if (player.r>=VH-0.2) { _switchBankRoom('lobby'); return; }
+    if (player.r>=VH-0.6) { _switchBankRoom('lobby'); return; }
   }
 
   if (room==='staff' || room==='lounge') {
     const rH=_BROOM[room].H;
-    if (player.r>=rH-0.2) { _switchBankRoom('lobby'); return; }
+    if (player.r>=rH-0.6) { _switchBankRoom('lobby'); return; }
   }
 
   // ── HUD ────────────────────────────────────────────────────────
