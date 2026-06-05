@@ -25327,11 +25327,14 @@ function _updateBankZoneBtn() {
 
 // Нарисовать здание банка
 function drawBankBuilding(bank) {
-  // Банк — изо-3D здание 3×3 тайла, как обычные дома но мраморное
   const size = bank.size;
-  const p = w2s(bank.r + 1.5, bank.c + 1.5);   // центр 3×3
-  const wx = TS * 1.5, wy = TS * 1.5 * ISO_Y;   // полуразмер 3 тайлов
-  const floors = { small: 4, medium: 6, large: 8 }[size];
+  // Размер здания зависит от типа банка:
+  // small=2×2 тайла (TS*1), medium=3×3 (TS*1.5), large=4×4 (TS*2)
+  const bankScale = { small: 1.0, medium: 1.5, large: 2.0 }[size];
+  const bankCenter = { small: 1.0, medium: 1.5, large: 1.5 }[size]; // смещение центра
+  const p = w2s(bank.r + bankCenter, bank.c + bankCenter);
+  const wx = TS * bankScale, wy = TS * bankScale * ISO_Y;
+  const floors = { small: 3, medium: 5, large: 8 }[size];
   const H = isoH(1.4 + floors * 0.55);           // высота (та же логика что drawBuilding)
   const t = performance.now() / 1000;
   const isRobbed = (_bankRob && _bankRob.bank.id === bank.id) ||
@@ -25515,6 +25518,33 @@ function drawBankBuilding(bank) {
   ctx.font = `${size==='large'?7:6}px system-ui`;
   ctx.fillText(bank.name.toUpperCase(), signX, signY - 4);
   ctx.restore(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+
+  // ── Название банка над крышей (плавающий тег) ─────────────────
+  {
+    const roofPeakX = p.x + wx * 0.15;
+    const roofPeakY = p.y - H - wy * 0.15;
+    const nameY = roofPeakY - (size === 'large' ? 20 : size === 'medium' ? 14 : 8);
+    ctx.save();
+    ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+    // Фон тега
+    const tagFont = size === 'large' ? 'bold 11px system-ui' : 'bold 9px system-ui';
+    ctx.font = tagFont;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const nameW = ctx.measureText(bank.name).width + 10;
+    const nameH = size === 'large' ? 16 : 13;
+    ctx.fillStyle = 'rgba(10,10,24,.82)';
+    if (ctx.roundRect) ctx.roundRect(roofPeakX - nameW/2, nameY - nameH/2, nameW, nameH, 4);
+    else ctx.rect(roofPeakX - nameW/2, nameY - nameH/2, nameW, nameH);
+    ctx.fill();
+    // Рамка цвета по типу банка
+    const tagColor = { small: '#80c0ff', medium: '#c0a040', large: '#ff8040' }[size];
+    ctx.strokeStyle = tagColor; ctx.lineWidth = 1.2;
+    ctx.stroke();
+    // Текст
+    ctx.fillStyle = '#fff';
+    ctx.fillText(bank.name, roofPeakX, nameY);
+    ctx.restore(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
 
   // Антенна на крыше (высотка)
   if (size === 'large') {
@@ -25756,8 +25786,10 @@ function drawBankEntrance(bank) {
   const now = performance.now();
   const pulse = 0.5 + 0.5 * Math.sin(now * 0.005);
   // Позиция ромба = у ступеней двери (то же что drawBankBuilding рисует дверь)
-  const pc = w2s(bank.r + 1.5, bank.c + 1.5);
-  const wx3 = TS * 1.5, wy3 = TS * 1.5 * ISO_Y;
+  const bankScale3 = { small: 1.0, medium: 1.5, large: 2.0 }[bank.size] || 1.5;
+  const bankCenter3 = { small: 1.0, medium: 1.5, large: 1.5 }[bank.size] || 1.5;
+  const pc = w2s(bank.r + bankCenter3, bank.c + bankCenter3);
+  const wx3 = TS * bankScale3, wy3 = TS * bankScale3 * ISO_Y;
   const archK = 0.25;
   const doorX = pc.x + wx3 * archK;    // экранная X двери
   const doorY = pc.y + wy3 * (1 - archK); // экранная Y ступеней
@@ -25933,24 +25965,22 @@ function _isBlockedInterior(r,c) {
   if (r<0.4||r>H-.15) return true;
   if (c<.4||c>W-.4) return true;
   const archRow=counterRow-4;
-  // Внутренняя стена на archRow — кроме 3 арочных проёмов
-  if (r>=archRow&&r<archRow+1) {
+  // Внутренняя стена на archRow — 1.5-тайловая зона чтобы не проскочить при высокой скорости
+  if (r>archRow-0.5&&r<archRow+1.5) {
     const staffL=Math.floor(W*.10),staffR=staffL+3;
     const loungeL=Math.floor(W*.65),loungeR=loungeL+3;
     const cenL=Math.floor(W/2)-3,cenR=Math.floor(W/2)+3;
     const inArch=(c>=staffL&&c<staffR)||(c>=loungeL&&c<loungeR)||(c>=cenL&&c<cenR);
     if (!inArch) return true;
   }
-  // Перегородки внутри задней зоны (r < archRow)
-  // Левая (персонал|хранилище) и правая (хранилище|отдых) — с проходами у archRow-1
-  if (r<archRow-1 && r>=0.5) {
+  // Перегородки внутри задней зоны — 1-тайловая зона с проходами у арок
+  if (r<archRow-1.5 && r>=0.5) {
     const pL=Math.floor(W*.38), pR=Math.floor(W*.62);
-    // Левая перегородка — проход у c < staffArchR (левая арка)
-    const staffArchR = Math.floor(W*.10)+3;
-    if (c>=pL-0.3&&c<pL+0.3 && c>=staffArchR) return true;
-    // Правая перегородка — проход у c > loungeArchL (правая арка)
-    const loungeArchL = Math.floor(W*.65);
-    if (c>=pR-0.3&&c<pR+0.3 && c<loungeArchL) return true;
+    const staffArchR=Math.floor(W*.10)+3, loungeArchL=Math.floor(W*.65);
+    // Левая перегородка (персонал|хранилище): проход c < staffArchR
+    if (c>=pL-0.5&&c<pL+0.5 && c>=staffArchR) return true;
+    // Правая перегородка (хранилище|отдых): проход c >= loungeArchL
+    if (c>=pR-0.5&&c<pR+0.5 && c<loungeArchL) return true;
   }
   return false;
 }
@@ -26680,8 +26710,8 @@ function drawBankInteriorScene() {
     ctx.strokeRect(p.x+sSz*.12,p.y-sH*.85,sSz*.6,sH*.7);
   });
 
-  // 5. Картотечный шкаф 3D (зона персонала)
-  _addDecor(2,Math.floor(W*.28),()=>{const p=w2s(2.5,Math.floor(W*.28)+.5),fH=isoH(1.2),fSz=hx*.5;
+  // 5. Картотечный шкаф 3D — у западной стены (зона персонала)
+  _addDecor(2,1,()=>{const p=w2s(2.5,1.5),fH=isoH(1.2),fSz=hx*.5;
     // Тень
     ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(p.x,p.y+2,fSz*.8,hy*.35,0,0,Math.PI*2);ctx.fill();
     // Левая грань
@@ -26705,8 +26735,8 @@ function drawBankInteriorScene() {
       ctx.fillStyle='#c0a830';ctx.beginPath();ctx.arc(p.x+fSz*.5,dy,2,0,Math.PI*2);ctx.fill();
     }});
 
-  // 6. Кулер с водой 3D (лобби)
-  _addDecor(counterRow+3,Math.floor(W*.72),()=>{
+  // 6. Кулер с водой 3D — у восточной стены (лобби)
+  _addDecor(counterRow+3,W-2,()=>{
     const p=w2s(counterRow+3.5,Math.floor(W*.72)+.5),cH=isoH(.85);
     // Бутыль (синяя, полупрозрачная)
     ctx.fillStyle='rgba(80,160,255,.55)';ctx.strokeStyle='#4090d0';ctx.lineWidth=.7;
@@ -26796,8 +26826,8 @@ function drawBankInteriorScene() {
     ctx.fillStyle='#d0a020';ctx.fillRect(px2+1,py2-10,13,9);
     ctx.fillStyle='#902020';ctx.fillRect(px2+1,py2,13,7);});
 
-  // 13. Информационный киоск (вертикальный, в лобби)
-  _addDecor(counterRow+3,Math.floor(W*.35),()=>{
+  // 13. Информационный киоск — у восточной стены лобби
+  _addDecor(counterRow+4,W-3,()=>{
     const p=w2s(counterRow+3.5,Math.floor(W*.35)+.5),kH=isoH(.8),kSz=hx*.35;
     // Стойка
     ctx.fillStyle='#1a2838';ctx.strokeStyle='#263848';ctx.lineWidth=.8;
