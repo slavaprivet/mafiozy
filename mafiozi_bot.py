@@ -1083,6 +1083,17 @@ async def init_db():
                 reward  INTEGER NOT NULL DEFAULT 0
             )
         """)
+        # Одиночные ограбления банков (bank_rob_* из world.html).
+        # Кулдаун BANK_ROB_COOLDOWN_S на каждый банк отдельно.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS bank_robs (
+                uid     INTEGER NOT NULL,
+                bank_id TEXT    NOT NULL,
+                t       INTEGER NOT NULL,
+                reward  INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (uid, bank_id)
+            )
+        """)
         # При старте — очищаем все зависшие active_battles (на случай краша)
         await db.execute("DELETE FROM active_battles")
         # Jobs v2 — снимаем старые job-id (janitor/shawarma/etc), их в новом JOBS нет.
@@ -3817,6 +3828,22 @@ BANK_GUARD_RANGE     = 10.0           # дальность выстрела (т�
 BANK_GUARD_DMG       = 18
 BANK_GUARD_CD        = 1.2            # сек между выстрелами одного охранника
 BANK_GUARD_MISS      = 0.30           # шанс промаха
+
+# ── Одиночные ограбления банков (новая система bank_rob_*) ──────────────────
+# Конфиг синхронизирован с BANKS в world.html.
+BANK_ROB_CONFIGS = {
+    'small':  {'bags': 6,  'reward_per_bag': 1200, 'wanted': 3.0},
+    'medium': {'bags': 12, 'reward_per_bag': 2500, 'wanted': 4.0},
+    'large':  {'bags': 18, 'reward_per_bag': 5000, 'wanted': 5.0},
+}
+BANK_ROB_POS_RC = {
+    'small':  (8,  50),
+    'medium': (50, 8),
+    'large':  (50, 50),
+}
+BANK_ROB_RADIUS     = 6.0   # тайлов — anti-cheat проверка при старте
+BANK_ROB_COOLDOWN_S = 4 * 3600  # кулдаун 4ч на каждый банк отдельно
+
 # Активные heist'ы в памяти: heist_id → {participants:set, started_at, finalized}
 _active_bank_heists = {}
 _bank_heist_next_id = 1
@@ -18878,6 +18905,121 @@ async def _coop_http_app():
                                         bus['y'] = ny
                                         bus['ang'] = nang
                                         bus['last_input_t'] = time.time()
+                    # ── Одиночные ограбления банков (новая система) ──────────
+                    elif t == 'bank_rob_start':
+                        # Игрок подошёл к банку и начинает ограбление.
+                        # d = {bank_id: 'small'|'medium'|'large'}
+                        # Проверки: жив, валидный банк, дистанция, кулдаун.
+                        p = world.players.get(uid)
+                        bank_id = str((d or {}).get('bank_id') or '') if isinstance(d, dict) else ''
+                        cfg = BANK_ROB_CONFIGS.get(bank_id)
+                        pos = BANK_ROB_POS_RC.get(bank_id)
+                        reply = {'ok': False, 'reason': 'unknown'}
+                        if not p or p.get('dead') or p.get('_mode') == 'pve':
+                            reply = {'ok': False, 'reason': 'dead'}
+                        elif not cfg or not pos:
+                            reply = {'ok': False, 'reason': 'bad_bank'}
+                        else:
+                            pr, pc = pos
+                            dx = float(p.get('x', 0)) - pc
+                            dy = float(p.get('y', 0)) - pr
+                            if dx*dx + dy*dy > BANK_ROB_RADIUS * BANK_ROB_RADIUS:
+                                reply = {'ok': False, 'reason': 'too_far'}
+                            else:
+                                now_ts = int(time.time())
+                                last_t = 0
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        cur = await db.execute(
+                                            "SELECT t FROM bank_robs WHERE uid=? AND bank_id=?",
+                                            (int(uid), bank_id))
+                                        row = await cur.fetchone()
+                                        if row: last_t = int(row[0])
+                                except Exception: pass
+                                if now_ts - last_t < BANK_ROB_COOLDOWN_S:
+                                    left = BANK_ROB_COOLDOWN_S - (now_ts - last_t)
+                                    reply = {'ok': False, 'reason': 'cooldown',
+                                             'cooldown_s': left}
+                                else:
+                                    # Стартуем — сохраняем состояние в player dict
+                                    p['_bank_rob'] = {
+                                        'bank_id':   bank_id,
+                                        'bags_max':  cfg['bags'],
+                                        'bags_loaded': 0,
+                                        'started_at': now_ts,
+                                    }
+                                    p['_wanted'] = max(float(p.get('_wanted') or 0),
+                                                       cfg['wanted'])
+                                    p['_last_shot_t'] = time.time()
+                                    reply = {'ok': True, 'bank_id': bank_id,
+                                             'bags_max': cfg['bags'],
+                                             'reward_per_bag': cfg['reward_per_bag']}
+                        evt_pkt = json.dumps({'t': 'event', 'd': dict(reply,
+                            kind='bank_rob_started')}, ensure_ascii=False)
+                        try: await ws.send_str(evt_pkt)
+                        except Exception: pass
+                    elif t == 'bank_rob_bag_loaded':
+                        # Клиент сообщает о погрузке мешка.
+                        # d = {bank_id, bags: N}  — серверный трекинг (без денег).
+                        p = world.players.get(uid)
+                        if p and isinstance(d, dict):
+                            rob = p.get('_bank_rob')
+                            if rob and rob.get('bank_id') == str(d.get('bank_id') or ''):
+                                bags = int(d.get('bags') or 0)
+                                rob['bags_loaded'] = min(bags, rob['bags_max'])
+                    elif t == 'bank_rob_escape':
+                        # Игрок уехал с добычей.
+                        # d = {bank_id, bags_loaded}
+                        # Начисляем деньги, записываем кулдаун.
+                        p = world.players.get(uid)
+                        bank_id = str((d or {}).get('bank_id') or '') if isinstance(d, dict) else ''
+                        cfg = BANK_ROB_CONFIGS.get(bank_id)
+                        if p and cfg and isinstance(d, dict):
+                            rob = p.get('_bank_rob') or {}
+                            client_bags = max(0, int(d.get('bags_loaded') or 0))
+                            server_bags = int(rob.get('bags_loaded') or 0)
+                            # Берём минимум — защита от читов
+                            bags_ok = min(client_bags, server_bags, cfg['bags'])
+                            reward  = bags_ok * cfg['reward_per_bag']
+                            now_ts  = int(time.time())
+                            if bags_ok > 0:
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        await db.execute(
+                                            "UPDATE characters SET cash = cash + ? "
+                                            "WHERE telegram_id = ?",
+                                            (reward, int(uid)))
+                                        await db.execute(
+                                            "INSERT OR REPLACE INTO bank_robs "
+                                            "(uid, bank_id, t, reward) VALUES (?,?,?,?)",
+                                            (int(uid), bank_id, now_ts, reward))
+                                        await db.commit()
+                                except Exception: pass
+                            else:
+                                # Даже с 0 мешков — фиксируем кулдаун (пытался)
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        await db.execute(
+                                            "INSERT OR REPLACE INTO bank_robs "
+                                            "(uid, bank_id, t, reward) VALUES (?,?,?,0)",
+                                            (int(uid), bank_id, now_ts))
+                                        await db.commit()
+                                except Exception: pass
+                            p.pop('_bank_rob', None)
+                            fin_pkt = json.dumps({'t': 'event', 'd': {
+                                'kind':       'bank_rob_finished',
+                                'bank_id':    bank_id,
+                                'bags':       bags_ok,
+                                'reward':     reward,
+                            }}, ensure_ascii=False)
+                            try: await ws.send_str(fin_pkt)
+                            except Exception: pass
+                    elif t == 'bank_rob_abort':
+                        # Игрок прервал ограбление — убираем серверное состояние.
+                        p = world.players.get(uid)
+                        if p:
+                            p.pop('_bank_rob', None)
+                    # ── конец блока bank_rob_* ─────────────────────────────────
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass
