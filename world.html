@@ -1566,9 +1566,10 @@ let MAP = [];
 // Банки — объявляем ЗДЕСЬ чтобы buildMap() имел к ним доступ (до const BANKS ниже)
 // r%10=5, c%10=5 — начало зоны зданий внутри квартала
 const BANKS = [
-  { id: 'small',  r: 5,  c: 25, name: 'Банк «Окраина»',     size: 'small',  bags: 6,  guards: 1, reward_per_bag: 1200, police_delay: 260 },
-  { id: 'medium', r: 25, c: 55, name: 'Банк «Район»',       size: 'medium', bags: 12, guards: 2, reward_per_bag: 2500, police_delay: 200 },
-  { id: 'large',  r: 45, c: 35, name: 'Банк «Центральный»', size: 'large',  bags: 18, guards: 3, reward_per_bag: 5000, police_delay: 140 },
+  // Блоки без крупных POI, вдали от Burj(36,36)/Арена(36,66)/Больница(26,46)
+  { id: 'small',  r: 5,  c: 15, name: 'Банк «Окраина»',     size: 'small',  bags: 6,  guards: 1, reward_per_bag: 1200, police_delay: 260 },
+  { id: 'medium', r: 15, c: 55, name: 'Банк «Район»',       size: 'medium', bags: 12, guards: 2, reward_per_bag: 2500, police_delay: 200 },
+  { id: 'large',  r: 55, c: 35, name: 'Банк «Центральный»', size: 'large',  bags: 18, guards: 3, reward_per_bag: 5000, police_delay: 140 },
 ];
 const _bankTileSet = new Set();   // тайлы банков — блокируют обычные drawBuilding
 
