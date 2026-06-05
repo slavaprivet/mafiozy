@@ -26215,37 +26215,79 @@ function drawBankInteriorScene() {
     if (myBag){ctx.font='16px sans-serif';ctx.textAlign='center';ctx.fillText('💼',p.x,p.y-40);ctx.textAlign='left';}
   }});
 
-  // Арочные проходы между зонами (в depth-sort — поверх пола, под NPC)
-  const archRow=counterRow-4;
-  const drawArch=(r,c,label,col)=>{
-    items.push({d:r+c+.05, fn:()=>{
-      const a=w2s(r,c), b=w2s(r,c+2);
-      const aH=wallH*.75, aW=(b.x-a.x);
-      // Стена по бокам арки
-      ctx.fillStyle='#1e1630';ctx.strokeStyle='#302448';ctx.lineWidth=.7;
-      ctx.beginPath();ctx.moveTo(a.x-4,a.y);ctx.lineTo(a.x,a.y-aH);
-      ctx.lineTo(b.x,b.y-aH);ctx.lineTo(b.x+4,b.y);ctx.closePath();ctx.fill();ctx.stroke();
-      // Тёмный проём
-      ctx.fillStyle='rgba(5,3,10,.85)';
-      ctx.beginPath();ctx.moveTo(a.x+3,a.y);ctx.lineTo(b.x-3,b.y);
-      ctx.lineTo(b.x-3,b.y-aH*.85);ctx.lineTo(a.x+3,a.y-aH*.85);ctx.closePath();ctx.fill();
-      // Арочный свод (полукруг)
-      const cx=(a.x+b.x)/2, cy=(a.y+b.y)/2-aH*.85;
-      ctx.fillStyle='#1e1630';ctx.strokeStyle='#302448';ctx.lineWidth=.7;
-      ctx.beginPath();ctx.arc(cx,cy,aW*.5+3,Math.PI,0);ctx.fill();ctx.stroke();
-      ctx.fillStyle='rgba(5,3,10,.85)';
-      ctx.beginPath();ctx.arc(cx,cy,aW*.5-3,Math.PI,0);ctx.fill();
-      // Лейбл над аркой
-      ctx.save();ctx.fillStyle=col;ctx.font='bold 7px system-ui';
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(label,cx,cy-aW*.3-4);ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
-      // Световая полоска снизу (указание что там что-то есть)
-      ctx.fillStyle=col.replace('0.8','0.2');
-      ctx.fillRect(a.x+3,a.y-3,aW-6,2);
+  // ── ВНУТРЕННЯЯ СТЕНА на archRow — разделяет лобби от зон персонала/отдыха ──
+  // Стена сплошная, кроме 2 арочных проёмов и центра (для прохода к кассе)
+  const archRow = counterRow - 4;
+  const staffArchC  = Math.floor(W * .10);      // начало арки персонала
+  const loungeArchC = Math.floor(W * .65);       // начало арки отдыха
+  const centerOpenL = Math.floor(W/2) - 3;       // центральный проход (к кассе)
+  const centerOpenR = Math.floor(W/2) + 3;
+
+  for (let c = 0; c < W; c++) {
+    const isStaffOpen   = c >= staffArchC  && c < staffArchC  + 3;
+    const isLoungeOpen  = c >= loungeArchC && c < loungeArchC + 3;
+    const isCenterOpen  = c >= centerOpenL && c < centerOpenR;
+    const _c = c;
+    if (!isStaffOpen && !isLoungeOpen && !isCenterOpen) {
+      // Сплошная стена — светлый мрамор как боковые
+      items.push({d: archRow + _c * .001, fn: ((__c) => () => {
+        _wFace(archRow, __c, archRow, __c + 1, WC.lobbyFront, '#b0a898');
+      })(_c)});
+    }
+  }
+
+  // Арочные проёмы — рисуются ПОВЕРХ (чуть больший d чтобы перекрыть пол)
+  const drawArch = (r, c, label, col) => {
+    items.push({d: r + c * .001 + .1, fn: () => {
+      const a = w2s(r, c), b = w2s(r, c + 3);
+      const aH = wallH * .85, aW = (b.x - a.x);
+      // Тёмный проём (фон арки)
+      ctx.fillStyle = 'rgba(8,5,14,.92)';
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.lineTo(b.x, b.y - aH); ctx.lineTo(a.x, a.y - aH);
+      ctx.closePath(); ctx.fill();
+      // Полукруглый свод
+      const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2 - aH;
+      ctx.fillStyle = 'rgba(8,5,14,.92)';
+      ctx.beginPath(); ctx.arc(cx, cy, aW * .5 + 1, Math.PI, 0); ctx.fill();
+      // Рамка арки — мраморная
+      ctx.fillStyle = WC.lobbyFront; ctx.strokeStyle = '#b0a898'; ctx.lineWidth = 1.5;
+      // Левый столб рамки
+      ctx.beginPath();
+      ctx.moveTo(a.x - 5, a.y + 2); ctx.lineTo(a.x + 5, a.y - 2);
+      ctx.lineTo(a.x + 5, a.y - aH - 2); ctx.lineTo(a.x - 5, a.y - aH + 2);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Правый столб
+      ctx.beginPath();
+      ctx.moveTo(b.x - 5, b.y + 2); ctx.lineTo(b.x + 5, b.y - 2);
+      ctx.lineTo(b.x + 5, b.y - aH - 2); ctx.lineTo(b.x - 5, b.y - aH + 2);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Перемычка сверху (горизонтальная над сводом)
+      ctx.fillStyle = WC.lobbyFront;
+      ctx.beginPath();
+      ctx.moveTo(a.x - 5, a.y - aH + 2); ctx.lineTo(b.x + 5, b.y - aH - 2);
+      ctx.lineTo(b.x + 5, b.y - aH - 8); ctx.lineTo(a.x - 5, a.y - aH - 4);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Золотой замковый камень над сводом
+      ctx.fillStyle = WC.trim; ctx.strokeStyle = '#a08030'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cx, cy - aW * .5 + 1, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      // Подсветка проёма изнутри
+      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, aW * .6);
+      grd.addColorStop(0, col.replace('0.8', '0.08'));
+      grd.addColorStop(1, 'transparent');
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(cx, cy, aW * .6, 0, Math.PI * 2); ctx.fill();
+      // Лейбл
+      ctx.save(); ctx.fillStyle = col; ctx.font = 'bold 8px system-ui';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+      ctx.fillText(label, cx, cy - aW * .35 - 6);
+      ctx.restore(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     }});
   };
-  drawArch(archRow, Math.floor(W*.12), '🖥️ Персонал', 'rgba(80,140,220,0.8)');
-  drawArch(archRow, Math.floor(W*.65), '☕ Отдых',    'rgba(180,80,180,0.8)');
+  drawArch(archRow, staffArchC,  '🖥️ Персонал', 'rgba(80,140,220,0.8)');
+  drawArch(archRow, loungeArchC, '☕ Отдых',     'rgba(180,80,180,0.8)');
 
   // ── СТЕНЫ — добавляем в depth-sort, иначе всегда поверх игрока ───
   // items.sort() будет вызван ПОСЛЕ добавления стен (ниже)
