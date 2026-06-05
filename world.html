@@ -1104,6 +1104,17 @@ body.in-pvp #robActionBtn { top: 152px; }
       <div class="rob-hint">Уйдёшь / умрёшь — отмена</div>
     </div>
   </div>
+  <!-- HUD ограбления банка -->
+  <div id="bankRobHud" style="display:none; position:fixed; top:80px; left:50%; transform:translateX(-50%);
+       background:linear-gradient(180deg,#1a0a08,#2a0e08); border:2px solid #ff4020; border-radius:14px;
+       padding:10px 16px; min-width:220px; z-index:9; color:#fff; font-family:inherit; text-align:center;">
+    <div id="bankRobPhaseText" style="font-size:13px; font-weight:800; color:#ff8060;">ОГРАБЛЕНИЕ</div>
+    <div id="bankRobBagCount" style="font-size:11px; color:#ffd76b; margin:2px 0;">Мешки: 0/0</div>
+    <div id="bankRobPoliceBar" style="height:6px; background:#333; border-radius:3px; overflow:hidden; margin-top:4px;">
+      <div id="bankRobPoliceFill" style="height:100%; background:#ff3030; width:100%; transition:width 0.1s;"></div>
+    </div>
+    <div id="bankRobPoliceText" style="font-size:9px; color:#ff7060; margin-top:2px;">Полиция: ожидание</div>
+  </div>
   <!-- HUD активного контракта (под верхней панелью) -->
   <div id="gtaQuestHud"></div>
   <!-- Модал-меню Майкла -->
@@ -6057,6 +6068,21 @@ const GAS_STATIONS = [
 ];
 const GAS_INTERACT_R = 3.5;   // тайлов — радиус взаимодействия с АЗС
 
+// ══════════════════════════════════════════════════════════════════════════════
+// БАНКИ — ограбление банка (одиночное, клиентская логика + WS-заглушки)
+// ══════════════════════════════════════════════════════════════════════════════
+const BANKS = [
+  { id: 'small',  r: 8,  c: 50, name: 'Банк «Окраина»',       size: 'small',  bags: 6,  guards: 1, reward_per_bag: 1200, police_delay: 260 },
+  { id: 'medium', r: 50, c: 8,  name: 'Банк «Район»',         size: 'medium', bags: 12, guards: 2, reward_per_bag: 2500, police_delay: 200 },
+  { id: 'large',  r: 50, c: 50, name: 'Банк «Центральный»',   size: 'large',  bags: 18, guards: 3, reward_per_bag: 5000, police_delay: 140 },
+];
+const BANK_INTERACT_R = 3.5;  // радиус взаимодействия с банком
+
+// Состояние активного ограбления банка (null = не активно)
+let _bankRob = null;
+// Вес мешка: 0 = нет мешка, 1 = несу мешок (замедление)
+let _myBagWeight = 0;
+
 // Топливо игрока в текущей угнанной/своей машине. null = не в машине.
 // Значение 0–100 (%). Устанавливается при посадке из car._fuel.
 let _myCarFuelPct = null;
@@ -8194,6 +8220,38 @@ function handleEventPacket(d) {
         3800, 'warn');
       hapticHit();
     }
+  } else if (kind === 'bank_rob_started') {
+    // Сервер подтвердил начало ограбления (опционально — для мультиплеера)
+    if (d.bank_id && _bankRob && _bankRob.bank.id === d.bank_id) {
+      if (d.police_delay) _bankRob.policeTimer = d.police_delay;
+      if (d.bags_config)  _bankRob.bagsMax = d.bags_config;
+    }
+  } else if (kind === 'bank_rob_alarm') {
+    // Сервер триггернул тревогу
+    if (d.bank_id && _bankRob && _bankRob.bank.id === d.bank_id) {
+      _bankRob.alarmTriggered = true;
+      if (typeof d.seconds_left === 'number') _bankRob.policeTimer = d.seconds_left;
+      showToast('🚨 Тревога! Полиция едет!', '🚨', 2400);
+      try { hapticHit && hapticHit(); } catch(e) {}
+    }
+  } else if (kind === 'bank_rob_police_arrive') {
+    if (d.bank_id && _bankRob && _bankRob.bank.id === d.bank_id) {
+      _bankRob.policeTimer = 0;
+      _bankRob._policeArrived = true;
+      showToast('🚓 Полиция приехала! Бежим!', '🚨', 3000);
+      try { hapticHit && hapticHit(); } catch(e) {}
+    }
+  } else if (kind === 'bank_rob_finished') {
+    // Сервер завершил ограбление и отправил выплату
+    if (_bankRob && d.bank_id === _bankRob.bank.id) {
+      const payout = d.payout || 0;
+      showToast(`🏆 Ограбление завершено! +$${payout.toLocaleString('ru')}`, '💰', 4000);
+      try { hapticHit && hapticHit(); } catch(e) {}
+      _bankRob = null;
+      _myBagWeight = 0;
+      const hudEl = document.getElementById('bankRobHud');
+      if (hudEl) hudEl.style.display = 'none';
+    }
   } else if (kind === 'shop_robbed') {
     // Broadcast всем — кто-то ограбил магазин в городе. В ленту,
     // не центральным баннером (онлайн событие, не моё).
@@ -9091,9 +9149,57 @@ function wsConnect() {
 // ── Близость к POI / кнопка входа ──────────────────────────────
 const ENTER_R = 3.2;   // тайлы — порог появления кнопки
 let _zoneCur = null;   // текущий «активный» POI
+let _bankZoneCur = null;  // ближайший банк в радиусе
 const _zoneEl = document.getElementById('zoneBtn');
 const _pvpBn  = document.getElementById('pvpBanner');
 function updateZoneBtn() {
+  // Проверяем близость к банкам (приоритет — своя кнопка через _bankZoneCur)
+  let nearBank = null, nearBankD = BANK_INTERACT_R;
+  for (const bank of BANKS) {
+    const d = Math.hypot(player.r - (bank.r + 1.5), player.c - (bank.c + 1.5));
+    if (d < nearBankD) { nearBank = bank; nearBankD = d; }
+  }
+  // Обновляем кнопку банка если ближайший банк изменился или изменилась фаза
+  const prevBank = _bankZoneCur;
+  _bankZoneCur = nearBank;
+  if (nearBank) {
+    let label;
+    if (!_bankRob) {
+      label = '🏦 Ограбить банк';
+    } else if (_bankRob.bank.id === nearBank.id) {
+      if (_bankRob.phase === 'entered')  label = '🔓 Взломать хранилище';
+      else if (_bankRob.phase === 'cracking') label = `🔒 Взлом... ${(_bankRob.crackProgress * 100).toFixed(0)}%`;
+      else if (_bankRob.phase === 'loading' && _bankRob.myBag) label = '🚐 Отнести мешок в фургон';
+      else if (_bankRob.phase === 'loading') label = `💰 Взять мешок ($${_bankRob.bank.reward_per_bag.toLocaleString('ru')})`;
+      else if (_bankRob.phase === 'escaping') label = '🚐 Уехать с добычей!';
+      else label = '🏦 Банк';
+    } else {
+      label = '🏦 Банк (занят)';
+    }
+    _zoneEl.textContent = label;
+    _zoneEl.style.display = 'block';
+    // Специальный атрибут чтобы обработчик клика знал что это банк
+    _zoneEl.dataset.bankId = nearBank.id;
+    // Возвращаемся — банк перекрывает обычные POI когда мы рядом
+    // PVP-баннер проверяем отдельно ниже
+    const inPvp2 = inArena(player.r, player.c);
+    if (inPvp2 && _pvpBn.style.display !== 'block') {
+      _pvpBn.style.display = 'block';
+      document.body.classList.add('in-pvp');
+    } else if (!inPvp2 && _pvpBn.style.display === 'block') {
+      _pvpBn.style.display = 'none';
+      document.body.classList.remove('in-pvp');
+    }
+    return;
+  } else {
+    delete _zoneEl.dataset.bankId;
+    // Если только что покинули зону банка — сбросим кнопку
+    if (prevBank) {
+      _zoneEl.style.display = 'none';
+      _zoneCur = null;
+    }
+  }
+
   // Захватываемые POI (рынок/порт/казино/промзона/резиденция) больше НЕ
   // открывают боёвку — они для захвата района. Кнопка остаётся только
   // для специальных POI (магазин/арена/госпиталь — где есть смысл войти).
@@ -9129,6 +9235,39 @@ function updateZoneBtn() {
   }
 }
 _zoneEl.addEventListener('click', () => {
+  // Банк (новая система ограбления банка — BANKS[])
+  if (_zoneEl.dataset.bankId) {
+    const bank = BANKS.find(b => b.id === _zoneEl.dataset.bankId);
+    if (!bank) return;
+    if (myDead) return;
+    if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
+    // Если нет активного ограбления — начать
+    if (!_bankRob) {
+      startBankRobbery(bank);
+      return;
+    }
+    // Если ограбление именно этого банка
+    if (_bankRob.bank.id === bank.id) {
+      if (_bankRob.phase === 'entered') {
+        // Начать взлом
+        _bankRob.phase = 'cracking';
+        showToast('🔒 Взламываешь хранилище — стой на месте', '⏳', 2200);
+        return;
+      }
+      if (_bankRob.phase === 'loading' && !_bankRob.myBag) {
+        _takeBankBag();
+        return;
+      }
+      if (_bankRob.phase === 'escaping') {
+        finishBankRobbery();
+        return;
+      }
+    } else {
+      showToast('🏦 Сначала заверши текущее ограбление', '⚠️', 2000);
+    }
+    return;
+  }
+
   if (!_zoneCur) return;
   // Спец-POI: открываем модал/баннер прямо в мире, никуда не переходим.
   if (_zoneCur.special === 'shop')        { openShop();   return; }
@@ -13124,7 +13263,9 @@ function update(dt) {
     }
   }
 
-  const speed = 5.0; // тайлов/сек
+  // Замедление при несении мешка из банка
+  const _bagSpeedMul = _myBagWeight > 0 ? 0.6 : 1.0;
+  const speed = 5.0 * _bagSpeedMul; // тайлов/сек
   player.walking = false;
   // Мёртвый игрок не двигается — ждём респауна сервера, иначе появлялся
   // в той же точке где умер (баг: «бегать могу и возрождаюсь там же»).
@@ -13163,6 +13304,7 @@ function update(dt) {
   updateGtaInteractions();
   updateGtaQuestHud();
   updateRobbery(performance.now());
+  _updateBankRobbery(dt);
   tickRandomWorldEvents(performance.now());
   _tickBankHeistUi(performance.now());
   // Хит-цель (бандит из aggroZones) пропала — либо убили без меня,
@@ -22377,6 +22519,14 @@ function render() {
     items.push({ depth: BRIGADIR_POS.r + BRIGADIR_POS.c + 0.0007,
                  draw: () => drawBrigadir() });
   }
+  // БАНКИ — объёмные здания + вывески + зона фургона
+  for (const bank of BANKS) {
+    if (bank.r + 4 < r0 - 2 || bank.r >= r1 + 2 || bank.c + 5 < c0 - 2 || bank.c >= c1 + 2) continue;
+    items.push({ depth: bank.r + bank.c - 0.3, draw: () => drawBankBuilding(bank) });
+    items.push({ depth: bank.r + bank.c - 0.5, draw: () => drawBankSign(bank) });
+    items.push({ depth: bank.r + bank.c + 0.1, draw: () => drawBankVanZone(bank) });
+  }
+
   // АЗС — знак с колонкой и зоной взаимодействия
   for (const gs of GAS_STATIONS) {
     if (gs.r < r0 - 2 || gs.r >= r1 + 2 || gs.c < c0 - 2 || gs.c >= c1 + 2) continue;
@@ -22764,6 +22914,42 @@ function render() {
     if (myWanted > 0) drawWantedStars(px, py, myWanted);
     if (myGangs  > 0) drawWantedGangs(px, py, myGangs);
     drawModeTag(px, py, myMode || 'pvp');
+    // Иконка мешка над игроком при ограблении банка
+    if (_bankRob && _bankRob.myBag) {
+      ctx.save();
+      ctx.font = '18px "Segoe UI Emoji", system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('💰', px, py - 42);
+      ctx.restore();
+    }
+    // Прогресс-бар взлома хранилища
+    if (_bankRob && _bankRob.phase === 'cracking') {
+      const inVault = Math.hypot(player.r - _bankRob.bank.r - 1, player.c - _bankRob.bank.c - 1) < 2.5;
+      if (inVault) {
+        const prog = _bankRob.crackProgress;
+        const tt2 = performance.now();
+        const lockEmoji = prog >= 1 ? '🔓' : '🔒';
+        const pulse2 = 0.5 + 0.5 * Math.sin(tt2 * 0.008);
+        ctx.save();
+        // Фон бара
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.beginPath();
+        ctx.roundRect(px - 30, py - 58, 60, 10, 4);
+        ctx.fill();
+        // Заполнение
+        ctx.fillStyle = `rgba(${Math.round(255 * (1 - prog))},${Math.round(200 * prog)},0,${0.8 + 0.2 * pulse2})`;
+        ctx.beginPath();
+        ctx.roundRect(px - 30, py - 58, 60 * prog, 10, 4);
+        ctx.fill();
+        // Иконка замка
+        ctx.font = '10px "Segoe UI Emoji", system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(lockEmoji, px, py - 68);
+        ctx.restore();
+      }
+    }
   } });
   // Другие
   for (const [, o] of others) {
@@ -24591,6 +24777,463 @@ function _heartbeat() {
 }
 // Анти-leak капы — если массив раздулся (баг, неудалённые элементы),
 // обрезаем хвост чтобы не сожрать память и FPS. Не должно срабатывать
+// ══════════════════════════════════════════════════════════════════════════════
+// ОГРАБЛЕНИЕ БАНКА — вся клиентская логика
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Возвращает зону фургона для банка (куда нести мешки)
+function _getBankVanZone(bank) {
+  return { r: bank.r + 4, c: bank.c + 1 };
+}
+
+// Начать ограбление банка
+function startBankRobbery(bank) {
+  if (_bankRob) { showToast('🏦 Ограбление уже идёт', 'ℹ️', 1600); return; }
+  if (myDead) return;
+  const crackTotal = { small: 10, medium: 15, large: 20 }[bank.size] || 15;
+  _bankRob = {
+    bank,
+    phase: 'entered',
+    policeTimer: bank.police_delay,
+    alarmTriggered: false,
+    bagsLoaded: 0,
+    bagsMax: bank.bags,
+    myBag: null,
+    crackProgress: 0,
+    crackTotal,
+    startedAt: performance.now() / 1000,
+  };
+  _myBagWeight = 0;
+  showToast(`🏦 Вошёл в ${bank.name}! Взломай хранилище`, '🔓', 2800);
+  try { hapticHit && hapticHit(); } catch(e) {}
+  const wsReady = !!(ws && ws.readyState === 1);
+  if (wsReady) {
+    try { ws.send(JSON.stringify({ t: 'bank_rob_start', d: { bank_id: bank.id } })); } catch(e) {}
+  }
+  // Обновить вывеску зоны
+  _updateBankZoneBtn();
+}
+
+// Взять мешок из хранилища
+function _takeBankBag() {
+  if (!_bankRob || _bankRob.phase !== 'loading') return;
+  if (_bankRob.myBag) { showToast('💰 Уже несёшь мешок — отнеси в фургон', '⚠️', 1800); return; }
+  if (_bankRob.bagsLoaded >= _bankRob.bagsMax) { showToast('💰 Все мешки погружены!', '✅', 1600); return; }
+  const val = _bankRob.bank.reward_per_bag;
+  _bankRob.myBag = { value: val, id: _bankRob.bagsLoaded + 1 };
+  _myBagWeight = 1;
+  showToast(`💰 Взял мешок ($${val.toLocaleString('ru')}) — неси в фургон`, '🚐', 2000);
+  try { hapticHit && hapticHit(); } catch(e) {}
+  _updateBankZoneBtn();
+}
+
+// Отмена / провал ограбления банка
+function abortBankRobbery(reason) {
+  if (!_bankRob) return;
+  const bank_id = _bankRob.bank.id;
+  const bags_loaded = _bankRob.bagsLoaded;
+  _bankRob = null;
+  _myBagWeight = 0;
+  const el = document.getElementById('bankRobHud');
+  if (el) el.style.display = 'none';
+  if (reason !== 'silent') {
+    showToast('🏃 Ограбление отменено', 'ℹ️', 1800);
+  }
+  const wsReady = !!(ws && ws.readyState === 1);
+  if (wsReady) {
+    try { ws.send(JSON.stringify({ t: 'bank_rob_abort', d: { bank_id, bags_loaded } })); } catch(e) {}
+  }
+  _updateBankZoneBtn();
+}
+
+// Завершить ограбление (уехать с добычей)
+function finishBankRobbery() {
+  if (!_bankRob) return;
+  const bank_id = _bankRob.bank.id;
+  const bags_loaded = _bankRob.bagsLoaded;
+  const total = bags_loaded * _bankRob.bank.reward_per_bag;
+  const wsReady = !!(ws && ws.readyState === 1);
+  if (wsReady) {
+    try { ws.send(JSON.stringify({ t: 'bank_rob_escape', d: { bank_id, bags_loaded } })); } catch(e) {}
+  }
+  showToast(`💰 Ограбление завершено! ${bags_loaded} мешков (+$${total.toLocaleString('ru')})`, '✅', 3500);
+  try { hapticHit && hapticHit(); } catch(e) {}
+  _bankRob = null;
+  _myBagWeight = 0;
+  const el = document.getElementById('bankRobHud');
+  if (el) el.style.display = 'none';
+  _updateBankZoneBtn();
+}
+
+// Тик логики ограбления банка (вызывается из update)
+function _updateBankRobbery(dt) {
+  if (!_bankRob) return;
+  const rob = _bankRob;
+
+  // Тревога: если прошло больше 60 сек без завершения
+  const elapsed = performance.now() / 1000 - rob.startedAt;
+  if (!rob.alarmTriggered && elapsed > 60) {
+    rob.alarmTriggered = true;
+    showToast('🚨 Тревога! Полиция едет!', '🚨', 2400);
+    try { hapticHit && hapticHit(); } catch(e) {}
+  }
+
+  // Тревога: если пуля попала в зону банка
+  if (!rob.alarmTriggered && typeof bullets !== 'undefined') {
+    for (const b of bullets) {
+      if (!b || b._checked) continue;
+      b._checked = true;
+      const dr = b.r - rob.bank.r - 1.5;
+      const dc = b.c - rob.bank.c - 1.5;
+      if (Math.hypot(dr, dc) < 4) {
+        rob.alarmTriggered = true;
+        showToast('🚨 Выстрел в банке! Тревога!', '🚨', 2400);
+        try { hapticHit && hapticHit(); } catch(e) {}
+        break;
+      }
+    }
+  }
+
+  // Таймер полиции
+  if (rob.alarmTriggered && rob.policeTimer > 0) {
+    rob.policeTimer -= dt;
+    if (rob.policeTimer < 0) rob.policeTimer = 0;
+    if (rob.policeTimer === 0 && !rob._policeArrived) {
+      rob._policeArrived = true;
+      showToast('🚓 Полиция приехала! Бежим!', '🚨', 3000);
+      try { hapticHit && hapticHit(); } catch(e) {}
+    }
+  }
+
+  // Фаза entered → cracking: игрок в зоне банка нажимает «Взломать»
+  // (переход происходит через кнопку, см. _updateBankZoneBtn)
+
+  // Взлом хранилища — автоматический прогресс когда игрок в зоне
+  if (rob.phase === 'cracking') {
+    const inVaultZone = Math.hypot(player.r - rob.bank.r - 1, player.c - rob.bank.c - 1) < 2.5;
+    if (inVaultZone) {
+      rob.crackProgress += dt / rob.crackTotal;
+      if (rob.crackProgress >= 1) {
+        rob.crackProgress = 1;
+        rob.phase = 'loading';
+        showToast('🔓 Хранилище открыто! Забирай мешки', '💰', 2500);
+        try { hapticHit && hapticHit(); } catch(e) {}
+        _updateBankZoneBtn();
+      }
+    }
+  }
+
+  // Несёт мешок → проверить зону фургона
+  if (rob.phase === 'loading' && rob.myBag) {
+    const vanZone = _getBankVanZone(rob.bank);
+    const distToVan = Math.hypot(player.r - vanZone.r, player.c - vanZone.c);
+    if (distToVan < 2.5) {
+      rob.bagsLoaded++;
+      rob.myBag = null;
+      _myBagWeight = 0;
+      showToast(`💰 Мешок загружен! (${rob.bagsLoaded}/${rob.bagsMax})`, '✅', 1800);
+      try { hapticHit && hapticHit(); } catch(e) {}
+      const wsReady = !!(ws && ws.readyState === 1);
+      if (wsReady) {
+        try { ws.send(JSON.stringify({ t: 'bank_rob_bag_loaded', d: { bank_id: rob.bank.id, bags: rob.bagsLoaded } })); } catch(e) {}
+      }
+      // Все мешки погружены — автоматически переходим в фазу escaping
+      if (rob.bagsLoaded >= rob.bagsMax) {
+        rob.phase = 'escaping';
+        showToast('🚐 Все мешки в фургоне! Уезжаем!', '✅', 2500);
+        try { hapticHit && hapticHit(); } catch(e) {}
+      }
+      _updateBankZoneBtn();
+    }
+  }
+
+  // Обновить HUD
+  _updateBankRobHud();
+}
+
+// Обновить HUD ограбления банка
+function _updateBankRobHud() {
+  const el = document.getElementById('bankRobHud');
+  if (!el) return;
+  if (!_bankRob) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+
+  const rob = _bankRob;
+  const phaseNames = {
+    entered:  '🏦 ВОШЛИ В БАНК',
+    cracking: '🔒 ВЗЛОМ ХРАНИЛИЩА',
+    loading:  '💰 ГРУЗИМ МЕШКИ',
+    escaping: '🚐 УЕЗЖАЕМ',
+    done:     '✅ ЗАВЕРШЕНО',
+  };
+  const phaseEl = document.getElementById('bankRobPhaseText');
+  if (phaseEl) phaseEl.textContent = phaseNames[rob.phase] || 'ОГРАБЛЕНИЕ';
+
+  const bagEl = document.getElementById('bankRobBagCount');
+  if (bagEl) {
+    if (rob.phase === 'cracking') {
+      bagEl.textContent = `Взлом: ${(rob.crackProgress * 100).toFixed(0)}%`;
+    } else {
+      bagEl.textContent = `Мешки: ${rob.bagsLoaded}/${rob.bagsMax}${rob.myBag ? ' 💰 несу' : ''}`;
+    }
+  }
+
+  const fillEl = document.getElementById('bankRobPoliceFill');
+  const textEl = document.getElementById('bankRobPoliceText');
+  if (rob.alarmTriggered) {
+    const frac = rob.policeTimer / rob.bank.police_delay;
+    if (fillEl) fillEl.style.width = (Math.max(0, frac) * 100).toFixed(1) + '%';
+    if (textEl) {
+      if (rob.policeTimer > 0) {
+        textEl.textContent = `🚨 Полиция через ${rob.policeTimer.toFixed(0)}с`;
+        textEl.style.color = '#ff3030';
+      } else {
+        textEl.textContent = '🚓 Полиция здесь!';
+        textEl.style.color = '#ff1010';
+      }
+    }
+  } else {
+    if (fillEl) fillEl.style.width = '100%';
+    if (textEl) { textEl.textContent = '⏳ Тревога не поднята'; textEl.style.color = '#a09080'; }
+  }
+}
+
+// Обновить кнопку зоны банка
+function _updateBankZoneBtn() {
+  // Вызывается когда меняется фаза — updateZoneBtn сам проверит каждый кадр
+}
+
+// Нарисовать здание банка
+function drawBankBuilding(bank) {
+  const p = w2s(bank.r + 1.5, bank.c + 1.5);
+  ctx.save();
+  const size = bank.size;
+  const floors = { small: 2, medium: 3, large: 4 }[size];
+  const bw = { small: 52, medium: 72, large: 92 }[size];
+  const bh = { small: 36, medium: 56, large: 72 }[size] * floors * 0.4;
+
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath();
+  ctx.ellipse(p.x + 4, p.y + 4, bw * 0.6, bw * 0.25, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Колонны
+  const cols = { small: 2, medium: 4, large: 6 }[size];
+  const colColor = size === 'large' ? '#d8d0c0' : '#f0ece0';
+  for (let i = 0; i < cols; i++) {
+    const cx = p.x - bw * 0.35 + (i / (cols - 1)) * bw * 0.7;
+    ctx.fillStyle = colColor;
+    ctx.fillRect(cx - 4, p.y - bh * 0.7, 8, bh * 0.65);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(cx + 2, p.y - bh * 0.7, 3, bh * 0.65);
+  }
+
+  // Основное тело
+  const bodyGrad = ctx.createLinearGradient(p.x - bw / 2, p.y - bh, p.x + bw / 2, p.y);
+  if (size === 'small') {
+    bodyGrad.addColorStop(0, '#f5f0e8');
+    bodyGrad.addColorStop(1, '#ddd8c8');
+  } else if (size === 'medium') {
+    bodyGrad.addColorStop(0, '#e8e4d8');
+    bodyGrad.addColorStop(1, '#c8c0a8');
+  } else {
+    bodyGrad.addColorStop(0, '#d8d4cc');
+    bodyGrad.addColorStop(1, '#a8a49c');
+  }
+  ctx.fillStyle = bodyGrad;
+  ctx.fillRect(p.x - bw / 2, p.y - bh, bw, bh);
+
+  // Боковая грань (изо-эффект)
+  ctx.fillStyle = size === 'large' ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.moveTo(p.x + bw / 2, p.y - bh);
+  ctx.lineTo(p.x + bw / 2 + 14, p.y - bh + 8);
+  ctx.lineTo(p.x + bw / 2 + 14, p.y + 8);
+  ctx.lineTo(p.x + bw / 2, p.y);
+  ctx.closePath();
+  ctx.fill();
+
+  // Крыша
+  const roofColor = { small: '#4060a8', medium: '#2a4a88', large: '#1a3068' }[size];
+  ctx.fillStyle = roofColor;
+  ctx.fillRect(p.x - bw / 2 - 4, p.y - bh - 8, bw + 8, 12);
+
+  // Треугольный фронтон
+  ctx.fillStyle = colColor;
+  ctx.beginPath();
+  ctx.moveTo(p.x - bw / 2 - 6, p.y - bh - 8);
+  ctx.lineTo(p.x, p.y - bh - 8 - bw * 0.15);
+  ctx.lineTo(p.x + bw / 2 + 6, p.y - bh - 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#b8b0a0';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Окна
+  const rows = floors;
+  const winsPerRow = { small: 3, medium: 4, large: 5 }[size];
+  ctx.fillStyle = '#a8c8e8';
+  for (let row = 0; row < rows; row++) {
+    for (let wi = 0; wi < winsPerRow; wi++) {
+      const wx = p.x - bw / 2 + 12 + wi * (bw - 18) / (winsPerRow - 0.5);
+      const wy = p.y - bh * 0.85 + row * (bh * 0.7 / rows);
+      ctx.fillRect(wx, wy, 10, 14);
+      ctx.strokeStyle = '#88a8c8';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(wx, wy, 10, 14);
+      ctx.beginPath();
+      ctx.moveTo(wx + 5, wy); ctx.lineTo(wx + 5, wy + 14);
+      ctx.moveTo(wx, wy + 7); ctx.lineTo(wx + 10, wy + 7);
+      ctx.stroke();
+    }
+  }
+
+  // Вход (дверь)
+  ctx.fillStyle = '#1a1008';
+  ctx.fillRect(p.x - 10, p.y - 18, 20, 18);
+  ctx.fillStyle = '#3a2808';
+  ctx.beginPath();
+  ctx.arc(p.x, p.y - 18, 10, Math.PI, 0);
+  ctx.fill();
+
+  // Надпись БАНК
+  ctx.font = `bold ${size === 'large' ? 11 : 9}px system-ui`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = size === 'large' ? '#ffd76b' : '#c8b888';
+  ctx.fillText('🏦 БАНК', p.x, p.y - bh + 14);
+
+  // Мигающий красный контур если идёт ограбление именно этого банка
+  if (_bankRob && _bankRob.bank.id === bank.id) {
+    const tt = performance.now();
+    const pulse = 0.5 + 0.5 * Math.sin(tt * 0.006);
+    ctx.globalAlpha = 0.3 + 0.2 * pulse;
+    ctx.strokeStyle = '#ff3030';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(p.x - bw / 2 - 2, p.y - bh - 2, bw + 4, bh + 4);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+// Нарисовать вывеску над банком
+function drawBankSign(bank) {
+  const p = w2s(bank.r + 1.5, bank.c + 1.5);
+  const topY = p.y - 155;
+  const W = 116, H = 48;
+
+  const busy = (_bankRob && _bankRob.bank.id === bank.id);
+  const accentCol = busy ? '#ff4020' : '#f0c820';
+
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.fillRect(p.x - W / 2 + 2, topY + 2, W, H);
+
+  // Фон
+  const g = ctx.createLinearGradient(p.x, topY, p.x, topY + H);
+  g.addColorStop(0, busy ? '#2a0808' : '#1a1508');
+  g.addColorStop(1, busy ? '#1a0404' : '#0e0c04');
+  ctx.fillStyle = g;
+  ctx.fillRect(p.x - W / 2, topY, W, H);
+
+  // Рамка
+  ctx.strokeStyle = accentCol;
+  ctx.lineWidth = 1.6;
+  ctx.strokeRect(p.x - W / 2 + 0.5, topY + 0.5, W - 1, H - 1);
+  ctx.strokeStyle = 'rgba(255,255,255,.12)';
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(p.x - W / 2 + 2.5, topY + 2.5, W - 5, H - 5);
+
+  // Стрелка вниз
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 7, topY + H);
+  ctx.lineTo(p.x + 7, topY + H);
+  ctx.lineTo(p.x, topY + H + 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = accentCol;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(p.x - 7, topY + H);
+  ctx.lineTo(p.x, topY + H + 7);
+  ctx.lineTo(p.x + 7, topY + H);
+  ctx.stroke();
+
+  // Эмодзи
+  ctx.font = '18px "Segoe UI Emoji", system-ui';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('🏦', p.x - W / 2 + 6, topY + H * 0.38);
+
+  // Название
+  ctx.font = 'bold 10px system-ui';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = accentCol;
+  ctx.fillText(bank.name.replace('Банк «', '').replace('»', ''), p.x - W / 2 + 28, topY + 4);
+
+  // Статус / награда
+  ctx.font = '9px system-ui';
+  ctx.textBaseline = 'top';
+  if (busy && _bankRob.alarmTriggered && _bankRob.policeTimer > 0) {
+    ctx.fillStyle = '#ff6040';
+    ctx.fillText(`🚨 Полиция ${_bankRob.policeTimer.toFixed(0)}с`, p.x - W / 2 + 28, topY + 17);
+  } else if (busy) {
+    ctx.fillStyle = '#ff8040';
+    ctx.fillText('🔥 Ограбление идёт', p.x - W / 2 + 28, topY + 17);
+  } else {
+    const maxVal = bank.bags * bank.reward_per_bag;
+    ctx.fillStyle = '#c8c090';
+    ctx.fillText(`до $${(maxVal / 1000).toFixed(0)}k · ${bank.bags} мешков`, p.x - W / 2 + 28, topY + 17);
+  }
+
+  // Доп строка
+  ctx.font = 'bold 8px system-ui';
+  const bsize = { small: '$1.2k/мешок', medium: '$2.5k/мешок', large: '$5k/мешок' }[bank.size];
+  ctx.fillStyle = '#a09878';
+  ctx.textBaseline = 'top';
+  ctx.fillText(bsize, p.x - W / 2 + 28, topY + 30);
+}
+
+// Нарисовать зону фургона у банка
+function drawBankVanZone(bank) {
+  const van = _getBankVanZone(bank);
+  const p1 = w2s(van.r, van.c);
+  const p2 = w2s(van.r + 2, van.c + 5);
+  const tt = performance.now();
+  ctx.save();
+
+  const busy = (_bankRob && _bankRob.bank.id === bank.id && _bankRob.phase === 'loading');
+  const pulse = 0.5 + 0.5 * Math.sin(tt * 0.005);
+
+  // Пунктирный прямоугольник
+  ctx.strokeStyle = busy ? `rgba(255,220,60,${0.6 + 0.3 * pulse})` : 'rgba(255,220,60,0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 5]);
+  ctx.strokeRect(p1.x, p1.y - 10, p2.x - p1.x, p2.y - p1.y + 10);
+  ctx.setLineDash([]);
+
+  // Иконка фургона и текст
+  const cx = (p1.x + p2.x) / 2;
+  const cy = (p1.y + p2.y) / 2 - 4;
+  ctx.font = '16px "Segoe UI Emoji", system-ui';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.globalAlpha = busy ? (0.7 + 0.25 * pulse) : 0.45;
+  ctx.fillText('🚐', cx, cy - 6);
+  ctx.font = 'bold 8px system-ui';
+  ctx.fillStyle = '#ffd76b';
+  ctx.globalAlpha = busy ? (0.8 + 0.2 * pulse) : 0.4;
+  ctx.fillText('ФУРГОН', cx, cy + 8);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
 // в норме (типично 0-20 пуль, 0-5 muzzles), но защищает от худшего.
 function _capArrays() {
   const MAX_BUL = 200, MAX_MUZ = 100, MAX_FLOAT = 100, MAX_SHOCK = 50;
@@ -24796,81 +25439,3 @@ NPCS.push({r:38.5,c:37.5,tr:38.5,tc:37.5,speed:0.8,ang:2.4,
   walkPhase:0,idleUntil:0,hp:200,max_hp:200,
   cryText:'Охранник',cryUntil:Infinity,
   look:{gender:0,skin:5,body:2,face:1,hair:2,hat:5}});
-
-// Добавлено ботом
-// Добавляем нового именного NPC Валентина
-NPCS.push({
-  r: 38.5, 
-  c: 36.5, 
-  tr: 38.5, 
-  tc: 36.5, 
-  speed: 0, 
-  ang: 2.4,
-  walkPhase: 0, 
-  idleUntil: Infinity, 
-  hp: 200, 
-  max_hp: 200,
-  cryText: 'Валентин',
-  cryUntil: Infinity,
-  look: {gender: 0, skin: 2, body: 1, face: 2, hair: 4, hat: 3}
-});
-
-// Функция для получения случайного NPC в мире
-function getRandomNpc() {
-  return NPCS[Math.floor(Math.random() * NPCS.length)];
-}
-
-// Функция для квеста Валентина
-function valentinQuest() {
-  const targetNpc = getRandomNpc();
-  const player = getPlayer(); // функция для получения игрока
-  
-  // Логика принятия квеста
-  if (player.hasQuest('valentinQuest')) {
-    console.log('Вы уже выполняете квест Валентина');
-    return;
-  }
-  
-  player.hasQuest('valentinQuest', true);
-  console.log('Валентин: Привет, мне нужна твоя помощь. Отведи это сообщение другому NPC.');
-  
-  // Логика выполнения квеста
-  if (player.completedQuest('valentinQuest')) {
-    console.log('Валентин: Отличная работа! Ты выполнил квест.');
-    player.reward(500); // награда за выполнение квеста
-    player.hasQuest('valentinQuest', false);
-  }
-}
-
-// Функция для диалога с Валентином
-function talkToValentin() {
-  const player = getPlayer();
-  
-  if (player.hasQuest('valentinQuest')) {
-    console.log('Валентин: Как ты справишься с квестом?');
-  } else {
-    valentinQuest();
-  }
-}
-
-// Добавляем слушатель события для диалога с Валентином
-document.addEventListener('talkToValentin', talkToValentin);
-
-// Добавлено ботом
-initNpcs();
-
-NPCS.push({
-  r: 38.5, 
-  c: 36.5, 
-  tr: 38.5, 
-  tc: 36.5, 
-  speed: 0, 
-  ang: 2.4,
-  walkPhase: 0, 
-  idleUntil: Infinity, 
-  hp: 200, 
-  max_hp: 200,
-  cryText: 'Валентин',
-  cryUntil: Infinity,
-  look: {gender: 0, skin: 2, body: 1, face: 2, hair: 4, hat: 3}
-});
