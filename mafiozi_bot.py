@@ -3837,9 +3837,9 @@ BANK_ROB_CONFIGS = {
     'large':  {'bags': 18, 'reward_per_bag': 5000, 'wanted': 5.0},
 }
 BANK_ROB_POS_RC = {
-    'small':  (8,  50),
-    'medium': (50, 8),
-    'large':  (50, 50),
+    'small':  ( 3, 23),
+    'medium': ( 3, 53),
+    'large':  (63, 33),
 }
 BANK_ROB_RADIUS     = 6.0   # тайлов — anti-cheat проверка при старте
 BANK_ROB_COOLDOWN_S = 4 * 3600  # кулдаун 4ч на каждый банк отдельно
