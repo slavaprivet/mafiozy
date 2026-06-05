@@ -1937,6 +1937,15 @@ function inArena(r, c) {
   return r >= ARENA_R0 && r <= ARENA_R1 && c >= ARENA_C0 && c <= ARENA_C1;
 }
 
+// ── Логово — опасная зона только для бандитов ──────────────────────
+const _LAIR_POI = POI.find(p => p.id === 'lair');
+const _LAIR_R   = _LAIR_POI ? _LAIR_POI.r          : 120;
+const _LAIR_C   = _LAIR_POI ? _LAIR_POI.c          : 40;
+const _LAIR_RAD = _LAIR_POI ? (_LAIR_POI.radius||20) : 20;
+function inLair(r, c) {
+  return Math.hypot(r - _LAIR_R, c - _LAIR_C) <= _LAIR_RAD;
+}
+
 // ── Захват районов ─────────────────────────────────────────────
 // Захватываемые POI (особые — больница/участок/арена/чёрный рынок — НЕ
 // захватываются). Зона = квартал 7×7 вокруг POI. PvE-игроки в захвате
@@ -3072,6 +3081,7 @@ function spawnNpc(seed) {
     const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
     const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
     if (inArena(r, c)) continue;
+    if (inLair(r, c)) continue;   // мирные NPC не заходят в логово
     if (MAP[r][c] === 9 || MAP[r][c] === 8) {
       const arcKey = _pickArchetype();
       const arc    = NPC_ARCHETYPES[arcKey];
@@ -3251,11 +3261,12 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
   }
 }
 // Проходимо ли для NPC: только бордюр (9) или газон (8), и НЕ внутри
-// PVP-арены (туда NPC не лезут, чтобы не мешать игрокам стреляться).
+// PVP-арены (туда NPC не лезут) и НЕ в логове (только бандиты).
 function npcPassable(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
   if (inArena(ri, ci)) return false;
+  if (inLair(ri, ci)) return false;   // обычные NPC не ходят в логово
   const t = MAP[ri][ci];
   return (t === 9 || t === 8);
 }
@@ -3885,6 +3896,7 @@ function _vehicleRoadPassable(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
   if (inArena(ri, ci)) return false;
+  if (inLair(ri, ci)) return false;    // копы/техника не въезжают в логово
   if (!MAP[ri]) return false;
   return MAP[ri][ci] === 0;
 }
@@ -3892,6 +3904,7 @@ function _vehicleOffroadPassable(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
   if (inArena(ri, ci)) return false;
+  if (inLair(ri, ci)) return false;    // транспорт не въезжает в логово
   if (!MAP[ri]) return false;
   const t = MAP[ri][ci];
   return (t === 0 || t === 9 || t === 8);
@@ -5332,6 +5345,7 @@ function spawnParkedCar() {
     const r = 3 + Math.floor(Math.random() * (MAP_ROWS - 6));
     const c = 3 + Math.floor(Math.random() * (MAP_COLS - 6));
     if (inArena(r, c)) continue;
+    if (inLair(r, c)) continue;   // в логове нет припаркованных тачек
     const tHere = MAP[r] && MAP[r][c];
     if (tHere !== 9 && tHere !== 8) continue;
     // Рядом должна быть дорога (тип 0) — это «у обочины»
@@ -16318,6 +16332,80 @@ function drawGangNestRings() {
   }
 }
 
+// drawLairPerimeter — отрисовка только, константы вынесены выше к POI
+
+function drawLairPerimeter() {
+  if (!_LAIR_POI) return;
+  const now = performance.now();
+  const pulse = 0.5 + 0.5 * Math.sin(now * 0.0025);
+  const steps = 24;
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * Math.PI * 2;
+    pts.push(w2s(_LAIR_R + Math.sin(a) * _LAIR_RAD,
+                 _LAIR_C + Math.cos(a) * _LAIR_RAD));
+  }
+  ctx.save();
+  ctx.strokeStyle = `rgba(220,30,30,${0.55 + 0.35 * pulse})`;
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([8, 5]);
+  ctx.shadowColor = '#ff2020';
+  ctx.shadowBlur = 8 + pulse * 5;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  ctx.stroke();
+  // Предупреждающая подпись в верхней точке
+  const top = w2s(_LAIR_R - _LAIR_RAD - 1, _LAIR_C);
+  ctx.font = `bold ${11 + pulse | 0}px system-ui`;
+  ctx.fillStyle = `rgba(255,60,60,${0.8 + 0.15 * pulse})`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowBlur = 6;
+  ctx.fillText('☠️ ЛОГОВО', top.x, top.y);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// ── Счётчик игроков внутри банка ───────────────────────────────────
+function _bankPlayerCount(bank) {
+  let n = 0;
+  if (_bankInt && _bankInt.bank.id === bank.id) n++;  // мы внутри
+  for (const [, o] of others) {
+    const dist = Math.hypot((o.y||o.r) - (bank.r+1.5), (o.x||o.c) - (bank.c+1.5));
+    if (dist < BANK_INTERACT_R + 1) n++;
+  }
+  return n;
+}
+
+function drawBankPlayerBadge(bank) {
+  const n = _bankPlayerCount(bank);
+  if (n <= 0) return;
+  const p = w2s(bank.r + 0.5, bank.c + 2.5);
+  const now = performance.now();
+  ctx.save();
+  // Фон бейджа
+  const bw = 36, bh = 18;
+  ctx.fillStyle = 'rgba(10,10,20,0.82)';
+  if (ctx.roundRect) ctx.roundRect(p.x - bw/2, p.y - 60 - bh, bw, bh, 5);
+  else ctx.rect(p.x - bw/2, p.y - 60 - bh, bw, bh);
+  ctx.fill();
+  // Пульсирующая точка (если мы внутри)
+  if (_bankInt && _bankInt.bank.id === bank.id) {
+    const pulse = 0.5 + 0.5 * Math.sin(now * 0.01);
+    ctx.fillStyle = `rgba(80,220,80,${0.7 + 0.3 * pulse})`;
+    ctx.beginPath(); ctx.arc(p.x - bw/2 + 7, p.y - 60 - bh/2, 3.5, 0, Math.PI*2); ctx.fill();
+  }
+  // Текст
+  ctx.fillStyle = '#e8e8f8';
+  ctx.font = 'bold 10px system-ui';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(`👤 ${n}`, p.x, p.y - 60 - bh/2);
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
 // Отрисовка УНИЧТОЖЕННОЙ машины (после столкновения) — обугленный
 // остов с пламенем. Если её уже потушили пожарные (car._burnedOut),
 // вместо огня — только тонкий струящийся дым.
@@ -22377,6 +22465,8 @@ function render() {
       if (MAP[r][c] !== 1) drawTile(r, c);
   // 1.5) Граница PVP-арены — красный пунктир поверх пола
   drawArenaPerimeter();
+  // 1.55) Граница логова — красный пунктир (только если рядом)
+  if (player.r > 90) drawLairPerimeter();
   // 1.6) Периметры захватываемых районов — цвет владельца / пунктир если ничейная
   drawTerritoryPerimeters();
   // 1.7) Бандитские гнёзда — пульсирующая красная подсветка вокруг здания
@@ -22595,6 +22685,7 @@ function render() {
     if (bank.r + 4 < r0 - 2 || bank.r >= r1 + 2 || bank.c + 5 < c0 - 2 || bank.c >= c1 + 2) continue;
     items.push({ depth: bank.r + bank.c - 0.3, draw: () => drawBankBuilding(bank) });
     items.push({ depth: bank.r + bank.c - 0.5, draw: () => drawBankSign(bank) });
+    items.push({ depth: bank.r + bank.c - 0.6, draw: () => drawBankPlayerBadge(bank) });
     items.push({ depth: bank.r + bank.c + 0.1, draw: () => drawBankVanZone(bank) });
   }
 
