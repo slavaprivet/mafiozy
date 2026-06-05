@@ -25271,25 +25271,32 @@ function drawBankBuilding(bank) {
     ctx.fillRect(cx - 2, cy - H * 0.85, 4, 4);
   }
 
-  // Окна — правая грань (сетка)
+  // Окна — правая грань (высокие, с рамкой и отблеском)
   const winRows = floors;
   const winCols = { small: 4, medium: 6, large: 8 }[size];
   for (let row = 0; row < winRows; row++) {
     for (let col = 0; col < winCols; col++) {
       const k = (col + 0.5) / winCols;
       const wx_ = p.x + wx * k;
-      const wy_ = p.y + wy * (1 - k) - H * (0.12 + row * 0.72 / winRows);
+      const wy_ = p.y + wy * (1 - k) - H * (0.10 + row * 0.74 / winRows);
       const lit = ((bank.r * 17 + bank.c * 31 + row * 5 + col * 3) % 5 < 3);
-      ctx.fillStyle = lit ? '#c8e0f8' : '#1a1a24';
-      if (lit) { ctx.shadowColor = '#a0c8f0'; ctx.shadowBlur = 2; }
-      ctx.fillRect(wx_ - 3, wy_ - 5, 6, 8);
-      // Переплёт
-      ctx.strokeStyle = lit ? 'rgba(80,120,180,.4)' : 'rgba(0,0,0,.5)';
-      ctx.lineWidth = 0.5;
-      ctx.beginPath(); ctx.moveTo(wx_, wy_-5); ctx.lineTo(wx_, wy_+3);
-      ctx.moveTo(wx_-3, wy_-1); ctx.lineTo(wx_+3, wy_-1);
-      ctx.stroke();
+      // Рамка окна
+      ctx.fillStyle = 'rgba(160,150,130,.6)';
+      ctx.fillRect(wx_ - 5, wy_ - 8, 10, 13);
+      // Стекло
+      ctx.fillStyle = lit ? '#b8d8f8' : '#1a2030';
+      if (lit) { ctx.shadowColor = '#80b8e8'; ctx.shadowBlur = 3; }
+      ctx.fillRect(wx_ - 4, wy_ - 7, 8, 11);
       ctx.shadowBlur = 0;
+      // Отблеск на стекле
+      if (lit) {
+        ctx.fillStyle = 'rgba(255,255,255,.35)';
+        ctx.fillRect(wx_ - 4, wy_ - 7, 3, 4);
+      }
+      // Переплёт
+      ctx.strokeStyle = 'rgba(180,170,150,.5)'; ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(wx_, wy_-7); ctx.lineTo(wx_, wy_+4);
+      ctx.moveTo(wx_-4, wy_-2); ctx.lineTo(wx_+4, wy_-2); ctx.stroke();
     }
   }
   // Окна — левая грань
@@ -25297,31 +25304,84 @@ function drawBankBuilding(bank) {
     for (let col = 0; col < 3; col++) {
       const k = (col + 0.5) / 3;
       const wx_ = p.x - wx * k;
-      const wy_ = p.y + wy * (1 - k) - H * (0.12 + row * 0.72 / winRows);
+      const wy_ = p.y + wy * (1 - k) - H * (0.10 + row * 0.74 / winRows);
       const lit = ((bank.r * 13 + bank.c * 29 + row * 7 + col * 2) % 5 < 2);
-      ctx.fillStyle = lit ? '#b0c8e0' : '#141824';
-      ctx.fillRect(wx_ - 3, wy_ - 5, 5, 7);
-      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(130,120,100,.5)';
+      ctx.fillRect(wx_ - 4, wy_ - 7, 8, 11);
+      ctx.fillStyle = lit ? '#90b0d0' : '#121820';
+      ctx.fillRect(wx_ - 3, wy_ - 6, 6, 9);
     }
   }
 
-  // Вход (арка на нижней части фасада)
-  const archK = 0.25, archX = p.x + wx * archK, archY = p.y + wy * (1 - archK);
-  ctx.fillStyle = '#0a0808';
-  ctx.fillRect(archX - 9, archY - 20, 18, 20);
-  ctx.beginPath(); ctx.arc(archX, archY - 20, 9, Math.PI, 0); ctx.fill();
-  // Ступени
+  // Стеклянная входная дверь (двойная, с рамой)
+  const archK = 0.25;
+  const archX = p.x + wx * archK, archY = p.y + wy * (1 - archK);
+  const doorW = 22, doorH = 28;
+  // Каменная рамка вокруг двери
+  ctx.fillStyle = pal.side;
+  ctx.fillRect(archX - doorW/2 - 4, archY - doorH - 6, doorW + 8, doorH + 6);
+  // Арка над входом
   ctx.fillStyle = pal.front;
-  ctx.fillRect(archX - 14, archY, 28, 4);
-  ctx.fillRect(archX - 11, archY + 4, 22, 3);
+  ctx.beginPath();
+  ctx.arc(archX, archY - doorH - 6, doorW/2 + 4, Math.PI, 0);
+  ctx.fill();
+  // Полукруглое окно над дверью
+  ctx.fillStyle = 'rgba(180,220,255,.5)';
+  ctx.beginPath();
+  ctx.arc(archX, archY - doorH - 6, doorW/2, Math.PI, 0);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(200,230,255,.7)'; ctx.lineWidth = 0.8; ctx.stroke();
+  // Стеклянные двери (две половины)
+  const dg = ctx.createLinearGradient(archX - doorW/2, 0, archX + doorW/2, 0);
+  dg.addColorStop(0, 'rgba(180,220,255,.55)');
+  dg.addColorStop(0.45, 'rgba(220,240,255,.7)');
+  dg.addColorStop(0.5, 'rgba(180,200,240,.3)');  // стык дверей
+  dg.addColorStop(0.55, 'rgba(220,240,255,.7)');
+  dg.addColorStop(1, 'rgba(180,220,255,.55)');
+  ctx.fillStyle = dg;
+  ctx.fillRect(archX - doorW/2, archY - doorH, doorW, doorH);
+  // Рамы дверей
+  ctx.strokeStyle = 'rgba(160,190,210,.8)'; ctx.lineWidth = 1.2;
+  ctx.strokeRect(archX - doorW/2, archY - doorH, doorW/2, doorH);
+  ctx.strokeRect(archX, archY - doorH, doorW/2, doorH);
+  // Центральная ручки
+  ctx.fillStyle = '#c0c8d0';
+  ctx.fillRect(archX - 2, archY - doorH/2 - 6, 4, 12);
+  ctx.fillRect(archX - 3, archY - doorH/2 - 4, 6, 2);
+  ctx.fillRect(archX - 3, archY - doorH/2 + 2, 6, 2);
+  // Отблеск на стекле
+  ctx.fillStyle = 'rgba(255,255,255,.3)';
+  ctx.fillRect(archX - doorW/2 + 2, archY - doorH + 3, 4, doorH * 0.4);
+  ctx.fillRect(archX + 2, archY - doorH + 3, 4, doorH * 0.4);
+  // Ступени
+  ctx.fillStyle = '#d0c8b0';
+  ctx.fillRect(archX - doorW/2 - 8, archY, doorW + 16, 5);
+  ctx.fillStyle = '#c8c0a8';
+  ctx.fillRect(archX - doorW/2 - 5, archY + 5, doorW + 10, 4);
 
-  // Надпись БАНК на фасаде
+  // ── Вывеска банка (освещённая панель) ──────────────────────────────
   ctx.save();
-  ctx.font = `bold ${size==='large'?11:9}px system-ui`;
+  const signK = 0.5, signX = p.x + wx * signK;
+  const signY = p.y + wy * (1 - signK) - H * 0.08;
+  const sw = { small: 50, medium: 65, large: 80 }[size];
+  const sh = { small: 14, medium: 17, large: 20 }[size];
+  // Фон вывески — тёмная полоса
+  ctx.fillStyle = '#0a0a18';
+  ctx.fillRect(signX - sw/2, signY - sh, sw, sh);
+  ctx.strokeStyle = '#c0a840'; ctx.lineWidth = 1.2;
+  ctx.strokeRect(signX - sw/2, signY - sh, sw, sh);
+  // Подсветка
+  ctx.shadowColor = '#ffd040'; ctx.shadowBlur = 8;
+  ctx.fillStyle = '#ffd040';
+  ctx.font = `bold ${size==='large'?10:8}px "Segoe UI", system-ui`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = size==='large' ? '#ffd76b' : '#c8b070';
-  ctx.fillText('🏦 БАНК', p.x + wx * 0.3, p.y + wy * 0.15 - H * 0.15);
-  ctx.restore();
+  ctx.fillText('🏦 БАНК', signX, signY - sh/2);
+  ctx.shadowBlur = 0;
+  // Название банка (мельче, под иконкой)
+  ctx.fillStyle = 'rgba(200,200,180,.8)';
+  ctx.font = `${size==='large'?7:6}px system-ui`;
+  ctx.fillText(bank.name.toUpperCase(), signX, signY - 4);
+  ctx.restore(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 
   // Антенна на крыше (высотка)
   if (size === 'large') {
@@ -25715,6 +25775,45 @@ function _updateBankInterior(dt) {
     }
     int.panicAt=null;
   }
+  // Живые фразы NPC (только в нормальном состоянии, не при ограблении)
+  if (!int.panicAt && int.phase === 'lobby') {
+    const _bankPhrases = {
+      teller:  ['Следующий!', 'Чем помочь?', 'Оформляю...', 'Ваш документ?'],
+      admin:   ['Добро пожаловать!', 'Слушаю вас 🙂', 'Одну минуту...'],
+      staff:   ['Обрабатываю...', 'Готово!', 'Проверяю счёт...', '...'],
+      client:  ['Долго стою...', '...', 'Когда уже?', '📱'],
+      lounge:  ['☕', 'Хорошо здесь', '...'],
+    };
+    for (const npc of int.npcs) {
+      if (npc.state !== 'normal') continue;
+      if (!npc._speechTimer) npc._speechTimer = 5 + Math.random()*12;
+      npc._speechTimer -= dt;
+      if (npc._speechTimer <= 0) {
+        npc._speechTimer = 8 + Math.random()*15;
+        const phrases = _bankPhrases[npc.type];
+        if (phrases && Math.random() < 0.6) {
+          npc.cryText = phrases[Math.floor(Math.random()*phrases.length)];
+          npc.cryUntil = now + 1800 + Math.random()*800;
+        }
+      }
+    }
+  }
+
+  // Анимация печатания для staff (мерцание курсора)
+  for (const npc of int.npcs) {
+    if (npc.type === 'staff' && npc.state === 'normal') {
+      if (!npc._typingPhase) npc._typingPhase = Math.random()*6.28;
+      npc._typingPhase += dt * 4;
+      // Раз в 3-8 сек перестают печатать (смотрят в монитор)
+      if (!npc._typingPause) npc._typingPause = 3 + Math.random()*5;
+      npc._typingPause -= dt;
+      if (npc._typingPause <= 0) {
+        npc._typing = !npc._typing;
+        npc._typingPause = (npc._typing ? 2 : 0.5) + Math.random()*3;
+      }
+    }
+  }
+
   for (const npc of int.npcs) {
     npc.walkPhase=(npc.walkPhase||0)+dt*9;
     if (npc.state==='normal') {
@@ -25820,44 +25919,106 @@ function drawBankInteriorScene() {
   const hx=TS*.5,hy=TS*.5*ISO_Y,wallH=isoH(2.4);
   ctx.fillStyle='#040308'; ctx.fillRect(0,0,SW,SH);
 
-  // Пол — первым
+  // ── Пол — первым (без depth-sort) ────────────────────────────────
   for (let r=0;r<H;r++) for (let c=0;c<W;c++) {
     const chk=(r+c)%2===0;
-    let fill,stroke;
+    // Крупные 2×2 плиты (r/2 + c/2 чётность)
+    const big=(Math.floor(r/2)+Math.floor(c/2))%2===0;
+    let fill,stroke,accent=false;
     if (r<counterRow-4) {
-      if (c<W*.38){fill=chk?'#141c2a':'#0e1420';stroke='#1e2a3e';}          // персонал
-      else if (c>W*.62){fill=chk?'#1e140e':'#160e08';stroke='#2e1e14';}     // отдых
-      else {fill=chk?'#16122a':'#100e20';stroke='#22183c';}                  // хранилище
+      // Зона персонала (левый северный угол)
+      if (c<W*.38) {
+        fill=chk?'#1a2238':'#131828'; stroke='#252e46';
+        // Офисный ковёр — тёмный серо-синий с тонким узором
+        if ((r+c)%4===0) accent=true;
+      }
+      // Зона отдыха (правый северный угол)
+      else if (c>W*.62) {
+        fill=chk?'#22160e':'#180e08'; stroke='#2e1e12';
+        if ((r+c)%4===0) accent=true;
+      }
+      // Зона хранилища (центр-север) — тёмный гранит
+      else {
+        fill=big?'#1a1530':'#130f22'; stroke='#22183c';
+      }
     } else {
-      fill=chk?'#f5f1eb':'#e8e2d8';stroke='#ccc4b0';                         // лобби мрамор
-      if (r%4===0||c%4===0)stroke='#b8b0a0';
+      // Лобби — белый мрамор крупными плитами с серыми прожилками
+      if (big) { fill='#f4f0ea'; stroke='#c8c0b0'; }
+      else      { fill='#e8e2d8'; stroke='#d0c8b8'; }
+      // Тёмная бордюрная полоска по краям лобби
+      if (c===0||c===W-1||r===H-1) { fill='#c8c0b0'; stroke='#a8a098'; }
+      // Декоративный центральный крест (только в крупной зоне)
+      const cr=counterRow-2, cc=Math.floor(W/2);
+      if (Math.abs(r-cr)<=1&&Math.abs(c-cc)<=1) { fill='#e0d8c8'; stroke='#b0a898'; }
     }
     const p=w2s(r+.5,c+.5);
-    ctx.beginPath();ctx.moveTo(p.x,p.y-hy);ctx.lineTo(p.x+hx,p.y);ctx.lineTo(p.x,p.y+hy);ctx.lineTo(p.x-hx,p.y);ctx.closePath();
-    ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=.5;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p.x,p.y-hy);ctx.lineTo(p.x+hx,p.y);
+    ctx.lineTo(p.x,p.y+hy);ctx.lineTo(p.x-hx,p.y);ctx.closePath();
+    ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=.4;ctx.stroke();
+    // Акцент-точка (ковёр)
+    if (accent) {
+      ctx.fillStyle='rgba(80,80,120,.25)';
+      ctx.beginPath();ctx.arc(p.x,p.y,2,0,Math.PI*2);ctx.fill();
+    }
+  }
+  // Центральный медальон в лобби (золотой круг с иконкой)
+  { const cc=w2s(counterRow-1+.5, W/2+.5);
+    ctx.save();
+    ctx.globalAlpha=0.18;
+    ctx.fillStyle='#d0a020';
+    ctx.beginPath();ctx.arc(cc.x,cc.y,hx*0.9,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=0.08;
+    ctx.beginPath();ctx.arc(cc.x,cc.y,hx*1.4,0,Math.PI*2);ctx.fill();
+    ctx.restore();
   }
 
   // Мебель depth-sorted
   const items=[];
 
-  // Офисные столы (северо-запад)
+  // Офисные столы с анимацией печатания (северо-запад)
   const staffCnt=bank.size==='small'?1:bank.size==='medium'?2:3;
+  const staffNpcs=int.npcs.filter(n=>n.type==='staff');
   for (let i=0;i<staffCnt;i++) {
     for (let j=0;j<2;j++) {
       const dr=3+i*3,dc=2+j*3;
       if (dc>W*.35) continue;
-      items.push({d:dr+dc+.1,fn:((_r,_c)=>()=>{
+      const staffNpc = staffNpcs[i*2+j] || staffNpcs[i] || null;
+      items.push({d:dr+dc+.1,fn:((_r,_c,_npc)=>()=>{
         const p=w2s(_r+.5,_c+.5),tH=isoH(.5);
+        const now2=performance.now();
+        // Стол
         ctx.fillStyle='#2a3050';ctx.strokeStyle='#404868';ctx.lineWidth=.8;
         ctx.beginPath();ctx.moveTo(p.x,p.y-hy*.85);ctx.lineTo(p.x+hx*.85,p.y-hy*.15);
         ctx.lineTo(p.x,p.y+hy*.85-tH);ctx.lineTo(p.x-hx*.85,p.y-hy*.15-tH);ctx.closePath();ctx.fill();ctx.stroke();
-        ctx.fillStyle='#0a1220';ctx.fillRect(p.x-10,p.y-tH-18,22,15);
-        ctx.strokeStyle='#3060a0';ctx.lineWidth=.7;ctx.strokeRect(p.x-10,p.y-tH-18,22,15);
-        ctx.fillStyle=`rgba(30,80,200,${.5+.2*Math.sin(performance.now()*.003+_r)})`;
-        ctx.fillRect(p.x-9,p.y-tH-17,20,13);
-        ctx.font='5px monospace';ctx.fillStyle='#60a0ff';ctx.textAlign='center';
-        ctx.fillText('▌▌',p.x,p.y-tH-10);ctx.textAlign='left';
-      })(dr,dc)});
+        // Монитор (с рамкой)
+        ctx.fillStyle='#0c1428';ctx.strokeStyle='#3868b0';ctx.lineWidth=.9;
+        ctx.fillRect(p.x-11,p.y-tH-20,24,16);ctx.strokeRect(p.x-11,p.y-tH-20,24,16);
+        // Экран — светится с анимацией
+        const sc=.45+.2*Math.sin(now2*.002+_r);
+        ctx.fillStyle=`rgba(20,60,180,${sc})`;
+        ctx.fillRect(p.x-10,p.y-tH-19,22,14);
+        // Строки текста на экране
+        ctx.fillStyle=`rgba(80,160,255,${.5+.3*Math.sin(now2*.004+_r)})`;
+        for(let li=0;li<3;li++){
+          const lw=8+((now2*0.02+_r*3+li*17)%8)|0;
+          ctx.fillRect(p.x-9,p.y-tH-17+li*4,lw,1.5);
+        }
+        // Мигающий курсор
+        if ((now2*.003|0)%2===0) {
+          ctx.fillStyle='rgba(120,200,255,.9)';
+          ctx.fillRect(p.x+2,p.y-tH-10,1.5,6);
+        }
+        // Клавиатура
+        ctx.fillStyle='#1e2840';ctx.strokeStyle='#303e58';ctx.lineWidth=.5;
+        ctx.fillRect(p.x-8,p.y-tH-1,16,5);ctx.strokeRect(p.x-8,p.y-tH-1,16,5);
+        // Анимация пальцев (если печатает)
+        if (_npc && _npc._typing && _npc.state==='normal') {
+          const fk=Math.sin((_npc._typingPhase||0)*3);
+          ctx.fillStyle='rgba(180,140,100,.7)';
+          ctx.fillRect(p.x-4+fk*2,p.y-tH-3,3,3);
+          ctx.fillRect(p.x+1-fk*2,p.y-tH-3,3,3);
+        }
+      })(dr,dc,staffNpc)});
     }
   }
 
@@ -25920,15 +26081,64 @@ function drawBankInteriorScene() {
     })(sc2)});
   }
 
-  // Кадки у входа
+  // Кадки у входа (крупнее, с горшком)
   for (let ci=0;ci<2;ci++) {
     const cc=ci===0?1.5:W-1.5;
     items.push({d:H-1.5+cc*.001,fn:((_c)=>()=>{
       const p=w2s(H-1.5,_c);
-      ctx.fillStyle='#5a3a20';ctx.beginPath();ctx.ellipse(p.x,p.y,hx*.32,hy*.32,0,0,Math.PI*2);ctx.fill();
-      ctx.font='16px sans-serif';ctx.textAlign='center';ctx.fillText('🌿',p.x,p.y-10);ctx.textAlign='left';
+      // Горшок
+      ctx.fillStyle='#7a5030';ctx.strokeStyle='#4a2810';ctx.lineWidth=.8;
+      ctx.beginPath();ctx.ellipse(p.x,p.y,hx*.35,hy*.35,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#5a3820';
+      ctx.beginPath();ctx.ellipse(p.x,p.y-2,hx*.3,hy*.25,0,0,Math.PI*2);ctx.fill();
+      ctx.font='18px sans-serif';ctx.textAlign='center';ctx.fillText('🌿',p.x,p.y-12);ctx.textAlign='left';
     })(cc)});
   }
+
+  // Банкомат (ATM) у правой стены лобби
+  items.push({d:counterRow+2+W-2, fn:()=>{
+    const p=w2s(counterRow+2,W-2);
+    const aH=isoH(1.2);
+    ctx.fillStyle='#1a2838';ctx.strokeStyle='#2a3848';ctx.lineWidth=.9;
+    // Корпус ATM
+    ctx.beginPath();
+    ctx.moveTo(p.x,p.y-hy*.8);ctx.lineTo(p.x+hx*.8,p.y-hy*.1);
+    ctx.lineTo(p.x+hx*.8,p.y-hy*.1-aH);ctx.lineTo(p.x,p.y-hy*.8-aH);
+    ctx.closePath();ctx.fill();ctx.stroke();
+    // Экран
+    ctx.fillStyle=`rgba(20,80,180,${.5+.2*Math.sin(performance.now()*.002)})`;
+    ctx.fillRect(p.x+2,p.y-aH*.7,14,10);
+    ctx.strokeStyle='#4080c0';ctx.lineWidth=.6;ctx.strokeRect(p.x+2,p.y-aH*.7,14,10);
+    // Слот для карты
+    ctx.fillStyle='#101824';ctx.fillRect(p.x+4,p.y-aH*.35,10,2);
+    // Кнопки
+    for(let bi=0;bi<3;bi++){
+      ctx.fillStyle='#304060';ctx.fillRect(p.x+3+bi*4,p.y-aH*.22,3,3);
+    }
+    ctx.font='7px monospace';ctx.fillStyle='#60c0ff';ctx.textAlign='center';
+    ctx.fillText('ATM',p.x+9,p.y-aH*.63);ctx.textAlign='left';
+  }});
+
+  // Декоративные настенные часы (над кассой)
+  items.push({d:counterRow-3+W*.5, fn:()=>{
+    const p=w2s(counterRow-3,W*.5);
+    const now2=performance.now()/1000;
+    const sec=now2%60,min=(now2/60)%60;
+    ctx.save();
+    ctx.fillStyle='rgba(240,230,210,.9)';ctx.strokeStyle='#808060';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(p.x,p.y-isoH(.3)-14,10,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.strokeStyle='#404030';ctx.lineWidth=1.2;
+    // Часовая стрелка
+    ctx.beginPath();ctx.moveTo(p.x,p.y-isoH(.3)-14);
+    ctx.lineTo(p.x+Math.cos(min/60*Math.PI*2-Math.PI/2)*6,
+               p.y-isoH(.3)-14+Math.sin(min/60*Math.PI*2-Math.PI/2)*6);ctx.stroke();
+    // Минутная
+    ctx.strokeStyle='#202018';ctx.lineWidth=.8;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-isoH(.3)-14);
+    ctx.lineTo(p.x+Math.cos(sec/60*Math.PI*2-Math.PI/2)*8,
+               p.y-isoH(.3)-14+Math.sin(sec/60*Math.PI*2-Math.PI/2)*8);ctx.stroke();
+    ctx.restore();
+  }});
 
   // Мешки
   if (phase==='vault_open'||phase==='cracking') {
@@ -25960,6 +26170,38 @@ function drawBankInteriorScene() {
     if (!myDead) drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT);
     if (myBag){ctx.font='16px sans-serif';ctx.textAlign='center';ctx.fillText('💼',p.x,p.y-40);ctx.textAlign='left';}
   }});
+
+  // Арочные проходы между зонами (в depth-sort — поверх пола, под NPC)
+  const archRow=counterRow-4;
+  const drawArch=(r,c,label,col)=>{
+    items.push({d:r+c+.05, fn:()=>{
+      const a=w2s(r,c), b=w2s(r,c+2);
+      const aH=wallH*.75, aW=(b.x-a.x);
+      // Стена по бокам арки
+      ctx.fillStyle='#1e1630';ctx.strokeStyle='#302448';ctx.lineWidth=.7;
+      ctx.beginPath();ctx.moveTo(a.x-4,a.y);ctx.lineTo(a.x,a.y-aH);
+      ctx.lineTo(b.x,b.y-aH);ctx.lineTo(b.x+4,b.y);ctx.closePath();ctx.fill();ctx.stroke();
+      // Тёмный проём
+      ctx.fillStyle='rgba(5,3,10,.85)';
+      ctx.beginPath();ctx.moveTo(a.x+3,a.y);ctx.lineTo(b.x-3,b.y);
+      ctx.lineTo(b.x-3,b.y-aH*.85);ctx.lineTo(a.x+3,a.y-aH*.85);ctx.closePath();ctx.fill();
+      // Арочный свод (полукруг)
+      const cx=(a.x+b.x)/2, cy=(a.y+b.y)/2-aH*.85;
+      ctx.fillStyle='#1e1630';ctx.strokeStyle='#302448';ctx.lineWidth=.7;
+      ctx.beginPath();ctx.arc(cx,cy,aW*.5+3,Math.PI,0);ctx.fill();ctx.stroke();
+      ctx.fillStyle='rgba(5,3,10,.85)';
+      ctx.beginPath();ctx.arc(cx,cy,aW*.5-3,Math.PI,0);ctx.fill();
+      // Лейбл над аркой
+      ctx.save();ctx.fillStyle=col;ctx.font='bold 7px system-ui';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(label,cx,cy-aW*.3-4);ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      // Световая полоска снизу (указание что там что-то есть)
+      ctx.fillStyle=col.replace('0.8','0.2');
+      ctx.fillRect(a.x+3,a.y-3,aW-6,2);
+    }});
+  };
+  drawArch(archRow, Math.floor(W*.12), '🖥️ Персонал', 'rgba(80,140,220,0.8)');
+  drawArch(archRow, Math.floor(W*.65), '☕ Отдых',    'rgba(180,80,180,0.8)');
 
   items.sort((a,b)=>a.d-b.d); items.forEach(i=>i.fn());
 
