@@ -25627,9 +25627,9 @@ Object.assign(_BANK_NPC_LOOKS, {
 
 // ── BANK INTERIOR CFG — единая большая комната ─────────────────
 const _BINT = {
-  small:  { W:22, H:20, crackTime:10, counterRow:12 },
-  medium: { W:30, H:26, crackTime:15, counterRow:16 },
-  large:  { W:38, H:32, crackTime:20, counterRow:20 },
+  small:  { W:28, H:24, crackTime:10, counterRow:15 },
+  medium: { W:36, H:30, crackTime:15, counterRow:19 },
+  large:  { W:44, H:36, crackTime:20, counterRow:23 },
 };
 
 function _bankDoorCoord(bank) { return { r:bank.r+2.8, c:bank.c+1.5 }; }
@@ -25917,7 +25917,7 @@ function drawBankInteriorScene() {
   const {W,H,counterRow,phase,crackProg,bags,myBag,bank,alarmTriggered}=int;
   const stage=document.getElementById('stage');
   const SW=stage.clientWidth,SH=stage.clientHeight;
-  const hx=TS*.5,hy=TS*.5*ISO_Y,wallH=isoH(2.4);
+  const hx=TS*.5,hy=TS*.5*ISO_Y,wallH=isoH(3.2);  // высота стен увеличена
   ctx.fillStyle='#040308'; ctx.fillRect(0,0,SW,SH);
 
   // ── Пол — первым (без depth-sort) ────────────────────────────────
@@ -26206,28 +26206,71 @@ function drawBankInteriorScene() {
 
   items.sort((a,b)=>a.d-b.d); items.forEach(i=>i.fn());
 
-  // Стены
-  const _wFace=(r0,c0,r1,c1,col,stk)=>{
-    const a=w2s(r0,c0),b=w2s(r1,c1);
-    ctx.fillStyle=col;ctx.strokeStyle=stk;ctx.lineWidth=.8;
-    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
-    ctx.lineTo(b.x,b.y-wallH);ctx.lineTo(a.x,a.y-wallH);ctx.closePath();ctx.fill();ctx.stroke();
+  // ── СТЕНЫ ─────────────────────────────────────────────────────────
+  // Базовые цвета — светлые мраморные, хорошо видны на тёмном фоне
+  const WC = {
+    lobbyFront: '#d8d0c0',   // светлый мрамор — фронт/низ
+    lobbySide:  '#c8c0b0',   // чуть темнее — боковая
+    staffFront: '#2a3448',   // синеватый офис
+    staffSide:  '#222c3c',
+    loungeFront:'#3a2820',   // тёплый
+    loungeSide: '#2e1e14',
+    vaultFront: '#1c1e30',   // стальной
+    vaultSide:  '#141628',
+    trim:       '#c0a840',   // золотой молдинг
+    baseboard:  '#a09878',   // плинтус
   };
-  for(let r=0;r<H;r++){_wFace(r,0,r+1,0,'#181428','#261e3c');_wFace(r,W,r+1,W,'#141222','#221838');}
 
-  // Северная стена
+  // Затемнение цвета #rrggbb на коэффициент k
+  const _dk=(hex,k)=>{const r2=parseInt(hex.slice(1,3),16),g2=parseInt(hex.slice(3,5),16),b2=parseInt(hex.slice(5,7),16);return `rgb(${r2*k|0},${g2*k|0},${b2*k|0})`;};
+
+  // _wFace рисует стену с панелью (нижняя 1/3 = тёмная панель, верхняя 2/3 = стена)
+  const _wFace=(r0,c0,r1,c1,colU,stk,colPanel)=>{
+    const a=w2s(r0,c0),b=w2s(r1,c1);
+    const panH=wallH*.32, trimH=3;
+    // Верхняя часть стены
+    ctx.fillStyle=colU;ctx.strokeStyle=stk;ctx.lineWidth=.7;
+    ctx.beginPath();ctx.moveTo(a.x,a.y-panH);ctx.lineTo(b.x,b.y-panH);
+    ctx.lineTo(b.x,b.y-wallH);ctx.lineTo(a.x,a.y-wallH);ctx.closePath();ctx.fill();ctx.stroke();
+    // Нижняя панель (более тёмная — вайнскотинг)
+    const pd = colPanel || (colU.startsWith('#')?_dk(colU,.65):colU);
+    ctx.fillStyle=pd;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.lineTo(b.x,b.y-panH);ctx.lineTo(a.x,a.y-panH);ctx.closePath();ctx.fill();ctx.stroke();
+    // Золотой молдинг (граница панели)
+    ctx.fillStyle=WC.trim;ctx.strokeStyle=WC.trim;ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(a.x,a.y-panH);ctx.lineTo(b.x,b.y-panH);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(a.x,a.y-panH+trimH);ctx.lineTo(b.x,b.y-panH+trimH);ctx.stroke();
+    // Плинтус (самый низ)
+    ctx.fillStyle=WC.baseboard;ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=.5;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.lineTo(b.x,b.y-5);ctx.lineTo(a.x,a.y-5);ctx.closePath();ctx.fill();ctx.stroke();
+  };
+
+  // Западная стена (левая, ближе к наблюдателю — более светлая)
+  for(let r=0;r<H;r++) _wFace(r,0,r+1,0,WC.lobbyFront,'#b0a898');
+  // Восточная стена (правая)
+  for(let r=0;r<H;r++) _wFace(r,W,r+1,W,WC.lobbySide,'#a89888');
+
+  // Северная стена с зонами
   const vDL=Math.floor(W/2)-2,vDR=Math.floor(W/2)+2;
   for(let c=0;c<W;c++){
     const isStaff=c<W*.35,isLounge=c>W*.65,isVault=c>=vDL&&c<vDR;
-    if(isVault){_wFace(0,c,0,c+1,phase==='vault_open'?'#101828':'#1c1848',phase==='vault_open'?'#2040a0':'#3040a0');}
-    else if(isStaff){_wFace(0,c,0,c+1,'#141c2a','#22304a');}
-    else if(isLounge){_wFace(0,c,0,c+1,'#1a100e','#2c1a18');}
-    else{_wFace(0,c,0,c+1,'#201838','#302850');}
+    if(isVault){
+      _wFace(0,c,0,c+1,phase==='vault_open'?'#2a3050':'#1c1848',
+             phase==='vault_open'?'#4060a0':'#3040a0','#12101e');
+    } else if(isStaff){
+      _wFace(0,c,0,c+1,WC.staffFront,'#3a4a68',WC.staffSide);
+    } else if(isLounge){
+      _wFace(0,c,0,c+1,WC.loungeFront,'#4a3828',WC.loungeSide);
+    } else {
+      _wFace(0,c,0,c+1,WC.lobbyFront,'#b0a898');
+    }
   }
 
   // Дверь хранилища
   if(phase!=='vault_open'){
-    const vc=w2s(0,W/2),vcy=vc.y-wallH*.5,vr=isoH(.42);
+    const vc=w2s(0,W/2),vcy=vc.y-wallH*.5,vr=isoH(.52);
     ctx.save();
     const dg=ctx.createLinearGradient(vc.x-vr,vcy-vr,vc.x+vr,vcy+vr);
     dg.addColorStop(0,'#5a6070');dg.addColorStop(.5,'#3a4050');dg.addColorStop(1,'#282e38');
@@ -26267,8 +26310,8 @@ function drawBankInteriorScene() {
   // Южная стена EXIT
   const eDL=Math.floor(W/2)-2,eDR=Math.floor(W/2)+2;
   for(let c=0;c<W;c++){
-    if(c>=eDL&&c<eDR)_wFace(H,c,H,c+1,'#060410','#060410');
-    else _wFace(H,c,H,c+1,'#1e1630','#2c2448');
+    if(c>=eDL&&c<eDR) _wFace(H,c,H,c+1,'#0a1018','#0a1018');  // проём
+    else _wFace(H,c,H,c+1,WC.lobbyFront,'#b0a898');  // мраморная
   }
   {const a=w2s(H,eDL),b=w2s(H,eDR),pw=4,dH=wallH;
    ctx.fillStyle='#306030';ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=.6;
