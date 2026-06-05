@@ -12322,7 +12322,7 @@ function updatePvpUI() {
   // Кнопка огня видна только когда можно стрелять и есть смысл (open world
   // с хотя бы одной меткой ИЛИ PvP-арена с free-aim). Иначе скрыта.
   const meInArenaUi = inArena(player.r, player.c);
-  const showFireBtn = canShoot && (meInArenaUi || lockedTargets.size > 0);
+  const showFireBtn = canShoot && _isArmed() && (meInArenaUi || lockedTargets.size > 0);
   _fireBtn.style.display = showFireBtn ? 'flex' : 'none';
   if (joyREl) joyREl.style.display = canShoot ? 'block' : 'none';
   if (_weaponBarEl) {
@@ -12482,7 +12482,7 @@ const WEAPON_LABELS = {
   shotgun:'дробовик', smg:'ПП', tommy_gun:'томми-ган',
   rifle:'винтовка', sniper:'снайперка', rpg:'РПГ',
 };
-function weaponLabel(w) { return WEAPON_LABELS[w] || w; }
+function weaponLabel(w) { if (!w) return 'без оружия'; return WEAPON_LABELS[w] || w; }
 
 // Рисуем оружие в маленький canvas (HUD-иконка). Используем уже
 // существующий drawFirearm — он умеет принимать любой ctx через
@@ -12497,17 +12497,49 @@ function drawWeaponHudIcon(ctx, canvas, weapon) {
 
 function renderWeaponHud() {
   if (!_wepHudCtx) return;
-  drawWeaponHudIcon(_wepHudCtx, _wepHudCanvas, currentWeapon);
-  if (_wepHudName) _wepHudName.textContent = weaponLabel(currentWeapon);
+  if (!_isArmed()) {
+    _wepHudCtx.clearRect(0, 0, _wepHudCanvas.width, _wepHudCanvas.height);
+    _wepHudCtx.font = '18px system-ui';
+    _wepHudCtx.textAlign = 'center';
+    _wepHudCtx.textBaseline = 'middle';
+    _wepHudCtx.fillText('✋', _wepHudCanvas.width * 0.3, _wepHudCanvas.height * 0.5);
+    if (_wepHudName) _wepHudName.textContent = 'без оружия';
+  } else {
+    drawWeaponHudIcon(_wepHudCtx, _wepHudCanvas, currentWeapon);
+    if (_wepHudName) _wepHudName.textContent = weaponLabel(currentWeapon);
+  }
+}
+
+// Показал оружие рядом с копом — реакция
+function _checkWeaponDrawnNearCop() {
+  if (myMode === 'pve' || myDead) return;
+  const COP_NOTICE_R = 6;
+  // Проверяем есть ли коп поблизости
+  for (const npc of NPCS) {
+    if (npc.dead || npc._evacuated) continue;
+    if (!npc._arc || npc._arc.panicMult === 0) continue; // только «мирные» NPC реагируют, не хулиганы
+    const d = Math.hypot(player.r - npc.r, player.c - npc.c);
+    if (d < COP_NOTICE_R) {
+      showToast('🚔 Полиция заметила оружие!', '⚠️', 2200);
+      if (ws && ws.readyState === 1) {
+        try { ws.send(JSON.stringify({ t: 'weapon_drawn', d: { weapon: currentWeapon } })); } catch(e) {}
+      }
+      return;
+    }
+  }
 }
 
 // Возвращает список стволов для popover'а. Если в инвентаре пусто —
 // подсовываем «pistol» как базовый, чтобы UI был интерактивный с первого
 // входа (без покупок в «Барахле»).
 function weaponsForPick() {
-  if (_myWeapons && _myWeapons.length > 0) return _myWeapons;
-  return [{ id: 'pistol', name: 'пистолет', count: 1 }];
+  // «Без оружия» — всегда первым пунктом
+  const unarmed = [{ id: null, name: 'Без оружия', icon: '✋' }];
+  if (_myWeapons && _myWeapons.length > 0) return [...unarmed, ..._myWeapons];
+  return [...unarmed, { id: 'pistol', name: 'пистолет', count: 1 }];
 }
+// Без оружия = currentWeapon === null
+function _isArmed() { return currentWeapon !== null && currentWeapon !== 'none'; }
 
 function renderWeaponPick() {
   if (!_weaponPickEl) return;
@@ -12519,7 +12551,12 @@ function renderWeaponPick() {
     const cv = document.createElement('canvas');
     cv.width = 100; cv.height = 32;
     const cvCtx = cv.getContext('2d');
-    drawWeaponHudIcon(cvCtx, cv, w.id);
+    if (w.id === null) {
+      cvCtx.font = '20px system-ui'; cvCtx.textAlign = 'center'; cvCtx.textBaseline = 'middle';
+      cvCtx.fillText('✋', 30, 16);
+    } else {
+      drawWeaponHudIcon(cvCtx, cv, w.id);
+    }
     row.appendChild(cv);
     const nm = document.createElement('span');
     nm.className = 'wpName';
@@ -12533,11 +12570,18 @@ function renderWeaponPick() {
     }
     row.addEventListener('click', (e) => {
       e.preventDefault();
-      currentWeapon = w.id;
+      const wasArmed = _isArmed();
+      currentWeapon = w.id;  // null = без оружия
       renderWeaponHud();
       renderWeaponPick();
       closeWeaponPick();
-      showToast(weaponLabel(w.id), '🔫', 1200);
+      if (w.id === null) {
+        showToast('✋ Оружие убрано', '✋', 1000);
+      } else {
+        showToast(weaponLabel(w.id), '🔫', 1200);
+        // Показал оружие рядом с копом — +1★
+        if (!wasArmed) _checkWeaponDrawnNearCop();
+      }
     });
     _weaponPickEl.appendChild(row);
   }
@@ -25927,7 +25971,24 @@ function _updateBankInterior(dt) {
       if (ws&&ws.readyState===1){try{ws.send(JSON.stringify({t:'bank_rob_announce',d:{bank_id:int.bank.id}}));}catch(e){}}
     }
   }
-  const hasWeapon=currentWeapon&&currentWeapon!=='fist';
+  const hasWeapon=_isArmed();
+  // Сотрудники видят оружие → немедленно убегают жаловаться (snitch)
+  if (hasWeapon && !int._weaponPanicTriggered) {
+    for (const npc of int.npcs) {
+      if (npc.type==='guard'||npc.state!=='normal') continue;
+      const dist=Math.hypot(player.r-npc.r,player.c-npc.c);
+      if (dist<9) {
+        int._weaponPanicTriggered=true;
+        npc.state='panic';
+        npc.cryText='Помогите! Он вооружён!'; npc.cryUntil=now+3000;
+        const dr=H+1-npc.r,dc=W/2-npc.c,mag=Math.hypot(dr,dc)||1;
+        npc.fleeVr=dr/mag*4; npc.fleeVc=dc/mag*4;
+        showToast('😱 Сотрудник бежит звонить в полицию!','🚨',2500);
+        break;
+      }
+    }
+  }
+  if (!hasWeapon) int._weaponPanicTriggered=false;  // убрал — сброс флага
   for (const npc of int.npcs) {
     if (npc.type!=='guard') continue;
     if (npc.state!=='normal') continue;
