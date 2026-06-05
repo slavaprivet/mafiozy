@@ -1913,10 +1913,7 @@ const POI = [
   { id: 'lair',    r: 120, c: 40, icon: '☠️', name: 'Логово',       minLvl: 10, aggro: true, radius: 20, noCapture: true },
   // Особые POI
   { id: 'blackmarket', r:  6, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
-  // Банк — кооп-налёт точка. Подходишь с напарником → кнопка «🏦 Налёт».
-  // r=33, c=43: тайл здания (r%10=3, c%10=3), не дорога, не пересекается
-  // с бизнесами и Бригадиром (43,34). СИНХРОН с BANK_POS_RC в mafiozi_bot.py.
-  { id: 'bank',        r: 33, c: 43, icon: '🏦', name: 'Банк',         minLvl: 1, special: 'bank'  },
+  // Старый банк удалён — заменён системой BANKS[] с интерьером
   { id: 'arena',       r: 36, c: 66, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
   // Больница — северо-восточный квартал, на отдельном здании-квартале
   // (не на спавне). Серверный респаун рядом на дороге (см. HOSPITAL_X/Y).
@@ -9174,14 +9171,21 @@ let _bankZoneCur = null;  // ближайший банк в радиусе
 const _zoneEl = document.getElementById('zoneBtn');
 const _pvpBn  = document.getElementById('pvpBanner');
 function updateZoneBtn() {
-  // Если мы внутри банка — показываем кнопки интерьера
+  // Если мы внутри банка — показываем кнопки по комнате
   if (_bankInt) {
     const int = _bankInt;
     let label;
-    if (int.phase === 'lobby')       label = '🔓 Взломать хранилище';
-    else if (int.phase === 'cracking') label = `🔒 Взлом... ${(int.crackProg*100).toFixed(0)}%`;
-    else if (int.myBag)              label = '🚪 Выйти с мешком';
-    else                             label = '💰 Зайди в хранилище';
+    const r = int.room;
+    if (r==='lobby') {
+      if (int.phase==='lobby')       label='🔓 Взломать хранилище';
+      else if (int.phase==='cracking') label=`🔒 Взлом ${(int.crackProg*100).toFixed(0)}%`;
+      else if (int.myBag)            label='🚪 Выйти с мешком';
+      else                           label='💰 Иди в хранилище';
+    } else if (r==='vault') {
+      label = int.myBag?'🚪 Уйти с мешком':'💰 В хранилище';
+    } else {
+      label = '← В лобби';
+    }
     _zoneEl.textContent = label;
     _zoneEl.style.display = 'block';
     _zoneEl.dataset.bankId = int.bank.id;
@@ -9276,19 +9280,21 @@ _zoneEl.addEventListener('click', () => {
     if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
     // Интерьер активен — кнопка внутри банка
     if (_bankInt && _bankInt.bank.id === bank.id) {
-      if (_bankInt.phase === 'lobby') {
-        _bankInt.phase = 'cracking';
-        _bankInt._crackStartedAt = performance.now();
-        showToast('🔒 Взламываешь хранилище — стой у прилавка', '⏳', 2200);
+      const int = _bankInt;
+      if (int.room==='lobby') {
+        if (int.phase==='lobby') {
+          int.phase='cracking'; int._crackStartedAt=performance.now();
+          showToast('🔒 Взламываешь хранилище — стой у прилавка','⏳',2200);
+          return;
+        }
+        if (int.myBag) { exitBankInterior(true); return; }
+        exitBankInterior(false); return;
+      }
+      if (int.room==='vault') {
+        if (int.myBag) _switchBankRoom('lobby');
         return;
       }
-      if (_bankInt.phase === 'vault_open' && _bankInt.myBag) {
-        exitBankInterior(true);
-        return;
-      }
-      // Выйти без мешка
-      exitBankInterior(false);
-      return;
+      _switchBankRoom('lobby'); return;
     }
     // Войти в банк
     enterBankInterior(bank);
@@ -9300,7 +9306,7 @@ _zoneEl.addEventListener('click', () => {
   if (_zoneCur.special === 'shop')        { openShop();   return; }
   if (_zoneCur.special === 'arena')       { showToast('🎯 Вы внутри PVP-зоны. Огонь скоро добавим.'); return; }
   if (_zoneCur.special === 'firestation') { openFireStationModal(); return; }
-  if (_zoneCur.special === 'bank')        { tryStartBankHeist(); return; }
+  // old bank heist system removed — now handled via BANKS[]
   if (_zoneCur.special === 'jail')        { return; }   // участок — без меню, GTA-кнопка сама
   // Проверка ранга — как в hub. Если ниже minLvl района — не пускаем.
   if (QP.lvl < _zoneCur.minLvl) {
@@ -10818,9 +10824,13 @@ function _completeHijack(car) {
 
 function hijackCivilianCar(car) {
   if (!car || myDrivingCarId) return;
+  // Защита от двойного клика: если уже идёт процесс угона — игнорируем
+  if (car._hijackPending && (performance.now() - car._hijackPending) < 4000) return;
+  if (car._driverEjected) return;  // водитель уже выброшен — не спавним ещё раз
   // Едущая тачка — без lockpick, водитель-NPC выкидывается и бежит
   // стучать. Плюс окружающие прохожие тоже видят кражу — 90% стучат.
   if (!car.parked) {
+    car._driverEjected = true;  // флаг чтобы не спавнить водителя повторно
     spawnEjectedDriver(car.r, car.c);
     triggerWitnessChain(car.r, car.c, 9, {
       snitchChance: 0.9,
@@ -25016,7 +25026,10 @@ function _updateBankRobbery(dt) {
 function _updateBankRobHud() {
   const el = document.getElementById('bankRobHud');
   if (!el) return;
+  // HUD снаружи показываем только в фазе escaping (финальный побег)
+  // В фазе loading мешок виден над головой — баннер не нужен
   if (!_bankRob) { el.style.display = 'none'; return; }
+  if (!_bankInt && _bankRob.phase === 'loading') { el.style.display = 'none'; return; }
   el.style.display = 'block';
 
   const rob = _bankRob;
@@ -25295,65 +25308,122 @@ function drawBankVanZone(bank) {
   ctx.restore();
 }
 
-// ── BANK INTERIOR SYSTEM ──────────────────────────────────────────
+// ── BANK INTERIOR SYSTEM v2 — несколько комнат ────────────────────
+
+// NPC-образы для охраны и персонала (gender:1=female)
+Object.assign(_BANK_NPC_LOOKS, {
+  admin:  { gender:1, skin:2, body:0, face:1, hair:3, hat:0 }, // девушка-администратор в белом
+  guard2: { gender:0, skin:1, body:1, face:2, hair:0, hat:5 }, // второй охранник
+});
+
+// Размеры комнат (тайлы). Фиксированы для всех размеров банка.
+const _BROOM = {
+  lobby:  { W:16, H:12 },
+  staff:  { W:12, H:9  },
+  lounge: { W:12, H:9  },
+  vault:  { W:12, H:6  },
+};
 
 function _bankDoorCoord(bank) {
   return { r: bank.r + 2.8, c: bank.c + 1.5 };
 }
 
-function _spawnBankNpcs(bank, cfg) {
+// Позиции дверей в лобби (относительно LOBBY W/H)
+function _lobbyDoors(W, H) {
+  return {
+    staff:  { r0: 0, r1: 1.5, c0: 0,       c1: 2.5,    label:'Персонал' },
+    lounge: { r0: 0, r1: 1.5, c0: W-2.5,   c1: W,      label:'Отдых'    },
+    vault:  { r0: 0, r1: 1.5, c0: W/2-1.5, c1: W/2+1.5,label:'Хранилище'},
+  };
+}
+
+function _spawnRoomNpcs(roomName, bank) {
+  const cfg = _BROOM[roomName];
   const { W, H } = cfg;
   const npcs = [];
-  // Охранник у входа
-  npcs.push({ type:'guard', r: H-2, c: W/2,
-    vr:0, vc:0, state:'normal', look: _BANK_NPC_LOOKS.guard,
-    walkPhase:0, ang: -Math.PI/2,
-    wanderTimer:2+Math.random()*2, wanderVr:0, wanderVc:0,
-  });
-  // Кассирша за стойкой
-  npcs.push({ type:'teller', r:3.4, c: W/2,
-    vr:0, vc:0, state:'normal', look: _BANK_NPC_LOOKS.teller,
-    walkPhase:0, ang: Math.PI/2,
-  });
-  // Сотрудник в зоне персонала (за прилавком слева)
-  npcs.push({ type:'staff', r:1.5, c:2,
-    vr:0, vc:0, state:'normal', look: _BANK_NPC_LOOKS.staff,
-    walkPhase:0, ang:0, atDesk:true,
-  });
-  if (bank.size !== 'small') {
-    npcs.push({ type:'staff', r:1.5, c: W-3,
-      vr:0, vc:0, state:'normal', look: _BANK_NPC_LOOKS.staff,
-      walkPhase:0, ang:0, atDesk:true,
+  const cnt = { small:1, medium:2, large:3 }[bank.size] || 1;
+
+  if (roomName === 'lobby') {
+    // Охранник-1 у входа (южная стена)
+    npcs.push({ type:'guard', room:'lobby', r:H-2, c:W/2,
+      state:'normal', look:_BANK_NPC_LOOKS.guard,
+      walkPhase:0, ang:-Math.PI/2,
+      wanderTimer:2+Math.random()*2, wanderVr:0, wanderVc:0,
+      _guardAlertAt:0,
     });
-  }
-  // Клиенты в лобби
-  const clientCount = { small:2, medium:4, large:6 }[bank.size] || 2;
-  for (let i=0; i<clientCount; i++) {
-    const lookKey = `client${i%4}`;
-    npcs.push({ type:'client',
-      r: 5 + Math.random()*2.5,
-      c: 1.5 + Math.random()*(W-3),
-      vr:0, vc:0, state:'normal',
-      look: _BANK_NPC_LOOKS[lookKey] || _BANK_NPC_LOOKS.client0,
-      walkPhase: Math.random()*Math.PI*2,
-      ang: Math.random()*Math.PI*2,
-      wanderTimer: Math.random()*3,
-      wanderVr:0, wanderVc:0,
+    // Охранник-2 у прохода к хранилищу (средний и большой банк)
+    if (bank.size !== 'small') {
+      npcs.push({ type:'guard', room:'lobby', r:4, c:W/2,
+        state:'normal', look:_BANK_NPC_LOOKS.guard2,
+        walkPhase:0, ang:Math.PI/2,
+        wanderTimer:3, wanderVr:0, wanderVc:0,
+        _guardAlertAt:0,
+      });
+    }
+    // Девушка-администратор в белом (reception desk слева)
+    npcs.push({ type:'admin', room:'lobby', r:5.5, c:2.5,
+      state:'normal', look:_BANK_NPC_LOOKS.admin,
+      walkPhase:0, ang:Math.PI*0.5,
     });
+    // Кассирша за стойкой
+    npcs.push({ type:'teller', room:'lobby', r:3.6, c:W/2,
+      state:'normal', look:_BANK_NPC_LOOKS.teller,
+      walkPhase:0, ang:Math.PI/2,
+    });
+    // Клиенты в лобби
+    const cc = { small:2, medium:4, large:5 }[bank.size] || 2;
+    for (let i=0; i<cc; i++) {
+      npcs.push({ type:'client', room:'lobby',
+        r: 6 + Math.random()*3.5, c: 2 + Math.random()*(W-4),
+        state:'normal', look:_BANK_NPC_LOOKS[`client${i%4}`]||_BANK_NPC_LOOKS.client0,
+        walkPhase:Math.random()*6.28, ang:Math.random()*6.28,
+        wanderTimer:Math.random()*3, wanderVr:0, wanderVc:0,
+      });
+    }
   }
+
+  if (roomName === 'staff') {
+    for (let i=0; i<cnt+1; i++) {
+      npcs.push({ type:'staff', room:'staff',
+        r: 2 + i*2.5, c: i%2===0 ? 2.5 : W-3,
+        state:'normal', look:_BANK_NPC_LOOKS.staff,
+        walkPhase:i*0.8, ang:0, atDesk:true,
+      });
+    }
+  }
+
+  if (roomName === 'lounge') {
+    // Клиент на диване
+    npcs.push({ type:'client', room:'lounge', r:3, c:3,
+      state:'normal', look:_BANK_NPC_LOOKS.client1,
+      walkPhase:0, ang:0,
+    });
+    if (bank.size !== 'small') {
+      npcs.push({ type:'client', room:'lounge', r:3, c:W-4,
+        state:'normal', look:_BANK_NPC_LOOKS.client3,
+        walkPhase:1, ang:0,
+      });
+    }
+  }
+
   return npcs;
+}
+
+function _spawnBankNpcs(bank) {
+  return {
+    lobby:  _spawnRoomNpcs('lobby',  bank),
+    staff:  _spawnRoomNpcs('staff',  bank),
+    lounge: _spawnRoomNpcs('lounge', bank),
+  };
 }
 
 function enterBankInterior(bank) {
   if (_bankInt || myDead || myDrivingCarId) return;
-  const cfg = BANK_INT_CFG[bank.size];
-  if (!cfg) return;
-  // Проверка кулдауна
-  const coolEnd = _bankCooldowns && _bankCooldowns[bank.id];
+  // Кулдаун
+  const coolEnd = _bankCooldowns[bank.id];
   if (coolEnd && Date.now() < coolEnd) {
-    const sec = Math.ceil((coolEnd - Date.now())/1000);
-    const m=Math.floor(sec/60), s=sec%60;
-    showToast(`🚨 Банк закрыт — ${m}:${String(s).padStart(2,'0')}`, '⏳', 2500);
+    const sec=Math.ceil((coolEnd-Date.now())/1000);
+    showToast(`🚨 Банк закрыт — ${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`, '⏳', 2500);
     return;
   }
   const existingRob = _bankRob && _bankRob.bank.id === bank.id;
@@ -25362,34 +25432,35 @@ function enterBankInterior(bank) {
   if (existingRob && bagsLeft <= 0) {
     showToast('💰 Все мешки уже взяты!', '✅', 1800); return;
   }
-  // Спавним позиции мешков в хранилище
-  const bags=[], bagCount = vaultOpen ? bagsLeft : bank.bags;
+  const crackTime = { small:10, medium:15, large:20 }[bank.size] || 12;
+  // Мешки в хранилище
+  const VW=_BROOM.vault.W, bags=[], bagCount=vaultOpen?bagsLeft:bank.bags;
   for (let i=0; i<bagCount; i++) {
-    bags.push({
-      id:i, taken:false,
-      r: 0.6 + Math.random()*0.5,
-      c: 1.5 + (i/Math.max(1,bagCount-1))*(cfg.W-3) + (Math.random()-0.5)*0.5,
+    bags.push({ id:i, taken:false,
+      r: 0.8+Math.random()*0.5,
+      c: 1.5+(i/Math.max(1,bagCount-1))*(VW-3)+(Math.random()-0.5)*0.4,
     });
   }
+  const LCfg=_BROOM.lobby;
   _bankInt = {
-    bank, W:cfg.W, H:cfg.H, crackTime:cfg.crackTime,
-    phase: vaultOpen ? 'vault_open' : 'lobby',
-    crackProg: vaultOpen ? 1 : 0,
-    _crackStartedAt: null,
+    bank, room:'lobby',
+    crackTime, crackProg: vaultOpen?1:0, _crackStartedAt:null,
+    phase: vaultOpen?'vault_open':'lobby',
     bags, myBag:false,
-    _bagsLoaded: existingRob ? _bankRob.bagsLoaded : 0,
-    savedR: player.r, savedC: player.c,
-    alarmTriggered: !!existingRob,
-    startedAt: existingRob ? _bankRob.startedAt : (performance.now()/1000),
-    npcs: _spawnBankNpcs(bank, cfg),
-    panicAt: vaultOpen ? performance.now() : null,
+    _bagsLoaded: existingRob?_bankRob.bagsLoaded:0,
+    savedR:player.r, savedC:player.c,
+    alarmTriggered:!!existingRob,
+    startedAt: existingRob?_bankRob.startedAt:(performance.now()/1000),
+    npcs: _spawnBankNpcs(bank),
+    panicAt: vaultOpen?performance.now():null,
+    _snitches: [],  // NPC убежавшие к копам
   };
-  player.r = cfg.H - 1.5;
-  player.c = cfg.W / 2;
+  player.r = LCfg.H - 1.5;
+  player.c = LCfg.W / 2;
   showToast(vaultOpen
     ? `🏦 ${bank.name} — хранилище открыто!`
-    : `🏦 ${bank.name} — взломай хранилище`, vaultOpen ? '💰' : '🔓', 2500);
-  try { hapticHit && hapticHit(); } catch(e) {}
+    : `🏦 ${bank.name}`, vaultOpen?'💰':'🏦', 2000);
+  try { hapticHit && hapticHit(); } catch(e){}
   if (!vaultOpen && ws && ws.readyState===1) {
     try { ws.send(JSON.stringify({t:'bank_rob_start',d:{bank_id:bank.id}})); } catch(e){}
   }
@@ -25421,22 +25492,47 @@ function exitBankInterior(withBag) {
       try { ws.send(JSON.stringify({t:'bank_rob_bag_loaded',
         d:{bank_id:int.bank.id,bags:int._bagsLoaded}})); } catch(e){}
     }
-  } else {
-    showToast('🚪 Вышел из банка','ℹ️',1200);
   }
   const hudEl = document.getElementById('bankRobHud');
   if (hudEl && !_bankRob) hudEl.style.display='none';
   _updateBankZoneBtn();
 }
 
+// Смена комнаты внутри банка
+function _switchBankRoom(newRoom) {
+  const int = _bankInt; if (!int) return;
+  const cfg = _BROOM[newRoom];
+  if (!cfg) return;
+  int.room = newRoom;
+  // Позиция входа в новую комнату
+  if (newRoom === 'lobby') {
+    player.r = cfg.H - 1.5; player.c = cfg.W / 2;
+  } else {
+    player.r = cfg.H - 1.5; player.c = cfg.W / 2;
+  }
+  showToast(
+    newRoom==='vault'  ? '🔐 Хранилище' :
+    newRoom==='staff'  ? '🖥️ Комната персонала' :
+    newRoom==='lounge' ? '☕ Комната отдыха' : '🏦 Лобби',
+    newRoom==='vault'?'💰':'🚪', 1200);
+}
+
 function _isBlockedInterior(r, c) {
   const int = _bankInt; if (!int) return false;
-  if (r<0.4 || r>int.H-0.4) return true;
-  if (c<0.4 || c>int.W-0.4) return true;
-  // Прилавок на row 3 — проход в центре W/2±1.5
-  if (int.phase !== 'vault_open' && r < 3.5 && r > 2.9) {
-    const gL=int.W/2-1.5, gR=int.W/2+1.5;
+  const cfg = _BROOM[int.room] || _BROOM.lobby;
+  const { W, H } = cfg;
+  if (r < 0.4 || r > H - 0.3) return true;
+  if (c < 0.4 || c > W - 0.4) return true;
+  // Лобби: прилавок на row 3.5, проход в центре
+  if (int.room === 'lobby' && r < 3.9 && r > 3.2) {
+    const gL=W/2-1.5, gR=W/2+1.5;
     if (c<gL || c>gR) return true;
+  }
+  // Лобби: зона хранилища (r<1.5) заблокирована если vault не открыт
+  if (int.room === 'lobby' && r < 1.5) {
+    const vd = _lobbyDoors(W,H).vault;
+    if (int.phase!=='vault_open' && !(c>=vd.c0 && c<=vd.c1)) return true;
+    if (int.phase!=='vault_open' && c>=vd.c0 && c<=vd.c1) return true; // vault door always blocks physically
   }
   return false;
 }
@@ -25445,292 +25541,502 @@ function _updateBankInterior(dt) {
   if (!_bankInt) return;
   const int = _bankInt;
   const now = performance.now();
+  const room = int.room;
+  const cfg = _BROOM[room] || _BROOM.lobby;
+  const { W, H } = cfg;
+  const allNpcs = Object.values(int.npcs).flat();
 
-  // Тревога
+  // ── Тревога ────────────────────────────────────────────────────
   if (int._crackStartedAt && !int.alarmTriggered) {
-    const crackElapsed = (now - int._crackStartedAt) / 1000;
-    if (crackElapsed > 60) {
+    if ((now - int._crackStartedAt)/1000 > 60) {
       int.alarmTriggered = true;
       showToast('🚨 Тревога! Полиция едет!','🚨',2500);
-      try { hapticHit && hapticHit(); } catch(e){}
+      try { hapticHit&&hapticHit(); } catch(e){}
     }
   }
 
-  // Взлом
+  // ── Взлом хранилища (vault room) ───────────────────────────────
   if (int.phase==='cracking' && int._crackStartedAt) {
-    int.crackProg = Math.min(1, (now - int._crackStartedAt)/1000/int.crackTime);
+    int.crackProg = Math.min(1, (now-int._crackStartedAt)/1000/int.crackTime);
     if (int.crackProg >= 1) {
       int.phase = 'vault_open';
       int.panicAt = now;
-      showToast('🔓 Хранилище открыто!','💰',2500);
-      try { hapticHit && hapticHit(); } catch(e){}
+      showToast('🔓 Хранилище открыто! Забирай мешки','💰',2500);
+      try { hapticHit&&hapticHit(); } catch(e){}
       if (ws && ws.readyState===1) {
         try { ws.send(JSON.stringify({t:'bank_rob_announce',d:{bank_id:int.bank.id}})); } catch(e){}
       }
     }
   }
 
-  // Паника NPC
-  if (int.panicAt !== null) {
-    for (const npc of int.npcs) {
-      if (npc.state==='panic' || npc.state==='fled' || npc.state==='hostile') continue;
-      npc.state = (npc.type==='guard') ? 'hostile' : 'panic';
-      npc.cryUntil = now + 2500;
-      npc.cryText = npc.type==='guard' ? 'Стоять!' : (npc.type==='teller' ? 'Помогите!' : 'Ааа!');
-      // Направление бегства — к выходу (south, row H)
-      const dr = int.H+1 - npc.r, dc = int.W/2 - npc.c;
-      const mag = Math.hypot(dr,dc)||1;
-      npc.fleeVr = dr/mag * 3.5; npc.fleeVc = dc/mag * 3.5;
+  // ── Охранники: реакция на оружие и ограбление ──────────────────
+  const hasWeapon = currentWeapon && currentWeapon !== 'fist' && currentWeapon !== null;
+  if (room === 'lobby') {
+    for (const npc of int.npcs.lobby) {
+      if (npc.type !== 'guard') continue;
+      if (npc.state !== 'normal') continue;
+      const dist = Math.hypot(player.r-npc.r, player.c-npc.c);
+      // Реакция на оружие или игрока у хранилища
+      const playerNearVault = player.r < 4 && int.phase !== 'vault_open';
+      if ((hasWeapon || playerNearVault) && dist < 6) {
+        if (!npc._alertAt) {
+          npc._alertAt = now;
+          npc.cryText = playerNearVault ? 'Туда нельзя!' : 'Брось оружие!';
+          npc.cryUntil = now + 2500;
+        }
+        // При активном ограблении — атака
+        if (int.phase==='cracking' || int.phase==='vault_open') {
+          npc.state = 'hostile';
+          npc.cryText = 'Стоять! Полиция!';
+          npc.cryUntil = now + 99999;
+        }
+      } else {
+        npc._alertAt = 0;
+      }
     }
   }
 
-  // Двигаем NPC
-  for (const npc of int.npcs) {
-    npc.walkPhase = (npc.walkPhase||0) + dt*9;
+  // ── Паника NPC ─────────────────────────────────────────────────
+  if (int.panicAt !== null) {
+    const lobbyH = _BROOM.lobby.H, lobbyW = _BROOM.lobby.W;
+    for (const [rName, rnpcs] of Object.entries(int.npcs)) {
+      const rH = _BROOM[rName]?.H || lobbyH;
+      const rW = _BROOM[rName]?.W || lobbyW;
+      for (const npc of rnpcs) {
+        if (npc.state==='panic'||npc.state==='fled'||npc.state==='hostile') continue;
+        npc.state = (npc.type==='guard') ? 'hostile' : 'panic';
+        npc.cryUntil = now + 2500;
+        npc.cryText = npc.type==='guard'?'Стоять!':
+                      npc.type==='teller'?'Помогите!':
+                      npc.type==='admin'?'Охрана! Охрана!':'Ааа!';
+        const dr=rH+2-npc.r, dc=rW/2-npc.c;
+        const mag=Math.hypot(dr,dc)||1;
+        npc.fleeVr=dr/mag*3.8; npc.fleeVc=dc/mag*3.8;
+      }
+    }
+  }
+
+  // ── Двигаем NPC ────────────────────────────────────────────────
+  const currentRoomNpcs = int.npcs[room] || [];
+  for (const npc of currentRoomNpcs) {
+    npc.walkPhase = (npc.walkPhase||0)+dt*9;
+    const nW=_BROOM[room]?.W||W, nH=_BROOM[room]?.H||H;
 
     if (npc.state==='normal') {
       if (npc.type==='client') {
-        npc.wanderTimer = (npc.wanderTimer||0) - dt;
+        npc.wanderTimer=(npc.wanderTimer||0)-dt;
         if (npc.wanderTimer<=0) {
-          const ang = Math.random()*Math.PI*2;
-          npc.wanderVr = Math.sin(ang)*0.6; npc.wanderVc = Math.cos(ang)*0.6;
-          npc.wanderTimer = 1.5 + Math.random()*2;
-          npc.ang = Math.atan2(npc.wanderVr, npc.wanderVc);
+          const a=Math.random()*Math.PI*2;
+          npc.wanderVr=Math.sin(a)*0.7; npc.wanderVc=Math.cos(a)*0.7;
+          npc.wanderTimer=1.5+Math.random()*2;
+          npc.ang=Math.atan2(npc.wanderVr,npc.wanderVc);
         }
         const nr=npc.r+(npc.wanderVr||0)*dt, nc=npc.c+(npc.wanderVc||0)*dt;
-        if (!_isBlockedInterior(nr,npc.c)) npc.r=nr;
-        if (!_isBlockedInterior(npc.r,nc)) npc.c=nc;
+        if (nr>0.5&&nr<nH-0.5) npc.r=nr;
+        if (nc>0.5&&nc<nW-0.5) npc.c=nc;
       }
-      // guard — небольшой патруль у входа
       if (npc.type==='guard') {
-        npc.wanderTimer = (npc.wanderTimer||0) - dt;
+        npc.wanderTimer=(npc.wanderTimer||0)-dt;
         if (npc.wanderTimer<=0) {
-          const baseC = int.W/2;
-          npc.wanderVc = (npc.c < baseC-1) ? 0.5 : (npc.c > baseC+1 ? -0.5 : (Math.random()>0.5?0.5:-0.5));
-          npc.wanderVr = 0;
-          npc.wanderTimer = 1+Math.random()*2;
-          npc.ang = Math.atan2(0, npc.wanderVc);
+          const bc=nW/2;
+          npc.wanderVc=(npc.c<bc-1)?0.5:(npc.c>bc+1?-0.5:(Math.random()>0.5?0.4:-0.4));
+          npc.wanderTimer=1.5+Math.random()*2;
+          npc.ang=Math.atan2(0,npc.wanderVc);
         }
         const nc=npc.c+(npc.wanderVc||0)*dt;
-        if (!_isBlockedInterior(npc.r,nc)) npc.c=nc;
+        if (nc>0.5&&nc<nW-0.5) npc.c=nc;
       }
     }
 
     if (npc.state==='hostile') {
-      // Охранник двигается к игроку
       const dr=player.r-npc.r, dc=player.c-npc.c;
-      const dist=Math.hypot(dr,dc);
+      const dist=Math.hypot(dr,dc)||1;
       if (dist>1.2) {
-        const sp=2.5*dt/dist;
-        npc.r+=dr*sp; npc.c+=dc*sp;
+        npc.r+=dr/dist*2.5*dt; npc.c+=dc/dist*2.5*dt;
         npc.ang=Math.atan2(dr,dc);
       } else {
-        // Подошёл — пытается «остановить», потом убегает
-        if (!npc._hostileFlipAt) npc._hostileFlipAt = now+3000;
-        if (now > npc._hostileFlipAt) {
+        // Попытка «остановить» игрока — замедление
+        if (!npc._hostileFlipAt) npc._hostileFlipAt=now+4000;
+        if (now>npc._hostileFlipAt) {
           npc.state='panic';
-          const dr2=int.H+1-npc.r, dc2=int.W/2-npc.c;
-          const m2=Math.hypot(dr2,dc2)||1;
-          npc.fleeVr=dr2/m2*4; npc.fleeVc=dc2/m2*4;
+          npc.fleeVr=(nH-npc.r)*0.6; npc.fleeVc=(nW/2-npc.c)*0.6;
+          const m=Math.hypot(npc.fleeVr,npc.fleeVc)||1;
+          npc.fleeVr=npc.fleeVr/m*4; npc.fleeVc=npc.fleeVc/m*4;
         }
       }
     }
 
     if (npc.state==='panic') {
-      npc.r += (npc.fleeVr||0)*dt; npc.c += (npc.fleeVc||0)*dt;
-      npc.ang = Math.atan2(npc.fleeVr||0, npc.fleeVc||0);
-      if (npc.r > int.H+0.5) npc.state='fled';
-    }
-  }
-
-  // Автоподбор мешка
-  if (int.phase==='vault_open' && !int.myBag) {
-    for (const bag of int.bags) {
-      if (bag.taken) continue;
-      if (Math.hypot(player.r-bag.r, player.c-bag.c)<1.4) {
-        bag.taken=true;
-        int.myBag={id:bag.id,value:int.bank.reward_per_bag};
-        _myBagWeight=1;
-        showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`,'💼',2200);
-        try { hapticHit && hapticHit(); } catch(e){}
-        break;
+      npc.r+=(npc.fleeVr||0)*dt; npc.c+=(npc.fleeVc||0)*dt;
+      npc.ang=Math.atan2(npc.fleeVr||0,npc.fleeVc||0);
+      if (npc.r>nH+1) {
+        npc.state='fled';
+        // Снитч — запустим к ближайшему копу
+        int._snitches.push({ r:int.bank.r+3, c:int.bank.c+1, type:npc.type });
       }
     }
   }
 
-  // Выход через дверь
-  if (player.r >= int.H-0.15) {
-    exitBankInterior(!!int.myBag); return;
+  // ── Переходы между комнатами ────────────────────────────────────
+  if (room==='lobby') {
+    const LW=_BROOM.lobby.W, LH=_BROOM.lobby.H;
+    const doors=_lobbyDoors(LW,LH);
+    if (player.r<1.2) {
+      // Дверь в зону хранилища
+      if (player.c>=doors.vault.c0 && player.c<=doors.vault.c1) {
+        if (int.phase==='vault_open') {
+          _switchBankRoom('vault'); return;
+        } else {
+          // Блокируем — нельзя войти
+        }
+      }
+      // Дверь в комнату персонала
+      else if (player.c>=doors.staff.c0 && player.c<=doors.staff.c1) {
+        _switchBankRoom('staff'); return;
+      }
+      // Дверь в комнату отдыха
+      else if (player.c>=doors.lounge.c0 && player.c<=doors.lounge.c1) {
+        _switchBankRoom('lounge'); return;
+      }
+    }
+    // Выход из банка (south door)
+    if (player.r>=LH-0.15) { exitBankInterior(!!int.myBag); return; }
   }
 
-  // HUD
+  if (room==='vault') {
+    const VH=_BROOM.vault.H, VW=_BROOM.vault.W;
+    // Автоподбор мешка
+    if (int.phase==='vault_open' && !int.myBag) {
+      for (const bag of int.bags) {
+        if (bag.taken) continue;
+        if (Math.hypot(player.r-bag.r,player.c-bag.c)<1.4) {
+          bag.taken=true;
+          int.myBag={id:bag.id,value:int.bank.reward_per_bag};
+          _myBagWeight=1;
+          showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`,'💼',2200);
+          try { hapticHit&&hapticHit(); } catch(e){}
+          break;
+        }
+      }
+    }
+    // Выход из хранилища → обратно в лобби
+    if (player.r>=VH-0.2) { _switchBankRoom('lobby'); return; }
+  }
+
+  if (room==='staff' || room==='lounge') {
+    const rH=_BROOM[room].H;
+    if (player.r>=rH-0.2) { _switchBankRoom('lobby'); return; }
+  }
+
+  // ── HUD ────────────────────────────────────────────────────────
   const el=document.getElementById('bankRobHud');
-  if (el) {
-    el.style.display='block';
-    const ph=document.getElementById('bankRobPhaseText');
-    const bg=document.getElementById('bankRobBagCount');
-    if (ph) ph.textContent=
-      int.phase==='lobby'   ?'🏦 В БАНКЕ':
-      int.phase==='cracking'?'🔒 ВЗЛОМ':'💰 ГРУЗИМ МЕШКИ';
-    if (bg) {
-      if (int.phase==='cracking') bg.textContent=`Взлом: ${(int.crackProg*100).toFixed(0)}%`;
-      else {
-        const taken=int.bags.filter(b=>b.taken).length+int._bagsLoaded;
-        bg.textContent=`Мешки: ${taken}/${int.bank.bags}${int.myBag?' 💼 несу':''}`;
-      }
-    }
-    const fill=document.getElementById('bankRobPoliceFill');
-    const txt=document.getElementById('bankRobPoliceText');
-    if (int.alarmTriggered && int._crackStartedAt) {
-      const frac=Math.max(0,1-(now-int._crackStartedAt)/1000/int.bank.police_delay);
-      if (fill) fill.style.width=(frac*100).toFixed(1)+'%';
-      if (txt) txt.textContent=frac>0?`🚓 Полиция через ${Math.ceil(frac*int.bank.police_delay)}с`:'🚓 Полиция здесь!';
-    } else {
-      if (fill) fill.style.width='100%';
-      if (txt) txt.textContent='⏳ Ожидание';
+  if (!el) return;
+  el.style.display='block';
+  const ph=document.getElementById('bankRobPhaseText');
+  const bg=document.getElementById('bankRobBagCount');
+  if (ph) ph.textContent=
+    room==='vault'&&int.phase==='vault_open'?'💰 ХРАНИЛИЩЕ':
+    room==='staff' ?'🖥️ ПЕРСОНАЛ':
+    room==='lounge'?'☕ ОТДЫХ':
+    int.phase==='cracking'?'🔒 ВЗЛОМ':'🏦 В БАНКЕ';
+  if (bg) {
+    if (int.phase==='cracking') bg.textContent=`Взлом: ${(int.crackProg*100).toFixed(0)}%`;
+    else {
+      const taken=int.bags.filter(b=>b.taken).length+int._bagsLoaded;
+      bg.textContent=`Мешки: ${taken}/${int.bank.bags}${int.myBag?' 💼 несу':''}`;
     }
   }
 }
 
-function _drawBankInteriorNpc(npc, int) {
+function _drawBankInteriorNpc(npc) {
   if (npc.state==='fled') return;
   const now=performance.now();
   const p=w2s(npc.r+0.5, npc.c+0.5);
-  // Мигание при панике
-  if (npc.state==='panic'||npc.state==='hostile') {
-    const flash=Math.sin(now*0.025)>0;
-    if (!flash) { /* иногда «мигаем» при беге */ }
-  }
   const isMoving=(npc.state==='panic'||npc.state==='hostile'||
-    (npc.state==='normal'&&npc.type!=='staff'&&npc.type!=='teller'));
+    (npc.state==='normal'&&npc.type!=='staff'&&npc.type!=='teller'&&npc.type!=='admin'));
   drawPerson(p.x,p.y,npc.ang,npc.look,isMoving?npc.walkPhase:0,null,null,false,null,null,false,0);
-  // Речевой баббл
-  if (npc.cryUntil && now < npc.cryUntil) {
+  // Баббл
+  if (npc.cryUntil && now<npc.cryUntil) {
     const txt=npc.cryText||'Ааа!';
-    const bob=Math.sin(now*0.022)*1.5;
-    const ty=p.y-46+bob;
+    const ty=p.y-46+Math.sin(now*0.022)*1.5;
     ctx.save();
     ctx.font='bold 10px system-ui,"Segoe UI Emoji"';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const tw=ctx.measureText(txt).width+10;
-    ctx.fillStyle='rgba(180,20,20,.9)';
+    const bgCol=npc.state==='hostile'?'rgba(30,80,220,.95)':'rgba(180,20,20,.9)';
+    ctx.fillStyle=bgCol;
     if (ctx.roundRect) ctx.roundRect(p.x-tw/2,ty-8,tw,16,4);
     else ctx.rect(p.x-tw/2,ty-8,tw,16);
     ctx.fill();
     ctx.fillStyle='#fff'; ctx.fillText(txt,p.x,ty+1);
-    // хвостик
-    ctx.fillStyle='rgba(180,20,20,.9)';
+    ctx.fillStyle=bgCol;
     ctx.beginPath(); ctx.moveTo(p.x-3,ty+8); ctx.lineTo(p.x+3,ty+8);
     ctx.lineTo(p.x,ty+13); ctx.closePath(); ctx.fill();
     ctx.restore(); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
   }
-  // Иконка охранника
-  if (npc.type==='guard' && npc.state!=='fled') {
+  if (npc.type==='guard'||npc.type==='admin') {
+    const icon=npc.type==='guard'?'🛡️':'👩‍💼';
     ctx.save(); ctx.font='11px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('🛡️',p.x,p.y-46); ctx.restore();
+    ctx.fillText(icon,p.x,p.y-46); ctx.restore();
   }
+}
+
+// ── helpers для рисования мебели ─────────────────────────────────
+function _bisoBox(r,c,rh,rw,faceTop,faceSide,stk,items) {
+  // ящик/предмет в изо: rh=высота (isoH), rw=ширина тайла
+  const bh=isoH(rh);
+  items.push({d:r+c+0.15, fn:()=>{
+    const p=w2s(r+0.5,c+0.5);
+    const hx2=TS*rw*0.5, hy2=TS*rw*0.5*ISO_Y;
+    // Верхняя грань
+    ctx.fillStyle=faceTop; ctx.strokeStyle=stk; ctx.lineWidth=0.7;
+    ctx.beginPath();
+    ctx.moveTo(p.x,p.y-bh-hy2); ctx.lineTo(p.x+hx2,p.y-bh);
+    ctx.lineTo(p.x,p.y-bh+hy2); ctx.lineTo(p.x-hx2,p.y-bh);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Передняя грань
+    ctx.fillStyle=faceSide;
+    ctx.beginPath();
+    ctx.moveTo(p.x-hx2,p.y-bh); ctx.lineTo(p.x,p.y-bh+hy2);
+    ctx.lineTo(p.x,p.y+hy2);    ctx.lineTo(p.x-hx2,p.y);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Правая грань
+    ctx.fillStyle=_darken(faceSide,0.7);
+    ctx.beginPath();
+    ctx.moveTo(p.x,p.y-bh+hy2); ctx.lineTo(p.x+hx2,p.y-bh);
+    ctx.lineTo(p.x+hx2,p.y);    ctx.lineTo(p.x,p.y+hy2);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }});
+}
+function _darken(hex,k){
+  // Упрощённое затемнение цвета (только для rgb строк типа #rrggbb)
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgb(${(r*k)|0},${(g*k)|0},${(b*k)|0})`;
 }
 
 function drawBankInteriorScene() {
   const int=_bankInt; if (!int) return;
-  const { W, H, phase, crackProg, bags, myBag, bank, alarmTriggered } = int;
+  const room=int.room;
+  const cfg=_BROOM[room]||_BROOM.lobby;
+  const { W, H }=cfg;
+  const { phase, crackProg, bags, myBag, bank, alarmTriggered }=int;
   const stage=document.getElementById('stage');
   const SW=stage.clientWidth, SH=stage.clientHeight;
   const hx=TS*0.5, hy=TS*0.5*ISO_Y;
 
   // Фон
-  ctx.fillStyle='#060409'; ctx.fillRect(0,0,SW,SH);
+  ctx.fillStyle='#050408'; ctx.fillRect(0,0,SW,SH);
 
-  const drawItems=[];
-  const wallH=isoH(2.2);
+  const drawItems = [];
+  const wallH = isoH(2.4);
 
-  // Тайлы пола (три зоны по глубине)
-  for (let r=0; r<H; r++) {
-    for (let c=0; c<W; c++) {
-      const isVault  = r<2;
-      const isStaff  = r>=2 && r<4 && (c<3 || c>W-4);  // боковые зоны персонала
-      const isLobby  = r>=4;
-      const checker  = (r+c)%2===0;
+  // Пол комнаты
+  const floorTiles = () => {
+    for (let r=0;r<H;r++) for (let c=0;c<W;c++) {
+      const chk=(r+c)%2===0;
       let fill, stroke;
-      if (isVault) {
-        fill=checker?'#1c1828':'#14102a'; stroke='#2a2252';
-      } else if (isStaff) {
-        fill=checker?'#1a2030':'#141828'; stroke='#2a3040';
+      if (room==='vault') {
+        fill=chk?'#1a1630':'#130f24'; stroke='#2a2050';
+      } else if (room==='staff') {
+        fill=chk?'#18202e':'#121828'; stroke='#22304a';
+      } else if (room==='lounge') {
+        fill=chk?'#2a1a14':'#200e0a'; stroke='#3a2018';
       } else {
-        fill=checker?'#f0ead8':'#e4dcc8'; stroke='#c8c0aa';
+        // Лобби — белый мрамор
+        fill=chk?'#f8f6f0':'#ede8e0'; stroke='#d0c8b8';
       }
-      drawItems.push({d:r+c, fn:()=>{
-        const p=w2s(r+0.5,c+0.5);
+      drawItems.push({d:r+c, fn:((_r,_c,_f,_s)=>()=>{
+        const p=w2s(_r+0.5,_c+0.5);
         ctx.beginPath();
         ctx.moveTo(p.x,p.y-hy); ctx.lineTo(p.x+hx,p.y);
         ctx.lineTo(p.x,p.y+hy); ctx.lineTo(p.x-hx,p.y);
         ctx.closePath();
-        ctx.fillStyle=fill; ctx.fill();
-        ctx.strokeStyle=stroke; ctx.lineWidth=0.5; ctx.stroke();
-      }});
+        ctx.fillStyle=_f; ctx.fill();
+        ctx.strokeStyle=_s; ctx.lineWidth=0.5; ctx.stroke();
+      })(r,c,fill,stroke)});
     }
-  }
-
-  // Офисные столы в зоне персонала
-  const drawDesk=(r,c,label)=>{
-    drawItems.push({d:r+c+0.1, fn:()=>{
-      const p=w2s(r+0.5,c+0.5);
-      const dw=hx*0.8, dh=hy*0.8, topH=isoH(0.5);
-      ctx.save();
-      // Столешница
-      ctx.fillStyle='#3a4060'; ctx.strokeStyle='#505878'; ctx.lineWidth=0.8;
-      ctx.beginPath();
-      ctx.moveTo(p.x,p.y-hy*0.8); ctx.lineTo(p.x+dw,p.y-dh*0.8+dh*0.5);
-      ctx.lineTo(p.x,p.y+dh*0.5); ctx.lineTo(p.x-dw,p.y-dh*0.8+dh*0.5-dh);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      // Монитор
-      ctx.fillStyle='#1a2a4a'; ctx.fillRect(p.x-6,p.y-topH-10,12,9);
-      ctx.strokeStyle='#4080ff'; ctx.lineWidth=0.7; ctx.strokeRect(p.x-6,p.y-topH-10,12,9);
-      // Экран светится
-      ctx.fillStyle=`rgba(40,100,220,${0.4+0.2*Math.sin(performance.now()*0.002+r)})`;
-      ctx.fillRect(p.x-5,p.y-topH-9,10,7);
-      if (label) {
-        ctx.font='6px monospace'; ctx.fillStyle='#80c0ff';
-        ctx.textAlign='center'; ctx.fillText(label,p.x,p.y-topH-4);
-      }
-      ctx.restore(); ctx.textAlign='left';
-    }});
   };
-  drawDesk(1.5, 1.5, '▌▌');
-  drawDesk(2.5, 1.5);
-  if (W>15) { drawDesk(1.5,W-2.5,'▌▌'); drawDesk(2.5,W-2.5); }
+  floorTiles();
 
-  // Мешки в хранилище
-  if (phase==='vault_open'||phase==='cracking') {
-    for (const bag of bags) {
-      if (bag.taken) continue;
-      const br=bag.r, bc=bag.c;
-      drawItems.push({d:br+bc+0.3, fn:()=>{
-        const p=w2s(br+0.5,bc+0.5);
-        const bh=isoH(0.4);
-        ctx.fillStyle='rgba(0,0,0,.4)';
-        ctx.beginPath(); ctx.ellipse(p.x,p.y+2,hx*0.35,hy*0.35,0,0,Math.PI*2); ctx.fill();
-        const g=ctx.createLinearGradient(p.x-8,p.y-bh,p.x+8,p.y);
-        g.addColorStop(0,'#2a6030'); g.addColorStop(0.5,'#3a8040'); g.addColorStop(1,'#1a4020');
-        ctx.fillStyle=g;
-        ctx.beginPath(); ctx.ellipse(p.x,p.y-bh*0.5,9,7,0,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle='#4da050'; ctx.lineWidth=1; ctx.stroke();
-        ctx.fillStyle='#80e880'; ctx.font='bold 10px monospace';
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText('$',p.x,p.y-bh*0.5-1);
-        ctx.textAlign='left'; ctx.textBaseline='alphabetic';
-      }});
+  // ── Мебель по комнатам ─────────────────────────────────────────
+  if (room==='lobby') {
+    // Стойка администратора (слева, r≈5-6)
+    drawItems.push({d:5.5+2, fn:()=>{
+      const p=w2s(5.5,2);
+      const dh=isoH(0.7), dhx=hx*0.9, dhy=hy*0.9;
+      ctx.fillStyle='#e8e0d0'; ctx.strokeStyle='#a09880'; ctx.lineWidth=0.8;
+      ctx.beginPath();
+      ctx.moveTo(p.x,p.y-dhy-dh); ctx.lineTo(p.x+dhx,p.y-dh);
+      ctx.lineTo(p.x,p.y+dhy-dh); ctx.lineTo(p.x-dhx,p.y-dh);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Передняя грань
+      ctx.fillStyle='#d0c8b8';
+      ctx.beginPath();
+      ctx.moveTo(p.x-dhx,p.y-dh); ctx.lineTo(p.x,p.y+dhy-dh);
+      ctx.lineTo(p.x,p.y+dhy); ctx.lineTo(p.x-dhx,p.y);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }});
+    // Диванчики для ожидания (r≈8)
+    for (let si=0;si<3;si++) {
+      const sc=3+si*3.5;
+      drawItems.push({d:8+sc*0.01, fn:((sc2)=>()=>{
+        const p=w2s(8.5,sc2);
+        // Сиденье
+        ctx.fillStyle='#4a3060'; ctx.strokeStyle='#3a2050'; ctx.lineWidth=0.8;
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y-hy*0.6-isoH(0.35)); ctx.lineTo(p.x+hx*0.8,p.y-isoH(0.35));
+        ctx.lineTo(p.x,p.y+hy*0.6-isoH(0.35)); ctx.lineTo(p.x-hx*0.8,p.y-isoH(0.35));
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        // Спинка
+        ctx.fillStyle='#5a3a70';
+        ctx.beginPath();
+        ctx.moveTo(p.x-hx*0.8,p.y-isoH(0.35)); ctx.lineTo(p.x,p.y+hy*0.6-isoH(0.35));
+        ctx.lineTo(p.x,p.y+hy*0.6); ctx.lineTo(p.x-hx*0.8,p.y);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      })(sc)});
+    }
+    // Кадка с растением (угол)
+    drawItems.push({d:2+W-2, fn:()=>{
+      const p=w2s(2,W-2);
+      ctx.fillStyle='#5a3a20'; ctx.strokeStyle='#3a2010'; ctx.lineWidth=0.8;
+      ctx.beginPath(); ctx.ellipse(p.x,p.y,hx*0.35,hy*0.35,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.font='18px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('🌿',p.x,p.y-8); ctx.textAlign='left';
+    }});
+  }
+
+  if (room==='staff') {
+    // Столы с компьютерами
+    const deskPos=[[2,2.5,'▌▌'],[2,W-3.5,'■■'],[4.5,2.5,'██'],[4.5,W-3.5,'▌▌']];
+    for (const [dr,dc,lbl] of deskPos) {
+      drawItems.push({d:dr+dc+0.1, fn:((_r,_c,_l)=>()=>{
+        const p=w2s(_r+0.5,_c+0.5);
+        const topH=isoH(0.5);
+        // Стол
+        ctx.fillStyle='#2a3050'; ctx.strokeStyle='#404868'; ctx.lineWidth=0.8;
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y-hy*0.85); ctx.lineTo(p.x+hx*0.85,p.y-hy*0.15);
+        ctx.lineTo(p.x,p.y+hy*0.85-topH); ctx.lineTo(p.x-hx*0.85,p.y-hy*0.15-topH);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        // Монитор
+        const mx=p.x-5, my=p.y-topH-16;
+        ctx.fillStyle='#0a1220'; ctx.fillRect(mx,my,22,15);
+        ctx.strokeStyle='#3060a0'; ctx.lineWidth=0.7; ctx.strokeRect(mx,my,22,15);
+        ctx.fillStyle=`rgba(30,80,200,${0.5+0.2*Math.sin(performance.now()*0.003+_r)})`;
+        ctx.fillRect(mx+1,my+1,20,13);
+        ctx.font='5px monospace'; ctx.fillStyle='#60a0ff';
+        ctx.textAlign='center'; ctx.fillText(_l,mx+11,my+8); ctx.textAlign='left';
+      })(dr,dc,lbl)});
+    }
+    // Кофемашина
+    drawItems.push({d:1+W*0.5, fn:()=>{
+      const p=w2s(1,W*0.5);
+      ctx.fillStyle='#202830'; ctx.strokeStyle='#304050'; ctx.lineWidth=0.8;
+      ctx.beginPath(); ctx.ellipse(p.x,p.y,hx*0.5,hy*0.5,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.font='14px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('☕',p.x,p.y-8); ctx.textAlign='left';
+    }});
+  }
+
+  if (room==='lounge') {
+    // Диваны (L-образные)
+    for (let si=0;si<2;si++) {
+      const sr=2+si*3.5, sc=2+si*4;
+      drawItems.push({d:sr+sc+0.1, fn:((sr2,sc2)=>()=>{
+        const p=w2s(sr2+0.5,sc2+0.5);
+        // Диван
+        ctx.fillStyle=si===0?'#5a3040':'#304060'; ctx.strokeStyle='rgba(0,0,0,.3)'; ctx.lineWidth=0.8;
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y-hy*0.8-isoH(0.4)); ctx.lineTo(p.x+hx*1.4,p.y-isoH(0.4));
+        ctx.lineTo(p.x,p.y+hy*0.8-isoH(0.4)); ctx.lineTo(p.x-hx*1.4,p.y-isoH(0.4));
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle=si===0?'#7a4060':'#405080';
+        ctx.beginPath();
+        ctx.moveTo(p.x-hx*1.4,p.y-isoH(0.4)); ctx.lineTo(p.x,p.y+hy*0.8-isoH(0.4));
+        ctx.lineTo(p.x,p.y+hy*0.8); ctx.lineTo(p.x-hx*1.4,p.y);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      })(sr,sc)});
+    }
+    // Кофейный столик
+    drawItems.push({d:4+W/2, fn:()=>{
+      const p=w2s(4,W/2);
+      ctx.fillStyle='#6a5830'; ctx.strokeStyle='#8a7840'; ctx.lineWidth=0.8;
+      ctx.beginPath();
+      ctx.moveTo(p.x,p.y-hy*0.5-isoH(0.2)); ctx.lineTo(p.x+hx*0.5,p.y-isoH(0.2));
+      ctx.lineTo(p.x,p.y+hy*0.5-isoH(0.2)); ctx.lineTo(p.x-hx*0.5,p.y-isoH(0.2));
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }});
+    // Кофемашины
+    for (let ci=0;ci<2;ci++) {
+      drawItems.push({d:1+ci*3, fn:((ci2)=>()=>{
+        const p=w2s(1,ci2*4+2);
+        ctx.fillStyle='#1a1a2a'; ctx.strokeStyle='#303050'; ctx.lineWidth=0.8;
+        ctx.beginPath(); ctx.ellipse(p.x,p.y,hx*0.45,hy*0.45,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.font='13px sans-serif'; ctx.textAlign='center';
+        ctx.fillText('☕',p.x,p.y-7); ctx.textAlign='left';
+        ctx.fillStyle='rgba(255,180,40,0.5+0.3*Math.sin(performance.now()*0.004))';
+        ctx.beginPath(); ctx.arc(p.x-hx*0.15,p.y-hy*0.1,3,0,Math.PI*2); ctx.fill();
+      })(ci)});
+    }
+    // Журнальный стеллаж
+    drawItems.push({d:2+W-2, fn:()=>{
+      const p=w2s(2,W-2);
+      ctx.fillStyle='#3a2c18'; ctx.strokeStyle='#5a4428'; ctx.lineWidth=0.8;
+      ctx.beginPath();
+      ctx.moveTo(p.x,p.y-hy*0.7-isoH(0.7)); ctx.lineTo(p.x+hx*0.6,p.y-isoH(0.7));
+      ctx.lineTo(p.x,p.y+hy*0.7-isoH(0.7)); ctx.lineTo(p.x-hx*0.6,p.y-isoH(0.7));
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.font='12px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('📚',p.x,p.y-isoH(0.7)-8); ctx.textAlign='left';
+    }});
+  }
+
+  if (room==='vault') {
+    // Полки с папками по бокам
+    for (let c=1;c<W-1;c+=3) {
+      drawItems.push({d:0.5+c, fn:((c2)=>()=>{
+        const p=w2s(0.5,c2);
+        ctx.fillStyle='#2a1c10'; ctx.strokeStyle='#3a2818'; ctx.lineWidth=0.7;
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y-hy*0.9-isoH(0.8)); ctx.lineTo(p.x+hx*0.9,p.y-isoH(0.8));
+        ctx.lineTo(p.x,p.y+hy*0.9-isoH(0.8)); ctx.lineTo(p.x-hx*0.9,p.y-isoH(0.8));
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.font='9px sans-serif'; ctx.textAlign='center';
+        ctx.fillText(c2%2===0?'📁':'🗂️',p.x,p.y-isoH(0.8)-8); ctx.textAlign='left';
+      })(c)});
+    }
+    // Мешки
+    if (phase==='vault_open'||phase==='cracking') {
+      for (const bag of bags) {
+        if (bag.taken) continue;
+        const br=bag.r, bc=bag.c;
+        drawItems.push({d:br+bc+0.3, fn:((_br,_bc)=>()=>{
+          const p=w2s(_br+0.5,_bc+0.5);
+          const bh=isoH(0.4);
+          ctx.fillStyle='rgba(0,0,0,.45)';
+          ctx.beginPath(); ctx.ellipse(p.x,p.y+2,hx*0.35,hy*0.35,0,0,Math.PI*2); ctx.fill();
+          const g=ctx.createLinearGradient(p.x-8,p.y-bh,p.x+8,p.y);
+          g.addColorStop(0,'#2a6030'); g.addColorStop(0.5,'#3a9040'); g.addColorStop(1,'#1a4020');
+          ctx.fillStyle=g;
+          ctx.beginPath(); ctx.ellipse(p.x,p.y-bh*0.5,10,8,0,0,Math.PI*2); ctx.fill();
+          ctx.strokeStyle='#5da060'; ctx.lineWidth=1.2; ctx.stroke();
+          ctx.fillStyle='#90f090'; ctx.font='bold 11px monospace';
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText('$',p.x,p.y-bh*0.5-1);
+          ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+        })(br,bc)});
+      }
     }
   }
 
-  // NPC
-  for (const npc of int.npcs) {
+  // ── NPC текущей комнаты ─────────────────────────────────────────
+  const roomNpcs = int.npcs[room] || [];
+  for (const npc of roomNpcs) {
     if (npc.state==='fled') continue;
-    const nr=npc.r, nc=npc.c;
-    drawItems.push({d:nr+nc, fn:()=>_drawBankInteriorNpc(npc,int)});
+    drawItems.push({d:npc.r+npc.c, fn:((_n)=>()=>_drawBankInteriorNpc(_n))(npc)});
   }
 
-  // Игрок
+  // ── Игрок ───────────────────────────────────────────────────────
   drawItems.push({d:player.r+player.c+0.05, fn:()=>{
     const p=w2s(player.r+0.5,player.c+0.5);
     drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,
@@ -25738,135 +26044,175 @@ function drawBankInteriorScene() {
     if (!myDead) drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,0.9,lastShotClientT);
     if (myBag) {
       ctx.font='16px sans-serif'; ctx.textAlign='center';
-      ctx.fillText('💼',p.x,p.y-38); ctx.textAlign='left';
+      ctx.fillText('💼',p.x,p.y-40); ctx.textAlign='left';
     }
   }});
 
   drawItems.sort((a,b)=>a.d-b.d);
   drawItems.forEach(i=>i.fn());
 
-  // Стены
-  const _wFace=(r0,c0,r1,c1,col,stk)=>{
+  // ── Стены ───────────────────────────────────────────────────────
+  const _wFace=(r0,c0,r1,c1,col,stk,extra)=>{
     const a=w2s(r0,c0), b=w2s(r1,c1);
     ctx.fillStyle=col; ctx.strokeStyle=stk; ctx.lineWidth=0.8;
     ctx.beginPath();
     ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
     ctx.lineTo(b.x,b.y-wallH); ctx.lineTo(a.x,a.y-wallH);
     ctx.closePath(); ctx.fill(); ctx.stroke();
+    if (extra) extra(a,b);
   };
 
-  // Северная стена с дверью хранилища
-  const vDL=Math.floor(W/2)-1, vDR=Math.floor(W/2)+1;
-  for (let c=0;c<W;c++) {
-    if (c>=vDL && c<vDR) {
-      const col=phase==='vault_open'?'#101624':'#222050';
-      _wFace(0,c,0,c+1,col,'#3848a0');
-      if (phase!=='vault_open') {
-        const a=w2s(0,c+0.5), my=a.y-wallH*0.5;
-        ctx.save(); ctx.fillStyle='#c0a020';
-        ctx.beginPath(); ctx.arc(a.x,my,4,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle='#ffd040'; ctx.lineWidth=1.3;
-        for (let i=0;i<6;i++){
-          const ag=(i/6)*Math.PI*2;
-          ctx.beginPath(); ctx.moveTo(a.x,my);
-          ctx.lineTo(a.x+Math.cos(ag)*6,my+Math.sin(ag)*6); ctx.stroke();
-        }
-        ctx.restore();
-      }
-    } else {
-      _wFace(0,c,0,c+1,'#1e1830','#2c2448');
-    }
+  let wallMain,wallWest,wallEast;
+  if (room==='lobby') {
+    wallMain='#2a2238'; wallWest='#22183a'; wallEast='#1e1432';
+  } else if (room==='vault') {
+    wallMain='#14102a'; wallWest='#0e0c20'; wallEast='#0e0c20';
+  } else if (room==='staff') {
+    wallMain='#1a2030'; wallWest='#141828'; wallEast='#141828';
+  } else {
+    wallMain='#241418'; wallWest='#1c100e'; wallEast='#1c100e';
   }
-  // Западная
-  for (let r=0;r<H;r++) _wFace(r,0,r+1,0,'#181428','#261e3c');
-  // Восточная
-  for (let r=0;r<H;r++) _wFace(r,W,r+1,W,'#161226','#22183a');
-  // Южная с выходом
+
+  // Западная и восточная стены
+  for (let r=0;r<H;r++) {
+    _wFace(r,0,r+1,0,wallWest,'#30244a');
+    _wFace(r,W,r+1,W,wallEast,'#281e3e');
+  }
+
+  // Северная стена
+  if (room==='lobby') {
+    const LW=W;
+    const doors=_lobbyDoors(LW,H);
+    // Дверь персонала (слева) — синяя
+    for (let c=0;c<LW;c++) {
+      const inStaff  = c<doors.staff.c1;
+      const inLounge = c>=doors.lounge.c0;
+      const inVault  = c>=Math.floor(LW/2-1) && c<Math.floor(LW/2+1);
+      if (inStaff) {
+        _wFace(0,c,0,c+1,'#1a2848','#3060a0',(a,b)=>{
+          ctx.save(); ctx.fillStyle='#6090ff'; ctx.font='6px system-ui';
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText('ПЕРСОНАЛ',(a.x+b.x)/2,a.y-wallH*0.5); ctx.restore(); ctx.textAlign='left';
+        });
+      } else if (inLounge) {
+        _wFace(0,c,0,c+1,'#2a1828','#a030a0',(a,b)=>{
+          ctx.save(); ctx.fillStyle='#d060d0'; ctx.font='6px system-ui';
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText('ОТДЫХ',(a.x+b.x)/2,a.y-wallH*0.5); ctx.restore(); ctx.textAlign='left';
+        });
+      } else if (inVault) {
+        const isOpen = phase==='vault_open';
+        _wFace(0,c,0,c+1,isOpen?'#101830':'#242060',isOpen?'#2040a0':'#5050c0');
+        // Дверь хранилища — круглая стальная
+        if (!isOpen && c===Math.floor(LW/2-1)) {
+          const a=w2s(0,LW/2), my=a.y-wallH*0.55;
+          ctx.save();
+          // Стальная дверь
+          ctx.fillStyle='#4a5060';
+          ctx.beginPath(); ctx.arc(a.x,my,isoH(0.35),0,Math.PI*2); ctx.fill();
+          ctx.strokeStyle='#808898'; ctx.lineWidth=2; ctx.stroke();
+          // Маховик
+          ctx.strokeStyle='#c0c8d0'; ctx.lineWidth=1.5;
+          for (let i=0;i<8;i++) {
+            const ag=i*Math.PI/4;
+            ctx.beginPath(); ctx.moveTo(a.x,my);
+            ctx.lineTo(a.x+Math.cos(ag)*isoH(0.3),my+Math.sin(ag)*isoH(0.3));
+            ctx.stroke();
+          }
+          ctx.fillStyle='#a0a8b0';
+          ctx.beginPath(); ctx.arc(a.x,my,isoH(0.08),0,Math.PI*2); ctx.fill();
+          ctx.restore();
+        }
+      } else {
+        _wFace(0,c,0,c+1,wallMain,'#342a52');
+      }
+    }
+  } else {
+    for (let c=0;c<W;c++) _wFace(0,c,0,c+1,wallMain,'#342a52');
+  }
+
+  // Южная стена с выходом (EXIT или "В ЛОББИ")
+  const exitLabel = room==='lobby'?'ВЫХОД':'← ЛОББИ';
+  const exitColor = room==='lobby'?'#50e050':'#60b0ff';
   const eDL=Math.floor(W/2)-1, eDR=Math.floor(W/2)+1;
   for (let c=0;c<W;c++) {
-    if (c>=eDL && c<eDR) {
-      _wFace(H,c,H,c+1,'#0a0614','#5040a0');
-    } else {
-      _wFace(H,c,H,c+1,'#1e1630','#2c2448');
-    }
+    if (c>=eDL && c<eDR) _wFace(H,c,H,c+1,'#0a0614','#5040a0');
+    else _wFace(H,c,H,c+1,wallMain,'#342a52');
   }
-  // Надпись ВЫХОД — один раз по центру
   { const a=w2s(H,(eDL+eDR)/2);
-    ctx.save(); ctx.fillStyle='#50e050'; ctx.font='bold 8px system-ui';
+    ctx.save(); ctx.fillStyle=exitColor; ctx.font='bold 8px system-ui';
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('ВЫХОД',a.x,a.y-wallH*0.5); ctx.restore();
-    ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
+    ctx.fillText(exitLabel,a.x,a.y-wallH*0.5);
+    ctx.restore(); ctx.textAlign='left'; ctx.textBaseline='alphabetic'; }
 
-  // Прилавок (если хранилище закрыто)
-  if (phase!=='vault_open') {
+  // ── Прилавок-кассы (лобби) ─────────────────────────────────────
+  if (room==='lobby' && phase!=='vault_open') {
     const gL=Math.floor(W/2)-1, gR=Math.floor(W/2)+1;
-    const cH=isoH(0.85);
+    const cH=isoH(0.9);
     for (let c=0;c<W;c++) {
       if (c>=gL && c<gR) continue;
-      const p1=w2s(3,c), p2=w2s(3,c+1);
-      ctx.fillStyle='#c8b860'; ctx.strokeStyle='#907840'; ctx.lineWidth=0.8;
+      const p1=w2s(3.5,c), p2=w2s(3.5,c+1);
+      ctx.fillStyle='#e0d8c0'; ctx.strokeStyle='#b0a880'; ctx.lineWidth=0.8;
       ctx.beginPath();
       ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
       ctx.lineTo(p2.x,p2.y-cH); ctx.lineTo(p1.x,p1.y-cH);
       ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Стекло поверх прилавка
+      ctx.fillStyle='rgba(180,220,255,0.12)';
+      const gH=isoH(0.5);
+      ctx.beginPath();
+      ctx.moveTo(p1.x,p1.y-cH); ctx.lineTo(p2.x,p2.y-cH);
+      ctx.lineTo(p2.x,p2.y-cH-gH); ctx.lineTo(p1.x,p1.y-cH-gH);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle='rgba(180,220,255,0.3)'; ctx.lineWidth=0.5; ctx.stroke();
     }
   }
 
-  // Разделительная стеклянная стенка зоны персонала (горизонтальная, r=4)
-  if (W>15) {
-    const glasH=isoH(0.7);
-    for (let c=0;c<3;c++) {
-      const p1=w2s(4,c), p2=w2s(4,c+1);
-      ctx.fillStyle='rgba(100,160,220,0.18)'; ctx.strokeStyle='rgba(140,200,255,0.35)'; ctx.lineWidth=0.7;
-      ctx.beginPath();
-      ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
-      ctx.lineTo(p2.x,p2.y-glasH); ctx.lineTo(p1.x,p1.y-glasH);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-    }
-    for (let c=W-3;c<W;c++) {
-      const p1=w2s(4,c), p2=w2s(4,c+1);
-      ctx.fillStyle='rgba(100,160,220,0.18)'; ctx.strokeStyle='rgba(140,200,255,0.35)'; ctx.lineWidth=0.7;
-      ctx.beginPath();
-      ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
-      ctx.lineTo(p2.x,p2.y-glasH); ctx.lineTo(p1.x,p1.y-glasH);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-    }
-  }
-
-  // Прогресс-бар взлома
+  // ── Прогресс взлома (vault / lobby cracking) ───────────────────
   if (phase==='cracking') {
-    const pp=w2s(3,W/2); const barW=90;
+    const pp=w2s(room==='vault'?H*0.5:3.5, W/2);
+    const barW=100;
     ctx.save();
-    ctx.fillStyle='rgba(0,0,0,.8)';
-    if (ctx.roundRect) ctx.roundRect(pp.x-barW/2-4,pp.y-wallH-22,barW+8,20,4);
-    else ctx.rect(pp.x-barW/2-4,pp.y-wallH-22,barW+8,20);
+    ctx.fillStyle='rgba(0,0,0,.85)';
+    if (ctx.roundRect) ctx.roundRect(pp.x-barW/2-5,pp.y-wallH-26,barW+10,22,5);
+    else ctx.rect(pp.x-barW/2-5,pp.y-wallH-26,barW+10,22);
     ctx.fill();
-    ctx.fillStyle='#4888ff'; ctx.fillRect(pp.x-barW/2,pp.y-wallH-18,barW*crackProg,12);
-    ctx.fillStyle='#fff'; ctx.font='bold 10px system-ui';
+    const g=ctx.createLinearGradient(pp.x-barW/2,0,pp.x+barW/2,0);
+    g.addColorStop(0,'#2050ff'); g.addColorStop(1,'#60a0ff');
+    ctx.fillStyle=g; ctx.fillRect(pp.x-barW/2,pp.y-wallH-22,barW*crackProg,14);
+    ctx.fillStyle='#fff'; ctx.font='bold 11px system-ui';
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(`🔒 ${(crackProg*100).toFixed(0)}%`,pp.x,pp.y-wallH-12);
+    ctx.fillText(`🔒 ${(crackProg*100).toFixed(0)}%`,pp.x,pp.y-wallH-15);
     ctx.restore(); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
   }
 
-  // Подсказка вверху
-  const hint=
-    phase==='lobby'     ?'⬆ Подойди к прилавку — нажми «Взломать»':
-    phase==='cracking'  ?'⬆ Стой у прилавка — идёт взлом':
-    myBag               ?'⬇ Выходи через EXIT-дверь с мешком':
-                         '⬆ Зайди в хранилище — автоподбор мешка';
+  // ── Подсказка вверху ────────────────────────────────────────────
+  let hint;
+  if (room==='vault') {
+    hint = myBag?'⬇ Выходи в лобби с мешком':'Войди в хранилище — автоподбор мешка';
+  } else if (room==='staff') {
+    hint='Осмотрись. Тут работают сотрудники. ⬇ Выйти в лобби';
+  } else if (room==='lounge') {
+    hint='Комната отдыха. ⬇ Выйти в лобби';
+  } else {
+    hint = phase==='lobby'    ?'Нажми кнопку «Взломать». Двери слева/справа ведут в другие комнаты':
+           phase==='cracking' ?'Взлом идёт! Стой у прилавка':
+           phase==='vault_open'&&myBag?'⬇ Выходи с мешком! Найди фургон':
+           'Хранилище открыто! Зайди через центральную дверь';
+  }
   ctx.save();
-  ctx.fillStyle='rgba(255,255,255,.9)'; ctx.font='bold 14px system-ui';
+  ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font='bold 13px system-ui';
   ctx.textAlign='center'; ctx.textBaseline='top';
-  ctx.fillText(`🏦 ${bank.name}`,SW/2,12);
-  ctx.fillStyle='rgba(200,200,200,.85)'; ctx.font='11px system-ui';
-  ctx.fillText(hint,SW/2,30);
+  ctx.fillText(`🏦 ${bank.name}`,SW/2,10);
+  ctx.fillStyle='rgba(210,210,210,.85)'; ctx.font='10px system-ui';
+  ctx.fillText(hint,SW/2,28);
   ctx.restore(); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
 
-  // Тревога — красная виньетка
+  // ── Тревога — виньетка ──────────────────────────────────────────
   if (alarmTriggered) {
     const t=performance.now()*0.003;
-    const alpha=0.07+0.05*Math.sin(t*8);
-    ctx.fillStyle=`rgba(255,30,30,${alpha})`; ctx.fillRect(0,0,SW,SH);
+    const alpha=0.06+0.04*Math.sin(t*8);
+    ctx.fillStyle=`rgba(255,20,20,${alpha})`; ctx.fillRect(0,0,SW,SH);
   }
 }
 
