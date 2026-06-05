@@ -3843,6 +3843,11 @@ BANK_ROB_POS_RC = {
 }
 BANK_ROB_RADIUS     = 6.0   # тайлов — anti-cheat проверка при старте
 BANK_ROB_COOLDOWN_S = 4 * 3600  # кулдаун 4ч на каждый банк отдельно
+BANK_NAMES = {
+    'small':  'Банк «Окраина»',
+    'medium': 'Банк «Район»',
+    'large':  'Банк «Центральный»',
+}
 
 # Активные heist'ы в памяти: heist_id → {participants:set, started_at, finalized}
 _active_bank_heists = {}
@@ -18942,11 +18947,13 @@ async def _coop_http_app():
                                              'cooldown_s': left}
                                 else:
                                     # Стартуем — сохраняем состояние в player dict
+                                    pname = (p.get('name') or 'Неизвестный')[:24]
                                     p['_bank_rob'] = {
                                         'bank_id':   bank_id,
                                         'bags_max':  cfg['bags'],
                                         'bags_loaded': 0,
                                         'started_at': now_ts,
+                                        'player_name': pname,
                                     }
                                     p['_wanted'] = max(float(p.get('_wanted') or 0),
                                                        cfg['wanted'])
@@ -19005,6 +19012,7 @@ async def _coop_http_app():
                                             (int(uid), bank_id, now_ts))
                                         await db.commit()
                                 except Exception: pass
+                            rob_name = (p.get('_bank_rob') or {}).get('player_name') or (p.get('name') or '?')[:24]
                             p.pop('_bank_rob', None)
                             fin_pkt = json.dumps({'t': 'event', 'd': {
                                 'kind':       'bank_rob_finished',
@@ -19014,6 +19022,39 @@ async def _coop_http_app():
                             }}, ensure_ascii=False)
                             try: await ws.send_str(fin_pkt)
                             except Exception: pass
+                            # Broadcast «банк ограблен» всем онлайн-игрокам
+                            if bags_ok > 0:
+                                bname = BANK_NAMES.get(bank_id, bank_id)
+                                robbed_pkt = json.dumps({'t': 'event', 'd': {
+                                    'kind':          'bank_robbed_all',
+                                    'bank_id':       bank_id,
+                                    'bank_name':     bname,
+                                    'initiator_uid': str(uid),
+                                    'robbers':       [rob_name],
+                                    'bags':          bags_ok,
+                                }}, ensure_ascii=False)
+                                for _u2, _ws2 in list(world.connections.items()):
+                                    try: await _ws2.send_str(robbed_pkt)
+                                    except Exception: pass
+                    elif t == 'bank_rob_announce':
+                        # Клиент начал взлом хранилища — broadcast «Грабят банк» всем.
+                        p = world.players.get(uid)
+                        bank_id = str((d or {}).get('bank_id') or '') if isinstance(d, dict) else ''
+                        if p and bank_id:
+                            rob = p.get('_bank_rob') or {}
+                            pname = rob.get('player_name') or (p.get('name') or '?')[:24]
+                            bname = BANK_NAMES.get(bank_id, bank_id)
+                            ann_pkt = json.dumps({'t': 'event', 'd': {
+                                'kind':          'bank_robbing',
+                                'bank_id':       bank_id,
+                                'bank_name':     bname,
+                                'initiator_uid': str(uid),
+                                'robbers':       [pname],
+                            }}, ensure_ascii=False)
+                            for _u2, _ws2 in list(world.connections.items()):
+                                if str(_u2) != str(uid):
+                                    try: await _ws2.send_str(ann_pkt)
+                                    except Exception: pass
                     elif t == 'bank_rob_abort':
                         # Игрок прервал ограбление — убираем серверное состояние.
                         p = world.players.get(uid)
