@@ -1442,6 +1442,7 @@ const QP = {
     hat:    _qInt('hat', 0),
   },
   has_look: _qInt('has_look', 0),
+  mode: _UP.get('mode') || '',  // 'pvp'/'pve' если передан ботом → пропускаем модал
 };
 
 // ── Telegram WebApp ─────────────────────────────────────────────
@@ -26626,13 +26627,20 @@ function chatDuration(text) {
     setConnecting('Сервер недоступен. Попробуй зайти чуть позже.');
     return;
   }
-  // Режим выбирается ПРИ КАЖДОМ заходе в мир — без сохранения. Модал
-  // показываем всегда, пока игрок не нажмёт PvP или PvE.
-  showModeModal(/*onPick*/(picked) => {
-    myMode = picked;
+  // Если режим передан в URL (бот передаёт &mode=pvp) — пропускаем модал.
+  // Иначе всегда показываем выбор.
+  const _urlMode = QP.mode;
+  if (_urlMode === 'pvp' || _urlMode === 'pve') {
+    myMode = _urlMode;
     _refreshModeHud();
     wsConnect();
-  });
+  } else {
+    showModeModal(/*onPick*/(picked) => {
+      myMode = picked;
+      _refreshModeHud();
+      wsConnect();
+    });
+  }
 })();
 </script>
 </body>

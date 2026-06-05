@@ -5726,6 +5726,8 @@ async function openWorld() {
   // Навык «Меткий стрелок» — пробрасываем уровень, в world.html от него
   // зависит MAX_LOCKS (число одновременных меток в multi-lock).
   params.set('mark_lvl', String((DATA.mark_lvl | 0) || 0));
+  // Режим по умолчанию pvp — пропускаем модал выбора при входе из хаба.
+  params.set('mode', 'pvp');
   // Cache-buster — чтобы Telegram не подсунул старую версию.
   params.set('v', Date.now());
   window.location.href = 'world.html?' + params.toString();
