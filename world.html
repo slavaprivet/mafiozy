@@ -22711,7 +22711,7 @@ function render() {
     items.push({ depth: bank.r + bank.c - 0.5, draw: () => drawBankSign(bank) });
     items.push({ depth: bank.r + bank.c - 0.6, draw: () => drawBankPlayerBadge(bank) });
     items.push({ depth: bank.r + bank.c + 0.1, draw: () => drawBankVanZone(bank) });
-    items.push({ depth: bank.r + bank.c + 0.2, draw: () => drawBankEntrance(bank) });
+    items.push({ depth: bank.r + 3.5 + bank.c + 1.5, draw: () => drawBankEntrance(bank) });
   }
 
   // АЗС — знак с колонкой и зоной взаимодействия
@@ -25620,37 +25620,55 @@ function drawBankVanZone(bank) {
 
 // Пульсирующий указатель входа в банк (снаружи)
 function drawBankEntrance(bank) {
+  if (_bankInt) return;  // уже внутри — не рисуем
   const now = performance.now();
-  const pulse = 0.5 + 0.5 * Math.sin(now * 0.004);
-  // Позиция входа — чуть южнее центра банка (3×3 tile footprint)
+  const pulse = 0.5 + 0.5 * Math.sin(now * 0.005);
   const er = bank.r + 3.2, ec = bank.c + 1.5;
   const p = w2s(er, ec);
   const dist = Math.hypot(player.r - (bank.r+1.5), player.c - (bank.c+1.5));
-  const visible = dist < BANK_INTERACT_R + 3;
-  if (!visible) return;
-  const alpha = Math.min(1, (BANK_INTERACT_R + 3 - dist) / 4) * (0.6 + 0.35 * pulse);
+  const showRadius = BANK_INTERACT_R + 6;
+  if (dist > showRadius) return;
+
+  const alpha = Math.min(1, (showRadius - dist) / 5) * (0.7 + 0.3 * pulse);
   ctx.save();
   ctx.globalAlpha = alpha;
-  // Пульсирующий круг-подсказка
-  ctx.strokeStyle = '#ffd040'; ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
+
+  // Пульсирующий ромб на земле (isometric стиль)
+  const hx2 = TS * 0.5, hy2 = TS * 0.5 * ISO_Y;
+  const rad = 10 + pulse * 6;
+  ctx.strokeStyle = '#ffd040'; ctx.lineWidth = 2.5;
+  ctx.setLineDash([5, 3]);
   ctx.beginPath();
-  ctx.arc(p.x, p.y, 18 + pulse * 5, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.moveTo(p.x, p.y - hy2 * rad / 14);
+  ctx.lineTo(p.x + hx2 * rad / 14, p.y);
+  ctx.lineTo(p.x, p.y + hy2 * rad / 14);
+  ctx.lineTo(p.x - hx2 * rad / 14, p.y);
+  ctx.closePath(); ctx.stroke();
   ctx.setLineDash([]);
-  // Стрелка вниз + текст
-  ctx.fillStyle = '#ffd040';
-  ctx.font = 'bold 11px system-ui';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
-  ctx.fillText('🏦 ВОЙТИ', p.x, p.y - 26);
-  // Стрелка вниз
+
+  // Заливка
+  ctx.fillStyle = `rgba(255,208,64,${0.12 + 0.08 * pulse})`;
   ctx.beginPath();
-  ctx.moveTo(p.x, p.y - 14);
-  ctx.lineTo(p.x - 5, p.y - 20);
-  ctx.lineTo(p.x + 5, p.y - 20);
-  ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(p.x, p.y - hy2 * rad / 14);
+  ctx.lineTo(p.x + hx2 * rad / 14, p.y);
+  ctx.lineTo(p.x, p.y + hy2 * rad / 14);
+  ctx.lineTo(p.x - hx2 * rad / 14, p.y);
+  ctx.closePath(); ctx.fill();
+
+  // Тег «ВХОД» над маркером
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 5;
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 11px system-ui';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText('🏦 ВОЙТИ', p.x, p.y - hy2 * rad / 14 - 4);
+
+  // Стрелка вниз к ромбу
+  const ay = p.y - hy2 * rad / 14 - 4;
+  ctx.fillStyle = '#ffd040';
+  ctx.beginPath();
+  ctx.moveTo(p.x, ay + 4); ctx.lineTo(p.x - 6, ay - 6); ctx.lineTo(p.x + 6, ay - 6);
+  ctx.closePath(); ctx.fill();
+
   ctx.restore();
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
@@ -25686,11 +25704,12 @@ function _spawnBankNpcs(bank, W, H, counterRow) {
     npcs.push({ type:'guard', r:counterRow+2, c:W-2, state:'normal', look:_BANK_NPC_LOOKS.guard,
       walkPhase:0.5, ang:-Math.PI*0.75, wanderTimer:4, wanderVr:0, wanderVc:0, _alertAt:0 });
   }
-  npcs.push({ type:'admin', r:counterRow-2, c:3, state:'normal', look:_BANK_NPC_LOOKS.admin, walkPhase:0, ang:Math.PI*.5 });
-  npcs.push({ type:'teller', r:counterRow-1.5, c:W/2, state:'normal', look:_BANK_NPC_LOOKS.teller, walkPhase:0, ang:Math.PI/2 });
+  // +0.35 по r = стоят ПЕРЕД столом → depth выше стола → видны поверх монитора
+  npcs.push({ type:'admin', r:counterRow-1.65, c:3, state:'normal', look:_BANK_NPC_LOOKS.admin, walkPhase:0, ang:Math.PI*.5 });
+  npcs.push({ type:'teller', r:counterRow-1.15, c:W/2, state:'normal', look:_BANK_NPC_LOOKS.teller, walkPhase:0, ang:Math.PI/2 });
   const staffCnt=sz==='small'?2:sz==='medium'?3:4;
   for (let i=0;i<staffCnt;i++) {
-    npcs.push({ type:'staff', r:3+Math.floor(i/2)*3, c:2+(i%2)*3, state:'normal', look:_BANK_NPC_LOOKS.staff,
+    npcs.push({ type:'staff', r:3+Math.floor(i/2)*3+0.35, c:2+(i%2)*3, state:'normal', look:_BANK_NPC_LOOKS.staff,
       walkPhase:i*.5, ang:0, atDesk:true, _typing:true, _typingPhase:i*1.2, _typingPause:2 });
   }
   npcs.push({ type:'lounge', r:4, c:W-4, state:'normal', look:_BANK_NPC_LOOKS.lounge, walkPhase:.3, ang:Math.PI });
@@ -25775,8 +25794,14 @@ function _isBlockedInterior(r,c) {
   const {W,H,counterRow}=int;
   if (r<0.4||r>H-.15) return true;
   if (c<.4||c>W-.4) return true;
-  if (r<counterRow&&r>counterRow-1) {
-    if (c<W/2-2||c>W/2+2) return true;
+  // Внутренняя стена на archRow — блокируем кроме 3 арочных проёмов
+  const archRow=counterRow-4;
+  if (r>=archRow&&r<archRow+1) {
+    const staffL=Math.floor(W*.10),staffR=staffL+3;
+    const loungeL=Math.floor(W*.65),loungeR=loungeL+3;
+    const cenL=Math.floor(W/2)-3,cenR=Math.floor(W/2)+3;
+    const inArch=(c>=staffL&&c<staffR)||(c>=loungeL&&c<loungeR)||(c>=cenL&&c<cenR);
+    if (!inArch) return true;
   }
   return false;
 }
@@ -26202,10 +26227,11 @@ function drawBankInteriorScene() {
     }
   }
 
-  // NPC
+  // NPC — сотрудники за столами получают +0.3 к depth чтобы рисоваться поверх мониторов
   for (const npc of int.npcs) {
     if (npc.state==='fled') continue;
-    items.push({d:npc.r+npc.c,fn:((_n)=>()=>_drawBankInteriorNpc(_n))(npc)});
+    const dBonus = (npc.atDesk||npc.type==='admin'||npc.type==='teller') ? 0.3 : 0;
+    items.push({d:npc.r+npc.c+dBonus,fn:((_n)=>()=>_drawBankInteriorNpc(_n))(npc)});
   }
 
   // Игрок
@@ -26401,6 +26427,139 @@ function drawBankInteriorScene() {
       if(__e)_wFace(H,__c,H,__c+1,'#0a1018','#0a1018');
       else _wFace(H,__c,H,__c+1,WC.lobbyFront,'#b0a898');
     })(_c,_isExit)});
+  }
+
+  // ── Дополнительный декор банка (15 предметов) ────────────────────
+  const _addDecor=(r,c,fn)=>items.push({d:r+c+.15,fn});
+  const now3=performance.now();
+
+  // 1. Камера видеонаблюдения — северо-западный угол
+  _addDecor(0.5,0.5,()=>{const p=w2s(0.5,0.5);
+    ctx.fillStyle='#181820';ctx.beginPath();ctx.arc(p.x,p.y-isoH(.5)-6,5,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#303048';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='rgba(255,50,50,.7)';ctx.beginPath();ctx.arc(p.x+3,p.y-isoH(.5)-9,1.5,0,Math.PI*2);ctx.fill();});
+
+  // 2. Камера — северо-восточный угол
+  _addDecor(0.5,W-0.5,()=>{const p=w2s(0.5,W-0.5);
+    ctx.fillStyle='#181820';ctx.beginPath();ctx.arc(p.x,p.y-isoH(.5)-6,5,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#303048';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='rgba(255,50,50,.7)';ctx.beginPath();ctx.arc(p.x-3,p.y-isoH(.5)-9,1.5,0,Math.PI*2);ctx.fill();});
+
+  // 3. Картотечный шкаф (зона персонала)
+  _addDecor(2,W*.3,()=>{const p=w2s(2,W*.3),fH=isoH(1.1);
+    ctx.fillStyle='#2a3450';ctx.strokeStyle='#3a4868';ctx.lineWidth=.8;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-hy*.7);ctx.lineTo(p.x+hx*.7,p.y-hy*.2);
+    ctx.lineTo(p.x+hx*.7,p.y-hy*.2-fH);ctx.lineTo(p.x,p.y-hy*.7-fH);ctx.closePath();ctx.fill();ctx.stroke();
+    for(let d=0;d<3;d++){ctx.strokeStyle='#4a5a78';ctx.lineWidth=.6;
+      ctx.beginPath();ctx.moveTo(p.x,p.y-hy*.7-fH*d/3);ctx.lineTo(p.x+hx*.7,p.y-hy*.2-fH*d/3);ctx.stroke();}
+    ctx.fillStyle='#c0a820';ctx.fillRect(p.x+hx*.28,p.y-hy*.35-fH*.5,3,2);});
+
+  // 4. Кулер с водой (лобби)
+  _addDecor(counterRow+3,W*.7,()=>{const p=w2s(counterRow+3,W*.7),cH=isoH(.9);
+    ctx.fillStyle='#e0e8f0';ctx.strokeStyle='#b0b8c0';ctx.lineWidth=.7;
+    ctx.beginPath();ctx.ellipse(p.x,p.y,hx*.28,hy*.28,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle='rgba(100,160,255,.6)';ctx.beginPath();ctx.ellipse(p.x,p.y-cH*.35,hx*.2,hy*.25,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#d0d8e0';ctx.beginPath();ctx.moveTo(p.x-hx*.2,p.y-hy*.2);ctx.lineTo(p.x+hx*.2,p.y);
+    ctx.lineTo(p.x+hx*.2,p.y-cH*.35);ctx.lineTo(p.x-hx*.2,p.y-cH*.35-hy*.2);ctx.closePath();ctx.fill();});
+
+  // 5. Монитор CCTV на посту охраны
+  _addDecor(counterRow-1,W-4,()=>{const p=w2s(counterRow-1,W-4);
+    ctx.fillStyle='#0c1018';ctx.strokeStyle='#203040';ctx.lineWidth=.8;
+    ctx.fillRect(p.x-10,p.y-isoH(.3)-22,20,14);ctx.strokeRect(p.x-10,p.y-isoH(.3)-22,20,14);
+    // Разбивка на 4 камеры
+    ctx.strokeStyle='#204030';ctx.lineWidth=.4;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-isoH(.3)-22);ctx.lineTo(p.x,p.y-isoH(.3)-8);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p.x-10,p.y-isoH(.3)-15);ctx.lineTo(p.x+10,p.y-isoH(.3)-15);ctx.stroke();
+    ctx.fillStyle='rgba(0,200,80,.4)';ctx.fillRect(p.x-9,p.y-isoH(.3)-21,8,6);
+    ctx.fillStyle='rgba(0,200,80,.2)';ctx.fillRect(p.x+1,p.y-isoH(.3)-21,8,6);
+    ctx.fillStyle='rgba(0,200,80,.3)';ctx.fillRect(p.x-9,p.y-isoH(.3)-14,8,6);
+    ctx.fillStyle='#c0e0ff';ctx.font='5px monospace';ctx.textAlign='center';
+    ctx.fillText('CCTV',p.x,p.y-isoH(.3)-25);ctx.textAlign='left';});
+
+  // 6. Принтер/ксерокс (зона персонала)
+  _addDecor(5,W*.25,()=>{const p=w2s(5,W*.25),pH=isoH(.45);
+    ctx.fillStyle='#e8e8e0';ctx.strokeStyle='#c8c8c0';ctx.lineWidth=.7;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-hy*.6);ctx.lineTo(p.x+hx*.6,p.y-hy*.1);
+    ctx.lineTo(p.x+hx*.6,p.y-hy*.1-pH);ctx.lineTo(p.x,p.y-hy*.6-pH);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle='#30a030';ctx.fillRect(p.x-3,p.y-pH*.7,6,3);
+    ctx.fillStyle='#808080';ctx.fillRect(p.x-6,p.y-pH*.85,12,2);});
+
+  // 7. Доска объявлений (на стене персонала)
+  _addDecor(1,W*.15,()=>{const p=w2s(1,W*.15);
+    ctx.fillStyle='#6a4820';ctx.strokeStyle='#8a6030';ctx.lineWidth=.8;
+    ctx.fillRect(p.x-14,p.y-isoH(.3)-32,28,18);ctx.strokeRect(p.x-14,p.y-isoH(.3)-32,28,18);
+    // Бумажки
+    ctx.fillStyle='#f4f0e0';ctx.fillRect(p.x-12,p.y-isoH(.3)-30,8,6);
+    ctx.fillStyle='rgba(255,200,0,.7)';ctx.fillRect(p.x-3,p.y-isoH(.3)-30,6,5);
+    ctx.fillStyle='rgba(200,80,80,.7)';ctx.fillRect(p.x+4,p.y-isoH(.3)-30,7,7);
+    ctx.fillStyle='#f4f0e0';ctx.fillRect(p.x-12,p.y-isoH(.3)-22,10,5);});
+
+  // 8. Огнетушитель (у входа)
+  _addDecor(H-2,2,()=>{const p=w2s(H-2,2),eH=isoH(.6);
+    ctx.fillStyle='#cc2020';ctx.strokeStyle='#aa1818';ctx.lineWidth=.7;
+    ctx.beginPath();ctx.moveTo(p.x-3,p.y);ctx.lineTo(p.x+3,p.y);ctx.lineTo(p.x+3,p.y-eH);ctx.lineTo(p.x-3,p.y-eH);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle='#e0e0e0';ctx.beginPath();ctx.arc(p.x,p.y-eH,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillRect(p.x-2,p.y-eH*.6,4,8);});
+
+  // 9. Мусорная корзина
+  _addDecor(counterRow+2,3,()=>{const p=w2s(counterRow+2,3);
+    ctx.fillStyle='#283840';ctx.strokeStyle='#3a4a50';ctx.lineWidth=.6;
+    ctx.beginPath();ctx.moveTo(p.x-5,p.y);ctx.lineTo(p.x+5,p.y);ctx.lineTo(p.x+4,p.y-isoH(.35));ctx.lineTo(p.x-4,p.y-isoH(.35));ctx.closePath();ctx.fill();ctx.stroke();});
+
+  // 10. Настольная лампа (на кассовой стойке)
+  _addDecor(counterRow-0.1,W/2+4,()=>{const p=w2s(counterRow-0.1,W/2+4);
+    ctx.strokeStyle='#c0c0c0';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-2);ctx.lineTo(p.x-4,p.y-isoH(.3)-8);ctx.stroke();
+    ctx.fillStyle='rgba(255,240,150,.5)';ctx.beginPath();ctx.arc(p.x-4,p.y-isoH(.3)-8,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#d0c020';ctx.beginPath();ctx.arc(p.x-4,p.y-isoH(.3)-8,3,0,Math.PI*2);ctx.fill();});
+
+  // 11. Электронное табло очереди (лобби)
+  _addDecor(counterRow+1,W/2,()=>{const p=w2s(counterRow+1,W/2);
+    const qn=((now3*.0003)|0)%99+1;
+    ctx.fillStyle='#101828';ctx.strokeStyle='#203048';ctx.lineWidth=.8;
+    ctx.fillRect(p.x-16,p.y-isoH(.4)-20,32,14);ctx.strokeRect(p.x-16,p.y-isoH(.4)-20,32,14);
+    ctx.fillStyle='#ff8020';ctx.font='bold 9px monospace';ctx.textAlign='center';
+    ctx.fillText(`№ ${String(qn).padStart(2,'0')}`,p.x,p.y-isoH(.4)-10);ctx.textAlign='left';});
+
+  // 12. Картина/арт на стене лобби
+  _addDecor(counterRow-1,W*.45,()=>{const p=w2s(counterRow-1,W*.45);
+    ctx.fillStyle='#8a7040';ctx.strokeStyle='#a09050';ctx.lineWidth=1;
+    ctx.fillRect(p.x-14,p.y-isoH(.4)-28,28,18);ctx.strokeRect(p.x-14,p.y-isoH(.4)-28,28,18);
+    // Абстрактная картина
+    ctx.fillStyle='#1040a0';ctx.fillRect(p.x-12,p.y-isoH(.4)-26,12,14);
+    ctx.fillStyle='#c0a020';ctx.fillRect(p.x,p.y-isoH(.4)-26,10,8);
+    ctx.fillStyle='#a02020';ctx.fillRect(p.x,p.y-isoH(.4)-18,10,6);});
+
+  // 13. Информационный киоск (лобби)
+  _addDecor(counterRow+3,W*.35,()=>{const p=w2s(counterRow+3,W*.35),kH=isoH(.9);
+    ctx.fillStyle='#1a2838';ctx.strokeStyle='#2a3848';ctx.lineWidth=.8;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-hy*.5);ctx.lineTo(p.x+hx*.5,p.y);
+    ctx.lineTo(p.x+hx*.5,p.y-kH);ctx.lineTo(p.x,p.y-hy*.5-kH);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle=`rgba(20,120,200,${.5+.2*Math.sin(now3*.002)})`;
+    ctx.fillRect(p.x+3,p.y-kH*.75,12,9);
+    ctx.fillStyle='#60c0ff';ctx.font='5px monospace';ctx.textAlign='center';
+    ctx.fillText('INFO',p.x+9,p.y-kH*.72);ctx.textAlign='left';});
+
+  // 14. Стойка с журналами/газетами
+  _addDecor(counterRow+4,W-4,()=>{const p=w2s(counterRow+4,W-4);
+    ctx.fillStyle='#4a3820';ctx.strokeStyle='#5a4828';ctx.lineWidth=.7;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-hy*.5-isoH(.15));ctx.lineTo(p.x+hx*.5,p.y-isoH(.15));
+    ctx.lineTo(p.x,p.y+hy*.5-isoH(.15));ctx.lineTo(p.x-hx*.5,p.y-isoH(.15));ctx.closePath();ctx.fill();ctx.stroke();
+    // Журналы
+    const cols=['#c82020','#2060c8','#20a020'];
+    for(let ji=0;ji<3;ji++){ctx.fillStyle=cols[ji];ctx.fillRect(p.x-8+ji*6,p.y-isoH(.15)-10,5,8);}});
+
+  // 15. Сейфовые ячейки (стена хранилища — только при vault_open)
+  if(phase==='vault_open') {
+    _addDecor(2,W/2-5,()=>{const p=w2s(2,W/2-5);
+      ctx.fillStyle='#282e3a';ctx.strokeStyle='#384858';ctx.lineWidth=.6;
+      ctx.fillRect(p.x-16,p.y-isoH(.3)-30,32,22);ctx.strokeRect(p.x-16,p.y-isoH(.3)-30,32,22);
+      for(let ri=0;ri<3;ri++)for(let ci=0;ci<4;ci++){
+        const open=Math.random()<.3;
+        ctx.fillStyle=open?'#101418':'#303848';
+        ctx.fillRect(p.x-14+ci*8,p.y-isoH(.3)-28+ri*7,6,5);
+        if(!open){ctx.fillStyle='#a0b0c0';ctx.fillRect(p.x-12+ci*8,p.y-isoH(.3)-26+ri*7,2,2);}
+      }});
   }
 
   // ── Теперь сортируем и рисуем ВСЕ items включая стены ────────────
