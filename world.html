@@ -3239,6 +3239,8 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
   if (npc.hp <= 0) {
     npc.dead = true;
     npc.deadAt = performance.now();
+    // Копы рядом реагируют на убийство
+    _alertNearbyCops('kill');
     // Большой splat крови на месте смерти + взрыв-фонтан частиц по сторонам
     for (let i = 0; i < 6; i++) {
       _capArr(bloodSplats, _MAX_BLOOD);
@@ -3751,6 +3753,48 @@ const CITY_COPS_TARGET = 6;
 const cityCops = [];
 let _cityCopId = 0;
 
+// Реакция ближайших копов на стрельбу / драку / убийство рядом с игроком.
+// reason: 'shot' | 'fight' | 'kill'
+// Немедленно: cop смотрит на игрока + кричит. Сервер увеличит wanted через open_fire.
+const COP_REACT_R = 10;   // радиус реакции в тайлах
+const _COP_REACT_CRIES = {
+  shot:  ['Стоять! Полиция!', 'Брось оружие!', 'Огонь! К бою!', 'Стой, стрелять буду!'],
+  fight: ['Разойтись! Полиция!', 'Прекратить драку!', 'Стоять оба!', 'Спокойно!'],
+  kill:  ['Убийца! Стоять!', 'Ты арестован!', 'Руки за голову!', 'Никуда не денешься!'],
+};
+function _alertNearbyCops(reason) {
+  const cries = _COP_REACT_CRIES[reason] || _COP_REACT_CRIES.shot;
+  const now = performance.now();
+  let reacted = false;
+  for (const cop of cityCops) {
+    if (!cop.alive) continue;
+    const d = Math.hypot(cop.y - player.r, cop.x - player.c);
+    if (d > COP_REACT_R) continue;
+    cop.ang = Math.atan2(player.r - cop.y, player.c - cop.x);
+    cop._reactUntil = now + 2800;
+    // Показываем фразу через _copChats (тот же механизм что cop_warn)
+    const existing = _copChats.get(cop.id);
+    if (!existing || existing.untilMs < now + 1000) {
+      _copChats.set(cop.id, {
+        text: cries[Math.floor(Math.random() * cries.length)],
+        untilMs: now + 2500,
+      });
+    }
+    // Убийство — немедленно гонится даже без wanted
+    if (reason === 'kill') cop._pursuing = true;
+    reacted = true;
+  }
+  // Сообщаем серверу: свидетель-коп зафиксировал инцидент → увеличивает wanted
+  if (reacted) {
+    try {
+      ws && ws.send(JSON.stringify({ t: 'open_fire',
+        d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
+             weapon: currentWeapon || 'fists',
+             civilian: false, witness: true } }));
+    } catch(e) {}
+  }
+}
+
 function spawnCityCop() {
   for (let tries = 0; tries < 60; tries++) {
     const r = 4 + Math.floor(Math.random() * 72);
@@ -3885,6 +3929,23 @@ function updateCityCops(dt) {
       continue;
     }
     cop._pursuing = false;
+    // ── РЕАКЦИЯ НА ИНЦИДЕНТ (стрельба/драка рядом) ─────────────────
+    if (cop._reactUntil && now < cop._reactUntil) {
+      const dpr2 = player.r - cop.y, dpc2 = player.c - cop.x;
+      const distP2 = Math.hypot(dpr2, dpc2);
+      cop.ang = Math.atan2(dpr2, dpc2);
+      // Идёт к игроку, но медленнее чем pursue
+      if (distP2 > 2.5) {
+        const sp2 = cop.speed * 1.2 * dt;
+        const nx2 = cop.x + (dpc2 / distP2) * sp2;
+        const ny2 = cop.y + (dpr2 / distP2) * sp2;
+        if (npcPassableForSnitch(ny2, nx2)) {
+          cop.x = nx2; cop.y = ny2;
+          cop.walkPhase = (cop.walkPhase || 0) + dt * 8;
+        }
+      }
+      continue;
+    }
     // ── ОБЫЧНОЕ ПАТРУЛИРОВАНИЕ ─────────────────────────────────────
     const dr = cop.ty - cop.y, dc = cop.tx - cop.x;
     const d = Math.hypot(dr, dc);
@@ -6663,6 +6724,7 @@ let myDeathBy = '';       // uid того кто убил (последний)
 let myDeathLeft = 0;      // сколько сек до респауна
 let myKills = 0, myDeaths = 0;
 let lastShotClientT = 0;  // локальный cooldown (предотвращает спам)
+let _recoilUntil = 0;    // до этого момента рука/оружие «отдыхает» назад
 // Активные пули на клиенте — летящие объекты с реальной физикой (как в
 // demo_isometric). Каждая пуля движется со speed тайлов/сек по вектору
 // vr/vc от точки выстрела к цели. По истечении maxDist (расстояние от
@@ -7583,6 +7645,7 @@ function tryMove(obj, dr, dc) {
 // ── WebSocket ──────────────────────────────────────────────────
 let ws = null;
 let wsConnected = false;
+let _firstSnap = true;   // первый снап — всегда телепорт + сброс камеры
 let lastInputSent = 0;
 let onlineCount = 1;
 // Счётчик подряд неудачных попыток коннекта (для подавления баннера
@@ -9098,8 +9161,13 @@ function wsConnect() {
         // Внутри банка координаты — комнатные, не мировые → snap игнорируем
         if (!_bankInt) {
         const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
-        if (dist > 15.0) {
+        if (_firstSnap || dist > 15.0) {
           player.r = d.me.y; player.c = d.me.x;
+          // Сбрасываем камеру: на первом снапе или большом desync
+          // иначе камера летит с 0,0 к реальной позиции через лерп → 3 скачка
+          cam.x = (player.c - player.r) * TS * 0.5;
+          cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
+          _firstSnap = false;
         } else if (dist > 5.0) {
           const k = 0.10;
           player.r += (d.me.y - player.r) * k;
@@ -12242,6 +12310,8 @@ function fire(angle = null) {
   // (трассер летит вперёд + отдача + cd). Локально, серверу не шлём.
   const noTarget = !chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && !pvpTarget;
   lastShotClientT = now;
+  // Копы в радиусе реагируют на выстрел
+  _alertNearbyCops('shot');
   _fireBtn.classList.add('cd');
   joyREl.classList.add('cd');
   // Cd снимаем в момент когда реально можно снова стрелять (зависит от оружия)
@@ -12260,6 +12330,7 @@ function fire(angle = null) {
   // и пуля вылетает не из видимого ствола. Особенно заметно при
   // autoLock когда игрок бежит вбок и стреляет в чела позади.
   player.ang = _shotAng;
+  _recoilUntil = now + (wcfg.twoHanded ? 220 : 160);  // отдача: двуручка дольше
   // Стартовая точка пули — РЕАЛЬНЫЙ кончик ствола, рассчитанный через
   // handAnchor + FIREARM_TIP в пикселях и переведённый обратно в мир.
   // Это гарантирует что пуля вылетает РОВНО из дула на экране, а не
@@ -12418,6 +12489,33 @@ const PUNCH_DAMAGE  = 12;     // урон за удар
 let lastPunchClientT = 0;
 let _punchAnim = null;        // { startAt, ang, type:'punch'|'kick', dmg } | null
 
+// Поиск ближайшей цели для удара без lock (авто-захват в ближнем бою)
+function _findNearestMeleeTarget() {
+  let best = null, bestD = PUNCH_RANGE;
+  // Обычные NPC
+  for (let i = 0; i < NPCS.length; i++) {
+    const n = NPCS[i];
+    if (n.dead) continue;
+    const d = Math.hypot(n.r - player.r, n.c - player.c);
+    if (d < bestD) {
+      bestD = d;
+      best = { kind:'npc', id:i, getPos:()=>({r:n.r,c:n.c}) };
+    }
+  }
+  // Бандиты-боты из логов (aggroZones)
+  for (const zone of Object.values(aggroZones || {})) {
+    for (const b of (zone.bots || [])) {
+      if (b.dead || b.hp <= 0) continue;
+      const d = Math.hypot(b.y - player.r, b.x - player.c);
+      if (d < bestD) {
+        bestD = d;
+        best = { kind:'aggro_bot', id:b.id, getPos:()=>({r:b.y,c:b.x}) };
+      }
+    }
+  }
+  return best;
+}
+
 function punch() {
   if (myMode === 'pve') { showToast('🕵️ Наблюдатель не может драться', 'ℹ️', 1500); return; }
   if (myDead || myDrivingCarId || _inBus) return;
@@ -12425,8 +12523,9 @@ function punch() {
   const now = performance.now();
   if (now - lastPunchClientT < PUNCH_CD_MS) return;
 
-  // Берём ближайшую locked-цель
-  const tgt = getActiveTarget();
+  // Берём locked-цель, или авто-выбираем ближайшую в PUNCH_RANGE
+  let tgt = getActiveTarget();
+  if (!tgt) tgt = _findNearestMeleeTarget();
   if (!tgt) return;
   const pos = tgt.getPos();
   if (!pos) return;
@@ -12498,6 +12597,8 @@ function punch() {
       triggerHitStop(80);
       addShake(1.5);
       hapticHit();
+      // Копы рядом реагируют на драку
+      _alertNearbyCops('fight');
       // Бандит и любой обозлённый NPC достаёт пушку и отвечает
       _npcTriggerFight(npc);
     }
@@ -13886,7 +13987,13 @@ function update(dt) {
     const active = getActiveTarget();
     const pos = active && active.getPos();
     if (pos) {
-      player.ang = Math.atan2(pos.r - player.r, pos.c - player.c);
+      const tgtAng = Math.atan2(pos.r - player.r, pos.c - player.c);
+      // Плавный поворот к цели (540°/сек) — вместо мгновенного snap
+      let diff = tgtAng - player.ang;
+      while (diff > Math.PI)  diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      const rotSpeed = Math.PI * 3;  // рад/сек
+      player.ang += Math.sign(diff) * Math.min(Math.abs(diff), rotSpeed * dt);
     }
   }
   // Пули и вспышки — двигаем тут, рисуем потом в render()
@@ -22974,7 +23081,23 @@ function drawWeaponInHands(x, y, ang, weapon, scale /*shotAtMs ignored: см. dr
   if (!weapon) return;
   weapon = resolveWeapon(weapon);   // 'uzi' → 'smg', 'deagle' → 'pistol_heavy' и т.д.
   const a = handAnchor(x, y, ang);
-  const { hx, hy, sx, sy, px, shY, perpX, perpY, shoulderD } = a;
+  let { hx, hy, sx, sy, px, shY, perpX, perpY, shoulderD } = a;
+  // Отдача: рука с оружием сдвигается назад от цели (против направления стрельбы)
+  // Только для игрока (у NPC _recoilUntil не выставляется)
+  const recoilLeft = _recoilUntil - performance.now();
+  if (recoilLeft > 0) {
+    const wcfgR = WEAPON_FX_CFG[weapon] || {};
+    const maxPull = wcfgR.twoHanded ? TS * 0.06 : TS * 0.045;
+    // Пик отдачи в первые 30% времени, затем пружина обратно
+    const dur = wcfgR.twoHanded ? 220 : 160;
+    const t = 1 - recoilLeft / dur;
+    const pull = maxPull * (t < 0.3
+      ? t / 0.3                           // нарастание
+      : Math.pow(1 - (t - 0.3) / 0.7, 2) // пружина назад
+    );
+    hx -= sx * pull;
+    hy -= sy * pull;
+  }
   // Масштаб ровно как в demo: gunScale = 1.0 * (TS / 60) для миньона,
   // 1.3 * (TS / 60) для босса. scale — лёгкая подкрутка.
   const sc = (scale || 1.0) * (TS / 60);
