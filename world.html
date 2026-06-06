@@ -7345,7 +7345,7 @@ function spawnMuzzle(r, c, angle, weapon, npc) {
   _capArr(muzzles, _MAX_MUZZLES);
   muzzles.push({
     r, c, angle,
-    life: heavy ? 120 : 90, max: heavy ? 120 : 90,
+    life: heavy ? 100 : (npc ? 50 : 75), max: heavy ? 100 : (npc ? 50 : 75),
     color: wcfg.color || '#ffd76b',
     weapon: w,
     seed: Math.random() * 1000,
@@ -12351,7 +12351,7 @@ function fire(angle = null) {
   // Даёт ощущение «веса» удара (как в Hotline Miami / Hyper Light Drifter).
   const _hitSomeone = !!(chosenConvoy || chosenCop || chosenAggro || chosenMg || pvpTarget);
   if (_hitSomeone) {
-    triggerHitStop(weaponFx(currentWeapon).thick ? 100 : 65);
+    triggerHitStop(weaponFx(currentWeapon).thick ? 35 : 18);
     addShake(weaponFx(currentWeapon).thick ? 3.5 : 2);
     hapticHit();
   }
@@ -12410,7 +12410,7 @@ function fire(angle = null) {
       { hit: true, fromPlayer: true, weapon: currentWeapon });
     spawnImpact(hitG.point.r, hitG.point.c, currentWeapon);
     hitGangCar(hitG.car, wcfg.dmg || 20);
-    triggerHitStop(40);
+    triggerHitStop(15);
     addShake(2);
     hapticHit();
     return;
@@ -12426,7 +12426,7 @@ function fire(angle = null) {
       { hit: true, fromPlayer: true, weapon: currentWeapon });
     spawnImpact(hitN.point.r, hitN.point.c, currentWeapon);
     hitNpc(hitN.npc, dirY, dirX, currentWeapon, wcfg.dmg || 20);
-    triggerHitStop(wcfg.thick ? 100 : 65);
+    triggerHitStop(wcfg.thick ? 35 : 18);
     addShake(wcfg.thick ? 3.5 : 2);
     hapticHit();
     return;
@@ -12594,7 +12594,7 @@ function punch() {
       const dmgCol = isKick ? '#ff4080' : '#ff8040';
       spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: dmgCol, size: 18, life: 1200 });
       if (isKick) spawnFloatText(pos.r - 0.5, pos.c, 'КРИТ!', { color: '#ffdd00', size: 13, life: 900 });
-      triggerHitStop(80);
+      triggerHitStop(25);
       addShake(1.5);
       hapticHit();
       // Копы рядом реагируют на драку
@@ -12614,7 +12614,7 @@ function punch() {
     _spawnPunchBlood(pos.r, pos.c, ang);
     spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: isKick ? '#ff4080' : '#ff8040', size: 18, life: 1200 });
     if (isKick) spawnFloatText(pos.r - 0.5, pos.c, 'КРИТ!', { color: '#ffdd00', size: 13, life: 900 });
-    triggerHitStop(80);
+    triggerHitStop(25);
     addShake(1.5);
     hapticHit();
   }
@@ -22430,8 +22430,10 @@ function spawnShot(wr, wc, ang, weapon, isMyShot) {
   // Вспышка у дула — дублирует mini-flash в drawWeaponInHands, но
   // эта живёт дольше и рисует лучи + ядро в мировых координатах
   // (для NPC/чужих игроков она важна, у них нет своего timer'а)
+  // NPC/чужой выстрел — npc:true → упрощённый дешёвый рендер в drawMuzzles
+  const _mLife = isMyShot ? 80 : 50;
   muzzles.push({ r: wr, c: wc, ang: ang || 0,
-                 life: 110, max: 110, weapon });
+                 life: _mLife, max: _mLife, weapon, npc: !isMyShot });
   // Гильзы — 1-3шт вылетают вбок от ствола. Для огнестрела (не melee)
   const nShells = (weapon === 'shotgun') ? 2 :
                   (weapon === 'rpg' || weapon === 'sniper') ? 0 : 1;
@@ -24430,7 +24432,8 @@ function tryTapLock(canvasX, canvasY) {
   // Не локаемся на арене (free-aim only) и когда я мёртв / в машине / PvE
   if (myDead || myMode === 'pve' || myDrivingCarId) return false;
   if (inArena(player.r, player.c)) return false;
-  const MAX_PX = 80;          // палец рядом — не дальше 80 пикселей от спрайта
+  // В ближнем бою (без оружия) радиус тапа шире — мобилка, пальцы толще
+  const MAX_PX = _isArmed() ? 80 : 120;
   let best = null, bestD = MAX_PX;
   // 1) NPC прохожие
   for (const n of NPCS) {
@@ -24983,39 +24986,49 @@ function drawMuzzles() {
   const dy = _bulletY();
   for (const m of muzzles) {
     const t = m.life / m.max;        // 1..0
-    const t2 = Math.sqrt(t);         // более «жирная» нелинейность для размера
+    const t2 = Math.sqrt(t);
     const p = w2s(m.r + 0.5, m.c + 0.5);
     const cx = p.x, cy = p.y - dy;
-    // Совместимость: spawnShot пишет .ang, spawnMuzzle — .angle
     const ang = (m.angle != null ? m.angle : (m.ang || 0));
+
+    // NPC-вспышка: простой дешёвый круг — без градиентов
+    if (m.npc) {
+      ctx.globalAlpha = t * 0.75;
+      ctx.fillStyle = m.color || '#ffd76b';
+      ctx.beginPath();
+      ctx.arc(cx, cy, TS * 0.14 * t2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      continue;
+    }
+
     const heavy = !!m.heavy;
-    const sizeMul = heavy ? 1.45 : 1.0;
+    const sizeMul = heavy ? 1.2 : 1.0;
     const seed = m.seed || 0;
-    // 1. ореол — radial gradient без shadowBlur (shadowBlur на мобиле убивает GPU)
+    // 1. ореол — radial gradient (уменьшен вдвое от прежнего)
     ctx.save();
-    const oreolR = TS * 0.52 * t2 * sizeMul;
+    const oreolR = TS * 0.26 * t2 * sizeMul;
     const og = ctx.createRadialGradient(cx, cy, 0, cx, cy, oreolR);
-    og.addColorStop(0,   `rgba(255,180,60,${t * 0.70})`);
-    og.addColorStop(0.5, `rgba(255,130,30,${t * 0.40})`);
+    og.addColorStop(0,   `rgba(255,180,60,${t * 0.65})`);
+    og.addColorStop(0.5, `rgba(255,130,30,${t * 0.30})`);
     og.addColorStop(1,   'rgba(255,80,10,0)');
     ctx.fillStyle = og;
     ctx.beginPath();
     ctx.arc(cx, cy, oreolR, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
-    // 2. лепестки пламени (5 шт., разные углы и длины — детерминированно по seed)
+    // 2. лепестки пламени
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(ang);
-    const petals = heavy ? 6 : 5;
+    const petals = heavy ? 5 : 4;
     for (let k = 0; k < petals; k++) {
-      // Псевдослучайный угол вокруг основного направления, фиксированный per-shot
       const s1 = Math.sin(seed + k * 13.37) * 0.5 + 0.5;
       const s2 = Math.sin(seed * 1.7 + k * 7.11) * 0.5 + 0.5;
-      const dev = (s1 - 0.5) * (heavy ? 0.9 : 0.7);    // отклонение от прицельной оси
-      const len = TS * (0.55 + s2 * 0.45) * t2 * sizeMul;
-      const wid = TS * (0.06 + s1 * 0.06) * t2;
-      ctx.fillStyle = `rgba(255,${200 + Math.floor(s2 * 50)},${80 + Math.floor(s1 * 60)},${t * 0.85})`;
+      const dev = (s1 - 0.5) * (heavy ? 0.7 : 0.55);
+      const len = TS * (0.28 + s2 * 0.20) * t2 * sizeMul;
+      const wid = TS * (0.04 + s1 * 0.04) * t2;
+      ctx.fillStyle = `rgba(255,${200 + Math.floor(s2 * 50)},${80 + Math.floor(s1 * 60)},${t * 0.80})`;
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(Math.cos(dev) * len * 0.6, Math.sin(dev) * len * 0.6 - wid);
@@ -25024,22 +25037,22 @@ function drawMuzzles() {
       ctx.closePath();
       ctx.fill();
     }
-    // Центральный главный «луч» — самый яркий
-    ctx.fillStyle = `rgba(255,245,200,${t * 0.95})`;
+    // Центральный луч
+    ctx.fillStyle = `rgba(255,245,200,${t * 0.90})`;
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.lineTo(TS * 0.62 * t2 * sizeMul, -TS * 0.07 * t2);
-    ctx.lineTo(TS * 0.85 * t2 * sizeMul, 0);
-    ctx.lineTo(TS * 0.62 * t2 * sizeMul,  TS * 0.07 * t2);
+    ctx.lineTo(TS * 0.32 * t2 * sizeMul, -TS * 0.055 * t2);
+    ctx.lineTo(TS * 0.44 * t2 * sizeMul, 0);
+    ctx.lineTo(TS * 0.32 * t2 * sizeMul,  TS * 0.055 * t2);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-    // 3. ярко-белое ядро — без shadowBlur, radial gradient
+    // 3. ярко-белое ядро (меньше)
     ctx.save();
-    const coreR = TS * 0.19 * t2 * sizeMul;
+    const coreR = TS * 0.10 * t2 * sizeMul;
     const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
     cg.addColorStop(0,   `rgba(255,255,255,${Math.min(1, t)})`);
-    cg.addColorStop(0.6, `rgba(255,240,180,${t * 0.7})`);
+    cg.addColorStop(0.6, `rgba(255,240,180,${t * 0.6})`);
     cg.addColorStop(1,   'rgba(255,200,80,0)');
     ctx.fillStyle = cg;
     ctx.beginPath();
