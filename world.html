@@ -8,7 +8,8 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #fff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+  overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+  overscroll-behavior: none; -webkit-overflow-scrolling: auto; }
 #stage { position: fixed; inset: 0; overflow: hidden; }
 #gc    { display: block; width: 100%; height: 100%; touch-action: none; background: #0a0a10; }
 
@@ -1497,6 +1498,20 @@ async function _fetchApiFallback() {
 // Запрещаем вертикальный свайп вниз чтобы свайп по джойстику не закрывал
 // мини-апп. API 7.7+; на старых версиях просто игнорируется.
 try { if (tg && typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); } catch(e) {}
+// Если Telegram всё равно свернул приложение свайпом — немедленно разворачиваем обратно
+try {
+  if (tg && typeof tg.onEvent === 'function') {
+    tg.onEvent('viewportChanged', () => {
+      try { if (tg && !tg.isExpanded) tg.expand(); } catch(_) {}
+    });
+  }
+} catch(e) {}
+// Блокируем touchstart на body кроме интерактивных элементов (доп. защита от свайпа)
+document.body.addEventListener('touchstart', (e) => {
+  if (e.target === document.body || e.target === document.documentElement) {
+    e.preventDefault();
+  }
+}, { passive: false });
 // На всякий случай — глушим touchmove на body (но не на canvas/joystick,
 // они и так останавливают через preventDefault выше).
 document.addEventListener('touchmove', (e) => {
@@ -7459,8 +7474,9 @@ joyLEl.addEventListener('pointerdown', (e) => {
 joyLEl.addEventListener('pointermove', (e) => {
   if (joyL.active && e.pointerId === joyL.id) {
     joyLMove(e.clientX, e.clientY);
+    e.preventDefault();
   }
-});
+}, { passive: false });
 joyLEl.addEventListener('pointerup',     (e) => { if (joyL.active && e.pointerId === joyL.id) joyLEnd(); });
 joyLEl.addEventListener('pointercancel', (e) => { if (joyL.active && e.pointerId === joyL.id) joyLEnd(); });
 // Fallback на touch — с фильтром по identifier, чтобы движения другого
@@ -7532,8 +7548,9 @@ joyREl.addEventListener('pointerdown', (e) => {
 joyREl.addEventListener('pointermove', (e) => {
   if (joyR.active && e.pointerId === joyR.id) {
     joyRMove(e.clientX, e.clientY);
+    e.preventDefault();
   }
-});
+}, { passive: false });
 joyREl.addEventListener('pointerup',     (e) => { if (joyR.active && e.pointerId === joyR.id) joyREnd(); });
 joyREl.addEventListener('pointercancel', (e) => { if (joyR.active && e.pointerId === joyR.id) joyREnd(); });
 // Touch fallback с фильтром по identifier — каждый стик отвечает
