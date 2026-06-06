@@ -3207,7 +3207,7 @@ function hitGangCar(car, damage) {
   // Лёгкая встряска корпуса
   car._shakeUntil = performance.now() + 200;
   if (car.gangHp <= 0) {
-    spawnCarExplosion(car.r, car.c);
+    spawnCarExplosion(car.r, car.c, car);
     car._wrecked   = true;
     car._respawnAt = performance.now() + 9999999;  // не респаунить — это уникальный кортеж
   }
@@ -4443,6 +4443,253 @@ function drawPet(pet) {
 }
 
 function drawServiceVehicle(v) {
+  const isAmb = v.kind === 'ambulance';
+  let workFrac = 0, workLabel = null;
+  if (v.state === 'working' && v.workUntil) {
+    const total = isAmb ? 2500 : 4000;
+    const remain = Math.max(0, v.workUntil - performance.now());
+    workFrac = 1 - remain / total;
+    workLabel = isAmb ? 'Погрузка' : 'Тушение';
+  }
+
+  // Изометрические размеры (в тайлах, как у drawCarPretty)
+  const mL   = isAmb ? 2.05 : 2.40;
+  const mW   = isAmb ? 0.98 : 1.10;
+  const mHt  = isAmb ? 0.88 : 1.05;
+  const halfL = mL * 0.45;
+  const halfW = mW * 0.45;
+  const H = isoH(mHt);
+
+  const ang = v.ang;
+  const sinA = Math.sin(ang), cosA = Math.cos(ang);
+  const r = v.y, c = v.x;
+
+  // 4 угла основания → экран (как в drawCarPretty)
+  const FR = w2s(r + sinA * halfL - cosA * halfW + 0.5, c + cosA * halfL + sinA * halfW + 0.5);
+  const FL = w2s(r + sinA * halfL + cosA * halfW + 0.5, c + cosA * halfL - sinA * halfW + 0.5);
+  const BR = w2s(r - sinA * halfL - cosA * halfW + 0.5, c - cosA * halfL + sinA * halfW + 0.5);
+  const BL = w2s(r - sinA * halfL + cosA * halfW + 0.5, c - cosA * halfL - sinA * halfW + 0.5);
+
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.42)';
+  ctx.beginPath();
+  ctx.moveTo(FR.x + 2, FR.y + 4); ctx.lineTo(FL.x + 2, FL.y + 4);
+  ctx.lineTo(BL.x + 2, BL.y + 4); ctx.lineTo(BR.x + 2, BR.y + 4);
+  ctx.closePath(); ctx.fill();
+
+  // Вспомогательные функции
+  function lerpPt(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+  // Точка на крыше (u=0→перёд,1→зад; vv=0→право,1→лево)
+  function roofPt(u, vv) {
+    const f = lerpPt(FR, FL, vv), b = lerpPt(BR, BL, vv);
+    const p = lerpPt(f, b, u);
+    return { x: p.x, y: p.y - H };
+  }
+  // Грань-квад между двумя нижними точками
+  function sideQuad(a, b, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y - H); ctx.lineTo(a.x, a.y - H);
+    ctx.closePath(); ctx.fill();
+  }
+  // Полоса на грани (y0→y1 — доля высоты от земли)
+  function faceStripe(a, b, y0, y1, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y - H * y0); ctx.lineTo(b.x, b.y - H * y0);
+    ctx.lineTo(b.x, b.y - H * y1); ctx.lineTo(a.x, a.y - H * y1);
+    ctx.closePath(); ctx.fill();
+  }
+  // Квад на крыше по 4 UV-точкам
+  function roofQuad(u0, v0, u1, v1, u2, v2, u3, v3, color) {
+    const p0 = roofPt(u0, v0), p1 = roofPt(u1, v1);
+    const p2 = roofPt(u2, v2), p3 = roofPt(u3, v3);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Какие 2 грани смотрят к камере (как в drawCarPretty)
+  const edges = [
+    { a: FR, b: FL }, { a: FL, b: BL },
+    { a: BL, b: BR }, { a: BR, b: FR },
+  ];
+  edges.sort((x, y) => (y.a.y + y.b.y) - (x.a.y + x.b.y));
+  const vis = edges.slice(0, 2);
+
+  if (isAmb) {
+    // ── СКОРАЯ (Mercedes Sprinter) ─────────────────────────────────
+    sideQuad(vis[0].a, vis[0].b, '#b8b8c0');
+    sideQuad(vis[1].a, vis[1].b, '#d8d8e0');
+
+    // Синяя полоса скорой
+    faceStripe(vis[0].a, vis[0].b, 0.30, 0.50, '#1040a8');
+    faceStripe(vis[1].a, vis[1].b, 0.30, 0.50, '#1650c0');
+    // Красные линии вверху/внизу синей полосы
+    faceStripe(vis[0].a, vis[0].b, 0.50, 0.57, '#b80e0e');
+    faceStripe(vis[1].a, vis[1].b, 0.50, 0.57, '#b80e0e');
+    faceStripe(vis[0].a, vis[0].b, 0.23, 0.30, '#b80e0e');
+    faceStripe(vis[1].a, vis[1].b, 0.23, 0.30, '#b80e0e');
+
+    // Стекло: боковые окна (более видимая грань)
+    faceStripe(vis[1].a, vis[1].b, 0.58, 0.88, 'rgba(110,165,210,.55)');
+    // Лобовое (передняя/фронтальная грань)
+    faceStripe(vis[0].a, vis[0].b, 0.58, 0.92, 'rgba(60,115,175,.65)');
+
+    // Белая крыша
+    ctx.fillStyle = '#f0f0f0';
+    ctx.beginPath();
+    ctx.moveTo(FR.x, FR.y - H); ctx.lineTo(FL.x, FL.y - H);
+    ctx.lineTo(BL.x, BL.y - H); ctx.lineTo(BR.x, BR.y - H);
+    ctx.closePath(); ctx.fill();
+
+    // Световая панель (лайтбар) на крыше
+    roofQuad(0.16, 0.22, 0.16, 0.78, 0.58, 0.78, 0.58, 0.22, '#1a1a28');
+
+    // Красный крест (продольная рука)
+    roofQuad(0.62, 0.36, 0.62, 0.64, 0.92, 0.64, 0.92, 0.36, '#cc0000');
+    // Красный крест (поперечная рука)
+    roofQuad(0.68, 0.15, 0.68, 0.85, 0.86, 0.85, 0.86, 0.15, '#cc0000');
+
+    // Колёса (как в drawCarPretty)
+    const wR = 4.5, wR2 = 2.4;
+    for (const corner of [FR, FL, BR, BL]) {
+      ctx.fillStyle = '#0a0a0a';
+      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR, wR2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#8a8a92';
+      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR * 0.52, wR2 * 0.52, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Контур
+    ctx.strokeStyle = '#222228'; ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(FR.x, FR.y - H); ctx.lineTo(FL.x, FL.y - H);
+    ctx.lineTo(BL.x, BL.y - H); ctx.lineTo(BR.x, BR.y - H); ctx.closePath();
+    ctx.moveTo(FR.x, FR.y); ctx.lineTo(FL.x, FL.y);
+    ctx.lineTo(BL.x, BL.y); ctx.lineTo(BR.x, BR.y); ctx.closePath();
+    for (const pt of [FR, FL, BR, BL]) { ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x, pt.y - H); }
+    ctx.stroke();
+
+  } else {
+    // ── ПОЖАРНАЯ (Pumper) ──────────────────────────────────────────
+    sideQuad(vis[0].a, vis[0].b, '#880e0e');
+    sideQuad(vis[1].a, vis[1].b, '#b01212');
+
+    // Жёлтые световозвращающие полосы
+    faceStripe(vis[0].a, vis[0].b, 0.05, 0.17, '#d0aa08');
+    faceStripe(vis[1].a, vis[1].b, 0.05, 0.17, '#d0aa08');
+    faceStripe(vis[0].a, vis[0].b, 0.83, 0.95, '#d0aa08');
+    faceStripe(vis[1].a, vis[1].b, 0.83, 0.95, '#d0aa08');
+
+    // Отсеки (3 перегородки)
+    ctx.strokeStyle = '#5a0808'; ctx.lineWidth = 0.9;
+    for (const e of vis) {
+      for (const t of [0.30, 0.55, 0.75]) {
+        const m = lerpPt(e.a, e.b, t);
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y - H * 0.14); ctx.lineTo(m.x, m.y - H * 0.86);
+        ctx.stroke();
+      }
+    }
+
+    // Лобовое стекло кабины (передняя грань)
+    faceStripe(vis[0].a, vis[0].b, 0.55, 0.88, 'rgba(50,90,160,.62)');
+
+    // Красная крыша
+    ctx.fillStyle = '#c41414';
+    ctx.beginPath();
+    ctx.moveTo(FR.x, FR.y - H); ctx.lineTo(FL.x, FL.y - H);
+    ctx.lineTo(BL.x, BL.y - H); ctx.lineTo(BR.x, BR.y - H);
+    ctx.closePath(); ctx.fill();
+
+    // Лестница на крыше (2 рельса + перекладины)
+    const ladF0 = roofPt(0.10, 0.27), ladF1 = roofPt(0.10, 0.73);
+    const ladB0 = roofPt(0.88, 0.27), ladB1 = roofPt(0.88, 0.73);
+    ctx.strokeStyle = '#b8b8b8'; ctx.lineWidth = 2.0;
+    ctx.beginPath(); ctx.moveTo(ladF0.x, ladF0.y); ctx.lineTo(ladB0.x, ladB0.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ladF1.x, ladF1.y); ctx.lineTo(ladB1.x, ladB1.y); ctx.stroke();
+    ctx.lineWidth = 1.0;
+    for (let ri = 0; ri <= 8; ri++) {
+      const t = ri / 8;
+      const p0 = lerpPt(ladF0, ladB0, t), p1 = lerpPt(ladF1, ladB1, t);
+      ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+    }
+
+    // Световой блок на крыше кабины
+    roofQuad(0.05, 0.25, 0.05, 0.75, 0.22, 0.75, 0.22, 0.25, '#1a1a1a');
+
+    // Надпись «01»
+    const lblPt = roofPt(0.12, 0.50);
+    ctx.fillStyle = '#f0d010';
+    ctx.font = `bold ${Math.round(TS * 0.13)}px sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('01', lblPt.x, lblPt.y);
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+
+    // Колёса
+    const wR = 5.2, wR2 = 2.7;
+    for (const corner of [FR, FL, BR, BL]) {
+      ctx.fillStyle = '#080808';
+      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR, wR2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#888890';
+      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR * 0.52, wR2 * 0.52, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Контур
+    ctx.strokeStyle = '#1a0404'; ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(FR.x, FR.y - H); ctx.lineTo(FL.x, FL.y - H);
+    ctx.lineTo(BL.x, BL.y - H); ctx.lineTo(BR.x, BR.y - H); ctx.closePath();
+    ctx.moveTo(FR.x, FR.y); ctx.lineTo(FL.x, FL.y);
+    ctx.lineTo(BL.x, BL.y); ctx.lineTo(BR.x, BR.y); ctx.closePath();
+    for (const pt of [FR, FL, BR, BL]) { ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x, pt.y - H); }
+    ctx.stroke();
+  }
+
+  // Мигалки сирены на крыше
+  const p = w2s(r + 0.5, c + 0.5);
+  const t = performance.now();
+  const blink  = Math.floor(t / 200) % 2;
+  const col1 = isAmb ? '#2860ff' : '#ff2020';
+  const col2 = isAmb ? '#ff2828' : '#2860ff';
+
+  const s1 = roofPt(0.18, 0.38), s2 = roofPt(0.50, 0.50), s3 = roofPt(0.82, 0.62);
+  const sirenPts = isAmb
+    ? [[s1.x, s1.y], [s2.x, s2.y], [s3.x, s3.y]]
+    : [[s1.x, s1.y], [s3.x, s3.y]];
+
+  ctx.save();
+  for (let fi = 0; fi < sirenPts.length; fi++) {
+    const [fx, fy] = sirenPts[fi];
+    ctx.fillStyle = (fi % 2 === blink) ? col1 : col2;
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.arc(fx, fy - 2, 3.2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  // Прогресс-бар работы (подобрать, погрузка)
+  if (workLabel) {
+    const barW = 36, barH = 4;
+    const bx = p.x - barW / 2, by = p.y - H - 16;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,.6)';
+    ctx.fillRect(bx - 1, by - 1, barW + 2, barH + 2);
+    ctx.fillStyle = isAmb ? '#3ec070' : '#ffb040';
+    ctx.fillRect(bx, by, barW * workFrac, barH);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 9px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(workLabel, p.x, by - 2);
+    ctx.restore();
+  }
+}
+
+function _drawServiceVehicle_OLD_FLAT(v) {
   const p = w2s(v.y, v.x);
   const isAmb = v.kind === 'ambulance';
   let workFrac = 0;
@@ -6550,7 +6797,7 @@ function _spawnCrashEvent() {
     if (!c) continue;
     c.vr = 0; c.vc = 0; c._wrecked = true;
     c._respawnAt = performance.now() + 25000;   // через 25с переспаунится
-    spawnCarExplosion(c.r, c.c);
+    spawnCarExplosion(c.r, c.c, c);
   }
   pushFeedEvent('💥', 'Авария — ДТП на дороге', { accent: '#ff7030' });
   return true;
@@ -13505,7 +13752,7 @@ function update(dt) {
           // gang_threat бамп кулачка. Игроку через сервер срезаем hp.
           if (npcCar.gang) {
             reportCarCrash(qc, impact + 4, 'gang_car');
-            spawnCarExplosion(npcCar.r, npcCar.c);
+            spawnCarExplosion(npcCar.r, npcCar.c, npcCar);
             npcCar._wrecked   = true;
             npcCar._respawnAt = performance.now() + 9999999;
             // Игрок получает значительный урон (примерно 25 hp за таран на
@@ -13529,7 +13776,7 @@ function update(dt) {
           }
           // Обычная гражданская — взрываем, лёгкий урон нам
           reportCarCrash(qc, impact, 'car');
-          spawnCarExplosion(npcCar.r, npcCar.c);
+          spawnCarExplosion(npcCar.r, npcCar.c, npcCar);
           npcCar._wrecked   = true;
           npcCar._respawnAt = performance.now() + 600;
           curVx *= 0.3; curVy *= 0.3;
@@ -16935,42 +17182,89 @@ function drawBankPlayerBadge(bank) {
 // остов с пламенем. Если её уже потушили пожарные (car._burnedOut),
 // вместо огня — только тонкий струящийся дым.
 function drawWreckedCar(car) {
-  // Тёмная палитра — обугленный остов; модель та же.
   const burnedModel = Object.assign({}, car.model, {
     palette: ['#2a2520', '#16120e'],
     roof: '#16120e',
   });
   drawCarPretty(Object.assign({}, car, { model: burnedModel }));
   const p = w2s(car.r + 0.5, car.c + 0.5);
-  const t = performance.now() * 0.006;
+  const now = performance.now();
+  const t = now * 0.006;
+
+  // Ударная волна сразу после взрыва
+  if (car._explosionT) {
+    const age = now - car._explosionT;
+    if (age < 900) {
+      const frac = age / 900;
+      // Внешнее кольцо
+      const rad = age * 0.12;
+      const alpha = Math.max(0, 1 - frac) * 0.85;
+      ctx.strokeStyle = `rgba(255,160,50,${alpha})`;
+      ctx.lineWidth = 5 * (1 - frac);
+      ctx.beginPath(); ctx.arc(p.x, p.y - 4, rad, 0, Math.PI * 2); ctx.stroke();
+      // Внутреннее кольцо (быстрее, ярче)
+      if (age < 500) {
+        const frac2 = age / 500;
+        const rad2 = age * 0.07;
+        ctx.strokeStyle = `rgba(255,240,180,${(1 - frac2) * 0.7})`;
+        ctx.lineWidth = 8 * (1 - frac2);
+        ctx.beginPath(); ctx.arc(p.x, p.y - 4, rad2, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+  }
+
   if (!car._burnedOut) {
-    // Пляшущее пламя над крышей
-    const flameH = 14 + Math.sin(t) * 2.5;
-    const flameW = 6 + Math.sin(t * 1.7) * 0.8;
-    const fy0 = p.y - 6;
-    const fg = ctx.createLinearGradient(p.x, fy0 - flameH, p.x, fy0);
-    fg.addColorStop(0,    '#ffe070');
-    fg.addColorStop(0.45, '#ff7020');
-    fg.addColorStop(1,    '#a01010');
-    ctx.fillStyle = fg;
-    ctx.beginPath();
-    ctx.moveTo(p.x, fy0 - flameH);
-    ctx.quadraticCurveTo(p.x + flameW, fy0 - flameH * 0.4,
-                         p.x + flameW * 0.5, fy0);
-    ctx.lineTo(p.x - flameW * 0.5, fy0);
-    ctx.quadraticCurveTo(p.x - flameW, fy0 - flameH * 0.4,
-                         p.x, fy0 - flameH);
-    ctx.closePath();
-    ctx.fill();
-    // Искорка
-    ctx.fillStyle = '#fff5b0';
-    ctx.beginPath();
-    ctx.arc(p.x + Math.sin(t * 7) * 3,
-            fy0 - flameH - 3 - Math.sin(t * 4) * 2,
-            1.0, 0, Math.PI * 2);
-    ctx.fill();
+    const fy0 = p.y - 7;
+    // 4 языка пламени (разной высоты/смещения)
+    const tongues = [
+      { ox: -6, h: 0.85, w: 0.7, phase: 0 },
+      { ox:  1, h: 1.00, w: 1.0, phase: 1.1 },
+      { ox:  8, h: 0.75, w: 0.8, phase: 2.3 },
+      { ox: -2, h: 0.60, w: 0.6, phase: 3.7 },
+    ];
+    for (const { ox, h, w, phase } of tongues) {
+      const fH = (14 + Math.sin(t * 1.8 + phase) * 3.5) * h;
+      const fW = (5 + Math.sin(t * 2.3 + phase) * 1.2) * w;
+      const cx = p.x + ox + Math.sin(t * 0.9 + phase) * 1.5;
+      const fg = ctx.createLinearGradient(cx, fy0 - fH, cx, fy0);
+      fg.addColorStop(0,    h > 0.9 ? '#fff8c0' : '#ffee80');
+      fg.addColorStop(0.35, '#ff8020');
+      fg.addColorStop(0.75, '#cc3010');
+      fg.addColorStop(1,    '#801010');
+      ctx.fillStyle = fg;
+      ctx.beginPath();
+      ctx.moveTo(cx, fy0 - fH);
+      ctx.quadraticCurveTo(cx + fW, fy0 - fH * 0.38, cx + fW * 0.5, fy0);
+      ctx.lineTo(cx - fW * 0.5, fy0);
+      ctx.quadraticCurveTo(cx - fW, fy0 - fH * 0.38, cx, fy0 - fH);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Летящие искры
+    for (let si = 0; si < 8; si++) {
+      const phase = t * (1.4 + si * 0.22) + si * 1.1;
+      const px2 = p.x + Math.sin(phase * 1.9) * 10;
+      const py2 = fy0 - 4 - (phase % (Math.PI * 2)) * 2.8;
+      const sa = Math.max(0, 1 - (phase % (Math.PI * 2)) / (Math.PI * 2));
+      if (sa > 0.05) {
+        ctx.fillStyle = `rgba(255,${180 + si * 8},40,${sa})`;
+        ctx.beginPath(); ctx.arc(px2, py2, 1.3, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // Чёрный дым сверху
+    for (let i = 0; i < 5; i++) {
+      const phase = (t * 0.4 + i * 0.6);
+      const off = i * 8;
+      const a = Math.max(0, 0.55 - i * 0.10);
+      ctx.fillStyle = `rgba(30,28,26,${a})`;
+      ctx.beginPath();
+      ctx.arc(p.x + Math.sin(phase) * 3.5,
+              fy0 - 18 - off,
+              3.5 + i * 0.9, 0, Math.PI * 2);
+      ctx.fill();
+    }
   } else {
-    // Тонкий серый дым (после тушения) — три «облачка», поднимаются.
+    // Тонкий серый дым (после тушения) — облачка поднимаются.
     for (let i = 0; i < 4; i++) {
       const phase = (t * 0.5 + i * 0.7);
       const off = i * 6;
@@ -22585,41 +22879,57 @@ function reportCarCrash(qc, impact, kind) {
 
 // Взрыв машины — мощный «мясной» эффект: 36 искр + чёрный круг копоти
 // + бочка дыма. Переиспользуем impacts/bloodSplats.
-function spawnCarExplosion(wr, wc) {
+function spawnCarExplosion(wr, wc, car) {
+  // Запоминаем время взрыва на объекте машины — нужно для ударной волны
+  if (car) car._explosionT = performance.now();
+
   const parts = [];
-  for (let i = 0; i < 36; i++) {
+  // Огненные частицы (больше + быстрее)
+  for (let i = 0; i < 55; i++) {
     const a = Math.random() * Math.PI * 2;
-    const sp = 1.5 + Math.random() * 3.5;
+    const sp = 2.0 + Math.random() * 5.0;
     const t  = Math.random();
     parts.push({
       vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
-      life: 600 + Math.random() * 600, max: 1200,
-      color: t < 0.4 ? '#ffe080'
-           : t < 0.75 ? '#ff7820'
-           : '#7a2010',
+      life: 500 + Math.random() * 800, max: 1300,
+      color: t < 0.35 ? '#fff8a0'
+           : t < 0.60 ? '#ffb830'
+           : t < 0.82 ? '#ff6010'
+           : '#801010',
       isBlood: false,
-      size: 2.0 + Math.random() * 2.4,
+      size: 2.2 + Math.random() * 3.2,
+    });
+  }
+  // Металлические обломки (крупнее + дальше летят)
+  for (let i = 0; i < 18; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 2.5 + Math.random() * 5.5;
+    parts.push({
+      vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+      life: 1000 + Math.random() * 600, max: 1600,
+      color: i % 3 === 0 ? '#5a4a3a' : i % 3 === 1 ? '#2a2a2a' : '#3a1a10',
+      isBlood: false,
+      size: 2.8 + Math.random() * 2.0,
     });
   }
   _capArr(impacts, _MAX_IMPACTS);
   impacts.push({ r: wr, c: wc, parts });
-  // Чёрная копоть-пятно на земле
+
+  // Большое чёрное пятно копоти
   _capArr(bloodSplats, _MAX_BLOOD);
   bloodSplats.push({
-    r: wr, c: wc, radius: 18 + Math.random() * 6,
-    life: 14000, max: 14000, rot: Math.random() * Math.PI,
+    r: wr, c: wc, radius: 24 + Math.random() * 10,
+    life: 18000, max: 18000, rot: Math.random() * Math.PI,
     _isSoot: true,
   });
-  // Ещё пара частиц «отлетающих обломков» — серые
-  for (let i = 0; i < 14; i++) {
-    const a = Math.random() * Math.PI * 2;
-    parts.push({
-      vr: Math.sin(a) * (1.2 + Math.random() * 2.0),
-      vc: Math.cos(a) * (1.2 + Math.random() * 2.0),
-      life: 900 + Math.random() * 400, max: 1300,
-      color: '#3a3a3a',
-      isBlood: false,
-      size: 1.6 + Math.random() * 1.4,
+  // Несколько меньших пятен копоти вокруг
+  for (let i = 0; i < 3; i++) {
+    const dr = (Math.random() - 0.5) * 0.8, dc = (Math.random() - 0.5) * 0.8;
+    _capArr(bloodSplats, _MAX_BLOOD);
+    bloodSplats.push({
+      r: wr + dr, c: wc + dc, radius: 8 + Math.random() * 8,
+      life: 14000, max: 14000, rot: Math.random() * Math.PI,
+      _isSoot: true,
     });
   }
 }
