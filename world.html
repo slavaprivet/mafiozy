@@ -22289,95 +22289,166 @@ function handAnchor(x, y, ang) {
 }
 
 // ── Анимация удара кулаком (без оружия) ───────────────────────────
-// Фазы: замах (0–150 мс) → удар (150–230 мс) → отдача (230–420 мс).
-// px, py — экранная позиция игрока (с учётом отдачи камеры).
+// Двухзвенная рука (плечо→локоть→кулак), трейл, импакт-кольцо + лучи.
+// px, py — экранная позиция игрока (с отдачей камеры).
 function _drawPunchAnim(px, py) {
   if (!_punchAnim) return;
   const elapsed = performance.now() - _punchAnim.startAt;
-  const TOTAL = 420;
+  const TOTAL = 400;
   if (elapsed >= TOTAL) { _punchAnim = null; return; }
 
   const ang = _punchAnim.ang;
-  const bulletOfsY = Math.round(TS * 0.289);
-  // Точка хвата руки в экранных координатах
-  const a = handAnchor(px, py - bulletOfsY, ang);
+  const bY  = Math.round(TS * 0.289);
+  const a   = handAnchor(px, py - bY, ang);
 
-  // Вычисляем вынос кулака от базовой позиции (в пикселях)
-  const MAX_REACH = TS * 0.82;
+  // Плечо — базовая точка (hx - sx*armLen)
+  const armLen   = TS * 0.36;
+  const sx = a.sx, sy = a.sy;
+  const shdX = a.hx - sx * armLen;
+  const shdY = a.hy - sy * armLen;
+
+  // k: [-1..1], отрицательный = замах назад, 1 = полный выброс кулака
+  const MAX_REACH = TS * 0.44;   // ~25 px — не слишком длинно
   let k;
-  if (elapsed < 150) {
-    // Замах назад
-    k = -0.18 * Math.sin((elapsed / 150) * Math.PI);
-  } else if (elapsed < 230) {
-    // Резкий бросок вперёд — ease-out
-    const t = (elapsed - 150) / 80;
-    k = 1 - Math.pow(1 - t, 2);
+  if (elapsed < 120) {
+    // Замах — дуга назад
+    const t = elapsed / 120;
+    k = -0.28 * Math.sin(t * Math.PI);
+  } else if (elapsed < 200) {
+    // Резкий удар — ease-out^3
+    const t = (elapsed - 120) / 80;
+    k = 1 - Math.pow(1 - t, 3);
   } else {
-    // Отдача — возврат
-    const t = (elapsed - 230) / 190;
-    k = 1 - t;
+    // Пружинный отскок назад — cosine ease
+    const t = (elapsed - 200) / 200;
+    k = Math.cos(t * Math.PI * 0.5);
   }
 
-  const fistX = a.hx + a.sx * MAX_REACH * k;
-  const fistY = a.hy + a.sy * MAX_REACH * k;
+  // Позиция кулака
+  const fistX = a.hx + sx * MAX_REACH * k;
+  const fistY = a.hy + sy * MAX_REACH * k;
+
+  // Локоть — 52% между плечом и кулаком + перпендикулярный выпуклость
+  const elbT  = 0.52;
+  const eMidX = shdX + (fistX - shdX) * elbT;
+  const eMidY = shdY + (fistY - shdY) * elbT;
+  // Локоть выпирает больше при замахе/покое, выпрямляется на ударе
+  const bulgeFactor = Math.max(0, 1 - Math.abs(k) * 1.3);
+  const bulge = 13 * bulgeFactor;
+  const elbX = eMidX + a.perpX * bulge;
+  const elbY = eMidY + a.perpY * bulge;
 
   ctx.save();
+  ctx.lineCap  = 'round';
+  ctx.lineJoin = 'round';
 
-  // Плечо → запястье: толстая линия цвета кожи
-  ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#c07850';
-  ctx.shadowColor = 'rgba(0,0,0,.5)';
-  ctx.shadowBlur = 4;
+  // ── Трейл движения (только фаза удара 120–210 мс) ─────────────────
+  if (elapsed > 120 && elapsed < 215) {
+    const steps = 4;
+    for (let i = steps; i >= 1; i--) {
+      const pastT  = Math.max(0, (elapsed - i * 16 - 120) / 80);
+      const pastK  = Math.max(0, 1 - Math.pow(1 - pastT, 3));
+      const pfx    = a.hx + sx * MAX_REACH * pastK;
+      const pfy    = a.hy + sy * MAX_REACH * pastK;
+      ctx.globalAlpha = 0.22 - i * 0.04;
+      ctx.fillStyle = '#e08030';
+      ctx.beginPath();
+      ctx.arc(pfx, pfy, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Плечо → локоть (верхнее плечо) ───────────────────────────────
+  ctx.shadowColor = 'rgba(0,0,0,.55)';
+  ctx.shadowBlur  = 5;
+  ctx.lineWidth   = 7.5;
+  ctx.strokeStyle = '#b87248';
   ctx.beginPath();
-  ctx.moveTo(a.hx, a.hy);
+  ctx.moveTo(shdX, shdY);
+  ctx.lineTo(elbX, elbY);
+  ctx.stroke();
+
+  // ── Локоть → кулак (предплечье) ───────────────────────────────────
+  ctx.lineWidth   = 6;
+  ctx.strokeStyle = '#a06038';
+  ctx.beginPath();
+  ctx.moveTo(elbX, elbY);
   ctx.lineTo(fistX, fistY);
   ctx.stroke();
 
-  // Перчатка-кулак: тёмный кружок + светлая полоса «костяшек»
-  const fr = 6.5;
-  ctx.shadowBlur = 6;
+  // ── Кулак (прямоугольник с костяшками) ────────────────────────────
+  ctx.shadowBlur  = 7;
   ctx.shadowColor = '#000';
-  ctx.fillStyle = '#3a2510';
+  const fistW = 11, fistH = 9;
+  const fistAng = Math.atan2(sy, sx);
+  ctx.save();
+  ctx.translate(fistX, fistY);
+  ctx.rotate(fistAng);
+  // Тело кулака
+  ctx.fillStyle = '#221408';
   ctx.beginPath();
-  ctx.arc(fistX, fistY, fr, 0, Math.PI * 2);
+  ctx.roundRect(-fistW * 0.45, -fistH * 0.5, fistW, fistH, 2.5);
   ctx.fill();
-  // Три светлые «костяшки» поперёк кулака
-  const perpAng = ang + Math.PI / 2;
-  const kpx = Math.cos(perpAng), kpy = Math.sin(perpAng);
-  // ISO-y для перпендикуляра
-  const ksx = (kpx - kpy) * 0.5, ksy = (kpx + kpy) * 0.5 * ISO_Y;
+  // Костяшки
   ctx.shadowBlur = 0;
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  for (let i = -1; i <= 1; i++) {
-    const ox = ksx * (i * 3.2);
-    const oy = ksy * (i * 3.2);
+  ctx.fillStyle  = 'rgba(255,180,100,0.45)';
+  for (let i = 0; i < 4; i++) {
     ctx.beginPath();
-    ctx.arc(fistX + ox, fistY + oy, 1.6, 0, Math.PI * 2);
+    ctx.arc(-fistW * 0.35 + i * 2.9, -fistH * 0.5 + 1.8, 1.1, 0, Math.PI * 2);
     ctx.fill();
   }
+  // Светлая полоска на ребре кулака
+  ctx.fillStyle = 'rgba(255,220,160,0.25)';
+  ctx.fillRect(-fistW * 0.45, -fistH * 0.5, fistW, 1.5);
+  ctx.restore();
 
-  // Вспышка удара: только на пике броска (160–260 мс)
-  if (elapsed > 160 && elapsed < 260) {
-    const flash = 1 - Math.abs((elapsed - 210) / 50);
-    ctx.globalAlpha = flash * 0.9;
-    // Звёздочка удара
-    const rOuter = 11 * flash + 5, rInner = 4 * flash + 2;
-    const spikes = 6;
-    ctx.fillStyle = '#ffe860';
-    ctx.shadowColor = '#ff8020';
-    ctx.shadowBlur = 14 * flash;
+  // ── Импакт-эффект на пике удара (130–280 мс) ──────────────────────
+  if (elapsed > 130 && elapsed < 280) {
+    const peakAt = 180;
+    const fl = elapsed < peakAt
+      ? (elapsed - 130) / (peakAt - 130)
+      : 1 - (elapsed - peakAt) / (280 - peakAt);
+    const fl2 = Math.max(0, fl);
+
+    ctx.globalAlpha = fl2 * 0.92;
+
+    // Расширяющееся кольцо
+    ctx.shadowColor = '#ff7010';
+    ctx.shadowBlur  = 18 * fl2;
+    ctx.strokeStyle = `rgba(255,${130 + Math.round(80*fl2)},20,${0.9})`;
+    ctx.lineWidth   = 2.5 + fl2 * 1.5;
     ctx.beginPath();
-    for (let i = 0; i < spikes * 2; i++) {
-      const sAng = (i * Math.PI) / spikes - Math.PI / 2;
-      const r = i % 2 === 0 ? rOuter : rInner;
-      const ox = fistX + Math.cos(sAng) * r;
-      const oy = fistY + Math.sin(sAng) * r;
-      i === 0 ? ctx.moveTo(ox, oy) : ctx.lineTo(ox, oy);
+    ctx.arc(fistX, fistY, 7 + (1 - fl2) * 16, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Радиальные лучи (8 штук, разная длина)
+    const rayLens = [14, 10, 16, 9, 13, 11, 15, 8];
+    ctx.strokeStyle = '#ffe040';
+    ctx.lineWidth   = 1.8;
+    ctx.shadowColor = '#ff8010';
+    ctx.shadowBlur  = 10;
+    for (let i = 0; i < 8; i++) {
+      const rAng  = (i / 8) * Math.PI * 2;
+      const rLen  = rayLens[i] * fl2;
+      const r0    = 8 + (1 - fl2) * 6;
+      ctx.beginPath();
+      ctx.moveTo(fistX + Math.cos(rAng) * r0,       fistY + Math.sin(rAng) * r0);
+      ctx.lineTo(fistX + Math.cos(rAng) * (r0+rLen), fistY + Math.sin(rAng) * (r0+rLen));
+      ctx.stroke();
     }
-    ctx.closePath();
+
+    // Заполненный внутренний блик (белый центр → оранжевый)
+    const grd = ctx.createRadialGradient(fistX, fistY, 0, fistX, fistY, 8 * fl2);
+    grd.addColorStop(0,   `rgba(255,255,200,${fl2 * 0.85})`);
+    grd.addColorStop(0.5, `rgba(255,160,30,${fl2 * 0.5})`);
+    grd.addColorStop(1,   'rgba(255,80,10,0)');
+    ctx.shadowBlur  = 0;
+    ctx.fillStyle   = grd;
+    ctx.beginPath();
+    ctx.arc(fistX, fistY, 8 * fl2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
+
     ctx.globalAlpha = 1;
   }
 
