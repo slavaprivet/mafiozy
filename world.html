@@ -5054,7 +5054,50 @@ function updateNpcs(dt) {
     }
   }
   for (const n of NPCS) {
-    if (n.dead) continue;   // труп не двигается
+    if (n.dead) continue;
+
+    // ── Контратака вооружённого NPC ───────────────────────────────────
+    if (n._fighting) {
+      const d = Math.hypot(player.r - n.r, player.c - n.c);
+      // Прекращаем бой если игрок далеко или мёртв
+      if (d > 11 || myDead) { n._fighting = false; n._nextShootAt = 0; continue; }
+      // Смотрим на игрока, стоим на месте
+      n.ang = Math.atan2(player.r - n.r, player.c - n.c);
+      n.walkPhase = 0;
+      if (!n._nextShootAt) n._nextShootAt = now + 700;
+      if (now >= n._nextShootAt) {
+        n._nextShootAt = now + 1100 + Math.random() * 700;
+        const shootAng = Math.atan2(player.r - n.r, player.c - n.c);
+        const muzR = n.r + Math.sin(shootAng) * 0.45;
+        const muzC = n.c + Math.cos(shootAng) * 0.45;
+        // Небольшой разброс — бандит не снайпер
+        const miss  = (Math.random() - 0.5) * 0.9;
+        const tR    = player.r + miss;
+        const tC    = player.c + miss;
+        const isHit = Math.abs(miss) < 0.42 && d < 9;
+        const wep   = n._fightWeapon || 'pistol';
+        spawnBullet(muzR, muzC, tR, tC, { hit: isHit, fromNpc: true, weapon: wep });
+        spawnMuzzle(muzR, muzC, shootAng, wep);
+        n._lastShotAt = now;
+        if (isHit) {
+          spawnImpact(tR, tC, wep);
+          addShake(1.5);
+          try {
+            ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
+              d: { dmg: 8 + Math.floor(Math.random() * 7),
+                   sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } }));
+          } catch(e) {}
+        }
+        // Боевые выкрики
+        if (Math.random() < 0.4) {
+          const cries = ['Стой!', 'Получи!', 'Умри!', 'Не уйдёшь!'];
+          n.cryText  = cries[Math.floor(Math.random() * cries.length)];
+          n.cryUntil = now + 1200;
+        }
+      }
+      continue;
+    }
+
     // SNITCH: NPC — свидетель стрельбы/угона, бежит в полицию.
     // По достижении радиуса POLICE_REPORT_RADIUS — шлёт открытие огня
     // серверу (witness=true), сервер бамапает wanted, локально тост.
@@ -12284,7 +12327,7 @@ const PUNCH_CD_MS   = 700;    // кд между ударами
 const PUNCH_RANGE   = 1.7;    // дистанция в тайлах
 const PUNCH_DAMAGE  = 12;     // урон за удар
 let lastPunchClientT = 0;
-let _punchAnim = null;        // { startAt, ang } | null
+let _punchAnim = null;        // { startAt, ang, type:'punch'|'kick', dmg } | null
 
 function punch() {
   if (myMode === 'pve') { showToast('🕵️ Наблюдатель не может драться', 'ℹ️', 1500); return; }
@@ -12308,7 +12351,10 @@ function punch() {
   const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
   player.ang = ang;
   // Запускаем анимацию замах → удар → отдача
-  _punchAnim = { startAt: now, ang };
+  // 20% шанс удара ногой (немного сильнее)
+  const isKick = Math.random() < 0.20;
+  const dmg    = isKick ? PUNCH_DAMAGE + 5 : PUNCH_DAMAGE;
+  _punchAnim = { startAt: now, ang, type: isKick ? 'kick' : 'punch', dmg };
 
   // Визуал и ощущения
   addKick(ang, 0.6);
@@ -12348,30 +12394,34 @@ function punch() {
     impacts.push({ r, c, parts });
   }
 
-  // Урон по типу цели
+  // Урон по типу цели (kick даёт +5 к урону)
+  const hitDmg = _punchAnim.dmg || PUNCH_DAMAGE;
   const kind = tgt.kind;
   if (kind === 'npc') {
     const idx = typeof tgt.id === 'number' ? tgt.id : parseInt(tgt.id);
     const npc = NPCS[idx];
     if (npc && !npc.dead) {
-      hitNpc(npc, Math.sin(ang), Math.cos(ang), 'fists', PUNCH_DAMAGE);
+      hitNpc(npc, Math.sin(ang), Math.cos(ang), 'fists', hitDmg);
       _spawnPunchBlood(npc.r, npc.c, ang);
-      spawnFloatText(pos.r, pos.c, `−${PUNCH_DAMAGE}`, { color: '#ff8040', size: 18, life: 1200 });
+      const dmgCol = isKick ? '#ff4080' : '#ff8040';
+      spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: dmgCol, size: 18, life: 1200 });
       triggerHitStop(80);
       addShake(1.5);
       hapticHit();
+      // Бандит и любой обозлённый NPC достаёт пушку и отвечает
+      _npcTriggerFight(npc);
     }
   } else {
     // Коп / конвой / aggro_bot / охранник / PvP-игрок — серверный удар
     try {
       const msg = kind === 'player'
-        ? { t: 'pvp_punch', d: { target_uid: tgt.id, dmg: PUNCH_DAMAGE } }
-        : { t: 'melee_hit',  d: { kind, id: tgt.id, dmg: PUNCH_DAMAGE,
+        ? { t: 'pvp_punch', d: { target_uid: tgt.id, dmg: hitDmg } }
+        : { t: 'melee_hit',  d: { kind, id: tgt.id, dmg: hitDmg,
               x: +pos.c.toFixed(2), y: +pos.r.toFixed(2) } };
       ws && ws.send(JSON.stringify(msg));
     } catch(e) {}
     _spawnPunchBlood(pos.r, pos.c, ang);
-    spawnFloatText(pos.r, pos.c, `−${PUNCH_DAMAGE}`, { color: '#ff8040', size: 18, life: 1200 });
+    spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: '#ff8040', size: 18, life: 1200 });
     triggerHitStop(80);
     addShake(1.5);
     hapticHit();
@@ -12391,6 +12441,34 @@ function punch() {
              weapon: 'fists', civilian: false, witness: _copNear } }));
     } catch(e) {}
   }
+}
+
+// ── Бандит/враждебный NPC достаёт пушку и отвечает ──────────────────
+// Вызывается из punch() при каждом попадании в NPC.
+// Критерии контратаки: бандит (panicMult=0) ИЛИ NPC уже враждебен
+// (_relation >= 1) ИЛИ получил достаточно урона (_hits >= 2).
+function _npcTriggerFight(npc) {
+  if (!npc || npc.dead) return;
+  const arc = npc._arc || {};
+  const isBandit   = arc.panicMult === 0;
+  const isHostile  = (npc._relation || 0) >= 1;
+  npc._hits = (npc._hits || 0) + 1;
+  const angryEnough = npc._hits >= 2;
+  if (!isBandit && !isHostile && !angryEnough) return;
+  if (npc._fighting) return;   // уже дерётся
+  // Выбираем оружие: бандит с пистолетом, остальные — кулаки (но с ударами)
+  npc._fighting   = true;
+  npc._fightWeapon = isBandit ? 'pistol' : 'pistol';
+  npc._nextShootAt = performance.now() + 600 + Math.random() * 400;
+  npc.panicUntil  = 0;   // прерываем панику
+  npc.snitching   = false;
+  npc.idleUntil   = 0;
+  // Первая реакция — выкрик
+  const cries = isBandit
+    ? ['Ты напал не на того!', 'ПОЖАЛЕЕШЬ!', 'Убью!', 'Попрощайся с жизнью!']
+    : ['Ах ты..!', 'Получи!', 'Не трогай меня!!', 'Да я тебя!'];
+  npc.cryText  = cries[Math.floor(Math.random() * cries.length)];
+  npc.cryUntil = performance.now() + 1800;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -19147,6 +19225,11 @@ function drawNpc(npc) {
   const p = w2s(npc.r, npc.c);
   drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null,
              !!npc.dead, npc.deadAt || 0);
+  // Вооружённый NPC (контратака) — пистолет в руке + мигающий прицел
+  if (npc._fighting && !npc.dead) {
+    const wep = npc._fightWeapon || 'pistol';
+    drawWeaponInHands(p.x, p.y, npc.ang, wep, 0.88, npc._lastShotAt || 0);
+  }
   // Свежий труп — даём показаться предсмертному крику (cryUntil) ещё ~700мс
   if (npc.dead) {
     const fresh = (performance.now() - (npc.deadAt || 0)) < 800;
@@ -22322,14 +22405,14 @@ function handAnchor(x, y, ang) {
   };
 }
 
-// ── Анимация удара кулаком (без оружия) ───────────────────────────
-// Двухзвенная рука (плечо→локоть→кулак), трейл, импакт-кольцо + лучи.
+// ── Анимация удара кулаком / ногой (без оружия) ───────────────────
 // px, py — экранная позиция игрока (с отдачей камеры).
 function _drawPunchAnim(px, py) {
   if (!_punchAnim) return;
   const elapsed = performance.now() - _punchAnim.startAt;
   const TOTAL = 400;
   if (elapsed >= TOTAL) { _punchAnim = null; return; }
+  if (_punchAnim.type === 'kick') { _drawKickAnim(px, py, elapsed); return; }
 
   const ang = _punchAnim.ang;
   const bY  = Math.round(TS * 0.289);
@@ -22481,6 +22564,166 @@ function _drawPunchAnim(px, py) {
     ctx.fillStyle   = grd;
     ctx.beginPath();
     ctx.arc(fistX, fistY, 8 * fl2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
+// ── Анимация удара ногой ──────────────────────────────────────────
+// Фазы: подъём колена (0–110мс) → резкий выброс ноги (110–200мс) → возврат (200–400мс)
+function _drawKickAnim(px, py, elapsed) {
+  const ang = _punchAnim.ang;
+  const dx  = Math.cos(ang), dy = Math.sin(ang);
+
+  // ISO-вектор направления удара (единичный в экранных координатах)
+  const fwdSxRaw = (dx - dy) * 0.5;
+  const fwdSyRaw = (dx + dy) * 0.5 * ISO_Y;
+  const fwdLen   = Math.hypot(fwdSxRaw, fwdSyRaw) || 1;
+  const fwdSx = fwdSxRaw / fwdLen;
+  const fwdSy = fwdSyRaw / fwdLen;
+
+  // ISO-перпендикуляр (для смещения бедра чуть в сторону)
+  const side   = dx >= 0 ? 1 : -1;
+  const perpSx = -fwdSy * side;
+  const perpSy =  fwdSx * side;
+
+  // Точка бедра — нижняя часть туловища
+  const hipX = px + perpSx * TS * 0.10;
+  const hipY = py - TS * 0.06 + perpSy * TS * 0.10;
+
+  const MAX_KICK = TS * 0.52;
+  const UP       = TS * 0.32;   // высота подъёма колена
+
+  // k=0..1 (прямое расширение), upK=0..1 (подъём колена)
+  let k, upK;
+  if (elapsed < 110) {
+    const t = elapsed / 110;
+    k   = 0;
+    upK = Math.sin(t * Math.PI);           // плавный подъём и зависание
+  } else if (elapsed < 200) {
+    const t = (elapsed - 110) / 90;
+    k   = 1 - Math.pow(1 - t, 3);         // резкий выброс ease-out³
+    upK = 1 - t * 0.5;                    // колено медленно опускается
+  } else {
+    const t = (elapsed - 200) / 200;
+    k   = Math.cos(t * Math.PI * 0.5);    // плавный возврат
+    upK = (1 - t) * 0.5;
+  }
+
+  // Позиция стопы
+  const footX = hipX + fwdSx * MAX_KICK * k;
+  const footY = hipY + fwdSy * MAX_KICK * k - UP * Math.max(0, upK * (1 - k * 0.4));
+
+  // Колено: ~52% пути от бедра до стопы + вверх на upK
+  const kneeX = hipX + (footX - hipX) * 0.52;
+  const kneeY = hipY + (footY - hipY) * 0.52 - UP * upK * 0.9;
+
+  ctx.save();
+  ctx.lineCap  = 'round';
+  ctx.lineJoin = 'round';
+
+  // ── Трейл стопы во время удара (110–210мс) ────────────────────────
+  if (elapsed > 110 && elapsed < 215) {
+    for (let i = 4; i >= 1; i--) {
+      const pt = Math.max(0, (elapsed - i * 16 - 110) / 90);
+      const pk = Math.max(0, 1 - Math.pow(1 - pt, 3));
+      const pfx = hipX + fwdSx * MAX_KICK * pk;
+      const pfy = hipY + fwdSy * MAX_KICK * pk - UP * (1 - pk * 0.4) * 0.5;
+      ctx.globalAlpha = 0.18 - i * 0.03;
+      ctx.fillStyle = '#445088';
+      ctx.beginPath();
+      ctx.arc(pfx, pfy, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Бедро (hip → knee) ────────────────────────────────────────────
+  ctx.shadowColor = 'rgba(0,0,0,.6)';
+  ctx.shadowBlur  = 5;
+  ctx.lineWidth   = 9;
+  ctx.strokeStyle = '#2a2040';   // тёмные брюки
+  ctx.beginPath();
+  ctx.moveTo(hipX, hipY);
+  ctx.lineTo(kneeX, kneeY);
+  ctx.stroke();
+
+  // ── Голень (knee → foot) ──────────────────────────────────────────
+  ctx.lineWidth   = 7;
+  ctx.strokeStyle = '#1e1830';
+  ctx.beginPath();
+  ctx.moveTo(kneeX, kneeY);
+  ctx.lineTo(footX, footY);
+  ctx.stroke();
+
+  // ── Кроссовок/ботинок ─────────────────────────────────────────────
+  ctx.shadowBlur  = 7;
+  ctx.shadowColor = '#000';
+  const shoeAng = Math.atan2(fwdSy, fwdSx);
+  ctx.save();
+  ctx.translate(footX, footY);
+  ctx.rotate(shoeAng);
+  // Подошва
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.roundRect(-4, -5, 15, 8, 3);
+  ctx.fill();
+  // Верх обуви (светлее)
+  ctx.fillStyle = '#334';
+  ctx.beginPath();
+  ctx.roundRect(-3, -5, 13, 5, 2);
+  ctx.fill();
+  // Полоска подошвы
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(-4, 2, 15, 1.5);
+  ctx.restore();
+
+  // ── Импакт на пике (120–280мс), фиолетовый оттенок ───────────────
+  if (elapsed > 120 && elapsed < 280) {
+    const peakAt = 175;
+    const fl = elapsed < peakAt
+      ? (elapsed - 120) / (peakAt - 120)
+      : 1 - (elapsed - peakAt) / (280 - peakAt);
+    const fl2 = Math.max(0, fl);
+
+    ctx.globalAlpha = fl2 * 0.90;
+
+    // Кольцо
+    ctx.shadowColor = '#6030cc';
+    ctx.shadowBlur  = 18 * fl2;
+    ctx.strokeStyle = `rgba(140,90,255,0.9)`;
+    ctx.lineWidth   = 2.8;
+    ctx.beginPath();
+    ctx.arc(footX, footY, 7 + (1 - fl2) * 15, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 8 лучей
+    const lens = [13, 9, 15, 8, 12, 10, 14, 8];
+    ctx.strokeStyle = '#d0b0ff';
+    ctx.lineWidth   = 1.8;
+    ctx.shadowColor = '#7040dd';
+    ctx.shadowBlur  = 8;
+    for (let i = 0; i < 8; i++) {
+      const ra = (i / 8) * Math.PI * 2;
+      const r0 = 8 + (1 - fl2) * 5;
+      const r1 = r0 + lens[i] * fl2;
+      ctx.beginPath();
+      ctx.moveTo(footX + Math.cos(ra) * r0, footY + Math.sin(ra) * r0);
+      ctx.lineTo(footX + Math.cos(ra) * r1, footY + Math.sin(ra) * r1);
+      ctx.stroke();
+    }
+
+    // Внутренний блик
+    const grd = ctx.createRadialGradient(footX, footY, 0, footX, footY, 8 * fl2);
+    grd.addColorStop(0,   `rgba(220,200,255,${fl2 * 0.85})`);
+    grd.addColorStop(1,   'rgba(80,40,160,0)');
+    ctx.shadowBlur  = 0;
+    ctx.fillStyle   = grd;
+    ctx.beginPath();
+    ctx.arc(footX, footY, 8 * fl2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.globalAlpha = 1;
