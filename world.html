@@ -9149,8 +9149,10 @@ function wsConnect() {
         // QP.look, чтобы рисовался ТОТ перс которого ты создал в creator,
         // даже если hub.html не подсунул правильные параметры в URL.
         if (d.me.look && (d.me.look.skin !== undefined || d.me.look.hair !== undefined)) {
+          _spriteCache.clear();  // сброс кеша: look изменился, старый спрайт устарел
           QP.look = Object.assign({}, QP.look, d.me.look);
           QP.has_look = 1;
+          getSprite(QP.look);   // прогрев кеша с правильным look до первого кадра
         }
         // ИМЯ НЕ ТРОГАЕМ — берём только из URL (DATA.name в hub).
         // В БД может лежать старое/дефолтное «Гангстер», перезапись его
@@ -22687,7 +22689,7 @@ function _drawPunchAnim(px, py) {
 }
 
 // ── Анимация удара ногой ──────────────────────────────────────────
-// Фазы: подъём колена (0–110мс) → резкий выброс ноги (110–200мс) → возврат (200–400мс)
+// Фазы: подъём колена (0–75мс) → резкий выброс (75–160мс) → возврат (160–380мс)
 function _drawKickAnim(px, py, elapsed) {
   const ang = _punchAnim.ang;
   const dx  = Math.cos(ang), dy = Math.sin(ang);
@@ -22705,139 +22707,176 @@ function _drawKickAnim(px, py, elapsed) {
   const perpSy =  fwdSx * side;
 
   // Точка бедра — нижняя часть туловища
-  const hipX = px + perpSx * TS * 0.10;
-  const hipY = py - TS * 0.06 + perpSy * TS * 0.10;
+  const hipX = px + perpSx * TS * 0.12;
+  const hipY = py + TS * 0.02 + perpSy * TS * 0.08;
 
-  const MAX_KICK = TS * 0.52;
-  const UP       = TS * 0.32;   // высота подъёма колена
+  const MAX_KICK = TS * 0.68;   // размашистый удар
+  const UP       = TS * 0.38;   // высота подъёма колена
 
-  // k=0..1 (прямое расширение), upK=0..1 (подъём колена)
+  // k=0..1 (выброс ноги вперёд), upK=0..1 (подъём колена вверх)
   let k, upK;
-  if (elapsed < 110) {
-    const t = elapsed / 110;
+  if (elapsed < 75) {
+    const t = elapsed / 75;
     k   = 0;
-    upK = Math.sin(t * Math.PI);           // плавный подъём и зависание
-  } else if (elapsed < 200) {
-    const t = (elapsed - 110) / 90;
-    k   = 1 - Math.pow(1 - t, 3);         // резкий выброс ease-out³
-    upK = 1 - t * 0.5;                    // колено медленно опускается
+    upK = Math.sin(t * Math.PI * 0.9);    // быстрый подъём колена
+  } else if (elapsed < 160) {
+    const t = (elapsed - 75) / 85;
+    k   = 1 - Math.pow(1 - t, 4);         // сверхрезкий выброс ease-out⁴
+    upK = Math.max(0, 1 - t * 0.7);
   } else {
-    const t = (elapsed - 200) / 200;
+    const t = (elapsed - 160) / 220;
     k   = Math.cos(t * Math.PI * 0.5);    // плавный возврат
-    upK = (1 - t) * 0.5;
+    upK = (1 - t) * 0.3;
   }
 
   // Позиция стопы
   const footX = hipX + fwdSx * MAX_KICK * k;
-  const footY = hipY + fwdSy * MAX_KICK * k - UP * Math.max(0, upK * (1 - k * 0.4));
+  const footY = hipY + fwdSy * MAX_KICK * k - UP * Math.max(0, upK * (1 - k * 0.6));
 
-  // Колено: ~52% пути от бедра до стопы + вверх на upK
-  const kneeX = hipX + (footX - hipX) * 0.52;
-  const kneeY = hipY + (footY - hipY) * 0.52 - UP * upK * 0.9;
+  // Колено: ~50% пути от бедра до стопы + вверх на upK
+  const kneeX = hipX + (footX - hipX) * 0.50;
+  const kneeY = hipY + (footY - hipY) * 0.50 - UP * upK * 1.05;
 
   ctx.save();
   ctx.lineCap  = 'round';
   ctx.lineJoin = 'round';
 
-  // ── Трейл стопы во время удара (110–210мс) ────────────────────────
-  if (elapsed > 110 && elapsed < 215) {
-    for (let i = 4; i >= 1; i--) {
-      const pt = Math.max(0, (elapsed - i * 16 - 110) / 90);
-      const pk = Math.max(0, 1 - Math.pow(1 - pt, 3));
+  // ── Трейл стопы во время удара (75–185мс), 6 призраков ──────────
+  if (elapsed > 75 && elapsed < 185) {
+    for (let i = 6; i >= 1; i--) {
+      const pt  = Math.max(0, (elapsed - i * 14 - 75) / 85);
+      const pk  = Math.max(0, 1 - Math.pow(1 - pt, 4));
       const pfx = hipX + fwdSx * MAX_KICK * pk;
-      const pfy = hipY + fwdSy * MAX_KICK * pk - UP * (1 - pk * 0.4) * 0.5;
-      ctx.globalAlpha = 0.18 - i * 0.03;
-      ctx.fillStyle = '#445088';
+      const pfy = hipY + fwdSy * MAX_KICK * pk - UP * (1 - pk * 0.6) * 0.5;
+      ctx.globalAlpha = 0.22 - i * 0.03;
+      ctx.fillStyle = '#3050a0';
       ctx.beginPath();
-      ctx.arc(pfx, pfy, 4, 0, Math.PI * 2);
+      ctx.arc(pfx, pfy, 5 - i * 0.4, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
 
   // ── Бедро (hip → knee) ────────────────────────────────────────────
-  ctx.shadowColor = 'rgba(0,0,0,.6)';
-  ctx.shadowBlur  = 5;
-  ctx.lineWidth   = 9;
+  ctx.shadowColor = 'rgba(0,0,0,.65)';
+  ctx.shadowBlur  = 6;
+  ctx.lineWidth   = 10;
   ctx.strokeStyle = '#2a2040';   // тёмные брюки
+  ctx.beginPath();
+  ctx.moveTo(hipX, hipY);
+  ctx.lineTo(kneeX, kneeY);
+  ctx.stroke();
+  // Световая полоска на бедре (блик)
+  ctx.shadowBlur  = 0;
+  ctx.lineWidth   = 2.5;
+  ctx.strokeStyle = 'rgba(80,60,120,0.5)';
   ctx.beginPath();
   ctx.moveTo(hipX, hipY);
   ctx.lineTo(kneeX, kneeY);
   ctx.stroke();
 
   // ── Голень (knee → foot) ──────────────────────────────────────────
-  ctx.lineWidth   = 7;
+  ctx.shadowColor = 'rgba(0,0,0,.6)';
+  ctx.shadowBlur  = 5;
+  ctx.lineWidth   = 8;
   ctx.strokeStyle = '#1e1830';
   ctx.beginPath();
   ctx.moveTo(kneeX, kneeY);
   ctx.lineTo(footX, footY);
   ctx.stroke();
 
-  // ── Кроссовок/ботинок ─────────────────────────────────────────────
-  ctx.shadowBlur  = 7;
+  // Колено — шар
+  ctx.shadowBlur  = 4;
+  ctx.fillStyle   = '#252040';
+  ctx.beginPath();
+  ctx.arc(kneeX, kneeY, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ── Ботинок (крупнее и детальнее) ─────────────────────────────────
+  ctx.shadowBlur  = 8;
   ctx.shadowColor = '#000';
   const shoeAng = Math.atan2(fwdSy, fwdSx);
+  // Вращение носка вперёд при выбросе
+  const toeRot  = k * 0.35;
   ctx.save();
   ctx.translate(footX, footY);
-  ctx.rotate(shoeAng);
-  // Подошва
-  ctx.fillStyle = '#111';
+  ctx.rotate(shoeAng + toeRot);
+  // Подошва (чёрная)
+  ctx.fillStyle = '#0a0a0a';
   ctx.beginPath();
-  ctx.roundRect(-4, -5, 15, 8, 3);
+  ctx.roundRect(-5, -6, 20, 10, 4);
   ctx.fill();
-  // Верх обуви (светлее)
-  ctx.fillStyle = '#334';
+  // Верх обуви
+  ctx.fillStyle = '#1a1a2e';
   ctx.beginPath();
-  ctx.roundRect(-3, -5, 13, 5, 2);
+  ctx.roundRect(-4, -7, 18, 7, 3);
   ctx.fill();
-  // Полоска подошвы
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.fillRect(-4, 2, 15, 1.5);
+  // Носок — более тёмный, скруглённый
+  ctx.fillStyle = '#111128';
+  ctx.beginPath();
+  ctx.ellipse(13, -3, 5, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Белая полоска (кроссовок)
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath();
+  ctx.roundRect(-2, -5, 14, 2, 1);
+  ctx.fill();
+  // Подошвенный блик
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(-5, 3, 20, 1.5);
   ctx.restore();
 
-  // ── Импакт на пике (120–280мс), фиолетовый оттенок ───────────────
-  if (elapsed > 120 && elapsed < 280) {
-    const peakAt = 175;
+  // ── Импакт на пике (90–290мс), синий → белый ─────────────────────
+  if (elapsed > 90 && elapsed < 290) {
+    const peakAt = 155;
     const fl = elapsed < peakAt
-      ? (elapsed - 120) / (peakAt - 120)
-      : 1 - (elapsed - peakAt) / (280 - peakAt);
+      ? (elapsed - 90) / (peakAt - 90)
+      : 1 - (elapsed - peakAt) / (290 - peakAt);
     const fl2 = Math.max(0, fl);
 
-    ctx.globalAlpha = fl2 * 0.90;
+    ctx.globalAlpha = fl2 * 0.95;
 
-    // Кольцо
-    ctx.shadowColor = '#6030cc';
-    ctx.shadowBlur  = 18 * fl2;
-    ctx.strokeStyle = `rgba(140,90,255,0.9)`;
-    ctx.lineWidth   = 2.8;
+    // Двойное кольцо (внешнее + внутреннее)
+    ctx.shadowColor = '#2060ff';
+    ctx.shadowBlur  = 22 * fl2;
+    ctx.strokeStyle = `rgba(80,160,255,${0.95 * fl2})`;
+    ctx.lineWidth   = 3.0;
     ctx.beginPath();
-    ctx.arc(footX, footY, 7 + (1 - fl2) * 15, 0, Math.PI * 2);
+    ctx.arc(footX, footY, 9 + (1 - fl2) * 18, 0, Math.PI * 2);
     ctx.stroke();
 
-    // 8 лучей
-    const lens = [13, 9, 15, 8, 12, 10, 14, 8];
-    ctx.strokeStyle = '#d0b0ff';
-    ctx.lineWidth   = 1.8;
-    ctx.shadowColor = '#7040dd';
-    ctx.shadowBlur  = 8;
-    for (let i = 0; i < 8; i++) {
-      const ra = (i / 8) * Math.PI * 2;
-      const r0 = 8 + (1 - fl2) * 5;
+    ctx.strokeStyle = `rgba(200,230,255,${0.6 * fl2})`;
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();
+    ctx.arc(footX, footY, 5 + (1 - fl2) * 10, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 10 лучей разной длины (асимметрия = живость)
+    const lens = [18, 11, 20, 9, 16, 12, 19, 10, 15, 13];
+    ctx.lineWidth   = 2.0;
+    ctx.shadowColor = '#4080ff';
+    ctx.shadowBlur  = 10;
+    for (let i = 0; i < 10; i++) {
+      const ra = (i / 10) * Math.PI * 2;
+      const r0 = 10 + (1 - fl2) * 5;
       const r1 = r0 + lens[i] * fl2;
+      const alpha = (0.55 + (i % 3) * 0.12) * fl2;
+      ctx.strokeStyle = `rgba(${160 + i*8},${200 + i*4},255,${alpha})`;
       ctx.beginPath();
       ctx.moveTo(footX + Math.cos(ra) * r0, footY + Math.sin(ra) * r0);
       ctx.lineTo(footX + Math.cos(ra) * r1, footY + Math.sin(ra) * r1);
       ctx.stroke();
     }
 
-    // Внутренний блик
-    const grd = ctx.createRadialGradient(footX, footY, 0, footX, footY, 8 * fl2);
-    grd.addColorStop(0,   `rgba(220,200,255,${fl2 * 0.85})`);
-    grd.addColorStop(1,   'rgba(80,40,160,0)');
+    // Центральная вспышка (белое ядро → синий ореол)
+    const grd = ctx.createRadialGradient(footX, footY, 0, footX, footY, 11 * fl2);
+    grd.addColorStop(0,   `rgba(255,255,255,${fl2 * 0.9})`);
+    grd.addColorStop(0.4, `rgba(120,180,255,${fl2 * 0.6})`);
+    grd.addColorStop(1,   'rgba(30,80,200,0)');
     ctx.shadowBlur  = 0;
     ctx.fillStyle   = grd;
     ctx.beginPath();
-    ctx.arc(footX, footY, 8 * fl2, 0, Math.PI * 2);
+    ctx.arc(footX, footY, 11 * fl2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.globalAlpha = 1;
