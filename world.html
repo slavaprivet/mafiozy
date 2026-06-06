@@ -5073,7 +5073,7 @@ function updateNpcs(dt) {
         const isHit = Math.abs(miss) < 0.42 && d < 9;
         const wep = n._fightWeapon || 'pistol';
         spawnBullet(muzR, muzC, tR, tC, { hit: isHit, fromNpc: true, weapon: wep });
-        spawnMuzzle(muzR, muzC, shootAng, wep);
+        spawnMuzzle(muzR, muzC, shootAng, wep, true);
         n._lastShotAt = now;
         if (isHit) {
           spawnImpact(tR, tC, wep);
@@ -5107,7 +5107,7 @@ function updateNpcs(dt) {
             const ctR = n.r + cmiss, ctC = n.c + cmiss;
             const cHit = Math.abs(cmiss) < 0.3;
             spawnBullet(cmR, cmC, ctR, ctC, { hit: cHit, fromNpc: true, weapon: 'pistol' });
-            spawnMuzzle(cmR, cmC, copAng, 'pistol');
+            spawnMuzzle(cmR, cmC, copAng, 'pistol', true);
             if (cHit) {
               // Наносим урон NPC от копа
               hitNpc(n, Math.sin(copAng), Math.cos(copAng), 'pistol', 18 + Math.floor(Math.random()*10));
@@ -6055,7 +6055,7 @@ function updateGangAggression(dt) {
   const tC = player.c + missC;
   const isHit = (Math.abs(missR) < 0.35 && Math.abs(missC) < 0.35);
   spawnBullet(muzR, muzC, tR, tC, { hit: isHit, fromNpc: true, weapon: 'pistol_heavy' });
-  spawnMuzzle(muzR, muzC, ang, 'pistol_heavy');
+  spawnMuzzle(muzR, muzC, ang, 'pistol_heavy', true);
   if (isHit) {
     spawnImpact(tR, tC, 'pistol_heavy');
     addShake(1.8);
@@ -7076,9 +7076,9 @@ const bloodSplats = [];   // {r,c,radius,life,max,rot}
 // + копы шлют десятки 'aggro_shot'/'cop_shot' пакетов в секунду) без
 // капов impacts/bloodSplats/bullets разрастаются до тысяч и фризят
 // рендер. Спавнеры дропают самое старое если упёрлись в лимит.
-const _MAX_BULLETS = 80, _MAX_IMPACTS = 24, _MAX_BLOOD = 60,
-      _MAX_MUZZLES = 40, _MAX_SHOCKW = 40, _MAX_SMOKE = 60,
-      _MAX_SHELLS = 60;
+const _MAX_BULLETS = 50, _MAX_IMPACTS = 16, _MAX_BLOOD = 40,
+      _MAX_MUZZLES = 16, _MAX_SHOCKW = 18, _MAX_SMOKE = 30,
+      _MAX_SHELLS = 30;
 function _capArr(arr, cap) { if (arr.length >= cap) arr.shift(); }
 // Тормозные следы — два чёрных штриха от задних колёс при резком повороте
 // или жёстком тормозе на скорости. Затухают за 6 секунд.
@@ -7269,31 +7269,32 @@ function spawnBullet(sr, sc, er, ec, opts) {
 // spawnMuzzle(r,c, angle, weapon) — вспышка дула. Живёт 120мс (стало длиннее
 // чтобы лепестки пламени успели разлететься). Плюс: маленькое shockwave-кольцо
 // у ствола + 2 клуба дыма (порохового), стелющиеся вверх.
-function spawnMuzzle(r, c, angle, weapon) {
+// npc=true — упрощённая вспышка без shockwave и дыма (иначе при 100 NPC крэш)
+function spawnMuzzle(r, c, angle, weapon, npc) {
   const w = resolveWeapon(weapon);
   const wcfg = WEAPON_FX_CFG[w] || {};
-  const heavy = !!wcfg.thick;
+  const heavy = !!wcfg.thick && !npc;  // NPC всегда light
   _capArr(muzzles, _MAX_MUZZLES);
   muzzles.push({
     r, c, angle,
-    life: heavy ? 140 : 110, max: heavy ? 140 : 110,
+    life: heavy ? 120 : 90, max: heavy ? 120 : 90,
     color: wcfg.color || '#ffd76b',
     weapon: w,
-    // Фиксированный «сид» для лепестков пламени — каждая вспышка уникальна,
-    // но в течение своей жизни лепестки не «прыгают» от кадра к кадру.
     seed: Math.random() * 1000,
     heavy,
+    npc: !!npc,
   });
-  // Shockwave у дула — короткая белая волна, расширяется на ~0.7 TS
-  spawnShockwave(r, c, {
-    rad0: 3,
-    maxRad: heavy ? 32 : 22,
-    life: heavy ? 200 : 150,
-    color: heavy ? '#ffd070' : '#fff5c0',
-    thick: heavy ? 2.5 : 1.8,
-  });
-  // Дымок из ствола — клубы тянутся назад
-  spawnSmokePuff(r, c, angle);
+  if (!npc) {
+    // Shockwave и дым только для выстрела игрока — слишком дорого для NPC
+    spawnShockwave(r, c, {
+      rad0: 3,
+      maxRad: heavy ? 32 : 22,
+      life: heavy ? 180 : 130,
+      color: heavy ? '#ffd070' : '#fff5c0',
+      thick: heavy ? 2.5 : 1.8,
+    });
+    spawnSmokePuff(r, c, angle);
+  }
 }
 
 // ── Локальный игрок (predict) ───────────────────────────────────
@@ -7826,7 +7827,7 @@ function handleEventPacket(d) {
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wep });
-      spawnMuzzle(sR, sC, ang, wep);
+      spawnMuzzle(sR, sC, ang, wep, true);
       if (!d.miss) spawnImpact(d.ty, d.tx, wep);
     }
     if (d.shooter_id) lastBossShotAt.set(d.shooter_id, performance.now());
@@ -7938,7 +7939,7 @@ function handleEventPacket(d) {
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
-      spawnMuzzle(sR, sC, ang, wp);
+      spawnMuzzle(sR, sC, ang, wp, true);
       if (!d.miss) spawnImpact(d.ty, d.tx, wp);
     }
     if (d.guard_id) {
@@ -7979,7 +7980,7 @@ function handleEventPacket(d) {
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
-      spawnMuzzle(sR, sC, ang, wp);
+      spawnMuzzle(sR, sC, ang, wp, true);
       if (!d.miss) spawnImpact(d.ty, d.tx, wp);
     }
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
@@ -8010,7 +8011,7 @@ function handleEventPacket(d) {
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
-      spawnMuzzle(sR, sC, ang, wp);
+      spawnMuzzle(sR, sC, ang, wp, true);
       if (!d.miss) spawnImpact(d.ty, d.tx, wp);
     }
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
@@ -8113,7 +8114,7 @@ function handleEventPacket(d) {
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
-      spawnMuzzle(sR, sC, ang, wp);
+      spawnMuzzle(sR, sC, ang, wp, true);
       if (!d.miss) {
         // Искры от корпуса (не кровь) — переиспользуем spawnImpact с force-sparks
         spawnImpact(d.ty, d.tx, wp);
@@ -8357,7 +8358,7 @@ function handleEventPacket(d) {
       const sR  = d.sy + Math.sin(ang) * md;
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromPlayer: false, weapon: wp });
-      spawnMuzzle(sR, sC, ang, wp);
+      spawnMuzzle(sR, sC, ang, wp, true);
       if (!d.miss) spawnImpact(d.ty, d.tx, wp);
     }
     if (String(d.target_uid) === String(QP.uid) && !d.miss) {
@@ -8670,7 +8671,7 @@ function handleEventPacket(d) {
         opts.speed = d.bullet_speed;
       }
       spawnBullet(sR, sC, tR, tC, opts);
-      spawnMuzzle(sR, sC, ang, wep);
+      spawnMuzzle(sR, sC, ang, wep, true);
       spawnImpact(tR, tC, wep);
     }
     if (d.bot_id) lastBossShotAt.set(d.bot_id, performance.now());
@@ -24802,15 +24803,14 @@ function drawBullets() {
     // вдвое — пуля заметна как трассер, но без halo во весь экран.
     ctx.lineWidth = b.thick ? 3.5 : 2;
     ctx.lineCap = 'round';
-    ctx.shadowColor = b.color;
-    ctx.shadowBlur = b.thick ? 7 : 4;
+    ctx.shadowBlur = 0;   // без shadow на шлейфе — дорого при 50 пулях
     ctx.beginPath();
     ctx.moveTo(tx, ty);
     ctx.lineTo(hx, hy);
     ctx.stroke();
-    // Ядро головы — ярко-белая точка, делает пулю «живой»
-    ctx.shadowBlur = b.thick ? 9 : 5;
-    ctx.shadowColor = '#fff';
+    // Ядро головы — минимальный glow только на самой точке
+    ctx.shadowBlur = b.thick ? 5 : 3;
+    ctx.shadowColor = b.color;
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(hx, hy, b.thick ? 2.0 : 1.3, 0, Math.PI * 2);
@@ -24853,13 +24853,16 @@ function drawMuzzles() {
     const heavy = !!m.heavy;
     const sizeMul = heavy ? 1.45 : 1.0;
     const seed = m.seed || 0;
-    // 1. ореол (большая мягкая клякса)
+    // 1. ореол — radial gradient без shadowBlur (shadowBlur на мобиле убивает GPU)
     ctx.save();
-    ctx.shadowColor = '#ff9020';
-    ctx.shadowBlur = 32 * t2 * sizeMul;
-    ctx.fillStyle = `rgba(255,150,40,${t * 0.55})`;
+    const oreolR = TS * 0.52 * t2 * sizeMul;
+    const og = ctx.createRadialGradient(cx, cy, 0, cx, cy, oreolR);
+    og.addColorStop(0,   `rgba(255,180,60,${t * 0.70})`);
+    og.addColorStop(0.5, `rgba(255,130,30,${t * 0.40})`);
+    og.addColorStop(1,   'rgba(255,80,10,0)');
+    ctx.fillStyle = og;
     ctx.beginPath();
-    ctx.arc(cx, cy, TS * 0.50 * t2 * sizeMul, 0, Math.PI * 2);
+    ctx.arc(cx, cy, oreolR, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
     // 2. лепестки пламени (5 шт., разные углы и длины — детерминированно по seed)
@@ -24893,13 +24896,16 @@ function drawMuzzles() {
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-    // 3. ярко-белое ядро
+    // 3. ярко-белое ядро — без shadowBlur, radial gradient
     ctx.save();
-    ctx.shadowColor = '#fff';
-    ctx.shadowBlur = 16 * t * sizeMul;
-    ctx.fillStyle = `rgba(255,255,240,${Math.min(1, t * 1.05)})`;
+    const coreR = TS * 0.19 * t2 * sizeMul;
+    const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+    cg.addColorStop(0,   `rgba(255,255,255,${Math.min(1, t)})`);
+    cg.addColorStop(0.6, `rgba(255,240,180,${t * 0.7})`);
+    cg.addColorStop(1,   'rgba(255,200,80,0)');
+    ctx.fillStyle = cg;
     ctx.beginPath();
-    ctx.arc(cx, cy, TS * 0.17 * t2 * sizeMul, 0, Math.PI * 2);
+    ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -24911,20 +24917,18 @@ function drawMuzzles() {
 function drawShockwaves() {
   const dy = _bulletY();
   ctx.save();
+  ctx.shadowBlur = 0;   // shadowBlur на shockwaves убивает мобильный GPU
   for (const s of shockwaves) {
     const t = s.life / s.max;       // 1..0
     const p = w2s(s.r + 0.5, s.c + 0.5);
-    ctx.globalAlpha = Math.max(0, t * 0.75);
+    ctx.globalAlpha = Math.max(0, t * 0.65);
     ctx.strokeStyle = s.color;
     ctx.lineWidth = (s.thick || 2) * (0.4 + t * 0.6);
-    ctx.shadowColor = s.color;
-    ctx.shadowBlur = 8 * t;
     ctx.beginPath();
     ctx.arc(p.x, p.y - dy, s.rad, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
   ctx.restore();
 }
 
