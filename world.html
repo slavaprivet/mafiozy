@@ -12476,6 +12476,7 @@ function punch() {
       _spawnPunchBlood(npc.r, npc.c, ang);
       const dmgCol = isKick ? '#ff4080' : '#ff8040';
       spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: dmgCol, size: 18, life: 1200 });
+      if (isKick) spawnFloatText(pos.r - 0.5, pos.c, 'КРИТ!', { color: '#ffdd00', size: 13, life: 900 });
       triggerHitStop(80);
       addShake(1.5);
       hapticHit();
@@ -12492,7 +12493,8 @@ function punch() {
       ws && ws.send(JSON.stringify(msg));
     } catch(e) {}
     _spawnPunchBlood(pos.r, pos.c, ang);
-    spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: '#ff8040', size: 18, life: 1200 });
+    spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: isKick ? '#ff4080' : '#ff8040', size: 18, life: 1200 });
+    if (isKick) spawnFloatText(pos.r - 0.5, pos.c, 'КРИТ!', { color: '#ffdd00', size: 13, life: 900 });
     triggerHitStop(80);
     addShake(1.5);
     hapticHit();
