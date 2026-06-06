@@ -5056,12 +5056,10 @@ function updateNpcs(dt) {
   for (const n of NPCS) {
     if (n.dead) continue;
 
-    // ── Контратака вооружённого NPC ───────────────────────────────────
+    // ── Вооружённая контратака NPC (пистолет) ────────────────────────
     if (n._fighting) {
       const d = Math.hypot(player.r - n.r, player.c - n.c);
-      // Прекращаем бой если игрок далеко или мёртв
       if (d > 11 || myDead) { n._fighting = false; n._nextShootAt = 0; continue; }
-      // Смотрим на игрока, стоим на месте
       n.ang = Math.atan2(player.r - n.r, player.c - n.c);
       n.walkPhase = 0;
       if (!n._nextShootAt) n._nextShootAt = now + 700;
@@ -5070,30 +5068,103 @@ function updateNpcs(dt) {
         const shootAng = Math.atan2(player.r - n.r, player.c - n.c);
         const muzR = n.r + Math.sin(shootAng) * 0.45;
         const muzC = n.c + Math.cos(shootAng) * 0.45;
-        // Небольшой разброс — бандит не снайпер
         const miss  = (Math.random() - 0.5) * 0.9;
-        const tR    = player.r + miss;
-        const tC    = player.c + miss;
+        const tR = player.r + miss, tC = player.c + miss;
         const isHit = Math.abs(miss) < 0.42 && d < 9;
-        const wep   = n._fightWeapon || 'pistol';
+        const wep = n._fightWeapon || 'pistol';
         spawnBullet(muzR, muzC, tR, tC, { hit: isHit, fromNpc: true, weapon: wep });
         spawnMuzzle(muzR, muzC, shootAng, wep);
         n._lastShotAt = now;
         if (isHit) {
           spawnImpact(tR, tC, wep);
           addShake(1.5);
-          try {
-            ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
-              d: { dmg: 8 + Math.floor(Math.random() * 7),
-                   sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } }));
-          } catch(e) {}
+          try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
+            d: { dmg: 8 + Math.floor(Math.random() * 7),
+                 sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } })); } catch(e) {}
         }
-        // Боевые выкрики
         if (Math.random() < 0.4) {
-          const cries = ['Стой!', 'Получи!', 'Умри!', 'Не уйдёшь!'];
-          n.cryText  = cries[Math.floor(Math.random() * cries.length)];
+          n.cryText  = ['Стой!', 'Получи!', 'Умри!', 'Не уйдёшь!'][Math.floor(Math.random()*4)];
           n.cryUntil = now + 1200;
         }
+      }
+      // ── Реакция ближайшего копа на вооружённого NPC ────────────────
+      if (n._copWillReact) {
+        if (!n._copReactAt) n._copReactAt = now + 1500 + Math.random() * 1000;
+        if (now >= n._copReactAt) {
+          n._copReactAt = now + 2000 + Math.random() * 1000;
+          // Ищем ближайшего worldCop в радиусе 14 тайлов
+          let nearCop = null, nearCopD = 14;
+          for (const c of (worldCops || [])) {
+            const cd = Math.hypot(c.y - n.r, c.x - n.c);
+            if (cd < nearCopD) { nearCopD = cd; nearCop = c; }
+          }
+          if (nearCop) {
+            // Коп стреляет в NPC
+            const copAng = Math.atan2(n.r - nearCop.y, n.c - nearCop.x);
+            const cmR = nearCop.y + Math.sin(copAng) * 0.4;
+            const cmC = nearCop.x + Math.cos(copAng) * 0.4;
+            const cmiss = (Math.random() - 0.5) * 0.5;
+            const ctR = n.r + cmiss, ctC = n.c + cmiss;
+            const cHit = Math.abs(cmiss) < 0.3;
+            spawnBullet(cmR, cmC, ctR, ctC, { hit: cHit, fromNpc: true, weapon: 'pistol' });
+            spawnMuzzle(cmR, cmC, copAng, 'pistol');
+            if (cHit) {
+              // Наносим урон NPC от копа
+              hitNpc(n, Math.sin(copAng), Math.cos(copAng), 'pistol', 18 + Math.floor(Math.random()*10));
+              spawnImpact(ctR, ctC, 'pistol');
+              if (!n._copAlertShown) {
+                n._copAlertShown = true;
+                showToast('🚔 Коп открыл огонь по вооружённому прохожему!', '⚠️', 3000);
+              }
+            }
+          }
+        }
+      }
+      continue;
+    }
+
+    // ── Рукопашная контратака NPC (кулаки/ногой) ─────────────────────
+    if (n._fightingMelee) {
+      const d = Math.hypot(player.r - n.r, player.c - n.c);
+      // Останавливаем рукопашный бой если далеко или мёртв
+      if (d > 6 || myDead) { n._fightingMelee = false; n._nextHitAt = 0; continue; }
+      // NPC идёт к игроку если не вплотную
+      n.ang = Math.atan2(player.r - n.r, player.c - n.c);
+      if (d > 1.4) {
+        const sp = (n.speed || 0.8) * 1.6 * dt;
+        const nr = n.r + Math.sin(n.ang) * sp;
+        const nc = n.c + Math.cos(n.ang) * sp;
+        if (npcPassable(nr, nc)) { n.r = nr; n.c = nc; }
+        n.walkPhase += dt * 12;
+      } else {
+        n.walkPhase = 0;
+      }
+      if (!n._nextHitAt) n._nextHitAt = now + 800;
+      if (now >= n._nextHitAt && d <= 1.6) {
+        n._nextHitAt = now + 900 + Math.random() * 600;
+        // Короткий импакт-флеш у позиции игрока
+        const hitAng = Math.atan2(player.r - n.r, player.c - n.c);
+        const impR = player.r - Math.sin(hitAng) * 0.3;
+        const impC = player.c - Math.cos(hitAng) * 0.3;
+        // Маленькие брызги крови у игрока
+        const parts = [];
+        for (let pi = 0; pi < 5; pi++) {
+          const a2 = hitAng + (Math.random()-0.5)*1.4;
+          const sp2 = 0.5 + Math.random() * 1.0;
+          parts.push({ vr: Math.sin(a2)*sp2, vc: Math.cos(a2)*sp2,
+            life: 220+Math.random()*150, max: 370,
+            color: Math.random()<0.7?'#aa0f0f':'#5a0808', isBlood:true, size:1.4+Math.random()*1.2 });
+        }
+        _capArr(impacts, _MAX_IMPACTS);
+        impacts.push({ r: impR, c: impC, parts });
+        addShake(1.2);
+        hapticHit();
+        const dmg = 5 + Math.floor(Math.random() * 6);
+        try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
+          d: { dmg, sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } })); } catch(e) {}
+        // Боевой выкрик
+        n.cryText  = ['Вот тебе!', 'На!', 'Получай!', 'Не лезь!'][Math.floor(Math.random()*4)];
+        n.cryUntil = now + 1000;
       }
       continue;
     }
@@ -12449,26 +12520,67 @@ function punch() {
 // (_relation >= 1) ИЛИ получил достаточно урона (_hits >= 2).
 function _npcTriggerFight(npc) {
   if (!npc || npc.dead) return;
-  const arc = npc._arc || {};
-  const isBandit   = arc.panicMult === 0;
-  const isHostile  = (npc._relation || 0) >= 1;
+  if (npc._fighting || npc._fightingMelee) return;  // уже реагирует
+  const arc      = npc._arc || {};
+  const isBandit = arc.panicMult === 0;
   npc._hits = (npc._hits || 0) + 1;
-  const angryEnough = npc._hits >= 2;
-  if (!isBandit && !isHostile && !angryEnough) return;
-  if (npc._fighting) return;   // уже дерётся
-  // Выбираем оружие: бандит с пистолетом, остальные — кулаки (но с ударами)
-  npc._fighting   = true;
-  npc._fightWeapon = isBandit ? 'pistol' : 'pistol';
-  npc._nextShootAt = performance.now() + 600 + Math.random() * 400;
-  npc.panicUntil  = 0;   // прерываем панику
-  npc.snitching   = false;
-  npc.idleUntil   = 0;
-  // Первая реакция — выкрик
-  const cries = isBandit
-    ? ['Ты напал не на того!', 'ПОЖАЛЕЕШЬ!', 'Убью!', 'Попрощайся с жизнью!']
-    : ['Ах ты..!', 'Получи!', 'Не трогай меня!!', 'Да я тебя!'];
-  npc.cryText  = cries[Math.floor(Math.random() * cries.length)];
-  npc.cryUntil = performance.now() + 1800;
+  const now = performance.now();
+
+  // ── Бандит: сразу достаёт пушку ─────────────────────────────────
+  if (isBandit) {
+    npc._fighting    = true;
+    npc._fightWeapon = 'pistol';
+    npc._nextShootAt = now + 500 + Math.random() * 300;
+    npc.panicUntil   = 0;
+    npc.snitching    = false;
+    npc.idleUntil    = 0;
+    const cries = ['Ты напал не на того!', 'ПОЖАЛЕЕШЬ!', 'Убью!', 'Попрощайся с жизнью!'];
+    npc.cryText  = cries[Math.floor(Math.random() * cries.length)];
+    npc.cryUntil = now + 1800;
+    return;
+  }
+
+  // ── Обычный NPC — шансы реакции ──────────────────────────────────
+  // На первый удар всегда паника, после 2+ ударов начинает злиться
+  if (npc._hits < 2) {
+    // Первый удар — убегает
+    npc.panicUntil  = now + 4000 + Math.random() * 2000;
+    npc.panicSrcR   = player.r;
+    npc.panicSrcC   = player.c;
+    npc.cryText     = ['Ай!', 'Помогите!', 'Что вы делаете!?', 'Ауч!'][Math.floor(Math.random()*4)];
+    npc.cryUntil    = now + 1500;
+    return;
+  }
+
+  const roll = Math.random();
+  if (roll < 0.55) {
+    // 55% — убегает с криком
+    npc.panicUntil  = now + 5000 + Math.random() * 3000;
+    npc.panicSrcR   = player.r;
+    npc.panicSrcC   = player.c;
+    npc.cryText     = ['Стой! Стой!', 'ПОМОГИТЕ!', 'Буду жаловаться!', 'ОН БЬЁТ!'][Math.floor(Math.random()*4)];
+    npc.cryUntil    = now + 2000;
+  } else if (roll < 0.90) {
+    // 35% — бьёт в ответ кулаками/ногами
+    npc._fightingMelee = true;
+    npc._nextHitAt     = now + 700 + Math.random() * 400;
+    npc.panicUntil     = 0;
+    npc.snitching      = false;
+    npc.idleUntil      = 0;
+    npc.cryText  = ['Ах ты!', 'Получи!', 'Сам напросился!', 'Не трогай меня!!'][Math.floor(Math.random()*4)];
+    npc.cryUntil = now + 1500;
+  } else {
+    // 10% — достаёт пушку (случайный прохожий оказался вооружён)
+    npc._fighting    = true;
+    npc._fightWeapon = 'pistol';
+    npc._nextShootAt = now + 800 + Math.random() * 400;
+    npc._copWillReact = true;   // маркер: копы среагируют на вооружённого
+    npc.panicUntil   = 0;
+    npc.snitching    = false;
+    npc.idleUntil    = 0;
+    npc.cryText  = 'У меня есть пушка!!';
+    npc.cryUntil = now + 2000;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────
