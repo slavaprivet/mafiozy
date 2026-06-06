@@ -12279,6 +12279,87 @@ function fire(angle = null) {
     sC + dirX * range,
     { hit: false, fromPlayer: true, weapon: currentWeapon });
 }
+// ── Удар кулаком (без оружия) ────────────────────────────────────────
+const PUNCH_CD_MS   = 700;    // кд между ударами
+const PUNCH_RANGE   = 1.7;    // дистанция в тайлах
+const PUNCH_DAMAGE  = 12;     // урон за удар
+let lastPunchClientT = 0;
+let _punchAnim = null;        // { startAt, ang } | null
+
+function punch() {
+  if (myMode === 'pve') { showToast('🕵️ Наблюдатель не может драться', 'ℹ️', 1500); return; }
+  if (myDead || myDrivingCarId || _inBus) return;
+  if (_isArmed()) return;   // есть оружие — использовать fire()
+  const now = performance.now();
+  if (now - lastPunchClientT < PUNCH_CD_MS) return;
+
+  // Берём ближайшую locked-цель
+  const tgt = getActiveTarget();
+  if (!tgt) return;
+  const pos = tgt.getPos();
+  if (!pos) return;
+  const dist = Math.hypot(pos.r - player.r, pos.c - player.c);
+  if (dist > PUNCH_RANGE) {
+    showToast('✊ Подойди ближе!', '⚠️', 1200);
+    return;
+  }
+
+  lastPunchClientT = now;
+  const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
+  player.ang = ang;
+  // Запускаем анимацию замах → удар → отдача
+  _punchAnim = { startAt: now, ang };
+
+  // Визуал и ощущения
+  addKick(ang, 0.6);
+  // HIT-флаш только на страйк-фазе (150–230 мс), но cd выставляем сразу
+  _fireBtn.classList.add('cd');
+  setTimeout(() => _fireBtn.classList.remove('cd'), PUNCH_CD_MS);
+
+  // Урон по типу цели
+  const kind = tgt.kind;
+  if (kind === 'npc') {
+    const idx = typeof tgt.id === 'number' ? tgt.id : parseInt(tgt.id);
+    const npc = NPCS[idx];
+    if (npc && !npc.dead) {
+      hitNpc(npc, Math.sin(ang), Math.cos(ang), 'fists', PUNCH_DAMAGE);
+      spawnFloatText(pos.r, pos.c, `−${PUNCH_DAMAGE}`, { color: '#ff8040', size: 18, life: 1200 });
+      triggerHitStop(80);
+      addShake(1.5);
+      hapticHit();
+    }
+  } else {
+    // Коп / конвой / aggro_bot / охранник / PvP-игрок — серверный удар
+    try {
+      const msg = kind === 'player'
+        ? { t: 'pvp_punch', d: { target_uid: tgt.id, dmg: PUNCH_DAMAGE } }
+        : { t: 'melee_hit',  d: { kind, id: tgt.id, dmg: PUNCH_DAMAGE,
+              x: +pos.c.toFixed(2), y: +pos.r.toFixed(2) } };
+      ws && ws.send(JSON.stringify(msg));
+    } catch(e) {}
+    spawnFloatText(pos.r, pos.c, `−${PUNCH_DAMAGE}`, { color: '#ff8040', size: 18, life: 1200 });
+    triggerHitStop(80);
+    addShake(1.5);
+    hapticHit();
+  }
+
+  // Если ударил мирного NPC — тоже незаконно
+  if (kind === 'npc') {
+    const _copNear = _copInRadius(player.r, player.c, 10);
+    triggerWitnessChain(player.r, player.c, 8, {
+      snitchChance: 0.7,
+      snitchCries: ['Хулиган!', 'Вызовите полицию!', 'Нападение!'],
+      panicCries:  ['Ай!', 'Помогите!', 'Стой!'],
+    });
+    try {
+      ws && ws.send(JSON.stringify({ t: 'open_fire',
+        d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
+             weapon: 'fists', civilian: false, witness: _copNear } }));
+    } catch(e) {}
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // _fireBtnDown — флаг «кнопка стрельбы удерживается». В open world это
 // триггер для автоогня по locked-цели (см. блок hold-to-fire в update).
 let _fireBtnDown = false;
@@ -12286,7 +12367,7 @@ _fireBtn.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   _fireBtnDown = true;
   // Сразу один выстрел — на случай если игрок просто тапнул (а не держит)
-  fire();
+  if (_isArmed()) fire(); else punch();
 }, { passive: false });
 _fireBtn.addEventListener('pointerup',     () => { _fireBtnDown = false; });
 _fireBtn.addEventListener('pointercancel', () => { _fireBtnDown = false; });
@@ -12296,7 +12377,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && !chatOpen) {
     e.preventDefault();
     _fireBtnDown = true;
-    fire();
+    if (_isArmed()) fire(); else punch();
   }
 });
 window.addEventListener('keyup', (e) => {
@@ -12322,8 +12403,14 @@ function updatePvpUI() {
   // Кнопка огня видна только когда можно стрелять и есть смысл (open world
   // с хотя бы одной меткой ИЛИ PvP-арена с free-aim). Иначе скрыта.
   const meInArenaUi = inArena(player.r, player.c);
-  const showFireBtn = canShoot && _isArmed() && (meInArenaUi || lockedTargets.size > 0);
-  _fireBtn.style.display = showFireBtn ? 'flex' : 'none';
+  const _armed = _isArmed();
+  // Кнопка удара (✊) показывается когда без оружия + есть locked-цель в ближнем бою
+  const showPunchBtn  = canShoot && !_armed && lockedTargets.size > 0;
+  const showFireBtn   = canShoot && _armed  && (meInArenaUi || lockedTargets.size > 0);
+  _fireBtn.style.display = (showFireBtn || showPunchBtn) ? 'flex' : 'none';
+  // Иконка кнопки зависит от режима
+  if (showPunchBtn) _fireBtn.textContent = '✊';
+  else if (_armed)  _fireBtn.textContent = '🔫';
   if (joyREl) joyREl.style.display = canShoot ? 'block' : 'none';
   if (_weaponBarEl) {
     // Бар показываем всегда пока можно стрелять — даже без купленных стволов
@@ -13491,15 +13578,18 @@ function update(dt) {
         fire(Math.atan2(dr, dc));
       }
     } else if (lockedTargets.size) {
-      // ОТКРЫТЫЙ МИР: стреляем ТОЛЬКО кнопкой fireBtn. Стик к огню не
-      // привязан — он только метит. Огонь идёт в БЛИЖАЙШУЮ из меток.
+      // ОТКРЫТЫЙ МИР: стреляем/бьём ТОЛЬКО кнопкой fireBtn.
       if (_fireBtnDown) {
-        const active = getActiveTarget();
-        const pos = active && active.getPos();
-        if (pos) {
-          const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
-          player.ang = ang;
-          fire(ang);
+        if (_isArmed()) {
+          const active = getActiveTarget();
+          const pos = active && active.getPos();
+          if (pos) {
+            const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
+            player.ang = ang;
+            fire(ang);
+          }
+        } else {
+          punch();
         }
       }
     }
@@ -22198,6 +22288,102 @@ function handAnchor(x, y, ang) {
   };
 }
 
+// ── Анимация удара кулаком (без оружия) ───────────────────────────
+// Фазы: замах (0–150 мс) → удар (150–230 мс) → отдача (230–420 мс).
+// px, py — экранная позиция игрока (с учётом отдачи камеры).
+function _drawPunchAnim(px, py) {
+  if (!_punchAnim) return;
+  const elapsed = performance.now() - _punchAnim.startAt;
+  const TOTAL = 420;
+  if (elapsed >= TOTAL) { _punchAnim = null; return; }
+
+  const ang = _punchAnim.ang;
+  const bulletOfsY = Math.round(TS * 0.289);
+  // Точка хвата руки в экранных координатах
+  const a = handAnchor(px, py - bulletOfsY, ang);
+
+  // Вычисляем вынос кулака от базовой позиции (в пикселях)
+  const MAX_REACH = TS * 0.82;
+  let k;
+  if (elapsed < 150) {
+    // Замах назад
+    k = -0.18 * Math.sin((elapsed / 150) * Math.PI);
+  } else if (elapsed < 230) {
+    // Резкий бросок вперёд — ease-out
+    const t = (elapsed - 150) / 80;
+    k = 1 - Math.pow(1 - t, 2);
+  } else {
+    // Отдача — возврат
+    const t = (elapsed - 230) / 190;
+    k = 1 - t;
+  }
+
+  const fistX = a.hx + a.sx * MAX_REACH * k;
+  const fistY = a.hy + a.sy * MAX_REACH * k;
+
+  ctx.save();
+
+  // Плечо → запястье: толстая линия цвета кожи
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#c07850';
+  ctx.shadowColor = 'rgba(0,0,0,.5)';
+  ctx.shadowBlur = 4;
+  ctx.beginPath();
+  ctx.moveTo(a.hx, a.hy);
+  ctx.lineTo(fistX, fistY);
+  ctx.stroke();
+
+  // Перчатка-кулак: тёмный кружок + светлая полоса «костяшек»
+  const fr = 6.5;
+  ctx.shadowBlur = 6;
+  ctx.shadowColor = '#000';
+  ctx.fillStyle = '#3a2510';
+  ctx.beginPath();
+  ctx.arc(fistX, fistY, fr, 0, Math.PI * 2);
+  ctx.fill();
+  // Три светлые «костяшки» поперёк кулака
+  const perpAng = ang + Math.PI / 2;
+  const kpx = Math.cos(perpAng), kpy = Math.sin(perpAng);
+  // ISO-y для перпендикуляра
+  const ksx = (kpx - kpy) * 0.5, ksy = (kpx + kpy) * 0.5 * ISO_Y;
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  for (let i = -1; i <= 1; i++) {
+    const ox = ksx * (i * 3.2);
+    const oy = ksy * (i * 3.2);
+    ctx.beginPath();
+    ctx.arc(fistX + ox, fistY + oy, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Вспышка удара: только на пике броска (160–260 мс)
+  if (elapsed > 160 && elapsed < 260) {
+    const flash = 1 - Math.abs((elapsed - 210) / 50);
+    ctx.globalAlpha = flash * 0.9;
+    // Звёздочка удара
+    const rOuter = 11 * flash + 5, rInner = 4 * flash + 2;
+    const spikes = 6;
+    ctx.fillStyle = '#ffe860';
+    ctx.shadowColor = '#ff8020';
+    ctx.shadowBlur = 14 * flash;
+    ctx.beginPath();
+    for (let i = 0; i < spikes * 2; i++) {
+      const sAng = (i * Math.PI) / spikes - Math.PI / 2;
+      const r = i % 2 === 0 ? rOuter : rInner;
+      const ox = fistX + Math.cos(sAng) * r;
+      const oy = fistY + Math.sin(sAng) * r;
+      i === 0 ? ctx.moveTo(ox, oy) : ctx.lineTo(ox, oy);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+}
+
 // ── Визуал оружия в руках (порт из demo_isometric.html) ───────────
 // Полностью совместимо с тем, как стволы рисуются в боёвке против
 // босса. hx,hy — точка хвата (рука персонажа); sx,sy — единичный
@@ -23227,6 +23413,7 @@ function render() {
                myHp, PVP.max_hp, myDead);
     if (myMode !== 'pve' && !myDead) {
       drawWeaponInHands(px, py, player.ang, currentWeapon, 0.9, lastShotClientT);
+      if (_punchAnim) _drawPunchAnim(px, py);
     }
     if (myWanted > 0) drawWantedStars(px, py, myWanted);
     if (myGangs  > 0) drawWantedGangs(px, py, myGangs);
@@ -23880,26 +24067,43 @@ function drawTargetLock() {
     const p = w2s(pos.r + 0.5, pos.c + 0.5);
     const y = p.y - TS * 1.2;
     const isActive = (id === activeId);
-    const baseR = isActive ? 18 : 13;
-    const col   = isActive ? '#ff4040' : '#ff8080';
+    const melee = !_isArmed();
+    // В ближнем режиме — оранжевый; в огнестрельном — красный
+    const ringR = melee ? 255 : 255;
+    const ringG = melee ? 130 :  64;
+    const ringB = melee ?  20 :  64;
+    const baseR  = isActive ? 18 : 13;
+    const col    = melee ? (isActive ? '#ff8020' : '#ffa060') : (isActive ? '#ff4040' : '#ff8080');
     const strokeA = isActive ? (0.85 + 0.15 * pulse) : 0.65;
     // Кольцо
-    ctx.strokeStyle = `rgba(255, ${isActive?64:120}, ${isActive?64:120}, ${strokeA})`;
+    ctx.strokeStyle = `rgba(${ringR},${ringG},${ringB},${strokeA})`;
     ctx.lineWidth = isActive ? 2.8 : 1.8;
-    ctx.shadowColor = '#ff3030';
+    ctx.shadowColor = melee ? '#ff6010' : '#ff3030';
     ctx.shadowBlur = isActive ? 14 : 6;
     ctx.beginPath();
     ctx.arc(p.x, y, baseR * (isActive ? pulse : 1), 0, Math.PI * 2);
     ctx.stroke();
-    // Точка
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.arc(p.x, y, isActive ? 2.5 : 1.8, 0, Math.PI * 2);
-    ctx.fill();
+    // Точка / иконка кулака
+    if (melee && isActive) {
+      ctx.shadowBlur = 0;
+      ctx.font = `${Math.round(11 * pulse)}px "Segoe UI Emoji", system-ui`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = 0.9;
+      ctx.fillText('✊', p.x, y);
+      ctx.globalAlpha = 1;
+      ctx.textBaseline = 'alphabetic';
+    } else {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(p.x, y, isActive ? 2.5 : 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // 4 уголка только у активной
     if (isActive) {
       ctx.shadowBlur = 0;
       ctx.lineWidth = 2;
+      ctx.strokeStyle = melee ? `rgba(255,130,20,${0.85 + 0.15 * pulse})` : `rgba(255,80,80,${0.85 + 0.15 * pulse})`;
       ctx.beginPath();
       const r1 = 10 * pulse, r2 = 18 * pulse;
       ctx.moveTo(p.x - r2, y - r2); ctx.lineTo(p.x - r1, y - r2); ctx.lineTo(p.x - r2, y - r1);
@@ -23907,11 +24111,19 @@ function drawTargetLock() {
       ctx.moveTo(p.x - r2, y + r2); ctx.lineTo(p.x - r1, y + r2); ctx.lineTo(p.x - r2, y + r1);
       ctx.moveTo(p.x + r2, y + r2); ctx.lineTo(p.x + r1, y + r2); ctx.lineTo(p.x + r2, y + r1);
       ctx.stroke();
-      // Текст «LOCKED»
+      // Метка над маркером: в ближнем бою — дистанция + иконка, иначе LOCKED
       ctx.font = 'bold 9px system-ui, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#ff5050';
-      ctx.fillText('LOCKED', p.x, y - 22);
+      if (melee) {
+        const tpos = m.entry.getPos();
+        const dist = tpos ? Math.hypot(tpos.r - player.r, tpos.c - player.c) : 0;
+        const inRng = dist <= PUNCH_RANGE;
+        ctx.fillStyle = inRng ? '#ff9030' : '#aaaaaa';
+        ctx.fillText(inRng ? '✊ БИТЬ' : `${dist.toFixed(1)}т далеко`, p.x, y - 22);
+      } else {
+        ctx.fillStyle = '#ff5050';
+        ctx.fillText('LOCKED', p.x, y - 22);
+      }
       ctx.textAlign = 'left';
     }
   }
@@ -23961,81 +24173,106 @@ canvas.addEventListener('pointerdown', (e) => {
 function drawAimLaser() {
   if (myDead) return;
   if (myMode === 'pve') return;
-  if (myDrivingCarId) return;       // в машине стрелять нельзя
+  if (myDrivingCarId) return;
   if (!joyR || !joyR.active || !joyR.hasAim) return;
-  // Направление в WORLD-координатах (как в fire())
+
+  const armed = _isArmed();
+
+  // Направление в WORLD-координатах
   const _d = joyR.dx, _s = joyR.dy / ISO_Y;
   const _dc = (_s + _d) * 0.5;
   const _dr = (_s - _d) * 0.5;
   const mag = Math.hypot(_dr, _dc) || 1;
   const dirY = _dr / mag, dirX = _dc / mag;
-  // Стартовая точка — конец ствола игрока
-  const wcfg = WEAPON_FX_CFG[resolveWeapon(currentWeapon)] || { range: 8 };
-  const range = wcfg.range || 8;
-  const muzD  = weaponMuzzleD(currentWeapon, 0.9);
+
+  // Стартовая точка и дальность зависят от режима
+  const range = armed ? (WEAPON_FX_CFG[resolveWeapon(currentWeapon)]?.range || 8) : PUNCH_RANGE;
+  const muzD  = armed ? weaponMuzzleD(currentWeapon, 0.9) : 0.25;
   const sR = player.r + dirY * muzD;
   const sC = player.c + dirX * muzD;
-  // Финал — конец дальности ИЛИ первое препятствие (стена/здание) на пути
+
   let endR = sR + dirY * range, endC = sC + dirX * range;
-  // Ray-march по тайлам с шагом 0.25
   const steps = Math.ceil(range / 0.25);
   for (let i = 1; i <= steps; i++) {
     const t = i * 0.25;
-    const rr = sR + dirY * t;
-    const cc = sC + dirX * t;
-    if (isBlocked(rr, cc)) {
-      endR = sR + dirY * (t - 0.25);
-      endC = sC + dirX * (t - 0.25);
-      break;
-    }
+    const rr = sR + dirY * t, cc = sC + dirX * t;
+    if (isBlocked(rr, cc)) { endR = sR + dirY * (t - 0.25); endC = sC + dirX * (t - 0.25); break; }
   }
-  // Перевод в экранные координаты
+
   const p0 = w2s(sR + 0.5, sC + 0.5);
   const p1 = w2s(endR + 0.5, endC + 0.5);
   const bulletY = Math.round(TS * 0.289);
-  ctx.save();
-  // Пунктирный лазер — длинные тире, плавная анимация бегущих штрихов
-  const dashShift = (performance.now() * 0.03) % 12;
-  ctx.setLineDash([8, 6]);
-  ctx.lineDashOffset = -dashShift;
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = 'rgba(255,72,72,.55)';
-  ctx.shadowColor = '#ff3030';
-  ctx.shadowBlur = 8;
-  ctx.beginPath();
-  ctx.moveTo(p0.x, p0.y - bulletY);
-  ctx.lineTo(p1.x, p1.y - bulletY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.lineDashOffset = 0;
-  // Reticle — точка-прицел на конце лазера: внешнее ядро, мерцающий
-  // внутренний круг, четыре «лепестка» как у тактического прицела.
-  const t = performance.now() * 0.005;
+  const now = performance.now();
+  const t    = now * 0.005;
   const pulse = 0.7 + 0.3 * Math.sin(t * 3);
   const rx = p1.x, ry = p1.y - bulletY;
-  ctx.shadowBlur = 12;
-  ctx.shadowColor = '#ff4040';
-  // Внешнее кольцо
-  ctx.strokeStyle = 'rgba(255,80,80,.85)';
-  ctx.lineWidth = 1.8;
-  ctx.beginPath();
-  ctx.arc(rx, ry, 7 * pulse, 0, Math.PI * 2);
-  ctx.stroke();
-  // Внутренняя точка
-  ctx.fillStyle = '#ff4040';
-  ctx.beginPath();
-  ctx.arc(rx, ry, 2.4, 0, Math.PI * 2);
-  ctx.fill();
-  // Тактические лепестки (4 штрихa)
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = 'rgba(255,80,80,.9)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(rx - 11, ry); ctx.lineTo(rx - 5, ry);
-  ctx.moveTo(rx + 5, ry);  ctx.lineTo(rx + 11, ry);
-  ctx.moveTo(rx, ry - 11); ctx.lineTo(rx, ry - 5);
-  ctx.moveTo(rx, ry + 5);  ctx.lineTo(rx, ry + 11);
-  ctx.stroke();
+
+  ctx.save();
+
+  if (!armed) {
+    // ── Режим кулака: короткий оранжевый пунктир ──────────────────
+    const inRange = Math.hypot(endR - player.r, endC - player.c) >= PUNCH_RANGE - 0.05;
+    const dashCol = inRange ? 'rgba(255,140,40,.55)' : 'rgba(255,80,40,.80)';
+    const dashShift = (now * 0.05) % 10;
+    ctx.setLineDash([5, 5]);
+    ctx.lineDashOffset = -dashShift;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = dashCol;
+    ctx.shadowColor = '#ff6020';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y - bulletY);
+    ctx.lineTo(rx, ry);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
+    // Иконка кулака на конце
+    ctx.shadowBlur = 0;
+    ctx.font = `${Math.round(14 * pulse)}px "Segoe UI Emoji", system-ui`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 0.85 + 0.15 * pulse;
+    ctx.fillText('✊', rx, ry);
+    ctx.globalAlpha = 1;
+    ctx.textBaseline = 'alphabetic';
+  } else {
+    // ── Обычный прицел (огнестрел) ────────────────────────────────
+    const dashShift = (now * 0.03) % 12;
+    ctx.setLineDash([8, 6]);
+    ctx.lineDashOffset = -dashShift;
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255,72,72,.55)';
+    ctx.shadowColor = '#ff3030';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y - bulletY);
+    ctx.lineTo(rx, ry);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
+    // Reticle
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = '#ff4040';
+    ctx.strokeStyle = 'rgba(255,80,80,.85)';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.arc(rx, ry, 7 * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#ff4040';
+    ctx.beginPath();
+    ctx.arc(rx, ry, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,80,80,.9)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(rx - 11, ry); ctx.lineTo(rx - 5, ry);
+    ctx.moveTo(rx + 5,  ry); ctx.lineTo(rx + 11, ry);
+    ctx.moveTo(rx, ry - 11); ctx.lineTo(rx, ry - 5);
+    ctx.moveTo(rx, ry + 5);  ctx.lineTo(rx, ry + 11);
+    ctx.stroke();
+  }
+
   ctx.restore();
 }
 
