@@ -12316,6 +12316,38 @@ function punch() {
   _fireBtn.classList.add('cd');
   setTimeout(() => _fireBtn.classList.remove('cd'), PUNCH_CD_MS);
 
+  // Продлеваем lock чтобы цель не слетала между ударами
+  _renewAllLocks();
+
+  // Кровь брызгами при каждом ударе (небольшой веер + пятно на земле)
+  function _spawnPunchBlood(r, c, dirAng) {
+    // Пятно на земле
+    _capArr(bloodSplats, _MAX_BLOOD);
+    bloodSplats.push({
+      r: r + (Math.random() - 0.5) * 0.3,
+      c: c + (Math.random() - 0.5) * 0.3,
+      radius: 4 + Math.random() * 3,
+      life: 9000, max: 9000,
+      rot: Math.random() * Math.PI,
+    });
+    // Летящие капли в направлении удара (веер ±50°)
+    const parts = [];
+    for (let i = 0; i < 7; i++) {
+      const spread = (Math.random() - 0.5) * 1.8;   // радиан разброса
+      const a = dirAng + spread;
+      const sp = 0.6 + Math.random() * 1.4;
+      parts.push({
+        vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+        life: 280 + Math.random() * 200, max: 480,
+        color: Math.random() < 0.75 ? '#aa0f0f' : '#5a0808',
+        isBlood: true,
+        size: 1.6 + Math.random() * 1.8,
+      });
+    }
+    _capArr(impacts, _MAX_IMPACTS);
+    impacts.push({ r, c, parts });
+  }
+
   // Урон по типу цели
   const kind = tgt.kind;
   if (kind === 'npc') {
@@ -12323,6 +12355,7 @@ function punch() {
     const npc = NPCS[idx];
     if (npc && !npc.dead) {
       hitNpc(npc, Math.sin(ang), Math.cos(ang), 'fists', PUNCH_DAMAGE);
+      _spawnPunchBlood(npc.r, npc.c, ang);
       spawnFloatText(pos.r, pos.c, `−${PUNCH_DAMAGE}`, { color: '#ff8040', size: 18, life: 1200 });
       triggerHitStop(80);
       addShake(1.5);
@@ -12337,6 +12370,7 @@ function punch() {
               x: +pos.c.toFixed(2), y: +pos.r.toFixed(2) } };
       ws && ws.send(JSON.stringify(msg));
     } catch(e) {}
+    _spawnPunchBlood(pos.r, pos.c, ang);
     spawnFloatText(pos.r, pos.c, `−${PUNCH_DAMAGE}`, { color: '#ff8040', size: 18, life: 1200 });
     triggerHitStop(80);
     addShake(1.5);
@@ -24021,7 +24055,8 @@ function _updateTargetLock(dt) {
   }
   // 2) Валидация всех меток: жива? в дальности? таймер цел?
   const wcfg = WEAPON_FX_CFG[resolveWeapon(currentWeapon)] || { range: 8 };
-  const maxR = (wcfg.range || 8) + 2;
+  // В ближнем бою (без оружия) цель может убегать — держим lock шире
+  const maxR = _isArmed() ? (wcfg.range || 8) + 2 : 18;
   const toDelete = [];
   for (const [id, m] of lockedTargets) {
     if (now > m.expireAt) { toDelete.push(id); continue; }
