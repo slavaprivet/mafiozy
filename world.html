@@ -2145,14 +2145,6 @@ let myDrivingCarId = null;
 // Я еду в автобусе. Игрок невидим, камера за BUS, стрелять/двигаться
 // нельзя. Выйти — на остановке или выпрыгнуть на ходу.
 let _inBus = false;
-// Налётный автобус V2 (банковский heist) — отдельная сессия, позиция
-// синхронится с _heistV2.bus, а не с обычным BUS-маршрутчиком.
-let _inHeistBus = false;
-// Локальная скорость автобуса (только если я водитель). Симуляция
-// клиент-сайд, серверу шлём текущие x,y — он клампит шаг.
-let _heistBusVx = 0;
-let _heistBusVy = 0;
-let _lastHeistBusDriveSentAt = 0;
 // Текущее состояние контракта (приходит от gta_status/gta_take_reply)
 let myGtaStatus = { count_today: 0, limit: 2, reset_in_s: 0, sc_lvl: 0, active: null };
 // Кулдаун между запросами статуса (не дёргаем сервер каждый кадр)
@@ -3227,19 +3219,6 @@ function hitGangCar(car, damage) {
 // hp вычитается. При hp<=0 → dead (тело остаётся как splat).
 function hitNpc(npc, dirY, dirX, weapon, damage) {
   if (!npc || npc.dead) return;
-  // Серверная охрана банка: HP ведёт сервер. Локально не считаем урон
-  // и не помечаем dead — шлём heist_guard_hit на каждое попадание,
-  // сервер сам обновит hp/alive через snapshot.
-  if (npc._heistGuard && npc._heistGuardId) {
-    try {
-      ws && ws.send(JSON.stringify({ t: 'heist_guard_hit',
-        d: { guard_id: npc._heistGuardId,
-             weapon:   String(weapon || '') } }));
-    } catch(e) {}
-    // Локально только flinch — без локального dead.
-    npc.idleUntil = performance.now() + 250;
-    return;
-  }
   npc.hp = Math.max(0, (npc.hp | 0) - (damage | 0));
   // Knockback
   const kb = 0.35;
@@ -3285,16 +3264,6 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     // Короткий предсмертный крик (если ещё не кричал — выставляем cryUntil)
     npc.cryText  = ['АА!', 'НЕТ!', 'ПОМО…'][Math.floor(Math.random()*3)];
     npc.cryUntil = performance.now() + 600;
-    // Серверный кассир банка — сразу сообщим серверу. Сервер валидирует
-    // дистанцию ≤6 тайл и пометит c.dead=true в общем snapshot (все
-    // участники увидят). Локальный dead уже выставлен выше — это
-    // оптимистичный эффект для стрелявшего.
-    if (npc._heistCashier && npc._heistCashierId) {
-      try {
-        ws && ws.send(JSON.stringify({ t: 'heist_cashier_hit',
-          d: { cashier_id: npc._heistCashierId } }));
-      } catch(e) {}
-    }
     // Цель Бригадира теперь — бандит из aggroZones, не прохожий NPC.
     // Триггер brigadir_kill уехал в обработчик kind=='aggro_killed'
     // (см. брайн ws-handlers ниже): там точно знаем bot_id убитого.
@@ -8633,91 +8602,6 @@ function handleEventPacket(d) {
       try { showArrestOverlay && showArrestOverlay(); } catch(e) {}
     }
     // ok=false молча — это либо лагнувший пакет, либо сервер уже посадил
-  } else if (kind === 'bank_heist_start_reply') {
-    if (!d.ok) {
-      if (d.reason === 'no_partner') {
-        showToast('🤝 Нужен напарник рядом — позови ещё игрока к банку', '⚠️', 3000);
-      } else if (d.reason === 'too_far') {
-        showToast('🚶 Подойди ближе к банку', '⚠️', 1800);
-      } else if (d.reason === 'limit') {
-        showToast('🚫 Лимит налётов исчерпан (1/сутки)', '⏳', 3000);
-      } else if (d.reason === 'in_heist') {
-        showToast('🏦 Налёт уже идёт', 'ℹ️', 1600);
-      } else if (d.reason === 'busy') {
-        // Глобальный лок — другая группа уже взяла банк
-        const sec = Math.max(0, +d.resume_in_s | 0);
-        const mm = Math.floor(sec / 60);
-        const ss = sec % 60;
-        const tStr = mm > 0 ? `${mm}м ${ss}с` : `${ss}с`;
-        showToast(`🏦 Банк уже грабят — попробуй через ${tStr}`, '⏳', 3500);
-      } else {
-        showToast('❌ Не получилось начать налёт', '⚠️', 2000);
-      }
-    }
-    // ok-кейс обрабатывается через broadcast 'bank_heist_started'
-  } else if (kind === 'bank_heist_started') {
-    _onBankHeistStarted(d);
-  } else if (kind === 'heist_snapshot') {
-    _onHeistSnapshot(d);
-  } else if (kind === 'bank_heist_finished') {
-    _onBankHeistFinished(d);
-    // Финал — банк свободен. Если был только что мой налёт, _bankBusyUntil
-    // уже не имеет значения. Если чужой — тоже сбрасываем (для UI кнопки).
-    _bankBusyUntil = 0;
-  } else if (kind === 'bank_heist_cancelled') {
-    _onBankHeistCancelled(d);
-    _bankBusyUntil = 0;
-  } else if (kind === 'bank_heist_announce') {
-    // Глобальное событие — едет в ленту, не в большой баннер. Иначе при
-    // большом онлайне центр экрана будет мигать каждые 30 сек.
-    const dur = +d.duration_s | 0 || 180;
-    _bankBusyUntil = performance.now() + dur * 1000;
-    pushFeedEvent('🏦', `${d.count || 2} игрока берут банк`,
-                  { accent: '#ff7030' });
-  } else if (kind === 'bank_heist_freed') {
-    // Глобальный — банк свободен (другая группа закончила)
-    _bankBusyUntil = 0;
-    pushFeedEvent('✅', 'Банк свободен — можно грабить',
-                  { accent: '#3ec070' });
-  } else if (kind === 'heist_guard_shot') {
-    // Охранник банка выстрелил. Визуал — трассер + вспышка дула.
-    // Если попал по мне — flash + shake (HP уже снят сервером, придёт
-    // в обычном snapshot игрока).
-    {
-      const wp  = d.weapon || 'pistol_heavy';
-      const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
-      const md  = (typeof weaponMuzzleD === 'function')
-                  ? weaponMuzzleD(wp, 0.95) : 0.6;
-      const sR  = d.sy + Math.sin(ang) * md;
-      const sC  = d.sx + Math.cos(ang) * md;
-      spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromPlayer: false, weapon: wp });
-      spawnMuzzle(sR, sC, ang, wp, true);
-      if (!d.miss) spawnImpact(d.ty, d.tx, wp);
-    }
-    if (String(d.target_uid) === String(QP.uid) && !d.miss) {
-      flashHitOverlay();
-      addShake(3);
-      if (d.killed) {
-        myDeathBy = 'Охрана банка';
-      }
-    }
-  } else if (kind === 'heist_cashier_snitch') {
-    // Сервер сообщил: кассиры выжили и стучат. ★ уже прибавлены серверно.
-    // Локально — тост в духе магазинного снитча.
-    const cnt = +d.count | 0;
-    if (cnt > 0) {
-      showToast(`📞 Кассир(${cnt}) звонит копам — +${cnt}★`, '⚠️', 2600);
-      hapticHit();
-    }
-  } else if (kind === 'heist_bus_punctured') {
-    // Сервер замедлил автобус из-за кэмпа. Шлю всем участникам.
-    if (_bankHeistActive) {
-      if (_heistV2 && _heistV2.bus) _heistV2.bus.tires_punctured = true;
-      showEventBanner('💥 ШИНЫ ПРОБИТЫ',
-        'Долго стояли — копы проколи шины. Автобус еле тащит.',
-        3800, 'warn');
-      hapticHit();
-    }
   } else if (kind === 'bank_rob_started') {
     // Сервер подтвердил начало ограбления (опционально — для мультиплеера)
     if (d.bank_id && _bankRob && _bankRob.bank.id === d.bank_id) {
@@ -9673,17 +9557,17 @@ function updateZoneBtn() {
   if (_bankInt) {
     const int = _bankInt;
     let label;
-    const r = int.room;
-    if (r==='lobby') {
-      if (int.phase==='lobby')       label='🔓 Взломать хранилище';
-      else if (int.phase==='cracking') label=`🔒 Взлом ${(int.crackProg*100).toFixed(0)}%`;
-      else if (int.myBag)            label='🚪 Выйти с мешком';
-      else                           label='💰 Иди в хранилище';
-    } else if (r==='vault') {
-      label = int.myBag?'🚪 Выйти с мешком':'🚪 ← В лобби';
+    const nearVault = player.r < int.counterRow - 1;  // игрок у прилавка/хранилища
+    if (int.phase==='lobby') {
+      label = nearVault ? '🔓 Взломать хранилище' : null;
+    } else if (int.phase==='cracking') {
+      label = `🔒 Взлом ${(int.crackProg*100).toFixed(0)}%`;
+    } else if (int.myBag) {
+      label = '🚪 Выйти с мешком';
     } else {
-      label = '🚪 ← В лобби';
+      label = '💰 Иди в хранилище';
     }
+    if (!label) { _zoneEl.style.display = 'none'; return; }
     _zoneEl.textContent = label;
     _zoneEl.style.display = 'block';
     _zoneEl.dataset.bankId = int.bank.id;
@@ -9779,20 +9663,20 @@ _zoneEl.addEventListener('click', () => {
     // Интерьер активен — кнопка внутри банка
     if (_bankInt && _bankInt.bank.id === bank.id) {
       const int = _bankInt;
-      if (int.room==='lobby') {
-        if (int.phase==='lobby') {
-          int.phase='cracking'; int._crackStartedAt=performance.now();
-          showToast('🔒 Взламываешь хранилище — стой у прилавка','⏳',2200);
-          return;
+      if (int.phase==='lobby') {
+        int.phase='cracking'; int._crackStartedAt=performance.now();
+        int.alarmTriggered=true;
+        int.panicAt=performance.now(); // все NPC сразу паникуют и бегут из банка
+        // Теперь это ограбление — сообщаем серверу
+        if (ws&&ws.readyState===1){
+          try{ws.send(JSON.stringify({t:'bank_rob_start',d:{bank_id:int.bank.id}}));}catch(e){}
         }
-        if (int.myBag) { exitBankInterior(true); return; }
-        exitBankInterior(false); return;
-      }
-      if (int.room==='vault') {
-        _switchBankRoom('lobby');  // всегда возвращаем в лобби (с мешком или без)
+        showToast('🚨 Ограбление! Все бегут!','🔒',2200);
         return;
       }
-      _switchBankRoom('lobby'); return;
+      if (int.phase==='cracking') return; // взлом идёт — ничего
+      if (int.myBag) { exitBankInterior(true); return; }
+      exitBankInterior(false); return;
     }
     // Войти в банк
     enterBankInterior(bank);
@@ -9815,214 +9699,6 @@ _zoneEl.addEventListener('click', () => {
   // города. Бэк сам соберёт URL с актуальным снаряжением игрока из БД.
   openDistrictBattle(_zoneCur.id);
 });
-
-// ── Банк V2 — кооп-налёт мешками ──────────────────────────────────
-// Подошёл с напарником → жмёшь Налёт → сразу 4★, в сейфе спавнятся
-// мешки 💰, рядом стоит налётный автобус. Берёшь мешок → несёшь в
-// автобус → кидаешь. Кто-то садится в автобус → автобус едет
-// автопилотом к точке сдачи (юг карты). Доехал → мешки → $.
-const BANK_POS = { r: 33, c: 43 };   // СИНХРОН с BANK_POS_RC в mafiozi_bot.py
-const BANK_PAYOUT_PREVIEW   = 4000;  // ориентир: 8 × 500 = 4000 max
-let _bankHeistActive = false;
-let _bankHeistId = 0;
-// Глобальный занят-таймер. Когда любой группой стартует налёт, всем
-// игрокам приходит bank_heist_announce → ставим _bankBusyUntil. Кнопка
-// у банка будет показывать «занято Xс» без необходимости жать.
-let _bankBusyUntil = 0;
-// Сессия активного налёта (приходит с сервера через bank_heist_started
-// и регулярно обновляется через heist_snapshot).
-let _heistV2 = null;
-// id мешка, который я несу (null если ничего не несу). Серверный
-// источник истины — bag.by === QP.uid, но локальный флаг даёт мгновенный
-// UX без ожидания snapshot.
-let _myHeistBagId = null;
-// Серверные кассиры банка — `_heistV2.cashiers` приходит в snapshot,
-// рендерим из него. Хиты валидирует сервер (heist_cashier_hit). При
-// финале с loot>0 живые делают snitch — на сервере же.
-function _syncHeistCashiersToLocal() {
-  if (!_heistV2 || typeof NPCS === 'undefined') return;
-  const list = _heistV2.cashiers || [];
-  const now = performance.now();
-  for (const c of list) {
-    if (!c || !c.id) continue;
-    let npc = NPCS.find(n => n && n._heistCashierId === c.id);
-    if (!npc) {
-      npc = {
-        r: +c.y, c: +c.x, tr: +c.y, tc: +c.x,
-        dead: false, panicUntil: 0, snitching: false, snitchUntil: 0,
-        cryUntil: 0, cryText: '',
-        speed: 1.4, hp: 30, hpMax: 30,
-        name: 'Кассир',
-        _cashier: true,
-        _heistCashier: true,
-        _heistCashierId: c.id,
-        skin: { shirt: '#3a82c8', pants: '#222', hair: '#222' },
-        idleUntil: now + 9999000,
-      };
-      NPCS.push(npc);
-    }
-    // Серверная истина мёртв-жив — но не реверс (если на сервере живой,
-    // а локально пометили dead из-за raycast, оставим dead до подтверждения).
-    if (c.dead && !npc.dead) {
-      npc.dead = true;
-      npc.deadAt = now;
-    }
-  }
-}
-
-function _syncHeistGuardsToLocal() {
-  if (!_heistV2 || typeof NPCS === 'undefined') return;
-  const list = _heistV2.guards || [];
-  const now = performance.now();
-  for (const g of list) {
-    if (!g || !g.id) continue;
-    let npc = NPCS.find(n => n && n._heistGuardId === g.id);
-    if (!npc) {
-      npc = {
-        r: +g.y, c: +g.x, tr: +g.y, tc: +g.x,
-        dead: false, panicUntil: 0, snitching: false, snitchUntil: 0,
-        cryUntil: 0, cryText: '',
-        speed: 1.4, hp: +g.hp | 60, hpMax: 60,
-        name: 'Охрана',
-        _heistGuard: true,
-        _heistGuardId: g.id,
-        // Тёмный костюм-кепка — отличается от кассиров.
-        skin: { shirt: '#222', pants: '#1a1a1a', hair: '#0e0e0e' },
-        idleUntil: now + 9999000,
-        ang: +g.ang | 0,
-      };
-      NPCS.push(npc);
-    }
-    npc.ang = +g.ang || 0;
-    if (typeof g.hp === 'number') npc.hp = g.hp;
-    if (g.alive === false && !npc.dead) {
-      npc.dead = true;
-      npc.deadAt = now;
-    }
-  }
-}
-
-function tryStartBankHeist() {
-  if (_bankHeistActive) return;
-  if (myDrivingCarId || _inBus) { showToast('🚗 Сначала выйди', '⚠️', 1600); return; }
-  if (myDead) return;
-  const wsReady = !!(ws && ws.readyState === 1);
-  if (!wsReady) { showToast('🌐 Нет соединения', '⚠️', 1600); return; }
-  try { ws.send(JSON.stringify({ t: 'bank_heist_start', d: {} })); } catch(e) {}
-}
-
-function _onBankHeistStarted(d) {
-  _bankHeistActive = true;
-  _bankHeistId     = +d.heist_id | 0;
-  _heistV2 = {
-    bags:      d.bags || [],
-    bus:       d.bus  || { x: 43, y: 35, bags: 0 },
-    dropoff:   d.dropoff || { x: 50, y: 65 },
-    loot:      0,
-    bag_value: +d.bag_value | 0 || 500,
-    time_left: +d.duration | 0 || 180,
-    phase:     'looting',
-    participants: d.participants || [],
-  };
-  _myHeistBagId = null;
-  // Кассиры и охранники приходят с сервером (общий список — все
-  // участники видят одинаковых). Синхим в локальный NPCS.
-  _heistV2.cashiers = d.cashiers || [];
-  _heistV2.guards   = d.guards   || [];
-  _syncHeistCashiersToLocal();
-  _syncHeistGuardsToLocal();
-  showEventBanner('🏦 НАЛЁТ',
-    `Тащи мешки в автобус и гони к схрону! ${_heistV2.bags.length} мешков, $${_heistV2.bag_value}/шт.`,
-    4500, 'warn');
-  hapticHit();
-}
-
-function _onHeistSnapshot(d) {
-  if (!_heistV2 || !_bankHeistActive) return;
-  if (+d.heist_id !== _bankHeistId) return;
-  _heistV2.bags    = d.bags || _heistV2.bags;
-  if (d.bus) {
-    // Если я за рулём — позицию автобуса локально симулирую, серверный
-    // эхо-апдейт даёт джиттер. Берём только driver_uid/bags. Иначе —
-    // полностью серверная истина (автопилот или другой водитель).
-    const drv = d.bus.driver_uid;
-    const iDrive = drv != null && String(drv) === String(QP.uid);
-    if (iDrive && _heistV2.bus) {
-      _heistV2.bus.driver_uid = drv;
-      _heistV2.bus.bags       = +d.bus.bags | 0;
-    } else {
-      _heistV2.bus = d.bus;
-    }
-  }
-  _heistV2.dropoff = d.dropoff || _heistV2.dropoff;
-  _heistV2.cashiers = d.cashiers || _heistV2.cashiers || [];
-  _heistV2.guards   = d.guards   || _heistV2.guards   || [];
-  _syncHeistCashiersToLocal();
-  _syncHeistGuardsToLocal();
-  _heistV2.loot    = +d.loot | 0;
-  _heistV2.phase   = d.phase || _heistV2.phase;
-  _heistV2.time_left = +d.time_left | 0;
-  // Сверяем мой мешок с серверной правдой: если по серверу я больше не
-  // несу (умер, выгрузил) — локальный флаг тоже сбрасываем.
-  if (_myHeistBagId) {
-    const mine = _heistV2.bags.find(b => b.id === _myHeistBagId);
-    if (!mine || mine.state !== 'carried' || String(mine.by) !== String(QP.uid)) {
-      _myHeistBagId = null;
-    }
-  }
-}
-
-function _onBankHeistFinished(d) {
-  _bankHeistActive = false;
-  const loot  = +d.loot  | 0;
-  const share = +d.share | 0;
-  const reason = d.reason || 'done';
-  let title = '💰 Куш получен';
-  let msg   = `Доля: +$${share.toLocaleString('ru')} (общий куш $${loot.toLocaleString('ru')})`;
-  if (reason === 'timeout' && loot === 0) {
-    title = '⏱ Время вышло'; msg = 'Ничего не успели — налёт провален.';
-  } else if (reason === 'all_dead' && loot === 0) {
-    title = '☠️ Группа уничтожена'; msg = 'Никто не выжил, куш потерян.';
-  }
-  showEventBanner(title, msg, 4500, loot > 0 ? 'win' : 'lose');
-  hapticHit();
-  // Снитч кассиров обрабатывает сервер (heist_cashier_snitch) — клиенту
-  // ничего делать не нужно: на участников прилетит +★ к wanted напрямую,
-  // плюс event для тоста (обработчик ниже в onmessage).
-  _cleanupHeistLocalNpcs();
-  _heistV2 = null;
-  _myHeistBagId = null;
-}
-
-function _onBankHeistCancelled(d) {
-  if (!_bankHeistActive) return;
-  _bankHeistActive = false;
-  _cleanupHeistLocalNpcs();
-  _heistV2 = null;
-  _myHeistBagId = null;
-  showToast('🏃 Налёт сорвался', '⚠️', 2400);
-}
-
-// Чистим локальные NPC-кассиры/охранники после финала налёта. Иначе
-// они застрянут с idleUntil 9999000 и накопятся в NPCS при повторных
-// налётах. Мёртвых оставляем 8 сек чтобы splat успел дотлеть.
-function _cleanupHeistLocalNpcs() {
-  if (typeof NPCS === 'undefined') return;
-  const now = performance.now();
-  for (const npc of NPCS) {
-    if (!npc) continue;
-    if (npc._heistCashier || npc._heistGuard) {
-      if (!npc.dead) { npc.dead = true; npc.deadAt = now; }
-      npc.idleUntil = 0;
-      // Очистим маркеры — фильтр в NPCS-cleanup сам уберёт через TTL.
-      npc._heistCashier = false;
-      npc._heistGuard   = false;
-    }
-  }
-}
-
-// Тик прогресс-бара (отдельная функция — отрисовка локально)
-function _tickBankHeistUi(now) {}
 
 // ── Бригадир — хит-контракты в городе ──────────────────────────────
 // Стационарный NPC у бара. Меню одним кликом: «Взять контракт».
@@ -10386,25 +10062,11 @@ function updateGtaInteractions() {
     return;
   }
   if (_inBus) {
-    if (_inHeistBus) {
-      // Налётный автобус — выйти можно всегда; если phase='driving',
-      // это прыжок на ходу. Мешки в автобусе остаются.
-      _gtaActionKind = 'heist_bus_exit';
-      _gtaActionCarId = null;
-      const drv = (_heistV2 && _heistV2.bus && _heistV2.bus.driver_uid != null)
-        ? String(_heistV2.bus.driver_uid) : null;
-      const iDrive = drv && drv === String(QP.uid);
-      _gtaBtn.textContent = iDrive
-        ? '🪂 Выйти (бросить руль)'
-        : '🪂 Выйти из автобуса';
-    } else {
-      // Маршрутный — на остановке выходим к знаку, на ходу выпрыгиваем.
-      _gtaActionKind = 'bus_exit';
-      _gtaActionCarId = null;
-      _gtaBtn.textContent = (BUS.state === 'stopped')
-        ? '🚪 Выйти на остановке'
-        : '🪂 Выпрыгнуть на ходу';
-    }
+    _gtaActionKind = 'bus_exit';
+    _gtaActionCarId = null;
+    _gtaBtn.textContent = (BUS.state === 'stopped')
+      ? '🚪 Выйти на остановке'
+      : '🪂 Выпрыгнуть на ходу';
     _gtaBtn.style.display = 'block';
     return;
   }
@@ -10449,79 +10111,6 @@ function updateGtaInteractions() {
         ? '🎯 Контракт уже взят — иди убей'
         : `👔 Взять контракт ($${BRIGADIR_PAYOUT_PREVIEW})`;
     }
-    _gtaBtn.style.display = 'block';
-    return;
-  }
-  // Активный налёт V2 — взаимодействие с мешками и автобусом
-  if (_bankHeistActive && _heistV2) {
-    // 1) Несу мешок? Кнопка «Закинуть в автобус» если автобус близко
-    if (_myHeistBagId) {
-      const dbR = _heistV2.bus.y - player.r;
-      const dbC = _heistV2.bus.x - player.c;
-      if (Math.hypot(dbR, dbC) <= 3.0) {
-        _gtaActionKind = 'heist_load';
-        _gtaActionCarId = null;
-        _gtaBtn.textContent = '📦 Закинуть в автобус';
-        _gtaBtn.style.display = 'block';
-        return;
-      }
-      // Иначе никакой кнопки — нужно дойти до автобуса
-      _gtaActionKind = null;
-      _gtaBtn.style.display = 'none';
-      return;
-    }
-    // 2) Не несу — есть мешок рядом? (state='safe' или 'dropped')
-    let nearestBag = null, nearestBagD = 2.0;
-    for (const b of _heistV2.bags) {
-      if (b.state !== 'safe' && b.state !== 'dropped') continue;
-      const d = Math.hypot(b.y - player.r, b.x - player.c);
-      if (d < nearestBagD) { nearestBagD = d; nearestBag = b; }
-    }
-    if (nearestBag) {
-      _gtaActionKind = 'heist_pickup';
-      _gtaActionCarId = nearestBag.id;
-      _gtaBtn.textContent = '🎒 Подобрать мешок';
-      _gtaBtn.style.display = 'block';
-      return;
-    }
-    // 3) Рядом с налётным автобусом — сесть и поехать
-    const dbR = _heistV2.bus.y - player.r;
-    const dbC = _heistV2.bus.x - player.c;
-    if (Math.hypot(dbR, dbC) <= 3.0) {
-      _gtaActionKind = 'heist_bus_enter';
-      _gtaActionCarId = null;
-      const bagsIn = _heistV2.bus.bags | 0;
-      _gtaBtn.textContent = (_heistV2.phase === 'driving')
-        ? `🚌 Автобус в пути (${bagsIn} мешков)`
-        : `🚌 Сесть в автобус (${bagsIn} мешков) → схрон`;
-      _gtaBtn.style.display = 'block';
-      return;
-    }
-    // Активный налёт но рядом ничего полезного — кнопок банка не показываем
-  }
-  // Банк — кооп-налёт. Подошёл (радиус чуть больше) → кнопка «Налёт».
-  const dBR = BANK_POS.r - player.r;
-  const dBC = BANK_POS.c - player.c;
-  if (Math.hypot(dBR, dBC) <= 4.0 && !_bankHeistActive) {
-    const nowMs = performance.now();
-    const busyLeftMs = _bankBusyUntil - nowMs;
-    if (busyLeftMs > 0) {
-      // Чужая группа уже грабит — показываем «занято» с таймером
-      const sec = Math.max(0, Math.ceil(busyLeftMs / 1000));
-      const mm = Math.floor(sec / 60);
-      const ss = sec % 60;
-      const tStr = mm > 0
-        ? `${mm}:${ss < 10 ? '0' + ss : ss}`
-        : `${ss}с`;
-      _gtaActionKind = 'bank_busy';   // не валидный action — клик ничего не сделает
-      _gtaActionCarId = null;
-      _gtaBtn.textContent = `🏦 ЗАНЯТО — уже грабят (${tStr})`;
-      _gtaBtn.style.display = 'block';
-      return;
-    }
-    _gtaActionKind = 'bank_heist';
-    _gtaActionCarId = null;
-    _gtaBtn.textContent = `🏦 Налёт ($${BANK_PAYOUT_PREVIEW}, нужен напарник)`;
     _gtaBtn.style.display = 'block';
     return;
   }
@@ -10701,63 +10290,10 @@ _gtaBtn.addEventListener('click', () => {
     takeBrigadirContract();
   } else if (_gtaActionKind === 'brigadir_claim') {
     claimBrigadirReward();
-  } else if (_gtaActionKind === 'bank_heist') {
-    tryStartBankHeist();
-  } else if (_gtaActionKind === 'bank_busy') {
-    const sec = Math.max(0, Math.ceil((_bankBusyUntil - performance.now()) / 1000));
-    showToast(`🏦 Банк занят — ещё ${sec}с до конца чужого налёта`, '⏳', 2400);
   } else if (_gtaActionKind === 'bus_enter') {
     enterBus();
   } else if (_gtaActionKind === 'bus_exit') {
     exitBus();
-  } else if (_gtaActionKind === 'heist_bus_exit') {
-    // Выходим из налётного автобуса. Координаты — текущая позиция автобуса
-    // плюс маленький офсет, чтобы не остаться на нём же. Серверу шлём
-    // heist_exit_bus — он снимет driver_uid (если я был водителем).
-    if (_heistV2 && _heistV2.bus) {
-      const bx = _heistV2.bus.x, by = _heistV2.bus.y;
-      player.r = by + 0.6; player.c = bx + 0.6;
-    }
-    _inBus = false;
-    _inHeistBus = false;
-    _heistBusVx = 0; _heistBusVy = 0;
-    try { ws && ws.send(JSON.stringify({ t: 'heist_exit_bus', d: {} })); } catch(e) {}
-    hapticHit();
-    showToast('🚌 Вышел из автобуса', 'ℹ️', 1600);
-  } else if (_gtaActionKind === 'heist_pickup') {
-    try {
-      ws && ws.send(JSON.stringify({ t: 'heist_pickup_bag',
-        d: { bag_id: _gtaActionCarId } }));
-    } catch(e) {}
-    _myHeistBagId = _gtaActionCarId;   // оптимистично — поправит snapshot
-    hapticHit();
-  } else if (_gtaActionKind === 'heist_load') {
-    try {
-      ws && ws.send(JSON.stringify({ t: 'heist_load_bag', d: {} }));
-    } catch(e) {}
-    _myHeistBagId = null;
-    hapticHit();
-  } else if (_gtaActionKind === 'heist_bus_enter') {
-    // Сесть в налётный автобус. Первый сел — водитель (рулит сам).
-    // Остальные — пассажиры (едут с автобусом). Серверный driver_uid
-    // придёт ближайшим snapshot'ом (~0.5с).
-    if (_heistV2) {
-      _inBus = true;
-      _inHeistBus = true;
-      _heistBusVx = 0; _heistBusVy = 0;
-      _lastHeistBusDriveSentAt = 0;
-      player.r = _heistV2.bus.y; player.c = _heistV2.bus.x;
-      playEnterCarAnim(_heistV2.bus.y, _heistV2.bus.x);
-      try {
-        ws && ws.send(JSON.stringify({ t: 'heist_enter_bus', d: {} }));
-      } catch(e) {}
-      hapticHit();
-      // Если в автобусе ещё нет водителя — я им буду через ~0.5с по snapshot.
-      const hasDriver = _heistV2.bus && _heistV2.bus.driver_uid != null;
-      showToast(hasDriver
-        ? '🚌 В автобусе — пассажиром'
-        : '🚌 Ты за рулём — гони к схрону!', '✅', 2200);
-    }
   }
 });
 
@@ -13788,22 +13324,6 @@ function update(dt) {
             if (npc.dead) continue;
             const dd = Math.hypot(npc.r - qc.y, npc.c - qc.x);
             if (dd > 0.75) continue;
-            // Серверные кассиры/охрана банка — НЕ мочим локально. Сервер ведёт hp.
-            // Шлём heist_*_hit (как пуля), пусть авторитетно решает.
-            if (npc._heistGuard && npc._heistGuardId) {
-              try {
-                ws && ws.send(JSON.stringify({ t: 'heist_guard_hit',
-                  d: { guard_id: npc._heistGuardId, weapon: 'car' } }));
-              } catch(e) {}
-              continue;
-            }
-            if (npc._heistCashier && npc._heistCashierId) {
-              try {
-                ws && ws.send(JSON.stringify({ t: 'heist_cashier_hit',
-                  d: { cashier_id: npc._heistCashierId } }));
-              } catch(e) {}
-              continue;
-            }
             // Knockback по направлению машины + смерть
             npc.hp = 0;
             npc.dead = true;
@@ -13952,92 +13472,7 @@ function update(dt) {
     // Смерть в автобусе — выкидывает (на тайл у автобуса)
     if (myDead) {
       _inBus = false;
-      _inHeistBus = false;
       // продолжаем нормальный пеший update ниже
-    } else if (_inHeistBus) {
-      // Налётный автобус V2 — позиция приходит с сервера в _heistV2.bus.
-      // Если сессия кончилась — выкидывает игрока.
-      if (!_heistV2) {
-        _inBus = false; _inHeistBus = false;
-      } else {
-        // Кто за рулём? Первый сел = водитель. Если я водитель — рулю
-        // локально и шлю heist_bus_drive ~15Гц. Иначе еду пассажиром
-        // по серверным координатам (автопилот или другой водитель).
-        const drvUid  = (_heistV2.bus && _heistV2.bus.driver_uid != null)
-                          ? String(_heistV2.bus.driver_uid) : null;
-        const iDrive  = drvUid && drvUid === String(QP.uid);
-        let bx, by, busAng;
-        if (iDrive) {
-          // Симуляция: input → vx, vy. Шлём heist_bus_drive.
-          // Если шины пробиты (анти-кэмп) — макс. скорость падает.
-          const punct = !!(_heistV2.bus && _heistV2.bus.tires_punctured);
-          const MAX_V = punct ? 2.7 : 6.0;
-          const ACC = punct ? 7.0 : 14.0;
-          const DEC = punct ? 9.0 : 18.0;
-          if (typeof _heistBusVx !== 'number') _heistBusVx = 0;
-          if (typeof _heistBusVy !== 'number') _heistBusVy = 0;
-          const tvx = inDx * MAX_V;
-          const tvy = inDy * MAX_V;
-          const useAcc = (Math.abs(inDx) + Math.abs(inDy) > 0.08) ? ACC : DEC;
-          const dvx = tvx - _heistBusVx;
-          const dvy = tvy - _heistBusVy;
-          _heistBusVx += Math.sign(dvx) * Math.min(Math.abs(dvx), useAcc * dt);
-          _heistBusVy += Math.sign(dvy) * Math.min(Math.abs(dvy), useAcc * dt);
-          const sp = Math.hypot(_heistBusVx, _heistBusVy);
-          if (sp > MAX_V) {
-            _heistBusVx *= MAX_V / sp; _heistBusVy *= MAX_V / sp;
-          }
-          bx = Math.max(1, Math.min(98, _heistV2.bus.x + _heistBusVx * dt));
-          by = Math.max(1, Math.min(98, _heistV2.bus.y + _heistBusVy * dt));
-          busAng = (sp > 0.2)
-            ? Math.atan2(_heistBusVy, _heistBusVx)
-            : (typeof _heistV2.bus.ang === 'number' ? _heistV2.bus.ang : 0);
-          _heistV2.bus.x = bx; _heistV2.bus.y = by; _heistV2.bus.ang = busAng;
-          // Throttle (~15 Гц как у обычной тачки)
-          if (!_lastHeistBusDriveSentAt) _lastHeistBusDriveSentAt = 0;
-          const nowMs = performance.now();
-          if (nowMs - _lastHeistBusDriveSentAt > 66) {
-            _lastHeistBusDriveSentAt = nowMs;
-            try {
-              ws && ws.send(JSON.stringify({ t: 'heist_bus_drive', d: {
-                x: +bx.toFixed(3), y: +by.toFixed(3), ang: +busAng.toFixed(3),
-              } }));
-            } catch(e) {}
-          }
-        } else {
-          bx = _heistV2.bus.x; by = _heistV2.bus.y;
-          busAng = (typeof _heistV2.bus.ang === 'number')
-            ? _heistV2.bus.ang
-            : Math.atan2(_heistV2.dropoff.y - by, _heistV2.dropoff.x - bx);
-        }
-        player.r = by; player.c = bx; player.ang = busAng;
-        player.walking = false;
-        // Камера за автобусом + look-ahead вперёд
-        const aimC = bx + Math.cos(busAng) * 1.6;
-        const aimR = by + Math.sin(busAng) * 1.6;
-        const targetCamX = (aimC - aimR) * TS * 0.5;
-        const targetCamY = (aimC + aimR) * TS * 0.5 * ISO_Y;
-        cam.x += (targetCamX - cam.x) * Math.min(1, dt * 6);
-        cam.y += (targetCamY - cam.y) * Math.min(1, dt * 6);
-        updateGtaInteractions();
-        updateZoneBtn();
-        updatePvpUI();
-        updateGtaQuestHud();
-        for (const [, o] of others) {
-          o.x += (o.tx - o.x) * Math.min(1, dt * 8);
-          o.y += (o.ty - o.y) * Math.min(1, dt * 8);
-          let aDiff = o.tAng - o.ang;
-          while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
-          while (aDiff < -Math.PI) aDiff += Math.PI * 2;
-          o.ang += aDiff * Math.min(1, dt * 8);
-        }
-        _interpQuestCars(dt);
-        _interpBeachgoers(dt);
-        _interpMichaelGuards(dt);
-        _tickBus(dt);
-        _tickParkingNpcs(dt);
-        return;
-      }
     } else {
       // Обычный городской автобус (маршрутный)
       _tickBus(dt);
@@ -14149,7 +13584,6 @@ function update(dt) {
   updateRobbery(performance.now());
   _updateBankRobbery(dt);
   tickRandomWorldEvents(performance.now());
-  _tickBankHeistUi(performance.now());
   // Хит-цель (бандит из aggroZones) пропала — либо убили без меня,
   // либо зона зачищена/исчезла. Сбрасываем зависший контракт чтобы
   // игрок мог взять новый. Пропускаем когда _myBrigadirKillSent —
@@ -21075,181 +20509,6 @@ function drawDropZone() {
   ctx.textAlign = 'left';
 }
 
-// ── Банк V2: рендер мешков / налётного автобуса / зоны сдачи ────
-function drawHeistBags() {
-  if (!_heistV2 || !_bankHeistActive) return;
-  const t = performance.now() * 0.001;
-  for (const b of _heistV2.bags) {
-    if (b.state === 'loaded' || b.state === 'delivered') continue;
-    if (b.state === 'carried') continue;   // нарисуется в drawHeistCarriedBag
-    const p = w2s(b.y, b.x);
-    const bob = Math.sin(t * 3 + b.x * 0.7) * 2;
-    // Glow
-    ctx.save();
-    ctx.fillStyle = 'rgba(255,215,107,.35)';
-    ctx.shadowColor = '#ffd76b';
-    ctx.shadowBlur = 14;
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y + 4, 9, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-    // Сам мешок 💰
-    ctx.font = '20px system-ui, "Segoe UI Emoji", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff';
-    ctx.shadowColor = '#000'; ctx.shadowBlur = 5;
-    ctx.fillText('💰', p.x, p.y - 2 + bob);
-    ctx.shadowBlur = 0;
-    ctx.textAlign = 'left';
-    // Если мешок dropped (выпал из мёртвого) — красный знак "!"
-    if (b.state === 'dropped') {
-      ctx.font = 'bold 11px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#ff5050';
-      ctx.fillText('!', p.x + 9, p.y - 8 + bob);
-      ctx.textAlign = 'left';
-    }
-  }
-}
-
-function drawHeistCarriedBag() {
-  // Маркер «несу мешок» над головой игрока
-  if (!_heistV2 || !_myHeistBagId) return;
-  const p = w2s(player.r + 0.5, player.c + 0.5);
-  const t = performance.now() * 0.001;
-  const bob = Math.sin(t * 4) * 1.5;
-  ctx.font = '18px system-ui, "Segoe UI Emoji", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
-  ctx.fillStyle = '#fff';
-  ctx.fillText('💰', p.x, p.y - TS * 1.05 + bob);
-  ctx.shadowBlur = 0;
-  ctx.textAlign = 'left';
-}
-
-function drawHeistBus() {
-  if (!_heistV2 || !_bankHeistActive) return;
-  const bx = _heistV2.bus.x, by = _heistV2.bus.y;
-  const p = w2s(by, bx);
-  // Корпус как у обычного автобуса, но с маркером «$»
-  const ang = Math.atan2(_heistV2.dropoff.y - by, _heistV2.dropoff.x - bx);
-  ctx.save();
-  ctx.translate(p.x, p.y);
-  ctx.rotate(ang);
-  // Тень
-  ctx.fillStyle = 'rgba(0,0,0,.45)';
-  ctx.beginPath();
-  ctx.ellipse(0, 8, 30, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Корпус — тёмно-жёлтый/чёрный (heist-cтиль)
-  ctx.fillStyle = '#e8a020';
-  ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
-  ctx.fillRect(-26, -13, 52, 26);
-  ctx.strokeRect(-26, -13, 52, 26);
-  // Чёрная полоса
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(-26, -3, 52, 6);
-  // Окна
-  ctx.fillStyle = '#9cc0d8';
-  ctx.fillRect(-20, -10, 8, 14);
-  ctx.fillRect(-8,  -10, 8, 14);
-  ctx.fillRect(4,   -10, 8, 14);
-  ctx.fillRect(16,  -10, 8, 14);
-  // Знак $
-  ctx.fillStyle = '#0a0a0a';
-  ctx.font = 'bold 14px sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('$', 0, 6);
-  ctx.restore();
-  // Над корпусом — счётчик «мешков внутри»
-  const bagsIn = _heistV2.bus.bags | 0;
-  ctx.font = 'bold 12px system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(0,0,0,.85)';
-  ctx.fillRect(p.x - 22, p.y - 32, 44, 16);
-  ctx.fillStyle = '#ffd76b';
-  ctx.fillText(`💰 ${bagsIn}`, p.x, p.y - 20);
-  ctx.textAlign = 'left';
-}
-
-function drawHeistDropoff() {
-  if (!_heistV2 || !_bankHeistActive) return;
-  const dx = _heistV2.dropoff.x, dy = _heistV2.dropoff.y;
-  const t = performance.now() * 0.001;
-  const pulse = 0.4 + Math.sin(t * 2) * 0.15;
-  // Большой круг на земле
-  const p = w2s(dy, dx);
-  ctx.save();
-  ctx.fillStyle = `rgba(255,80,80,${pulse * 0.25})`;
-  ctx.beginPath();
-  ctx.ellipse(p.x, p.y, 60, 30, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = `rgba(255,80,80,${0.5 + pulse * 0.4})`;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([8, 6]);
-  ctx.beginPath();
-  ctx.ellipse(p.x, p.y, 60, 30, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  // Иконка + подпись
-  ctx.font = 'bold 26px system-ui, "Segoe UI Emoji", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.shadowColor = '#000'; ctx.shadowBlur = 8;
-  ctx.fillStyle = '#fff';
-  ctx.fillText('🏴', p.x, p.y - 4 + Math.sin(t * 2.5) * 3);
-  ctx.font = 'bold 11px system-ui, sans-serif';
-  ctx.fillStyle = '#ffe890';
-  ctx.fillText('СХРОН', p.x, p.y + 14);
-  ctx.shadowBlur = 0;
-  ctx.textAlign = 'left';
-  ctx.restore();
-}
-
-function drawHeistHud() {
-  if (!_heistV2 || !_bankHeistActive) return;
-  const loot     = _heistV2.loot | 0;
-  const tleft    = _heistV2.time_left | 0;
-  const total    = _heistV2.bags.length;
-  let inSafe = 0, carried = 0, inBus = (_heistV2.bus.bags | 0);
-  for (const b of _heistV2.bags) {
-    if (b.state === 'safe' || b.state === 'dropped') inSafe++;
-    else if (b.state === 'carried') carried++;
-  }
-  // Фикс-плашка справа сверху (рядом с HUD'ом игрока)
-  const x = canvas.width - 230, y = 56;
-  const w = 220, h = 78;
-  ctx.save();
-  ctx.fillStyle = 'rgba(15,15,18,.86)';
-  ctx.strokeStyle = '#ffd76b';
-  ctx.lineWidth = 1.5;
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeRect(x, y, w, h);
-  // Заголовок
-  ctx.font = 'bold 12px system-ui, sans-serif';
-  ctx.fillStyle = '#ffd76b';
-  ctx.fillText('🏦 НАЛЁТ НА БАНК', x + 8, y + 16);
-  // Куш — крупно
-  ctx.font = 'bold 22px system-ui, sans-serif';
-  ctx.fillStyle = '#fff';
-  ctx.fillText(`$${loot.toLocaleString('ru')}`, x + 8, y + 40);
-  // Мешки
-  ctx.font = '11px system-ui, sans-serif';
-  ctx.fillStyle = '#a8c0e0';
-  ctx.fillText(`📦 в автобусе: ${inBus}   на руках: ${carried}   в сейфе: ${inSafe}`,
-               x + 8, y + 56);
-  // Таймер
-  const mm = Math.floor(tleft / 60), ss = tleft % 60;
-  const timeColor = tleft < 30 ? '#ff5050' : '#9cf';
-  ctx.fillStyle = timeColor;
-  ctx.fillText(`⏱ ${mm}:${ss < 10 ? '0' + ss : ss}`, x + 8, y + 70);
-  // Индикатор прокола шин — справа от таймера, красным
-  if (_heistV2.bus && _heistV2.bus.tires_punctured) {
-    ctx.fillStyle = '#ff5050';
-    ctx.fillText('💥 шины пробиты', x + 80, y + 70);
-  }
-  ctx.restore();
-}
-
 // ── Маркеры box-доставки (pickup на пирсе, dropoff в городе) ────
 // Показываем зелёный кружок-маркер на земле в нужной точке + пульс.
 // Когда state=pending → светится pickup. Когда carrying → dropoff.
@@ -23709,9 +22968,6 @@ function render() {
   drawDropZone();
   // 1.9) Маркеры box-доставки (pickup на пирсе, dropoff в городе)
   drawBoxQuestMarkers();
-  // 1.95) Банк V2 — зона сдачи + мешки на земле (под автобусом, не под игроком)
-  drawHeistDropoff();
-  drawHeistBags();
   // 2) Объекты с depth-sort
   const items = [];
   for (let r = r0; r < r1; r++) {
@@ -24513,10 +23769,6 @@ function render() {
   drawEventArrow(r0, r1, c0, c1);
   // 🎯 над активной хит-целью Бригадира — поверх всего
   drawHitTargetMarker();
-  // Банк V2 — налётный автобус + мешок над игроком + HUD-плашка с куш
-  drawHeistBus();
-  drawHeistCarriedBag();
-  drawHeistHud();
   // Лента глобальных событий (справа над миникартой)
   drawFeedEvents();
   // Мини-карта
@@ -27149,6 +26401,7 @@ function enterBankInterior(bank) {
       c:W/2-3+(i/Math.max(1,bagCount-1))*6+(Math.random()-.5)*.5});
   }
   _bankInt={bank,W,H,crackTime,counterRow,
+    room:'lobby',
     phase:vaultOpen?'vault_open':'lobby',
     crackProg:vaultOpen?1:0,_crackStartedAt:null,
     bags,myBag:false,_bagsLoaded:existingRob?_bankRob.bagsLoaded:0,
@@ -27163,7 +26416,8 @@ function enterBankInterior(bank) {
   cam.y=(player.c+player.r)*TS*0.5*ISO_Y;
   showToast(vaultOpen?`🏦 ${bank.name} — хранилище открыто!`:`🏦 ${bank.name}`,vaultOpen?'💰':'🏦',2000);
   try{hapticHit&&hapticHit();}catch(e){}
-  if (!vaultOpen&&ws&&ws.readyState===1){
+  // bank_rob_start шлём только когда реально начинаем взлом (не при входе)
+  if (vaultOpen&&ws&&ws.readyState===1){
     try{ws.send(JSON.stringify({t:'bank_rob_start',d:{bank_id:bank.id}}));}catch(e){}
   }
   _updateBankZoneBtn();
@@ -27235,32 +26489,32 @@ function _updateBankInterior(dt) {
     }
   }
   const hasWeapon=_isArmed();
-  // Сотрудники видят оружие → немедленно убегают жаловаться (snitch)
-  if (hasWeapon && !int._weaponPanicTriggered) {
-    for (const npc of int.npcs) {
-      if (npc.type==='guard'||npc.state!=='normal') continue;
-      const dist=Math.hypot(player.r-npc.r,player.c-npc.c);
-      if (dist<9) {
-        int._weaponPanicTriggered=true;
-        npc.state='panic';
-        npc.cryText='Помогите! Он вооружён!'; npc.cryUntil=now+3000;
-        const dr=H+1-npc.r,dc=W/2-npc.c,mag=Math.hypot(dr,dc)||1;
-        npc.fleeVr=dr/mag*4; npc.fleeVc=dc/mag*4;
-        showToast('😱 Сотрудник бежит звонить в полицию!','🚨',2500);
-        break;
+  const isRobbery=(int.phase==='cracking'||int.phase==='vault_open');
+  // Охрана и паника — только когда уже идёт ограбление (нажали «Взломать»)
+  if (isRobbery) {
+    // Сотрудники видят оружие → убегают
+    if (hasWeapon && !int._weaponPanicTriggered) {
+      for (const npc of int.npcs) {
+        if (npc.type==='guard'||npc.state!=='normal') continue;
+        const dist=Math.hypot(player.r-npc.r,player.c-npc.c);
+        if (dist<9) {
+          int._weaponPanicTriggered=true;
+          npc.state='panic';
+          npc.cryText='Помогите! Он вооружён!'; npc.cryUntil=now+3000;
+          const dr=H+1-npc.r,dc=W/2-npc.c,mag=Math.hypot(dr,dc)||1;
+          npc.fleeVr=dr/mag*4; npc.fleeVc=dc/mag*4;
+          break;
+        }
       }
     }
-  }
-  if (!hasWeapon) int._weaponPanicTriggered=false;  // убрал — сброс флага
-  for (const npc of int.npcs) {
-    if (npc.type!=='guard') continue;
-    if (npc.state!=='normal') continue;
-    const dist=Math.hypot(player.r-npc.r,player.c-npc.c);
-    if (dist<6&&(hasWeapon||(player.r<counterRow&&int.phase!=='vault_open'))) {
-      if (!npc._alertAt){npc._alertAt=now;npc.cryText=hasWeapon?'Брось оружие!':'Туда нельзя!';npc.cryUntil=now+2500;}
-    }
-    if ((int.phase==='cracking'||int.phase==='vault_open')&&dist<8) {
-      npc.state='hostile'; npc.cryText='Стоять! Полиция!'; npc.cryUntil=now+99999;
+    if (!hasWeapon) int._weaponPanicTriggered=false;
+    // Охранники идут к игроку
+    for (const npc of int.npcs) {
+      if (npc.type!=='guard'||npc.state!=='normal') continue;
+      const dist=Math.hypot(player.r-npc.r,player.c-npc.c);
+      if (dist<8) {
+        npc.state='hostile'; npc.cryText='Стоять! Полиция!'; npc.cryUntil=now+99999;
+      }
     }
   }
   if (int.panicAt!==null) {
@@ -27352,7 +26606,20 @@ function _updateBankInterior(dt) {
     if (npc.state==='panic') {
       npc.r+=(npc.fleeVr||0)*dt;npc.c+=(npc.fleeVc||0)*dt;
       npc.ang=Math.atan2(npc.fleeVr||0,npc.fleeVc||0);
-      if (npc.r>H+1){npc.state='fled';int._snitches.push({r:int.bank.r+3,c:int.bank.c+1});}
+      if (npc.r>H+1 && npc.state!=='fled'){
+        npc.state='fled';
+        // Спавним мирового NPC у выхода из банка — он побежит в полицию
+        const exitR=int.bank.r+3+Math.random()*0.6-0.3;
+        const exitC=int.bank.c+1.5+Math.random()*1-0.5;
+        const snitchLook=npc.look||{gender:Math.floor(Math.random()*2),skin:Math.floor(Math.random()*5),body:1,face:Math.floor(Math.random()*4),hair:Math.floor(Math.random()*5),hat:0};
+        const cries=['ОГРАБЛЕНИЕ!! КОПЫ!','ГРАБЯТ БАНК!! ПОМОГИТЕ!','ВЫЗЫВАЙТЕ ПОЛИЦИЮ!!'];
+        NPCS.push({r:exitR,c:exitC,tr:exitR,tc:exitC,speed:1.6,ang:0,walkPhase:0,idleUntil:0,
+          look:snitchLook,snitching:true,
+          snitchUntil:performance.now()+90000,
+          cryUntil:performance.now()+2500,
+          cryText:cries[Math.floor(Math.random()*cries.length)],
+          ejected:true});
+      }
     }
   }
   if (int.phase==='vault_open'&&!int.myBag) {
