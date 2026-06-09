@@ -6521,6 +6521,7 @@ const BANK_INTERACT_R = 5.0;  // радиус взаимодействия с б
 
 // Состояние активного ограбления банка (null = не активно)
 let _bankRob = null;
+let _vaultDroppedBags = [];  // мешки на земле: [{id,r,c,value,bankId,droppedAt}]
 // Состояние интерьера банка (null = снаружи)
 let _bankInt = null;
 // Клиентские кулдауны банков: bankId → timestamp до которого закрыт
@@ -8625,9 +8626,13 @@ function handleEventPacket(d) {
     }
   } else if (kind === 'bank_rob_finished') {
     // Сервер завершил ограбление и отправил выплату
-    if (_bankRob && d.bank_id === _bankRob.bank.id) {
+    if (d.bank_id && (!_bankRob || d.bank_id === _bankRob.bank.id)) {
       const payout = d.payout || 0;
-      showToast(`🏆 Ограбление завершено! +$${payout.toLocaleString('ru')}`, '💰', 4000);
+      if (d.payout > 0 && d.ok) {
+        showToast(`🏆 Ограбление завершено! +$${payout.toLocaleString('ru')} (${d.bags || '?'} мешков)`, '💰', 5000);
+      } else {
+        showToast(`🏆 Ограбление завершено! +$${payout.toLocaleString('ru')}`, '💰', 4000);
+      }
       try { hapticHit && hapticHit(); } catch(e) {}
       _bankRob = null;
       _myBagWeight = 0;
@@ -9356,6 +9361,8 @@ function wsConnect() {
             exitCar('death');
             viewZoom = 1.0;
           }
+          // Мешок падает на землю при смерти
+          if (_myBagWeight > 0 && _bankRob && _bankRob.myBag) { dropVaultBag(); }
         } else if (wasDead && !myDead) {
           // Респаун — сбрасываем причину смерти. Принудительно
           // телепортируемся в серверную spawn-точку.
@@ -10179,6 +10186,44 @@ function updateGtaInteractions() {
       }
     }
   }
+  // Фаза escaping — разгрузка мешков в ближайший купленный бизнес
+  if (_bankRob && _bankRob.phase === 'escaping' && (_bankRob.bagsLoaded || 0) > 0) {
+    let nearBiz = null, nearDist = 4.0;
+    if (typeof BUSINESS_POIS !== 'undefined') {
+      for (const biz of BUSINESS_POIS) {
+        const owned = myBusinesses && myBusinesses.get && myBusinesses.get(biz.id);
+        if (!owned) continue;
+        const d = Math.hypot(player.r - biz.r, player.c - biz.c);
+        if (d < nearDist) { nearDist = d; nearBiz = biz; }
+      }
+    }
+    if (nearBiz) {
+      _gtaActionKind = 'biz_deliver';
+      _gtaActionCarId = nearBiz.id;
+      const bags = _bankRob.bagsLoaded;
+      const rewardPer = (_bankRob.bank && _bankRob.bank.reward_per_bag) || 1200;
+      const total = bags * rewardPer;
+      _gtaBtn.textContent = `📦 Разгрузить ${bags} мешков (+$${total.toLocaleString('ru')})`;
+      _gtaBtn.style.display = 'block';
+      return;
+    }
+  }
+  // Несём мешок снаружи банка → кнопка погрузки в фургон
+  if (_bankRob && _bankRob.myBag && _bankRob.phase === 'loading') {
+    const vanZone = _getBankVanZone(_bankRob.bank);
+    const distToVan = Math.hypot(player.r - vanZone.r, player.c - vanZone.c);
+    if (distToVan < 3.0) {
+      _gtaActionKind = 'bag_load';
+      _gtaBtn.textContent = '🚐 Погрузить мешок в фургон';
+      _gtaBtn.style.display = 'block';
+      return;
+    }
+    // Далеко от фургона — кнопка сброса мешка
+    _gtaActionKind = 'bag_drop';
+    _gtaBtn.textContent = '💼 Снять мешок';
+    _gtaBtn.style.display = 'block';
+    return;
+  }
   // 1) Машина моего контракта — приоритет (сесть за руль)
   let nearestQc = null, nearestD = GTA_INTERACT_R;
   let nearestKind = null;   // 'driver' | 'passenger'
@@ -10294,6 +10339,12 @@ _gtaBtn.addEventListener('click', () => {
     enterBus();
   } else if (_gtaActionKind === 'bus_exit') {
     exitBus();
+  } else if (_gtaActionKind === 'bag_drop') {
+    dropVaultBag();
+  } else if (_gtaActionKind === 'bag_load') {
+    loadBagIntoVan();
+  } else if (_gtaActionKind === 'biz_deliver') {
+    deliverBagsToBusinesses();
   }
 });
 
@@ -11978,6 +12029,7 @@ function fire(angle = null) {
     return;
   }
   if (myDead) return;
+  if (_myBagWeight > 0) { showToast('🎒 С мешком нельзя стрелять', '⚠️', 1400); return; }
   // В тюрьме NPC-цели запрещены (см. использование _meInJail ниже).
   // Вычисляем здесь, чтобы и lock-on на NPC отключить.
   const _meInJail = (myJailIn > 0) &&
@@ -12924,6 +12976,7 @@ function sendChat(text) {
 }
 function sendShoot(ang) {
   if (!ws || ws.readyState !== 1) return;
+  if (_myBagWeight > 0) { showToast('🎒 С мешком нельзя стрелять', '⚠️', 1400); return; }
   try { ws.send(JSON.stringify({ t: 'shoot', d: { ang: +ang.toFixed(3) } })); } catch(e) {}
 }
 function sendCaptureTry() {
@@ -13542,7 +13595,7 @@ function update(dt) {
   }
 
   // Замедление при несении мешка из банка
-  const _bagSpeedMul = _myBagWeight > 0 ? 0.6 : 1.0;
+  const _bagSpeedMul = _myBagWeight > 0 ? 0.5 : 1.0;
   const speed = 5.0 * _bagSpeedMul; // тайлов/сек
   player.walking = false;
   // Мёртвый игрок не двигается — ждём респауна сервера, иначе появлялся
@@ -23664,6 +23717,21 @@ function render() {
       ctx.fillText('💰', px, py - 42);
       ctx.restore();
     }
+    // Рендер упавших мешков на земле
+    const _nowBag = performance.now();
+    for (let _bi = _vaultDroppedBags.length - 1; _bi >= 0; _bi--) {
+      const bag = _vaultDroppedBags[_bi];
+      if (_nowBag - bag.droppedAt > 60000) { _vaultDroppedBags.splice(_bi, 1); continue; }
+      const _bp = w2s(bag.r, bag.c);
+      if (!_bp) continue;
+      const pulse = 0.6 + 0.4 * Math.sin(_nowBag * 0.005);
+      ctx.save();
+      ctx.globalAlpha = pulse;
+      ctx.font = '16px "Segoe UI Emoji", system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('💰', _bp.x, _bp.y - 10);
+      ctx.restore();
+    }
     // Прогресс-бар взлома хранилища
     if (_bankRob && _bankRob.phase === 'cracking') {
       const inVault = Math.hypot(player.r - _bankRob.bank.r - 1, player.c - _bankRob.bank.c - 1) < 2.5;
@@ -25629,6 +25697,57 @@ function _takeBankBag() {
   _updateBankZoneBtn();
 }
 
+// Бросить мешок (снять с плеча) — мешок остаётся на земле
+function dropVaultBag() {
+  if (!_bankRob || !_bankRob.myBag) return;
+  const bag = _bankRob.myBag;
+  _vaultDroppedBags.push({
+    id: bag.id || ('bag_' + Date.now()),
+    r: player.r, c: player.c,
+    value: bag.value || 0,
+    bankId: _bankRob.bank ? _bankRob.bank.id : null,
+    droppedAt: performance.now()
+  });
+  _bankRob.myBag = null;
+  _myBagWeight = 0;
+  showToast('💼 Мешок брошен', '⚠️', 1800);
+  try { ws && ws.send(JSON.stringify({ t: 'bank_bag_drop', d: { bank_id: _bankRob && _bankRob.bank ? _bankRob.bank.id : null, r: player.r, c: player.c } })); } catch(e) {}
+  if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
+}
+
+// Загрузить мешок в фургон
+function loadBagIntoVan() {
+  if (!_bankRob || !_bankRob.myBag) return;
+  _bankRob.bagsLoaded = (_bankRob.bagsLoaded || 0) + 1;
+  _bankRob.myBag = null;
+  _myBagWeight = 0;
+  const loaded = _bankRob.bagsLoaded;
+  const maxBags = (_bankRob.bagsMax || 6);
+  showToast(`✅ Мешок в фургоне! (${loaded}/${maxBags})`, '🚐', 1800);
+  try { ws && ws.send(JSON.stringify({ t: 'bank_rob_bag_loaded', d: { bank_id: _bankRob.bank.id, bags: loaded } })); } catch(e) {}
+  if (loaded >= maxBags) {
+    _bankRob.phase = 'escaping';
+    showToast('🚐 Фургон полон! Едем разгружать', '🏁', 2500);
+  }
+  if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
+  else if (typeof updateZoneBtn === 'function') updateZoneBtn();
+}
+
+// Разгрузить мешки в бизнес и получить награду
+function deliverBagsToBusinesses() {
+  if (!_bankRob || _bankRob.phase !== 'escaping' || !(_bankRob.bagsLoaded > 0)) return;
+  const bizId = _gtaActionCarId;
+  const bags = _bankRob.bagsLoaded;
+  const rewardPer = (_bankRob.bank && _bankRob.bank.reward_per_bag) || 1200;
+  const total = bags * rewardPer;
+  try { ws && ws.send(JSON.stringify({ t: 'bank_rob_deliver', d: { bank_id: _bankRob.bank.id, biz_id: bizId, bags } })); } catch(e) {}
+  showToast(`💰 Разгружаем! +$${total.toLocaleString('ru')}`, '🏆', 3500);
+  _bankRob = null;
+  _myBagWeight = 0;
+  if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
+  else if (typeof updateZoneBtn === 'function') updateZoneBtn();
+}
+
 // Отмена / провал ограбления банка
 function abortBankRobbery(reason) {
   if (!_bankRob) return;
@@ -25727,26 +25846,13 @@ function _updateBankRobbery(dt) {
     }
   }
 
-  // Несёт мешок → проверить зону фургона
+  // Несёт мешок → показываем кнопку погрузки когда рядом фургон
+  // (автоматика заменена на кнопку в updateGtaInteractions)
   if (rob.phase === 'loading' && rob.myBag) {
     const vanZone = _getBankVanZone(rob.bank);
     const distToVan = Math.hypot(player.r - vanZone.r, player.c - vanZone.c);
-    if (distToVan < 2.5) {
-      rob.bagsLoaded++;
-      rob.myBag = null;
-      _myBagWeight = 0;
-      showToast(`💰 Мешок загружен! (${rob.bagsLoaded}/${rob.bagsMax})`, '✅', 1800);
-      try { hapticHit && hapticHit(); } catch(e) {}
-      const wsReady = !!(ws && ws.readyState === 1);
-      if (wsReady) {
-        try { ws.send(JSON.stringify({ t: 'bank_rob_bag_loaded', d: { bank_id: rob.bank.id, bags: rob.bagsLoaded } })); } catch(e) {}
-      }
-      // Все мешки погружены — автоматически переходим в фазу escaping
-      if (rob.bagsLoaded >= rob.bagsMax) {
-        rob.phase = 'escaping';
-        showToast('🚐 Все мешки в фургоне! Уезжаем!', '✅', 2500);
-        try { hapticHit && hapticHit(); } catch(e) {}
-      }
+    if (distToVan < 3.0) {
+      // Кнопка показывается через updateGtaInteractions → bag_load
       _updateBankZoneBtn();
     }
   }
@@ -26518,11 +26624,20 @@ function _updateBankInterior(dt) {
     }
   }
   if (int.panicAt!==null) {
+    const _panicPhrases = {
+      guard:  ['Стоять!', 'Брось оружие!', 'Тревога!', 'Ни с места!', 'Полиция!'],
+      teller: ['Помогите!', 'Ограбление!', 'Боже мой!', 'Не стреляйте!', '😱'],
+      admin:  ['Охрана!', 'Вызовите полицию!', 'Все на пол!', 'Это ограбление!'],
+      staff:  ['Ааа!', 'На пол!', 'Помогите!', 'Что происходит?!'],
+      client: ['Ааа!', 'Бегите!', 'Убивают!', 'Мамочки!', '😱 Помогите!'],
+      lounge: ['Ааа!', 'Бежим отсюда!', 'Это ограбление!'],
+    };
     for (const npc of int.npcs) {
       if (npc.state==='panic'||npc.state==='fled'||npc.state==='hostile') continue;
       npc.state=(npc.type==='guard')?'hostile':'panic';
       npc.cryUntil=now+2500;
-      npc.cryText=npc.type==='guard'?'Стоять!':npc.type==='teller'?'Помогите!':npc.type==='admin'?'Охрана!':'Ааа!';
+      const pool=_panicPhrases[npc.type]||_panicPhrases.client;
+      npc.cryText=pool[Math.floor(Math.random()*pool.length)];
       const dr=H+1-npc.r,dc=W/2-npc.c,mag=Math.hypot(dr,dc)||1;
       npc.fleeVr=dr/mag*3.8; npc.fleeVc=dc/mag*3.8;
     }

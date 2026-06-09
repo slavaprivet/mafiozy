@@ -11522,6 +11522,8 @@ class WorldSim:
         'box_quests',
         # GTA-контракты Майкла: спавненные квестовые тачки.
         'quest_cars', '_quest_car_next_id',
+        # Ограбления банков: bank_id -> {bags_loaded, started_at, robber_uid}
+        'bank_robs',
     )
 
     # ── Эмерджентные события: параметры ────────────────────────────
@@ -11955,6 +11957,8 @@ class WorldSim:
         # с новыми x/y; мы только клампим и пере-broadcast'им.
         self.quest_cars = {}
         self._quest_car_next_id = 1
+        # Ограбления банков: bank_id -> {bags_loaded, started_at, robber_uid}
+        self.bank_robs = {}
 
     def add_or_update(self, uid: str, name: str, look: dict,
                        wanted: float = 0.0, jail_until: int = 0,
@@ -18190,6 +18194,102 @@ async def _coop_http_app():
                             for _u, _ws2 in list(world.connections.items()):
                                 try: await _ws2.send_str(announce_pkt)
                                 except Exception: pass
+                            # Сохранить состояние ограбления
+                            world.bank_robs[bank_id] = {
+                                'bags_loaded': 0,
+                                'started_at': time.time(),
+                                'robber_uid': uid,
+                            }
+                    elif t == 'bank_rob_bag_loaded':
+                        p = world.players.get(uid)
+                        bank_id = (d or {}).get('bank_id')
+                        bags = int((d or {}).get('bags') or 0)
+                        if p and not p.get('dead') and bank_id:
+                            if '_bank_rob' not in p:
+                                p['_bank_rob'] = {}
+                            p['_bank_rob'][bank_id] = {'bags': bags, 'at': time.time()}
+                            if bank_id in world.bank_robs:
+                                world.bank_robs[bank_id]['bags_loaded'] = bags
+                    elif t == 'bank_rob_deliver':
+                        p = world.players.get(uid)
+                        bank_id = (d or {}).get('bank_id')
+                        biz_id  = str((d or {}).get('biz_id') or '')
+                        bags    = int((d or {}).get('bags') or 0)
+
+                        BANK_CFG = {
+                            'small':  {'reward_per_bag': 1200, 'bags_max': 6},
+                            'medium': {'reward_per_bag': 2500, 'bags_max': 12},
+                            'large':  {'reward_per_bag': 5000, 'bags_max': 18},
+                        }
+                        cfg = BANK_CFG.get(bank_id)
+
+                        if not p or p.get('dead') or not bank_id or not biz_id or not cfg or bags <= 0:
+                            pass
+                        else:
+                            bags = min(bags, cfg['bags_max'])
+                            payout = bags * cfg['reward_per_bag']
+
+                            owner_ok = False
+                            try:
+                                async with aiosqlite.connect(DB_PATH) as db:
+                                    cur = await db.execute(
+                                        "SELECT biz_id FROM businesses WHERE uid=? AND biz_id=?",
+                                        (int(uid), biz_id))
+                                    row = await cur.fetchone()
+                                    if row:
+                                        owner_ok = True
+                                        await db.execute(
+                                            "UPDATE characters SET cash = cash + ? WHERE telegram_id = ?",
+                                            (payout, int(uid)))
+                                        await db.commit()
+                            except Exception:
+                                owner_ok = False
+                                payout = 0
+
+                            if not owner_ok:
+                                try:
+                                    await ws.send_str(json.dumps({'t': 'event', 'd': {
+                                        'kind': 'bank_rob_finished', 'bank_id': bank_id,
+                                        'ok': False, 'reason': 'not_owner', 'payout': 0
+                                    }}, ensure_ascii=False))
+                                except Exception:
+                                    pass
+                            else:
+                                # Очистить состояние
+                                world.bank_robs.pop(bank_id, None)
+                                if '_bank_rob' in p:
+                                    p['_bank_rob'].pop(bank_id, None)
+
+                                # Ответить
+                                try:
+                                    await ws.send_str(json.dumps({'t': 'event', 'd': {
+                                        'kind': 'bank_rob_finished', 'bank_id': bank_id,
+                                        'ok': True, 'payout': payout, 'bags': bags, 'biz_id': biz_id,
+                                    }}, ensure_ascii=False))
+                                except Exception:
+                                    pass
+
+                                # Wanted +1
+                                p['_wanted'] = min(3, float(p.get('_wanted') or 0) + 1)
+                                # Спавним 2 копов у банка
+                                import random
+                                bank_coords = {'small': (5, 15), 'medium': (15, 55), 'large': (55, 35)}
+                                if bank_id in bank_coords:
+                                    br, bc = bank_coords[bank_id]
+                                    for _ in range(2):
+                                        sr = br + 2 + (random.random() - 0.5) * 3
+                                        sc = bc + 2 + (random.random() - 0.5) * 3
+                                        if hasattr(world, 'spawn_cop'):
+                                            world.spawn_cop(sc, sr, uid, kind='combat')
+                    elif t == 'bank_bag_drop':
+                        p = world.players.get(uid)
+                        bank_id = (d or {}).get('bank_id')
+                        if p and bank_id and '_bank_rob' in p:
+                            p['_bank_rob'].pop(bank_id, None)
+                        if bank_id and bank_id in world.bank_robs:
+                            rob = world.bank_robs[bank_id]
+                            if rob.get('robber_uid') == uid:
+                                world.bank_robs.pop(bank_id, None)
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass
