@@ -18715,6 +18715,26 @@ async def _coop_http_app():
                                  'd': dict(reply, kind='bank_heist_start_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'bank_rob_start':
+                        # Одиночное ограбление банка: игрок нажал «Взломать» внутри.
+                        # Даём wanted +2, оповещаем всех игроков мира.
+                        p = world.players.get(uid)
+                        bank_id = (d or {}).get('bank_id') if isinstance(d, dict) else None
+                        if p and not p.get('dead') and bank_id:
+                            # Wanted +2 за ограбление банка
+                            p['_wanted'] = min(3, float(p.get('_wanted') or 0) + 2)
+                            pname = p.get('name') or 'Неизвестный'
+                            bank_names = {'small': 'Банк «Окраина»', 'medium': 'Банк «Район»', 'large': 'Банк «Центральный»'}
+                            bank_label = bank_names.get(bank_id, f'Банк {bank_id}')
+                            announce_pkt = json.dumps({'t': 'event', 'd': {
+                                'kind': 'bank_rob_announce',
+                                'bank_id': bank_id,
+                                'robber': pname,
+                                'msg': f'🚨 {pname} грабит {bank_label}!'
+                            }}, ensure_ascii=False)
+                            for _u, _ws2 in list(world.connections.items()):
+                                try: await _ws2.send_str(announce_pkt)
+                                except Exception: pass
                     elif t == 'heist_pickup_bag':
                         # Игрок поднял мешок с земли в активном банк-налёте.
                         # Валидация: жив, состоит в hid, мешок в state='safe'
