@@ -9601,6 +9601,16 @@ function updateZoneBtn() {
       label = nearVault ? '🔓 Взломать хранилище' : null;
     } else if (int.phase==='cracking') {
       label = `🔒 Взлом ${(int.crackProg*100).toFixed(0)}%`;
+    } else if (int.room === 'vault' && !int.myBag) {
+      // В хранилище — показываем кнопку только когда рядом мешок
+      const nearBag = int.bags.find(b => !b.taken && Math.hypot(player.r-b.r, player.c-b.c) < 1.8);
+      if (nearBag) {
+        label = '💰 Взять мешок';
+        _zoneEl.dataset.vaultBagId = String(nearBag.id);
+      } else {
+        delete _zoneEl.dataset.vaultBagId;
+        label = null;
+      }
     } else if (int.myBag) {
       label = '🚪 Выйти с мешком';
     } else {
@@ -9720,6 +9730,19 @@ _zoneEl.addEventListener('click', () => {
         return;
       }
       if (int.phase==='cracking') return; // взлом идёт — ничего
+      // Хранилище: подбор мешка по кнопке
+      if (int.room === 'vault' && !int.myBag && _zoneEl.dataset.vaultBagId) {
+        const bag = int.bags.find(b => b.id === +_zoneEl.dataset.vaultBagId && !b.taken);
+        if (bag) {
+          bag.taken = true;
+          int.myBag = {id: bag.id, value: int.bank.reward_per_bag};
+          _myBagWeight = 1;
+          delete _zoneEl.dataset.vaultBagId;
+          showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`, '💼', 2200);
+          try{hapticHit&&hapticHit();}catch(e){}
+        }
+        return;
+      }
       if (int.myBag) { exitBankInterior(true); return; }
       exitBankInterior(false); return;
     }
@@ -11785,7 +11808,8 @@ function updateCaptureBanner() {
 // текст пришёл в окне 800мс, игнорируем. Защита от очередей событий типа
 // «началась перестрелка» × 5 раз подряд.
 let _toastLast = { txt: '', t: 0 };
-function showToast(msg, ms = 2200) {
+function showToast(msg, iconOrMs = 2200, duration) {
+  const ms = (typeof iconOrMs === 'number') ? iconOrMs : (typeof duration === 'number' ? duration : 2200);
   const now = performance.now();
   if (msg === _toastLast.txt && (now - _toastLast.t) < 800) return;
   _toastLast = { txt: msg, t: now };
@@ -26913,27 +26937,21 @@ function _updateBankInterior(dt) {
       }
     }
   }
-  if (int.phase==='vault_open'&&!int.myBag) {
-    for (const bag of int.bags) {
-      if (bag.taken) continue;
-      if (Math.hypot(player.r-bag.r,player.c-bag.c)<1.6) {
-        bag.taken=true;int.myBag={id:bag.id,value:int.bank.reward_per_bag};_myBagWeight=1;
-        showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`,'💼',2200);
-        try{hapticHit&&hapticHit();}catch(e){}break;
-      }
-    }
-  }
+  // Авто-подбор убран — мешок берётся только кнопкой (см. updateZoneBtn / _zoneEl click)
   // Переход в хранилище / обратно
   if (_bankInt && _bankInt.phase === 'vault_open') {
+    const vH = _bankInt.vaultH || 12;
     if (_bankInt.room === 'lobby' && player.r < 1.2 && Math.abs(player.c - _bankInt.W/2) < 3.5) {
       _bankInt.room = 'vault';
       _bankInt._vaultEnteredAt = performance.now();
-      player.r = _bankInt.vaultH - 1.5;
+      player.r = 1.5;  // спавним на севере хранилища (у мешков), не у выхода
       player.c = _bankInt.vaultW / 2;
       showToast('💰 Хранилище открыто!', '🔓', 1500);
-    } else if (_bankInt.room === 'vault' && player.r > (_bankInt.vaultH || 12) - 1.5) {
+    } else if (_bankInt.room === 'vault' && player.r >= vH - 0.8
+               && (performance.now() - (_bankInt._vaultEnteredAt||0)) > 600) {
+      // Выход — игрок дошёл до южной стены; cooldown 600мс чтобы не возвращало сразу
       _bankInt.room = 'lobby';
-      player.r = 1.0;
+      player.r = 2.5;  // не 1.0 — иначе сразу триггерит повторный вход (< 1.2)
       player.c = _bankInt.W / 2;
     }
   }
