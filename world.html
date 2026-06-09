@@ -26501,13 +26501,17 @@ function enterBankInterior(bank) {
   if (existingRob&&bagsLeft<=0){ showToast('💰 Все мешки взяты!','✅',1800); return; }
   const cfg=_BINT[bank.size]||_BINT.small;
   const {W,H,crackTime,counterRow}=cfg;
+  const vW=Math.floor(W*0.26), vH=Math.floor(H*0.55);
   const bags=[],bagCount=vaultOpen?bagsLeft:bank.bags;
   for (let i=0;i<bagCount;i++) {
-    bags.push({id:i,taken:false,r:1.2+Math.random()*1.2,
-      c:W/2-3+(i/Math.max(1,bagCount-1))*6+(Math.random()-.5)*.5});
+    bags.push({id:i,taken:false,
+      r:1+Math.random()*(vH-3),
+      c:1+Math.random()*(vW-2)});
   }
   _bankInt={bank,W,H,crackTime,counterRow,
     room:'lobby',
+    vaultW:Math.floor(W*0.26),
+    vaultH:Math.floor(H*0.55),
     phase:vaultOpen?'vault_open':'lobby',
     crackProg:vaultOpen?1:0,_crackStartedAt:null,
     bags,myBag:false,_bagsLoaded:existingRob?_bankRob.bagsLoaded:0,
@@ -26554,6 +26558,11 @@ function exitBankInterior(withBag) {
 
 function _isBlockedInterior(r,c) {
   const int=_bankInt; if (!int) return false;
+  if (int.room === 'vault') {
+    const vW = int.vaultW, vH = int.vaultH;
+    if (r < 0.3 || r > vH - 0.2 || c < 0.3 || c > vW - 0.3) return true;
+    return false;
+  }
   const {W,H,counterRow}=int;
   if (r<0.4||r>H-.15) return true;
   if (c<.4||c>W-.4) return true;
@@ -26589,6 +26598,7 @@ function _updateBankInterior(dt) {
     int.crackProg=Math.min(1,(now-int._crackStartedAt)/1000/int.crackTime);
     if (int.crackProg>=1) {
       int.phase='vault_open'; int.panicAt=now;
+      int._vaultOpenedAt=now;
       showToast('🔓 Хранилище открыто! Иди за мешком','💰',2500);
       try{hapticHit&&hapticHit();}catch(e){}
       if (ws&&ws.readyState===1){try{ws.send(JSON.stringify({t:'bank_rob_announce',d:{bank_id:int.bank.id}}));}catch(e){}}
@@ -26747,6 +26757,20 @@ function _updateBankInterior(dt) {
       }
     }
   }
+  // Переход в хранилище / обратно
+  if (_bankInt && _bankInt.phase === 'vault_open') {
+    if (_bankInt.room === 'lobby' && player.r < 1.2 && Math.abs(player.c - _bankInt.W/2) < 3.5) {
+      _bankInt.room = 'vault';
+      _bankInt._vaultEnteredAt = performance.now();
+      player.r = _bankInt.vaultH - 1.5;
+      player.c = _bankInt.vaultW / 2;
+      showToast('💰 Хранилище открыто!', '🔓', 1500);
+    } else if (_bankInt.room === 'vault' && player.r > _bankInt.vaultH - 0.8) {
+      _bankInt.room = 'lobby';
+      player.r = 0.8;
+      player.c = _bankInt.W / 2;
+    }
+  }
   if (player.r>=H-.6){exitBankInterior(!!int.myBag);return;}
   const el=document.getElementById('bankRobHud');
   if (!el) return;
@@ -26768,6 +26792,51 @@ function _updateBankInterior(dt) {
   }
   if (pb)pb.style.display=isRobbing?'block':'none';
   if (pt)pt.style.display=isRobbing?'block':'none';
+}
+
+function _drawCarryingBag(x, y) {
+  const now = performance.now();
+  const bob = Math.sin(now * 0.008) * 2;
+  const bh = isoH(0.55);
+  const bw = 14;
+  const bx = x + 12;
+  const by = y - isoH(1.1) + bob;
+  ctx.save();
+  // Верёвка от плеча к мешку
+  ctx.strokeStyle = 'rgba(100,70,40,0.8)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x + 6, y - isoH(0.9));
+  ctx.quadraticCurveTo(bx - 4, by + bh*0.3, bx, by + bh*0.5);
+  ctx.stroke();
+  // Нижняя часть мешка
+  const pulse = 0.85 + 0.15 * Math.sin(now * 0.005);
+  ctx.fillStyle = `rgba(130,85,40,${pulse})`;
+  ctx.beginPath();
+  ctx.ellipse(bx, by + bh*0.6, bw*0.8, bh*0.5, 0.1, 0, Math.PI*2);
+  ctx.fill();
+  // Верхняя часть мешка
+  ctx.fillStyle = `rgba(115,72,30,${pulse})`;
+  ctx.beginPath();
+  ctx.ellipse(bx, by + bh*0.15, bw*0.65, bh*0.45, 0.1, 0, Math.PI*2);
+  ctx.fill();
+  // Завязка
+  ctx.strokeStyle = '#805030';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(bx, by + bh*0.05, bw*0.25, 0, Math.PI*2);
+  ctx.stroke();
+  // Значок $
+  ctx.fillStyle = `rgba(255,210,60,${0.7 + 0.3*pulse})`;
+  ctx.font = `bold ${Math.floor(bh*0.38)}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText('$', bx, by + bh*0.45);
+  // Блик
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.beginPath();
+  ctx.ellipse(bx - bw*0.2, by + bh*0.1, bw*0.25, bh*0.15, -0.3, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function _drawBankInteriorNpc(npc) {
@@ -26792,8 +26861,202 @@ function _drawBankInteriorNpc(npc) {
   if(ico){ctx.save();ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(ico,p.x,p.y-44);ctx.restore();}
 }
 
+function _drawVaultRoom(int) {
+  const {vaultW:W, vaultH:H, bags} = int;
+  const now = performance.now();
+  const stage = document.getElementById('stage');
+  const SW = stage.clientWidth, SH = stage.clientHeight;
+  const hx = TS*0.5, hy = TS*0.5*ISO_Y;
+  const wallH = isoH(3.2);
+
+  // Фон — чёрный
+  ctx.fillStyle = '#020204';
+  ctx.fillRect(0, 0, SW, SH);
+
+  // Пол — стальные плиты с заклёпками
+  for (let r = 0; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      const big = (Math.floor(r/2)+Math.floor(c/2))%2===0;
+      const base = big ? '#1a1c28' : '#14161e';
+      const p = w2s(r+.5, c+.5);
+      ctx.fillStyle = base;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y-hy); ctx.lineTo(p.x+hx, p.y);
+      ctx.lineTo(p.x, p.y+hy); ctx.lineTo(p.x-hx, p.y);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#22243a'; ctx.lineWidth = 0.5; ctx.stroke();
+      // Заклёпки по углам больших плит
+      if (big && r%2===0 && c%2===0) {
+        const corners = [{r,c},{r,c:c+2},{r:r+2,c},{r:r+2,c:c+2}];
+        ctx.fillStyle = '#2a3048';
+        for (const cr of corners) {
+          const cp = w2s(cr.r, cr.c);
+          ctx.beginPath(); ctx.arc(cp.x, cp.y, 2.5, 0, Math.PI*2); ctx.fill();
+        }
+      }
+    }
+  }
+
+  const items = [];
+
+  // Стены хранилища
+  const _wV = (r0,c0,r1,c1,col,colD) => {
+    const a=w2s(r0,c0), b=w2s(r1,c1);
+    const panH=wallH*0.25;
+    ctx.fillStyle=col;
+    ctx.beginPath();
+    ctx.moveTo(a.x,a.y-panH); ctx.lineTo(b.x,b.y-panH);
+    ctx.lineTo(b.x,b.y-wallH); ctx.lineTo(a.x,a.y-wallH);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle=colD||'#0c0e18';
+    ctx.beginPath();
+    ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+    ctx.lineTo(b.x,b.y-panH); ctx.lineTo(a.x,a.y-panH);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#304060'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y-panH); ctx.lineTo(b.x,b.y-panH); ctx.stroke();
+    ctx.lineWidth=1;
+  };
+  // Северная стена
+  for (let c=0;c<W;c++) {
+    const _c=c;
+    items.push({d:_c*0.01, fn:((__c)=>()=>_wV(0,__c,0,__c+1,'#1e2035','#0e1020'))(_c)});
+  }
+  // Западная стена
+  for (let r=0;r<H-1;r++) {
+    const _r=r;
+    items.push({d:_r+0.01, fn:((__r)=>()=>_wV(__r,0,__r+1,0,'#1a1c2e','#0c0e1e'))(_r)});
+  }
+  // Восточная стена
+  for (let r=0;r<H-1;r++) {
+    const _r=r;
+    items.push({d:_r+W-0.01, fn:((__r)=>()=>_wV(__r,W,__r+1,W,'#242638','#14162a'))(_r)});
+  }
+
+  // Сейфы вдоль северной стены
+  for (let c=1;c<W-2;c+=2) {
+    const _c=c;
+    items.push({d:0.2+_c*0.01, fn:((__c)=>()=>{
+      const r=0.2;
+      const sp=w2s(r,__c), sp2=w2s(r,__c+1), sp3=w2s(r+1,__c), sp4=w2s(r+1,__c+1);
+      const sh=isoH(1.4);
+      const pulse=0.8+0.2*Math.sin(now*0.001+__c*0.5);
+      // Верхняя грань
+      ctx.fillStyle='#363a58';
+      ctx.beginPath();
+      ctx.moveTo(sp.x,sp.y-sh); ctx.lineTo(sp2.x,sp2.y-sh);
+      ctx.lineTo(sp4.x,sp4.y-sh); ctx.lineTo(sp3.x,sp3.y-sh);
+      ctx.closePath(); ctx.fill();
+      // Фронтальная грань
+      ctx.fillStyle='#2a2e45';
+      ctx.beginPath();
+      ctx.moveTo(sp3.x,sp3.y); ctx.lineTo(sp4.x,sp4.y);
+      ctx.lineTo(sp4.x,sp4.y-sh); ctx.lineTo(sp3.x,sp3.y-sh);
+      ctx.closePath(); ctx.fill();
+      // Боковая грань
+      ctx.fillStyle='#20223a';
+      ctx.beginPath();
+      ctx.moveTo(sp.x,sp.y); ctx.lineTo(sp3.x,sp3.y);
+      ctx.lineTo(sp3.x,sp3.y-sh); ctx.lineTo(sp.x,sp.y-sh);
+      ctx.closePath(); ctx.fill();
+      // Ручка
+      const hp=w2s(r+0.5,__c+0.8);
+      ctx.fillStyle=`rgba(180,160,80,${pulse})`;
+      ctx.beginPath(); ctx.arc(hp.x,hp.y-sh*0.5,3,0,Math.PI*2); ctx.fill();
+    })(_c)});
+  }
+
+  // Мешки с деньгами
+  for (const bag of (bags||[])) {
+    if (bag.taken) continue;
+    const br=bag.r, bc=bag.c;
+    const bp=w2s(br+0.5, bc+0.5);
+    const pulse=0.7+0.3*Math.sin(now*0.004+bag.id);
+    items.push({d:br+bc*0.01, fn:((_bp,_br,_bc,_bag)=>()=>{
+      const bh=isoH(0.6);
+      const bw=hx*0.7;
+      // Тень
+      ctx.fillStyle='rgba(0,0,0,0.4)';
+      ctx.beginPath(); ctx.ellipse(_bp.x,_bp.y,bw*0.7,hy*0.5,0,0,Math.PI*2); ctx.fill();
+      // Нижняя часть
+      ctx.fillStyle=`rgba(139,90,43,${pulse})`;
+      ctx.beginPath(); ctx.ellipse(_bp.x,_bp.y-bh*0.3,bw,bh*0.55,0,0,Math.PI); ctx.fill();
+      // Верхняя часть
+      ctx.beginPath(); ctx.ellipse(_bp.x,_bp.y-bh*0.6,bw*0.75,bh*0.45,0,Math.PI,0); ctx.fill();
+      // Завязка
+      ctx.strokeStyle='#604020'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(_bp.x,_bp.y-bh*0.85,bw*0.2,0,Math.PI*2); ctx.stroke();
+      // Знак $
+      ctx.fillStyle=`rgba(255,210,60,${0.8+0.2*pulse})`;
+      ctx.font=`bold ${Math.floor(bh*0.4)}px monospace`;
+      ctx.textAlign='center';
+      ctx.fillText('$',_bp.x,_bp.y-bh*0.55);
+      ctx.textAlign='left';
+      // Подсказка если рядом
+      if (Math.hypot(player.r-_br,player.c-_bc)<1.5) {
+        ctx.fillStyle='rgba(255,255,255,0.9)';
+        ctx.font='11px sans-serif';
+        ctx.textAlign='center';
+        ctx.fillText('📦 Взять',_bp.x,_bp.y-bh-5);
+        ctx.textAlign='left';
+      }
+    })(bp, br, bc, bag)});
+  }
+
+  // Игрок
+  items.push({d:player.r+player.c*0.01+0.5, fn:()=>{
+    const p=w2s(player.r+.5, player.c+.5);
+    drawPerson(p.x,p.y,player.ang,
+      (window.QP||{}).look, player.walking?player.walkPhase:0,
+      (window.QP||{}).name, null, true, window.myHp||100, 100,
+      window.myDead||false, null, false);
+    if (int.myBag) _drawCarryingBag(p.x, p.y);
+  }});
+
+  // Южная стена + дверь выхода
+  for (let c=0;c<W;c++) {
+    const _c=c;
+    items.push({d:H+_c, fn:((__c)=>()=>_wV(H,__c,H,__c+1,'#1e2035','#0e1020'))(_c)});
+  }
+
+  // Рендер в глубину
+  items.sort((a,b)=>a.d-b.d);
+  for (const item of items) item.fn();
+
+  // Светящийся выход (южная стена, центр)
+  const exitP=w2s(H, W/2);
+  const exitPulse=0.6+0.4*Math.sin(now*0.003);
+  ctx.save();
+  const grad=ctx.createRadialGradient(exitP.x,exitP.y-wallH*0.5,5,exitP.x,exitP.y-wallH*0.5,hx*3);
+  grad.addColorStop(0,`rgba(60,120,255,${exitPulse})`);
+  grad.addColorStop(1,'rgba(60,120,255,0)');
+  ctx.fillStyle=grad;
+  ctx.fillRect(exitP.x-hx*3,exitP.y-wallH,hx*6,wallH*1.5);
+  ctx.restore();
+  ctx.fillStyle='rgba(180,200,255,0.9)';
+  ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('← Выход',exitP.x,exitP.y-wallH*0.3);
+  ctx.textAlign='left';
+
+  // HUD — счётчик мешков
+  const taken=(bags||[]).filter(b=>b.taken).length;
+  const total=(bags||[]).length;
+  if (total>0) {
+    ctx.fillStyle='rgba(0,0,0,0.6)';
+    if (ctx.roundRect) ctx.roundRect(SW-125,10,115,36,8);
+    else ctx.rect(SW-125,10,115,36);
+    ctx.fill();
+    ctx.fillStyle='#ffd040';
+    ctx.font='bold 13px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(`💰 ${taken}/${total} мешков`,SW-15,34);
+    ctx.textAlign='left';
+  }
+}
+
 function drawBankInteriorScene() {
   const int=_bankInt; if (!int) return;
+  // Если игрок в vault — рисуем vault-комнату вместо лобби
+  if (int.room === 'vault') { _drawVaultRoom(int); return; }
   const {W,H,counterRow,phase,crackProg,bags,myBag,bank,alarmTriggered}=int;
   const stage=document.getElementById('stage');
   const SW=stage.clientWidth,SH=stage.clientHeight;
@@ -27050,7 +27313,7 @@ function drawBankInteriorScene() {
     const p=w2s(player.r+.5,player.c+.5);
     drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!_punchAnim);
     if (!myDead) { drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT); if (_punchAnim) _drawPunchAnim(p.x,p.y); }
-    if (myBag){ctx.font='16px sans-serif';ctx.textAlign='center';ctx.fillText('💼',p.x,p.y-40);ctx.textAlign='left';}
+    if (myBag){ _drawCarryingBag(p.x, p.y); }
   }});
 
   // ── ВНУТРЕННЯЯ СТЕНА на archRow — разделяет лобби от зон персонала/отдыха ──
@@ -27211,30 +27474,110 @@ function drawBankInteriorScene() {
     })(_c,isStaff,isLounge,isVault)});
   }
 
-  // Дверь хранилища — В depth-sort поверх северной стены (иначе стена перекрывала дверь)
+  // Дверь хранилища — анимированная, В depth-sort поверх северной стены
   items.push({d: W/2*0.01+0.3, fn:()=>{
-    if(phase!=='vault_open'){
-      const vc=w2s(0,W/2),vcy=vc.y-wallH*.5,vr=isoH(.52);
+    const vc=w2s(0,W/2);
+    const vcy=vc.y-wallH*.5;
+    const vr=isoH(.52);
+    const now2=performance.now();
+
+    if (phase==='vault_open') {
+      // ОТКРЫТАЯ ДВЕРЬ — сдвинута вправо с анимацией
+      const openAnim=_bankInt._vaultOpenedAt
+        ? Math.min(1,(now2-_bankInt._vaultOpenedAt)/1200)
+        : 1;
+      const slideX=openAnim*hx*2.5;
       ctx.save();
-      const dg=ctx.createLinearGradient(vc.x-vr,vcy-vr,vc.x+vr,vcy+vr);
-      dg.addColorStop(0,'#5a6070');dg.addColorStop(.5,'#3a4050');dg.addColorStop(1,'#282e38');
-      ctx.fillStyle=dg;ctx.beginPath();ctx.arc(vc.x,vcy,vr,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#909aa8';ctx.lineWidth=2;ctx.stroke();
-      ctx.strokeStyle='#a0acb8';ctx.lineWidth=1;ctx.beginPath();ctx.arc(vc.x,vcy,vr*.82,0,Math.PI*2);ctx.stroke();
-      for(let i=0;i<8;i++){const ag=i*Math.PI/4,bx2=vc.x+Math.cos(ag)*vr*.92,by2=vcy+Math.sin(ag)*vr*.92;ctx.fillStyle='#b0bac8';ctx.beginPath();ctx.arc(bx2,by2,2.5,0,Math.PI*2);ctx.fill();}
-      ctx.strokeStyle='#d0d8e0';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(vc.x,vcy,vr*.42,0,Math.PI*2);ctx.stroke();
-      ctx.strokeStyle='#e0e8f0';ctx.lineWidth=1.8;
-      for(let i=0;i<4;i++){const ag=i*Math.PI/4+Math.PI/8;ctx.beginPath();ctx.moveTo(vc.x,vcy);ctx.lineTo(vc.x+Math.cos(ag)*vr*.4,vcy+Math.sin(ag)*vr*.4);ctx.stroke();}
-      ctx.fillStyle='#c0ccd8';ctx.beginPath();ctx.arc(vc.x,vcy,vr*.1,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(80,120,220,.9)';ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('🔒 ХРАНИЛИЩЕ',vc.x,vcy-vr-8);
-      ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      ctx.translate(slideX,0);
+      const dw=hx*1.2,dh=wallH*0.82;
+      ctx.fillStyle='#2a3060';
+      ctx.fillRect(vc.x-dw/2,vcy-dh,dw,dh);
+      // Рёбра стальной двери
+      ctx.strokeStyle='#404878';ctx.lineWidth=2;
+      for(let i=0;i<4;i++){
+        const ry=vcy-dh+dh/4*i+dh/8;
+        ctx.beginPath();ctx.moveTo(vc.x-dw/2+4,ry);ctx.lineTo(vc.x+dw/2-4,ry);ctx.stroke();
+      }
+      ctx.restore();
+      // Светящийся проём
+      const glowA=0.4+0.3*Math.sin(now2*0.004);
+      ctx.save();
+      ctx.shadowColor='#4060ff';ctx.shadowBlur=18;
+      ctx.strokeStyle=`rgba(80,120,255,${glowA})`;ctx.lineWidth=3;
+      const pw=hx*1.6,ph=wallH*0.75;
+      ctx.strokeRect(vc.x-pw/2,vcy-ph,pw,ph);
+      ctx.restore();
+      ctx.fillStyle='rgba(120,200,120,0.95)';
+      ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('🔓 ОТКРЫТО',vc.x,vcy-wallH*0.92);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+
+    } else if (phase==='cracking') {
+      // ВЗЛАМЫВАЕТСЯ — дверь вибрирует
+      const prog=int.crackProg||0;
+      const shake=(1-prog)*2*(Math.random()-0.5);
+      ctx.save();ctx.translate(shake,shake*0.5);
+      const dw=hx*1.6,dh=wallH*0.85;
+      const grd=ctx.createLinearGradient(vc.x-dw/2,vcy-dh,vc.x+dw/2,vcy);
+      grd.addColorStop(0,'#252838');grd.addColorStop(1,'#1a1c28');
+      ctx.fillStyle=grd;ctx.fillRect(vc.x-dw/2,vcy-dh,dw,dh);
+      // 8 болтов
+      ctx.fillStyle='#5060a0';
+      const bolts=[{x:-.45,y:-.85},{x:.45,y:-.85},{x:-.45,y:-.15},{x:.45,y:-.15},
+                   {x:0,y:-.95},{x:0,y:-.05},{x:-.5,y:-.5},{x:.5,y:-.5}];
+      for(const b of bolts){ctx.beginPath();ctx.arc(vc.x+b.x*dw,vcy+b.y*dh,4,0,Math.PI*2);ctx.fill();}
+      // Прогресс-кольцо
+      const ringR=vr*0.9;
+      ctx.strokeStyle='#202438';ctx.lineWidth=6;
+      ctx.beginPath();ctx.arc(vc.x,vcy-dh*0.45,ringR,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle=`hsl(${prog*120},80%,55%)`;ctx.lineWidth=5;ctx.lineCap='round';
+      ctx.beginPath();ctx.arc(vc.x,vcy-dh*0.45,ringR,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);ctx.stroke();
+      // Искры при взломе
+      if(prog>0.1){
+        const sparkCount=Math.floor(prog*6);
+        for(let i=0;i<sparkCount;i++){
+          const sa=now2*0.01+i*Math.PI*2/sparkCount;
+          const sx=vc.x+Math.cos(sa)*ringR;
+          const sy=vcy-dh*0.45+Math.sin(sa)*ringR;
+          const sparkA=(Math.sin(now2*0.02+i)+1)*0.5;
+          ctx.fillStyle=`rgba(255,180,50,${sparkA})`;
+          ctx.beginPath();ctx.arc(sx,sy,2,0,Math.PI*2);ctx.fill();
+        }
+      }
+      ctx.restore();
+      ctx.fillStyle='rgba(255,180,50,0.9)';
+      ctx.font='bold 12px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(`⚙️ ${Math.floor(prog*100)}%`,vc.x,vcy-wallH*0.95);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+
     } else {
-      const vc=w2s(0,W/2);ctx.save();
-      ctx.fillStyle='rgba(40,180,60,.15)';ctx.beginPath();ctx.arc(vc.x,vc.y-wallH*.5,isoH(.5),0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(80,220,80,.9)';ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('🔓 ОТКРЫТО',vc.x,vc.y-wallH*.5-isoH(.5)-6);
-      ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      // ЗАКРЫТАЯ дверь — стальной сейф со штурвалом
+      const dw=hx*1.6,dh=wallH*0.85;
+      const grd=ctx.createLinearGradient(vc.x-dw/2,vcy-dh,vc.x+dw/2,vcy);
+      grd.addColorStop(0,'#222438');grd.addColorStop(1,'#161828');
+      ctx.fillStyle=grd;ctx.fillRect(vc.x-dw/2,vcy-dh,dw,dh);
+      // 8 болтов
+      ctx.fillStyle='#404070';
+      const bolts=[{x:-.45,y:-.85},{x:.45,y:-.85},{x:-.45,y:-.15},{x:.45,y:-.15},
+                   {x:0,y:-.95},{x:0,y:-.05},{x:-.5,y:-.5},{x:.5,y:-.5}];
+      for(const b of bolts){ctx.beginPath();ctx.arc(vc.x+b.x*dw,vcy+b.y*dh,4,0,Math.PI*2);ctx.fill();}
+      // Центральный диск — штурвал
+      ctx.fillStyle='#2a2c48';
+      ctx.beginPath();ctx.arc(vc.x,vcy-dh*0.45,vr*0.85,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#404880';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(vc.x,vcy-dh*0.45,vr*0.85,0,Math.PI*2);ctx.stroke();
+      // 4 спицы
+      for(let i=0;i<4;i++){
+        const a=i*Math.PI/2;
+        ctx.beginPath();ctx.moveTo(vc.x,vcy-dh*0.45);
+        ctx.lineTo(vc.x+Math.cos(a)*vr*0.75,vcy-dh*0.45+Math.sin(a)*vr*0.75);ctx.stroke();
+      }
+      ctx.fillStyle='#1a1c30';
+      ctx.beginPath();ctx.arc(vc.x,vcy-dh*0.45,vr*0.35,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(160,160,200,0.7)';
+      ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('🔒 ХРАНИЛИЩЕ',vc.x,vcy-wallH*0.92);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
     }
   }});
 
