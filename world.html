@@ -9451,6 +9451,12 @@ _zoneEl.addEventListener('click', () => {
       if (int.myBag) { exitBankInterior(true); return; }
       exitBankInterior(false); return;
     }
+    // Машина с добычей полна — кнопка «Уехать с добычей!» завершает
+    // ограбление (выплата + кулдаун), а не повторный вход в банк.
+    if (_bankRob && _bankRob.bank.id === bank.id && _bankRob.phase === 'escaping') {
+      finishBankRobbery();
+      return;
+    }
     // Войти в банк
     enterBankInterior(bank);
     return;
