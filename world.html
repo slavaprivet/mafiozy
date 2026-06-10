@@ -9418,7 +9418,9 @@ _zoneEl.addEventListener('click', () => {
   if (_zoneEl.dataset.bankId) {
     const bank = BANKS.find(b => b.id === _zoneEl.dataset.bankId);
     if (!bank) return;
-    if (myDead) return;
+    // Мёртвым в банк не зайти — без тоста кнопка молча «не работала» и
+    // выглядело как будто нас выкинуло в город.
+    if (myDead) { showToast('💀 Дождись возрождения', '⚠️', 1600); return; }
     if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
     // Интерьер активен — кнопка внутри банка
     if (_bankInt && _bankInt.bank.id === bank.id) {
@@ -11888,8 +11890,12 @@ function fire(angle = null) {
   // Промахнулся стиком — пуля летит в пустоту. Ниже 4 типа целей
   // (конвой/коп/aggro/pvp) проверяются ровно тем же конусом.
   // 1) Конвой в радиусе огня + по направлению
+  // Внутри банка player.r/c — локальные координаты интерьера, а не мира,
+  // поэтому конвой/копы/aggro/охрана Майкла/PvP по мировым координатам
+  // здесь не проверяются (иначе пуля могла бы случайно «зацепить»
+  // мирового NPC, чьи координаты совпали с координатами в интерьере).
   let chosenConvoy = null;
-  if (worldEvent && !_meInJail) {
+  if (worldEvent && !_meInJail && !_bankInt) {
     const targets = [];
     if (worldEvent.boss && worldEvent.boss.alive) targets.push(worldEvent.boss);
     for (const g of (worldEvent.guards || [])) if (g.alive) targets.push(g);
@@ -11905,7 +11911,7 @@ function fire(angle = null) {
   }
   // 2) Коп в радиусе огня + конусе
   let chosenCop = null;
-  if (!chosenConvoy && !_meInJail && worldCops && worldCops.length) {
+  if (!chosenConvoy && !_meInJail && !_bankInt && worldCops && worldCops.length) {
     for (const c of worldCops) {
       const dx = c.x - player.c, dy = c.y - player.r;
       const d = Math.hypot(dx, dy);
@@ -11918,7 +11924,7 @@ function fire(angle = null) {
   }
   // 3) Бот агрессивного района — стрелять можно только если я САМ в этой зоне
   let chosenAggro = null;
-  if (!chosenConvoy && !chosenCop && !_meInJail) {
+  if (!chosenConvoy && !chosenCop && !_meInJail && !_bankInt) {
     for (const tid of Object.keys(aggroZones)) {
       const az = aggroZones[tid];
       if (!az || !az.bots) continue;
@@ -11935,7 +11941,7 @@ function fire(angle = null) {
   }
   // 4) Охранник Майкла — стрелять можно, но это разозлит охрану
   let chosenMg = null;
-  if (!chosenConvoy && !chosenCop && !chosenAggro && !_meInJail) {
+  if (!chosenConvoy && !chosenCop && !chosenAggro && !_meInJail && !_bankInt) {
     for (const g of michaelGuards.values()) {
       const dx = g.x - player.c, dy = g.y - player.r;
       const d  = Math.hypot(dx, dy);
@@ -11964,7 +11970,7 @@ function fire(angle = null) {
     }
   }
   // 5) PvP-игрок (в активной зоне инкассатора или в арене)
-  const pvpTarget = (!chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && !chosenBankGuard) ? findPvpTargetAlongAim(dirX, dirY) : null;
+  const pvpTarget = (!chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && !chosenBankGuard && !_bankInt) ? findPvpTargetAlongAim(dirX, dirY) : null;
   // Если цели нет — стреляем «в пустоту» с визуальным эффектом
   // (трассер летит вперёд + отдача + cd). Локально, серверу не шлём.
   const noTarget = !chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && !chosenBankGuard && !pvpTarget;
@@ -12058,12 +12064,13 @@ function fire(angle = null) {
   // Raycast по мирным NPC ВСЕГДА. Если NPC физически ближе серверной
   // цели — пуля попадает в него (он стоит ровно на линии огня). Иначе
   // используем серверную цель (chosenConvoy/Cop/Aggro/Mg/pvpTarget).
-  // В тюрьме NPC raycast выключаем — за решёткой стоят прохожие/копы,
-  // их трогать нельзя.
+  // В тюрьме и внутри банка NPC/машины мира raycast выключаем — координаты
+  // player.r/c там локальные для интерьера, а не мировые, и мировые NPC
+  // могут случайно оказаться «на линии огня» хотя их там физически нет.
   const range = wcfg.range || 7;
-  const hitN  = _meInJail ? null : _raycastNpc(sR, sC, dirY, dirX, range);
+  const hitN  = (_meInJail || _bankInt) ? null : _raycastNpc(sR, sC, dirY, dirX, range);
   // Raycast по бандитским машинам в кортеже — приоритет если ближе NPC.
-  const hitG  = _meInJail ? null : _raycastGangCar(sR, sC, dirY, dirX, range);
+  const hitG  = (_meInJail || _bankInt) ? null : _raycastGangCar(sR, sC, dirY, dirX, range);
   if (hitG && (!hitN || hitG.dist < hitN.dist)) {
     spawnBullet(sR, sC, hitG.point.r, hitG.point.c,
       { hit: true, fromPlayer: true, weapon: currentWeapon });
@@ -12426,7 +12433,10 @@ function updatePvpUI() {
   _hudPlayer.classList.toggle('show', !isPve);
   // Кнопка огня видна только когда можно стрелять и есть смысл (open world
   // с хотя бы одной меткой ИЛИ PvP-арена с free-aim). Иначе скрыта.
-  const meInArenaUi = inArena(player.r, player.c);
+  // Внутри банка стрельба разрешена в любой момент (по охране и «в пустоту»),
+  // а целей-замков (lockedTargets) на охрану может ещё не быть — иначе кнопка
+  // огня не появлялась бы вовсе и стрелять было бы нечем.
+  const meInArenaUi = inArena(player.r, player.c) || !!_bankInt;
   const _armed = _isArmed();
   // Кнопка удара (✊) показывается когда без оружия + есть locked-цель в ближнем бою
   const showPunchBtn  = canShoot && !_armed && lockedTargets.size > 0;
@@ -26733,12 +26743,9 @@ function _updateBankInterior(dt) {
           try { ws && ws.readyState===1 && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
             d: { dmg, sx: +npc.c.toFixed(2), sy: +npc.r.toFixed(2) } })); } catch(e) {}
         }
-        if (!npc._hostileFlipAt)npc._hostileFlipAt=now+4000;
-        if (now>npc._hostileFlipAt){
-          npc.state='panic';
-          const dr2=H+1-npc.r,dc2=W/2-npc.c,m2=Math.hypot(dr2,dc2)||1;
-          npc.fleeVr=dr2/m2*4;npc.fleeVc=dc2/m2*4;
-        }
+        // Охранник дерётся до конца — не убегает посреди боя (раньше через
+        // 4с переключался в 'panic' и просто убегал, что выглядело как
+        // «испугался и сбежал» сразу после первого удара).
       }
       // Пистолет при тревоге — стрельба на дистанции
       if (int.alarmTriggered && !npc._usePistol) {
@@ -28130,7 +28137,15 @@ function drawBankInteriorScene() {
   // (проём в северной стене занимает c от vDL=W/2-2 до vDR=W/2+2 → 4 тайла)
   items.push({d: W/2*0.01+0.3, fn:()=>{
     const vc=w2s(0,W/2);
-    const vcy=vc.y;  // нижний край проёма = пол стены (a.y в _wFace)
+    // Северная стена в изометрии идёт по диагонали (каждая соседняя панель
+    // сдвинута по y на hy при сдвиге по x на hx, см. _wFace: a=w2s(r0,c0)).
+    // Шерим систему координат двери на тот же угол — иначе плоский
+    // прямоугольник «режет» сквозь диагональный пол/потолок проёма и
+    // выглядит «косо» относительно стены.
+    ctx.save();
+    ctx.transform(1, hy/hx, 0, 1, vc.x, vc.y);
+    vc.x=0;
+    const vcy=0;  // нижний край проёма = пол стены (теперь в системе двери)
     const now2=performance.now();
     // Полная ширина проёма в экранных пикселях = (vDR-vDL)*hx = 4*hx
     const gapW=4*hx;
@@ -28363,6 +28378,7 @@ function drawBankInteriorScene() {
       ctx.shadowBlur=0;
       ctx.textAlign='left';ctx.textBaseline='alphabetic';
     }
+    ctx.restore();
   }});
 
   // Касса — В depth-sort поверх пола и за NPC которые стоят перед ней
