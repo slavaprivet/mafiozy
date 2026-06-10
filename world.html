@@ -1106,7 +1106,7 @@ body.in-pvp #robActionBtn { top: 152px; }
     </div>
   </div>
   <!-- HUD ограбления банка -->
-  <div id="bankRobHud" style="display:none; position:fixed; top:80px; left:50%; transform:translateX(-50%);
+  <div id="bankRobHud" style="display:none; position:fixed; top:165px; left:50%; transform:translateX(-50%);
        background:linear-gradient(180deg,#1a0a08,#2a0e08); border:2px solid #ff4020; border-radius:14px;
        padding:10px 16px; min-width:220px; z-index:9; color:#fff; font-family:inherit; text-align:center;">
     <div id="bankRobPhaseText" style="font-size:13px; font-weight:800; color:#ff8060;">ОГРАБЛЕНИЕ</div>
@@ -3267,6 +3267,49 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     // Цель Бригадира теперь — бандит из aggroZones, не прохожий NPC.
     // Триггер brigadir_kill уехал в обработчик kind=='aggro_killed'
     // (см. брайн ws-handlers ниже): там точно знаем bot_id убитого.
+  }
+}
+// Локальное попадание по охраннику банка (_bankInt.npcs): knockback +
+// кровь + hp вычитается. При hp<=0 → dead/fled (тело остаётся в интерьере).
+function _hitBankGuard(npc, dirY, dirX, damage) {
+  if (!npc || npc.dead) return;
+  npc.hp = Math.max(0, (npc.hp | 0) - (damage | 0));
+  // Knockback (без проверки прохождения — интерьер банка маленький,
+  // _isBlockedInterior проверяется в апдейте AI, тут просто лёгкий толчок)
+  const kb = 0.25;
+  npc.r += dirY * kb; npc.c += dirX * kb;
+  npc.idleUntil = performance.now() + 250;
+  // Кровь на месте охранника
+  for (let i = 0; i < (npc.hp <= 0 ? 6 : 2); i++) {
+    _capArr(bloodSplats, _MAX_BLOOD);
+    bloodSplats.push({
+      r: npc.r + (Math.random() - 0.5) * 0.6,
+      c: npc.c + (Math.random() - 0.5) * 0.6,
+      radius: (npc.hp <= 0 ? 7 : 4) + Math.random() * 4,
+      life: 14000, max: 14000,
+      rot: Math.random() * Math.PI,
+    });
+  }
+  const parts = [];
+  for (let i = 0; i < 10; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 1.0 + Math.random() * 2.2;
+    parts.push({
+      vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+      life: 450 + Math.random() * 350, max: 800,
+      color: Math.random() < 0.8 ? '#a01010' : '#3a0a0a',
+      isBlood: true,
+      size: 2.0 + Math.random() * 1.8,
+    });
+  }
+  _capArr(impacts, _MAX_IMPACTS);
+  impacts.push({ r: npc.r, c: npc.c, parts });
+  if (npc.hp <= 0) {
+    npc.dead = true;
+    npc.deadAt = performance.now();
+    npc.state = 'fled';
+    npc.cryText  = ['АА!', 'НЕТ!', 'ПОМО…'][Math.floor(Math.random()*3)];
+    npc.cryUntil = performance.now() + 600;
   }
 }
 // Проходимо ли для NPC: только бордюр (9) или газон (8), и НЕ внутри
@@ -9596,7 +9639,8 @@ function updateZoneBtn() {
   if (_bankInt) {
     const int = _bankInt;
     let label;
-    const nearVault = player.r < int.counterRow - 1;  // игрок у прилавка/хранилища
+    // Дверь хранилища — у северной стены лобби, по центру
+    const nearVault = player.r < 3.5 && Math.abs(player.c - int.W/2) < 4.5;
     if (int.phase==='lobby') {
       label = nearVault ? '🔓 Взломать хранилище' : null;
     } else if (int.phase==='cracking') {
@@ -12235,11 +12279,28 @@ function fire(angle = null) {
       if (!chosenMg || d < chosenMg.d) chosenMg = { id: g.id, x: g.x, y: g.y, d };
     }
   }
+  // 4b) Враждебный охранник банка (внутри интерьера банка) — локальная цель,
+  // на сервер не шлём (как обычный NPC), но и не привязан к карте мира.
+  let chosenBankGuard = null;
+  if (!chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && _bankInt && _bankInt.npcs) {
+    for (const npc of _bankInt.npcs) {
+      if (npc.type !== 'guard' || npc.state !== 'hostile' || npc.dead) continue;
+      const dx = npc.c - player.c, dy = npc.r - player.r;
+      const d  = Math.hypot(dx, dy);
+      if (d > FIRE_R_CONVOY) continue;
+      const dn = d > 0.001 ? d : 1;
+      const dot = (dx * dirX + dy * dirY) / dn;
+      if (dot < 0.985) continue;
+      if (!chosenBankGuard || d < chosenBankGuard.d) {
+        chosenBankGuard = { idx: _bankInt.npcs.indexOf(npc), npc, x: npc.c, y: npc.r, d };
+      }
+    }
+  }
   // 5) PvP-игрок (в активной зоне инкассатора или в арене)
-  const pvpTarget = (!chosenConvoy && !chosenCop && !chosenAggro && !chosenMg) ? findPvpTargetAlongAim(dirX, dirY) : null;
+  const pvpTarget = (!chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && !chosenBankGuard) ? findPvpTargetAlongAim(dirX, dirY) : null;
   // Если цели нет — стреляем «в пустоту» с визуальным эффектом
   // (трассер летит вперёд + отдача + cd). Локально, серверу не шлём.
-  const noTarget = !chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && !pvpTarget;
+  const noTarget = !chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && !chosenBankGuard && !pvpTarget;
   lastShotClientT = now;
   // Копы в радиусе реагируют на выстрел
   _alertNearbyCops('shot');
@@ -12280,7 +12341,7 @@ function fire(angle = null) {
   }
   // Hit-stop при попадании в живую цель — кратковременный фриз кадра.
   // Даёт ощущение «веса» удара (как в Hotline Miami / Hyper Light Drifter).
-  const _hitSomeone = !!(chosenConvoy || chosenCop || chosenAggro || chosenMg || pvpTarget);
+  const _hitSomeone = !!(chosenConvoy || chosenCop || chosenAggro || chosenMg || chosenBankGuard || pvpTarget);
   if (_hitSomeone) {
     triggerHitStop(weaponFx(currentWeapon).thick ? 35 : 18);
     addShake(weaponFx(currentWeapon).thick ? 3.5 : 2);
@@ -12301,7 +12362,7 @@ function fire(angle = null) {
   const meInAggro = !!inAggroZone(player.r, player.c);
   // В тюрьме стрельба тоже «легальна» — я уже сижу, дальше копить wanted
   // и звать свидетелей в участок бессмысленно (NPC сами там стоят за стенкой).
-  const lawful    = _meInJail || meInArena || meInAggro || pvpActive || chosenConvoy || chosenCop || chosenAggro || chosenMg;
+  const lawful    = _meInJail || meInArena || meInAggro || pvpActive || chosenConvoy || chosenCop || chosenAggro || chosenMg || chosenBankGuard;
   if (!lawful) {
     // НОВАЯ механика wanted:
     //   - мгновенный +1 только если КОП видел выстрел сам (witness=true)
@@ -12347,7 +12408,7 @@ function fire(angle = null) {
     return;
   }
   // Дистанция до серверной цели по линии огня
-  const _serverTarget = chosenConvoy || chosenCop || chosenAggro || chosenMg || pvpTarget;
+  const _serverTarget = chosenConvoy || chosenCop || chosenAggro || chosenMg || chosenBankGuard || pvpTarget;
   const _serverDist = _serverTarget
     ? ((_serverTarget.y - sR) * dirY + (_serverTarget.x - sC) * dirX)
     : Infinity;
@@ -12396,6 +12457,13 @@ function fire(angle = null) {
       ws && ws.send(JSON.stringify({ t: 'mg_shoot',
         d: { target: chosenMg.id, weapon: currentWeapon } }));
     } catch(e) {}
+    return;
+  }
+  if (chosenBankGuard) {
+    spawnBullet(sR, sC, chosenBankGuard.y, chosenBankGuard.x,
+      { hit: true, fromPlayer: true, weapon: currentWeapon });
+    spawnImpact(chosenBankGuard.y, chosenBankGuard.x, currentWeapon);
+    _hitBankGuard(chosenBankGuard.npc, dirY, dirX, wcfg.dmg || 20);
     return;
   }
   if (pvpTarget) {
@@ -12533,8 +12601,21 @@ function punch() {
       // Бандит и любой обозлённый NPC достаёт пушку и отвечает
       _npcTriggerFight(npc);
     }
+  } else if (kind === 'bank_guard') {
+    // Охранник банка — локальная цель, без серверного сообщения
+    const npc = _bankInt && _bankInt.npcs && _bankInt.npcs[tgt.id];
+    if (npc && !npc.dead) {
+      _hitBankGuard(npc, Math.sin(ang), Math.cos(ang), hitDmg);
+      _spawnPunchBlood(npc.r, npc.c, ang);
+      const dmgCol = isKick ? '#ff4080' : '#ff8040';
+      spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: dmgCol, size: 18, life: 1200 });
+      if (isKick) spawnFloatText(pos.r - 0.5, pos.c, 'КРИТ!', { color: '#ffdd00', size: 13, life: 900 });
+      triggerHitStop(25);
+      addShake(1.5);
+      hapticHit();
+    }
   } else {
-    // Коп / конвой / aggro_bot / охранник / PvP-игрок — серверный удар
+    // Коп / конвой / aggro_bot / охранник Майкла / PvP-игрок — серверный удар
     try {
       const msg = kind === 'player'
         ? { t: 'pvp_punch', d: { target_uid: tgt.id, dmg: hitDmg } }
@@ -23798,20 +23879,14 @@ function render() {
       ctx.fillText('💰', px, py - 42);
       ctx.restore();
     }
-    // Рендер упавших мешков на земле
+    // Рендер упавших мешков на земле (мини 3D-мешок с пульсирующим свечением)
     const _nowBag = performance.now();
     for (let _bi = _vaultDroppedBags.length - 1; _bi >= 0; _bi--) {
       const bag = _vaultDroppedBags[_bi];
       if (_nowBag - bag.droppedAt > 60000) { _vaultDroppedBags.splice(_bi, 1); continue; }
       const _bp = w2s(bag.r, bag.c);
       if (!_bp) continue;
-      const pulse = 0.6 + 0.4 * Math.sin(_nowBag * 0.005);
-      ctx.save();
-      ctx.globalAlpha = pulse;
-      ctx.font = '16px "Segoe UI Emoji", system-ui';
-      ctx.textAlign = 'center';
-      ctx.fillText('💰', _bp.x, _bp.y - 10);
-      ctx.restore();
+      _drawMoneyBag(_bp.x, _bp.y - 6, 0.55, { lying:true, glow:true, seed:bag.id||(bag.r*31+bag.c) });
     }
     // Прогресс-бар взлома хранилища
     if (_bankRob && _bankRob.phase === 'cracking') {
@@ -24262,6 +24337,21 @@ function tryTapLock(canvasX, canvasY) {
       }, () => o.name || '?');
     }
   }
+  // 5b) Враждебные охранники банка (внутри интерьера банка)
+  if (_bankInt && _bankInt.npcs) {
+    for (const npc of _bankInt.npcs) {
+      if (npc.type !== 'guard' || npc.state !== 'hostile' || npc.dead) continue;
+      const d = _screenDistToCell(npc.r, npc.c, canvasX, canvasY);
+      if (d < bestD) {
+        bestD = d;
+        const idx = _bankInt.npcs.indexOf(npc);
+        best = _lockTargetEntry('bank_guard', idx, () => {
+          const n2 = _bankInt && _bankInt.npcs && _bankInt.npcs[idx];
+          return (n2 && !n2.dead) ? { r: n2.r, c: n2.c } : null;
+        }, () => 'охранник');
+      }
+    }
+  }
   // 7) Гангстерские машины
   for (const car of CARS) {
     if (!car || !car.gang || car._wrecked) continue;
@@ -24411,6 +24501,17 @@ function _findLaserTarget(dirY, dirX) {
     _check(car.r, car.c, _lockTargetEntry('gang_car', 'c' + CARS.indexOf(car), () => {
       return cref._wrecked ? null : { r: cref.r, c: cref.c };
     }));
+  }
+  // Враждебные охранники банка (внутри интерьера банка)
+  if (_bankInt && _bankInt.npcs) {
+    for (const npc of _bankInt.npcs) {
+      if (npc.type !== 'guard' || npc.state !== 'hostile' || npc.dead) continue;
+      const idx = _bankInt.npcs.indexOf(npc);
+      _check(npc.r, npc.c, _lockTargetEntry('bank_guard', idx, () => {
+        const n2 = _bankInt && _bankInt.npcs && _bankInt.npcs[idx];
+        return (n2 && !n2.dead) ? { r: n2.r, c: n2.c } : null;
+      }, () => 'охранник'));
+    }
   }
   return best;
 }
@@ -26221,6 +26322,62 @@ function drawBankBuilding(bank) {
   ctx.fillStyle = '#c8c0a8';
   ctx.fillRect(archX - doorW/2 - 5, archY + 5, doorW + 10, 4);
 
+  // ── Уличный банкомат (ATM-киоск) у входа ────────────────────────────
+  {
+    const tNow = performance.now();
+    const atmX = archX + doorW/2 + 18, atmY = archY + 4;
+    const atmW = 16, atmH = 26;
+    ctx.save();
+    // Тень
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ctx.beginPath(); ctx.ellipse(atmX, atmY + 2, atmW*0.7, 4, 0, 0, Math.PI*2); ctx.fill();
+    // Защитный козырёк сверху
+    ctx.fillStyle = '#3a4452';
+    ctx.beginPath();
+    ctx.moveTo(atmX - atmW/2 - 3, atmY - atmH - 4);
+    ctx.lineTo(atmX + atmW/2 + 3, atmY - atmH - 4);
+    ctx.lineTo(atmX + atmW/2 + 1, atmY - atmH);
+    ctx.lineTo(atmX - atmW/2 - 1, atmY - atmH);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#2a3240';
+    ctx.fillRect(atmX - atmW/2 - 3, atmY - atmH - 4, atmW + 6, 1.5);
+    // Опорные стойки козырька
+    ctx.strokeStyle = '#252e3a'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(atmX - atmW/2 - 1, atmY - atmH); ctx.lineTo(atmX - atmW/2 - 1, atmY - atmH + 4);
+    ctx.moveTo(atmX + atmW/2 + 1, atmY - atmH); ctx.lineTo(atmX + atmW/2 + 1, atmY - atmH + 4);
+    ctx.stroke();
+    // Тёмный корпус
+    const bodyGrad = ctx.createLinearGradient(atmX - atmW/2, atmY - atmH, atmX + atmW/2, atmY);
+    bodyGrad.addColorStop(0, '#3c4452'); bodyGrad.addColorStop(1, '#262c38');
+    ctx.fillStyle = bodyGrad;
+    ctx.fillRect(atmX - atmW/2, atmY - atmH, atmW, atmH);
+    ctx.strokeStyle = '#1a1f28'; ctx.lineWidth = 1;
+    ctx.strokeRect(atmX - atmW/2, atmY - atmH, atmW, atmH);
+    // Светящийся экран
+    const atmScrA = 0.55 + 0.25 * Math.sin(tNow * 0.0022);
+    ctx.fillStyle = `rgba(40,140,220,${atmScrA})`;
+    ctx.fillRect(atmX - atmW/2 + 2, atmY - atmH + 3, atmW - 4, 9);
+    ctx.strokeStyle = '#5098d0'; ctx.lineWidth = 0.6;
+    ctx.strokeRect(atmX - atmW/2 + 2, atmY - atmH + 3, atmW - 4, 9);
+    ctx.fillStyle = `rgba(140,210,255,${atmScrA*0.85})`;
+    ctx.fillRect(atmX - atmW/2 + 3, atmY - atmH + 5, atmW - 6, 1.4);
+    ctx.fillRect(atmX - atmW/2 + 3, atmY - atmH + 8, atmW - 9, 1.4);
+    // Клавиатура / щель для карты
+    ctx.fillStyle = '#181c24';
+    ctx.fillRect(atmX - atmW/2 + 2, atmY - atmH + 14, atmW - 4, 4);
+    for (let bi=0; bi<3; bi++) { ctx.fillStyle = '#3a4250'; ctx.fillRect(atmX - atmW/2 + 3 + bi*4, atmY - atmH + 15, 2.5, 2.5); }
+    ctx.fillStyle = '#10141c';
+    ctx.fillRect(atmX - atmW/2 + 3, atmY - atmH + 20, atmW - 6, 2);
+    // Логотип/индикатор
+    ctx.font = '6px monospace'; ctx.fillStyle = '#70c0ff'; ctx.textAlign = 'center';
+    ctx.fillText('ATM', atmX, atmY - atmH + 1);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = `rgba(50,220,80,${0.5+0.5*Math.sin(tNow*0.003+1)})`;
+    ctx.beginPath(); ctx.arc(atmX + atmW/2 - 2, atmY - 2, 1.4, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
   // ── Вывеска банка (освещённая панель) ──────────────────────────────
   ctx.save();
   const signK = 0.5, signX = p.x + wx * signK;
@@ -26591,14 +26748,17 @@ function _spawnBankNpcs(bank, W, H, counterRow) {
   const sz=bank.size, npcs=[];
   // Охранник у входа (юг)
   npcs.push({ type:'guard', r:H-2, c:W/2, state:'normal', look:_BANK_NPC_LOOKS.guard,
-    walkPhase:0, ang:-Math.PI/2, wanderTimer:2+Math.random()*2, wanderVr:0, wanderVc:0, _alertAt:0 });
+    walkPhase:0, ang:-Math.PI/2, wanderTimer:2+Math.random()*2, wanderVr:0, wanderVc:0, _alertAt:0,
+    hp:100, max_hp:100 });
   // Охранник у хранилища (у прилавка, смотрит на игрока)
   npcs.push({ type:'guard', r:counterRow-0.8, c:W/2, state:'normal', look:_BANK_NPC_LOOKS.guard2,
-    walkPhase:0, ang:Math.PI/2, wanderTimer:3, wanderVr:0, wanderVc:0, _alertAt:0 });
+    walkPhase:0, ang:Math.PI/2, wanderTimer:3, wanderVr:0, wanderVc:0, _alertAt:0,
+    hp:100, max_hp:100 });
   // Третий охранник у боковой стены (medium/large)
   if (sz!=='small') {
     npcs.push({ type:'guard', r:counterRow+2, c:W-2, state:'normal', look:_BANK_NPC_LOOKS.guard,
-      walkPhase:0.5, ang:-Math.PI*0.75, wanderTimer:4, wanderVr:0, wanderVc:0, _alertAt:0 });
+      walkPhase:0.5, ang:-Math.PI*0.75, wanderTimer:4, wanderVr:0, wanderVc:0, _alertAt:0,
+      hp:100, max_hp:100 });
   }
   // +0.35 по r = стоят ПЕРЕД столом → depth выше стола → видны поверх монитора
   npcs.push({ type:'admin', r:counterRow-1.65, c:3, state:'normal', look:_BANK_NPC_LOOKS.admin, walkPhase:0, ang:Math.PI*.5 });
@@ -26713,7 +26873,8 @@ function _isBlockedInterior(r,c) {
     if (!inArch) return true;
   }
   // Перегородки внутри задней зоны — 1-тайловая зона с проходами у арок
-  if (r<archRow-1.5 && r>=0.5) {
+  // (граница совпадает с зоной арки выше, чтобы не было зазора на стыке)
+  if (r<archRow-0.5 && r>=0.5) {
     const pL=Math.floor(W*.38), pR=Math.floor(W*.62);
     const staffArchR=Math.floor(W*.10)+3, loungeArchL=Math.floor(W*.65);
     // Левая перегородка (персонал|хранилище): проход c < staffArchR
@@ -26743,8 +26904,13 @@ function _updateBankInterior(dt) {
   }
   const hasWeapon=_isArmed();
   const isRobbery=(int.phase==='cracking'||int.phase==='vault_open');
+  // Пока игрок в хранилище — координаты player.r/c в системе хранилища,
+  // а int.npcs живут в системе лобби. НЕ обновляем их AI/позиции/панику,
+  // иначе они «уезжают» к (player.r,player.c) хранилища и пропадают из
+  // лобби (см. БАГ 5). Замораживаем их на месте до возврата в лобби.
+  const _inVaultRoom = (int.room === 'vault');
   // Охрана и паника — только когда уже идёт ограбление (нажали «Взломать»)
-  if (isRobbery) {
+  if (isRobbery && !_inVaultRoom) {
     // Сотрудники видят оружие → убегают
     if (hasWeapon && !int._weaponPanicTriggered) {
       for (const npc of int.npcs) {
@@ -26829,7 +26995,10 @@ function _updateBankInterior(dt) {
     }
   }
 
-  for (const npc of int.npcs) {
+  // Пока игрок в хранилище — не двигаем NPC лобби (см. комментарий выше
+  // про _inVaultRoom): иначе охранники «уезжают» к координатам игрока в
+  // системе хранилища и пропадают из лобби (БАГ 5).
+  for (const npc of (_inVaultRoom ? [] : int.npcs)) {
     npc.walkPhase=(npc.walkPhase||0)+dt*9;
     if (npc.state==='normal') {
       if (npc.type==='client') {
@@ -26978,11 +27147,138 @@ function _updateBankInterior(dt) {
   if (pt)pt.style.display=isRobbing?'block':'none';
 }
 
+// ── Универсальная отрисовка объёмного мешка с деньгами ─────────────
+// opts: { angle, lying, glow, showDollar, alpha }
+//   angle      — поворот мешка (для лежащих/наклонённых)
+//   lying      — мешок лежит на боку (горизонтальная ориентация + тень)
+//   glow       — пульсирующее свечение вокруг (для заметности издалека)
+//   showDollar — рисовать значок $ (по умолчанию true)
+//   alpha      — общая прозрачность
+function _drawMoneyBag(x, y, scale, opts) {
+  opts = opts || {};
+  const now = performance.now();
+  const pulse = 0.85 + 0.15 * Math.sin(now * 0.005 + (opts.seed||0));
+  const a = (opts.alpha != null) ? opts.alpha : 1;
+  const bh = isoH(0.55) * scale;
+  const bw = 14 * scale;
+  ctx.save();
+  ctx.translate(x, y);
+  if (opts.angle) ctx.rotate(opts.angle);
+  ctx.globalAlpha = a;
+
+  // Свечение (для мешков на земле, чтобы было видно издалека)
+  if (opts.glow) {
+    const glowPulse = 0.4 + 0.3 * Math.sin(now * 0.004 + (opts.seed||0));
+    const g = ctx.createRadialGradient(0, 0, bw*0.3, 0, 0, bw*2.4);
+    g.addColorStop(0, `rgba(255,210,60,${glowPulse})`);
+    g.addColorStop(1, 'rgba(255,210,60,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, bw*2.4, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Тень на полу
+  ctx.fillStyle = `rgba(0,0,0,${0.35*a})`;
+  if (opts.lying) {
+    ctx.beginPath(); ctx.ellipse(0, bh*0.55, bw*1.05, bh*0.35, 0, 0, Math.PI*2); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.ellipse(0, bh*0.75, bw*0.75, bh*0.3, 0, 0, Math.PI*2); ctx.fill();
+  }
+
+  if (opts.lying) {
+    // ── Мешок завалился на бок (вид сверху-сбоку) ──────────────────
+    const rot = opts.angle ? 0 : 0.25; // лёгкий наклон если не задан общий поворот
+    ctx.save(); ctx.rotate(rot);
+    // Основное тело — горизонтальный градиентный эллипс
+    const bodyGrad = ctx.createLinearGradient(-bw*1.1, -bh*0.4, bw*1.1, bh*0.4);
+    bodyGrad.addColorStop(0, `rgba(95,60,25,${pulse*a})`);
+    bodyGrad.addColorStop(0.5, `rgba(150,98,46,${pulse*a})`);
+    bodyGrad.addColorStop(1, `rgba(110,70,30,${pulse*a})`);
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath(); ctx.ellipse(0, 0, bw*1.1, bh*0.55, 0, 0, Math.PI*2); ctx.fill();
+    // Складки ткани — изогнутые тени
+    ctx.strokeStyle = `rgba(70,42,16,${0.5*a})`;
+    ctx.lineWidth = 1.2;
+    for (const fx of [-0.5, 0, 0.5]) {
+      ctx.beginPath();
+      ctx.moveTo(bw*fx - bw*0.15, -bh*0.4);
+      ctx.quadraticCurveTo(bw*fx, 0, bw*fx - bw*0.15, bh*0.4);
+      ctx.stroke();
+    }
+    // Завязанный конец сбоку
+    ctx.fillStyle = `rgba(96,64,32,${pulse*a})`;
+    ctx.beginPath(); ctx.ellipse(-bw*1.05, 0, bw*0.28, bh*0.42, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = `rgba(128,80,48,${a})`; ctx.lineWidth = 1.5*scale;
+    ctx.beginPath(); ctx.arc(-bw*0.85, 0, bw*0.18, 0, Math.PI*2); ctx.stroke();
+    // Блик сверху
+    const hl = ctx.createLinearGradient(0, -bh*0.5, 0, 0);
+    hl.addColorStop(0, `rgba(255,255,255,${0.18*a})`);
+    hl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hl;
+    ctx.beginPath(); ctx.ellipse(bw*0.1, -bh*0.15, bw*0.85, bh*0.3, 0, 0, Math.PI*2); ctx.fill();
+    // Значок $
+    if (opts.showDollar !== false) {
+      ctx.fillStyle = `rgba(255,210,60,${(0.8+0.2*pulse)*a})`;
+      ctx.font = `bold ${Math.floor(bh*0.55)}px monospace`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('$', bw*0.1, 0);
+    }
+    ctx.restore();
+  } else {
+    // ── Мешок стоит вертикально (несёт игрок / на полке) ───────────
+    // Нижняя часть — градиент вместо плоской заливки
+    const lowGrad = ctx.createLinearGradient(-bw, bh*0.1, bw, bh*1.1);
+    lowGrad.addColorStop(0, `rgba(98,62,26,${pulse*a})`);
+    lowGrad.addColorStop(0.5, `rgba(145,96,46,${pulse*a})`);
+    lowGrad.addColorStop(1, `rgba(108,68,28,${pulse*a})`);
+    ctx.fillStyle = lowGrad;
+    ctx.beginPath();
+    ctx.ellipse(0, bh*0.6, bw*0.8, bh*0.5, 0.1, 0, Math.PI*2);
+    ctx.fill();
+    // Верхняя часть мешка — градиент
+    const topGrad = ctx.createLinearGradient(-bw*0.65, bh*0.0, bw*0.65, bh*0.6);
+    topGrad.addColorStop(0, `rgba(88,55,22,${pulse*a})`);
+    topGrad.addColorStop(0.5, `rgba(128,82,36,${pulse*a})`);
+    topGrad.addColorStop(1, `rgba(96,60,24,${pulse*a})`);
+    ctx.fillStyle = topGrad;
+    ctx.beginPath();
+    ctx.ellipse(0, bh*0.15, bw*0.65, bh*0.45, 0.1, 0, Math.PI*2);
+    ctx.fill();
+    // Складки ткани — изогнутые тени-линии по корпусу
+    ctx.strokeStyle = `rgba(60,36,14,${0.45*a})`;
+    ctx.lineWidth = 1;
+    for (const fx of [-0.32, 0, 0.32]) {
+      ctx.beginPath();
+      ctx.moveTo(bw*fx, bh*0.0);
+      ctx.quadraticCurveTo(bw*fx + bw*0.08, bh*0.55, bw*fx, bh*1.0);
+      ctx.stroke();
+    }
+    // Завязка
+    ctx.strokeStyle = `rgba(128,80,48,${a})`;
+    ctx.lineWidth = 2*scale;
+    ctx.beginPath();
+    ctx.arc(0, bh*0.05, bw*0.25, 0, Math.PI*2);
+    ctx.stroke();
+    // Значок $
+    if (opts.showDollar !== false) {
+      ctx.fillStyle = `rgba(255,210,60,${(0.7 + 0.3*pulse)*a})`;
+      ctx.font = `bold ${Math.floor(bh*0.38)}px monospace`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText('$', 0, bh*0.45);
+    }
+    // Блик
+    ctx.fillStyle = `rgba(255,255,255,${0.12*a})`;
+    ctx.beginPath();
+    ctx.ellipse(-bw*0.2, bh*0.1, bw*0.25, bh*0.15, -0.3, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
 function _drawCarryingBag(x, y) {
   const now = performance.now();
   const bob = Math.sin(now * 0.008) * 2;
   const bh = isoH(0.55);
-  const bw = 14;
   const bx = x + 12;
   const by = y - isoH(1.1) + bob;
   ctx.save();
@@ -26993,34 +27289,8 @@ function _drawCarryingBag(x, y) {
   ctx.moveTo(x + 6, y - isoH(0.9));
   ctx.quadraticCurveTo(bx - 4, by + bh*0.3, bx, by + bh*0.5);
   ctx.stroke();
-  // Нижняя часть мешка
-  const pulse = 0.85 + 0.15 * Math.sin(now * 0.005);
-  ctx.fillStyle = `rgba(130,85,40,${pulse})`;
-  ctx.beginPath();
-  ctx.ellipse(bx, by + bh*0.6, bw*0.8, bh*0.5, 0.1, 0, Math.PI*2);
-  ctx.fill();
-  // Верхняя часть мешка
-  ctx.fillStyle = `rgba(115,72,30,${pulse})`;
-  ctx.beginPath();
-  ctx.ellipse(bx, by + bh*0.15, bw*0.65, bh*0.45, 0.1, 0, Math.PI*2);
-  ctx.fill();
-  // Завязка
-  ctx.strokeStyle = '#805030';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(bx, by + bh*0.05, bw*0.25, 0, Math.PI*2);
-  ctx.stroke();
-  // Значок $
-  ctx.fillStyle = `rgba(255,210,60,${0.7 + 0.3*pulse})`;
-  ctx.font = `bold ${Math.floor(bh*0.38)}px monospace`;
-  ctx.textAlign = 'center';
-  ctx.fillText('$', bx, by + bh*0.45);
-  // Блик
-  ctx.fillStyle = 'rgba(255,255,255,0.1)';
-  ctx.beginPath();
-  ctx.ellipse(bx - bw*0.2, by + bh*0.1, bw*0.25, bh*0.15, -0.3, 0, Math.PI*2);
-  ctx.fill();
   ctx.restore();
+  _drawMoneyBag(bx, by, 1, { lying:false, showDollar:true });
 }
 
 function _drawBankInteriorNpc(npc) {
@@ -27143,71 +27413,227 @@ function _drawVaultRoom(int) {
     items.push({d:_r+W-0.01, fn:((__r)=>()=>_wV(__r,W,__r+1,W,'#242638','#14162a'))(_r)});
   }
 
+  // Сейфовые ячейки — общая отрисовка одной дверцы
+  const _drawDepositCell = (sp,sp2,sp3,sp4,sh,pulse,num,topCol,frontCol,sideCol,handlePos) => {
+    // Верхняя грань
+    ctx.fillStyle=topCol;
+    ctx.beginPath();
+    ctx.moveTo(sp.x,sp.y-sh); ctx.lineTo(sp2.x,sp2.y-sh);
+    ctx.lineTo(sp4.x,sp4.y-sh); ctx.lineTo(sp3.x,sp3.y-sh);
+    ctx.closePath(); ctx.fill();
+    // Фронтальная грань
+    ctx.fillStyle=frontCol;
+    ctx.beginPath();
+    ctx.moveTo(sp3.x,sp3.y); ctx.lineTo(sp4.x,sp4.y);
+    ctx.lineTo(sp4.x,sp4.y-sh); ctx.lineTo(sp3.x,sp3.y-sh);
+    ctx.closePath(); ctx.fill();
+    // Боковая грань
+    ctx.fillStyle=sideCol;
+    ctx.beginPath();
+    ctx.moveTo(sp.x,sp.y); ctx.lineTo(sp3.x,sp3.y);
+    ctx.lineTo(sp3.x,sp3.y-sh); ctx.lineTo(sp.x,sp.y-sh);
+    ctx.closePath(); ctx.fill();
+    // Окантовка дверцы
+    ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=0.6;
+    ctx.beginPath();
+    ctx.moveTo(sp3.x,sp3.y-sh*0.08); ctx.lineTo(sp4.x,sp4.y-sh*0.08);
+    ctx.lineTo(sp4.x,sp4.y-sh*0.92); ctx.lineTo(sp3.x,sp3.y-sh*0.92);
+    ctx.closePath(); ctx.stroke();
+    // Ручка-круг
+    const hp=handlePos;
+    ctx.fillStyle=`rgba(180,160,80,${pulse})`;
+    ctx.beginPath(); ctx.arc(hp.x,hp.y-sh*0.5,2.2,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(60,50,20,0.6)'; ctx.lineWidth=0.5;
+    ctx.stroke();
+    // Номер ячейки
+    if (num != null) {
+      ctx.fillStyle='rgba(160,180,220,0.55)';
+      ctx.font='5px monospace'; ctx.textAlign='center';
+      ctx.fillText(String(num).padStart(3,'0'), (sp3.x+sp4.x)/2, sp3.y-sh*0.78);
+      ctx.textAlign='left';
+    }
+  };
+
   // Сейфы вдоль северной стены
+  let _vaultCellNum = 100;
   for (let c=1;c<W-2;c+=2) {
-    const _c=c;
-    items.push({d:0.2+_c*0.01, fn:((__c)=>()=>{
+    const _c=c, _num=_vaultCellNum; _vaultCellNum+=4;
+    items.push({d:0.2+_c*0.01, fn:((__c,num)=>()=>{
       const r=0.2;
       const sp=w2s(r,__c), sp2=w2s(r,__c+1), sp3=w2s(r+1,__c), sp4=w2s(r+1,__c+1);
       const sh=isoH(1.4);
       const pulse=0.8+0.2*Math.sin(now*0.001+__c*0.5);
-      // Верхняя грань
-      ctx.fillStyle='#363a58';
-      ctx.beginPath();
-      ctx.moveTo(sp.x,sp.y-sh); ctx.lineTo(sp2.x,sp2.y-sh);
-      ctx.lineTo(sp4.x,sp4.y-sh); ctx.lineTo(sp3.x,sp3.y-sh);
-      ctx.closePath(); ctx.fill();
-      // Фронтальная грань
-      ctx.fillStyle='#2a2e45';
-      ctx.beginPath();
-      ctx.moveTo(sp3.x,sp3.y); ctx.lineTo(sp4.x,sp4.y);
-      ctx.lineTo(sp4.x,sp4.y-sh); ctx.lineTo(sp3.x,sp3.y-sh);
-      ctx.closePath(); ctx.fill();
-      // Боковая грань
-      ctx.fillStyle='#20223a';
-      ctx.beginPath();
-      ctx.moveTo(sp.x,sp.y); ctx.lineTo(sp3.x,sp3.y);
-      ctx.lineTo(sp3.x,sp3.y-sh); ctx.lineTo(sp.x,sp.y-sh);
-      ctx.closePath(); ctx.fill();
-      // Ручка
       const hp=w2s(r+0.5,__c+0.8);
-      ctx.fillStyle=`rgba(180,160,80,${pulse})`;
-      ctx.beginPath(); ctx.arc(hp.x,hp.y-sh*0.5,3,0,Math.PI*2); ctx.fill();
-    })(_c)});
+      _drawDepositCell(sp,sp2,sp3,sp4,sh,pulse,num,'#363a58','#2a2e45','#20223a',hp);
+    })(_c,_num)});
   }
 
-  // Мешки с деньгами
+  // Сейфовые ячейки вдоль ЗАПАДНОЙ стены (ряды маленьких пронумерованных дверец)
+  for (let r=1;r<H-2;r+=1.6) {
+    const _r=r, _num=_vaultCellNum; _vaultCellNum+=2;
+    items.push({d:_r-0.3, fn:((__r,num)=>()=>{
+      const c=0.18;
+      const sp=w2s(__r,c), sp2=w2s(__r+1.2,c), sp3=w2s(__r,0), sp4=w2s(__r+1.2,0);
+      const sh=isoH(1.1);
+      const pulse=0.8+0.2*Math.sin(now*0.0011+__r*0.7);
+      const hp=w2s(__r+0.6,0.12);
+      _drawDepositCell(sp,sp2,sp3,sp4,sh,pulse,num,'#34384f','#262a40','#1c1f33',hp);
+    })(_r,_num)});
+  }
+
+  // Сейфовые ячейки вдоль ВОСТОЧНОЙ стены
+  for (let r=1;r<H-2;r+=1.6) {
+    const _r=r, _num=_vaultCellNum; _vaultCellNum+=2;
+    items.push({d:_r+W-0.3, fn:((__r,num)=>()=>{
+      const c=W;
+      const sp=w2s(__r,c-0.18), sp2=w2s(__r+1.2,c-0.18), sp3=w2s(__r,c), sp4=w2s(__r+1.2,c);
+      const sh=isoH(1.1);
+      const pulse=0.8+0.2*Math.sin(now*0.0011+__r*0.7+3);
+      const hp=w2s(__r+0.6,c-0.12);
+      _drawDepositCell(sp,sp2,sp3,sp4,sh,pulse,num,'#3a3148','#2c2438','#20192c',hp);
+    })(_r,_num)});
+  }
+
+  // Подвесные лампы/прожекторы — конусы света на полу + сами лампы
+  const lampCols = [W*0.25, W*0.5, W*0.75];
+  for (const lc of lampCols) {
+    const _lc = lc;
+    items.push({d:H*0.5+_lc*0.001+50, fn:((__lc)=>()=>{
+      const lp = w2s(H*0.45, __lc);
+      const flicker = 0.85 + 0.15*Math.sin(now*0.006+__lc);
+      // Конус света падающий на пол
+      const cone = ctx.createRadialGradient(lp.x, lp.y, 4, lp.x, lp.y, hx*2.6);
+      cone.addColorStop(0, `rgba(220,230,255,${0.22*flicker})`);
+      cone.addColorStop(1, 'rgba(220,230,255,0)');
+      ctx.save();
+      ctx.fillStyle = cone;
+      ctx.beginPath(); ctx.ellipse(lp.x, lp.y, hx*2.6, hy*2.6, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+      // Трос лампы от потолка
+      ctx.strokeStyle = '#3a3c50'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(lp.x, lp.y - wallH); ctx.lineTo(lp.x, lp.y - wallH*0.55); ctx.stroke();
+      // Плафон лампы
+      ctx.fillStyle = '#4a4e68';
+      ctx.beginPath();
+      ctx.moveTo(lp.x-7, lp.y-wallH*0.55); ctx.lineTo(lp.x+7, lp.y-wallH*0.55);
+      ctx.lineTo(lp.x+4, lp.y-wallH*0.46); ctx.lineTo(lp.x-4, lp.y-wallH*0.46);
+      ctx.closePath(); ctx.fill();
+      // Светящаяся лампочка
+      ctx.fillStyle = `rgba(255,255,230,${flicker})`;
+      ctx.beginPath(); ctx.arc(lp.x, lp.y-wallH*0.44, 2.5, 0, Math.PI*2); ctx.fill();
+    })(_lc)});
+  }
+
+  // Аварийная мигалка при тревоге
+  if (int.alarmTriggered) {
+    items.push({d:H*0.5+W*0.5+60, fn:()=>{
+      const ap = w2s(H*0.15, W*0.85);
+      const alarmPulse = 0.5+0.5*Math.sin(now*0.012);
+      // Корпус мигалки на стене
+      ctx.fillStyle = '#2a1010';
+      ctx.beginPath(); ctx.arc(ap.x, ap.y-wallH*0.85, 4, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = `rgba(255,40,40,${alarmPulse})`;
+      ctx.beginPath(); ctx.arc(ap.x, ap.y-wallH*0.85, 2.5, 0, Math.PI*2); ctx.fill();
+      // Заливка всей сцены красным мерцанием
+      ctx.save();
+      ctx.fillStyle = `rgba(255,20,20,${0.05+0.07*alarmPulse})`;
+      ctx.fillRect(0,0,SW,SH);
+      ctx.restore();
+      // Радиальное свечение мигалки
+      const ag = ctx.createRadialGradient(ap.x,ap.y-wallH*0.85,2,ap.x,ap.y-wallH*0.85,hx*2);
+      ag.addColorStop(0,`rgba(255,30,30,${0.5*alarmPulse})`);
+      ag.addColorStop(1,'rgba(255,30,30,0)');
+      ctx.fillStyle=ag;
+      ctx.beginPath(); ctx.arc(ap.x,ap.y-wallH*0.85,hx*2,0,Math.PI*2); ctx.fill();
+    }});
+  }
+
+  // Камера наблюдения в углу (мигающий красный глазок)
+  items.push({d:0.05+70, fn:()=>{
+    const cp = w2s(0.3, W-0.3);
+    const blink = (Math.sin(now*0.01) > 0.3);
+    // Кронштейн
+    ctx.strokeStyle='#3a3c4e'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cp.x, cp.y-wallH*0.95); ctx.lineTo(cp.x-6, cp.y-wallH*0.82); ctx.stroke();
+    // Корпус камеры
+    ctx.fillStyle='#34384a';
+    ctx.beginPath();
+    ctx.moveTo(cp.x-10, cp.y-wallH*0.86); ctx.lineTo(cp.x-2, cp.y-wallH*0.86);
+    ctx.lineTo(cp.x-2, cp.y-wallH*0.78); ctx.lineTo(cp.x-10, cp.y-wallH*0.78);
+    ctx.closePath(); ctx.fill();
+    // Объектив
+    ctx.fillStyle='#10121c';
+    ctx.beginPath(); ctx.arc(cp.x-2, cp.y-wallH*0.82, 2.2, 0, Math.PI*2); ctx.fill();
+    // Мигающий красный индикатор
+    if (blink) {
+      ctx.fillStyle='rgba(255,40,40,0.95)';
+      ctx.beginPath(); ctx.arc(cp.x-9, cp.y-wallH*0.84, 1.3, 0, Math.PI*2); ctx.fill();
+    }
+  }});
+
+  // Декор: тележка для мешков + стойка с инструментами для взлома
+  items.push({d:H-1.2+0.01, fn:()=>{
+    const tp=w2s(H-1.2, 1.4);
+    const tw=hx*0.9, th=isoH(0.35);
+    // Платформа тележки
+    ctx.fillStyle='#3a3c4a'; ctx.strokeStyle='#1c1e28'; ctx.lineWidth=0.7;
+    ctx.beginPath();
+    ctx.moveTo(tp.x,tp.y-hy*0.5-th); ctx.lineTo(tp.x+tw,tp.y-th);
+    ctx.lineTo(tp.x,tp.y+hy*0.5-th); ctx.lineTo(tp.x-tw,tp.y-th);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Боковина
+    ctx.fillStyle='#2a2c38';
+    ctx.beginPath();
+    ctx.moveTo(tp.x-tw,tp.y-th); ctx.lineTo(tp.x,tp.y+hy*0.5-th);
+    ctx.lineTo(tp.x,tp.y+hy*0.5); ctx.lineTo(tp.x-tw,tp.y);
+    ctx.closePath(); ctx.fill();
+    // Колёсики
+    ctx.fillStyle='#16161e';
+    ctx.beginPath(); ctx.arc(tp.x-tw*0.6,tp.y+hy*0.1,2,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(tp.x+tw*0.5,tp.y-hy*0.05,2,0,Math.PI*2); ctx.fill();
+    // Ручка тележки
+    ctx.strokeStyle='#50525e'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(tp.x-tw*0.7,tp.y-th); ctx.lineTo(tp.x-tw*0.7,tp.y-th-isoH(0.5)); ctx.stroke();
+  }});
+  items.push({d:H-1.2+W-2+0.01, fn:()=>{
+    // Стойка с инструментами для взлома (дрели, отмычки, болгарка)
+    const tp=w2s(H-1.2, W-2);
+    const stH=isoH(1.0);
+    ctx.fillStyle='#2c2030'; ctx.strokeStyle='#1a1220'; ctx.lineWidth=0.7;
+    ctx.beginPath();
+    ctx.moveTo(tp.x,tp.y-hy*0.4-stH); ctx.lineTo(tp.x+hx*0.7,tp.y-stH);
+    ctx.lineTo(tp.x,tp.y+hy*0.4-stH); ctx.lineTo(tp.x-hx*0.7,tp.y-stH);
+    ctx.closePath(); ctx.fill();ctx.stroke();
+    ctx.fillStyle='#1e1624';
+    ctx.beginPath();
+    ctx.moveTo(tp.x-hx*0.7,tp.y-stH); ctx.lineTo(tp.x,tp.y+hy*0.4-stH);
+    ctx.lineTo(tp.x,tp.y+hy*0.4); ctx.lineTo(tp.x-hx*0.7,tp.y);
+    ctx.closePath(); ctx.fill();
+    // Инструменты (силуэты)
+    ctx.fillStyle='#888';
+    ctx.fillRect(tp.x-3, tp.y-stH-7, 2, 8);
+    ctx.fillStyle='#c04030';
+    ctx.beginPath(); ctx.arc(tp.x-2,tp.y-stH-8,2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#a0a0a0';
+    ctx.fillRect(tp.x+1, tp.y-stH-5, 5, 1.5);
+    ctx.fillStyle='#d0c040';
+    ctx.beginPath(); ctx.arc(tp.x+5,tp.y-stH-4,1.5,0,Math.PI*2); ctx.fill();
+  }});
+
+  // Мешки с деньгами (объёмные, лежат на полу)
   for (const bag of (bags||[])) {
     if (bag.taken) continue;
     const br=bag.r, bc=bag.c;
     const bp=w2s(br+0.5, bc+0.5);
-    const pulse=0.7+0.3*Math.sin(now*0.004+bag.id);
     items.push({d:br+bc*0.01, fn:((_bp,_br,_bc,_bag)=>()=>{
       const bh=isoH(0.6);
-      const bw=hx*0.7;
-      // Тень
-      ctx.fillStyle='rgba(0,0,0,0.4)';
-      ctx.beginPath(); ctx.ellipse(_bp.x,_bp.y,bw*0.7,hy*0.5,0,0,Math.PI*2); ctx.fill();
-      // Нижняя часть
-      ctx.fillStyle=`rgba(139,90,43,${pulse})`;
-      ctx.beginPath(); ctx.ellipse(_bp.x,_bp.y-bh*0.3,bw,bh*0.55,0,0,Math.PI); ctx.fill();
-      // Верхняя часть
-      ctx.beginPath(); ctx.ellipse(_bp.x,_bp.y-bh*0.6,bw*0.75,bh*0.45,0,Math.PI,0); ctx.fill();
-      // Завязка
-      ctx.strokeStyle='#604020'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(_bp.x,_bp.y-bh*0.85,bw*0.2,0,Math.PI*2); ctx.stroke();
-      // Знак $
-      ctx.fillStyle=`rgba(255,210,60,${0.8+0.2*pulse})`;
-      ctx.font=`bold ${Math.floor(bh*0.4)}px monospace`;
-      ctx.textAlign='center';
-      ctx.fillText('$',_bp.x,_bp.y-bh*0.55);
-      ctx.textAlign='left';
+      _drawMoneyBag(_bp.x, _bp.y - bh*0.15, 1.15, { lying:true, glow:false, seed:_bag.id||0 });
       // Подсказка если рядом
       if (Math.hypot(player.r-_br,player.c-_bc)<1.5) {
         ctx.fillStyle='rgba(255,255,255,0.9)';
         ctx.font='11px sans-serif';
         ctx.textAlign='center';
-        ctx.fillText('📦 Взять',_bp.x,_bp.y-bh-5);
+        ctx.fillText('📦 Взять',_bp.x,_bp.y-bh*1.4);
         ctx.textAlign='left';
       }
     })(bp, br, bc, bag)});
@@ -27526,7 +27952,106 @@ function drawBankInteriorScene() {
     const p=w2s(5,W-5);ctx.fillStyle='#6a5830';ctx.strokeStyle='#8a7840';ctx.lineWidth=.7;
     ctx.beginPath();ctx.moveTo(p.x,p.y-hy*.5-isoH(.18));ctx.lineTo(p.x+hx*.5,p.y-isoH(.18));
     ctx.lineTo(p.x,p.y+hy*.5-isoH(.18));ctx.lineTo(p.x-hx*.5,p.y-isoH(.18));ctx.closePath();ctx.fill();ctx.stroke();
+    // Стопка журналов/газет на столике
+    const mp=p; const mny=now*0.0;
+    for (let mi=0;mi<3;mi++) {
+      const mw=hx*0.32-mi*1.5, mcol=['#c04040','#3060c0','#d0a020'][mi];
+      ctx.fillStyle=mcol;
+      ctx.fillRect(mp.x-mw/2, mp.y-isoH(.18)-2-mi*1.6, mw, 1.4);
+      ctx.fillStyle='rgba(255,255,255,.25)';
+      ctx.fillRect(mp.x-mw/2, mp.y-isoH(.18)-2-mi*1.6, mw, 0.5);
+    }
   }});
+
+  // Ковёр под диванами (полупрозрачный овал с узором)
+  items.push({d:4.5+(W-5)-0.5,fn:()=>{
+    const p=w2s(4.5,W-4.3);
+    ctx.save();
+    ctx.fillStyle='rgba(120,40,60,0.28)';
+    ctx.beginPath();ctx.ellipse(p.x,p.y,hx*2.1,hy*2.1,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(200,170,90,0.35)';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.ellipse(p.x,p.y,hx*1.7,hy*1.7,0,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='rgba(200,170,90,0.2)';ctx.lineWidth=0.7;
+    ctx.beginPath();ctx.ellipse(p.x,p.y,hx*1.3,hy*1.3,0,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }});
+
+  // Телевизор на стене (рамка + светящийся экран с анимацией)
+  items.push({d:0.05+(W-3.5)*0.001+0.5,fn:()=>{
+    const p=w2s(0,W-3.5), tvW=26, tvH=16, tvY=p.y-isoH(2.0);
+    const scrA=0.55+0.2*Math.sin(now*0.0025);
+    // Рамка
+    ctx.fillStyle='#181818';ctx.strokeStyle='#0a0a0a';ctx.lineWidth=1;
+    ctx.fillRect(p.x-tvW/2-2, tvY-tvH/2-2, tvW+4, tvH+4);
+    ctx.strokeRect(p.x-tvW/2-2, tvY-tvH/2-2, tvW+4, tvH+4);
+    // Экран — светится, как у мониторов кассиров
+    ctx.fillStyle=`rgba(40,90,180,${scrA})`;
+    ctx.fillRect(p.x-tvW/2, tvY-tvH/2, tvW, tvH);
+    ctx.strokeStyle='#3a6ab0';ctx.lineWidth=0.6;
+    ctx.strokeRect(p.x-tvW/2, tvY-tvH/2, tvW, tvH);
+    // "Анимация" — бегущие полосы/диаграмма
+    ctx.fillStyle=`rgba(120,200,255,${scrA*0.85})`;
+    for (let li=0;li<3;li++) ctx.fillRect(p.x-tvW/2+2, tvY-tvH/2+2+li*4, tvW-4, 1.6);
+    const barH=(Math.sin(now*0.003)+1)*0.5*(tvH*0.4)+2;
+    ctx.fillStyle=`rgba(255,210,80,${scrA})`;
+    ctx.fillRect(p.x+tvW/2-7, tvY+tvH/2-barH-1, 4, barH);
+    // Кронштейн
+    ctx.fillStyle='#202020';
+    ctx.fillRect(p.x-1.5, tvY+tvH/2+2, 3, 4);
+  }});
+
+  // Картина на стене (рамка + цветной прямоугольник)
+  items.push({d:0.05+(W*0.7)*0.001+0.5,fn:()=>{
+    const p=w2s(0,W*0.7), pw=14, ph=18, py=p.y-isoH(1.7);
+    ctx.fillStyle='#caa860';ctx.fillRect(p.x-pw/2-1.5, py-ph/2-1.5, pw+3, ph+3);
+    const grad=ctx.createLinearGradient(p.x-pw/2,py-ph/2,p.x+pw/2,py+ph/2);
+    grad.addColorStop(0,'#3a5070'); grad.addColorStop(1,'#7a5040');
+    ctx.fillStyle=grad;
+    ctx.fillRect(p.x-pw/2, py-ph/2, pw, ph);
+    ctx.strokeStyle='rgba(0,0,0,.3)';ctx.lineWidth=0.6;
+    ctx.strokeRect(p.x-pw/2, py-ph/2, pw, ph);
+    // Лёгкий мазок-силуэт пейзажа
+    ctx.fillStyle='rgba(255,255,255,.18)';
+    ctx.beginPath();ctx.arc(p.x+pw*0.2, py-ph*0.25, 3, 0, Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(40,30,20,.35)';
+    ctx.beginPath();ctx.moveTo(p.x-pw/2,py+ph/2);ctx.lineTo(p.x-pw*0.1,py+ph*0.05);ctx.lineTo(p.x+pw*0.25,py+ph*0.3);ctx.lineTo(p.x+pw/2,py+ph/2);ctx.closePath();ctx.fill();
+  }});
+
+  // Торшер (напольная лампа) с тёплым светом
+  items.push({d:2.5+(W-2)+.05,fn:()=>{
+    const p=w2s(2.5,W-2), lh=isoH(1.6);
+    const flicker=0.8+0.2*Math.sin(now*0.004);
+    // Тёплое свечение на полу
+    const g=ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,hx*1.8);
+    g.addColorStop(0,`rgba(255,200,120,${0.22*flicker})`);
+    g.addColorStop(1,'rgba(255,200,120,0)');
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.ellipse(p.x,p.y,hx*1.8,hy*1.8,0,0,Math.PI*2);ctx.fill();
+    // Стойка
+    ctx.strokeStyle='#403828';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,p.y-lh);ctx.stroke();
+    // Основание
+    ctx.fillStyle='#302820';
+    ctx.beginPath();ctx.ellipse(p.x,p.y,5,2.2,0,0,Math.PI*2);ctx.fill();
+    // Абажур
+    ctx.fillStyle=`rgba(255,220,150,${0.85*flicker})`;
+    ctx.beginPath();
+    ctx.moveTo(p.x-7,p.y-lh+6);ctx.lineTo(p.x+7,p.y-lh+6);
+    ctx.lineTo(p.x+5,p.y-lh-4);ctx.lineTo(p.x-5,p.y-lh-4);
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#806840';ctx.lineWidth=0.7;ctx.stroke();
+  }});
+
+  // Кадки с растениями в зоне отдыха
+  for (const pp of [{r:0.8,c:W*0.66},{r:9.2,c:W-1.3}]) {
+    const _pr=pp.r,_pc=pp.c;
+    items.push({d:_pr+_pc*0.001+.05,fn:((__r,__c)=>()=>{
+      const p=w2s(__r,__c);
+      ctx.fillStyle='#7a5a3a';ctx.strokeStyle='#5a3e24';ctx.lineWidth=.7;
+      ctx.beginPath();ctx.ellipse(p.x,p.y,hx*.35,hy*.35,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText('🌿',p.x,p.y-9);ctx.textAlign='left';
+    })(_pr,_pc)});
+  }
 
   // Ресепшн стойка администратора
   items.push({d:counterRow-2+3+.1,fn:()=>{
@@ -27590,22 +28115,10 @@ function drawBankInteriorScene() {
     ctx.restore();
   }});
 
-  // Мешки
-  if (phase==='vault_open'||phase==='cracking') {
-    for (const bag of bags) {
-      if (bag.taken) continue;
-      items.push({d:bag.r+bag.c+.3,fn:((_r,_c)=>()=>{
-        const p=w2s(_r+.5,_c+.5),bh=isoH(.4);
-        ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(p.x,p.y+2,hx*.35,hy*.35,0,0,Math.PI*2);ctx.fill();
-        const g=ctx.createLinearGradient(p.x-8,p.y-bh,p.x+8,p.y);
-        g.addColorStop(0,'#2a6030');g.addColorStop(.5,'#3a9040');g.addColorStop(1,'#1a4020');
-        ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(p.x,p.y-bh*.5,10,8,0,0,Math.PI*2);ctx.fill();
-        ctx.strokeStyle='#5da060';ctx.lineWidth=1.2;ctx.stroke();
-        ctx.fillStyle='#90f090';ctx.font='bold 11px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillText('$',p.x,p.y-bh*.5-1);ctx.textAlign='left';ctx.textBaseline='alphabetic';
-      })(bag.r,bag.c)});
-    }
-  }
+  // Примечание: мешки хранилища (int.bags) рисуются ТОЛЬКО в _drawVaultRoom —
+  // их координаты заданы в системе хранилища (vaultW/vaultH), а не лобби.
+  // Раньше здесь дублировался рендер с теми же координатами, из-за чего
+  // значки «$» появлялись в комнате персонала лобби (см. БАГ 6).
 
   // NPC — сотрудники за столами получают +0.3 к depth чтобы рисоваться поверх мониторов
   for (const npc of int.npcs) {
@@ -28006,7 +28519,7 @@ function drawBankInteriorScene() {
 
   // 6. Кулер с водой 3D — у восточной стены (лобби)
   _addDecor(counterRow+3,W-2,()=>{
-    const p=w2s(counterRow+3.5,Math.floor(W*.72)+.5),cH=isoH(.85);
+    const p=w2s(counterRow+3.5,W-1.5),cH=isoH(.85);
     // Бутыль (синяя, полупрозрачная)
     ctx.fillStyle='rgba(80,160,255,.55)';ctx.strokeStyle='#4090d0';ctx.lineWidth=.7;
     ctx.beginPath();ctx.ellipse(p.x,p.y-cH*.62,hx*.18,hy*.18,0,0,Math.PI*2);ctx.fill();ctx.stroke();
@@ -28073,10 +28586,10 @@ function drawBankInteriorScene() {
     ctx.fillStyle=gl;ctx.beginPath();ctx.arc(shade.x,shade.y+6,18,0,Math.PI*2);ctx.fill();
     ctx.restore();});
 
-  // 11. Табло очереди (в лобби на стене)
-  _addDecor(counterRow+1,W*.5,()=>{
-    const a=w2s(counterRow+1,Math.floor(W*.5)),b=w2s(counterRow+1,Math.floor(W*.5)+2);
-    const qx=(a.x+b.x)/2-4,qy=a.y-wallH*.35;
+  // 11. Табло очереди — смонтировано на западной стене над зоной ожидания
+  _addDecor(counterRow+1,0,()=>{
+    const a=w2s(counterRow+1,0),b=w2s(counterRow+2,0);
+    const qx=(a.x+b.x)/2+6,qy=(a.y+b.y)/2-wallH*.55;
     const qn=((now3*.0002)|0)%100;
     ctx.fillStyle='#101828';ctx.strokeStyle='#203040';ctx.lineWidth=.8;
     ctx.fillRect(qx-18,qy-12,36,16);ctx.strokeRect(qx-18,qy-12,36,16);
