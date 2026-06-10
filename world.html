@@ -27529,6 +27529,7 @@ function drawBankInteriorScene() {
   const stage=document.getElementById('stage');
   const SW=stage.clientWidth,SH=stage.clientHeight;
   const hx=TS*.5,hy=TS*.5*ISO_Y,wallH=isoH(3.2);  // высота стен увеличена
+  const now=performance.now();
   ctx.fillStyle='#040308'; ctx.fillRect(0,0,SW,SH);
 
   // ── Пол — первым (без depth-sort) ────────────────────────────────
@@ -28129,7 +28130,7 @@ function drawBankInteriorScene() {
   // (проём в северной стене занимает c от vDL=W/2-2 до vDR=W/2+2 → 4 тайла)
   items.push({d: W/2*0.01+0.3, fn:()=>{
     const vc=w2s(0,W/2);
-    const vcy=vc.y-wallH*.5;
+    const vcy=vc.y;  // нижний край проёма = пол стены (a.y в _wFace)
     const now2=performance.now();
     // Полная ширина проёма в экранных пикселях = (vDR-vDL)*hx = 4*hx
     const gapW=4*hx;
