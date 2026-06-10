@@ -6690,6 +6690,10 @@ let myHp = 100;
 let myDead = false;
 let myDeathBy = '';       // uid того кто убил (последний)
 let myDeathLeft = 0;      // сколько сек до респауна
+// Локальная смерть (например от охраны банка) — сервер о ней не знает,
+// snap присылает dead=false и мгновенно «воскрешал» бы игрока. Пока флаг
+// активен, snap-поля dead/respawn_in игнорируем, респаун тикаем сами.
+let _localDeath = false;
 let myKills = 0, myDeaths = 0;
 let lastShotClientT = 0;  // локальный cooldown (предотвращает спам)
 let _recoilUntil = 0;    // до этого момента рука/оружие «отдыхает» назад
@@ -9089,8 +9093,12 @@ function wsConnect() {
           updateMoneyHud();
         }
         const wasDead = myDead;
-        myDead = !!d.me.dead;
-        myDeathLeft = d.me.respawn_in || 0;
+        // При локальной смерти (охрана банка) сервер присылает dead=false —
+        // не даём ему мгновенно «воскресить», респаун ведём сами в update().
+        if (!_localDeath) {
+          myDead = !!d.me.dead;
+          myDeathLeft = d.me.respawn_in || 0;
+        }
         if (!wasDead && myDead) {
           // Только что умер — принудительно выходим из машины, сбрасываем зум
           if (myDrivingCarId) {
@@ -9176,7 +9184,7 @@ function wsConnect() {
       // при движении (5 снапшотов/сек = телепортация), храним свои
       // x/y и подтягиваем к серверным tx/ty в update() — interp.
       applyConvoyTargets(d.event || null);
-      if (d.me && typeof d.me.respawn_in === 'number') {
+      if (d.me && typeof d.me.respawn_in === 'number' && !_localDeath) {
         myDeathLeft = d.me.respawn_in;
       }
       if (d.me && typeof d.me.max_hp === 'number') {
@@ -12024,7 +12032,8 @@ function fire(angle = null) {
   // переключаются в panic. Бегут от стрелка, кричат «ПОМОГИТЕ!» по
   // случайному паттерну. Когда отбежали — успокаиваются (см. updateNpcs).
   // Из тюрьмы не паникуем — прохожие за решёткой это игнорят.
-  if (!_meInJail) {
+  if (!_meInJail && !_bankInt) {
+    // В банке player.r/c локальные — паника мировых NPC по ним некорректна
     try { triggerNpcPanic(player.r, player.c, 9); } catch(e) {}
   }
   // Стрельба в городе вне PvP-зоны = НЕЗАКОННО. Шлём серверу open_fire —
@@ -12035,7 +12044,9 @@ function fire(angle = null) {
   const meInAggro = !!inAggroZone(player.r, player.c);
   // В тюрьме стрельба тоже «легальна» — я уже сижу, дальше копить wanted
   // и звать свидетелей в участок бессмысленно (NPC сами там стоят за стенкой).
-  const lawful    = _meInJail || meInArena || meInAggro || pvpActive || chosenConvoy || chosenCop || chosenAggro || chosenMg || chosenBankGuard;
+  // _bankInt: внутри банка координаты локальные — witness-chain/open_fire
+  // по мировым NPC не имеют смысла (тревога банка уже и так включена).
+  const lawful    = _meInJail || meInArena || meInAggro || pvpActive || !!_bankInt || chosenConvoy || chosenCop || chosenAggro || chosenMg || chosenBankGuard;
   if (!lawful) {
     // НОВАЯ механика wanted:
     //   - мгновенный +1 только если КОП видел выстрел сам (witness=true)
@@ -13399,6 +13410,24 @@ function update(dt) {
     }
   }
 
+  // ── Локальная смерть: сервер о ней не знает (убила охрана банка),
+  // поэтому счётчик респауна тикаем сами и возрождаем у госпиталя.
+  if (_localDeath && myDead) {
+    myDeathLeft -= dt;
+    if (myDeathLeft <= 0) {
+      _localDeath = false;
+      myDead = false;
+      myDeathBy = '';
+      myHp = PVP.max_hp || 100;
+      if (_bankInt) exitBankInterior(false);
+      const _rp = _hospitalDoor();
+      player.r = _rp.r; player.c = _rp.c;
+      cam.x = (player.c - player.r) * TS * 0.5;
+      cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
+      showToast('🏥 Ты очнулся у госпиталя', '💊', 2200);
+    }
+  }
+
   // ── ИНТЕРЬЕР БАНКА: отдельная физика и управление ──
   if (_bankInt) {
     const intSpeed = 4.5;
@@ -13438,6 +13467,27 @@ function update(dt) {
     updateZoneBtn();
     updatePvpUI();
     updateProjectiles(dt);
+    // Стрельба внутри банка. Блок стрельбы открытого мира стоит НИЖЕ
+    // этого early-return и тут не выполняется — без этого кнопка огня
+    // и правый стик внутри банка не работали вообще.
+    if (myMode !== 'pve' && !myDead) {
+      if (joyR.active && joyR.hasAim) {
+        // Free-aim правым стиком (как на арене)
+        const d2 = joyR.dx, s2 = joyR.dy / ISO_Y;
+        fire(Math.atan2((s2 - d2) * 0.5, (s2 + d2) * 0.5));
+      } else if (_fireBtnDown) {
+        if (_isArmed()) {
+          // Кнопка огня: по залоченной цели, иначе по направлению взгляда
+          const active = getActiveTarget();
+          const pos = active && active.getPos();
+          const fang = pos ? Math.atan2(pos.r - player.r, pos.c - player.c) : player.ang;
+          player.ang = fang;
+          fire(fang);
+        } else {
+          punch();
+        }
+      }
+    }
     // Городские кнопки (угон тачки, ручник, ограбление бизнеса) считают
     // мировые координаты — внутри банка player.r/c локальные, поэтому
     // эти кнопки не обновляются и «зависают» в виде, какой был снаружи.
@@ -23751,6 +23801,13 @@ function updateProjectiles(dt) {
     b.c += b.vc * ddt;
     b.dist += Math.hypot(b.vr, b.vc) * ddt;
     if (b.dist >= b.maxDist) {
+      // Прижимаем голову ровно к точке попадания — на высокой скорости
+      // пуля за кадр пролетала ЗА цель и вспышка рисовалась мимо.
+      const _ov = b.dist - b.maxDist;
+      const _sp = Math.hypot(b.vr, b.vc) || 1;
+      b.r -= b.vr / _sp * _ov;
+      b.c -= b.vc / _sp * _ov;
+      b.dist = b.maxDist;
       // оставляем флаг для финального drawBullets — он отрисует вспышку
       b._finished = true;
     }
@@ -24461,9 +24518,13 @@ function drawBullets() {
     // Длина шлейфа в долях секунды скорости (0.18..0.28 — заметно, но
     // не превращается в «лазерную линию» через полэкрана)
     const trailT = b.thick ? 0.28 : 0.20;
+    // Шлейф НЕ длиннее пройденного пути — иначе в первые кадры хвост
+    // торчит на несколько тайлов ПОЗАДИ дула («стреляю из-за спины»).
+    const _spd = Math.hypot(b.vr, b.vc) || 1;
+    const trailSec = Math.min(trailT, b.dist / _spd);
     const ph = w2s(b.r + 0.5, b.c + 0.5);                          // head
-    const pt = w2s(b.r - b.vr * trailT + 0.5,
-                   b.c - b.vc * trailT + 0.5);                     // tail
+    const pt = w2s(b.r - b.vr * trailSec + 0.5,
+                   b.c - b.vc * trailSec + 0.5);                   // tail
     const hx = ph.x,           hy = ph.y - dy;
     const tx = pt.x,           ty = pt.y - dy;
     // Градиентный шлейф (linear gradient вдоль траектории)
@@ -26749,7 +26810,7 @@ function _updateBankInterior(dt) {
           npc._punchDir = Math.atan2(player.r - npc.r, player.c - npc.c);
           const dmg = 12 + Math.floor(Math.random()*6);
           myHp = Math.max(0, myHp - dmg);
-          if (myHp <= 0 && !myDead) { myDead = true; myDeathBy = 'Охрана банка'; myDeathLeft = 5; }
+          if (myHp <= 0 && !myDead) { myDead = true; _localDeath = true; myDeathBy = 'Охрана банка'; myDeathLeft = 5; }
           flashHitOverlay();
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff6644', size: 14, life: 1000 });
           try { hapticHit && hapticHit(); } catch(e) {}
@@ -26785,7 +26846,7 @@ function _updateBankInterior(dt) {
           if (typeof addShake === 'function') addShake(2.5);
           const dmg = 8 + Math.floor(Math.random()*5);
           myHp = Math.max(0, myHp - dmg);
-          if (myHp <= 0 && !myDead) { myDead = true; myDeathBy = 'Охрана банка'; myDeathLeft = 5; }
+          if (myHp <= 0 && !myDead) { myDead = true; _localDeath = true; myDeathBy = 'Охрана банка'; myDeathLeft = 5; }
           flashHitOverlay();
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
           try { hapticHit && hapticHit(); } catch(e) {}
@@ -27526,6 +27587,15 @@ function _drawVaultRoom(int) {
   // Рендер в глубину
   items.sort((a,b)=>a.d-b.d);
   for (const item of items) item.fn();
+
+  // Боевые эффекты — как в drawBankInteriorScene: render() сюда не доходит,
+  // без этих вызовов выстрелы игрока в хранилище были бы невидимы.
+  drawSmokePuffs();
+  drawBullets();
+  drawMuzzles();
+  drawShockwaves();
+  drawImpacts();
+  drawFloatTexts();
 
   // Светящийся выход (южная стена, центр)
   const exitP=w2s(H, W/2);
