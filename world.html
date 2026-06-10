@@ -13429,7 +13429,22 @@ function update(dt) {
     cam.x+=(targetCamX-cam.x)*Math.min(1,dt*8);
     cam.y+=(targetCamY-cam.y)*Math.min(1,dt*8);
     _updateBankInterior(dt);
-    _updateBankZoneBtn();
+    // Раньше тут вызывался no-op _updateBankZoneBtn(), а updateZoneBtn()/
+    // updatePvpUI() — только при смене фазы. Из-за этого внутри банка
+    // зависали: кнопка zoneBtn (старая «Войти в банк»/«Войти за мешком»
+    // с улицы, не обновлялась под мешок/взлом), кнопка огня (не
+    // пересчитывалась) и счётчик пуль/импактов. Теперь пересчитываем
+    // каждый кадр, как и снаружи.
+    updateZoneBtn();
+    updatePvpUI();
+    updateProjectiles(dt);
+    // Городские кнопки (угон тачки, ручник, ограбление бизнеса) считают
+    // мировые координаты — внутри банка player.r/c локальные, поэтому
+    // эти кнопки не обновляются и «зависают» в виде, какой был снаружи.
+    _gtaBtn.style.display = 'none';
+    _gtaActionKind = null;
+    _handbrakeBtn.style.display = 'none';
+    if (_robBtn) _robBtn.style.display = 'none';
     return;
   }
 
@@ -26734,6 +26749,7 @@ function _updateBankInterior(dt) {
           npc._punchDir = Math.atan2(player.r - npc.r, player.c - npc.c);
           const dmg = 12 + Math.floor(Math.random()*6);
           myHp = Math.max(0, myHp - dmg);
+          if (myHp <= 0 && !myDead) { myDead = true; myDeathBy = 'Охрана банка'; myDeathLeft = 5; }
           flashHitOverlay();
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff6644', size: 14, life: 1000 });
           try { hapticHit && hapticHit(); } catch(e) {}
@@ -26758,8 +26774,18 @@ function _updateBankInterior(dt) {
         if (now > npc._nextShootAt) {
           npc._nextShootAt = now + 1500;
           npc._muzzleFlash = now;
+          // Видимый трассер + вспышка дула + импакт у игрока — раньше тут
+          // только менялся HP без какой-либо анимации выстрела охранника.
+          const shootAng = Math.atan2(player.r - npc.r, player.c - npc.c);
+          const muzR = npc.r + Math.sin(shootAng) * 0.45;
+          const muzC = npc.c + Math.cos(shootAng) * 0.45;
+          spawnBullet(muzR, muzC, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol' });
+          spawnMuzzle(muzR, muzC, shootAng, 'pistol', true);
+          spawnImpact(player.r, player.c, 'pistol');
+          if (typeof addShake === 'function') addShake(2.5);
           const dmg = 8 + Math.floor(Math.random()*5);
           myHp = Math.max(0, myHp - dmg);
+          if (myHp <= 0 && !myDead) { myDead = true; myDeathBy = 'Охрана банка'; myDeathLeft = 5; }
           flashHitOverlay();
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
           try { hapticHit && hapticHit(); } catch(e) {}
@@ -26808,6 +26834,9 @@ function _updateBankInterior(dt) {
   if (player.r>=H-.6){exitBankInterior(!!int.myBag);return;}
   const el=document.getElementById('bankRobHud');
   if (!el) return;
+  // В лобби заголовок банка и подсказка уже рисуются прямо на канвасе
+  // (drawBankInteriorScene) — дублирующая HTML-плашка тут не нужна.
+  if (int.phase==='lobby'){el.style.display='none';return;}
   el.style.display='block';
   const ph=document.getElementById('bankRobPhaseText');
   const bg=document.getElementById('bankRobBagCount');
@@ -28687,6 +28716,16 @@ function drawBankInteriorScene() {
    ctx.fillStyle='#306030';ctx.beginPath();ctx.moveTo(a.x-pw,a.y-dH+2);ctx.lineTo(b.x+pw,b.y-dH-2);ctx.lineTo(b.x+pw,b.y-dH-8);ctx.lineTo(a.x-pw,a.y-dH-4);ctx.closePath();ctx.fill();
    ctx.fillStyle='#60e060';ctx.font='bold 8px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
    ctx.fillText('🚪 ВЫХОД',(a.x+b.x)/2,a.y-dH*.5);ctx.textAlign='left';ctx.textBaseline='alphabetic';}
+
+  // Боевые эффекты (трассеры/вспышки/импакты охраны) — снаружи банка их
+  // рисует render(), но внутри банка render() сразу уходит в эту функцию
+  // и до них не доходит. Без этого выстрелы охраны были невидимы.
+  drawSmokePuffs();
+  drawBullets();
+  drawMuzzles();
+  drawShockwaves();
+  drawImpacts();
+  drawFloatTexts();
 
   // Лейблы зон
   ctx.save();ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
