@@ -3269,6 +3269,113 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     // (см. брайн ws-handlers ниже): там точно знаем bot_id убитого.
   }
 }
+// ── Попадание в NPC-патрульного (cityCops) ──────────────────────────
+// Локальная система — сервер про cityCops не знает (worldCops отдельные).
+// Раньше в патрульных вообще нельзя было ни целиться, ни попасть.
+// Любая атака копа — witness-инцидент: open_fire(witness=true) бампает
+// wanted; раненый патрульный сразу переходит в погоню.
+function hitCityCop(cop, dirY, dirX, damage) {
+  if (!cop || !cop.alive) return;
+  cop.hp = Math.max(0, (cop.hp | 0) - (damage | 0));
+  cop.y += dirY * 0.25; cop.x += dirX * 0.25;
+  cop._pursuing = true;
+  cop._reactUntil = performance.now() + 2800;
+  if (cop.hp <= 0) {
+    cop.alive = false;   // updateCityCops удалит из массива
+    for (let i = 0; i < 6; i++) {
+      _capArr(bloodSplats, _MAX_BLOOD);
+      bloodSplats.push({
+        r: cop.y + (Math.random() - 0.5) * 0.7,
+        c: cop.x + (Math.random() - 0.5) * 0.7,
+        radius: 7 + Math.random() * 5,
+        life: 14000, max: 14000,
+        rot: Math.random() * Math.PI,
+      });
+    }
+    const parts = [];
+    for (let i = 0; i < 14; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 1.0 + Math.random() * 2.4;
+      parts.push({ vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+        life: 500 + Math.random() * 400, max: 900,
+        color: Math.random() < 0.8 ? '#a01010' : '#3a0a0a', isBlood: true,
+        size: 2.0 + Math.random() * 2.0 });
+    }
+    _capArr(impacts, _MAX_IMPACTS);
+    impacts.push({ r: cop.y, c: cop.x, parts });
+    // Труп — рисуем как мёртвого NPC (cityCops сразу удаляются из массива)
+    NPCS.push({ r: cop.y, c: cop.x, tr: cop.y, tc: cop.x, speed: 0,
+      ang: cop.ang || 0, walkPhase: 0, idleUntil: 0, hp: 0, max_hp: 100,
+      dead: true, deadAt: performance.now(),
+      look: { gender: 0, skin: 2, body: 4, face: 1, hair: 1, hat: 3 } });
+    _alertNearbyCops('kill');
+  }
+  try {
+    ws && ws.send(JSON.stringify({ t: 'open_fire',
+      d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
+           weapon: currentWeapon || 'fists', civilian: false, witness: true } }));
+  } catch(e) {}
+}
+// ── Жители-декор: пассажиры автобуса / ожидающие / хозяева парковок ──
+// У них нет hp — одно попадание убивает. Раньше в них нельзя было ни
+// целиться, ни попасть («в некоторых жителей не могу целиться»).
+// Удаляем из родного массива (их тикеры про смерть не знают) и кладём
+// труп обычного NPC, чтобы тело осталось лежать.
+function _killDecorNpc(obj, arr, dirY, dirX) {
+  if (!obj || obj.dead) return;
+  obj.dead = true;
+  const i = arr.indexOf(obj);
+  if (i >= 0) arr.splice(i, 1);
+  for (let k = 0; k < 5; k++) {
+    _capArr(bloodSplats, _MAX_BLOOD);
+    bloodSplats.push({
+      r: obj.r + (Math.random() - 0.5) * 0.6,
+      c: obj.c + (Math.random() - 0.5) * 0.6,
+      radius: 6 + Math.random() * 5,
+      life: 14000, max: 14000,
+      rot: Math.random() * Math.PI,
+    });
+  }
+  const parts = [];
+  for (let k = 0; k < 12; k++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 1.0 + Math.random() * 2.2;
+    parts.push({ vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+      life: 480 + Math.random() * 380, max: 860,
+      color: Math.random() < 0.8 ? '#a01010' : '#3a0a0a', isBlood: true,
+      size: 2.0 + Math.random() * 1.8 });
+  }
+  _capArr(impacts, _MAX_IMPACTS);
+  impacts.push({ r: obj.r, c: obj.c, parts });
+  NPCS.push({ r: obj.r + dirY * 0.2, c: obj.c + dirX * 0.2, tr: obj.r, tc: obj.c,
+    speed: 0, ang: obj.ang || 0, walkPhase: 0, idleUntil: 0, hp: 0, max_hp: 100,
+    dead: true, deadAt: performance.now(),
+    look: obj.look || { gender: Math.random() < 0.5 ? 0 : 1, skin: 2, body: 1, face: 0, hair: 1 } });
+  _alertNearbyCops('kill');
+}
+// Луч от пули по жителям-декору (автобусные пассажиры/ожидающие/хозяева
+// парковок) — та же геометрия что _raycastNpc.
+function _raycastDecorNpc(sR, sC, dirY, dirX, maxRange) {
+  let best = null, bestD = maxRange;
+  for (const arr of [_busRiders, _busWaiters, _parkingNpcs]) {
+    if (!Array.isArray(arr)) continue;
+    for (const n of arr) {
+      if (!n || n.dead || n.state === 'sitting') continue;
+      if (typeof n.r !== 'number' || typeof n.c !== 'number') continue;
+      const dr = n.r - sR, dc = n.c - sC;
+      const along = dr * dirY + dc * dirX;
+      if (along < 0.2 || along > maxRange) continue;
+      const perp = Math.abs(dr * dirX - dc * dirY);
+      if (perp > 0.95) continue;
+      if (along < bestD) {
+        bestD = along;
+        best = { obj: n, arr, point: { r: sR + dirY * along, c: sC + dirX * along },
+                 dist: along };
+      }
+    }
+  }
+  return best;
+}
 // Локальное попадание по охраннику банка (_bankInt.npcs): knockback +
 // кровь + hp вычитается. При hp<=0 → dead/fled (тело остаётся в интерьере).
 function _hitBankGuard(npc, dirY, dirX, damage) {
@@ -6675,8 +6782,11 @@ function muzzleWorldPoint(angleRad) {
   // Конец ствола = хват + длина ствола вдоль ISO-направления
   const mx = a.hx + a.sx * tip * sc;
   const my = a.hy + a.sy * tip * sc;
-  // Конвертируем обратно в мир
-  return s2w(mx, my);
+  // Конвертируем обратно в мир, КОМПЕНСИРУЯ высоту отрисовки пули:
+  // drawBullets/drawMuzzles рисуют точку на _bulletY() px ВЫШЕ w2s(r,c).
+  // Без компенсации трассер и вспышка висели выше/позади видимого ствола
+  // («стреляю из-за спины»).
+  return s2w(mx, my + _bulletY());
 }
 function isoH(h) { return h * TS * 0.55; }
 
@@ -11930,9 +12040,24 @@ function fire(angle = null) {
       if (!chosenCop || d < chosenCop.d) chosenCop = { id: c.id, x: c.x, y: c.y, d };
     }
   }
+  // 2b) NPC-патрульный (cityCops) — локальный коп в городе. Раньше в них
+  // нельзя было целиться вообще (fire() знал только серверных worldCops).
+  let chosenCityCop = null;
+  if (!chosenConvoy && !chosenCop && !_meInJail && !_bankInt) {
+    for (const c of cityCops) {
+      if (!c.alive) continue;
+      const dx = c.x - player.c, dy = c.y - player.r;
+      const d = Math.hypot(dx, dy);
+      if (d > FIRE_R_CONVOY) continue;
+      const dn = d > 0.001 ? d : 1;
+      const dot = (dx * dirX + dy * dirY) / dn;
+      if (dot < 0.985) continue;
+      if (!chosenCityCop || d < chosenCityCop.d) chosenCityCop = { cop: c, x: c.x, y: c.y, d };
+    }
+  }
   // 3) Бот агрессивного района — стрелять можно только если я САМ в этой зоне
   let chosenAggro = null;
-  if (!chosenConvoy && !chosenCop && !_meInJail && !_bankInt) {
+  if (!chosenConvoy && !chosenCop && !chosenCityCop && !_meInJail && !_bankInt) {
     for (const tid of Object.keys(aggroZones)) {
       const az = aggroZones[tid];
       if (!az || !az.bots) continue;
@@ -11949,7 +12074,7 @@ function fire(angle = null) {
   }
   // 4) Охранник Майкла — стрелять можно, но это разозлит охрану
   let chosenMg = null;
-  if (!chosenConvoy && !chosenCop && !chosenAggro && !_meInJail && !_bankInt) {
+  if (!chosenConvoy && !chosenCop && !chosenCityCop && !chosenAggro && !_meInJail && !_bankInt) {
     for (const g of michaelGuards.values()) {
       const dx = g.x - player.c, dy = g.y - player.r;
       const d  = Math.hypot(dx, dy);
@@ -11963,7 +12088,7 @@ function fire(angle = null) {
   // 4b) Враждебный охранник банка (внутри интерьера банка) — локальная цель,
   // на сервер не шлём (как обычный NPC), но и не привязан к карте мира.
   let chosenBankGuard = null;
-  if (!chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && _bankInt && _bankInt.npcs) {
+  if (!chosenConvoy && !chosenCop && !chosenCityCop && !chosenAggro && !chosenMg && _bankInt && _bankInt.npcs) {
     for (const npc of _bankInt.npcs) {
       if (npc.type !== 'guard' || npc.state !== 'hostile' || npc.dead) continue;
       const dx = npc.c - player.c, dy = npc.r - player.r;
@@ -11978,10 +12103,10 @@ function fire(angle = null) {
     }
   }
   // 5) PvP-игрок (в активной зоне инкассатора или в арене)
-  const pvpTarget = (!chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && !chosenBankGuard && !_bankInt) ? findPvpTargetAlongAim(dirX, dirY) : null;
+  const pvpTarget = (!chosenConvoy && !chosenCop && !chosenCityCop && !chosenAggro && !chosenMg && !chosenBankGuard && !_bankInt) ? findPvpTargetAlongAim(dirX, dirY) : null;
   // Если цели нет — стреляем «в пустоту» с визуальным эффектом
   // (трассер летит вперёд + отдача + cd). Локально, серверу не шлём.
-  const noTarget = !chosenConvoy && !chosenCop && !chosenAggro && !chosenMg && !chosenBankGuard && !pvpTarget;
+  const noTarget = !chosenConvoy && !chosenCop && !chosenCityCop && !chosenAggro && !chosenMg && !chosenBankGuard && !pvpTarget;
   lastShotClientT = now;
   // Копы в радиусе реагируют на выстрел
   _alertNearbyCops('shot');
@@ -12022,7 +12147,7 @@ function fire(angle = null) {
   }
   // Hit-stop при попадании в живую цель — кратковременный фриз кадра.
   // Даёт ощущение «веса» удара (как в Hotline Miami / Hyper Light Drifter).
-  const _hitSomeone = !!(chosenConvoy || chosenCop || chosenAggro || chosenMg || chosenBankGuard || pvpTarget);
+  const _hitSomeone = !!(chosenConvoy || chosenCop || chosenCityCop || chosenAggro || chosenMg || chosenBankGuard || pvpTarget);
   if (_hitSomeone) {
     triggerHitStop(weaponFx(currentWeapon).thick ? 35 : 18);
     addShake(weaponFx(currentWeapon).thick ? 3.5 : 2);
@@ -12046,7 +12171,7 @@ function fire(angle = null) {
   // и звать свидетелей в участок бессмысленно (NPC сами там стоят за стенкой).
   // _bankInt: внутри банка координаты локальные — witness-chain/open_fire
   // по мировым NPC не имеют смысла (тревога банка уже и так включена).
-  const lawful    = _meInJail || meInArena || meInAggro || pvpActive || !!_bankInt || chosenConvoy || chosenCop || chosenAggro || chosenMg || chosenBankGuard;
+  const lawful    = _meInJail || meInArena || meInAggro || pvpActive || !!_bankInt || chosenConvoy || chosenCop || chosenCityCop || chosenAggro || chosenMg || chosenBankGuard;
   if (!lawful) {
     // НОВАЯ механика wanted:
     //   - мгновенный +1 только если КОП видел выстрел сам (witness=true)
@@ -12080,6 +12205,8 @@ function fire(angle = null) {
   // могут случайно оказаться «на линии огня» хотя их там физически нет.
   const range = wcfg.range || 7;
   const hitN  = (_meInJail || _bankInt) ? null : _raycastNpc(sR, sC, dirY, dirX, range);
+  // Raycast по жителям-декору (автобусные пассажиры/хозяева парковок)
+  const hitD  = (_meInJail || _bankInt) ? null : _raycastDecorNpc(sR, sC, dirY, dirX, range);
   // Raycast по бандитским машинам в кортеже — приоритет если ближе NPC.
   const hitG  = (_meInJail || _bankInt) ? null : _raycastGangCar(sR, sC, dirY, dirX, range);
   if (hitG && (!hitN || hitG.dist < hitN.dist)) {
@@ -12093,10 +12220,23 @@ function fire(angle = null) {
     return;
   }
   // Дистанция до серверной цели по линии огня
-  const _serverTarget = chosenConvoy || chosenCop || chosenAggro || chosenMg || chosenBankGuard || pvpTarget;
+  const _serverTarget = chosenConvoy || chosenCop || chosenCityCop || chosenAggro || chosenMg || chosenBankGuard || pvpTarget;
   const _serverDist = _serverTarget
     ? ((_serverTarget.y - sR) * dirY + (_serverTarget.x - sC) * dirX)
     : Infinity;
+  // Житель-декор на линии огня — приоритет если он ближе и обычного NPC,
+  // и выбранной цели (стоит ровно перед стволом).
+  if (hitD && (!hitN || hitD.dist < hitN.dist)
+           && (!_serverTarget || hitD.dist < _serverDist - 0.5)) {
+    spawnBullet(sR, sC, hitD.point.r, hitD.point.c,
+      { hit: true, fromPlayer: true, weapon: currentWeapon });
+    spawnImpact(hitD.point.r, hitD.point.c, currentWeapon);
+    _killDecorNpc(hitD.obj, hitD.arr, dirY, dirX);
+    triggerHitStop(wcfg.thick ? 35 : 18);
+    addShake(wcfg.thick ? 3.5 : 2);
+    hapticHit();
+    return;
+  }
   const npcPriority = hitN && (!_serverTarget || hitN.dist < _serverDist - 0.5);
   if (npcPriority) {
     spawnBullet(sR, sC, hitN.point.r, hitN.point.c,
@@ -12124,6 +12264,13 @@ function fire(angle = null) {
       ws && ws.send(JSON.stringify({ t: 'cop_shoot',
         d: { target: chosenCop.id, weapon: currentWeapon } }));
     } catch(e) {}
+    return;
+  }
+  if (chosenCityCop) {
+    spawnBullet(sR, sC, chosenCityCop.y, chosenCityCop.x,
+      { hit: true, fromPlayer: true, weapon: currentWeapon });
+    spawnImpact(chosenCityCop.y, chosenCityCop.x, currentWeapon);
+    hitCityCop(chosenCityCop.cop, dirY, dirX, wcfg.dmg || 20);
     return;
   }
   if (chosenAggro) {
@@ -12194,6 +12341,35 @@ function _findNearestMeleeTarget() {
       if (d < bestD) {
         bestD = d;
         best = { kind:'aggro_bot', id:b.id, getPos:()=>({r:b.y,c:b.x}) };
+      }
+    }
+  }
+  // NPC-патрульные (cityCops)
+  for (const cop of cityCops) {
+    if (!cop.alive) continue;
+    const d = Math.hypot(cop.y - player.r, cop.x - player.c);
+    if (d < bestD) {
+      bestD = d;
+      const cid = cop.id;
+      best = { kind:'citycop', id:cid, getPos:()=>{
+        const cc = cityCops.find(x => x.id === cid);
+        return (cc && cc.alive) ? { r: cc.y, c: cc.x } : null;
+      } };
+    }
+  }
+  // Жители-декор (пассажиры автобуса / ожидающие / хозяева парковок)
+  for (const arr of [_busRiders, _busWaiters, _parkingNpcs]) {
+    if (!Array.isArray(arr)) continue;
+    for (const n of arr) {
+      if (!n || n.dead || n.state === 'sitting') continue;
+      if (typeof n.r !== 'number' || typeof n.c !== 'number') continue;
+      const d = Math.hypot(n.r - player.r, n.c - player.c);
+      if (d < bestD) {
+        bestD = d;
+        const ref = n, refArr = arr;
+        best = { kind:'decor_npc', id: ref._lid || (ref._lid = 'd' + (++_decorLockSeq)),
+          getPos:()=> (!ref.dead && refArr.includes(ref)) ? { r: ref.r, c: ref.c } : null,
+          _ref: ref, _arr: refArr };
       }
     }
   }
@@ -12298,6 +12474,30 @@ function punch() {
       triggerHitStop(25);
       addShake(1.5);
       hapticHit();
+    }
+  } else if (kind === 'citycop') {
+    // NPC-патрульный — локальная цель
+    const cop = cityCops.find(x => x.id === tgt.id);
+    if (cop && cop.alive) {
+      hitCityCop(cop, Math.sin(ang), Math.cos(ang), hitDmg);
+      _spawnPunchBlood(cop.y, cop.x, ang);
+      spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: isKick ? '#ff4080' : '#ff8040', size: 18, life: 1200 });
+      if (isKick) spawnFloatText(pos.r - 0.5, pos.c, 'КРИТ!', { color: '#ffdd00', size: 13, life: 900 });
+      triggerHitStop(25);
+      addShake(1.5);
+      hapticHit();
+    }
+  } else if (kind === 'decor_npc') {
+    // Житель-декор — умирает с одного удара (как от пули)
+    const ref = tgt._ref;
+    if (ref && !ref.dead && tgt._arr) {
+      _killDecorNpc(ref, tgt._arr, Math.sin(ang), Math.cos(ang));
+      _spawnPunchBlood(pos.r, pos.c, ang);
+      spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: isKick ? '#ff4080' : '#ff8040', size: 18, life: 1200 });
+      triggerHitStop(25);
+      addShake(1.5);
+      hapticHit();
+      _alertNearbyCops('fight');
     }
   } else {
     // Коп / конвой / aggro_bot / охранник Майкла / PvP-игрок — серверный удар
@@ -23872,6 +24072,7 @@ const TARGET_LOCK_HALF_ANGLE = 25 * Math.PI / 180;   // ±25°
 // где id = "kind:targetId". Auto-aim в fire() стреляет в БЛИЖАЙШУЮ к
 // игроку из живых меток. Тап по уже помеченной = снять метку.
 const lockedTargets = new Map();   // id → { entry, expireAt }
+let _decorLockSeq = 0;             // уникальные id меток для жителей-декора
 // Лимит одновременных меток зависит от навыка «Меткий стрелок»
 // (mark_lvl 0..5 → 1..5 меток). При Lv4 и Lv5 кап одинаковый (5).
 const MAX_LOCKS = Math.max(1, Math.min(5, (QP.mark_lvl | 0) + 1));
@@ -24040,6 +24241,38 @@ function tryTapLock(canvasX, canvasY) {
         const cc = (worldCops || []).find(x => x.id === cid);
         return cc ? { r: cc.y, c: cc.x } : null;
       }, () => 'коп');
+    }
+  }
+  // 3b) NPC-патрульные (cityCops) — локальные копы в городе
+  for (const c of cityCops) {
+    if (!c.alive) continue;
+    const d = _screenDistToCell(c.y, c.x, canvasX, canvasY);
+    if (d < bestD) {
+      bestD = d;
+      const cid = c.id;
+      best = _lockTargetEntry('citycop', cid, () => {
+        const cc = cityCops.find(x => x.id === cid);
+        return (cc && cc.alive) ? { r: cc.y, c: cc.x } : null;
+      }, () => 'коп');
+    }
+  }
+  // 3c) Жители-декор: пассажиры автобуса / ожидающие / хозяева парковок
+  for (const arr of [_busRiders, _busWaiters, _parkingNpcs]) {
+    if (!Array.isArray(arr)) continue;
+    for (const n of arr) {
+      if (!n || n.dead || n.state === 'sitting') continue;
+      if (typeof n.r !== 'number' || typeof n.c !== 'number') continue;
+      const d = _screenDistToCell(n.r, n.c, canvasX, canvasY);
+      if (d < bestD) {
+        bestD = d;
+        const ref = n, refArr = arr;
+        const did = ref._lid || (ref._lid = 'd' + (++_decorLockSeq));
+        const e = _lockTargetEntry('decor_npc', did, () =>
+          (!ref.dead && refArr.includes(ref)) ? { r: ref.r, c: ref.c } : null,
+          () => '');
+        e._ref = ref; e._arr = refArr;
+        best = e;
+      }
     }
   }
   // 4) Конвой (worldEvent)
@@ -24229,6 +24462,30 @@ function _findLaserTarget(dirY, dirX) {
       const cc = (worldCops || []).find(x => x.id === cid);
       return cc ? { r: cc.y, c: cc.x } : null;
     }));
+  }
+  // NPC-патрульные (cityCops)
+  for (const c of cityCops) {
+    if (!c.alive) continue;
+    const cid = c.id;
+    _check(c.y, c.x, _lockTargetEntry('citycop', cid, () => {
+      const cc = cityCops.find(x => x.id === cid);
+      return (cc && cc.alive) ? { r: cc.y, c: cc.x } : null;
+    }, () => 'коп'));
+  }
+  // Жители-декор (пассажиры автобуса / ожидающие / хозяева парковок)
+  for (const arr of [_busRiders, _busWaiters, _parkingNpcs]) {
+    if (!Array.isArray(arr)) continue;
+    for (const n of arr) {
+      if (!n || n.dead || n.state === 'sitting') continue;
+      if (typeof n.r !== 'number' || typeof n.c !== 'number') continue;
+      const ref = n, refArr = arr;
+      const did = ref._lid || (ref._lid = 'd' + (++_decorLockSeq));
+      const e = _lockTargetEntry('decor_npc', did, () =>
+        (!ref.dead && refArr.includes(ref)) ? { r: ref.r, c: ref.c } : null,
+        () => '');
+      e._ref = ref; e._arr = refArr;
+      _check(n.r, n.c, e);
+    }
   }
   for (const g of michaelGuards.values()) {
     const gid = g.id;
