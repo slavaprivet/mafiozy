@@ -28141,33 +28141,44 @@ function drawBankInteriorScene() {
   ctx.fillStyle='#040308'; ctx.fillRect(0,0,SW,SH);
 
   // ── Пол — первым (без depth-sort) ────────────────────────────────
+  const _vDL0=Math.floor(W/2)-2,_vDR0=Math.floor(W/2)+2; // проём двери хранилища
   for (let r=0;r<H;r++) for (let c=0;c<W;c++) {
     const chk=(r+c)%2===0;
     // Крупные 2×2 плиты (r/2 + c/2 чётность)
     const big=(Math.floor(r/2)+Math.floor(c/2))%2===0;
-    let fill,stroke,accent=false;
+    let fill,stroke,accent=false,vein=false,plank=false,hazard=false,steel=false;
     if (r<counterRow-4) {
-      // Зона персонала (левый северный угол)
+      // Зона персонала (левый северный угол) — офисный ковролин
       if (c<W*.38) {
         fill=chk?'#1a2238':'#131828'; stroke='#252e46';
-        // Офисный ковёр — тёмный серо-синий с тонким узором
+        // Тонкий узор ковра
         if ((r+c)%4===0) accent=true;
       }
-      // Зона отдыха (правый северный угол)
+      // Зона отдыха (правый северный угол) — тёплый паркет «ёлочкой»
       else if (c>W*.62) {
-        fill=chk?'#22160e':'#180e08'; stroke='#2e1e12';
-        if ((r+c)%4===0) accent=true;
+        const tone=(r*2+c)%4;
+        fill=['#3a2614','#2e1e0e','#34220f','#28190b'][tone];
+        stroke='#1c1206';
+        plank=true;
       }
-      // Зона хранилища (центр-север) — тёмный гранит
+      // Зона хранилища (центр-север) — стальные плиты на тёмном граните
       else {
-        fill=big?'#1a1530':'#130f22'; stroke='#22183c';
+        steel=true;
+        fill=big?'#1d2132':'#161a28'; stroke='#2c3350';
+        // Сигнальная жёлто-чёрная разметка перед дверью сейфа
+        if (r<2 && c>=_vDL0-1 && c<_vDR0+1) {
+          hazard=true;
+          fill=chk?'#56480c':'#16140a'; stroke='#3a320a';
+        }
       }
     } else {
       // Лобби — белый мрамор крупными плитами с серыми прожилками
       if (big) { fill='#f4f0ea'; stroke='#c8c0b0'; }
       else      { fill='#e8e2d8'; stroke='#d0c8b8'; }
+      // Прожилки мрамора — детерминированно на части крупных плит
+      if (big && ((r*31+c*17)%7)<2) vein=true;
       // Тёмная бордюрная полоска по краям лобби
-      if (c===0||c===W-1||r===H-1) { fill='#c8c0b0'; stroke='#a8a098'; }
+      if (c===0||c===W-1||r===H-1) { fill='#c8c0b0'; stroke='#a8a098'; vein=false; }
       // Декоративный центральный крест (только в крупной зоне)
       const cr=counterRow-2, cc=Math.floor(W/2);
       if (Math.abs(r-cr)<=1&&Math.abs(c-cc)<=1) { fill='#e0d8c8'; stroke='#b0a898'; }
@@ -28181,6 +28192,32 @@ function drawBankInteriorScene() {
       ctx.fillStyle='rgba(80,80,120,.25)';
       ctx.beginPath();ctx.arc(p.x,p.y,2,0,Math.PI*2);ctx.fill();
     }
+    // Шов паркетной доски (диагональная риска)
+    if (plank) {
+      ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=.5;
+      ctx.beginPath();
+      if ((r+c)%2===0){ctx.moveTo(p.x-hx*.5,p.y-hy*.0);ctx.lineTo(p.x+hx*.1,p.y+hy*.4);}
+      else            {ctx.moveTo(p.x-hx*.1,p.y-hy*.4);ctx.lineTo(p.x+hx*.5,p.y+hy*.0);}
+      ctx.stroke();
+      // Светлый блик древесины
+      ctx.strokeStyle='rgba(190,140,70,.12)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(p.x-hx*.3,p.y-hy*.2);ctx.lineTo(p.x+hx*.3,p.y+hy*.2);ctx.stroke();
+    }
+    // Прожилка мрамора — тонкая изогнутая линия
+    if (vein) {
+      const vx=((r*13+c*7)%10)/10;
+      ctx.strokeStyle='rgba(150,140,125,.45)';ctx.lineWidth=.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x-hx*.55,p.y+(vx-.5)*hy*.7);
+      ctx.quadraticCurveTo(p.x+(vx-.5)*hx*.4,p.y-vx*hy*.5,p.x+hx*.5,p.y+(.3-vx*.6)*hy);
+      ctx.stroke();
+    }
+    // Заклёпки стальных плит (по углам крупных плит)
+    if (steel && !hazard && big && r%2===0 && c%2===0) {
+      ctx.fillStyle='rgba(120,135,180,.4)';
+      ctx.beginPath();ctx.arc(p.x,p.y-hy*.55,1.1,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(p.x-hx*.55,p.y,1.1,0,Math.PI*2);ctx.fill();
+    }
   }
   // Центральный медальон в лобби (золотой круг с иконкой)
   { const cc=w2s(counterRow-1+.5, W/2+.5);
@@ -28190,6 +28227,58 @@ function drawBankInteriorScene() {
     ctx.beginPath();ctx.arc(cc.x,cc.y,hx*0.9,0,Math.PI*2);ctx.fill();
     ctx.globalAlpha=0.08;
     ctx.beginPath();ctx.arc(cc.x,cc.y,hx*1.4,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+
+  // ── КРАСНАЯ КОВРОВАЯ ДОРОЖКА — от входа (юг) к кассе ─────────────
+  { const carpL=W/2-1.6, carpR=W/2+1.6;
+    const a0=w2s(counterRow+0.6,carpL), a1=w2s(counterRow+0.6,carpR);
+    const b0=w2s(H-0.2,carpL),          b1=w2s(H-0.2,carpR);
+    ctx.save();
+    // Основное полотно
+    ctx.fillStyle='rgba(150,24,30,.82)';
+    ctx.beginPath();ctx.moveTo(a0.x,a0.y);ctx.lineTo(a1.x,a1.y);
+    ctx.lineTo(b1.x,b1.y);ctx.lineTo(b0.x,b0.y);ctx.closePath();ctx.fill();
+    // Тёмная кромка по центру (потёртость)
+    ctx.fillStyle='rgba(90,10,14,.35)';
+    const m0=w2s(counterRow+0.6,W/2-0.5),m1=w2s(counterRow+0.6,W/2+0.5);
+    const n0=w2s(H-0.2,W/2-0.5),n1=w2s(H-0.2,W/2+0.5);
+    ctx.beginPath();ctx.moveTo(m0.x,m0.y);ctx.lineTo(m1.x,m1.y);
+    ctx.lineTo(n1.x,n1.y);ctx.lineTo(n0.x,n0.y);ctx.closePath();ctx.fill();
+    // Золотая окантовка по краям дорожки
+    ctx.strokeStyle='rgba(212,180,72,.85)';ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.moveTo(a0.x,a0.y);ctx.lineTo(b0.x,b0.y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(a1.x,a1.y);ctx.lineTo(b1.x,b1.y);ctx.stroke();
+    // Поперечные золотые полоски на концах
+    ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(a0.x,a0.y);ctx.lineTo(a1.x,a1.y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(b0.x,b0.y);ctx.lineTo(b1.x,b1.y);ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── СВЕТОВЫЕ ПЯТНА от потолочных ламп — свой оттенок в каждой зоне ──
+  { ctx.save();
+    const _pool=(r,c,rad,col)=>{
+      const p=w2s(r,c);
+      const g=ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,hx*rad);
+      g.addColorStop(0,col);g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g;
+      ctx.beginPath();ctx.ellipse(p.x,p.y,hx*rad,hy*rad,0,0,Math.PI*2);ctx.fill();
+    };
+    const flick=0.85+0.15*Math.sin(now*0.0017);
+    // Персонал — холодный офисный белый
+    _pool(3,W*.18,2.6,`rgba(170,200,255,${.07*flick})`);
+    _pool(6.5,W*.25,2.4,`rgba(170,200,255,${.06*flick})`);
+    // Отдых — тёплый янтарный
+    _pool(3,W*.8,2.8,`rgba(255,190,110,${.10*flick})`);
+    _pool(7,W*.86,2.2,`rgba(255,190,110,${.07*flick})`);
+    // Хранилище — холодный синий прожектор на дверь
+    _pool(1.5,W*.5,3.0,`rgba(110,160,255,${.10+.04*Math.sin(now*0.003)})`);
+    // Лобби — тёплое золото (две люстры вдоль дорожки)
+    _pool(counterRow+3,W*.5,3.6,`rgba(255,220,140,${.09*flick})`);
+    _pool(H-4,W*.5,3.2,`rgba(255,220,140,${.07*flick})`);
+    _pool(counterRow+2.5,W*.2,2.4,`rgba(255,220,140,${.05*flick})`);
+    _pool(counterRow+2.5,W*.8,2.4,`rgba(255,220,140,${.05*flick})`);
     ctx.restore();
   }
 
@@ -28214,6 +28303,24 @@ function drawBankInteriorScene() {
         ctx.moveTo(p.x-hx*.9,p.y-hy*.15);ctx.lineTo(p.x-hx*.9,p.y-hy*.15-prtH);
         ctx.lineTo(p.x-hx*.9+4,p.y-hy*.15-prtH);ctx.lineTo(p.x-hx*.9+4,p.y-hy*.15);
         ctx.closePath();ctx.fill();ctx.stroke();
+        // Офисное кресло за столом (южнее — со стороны сотрудника)
+        { const chX=p.x+hx*.35, chY=p.y+hy*.75;
+          // Тень
+          ctx.fillStyle='rgba(0,0,0,.3)';
+          ctx.beginPath();ctx.ellipse(chX,chY+2,7,3,0,0,Math.PI*2);ctx.fill();
+          // Ножка-крестовина
+          ctx.strokeStyle='#3a3a44';ctx.lineWidth=1.2;
+          ctx.beginPath();ctx.moveTo(chX,chY);ctx.lineTo(chX,chY-6);ctx.stroke();
+          // Сиденье
+          ctx.fillStyle='#26304a';ctx.strokeStyle='#39456a';ctx.lineWidth=.6;
+          ctx.beginPath();ctx.ellipse(chX,chY-7,6.5,3.4,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+          // Спинка (наклонная)
+          ctx.fillStyle='#2e3a58';
+          ctx.beginPath();
+          ctx.moveTo(chX+3,chY-8);ctx.lineTo(chX+7,chY-9);
+          ctx.lineTo(chX+6,chY-19);ctx.lineTo(chX+2,chY-18);
+          ctx.closePath();ctx.fill();ctx.stroke();
+        }
         // Стол
         ctx.fillStyle='#2a3050';ctx.strokeStyle='#404868';ctx.lineWidth=.8;
         ctx.beginPath();ctx.moveTo(p.x,p.y-hy*.85);ctx.lineTo(p.x+hx*.85,p.y-hy*.15);
@@ -28380,6 +28487,22 @@ function drawBankInteriorScene() {
       ctx.fillStyle=colD;
       ctx.beginPath();ctx.moveTo(p.x-hx*1.3,p.y-isoH(.4));ctx.lineTo(p.x,p.y+hy*.85-isoH(.4));
       ctx.lineTo(p.x,p.y+hy*.85);ctx.lineTo(p.x-hx*1.3,p.y);ctx.closePath();ctx.fill();ctx.stroke();
+      // Декоративные подушки (2 шт, контрастные)
+      const pilCols=ii===0?['#d4b840','#7a4860']:['#d4b840','#48607a'];
+      for(let pi3=0;pi3<2;pi3++){
+        const px3=p.x-hx*.55+pi3*hx*.7, py3=p.y-isoH(.4)-3-pi3*1.5;
+        ctx.fillStyle=pilCols[pi3];ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=.5;
+        ctx.save();ctx.translate(px3,py3);ctx.rotate(pi3===0?-.18:.14);
+        ctx.beginPath();
+        if(ctx.roundRect)ctx.roundRect(-5.5,-4,11,8,2.5);else ctx.rect(-5.5,-4,11,8);
+        ctx.fill();ctx.stroke();
+        // Блик подушки
+        ctx.fillStyle='rgba(255,255,255,.18)';
+        ctx.beginPath();
+        if(ctx.roundRect)ctx.roundRect(-4,-3,8,2.5,1.5);else ctx.rect(-4,-3,8,2.5);
+        ctx.fill();
+        ctx.restore();
+      }
     })(sr,sc,i)});
   }
 
@@ -29137,6 +29260,54 @@ function drawBankInteriorScene() {
       ctx.fillStyle='#c0a830';ctx.beginPath();ctx.arc(p.x+fSz*.5,dy,2,0,Math.PI*2);ctx.fill();
     }});
 
+  // 5b. Инкассаторская тележка с мешками — режимная зона у хранилища
+  _addDecor(3.2,Math.floor(W*.5)+3,()=>{
+    const p=w2s(3.2,Math.floor(W*.5)+3),tkH=isoH(.55);
+    // Тень
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(p.x,p.y+2,hx*.55,hy*.3,0,0,Math.PI*2);ctx.fill();
+    // Колёсики
+    ctx.fillStyle='#10121c';
+    ctx.beginPath();ctx.arc(p.x-hx*.35,p.y,2.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(p.x+hx*.3,p.y+2,2.2,0,Math.PI*2);ctx.fill();
+    // Платформа
+    ctx.fillStyle='#2e3650';ctx.strokeStyle='#404a6c';ctx.lineWidth=.7;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-hy*.45-4);ctx.lineTo(p.x+hx*.55,p.y-4);
+    ctx.lineTo(p.x,p.y+hy*.45-4);ctx.lineTo(p.x-hx*.55,p.y-4);ctx.closePath();ctx.fill();ctx.stroke();
+    // Ручка тележки
+    ctx.strokeStyle='#5a648c';ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(p.x-hx*.5,p.y-4);ctx.lineTo(p.x-hx*.62,p.y-4-tkH*1.6);
+    ctx.lineTo(p.x-hx*.38,p.y-4-tkH*1.7);ctx.stroke();
+    // Два мешка с деньгами на платформе
+    for(let mi=0;mi<2;mi++){
+      const mx2=p.x-4+mi*9, my2=p.y-7-mi*2;
+      ctx.fillStyle='#7a6428';ctx.strokeStyle='#5a4a18';ctx.lineWidth=.6;
+      ctx.beginPath();ctx.ellipse(mx2,my2-3,5,6,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+      // Горловина-узел
+      ctx.fillStyle='#5a4a18';
+      ctx.beginPath();ctx.ellipse(mx2,my2-9,2.2,1.6,0,0,Math.PI*2);ctx.fill();
+      // Значок $
+      ctx.fillStyle='rgba(40,30,8,.85)';ctx.font='bold 7px serif';ctx.textAlign='center';
+      ctx.fillText('$',mx2,my2-1);ctx.textAlign='left';
+    }
+  });
+
+  // 5c. Напольная разметка «режимная зона» перед дверью хранилища
+  items.push({d:0.5,fn:()=>{
+    const zL=Math.floor(W/2)-2.6,zR=Math.floor(W/2)+2.6,zB=3.4;
+    const q0=w2s(0.2,zL),q1=w2s(0.2,zR),q2=w2s(zB,zR),q3=w2s(zB,zL);
+    ctx.save();
+    ctx.strokeStyle='rgba(220,60,50,.6)';ctx.lineWidth=1.4;ctx.setLineDash([6,5]);
+    ctx.beginPath();ctx.moveTo(q0.x,q0.y);ctx.lineTo(q1.x,q1.y);
+    ctx.lineTo(q2.x,q2.y);ctx.lineTo(q3.x,q3.y);ctx.closePath();ctx.stroke();
+    ctx.setLineDash([]);
+    // Надпись на полу
+    const cp2=w2s(zB-0.5,W/2);
+    ctx.fillStyle='rgba(230,80,70,.5)';ctx.font='bold 7px system-ui';ctx.textAlign='center';
+    ctx.fillText('▪ РЕЖИМНАЯ ЗОНА ▪',cp2.x,cp2.y);
+    ctx.textAlign='left';
+    ctx.restore();
+  }});
+
   // 6. Кулер с водой 3D — у восточной стены (лобби)
   _addDecor(counterRow+3,W-2,()=>{
     const p=w2s(counterRow+3.5,W-1.5),cH=isoH(.85);
@@ -29336,6 +29507,12 @@ function drawBankInteriorScene() {
   drawShockwaves();
   drawImpacts();
   drawFloatTexts();
+
+  // Виньетка — мягкое кинематографичное затемнение краёв экрана
+  { const vg=ctx.createRadialGradient(SW/2,SH/2,Math.min(SW,SH)*.42,SW/2,SH/2,Math.max(SW,SH)*.72);
+    vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.34)');
+    ctx.fillStyle=vg;ctx.fillRect(0,0,SW,SH);
+  }
 
   // Лейблы зон
   ctx.save();ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
