@@ -1,8 +1,16 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "defaultMode": "acceptEdits",
   "permissions": {
+    "defaultMode": "dontAsk",
     "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Bash(*)",
+      "PowerShell",
+      "WebFetch",
       "Bash(git fetch*)",
       "Bash(git pull*)",
       "Bash(git push*)",
