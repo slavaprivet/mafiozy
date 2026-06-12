@@ -27593,10 +27593,15 @@ function _drawVaultRoom(int) {
     const _r=r;
     items.push({d:_r+0.01, fn:((__r)=>()=>_wV(__r,0,__r+1,0,'#1a1c2e','#0c0e1e'))(_r)});
   }
-  // Восточная стена
+  // Восточная стена — полупрозрачная: она между камерой и комнатой и
+  // раньше полностью загораживала мешки/игрока рядом с ней
   for (let r=0;r<H-1;r++) {
     const _r=r;
-    items.push({d:_r+W-0.01, fn:((__r)=>()=>_wV(__r,W,__r+1,W,'#242638','#14162a'))(_r)});
+    items.push({d:_r+W-0.01, fn:((__r)=>()=>{
+      ctx.save(); ctx.globalAlpha=0.38;
+      _wV(__r,W,__r+1,W,'#242638','#14162a');
+      ctx.restore();
+    })(_r)});
   }
 
   // Сейфовые ячейки — общая отрисовка одной дверцы
@@ -27667,7 +27672,8 @@ function _drawVaultRoom(int) {
     })(_r,_num)});
   }
 
-  // Сейфовые ячейки вдоль ВОСТОЧНОЙ стены
+  // Сейфовые ячейки вдоль ВОСТОЧНОЙ стены — тоже полупрозрачные (висят
+  // на прозрачной стене, иначе перекрывали бы мешки сплошными блоками)
   for (let r=1;r<H-2;r+=1.6) {
     const _r=r, _num=_vaultCellNum; _vaultCellNum+=2;
     items.push({d:_r+W-0.3, fn:((__r,num)=>()=>{
@@ -27676,7 +27682,9 @@ function _drawVaultRoom(int) {
       const sh=isoH(1.1);
       const pulse=0.8+0.2*Math.sin(now*0.0011+__r*0.7+3);
       const hp=w2s(__r+0.6,c-0.12);
+      ctx.save(); ctx.globalAlpha=0.5;
       _drawDepositCell(sp,sp2,sp3,sp4,sh,pulse,num,'#3a3148','#2c2438','#20192c',hp);
+      ctx.restore();
     })(_r,_num)});
   }
 
@@ -27835,10 +27843,15 @@ function _drawVaultRoom(int) {
     if (int.myBag) _drawCarryingBag(p.x, p.y);
   }});
 
-  // Южная стена + дверь выхода
+  // Южная стена + дверь выхода — полупрозрачная (ближайшая к камере,
+  // загораживала мешки и игрока у южного края комнаты)
   for (let c=0;c<W;c++) {
     const _c=c;
-    items.push({d:H+_c, fn:((__c)=>()=>_wV(H,__c,H,__c+1,'#1e2035','#0e1020'))(_c)});
+    items.push({d:H+_c, fn:((__c)=>()=>{
+      ctx.save(); ctx.globalAlpha=0.42;
+      _wV(H,__c,H,__c+1,'#1e2035','#0e1020');
+      ctx.restore();
+    })(_c)});
   }
 
   // Рендер в глубину
@@ -28552,34 +28565,44 @@ function drawBankInteriorScene() {
       ctx.globalAlpha=1;
       ctx.restore();
 
-      // Сама дверная плита — откатывается вправо за раму
-      ctx.save();
-      ctx.beginPath();ctx.rect(vc.x-frameW/2-2,vcy-frameH-2,frameW+4,frameH+4);ctx.clip();
-      ctx.translate(slideX,0);
-      const grd=ctx.createLinearGradient(vc.x-dw/2,vcy-dh,vc.x+dw/2,vcy);
-      grd.addColorStop(0,'#565c78');grd.addColorStop(0.5,'#363c54');grd.addColorStop(1,'#22263a');
-      ctx.fillStyle=grd;
-      ctx.fillRect(vc.x-dw/2,vcy-dh,dw,dh);
-      ctx.strokeStyle='#10121e';ctx.lineWidth=1.5;
-      ctx.strokeRect(vc.x-dw/2,vcy-dh,dw,dh);
-      // Горизонтальные рёбра жёсткости
-      ctx.strokeStyle='rgba(140,150,190,0.35)';ctx.lineWidth=2;
-      for(let i=1;i<5;i++){
-        const ry=vcy-dh+dh*i/5;
-        ctx.beginPath();ctx.moveTo(vc.x-dw/2+5,ry);ctx.lineTo(vc.x+dw/2-5,ry);ctx.stroke();
+      // Дверная плита: рисуем ТОЛЬКО пока идёт анимация отката. Когда
+      // дверь полностью открыта, плита «ушла» в карман стены — раньше её
+      // остаток + штурвал торчали поверх стены и выглядели чужеродно
+      // («открытое хранилище в стену не вписывается»).
+      if (openAnim < 1) {
+        ctx.save();
+        ctx.beginPath();ctx.rect(vc.x-dw/2,vcy-frameH-2,dw,frameH+4);ctx.clip();
+        ctx.translate(slideX,0);
+        const grd=ctx.createLinearGradient(vc.x-dw/2,vcy-dh,vc.x+dw/2,vcy);
+        grd.addColorStop(0,'#565c78');grd.addColorStop(0.5,'#363c54');grd.addColorStop(1,'#22263a');
+        ctx.fillStyle=grd;
+        ctx.fillRect(vc.x-dw/2,vcy-dh,dw,dh);
+        ctx.strokeStyle='#10121e';ctx.lineWidth=1.5;
+        ctx.strokeRect(vc.x-dw/2,vcy-dh,dw,dh);
+        // Горизонтальные рёбра жёсткости
+        ctx.strokeStyle='rgba(140,150,190,0.35)';ctx.lineWidth=2;
+        for(let i=1;i<5;i++){
+          const ry=vcy-dh+dh*i/5;
+          ctx.beginPath();ctx.moveTo(vc.x-dw/2+5,ry);ctx.lineTo(vc.x+dw/2-5,ry);ctx.stroke();
+        }
+        // Замковый штурвал — повёрнут, блик
+        const wheelGrd=ctx.createRadialGradient(vc.x-vr*0.3,vcy-dh*0.45-vr*0.3,1,vc.x,vcy-dh*0.45,vr*0.9);
+        wheelGrd.addColorStop(0,'#9aa4c8');wheelGrd.addColorStop(1,'#3a3e58');
+        ctx.fillStyle=wheelGrd;
+        ctx.beginPath();ctx.arc(vc.x,vcy-dh*0.45,vr*0.85,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#20223a';ctx.lineWidth=2;ctx.stroke();
+        ctx.restore();
+      } else {
+        // Торец спрятанной плиты — узкая стальная полоса у правого косяка,
+        // намёк что массивная дверь сидит в кармане стены
+        const edgeW=5;
+        const eg=ctx.createLinearGradient(vc.x+dw/2-edgeW,0,vc.x+dw/2,0);
+        eg.addColorStop(0,'#2a2e44');eg.addColorStop(1,'#565c78');
+        ctx.fillStyle=eg;
+        ctx.fillRect(vc.x+dw/2-edgeW,vcy-dh,edgeW,dh);
+        ctx.strokeStyle='#10121e';ctx.lineWidth=1;
+        ctx.strokeRect(vc.x+dw/2-edgeW,vcy-dh,edgeW,dh);
       }
-      // Ригели втянуты внутрь двери (видны только обрубки)
-      ctx.fillStyle='#6a7090';
-      for(const bx of [-0.38,0.38]) for(const by of [-0.78,-0.22]){
-        ctx.beginPath();ctx.arc(vc.x+bx*dw,vcy+by*dh,3,0,Math.PI*2);ctx.fill();
-      }
-      // Замковый штурвал — повёрнут, блик
-      const wheelGrd=ctx.createRadialGradient(vc.x-vr*0.3,vcy-dh*0.45-vr*0.3,1,vc.x,vcy-dh*0.45,vr*0.9);
-      wheelGrd.addColorStop(0,'#9aa4c8');wheelGrd.addColorStop(1,'#3a3e58');
-      ctx.fillStyle=wheelGrd;
-      ctx.beginPath();ctx.arc(vc.x,vcy-dh*0.45,vr*0.85,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#20223a';ctx.lineWidth=2;ctx.stroke();
-      ctx.restore();
 
       ctx.fillStyle='rgba(120,220,140,0.95)';
       ctx.shadowColor='#000';ctx.shadowBlur=4;
@@ -28682,6 +28705,34 @@ function drawBankInteriorScene() {
         const ry=vcy-dh+dh*i/5;
         ctx.beginPath();ctx.moveTo(vc.x-dw/2+5,ry);ctx.lineTo(vc.x+dw/2-5,ry);ctx.stroke();
       }
+      // Шлифованный металл — вертикальные мягкие блики (brushed steel)
+      ctx.save();
+      ctx.beginPath();ctx.rect(vc.x-dw/2,vcy-dh,dw,dh);ctx.clip();
+      for(let i=0;i<3;i++){
+        const bx2=vc.x-dw/2+dw*(0.2+i*0.3);
+        const bg2=ctx.createLinearGradient(bx2-7,0,bx2+7,0);
+        bg2.addColorStop(0,'rgba(255,255,255,0)');
+        bg2.addColorStop(0.5,'rgba(255,255,255,0.05)');
+        bg2.addColorStop(1,'rgba(255,255,255,0)');
+        ctx.fillStyle=bg2;
+        ctx.fillRect(bx2-7,vcy-dh,14,dh);
+      }
+      ctx.restore();
+      // Мелкие заклёпки по периметру плиты
+      ctx.fillStyle='rgba(160,170,210,0.55)';
+      for(let i=0;i<7;i++){
+        const rx=vc.x-dw/2+6+(dw-12)*(i/6);
+        ctx.beginPath();ctx.arc(rx,vcy-dh+5,1.4,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(rx,vcy-5,1.4,0,Math.PI*2);ctx.fill();
+      }
+      for(let i=1;i<5;i++){
+        const ry2=vcy-dh+6+(dh-12)*(i/5);
+        ctx.beginPath();ctx.arc(vc.x-dw/2+5,ry2,1.4,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(vc.x+dw/2-5,ry2,1.4,0,Math.PI*2);ctx.fill();
+      }
+      // Тень под штурвалом — даёт объём, штурвал не «плоский»
+      ctx.fillStyle='rgba(0,0,0,0.28)';
+      ctx.beginPath();ctx.ellipse(vc.x+2,vcy-dh*0.45+3,vr*0.98,vr*0.88,0,0,Math.PI*2);ctx.fill();
       // Массивные ригели (болты-засовы) по периметру — полностью выдвинуты
       ctx.fillStyle='#6a7090';ctx.strokeStyle='#1a1c2c';ctx.lineWidth=0.8;
       const boltSpots=[
