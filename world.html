@@ -4487,6 +4487,32 @@ function spawnFireTruck(targetR, targetC, fireRef, carRef) {
   serviceVehicles.push(v);
 }
 
+// ── ЭВАКУАТОР ───────────────────────────────────────────────────────
+// По принципу скорой: едет к сгоревшей/неисправной машине, грузит её на
+// платформу, увозит к депо (home) и УДАЛЯЕТ из CARS — трафик доспавнит
+// новую (машины не пропадают навсегда). Если в машине игрок — НЕ грузим
+// (защита от увоза игрока за карту).
+function spawnTowTruck(targetR, targetC, carRef) {
+  for (const v of serviceVehicles) {
+    if (v.kind !== 'tow' || v.state === 'done') continue;
+    const ft = v.finalTarget || { x: 0, y: 0 };
+    if (Math.hypot(ft.y - targetR, ft.x - targetC) < 3) return;
+  }
+  const door = _fireStationDoor();   // выезжает от пожарной части
+  const v = {
+    id: 'tow_' + (++_svcVehId), kind: 'tow',
+    x: door.c, y: door.r,
+    ang: 0, speed: 3.2,
+    state: 'go_to_scene', workUntil: 0,
+    payload: { carRef },
+    homeR: FIRE_STATION_R, homeC: FIRE_STATION_C,
+    path: [], pathIdx: 0, finalTarget: null,
+    _loaded: false,
+  };
+  _setVehicleRoute(v, door.r, door.c, targetR, targetC);
+  serviceVehicles.push(v);
+}
+
 // ── Полиция при ограблении банка ────────────────────────────────────
 // Когда policeTimer дотикал — от участка к банку едут реальные машины
 // (small=1, medium=2, large=3). На месте — режим «осада»: из каждой
@@ -4571,15 +4597,22 @@ function updateServiceVehicles(dt) {
     }
     v._prevX = v.x; v._prevY = v.y;
     if (now - v._lastMoveT > 14000) {
+      // Застряла. Пожарка перед деспауном ВСЁ РАВНО гасит огонь (фолбэк),
+      // иначе машина горит вечно, а пожарка «тупо исчезает».
+      if (v.kind === 'firetruck' && v.payload && v.payload.carRef && v.payload.carRef._wrecked) {
+        v.payload.carRef._burnedOut = true;
+      }
       v.state = 'done';
       continue;
     }
     if (v.state === 'go_to_scene') {
-      // BFS не нашёл путь по дорогам (цель совсем без дороги рядом) —
-      // деспауним: спецтранспорт через бездорожье не ездит, и тыкаться
-      // в стены не имеет смысла. Это редкий кейс — точка явно
-      // некорректная для вызова.
+      // BFS не нашёл путь по дорогам (цель совсем без дороги рядом).
+      // Пожарка как фолбэк гасит огонь сразу (чтобы не горело вечно),
+      // остальные — просто деспаун.
       if (!v.path || v.path.length === 0) {
+        if (v.kind === 'firetruck' && v.payload && v.payload.carRef && v.payload.carRef._wrecked) {
+          v.payload.carRef._burnedOut = true;
+        }
         v.state = 'done';
         continue;
       }
@@ -4590,7 +4623,7 @@ function updateServiceVehicles(dt) {
           _spawnResponseCops(v);
         } else {
           v.state = 'working';
-          v.workUntil = now + (v.kind === 'ambulance' ? 2500 : 4000);
+          v.workUntil = now + (v.kind === 'ambulance' ? 2500 : v.kind === 'tow' ? 3000 : 4000);
         }
       }
     } else if (v.state === 'siege') {
@@ -4609,10 +4642,36 @@ function updateServiceVehicles(dt) {
         const cr = v.payload.carRef;
         if (cr && cr._wrecked) cr._burnedOut = true;
       }
+      if (v.kind === 'tow') {
+        const cr = v.payload.carRef;
+        // Грузим машину, ТОЛЬКО если в ней нет игрока (защита от увоза).
+        if (cr && !(myDrivingCarId && cr.id === myDrivingCarId)) {
+          v._loaded = true;
+          cr._towed = true;            // скрываем собственную отрисовку — едет на платформе
+        }
+      }
       v.state = 'returning';
       _setVehicleRoute(v, v.y, v.x, v.homeR, v.homeC);
     } else if (v.state === 'returning') {
-      if (_vehicleStep(v, dt)) v.state = 'done';
+      // Эвакуатор с гружёной машиной — машина «едет» на платформе за кабиной.
+      if (v.kind === 'tow' && v._loaded && v.payload.carRef) {
+        const cr = v.payload.carRef;
+        cr.r = v.y - Math.sin(v.ang) * 0.6;
+        cr.c = v.x - Math.cos(v.ang) * 0.6;
+      }
+      if (_vehicleStep(v, dt)) {
+        // Доехал до депо. Эвакуатор увёз машину «за карту» → удаляем из
+        // CARS и доспавниваем свежую (трафик не редеет, машины не
+        // пропадают навсегда).
+        if (v.kind === 'tow' && v._loaded && v.payload.carRef && typeof CARS !== 'undefined') {
+          const ci = CARS.indexOf(v.payload.carRef);
+          if (ci >= 0) {
+            const fresh = spawnCar(ci, { awayFromPlayer: true });
+            if (fresh) CARS[ci] = fresh; else CARS.splice(ci, 1);
+          }
+        }
+        v.state = 'done';
+      }
     }
   }
 }
@@ -4637,6 +4696,18 @@ function dispatchEmergencyServices() {
       if (!car || !car._wrecked || car._fireTruckDispatched) continue;
       car._fireTruckDispatched = true;
       spawnFireTruck(car.r, car.c, null, car);
+    }
+    // Эвакуатор — на ПОТУШЕННЫЕ (burnedOut) машины: огонь погас → грузим и
+    // увозим. Не на машину игрока (myDrivingCarId) — её не эвакуируем пока
+    // он за рулём. Небольшая задержка после тушения для естественности.
+    for (const car of CARS) {
+      if (!car || !car._wrecked || !car._burnedOut) continue;
+      if (car._towDispatched || car._towed) continue;
+      if (myDrivingCarId && car.id === myDrivingCarId) continue;
+      if (!car._burnedOutAt) { car._burnedOutAt = now; continue; }
+      if (now - car._burnedOutAt < 2500) continue;
+      car._towDispatched = true;
+      spawnTowTruck(car.r, car.c, car);
     }
   }
 }
@@ -4804,18 +4875,19 @@ function drawPet(pet) {
 function drawServiceVehicle(v) {
   const isAmb = v.kind === 'ambulance';
   const isPolice = v.kind === 'police';
+  const isTow = v.kind === 'tow';
   let workFrac = 0, workLabel = null;
   if (v.state === 'working' && v.workUntil) {
-    const total = isAmb ? 2500 : 4000;
+    const total = isAmb ? 2500 : isTow ? 3000 : 4000;
     const remain = Math.max(0, v.workUntil - performance.now());
     workFrac = 1 - remain / total;
-    workLabel = isAmb ? 'Погрузка' : 'Тушение';
+    workLabel = isAmb ? 'Погрузка' : isTow ? 'Цепляем' : 'Тушение';
   }
 
   // Изометрические размеры (в тайлах, как у drawCarPretty)
-  const mL   = isAmb ? 2.05 : isPolice ? 1.90 : 2.40;
-  const mW   = isAmb ? 0.98 : isPolice ? 0.90 : 1.10;
-  const mHt  = isAmb ? 0.88 : isPolice ? 0.70 : 1.05;
+  const mL   = isAmb ? 2.05 : isPolice ? 1.90 : isTow ? 2.30 : 2.40;
+  const mW   = isAmb ? 0.98 : isPolice ? 0.90 : isTow ? 1.00 : 1.10;
+  const mHt  = isAmb ? 0.88 : isPolice ? 0.70 : isTow ? 0.78 : 1.05;
   const halfL = mL * 0.45;
   const halfW = mW * 0.45;
   const H = isoH(mHt);
@@ -4987,6 +5059,55 @@ function drawServiceVehicle(v) {
     for (const pt of [FR, FL, BR, BL]) { ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x, pt.y - H); }
     ctx.stroke();
 
+  } else if (isTow) {
+    // ── ЭВАКУАТОР (оранжевый, с платформой) ────────────────────────
+    sideQuad(vis[0].a, vis[0].b, '#b86010');
+    sideQuad(vis[1].a, vis[1].b, '#d8801c');
+    // Чёрно-жёлтая предупреждающая полоса по низу бортов
+    faceStripe(vis[0].a, vis[0].b, 0.06, 0.20, '#1a1a1a');
+    faceStripe(vis[1].a, vis[1].b, 0.06, 0.20, '#1a1a1a');
+    faceStripe(vis[0].a, vis[0].b, 0.20, 0.30, '#f0c020');
+    faceStripe(vis[1].a, vis[1].b, 0.20, 0.30, '#f0c020');
+    // Лобовое стекло кабины (перёд)
+    faceStripe(vis[0].a, vis[0].b, 0.58, 0.90, 'rgba(60,100,160,.6)');
+    // Крыша (оранжевая, только над кабиной — перёд); зад = открытая платформа
+    ctx.fillStyle = '#c87018';
+    ctx.beginPath();
+    ctx.moveTo(FR.x, FR.y - H); ctx.lineTo(FL.x, FL.y - H);
+    ctx.lineTo(BL.x, BL.y - H); ctx.lineTo(BR.x, BR.y - H);
+    ctx.closePath(); ctx.fill();
+    // Платформа (тёмный настил) на задних 60% крыши
+    roofQuad(0.40, 0.10, 0.40, 0.90, 0.96, 0.90, 0.96, 0.10, '#2a2a30');
+    // Рёбра настила платформы
+    ctx.strokeStyle = 'rgba(120,120,130,.5)'; ctx.lineWidth = 0.7;
+    for (const u of [0.52, 0.64, 0.76, 0.88]) {
+      const a = roofPt(u, 0.12), b = roofPt(u, 0.88);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    // Стрела-лебёдка у кабины
+    const boom0 = roofPt(0.40, 0.50), boom1 = roofPt(0.18, 0.50);
+    ctx.strokeStyle = '#3a3a42'; ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.moveTo(boom0.x, boom0.y); ctx.lineTo(boom1.x, boom1.y - 6); ctx.stroke();
+    ctx.fillStyle = '#f0c020';
+    ctx.beginPath(); ctx.arc(boom1.x, boom1.y - 6, 1.8, 0, Math.PI * 2); ctx.fill();
+    // Колёса
+    const wR = 4.6, wR2 = 2.4;
+    for (const corner of [FR, FL, BR, BL]) {
+      ctx.fillStyle = '#080808';
+      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR, wR2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#888890';
+      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR * 0.5, wR2 * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // Контур
+    ctx.strokeStyle = '#3a1e06'; ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(FR.x, FR.y - H); ctx.lineTo(FL.x, FL.y - H);
+    ctx.lineTo(BL.x, BL.y - H); ctx.lineTo(BR.x, BR.y - H); ctx.closePath();
+    ctx.moveTo(FR.x, FR.y); ctx.lineTo(FL.x, FL.y);
+    ctx.lineTo(BL.x, BL.y); ctx.lineTo(BR.x, BR.y); ctx.closePath();
+    for (const pt of [FR, FL, BR, BL]) { ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x, pt.y - H); }
+    ctx.stroke();
+
   } else {
     // ── ПОЖАРНАЯ (Pumper) ──────────────────────────────────────────
     sideQuad(vis[0].a, vis[0].b, '#880e0e');
@@ -5067,8 +5188,8 @@ function drawServiceVehicle(v) {
   const p = w2s(r + 0.5, c + 0.5);
   const t = performance.now();
   const blink  = Math.floor(t / 200) % 2;
-  const col1 = isAmb ? '#2860ff' : '#ff2020';
-  const col2 = isAmb ? '#ff2828' : '#2860ff';
+  const col1 = isTow ? '#ffb020' : isAmb ? '#2860ff' : '#ff2020';
+  const col2 = isTow ? '#ff8000' : isAmb ? '#ff2828' : '#2860ff';
 
   const s1 = roofPt(0.18, 0.38), s2 = roofPt(0.50, 0.50), s3 = roofPt(0.82, 0.62);
   const sirenPts = isAmb
@@ -14121,14 +14242,11 @@ function update(dt) {
   _tickParkingNpcs(dt);
   // Бригадир бродит у бара — стопится когда игрок подошёл, иначе walks
   _tickBrigadir(dt);
-  // Стрельба в открытом мире: FREE-AIM, лочить НЕ обязательно.
-  // Правый стик целится (показывает лазер + позволяет залочить тапом),
-  // огонь — кнопкой fireBtn (или Space). fire() сам берёт направление:
-  //   • если стик отклонён — летит туда, куда целишься (free-aim);
-  //   • если есть залоченная цель и прицел рядом (±25°) — soft-lock
-  //     доворачивает РОВНО в неё (помощь, а не обязаловка);
-  //   • если стик в покое и лока нет — в направление взгляда.
-  // В PvP-арене (inArena) — hold-to-fire прямо по стику (хардкор).
+  // Стрельба в открытом мире: ЛОК-система (вернули по просьбе — было лучше
+  // чем free-aim стиком). Тап по цели → маркер; кнопка fireBtn бьёт по
+  // ближайшей залоченной цели РОВНО в неё. Без лока кнопка бьёт кулаком /
+  // стреляет в направление взгляда (fire(null)). Правый стик = только
+  // прицеливание/лок (лазер). В PvP-арене (inArena) — free-aim по стику.
   if (myMode !== 'pve' && !myDead && !myDrivingCarId) {
     const meInArena = inArena(player.r, player.c);
     if (meInArena) {
@@ -14140,10 +14258,21 @@ function update(dt) {
         fire(Math.atan2(dr, dc));
       }
     } else if (_fireBtnDown) {
-      // ОТКРЫТЫЙ МИР: огонь/удар кнопкой. Лок не требуется — fire(null)
-      // решает направление сам (стик → лок → взгляд). Кулдаун оружия
-      // не даёт задвоиться с мгновенным выстрелом из pointerdown.
-      if (_isArmed()) fire(); else punch();
+      if (_isArmed()) {
+        // Есть залоченная цель → бьём РОВНО в неё (лок). Иначе — выстрел
+        // в направление взгляда/стика (fire сам решит).
+        const active = lockedTargets.size ? getActiveTarget() : null;
+        const pos = active && active.getPos();
+        if (pos) {
+          const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
+          player.ang = ang;
+          fire(ang);
+        } else {
+          fire();
+        }
+      } else {
+        punch();
+      }
     }
   }
   // Интерполяция других игроков
@@ -23681,17 +23810,19 @@ function render() {
   } else {
     camShake = 0;
   }
-  // Зум камеры (для пляжа). Масштабируем вокруг центра экрана. UI (стрелки
-  // POI, ночной тинт, мини-карта) рисуются ПОСЛЕ restore — они не зумятся.
+  // Зум камеры (для пляжа). Масштабируем вокруг ПОЗИЦИИ ИГРОКА, а не центра
+  // экрана. Раньше пивот был в центре экрана, а камера лагает за игроком
+  // (лерп) — пока viewZoom плавно меняется при входе на пляж, все объекты
+  // «съезжали» относительно игрока (баг: «едут предметы пляжа и дома»).
+  // Пивот на игроке держит его пиксель неподвижным, мир зумится вокруг него.
+  // UI (стрелки POI, тинт, мини-карта) рисуются ПОСЛЕ restore — не зумятся.
   const _zoomActive = (viewZoom > 1.001 || viewZoom < 0.999);
   if (_zoomActive) {
     ctx.save();
-    const stage = document.getElementById('stage');
-    const _zcx = stage.clientWidth / 2;
-    const _zcy = stage.clientHeight / 2;
-    ctx.translate(_zcx, _zcy);
+    const _pp = w2s(player.r + 0.5, player.c + 0.5);
+    ctx.translate(_pp.x, _pp.y);
     ctx.scale(viewZoom, viewZoom);
-    ctx.translate(-_zcx, -_zcy);
+    ctx.translate(-_pp.x, -_pp.y);
   }
   // Viewport culling (под более крупный TS уменьшаем радиус)
   const VIS_R = 12;
