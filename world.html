@@ -144,6 +144,19 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 body.in-pvp #robActionBtn { top: 152px; }
 #zoneBtn[style*="block"] ~ #robActionBtn { top: 158px; }
 
+/* Кнопка «Сбросить мешок» — внизу по центру, видна пока несёшь мешок.
+   Низ экрана чтобы не мешала верхним кнопкам «Погрузить/Взлом». */
+#dropBagBtn {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 188px;
+  background: linear-gradient(135deg, #5a3a18, #9a6420);
+  color: #fff; border: 1px solid #d8a040; border-radius: 12px;
+  padding: 9px 18px; font-size: 13px; font-weight: 800;
+  cursor: pointer; display: none; z-index: 9;
+  box-shadow: 0 4px 14px rgba(60,30,0,.6), inset 0 1px 0 rgba(255,255,255,.15);
+  letter-spacing: 0.5px; touch-action: none; user-select: none;
+}
+#dropBagBtn:active { transform: translateX(-50%) scale(.94); }
+
 /* Модал прогресса ограбления */
 #robProgress {
   position: fixed; inset: 0; background: rgba(0,0,0,.7);
@@ -1096,6 +1109,8 @@ body.in-pvp #robActionBtn { top: 152px; }
   <!-- Альтернативная кнопка «Ограбить» — появляется одновременно с
        «Купить бизнес». Стиль красный, чтобы было ясно что это криминал. -->
   <button id="robActionBtn"></button>
+  <!-- Сбросить мешок — видна ВСЕГДА пока несёшь мешок, можно бросить в любой момент -->
+  <button id="dropBagBtn" style="display:none">💼 Сбросить мешок</button>
   <!-- Прогресс-окно ограбления (8с таймер) -->
   <div id="robProgress">
     <div class="rob-card">
@@ -1588,6 +1603,16 @@ const BANKS = [
   { id: 'large',  r: 55, c: 35, name: 'Банк «Центральный»', size: 'large',  bags: 18, guards: 3, reward_per_bag: 5000, police_delay: 140 },
 ];
 const _bankTileSet = new Set();   // тайлы банков — блокируют обычные drawBuilding
+const _gasTileSet  = new Set();   // тайлы расчищенной площадки АЗС
+// АЗС — объявляем ЗДЕСЬ (до buildMap), чтобы расчистка площадок работала.
+// 4 заправки по городу; рядом сносим здания под большую площадку.
+const GAS_STATIONS = [
+  { r: 13, c: 13, name: 'АЗС Север-Запад' },
+  { r: 13, c: 63, name: 'АЗС Север-Восток' },
+  { r: 63, c: 23, name: 'АЗС Центр'        },  // отодвинута от банка «Центральный»
+  { r: 73, c: 63, name: 'АЗС Юг'           },
+];
+const GAS_INTERACT_R = 3.5;   // тайлов — радиус взаимодействия с АЗС
 
 // «Парк-блоки» — координаты центра блока (по сетке 8×8), которые НЕ застраиваем
 // зданиями, а заливаем газоном с деревьями. Детерминированный набор:
@@ -1644,6 +1669,22 @@ function buildMap() {
         MAP[br][bc] = 1;
         _bankTileSet.add(br + ',' + bc);
       }
+    }
+  }
+
+  // Заправки — расчищаем БОЛЬШУЮ площадку: сносим здания/деревья/декор
+  // вокруг каждой АЗС (→ тротуар-площадка 9), чтобы большой навес,
+  // колонки и вывеска не прятались за домами. Дороги (0) не трогаем.
+  _gasTileSet.clear();
+  for (const gs of GAS_STATIONS) {
+    for (let dr = -2; dr <= 3; dr++) for (let dc = -2; dc <= 3; dc++) {
+      const r = gs.r + dr, c = gs.c + dc;
+      if (r < 1 || r >= MAP_ROWS - 1 || c < 1 || c >= MAP_COLS - 1) continue;
+      if (_bankTileSet.has(r + ',' + c)) continue;   // банки не трогаем
+      const t = MAP[r][c];
+      if (t === 0) continue;             // дорогу оставляем
+      MAP[r][c] = 9;                     // всё прочее → ровная площадка
+      _gasTileSet.add(r + ',' + c);
     }
   }
 
@@ -5822,8 +5863,11 @@ function spawnCar(idx, opts) {
       let pool;
       if (r2 < 0.35) {
         pool = CAR_MODELS.filter(m => m.sport || m.muscle || m.fast);
-      } else if (r2 < 0.60) {
+      } else if (r2 < 0.55) {
         pool = CAR_MODELS.filter(m => m.suv || m.pickup || m.van);
+      } else if (r2 < 0.66) {
+        // Заметная доля жёлтых такси — город живёт, такси снуют
+        pool = CAR_MODELS.filter(m => m.taxi);
       } else {
         pool = CAR_MODELS;
       }
@@ -6577,15 +6621,53 @@ function _maintainTrafficDensity(now) {
 // ЗАПРАВОЧНЫЕ СТАНЦИИ — топливо для машин
 // ══════════════════════════════════════════════════════════════════════════════
 
-// 4 АЗС расставлены по городу на тротуарных тайлах рядом с дорогами.
-// r%10 == 3 → первый ряд зданий за дорогой (не сама дорога).
-const GAS_STATIONS = [
-  { r: 13, c: 13, name: 'АЗС Север-Запад' },
-  { r: 13, c: 63, name: 'АЗС Север-Восток' },
-  { r: 53, c: 33, name: 'АЗС Центр'        },
-  { r: 73, c: 63, name: 'АЗС Юг'           },
-];
-const GAS_INTERACT_R = 3.5;   // тайлов — радиус взаимодействия с АЗС
+// (GAS_STATIONS и GAS_INTERACT_R объявлены выше, до buildMap — для расчистки площадок)
+
+// Высокая вывеска-тотем АЗС — рисуется ОТДЕЛЬНЫМ слоем поверх всех зданий
+// (после depth-sort в render), поэтому видна издалека даже из-за домов.
+function _drawGasSigns(r0, c0, r1, c1) {
+  if (typeof GAS_STATIONS === 'undefined') return;
+  const t = performance.now();
+  for (const gs of GAS_STATIONS) {
+    if (gs.r < r0 - 3 || gs.r >= r1 + 3 || gs.c < c0 - 3 || gs.c >= c1 + 3) continue;
+    // Тотем — у переднего края площадки (ближе к камере/дороге), чтобы
+    // ценник стоял перед навесом, а не перекрывал его.
+    const p = w2s(gs.r + 2.4, gs.c - 1.2);
+    const baseX = p.x, baseY = p.y + 4;
+    const poleH = 70;
+    const topY = baseY - poleH;
+    // Столб тотема
+    ctx.fillStyle = '#565c64';
+    ctx.fillRect(baseX - 2.5, topY, 5, poleH);
+    ctx.fillStyle = 'rgba(255,255,255,.22)';
+    ctx.fillRect(baseX - 2.5, topY, 1.5, poleH);
+    // Табло
+    const W = 54, H = 42;
+    const bx = baseX - W / 2, by = topY - H + 6;
+    const glow = 0.5 + 0.5 * Math.sin(t * 0.004);
+    ctx.save();
+    ctx.shadowColor = 'rgba(60,230,90,.85)'; ctx.shadowBlur = 9 + 6 * glow;
+    const sg = ctx.createLinearGradient(bx, by, bx, by + H);
+    sg.addColorStop(0, '#0e3a18'); sg.addColorStop(1, '#06180a');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.roundRect(bx, by, W, H, 7); ctx.fill();
+    ctx.restore();
+    // Окантовки
+    ctx.strokeStyle = '#40e060'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(bx, by, W, H, 7); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.roundRect(bx + 2.5, by + 2.5, W - 5, H - 5, 5); ctx.stroke();
+    // Содержимое
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '17px "Segoe UI Emoji", system-ui, sans-serif';
+    ctx.fillText('⛽', baseX, by + 13);
+    ctx.font = 'bold 9px system-ui, sans-serif'; ctx.fillStyle = '#7eff9a';
+    ctx.fillText('ЗАПРАВКА', baseX, by + 27);
+    ctx.font = '7px system-ui, sans-serif'; ctx.fillStyle = '#f0d060';
+    ctx.fillText('Топливо $5/ед', baseX, by + 36);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // БАНКИ — (BANKS и _bankTileSet объявлены выше у MAP, до buildMap())
@@ -10357,10 +10439,10 @@ function updateGtaInteractions() {
       _gtaBtn.style.display = 'block';
       return;
     }
-    // Нет машины рядом — кнопка сброса мешка
-    _gtaActionKind = 'bag_drop';
-    _gtaBtn.textContent = '💼 Снять мешок';
-    _gtaBtn.style.display = 'block';
+    // Нет машины рядом — основную кнопку прячем: сброс теперь отдельной
+    // кнопкой #dropBagBtn (доступна в любой момент, см. _updateDropBagBtn).
+    _gtaBtn.style.display = 'none';
+    _gtaActionKind = null;
     return;
   }
   // 1) Машина моего контракта — приоритет (сесть за руль)
@@ -10486,6 +10568,32 @@ _gtaBtn.addEventListener('click', () => {
     deliverBagsToBusinesses();
   }
 });
+
+// ── Кнопка «Сбросить мешок» — доступна В ЛЮБОЙ МОМЕНТ пока несёшь ──────
+// Раньше сброс был только в _gtaBtn и только когда рядом НЕТ машины
+// (иначе кнопка показывала «Погрузить»). Теперь отдельная кнопка внизу
+// экрана: бросить мешок можно когда угодно — даже стоя у фургона.
+const _dropBagBtn = document.getElementById('dropBagBtn');
+if (_dropBagBtn) {
+  _dropBagBtn.addEventListener('click', () => {
+    if (_bankInt && _bankInt.myBag) {
+      // В хранилище — кладём мешок обратно на пол (можно снова взять)
+      const b = _bankInt.myBag;
+      const orig = (_bankInt.bags || []).find(x => x.id === b.id);
+      if (orig) orig.taken = false;
+      _bankInt.myBag = null; _myBagWeight = 0;
+      showToast('💼 Мешок отложен', 'ℹ️', 1400);
+      if (typeof updateZoneBtn === 'function') updateZoneBtn();
+    } else if (_bankRob && _bankRob.myBag) {
+      dropVaultBag();
+    }
+  });
+}
+function _updateDropBagBtn() {
+  if (!_dropBagBtn) return;
+  const carrying = !!((_bankInt && _bankInt.myBag) || (_bankRob && _bankRob.myBag));
+  _dropBagBtn.style.display = (carrying && !myDead) ? 'block' : 'none';
+}
 
 // ── Автобус: посадка / высадка ─────────────────────────────────────
 // Игрок может сесть в автобус когда тот стоит на остановке (см.
@@ -13925,6 +14033,7 @@ function update(dt) {
     _gtaActionKind = null;
     _handbrakeBtn.style.display = 'none';
     if (_robBtn) _robBtn.style.display = 'none';
+    _updateDropBagBtn();   // мешок можно бросить и внутри хранилища
     return;
   }
 
@@ -13984,6 +14093,7 @@ function update(dt) {
     }
   }
   updateExtinguishBtn();
+  _updateDropBagBtn();
   updateBoxThreat(dt);
   // Интерполяция чужих quest_cars (которые ведут другие игроки)
   _interpQuestCars(dt);
@@ -13993,35 +14103,29 @@ function update(dt) {
   _tickParkingNpcs(dt);
   // Бригадир бродит у бара — стопится когда игрок подошёл, иначе walks
   _tickBrigadir(dt);
-  // Стрельба в открытом мире: ОБЯЗАТЕЛЕН lockedTarget (см. tryTapLock).
-  // Правый стик ТОЛЬКО метит цели (тап + удержание лазера = auto-lock).
-  // Стрелять можно ИСКЛЮЧИТЕЛЬНО кнопкой fireBtn (или Space на десктопе).
-  // В PvP-арене (inArena) — старая логика free-aim, лок выключен.
+  // Стрельба в открытом мире: FREE-AIM, лочить НЕ обязательно.
+  // Правый стик целится (показывает лазер + позволяет залочить тапом),
+  // огонь — кнопкой fireBtn (или Space). fire() сам берёт направление:
+  //   • если стик отклонён — летит туда, куда целишься (free-aim);
+  //   • если есть залоченная цель и прицел рядом (±25°) — soft-lock
+  //     доворачивает РОВНО в неё (помощь, а не обязаловка);
+  //   • если стик в покое и лока нет — в направление взгляда.
+  // В PvP-арене (inArena) — hold-to-fire прямо по стику (хардкор).
   if (myMode !== 'pve' && !myDead && !myDrivingCarId) {
     const meInArena = inArena(player.r, player.c);
     if (meInArena) {
-      // АРЕНА: hold-to-fire по стику, как раньше — хардкорный free-aim
+      // АРЕНА: hold-to-fire по стику — хардкорный free-aim
       if (joyR.active && joyR.hasAim) {
         const d = joyR.dx, s = joyR.dy / ISO_Y;
         const dc = (s + d) * 0.5;
         const dr = (s - d) * 0.5;
         fire(Math.atan2(dr, dc));
       }
-    } else if (lockedTargets.size) {
-      // ОТКРЫТЫЙ МИР: стреляем/бьём ТОЛЬКО кнопкой fireBtn.
-      if (_fireBtnDown) {
-        if (_isArmed()) {
-          const active = getActiveTarget();
-          const pos = active && active.getPos();
-          if (pos) {
-            const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
-            player.ang = ang;
-            fire(ang);
-          }
-        } else {
-          punch();
-        }
-      }
+    } else if (_fireBtnDown) {
+      // ОТКРЫТЫЙ МИР: огонь/удар кнопкой. Лок не требуется — fire(null)
+      // решает направление сам (стик → лок → взгляд). Кулдаун оружия
+      // не даёт задвоиться с мгновенным выстрелом из pointerdown.
+      if (_isArmed()) fire(); else punch();
     }
   }
   // Интерполяция других игроков
@@ -15486,12 +15590,12 @@ function drawTile(r, c) {
     else if (h1 < 85)  color = '#28482a'; // средняя
     else               color = '#3a5a2a'; // светлая молодая трава
   } else if (isRoad) {
-    // ─── АСФАЛТ — три вариации с пятнами масла/трещинами ──────────
-    if (h1 < 8)        color = '#0e0e12'; // тёмное пятно масла
-    else if (h1 < 22)  color = '#1c1c20'; // обычный асфальт A
-    else if (h1 < 55)  color = '#181820'; // обычный асфальт B
-    else if (h1 < 78)  color = '#22221e'; // потёртый асфальт (светлее)
-    else               color = '#262824'; // выцветший
+    // ─── АСФАЛЬТ — насыщенные тёмно-серые тона с лёгкой синевой ───
+    if (h1 < 6)        color = '#0c0c10'; // тёмное масляное пятно
+    else if (h1 < 26)  color = '#191920'; // свежий тёмный асфальт
+    else if (h1 < 58)  color = '#1d1d25'; // обычный
+    else if (h1 < 80)  color = '#212029'; // чуть светлее (укатанный)
+    else               color = '#262420'; // выцветший пыльный
   } else {
     // ─── ТРОТУАР/ПЛИТКА — варианты + участки грунта ───────────────
     if (h1 < 6)        color = '#3a3024'; // грунт между плитками
@@ -15533,20 +15637,45 @@ function drawTile(r, c) {
       ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
     }
   } else if (isRoad) {
+    // Мелкая зернистость асфальта — светлая и тёмная крапинка
+    ctx.fillStyle = 'rgba(200,205,215,.05)';
+    ctx.fillRect(p.x - 5 + (h1 % 9), p.y - 4 + (h2 % 7), 1, 1);
+    ctx.fillStyle = 'rgba(0,0,0,.20)';
+    ctx.fillRect(p.x + 3 - (h2 % 7), p.y + 2 - (h1 % 5), 1, 1);
     // Тонкие трещины — на потёртом асфальте
-    if (h1 >= 55 && h1 < 70) {
-      ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    if (h1 >= 58 && h1 < 72) {
+      ctx.strokeStyle = 'rgba(0,0,0,.32)';
       ctx.lineWidth = 0.8;
       ctx.beginPath();
       const a = (h2 / 100) * Math.PI;
-      ctx.moveTo(p.x - Math.cos(a) * 4, p.y - Math.sin(a) * 2);
-      ctx.lineTo(p.x + Math.cos(a) * 4, p.y + Math.sin(a) * 2);
+      ctx.moveTo(p.x - Math.cos(a) * 5, p.y - Math.sin(a) * 2.5);
+      ctx.lineTo(p.x + Math.cos(a) * 5, p.y + Math.sin(a) * 2.5);
+      // Ветвь трещины
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + Math.sin(a) * 3, p.y - Math.cos(a) * 1.5);
       ctx.stroke();
     }
-    // Мелкий гравий/камушки — изредка
-    if (h2 < 12) {
-      ctx.fillStyle = 'rgba(120,110,90,.4)';
-      ctx.fillRect(p.x - 2 + (h1 % 5 - 2), p.y - 1, 1, 1);
+    // Масляное пятно — тёмный эллипс изредка
+    if (h1 < 6) {
+      ctx.fillStyle = 'rgba(10,14,20,.55)';
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, wx * 0.38, wy * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Тормозной след — две параллельные тёмные полосы вдоль оси дороги
+    if (h2 >= 92 && h1 >= 28 && h1 < 52) {
+      // Единичные вектора изо-оси дороги: вдоль c (гориз.) или вдоль r (верт.)
+      const ax = onRoadR ? wx : -wx, ay = wy;
+      // Перпендикуляр для разнесения двух колёсных следов
+      const px2 = onRoadR ? wx * 0.16 : wx * 0.16, py2 = onRoadR ? -wy * 0.16 : wy * 0.16;
+      ctx.strokeStyle = 'rgba(0,0,0,.34)';
+      ctx.lineWidth = 1.6;
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(p.x - ax * 0.6 + px2 * s, p.y - ay * 0.6 + py2 * s);
+        ctx.lineTo(p.x + ax * 0.6 + px2 * s, p.y + ay * 0.6 + py2 * s);
+        ctx.stroke();
+      }
     }
   } else {
     // Плитка: разметка швов между плитками — диагональные риски
@@ -15565,17 +15694,49 @@ function drawTile(r, c) {
       ctx.fillRect(p.x + 1, p.y - 1, 1, 1);
     }
   }
-  // Жёлтая прерывистая разметка по центру дороги (центр 3-тайловой полосы = mod 1)
-  if (onRoadR && !onRoadC && (r % BLOCK === 1) && (c % 3 === 0)) {
-    ctx.fillStyle = '#a68a18';
-    ctx.fillRect(p.x - wx * 0.18, p.y - 1.5, wx * 0.36, 3);
-  }
-  // По центру вертикальных дорог — серые люки (центр = mod 1)
-  if (onRoadC && !onRoadR && (c % BLOCK === 1) && (r % 4 === 0)) {
-    ctx.fillStyle = '#3a3a3a';
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y, wx * 0.10, wy * 0.10, 0, 0, Math.PI * 2);
-    ctx.fill();
+  // ─── ДОРОЖНАЯ РАЗМЕТКА (iso-выровненная вдоль оси дороги) ──────────
+  // Горизонтальная дорога (полоса по r, движение вдоль c): ось = (+wx,+wy).
+  // Вертикальная (полоса по c, движение вдоль r):           ось = (-wx,+wy).
+  if (isRoad && !(onRoadR && onRoadC)) {
+    const ax = onRoadR ? wx : -wx, ay = wy;           // единичный шаг вдоль дороги
+    const along = onRoadR ? c : r;                    // координата вдоль дороги
+    const band  = onRoadR ? (r % BLOCK) : (c % BLOCK); // 0..2 — позиция в полосе
+    // Центральная прерывистая жёлтая (середина полосы band===1, через тайл)
+    if (band === 1 && along % 2 === 0) {
+      ctx.strokeStyle = '#d8b636';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(p.x - ax * 0.34, p.y - ay * 0.34);
+      ctx.lineTo(p.x + ax * 0.34, p.y + ay * 0.34);
+      ctx.stroke();
+    }
+    // Белые краевые линии по обочинам полосы (band 0 и 2) — сплошные
+    if (band === 0 || band === 2) {
+      // Смещаем линию к внешнему краю тайла (ближе к бордюру)
+      const perpX = onRoadR ? 0 : (band === 0 ? -wx * 0.30 : wx * 0.30);
+      const perpY = onRoadR ? (band === 0 ? -wy * 0.30 : wy * 0.30) : 0;
+      ctx.strokeStyle = 'rgba(225,225,210,.42)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x - ax * 0.5 + perpX, p.y - ay * 0.5 + perpY);
+      ctx.lineTo(p.x + ax * 0.5 + perpX, p.y + ay * 0.5 + perpY);
+      ctx.stroke();
+    }
+    // Канализационный люк — изредка на краю полосы
+    if (band === 2 && along % 7 === 0) {
+      ctx.fillStyle = '#26262a';
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, wx * 0.13, wy * 0.13, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(90,90,100,.6)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      // Крестовина на люке
+      ctx.beginPath();
+      ctx.moveTo(p.x - wx * 0.1, p.y); ctx.lineTo(p.x + wx * 0.1, p.y);
+      ctx.moveTo(p.x, p.y - wy * 0.1); ctx.lineTo(p.x, p.y + wy * 0.1);
+      ctx.stroke();
+    }
   }
   // Бордюр — тонкая светлая полоска по краю плитки, прилегающему к дороге
   if (t === 9) {
@@ -17036,53 +17197,85 @@ function drawWreckedCar(car) {
 
   if (!car._burnedOut) {
     const fy0 = p.y - 7;
-    // 4 языка пламени (разной высоты/смещения)
+    // Глобальное мерцание яркости — комбинация двух частот + лёгкий рандом
+    const flick = 0.78 + 0.14 * Math.sin(t * 7.3) + 0.08 * Math.sin(t * 13.1 + 2);
+    // Тёплое световое пятно на земле под пожаром (динамический ореол)
+    const glowR = 26 + Math.sin(t * 5.5) * 4;
+    const gpool = ctx.createRadialGradient(p.x, fy0, 2, p.x, fy0, glowR);
+    gpool.addColorStop(0, `rgba(255,150,50,${0.30 * flick})`);
+    gpool.addColorStop(0.5, `rgba(255,90,20,${0.14 * flick})`);
+    gpool.addColorStop(1, 'rgba(255,80,20,0)');
+    ctx.fillStyle = gpool;
+    ctx.beginPath(); ctx.ellipse(p.x, fy0, glowR, glowR * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+    // 7 языков пламени — двойная синусоида (быстрая рябь + медленный наклон)
     const tongues = [
-      { ox: -6, h: 0.85, w: 0.7, phase: 0 },
-      { ox:  1, h: 1.00, w: 1.0, phase: 1.1 },
-      { ox:  8, h: 0.75, w: 0.8, phase: 2.3 },
-      { ox: -2, h: 0.60, w: 0.6, phase: 3.7 },
+      { ox: -8, h: 0.70, w: 0.6, phase: 0.0 },
+      { ox: -5, h: 0.92, w: 0.8, phase: 0.8 },
+      { ox: -1, h: 1.15, w: 1.0, phase: 1.6 },
+      { ox:  2, h: 1.00, w: 0.9, phase: 2.4 },
+      { ox:  6, h: 1.08, w: 0.85, phase: 3.1 },
+      { ox:  9, h: 0.80, w: 0.7, phase: 3.9 },
+      { ox:  3, h: 0.55, w: 0.5, phase: 4.7 },
     ];
+    ctx.globalCompositeOperation = 'lighter';
     for (const { ox, h, w, phase } of tongues) {
-      const fH = (14 + Math.sin(t * 1.8 + phase) * 3.5) * h;
-      const fW = (5 + Math.sin(t * 2.3 + phase) * 1.2) * w;
-      const cx = p.x + ox + Math.sin(t * 0.9 + phase) * 1.5;
+      const fH = (15 + Math.sin(t * 2.0 + phase) * 4.5 + Math.sin(t * 0.8 + phase * 2) * 2.2) * h;
+      const fW = (5.5 + Math.sin(t * 2.8 + phase) * 1.6 + Math.sin(t * 1.1 + phase) * 0.8) * w;
+      const sway = Math.sin(t * 0.9 + phase) * 2.0 + Math.sin(t * 2.1 + phase) * 0.9;
+      const cx = p.x + ox + sway;
+      const tipX = cx + sway * 0.6;   // кончик отклоняется сильнее (вихрь)
       const fg = ctx.createLinearGradient(cx, fy0 - fH, cx, fy0);
-      fg.addColorStop(0,    h > 0.9 ? '#fff8c0' : '#ffee80');
-      fg.addColorStop(0.35, '#ff8020');
-      fg.addColorStop(0.75, '#cc3010');
-      fg.addColorStop(1,    '#801010');
+      fg.addColorStop(0,    `rgba(255,250,210,${0.95 * flick})`);
+      fg.addColorStop(0.18, `rgba(255,235,120,${0.95 * flick})`);
+      fg.addColorStop(0.45, `rgba(255,150,40,${0.92 * flick})`);
+      fg.addColorStop(0.72, `rgba(230,60,20,${0.85 * flick})`);
+      fg.addColorStop(1,    'rgba(120,16,8,0.55)');
       ctx.fillStyle = fg;
       ctx.beginPath();
-      ctx.moveTo(cx, fy0 - fH);
-      ctx.quadraticCurveTo(cx + fW, fy0 - fH * 0.38, cx + fW * 0.5, fy0);
+      ctx.moveTo(tipX, fy0 - fH);
+      ctx.quadraticCurveTo(cx + fW, fy0 - fH * 0.42, cx + fW * 0.5, fy0);
       ctx.lineTo(cx - fW * 0.5, fy0);
-      ctx.quadraticCurveTo(cx - fW, fy0 - fH * 0.38, cx, fy0 - fH);
+      ctx.quadraticCurveTo(cx - fW, fy0 - fH * 0.42, tipX, fy0 - fH);
       ctx.closePath();
       ctx.fill();
     }
-    // Летящие искры
-    for (let si = 0; si < 8; si++) {
-      const phase = t * (1.4 + si * 0.22) + si * 1.1;
-      const px2 = p.x + Math.sin(phase * 1.9) * 10;
-      const py2 = fy0 - 4 - (phase % (Math.PI * 2)) * 2.8;
-      const sa = Math.max(0, 1 - (phase % (Math.PI * 2)) / (Math.PI * 2));
-      if (sa > 0.05) {
-        ctx.fillStyle = `rgba(255,${180 + si * 8},40,${sa})`;
-        ctx.beginPath(); ctx.arc(px2, py2, 1.3, 0, Math.PI * 2); ctx.fill();
+    // Раскалённое ядро у основания (ярко-белое)
+    const coreA = 0.5 * flick;
+    const cg = ctx.createRadialGradient(p.x, fy0 - 3, 1, p.x, fy0 - 3, 10);
+    cg.addColorStop(0, `rgba(255,250,220,${coreA})`);
+    cg.addColorStop(1, 'rgba(255,180,60,0)');
+    ctx.fillStyle = cg;
+    ctx.beginPath(); ctx.arc(p.x, fy0 - 3, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+    // Летящие вверх искры — поднимаются по кривой, гаснут, мерцают
+    for (let si = 0; si < 14; si++) {
+      const sp = ((t * (0.9 + si * 0.13) + si * 0.7) % (Math.PI * 1.6)) / (Math.PI * 1.6); // 0..1 цикл
+      const rise = sp * 34;
+      const px2 = p.x + (si - 7) * 1.4 + Math.sin(t * 2 + si) * (3 + rise * 0.18);
+      const py2 = fy0 - 2 - rise;
+      const sa = Math.max(0, 1 - sp) * (0.6 + 0.4 * Math.sin(t * 9 + si));
+      if (sa > 0.04) {
+        const sz = 0.8 + (1 - sp) * 1.4;
+        ctx.fillStyle = `rgba(255,${(170 + si * 6) | 0},${(40 + sp * 60) | 0},${sa})`;
+        ctx.shadowColor = '#ffb030'; ctx.shadowBlur = 4;
+        ctx.beginPath(); ctx.arc(px2, py2, sz, 0, Math.PI * 2); ctx.fill();
       }
     }
-    // Чёрный дым сверху
-    for (let i = 0; i < 5; i++) {
-      const phase = (t * 0.4 + i * 0.6);
-      const off = i * 8;
-      const a = Math.max(0, 0.55 - i * 0.10);
-      ctx.fillStyle = `rgba(30,28,26,${a})`;
-      ctx.beginPath();
-      ctx.arc(p.x + Math.sin(phase) * 3.5,
-              fy0 - 18 - off,
-              3.5 + i * 0.9, 0, Math.PI * 2);
-      ctx.fill();
+    ctx.shadowBlur = 0;
+    // Густой чёрный дым — клубится радиальными градиентами, расширяется кверху
+    for (let i = 0; i < 6; i++) {
+      const phase = (t * 0.45 + i * 0.62);
+      const off = i * 9;
+      const a = Math.max(0, 0.5 - i * 0.07);
+      const sx = p.x + Math.sin(phase) * (3 + i * 1.4);
+      const sy = fy0 - 16 - off;
+      const sr = 4 + i * 1.6;
+      const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+      sg.addColorStop(0, `rgba(60,56,52,${a})`);
+      sg.addColorStop(0.6, `rgba(34,32,30,${a * 0.7})`);
+      sg.addColorStop(1, 'rgba(24,22,20,0)');
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
     }
   } else {
     // Тонкий серый дым (после тушения) — облачка поднимаются.
@@ -17502,14 +17695,41 @@ function drawCarPretty(car) {
     ctx.beginPath(); ctx.arc(bx2, by2, 1.8, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
   }
-  // Шашечки такси — на крыше (центр), мигающая жёлтая лампа
+  // ── ТАКСИ: шашечки на бортах + светящийся плафон «TAXI» ──────────
   if (m.taxi) {
+    // Шахматная полоса вдоль двух видимых боковых граней (на высоте дверей)
+    const hLo = H * 0.34, hHi = H * 0.50, segs = 6;
+    for (const e of visible) {
+      for (let s = 0; s < segs; s++) {
+        const t0 = s / segs, t1 = (s + 1) / segs;
+        const ax0 = e.a.x + (e.b.x - e.a.x) * t0, ay0 = e.a.y + (e.b.y - e.a.y) * t0;
+        const ax1 = e.a.x + (e.b.x - e.a.x) * t1, ay1 = e.a.y + (e.b.y - e.a.y) * t1;
+        ctx.fillStyle = (s % 2 === 0) ? '#1a1a1a' : '#ffd21a';
+        ctx.beginPath();
+        ctx.moveTo(ax0, ay0 - hLo); ctx.lineTo(ax1, ay1 - hLo);
+        ctx.lineTo(ax1, ay1 - hHi); ctx.lineTo(ax0, ay0 - hHi);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+    // Плафон на крыше — корпус + светящаяся надпись TAXI (ночью мигает)
     const cx = (FR.x + FL.x + BR.x + BL.x) / 4;
     const cy = (FR.y + FL.y + BR.y + BL.y) / 4 - H;
-    ctx.fillStyle = (Math.floor(car.flash * 4) % 2) ? '#ffd700' : '#1a1a1a';
-    ctx.fillRect(cx - 4, cy - 3, 8, 4);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(cx - 4, cy + 1, 8, 1);
+    const taxiNight = Math.max(0, Math.min(1, (typeof getNightAlpha === 'function' ? getNightAlpha() : 0) / 0.55));
+    // Корпус плафона
+    ctx.fillStyle = '#101014';
+    ctx.fillRect(cx - 7, cy - 5, 14, 5);
+    // Светящаяся вставка
+    const lit = (taxiNight > 0.3) ? (Math.floor(car.flash * 3) % 2 ? 1 : 0.55) : 0.9;
+    ctx.fillStyle = `rgba(255,214,40,${lit})`;
+    if (taxiNight > 0.3) { ctx.shadowColor = '#ffd628'; ctx.shadowBlur = 6 * taxiNight; }
+    ctx.fillRect(cx - 6, cy - 4, 12, 3);
+    ctx.shadowBlur = 0;
+    // Надпись TAXI
+    ctx.fillStyle = '#101014';
+    ctx.font = 'bold 3px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('TAXI', cx, cy - 2.4);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   }
   // ── Полоса спорткара / маслкара ─────────────────────────────────
   // Точки крыши по углам
@@ -23662,164 +23882,135 @@ function render() {
       const t = performance.now();
       ctx.save();
 
-      // ── Асфальт-подложка ──────────────────────────────────────
-      ctx.fillStyle = '#222';
+      // ════ БОЛЬШАЯ АЗС: бетонная площадка + навес на колоннах + магазин ════
+      // Колонка топлива — переиспользуемый рисунок в экранной точке (sx,sy)
+      const _drawPump = (sx, sy) => {
+        // Тень
+        ctx.fillStyle = 'rgba(0,0,0,.35)';
+        ctx.beginPath(); ctx.ellipse(sx, sy + 1, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+        const pg = ctx.createLinearGradient(sx - 7, 0, sx + 7, 0);
+        pg.addColorStop(0, '#c02820'); pg.addColorStop(0.5, '#ff6050'); pg.addColorStop(1, '#a01818');
+        ctx.fillStyle = pg;
+        ctx.beginPath(); ctx.roundRect(sx - 7, sy - 24, 14, 22, 2); ctx.fill();
+        ctx.strokeStyle = '#701414'; ctx.lineWidth = 1; ctx.strokeRect(sx - 7, sy - 24, 14, 22);
+        // Экран
+        ctx.fillStyle = '#0a1014'; ctx.fillRect(sx - 5, sy - 21, 10, 7);
+        ctx.fillStyle = '#00e8ff'; ctx.fillRect(sx - 4, sy - 20, 8, 5);
+        ctx.font = 'bold 4px system-ui'; ctx.fillStyle = '#062e34'; ctx.textAlign = 'center';
+        ctx.fillText('$5', sx, sy - 16);
+        // Шланг + пистолет
+        ctx.strokeStyle = '#3a3a3a'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(sx + 7, sy - 15);
+        ctx.bezierCurveTo(sx + 15, sy - 10, sx + 11, sy + 2, sx + 5, sy + 4); ctx.stroke();
+        ctx.fillStyle = '#2a2a2a'; ctx.fillRect(sx + 2, sy + 2, 6, 4);
+      };
+
+      // Угловые точки бетонной площадки (≈4×4 тайла вокруг АЗС)
+      const F_A = w2s(gs.r - 1.5, gs.c - 1.5);   // дальний верх
+      const F_B = w2s(gs.r - 1.5, gs.c + 2.5);   // право
+      const F_C = w2s(gs.r + 2.5, gs.c + 2.5);   // ближний низ
+      const F_D = w2s(gs.r + 2.5, gs.c - 1.5);   // лево
+      // ── Бетонная площадка ──
+      ctx.fillStyle = 'rgba(0,0,0,.30)';
       ctx.beginPath();
-      ctx.ellipse(p.x, p.y + 6, 36, 16, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Разметка въезда
-      ctx.strokeStyle = '#f0c020';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
+      ctx.moveTo(F_A.x, F_A.y + 4); ctx.lineTo(F_B.x, F_B.y + 4);
+      ctx.lineTo(F_C.x, F_C.y + 4); ctx.lineTo(F_D.x, F_D.y + 4); ctx.closePath(); ctx.fill();
+      const fcg = ctx.createLinearGradient(F_A.x, F_A.y, F_C.x, F_C.y);
+      fcg.addColorStop(0, '#3c3c42'); fcg.addColorStop(1, '#26262c');
+      ctx.fillStyle = fcg;
       ctx.beginPath();
-      ctx.moveTo(p.x - 16, p.y + 14); ctx.lineTo(p.x - 16, p.y + 1);
-      ctx.moveTo(p.x + 16, p.y + 14); ctx.lineTo(p.x + 16, p.y + 1);
-      ctx.stroke();
+      ctx.moveTo(F_A.x, F_A.y); ctx.lineTo(F_B.x, F_B.y);
+      ctx.lineTo(F_C.x, F_C.y); ctx.lineTo(F_D.x, F_D.y); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(240,200,40,.5)'; ctx.lineWidth = 2; ctx.stroke();
+      // Разметка въезда (полосы вдоль ближней грани)
+      ctx.strokeStyle = 'rgba(240,200,40,.35)'; ctx.lineWidth = 1.3; ctx.setLineDash([5, 4]);
+      for (const fr of [0.32, 0.5, 0.68]) {
+        const a = { x: F_D.x + (F_C.x - F_D.x) * fr, y: F_D.y + (F_C.y - F_D.y) * fr };
+        const b = { x: F_A.x + (F_B.x - F_A.x) * fr, y: F_A.y + (F_B.y - F_A.y) * fr };
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
       ctx.setLineDash([]);
 
-      // ── Здание (кирпичный домик АЗС) ─────────────────────────
-      const bx = p.x + 12, by = p.y - 8;
-      // Тень здания
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.fillRect(bx - 13, by - 18, 26, 22);
-      // Стены
-      const wg = ctx.createLinearGradient(bx - 12, by - 18, bx + 12, by + 4);
-      wg.addColorStop(0, '#5a3e28');
-      wg.addColorStop(1, '#3a2210');
-      ctx.fillStyle = wg;
-      ctx.fillRect(bx - 12, by - 18, 24, 22);
-      // Крыша треугольная
-      ctx.fillStyle = '#c04830';
+      // ── Магазин (convenience store) в дальнем углу ──
+      const shopG = w2s(gs.r - 1, gs.c - 0.7);
+      const shopH = isoH(2.2), shopW = 30, shopD = 16;
+      // Стены (фасад + бок)
+      ctx.fillStyle = '#c8d0d6';
+      ctx.fillRect(shopG.x - shopW / 2, shopG.y - shopH, shopW, shopH);
+      ctx.fillStyle = '#9aa4ac';
       ctx.beginPath();
-      ctx.moveTo(bx - 14, by - 18);
-      ctx.lineTo(bx, by - 30);
-      ctx.lineTo(bx + 14, by - 18);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#e06040';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      // Окно
-      ctx.fillStyle = '#a8d8f0';
-      ctx.fillRect(bx - 5, by - 14, 10, 8);
-      ctx.strokeStyle = '#4a3020';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(bx - 5, by - 14, 10, 8);
-      ctx.strokeStyle = '#4a3020';
-      ctx.lineWidth = 0.5;
+      ctx.moveTo(shopG.x + shopW / 2, shopG.y - shopH);
+      ctx.lineTo(shopG.x + shopW / 2 + shopD, shopG.y - shopH - shopD * 0.5);
+      ctx.lineTo(shopG.x + shopW / 2 + shopD, shopG.y - shopD * 0.5);
+      ctx.lineTo(shopG.x + shopW / 2, shopG.y); ctx.closePath(); ctx.fill();
+      // Плоская крыша
+      ctx.fillStyle = '#d8e0e6';
       ctx.beginPath();
-      ctx.moveTo(bx, by - 14); ctx.lineTo(bx, by - 6);
-      ctx.moveTo(bx - 5, by - 10); ctx.lineTo(bx + 5, by - 10);
-      ctx.stroke();
-      // Дверь
-      ctx.fillStyle = '#2a1a08';
-      ctx.fillRect(bx - 4, by - 6, 8, 10);
-      ctx.strokeStyle = '#5a3010';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(bx - 4, by - 6, 8, 10);
+      ctx.moveTo(shopG.x - shopW / 2, shopG.y - shopH);
+      ctx.lineTo(shopG.x + shopW / 2, shopG.y - shopH);
+      ctx.lineTo(shopG.x + shopW / 2 + shopD, shopG.y - shopH - shopD * 0.5);
+      ctx.lineTo(shopG.x - shopW / 2 + shopD, shopG.y - shopH - shopD * 0.5); ctx.closePath(); ctx.fill();
+      // Витрина (стекло)
+      ctx.fillStyle = 'rgba(120,200,230,.7)';
+      ctx.fillRect(shopG.x - shopW / 2 + 3, shopG.y - shopH + 5, shopW - 6, shopH - 12);
+      ctx.strokeStyle = '#6a7278'; ctx.lineWidth = 1;
+      ctx.strokeRect(shopG.x - shopW / 2 + 3, shopG.y - shopH + 5, shopW - 6, shopH - 12);
+      // Дверь магазина
+      ctx.fillStyle = '#2a3236';
+      ctx.fillRect(shopG.x - 4, shopG.y - 12, 8, 12);
+      // Вывеска SHOP над витриной
+      ctx.fillStyle = '#1a8a3a';
+      ctx.fillRect(shopG.x - shopW / 2 + 3, shopG.y - shopH, shopW - 6, 5);
+      ctx.font = 'bold 5px system-ui'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+      ctx.fillText('SHOP', shopG.x, shopG.y - shopH + 4);
 
-      // ── Навес (canopy) ────────────────────────────────────────
-      // Столбы
-      ctx.fillStyle = '#888';
-      ctx.fillRect(p.x - 26, p.y - 4, 4, 20);
-      ctx.fillRect(p.x - 6, p.y - 4, 4, 20);
-      // Крыша навеса — градиент жёлто-оранжевый
-      const cg = ctx.createLinearGradient(p.x - 30, p.y - 8, p.x - 30, p.y - 2);
-      cg.addColorStop(0, '#f5d040');
-      cg.addColorStop(1, '#d4900a');
-      ctx.fillStyle = cg;
-      ctx.fillRect(p.x - 32, p.y - 8, 34, 6);
-      ctx.strokeStyle = '#b07008';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(p.x - 32, p.y - 8, 34, 6);
+      // ── Топливные колонки под навесом (2 шт) ──
+      _drawPump(w2s(gs.r + 0.4, gs.c + 0.2).x, w2s(gs.r + 0.4, gs.c + 0.2).y);
+      _drawPump(w2s(gs.r + 1.1, gs.c + 1.3).x, w2s(gs.r + 1.1, gs.c + 1.3).y);
 
-      // ── Топливная колонка ─────────────────────────────────────
-      const px2 = p.x - 14, py2 = p.y;
-      // Корпус
-      const pg = ctx.createLinearGradient(px2 - 6, 0, px2 + 6, 0);
-      pg.addColorStop(0, '#e04030');
-      pg.addColorStop(0.5, '#ff6050');
-      pg.addColorStop(1, '#c02820');
-      ctx.fillStyle = pg;
+      // ── Большой навес на 4 колоннах ──
+      const cA = w2s(gs.r - 0.6, gs.c - 0.6);
+      const cB = w2s(gs.r - 0.6, gs.c + 1.8);
+      const cC = w2s(gs.r + 1.8, gs.c + 1.8);
+      const cD = w2s(gs.r + 1.8, gs.c - 0.6);
+      const canH = isoH(2.7);
+      // Колонны (от земли до навеса) — 4 шт
+      for (const cc of [cA, cB, cC, cD]) {
+        ctx.fillStyle = '#b0b4ba';
+        ctx.fillRect(cc.x - 2.5, cc.y - canH, 5, canH);
+        ctx.fillStyle = 'rgba(255,255,255,.25)';
+        ctx.fillRect(cc.x - 2.5, cc.y - canH, 1.5, canH);
+      }
+      // Фасция (толщина плиты) на ближних гранях D→C и B→C
+      const fasc = 7;
+      ctx.fillStyle = '#b81818';
+      for (const [e1, e2] of [[cD, cC], [cB, cC]]) {
+        ctx.beginPath();
+        ctx.moveTo(e1.x, e1.y - canH); ctx.lineTo(e2.x, e2.y - canH);
+        ctx.lineTo(e2.x, e2.y - canH + fasc); ctx.lineTo(e1.x, e1.y - canH + fasc);
+        ctx.closePath(); ctx.fill();
+      }
+      // Жёлтая фирменная полоса на фасции
+      ctx.fillStyle = '#ffd21a';
+      for (const [e1, e2] of [[cD, cC], [cB, cC]]) {
+        ctx.beginPath();
+        ctx.moveTo(e1.x, e1.y - canH + fasc - 2.5); ctx.lineTo(e2.x, e2.y - canH + fasc - 2.5);
+        ctx.lineTo(e2.x, e2.y - canH + fasc); ctx.lineTo(e1.x, e1.y - canH + fasc);
+        ctx.closePath(); ctx.fill();
+      }
+      // Верхняя плита навеса (красная с лёгким градиентом)
+      const rg = ctx.createLinearGradient(cA.x, cA.y - canH, cC.x, cC.y - canH);
+      rg.addColorStop(0, '#e83028'); rg.addColorStop(1, '#b81818');
+      ctx.fillStyle = rg;
       ctx.beginPath();
-      ctx.roundRect(px2 - 6, py2 - 20, 12, 18, 2);
-      ctx.fill();
-      ctx.strokeStyle = '#801818';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(px2 - 6, py2 - 20, 12, 18);
-      // Экран
-      ctx.fillStyle = '#111';
-      ctx.fillRect(px2 - 4, py2 - 17, 8, 6);
-      ctx.fillStyle = '#00e8ff';
-      ctx.fillRect(px2 - 3, py2 - 16, 6, 4);
-      // Цена на экране
-      ctx.font = 'bold 3px system-ui';
-      ctx.fillStyle = '#00c8e0';
-      ctx.textAlign = 'center';
-      ctx.fillText('$5', px2, py2 - 13);
-      // Шланг
-      ctx.strokeStyle = '#444';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(px2 + 6, py2 - 12);
-      ctx.bezierCurveTo(px2 + 14, py2 - 8, px2 + 10, py2 + 2, px2 + 4, py2 + 4);
-      ctx.stroke();
-      // Пистолет шланга
-      ctx.fillStyle = '#333';
-      ctx.fillRect(px2 + 1, py2 + 2, 6, 4);
+      ctx.moveTo(cA.x, cA.y - canH); ctx.lineTo(cB.x, cB.y - canH);
+      ctx.lineTo(cC.x, cC.y - canH); ctx.lineTo(cD.x, cD.y - canH); ctx.closePath(); ctx.fill();
+      // Подсветка снизу плиты (неон по периметру) + блик
+      ctx.strokeStyle = 'rgba(255,240,180,.5)'; ctx.lineWidth = 1.5; ctx.stroke();
 
-      // ── Вывеска «ЗАПРАВКА» ────────────────────────────────────
-      const W = 86, H = 34;
-      const topY = p.y - 62;
-      // Тень вывески
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.fillRect(p.x - W / 2 + 2, topY + 2, W, H);
-      // Фон — зелёно-тёмный градиент (стиль заправки)
-      const sg = ctx.createLinearGradient(p.x, topY, p.x, topY + H);
-      sg.addColorStop(0, '#0e3a18');
-      sg.addColorStop(1, '#071a0c');
-      ctx.fillStyle = sg;
-      ctx.fillRect(p.x - W / 2, topY, W, H);
-      // Окантовка — зелёная + внутренняя белая
-      ctx.strokeStyle = '#40e060';
-      ctx.lineWidth = 1.6;
-      ctx.strokeRect(p.x - W / 2 + 0.5, topY + 0.5, W - 1, H - 1);
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-      ctx.lineWidth = 0.8;
-      ctx.strokeRect(p.x - W / 2 + 2.5, topY + 2.5, W - 5, H - 5);
-      // Стрелка вниз
-      const arrowBase = topY + H;
-      ctx.fillStyle = sg;
-      ctx.beginPath();
-      ctx.moveTo(p.x - 7, arrowBase);
-      ctx.lineTo(p.x + 7, arrowBase);
-      ctx.lineTo(p.x, arrowBase + 7);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#40e060';
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(p.x - 7, arrowBase);
-      ctx.lineTo(p.x, arrowBase + 7);
-      ctx.lineTo(p.x + 7, arrowBase);
-      ctx.stroke();
-      // Эмодзи
-      ctx.font = '16px "Segoe UI Emoji", system-ui, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#fff';
-      ctx.fillText('⛽', p.x - W / 2 + 6, topY + H * 0.42);
-      // Текст «ЗАПРАВКА»
-      ctx.font = 'bold 10px system-ui, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = '#7eff9a';
-      ctx.fillText('ЗАПРАВКА', p.x - W / 2 + 26, topY + 5);
-      // Цена
-      ctx.font = '9px system-ui, sans-serif';
-      ctx.fillStyle = '#f0d060';
-      ctx.fillText('Топливо $5/ед.', p.x - W / 2 + 26, topY + 18);
+      // Вывеска «ЗАПРАВКА» теперь рисуется ОТДЕЛЬНЫМ слоем поверх всех
+      // зданий (см. _drawGasSigns после items.forEach) — иначе её
+      // перекрывали дома на ближних к камере тайлах.
 
       // ── Пульсирующий контур зоны ──────────────────────────────
       const distToGs = Math.hypot(player.r - gs.r, player.c - gs.c);
@@ -24127,6 +24318,9 @@ function render() {
   drawExhaustPuffs();
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
+  // Вывески АЗС — ПОВЕРХ всех зданий (тотем на высоком столбе виден
+  // даже когда сама заправка спрятана за домом). Рисуем после depth-sort.
+  _drawGasSigns(r0, c0, r1, c1);
   // Коробка над игроком/машиной если несу груз Майкла
   drawCarriedBox();
   // Автозаки ареста — поверх персонажей (LOADING-фаза скрывает спрайт)
