@@ -1688,6 +1688,30 @@ function buildMap() {
     }
   }
 
+  // Полицейский участок — расчищаем компаунд (двор) вокруг здания, чтобы
+  // участок было видно, копы могли патрулировать внутрь, а полицейские
+  // машины заезжать в зону. Центр (само здание) оставляем как building=1.
+  for (let dr = -3; dr <= 3; dr++) for (let dc = -3; dc <= 3; dc++) {
+    const r = JAIL_CENTER_R + dr, c = JAIL_CENTER_C + dc;
+    if (r < 1 || r >= MAP_ROWS - 1 || c < 1 || c >= MAP_COLS - 1) continue;
+    if (r === JAIL_CENTER_R && c === JAIL_CENTER_C) continue;  // здание участка
+    if (MAP[r][c] === 0) continue;       // дороги не трогаем
+    MAP[r][c] = 9;                       // двор-площадка
+  }
+
+  // Пожарная часть — небольшой двор перед депо, чтобы гаражные ворота и
+  // припаркованные пожарки было видно. Центр (здание) оставляем.
+  // Координаты-литералы = FIRE_STATION_R/C (56,26); const объявлен ниже
+  // buildMap (TDZ), поэтому здесь числа.
+  const _fsR = 56, _fsC = 26;
+  for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+    const r = _fsR + dr, c = _fsC + dc;
+    if (r < 1 || r >= MAP_ROWS - 1 || c < 1 || c >= MAP_COLS - 1) continue;
+    if (r === _fsR && c === _fsC) continue;
+    if (MAP[r][c] === 0) continue;
+    MAP[r][c] = 9;
+  }
+
   function det(r, c, k) { return ((r * 73 + c * 131 + k * 17) % 1000) / 1000; }
 
   // Деревья — внутри парк-блоков (плотность снижена с 30% до 20%
@@ -6820,15 +6844,9 @@ function updateCars(dt) {
       if (fresh) Object.assign(car, fresh);
       continue;
     }
-    {
-      const jdr = car.r - JAIL_CENTER_R, jdc = car.c - JAIL_CENTER_C;
-      if (jdr * jdr + jdc * jdc < JAIL_RADIUS_TILES * JAIL_RADIUS_TILES) {
-        const ni = CARS.indexOf(car);
-        const fresh = spawnCar(ni, { awayFromPlayer: true });
-        if (fresh) Object.assign(car, fresh);
-        continue;
-      }
-    }
+    // (Раньше тут машины РЕСПАУНились прочь из зоны участка — из-за этого
+    // в «клетку» ничего не въезжало. Теперь компаунд участка расчищен и
+    // машины могут заезжать в зону; решётка — чистый визуал, не коллизия.)
     if (car.model.taxi || car.model.sport) car.flash += dt;
 
     // ── Топливо NPC ────────────────────────────────────────────────
@@ -21845,6 +21863,128 @@ function drawPOI(r, c, poi) {
   }
 }
 
+// ── Хелперы для стилизованных зданий POI (участок/пожарка) ──────────
+// Параметрическая точка на ВИДИМОЙ грани изо-куба здания.
+// face 'R' = правая/фасад, 'L' = левая. u: 0..1 вдоль базовой грани, h: высота px.
+function _poiFacePt(p, wx, wy, face, u, h) {
+  if (face === 'R') return { x: p.x + wx * u, y: p.y + wy * (1 - u) - h };
+  return { x: p.x - wx * u, y: p.y + wy * (1 - u) - h };
+}
+function _poiFaceQuad(p, wx, wy, face, u0, u1, h0, h1, fill, stroke) {
+  const a = _poiFacePt(p, wx, wy, face, u0, h0), b = _poiFacePt(p, wx, wy, face, u1, h0);
+  const cc = _poiFacePt(p, wx, wy, face, u1, h1), d = _poiFacePt(p, wx, wy, face, u0, h1);
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(cc.x, cc.y); ctx.lineTo(d.x, d.y); ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 0.8; ctx.stroke(); }
+}
+// Базовый изо-короб здания (тень + 2 грани + крыша + стык). Возвращает p,wx,wy,H.
+function _poiBox(r, c, height, sideC, topC, roofC) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(height);
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.beginPath(); ctx.moveTo(p.x, p.y - wy); ctx.lineTo(p.x + wx, p.y); ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x - wx, p.y); ctx.closePath(); ctx.fill();
+  // Левая грань
+  ctx.fillStyle = sideC;
+  ctx.beginPath(); ctx.moveTo(p.x - wx, p.y); ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x, p.y + wy - H); ctx.lineTo(p.x - wx, p.y - H); ctx.closePath(); ctx.fill();
+  // Правая (фасад) грань с градиентом
+  const fg = ctx.createLinearGradient(p.x, p.y - H, p.x + wx, p.y);
+  fg.addColorStop(0, topC); fg.addColorStop(1, sideC);
+  ctx.fillStyle = fg;
+  ctx.beginPath(); ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x + wx, p.y); ctx.lineTo(p.x + wx, p.y - H); ctx.lineTo(p.x, p.y + wy - H); ctx.closePath(); ctx.fill();
+  // Крыша
+  ctx.fillStyle = roofC;
+  ctx.beginPath(); ctx.moveTo(p.x, p.y - H + wy); ctx.lineTo(p.x + wx, p.y - H); ctx.lineTo(p.x, p.y - H - wy); ctx.lineTo(p.x - wx, p.y - H); ctx.closePath(); ctx.fill();
+  // Стык граней
+  ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x, p.y + wy - H); ctx.stroke();
+  return { p, wx, wy, H };
+}
+
+// ПОЛИЦЕЙСКИЙ УЧАСТОК — синее институциональное здание с вывеской ПОЛИЦИЯ,
+// решётками на окнах, мигалкой на крыше. Поверх рисуется турель/клетка (декор).
+function drawPoliceBuilding(r, c) {
+  const t = performance.now();
+  const { p, wx, wy, H } = _poiBox(r, c, 2.2, '#1a2740', '#2f4566', '#34455f');
+  // Белая институциональная лента под крышей (обе грани)
+  for (const f of ['R', 'L']) {
+    _poiFaceQuad(p, wx, wy, f, 0, 1, H * 0.60, H * 0.74, '#e8ecf2');
+    _poiFaceQuad(p, wx, wy, f, 0, 1, H * 0.54, H * 0.60, '#2f6ad8');  // синяя полоса
+  }
+  // Решётчатые окна на обеих гранях (по 2)
+  for (const f of ['R', 'L']) {
+    for (const u of [0.26, 0.62]) {
+      _poiFaceQuad(p, wx, wy, f, u, u + 0.16, H * 0.18, H * 0.42, 'rgba(120,180,230,.55)', 'rgba(20,30,45,.9)');
+      // вертикальные прутья
+      for (let b = 1; b <= 3; b++) {
+        const uu = u + 0.16 * (b / 4);
+        const a1 = _poiFacePt(p, wx, wy, f, uu, H * 0.18), a2 = _poiFacePt(p, wx, wy, f, uu, H * 0.42);
+        ctx.strokeStyle = 'rgba(20,28,40,.9)'; ctx.lineWidth = 0.7;
+        ctx.beginPath(); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke();
+      }
+    }
+  }
+  // Двойная дверь на фасаде (R), по центру у земли
+  _poiFaceQuad(p, wx, wy, 'R', 0.40, 0.60, 0, H * 0.34, '#10182a', 'rgba(150,170,200,.5)');
+  const dm = _poiFacePt(p, wx, wy, 'R', 0.50, 0);
+  ctx.strokeStyle = 'rgba(150,170,200,.5)'; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(dm.x, dm.y); ctx.lineTo(_poiFacePt(p, wx, wy, 'R', 0.50, H * 0.34).x, _poiFacePt(p, wx, wy, 'R', 0.50, H * 0.34).y); ctx.stroke();
+  // Мигалка на крыше (угол) — пульс сине-красный
+  const beacon = _poiFacePt(p, wx, wy, 'R', 0.5, H);
+  const bcol = (Math.floor(t / 350) % 2) ? '#2860ff' : '#ff2828';
+  ctx.save(); ctx.shadowColor = bcol; ctx.shadowBlur = 12;
+  ctx.fillStyle = bcol;
+  ctx.beginPath(); ctx.arc(p.x, p.y - H - 3, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // Вывеска-табличка ПОЛИЦИЯ — экранно-выровненная на ленте
+  const sgn = _poiFacePt(p, wx, wy, 'R', 0.5, H * 0.67);
+  ctx.fillStyle = '#13294d';
+  if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(sgn.x - 24, sgn.y - 6, 48, 12, 2); ctx.fill(); }
+  else ctx.fillRect(sgn.x - 24, sgn.y - 6, 48, 12);
+  ctx.fillStyle = '#cfe0ff'; ctx.font = 'bold 7px system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('ПОЛИЦИЯ', sgn.x, sgn.y);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
+// ПОЖАРНАЯ ЧАСТЬ (депо) — красное здание с большими гаражными воротами,
+// белой лентой, эмблемой «01». Поверх — припаркованные пожарки (декор).
+function drawFireBuilding(r, c) {
+  const t = performance.now();
+  const { p, wx, wy, H } = _poiBox(r, c, 2.0, '#7a1414', '#bf2020', '#8a1818');
+  // Белая лента под крышей
+  for (const f of ['R', 'L']) {
+    _poiFaceQuad(p, wx, wy, f, 0, 1, H * 0.62, H * 0.76, '#f0f0f2');
+    _poiFaceQuad(p, wx, wy, f, 0, 1, H * 0.56, H * 0.62, '#d8b008');  // жёлтая полоса
+  }
+  // Большие гаражные ворота на фасаде (R) — ролл-дверь со слотами
+  _poiFaceQuad(p, wx, wy, 'R', 0.16, 0.84, 0, H * 0.50, '#c8ccd2', 'rgba(40,40,48,.8)');
+  for (let s = 1; s <= 4; s++) {
+    const hh = H * 0.50 * (s / 5);
+    const a1 = _poiFacePt(p, wx, wy, 'R', 0.16, hh), a2 = _poiFacePt(p, wx, wy, 'R', 0.84, hh);
+    ctx.strokeStyle = 'rgba(70,70,80,.7)'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke();
+  }
+  // Окно на левой грани
+  _poiFaceQuad(p, wx, wy, 'L', 0.30, 0.55, H * 0.20, H * 0.44, 'rgba(120,180,230,.5)', 'rgba(40,20,20,.8)');
+  // Маячок на крыше (красный пульс)
+  ctx.save();
+  const fa = 0.5 + 0.5 * Math.sin(t * 0.006);
+  ctx.shadowColor = '#ff3020'; ctx.shadowBlur = 10 * fa;
+  ctx.fillStyle = `rgba(255,60,40,${0.6 + 0.4 * fa})`;
+  ctx.beginPath(); ctx.arc(p.x, p.y - H - 3, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // Эмблема «01» на белой ленте (экранно-выровненная)
+  const sgn = _poiFacePt(p, wx, wy, 'R', 0.5, H * 0.69);
+  ctx.fillStyle = '#7a1010';
+  ctx.beginPath(); ctx.arc(sgn.x, sgn.y, 9, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#f0d010'; ctx.lineWidth = 1.4; ctx.stroke();
+  ctx.fillStyle = '#f0d010'; ctx.font = 'bold 9px system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('01', sgn.x, sgn.y + 0.5);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+
 // Парковка у полицейского участка + башня с пулемётом на крыше.
 // Рисуется ОДИН раз поверх POI 'police' через addPoliceStationItems.
 // Парковочные тайлы (54..58, 54..58) — припаркованные cruiser/paddyvan/swat
@@ -23600,6 +23740,8 @@ function render() {
           else if (poi && poi.id === 'port')      drawPortBuilding(r, c);
           else if (poi && poi.id === 'factory')   drawFactoryBuilding(r, c);
           else if (poi && poi.id === 'mansion')   drawMansionBuilding(r, c);
+          else if (poi && poi.id === 'police')    drawPoliceBuilding(r, c);
+          else if (poi && poi.id === 'firestation') drawFireBuilding(r, c);
           else if (poi && poi.special === 'shop') drawBlackmarket(r, c);
           else if (_bankTileSet.has(r + ',' + c)) { /* bank tile — drawn by drawBankBuilding */ }
           else                                    drawBuilding(r, c);
