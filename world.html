@@ -9932,10 +9932,10 @@ function updateZoneBtn() {
         delete _zoneEl.dataset.vaultBagId;
         label = null;
       }
-    } else if (int.myBag) {
-      label = '🚪 Выйти с мешком';
     } else {
-      label = '💰 Иди в хранилище';
+      // Несём мешок или просто гуляем по лобби после взлома — кнопки нет,
+      // выход всегда через EXIT-дверь (см. door-check в _updateBankInterior)
+      label = null;
     }
     if (!label) { _zoneEl.style.display = 'none'; return; }
     _zoneEl.textContent = label;
@@ -10066,8 +10066,9 @@ _zoneEl.addEventListener('click', () => {
         }
         return;
       }
-      if (int.myBag) { exitBankInterior(true); return; }
-      exitBankInterior(false); return;
+      // Кнопки больше нет ни для мешка, ни для пустых рук — выход всегда
+      // через EXIT-дверь (door-check в _updateBankInterior).
+      return;
     }
     // Машина с добычей полна — кнопка «Уехать с добычей!» завершает
     // ограбление (выплата + кулдаун), а не повторный вход в банк.
@@ -14218,22 +14219,23 @@ function update(dt) {
     updateZoneBtn();
     updatePvpUI();
     updateProjectiles(dt);
+    _updateTargetLock(dt);
     // Стрельба внутри банка. Блок стрельбы открытого мира стоит НИЖЕ
     // этого early-return и тут не выполняется — без этого кнопка огня
-    // и правый стик внутри банка не работали вообще.
+    // внутри банка не работала вообще. Как в городе: только лок-он,
+    // без free-aim правым стиком.
     if (myMode !== 'pve' && !myDead) {
-      if (joyR.active && joyR.hasAim) {
-        // Free-aim правым стиком (как на арене)
-        const d2 = joyR.dx, s2 = joyR.dy / ISO_Y;
-        fire(Math.atan2((s2 - d2) * 0.5, (s2 + d2) * 0.5));
-      } else if (_fireBtnDown) {
+      if (_fireBtnDown) {
         if (_isArmed()) {
-          // Кнопка огня: по залоченной цели, иначе по направлению взгляда
-          const active = getActiveTarget();
+          const active = lockedTargets.size ? getActiveTarget() : null;
           const pos = active && active.getPos();
-          const fang = pos ? Math.atan2(pos.r - player.r, pos.c - player.c) : player.ang;
-          player.ang = fang;
-          fire(fang);
+          if (pos) {
+            const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
+            player.ang = ang;
+            fire(ang);
+          } else {
+            fire();
+          }
         } else {
           punch();
         }
@@ -24988,6 +24990,36 @@ function tryTapLock(canvasX, canvasY) {
   // Не локаемся на арене (free-aim only) и когда я мёртв / в машине / PvE
   if (myDead || myMode === 'pve' || myDrivingCarId) return false;
   if (inArena(player.r, player.c)) return false;
+  // Внутри банка координаты всех «мировых» сущностей (NPCS/копы/др.игроки)
+  // не соответствуют локальным координатам интерьера — лочим только NPC
+  // банка (любой живой, не сбежавший).
+  if (_bankInt) {
+    let bBest = null, bBestD = _isArmed() ? 80 : 120;
+    for (const npc of (_bankInt.npcs || [])) {
+      if (npc.dead || npc.state === 'fled') continue;
+      const d = _screenDistToCell(npc.r, npc.c, canvasX, canvasY);
+      if (d < bBestD) {
+        bBestD = d;
+        const idx = _bankInt.npcs.indexOf(npc);
+        bBest = _lockTargetEntry('bank_guard', idx, () => {
+          const n2 = _bankInt && _bankInt.npcs && _bankInt.npcs[idx];
+          return (n2 && !n2.dead) ? { r: n2.r, c: n2.c } : null;
+        }, () => 'охранник');
+      }
+    }
+    if (bBest) {
+      const id = _lockId(bBest);
+      if (lockedTargets.has(id)) { lockedTargets.delete(id); return true; }
+      if (lockedTargets.size >= MAX_LOCKS) {
+        const oldestId = lockedTargets.keys().next().value;
+        lockedTargets.delete(oldestId);
+      }
+      lockedTargets.set(id, { entry: bBest, expireAt: performance.now() + TARGET_LOCK_TIMEOUT_MS });
+      return true;
+    }
+    if (lockedTargets.size) lockedTargets.clear();
+    return false;
+  }
   // В ближнем бою (без оружия) радиус тапа шире — мобилка, пальцы толще
   const MAX_PX = _isArmed() ? 80 : 120;
   let best = null, bestD = MAX_PX;
@@ -25110,21 +25142,6 @@ function tryTapLock(canvasX, canvasY) {
       }, () => o.name || '?');
     }
   }
-  // 5b) Враждебные охранники банка (внутри интерьера банка)
-  if (_bankInt && _bankInt.npcs) {
-    for (const npc of _bankInt.npcs) {
-      if (npc.type !== 'guard' || npc.state !== 'hostile' || npc.dead) continue;
-      const d = _screenDistToCell(npc.r, npc.c, canvasX, canvasY);
-      if (d < bestD) {
-        bestD = d;
-        const idx = _bankInt.npcs.indexOf(npc);
-        best = _lockTargetEntry('bank_guard', idx, () => {
-          const n2 = _bankInt && _bankInt.npcs && _bankInt.npcs[idx];
-          return (n2 && !n2.dead) ? { r: n2.r, c: n2.c } : null;
-        }, () => 'охранник');
-      }
-    }
-  }
   // 7) Гангстерские машины
   for (const car of CARS) {
     if (!car || !car.gang || car._wrecked) continue;
@@ -25228,6 +25245,19 @@ function _findLaserTarget(dirY, dirX) {
     if (perp > 0.9) return;
     if (along < bestAlong) { bestAlong = along; best = entry; }
   }
+  // Внутри банка координаты «мировых» сущностей не соответствуют локальным
+  // координатам интерьера — ищем только среди NPC банка.
+  if (_bankInt) {
+    for (const npc of (_bankInt.npcs || [])) {
+      if (npc.dead || npc.state === 'fled') continue;
+      const idx = _bankInt.npcs.indexOf(npc);
+      _check(npc.r, npc.c, _lockTargetEntry('bank_guard', idx, () => {
+        const n2 = _bankInt && _bankInt.npcs && _bankInt.npcs[idx];
+        return (n2 && !n2.dead) ? { r: n2.r, c: n2.c } : null;
+      }, () => 'охранник'));
+    }
+    return best;
+  }
   for (const n of NPCS) {
     if (n.dead) continue;
     _check(n.r, n.c, _lockTargetEntry('npc', NPCS.indexOf(n),
@@ -25298,17 +25328,6 @@ function _findLaserTarget(dirY, dirX) {
     _check(car.r, car.c, _lockTargetEntry('gang_car', 'c' + CARS.indexOf(car), () => {
       return cref._wrecked ? null : { r: cref.r, c: cref.c };
     }));
-  }
-  // Враждебные охранники банка (внутри интерьера банка)
-  if (_bankInt && _bankInt.npcs) {
-    for (const npc of _bankInt.npcs) {
-      if (npc.type !== 'guard' || npc.state !== 'hostile' || npc.dead) continue;
-      const idx = _bankInt.npcs.indexOf(npc);
-      _check(npc.r, npc.c, _lockTargetEntry('bank_guard', idx, () => {
-        const n2 = _bankInt && _bankInt.npcs && _bankInt.npcs[idx];
-        return (n2 && !n2.dead) ? { r: n2.r, c: n2.c } : null;
-      }, () => 'охранник'));
-    }
   }
   return best;
 }
@@ -26717,19 +26736,27 @@ function _carTypeName(type) {
 function loadBagIntoVan() {
   if (!_bankRob || !_bankRob.myBag) return;
 
-  // Найти ближайшую стоящую машину рядом с игроком (радиус 3 тайла)
-  let nearCar = null, nearDist = 3.0;
-  for (const car of CARS) {
-    if (!car) continue;
-    if (car.driverId) continue;  // кто-то едет — пропустить
-    const d = Math.hypot(player.r - car.r, player.c - car.c);
-    if (d < nearDist) { nearDist = d; nearCar = car; }
-  }
-  // Fallback: проверяем зону фургона у банка
-  if (!nearCar && _bankRob.bank) {
+  // Зона фургона у банка — основной транспорт для отгрузки добычи, вмещает
+  // ВЕСЬ улов банка (bagsMax), чтобы погрузка не упиралась в штатную вместимость
+  // обычной машины (sedan=2, van=6) посреди взлома medium/large банка (12/18 мешков)
+  // и игрок не застревал с мешком в руках без возможности его сгрузить.
+  let nearCar = null, maxBagsOverride = null;
+  if (_bankRob.bank) {
     const vz = _getBankVanZone(_bankRob.bank);
     if (Math.hypot(player.r - vz.r, player.c - vz.c) < 3.0) {
       nearCar = { type: 'van', id: 'bank_van', _isBankVan: true };
+      maxBagsOverride = _bankRob.bagsMax;
+    }
+  }
+
+  // Иначе — ближайшая стоящая машина рядом с игроком (радиус 3 тайла)
+  if (!nearCar) {
+    let nearDist = 3.0;
+    for (const car of CARS) {
+      if (!car) continue;
+      if (car.driverId) continue;  // кто-то едет — пропустить
+      const d = Math.hypot(player.r - car.r, player.c - car.c);
+      if (d < nearDist) { nearDist = d; nearCar = car; }
     }
   }
 
@@ -26740,7 +26767,8 @@ function loadBagIntoVan() {
 
   // Вместимость по типу машины
   const carType = (nearCar.model && nearCar.model.name) || nearCar.type || 'default';
-  const maxBags = BAG_CAPACITY[carType] !== undefined ? BAG_CAPACITY[carType] : BAG_CAPACITY['default'];
+  const maxBags = maxBagsOverride != null ? maxBagsOverride
+    : (BAG_CAPACITY[carType] !== undefined ? BAG_CAPACITY[carType] : BAG_CAPACITY['default']);
   if (maxBags === 0) {
     showToast('🚌 В эту машину мешки не влезут', '❌', 1800);
     return;
@@ -28642,10 +28670,8 @@ function _drawVaultRoom(int) {
   // Игрок
   items.push({d:player.r+player.c*0.01+0.5, fn:()=>{
     const p=w2s(player.r+.5, player.c+.5);
-    drawPerson(p.x,p.y,player.ang,
-      (window.QP||{}).look, player.walking?player.walkPhase:0,
-      (window.QP||{}).name, null, true, window.myHp||100, 100,
-      window.myDead||false, null, false);
+    drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!_punchAnim);
+    if (!myDead) { if (_isArmed()) drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT); if (_punchAnim) _drawPunchAnim(p.x,p.y); }
     if (int.myBag) _drawCarryingBag(p.x, p.y);
   }});
 
@@ -28666,6 +28692,8 @@ function _drawVaultRoom(int) {
 
   // Боевые эффекты — как в drawBankInteriorScene: render() сюда не доходит,
   // без этих вызовов выстрелы игрока в хранилище были бы невидимы.
+  drawAimLaser();
+  drawTargetLock();
   drawSmokePuffs();
   drawBullets();
   drawMuzzles();
@@ -30075,6 +30103,8 @@ function drawBankInteriorScene() {
   // Боевые эффекты (трассеры/вспышки/импакты охраны) — снаружи банка их
   // рисует render(), но внутри банка render() сразу уходит в эту функцию
   // и до них не доходит. Без этого выстрелы охраны были невидимы.
+  drawAimLaser();
+  drawTargetLock();
   drawSmokePuffs();
   drawBullets();
   drawMuzzles();
