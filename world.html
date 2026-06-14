@@ -8168,16 +8168,28 @@ function tryMove(obj, dr, dc) {
   // ещё не получил jail_in=0) — пропускаем jail-логику, чтобы он не
   // «прилипал» к окружности и не зависал.
   const curD = isMe ? Math.hypot(obj.r - JAIL_CENTER_R, obj.c - JAIL_CENTER_C) : 0;
-  const jailed = isMe && myJailIn > 0 && curD <= JAIL_RADIUS_TILES + 0.5;
+  // Удерживаем пока идёт срок (myJailIn>0) — НЕЗАВИСИМО от текущей позиции.
+  // Раньше держали только если игрок уже внутри радиуса (curD<=R+0.5); если
+  // он оказывался ВНЕ клетки («в тюрьме, но бегаю»), удержание отключалось.
+  const jailed = isMe && myJailIn > 0;
   if (jailed) {
+    const R = JAIL_RADIUS_TILES - 0.3;
+    // Игрок ДАЛЕКО вне клетки — мягко шагаем к центру (возврат в камеру),
+    // пока не войдёт в кольцо. Покрывает кейс «сервер не телепортировал».
+    if (curD > JAIL_RADIUS_TILES + 1.0) {
+      const ang0 = Math.atan2(JAIL_CENTER_R - obj.r, JAIL_CENTER_C - obj.c);
+      const step = Math.max(Math.hypot(dr, dc), 0.12);
+      obj.r += Math.sin(ang0) * step;
+      obj.c += Math.cos(ang0) * step;
+      return;
+    }
     let nr = obj.r + dr, nc = obj.c + dc;
     const d2r = nr - JAIL_CENTER_R, d2c = nc - JAIL_CENTER_C;
     const d2  = Math.hypot(d2r, d2c);
-    if (d2 > JAIL_RADIUS_TILES - 0.3) {
-      // Скользим вдоль решётки — оставляем только касательное движение
+    if (d2 > R) {
+      // У решётки — скользим по касательной, не выпуская наружу
       const ang = Math.atan2(d2r, d2c);
-      // Возвращаемся на радиус, чтобы тело не «утопало» в прутьях
-      const targetD = Math.min(d2, JAIL_RADIUS_TILES - 0.3);
+      const targetD = Math.min(d2, R);
       obj.r = JAIL_CENTER_R + Math.sin(ang) * targetD;
       obj.c = JAIL_CENTER_C + Math.cos(ang) * targetD;
       return;
@@ -12452,6 +12464,15 @@ function fire(angle = null) {
   }
   if (myDead) return;
   if (_myBagWeight > 0 && _bankRob && _bankRob.myBag) { showToast('🎒 С мешком нельзя стрелять', '⚠️', 1400); return; }
+  // ── ТЮРЬМА: стрелять НЕЛЬЗЯ (только кулаки) ────────────────────────
+  // Раньше блок был привязан к _meInJail (jailed И внутри радиуса клетки).
+  // Если игрок «в тюрьме» (myJailIn>0), но физически вне клетки, запрет не
+  // срабатывал и можно было стрелять. Теперь блок по самому факту срока:
+  // любой выстрел в тюрьме превращается в удар кулаком.
+  if (myJailIn > 0) {
+    if (!myDead) punch(true);   // только кулаки, даже с оружием в руках
+    return;
+  }
   // В тюрьме NPC-цели запрещены (см. использование _meInJail ниже).
   // Вычисляем здесь, чтобы и lock-on на NPC отключить.
   const _meInJail = (myJailIn > 0) &&
@@ -12906,10 +12927,10 @@ function _findNearestMeleeTarget() {
   return best;
 }
 
-function punch() {
+function punch(force) {
   if (myMode === 'pve') { showToast('🕵️ Наблюдатель не может драться', 'ℹ️', 1500); return; }
   if (myDead || myDrivingCarId || _inBus) return;
-  if (_isArmed()) return;   // есть оружие — использовать fire()
+  if (!force && _isArmed()) return;   // есть оружие — использовать fire() (кроме тюрьмы: force)
   const now = performance.now();
   if (now - lastPunchClientT < PUNCH_CD_MS) return;
 
