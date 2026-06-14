@@ -24272,6 +24272,10 @@ function render() {
         ctx.fillStyle = 'rgba(255,255,255,.25)';
         ctx.fillRect(cc.x - 2.5, cc.y - canH, 1.5, canH);
       }
+      // Крыша навеса — ПОЛУПРОЗРАЧНАЯ, чтобы персонажа было видно под ней
+      // (заезжаешь/заходишь под навес — силуэт читается сквозь крышу).
+      ctx.save();
+      ctx.globalAlpha = 0.55;
       // Фасция (толщина плиты) на ближних гранях D→C и B→C
       const fasc = 7;
       ctx.fillStyle = '#b81818';
@@ -24298,6 +24302,7 @@ function render() {
       ctx.lineTo(cC.x, cC.y - canH); ctx.lineTo(cD.x, cD.y - canH); ctx.closePath(); ctx.fill();
       // Подсветка снизу плиты (неон по периметру) + блик
       ctx.strokeStyle = 'rgba(255,240,180,.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.restore();
 
       // Вывеска «ЗАПРАВКА» теперь рисуется ОТДЕЛЬНЫМ слоем поверх всех
       // зданий (см. _drawGasSigns после items.forEach) — иначе её
