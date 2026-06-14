@@ -23607,7 +23607,10 @@ Object.assign(FIREARM_TIP_DEFER, FIREARM_TIP);
 // shotAtMs — performance.now() момента последнего выстрела (для self
 // это lastShotClientT, для других игроков и NPC — lastBossShotAt.get(id)).
 function drawWeaponInHands(x, y, ang, weapon, scale /*shotAtMs ignored: см. drawMuzzles*/) {
-  if (!weapon) return;
+  // Безоружный/кулаки — НЕ рисуем руку с оружием. Раньше 'none'/'fists'
+  // проходили дальше (truthy), а resolveWeapon('none') → 'pistol', и при
+  // ударе кулаком вылезала лишняя «рука с пистолетом» (баг «третья рука»).
+  if (!weapon || weapon === 'none' || weapon === 'fists') return;
   weapon = resolveWeapon(weapon);   // 'uzi' → 'smg', 'deagle' → 'pistol_heavy' и т.д.
   const a = handAnchor(x, y, ang);
   let { hx, hy, sx, sy, px, shY, perpX, perpY, shoulderD } = a;
@@ -24570,7 +24573,7 @@ function render() {
                player.walking ? player.walkPhase : 0, QP.name, myChat, true,
                myHp, PVP.max_hp, myDead, null, !!_punchAnim);
     if (myMode !== 'pve' && !myDead) {
-      drawWeaponInHands(px, py, player.ang, currentWeapon, 0.9, lastShotClientT);
+      if (_isArmed()) drawWeaponInHands(px, py, player.ang, currentWeapon, 0.9, lastShotClientT);
       if (_punchAnim) _drawPunchAnim(px, py);
     }
     if (myWanted > 0) drawWantedStars(px, py, myWanted);
@@ -29245,7 +29248,7 @@ function drawBankInteriorScene() {
   items.push({d:player.r+player.c+.05,fn:()=>{
     const p=w2s(player.r+.5,player.c+.5);
     drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!_punchAnim);
-    if (!myDead) { drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT); if (_punchAnim) _drawPunchAnim(p.x,p.y); }
+    if (!myDead) { if (_isArmed()) drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT); if (_punchAnim) _drawPunchAnim(p.x,p.y); }
     if (myBag){ _drawCarryingBag(p.x, p.y); }
   }});
 
