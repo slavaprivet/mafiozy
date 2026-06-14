@@ -4174,8 +4174,7 @@ function updateCityCops(dt) {
           spawnImpact(player.r, player.c, 'pistol');
           if (typeof addShake === 'function') addShake(2.5);
           const dmg = 7 + Math.floor(Math.random() * 5);
-          myHp = Math.max(0, myHp - dmg);
-          if (myHp <= 0 && !myDead) { myDead = true; _localDeath = true; myDeathBy = 'Полиция'; myDeathLeft = 5; }
+          _hurtLocal(dmg, 'Полиция');
           flashHitOverlay();
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
           try { hapticHit && hapticHit(); } catch(e) {}
@@ -5615,7 +5614,7 @@ function updateNpcs(dt) {
           spawnImpact(tR, tC, wep);
           addShake(2.5);
           flashHitOverlay();
-          myHp = Math.max(0, myHp - npcDmg);  // локальный урон (сервер подтвердит в снапе)
+          _hurtLocal(npcDmg, 'Бандит');  // локальный урон «прилипает» против снапшота
           spawnFloatText(player.r - 0.4, player.c, `−${npcDmg}`, { color: '#ff4444', size: 16, life: 1100 });
           try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
             d: { dmg: npcDmg, sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } })); } catch(e) {}
@@ -5699,7 +5698,7 @@ function updateNpcs(dt) {
         hapticHit();
         flashHitOverlay();
         const dmg = 5 + Math.floor(Math.random() * 6);
-        myHp = Math.max(0, myHp - dmg);
+        _hurtLocal(dmg, 'Бандит');
         spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff6644', size: 14, life: 1000 });
         try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
           d: { dmg, sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } })); } catch(e) {}
@@ -7271,6 +7270,20 @@ let myDeathLeft = 0;      // сколько сек до респауна
 // snap присылает dead=false и мгновенно «воскрешал» бы игрока. Пока флаг
 // активен, snap-поля dead/respawn_in игнорируем, респаун тикаем сами.
 let _localDeath = false;
+// Время последнего ЛОКАЛЬНОГО урона по игроку (охрана банка / NPC / копы,
+// которых сервер не моделирует). Пока флаг свежий, серверный снапшот НЕ
+// поднимает myHp обратно вверх (иначе урон «откатывался» и HP казались
+// вечными). Сервер может только ДОБИТЬ (прислать hp ниже).
+let _localHpHurtAt = 0;
+// Применить локальный урон: вычесть HP, отметить время, проверить смерть.
+function _hurtLocal(dmg, by) {
+  myHp = Math.max(0, myHp - (dmg | 0));
+  _localHpHurtAt = performance.now();
+  if (myHp <= 0 && !myDead) {
+    myDead = true; _localDeath = true;
+    myDeathBy = by || 'Город'; myDeathLeft = 5;
+  }
+}
 let myKills = 0, myDeaths = 0;
 let lastShotClientT = 0;  // локальный cooldown (предотвращает спам)
 let _recoilUntil = 0;    // до этого момента рука/оружие «отдыхает» назад
@@ -9645,7 +9658,13 @@ function wsConnect() {
         }
         } // end if (!_bankInt)
         // PVP: HP, dead-state, счёт
-        if (typeof d.me.hp === 'number')      myHp = d.me.hp;
+        // Если игрока недавно ранил ЛОКАЛЬНЫЙ NPC (охрана банка/копы, о ком
+        // сервер не знает), снапшот НЕ поднимает HP обратно — иначе урон
+        // откатывался и HP выглядели «вечными». Сервер может лишь добить.
+        if (typeof d.me.hp === 'number') {
+          const _localFresh = (performance.now() - _localHpHurtAt) < 2500;
+          if (!_localFresh || d.me.hp <= myHp) myHp = d.me.hp;
+        }
         if (typeof d.me.kills === 'number')   myKills = d.me.kills;
         if (typeof d.me.deaths === 'number')  myDeaths = d.me.deaths;
         if (typeof d.me.cash === 'number') {
@@ -27831,8 +27850,7 @@ function _updateBankInterior(dt) {
           npc._punchAnim = now;
           npc._punchDir = Math.atan2(player.r - npc.r, player.c - npc.c);
           const dmg = 12 + Math.floor(Math.random()*6);
-          myHp = Math.max(0, myHp - dmg);
-          if (myHp <= 0 && !myDead) { myDead = true; _localDeath = true; myDeathBy = 'Охрана банка'; myDeathLeft = 5; }
+          _hurtLocal(dmg, 'Охрана банка');
           flashHitOverlay();
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff6644', size: 14, life: 1000 });
           try { hapticHit && hapticHit(); } catch(e) {}
@@ -27867,8 +27885,7 @@ function _updateBankInterior(dt) {
           spawnImpact(player.r, player.c, 'pistol');
           if (typeof addShake === 'function') addShake(2.5);
           const dmg = 8 + Math.floor(Math.random()*5);
-          myHp = Math.max(0, myHp - dmg);
-          if (myHp <= 0 && !myDead) { myDead = true; _localDeath = true; myDeathBy = 'Охрана банка'; myDeathLeft = 5; }
+          _hurtLocal(dmg, 'Охрана банка');
           flashHitOverlay();
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
           try { hapticHit && hapticHit(); } catch(e) {}
