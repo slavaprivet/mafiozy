@@ -12562,18 +12562,21 @@ function fire(angle = null) {
       if (!chosenMg || d < chosenMg.d) chosenMg = { id: g.id, x: g.x, y: g.y, d };
     }
   }
-  // 4b) Враждебный охранник банка (внутри интерьера банка) — локальная цель,
-  // на сервер не шлём (как обычный NPC), но и не привязан к карте мира.
+  // 4b) ЛЮБОЙ NPC банка (внутри интерьера) — цель. Раньше можно было
+  // попасть только в guard со state==='hostile', из-за чего пули «не
+  // попадали по персонажам» (охрана не успевала стать hostile, а в
+  // клиентов/кассиров вообще нельзя было целиться). Теперь — любой живой
+  // NPC. Конус мягче (±18°) — ближний бой в тесном лобби.
   let chosenBankGuard = null;
   if (!chosenConvoy && !chosenCop && !chosenCityCop && !chosenAggro && !chosenMg && _bankInt && _bankInt.npcs) {
     for (const npc of _bankInt.npcs) {
-      if (npc.type !== 'guard' || npc.state !== 'hostile' || npc.dead) continue;
+      if (npc.dead || npc.state === 'fled') continue;
       const dx = npc.c - player.c, dy = npc.r - player.r;
       const d  = Math.hypot(dx, dy);
       if (d > FIRE_R_CONVOY) continue;
       const dn = d > 0.001 ? d : 1;
       const dot = (dx * dirX + dy * dirY) / dn;
-      if (dot < 0.985) continue;
+      if (dot < 0.95) continue;   // ±~18° (ближний бой)
       if (!chosenBankGuard || d < chosenBankGuard.d) {
         chosenBankGuard = { idx: _bankInt.npcs.indexOf(npc), npc, x: npc.c, y: npc.r, d };
       }
@@ -12585,6 +12588,21 @@ function fire(angle = null) {
   // (трассер летит вперёд + отдача + cd). Локально, серверу не шлём.
   const noTarget = !chosenConvoy && !chosenCop && !chosenCityCop && !chosenAggro && !chosenMg && !chosenBankGuard && !pvpTarget;
   lastShotClientT = now;
+  // ── Выстрел ВНУТРИ банка → мгновенная паника + тревога ──────────────
+  // Раньше паника/враждебность охраны включались только в фазе ограбления
+  // (cracking/vault_open). Если просто зайти с оружием и стрелять — ничего
+  // не происходило. Теперь ЛЮБОЙ выстрел в банке поднимает всех: клиенты
+  // в панику, охрана враждебна, тревога (полиция выезжает).
+  if (_bankInt && _bankInt.room !== 'vault') {
+    if (_bankInt.panicAt === null || _bankInt.panicAt === undefined) {
+      _bankInt.panicAt = now;
+    }
+    if (!_bankInt.alarmTriggered) {
+      _bankInt.alarmTriggered = true;
+      if (!_bankInt._crackStartedAt) _bankInt._crackStartedAt = now;  // запускает таймер полиции
+      showToast('🚨 Стрельба в банке! Тревога!', '🚨', 2200);
+    }
+  }
   // Копы в радиусе реагируют на выстрел
   _alertNearbyCops('shot');
   _fireBtn.classList.add('cd');
@@ -27562,6 +27580,15 @@ function exitBankInterior(withBag) {
     }
     _myBagWeight=int.myBag.value||1;
     showToast('💼 Несёшь мешок! Грузи в машину или неси в бизнес','⚠️',2500);
+  } else if (int.alarmTriggered && !_bankRob) {
+    // Стрелял/поднял тревогу, но вышел без мешка — полиция ВСЁ РАВНО едет.
+    // Создаём _bankRob в фазе побега → _updateBankRobbery тикает таймер
+    // полиции и вызывает _dispatchHeistPolice (осада снаружи).
+    _bankRob={bank:int.bank,phase:'escaping',bagsLoaded:0,bagsMax:int.bank.bags,
+      myBag:null,policeTimer:int.bank.police_delay,alarmTriggered:true,
+      _policeArrived:false,
+      startedAt:int.startedAt,crackProgress:1,crackTotal:20};
+    showToast('🚨 Ты поднял тревогу — полиция уже едет!','🚓',2600);
   }
   const hudEl=document.getElementById('bankRobHud');
   if (hudEl&&!_bankRob) hudEl.style.display='none';
