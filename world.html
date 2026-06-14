@@ -2155,6 +2155,22 @@ let gangNests = [];
 // Зона сдачи — прямоугольник в порту. Выход в зоне = автопродажа.
 // Координаты совпадают с серверными WorldSim.MICHAEL_X/Y, DROP_ZONE_*.
 const MICHAEL_POS = { r: 183, c: 42 };         // нос корабля Майкла — лицом к пирсу, не за краном
+// Декоративная охрана Майкла — ФОЛБЭК когда сервер не прислал реальную
+// (офлайн/превью или серверный сбой «пропала охрана»). Чисто визуальные
+// стражи по бокам Майкла, чтобы порт не выглядел пустым. Если сервер
+// присылает michaelGuards — рисуем настоящих, а эти прячем.
+let _michaelDecorGuards = null;
+function _michaelDecor() {
+  if (_michaelDecorGuards) return _michaelDecorGuards;
+  const M = MICHAEL_POS;
+  _michaelDecorGuards = [
+    { x: M.c - 1.8, y: M.r + 0.6, ang: 0.5,  hp: 100, max_hp: 100, state: 'idle', weapon: 'pistol_heavy', lastShotAt: 0 },
+    { x: M.c + 2.8, y: M.r + 0.6, ang: -0.5, hp: 100, max_hp: 100, state: 'idle', weapon: 'pistol_heavy', lastShotAt: 0 },
+    { x: M.c - 0.8, y: M.r + 2.2, ang: 0.9,  hp: 100, max_hp: 100, state: 'idle', weapon: 'tommy_gun',     lastShotAt: 0 },
+    { x: M.c + 1.9, y: M.r + 2.2, ang: -0.9, hp: 100, max_hp: 100, state: 'idle', weapon: 'tommy_gun',     lastShotAt: 0 },
+  ];
+  return _michaelDecorGuards;
+}
 const DROP_ZONE = { r0: 167, r1: 173, c0: 37, c1: 43 };  // деревянный пирс — сюда подгонять угнанные тачки
 // Snapshot quest_cars: {id, model, x, y, ang, vx, vy, owner_uid, driver_uid,
 //                       state, reward, tx, ty, tAng}
@@ -23994,6 +24010,18 @@ function render() {
   for (const g of michaelGuards.values()) {
     if (g.y < r0 || g.y >= r1 || g.x < c0 || g.x >= c1) continue;
     items.push({ depth: g.y + g.x + 0.0007, draw: () => drawMichaelGuard(g) });
+  }
+  // ФОЛБЭК: сервер не прислал охрану (офлайн/превью/сбой) — рисуем
+  // декоративных стражей вокруг Майкла, чтобы порт не был пустым.
+  if (michaelGuards.size === 0 &&
+      MICHAEL_POS.r >= r0 && MICHAEL_POS.r < r1 &&
+      MICHAEL_POS.c >= c0 && MICHAEL_POS.c < c1) {
+    for (const g of _michaelDecor()) {
+      // Лёгкая «жизнь»: поворачиваются к игроку когда он близко
+      const dr = player.r - g.y, dc = player.c - g.x;
+      if (Math.hypot(dr, dc) < 12) g.ang = Math.atan2(dr, dc);
+      items.push({ depth: g.y + g.x + 0.0006, draw: () => drawMichaelGuard(g) });
+    }
   }
   // Машины (движущиеся). Уничтоженные — рисуем обугленный остов с
   // пламенем (или дымом, если потушены пожарными).
