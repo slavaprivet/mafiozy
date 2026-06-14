@@ -22430,10 +22430,10 @@ function drawStationTurret(sR, sC, threat) {
     _lastTurretShotAt = now;
     const muzR = sR + Math.sin(ang) * 1.4;
     const muzC = sC + Math.cos(ang) * 1.4;
-    bullets.push({
-      sr: muzR, sc: muzC, er: threat.r, ec: threat.c,
-      t0: now, ttl: 160, hit: true, fromNpc: true, weapon: 'rifle',
-    });
+    // spawnBullet (не сырой push {sr,sc,er,ec,t0,ttl}) — иначе r/c становятся NaN
+    // и drawBullets() падает на createLinearGradient, обрывая render() навсегда.
+    spawnBullet(muzR, muzC, threat.r, threat.c, { hit: true, fromNpc: true, weapon: 'rifle' });
+    spawnMuzzle(muzR, muzC, ang, 'rifle', true);
     spawnShot(muzR, muzC, ang, 'rifle',
               String(threat.uid) === String(QP.uid));
     spawnImpact(threat.r, threat.c, 'rifle');
