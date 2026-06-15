@@ -22468,18 +22468,18 @@ const HAIR_COLORS_M = ['#1a0e00','#3d2200','#8b6333','#b8860b','#888','#111'];
 const HAIR_COLORS_F = ['#1a0e00','#8b1a1a','#b8860b','#3d2200','#888','#c87050','#e0c080'];
 
 function drawChar(ctx, W, H, opts) {
-  const { gender, skin, body, face, hair, hat, skipArms } = opts;
+  const { gender, skin, body, face, hair, hat, skipArms, skipLegs } = opts;
   ctx.clearRect(0, 0, W, H);
   const cx = W / 2;
   const sc = Math.min(W, H) / 220;
   function px(x) { return cx + x * sc; }
   function py(y) { return H * 0.92 - y * sc; }
   const skinCol = SKINS[skin] || SKINS[0];
-  if (gender === 0) drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms);
-  else              drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms);
+  if (gender === 0) drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs);
+  else              drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs);
 }
 
-function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms) {
+function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs) {
   const bodyDefs = [
     { sw: 34, sh: 80, nw: 14, nh: 22, hw: 26 },
     { sw: 44, sh: 85, nw: 16, nh: 22, hw: 30 },
@@ -22489,12 +22489,14 @@ function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms) {
   const bd = bodyDefs[body] || bodyDefs[1];
   const suitCol = ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4];
   const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9'][face % 4];
-  ctx.fillStyle = suitCol;
-  const legW = bd.sw * 0.38; const legH = 55 * sc;
-  ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.22), py(legH), legW*sc, legH, 4*sc); ctx.fill();
-  ctx.beginPath(); ctx.roundRect(px(bd.sw*0.22 - legW), py(legH), legW*sc, legH, 4*sc); ctx.fill();
-  ctx.fillStyle = '#111';
-  [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*bd.sw*0.1), py(2), 10*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill(); });
+  if (!skipLegs) {
+    ctx.fillStyle = suitCol;
+    const legW = bd.sw * 0.38; const legH = 55 * sc;
+    ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.22), py(legH), legW*sc, legH, 4*sc); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px(bd.sw*0.22 - legW), py(legH), legW*sc, legH, 4*sc); ctx.fill();
+    ctx.fillStyle = '#111';
+    [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*bd.sw*0.1), py(2), 10*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill(); });
+  }
   ctx.fillStyle = suitCol;
   ctx.beginPath(); ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
   ctx.fillStyle = '#ddd';
@@ -22531,7 +22533,7 @@ function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms) {
   if (hat > 0)  drawHat(ctx, hat, px, py, bd, headY, headH, sc);
 }
 
-function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms) {
+function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs) {
   const bodyDefs = [
     { sw: 30, sh: 78, nw: 12, nh: 20, hw: 24, hip: 32 },
     { sw: 36, sh: 80, nw: 13, nh: 20, hw: 27, hip: 40 },
@@ -22541,16 +22543,18 @@ function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms) {
   const bd = bodyDefs[body] || bodyDefs[1];
   const dressCol = ['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a'][body % 4];
   const accentCol = ['#e8c96e','#c0392b','#8e44ad','#2980b9'][face % 4];
-  ctx.fillStyle = dressCol;
-  ctx.beginPath();
-  ctx.moveTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.hip/2), py(0));
-  ctx.lineTo(px(bd.hip/2), py(0)); ctx.lineTo(px(bd.sw/2), py(bd.sh));
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#111';
-  [-1,1].forEach(s => {
-    ctx.beginPath(); ctx.ellipse(px(s*bd.hip*0.18), py(3), 8*sc, 4*sc, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(px(s*bd.hip*0.18+4*sc), py(0), 3*sc, 8*sc, 1*sc); ctx.fill();
-  });
+  if (!skipLegs) {
+    ctx.fillStyle = dressCol;
+    ctx.beginPath();
+    ctx.moveTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.hip/2), py(0));
+    ctx.lineTo(px(bd.hip/2), py(0)); ctx.lineTo(px(bd.sw/2), py(bd.sh));
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#111';
+    [-1,1].forEach(s => {
+      ctx.beginPath(); ctx.ellipse(px(s*bd.hip*0.18), py(3), 8*sc, 4*sc, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(px(s*bd.hip*0.18+4*sc), py(0), 3*sc, 8*sc, 1*sc); ctx.fill();
+    });
+  }
   ctx.fillStyle = dressCol;
   ctx.beginPath();
   ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
@@ -22850,12 +22854,12 @@ function drawHat(ctx, hatId, px, py, bd, headY, headH, sc) {
 // Кеш спрайтов — каждый уникальный look рендерится один раз в офскрин-canvas.
 const SPRITE_W = 110, SPRITE_H = 200;
 const _spriteCache = new Map();
-function getSprite(look, skipArms) {
-  const key = [look.gender|0, look.skin|0, look.body|0, look.face|0, look.hair|0, look.hat|0, skipArms?1:0].join('.');
+function getSprite(look, skipArms, skipLegs) {
+  const key = [look.gender|0, look.skin|0, look.body|0, look.face|0, look.hair|0, look.hat|0, skipArms?1:0, skipLegs?1:0].join('.');
   if (_spriteCache.has(key)) return _spriteCache.get(key);
   const off = document.createElement('canvas');
   off.width = SPRITE_W; off.height = SPRITE_H;
-  drawChar(off.getContext('2d'), SPRITE_W, SPRITE_H, Object.assign({}, look, { skipArms: !!skipArms }));
+  drawChar(off.getContext('2d'), SPRITE_W, SPRITE_H, Object.assign({}, look, { skipArms: !!skipArms, skipLegs: !!skipLegs }));
   _spriteCache.set(key, off);
   return off;
 }
@@ -23198,8 +23202,7 @@ function _drawPunchAnim(px, py) {
   if (_punchAnim.type === 'kick') { _drawKickAnim(px, py, elapsed); return; }
 
   const ang = _punchAnim.ang;
-  const bY  = Math.round(TS * 0.289);
-  const a   = handAnchor(px, py - bY, ang);
+  const a   = handAnchor(px, py, ang);
 
   // Плечо — базовая точка (hx - sx*armLen)
   const armLen   = TS * 0.36;
@@ -23702,7 +23705,7 @@ function drawWeaponInHands(x, y, ang, weapon, scale /*shotAtMs ignored: см. dr
   }
 }
 
-function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, isDead, deadAt, skipArms) {
+function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, isDead, deadAt, skipArms, skipLegs) {
   // Анимация падения: первые 400мс — поворот 0→90° и смещение вниз; дальше
   // — статично лежит с alpha 0.55. До этого было просто globalAlpha 0.35 без
   // движения — выглядело как «исчезает», не как «упал».
@@ -23718,7 +23721,7 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
   ctx.ellipse(x, y + 3, 14, 5, 0, 0, Math.PI * 2);
   ctx.fill();
   // Спрайт из креатора. Лёгкая ходьба: вертикальный bob + сжатие.
-  const sprite = getSprite(look || {}, skipArms);
+  const sprite = getSprite(look || {}, skipArms, skipLegs);
   const sh = TS * 1.7;
   const sw = sh * 0.72;
   const ph = walkPhase || 0;
@@ -24594,7 +24597,7 @@ function render() {
     const myChat = (_localChat && performance.now() - _localChatT < chatDuration(_localChat)) ? _localChat : null;
     drawPerson(px, py, player.ang, QP.look,
                player.walking ? player.walkPhase : 0, QP.name, myChat, true,
-               myHp, PVP.max_hp, myDead, null, !!_punchAnim);
+               myHp, PVP.max_hp, myDead, null, !!_punchAnim, !!(_punchAnim && _punchAnim.type === 'kick'));
     if (myMode !== 'pve' && !myDead) {
       if (_isArmed()) drawWeaponInHands(px, py, player.ang, currentWeapon, 0.9, lastShotClientT);
       if (_punchAnim) _drawPunchAnim(px, py);
@@ -28670,7 +28673,7 @@ function _drawVaultRoom(int) {
   // Игрок
   items.push({d:player.r+player.c*0.01+0.5, fn:()=>{
     const p=w2s(player.r+.5, player.c+.5);
-    drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!_punchAnim);
+    drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!_punchAnim,!!(_punchAnim && _punchAnim.type === 'kick'));
     if (!myDead) { if (_isArmed()) drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT); if (_punchAnim) _drawPunchAnim(p.x,p.y); }
     if (int.myBag) _drawCarryingBag(p.x, p.y);
   }});
@@ -29296,7 +29299,7 @@ function drawBankInteriorScene() {
   // Игрок
   items.push({d:player.r+player.c+.05,fn:()=>{
     const p=w2s(player.r+.5,player.c+.5);
-    drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!_punchAnim);
+    drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!_punchAnim,!!(_punchAnim && _punchAnim.type === 'kick'));
     if (!myDead) { if (_isArmed()) drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT); if (_punchAnim) _drawPunchAnim(p.x,p.y); }
     if (myBag){ _drawCarryingBag(p.x, p.y); }
   }});
