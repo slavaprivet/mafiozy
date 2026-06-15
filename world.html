@@ -1693,7 +1693,13 @@ function buildMap() {
   // машины заезжать в зону. Центр (само здание) оставляем как building=1.
   for (let dr = -3; dr <= 3; dr++) for (let dc = -3; dc <= 3; dc++) {
     const r = JAIL_CENTER_R + dr, c = JAIL_CENTER_C + dc;
-    if (r < 1 || r >= MAP_ROWS - 1 || c < 1 || c >= MAP_COLS - 1) continue;
+    // ВАЖНО: было `>= MAP_COLS - 1` — это исключало САМУЮ ПОСЛЕДНЮЮ
+    // валидную колонку (c=79 при MAP_COLS=80), то есть восточную грань
+    // компаунда. Туда падают 3 из 10 JAIL_SPAWNS ((79,76),(79,74),(79,79)) —
+    // они оставались на building=1, и анти-застрял (_ensureSpawnSafe)
+    // каждый кадр телепортировал сидящего игрока на (-1,-1) → дёрганье
+    // вверх-вниз, «не могу ходить».
+    if (r < 1 || r >= MAP_ROWS || c < 1 || c >= MAP_COLS) continue;
     if (r === JAIL_CENTER_R && c === JAIL_CENTER_C) continue;  // здание участка
     if (MAP[r][c] === 0) continue;       // дороги не трогаем
     MAP[r][c] = 9;                       // двор-площадка
@@ -8173,7 +8179,6 @@ function tryMove(obj, dr, dc) {
   // он оказывался ВНЕ клетки («в тюрьме, но бегаю»), удержание отключалось.
   const jailed = isMe && myJailIn > 0;
   if (jailed) {
-    const R = JAIL_RADIUS_TILES - 0.3;
     // Игрок ДАЛЕКО вне клетки — мягко шагаем к центру (возврат в камеру),
     // пока не войдёт в кольцо. Покрывает кейс «сервер не телепортировал».
     if (curD > JAIL_RADIUS_TILES + 1.0) {
@@ -8183,18 +8188,25 @@ function tryMove(obj, dr, dc) {
       obj.c += Math.cos(ang0) * step;
       return;
     }
-    let nr = obj.r + dr, nc = obj.c + dc;
-    const d2r = nr - JAIL_CENTER_R, d2c = nc - JAIL_CENTER_C;
-    const d2  = Math.hypot(d2r, d2c);
-    if (d2 > R) {
-      // У решётки — скользим по касательной, не выпуская наружу
-      const ang = Math.atan2(d2r, d2c);
-      const targetD = Math.min(d2, R);
-      obj.r = JAIL_CENTER_R + Math.sin(ang) * targetD;
-      obj.c = JAIL_CENTER_C + Math.cos(ang) * targetD;
-      return;
+    // Клетка — расчищенный двор участка 7×7 (dr,dc∈[-3,3] от центра,
+    // см. buildMap: весь квадрат = 9/0/7, кроме центра (76,76)=1 здание).
+    // РАНЬШЕ здесь был круг радиуса R=6.7 со снапом по углу овершута —
+    // он выводил игрока ЗА пределы расчищенного двора (в decor соседних
+    // блоков, напр. (69,76)=3 ящик), и анти-застрял каждый кадр дёргал
+    // игрока обратно -> «дёргается верх-вниз, не могу ходить».
+    // Теперь — жёсткий клампинг к квадрату двора + обычное скольжение
+    // вдоль стены здания участка (как у всех остальных персонажей).
+    const BOUND = 3.0;
+    let nr = Math.max(JAIL_CENTER_R - BOUND, Math.min(JAIL_CENTER_R + BOUND, obj.r + dr));
+    let nc = Math.max(JAIL_CENTER_C - BOUND, Math.min(JAIL_CENTER_C + BOUND, obj.c + dc));
+    if (!isBlocked(nr - pad, obj.c) && !isBlocked(nr + pad, obj.c) &&
+        !isBlocked(nr, obj.c - pad) && !isBlocked(nr, obj.c + pad)) {
+      obj.r = nr;
     }
-    obj.r = nr; obj.c = nc;
+    if (!isBlocked(obj.r - pad, nc) && !isBlocked(obj.r + pad, nc) &&
+        !isBlocked(obj.r, nc - pad) && !isBlocked(obj.r, nc + pad)) {
+      obj.c = nc;
+    }
     return;
   }
   // ESCAPE MODE: если игрок ЗАЛИП в blocked-тайле — пропускаем коллизии,
