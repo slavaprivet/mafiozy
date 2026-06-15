@@ -20048,7 +20048,7 @@ function drawBusRider(rd) {
 
 function drawNpc(npc) {
   const p = w2s(npc.r, npc.c);
-  drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, null, null,
+  drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, npc.hp, npc.max_hp,
              !!npc.dead, npc.deadAt || 0);
   // Вооружённый NPC (контратака) — пистолет в руке + мигающий прицел
   if (npc._fighting && !npc.dead) {
