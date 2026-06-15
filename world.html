@@ -4618,10 +4618,19 @@ function updateServiceVehicles(dt) {
     }
     v._prevX = v.x; v._prevY = v.y;
     if (now - v._lastMoveT > 14000) {
-      // Застряла. Пожарка перед деспауном ВСЁ РАВНО гасит огонь (фолбэк),
-      // иначе машина горит вечно, а пожарка «тупо исчезает».
+      // Застряла (например, в пробке на go_to_scene, не дойдя до места).
+      // Перед деспауном ВСЁ РАВНО делаем свою работу (фолбэк) — иначе
+      // машина просто исчезает, а труп/огонь/тачка остаются висеть.
       if (v.kind === 'firetruck' && v.payload && v.payload.carRef && v.payload.carRef._wrecked) {
         v.payload.carRef._burnedOut = true;
+      }
+      if (v.kind === 'ambulance' && v.payload && v.payload.npc) {
+        v.payload.npc._evacuated = true;
+        v.payload.npc.deadAt = now - 60000;
+      }
+      if (v.kind === 'tow' && v.payload && v.payload.carRef) {
+        const cr = v.payload.carRef;
+        if (!(myDrivingCarId && cr.id === myDrivingCarId)) cr._towed = true;
       }
       v.state = 'done';
       continue;
@@ -6935,10 +6944,30 @@ function updateCars(dt) {
     }
     // Wrecked — переспаун через ~25с.
     if (car._wrecked) {
-      if (now >= (car._respawnAt || 0)) {
+      // Не самовосстанавливаемся по таймеру, пока к этой машине едет/работает
+      // пожарка или эвакуатор - иначе на дальних точках карты машина успевает
+      // "исчезнуть" раньше, чем служба доедет (см. Bug D). Эвакуатор сам
+      // подменит CARS[ci] при возврате домой, так что до этого момента
+      // ветка ниже не нужна вовсе. Флаги (_fireTruckDispatched/_burnedOut/
+      // _towed) закрывают окно "только что стала 'done' в этом же тике"
+      // (когда .some() ниже уже не видит машину), а .some() закрывает
+      // окно "эвакуатор уже едет домой с грузом" (после _towed=true).
+      const pendingService = (car._fireTruckDispatched && !car._burnedOut)
+        || (car._burnedOut && !car._towed)
+        || serviceVehicles.some(v => v.payload && v.payload.carRef === car && v.state !== 'done');
+      if (now >= (car._respawnAt || 0) && !pendingService) {
         const ni = CARS.indexOf(car);
         const fresh = spawnCar(ni, { awayFromPlayer: true });
-        if (fresh) Object.assign(car, fresh);
+        if (fresh) {
+          Object.assign(car, fresh);
+          // spawnCar() не возвращает поля wreck-состояния — без явной
+          // зачистки _wrecked/_respawnAt остаются прежними, и эта ветка
+          // срабатывает КАЖДЫЙ кадр, телепортируя машину навечно.
+          delete car._wrecked; delete car._respawnAt;
+          delete car._burnedOut; delete car._burnedOutAt;
+          delete car._fireTruckDispatched; delete car._towDispatched;
+          delete car._towed; delete car.gangHp; delete car._streetFireEvent;
+        }
       }
       continue;
     }
@@ -13978,7 +14007,11 @@ function update(dt) {
           reportCarCrash(qc, impact, 'car');
           spawnCarExplosion(npcCar.r, npcCar.c, npcCar);
           npcCar._wrecked   = true;
-          npcCar._respawnAt = performance.now() + 600;
+          // 600мс было слишком мало — обломок успевал в-месте-переспаунится
+          // (см. фикс в updateCars) раньше, чем dispatchEmergencyServices
+          // (скан раз в 1500мс) успевал отправить пожарку/эвакуатор.
+          // 25000мс — как у _spawnCrashEvent, даёт пайплайну время.
+          npcCar._respawnAt = performance.now() + 25000;
           curVx *= 0.3; curVy *= 0.3;
           break;
         }
