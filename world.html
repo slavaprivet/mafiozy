@@ -4167,25 +4167,30 @@ function updateCityCops(dt) {
           }
         }
       }
-      // Стрельба по игроку на дистанции 1.5–13 (как охрана банка, но
-      // на улице: трассер + вспышка + урон + рапорт серверу)
-      if (rdist > 1.5 && rdist < 13 && !myDead) {
+      // Стрельба по игроку на дистанции 1.5–9 (как охрана банка, но
+      // на улице: трассер + вспышка + урон + рапорт серверу). Урон
+      // применяется в onHit — когда трассер ДОЛЕТИТ до игрока, а не
+      // в момент выстрела (иначе −HP видно раньше пули).
+      if (rdist > 1.5 && rdist < 9 && !myDead) {
         if (!cop._nextShootAt) cop._nextShootAt = now + 700 + Math.random() * 700;
         if (now > cop._nextShootAt) {
           cop._nextShootAt = now + 1400 + Math.random() * 600;
           const muzR = cop.y + Math.sin(cop.ang) * 0.45;
           const muzC = cop.x + Math.cos(cop.ang) * 0.45;
-          spawnBullet(muzR, muzC, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol' });
-          spawnMuzzle(muzR, muzC, cop.ang, 'pistol', true);
-          spawnImpact(player.r, player.c, 'pistol');
-          if (typeof addShake === 'function') addShake(2.5);
           const dmg = 7 + Math.floor(Math.random() * 5);
-          _hurtLocal(dmg, 'Полиция');
-          flashHitOverlay();
-          spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
-          try { hapticHit && hapticHit(); } catch(e) {}
-          try { ws && ws.readyState === 1 && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
-            d: { dmg, sx: +cop.x.toFixed(2), sy: +cop.y.toFixed(2) } })); } catch(e) {}
+          const hitR = player.r, hitC = player.c, srcX = cop.x, srcY = cop.y;
+          spawnBullet(muzR, muzC, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol', onHit: () => {
+            if (myDead) return;
+            spawnImpact(hitR, hitC, 'pistol');
+            if (typeof addShake === 'function') addShake(2.5);
+            _hurtLocal(dmg, 'Полиция');
+            flashHitOverlay();
+            spawnFloatText(hitR - 0.4, hitC, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
+            try { hapticHit && hapticHit(); } catch(e) {}
+            try { ws && ws.readyState === 1 && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
+              d: { dmg, sx: +srcX.toFixed(2), sy: +srcY.toFixed(2) } })); } catch(e) {}
+          }});
+          spawnMuzzle(muzR, muzC, cop.ang, 'pistol', true);
         }
       }
       continue;
@@ -5621,19 +5626,21 @@ function updateNpcs(dt) {
         const tR = player.r + miss, tC = player.c + miss;
         const isHit = Math.abs(miss) < 0.42 && d < 9;
         const wep = n._fightWeapon || 'pistol';
-        spawnBullet(muzR, muzC, tR, tC, { hit: isHit, fromNpc: true, weapon: wep });
-        spawnMuzzle(muzR, muzC, shootAng, wep, true);
-        n._lastShotAt = now;
-        if (isHit) {
-          const npcDmg = 8 + Math.floor(Math.random() * 7);
+        // Урон/импакт/вспышка — в onHit, когда трассер ДОЛЕТИТ до tR/tC
+        const npcDmg = 8 + Math.floor(Math.random() * 7);
+        const srcX = n.c, srcY = n.r;
+        spawnBullet(muzR, muzC, tR, tC, { hit: isHit, fromNpc: true, weapon: wep, onHit: () => {
+          if (myDead) return;
           spawnImpact(tR, tC, wep);
           addShake(2.5);
           flashHitOverlay();
           _hurtLocal(npcDmg, 'Бандит');  // локальный урон «прилипает» против снапшота
           spawnFloatText(player.r - 0.4, player.c, `−${npcDmg}`, { color: '#ff4444', size: 16, life: 1100 });
           try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
-            d: { dmg: npcDmg, sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } })); } catch(e) {}
-        }
+            d: { dmg: npcDmg, sx: +srcX.toFixed(2), sy: +srcY.toFixed(2) } })); } catch(e) {}
+        }});
+        spawnMuzzle(muzR, muzC, shootAng, wep, true);
+        n._lastShotAt = now;
         if (Math.random() < 0.4) {
           n.cryText  = ['Стой!', 'Получи!', 'Умри!', 'Не уйдёшь!'][Math.floor(Math.random()*4)];
           n.cryUntil = now + 1200;
@@ -7913,7 +7920,12 @@ function spawnBullet(sr, sc, er, ec, opts) {
   // например, бот стоит вплотную к игроку или сервер прислал кривой
   // pkt), без этого vr/vc = 0 и b.dist никогда не дорастёт до maxDist
   // → пуля висит в bullets навсегда и тормозит рендер.
-  if (!isFinite(rawDist) || rawDist < 0.05) return;
+  // Дегенеративный шот (в упор) — трассер не нужен, но onHit всё равно
+  // должен сработать (раньше урон применялся независимо от спавна пули).
+  if (!isFinite(rawDist) || rawDist < 0.05) {
+    if (opts.hit !== false && opts.onHit) opts.onHit();
+    return;
+  }
   const dist = rawDist;
   const speed = opts.speed || BULLET_SPEED;
   const wcfg = WEAPON_FX_CFG[resolveWeapon(opts.weapon)] || {};
@@ -7929,6 +7941,12 @@ function spawnBullet(sr, sc, er, ec, opts) {
     hit:   opts.hit !== false,
     fromPlayer: !!opts.fromPlayer,
     fromNpc:    !!opts.fromNpc,
+    // onHit(): вызывается ОДИН раз, когда пуля визуально долетит до цели
+    // (b._finished, см. updateProjectiles). Сюда переносим урон/импакт/
+    // флеш/хаптику — иначе игрок видит «−7 HP» и красную вспышку В МОМЕНТ
+    // ВЫСТРЕЛА, пока трассер ещё летит (на BULLET_SPEED=22 и дальности до
+    // 13 тайлов это ~0.5-0.6с задержки) — ощущается как «урон без попадания».
+    onHit: opts.onHit || null,
   });
 }
 // spawnMuzzle(r,c, angle, weapon) — вспышка дула. Живёт 120мс (стало длиннее
@@ -24851,6 +24869,8 @@ function updateProjectiles(dt) {
       b.dist = b.maxDist;
       // оставляем флаг для финального drawBullets — он отрисует вспышку
       b._finished = true;
+      // Урон/импакт/флеш/хаптика — только когда трассер ДОЛЕТЕЛ до цели
+      if (b.hit && b.onHit) { b.onHit(); b.onHit = null; }
     }
   }
   for (let i = muzzles.length - 1; i >= 0; i--) {
@@ -27980,17 +28000,21 @@ function _updateBankInterior(dt) {
           const shootAng = Math.atan2(player.r - npc.r, player.c - npc.c);
           const muzR = npc.r + Math.sin(shootAng) * 0.45;
           const muzC = npc.c + Math.cos(shootAng) * 0.45;
-          spawnBullet(muzR, muzC, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol' });
-          spawnMuzzle(muzR, muzC, shootAng, 'pistol', true);
-          spawnImpact(player.r, player.c, 'pistol');
-          if (typeof addShake === 'function') addShake(2.5);
+          // Урон/импакт/вспышка — в onHit, когда трассер ДОЛЕТИТ до игрока
           const dmg = 8 + Math.floor(Math.random()*5);
-          _hurtLocal(dmg, 'Охрана банка');
-          flashHitOverlay();
-          spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
-          try { hapticHit && hapticHit(); } catch(e) {}
-          try { ws && ws.readyState===1 && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
-            d: { dmg, sx: +npc.c.toFixed(2), sy: +npc.r.toFixed(2) } })); } catch(e) {}
+          const hitR = player.r, hitC = player.c, srcX = npc.c, srcY = npc.r;
+          spawnBullet(muzR, muzC, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol', onHit: () => {
+            if (myDead) return;
+            spawnImpact(hitR, hitC, 'pistol');
+            if (typeof addShake === 'function') addShake(2.5);
+            _hurtLocal(dmg, 'Охрана банка');
+            flashHitOverlay();
+            spawnFloatText(hitR - 0.4, hitC, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
+            try { hapticHit && hapticHit(); } catch(e) {}
+            try { ws && ws.readyState===1 && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
+              d: { dmg, sx: +srcX.toFixed(2), sy: +srcY.toFixed(2) } })); } catch(e) {}
+          }});
+          spawnMuzzle(muzR, muzC, shootAng, 'pistol', true);
         }
       }
     }
