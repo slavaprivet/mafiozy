@@ -18137,13 +18137,17 @@ async def _coop_http_app():
                         except Exception: pass
                     elif t == 'citycop_arrest':
                         # NPC-патрульный (cityCop, чисто клиентский фоновый коп)
-                        # схватил игрока с wanted ≥ 1. Серверу шлётся факт ареста,
-                        # сервер валидирует: жив, wanted ≥ 1, не в тюрьме, не в
-                        # Логове. На срок CITYCOP_JAIL_S = 5 мин (короче чем
-                        # «полный» 60-минутный jail боевых копов — это всё-таки
-                        # лёгкое задержание). Звёзды сбрасываются в 0, и в БД
-                        # тоже (wanted_stars = 0), чтобы повторная сессия не
-                        # подняла их обратно.
+                        # схватил игрока. Серверу шлётся факт ареста, сервер
+                        # валидирует: жив, не в тюрьме, не в Логове, и wanted ≥ 2
+                        # (т.е. минимум «2 звезды» — боевой розыск). При 1★ по
+                        # дизайну (см. WANTED_PER_HIT и комментарий выше) патруль
+                        # должен только ПРЕДУПРЕЖДАТЬ и отступать через 12с — один
+                        # удар по случайному жителю поднимает wanted ровно до 1★,
+                        # этого недостаточно для ареста. На срок CITYCOP_JAIL_S =
+                        # 5 мин (короче чем «полный» 60-минутный jail боевых
+                        # копов — это всё-таки лёгкое задержание). Звёзды
+                        # сбрасываются в 0, и в БД тоже (wanted_stars = 0), чтобы
+                        # повторная сессия не подняла их обратно.
                         CITYCOP_JAIL_S = 5 * 60
                         p = world.players.get(uid)
                         reply = {'ok': False, 'reason': 'unknown'}
@@ -18151,7 +18155,7 @@ async def _coop_http_app():
                             reply = {'ok': False, 'reason': 'dead'}
                         elif (p.get('_jail_until') or 0) > time.time():
                             reply = {'ok': False, 'reason': 'already_jailed'}
-                        elif float(p.get('_wanted') or 0) < 1.0:
+                        elif float(p.get('_wanted') or 0) < 2.0:
                             reply = {'ok': False, 'reason': 'not_wanted'}
                         elif world._in_lair_zone(p.get('x', 0), p.get('y', 0)):
                             reply = {'ok': False, 'reason': 'in_lair'}

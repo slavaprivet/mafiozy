@@ -8947,8 +8947,9 @@ function handleEventPacket(d) {
       showToast('Нет невыданной награды', 'ℹ️', 1600);
     }
   } else if (kind === 'citycop_arrest_reply') {
-    // NPC-патрульный схватил тебя на улице (wanted ≥ 1). Сервер посадил
-    // в тюрьму, обнулил звёзды. Локально — тост + showArrestOverlay.
+    // NPC-патрульный схватил тебя на улице (wanted ≥ 2 — серьёзный розыск,
+    // не просто предупреждение при 1★). Сервер посадил в тюрьму, обнулил
+    // звёзды. Локально — тост + showArrestOverlay.
     if (d.ok) {
       showEventBanner(
         '🚓 ЗАДЕРЖАН',
@@ -13080,19 +13081,17 @@ function punch(force) {
     hapticHit();
   }
 
-  // Если ударил мирного NPC — тоже незаконно
+  // Если ударил мирного NPC — окружающие жители паникуют/стучат.
+  // Репорт копам (open_fire+wanted) уже отправлен выше через
+  // _alertNearbyCops('fight') — отдельный второй open_fire отсюда
+  // дублировал бы его и давал +2 wanted за один удар (1★→2★ мгновенно,
+  // чего достаточно для citycop_arrest и моментальной посадки).
   if (kind === 'npc') {
-    const _copNear = _copInRadius(player.r, player.c, 10);
     triggerWitnessChain(player.r, player.c, 8, {
       snitchChance: 0.7,
       snitchCries: ['Хулиган!', 'Вызовите полицию!', 'Нападение!'],
       panicCries:  ['Ай!', 'Помогите!', 'Стой!'],
     });
-    try {
-      ws && ws.send(JSON.stringify({ t: 'open_fire',
-        d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
-             weapon: 'fists', civilian: false, witness: _copNear } }));
-    } catch(e) {}
   }
 }
 
@@ -23216,14 +23215,20 @@ function _drawPunchAnim(px, py) {
   const ang = _punchAnim.ang;
   const a   = handAnchor(px, py, ang);
 
-  // Плечо — базовая точка (hx - sx*armLen)
+  // Плечо — базовая точка (hx - sx*armLen), считаем по НЕограниченным sx/sy
   const armLen   = TS * 0.36;
-  const sx = a.sx, sy = a.sy;
-  const shdX = a.hx - sx * armLen;
-  const shdY = a.hy - sy * armLen;
+  const shdX = a.hx - a.sx * armLen;
+  const shdY = a.hy - a.sy * armLen;
+  // Направление выброса кулака: sx как есть, sy ограничен (-0.18..0.3) —
+  // иначе при прицеле "от камеры" (a.sy → -1 в ISO-проекции handAnchor,
+  // sx=0) кулак с импакт-вспышкой улетал к подбородку/голове и казался
+  // растущим из головы. В сторону камеры (+sy, к зрителю) запас больше —
+  // там это просто удар в грудь/живот, головы не касается.
+  const sx = a.sx;
+  const sy = Math.max(-0.18, Math.min(0.3, a.sy));
 
   // k: [-1..1], отрицательный = замах назад, 1 = полный выброс кулака
-  const MAX_REACH = TS * 0.44;   // ~25 px — не слишком длинно
+  const MAX_REACH = TS * 0.22;   // ~12 px доп. выброс — короче, по-боксёрски
   let k;
   if (elapsed < 120) {
     // Замах — дуга назад
@@ -23239,9 +23244,9 @@ function _drawPunchAnim(px, py) {
     k = Math.cos(t * Math.PI * 0.5);
   }
 
-  // Позиция кулака
-  const fistX = a.hx + sx * MAX_REACH * k;
-  const fistY = a.hy + sy * MAX_REACH * k;
+  // Позиция кулака — от плеча, не от a.hx/a.hy (там "сырые" sx/sy)
+  const fistX = shdX + sx * (armLen + MAX_REACH * k);
+  const fistY = shdY + sy * (armLen + MAX_REACH * k);
 
   // Локоть — 52% между плечом и кулаком + перпендикулярный выпуклость
   const elbT  = 0.52;
@@ -23263,8 +23268,8 @@ function _drawPunchAnim(px, py) {
     for (let i = steps; i >= 1; i--) {
       const pastT  = Math.max(0, (elapsed - i * 16 - 120) / 80);
       const pastK  = Math.max(0, 1 - Math.pow(1 - pastT, 3));
-      const pfx    = a.hx + sx * MAX_REACH * pastK;
-      const pfy    = a.hy + sy * MAX_REACH * pastK;
+      const pfx    = shdX + sx * (armLen + MAX_REACH * pastK);
+      const pfy    = shdY + sy * (armLen + MAX_REACH * pastK);
       ctx.globalAlpha = 0.22 - i * 0.04;
       ctx.fillStyle = '#e08030';
       ctx.beginPath();
