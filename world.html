@@ -4093,7 +4093,8 @@ function updateCityCops(dt) {
   // Не трогаем если игрок мёртв, в тюрьме или в машине (за рулём всё равно
   // патруль пеший не догонит — wantedcops с тачкой это уже worldCops).
   const playerWanted = (typeof myWanted === 'number') && myWanted >= 1
-    && !myDead && !(typeof myJailIn === 'number' && myJailIn > 0);
+    && !myDead && !(typeof myJailIn === 'number' && myJailIn > 0)
+    && !_bankInt;  // в интерьере банка player.r/c локальные, не мировые — случайный патруль с теми же координатами мог бы арестовать
   for (let i = cityCops.length - 1; i >= 0; i--) {
     const cop = cityCops[i];
     if (!cop.alive) { cityCops.splice(i, 1); continue; }
@@ -8998,6 +8999,7 @@ function handleEventPacket(d) {
     // не просто предупреждение при 1★). Сервер посадил в тюрьму, обнулил
     // звёзды. Локально — тост + showArrestOverlay.
     if (d.ok) {
+      if (_bankRob) abortBankRobbery('silent');  // HUD «Мешки: N» не должен висеть в тюрьме
       showEventBanner(
         '🚓 ЗАДЕРЖАН',
         `Патруль схватил на месте. Срок: ${Math.round((d.jail_s || 60) / 60)} мин.`,
@@ -27929,6 +27931,7 @@ function _updateBankInterior(dt) {
   // про _inVaultRoom): иначе охранники «уезжают» к координатам игрока в
   // системе хранилища и пропадают из лобби (БАГ 5).
   for (const npc of (_inVaultRoom ? [] : int.npcs)) {
+    if (npc.dead) continue;  // труп охранника — AI не обновляем
     npc.walkPhase=(npc.walkPhase||0)+dt*9;
     if (npc.state==='normal') {
       if (npc.type==='client') {
@@ -28304,12 +28307,13 @@ function _drawCarryingBag(x, y) {
 }
 
 function _drawBankInteriorNpc(npc) {
-  if (npc.state==='fled') return;
+  if (npc.state==='fled' && !npc.dead) return;  // живые убежавшие — не рисуем; мёртвые охранники — рисуем труп
   const now=performance.now();
   const p=w2s(npc.r+.5,npc.c+.5);
-  const moving=npc.state==='panic'||npc.state==='hostile'||
-    (npc.state==='normal'&&npc.type!=='staff'&&npc.type!=='teller'&&npc.type!=='admin'&&npc.type!=='lounge');
-  drawPerson(p.x,p.y,npc.ang,npc.look,moving?npc.walkPhase:0,null,null,false,null,null,false,0);
+  const moving=!npc.dead&&(npc.state==='panic'||npc.state==='hostile'||
+    (npc.state==='normal'&&npc.type!=='staff'&&npc.type!=='teller'&&npc.type!=='admin'&&npc.type!=='lounge'));
+  drawPerson(p.x,p.y,npc.ang,npc.look,moving?npc.walkPhase:0,null,null,false,null,null,!!npc.dead,npc.deadAt||0);
+  if (npc.dead) return;  // труп нарисован — оружие/дубинку/крик не показываем
   // ── Анимация удара дубинкой — замах + резкий удар по дуге + вспышка ──
   if (npc._punchAnim && now - npc._punchAnim < 420) {
     const elapsed = now - npc._punchAnim;
@@ -29369,7 +29373,7 @@ function drawBankInteriorScene() {
 
   // NPC — сотрудники за столами получают +0.3 к depth чтобы рисоваться поверх мониторов
   for (const npc of int.npcs) {
-    if (npc.state==='fled') continue;
+    if (npc.state==='fled' && !npc.dead) continue;  // живые убежавшие не рисуем; трупы охранников — рисуем
     const dBonus = (npc.atDesk||npc.type==='admin'||npc.type==='teller') ? 0.3 : 0;
     items.push({d:npc.r+npc.c+dBonus,fn:((_n)=>()=>_drawBankInteriorNpc(_n))(npc)});
   }
