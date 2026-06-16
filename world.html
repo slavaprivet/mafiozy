@@ -13207,10 +13207,9 @@ function updatePvpUI() {
   _hudPlayer.classList.toggle('show', !isPve);
   // Кнопка огня видна только когда можно стрелять и есть смысл (open world
   // с хотя бы одной меткой ИЛИ PvP-арена с free-aim). Иначе скрыта.
-  // Внутри банка стрельба разрешена в любой момент (по охране и «в пустоту»),
-  // а целей-замков (lockedTargets) на охрану может ещё не быть — иначе кнопка
-  // огня не появлялась бы вовсе и стрелять было бы нечем.
-  const meInArenaUi = inArena(player.r, player.c) || !!_bankInt;
+  // В банке — как в городе: кнопка только при наличии замка (lockedTargets).
+  // Замок ставится тапом по охраннику или удержанием лазера (joyR) 550 мс.
+  const meInArenaUi = inArena(player.r, player.c);
   const _armed = _isArmed();
   // Кнопка удара (✊) показывается когда без оружия + есть locked-цель в ближнем бою
   const showPunchBtn  = canShoot && !_armed && lockedTargets.size > 0;
