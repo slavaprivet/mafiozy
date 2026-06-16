@@ -4081,8 +4081,13 @@ function updateCityCops(dt) {
   // Игрок розыскной? Тогда патрульные в радиусе включают pursue.
   // Не трогаем если игрок мёртв, в тюрьме или в машине (за рулём всё равно
   // патруль пеший не догонит — wantedcops с тачкой это уже worldCops).
+  // ВАЖНО: внутри банка player.r/c — координаты ИНТЕРЬЕРА (0..30), а не
+  // мировые. Патрульные копы считали бы по ним дистанцию до игрока и
+  // случайно попадали в радиус ареста → ложный citycop_arrest + стрельба
+  // «сквозь стены банка» → игрока сажали в тюрьму. Пока _bankInt активен —
+  // никакого преследования/ареста/реакции на игрока.
   const playerWanted = (typeof myWanted === 'number') && myWanted >= 1
-    && !myDead && !(typeof myJailIn === 'number' && myJailIn > 0);
+    && !myDead && !(typeof myJailIn === 'number' && myJailIn > 0) && !_bankInt;
   for (let i = cityCops.length - 1; i >= 0; i--) {
     const cop = cityCops[i];
     if (!cop.alive) { cityCops.splice(i, 1); continue; }
@@ -4243,7 +4248,8 @@ function updateCityCops(dt) {
     }
     cop._pursuing = false;
     // ── РЕАКЦИЯ НА ИНЦИДЕНТ (стрельба/драка рядом) ─────────────────
-    if (cop._reactUntil && now < cop._reactUntil) {
+    // Пока игрок в банке — не реагируем (player.r/c в координатах интерьера).
+    if (cop._reactUntil && now < cop._reactUntil && !_bankInt) {
       const dpr2 = player.r - cop.y, dpc2 = player.c - cop.x;
       const distP2 = Math.hypot(dpr2, dpc2);
       cop.ang = Math.atan2(dpr2, dpc2);
@@ -8190,17 +8196,14 @@ function tryMove(obj, dr, dc) {
     // игрока обратно -> «дёргается верх-вниз, не могу ходить».
     // Теперь — жёсткий клампинг к квадрату двора + обычное скольжение
     // вдоль стены здания участка (как у всех остальных персонажей).
+    // Двор участка 7×7 полностью расчищен (tile 9), КРОМЕ центрального
+    // здания (76,76). Раньше тут стояли isBlocked-проверки — центральный
+    // блокер не давал пройти через середину двора («не могу ходить
+    // везде», упираюсь в невидимую стену). Теперь — чистый клампинг к
+    // квадрату двора, движение свободное во всей клетке.
     const BOUND = 3.0;
-    let nr = Math.max(JAIL_CENTER_R - BOUND, Math.min(JAIL_CENTER_R + BOUND, obj.r + dr));
-    let nc = Math.max(JAIL_CENTER_C - BOUND, Math.min(JAIL_CENTER_C + BOUND, obj.c + dc));
-    if (!isBlocked(nr - pad, obj.c) && !isBlocked(nr + pad, obj.c) &&
-        !isBlocked(nr, obj.c - pad) && !isBlocked(nr, obj.c + pad)) {
-      obj.r = nr;
-    }
-    if (!isBlocked(obj.r - pad, nc) && !isBlocked(obj.r + pad, nc) &&
-        !isBlocked(obj.r, nc - pad) && !isBlocked(obj.r, nc + pad)) {
-      obj.c = nc;
-    }
+    obj.r = Math.max(JAIL_CENTER_R - BOUND, Math.min(JAIL_CENTER_R + BOUND, obj.r + dr));
+    obj.c = Math.max(JAIL_CENTER_C - BOUND, Math.min(JAIL_CENTER_C + BOUND, obj.c + dc));
     return;
   }
   // ESCAPE MODE: если игрок ЗАЛИП в blocked-тайле — пропускаем коллизии,
@@ -8635,7 +8638,10 @@ function handleEventPacket(d) {
       if (!d.miss) spawnImpact(d.ty, d.tx, wp);
     }
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
-    if (!d.miss && String(d.target_uid) === String(QP.uid)) {
+    // Внутри банка серверные копы по игроку «попадать» не должны — он для
+    // сервера стоит у входа (savedR/savedC), но физически в интерьере и не
+    // может уклоняться. Игнорируем эффекты выстрела/ареста пока _bankInt.
+    if (!d.miss && String(d.target_uid) === String(QP.uid) && !_bankInt) {
       flashHitOverlay();
       addShake(3);
       _autoLockThreat('cop', d.cop_id);
@@ -8643,7 +8649,7 @@ function handleEventPacket(d) {
         myDeathBy = d.jailed ? 'Копы (тюрьма)' : 'Копы';
       }
     }
-    if (d.killed && d.jailed) {
+    if (d.killed && d.jailed && !(String(d.target_uid) === String(QP.uid) && _bankInt)) {
       // Спавним локальный автозак у точки смерти — все клиенты видят
       // как полиция забирает жертву. Для самого жертвы — overlay+shake.
       spawnArrestAnim(d.target_uid, d.ty, d.tx);
@@ -9826,7 +9832,9 @@ function wsConnect() {
               5000, 'lose');
           }
         }
-        if (typeof d.me.jail_in === 'number') myJailIn = d.me.jail_in;
+        // Внутри банка не применяем серверный jail_in — пока игрок в
+        // интерьере его не должно сажать (он для сервера стоит у входа).
+        if (typeof d.me.jail_in === 'number' && !_bankInt) myJailIn = d.me.jail_in;
         if (typeof d.me.terr_cd === 'number') myTerrCd = d.me.terr_cd;
       }
       // ── Захват районов: владельцы + активный прогресс ────────────
@@ -13585,11 +13593,18 @@ function sendInput() {
   const now = performance.now();
   if (now - lastInputSent < 75) return;   // ~13 Гц
   lastInputSent = now;
+  // ВНУТРИ БАНКА player.r/c — координаты ИНТЕРЬЕРА (0..30), НЕ мировые.
+  // Если слать их серверу, он решит что игрок телепортировался в угол
+  // карты, где worldCops начинают по нему стрелять (cop_shot) и сажают
+  // в тюрьму. Пока _bankInt активен — шлём сохранённую мировую позицию
+  // у входа в банк (игрок для сервера стоит неподвижно снаружи).
+  const sx = _bankInt ? _bankInt.savedC : player.c;
+  const sy = _bankInt ? _bankInt.savedR : player.r;
   try {
     ws.send(JSON.stringify({
       t: 'input',
-      d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
-           ang: +player.ang.toFixed(2), w: !!player.walking }
+      d: { x: +sx.toFixed(2), y: +sy.toFixed(2),
+           ang: +player.ang.toFixed(2), w: _bankInt ? false : !!player.walking }
     }));
   } catch(e) {}
 }
@@ -22305,7 +22320,11 @@ function drawFireStationDecor(stationR, stationC) {
 // ворота ~57° на южной стороне. Серверный JAIL_R должен совпадать (mafiozi_bot.py).
 function drawJailCell(stationR, stationC) {
   const cR = stationR, cC = stationC;
-  const R  = JAIL_RADIUS_TILES;
+  // Решётку рисуем по радиусу, описывающему ходибельный квадрат двора
+  // (клампинг ±3 в tryMove → угол на 3·√2≈4.24). Раньше R=7 — прутья
+  // стояли далеко за пределами зоны ходьбы, и казалось «упираюсь в
+  // невидимую стену задолго до решётки».
+  const R  = 4.3;
   // Прутья по окружности с дыркой на южной стороне (Math.PI/2 в нашей системе).
   // Раньше было N=28 на R=3.5 → шаг ~0.78. Сохраняем плотность: N ~= 8*R.
   const N = Math.max(28, Math.round(R * 8));
