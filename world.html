@@ -9971,7 +9971,10 @@ function updateZoneBtn() {
     } else if (_bankRob && _bankRob.bank.id === nearBank.id) {
       if ((_bankRob.phase === 'loading' || _bankRob.phase === 'carrying') && _bankRob.myBag) label = '🚗 Отнести мешок в машину';
       else if (_bankRob.phase === 'loading' || _bankRob.phase === 'carrying') label = '🏦 Войти за мешком';
-      else if (_bankRob.phase === 'escaping') label = '🚗 Уехать с добычей!';
+      // «Уехать с добычей» только когда реально есть мешки. Если тревога
+      // поднята, но хранилище не взломано (bagsLoaded=0) — даём вернуться
+      // в банк, иначе игрок застревал с бесполезной кнопкой побега.
+      else if (_bankRob.phase === 'escaping') label = (_bankRob.bagsLoaded > 0) ? '🚗 Уехать с добычей!' : '🏦 Войти в банк';
       else label = '🏦 Банк';
     } else {
       label = '🏦 Войти в банк';
@@ -10075,11 +10078,12 @@ _zoneEl.addEventListener('click', () => {
       // через EXIT-дверь (door-check в _updateBankInterior).
       return;
     }
-    // Машина с добычей полна — кнопка «Уехать с добычей!» завершает
-    // ограбление (выплата + кулдаун), а не повторный вход в банк.
+    // Кнопка «Уехать с добычей!» завершает ограбление (выплата + кулдаун).
+    // Но если добычи нет (тревога без взлома) — кнопка показывает «Войти
+    // в банк», поэтому завершаем только при bagsLoaded>0, иначе входим.
     if (_bankRob && _bankRob.bank.id === bank.id && _bankRob.phase === 'escaping') {
-      finishBankRobbery();
-      return;
+      if (_bankRob.bagsLoaded > 0) { finishBankRobbery(); return; }
+      // Нет добычи — пускаем обратно в банк (взломать хранилище)
     }
     // Войти в банк
     enterBankInterior(bank);
@@ -27713,7 +27717,10 @@ function enterBankInterior(bank) {
     return;
   }
   const existingRob=_bankRob&&_bankRob.bank.id===bank.id;
-  const vaultOpen=!!existingRob;
+  // Хранилище открыто при входе ТОЛЬКО если его реально взломали раньше.
+  // Раньше vaultOpen=!!existingRob → после «тревога без взлома» банк
+  // ошибочно открывался сразу, и игрок не мог взломать его заново.
+  const vaultOpen=!!(existingRob&&_bankRob._vaultCracked);
   const bagsLeft=bank.bags-(existingRob?_bankRob.bagsLoaded:0);
   if (existingRob&&bagsLeft<=0){ showToast('💰 Все мешки взяты!','✅',1800); return; }
   const cfg=_BINT[bank.size]||_BINT.small;
@@ -27764,15 +27771,19 @@ function exitBankInterior(withBag) {
   // Пули с банк-координатами вызывают createLinearGradient на совпадающих
   // точках в мировом drawBullets → исключение → весь рендер падает.
   bullets.length=0; muzzles.length=0; impacts.length=0; lockedTargets.clear();
+  // Хранилище реально взломано если внутри дошли до фазы vault_open.
+  const _cracked = (int.phase === 'vault_open');
   if (withBag&&int.myBag) {
     // Мешок остаётся у игрока — он несёт его снаружи (phase 'carrying')
     if (!_bankRob) {
       _bankRob={bank:int.bank,phase:'carrying',bagsLoaded:0,bagsMax:int.bank.bags,
         myBag:int.myBag,policeTimer:int.bank.police_delay,alarmTriggered:true,
+        _vaultCracked:true,
         startedAt:int.startedAt,crackProgress:1,crackTotal:20};
     } else {
       _bankRob.myBag=int.myBag;
       _bankRob.phase='carrying';
+      _bankRob._vaultCracked=true;
     }
     _myBagWeight=int.myBag.value||1;
     showToast('💼 Несёшь мешок! Грузи в машину или неси в бизнес','⚠️',2500);
@@ -27780,11 +27791,16 @@ function exitBankInterior(withBag) {
     // Стрелял/поднял тревогу, но вышел без мешка — полиция ВСЁ РАВНО едет.
     // Создаём _bankRob в фазе побега → _updateBankRobbery тикает таймер
     // полиции и вызывает _dispatchHeistPolice (осада снаружи).
+    // _vaultCracked фиксирует, успел ли игрок реально вскрыть хранилище —
+    // иначе при возврате банк ошибочно считался уже открытым.
     _bankRob={bank:int.bank,phase:'escaping',bagsLoaded:0,bagsMax:int.bank.bags,
       myBag:null,policeTimer:int.bank.police_delay,alarmTriggered:true,
-      _policeArrived:false,
-      startedAt:int.startedAt,crackProgress:1,crackTotal:20};
+      _policeArrived:false,_vaultCracked:_cracked,
+      startedAt:int.startedAt,crackProgress:_cracked?1:0,crackTotal:20};
     showToast('🚨 Ты поднял тревогу — полиция уже едет!','🚓',2600);
+  } else if (_bankRob) {
+    // Уже есть rob (повторный заход) — обновляем флаг взлома если вскрыли.
+    if (_cracked) _bankRob._vaultCracked=true;
   }
   const hudEl=document.getElementById('bankRobHud');
   if (hudEl&&!_bankRob) hudEl.style.display='none';
