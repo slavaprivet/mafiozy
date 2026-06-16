@@ -9933,15 +9933,10 @@ function updateZoneBtn() {
     } else if (int.phase==='cracking') {
       label = `🔒 Взлом ${(int.crackProg*100).toFixed(0)}%`;
     } else if (int.room === 'vault' && !int.myBag) {
-      // В хранилище — показываем кнопку только когда рядом мешок
-      const nearBag = int.bags.find(b => !b.taken && Math.hypot(player.r-b.r, player.c-b.c) < 1.8);
-      if (nearBag) {
-        label = '💰 Взять мешок';
-        _zoneEl.dataset.vaultBagId = String(nearBag.id);
-      } else {
-        delete _zoneEl.dataset.vaultBagId;
-        label = null;
-      }
+      // В хранилище мешок берётся ТАПОМ по нему (tryTapLock → _takeVaultBagDirect).
+      // Кнопки нет — игрок просто тыкает в мешок.
+      delete _zoneEl.dataset.vaultBagId;
+      label = null;
     } else {
       // Несём мешок или просто гуляем по лобби после взлома — кнопки нет,
       // выход всегда через EXIT-дверь (см. door-check в _updateBankInterior)
@@ -10609,6 +10604,21 @@ function updateGtaInteractions() {
       return;
     }
   }
+  // Брошенный мешок на земле — кнопка «Поднять» когда рядом и руки пусты.
+  if ((!_bankRob || !_bankRob.myBag) && _vaultDroppedBags.length) {
+    let nb = null, nbD = 2.0;
+    for (const bag of _vaultDroppedBags) {
+      const d = Math.hypot(player.r - bag.r, player.c - bag.c);
+      if (d < nbD) { nbD = d; nb = bag; }
+    }
+    if (nb) {
+      _gtaActionKind = 'bag_pickup';
+      _gtaActionCarId = nb.id;
+      _gtaBtn.textContent = '💼 Поднять мешок';
+      _gtaBtn.style.display = 'block';
+      return;
+    }
+  }
   // Несём мешок снаружи банка → кнопка погрузки в любую стоящую машину
   if (_bankRob && _bankRob.myBag && (_bankRob.phase === 'loading' || _bankRob.phase === 'carrying')) {
     let nearCarForLoad = null, nearLoadDist = 3.0;
@@ -10759,6 +10769,8 @@ _gtaBtn.addEventListener('click', () => {
     exitBus();
   } else if (_gtaActionKind === 'bag_drop') {
     dropVaultBag();
+  } else if (_gtaActionKind === 'bag_pickup') {
+    pickupDroppedBag(_gtaActionCarId);
   } else if (_gtaActionKind === 'bag_load') {
     loadBagIntoVan();
   } else if (_gtaActionKind === 'biz_deliver') {
@@ -24631,7 +24643,7 @@ function render() {
     const _nowBag = performance.now();
     for (let _bi = _vaultDroppedBags.length - 1; _bi >= 0; _bi--) {
       const bag = _vaultDroppedBags[_bi];
-      if (_nowBag - bag.droppedAt > 60000) { _vaultDroppedBags.splice(_bi, 1); continue; }
+      if (_nowBag - bag.droppedAt > 300000) { _vaultDroppedBags.splice(_bi, 1); continue; }
       const _bp = w2s(bag.r, bag.c);
       if (!_bp) continue;
       _drawMoneyBag(_bp.x, _bp.y - 6, 0.55, { lying:true, glow:true, seed:bag.id||(bag.r*31+bag.c) });
@@ -25016,6 +25028,16 @@ function tryTapLock(canvasX, canvasY) {
   // не соответствуют локальным координатам интерьера — лочим только NPC
   // банка (любой живой, не сбежавший).
   if (_bankInt) {
+    // В хранилище — тап прямо по мешку берёт его (без кнопки/таблички).
+    if (_bankInt.room === 'vault' && !_bankInt.myBag) {
+      let tb = null, tbD = 70;
+      for (const bag of (_bankInt.bags || [])) {
+        if (bag.taken) continue;
+        const d = _screenDistToCell(bag.r, bag.c, canvasX, canvasY);
+        if (d < tbD) { tbD = d; tb = bag; }
+      }
+      if (tb) { _takeVaultBagDirect(tb); return true; }
+    }
     let bBest = null, bBestD = _isArmed() ? 80 : 120;
     for (const npc of (_bankInt.npcs || [])) {
       if (npc.dead || npc.state === 'fled') continue;
@@ -26712,6 +26734,18 @@ function startBankRobbery(bank) {
   _updateBankZoneBtn();
 }
 
+// Взять мешок прямо тапом по нему в хранилище (без кнопки)
+function _takeVaultBagDirect(bag) {
+  const int = _bankInt;
+  if (!int || int.room !== 'vault' || int.myBag || !bag || bag.taken) return;
+  bag.taken = true;
+  int.myBag = { id: bag.id, value: int.bank.reward_per_bag };
+  _myBagWeight = 1;
+  showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`, '💼', 2000);
+  try { hapticHit && hapticHit(); } catch(e) {}
+  if (typeof updateZoneBtn === 'function') updateZoneBtn();
+}
+
 // Взять мешок из хранилища
 function _takeBankBag() {
   if (!_bankRob || _bankRob.phase !== 'loading') return;
@@ -26723,6 +26757,28 @@ function _takeBankBag() {
   showToast(`💰 Взял мешок ($${val.toLocaleString('ru')}) — неси в фургон`, '🚐', 2000);
   try { hapticHit && hapticHit(); } catch(e) {}
   _updateBankZoneBtn();
+}
+
+// Поднять брошенный мешок с земли обратно на плечо
+function pickupDroppedBag(bagId) {
+  const idx = _vaultDroppedBags.findIndex(b => String(b.id) === String(bagId));
+  if (idx < 0) return;
+  const bag = _vaultDroppedBags[idx];
+  if (Math.hypot(player.r - bag.r, player.c - bag.c) > 2.5) return;
+  // Восстанавливаем _bankRob если он успел сброситься (мешок всё ещё на земле).
+  if (!_bankRob) {
+    _bankRob = { bank: (BANKS.find(b => b.id === bag.bankId) || { id: bag.bankId, reward_per_bag: bag.value }),
+      phase: 'carrying', bagsLoaded: 0, bagsMax: 99, myBag: null,
+      policeTimer: 0, alarmTriggered: true, startedAt: performance.now()/1000,
+      crackProgress: 1, crackTotal: 20 };
+  }
+  if (_bankRob.myBag) { showToast('💼 Руки заняты — уже несёшь мешок', '⚠️', 1600); return; }
+  _bankRob.myBag = { id: bag.id, value: bag.value };
+  _myBagWeight = bag.value || 1;
+  _vaultDroppedBags.splice(idx, 1);
+  showToast('💼 Поднял мешок', '✅', 1400);
+  try { hapticHit && hapticHit(); } catch(e) {}
+  if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
 }
 
 // Бросить мешок (снять с плеча) — мешок остаётся на земле
@@ -27744,8 +27800,15 @@ function _isBlockedInterior(r,c) {
     return false;
   }
   const {W,H,counterRow}=int;
-  if (r<0.4||r>H-.15) return true;
+  if (r<0.4) return true;
   if (c<.4||c>W-.4) return true;
+  // Южная стена сплошная КРОМЕ дверного проёма по центру (eDL..eDR).
+  // Раньше r>H-.15 блокировалось везде, а выход срабатывал на r>=H-.6
+  // по всей ширине — можно было «выйти сквозь стену» в любом месте юга.
+  if (r>H-.15) {
+    const eDL=Math.floor(W/2)-2, eDR=Math.floor(W/2)+2;
+    if (!(c>=eDL && c<eDR)) return true;
+  }
   const archRow=counterRow-4;
   // Внутренняя стена на archRow — 1.5-тайловая зона чтобы не проскочить при высокой скорости
   if (r>archRow-0.5&&r<archRow+1.5) {
@@ -28031,7 +28094,11 @@ function _updateBankInterior(dt) {
       bullets.length = 0; muzzles.length = 0; impacts.length = 0;
     }
   }
-  if (player.r>=H-.6){exitBankInterior(!!int.myBag);return;}
+  // Выход из банка ТОЛЬКО через главный дверной проём (центр южной стены).
+  {
+    const eDL=Math.floor(W/2)-2, eDR=Math.floor(W/2)+2;
+    if (player.r>=H-.6 && player.c>=eDL && player.c<eDR){exitBankInterior(!!int.myBag);return;}
+  }
   const el=document.getElementById('bankRobHud');
   if (!el) return;
   // В лобби заголовок банка и подсказка уже рисуются прямо на канвасе
@@ -28704,14 +28771,7 @@ function _drawVaultRoom(int) {
     items.push({d:br+bc*0.01, fn:((_bp,_br,_bc,_bag)=>()=>{
       const bh=isoH(0.6);
       _drawMoneyBag(_bp.x, _bp.y - bh*0.15, 1.15, { lying:true, glow:false, seed:_bag.id||0 });
-      // Подсказка если рядом
-      if (Math.hypot(player.r-_br,player.c-_bc)<1.5) {
-        ctx.fillStyle='rgba(255,255,255,0.9)';
-        ctx.font='11px sans-serif';
-        ctx.textAlign='center';
-        ctx.fillText('📦 Взять',_bp.x,_bp.y-bh*1.4);
-        ctx.textAlign='left';
-      }
+      // Таблички/подсказки нет — мешок берётся тапом по нему.
     })(bp, br, bc, bag)});
   }
 
