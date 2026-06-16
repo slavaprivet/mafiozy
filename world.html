@@ -7770,6 +7770,7 @@ let _lastExhaustAt = 0;
 // Анимации ареста — локальный спавн автозака, который приезжает к жертве,
 // загружает её и уезжает в участок. ~4 секунды. См. spawnArrestAnim().
 const arrestAnims = [];   // {target_uid, startMs, fromR/C, atR/C, jailR/C, dir}
+let _selfArrestAt = 0;    // когда начали анимацию ареста САМОГО игрока (0 = не идёт)
 // uid игроков которых сейчас «грузят/везут в автозак» — их обычный спрайт
 // не рисуется (виден только автозак). Обновляется в drawArrestAnims.
 const _arrestHidden = new Set();
@@ -8227,6 +8228,8 @@ function tryMove(obj, dr, dc) {
   const JAIL_BOUND = 3.0;
   const jailed = isMe && myJailIn > 0;
   if (jailed) {
+    // Пока автозак едет (4.6с) — игрок "в фургоне", не двигается самостоятельно
+    if (_selfArrestAt > 0 && performance.now() - _selfArrestAt < 4600) return;
     // РАНЬШЕ граница «далеко — мягко идём к центру» была ОКРУЖНОСТЬЮ
     // (curD > JAIL_RADIUS_TILES+1.0), а клампинг ниже — КВАДРАТОМ ±BOUND.
     // Несовпадение форм: в «кольце» между кругом и квадратом клампинг
@@ -9000,6 +9003,9 @@ function handleEventPacket(d) {
     // звёзды. Локально — тост + showArrestOverlay.
     if (d.ok) {
       if (_bankRob) abortBankRobbery('silent');  // HUD «Мешки: N» не должен висеть в тюрьме
+      // Запускаем анимацию автозака: приезжает, грузит, везёт в участок (~4.5с)
+      _selfArrestAt = performance.now();
+      spawnArrestAnim(String(QP.uid), player.r, player.c);
       showEventBanner(
         '🚓 ЗАДЕРЖАН',
         `Патруль схватил на месте. Срок: ${Math.round((d.jail_s || 60) / 60)} мин.`,
@@ -9716,7 +9722,8 @@ function wsConnect() {
       // вернёт его. Если просто инет лагает — игрок не чувствует rubber.
       if (d.me) {
         // Внутри банка координаты — комнатные, не мировые → snap игнорируем
-        if (!_bankInt) {
+        // Во время анимации автозака (4.6с) — игрок «в фургоне», не двигаем
+        if (!_bankInt && performance.now() - _selfArrestAt >= 4600) {
         const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
         if (_firstSnap || dist > 15.0) {
           player.r = d.me.y; player.c = d.me.x;
@@ -9878,7 +9885,7 @@ function wsConnect() {
               5000, 'lose');
           }
         }
-        if (typeof d.me.jail_in === 'number') myJailIn = d.me.jail_in;
+        if (typeof d.me.jail_in === 'number') myJailIn = Math.min(d.me.jail_in, 60);
         if (typeof d.me.terr_cd === 'number') myTerrCd = d.me.terr_cd;
       }
       // ── Захват районов: владельцы + активный прогресс ────────────
@@ -12992,7 +12999,7 @@ function _findNearestMeleeTarget() {
 
 function punch(force) {
   if (myMode === 'pve') { showToast('🕵️ Наблюдатель не может драться', 'ℹ️', 1500); return; }
-  if (myDead || myDrivingCarId || _inBus) return;
+  if (myDead || myDrivingCarId || _inBus || myJailIn > 0) return;  // в тюрьме только кулаки отдыхают
   if (!force && _isArmed()) return;   // есть оружие — использовать fire() (кроме тюрьмы: force)
   const now = performance.now();
   if (now - lastPunchClientT < PUNCH_CD_MS) return;
@@ -24372,48 +24379,111 @@ function render() {
       }
       ctx.setLineDash([]);
 
-      // ── Магазин (convenience store) в дальнем углу ──
-      const shopG = w2s(gs.r - 1 + OR, gs.c - 0.7 + OC);
-      const shopH = isoH(2.2), shopW = 30, shopD = 16;
-      // Стены (фасад + бок)
-      ctx.fillStyle = '#c8d0d6';
-      ctx.fillRect(shopG.x - shopW / 2, shopG.y - shopH, shopW, shopH);
-      ctx.fillStyle = '#9aa4ac';
-      ctx.beginPath();
-      ctx.moveTo(shopG.x + shopW / 2, shopG.y - shopH);
-      ctx.lineTo(shopG.x + shopW / 2 + shopD, shopG.y - shopH - shopD * 0.5);
-      ctx.lineTo(shopG.x + shopW / 2 + shopD, shopG.y - shopD * 0.5);
-      ctx.lineTo(shopG.x + shopW / 2, shopG.y); ctx.closePath(); ctx.fill();
-      // Плоская крыша
-      ctx.fillStyle = '#d8e0e6';
-      ctx.beginPath();
-      ctx.moveTo(shopG.x - shopW / 2, shopG.y - shopH);
-      ctx.lineTo(shopG.x + shopW / 2, shopG.y - shopH);
-      ctx.lineTo(shopG.x + shopW / 2 + shopD, shopG.y - shopH - shopD * 0.5);
-      ctx.lineTo(shopG.x - shopW / 2 + shopD, shopG.y - shopH - shopD * 0.5); ctx.closePath(); ctx.fill();
-      // Витрина (стекло)
-      ctx.fillStyle = 'rgba(120,200,230,.7)';
-      ctx.fillRect(shopG.x - shopW / 2 + 3, shopG.y - shopH + 5, shopW - 6, shopH - 12);
-      ctx.strokeStyle = '#6a7278'; ctx.lineWidth = 1;
-      ctx.strokeRect(shopG.x - shopW / 2 + 3, shopG.y - shopH + 5, shopW - 6, shopH - 12);
-      // Дверь магазина
-      ctx.fillStyle = '#2a3236';
-      ctx.fillRect(shopG.x - 4, shopG.y - 12, 8, 12);
-      // Вывеска SHOP над витриной
-      ctx.fillStyle = '#1a8a3a';
-      ctx.fillRect(shopG.x - shopW / 2 + 3, shopG.y - shopH, shopW - 6, 5);
-      ctx.font = 'bold 5px system-ui'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-      ctx.fillText('SHOP', shopG.x, shopG.y - shopH + 4);
+      // ── Магазин (iso-3D convenience store) в западном углу ──
+      // Магазин стоит ЛЕВЕЕ навеса (c < 15.2) чтобы не перекрываться красной крышей.
+      // Навес покрывает только насосную зону (c ≥ 15.2). Зазор ~0.2 тайла.
+      const shNW = w2s(gs.r - 1.0 + OR, gs.c - 1.5 + OC);  // дальний-левый
+      const shNE = w2s(gs.r - 1.0 + OR, gs.c + 0.0 + OC);  // дальний-правый
+      const shSE = w2s(gs.r + 0.5 + OR, gs.c + 0.0 + OC);  // ближний-правый
+      const shSW = w2s(gs.r + 0.5 + OR, gs.c - 1.5 + OC);  // ближний-левый
+      const shH = isoH(2.5);
+      const shLp = (a, b, k) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
 
-      // ── Топливные колонки под навесом (2 шт) ──
-      _drawPump(w2s(gs.r + 0.4 + OR, gs.c + 0.2 + OC).x, w2s(gs.r + 0.4 + OR, gs.c + 0.2 + OC).y);
-      _drawPump(w2s(gs.r + 1.1 + OR, gs.c + 1.3 + OC).x, w2s(gs.r + 1.1 + OR, gs.c + 1.3 + OC).y);
+      // Тень под зданием
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.beginPath();
+      ctx.moveTo(shNW.x, shNW.y + 3); ctx.lineTo(shNE.x, shNE.y + 3);
+      ctx.lineTo(shSE.x, shSE.y + 3); ctx.lineTo(shSW.x, shSW.y + 3); ctx.closePath(); ctx.fill();
 
-      // ── Большой навес на 4 колоннах ──
-      const cA = w2s(gs.r - 0.6 + OR, gs.c - 0.6 + OC);
-      const cB = w2s(gs.r - 0.6 + OR, gs.c + 1.8 + OC);
-      const cC = w2s(gs.r + 1.8 + OR, gs.c + 1.8 + OC);
-      const cD = w2s(gs.r + 1.8 + OR, gs.c - 0.6 + OC);
+      // Левая боковая грань (северная, в тени)
+      ctx.fillStyle = '#6e7880';
+      ctx.beginPath();
+      ctx.moveTo(shNW.x, shNW.y); ctx.lineTo(shSW.x, shSW.y);
+      ctx.lineTo(shSW.x, shSW.y - shH); ctx.lineTo(shNW.x, shNW.y - shH); ctx.closePath(); ctx.fill();
+
+      // Правая боковая грань (восточная, в тени)
+      ctx.fillStyle = '#7a8690';
+      ctx.beginPath();
+      ctx.moveTo(shSE.x, shSE.y); ctx.lineTo(shNE.x, shNE.y);
+      ctx.lineTo(shNE.x, shNE.y - shH); ctx.lineTo(shSE.x, shSE.y - shH); ctx.closePath(); ctx.fill();
+
+      // Фасад (южная грань, к зрителю) — светло-серый с лёгким градиентом
+      { const sg = ctx.createLinearGradient(shSW.x, 0, shSE.x, 0);
+        sg.addColorStop(0, '#d2d8e0'); sg.addColorStop(1, '#c4cad2');
+        ctx.fillStyle = sg;
+        ctx.beginPath();
+        ctx.moveTo(shSW.x, shSW.y); ctx.lineTo(shSE.x, shSE.y);
+        ctx.lineTo(shSE.x, shSE.y - shH); ctx.lineTo(shSW.x, shSW.y - shH); ctx.closePath(); ctx.fill(); }
+
+      // Крыша
+      ctx.fillStyle = '#b0b8c0';
+      ctx.beginPath();
+      ctx.moveTo(shNW.x, shNW.y - shH); ctx.lineTo(shNE.x, shNE.y - shH);
+      ctx.lineTo(shSE.x, shSE.y - shH); ctx.lineTo(shSW.x, shSW.y - shH); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = 0.8; ctx.stroke();
+      // Жёлтая кромка парапета
+      ctx.strokeStyle = '#e0c020'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(shNW.x, shNW.y - shH); ctx.lineTo(shSW.x, shSW.y - shH); ctx.lineTo(shSE.x, shSE.y - shH); ctx.stroke();
+      // Антенна/сплит на крыше
+      const acPos = shLp(shNW, shSE, 0.35);
+      ctx.strokeStyle = '#8a9098'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(acPos.x, acPos.y - shH); ctx.lineTo(acPos.x + 2, acPos.y - shH - 8); ctx.stroke();
+      ctx.fillStyle = '#aab0b8'; ctx.fillRect(acPos.x - 5, acPos.y - shH - 10, 10, 3);
+
+      // Зелёная вывеска на верхней части фасада
+      const signBot = shH * 0.78, signTop = shH;
+      ctx.fillStyle = '#157a30';
+      ctx.beginPath();
+      ctx.moveTo(shSW.x, shSW.y - signBot); ctx.lineTo(shSE.x, shSE.y - signBot);
+      ctx.lineTo(shSE.x, shSE.y - signTop); ctx.lineTo(shSW.x, shSW.y - signTop); ctx.closePath(); ctx.fill();
+      // Текст SHOP
+      const signCX = (shSW.x + shSE.x) / 2, signCY = (shSW.y + shSE.y) / 2 - (signBot + signTop) / 2;
+      ctx.font = 'bold 6px system-ui'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+      ctx.fillText('SHOP', signCX, signCY + 2);
+
+      // Витрина на фасаде (большое стекло, 20-75% высоты, 10-90% ширины)
+      const wt0 = 0.10, wt1 = 0.90, wh0 = shH * 0.20, wh1 = shH * 0.75;
+      const wL = shLp(shSW, shSE, wt0), wR = shLp(shSW, shSE, wt1);
+      ctx.fillStyle = 'rgba(140,210,240,.60)';
+      ctx.beginPath();
+      ctx.moveTo(wL.x, wL.y - wh0); ctx.lineTo(wR.x, wR.y - wh0);
+      ctx.lineTo(wR.x, wR.y - wh1); ctx.lineTo(wL.x, wL.y - wh1); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(40,70,100,.7)'; ctx.lineWidth = 1.2; ctx.stroke();
+      // Перегородка витрины
+      const wM = shLp(shSW, shSE, 0.5);
+      ctx.beginPath(); ctx.moveTo(wM.x, wM.y - wh0); ctx.lineTo(wM.x, wM.y - wh1); ctx.stroke();
+
+      // Дверь (центр фасада, от земли до 40% высоты)
+      { const dL = shLp(shSW, shSE, 0.38), dR = shLp(shSW, shSE, 0.62), dH = shH * 0.40;
+        ctx.fillStyle = '#1a2830';
+        ctx.beginPath();
+        ctx.moveTo(dL.x, dL.y); ctx.lineTo(dR.x, dR.y);
+        ctx.lineTo(dR.x, dR.y - dH); ctx.lineTo(dL.x, dL.y - dH); ctx.closePath(); ctx.fill();
+        // Стеклянная панель двери
+        ctx.fillStyle = 'rgba(140,220,255,.35)';
+        { const ddL = shLp(shSW, shSE, 0.41), ddR = shLp(shSW, shSE, 0.59);
+          ctx.beginPath();
+          ctx.moveTo(ddL.x, ddL.y - 2); ctx.lineTo(ddR.x, ddR.y - 2);
+          ctx.lineTo(ddR.x, ddR.y - dH + 3); ctx.lineTo(ddL.x, ddL.y - dH + 3); ctx.closePath(); ctx.fill(); }
+        // Ручка
+        ctx.fillStyle = '#d0a820';
+        const hX = (dR.x + dL.x) / 2 + 2, hY = (dR.y + dL.y) / 2 - dH * 0.35;
+        ctx.beginPath(); ctx.arc(hX, hY, 1.5, 0, Math.PI * 2); ctx.fill(); }
+
+      // Контурные рёбра здания
+      ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(shSW.x, shSW.y); ctx.lineTo(shSW.x, shSW.y - shH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(shSE.x, shSE.y); ctx.lineTo(shSE.x, shSE.y - shH); ctx.stroke();
+
+      // ── Топливные колонки под навесом (2 шт, под новым положением навеса) ──
+      _drawPump(w2s(gs.r + 0.5 + OR, gs.c + 0.5 + OC).x, w2s(gs.r + 0.5 + OR, gs.c + 0.5 + OC).y);
+      _drawPump(w2s(gs.r + 1.2 + OR, gs.c + 1.4 + OC).x, w2s(gs.r + 1.2 + OR, gs.c + 1.4 + OC).y);
+
+      // ── Навес на 4 колоннах (только над насосной зоной, c ≥ 15.2) ──
+      const cA = w2s(gs.r - 1.0 + OR, gs.c + 0.2 + OC);
+      const cB = w2s(gs.r - 1.0 + OR, gs.c + 2.0 + OC);
+      const cC = w2s(gs.r + 1.8 + OR, gs.c + 2.0 + OC);
+      const cD = w2s(gs.r + 1.8 + OR, gs.c + 0.2 + OC);
       const canH = isoH(2.7);
       // Колонны (от земли до навеса) — 4 шт
       for (const cc of [cA, cB, cC, cD]) {
@@ -24643,6 +24713,8 @@ function render() {
   // Look берём всегда из URL — даже если has_look=0, параметры есть
   // (дефолты =0 в _qInt) и они хотя бы стабильны между перезагрузками.
   items.push({ depth: player.r + player.c + 0.001, draw: () => {
+    // В автозаке (арест-анимация) — спрайт игрока спрятан, виден только фургон
+    if (_arrestHidden.has(String(QP.uid))) return;
     // В машине или в автобусе — спрайт игрока не рисуем (виден через
     // крышу/окна); только имя/звёзды над корпусом.
     if (myDrivingCarId || _inBus) {
