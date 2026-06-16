@@ -488,16 +488,10 @@ body.in-pvp #robActionBtn { top: 152px; }
    текст в правом верхнем углу. Когда игра замёрзнет, последние строки
    останутся на экране — юзер скриншотит и шлёт мне. */
 #debugHud {
-  position: absolute; right: 6px; top: 50px;
-  background: rgba(0,0,0,.75); color: #8fff8f;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 9px; padding: 4px 6px; border-radius: 4px;
-  z-index: 99; pointer-events: none; max-width: 200px;
-  line-height: 1.3; white-space: pre;
-  border: 1px solid rgba(143,255,143,.3);
+  display: none;  /* heartbeat пишет в консоль, экранный оверлей скрыт */
 }
-#debugHud.warn { color: #ffd76b; border-color: rgba(255,215,107,.5); }
-#debugHud.err  { color: #ff7878; border-color: rgba(255,120,120,.7); }
+#debugHud.warn { }
+#debugHud.err  { }
 /* Countdown «До инкассатора» — небольшой баннер сверху, виден всем */
 #cdHud {
   position: absolute; left: 50%; transform: translateX(-50%); top: 14px;
@@ -27706,6 +27700,14 @@ function exitBankInterior(withBag) {
   _myBagWeight=withBag&&int.myBag?1:0;
   const door=_bankDoorCoord(int.bank);
   player.r=door.r; player.c=door.c;
+  // Мгновенно переносим камеру на мировые координаты — без lerp.
+  // Иначе несколько кадров камера остаётся на банк-координатах,
+  // мировой рендер выглядит пустым (все объекты вне экрана).
+  cam.x=(player.c-player.r)*TS*0.5;
+  cam.y=(player.c+player.r)*TS*0.5*ISO_Y;
+  // Пули с банк-координатами вызывают createLinearGradient на совпадающих
+  // точках в мировом drawBullets → исключение → весь рендер падает.
+  bullets.length=0; muzzles.length=0; impacts.length=0; lockedTargets.clear();
   if (withBag&&int.myBag) {
     // Мешок остаётся у игрока — он несёт его снаружи (phase 'carrying')
     if (!_bankRob) {
