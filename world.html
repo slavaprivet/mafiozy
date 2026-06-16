@@ -24958,6 +24958,12 @@ function _autoLockThreat(kind, shooterId) {
       return g && g.alive ? { r: g.y, c: g.x } : null;
     };
     getName = () => 'конвой';
+  } else if (kind === 'bank_guard') {
+    getPos = () => {
+      const n = _bankInt && _bankInt.npcs && _bankInt.npcs[shooterId];
+      return (n && !n.dead && n.state !== 'fled') ? { r: n.r, c: n.c } : null;
+    };
+    getName = () => 'охранник';
   } else {
     return;
   }
@@ -26976,6 +26982,8 @@ function _updateBankRobHud() {
   if (bagEl) {
     if (rob.phase === 'cracking') {
       bagEl.textContent = `Взлом: ${(rob.crackProgress * 100).toFixed(0)}%`;
+    } else if (rob.phase === 'escaping') {
+      bagEl.textContent = '';
     } else {
       bagEl.textContent = `Мешки: ${rob.bagsLoaded}/${rob.bagsMax}${rob.myBag ? ' 💰 несу' : ''}`;
     }
@@ -27928,8 +27936,9 @@ function _updateBankInterior(dt) {
           if (typeof addShake === 'function') addShake(2);
           npc.cryText = ['Вот тебе!', 'Стоять!', 'Получай!', 'Брось оружие!'][Math.floor(Math.random()*4)];
           npc.cryUntil = now + 1000;
+          // Авто-лок на ударившего охранника — как в городе при атаке
+          _autoLockThreat('bank_guard', int.npcs.indexOf(npc));
           // Урон от охраны банка — только локальный, сервер не уведомляем
-          // (иначе server-side arrest вместо local _localDeath → больница)
         }
         // Охранник дерётся до конца — не убегает посреди боя (раньше через
         // 4с переключался в 'panic' и просто убегал, что выглядело как
@@ -27970,6 +27979,8 @@ function _updateBankInterior(dt) {
             flashHitOverlay();
             spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
             try { hapticHit && hapticHit(); } catch(e) {}
+            // Авто-лок на стреляющего охранника
+            _autoLockThreat('bank_guard', int.npcs.indexOf(npc));
           }
           // Выстрел охраны банка — только локальный урон, сервер не уведомляем
         }
@@ -28001,15 +28012,18 @@ function _updateBankInterior(dt) {
     if (_bankInt.room === 'lobby' && player.r < 1.2 && Math.abs(player.c - _bankInt.W/2) < 3.5) {
       _bankInt.room = 'vault';
       _bankInt._vaultEnteredAt = performance.now();
-      player.r = 1.5;  // спавним на севере хранилища (у мешков), не у выхода
+      player.r = 1.5;
       player.c = _bankInt.vaultW / 2;
+      // Чистим пули из пространства лобби — в хранилище другая система координат,
+      // иначе эти пули рендерятся вне экрана (невидимые) но урон уже нанесён.
+      bullets.length = 0; muzzles.length = 0; impacts.length = 0;
       showToast('💰 Хранилище открыто!', '🔓', 1500);
     } else if (_bankInt.room === 'vault' && player.r >= vH - 0.8
                && (performance.now() - (_bankInt._vaultEnteredAt||0)) > 600) {
-      // Выход — игрок дошёл до южной стены; cooldown 600мс чтобы не возвращало сразу
       _bankInt.room = 'lobby';
-      player.r = 2.5;  // не 1.0 — иначе сразу триггерит повторный вход (< 1.2)
+      player.r = 2.5;
       player.c = _bankInt.W / 2;
+      bullets.length = 0; muzzles.length = 0; impacts.length = 0;
     }
   }
   if (player.r>=H-.6){exitBankInterior(!!int.myBag);return;}
