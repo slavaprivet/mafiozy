@@ -1123,7 +1123,7 @@ body.in-pvp #robActionBtn { top: 152px; }
     <div id="bankRobPoliceBar" style="height:6px; background:#333; border-radius:3px; overflow:hidden; margin-top:4px;">
       <div id="bankRobPoliceFill" style="height:100%; background:#ff3030; width:100%; transition:width 0.1s;"></div>
     </div>
-    <div id="bankRobPoliceText" style="font-size:9px; color:#ff7060; margin-top:2px;">Полиция: ожидание</div>
+    <div id="bankRobPoliceText" style="display:none;"></div>
   </div>
   <!-- HUD активного контракта (под верхней панелью) -->
   <div id="gtaQuestHud"></div>
@@ -27532,7 +27532,7 @@ function drawBankSign(bank) {
   ctx.textBaseline = 'top';
   if (busy && _bankRob.alarmTriggered && _bankRob.policeTimer > 0) {
     ctx.fillStyle = '#ff6040';
-    ctx.fillText(`🚨 Полиция ${_bankRob.policeTimer.toFixed(0)}с`, p.x - W / 2 + 28, topY + 17);
+    ctx.fillText('🚨 Тревога!', p.x - W / 2 + 28, topY + 17);
   } else if (busy) {
     ctx.fillStyle = '#ff8040';
     ctx.fillText('🔥 Ограбление идёт', p.x - W / 2 + 28, topY + 17);
