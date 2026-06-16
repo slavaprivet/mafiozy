@@ -6845,6 +6845,10 @@ let _bankRob = null;
 let _vaultDroppedBags = [];  // мешки на земле: [{id,r,c,value,bankId,droppedAt}]
 // Состояние интерьера банка (null = снаружи)
 let _bankInt = null;
+// Персистентность охраны банка: bankId → { [guardIdx]: {dead, deadAt, hp, r, c, ang, state} }
+// Живой охранник сохраняется между заходами; мёртвый респавнится через 10 мин.
+const _bankGuardSave = {};
+const BANK_GUARD_RESPAWN_MS = 10 * 60 * 1000;
 // Клиентские кулдауны банков: bankId → timestamp до которого закрыт
 const _bankCooldowns = {};
 // Вес мешка: 0 = нет мешка, 1 = несу мешок (замедление)
@@ -27691,17 +27695,18 @@ function _bankDoorCoord(bank) { return { r:bank.r+2.8, c:bank.c+1.5 }; }
 
 function _spawnBankNpcs(bank, W, H, counterRow) {
   const sz=bank.size, npcs=[];
-  // Охранник у входа (юг)
-  npcs.push({ type:'guard', r:H-2, c:W/2, state:'normal', look:_BANK_NPC_LOOKS.guard,
+  // Охранник у входа (юг). _guardIdx — стабильный индекс для персистентности
+  // (живые охранники сохраняются между заходами, мёртвые респавнятся раз в 10м).
+  npcs.push({ type:'guard', _guardIdx:0, r:H-2, c:W/2, state:'normal', look:_BANK_NPC_LOOKS.guard,
     walkPhase:0, ang:-Math.PI/2, wanderTimer:2+Math.random()*2, wanderVr:0, wanderVc:0, _alertAt:0,
     hp:100, max_hp:100 });
   // Охранник у хранилища (у прилавка, смотрит на игрока)
-  npcs.push({ type:'guard', r:counterRow-0.8, c:W/2, state:'normal', look:_BANK_NPC_LOOKS.guard2,
+  npcs.push({ type:'guard', _guardIdx:1, r:counterRow-0.8, c:W/2, state:'normal', look:_BANK_NPC_LOOKS.guard2,
     walkPhase:0, ang:Math.PI/2, wanderTimer:3, wanderVr:0, wanderVc:0, _alertAt:0,
     hp:100, max_hp:100 });
   // Третий охранник у боковой стены (medium/large)
   if (sz!=='small') {
-    npcs.push({ type:'guard', r:counterRow+2, c:W-2, state:'normal', look:_BANK_NPC_LOOKS.guard,
+    npcs.push({ type:'guard', _guardIdx:2, r:counterRow+2, c:W-2, state:'normal', look:_BANK_NPC_LOOKS.guard,
       walkPhase:0.5, ang:-Math.PI*0.75, wanderTimer:4, wanderVr:0, wanderVc:0, _alertAt:0,
       hp:100, max_hp:100 });
   }
@@ -27725,6 +27730,51 @@ function _spawnBankNpcs(bank, W, H, counterRow) {
       wanderTimer:Math.random()*3, wanderVr:0, wanderVc:0 });
   }
   return npcs;
+}
+
+// Сохранить состояние охраны банка (вызывается при выходе из интерьера).
+// Гражданские (клиенты/персонал) не сохраняются — приходят/уходят сами.
+function _saveBankGuardState(bank, npcs) {
+  if (!bank || !npcs) return;
+  const m = _bankGuardSave[bank.id] || (_bankGuardSave[bank.id] = {});
+  for (const npc of npcs) {
+    if (npc.type !== 'guard' || npc._guardIdx === undefined) continue;
+    m[npc._guardIdx] = {
+      dead: !!npc.dead, deadAt: npc.deadAt || 0,
+      hp: npc.hp | 0, r: npc.r, c: npc.c, ang: npc.ang,
+    };
+  }
+}
+
+// Применить сохранённое состояние охраны к свежеспавненным NPC.
+// Живой охранник восстанавливается как был (hp/позиция). Мёртвый остаётся
+// мёртвым, пока не пройдёт BANK_GUARD_RESPAWN_MS (10 мин) — тогда респавн
+// (оставляем свежего живого охранника из _spawnBankNpcs).
+function _applyBankGuardState(bank, npcs) {
+  const saved = bank && _bankGuardSave[bank.id];
+  if (!saved) return;
+  const now = performance.now();
+  for (const npc of npcs) {
+    if (npc.type !== 'guard' || npc._guardIdx === undefined) continue;
+    const s = saved[npc._guardIdx];
+    if (!s) continue;
+    if (s.dead) {
+      if (now - (s.deadAt || 0) >= BANK_GUARD_RESPAWN_MS) {
+        // 10 мин прошло — респавн: фиксируем нового живого в сейве
+        s.dead = false; s.deadAt = 0; s.hp = npc.hp;
+      } else {
+        // Ещё мёртв — охранника нет в зале
+        npc.dead = true; npc.deadAt = s.deadAt || now; npc.hp = 0; npc.state = 'fled';
+      }
+    } else {
+      // Живой — восстанавливаем hp/позицию, состояние боя сбрасываем (спокоен)
+      npc.hp = (s.hp > 0 ? s.hp : npc.hp);
+      if (typeof s.r === 'number') npc.r = s.r;
+      if (typeof s.c === 'number') npc.c = s.c;
+      if (typeof s.ang === 'number') npc.ang = s.ang;
+      npc.state = 'normal';
+    }
+  }
 }
 
 function enterBankInterior(bank) {
@@ -27763,6 +27813,9 @@ function enterBankInterior(bank) {
     startedAt:existingRob?_bankRob.startedAt:(performance.now()/1000),
     npcs:_spawnBankNpcs(bank,W,H,counterRow),
     panicAt:vaultOpen?performance.now():null,_snitches:[]};
+  // Восстанавливаем охрану: живые остаются как были, мёртвые висят мёртвыми
+  // до респавна через 10 мин (не плодим новых при каждом заходе).
+  _applyBankGuardState(bank, _bankInt.npcs);
   player.r=H-1.8; player.c=W/2;
   // Мгновенно перемещаем камеру — без lerp-«полёта» из мировых координат
   cam.x=(player.c-player.r)*TS*0.5;
@@ -27779,6 +27832,8 @@ function enterBankInterior(bank) {
 function exitBankInterior(withBag) {
   if (!_bankInt) return;
   const int=_bankInt; _bankInt=null;
+  // Сохраняем состояние охраны для следующего захода (живые/мёртвые+deadAt).
+  _saveBankGuardState(int.bank, int.npcs);
   _myBagWeight=withBag&&int.myBag?1:0;
   const door=_bankDoorCoord(int.bank);
   player.r=door.r; player.c=door.c;
