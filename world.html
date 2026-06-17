@@ -7286,6 +7286,12 @@ let myDeathLeft = 0;      // сколько сек до респауна
 // snap присылает dead=false и мгновенно «воскрешал» бы игрока. Пока флаг
 // активен, snap-поля dead/respawn_in игнорируем, респаун тикаем сами.
 let _localDeath = false;
+// Пока игрок в банке (_bankInt) ИЛИ только что вышел (grace) — серверные
+// dead/jail/hp/cop_shot НЕ применяются. Сервер не знает про интерьер и
+// «убивает» игрока worldCop'ами у входа, а снап с dead=true/jail мог
+// прилететь в первый кадр ПОСЛЕ выхода. _bankShieldUntil закрывает это окно.
+let _bankShieldUntil = 0;
+function _bankShield() { return !!_bankInt || performance.now() < _bankShieldUntil; }
 // Время последнего ЛОКАЛЬНОГО урона по игроку (охрана банка / NPC / копы,
 // которых сервер не моделирует). Пока флаг свежий, серверный снапшот НЕ
 // поднимает myHp обратно вверх (иначе урон «откатывался» и HP казались
@@ -8651,7 +8657,7 @@ function handleEventPacket(d) {
     // Внутри банка серверные копы по игроку «попадать» не должны — он для
     // сервера стоит у входа (savedR/savedC), но физически в интерьере и не
     // может уклоняться. Игнорируем эффекты выстрела/ареста пока _bankInt.
-    if (!d.miss && String(d.target_uid) === String(QP.uid) && !_bankInt) {
+    if (!d.miss && String(d.target_uid) === String(QP.uid) && !_bankShield()) {
       flashHitOverlay();
       addShake(3);
       _autoLockThreat('cop', d.cop_id);
@@ -8659,7 +8665,7 @@ function handleEventPacket(d) {
         myDeathBy = d.jailed ? 'Копы (тюрьма)' : 'Копы';
       }
     }
-    if (d.killed && d.jailed && !(String(d.target_uid) === String(QP.uid) && _bankInt)) {
+    if (d.killed && d.jailed && !(String(d.target_uid) === String(QP.uid) && _bankShield())) {
       // Спавним локальный автозак у точки смерти — все клиенты видят
       // как полиция забирает жертву. Для самого жертвы — overlay+shake.
       spawnArrestAnim(d.target_uid, d.ty, d.tx);
@@ -9699,7 +9705,7 @@ function wsConnect() {
         // Внутри банка HP управляется только локально (_hurtLocal/больница).
         // Сервер не знает об интерьере и шлёт снапы с заниженным HP (копы
         // снаружи «стреляют»). Игнорируем сервер пока _bankInt активен.
-        if (typeof d.me.hp === 'number' && !_bankInt) {
+        if (typeof d.me.hp === 'number' && !_bankShield()) {
           const _localFresh = (performance.now() - _localHpHurtAt) < 2500;
           if (!_localFresh || d.me.hp <= myHp) myHp = d.me.hp;
         }
@@ -9733,7 +9739,7 @@ function wsConnect() {
         // знает про интерьер и думает что worldCops застрелили игрока у
         // входа (стационарная savedC/savedR) → слал dead=true+тюрьму при
         // живых 50% HP. Урон в банке наносит только охрана через _hurtLocal.
-        if (!_localDeath && !_bankInt) {
+        if (!_localDeath && !_bankShield()) {
           myDead = !!d.me.dead;
           myDeathLeft = d.me.respawn_in || 0;
         }
@@ -9848,7 +9854,7 @@ function wsConnect() {
         }
         // Внутри банка не применяем серверный jail_in — пока игрок в
         // интерьере его не должно сажать (он для сервера стоит у входа).
-        if (typeof d.me.jail_in === 'number' && !_bankInt) myJailIn = d.me.jail_in;
+        if (typeof d.me.jail_in === 'number' && !_bankShield()) myJailIn = d.me.jail_in;
         if (typeof d.me.terr_cd === 'number') myTerrCd = d.me.terr_cd;
       }
       // ── Захват районов: владельцы + активный прогресс ────────────
@@ -27055,6 +27061,9 @@ function _updateBankRobHud() {
   // В фазе loading мешок виден над головой — баннер не нужен
   if (!_bankRob) { el.style.display = 'none'; return; }
   if (!_bankInt && _bankRob.phase === 'loading') { el.style.display = 'none'; return; }
+  // Фаза escaping (снаружи после ограбления) — баннер «🚐 УЕЗЖАЕМ» убран,
+  // он мозолил глаза. Статус и так понятен по кнопке «Уехать с добычей».
+  if (_bankRob.phase === 'escaping') { el.style.display = 'none'; return; }
   el.style.display = 'block';
 
   const rob = _bankRob;
@@ -27881,6 +27890,10 @@ function enterBankInterior(bank) {
 function exitBankInterior(withBag) {
   if (!_bankInt) return;
   const int=_bankInt; _bankInt=null;
+  // Щит против серверного dead/jail ещё 6с после выхода: сервер мог
+  // «убить» игрока worldCop'ами пока он был внутри, и снап с этим
+  // прилетит в ближайшие кадры — иначе моментальная смерть/тюрьма.
+  _bankShieldUntil = performance.now() + 6000;
   // Сохраняем состояние охраны для следующего захода (живые/мёртвые+deadAt).
   _saveBankGuardState(int.bank, int.npcs);
   // Гражданские: запоминаем убежавших/убитых ТОЛЬКО пока ограбление активно
