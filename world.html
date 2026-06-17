@@ -6849,6 +6849,12 @@ let _bankInt = null;
 // Живой охранник сохраняется между заходами; мёртвый респавнится через 10 мин.
 const _bankGuardSave = {};
 const BANK_GUARD_RESPAWN_MS = 10 * 60 * 1000;
+// Персистентность гражданских банка: bankId → { [civIdx]: true } — кто убежал
+// или убит во время текущего ограбления. Пока ограбление активно, такие
+// гражданские не появляются при повторном заходе. Когда ограбление завершено
+// (банк ушёл в кулдаун и снова открылся) — запись стирается, все спавнятся
+// заново (в т.ч. убитые «возвращаются»).
+const _bankCivSave = {};
 // Клиентские кулдауны банков: bankId → timestamp до которого закрыт
 const _bankCooldowns = {};
 // Вес мешка: 0 = нет мешка, 1 = несу мешок (замедление)
@@ -27729,6 +27735,13 @@ function _spawnBankNpcs(bank, W, H, counterRow) {
       walkPhase:Math.random()*6.28, ang:Math.random()*6.28,
       wanderTimer:Math.random()*3, wanderVr:0, wanderVc:0 });
   }
+  // Стабильный индекс гражданским (персонал/клиенты/кассир/админ/lounge) —
+  // для персистентности: убежавшие/убитые во время ограбления не появляются
+  // снова при повторном заходе, пока ограбление не завершится (банк откроется).
+  let _ci = 0;
+  for (const npc of npcs) {
+    if (npc.type !== 'guard') npc._civIdx = _ci++;
+  }
   return npcs;
 }
 
@@ -27777,6 +27790,30 @@ function _applyBankGuardState(bank, npcs) {
   }
 }
 
+// Сохранить состояние гражданских (вызывается при выходе ТОЛЬКО если идёт
+// активное ограбление этого банка). Помечаем убежавших/убитых, чтобы при
+// повторном заходе во время того же ограбления они не появлялись снова.
+function _saveBankCivState(bank, npcs) {
+  if (!bank || !npcs) return;
+  const m = _bankCivSave[bank.id] || (_bankCivSave[bank.id] = {});
+  for (const npc of npcs) {
+    if (npc.type === 'guard' || npc._civIdx === undefined) continue;
+    // «Ушёл» = убит или убежал/паникует (выбежал из банка при тревоге)
+    if (npc.dead || npc.state === 'fled' || npc.state === 'panic') {
+      m[npc._civIdx] = true;
+    }
+  }
+}
+
+// Применить состояние гражданских: убежавших/убитых убираем из зала
+// (возвращаются только когда ограбление завершено и банк снова открылся).
+function _applyBankCivState(bank, npcs) {
+  const saved = bank && _bankCivSave[bank.id];
+  if (!saved) return npcs;
+  return npcs.filter(npc =>
+    npc.type === 'guard' || npc._civIdx === undefined || !saved[npc._civIdx]);
+}
+
 function enterBankInterior(bank) {
   if (_bankInt||myDead||myDrivingCarId) return;
   const coolEnd=_bankCooldowns[bank.id];
@@ -27816,6 +27853,14 @@ function enterBankInterior(bank) {
   // Восстанавливаем охрану: живые остаются как были, мёртвые висят мёртвыми
   // до респавна через 10 мин (не плодим новых при каждом заходе).
   _applyBankGuardState(bank, _bankInt.npcs);
+  // Гражданские: пока идёт это ограбление — убежавшие/убитые не появляются
+  // снова. Если ограбления нет (банк открылся после кулдауна) — стираем
+  // память и спавним всех свежими (убитые «возвращаются»).
+  if (existingRob) {
+    _bankInt.npcs = _applyBankCivState(bank, _bankInt.npcs);
+  } else {
+    delete _bankCivSave[bank.id];
+  }
   player.r=H-1.8; player.c=W/2;
   // Мгновенно перемещаем камеру — без lerp-«полёта» из мировых координат
   cam.x=(player.c-player.r)*TS*0.5;
@@ -27834,6 +27879,14 @@ function exitBankInterior(withBag) {
   const int=_bankInt; _bankInt=null;
   // Сохраняем состояние охраны для следующего захода (живые/мёртвые+deadAt).
   _saveBankGuardState(int.bank, int.npcs);
+  // Гражданские: запоминаем убежавших/убитых ТОЛЬКО пока ограбление активно
+  // (есть _bankRob для этого банка). Иначе ограбление завершено — стираем,
+  // при следующем заходе зал снова полон (убитые возвращаются).
+  if (_bankRob && _bankRob.bank && _bankRob.bank.id === int.bank.id) {
+    _saveBankCivState(int.bank, int.npcs);
+  } else {
+    delete _bankCivSave[int.bank.id];
+  }
   _myBagWeight=withBag&&int.myBag?1:0;
   const door=_bankDoorCoord(int.bank);
   player.r=door.r; player.c=door.c;
