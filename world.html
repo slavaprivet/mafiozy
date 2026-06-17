@@ -9729,7 +9729,11 @@ function wsConnect() {
         const wasDead = myDead;
         // При локальной смерти (охрана банка) сервер присылает dead=false —
         // не даём ему мгновенно «воскресить», респаун ведём сами в update().
-        if (!_localDeath) {
+        // ВНУТРИ БАНКА серверный dead/jail игнорируем полностью: сервер не
+        // знает про интерьер и думает что worldCops застрелили игрока у
+        // входа (стационарная savedC/savedR) → слал dead=true+тюрьму при
+        // живых 50% HP. Урон в банке наносит только охрана через _hurtLocal.
+        if (!_localDeath && !_bankInt) {
           myDead = !!d.me.dead;
           myDeathLeft = d.me.respawn_in || 0;
         }
