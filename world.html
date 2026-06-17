@@ -27880,6 +27880,11 @@ function enterBankInterior(bank) {
   cam.y=(player.c+player.r)*TS*0.5*ISO_Y;
   showToast(vaultOpen?`🏦 ${bank.name} — хранилище открыто!`:`🏦 ${bank.name}`,vaultOpen?'💰':'🏦',2000);
   try{hapticHit&&hapticHit();}catch(e){}
+  // Сообщаем серверу что игрок в интерьере → worldCop'ы его не трогают
+  // (сервер держит позицию у входа, иначе убивали «сквозь стены»).
+  if (ws&&ws.readyState===1){
+    try{ws.send(JSON.stringify({t:'bank_enter',d:{bank_id:bank.id}}));}catch(e){}
+  }
   // bank_rob_start шлём только когда реально начинаем взлом (не при входе)
   if (vaultOpen&&ws&&ws.readyState===1){
     try{ws.send(JSON.stringify({t:'bank_rob_start',d:{bank_id:bank.id}}));}catch(e){}
@@ -27890,6 +27895,10 @@ function enterBankInterior(bank) {
 function exitBankInterior(withBag) {
   if (!_bankInt) return;
   const int=_bankInt; _bankInt=null;
+  // Сообщаем серверу что вышли из интерьера → копы снова могут преследовать.
+  if (ws&&ws.readyState===1){
+    try{ws.send(JSON.stringify({t:'bank_exit',d:{bank_id:int.bank.id}}));}catch(e){}
+  }
   // Щит против серверного dead/jail ещё 6с после выхода: сервер мог
   // «убить» игрока worldCop'ами пока он был внутри, и снап с этим
   // прилетит в ближайшие кадры — иначе моментальная смерть/тюрьма.

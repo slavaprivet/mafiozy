@@ -13224,6 +13224,12 @@ class WorldSim:
                 continue
             if self._in_lair_zone(p.get('x', 0), p.get('y', 0)):
                 continue   # копы не лезут в Логово
+            # Игрок внутри интерьера (банк) — он физически в банк-комнате,
+            # сервер держит его позицию у входа. worldCop'ы НЕ должны на него
+            # выезжать/стрелять, иначе убивали «сквозь стены банка» и сажали
+            # при живых HP. Клиент шлёт bank_enter/bank_exit (+ авто-таймаут).
+            if p.get('_in_interior') and now < (p.get('_in_interior_until') or 0):
+                continue
             lvl = self._wanted_level(p)
             if lvl >= 1:
                 wanted_targets.append((p, lvl))
@@ -13341,6 +13347,10 @@ class WorldSim:
                 continue
             target = self.players.get(cop['target_uid'])
             if not target or target.get('dead'):
+                continue
+            # Цель укрылась в интерьере (банк) — коп замирает, не стреляет.
+            # При выходе (bank_exit / таймаут) преследование возобновится.
+            if target.get('_in_interior') and now < (target.get('_in_interior_until') or 0):
                 continue
             t_lvl = self._wanted_level(target)
             dx = target['x'] - cop['x']
@@ -18178,11 +18188,31 @@ async def _coop_http_app():
                                  'd': dict(reply, kind='citycop_arrest_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'bank_enter':
+                        # Игрок вошёл в интерьер банка. Пока флаг стоит,
+                        # worldCop'ы его не трогают (он физически в банк-комнате,
+                        # сервер держит позицию у входа). Авто-таймаут 15 мин на
+                        # случай если клиент не пришлёт bank_exit (краш/выход).
+                        p = world.players.get(uid)
+                        if p:
+                            p['_in_interior'] = True
+                            p['_in_interior_until'] = time.time() + 900
+                    elif t == 'bank_exit':
+                        # Игрок вышел из банка — снимаем щит, копы возобновляют
+                        # преследование (если ещё wanted).
+                        p = world.players.get(uid)
+                        if p:
+                            p['_in_interior'] = False
+                            p['_in_interior_until'] = 0
                     elif t == 'bank_rob_start':
                         # Одиночное ограбление банка: игрок нажал «Взломать» внутри.
                         # Даём wanted +2, оповещаем всех игроков мира.
                         p = world.players.get(uid)
                         bank_id = (d or {}).get('bank_id') if isinstance(d, dict) else None
+                        # Взлом идёт ВНУТРИ — подтверждаем щит интерьера.
+                        if p:
+                            p['_in_interior'] = True
+                            p['_in_interior_until'] = time.time() + 900
                         if p and not p.get('dead') and bank_id:
                             # Wanted +2 за ограбление банка
                             p['_wanted'] = min(3, float(p.get('_wanted') or 0) + 2)
