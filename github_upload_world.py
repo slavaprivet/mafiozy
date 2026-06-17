@@ -14,22 +14,52 @@ _builtins.input = _maybe_input
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
-_TOKEN_FILE = os.path.join(_HERE, ".token")
-try:
-    with open(_TOKEN_FILE, "r", encoding="utf-8") as _f:
-        TOKEN = _f.read().strip()
-    if not TOKEN.startswith("ghp_"):
-        print("[!] .token не похож на GitHub-токен (должен начинаться с 'ghp_')")
-        input("Press Enter to exit..."); sys.exit(1)
-except FileNotFoundError:
-    print(f"[!] Файл .token не найден: {_TOKEN_FILE}")
+# Источник: аргумент командной строки ИЛИ world.html рядом со скриптом.
+# Это даёт заливать прямо из git-воркtри (python .../github_upload_world.py)
+# без ручного копирования файла в основной путь.
+SRC = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(_HERE, "world.html")
+
+# .token ищем: рядом со скриптом → в основном проекте → вверх по дереву.
+# (в git-воркtри .token обычно нет — он лежит в основном Desktop\Мафиози.)
+def _find_token():
+    candidates = [
+        os.path.join(_HERE, ".token"),
+        os.path.join(os.path.dirname(SRC), ".token"),
+        r"C:\Users\Слава\Desktop\Мафиози\.token",
+    ]
+    d = _HERE
+    for _ in range(6):
+        candidates.append(os.path.join(d, ".token"))
+        d = os.path.dirname(d)
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
+_TOKEN_FILE = _find_token()
+if not _TOKEN_FILE:
+    print("[!] Файл .token не найден ни рядом со скриптом, ни в основном проекте")
+    input("Press Enter to exit..."); sys.exit(1)
+with open(_TOKEN_FILE, "r", encoding="utf-8") as _f:
+    TOKEN = _f.read().strip()
+if not TOKEN.startswith("ghp_"):
+    print("[!] .token не похож на GitHub-токен (должен начинаться с 'ghp_')")
     input("Press Enter to exit..."); sys.exit(1)
 
 REPO   = "slavaprivet/mafiozi-battle"
 BRANCH = "main"
-SRC    = os.path.join(_HERE, "world.html")
 FILE   = "world.html"
 stamp  = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+# ── Проверка синтаксиса JS ДО заливки (не дать залить «белый экран») ──
+try:
+    from check_world import check_html_js
+    print("\n[0] Проверка синтаксиса JS (node --check)...")
+    if check_html_js(SRC) != 0:
+        print("[!] СИНТАКСИЧЕСКАЯ ОШИБКА — заливка отменена. Исправь и повтори.")
+        input("Press Enter to exit..."); sys.exit(3)
+except ImportError:
+    print("[i] check_world.py рядом не найден — пропускаю проверку синтаксиса")
 
 print()
 print("=" * 64)

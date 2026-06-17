@@ -1,0 +1,482 @@
+# ИНДЕКС mafiozi_bot.py (СЕРВЕР) — символ → строка (категория)
+# Сгенерировано gen_index_bot.py. Строк: 19094, def: 401, class: 4, WS-обработчиков t==: 46.
+# ВАЖНО: строки могли сместиться — для точной строки Grep по имени.
+
+## Классы  (4)
+  class _StreetEvents  :3877
+  class IsoBattleSim  :10442
+  class TEXT  :756
+  class WorldSim  :11484
+
+## бд/хранение  (4)
+  init_db  :748
+  start_battle_db  :1247
+  start_coop_battle_db  :1271
+  start_raid_battle_db  :1259
+
+## бой/урон/смерть  (26)
+  _best_prop_skill  :1230
+  _enemy_shoots (метод)  :11153
+  _pick_aggro_weapon (метод)  :13801
+  _player_dies_for_real (метод)  :10683
+  aggro_shoot_bot (метод)  :14068
+  apply_event_shoot (метод)  :12908
+  apply_hit (метод)  :11184
+  apply_mg_shoot (метод)  :15066
+  apply_player_shoot (метод)  :12960
+  apply_stealth_kill (метод)  :10962
+  calc_damage  :2050
+  cancel_capture_on_player_killed (метод)  :15257
+  city_gang_shoot_bot (метод)  :14407
+  coop_skill  :5567
+  found_weapon_part (метод)  :4090
+  gang_nest_shoot_bot (метод)  :15116
+  get_prop_skills  :1220
+  h_skill_upgrade (метод)  :17283
+  hospital_heal  :8319
+  hp_bar  :2054
+  merc_heal  :9798
+  set_respawn_point (метод)  :12800
+  tick_respawn (метод)  :12820
+  update_merc_hp  :1429
+  update_raid_boss_hp  :1129
+  world_heal (метод)  :12463
+
+## игрок/профиль  (19)
+  _aggro_spawn (метод)  :13701
+  _apply_aoe_to_players (метод)  :10809
+  _coop_boss_for_session  :5039
+  _coop_rand_look  :10301
+  _coop_spawn_world  :10326
+  _player_goes_down (метод)  :10652
+  _spawn_beachgoer (метод)  :14682
+  _spawn_city_gang (метод)  :14159
+  _spawn_gang_nest (метод)  :14454
+  _spawn_michael_guards (метод)  :14945
+  add_player (метод)  :10484
+  build_iso_url_for_user  :2552
+  close_coop_session  :1503
+  create_coop_session  :1437
+  get_coop_session  :1451
+  get_top_players  :1776
+  spawn_event (метод)  :12555
+  top_players  :8028
+  update_coop_session  :1493
+
+## копы/розыск  (13)
+  _bump_wanted (метод)  :13123
+  _cop_kind_for_level (метод)  :13186
+  _cops_needed_for_level (метод)  :13191
+  _dispatch_cops_on_gang (метод)  :14389
+  _tick_cop_vs_gang (метод)  :13454
+  _wanted_level (метод)  :13172
+  apply_cop_shoot (метод)  :13539
+  apply_wanted_fine  :1916
+  cop_bribe (метод)  :3881
+  rival_snitch (метод)  :4174
+  spawn_cop (метод)  :13132
+  tick_cops (метод)  :13196
+  witness (метод)  :3897
+
+## машины/трафик  (6)
+  _file_cache_bust  :121
+  ambush (метод)  :4158
+  get_business  :3736
+  gta_drive (метод)  :12312
+  pick_business_event  :3784
+  tick_quest_cars (метод)  :12521
+
+## прочее  (235)
+  __init__ (метод)  :10453
+  __init__ (метод)  :11875
+  _alert (метод)  :10594
+  _can_see (метод)  :10572
+  _check_and_start_coop  :5802
+  _check_corpse_alert (метод)  :10628
+  _clear_district_photo  :68
+  _coop_add_log  :9974
+  _coop_auto_start_task  :5714
+  _coop_calc_dmg  :9968
+  _coop_evaluate_lobby  :10002
+  _coop_fetch_char_stats  :15803
+  _coop_gen_sid  :9939
+  _coop_http_app  :15838
+  _coop_init_iso  :10048
+  _coop_init_sim  :11325
+  _coop_next_turn  :9980
+  _coop_pick_minion_arch  :10316
+  _cors (метод)  :15845
+  _dist_to_segment  :11468
+  _edit_text  :77
+  _enqueue_bot_shot (метод)  :13812
+  _error_handler (метод)  :19071
+  _in_arena (метод)  :13098
+  _in_drop_zone (метод)  :12134
+  _in_pvp_zone (метод)  :13087
+  _is_merc (метод)  :8718
+  _job_remaining_sec  :2916
+  _job_state  :2904
+  _mulberry32  :10287
+  _notify_friends_about_coop  :9899
+  _post_init (метод)  :18898
+  _process_coop_turn  :5350
+  _random_beach_pos (метод)  :14668
+  _random_city_road_pos (метод)  :12138
+  _safe (метод)  :2278
+  _show_hunt_prep  :4697
+  _show_merc_select  :4869
+  _show_raid_prep  :9519
+  _start_coop_battle_for_all  :5654
+  _terr_color (метод)  :13585
+  _update_contact_used  :9251
+  abandon_battle  :6471
+  add_contact  :1834
+  add_item  :1186
+  add_or_update (метод)  :11963
+  alert_beachgoers (метод)  :14708
+  apply_chat (метод)  :12123
+  apply_medkit (метод)  :10748
+  apply_revive (метод)  :10708
+  attack_label  :2391
+  back_kb  :2569
+  battle_action  :6017
+  battle_kb  :2406
+  box_abandon (метод)  :14895
+  box_deliver (метод)  :14869
+  box_pickup (метод)  :14855
+  box_status (метод)  :14910
+  box_take (метод)  :14806
+  broken_bottle (метод)  :3955
+  build_battle_url  :2430
+  build_hub_url  :2123
+  build_hub_url_coop  :2270
+  build_iso_url  :2496
+  cancel_all_coop  :1517
+  cancel_invoice  :8095
+  cancel_old_coop_invites  :1508
+  captivity_bail  :3240
+  captivity_kb  :2897
+  captivity_wait  :3267
+  casino_menu  :8367
+  casino_spin  :8392
+  character_info  :7792
+  check_level_up  :2071
+  check_sub  :9148
+  choose_name  :2749
+  civilian_hijack_start (метод)  :12234
+  close_raid  :1134
+  collect_district_cb  :6434
+  collect_district_income  :1352
+  confirm_stars  :8073
+  contacts_kb  :2335
+  coop_accept  :5246
+  coop_attack  :5561
+  coop_cancel_auto  :5980
+  coop_cancel_invite  :5587
+  coop_decline  :5320
+  coop_flee_action  :5579
+  coop_potion  :5573
+  create_character  :1164
+  create_raid  :1097
+  creator_kb  :2356
+  debt_collector (метод)  :3972
+  diamonds_menu  :8043
+  district_guard_menu  :9430
+  dmg_range  :2398
+  dog_bite (метод)  :3922
+  drug_dealer (метод)  :4074
+  encounter_action  :8517
+  end_battle  :1284
+  equip_item  :7918
+  exp_for_level  :741
+  expire_old_raids  :1139
+  explore  :3279
+  fake_deal (метод)  :4195
+  format_duration  :1969
+  found_stash (метод)  :4233
+  frame_up (метод)  :3988
+  free_ride (метод)  :4264
+  friend_daily_income  :8183
+  gather  :4534
+  get_active_raid  :1112
+  get_battle  :1209
+  get_character  :1157
+  get_contacts  :1812
+  get_coop_by_participant  :1461
+  get_district_control  :1304
+  get_effective_attack  :2063
+  get_effective_defense  :2067
+  get_friend_collect  :1752
+  get_friends  :1527
+  get_guard_member_ids  :1312
+  get_inventory  :1181
+  get_leaderboard  :1781
+  get_my_districts  :1371
+  get_pending_coop_by_host  :1477
+  get_pending_notifications  :1643
+  get_property  :1850
+  get_raid_by_id  :1122
+  get_status_points  :1885
+  girl (метод)  :4027
+  gta_crash (метод)  :12353
+  gta_enter (метод)  :12272
+  gta_exit (метод)  :12397
+  gta_status (метод)  :12487
+  gta_take (метод)  :12149
+  guard_toggle  :9476
+  h_app_version (метод)  :18802
+  h_attack (метод)  :15996
+  h_battle_result (метод)  :18629
+  h_cancel (метод)  :16316
+  h_coop_pending (метод)  :18749
+  h_create (метод)  :15853
+  h_friend_add (метод)  :16375
+  h_friend_list (метод)  :16409
+  h_get (метод)  :15951
+  h_inv_equip (метод)  :17114
+  h_inv_list (метод)  :17080
+  h_iso (метод)  :16231
+  h_job_abandon (метод)  :16726
+  h_job_collect (метод)  :16622
+  h_job_complete (метод)  :16591
+  h_job_state (метод)  :16568
+  h_job_take (метод)  :16527
+  h_join (метод)  :15915
+  h_leave (метод)  :16322
+  h_notify_pending (метод)  :16506
+  h_notify_poll (метод)  :18816
+  h_notify_seen (метод)  :16515
+  h_options (метод)  :15850
+  h_ready (метод)  :15963
+  h_safe_loot (метод)  :17321
+  h_start (метод)  :15985
+  hospital  :8277
+  hunt  :4625
+  hunt_add_friend  :5000
+  hunt_add_mercs  :4858
+  hunt_back_prep  :4851
+  hunt_friends_list  :4766
+  hunt_invite_friend  :5076
+  hunt_merc_filter  :4990
+  hunt_merc_toggle  :4947
+  hunt_start  :5810
+  hunt_start_now  :5946
+  intel_attack  :8848
+  inventory_view  :7875
+  is_in_hospital  :4593
+  is_subscribed  :1892
+  job_collect  :3105
+  job_hire  :3067
+  job_info  :3037
+  job_need_passport  :3231
+  job_quit_confirm  :3186
+  job_quit_do  :3208
+  jobs_menu  :2923
+  leave_hospital_cb  :4599
+  level_progress  :2058
+  locked_cb  :8492
+  lucky_bet (метод)  :4043
+  main  :18897
+  main_menu  :2802
+  main_menu_kb  :2115
+  mark_notifications_seen  :1654
+  md  :62
+  medkit_found (метод)  :4281
+  merc_row (метод)  :4883
+  my_contacts  :9216
+  my_districts  :8765
+  my_property  :9325
+  old_debt (метод)  :4058
+  pickpocket (метод)  :3939
+  precheckout  :8104
+  process_regen  :2014
+  protection_fee (метод)  :4296
+  queue_notification  :1627
+  raid_add_mercs  :9620
+  raid_battle_start  :9666
+  raid_defend  :9581
+  raid_flee  :9846
+  raid_invite_friend  :5183
+  rand (метод)  :10292
+  random_contact_name  :489
+  remove (метод)  :12068
+  remove_item  :1196
+  rep_bonus (метод)  :4249
+  set_friend_collect  :1762
+  shell_game (метод)  :4142
+  show_dossier  :4311
+  show_dossier_file  :4355
+  show_location  :4416
+  subscription_required_kb  :1908
+  tax_audit (метод)  :4122
+  tip_from_informant (метод)  :4105
+  track_cb  :8495
+  try_random_encounter  :3306
+  unequip_item  :7927
+  update_battle  :1289
+  update_battle_party  :1241
+  update_character  :1173
+  update_district_guard  :1330
+  update_member_collected  :1771
+  use_contact  :1843
+  use_contact_cb  :9257
+  use_item  :7902
+  vandal_attack (метод)  :4211
+
+## снапшот/сеть  (11)
+  _biz_owned_sync (метод)  :12791
+  _hub_send_section  :6549
+  _send_coop_hub_update  :2308
+  _send_coop_turn  :5051
+  apply_input (метод)  :10519
+  apply_input (метод)  :12072
+  broadcast (метод)  :11306
+  h_world_ws (метод)  :17393
+  h_ws_sim (метод)  :16048
+  make_snapshot (метод)  :11239
+  snapshot_for (метод)  :15265
+
+## события/мир  (20)
+  _iso_run_sim_loop  :11354
+  _start_tracked_boss_fight  :8936
+  _tick_boss_specials (метод)  :10845
+  _world_get  :15630
+  _world_is_wall  :11420
+  _world_los  :11452
+  _world_run_loop  :15639
+  alert_michael_guards (метод)  :14971
+  h_event_tick (метод)  :17149
+  h_world_battle_url (метод)  :18590
+  h_world_incomes (метод)  :18563
+  h_world_online (метод)  :18544
+  pick_hub_event  :3810
+  pick_post_battle_event  :3825
+  tick (метод)  :11002
+  tick_beachgoers (метод)  :14730
+  tick_event (метод)  :12610
+  tick_michael_guards (метод)  :14986
+  tick_pending_bot_shots (метод)  :13843
+  try_street_event  :3838
+
+## телеграм/команды  (3)
+  battle_grenade_webapp  :6496
+  battle_webapp_action  :6742
+  cmd_start  :2576
+
+## территории/банды  (32)
+  _cancel_active_capture (метод)  :13604
+  _in_lair_zone (метод)  :13110
+  _territory_at (метод)  :13593
+  add_gang_member  :1389
+  apply_capture_cancel (метод)  :13691
+  apply_capture_try (метод)  :13618
+  calc_gang_max  :8169
+  capture_district  :1341
+  capture_district_cb  :6405
+  gang_friend_collect  :9102
+  gang_friends_menu  :9039
+  gang_kick  :8857
+  gang_kick_do  :8877
+  gang_menu  :8621
+  gang_mercs_screen  :8707
+  gang_nocollect  :8891
+  gang_pool_add  :1579
+  gang_role_info  :9129
+  gang_roles_info  :9015
+  gang_view  :8820
+  get_gang  :1381
+  get_gang_leader_id  :1548
+  get_gang_members  :1567
+  get_gang_pool  :1607
+  h_gang_claim (метод)  :16495
+  h_gang_name (метод)  :16466
+  h_gang_pool (метод)  :16420
+  remove_gang_member  :1400
+  tick_aggro (метод)  :13885
+  tick_capture (метод)  :15160
+  tick_city_gangs (метод)  :14223
+  tick_gang_nests (метод)  :14538
+
+## тюрьма/арест  (5)
+  _in_jail (метод)  :13103
+  jail_bail  :9175
+  jail_kb  :1928
+  jail_wait  :9201
+  tick_jail_release (метод)  :12878
+
+## экономика  (27)
+  _biz_pending_income (метод)  :16740
+  _coop_grant_rewards  :10071
+  _gang_payout_loop  :1725
+  auto_payout_one_gang  :1666
+  buy_crystal_item  :8010
+  buy_item  :7988
+  buy_prop  :9386
+  buy_property_db  :1868
+  buy_stars  :8055
+  calc_job_pay  :1938
+  find_money (метод)  :4011
+  gang_buy_merc  :8894
+  h_biz_buy (метод)  :16793
+  h_biz_collect (метод)  :16840
+  h_biz_list (метод)  :16756
+  h_biz_restore (метод)  :16925
+  h_shop_buy (метод)  :17034
+  h_shop_list (метод)  :16976
+  process_job_autopay  :1980
+  sell_prop  :9407
+  sell_property_db  :1877
+  shop  :7940
+  shop_equipment  :7969
+  shop_potions  :7960
+  shop_premium  :7978
+  shop_property  :9348
+  successful_payment  :8107
+
+## WS-обработчики (t == '...')
+  'aggro_shoot'  :17692
+  'bank_bag_drop'  :18288
+  'bank_rob_bag_loaded'  :18207
+  'bank_rob_deliver'  :18217
+  'bank_rob_start'  :18181
+  'box_abandon'  :18476
+  'box_deliver'  :18469
+  'box_pickup'  :18462
+  'box_status'  :18484
+  'box_take'  :18455
+  'brigadir_claim'  :18085
+  'brigadir_kill'  :18055
+  'brigadir_take'  :18008
+  'capture_cancel'  :17785
+  'capture_try'  :17776
+  'chat'  :17519
+  'citycop_arrest'  :18138
+  'civilian_carjack'  :17877
+  'cop_shoot'  :17669
+  'event_shoot'  :17521
+  'fuel_buy'  :17862
+  'gang_dmg'  :18342
+  'grenade'  :16124
+  'gta_crash'  :18392
+  'gta_drive'  :18338
+  'gta_enter'  :18328
+  'gta_exit'  :18407
+  'gta_status'  :18440
+  'gta_take'  :18300
+  'hit'  :16103
+  'input'  :16101
+  'input'  :17517
+  'leave'  :16209
+  'mg_shoot'  :17681
+  'open_fire'  :17792
+  'ping'  :16199
+  'ping'  :18297
+  'player_shoot'  :17579
+  'respawn_status'  :18502
+  'revive'  :16165
+  'set_respawn_point'  :18491
+  'shoot'  :16145
+  'shop_rob'  :17922
+  'stealth_kill'  :16188
+  'use_medkit'  :16172
+  'world_heal'  :18447
