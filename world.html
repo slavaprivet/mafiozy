@@ -13410,7 +13410,8 @@ function updatePvpUI() {
     const lvl = Math.max(myWanted, myGangs);
     if (lvl > 0) {
       const parts = [];
-      if (myWanted > 0) parts.push('⭐'.repeat(myWanted) + ' WANTED');
+      // Звёзды копов (WANTED) в баннере УБРАНЫ по ТЗ — они теперь только над
+      // головой персонажа (drawWantedStars). В баннере оставляем лишь кулачки банд.
       if (myGangs  > 0) parts.push('👊'.repeat(myGangs) + (myGangs >= 3 ? ' КОНТРАКТ' : ''));
       _wantedHudEl.textContent = parts.join('  ');
       _wantedHudEl.classList.remove('lvl1','lvl2','lvl3');
