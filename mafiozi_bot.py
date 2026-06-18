@@ -460,7 +460,7 @@ STREET_WITNESS_CD     = 3 * 3600   # 3 часа
 STREET_EVENT_CD       = 1 * 3600
 STREET_GLOBAL_CD      = 4 * 60    # 4 мин глобальный кулдаун между событиями
 WANTED_FINE        = 50     # штраф в $ за сутки при 2 звёздах
-JAIL_DURATION      = 60 * 60  # 60 минут тюрьмы (3 звезда)
+JAIL_DURATION      = 60       # 1 минута тюрьмы (макс срок по ТЗ)
 CAPTIVITY_DURATION = 60 * 60  # 60 минут плена банд (3 звезды банд)
 CAPTIVITY_BAIL_DIAMONDS = 2   # 💎 для выкупа из плена банд
 JOB_DURATION       = 60 * 60  # 60 минут — длительность 1 контракта работы
@@ -18158,7 +18158,7 @@ async def _coop_http_app():
                         # копов — это всё-таки лёгкое задержание). Звёзды
                         # сбрасываются в 0, и в БД тоже (wanted_stars = 0), чтобы
                         # повторная сессия не подняла их обратно.
-                        CITYCOP_JAIL_S = 5 * 60
+                        CITYCOP_JAIL_S = 60   # 1 минута (макс срок по ТЗ)
                         p = world.players.get(uid)
                         reply = {'ok': False, 'reason': 'unknown'}
                         if not p or p.get('dead'):
@@ -18175,10 +18175,13 @@ async def _coop_http_app():
                             p['_jail_released'] = False
                             p['_wanted']        = 0.0
                             p['_cop_kills']     = 0
-                            # Синхронизируем wanted_stars в БД на 0 (чтобы при
-                            # следующей сессии не «вспомнить» звёзды).
+                            # Синхронизируем wanted_stars в БД на 0 И пишем
+                            # jail_until в БД — иначе reload страницы (новый
+                            # коннект грузит _jail_until из БД) выпускал из
+                            # тюрьмы досрочно (эксплойт).
                             try:
-                                await update_character(int(uid), wanted_stars=0)
+                                await update_character(int(uid), wanted_stars=0,
+                                                       jail_until=now_ts + CITYCOP_JAIL_S)
                             except Exception:
                                 pass
                             reply = {'ok': True, 'jail_s': CITYCOP_JAIL_S}
@@ -18214,26 +18217,39 @@ async def _coop_http_app():
                             p['_in_interior'] = True
                             p['_in_interior_until'] = time.time() + 900
                         if p and not p.get('dead') and bank_id:
-                            # Wanted +2 за ограбление банка
-                            p['_wanted'] = min(3, float(p.get('_wanted') or 0) + 2)
-                            pname = p.get('name') or 'Неизвестный'
-                            bank_names = {'small': 'Банк «Окраина»', 'medium': 'Банк «Район»', 'large': 'Банк «Центральный»'}
-                            bank_label = bank_names.get(bank_id, f'Банк {bank_id}')
-                            announce_pkt = json.dumps({'t': 'event', 'd': {
-                                'kind': 'bank_rob_announce',
-                                'bank_id': bank_id,
-                                'robber': pname,
-                                'msg': f'🚨 {pname} грабит {bank_label}!'
-                            }}, ensure_ascii=False)
-                            for _u, _ws2 in list(world.connections.items()):
-                                try: await _ws2.send_str(announce_pkt)
-                                except Exception: pass
-                            # Сохранить состояние ограбления
+                            # Звёзды при вскрытии НЕ даём (по ТЗ: копы докапываются
+                            # только когда видят игрока с мешком — клиент шлёт
+                            # cop_spotted_bag). Уведомление всем — НЕ тут (это лишь
+                            # нажатие «Взломать»), а при ФАКТИЧЕСКОМ вскрытии —
+                            # см. обработчик t == 'bank_rob_announce' ниже.
                             world.bank_robs[bank_id] = {
                                 'bags_loaded': 0,
                                 'started_at': time.time(),
                                 'robber_uid': uid,
                             }
+                    elif t == 'cop_spotted_bag':
+                        # Патрульный коп заметил игрока с НЕСОМЫМ мешком денег →
+                        # розыск +2★ (по ТЗ: только когда мешок в руках; мешок в
+                        # машине не виден). Клиент шлёт раз в 8с.
+                        p = world.players.get(uid)
+                        if p and not p.get('dead'):
+                            p['_wanted'] = min(3, float(p.get('_wanted') or 0) + 2)
+                    elif t == 'bank_rob_announce':
+                        # Хранилище ВСКРЫТО (клиент шлёт при vault_open) — рассылаем
+                        # ВСЕМ игрокам мира «Вскрыто хранилище банка X».
+                        p = world.players.get(uid)
+                        bank_id = (d or {}).get('bank_id') if isinstance(d, dict) else None
+                        if p and bank_id:
+                            bank_names = {'small': 'Банк «Окраина»', 'medium': 'Банк «Район»', 'large': 'Банк «Центральный»'}
+                            bank_label = bank_names.get(bank_id, f'Банк {bank_id}')
+                            announce_pkt = json.dumps({'t': 'event', 'd': {
+                                'kind': 'bank_rob_announce',
+                                'bank_id': bank_id,
+                                'msg': f'🚨 Вскрыто хранилище — {bank_label}!'
+                            }}, ensure_ascii=False)
+                            for _u, _ws2 in list(world.connections.items()):
+                                try: await _ws2.send_str(announce_pkt)
+                                except Exception: pass
                     elif t == 'bank_rob_bag_loaded':
                         p = world.players.get(uid)
                         bank_id = (d or {}).get('bank_id')

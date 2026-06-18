@@ -488,10 +488,16 @@ body.in-pvp #robActionBtn { top: 152px; }
    текст в правом верхнем углу. Когда игра замёрзнет, последние строки
    останутся на экране — юзер скриншотит и шлёт мне. */
 #debugHud {
-  display: none;  /* heartbeat пишет в консоль, экранный оверлей скрыт */
+  position: absolute; right: 6px; top: 50px;
+  background: rgba(0,0,0,.78); color: #8fff8f;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 9px; padding: 4px 6px; border-radius: 4px;
+  z-index: 99; pointer-events: none; max-width: 230px;
+  line-height: 1.3; white-space: pre;
+  border: 1px solid rgba(143,255,143,.3);
 }
-#debugHud.warn { }
-#debugHud.err  { }
+#debugHud.warn { color: #ffd76b; border-color: rgba(255,215,107,.5); }
+#debugHud.err  { color: #ff7878; border-color: rgba(255,120,120,.7); }
 /* Countdown «До инкассатора» — небольшой баннер сверху, виден всем */
 #cdHud {
   position: absolute; left: 50%; transform: translateX(-50%); top: 14px;
@@ -1114,17 +1120,10 @@ body.in-pvp #robActionBtn { top: 152px; }
       <div class="rob-hint">Уйдёшь / умрёшь — отмена</div>
     </div>
   </div>
-  <!-- HUD ограбления банка -->
-  <div id="bankRobHud" style="display:none; position:fixed; top:165px; left:50%; transform:translateX(-50%);
-       background:linear-gradient(180deg,#1a0a08,#2a0e08); border:2px solid #ff4020; border-radius:14px;
-       padding:10px 16px; min-width:220px; z-index:9; color:#fff; font-family:inherit; text-align:center;">
-    <div id="bankRobPhaseText" style="font-size:13px; font-weight:800; color:#ff8060;">ОГРАБЛЕНИЕ</div>
-    <div id="bankRobBagCount" style="font-size:11px; color:#ffd76b; margin:2px 0;">Мешки: 0/0</div>
-    <div id="bankRobPoliceBar" style="height:6px; background:#333; border-radius:3px; overflow:hidden; margin-top:4px;">
-      <div id="bankRobPoliceFill" style="height:100%; background:#ff3030; width:100%; transition:width 0.1s;"></div>
-    </div>
-    <div id="bankRobPoliceText" style="display:none;"></div>
-  </div>
+  <!-- HUD ограбления банка убран по запросу: лишние таблички «ОГРАБЛЕНИЕ» и
+       таймер приезда копов не нужны. Весь div bankRobHud удалён; связанные
+       _updateBankRobHud() и интерьерная логика безопасно no-op (везде
+       getElementById + null-guard, элементов больше нет в DOM). -->
   <!-- HUD активного контракта (под верхней панелью) -->
   <div id="gtaQuestHud"></div>
   <!-- Модал-меню Майкла -->
@@ -4088,6 +4087,25 @@ function updateCityCops(dt) {
   // никакого преследования/ареста/реакции на игрока.
   const playerWanted = (typeof myWanted === 'number') && myWanted >= 1
     && !myDead && !(typeof myJailIn === 'number' && myJailIn > 0) && !_bankInt;
+  // ── #3: копы докапываются ТОЛЬКО когда видят игрока с НЕСОМЫМ мешком ──
+  // При грабеже мешает лишь охрана банка; копов на улице компромат интересует
+  // только если мешок в руках. Мешок в машине — не видно, игнорируют. Несём
+  // руками и рядом патрульный → шлём серверу запрос на +2★ (раз в 8с).
+  if (_bankRob && _bankRob.myBag && _myBagWeight > 0 && !_bankInt && !myDead
+      && !(typeof myJailIn === 'number' && myJailIn > 0)
+      && (typeof myWanted !== 'number' || myWanted < 2)) {
+    let copNear = false;
+    for (const cop of cityCops) {
+      if (!cop.alive) continue;
+      if (Math.hypot(cop.y - player.r, cop.x - player.c) < 6.5) { copNear = true; break; }
+    }
+    if (copNear && now > (_bagSpottedCdUntil || 0)) {
+      _bagSpottedCdUntil = now + 8000;
+      try { ws && ws.send(JSON.stringify({ t: 'cop_spotted_bag', d: {} })); } catch(e) {}
+      showToast('🚓 Коп заметил мешок! Розыск +2★', '🚨', 2600);
+      try { hapticHit && hapticHit(); } catch(e) {}
+    }
+  }
   for (let i = cityCops.length - 1; i >= 0; i--) {
     const cop = cityCops[i];
     if (!cop.alive) { cityCops.splice(i, 1); continue; }
@@ -6106,6 +6124,13 @@ function spawnParkedCar() {
 // Машины из этого кортежа имеют флаг model.gang=true.
 let _convoyNextAt = 0;
 function spawnGangConvoy() {
+  // Не плодим кортежи: если на карте уже есть живой конвой (3+ машины), новый
+  // не выпускаем. КОРЕНЬ старого бага: gang-машины исключены из обычного
+  // удаления трафика И из LOD-деспауна за картой — поэтому конвои копились
+  // бесконечно (3 шт каждые ~75с) → за пару часов сотни машин, пробка, fps в пол.
+  let _convoyAlive = 0;
+  for (const c of CARS) if (c && c._convoy && !c._wrecked) _convoyAlive++;
+  if (_convoyAlive >= 3) return false;
   // Берём случайную точку дороги и направление (как spawnCar)
   for (let tries = 0; tries < 60; tries++) {
     const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
@@ -6142,6 +6167,7 @@ function spawnGangConvoy() {
         dirDx, dirDy, model,
         braking: false, flash: 0,
         gang: true,                     // кортеж банды
+        _convoy: true,                  // именно конвой (для деспауна/лимита)
         gangHp: 70, gangHpMax: 70,
       });
     }
@@ -6781,6 +6807,17 @@ function _maintainTrafficDensity(now) {
       }
     }
   }
+  // Аварийный потолок CARS: если по любой причине машин накопилось слишком
+  // много (gang/convoy/спец/баг) — агрессивно чистим ДАЛЬНИЕ не-парковочные,
+  // пока не вернёмся к норме. Парковку и нашу машину с добычей не трогаем.
+  if (CARS.length > 110) {
+    for (let i = CARS.length - 1; i >= 0 && CARS.length > 90; i--) {
+      const c = CARS[i];
+      if (!c || c.parked) continue;
+      if (c.id && _bankRob && _bankRob._carId === c.id) continue;
+      if (Math.hypot(c.r - player.r, c.c - player.c) > 26) CARS.splice(i, 1);
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -6859,6 +6896,7 @@ const _bankCivSave = {};
 const _bankCooldowns = {};
 // Вес мешка: 0 = нет мешка, 1 = несу мешок (замедление)
 let _myBagWeight = 0;
+let _bagSpottedCdUntil = 0;   // антиспам запроса «коп заметил мешок» серверу
 
 // Конфигурация размеров комнат банка
 const BANK_INT_CFG = {
@@ -6908,6 +6946,15 @@ function updateCars(dt) {
   }
   for (let _ci = CARS.length - 1; _ci >= 0; _ci--) {
     const car = CARS[_ci];
+    // Конвой банды УДАЛЯЕМ (не респауним) когда уехал за карту или слишком
+    // далеко — иначе gang-машины копятся (они вне обычного удаления трафика).
+    if (car._convoy) {
+      const _off = car.r < 1 || car.r > MAP_ROWS - 2 || car.c < 1 || car.c > MAP_COLS - 2;
+      if (_off || Math.hypot(car.r - player.r, car.c - player.c) > 55) {
+        CARS.splice(_ci, 1);
+        continue;
+      }
+    }
     // П8 LOD: машины дальше 32 тайлов — двигаем позицию, но пропускаем
     // физику застревания/столкновений. Экономит ~30% CPU на большой карте.
     const _lodDist = Math.hypot(car.r - player.r, car.c - player.c);
@@ -8967,6 +9014,8 @@ function handleEventPacket(d) {
     // не просто предупреждение при 1★). Сервер посадил в тюрьму, обнулил
     // звёзды. Локально — тост + showArrestOverlay.
     if (d.ok) {
+      // Копы забирают мешок при аресте — нельзя сидеть в тюрьме с добычей.
+      _confiscateBagOnArrest();
       showEventBanner(
         '🚓 ЗАДЕРЖАН',
         `Патруль схватил на месте. Срок: ${Math.round((d.jail_s || 60) / 60)} мин.`,
@@ -8974,6 +9023,12 @@ function handleEventPacket(d) {
       try { showArrestOverlay && showArrestOverlay(); } catch(e) {}
     }
     // ok=false молча — это либо лагнувший пакет, либо сервер уже посадил
+  } else if (kind === 'bank_rob_announce') {
+    // Кто-то вскрыл хранилище банка — уведомление ВСЕМ игрокам мира.
+    if (d && d.msg) {
+      try { showEventBanner('🚨 ОГРАБЛЕНИЕ БАНКА', d.msg, 4500, 'lose'); }
+      catch(e) { try { showToast(d.msg, '🚨', 4000); } catch(_) {} }
+    }
   } else if (kind === 'bank_rob_started') {
     // Сервер подтвердил начало ограбления (опционально — для мультиплеера)
     if (d.bank_id && _bankRob && _bankRob.bank.id === d.bank_id) {
@@ -9854,7 +9909,11 @@ function wsConnect() {
         }
         // Внутри банка не применяем серверный jail_in — пока игрок в
         // интерьере его не должно сажать (он для сервера стоит у входа).
-        if (typeof d.me.jail_in === 'number' && !_bankShield()) myJailIn = d.me.jail_in;
+        if (typeof d.me.jail_in === 'number' && !_bankShield()) {
+          // Переход свобода→тюрьма: копы забирают несомый мешок при аресте.
+          if (myJailIn <= 0 && d.me.jail_in > 0) _confiscateBagOnArrest();
+          myJailIn = d.me.jail_in;
+        }
         if (typeof d.me.terr_cd === 'number') myTerrCd = d.me.terr_cd;
       }
       // ── Захват районов: владельцы + активный прогресс ────────────
@@ -10002,7 +10061,7 @@ function updateZoneBtn() {
       // «Уехать с добычей» только когда реально есть мешки. Если тревога
       // поднята, но хранилище не взломано (bagsLoaded=0) — даём вернуться
       // в банк, иначе игрок застревал с бесполезной кнопкой побега.
-      else if (_bankRob.phase === 'escaping') label = (_bankRob.bagsLoaded > 0) ? '🚗 Уехать с добычей!' : '🏦 Войти в банк';
+      else if (_bankRob.phase === 'escaping') label = (_bankRob.bagsLoaded > 0) ? '🚗 Вези куш к бизнесу' : '🏦 Войти в банк';
       else label = '🏦 Банк';
     } else {
       label = '🏦 Войти в банк';
@@ -10106,11 +10165,17 @@ _zoneEl.addEventListener('click', () => {
       // через EXIT-дверь (door-check в _updateBankInterior).
       return;
     }
-    // Кнопка «Уехать с добычей!» завершает ограбление (выплата + кулдаун).
-    // Но если добычи нет (тревога без взлома) — кнопка показывает «Войти
-    // в банк», поэтому завершаем только при bagsLoaded>0, иначе входим.
+    // Фаза escaping: мешки уже в машине. Обналичка ТОЛЬКО доставкой к своему
+    // бизнесу («Спрятать куш» — biz_deliver → сервер начисляет cash). Тут у
+    // банка НИЧЕГО не завершаем и денег не даём: раньше «Уехать с добычей!»
+    // слал bank_rob_escape, но сервер его не обрабатывает → деньги были
+    // фейковые (только toast). Если добычи нет (тревога без взлома) — пускаем
+    // обратно в банк взломать хранилище.
     if (_bankRob && _bankRob.bank.id === bank.id && _bankRob.phase === 'escaping') {
-      if (_bankRob.bagsLoaded > 0) { finishBankRobbery(); return; }
+      if (_bankRob.bagsLoaded > 0) {
+        showToast('🚗 Вези мешки к своему бизнесу и нажми «Спрятать куш»', 'ℹ️', 2600);
+        return;
+      }
       // Нет добычи — пускаем обратно в банк (взломать хранилище)
     }
     // Войти в банк
@@ -10631,7 +10696,7 @@ function updateGtaInteractions() {
       const bags = _bankRob.phase === 'carrying' ? 1 : (_bankRob.bagsLoaded || 0);
       const rewardPer = (_bankRob.bank && _bankRob.bank.reward_per_bag) || 1200;
       const total = bags * rewardPer;
-      _gtaBtn.textContent = `📦 Разгрузить ${bags} мешк${bags===1?'ок':'ов'} (+$${total.toLocaleString('ru')})`;
+      _gtaBtn.textContent = `🤫 Спрятать куш (+$${total.toLocaleString('ru')})`;
       _gtaBtn.style.display = 'block';
       return;
     }
@@ -10647,6 +10712,30 @@ function updateGtaInteractions() {
       _gtaActionKind = 'bag_pickup';
       _gtaActionCarId = nb.id;
       _gtaBtn.textContent = '💼 Поднять мешок';
+      _gtaBtn.style.display = 'block';
+      return;
+    }
+  }
+  // Руки пусты, но в стоящей рядом машине лежат НАШИ мешки → достать обратно
+  // (можно передумать и понести мешок пешком / переложить). Радиус 3 тайла.
+  if (_bankRob && !_bankRob.myBag && (_bankRob.bagsLoaded > 0)) {
+    let nearCarUnload = null, ndU = 3.0;
+    for (const car of CARS) {
+      if (!car || !(car._bagsLoaded > 0)) continue;
+      const d = Math.hypot(player.r - car.r, player.c - car.c);
+      if (d < ndU) { ndU = d; nearCarUnload = car; }
+    }
+    // Банковский фургон у банка (виртуальный — мешки в _bankRob.bagsLoaded)
+    if (!nearCarUnload && _bankRob.bank) {
+      const vz = _getBankVanZone(_bankRob.bank);
+      if (Math.hypot(player.r - vz.r, player.c - vz.c) < 3.0) {
+        nearCarUnload = { _isBankVan: true, id: 'bank_van' };
+      }
+    }
+    if (nearCarUnload) {
+      _gtaActionKind = 'bag_unload';
+      _gtaActionCarId = nearCarUnload.id;
+      _gtaBtn.textContent = '💼 Достать мешок из машины';
       _gtaBtn.style.display = 'block';
       return;
     }
@@ -10805,6 +10894,8 @@ _gtaBtn.addEventListener('click', () => {
     pickupDroppedBag(_gtaActionCarId);
   } else if (_gtaActionKind === 'bag_load') {
     loadBagIntoVan();
+  } else if (_gtaActionKind === 'bag_unload') {
+    unloadBagFromCar(_gtaActionCarId);
   } else if (_gtaActionKind === 'biz_deliver') {
     deliverBagsToBusinesses();
   }
@@ -20587,11 +20678,16 @@ function drawAggroBot(bot) {
   const walkPhase = (isCityGang && act !== 'walk')
     ? 0
     : (performance.now() * 0.008) % (Math.PI * 2);
-  // Сиреневая «аура» под ногами — отличает банду от обычных NPC
+  // Сиреневая «аура» под ногами — отличает банду от обычных NPC.
+  // БЕЗ shadowBlur (дорого при десятках ботов в кадре → просадка FPS):
+  // имитируем свечение двумя эллипсами — бледный широкий ореол + плотное
+  // ядро. Визуально близко, для GPU в разы дешевле.
   ctx.save();
-  ctx.fillStyle = isBoss ? 'rgba(180, 80, 255, .55)' : 'rgba(140, 70, 200, .35)';
-  ctx.shadowColor = '#a050ff';
-  ctx.shadowBlur  = isBoss ? 16 : 10;
+  ctx.fillStyle = isBoss ? 'rgba(160, 80, 255, .20)' : 'rgba(140, 70, 200, .14)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 6, isBoss ? 30 : 22, isBoss ? 12 : 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = isBoss ? 'rgba(180, 80, 255, .55)' : 'rgba(140, 70, 200, .38)';
   ctx.beginPath();
   ctx.ellipse(p.x, p.y + 6, isBoss ? 22 : 16, isBoss ? 8 : 6, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -20652,9 +20748,7 @@ function drawAggroBot(bot) {
   ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
-  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
   ctx.fillText(isBoss ? '👹' : '🥷', p.x, p.y - (isBoss ? 56 : 44));
-  ctx.shadowBlur = 0;
   ctx.textAlign = 'left';
 }
 
@@ -20704,10 +20798,14 @@ function drawCopNpc(cop) {
     sirenCol  = sirenPhase ? 'rgba(60,120,255,.55)' : 'rgba(255,40,40,.55)';
     sirenGlow = sirenPhase ? '#3a78ff' : '#ff3030';
   }
+  // Мигалка-аура под копом — БЕЗ shadowBlur (дорого при облаве, копов много
+  // в кадре). Свечение имитируем бледным широким ореолом + плотным ядром.
   ctx.save();
+  ctx.fillStyle = sirenCol.replace(/[\d.]+\)$/, '.18)');
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 6, kind === 'swat' ? 30 : 28, 11, 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.fillStyle = sirenCol;
-  ctx.shadowColor = sirenGlow;
-  ctx.shadowBlur = kind === 'swat' ? 18 : 14;
   ctx.beginPath();
   ctx.ellipse(p.x, p.y + 6, kind === 'swat' ? 22 : 20, 8, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -20737,10 +20835,8 @@ function drawCopNpc(cop) {
   ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
-  ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
   ctx.fillText(icon, p.x, p.y - 44);
   // Маленький мигающий маркер на самом верху
-  ctx.shadowBlur = 0;
   ctx.fillStyle = sirenGlow;
   ctx.beginPath();
   ctx.arc(p.x, p.y - 52, 2.5, 0, Math.PI * 2);
@@ -24673,14 +24769,10 @@ function render() {
     if (myWanted > 0) drawWantedStars(px, py, myWanted);
     if (myGangs  > 0) drawWantedGangs(px, py, myGangs);
     drawModeTag(px, py, myMode || 'pvp');
-    // Иконка мешка над игроком при ограблении банка
+    // Несём мешок по городу — ТА ЖЕ анимация что в банке (мешок на верёвке
+    // через плечо + покачивание при ходьбе), а не просто эмодзи над головой.
     if (_bankRob && _bankRob.myBag) {
-      ctx.save();
-      ctx.font = '18px "Segoe UI Emoji", system-ui';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('💰', px, py - 42);
-      ctx.restore();
+      _drawCarryingBag(px, py);
     }
     // Рендер упавших мешков на земле (мини 3D-мешок с пульсирующим свечением)
     const _nowBag = performance.now();
@@ -26721,10 +26813,25 @@ function _heartbeat() {
   if (joyR.active) flags.push('jR');
   const flagStr = flags.length ? flags.join(',') : 'ok';
   const touchAgo = ((now - (_lastTouchT || 0)) / 1000).toFixed(1);
+  // ── ВРЕМЕННАЯ ДИАГНОСТИКА бага «машина: отдаление + лаги» ──────────
+  let _dbg = '';
+  try {
+    const _dpr = (window.devicePixelRatio || 1).toFixed(1);
+    const _zoom = (typeof viewZoom === 'number') ? viewZoom.toFixed(2) : '?';
+    const _camx = (cam && typeof cam.x === 'number') ? cam.x.toFixed(0) : '?';
+    const _camy = (cam && typeof cam.y === 'number') ? cam.y.toFixed(0) : '?';
+    const _pr = player ? player.r.toFixed(1) : '?';
+    const _pc = player ? player.c.toFixed(1) : '?';
+    const _qc = (questCars && questCars.size) || 0;
+    const _carN = (typeof CARS !== 'undefined' && CARS) ? CARS.length : 0;
+    _dbg = `\nz${_zoom} dpr${_dpr} cv${canvas.width}x${canvas.height}\n` +
+      `win${window.innerWidth}x${window.innerHeight} cam${_camx},${_camy}\n` +
+      `pl${_pr},${_pc} qc${_qc} car${_carN}`;
+  } catch (e) { _dbg = '\ndbg-err'; }
   const compact = `${timeMark} fps${fps} ${wsReady.slice(0,4)} snap${snapAgo}s\n` +
     `npc${NPCS && NPCS.length || 0} cop${cops} agg${aggro} oth${others && others.size || 0}\n` +
     `bul${bullets.length} muz${muzzles.length} ft${floatTexts.length} lk${lockedTargets && lockedTargets.size || 0}\n` +
-    `st:${flagStr} tch${_touchCount}/3s ago${touchAgo}s`;
+    `st:${flagStr} tch${_touchCount}/3s ago${touchAgo}s` + _dbg;
   _hbHistory.push(compact);
   while (_hbHistory.length > 3) _hbHistory.shift();
   if (_hbEl) {
@@ -26920,6 +27027,41 @@ function loadBagIntoVan() {
   else if (typeof updateZoneBtn === 'function') updateZoneBtn();
 }
 
+// Достать мешок ОБРАТНО из машины — зеркало loadBagIntoVan. Берём один
+// мешок в руки (phase carrying), уменьшаем счётчик загруженных. Нужно чтобы
+// игрок не «терял» мешки безвозвратно, погрузив их в тачку.
+function unloadBagFromCar(carId) {
+  if (!_bankRob || _bankRob.myBag) return;
+  if ((_bankRob.bagsLoaded || 0) <= 0) {
+    showToast('🚗 В машине нет мешков', 'ℹ️', 1500);
+    return;
+  }
+  let car = null;
+  if (carId && carId !== 'bank_van') {
+    car = CARS.find(c => c && c.id === carId && (c._bagsLoaded > 0));
+  }
+  if (!car && carId !== 'bank_van') {
+    // запрошенной нет — ближайшая с грузом в радиусе 3
+    let nd = 3.0;
+    for (const c of CARS) {
+      if (!c || !(c._bagsLoaded > 0)) continue;
+      const d = Math.hypot(player.r - c.r, player.c - c.c);
+      if (d < nd) { nd = d; car = c; }
+    }
+  }
+  if (car) car._bagsLoaded = Math.max(0, (car._bagsLoaded || 0) - 1);
+  // Снимаем один мешок с общего счётчика, берём в руки
+  _bankRob.bagsLoaded = Math.max(0, (_bankRob.bagsLoaded || 0) - 1);
+  _bankRob.myBag = { value: (_bankRob.bank && _bankRob.bank.reward_per_bag) || 1200 };
+  _myBagWeight = 1;
+  _bankRob.phase = 'carrying';
+  showToast('💼 Достал мешок из машины', '🚗', 1600);
+  try { ws && ws.send(JSON.stringify({ t: 'bank_rob_bag_loaded', d: { bank_id: _bankRob.bank.id, bags: _bankRob.bagsLoaded } })); } catch(e) {}
+  if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
+  else if (typeof updateZoneBtn === 'function') updateZoneBtn();
+  if (typeof _updateDropBagBtn === 'function') _updateDropBagBtn();
+}
+
 // Разгрузить мешки в бизнес и получить награду
 function deliverBagsToBusinesses() {
   if (!_bankRob) return;
@@ -26931,11 +27073,30 @@ function deliverBagsToBusinesses() {
   const rewardPer = (_bankRob.bank && _bankRob.bank.reward_per_bag) || 1200;
   const total = bags * rewardPer;
   try { ws && ws.send(JSON.stringify({ t: 'bank_rob_deliver', d: { bank_id: _bankRob.bank.id, biz_id: bizId, bags } })); } catch(e) {}
-  showToast(`💰 Разгружаем! +$${total.toLocaleString('ru')}`, '🏆', 3500);
+  showToast(`🤫 Прячем куш! +$${total.toLocaleString('ru')}`, '🏆', 3500);
   _bankRob = null;
   _myBagWeight = 0;
   if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
   else if (typeof updateZoneBtn === 'function') updateZoneBtn();
+}
+
+// Копы забирают мешок при аресте — игрок не должен попадать в тюрьму с
+// добычей в руках. Изымаем ТОЛЬКО несомый мешок; мешки уже в машине
+// остаются (машина с добычей не конфискуется). Если несомый был последним —
+// ограбление закрывается.
+function _confiscateBagOnArrest() {
+  const carrying = !!((_bankRob && _bankRob.myBag) || (_bankInt && _bankInt.myBag) || _myBagWeight > 0);
+  if (!carrying) return;
+  if (_bankInt) _bankInt.myBag = null;
+  if (_bankRob) {
+    _bankRob.myBag = null;
+    if (_bankRob.bagsLoaded > 0) _bankRob.phase = 'escaping';
+    else _bankRob = null;
+  }
+  _myBagWeight = 0;
+  showToast('💼 Копы забрали мешок при аресте', '🚓', 2600);
+  if (typeof _updateDropBagBtn === 'function') _updateDropBagBtn();
+  if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
 }
 
 // Отмена / провал ограбления банка
@@ -26957,7 +27118,10 @@ function abortBankRobbery(reason) {
   _updateBankZoneBtn();
 }
 
-// Завершить ограбление (уехать с добычей)
+// [УСТАРЕЛО / НЕ ВЫЗЫВАЕТСЯ] Старый путь «Уехать с добычей!» у банка.
+// Показывал «+$» и слал bank_rob_escape, но сервер его не обрабатывает —
+// деньги были фейковые. Обналичка теперь только через deliverBagsToBusinesses()
+// («Спрятать куш» у своего бизнеса). Оставлено для истории, нигде не вызывается.
 function finishBankRobbery() {
   if (!_bankRob) return;
   const bank_id = _bankRob.bank.id;
@@ -27880,11 +28044,6 @@ function enterBankInterior(bank) {
   cam.y=(player.c+player.r)*TS*0.5*ISO_Y;
   showToast(vaultOpen?`🏦 ${bank.name} — хранилище открыто!`:`🏦 ${bank.name}`,vaultOpen?'💰':'🏦',2000);
   try{hapticHit&&hapticHit();}catch(e){}
-  // Сообщаем серверу что игрок в интерьере → worldCop'ы его не трогают
-  // (сервер держит позицию у входа, иначе убивали «сквозь стены»).
-  if (ws&&ws.readyState===1){
-    try{ws.send(JSON.stringify({t:'bank_enter',d:{bank_id:bank.id}}));}catch(e){}
-  }
   // bank_rob_start шлём только когда реально начинаем взлом (не при входе)
   if (vaultOpen&&ws&&ws.readyState===1){
     try{ws.send(JSON.stringify({t:'bank_rob_start',d:{bank_id:bank.id}}));}catch(e){}
@@ -27895,10 +28054,6 @@ function enterBankInterior(bank) {
 function exitBankInterior(withBag) {
   if (!_bankInt) return;
   const int=_bankInt; _bankInt=null;
-  // Сообщаем серверу что вышли из интерьера → копы снова могут преследовать.
-  if (ws&&ws.readyState===1){
-    try{ws.send(JSON.stringify({t:'bank_exit',d:{bank_id:int.bank.id}}));}catch(e){}
-  }
   // Щит против серверного dead/jail ещё 6с после выхода: сервер мог
   // «убить» игрока worldCop'ами пока он был внутри, и снап с этим
   // прилетит в ближайшие кадры — иначе моментальная смерть/тюрьма.
