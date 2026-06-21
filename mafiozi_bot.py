@@ -12313,9 +12313,12 @@ class WorldSim:
         qc = self.quest_cars.get(car_id)
         if not qc or qc.get('wrecked'):
             return {'ok': False, 'reason': 'rejected'}
-        # Машина только для владельца контракта. Защита от чужого gta_drive
-        # без предварительного gta_enter (старый клиент / прямая инъекция).
-        if str(qc.get('owner_uid')) != str(uid):
+        # Машину ведёт ВОДИТЕЛЬ: владелец контракта Майкла (owner_uid==uid)
+        # ИЛИ угнавший гражданскую тачку (у civilian owner_uid=None, но
+        # driver_uid=uid). Принимаем gta_drive от того, кто реально за рулём —
+        # иначе civilian-машина едет только на клиенте, сервер держит игрока в
+        # точке посадки и при выходе откидывает назад («не доехал»).
+        if str(qc.get('owner_uid')) != str(uid) and str(qc.get('driver_uid')) != str(uid):
             return {'ok': False, 'reason': 'not_yours'}
         if qc.get('driver_uid') != uid:
             # owner_uid совпал — авто-усаживаем в машину (на случай если клиент
