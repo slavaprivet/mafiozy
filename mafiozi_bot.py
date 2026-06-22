@@ -11776,8 +11776,8 @@ class WorldSim:
     # ── Пляжники ────────────────────────────────────────────────────
     # Мирные NPC на пляже в купальниках/плавках. Гуляют, пьют сок,
     # загорают. При выстреле рядом — бегут в глубь пляжа.
-    BEACHGOER_MAX           = 10      # одновременно на пляже
-    BEACHGOER_SPAWN_GAP_S   = 18.0    # пополнение если меньше MAX
+    BEACHGOER_MAX           = 15      # одновременно на пляже
+    BEACHGOER_SPAWN_GAP_S   = 10.0    # пополнение если меньше MAX
     BEACHGOER_WALK_SPEED    = 1.3
     BEACHGOER_FLEE_SPEED    = 4.2
     BEACHGOER_FLEE_S        = 6.0     # сколько секунд паникует
@@ -14713,7 +14713,7 @@ class WorldSim:
             '_flee_dir':   None,       # (dx, dy) — куда бежим
             'gender':  gender,
             'outfit':  outfit,
-            'skin':    random.choice([1, 2, 3]),
+            'skin':    random.choice([0, 1, 2, 3]),
             'hair':    random.choice([0, 1, 2, 3]),
             '_spawn_t': now,
         })
