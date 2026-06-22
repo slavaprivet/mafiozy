@@ -14676,7 +14676,7 @@ class WorldSim:
         '#e74c3c', '#f1c40f', '#3498db', '#2ecc71', '#9b59b6',
         '#e67e22', '#1abc9c', '#ff7eb6', '#7ee69a',
     ]
-    BEACH_ACTIVITIES = ('walk', 'idle', 'drink', 'sunbathe', 'icecream', 'icecream')
+    BEACH_ACTIVITIES = ('walk', 'walk', 'walk', 'idle', 'drink', 'sunbathe', 'icecream')
 
     def _random_beach_pos(self) -> tuple:
         """Случайная свободная точка на песке (BEACH_R0..BEACH_R1).
