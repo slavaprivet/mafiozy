@@ -13382,6 +13382,11 @@ class WorldSim:
             target = self.players.get(cop['target_uid'])
             if not target or target.get('dead'):
                 continue
+            # Цель уже в тюрьме — копы НЕ стреляют в сидящего (тюрьма = безопасная
+            # зона). Просто пропускаем: при аресте _wanted=0, и копы убираются
+            # штатной очисткой по нулевому розыску.
+            if (target.get('_jail_until') or 0) > now:
+                continue
             # Цель укрылась в интерьере (банк) — коп замирает, не стреляет.
             # При выходе (bank_exit / таймаут) преследование возобновится.
             if target.get('_in_interior') and now < (target.get('_in_interior_until') or 0):
@@ -15978,29 +15983,25 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                         except Exception as _e:
                             logger.warning("WorldSim: territory income failed: %r", _e)
                 ev_pkts.extend(cap_pkts)
-                # РАЙОНЫ: тик захвата штабов + доход владельцу (в gang_pool).
+                # РАЙОНЫ: тик захвата штабов + доход владельцу НА ЛИЧНЫЙ СЧЁТ
+                # (сразу видно в HUD-деньгах; копилку банды юзер не видел).
                 dist_pkts = world.tick_district_capture(WORLD_TICK_DT) or []
                 for dp in dist_pkts:
                     if dp.get('kind') == 'district_income':
                         try:
                             owner_uid_int = int(dp['owner_uid'])
                             amount        = int(dp['amount'])
-                            leader_id = await get_gang_leader_id(owner_uid_int)
-                            target_leader = leader_id or owner_uid_int
-                            await gang_pool_add(target_leader, amount)
-                            dp['gang_leader'] = target_leader
-                            dp['is_personal'] = (leader_id is None)
-                            did = dp.get('did')
-                            own = world.district_owners.get(did)
-                            if own is not None and not own.get('gang_tag') and leader_id:
-                                try:
-                                    lch = await get_character(int(leader_id))
-                                    if lch and lch.get('name'):
-                                        own['gang_tag'] = (lch.get('name') or '')[:12]
-                                except Exception:
-                                    pass
-                            logger.info("WorldSim: district income did=%s owner=%s +$%d → leader=%s",
-                                        did, owner_uid_int, amount, target_leader)
+                            ch = await get_character(owner_uid_int)
+                            if ch:
+                                new_cash = int(ch.get('cash', 0)) + amount
+                                await update_character(owner_uid_int, cash=new_cash)
+                                # Обновляем live _cash чтобы снапшот сразу показал.
+                                pp = world.players.get(str(owner_uid_int))
+                                if pp is not None:
+                                    pp['_cash'] = new_cash
+                                dp['new_cash'] = new_cash
+                            logger.info("WorldSim: district income did=%s owner=%s +$%d → cash",
+                                        dp.get('did'), owner_uid_int, amount)
                         except Exception as _e:
                             logger.warning("WorldSim: district income failed: %r", _e)
                 ev_pkts.extend(dist_pkts)
