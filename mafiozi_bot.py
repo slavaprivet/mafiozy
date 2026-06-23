@@ -11524,6 +11524,11 @@ class WorldSim:
         'quest_cars', '_quest_car_next_id',
         # Ограбления банков: bank_id -> {bags_loaded, started_at, robber_uid}
         'bank_robs',
+        # РАЙОНЫ (districts): захват штаба + пассивный доход банде.
+        #   district_owners:   did → {owner_uid, owner_name, color, captured_at, last_payout_at}
+        #   district_captures: did → {by_uid, by_name, color, started_at}
+        'district_owners', 'district_captures', '_dist_cooldowns',
+        '_dist_needs_reenter', '_last_dist_at',
     )
 
     # ── Эмерджентные события: параметры ────────────────────────────
@@ -11875,6 +11880,23 @@ class WorldSim:
     TERR_FIGHT_BANNER_CD = 30.0          # «Перестрелка за район X» — раз в 30с на район
     HOSPITAL_Y          = 23.0
 
+    # ── РАЙОНЫ (districts) ──────────────────────────────────────────
+    # Крупные зоны мира (см. DISTRICTS в world.html). Захват — удержание
+    # ШТАБА района (точка hq, радиус DIST_HQ_RAD) в течение DIST_CAPTURE_TIME_S.
+    # Владение даёт банде пассивный доход. hq = (y, x) = (row, col).
+    DIST_HQ_RAD            = 6.0
+    DIST_CAPTURE_TIME_S    = 25.0
+    DIST_CAPTURE_COOLDOWN_S = 60.0
+    DIST_INCOME_DELAY_S    = 60.0        # первый доход через 1 мин
+    DIST_INCOME_TICK_S     = 120.0       # +income каждые 2 мин
+    DISTRICTS_DEF = {
+        'northside':  {'name': 'Норт-Сайд', 'icon': '🏪', 'hq': (20.0, 20.0), 'income': 400, 'color': '#4aa3df'},
+        'downtown':   {'name': 'Даунтаун',  'icon': '🏙', 'hq': (20.0, 60.0), 'income': 600, 'color': '#e0b94a'},
+        'southside':  {'name': 'Саутсайд',  'icon': '🎰', 'hq': (70.0, 20.0), 'income': 500, 'color': '#9b59b6'},
+        'industrial': {'name': 'Промзона',  'icon': '🏭', 'hq': (70.0, 60.0), 'income': 550, 'color': '#d2691e'},
+        'coast':      {'name': 'Побережье', 'icon': '⚓', 'hq': (156.0, 40.0), 'income': 450, 'color': '#2ecc71'},
+    }
+
     def __init__(self):
         self.tick_no         = 0
         self.started_at      = time.time()
@@ -11902,6 +11924,12 @@ class WorldSim:
         self.territories         = {}
         self.active_captures     = {}
         self._capture_cooldowns  = {}
+        # РАЙОНЫ (districts) — захват штаба + пассивный доход банде.
+        self.district_owners     = {}   # did → {owner_uid, owner_name, color, captured_at, last_payout_at}
+        self.district_captures   = {}   # did → {by_uid, by_name, color, started_at}
+        self._dist_cooldowns     = {}   # (uid, did) → expires_at
+        self._dist_needs_reenter = set()  # (uid, did) — выйти из штаба перед повторным захватом
+        self._last_dist_at       = {}   # uid → did_or_None (детект выхода из штаба)
         # Анти-фарм: (uid, tid) попадает сюда после захвата. Пока игрок
         # не вышел из зоны хотя бы один раз — повторный capture_try этой
         # зоны блокируется (returns 'must_reenter'). При выходе — set discard.
@@ -15270,6 +15298,137 @@ class WorldSim:
             self._last_terr_at[uid] = cur_tid
         return out
 
+    # ── РАЙОНЫ (districts): захват штаба + доход ────────────────────
+    def _district_hq_at(self, x: float, y: float):
+        """Возвращает (did, ddef) если точка в радиусе штаба района, иначе (None, None)."""
+        for did, dd in self.DISTRICTS_DEF.items():
+            hy, hx = dd['hq']
+            if (x - hx) ** 2 + (y - hy) ** 2 <= self.DIST_HQ_RAD ** 2:
+                return did, dd
+        return None, None
+
+    def apply_district_capture_try(self, uid: str) -> dict | None:
+        """Игрок просит начать захват штаба района под собой. Зеркало
+        apply_capture_try, но зона — радиус штаба района."""
+        p = self.players.get(uid)
+        if not p:
+            return None
+        if (p.get('_mode') or 'pvp') == 'pve':
+            return None
+        if p.get('dead'):
+            return None
+        if (p.get('_jail_until') or 0) > time.time():
+            return None
+        did, dd = self._district_hq_at(p.get('x', 0), p.get('y', 0))
+        if not did:
+            return None
+        if did in self.district_captures:
+            return None  # этот штаб уже кто-то захватывает
+        now = time.time()
+        if (str(uid), did) in self._dist_needs_reenter:
+            return {'kind': 'district_capture_denied', 'did': did, 'by_uid': str(uid), 'reason': 'must_reenter'}
+        cd_until = self._dist_cooldowns.get((uid, did), 0)
+        if cd_until > now:
+            return {'kind': 'district_capture_denied', 'did': did, 'by_uid': str(uid),
+                    'reason': 'cooldown', 'wait_s': int(round(cd_until - now))}
+        cur_owner = self.district_owners.get(did)
+        if cur_owner and str(cur_owner.get('owner_uid')) == str(uid):
+            return None  # уже мой район
+        color = self._terr_color(str(uid))
+        self.district_captures[did] = {
+            'by_uid': str(uid), 'by_name': (p.get('name') or '')[:24],
+            'color': color, 'started_at': now,
+        }
+        return {'kind': 'district_capture_started', 'did': did, 'by_uid': str(uid),
+                'by_name': (p.get('name') or '')[:24], 'color': color,
+                'started_at': round(now, 2), 'duration_s': self.DIST_CAPTURE_TIME_S,
+                'name': dd['name'], 'icon': dd['icon']}
+
+    def apply_district_capture_cancel(self, uid: str) -> dict | None:
+        for did, ac in list(self.district_captures.items()):
+            if str(ac['by_uid']) == str(uid):
+                self.district_captures.pop(did, None)
+                return {'kind': 'district_capture_cancelled', 'did': did,
+                        'by_uid': str(uid), 'by_name': ac['by_name'], 'reason': 'cancelled'}
+        return None
+
+    def _cancel_district_capture(self, did: str, reason: str) -> dict | None:
+        ac = self.district_captures.pop(did, None)
+        if not ac:
+            return None
+        return {'kind': 'district_capture_cancelled', 'did': did,
+                'by_uid': ac['by_uid'], 'by_name': ac['by_name'], 'reason': reason}
+
+    def tick_district_capture(self, dt: float) -> list:
+        """Тикает захваты штабов районов + выплачивает доход. Зеркало tick_capture."""
+        out: list = []
+        now = time.time()
+        # 1) Активные захваты штабов.
+        for did, ac in list(self.district_captures.items()):
+            holder = self.players.get(str(ac['by_uid']))
+            reason = None
+            if not holder:
+                reason = 'disconnected'
+            elif holder.get('dead'):
+                reason = 'killed'
+            elif (holder.get('_jail_until') or 0) > now:
+                reason = 'jailed'
+            elif (holder.get('_mode') or 'pvp') == 'pve':
+                reason = 'mode_changed'
+            else:
+                did_now, _ = self._district_hq_at(holder.get('x', 0), holder.get('y', 0))
+                if did_now != did:
+                    reason = 'left_hq'
+            if reason:
+                pkt = self._cancel_district_capture(did, reason)
+                if pkt:
+                    out.append(pkt)
+                continue
+            if (now - ac['started_at']) >= self.DIST_CAPTURE_TIME_S:
+                dd = self.DISTRICTS_DEF.get(did, {})
+                self.district_owners[did] = {
+                    'owner_uid': str(ac['by_uid']), 'owner_name': ac['by_name'],
+                    'gang_tag': '', 'color': ac['color'],
+                    'captured_at': now, 'last_payout_at': now,
+                }
+                self._dist_cooldowns[(str(ac['by_uid']), did)] = now + self.DIST_CAPTURE_COOLDOWN_S
+                self._dist_needs_reenter.add((str(ac['by_uid']), did))
+                self.district_captures.pop(did, None)
+                out.append({
+                    'kind': 'district_captured', 'did': did,
+                    'name': dd.get('name') or did, 'icon': dd.get('icon') or '🏴',
+                    'by_uid': str(ac['by_uid']), 'by_name': ac['by_name'], 'color': ac['color'],
+                    'captured_at': round(now, 2), 'income': int(dd.get('income') or 400),
+                    'income_tick_s': int(self.DIST_INCOME_TICK_S),
+                })
+        # 2) Доход с районов — владельцу (в gang_pool через _world_run_loop).
+        for did, own in list(self.district_owners.items()):
+            if (now - own['captured_at']) < self.DIST_INCOME_DELAY_S:
+                continue
+            if (now - own['last_payout_at']) < self.DIST_INCOME_TICK_S:
+                continue
+            dd = self.DISTRICTS_DEF.get(did, {})
+            income = int(dd.get('income') or 400)
+            own['last_payout_at'] = now
+            out.append({
+                'kind': 'district_income', 'did': did,
+                'name': dd.get('name') or did, 'icon': dd.get('icon') or '🏴',
+                'owner_uid': own['owner_uid'], 'owner_name': own['owner_name'], 'amount': income,
+            })
+            log = self._income_log.setdefault(str(own['owner_uid']), [])
+            log.append({'tid': did, 'name': dd.get('name') or did,
+                        'icon': dd.get('icon') or '🏴', 'amount': int(income), 'ts': int(now)})
+            if len(log) > 30:
+                del log[:-30]
+        # 3) Снимаем флаг re-enter когда игрок вышел из штаба.
+        for uid, p in self.players.items():
+            cur_did, _ = self._district_hq_at(p.get('x', 0), p.get('y', 0))
+            prev = self._last_dist_at.get(uid)
+            if prev and prev != cur_did:
+                self._dist_needs_reenter.discard((uid, prev))
+            self._last_dist_at[uid] = cur_did
+        return out
+
     def cancel_capture_on_player_killed(self, victim_uid: str) -> dict | None:
         """Если убитый ведёт активный захват — сбрасываем и возвращаем
         event-пакет. Вызывается из apply_player_shoot после kill."""
@@ -15430,6 +15589,39 @@ class WorldSim:
                 'elapsed':    round(elapsed, 2),
                 'duration_s': self.CAPTURE_TIME_S,
             }
+        # РАЙОНЫ — владельцы + активные захваты штабов. Подтягиваем флаг
+        # банды владельца (как у территорий) для отрисовки на карте.
+        dist_owners_payload = {}
+        for did, own in self.district_owners.items():
+            owner_p = self.players.get(str(own.get('owner_uid') or ''))
+            o_flag = 0; o_gname = ''
+            if owner_p:
+                _ol = owner_p.get('look') or {}
+                o_flag = int(_ol.get('flag') or 0)
+                o_gname = str(_ol.get('gang_name') or '')[:16]
+                if o_flag: own['_owner_flag'] = o_flag
+                if o_gname: own['_owner_gang_name'] = o_gname
+            else:
+                o_flag = int(own.get('_owner_flag') or 0)
+                o_gname = str(own.get('_owner_gang_name') or '')[:16]
+            dd = self.DISTRICTS_DEF.get(did, {})
+            dist_owners_payload[did] = {
+                'owner_uid': own['owner_uid'], 'owner_name': own['owner_name'],
+                'gang_tag': own.get('gang_tag') or '', 'color': own['color'],
+                'captured_at': round(own['captured_at'], 2),
+                'flag': int(o_flag or 0), 'gang_name': o_gname,
+                'income': int(dd.get('income') or 400),
+                'income_tick_s': int(self.DIST_INCOME_TICK_S),
+            }
+        dist_caps_payload = {}
+        for did, ac in self.district_captures.items():
+            dist_caps_payload[did] = {
+                'by_uid': ac['by_uid'], 'by_name': ac['by_name'], 'color': ac['color'],
+                'started_at': round(ac['started_at'], 2),
+                'elapsed': round(max(0.0, now_t - ac['started_at']), 2),
+                'duration_s': self.DIST_CAPTURE_TIME_S,
+            }
+        districts_payload = {'owners': dist_owners_payload, 'captures': dist_caps_payload}
         # Кулдаун до возможности захватить (текущая моя территория, для UI)
         my_terr_cd = 0
         if not me.get('dead'):
@@ -15611,6 +15803,7 @@ class WorldSim:
                 'tick':          self.tick_no,
                 'territories':     terr_payload,
                 'active_captures': cap_payload,
+                'districts':       districts_payload,
                 'aggro':           aggro_payload,
                 'gang_nests':      nests_payload,
                 'quest_cars':      quest_cars_payload,
@@ -15785,6 +15978,32 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                         except Exception as _e:
                             logger.warning("WorldSim: territory income failed: %r", _e)
                 ev_pkts.extend(cap_pkts)
+                # РАЙОНЫ: тик захвата штабов + доход владельцу (в gang_pool).
+                dist_pkts = world.tick_district_capture(WORLD_TICK_DT) or []
+                for dp in dist_pkts:
+                    if dp.get('kind') == 'district_income':
+                        try:
+                            owner_uid_int = int(dp['owner_uid'])
+                            amount        = int(dp['amount'])
+                            leader_id = await get_gang_leader_id(owner_uid_int)
+                            target_leader = leader_id or owner_uid_int
+                            await gang_pool_add(target_leader, amount)
+                            dp['gang_leader'] = target_leader
+                            dp['is_personal'] = (leader_id is None)
+                            did = dp.get('did')
+                            own = world.district_owners.get(did)
+                            if own is not None and not own.get('gang_tag') and leader_id:
+                                try:
+                                    lch = await get_character(int(leader_id))
+                                    if lch and lch.get('name'):
+                                        own['gang_tag'] = (lch.get('name') or '')[:12]
+                                except Exception:
+                                    pass
+                            logger.info("WorldSim: district income did=%s owner=%s +$%d → leader=%s",
+                                        did, owner_uid_int, amount, target_leader)
+                        except Exception as _e:
+                            logger.warning("WorldSim: district income failed: %r", _e)
+                ev_pkts.extend(dist_pkts)
                 # Broadcast всех event-пакетов
                 if ev_pkts:
                     blob = [json.dumps({'t': 'event', 'd': p}, ensure_ascii=False)
@@ -17800,6 +18019,21 @@ async def _coop_http_app():
                                 except Exception: pass
                     elif t == 'capture_cancel':
                         pkt = world.apply_capture_cancel(uid)
+                        if pkt:
+                            blob = json.dumps({'t': 'event', 'd': pkt}, ensure_ascii=False)
+                            for u2, ws2 in list(world.connections.items()):
+                                try: await ws2.send_str(blob)
+                                except Exception: pass
+                    elif t == 'district_capture_try':
+                        # Игрок встал у штаба района и начинает захват.
+                        pkt = world.apply_district_capture_try(uid)
+                        if pkt:
+                            blob = json.dumps({'t': 'event', 'd': pkt}, ensure_ascii=False)
+                            for u2, ws2 in list(world.connections.items()):
+                                try: await ws2.send_str(blob)
+                                except Exception: pass
+                    elif t == 'district_capture_cancel':
+                        pkt = world.apply_district_capture_cancel(uid)
                         if pkt:
                             blob = json.dumps({'t': 'event', 'd': pkt}, ensure_ascii=False)
                             for u2, ws2 in list(world.connections.items()):
