@@ -14638,7 +14638,10 @@ function update(dt) {
       // Якорь экспоненциально догоняет машину с ПОСТОЯННЫМ темпом, поэтому
       // высокочастотный джиттер физики не доходит до камеры.
       if (qc._camAncR === undefined) { qc._camAncR = qc.y; qc._camAncC = qc.x; }
-      const _ancLerp = Math.min(1, dt * 6);
+      // dt*6→dt*14: якорь догоняет машину вдвое быстрее. Гашение зигзага у
+      // стен сохраняется (это ВЧ-джиттер, фильтруется и на dt*14), но лаг
+      // якоря на скорости меньше — было 90px «плывёт» на пляже.
+      const _ancLerp = Math.min(1, dt * 14);
       qc._camAncR += (qc.y - qc._camAncR) * _ancLerp;
       qc._camAncC += (qc.x - qc._camAncC) * _ancLerp;
       // Look-ahead по вектору скорости. РАНЬШЕ был 2.4 тайла — на пляже (простор,
@@ -14661,8 +14664,10 @@ function update(dt) {
       const aimR = qc._camAncR + qc._smoothLookR;
       const targetCamX = (aimC - aimR) * TS * 0.5;
       const targetCamY = (aimC + aimR) * TS * 0.5 * ISO_Y;
-      cam.x += (targetCamX - cam.x) * Math.min(1, dt * 5);
-      cam.y += (targetCamY - cam.y) * Math.min(1, dt * 5);
+      // dt*5→dt*20: финальный лерп камеры машины почти как пеший (dt*22).
+      // Вместе с ускоренным якорём убирает «плывёт» в машине (DRIFT 104px→~15px).
+      cam.x += (targetCamX - cam.x) * Math.min(1, dt * 20);
+      cam.y += (targetCamY - cam.y) * Math.min(1, dt * 20);
       // Зум от скорости: стоим=1.0, макс. скорость=0.80 (видно больше дороги)
       {
         // Пляжный зум 1.18 убран — дёргался у порога r=140 и «двигал карту».
@@ -27673,7 +27678,7 @@ function _heartbeat() {
       `cam${_camx},${_camy} pl${_pr},${_pc}\n` +
       `shk${_shk} drv:${_drvId} bnk:${_bank} w★${_wnt} hp${_hp} ⛽${_fuel}` + _errs;
   } catch (e) { _dbg = '\ndbg-err'; }
-  const compact = `BUILD v0381-REAL ${timeMark} fps${fps} ${wsReady.slice(0,4)} snap${snapAgo}s\n` +
+  const compact = `BUILD v0382-CARCAM ${timeMark} fps${fps} ${wsReady.slice(0,4)} snap${snapAgo}s\n` +
     `npc${NPCS && NPCS.length || 0} cop${cops} agg${aggro} oth${others && others.size || 0}\n` +
     `bul${bullets.length} muz${muzzles.length} ft${floatTexts.length} lk${lockedTargets && lockedTargets.size || 0}\n` +
     `st:${flagStr} tch${_touchCount}/3s ago${touchAgo}s` + _dbg;
