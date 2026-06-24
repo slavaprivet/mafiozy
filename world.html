@@ -495,6 +495,7 @@ body.in-pvp #robActionBtn { top: 152px; }
   z-index: 99; pointer-events: none; max-width: 230px;
   line-height: 1.3; white-space: pre;
   border: 1px solid rgba(143,255,143,.3);
+  display: none;   /* дебаг-плашка скрыта — мешала тесту. Вернуть: ?dbg=1 */
 }
 #debugHud.warn { color: #ffd76b; border-color: rgba(255,215,107,.5); }
 #debugHud.err  { color: #ff7878; border-color: rgba(255,120,120,.7); }
@@ -544,8 +545,10 @@ body.in-pvp #robActionBtn { top: 152px; }
    Раньше висел сверху и перекрывался плашкой «В тюрьме» / таймером
    инкассатора. Теперь приклеен к HP-бару — место освобождено. */
 #moneyHud {
+  /* Деньги переехали в верхний HUD-бар (#hudPlayer). Старый блок скрыт. */
+  display: none;
   position: absolute; left: 200px; top: 52px;
-  display: flex; gap: 6px; z-index: 9;
+  gap: 6px; z-index: 9;
   pointer-events: none; font-family: inherit;
 }
 #moneyHud .mh-pill {
@@ -742,25 +745,45 @@ body.in-pvp #robActionBtn { top: 152px; }
    времени суток и счётчик kills/deaths. */
 #hudPlayer {
   position: absolute; left: 8px; top: calc(env(safe-area-inset-top, 6px) + 46px);
-  z-index: 5; display: none; flex-direction: column; gap: 4px;
+  z-index: 5; display: none; flex-direction: row; align-items: center; gap: 8px;
   background: linear-gradient(180deg, rgba(20,24,32,.92) 0%, rgba(10,12,18,.85) 100%);
   border: 1px solid #3a4452; border-radius: 10px;
-  padding: 8px 10px; min-width: 200px; max-width: 60vw;
+  padding: 6px 10px 6px 6px; min-width: 200px; max-width: 72vw;
   box-shadow: 0 4px 14px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
   font-family: inherit;
 }
 #hudPlayer.show { display: flex; }
-#hudPlayer .hp-row, #hudPlayer .kd-row {
+/* Аватар персонажа + бейдж уровня */
+#hudPlayer .hud-ava { position: relative; flex: 0 0 auto; width: 44px; height: 44px; }
+#hudPlayer #hudAvatar {
+  width: 44px; height: 44px; border-radius: 8px; display: block;
+  background: radial-gradient(circle at 50% 38%, #2b3144 0%, #11141c 100%);
+  border: 1px solid #3a4452;
+}
+#hudPlayer .hud-lvl {
+  position: absolute; left: -5px; top: -5px;
+  min-width: 17px; height: 17px; padding: 0 3px; box-sizing: border-box;
+  background: linear-gradient(180deg,#ffc24a,#e0891a); color: #1a1206;
+  border: 1px solid rgba(0,0,0,.45); border-radius: 9px;
+  font-size: 10px; font-weight: 900; line-height: 15px; text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+#hudPlayer .hud-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+#hudPlayer .hud-name {
+  font-size: 12px; font-weight: 800; color: #eaeefb; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 52vw; line-height: 1.1;
+}
+#hudPlayer .hp-row, #hudPlayer .stat-row {
   display: flex; align-items: center; gap: 6px;
   font-size: 11px; color: #cfd6e6; white-space: nowrap;
 }
-#hudPlayer .hp-row .label, #hudPlayer .kd-row .label {
+#hudPlayer .hp-row .label {
   color: #8a92a8; font-size: 10px; font-weight: 700;
 }
-#hudPlayer .hp-nums { display: inline-flex; align-items: baseline; gap: 1px; white-space: nowrap; }
+#hudPlayer .hp-nums { display: inline-flex; align-items: baseline; gap: 1px; white-space: nowrap; font-size: 10px; }
 #hudPlayer .hp-nums #hpMaxVal { color: #5a6478; }
 #hpBarBig {
-  flex: 1; min-width: 80px; height: 12px;
+  flex: 1; min-width: 72px; height: 11px;
   background: #1a1e26; border: 1px solid #3a4452; border-radius: 6px;
   overflow: hidden; position: relative;
   box-shadow: inset 0 1px 3px rgba(0,0,0,.6);
@@ -773,10 +796,9 @@ body.in-pvp #robActionBtn { top: 152px; }
 }
 #hpBarFill.low  { background: linear-gradient(90deg,#ffd24a,#cf8a20); }
 #hpBarFill.crit { background: linear-gradient(90deg,#ff5050,#a02020); }
-#hudPlayer .kd-row { justify-content: space-between; }
-#hudPlayer .kd-row .clock { color: #ffd76b; font-weight: 700; font-size: 11px; }
-#hudPlayer .kd-row .kd { color: #ffd76b; font-size: 11px; font-weight: 700; }
-#hudPlayer .kd-row .kd .neg { color: #ff8888; }
+#hudPlayer .stat-money { color: #5dd55d; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; }
+#hudPlayer .stat-time  { color: #ffd76b; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; }
+#hudPlayer .stat-time .clock { color: #ffd76b; font-weight: 700; }
 
 /* Экран смерти */
 #deathOverlay {
@@ -903,52 +925,71 @@ body.in-pvp #robActionBtn { top: 152px; }
               inset 0 1px 0 rgba(255,255,255,.05),
               inset 0 0 0 1px rgba(0,0,0,.45);
   padding: 4px;
-  pointer-events: none;
+  pointer-events: auto;          /* тап по миникарте сворачивает её */
+  cursor: pointer;
 }
+#mapHud.collapsed { display: none; }
 #mapHud canvas {
   display: block; width: 100%; height: 100%; border-radius: 8px;
   background: #0a0d14;
   box-shadow: inset 0 0 8px rgba(0,0,0,.7);
+  pointer-events: none;
 }
+/* Кнопка-иконка карты: видна когда миникарта свёрнута (тап — развернуть).
+   Долгое нажатие — показать/скрыть дебаг-плашку (ловить «уезжает»). */
+#mapToggle {
+  position: absolute; right: 14px; top: 56px; z-index: 5;
+  width: 42px; height: 42px; border-radius: 11px;
+  display: none;                 /* по умолчанию миникарта открыта */
+  align-items: center; justify-content: center;
+  font-size: 22px; line-height: 1;
+  background: linear-gradient(180deg, rgba(20,24,32,.94), rgba(10,12,18,.92));
+  border: 1px solid #4a5468; color: #cdd6e4;
+  box-shadow: 0 4px 14px rgba(0,0,0,.6);
+  -webkit-tap-highlight-color: transparent;
+}
+#mapToggle.show { display: flex; }
+#mapToggle:active { transform: scale(.92); }
 
 /* Большой баннер событий (инкассатор выехал / X забрал куш) —
    привлекает внимание всех онлайн-игроков, видно даже на маленьком
    экране. Появляется сверху, висит 3-6 сек, плавно уезжает. */
 #eventBanner {
-  position: absolute; top: 60px; left: 50%;
+  position: absolute; top: 48px; left: 50%;
   transform: translate(-50%, -100%);
-  width: min(380px, 92vw);
-  padding: 12px 16px;
+  width: min(280px, 72vw);
+  padding: 7px 10px;
   background: linear-gradient(135deg, #4a1212, #2a0808);
-  border: 2px solid #b8202a;
-  border-radius: 12px;
+  border: 1.5px solid #b8202a;
+  border-radius: 10px;
   color: #fff;
   z-index: 25;
-  box-shadow: 0 8px 32px rgba(184, 32, 42, .5);
+  box-shadow: 0 4px 16px rgba(184, 32, 42, .4);
   pointer-events: none;
   opacity: 0;
   transition: transform .35s cubic-bezier(.16,1,.3,1), opacity .35s ease;
   text-align: center;
 }
-#eventBanner.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
-#eventBanner.spawn   { border-color: #ffd76b; background: linear-gradient(135deg, #4a3a08, #2a2004); box-shadow: 0 8px 32px rgba(255,215,107,.4); }
-#eventBanner.win     { border-color: #50d878; background: linear-gradient(135deg, #0a4020, #04201a); box-shadow: 0 8px 32px rgba(80,216,120,.5); }
-#eventBanner.lose    { border-color: #c850a8; background: linear-gradient(135deg, #3a0a3a, #1a041a); box-shadow: 0 8px 32px rgba(200,80,168,.45); }
-#eventBanner.neutral { border-color: #5a708a; background: linear-gradient(135deg, #1a2a3a, #0a141e); box-shadow: 0 8px 32px rgba(90,112,138,.4); }
-#eventBanner .et { font-size: 17px; font-weight: 800; letter-spacing: .3px; line-height: 1.15; padding-right: 22px; }
-#eventBanner .em { font-size: 12px; color: #d8d2c8; margin-top: 4px; line-height: 1.35; }
+#eventBanner.show { transform: translate(-50%, 0); opacity: 1; pointer-events: none; }
+#eventBanner .bx { pointer-events: auto; }
+#eventBanner.spawn   { border-color: #ffd76b; background: linear-gradient(135deg, #4a3a08, #2a2004); box-shadow: 0 4px 16px rgba(255,215,107,.35); }
+#eventBanner.win     { border-color: #50d878; background: linear-gradient(135deg, #0a4020, #04201a); box-shadow: 0 4px 16px rgba(80,216,120,.4); }
+#eventBanner.lose    { border-color: #c850a8; background: linear-gradient(135deg, #3a0a3a, #1a041a); box-shadow: 0 4px 16px rgba(200,80,168,.35); }
+#eventBanner.neutral { border-color: #5a708a; background: linear-gradient(135deg, #1a2a3a, #0a141e); box-shadow: 0 4px 16px rgba(90,112,138,.35); }
+#eventBanner .et { font-size: 13px; font-weight: 800; letter-spacing: .2px; line-height: 1.1; padding-right: 18px; }
+#eventBanner .em { font-size: 10px; color: #d8d2c8; margin-top: 2px; line-height: 1.25; }
 /* Крестик закрытия — справа сверху, круглая красная кнопка. Кликабельна
    только когда баннер показан (pointer-events: auto через .show). */
 #eventBanner .bx {
-  position: absolute; top: 6px; right: 6px;
-  width: 22px; height: 22px;
+  position: absolute; top: 4px; right: 4px;
+  width: 18px; height: 18px;
   border-radius: 50%;
   background: rgba(220, 40, 50, .95);
   color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 900; line-height: 1;
+  font-size: 11px; font-weight: 900; line-height: 1;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  box-shadow: 0 2px 4px rgba(0,0,0,.4);
   user-select: none;
   transition: transform .15s ease, background .15s ease;
 }
@@ -1218,6 +1259,7 @@ body.in-pvp #robActionBtn { top: 152px; }
   <div id="boxCopWarn">⚠️ КОПЫ РЯДОМ — УХОДИ!</div>
 
   <div id="mapHud"><canvas id="mapCanvas" width="304" height="304"></canvas></div>
+  <button id="mapToggle" type="button" aria-label="карта">🗺</button>
 
   <div id="joyL"><div class="knob"></div></div>
   <!-- Правый стик: прицел+огонь (Brawl-Stars style) -->
@@ -1321,17 +1363,24 @@ body.in-pvp #robActionBtn { top: 152px; }
   <div id="toast"></div>
 
   <div id="hudPlayer">
-    <div class="hp-row">
-      <span class="label">HP</span>
-      <div id="hpBarBig"><div id="hpBarFill"></div></div>
-      <span class="hp-nums">
-        <span id="hpVal">100</span><span style="color:#5a6478">/</span><span id="hpMaxVal">100</span>
-      </span>
+    <div class="hud-ava">
+      <canvas id="hudAvatar" width="44" height="44"></canvas>
+      <span class="hud-lvl" id="hudLvl">1</span>
     </div>
-    <div class="kd-row">
-      <span class="label" id="timeEmoji" title="Время в городе">☀️</span>
-      <span class="clock" id="gameClock">12:00</span>
-      <span class="kd"><span id="hudKills">0</span>💀 / <span id="hudDeaths">0</span>🪦</span>
+    <div class="hud-info">
+      <div class="hud-name" id="hudName">Игрок</div>
+      <div class="hp-row">
+        <span class="label">HP</span>
+        <div id="hpBarBig"><div id="hpBarFill"></div></div>
+        <span class="hp-nums">
+          <span id="hpVal">100</span><span style="color:#5a6478">/</span><span id="hpMaxVal">100</span>
+        </span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-money">💰<span id="hudMoneyVal">0</span></span>
+        <span class="stat-time"><span id="timeEmoji" title="Время в городе">☀️</span><span class="clock" id="gameClock">12:00</span></span>
+        <span style="display:none"><span id="hudKills">0</span><span id="hudDeaths">0</span></span>
+      </div>
     </div>
   </div>
   <button id="fireBtn">🔫</button>
@@ -1511,6 +1560,10 @@ try {
   if (tg && typeof tg.onEvent === 'function') {
     tg.onEvent('viewportChanged', () => {
       try { if (tg && !tg.isExpanded) tg.expand(); } catch(_) {}
+      // Viewport Telegram изменился (хедер/клавиатура/safe-area) — пересчитываем
+      // canvas+stage, чтобы центр камеры остался синхронным с холстом и карту
+      // не «уводило». На iOS window 'resize' при этом не всегда стреляет.
+      try { if (typeof resizeCanvas === 'function') resizeCanvas(); } catch(_) {}
     });
   }
 } catch(e) {}
@@ -1523,26 +1576,47 @@ document.body.addEventListener('touchstart', (e) => {
 // На всякий случай — глушим touchmove на body (но не на canvas/joystick,
 // они и так останавливают через preventDefault выше).
 document.addEventListener('touchmove', (e) => {
-  // Если событие началось НЕ из интерактивного контрола — гасим (для iOS
-  // часто свайп-вниз снизу закрывает webapp).
-  if (e.touches.length > 1) return;  // не мешаем pinch
-  if (e.cancelable) e.preventDefault();
+  if (e.touches.length > 1) return;
+  try { e.preventDefault(); } catch(_) {}
 }, { passive: false });
 
 // ── Canvas ──────────────────────────────────────────────────────
 const canvas = document.getElementById('gc');
 const ctx = canvas.getContext('2d');
+// Истинная ВИДИМАЯ область. На iOS/Telegram window.innerWidth/Height могут
+// НЕ совпадать с тем что реально видно (хедер/safe-area/динамическая панель)
+// → игрок рисовался не по центру, «карта уезжает». visualViewport даёт точную
+// видимую зону. Берём его если есть, иначе фолбэк на window.
+function _viewSize() {
+  const vv = window.visualViewport;
+  return {
+    W: Math.round((vv && vv.width)  || window.innerWidth),
+    H: Math.round((vv && vv.height) || window.innerHeight),
+  };
+}
 function resizeCanvas() {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const W = window.innerWidth, H = window.innerHeight;
+  const { W, H } = _viewSize();
   canvas.width  = Math.floor(W * dpr);
   canvas.height = Math.floor(H * dpr);
   canvas.style.width  = W + 'px';
   canvas.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Равняем #stage (его clientWidth/Height читают w2s/s2w/миникарта) к той же
+  // видимой области — центр камеры строго совпадает с центром холста.
+  const _stg = document.getElementById('stage');
+  if (_stg) { _stg.style.width = W + 'px'; _stg.style.height = H + 'px'; }
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
+// iOS: window 'resize' часто молчит при смене visible-области — слушаем
+// visualViewport напрямую (resize + scroll меняют видимую зону).
+try {
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', resizeCanvas);
+    window.visualViewport.addEventListener('scroll', resizeCanvas);
+  }
+} catch(e) {}
 
 // ── Карта (статичная) ──────────────────────────────────────────
 // Размер задаст сервер в hello-кадре, но дублируем дефолты на случай оффлайна.
@@ -1846,10 +1920,10 @@ function generateBeachDecor() {
   //    границы города (r=150) вглубь пляжа к воде (r≈165). По 1 тайлу
   //    шириной, 3-4 дорожки распределены по c. Это не блокирует игрока,
   //    просто декор поверх песка.
+  // PATH_COLS оставлены как «свободные коридоры» для расстановки прочего
+  // декора (пальмы/зонты не лезут в эти полосы), но сами деревянные
+  // дорожки (plank_path) убраны по просьбе — выглядели «досками в кучу».
   const PATH_COLS = [18, 30, 52, 66];
-  for (const pc of PATH_COLS) {
-    _beachDecor.push({ kind: 'plank_path', r0: 150, r1: 165, c: pc });
-  }
   // 2) Пальмы — Poisson-like grid placement. Делим пляж на «соты» 4×4 тайла,
   //    в каждой соте максимум 1 пальма со случайным сдвигом. Плюс глобальная
   //    мин-дистанция 4.0 — гарантия что соседние клетки не дают пары впритык.
@@ -1936,10 +2010,18 @@ function generateBeachDecor() {
     { r: 158, c: 19, col: '#e74c3c' },
     { r: 161, c: 46, col: '#9b59b6' },
     { r: 158, c: 67, col: '#1abc9c' },
+    { r: 154, c: 32, col: '#3498db' },
+    { r: 160, c: 55, col: '#f39c12' },
+    { r: 162, c: 10, col: '#e91e63' },
   ]) _beachDecor.push({ kind: 'towel', r: tw.r, c: tw.c, col: tw.col });
   // 10) Песочные замки (детский антураж)
   _beachDecor.push({ kind: 'sandcastle', r: 160, c: 16 });
   _beachDecor.push({ kind: 'sandcastle', r: 163, c: 70 });
+  // 10b) Волейбольная сетка
+  _beachDecor.push({ kind: 'volleyball', r: 155, c: 38 });
+  // 10c) Тележки мороженого
+  _beachDecor.push({ kind: 'icecream_cart', r: 152, c: 20 });
+  _beachDecor.push({ kind: 'icecream_cart', r: 153, c: 64 });
   // 11) Морские звёзды и крабы у самой воды
   for (let r = BEACH_R1 - 2; r < BEACH_R1; r++) {
     for (let c = 4; c < MAP_COLS - 4; c++) {
@@ -2129,6 +2211,53 @@ function inAggroZone(r, c) {
   return null;
 }
 
+// ── РАЙОНЫ (districts) ─────────────────────────────────────────────
+// Весь мир поделён на крупные районы-зоны (в отличие от точечных
+// TERRITORIES вокруг POI). Логово — отдельная бандитская зона (не
+// захватывается). В будущем игроки захватывают целые районы онлайн и
+// получают с них бонусы (поле bonus — задел под механику). Разбивка
+// покрывает карту 80×200 целиком, зоны не пересекаются:
+//   город r0..99 (4 квадранта по c=40 и r=40) + Логово r100..149 + берег r150..199.
+// hq — штаб района (точка захвата, совпадает с DISTRICTS_DEF на сервере).
+// income — пассивный доход банде-владельцу за тик. capturable:false у Логова.
+const DISTRICTS = [
+  { id:'northside',  name:'Норт-Сайд',  icon:'🏪', color:'#4aa3df',
+    r0:0,   r1:39,  c0:0,  c1:39, capturable:true,  bonus:'+25% доход с рынка',
+    hq:{r:20,c:20},  income:400 },
+  { id:'downtown',   name:'Даунтаун',   icon:'🏙', color:'#e0b94a',
+    r0:0,   r1:39,  c0:40, c1:79, capturable:true,  bonus:'Ускоренное лечение',
+    hq:{r:20,c:60},  income:600 },
+  { id:'southside',  name:'Саутсайд',   icon:'🎰', color:'#9b59b6',
+    r0:40,  r1:99,  c0:0,  c1:39, capturable:true,  bonus:'+10% наличных',
+    hq:{r:70,c:20},  income:500 },
+  { id:'industrial', name:'Промзона',   icon:'🏭', color:'#d2691e',
+    r0:40,  r1:99,  c0:40, c1:79, capturable:true,  bonus:'Скидка на оружие',
+    hq:{r:70,c:60},  income:550 },
+  { id:'lair',       name:'Логово',     icon:'☠️', color:'#c0392b',
+    r0:100, r1:149, c0:0,  c1:79, capturable:false, bonus:'Территория банды' },
+  { id:'coast',      name:'Побережье',  icon:'⚓', color:'#2ecc71',
+    r0:150, r1:199, c0:0,  c1:79, capturable:true,  bonus:'+20% с контрактов',
+    hq:{r:156,c:40}, income:450 },
+];
+const DIST_HQ_RAD = 6;             // радиус штаба (совпадает с сервером)
+const DIST_CAPTURE_TIME_S = 25;    // время удержания штаба (совпадает с сервером)
+const districtCaptures = new Map();   // did → { byId, byName, color, startedAt, duration }
+let _myInsideDistHq = null;        // did штаба под игроком (для UI)
+let _lastDistCaptureTryAt = 0;
+const DISTRICT_BY_ID = new Map(DISTRICTS.map(d => [d.id, d]));
+function districtAt(r, c) {
+  for (const d of DISTRICTS) {
+    if (r >= d.r0 && r <= d.r1 && c >= d.c0 && c <= d.c1) return d;
+  }
+  return null;
+}
+// Владельцы районов (придёт с сервера; пока локально пусто).
+// { [districtId]: { ownerId, ownerName, gangTag, color, capturedAt } } — null = ничейный
+const districtOwners = Object.create(null);
+// Текущий район игрока + состояние GTA-баннера «въезд в район».
+let _curDistrictId = null;
+let _districtBanner = null;   // { d, t } — район и момент показа
+
 // State владельцев (приходит с сервера; пока локально пусто).
 // { [tid]: { ownerId, ownerName, gangTag, color, capturedAt } } — null = ничейная
 const territoryOwners = Object.create(null);
@@ -2192,7 +2321,8 @@ function applyQuestCarsSnapshot(arr) {
       prev.passenger_uids = c.passenger_uids || [];
       prev.state      = c.state;
       prev.owner_uid  = c.owner_uid;
-      prev.model      = c.model;
+      // _lockedModel = угнанная civ-машина: держим её скин, не даём серверу подменить
+      prev.model      = prev._lockedModel || c.model;
       prev.reward     = c.reward;
       prev.hp         = c.hp;
       prev.max_hp     = c.max_hp;
@@ -2215,9 +2345,15 @@ function applyQuestCarsSnapshot(arr) {
       });
     }
   }
-  // Убираем машины которые больше не приходят (доставлены / сервер их выкинул)
+  // Убираем машины которые больше не приходят (доставлены / сервер их выкинул).
+  // НО НИКОГДА не удаляем машину, которой я сейчас рулю/еду пассажиром: на
+  // пляже/песке сервер временно перестаёт слать civ-машину (считает её «вне
+  // дороги»), а клиент её удалял → «тачка пропала, выезжаешь с песка —
+  // появляется», и камера машины ломалась (questCars.get(myDrivingCarId)
+  // = undefined → весь вид «съезжал»). Моя машина клиент-авторитетна —
+  // держим её локально, даже если сервер на пару тиков замолчал.
   for (const id of Array.from(questCars.keys())) {
-    if (!fresh.has(id)) questCars.delete(id);
+    if (!fresh.has(id) && id !== myDrivingCarId) questCars.delete(id);
   }
 }
 // Когда я сел в машину — её id; null если иду пешком.
@@ -3192,7 +3328,15 @@ function spawnNpc(seed) {
     const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
     if (inArena(r, c)) continue;
     if (inLair(r, c)) continue;   // мирные NPC не заходят в логово
-    if (MAP[r][c] === 9 || MAP[r][c] === 8) {
+    const _spt = MAP[r][c];
+    const _isBeach = (_spt === 14);
+    if (_spt === 9 || _spt === 8 || _spt === 14) {
+      // Песок плотный → рандом-спавн валит на пляж непропорционально много.
+      // Держим квоту пляжных ~18 (как было beachgoers), остальные — в город.
+      if (_isBeach) {
+        let _bc = 0; for (const _x of NPCS) if (_x._beach) _bc++;
+        if (_bc >= 18) continue;
+      }
       const arcKey = _pickArchetype();
       const arc    = NPC_ARCHETYPES[arcKey];
       const [spMin, spMax] = arc.speedRange;
@@ -3205,6 +3349,13 @@ function spawnNpc(seed) {
         hat:    Math.floor(Math.random() * 4),
       };
       for (const k of Object.keys(arc.look || {})) baseLook[k] = arc.look[k];
+      // Пляжный NPC — голый купальный вид (тот же drawChar swim-путь, что
+      // и у бывших beachgoers). Обычный городской — как был.
+      if (_isBeach) {
+        baseLook.swim = true;
+        baseLook.swimCol = ['#e74c3c','#f1c40f','#3498db','#2ecc71','#9b59b6','#e67e22','#1abc9c','#ff7eb6'][Math.floor(Math.random()*8)];
+        baseLook.hat = 0;
+      }
       const n = {
         r: r + 0.5, c: c + 0.5,
         tr: r + 0.5, tc: c + 0.5,
@@ -3217,6 +3368,11 @@ function spawnNpc(seed) {
         _arcKey: arcKey,
         _arc: arc,
         _relation: 0,   // neutral
+        // Зона обитания: пляжный NPC ходит ТОЛЬКО по песку (в город не идёт);
+        // городской — по тротуару/газону, и лишь РЕДКО (4%) разрешена вылазка
+        // на пляж (придёт одетым — обычный отдыхающий-зевака).
+        _beach: _isBeach,
+        _allowBeach: (!_isBeach && Math.random() < 0.04),
       };
       _initNpcEmotions(n);
       return n;
@@ -3507,7 +3663,12 @@ function npcPassable(r, c) {
   if (inArena(ri, ci)) return false;
   if (inLair(ri, ci)) return false;   // обычные NPC не ходят в логово
   const t = MAP[ri][ci];
-  return (t === 9 || t === 8);
+  // 8/9 — тротуар/газон (город). 14 — песок (пляж): пускаем NPC и туда,
+  // чтобы пляжные жители были обычными NPC (ходят, стреляемы), а не
+  // отдельной системой. Песок есть только в южной зоне → city-NPC сами
+  // на пляж не уйдут (waypoint ±4 тайла), туда попадают лишь спавнящиеся
+  // на пляже. Вода(16)/пирс(15)/палуба(17) остаются непроходимыми.
+  return (t === 9 || t === 8 || t === 14);
 }
 // Расширенная проходимость для NPC-снитча (бежит к копам через всю карту).
 // Разрешает дорогу (0) дополнительно к тротуару/газону. Не позволяет
@@ -3519,6 +3680,21 @@ function npcPassableForSnitch(r, c) {
   const t = MAP[ri][ci];
   return (t === 0 || t === 9 || t === 8);
 }
+// Зональная проходимость для ВЫБОРА маршрута NPC. Базовый npcPassable
+// пускает на песок всех (стены/вода блокируются им же), а здесь держим
+// каждого в своей зоне: пляжный — только песок (14) в полосе пляжа, чтобы
+// в город не уходил; городской — тротуар/газон (8/9), а на песок только
+// если ему выпала редкая «вылазка» (_allowBeach).
+function npcWaypointOk(npc, r, c) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
+  if (inArena(ri, ci)) return false;
+  if (inLair(ri, ci)) return false;
+  const t = MAP[ri][ci];
+  if (npc._beach) return (t === 14 && ri >= 138 && ri <= 168);  // пляжный — только пляж
+  if (t === 14) return !!npc._allowBeach;                        // городской на песок — редко
+  return (t === 9 || t === 8);
+}
 function pickNpcWaypoint(npc) {
   // Близкий waypoint в радиусе 4 — чтобы прямой путь почти всегда
   // не пересекал здания. Дополнительная проверка: путь должен идти
@@ -3527,15 +3703,15 @@ function pickNpcWaypoint(npc) {
     const dr = (Math.random() * 8) - 4;
     const dc = (Math.random() * 8) - 4;
     const nr = npc.r + dr, nc = npc.c + dc;
-    if (!npcPassable(nr, nc)) continue;
-    // Проверяем что прямой путь не пересекает стены
+    if (!npcWaypointOk(npc, nr, nc)) continue;
+    // Проверяем что прямой путь не пересекает стены/чужую зону
     const steps = Math.max(2, Math.ceil(Math.hypot(dr, dc) * 2));
     let blocked = false;
     for (let s = 1; s <= steps; s++) {
       const k = s / steps;
       const pr = npc.r + dr * k;
       const pc = npc.c + dc * k;
-      if (!npcPassable(pr, pc)) { blocked = true; break; }
+      if (!npcWaypointOk(npc, pr, pc)) { blocked = true; break; }
     }
     if (blocked) continue;
     npc.tr = nr; npc.tc = nc;
@@ -4194,7 +4370,7 @@ function updateCityCops(dt) {
           const muzC = cop.x + Math.cos(cop.ang) * 0.45;
           spawnBullet(muzR, muzC, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol' });
           spawnMuzzle(muzR, muzC, cop.ang, 'pistol', true);
-          spawnImpact(player.r, player.c, 'pistol');
+          spawnImpact(player.r, player.c, 'pistol', true);
           if (typeof addShake === 'function') addShake(2.5);
           const dmg = 7 + Math.floor(Math.random() * 5);
           _hurtLocal(dmg, 'Полиция');
@@ -5635,7 +5811,7 @@ function updateNpcs(dt) {
         n._lastShotAt = now;
         if (isHit) {
           const npcDmg = 8 + Math.floor(Math.random() * 7);
-          spawnImpact(tR, tC, wep);
+          spawnImpact(tR, tC, wep, true);
           addShake(2.5);
           flashHitOverlay();
           _hurtLocal(npcDmg, 'Бандит');  // локальный урон «прилипает» против снапшота
@@ -5672,7 +5848,7 @@ function updateNpcs(dt) {
             if (cHit) {
               // Наносим урон NPC от копа
               hitNpc(n, Math.sin(copAng), Math.cos(copAng), 'pistol', 18 + Math.floor(Math.random()*10));
-              spawnImpact(ctR, ctC, 'pistol');
+              spawnImpact(ctR, ctC, 'pistol', true);
               if (!n._copAlertShown) {
                 n._copAlertShown = true;
                 showToast('🚔 Коп открыл огонь по вооружённому прохожему!', '⚠️', 3000);
@@ -5964,6 +6140,23 @@ const QUEST_CAR_MODELS = {
   harley_chopper: { id: 'harley_chopper', label: 'Harley Chopper',  L: 1.85, W: 0.55, palette: ['#3a3a48','#15151c'], roof: '#0a0a10', wheelR: 0.24, height: 0.50, reward: 1200, is_bike: true },
   ducati_750:     { id: 'ducati_750',     label: 'Ducati 750',      L: 1.70, W: 0.52, palette: ['#e62018','#7a0c0c'], roof: '#1a0a0a', wheelR: 0.22, height: 0.48, reward: 1400, is_bike: true, fast: true },
 };
+// Универсальный резолвер модели машины по id/имени. Угнанная civ-машина
+// приходит с сервера с моделью из CAR_MODELS (sedan/taxi/...), которой НЕТ
+// в QUEST_CAR_MODELS → раньше drawQuestCar делал return и машина пропадала.
+// Ищем в QUEST → CAR → GANG → POLICE, фолбэк — sedan. Карта строится лениво.
+let _CAR_MODEL_BY_NAME = null;
+function resolveCarModel(modelId) {
+  if (!modelId) return QUEST_CAR_MODELS.cadillac_eldo;
+  if (typeof modelId === 'object') return modelId;   // уже объект-модель
+  if (QUEST_CAR_MODELS[modelId]) return QUEST_CAR_MODELS[modelId];
+  if (!_CAR_MODEL_BY_NAME) {
+    _CAR_MODEL_BY_NAME = {};
+    for (const m of CAR_MODELS)      _CAR_MODEL_BY_NAME[m.name] = m;
+    for (const m of GANG_CAR_MODELS) _CAR_MODEL_BY_NAME[m.name] = m;
+    for (const k in POLICE_MODELS)   _CAR_MODEL_BY_NAME[POLICE_MODELS[k].name || k] = POLICE_MODELS[k];
+  }
+  return _CAR_MODEL_BY_NAME[modelId] || _CAR_MODEL_BY_NAME['sedan'] || QUEST_CAR_MODELS.cadillac_eldo;
+}
 // Полицейские модели — отдельный pool, используется ТОЛЬКО для патрулей
 // и спецсобытий (не спавнятся как обычные машины). Эти модели имеют
 // мигалки, надписи POLICE, цветную палитру (бело-чёрная или чёрная для
@@ -6664,7 +6857,7 @@ function updateGangAggression(dt) {
   spawnBullet(muzR, muzC, tR, tC, { hit: isHit, fromNpc: true, weapon: 'pistol_heavy' });
   spawnMuzzle(muzR, muzC, ang, 'pistol_heavy', true);
   if (isHit) {
-    spawnImpact(tR, tC, 'pistol_heavy');
+    spawnImpact(tR, tC, 'pistol_heavy', true);
     addShake(1.8);
     // Шлём серверу — он уменьшит мой hp авторитативно (anti-cheat проверит
     // что у меня действительно есть кулачки и рядом есть gang-источник).
@@ -8110,6 +8303,7 @@ window.addEventListener('touchmove', (e) => {
   for (const t of e.changedTouches) {
     if (t.identifier === joyL._touchId) { joyLMove(t.clientX, t.clientY); break; }
   }
+  try { e.preventDefault(); } catch(_) {}
 }, { passive: false });
 window.addEventListener('touchend', (e) => {
   if (!joyL.active || joyL._touchId == null) return;
@@ -8184,6 +8378,7 @@ window.addEventListener('touchmove', (e) => {
   for (const t of e.changedTouches) {
     if (t.identifier === joyR._touchId) { joyRMove(t.clientX, t.clientY); break; }
   }
+  try { e.preventDefault(); } catch(_) {}
 }, { passive: false });
 window.addEventListener('touchend', (e) => {
   if (!joyR.active || joyR._touchId == null) return;
@@ -8224,6 +8419,21 @@ function isBlocked(r, c) {
   if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS) return true;
   return !PASSABLE.has(MAP[ri][ci]);
 }
+// Коллизия для МАШИНЫ: в отличие от пешехода, машина НЕ заезжает на песок
+// пляжа (тайл 14), кроме асфальтовой дороги к Майклу (c=40..43). Песок для
+// пешехода остаётся проходимым через обычный isBlocked.
+// Песок (14) ТЕПЕРЬ ПРОХОДИМ для машин — можно ездить по пляжу (медленно,
+// колёса зарываются, см. sand-эффект ниже в физике). Блокируем только то же,
+// что и пешеходу (здания/вода/границы) через isBlocked. Раньше тут стоял
+// доп. блок песка — машина «врезалась в пляж».
+function isBlockedCar(r, c) {
+  return isBlocked(r, c);
+}
+// Машина стоит на песке? (для замедления + анимации зарывания колёс)
+function _carOnSand(r, c) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  return !!(MAP[ri] && MAP[ri][ci] === 14);
+}
 function tryMove(obj, dr, dc) {
   const pad = 0.3;
   // ТЮРЬМА: пока сижу (myJailIn > 0) — клиент сам держит игрока внутри
@@ -8242,13 +8452,13 @@ function tryMove(obj, dr, dc) {
   // он оказывался ВНЕ клетки («в тюрьме, но бегаю»), удержание отключалось.
   const jailed = isMe && myJailIn > 0;
   if (jailed) {
-    // Игрок ДАЛЕКО вне клетки — мягко шагаем к центру (возврат в камеру),
-    // пока не войдёт в кольцо. Покрывает кейс «сервер не телепортировал».
+    // Игрок далеко от тюрьмы — ТЕЛЕПОРТ в центр двора (не пошаговое
+    // хождение через карту, которое упиралось в здания и лагало).
     if (curD > JAIL_RADIUS_TILES + 1.0) {
-      const ang0 = Math.atan2(JAIL_CENTER_R - obj.r, JAIL_CENTER_C - obj.c);
-      const step = Math.max(Math.hypot(dr, dc), 0.12);
-      obj.r += Math.sin(ang0) * step;
-      obj.c += Math.cos(ang0) * step;
+      obj.r = JAIL_CENTER_R + 1;
+      obj.c = JAIL_CENTER_C + 1;
+      cam.x = (obj.c - obj.r) * TS * 0.5;
+      cam.y = (obj.c + obj.r) * TS * 0.5 * ISO_Y;
       return;
     }
     // Клетка — расчищенный двор участка 7×7 (dr,dc∈[-3,3] от центра,
@@ -8406,6 +8616,9 @@ function applyAggroTargets(newAggro) {
     const oldById = new Map((cur.bots || []).map(b => [b.id, b]));
     const merged = [];
     for (const nb of newBots) {
+      // Запоминаем последнюю позицию/look каждого бота — чтобы при убийстве
+      // (бот пропадает из снапшота) спавн трупа знал где его положить.
+      _botLastSeen.set(String(nb.id), { x: nb.x, y: nb.y, ang: nb.ang || 0, look: nb.look, max_hp: nb.max_hp || 100, t: performance.now() });
       const ob = oldById.get(nb.id);
       if (ob) {
         ob.tx    = nb.x;    ob.ty    = nb.y;
@@ -8423,6 +8636,52 @@ function applyAggroTargets(newAggro) {
     // Укрытия не двигаются — перетираем как есть
     cur.covers = fresh.covers || [];
   }
+  // Чистим устаревшие записи позиций (бот мёртв/деспавнен >30с назад)
+  if (_botLastSeen.size > 120) {
+    const _cut = performance.now() - 30000;
+    for (const [k, v] of _botLastSeen) if (v.t < _cut) _botLastSeen.delete(k);
+  }
+}
+
+// Последние позиции ботов из снапшота — для спавна трупа после убийства
+// (бот к этому моменту уже мог исчезнуть из aggroZones).
+const _botLastSeen = new Map();
+// Спавн локального трупа убитого бота Логова/банды. Сервер мгновенно убирает
+// его из снапшота, поэтому без этого тело исчезает в кадр убийства (у обычных
+// NPC труп лежит 60с + лужа крови). Берём позицию/look из текущего снапшота.
+function spawnBotCorpse(botId, isBoss) {
+  let bx = null, by = null, look = null, ang = 0, maxHp = 100;
+  for (const z of Object.values(aggroZones || {})) {
+    for (const b of (z.bots || [])) {
+      if (String(b.id) === String(botId)) {
+        bx = b.x; by = b.y; look = b.look; ang = b.ang || 0; maxHp = b.max_hp || 100;
+        break;
+      }
+    }
+    if (bx !== null) break;
+  }
+  // Фолбэк: бот уже пропал из снапшота — берём последнюю известную позицию
+  if (bx === null) {
+    const ls = _botLastSeen.get(String(botId));
+    if (ls) { bx = ls.x; by = ls.y; look = ls.look; ang = ls.ang; maxHp = ls.max_hp; }
+  }
+  if (bx === null) return;
+  const now = performance.now();
+  NPCS.push({
+    r: by, c: bx, ang,
+    look: look || (isBoss ? _AGGRO_BOSS_LOOK : _AGGRO_GRUNT_LOOK),
+    walkPhase: 0, dead: true, deadAt: now,
+    hp: 0, max_hp: maxHp, _arcKey: 'bandit',
+    _botCorpse: true, _evacuated: true,   // не вызывать скорую к трупу банды
+  });
+  for (let i = 0; i < 6; i++) {
+    _capArr(bloodSplats, _MAX_BLOOD);
+    bloodSplats.push({
+      r: by + (Math.random() - 0.5) * 0.8, c: bx + (Math.random() - 0.5) * 0.8,
+      radius: 7 + Math.random() * 5, life: 14000, max: 14000, rot: Math.random() * Math.PI,
+    });
+  }
+  spawnImpact(by, bx, isBoss ? 'rifle' : 'pistol', true);
 }
 
 // interpWorldNpcs — плавное подтягивание текущих x/y к целевым tx/ty.
@@ -8545,7 +8804,7 @@ function handleEventPacket(d) {
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wep });
       spawnMuzzle(sR, sC, ang, wep, true);
-      if (!d.miss) spawnImpact(d.ty, d.tx, wep);
+      if (!d.miss) spawnImpact(d.ty, d.tx, wep, true);
     }
     if (d.shooter_id) lastBossShotAt.set(d.shooter_id, performance.now());
     if (!d.miss && d.target_uid && String(d.target_uid) === String(QP.uid)) {
@@ -8572,7 +8831,7 @@ function handleEventPacket(d) {
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, ty, tx, { hit: true, fromPlayer: true, weapon: d.weapon });
       spawnMuzzle(sR, sC, ang, d.weapon);
-      spawnImpact(ty, tx, d.weapon);
+      spawnImpact(ty, tx, d.weapon, true);
     }
   } else if (kind === 'pvp_shot') {
     // PvP: игрок стреляет в другого игрока (стартуем из конца ствола).
@@ -8583,7 +8842,7 @@ function handleEventPacket(d) {
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: d.weapon });
       spawnMuzzle(sR, sC, ang, d.weapon);
-      spawnImpact(d.ty, d.tx, d.weapon);
+      spawnImpact(d.ty, d.tx, d.weapon, true);
     }
     // Запоминаем оружие и время — для вспышки на дуле и визуала
     if (d.shooter_uid) {
@@ -8657,7 +8916,7 @@ function handleEventPacket(d) {
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
       spawnMuzzle(sR, sC, ang, wp, true);
-      if (!d.miss) spawnImpact(d.ty, d.tx, wp);
+      if (!d.miss) spawnImpact(d.ty, d.tx, wp, true);
     }
     if (d.guard_id) {
       const g = michaelGuards.get(d.guard_id);
@@ -8679,7 +8938,7 @@ function handleEventPacket(d) {
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: wp });
       spawnMuzzle(sR, sC, ang, wp);
-      spawnImpact(d.ty, d.tx, wp);
+      spawnImpact(d.ty, d.tx, wp, true);
     }
     if (d.killed && d.guard_id) {
       // Локально удаляем из карты — следующий snap либо вернёт его респаун,
@@ -8698,7 +8957,7 @@ function handleEventPacket(d) {
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
       spawnMuzzle(sR, sC, ang, wp, true);
-      if (!d.miss) spawnImpact(d.ty, d.tx, wp);
+      if (!d.miss) spawnImpact(d.ty, d.tx, wp, true);
     }
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
     // Внутри банка серверные копы по игроку «попадать» не должны — он для
@@ -8718,7 +8977,6 @@ function handleEventPacket(d) {
       spawnArrestAnim(d.target_uid, d.ty, d.tx);
       if (String(d.target_uid) === String(QP.uid)) {
         showArrestOverlay();
-        addShake(7);
       }
     }
   } else if (kind === 'cop_shot_bot') {
@@ -8732,7 +8990,7 @@ function handleEventPacket(d) {
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: !d.miss, fromNpc: true, weapon: wp });
       spawnMuzzle(sR, sC, ang, wp, true);
-      if (!d.miss) spawnImpact(d.ty, d.tx, wp);
+      if (!d.miss) spawnImpact(d.ty, d.tx, wp, true);
     }
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
   } else if (kind === 'city_gang_combat') {
@@ -8747,8 +9005,8 @@ function handleEventPacket(d) {
   } else if (kind === 'gang_nest_spawned') {
     // Новое гнездо в городе — спавнинг-баннер всем игрокам.
     showEventBanner('☠️ БАНДИТСКОЕ ГНЕЗДО!',
-      'Бойцы засели в здании. Зачисти всех за награду — пока не разошлись.',
-      5500, 'spawn');
+      'Засели в здании — зачисти за награду.',
+      3000, 'spawn');
   } else if (kind === 'gang_nest_cleared') {
     // Гнездо зачищено — бонус всем кто стрелял.
     const me = (d.bonus_uids || []).some(u => String(u) === String(QP.uid));
@@ -8837,7 +9095,7 @@ function handleEventPacket(d) {
       spawnMuzzle(sR, sC, ang, wp, true);
       if (!d.miss) {
         // Искры от корпуса (не кровь) — переиспользуем spawnImpact с force-sparks
-        spawnImpact(d.ty, d.tx, wp);
+        spawnImpact(d.ty, d.tx, wp, true);
       }
     }
     // Если это МОЯ машина (я её веду) — лёгкое предупреждение
@@ -8878,9 +9136,11 @@ function handleEventPacket(d) {
       // Сервер создал нам quest-car-civilian. Сразу садимся за руль —
       // сервер уже поставил driver_uid. Локальный snapshot questCars
       // догонит через 1 кадр, поэтому пока создаём болванку.
+      // Скин — в какую сел, в той и едешь: предпочитаем локальную модель.
+      const _useModel = _pendingHijackModel || d.model;
       if (!questCars.has(d.car_id)) {
         questCars.set(d.car_id, {
-          id: d.car_id, model: d.model,
+          id: d.car_id, model: _useModel, _lockedModel: _useModel,
           owner_uid: null, driver_uid: String(QP.uid),
           passenger_uids: [],
           x: d.x, y: d.y, ang: player.ang || 0,
@@ -8889,7 +9149,11 @@ function handleEventPacket(d) {
           state: 'driven', wrecked: false,
           civilian: true, lock_lvl: 0, reward: 0,
         });
+      } else {
+        const _ex = questCars.get(d.car_id);
+        _ex.model = _useModel; _ex._lockedModel = _useModel;
       }
+      _pendingHijackModel = null;
       myDrivingCarId = d.car_id;
       myIsPassenger  = false;
       _exitRequested = false;
@@ -9245,7 +9509,7 @@ function handleEventPacket(d) {
       const sC  = d.sx + Math.cos(ang) * md;
       spawnBullet(sR, sC, d.ty, d.tx, { hit: true, fromPlayer: true, weapon: wp });
       spawnMuzzle(sR, sC, ang, wp);
-      spawnImpact(d.ty, d.tx, wp);
+      spawnImpact(d.ty, d.tx, wp, true);
     }
   } else if (kind === 'territory_capture_started') {
     // Кто-то начал захват в ЭТОЙ зоне. Локально не дожидаемся следующего
@@ -9320,7 +9584,7 @@ function handleEventPacket(d) {
       }
       spawnBullet(sR, sC, tR, tC, opts);
       spawnMuzzle(sR, sC, ang, wep, true);
-      spawnImpact(tR, tC, wep);
+      spawnImpact(tR, tC, wep, true);
     }
     if (d.bot_id) lastBossShotAt.set(d.bot_id, performance.now());
     // Aggro_melee (сабля) применяется мгновенно — урон в d.dmg/killed
@@ -9354,6 +9618,8 @@ function handleEventPacket(d) {
     // приходит ВСЕМ в зоне, а aggro_killed — только стрелку.
   } else if (kind === 'aggro_killed') {
     // Стрелок убил бойца банды. Сервер уже зачислил cash/exp в БД.
+    // Спавним локальный труп — иначе тело исчезает в кадр убийства.
+    try { spawnBotCorpse(d.bot_id, d.is_boss); } catch(e){}
     // Показываем toast с конкретной наградой + флаг кулачка если упал.
     const cash = d.cash || 0, exp = d.exp || 0;
     const gAdd = d.gang_added ? `  👊+1 (${d.gang_now}/3)` : '';
@@ -9427,6 +9693,41 @@ function handleEventPacket(d) {
     // Микро-уведомление только владельцу — «капнуло в копилку».
     if (String(d.owner_uid) === String(QP.uid)) {
       showToast(`💰 +$${d.amount} с района «${d.name}» → копилка банды`, 3000);
+    }
+  } else if (kind === 'district_capture_started') {
+    if (String(d.by_uid) === String(QP.uid)) {
+      showToast(`${d.icon||'🏴'} Захват района «${d.name}» — держись у штаба ${d.duration_s||25}с`, 3500);
+    }
+  } else if (kind === 'district_capture_denied') {
+    if (String(d.by_uid) === String(QP.uid)) {
+      if (d.reason === 'cooldown') {
+        const m = Math.ceil((d.wait_s || 0) / 60);
+        showToast(`⏳ Этот район ты недавно брал. Жди ещё ~${m} мин.`, 3500);
+      } else if (d.reason === 'must_reenter') {
+        showToast('🚶 Отойди от штаба и вернись, чтобы снова брать район.', 3500);
+      }
+    }
+  } else if (kind === 'district_capture_cancelled') {
+    if (String(d.by_uid) === String(QP.uid)) {
+      const reasons = { left_hq:'Ты ушёл от штаба.', killed:'Тебя убили.',
+        jailed:'Тебя приняли копы.', disconnected:'Разрыв связи.',
+        mode_changed:'Сменил режим.', cancelled:'Захват отменён.' };
+      showEventBanner('⚠️ Захват района сорван', reasons[d.reason] || 'Прогресс сброшен.', 2500, 'lose');
+    }
+  } else if (kind === 'district_captured') {
+    const me = (String(d.by_uid) === String(QP.uid));
+    const inc = d.income || 400;
+    const tickMin = Math.round(((d.income_tick_s|0) || 120) / 60);
+    if (me) {
+      showEventBanner(`${d.icon} ${d.name} — твой район!`,
+        `Доход $${inc} каждые ${tickMin} мин прямо на счёт.`, 5000, 'win');
+    } else {
+      showEventBanner(`${d.icon} @${d.by_name} захватил район ${d.name}`,
+        'Доход с района идёт ему.', 4000, 'neutral');
+    }
+  } else if (kind === 'district_income') {
+    if (String(d.owner_uid) === String(QP.uid)) {
+      showToast(`💰 +$${d.amount} с района «${d.name}»`, 3000);
     }
   } else if (kind === 'open_fire') {
     // Игрок открыл огонь в городе вне PvP-зоны. Баннер всем (кроме стрелка)
@@ -9737,8 +10038,13 @@ function wsConnect() {
       // Если игрок реально жульничает (тп) — at 15 тайл snap всё равно
       // вернёт его. Если просто инет лагает — игрок не чувствует rubber.
       if (d.me) {
-        // Внутри банка координаты — комнатные, не мировые → snap игнорируем
-        if (!_bankInt) {
+        // Внутри банка координаты — комнатные, не мировые → snap игнорируем.
+        // ЗА РУЛЁМ машина клиент-авторитетна (позиция шлётся через gta_drive,
+        // серверный d.me — устаревшее эхо). Если применять коррекцию — снапшот
+        // дёргает player назад, update() возвращает вперёд → камера трясётся
+        // каждый снап. Поэтому при вождении позиционную коррекцию пропускаем.
+        const _driving = !!myDrivingCarId && !myIsPassenger;
+        if (!_bankInt && !_driving) {
         const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
         if (_firstSnap || dist > 15.0) {
           player.r = d.me.y; player.c = d.me.x;
@@ -9747,12 +10053,16 @@ function wsConnect() {
           cam.x = (player.c - player.r) * TS * 0.5;
           cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
           _firstSnap = false;
-        } else if (dist > 5.0) {
-          const k = 0.10;
+        } else if (dist > 10.0) {
+          // Порог 5→10: на LTE задержка ~150мс → клиент уходит вперёд на
+          // 1-2 тайла, при пороге 5 сервер ПОСТОЯННО дёргал позицию назад
+          // (rubber-band) → камера тряслась/«уезжала» при ходьбе по пляжу.
+          // Теперь корректируем только реальный десинк (10-15 тайл). Мягко.
+          const k = 0.08;
           player.r += (d.me.y - player.r) * k;
           player.c += (d.me.x - player.c) * k;
         }
-        } // end if (!_bankInt)
+        } // end if (!_bankInt && !_driving)
         // PVP: HP, dead-state, счёт
         // Если игрока недавно ранил ЛОКАЛЬНЫЙ NPC (охрана банка/копы, о ком
         // сервер не знает), снапшот НЕ поднимает HP обратно — иначе урон
@@ -9807,14 +10117,16 @@ function wsConnect() {
           // Мешок падает на землю при смерти
           if (_myBagWeight > 0 && _bankRob && _bankRob.myBag) { dropVaultBag(); }
         } else if (wasDead && !myDead) {
-          // Респаун — сбрасываем причину смерти. Принудительно
-          // телепортируемся в серверную spawn-точку.
+          // Респаун — сбрасываем ВСЕ блокирующие флаги.
           myDeathBy = '';
-          if (_bankInt) exitBankInterior(false);  // выходим из банка при смерти
+          if (_bankInt) exitBankInterior(false);
+          _bankShieldUntil = 0;
+          myDrivingCarId = null;
+          myIsPassenger = false;
+          _exitRequested = false;
+          camShake = 0;
           player.r = d.me.y;
           player.c = d.me.x;
-          // Сброс камеры на новую позицию, чтобы не «летела» туда
-          // через лерп — иначе экран дёргается на полсекунды.
           cam.x = (player.c - player.r) * TS * 0.5;
           cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
         }
@@ -9832,6 +10144,7 @@ function wsConnect() {
               _spriteCache.clear();
               QP.look = merged;
               getSprite(QP.look);
+              try { renderHudAvatar(); } catch (e) {}
             }
             QP.has_look = 1;
           }
@@ -9968,6 +10281,34 @@ function wsConnect() {
             byName:    ac.by_name,
             color:     ac.color,
             startedAt,
+          });
+        }
+      }
+      if (d.districts !== undefined) {
+        // РАЙОНЫ — владельцы + активные захваты штабов. Сервер — источник истины.
+        const dOwn = (d.districts && d.districts.owners) || {};
+        for (const k of Object.keys(districtOwners)) delete districtOwners[k];
+        for (const did of Object.keys(dOwn)) {
+          const o = dOwn[did];
+          districtOwners[did] = {
+            ownerId: o.owner_uid, owner_uid: o.owner_uid, ownerName: o.owner_name,
+            gangTag: o.gang_tag, gang_name: o.gang_name, flag: o.flag,
+            color: o.color, capturedAt: o.captured_at, income: o.income,
+          };
+        }
+        const dCap = (d.districts && d.districts.captures) || {};
+        const dFresh = new Set(Object.keys(dCap));
+        for (const did of Array.from(districtCaptures.keys())) {
+          if (!dFresh.has(did)) districtCaptures.delete(did);
+        }
+        for (const did of dFresh) {
+          const ac = dCap[did];
+          const prev = districtCaptures.get(did);
+          const startedAt = prev ? prev.startedAt
+            : (Date.now() - Math.round((ac.elapsed || 0) * 1000));
+          districtCaptures.set(did, {
+            byId: ac.by_uid, byName: ac.by_name, color: ac.color,
+            startedAt, duration: ac.duration_s || DIST_CAPTURE_TIME_S,
           });
         }
       }
@@ -10909,12 +11250,17 @@ const _dropBagBtn = document.getElementById('dropBagBtn');
 if (_dropBagBtn) {
   _dropBagBtn.addEventListener('click', () => {
     if (_bankInt && _bankInt.myBag) {
-      // В хранилище — кладём мешок обратно на пол (можно снова взять)
+      // Кладём мешок НА ПОЛ К НОГАМ игрока (а не на исходную позицию в
+      // хранилище — раньше orig.taken=false возвращал мешок в дальний угол
+      // хранилища, выглядело как «исчез/телепортировался»). Координаты —
+      // интерьерные (room coords), как у player.r/c; рендерится в
+      // drawBankInteriorScene из _bankInt.bags.
       const b = _bankInt.myBag;
       const orig = (_bankInt.bags || []).find(x => x.id === b.id);
-      if (orig) orig.taken = false;
+      if (orig) { orig.taken = false; orig.r = player.r; orig.c = player.c; }
+      else if (_bankInt.bags) { _bankInt.bags.push({ id: b.id, taken: false, r: player.r, c: player.c }); }
       _bankInt.myBag = null; _myBagWeight = 0;
-      showToast('💼 Мешок отложен', 'ℹ️', 1400);
+      showToast('💼 Мешок брошен', '⚠️', 1400);
       if (typeof updateZoneBtn === 'function') updateZoneBtn();
     } else if (_bankRob && _bankRob.myBag) {
       dropVaultBag();
@@ -11444,6 +11790,8 @@ _lpModal.addEventListener('click', (e) => {
 function _completeHijack(car) {
   // Сохраняем уровень топлива угоняемой машины
   _myCarFuelPct = (car._fuel !== undefined) ? car._fuel : (55 + Math.random() * 45);
+  // Запоминаем модель — чтобы серверный civilian_hijack_reply не подменил скин
+  _pendingHijackModel = (car.model && car.model.name) || null;
   // НЕ удаляем машину из CARS сразу: между splice и приходом серверного
   // civilian_hijack_reply (~100мс RTT) клиент видел «дырку» — машина
   // пропадала с экрана пока серверный quest_car не появится. Теперь
@@ -11667,10 +12015,9 @@ if (_respawnHudBtn) {
 }
 function refreshRespawnHudBtn() {
   if (!_respawnHudBtn) return;
-  const hasBiz = Array.isArray(myOwnedBiz) && myOwnedBiz.length > 0;
-  // Показываем только при наличии бизнесов И когда жив (на экране смерти
-  // есть отдельная кнопка в deathOverlay).
-  _respawnHudBtn.style.display = (hasBiz && !myDead && !myDrivingCarId) ? 'flex' : 'none';
+  // HUD-кнопка точки респа убрана по просьбе — мешала на карте. Выбор точки
+  // возрождения остаётся только на экране смерти (deathOverlay).
+  _respawnHudBtn.style.display = 'none';
   if (_respawnHudLbl) {
     const lbl = _respawnPointLabel(myRespawnPoint || 'hospital');
     // Сокращаем: убираем emoji в лейбле HUD (он уже на самой кнопке)
@@ -11987,6 +12334,9 @@ function refreshMichaelMenu() {
 // и мы сбросим myDrivingCarId.
 let _exitRequested   = false;   // нажали «Выйти» на ходу — тормозим, потом выходим
 let _handbrakeActive = false;   // ручной тормоз — удерживается кнопкой ⛓
+// Модель угоняемой civ-машины — чтобы скин в какую сел, в той и едешь
+// (сервер может прислать другую модель; мы её игнорируем для своей civ-тачки).
+let _pendingHijackModel = null;
 function enterCar(carId, asKind) {
   const qc = questCars.get(carId);
   if (!qc) return;
@@ -13447,6 +13797,9 @@ function formatMoney(n) {
 function updateMoneyHud() {
   if (_moneyCashEl) _moneyCashEl.textContent = formatMoney(myCash);
   if (_moneyDiaEl)  _moneyDiaEl.textContent  = formatMoney(myDiamonds);
+  // Деньги в верхнем HUD-баре (аватар+lvl+имя+HP+деньги+время).
+  const _hm = document.getElementById('hudMoneyVal');
+  if (_hm) _hm.textContent = formatMoney(myCash);
 }
 function showCashDelta(amount, kind) {
   if (!amount) return;
@@ -13790,6 +14143,33 @@ function updateTerritoryCapture() {
   sendCaptureTry();
 }
 
+// Авто-захват РАЙОНА: если игрок стоит у штаба района (радиус DIST_HQ_RAD),
+// район захватываемый и не его — шлём district_capture_try. Сервер проверит
+// правила (PvE/кулдаун/re-enter). Выход из радиуса штаба → сервер сорвёт.
+function sendDistrictCaptureTry() {
+  if (!ws || ws.readyState !== 1) return;
+  try { ws.send(JSON.stringify({ t: 'district_capture_try', d: {} })); } catch(e) {}
+}
+function updateDistrictCapture() {
+  _myInsideDistHq = null;
+  if (myDead || myMode === 'pve') return;
+  let curHq = null;
+  for (const d of DISTRICTS) {
+    if (!d.capturable || !d.hq) continue;
+    const dr = player.r - d.hq.r, dc = player.c - d.hq.c;
+    if (dr * dr + dc * dc <= DIST_HQ_RAD * DIST_HQ_RAD) { curHq = d.id; break; }
+  }
+  _myInsideDistHq = curHq;
+  if (!curHq) return;
+  if (districtCaptures.has(curHq)) return;               // захват уже идёт
+  const own = districtOwners[curHq];
+  if (own && String(own.ownerId || own.owner_uid) === String(QP.uid)) return;  // уже мой
+  const now = performance.now();
+  if (now - _lastDistCaptureTryAt < 2000) return;
+  _lastDistCaptureTryAt = now;
+  sendDistrictCaptureTry();
+}
+
 // ── Update / Render ────────────────────────────────────────────
 let prevT = performance.now();
 function update(dt) {
@@ -13970,6 +14350,16 @@ function update(dt) {
           curVx *= k; curVy *= k;
         }
       }
+      // ── ПЕСОК: машина вязнет ───────────────────────────────────────
+      // По пляжу ездить можно, но медленно и с трением (колёса зарываются).
+      const _onSand = _carOnSand(qc.y, qc.x);
+      if (_onSand) {
+        const sandMax = CAR_MAX_SPEED * 0.42;       // ~42% от макс. на песке
+        const sp = Math.hypot(curVx, curVy);
+        if (sp > sandMax) { const kk = sandMax / sp; curVx *= kk; curVy *= kk; }
+        const fr = 1 - Math.min(0.6, dt * 1.4);     // доп. вязкое трение
+        curVx *= fr; curVy *= fr;
+      }
       // Флаг для рендера стоп-сигналов: жмём тормоз или просто очень медленно
       // едем (заходим на парковку).
       qc.braking = activeBrake || (Math.hypot(curVx, curVy) < 0.6 && throttle < 0.05);
@@ -14005,6 +14395,30 @@ function update(dt) {
             color: 'rgba(200,200,200,',
           });
           if (skidMarks.length > 500) skidMarks.splice(0, 80);
+        }
+      }
+
+      // ── ПЕСОК: колёса зарываются — фонтанчики песка из-под колёс ───
+      if (_onSand && curSpeed > 1.0) {
+        const nowMsS = performance.now();
+        if (nowMsS - (qc._lastSandAt || 0) > 45) {
+          qc._lastSandAt = nowMsS;
+          const mmS  = _qcMdl || { L: 1.7, W: 0.85 };
+          const wOffS = (mmS.W || 0.85) * 0.42;
+          const bOffS = (mmS.L || 1.6) * 0.40;
+          const bAngS = qc.ang + Math.PI;            // зад машины
+          const pAS   = qc.ang + Math.PI / 2;
+          const pxS = Math.cos(pAS), pyS = Math.sin(pAS);
+          const bxS  = qc.x + Math.cos(bAngS) * bOffS;
+          const byS  = qc.y + Math.sin(bAngS) * bOffS;
+          for (const s of [1, -1]) {
+            exhaustPuffs.push({
+              r: byS + pyS * wOffS * s, c: bxS + pxS * wOffS * s,
+              vr: -0.25 - Math.random() * 0.25, vc: (Math.random() - 0.5) * 0.4,
+              rad: 3 + Math.random() * 3, life: 360, max: 360,
+              color: 'rgba(216,186,124,',          // песочный цвет
+            });
+          }
         }
       }
 
@@ -14054,23 +14468,22 @@ function update(dt) {
       // Угнанная машина блокируется любым непроходимым тайлом — стены домов
       // (1), вода (16), припаркованные машины (2), декор. Используем общий
       // isBlocked, чтобы не въехать в море с пирса.
-      if (!isBlocked(newY, newX)) {
+      let _wallTouch = false;
+      if (!isBlockedCar(newY, newX)) {
         qc.x = newX; qc.y = newY;
       } else {
+        _wallTouch = true;
         const impact = curSpeed;
-        // Скольжение вдоль стены: пробуем двигаться только по X или только по Y
-        const slideX = !isBlocked(qc.y, newX);
-        const slideY = !isBlocked(newY, qc.x);
+        const slideX = !isBlockedCar(qc.y, newX);
+        const slideY = !isBlockedCar(newY, qc.x);
         if (slideX) {
           qc.x = newX;
-          curVy *= 0.35;   // гасим перпендикулярную составляющую
+          curVy = 0; curVx *= 0.7;   // слегка тормозим вдоль стены — меньше зигзаг
         } else if (slideY) {
           qc.y = newY;
-          curVx *= 0.35;
+          curVx = 0; curVy *= 0.7;
         } else {
-          // Прямой удар о стену → ОТСКОК назад (инверсия скорости с гашением)
-          // вместо «прилипания»: машину отбрасывает от здания + урон по hp.
-          curVx = -curVx * 0.5; curVy = -curVy * 0.5;
+          curVx = 0; curVy = 0;
           if (impact > 5.5) reportCarCrash(qc, impact, 'wall');
         }
       }
@@ -14208,31 +14621,53 @@ function update(dt) {
         const cid = myDrivingCarId;
         myDrivingCarId = null;
         _exitRequested = false;
+        _myCarFuelPct  = null;
+        // Высадка на безопасный тайл рядом с машиной
+        const _exitSafe = _findExitSpot(qc.y, qc.x);
+        if (_exitSafe) { player.r = _exitSafe.r; player.c = _exitSafe.c; }
+        if (qc.driver_uid === String(QP.uid)) {
+          qc.driver_uid = null; qc.state = 'idle';
+          qc.vx = 0; qc.vy = 0;
+        }
         try { ws && ws.send(JSON.stringify({ t: 'gta_exit', d: { car_id: cid } })); }
         catch(e){}
       }
-      // Камера look-ahead — на скорости сдвигаем target по вектору
-      // движения, игрок видит дорогу впереди. Лерп помедленнее (×5
-      // вместо ×8), чтобы съезд камеры был плавным а не дёрганым.
+      // Камера: следим за СГЛАЖЕННЫМ якорём машины, а не за сырой позицией.
+      // Сырая qc.x/qc.y при скольжении вдоль стены зигзагует (slideX/slideY
+      // чередуются кадр-в-кадр) → раньше камера копировала зигзаг = тряска.
+      // Якорь экспоненциально догоняет машину с ПОСТОЯННЫМ темпом, поэтому
+      // высокочастотный джиттер физики не доходит до камеры.
+      if (qc._camAncR === undefined) { qc._camAncR = qc.y; qc._camAncC = qc.x; }
+      const _ancLerp = Math.min(1, dt * 6);
+      qc._camAncR += (qc.y - qc._camAncR) * _ancLerp;
+      qc._camAncC += (qc.x - qc._camAncC) * _ancLerp;
+      // Look-ahead по вектору скорости. РАНЬШЕ был 2.4 тайла — на пляже (простор,
+      // высокая скорость) камера уезжала вперёд на ~54px, юзер 3 сессии называл
+      // это «пляж съезжает». Это НЕ пляж и НЕ вьюпорт (vv==win, центр верный) —
+      // именно лидирование камеры машины. Снижено до 0.6 тайла: машина держится
+      // у центра, лёгкий намёк «куда едешь» остаётся.
       let lookR = 0, lookC = 0;
       const camSpeed = Math.hypot(curVx, curVy);
-      if (camSpeed > 0.5) {
-        // Максимум 2.6 тайла предугадывания на max-скорости.
-        const k = Math.min(1, camSpeed / CAR_MAX_SPEED) * 2.6;
+      if (camSpeed > 1.5) {
+        const k = Math.min(1, camSpeed / CAR_MAX_SPEED) * 0.6;
         lookR = (curVy / camSpeed) * k;
         lookC = (curVx / camSpeed) * k;
       }
-      const aimC = player.c + lookC;
-      const aimR = player.r + lookR;
+      if (qc._smoothLookR === undefined) { qc._smoothLookR = lookR; qc._smoothLookC = lookC; }
+      const _lookLerp = Math.min(1, dt * 1.5);
+      qc._smoothLookR += (lookR - qc._smoothLookR) * _lookLerp;
+      qc._smoothLookC += (lookC - qc._smoothLookC) * _lookLerp;
+      const aimC = qc._camAncC + qc._smoothLookC;
+      const aimR = qc._camAncR + qc._smoothLookR;
       const targetCamX = (aimC - aimR) * TS * 0.5;
       const targetCamY = (aimC + aimR) * TS * 0.5 * ISO_Y;
       cam.x += (targetCamX - cam.x) * Math.min(1, dt * 5);
       cam.y += (targetCamY - cam.y) * Math.min(1, dt * 5);
       // Зум от скорости: стоим=1.0, макс. скорость=0.80 (видно больше дороги)
       {
-        const sp = Math.hypot(curVx, curVy) / CAR_MAX_SPEED;
-        const tzoom = (player.r >= 140) ? 1.18 : (1.0 - Math.min(1, sp) * 0.20);
-        viewZoom += (tzoom - viewZoom) * Math.min(1, dt * 2.5);
+        // Пляжный зум 1.18 убран — дёргался у порога r=140 и «двигал карту».
+        const tzoom = 1.0;
+        viewZoom += (tzoom - viewZoom) * Math.min(1, dt * 1.5);
       }
       // Крен/клевок кузова (для рендера)
       qc._bodyPitch = (qc._bodyPitch || 0);
@@ -14322,6 +14757,14 @@ function update(dt) {
       myDeathBy = '';
       myHp = PVP.max_hp || 100;
       if (_bankInt) exitBankInterior(false);
+      // Сброс всех блокирующих флагов при респавне — иначе прицел/стрельба
+      // могут не работать (bankShield блокирует серверный статус, lockedTargets
+      // пуст, myDrivingCarId завис).
+      _bankShieldUntil = 0;
+      myDrivingCarId = null;
+      myIsPassenger = false;
+      _exitRequested = false;
+      camShake = 0;
       const _rp = _hospitalDoor();
       player.r = _rp.r; player.c = _rp.c;
       cam.x = (player.c - player.r) * TS * 0.5;
@@ -14425,19 +14868,23 @@ function update(dt) {
   // (то самое что прибавляется в w2s до вычитания cam). Плавно.
   const targetCamX = (player.c - player.r) * TS * 0.5;
   const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
-  cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
-  cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
+  // dt*22 (было *8→*14): почти мгновенное следование — отставание ~0.2 тайла,
+  // игрок практически строго по центру при ходьбе. Вместе с порогом
+  // коррекции 10 (выше) убирает «уезжает» на пляже/LTE.
+  cam.x += (targetCamX - cam.x) * Math.min(1, dt * 22);
+  cam.y += (targetCamY - cam.y) * Math.min(1, dt * 22);
   // Зум: на пляже немного приближаем (1.18) — там нет высоких зданий,
   // и игрок без зума выглядит слишком мелким. Лерпим плавно, дёрганья
   // больше нет благодаря медленному коэффициенту.
-  const beachZone = (player.r >= 140);
-  const targetZoom = beachZone ? 1.18 : 1.0;
+  // Пляжный зум 1.18 убран — дёргался у порога r=140 и «двигал карту».
+  const targetZoom = 1.0;
   viewZoom += (targetZoom - viewZoom) * Math.min(1, dt * 2.0);
   // Поиск ближайшего POI: если игрок в радиусе ENTER_R тайлов от вывески,
   // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
   updateZoneBtn();
   updatePvpUI();
   updateTerritoryCapture();
+  updateDistrictCapture();
   updateAggroEntryHint();
   updateCaptureBanner();
   updateGtaInteractions();
@@ -14593,21 +15040,23 @@ function drawSouthTile(r, c, t, p, wx, wy) {
     const cityTransK = (r < 150)
       ? Math.max(0, (150 - r) / 10)             // 0..1, 1 у города
       : 0;
-    if      (h1 < 18) color = '#e6c890';   // светлый тёплый
-    else if (h1 < 42) color = '#d8b478';
-    else if (h1 < 66) color = '#caa468';
-    else if (h1 < 86) color = '#b8945c';
-    else if (h1 < 95) color = '#a8844c';   // тёмные крупицы
-    else              color = '#f2dca5';   // блик дюны (солнце)
+    if      (h1 < 20) color = '#e8d0a0';
+    else if (h1 < 45) color = '#e0c490';
+    else if (h1 < 70) color = '#d8b880';
+    else if (h1 < 90) color = '#d0ac74';
+    else if (h1 < 96) color = '#c8a46c';
+    else              color = '#ecd8a8';
     // В буферной зоне у города — часть тайлов становятся «бетонными»
     // (как будто остатки разрушенного асфальта на песке). Чем ближе
     // к r=140, тем больше доля серых тайлов.
-    if (cityTransK > 0 && h2 < cityTransK * 60) {
-      color = (h1 < 50) ? '#4a4a4a' : '#5a5a58';
+    // Переход к городу — лёгкая утоптанность песка (тёплый тёмно-песочный),
+    // БЕЗ чёрно-серой «бетонной» шахматки: высокий контраст серых ромбов
+    // создавал визуальный шум, при ходьбе паттерн мельтешил («карта едет»).
+    if (cityTransK > 0 && h2 < cityTransK * 30) {
+      color = (h1 < 50) ? '#bfa06a' : '#c8aa72';
     }
-    // Сухой песок чуть светлее, мокрый — заметно темнее и с зеленцой
-    if (dryK > 0) color = _shade(color, 0.04 * dryK);
-    if (wetK > 0) color = _shade(color, -0.22 * wetK);
+    if (dryK > 0) color = _shade(color, 0.03 * dryK);
+    if (wetK > 0) color = _shade(color, -0.10 * wetK);
   } else if (isRoadTile) {
     // Асфальтовая дорога к Майклу. Чем ближе к пирсу — тем больше
     // песка занесло на асфальт (по краям дороги).
@@ -14620,7 +15069,7 @@ function drawSouthTile(r, c, t, p, wx, wy) {
     const edgeK = (c === 40 || c === 43) ? 1 : (c === 41 || c === 42 ? 0.35 : 0);
     const sandMix = sandIngress * edgeK;
     if (sandMix > 0 && h2 < sandMix * 70) {
-      color = (h1 < 50) ? '#b8945c' : '#caa468';
+      color = (h1 < 50) ? '#d0ac74' : '#d8b880';
     }
   } else if (t === 15) {
     // Деревянный причал — доски с тёмными швами вдоль рядов (по r).
@@ -15801,6 +16250,77 @@ function drawSandcastle(r, c) {
   ctx.lineTo(p.x + 6 + wave, p.y - 20);
   ctx.lineTo(p.x, p.y - 18);
   ctx.closePath(); ctx.fill();
+}
+
+function drawVolleyNet(r, c) {
+  const p = w2s(r, c);
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 4, 30, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const hw = 28;
+  ctx.strokeStyle = '#6a4a2a';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(p.x - hw, p.y + 4); ctx.lineTo(p.x - hw, p.y - 22);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(p.x + hw, p.y + 4); ctx.lineTo(p.x + hw, p.y - 22);
+  ctx.stroke();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(p.x - hw, p.y - 20); ctx.lineTo(p.x + hw, p.y - 20);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(p.x - hw, p.y - 14); ctx.lineTo(p.x + hw, p.y - 14);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.5)';
+  ctx.lineWidth = 0.7;
+  for (let i = -hw + 4; i < hw; i += 5) {
+    ctx.beginPath();
+    ctx.moveTo(p.x + i, p.y - 20); ctx.lineTo(p.x + i, p.y - 14);
+    ctx.stroke();
+  }
+}
+
+function drawIceCreamCart(r, c) {
+  const p = w2s(r, c);
+  ctx.fillStyle = 'rgba(0,0,0,.4)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 6, 16, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(p.x - 12, p.y - 10, 24, 16);
+  ctx.strokeStyle = '#bbb';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(p.x - 12, p.y - 10, 24, 16);
+  ctx.fillStyle = '#e74c3c';
+  ctx.fillRect(p.x - 12, p.y - 10, 24, 4);
+  ctx.fillStyle = '#c89858';
+  ctx.fillRect(p.x - 8, p.y - 4, 3, 6);
+  ctx.fillStyle = '#f8c0d0';
+  ctx.beginPath(); ctx.arc(p.x - 6.5, p.y - 5.5, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#c89858';
+  ctx.fillRect(p.x + 2, p.y - 4, 3, 6);
+  ctx.fillStyle = '#c0e8b0';
+  ctx.beginPath(); ctx.arc(p.x + 3.5, p.y - 5.5, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#666';
+  ctx.beginPath(); ctx.arc(p.x - 8, p.y + 8, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(p.x + 8, p.y + 8, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#888';
+  ctx.fillRect(p.x - 0.5, p.y - 10, 1, -14);
+  ctx.fillStyle = '#f1c40f';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - 24);
+  ctx.lineTo(p.x + 14, p.y - 18);
+  ctx.lineTo(p.x + 14, p.y - 12);
+  ctx.lineTo(p.x, p.y - 18);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#1a1410';
+  ctx.font = 'bold 5px system-ui';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('ICE', p.x + 7, p.y - 16);
 }
 
 function drawStarfish(r, c, col) {
@@ -20199,37 +20719,55 @@ function drawNpc(npc) {
     const fresh = (performance.now() - (npc.deadAt || 0)) < 800;
     if (!fresh) return;
   }
-  // Крик «ПОМОГИТЕ!» когда NPC в панике (panicUntil > now). Чат-баббл
-  // подпрыгивает с лёгкой анимацией. cryUntil — отдельно, чтобы крик
-  // показывался лишь первые ~2 сек паники, потом NPC просто молча бежит.
+  // Эмоции NPC над головой: эмодзи-индикатор текущего состояния.
+  // Крик (первые ~2сек) → текстовый баббл, потом → тихий эмодзи.
   const now = performance.now();
-  if (npc.cryUntil && now < npc.cryUntil) {
+  const isSnitching = npc.snitching && npc.snitchUntil && now < npc.snitchUntil;
+  const isPanicking = !isSnitching && npc.panicUntil && now < npc.panicUntil;
+  const isCrying    = npc.cryUntil && now < npc.cryUntil;
+  if (isCrying) {
     const txt = npc.cryText || 'А-А-А!';
     const bob = Math.sin(now * 0.02) * 1.5;
-    const ty  = p.y - 44 + bob;
+    const ty  = p.y - 50 + bob;
     ctx.save();
-    ctx.font = 'bold 11px system-ui, "Segoe UI Emoji", sans-serif';
+    ctx.font = 'bold 10px system-ui, "Segoe UI Emoji", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const w = ctx.measureText(txt).width + 12;
-    const h = 16;
-    // Плашка
-    ctx.fillStyle = 'rgba(180,30,30,.95)';
-    ctx.strokeStyle = '#ffe;';
-    ctx.lineWidth = 1.2;
+    const w = ctx.measureText(txt).width + 10;
+    const h = 15;
+    ctx.fillStyle = isSnitching ? 'rgba(30,80,180,.92)' : 'rgba(180,30,30,.92)';
     roundRect(p.x - w/2, ty - h/2, w, h, 4);
     ctx.fill();
-    // Текст
     ctx.fillStyle = '#fff';
     ctx.fillText(txt, p.x, ty + 1);
-    // Хвостик «ниточка» от рта
-    ctx.fillStyle = 'rgba(180,30,30,.95)';
+    ctx.fillStyle = isSnitching ? 'rgba(30,80,180,.92)' : 'rgba(180,30,30,.92)';
     ctx.beginPath();
     ctx.moveTo(p.x - 3, ty + h/2 - 1);
     ctx.lineTo(p.x + 3, ty + h/2 - 1);
     ctx.lineTo(p.x,     ty + h/2 + 5);
     ctx.closePath();
     ctx.fill();
+    ctx.restore();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+  // Эмодзи-индикатор: показывается ВСЁ время пока NPC в состоянии
+  // (даже после того как крик пропал). Плавно пульсирует.
+  // Эмодзи выбираем по приоритету: snitch > panic > зевака > дружелюбный
+  let _npcEmoji = null;
+  if (isSnitching)       _npcEmoji = '📱';
+  else if (isPanicking)  _npcEmoji = '😱';
+  else if (npc.idleUntil && now < npc.idleUntil && isCrying) _npcEmoji = '👀';
+  if (_npcEmoji) {
+    const bob2  = Math.sin(now * 0.006 + npc.r * 7) * 2;
+    const ey    = isCrying ? p.y - 58 + bob2 : p.y - 38 + bob2;
+    const pulse = 0.85 + 0.15 * Math.sin(now * 0.008);
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, pulse);
+    ctx.font = '13px "Segoe UI Emoji", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(_npcEmoji, p.x, ey);
     ctx.restore();
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
@@ -20244,158 +20782,66 @@ function drawNpc(npc) {
 const _BEACH_SKIN = ['#f0c89c', '#d8a07c', '#a87454', '#6c4a30'];
 function drawBeachgoer(b) {
   const p = w2s(b.y, b.x);
-  const skin = _BEACH_SKIN[b.skin % _BEACH_SKIN.length];
-  const hairCols = ['#3a2418', '#7a4a26', '#d4a44c', '#262626'];
-  const hairCol  = hairCols[b.hair % hairCols.length];
-  const act      = b.act || 'idle';
-  // Тень под NPC
-  ctx.fillStyle = 'rgba(0,0,0,.35)';
-  ctx.beginPath();
-  ctx.ellipse(p.x, p.y + 3, 7, 2.5, 0, 0, Math.PI * 2);
-  ctx.fill();
+  const act = b.act || 'idle';
+  // Голый «купальный» look — полноразмерный спрайт как у обычного перса
+  // (раньше были мелкие палочки). swim:true → drawChar рисует голое тело
+  // + плавки/купальник цвета b.outfit.
+  const look = {
+    gender: b.gender | 0,
+    skin:   (b.skin | 0) % 4,
+    body:   b.gender ? (b.hair % 4) : ((b.skin + b.hair) % 4),
+    face:   1,                       // лёгкая улыбка
+    hair:   ((b.hair | 0) % 4) + 1,  // 1..4 (0 = лысый — пропускаем)
+    hat:    0,
+    swim:   true,
+    swimCol: b.outfit || '#e74c3c',
+  };
   if (act === 'sunbathe') {
-    // Лежит на полотенце — горизонтальная поза
-    // Полотенце
-    ctx.fillStyle = b.outfit;
-    ctx.fillRect(p.x - 12, p.y - 1, 24, 8);
-    // Тело-овал
+    // Лежит на полотенце (drawPerson не умеет лежачую позу) — компактно
+    const skin = SKINS[look.skin] || SKINS[0];
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y + 3, 16, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = b.outfit; ctx.fillRect(p.x - 18, p.y - 2, 36, 12);        // полотенце
     ctx.fillStyle = skin;
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y + 2, 10, 3.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // Голова
-    ctx.fillStyle = skin;
-    ctx.beginPath();
-    ctx.arc(p.x - 10, p.y + 2, 3, 0, Math.PI * 2);
-    ctx.fill();
-    // Волосы
-    ctx.fillStyle = hairCol;
-    ctx.beginPath();
-    ctx.arc(p.x - 11, p.y + 1, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-    // Купальник — пятно посередине
-    ctx.fillStyle = b.outfit;
-    ctx.fillRect(p.x - 2, p.y + 1, 6, 3);
+    ctx.beginPath(); ctx.ellipse(p.x, p.y + 3, 15, 5, 0, 0, Math.PI * 2); ctx.fill(); // тело
+    ctx.beginPath(); ctx.arc(p.x - 15, p.y + 3, 4.5, 0, Math.PI * 2); ctx.fill();      // голова
+    const hairCols = ['#3a2418', '#7a4a26', '#d4a44c', '#262626'];
+    ctx.fillStyle = hairCols[b.hair % 4];
+    ctx.beginPath(); ctx.arc(p.x - 16, p.y + 1, 4, Math.PI, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = b.outfit; ctx.fillRect(p.x - 4, p.y + 1, 9, 5);            // купальник
     return;
   }
-  // Стоящие позы. Высота фигурки ~ 28 px.
-  // Покачивание ног при ходьбе/беге
-  let legSwing = 0;
-  if (act === 'walk' || act === 'flee') {
-    legSwing = Math.sin(b.walkPhase) * (act === 'flee' ? 4 : 2.5);
+  const walking = (act === 'walk' || act === 'flee');
+  const ph = walking ? (b.walkPhase || 0) : 0;
+  drawPerson(p.x, p.y, b.ang || 0, look, ph, null, null, false, null, null, false, 0);
+  // Предмет в руке: сок / мороженое (поверх спрайта, у плеча)
+  if (act === 'drink' || act === 'icecream') {
+    const hx = p.x + 13, hy = p.y - 46;
+    if (act === 'drink') {
+      ctx.fillStyle = '#fff8c8'; ctx.fillRect(hx, hy, 5, 7);
+      ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(hx + 3, hy); ctx.lineTo(hx + 5, hy - 5); ctx.stroke();
+    } else {
+      ctx.fillStyle = '#c89858';
+      ctx.beginPath();
+      ctx.moveTo(hx, hy); ctx.lineTo(hx + 6, hy); ctx.lineTo(hx + 3, hy + 6); ctx.closePath(); ctx.fill();
+      const ICE = ['#f8e8c0', '#f0a8b0', '#c0e8b0', '#b0d8f0'];
+      ctx.fillStyle = ICE[(b.hair || 0) % 4];
+      ctx.beginPath(); ctx.arc(hx + 3, hy - 1, 3.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ctx.beginPath(); ctx.arc(hx + 2, hy - 2, 1, 0, Math.PI * 2); ctx.fill();
+    }
   }
-  // Ноги (2 палки)
-  ctx.strokeStyle = skin;
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(p.x - 2, p.y - 2);
-  ctx.lineTo(p.x - 2 + legSwing * 0.5, p.y + 4);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(p.x + 2, p.y - 2);
-  ctx.lineTo(p.x + 2 - legSwing * 0.5, p.y + 4);
-  ctx.stroke();
-  // Купальник/плавки (нижняя часть туловища)
-  ctx.fillStyle = b.outfit;
-  ctx.fillRect(p.x - 4, p.y - 6, 8, 5);
-  // Туловище (открытое — кожа)
-  ctx.fillStyle = skin;
-  ctx.fillRect(p.x - 4, p.y - 13, 8, 7);
-  if (b.gender === 1) {
-    // Верх купальника — две полоски
-    ctx.fillStyle = b.outfit;
-    ctx.fillRect(p.x - 4, p.y - 12, 8, 2);
-  }
-  // Руки
-  ctx.strokeStyle = skin;
-  ctx.lineWidth = 2;
-  let armSwing = 0;
-  if (act === 'walk' || act === 'flee') {
-    armSwing = -Math.sin(b.walkPhase) * (act === 'flee' ? 4 : 2);
-  }
-  // Левая рука
-  ctx.beginPath();
-  ctx.moveTo(p.x - 4, p.y - 11);
-  ctx.lineTo(p.x - 7 + armSwing * 0.5, p.y - 5 + armSwing * 0.3);
-  ctx.stroke();
-  // Правая рука — если drink/icecream, согнута со «вкусняшкой»
-  if (act === 'drink') {
-    ctx.beginPath();
-    ctx.moveTo(p.x + 4, p.y - 11);
-    ctx.lineTo(p.x + 6, p.y - 14);
-    ctx.stroke();
-    // Стакан с соком
-    ctx.fillStyle = '#fff8c8';
-    ctx.fillRect(p.x + 5, p.y - 17, 3.5, 4);
-    ctx.strokeStyle = '#aa8030';
-    ctx.lineWidth = 0.6;
-    ctx.strokeRect(p.x + 5, p.y - 17, 3.5, 4);
-    // Соломинка
-    ctx.strokeStyle = '#e74c3c';
-    ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(p.x + 6.5, p.y - 17);
-    ctx.lineTo(p.x + 7.5, p.y - 20);
-    ctx.stroke();
-  } else if (act === 'icecream') {
-    // Рука к рожку
-    ctx.beginPath();
-    ctx.moveTo(p.x + 4, p.y - 11);
-    ctx.lineTo(p.x + 6, p.y - 14);
-    ctx.stroke();
-    // Рожок (треугольник, светло-коричневый)
-    ctx.fillStyle = '#c89858';
-    ctx.beginPath();
-    ctx.moveTo(p.x + 5.2, p.y - 15.5);
-    ctx.lineTo(p.x + 8.0, p.y - 15.5);
-    ctx.lineTo(p.x + 6.6, p.y - 19);
-    ctx.closePath();
-    ctx.fill();
-    // Сеточка на рожке
-    ctx.strokeStyle = '#8a6028';
-    ctx.lineWidth = 0.4;
-    ctx.beginPath();
-    ctx.moveTo(p.x + 5.5, p.y - 16.5); ctx.lineTo(p.x + 7.7, p.y - 16.5);
-    ctx.moveTo(p.x + 5.9, p.y - 17.5); ctx.lineTo(p.x + 7.3, p.y - 17.5);
-    ctx.stroke();
-    // Шарик мороженого (цветной по skin index — каждый разное)
-    const ICE_COLORS = ['#f8e8c0', '#f0a8b0', '#c0e8b0', '#b0d8f0'];
-    ctx.fillStyle = ICE_COLORS[(b.hair || 0) % ICE_COLORS.length];
-    ctx.beginPath();
-    ctx.arc(p.x + 6.6, p.y - 17.5, 2.0, 0, Math.PI * 2);
-    ctx.fill();
-    // Маленький блик
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.beginPath();
-    ctx.arc(p.x + 6.0, p.y - 18.0, 0.7, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    ctx.beginPath();
-    ctx.moveTo(p.x + 4, p.y - 11);
-    ctx.lineTo(p.x + 7 - armSwing * 0.5, p.y - 5 - armSwing * 0.3);
-    ctx.stroke();
-  }
-  // Голова
-  ctx.fillStyle = skin;
-  ctx.beginPath();
-  ctx.arc(p.x, p.y - 16, 3.5, 0, Math.PI * 2);
-  ctx.fill();
-  // Волосы (шапочка сверху)
-  ctx.fillStyle = hairCol;
-  ctx.beginPath();
-  ctx.arc(p.x, p.y - 17, 3.5, Math.PI, 0);
-  ctx.fill();
-  // Восклицательный знак при flee — над головой
+  // Восклицательный знак при панике — над головой полноразмерного спрайта
   if (act === 'flee') {
     ctx.fillStyle = 'rgba(220,40,40,.95)';
-    ctx.font = 'bold 12px system-ui, sans-serif';
+    ctx.font = 'bold 15px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    const bob = Math.sin(performance.now() * 0.02) * 1.5;
-    ctx.fillText('!', p.x, p.y - 22 + bob);
+    const bob = Math.sin(performance.now() * 0.02) * 2;
+    ctx.fillText('!', p.x, p.y - 96 + bob);
+    ctx.textAlign = 'left';
   }
-  ctx.lineCap = 'butt';
 }
 
 // Охранник Майкла — головорез в чёрной рубашке с пистолетом. Стоит
@@ -20999,7 +21445,9 @@ function drawCar(r, c) {
 // Подсветка: золотой контур + 🎯 над крышей если это МОЙ контракт,
 // либо иконка модели + цвет владельца. Driver-uid отображается рядом.
 function drawQuestCar(qc) {
-  const m = QUEST_CAR_MODELS[qc.model];
+  // Резолвер: угнанная civ-машина имеет модель из CAR_MODELS (sedan/taxi),
+  // которой нет в QUEST_CAR_MODELS. Раньше тут был return → машина пропадала.
+  const m = resolveCarModel(qc.model);
   if (!m) return;
   // Непрерывный угол — плавный поворот без 4-snap
   const isMine    = String(qc.owner_uid) === String(QP.uid);
@@ -21166,9 +21614,9 @@ function drawQuestCar(qc) {
   const hpR   = hp / maxHp;
   if (hpR > 0 && hpR < 0.50) {
     const t = performance.now() * 0.004;
-    // Точка «капота» — впереди по направлению машины (dirDx/dirDy уже выше)
-    const hoodOff = 0.45; // тайла впереди от центра
-    const hoodWorld = w2s(qc.y + dirDy * hoodOff, qc.x + dirDx * hoodOff);
+    const _qdx = Math.cos(qc.ang), _qdy = Math.sin(qc.ang);
+    const hoodOff = 0.45;
+    const hoodWorld = w2s(qc.y + _qdy * hoodOff, qc.x + _qdx * hoodOff);
     ctx.save();
     // Дым — всегда когда hpR<0.5, чем ниже hp тем гуще
     const smokeCount = hpR < 0.25 ? 4 : 2;
@@ -21445,6 +21893,15 @@ function drawHitTargetMarker() {
   // в другой конец карты и забыть про деньги).
   if (_myBrigadirReward) {
     _drawEdgeArrowToWorld(BRIGADIR_POS.r, BRIGADIR_POS.c, '🏆', '#ffd76b');
+  }
+  // Несём мешок из банка → стрелки-указатели на свои купленные здания
+  // (куда сдать куш). Показываем только пока мешок реально в руках.
+  if (_bankRob && _bankRob.myBag && _myBagWeight > 0 &&
+      Array.isArray(myOwnedBiz) && myOwnedBiz.length) {
+    for (const b of BUSINESS_POIS) {
+      if (!myOwnedBiz.includes(b.id)) continue;
+      _drawEdgeArrowToWorld(b.r, b.c, b.emoji || '🏠', '#5dd55d');
+    }
   }
 }
 
@@ -22595,7 +23052,7 @@ function drawStationTurret(sR, sC, threat) {
     spawnMuzzle(muzR, muzC, ang, 'rifle', true);
     spawnShot(muzR, muzC, ang, 'rifle',
               String(threat.uid) === String(QP.uid));
-    spawnImpact(threat.r, threat.c, 'rifle');
+    spawnImpact(threat.r, threat.c, 'rifle', true);
     if (String(threat.uid) === String(QP.uid)) {
       flashHitOverlay();
       addShake(4);
@@ -22634,11 +23091,12 @@ function drawChar(ctx, W, H, opts) {
   function px(x) { return cx + x * sc; }
   function py(y) { return H * 0.92 - y * sc; }
   const skinCol = SKINS[skin] || SKINS[0];
-  if (gender === 0) drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs);
-  else              drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs);
+  const swim = opts.swim ? (opts.swimCol || '#e74c3c') : null;
+  if (gender === 0) drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim);
+  else              drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim);
 }
 
-function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs) {
+function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim) {
   const bodyDefs = [
     { sw: 34, sh: 80, nw: 14, nh: 22, hw: 26 },
     { sw: 44, sh: 85, nw: 16, nh: 22, hw: 30 },
@@ -22646,18 +23104,27 @@ function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, ski
     { sw: 52, sh: 92, nw: 16, nh: 24, hw: 32 },
   ];
   const bd = bodyDefs[body] || bodyDefs[1];
-  const suitCol = ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4];
+  // Пляжник (swim): «костюм» = кожа (голое тело), сверху только плавки.
+  const suitCol = swim ? skinCol : ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4];
   const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9'][face % 4];
   if (!skipLegs) {
     ctx.fillStyle = suitCol;
     const legW = bd.sw * 0.38; const legH = 55 * sc;
     ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.22), py(legH), legW*sc, legH, 4*sc); ctx.fill();
     ctx.beginPath(); ctx.roundRect(px(bd.sw*0.22 - legW), py(legH), legW*sc, legH, 4*sc); ctx.fill();
-    ctx.fillStyle = '#111';
+    ctx.fillStyle = swim ? '#5a4a3a' : '#111';   // босиком/сланцы — тёмная стопа
     [-1,1].forEach(s => { ctx.beginPath(); ctx.ellipse(px(s*bd.sw*0.1), py(2), 10*sc, 5*sc, 0, 0, Math.PI*2); ctx.fill(); });
   }
   ctx.fillStyle = suitCol;
   ctx.beginPath(); ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
+  if (swim) {
+    // Плавки — цветная полоса на бёдрах (накрывает стык торса и ног)
+    ctx.fillStyle = swim;
+    ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.34), py(0)-3*sc, bd.sw*0.68*sc, 15*sc, 3*sc); ctx.fill();
+    // Поясок плавок чуть темнее
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.34), py(0)-3*sc, bd.sw*0.68*sc, 3*sc, 2*sc); ctx.fill();
+  } else {
   ctx.fillStyle = '#ddd';
   ctx.beginPath(); ctx.roundRect(px(-7), py(bd.sh), 14*sc, bd.sh*0.7*sc, 2*sc); ctx.fill();
   ctx.fillStyle = tieCol;
@@ -22665,6 +23132,7 @@ function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, ski
   ctx.moveTo(px(-5), py(bd.sh-4)); ctx.lineTo(px(5), py(bd.sh-4));
   ctx.lineTo(px(3), py(bd.sh*0.32)); ctx.lineTo(px(0), py(bd.sh*0.25));
   ctx.lineTo(px(-3), py(bd.sh*0.32)); ctx.closePath(); ctx.fill();
+  }
   ctx.fillStyle = suitCol;
   ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-2)); ctx.lineTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.sw/2), py(bd.sh-20)); ctx.closePath(); ctx.fill();
   ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-2)); ctx.lineTo(px(bd.sw/2), py(bd.sh)); ctx.lineTo(px(bd.sw/2), py(bd.sh-20)); ctx.closePath(); ctx.fill();
@@ -22692,7 +23160,7 @@ function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, ski
   if (hat > 0)  drawHat(ctx, hat, px, py, bd, headY, headH, sc);
 }
 
-function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs) {
+function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim) {
   const bodyDefs = [
     { sw: 30, sh: 78, nw: 12, nh: 20, hw: 24, hip: 32 },
     { sw: 36, sh: 80, nw: 13, nh: 20, hw: 27, hip: 40 },
@@ -22700,7 +23168,8 @@ function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, s
     { sw: 34, sh: 85, nw: 13, nh: 22, hw: 26, hip: 38 },
   ];
   const bd = bodyDefs[body] || bodyDefs[1];
-  const dressCol = ['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a'][body % 4];
+  // Пляжница (swim): «платье» = кожа (голое тело), сверху раздельный купальник.
+  const dressCol = swim ? skinCol : ['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a'][body % 4];
   const accentCol = ['#e8c96e','#c0392b','#8e44ad','#2980b9'][face % 4];
   if (!skipLegs) {
     ctx.fillStyle = dressCol;
@@ -22708,15 +23177,24 @@ function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, s
     ctx.moveTo(px(-bd.sw/2), py(bd.sh)); ctx.lineTo(px(-bd.hip/2), py(0));
     ctx.lineTo(px(bd.hip/2), py(0)); ctx.lineTo(px(bd.sw/2), py(bd.sh));
     ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#111';
+    ctx.fillStyle = swim ? '#5a4a3a' : '#111';
     [-1,1].forEach(s => {
       ctx.beginPath(); ctx.ellipse(px(s*bd.hip*0.18), py(3), 8*sc, 4*sc, 0, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.roundRect(px(s*bd.hip*0.18+4*sc), py(0), 3*sc, 8*sc, 1*sc); ctx.fill();
+      if (!swim) { ctx.beginPath(); ctx.roundRect(px(s*bd.hip*0.18+4*sc), py(0), 3*sc, 8*sc, 1*sc); ctx.fill(); }
     });
+    if (swim) {  // низ купальника
+      ctx.fillStyle = swim;
+      ctx.beginPath(); ctx.roundRect(px(-bd.hip*0.40), py(0)-1*sc, bd.hip*0.80*sc, 13*sc, 3*sc); ctx.fill();
+    }
   }
   ctx.fillStyle = dressCol;
   ctx.beginPath();
   ctx.roundRect(px(-bd.sw/2), py(bd.sh), bd.sw*sc, bd.sh*sc, [0,0,6*sc,6*sc]); ctx.fill();
+  if (swim) {
+    // Лиф купальника — полоса на груди
+    ctx.fillStyle = swim;
+    ctx.beginPath(); ctx.roundRect(px(-bd.sw*0.5), py(bd.sh*0.72), bd.sw*sc, 11*sc, 3*sc); ctx.fill();
+  } else {
   ctx.fillStyle = '#f0e8e0';
   ctx.beginPath(); ctx.roundRect(px(-6), py(bd.sh), 12*sc, bd.sh*0.65*sc, 2*sc); ctx.fill();
   ctx.fillStyle = dressCol;
@@ -22724,6 +23202,7 @@ function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, s
   ctx.beginPath(); ctx.moveTo(px(0), py(bd.sh-4)); ctx.lineTo(px(bd.sw/2), py(bd.sh)); ctx.lineTo(px(bd.sw/2), py(bd.sh-18)); ctx.closePath(); ctx.fill();
   ctx.fillStyle = accentCol;
   ctx.beginPath(); ctx.arc(px(-8), py(bd.sh-10), 4*sc, 0, Math.PI*2); ctx.fill();
+  }
   const armLen = 58, armW = 8;
   if (!skipArms) {
     ctx.fillStyle = dressCol;
@@ -23014,7 +23493,7 @@ function drawHat(ctx, hatId, px, py, bd, headY, headH, sc) {
 const SPRITE_W = 110, SPRITE_H = 200;
 const _spriteCache = new Map();
 function getSprite(look, skipArms, skipLegs) {
-  const key = [look.gender|0, look.skin|0, look.body|0, look.face|0, look.hair|0, look.hat|0, skipArms?1:0, skipLegs?1:0].join('.');
+  const key = [look.gender|0, look.skin|0, look.body|0, look.face|0, look.hair|0, look.hat|0, skipArms?1:0, skipLegs?1:0, look.swim?('s'+(look.swimCol||'')):''].join('.');
   if (_spriteCache.has(key)) return _spriteCache.get(key);
   const off = document.createElement('canvas');
   off.width = SPRITE_W; off.height = SPRITE_H;
@@ -23022,6 +23501,33 @@ function getSprite(look, skipArms, skipLegs) {
   _spriteCache.set(key, off);
   return off;
 }
+
+// ── Аватар игрока в верхнем HUD-баре ───────────────────────────────
+// Берём верхнюю часть (голова+плечи) спрайта из look и вписываем в
+// квадратный canvas. Кешируется внутри getSprite, перерисовываем при
+// смене внешности (creator) и на старте.
+function renderHudAvatar() {
+  const cv = document.getElementById('hudAvatar');
+  if (!cv) return;
+  const g = cv.getContext('2d');
+  g.clearRect(0, 0, cv.width, cv.height);
+  try {
+    const sp = getSprite(QP.look || {});
+    // Перс рисуется в НИЖНЕЙ части спрайта (bbox по y≈86..197, x≈37..73).
+    // Берём голову+плечи квадратной областью и вписываем в квадратный аватар.
+    const sx = 30, sy = 86, sw = 50, sh = 52;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(sp, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+  } catch (e) {}
+}
+function initHudIdentity() {
+  const nm = document.getElementById('hudName');
+  if (nm) nm.textContent = QP.name || 'Игрок';
+  const lv = document.getElementById('hudLvl');
+  if (lv) lv.textContent = String(QP.lvl || 1);
+  renderHudAvatar();
+}
+try { initHudIdentity(); } catch (e) {}
 
 // Отрисовка персонажа в мире: тень + спрайт из creator-кеша + имя/чат/HP.
 // Размер фигуры подобран под TS=56: высота спрайта ~ 1.7×TS, чтобы перс
@@ -23154,11 +23660,10 @@ function spawnShot(wr, wc, ang, weapon, isMyShot) {
 
 // ── Импакт-частицы при попадании пули в цель (NPC/игрок/коп).
 // Брызги крови + капли разлетаются + splat пятно на земле (живёт 8 сек).
-function spawnImpact(wr, wc, weapon) {
+function spawnImpact(wr, wc, weapon, npcShot) {
   const fx = weaponFx(weapon);
   const parts = [];
-  // Больше частиц для тяжёлого — мяснее. Кровь крупнее и летит дальше.
-  const N = (fx.thick ? 22 : 16);
+  const N = npcShot ? (fx.thick ? 12 : 8) : (fx.thick ? 22 : 16);
   for (let i = 0; i < N; i++) {
     const a = Math.random() * Math.PI * 2;
     const sp = 0.8 + Math.random() * 1.8 * (fx.thick ? 1.5 : 1.0);
@@ -23176,17 +23681,16 @@ function spawnImpact(wr, wc, weapon) {
   }
   _capArr(impacts, _MAX_IMPACTS);
   impacts.push({ r: wr, c: wc, parts });
-  // Shockwave при попадании — оранжевое расширяющееся кольцо
-  spawnShockwave(wr, wc, {
-    rad0: 2,
-    maxRad: fx.thick ? 36 : 24,
-    life: fx.thick ? 280 : 220,
-    color: fx.thick ? '#ff6020' : '#ffaa40',
-    thick: fx.thick ? 2.8 : 2.0,
-  });
-  // Splat — тёмное пятно крови на земле, живёт долго (8с) чтобы остаться
-  // следом боя. Кол-во зависит от оружия (тяжёлое — больше).
-  const splatN = fx.thick ? 3 : 1;
+  if (!npcShot) {
+    spawnShockwave(wr, wc, {
+      rad0: 2,
+      maxRad: fx.thick ? 36 : 24,
+      life: fx.thick ? 280 : 220,
+      color: fx.thick ? '#ff6020' : '#ffaa40',
+      thick: fx.thick ? 2.8 : 2.0,
+    });
+  }
+  const splatN = npcShot ? 1 : (fx.thick ? 3 : 1);
   for (let i = 0; i < splatN; i++) {
     _capArr(bloodSplats, _MAX_BLOOD);
     bloodSplats.push({
@@ -23227,11 +23731,14 @@ function reportCarCrash(qc, impact, kind) {
   }
   _capArr(impacts, _MAX_IMPACTS);
   impacts.push({ r: qc.y, c: qc.x, parts });
-  // Метка тряски: drawQuestCar читает qc._shakeUntil для жесть-вибрации
-  qc._shakeUntil = now + 280;
-  qc._shakeMag   = Math.min(6, impact * 0.6);
-  // Глобальная экранная тряска — используем существующий camShake/addShake
-  addShake(Math.min(8, impact * 0.7));
+  // Тряска камеры и спрайта — ТОЛЬКО для столкновений с машинами/NPC,
+  // НЕ для стен. При ударе в стену машина просто останавливается (без
+  // визуальной тряски), иначе камера ходит ходуном при скольжении вдоль стены.
+  if (kind !== 'wall') {
+    qc._shakeUntil = now + 280;
+    qc._shakeMag   = Math.min(6, impact * 0.6);
+    addShake(Math.min(5, impact * 0.35));
+  }
   // Шлём серверу — пусть уменьшит hp в авторитативном состоянии
   try {
     ws && ws.send(JSON.stringify({ t: 'gta_crash', d: {
@@ -24078,12 +24585,24 @@ function render() {
     ctx.scale(viewZoom, viewZoom);
     ctx.translate(-_pp.x, -_pp.y);
   }
-  // Viewport culling (под более крупный TS уменьшаем радиус)
-  const VIS_R = 12;
-  const r0 = Math.max(0, Math.floor(player.r - VIS_R));
-  const r1 = Math.min(MAP_ROWS, Math.ceil(player.r + VIS_R));
-  const c0 = Math.max(0, Math.floor(player.c - VIS_R));
-  const c1 = Math.min(MAP_COLS, Math.ceil(player.c + VIS_R));
+  // Центр culling = ПОЗИЦИЯ КАМЕРЫ (истинный центр вида), а не player.r/c.
+  // При rubber-band коррекции снапшота (dist 5..15, 10%/снап) player.r/c
+  // тянется к серверной позиции, а cam догоняет лерпом (dt*8). Окна
+  // расходятся: culling по player выкидывал ВИДИМЫЕ тайлы/контейнеры/
+  // машину из кадра («пропадаю с карты», «контейнеры исчезают в порту»,
+  // «декор едет за мной»). Камера — то что реально на экране, по ней режем.
+  // Игрок рисуется безусловно (push без culling), так что не пропадёт.
+  let _cullR = player.r, _cullC = player.c;
+  {
+    const _cr = (cam.y / (TS * ISO_Y) - cam.x / TS);
+    const _cc = (cam.y / (TS * ISO_Y) + cam.x / TS);
+    if (isFinite(_cr) && isFinite(_cc)) { _cullR = _cr; _cullC = _cc; }
+  }
+  const VIS_R = 18;
+  const r0 = Math.max(0, Math.floor(_cullR - VIS_R));
+  const r1 = Math.min(MAP_ROWS, Math.ceil(_cullR + VIS_R));
+  const c0 = Math.max(0, Math.floor(_cullC - VIS_R));
+  const c1 = Math.min(MAP_COLS, Math.ceil(_cullC + VIS_R));
   // 1) Пол — везде где НЕ здание (под машинами/ящиками тротуар виден)
   for (let r = r0; r < r1; r++)
     for (let c = c0; c < c1; c++)
@@ -24092,6 +24611,10 @@ function render() {
   drawArenaPerimeter();
   // 1.55) Граница логова — красный пунктир (только если рядом)
   if (player.r > 90) drawLairPerimeter();
+  // 1.55b) Границы РАЙОНОВ (districts) — крупная сетка зон поверх пола
+  drawDistrictBorders(r0, r1, c0, c1);
+  // 1.55c) Штабы районов — точки захвата (флаг + зона + прогресс)
+  drawDistrictHQs(r0, r1, c0, c1);
   // 1.6) Периметры захватываемых районов — цвет владельца / пунктир если ничейная
   drawTerritoryPerimeters();
   // 1.7) Бандитские гнёзда — пульсирующая красная подсветка вокруг здания
@@ -24416,7 +24939,9 @@ function render() {
   // АЗС — знак с колонкой и зоной взаимодействия
   for (const gs of GAS_STATIONS) {
     if (gs.r < r0 - 2 || gs.r >= r1 + 2 || gs.c < c0 - 2 || gs.c >= c1 + 2) continue;
-    items.push({ depth: gs.r + gs.c - 0.1, draw: () => {
+    // Наземная часть (бетон, магазин, колонки, колонны) — рисуется РАНЬШЕ,
+    // чтобы игрок стоящий у заправки не "проваливался под пол".
+    items.push({ depth: gs.r + gs.c - 3, draw: () => {
       const p = w2s(gs.r + 0.5, gs.c + 0.5);
       const t = performance.now();
       ctx.save();
@@ -24520,42 +25045,6 @@ function render() {
         ctx.fillStyle = 'rgba(255,255,255,.25)';
         ctx.fillRect(cc.x - 2.5, cc.y - canH, 1.5, canH);
       }
-      // Крыша навеса — ПОЛУПРОЗРАЧНАЯ, чтобы персонажа было видно под ней
-      // (заезжаешь/заходишь под навес — силуэт читается сквозь крышу).
-      ctx.save();
-      ctx.globalAlpha = 0.55;
-      // Фасция (толщина плиты) на ближних гранях D→C и B→C
-      const fasc = 7;
-      ctx.fillStyle = '#b81818';
-      for (const [e1, e2] of [[cD, cC], [cB, cC]]) {
-        ctx.beginPath();
-        ctx.moveTo(e1.x, e1.y - canH); ctx.lineTo(e2.x, e2.y - canH);
-        ctx.lineTo(e2.x, e2.y - canH + fasc); ctx.lineTo(e1.x, e1.y - canH + fasc);
-        ctx.closePath(); ctx.fill();
-      }
-      // Жёлтая фирменная полоса на фасции
-      ctx.fillStyle = '#ffd21a';
-      for (const [e1, e2] of [[cD, cC], [cB, cC]]) {
-        ctx.beginPath();
-        ctx.moveTo(e1.x, e1.y - canH + fasc - 2.5); ctx.lineTo(e2.x, e2.y - canH + fasc - 2.5);
-        ctx.lineTo(e2.x, e2.y - canH + fasc); ctx.lineTo(e1.x, e1.y - canH + fasc);
-        ctx.closePath(); ctx.fill();
-      }
-      // Верхняя плита навеса (красная с лёгким градиентом)
-      const rg = ctx.createLinearGradient(cA.x, cA.y - canH, cC.x, cC.y - canH);
-      rg.addColorStop(0, '#e83028'); rg.addColorStop(1, '#b81818');
-      ctx.fillStyle = rg;
-      ctx.beginPath();
-      ctx.moveTo(cA.x, cA.y - canH); ctx.lineTo(cB.x, cB.y - canH);
-      ctx.lineTo(cC.x, cC.y - canH); ctx.lineTo(cD.x, cD.y - canH); ctx.closePath(); ctx.fill();
-      // Подсветка снизу плиты (неон по периметру) + блик
-      ctx.strokeStyle = 'rgba(255,240,180,.5)'; ctx.lineWidth = 1.5; ctx.stroke();
-      ctx.restore();
-
-      // Вывеска «ЗАПРАВКА» теперь рисуется ОТДЕЛЬНЫМ слоем поверх всех
-      // зданий (см. _drawGasSigns после items.forEach) — иначе её
-      // перекрывали дома на ближних к камере тайлах.
-
       // ── Пульсирующий контур зоны ──────────────────────────────
       const distToGs = Math.hypot(player.r - gs.r, player.c - gs.c);
       if (distToGs < GAS_INTERACT_R + 2) {
@@ -24569,6 +25058,41 @@ function render() {
         ctx.stroke();
         ctx.setLineDash([]);
       }
+      ctx.restore();
+    }});
+    // Крыша навеса — отдельный слой ПОВЕРХ игрока, но полупрозрачная.
+    // Когда игрок стоит под навесом — ещё прозрачнее, чтобы не "проваливался".
+    items.push({ depth: gs.r + gs.c + 2, draw: () => {
+      const cA = w2s(gs.r - 0.6, gs.c - 0.6);
+      const cB = w2s(gs.r - 0.6, gs.c + 1.8);
+      const cC = w2s(gs.r + 1.8, gs.c + 1.8);
+      const cD = w2s(gs.r + 1.8, gs.c - 0.6);
+      const canH = isoH(2.7);
+      const underCanopy = Math.hypot(player.r - gs.r - 0.6, player.c - gs.c - 0.6) < 2.8;
+      ctx.save();
+      ctx.globalAlpha = underCanopy ? 0.25 : 0.55;
+      const fasc = 7;
+      ctx.fillStyle = '#b81818';
+      for (const [e1, e2] of [[cD, cC], [cB, cC]]) {
+        ctx.beginPath();
+        ctx.moveTo(e1.x, e1.y - canH); ctx.lineTo(e2.x, e2.y - canH);
+        ctx.lineTo(e2.x, e2.y - canH + fasc); ctx.lineTo(e1.x, e1.y - canH + fasc);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = '#ffd21a';
+      for (const [e1, e2] of [[cD, cC], [cB, cC]]) {
+        ctx.beginPath();
+        ctx.moveTo(e1.x, e1.y - canH + fasc - 2.5); ctx.lineTo(e2.x, e2.y - canH + fasc - 2.5);
+        ctx.lineTo(e2.x, e2.y - canH + fasc); ctx.lineTo(e1.x, e1.y - canH + fasc);
+        ctx.closePath(); ctx.fill();
+      }
+      const rg = ctx.createLinearGradient(cA.x, cA.y - canH, cC.x, cC.y - canH);
+      rg.addColorStop(0, '#e83028'); rg.addColorStop(1, '#b81818');
+      ctx.fillStyle = rg;
+      ctx.beginPath();
+      ctx.moveTo(cA.x, cA.y - canH); ctx.lineTo(cB.x, cB.y - canH);
+      ctx.lineTo(cC.x, cC.y - canH); ctx.lineTo(cD.x, cD.y - canH); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,240,180,.5)'; ctx.lineWidth = 1.5; ctx.stroke();
       ctx.restore();
     }});
   }
@@ -24671,6 +25195,10 @@ function render() {
       items.push({ depth: d.r + d.c - 0.1, draw: () => drawBeachTowel(d.r, d.c, d.col) });
     else if (d.kind === 'sandcastle')
       items.push({ depth: d.r + d.c, draw: () => drawSandcastle(d.r, d.c) });
+    else if (d.kind === 'volleyball')
+      items.push({ depth: d.r + d.c, draw: () => drawVolleyNet(d.r, d.c) });
+    else if (d.kind === 'icecream_cart')
+      items.push({ depth: d.r + d.c, draw: () => drawIceCreamCart(d.r, d.c) });
     else if (d.kind === 'starfish')
       items.push({ depth: d.r + d.c - 0.1, draw: () => drawStarfish(d.r, d.c, d.col) });
     else if (d.kind === 'crab')
@@ -24858,6 +25386,36 @@ function render() {
   drawExhaustPuffs();
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
+  // ── РЕНТГЕН игрока за зданием ──────────────────────────────────────
+  // В изометрии здание на тайле ближе к камере (r+c больше) рисуется
+  // ПОВЕРХ игрока и полностью его закрывает — игрок «пропадает». Проверяем
+  // тайлы спереди-к-камере; если там стена/банк — дорисовываем игрока
+  // (или его машину) полупрозрачным поверх, чтобы он не исчезал.
+  if (!_bankInt) {
+    const _pri = Math.floor(player.r), _pci = Math.floor(player.c);
+    let _occluded = false;
+    const _frontTiles = [[1,0],[0,1],[1,1],[2,0],[0,2],[2,1],[1,2],[2,2]];
+    for (const [dr, dc] of _frontTiles) {
+      const rr = _pri + dr, cc = _pci + dc;
+      if (!MAP[rr]) continue;
+      const tt = MAP[rr][cc];
+      if (tt === 1 || _bankTileSet.has(rr + ',' + cc)) { _occluded = true; break; }
+    }
+    if (_occluded) {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      if (myDrivingCarId && !myIsPassenger) {
+        const _qc = questCars.get(myDrivingCarId);
+        if (_qc) { try { drawQuestCar(_qc); } catch(e){} }
+      } else if (!myDrivingCarId && !_inBus) {
+        const _gp = w2s(player.r + 0.5, player.c + 0.5);
+        drawPerson(_gp.x, _gp.y, player.ang, QP.look,
+                   player.walking ? player.walkPhase : 0, null, null, true,
+                   myHp, PVP.max_hp, myDead, null, false, false);
+      }
+      ctx.restore();
+    }
+  }
   // Вывески АЗС — ПОВЕРХ всех зданий (тотем на высоком столбе виден
   // даже когда сама заправка спрятана за домом). Рисуем после depth-sort.
   _drawGasSigns(r0, c0, r1, c1);
@@ -24899,6 +25457,11 @@ function render() {
   drawEventArrow(r0, r1, c0, c1);
   // 🎯 над активной хит-целью Бригадира — поверх всего
   drawHitTargetMarker();
+  // Баннер «въезд в район» (GTA-стиль) — обновляем текущий район и рисуем
+  _updateDistrictBanner();
+  drawDistrictBanner();
+  // Полоса захвата района у штаба (прогресс/подсказка)
+  drawDistrictCaptureHud();
   // Лента глобальных событий (справа над миникартой)
   drawFeedEvents();
   // Мини-карта
@@ -26393,6 +26956,183 @@ const _miniCanvas = document.getElementById('mapCanvas');
 const _miniCtx = _miniCanvas.getContext('2d');
 const MINI_W = _miniCanvas.width;
 const MINI_H = _miniCanvas.height;
+// hex → rgba с альфой (для районных оверлеев)
+function _districtRgba(hex, a) {
+  const h = String(hex).replace('#', '');
+  const s = h.length === 3 ? h.split('').map(x => x + x).join('') : h;
+  const n = parseInt(s, 16) || 0;
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+// Границы районов на земле — крупная зональная сетка поверх пола. Рисуем
+// контур района (изо-четырёхугольник) цветом района/владельца, пунктиром;
+// у захваченного — лёгкая заливка цветом владельца.
+function drawDistrictBorders(r0, r1, c0, c1) {
+  ctx.save();
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 9]);
+  for (const d of DISTRICTS) {
+    if (d.r1 < r0 || d.r0 > r1 || d.c1 < c0 || d.c0 > c1) continue;  // вне вьюпорта
+    const owner = districtOwners[d.id];
+    const col = (owner && owner.color) ? owner.color : d.color;
+    const A = w2s(d.r0,     d.c0);
+    const B = w2s(d.r0,     d.c1 + 1);
+    const C = w2s(d.r1 + 1, d.c1 + 1);
+    const E = w2s(d.r1 + 1, d.c0);
+    ctx.beginPath();
+    ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y);
+    ctx.lineTo(C.x, C.y); ctx.lineTo(E.x, E.y); ctx.closePath();
+    if (owner) { ctx.fillStyle = _districtRgba(col, 0.08); ctx.fill(); }
+    ctx.strokeStyle = _districtRgba(col, 0.55);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+// Штабы районов: зона захвата + флагшток (цвет владельца/нейтральный) +
+// дуга прогресса при активном захвате. Точка захвата района.
+function drawDistrictHQs(r0, r1, c0, c1) {
+  for (const d of DISTRICTS) {
+    if (!d.hq) continue;  // Логово — без штаба
+    const hr = d.hq.r, hc = d.hq.c;
+    if (hr < r0 - 3 || hr > r1 + 3 || hc < c0 - 3 || hc > c1 + 3) continue;
+    const p = w2s(hr + 0.5, hc + 0.5);
+    const owner = districtOwners[d.id];
+    const cap = districtCaptures.get(d.id);
+    const col = (owner && owner.color) ? owner.color : d.color;
+    ctx.save();
+    // Зона штаба — изо-эллипс радиуса DIST_HQ_RAD
+    const edge = w2s(hr + 0.5 + DIST_HQ_RAD, hc + 0.5);
+    const rad = Math.max(10, Math.abs(edge.y - p.y));
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, rad, rad * 0.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = _districtRgba(col, owner ? 0.12 : 0.07);
+    ctx.fill();
+    ctx.strokeStyle = _districtRgba(col, 0.55);
+    ctx.lineWidth = 1.5; ctx.setLineDash([6, 5]); ctx.stroke(); ctx.setLineDash([]);
+    // Флагшток
+    const poleH = 34;
+    ctx.strokeStyle = '#2e2e2e'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y - poleH); ctx.stroke();
+    // Флаг (цвет владельца или серый-нейтральный)
+    const wave = Math.sin(performance.now() * 0.005) * 2;
+    ctx.fillStyle = owner ? col : '#8a8a8a';
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y - poleH);
+    ctx.lineTo(p.x + 18 + wave, p.y - poleH + 5);
+    ctx.lineTo(p.x, p.y - poleH + 10);
+    ctx.closePath(); ctx.fill();
+    // Иконка района над флагом
+    ctx.font = '13px "Segoe UI Emoji", system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(d.icon, p.x, p.y - poleH - 4);
+    // Прогресс захвата — дуга + процент
+    if (cap) {
+      const elapsed = (Date.now() - cap.startedAt) / 1000;
+      const prog = Math.max(0, Math.min(1, elapsed / (cap.duration || DIST_CAPTURE_TIME_S)));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y - poleH / 2, 17, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2);
+      ctx.strokeStyle = cap.color || col; ctx.lineWidth = 3.5; ctx.stroke();
+      ctx.font = 'bold 11px system-ui, sans-serif'; ctx.fillStyle = '#fff';
+      ctx.fillText(Math.round(prog * 100) + '%', p.x, p.y - poleH / 2 + 4);
+    } else if (owner) {
+      // Захвачен — мини-метка владельца (флаг банды/имя) под флагом
+      ctx.font = 'bold 9px system-ui, sans-serif'; ctx.fillStyle = col;
+      ctx.fillText('контроль', p.x, p.y + 12);
+    }
+    ctx.restore();
+    ctx.textAlign = 'left';
+  }
+}
+// Следим за текущим районом игрока; при въезде в новый — взводим баннер.
+function _updateDistrictBanner() {
+  const d = districtAt(player.r, player.c);
+  const id = d ? d.id : null;
+  if (id !== _curDistrictId) {
+    _curDistrictId = id;
+    if (d) _districtBanner = { d, t: performance.now() };
+  }
+}
+// GTA-стиль баннер «въезд в район»: название крупно + статус/бонус мелко,
+// выезжает слева, держится, затухает. ~3.5с.
+function drawDistrictBanner() {
+  if (!_districtBanner) return;
+  const age = performance.now() - _districtBanner.t;
+  const DUR = 3500;
+  if (age > DUR) { _districtBanner = null; return; }
+  const d = _districtBanner.d;
+  let alpha = 1, slide = 0;
+  if (age < 300)      { alpha = age / 300; slide = (1 - age / 300) * 36; }
+  else if (age > 3000) { alpha = 1 - (age - 3000) / 500; }
+  const { W, H } = _viewSize();
+  // Ниже HUD-бара, но повыше прежнего (~24% высоты) — как просил юзер.
+  const cx = W / 2 - slide, y = Math.round(H * 0.24);
+  const owner = districtOwners[d.id];
+  const col = (owner && owner.color) ? owner.color : d.color;
+  // Захвачен → ник владельца; ничейный → «не захвачен»; Логово → «опасная зона».
+  const sub = owner ? ('👑 ' + (owner.ownerName || owner.gangTag || 'игрок'))
+                    : (d.capturable ? '🏴 не захвачен' : '☠️ опасная зона');
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  // Тёмная подложка-панель (читаемость над городом)
+  ctx.font = '700 23px system-ui, sans-serif';
+  const tW = ctx.measureText(d.icon + ' ' + d.name).width;
+  ctx.font = '600 12px system-ui, sans-serif';
+  const sW = ctx.measureText(sub).width;
+  const panelW = Math.max(tW, sW) + 40, panelH = 52;
+  ctx.fillStyle = 'rgba(10,12,18,.78)';
+  ctx.beginPath(); ctx.roundRect(cx - panelW / 2, y - 26, panelW, panelH, 10); ctx.fill();
+  ctx.strokeStyle = col; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(cx - panelW / 2, y - 26, panelW, panelH, 10); ctx.stroke();
+  // Название района
+  ctx.font = '700 23px system-ui, sans-serif';
+  ctx.fillStyle = col; ctx.fillText(d.icon + ' ' + d.name, cx, y - 1);
+  // Подпись
+  ctx.font = '600 12px system-ui, sans-serif';
+  ctx.fillStyle = '#dfe4ea'; ctx.fillText(sub, cx, y + 17);
+  ctx.restore();
+  ctx.textAlign = 'left';
+}
+// Явная полоса захвата внизу экрана — когда игрок у штаба района. Показывает
+// прогресс (свой/чужой) или подсказку «стой здесь».
+function drawDistrictCaptureHud() {
+  const did = _myInsideDistHq;
+  if (!did) return;
+  const d = DISTRICT_BY_ID.get(did);
+  if (!d) return;
+  const owner = districtOwners[did];
+  if (owner && String(owner.ownerId || owner.owner_uid) === String(QP.uid)) return;  // уже мой
+  const cap = districtCaptures.get(did);
+  const { W, H } = _viewSize();
+  const cx = W / 2, y = Math.round(H * 0.70);
+  let prog = 0, mine = false;
+  if (cap) {
+    prog = Math.max(0, Math.min(1, (Date.now() - cap.startedAt) / 1000 / (cap.duration || DIST_CAPTURE_TIME_S)));
+    mine = String(cap.byId) === String(QP.uid);
+  }
+  const barW = Math.min(260, W * 0.7), barH = 14;
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(10,12,18,.82)';
+  ctx.beginPath(); ctx.roundRect(cx - barW / 2 - 10, y - 32, barW + 20, 54, 11); ctx.fill();
+  ctx.strokeStyle = d.color; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(cx - barW / 2 - 10, y - 32, barW + 20, 54, 11); ctx.stroke();
+  ctx.font = '700 14px system-ui, sans-serif'; ctx.fillStyle = d.color;
+  const title = cap ? (mine ? `🏴 Захватываешь: ${d.name}` : `⚔️ ${cap.byName} берёт ${d.name}`)
+                    : `🏴 ${d.icon} ${d.name} — штаб района`;
+  ctx.fillText(title, cx, y - 14);
+  ctx.fillStyle = 'rgba(255,255,255,.16)';
+  ctx.beginPath(); ctx.roundRect(cx - barW / 2, y - 4, barW, barH, 5); ctx.fill();
+  if (cap) {
+    ctx.fillStyle = mine ? d.color : '#e74c3c';
+    ctx.beginPath(); ctx.roundRect(cx - barW / 2, y - 4, barW * prog, barH, 5); ctx.fill();
+  }
+  ctx.font = 'bold 11px system-ui, sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText(cap ? (Math.round(prog * 100) + '%') : 'Стой здесь — захват начнётся', cx, y + 7);
+  ctx.restore();
+  ctx.textAlign = 'left';
+}
 function drawMinimap() {
   const ctx2 = _miniCtx;
   ctx2.clearRect(0, 0, MINI_W, MINI_H);
@@ -26401,6 +27141,34 @@ function drawMinimap() {
   if ((_miniTick++ & 3) === 0) _miniBakedDirty = true;
   if (_miniBakedDirty) { bakeMini(); _miniBakedDirty = false; }
   ctx2.drawImage(_miniBaked, 0, 0);
+  // Районы — лёгкая заливка цветом района (владелец перекрашивает ярче)
+  for (const d of DISTRICTS) {
+    const owner = districtOwners[d.id];
+    const col = (owner && owner.color) ? owner.color : d.color;
+    ctx2.fillStyle = _districtRgba(col, owner ? 0.22 : 0.09);
+    ctx2.fillRect(d.c0 * sx, d.r0 * sy, (d.c1 - d.c0 + 1) * sx, (d.r1 - d.r0 + 1) * sy);
+    ctx2.strokeStyle = _districtRgba(col, 0.45);
+    ctx2.lineWidth = 0.8;
+    ctx2.strokeRect(d.c0 * sx + 0.5, d.r0 * sy + 0.5, (d.c1 - d.c0 + 1) * sx - 1, (d.r1 - d.r0 + 1) * sy - 1);
+  }
+  // Штабы районов — флажок на миникарте (куда идти захватывать). Пульсирует
+  // у ничейных/чужих, чтобы игрок видел цель захвата.
+  const _hqPulse = 0.55 + 0.45 * Math.abs(Math.sin(performance.now() * 0.004));
+  for (const d of DISTRICTS) {
+    if (!d.hq) continue;
+    const owner = districtOwners[d.id];
+    const mine = owner && String(owner.ownerId || owner.owner_uid) === String(QP.uid);
+    const col = (owner && owner.color) ? owner.color : '#ffd76b';
+    const hx = (d.hq.c + 0.5) * sx, hy = (d.hq.r + 0.5) * sy;
+    ctx2.globalAlpha = mine ? 1 : _hqPulse;
+    ctx2.fillStyle = col;
+    // мини-флажок: шток + треугольник
+    ctx2.fillRect(hx - 0.5, hy - 6, 1.2, 8);
+    ctx2.beginPath();
+    ctx2.moveTo(hx + 0.6, hy - 6); ctx2.lineTo(hx + 6, hy - 4); ctx2.lineTo(hx + 0.6, hy - 2);
+    ctx2.closePath(); ctx2.fill();
+    ctx2.globalAlpha = 1;
+  }
   // PVP-арена — пульсирующая красная зона
   const arenaPulse = 0.20 + Math.abs(Math.sin(performance.now() * 0.003)) * 0.18;
   ctx2.fillStyle = `rgba(255,40,40,${arenaPulse})`;
@@ -26787,6 +27555,48 @@ window.addEventListener('pointerdown', () => {
 // строки останутся, юзер делает скриншот и шлёт.
 const _hbHistory = [];
 const _hbEl = (typeof document !== 'undefined') ? document.getElementById('debugHud') : null;
+// Дебаг-плашка скрыта по умолчанию (мешала тесту). Вернуть: ?dbg=1 в URL,
+// ИЛИ долгим нажатием на иконку карты 🗺 (см. ниже).
+try { if (_hbEl && /[?&]dbg=1/.test(location.search)) _hbEl.style.display = 'block'; } catch(e) {}
+// ── Тоггл миникарты: тап по карте сворачивает её в иконку 🗺; тап по
+//    иконке разворачивает. Долгое нажатие (≥500мс) на иконку — показать/
+//    скрыть дебаг-плашку (для ловли «карта уезжает»).
+try {
+  const _mapHud = document.getElementById('mapHud');
+  const _mapTgl = document.getElementById('mapToggle');
+  if (_mapHud && _mapTgl) {
+    const _setMap = (open) => {
+      _mapHud.classList.toggle('collapsed', !open);
+      _mapTgl.classList.toggle('show', !open);
+    };
+    _mapHud.addEventListener('click', () => _setMap(false));   // тап по карте — свернуть
+    let _lpTimer = null, _lpFired = false;
+    const _lpStart = () => {
+      _lpFired = false;
+      _lpTimer = setTimeout(() => {
+        _lpFired = true;
+        if (_hbEl) _hbEl.style.display = (_hbEl.style.display === 'block') ? 'none' : 'block';
+        try { if (navigator.vibrate) navigator.vibrate(20); } catch(e) {}
+      }, 500);
+    };
+    const _lpEnd = () => { if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; } };
+    _mapTgl.addEventListener('pointerdown', _lpStart);
+    _mapTgl.addEventListener('pointerup',   _lpEnd);
+    _mapTgl.addEventListener('pointerleave', _lpEnd);
+    _mapTgl.addEventListener('click', (e) => {
+      if (_lpFired) { e.preventDefault(); return; }   // это был long-press — не разворачиваем
+      _setMap(true);                                   // короткий тап — развернуть карту
+    });
+    // Миникарта СКРЫТА по умолчанию (кто хочет — открывает тапом по 🗺).
+    _setMap(false);
+  }
+} catch(e) {}
+const _dbgErrors = [];
+window.onerror = (msg, src, line) => {
+  const short = String(msg).slice(0, 60) + ' L' + line;
+  _dbgErrors.push(short);
+  if (_dbgErrors.length > 5) _dbgErrors.shift();
+};
 function _heartbeat() {
   const now = performance.now();
   const dt = (now - _hbLastT) / 1000;
@@ -26832,11 +27642,38 @@ function _heartbeat() {
     const _pc = player ? player.c.toFixed(1) : '?';
     const _qc = (questCars && questCars.size) || 0;
     const _carN = (typeof CARS !== 'undefined' && CARS) ? CARS.length : 0;
+    const _shk = (typeof camShake === 'number') ? camShake.toFixed(1) : '0';
+    const _drvId = myDrivingCarId ? myDrivingCarId.slice(0, 6) : '-';
+    const _bank = _bankInt ? 'IN' : (_bankShieldUntil > performance.now() ? 'SH' : '-');
+    const _wnt = (typeof myWanted === 'number') ? myWanted : 0;
+    const _hp = (typeof myHp === 'number') ? myHp : '?';
+    const _fuel = (_myCarFuelPct !== null) ? Math.round(_myCarFuelPct) + '%' : '-';
+    // DRIFT — смещение игрока от ЦЕНТРА экрана в пикселях. Если «карта
+    // уезжает» = это число большое; если камера в норме = ~0. Плюс stage/win
+    // расхождение (источник iOS-бага) — должны совпадать.
+    let _drift = '?', _stg = '?', _ps = '?', _ctr = '?', _vv = '?';
+    try {
+      const ps = w2s(player.r, player.c);
+      const vv = window.visualViewport;
+      const cx0 = (vv ? vv.width : window.innerWidth) / 2;
+      const cy0 = (vv ? vv.height : window.innerHeight) / 2;
+      _drift = Math.round(Math.hypot(ps.x - cx0, ps.y - cy0));
+      _ps  = Math.round(ps.x) + ',' + Math.round(ps.y);
+      _ctr = Math.round(cx0) + ',' + Math.round(cy0);
+      _vv  = vv ? (Math.round(vv.width) + 'x' + Math.round(vv.height) + '@' + Math.round(vv.offsetTop)) : 'none';
+      const st = document.getElementById('stage');
+      _stg = st ? (st.clientWidth + 'x' + st.clientHeight) : '?';
+      // АВТО-ПОКАЗ дебаг-плашки когда «карта уезжает» (DRIFT>15px).
+      if (_hbEl && typeof _drift === 'number' && _drift > 15) _hbEl.style.display = 'block';
+    } catch (e) {}
+    const _errs = _dbgErrors.length ? '\n🔴 ' + _dbgErrors.slice(-2).join('\n🔴 ') : '';
     _dbg = `\nz${_zoom} dpr${_dpr} cv${canvas.width}x${canvas.height}\n` +
-      `win${window.innerWidth}x${window.innerHeight} cam${_camx},${_camy}\n` +
-      `pl${_pr},${_pc} qc${_qc} car${_carN}`;
+      `win${window.innerWidth}x${window.innerHeight} stg${_stg} vv${_vv}\n` +
+      `DRIFT:${_drift}px  ps[${_ps}] ctr[${_ctr}]\n` +
+      `cam${_camx},${_camy} pl${_pr},${_pc}\n` +
+      `shk${_shk} drv:${_drvId} bnk:${_bank} w★${_wnt} hp${_hp} ⛽${_fuel}` + _errs;
   } catch (e) { _dbg = '\ndbg-err'; }
-  const compact = `${timeMark} fps${fps} ${wsReady.slice(0,4)} snap${snapAgo}s\n` +
+  const compact = `BUILD v0380🎥 ${timeMark} fps${fps} ${wsReady.slice(0,4)} snap${snapAgo}s\n` +
     `npc${NPCS && NPCS.length || 0} cop${cops} agg${aggro} oth${others && others.size || 0}\n` +
     `bul${bullets.length} muz${muzzles.length} ft${floatTexts.length} lk${lockedTargets && lockedTargets.size || 0}\n` +
     `st:${flagStr} tch${_touchCount}/3s ago${touchAgo}s` + _dbg;
@@ -28372,7 +29209,7 @@ function _updateBankInterior(dt) {
           } else {
             spawnBullet(muzR, muzC, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol' });
             spawnMuzzle(muzR, muzC, shootAng, 'pistol', true);
-            spawnImpact(player.r, player.c, 'pistol');
+            spawnImpact(player.r, player.c, 'pistol', true);
             if (typeof addShake === 'function') addShake(2.5);
             const dmg = 8 + Math.floor(Math.random()*5);
             _hurtLocal(dmg, 'Охрана банка');
