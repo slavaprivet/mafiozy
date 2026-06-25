@@ -1834,9 +1834,12 @@ function buildMap() {
     }
   }
   // Декор на бордюре — плотность ×0.7 (ящики/бочки/мусорки реже).
+  // НЕ ставим на тайлах прямо у дороги (r%BLOCK==3 || c%BLOCK==3) —
+  // они блокируют проезд машин.
   for (let r = 2; r < MAP_ROWS - 2; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
       if (MAP[r][c] !== 9) continue;
+      if ((r % BLOCK) <= 3 || (c % BLOCK) <= 3) continue;
       const x = det(r, c, 1);
       if (x < 0.018)       MAP[r][c] = 3; // ящик
       else if (x < 0.028)  MAP[r][c] = 4; // бочка
