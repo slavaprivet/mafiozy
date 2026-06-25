@@ -14220,6 +14220,8 @@ function update(dt) {
       _interpMichaelGuards(dt);
       _tickBus(dt);
       _tickParkingNpcs(dt);
+      updateNpcs(dt);
+      updateCars(dt);
       return;
     } else {
       // Параметры аркадной езды. Серверный кламп QUEST_CAR_MAX_SPEED=14.
@@ -14706,6 +14708,8 @@ function update(dt) {
       _interpMichaelGuards(dt);
       _tickBus(dt);
       _tickParkingNpcs(dt);
+      updateNpcs(dt);
+      updateCars(dt);
       return;
     }
   }
@@ -14748,6 +14752,8 @@ function update(dt) {
       _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
       _tickParkingNpcs(dt);
+      updateNpcs(dt);
+      updateCars(dt);
       return;
     }
   }
