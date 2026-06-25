@@ -4307,6 +4307,7 @@ function updateCityCops(dt) {
     }
     if (copNear && now > (_bagSpottedCdUntil || 0)) {
       _bagSpottedCdUntil = now + 8000;
+      if (typeof myWanted === 'number' && myWanted < 2) myWanted = 2;
       try { ws && ws.send(JSON.stringify({ t: 'cop_spotted_bag', d: {} })); } catch(e) {}
       showToast('🚓 Коп заметил мешок! Розыск +2★', '🚨', 2600);
       try { hapticHit && hapticHit(); } catch(e) {}
@@ -29072,6 +29073,22 @@ function _updateBankInterior(dt) {
       if (ws&&ws.readyState===1){try{ws.send(JSON.stringify({t:'bank_rob_announce',d:{bank_id:int.bank.id}}));}catch(e){}}
     }
   }
+  // Таймер хранилища: 5 минут после вскрытия → закрывается
+  if (int.phase==='vault_open' && int._vaultOpenedAt) {
+    const VAULT_OPEN_MS = 5 * 60 * 1000;
+    const elapsed = now - int._vaultOpenedAt;
+    if (elapsed >= VAULT_OPEN_MS) {
+      int.phase = 'lobby';
+      int.crackProg = 0;
+      int._crackStartedAt = null;
+      if (int.room === 'vault') {
+        int.room = 'lobby';
+        showToast('🔒 Хранилище закрылось! Тебя выкинуло в лобби.', '⚠️', 3000);
+      } else {
+        showToast('🔒 Хранилище закрылось.', 'ℹ️', 2000);
+      }
+    }
+  }
   const hasWeapon=_isArmed();
   const isRobbery=(int.phase==='cracking'||int.phase==='vault_open');
   // Пока игрок в хранилище — координаты player.r/c в системе хранилища,
@@ -30825,6 +30842,23 @@ function drawBankInteriorScene() {
     }
 
     if (phase==='vault_open') {
+      // Таймер закрытия хранилища (5 мин)
+      if (_bankInt._vaultOpenedAt) {
+        const VAULT_MS = 5*60*1000;
+        const left = Math.max(0, VAULT_MS - (now2 - _bankInt._vaultOpenedAt));
+        const mm = Math.floor(left/60000), ss = Math.floor((left%60000)/1000);
+        const timerStr = `${mm}:${String(ss).padStart(2,'0')}`;
+        const urgent = left < 60000;
+        ctx.save();
+        ctx.font = 'bold 11px system-ui';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillStyle = urgent ? '#ff4040' : '#ffd76b';
+        ctx.shadowColor = urgent ? '#ff0000' : '#ffa500';
+        ctx.shadowBlur = urgent ? 12 : 6;
+        ctx.fillText(`🔓 ${timerStr}`, vc.x, vcy - frameH - 10);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
       // ОТКРЫТАЯ ДВЕРЬ — массивная плита откатывается в сторону на роликах
       const openAnim=_bankInt._vaultOpenedAt
         ? Math.min(1,(now2-_bankInt._vaultOpenedAt)/1200)
