@@ -10527,6 +10527,7 @@ _zoneEl.addEventListener('click', () => {
           bag.taken = true;
           int.myBag = {id: bag.id, value: int.bank.reward_per_bag};
           _myBagWeight = 1;
+          if (_bankRob) _bankRob._bagsTaken = (_bankRob._bagsTaken || 0) + 1;
           delete _zoneEl.dataset.vaultBagId;
           showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`, '💼', 2200);
           try{hapticHit&&hapticHit();}catch(e){}
@@ -27794,6 +27795,7 @@ function _takeVaultBagDirect(bag) {
   bag.taken = true;
   int.myBag = { id: bag.id, value: int.bank.reward_per_bag };
   _myBagWeight = 1;
+  if (_bankRob) _bankRob._bagsTaken = (_bankRob._bagsTaken || 0) + 1;
   showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`, '💼', 2000);
   try { hapticHit && hapticHit(); } catch(e) {}
   if (typeof updateZoneBtn === 'function') updateZoneBtn();
@@ -28910,7 +28912,8 @@ function enterBankInterior(bank) {
   // Раньше vaultOpen=!!existingRob → после «тревога без взлома» банк
   // ошибочно открывался сразу, и игрок не мог взломать его заново.
   const vaultOpen=!!(existingRob&&_bankRob._vaultCracked);
-  const bagsLeft=bank.bags-(existingRob?_bankRob.bagsLoaded:0);
+  const taken=existingRob?Math.max(_bankRob.bagsLoaded||0,_bankRob._bagsTaken||0):0;
+  const bagsLeft=bank.bags-taken;
   if (existingRob&&bagsLeft<=0){ showToast('💰 Все мешки взяты!','✅',1800); return; }
   const cfg=_BINT[bank.size]||_BINT.small;
   const {W,H,crackTime,counterRow}=cfg;
