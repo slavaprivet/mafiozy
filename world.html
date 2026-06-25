@@ -11280,17 +11280,19 @@ const _dropBagBtn = document.getElementById('dropBagBtn');
 if (_dropBagBtn) {
   _dropBagBtn.addEventListener('click', () => {
     if (_bankInt && _bankInt.myBag) {
-      // Кладём мешок НА ПОЛ К НОГАМ игрока (а не на исходную позицию в
-      // хранилище — раньше orig.taken=false возвращал мешок в дальний угол
-      // хранилища, выглядело как «исчез/телепортировался»). Координаты —
-      // интерьерные (room coords), как у player.r/c; рендерится в
-      // drawBankInteriorScene из _bankInt.bags.
-      const b = _bankInt.myBag;
-      const orig = (_bankInt.bags || []).find(x => x.id === b.id);
-      if (orig) { orig.taken = false; orig.r = player.r; orig.c = player.c; }
-      else if (_bankInt.bags) { _bankInt.bags.push({ id: b.id, taken: false, r: player.r, c: player.c }); }
-      _bankInt.myBag = null; _myBagWeight = 0;
-      showToast('💼 Мешок брошен', '⚠️', 1400);
+      if (_bankInt.room === 'vault') {
+        const b = _bankInt.myBag;
+        const orig = (_bankInt.bags || []).find(x => x.id === b.id);
+        if (orig) { orig.taken = false; orig.r = player.r; orig.c = player.c; }
+        else if (_bankInt.bags) { _bankInt.bags.push({ id: b.id, taken: false, r: player.r, c: player.c }); }
+        _bankInt.myBag = null; _myBagWeight = 0;
+        showToast('💼 Мешок брошен', '⚠️', 1400);
+      } else {
+        _bankRob = _bankRob || { bank: _bankInt.bank, bagsLoaded: 0, bagsMax: _bankInt.bank.bags, phase: 'carrying', myBag: null, startedAt: performance.now()/1000 };
+        _bankRob.myBag = { value: _bankInt.myBag.value || _bankInt.bank.reward_per_bag, id: _bankInt.myBag.id };
+        _bankInt.myBag = null;
+        dropVaultBag();
+      }
       if (typeof updateZoneBtn === 'function') updateZoneBtn();
     } else if (_bankRob && _bankRob.myBag) {
       dropVaultBag();
