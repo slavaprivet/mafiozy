@@ -593,8 +593,28 @@ body.in-pvp #robActionBtn { top: 152px; }
   font-family: inherit; color: #fff;
   pointer-events: none;
   width: 168px;
+  transition: all .25s ease;
 }
 #questCarHud.show { display: block; }
+#questCarHud .qhd-close {
+  position: absolute; top: 3px; right: 4px;
+  width: 20px; height: 20px; border: none; background: rgba(255,255,255,.12);
+  border-radius: 50%; color: #ffd76b; font-size: 12px; line-height: 20px;
+  text-align: center; cursor: pointer; pointer-events: auto; padding: 0;
+}
+#questCarHud .qhd-close:active { background: rgba(255,255,255,.3); }
+#questCarHud.minimized .qhd-body { display: none; }
+#questCarHud.minimized { width: auto; padding: 4px 28px 4px 8px; }
+#questCarHud .qhd-nav {
+  display: flex; justify-content: center; gap: 4px; margin-top: 4px;
+  pointer-events: auto;
+}
+#questCarHud .qhd-nav .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,215,107,.3); border: none; padding: 0; cursor: pointer;
+  pointer-events: auto;
+}
+#questCarHud .qhd-nav .dot.active { background: #ffd76b; }
 #questCarHud .qhd-row { display: flex; align-items: center; gap: 6px; }
 #questCarHud canvas {
   width: 100%; height: 56px; display: block;
@@ -1305,10 +1325,14 @@ body.in-pvp #robActionBtn { top: 152px; }
   <!-- HUD-виджет активного квеста Майкла: фото машины + название + статус.
        Показывается только когда myGtaStatus.active есть и модал Майкла закрыт. -->
   <div id="questCarHud">
+    <button class="qhd-close" id="questHudToggle">×</button>
     <div class="qhd-t">🎯 Заказ Майкла</div>
-    <canvas id="questCarHudCv" width="160" height="56"></canvas>
-    <div class="qhd-name" id="questCarHudName">—</div>
-    <div class="qhd-sub" id="questCarHudSub">—</div>
+    <div class="qhd-body">
+      <canvas id="questCarHudCv" width="160" height="56"></canvas>
+      <div class="qhd-name" id="questCarHudName">—</div>
+      <div class="qhd-sub" id="questCarHudSub">—</div>
+    </div>
+    <div class="qhd-nav" id="questHudNav"></div>
   </div>
   <!-- Индикатор режима PvP/PvE (тап → выбрать другой режим) -->
   <div id="modeHud" title="Сменить режим">🔫 PvP <span class="sw">сменить</span></div>
@@ -12208,10 +12232,18 @@ const _qcHud      = document.getElementById('questCarHud');
 const _qcHudCv    = document.getElementById('questCarHudCv');
 const _qcHudName  = document.getElementById('questCarHudName');
 const _qcHudSub   = document.getElementById('questCarHudSub');
+let _questHudMinimized = false;
+{
+  const _toggle = document.getElementById('questHudToggle');
+  if (_toggle) _toggle.addEventListener('click', () => {
+    _questHudMinimized = !_questHudMinimized;
+    if (_qcHud) _qcHud.classList.toggle('minimized', _questHudMinimized);
+    _toggle.textContent = _questHudMinimized ? '🎯' : '×';
+  });
+}
 function updateQuestCarHud() {
   if (!_qcHud) return;
   const a = myGtaStatus && myGtaStatus.active;
-  // Скрываем виджет если модал Майкла открыт (там и так есть превью)
   const modalOpen = _michaelModal && _michaelModal.classList.contains('show');
   if (!a || modalOpen) { _qcHud.classList.remove('show'); return; }
   const mdef = QUEST_CAR_MODELS[a.model] || { label: a.model || '—' };
