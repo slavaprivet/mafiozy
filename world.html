@@ -15877,9 +15877,10 @@ function drawBeachUmbrella(r, c, col) {
   ctx.lineWidth = 1.2;
   ctx.beginPath();
   ctx.arc(p.x, topY, R, Math.PI, 0, false);
+  ctx.save();
   ctx.scale(1, 0.45);
   ctx.stroke();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);   // reset scale
+  ctx.restore();
 }
 
 function drawBeachChair(r, c, ang) {
