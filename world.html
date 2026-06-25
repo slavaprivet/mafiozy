@@ -11284,15 +11284,17 @@ if (_dropBagBtn) {
     if (_bankInt && _bankInt.myBag) {
       if (_bankInt.room === 'vault') {
         const b = _bankInt.myBag;
+        const dropR = player.r + 0.8;
+        const dropC = player.c + 0.4;
         const orig = (_bankInt.bags || []).find(x => x.id === b.id);
         if (orig) {
           orig.taken = false;
-          orig.r = player.r;
-          orig.c = player.c;
+          orig.r = dropR;
+          orig.c = dropC;
         }
         if (!_bankInt.bags) _bankInt.bags = [];
         if (!orig) {
-          _bankInt.bags.push({ id: b.id || ('drop_' + Date.now()), taken: false, r: player.r, c: player.c });
+          _bankInt.bags.push({ id: b.id || ('drop_' + Date.now()), taken: false, r: dropR, c: dropC });
         }
         _bankInt.myBag = null; _myBagWeight = 0;
         showToast('💼 Мешок брошен на пол', '⚠️', 1400);
@@ -26847,6 +26849,7 @@ function drawPOIArrows(r0, r1, c0, c1) {
   // Каждому считаем точку пересечения луча из центра экрана с
   // прямоугольником (PAD..W-PAD) × (PAD..H-PAD).
   for (const poi of POI) {
+    if (!poi._marked && !poi._questTarget) continue;
     const visible = poi.r >= r0 && poi.r < r1 && poi.c >= c0 && poi.c < c1;
     if (visible) continue;
     const dr = poi.r - player.r, dc = poi.c - player.c;
