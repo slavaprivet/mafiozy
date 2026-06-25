@@ -2353,11 +2353,14 @@ function applyQuestCarsSnapshot(arr) {
   // = undefined → весь вид «съезжал»). Моя машина клиент-авторитетна —
   // держим её локально, даже если сервер на пару тиков замолчал.
   for (const id of Array.from(questCars.keys())) {
-    if (!fresh.has(id) && id !== myDrivingCarId) questCars.delete(id);
+    const _keepRecent = (_recentlyExitedCarId === id && performance.now() < _recentlyExitedCarUntil);
+    if (!fresh.has(id) && id !== myDrivingCarId && !_keepRecent) questCars.delete(id);
   }
 }
 // Когда я сел в машину — её id; null если иду пешком.
 let myDrivingCarId = null;
+let _recentlyExitedCarId = null;
+let _recentlyExitedCarUntil = 0;
 // Я еду в автобусе. Игрок невидим, камера за BUS, стрелять/двигаться
 // нельзя. Выйти — на остановке или выпрыгнуть на ходу.
 let _inBus = false;
@@ -12425,6 +12428,8 @@ function exitCar(reason) {
     qc.state = 'idle';
     qc.vx = 0; qc.vy = 0;
   }
+  _recentlyExitedCarId = myDrivingCarId;
+  _recentlyExitedCarUntil = performance.now() + 5000;
   myDrivingCarId = null;
   _myCarFuelPct  = null;
   _exitRequested = false;
