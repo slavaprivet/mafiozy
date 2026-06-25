@@ -27712,8 +27712,7 @@ function _heartbeat() {
       _vv  = vv ? (Math.round(vv.width) + 'x' + Math.round(vv.height) + '@' + Math.round(vv.offsetTop)) : 'none';
       const st = document.getElementById('stage');
       _stg = st ? (st.clientWidth + 'x' + st.clientHeight) : '?';
-      // АВТО-ПОКАЗ дебаг-плашки когда «карта уезжает» (DRIFT>15px).
-      if (_hbEl && typeof _drift === 'number' && _drift > 15) _hbEl.style.display = 'block';
+      // Авто-показ дебаг-плашки отключён — только по долгому тапу на 🗺 или ?dbg=1.
     } catch (e) {}
     const _errs = _dbgErrors.length ? '\n🔴 ' + _dbgErrors.slice(-2).join('\n🔴 ') : '';
     _dbg = `\nz${_zoom} dpr${_dpr} cv${canvas.width}x${canvas.height}\n` +
@@ -27968,6 +27967,9 @@ function deliverBagsToBusinesses() {
   const total = bags * rewardPer;
   try { ws && ws.send(JSON.stringify({ t: 'bank_rob_deliver', d: { bank_id: _bankRob.bank.id, biz_id: bizId, bags } })); } catch(e) {}
   showToast(`🤫 Прячем куш! +$${total.toLocaleString('ru')}`, '🏆', 3500);
+  spawnFloatText(player.r, player.c, '+$' + total.toLocaleString('ru'), {
+    color: '#7be58a', size: 22, life: 2200,
+  });
   _bankRob = null;
   _myBagWeight = 0;
   if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
