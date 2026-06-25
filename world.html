@@ -14171,6 +14171,13 @@ function updateDistrictCapture() {
 }
 
 // ── Update / Render ────────────────────────────────────────────
+function _tickWorldLife(dt) {
+  updateNpcs(dt);
+  updateCars(dt);
+  tickRandomWorldEvents(performance.now());
+  _tickBrigadir(dt);
+  _interpBeachgoers(dt);
+}
 let prevT = performance.now();
 function update(dt) {
   // Сводный ввод: джойстик + клавиатура.
@@ -14216,12 +14223,10 @@ function update(dt) {
       updatePvpUI();
       updateGtaQuestHud();
       _interpQuestCars(dt);
-      _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
       _tickBus(dt);
       _tickParkingNpcs(dt);
-      updateNpcs(dt);
-      updateCars(dt);
+      _tickWorldLife(dt);
       return;
     } else {
       // Параметры аркадной езды. Серверный кламп QUEST_CAR_MAX_SPEED=14.
@@ -14704,12 +14709,10 @@ function update(dt) {
       }
       // Интерполяция чужих quest_cars (которые ведут другие игроки)
       _interpQuestCars(dt);
-      _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
       _tickBus(dt);
       _tickParkingNpcs(dt);
-      updateNpcs(dt);
-      updateCars(dt);
+      _tickWorldLife(dt);
       return;
     }
   }
@@ -14749,11 +14752,9 @@ function update(dt) {
         o.ang += aDiff * Math.min(1, dt * 8);
       }
       _interpQuestCars(dt);
-      _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
       _tickParkingNpcs(dt);
-      updateNpcs(dt);
-      updateCars(dt);
+      _tickWorldLife(dt);
       return;
     }
   }
@@ -14902,7 +14903,6 @@ function update(dt) {
   updateGtaQuestHud();
   updateRobbery(performance.now());
   _updateBankRobbery(dt);
-  tickRandomWorldEvents(performance.now());
   // Хит-цель (бандит из aggroZones) пропала — либо убили без меня,
   // либо зона зачищена/исчезла. Сбрасываем зависший контракт чтобы
   // игрок мог взять новый. Пропускаем когда _myBrigadirKillSent —
@@ -14924,8 +14924,6 @@ function update(dt) {
   _tickBus(dt);
   // AI «жителей» с машинами на парковках (вышел, погулял, вернулся)
   _tickParkingNpcs(dt);
-  // Бригадир бродит у бара — стопится когда игрок подошёл, иначе walks
-  _tickBrigadir(dt);
   // Стрельба в открытом мире: ЛОК-система (вернули по просьбе — было лучше
   // чем free-aim стиком). Тап по цели → маркер; кнопка fireBtn бьёт по
   // ближайшей залоченной цели РОВНО в неё. Без лока кнопка бьёт кулаком /
@@ -14970,8 +14968,7 @@ function update(dt) {
     if (o.w) o._walkPhase = (o._walkPhase || 0) + dt * 10;
   }
   // Локальная симуляция декора: прохожие + машины + службы
-  updateNpcs(dt);
-  updateCars(dt);
+  _tickWorldLife(dt);
   // Расход топлива игрока — только пока едет (не пассажир)
   if (myDrivingCarId && !myIsPassenger && _myCarFuelPct !== null) {
     _myCarFuelPct = Math.max(0, _myCarFuelPct - _FUEL_DRAIN_RATE * dt);
