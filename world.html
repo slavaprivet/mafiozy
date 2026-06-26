@@ -14958,6 +14958,17 @@ function update(dt) {
     const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
     cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
     cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
+    // Прицел + стрельба внутри здания (free-aim, как на арене)
+    if (myMode !== 'pve' && !myDead) {
+      if (joyR.active && joyR.hasAim) {
+        const d = joyR.dx, s = joyR.dy / ISO_Y;
+        const dc = (s + d) * 0.5, dr = (s - d) * 0.5;
+        player.ang = Math.atan2(dr, dc);
+        if (_isArmed()) fire(player.ang);
+      } else if (_fireBtnDown) {
+        if (_isArmed()) fire(); else punch();
+      }
+    }
     updateGtaInteractions();
     updateZoneBtn();
     return;
