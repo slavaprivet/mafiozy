@@ -11340,9 +11340,9 @@ function updateGtaInteractions() {
     const isMine = String(qc.owner_uid) === String(QP.uid);
     if (isMine && !qc.driver_uid) {
       if (d < nearestD) { nearestD = d; nearestQc = qc; nearestKind = 'driver'; }
-    } else if (qc.civilian && !qc.driver_uid) {
-      // Брошенная гражданская тачка (без owner и без водителя) — её
-      // можно снова угнать. Считаем как «сесть за руль».
+    } else if (!qc.driver_uid && (qc.civilian || !qc.owner_uid)) {
+      // Брошенная машина без водителя — гражданская или без владельца.
+      // Можно сесть за руль (угнать / вернуться к оставленной).
       if (d < nearestD) { nearestD = d; nearestQc = qc; nearestKind = 'driver'; }
     } else if (!isMine && qc.driver_uid && qc.driver_uid !== String(QP.uid)) {
       // Чужая машина с водителем — можно сесть пассажиром, если есть место.
@@ -12606,8 +12606,19 @@ function enterCar(carId, asKind) {
   const isMine = (String(qc.owner_uid) === String(QP.uid));
   // Если я не владелец — пытаемся сесть пассажиром.
   if (!isMine) {
-    if (!qc.driver_uid) {
+    if (!qc.driver_uid && !qc.civilian && qc.owner_uid) {
       showToast('🚫 Это не твой контракт', '🤷', 2000);
+      return;
+    }
+    if (!qc.driver_uid && (qc.civilian || !qc.owner_uid)) {
+      // Брошенная машина без владельца — можно сесть за руль
+      try { ws && ws.send(JSON.stringify({ t: 'gta_drive', d: {
+        car_id: carId, x: qc.x, y: qc.y, ang: qc.ang, vx:0, vy:0 } })); }
+      catch(e) {}
+      myDrivingCarId = carId;
+      myIsPassenger = false;
+      _exitRequested = false;
+      showToast('🚗 Сел за руль', '✅', 1200);
       return;
     }
     if ((qc.passenger_uids || []).length >= 1) {
