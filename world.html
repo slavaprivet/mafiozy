@@ -2184,7 +2184,7 @@ const POI = [
   // на сервере). Босс даёт x10 больше.
   { id: 'lair',    r: 120, c: 40, icon: '☠️', name: 'Логово',       minLvl: 10, aggro: true, radius: 20, noCapture: true },
   // Особые POI
-  { id: 'blackmarket', r:  6, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'shop'  },
+  { id: 'blackmarket', r:  6, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'blackmarket' },
   // Старый банк удалён — заменён системой BANKS[] с интерьером
   { id: 'arena',       r: 36, c: 66, icon: '🎯', name: 'PVP-арена',    minLvl: 1, special: 'arena' },
   // Больница — северо-восточный квартал, на отдельном здании-квартале
@@ -10531,7 +10531,7 @@ function updateZoneBtn() {
   // для специальных POI (магазин/арена/госпиталь — где есть смысл войти).
   let best = null, bestD2 = ENTER_R * ENTER_R;
   for (const poi of POI) {
-    if (!poi.special) continue;        // захватываемый — пропускаем
+    if (!poi.special || poi.special === 'blackmarket') continue;
     const dr = poi.r - player.r, dc = poi.c - player.c;
     const d2 = dr * dr + dc * dc;
     if (d2 < bestD2) { best = poi; bestD2 = d2; }
@@ -10540,8 +10540,7 @@ function updateZoneBtn() {
     _zoneCur = best;
     if (best) {
       let label;
-      if (best.special === 'shop')        label = `${best.icon} Зайти на «${best.name}»`;
-      else if (best.special === 'arena')  label = `${best.icon} Войти на «${best.name}»`;
+      if (best.special === 'arena')  label = `${best.icon} Войти на «${best.name}»`;
       else if (best.special === 'firestation') label = `${best.icon} Зайти в «${best.name}»`;
       else                                label = `${best.icon} Зайти на «${best.name}»`;
       _zoneEl.textContent = label;
@@ -10622,7 +10621,7 @@ _zoneEl.addEventListener('click', () => {
 
   if (!_zoneCur) return;
   // Спец-POI: открываем модал/баннер прямо в мире, никуда не переходим.
-  if (_zoneCur.special === 'shop')        { openShop();   return; }
+  if (_zoneCur.special === 'blackmarket')  { openShop();   return; }
   if (_zoneCur.special === 'arena')       { showToast('🎯 Вы внутри PVP-зоны. Огонь скоро добавим.'); return; }
   if (_zoneCur.special === 'firestation') { openFireStationModal(); return; }
   // old bank heist system removed — now handled via BANKS[]
@@ -24956,7 +24955,7 @@ function render() {
           else if (poi && poi.id === 'mansion')   drawMansionBuilding(r, c);
           else if (poi && poi.id === 'police')    drawPoliceBuilding(r, c);
           else if (poi && poi.id === 'firestation') drawFireBuilding(r, c);
-          else if (poi && poi.special === 'shop') drawBlackmarket(r, c);
+          else if (poi && poi.special === 'blackmarket') drawBlackmarket(r, c);
           else if (_bankTileSet.has(r + ',' + c)) { /* bank tile — drawn by drawBankBuilding */ }
           else                                    drawBuilding(r, c);
           if (poi) drawPOI(r, c, poi);
@@ -25153,7 +25152,7 @@ function render() {
     for (const poi of POI) {
       if (!poi.id) continue;
       const hasEntry = ['casino','market','port','hospital','firestation','police','lair','blackmarket'].includes(poi.id)
-                    || poi.special === 'shop' || poi.special === 'hospital' || poi.special === 'jail';
+                    || poi.special === 'blackmarket' || poi.special === 'hospital' || poi.special === 'jail';
       if (!hasEntry) continue;
       const pd = Math.hypot(player.r - (poi.r + 0.5), player.c - (poi.c + 0.5));
       if (pd > enterRadius + 3) continue;
@@ -27593,7 +27592,7 @@ function drawMinimap() {
     // Капturable POI — особое выделение (флаг и пульсация по статусу).
     const isCap = TERRITORY_BY_ID.has(poi.id);
     let ringCol, ringW = 1.5, ringR = 9, pulseR = 0;
-    if (poi.special === 'shop')     ringCol = 'rgba(200,112,255,.85)';
+    if (poi.special === 'blackmarket') ringCol = 'rgba(200,112,255,.85)';
     else if (poi.special === 'arena')    ringCol = 'rgba(255,80,80,.85)';
     else if (poi.special === 'hospital') ringCol = 'rgba(80,220,120,.90)';
     else if (poi.special === 'firestation') ringCol = 'rgba(255,120,40,.90)';
