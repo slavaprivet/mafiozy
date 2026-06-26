@@ -1766,16 +1766,18 @@ function _viewSize() {
     H: Math.round((vv && vv.height) || window.innerHeight),
   };
 }
+let _lastCanvasW = 0, _lastCanvasH = 0;
 function resizeCanvas() {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const { W, H } = _viewSize();
-  canvas.width  = Math.floor(W * dpr);
-  canvas.height = Math.floor(H * dpr);
+  const tw = Math.floor(W * dpr), th = Math.floor(H * dpr);
+  if (canvas.width === tw && canvas.height === th) return;
+  _lastCanvasW = tw; _lastCanvasH = th;
+  canvas.width  = tw;
+  canvas.height = th;
   canvas.style.width  = W + 'px';
   canvas.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // Равняем #stage (его clientWidth/Height читают w2s/s2w/миникарта) к той же
-  // видимой области — центр камеры строго совпадает с центром холста.
   const _stg = document.getElementById('stage');
   if (_stg) { _stg.style.width = W + 'px'; _stg.style.height = H + 'px'; }
 }
@@ -5969,6 +5971,36 @@ function updateNpcs(dt) {
   for (const n of NPCS) {
     if (n.dead) continue;
 
+    // ── Охранник бизнеса — бежит к игроку и бьёт дубинкой ────────────
+    if (n._hostile && now < n._hostileUntil && !myDead) {
+      const dx = player.c - n.c, dy = player.r - n.r;
+      const dist = Math.hypot(dy, dx);
+      if (dist > 20) { n._hostile = false; continue; }
+      n.ang = Math.atan2(dy, dx);
+      if (dist > 1.2) {
+        const spd = n.speed || 2.5;
+        n.r += (dy / dist) * spd * dt;
+        n.c += (dx / dist) * spd * dt;
+        n.walkPhase = (n.walkPhase || 0) + dt * 10;
+      }
+      if (dist < 1.5 && now > (n._attackCd || 0)) {
+        n._attackCd = now + 1200;
+        const dmg = n._meleeDmg || 8;
+        addShake(2);
+        flashHitOverlay();
+        _hurtLocal(dmg, 'Охранник');
+        spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4444', size: 16, life: 1000 });
+        try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
+          d: { dmg, sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } })); } catch(e) {}
+        if (Math.random() < 0.5) {
+          n.cryText = ['Стой!', 'На пол!', 'Не двигайся!'][Math.floor(Math.random()*3)];
+          n.cryUntil = now + 1200;
+        }
+      }
+      continue;
+    }
+    if (n._hostile && (now >= n._hostileUntil || myDead)) { n._hostile = false; }
+
     // ── Вооружённая контратака NPC (пистолет) ────────────────────────
     if (n._fighting) {
       const d = Math.hypot(player.r - n.r, player.c - n.c);
@@ -9369,6 +9401,9 @@ function handleEventPacket(d) {
     if (d.ok) {
       const m = +d.money | 0;
       const s = +d.stars | 0;
+      QP.cash = (parseInt(QP.cash) || 0) + m;
+      myWanted = Math.max(myWanted || 0, s);
+      if (d.biz_id) _robCooldowns[d.biz_id] = Date.now() + 3600000;
       showToast(`💰 Ограбление успешно: +$${m.toLocaleString('ru')} (${s}★)`,
                 '🔪', 3000);
       hapticHit();
@@ -9732,11 +9767,11 @@ function handleEventPacket(d) {
     const delayMin = Math.round(((d.income_delay_s|0) || 600) / 60);
     if (me) {
       showEventBanner(`${d.icon} ${d.name} — твой!`,
-        `Доход $${inc}/${delayMin}м начнёт капать через ${delayMin} мин в копилку банды.`,
+        `Доход $${inc}/${delayMin}м начнёт капать через ${delayMin} мин на твой счёт.`,
         5000, 'win');
     } else {
       showEventBanner(`${d.icon} @${d.by_name} контролирует ${d.name}`,
-        'Доход с района пойдёт в его банду.', 4000, 'neutral');
+        'Доход с района идёт ему на счёт.', 4000, 'neutral');
     }
   } else if (kind === 'aggro_spawned') {
     // Тихий пакет (только для логов / звуковой триггер при желании).
@@ -9874,7 +9909,8 @@ function handleEventPacket(d) {
   } else if (kind === 'territory_income') {
     // Микро-уведомление только владельцу — «капнуло в копилку».
     if (String(d.owner_uid) === String(QP.uid)) {
-      showToast(`💰 +$${d.amount} с района «${d.name}» → копилка банды`, 3000);
+      QP.cash = (parseInt(QP.cash) || 0) + (d.amount || 0);
+      showToast(`💰 +$${d.amount} с района «${d.name}»`, 3000);
     }
   } else if (kind === 'district_capture_started') {
     if (String(d.by_uid) === String(QP.uid)) {
@@ -10891,15 +10927,15 @@ function claimBrigadirReward() {
 // бежит в участок (snitch). Убьёшь кассира до окончания таймера — ★ всё
 // равно прилетит за сам факт ограбления (серверный witness), но без snitch.
 const ROB_PAYOUT_PREVIEW = {
-  coffee:     { money:  120, stars: 1 },
-  carwash:    { money:  170, stars: 1 },
-  barbershop: { money:  220, stars: 1 },
-  pizza:      { money:  320, stars: 1 },
-  garage:     { money:  470, stars: 2 },
-  bar:        { money:  720, stars: 2 },
-  club:       { money: 1100, stars: 2 },
-  warehouse:  { money: 1700, stars: 2 },
-  casino:     { money: 2800, stars: 3 },
+  coffee:     { money:   60, stars: 1 },
+  carwash:    { money:   85, stars: 1 },
+  barbershop: { money:  110, stars: 1 },
+  pizza:      { money:  160, stars: 1 },
+  garage:     { money:  235, stars: 2 },
+  bar:        { money:  360, stars: 2 },
+  club:       { money:  550, stars: 2 },
+  warehouse:  { money:  850, stars: 2 },
+  casino:     { money: 1400, stars: 3 },
 };
 const ROB_DURATION_MS = 8000;
 const _robBtn      = document.getElementById('robActionBtn');
@@ -10912,6 +10948,7 @@ let _robTargetBiz  = null;   // POI который грабим (объект и
 let _robTargetR    = 0;
 let _robTargetC    = 0;
 let _robCashierNpc = null;   // ссылка на NPC из NPCS — кассир (если жив бежит)
+const _robCooldowns = {};    // biz_id → timestamp окончания кулдауна
 
 function startRobbery(biz) {
   if (_robInProgress) return;
@@ -10999,6 +11036,32 @@ function finishRobbery() {
     }
   }
   _robCashierNpc = null;
+  // 20% шанс — выбегает охрана → ограбление ПРЕРВАНО (денег нет)
+  if (Math.random() < 0.20 && _robTargetBiz) {
+    showToast('🚨 Охрана помешала! Ограбление сорвано', '👮', 2500);
+    const guardLooks = [
+      { gender:0, skin:1, body:1, face:0, hair:1, hat:5 },
+      { gender:0, skin:2, body:2, face:3, hair:0, hat:5 },
+    ];
+    for (let gi = 0; gi < 2; gi++) {
+      const ga = Math.PI * 2 * (gi / 2 + 0.25);
+      const gr = _robTargetR + Math.sin(ga) * 1.2;
+      const gc = _robTargetC + Math.cos(ga) * 1.2;
+      const guard = {
+        r: gr, c: gc, tr: gr, tc: gc,
+        dead: false, panicUntil: 0, snitching: false, snitchUntil: 0,
+        cryUntil: performance.now() + 2000, cryText: 'Стой!',
+        speed: 2.5, hp: 80, hpMax: 80,
+        name: 'Охранник',
+        look: guardLooks[gi],
+        _guard: true, _hostile: true, _hostileUntil: performance.now() + 30000,
+        _attackCd: 0, _meleeDmg: 8,
+        walkPhase: 0, ang: Math.atan2(player.r - gr, player.c - gc),
+      };
+      if (typeof NPCS !== 'undefined') NPCS.push(guard);
+    }
+    return; // не шлём серверу — ограбление сорвано
+  }
   // Шлём серверу — он валидирует cooldown/дистанцию/owner и начислит cash + ★
   try {
     ws && ws.send(JSON.stringify({ t: 'shop_rob', d: {
@@ -11149,7 +11212,8 @@ function updateGtaInteractions() {
       // ВТОРАЯ кнопка — «Ограбить». Альтернатива покупке.
       // Сумма и ★ серверные, сервер сам отвергнет при cooldown.
       const rcfg = ROB_PAYOUT_PREVIEW[bizNear.id];
-      if (_robBtn && rcfg && !_robInProgress) {
+      const robOnCd = _robCooldowns[bizNear.id] && Date.now() < _robCooldowns[bizNear.id];
+      if (_robBtn && rcfg && !_robInProgress && !robOnCd) {
         _robTargetBiz = bizNear;
         _robBtn.textContent = `🔪 Ограбить ($${rcfg.money}, ${rcfg.stars}★)`;
         _robBtn.style.display = 'block';
@@ -11204,7 +11268,7 @@ function updateGtaInteractions() {
     }
   }
   // Вход в обычное здание (MAP[r][c]===1, не POI/банк/полиция и т.д.)
-  if (!_buildingInt && !_bankInt && !myDrivingCarId && !myDead) {
+  if (!_buildingInt && !_bankInt && !myDrivingCarId && !myDead && !inArena(player.r, player.c)) {
     const pr = Math.round(player.r), pc = Math.round(player.c);
     let nearBldR = null, nearBldC = null, nearBldD = 2.2;
     for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
@@ -11365,6 +11429,7 @@ function updateGtaInteractions() {
     const dr = qc.y - player.r, dc = qc.x - player.c;
     const d  = Math.hypot(dr, dc);
     if (d > GTA_INTERACT_R) continue;
+    if (qc.wrecked) continue;
     const isMine = String(qc.owner_uid) === String(QP.uid);
     if (isMine && !qc.driver_uid) {
       if (d < nearestD) { nearestD = d; nearestQc = qc; nearestKind = 'driver'; }
@@ -11395,8 +11460,8 @@ function updateGtaInteractions() {
     return;
   }
   // Гражданская тачка из трафика — можно угнать как в GTA. Игнорируем
-  // полицию (cop_cruiser/paddyvan/swat_truck) — её не угнать без последствий
-  // более тяжёлых чем wanted. И горящие/повреждённые тоже пропускаем.
+  // полицию, горящие/повреждённые. В тюрьме угон запрещён.
+  if (myJailIn > 0) { _gtaActionKind = null; _gtaBtn.style.display = 'none'; return; }
   let nearestCiv = null, nearestCivD = GTA_INTERACT_R;
   const nowAlarm = performance.now();
   for (const car of CARS) {
@@ -12631,6 +12696,7 @@ let _pendingHijackModel = null;
 function enterCar(carId, asKind) {
   const qc = questCars.get(carId);
   if (!qc) return;
+  if (qc.wrecked) { showToast('🔥 Машина уничтожена', '💥', 1500); return; }
   const isMine = (String(qc.owner_uid) === String(QP.uid));
   // Если я не владелец — пытаемся сесть пассажиром.
   if (!isMine) {
@@ -24378,6 +24444,18 @@ function reportCarCrash(qc, impact, kind) {
     _gtaLastWarnAt = now;
     showToast(hpR < 0.15 ? '🔥 Машина горит — выходи!' : '💨 Машина дымит', '🚗', 1800);
   }
+  // Клиентский взрыв — если HP упал до 0, а сервер ещё не прислал quest_car_destroyed
+  if (qc.hp <= 0 && !qc.wrecked) {
+    qc.wrecked = true; qc.state = 'wrecked';
+    spawnCarExplosion(qc.y || qc.ty, qc.x || qc.tx, qc);
+    if (myDrivingCarId === qc.id) {
+      myDrivingCarId = null; _exitRequested = false;
+      player.r = (qc.y || qc.ty) + (Math.random() - 0.5) * 0.8;
+      player.c = (qc.x || qc.tx) + (Math.random() - 0.5) * 0.8;
+      myHp = Math.max(1, myHp - 15);
+      showToast('💥 Машина взорвалась!', '🔥', 2500);
+    }
+  }
 }
 
 // Взрыв машины — мощный «мясной» эффект: 36 искр + чёрный круг копоти
@@ -25222,7 +25300,7 @@ function render() {
     const _cc = (cam.y / (TS * ISO_Y) + cam.x / TS);
     if (isFinite(_cr) && isFinite(_cc)) { _cullR = _cr; _cullC = _cc; }
   }
-  const VIS_R = 18;
+  const VIS_R = 22;
   const r0 = Math.max(0, Math.floor(_cullR - VIS_R));
   const r1 = Math.min(MAP_ROWS, Math.ceil(_cullR + VIS_R));
   const c0 = Math.max(0, Math.floor(_cullC - VIS_R));
@@ -32905,7 +32983,9 @@ function frame() {
   // ошибку и продолжает loop — игрок видит, что мир «дёрнулся» (один
   // потерянный кадр), но игра не умирает.
   try {
-    if (t < hitStopUntil) {
+    if (_battleOpen) {
+      // Битва в iframe — пропускаем тяжёлый рендер/update мира
+    } else if (t < hitStopUntil) {
       render();
     } else {
       update(dt);

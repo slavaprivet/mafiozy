@@ -2560,6 +2560,8 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
             pass
     params["uid"] = char.get("telegram_id") or ""
     params["lvl"] = int(char.get("level") or 1)
+    if COOP_API_BASE:
+        params["api"] = COOP_API_BASE
     return ISO_WEBAPP_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
 
 
