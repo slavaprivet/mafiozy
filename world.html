@@ -11473,7 +11473,7 @@ _gtaBtn.addEventListener('click', () => {
       _bldgLootCD[key] = now + BLDG_LOOT_LOCAL_CD;
       _bldgLootGlobalCD = now + BLDG_LOOT_GLOBAL_CD;
       QP.cash = (parseInt(QP.cash) || 0) + lt.amount;
-      showToast(`+${lt.amount}$`, '💰', 1500);
+      _showLootBanner(lt.amount);
       if (QP.api && QP.uid) {
         fetch(`${QP.api}/world/loot/${encodeURIComponent(QP.uid)}`, {
           method: 'POST', headers: {'Content-Type':'application/json'},
@@ -29511,6 +29511,30 @@ const BLDG_LOOT_LOCAL_CD  = 600000; // 10 минут кулдаун на кон�
 const BLDG_LOOT_GLOBAL_CD = 180000; // 3 минуты глобальный кулдаун
 const BLDG_LOOT_MIN = 15, BLDG_LOOT_MAX = 80; // диапазон денег
 
+function _showLootBanner(amount) {
+  const el = document.createElement('div');
+  el.style.cssText = `
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.3);
+    z-index:9999; pointer-events:none;
+    background:linear-gradient(145deg,rgba(40,30,10,.95),rgba(20,15,5,.98));
+    border:2px solid #c0a030; border-radius:16px;
+    padding:20px 36px; text-align:center;
+    box-shadow:0 0 40px rgba(255,200,50,.4), 0 0 80px rgba(255,170,30,.15), inset 0 0 20px rgba(255,200,50,.08);
+    opacity:0; transition:transform .35s cubic-bezier(.17,.67,.29,1.3), opacity .25s;
+    font-family:inherit;
+  `;
+  el.innerHTML = `
+    <div style="font-size:36px;margin-bottom:6px;filter:drop-shadow(0 0 8px rgba(255,200,50,.6))">💼</div>
+    <div style="font-size:11px;color:#a08850;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Находка!</div>
+    <div style="font-size:28px;font-weight:900;color:#ffd76b;text-shadow:0 0 12px rgba(255,200,50,.5)">+${amount}$</div>
+    <div style="font-size:11px;color:#7a6a40;margin-top:6px">Кейс с наличкой</div>
+  `;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translate(-50%,-50%) scale(1)'; });
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translate(-50%,-70%) scale(0.8)'; }, 1800);
+  setTimeout(() => el.remove(), 2200);
+}
+
 function enterBuildingInterior(r, c, type) {
   if (_buildingInt || _bankInt || myDead || myDrivingCarId) return;
   const isBM = type === 'blackmarket';
@@ -29821,28 +29845,74 @@ function drawBuildingInterior() {
     }});
   }
 
-  // ── Кейс с лутом ───────────────────────────────────────────
+  // ── Кейс с лутом — изометрический чемоданчик ────────────────
   if (bi.loot && !bi.loot.picked) {
     const lt = bi.loot;
     items.push({ d: lt.r + lt.c + .3, fn: () => {
       const lp = w2s(lt.r + .5, lt.c + .5);
-      const bob = Math.sin(now * 0.003) * 3;
-      const bx = lp.x, by = lp.y - isoH(.3) + bob;
-      ctx.fillStyle = '#2a5030'; ctx.strokeStyle = '#4a8050'; ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(bx - 10, by + 4); ctx.lineTo(bx + 10, by + 4);
-      ctx.lineTo(bx + 8, by - 6); ctx.lineTo(bx - 8, by - 6);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#c0a030'; ctx.fillRect(bx - 3, by - 7, 6, 3);
-      ctx.fillStyle = '#ffd76b';
-      ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
-      ctx.fillText('💰', bx, by - 10);
-      ctx.shadowBlur = 0;
-      const glow = ctx.createRadialGradient(bx, by, 2, bx, by, hx * 1.5);
-      glow.addColorStop(0, 'rgba(255,215,100,.12)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+      const bob = Math.sin(now * 0.003) * 2.5;
+      const pulse = 0.7 + 0.3 * Math.sin(now * 0.004);
+      const bx = lp.x, by = lp.y - isoH(.25) + bob;
+      const cw = 14, ch = 9, cd = 6;
+      // Тень на полу
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.ellipse(lp.x, lp.y + 2, 16, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      // Свечение вокруг кейса
+      const glow = ctx.createRadialGradient(bx, by, 3, bx, by, hx * 2.5);
+      glow.addColorStop(0, `rgba(255,200,50,${.15 * pulse})`);
+      glow.addColorStop(0.5, `rgba(255,170,30,${.06 * pulse})`);
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = glow;
-      ctx.beginPath(); ctx.ellipse(bx, by, hx * 1.5, hy * 1.2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(bx, by, hx * 2.5, hy * 2, 0, 0, Math.PI * 2); ctx.fill();
+      // Корпус кейса — верхняя грань (изо-ромб)
+      ctx.fillStyle = '#5a4520'; ctx.strokeStyle = '#8a7040'; ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(bx, by - ch); ctx.lineTo(bx + cw, by - ch / 2);
+      ctx.lineTo(bx, by); ctx.lineTo(bx - cw, by - ch / 2);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Правая грань
+      ctx.fillStyle = '#3a2e15';
+      ctx.beginPath();
+      ctx.moveTo(bx + cw, by - ch / 2); ctx.lineTo(bx, by);
+      ctx.lineTo(bx, by + cd); ctx.lineTo(bx + cw, by - ch / 2 + cd);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Левая грань
+      ctx.fillStyle = '#4a3a1a';
+      ctx.beginPath();
+      ctx.moveTo(bx - cw, by - ch / 2); ctx.lineTo(bx, by);
+      ctx.lineTo(bx, by + cd); ctx.lineTo(bx - cw, by - ch / 2 + cd);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Замок — золотая застёжка
+      ctx.fillStyle = '#ffd76b';
+      ctx.beginPath(); ctx.arc(bx, by - ch / 2, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#c0a030';
+      ctx.beginPath(); ctx.arc(bx, by - ch / 2, 1.2, 0, Math.PI * 2); ctx.fill();
+      // Ручка сверху
+      ctx.strokeStyle = '#8a7040'; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(bx - 5, by - ch - 1); ctx.quadraticCurveTo(bx, by - ch - 6, bx + 5, by - ch - 1);
+      ctx.stroke();
+      // Лучи от кейса (анимированные)
+      ctx.save();
+      ctx.globalAlpha = 0.15 * pulse;
+      ctx.strokeStyle = '#ffd76b'; ctx.lineWidth = 1;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + now * 0.001;
+        const rx = Math.cos(a) * 22, ry = Math.sin(a) * 12;
+        ctx.beginPath(); ctx.moveTo(bx + rx * 0.4, by - ch / 2 + ry * 0.4);
+        ctx.lineTo(bx + rx, by - ch / 2 + ry); ctx.stroke();
+      }
+      ctx.restore();
+      // Знак $ над кейсом
+      ctx.save();
+      ctx.font = 'bold 12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = `rgba(255,215,107,${pulse})`;
+      ctx.shadowColor = '#ffa000'; ctx.shadowBlur = 8;
+      ctx.fillText('$', bx, by - ch - 6);
+      ctx.restore();
     }});
   }
 
