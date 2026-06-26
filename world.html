@@ -10139,7 +10139,7 @@ function wsConnect() {
         // дёргает player назад, update() возвращает вперёд → камера трясётся
         // каждый снап. Поэтому при вождении позиционную коррекцию пропускаем.
         const _driving = !!myDrivingCarId && !myIsPassenger;
-        if (!_bankInt && !_driving) {
+        if (!_bankInt && !_buildingInt && !_driving) {
         const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
         if (_firstSnap || dist > 15.0) {
           player.r = d.me.y; player.c = d.me.x;
@@ -10157,7 +10157,7 @@ function wsConnect() {
           player.r += (d.me.y - player.r) * k;
           player.c += (d.me.x - player.c) * k;
         }
-        } // end if (!_bankInt && !_driving)
+        } // end if (!_bankInt && !_buildingInt && !_driving)
         // PVP: HP, dead-state, счёт
         // Если игрока недавно ранил ЛОКАЛЬНЫЙ NPC (охрана банка/копы, о ком
         // сервер не знает), снапшот НЕ поднимает HP обратно — иначе урон
