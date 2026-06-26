@@ -29068,15 +29068,19 @@ function drawBuildingInterior() {
 
   const items = [];
 
-  // ── Ковёр в центре ──────────────────────────────────────────
+  // ── Ковёр в центре (изо-ромб) ──────────────────────────────
   items.push({ d: H / 2 + W / 2, fn: () => {
     const p = w2s(H / 2, W / 2);
+    const cw = hx * 2.5, ch = hy * 2.5;
+    const carpCols = ['rgba(120,30,40,.22)', 'rgba(40,60,120,.22)', 'rgba(40,100,60,.22)'];
     ctx.save();
-    const carpCols = ['rgba(120,30,40,.3)', 'rgba(40,60,120,.3)', 'rgba(40,100,60,.3)'];
     ctx.fillStyle = carpCols[Math.floor(seed * 3)];
-    ctx.beginPath(); ctx.ellipse(p.x, p.y, hx * 2.8, hy * 2.8, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(200,170,90,.3)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.ellipse(p.x, p.y, hx * 2.2, hy * 2.2, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - ch); ctx.lineTo(p.x + cw, p.y);
+    ctx.lineTo(p.x, p.y + ch); ctx.lineTo(p.x - cw, p.y); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(200,170,90,.25)'; ctx.lineWidth = .8;
+    const cw2 = cw * .8, ch2 = ch * .8;
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - ch2); ctx.lineTo(p.x + cw2, p.y);
+    ctx.lineTo(p.x, p.y + ch2); ctx.lineTo(p.x - cw2, p.y); ctx.closePath(); ctx.stroke();
     ctx.restore();
   }});
 
@@ -29090,7 +29094,6 @@ function drawBuildingInterior() {
     ctx.fillStyle = '#604858';
     ctx.beginPath(); ctx.moveTo(p.x - hx * 1.4, p.y - sH); ctx.lineTo(p.x, p.y + hy * .8 - sH);
     ctx.lineTo(p.x, p.y + hy * .8); ctx.lineTo(p.x - hx * 1.4, p.y); ctx.closePath(); ctx.fill();
-    // Подушки
     ctx.fillStyle = '#d4b040';
     ctx.beginPath(); ctx.ellipse(p.x - hx * .4, p.y - sH - 2, 5, 3.5, -.2, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#c06040';
@@ -29100,15 +29103,12 @@ function drawBuildingInterior() {
   // ── Стол + стулья (центр-правая) ────────────────────────────
   items.push({ d: 5 + W - 4, fn: () => {
     const p = w2s(5, W - 4), tH = isoH(.45);
-    // Стол
     ctx.fillStyle = '#5a4020'; ctx.strokeStyle = '#3a2810'; ctx.lineWidth = .7;
     ctx.beginPath(); ctx.moveTo(p.x, p.y - hy - tH); ctx.lineTo(p.x + hx, p.y - tH);
     ctx.lineTo(p.x, p.y + hy - tH); ctx.lineTo(p.x - hx, p.y - tH); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Ножки
     ctx.strokeStyle = '#3a2810'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(p.x - hx * .8, p.y - tH + 2); ctx.lineTo(p.x - hx * .8, p.y + 2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(p.x + hx * .8, p.y - tH + 2); ctx.lineTo(p.x + hx * .8, p.y + 2); ctx.stroke();
-    // Стулья
     for (const off of [{ dr: -1.2, dc: 0 }, { dr: 1.2, dc: 0 }]) {
       const cp = w2s(5 + off.dr, W - 4 + off.dc);
       ctx.fillStyle = '#2a3048'; ctx.strokeStyle = '#3a4060'; ctx.lineWidth = .5;
@@ -29130,23 +29130,34 @@ function drawBuildingInterior() {
     ctx.fillStyle = '#4a3a28';
     ctx.beginPath(); ctx.moveTo(p.x, p.y + hy * .5 - fH); ctx.lineTo(p.x + fSz, p.y - fH);
     ctx.lineTo(p.x, p.y - hy * .5 - fH); ctx.lineTo(p.x - fSz, p.y - fH); ctx.closePath(); ctx.fill();
-    // Ручки
     ctx.fillStyle = '#c0a830';
     for (let di = 0; di < 3; di++) {
       ctx.beginPath(); ctx.arc(p.x + fSz * .5, p.y - fH * (di + 1) / 4, 1.8, 0, Math.PI * 2); ctx.fill();
     }
   }});
 
-  // ── Телевизор на стене (северная) ───────────────────────────
+  // ── Телевизор на северной стене (изометрический) ─────────────
   items.push({ d: 0.05, fn: () => {
-    const p = w2s(0, W / 2), tvW = 28, tvH = 18, tvY = p.y - isoH(1.8);
+    const p = w2s(0, W / 2);
+    const tvBaseY = p.y - isoH(1.8);
+    const tvHW = hx * .6, tvHH = isoH(.4);
     const scrA = 0.55 + 0.2 * Math.sin(now * 0.0025);
-    ctx.fillStyle = '#181818'; ctx.fillRect(p.x - tvW / 2 - 2, tvY - tvH / 2 - 2, tvW + 4, tvH + 4);
-    ctx.fillStyle = `rgba(40,90,180,${scrA})`; ctx.fillRect(p.x - tvW / 2, tvY - tvH / 2, tvW, tvH);
-    ctx.strokeStyle = '#3a6ab0'; ctx.lineWidth = .6; ctx.strokeRect(p.x - tvW / 2, tvY - tvH / 2, tvW, tvH);
-    ctx.fillStyle = `rgba(120,200,255,${scrA * .8})`;
-    for (let li = 0; li < 3; li++) ctx.fillRect(p.x - tvW / 2 + 2, tvY - tvH / 2 + 2 + li * 5, tvW - 4, 1.6);
-    ctx.fillStyle = '#202020'; ctx.fillRect(p.x - 1.5, tvY + tvH / 2 + 2, 3, 4);
+    const nA = w2s(0, W / 2 - 1), nB = w2s(0, W / 2 + 1);
+    const dx = (nB.x - nA.x) * .5, dy = (nB.y - nA.y) * .5;
+    ctx.fillStyle = '#181818';
+    ctx.beginPath();
+    ctx.moveTo(p.x - dx * .55 - 1, tvBaseY - tvHH - 1); ctx.lineTo(p.x + dx * .55 + 1, tvBaseY - tvHH + dy * .55 - 1);
+    ctx.lineTo(p.x + dx * .55 + 1, tvBaseY + tvHH + dy * .55 + 1); ctx.lineTo(p.x - dx * .55 - 1, tvBaseY + tvHH + 1);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = `rgba(40,90,180,${scrA})`;
+    ctx.beginPath();
+    ctx.moveTo(p.x - dx * .5, tvBaseY - tvHH); ctx.lineTo(p.x + dx * .5, tvBaseY - tvHH + dy * .5);
+    ctx.lineTo(p.x + dx * .5, tvBaseY + tvHH + dy * .5); ctx.lineTo(p.x - dx * .5, tvBaseY + tvHH);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#3a6ab0'; ctx.lineWidth = .6;
+    ctx.stroke();
+    ctx.strokeStyle = '#202020'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(p.x, tvBaseY + tvHH + 2); ctx.lineTo(p.x, tvBaseY + tvHH + 6); ctx.stroke();
   }});
 
   // ── Торшер (северо-запад) ───────────────────────────────────
@@ -29163,34 +29174,57 @@ function drawBuildingInterior() {
     ctx.fillStyle = glow; ctx.beginPath(); ctx.ellipse(p.x, p.y - lH, hx * 2, hy * 2, 0, 0, Math.PI * 2); ctx.fill();
   }});
 
-  // ── Полки на стене (восточная) ──────────────────────────────
+  // ── Полки на восточной стене (изометрические) ───────────────
   items.push({ d: 4 + W, fn: () => {
-    const p = w2s(4, W);
+    const pW = w2s(4, W), pW2 = w2s(5, W);
+    const edx = (pW2.x - pW.x), edy = (pW2.y - pW.y);
     for (let si = 0; si < 2; si++) {
-      const sy = p.y - isoH(1.0 + si * .7);
-      ctx.fillStyle = '#4a3a20'; ctx.fillRect(p.x - 16, sy, 30, 3);
-      // Книги на полке
-      const bCols = ['#c04040', '#3060c0', '#d0a020', '#40a060', '#8040a0'];
-      for (let bi2 = 0; bi2 < 4; bi2++) {
+      const sy = pW.y - isoH(1.0 + si * .7);
+      const shW = .7;
+      ctx.fillStyle = '#4a3a20'; ctx.strokeStyle = '#3a2810'; ctx.lineWidth = .5;
+      ctx.beginPath();
+      ctx.moveTo(pW.x, sy);
+      ctx.lineTo(pW.x + edx * shW, sy + edy * shW);
+      ctx.lineTo(pW.x + edx * shW, sy + edy * shW - 3);
+      ctx.lineTo(pW.x, sy - 3);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      const bCols = ['#c04040', '#3060c0', '#d0a020', '#40a060'];
+      for (let bi2 = 0; bi2 < 3; bi2++) {
+        const t2 = (bi2 + .2) / 3 * shW, t3 = (bi2 + .8) / 3 * shW;
         ctx.fillStyle = bCols[(bi2 + si * 2) % bCols.length];
-        ctx.fillRect(p.x - 14 + bi2 * 7, sy - 9, 5, 9);
+        ctx.beginPath();
+        ctx.moveTo(pW.x + edx * t2, sy + edy * t2 - 3);
+        ctx.lineTo(pW.x + edx * t3, sy + edy * t3 - 3);
+        ctx.lineTo(pW.x + edx * t3, sy + edy * t3 - 10);
+        ctx.lineTo(pW.x + edx * t2, sy + edy * t2 - 10);
+        ctx.closePath(); ctx.fill();
       }
     }
   }});
 
-  // ── Окна (две штуки на северной стене) ──────────────────────
+  // ── Окна на северной стене (изометрические) ─────────────────
   for (const wc of [W * .25, W * .75]) {
     items.push({ d: 0.02 + wc * .01, fn: ((wc2) => () => {
-      const p = w2s(0, wc2), winW = 18, winH = 22, wy2 = p.y - isoH(1.5);
-      ctx.fillStyle = '#6090c0'; ctx.fillRect(p.x - winW / 2, wy2 - winH / 2, winW, winH);
-      ctx.strokeStyle = '#e0d8c0'; ctx.lineWidth = 1.5; ctx.strokeRect(p.x - winW / 2, wy2 - winH / 2, winW, winH);
+      const p = w2s(0, wc2);
+      const nL = w2s(0, wc2 - .8), nR = w2s(0, wc2 + .8);
+      const wdx = nR.x - nL.x, wdy = nR.y - nL.y;
+      const wy = p.y - isoH(1.5), winH2 = isoH(.5);
+      ctx.fillStyle = '#6090c0';
+      ctx.beginPath();
+      ctx.moveTo(p.x - wdx * .5, wy - winH2 + wdy * -.5);
+      ctx.lineTo(p.x + wdx * .5, wy - winH2 + wdy * .5);
+      ctx.lineTo(p.x + wdx * .5, wy + winH2 + wdy * .5);
+      ctx.lineTo(p.x - wdx * .5, wy + winH2 + wdy * -.5);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#e0d8c0'; ctx.lineWidth = 1.5; ctx.stroke();
       ctx.strokeStyle = '#e0d8c0'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(p.x, wy2 - winH / 2); ctx.lineTo(p.x, wy2 + winH / 2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(p.x - winW / 2, wy2); ctx.lineTo(p.x + winW / 2, wy2); ctx.stroke();
-      // Свет из окна
-      const wg = ctx.createRadialGradient(p.x, wy2, 3, p.x, wy2, hx * 1.5);
-      wg.addColorStop(0, 'rgba(140,180,220,.15)'); wg.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = wg; ctx.beginPath(); ctx.ellipse(p.x, wy2, hx * 1.5, hy * 1.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(p.x, wy - winH2); ctx.lineTo(p.x, wy + winH2); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(p.x - wdx * .5, wy + wdy * -.5);
+      ctx.lineTo(p.x + wdx * .5, wy + wdy * .5); ctx.stroke();
+      const wg = ctx.createRadialGradient(p.x, wy, 3, p.x, wy, hx * 1.5);
+      wg.addColorStop(0, 'rgba(140,180,220,.12)'); wg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = wg; ctx.beginPath(); ctx.ellipse(p.x, wy, hx * 1.5, hy * 1.2, 0, 0, Math.PI * 2); ctx.fill();
     })(wc)});
   }
 
