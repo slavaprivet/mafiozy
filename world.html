@@ -11151,6 +11151,18 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
+  // Кейс с лутом внутри здания — подбор
+  if (_buildingInt && _buildingInt.loot && !_buildingInt.loot.picked) {
+    const lt = _buildingInt.loot;
+    const dd = Math.hypot(player.r - lt.r, player.c - lt.c);
+    if (dd < 2.0) {
+      _gtaActionKind = 'bldg_loot';
+      _gtaActionCarId = null;
+      _gtaBtn.textContent = `💰 Забрать кейс (+${lt.amount}$)`;
+      _gtaBtn.style.display = 'block';
+      return;
+    }
+  }
   // Внутри чёрного рынка — кнопка «Товар» рядом с продавцом
   if (_buildingInt && _buildingInt.type === 'blackmarket') {
     const sellerR = 3, sellerC = _buildingInt.W / 2;
@@ -11452,6 +11464,25 @@ _gtaBtn.addEventListener('click', () => {
     const parts = _gtaActionCarId.split(',');
     const br = +parts[0], bc = +parts[1], btype = parts[2] || null;
     enterBuildingInterior(br, bc, btype);
+  } else if (_gtaActionKind === 'bldg_loot') {
+    if (_buildingInt && _buildingInt.loot && !_buildingInt.loot.picked) {
+      const lt = _buildingInt.loot;
+      lt.picked = true;
+      const key = _buildingInt.r + ',' + _buildingInt.c;
+      const now = Date.now();
+      _bldgLootCD[key] = now + BLDG_LOOT_LOCAL_CD;
+      _bldgLootGlobalCD = now + BLDG_LOOT_GLOBAL_CD;
+      QP.cash = (parseInt(QP.cash) || 0) + lt.amount;
+      showToast(`+${lt.amount}$`, '💰', 1500);
+      if (QP.api && QP.uid) {
+        fetch(`${QP.api}/world/loot/${encodeURIComponent(QP.uid)}`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ amount: lt.amount })
+        }).then(r => r.json()).then(j => {
+          if (j.ok && j.cash !== undefined) QP.cash = j.cash;
+        }).catch(() => {});
+      }
+    }
   }
 });
 
@@ -29472,6 +29503,14 @@ function _drawBlackmarketInterior(bi) {
 // ══════════════════════════════════════════════════════════════════
 // ── GENERIC BUILDING INTERIOR (обычные здания MAP[r][c]===1) ─────
 // ══════════════════════════════════════════════════════════════════
+// ── Кейсы в зданиях — случайный лут ──────────────────────────────
+const _bldgLootCD = {};        // "r,c" → timestamp когда снова может появиться кейс
+let _bldgLootGlobalCD = 0;     // глобальный таймстамп следующего возможного кейса
+const BLDG_LOOT_CHANCE  = 0.05;   // 5% шанс кейса
+const BLDG_LOOT_LOCAL_CD  = 600000; // 10 минут кулдаун на конкретный дом
+const BLDG_LOOT_GLOBAL_CD = 180000; // 3 минуты глобальный кулдаун
+const BLDG_LOOT_MIN = 15, BLDG_LOOT_MAX = 80; // диапазон денег
+
 function enterBuildingInterior(r, c, type) {
   if (_buildingInt || _bankInt || myDead || myDrivingCarId) return;
   const isBM = type === 'blackmarket';
@@ -29479,8 +29518,20 @@ function enterBuildingInterior(r, c, type) {
   const seed = ((r * 73 + c * 131) % 97) / 97;
   _buildingInt = { r, c, W: biW, H: biH, seed,
     savedR: player.r, savedC: player.c,
-    type: type || null };
+    type: type || null, loot: null };
   _buildingHideTimer = 0;
+  // Кейс с лутом — только в обычных зданиях
+  if (!isBM) {
+    const key = r + ',' + c, now = Date.now();
+    const localOk = !_bldgLootCD[key] || now >= _bldgLootCD[key];
+    const globalOk = now >= _bldgLootGlobalCD;
+    if (localOk && globalOk && Math.random() < BLDG_LOOT_CHANCE) {
+      const amount = BLDG_LOOT_MIN + Math.floor(Math.random() * (BLDG_LOOT_MAX - BLDG_LOOT_MIN + 1));
+      const lr = 2 + Math.random() * (biH - 5);
+      const lc = 2 + Math.random() * (biW - 4);
+      _buildingInt.loot = { r: lr, c: lc, amount, picked: false };
+    }
+  }
   player.r = biH - 1.5; player.c = biW / 2;
   cam.x = (player.c - player.r) * TS * 0.5;
   cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
@@ -29767,6 +29818,31 @@ function drawBuildingInterior() {
       ctx.fillStyle = '#ffd76b'; ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
       ctx.fillText(`🏠 Скрываешься: ${Math.ceil(left)}с`, SW / 2, 50);
       ctx.shadowBlur = 0; ctx.restore();
+    }});
+  }
+
+  // ── Кейс с лутом ───────────────────────────────────────────
+  if (bi.loot && !bi.loot.picked) {
+    const lt = bi.loot;
+    items.push({ d: lt.r + lt.c + .3, fn: () => {
+      const lp = w2s(lt.r + .5, lt.c + .5);
+      const bob = Math.sin(now * 0.003) * 3;
+      const bx = lp.x, by = lp.y - isoH(.3) + bob;
+      ctx.fillStyle = '#2a5030'; ctx.strokeStyle = '#4a8050'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(bx - 10, by + 4); ctx.lineTo(bx + 10, by + 4);
+      ctx.lineTo(bx + 8, by - 6); ctx.lineTo(bx - 8, by - 6);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#c0a030'; ctx.fillRect(bx - 3, by - 7, 6, 3);
+      ctx.fillStyle = '#ffd76b';
+      ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+      ctx.fillText('💰', bx, by - 10);
+      ctx.shadowBlur = 0;
+      const glow = ctx.createRadialGradient(bx, by, 2, bx, by, hx * 1.5);
+      glow.addColorStop(0, 'rgba(255,215,100,.12)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.ellipse(bx, by, hx * 1.5, hy * 1.2, 0, 0, Math.PI * 2); ctx.fill();
     }});
   }
 
