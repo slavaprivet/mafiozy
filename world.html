@@ -9947,6 +9947,10 @@ function handleEventPacket(d) {
     if (String(d.owner_uid) === String(QP.uid)) {
       showToast(`💰 +$${d.amount} с района «${d.name}»`, 3000);
     }
+  } else if (kind === 'graffiti_new') {
+    _graffiti.push({ r: d.r, c: d.c, tag: d.tag, shape: d.shape,
+      col: d.col, col2: d.col2, name: d.name, t: Date.now() });
+    if (_graffiti.length > 20) _graffiti.shift();
   } else if (kind === 'open_fire') {
     // Игрок открыл огонь в городе вне PvP-зоны. Баннер всем (кроме стрелка)
     // с указанием тяжести: обычно / расстрел гражданских / штурм участка.
@@ -10461,6 +10465,9 @@ function wsConnect() {
         // — interpWorldNpcs плавно подтянет, чтобы боты не «лагали»
         // (телепортировались 15 раз/сек между снапами).
         applyAggroTargets(d.aggro || {});
+      }
+      if (d.graffiti !== undefined) {
+        _loadGraffitiFromSnap(d.graffiti);
       }
       if (d.gang_nests !== undefined) {
         // Активные бандитские гнёзда — массив [{id, r, c, state,
@@ -29769,10 +29776,20 @@ function sprayGraffiti(r, c) {
   const colors = ['#ff2020','#20ff40','#2080ff','#ffee20','#ff20ff','#20ffee','#ff6020','#ff2080','#a040ff'];
   const col = colors[Math.floor(Math.random() * colors.length)];
   const col2 = colors[Math.floor(Math.random() * colors.length)];
-  _graffiti.push({ r, c, tag, shape, col, col2, name: QP.name, t: Date.now() });
-  if (_graffiti.length > 30) _graffiti.shift();
+  try { ws && ws.send(JSON.stringify({ t: 'graffiti_spray', d: { r, c, tag, shape, col, col2 } })); } catch(e) {}
   myWanted = Math.max((myWanted || 0), 1);
   showToast(`🎨 Тег на стене!`, '🖌️', 1500);
+}
+function _loadGraffitiFromSnap(arr) {
+  _graffiti.length = 0;
+  if (!Array.isArray(arr)) return;
+  const now = Date.now() / 1000;
+  for (const g of arr) {
+    const age = now - (g.t || 0);
+    if (age > GRAFFITI_LIFE_MS / 1000) continue;
+    _graffiti.push({ r: g.r, c: g.c, tag: g.tag, shape: g.shape,
+      col: g.col, col2: g.col2, name: g.name, t: Date.now() - age * 1000 });
+  }
 }
 function _drawGraffitiShape(x, y, shape, sz, col) {
   ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
