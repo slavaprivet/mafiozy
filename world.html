@@ -12844,7 +12844,7 @@ const _battleLoad   = document.getElementById('battleLoading');
 const _battleClose  = document.getElementById('battleClose');
 let _battleOpen = false;
 
-async function openDistrictBattle(locId) {
+async function openDistrictBattle(locId, bossId) {
   // Без свежего api боёвку не запустить — пробуем подтянуть из coop_api.json.
   if (!QP.api) await _fetchApiFallback();
   if (!QP.api) {
@@ -12865,7 +12865,7 @@ async function openDistrictBattle(locId) {
     const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     if (ctl) setTimeout(() => ctl.abort(), 8000);
     const r = await fetch(
-      `${QP.api}/world/battle_url/${encodeURIComponent(QP.uid)}?loc=${encodeURIComponent(locId)}`,
+      `${QP.api}/world/battle_url/${encodeURIComponent(QP.uid)}?loc=${encodeURIComponent(locId)}${bossId ? '&boss=' + encodeURIComponent(bossId) : ''}`,
       { cache: 'no-store', signal: ctl ? ctl.signal : undefined }
     );
     const j = await r.json().catch(() => ({}));
@@ -12906,9 +12906,23 @@ window.addEventListener('message', (ev) => {
   const d = ev && ev.data;
   if (!d || typeof d !== 'object') return;
   if (d.type !== 'battle_done') return;
-  // Параметры из боя (out.toString()) — там обновлённые cash/hp/kills/gren/mol.
-  // Пока в city не реинтегрируем их (нет state-машины), просто закрываем
-  // оверлей. Свежие значения подтянутся при следующем заходе через hub.
+  // Обновляем состояние из результата боя
+  if (d.cash > 0) QP.cash = d.cash;
+  if (d.hp > 0) myHp = Math.min(d.hp, PVP.max_hp);
+  if (d.lvl > 0) QP.lvl = d.lvl;
+  // Обновляем HUD
+  try {
+    const lv = document.getElementById('hudLvl');
+    if (lv) lv.textContent = String(QP.lvl || 1);
+    if (_hpBarFill) _hpBarFill.style.width = (myHp / PVP.max_hp * 100) + '%';
+    if (_hpVal) _hpVal.textContent = myHp;
+  } catch(e) {}
+  // Баннер результата
+  if (d.result === 'won' && d.cashGain > 0) {
+    showToast(`⚔️ Победа! +${d.cashGain}$ +${d.expGain || 0} опыта`, '🏆', 3000);
+  } else if (d.result === 'lost') {
+    showToast('💀 Поражение…', '☠️', 2000);
+  }
   closeBattleOverlay();
 });
 
@@ -13315,7 +13329,7 @@ _arenaList.addEventListener('click', (e) => {
   const bossCard = e.target.closest('.boss-card');
   if (bossCard) {
     closeArenaModal();
-    openDistrictBattle(bossCard.dataset.loc);
+    openDistrictBattle(bossCard.dataset.loc, bossCard.dataset.boss);
     return;
   }
   const item = e.target.closest('.arena-item');
