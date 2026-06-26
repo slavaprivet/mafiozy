@@ -11160,6 +11160,22 @@ function updateGtaInteractions() {
       return;
     }
   }
+  // Мешок в лобби банка — кнопка «Поднять»
+  if (_bankInt && _bankInt.room === 'lobby' && !_bankInt.myBag && _bankInt._lobbyBags && _bankInt._lobbyBags.length) {
+    let nlb = null, nlbD = 2.0;
+    for (const lb of _bankInt._lobbyBags) {
+      if (lb.taken) continue;
+      const d = Math.hypot(player.r - lb.r, player.c - lb.c);
+      if (d < nlbD) { nlbD = d; nlb = lb; }
+    }
+    if (nlb) {
+      _gtaActionKind = 'lobby_bag_pickup';
+      _gtaActionCarId = nlb.id;
+      _gtaBtn.textContent = '💼 Поднять мешок';
+      _gtaBtn.style.display = 'block';
+      return;
+    }
+  }
   // Брошенный мешок на земле — кнопка «Поднять» когда рядом и руки пусты.
   if ((!_bankRob || !_bankRob.myBag) && _vaultDroppedBags.length) {
     let nb = null, nbD = 2.0;
@@ -11349,6 +11365,11 @@ _gtaBtn.addEventListener('click', () => {
     exitBus();
   } else if (_gtaActionKind === 'bag_drop') {
     dropVaultBag();
+  } else if (_gtaActionKind === 'lobby_bag_pickup') {
+    if (_bankInt && _bankInt._lobbyBags) {
+      const lb = _bankInt._lobbyBags.find(b => b.id === _gtaActionCarId && !b.taken);
+      if (lb) { lb.taken = true; _bankInt.myBag = { id: lb.id, value: _bankInt.bank.reward_per_bag || 500 }; showToast('💼 Мешок подобран', '💰', 1200); }
+    }
   } else if (_gtaActionKind === 'bag_pickup') {
     pickupDroppedBag(_gtaActionCarId);
   } else if (_gtaActionKind === 'bag_load') {
@@ -11388,10 +11409,10 @@ if (_dropBagBtn) {
         _bankInt.myBag = null; _myBagWeight = 0;
         showToast('💼 Мешок брошен на пол', '⚠️', 1400);
       } else {
-        _bankRob = _bankRob || { bank: _bankInt.bank, bagsLoaded: 0, bagsMax: _bankInt.bank.bags, phase: 'carrying', myBag: null, startedAt: performance.now()/1000 };
-        _bankRob.myBag = { value: _bankInt.myBag.value || _bankInt.bank.reward_per_bag, id: _bankInt.myBag.id };
-        _bankInt.myBag = null;
-        dropVaultBag();
+        if (!_bankInt._lobbyBags) _bankInt._lobbyBags = [];
+        _bankInt._lobbyBags.push({ id: _bankInt.myBag.id || ('ldrop_' + Date.now()), r: player.r + 0.5, c: player.c + 0.3, taken: false });
+        _bankInt.myBag = null; _myBagWeight = 0;
+        showToast('💼 Мешок брошен на пол', '⚠️', 1400);
       }
       if (typeof updateZoneBtn === 'function') updateZoneBtn();
     } else if (_bankRob && _bankRob.myBag) {
@@ -29683,7 +29704,7 @@ function _updateBankInterior(dt) {
     int.panicAt=null;
   }
   // ── Комната охраны: спавн 3 охранников каждые 30 сек, макс 9 ────────
-  if (!int._secSpawnAt) int._secSpawnAt = now + 30000;
+  if (!int._secSpawnAt) int._secSpawnAt = isRobbery ? now + 5000 : now + 30000;
   if (now >= int._secSpawnAt) {
     const liveGuards = int.npcs.filter(n => n.type === 'guard' && !n.dead && n.state !== 'fled');
     if (liveGuards.length < 9) {
@@ -30934,19 +30955,27 @@ function drawBankInteriorScene() {
   // ── ОХРАННЫЙ ПОСТ у входа ─────────────────────────────────────────
   {const spR=H-3,spC=Math.floor(W*0.38);
   items.push({d:spR+spC*0.01+0.1,fn:()=>{
-    const sp=w2s(spR,spC),gw=hx*1.4,gh=isoH(0.85),now2g=performance.now();
+    const sp=w2s(spR+0.5,spC+0.5),gh=isoH(1.0),now2g=performance.now();
+    const sz=hx*0.7;
     ctx.fillStyle='#1a2838';ctx.strokeStyle='#263848';ctx.lineWidth=0.8;
-    ctx.beginPath();ctx.moveTo(sp.x-gw,sp.y);ctx.lineTo(sp.x,sp.y+hy);ctx.lineTo(sp.x,sp.y+hy-gh);ctx.lineTo(sp.x-gw,sp.y-gh);ctx.closePath();ctx.fill();ctx.stroke();
-    ctx.fillStyle='#223040';ctx.beginPath();ctx.moveTo(sp.x-gw,sp.y-gh);ctx.lineTo(sp.x,sp.y+hy-gh);ctx.lineTo(sp.x+gw*0.25,sp.y-gh);ctx.lineTo(sp.x-gw*0.75,sp.y-gh-hy*0.45);ctx.closePath();ctx.fill();ctx.stroke();
-    ctx.fillStyle='#0a1830';ctx.strokeStyle='#1a3050';ctx.lineWidth=0.6;
-    ctx.fillRect(sp.x-gw*0.7,sp.y-gh*1.4,gw*0.45,gh*0.38);ctx.strokeRect(sp.x-gw*0.7,sp.y-gh*1.4,gw*0.45,gh*0.38);
+    ctx.beginPath();ctx.moveTo(sp.x-sz,sp.y-hy*0.5);ctx.lineTo(sp.x,sp.y+hy*0.5);
+    ctx.lineTo(sp.x,sp.y+hy*0.5-gh);ctx.lineTo(sp.x-sz,sp.y-hy*0.5-gh);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle='#223040';
+    ctx.beginPath();ctx.moveTo(sp.x,sp.y+hy*0.5);ctx.lineTo(sp.x+sz,sp.y-hy*0.5);
+    ctx.lineTo(sp.x+sz,sp.y-hy*0.5-gh);ctx.lineTo(sp.x,sp.y+hy*0.5-gh);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle='#2a3848';
+    ctx.beginPath();ctx.moveTo(sp.x-sz,sp.y-hy*0.5-gh);ctx.lineTo(sp.x,sp.y+hy*0.5-gh);
+    ctx.lineTo(sp.x+sz,sp.y-hy*0.5-gh);ctx.lineTo(sp.x,sp.y-hy*1.5-gh);ctx.closePath();ctx.fill();
     const gA=0.6+0.3*Math.sin(now2g*0.002);
-    ctx.fillStyle=`rgba(20,100,30,${gA})`;ctx.fillRect(sp.x-gw*0.67,sp.y-gh*1.37,gw*0.39,gh*0.32);
-    ctx.strokeStyle=`rgba(40,180,40,${gA*0.5})`;ctx.lineWidth=0.4;
-    ctx.beginPath();ctx.moveTo(sp.x-gw*0.48,sp.y-gh*1.37);ctx.lineTo(sp.x-gw*0.48,sp.y-gh*1.05);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(sp.x-gw*0.67,sp.y-gh*1.22);ctx.lineTo(sp.x-gw*0.28,sp.y-gh*1.22);ctx.stroke();
+    const mY=sp.y-gh*0.6;
+    ctx.fillStyle=`rgba(10,20,40,0.9)`;
+    ctx.beginPath();ctx.moveTo(sp.x-sz*0.6,mY);ctx.lineTo(sp.x-sz*0.1,mY+hy*0.25);
+    ctx.lineTo(sp.x-sz*0.1,mY+hy*0.25-gh*0.3);ctx.lineTo(sp.x-sz*0.6,mY-gh*0.3);ctx.closePath();ctx.fill();
+    ctx.fillStyle=`rgba(20,100,30,${gA})`;
+    ctx.beginPath();ctx.moveTo(sp.x-sz*0.55,mY+1);ctx.lineTo(sp.x-sz*0.15,mY+hy*0.2+1);
+    ctx.lineTo(sp.x-sz*0.15,mY+hy*0.2-gh*0.25);ctx.lineTo(sp.x-sz*0.55,mY-gh*0.25+1);ctx.closePath();ctx.fill();
     ctx.fillStyle='rgba(160,200,180,0.9)';ctx.font='bold 7px sans-serif';ctx.textAlign='center';
-    ctx.fillText('🔒 ОХРАНА',sp.x-gw*0.48,sp.y-gh*1.52);ctx.textAlign='left';
+    ctx.fillText('🔒 ОХРАНА',sp.x,sp.y-gh-6);ctx.textAlign='left';
   }});}
 
   // ── ЛОГОТИП БАНКА НА ПОЛУ ЛОББИ ──────────────────────────────────
@@ -31204,6 +31233,15 @@ function drawBankInteriorScene() {
     if (npc.state==='fled') continue;
     const dBonus = (npc.atDesk||npc.type==='admin'||npc.type==='teller') ? 0.3 : 0;
     items.push({d:npc.r+npc.c+dBonus,fn:((_n)=>()=>_drawBankInteriorNpc(_n))(npc)});
+  }
+
+  // Мешки, брошенные в лобби
+  for (const lb of (int._lobbyBags || [])) {
+    if (lb.taken) continue;
+    const lbp = w2s(lb.r + 0.5, lb.c + 0.5);
+    items.push({d: lb.r + lb.c * 0.01, fn: ((_p, _b) => () => {
+      _drawMoneyBag(_p.x, _p.y - isoH(0.6) * 0.15, 1.15, { lying: true, glow: true, seed: _b.id || 0 });
+    })(lbp, lb)});
   }
 
   // Игрок
