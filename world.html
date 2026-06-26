@@ -1527,27 +1527,23 @@ body.in-pvp #robActionBtn { top: 152px; }
     <iframe id="battleFrame" src="about:blank" allow="autoplay; fullscreen"></iframe>
   </div>
 
-  <!-- Чёрный рынок (модал-диалог продавца, скрыт по умолчанию) -->
+  <!-- Чёрный рынок — встроенный магазин -->
   <div id="shopOverlay">
-    <div id="shopModal">
+    <div id="shopModal" style="max-height:80vh;overflow-y:auto">
       <div id="shopHeader">
         <div class="icon">🌌</div>
         <div>
           <div class="title">Барыга Витёк</div>
-          <div class="sub">Шепчет себе под нос</div>
+          <div class="sub" id="shopCash">Загрузка...</div>
         </div>
         <button class="close" id="shopClose">✕</button>
       </div>
-      <div style="background:rgba(0,0,0,.35);border:1px solid #3a2540;border-radius:10px;padding:14px;margin-bottom:14px;font-size:14px;color:#e0d0e8;line-height:1.5;font-style:italic">
-        — О, свой человек… Заглянешь на рынок? Цены лучше, чем в городе,
-        товар без штампов. Только тссс — копам ни слова.
+      <div id="shopTabs" style="display:flex;gap:6px;margin-bottom:10px">
+        <button class="shop-tab active" data-tab="weapons" style="flex:1;padding:8px;border-radius:8px;border:1px solid #5a2058;background:#3a1838;color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit">Оружие</button>
+        <button class="shop-tab" data-tab="armor" style="flex:1;padding:8px;border-radius:8px;border:1px solid #3a2540;background:rgba(0,0,0,.3);color:#aaa;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit">Броня</button>
+        <button class="shop-tab" data-tab="consumables" style="flex:1;padding:8px;border-radius:8px;border:1px solid #3a2540;background:rgba(0,0,0,.3);color:#aaa;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit">Расход</button>
       </div>
-      <button id="shopGoBtn" style="width:100%;background:linear-gradient(135deg,#5a2058,#8a3088);border:1px solid #aa50aa;border-radius:10px;color:#fff;padding:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.3px">
-        🌌 Заглянуть на рынок
-      </button>
-      <div style="font-size:11px;color:#7a6090;text-align:center;padding-top:10px">
-        Магазин откроется в меню. Покупка через единый кошелёк — что купишь тут, появится и в инвентаре.
-      </div>
+      <div id="shopList"></div>
     </div>
   </div>
 
@@ -12994,14 +12990,98 @@ function _updateHitFlash() {
   _hitFlashEl.classList.toggle('show', on);
 }
 
-// ── Чёрный рынок (диалог продавца → редирект в hub-магазин) ─────
-// UI самого магазина живёт в hub (единый source of truth для инвентаря).
-// Здесь только диалог продавца с одной кнопкой «Заглянуть на рынок».
+// ── Чёрный рынок — встроенный магазин ───────────────────────────
 const _shopOverlay = document.getElementById('shopOverlay');
-function openShop()  { _shopOverlay.classList.add('open'); }
+const _shopList = document.getElementById('shopList');
+const _shopCash = document.getElementById('shopCash');
+let _shopTab = 'weapons';
+const _SHOP_ITEMS = [
+  { id:'zatochka',    pic:'🔪', name:'Заточка',       type:'weapon', atk:6,  price:60 },
+  { id:'nagan',       pic:'🔫', name:'Наган',         type:'weapon', atk:8,  price:250 },
+  { id:'sawn_off',    pic:'💥', name:'Обрез',         type:'weapon', atk:12, price:600 },
+  { id:'uzi',         pic:'🔫', name:'Узи',           type:'weapon', atk:16, price:1500 },
+  { id:'revolver',    pic:'🔫', name:'Револьвер',     type:'weapon', atk:20, price:5000 },
+  { id:'machete',     pic:'🗡️', name:'Мачете',        type:'weapon', atk:28, price:8000 },
+  { id:'katana',      pic:'⚔️', name:'Катана',        type:'weapon', atk:38, price:12000 },
+  { id:'spiked_bat',  pic:'🏏', name:'Бита с гвоздями',type:'weapon',atk:48, price:18000 },
+  { id:'deagle',      pic:'🦅', name:'Дезерт Игл',    type:'weapon', atk:58, price:25000 },
+  { id:'sniper',      pic:'🎯', name:'Снайперка',     type:'weapon', atk:68, price:32000 },
+  { id:'m16',         pic:'💥', name:'М-16',          type:'weapon', atk:80, price:42000 },
+  { id:'rpg',         pic:'🚀', name:'Базука',        type:'weapon', atk:95, price:50000 },
+  { id:'leather_jacket',pic:'🧥',name:'Кожанка',      type:'armor', def:12, price:180 },
+  { id:'bulletproof', pic:'🦺', name:'Бронежилет',    type:'armor', def:28, price:450 },
+  { id:'kevlar_vest', pic:'🛡️', name:'Кевларовый жилет',type:'armor',def:38,price:1200 },
+  { id:'tactical_vest',pic:'🥋',name:'Тактический жилет',type:'armor',def:50,price:2500 },
+  { id:'army_armor',  pic:'🪖', name:'Армейская броня',type:'armor', def:62, price:5000 },
+  { id:'swat_suit',   pic:'👮', name:'Костюм спецназа',type:'armor', def:78, price:9000 },
+  { id:'composite_armor',pic:'🦾',name:'Композитный доспех',type:'armor',def:95,price:16000 },
+  { id:'exo_armor',   pic:'⚙️', name:'Экзо-броня',    type:'armor', def:120,price:28000 },
+  { id:'grenade',     pic:'💣', name:'Граната',       type:'consumable', desc:'Урон 80-130', price:50 },
+  { id:'molotov',     pic:'🔥', name:'Коктейль Молотова',type:'consumable',desc:'Урон 50-80 + горит',price:130 },
+  { id:'medkit_small',pic:'🩹', name:'Малая аптечка', type:'consumable', desc:'+55 HP', price:25 },
+  { id:'medkit_medium',pic:'🏥',name:'Аптечка',       type:'consumable', desc:'+130 HP', price:60 },
+  { id:'medkit_large',pic:'💉', name:'Большая аптечка',type:'consumable',desc:'+280 HP',price:120 },
+  { id:'energy_drink',pic:'⚡', name:'Энергетик',     type:'consumable', desc:'+55 энергии', price:45 },
+];
+function _renderShopItems() {
+  const tabMap = { weapons:'weapon', armor:'armor', consumables:'consumable' };
+  const filter = tabMap[_shopTab] || 'weapon';
+  const items = _SHOP_ITEMS.filter(i => i.type === filter);
+  const myCash = parseInt(QP.cash) || 0;
+  _shopCash.textContent = `💰 ${myCash} $`;
+  _shopList.innerHTML = items.map(it => {
+    const stat = it.atk ? `+${it.atk} атк` : it.def ? `+${it.def} защ` : it.desc;
+    const canBuy = myCash >= it.price;
+    return `<div class="shop-item">
+      <div class="pic">${it.pic}</div>
+      <div class="info"><div class="name">${it.name}</div><div class="desc">${stat} — ${it.price}$</div></div>
+      <button class="buy" data-id="${it.id}" ${canBuy ? '' : 'disabled style="opacity:.4;cursor:default"'}>${canBuy ? 'Купить' : 'Нет $'}</button>
+    </div>`;
+  }).join('');
+}
+async function _buyShopItem(itemId) {
+  if (!QP.api || !QP.uid) { showToast('Нет связи с сервером', '❌', 1500); return; }
+  try {
+    const r = await fetch(`${QP.api}/shop/${QP.uid}/buy`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ item_id: itemId, qty: 1 })
+    });
+    const j = await r.json();
+    if (j.ok) {
+      if (j.cash !== undefined) QP.cash = j.cash;
+      showToast('Куплено!', '✅', 1200);
+      _renderShopItems();
+      loadMyWeapons();
+    } else {
+      showToast(j.error === 'no cash' ? 'Не хватает денег!' : 'Ошибка: ' + j.error, '❌', 1500);
+    }
+  } catch(e) { showToast('Ошибка сети', '❌', 1500); }
+}
+function openShop() {
+  _shopOverlay.classList.add('open');
+  _renderShopItems();
+}
 function closeShop() { _shopOverlay.classList.remove('open'); }
 document.getElementById('shopClose').addEventListener('click', closeShop);
 _shopOverlay.addEventListener('click', (e) => { if (e.target === _shopOverlay) closeShop(); });
+document.getElementById('shopTabs').addEventListener('click', (e) => {
+  const tab = e.target.closest('[data-tab]');
+  if (!tab) return;
+  _shopTab = tab.dataset.tab;
+  document.querySelectorAll('.shop-tab').forEach(t => {
+    const active = t.dataset.tab === _shopTab;
+    t.classList.toggle('active', active);
+    t.style.background = active ? '#3a1838' : 'rgba(0,0,0,.3)';
+    t.style.borderColor = active ? '#5a2058' : '#3a2540';
+    t.style.color = active ? '#fff' : '#aaa';
+  });
+  _renderShopItems();
+});
+_shopList.addEventListener('click', (e) => {
+  const btn = e.target.closest('.buy');
+  if (!btn || btn.disabled) return;
+  _buyShopItem(btn.dataset.id);
+});
 // ── PVP UI: кнопка «Огонь», HP-бар, экран смерти ────────────────
 const _fireBtn   = document.getElementById('fireBtn');
 const _hudPlayer = document.getElementById('hudPlayer');
@@ -14210,28 +14290,7 @@ setInterval(loadMyWeapons, 60000);
 // Первый рендер — даже без сети чтобы был дефолтный пистолет
 renderWeaponHud();
 
-document.getElementById('shopGoBtn').addEventListener('click', () => {
-  let target = '';
-  try { target = decodeURIComponent(QP.hubUrl || ''); } catch(e) { target = QP.hubUrl || ''; }
-  if (!target) target = 'hub.html';
-  let url;
-  try {
-    const u = new URL(target, location.href);
-    u.searchParams.set('view', 'shop');
-    u.searchParams.set('back', 'world');
-    u.searchParams.set('v',    Date.now());
-    url = u.toString();
-  } catch(e) {
-    const sep = target.includes('?') ? '&' : '?';
-    url = `${target}${sep}view=shop&back=world&v=${Date.now()}`;
-  }
-  closeShop();
-  if (tg && tg.openLink) {
-    tg.openLink(url);
-  } else {
-    window.open(url, '_blank');
-  }
-});
+// shopGoBtn удалён — магазин теперь встроен прямо в world.html
 
 function sendInput() {
   if (!ws || ws.readyState !== 1) return;
@@ -29103,23 +29162,48 @@ function _drawBlackmarketInterior(bi) {
     })(c, isExit) });
   }
 
-  // ── Арсенал на ЛЕВОЙ стене (полки с оружием) ──
-  const shelfRows = [
-    { r: 0.5, icons: ['🔫','🔫','🔪'] },
-    { r: 2.5, icons: ['💣','🧨','💊'] },
-    { r: 4.5, icons: ['🔫','🗡️','📦'] },
-    { r: 6,   icons: ['🔪','💣','🔫'] },
+  // ── Арсенал на ЛЕВОЙ стене (полки с нарисованным оружием) ──
+  const _drawGun = (x, y, sz) => {
+    ctx.fillStyle = '#555'; ctx.strokeStyle = '#333'; ctx.lineWidth = .5;
+    ctx.beginPath(); ctx.moveTo(x - sz, y); ctx.lineTo(x + sz, y - 1);
+    ctx.lineTo(x + sz + 2, y); ctx.lineTo(x + sz, y + 1); ctx.lineTo(x + 1, y + 1);
+    ctx.lineTo(x + 1, y + sz * .6); ctx.lineTo(x - 1, y + sz * .6);
+    ctx.lineTo(x - 1, y + 1); ctx.lineTo(x - sz, y + 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+  const _drawKnife = (x, y, sz) => {
+    ctx.fillStyle = '#888'; ctx.strokeStyle = '#555'; ctx.lineWidth = .4;
+    ctx.beginPath(); ctx.moveTo(x - sz, y); ctx.lineTo(x + sz * .3, y - 1);
+    ctx.lineTo(x + sz * .3, y + 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#5a3a20';
+    ctx.fillRect(x + sz * .3, y - 1.5, sz * .5, 3);
+  };
+  const _drawGrenade = (x, y, sz) => {
+    ctx.fillStyle = '#3a4a30'; ctx.strokeStyle = '#2a3a20'; ctx.lineWidth = .5;
+    ctx.beginPath(); ctx.arc(x, y, sz * .5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#6a5a30'; ctx.fillRect(x - 1, y - sz * .5 - 3, 2, 3);
+  };
+  const _drawRifle = (x, y, sz) => {
+    ctx.fillStyle = '#4a4a4a'; ctx.strokeStyle = '#333'; ctx.lineWidth = .5;
+    ctx.beginPath(); ctx.moveTo(x - sz * 1.2, y); ctx.lineTo(x + sz * 1.2, y - 1);
+    ctx.lineTo(x + sz * 1.2, y + 1); ctx.lineTo(x - sz * 1.2, y + 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#5a3a20';
+    ctx.fillRect(x + sz * .5, y, sz * .4, sz * .5);
+    ctx.fillStyle = '#666'; ctx.fillRect(x - sz * .2, y + 1, 2, sz * .3);
+  };
+  const shelfWeapons = [
+    { r: 0.5, draws: [_drawGun, _drawGun, _drawKnife] },
+    { r: 2.5, draws: [_drawGrenade, _drawGrenade, _drawKnife] },
+    { r: 4.5, draws: [_drawRifle, _drawGun, _drawGrenade] },
+    { r: 6,   draws: [_drawKnife, _drawRifle, _drawGun] },
   ];
-  for (const wr of shelfRows) {
-    items.push({ d: wr.r + .02, fn: ((r2, wIcons) => () => {
+  for (const wr of shelfWeapons) {
+    items.push({ d: wr.r + .02, fn: ((r2, draws) => () => {
       const pT = w2s(r2, 0), pB = w2s(r2 + 1.5, 0);
       const dx = pB.x - pT.x, dy = pB.y - pT.y;
       const shH = isoH(1.3);
-      // Задник
       ctx.fillStyle = '#1a1210'; ctx.strokeStyle = '#2a1e14'; ctx.lineWidth = .5;
       ctx.beginPath(); ctx.moveTo(pT.x, pT.y); ctx.lineTo(pB.x, pB.y);
       ctx.lineTo(pB.x, pB.y - shH); ctx.lineTo(pT.x, pT.y - shH); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // Две полки
       for (const frac of [0.35, 0.7]) {
         const sy = -shH * frac;
         ctx.fillStyle = '#2a1e14'; ctx.strokeStyle = '#1a0e08'; ctx.lineWidth = .4;
@@ -29128,43 +29212,37 @@ function _drawBlackmarketInterior(bi) {
         ctx.lineTo(pB.x + 4, pB.y + sy - 2); ctx.lineTo(pT.x + 4, pT.y + sy - 2);
         ctx.closePath(); ctx.fill(); ctx.stroke();
       }
-      // Оружие
-      ctx.font = '11px "Segoe UI Emoji",system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      for (let wi = 0; wi < wIcons.length; wi++) {
-        const t = (wi + 0.5) / wIcons.length;
-        const wx = pT.x + dx * t;
+      for (let wi = 0; wi < draws.length; wi++) {
+        const t = (wi + 0.5) / draws.length;
+        const wx = pT.x + dx * t + 3;
         const wy = pT.y + dy * t - shH * (wi < 2 ? 0.72 : 0.37);
-        ctx.fillText(wIcons[wi], wx + 3, wy);
+        draws[wi](wx, wy, 6);
       }
-    })(wr.r, wr.icons)});
+    })(wr.r, wr.draws)});
   }
 
   // ── Витрина на ПРАВОЙ стене (оружие под стеклом) ──
-  const vitrinaRows = [
-    { r: 1, icons: ['🔫','🔫'] },
-    { r: 3.5, icons: ['💣','🧨'] },
-    { r: 5.5, icons: ['🗡️','🔪'] },
+  const vitrinaWeapons = [
+    { r: 1, draws: [_drawGun, _drawRifle] },
+    { r: 3.5, draws: [_drawGrenade, _drawKnife] },
+    { r: 5.5, draws: [_drawRifle, _drawGun] },
   ];
-  for (const vr of vitrinaRows) {
-    items.push({ d: vr.r + W + .01, fn: ((r2, icons) => () => {
+  for (const vr of vitrinaWeapons) {
+    items.push({ d: vr.r + W + .01, fn: ((r2, draws) => () => {
       const pT = w2s(r2, W), pB = w2s(r2 + 1.5, W);
       const dx = pB.x - pT.x, dy = pB.y - pT.y;
       const vH = isoH(1.0);
-      // Рамка витрины
       ctx.fillStyle = 'rgba(20,15,30,.8)'; ctx.strokeStyle = '#3a3050'; ctx.lineWidth = .6;
       ctx.beginPath(); ctx.moveTo(pT.x, pT.y); ctx.lineTo(pB.x, pB.y);
       ctx.lineTo(pB.x, pB.y - vH); ctx.lineTo(pT.x, pT.y - vH); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // Стекло (блик)
       ctx.fillStyle = 'rgba(100,140,200,.06)';
       ctx.beginPath(); ctx.moveTo(pT.x, pT.y - vH * .1); ctx.lineTo(pB.x, pB.y - vH * .1);
       ctx.lineTo(pB.x, pB.y - vH * .9); ctx.lineTo(pT.x, pT.y - vH * .9); ctx.closePath(); ctx.fill();
-      // Оружие
-      ctx.font = '12px "Segoe UI Emoji",system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      for (let i = 0; i < icons.length; i++) {
-        const t = (i + 0.5) / icons.length;
-        ctx.fillText(icons[i], pT.x + dx * t, pT.y + dy * t - vH * .5);
+      for (let i = 0; i < draws.length; i++) {
+        const t = (i + 0.5) / draws.length;
+        draws[i](pT.x + dx * t, pT.y + dy * t - vH * .5, 7);
       }
-    })(vr.r, vr.icons)});
+    })(vr.r, vr.draws)});
   }
 
   // ── Ящики с оружием на полу ──
@@ -29184,9 +29262,10 @@ function _drawBlackmarketInterior(bi) {
       ctx.fillStyle = '#3e3020';
       ctx.beginPath(); ctx.moveTo(p.x - hx * .35, p.y - bH); ctx.lineTo(p.x, p.y + hy * .35 - bH);
       ctx.lineTo(p.x + hx * .35, p.y - bH); ctx.lineTo(p.x, p.y - hy * .35 - bH); ctx.closePath(); ctx.fill();
-      // Маркировка
-      ctx.font = '7px monospace'; ctx.fillStyle = '#5a4a30'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('AK', p.x, p.y - bH * .5);
+      // Маркировка (полоски на ящике)
+      ctx.strokeStyle = '#5a4a30'; ctx.lineWidth = .5;
+      ctx.beginPath(); ctx.moveTo(p.x - hx * .2, p.y - bH * .3); ctx.lineTo(p.x + hx * .2, p.y - bH * .3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p.x - hx * .15, p.y - bH * .5); ctx.lineTo(p.x + hx * .15, p.y - bH * .5); ctx.stroke();
     })(cp.r, cp.c)});
   }
 
@@ -29208,15 +29287,14 @@ function _drawBlackmarketInterior(bi) {
     })(c)});
   }
 
-  // Товары на прилавке
-  const goods = ['🔫','💣','🔪','💊','📦','🧨'];
-  for (let gi = 0; gi < goods.length; gi++) {
-    const gc = cntCL + 0.3 + gi * ((cntCR - cntCL - 0.6) / goods.length);
-    items.push({ d: cntR + gc * .01 - .01, fn: ((g, c2) => () => {
+  // Товары на прилавке (нарисованные)
+  const counterDraws = [_drawGun, _drawGrenade, _drawKnife, _drawRifle, _drawGun, _drawGrenade];
+  for (let gi = 0; gi < counterDraws.length; gi++) {
+    const gc = cntCL + 0.3 + gi * ((cntCR - cntCL - 0.6) / counterDraws.length);
+    items.push({ d: cntR + gc * .01 - .01, fn: ((drawFn, c2) => () => {
       const p = w2s(cntR + .25, c2);
-      ctx.font = '13px "Segoe UI Emoji",system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(g, p.x, p.y - isoH(0.65));
-    })(goods[gi], gc)});
+      drawFn(p.x, p.y - isoH(0.65), 5);
+    })(counterDraws[gi], gc)});
   }
 
   // ── Лампа над прилавком (подвесная) ──
