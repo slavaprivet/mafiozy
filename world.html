@@ -14211,20 +14211,25 @@ setInterval(loadMyWeapons, 60000);
 renderWeaponHud();
 
 document.getElementById('shopGoBtn').addEventListener('click', () => {
-  // Редирект в hub.html?view=shop&back=world. Hub откроет страницу
-  // магазина, наверху появится кнопка «← В город» (возврат сюда).
   let target = '';
   try { target = decodeURIComponent(QP.hubUrl || ''); } catch(e) { target = QP.hubUrl || ''; }
   if (!target) target = 'hub.html';
+  let url;
   try {
     const u = new URL(target, location.href);
     u.searchParams.set('view', 'shop');
     u.searchParams.set('back', 'world');
     u.searchParams.set('v',    Date.now());
-    window.location.href = u.toString();
+    url = u.toString();
   } catch(e) {
     const sep = target.includes('?') ? '&' : '?';
-    window.location.href = `${target}${sep}view=shop&back=world&v=${Date.now()}`;
+    url = `${target}${sep}view=shop&back=world&v=${Date.now()}`;
+  }
+  closeShop();
+  if (tg && tg.openLink) {
+    tg.openLink(url);
+  } else {
+    window.open(url, '_blank');
   }
 });
 
@@ -29024,17 +29029,31 @@ Object.assign(_BANK_NPC_LOOKS, {
 // ══════════════════════════════════════════════════════════════════
 // ── ЧЁРНЫЙ РЫНОК — специальный интерьер ──────────────────────────
 // ══════════════════════════════════════════════════════════════════
+const _bmPhrases = [
+  'Тссс… Копам ни слова.',
+  'Свежий товар, братан.',
+  'Скидка для своих!',
+  'Автоматы? Есть.',
+  'Гранаты по акции.',
+  'Бронежилет нужен?',
+  'Тихо, тихо…',
+  'Всё без номеров.',
+  'Патроны — даром.',
+  'Не спрашивай откуда.',
+];
+let _bmChatIdx = 0, _bmChatNext = 0;
+
 function _drawBlackmarketInterior(bi) {
   const W = bi.W, H = bi.H;
   const {clientWidth: SW, clientHeight: SH} = document.getElementById('stage');
   const hx = TS * .5, hy = TS * .5 * ISO_Y, wallH = isoH(2.8);
   const now = performance.now();
-  ctx.fillStyle = '#08040c'; ctx.fillRect(0, 0, SW, SH);
+  ctx.fillStyle = '#06030a'; ctx.fillRect(0, 0, SW, SH);
 
   // Пол — тёмные доски
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
-    const tone = (r * 3 + c) % 4;
-    const fill = ['#1a120e','#16100c','#1e140f','#120c08'][tone];
+    const tone = (r * 3 + c * 7) % 5;
+    const fill = ['#1a120e','#16100c','#1e140f','#120c08','#140e0a'][tone];
     const p = w2s(r + .5, c + .5);
     ctx.beginPath(); ctx.moveTo(p.x, p.y - hy); ctx.lineTo(p.x + hx, p.y);
     ctx.lineTo(p.x, p.y + hy); ctx.lineTo(p.x - hx, p.y); ctx.closePath();
@@ -29042,107 +29061,26 @@ function _drawBlackmarketInterior(bi) {
     ctx.strokeStyle = '#0a0608'; ctx.lineWidth = .3; ctx.stroke();
   }
 
-  // Тусклое освещение
-  { ctx.save();
-    const flick = 0.7 + 0.3 * Math.sin(now * 0.0015);
-    const lp = w2s(3, W / 2);
-    const g = ctx.createRadialGradient(lp.x, lp.y, 2, lp.x, lp.y, hx * 3);
-    g.addColorStop(0, `rgba(200,140,60,${.10 * flick})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+  // Освещение — несколько точечных источников
+  const flick = 0.65 + 0.35 * Math.sin(now * 0.0012);
+  const flick2 = 0.7 + 0.3 * Math.sin(now * 0.0018 + 1.5);
+  const lights = [
+    { r: 2.5, c: W / 2, rad: hx * 5, col: [220,160,60], a: .14 * flick },
+    { r: 1, c: 2, rad: hx * 2.5, col: [255,80,40], a: .08 * flick2 },
+    { r: 5, c: W - 2, rad: hx * 2.5, col: [160,100,255], a: .07 * flick },
+    { r: H - 1, c: W / 2, rad: hx * 3, col: [40,255,80], a: .04 },
+  ];
+  for (const lt of lights) {
+    const lp = w2s(lt.r, lt.c);
+    const g = ctx.createRadialGradient(lp.x, lp.y, 1, lp.x, lp.y, lt.rad);
+    g.addColorStop(0, `rgba(${lt.col},${lt.a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g;
-    ctx.beginPath(); ctx.ellipse(lp.x, lp.y, hx * 3, hy * 3, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
+    ctx.beginPath(); ctx.ellipse(lp.x, lp.y, lt.rad, lt.rad * .55, 0, 0, Math.PI * 2); ctx.fill();
   }
 
   const items = [];
 
-  // Стойка-прилавок (r=3, во всю ширину центра)
-  const cntR = 3, cntCL = Math.floor(W * .25), cntCR = Math.floor(W * .75);
-  for (let c = cntCL; c < cntCR; c++) {
-    items.push({ d: cntR + c * .01, fn: ((c2) => () => {
-      const a = w2s(cntR, c2), b = w2s(cntR, c2 + 1);
-      const dH = isoH(0.55);
-      ctx.fillStyle = '#2a1a10'; ctx.strokeStyle = '#3a2a18'; ctx.lineWidth = .6;
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-      ctx.lineTo(b.x, b.y - dH); ctx.lineTo(a.x, a.y - dH); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#3a2818';
-      ctx.beginPath(); ctx.moveTo(a.x, a.y - dH); ctx.lineTo(b.x, b.y - dH);
-      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      ctx.lineTo(mx, my - dH - hy * .3); ctx.lineTo(a.x - (b.x - a.x) * .0, a.y - dH - hy * .3 + (a.y - b.y)); ctx.closePath(); ctx.fill();
-    })(c)});
-  }
-
-  // Товары на прилавке
-  const goods = ['🔫','💣','🔪','💊','📦'];
-  for (let gi = 0; gi < goods.length; gi++) {
-    const gc = cntCL + 0.5 + gi * ((cntCR - cntCL) / goods.length);
-    items.push({ d: cntR + gc * .01 - .01, fn: ((g, c2) => () => {
-      const p = w2s(cntR + .3, c2);
-      ctx.font = '12px "Segoe UI Emoji",system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(g, p.x, p.y - isoH(0.65));
-    })(goods[gi], gc)});
-  }
-
-  // Продавец (NPC за прилавком)
-  const sellerR = 2.5, sellerC = W / 2;
-  items.push({ d: sellerR + sellerC * .01, fn: () => {
-    const p = w2s(sellerR + .5, sellerC + .5);
-    const sellerLook = { gender: 0, skin: 3, body: 4, face: 3, hair: 2, hat: 3 };
-    drawPerson(p.x, p.y, Math.PI * .5, sellerLook, 0, 'Витёк', null, false, 100, 100, false, null, false, false);
-  }});
-
-  // Арсенал на левой стене — полки с оружием
-  const weaponRows = [
-    { r: 1, icons: ['🔫','🔫','🔪'] },
-    { r: 3, icons: ['💣','🧨','💊'] },
-    { r: 5, icons: ['🔫','🗡️','📦'] },
-  ];
-  for (const wr of weaponRows) {
-    const sc = 0;
-    items.push({ d: wr.r + .01, fn: ((r2, wIcons) => () => {
-      const pT = w2s(r2, sc), pB = w2s(r2 + 1.5, sc);
-      const dx = pB.x - pT.x, dy = pB.y - pT.y;
-      // Задняя стенка стеллажа
-      const shH = isoH(1.2);
-      ctx.fillStyle = '#1a1210'; ctx.strokeStyle = '#2a1e14'; ctx.lineWidth = .6;
-      ctx.beginPath(); ctx.moveTo(pT.x, pT.y); ctx.lineTo(pB.x, pB.y);
-      ctx.lineTo(pB.x, pB.y - shH); ctx.lineTo(pT.x, pT.y - shH); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // Две полки (горизонтальные планки)
-      for (const frac of [0.35, 0.7]) {
-        const sy = -shH * frac;
-        ctx.fillStyle = '#2a1e14'; ctx.strokeStyle = '#1a0e08'; ctx.lineWidth = .4;
-        ctx.beginPath();
-        ctx.moveTo(pT.x, pT.y + sy); ctx.lineTo(pB.x, pB.y + sy);
-        ctx.lineTo(pB.x + 4, pB.y + sy - 2); ctx.lineTo(pT.x + 4, pT.y + sy - 2);
-        ctx.closePath(); ctx.fill(); ctx.stroke();
-      }
-      // Оружие на полках (эмодзи)
-      ctx.font = '10px "Segoe UI Emoji",system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      for (let wi = 0; wi < wIcons.length; wi++) {
-        const t = (wi + 0.5) / wIcons.length;
-        const wx = pT.x + dx * t * 1.0;
-        const wy = pT.y + dy * t * 1.0 - shH * (wi < 2 ? 0.72 : 0.37);
-        ctx.fillText(wIcons[wi], wx + 3, wy);
-      }
-    })(wr.r, wr.icons)});
-  }
-  // Ящики у правой стены
-  for (let ci = 0; ci < 2; ci++) {
-    const cr = 1 + ci * 3, cc = W - 1;
-    items.push({ d: cr + cc, fn: ((r2, c2) => () => {
-      const p = w2s(r2 + .5, c2 + .3), bH = isoH(0.4), bSz = hx * .4;
-      ctx.fillStyle = '#2a2018'; ctx.strokeStyle = '#1a1008'; ctx.lineWidth = .5;
-      ctx.beginPath(); ctx.moveTo(p.x - bSz, p.y); ctx.lineTo(p.x, p.y + hy * .3);
-      ctx.lineTo(p.x, p.y + hy * .3 - bH); ctx.lineTo(p.x - bSz, p.y - bH); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#342818';
-      ctx.beginPath(); ctx.moveTo(p.x, p.y + hy * .3); ctx.lineTo(p.x + bSz, p.y);
-      ctx.lineTo(p.x + bSz, p.y - bH); ctx.lineTo(p.x, p.y + hy * .3 - bH); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#3e3020';
-      ctx.beginPath(); ctx.moveTo(p.x - bSz, p.y - bH); ctx.lineTo(p.x, p.y + hy * .3 - bH);
-      ctx.lineTo(p.x + bSz, p.y - bH); ctx.lineTo(p.x, p.y - hy * .3 - bH); ctx.closePath(); ctx.fill();
-    })(cr, cc)});
-  }
-
-  // Стены
+  // ── Стены ──
   const wallCol = '#1a1018', wallColD = '#120c14', wallPanel = '#0e0810';
   const _wf = (r0, c0, r1, c1, col, panel) => {
     const a = w2s(r0, c0), b = w2s(r1, c1);
@@ -29154,18 +29092,182 @@ function _drawBlackmarketInterior(bi) {
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
     ctx.lineTo(b.x, b.y - panH); ctx.lineTo(a.x, a.y - panH); ctx.closePath(); ctx.fill(); ctx.stroke();
   };
-  for (let r = 0; r < H; r++) items.push({ d: r + .01, fn: ((r2) => () => _wf(r2, 0, r2 + 1, 0, wallCol, wallPanel))(r) });
-  for (let r = 0; r < H; r++) items.push({ d: r + W, fn: ((r2) => () => _wf(r2, W, r2 + 1, W, wallColD, wallPanel))(r) });
-  for (let c = 0; c < W; c++) items.push({ d: c * .01, fn: ((c2) => () => _wf(0, c2, 0, c2 + 1, wallCol, wallPanel))(c) });
+  for (let r = 0; r < H; r++) items.push({ d: r * .001, fn: ((r2) => () => _wf(r2, 0, r2 + 1, 0, wallCol, wallPanel))(r) });
+  for (let r = 0; r < H; r++) items.push({ d: r + W + .5, fn: ((r2) => () => _wf(r2, W, r2 + 1, W, wallColD, wallPanel))(r) });
+  for (let c = 0; c < W; c++) items.push({ d: c * .001, fn: ((c2) => () => _wf(0, c2, 0, c2 + 1, wallCol, wallPanel))(c) });
   const eDL = Math.floor(W / 2) - 1, eDR = Math.floor(W / 2) + 1;
   for (let c = 0; c < W; c++) {
     const isExit = c >= eDL && c < eDR;
     items.push({ d: H + c + .5, fn: ((c2, ie) => () => {
-      _wf(H, c2, H, c2 + 1, ie ? '#08040c' : wallCol, ie ? '#08040c' : wallPanel);
+      _wf(H, c2, H, c2 + 1, ie ? '#06030a' : wallCol, ie ? '#06030a' : wallPanel);
     })(c, isExit) });
   }
 
-  // EXIT
+  // ── Арсенал на ЛЕВОЙ стене (полки с оружием) ──
+  const shelfRows = [
+    { r: 0.5, icons: ['🔫','🔫','🔪'] },
+    { r: 2.5, icons: ['💣','🧨','💊'] },
+    { r: 4.5, icons: ['🔫','🗡️','📦'] },
+    { r: 6,   icons: ['🔪','💣','🔫'] },
+  ];
+  for (const wr of shelfRows) {
+    items.push({ d: wr.r + .02, fn: ((r2, wIcons) => () => {
+      const pT = w2s(r2, 0), pB = w2s(r2 + 1.5, 0);
+      const dx = pB.x - pT.x, dy = pB.y - pT.y;
+      const shH = isoH(1.3);
+      // Задник
+      ctx.fillStyle = '#1a1210'; ctx.strokeStyle = '#2a1e14'; ctx.lineWidth = .5;
+      ctx.beginPath(); ctx.moveTo(pT.x, pT.y); ctx.lineTo(pB.x, pB.y);
+      ctx.lineTo(pB.x, pB.y - shH); ctx.lineTo(pT.x, pT.y - shH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Две полки
+      for (const frac of [0.35, 0.7]) {
+        const sy = -shH * frac;
+        ctx.fillStyle = '#2a1e14'; ctx.strokeStyle = '#1a0e08'; ctx.lineWidth = .4;
+        ctx.beginPath();
+        ctx.moveTo(pT.x, pT.y + sy); ctx.lineTo(pB.x, pB.y + sy);
+        ctx.lineTo(pB.x + 4, pB.y + sy - 2); ctx.lineTo(pT.x + 4, pT.y + sy - 2);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      // Оружие
+      ctx.font = '11px "Segoe UI Emoji",system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let wi = 0; wi < wIcons.length; wi++) {
+        const t = (wi + 0.5) / wIcons.length;
+        const wx = pT.x + dx * t;
+        const wy = pT.y + dy * t - shH * (wi < 2 ? 0.72 : 0.37);
+        ctx.fillText(wIcons[wi], wx + 3, wy);
+      }
+    })(wr.r, wr.icons)});
+  }
+
+  // ── Витрина на ПРАВОЙ стене (оружие под стеклом) ──
+  const vitrinaRows = [
+    { r: 1, icons: ['🔫','🔫'] },
+    { r: 3.5, icons: ['💣','🧨'] },
+    { r: 5.5, icons: ['🗡️','🔪'] },
+  ];
+  for (const vr of vitrinaRows) {
+    items.push({ d: vr.r + W + .01, fn: ((r2, icons) => () => {
+      const pT = w2s(r2, W), pB = w2s(r2 + 1.5, W);
+      const dx = pB.x - pT.x, dy = pB.y - pT.y;
+      const vH = isoH(1.0);
+      // Рамка витрины
+      ctx.fillStyle = 'rgba(20,15,30,.8)'; ctx.strokeStyle = '#3a3050'; ctx.lineWidth = .6;
+      ctx.beginPath(); ctx.moveTo(pT.x, pT.y); ctx.lineTo(pB.x, pB.y);
+      ctx.lineTo(pB.x, pB.y - vH); ctx.lineTo(pT.x, pT.y - vH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Стекло (блик)
+      ctx.fillStyle = 'rgba(100,140,200,.06)';
+      ctx.beginPath(); ctx.moveTo(pT.x, pT.y - vH * .1); ctx.lineTo(pB.x, pB.y - vH * .1);
+      ctx.lineTo(pB.x, pB.y - vH * .9); ctx.lineTo(pT.x, pT.y - vH * .9); ctx.closePath(); ctx.fill();
+      // Оружие
+      ctx.font = '12px "Segoe UI Emoji",system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let i = 0; i < icons.length; i++) {
+        const t = (i + 0.5) / icons.length;
+        ctx.fillText(icons[i], pT.x + dx * t, pT.y + dy * t - vH * .5);
+      }
+    })(vr.r, vr.icons)});
+  }
+
+  // ── Ящики с оружием на полу ──
+  const cratePositions = [{r:5,c:2},{r:6,c:3},{r:1,c:W-2},{r:6,c:W-2}];
+  for (const cp of cratePositions) {
+    items.push({ d: cp.r + cp.c * .01, fn: ((r2, c2) => () => {
+      const p = w2s(r2 + .5, c2 + .5), bH = isoH(0.45);
+      // Передняя грань
+      ctx.fillStyle = '#2a2018'; ctx.strokeStyle = '#1a1008'; ctx.lineWidth = .5;
+      ctx.beginPath(); ctx.moveTo(p.x - hx * .35, p.y); ctx.lineTo(p.x, p.y + hy * .35);
+      ctx.lineTo(p.x, p.y + hy * .35 - bH); ctx.lineTo(p.x - hx * .35, p.y - bH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Боковая грань
+      ctx.fillStyle = '#342818';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y + hy * .35); ctx.lineTo(p.x + hx * .35, p.y);
+      ctx.lineTo(p.x + hx * .35, p.y - bH); ctx.lineTo(p.x, p.y + hy * .35 - bH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Верх
+      ctx.fillStyle = '#3e3020';
+      ctx.beginPath(); ctx.moveTo(p.x - hx * .35, p.y - bH); ctx.lineTo(p.x, p.y + hy * .35 - bH);
+      ctx.lineTo(p.x + hx * .35, p.y - bH); ctx.lineTo(p.x, p.y - hy * .35 - bH); ctx.closePath(); ctx.fill();
+      // Маркировка
+      ctx.font = '7px monospace'; ctx.fillStyle = '#5a4a30'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('AK', p.x, p.y - bH * .5);
+    })(cp.r, cp.c)});
+  }
+
+  // ── Стойка-прилавок ──
+  const cntR = 3, cntCL = Math.floor(W * .2), cntCR = Math.floor(W * .8);
+  for (let c = cntCL; c < cntCR; c++) {
+    items.push({ d: cntR + c * .01, fn: ((c2) => () => {
+      const a = w2s(cntR, c2), b = w2s(cntR, c2 + 1);
+      const dH = isoH(0.55);
+      // Передняя стенка прилавка
+      ctx.fillStyle = '#2a1a10'; ctx.strokeStyle = '#3a2a18'; ctx.lineWidth = .6;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.lineTo(b.x, b.y - dH); ctx.lineTo(a.x, a.y - dH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Столешница
+      ctx.fillStyle = '#3a2818';
+      ctx.beginPath(); ctx.moveTo(a.x, a.y - dH); ctx.lineTo(b.x, b.y - dH);
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      ctx.lineTo(mx, my - dH - hy * .3); ctx.lineTo(a.x, a.y - dH - hy * .3 + (a.y - b.y)); ctx.closePath(); ctx.fill();
+    })(c)});
+  }
+
+  // Товары на прилавке
+  const goods = ['🔫','💣','🔪','💊','📦','🧨'];
+  for (let gi = 0; gi < goods.length; gi++) {
+    const gc = cntCL + 0.3 + gi * ((cntCR - cntCL - 0.6) / goods.length);
+    items.push({ d: cntR + gc * .01 - .01, fn: ((g, c2) => () => {
+      const p = w2s(cntR + .25, c2);
+      ctx.font = '13px "Segoe UI Emoji",system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(g, p.x, p.y - isoH(0.65));
+    })(goods[gi], gc)});
+  }
+
+  // ── Лампа над прилавком (подвесная) ──
+  items.push({ d: cntR - .5, fn: () => {
+    const lp = w2s(cntR - .2, W / 2);
+    const lampY = lp.y - wallH * .75;
+    // Провод
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(lp.x, lampY - 30); ctx.lineTo(lp.x, lampY); ctx.stroke();
+    // Абажур
+    ctx.fillStyle = '#2a2018';
+    ctx.beginPath(); ctx.moveTo(lp.x - 10, lampY); ctx.lineTo(lp.x + 10, lampY);
+    ctx.lineTo(lp.x + 6, lampY + 5); ctx.lineTo(lp.x - 6, lampY + 5); ctx.closePath(); ctx.fill();
+    // Лампочка (тёплый свет)
+    ctx.fillStyle = `rgba(255,200,100,${0.6 + 0.4 * flick})`;
+    ctx.beginPath(); ctx.arc(lp.x, lampY + 7, 3, 0, Math.PI * 2); ctx.fill();
+    // Свечение
+    ctx.save();
+    const lg = ctx.createRadialGradient(lp.x, lampY + 7, 1, lp.x, lampY + 7, 40);
+    lg.addColorStop(0, `rgba(255,180,80,${.12 * flick})`); lg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = lg;
+    ctx.beginPath(); ctx.arc(lp.x, lampY + 7, 40, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }});
+
+  // ── Неоновая вывеска на задней стене ──
+  items.push({ d: 0.001, fn: () => {
+    const np = w2s(0, W / 2);
+    const ny = np.y - wallH * .55;
+    const nb = 0.5 + 0.5 * Math.sin(now * 0.002);
+    ctx.save();
+    ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = `rgba(200,80,255,${0.5 + 0.5 * nb})`; ctx.shadowColor = '#c050ff'; ctx.shadowBlur = 8 + 6 * nb;
+    ctx.fillText('BLACK MARKET', np.x, ny);
+    ctx.shadowBlur = 0; ctx.restore();
+  }});
+
+  // ── Продавец Витёк с фразами ──
+  const sellerR = 2.5, sellerC = W / 2;
+  if (now > _bmChatNext) {
+    _bmChatIdx = (_bmChatIdx + 1) % _bmPhrases.length;
+    _bmChatNext = now + 3000 + Math.random() * 3000;
+  }
+  const chatMsg = _bmPhrases[_bmChatIdx];
+  items.push({ d: sellerR + sellerC * .01, fn: () => {
+    const p = w2s(sellerR + .5, sellerC + .5);
+    const sellerLook = { gender: 0, skin: 3, body: 4, face: 3, hair: 2, hat: 3 };
+    drawPerson(p.x, p.y, Math.PI * .5, sellerLook, 0, 'Витёк', chatMsg, false, 100, 100, false, null, false, false);
+  }});
+
+  // ── EXIT ──
   items.push({ d: H + W / 2 + 1, fn: () => {
     const p = w2s(H, W / 2);
     const signY = p.y - wallH * .7;
@@ -29173,11 +29275,11 @@ function _drawBlackmarketInterior(bi) {
     ctx.save();
     ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = `rgba(40,255,80,${blink})`; ctx.shadowColor = '#00ff40'; ctx.shadowBlur = 6;
-    ctx.fillText('EXIT', p.x, signY);
-    ctx.shadowBlur = 0; ctx.restore(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('ВЫХОД', p.x, signY);
+    ctx.shadowBlur = 0; ctx.restore();
   }});
 
-  // Игрок
+  // ── Игрок ──
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
