@@ -3771,15 +3771,15 @@ BUSINESS_POIS_RC = {
 # чтобы ограбления не вытесняли честный доход от бизнесов и работ.
 # 1 точка / 24ч (см. таблицу shop_robs).
 SHOP_ROB_CONFIG = {
-    "coffee":     {"money":  120, "stars": 1},
-    "carwash":    {"money":  170, "stars": 1},
-    "barbershop": {"money":  220, "stars": 1},
-    "pizza":      {"money":  320, "stars": 1},
-    "garage":     {"money":  470, "stars": 2},
-    "bar":        {"money":  720, "stars": 2},
-    "club":       {"money": 1100, "stars": 2},
-    "warehouse":  {"money": 1700, "stars": 2},
-    "casino":     {"money": 2800, "stars": 3},
+    "coffee":     {"money":   60, "stars": 1},
+    "carwash":    {"money":   85, "stars": 1},
+    "barbershop": {"money":  110, "stars": 1},
+    "pizza":      {"money":  160, "stars": 1},
+    "garage":     {"money":  235, "stars": 2},
+    "bar":        {"money":  360, "stars": 2},
+    "club":       {"money":  550, "stars": 2},
+    "warehouse":  {"money":  850, "stars": 2},
+    "casino":     {"money": 1400, "stars": 3},
 }
 
 # Бригадир — NPC в городе, выдаёт хит-контракты на мирных NPC.
@@ -18248,8 +18248,8 @@ async def _coop_http_app():
                                         row = await cur.fetchone()
                                         if row: last_t = int(row[0])
                                 except Exception: pass
-                                if now_ts - last_t < 86400:
-                                    left = 86400 - (now_ts - last_t)
+                                if now_ts - last_t < 3600:
+                                    left = 3600 - (now_ts - last_t)
                                     reply = {'ok': False, 'reason': 'cooldown',
                                              'cooldown_s': left}
                                 else:
