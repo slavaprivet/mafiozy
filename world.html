@@ -29819,19 +29819,21 @@ function drawGraffiti(items) {
     if (now - _graffiti[i].t > GRAFFITI_LIFE_MS) { _graffiti.splice(i, 1); continue; }
   }
   for (const g of _graffiti) {
-    items.push({ depth: g.r + g.c + 0.15, draw: ((gg) => () => {
-      const p = w2s(gg.r + 0.5, gg.c + 0.5);
-      const wallY = p.y - isoH(1.5);
+    items.push({ depth: g.r + g.c + 1.1, draw: ((gg) => () => {
+      // Южная стена здания: нижний край тайла (r+1), середина по c
+      const pBot = w2s(gg.r + 1, gg.c + 0.5);
+      const wallH = isoH(2.2);
+      const wx = pBot.x, wy = pBot.y - wallH * 0.45;
       const age = (Date.now() - gg.t) / GRAFFITI_LIFE_MS;
       const fade = age > 0.8 ? 1 - (age - 0.8) / 0.2 : 1;
       ctx.save(); ctx.globalAlpha = fade * 0.85;
-      _drawGraffitiShape(p.x - 14, wallY, gg.shape, 20, gg.col2);
-      ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      _drawGraffitiShape(wx - 14, wy, gg.shape, 18, gg.col2);
+      ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       ctx.fillStyle = gg.col;
       ctx.shadowColor = '#000'; ctx.shadowBlur = 2;
-      ctx.fillText(gg.tag, p.x - 4, wallY - 4);
-      ctx.font = '7px system-ui'; ctx.fillStyle = gg.col; ctx.globalAlpha = fade * 0.5;
-      ctx.fillText('— ' + gg.name, p.x - 4, wallY + 8);
+      ctx.fillText(gg.tag, wx - 2, wy - 3);
+      ctx.font = '6px system-ui'; ctx.fillStyle = gg.col; ctx.globalAlpha = fade * 0.45;
+      ctx.fillText('— ' + gg.name, wx - 2, wy + 8);
       ctx.restore();
     })(g) });
   }
