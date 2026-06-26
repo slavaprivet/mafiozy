@@ -11088,6 +11088,16 @@ function updateRobbery(now) {
 if (_robBtn) {
   _robBtn.addEventListener('click', () => {
     if (_robTargetBiz) { startRobbery(_robTargetBiz); return; }
+    if (_robBtn._buySprayCan) {
+      const cost = 5;
+      const cash = parseInt(QP.cash) || 0;
+      if (cash < cost) { showToast('💸 Не хватает денег', '❌', 1500); return; }
+      QP.cash = cash - cost;
+      _sprayCans++;
+      showToast(`🎨 Баллон куплен! (${_sprayCans} шт)`, '✅', 1500);
+      _robBtn._buySprayCan = false;
+      return;
+    }
     if (_robBtn._graffitiR != null) {
       sprayGraffiti(_robBtn._graffitiR, _robBtn._graffitiC);
       _robBtn._graffitiR = null; _robBtn._graffitiC = null;
@@ -11204,6 +11214,11 @@ function updateGtaInteractions() {
         : `👔 Взять контракт ($${BRIGADIR_PAYOUT_PREVIEW})`;
     }
     _gtaBtn.style.display = 'block';
+    if (_robBtn) {
+      _robBtn.textContent = `🎨 Купить баллон (5$)`;
+      _robBtn.style.display = 'block';
+      _robBtn._buySprayCan = true;
+    }
     return;
   }
   // Бизнес-POI — купить если рядом и не наш; собрать если наш с доходом
@@ -11295,10 +11310,15 @@ function updateGtaInteractions() {
       const gKey = nearBldR + ',' + nearBldC;
       const gOnCd = _graffitiCd[gKey] && Date.now() < _graffitiCd[gKey];
       if (_robBtn && !gOnCd) {
-        _robTargetBiz = null;
-        _robBtn.textContent = '🎨 Граффити';
+        _robTargetBiz = null; _robBtn._buySprayCan = false;
+        if (_sprayCans > 0) {
+          _robBtn.textContent = `🎨 Граффити (${_sprayCans} балл.)`;
+          _robBtn._graffitiR = nearBldR; _robBtn._graffitiC = nearBldC;
+        } else {
+          _robBtn.textContent = '🎨 Нужны баллоны → Бригадир';
+          _robBtn._graffitiR = null; _robBtn._graffitiC = null;
+        }
         _robBtn.style.display = 'block';
-        _robBtn._graffitiR = nearBldR; _robBtn._graffitiC = nearBldC;
       }
       return;
     }
@@ -29733,9 +29753,12 @@ const _GRAFFITI_ARTS = [
 ];
 const _graffiti = []; // {r, c, art, name, color, t}
 const _graffitiCd = {};
+let _sprayCans = 0;
 function sprayGraffiti(r, c) {
+  if (_sprayCans <= 0) { showToast('🎨 Нужны баллоны — иди к Бригадиру', 'ℹ️', 2000); return; }
   const key = r + ',' + c;
   if (_graffitiCd[key] && Date.now() < _graffitiCd[key]) return;
+  _sprayCans--;
   _graffitiCd[key] = Date.now() + 300000;
   const art = _GRAFFITI_ARTS[Math.floor(Math.random() * _GRAFFITI_ARTS.length)];
   const colors = ['#ff4040','#40ff40','#4080ff','#ffff40','#ff40ff','#40ffff','#ff8020','#ff2080'];
