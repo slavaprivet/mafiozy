@@ -15827,6 +15827,7 @@ class WorldSim:
                 'districts':       districts_payload,
                 'aggro':           aggro_payload,
                 'gang_nests':      nests_payload,
+                'graffiti':        getattr(self, '_graffiti', [])[-20:],
                 'quest_cars':      quest_cars_payload,
                 'beachgoers':      [{
                     'id':     b['id'],
@@ -18212,6 +18213,30 @@ async def _coop_http_app():
                                 )
                                 if witness_npc or cop_sees or player_sees:
                                     world._bump_wanted(p, max(1.0, world.WANTED_PER_HIT))
+                    elif t == 'graffiti_spray':
+                        p = world.players.get(uid)
+                        if p and isinstance(d, dict):
+                            gr = float(d.get('r', 0))
+                            gc = float(d.get('c', 0))
+                            tag = str(d.get('tag', ''))[:20]
+                            shape = str(d.get('shape', 'star'))[:10]
+                            col = str(d.get('col', '#ff0'))[:10]
+                            col2 = str(d.get('col2', '#0ff'))[:10]
+                            name = str(p.get('name', '?'))[:16]
+                            entry = {'r': gr, 'c': gc, 'tag': tag, 'shape': shape,
+                                     'col': col, 'col2': col2, 'name': name,
+                                     't': time.time()}
+                            if not hasattr(world, '_graffiti'):
+                                world._graffiti = []
+                            world._graffiti.append(entry)
+                            if len(world._graffiti) > 20:
+                                world._graffiti = world._graffiti[-20:]
+                            blob = json.dumps({'t': 'event', 'd': {
+                                'kind': 'graffiti_new', **entry
+                            }}, ensure_ascii=False)
+                            for u2, ws2 in list(world.connections.items()):
+                                try: await ws2.send_str(blob)
+                                except Exception: pass
                     elif t == 'shop_rob':
                         # Игрок ограбил магазин/бизнес: d = {biz_id}
                         # Серверная логика:
