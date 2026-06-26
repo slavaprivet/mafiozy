@@ -11316,15 +11316,10 @@ function updateGtaInteractions() {
       _gtaBtn.style.display = 'block';
       const gKey = nearBldR + ',' + nearBldC;
       const gOnCd = _graffitiCd[gKey] && Date.now() < _graffitiCd[gKey];
-      if (_robBtn && !gOnCd) {
+      if (_robBtn && !gOnCd && _sprayCans > 0) {
         _robTargetBiz = null; _robBtn._buySprayCan = false;
-        if (_sprayCans > 0) {
-          _robBtn.textContent = `🎨 Граффити (${_sprayCans} балл.)`;
-          _robBtn._graffitiR = nearBldR; _robBtn._graffitiC = nearBldC;
-        } else {
-          _robBtn.textContent = '🎨 Нужны баллоны → Бригадир';
-          _robBtn._graffitiR = null; _robBtn._graffitiC = null;
-        }
+        _robBtn.textContent = `🎨 Тег (${_sprayCans})`;
+        _robBtn._graffitiR = nearBldR; _robBtn._graffitiC = nearBldC;
         _robBtn.style.display = 'block';
       }
       return;
