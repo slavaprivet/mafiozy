@@ -30952,30 +30952,31 @@ function drawBankInteriorScene() {
       ctx.beginPath();ctx.moveTo(pt.x,pt.y-poleH*0.75);ctx.quadraticCurveTo((pt.x+npt.x)/2,(pt.y+npt.y)/2-poleH*0.85,npt.x,npt.y-poleH*0.75);ctx.stroke();}}
   })(qp,qi,queuePosts)});}}
 
-  // ── ОХРАННЫЙ ПОСТ у входа ─────────────────────────────────────────
+  // ── ОХРАННЫЙ ПОСТ у входа (стойка-ресепшн + монитор) ───────────────
   {const spR=H-3,spC=Math.floor(W*0.38);
   items.push({d:spR+spC*0.01+0.1,fn:()=>{
-    const sp=w2s(spR+0.5,spC+0.5),gh=isoH(1.0),now2g=performance.now();
-    const sz=hx*0.7;
-    ctx.fillStyle='#1a2838';ctx.strokeStyle='#263848';ctx.lineWidth=0.8;
-    ctx.beginPath();ctx.moveTo(sp.x-sz,sp.y-hy*0.5);ctx.lineTo(sp.x,sp.y+hy*0.5);
-    ctx.lineTo(sp.x,sp.y+hy*0.5-gh);ctx.lineTo(sp.x-sz,sp.y-hy*0.5-gh);ctx.closePath();ctx.fill();ctx.stroke();
+    const sp=w2s(spR+0.5,spC+0.5),dH=isoH(0.55),now2g=performance.now();
+    // Стойка — изо-ромб с боковинами
+    ctx.fillStyle='#2a3448';ctx.strokeStyle='#3a4868';ctx.lineWidth=0.7;
+    ctx.beginPath();ctx.moveTo(sp.x,sp.y-hy*0.6-dH);ctx.lineTo(sp.x+hx*0.6,sp.y-dH);
+    ctx.lineTo(sp.x,sp.y+hy*0.6-dH);ctx.lineTo(sp.x-hx*0.6,sp.y-dH);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle='#1e2838';
+    ctx.beginPath();ctx.moveTo(sp.x-hx*0.6,sp.y-dH);ctx.lineTo(sp.x,sp.y+hy*0.6-dH);
+    ctx.lineTo(sp.x,sp.y+hy*0.6);ctx.lineTo(sp.x-hx*0.6,sp.y);ctx.closePath();ctx.fill();
     ctx.fillStyle='#223040';
-    ctx.beginPath();ctx.moveTo(sp.x,sp.y+hy*0.5);ctx.lineTo(sp.x+sz,sp.y-hy*0.5);
-    ctx.lineTo(sp.x+sz,sp.y-hy*0.5-gh);ctx.lineTo(sp.x,sp.y+hy*0.5-gh);ctx.closePath();ctx.fill();ctx.stroke();
-    ctx.fillStyle='#2a3848';
-    ctx.beginPath();ctx.moveTo(sp.x-sz,sp.y-hy*0.5-gh);ctx.lineTo(sp.x,sp.y+hy*0.5-gh);
-    ctx.lineTo(sp.x+sz,sp.y-hy*0.5-gh);ctx.lineTo(sp.x,sp.y-hy*1.5-gh);ctx.closePath();ctx.fill();
-    const gA=0.6+0.3*Math.sin(now2g*0.002);
-    const mY=sp.y-gh*0.6;
-    ctx.fillStyle=`rgba(10,20,40,0.9)`;
-    ctx.beginPath();ctx.moveTo(sp.x-sz*0.6,mY);ctx.lineTo(sp.x-sz*0.1,mY+hy*0.25);
-    ctx.lineTo(sp.x-sz*0.1,mY+hy*0.25-gh*0.3);ctx.lineTo(sp.x-sz*0.6,mY-gh*0.3);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(sp.x,sp.y+hy*0.6-dH);ctx.lineTo(sp.x+hx*0.6,sp.y-dH);
+    ctx.lineTo(sp.x+hx*0.6,sp.y);ctx.lineTo(sp.x,sp.y+hy*0.6);ctx.closePath();ctx.fill();
+    // Монитор на стойке
+    const mH=isoH(0.35),mY=sp.y-dH-2;
+    const gA=0.55+0.3*Math.sin(now2g*0.002);
+    ctx.fillStyle='#101820';ctx.strokeStyle='#283848';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(sp.x-6,mY);ctx.lineTo(sp.x+2,mY+3);
+    ctx.lineTo(sp.x+2,mY+3-mH);ctx.lineTo(sp.x-6,mY-mH);ctx.closePath();ctx.fill();ctx.stroke();
     ctx.fillStyle=`rgba(20,100,30,${gA})`;
-    ctx.beginPath();ctx.moveTo(sp.x-sz*0.55,mY+1);ctx.lineTo(sp.x-sz*0.15,mY+hy*0.2+1);
-    ctx.lineTo(sp.x-sz*0.15,mY+hy*0.2-gh*0.25);ctx.lineTo(sp.x-sz*0.55,mY-gh*0.25+1);ctx.closePath();ctx.fill();
-    ctx.fillStyle='rgba(160,200,180,0.9)';ctx.font='bold 7px sans-serif';ctx.textAlign='center';
-    ctx.fillText('🔒 ОХРАНА',sp.x,sp.y-gh-6);ctx.textAlign='left';
+    ctx.beginPath();ctx.moveTo(sp.x-5,mY+1);ctx.lineTo(sp.x+1,mY+3);
+    ctx.lineTo(sp.x+1,mY+3-mH+2);ctx.lineTo(sp.x-5,mY-mH+3);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(160,200,180,0.85)';ctx.font='bold 7px sans-serif';ctx.textAlign='center';
+    ctx.fillText('🔒 ОХРАНА',sp.x,sp.y-dH-mH-4);ctx.textAlign='left';
   }});}
 
   // ── ЛОГОТИП БАНКА НА ПОЛУ ЛОББИ ──────────────────────────────────
