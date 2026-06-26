@@ -10674,6 +10674,7 @@ function updateZoneBtn() {
   }
   // PVP-баннер — показывается всегда когда игрок физически в зоне арены
   const inPvp = inArena(player.r, player.c);
+  if (inPvp) _fetchLeaderboard();
   if (inPvp && _pvpBn.style.display !== 'block') {
     _pvpBn.style.display = 'block';
     document.body.classList.add('in-pvp');
@@ -11086,7 +11087,12 @@ function updateRobbery(now) {
 // Клик «🔪 Ограбить»
 if (_robBtn) {
   _robBtn.addEventListener('click', () => {
-    if (_robTargetBiz) startRobbery(_robTargetBiz);
+    if (_robTargetBiz) { startRobbery(_robTargetBiz); return; }
+    if (_robBtn._graffitiR != null) {
+      sprayGraffiti(_robBtn._graffitiR, _robBtn._graffitiC);
+      _robBtn._graffitiR = null; _robBtn._graffitiC = null;
+      _robBtn.style.display = 'none';
+    }
   });
 }
 
@@ -11286,6 +11292,14 @@ function updateGtaInteractions() {
       _gtaActionCarId = nearBldR + ',' + nearBldC;
       _gtaBtn.textContent = '🏠 Войти в здание';
       _gtaBtn.style.display = 'block';
+      const gKey = nearBldR + ',' + nearBldC;
+      const gOnCd = _graffitiCd[gKey] && Date.now() < _graffitiCd[gKey];
+      if (_robBtn && !gOnCd) {
+        _robTargetBiz = null;
+        _robBtn.textContent = '🎨 Граффити';
+        _robBtn.style.display = 'block';
+        _robBtn._graffitiR = nearBldR; _robBtn._graffitiC = nearBldC;
+      }
       return;
     }
   }
@@ -26086,8 +26100,10 @@ function render() {
   // Тормозные следы (skid marks) — тоже под персонажами и машинами
   drawSkidMarks();
   drawExhaustPuffs();
+  drawGraffiti(items);
   items.sort((a, b) => a.depth - b.depth);
   items.forEach(i => i.draw());
+  drawLeaderboard();
   // ── РЕНТГЕН игрока за зданием ──────────────────────────────────────
   // В изометрии здание на тайле ближе к камере (r+c больше) рисуется
   // ПОВЕРХ игрока и полностью его закрывает — игрок «пропадает». Проверяем
@@ -29710,6 +29726,84 @@ function _drawBlackmarketInterior(bi) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// ── ГРАФФИТИ НА СТЕНАХ ───────────────────────────────────────────
+const _GRAFFITI_ARTS = [
+  '☠️','💀','🔥','👑','💣','🐍','🦅','⚡','🎯','💎',
+  '🗡️','🐺','🦇','👊','💢','🏴','⭐','🎭','🔫','🃏',
+];
+const _graffiti = []; // {r, c, art, name, color, t}
+const _graffitiCd = {};
+function sprayGraffiti(r, c) {
+  const key = r + ',' + c;
+  if (_graffitiCd[key] && Date.now() < _graffitiCd[key]) return;
+  _graffitiCd[key] = Date.now() + 300000;
+  const art = _GRAFFITI_ARTS[Math.floor(Math.random() * _GRAFFITI_ARTS.length)];
+  const colors = ['#ff4040','#40ff40','#4080ff','#ffff40','#ff40ff','#40ffff','#ff8020','#ff2080'];
+  _graffiti.push({ r, c, art, name: QP.name, color: colors[Math.floor(Math.random() * colors.length)], t: Date.now() });
+  if (_graffiti.length > 30) _graffiti.shift();
+  myWanted = Math.max((myWanted || 0), 1);
+  showToast(`🎨 Граффити на стене!`, '🖌️', 1500);
+}
+function drawGraffiti(items) {
+  for (const g of _graffiti) {
+    items.push({ depth: g.r + g.c + 0.15, draw: ((gg) => () => {
+      const p = w2s(gg.r + 0.5, gg.c + 0.5);
+      const wallY = p.y - isoH(1.5);
+      ctx.save();
+      ctx.font = 'bold 18px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(gg.art, p.x, wallY);
+      ctx.font = 'bold 7px system-ui';
+      ctx.fillStyle = gg.color; ctx.globalAlpha = 0.7;
+      ctx.fillText(gg.name, p.x, wallY + 14);
+      ctx.restore();
+    })(g) });
+  }
+}
+
+// ── ЛИДЕРБОРД НА АРЕНЕ ─────────────────────────────────────────
+let _leaderboardData = null;
+let _leaderboardFetchT = 0;
+async function _fetchLeaderboard() {
+  if (!QP.api || Date.now() - _leaderboardFetchT < 60000) return;
+  _leaderboardFetchT = Date.now();
+  try {
+    const r = await fetch(`${QP.api}/world/leaderboard`, { cache: 'no-store' });
+    const j = await r.json();
+    if (j.ok && j.top) _leaderboardData = j.top;
+  } catch(e) {}
+}
+function drawLeaderboard() {
+  if (!_leaderboardData || !_leaderboardData.length) return;
+  const ap = ARENA_POI;
+  const dist = Math.hypot(player.r - ap.r, player.c - ap.c);
+  if (dist > 12) return;
+  const p = w2s(ap.r - 3, ap.c + 3);
+  const bx = p.x - 70, by = p.y - isoH(2.5);
+  ctx.save();
+  ctx.fillStyle = 'rgba(10,12,20,.88)';
+  ctx.strokeStyle = '#ffd76b'; ctx.lineWidth = 1.5;
+  const bw = 140, lineH = 14, padY = 8, titleH = 18;
+  const bh = titleH + padY + _leaderboardData.length * lineH + padY;
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 6);
+  ctx.fill(); ctx.stroke();
+  ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillStyle = '#ffd76b';
+  ctx.fillText('🏆 ТОП ИГРОКИ', bx + bw / 2, by + 4);
+  ctx.font = '10px system-ui'; ctx.textAlign = 'left';
+  _leaderboardData.forEach((pl, i) => {
+    const y = by + titleH + padY + i * lineH;
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+    ctx.fillStyle = i < 3 ? '#ffd76b' : '#a0a8b8';
+    ctx.fillText(`${medal} ${(pl.name||'?').slice(0,10)}`, bx + 6, y);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#7a90b0';
+    ctx.fillText(`⭐${pl.lvl} 💀${pl.kills}`, bx + bw - 6, y);
+    ctx.textAlign = 'left';
+  });
+  ctx.restore();
+}
+
 // ── GENERIC BUILDING INTERIOR (обычные здания MAP[r][c]===1) ─────
 // ══════════════════════════════════════════════════════════════════
 // ── Кейсы в зданиях — случайный лут ──────────────────────────────
