@@ -18885,6 +18885,13 @@ async def _coop_http_app():
             'ok': True, 'count': len(out), 'players': out,
         }))
 
+    async def h_world_leaderboard(req):
+        rows = await get_top_players(10)
+        top = []
+        for name, cls, lvl, kills in rows:
+            top.append({'name': name or '?', 'lvl': int(lvl or 1), 'kills': int(kills or 0)})
+        return await _cors(web.json_response({'ok': True, 'top': top}))
+
     # === HTTP: pending-уведомления о доходе с захваченных районов ===
     # hub.html опрашивает /world/incomes/{uid} при загрузке и показывает
     # «💰 +N$ с района X» — даже если игрок ушёл из мира, доход капал и
@@ -19208,6 +19215,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/world/loot/{uid}',    h_world_loot)
     aio_app.router.add_get ('/world/sim',           h_world_ws)  # общий мир
     aio_app.router.add_get ('/world/online',        h_world_online)  # для баннера в Кооперативе
+    aio_app.router.add_get ('/world/leaderboard',   h_world_leaderboard)
     aio_app.router.add_get ('/world/incomes/{uid}', h_world_incomes)  # pending district income notifications
     aio_app.router.add_get ('/world/battle_url/{uid}', h_world_battle_url)  # боёвка из POI района
     aio_app.router.add_get ('/notify/{uid}/poll',   h_notify_poll)   # in-game приглашения в кооп
