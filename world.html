@@ -1189,6 +1189,52 @@ body.in-pvp #robActionBtn { top: 152px; }
 }
 .shop-item .buy:active { transform: scale(.96); }
 
+/* Модал арены — выбор района для боёвки */
+#arenaOverlay {
+  position: absolute; inset: 0; z-index: 20;
+  background: rgba(0,0,0,.75); display: none;
+  align-items: center; justify-content: center;
+  font-family: inherit;
+}
+#arenaOverlay.open { display: flex; }
+#arenaModal {
+  width: min(360px, 92vw); max-height: 86vh; overflow-y: auto;
+  -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  background: linear-gradient(160deg, #0f1a2a, #081018);
+  border: 2px solid #2a5088; border-radius: 16px; padding: 16px;
+  color: #fff; box-shadow: 0 8px 32px rgba(20,60,120,.55);
+}
+#arenaHeader {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+}
+#arenaHeader .icon { font-size: 28px; }
+#arenaHeader .title { font-size: 17px; font-weight: 800; color: #ffd76b; }
+#arenaHeader .sub   { font-size: 11px; color: #7090b8; margin-top: 1px; }
+#arenaHeader .close {
+  margin-left: auto; background: rgba(0,0,0,.4); border: 1px solid #555;
+  color: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer;
+  font-size: 13px;
+}
+.arena-item {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0,0,0,.35); border: 1px solid #1a3050;
+  border-radius: 10px; padding: 12px; margin-bottom: 8px;
+  cursor: pointer; transition: border-color .15s;
+}
+.arena-item:active { transform: scale(.97); }
+.arena-item.locked { opacity: .45; cursor: default; }
+.arena-item .a-icon { font-size: 28px; flex-shrink: 0; width: 40px; text-align: center; }
+.arena-item .a-info { flex: 1; min-width: 0; }
+.arena-item .a-name { font-size: 14px; font-weight: 700; color: #fff; }
+.arena-item .a-desc { font-size: 11px; color: #7090b8; margin-top: 2px; }
+.arena-item .a-lvl  { font-size: 11px; color: #ffd76b; margin-top: 2px; }
+.arena-item .a-go {
+  background: linear-gradient(135deg, #1a4080, #2860aa);
+  border: 1px solid #4888cc; border-radius: 8px;
+  color: #fff; padding: 8px 14px; font-size: 12px; font-weight: 700;
+  flex-shrink: 0; font-family: inherit;
+}
+
 /* Toast — короткое всплывающее уведомление */
 #toast {
   position: absolute; left: 50%; transform: translateX(-50%);
@@ -1548,6 +1594,21 @@ body.in-pvp #robActionBtn { top: 152px; }
     </div>
   </div>
 
+  <!-- Арена — выбор района для боёвки -->
+  <div id="arenaOverlay">
+    <div id="arenaModal">
+      <div id="arenaHeader">
+        <div class="icon">🎯</div>
+        <div>
+          <div class="title">PVP-Арена</div>
+          <div class="sub">Выбери район для боя</div>
+        </div>
+        <button class="close" id="arenaClose">✕</button>
+      </div>
+      <div id="arenaList"></div>
+    </div>
+  </div>
+
   <div id="connectingOverlay">
     <div class="spin"></div>
     <div id="connectingMsg">Подключаюсь к городу…</div>
@@ -1659,7 +1720,7 @@ document.body.addEventListener('touchstart', (e) => {
 // они и так останавливают через preventDefault выше).
 document.addEventListener('touchmove', (e) => {
   if (e.touches.length > 1) return;
-  if (e.target.closest && e.target.closest('#shopOverlay')) return;
+  if (e.target.closest && (e.target.closest('#shopOverlay') || e.target.closest('#arenaOverlay'))) return;
   try { e.preventDefault(); } catch(_) {}
 }, { passive: false });
 
@@ -10620,7 +10681,7 @@ _zoneEl.addEventListener('click', () => {
   if (!_zoneCur) return;
   // Спец-POI: открываем модал/баннер прямо в мире, никуда не переходим.
   if (_zoneCur.special === 'blackmarket')  { openShop();   return; }
-  if (_zoneCur.special === 'arena')       { showToast('🎯 Вы внутри PVP-зоны. Огонь скоро добавим.'); return; }
+  if (_zoneCur.special === 'arena')       { openArenaModal(); return; }
   if (_zoneCur.special === 'firestation') { openFireStationModal(); return; }
   // old bank heist system removed — now handled via BANKS[]
   if (_zoneCur.special === 'jail')        { return; }   // участок — без меню, GTA-кнопка сама
@@ -13084,6 +13145,36 @@ _shopList.addEventListener('click', (e) => {
   if (!btn || btn.disabled) return;
   _buyShopItem(btn.dataset.id);
 });
+// ── Арена — модал выбора района для боёвки ─────────────────────
+const _arenaOverlay = document.getElementById('arenaOverlay');
+const _arenaList = document.getElementById('arenaList');
+const _ARENA_DISTRICTS = POI.filter(p => !p.special && p.id !== 'arena');
+function openArenaModal() {
+  const myLvl = QP.lvl || 1;
+  _arenaList.innerHTML = _ARENA_DISTRICTS.map(d => {
+    const locked = myLvl < d.minLvl;
+    return `<div class="arena-item${locked ? ' locked' : ''}" data-loc="${d.id}">
+      <div class="a-icon">${d.icon}</div>
+      <div class="a-info">
+        <div class="a-name">${d.name}</div>
+        <div class="a-desc">${d.aggro ? 'Опасная зона — бойцы + босс' : 'Захват территории'}</div>
+        <div class="a-lvl">${locked ? '🔒 Нужен ранг ' + d.minLvl : '✅ Доступно'}</div>
+      </div>
+      ${locked ? '' : '<div class="a-go">Бой</div>'}
+    </div>`;
+  }).join('');
+  _arenaOverlay.classList.add('open');
+}
+function closeArenaModal() { _arenaOverlay.classList.remove('open'); }
+document.getElementById('arenaClose').addEventListener('click', closeArenaModal);
+_arenaOverlay.addEventListener('click', (e) => { if (e.target === _arenaOverlay) closeArenaModal(); });
+_arenaList.addEventListener('click', (e) => {
+  const item = e.target.closest('.arena-item');
+  if (!item || item.classList.contains('locked')) return;
+  closeArenaModal();
+  openDistrictBattle(item.dataset.loc);
+});
+
 // ── PVP UI: кнопка «Огонь», HP-бар, экран смерти ────────────────
 const _fireBtn   = document.getElementById('fireBtn');
 const _hudPlayer = document.getElementById('hudPlayer');
