@@ -29091,21 +29091,56 @@ function _drawBlackmarketInterior(bi) {
     drawPerson(p.x, p.y, Math.PI * .5, sellerLook, 0, 'Витёк', null, false, 100, 100, false, null, false, false);
   }});
 
-  // Полки на стенах с ящиками
-  for (let si = 0; si < 3; si++) {
-    const sr = 1 + si * 2.5, sc = 1;
-    items.push({ d: sr + sc * .01, fn: ((r2, c2) => () => {
-      const p = w2s(r2, c2);
-      const shH = isoH(0.8);
-      ctx.fillStyle = '#2a1e14'; ctx.strokeStyle = '#1a0e08'; ctx.lineWidth = .5;
-      const pN = w2s(r2 + 1, c2);
-      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(pN.x, pN.y);
-      ctx.lineTo(pN.x, pN.y - shH); ctx.lineTo(p.x, p.y - shH); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#3a2e1e';
-      ctx.fillRect(p.x + 1, p.y - shH + 2, 8, 6);
-      ctx.fillStyle = '#4a3a28';
-      ctx.fillRect(p.x + 1, p.y - shH + 10, 8, 6);
-    })(sr, sc)});
+  // Арсенал на левой стене — полки с оружием
+  const weaponRows = [
+    { r: 1, icons: ['🔫','🔫','🔪'] },
+    { r: 3, icons: ['💣','🧨','💊'] },
+    { r: 5, icons: ['🔫','🗡️','📦'] },
+  ];
+  for (const wr of weaponRows) {
+    const sc = 0;
+    items.push({ d: wr.r + .01, fn: ((r2, wIcons) => () => {
+      const pT = w2s(r2, sc), pB = w2s(r2 + 1.5, sc);
+      const dx = pB.x - pT.x, dy = pB.y - pT.y;
+      // Задняя стенка стеллажа
+      const shH = isoH(1.2);
+      ctx.fillStyle = '#1a1210'; ctx.strokeStyle = '#2a1e14'; ctx.lineWidth = .6;
+      ctx.beginPath(); ctx.moveTo(pT.x, pT.y); ctx.lineTo(pB.x, pB.y);
+      ctx.lineTo(pB.x, pB.y - shH); ctx.lineTo(pT.x, pT.y - shH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Две полки (горизонтальные планки)
+      for (const frac of [0.35, 0.7]) {
+        const sy = -shH * frac;
+        ctx.fillStyle = '#2a1e14'; ctx.strokeStyle = '#1a0e08'; ctx.lineWidth = .4;
+        ctx.beginPath();
+        ctx.moveTo(pT.x, pT.y + sy); ctx.lineTo(pB.x, pB.y + sy);
+        ctx.lineTo(pB.x + 4, pB.y + sy - 2); ctx.lineTo(pT.x + 4, pT.y + sy - 2);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      // Оружие на полках (эмодзи)
+      ctx.font = '10px "Segoe UI Emoji",system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let wi = 0; wi < wIcons.length; wi++) {
+        const t = (wi + 0.5) / wIcons.length;
+        const wx = pT.x + dx * t * 1.0;
+        const wy = pT.y + dy * t * 1.0 - shH * (wi < 2 ? 0.72 : 0.37);
+        ctx.fillText(wIcons[wi], wx + 3, wy);
+      }
+    })(wr.r, wr.icons)});
+  }
+  // Ящики у правой стены
+  for (let ci = 0; ci < 2; ci++) {
+    const cr = 1 + ci * 3, cc = W - 1;
+    items.push({ d: cr + cc, fn: ((r2, c2) => () => {
+      const p = w2s(r2 + .5, c2 + .3), bH = isoH(0.4), bSz = hx * .4;
+      ctx.fillStyle = '#2a2018'; ctx.strokeStyle = '#1a1008'; ctx.lineWidth = .5;
+      ctx.beginPath(); ctx.moveTo(p.x - bSz, p.y); ctx.lineTo(p.x, p.y + hy * .3);
+      ctx.lineTo(p.x, p.y + hy * .3 - bH); ctx.lineTo(p.x - bSz, p.y - bH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#342818';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y + hy * .3); ctx.lineTo(p.x + bSz, p.y);
+      ctx.lineTo(p.x + bSz, p.y - bH); ctx.lineTo(p.x, p.y + hy * .3 - bH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#3e3020';
+      ctx.beginPath(); ctx.moveTo(p.x - bSz, p.y - bH); ctx.lineTo(p.x, p.y + hy * .3 - bH);
+      ctx.lineTo(p.x + bSz, p.y - bH); ctx.lineTo(p.x, p.y - hy * .3 - bH); ctx.closePath(); ctx.fill();
+    })(cr, cc)});
   }
 
   // Стены
