@@ -29747,37 +29747,91 @@ function _drawBlackmarketInterior(bi) {
 
 // ══════════════════════════════════════════════════════════════════
 // ── ГРАФФИТИ НА СТЕНАХ ───────────────────────────────────────────
-const _GRAFFITI_ARTS = [
-  '☠️','💀','🔥','👑','💣','🐍','🦅','⚡','🎯','💎',
-  '🗡️','🐺','🦇','👊','💢','🏴','⭐','🎭','🔫','🃏',
+const _GRAFFITI_TAGS = [
+  'THUG LIFE', 'NO COPS', 'RESPECT', 'МАФИЯ', 'RUN!', 'ОПАСНО',
+  'KING', 'WANTED', 'BOSS', 'G.T.A.', 'СТРАХ', 'POWER',
+  'РАЙОН', 'ЖЕСТЬ', 'УЛИЦА', 'БАНДА', 'ТЕНИ', 'ГАНГСТА',
+  'ЗАКОН', 'ХАОС',
 ];
-const _graffiti = []; // {r, c, art, name, color, t}
+const _GRAFFITI_SHAPES = ['skull','cross','crown','star','bolt','eye'];
+const _graffiti = [];
 const _graffitiCd = {};
 let _sprayCans = 0;
+const GRAFFITI_LIFE_MS = 60000;
 function sprayGraffiti(r, c) {
   if (_sprayCans <= 0) { showToast('🎨 Нужны баллоны — иди к Бригадиру', 'ℹ️', 2000); return; }
   const key = r + ',' + c;
   if (_graffitiCd[key] && Date.now() < _graffitiCd[key]) return;
   _sprayCans--;
   _graffitiCd[key] = Date.now() + 300000;
-  const art = _GRAFFITI_ARTS[Math.floor(Math.random() * _GRAFFITI_ARTS.length)];
-  const colors = ['#ff4040','#40ff40','#4080ff','#ffff40','#ff40ff','#40ffff','#ff8020','#ff2080'];
-  _graffiti.push({ r, c, art, name: QP.name, color: colors[Math.floor(Math.random() * colors.length)], t: Date.now() });
+  const tag = _GRAFFITI_TAGS[Math.floor(Math.random() * _GRAFFITI_TAGS.length)];
+  const shape = _GRAFFITI_SHAPES[Math.floor(Math.random() * _GRAFFITI_SHAPES.length)];
+  const colors = ['#ff2020','#20ff40','#2080ff','#ffee20','#ff20ff','#20ffee','#ff6020','#ff2080','#a040ff'];
+  const col = colors[Math.floor(Math.random() * colors.length)];
+  const col2 = colors[Math.floor(Math.random() * colors.length)];
+  _graffiti.push({ r, c, tag, shape, col, col2, name: QP.name, t: Date.now() });
   if (_graffiti.length > 30) _graffiti.shift();
   myWanted = Math.max((myWanted || 0), 1);
-  showToast(`🎨 Граффити на стене!`, '🖌️', 1500);
+  showToast(`🎨 Тег на стене!`, '🖌️', 1500);
+}
+function _drawGraffitiShape(x, y, shape, sz, col) {
+  ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+  if (shape === 'skull') {
+    ctx.beginPath(); ctx.arc(x, y - sz * 0.3, sz * 0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(x - sz * 0.15, y - sz * 0.35, sz * 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + sz * 0.15, y - sz * 0.35, sz * 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x - sz * 0.1, y - sz * 0.1); ctx.lineTo(x + sz * 0.1, y - sz * 0.1); ctx.stroke();
+  } else if (shape === 'crown') {
+    ctx.beginPath();
+    ctx.moveTo(x - sz * 0.4, y); ctx.lineTo(x - sz * 0.4, y - sz * 0.3);
+    ctx.lineTo(x - sz * 0.2, y - sz * 0.15); ctx.lineTo(x, y - sz * 0.4);
+    ctx.lineTo(x + sz * 0.2, y - sz * 0.15); ctx.lineTo(x + sz * 0.4, y - sz * 0.3);
+    ctx.lineTo(x + sz * 0.4, y); ctx.closePath(); ctx.fill();
+  } else if (shape === 'star') {
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 72 - 90) * Math.PI / 180, a2 = ((i * 72 + 36) - 90) * Math.PI / 180;
+      ctx.lineTo(x + Math.cos(a) * sz * 0.4, y + Math.sin(a) * sz * 0.4);
+      ctx.lineTo(x + Math.cos(a2) * sz * 0.18, y + Math.sin(a2) * sz * 0.18);
+    }
+    ctx.closePath(); ctx.fill();
+  } else if (shape === 'bolt') {
+    ctx.beginPath();
+    ctx.moveTo(x - sz * 0.1, y - sz * 0.4); ctx.lineTo(x + sz * 0.2, y - sz * 0.4);
+    ctx.lineTo(x, y - sz * 0.05); ctx.lineTo(x + sz * 0.15, y - sz * 0.05);
+    ctx.lineTo(x - sz * 0.1, y + sz * 0.3); ctx.lineTo(x + sz * 0.05, y);
+    ctx.lineTo(x - sz * 0.15, y); ctx.closePath(); ctx.fill();
+  } else if (shape === 'cross') {
+    ctx.fillRect(x - sz * 0.08, y - sz * 0.35, sz * 0.16, sz * 0.7);
+    ctx.fillRect(x - sz * 0.3, y - sz * 0.08, sz * 0.6, sz * 0.16);
+  } else if (shape === 'eye') {
+    ctx.beginPath();
+    ctx.moveTo(x - sz * 0.35, y); ctx.quadraticCurveTo(x, y - sz * 0.3, x + sz * 0.35, y);
+    ctx.quadraticCurveTo(x, y + sz * 0.3, x - sz * 0.35, y); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(x, y, sz * 0.1, 0, Math.PI * 2); ctx.fill();
+  }
 }
 function drawGraffiti(items) {
+  const now = Date.now();
+  for (let i = _graffiti.length - 1; i >= 0; i--) {
+    if (now - _graffiti[i].t > GRAFFITI_LIFE_MS) { _graffiti.splice(i, 1); continue; }
+  }
   for (const g of _graffiti) {
     items.push({ depth: g.r + g.c + 0.15, draw: ((gg) => () => {
       const p = w2s(gg.r + 0.5, gg.c + 0.5);
       const wallY = p.y - isoH(1.5);
-      ctx.save();
-      ctx.font = 'bold 18px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(gg.art, p.x, wallY);
-      ctx.font = 'bold 7px system-ui';
-      ctx.fillStyle = gg.color; ctx.globalAlpha = 0.7;
-      ctx.fillText(gg.name, p.x, wallY + 14);
+      const age = (Date.now() - gg.t) / GRAFFITI_LIFE_MS;
+      const fade = age > 0.8 ? 1 - (age - 0.8) / 0.2 : 1;
+      ctx.save(); ctx.globalAlpha = fade * 0.85;
+      _drawGraffitiShape(p.x - 14, wallY, gg.shape, 20, gg.col2);
+      ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = gg.col;
+      ctx.shadowColor = '#000'; ctx.shadowBlur = 2;
+      ctx.fillText(gg.tag, p.x - 4, wallY - 4);
+      ctx.font = '7px system-ui'; ctx.fillStyle = gg.col; ctx.globalAlpha = fade * 0.5;
+      ctx.fillText('— ' + gg.name, p.x - 4, wallY + 8);
       ctx.restore();
     })(g) });
   }
