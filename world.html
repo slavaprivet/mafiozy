@@ -276,6 +276,55 @@ body.in-pvp #robActionBtn { top: 152px; }
 }
 #bizConfirmModal .btn.primary { background: linear-gradient(135deg, #2c8d4a, #44b86a); color: #fff; }
 #bizConfirmModal .btn.ghost   { background: #232a36; color: #aab2c2; }
+/* ── Profile Modal ─────────────────────────────────────────── */
+#profileModal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.75);
+  display: none; z-index: 50; align-items: center; justify-content: center;
+}
+#profileModal.show { display: flex; }
+#profileModal .card {
+  width: min(380px, 92vw); max-height: 80vh; background: #10141c;
+  border: 1px solid #3a4060; border-radius: 16px; padding: 16px 14px 12px;
+  color: #fff; font-family: inherit; position: relative;
+  box-shadow: 0 16px 40px rgba(0,0,0,.8); overflow-y: auto;
+}
+#profileModal .close {
+  position: absolute; top: 8px; right: 12px; font-size: 22px;
+  color: #888; cursor: pointer; background: none; border: none; z-index: 2;
+}
+#profileModal .tabs {
+  display: flex; gap: 4px; margin-bottom: 12px;
+}
+#profileModal .tab {
+  flex: 1; padding: 8px 4px; border-radius: 8px; cursor: pointer;
+  font-size: 12px; font-weight: 700; border: 1px solid #2a3040;
+  background: #1a1e2a; color: #8890a8; text-align: center;
+  transition: all .15s;
+}
+#profileModal .tab.active {
+  background: linear-gradient(135deg, #2a3858, #1a2848);
+  border-color: #4a6090; color: #ffd76b;
+}
+#profileModal .items { display: flex; flex-direction: column; gap: 6px; }
+#profileModal .item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  background: #181c28; border: 1px solid #252a3a; border-radius: 10px;
+}
+#profileModal .item.equipped { border-color: #c0a040; box-shadow: 0 0 8px rgba(200,160,60,.3); }
+#profileModal .item .icon { font-size: 22px; }
+#profileModal .item .info { flex: 1; }
+#profileModal .item .nm { font-size: 13px; font-weight: 700; }
+#profileModal .item .sub { font-size: 11px; color: #7a8098; }
+#profileModal .stat-block {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+#profileModal .stat-card {
+  flex: 1 1 45%; padding: 10px; background: #181c28;
+  border: 1px solid #252a3a; border-radius: 10px; min-width: 120px;
+}
+#profileModal .stat-card .label { font-size: 10px; color: #6a7088; text-transform: uppercase; margin-bottom: 4px; }
+#profileModal .stat-card .val { font-size: 16px; font-weight: 800; }
+#profileModal .empty { text-align: center; color: #5a6078; font-size: 13px; padding: 20px 10px; }
 #michaelModal .card {
   width: min(360px, 90vw); background: #14181f;
   border: 1px solid #d8a040; border-radius: 14px; padding: 18px 18px 14px;
@@ -1187,6 +1236,18 @@ body.in-pvp #robActionBtn { top: 152px; }
        getElementById + null-guard, элементов больше нет в DOM). -->
   <!-- HUD активного контракта (под верхней панелью) -->
   <div id="gtaQuestHud"></div>
+  <!-- Модал профиля (по тапу на аватар) -->
+  <div id="profileModal">
+    <div class="card">
+      <button class="close" onclick="toggleProfileModal()">&times;</button>
+      <div class="tabs">
+        <div class="tab active" data-tab="inv" onclick="switchProfileTab('inv')">🎒 Инвентарь</div>
+        <div class="tab" data-tab="work" onclick="switchProfileTab('work')">💼 Работа</div>
+        <div class="tab" data-tab="biz" onclick="switchProfileTab('biz')">🏢 Бизнесы</div>
+      </div>
+      <div id="profileContent"></div>
+    </div>
+  </div>
   <!-- Модал-меню Майкла -->
   <div id="michaelModal">
     <div class="card">
@@ -23653,6 +23714,76 @@ function initHudIdentity() {
   renderHudAvatar();
 }
 try { initHudIdentity(); } catch (e) {}
+
+// ── Профиль — модал по тапу на аватар ────────────────────────────
+let _profileTab = 'inv';
+function toggleProfileModal() {
+  const el = document.getElementById('profileModal');
+  if (!el) return;
+  el.classList.toggle('show');
+  if (el.classList.contains('show')) renderProfileTab();
+}
+function switchProfileTab(tab) {
+  _profileTab = tab;
+  document.querySelectorAll('#profileModal .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  renderProfileTab();
+}
+function renderProfileTab() {
+  const box = document.getElementById('profileContent');
+  if (!box) return;
+  if (_profileTab === 'inv') {
+    const WEAP_EMOJI = { pistol:'🔫', nagan:'🔫', pistol_heavy:'🔫', pistol_gold:'✨', shotgun:'💥', smg:'🔫', tommy_gun:'🔫', rifle:'🎯', sniper:'🎯', rpg:'💣' };
+    let html = '<div class="items">';
+    html += `<div class="item${currentWeapon === 'fists' || !currentWeapon ? ' equipped' : ''}"><div class="icon">✊</div><div class="info"><div class="nm">Кулаки</div><div class="sub">всегда с тобой</div></div></div>`;
+    for (const w of _myWeapons) {
+      const eq = (currentWeapon === w.id);
+      const emoji = WEAP_EMOJI[w.id] || '🔫';
+      html += `<div class="item${eq ? ' equipped' : ''}"><div class="icon">${emoji}</div><div class="info"><div class="nm">${weaponLabel(w.id)}</div><div class="sub">${w.count != null ? 'Патроны: ' + w.count : ''} ${eq ? '⭐ экипировано' : ''}</div></div></div>`;
+    }
+    if (!_myWeapons.length) html += '<div class="empty">Нет оружия. Купи у Майкла!</div>';
+    html += '</div>';
+    box.innerHTML = html;
+  } else if (_profileTab === 'work') {
+    const kd = myDeaths > 0 ? (myKills / myDeaths).toFixed(2) : myKills.toFixed(0);
+    const stars = '★'.repeat(Math.min(5, myWanted || 0)) + '☆'.repeat(Math.max(0, 5 - (myWanted || 0)));
+    const modeCol = myMode === 'pvp' ? '#ff6040' : '#40c080';
+    const modeLbl = myMode === 'pvp' ? 'PvP' : 'PvE';
+    let html = '<div class="stat-block">';
+    html += `<div class="stat-card"><div class="label">Режим</div><div class="val" style="color:${modeCol}">${modeLbl}</div></div>`;
+    html += `<div class="stat-card"><div class="label">Уровень</div><div class="val" style="color:#ffd76b">${QP.lvl || 1}</div></div>`;
+    html += `<div class="stat-card"><div class="label">Розыск</div><div class="val" style="color:#ff4040">${stars}</div></div>`;
+    html += `<div class="stat-card"><div class="label">K/D</div><div class="val">${myKills}/${myDeaths} (${kd})</div></div>`;
+    if (myGtaStatus && myGtaStatus.active) {
+      html += `<div class="stat-card"><div class="label">Угон</div><div class="val" style="color:#ff8040">Активен</div></div>`;
+    }
+    html += `<div class="stat-card"><div class="label">Заказы сегодня</div><div class="val">${myGtaStatus ? myGtaStatus.count_today : 0} / ${myGtaStatus ? myGtaStatus.limit : 2}</div></div>`;
+    html += '</div>';
+    box.innerHTML = html;
+  } else if (_profileTab === 'biz') {
+    if (!myBusinesses || myBusinesses.size === 0) {
+      box.innerHTML = '<div class="empty">Пока нет бизнесов. Купи первый у Майкла!</div>';
+      return;
+    }
+    const BIZ_EMOJI = { gas:'⛽', shop:'🏪', bar:'🍺', restaurant:'🍽️', factory:'🏭', port:'🚢', casino:'🎰' };
+    let html = '<div class="items">';
+    myBusinesses.forEach((val, id) => {
+      if (!val.owned) return;
+      const poi = (typeof BUSINESS_POIS !== 'undefined') ? BUSINESS_POIS.find(b => b.id === id) : null;
+      const name = poi ? poi.name : id;
+      const emoji = poi ? (poi.emoji || BIZ_EMOJI[poi.type] || '🏢') : '🏢';
+      const pending = val.pending || 0;
+      html += `<div class="item"><div class="icon">${emoji}</div><div class="info"><div class="nm">${name}</div><div class="sub">Доход: $${pending} ${val.working === false ? '🔴 закрыт' : '🟢 работает'}</div></div></div>`;
+    });
+    html += '</div>';
+    box.innerHTML = html;
+  }
+}
+// Click outside card closes modal
+document.getElementById('profileModal')?.addEventListener('click', function(e) {
+  if (e.target === this) toggleProfileModal();
+});
+// Avatar click listener
+try { document.getElementById('hudAvatar').addEventListener('click', toggleProfileModal); } catch(e){}
 
 // Отрисовка персонажа в мире: тень + спрайт из creator-кеша + имя/чат/HP.
 // Размер фигуры подобран под TS=56: высота спрайта ~ 1.7×TS, чтобы перс
