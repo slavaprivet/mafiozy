@@ -861,6 +861,7 @@ async def init_db():
             # дефолтный спавн у госпиталя. Иначе biz_id из BUSINESSES
             # (coffee/carwash/...) — респ рядом с купленным бизнесом.
             ("respawn_point",      "TEXT DEFAULT NULL"),
+            ("building_loot_at",   "INTEGER DEFAULT 0"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -17551,6 +17552,32 @@ async def _coop_http_app():
     # Кулдаун сейфа на одного босса (секунд). 1 час по запросу пользователя.
     SAFE_RESPAWN_S = 3600
 
+    # === HTTP: лут кейса из здания в open world ===
+    # Клиент шлёт {amount}. Сервер: проверка кулдауна (3 мин), лимит суммы (80), начисление.
+    async def h_world_loot(req):
+        import time as _time
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        amount = int(b.get('amount', 0))
+        if amount < 1 or amount > 80:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad amount'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        now = _time.time()
+        last_loot = float(char.get('building_loot_at') or 0)
+        if now - last_loot < 170:
+            return await _cors(web.json_response({'ok': False, 'error': 'cooldown'}))
+        new_cash = (char.get('cash') or 0) + amount
+        await update_character(uid, cash=new_cash, building_loot_at=int(now))
+        return await _cors(web.json_response({'ok': True, 'cash': new_cash}))
+
     # === HTTP: вскрытый сейф из боёвки — серверный roll и начисление ===
     # Клиент шлёт {safe_lvl, big, boss}. Сервер: валидация навыка, проверка
     # кулдауна на boss_id (1 час), roll cash, бонус Дельца, запись cooldown.
@@ -19164,6 +19191,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/battle/{uid}/result', h_battle_result)
     aio_app.router.add_post('/skill/{uid}/upgrade', h_skill_upgrade)
     aio_app.router.add_post('/safe/{uid}/loot',     h_safe_loot)
+    aio_app.router.add_post('/world/loot/{uid}',    h_world_loot)
     aio_app.router.add_get ('/world/sim',           h_world_ws)  # общий мир
     aio_app.router.add_get ('/world/online',        h_world_online)  # для баннера в Кооперативе
     aio_app.router.add_get ('/world/incomes/{uid}', h_world_incomes)  # pending district income notifications
