@@ -23733,14 +23733,16 @@ function renderProfileTab() {
   if (!box) return;
   if (_profileTab === 'inv') {
     const WEAP_EMOJI = { pistol:'🔫', nagan:'🔫', pistol_heavy:'🔫', pistol_gold:'✨', shotgun:'💥', smg:'🔫', tommy_gun:'🔫', rifle:'🎯', sniper:'🎯', rpg:'💣' };
+    // Тот же источник что и weapon-bar: реальный _myWeapons, иначе фолбэк-пистолет
+    const wlist = (_myWeapons && _myWeapons.length) ? _myWeapons
+                : [{ id: 'pistol', name: 'пистолет', count: 1 }];
     let html = '<div class="items">';
-    html += `<div class="item${currentWeapon === 'fists' || !currentWeapon ? ' equipped' : ''}"><div class="icon">✊</div><div class="info"><div class="nm">Кулаки</div><div class="sub">всегда с тобой</div></div></div>`;
-    for (const w of _myWeapons) {
+    html += `<div class="item${(!currentWeapon || currentWeapon === 'fists' || currentWeapon === 'none') ? ' equipped' : ''}"><div class="icon">✊</div><div class="info"><div class="nm">Кулаки</div><div class="sub">всегда с тобой</div></div></div>`;
+    for (const w of wlist) {
       const eq = (currentWeapon === w.id);
       const emoji = WEAP_EMOJI[w.id] || '🔫';
       html += `<div class="item${eq ? ' equipped' : ''}"><div class="icon">${emoji}</div><div class="info"><div class="nm">${weaponLabel(w.id)}</div><div class="sub">${w.count != null ? 'Патроны: ' + w.count : ''} ${eq ? '⭐ экипировано' : ''}</div></div></div>`;
     }
-    if (!_myWeapons.length) html += '<div class="empty">Нет оружия. Купи у Майкла!</div>';
     html += '</div>';
     box.innerHTML = html;
   } else if (_profileTab === 'work') {
@@ -29241,8 +29243,9 @@ function drawBuildingInterior() {
   // ── Player ──────────────────────────────────────────────────
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
-    drawPerson(pp.x, pp.y, player.ang, player.walkPhase, player.walking,
-      QP.look || {}, false, 1.0);
+    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+      player.walking ? player.walkPhase : 0, QP.name, null, true,
+      myHp, PVP.max_hp, myDead, null, false, false);
   }});
 
   items.sort((a, b) => a.d - b.d);
