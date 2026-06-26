@@ -338,8 +338,8 @@
         <div style="text-align:left;color:#8a92a8">💵 Деньги:</div><div id="resCash" style="text-align:right;font-weight:bold;color:#ffd76b">+0$</div>
       </div>
       <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center">
-        <button id="btnBackDistrict" style="padding:12px 18px;background:linear-gradient(180deg,#2a4a30,#1a3020);border:2px solid #4a7a4a;border-radius:10px;color:#5dd55d;font-size:13px;font-weight:bold;cursor:pointer;min-width:150px">↩ К району</button>
-        <button id="btnBackMenu" style="padding:12px 18px;background:linear-gradient(180deg,#2a3548,#1a2030);border:2px solid #4a6080;border-radius:10px;color:#80a0d0;font-size:13px;font-weight:bold;cursor:pointer;min-width:150px">🏠 В меню</button>
+        <button id="btnBackDistrict" style="padding:12px 18px;background:linear-gradient(180deg,#2a4a30,#1a3020);border:2px solid #4a7a4a;border-radius:10px;color:#5dd55d;font-size:13px;font-weight:bold;cursor:pointer;min-width:150px">🌍 В мир</button>
+        <button id="btnBackMenu" style="padding:12px 18px;background:linear-gradient(180deg,#2a3548,#1a2030);border:2px solid #4a6080;border-radius:10px;color:#80a0d0;font-size:13px;font-weight:bold;cursor:pointer;min-width:150px">📋 В меню</button>
       </div>
     </div>
     <!-- Катсцена: выбор тактики перед боем -->
@@ -373,7 +373,21 @@ function _exitFromBattle(outParams) {
   try { back = new URLSearchParams(location.search).get('back') || ''; } catch(e) {}
   if (back === 'world' && window.parent && window.parent !== window) {
     try {
-      window.parent.postMessage({ type: 'battle_done', params: qs }, '*');
+      const msg = { type: 'battle_done', params: qs };
+      try {
+        const sp = new URLSearchParams(qs);
+        msg.hp = parseInt(sp.get('hp')) || 0;
+        msg.cash = parseInt(sp.get('cash')) || 0;
+        msg.lvl = parseInt(sp.get('lvl')) || 0;
+      } catch(e2) {}
+      try {
+        if (typeof fightStats !== 'undefined') {
+          msg.result = fightStats.result || 'lost';
+          msg.cashGain = fightStats.cashGain || 0;
+          msg.expGain = fightStats.expGain || 0;
+        }
+      } catch(e2) {}
+      window.parent.postMessage(msg, '*');
       return;
     } catch(e) {}
   }
@@ -4684,7 +4698,7 @@ function sendResultAndClose(action) {
     bd.style.opacity = '0.55'; bm.style.opacity = '0.55';
     // меняем подпись активной кнопки, чтобы было видно «процесс идёт»
     const active = (action === 'district') ? bd : bm;
-    if (active) active.textContent = '⏳ ' + (action === 'district' ? 'Загрузка района…' : 'Загрузка меню…');
+    if (active) active.textContent = '⏳ ' + (action === 'district' ? 'Возврат в мир…' : 'Загрузка меню…');
   } catch(e) {}
 
   // Строит URL хаба, подставляя обновлённое состояние персонажа из ответа API.

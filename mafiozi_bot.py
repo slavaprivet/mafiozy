@@ -2547,6 +2547,19 @@ def build_iso_url(char: dict, battle: dict, boss_id: str = "",
         params["bml"]   = int(inv.get("medkit_large", 0) or 0)
     if cash is not None:
         params["bcash"] = int(cash or 0)
+    look = char.get("look_json")
+    if look:
+        import json as _json2
+        try:
+            lk = _json2.loads(look) if isinstance(look, str) else look
+            if isinstance(lk, dict):
+                params["has_look"] = 1
+                for _lk in ("gender","skin","body","face","hair","hat"):
+                    params[_lk] = int(lk.get(_lk, 0) or 0)
+        except Exception:
+            pass
+    params["uid"] = char.get("telegram_id") or ""
+    params["lvl"] = int(char.get("level") or 1)
     return ISO_WEBAPP_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
 
 
@@ -18921,9 +18934,8 @@ async def _coop_http_app():
         bosses = loc.get('bosses') or []
         if not bosses:
             return await _cors(web.json_response({'ok': False, 'error': 'no bosses'}, status=500))
-        # Берём ГЛАВНОГО босса района (последнего в списке) — как делает
-        # hub.html: `loc.bosses[loc.bosses.length - 1]`.
-        boss_id = bosses[-1]
+        req_boss = (req.query.get('boss') or '').strip()
+        boss_id = req_boss if req_boss in bosses else bosses[-1]
         battle = {'location': loc_id, 'boss_id': boss_id}
         url = await build_iso_url_for_user(
             char, battle, uid, boss_id=boss_id, loc_id=loc_id,
