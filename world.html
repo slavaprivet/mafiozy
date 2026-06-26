@@ -11084,14 +11084,26 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
-  // Чёрный рынок — если подошёл к POI 'blackmarket' (r=6, c=36)
+  // Чёрный рынок — вход в здание
   const dxBM = 36 - player.c, dyBM = 6 - player.r;
-  if (Math.hypot(dxBM, dyBM) <= 2.5) {
-    _gtaActionKind = 'blackmarket';
-    _gtaActionCarId = null;
-    _gtaBtn.textContent = '🌌 Чёрный рынок — открыть';
+  if (Math.hypot(dxBM, dyBM) <= 2.5 && !_buildingInt && !_bankInt && !myDrivingCarId) {
+    _gtaActionKind = 'building_enter';
+    _gtaActionCarId = '6,36,blackmarket';
+    _gtaBtn.textContent = '🌌 Войти на Чёрный рынок';
     _gtaBtn.style.display = 'block';
     return;
+  }
+  // Внутри чёрного рынка — кнопка «Товар» рядом с продавцом
+  if (_buildingInt && _buildingInt.type === 'blackmarket') {
+    const sellerR = 3, sellerC = _buildingInt.W / 2;
+    const dd = Math.hypot(player.r - sellerR, player.c - sellerC);
+    if (dd < 2.5) {
+      _gtaActionKind = 'blackmarket';
+      _gtaActionCarId = null;
+      _gtaBtn.textContent = '🌌 Посмотреть товар';
+      _gtaBtn.style.display = 'block';
+      return;
+    }
   }
   // Вход в обычное здание (MAP[r][c]===1, не POI/банк/полиция и т.д.)
   if (!_buildingInt && !_bankInt && !myDrivingCarId && !myDead) {
@@ -11354,7 +11366,7 @@ _gtaBtn.addEventListener('click', () => {
   } else if (_gtaActionKind === 'biz_info') {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'blackmarket') {
-    openBlackmarketShop();
+    openShop();
   } else if (_gtaActionKind === 'brigadir') {
     takeBrigadirContract();
   } else if (_gtaActionKind === 'brigadir_claim') {
@@ -11379,8 +11391,9 @@ _gtaBtn.addEventListener('click', () => {
   } else if (_gtaActionKind === 'biz_deliver') {
     deliverBagsToBusinesses();
   } else if (_gtaActionKind === 'building_enter') {
-    const [br, bc] = _gtaActionCarId.split(',').map(Number);
-    enterBuildingInterior(br, bc);
+    const parts = _gtaActionCarId.split(',');
+    const br = +parts[0], bc = +parts[1], btype = parts[2] || null;
+    enterBuildingInterior(br, bc, btype);
   }
 });
 
@@ -29010,20 +29023,162 @@ Object.assign(_BANK_NPC_LOOKS, {
 });
 
 // ══════════════════════════════════════════════════════════════════
+// ── ЧЁРНЫЙ РЫНОК — специальный интерьер ──────────────────────────
+// ══════════════════════════════════════════════════════════════════
+function _drawBlackmarketInterior(bi) {
+  const W = bi.W, H = bi.H;
+  const {clientWidth: SW, clientHeight: SH} = document.getElementById('stage');
+  const hx = TS * .5, hy = TS * .5 * ISO_Y, wallH = isoH(2.8);
+  const now = performance.now();
+  ctx.fillStyle = '#08040c'; ctx.fillRect(0, 0, SW, SH);
+
+  // Пол — тёмные доски
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+    const tone = (r * 3 + c) % 4;
+    const fill = ['#1a120e','#16100c','#1e140f','#120c08'][tone];
+    const p = w2s(r + .5, c + .5);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - hy); ctx.lineTo(p.x + hx, p.y);
+    ctx.lineTo(p.x, p.y + hy); ctx.lineTo(p.x - hx, p.y); ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.strokeStyle = '#0a0608'; ctx.lineWidth = .3; ctx.stroke();
+  }
+
+  // Тусклое освещение
+  { ctx.save();
+    const flick = 0.7 + 0.3 * Math.sin(now * 0.0015);
+    const lp = w2s(3, W / 2);
+    const g = ctx.createRadialGradient(lp.x, lp.y, 2, lp.x, lp.y, hx * 3);
+    g.addColorStop(0, `rgba(200,140,60,${.10 * flick})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(lp.x, lp.y, hx * 3, hy * 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  const items = [];
+
+  // Стойка-прилавок (r=3, во всю ширину центра)
+  const cntR = 3, cntCL = Math.floor(W * .25), cntCR = Math.floor(W * .75);
+  for (let c = cntCL; c < cntCR; c++) {
+    items.push({ d: cntR + c * .01, fn: ((c2) => () => {
+      const a = w2s(cntR, c2), b = w2s(cntR, c2 + 1);
+      const dH = isoH(0.55);
+      ctx.fillStyle = '#2a1a10'; ctx.strokeStyle = '#3a2a18'; ctx.lineWidth = .6;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.lineTo(b.x, b.y - dH); ctx.lineTo(a.x, a.y - dH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#3a2818';
+      ctx.beginPath(); ctx.moveTo(a.x, a.y - dH); ctx.lineTo(b.x, b.y - dH);
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      ctx.lineTo(mx, my - dH - hy * .3); ctx.lineTo(a.x - (b.x - a.x) * .0, a.y - dH - hy * .3 + (a.y - b.y)); ctx.closePath(); ctx.fill();
+    })(c)});
+  }
+
+  // Товары на прилавке
+  const goods = ['🔫','💣','🔪','💊','📦'];
+  for (let gi = 0; gi < goods.length; gi++) {
+    const gc = cntCL + 0.5 + gi * ((cntCR - cntCL) / goods.length);
+    items.push({ d: cntR + gc * .01 - .01, fn: ((g, c2) => () => {
+      const p = w2s(cntR + .3, c2);
+      ctx.font = '12px "Segoe UI Emoji",system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(g, p.x, p.y - isoH(0.65));
+    })(goods[gi], gc)});
+  }
+
+  // Продавец (NPC за прилавком)
+  const sellerR = 2.5, sellerC = W / 2;
+  items.push({ d: sellerR + sellerC * .01, fn: () => {
+    const p = w2s(sellerR + .5, sellerC + .5);
+    const sellerLook = { gender: 0, skin: 3, body: 4, face: 3, hair: 2, hat: 3 };
+    drawPerson(p.x, p.y, Math.PI * .5, sellerLook, 0, 'Витёк', null, false, 100, 100, false, null, false, false);
+  }});
+
+  // Полки на стенах с ящиками
+  for (let si = 0; si < 3; si++) {
+    const sr = 1 + si * 2.5, sc = 1;
+    items.push({ d: sr + sc * .01, fn: ((r2, c2) => () => {
+      const p = w2s(r2, c2);
+      const shH = isoH(0.8);
+      ctx.fillStyle = '#2a1e14'; ctx.strokeStyle = '#1a0e08'; ctx.lineWidth = .5;
+      const pN = w2s(r2 + 1, c2);
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(pN.x, pN.y);
+      ctx.lineTo(pN.x, pN.y - shH); ctx.lineTo(p.x, p.y - shH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#3a2e1e';
+      ctx.fillRect(p.x + 1, p.y - shH + 2, 8, 6);
+      ctx.fillStyle = '#4a3a28';
+      ctx.fillRect(p.x + 1, p.y - shH + 10, 8, 6);
+    })(sr, sc)});
+  }
+
+  // Стены
+  const wallCol = '#1a1018', wallColD = '#120c14', wallPanel = '#0e0810';
+  const _wf = (r0, c0, r1, c1, col, panel) => {
+    const a = w2s(r0, c0), b = w2s(r1, c1);
+    const panH = wallH * .3;
+    ctx.fillStyle = col; ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = .7;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y - panH); ctx.lineTo(b.x, b.y - panH);
+    ctx.lineTo(b.x, b.y - wallH); ctx.lineTo(a.x, a.y - wallH); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = panel;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y - panH); ctx.lineTo(a.x, a.y - panH); ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+  for (let r = 0; r < H; r++) items.push({ d: r + .01, fn: ((r2) => () => _wf(r2, 0, r2 + 1, 0, wallCol, wallPanel))(r) });
+  for (let r = 0; r < H; r++) items.push({ d: r + W, fn: ((r2) => () => _wf(r2, W, r2 + 1, W, wallColD, wallPanel))(r) });
+  for (let c = 0; c < W; c++) items.push({ d: c * .01, fn: ((c2) => () => _wf(0, c2, 0, c2 + 1, wallCol, wallPanel))(c) });
+  const eDL = Math.floor(W / 2) - 1, eDR = Math.floor(W / 2) + 1;
+  for (let c = 0; c < W; c++) {
+    const isExit = c >= eDL && c < eDR;
+    items.push({ d: H + c + .5, fn: ((c2, ie) => () => {
+      _wf(H, c2, H, c2 + 1, ie ? '#08040c' : wallCol, ie ? '#08040c' : wallPanel);
+    })(c, isExit) });
+  }
+
+  // EXIT
+  items.push({ d: H + W / 2 + 1, fn: () => {
+    const p = w2s(H, W / 2);
+    const signY = p.y - wallH * .7;
+    const blink = 0.6 + 0.4 * Math.sin(now * 0.003);
+    ctx.save();
+    ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = `rgba(40,255,80,${blink})`; ctx.shadowColor = '#00ff40'; ctx.shadowBlur = 6;
+    ctx.fillText('EXIT', p.x, signY);
+    ctx.shadowBlur = 0; ctx.restore(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }});
+
+  // Игрок
+  items.push({ d: player.r + player.c + .5, fn: () => {
+    const pp = w2s(player.r + .5, player.c + .5);
+    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+      player.walking ? player.walkPhase : 0, QP.name, null, true,
+      myHp, PVP.max_hp, myDead, null, false, false);
+  }});
+
+  items.sort((a, b) => a.d - b.d);
+  items.forEach(i => i.fn());
+
+  // HUD
+  ctx.save();
+  ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillStyle = '#c080ff'; ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText('🌌 Чёрный рынок', SW / 2, 12);
+  ctx.shadowBlur = 0; ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════════
 // ── GENERIC BUILDING INTERIOR (обычные здания MAP[r][c]===1) ─────
 // ══════════════════════════════════════════════════════════════════
-function enterBuildingInterior(r, c) {
+function enterBuildingInterior(r, c, type) {
   if (_buildingInt || _bankInt || myDead || myDrivingCarId) return;
-  const biW = 16, biH = 12;
+  const isBM = type === 'blackmarket';
+  const biW = isBM ? 10 : 16, biH = isBM ? 8 : 12;
   const seed = ((r * 73 + c * 131) % 97) / 97;
   _buildingInt = { r, c, W: biW, H: biH, seed,
-    savedR: player.r, savedC: player.c };
+    savedR: player.r, savedC: player.c,
+    type: type || null };
   _buildingHideTimer = 0;
   player.r = biH - 1.5; player.c = biW / 2;
   cam.x = (player.c - player.r) * TS * 0.5;
   cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
   bullets.length = 0; muzzles.length = 0; impacts.length = 0; lockedTargets.clear();
-  showToast('🏠 Вошёл в здание', '🚪', 1500);
+  showToast(isBM ? '🌌 Чёрный рынок' : '🏠 Вошёл в здание', isBM ? '🌌' : '🚪', 1500);
 }
 
 function exitBuildingInterior() {
@@ -29038,6 +29193,7 @@ function exitBuildingInterior() {
 
 function drawBuildingInterior() {
   const bi = _buildingInt; if (!bi) return;
+  if (bi.type === 'blackmarket') { _drawBlackmarketInterior(bi); return; }
   const W = bi.W, H = bi.H;
   const stage = document.getElementById('stage');
   const SW = stage.clientWidth, SH = stage.clientHeight;
