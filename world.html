@@ -593,8 +593,28 @@ body.in-pvp #robActionBtn { top: 152px; }
   font-family: inherit; color: #fff;
   pointer-events: none;
   width: 168px;
+  transition: all .25s ease;
 }
 #questCarHud.show { display: block; }
+#questCarHud .qhd-close {
+  position: absolute; top: 3px; right: 4px;
+  width: 20px; height: 20px; border: none; background: rgba(255,255,255,.12);
+  border-radius: 50%; color: #ffd76b; font-size: 12px; line-height: 20px;
+  text-align: center; cursor: pointer; pointer-events: auto; padding: 0;
+}
+#questCarHud .qhd-close:active { background: rgba(255,255,255,.3); }
+#questCarHud.minimized .qhd-body { display: none; }
+#questCarHud.minimized { width: auto; padding: 4px 28px 4px 8px; }
+#questCarHud .qhd-nav {
+  display: flex; justify-content: center; gap: 4px; margin-top: 4px;
+  pointer-events: auto;
+}
+#questCarHud .qhd-nav .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,215,107,.3); border: none; padding: 0; cursor: pointer;
+  pointer-events: auto;
+}
+#questCarHud .qhd-nav .dot.active { background: #ffd76b; }
 #questCarHud .qhd-row { display: flex; align-items: center; gap: 6px; }
 #questCarHud canvas {
   width: 100%; height: 56px; display: block;
@@ -1305,10 +1325,14 @@ body.in-pvp #robActionBtn { top: 152px; }
   <!-- HUD-виджет активного квеста Майкла: фото машины + название + статус.
        Показывается только когда myGtaStatus.active есть и модал Майкла закрыт. -->
   <div id="questCarHud">
+    <button class="qhd-close" id="questHudToggle">×</button>
     <div class="qhd-t">🎯 Заказ Майкла</div>
-    <canvas id="questCarHudCv" width="160" height="56"></canvas>
-    <div class="qhd-name" id="questCarHudName">—</div>
-    <div class="qhd-sub" id="questCarHudSub">—</div>
+    <div class="qhd-body">
+      <canvas id="questCarHudCv" width="160" height="56"></canvas>
+      <div class="qhd-name" id="questCarHudName">—</div>
+      <div class="qhd-sub" id="questCarHudSub">—</div>
+    </div>
+    <div class="qhd-nav" id="questHudNav"></div>
   </div>
   <!-- Индикатор режима PvP/PvE (тап → выбрать другой режим) -->
   <div id="modeHud" title="Сменить режим">🔫 PvP <span class="sw">сменить</span></div>
@@ -1810,9 +1834,12 @@ function buildMap() {
     }
   }
   // Декор на бордюре — плотность ×0.7 (ящики/бочки/мусорки реже).
+  // НЕ ставим на тайлах прямо у дороги (r%BLOCK==3 || c%BLOCK==3) —
+  // они блокируют проезд машин.
   for (let r = 2; r < MAP_ROWS - 2; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
       if (MAP[r][c] !== 9) continue;
+      if ((r % BLOCK) <= 3 || (c % BLOCK) <= 3) continue;
       const x = det(r, c, 1);
       if (x < 0.018)       MAP[r][c] = 3; // ящик
       else if (x < 0.028)  MAP[r][c] = 4; // бочка
@@ -2353,11 +2380,14 @@ function applyQuestCarsSnapshot(arr) {
   // = undefined → весь вид «съезжал»). Моя машина клиент-авторитетна —
   // держим её локально, даже если сервер на пару тиков замолчал.
   for (const id of Array.from(questCars.keys())) {
-    if (!fresh.has(id) && id !== myDrivingCarId) questCars.delete(id);
+    const _keepRecent = (_recentlyExitedCarId === id && performance.now() < _recentlyExitedCarUntil);
+    if (!fresh.has(id) && id !== myDrivingCarId && !_keepRecent) questCars.delete(id);
   }
 }
 // Когда я сел в машину — её id; null если иду пешком.
 let myDrivingCarId = null;
+let _recentlyExitedCarId = null;
+let _recentlyExitedCarUntil = 0;
 // Я еду в автобусе. Игрок невидим, камера за BUS, стрелять/двигаться
 // нельзя. Выйти — на остановке или выпрыгнуть на ходу.
 let _inBus = false;
@@ -4277,6 +4307,7 @@ function updateCityCops(dt) {
     }
     if (copNear && now > (_bagSpottedCdUntil || 0)) {
       _bagSpottedCdUntil = now + 8000;
+      if (typeof myWanted === 'number' && myWanted < 2) myWanted = 2;
       try { ws && ws.send(JSON.stringify({ t: 'cop_spotted_bag', d: {} })); } catch(e) {}
       showToast('🚓 Коп заметил мешок! Розыск +2★', '🚨', 2600);
       try { hapticHit && hapticHit(); } catch(e) {}
@@ -10496,6 +10527,7 @@ _zoneEl.addEventListener('click', () => {
           bag.taken = true;
           int.myBag = {id: bag.id, value: int.bank.reward_per_bag};
           _myBagWeight = 1;
+          if (_bankRob) _bankRob._bagsTaken = (_bankRob._bagsTaken || 0) + 1;
           delete _zoneEl.dataset.vaultBagId;
           showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`, '💼', 2200);
           try{hapticHit&&hapticHit();}catch(e){}
@@ -11250,17 +11282,28 @@ const _dropBagBtn = document.getElementById('dropBagBtn');
 if (_dropBagBtn) {
   _dropBagBtn.addEventListener('click', () => {
     if (_bankInt && _bankInt.myBag) {
-      // Кладём мешок НА ПОЛ К НОГАМ игрока (а не на исходную позицию в
-      // хранилище — раньше orig.taken=false возвращал мешок в дальний угол
-      // хранилища, выглядело как «исчез/телепортировался»). Координаты —
-      // интерьерные (room coords), как у player.r/c; рендерится в
-      // drawBankInteriorScene из _bankInt.bags.
-      const b = _bankInt.myBag;
-      const orig = (_bankInt.bags || []).find(x => x.id === b.id);
-      if (orig) { orig.taken = false; orig.r = player.r; orig.c = player.c; }
-      else if (_bankInt.bags) { _bankInt.bags.push({ id: b.id, taken: false, r: player.r, c: player.c }); }
-      _bankInt.myBag = null; _myBagWeight = 0;
-      showToast('💼 Мешок брошен', '⚠️', 1400);
+      if (_bankInt.room === 'vault') {
+        const b = _bankInt.myBag;
+        const dropR = player.r + 0.8;
+        const dropC = player.c + 0.4;
+        const orig = (_bankInt.bags || []).find(x => x.id === b.id);
+        if (orig) {
+          orig.taken = false;
+          orig.r = dropR;
+          orig.c = dropC;
+        }
+        if (!_bankInt.bags) _bankInt.bags = [];
+        if (!orig) {
+          _bankInt.bags.push({ id: b.id || ('drop_' + Date.now()), taken: false, r: dropR, c: dropC });
+        }
+        _bankInt.myBag = null; _myBagWeight = 0;
+        showToast('💼 Мешок брошен на пол', '⚠️', 1400);
+      } else {
+        _bankRob = _bankRob || { bank: _bankInt.bank, bagsLoaded: 0, bagsMax: _bankInt.bank.bags, phase: 'carrying', myBag: null, startedAt: performance.now()/1000 };
+        _bankRob.myBag = { value: _bankInt.myBag.value || _bankInt.bank.reward_per_bag, id: _bankInt.myBag.id };
+        _bankInt.myBag = null;
+        dropVaultBag();
+      }
       if (typeof updateZoneBtn === 'function') updateZoneBtn();
     } else if (_bankRob && _bankRob.myBag) {
       dropVaultBag();
@@ -12205,10 +12248,18 @@ const _qcHud      = document.getElementById('questCarHud');
 const _qcHudCv    = document.getElementById('questCarHudCv');
 const _qcHudName  = document.getElementById('questCarHudName');
 const _qcHudSub   = document.getElementById('questCarHudSub');
+let _questHudMinimized = false;
+{
+  const _toggle = document.getElementById('questHudToggle');
+  if (_toggle) _toggle.addEventListener('click', () => {
+    _questHudMinimized = !_questHudMinimized;
+    if (_qcHud) _qcHud.classList.toggle('minimized', _questHudMinimized);
+    _toggle.textContent = _questHudMinimized ? '🎯' : '×';
+  });
+}
 function updateQuestCarHud() {
   if (!_qcHud) return;
   const a = myGtaStatus && myGtaStatus.active;
-  // Скрываем виджет если модал Майкла открыт (там и так есть превью)
   const modalOpen = _michaelModal && _michaelModal.classList.contains('show');
   if (!a || modalOpen) { _qcHud.classList.remove('show'); return; }
   const mdef = QUEST_CAR_MODELS[a.model] || { label: a.model || '—' };
@@ -12425,6 +12476,8 @@ function exitCar(reason) {
     qc.state = 'idle';
     qc.vx = 0; qc.vy = 0;
   }
+  _recentlyExitedCarId = myDrivingCarId;
+  _recentlyExitedCarUntil = performance.now() + 5000;
   myDrivingCarId = null;
   _myCarFuelPct  = null;
   _exitRequested = false;
@@ -14171,6 +14224,13 @@ function updateDistrictCapture() {
 }
 
 // ── Update / Render ────────────────────────────────────────────
+function _tickWorldLife(dt) {
+  updateNpcs(dt);
+  updateCars(dt);
+  tickRandomWorldEvents(performance.now());
+  _tickBrigadir(dt);
+  _interpBeachgoers(dt);
+}
 let prevT = performance.now();
 function update(dt) {
   // Сводный ввод: джойстик + клавиатура.
@@ -14216,10 +14276,10 @@ function update(dt) {
       updatePvpUI();
       updateGtaQuestHud();
       _interpQuestCars(dt);
-      _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
       _tickBus(dt);
       _tickParkingNpcs(dt);
+      _tickWorldLife(dt);
       return;
     } else {
       // Параметры аркадной езды. Серверный кламп QUEST_CAR_MAX_SPEED=14.
@@ -14702,10 +14762,10 @@ function update(dt) {
       }
       // Интерполяция чужих quest_cars (которые ведут другие игроки)
       _interpQuestCars(dt);
-      _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
       _tickBus(dt);
       _tickParkingNpcs(dt);
+      _tickWorldLife(dt);
       return;
     }
   }
@@ -14745,9 +14805,9 @@ function update(dt) {
         o.ang += aDiff * Math.min(1, dt * 8);
       }
       _interpQuestCars(dt);
-      _interpBeachgoers(dt);
       _interpMichaelGuards(dt);
       _tickParkingNpcs(dt);
+      _tickWorldLife(dt);
       return;
     }
   }
@@ -14896,7 +14956,6 @@ function update(dt) {
   updateGtaQuestHud();
   updateRobbery(performance.now());
   _updateBankRobbery(dt);
-  tickRandomWorldEvents(performance.now());
   // Хит-цель (бандит из aggroZones) пропала — либо убили без меня,
   // либо зона зачищена/исчезла. Сбрасываем зависший контракт чтобы
   // игрок мог взять новый. Пропускаем когда _myBrigadirKillSent —
@@ -14918,8 +14977,6 @@ function update(dt) {
   _tickBus(dt);
   // AI «жителей» с машинами на парковках (вышел, погулял, вернулся)
   _tickParkingNpcs(dt);
-  // Бригадир бродит у бара — стопится когда игрок подошёл, иначе walks
-  _tickBrigadir(dt);
   // Стрельба в открытом мире: ЛОК-система (вернули по просьбе — было лучше
   // чем free-aim стиком). Тап по цели → маркер; кнопка fireBtn бьёт по
   // ближайшей залоченной цели РОВНО в неё. Без лока кнопка бьёт кулаком /
@@ -14964,8 +15021,7 @@ function update(dt) {
     if (o.w) o._walkPhase = (o._walkPhase || 0) + dt * 10;
   }
   // Локальная симуляция декора: прохожие + машины + службы
-  updateNpcs(dt);
-  updateCars(dt);
+  _tickWorldLife(dt);
   // Расход топлива игрока — только пока едет (не пассажир)
   if (myDrivingCarId && !myIsPassenger && _myCarFuelPct !== null) {
     _myCarFuelPct = Math.max(0, _myCarFuelPct - _FUEL_DRAIN_RATE * dt);
@@ -15877,9 +15933,10 @@ function drawBeachUmbrella(r, c, col) {
   ctx.lineWidth = 1.2;
   ctx.beginPath();
   ctx.arc(p.x, topY, R, Math.PI, 0, false);
+  ctx.save();
   ctx.scale(1, 0.45);
   ctx.stroke();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);   // reset scale
+  ctx.restore();
 }
 
 function drawBeachChair(r, c, ang) {
@@ -26792,6 +26849,7 @@ function drawPOIArrows(r0, r1, c0, c1) {
   // Каждому считаем точку пересечения луча из центра экрана с
   // прямоугольником (PAD..W-PAD) × (PAD..H-PAD).
   for (const poi of POI) {
+    if (!poi._marked && !poi._questTarget) continue;
     const visible = poi.r >= r0 && poi.r < r1 && poi.c >= c0 && poi.c < c1;
     if (visible) continue;
     const dr = poi.r - player.r, dc = poi.c - player.c;
@@ -27668,8 +27726,7 @@ function _heartbeat() {
       _vv  = vv ? (Math.round(vv.width) + 'x' + Math.round(vv.height) + '@' + Math.round(vv.offsetTop)) : 'none';
       const st = document.getElementById('stage');
       _stg = st ? (st.clientWidth + 'x' + st.clientHeight) : '?';
-      // АВТО-ПОКАЗ дебаг-плашки когда «карта уезжает» (DRIFT>15px).
-      if (_hbEl && typeof _drift === 'number' && _drift > 15) _hbEl.style.display = 'block';
+      // Авто-показ дебаг-плашки отключён — только по долгому тапу на 🗺 или ?dbg=1.
     } catch (e) {}
     const _errs = _dbgErrors.length ? '\n🔴 ' + _dbgErrors.slice(-2).join('\n🔴 ') : '';
     _dbg = `\nz${_zoom} dpr${_dpr} cv${canvas.width}x${canvas.height}\n` +
@@ -27741,6 +27798,7 @@ function _takeVaultBagDirect(bag) {
   bag.taken = true;
   int.myBag = { id: bag.id, value: int.bank.reward_per_bag };
   _myBagWeight = 1;
+  if (_bankRob) _bankRob._bagsTaken = (_bankRob._bagsTaken || 0) + 1;
   showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`, '💼', 2000);
   try { hapticHit && hapticHit(); } catch(e) {}
   if (typeof updateZoneBtn === 'function') updateZoneBtn();
@@ -27924,6 +27982,9 @@ function deliverBagsToBusinesses() {
   const total = bags * rewardPer;
   try { ws && ws.send(JSON.stringify({ t: 'bank_rob_deliver', d: { bank_id: _bankRob.bank.id, biz_id: bizId, bags } })); } catch(e) {}
   showToast(`🤫 Прячем куш! +$${total.toLocaleString('ru')}`, '🏆', 3500);
+  spawnFloatText(player.r, player.c, '+$' + total.toLocaleString('ru'), {
+    color: '#7be58a', size: 22, life: 2200,
+  });
   _bankRob = null;
   _myBagWeight = 0;
   if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
@@ -28854,7 +28915,8 @@ function enterBankInterior(bank) {
   // Раньше vaultOpen=!!existingRob → после «тревога без взлома» банк
   // ошибочно открывался сразу, и игрок не мог взломать его заново.
   const vaultOpen=!!(existingRob&&_bankRob._vaultCracked);
-  const bagsLeft=bank.bags-(existingRob?_bankRob.bagsLoaded:0);
+  const taken=existingRob?Math.max(_bankRob.bagsLoaded||0,_bankRob._bagsTaken||0):0;
+  const bagsLeft=bank.bags-taken;
   if (existingRob&&bagsLeft<=0){ showToast('💰 Все мешки взяты!','✅',1800); return; }
   const cfg=_BINT[bank.size]||_BINT.small;
   const {W,H,crackTime,counterRow}=cfg;
@@ -29024,6 +29086,22 @@ function _updateBankInterior(dt) {
       if (ws&&ws.readyState===1){try{ws.send(JSON.stringify({t:'bank_rob_announce',d:{bank_id:int.bank.id}}));}catch(e){}}
     }
   }
+  // Таймер хранилища: 5 минут после вскрытия → закрывается
+  if (int.phase==='vault_open' && int._vaultOpenedAt) {
+    const VAULT_OPEN_MS = 5 * 60 * 1000;
+    const elapsed = now - int._vaultOpenedAt;
+    if (elapsed >= VAULT_OPEN_MS) {
+      int.phase = 'lobby';
+      int.crackProg = 0;
+      int._crackStartedAt = null;
+      if (int.room === 'vault') {
+        int.room = 'lobby';
+        showToast('🔒 Хранилище закрылось! Тебя выкинуло в лобби.', '⚠️', 3000);
+      } else {
+        showToast('🔒 Хранилище закрылось.', 'ℹ️', 2000);
+      }
+    }
+  }
   const hasWeapon=_isArmed();
   const isRobbery=(int.phase==='cracking'||int.phase==='vault_open');
   // Пока игрок в хранилище — координаты player.r/c в системе хранилища,
@@ -29077,6 +29155,33 @@ function _updateBankInterior(dt) {
       npc.fleeVr=dr/mag*3.8; npc.fleeVc=dc/mag*3.8;
     }
     int.panicAt=null;
+  }
+  // ── Комната охраны: спавн 3 охранников каждые 30 сек, макс 9 ────────
+  if (!int._secSpawnAt) int._secSpawnAt = now + 30000;
+  if (now >= int._secSpawnAt) {
+    const liveGuards = int.npcs.filter(n => n.type === 'guard' && !n.dead && n.state !== 'fled');
+    if (liveGuards.length < 9) {
+      const toSpawn = Math.min(3, 9 - liveGuards.length);
+      const secDoorR = counterRow + 2, secDoorC = 2;
+      for (let si = 0; si < toSpawn; si++) {
+        const gi = int.npcs.filter(n => n.type === 'guard').length;
+        int.npcs.push({
+          type: 'guard', _guardIdx: 100 + gi,
+          r: secDoorR + Math.random() * 0.5, c: secDoorC + Math.random() * 0.5,
+          state: isRobbery ? 'hostile' : 'normal',
+          look: _BANK_NPC_LOOKS.guard,
+          walkPhase: Math.random() * 6.28, ang: Math.PI * 0.5,
+          wanderTimer: 2 + Math.random() * 2, wanderVr: 0, wanderVc: 0,
+          _alertAt: 0, hp: 100, max_hp: 100,
+          cryText: isRobbery ? 'Подкрепление!' : null,
+          cryUntil: isRobbery ? now + 2000 : 0,
+        });
+      }
+      if (toSpawn > 0 && isRobbery) {
+        showToast(`🚨 Подкрепление! +${toSpawn} охранников!`, '🛡️', 1800);
+      }
+    }
+    int._secSpawnAt = now + 30000;
   }
   // Живые фразы NPC (только в нормальном состоянии, не при ограблении)
   if (!int.panicAt && int.phase === 'lobby') {
@@ -30677,6 +30782,48 @@ function drawBankInteriorScene() {
   drawArch(archRow, staffArchC,  '🖥️ Персонал', 'rgba(80,140,220,0.8)');
   drawArch(archRow, loungeArchC, '☕ Отдых',     'rgba(180,80,180,0.8)');
 
+  // ── Комната охраны — дверь сбоку от лобби (западная стена) ─────────
+  { const secR = counterRow + 1.5, secC = 0;
+    items.push({d: secR + secC + .2, fn: () => {
+      const a = w2s(secR, secC), b = w2s(secR + 2.5, secC);
+      const dH = wallH * .7;
+      // Дверной проём (тёмный)
+      ctx.fillStyle = 'rgba(10,8,18,.9)';
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.lineTo(b.x, b.y - dH); ctx.lineTo(a.x, a.y - dH); ctx.closePath(); ctx.fill();
+      // Стальная рамка
+      ctx.strokeStyle = '#4a5268'; ctx.lineWidth = 2;
+      ctx.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y) - dH, Math.abs(b.x - a.x) || 14, dH + Math.abs(b.y - a.y));
+      // Табличка SECURITY
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - dH - 8;
+      const blink = 0.5 + 0.5 * Math.sin(now * 0.004);
+      // Фон таблички
+      ctx.fillStyle = '#1a1020'; ctx.strokeStyle = '#3a2848'; ctx.lineWidth = 1;
+      const tw = 52, th = 14;
+      ctx.fillRect(mx - tw / 2, my - th / 2, tw, th);
+      ctx.strokeRect(mx - tw / 2, my - th / 2, tw, th);
+      // Текст
+      ctx.save();
+      ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = `rgba(255,60,60,${0.6 + 0.4 * blink})`;
+      ctx.shadowColor = '#ff2020'; ctx.shadowBlur = 6 + 4 * blink;
+      ctx.fillText('🛡️ SECURITY', mx, my);
+      ctx.shadowBlur = 0; ctx.restore();
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      // Мигающая лампа над дверью
+      ctx.fillStyle = `rgba(255,${40 + Math.floor(blink * 80)},40,${0.5 + 0.5 * blink})`;
+      ctx.beginPath(); ctx.arc(mx, my - th / 2 - 6, 3 + blink, 0, Math.PI * 2); ctx.fill();
+      // Свечение лампы
+      ctx.save();
+      const glow = ctx.createRadialGradient(mx, my - th / 2 - 6, 1, mx, my - th / 2 - 6, 14);
+      glow.addColorStop(0, `rgba(255,60,40,${0.15 * blink})`);
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(mx, my - th / 2 - 6, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }});
+  }
+
   // ── СТЕНЫ — добавляем в depth-sort, иначе всегда поверх игрока ───
   // items.sort() будет вызван ПОСЛЕ добавления стен (ниже)
   // Базовые цвета — светлые мраморные, хорошо видны на тёмном фоне
@@ -30777,6 +30924,23 @@ function drawBankInteriorScene() {
     }
 
     if (phase==='vault_open') {
+      // Таймер закрытия хранилища (5 мин)
+      if (_bankInt._vaultOpenedAt) {
+        const VAULT_MS = 5*60*1000;
+        const left = Math.max(0, VAULT_MS - (now2 - _bankInt._vaultOpenedAt));
+        const mm = Math.floor(left/60000), ss = Math.floor((left%60000)/1000);
+        const timerStr = `${mm}:${String(ss).padStart(2,'0')}`;
+        const urgent = left < 60000;
+        ctx.save();
+        ctx.font = 'bold 11px system-ui';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillStyle = urgent ? '#ff4040' : '#ffd76b';
+        ctx.shadowColor = urgent ? '#ff0000' : '#ffa500';
+        ctx.shadowBlur = urgent ? 12 : 6;
+        ctx.fillText(`🔓 ${timerStr}`, vc.x, vcy - frameH - 10);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
       // ОТКРЫТАЯ ДВЕРЬ — массивная плита откатывается в сторону на роликах
       const openAnim=_bankInt._vaultOpenedAt
         ? Math.min(1,(now2-_bankInt._vaultOpenedAt)/1200)
