@@ -11086,7 +11086,7 @@ function updateGtaInteractions() {
   }
   // Чёрный рынок — вход в здание
   const dxBM = 36 - player.c, dyBM = 6 - player.r;
-  if (Math.hypot(dxBM, dyBM) <= 2.5 && !_buildingInt && !_bankInt && !myDrivingCarId) {
+  if (Math.hypot(dxBM, dyBM) <= 3.5 && !_buildingInt && !_bankInt && !myDrivingCarId) {
     _gtaActionKind = 'building_enter';
     _gtaActionCarId = '6,36,blackmarket';
     _gtaBtn.textContent = '🌌 Войти на Чёрный рынок';
@@ -31539,45 +31539,30 @@ function drawBankInteriorScene() {
   drawArch(archRow, staffArchC,  '🖥️ Персонал', 'rgba(80,140,220,0.8)');
   drawArch(archRow, loungeArchC, '☕ Отдых',     'rgba(180,80,180,0.8)');
 
-  // ── Комната охраны — дверь сбоку от лобби (западная стена) ─────────
+  // ── Комната охраны — дверь на западной стене (изометрическая) ───────
   { const secR = counterRow + 1.5, secC = 0;
     items.push({d: secR + secC + .2, fn: () => {
-      const a = w2s(secR, secC), b = w2s(secR + 2.5, secC);
-      const dH = wallH * .7;
+      const a = w2s(secR, secC), b = w2s(secR + 2, secC);
+      const dH = wallH * .6;
       // Дверной проём (тёмный)
       ctx.fillStyle = 'rgba(10,8,18,.9)';
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
       ctx.lineTo(b.x, b.y - dH); ctx.lineTo(a.x, a.y - dH); ctx.closePath(); ctx.fill();
-      // Стальная рамка
-      ctx.strokeStyle = '#4a5268'; ctx.lineWidth = 2;
-      ctx.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y) - dH, Math.abs(b.x - a.x) || 14, dH + Math.abs(b.y - a.y));
-      // Табличка SECURITY
-      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - dH - 8;
+      // Стальная рамка (изометрическая — по стене)
+      ctx.strokeStyle = '#5a6278'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.lineTo(b.x, b.y - dH); ctx.lineTo(a.x, a.y - dH); ctx.closePath(); ctx.stroke();
+      // Табличка «ОХРАНА» на стене (параллелограмм)
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - dH * .55;
       const blink = 0.5 + 0.5 * Math.sin(now * 0.004);
-      // Фон таблички
-      ctx.fillStyle = '#1a1020'; ctx.strokeStyle = '#3a2848'; ctx.lineWidth = 1;
-      const tw = 52, th = 14;
-      ctx.fillRect(mx - tw / 2, my - th / 2, tw, th);
-      ctx.strokeRect(mx - tw / 2, my - th / 2, tw, th);
-      // Текст
       ctx.save();
-      ctx.font = 'bold 8px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = `rgba(255,60,60,${0.6 + 0.4 * blink})`;
-      ctx.shadowColor = '#ff2020'; ctx.shadowBlur = 6 + 4 * blink;
-      ctx.fillText('🛡️ SECURITY', mx, my);
-      ctx.shadowBlur = 0; ctx.restore();
-      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText('ОХРАНА', mx, my);
+      ctx.restore();
       // Мигающая лампа над дверью
       ctx.fillStyle = `rgba(255,${40 + Math.floor(blink * 80)},40,${0.5 + 0.5 * blink})`;
-      ctx.beginPath(); ctx.arc(mx, my - th / 2 - 6, 3 + blink, 0, Math.PI * 2); ctx.fill();
-      // Свечение лампы
-      ctx.save();
-      const glow = ctx.createRadialGradient(mx, my - th / 2 - 6, 1, mx, my - th / 2 - 6, 14);
-      glow.addColorStop(0, `rgba(255,60,40,${0.15 * blink})`);
-      glow.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = glow;
-      ctx.beginPath(); ctx.arc(mx, my - th / 2 - 6, 14, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
+      ctx.beginPath(); ctx.arc(mx, a.y - dH - 5, 2.5 + blink, 0, Math.PI * 2); ctx.fill();
     }});
   }
 
