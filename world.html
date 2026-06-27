@@ -15482,6 +15482,7 @@ function update(dt) {
       // Выход через нижнюю дверь
       if (player.r >= biH - 0.6 && Math.abs(player.c - biW / 2) < 2.5) { exitBuildingInterior(); }
     }
+    if (_buildingInt) _updateInteriorNpcs(_buildingInt, dt);
     const targetCamX = (player.c - player.r) * TS * 0.5;
     const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
     cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
@@ -29694,6 +29695,7 @@ function _drawJobOfficeInterior(bi) {
   }});
 
   // Игрок
+  _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
@@ -29880,6 +29882,7 @@ function _drawGymInterior(bi) {
   }});
 
   // Игрок
+  _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
@@ -30061,6 +30064,7 @@ function _drawHospitalInterior(bi) {
   }});
 
   // Игрок
+  _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
@@ -30324,6 +30328,7 @@ function _drawPoliceStationInterior(bi) {
   }});
 
   // ── Игрок ──
+  _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
@@ -30611,6 +30616,7 @@ function _drawBlackmarketInterior(bi) {
   }});
 
   // ── Игрок ──
+  _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
@@ -30777,6 +30783,81 @@ function drawLeaderboard() {
   ctx.restore();
 }
 
+// ── AMBIENT NPC В ИНТЕРЬЕРАХ (ходят, живут) ──────────────────────
+// Конфиг по типу здания: look + имя + кол-во. NPC бродят по комнате
+// между случайными waypoint'ами, иногда стоят.
+const _INTERIOR_NPC_CFG = {
+  hospital: { count: 3, looks: [
+    { name: 'Врач',      look: { gender: 1, skin: 1, body: 0, face: 0, hair: 3, hat: 0 } },
+    { name: 'Медсестра', look: { gender: 1, skin: 2, body: 0, face: 1, hair: 5, hat: 0 } },
+    { name: 'Санитар',   look: { gender: 0, skin: 1, body: 1, face: 2, hair: 0, hat: 0 } },
+  ]},
+  police_st: { count: 3, looks: [
+    { name: 'Сержант',  look: { gender: 0, skin: 1, body: 2, face: 3, hair: 1, hat: 5 } },
+    { name: 'Патрульный', look: { gender: 0, skin: 2, body: 1, face: 0, hair: 0, hat: 5 } },
+    { name: 'Следователь', look: { gender: 0, skin: 1, body: 0, face: 2, hair: 2, hat: 0 } },
+  ]},
+  gym: { count: 2, looks: [
+    { name: 'Качок',    look: { gender: 0, skin: 2, body: 2, face: 0, hair: 0, hat: 0 } },
+    { name: 'Атлет',    look: { gender: 0, skin: 3, body: 2, face: 1, hair: 1, hat: 0 } },
+  ]},
+  job: { count: 2, looks: [
+    { name: 'Соискатель', look: { gender: 0, skin: 1, body: 0, face: 2, hair: 1, hat: 0 } },
+    { name: 'Посетитель', look: { gender: 1, skin: 2, body: 0, face: 0, hair: 4, hat: 0 } },
+  ]},
+};
+function _spawnInteriorNpcs(bi) {
+  const cfg = _INTERIOR_NPC_CFG[bi.type];
+  if (!cfg) { bi.npcs = []; return; }
+  const out = [];
+  for (let i = 0; i < cfg.count; i++) {
+    const def = cfg.looks[i % cfg.looks.length];
+    const r = 1.5 + Math.random() * (bi.H - 3.5);
+    const c = 1.5 + Math.random() * (bi.W - 3);
+    out.push({
+      r, c, tr: r, tc: c, ang: Math.random() * Math.PI * 2,
+      walkPhase: 0, walking: false,
+      name: def.name, look: def.look,
+      idleUntil: performance.now() + Math.random() * 3000,
+      speed: 1.2 + Math.random() * 0.5,
+    });
+  }
+  bi.npcs = out;
+}
+function _updateInteriorNpcs(bi, dt) {
+  if (!bi.npcs || !bi.npcs.length) return;
+  const now = performance.now();
+  for (const n of bi.npcs) {
+    if (now < n.idleUntil) { n.walking = false; continue; }
+    const dr = n.tr - n.r, dc = n.tc - n.c;
+    const dist = Math.hypot(dr, dc);
+    if (dist < 0.25) {
+      // Достиг точки — выбираем новую или стоим
+      if (Math.random() < 0.4) { n.idleUntil = now + 1500 + Math.random() * 3000; n.walking = false; continue; }
+      n.tr = 1.2 + Math.random() * (bi.H - 3);
+      n.tc = 1.2 + Math.random() * (bi.W - 2.4);
+    } else {
+      const sp = n.speed * dt;
+      n.r += (dr / dist) * sp;
+      n.c += (dc / dist) * sp;
+      n.ang = Math.atan2(dr, dc);
+      n.walking = true;
+      n.walkPhase += dt * 9;
+    }
+  }
+}
+// Добавляет ambient NPC в items depth-sort массив интерьера
+function _pushInteriorNpcs(bi, items) {
+  if (!bi.npcs) return;
+  for (const n of bi.npcs) {
+    items.push({ d: n.r + n.c + .45, fn: ((nn) => () => {
+      const p = w2s(nn.r + .5, nn.c + .5);
+      drawPerson(p.x, p.y, nn.ang, nn.look, nn.walking ? nn.walkPhase : 0,
+        nn.name, null, false, 100, 100, false, null, false, false);
+    })(n) });
+  }
+}
+
 // ── GENERIC BUILDING INTERIOR (обычные здания MAP[r][c]===1) ─────
 // ══════════════════════════════════════════════════════════════════
 // ── Кейсы в зданиях — случайный лут ──────────────────────────────
@@ -30820,7 +30901,8 @@ function enterBuildingInterior(r, c, type) {
   const seed = ((r * 73 + c * 131) % 97) / 97;
   _buildingInt = { r, c, W: biW, H: biH, seed,
     savedR: player.r, savedC: player.c,
-    type: type || null, loot: null };
+    type: type || null, loot: null, npcs: [] };
+  _spawnInteriorNpcs(_buildingInt);
   _buildingHideTimer = 0;
   // Кейс с лутом — только в обычных зданиях
   if (!isThemed) {
@@ -31201,6 +31283,7 @@ function drawBuildingInterior() {
   }
 
   // ── Player ──────────────────────────────────────────────────
+  _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
