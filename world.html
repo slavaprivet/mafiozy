@@ -11152,6 +11152,32 @@ function updateGtaInteractions() {
   // не торчала после ухода от точки. Идёт ограбление — НЕ трогаем,
   // прячется в finishRob/cancelRob.
   if (_robBtn && !_robInProgress) _robBtn.style.display = 'none';
+  // ── ВНУТРИ ЗДАНИЯ: отдельная эко-система. Только интерьерные действия
+  //    (лут-кейс, товар чёрного рынка). Никаких машин/угона/автобуса. ──
+  if (_buildingInt) {
+    _handbrakeBtn.style.display = 'none';
+    // Кейс с лутом
+    if (_buildingInt.loot && !_buildingInt.loot.picked) {
+      const lt = _buildingInt.loot;
+      if (Math.hypot(player.r - lt.r, player.c - lt.c) < 2.0) {
+        _gtaActionKind = 'bldg_loot'; _gtaActionCarId = null;
+        _gtaBtn.textContent = `💰 Забрать кейс (+${lt.amount}$)`;
+        _gtaBtn.style.display = 'block'; return;
+      }
+    }
+    // Чёрный рынок — товар у продавца
+    if (_buildingInt.type === 'blackmarket') {
+      const sellerR = 3, sellerC = _buildingInt.W / 2;
+      if (Math.hypot(player.r - sellerR, player.c - sellerC) < 2.5) {
+        _gtaActionKind = 'blackmarket'; _gtaActionCarId = null;
+        _gtaBtn.textContent = '🌌 Посмотреть товар';
+        _gtaBtn.style.display = 'block'; return;
+      }
+    }
+    // Прочие тематические здания — фич пока нет, кнопок не показываем
+    _gtaBtn.style.display = 'none'; _gtaActionKind = null;
+    return;
+  }
   if (myDrivingCarId) {
     // Если рядом АЗС и не пассажир — предлагаем заправиться
     if (!myIsPassenger && _myCarFuelPct !== null) {
@@ -11306,61 +11332,6 @@ function updateGtaInteractions() {
     }
   }
   // NPC внутри Биржи труда
-  if (_buildingInt && _buildingInt.type === 'job') {
-    const dd = Math.hypot(player.r - 1.8, player.c - _buildingInt.W / 2);
-    if (dd < 2.5) {
-      _gtaActionKind = 'job_npc'; _gtaActionCarId = null;
-      _gtaBtn.textContent = '💼 Устроиться на работу'; _gtaBtn.style.display = 'block'; return;
-    }
-  }
-  // NPC внутри Спортзала
-  if (_buildingInt && _buildingInt.type === 'gym') {
-    const dd = Math.hypot(player.r - 2.5, player.c - 2.5);
-    if (dd < 2.5) {
-      _gtaActionKind = 'gym_npc'; _gtaActionCarId = null;
-      _gtaBtn.textContent = '💪 Тренировка'; _gtaBtn.style.display = 'block'; return;
-    }
-  }
-  // NPC внутри Больницы
-  if (_buildingInt && _buildingInt.type === 'hospital') {
-    const dd = Math.hypot(player.r - 1.8, player.c - _buildingInt.W / 2);
-    if (dd < 2.5) {
-      _gtaActionKind = 'hospital_npc'; _gtaActionCarId = null;
-      _gtaBtn.textContent = '🏥 Лечиться'; _gtaBtn.style.display = 'block'; return;
-    }
-  }
-  // NPC внутри Участка
-  if (_buildingInt && _buildingInt.type === 'police_st') {
-    const dd = Math.hypot(player.r - 1.8, player.c - _buildingInt.W / 2);
-    if (dd < 2.5) {
-      _gtaActionKind = 'police_npc'; _gtaActionCarId = null;
-      _gtaBtn.textContent = '👮 Поговорить'; _gtaBtn.style.display = 'block'; return;
-    }
-  }
-  // Кейс с лутом внутри здания — подбор
-  if (_buildingInt && _buildingInt.loot && !_buildingInt.loot.picked) {
-    const lt = _buildingInt.loot;
-    const dd = Math.hypot(player.r - lt.r, player.c - lt.c);
-    if (dd < 2.0) {
-      _gtaActionKind = 'bldg_loot';
-      _gtaActionCarId = null;
-      _gtaBtn.textContent = `💰 Забрать кейс (+${lt.amount}$)`;
-      _gtaBtn.style.display = 'block';
-      return;
-    }
-  }
-  // Внутри чёрного рынка — кнопка «Товар» рядом с продавцом
-  if (_buildingInt && _buildingInt.type === 'blackmarket') {
-    const sellerR = 3, sellerC = _buildingInt.W / 2;
-    const dd = Math.hypot(player.r - sellerR, player.c - sellerC);
-    if (dd < 2.5) {
-      _gtaActionKind = 'blackmarket';
-      _gtaActionCarId = null;
-      _gtaBtn.textContent = '🌌 Посмотреть товар';
-      _gtaBtn.style.display = 'block';
-      return;
-    }
-  }
   // Вход в обычное здание (MAP[r][c]===1, не POI/банк/полиция и т.д.)
   if (!_buildingInt && !_bankInt && !myDrivingCarId && !myDead && !inArena(player.r, player.c)) {
     const pr = Math.round(player.r), pc = Math.round(player.c);
@@ -11632,14 +11603,6 @@ _gtaBtn.addEventListener('click', () => {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'blackmarket') {
     openShop();
-  } else if (_gtaActionKind === 'job_npc') {
-    showToast('💼 Скоро будет доступно', '💼', 2000);
-  } else if (_gtaActionKind === 'gym_npc') {
-    showToast('💪 Скоро будет доступно', '💪', 2000);
-  } else if (_gtaActionKind === 'hospital_npc') {
-    showToast('🏥 Скоро будет доступно', '🏥', 2000);
-  } else if (_gtaActionKind === 'police_npc') {
-    showToast('👮 Скоро будет доступно', '👮', 2000);
   } else if (_gtaActionKind === 'brigadir') {
     takeBrigadirContract();
   } else if (_gtaActionKind === 'brigadir_claim') {
@@ -17525,6 +17488,69 @@ function drawLamp(r, c) {
 // ── ЧЁРНЫЙ РЫНОК — подпольная лавка, кирпич+граффити, бочка с огнём ──
 // Узкое тёмное здание-склад, неоновая вывеска «🌌 DEALS» с глюком,
 // перед входом бочка с огнём (анимация) и пара ящиков с оружием.
+// Тематическое здание (Спортзал/Биржа) — цветной куб + фасадный знак + вывеска
+function drawThemedBuilding(r, c, opt) {
+  const p = w2s(r + 0.5, c + 0.5);
+  const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+  const H = isoH(2.0);
+  const t = performance.now() / 1000;
+  // Тень
+  ctx.fillStyle = 'rgba(0,0,0,.5)';
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - wy); ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x, p.y + wy); ctx.lineTo(p.x - wx, p.y);
+  ctx.closePath(); ctx.fill();
+  // Левая грань
+  ctx.fillStyle = opt.left;
+  ctx.beginPath();
+  ctx.moveTo(p.x - wx, p.y); ctx.lineTo(p.x, p.y + wy);
+  ctx.lineTo(p.x, p.y + wy - H); ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath(); ctx.fill();
+  // Окна на левой грани (2 ряда)
+  ctx.fillStyle = opt.win;
+  for (let row = 0; row < 3; row++) for (let cc = 0; cc < 2; cc++) {
+    const wxp = p.x - wx * (0.65 - cc * 0.35);
+    const wyp = p.y - H * (0.28 + row * 0.26) + wy * 0.3;
+    ctx.fillRect(wxp - 3, wyp - 4, 6, 7);
+  }
+  // Правая грань — градиент
+  const g = ctx.createLinearGradient(p.x, p.y - H, p.x + wx, p.y);
+  g.addColorStop(0, opt.right); g.addColorStop(1, opt.left);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y + wy); ctx.lineTo(p.x + wx, p.y);
+  ctx.lineTo(p.x + wx, p.y - H); ctx.lineTo(p.x, p.y + wy - H);
+  ctx.closePath(); ctx.fill();
+  // Большой знак на правой грани (эмодзи)
+  ctx.save();
+  ctx.font = 'bold 22px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.globalAlpha = 0.85;
+  ctx.fillText(opt.emoji, p.x + wx * 0.5, p.y - H * 0.45);
+  ctx.restore();
+  // Крыша
+  ctx.fillStyle = opt.roof;
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y - H + wy); ctx.lineTo(p.x + wx, p.y - H);
+  ctx.lineTo(p.x, p.y - H - wy); ctx.lineTo(p.x - wx, p.y - H);
+  ctx.closePath(); ctx.fill();
+  // Неоновая вывеска над крышей
+  const sgnY = p.y - H - wy * 0.2;
+  const sgnW = wx * 1.5, sgnH = 16;
+  const pulse = 0.7 + 0.3 * Math.sin(t * 4);
+  ctx.save();
+  ctx.shadowColor = opt.accent; ctx.shadowBlur = 14 * pulse;
+  ctx.fillStyle = 'rgba(10,10,14,.92)';
+  ctx.fillRect(p.x - sgnW / 2, sgnY - sgnH / 2, sgnW, sgnH);
+  ctx.strokeStyle = opt.accent; ctx.lineWidth = 1.5;
+  ctx.strokeRect(p.x - sgnW / 2, sgnY - sgnH / 2, sgnW, sgnH);
+  ctx.font = 'bold 11px system-ui, "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = opt.accent;
+  ctx.fillText(`${opt.emoji} ${opt.label}`, p.x, sgnY + 1);
+  ctx.restore();
+}
+
 function drawBlackmarket(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
@@ -25465,6 +25491,8 @@ function render() {
           else if (poi && poi.id === 'police')    drawPoliceBuilding(r, c);
           else if (poi && poi.id === 'firestation') drawFireBuilding(r, c);
           else if (poi && poi.special === 'blackmarket') drawBlackmarket(r, c);
+          else if (poi && poi.special === 'gym')  drawThemedBuilding(r, c, { left:'#5a3010', right:'#8a5020', roof:'#3a2008', win:'#ffb050', accent:'#ff9030', emoji:'💪', label:'GYM' });
+          else if (poi && poi.special === 'job')  drawThemedBuilding(r, c, { left:'#103048', right:'#205070', roof:'#0a1e30', win:'#60c0ff', accent:'#40a0ff', emoji:'💼', label:'РАБОТА' });
           else if (_bankTileSet.has(r + ',' + c)) { /* bank tile — drawn by drawBankBuilding */ }
           else                                    drawBuilding(r, c);
           if (poi) drawPOI(r, c, poi);
