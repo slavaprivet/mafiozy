@@ -12006,6 +12006,7 @@ class WorldSim:
         self._quest_car_next_id = 1
         # Ограбления банков: bank_id -> {bags_loaded, started_at, robber_uid}
         self.bank_robs = {}
+        self.dropped_bags = []
 
     def add_or_update(self, uid: str, name: str, look: dict,
                        wanted: float = 0.0, jail_until: int = 0,
@@ -12166,6 +12167,16 @@ class WorldSim:
         except Exception:
             pass
         p['last_seen'] = now
+        try:
+            if 'weapon' in d: p['_weapon'] = str(d['weapon'])[:20]
+            if 'bag' in d: p['_bag'] = 1 if d['bag'] else 0
+            gang = d.get('gang')
+            if gang and isinstance(gang, list):
+                p['gang'] = gang[:5]
+            elif not gang and 'gang' in p:
+                p.pop('gang', None)
+        except Exception:
+            pass
 
     def apply_chat(self, uid: str, text: str) -> None:
         p = self.players.get(uid)
@@ -15492,7 +15503,14 @@ class WorldSim:
                 'gangs':  int(min(3, p.get('_wanted_gangs') or 0)),
                 'mode':   p.get('_mode') or 'pvp',
                 'jail_in': jail_left,
+                'weapon': p.get('_weapon', 'pistol'),
+                'bag': int(p.get('_bag') or 0),
             })
+            if p.get('gang'):
+                others[-1]['gang'] = p['gang']
+        # Dropped bags
+        now_t = time.time()
+        self.dropped_bags = [b for b in self.dropped_bags if now_t - b.get('dropped_at', 0) < 300]
         # Активное эмерджентное событие (инкассатор + эскорт) — шлём
         # всем клиентам одинаково, независимо от радиуса. Карта 60×60 —
         # стрелка «событие где-то там» полезна и на дальнем конце.
@@ -15817,6 +15835,7 @@ class WorldSim:
                     'diamonds': int(me.get('_diamonds') or 0),
                 },
                 'others':        others,
+                'dropped_bags':  self.dropped_bags,
                 'event':         ev_payload,
                 'cops':          cops_payload,
                 'next_event_in': next_event_in,
@@ -18642,12 +18661,32 @@ async def _coop_http_app():
                     elif t == 'bank_bag_drop':
                         p = world.players.get(uid)
                         bank_id = (d or {}).get('bank_id')
+                        try:
+                            dr2 = float((d or {}).get('r', 0) or 0)
+                            dc2 = float((d or {}).get('c', 0) or 0)
+                            if dr2 > 0 and dc2 > 0:
+                                world.dropped_bags.append({
+                                    'id': f'bag_{uid}_{int(time.time()*1000)}',
+                                    'r': round(dr2, 1), 'c': round(dc2, 1),
+                                    'value': 500, 'dropped_at': time.time()
+                                })
+                                if len(world.dropped_bags) > 50:
+                                    world.dropped_bags = world.dropped_bags[-50:]
+                        except Exception:
+                            pass
                         if p and bank_id and '_bank_rob' in p:
                             p['_bank_rob'].pop(bank_id, None)
                         if bank_id and bank_id in world.bank_robs:
                             rob = world.bank_robs[bank_id]
                             if rob.get('robber_uid') == uid:
                                 world.bank_robs.pop(bank_id, None)
+                    elif t == 'bag_pickup_server':
+                        try:
+                            bag_id = (d or {}).get('bag_id')
+                            if bag_id:
+                                world.dropped_bags = [b for b in world.dropped_bags if b.get('id') != bag_id]
+                        except Exception:
+                            pass
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass
