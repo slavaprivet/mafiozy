@@ -4285,10 +4285,13 @@ function _npcCheckPlayerProximity(now) {
 function maintainNpcPopulation(now) {
   if (now < _nextNpcRespawnAt) return;
   _nextNpcRespawnAt = now + 1200;
-  // Пруним старые трупы (n.deadAt + 60s)
+  // Пруним старые трупы (n.deadAt + 60s) + истёкших охранников ограбления
+  // (иначе _guard NPC копятся в NPCS навсегда → утечка → лаги)
   for (let i = NPCS.length - 1; i >= 0; i--) {
     const n = NPCS[i];
     if (n.dead && n.deadAt && now - n.deadAt > 60000) {
+      NPCS.splice(i, 1);
+    } else if (n._guard && n._hostileUntil && now > n._hostileUntil + 5000) {
       NPCS.splice(i, 1);
     }
   }
@@ -11111,7 +11114,6 @@ function updateRobbery(now) {
 // Клик «🔪 Ограбить»
 if (_robBtn) {
   _robBtn.addEventListener('click', () => {
-    if (_robTargetBiz) { startRobbery(_robTargetBiz); return; }
     if (_robBtn._buySprayCan) {
       const cost = 5;
       const cash = parseInt(QP.cash) || 0;
@@ -11119,9 +11121,9 @@ if (_robBtn) {
       QP.cash = cash - cost;
       _sprayCans++;
       showToast(`🎨 Баллон куплен! (${_sprayCans} шт)`, '✅', 1500);
-      _robBtn._buySprayCan = false;
       return;
     }
+    if (_robTargetBiz) { startRobbery(_robTargetBiz); return; }
     if (_robBtn._graffitiR != null) {
       sprayGraffiti(_robBtn._graffitiR, _robBtn._graffitiC);
       _robBtn._graffitiR = null; _robBtn._graffitiC = null;
@@ -11189,7 +11191,21 @@ function updateGtaInteractions() {
         _gtaBtn.style.display = 'block'; return;
       }
     }
-    // Прочие тематические здания — фич пока нет, кнопок не показываем
+    // Взаимодействие с персоналом — рядом с любым сотрудником (bi.npcs)
+    if (_buildingInt.npcs && _buildingInt.npcs.length) {
+      const _BTN_BY_TYPE = { hospital:'🏥 Лечиться', police_st:'👮 Поговорить', gym:'💪 Тренировка', job:'💼 Устроиться' };
+      let nearNpc = null, nearD = 2.0;
+      for (const n of _buildingInt.npcs) {
+        const d = Math.hypot(player.r - n.r, player.c - n.c);
+        if (d < nearD) { nearD = d; nearNpc = n; }
+      }
+      if (nearNpc) {
+        _gtaActionKind = 'bldg_npc'; _gtaActionCarId = null;
+        _gtaBtn.textContent = _BTN_BY_TYPE[_buildingInt.type] || `💬 ${nearNpc.name}`;
+        _gtaBtn.style.display = 'block'; return;
+      }
+    }
+    // Иначе — кнопок нет
     _gtaBtn.style.display = 'none'; _gtaActionKind = null;
     return;
   }
@@ -11265,6 +11281,7 @@ function updateGtaInteractions() {
     }
     _gtaBtn.style.display = 'block';
     if (_robBtn) {
+      _robTargetBiz = null; _robBtn._graffitiR = null; _robBtn._graffitiC = null;
       _robBtn.textContent = `🎨 Купить баллон (5$)`;
       _robBtn.style.display = 'block';
       _robBtn._buySprayCan = true;
@@ -11285,7 +11302,8 @@ function updateGtaInteractions() {
       const rcfg = ROB_PAYOUT_PREVIEW[bizNear.id];
       const robOnCd = _robCooldowns[bizNear.id] && Date.now() < _robCooldowns[bizNear.id];
       if (_robBtn && rcfg && !_robInProgress && !robOnCd) {
-        _robTargetBiz = bizNear;
+        _robTargetBiz = bizNear; _robBtn._buySprayCan = false;
+        _robBtn._graffitiR = null; _robBtn._graffitiC = null;
         _robBtn.textContent = `🔪 Ограбить ($${rcfg.money}, ${rcfg.stars}★)`;
         _robBtn.style.display = 'block';
       }
@@ -11618,6 +11636,9 @@ _gtaBtn.addEventListener('click', () => {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'blackmarket') {
     openShop();
+  } else if (_gtaActionKind === 'bldg_npc') {
+    const _msg = { hospital:'🏥 Лечение скоро будет', police_st:'👮 Тут скоро будет участок-меню', gym:'💪 Тренировки скоро', job:'💼 Работа скоро будет' };
+    showToast(_msg[_buildingInt && _buildingInt.type] || '💬 Скоро будет', 'ℹ️', 2000);
   } else if (_gtaActionKind === 'brigadir') {
     takeBrigadirContract();
   } else if (_gtaActionKind === 'brigadir_claim') {
@@ -29745,6 +29766,9 @@ function _drawJobOfficeInterior(bi) {
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
+    if (!myDead && myMode !== 'pve' && _isArmed()) {
+      drawWeaponInHands(pp.x, pp.y, player.ang, currentWeapon, 0.9, lastShotClientT);
+    }
   }});
 
   items.sort((a, b) => a.d - b.d);
@@ -29932,6 +29956,9 @@ function _drawGymInterior(bi) {
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
+    if (!myDead && myMode !== 'pve' && _isArmed()) {
+      drawWeaponInHands(pp.x, pp.y, player.ang, currentWeapon, 0.9, lastShotClientT);
+    }
   }});
 
   items.sort((a, b) => a.d - b.d);
@@ -30114,6 +30141,9 @@ function _drawHospitalInterior(bi) {
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
+    if (!myDead && myMode !== 'pve' && _isArmed()) {
+      drawWeaponInHands(pp.x, pp.y, player.ang, currentWeapon, 0.9, lastShotClientT);
+    }
   }});
 
   items.sort((a, b) => a.d - b.d);
@@ -30378,6 +30408,9 @@ function _drawPoliceStationInterior(bi) {
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
+    if (!myDead && myMode !== 'pve' && _isArmed()) {
+      drawWeaponInHands(pp.x, pp.y, player.ang, currentWeapon, 0.9, lastShotClientT);
+    }
   }});
 
   items.sort((a, b) => a.d - b.d);
@@ -30666,6 +30699,9 @@ function _drawBlackmarketInterior(bi) {
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
+    if (!myDead && myMode !== 'pve' && _isArmed()) {
+      drawWeaponInHands(pp.x, pp.y, player.ang, currentWeapon, 0.9, lastShotClientT);
+    }
   }});
 
   items.sort((a, b) => a.d - b.d);
@@ -31336,6 +31372,9 @@ function drawBuildingInterior() {
     drawPerson(pp.x, pp.y, player.ang, QP.look || {},
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
+    if (!myDead && myMode !== 'pve' && _isArmed()) {
+      drawWeaponInHands(pp.x, pp.y, player.ang, currentWeapon, 0.9, lastShotClientT);
+    }
   }});
 
   items.sort((a, b) => a.d - b.d);
