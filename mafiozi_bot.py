@@ -12166,12 +12166,6 @@ class WorldSim:
         except Exception:
             pass
         p['last_seen'] = now
-        # Наёмники (gang) — клиент шлёт массив, ретранслируем в snapshot
-        gang = d.get('gang')
-        if gang and isinstance(gang, list):
-            p['gang'] = gang[:5]  # макс 5
-        elif 'gang' in p and not gang:
-            del p['gang']
 
     def apply_chat(self, uid: str, text: str) -> None:
         p = self.players.get(uid)
@@ -15499,8 +15493,6 @@ class WorldSim:
                 'mode':   p.get('_mode') or 'pvp',
                 'jail_in': jail_left,
             })
-            if p.get('gang'):
-                others[-1]['gang'] = p['gang']
         # Активное эмерджентное событие (инкассатор + эскорт) — шлём
         # всем клиентам одинаково, независимо от радиуса. Карта 60×60 —
         # стрелка «событие где-то там» полезна и на дальнем конце.
