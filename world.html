@@ -1263,6 +1263,35 @@ body.in-pvp #robActionBtn { top: 152px; }
 }
 .boss-card .b-fight:active { transform: scale(.96); }
 
+/* Модал такси */
+#taxiOverlay {
+  position: absolute; inset: 0; z-index: 20;
+  background: rgba(0,0,0,.75); display: none;
+  align-items: center; justify-content: center; font-family: inherit;
+}
+#taxiOverlay.open { display: flex; }
+#taxiModal {
+  width: min(340px, 90vw); max-height: 80vh; overflow-y: auto;
+  -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  background: linear-gradient(160deg, #1a1a10, #101008);
+  border: 2px solid #c0a030; border-radius: 16px; padding: 16px;
+  color: #fff; box-shadow: 0 8px 32px rgba(120,100,20,.4);
+}
+.taxi-dest {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0,0,0,.35); border: 1px solid #3a3020;
+  border-radius: 10px; padding: 10px; margin-bottom: 6px;
+  cursor: pointer; transition: border-color .15s;
+}
+.taxi-dest:active { transform: scale(.97); border-color: #c0a030; }
+.taxi-dest .td-icon { font-size: 22px; flex-shrink: 0; width: 32px; text-align: center; }
+.taxi-dest .td-name { font-size: 13px; font-weight: 700; color: #ffe9aa; }
+#taxiFade {
+  position: absolute; inset: 0; z-index: 25; background: #000;
+  opacity: 0; pointer-events: none; transition: opacity .6s;
+}
+#taxiFade.active { opacity: 1; pointer-events: auto; }
+
 /* Toast — короткое всплывающее уведомление */
 #toast {
   position: absolute; left: 50%; transform: translateX(-50%);
@@ -1622,6 +1651,22 @@ body.in-pvp #robActionBtn { top: 152px; }
     </div>
   </div>
 
+  <!-- Такси — выбор точки доставки -->
+  <div id="taxiOverlay">
+    <div id="taxiModal">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-size:28px">🚖</div>
+        <div>
+          <div style="font-size:17px;font-weight:800;color:#ffd76b">Такси</div>
+          <div style="font-size:11px;color:#a08850">Куда едем? (50$)</div>
+        </div>
+        <button id="taxiClose" style="margin-left:auto;background:rgba(0,0,0,.4);border:1px solid #555;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px">✕</button>
+      </div>
+      <div id="taxiList"></div>
+    </div>
+  </div>
+  <div id="taxiFade"></div>
+
   <!-- Арена — выбор района для боёвки -->
   <div id="arenaOverlay">
     <div id="arenaModal">
@@ -1748,7 +1793,7 @@ document.body.addEventListener('touchstart', (e) => {
 // они и так останавливают через preventDefault выше).
 document.addEventListener('touchmove', (e) => {
   if (e.touches.length > 1) return;
-  if (e.target.closest && (e.target.closest('#shopOverlay') || e.target.closest('#arenaOverlay'))) return;
+  if (e.target.closest && (e.target.closest('#shopOverlay') || e.target.closest('#arenaOverlay') || e.target.closest('#taxiOverlay'))) return;
   try { e.preventDefault(); } catch(_) {}
 }, { passive: false });
 
@@ -11123,6 +11168,12 @@ if (_robBtn) {
       showToast(`🎨 Баллон куплен! (${_sprayCans} шт)`, '✅', 1500);
       return;
     }
+    if (_robBtn._taxiHijack && _hijackedCarRef) {
+      _robBtn._taxiHijack = false;
+      _gtaActionKind = 'hijack';
+      _gtaBtn.click(); // запускаем обычный угон
+      return;
+    }
     if (_robTargetBiz) { startRobbery(_robTargetBiz); return; }
     if (_robBtn._graffitiR != null) {
       sprayGraffiti(_robBtn._graffitiR, _robBtn._graffitiC);
@@ -11565,6 +11616,30 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
+  // ── ТАКСИ — быстрое перемещение ──
+  if (!myDead && myJailIn <= 0) {
+    let nearTaxi = null, nearTaxiD = GTA_INTERACT_R;
+    for (const car of CARS) {
+      if (!car || !car.model || !car.model.taxi || car._wrecked) continue;
+      const d = Math.hypot(car.r - player.r, car.c - player.c);
+      if (d < nearTaxiD) { nearTaxiD = d; nearTaxi = car; }
+    }
+    if (nearTaxi) {
+      _gtaActionKind = 'taxi_ride'; _gtaActionCarId = null;
+      _gtaBtn.textContent = '🚖 Такси (50$)';
+      _gtaBtn.style.display = 'block';
+      // Вторая кнопка — угнать такси
+      if (_robBtn) {
+        _robTargetBiz = null; _robBtn._buySprayCan = false;
+        _robBtn._graffitiR = null; _robBtn._graffitiC = null;
+        _hijackedCarRef = nearTaxi;
+        _robBtn.textContent = '🚗 Угнать такси';
+        _robBtn.style.display = 'block';
+        _robBtn._taxiHijack = true;
+      }
+      return;
+    }
+  }
   // Гражданская тачка из трафика — можно угнать как в GTA. Игнорируем
   // полицию, горящие/повреждённые. В тюрьме угон запрещён.
   if (myJailIn > 0) { _gtaActionKind = null; _gtaBtn.style.display = 'none'; return; }
@@ -11636,6 +11711,8 @@ _gtaBtn.addEventListener('click', () => {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'blackmarket') {
     openShop();
+  } else if (_gtaActionKind === 'taxi_ride') {
+    openTaxiModal();
   } else if (_gtaActionKind === 'bldg_npc') {
     const _msg = { hospital:'🏥 Лечение скоро будет', police_st:'👮 Тут скоро будет участок-меню', gym:'💪 Тренировки скоро', job:'💼 Работа скоро будет' };
     showToast(_msg[_buildingInt && _buildingInt.type] || '💬 Скоро будет', 'ℹ️', 2000);
@@ -13511,6 +13588,71 @@ _arenaList.addEventListener('click', (e) => {
   if (!item || item.classList.contains('locked')) return;
   _renderArenaBosses(item.dataset.loc);
 });
+
+// ── Такси — быстрое перемещение за 50$ ────────────────────────
+const _taxiOverlay = document.getElementById('taxiOverlay');
+const _taxiList = document.getElementById('taxiList');
+const _taxiFade = document.getElementById('taxiFade');
+const TAXI_COST = 50;
+const _TAXI_DESTINATIONS = [
+  { icon: '🏖️', name: 'Пляж',           r: 145, c: 40 },
+  { icon: '🌌', name: 'Чёрный рынок',   r: 6,   c: 36 },
+  { icon: '💪', name: 'Спортзал',       r: 26,  c: 26 },
+  { icon: '💼', name: 'Биржа труда',    r: 36,  c: 16 },
+  { icon: '🏥', name: 'Больница',       r: 26,  c: 46 },
+  { icon: '👮', name: 'Участок',        r: 76,  c: 76 },
+  { icon: '🎯', name: 'PVP-Арена',      r: 36,  c: 66 },
+  { icon: '🏪', name: 'Рынок',          r: 16,  c: 16 },
+  { icon: '⚓', name: 'Порт',           r: 165, c: 38 },
+  { icon: '🎰', name: 'Казино',         r: 46,  c: 16 },
+  { icon: '🏭', name: 'Промзона',       r: 46,  c: 56 },
+];
+// Добавляем все банки
+for (const bank of BANKS) {
+  _TAXI_DESTINATIONS.push({ icon: '🏦', name: `Банк (${bank.size})`, r: bank.r + 2, c: bank.c + 2 });
+}
+
+function openTaxiModal() {
+  const cash = parseInt(QP.cash) || myCash || 0;
+  if (cash < TAXI_COST) { showToast(`💸 Нужно ${TAXI_COST}$ на такси`, '🚖', 2000); return; }
+  _taxiList.innerHTML = _TAXI_DESTINATIONS.map((d, i) => {
+    const dist = Math.round(Math.hypot(d.r - player.r, d.c - player.c));
+    return `<div class="taxi-dest" data-idx="${i}">
+      <div class="td-icon">${d.icon}</div>
+      <div class="td-name">${d.name} <span style="font-size:10px;color:#806840;font-weight:400">(${dist}м)</span></div>
+    </div>`;
+  }).join('');
+  _taxiOverlay.classList.add('open');
+}
+function closeTaxiModal() { _taxiOverlay.classList.remove('open'); }
+document.getElementById('taxiClose').addEventListener('click', closeTaxiModal);
+_taxiOverlay.addEventListener('click', (e) => { if (e.target === _taxiOverlay) closeTaxiModal(); });
+_taxiList.addEventListener('click', (e) => {
+  const item = e.target.closest('.taxi-dest');
+  if (!item) return;
+  const idx = +item.dataset.idx;
+  const dest = _TAXI_DESTINATIONS[idx];
+  if (!dest) return;
+  closeTaxiModal();
+  _taxiRide(dest);
+});
+function _taxiRide(dest) {
+  const cash = parseInt(QP.cash) || myCash || 0;
+  if (cash < TAXI_COST) { showToast(`💸 Не хватает денег`, '❌', 1500); return; }
+  QP.cash = cash - TAXI_COST; myCash = parseInt(QP.cash);
+  updateMoneyHud();
+  showToast(`🚖 Едем: ${dest.name}`, '🚕', 1500);
+  // Fade out
+  _taxiFade.classList.add('active');
+  setTimeout(() => {
+    // Телепорт
+    player.r = dest.r + 1.5; player.c = dest.c + 1.5;
+    cam.x = (player.c - player.r) * TS * 0.5;
+    cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
+    // Fade in
+    setTimeout(() => { _taxiFade.classList.remove('active'); }, 400);
+  }, 700);
+}
 
 // ── PVP UI: кнопка «Огонь», HP-бар, экран смерти ────────────────
 const _fireBtn   = document.getElementById('fireBtn');
