@@ -2285,6 +2285,8 @@ const POI = [
   // Отделение полиции — координаты совпадают с серверной тюрьмой
   // (JAIL_X=76, JAIL_Y=76). При 3★ копы пакуют в наручники и везут сюда.
   { id: 'police',      r: 76, c: 76, icon: '🚔', name: 'Участок',      minLvl: 1, special: 'jail'  },
+  { id: 'job_office',  r: 36, c: 16, icon: '💼', name: 'Биржа труда',  minLvl: 1, special: 'job' },
+  { id: 'gym',         r: 26, c: 26, icon: '💪', name: 'Спортзал',     minLvl: 1, special: 'gym' },
 ];
 const POI_BY_RC = new Map();   // ключ "r,c" → POI
 POI.forEach(p => POI_BY_RC.set(p.r + ',' + p.c, p));
@@ -10661,7 +10663,7 @@ function updateZoneBtn() {
   // для специальных POI (магазин/арена/госпиталь — где есть смысл войти).
   let best = null, bestD2 = ENTER_R * ENTER_R;
   for (const poi of POI) {
-    if (!poi.special || poi.special === 'blackmarket') continue;
+    if (!poi.special || poi.special === 'blackmarket' || poi.special === 'job' || poi.special === 'gym') continue;
     const dr = poi.r - player.r, dc = poi.c - player.c;
     const d2 = dr * dr + dc * dc;
     if (d2 < bestD2) { best = poi; bestD2 = d2; }
@@ -11271,6 +11273,70 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     return;
   }
+  // Биржа труда — вход
+  if (!_buildingInt && !_bankInt && !myDrivingCarId) {
+    const dx = 16 - player.c, dy = 36 - player.r;
+    if (Math.hypot(dx, dy) <= 3.5) {
+      _gtaActionKind = 'building_enter'; _gtaActionCarId = '36,16,job';
+      _gtaBtn.textContent = '💼 Войти на Биржу труда'; _gtaBtn.style.display = 'block'; return;
+    }
+  }
+  // Спортзал — вход
+  if (!_buildingInt && !_bankInt && !myDrivingCarId) {
+    const dx = 26 - player.c, dy = 26 - player.r;
+    if (Math.hypot(dx, dy) <= 3.5) {
+      _gtaActionKind = 'building_enter'; _gtaActionCarId = '26,26,gym';
+      _gtaBtn.textContent = '💪 Войти в Спортзал'; _gtaBtn.style.display = 'block'; return;
+    }
+  }
+  // Больница — вход
+  if (!_buildingInt && !_bankInt && !myDrivingCarId) {
+    const dx = 46 - player.c, dy = 26 - player.r;
+    if (Math.hypot(dx, dy) <= 3.5) {
+      _gtaActionKind = 'building_enter'; _gtaActionCarId = '26,46,hospital';
+      _gtaBtn.textContent = '🏥 Войти в Больницу'; _gtaBtn.style.display = 'block'; return;
+    }
+  }
+  // Участок — вход (только если не в тюрьме)
+  if (!_buildingInt && !_bankInt && !myDrivingCarId && (myJailIn || 0) <= 0) {
+    const dx = 76 - player.c, dy = 76 - player.r;
+    if (Math.hypot(dx, dy) <= 3.5) {
+      _gtaActionKind = 'building_enter'; _gtaActionCarId = '76,76,police_st';
+      _gtaBtn.textContent = '👮 Войти в Участок'; _gtaBtn.style.display = 'block'; return;
+    }
+  }
+  // NPC внутри Биржи труда
+  if (_buildingInt && _buildingInt.type === 'job') {
+    const dd = Math.hypot(player.r - 1.8, player.c - _buildingInt.W / 2);
+    if (dd < 2.5) {
+      _gtaActionKind = 'job_npc'; _gtaActionCarId = null;
+      _gtaBtn.textContent = '💼 Устроиться на работу'; _gtaBtn.style.display = 'block'; return;
+    }
+  }
+  // NPC внутри Спортзала
+  if (_buildingInt && _buildingInt.type === 'gym') {
+    const dd = Math.hypot(player.r - 2.5, player.c - 2.5);
+    if (dd < 2.5) {
+      _gtaActionKind = 'gym_npc'; _gtaActionCarId = null;
+      _gtaBtn.textContent = '💪 Тренировка'; _gtaBtn.style.display = 'block'; return;
+    }
+  }
+  // NPC внутри Больницы
+  if (_buildingInt && _buildingInt.type === 'hospital') {
+    const dd = Math.hypot(player.r - 1.8, player.c - _buildingInt.W / 2);
+    if (dd < 2.5) {
+      _gtaActionKind = 'hospital_npc'; _gtaActionCarId = null;
+      _gtaBtn.textContent = '🏥 Лечиться'; _gtaBtn.style.display = 'block'; return;
+    }
+  }
+  // NPC внутри Участка
+  if (_buildingInt && _buildingInt.type === 'police_st') {
+    const dd = Math.hypot(player.r - 1.8, player.c - _buildingInt.W / 2);
+    if (dd < 2.5) {
+      _gtaActionKind = 'police_npc'; _gtaActionCarId = null;
+      _gtaBtn.textContent = '👮 Поговорить'; _gtaBtn.style.display = 'block'; return;
+    }
+  }
   // Кейс с лутом внутри здания — подбор
   if (_buildingInt && _buildingInt.loot && !_buildingInt.loot.picked) {
     const lt = _buildingInt.loot;
@@ -11566,6 +11632,14 @@ _gtaBtn.addEventListener('click', () => {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'blackmarket') {
     openShop();
+  } else if (_gtaActionKind === 'job_npc') {
+    showToast('💼 Скоро будет доступно', '💼', 2000);
+  } else if (_gtaActionKind === 'gym_npc') {
+    showToast('💪 Скоро будет доступно', '💪', 2000);
+  } else if (_gtaActionKind === 'hospital_npc') {
+    showToast('🏥 Скоро будет доступно', '🏥', 2000);
+  } else if (_gtaActionKind === 'police_npc') {
+    showToast('👮 Скоро будет доступно', '👮', 2000);
   } else if (_gtaActionKind === 'brigadir') {
     takeBrigadirContract();
   } else if (_gtaActionKind === 'brigadir_claim') {
@@ -25584,8 +25658,8 @@ function render() {
     const enterRadius = 7;
     for (const poi of POI) {
       if (!poi.id) continue;
-      const hasEntry = ['casino','market','port','hospital','firestation','police','lair','blackmarket'].includes(poi.id)
-                    || poi.special === 'blackmarket' || poi.special === 'hospital' || poi.special === 'jail';
+      const hasEntry = ['casino','market','port','hospital','firestation','police','lair','blackmarket','job_office','gym'].includes(poi.id)
+                    || poi.special === 'blackmarket' || poi.special === 'hospital' || poi.special === 'jail' || poi.special === 'job' || poi.special === 'gym';
       if (!hasEntry) continue;
       const pd = Math.hypot(player.r - (poi.r + 0.5), player.c - (poi.c + 0.5));
       if (pd > enterRadius + 3) continue;
@@ -28032,6 +28106,8 @@ function drawMinimap() {
     else if (poi.special === 'hospital') ringCol = 'rgba(80,220,120,.90)';
     else if (poi.special === 'firestation') ringCol = 'rgba(255,120,40,.90)';
     else if (poi.special === 'jail')     ringCol = 'rgba(180,180,200,.85)';
+    else if (poi.special === 'job')      ringCol = 'rgba(100,160,220,.85)';
+    else if (poi.special === 'gym')      ringCol = 'rgba(255,180,60,.85)';
     else if (isCap) {
       const own = territoryOwners[poi.id];
       const acPoi = activeCaptures.get(poi.id);
@@ -29459,6 +29535,731 @@ Object.assign(_BANK_NPC_LOOKS, {
 // ══════════════════════════════════════════════════════════════════
 // ── ЧЁРНЫЙ РЫНОК — специальный интерьер ──────────────────────────
 // ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+// ── БИРЖА ТРУДА (job office) ─────────────────────────────────────
+function _drawJobOfficeInterior(bi) {
+  const W = bi.W, H = bi.H;
+  const {clientWidth: SW, clientHeight: SH} = document.getElementById('stage');
+  const hx = TS * .5, hy = TS * .5 * ISO_Y, wallH = isoH(2.8);
+  const now = performance.now();
+  ctx.fillStyle = '#0a0a10'; ctx.fillRect(0, 0, SW, SH);
+
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+    const chk = (r + c) % 2 === 0;
+    const p = w2s(r + .5, c + .5);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - hy); ctx.lineTo(p.x + hx, p.y);
+    ctx.lineTo(p.x, p.y + hy); ctx.lineTo(p.x - hx, p.y); ctx.closePath();
+    ctx.fillStyle = chk ? '#b0a898' : '#a09888'; ctx.fill();
+    ctx.strokeStyle = '#807870'; ctx.lineWidth = .3; ctx.stroke();
+  }
+
+  const flick = 0.8 + 0.2 * Math.sin(now * 0.002);
+  const _lp = (r2, c2, rad, col) => {
+    const p2 = w2s(r2, c2);
+    const g = ctx.createRadialGradient(p2.x, p2.y, 2, p2.x, p2.y, hx * rad);
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(p2.x, p2.y, hx * rad, hy * rad, 0, 0, Math.PI * 2); ctx.fill();
+  };
+  _lp(H / 2, W / 2, 5, `rgba(240,240,255,${.10 * flick})`);
+  _lp(2, 3, 2.5, `rgba(200,220,255,${.07 * flick})`);
+  _lp(2, W - 3, 2.5, `rgba(200,220,255,${.07 * flick})`);
+
+  const items = [];
+  const wallCol = '#d0c8b8', wallColD = '#c0b8a8', wallPanel = '#a89888';
+  const _wf = (r0, c0, r1, c1, col, panel) => {
+    const a = w2s(r0, c0), b = w2s(r1, c1);
+    const panH = wallH * .3;
+    ctx.fillStyle = col; ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = .7;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y - panH); ctx.lineTo(b.x, b.y - panH);
+    ctx.lineTo(b.x, b.y - wallH); ctx.lineTo(a.x, a.y - wallH); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = panel;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y - panH); ctx.lineTo(a.x, a.y - panH); ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+  for (let r = 0; r < H; r++) items.push({ d: r * .001, fn: ((r2) => () => _wf(r2, 0, r2 + 1, 0, wallCol, wallPanel))(r) });
+  for (let r = 0; r < H; r++) items.push({ d: r + W + .5, fn: ((r2) => () => _wf(r2, W, r2 + 1, W, wallColD, wallPanel))(r) });
+  for (let c = 0; c < W; c++) items.push({ d: c * .001, fn: ((c2) => () => _wf(0, c2, 0, c2 + 1, wallCol, wallPanel))(c) });
+  const eDL = Math.floor(W / 2) - 1, eDR = Math.floor(W / 2) + 1;
+  for (let c = 0; c < W; c++) {
+    const isExit = c >= eDL && c < eDR;
+    items.push({ d: H + c + .5, fn: ((c2, ie) => () => {
+      _wf(H, c2, H, c2 + 1, ie ? '#0a0a10' : wallCol, ie ? '#0a0a10' : wallPanel);
+    })(c, isExit) });
+  }
+
+  // Доска объявлений на задней стене
+  items.push({ d: 0.002, fn: () => {
+    const np = w2s(0, W / 2 - 1);
+    const ny = np.y - wallH * .55;
+    ctx.fillStyle = '#6a5030'; ctx.fillRect(np.x - 18, ny - 14, 36, 28);
+    ctx.strokeStyle = '#4a3020'; ctx.lineWidth = 1; ctx.strokeRect(np.x - 18, ny - 14, 36, 28);
+    const cols = ['#ffe080','#80ff80','#80c0ff','#ffa0a0'];
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = cols[i];
+      ctx.fillRect(np.x - 14 + (i % 2) * 16, ny - 10 + Math.floor(i / 2) * 14, 12, 10);
+    }
+  }});
+
+  // Столы с компьютерами (2 ряда)
+  const deskPositions = [{r:2,c:2},{r:2,c:5},{r:2,c:8},{r:4.5,c:3},{r:4.5,c:7}];
+  for (const dp of deskPositions) {
+    items.push({ d: dp.r + dp.c * .01, fn: ((r2, c2) => () => {
+      const p = w2s(r2 + .5, c2 + .5), dH = isoH(0.45);
+      ctx.fillStyle = '#7a6a50'; ctx.strokeStyle = '#5a4a30'; ctx.lineWidth = .5;
+      ctx.beginPath(); ctx.moveTo(p.x - hx * .4, p.y); ctx.lineTo(p.x, p.y + hy * .4);
+      ctx.lineTo(p.x, p.y + hy * .4 - dH); ctx.lineTo(p.x - hx * .4, p.y - dH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#8a7a60';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y + hy * .4); ctx.lineTo(p.x + hx * .4, p.y);
+      ctx.lineTo(p.x + hx * .4, p.y - dH); ctx.lineTo(p.x, p.y + hy * .4 - dH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#9a8a70';
+      ctx.beginPath(); ctx.moveTo(p.x - hx * .4, p.y - dH); ctx.lineTo(p.x, p.y + hy * .4 - dH);
+      ctx.lineTo(p.x + hx * .4, p.y - dH); ctx.lineTo(p.x, p.y - hy * .4 - dH); ctx.closePath(); ctx.fill();
+      // Монитор
+      const mY = p.y - dH - isoH(0.3);
+      ctx.fillStyle = '#1a1a2a'; ctx.fillRect(p.x - 5, mY - 8, 10, 8);
+      ctx.fillStyle = '#3050a0'; ctx.fillRect(p.x - 4, mY - 7, 8, 6);
+      ctx.fillStyle = '#333'; ctx.fillRect(p.x - 1, mY, 2, 3);
+    })(dp.r, dp.c)});
+  }
+
+  // Стулья рядом со столами
+  const chairPos = [{r:3,c:2},{r:3,c:5},{r:3,c:8},{r:5.5,c:3},{r:5.5,c:7}];
+  for (const cp of chairPos) {
+    items.push({ d: cp.r + cp.c * .01, fn: ((r2, c2) => () => {
+      const p = w2s(r2 + .5, c2 + .5), cH = isoH(0.35);
+      ctx.fillStyle = '#2a2a3a';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, hx * .2, hy * .2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3a3a4a'; ctx.fillRect(p.x - 1, p.y - cH, 2, cH * .6);
+      ctx.beginPath(); ctx.ellipse(p.x, p.y - cH, hx * .15, hy * .12, 0, 0, Math.PI * 2); ctx.fill();
+    })(cp.r, cp.c)});
+  }
+
+  // Кулер (правая сторона)
+  items.push({ d: 6 + (W - 1) * .01, fn: () => {
+    const p = w2s(6.5, W - 1.5), kH = isoH(0.7);
+    ctx.fillStyle = '#e0e8f0'; ctx.strokeStyle = '#a0a8b0'; ctx.lineWidth = .5;
+    ctx.fillRect(p.x - 4, p.y - kH, 8, kH);
+    ctx.strokeRect(p.x - 4, p.y - kH, 8, kH);
+    ctx.fillStyle = '#4080d0'; ctx.fillRect(p.x - 3, p.y - kH + 3, 6, 4);
+    ctx.fillStyle = '#60a0e0';
+    ctx.beginPath(); ctx.arc(p.x, p.y - kH - 4, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#80b0d0'; ctx.stroke();
+  }});
+
+  // Лампы потолочные
+  for (const lc of [3, W / 2, W - 3]) {
+    items.push({ d: 0.003, fn: ((c2) => () => {
+      const lp = w2s(1, c2);
+      const lampY = lp.y - wallH * .8;
+      ctx.strokeStyle = '#888'; ctx.lineWidth = .5;
+      ctx.beginPath(); ctx.moveTo(lp.x, lampY - 15); ctx.lineTo(lp.x, lampY); ctx.stroke();
+      ctx.fillStyle = '#e0e0e0';
+      ctx.beginPath(); ctx.moveTo(lp.x - 8, lampY); ctx.lineTo(lp.x + 8, lampY);
+      ctx.lineTo(lp.x + 5, lampY + 3); ctx.lineTo(lp.x - 5, lampY + 3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = `rgba(255,255,240,${0.5 + 0.3 * flick})`;
+      ctx.beginPath(); ctx.arc(lp.x, lampY + 4, 2, 0, Math.PI * 2); ctx.fill();
+    })(lc)});
+  }
+
+  // Вывеска
+  items.push({ d: 0.001, fn: () => {
+    const np = w2s(0, W / 2 + 2);
+    const ny = np.y - wallH * .7;
+    ctx.save();
+    ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#4080c0'; ctx.shadowColor = '#2060a0'; ctx.shadowBlur = 4;
+    ctx.fillText('БИРЖА ТРУДА', np.x, ny);
+    ctx.shadowBlur = 0; ctx.restore();
+  }});
+
+  // NPC Менеджер
+  const mgrR = 1.8, mgrC = W / 2;
+  items.push({ d: mgrR + mgrC * .01, fn: () => {
+    const p = w2s(mgrR + .5, mgrC + .5);
+    const mgrLook = { gender: 0, skin: 1, body: 0, face: 1, hair: 2, hat: 0 };
+    drawPerson(p.x, p.y, Math.PI * .5, mgrLook, 0, 'Менеджер', null, false, 100, 100, false, null, false, false);
+  }});
+
+  // EXIT
+  items.push({ d: H + W / 2 + 1, fn: () => {
+    const p = w2s(H, W / 2);
+    const signY = p.y - wallH * .7;
+    const blink = 0.6 + 0.4 * Math.sin(now * 0.003);
+    ctx.save();
+    ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = `rgba(40,255,80,${blink})`; ctx.shadowColor = '#00ff40'; ctx.shadowBlur = 6;
+    ctx.fillText('ВЫХОД', p.x, signY);
+    ctx.shadowBlur = 0; ctx.restore();
+  }});
+
+  // Игрок
+  items.push({ d: player.r + player.c + .5, fn: () => {
+    const pp = w2s(player.r + .5, player.c + .5);
+    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+      player.walking ? player.walkPhase : 0, QP.name, null, true,
+      myHp, PVP.max_hp, myDead, null, false, false);
+  }});
+
+  items.sort((a, b) => a.d - b.d);
+  items.forEach(i => i.fn());
+
+  ctx.save();
+  ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillStyle = '#4080c0'; ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText('💼 Биржа труда', SW / 2, 12);
+  ctx.shadowBlur = 0; ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── СПОРТЗАЛ (gym) ───────────────────────────────────────────────
+function _drawGymInterior(bi) {
+  const W = bi.W, H = bi.H;
+  const {clientWidth: SW, clientHeight: SH} = document.getElementById('stage');
+  const hx = TS * .5, hy = TS * .5 * ISO_Y, wallH = isoH(2.8);
+  const now = performance.now();
+  ctx.fillStyle = '#0a0806'; ctx.fillRect(0, 0, SW, SH);
+
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+    const tone = (r * 3 + c * 5) % 4;
+    const fill = ['#6a5030','#5a4428','#604a2c','#503e24'][tone];
+    const p = w2s(r + .5, c + .5);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - hy); ctx.lineTo(p.x + hx, p.y);
+    ctx.lineTo(p.x, p.y + hy); ctx.lineTo(p.x - hx, p.y); ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.strokeStyle = '#3a2a14'; ctx.lineWidth = .3; ctx.stroke();
+  }
+
+  const flick = 0.75 + 0.25 * Math.sin(now * 0.0015);
+  const _lp = (r2, c2, rad, col) => {
+    const p2 = w2s(r2, c2);
+    const g = ctx.createRadialGradient(p2.x, p2.y, 2, p2.x, p2.y, hx * rad);
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(p2.x, p2.y, hx * rad, hy * rad, 0, 0, Math.PI * 2); ctx.fill();
+  };
+  _lp(H / 2, W / 2, 5, `rgba(255,220,150,${.10 * flick})`);
+  _lp(3, 3, 3, `rgba(255,200,100,${.08 * flick})`);
+
+  const items = [];
+  const wallCol = '#3a3028', wallColD = '#302820', wallPanel = '#2a2018';
+  const _wf = (r0, c0, r1, c1, col, panel) => {
+    const a = w2s(r0, c0), b = w2s(r1, c1);
+    const panH = wallH * .3;
+    ctx.fillStyle = col; ctx.strokeStyle = 'rgba(0,0,0,.3)'; ctx.lineWidth = .7;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y - panH); ctx.lineTo(b.x, b.y - panH);
+    ctx.lineTo(b.x, b.y - wallH); ctx.lineTo(a.x, a.y - wallH); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = panel;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y - panH); ctx.lineTo(a.x, a.y - panH); ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+  for (let r = 0; r < H; r++) items.push({ d: r * .001, fn: ((r2) => () => _wf(r2, 0, r2 + 1, 0, wallCol, wallPanel))(r) });
+  for (let r = 0; r < H; r++) items.push({ d: r + W + .5, fn: ((r2) => () => _wf(r2, W, r2 + 1, W, wallColD, wallPanel))(r) });
+  for (let c = 0; c < W; c++) items.push({ d: c * .001, fn: ((c2) => () => _wf(0, c2, 0, c2 + 1, wallCol, wallPanel))(c) });
+  const eDL = Math.floor(W / 2) - 1, eDR = Math.floor(W / 2) + 1;
+  for (let c = 0; c < W; c++) {
+    const isExit = c >= eDL && c < eDR;
+    items.push({ d: H + c + .5, fn: ((c2, ie) => () => {
+      _wf(H, c2, H, c2 + 1, ie ? '#0a0806' : wallCol, ie ? '#0a0806' : wallPanel);
+    })(c, isExit) });
+  }
+
+  // Боксёрский ринг (центр-лево)
+  const ringR = 2, ringC = 1.5, rW = 4, rH = 3;
+  items.push({ d: ringR + ringC * .01, fn: () => {
+    const tl = w2s(ringR, ringC), tr = w2s(ringR, ringC + rW);
+    const bl = w2s(ringR + rH, ringC), br = w2s(ringR + rH, ringC + rW);
+    const platH = isoH(0.25);
+    // Платформа
+    ctx.fillStyle = '#4a3828';
+    ctx.beginPath(); ctx.moveTo(tl.x, tl.y - platH); ctx.lineTo(tr.x, tr.y - platH);
+    ctx.lineTo(br.x, br.y - platH); ctx.lineTo(bl.x, bl.y - platH); ctx.closePath(); ctx.fill();
+    // Мат ринга
+    ctx.fillStyle = '#8a2020';
+    ctx.beginPath(); ctx.moveTo(tl.x, tl.y - platH - 1); ctx.lineTo(tr.x, tr.y - platH - 1);
+    ctx.lineTo(br.x, br.y - platH - 1); ctx.lineTo(bl.x, bl.y - platH - 1); ctx.closePath(); ctx.fill();
+    // Канаты (3 уровня)
+    const ropeH = isoH(1.2);
+    ctx.strokeStyle = '#c0a060'; ctx.lineWidth = 1.2;
+    for (const frac of [0.3, 0.55, 0.8]) {
+      const rh = ropeH * frac;
+      ctx.beginPath();
+      ctx.moveTo(tl.x, tl.y - platH - rh); ctx.lineTo(tr.x, tr.y - platH - rh);
+      ctx.lineTo(br.x, br.y - platH - rh); ctx.lineTo(bl.x, bl.y - platH - rh); ctx.closePath();
+      ctx.stroke();
+    }
+    // Столбы угловые
+    ctx.fillStyle = '#8a8a8a'; ctx.strokeStyle = '#666'; ctx.lineWidth = .5;
+    for (const pp of [tl, tr, bl, br]) {
+      ctx.fillRect(pp.x - 2, pp.y - platH - ropeH, 4, ropeH);
+    }
+  }});
+
+  // Груша боксёрская (правая стена)
+  items.push({ d: 2 + W * .01, fn: () => {
+    const p = w2s(2.5, W - 1.5);
+    const bagY = p.y - isoH(1.5);
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(p.x, bagY - 20); ctx.lineTo(p.x, bagY); ctx.stroke();
+    const swing = Math.sin(now * 0.001) * 2;
+    ctx.fillStyle = '#8a3020';
+    ctx.beginPath(); ctx.ellipse(p.x + swing, bagY + 8, 5, 12, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#5a2010'; ctx.lineWidth = .5; ctx.stroke();
+  }});
+
+  // Гантели на стойке (левая стена)
+  items.push({ d: 5.5 + .01, fn: () => {
+    const p = w2s(5.5, 0.8);
+    const sH = isoH(0.5);
+    ctx.fillStyle = '#4a4a4a'; ctx.fillRect(p.x - 8, p.y - sH, 16, sH * .8);
+    ctx.strokeStyle = '#333'; ctx.lineWidth = .5; ctx.strokeRect(p.x - 8, p.y - sH, 16, sH * .8);
+    for (let i = 0; i < 3; i++) {
+      const dx = -5 + i * 5, dy = p.y - sH - 2;
+      ctx.fillStyle = '#2a2a2a'; ctx.fillRect(p.x + dx - 1, dy - 3, 2, 3);
+      ctx.beginPath(); ctx.arc(p.x + dx - 3, dy - 3, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x + dx + 3, dy - 3, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+  }});
+
+  // Скамья для жима
+  items.push({ d: 5 + 6 * .01, fn: () => {
+    const p = w2s(5.5, 6.5), bH = isoH(0.3);
+    ctx.fillStyle = '#3a3a3a'; ctx.strokeStyle = '#222'; ctx.lineWidth = .5;
+    ctx.beginPath(); ctx.moveTo(p.x - hx * .35, p.y); ctx.lineTo(p.x + hx * .35, p.y);
+    ctx.lineTo(p.x + hx * .35, p.y - bH); ctx.lineTo(p.x - hx * .35, p.y - bH); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(p.x - hx * .25, p.y - bH - 1, hx * .5, 2);
+    // Штанга
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(p.x - 12, p.y - bH - isoH(0.5)); ctx.lineTo(p.x + 12, p.y - bH - isoH(0.5)); ctx.stroke();
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.arc(p.x - 12, p.y - bH - isoH(0.5), 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x + 12, p.y - bH - isoH(0.5), 3, 0, Math.PI * 2); ctx.fill();
+  }});
+
+  // Зеркало на правой стене
+  items.push({ d: 4 + W + .01, fn: () => {
+    const p = w2s(4, W);
+    const mY = p.y - wallH * .5;
+    ctx.fillStyle = 'rgba(150,180,220,.15)';
+    ctx.fillRect(p.x - 1, mY - 12, 2, 24);
+    ctx.strokeStyle = '#8090a0'; ctx.lineWidth = .5;
+    ctx.strokeRect(p.x - 1, mY - 12, 2, 24);
+  }});
+
+  // Вывеска
+  items.push({ d: 0.001, fn: () => {
+    const np = w2s(0, W / 2);
+    const ny = np.y - wallH * .55;
+    const nb = 0.5 + 0.5 * Math.sin(now * 0.002);
+    ctx.save();
+    ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = `rgba(255,180,60,${0.5 + 0.5 * nb})`; ctx.shadowColor = '#ffa020'; ctx.shadowBlur = 6 + 4 * nb;
+    ctx.fillText('GYM', np.x, ny);
+    ctx.shadowBlur = 0; ctx.restore();
+  }});
+
+  // NPC Тренер — у ринга
+  const trR = 2.5, trC = 2.5;
+  items.push({ d: trR + trC * .01, fn: () => {
+    const p = w2s(trR + .5, trC + .5);
+    const trLook = { gender: 0, skin: 2, body: 2, face: 3, hair: 0, hat: 0 };
+    drawPerson(p.x, p.y, Math.PI * .3, trLook, 0, 'Тренер', null, false, 100, 100, false, null, false, false);
+  }});
+
+  // EXIT
+  items.push({ d: H + W / 2 + 1, fn: () => {
+    const p = w2s(H, W / 2);
+    const signY = p.y - wallH * .7;
+    const blink = 0.6 + 0.4 * Math.sin(now * 0.003);
+    ctx.save();
+    ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = `rgba(40,255,80,${blink})`; ctx.shadowColor = '#00ff40'; ctx.shadowBlur = 6;
+    ctx.fillText('ВЫХОД', p.x, signY);
+    ctx.shadowBlur = 0; ctx.restore();
+  }});
+
+  // Игрок
+  items.push({ d: player.r + player.c + .5, fn: () => {
+    const pp = w2s(player.r + .5, player.c + .5);
+    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+      player.walking ? player.walkPhase : 0, QP.name, null, true,
+      myHp, PVP.max_hp, myDead, null, false, false);
+  }});
+
+  items.sort((a, b) => a.d - b.d);
+  items.forEach(i => i.fn());
+
+  ctx.save();
+  ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillStyle = '#ffa030'; ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText('💪 Спортзал', SW / 2, 12);
+  ctx.shadowBlur = 0; ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── БОЛЬНИЦА (hospital) ──────────────────────────────────────────
+function _drawHospitalInterior(bi) {
+  const W = bi.W, H = bi.H;
+  const {clientWidth: SW, clientHeight: SH} = document.getElementById('stage');
+  const hx = TS * .5, hy = TS * .5 * ISO_Y, wallH = isoH(2.8);
+  const now = performance.now();
+  ctx.fillStyle = '#080a0c'; ctx.fillRect(0, 0, SW, SH);
+
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+    const chk = (r + c) % 2 === 0;
+    const p = w2s(r + .5, c + .5);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - hy); ctx.lineTo(p.x + hx, p.y);
+    ctx.lineTo(p.x, p.y + hy); ctx.lineTo(p.x - hx, p.y); ctx.closePath();
+    ctx.fillStyle = chk ? '#e8e8f0' : '#d8d8e0'; ctx.fill();
+    ctx.strokeStyle = '#c0c0c8'; ctx.lineWidth = .3; ctx.stroke();
+  }
+
+  const flick = 0.85 + 0.15 * Math.sin(now * 0.002);
+  const _lp = (r2, c2, rad, col) => {
+    const p2 = w2s(r2, c2);
+    const g = ctx.createRadialGradient(p2.x, p2.y, 2, p2.x, p2.y, hx * rad);
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(p2.x, p2.y, hx * rad, hy * rad, 0, 0, Math.PI * 2); ctx.fill();
+  };
+  _lp(H / 2, W / 2, 5, `rgba(240,250,255,${.12 * flick})`);
+  _lp(2, W / 2, 3, `rgba(200,230,255,${.08 * flick})`);
+
+  const items = [];
+  const wallCol = '#e0e0e8', wallColD = '#d0d0d8', wallPanel = '#c0c8d0';
+  const _wf = (r0, c0, r1, c1, col, panel) => {
+    const a = w2s(r0, c0), b = w2s(r1, c1);
+    const panH = wallH * .3;
+    ctx.fillStyle = col; ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = .7;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y - panH); ctx.lineTo(b.x, b.y - panH);
+    ctx.lineTo(b.x, b.y - wallH); ctx.lineTo(a.x, a.y - wallH); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = panel;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y - panH); ctx.lineTo(a.x, a.y - panH); ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+  for (let r = 0; r < H; r++) items.push({ d: r * .001, fn: ((r2) => () => _wf(r2, 0, r2 + 1, 0, wallCol, wallPanel))(r) });
+  for (let r = 0; r < H; r++) items.push({ d: r + W + .5, fn: ((r2) => () => _wf(r2, W, r2 + 1, W, wallColD, wallPanel))(r) });
+  for (let c = 0; c < W; c++) items.push({ d: c * .001, fn: ((c2) => () => _wf(0, c2, 0, c2 + 1, wallCol, wallPanel))(c) });
+  const eDL = Math.floor(W / 2) - 1, eDR = Math.floor(W / 2) + 1;
+  for (let c = 0; c < W; c++) {
+    const isExit = c >= eDL && c < eDR;
+    items.push({ d: H + c + .5, fn: ((c2, ie) => () => {
+      _wf(H, c2, H, c2 + 1, ie ? '#080a0c' : wallCol, ie ? '#080a0c' : wallPanel);
+    })(c, isExit) });
+  }
+
+  // Кровати с капельницами
+  const bedPositions = [{r:3,c:1.5},{r:3,c:4.5},{r:5.5,c:1.5},{r:5.5,c:4.5}];
+  for (const bp of bedPositions) {
+    items.push({ d: bp.r + bp.c * .01, fn: ((r2, c2) => () => {
+      const p = w2s(r2 + .5, c2 + .5), bH = isoH(0.3);
+      // Каркас кровати
+      ctx.fillStyle = '#d0d0d8'; ctx.strokeStyle = '#a0a0a8'; ctx.lineWidth = .5;
+      ctx.beginPath(); ctx.moveTo(p.x - hx * .45, p.y); ctx.lineTo(p.x, p.y + hy * .45);
+      ctx.lineTo(p.x, p.y + hy * .45 - bH); ctx.lineTo(p.x - hx * .45, p.y - bH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#e0e0e8';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y + hy * .45); ctx.lineTo(p.x + hx * .45, p.y);
+      ctx.lineTo(p.x + hx * .45, p.y - bH); ctx.lineTo(p.x, p.y + hy * .45 - bH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Матрас (белый)
+      ctx.fillStyle = '#f0f0f8';
+      ctx.beginPath(); ctx.moveTo(p.x - hx * .45, p.y - bH); ctx.lineTo(p.x, p.y + hy * .45 - bH);
+      ctx.lineTo(p.x + hx * .45, p.y - bH); ctx.lineTo(p.x, p.y - hy * .45 - bH); ctx.closePath(); ctx.fill();
+      // Подушка
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.ellipse(p.x - hx * .15, p.y - hy * .2 - bH, hx * .12, hy * .08, 0, 0, Math.PI * 2); ctx.fill();
+      // Капельница (стойка)
+      const ivX = p.x + hx * .3, ivY = p.y - bH;
+      ctx.strokeStyle = '#888'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(ivX, ivY); ctx.lineTo(ivX, ivY - isoH(1.2)); ctx.stroke();
+      ctx.fillStyle = '#c0d8f0';
+      ctx.fillRect(ivX - 2, ivY - isoH(1.2) - 6, 4, 6);
+      ctx.strokeStyle = '#80a0c0'; ctx.lineWidth = .3;
+      ctx.beginPath(); ctx.moveTo(ivX, ivY - isoH(1.2)); ctx.lineTo(ivX - 3, ivY - isoH(0.4)); ctx.stroke();
+    })(bp.r, bp.c)});
+  }
+
+  // Мед.шкаф с крестом (левая стена)
+  items.push({ d: 1.5 + .01, fn: () => {
+    const p = w2s(1.5, 0.5);
+    const cH = isoH(1.0);
+    ctx.fillStyle = '#f0f0f0'; ctx.strokeStyle = '#c0c0c0'; ctx.lineWidth = .5;
+    const pW = w2s(1.5, 0), pB = w2s(3, 0);
+    ctx.beginPath(); ctx.moveTo(pW.x, pW.y); ctx.lineTo(pB.x, pB.y);
+    ctx.lineTo(pB.x, pB.y - cH); ctx.lineTo(pW.x, pW.y - cH); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Красный крест
+    const cx = (pW.x + pB.x) / 2, cy = (pW.y + pB.y) / 2 - cH * .5;
+    ctx.fillStyle = '#d03030';
+    ctx.fillRect(cx - 1, cy - 5, 2, 10);
+    ctx.fillRect(cx - 5, cy - 1, 10, 2);
+  }});
+
+  // Аппарат ЭКГ (правая стена)
+  items.push({ d: 3 + W + .01, fn: () => {
+    const p = w2s(3, W - 0.5);
+    const eH = isoH(0.8);
+    ctx.fillStyle = '#e0e0e0'; ctx.strokeStyle = '#aaa'; ctx.lineWidth = .5;
+    ctx.fillRect(p.x - 6, p.y - eH, 12, eH * .7);
+    ctx.strokeRect(p.x - 6, p.y - eH, 12, eH * .7);
+    // Экран
+    ctx.fillStyle = '#0a2a0a'; ctx.fillRect(p.x - 5, p.y - eH + 2, 10, 6);
+    // ЭКГ-линия
+    const ecgY = p.y - eH + 5;
+    ctx.strokeStyle = '#40ff40'; ctx.lineWidth = .8;
+    ctx.beginPath(); ctx.moveTo(p.x - 4, ecgY);
+    ctx.lineTo(p.x - 2, ecgY); ctx.lineTo(p.x - 1, ecgY - 3);
+    ctx.lineTo(p.x, ecgY + 2); ctx.lineTo(p.x + 1, ecgY - 4);
+    ctx.lineTo(p.x + 2, ecgY); ctx.lineTo(p.x + 4, ecgY);
+    ctx.stroke();
+  }});
+
+  // Стойка регистратуры (перед NPC)
+  const cntR = 2;
+  for (let c = Math.floor(W * .25); c < Math.floor(W * .75); c++) {
+    items.push({ d: cntR + c * .01, fn: ((c2) => () => {
+      const a = w2s(cntR, c2), b = w2s(cntR, c2 + 1);
+      const dH = isoH(0.55);
+      ctx.fillStyle = '#c0d0e0'; ctx.strokeStyle = '#a0b0c0'; ctx.lineWidth = .6;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.lineTo(b.x, b.y - dH); ctx.lineTo(a.x, a.y - dH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#d0e0f0';
+      ctx.beginPath(); ctx.moveTo(a.x, a.y - dH); ctx.lineTo(b.x, b.y - dH);
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      ctx.lineTo(mx, my - dH - hy * .3); ctx.lineTo(a.x, a.y - dH - hy * .3 + (a.y - b.y)); ctx.closePath(); ctx.fill();
+    })(c)});
+  }
+
+  // Вывеска
+  items.push({ d: 0.001, fn: () => {
+    const np = w2s(0, W / 2);
+    const ny = np.y - wallH * .6;
+    ctx.save();
+    ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#3080d0'; ctx.shadowColor = '#2060b0'; ctx.shadowBlur = 4;
+    ctx.fillText('🏥 БОЛЬНИЦА', np.x, ny);
+    ctx.shadowBlur = 0; ctx.restore();
+  }});
+
+  // NPC Врач
+  const docR = 1.8, docC = W / 2;
+  items.push({ d: docR + docC * .01, fn: () => {
+    const p = w2s(docR + .5, docC + .5);
+    const docLook = { gender: 1, skin: 1, body: 0, face: 0, hair: 3, hat: 0 };
+    drawPerson(p.x, p.y, Math.PI * .5, docLook, 0, 'Врач', null, false, 100, 100, false, null, false, false);
+  }});
+
+  // EXIT
+  items.push({ d: H + W / 2 + 1, fn: () => {
+    const p = w2s(H, W / 2);
+    const signY = p.y - wallH * .7;
+    const blink = 0.6 + 0.4 * Math.sin(now * 0.003);
+    ctx.save();
+    ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = `rgba(40,255,80,${blink})`; ctx.shadowColor = '#00ff40'; ctx.shadowBlur = 6;
+    ctx.fillText('ВЫХОД', p.x, signY);
+    ctx.shadowBlur = 0; ctx.restore();
+  }});
+
+  // Игрок
+  items.push({ d: player.r + player.c + .5, fn: () => {
+    const pp = w2s(player.r + .5, player.c + .5);
+    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+      player.walking ? player.walkPhase : 0, QP.name, null, true,
+      myHp, PVP.max_hp, myDead, null, false, false);
+  }});
+
+  items.sort((a, b) => a.d - b.d);
+  items.forEach(i => i.fn());
+
+  ctx.save();
+  ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillStyle = '#3080d0'; ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText('🏥 Больница', SW / 2, 12);
+  ctx.shadowBlur = 0; ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── ПОЛИЦЕЙСКИЙ УЧАСТОК (police station) ─────────────────────────
+function _drawPoliceStationInterior(bi) {
+  const W = bi.W, H = bi.H;
+  const {clientWidth: SW, clientHeight: SH} = document.getElementById('stage');
+  const hx = TS * .5, hy = TS * .5 * ISO_Y, wallH = isoH(2.8);
+  const now = performance.now();
+  ctx.fillStyle = '#080808'; ctx.fillRect(0, 0, SW, SH);
+
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+    const tone = (r * 2 + c * 3) % 3;
+    const fill = ['#707878','#687070','#606868'][tone];
+    const p = w2s(r + .5, c + .5);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - hy); ctx.lineTo(p.x + hx, p.y);
+    ctx.lineTo(p.x, p.y + hy); ctx.lineTo(p.x - hx, p.y); ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.strokeStyle = '#505858'; ctx.lineWidth = .3; ctx.stroke();
+  }
+
+  const flick = 0.8 + 0.2 * Math.sin(now * 0.002);
+  const _lp = (r2, c2, rad, col) => {
+    const p2 = w2s(r2, c2);
+    const g = ctx.createRadialGradient(p2.x, p2.y, 2, p2.x, p2.y, hx * rad);
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(p2.x, p2.y, hx * rad, hy * rad, 0, 0, Math.PI * 2); ctx.fill();
+  };
+  _lp(H / 2, W / 2, 5, `rgba(230,230,240,${.10 * flick})`);
+  _lp(2, 3, 2, `rgba(200,220,240,${.06 * flick})`);
+
+  const items = [];
+  const wallCol = '#808888', wallColD = '#707878', wallPanel = '#606868';
+  const _wf = (r0, c0, r1, c1, col, panel) => {
+    const a = w2s(r0, c0), b = w2s(r1, c1);
+    const panH = wallH * .3;
+    ctx.fillStyle = col; ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = .7;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y - panH); ctx.lineTo(b.x, b.y - panH);
+    ctx.lineTo(b.x, b.y - wallH); ctx.lineTo(a.x, a.y - wallH); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = panel;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y - panH); ctx.lineTo(a.x, a.y - panH); ctx.closePath(); ctx.fill(); ctx.stroke();
+  };
+  for (let r = 0; r < H; r++) items.push({ d: r * .001, fn: ((r2) => () => _wf(r2, 0, r2 + 1, 0, wallCol, wallPanel))(r) });
+  for (let r = 0; r < H; r++) items.push({ d: r + W + .5, fn: ((r2) => () => _wf(r2, W, r2 + 1, W, wallColD, wallPanel))(r) });
+  for (let c = 0; c < W; c++) items.push({ d: c * .001, fn: ((c2) => () => _wf(0, c2, 0, c2 + 1, wallCol, wallPanel))(c) });
+  const eDL = Math.floor(W / 2) - 1, eDR = Math.floor(W / 2) + 1;
+  for (let c = 0; c < W; c++) {
+    const isExit = c >= eDL && c < eDR;
+    items.push({ d: H + c + .5, fn: ((c2, ie) => () => {
+      _wf(H, c2, H, c2 + 1, ie ? '#080808' : wallCol, ie ? '#080808' : wallPanel);
+    })(c, isExit) });
+  }
+
+  // Решётки камер (правая сторона — 2 камеры)
+  for (const cellR of [2, 5]) {
+    items.push({ d: cellR + (W - 1) * .01, fn: ((cr) => () => {
+      const tl = w2s(cr, W - 3), bl = w2s(cr + 2, W - 3);
+      const barH = isoH(1.6);
+      ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 1.5;
+      for (let i = 0; i <= 4; i++) {
+        const t = i / 4;
+        const bx = tl.x + (bl.x - tl.x) * t, by = tl.y + (bl.y - tl.y) * t;
+        ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by - barH); ctx.stroke();
+      }
+      // Горизонтальные перемычки
+      ctx.lineWidth = .8;
+      for (const frac of [0.3, 0.6, 0.9]) {
+        const rh = barH * frac;
+        ctx.beginPath(); ctx.moveTo(tl.x, tl.y - rh); ctx.lineTo(bl.x, bl.y - rh); ctx.stroke();
+      }
+    })(cellR)});
+  }
+
+  // Столы с бумагами (2 рабочих стола)
+  for (const dp of [{r:2,c:2},{r:4,c:4}]) {
+    items.push({ d: dp.r + dp.c * .01, fn: ((r2, c2) => () => {
+      const p = w2s(r2 + .5, c2 + .5), dH = isoH(0.45);
+      ctx.fillStyle = '#5a5a60'; ctx.strokeStyle = '#3a3a40'; ctx.lineWidth = .5;
+      ctx.beginPath(); ctx.moveTo(p.x - hx * .4, p.y); ctx.lineTo(p.x, p.y + hy * .4);
+      ctx.lineTo(p.x, p.y + hy * .4 - dH); ctx.lineTo(p.x - hx * .4, p.y - dH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#6a6a70';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y + hy * .4); ctx.lineTo(p.x + hx * .4, p.y);
+      ctx.lineTo(p.x + hx * .4, p.y - dH); ctx.lineTo(p.x, p.y + hy * .4 - dH); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#7a7a80';
+      ctx.beginPath(); ctx.moveTo(p.x - hx * .4, p.y - dH); ctx.lineTo(p.x, p.y + hy * .4 - dH);
+      ctx.lineTo(p.x + hx * .4, p.y - dH); ctx.lineTo(p.x, p.y - hy * .4 - dH); ctx.closePath(); ctx.fill();
+      // Бумаги на столе
+      ctx.fillStyle = '#e8e0d0'; ctx.save();
+      ctx.translate(p.x - 2, p.y - dH - 2); ctx.rotate(0.1);
+      ctx.fillRect(0, 0, 5, 6); ctx.restore();
+      ctx.fillStyle = '#f0e8d8';
+      ctx.fillRect(p.x + 1, p.y - dH - 3, 4, 5);
+    })(dp.r, dp.c)});
+  }
+
+  // Шкаф с оружием за стеклом (левая стена)
+  items.push({ d: 1 + .01, fn: () => {
+    const pT = w2s(1, 0), pB = w2s(3.5, 0);
+    const cH = isoH(1.3);
+    ctx.fillStyle = '#3a3a40'; ctx.strokeStyle = '#2a2a30'; ctx.lineWidth = .6;
+    ctx.beginPath(); ctx.moveTo(pT.x, pT.y); ctx.lineTo(pB.x, pB.y);
+    ctx.lineTo(pB.x, pB.y - cH); ctx.lineTo(pT.x, pT.y - cH); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Стекло
+    ctx.fillStyle = 'rgba(100,140,180,.12)';
+    ctx.beginPath(); ctx.moveTo(pT.x, pT.y - cH * .1); ctx.lineTo(pB.x, pB.y - cH * .1);
+    ctx.lineTo(pB.x, pB.y - cH * .9); ctx.lineTo(pT.x, pT.y - cH * .9); ctx.closePath(); ctx.fill();
+    // Оружие внутри (палочки)
+    ctx.strokeStyle = '#666'; ctx.lineWidth = 1;
+    const dx = pB.x - pT.x, dy = pB.y - pT.y;
+    for (let i = 0; i < 3; i++) {
+      const t = (i + 0.5) / 3;
+      const wx = pT.x + dx * t, wy = pT.y + dy * t - cH * .5;
+      ctx.beginPath(); ctx.moveTo(wx - 4, wy); ctx.lineTo(wx + 6, wy - 1); ctx.stroke();
+    }
+  }});
+
+  // Доска розыска (задняя стена)
+  items.push({ d: 0.002, fn: () => {
+    const np = w2s(0, W / 2 + 2);
+    const ny = np.y - wallH * .45;
+    ctx.fillStyle = '#f0e8d8'; ctx.fillRect(np.x - 16, ny - 12, 32, 24);
+    ctx.strokeStyle = '#8a7a60'; ctx.lineWidth = .8; ctx.strokeRect(np.x - 16, ny - 12, 32, 24);
+    ctx.font = 'bold 6px system-ui'; ctx.textAlign = 'center'; ctx.fillStyle = '#a03030';
+    ctx.fillText('РОЗЫСК', np.x, ny - 6);
+    // Фото-плашки
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = '#d0c8b0';
+      ctx.fillRect(np.x - 12 + i * 10, ny - 1, 7, 8);
+      ctx.fillStyle = '#a09080';
+      ctx.beginPath(); ctx.arc(np.x - 8.5 + i * 10, ny + 2, 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }});
+
+  // Вывеска
+  items.push({ d: 0.001, fn: () => {
+    const np = w2s(0, W / 2 - 1);
+    const ny = np.y - wallH * .7;
+    ctx.save();
+    ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#6080c0'; ctx.shadowColor = '#4060a0'; ctx.shadowBlur = 4;
+    ctx.fillText('ПОЛИЦИЯ', np.x, ny);
+    ctx.shadowBlur = 0; ctx.restore();
+  }});
+
+  // NPC Дежурный
+  const copR = 1.8, copC = W / 2;
+  items.push({ d: copR + copC * .01, fn: () => {
+    const p = w2s(copR + .5, copC + .5);
+    const copLook = { gender: 0, skin: 1, body: 1, face: 2, hair: 1, hat: 5 };
+    drawPerson(p.x, p.y, Math.PI * .5, copLook, 0, 'Дежурный', null, false, 100, 100, false, null, false, false);
+  }});
+
+  // EXIT
+  items.push({ d: H + W / 2 + 1, fn: () => {
+    const p = w2s(H, W / 2);
+    const signY = p.y - wallH * .7;
+    const blink = 0.6 + 0.4 * Math.sin(now * 0.003);
+    ctx.save();
+    ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = `rgba(40,255,80,${blink})`; ctx.shadowColor = '#00ff40'; ctx.shadowBlur = 6;
+    ctx.fillText('ВЫХОД', p.x, signY);
+    ctx.shadowBlur = 0; ctx.restore();
+  }});
+
+  // Игрок
+  items.push({ d: player.r + player.c + .5, fn: () => {
+    const pp = w2s(player.r + .5, player.c + .5);
+    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+      player.walking ? player.walkPhase : 0, QP.name, null, true,
+      myHp, PVP.max_hp, myDead, null, false, false);
+  }});
+
+  items.sort((a, b) => a.d - b.d);
+  items.forEach(i => i.fn());
+
+  ctx.save();
+  ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillStyle = '#6080c0'; ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+  ctx.fillText('👮 Участок', SW / 2, 12);
+  ctx.shadowBlur = 0; ctx.restore();
+}
+
 const _bmPhrases = [
   'Тссс… Копам ни слова.',
   'Свежий товар, братан.',
@@ -29932,14 +30733,15 @@ function _showLootBanner(amount) {
 function enterBuildingInterior(r, c, type) {
   if (_buildingInt || _bankInt || myDead || myDrivingCarId) return;
   const isBM = type === 'blackmarket';
-  const biW = isBM ? 10 : 16, biH = isBM ? 8 : 12;
+  const isThemed = ['blackmarket','job','gym','hospital','police_st'].includes(type);
+  const biW = isThemed ? 10 : 16, biH = isThemed ? 8 : 12;
   const seed = ((r * 73 + c * 131) % 97) / 97;
   _buildingInt = { r, c, W: biW, H: biH, seed,
     savedR: player.r, savedC: player.c,
     type: type || null, loot: null };
   _buildingHideTimer = 0;
   // Кейс с лутом — только в обычных зданиях
-  if (!isBM) {
+  if (!isThemed) {
     const key = r + ',' + c, now = Date.now();
     const localOk = !_bldgLootCD[key] || now >= _bldgLootCD[key];
     const globalOk = now >= _bldgLootGlobalCD;
@@ -29954,7 +30756,9 @@ function enterBuildingInterior(r, c, type) {
   cam.x = (player.c - player.r) * TS * 0.5;
   cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
   bullets.length = 0; muzzles.length = 0; impacts.length = 0; lockedTargets.clear();
-  showToast(isBM ? '🌌 Чёрный рынок' : '🏠 Вошёл в здание', isBM ? '🌌' : '🚪', 1500);
+  const _entryToast = { blackmarket: ['🌌 Чёрный рынок','🌌'], job: ['💼 Биржа труда','💼'], gym: ['💪 Спортзал','💪'], hospital: ['🏥 Больница','🏥'], police_st: ['👮 Участок','👮'] };
+  const _et = _entryToast[type];
+  showToast(_et ? _et[0] : '🏠 Вошёл в здание', _et ? _et[1] : '🚪', 1500);
 }
 
 function exitBuildingInterior() {
@@ -29970,6 +30774,10 @@ function exitBuildingInterior() {
 function drawBuildingInterior() {
   const bi = _buildingInt; if (!bi) return;
   if (bi.type === 'blackmarket') { _drawBlackmarketInterior(bi); return; }
+  if (bi.type === 'job') { _drawJobOfficeInterior(bi); return; }
+  if (bi.type === 'gym') { _drawGymInterior(bi); return; }
+  if (bi.type === 'hospital') { _drawHospitalInterior(bi); return; }
+  if (bi.type === 'police_st') { _drawPoliceStationInterior(bi); return; }
   const W = bi.W, H = bi.H;
   const stage = document.getElementById('stage');
   const SW = stage.clientWidth, SH = stage.clientHeight;
