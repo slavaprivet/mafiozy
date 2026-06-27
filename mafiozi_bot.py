@@ -12006,7 +12006,6 @@ class WorldSim:
         self._quest_car_next_id = 1
         # Ограбления банков: bank_id -> {bags_loaded, started_at, robber_uid}
         self.bank_robs = {}
-        self.dropped_bags = []  # [{id, r, c, value, dropped_at}]
 
     def add_or_update(self, uid: str, name: str, look: dict,
                        wanted: float = 0.0, jail_until: int = 0,
@@ -15830,7 +15829,6 @@ class WorldSim:
                     'diamonds': int(me.get('_diamonds') or 0),
                 },
                 'others':        others,
-                'dropped_bags':  [b for b in self.dropped_bags if time.time() - b['dropped_at'] < 300],
                 'event':         ev_payload,
                 'cops':          cops_payload,
                 'next_event_in': next_event_in,
@@ -18656,27 +18654,12 @@ async def _coop_http_app():
                     elif t == 'bank_bag_drop':
                         p = world.players.get(uid)
                         bank_id = (d or {}).get('bank_id')
-                        dr = float((d or {}).get('r', 0) or 0)
-                        dc = float((d or {}).get('c', 0) or 0)
-                        if dr > 0 and dc > 0:
-                            world.dropped_bags.append({
-                                'id': f'bag_{uid}_{int(time.time()*1000)}',
-                                'r': round(dr, 1), 'c': round(dc, 1),
-                                'value': 500, 'dropped_at': time.time(),
-                                'uid': uid
-                            })
-                            if len(world.dropped_bags) > 50:
-                                world.dropped_bags = world.dropped_bags[-50:]
                         if p and bank_id and '_bank_rob' in p:
                             p['_bank_rob'].pop(bank_id, None)
                         if bank_id and bank_id in world.bank_robs:
                             rob = world.bank_robs[bank_id]
                             if rob.get('robber_uid') == uid:
                                 world.bank_robs.pop(bank_id, None)
-                    elif t == 'bag_pickup_server':
-                        bag_id = (d or {}).get('bag_id')
-                        if bag_id:
-                            world.dropped_bags = [b for b in world.dropped_bags if b['id'] != bag_id]
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass
