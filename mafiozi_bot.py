@@ -12166,6 +12166,15 @@ class WorldSim:
         except Exception:
             pass
         p['last_seen'] = now
+        try:
+            if d.get('weapon'): p['_weapon'] = str(d['weapon'])[:20]
+            if 'bag' in d: p['_bag'] = 1 if d.get('bag') else 0
+            g = d.get('gang')
+            if isinstance(g, list): p['_gang'] = g[:5]
+            elif 'gang' not in d: pass
+            else: p.pop('_gang', None)
+        except Exception:
+            pass
 
     def apply_chat(self, uid: str, text: str) -> None:
         p = self.players.get(uid)
@@ -15492,7 +15501,11 @@ class WorldSim:
                 'gangs':  int(min(3, p.get('_wanted_gangs') or 0)),
                 'mode':   p.get('_mode') or 'pvp',
                 'jail_in': jail_left,
+                'weapon': p.get('_weapon') or 'pistol',
+                'bag': p.get('_bag') or 0,
             })
+            g = p.get('_gang')
+            if g: others[-1]['gang'] = g
         # Активное эмерджентное событие (инкассатор + эскорт) — шлём
         # всем клиентам одинаково, независимо от радиуса. Карта 60×60 —
         # стрелка «событие где-то там» полезна и на дальнем конце.
