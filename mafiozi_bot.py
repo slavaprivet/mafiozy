@@ -12166,6 +12166,8 @@ class WorldSim:
         except Exception:
             pass
         p['last_seen'] = now
+        if 'weapon' in d: p['_weapon'] = str(d['weapon'])[:20]
+        if 'bag' in d: p['_bag'] = int(d['bag']) if d['bag'] else 0
         # Наёмники (gang) — клиент шлёт массив, ретранслируем в snapshot
         gang = d.get('gang')
         if gang and isinstance(gang, list):
@@ -15498,6 +15500,8 @@ class WorldSim:
                 'gangs':  int(min(3, p.get('_wanted_gangs') or 0)),
                 'mode':   p.get('_mode') or 'pvp',
                 'jail_in': jail_left,
+                'weapon': p.get('_weapon', 'pistol'),
+                'bag': int(p.get('_bag') or 0),
             })
             if p.get('gang'):
                 others[-1]['gang'] = p['gang']
