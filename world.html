@@ -23819,11 +23819,12 @@ function drawChar(ctx, W, H, opts) {
   function py(y) { return H * 0.92 - y * sc; }
   const skinCol = SKINS[skin] || SKINS[0];
   const swim = opts.swim ? (opts.swimCol || '#e74c3c') : null;
-  if (gender === 0) drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim);
-  else              drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim);
+  const suit = opts.suit || null;
+  if (gender === 0) drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim, suit);
+  else              drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim, suit);
 }
 
-function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim) {
+function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim, suit) {
   const bodyDefs = [
     { sw: 34, sh: 80, nw: 14, nh: 22, hw: 26 },
     { sw: 44, sh: 85, nw: 16, nh: 22, hw: 30 },
@@ -23832,7 +23833,7 @@ function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, ski
   ];
   const bd = bodyDefs[body] || bodyDefs[1];
   // Пляжник (swim): «костюм» = кожа (голое тело), сверху только плавки.
-  const suitCol = swim ? skinCol : ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4];
+  const suitCol = swim ? skinCol : (suit || ['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'][body % 4]);
   const tieCol  = ['#c0392b','#e8c96e','#8e44ad','#2980b9'][face % 4];
   if (!skipLegs) {
     ctx.fillStyle = suitCol;
@@ -23887,7 +23888,7 @@ function drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, ski
   if (hat > 0)  drawHat(ctx, hat, px, py, bd, headY, headH, sc);
 }
 
-function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim) {
+function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim, suit) {
   const bodyDefs = [
     { sw: 30, sh: 78, nw: 12, nh: 20, hw: 24, hip: 32 },
     { sw: 36, sh: 80, nw: 13, nh: 20, hw: 27, hip: 40 },
@@ -23896,7 +23897,7 @@ function drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, s
   ];
   const bd = bodyDefs[body] || bodyDefs[1];
   // Пляжница (swim): «платье» = кожа (голое тело), сверху раздельный купальник.
-  const dressCol = swim ? skinCol : ['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a'][body % 4];
+  const dressCol = swim ? skinCol : (suit || ['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a'][body % 4]);
   const accentCol = ['#e8c96e','#c0392b','#8e44ad','#2980b9'][face % 4];
   if (!skipLegs) {
     ctx.fillStyle = dressCol;
@@ -24220,7 +24221,7 @@ function drawHat(ctx, hatId, px, py, bd, headY, headH, sc) {
 const SPRITE_W = 110, SPRITE_H = 200;
 const _spriteCache = new Map();
 function getSprite(look, skipArms, skipLegs) {
-  const key = [look.gender|0, look.skin|0, look.body|0, look.face|0, look.hair|0, look.hat|0, skipArms?1:0, skipLegs?1:0, look.swim?('s'+(look.swimCol||'')):''].join('.');
+  const key = [look.gender|0, look.skin|0, look.body|0, look.face|0, look.hair|0, look.hat|0, skipArms?1:0, skipLegs?1:0, look.swim?('s'+(look.swimCol||'')):'', look.suit?('u'+look.suit):''].join('.');
   if (_spriteCache.has(key)) return _spriteCache.get(key);
   const off = document.createElement('canvas');
   off.width = SPRITE_W; off.height = SPRITE_H;
@@ -29678,7 +29679,7 @@ function _drawJobOfficeInterior(bi) {
   const mgrR = 1.8, mgrC = W / 2;
   items.push({ d: mgrR + mgrC * .01, fn: () => {
     const p = w2s(mgrR + .5, mgrC + .5);
-    const mgrLook = { gender: 0, skin: 1, body: 0, face: 1, hair: 2, hat: 0 };
+    const mgrLook = { gender: 0, skin: 1, body: 0, face: 1, hair: 2, hat: 0, suit: '#2a3a55' };
     drawPerson(p.x, p.y, Math.PI * .5, mgrLook, 0, 'Менеджер', null, false, 100, 100, false, null, false, false);
   }});
 
@@ -29865,7 +29866,7 @@ function _drawGymInterior(bi) {
   const trR = 2.5, trC = 2.5;
   items.push({ d: trR + trC * .01, fn: () => {
     const p = w2s(trR + .5, trC + .5);
-    const trLook = { gender: 0, skin: 2, body: 2, face: 3, hair: 0, hat: 0 };
+    const trLook = { gender: 0, skin: 2, body: 2, face: 3, hair: 0, hat: 0, suit: '#1a1a1a' };
     drawPerson(p.x, p.y, Math.PI * .3, trLook, 0, 'Тренер', null, false, 100, 100, false, null, false, false);
   }});
 
@@ -30047,7 +30048,7 @@ function _drawHospitalInterior(bi) {
   const docR = 1.8, docC = W / 2;
   items.push({ d: docR + docC * .01, fn: () => {
     const p = w2s(docR + .5, docC + .5);
-    const docLook = { gender: 1, skin: 1, body: 0, face: 0, hair: 3, hat: 0 };
+    const docLook = { gender: 1, skin: 1, body: 0, face: 0, hair: 3, hat: 0, suit: '#eef2f5' };
     drawPerson(p.x, p.y, Math.PI * .5, docLook, 0, 'Врач', null, false, 100, 100, false, null, false, false);
   }});
 
@@ -30304,14 +30305,14 @@ function _drawPoliceStationInterior(bi) {
   // ── NPC Дежурный (за стойкой) ──
   items.push({ d: 4 + W / 2, fn: () => {
     const p = w2s(4 + .5, W / 2 + .5);
-    const copLook = { gender: 0, skin: 1, body: 1, face: 2, hair: 1, hat: 5 };
+    const copLook = { gender: 0, skin: 1, body: 1, face: 2, hair: 1, hat: 5, suit: '#1c2c55' };
     drawPerson(p.x, p.y, Math.PI * .5, copLook, 0, 'Дежурный', null, false, 100, 100, false, null, false, false);
   }});
 
   // ── NPC Конвоир (у камер) ──
   items.push({ d: 6 + (W - 5), fn: () => {
     const p = w2s(6 + .5, W - 5 + .5);
-    const gLook = { gender: 0, skin: 2, body: 2, face: 0, hair: 0, hat: 5 };
+    const gLook = { gender: 0, skin: 2, body: 2, face: 0, hair: 0, hat: 5, suit: '#22305c' };
     drawPerson(p.x, p.y, -Math.PI * .5, gLook, 0, 'Конвоир', null, false, 100, 100, false, null, false, false);
   }});
 
@@ -30788,22 +30789,22 @@ function drawLeaderboard() {
 // между случайными waypoint'ами, иногда стоят.
 const _INTERIOR_NPC_CFG = {
   hospital: { count: 3, looks: [
-    { name: 'Врач',      look: { gender: 1, skin: 1, body: 0, face: 0, hair: 3, hat: 0 } },
-    { name: 'Медсестра', look: { gender: 1, skin: 2, body: 0, face: 1, hair: 5, hat: 0 } },
-    { name: 'Санитар',   look: { gender: 0, skin: 1, body: 1, face: 2, hair: 0, hat: 0 } },
+    { name: 'Врач',      look: { gender: 1, skin: 1, body: 0, face: 0, hair: 3, hat: 0, suit: '#eef2f5' } },
+    { name: 'Медсестра', look: { gender: 1, skin: 2, body: 0, face: 1, hair: 5, hat: 0, suit: '#e8f0ee' } },
+    { name: 'Санитар',   look: { gender: 0, skin: 1, body: 1, face: 2, hair: 0, hat: 0, suit: '#3a8a6a' } },
   ]},
   police_st: { count: 3, looks: [
-    { name: 'Сержант',  look: { gender: 0, skin: 1, body: 2, face: 3, hair: 1, hat: 5 } },
-    { name: 'Патрульный', look: { gender: 0, skin: 2, body: 1, face: 0, hair: 0, hat: 5 } },
-    { name: 'Следователь', look: { gender: 0, skin: 1, body: 0, face: 2, hair: 2, hat: 0 } },
+    { name: 'Сержант',  look: { gender: 0, skin: 1, body: 2, face: 3, hair: 1, hat: 5, suit: '#1c2c55' } },
+    { name: 'Патрульный', look: { gender: 0, skin: 2, body: 1, face: 0, hair: 0, hat: 5, suit: '#22305c' } },
+    { name: 'Следователь', look: { gender: 0, skin: 1, body: 0, face: 2, hair: 2, hat: 0, suit: '#2a2a38' } },
   ]},
   gym: { count: 2, looks: [
-    { name: 'Качок',    look: { gender: 0, skin: 2, body: 2, face: 0, hair: 0, hat: 0 } },
-    { name: 'Атлет',    look: { gender: 0, skin: 3, body: 2, face: 1, hair: 1, hat: 0 } },
+    { name: 'Качок',    look: { gender: 0, skin: 2, body: 2, face: 0, hair: 0, hat: 0, suit: '#c03838' } },
+    { name: 'Атлет',    look: { gender: 0, skin: 3, body: 2, face: 1, hair: 1, hat: 0, suit: '#2858b8' } },
   ]},
   job: { count: 2, looks: [
-    { name: 'Соискатель', look: { gender: 0, skin: 1, body: 0, face: 2, hair: 1, hat: 0 } },
-    { name: 'Посетитель', look: { gender: 1, skin: 2, body: 0, face: 0, hair: 4, hat: 0 } },
+    { name: 'Соискатель', look: { gender: 0, skin: 1, body: 0, face: 2, hair: 1, hat: 0, suit: '#3a4a5a' } },
+    { name: 'Посетитель', look: { gender: 1, skin: 2, body: 0, face: 0, hair: 4, hat: 0, suit: '#5a3a4a' } },
   ]},
 };
 function _spawnInteriorNpcs(bi) {
