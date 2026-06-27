@@ -1766,13 +1766,21 @@ function _viewSize() {
     H: Math.round((vv && vv.height) || window.innerHeight),
   };
 }
-let _lastCanvasW = 0, _lastCanvasH = 0;
-function resizeCanvas() {
+// Установка canvas.width/height ОЧИЩАЕТ холст. Если делать это прямо в
+// обработчике события (resize/scroll), очистка попадёт МЕЖДУ кадрами →
+// один пустой кадр → мерцание персонажа/зданий. На iOS visualViewport
+// дёргается постоянно (адресная строка). Поэтому событие лишь ставит
+// флаг _resizePending, а реальный ресайз применяется в начале frame()
+// перед render — очистка совпадает со стартом кадра, мерцания нет.
+let _resizePending = true;
+function resizeCanvas() { _resizePending = true; }
+function _applyResizeIfNeeded() {
+  if (!_resizePending) return;
+  _resizePending = false;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const { W, H } = _viewSize();
   const tw = Math.floor(W * dpr), th = Math.floor(H * dpr);
-  if (canvas.width === tw && canvas.height === th) return;
-  _lastCanvasW = tw; _lastCanvasH = th;
+  if (canvas.width === tw && canvas.height === th) return;  // размер тот же — не трогаем
   canvas.width  = tw;
   canvas.height = th;
   canvas.style.width  = W + 'px';
@@ -1781,10 +1789,8 @@ function resizeCanvas() {
   const _stg = document.getElementById('stage');
   if (_stg) { _stg.style.width = W + 'px'; _stg.style.height = H + 'px'; }
 }
-resizeCanvas();
+_applyResizeIfNeeded();
 window.addEventListener('resize', resizeCanvas);
-// iOS: window 'resize' часто молчит при смене visible-области — слушаем
-// visualViewport напрямую (resize + scroll меняют видимую зону).
 try {
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', resizeCanvas);
@@ -7747,7 +7753,7 @@ let _localDeath = false;
 // «убивает» игрока worldCop'ами у входа, а снап с dead=true/jail мог
 // прилететь в первый кадр ПОСЛЕ выхода. _bankShieldUntil закрывает это окно.
 let _bankShieldUntil = 0;
-function _bankShield() { return !!_bankInt || performance.now() < _bankShieldUntil; }
+function _bankShield() { return !!_bankInt || !!_buildingInt || performance.now() < _bankShieldUntil; }
 // Время последнего ЛОКАЛЬНОГО урона по игроку (охрана банка / NPC / копы,
 // которых сервер не моделирует). Пока флаг свежий, серверный снапшот НЕ
 // поднимает myHp обратно вверх (иначе урон «откатывался» и HP казались
@@ -10604,6 +10610,9 @@ function updateZoneBtn() {
     return;
   }
 
+  // Внутри обычного здания — зона-кнопок мира нет (банк/районы недоступны)
+  if (_buildingInt) { _zoneEl.style.display = 'none'; delete _zoneEl.dataset.bankId; return; }
+
   // Проверяем близость к банкам (приоритет — своя кнопка через _bankZoneCur)
   let nearBank = null, nearBankD = BANK_INTERACT_R;
   for (const bank of BANKS) {
@@ -10693,6 +10702,9 @@ function updateZoneBtn() {
   }
 }
 _zoneEl.addEventListener('click', () => {
+  // Внутри здания зона-кнопка не действует (нельзя зайти в банк/район
+  // не выйдя из текущего интерьера — иначе вложенные интерьеры + чёрный экран)
+  if (_buildingInt || _bankInt) return;
   // Банк (новая система ограбления банка — BANKS[])
   if (_zoneEl.dataset.bankId) {
     const bank = BANKS.find(b => b.id === _zoneEl.dataset.bankId);
@@ -11072,6 +11084,9 @@ function finishRobbery() {
     }
     return; // не шлём серверу — ограбление сорвано
   }
+  // Клиентский кулдаун СРАЗУ (оптимистично) — даже если reply от сервера
+  // потеряется, кнопка «Ограбить» исчезнет на час. Сервер подтвердит/уточнит.
+  if (_robTargetBiz) _robCooldowns[_robTargetBiz.id] = Date.now() + 3600000;
   // Шлём серверу — он валидирует cooldown/дистанцию/owner и начислит cash + ★
   try {
     ws && ws.send(JSON.stringify({ t: 'shop_rob', d: {
@@ -30962,6 +30977,9 @@ function exitBuildingInterior() {
   cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
   bullets.length = 0; muzzles.length = 0; impacts.length = 0;
   _buildingHideTimer = 0;
+  // Grace-окно: первый снап после выхода мог прийти с заниженным HP/dead
+  // (сервер «стрелял» копами у входа пока мы были внутри). Игнорим 1.5с.
+  _bankShieldUntil = performance.now() + 1500;
 }
 
 function drawBuildingInterior() {
@@ -34170,6 +34188,9 @@ function frame() {
   // ошибку и продолжает loop — игрок видит, что мир «дёрнулся» (один
   // потерянный кадр), но игра не умирает.
   try {
+    // Ресайз canvas (если событие resize/scroll поставило флаг) — строго
+    // в начале кадра, ДО render. Очистка холста совпадает со стартом кадра.
+    _applyResizeIfNeeded();
     if (_battleOpen) {
       // Битва в iframe — пропускаем тяжёлый рендер/update мира
     } else if (t < hitStopUntil) {
