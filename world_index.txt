@@ -1,9 +1,9 @@
 # ИНДЕКС world.html — символ → строка (категория)
-# Сгенерировано gen_index.py. Всего строк: 35024, функций: 569, стрелочных: 38, ws-обработчиков: 140.
+# Сгенерировано gen_index.py. Всего строк: 35029, функций: 569, стрелочных: 38, ws-обработчиков: 140.
 # ВАЖНО: строки могли сместиться после правок — для точной строки Grep по имени.
 
 ## npc/жители  (31)
-  _addDecor (=>)  :34442
+  _addDecor (=>)  :34447
   _initNpcEmotions  :5806
   _interpBeachgoers  :2676
   _interpMichaelGuards  :2665
@@ -16,11 +16,11 @@
   _npcSocialTick  :4260
   _npcSpreadRumor  :5868
   _npcTriggerFight  :14696
-  _pushInteriorNpcs  :31422
+  _pushInteriorNpcs  :31427
   _raycastDecorNpc  :3827
   _raycastNpc  :3621
   _tickNpcEmotions  :5815
-  _updateInteriorNpcs  :31399
+  _updateInteriorNpcs  :31404
   applyBeachgoersSnapshot  :2617
   applyMichaelGuardsSnapshot  :2642
   generateBeachDecor  :2145
@@ -31,7 +31,7 @@
   npcPassable  :3893
   npcWaypointOk  :3921
   pickNpcWaypoint  :3931
-  pickupDroppedBag  :29132
+  pickupDroppedBag  :29137
   triggerNpcPanic  :5957
   updateNpcs  :5994
 
@@ -39,9 +39,9 @@
   _buyShopItem  :13696
   _refreshFsModalState  :12296
   _refreshModeHud  :14938
-  _showLootBanner  :31461
+  _showLootBanner  :31466
   _updateBizClients  :4181
-  _updateDistrictBanner  :28419
+  _updateDistrictBanner  :28424
   _updateDropBagBtn  :12058
   _updateExtBadge  :12357
   _updateGang  :7447
@@ -53,7 +53,7 @@
   hideMichaelMenu  :12706
   inAggroZone  :2437
   inDropZone  :2608
-  initHudIdentity  :24755
+  initHudIdentity  :24760
   openArenaModal  :13830
   openBlackmarketShop  :12421
   openMichaelMenu  :12687
@@ -64,58 +64,58 @@
   showEventBanner  :13617
   showModeModal  :10305
   showToast  :13487
-  toggleProfileModal  :24768
+  toggleProfileModal  :24773
   update  :15290
   updateAggroEntryHint  :15207
   updateBoxThreat  :12828
   updateCaptureBanner  :13446
   updateDistrictCapture  :15261
   updateExtinguishBtn  :12383
-  updateFloatTexts  :26857
+  updateFloatTexts  :26862
   updateGangAggression  :7109
   updateHospitalHeal  :13257
   updateMoneyHud  :14909
   updatePets  :5221
-  updateProjectiles  :26893
+  updateProjectiles  :26898
   updatePvpUI  :14786
   updateTerritoryCapture  :15226
   updateZoneBtn  :10825
 
 ## банк/интерьер  (36)
-  _applyBankCivState  :32093
-  _applyBankGuardState  :32049
-  _bankDoorCoord  :31983
-  _bankPlayerCount  :19249
+  _applyBankCivState  :32098
+  _applyBankGuardState  :32054
+  _bankDoorCoord  :31988
+  _bankPlayerCount  :19254
   _bankShield  :7966
   _dispatchHeistPolice  :5023
-  _drawBankInteriorNpc  :32820
-  _drawVaultRoom  :32959
-  _getBankVanZone  :29073
+  _drawBankInteriorNpc  :32825
+  _drawVaultRoom  :32964
+  _getBankVanZone  :29078
   _hitBankGuard  :3850
-  _saveBankCivState  :32079
-  _saveBankGuardState  :32033
-  _spawnBankNpcs  :31985
-  _takeBankBag  :29119
-  _takeVaultBagDirect  :29106
-  _updateBankInterior  :32273
-  _updateBankRobbery  :29369
-  _updateBankRobHud  :29444
-  _updateBankZoneBtn  :29499
-  abortBankRobbery  :29326
+  _saveBankCivState  :32084
+  _saveBankGuardState  :32038
+  _spawnBankNpcs  :31990
+  _takeBankBag  :29124
+  _takeVaultBagDirect  :29111
+  _updateBankInterior  :32278
+  _updateBankRobbery  :29374
+  _updateBankRobHud  :29449
+  _updateBankZoneBtn  :29504
+  abortBankRobbery  :29331
   cancelRobbery  :11267
-  drawAggroBot  :22348
-  drawBankBuilding  :29504
-  drawBankEntrance  :30022
-  drawBankInteriorScene  :33322
-  drawBankPlayerBadge  :19259
-  drawBankSign  :29905
-  drawBankVanZone  :29988
-  dropVaultBag  :29155
-  enterBankInterior  :32100
-  exitBankInterior  :32166
-  finishBankRobbery  :29348
+  drawAggroBot  :22353
+  drawBankBuilding  :29509
+  drawBankEntrance  :30027
+  drawBankInteriorScene  :33327
+  drawBankPlayerBadge  :19264
+  drawBankSign  :29910
+  drawBankVanZone  :29993
+  dropVaultBag  :29160
+  enterBankInterior  :32105
+  exitBankInterior  :32171
+  finishBankRobbery  :29353
   finishRobbery  :11283
-  startBankRobbery  :29078
+  startBankRobbery  :29083
   startRobbery  :11215
   updateRobbery  :11339
 
@@ -125,12 +125,12 @@
 
 ## карта/мир  (10)
   _brigadirPassable  :11099
-  _setMap (=>)  :28942
+  _setMap (=>)  :28947
   _taxiFindPassable  :13898
   _tickWorldLife  :15282
   buildMap  :1915
-  enterBuildingInterior  :31485
-  exitBuildingInterior  :31530
+  enterBuildingInterior  :31490
+  exitBuildingInterior  :31535
   inLair  :2359
   territoryAt  :2706
   tickRandomWorldEvents  :7852
@@ -142,10 +142,10 @@
   _snitchReport  :5784
   _spawnResponseCops  :5002
   applyCopsTargets  :9003
-  drawCopChat  :22596
-  drawCopNpc  :22462
-  drawWantedGangs  :22232
-  drawWantedStars  :22226
+  drawCopChat  :22601
+  drawCopNpc  :22467
+  drawWantedGangs  :22237
+  drawWantedStars  :22231
   markNpcSnitch  :5730
   npcPassableForSnitch  :3909
   triggerNpcCrashWitness  :5936
@@ -159,17 +159,17 @@
   _carAggrLevel  :7188
   _carHonkTick  :7207
   _carOnSand  :8865
-  _carTypeName  :29173
+  _carTypeName  :29178
   _clearParkingTiles  :6708
-  _drawCarryingBag  :32797
+  _drawCarryingBag  :32802
   _findBusExitSpot  :12089
   _interpQuestCars  :13307
   _maintainTrafficDensity  :7260
   _nearestBurningCar  :12278
-  _nearestBusinessPoi  :20877
+  _nearestBusinessPoi  :20882
   _nearestRoadTile  :4748
   _onBusArrival  :2773
-  _placeLandmarksInParks  :21468
+  _placeLandmarksInParks  :21473
   _raycastGangCar  :3642
   _setVehicleRoute  :4890
   _spawnBusWaiter  :2756
@@ -185,23 +185,23 @@
   buyBusinessHere  :12195
   carCanGo  :7056
   collectBusinessHere  :12397
-  deliverBagsToBusinesses  :29286
-  drawBus  :21845
-  drawBusinessBuilding  :20452
-  drawBusinessPoi  :20887
-  drawBusRider  :21926
-  drawBusStop  :21878
-  drawBusWaiter  :21921
-  drawCar  :22618
-  drawCarPretty  :19423
-  drawCarriedBox  :27965
-  drawIceCreamCart  :17454
+  deliverBagsToBusinesses  :29291
+  drawBus  :21850
+  drawBusinessBuilding  :20457
+  drawBusinessPoi  :20892
+  drawBusRider  :21931
+  drawBusStop  :21883
+  drawBusWaiter  :21926
+  drawCar  :22623
+  drawCarPretty  :19428
+  drawCarriedBox  :27970
+  drawIceCreamCart  :17459
   drawParkingLots  :6754
   drawParkingNpc  :6953
-  drawQuestCar  :22677
+  drawQuestCar  :22682
   drawServiceVehicle  :5327
-  drawTrafficLight  :21806
-  drawWreckedCar  :19289
+  drawTrafficLight  :21811
+  drawWreckedCar  :19294
   enterBus  :12070
   enterCar  :13136
   exitBus  :12110
@@ -211,16 +211,16 @@
   playEnterCarAnim  :11397
   questCarAt  :2601
   renderQuestCarPreview  :12901
-  reportCarCrash  :25018
+  reportCarCrash  :25023
   resolveCarModel  :6415
   spawnCar  :6450
-  spawnCarExplosion  :25081
+  spawnCarExplosion  :25086
   spawnEjectedDriver  :5704
   spawnParkedCar  :6539
   spawnPoliceCar  :4980
-  syncMyBusinesses  :20841
+  syncMyBusinesses  :20846
   trafficPhase  :3548
-  unloadBagFromCar  :29253
+  unloadBagFromCar  :29258
   updateCars  :7560
   updateGtaInteractions  :11407
   updateGtaQuestHud  :13322
@@ -228,26 +228,26 @@
   updateServiceVehicles  :5032
 
 ## прочее  (131)
-  _ac  :24851
+  _ac  :24856
   _applyResizeIfNeeded  :1822
   _bhash  :2144
-  _bizBase  :20380
-  _bizNeon  :20438
-  _bizSign  :20421
+  _bizBase  :20385
+  _bizNeon  :20443
+  _bizSign  :20426
   _boxFail  :12879
   _capArr  :8406
-  _capArrays  :34817
-  _check  :27361
+  _capArrays  :34822
+  _check  :27366
   _closeBizConfirm  :12161
   _completeHijack  :12578
-  _districtRgba  :28332
-  _dk (=>)  :34064
+  _districtRgba  :28337
+  _dk (=>)  :34069
   _farFromPalm (=>)  :2189
   _findExitSpot  :13272
   _findRandomEventSpot  :7724
-  _findStationThreat  :24234
+  _findStationThreat  :24239
   _gangAlertThreat  :7438
-  _heartbeat  :28974
+  _heartbeat  :28979
   _hireGangMember  :7385
   _inRange  :4116
   _isArmed  :15034
@@ -255,59 +255,59 @@
   _isRecentlyBought  :12189
   _isWalk  :6836
   _loadGang  :7417
-  _lp (=>)  :30115
-  _lp (=>)  :30296
-  _lp (=>)  :30485
-  _lp (=>)  :30677
-  _lp (=>)  :31588
+  _lp (=>)  :30120
+  _lp (=>)  :30301
+  _lp (=>)  :30490
+  _lp (=>)  :30682
+  _lp (=>)  :31593
   _lpClose  :12482
   _lpDots  :12455
-  _lpEnd (=>)  :28956
+  _lpEnd (=>)  :28961
   _lpFrame  :12499
   _lpNeedlePos  :12492
-  _lpStart (=>)  :28948
+  _lpStart (=>)  :28953
   _lpTap  :12531
   _markCombat  :8669
   _maybeAuthorityChatter  :4112
   _maybeIdleChatter  :4234
   _maybeJunker  :7230
   _nearestGasStation  :7549
-  _noise  :24871
+  _noise  :24876
   _phaseEmoji  :13950
   _pickArchetype  :4092
   _pickPetWaypoint  :5200
-  _poiBox  :23929
-  _poiFacePt  :23917
-  _poiFaceQuad  :23921
+  _poiBox  :23934
+  _poiFacePt  :23922
+  _poiFaceQuad  :23926
   _policeDoor  :4975
-  _pool (=>)  :33451
+  _pool (=>)  :33456
   _q  :1700
   _qInt  :1701
   _qStr  :1702
-  _resetSticksAndTime  :34871
+  _resetSticksAndTime  :34876
   _saveExtState  :12270
   _saveGang  :7411
-  _screenDistToCell  :27095
+  _screenDistToCell  :27100
   _seat (=>)  :13179
-  _shade  :16653
+  _shade  :16658
   _startFsTick  :12327
-  _submitChat  :34945
+  _submitChat  :34950
   _taxiRide  :13914
   _tickBrigadir  :11115
-  _tone  :24858
-  _wf (=>)  :30128
-  _wf (=>)  :30308
-  _wf (=>)  :30497
-  _wf (=>)  :30693
-  _wf (=>)  :30971
-  _wf (=>)  :31828
-  _wFace (=>)  :34067
-  _wV (=>)  :32998
+  _tone  :24863
+  _wf (=>)  :30133
+  _wf (=>)  :30313
+  _wf (=>)  :30502
+  _wf (=>)  :30698
+  _wf (=>)  :30976
+  _wf (=>)  :31833
+  _wFace (=>)  :34072
+  _wV (=>)  :33003
   addKick  :8526
-  bakeMini  :28860
-  chatDuration  :34987
+  bakeMini  :28865
+  chatDuration  :34992
   close (=>)  :10311
-  closeChat  :34936
+  closeChat  :34941
   det  :2013
   det  :2886
   dispatchEmergencyServices  :5132
@@ -315,11 +315,11 @@
   extinguisherCount (=>)  :12265
   faceStripe  :5381
   formatMoney  :14903
-  frame  :34826
+  frame  :34831
   getGameHour  :13948
   getGameMinute  :13949
   getNightAlpha  :13968
-  handAnchor  :25146
+  handAnchor  :25151
   handleEventPacket  :9203
   hardRefreshCache  :10365
   inArena  :2350
@@ -329,187 +329,187 @@
   joyREnd  :8773
   joyRMove  :8760
   key (=>)  :4770
-  lamp  :21817
+  lamp  :21822
   lerpPt  :5365
-  lerpPt  :19564
-  lerpRoof  :19596
-  loadBagIntoVan  :29184
+  lerpPt  :19569
+  lerpRoof  :19601
+  loadBagIntoVan  :29189
   mkKey (=>)  :10592
-  openChat  :34927
+  openChat  :34932
   openDistrictBattle  :13353
   ownerColor  :2867
   pushFeedEvent  :13524
-  px  :24322
-  py  :24323
-  rackPt  :19645
+  px  :24327
+  py  :24328
+  rackPt  :19650
   resizeCanvas  :1821
   roofPt  :5367
   roofQuad  :5389
-  roundRect  :25850
+  roundRect  :25855
   s2w  :7907
   setError  :10340
   showBuyBizConfirm  :12140
   showCashDelta  :14916
   sideQuad  :5373
-  sideQuad  :19459
-  sprayGraffiti  :31223
+  sideQuad  :19464
+  sprayGraffiti  :31228
   switchModeFlow  :10322
-  switchProfileTab  :24774
+  switchProfileTab  :24779
   takeBrigadirContract  :11162
   try_ (=>)  :14002
   tryMove  :8869
   useExtinguisher  :12364
 
 ## рендер/рисование  (162)
-  _drawBlackmarketInterior  :30932
+  _drawBlackmarketInterior  :30937
   _drawBotChat  :9175
   _drawCrosswalkBand  :6993
-  _drawDepositCell (=>)  :33037
-  _drawEdgeArrowToWorld  :23050
+  _drawDepositCell (=>)  :33042
+  _drawEdgeArrowToWorld  :23055
   _drawGasSigns  :7310
-  _drawGraffitiShape  :31249
-  _drawGrenade (=>)  :31007
-  _drawGun (=>)  :30993
-  _drawGymInterior  :30278
-  _drawHospitalInterior  :30468
-  _drawJobOfficeInterior  :30098
-  _drawKickAnim  :25354
-  _drawKnife (=>)  :31000
-  _drawMoneyBag  :32614
-  _drawPOIArrow  :28233
-  _drawPoliceStationInterior  :30653
-  _drawPump (=>)  :26295
-  _drawRifle (=>)  :31012
+  _drawGraffitiShape  :31254
+  _drawGrenade (=>)  :31012
+  _drawGun (=>)  :30998
+  _drawGymInterior  :30283
+  _drawHospitalInterior  :30473
+  _drawJobOfficeInterior  :30103
+  _drawKickAnim  :25359
+  _drawKnife (=>)  :31005
+  _drawMoneyBag  :32619
+  _drawPOIArrow  :28238
+  _drawPoliceStationInterior  :30658
+  _drawPump (=>)  :26300
+  _drawRifle (=>)  :31017
   _drawSpeechFor  :9192
-  _drawWallCam (=>)  :34446
+  _drawWallCam (=>)  :34451
   _ensureSpawnSafe  :8643
-  _isoBox  :16409
+  _isoBox  :16414
   _renderArenaBosses  :13799
   _renderArenaDistricts  :13778
   _renderShopItems  :13680
   _respawnPointLabel  :12739
   _spawnCashierAt  :11241
   _spawnCrashEvent  :7742
-  _spawnInteriorNpcs  :31381
+  _spawnInteriorNpcs  :31386
   _spawnNpcFightEvent  :7773
   _spawnPet  :5172
   _spawnRandomWorldEvent  :7833
   addShake  :8424
-  drawArch (=>)  :33968
-  drawArenaPerimeter  :19093
-  drawBarrel  :23259
-  drawBeachBall  :17318
-  drawBeachChair  :17047
-  drawBeachDecor  :21058
-  drawBeachedBoat  :17111
-  drawBeachgoer  :22013
-  drawBeachGrass  :17560
-  drawBeachPuddle  :17581
-  drawBeachTowel  :17347
-  drawBeachUmbrella  :17009
-  drawBeerBottle  :22274
-  drawBike  :20118
-  drawBillboard  :20280
-  drawBlackmarket  :18031
-  drawBloodSplats  :27931
-  drawBoxQuestMarkers  :23187
-  drawBrigadir  :22987
-  drawBuilding  :23316
-  drawBuildingInterior  :31544
-  drawBurjKhalifa  :21622
-  drawCasinoBuilding  :18469
-  drawChar  :24317
-  drawContainer  :16540
-  drawContainer (=>)  :18954
-  drawConvoyNpc  :22121
-  drawCover  :22433
-  drawCrab  :17521
-  drawCrate  :23231
+  drawArch (=>)  :33973
+  drawArenaPerimeter  :19098
+  drawBarrel  :23264
+  drawBeachBall  :17323
+  drawBeachChair  :17052
+  drawBeachDecor  :21063
+  drawBeachedBoat  :17116
+  drawBeachgoer  :22018
+  drawBeachGrass  :17565
+  drawBeachPuddle  :17586
+  drawBeachTowel  :17352
+  drawBeachUmbrella  :17014
+  drawBeerBottle  :22279
+  drawBike  :20123
+  drawBillboard  :20285
+  drawBlackmarket  :18036
+  drawBloodSplats  :27936
+  drawBoxQuestMarkers  :23192
+  drawBrigadir  :22992
+  drawBuilding  :23321
+  drawBuildingInterior  :31549
+  drawBurjKhalifa  :21627
+  drawCasinoBuilding  :18474
+  drawChar  :24322
+  drawContainer  :16545
+  drawContainer (=>)  :18959
+  drawConvoyNpc  :22126
+  drawCover  :22438
+  drawCrab  :17526
+  drawCrate  :23236
   drawCrosswalks  :6974
-  drawDistrictBanner  :28429
-  drawDistrictBorders  :28341
-  drawDistrictCaptureHud  :28471
-  drawDistrictHQs  :28365
-  drawDropZone  :23141
-  drawDumpster  :23289
-  drawEventArrow  :28271
-  drawExhaustPuffs  :28057
-  drawFaceF  :24512
-  drawFaceM  :24466
-  drawFactoryBuilding  :18163
+  drawDistrictBanner  :28434
+  drawDistrictBorders  :28346
+  drawDistrictCaptureHud  :28476
+  drawDistrictHQs  :28370
+  drawDropZone  :23146
+  drawDumpster  :23294
+  drawEventArrow  :28276
+  drawExhaustPuffs  :28062
+  drawFaceF  :24517
+  drawFaceM  :24471
+  drawFactoryBuilding  :18168
   drawFeedEvents  :13540
-  drawFemale  :24395
-  drawFloatRing  :17600
-  drawFloatTexts  :26868
-  drawGangNestRings  :19168
-  drawGraffiti  :31288
-  drawGraffitiOnGround  :22330
-  drawHairF  :24596
-  drawHairM  :24562
-  drawHat  :24648
+  drawFemale  :24400
+  drawFloatRing  :17605
+  drawFloatTexts  :26873
+  drawGangNestRings  :19173
+  drawGraffiti  :31293
+  drawGraffitiOnGround  :22335
+  drawHairF  :24601
+  drawHairM  :24567
+  drawHat  :24653
   drawLairBarricade  :3398
   drawLairDecorItem  :3524
   drawLairJunk  :3191
-  drawLairPerimeter  :19214
+  drawLairPerimeter  :19219
   drawLairRuin  :3054
   drawLairTent  :2974
   drawLairWall  :3293
   drawLairWreck  :3223
-  drawLamp  :17929
-  drawLandmark  :21499
-  drawLeaderboard  :31326
-  drawLifeguardTower  :17142
-  drawMale  :24331
-  drawMansionBuilding  :18271
-  drawMarketBuilding  :18673
-  drawMichael  :22909
-  drawMichaelGuard  :22080
-  drawMinimap  :28508
-  drawModeTag  :22158
+  drawLamp  :17934
+  drawLandmark  :21504
+  drawLeaderboard  :31331
+  drawLifeguardTower  :17147
+  drawMale  :24336
+  drawMansionBuilding  :18276
+  drawMarketBuilding  :18678
+  drawMichael  :22914
+  drawMichaelGuard  :22085
+  drawMinimap  :28513
+  drawModeTag  :22163
   drawNightTint  :13981
-  drawNpc  :21938
-  drawPalmTree  :16941
-  drawPerson  :25698
+  drawNpc  :21943
+  drawPalmTree  :16946
+  drawPerson  :25703
   drawPet  :5254
-  drawPlankPath  :17078
-  drawPOI  :23701
-  drawPOIArrows  :28142
-  drawPoliceBuilding  :23954
-  drawPoliceStationDecor  :24039
-  drawPortBuilding  :18914
-  drawSandcastle  :17378
-  drawShell  :17193
-  drawShells  :27900
-  drawShipCrane  :16665
-  drawShipHull  :16453
-  drawShockwaves  :27854
-  drawSkidMarks  :28023
-  drawSmoke (=>)  :18251
-  drawSmokePuffs  :27874
-  drawSouthTile  :16182
-  drawSprayCan  :22299
-  drawStack (=>)  :18235
-  drawStarfish  :17493
-  drawStationTurret  :24252
-  drawStatusRow  :22236
-  drawSurfboard  :17278
-  drawSwatHelmet  :22575
-  drawSwatShield  :22546
-  drawTerritoryPerimeters  :19118
-  drawThemedBuilding  :17969
-  drawTikiBar  :17208
-  drawTile  :17627
-  drawTree  :17820
-  drawVolleyNet  :17422
-  drawWheel  :20153
-  getSprite  :24727
+  drawPlankPath  :17083
+  drawPOI  :23706
+  drawPOIArrows  :28147
+  drawPoliceBuilding  :23959
+  drawPoliceStationDecor  :24044
+  drawPortBuilding  :18919
+  drawSandcastle  :17383
+  drawShell  :17198
+  drawShells  :27905
+  drawShipCrane  :16670
+  drawShipHull  :16458
+  drawShockwaves  :27859
+  drawSkidMarks  :28028
+  drawSmoke (=>)  :18256
+  drawSmokePuffs  :27879
+  drawSouthTile  :16187
+  drawSprayCan  :22304
+  drawStack (=>)  :18240
+  drawStarfish  :17498
+  drawStationTurret  :24257
+  drawStatusRow  :22241
+  drawSurfboard  :17283
+  drawSwatHelmet  :22580
+  drawSwatShield  :22551
+  drawTerritoryPerimeters  :19123
+  drawThemedBuilding  :17974
+  drawTikiBar  :17213
+  drawTile  :17632
+  drawTree  :17825
+  drawVolleyNet  :17427
+  drawWheel  :20158
+  getSprite  :24732
   hideRespawnModal  :12786
   isoH  :7945
   refreshRespawnHudBtn  :12804
   refreshRespawnList  :12749
-  render  :25860
-  renderHudAvatar  :24741
-  renderProfileTab  :24779
+  render  :25865
+  renderHudAvatar  :24746
+  renderProfileTab  :24784
   showRespawnModal  :12778
   spawnAmbulance  :4897
   spawnBotCorpse  :9084
@@ -519,16 +519,16 @@
   spawnGangLair  :7037
   spawnNpc  :3558
   spawnShockwave  :8514
-  spawnShot  :24926
+  spawnShot  :24931
   spawnSmokePuff  :8445
   spawnTowTruck  :4947
   w2s  :7894
 
 ## сеть/ws  (13)
   _fetchApiFallback  :1748
-  _fetchLeaderboard  :31317
-  _loadGraffitiFromSnap  :31238
-  _syncChatBarOverKb  :34909
+  _fetchLeaderboard  :31322
+  _loadGraffitiFromSnap  :31243
+  _syncChatBarOverKb  :34914
   _viewSize  :1807
   sendCaptureCancel  :15197
   sendCaptureTry  :15193
@@ -540,51 +540,51 @@
   wsUrl  :10326
 
 ## стрельба/бой  (78)
-  _autoLockThreat  :27002
-  _bulletY  :26949
-  _drawPunchAnim  :25181
+  _autoLockThreat  :27007
+  _bulletY  :26954
+  _drawPunchAnim  :25186
   _findHitTargetBotById  :11078
-  _findLaserTarget  :27357
+  _findLaserTarget  :27362
   _findNearestMeleeTarget  :14483
   _fireStationDoor  :4885
   _getTrafficTarget  :7170
   _hurtLocal  :7973
-  _isBlockedInterior  :32231
-  _lockId  :27350
-  _lockTargetEntry  :27090
+  _isBlockedInterior  :32236
+  _lockId  :27355
+  _lockTargetEntry  :27095
   _pickHitTargetBandit  :11063
-  _renewAllLocks  :27576
+  _renewAllLocks  :27581
   _spawnPunchBlood  :14576
   _spawnStreetFireEvent  :7812
   _targetNpcCount  :4104
   _updateHitFlash  :13641
-  _updateTargetLock  :27302
+  _updateTargetLock  :27307
   _vehicleBlockedByCar  :4812
   applyAggroTargets  :9026
   applyConvoyTargets  :8956
-  applyTargetLockToAim  :27562
+  applyTargetLockToAim  :27567
   claimBrigadirReward  :11175
   closeWeaponPick  :15087
-  drawAimLaser  :27595
-  drawBullets  :27701
-  drawFirearm  :25560
-  drawFireBuilding  :24000
-  drawFireStationDecor  :24082
-  drawHitTargetMarker  :23102
-  drawImpacts  :28091
+  drawAimLaser  :27600
+  drawBullets  :27706
+  drawFirearm  :25565
+  drawFireBuilding  :24005
+  drawFireStationDecor  :24087
+  drawHitTargetMarker  :23107
+  drawImpacts  :28096
   drawLairFire  :3137
   drawLairFireBarrel  :3463
-  drawMuzzles  :27771
-  drawTargetLock  :27477
-  drawTargetLockProgress  :27458
+  drawMuzzles  :27776
+  drawTargetLock  :27482
+  drawTargetLockProgress  :27463
   drawWeaponHudIcon  :14982
-  drawWeaponInHands  :25625
+  drawWeaponInHands  :25630
   findNearestConvoyTarget  :13999
   findPvpTargetAlongAim  :14034
   fire  :14059
   fireScreenFlash  :8538
   flashHitOverlay  :10192
-  getActiveTarget  :26979
+  getActiveTarget  :26984
   hapticFire  :8550
   hapticHit  :8558
   hitGangCar  :3665
@@ -605,25 +605,25 @@
   sendShoot  :15188
   spawnBullet  :8567
   spawnFireTruck  :4920
-  spawnImpact  :24969
+  spawnImpact  :24974
   spawnMuzzle  :8597
   toggleWeaponPick  :15091
   triggerHitStop  :8546
-  tryTapLock  :27100
+  tryTapLock  :27105
   updateGameClock  :13956
-  weaponCd  :24917
+  weaponCd  :24922
   weaponForegrip  :8067
-  weaponFx  :24916
+  weaponFx  :24921
   weaponLabel  :14977
   weaponMuzzleD  :8376
   weaponsForPick  :15027
-  weaponTip  :25611
+  weaponTip  :25616
 
 ## тюрьма  (12)
-  _confiscateBagOnArrest  :29310
+  _confiscateBagOnArrest  :29315
   drawArrestAnims  :10242
-  drawJailCell  :24126
-  drawJailTimer  :22199
+  drawJailCell  :24131
+  drawJailTimer  :22204
   hitCityCop  :3746
   initCityCops  :4467
   pickCityCopWaypoint  :4452
@@ -635,8 +635,8 @@
 
 ## WS-обработчики (kind === '...')
   'aggro_apply'  :10037
-  'aggro_boss'  :22350
-  'aggro_bot'  :27006
+  'aggro_boss'  :22355
+  'aggro_bot'  :27011
   'aggro_cap_failed'  :10113
   'aggro_capturing'  :10109
   'aggro_hit'  :10045
@@ -649,17 +649,17 @@
   'ambulance'  :5078
   'ambulance'  :5089
   'ambulance'  :5328
-  'arch'  :21595
-  'ball'  :26536
+  'arch'  :21600
+  'ball'  :26541
   'bandit'  :4159
   'bank_guard'  :14624
-  'bank_guard'  :27047
+  'bank_guard'  :27052
   'bank_rob_alarm'  :9737
   'bank_rob_announce'  :9725
   'bank_rob_finished'  :9752
   'bank_rob_police_arrive'  :9745
   'bank_rob_started'  :9731
-  'boat'  :26526
+  'boat'  :26531
   'bounty_collected'  :10085
   'box_abandon_reply'  :9831
   'box_deliver_reply'  :9900
@@ -670,21 +670,21 @@
   'brigadir_kill_reply'  :9671
   'brigadir_take_reply'  :9647
   'cat'  :5275
-  'chair'  :26524
+  'chair'  :26529
   'city_gang_combat'  :9428
   'city_gang_threat'  :9434
   'citycop'  :14637
   'citycop_arrest_reply'  :9711
   'civilian_hijack_reply'  :9566
-  'convoy'  :27036
-  'cop'  :27015
+  'convoy'  :27041
+  'cop'  :27020
   'cop_hit'  :9937
   'cop_leave'  :9338
   'cop_shot'  :9381
   'cop_shot_bot'  :9414
   'cop_spawned'  :9310
   'cop_warn'  :9324
-  'crab'  :26548
+  'crab'  :26553
   'crash'  :7844
   'decor_npc'  :14649
   'diamond'  :14919
@@ -699,41 +699,41 @@
   'firetruck'  :5054
   'firetruck'  :5065
   'firetruck'  :5093
-  'float_ring'  :26554
-  'fountain'  :21501
+  'float_ring'  :26559
+  'fountain'  :21506
   'gang_nest_cleared'  :9442
   'gang_nest_expired'  :9454
   'gang_nest_spawned'  :9437
   'gang_threat'  :10081
   'graffiti_new'  :10164
-  'grass'  :26550
+  'grass'  :26555
   'gta_drive_reject'  :9912
   'gta_exit_reply'  :9923
   'gta_status'  :9814
   'gta_take_reply'  :9776
   'guard'  :4160
-  'icecream_cart'  :26544
+  'icecream_cart'  :26549
   'inkass_shot'  :9228
   'inkassator_escaped'  :9224
   'inkassator_killed'  :9211
   'inkassator_spawned'  :9206
-  'lifeguard'  :26528
-  'mg'  :27021
+  'lifeguard'  :26533
+  'mg'  :27026
   'mg_hit'  :9363
   'mg_shot'  :9341
   'npc'  :14607
   'npc'  :14683
   'npc_fight'  :7845
-  'obelisk'  :21564
+  'obelisk'  :21569
   'open_fire'  :10168
-  'palm'  :26520
-  'plank_path'  :26511
+  'palm'  :26525
+  'plank_path'  :26516
   'player'  :14664
-  'player'  :27027
+  'player'  :27032
   'player_shot'  :9248
   'police'  :5072
   'police'  :5329
-  'puddle'  :26552
+  'puddle'  :26557
   'pvp_shot'  :9268
   'quest_car_delivered'  :9479
   'quest_car_destroyed'  :9541
@@ -742,43 +742,43 @@
   'quest_car_spawned'  :9459
   'respawn_status'  :9840
   'response'  :4526
-  'sandcastle'  :26540
+  'sandcastle'  :26545
   'set_respawn_reply'  :9851
-  'shell'  :26530
+  'shell'  :26535
   'shop_rob_reply'  :9617
   'shop_robbed'  :9767
-  'starfish'  :26546
-  'statue'  :21539
+  'starfish'  :26551
+  'statue'  :21544
   'street_fire'  :7846
-  'surfboard'  :26534
-  'swat'  :22469
-  'swat'  :22471
-  'swat'  :22483
-  'swat'  :22487
-  'swat'  :22496
+  'surfboard'  :26539
+  'swat'  :22474
+  'swat'  :22476
+  'swat'  :22488
+  'swat'  :22492
   'swat'  :22501
-  'swat'  :22507
-  'swat'  :22511
+  'swat'  :22506
+  'swat'  :22512
+  'swat'  :22516
   'territory_capture_cancelled'  :9960
   'territory_capture_denied'  :9971
   'territory_capture_started'  :9949
   'territory_captured'  :9980
   'territory_fight'  :10115
   'territory_income'  :10123
-  'tiki_bar'  :26532
+  'tiki_bar'  :26537
   'tow'  :5097
   'tow'  :5109
   'tow'  :5118
   'tow'  :5330
-  'towel'  :26538
-  'umbrella'  :26522
-  'volleyball'  :26542
+  'towel'  :26543
+  'umbrella'  :26527
+  'volleyball'  :26547
   'world_heal_reply'  :9929
 
 ## Глобальное состояние (Map/Set/массивы/объекты верхнего уровня)
   _activeRandomEvents  :7722
-  _AGGRO_BOSS_LOOK  :22272
-  _AGGRO_GRUNT_LOOK  :22271
+  _AGGRO_BOSS_LOOK  :22277
+  _AGGRO_GRUNT_LOOK  :22276
   _aggroHintShown  :15205
   _aggroWarnMsg  :2693
   _arrestHidden  :8421
@@ -786,179 +786,179 @@
   _bankCivSave  :7519
   _bankCooldowns  :7521
   _bankGuardSave  :7512
-  _bankPhrases  :32389
+  _bankPhrases  :32394
   _bankTileSet  :1897
-  _BEACH_SKIN  :22012
+  _BEACH_SKIN  :22017
   _beachDecor  :2143
-  _BINT  :31977
-  _bldgLootCD  :31454
-  _bmPhrases  :30918
+  _BINT  :31982
+  _bldgLootCD  :31459
+  _bmPhrases  :30923
   _BOSS_DATA  :13747
   _botChats  :9174
   _botLastSeen  :9080
-  _BRIGADIR_LOOK  :22981
+  _BRIGADIR_LOOK  :22986
   _BTN_BY_TYPE  :11448
   _burjTaxi  :6658
   _busRiders  :2739
   _busWaiters  :2738
-  _CONVOY_BOSS_LOOK  :22119
-  _CONVOY_GUARD_LOOK  :22120
-  _COP_LOOKS  :22265
+  _CONVOY_BOSS_LOOK  :22124
+  _CONVOY_GUARD_LOOK  :22125
+  _COP_LOOKS  :22270
   _COP_REACT_CRIES  :4386
   _copChats  :9171
-  _dbgErrors  :28968
-  _entryToast  :31525
+  _dbgErrors  :28973
+  _entryToast  :31530
   _evBannerLast  :13611
   _feedEvents  :13519
   _feedLast  :13523
   _FIREARM_DRAW  :8075
-  _frontTiles  :26768
+  _frontTiles  :26773
   _GANG_NAMES  :7373
   _gasTileSet  :1898
-  _graffiti  :31219
-  _GRAFFITI_SHAPES  :31218
-  _GRAFFITI_TAGS  :31212
-  _graffitiCd  :31220
-  _hbHistory  :28930
+  _graffiti  :31224
+  _GRAFFITI_SHAPES  :31223
+  _GRAFFITI_TAGS  :31217
+  _graffitiCd  :31225
+  _hbHistory  :28935
   _HONK_TEXTS  :7206
-  _INTERIOR_NPC_CFG  :31361
+  _INTERIOR_NPC_CFG  :31366
   _JUNKER_COLORS  :7229
   _keyState  :8829
   _LOC_BOSSES  :13769
-  _MG_LOOK  :22079
-  _MICHAEL_LOOK  :22908
+  _MG_LOOK  :22084
+  _MICHAEL_LOOK  :22913
   _msg  :11941
   _myGang  :7371
   _myWeapons  :14968
   _palms  :2159
   _PANIC_PHRASES_BY_ARC  :5923
-  _panicPhrases  :32341
+  _panicPhrases  :32346
   _parkingNpcs  :6823
   _recentlyBought  :12188
   _robCooldowns  :11213
   _SHOP_ITEMS  :13652
-  _sizes  :31489
-  _spriteCache  :24726
+  _sizes  :31494
+  _spriteCache  :24731
   _TAXI_DESTINATIONS  :13852
   _toastLast  :13486
   _TRAFFIC_DENSITY  :7164
   _vaultDroppedBags  :7361
-  a  :19657
-  a  :26336
-  accentCol  :24405
+  a  :19662
+  a  :26341
+  accentCol  :24410
   activeCaptures  :2498
-  all  :27224
-  ARM_PIER  :16766
-  ARM_TOP  :16765
+  all  :27229
+  ARM_PIER  :16771
+  ARM_TOP  :16770
   arrestAnims  :8418
-  atmSpots  :29678
-  b  :19658
-  b  :26337
-  b1  :19869
+  atmSpots  :29683
+  b  :19663
+  b  :26342
+  b1  :19874
   BAG_CAPACITY  :6347
-  bags  :32119
+  bags  :32124
   BANDIT_PHRASES  :4010
   BANK_INT_CFG  :7527
-  bankCenter  :29509
-  bankCenter3  :30028
+  bankCenter  :29514
+  bankCenter3  :30033
   BANKS  :1891
-  bankScale  :29508
-  bankScale3  :30027
+  bankScale  :29513
+  bankScale3  :30032
   baseLook  :3576
-  bColors  :34692
-  bCols  :31784
-  BEACH_DECOR  :21025
+  bColors  :34697
+  bCols  :31789
+  BEACH_DECOR  :21030
   beachgoers  :2616
-  bedPositions  :30519
-  BILLBOARD_BY_RC  :20277
-  BILLBOARDS  :20265
-  BIZ_EMOJI  :24817
+  bedPositions  :30524
+  BILLBOARD_BY_RC  :20282
+  BILLBOARDS  :20270
+  BIZ_EMOJI  :24822
   BIZ_VISIT_ANNOUNCE  :4171
   BIZ_VISIT_THANKS  :4176
   bloodSplats  :8398
-  bMid  :19879
-  bodyDefs  :24332
-  bodyDefs  :24396
-  boltSpots  :34257
-  boltSpots  :34361
-  bookCols  :34716
+  bMid  :19884
+  bodyDefs  :24337
+  bodyDefs  :24401
+  boltSpots  :34262
+  boltSpots  :34366
+  bookCols  :34721
   BRIGADIR_AI  :11041
   BRIGADIR_HOME  :11036
   BRIGADIR_POS  :11039
-  browAngles  :24475
-  bsize  :29980
-  btCols  :20682
+  browAngles  :24480
+  bsize  :29985
+  btCols  :20687
   bullets  :7989
-  BURJ_POS  :21621
+  BURJ_POS  :21626
   BUS  :2728
-  BUS_MODEL  :21838
+  BUS_MODEL  :21843
   BUS_STOPS  :2720
-  BUSINESS_BY_RC  :20369
-  BUSINESS_POIS  :20357
+  BUSINESS_BY_RC  :20374
+  BUSINESS_POIS  :20362
   cam  :7883
   cameFrom  :4774
-  canCols  :31702
+  canCols  :31707
   candidates  :4237
   CAPTURABLE_IDS  :2074
   CAR_MODELS  :6305
-  carpCols  :31607
+  carpCols  :31612
   CARS  :6444
   carsN  :5025
-  chairPos  :30185
+  chairPos  :30190
   choices  :4120
-  CITY_LANDMARKS  :21460
+  CITY_LANDMARKS  :21465
   cityCops  :4379
   CIV_LABELS  :11886
-  colCount  :29573
-  COLORS  :16905
-  colors  :21148
-  colors  :31231
+  colCount  :29578
+  COLORS  :16910
+  colors  :21153
+  colors  :31236
   cols  :3199
-  cols  :17562
-  cols  :22333
-  cols  :30155
-  cols2  :34604
+  cols  :17567
+  cols  :22338
+  cols  :30160
+  cols2  :34609
   combatants  :8667
-  CONT_PRESETS  :16502
+  CONT_PRESETS  :16507
   COP_PHRASES  :4019
-  copLook  :30873
-  corners  :19095
-  corners  :19144
-  corners  :24052
-  corners  :24090
-  corners  :32985
-  counterDraws  :31118
-  crackTotal  :29081
-  cratePositions  :31076
+  copLook  :30878
+  corners  :19100
+  corners  :19149
+  corners  :24057
+  corners  :24095
+  corners  :32990
+  counterDraws  :31123
+  crackTotal  :29086
+  cratePositions  :31081
   cries  :4562
   cries  :14712
-  cries  :32546
-  deskPos  :30754
-  deskPositions  :30163
+  cries  :32551
+  deskPos  :30759
+  deskPositions  :30168
   dFresh  :10773
   dirs  :4778
   DISTRICT_BY_ID  :2477
   districtCaptures  :2474
   DISTRICTS  :2453
-  docLook  :30613
+  docLook  :30618
   DROP_ZONE  :2532
   edges  :5400
-  edges  :19472
+  edges  :19477
   EMERGENCY_AMBIENT_MODELS  :6383
   exhaustPuffs  :8414
-  eyeColors  :24514
-  f1  :19868
-  fill  :30287
-  fill  :30942
+  eyeColors  :24519
+  f1  :19873
+  fill  :30292
+  fill  :30947
   FIREARM_FOREGRIP  :8060
-  FIREARM_TIP  :25591
+  FIREARM_TIP  :25596
   FIREARM_TIP_DEFER  :8388
-  flagCols  :18833
-  flags  :28999
+  flagCols  :18838
+  flags  :29004
   floatTexts  :7994
-  floors  :29512
-  flowerCols  :23626
-  fMid  :19878
+  floors  :29517
+  flowerCols  :23631
+  fMid  :19883
   fresh  :2537
   fresh  :2618
   fresh  :2643
@@ -967,75 +967,75 @@
   GANG_CAR_MODELS  :6299
   GANG_FLAG_DEFS  :2374
   gangNests  :2506
-  garland  :18533
-  garlandPoints  :18814
+  garland  :18538
+  garlandPoints  :18819
   GAS_STATIONS  :1901
-  gateOffsets  :18378
-  gLook  :30880
-  grafCols  :23637
-  greens  :17851
+  gateOffsets  :18383
+  gLook  :30885
+  grafCols  :23642
+  greens  :17856
   guard  :11312
   GUARD_PHRASES  :4030
   guardLooks  :11304
-  HAIR_COLORS_F  :24315
-  HAIR_COLORS_M  :24314
-  hairCols  :22038
-  hasEntry  :26193
+  HAIR_COLORS_F  :24320
+  HAIR_COLORS_M  :24319
+  hairCols  :22043
+  hasEntry  :26198
   hidden  :10244
-  ICE  :22058
+  ICE  :22063
   impacts  :8396
   inputData  :15164
-  isThemed  :31488
+  isThemed  :31493
   items  :12751
-  items  :25947
-  items  :27234
-  items  :30126
-  items  :30306
-  items  :30495
-  items  :30691
-  items  :30967
-  items  :31601
-  items  :32995
-  items  :33476
+  items  :25952
+  items  :27239
+  items  :30131
+  items  :30311
+  items  :30500
+  items  :30696
+  items  :30972
+  items  :31606
+  items  :33000
+  items  :33481
   joyL  :8685
   joyR  :8757
-  key  :24728
+  key  :24733
   LAIR_DECOR  :2882
-  lampCols  :33121
+  lampCols  :33126
   lastBossShotAt  :9154
   lastPlayerShotAt  :9155
   lastPlayerWeapon  :9156
-  lBase  :34635
-  ledColors  :20694
-  LEG_OFFS  :16695
-  lens  :25523
-  lights  :30953
-  lines  :25797
-  lipColors  :24535
-  lockedTargets  :26972
-  LOGOS  :16935
-  look  :22019
+  lBase  :34640
+  ledColors  :20699
+  LEG_OFFS  :16700
+  lens  :25528
+  lights  :30958
+  lines  :25802
+  lipColors  :24540
+  lockedTargets  :26977
+  LOGOS  :16940
+  look  :22024
   m  :7395
   m  :7425
   MAP  :1888
   merged  :9049
-  mgrLook  :30238
+  mgrLook  :30243
   MICHAEL_POS  :2515
   michaelGuards  :2641
-  midB  :19635
-  midF  :19634
-  midL  :16621
-  midL  :19492
-  midR  :16581
-  midR  :19491
+  midB  :19640
+  midF  :19639
+  midL  :16626
+  midL  :19497
+  midR  :16586
+  midR  :19496
   muzzles  :8391
   myBoxStatus  :12724
-  myBusinesses  :20839
+  myBusinesses  :20844
   myGtaStatus  :2598
   myOwnedBiz  :12734
   n  :3592
-  names  :23498
-  names  :29174
+  names  :23503
+  names  :29179
   next  :9005
   npc  :5705
   npc  :11248
@@ -1048,17 +1048,17 @@
   oldById  :9048
   opts  :10015
   others  :8662
-  out  :31384
+  out  :31389
   ownedNearby  :4184
-  p  :30035
-  palettes  :22623
-  palettes  :29519
-  palettesByType  :23336
+  p  :30040
+  palettes  :22628
+  palettes  :29524
+  palettesByType  :23341
   palm  :2181
   pals  :2979
   PARK_BLOCKS  :1912
   PARKING_LOTS  :6692
-  parks  :21471
+  parks  :21476
   parts  :3719
   parts  :3764
   parts  :3808
@@ -1067,14 +1067,14 @@
   parts  :14587
   parts  :14874
   parts  :15677
-  parts  :24971
-  parts  :25026
-  parts  :25085
+  parts  :24976
+  parts  :25031
+  parts  :25090
   PASSABLE  :8848
   path  :4797
   PATH_COLS  :2154
   PETS  :5170
-  phaseNames  :29457
+  phaseNames  :29462
   player  :8628
   POI  :2314
   POI_BY_RC  :2342
@@ -1082,71 +1082,71 @@
   pool  :4094
   pool  :7836
   pool  :11064
-  preserved  :20854
-  pts  :19219
-  pupilCol  :24470
+  preserved  :20859
+  pts  :19224
+  pupilCol  :24475
   PVP  :7949
   QP  :1703
   QUEST_CAR_MODELS  :6393
   questCars  :2535
   queue  :4776
-  rayLens  :25320
-  rBL  :19862
-  rBR  :19861
+  rayLens  :25325
+  rBL  :19867
+  rBR  :19866
   reasons  :9963
   reasons  :10144
-  rFL  :19860
-  rFR  :19859
+  rFL  :19865
+  rFR  :19864
   ROB_PAYOUT_PREVIEW  :11191
-  roofColor  :29840
+  roofColor  :29845
   row  :1930
-  SAFE_BL  :28155
-  SAFE_BR  :28156
-  SAFE_TL  :28153
-  SAFE_TR  :28154
-  seagulls  :19066
+  SAFE_BL  :28160
+  SAFE_BR  :28161
+  SAFE_TL  :28158
+  SAFE_TR  :28159
+  seagulls  :19071
   seen  :10606
   seen  :15119
-  sellerLook  :31171
+  sellerLook  :31176
   serverIds  :10666
   serviceVehicles  :4723
-  sh  :29741
-  shade  :34637
-  shelfWeapons  :31020
+  sh  :29746
+  shade  :34642
+  shelfWeapons  :31025
   shells  :8394
-  shirtCols  :23612
+  shirtCols  :23617
   shockwaves  :8432
-  SHORT_NAMES  :20950
+  SHORT_NAMES  :20955
   sides  :3059
   skidMarks  :8410
-  SKINS  :24313
-  slots  :24045
-  slots  :24085
+  SKINS  :24318
+  slots  :24050
+  slots  :24090
   smokePuffs  :8429
-  sp1  :19889
-  sp2  :19890
-  stripeCols  :23673
-  sw  :29740
+  sp1  :19894
+  sp2  :19895
+  stripeCols  :23678
+  sw  :29745
   tabMap  :13681
-  tagColor  :29778
+  tagColor  :29783
   tags  :3355
-  tags  :22332
-  tags  :23642
+  tags  :22337
+  tags  :23647
   targets  :14149
-  tents  :18733
+  tents  :18738
   TERRITORY_BY_ID  :2420
-  themes  :20298
+  themes  :20303
   thresh  :7211
-  tieCol  :24341
-  tiers  :17878
-  toDelete  :27339
-  tongues  :19334
-  top  :16974
+  tieCol  :24346
+  tiers  :17883
+  toDelete  :27344
+  tongues  :19339
+  top  :16979
   tries  :4587
   tries  :4664
   tries  :6209
   tries  :6244
-  trLook  :30428
+  trLook  :30433
   UMBRELLA_SPOTS  :2198
   unarmed  :15029
   used  :6827
@@ -1154,17 +1154,17 @@
   v  :4929
   v  :4954
   v  :4988
-  vitrinaWeapons  :31052
-  WC  :34050
-  WEAP_EMOJI  :24783
+  vitrinaWeapons  :31057
+  WC  :34055
+  WEAP_EMOJI  :24788
   WEAPON_ALIASES  :8017
-  WEAPON_FX  :24894
+  WEAPON_FX  :24899
   WEAPON_FX_CFG  :8045
   WEAPON_LABELS  :14972
   weapons  :7393
-  winCols  :29587
-  winsPerRow  :29858
+  winCols  :29592
+  winsPerRow  :29863
   WITNESS_PHRASES  :5938
   worldCops  :8950
-  wsL1  :19529
-  wsR1  :19528
+  wsL1  :19534
+  wsR1  :19533

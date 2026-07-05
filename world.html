@@ -16011,6 +16011,11 @@ function update(dt) {
     _handbrakeBtn.style.display = 'none';
     if (_robBtn) _robBtn.style.display = 'none';
     _updateDropBagBtn();   // мешок можно бросить и внутри хранилища
+    // Наёмники позиционируются в банк-координаты ТОЛЬКО один раз при входе
+    // (enterBankInterior). Этот блок завершается return'ом ДО общего тика,
+    // где раньше был единственный вызов _updateGang(dt) — банда физически
+    // не двигалась и не стреляла всё время, пока игрок внутри банка.
+    _updateGang(dt);
     return;
   }
 
