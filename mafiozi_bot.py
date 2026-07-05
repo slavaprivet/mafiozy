@@ -1883,6 +1883,89 @@ async def sell_property_db(telegram_id: int, item_id: str):
         )
         await db.commit()
 
+# ── Квартиры в мире (world.html, обычные здания) ────────────────────────────
+# Отдельная система от property_owned (тот — под магазин/статус-предметы,
+# не под конкретные дома на карте). apt_key — координаты ГОРОДСКОГО БЛОКА
+# ("br,bc"), не буквального тайла входа — см. _aptBlockKey в world.html.
+
+async def ensure_apartment_tables():
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS apartments_owned (
+                telegram_id INTEGER,
+                apt_key TEXT,
+                price INTEGER DEFAULT 0,
+                bought_at INTEGER DEFAULT 0,
+                safe_level INTEGER DEFAULT 0,
+                weapon_rack_level INTEGER DEFAULT 0,
+                garage_level INTEGER DEFAULT 0,
+                cameras_level INTEGER DEFAULT 0,
+                repair_level INTEGER DEFAULT 0,
+                PRIMARY KEY (telegram_id, apt_key)
+            )
+        """)
+        await db.commit()
+
+async def get_apartments_owned(telegram_id: int) -> dict:
+    await ensure_apartment_tables()
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            """
+            SELECT apt_key, price, bought_at, safe_level, weapon_rack_level,
+                   garage_level, cameras_level, repair_level
+            FROM apartments_owned
+            WHERE telegram_id=?
+            """,
+            (telegram_id,)
+        ) as cur:
+            rows = await cur.fetchall()
+    out = {}
+    for r in rows:
+        out[str(r[0])] = {
+            "price": int(r[1] or 0),
+            "bought_at": int(r[2] or 0),
+            "safe_level": int(r[3] or 0),
+            "weapon_rack_level": int(r[4] or 0),
+            "garage_level": int(r[5] or 0),
+            "cameras_level": int(r[6] or 0),
+            "repair_level": int(r[7] or 0),
+        }
+    return out
+
+async def buy_apartment_db(telegram_id: int, apt_key: str, price: int):
+    await ensure_apartment_tables()
+    now = int(time.time())
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT OR IGNORE INTO apartments_owned
+            (telegram_id, apt_key, price, bought_at)
+            VALUES (?,?,?,?)
+            """,
+            (telegram_id, apt_key, price, now)
+        )
+        await db.commit()
+
+async def upgrade_apartment_db(telegram_id: int, apt_key: str, upgrade: str, cost: int):
+    await ensure_apartment_tables()
+    col_map = {
+        "safe": "safe_level",
+        "weapon_rack": "weapon_rack_level",
+        "garage": "garage_level",
+        "cameras": "cameras_level",
+        "repair": "repair_level",
+    }
+    col = col_map.get(upgrade)
+    if not col:
+        return False
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            f"UPDATE apartments_owned SET {col}={col}+1 WHERE telegram_id=? AND apt_key=?",
+            (telegram_id, apt_key)
+        )
+        await db.commit()
+    return True
+
 def get_status_points(owned_items: list, kills: int = 0) -> int:
     """Статус = очки имущества + 10 за каждую победу в драке."""
     prop_pts = sum(STATUS_ITEMS[i]["status_pts"] for i in owned_items if i in STATUS_ITEMS)
@@ -17225,6 +17308,70 @@ async def _coop_http_app():
             'cash':     cash - cost,
         }))
 
+    # ── КВАРТИРЫ в обычных зданиях мира (world.html, _myApartments) ──────
+    async def h_apartment_state(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        owned = await get_apartments_owned(uid)
+        return await _cors(web.json_response({'ok': True, 'owned': owned}))
+
+    async def h_apartment_buy(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        apt_key = str(b.get('apt_key', '')).strip()[:32]
+        price = max(1, int(b.get('price', 0) or 0))
+        if not apt_key or ',' not in apt_key:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad apt'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        owned = await get_apartments_owned(uid)
+        if apt_key in owned:
+            return await _cors(web.json_response({'ok': True, 'already': True, 'cash': char.get('cash') or 0, 'owned': owned}))
+        cash = int(char.get('cash') or 0)
+        if cash < price:
+            return await _cors(web.json_response({'ok': False, 'error': 'no cash', 'cash': cash}))
+        await update_character(uid, cash=cash - price)
+        await buy_apartment_db(uid, apt_key, price)
+        owned = await get_apartments_owned(uid)
+        return await _cors(web.json_response({'ok': True, 'cash': cash - price, 'owned': owned}))
+
+    async def h_apartment_upgrade(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        apt_key = str(b.get('apt_key', '')).strip()[:32]
+        upgrade = str(b.get('upgrade', '')).strip()
+        cost = max(1, int(b.get('cost', 0) or 0))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        owned = await get_apartments_owned(uid)
+        if apt_key not in owned:
+            return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
+        cash = int(char.get('cash') or 0)
+        if cash < cost:
+            return await _cors(web.json_response({'ok': False, 'error': 'no cash', 'cash': cash}))
+        ok = await upgrade_apartment_db(uid, apt_key, upgrade, cost)
+        if not ok:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad upgrade'}))
+        await update_character(uid, cash=cash - cost)
+        owned = await get_apartments_owned(uid)
+        return await _cors(web.json_response({'ok': True, 'cash': cash - cost, 'owned': owned}))
+
     # ── ЧЁРНЫЙ РЫНОК и ИНВЕНТАРЬ (всё внутри мини-аппа) ──────────────────
     async def h_shop_list(req):
         try:
@@ -19230,6 +19377,9 @@ async def _coop_http_app():
     aio_app.router.add_post('/biz/{uid}/buy',      h_biz_buy)
     aio_app.router.add_post('/biz/{uid}/collect',  h_biz_collect)
     aio_app.router.add_post('/biz/{uid}/restore',  h_biz_restore)
+    aio_app.router.add_get ('/apartment/{uid}/state',   h_apartment_state)
+    aio_app.router.add_post('/apartment/{uid}/buy',     h_apartment_buy)
+    aio_app.router.add_post('/apartment/{uid}/upgrade', h_apartment_upgrade)
     aio_app.router.add_get ('/shop/{uid}/list',    h_shop_list)
     aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
