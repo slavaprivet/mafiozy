@@ -15449,6 +15449,7 @@ function update(dt) {
       _tickBus(dt);
       _tickParkingNpcs(dt);
       _tickWorldLife(dt);
+      _updateGang(dt);
       return;
     } else {
       // Параметры аркадной езды. Серверный кламп QUEST_CAR_MAX_SPEED=14.
@@ -15935,6 +15936,9 @@ function update(dt) {
       _tickBus(dt);
       _tickParkingNpcs(dt);
       _tickWorldLife(dt);
+      // Без этого банда физически замирала на весь заезд — та же дыра,
+      // что была в банке (return раньше единственного вызова в общем тике).
+      _updateGang(dt);
       return;
     }
   }
@@ -15977,6 +15981,7 @@ function update(dt) {
       _interpMichaelGuards(dt);
       _tickParkingNpcs(dt);
       _tickWorldLife(dt);
+      _updateGang(dt);
       return;
     }
   }
