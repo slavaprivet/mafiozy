@@ -7587,7 +7587,11 @@ function _updateGang(dt) {
     m._nextShootAt = now + GANG_SHOT_CD_MIN + Math.random() * GANG_SHOT_CD_RANGE;
     const nd = tdist > 0.01 ? tdist : 1;
     const dirY = tdr / nd, dirX = tdc / nd;
-    const muzR = m.r + dirY * 0.45, muzC = m.c + dirX * 0.45;
+    // Реальный кончик ствола (как у игрока), а не грубая точка m.r±0.45 —
+    // та не совпадала с нарисованным оружием («стреляет не из пушки»).
+    const _npcScale = (_buildingInt || _bankInt) ? 0.85 : 0.88;
+    const muz = _npcMuzzleWorldPoint(m.r, m.c, m.ang, m.weapon, _npcScale);
+    const muzR = muz.r, muzC = muz.c;
     spawnBullet(muzR, muzC, pos.r, pos.c, { hit: true, fromNpc: true, weapon: m.weapon });
     spawnMuzzle(muzR, muzC, m.ang, m.weapon, true);
     const dmg = GANG_SHOT_DMG_MIN + Math.floor(Math.random() * GANG_SHOT_DMG_RANGE);
@@ -8050,6 +8054,20 @@ function muzzleWorldPoint(angleRad) {
   // drawBullets/drawMuzzles рисуют точку на _bulletY() px ВЫШЕ w2s(r,c).
   // Без компенсации трассер и вспышка висели выше/позади видимого ствола
   // («стреляю из-за спины»).
+  return s2w(mx, my + _bulletY());
+}
+// То же самое, но для ПРОИЗВОЛЬНОГО персонажа (наёмники _myGang) — а не
+// всегда player.r/c/currentWeapon. Без этого пуля наёмника стартовала из
+// грубо прикинутой точки (r + dirY*0.45), которая не совпадает с реально
+// нарисованным стволом (drawWeaponInHands/handAnchor) — «стреляет не из
+// пушки». scale должен совпадать с тем, что передан в drawWeaponInHands.
+function _npcMuzzleWorldPoint(r, c, angleRad, weapon, scale) {
+  const tip = weaponTip(weapon);
+  const sc = (scale || 0.88) * (TS / 60);
+  const ps = w2s(r + 0.5, c + 0.5);
+  const a = handAnchor(ps.x, ps.y, angleRad);
+  const mx = a.hx + a.sx * tip * sc;
+  const my = a.hy + a.sy * tip * sc;
   return s2w(mx, my + _bulletY());
 }
 function isoH(h) { return h * TS * 0.55; }
