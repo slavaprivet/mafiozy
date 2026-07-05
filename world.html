@@ -7444,13 +7444,84 @@ function _gangAlertThreat(r, c, id) {
     m._threatUntil = now + 6000;
   }
 }
+const GANG_ENGAGE_R = 10;          // радиус, в котором наёмник ищет/держит цель
+const GANG_SHOT_CD_MIN = 1200, GANG_SHOT_CD_RANGE = 600;  // 1200–1800мс между выстрелами
+const GANG_SHOT_DMG_MIN = 10, GANG_SHOT_DMG_RANGE = 9;    // 10–18 урона за выстрел
+
+function _findAggroBotById(id) {
+  for (const tid of Object.keys(aggroZones)) {
+    const az = aggroZones[tid];
+    if (!az || !az.bots) continue;
+    const bot = az.bots.find(b => b.id === id);
+    if (bot) return bot;
+  }
+  return null;
+}
+
+// Приоритет боевой цели наёмника: живой NPC банка (если внутри) > городской
+// коп, который УЖЕ преследует игрока (_pursuing — не провоцируем новых,
+// иначе hitCityCop поднимет розыск игроку за чужую стрельбу) > уличный
+// бандит из aggroZones > банда-машина конвоя > коп мира, только если
+// у игрока уже есть розыск (та же логика — не быть инициатором).
+function _findGangCompanionTarget(m) {
+  if (_bankInt && _bankInt.npcs) {
+    let best = null, bestD = GANG_ENGAGE_R;
+    for (const npc of _bankInt.npcs) {
+      if (npc.dead || npc.state === 'fled') continue;
+      const d = Math.hypot(npc.r - m.r, npc.c - m.c);
+      if (d < bestD) { bestD = d; best = npc; }
+    }
+    return best ? { kind: 'bank_guard', ref: best } : null;
+  }
+  if (_buildingInt) return null;
+  let bestCop = null, bestCopD = GANG_ENGAGE_R;
+  for (const c of cityCops) {
+    if (!c.alive || !c._pursuing) continue;
+    const d = Math.hypot(c.y - m.r, c.x - m.c);
+    if (d < bestCopD) { bestCopD = d; bestCop = c; }
+  }
+  if (bestCop) return { kind: 'city_cop', ref: bestCop };
+  let bestBot = null, bestBotD = GANG_ENGAGE_R;
+  for (const tid of Object.keys(aggroZones)) {
+    const az = aggroZones[tid];
+    if (!az || !az.bots) continue;
+    for (const bot of az.bots) {
+      if (bot.dead || bot.hp <= 0) continue;
+      const d = Math.hypot(bot.y - m.r, bot.x - m.c);
+      if (d < bestBotD) { bestBotD = d; bestBot = bot; }
+    }
+  }
+  if (bestBot) return { kind: 'aggro_bot', ref: bestBot, id: bestBot.id };
+  let bestCar = null, bestCarD = GANG_ENGAGE_R;
+  for (const car of CARS) {
+    if (!car || !car.gang || car._wrecked) continue;
+    const d = Math.hypot(car.r - m.r, car.c - m.c);
+    if (d < bestCarD) { bestCarD = d; bestCar = car; }
+  }
+  if (bestCar) return { kind: 'gang_car', ref: bestCar };
+  if (myWanted > 0 && worldCops && worldCops.length) {
+    let bestWc = null, bestWcD = GANG_ENGAGE_R;
+    for (const c of worldCops) {
+      const d = Math.hypot(c.y - m.r, c.x - m.c);
+      if (d < bestWcD) { bestWcD = d; bestWc = c; }
+    }
+    if (bestWc) return { kind: 'world_cop', ref: bestWc, id: bestWc.id };
+  }
+  return null;
+}
+
+function _gangTargetPos(kind, ref) {
+  if (!ref) return null;
+  if (kind === 'bank_guard' || kind === 'gang_car') return { r: ref.r, c: ref.c };
+  return { r: ref.y, c: ref.x };   // city_cop / aggro_bot / world_cop
+}
+
 function _updateGang(dt) {
   const now = performance.now();
   for (let i = _myGang.length - 1; i >= 0; i--) {
     const m = _myGang[i];
     if (m.hp <= 0) { _myGang.splice(i, 1); continue; }
-    if (myDead) { m._threatUntil = 0; }
-    const hasThreat = m._threatUntil > now && m._threatR && m._threatC;
+    if (myDead) { m._threatUntil = 0; m.targetKind = null; m.targetRef = null; m.targetId = null; }
     let tR, tC;
     if (_bankInt && _bankInt.room === 'vault') {
       continue; // в хранилище наёмники стоят на месте в лобби
@@ -7477,32 +7548,71 @@ function _updateGang(dt) {
     } else {
       m.walkPhase = 0;
     }
-    if (hasThreat) {
-      const tdr = m._threatR - m.r, tdc = m._threatC - m.c;
-      const tdist = Math.hypot(tdr, tdc);
-      m.ang = Math.atan2(tdr, tdc);
-      if (tdist < 12 && now >= m._nextShootAt) {
-        m._nextShootAt = now + 900 + Math.random() * 500;
-        const nd = tdist > 0.01 ? tdist : 1;
-        const muzR = m.r + (tdr / nd) * 0.45;
-        const muzC = m.c + (tdc / nd) * 0.45;
-        const miss = (Math.random() - 0.5) * 0.4;
-        const tgR = m._threatR + miss, tgC = m._threatC + miss;
-        spawnBullet(muzR, muzC, tgR, tgC, { hit: Math.abs(miss) < 0.35, fromNpc: true, weapon: m.weapon });
-        spawnMuzzle(muzR, muzC, m.ang, m.weapon, true);
-        // Ответный огонь — 25% шанс получить урон
-        if (Math.random() < 0.25) {
-          const retDmg = 5 + Math.floor(Math.random() * 8);
-          m.hp -= retDmg;
-          spawnFloatText(m.r - 0.3, m.c, `−${retDmg}`, { color: '#ff6644', size: 11, life: 800 });
-          if (m.hp <= 0) {
-            showToast(`💀 ${m.name} погиб!`, '☠️', 2000);
-            NPCS.push({ r: m.r, c: m.c, tr: m.r, tc: m.c, speed: 0,
-              ang: m.ang, walkPhase: 0, look: m.look, hp: 0, max_hp: 80,
-              dead: true, deadAt: performance.now(), _arcKey: 'thug', _arc: {} });
-            _saveGang();
-          }
-        }
+    if (myDead) continue;
+    // ── Боевая цель: проверяем что прежняя ещё жива/существует, иначе ─
+    //    сразу ищем следующую (переключение целей после смерти врага). ──
+    let stillValid = false;
+    if (m.targetKind === 'bank_guard') {
+      stillValid = !!(_bankInt && m.targetRef && !m.targetRef.dead && m.targetRef.state !== 'fled');
+    } else if (m.targetKind === 'city_cop') {
+      stillValid = !!(m.targetRef && m.targetRef.alive);
+    } else if (m.targetKind === 'gang_car') {
+      stillValid = !!(m.targetRef && CARS.includes(m.targetRef) && !m.targetRef._wrecked);
+    } else if (m.targetKind === 'aggro_bot') {
+      const bot = _findAggroBotById(m.targetId);
+      stillValid = !!(bot && !bot.dead && bot.hp > 0);
+      if (stillValid) m.targetRef = bot;
+    } else if (m.targetKind === 'world_cop') {
+      const wc = (worldCops || []).find(c => c.id === m.targetId);
+      stillValid = !!wc;
+      if (stillValid) m.targetRef = wc;
+    }
+    if (!stillValid) { m.targetKind = null; m.targetRef = null; m.targetId = null; }
+    if (!m.targetKind) {
+      const found = _findGangCompanionTarget(m);
+      if (found) {
+        m.targetKind = found.kind;
+        m.targetRef  = found.ref;
+        m.targetId   = found.id || found.ref.id || null;
+      }
+    }
+    if (!m.targetKind) continue;
+    const pos = _gangTargetPos(m.targetKind, m.targetRef);
+    if (!pos) continue;
+    const tdr = pos.r - m.r, tdc = pos.c - m.c;
+    const tdist = Math.hypot(tdr, tdc);
+    if (tdist > GANG_ENGAGE_R) continue;   // цель ушла далеко — не тащимся за ней силой
+    m.ang = Math.atan2(tdr, tdc);
+    if (now < (m._nextShootAt || 0)) continue;
+    m._nextShootAt = now + GANG_SHOT_CD_MIN + Math.random() * GANG_SHOT_CD_RANGE;
+    const nd = tdist > 0.01 ? tdist : 1;
+    const dirY = tdr / nd, dirX = tdc / nd;
+    const muzR = m.r + dirY * 0.45, muzC = m.c + dirX * 0.45;
+    spawnBullet(muzR, muzC, pos.r, pos.c, { hit: true, fromNpc: true, weapon: m.weapon });
+    spawnMuzzle(muzR, muzC, m.ang, m.weapon, true);
+    const dmg = GANG_SHOT_DMG_MIN + Math.floor(Math.random() * GANG_SHOT_DMG_RANGE);
+    if (m.targetKind === 'bank_guard') {
+      _hitBankGuard(m.targetRef, dirY, dirX, dmg);
+    } else if (m.targetKind === 'city_cop') {
+      hitCityCop(m.targetRef, dirY, dirX, dmg);
+    } else if (m.targetKind === 'gang_car') {
+      hitGangCar(m.targetRef, dmg);
+    } else if (m.targetKind === 'aggro_bot') {
+      try { ws && ws.send(JSON.stringify({ t: 'aggro_shoot', d: { target: m.targetRef.id, weapon: m.weapon } })); } catch(e) {}
+    } else if (m.targetKind === 'world_cop') {
+      try { ws && ws.send(JSON.stringify({ t: 'cop_shoot', d: { target: m.targetRef.id, weapon: m.weapon } })); } catch(e) {}
+    }
+    // Ответный огонь — 25% шанс получить урон
+    if (Math.random() < 0.25) {
+      const retDmg = 5 + Math.floor(Math.random() * 8);
+      m.hp -= retDmg;
+      spawnFloatText(m.r - 0.3, m.c, `−${retDmg}`, { color: '#ff6644', size: 11, life: 800 });
+      if (m.hp <= 0) {
+        showToast(`💀 ${m.name} погиб!`, '☠️', 2000);
+        NPCS.push({ r: m.r, c: m.c, tr: m.r, tc: m.c, speed: 0,
+          ang: m.ang, walkPhase: 0, look: m.look, hp: 0, max_hp: 80,
+          dead: true, deadAt: performance.now(), _arcKey: 'thug', _arc: {} });
+        _saveGang();
       }
     }
   }
