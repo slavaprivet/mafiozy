@@ -10602,8 +10602,12 @@ function wsConnect() {
         // серверный d.me — устаревшее эхо). Если применять коррекцию — снапшот
         // дёргает player назад, update() возвращает вперёд → камера трясётся
         // каждый снап. Поэтому при вождении позиционную коррекцию пропускаем.
+        // В АВТОБУСЕ — та же история: player.r/c каждый кадр = BUS.r/c (клиент-
+        // авторитетно), а сервер эхо-шлёт устаревшую позицию. Без этого
+        // исключения коррекция тянула player НАЗАД, автобус — ВПЕРЁД →
+        // жёсткая тряска камеры, нарастающая по мере поездки (баг найден 05.07.2026).
         const _driving = !!myDrivingCarId && !myIsPassenger;
-        if (!_bankInt && !_buildingInt && !_driving) {
+        if (!_bankInt && !_buildingInt && !_driving && !_inBus) {
         const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
         if (_firstSnap || dist > 15.0) {
           player.r = d.me.y; player.c = d.me.x;
