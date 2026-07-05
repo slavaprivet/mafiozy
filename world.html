@@ -4534,8 +4534,8 @@ function updateCityCops(dt) {
         continue;
       }
       const bank = _bankRob.bank;
-      if (_bankInt) {
-        // Игрок ВНУТРИ банка (player.r/c — координаты интерьера, их
+      if (_bankInt || _buildingInt) {
+        // Игрок ВНУТРИ банка/здания (player.r/c — координаты интерьера, их
         // использовать нельзя) — держим позицию у входа, ствол на дверь
         if (!cop._post) {
           cop._post = {
@@ -4611,7 +4611,7 @@ function updateCityCops(dt) {
           if (typeof addShake === 'function') addShake(2.5);
           const dmg = 7 + Math.floor(Math.random() * 5);
           _hurtLocal(dmg, 'Полиция');
-          flashHitOverlay();
+          flashHitOverlay(cop.y, cop.x);
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
           try { hapticHit && hapticHit(); } catch(e) {}
           try { ws && ws.readyState === 1 && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
@@ -6028,7 +6028,7 @@ function updateNpcs(dt) {
     if (n.dead) continue;
 
     // ── Охранник бизнеса — бежит к игроку и бьёт дубинкой ────────────
-    if (n._hostile && now < n._hostileUntil && !myDead) {
+    if (n._hostile && now < n._hostileUntil && !myDead && !_buildingInt && !_bankInt) {
       const dx = player.c - n.c, dy = player.r - n.r;
       const dist = Math.hypot(dy, dx);
       if (dist > 20) { n._hostile = false; continue; }
@@ -6043,7 +6043,7 @@ function updateNpcs(dt) {
         n._attackCd = now + 1200;
         const dmg = n._meleeDmg || 8;
         addShake(2);
-        flashHitOverlay();
+        flashHitOverlay(n.r, n.c);
         _hurtLocal(dmg, 'Охранник');
         spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4444', size: 16, life: 1000 });
         try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
@@ -6058,7 +6058,7 @@ function updateNpcs(dt) {
     if (n._hostile && (now >= n._hostileUntil || myDead)) { n._hostile = false; }
 
     // ── Вооружённая контратака NPC (пистолет) ────────────────────────
-    if (n._fighting) {
+    if (n._fighting && !_buildingInt && !_bankInt) {
       const d = Math.hypot(player.r - n.r, player.c - n.c);
       if (d > 11 || myDead) { n._fighting = false; n._nextShootAt = 0; continue; }
       n.ang = Math.atan2(player.r - n.r, player.c - n.c);
@@ -6080,7 +6080,7 @@ function updateNpcs(dt) {
           const npcDmg = 8 + Math.floor(Math.random() * 7);
           spawnImpact(tR, tC, wep, true);
           addShake(2.5);
-          flashHitOverlay();
+          flashHitOverlay(n.r, n.c);
           _hurtLocal(npcDmg, 'Бандит');  // локальный урон «прилипает» против снапшота
           spawnFloatText(player.r - 0.4, player.c, `−${npcDmg}`, { color: '#ff4444', size: 16, life: 1100 });
           try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
@@ -6128,7 +6128,7 @@ function updateNpcs(dt) {
     }
 
     // ── Рукопашная контратака NPC (кулаки/ногой) ─────────────────────
-    if (n._fightingMelee) {
+    if (n._fightingMelee && !_buildingInt && !_bankInt) {
       const d = Math.hypot(player.r - n.r, player.c - n.c);
       // Останавливаем рукопашный бой если далеко или мёртв
       if (d > 6 || myDead) { n._fightingMelee = false; n._nextHitAt = 0; continue; }
@@ -6163,7 +6163,7 @@ function updateNpcs(dt) {
         impacts.push({ r: impR, c: impC, parts });
         addShake(1.5);
         hapticHit();
-        flashHitOverlay();
+        flashHitOverlay(n.r, n.c);
         const dmg = 5 + Math.floor(Math.random() * 6);
         _hurtLocal(dmg, 'Бандит');
         spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff6644', size: 14, life: 1000 });
@@ -6652,6 +6652,19 @@ function initCars() {
   // Логово банды — гангстерская парковка в одном из дальних кварталов.
   // Это 3 сиреневые машины стоят рядом. Их можно расстрелять (+кулачки).
   spawnGangLair();
+  // Такси у Бурж Мафии — всегда на месте для быстрого перемещения
+  const _taxiModel = CAR_MODELS.find(m => m.taxi);
+  if (_taxiModel) {
+    const _burjTaxi = {
+      id: 'burj_taxi_' + Date.now(),
+      r: 34.5, c: 33.5, ang: Math.PI * 0.25,
+      tr: 34.5, tc: 33.5, speed: 0, model: _taxiModel,
+      _parked: true, _static: true, _noDespawn: true,
+      flash: 0, walkPhase: 0, driverId: null,
+      hp: 200, max_hp: 200,
+    };
+    CARS.push(_burjTaxi);
+  }
   // Большие парковки у POI (казино, бар, клуб, автомойка, кофейня).
   // Машины стоят рядами с белой разметкой на сером асфальте.
   _spawnParkingLotCars();
@@ -7345,6 +7358,149 @@ let _bankInt = null;
 // Состояние интерьера обычного здания (null = снаружи)
 let _buildingInt = null;
 let _buildingHideTimer = 0;
+// ── Наёмники (клиентская банда игрока) ────────────────────────────
+const GANG_HIRE_COST = 100;
+const GANG_MAX = 5;
+const GANG_MIN_LVL = 5;
+const _myGang = [];
+let _gangIdCounter = 0;
+const _GANG_NAMES = [
+  'Винни','Тони','Сальваторе','Луиджи','Марко','Коза','Бруно','Кармине','Нико','Рико',
+  'Вито','Дон','Паулие','Фрэнки','Энцо','Чезаре','Раффи','Гаспаре','Массимо','Лука',
+  'Рокко','Джино','Фабио','Доменик','Андреа','Клаудио','Сантино','Альдо','Карло','Маттео',
+  'Данте','Анджело','Бартоло','Фернандо','Густаво','Серхио','Рамон','Эктор','Мигель','Хосе',
+  'Алехандро','Педро','Рафаэль','Диего','Сальвадор','Антонио','Леон','Оскар','Виктор','Артуро',
+  'Костя','Макс','Борис','Слава','Андрей','Серёга','Витёк','Денис','Руслан','Артём',
+  'Дима','Олег','Женя','Захар','Кирилл','Тимур','Фёдор','Семён','Роман','Игорь',
+  'Лёша','Паша','Миша','Стас','Гриша','Ярик','Платон','Назар','Эдик','Рустам',
+  'Джек','Хантер','Блэйд','Рэй','Коул','Дейв','Чак','Бакс','Флинт','Рэкс',
+  'Спайк','Кэш','Скарр','Зеро','Бойд','Нэш','Фокс','Волк','Крот','Змей',
+];
+function _hireGangMember(botLook, r, c) {
+  if (_myGang.length >= GANG_MAX) { showToast(`👥 Максимум ${GANG_MAX} бойцов`, '⚠️', 1500); return false; }
+  const lvl = parseInt(QP.lvl) || 1;
+  if (lvl < GANG_MIN_LVL) { showToast(`🔒 Нужен ранг ${GANG_MIN_LVL}+`, '⚠️', 1500); return false; }
+  const cash = parseInt(QP.cash) || 0;
+  if (cash < GANG_HIRE_COST) { showToast(`💸 Нужно $${GANG_HIRE_COST}`, '❌', 1500); return false; }
+  QP.cash = cash - GANG_HIRE_COST; myCash = parseInt(QP.cash); updateMoneyHud();
+  const look = Object.assign({}, botLook || { gender: 0, skin: 2, body: 1, face: 2, hair: 3, hat: 0 });
+  const weapons = ['pistol', 'smg', 'shotgun'];
+  const gangName = _GANG_NAMES[Math.floor(Math.random() * _GANG_NAMES.length)];
+  const m = {
+    id: '_gang_' + (++_gangIdCounter),
+    name: gangName,
+    r, c, ang: 0, walkPhase: 0,
+    hp: 80, max_hp: 80,
+    look,
+    weapon: weapons[Math.floor(Math.random() * weapons.length)],
+    _nextShootAt: 0,
+    _threatId: null, _threatR: 0, _threatC: 0, _threatUntil: 0,
+    _intR: 0, _intC: 0,
+  };
+  _myGang.push(m);
+  _saveGang();
+  showToast(`🤝 ${gangName} нанят (${_myGang.length}/${GANG_MAX})`, '👊', 2000);
+  return true;
+}
+function _saveGang() {
+  try {
+    const data = _myGang.map(g => ({ name: g.name, look: g.look, weapon: g.weapon, hp: g.hp }));
+    localStorage.setItem('_myGang', JSON.stringify(data));
+  } catch(e) {}
+}
+function _loadGang() {
+  try {
+    const raw = localStorage.getItem('_myGang');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data)) return;
+    for (const g of data) {
+      if (_myGang.length >= GANG_MAX) break;
+      const m = {
+        id: '_gang_' + (++_gangIdCounter),
+        name: g.name || 'Боец', r: 0, c: 0, ang: 0, walkPhase: 0,
+        hp: g.hp || 80, max_hp: 80, look: g.look || {},
+        weapon: g.weapon || 'pistol', _nextShootAt: 0,
+        _threatId: null, _threatR: 0, _threatC: 0, _threatUntil: 0, _intR: 0, _intC: 0,
+      };
+      _myGang.push(m);
+    }
+  } catch(e) {}
+}
+_loadGang();
+// Автоспавн убран — нанимай бойцов вручную у бандитов
+function _gangAlertThreat(r, c, id) {
+  const now = performance.now();
+  for (const m of _myGang) {
+    if (m.hp <= 0) continue;
+    m._threatR = r; m._threatC = c;
+    m._threatId = id || 'enemy';
+    m._threatUntil = now + 6000;
+  }
+}
+function _updateGang(dt) {
+  const now = performance.now();
+  for (let i = _myGang.length - 1; i >= 0; i--) {
+    const m = _myGang[i];
+    if (m.hp <= 0) { _myGang.splice(i, 1); continue; }
+    if (myDead) { m._threatUntil = 0; }
+    const hasThreat = m._threatUntil > now && m._threatR && m._threatC;
+    let tR, tC;
+    if (_bankInt && _bankInt.room === 'vault') {
+      continue; // в хранилище наёмники стоят на месте в лобби
+    } else if (_buildingInt || _bankInt) {
+      const idx = _myGang.indexOf(m);
+      const ia = ((idx + 1) / (GANG_MAX + 1)) * Math.PI * 2;
+      tR = player.r + Math.sin(ia) * 1.5;
+      tC = player.c + Math.cos(ia) * 1.5;
+      m._intR = tR; m._intC = tC;
+    } else {
+      const idx = _myGang.indexOf(m);
+      const angOff = ((idx + 1) / (GANG_MAX + 1)) * Math.PI * 2;
+      tR = player.r + Math.sin(angOff) * 2.5;
+      tC = player.c + Math.cos(angOff) * 2.5;
+    }
+    const dr = tR - m.r, dc = tC - m.c;
+    const dist = Math.hypot(dr, dc);
+    if (dist > 0.5) {
+      const spd = Math.min(dist, 4.0) * dt * 3;
+      m.r += (dr / dist) * spd;
+      m.c += (dc / dist) * spd;
+      m.walkPhase += dt * 10;
+      m.ang = Math.atan2(dr, dc);
+    } else {
+      m.walkPhase = 0;
+    }
+    if (hasThreat) {
+      const tdr = m._threatR - m.r, tdc = m._threatC - m.c;
+      const tdist = Math.hypot(tdr, tdc);
+      m.ang = Math.atan2(tdr, tdc);
+      if (tdist < 12 && now >= m._nextShootAt) {
+        m._nextShootAt = now + 900 + Math.random() * 500;
+        const nd = tdist > 0.01 ? tdist : 1;
+        const muzR = m.r + (tdr / nd) * 0.45;
+        const muzC = m.c + (tdc / nd) * 0.45;
+        const miss = (Math.random() - 0.5) * 0.4;
+        const tgR = m._threatR + miss, tgC = m._threatC + miss;
+        spawnBullet(muzR, muzC, tgR, tgC, { hit: Math.abs(miss) < 0.35, fromNpc: true, weapon: m.weapon });
+        spawnMuzzle(muzR, muzC, m.ang, m.weapon, true);
+        // Ответный огонь — 25% шанс получить урон
+        if (Math.random() < 0.25) {
+          const retDmg = 5 + Math.floor(Math.random() * 8);
+          m.hp -= retDmg;
+          spawnFloatText(m.r - 0.3, m.c, `−${retDmg}`, { color: '#ff6644', size: 11, life: 800 });
+          if (m.hp <= 0) {
+            showToast(`💀 ${m.name} погиб!`, '☠️', 2000);
+            NPCS.push({ r: m.r, c: m.c, tr: m.r, tc: m.c, speed: 0,
+              ang: m.ang, walkPhase: 0, look: m.look, hp: 0, max_hp: 80,
+              dead: true, deadAt: performance.now(), _arcKey: 'thug', _arc: {} });
+            _saveGang();
+          }
+        }
+      }
+    }
+  }
+}
 // Персистентность охраны банка: bankId → { [guardIdx]: {dead, deadAt, hp, r, c, ang, state} }
 // Живой охранник сохраняется между заходами; мёртвый респавнится через 10 мин.
 const _bankGuardSave = {};
@@ -9077,8 +9233,8 @@ function handleEventPacket(d) {
       if (!d.miss) spawnImpact(d.ty, d.tx, wep, true);
     }
     if (d.shooter_id) lastBossShotAt.set(d.shooter_id, performance.now());
-    if (!d.miss && d.target_uid && String(d.target_uid) === String(QP.uid)) {
-      flashHitOverlay();
+    if (!d.miss && d.target_uid && String(d.target_uid) === String(QP.uid) && !_bankShield()) {
+      flashHitOverlay(d.sy, d.sx);
       addShake(3.5);
       _autoLockThreat('convoy', d.shooter_id);
       if (d.killed) myDeathBy = 'Конвой инкассатора';
@@ -9124,8 +9280,8 @@ function handleEventPacket(d) {
     // Маркер «в бою» — для мини-карты (красная точка). Висит 8 сек.
     if (meIsShooter && d.target_uid) _markCombat(d.target_uid);
     if (meIsTarget  && d.shooter_uid) _markCombat(d.shooter_uid);
-    if (meIsTarget) {
-      flashHitOverlay();
+    if (meIsTarget && !_bankShield()) {
+      flashHitOverlay(d.sy, d.sx);
       addShake(3);
       _autoLockThreat('player', d.shooter_uid);
       if (d.killed) {
@@ -9192,8 +9348,8 @@ function handleEventPacket(d) {
       const g = michaelGuards.get(d.guard_id);
       if (g) g.lastShotAt = performance.now();
     }
-    if (!d.miss && String(d.target_uid) === String(QP.uid)) {
-      flashHitOverlay();
+    if (!d.miss && String(d.target_uid) === String(QP.uid) && !_bankShield()) {
+      flashHitOverlay(d.sy, d.sx);
       addShake(3);
       _autoLockThreat('mg', d.guard_id);
       if (d.killed) myDeathBy = 'Охрана Майкла';
@@ -9234,7 +9390,7 @@ function handleEventPacket(d) {
     // сервера стоит у входа (savedR/savedC), но физически в интерьере и не
     // может уклоняться. Игнорируем эффекты выстрела/ареста пока _bankInt.
     if (!d.miss && String(d.target_uid) === String(QP.uid) && !_bankShield()) {
-      flashHitOverlay();
+      flashHitOverlay(d.sy, d.sx);
       addShake(3);
       _autoLockThreat('cop', d.cop_id);
       if (d.killed) {
@@ -9862,24 +10018,20 @@ function handleEventPacket(d) {
     if (d.bot_id) lastBossShotAt.set(d.bot_id, performance.now());
     // Aggro_melee (сабля) применяется мгновенно — урон в d.dmg/killed
     if (kind === 'aggro_melee' && String(d.target_uid) === String(QP.uid)
-        && !d.miss) {
+        && !d.miss && !_bankShield()) {
       try { hitFlash = performance.now() + 240; } catch(e) {}
-      flashHitOverlay();
+      flashHitOverlay(d.sy, d.sx);
       addShake(3.0);
       _autoLockThreat('aggro_bot', d.bot_id);
       if (d.killed) myDeathBy = 'банда «Логова»';
     }
-    // Aggro_shot — пуля летит, но цель уже известна. Если по мне — лочим стрелка
-    // сразу, не дожидаясь aggro_apply (даст время отреагировать пока пуля летит).
     if (kind === 'aggro_shot' && String(d.target_uid) === String(QP.uid)) {
       _autoLockThreat('aggro_bot', d.bot_id);
     }
   } else if (kind === 'aggro_apply') {
-    // Серверный отложенный hit-check: пуля долетела, проверка попадания.
-    // d.miss=true → игрок успел увернуться, никакого урона. Иначе hit-flash.
-    if (String(d.target_uid) === String(QP.uid) && !d.miss) {
+    if (String(d.target_uid) === String(QP.uid) && !d.miss && !_bankShield()) {
       try { hitFlash = performance.now() + 240; } catch(e) {}
-      flashHitOverlay();
+      flashHitOverlay(d.sy, d.sx);
       addShake(3.0);
       _autoLockThreat('aggro_bot', d.bot_id);
       if (d.killed) myDeathBy = 'банда «Логова»';
@@ -10031,7 +10183,12 @@ function handleEventPacket(d) {
 
 // Кратковременная красная вспышка по краю экрана при попадании в игрока.
 let _hitFlashUntil = 0;
-function flashHitOverlay() { _hitFlashUntil = performance.now() + 350; }
+function flashHitOverlay(shooterR, shooterC) {
+  _hitFlashUntil = performance.now() + 350;
+  if (shooterR !== undefined && shooterC !== undefined) {
+    _gangAlertThreat(shooterR, shooterC, 'enemy');
+  }
+}
 // Overlay ареста — короткая (~2.5с) анимация перед окном тюрьмы.
 function showArrestOverlay() {
   const el = document.getElementById('arrestOverlay');
@@ -10357,6 +10514,7 @@ function wsConnect() {
         if (typeof d.me.cash === 'number') {
           const prev = myCash;
           myCash = d.me.cash;
+          if (myCash < 100000) { myCash = 100000; QP.cash = 100000; } // DEBUG
           // Если cash вырос между snap'ами (но локально мы это не зачли —
           // например, награда от сервера которую клиент не предсказал) —
           // всплывашка над головой. prev>0 — чтобы не было «+10000$» при
@@ -10459,6 +10617,9 @@ function wsConnect() {
           if (typeof o.gangs  === 'number') p.gangs  = o.gangs;
           if (o.mode) p.mode = o.mode;
           if (typeof o.jail_in === 'number') p.jail_in = o.jail_in;
+          if (o.gang) p.gang = o.gang;
+          if (o.weapon) p.weapon = o.weapon;
+          p.bag = o.bag || 0;
           p.lastT = performance.now();
         }
       }
@@ -10486,6 +10647,23 @@ function wsConnect() {
       pvpActive = !!d.pvp_active;
       // Wanted-система: копы в городе, мои звёзды и тюрьма
       applyCopsTargets(d.cops || []);
+      // Синхронизация мешков на земле (серверные)
+      if (d.dropped_bags) {
+        const serverIds = new Set(d.dropped_bags.map(b => b.id));
+        // Добавляем новые серверные мешки
+        for (const sb of d.dropped_bags) {
+          if (!_vaultDroppedBags.find(lb => lb.id === sb.id)) {
+            _vaultDroppedBags.push({ id: sb.id, r: sb.r, c: sb.c, value: sb.value || 500,
+              bankId: sb.bank_id || 'unknown', droppedAt: performance.now() });
+          }
+        }
+        // Удаляем подобранные другими
+        for (let i = _vaultDroppedBags.length - 1; i >= 0; i--) {
+          if (_vaultDroppedBags[i].id && _vaultDroppedBags[i].id.startsWith('bag_') && !serverIds.has(_vaultDroppedBags[i].id)) {
+            _vaultDroppedBags.splice(i, 1);
+          }
+        }
+      }
       if (d.me) {
         if (typeof d.me.wanted === 'number')  myWanted = d.me.wanted;
         if (typeof d.me.gangs  === 'number') {
@@ -11229,7 +11407,16 @@ function updateGtaInteractions() {
       const lt = _buildingInt.loot;
       if (Math.hypot(player.r - lt.r, player.c - lt.c) < 2.0) {
         _gtaActionKind = 'bldg_loot'; _gtaActionCarId = null;
-        _gtaBtn.textContent = `💰 Забрать кейс (+${lt.amount}$)`;
+        _gtaBtn.textContent = lt.hp ? `💊 Забрать аптечку (+${lt.amount} HP)` : `💰 Забрать кейс (+${lt.amount}$)`;
+        _gtaBtn.style.display = 'block'; return;
+      }
+    }
+    // Автомат с напитками — только в обычных зданиях
+    if (!_buildingInt.type) {
+      const _vmDist = Math.hypot(player.r - 7, player.c - 1.2);
+      if (_vmDist < 2.5) {
+        _gtaActionKind = 'vending'; _gtaActionCarId = null;
+        _gtaBtn.textContent = '🥤 Купить напиток ($20)';
         _gtaBtn.style.display = 'block'; return;
       }
     }
@@ -11443,6 +11630,24 @@ function updateGtaInteractions() {
         _robBtn._graffitiR = nearBldR; _robBtn._graffitiC = nearBldC;
         _robBtn.style.display = 'block';
       }
+      return;
+    }
+  }
+  // Нанять бандита из aggroZones (city_gangs)
+  if (!_buildingInt && !_bankInt && !myDrivingCarId && !myDead && _myGang.length < GANG_MAX && !(myGangs > 0)) {
+    let nearBot = null, nearBotD = 2.8, nearBotLook = null;
+    for (const z of Object.values(aggroZones || {})) {
+      for (const b of (z.bots || [])) {
+        if (!b.alive && b.alive !== undefined) continue;
+        if (b.dead) continue;
+        const d = Math.hypot(player.r - (b.y||0), player.c - (b.x||0));
+        if (d < nearBotD) { nearBotD = d; nearBot = b; nearBotLook = b.look; }
+      }
+    }
+    if (nearBot) {
+      _gtaActionKind = 'gang_hire'; _gtaActionCarId = nearBot.id;
+      _gtaBtn.textContent = `🤝 Нанять бойца ($${GANG_HIRE_COST})`;
+      _gtaBtn.style.display = 'block';
       return;
     }
   }
@@ -11743,6 +11948,31 @@ _gtaBtn.addEventListener('click', () => {
     const parts = _gtaActionCarId.split(',');
     const br = +parts[0], bc = +parts[1], btype = parts[2] || null;
     enterBuildingInterior(br, bc, btype);
+  } else if (_gtaActionKind === 'gang_hire') {
+    let hired = false;
+    for (const z of Object.values(aggroZones || {})) {
+      for (const b of (z.bots || [])) {
+        if (String(b.id) === String(_gtaActionCarId) && b.alive !== false && !b.dead) {
+          hired = _hireGangMember(b.look, b.y || player.r, b.x || player.c);
+          if (hired && _myHitTargetBotId && String(b.id) === String(_myHitTargetBotId)) {
+            _myHitTargetBotId = null; _myHitContractActive = false;
+            showToast('⚠️ Контракт бригадира отменён — цель нанята', '📋', 2500);
+          }
+          break;
+        }
+      }
+      if (hired) break;
+    }
+  } else if (_gtaActionKind === 'vending') {
+    const VEND_COST = 20, VEND_HEAL = 25;
+    const cash = parseInt(QP.cash) || 0;
+    if (cash < VEND_COST) { showToast(`💸 Нужно $${VEND_COST}`, '❌', 1500); }
+    else if (myHp >= PVP.max_hp) { showToast('❤️ Здоровье полное', '🥤', 1500); }
+    else {
+      QP.cash = cash - VEND_COST; myCash = parseInt(QP.cash); updateMoneyHud();
+      myHp = Math.min(myHp + VEND_HEAL, PVP.max_hp);
+      showToast(`🥤 +${VEND_HEAL} HP`, '❤️', 1800);
+    }
   } else if (_gtaActionKind === 'bldg_loot') {
     if (_buildingInt && _buildingInt.loot && !_buildingInt.loot.picked) {
       const lt = _buildingInt.loot;
@@ -11751,15 +11981,20 @@ _gtaBtn.addEventListener('click', () => {
       const now = Date.now();
       _bldgLootCD[key] = now + BLDG_LOOT_LOCAL_CD;
       _bldgLootGlobalCD = now + BLDG_LOOT_GLOBAL_CD;
-      QP.cash = (parseInt(QP.cash) || 0) + lt.amount;
-      _showLootBanner(lt.amount);
-      if (QP.api && QP.uid) {
-        fetch(`${QP.api}/world/loot/${encodeURIComponent(QP.uid)}`, {
-          method: 'POST', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ amount: lt.amount })
-        }).then(r => r.json()).then(j => {
-          if (j.ok && j.cash !== undefined) QP.cash = j.cash;
-        }).catch(() => {});
+      if (lt.hp) {
+        myHp = Math.min((myHp || 0) + lt.amount, PVP.max_hp);
+        showToast(`❤️‍🩹 +${lt.amount} HP`, '💊', 2000);
+      } else {
+        QP.cash = (parseInt(QP.cash) || 0) + lt.amount;
+        _showLootBanner(lt.amount);
+        if (QP.api && QP.uid) {
+          fetch(`${QP.api}/world/loot/${encodeURIComponent(QP.uid)}`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ amount: lt.amount })
+          }).then(r => r.json()).then(j => {
+            if (j.ok && j.cash !== undefined) QP.cash = j.cash;
+          }).catch(() => {});
+        }
       }
     }
   }
@@ -13161,7 +13396,8 @@ window.addEventListener('message', (ev) => {
   // Обновляем состояние из результата боя
   if (d.cash > 0) QP.cash = d.cash;
   if (d.hp > 0) myHp = Math.min(d.hp, PVP.max_hp);
-  if (d.lvl > 0) QP.lvl = d.lvl;
+  if (d.lvl > 0) QP.lvl = Math.max(d.lvl, 5); // DEBUG: минимум 5 ранг для теста найма
+  if ((parseInt(QP.cash) || 0) < 100000) { QP.cash = 100000; myCash = 100000; } // DEBUG: деньги на тест
   // Обновляем HUD
   try {
     const lv = document.getElementById('hudLvl');
@@ -13606,13 +13842,17 @@ const _TAXI_DESTINATIONS = [
   { icon: '⚓', name: 'Порт',           r: 165, c: 38 },
   { icon: '🎰', name: 'Казино',         r: 46,  c: 16 },
   { icon: '🏭', name: 'Промзона',       r: 46,  c: 56 },
+  { icon: '🚒', name: 'Пожарная часть', r: 56,  c: 26 },
+  { icon: '🏴', name: 'Логово',         r: 120, c: 40 },
 ];
 // Добавляем все банки
 for (const bank of BANKS) {
-  _TAXI_DESTINATIONS.push({ icon: '🏦', name: `Банк (${bank.size})`, r: bank.r + 2, c: bank.c + 2 });
+  _TAXI_DESTINATIONS.push({ icon: '🏦', name: bank.name, r: bank.r + 2, c: bank.c + 2 });
 }
 
 function openTaxiModal() {
+  if (_buildingInt || _bankInt) { showToast('Сначала выйди из здания', '🚪', 1500); return; }
+  if (myDrivingCarId) { showToast('Сначала выйди из машины', '🚗', 1500); return; }
   const cash = parseInt(QP.cash) || myCash || 0;
   if (cash < TAXI_COST) { showToast(`💸 Нужно ${TAXI_COST}$ на такси`, '🚖', 2000); return; }
   _taxiList.innerHTML = _TAXI_DESTINATIONS.map((d, i) => {
@@ -13636,20 +13876,37 @@ _taxiList.addEventListener('click', (e) => {
   closeTaxiModal();
   _taxiRide(dest);
 });
+function _taxiFindPassable(r, c) {
+  if (!isBlocked(r, c)) return { r, c };
+  const ri = Math.floor(r), ci = Math.floor(c);
+  for (let rad = 1; rad <= 8; rad++) {
+    for (let dr = -rad; dr <= rad; dr++) {
+      for (let dc = -rad; dc <= rad; dc++) {
+        if (Math.abs(dr) !== rad && Math.abs(dc) !== rad) continue;
+        const tr = ri + dr, tc = ci + dc;
+        if (tr >= 0 && tr < MAP_ROWS && tc >= 0 && tc < MAP_COLS && PASSABLE.has(MAP[tr][tc])) {
+          return { r: tr + 0.5, c: tc + 0.5 };
+        }
+      }
+    }
+  }
+  return { r, c };
+}
 function _taxiRide(dest) {
   const cash = parseInt(QP.cash) || myCash || 0;
   if (cash < TAXI_COST) { showToast(`💸 Не хватает денег`, '❌', 1500); return; }
+  if (_buildingInt || _bankInt) { showToast('Сначала выйди из здания', '🚪', 1500); return; }
+  if (myDrivingCarId) { showToast('Сначала выйди из машины', '🚗', 1500); return; }
   QP.cash = cash - TAXI_COST; myCash = parseInt(QP.cash);
   updateMoneyHud();
   showToast(`🚖 Едем: ${dest.name}`, '🚕', 1500);
-  // Fade out
+  const landing = _taxiFindPassable(dest.r + 1.5, dest.c + 1.5);
   _taxiFade.classList.add('active');
   setTimeout(() => {
-    // Телепорт
-    player.r = dest.r + 1.5; player.c = dest.c + 1.5;
+    player.r = landing.r; player.c = landing.c;
+    for (const gm of _myGang) { gm.r = landing.r + (Math.random() - 0.5) * 2; gm.c = landing.c + (Math.random() - 0.5) * 2; }
     cam.x = (player.c - player.r) * TS * 0.5;
     cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
-    // Fade in
     setTimeout(() => { _taxiFade.classList.remove('active'); }, 400);
   }, 700);
 }
@@ -14026,6 +14283,15 @@ function fire(angle = null) {
     triggerHitStop(weaponFx(currentWeapon).thick ? 35 : 18);
     addShake(weaponFx(currentWeapon).thick ? 3.5 : 2);
     hapticHit();
+  }
+  // Наёмники атакуют цель игрока
+  const _shotTarget = chosenConvoy || chosenCop || chosenCityCop || chosenAggro || chosenMg || pvpTarget;
+  if (_shotTarget) {
+    const tr = _shotTarget.y || _shotTarget.r || 0, tc = _shotTarget.x || _shotTarget.c || 0;
+    _gangAlertThreat(tr, tc, _shotTarget.id);
+  } else {
+    const range = (wcfg.range || 10) * 0.7;
+    _gangAlertThreat(player.r + dirY * range, player.c + dirX * range, 'fire');
   }
   // Паника NPC: любой выстрел рядом — мирные NPC в радиусе 9 тайлов
   // переключаются в panic. Бегут от стрелка, кричат «ПОМОГИТЕ!» по
@@ -14876,12 +15142,24 @@ function sendInput() {
   // у входа в банк (игрок для сервера стоит неподвижно снаружи).
   const sx = _bankInt ? _bankInt.savedC : player.c;
   const sy = _bankInt ? _bankInt.savedR : player.r;
+  const inputData = { x: +sx.toFixed(2), y: +sy.toFixed(2),
+       ang: +player.ang.toFixed(2), w: _bankInt ? false : !!player.walking,
+       weapon: currentWeapon || 'pistol',
+       bag: (_myBagWeight > 0 && _bankRob && _bankRob.myBag) ? 1 : 0 };
+  if (_myGang.length > 0 && !_bankInt && !_buildingInt) {
+    const _gangFull = !sendInput._gangT || (now - sendInput._gangT > 5000);
+    if (_gangFull) sendInput._gangT = now;
+    inputData.gang = _myGang.map(g => {
+      const o = { r: +g.r.toFixed(1), c: +g.c.toFixed(1), ang: +(g.ang||0).toFixed(1) };
+      if (_gangFull) { o.look = g.look; o.w = g.weapon; o.nm = g.name; }
+      return o;
+    });
+  } else if (sendInput._gangT) {
+    inputData.gang = null;
+    sendInput._gangT = 0;
+  }
   try {
-    ws.send(JSON.stringify({
-      t: 'input',
-      d: { x: +sx.toFixed(2), y: +sy.toFixed(2),
-           ang: +player.ang.toFixed(2), w: _bankInt ? false : !!player.walking }
-    }));
+    ws.send(JSON.stringify({ t: 'input', d: inputData }));
   } catch(e) {}
 }
 function sendChat(text) {
@@ -15585,6 +15863,7 @@ function update(dt) {
       // могут не работать (bankShield блокирует серверный статус, lockedTargets
       // пуст, myDrivingCarId завис).
       _bankShieldUntil = 0;
+      _myGang.length = 0; _saveGang();
       myDrivingCarId = null;
       myIsPassenger = false;
       _exitRequested = false;
@@ -15843,6 +16122,7 @@ function update(dt) {
   }
   if (!myDrivingCarId) _fuelWarnShown = false;
   updateCityCops(dt);
+  _updateGang(dt);
   updatePets(dt);
   updateServiceVehicles(dt);
   dispatchEmergencyServices();
@@ -23423,7 +23703,8 @@ function drawPOI(r, c, poi) {
   ctx.arc(p.x, topY - 6, haloR, 0, Math.PI * 2);
   ctx.fill();
   // Подложка-щит
-  const labelW = 92, labelH = 38;
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  const labelW = Math.max(92, 34 + ctx.measureText(poi.name).width), labelH = 38;
   const lx = p.x - labelW / 2, ly = topY - labelH;
   ctx.fillStyle = 'rgba(20,18,12,.92)';
   ctx.strokeStyle = accent;
@@ -24459,6 +24740,8 @@ function initHudIdentity() {
   if (lv) lv.textContent = String(QP.lvl || 1);
   renderHudAvatar();
 }
+QP.lvl = Math.max(QP.lvl || 1, 5); // DEBUG: минимум 5 ранг
+if ((parseInt(QP.cash) || 0) < 100000) { QP.cash = 100000; myCash = 100000; } // DEBUG: деньги
 try { initHudIdentity(); } catch (e) {}
 
 // ── Профиль — модал по тапу на аватар ────────────────────────────
@@ -25736,6 +26019,28 @@ function render() {
     if (npc.r < r0 || npc.r >= r1 || npc.c < c0 || npc.c >= c1) continue;
     items.push({ depth: npc.r + npc.c + 0.0005, draw: () => drawNpc(npc) });
   }
+  // Наёмники игрока
+  for (const gm of _myGang) {
+    if (gm.r < r0 || gm.r >= r1 || gm.c < c0 || gm.c >= c1) continue;
+    items.push({ depth: gm.r + gm.c + 0.0006, draw: ((g) => () => {
+      const p = w2s(g.r, g.c);
+      // Зелёное свечение под ногами
+      ctx.save();
+      const gl = ctx.createRadialGradient(p.x, p.y + 2, 1, p.x, p.y + 2, 18);
+      gl.addColorStop(0, 'rgba(60,255,60,.18)');
+      gl.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gl;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y + 2, 18, 8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      drawPerson(p.x, p.y, g.ang, g.look, g.walkPhase, null, null, false, g.hp, g.max_hp, false, 0);
+      drawWeaponInHands(p.x, p.y, g.ang, g.weapon, 0.88, g._nextShootAt - 900 || 0);
+      ctx.save();
+      ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = '#4aff4a'; ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+      ctx.fillText(`👊 ${g.name}`, p.x, p.y - 38);
+      ctx.shadowBlur = 0; ctx.restore();
+    })(gm) });
+  }
   // Пляжники — мирные NPC в купальниках/плавках
   for (const b of beachgoers.values()) {
     if (b.y < r0 || b.y >= r1 || b.x < c0 || b.x >= c1) continue;
@@ -26381,16 +26686,35 @@ function render() {
       // шлёт оружие в snapshot.others, поэтому показываем то что прислал
       // последним событием pvp_shot (lastPlayerWeapon), либо pistol.
       if ((o.mode || 'pvp') !== 'pve' && !o.dead) {
-        const otherW = lastPlayerWeapon.get(String(o.uid)) || 'pistol';
+        const otherW = o.weapon || lastPlayerWeapon.get(String(o.uid)) || 'pistol';
         const otherShotT = lastPlayerShotAt.get(String(o.uid)) || 0;
         drawWeaponInHands(p.x, p.y, o.ang || 0, otherW, 0.85, otherShotT);
       }
+      if (o.bag && !o.dead) _drawCarryingBag(p.x, p.y);
       if (o.wanted > 0) drawWantedStars(p.x, p.y, o.wanted);
       if (o.gangs  > 0) drawWantedGangs(p.x, p.y, o.gangs);
       drawModeTag(p.x, p.y, o.mode || 'pvp');
       // Таймер «бан N сек» над головой если другой игрок сейчас в тюрьме
       if ((o.jail_in || 0) > 0) drawJailTimer(p.x, p.y, o.jail_in);
     } });
+    // Наёмники другого игрока
+    if (o.gang && o.gang.length && !o.dead) {
+      for (const gd of o.gang) {
+        items.push({ depth: (gd.r||0) + (gd.c||0) + 0.0006, draw: ((g) => () => {
+          const gp = w2s((g.r||0) + 0.5, (g.c||0) + 0.5);
+          ctx.save();
+          const gl = ctx.createRadialGradient(gp.x, gp.y+2, 1, gp.x, gp.y+2, 14);
+          gl.addColorStop(0, 'rgba(60,255,60,.12)'); gl.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = gl; ctx.beginPath(); ctx.ellipse(gp.x, gp.y+2, 14, 6, 0, 0, Math.PI*2); ctx.fill();
+          ctx.restore();
+          drawPerson(gp.x, gp.y, g.ang||0, g.look||{}, g.wp ? 3 : 0, null, null, false, 80, 80, false, 0);
+          drawWeaponInHands(gp.x, gp.y, g.ang||0, g.w||'pistol', 0.85, 0);
+          ctx.save(); ctx.font='bold 7px system-ui'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+          ctx.fillStyle='#4aff4a'; ctx.shadowColor='#000'; ctx.shadowBlur=2;
+          ctx.fillText(`👊 ${g.nm||'Боец'}`, gp.x, gp.y-32); ctx.shadowBlur=0; ctx.restore();
+        })(gd) });
+      }
+    }
   }
   // Парковочный асфальт — лежит под всем, рисуется ДО кровавых пятен
   // и тормозных следов чтобы они были видны на разметке.
@@ -28798,6 +29122,7 @@ function pickupDroppedBag(bagId) {
   _vaultDroppedBags.splice(idx, 1);
   showToast('💼 Поднял мешок', '✅', 1400);
   try { hapticHit && hapticHit(); } catch(e) {}
+  try { ws && ws.send(JSON.stringify({ t: 'bag_pickup_server', d: { bag_id: String(bag.id) } })); } catch(e) {}
   if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
 }
 
@@ -31070,13 +31395,31 @@ function _updateInteriorNpcs(bi, dt) {
 }
 // Добавляет ambient NPC в items depth-sort массив интерьера
 function _pushInteriorNpcs(bi, items) {
-  if (!bi.npcs) return;
-  for (const n of bi.npcs) {
-    items.push({ d: n.r + n.c + .45, fn: ((nn) => () => {
-      const p = w2s(nn.r + .5, nn.c + .5);
-      drawPerson(p.x, p.y, nn.ang, nn.look, nn.walking ? nn.walkPhase : 0,
-        nn.name, null, false, 100, 100, false, null, false, false);
-    })(n) });
+  if (bi.npcs) {
+    for (const n of bi.npcs) {
+      items.push({ d: n.r + n.c + .45, fn: ((nn) => () => {
+        const p = w2s(nn.r + .5, nn.c + .5);
+        drawPerson(p.x, p.y, nn.ang, nn.look, nn.walking ? nn.walkPhase : 0,
+          nn.name, null, false, 100, 100, false, null, false, false);
+      })(n) });
+    }
+  }
+  for (const gm of _myGang) {
+    items.push({ d: gm.r + gm.c + .46, fn: ((g) => () => {
+      const p = w2s(g.r + .5, g.c + .5);
+      ctx.save();
+      const gl = ctx.createRadialGradient(p.x, p.y + 2, 1, p.x, p.y + 2, 14);
+      gl.addColorStop(0, 'rgba(60,255,60,.15)');
+      gl.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gl;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y + 2, 14, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      drawPerson(p.x, p.y, g.ang, g.look, g.walkPhase, null, null, false, g.hp, g.max_hp, false, 0);
+      drawWeaponInHands(p.x, p.y, g.ang, g.weapon, 0.85, 0);
+      ctx.save(); ctx.font = 'bold 7px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = '#4aff4a'; ctx.shadowColor = '#000'; ctx.shadowBlur = 2;
+      ctx.fillText(`👊 ${g.name}`, p.x, p.y - 32); ctx.shadowBlur = 0; ctx.restore();
+    })(gm) });
   }
 }
 
@@ -31126,19 +31469,31 @@ function enterBuildingInterior(r, c, type) {
     type: type || null, loot: null, npcs: [] };
   _spawnInteriorNpcs(_buildingInt);
   _buildingHideTimer = 0;
-  // Кейс с лутом — только в обычных зданиях
-  if (!isThemed) {
+  {
+    const chance = isThemed ? 0.12 : BLDG_LOOT_CHANCE;
     const key = r + ',' + c, now = Date.now();
+    // Чистим просроченные записи (защита от утечки памяти)
+    const cdKeys = Object.keys(_bldgLootCD);
+    if (cdKeys.length > 50) {
+      for (const k of cdKeys) { if (now >= _bldgLootCD[k]) delete _bldgLootCD[k]; }
+    }
     const localOk = !_bldgLootCD[key] || now >= _bldgLootCD[key];
     const globalOk = now >= _bldgLootGlobalCD;
-    if (localOk && globalOk && Math.random() < BLDG_LOOT_CHANCE) {
-      const amount = BLDG_LOOT_MIN + Math.floor(Math.random() * (BLDG_LOOT_MAX - BLDG_LOOT_MIN + 1));
+    if (localOk && globalOk && Math.random() < chance) {
+      const isHpLoot = isThemed && (type === 'hospital' || type === 'gym') && Math.random() < 0.5;
+      const amount = isHpLoot ? (10 + Math.floor(Math.random() * 21))
+        : (BLDG_LOOT_MIN + Math.floor(Math.random() * (BLDG_LOOT_MAX - BLDG_LOOT_MIN + 1)));
       const lr = 2 + Math.random() * (biH - 5);
       const lc = 2 + Math.random() * (biW - 4);
-      _buildingInt.loot = { r: lr, c: lc, amount, picked: false };
+      _buildingInt.loot = { r: lr, c: lc, amount, picked: false, hp: !!isHpLoot };
     }
   }
   player.r = biH - 1.5; player.c = biW / 2;
+  for (let gi = 0; gi < _myGang.length; gi++) {
+    const ga = ((gi + 1) / (GANG_MAX + 1)) * Math.PI * 2;
+    _myGang[gi].r = player.r + Math.sin(ga) * 1.5;
+    _myGang[gi].c = player.c + Math.cos(ga) * 1.5;
+  }
   cam.x = (player.c - player.r) * TS * 0.5;
   cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
   bullets.length = 0; muzzles.length = 0; impacts.length = 0; lockedTargets.clear();
@@ -31151,6 +31506,7 @@ function exitBuildingInterior() {
   if (!_buildingInt) return;
   const bi = _buildingInt; _buildingInt = null;
   player.r = bi.r + 1.5; player.c = bi.c + 0.5;
+  for (const gm of _myGang) { gm.r = player.r + (Math.random() - 0.5) * 2; gm.c = player.c + (Math.random() - 0.5) * 2; }
   cam.x = (player.c - player.r) * TS * 0.5;
   cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
   bullets.length = 0; muzzles.length = 0; impacts.length = 0;
@@ -31284,6 +31640,67 @@ function drawBuildingInterior() {
     ctx.fillStyle = '#c0a830';
     for (let di = 0; di < 3; di++) {
       ctx.beginPath(); ctx.arc(p.x + fSz * .5, p.y - fH * (di + 1) / 4, 1.8, 0, Math.PI * 2); ctx.fill();
+    }
+  }});
+
+  // ── Автомат с напитками (у западной стены) ───────────────────
+  const _vmR = 7, _vmC = 1.2;
+  items.push({ d: _vmR + _vmC, fn: () => {
+    const p = w2s(_vmR, _vmC);
+    const vmH = isoH(1.6), vmW2 = hx * .45;
+    // Корпус — левая грань (виден в изо)
+    ctx.fillStyle = '#1a3080'; ctx.strokeStyle = '#0a1848'; ctx.lineWidth = .7;
+    ctx.beginPath();
+    ctx.moveTo(p.x - vmW2, p.y); ctx.lineTo(p.x, p.y + hy * .4);
+    ctx.lineTo(p.x, p.y + hy * .4 - vmH); ctx.lineTo(p.x - vmW2, p.y - vmH);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Правая грань
+    ctx.fillStyle = '#1540a0';
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y + hy * .4); ctx.lineTo(p.x + vmW2, p.y);
+    ctx.lineTo(p.x + vmW2, p.y - vmH); ctx.lineTo(p.x, p.y + hy * .4 - vmH);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Верхняя грань
+    ctx.fillStyle = '#2050b0';
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y + hy * .4 - vmH); ctx.lineTo(p.x + vmW2, p.y - vmH);
+    ctx.lineTo(p.x, p.y - hy * .4 - vmH); ctx.lineTo(p.x - vmW2, p.y - vmH);
+    ctx.closePath(); ctx.fill();
+    // Экран / витрина с напитками
+    const scrTop = p.y - vmH * .85, scrBot = p.y - vmH * .25;
+    const scrL = p.x + 2, scrR = p.x + vmW2 - 2;
+    ctx.fillStyle = 'rgba(100,200,255,.25)';
+    ctx.fillRect(scrL, scrTop, scrR - scrL, scrBot - scrTop);
+    ctx.strokeStyle = 'rgba(150,220,255,.4)'; ctx.lineWidth = .5;
+    ctx.strokeRect(scrL, scrTop, scrR - scrL, scrBot - scrTop);
+    // Банки — ряды цветных кружков
+    const canCols = ['#e02020','#20a020','#f0a010','#2080e0'];
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 2; col++) {
+        const cx = scrL + 3 + col * 7, cy = scrTop + 5 + row * 7;
+        ctx.fillStyle = canCols[(row + col) % canCols.length];
+        ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = .3; ctx.stroke();
+      }
+    }
+    // Слот выдачи внизу
+    ctx.fillStyle = '#0a0a18';
+    const slotW = vmW2 * .7, slotH2 = 4;
+    ctx.fillRect(p.x + vmW2 * .15, p.y - vmH * .15, slotW, slotH2);
+    // Свечение
+    const flick = 0.5 + 0.3 * Math.sin(now * 0.003);
+    const gl = ctx.createRadialGradient(p.x + vmW2 * .5, p.y - vmH * .5, 2, p.x + vmW2 * .5, p.y - vmH * .5, hx * 1.2);
+    gl.addColorStop(0, `rgba(80,160,255,${.08 * flick})`); gl.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gl;
+    ctx.beginPath(); ctx.ellipse(p.x + vmW2 * .5, p.y - vmH * .5, hx * 1.2, hy, 0, 0, Math.PI * 2); ctx.fill();
+    // Подсказка если игрок рядом
+    const dv = Math.hypot(player.r - _vmR, player.c - _vmC);
+    if (dv < 2.5) {
+      ctx.save();
+      ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = `rgba(100,220,255,${flick})`; ctx.shadowColor = '#0080ff'; ctx.shadowBlur = 4;
+      ctx.fillText('🥤 $20', p.x, p.y - vmH - 6);
+      ctx.shadowBlur = 0; ctx.restore();
     }
   }});
 
@@ -31452,44 +31869,45 @@ function drawBuildingInterior() {
       ctx.beginPath(); ctx.ellipse(lp.x, lp.y + 2, 16, 6, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       // Свечение вокруг кейса
+      const _isHpLoot = !!(bi.loot && bi.loot.hp);
       const glow = ctx.createRadialGradient(bx, by, 3, bx, by, hx * 2.5);
-      glow.addColorStop(0, `rgba(255,200,50,${.15 * pulse})`);
-      glow.addColorStop(0.5, `rgba(255,170,30,${.06 * pulse})`);
+      glow.addColorStop(0, _isHpLoot ? `rgba(255,80,80,${.18 * pulse})` : `rgba(255,200,50,${.15 * pulse})`);
+      glow.addColorStop(0.5, _isHpLoot ? `rgba(255,50,50,${.08 * pulse})` : `rgba(255,170,30,${.06 * pulse})`);
       glow.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = glow;
       ctx.beginPath(); ctx.ellipse(bx, by, hx * 2.5, hy * 2, 0, 0, Math.PI * 2); ctx.fill();
       // Корпус кейса — верхняя грань (изо-ромб)
-      ctx.fillStyle = '#5a4520'; ctx.strokeStyle = '#8a7040'; ctx.lineWidth = 0.8;
+      ctx.fillStyle = _isHpLoot ? '#502020' : '#5a4520'; ctx.strokeStyle = _isHpLoot ? '#904040' : '#8a7040'; ctx.lineWidth = 0.8;
       ctx.beginPath();
       ctx.moveTo(bx, by - ch); ctx.lineTo(bx + cw, by - ch / 2);
       ctx.lineTo(bx, by); ctx.lineTo(bx - cw, by - ch / 2);
       ctx.closePath(); ctx.fill(); ctx.stroke();
       // Правая грань
-      ctx.fillStyle = '#3a2e15';
+      ctx.fillStyle = _isHpLoot ? '#3a1515' : '#3a2e15';
       ctx.beginPath();
       ctx.moveTo(bx + cw, by - ch / 2); ctx.lineTo(bx, by);
       ctx.lineTo(bx, by + cd); ctx.lineTo(bx + cw, by - ch / 2 + cd);
       ctx.closePath(); ctx.fill(); ctx.stroke();
       // Левая грань
-      ctx.fillStyle = '#4a3a1a';
+      ctx.fillStyle = _isHpLoot ? '#4a1a1a' : '#4a3a1a';
       ctx.beginPath();
       ctx.moveTo(bx - cw, by - ch / 2); ctx.lineTo(bx, by);
       ctx.lineTo(bx, by + cd); ctx.lineTo(bx - cw, by - ch / 2 + cd);
       ctx.closePath(); ctx.fill(); ctx.stroke();
-      // Замок — золотая застёжка
-      ctx.fillStyle = '#ffd76b';
+      // Замок — застёжка
+      ctx.fillStyle = _isHpLoot ? '#ff6060' : '#ffd76b';
       ctx.beginPath(); ctx.arc(bx, by - ch / 2, 2.5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#c0a030';
+      ctx.fillStyle = _isHpLoot ? '#c04040' : '#c0a030';
       ctx.beginPath(); ctx.arc(bx, by - ch / 2, 1.2, 0, Math.PI * 2); ctx.fill();
       // Ручка сверху
-      ctx.strokeStyle = '#8a7040'; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = _isHpLoot ? '#904040' : '#8a7040'; ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(bx - 5, by - ch - 1); ctx.quadraticCurveTo(bx, by - ch - 6, bx + 5, by - ch - 1);
       ctx.stroke();
       // Лучи от кейса (анимированные)
       ctx.save();
       ctx.globalAlpha = 0.15 * pulse;
-      ctx.strokeStyle = '#ffd76b'; ctx.lineWidth = 1;
+      ctx.strokeStyle = _isHpLoot ? '#ff6060' : '#ffd76b'; ctx.lineWidth = 1;
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2 + now * 0.001;
         const rx = Math.cos(a) * 22, ry = Math.sin(a) * 12;
@@ -31500,9 +31918,9 @@ function drawBuildingInterior() {
       // Знак $ над кейсом
       ctx.save();
       ctx.font = 'bold 12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.fillStyle = `rgba(255,215,107,${pulse})`;
-      ctx.shadowColor = '#ffa000'; ctx.shadowBlur = 8;
-      ctx.fillText('$', bx, by - ch - 6);
+      ctx.fillStyle = _isHpLoot ? `rgba(255,80,80,${pulse})` : `rgba(255,215,107,${pulse})`;
+      ctx.shadowColor = _isHpLoot ? '#ff2020' : '#ffa000'; ctx.shadowBlur = 8;
+      ctx.fillText(_isHpLoot ? '♥' : '$', bx, by - ch - 6);
       ctx.restore();
     }});
   }
@@ -31703,6 +32121,11 @@ function enterBankInterior(bank) {
     delete _bankCivSave[bank.id];
   }
   player.r=H-1.8; player.c=W/2;
+  for (let gi = 0; gi < _myGang.length; gi++) {
+    const ga = ((gi + 1) / (GANG_MAX + 1)) * Math.PI * 2;
+    _myGang[gi].r = Math.max(2, Math.min(H - 3, player.r - 2 + gi * 1.2));
+    _myGang[gi].c = Math.max(2, Math.min(W - 2, player.c - 2 + gi * 1.5));
+  }
   // Мгновенно перемещаем камеру — без lerp-«полёта» из мировых координат
   cam.x=(player.c-player.r)*TS*0.5;
   cam.y=(player.c+player.r)*TS*0.5*ISO_Y;
@@ -31735,6 +32158,7 @@ function exitBankInterior(withBag) {
   _myBagWeight=withBag&&int.myBag?1:0;
   const door=_bankDoorCoord(int.bank);
   player.r=door.r; player.c=door.c;
+  for (const gm of _myGang) { gm.r = door.r + (Math.random() - 0.5) * 2; gm.c = door.c + (Math.random() - 0.5) * 2; }
   // Мгновенно переносим камеру на мировые координаты — без lerp.
   // Иначе несколько кадров камера остаётся на банк-координатах,
   // мировой рендер выглядит пустым (все объекты вне экрана).
@@ -33450,6 +33874,22 @@ function drawBankInteriorScene() {
     })(lbp, lb)});
   }
 
+  // Наёмники в банке
+  for (const gm of _myGang) {
+    items.push({d:gm.r+gm.c+.04,fn:((g)=>()=>{
+      const p=w2s(g.r+.5,g.c+.5);
+      ctx.save();
+      const gl=ctx.createRadialGradient(p.x,p.y+2,1,p.x,p.y+2,14);
+      gl.addColorStop(0,'rgba(60,255,60,.15)'); gl.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=gl; ctx.beginPath(); ctx.ellipse(p.x,p.y+2,14,6,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+      drawPerson(p.x,p.y,g.ang,g.look,g.walkPhase,null,null,false,g.hp,g.max_hp,false,0);
+      drawWeaponInHands(p.x,p.y,g.ang,g.weapon,0.85,0);
+      ctx.save(); ctx.font='bold 7px system-ui'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+      ctx.fillStyle='#4aff4a'; ctx.shadowColor='#000'; ctx.shadowBlur=2;
+      ctx.fillText(`👊 ${g.name}`,p.x,p.y-32); ctx.shadowBlur=0; ctx.restore();
+    })(gm)});
+  }
   // Игрок
   items.push({d:player.r+player.c+.05,fn:()=>{
     const p=w2s(player.r+.5,player.c+.5);
