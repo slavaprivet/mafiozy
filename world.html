@@ -16041,6 +16041,12 @@ function update(dt) {
       if (player.r >= biH - 0.6 && Math.abs(player.c - biW / 2) < 2.5) { exitBuildingInterior(); }
     }
     if (_buildingInt) _updateInteriorNpcs(_buildingInt, dt);
+    // Этот блок всегда завершается return — единственное место, где
+    // _updateGang(dt) реально может выполниться, пока игрок в обычном
+    // здании. Раньше (05.07.2026) я ошибочно принял его за дубликат
+    // вызова в общем тике и убрал — из-за return в общий тик выполнение
+    // никогда не доходило, и наёмники физически замирали в зданиях.
+    _updateGang(dt);
     const targetCamX = (player.c - player.r) * TS * 0.5;
     const targetCamY = (player.c + player.r) * TS * 0.5 * ISO_Y;
     cam.x += (targetCamX - cam.x) * Math.min(1, dt * 8);
