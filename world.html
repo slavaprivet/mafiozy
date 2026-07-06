@@ -10794,7 +10794,10 @@ function wsConnect() {
         // исключения коррекция тянула player НАЗАД, автобус — ВПЕРЁД →
         // жёсткая тряска камеры, нарастающая по мере поездки (баг найден 05.07.2026).
         const _driving = !!myDrivingCarId && !myIsPassenger;
-        if (!_bankInt && !_buildingInt && !_driving && !_inBus) {
+        // В ТЮРЬМЕ позиция клиент-авторитетна (tryMove клампит к двору 7×7,
+        // телепорт при аресте — см. обработку jail_in ниже). Сервер держит
+        // игрока у центра участка → коррекция тянула бы сквозь здания.
+        if (!_bankInt && !_buildingInt && !_driving && !_inBus && !(myJailIn > 0)) {
         const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
         if (_firstSnap || dist > 15.0) {
           player.r = d.me.y; player.c = d.me.x;
@@ -10995,7 +10998,19 @@ function wsConnect() {
         // интерьере его не должно сажать (он для сервера стоит у входа).
         if (typeof d.me.jail_in === 'number' && !_bankShield()) {
           // Переход свобода→тюрьма: копы забирают несомый мешок при аресте.
-          if (myJailIn <= 0 && d.me.jail_in > 0) _confiscateBagOnArrest();
+          if (myJailIn <= 0 && d.me.jail_in > 0) {
+            _confiscateBagOnArrest();
+            // МГНОВЕННЫЙ телепорт в двор участка. Раньше игрока в тюрьму
+            // «тащила» rubber-band коррекция снапшота (8%/снап, без
+            // коллизий) — персонаж сам «бежал» сквозь здания и мог
+            // застрять в blocked-тайле. Телепорт в tryMove не спасал:
+            // он срабатывает только при нажатом движении.
+            if (myDrivingCarId) { exitCar('arrest'); viewZoom = 1.0; }
+            player.r = JAIL_CENTER_R + 1;
+            player.c = JAIL_CENTER_C + 1;
+            cam.x = (player.c - player.r) * TS * 0.5;
+            cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
+          }
           myJailIn = d.me.jail_in;
         }
         if (typeof d.me.terr_cd === 'number') myTerrCd = d.me.terr_cd;
@@ -24617,14 +24632,18 @@ function drawJailCell(stationR, stationC) {
 
 // Поиск ближайшей угрозы (wanted≥3 игрок в радиусе) — для башни-пулемёта.
 function _findStationThreat(sR, sC) {
+  // ЗАКЛЮЧЁННЫЕ — НЕ ЦЕЛЬ. Тюрьма стоит во дворе этого же участка, а
+  // wanted при аресте сбрасывается не мгновенно → турель лупила по
+  // игроку, который уже сидит в клетке («бьёт когда я ничего не сделал»).
   // Я сам ближе всех ко мне ;)
-  if (myWanted >= 3 && !myDead) {
+  if (myWanted >= 3 && !myDead && !(myJailIn > 0)) {
     const d = Math.hypot(player.r - sR, player.c - sC);
     if (d <= 7.5) return { r: player.r, c: player.c, uid: QP.uid };
   }
-  // Другие звёздные игроки
+  // Другие звёздные игроки (тоже кроме сидящих и пакуемых автозаком)
   for (const [uid, o] of others) {
-    if (o.dead || (o.wanted || 0) < 3) continue;
+    if (o.dead || (o.jail_in || 0) > 0 || (o.wanted || 0) < 3) continue;
+    if (_arrestHidden.has(String(uid))) continue;
     const d = Math.hypot(o.y - sR, o.x - sC);
     if (d <= 7.5) return { r: o.y, c: o.x, uid };
   }
