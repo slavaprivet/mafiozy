@@ -7498,6 +7498,33 @@ const GANG_MAX = 5;
 const GANG_MIN_LVL = 5;
 const _myGang = [];
 let _gangIdCounter = 0;
+// Id уличных ботов, которых игрок НАНЯЛ. Сервер про найм не знает и
+// продолжает слать бота в снапшотах (applyAggroTargets пересобирает
+// список 15 раз/сек — клиентский splice бесполезен). Фильтруем по id:
+// бот пропадает из aggroZones на клиенте → не рисуется («клон»), наши
+// наёмники его не таргетят, его серверные выстрелы не рисуем. Урон от
+// сервера полностью не убрать до серверного фикса (см. memory), но
+// визуально «нанятый бросился на меня» уходит. Ids не переживают
+// перезагрузку — после релоада бот вернётся обычным врагом (ок).
+const _hiredBotIds = new Set();
+// Фразочки наёмников — над головой, как cryText у NPC.
+const _GANG_PHRASES = {
+  hire:  ['Работаю, босс', 'В деле!', 'Куда идём?', 'Готов служить', 'Кто наш клиент?'],
+  aim:   ['Пальнём его?', 'Босс, что дальше?', 'Только скажи…', 'Взять его на мушку?', 'Он мне сразу не понравился'],
+  shoot: ['Получай!', 'Лови свинец!', 'За босса!', 'На!', 'Держи, крыса!'],
+  walk:  ['Идём-идём…', 'Пока спокойно', 'Прикрываю тыл', 'Всё чисто', 'За тобой, босс'],
+};
+function _gangSay(m, kind, chance) {
+  if (chance !== undefined && Math.random() > chance) return;
+  const now = performance.now();
+  // Общий кулдаун на болтовню — чтобы отряд не тараторил хором
+  if (now < (m._sayCdUntil || 0)) return;
+  const pool = _GANG_PHRASES[kind];
+  if (!pool) return;
+  m._sayText = pool[(Math.random() * pool.length) | 0];
+  m._sayUntil = now + 2200;
+  m._sayCdUntil = now + 6000 + Math.random() * 8000;
+}
 const _GANG_NAMES = [
   'Винни','Тони','Сальваторе','Луиджи','Марко','Коза','Бруно','Кармине','Нико','Рико',
   'Вито','Дон','Паулие','Фрэнки','Энцо','Чезаре','Раффи','Гаспаре','Массимо','Лука',
@@ -7533,6 +7560,7 @@ function _hireGangMember(botLook, r, c) {
   };
   _myGang.push(m);
   _saveGang();
+  _gangSay(m, 'hire');
   showToast(`🤝 ${gangName} нанят (${_myGang.length}/${GANG_MAX})`, '👊', 2000);
   return true;
 }
@@ -7673,10 +7701,15 @@ function _updateGang(dt) {
       m.c += (dc / dist) * spd;
       m.walkPhase += dt * 10;
       m.ang = Math.atan2(dr, dc);
+      // Редкая болтовня на ходу (~0.1%/кадр; реальную частоту режет
+      // общий кулдаун 6-14с в _gangSay)
+      _gangSay(m, 'walk', 0.001);
     } else {
       m.walkPhase = 0;
     }
     if (myDead) continue;
+    // Игрок взял кого-то в прицел — наёмник реагирует репликой
+    if (lockedTargets && lockedTargets.size > 0) _gangSay(m, 'aim', 0.02);
     // ── Боевая цель: проверяем что прежняя ещё жива/существует, иначе ─
     //    сразу ищем следующую (переключение целей после смерти врага). ──
     let stillValid = false;
@@ -7722,6 +7755,7 @@ function _updateGang(dt) {
     const muzR = muz.r, muzC = muz.c;
     spawnBullet(muzR, muzC, pos.r, pos.c, { hit: true, fromNpc: true, weapon: m.weapon });
     spawnMuzzle(muzR, muzC, m.ang, m.weapon, true);
+    _gangSay(m, 'shoot', 0.35);
     const dmg = GANG_SHOT_DMG_MIN + Math.floor(Math.random() * GANG_SHOT_DMG_RANGE);
     if (m.targetKind === 'bank_guard') {
       _hitBankGuard(m.targetRef, dirY, dirX, dmg);
@@ -9291,7 +9325,9 @@ function applyAggroTargets(newAggro) {
     if (!cur) {
       // Новая зона — копируем как есть, x=tx (нет интерполяции с нуля)
       const z = JSON.parse(JSON.stringify(fresh));
-      for (const b of (z.bots || [])) { b.tx = b.x; b.ty = b.y; }
+      // Нанятые игроком боты (сервер про найм не знает) — фильтруем по id
+      z.bots = (z.bots || []).filter(b => !_hiredBotIds.has(String(b.id)));
+      for (const b of z.bots) { b.tx = b.x; b.ty = b.y; }
       aggroZones[tid] = z;
       continue;
     }
@@ -9299,8 +9335,9 @@ function applyAggroTargets(newAggro) {
     cur.state        = fresh.state;
     cur.cap_left     = fresh.cap_left;
     cur.next_respawn = fresh.next_respawn;
-    // Боты — мерж по id
-    const newBots = fresh.bots || [];
+    // Боты — мерж по id. Нанятых (см. _hiredBotIds) выкидываем — иначе
+    // рядом с наёмником ходит его «клон»-оригинал и атакует игрока.
+    const newBots = (fresh.bots || []).filter(b => !_hiredBotIds.has(String(b.id)));
     const oldById = new Map((cur.bots || []).map(b => [b.id, b]));
     const merged = [];
     for (const nb of newBots) {
@@ -10256,6 +10293,9 @@ function handleEventPacket(d) {
       showToast('☠️ ' + (d.text || 'Проваливай!'), 2200);
     }
   } else if (kind === 'aggro_shot' || kind === 'aggro_melee') {
+    // Нанятый игроком бот (клиентский фильтр, сервер про найм не знает) —
+    // не рисуем его выстрелы: сам бот скрыт, пули «из ниоткуда» пугают.
+    if (d.bot_id && _hiredBotIds.has(String(d.bot_id))) return;
     // Бот стреляет/бьёт. Пуля летит со скоростью d.bullet_speed (физика
     // dodge: если игрок отскочит до того как пуля долетит — пройдёт мимо).
     // Урон и killed-обработка приходят отдельным пакетом 'aggro_apply'.
@@ -10291,6 +10331,7 @@ function handleEventPacket(d) {
       _autoLockThreat('aggro_bot', d.bot_id);
     }
   } else if (kind === 'aggro_apply') {
+    if (d.bot_id && _hiredBotIds.has(String(d.bot_id))) return;
     if (String(d.target_uid) === String(QP.uid) && !d.miss && !_bankShield()) {
       try { hitFlash = performance.now() + 240; } catch(e) {}
       flashHitOverlay(d.sy, d.sx);
@@ -12256,6 +12297,9 @@ _gtaBtn.addEventListener('click', () => {
       for (const b of (z.bots || [])) {
         if (String(b.id) === String(_gtaActionCarId) && b.alive !== false && !b.dead) {
           hired = _hireGangMember(b.look, b.y || player.r, b.x || player.c);
+          // Оригинал бота остаётся жить на сервере — прячем его на клиенте
+          // по id, иначе рядом стоит «клон», который ещё и атакует игрока.
+          if (hired) _hiredBotIds.add(String(b.id));
           if (hired && _myHitTargetBotId && String(b.id) === String(_myHitTargetBotId)) {
             _myHitTargetBotId = null; _myHitContractActive = false;
             showToast('⚠️ Контракт бригадира отменён — цель нанята', '📋', 2500);
@@ -26383,7 +26427,11 @@ function render() {
   for (const gm of _myGang) {
     if (gm.r < r0 || gm.r >= r1 || gm.c < c0 || gm.c >= c1) continue;
     items.push({ depth: gm.r + gm.c + 0.0006, draw: ((g) => () => {
-      const p = w2s(g.r, g.c);
+      // +0.5 — как у игрока/NPC-интерьера и как в _npcMuzzleWorldPoint.
+      // Раньше спрайт рисовался в w2s(g.r, g.c) БЕЗ половины тайла, а
+      // дуло считалось С половиной → пуля вылетала в полтайла от ствола
+      // («стреляют не из дула»).
+      const p = w2s(g.r + 0.5, g.c + 0.5);
       // Зелёное свечение под ногами
       ctx.save();
       const gl = ctx.createRadialGradient(p.x, p.y + 2, 1, p.x, p.y + 2, 18);
@@ -26398,6 +26446,11 @@ function render() {
       ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillStyle = '#4aff4a'; ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
       ctx.fillText(`👊 ${g.name}`, p.x, p.y - 38);
+      if (performance.now() < (g._sayUntil || 0)) {
+        ctx.font = 'bold 9px system-ui';
+        ctx.fillStyle = '#ffe9a0';
+        ctx.fillText(g._sayText, p.x, p.y - 50);
+      }
       ctx.shadowBlur = 0; ctx.restore();
     })(gm) });
   }
@@ -31784,7 +31837,13 @@ function _pushInteriorNpcs(bi, items) {
       drawWeaponInHands(p.x, p.y, g.ang, g.weapon, 0.85, 0);
       ctx.save(); ctx.font = 'bold 7px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillStyle = '#4aff4a'; ctx.shadowColor = '#000'; ctx.shadowBlur = 2;
-      ctx.fillText(`👊 ${g.name}`, p.x, p.y - 32); ctx.shadowBlur = 0; ctx.restore();
+      ctx.fillText(`👊 ${g.name}`, p.x, p.y - 32);
+      if (performance.now() < (g._sayUntil || 0)) {
+        ctx.font = 'bold 8px system-ui';
+        ctx.fillStyle = '#ffe9a0';
+        ctx.fillText(g._sayText, p.x, p.y - 43);
+      }
+      ctx.shadowBlur = 0; ctx.restore();
     })(gm) });
   }
 }
@@ -34273,7 +34332,12 @@ function drawBankInteriorScene() {
       drawWeaponInHands(p.x,p.y,g.ang,g.weapon,0.85,0);
       ctx.save(); ctx.font='bold 7px system-ui'; ctx.textAlign='center'; ctx.textBaseline='bottom';
       ctx.fillStyle='#4aff4a'; ctx.shadowColor='#000'; ctx.shadowBlur=2;
-      ctx.fillText(`👊 ${g.name}`,p.x,p.y-32); ctx.shadowBlur=0; ctx.restore();
+      ctx.fillText(`👊 ${g.name}`,p.x,p.y-32);
+      if (performance.now() < (g._sayUntil || 0)) {
+        ctx.font='bold 8px system-ui'; ctx.fillStyle='#ffe9a0';
+        ctx.fillText(g._sayText, p.x, p.y - 43);
+      }
+      ctx.shadowBlur=0; ctx.restore();
     })(gm)});
   }
   // Игрок
