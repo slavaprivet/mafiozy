@@ -11626,6 +11626,11 @@ if (_robBtn) {
       _gtaBtn.click(); // запускаем обычный угон
       return;
     }
+    if (_robBtn._aptPrice) {
+      _robBtn._aptPrice = false;
+      _gtaBtn.click(); // подсказка цены — клик так же просто входит в здание
+      return;
+    }
     if (_robTargetBiz) { startRobbery(_robTargetBiz); return; }
     if (_robBtn._graffitiR != null) {
       sprayGraffiti(_robBtn._graffitiR, _robBtn._graffitiC);
@@ -11908,18 +11913,27 @@ function updateGtaInteractions() {
     if (nearBldR !== null) {
       _gtaActionKind = 'building_enter';
       _gtaActionCarId = nearBldR + ',' + nearBldC;
-      // Покупка — только ВНУТРИ (apt_buy кнопка в _buildingInt-ветке), тут
-      // просто подсказка цены/владения. Клик всё ещё входит в здание.
-      _gtaBtn.textContent = isApartmentOwned(nearBldR, nearBldC)
-        ? '🏠 Войти в свою квартиру'
-        : `🏠 Войти в здание · квартира $${apartmentPrice(nearBldR, nearBldC).toLocaleString('ru')}`;
+      const _aptOwned = isApartmentOwned(nearBldR, nearBldC);
+      // Кнопка входа — простой текст, без цены (та теперь на второй кнопке).
+      // Покупка всё ещё только ВНУТРИ — клик тут всегда просто входит.
+      _gtaBtn.textContent = _aptOwned ? '🏠 Войти в свою квартиру' : '🏠 Войти в здание';
       _gtaBtn.style.display = 'block';
       const gKey = nearBldR + ',' + nearBldC;
       const gOnCd = _graffitiCd[gKey] && Date.now() < _graffitiCd[gKey];
+      _robBtn._aptPrice = false;
       if (_robBtn && !gOnCd && _sprayCans > 0) {
+        // Граффити приоритетнее подсказки цены квартиры — тег на секунду
+        // важнее, а цену игрок и так увидит внутри при покупке.
         _robTargetBiz = null; _robBtn._buySprayCan = false;
         _robBtn.textContent = `🎨 Тег (${_sprayCans})`;
         _robBtn._graffitiR = nearBldR; _robBtn._graffitiC = nearBldC;
+        _robBtn.style.display = 'block';
+      } else if (_robBtn && !_aptOwned) {
+        // Вторая кнопка — отдельно цена квартиры (разделили с «Войти»).
+        // Клик по ней делает то же самое — заходит в здание.
+        _robBtn._graffitiR = null; _robBtn._graffitiC = null;
+        _robBtn._aptPrice = true;
+        _robBtn.textContent = `💰 Квартира: $${apartmentPrice(nearBldR, nearBldC).toLocaleString('ru')}`;
         _robBtn.style.display = 'block';
       }
       return;
