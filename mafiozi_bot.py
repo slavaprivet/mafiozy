@@ -11500,6 +11500,17 @@ WORLD_PIER_R0  = 165; WORLD_PIER_R1  = 175
 WORLD_PIER_C0  = 36;  WORLD_PIER_C1  = 44
 WORLD_SHIP_R0  = 175; WORLD_SHIP_R1  = 185
 WORLD_SHIP_C0  = 28;  WORLD_SHIP_C1  = 56
+# ── Гоночный трек «Прибой» — асфальтовое кольцо в море вокруг порта ──
+# Синхронно с TRACK_*/inRaceTrack в world.html (тайл 18, проходим).
+WORLD_TRACK_R0 = 165; WORLD_TRACK_R1 = 194
+WORLD_TRACK_C0 = 4;   WORLD_TRACK_C1 = 75
+WORLD_TRACK_W  = 4
+
+def _in_race_track(r: int, c: int) -> bool:
+    if r < WORLD_TRACK_R0 or r > WORLD_TRACK_R1 or c < WORLD_TRACK_C0 or c > WORLD_TRACK_C1:
+        return False
+    return (r <= WORLD_TRACK_R0 + WORLD_TRACK_W - 1 or r >= WORLD_TRACK_R1 - WORLD_TRACK_W + 1
+            or c <= WORLD_TRACK_C0 + WORLD_TRACK_W - 1 or c >= WORLD_TRACK_C1 - WORLD_TRACK_W + 1)
                       # (тоже город, дорога ведёт на юг), r=100..139 — отдельная
                       # большая арена с Логовом (банда там живёт и бьётся).
                       # Должно совпадать с MAP_COLS/MAP_ROWS в world.html
@@ -11526,10 +11537,13 @@ def _world_is_wall(r: int, c: int) -> bool:
     if r >= 140:
         if r < WORLD_BEACH_R1:
             return False  # песок (включая буфер 140-149) — проходим
-        # На воде проходимы только: причал (PIER) и палуба корабля (SHIP)
+        # На воде проходимы: причал (PIER), палуба корабля (SHIP) и
+        # гоночный трек «Прибой» (асфальтовое кольцо вокруг порта).
         if WORLD_PIER_R0 <= r < WORLD_PIER_R1 and WORLD_PIER_C0 <= c < WORLD_PIER_C1:
             return False
         if WORLD_SHIP_R0 <= r < WORLD_SHIP_R1 and WORLD_SHIP_C0 <= c < WORLD_SHIP_C1:
+            return False
+        if _in_race_track(r, c):
             return False
         return True  # вода
     BLOCK = 10
