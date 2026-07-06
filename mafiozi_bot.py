@@ -11500,17 +11500,60 @@ WORLD_PIER_R0  = 165; WORLD_PIER_R1  = 175
 WORLD_PIER_C0  = 36;  WORLD_PIER_C1  = 44
 WORLD_SHIP_R0  = 175; WORLD_SHIP_R1  = 185
 WORLD_SHIP_C0  = 28;  WORLD_SHIP_C1  = 56
-# ── Гоночный трек «Прибой» — асфальтовое кольцо в море вокруг порта ──
-# Синхронно с TRACK_*/inRaceTrack в world.html (тайл 18, проходим).
-WORLD_TRACK_R0 = 165; WORLD_TRACK_R1 = 194
-WORLD_TRACK_C0 = 4;   WORLD_TRACK_C1 = 75
-WORLD_TRACK_W  = 4
+# ── Гоночный трек «Прибой» v2 — плавное кольцо в море, ОГИБАЕТ порт ──
+# Замкнутый Catmull-Rom сплайн; полотно не пересекает пирс/корабль.
+# Синхронно с TRACK_PTS/_buildTrackTiles в world.html (менять вместе!).
+WORLD_TRACK_PTS = [
+    (167, 10), (167, 20), (174, 24), (182, 24),   # зап. лепесток -> вниз вдоль порта
+    (188, 28), (188, 42), (188, 56),              # нырок под кораблём
+    (182, 60), (174, 60), (167, 64), (167, 72),   # вверх вдоль порта -> вост. лепесток
+    (174, 75), (184, 75), (190, 72),              # восточный загиб вниз
+    (195, 60), (195, 42), (195, 24),              # южная прямая
+    (190, 8),  (184, 5),  (176, 5),  (170, 7),    # западный загиб вверх
+]
+WORLD_TRACK_HALF_W = 2.2
+
+
+def _build_track_tiles() -> set:
+    P = WORLD_TRACK_PTS
+    n = len(P)
+    pts = []
+    SEG = 14
+    for i in range(n):
+        p0 = P[(i - 1) % n]; p1 = P[i]; p2 = P[(i + 1) % n]; p3 = P[(i + 2) % n]
+        for s in range(SEG):
+            t = s / SEG; t2 = t * t; t3 = t2 * t
+            pts.append((
+                0.5 * (2*p1[0] + (p2[0]-p0[0])*t + (2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2 + (3*p1[0]-p0[0]-3*p2[0]+p3[0])*t3),
+                0.5 * (2*p1[1] + (p2[1]-p0[1])*t + (2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2 + (3*p1[1]-p0[1]-3*p2[1]+p3[1])*t3),
+            ))
+    tiles = set()
+    m = len(pts)
+    lim2 = WORLD_TRACK_HALF_W * WORLD_TRACK_HALF_W
+    for r in range(160, WORLD_MAP_ROWS - 1):
+        for c in range(1, WORLD_MAP_COLS - 1):
+            pr = r + 0.5; pc = c + 0.5
+            best = 1e9
+            for i in range(m):
+                a = pts[i]; b = pts[(i + 1) % m]
+                abr = b[0] - a[0]; abc = b[1] - a[1]
+                L2 = abr * abr + abc * abc or 1e-9
+                k = ((pr - a[0]) * abr + (pc - a[1]) * abc) / L2
+                k = 0.0 if k < 0 else (1.0 if k > 1 else k)
+                dr = pr - (a[0] + abr * k); dc = pc - (a[1] + abc * k)
+                d2 = dr * dr + dc * dc
+                if d2 < best:
+                    best = d2
+            if best <= lim2:
+                tiles.add((r, c))
+    return tiles
+
+
+_TRACK_TILES = _build_track_tiles()
+
 
 def _in_race_track(r: int, c: int) -> bool:
-    if r < WORLD_TRACK_R0 or r > WORLD_TRACK_R1 or c < WORLD_TRACK_C0 or c > WORLD_TRACK_C1:
-        return False
-    return (r <= WORLD_TRACK_R0 + WORLD_TRACK_W - 1 or r >= WORLD_TRACK_R1 - WORLD_TRACK_W + 1
-            or c <= WORLD_TRACK_C0 + WORLD_TRACK_W - 1 or c >= WORLD_TRACK_C1 - WORLD_TRACK_W + 1)
+    return (r, c) in _TRACK_TILES
                       # (тоже город, дорога ведёт на юг), r=100..139 — отдельная
                       # большая арена с Логовом (банда там живёт и бьётся).
                       # Должно совпадать с MAP_COLS/MAP_ROWS в world.html
