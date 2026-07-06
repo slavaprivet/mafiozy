@@ -11554,6 +11554,25 @@ _TRACK_TILES = _build_track_tiles()
 
 def _in_race_track(r: int, c: int) -> bool:
     return (r, c) in _TRACK_TILES
+
+
+# ── Рекорды дня на треке «Прибой» ────────────────────────────────────
+# Лучшее время круга на игрока за СЕГОДНЯ; сбрасывается сменой даты
+# (и рестартом сервера — суточный лидерборд, некритично).
+RACE_DAY = {'date': '', 'best': {}}   # best: {uid: (ms, name)}
+
+
+def _race_day_roll() -> None:
+    today = time.strftime('%Y-%m-%d')
+    if RACE_DAY['date'] != today:
+        RACE_DAY['date'] = today
+        RACE_DAY['best'] = {}
+
+
+def _race_top_list() -> list:
+    _race_day_roll()
+    items = sorted(RACE_DAY['best'].items(), key=lambda kv: kv[1][0])[:5]
+    return [{'uid': u, 'ms': v[0], 'name': v[1]} for u, v in items]
                       # (тоже город, дорога ведёт на юг), r=100..139 — отдельная
                       # большая арена с Логовом (банда там живёт и бьётся).
                       # Должно совпадать с MAP_COLS/MAP_ROWS в world.html
@@ -18854,6 +18873,31 @@ async def _coop_http_app():
                                 world.bank_robs.pop(bank_id, None)
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
+                        except Exception: pass
+                    elif t == 'race_lap':
+                        # Круг на треке «Прибой». Клиент шлёт время в ms;
+                        # sanity-границы: 15с (читер/телепорт) .. 20 мин.
+                        try:
+                            _lap_ms = int(d.get('ms') or 0)
+                        except Exception:
+                            _lap_ms = 0
+                        if 15000 <= _lap_ms <= 1200000:
+                            _race_day_roll()
+                            _pl = world.players.get(uid) or {}
+                            _nm = str(_pl.get('name') or 'Гонщик')[:16]
+                            _cur = RACE_DAY['best'].get(uid)
+                            if _cur is None or _lap_ms < _cur[0]:
+                                RACE_DAY['best'][uid] = (_lap_ms, _nm)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'race_top', 'd': {'top': _race_top_list()}},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'race_top':
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'race_top', 'd': {'top': _race_top_list()}},
+                                ensure_ascii=False))
                         except Exception: pass
                     elif t == 'gta_take':
                         reply = await world.gta_take(uid)

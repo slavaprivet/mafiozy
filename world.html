@@ -1921,6 +1921,120 @@ function inRaceTrack(r, c) {
   if (!_trackTiles) _buildTrackTiles();
   return _trackTiles.has(r * 1000 + c);
 }
+// ── Гонка: старт/финиш, замер круга, табло рекордов ─────────────────
+// Старт/финиш — на ВОСТОЧНОЙ верхней прямой (примыкает к пляжу, разгонная
+// прямая спускается с песка на полотно). Направление движения = порядок
+// точек сплайна: восточный лепесток → вниз → южная прямая (на запад) →
+// западный лепесток → нырок под кораблём → финиш.
+// Круг засчитывается только через 4 ворот по порядку (срезка по пляжу
+// пропустит ворота — время не зафиксируется).
+const RACE_FINISH_C = 66.5;                  // плоскость старт/финиша
+const RACE_BOARD = { r: 162, c: 69 };        // табло рекордов на пляже у старта
+let _raceLapStartMs = 0;                     // 0 = круг не идёт
+let _raceGateIdx = 0;                        // 0=ждём юг, 1=запад, 2=нырок, 3=финиш
+let _raceLastLapMs = 0, _raceBestLapMs = 0;
+let _raceTop = [];                           // топ дня с сервера [{name, ms}]
+let _raceTopAskedAt = 0;
+let _racePrevR = 0, _racePrevC = 0;
+let _raceHudEl = null;
+function _fmtLapMs(ms) {
+  const s = ms / 1000;
+  const m = Math.floor(s / 60);
+  return m + ':' + String(Math.floor(s % 60)).padStart(2, '0') + '.' + Math.floor((s % 1) * 10);
+}
+function _raceHud(show, text) {
+  if (!_raceHudEl) {
+    _raceHudEl = document.createElement('div');
+    _raceHudEl.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);' +
+      'z-index:40;background:rgba(10,10,16,.78);border:1px solid rgba(255,215,107,.5);' +
+      'border-radius:8px;padding:4px 12px;font:700 14px monospace;color:#ffd76b;' +
+      'pointer-events:none;display:none;white-space:nowrap;';
+    document.body.appendChild(_raceHudEl);
+  }
+  _raceHudEl.style.display = show ? 'block' : 'none';
+  if (text) _raceHudEl.textContent = text;
+}
+function updateRaceLap() {
+  const pr = player.r, pc = player.c;
+  if (!_racePrevR && !_racePrevC) { _racePrevR = pr; _racePrevC = pc; return; }
+  const now = performance.now();
+  if (pr < 150) {
+    // ушёл с юга — круг сгорает
+    if (_raceLapStartMs) { _raceLapStartMs = 0; _raceHud(false); }
+    _racePrevR = pr; _racePrevC = pc;
+    return;
+  }
+  // топ дня для табло — спрашиваем пока игрок на юге, раз в 15с
+  if (wsConnected && ws && now - _raceTopAskedAt > 15000) {
+    _raceTopAskedAt = now;
+    try { ws.send(JSON.stringify({ t: 'race_top', d: {} })); } catch (e) {}
+  }
+  const crossed = (plane, dir, r0, r1) =>
+    pr >= r0 && pr <= r1 &&
+    (dir > 0 ? (_racePrevC < plane && pc >= plane) : (_racePrevC > plane && pc <= plane));
+  if (crossed(RACE_FINISH_C, +1, 163, 172)) {
+    if (_raceLapStartMs && _raceGateIdx === 3) {
+      const ms = Math.round(now - _raceLapStartMs);
+      _raceLastLapMs = ms;
+      if (!_raceBestLapMs || ms < _raceBestLapMs) _raceBestLapMs = ms;
+      spawnFloatText(pr, pc, '🏁 ' + _fmtLapMs(ms), { color: '#ffd76b', size: 18, life: 2500 });
+      try { ws && ws.send(JSON.stringify({ t: 'race_lap', d: { ms } })); } catch (e) {}
+      _raceTopAskedAt = 0;   // обновить табло сразу
+    } else {
+      spawnFloatText(pr, pc, '🏁 Круг пошёл!', { color: '#7be58a', size: 14, life: 1500 });
+    }
+    _raceLapStartMs = now; _raceGateIdx = 0;
+  } else if (_raceLapStartMs) {
+    if      (_raceGateIdx === 0 && crossed(42, -1, 191, 199)) _raceGateIdx = 1;  // южная прямая (на запад)
+    else if (_raceGateIdx === 1 && crossed(15, +1, 163, 172)) _raceGateIdx = 2;  // западный лепесток
+    else if (_raceGateIdx === 2 && crossed(42, +1, 184, 192)) _raceGateIdx = 3;  // нырок под кораблём
+  }
+  if (_raceLapStartMs) {
+    _raceHud(true, '⏱ ' + _fmtLapMs(now - _raceLapStartMs) +
+      (_raceBestLapMs ? '  ·  луч. ' + _fmtLapMs(_raceBestLapMs) : ''));
+  }
+  _racePrevR = pr; _racePrevC = pc;
+}
+// Табло рекордов дня — щит на ножках у старта (depth-sort в render).
+function drawRaceBoard() {
+  const p = w2s(RACE_BOARD.r + 0.5, RACE_BOARD.c + 0.5);
+  const W = 148, H = 96, top = p.y - 150;
+  ctx.save();
+  // Ножки
+  ctx.strokeStyle = '#4a4038'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(p.x - W * 0.32, p.y - 4); ctx.lineTo(p.x - W * 0.32, top + H);
+  ctx.moveTo(p.x + W * 0.32, p.y - 4); ctx.lineTo(p.x + W * 0.32, top + H);
+  ctx.stroke();
+  // Щит
+  ctx.fillStyle = 'rgba(12,12,18,.92)';
+  ctx.strokeStyle = '#ffd76b'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(p.x - W / 2, top, W, H, 6); else ctx.rect(p.x - W / 2, top, W, H);
+  ctx.fill(); ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffd76b';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('🏁 РЕКОРДЫ ДНЯ', p.x, top + 15);
+  ctx.font = '10px monospace';
+  if (_raceTop.length) {
+    for (let i = 0; i < Math.min(5, _raceTop.length); i++) {
+      const e = _raceTop[i];
+      ctx.fillStyle = i === 0 ? '#ffe48a' : '#d8d8d8';
+      const nm = String(e.name || '?').slice(0, 10);
+      ctx.fillText(`${i + 1}. ${nm}  ${_fmtLapMs(e.ms)}`, p.x, top + 30 + i * 12);
+    }
+  } else {
+    ctx.fillStyle = '#9a9a9a';
+    ctx.fillText('Проедь круг первым!', p.x, top + 40);
+  }
+  if (_raceBestLapMs) {
+    ctx.fillStyle = '#7be58a';
+    ctx.fillText('Ты: ' + _fmtLapMs(_raceBestLapMs), p.x, top + H - 5);
+  }
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
 // Гладкая лента трека ПОВЕРХ воды: рисуем замкнутый сплайн жирным
 // штрихом в изометрическом трансформе (координаты пути — тайлы, ISO-
 // сжатие делает трансформ, поэтому повороты — настоящие круглые дуги,
@@ -1964,11 +2078,47 @@ function drawRaceTrackRibbon() {
   ctx.setLineDash([1.1, 1.5]);
   ctx.stroke(path);
   ctx.setLineDash([]);
-  // 6) Стартовая шахматка — поперёк южной прямой (центр c=42, r=195)
-  for (let gr = 0; gr < 9; gr++) {        // поперёк полотна (по r)
-    for (let gc = 0; gc < 3; gc++) {      // вдоль (по c)
+  // 6) Разгонная прямая — съезд с пляжа (r≈157) на полотно к старту.
+  //    Песок (тайл 14) и так проходим — это чисто визуальный асфальт.
+  const pit = new Path2D();
+  pit.moveTo(63.2, 156.8);
+  pit.lineTo(64.8, 166.5);
+  ctx.strokeStyle = '#dcdcdc';
+  ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+  ctx.stroke(pit);
+  ctx.strokeStyle = '#33343a';
+  ctx.lineWidth = 2.2;
+  ctx.stroke(pit);
+  // Стрелки на разгонке — вниз, к старту
+  ctx.strokeStyle = 'rgba(255,215,107,.85)';
+  ctx.lineWidth = 0.16;
+  for (let i = 0; i < 3; i++) {
+    const ar = 159 + i * 2.4, ac = 63.2 + (ar - 156.8) * (64.8 - 63.2) / (166.5 - 156.8);
+    ctx.beginPath();
+    ctx.moveTo(ac - 0.45, ar - 0.35);
+    ctx.lineTo(ac + 0.08, ar + 0.35);
+    ctx.lineTo(ac + 0.6, ar - 0.35);
+    ctx.stroke();
+  }
+  // 7) Шевроны направления по всему кольцу (по касательной сплайна)
+  ctx.strokeStyle = 'rgba(240,240,240,.5)';
+  ctx.lineWidth = 0.13;
+  for (let i = 0; i < n; i += 12) {
+    const q = _trackPathPts[i], q2 = _trackPathPts[(i + 2) % n];
+    const ang = Math.atan2(q2[0] - q[0], q2[1] - q[1]);
+    ctx.save();
+    ctx.translate(q[1], q[0]);
+    ctx.rotate(ang);
+    ctx.beginPath();
+    ctx.moveTo(-0.35, -0.3); ctx.lineTo(0.3, 0); ctx.lineTo(-0.35, 0.3);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // 8) Стартовая шахматка — поперёк ВОСТОЧНОЙ прямой (c≈66.5, у пляжа)
+  for (let gr = 0; gr < 10; gr++) {       // поперёк полотна (по r)
+    for (let gc = 0; gc < 2; gc++) {      // вдоль (по c)
       ctx.fillStyle = ((gr + gc) & 1) ? '#e8e8e8' : '#16161a';
-      ctx.fillRect(41.9 + gc * 0.45, 195 - 2.0 + gr * 0.45, 0.45, 0.45);
+      ctx.fillRect(66.1 + gc * 0.45, 164.9 + gr * 0.45, 0.45, 0.45);
     }
   }
   ctx.restore();
@@ -11218,6 +11368,8 @@ function wsConnect() {
       }
     } else if (pkt.t === 'event') {
       handleEventPacket(pkt.d || {});
+    } else if (pkt.t === 'race_top') {
+      _raceTop = (pkt.d && pkt.d.top) || [];
     }
   };
   ws.onerror = () => {
@@ -12070,6 +12222,9 @@ function updateGtaInteractions() {
       const tr = pr + dr, tc = pc + dc;
       if (tr < 0 || tr >= MAP_ROWS || tc < 0 || tc >= MAP_COLS) continue;
       if (MAP[tr][tc] !== 1) continue;
+      // Южная зона (r>=140): у трека/реки жилых зданий нет — краевые
+      // «дома»-декор у границы карты не входибельны и не покупаемы.
+      if (tr >= 140) continue;
       if (POI_BY_RC.has(tr + ',' + tc)) continue;
       if (_bankTileSet.has(tr + ',' + tc)) continue;
       if (BUSINESS_BY_RC && BUSINESS_BY_RC.has(tr + ',' + tc)) continue;
@@ -16646,6 +16801,8 @@ function update(dt) {
   }
   // Пули и вспышки — двигаем тут, рисуем потом в render()
   updateProjectiles(dt);
+  // Гонка: пересечение старт/финиша и ворот, таймер круга
+  updateRaceLap();
   // Конвой и копы — плавно подтягиваем к целевым серверным позициям
   interpWorldNpcs(dt);
   sendInput();
@@ -26484,6 +26641,10 @@ function render() {
     for (let c = c0; c < c1; c++) {
       const t = MAP[r][c];
       const poi = POI_BY_RC.get(r + ',' + c);
+      // Табло рекордов гонки — щит на пляже у старта
+      if (r === RACE_BOARD.r && c === RACE_BOARD.c) {
+        items.push({ depth: r + c, draw: drawRaceBoard });
+      }
       if (t === 1) {
         items.push({ depth: r + c, draw: () => {
           // Бурдж — особое здание поверх обычного тайла
