@@ -7441,7 +7441,7 @@ async function buyCurrentApartment() {
       showToast(j.error === 'no cash' ? '💸 Недостаточно денег' : '❌ Не удалось купить', '❌', 2200);
       return;
     }
-    if (j.cash !== undefined) { QP.cash = j.cash; updateMoneyHud(); }
+    if (j.cash !== undefined) { QP.cash = j.cash; myCash = parseInt(j.cash) || 0; updateMoneyHud(); }
     if (j.owned) _myApartments = j.owned;
     showToast('🏠 Квартира куплена!', '✅', 2200);
   } catch (e) { showToast('⚠️ Ошибка связи с сервером', '❌', 2200); }
@@ -7471,7 +7471,7 @@ async function upgradeCurrentApartment(upgrade) {
       showToast(j.error === 'no cash' ? '💸 Недостаточно денег' : '❌ Не удалось улучшить', '❌', 2200);
       return;
     }
-    if (j.cash !== undefined) { QP.cash = j.cash; updateMoneyHud(); }
+    if (j.cash !== undefined) { QP.cash = j.cash; myCash = parseInt(j.cash) || 0; updateMoneyHud(); }
     if (j.owned) _myApartments = j.owned;
     const u = APT_UPGRADES[upgrade];
     showToast(`${u.label} улучшен до Lv.${lvl + 1}`, '✅', 2200);
