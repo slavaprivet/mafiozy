@@ -25126,11 +25126,22 @@ function drawHat(ctx, hatId, px, py, bd, headY, headH, sc) {
 }
 
 // Кеш спрайтов — каждый уникальный look рендерится один раз в офскрин-canvas.
+// КАП: NPC респавнятся со СЛУЧАЙНЫМ look (maintainNpcPopulation), т.е. за
+// долгую сессию уникальных look — тысячи. Без лимита кеш офскрин-канвасов
+// (110×200 ≈ 88КБ каждый) рос бесконечно → давление на память/GC → «игра
+// чуть лагает» со временем. FIFO-вытеснение: Map хранит порядок вставки,
+// старые NPC-спрайты больше не понадобятся; если вытеснили живой look
+// (в т.ч. свой) — он дёшево отрендерится заново один раз.
 const SPRITE_W = 110, SPRITE_H = 200;
+const _SPRITE_CACHE_MAX = 260;   // ≈ 23МБ потолок
 const _spriteCache = new Map();
 function getSprite(look, skipArms, skipLegs) {
   const key = [look.gender|0, look.skin|0, look.body|0, look.face|0, look.hair|0, look.hat|0, skipArms?1:0, skipLegs?1:0, look.swim?('s'+(look.swimCol||'')):'', look.suit?('u'+look.suit):''].join('.');
   if (_spriteCache.has(key)) return _spriteCache.get(key);
+  if (_spriteCache.size >= _SPRITE_CACHE_MAX) {
+    let drop = 40;
+    for (const k of _spriteCache.keys()) { _spriteCache.delete(k); if (--drop <= 0) break; }
+  }
   const off = document.createElement('canvas');
   off.width = SPRITE_W; off.height = SPRITE_H;
   drawChar(off.getContext('2d'), SPRITE_W, SPRITE_H, Object.assign({}, look, { skipArms: !!skipArms, skipLegs: !!skipLegs }));
