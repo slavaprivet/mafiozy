@@ -148,7 +148,9 @@ if code2 == 200:
         print(f"      API подтвердил новый blob {new_blob[:12]} — файл в репо.")
         verified = True
     else:
-        print(f"      API blob {new_blob[:12]} ≠ PUT content {content_sha[:12]} (странно)")
+        # ВАЖНО: без юникод-символов вроде «≠» — консоль Windows (cp1251)
+        # падает с UnicodeEncodeError и обрывает скрипт на этой печати.
+        print(f"      API blob {new_blob[:12]} != PUT content {content_sha[:12]} (странно)")
 else:
     print(f"      API ответ HTTP {code2} — не смогли подтвердить, но PUT уже прошёл.")
 
