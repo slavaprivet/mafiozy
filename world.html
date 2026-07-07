@@ -1928,8 +1928,18 @@ function inRaceTrack(r, c) {
 // западный лепесток → нырок под кораблём → финиш.
 // Круг засчитывается только через 4 ворот по порядку (срезка по пляжу
 // пропустит ворота — время не зафиксируется).
-const RACE_FINISH_C = 66.5;                  // плоскость старт/финиша
+// Финиш стоит РАНЬШЕ старта по ходу движения (+c): проезд финиша
+// фиксирует рекорд, проезд старта — запускает новое время.
+const RACE_FINISH_C = 64.5;                  // финиш — шахматка
+const RACE_START_C  = 67.5;                  // старт — двойная белая линия
 const RACE_BOARD = { r: 162, c: 69 };        // табло рекордов на пляже у старта
+// Разгонная прямая (коридор с пляжа на полотно): центр по линии
+// (r=150,c=61) → (r=166.8,c=66). Машина тут НЕ вязнет в песке.
+function _inPitCorridor(r, c) {
+  if (r < 150 || r > 167) return false;
+  const cc = 61 + (r - 150) * 5 / 16.8;
+  return Math.abs(c - cc) <= 2.0;
+}
 let _raceLapStartMs = 0;                     // 0 = круг не идёт
 let _raceGateIdx = 0;                        // 0=ждём юг, 1=запад, 2=нырок, 3=финиш
 let _raceLastLapMs = 0, _raceBestLapMs = 0;
@@ -1972,18 +1982,23 @@ function updateRaceLap() {
   const crossed = (plane, dir, r0, r1) =>
     pr >= r0 && pr <= r1 &&
     (dir > 0 ? (_racePrevC < plane && pc >= plane) : (_racePrevC > plane && pc <= plane));
+  // ФИНИШ (шахматка): фиксирует рекорд, если пройдены все ворота
   if (crossed(RACE_FINISH_C, +1, 163, 172)) {
     if (_raceLapStartMs && _raceGateIdx === 3) {
       const ms = Math.round(now - _raceLapStartMs);
       _raceLastLapMs = ms;
       if (!_raceBestLapMs || ms < _raceBestLapMs) _raceBestLapMs = ms;
-      spawnFloatText(pr, pc, '🏁 ' + _fmtLapMs(ms), { color: '#ffd76b', size: 18, life: 2500 });
+      spawnFloatText(pr, pc, '🏁 РЕКОРД ' + _fmtLapMs(ms), { color: '#ffd76b', size: 18, life: 2500 });
       try { ws && ws.send(JSON.stringify({ t: 'race_lap', d: { ms } })); } catch (e) {}
       _raceTopAskedAt = 0;   // обновить табло сразу
-    } else {
-      spawnFloatText(pr, pc, '🏁 Круг пошёл!', { color: '#7be58a', size: 14, life: 1500 });
     }
+    _raceLapStartMs = 0;
+    _raceHud(false);
+  }
+  // СТАРТ (двойная линия): запускает новое время
+  if (crossed(RACE_START_C, +1, 163, 172)) {
     _raceLapStartMs = now; _raceGateIdx = 0;
+    spawnFloatText(pr, pc, '🏁 Старт!', { color: '#7be58a', size: 14, life: 1500 });
   } else if (_raceLapStartMs) {
     if      (_raceGateIdx === 0 && crossed(42, -1, 191, 199)) _raceGateIdx = 1;  // южная прямая (на запад)
     else if (_raceGateIdx === 1 && crossed(15, +1, 163, 172)) _raceGateIdx = 2;  // западный лепесток
@@ -2114,13 +2129,18 @@ function drawRaceTrackRibbon() {
     ctx.stroke();
     ctx.restore();
   }
-  // 8) Стартовая шахматка — поперёк ВОСТОЧНОЙ прямой (c≈66.5, у пляжа)
+  // 8) ФИНИШ — шахматка поперёк ВОСТОЧНОЙ прямой, ровно на плоскости
+  //    триггера RACE_FINISH_C (страддлит c=64.5)
   for (let gr = 0; gr < 10; gr++) {       // поперёк полотна (по r)
     for (let gc = 0; gc < 2; gc++) {      // вдоль (по c)
       ctx.fillStyle = ((gr + gc) & 1) ? '#e8e8e8' : '#16161a';
-      ctx.fillRect(66.1 + gc * 0.45, 164.9 + gr * 0.45, 0.45, 0.45);
+      ctx.fillRect(RACE_FINISH_C - 0.45 + gc * 0.45, 164.9 + gr * 0.45, 0.45, 0.45);
     }
   }
+  // 9) СТАРТ — двойная белая линия на плоскости RACE_START_C (c=67.5)
+  ctx.fillStyle = '#e8e8e8';
+  ctx.fillRect(RACE_START_C - 0.28, 164.9, 0.20, 4.5);
+  ctx.fillRect(RACE_START_C + 0.08, 164.9, 0.20, 4.5);
   ctx.restore();
 }
 const TS     = 56;           // размер тайла на экране — крупнее, как в боях
@@ -9417,7 +9437,9 @@ function isBlockedCar(r, c) {
   return isBlocked(r, c);
 }
 // Машина стоит на песке? (для замедления + анимации зарывания колёс)
+// Разгонная прямая с пляжа к старту гонки — асфальт, песком не считается.
 function _carOnSand(r, c) {
+  if (_inPitCorridor(r, c)) return false;
   const ri = Math.floor(r), ci = Math.floor(c);
   return !!(MAP[ri] && MAP[ri][ci] === 14);
 }
