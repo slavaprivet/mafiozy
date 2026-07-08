@@ -1933,12 +1933,31 @@ function inRaceTrack(r, c) {
 const RACE_FINISH_C = 64.5;                  // финиш — шахматка
 const RACE_START_C  = 67.5;                  // старт — двойная белая линия
 const RACE_BOARD = { r: 162, c: 69 };        // табло рекордов на пляже у старта
+// Гоночная площадка (паддок) у стартовой прямой: асфальт вместо песка,
+// 3 бокса под спорткары (спавнит сервер, слоты в mafiozi_bot.py —
+// координаты боксов менять СИНХРОННО с _race_slots сервера).
+// Тайлы внутри прямоугольника становятся 18 (см. buildMap) → пляжные
+// NPC сюда не заходят, машины не вязнут.
+const RACE_PADDOCK = { r0: 158, r1: 165, c0: 61, c1: 72 };   // тайлы, включительно
+const RACE_PIT_SLOTS_C = [64.2, 66.0, 67.8];  // центры боксов (r=162.8)
+function _inRacePaddock(r, c) {
+  return r >= RACE_PADDOCK.r0 && r <= RACE_PADDOCK.r1 &&
+         c >= RACE_PADDOCK.c0 && c <= RACE_PADDOCK.c1;
+}
+function _distToRaceSeg(r, c, ar, ac, br, bc) {
+  const vr = br - ar, vc = bc - ac;
+  const len2 = vr * vr + vc * vc || 1e-9;
+  let k = ((r - ar) * vr + (c - ac) * vc) / len2;
+  k = k < 0 ? 0 : (k > 1 ? 1 : k);
+  return Math.hypot(r - (ar + vr * k), c - (ac + vc * k));
+}
 // Разгонная прямая (коридор с пляжа на полотно): центр по линии
 // (r=150,c=61) → (r=166.8,c=66). Машина тут НЕ вязнет в песке.
 function _inPitCorridor(r, c) {
-  if (r < 150 || r > 167) return false;
-  const cc = 61 + (r - 150) * 5 / 16.8;
-  return Math.abs(c - cc) <= 2.0;
+  if (r < 156 || r > 170) return false;
+  const warmup = _distToRaceSeg(r, c, 156.8, 63.0, 163.8, 66.8) <= 1.7;
+  const exit = _distToRaceSeg(r, c, 162.2, 67.2, 168.5, 72.2) <= 2.25;
+  return warmup || exit;
 }
 let _raceLapStartMs = 0;                     // 0 = круг не идёт
 let _raceGateIdx = 0;                        // 0=ждём юг, 1=запад, 2=нырок, 3=финиш
@@ -1975,7 +1994,7 @@ function updateRaceLap() {
     return;
   }
   // топ дня для табло — спрашиваем пока игрок на юге, раз в 15с
-  if (wsConnected && ws && now - _raceTopAskedAt > 15000) {
+  if (wsConnected && ws && (!_raceTopAskedAt || now - _raceTopAskedAt > 15000)) {
     _raceTopAskedAt = now;
     try { ws.send(JSON.stringify({ t: 'race_top', d: {} })); } catch (e) {}
   }
@@ -2070,15 +2089,18 @@ function drawRaceTrackRibbon() {
     if (i === 0) path.moveTo(q[1], q[0]); else path.lineTo(q[1], q[0]);
   }
   ctx.lineJoin = 'round';
-  // 1) Белая подложка кромки
+  // 0) Паддок — асфальтовая площадка у стартовой прямой (рисуем ПОД
+  //    полотном, чтобы кромка трека легла поверх шва). Разметку боксов —
+  //    после полотна, ниже.
+  ctx.fillStyle = '#3a3b42';
+  ctx.fillRect(RACE_PADDOCK.c0, RACE_PADDOCK.r0,
+               RACE_PADDOCK.c1 - RACE_PADDOCK.c0 + 1,
+               RACE_PADDOCK.r1 - RACE_PADDOCK.r0 + 1);
+  // 1) Белая подложка кромки (бывший поребрик — теперь тонкая белая
+  //    ограничительная линия, красно-белые БОРТИКИ рисуются объёмно ниже)
   ctx.strokeStyle = '#dcdcdc';
-  ctx.lineWidth = TRACK_HALF_W * 2 + 0.5;
+  ctx.lineWidth = TRACK_HALF_W * 2 + 0.35;
   ctx.stroke(path);
-  // 2) Красный пунктир поверх белой кромки → красно-белый поребрик
-  ctx.strokeStyle = '#c23434';
-  ctx.setLineDash([1.6, 1.6]);
-  ctx.stroke(path);
-  ctx.setLineDash([]);
   // 3) Полотно — тёмный асфальт
   ctx.strokeStyle = '#33343a';
   ctx.lineWidth = TRACK_HALF_W * 2 - 0.2;
@@ -2097,18 +2119,20 @@ function drawRaceTrackRibbon() {
   //    Песок (тайл 14) и так проходим — это чисто визуальный асфальт.
   const pit = new Path2D();
   pit.moveTo(63.2, 156.8);
-  pit.lineTo(64.8, 166.5);
+  pit.lineTo(66.8, 163.8);
+  pit.moveTo(67.2, 162.2);
+  pit.lineTo(72.2, 168.5);
   ctx.strokeStyle = '#dcdcdc';
-  ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+  ctx.lineWidth = 3.1; ctx.lineCap = 'round';
   ctx.stroke(pit);
   ctx.strokeStyle = '#33343a';
-  ctx.lineWidth = 2.2;
+  ctx.lineWidth = 2.65;
   ctx.stroke(pit);
-  // Стрелки на разгонке — вниз, к старту
+  // Стрелки на разгонке — вниз-вправо, к старту и полотну
   ctx.strokeStyle = 'rgba(255,215,107,.85)';
   ctx.lineWidth = 0.16;
   for (let i = 0; i < 3; i++) {
-    const ar = 159 + i * 2.4, ac = 63.2 + (ar - 156.8) * (64.8 - 63.2) / (166.5 - 156.8);
+    const ar = 160.2 + i * 2.4, ac = 64.6 + i * 1.75;
     ctx.beginPath();
     ctx.moveTo(ac - 0.45, ar - 0.35);
     ctx.lineTo(ac + 0.08, ar + 0.35);
@@ -2141,7 +2165,63 @@ function drawRaceTrackRibbon() {
   ctx.fillStyle = '#e8e8e8';
   ctx.fillRect(RACE_START_C - 0.28, 164.9, 0.20, 4.5);
   ctx.fillRect(RACE_START_C + 0.08, 164.9, 0.20, 4.5);
+  // 10) Разметка паддока: белая окантовка площадки + 3 бокса под спорткары
+  //     (координаты боксов = слоты спавна на сервере, менять синхронно)
+  ctx.strokeStyle = 'rgba(238,238,238,.7)';
+  ctx.lineWidth = 0.12;
+  ctx.strokeRect(RACE_PADDOCK.c0 + 0.1, RACE_PADDOCK.r0 + 0.1,
+                 RACE_PADDOCK.c1 - RACE_PADDOCK.c0 + 0.8,
+                 RACE_PADDOCK.r1 - RACE_PADDOCK.r0 + 0.8);
+  for (const bc of RACE_PIT_SLOTS_C) {
+    ctx.strokeRect(bc - 0.78, 161.6, 1.56, 2.4);
+  }
   ctx.restore();
+  // 11) БОРТИКИ — красно-белые блоки по обеим кромкам полотна (объёмные,
+  //     рисуем в экранных координатах после restore). Разрывы там, где к
+  //     кромке примыкает песок/паддок — это въезды с пляжа и выезд боксов.
+  if (!_trackBarrierSegs) _buildTrackBarriers();
+  const rowDy = Math.abs(er.y - o.y);              // экранный шаг одного ряда
+  const bh = rowDy * 0.42;                         // высота стенки бортика
+  for (const s of _trackBarrierSegs) {
+    const p1 = w2s(s.ar, s.ac), p2 = w2s(s.br, s.bc);
+    ctx.fillStyle = s.red ? '#c23434' : '#e8e8e8';
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+    ctx.lineTo(p2.x, p2.y - bh); ctx.lineTo(p1.x, p1.y - bh);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = s.red ? '#7a1e1e' : '#9a9aa2';   // тёмный верхний кант
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y - bh); ctx.lineTo(p2.x, p2.y - bh);
+    ctx.stroke();
+  }
+}
+// Сегменты бортиков считаем один раз (MAP к первому кадру уже построена):
+// смещаем сэмплы сплайна на нормаль ±(полуширина+0.35), режем на блоки по
+// 3 сэмпла, чередуем красный/белый. Сегмент пропускаем, если сразу за ним
+// песок (14), трек/паддок (18) или разгонный коридор — там въезды.
+let _trackBarrierSegs = null;
+function _buildTrackBarriers() {
+  _trackBarrierSegs = [];
+  const pts = _trackPathPts, n = pts.length;
+  const off = TRACK_HALF_W + 0.35, STEP = 3;
+  for (let side = -1; side <= 1; side += 2) {
+    for (let i = 0; i < n; i += STEP) {
+      const a = pts[i], b = pts[(i + STEP) % n];
+      const dr = b[0] - a[0], dc = b[1] - a[1];
+      const L = Math.hypot(dr, dc) || 1e-9;
+      const nr = -dc / L * side, nc = dr / L * side;   // нормаль к ходу
+      const pr = Math.floor(a[0] + nr * (off + 1.2));
+      const pc = Math.floor(a[1] + nc * (off + 1.2));
+      const pt = (MAP[pr] || [])[pc];
+      if (pt === 14 || pt === 18 || _inPitCorridor(pr + 0.5, pc + 0.5)) continue;
+      _trackBarrierSegs.push({
+        ar: a[0] + nr * off, ac: a[1] + nc * off,
+        br: b[0] + nr * off, bc: b[1] + nc * off,
+        red: ((i / STEP) & 1) === 0,
+      });
+    }
+  }
 }
 const TS     = 56;           // размер тайла на экране — крупнее, как в боях
 const ISO_Y  = 0.55;         // ужатие по Y (тот же угол что в demo_isometric)
@@ -2408,11 +2488,15 @@ function buildMap() {
       let t;
       if (r < BEACH_R1) {
         t = 14;                                              // песок (включая буфер 140-149)
+        // Трек заходит на пляж «лепестками», плюс паддок у старта: там
+        // асфальт (18), не песок — пляжные NPC на полотно не суются,
+        // машины не вязнут.
+        if (inRaceTrack(r, c) || _inRacePaddock(r, c) || _inPitCorridor(r + 0.5, c + 0.5)) t = 18;
       } else {
         t = 16;                                              // вода по умолчанию
         if (r >= PIER_R0 && r < PIER_R1 && c >= PIER_C0 && c < PIER_C1) t = 15;  // причал
         if (r >= SHIP_R0 && r < SHIP_R1 && c >= SHIP_C0 && c < SHIP_C1) t = 17;  // палуба
-        if (t === 16 && inRaceTrack(r, c)) t = 18;           // гоночный трек в море
+        if (t === 16 && (inRaceTrack(r, c) || _inPitCorridor(r + 0.5, c + 0.5))) t = 18; // гоночный трек/выезд в море
       }
       MAP[r][c] = t;
     }
@@ -2589,6 +2673,19 @@ function generateBeachDecor() {
     { r: 167, c: 70, col: '#f1c40f' },
     { r: 168, c: 50, col: '#2ecc71' },
   ]) _beachDecor.push({ kind: 'float_ring', r: sp.r, c: sp.c, col: sp.col });
+  // 16) Гоночная зона: у полотна трека, паддока и разгонки декору не место —
+  //     пальмы/зонты/замки на трассе мешают и выглядят мусором. Правило:
+  //     тайл 18 в радиусе 1 клетки или разгонный коридор → выкинуть.
+  const _nearRaceZone = (r, c) => {
+    if (_inPitCorridor(r, c)) return true;
+    for (let dr = -1; dr <= 1; dr++)
+      for (let dc = -1; dc <= 1; dc++) {
+        const row = MAP[Math.floor(r) + dr];
+        if (row && row[Math.floor(c) + dc] === 18) return true;
+      }
+    return false;
+  };
+  _beachDecor = _beachDecor.filter(d => !_nearRaceZone(d.r, d.c));
 }
 
 // ── POI районов ────────────────────────────────────────────────
@@ -2841,6 +2938,7 @@ function applyQuestCarsSnapshot(arr) {
       prev.hp         = c.hp;
       prev.max_hp     = c.max_hp;
       prev.wrecked    = !!c.wrecked;
+      if (c.civilian !== undefined) prev.civilian = !!c.civilian;
     } else {
       questCars.set(c.id, {
         id:   c.id,
@@ -2856,6 +2954,7 @@ function applyQuestCarsSnapshot(arr) {
         hp:         c.hp,
         max_hp:     c.max_hp,
         wrecked:    !!c.wrecked,
+        civilian:   !!c.civilian,
       });
     }
   }
@@ -4185,6 +4284,9 @@ function npcPassable(r, c) {
   // отдельной системой. Песок есть только в южной зоне → city-NPC сами
   // на пляж не уйдут (waypoint ±4 тайла), туда попадают лишь спавнящиеся
   // на пляже. Вода(16)/пирс(15)/палуба(17) остаются непроходимыми.
+  // Разгонная прямая гонки — тоже песок, но пешеходам туда нельзя
+  // (гонщик летит с пляжа на старт). Трек/паддок (18) не в списке и так.
+  if (t === 14 && _inPitCorridor(ri + 0.5, ci + 0.5)) return false;
   return (t === 9 || t === 8 || t === 14);
 }
 // Расширенная проходимость для NPC-снитча (бежит к копам через всю карту).
@@ -4208,6 +4310,7 @@ function npcWaypointOk(npc, r, c) {
   if (inArena(ri, ci)) return false;
   if (inLair(ri, ci)) return false;
   const t = MAP[ri][ci];
+  if (t === 14 && _inPitCorridor(ri + 0.5, ci + 0.5)) return false; // разгонка гонки — не для прогулок
   if (npc._beach) return (t === 14 && ri >= 138 && ri <= 168);  // пляжный — только пляж
   if (t === 14) return !!npc._allowBeach;                        // городской на песок — редко
   return (t === 9 || t === 8);
@@ -8162,6 +8265,15 @@ function updateCars(dt) {
       if (car._streetFireEvent && car._respawnAt && now >= car._respawnAt) {
         CARS.splice(_ci, 1);
       }
+      continue;
+    }
+    // Гоночный трек — не для гражданского трафика: занесло (погоня, объезд,
+    // дрейф физики) — тихо респауним на дороге подальше от игрока, чтобы
+    // не мешала гонщикам. Дешёвый гейт по r: трек только на юге.
+    if (car.r > 155 && !car._wrecked &&
+        inRaceTrack(Math.floor(car.r), Math.floor(car.c))) {
+      const fresh = spawnCar(_ci, { awayFromPlayer: true });
+      if (fresh) Object.assign(car, fresh);
       continue;
     }
     // П7: инициализируем junker-флаг при первом тике
@@ -13779,9 +13891,13 @@ function enterCar(carId, asKind) {
       return;
     }
     if (!qc.driver_uid && (qc.civilian || !qc.owner_uid)) {
-      // Брошенная машина без владельца — можно сесть за руль
-      try { ws && ws.send(JSON.stringify({ t: 'gta_drive', d: {
-        car_id: carId, x: qc.x, y: qc.y, ang: qc.ang, vx:0, vy:0 } })); }
+      // Брошенная/свободная машина (в т.ч. спорткар паддока) — явный
+      // gta_enter: сервер сажает за руль и назначает владельцем, дальше
+      // gta_drive принимается как от водителя. Старый путь слал сразу
+      // gta_drive, но сервер молча отклонял чужую машину (owner=None ≠
+      // uid) → «призрачная» езда только на клиенте. При отказе придёт
+      // gta_drive_reject — оптимистичная посадка откатится.
+      try { ws && ws.send(JSON.stringify({ t: 'gta_enter', d: { car_id: carId } })); }
       catch(e) {}
       myDrivingCarId = carId;
       myIsPassenger = false;

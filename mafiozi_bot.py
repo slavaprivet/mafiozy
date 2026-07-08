@@ -11556,6 +11556,23 @@ def _in_race_track(r: int, c: int) -> bool:
     return (r, c) in _TRACK_TILES
 
 
+def _dist_to_race_seg(r: float, c: float, ar: float, ac: float, br: float, bc: float) -> float:
+    vr = br - ar
+    vc = bc - ac
+    len2 = vr * vr + vc * vc or 1e-9
+    k = ((r - ar) * vr + (c - ac) * vc) / len2
+    k = 0.0 if k < 0 else (1.0 if k > 1 else k)
+    return math.hypot(r - (ar + vr * k), c - (ac + vc * k))
+
+
+def _in_race_pit_corridor(r: float, c: float) -> bool:
+    if r < 156 or r > 170:
+        return False
+    warmup = _dist_to_race_seg(r, c, 156.8, 63.0, 163.8, 66.8) <= 1.7
+    exit_lane = _dist_to_race_seg(r, c, 162.2, 67.2, 168.5, 72.2) <= 2.25
+    return warmup or exit_lane
+
+
 # ── Рекорды дня на треке «Прибой» ────────────────────────────────────
 # Лучшее время круга на игрока за СЕГОДНЯ; сбрасывается сменой даты
 # (и рестартом сервера — суточный лидерборд, некритично).
@@ -11604,6 +11621,8 @@ def _world_is_wall(r: int, c: int) -> bool:
         if WORLD_PIER_R0 <= r < WORLD_PIER_R1 and WORLD_PIER_C0 <= c < WORLD_PIER_C1:
             return False
         if WORLD_SHIP_R0 <= r < WORLD_SHIP_R1 and WORLD_SHIP_C0 <= c < WORLD_SHIP_C1:
+            return False
+        if _in_race_pit_corridor(r + 0.5, c + 0.5):
             return False
         if _in_race_track(r, c):
             return False
@@ -12163,6 +12182,15 @@ class WorldSim:
         # с новыми x/y; мы только клампим и пере-broadcast'им.
         self.quest_cars = {}
         self._quest_car_next_id = 1
+        # Гоночный паддок у старта трека «Прибой»: 3 бокса под спорткары
+        # разных цветов. Координаты боксов = RACE_PIT_SLOTS_C в world.html
+        # (r=162.8) — менять СИНХРОННО. free_t — момент когда бокс опустел
+        # (0 = занят); занятость проверяется физически по позиции машин.
+        self._race_slots = [
+            {'model': 'ferrari_f40',    'x': 64.2, 'y': 162.8, 'free_t': 0.0},
+            {'model': 'lambo_countach', 'x': 66.0, 'y': 162.8, 'free_t': 0.0},
+            {'model': 'porsche_911',    'x': 67.8, 'y': 162.8, 'free_t': 0.0},
+        ]
         # Ограбления банков: bank_id -> {bags_loaded, started_at, robber_uid}
         self.bank_robs = {}
 
@@ -12743,6 +12771,10 @@ class WorldSim:
                 qc['driver_uid'] = None
                 qc['state']      = 'idle'
             if not driver:
+                # Спорткар, припаркованный в слоте паддока, живёт вечно —
+                # его жизненным циклом управляет _tick_race_slots.
+                if qc.get('_race_slot') is not None:
+                    continue
                 is_civ = bool(qc.get('civilian'))
                 # Civilian-угнанная без водителя живёт долго (5 мин) —
                 # игрок может вернуться. Квестовая Майкла — быстро (30 сек).
@@ -12759,6 +12791,78 @@ class WorldSim:
                 p = self.players.get(owner)
                 if p and p.get('_gta_active_car_id') == cid:
                     p['_gta_active_car_id'] = None
+        self._tick_race_slots(now)
+
+    RACE_RESPAWN_S  = 5.0   # пауза между угоном из бокса и спавном новой
+    RACE_LOOSE_CAP  = 6     # анти-утечка: максимум брошенных гоночных вне боксов
+    RACE_SLOT_R     = 1.2   # радиус «бокс занят» вокруг центра слота
+    def _tick_race_slots(self, now: float) -> None:
+        """Паддок: держит по спорткару в каждом из 3 боксов. Бокс опустел
+        (машину увезли/разбили) — через RACE_RESPAWN_S рождается новая.
+        Занятость — физически по позиции (любая живая машина в радиусе),
+        поэтому спавна поверх вернувшейся в бокс тачки не бывает.
+        Утечек нет: бессмертны только машины С ФЛАГОМ _race_slot (стоящие в
+        своём боксе, ровно ≤3), уехавшие флаг теряют и чистятся общим tick'ом
+        как civilian (5 мин простоя), а пока брошенных >= RACE_LOOSE_CAP —
+        новые не спавним."""
+        # 1) Машина уехала из своего бокса / разбита → снимаем флаг вечной
+        #    жизни, дальше она обычная civilian под общей чисткой.
+        for q in self.quest_cars.values():
+            si = q.get('_race_slot')
+            if si is None or si >= len(self._race_slots):
+                continue
+            s = self._race_slots[si]
+            if (q.get('wrecked')
+                    or abs(q['x'] - s['x']) >= self.RACE_SLOT_R
+                    or abs(q['y'] - s['y']) >= self.RACE_SLOT_R):
+                q['_race_slot'] = None
+        # 2) Пустой бокс → таймер → спавн.
+        for i, slot in enumerate(self._race_slots):
+            occupied = False
+            for q in self.quest_cars.values():
+                if q.get('wrecked'):
+                    continue
+                if (abs(q['x'] - slot['x']) < self.RACE_SLOT_R
+                        and abs(q['y'] - slot['y']) < self.RACE_SLOT_R):
+                    occupied = True
+                    break
+            if occupied:
+                slot['free_t'] = 0.0
+                continue
+            if slot['free_t'] <= 0.0:
+                slot['free_t'] = now
+                continue
+            if now - slot['free_t'] < self.RACE_RESPAWN_S:
+                continue
+            loose = sum(1 for q in self.quest_cars.values()
+                        if q.get('_race') and q.get('_race_slot') is None)
+            if loose >= self.RACE_LOOSE_CAP:
+                continue                      # ждём чистку брошенных
+            cid = f'race{self._quest_car_next_id}'
+            self._quest_car_next_id += 1
+            self.quest_cars[cid] = {
+                'id':         cid,
+                'model':      slot['model'],
+                'owner_uid':  None,           # свободная — сесть может любой
+                'driver_uid': None,
+                'passenger_uids': [],
+                'x':          slot['x'],
+                'y':          slot['y'],
+                'ang':        1.5708,         # мордой к треку (+r)
+                'vx':         0.0,
+                'vy':         0.0,
+                'hp':         self.QUEST_CAR_HP,
+                'reward':     0,
+                'lock_lvl':   0,
+                'state':      'idle',
+                'wrecked':    False,
+                'civilian':   True,           # gta_enter пускает без владельца
+                '_race':      True,
+                '_race_slot': i,
+                '_spawn_t':   now,
+                '_last_drive_t': 0,
+            }
+            slot['free_t'] = 0.0
 
     # ── Эмерджентные события: инкассатор + полицейский эскорт ─────
     def spawn_event(self) -> None:
@@ -15952,6 +16056,7 @@ class WorldSim:
                 'hp':         int(qc.get('hp', self.QUEST_CAR_HP)),
                 'max_hp':     int(self.QUEST_CAR_HP),
                 'wrecked':    bool(qc.get('wrecked', False)),
+                'civilian':   bool(qc.get('civilian', False)),
             })
         return {
             't': 'snap',

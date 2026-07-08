@@ -6,6 +6,14 @@ from aiohttp import web
 
 
 players = {}
+race_best = {}
+PREVIEW_START_X = 66.0
+PREVIEW_START_Y = 162.5
+
+
+def race_top():
+    rows = sorted(race_best.values(), key=lambda row: row["ms"])[:5]
+    return [{"uid": row["uid"], "name": row["name"], "ms": row["ms"]} for row in rows]
 
 
 def cors(resp):
@@ -47,8 +55,8 @@ async def preview_world(_req):
 
 def snap(uid):
     p = players.setdefault(uid, {
-        "x": 40.0,
-        "y": 40.0,
+        "x": PREVIEW_START_X,
+        "y": PREVIEW_START_Y,
         "ang": 0.0,
         "walking": False,
         "name": "Demo",
@@ -108,8 +116,8 @@ def snap(uid):
 async def world_ws(req):
     uid = req.query.get("uid", "1")
     players.setdefault(uid, {
-        "x": 40.0,
-        "y": 40.0,
+        "x": PREVIEW_START_X,
+        "y": PREVIEW_START_Y,
         "ang": 0.0,
         "walking": False,
         "name": "Demo",
@@ -151,7 +159,22 @@ async def world_ws(req):
                 p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
                 p["walking"] = bool(d.get("w", False))
             elif t == "race_top":
-                await ws.send_str(json.dumps({"t": "race_top", "d": {"top": []}}))
+                await ws.send_str(json.dumps({"t": "race_top", "d": {"top": race_top()}}))
+            elif t == "race_lap":
+                try:
+                    lap_ms = int(d.get("ms") or 0)
+                except Exception:
+                    lap_ms = 0
+                if 15000 <= lap_ms <= 1200000:
+                    p = players.setdefault(uid, {})
+                    cur = race_best.get(uid)
+                    if cur is None or lap_ms < cur["ms"]:
+                        race_best[uid] = {
+                            "uid": uid,
+                            "name": str(p.get("name") or "Demo")[:16],
+                            "ms": lap_ms,
+                        }
+                await ws.send_str(json.dumps({"t": "race_top", "d": {"top": race_top()}}))
             elif t == "respawn_status":
                 await ws.send_str(json.dumps({
                     "t": "event",
