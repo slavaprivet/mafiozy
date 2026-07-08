@@ -2115,18 +2115,20 @@ function drawRaceTrackRibbon() {
   ctx.setLineDash([1.1, 1.5]);
   ctx.stroke(path);
   ctx.setLineDash([]);
-  // 6) Разгонная прямая — съезд с пляжа (r≈157) на полотно к старту.
-  //    Песок (тайл 14) и так проходим — это чисто визуальный асфальт.
+  // 6) Разгонная прямая — съезд с пляжа на полотно к старту.
+  //    Рисуем её без жирной белой окантовки: иначе на изометрии она
+  //    пересекает паддок как случайная разметка.
   const pit = new Path2D();
   pit.moveTo(63.2, 156.8);
   pit.lineTo(66.8, 163.8);
   pit.moveTo(67.2, 162.2);
   pit.lineTo(72.2, 168.5);
-  ctx.strokeStyle = '#dcdcdc';
-  ctx.lineWidth = 3.1; ctx.lineCap = 'round';
-  ctx.stroke(pit);
+  ctx.lineCap = 'round';
   ctx.strokeStyle = '#33343a';
-  ctx.lineWidth = 2.65;
+  ctx.lineWidth = 2.75;
+  ctx.stroke(pit);
+  ctx.strokeStyle = 'rgba(238,238,238,.22)';
+  ctx.lineWidth = 0.16;
   ctx.stroke(pit);
   // Стрелки на разгонке — вниз-вправо, к старту и полотну
   ctx.strokeStyle = 'rgba(255,215,107,.85)';
@@ -2167,11 +2169,13 @@ function drawRaceTrackRibbon() {
   ctx.fillRect(RACE_START_C + 0.08, 164.9, 0.20, 4.5);
   // 10) Разметка паддока: белая окантовка площадки + 3 бокса под спорткары
   //     (координаты боксов = слоты спавна на сервере, менять синхронно)
-  ctx.strokeStyle = 'rgba(238,238,238,.7)';
-  ctx.lineWidth = 0.12;
+  ctx.strokeStyle = 'rgba(238,238,238,.42)';
+  ctx.lineWidth = 0.08;
   ctx.strokeRect(RACE_PADDOCK.c0 + 0.1, RACE_PADDOCK.r0 + 0.1,
                  RACE_PADDOCK.c1 - RACE_PADDOCK.c0 + 0.8,
                  RACE_PADDOCK.r1 - RACE_PADDOCK.r0 + 0.8);
+  ctx.strokeStyle = 'rgba(238,238,238,.50)';
+  ctx.lineWidth = 0.09;
   for (const bc of RACE_PIT_SLOTS_C) {
     ctx.strokeRect(bc - 0.78, 161.6, 1.56, 2.4);
   }
