@@ -1959,10 +1959,10 @@ const RACE_FINISH_LINE = { ar: 164.45, ac: 64.5, br: 169.45, bc: 64.5 };
 const RACE_START_AT = { r: 170.45, c: 72.25 };
 const RACE_BOARD = { r: 162, c: 72 };        // табло рекордов справа на стартовом асфальте
 const RACE_CHEER_CREW = [
-  { r: 167.8, c: 45.4, outfit: '#ff3b6b', hair: '#2a160c', pomp: '#ffd84a', phase: 0.0 },
-  { r: 168.9, c: 47.0, outfit: '#35d07f', hair: '#17120e', pomp: '#ff4f8b', phase: 1.2 },
-  { r: 170.0, c: 48.5, outfit: '#56a6ff', hair: '#6b3b18', pomp: '#ffd84a', phase: 2.4 },
-  { r: 171.1, c: 50.0, outfit: '#f0c040', hair: '#23140c', pomp: '#56a6ff', phase: 3.5 },
+  { r: 167.5, c: 39.8, outfit: '#ff3b6b', hair: '#2a160c', pomp: '#ffd84a', phase: 0.0, look: { gender: 1, skin: 1, body: 2, face: 1, hair: 3, hat: 0 } },
+  { r: 168.6, c: 41.2, outfit: '#35d07f', hair: '#17120e', pomp: '#ff4f8b', phase: 1.2, look: { gender: 1, skin: 0, body: 3, face: 1, hair: 4, hat: 0 } },
+  { r: 169.8, c: 40.4, outfit: '#56a6ff', hair: '#6b3b18', pomp: '#ffd84a', phase: 2.4, look: { gender: 1, skin: 2, body: 1, face: 2, hair: 2, hat: 0 } },
+  { r: 170.9, c: 42.0, outfit: '#f0c040', hair: '#23140c', pomp: '#56a6ff', phase: 3.5, look: { gender: 1, skin: 3, body: 0, face: 1, hair: 1, hat: 0 } },
 ];
 // Гоночная площадка (паддок) у стартовой прямой: асфальт вместо песка,
 // 3 бокса под спорткары (спавнит сервер, слоты в mafiozi_bot.py —
@@ -2154,16 +2154,16 @@ function updateRaceLap() {
     _resetRaceLap('', pr, pc);
   }
   // СТАРТ (двойная линия): запускает новое время
-  const startLine = _raceCrossLineAt(RACE_START_AT);
+  const startLine = _raceCrossLineAt(RACE_START_AT, TRACK_HALF_W + 0.35);
   const raceCar = _raceDrivingCar();
   let carStartHit = false;
   if (raceCar) {
     const body = _raceCarBodyProbe(raceCar);
-    const noseForward = (body.frontR - body.rearR) * startLine.dirR +
-                        (body.frontC - body.rearC) * startLine.dirC;
-    const speedForward = (raceCar.vy || 0) * startLine.dirR + (raceCar.vx || 0) * startLine.dirC;
-    carStartHit = segmentHitsLine(body.rearR, body.rearC, body.frontR, body.frontC, startLine) &&
-                  (noseForward > 0.15 || speedForward > 0.25);
+    const carSpeed = Math.hypot(raceCar.vx || 0, raceCar.vy || 0);
+    const centerNearStart = _distToRaceSeg(raceCar.y, raceCar.x,
+      startLine.ar, startLine.ac, startLine.br, startLine.bc) <= 1.25;
+    carStartHit = carSpeed > 0.10 &&
+      (segmentHitsLine(body.rearR, body.rearC, body.frontR, body.frontC, startLine) || centerNearStart);
   }
   if (!_raceLapStartMs && (crossedLine(startLine, startLine.dirR, startLine.dirC) || carStartHit)) {
     _raceLapStartMs = now; _raceGateIdx = 0;
@@ -2230,7 +2230,8 @@ function drawRaceBoard() {
 function drawRaceCheerDancer(d, idx) {
   const p = w2s(d.r, d.c);
   const t = performance.now() * 0.006 + d.phase;
-  const bob = Math.sin(t * 2.0) * 2.2;
+  const ph = t * 2.0;
+  const bob = Math.sin(ph) * 2.2;
   const sway = Math.sin(t) * 4.0;
   const armL = Math.sin(t * 1.8) * 7;
   const armR = Math.sin(t * 1.8 + Math.PI) * 7;
@@ -2240,47 +2241,24 @@ function drawRaceCheerDancer(d, idx) {
   ctx.beginPath();
   ctx.ellipse(0, 8, 13, 5, 0, 0, Math.PI * 2);
   ctx.fill();
-
+  ctx.restore();
+  const look = Object.assign({}, d.look || {}, { body: idx % 4 });
+  drawPerson(p.x + sway * 0.25, p.y + bob, Math.PI / 2 + Math.sin(t) * 0.2,
+             look, ph, null, null, false, null, null, false, 0);
+  ctx.save();
+  ctx.translate(p.x + sway * 0.25, p.y + bob);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   const skin = ['#f1c59c', '#d99a72', '#b77a54', '#74482e'][idx % 4];
 
-  // Ноги: шаги в противофазе, чтобы танец читался даже в изометрии.
-  ctx.strokeStyle = skin;
-  ctx.lineWidth = 3.2;
-  ctx.beginPath();
-  ctx.moveTo(-3, -4); ctx.lineTo(-6 + Math.sin(t * 2.4) * 2, 7);
-  ctx.moveTo( 3, -4); ctx.lineTo( 6 - Math.sin(t * 2.4) * 2, 7);
-  ctx.stroke();
-  ctx.strokeStyle = '#151515';
-  ctx.lineWidth = 2.2;
-  ctx.beginPath();
-  ctx.moveTo(-7 + Math.sin(t * 2.4) * 2, 8); ctx.lineTo(-2 + Math.sin(t * 2.4) * 2, 8);
-  ctx.moveTo( 4 - Math.sin(t * 2.4) * 2, 8); ctx.lineTo( 9 - Math.sin(t * 2.4) * 2, 8);
-  ctx.stroke();
-
-  // Костюм/юбка команды гонки.
-  ctx.fillStyle = d.outfit;
-  ctx.beginPath();
-  ctx.moveTo(-5, -22); ctx.lineTo(5, -22); ctx.lineTo(7, -6); ctx.lineTo(-7, -6);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.85)';
-  ctx.beginPath();
-  ctx.moveTo(-4, -19); ctx.lineTo(4, -19); ctx.lineTo(2, -15); ctx.lineTo(-2, -15);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = d.outfit;
-  ctx.beginPath();
-  ctx.moveTo(-9, -7); ctx.lineTo(9, -7); ctx.lineTo(5, 0); ctx.lineTo(-5, 0);
-  ctx.closePath(); ctx.fill();
-
   // Руки с помпонами: постоянно машут гонщикам.
-  const handL = { x: -12 + Math.sin(t) * 2, y: -24 + armL };
-  const handR = { x:  12 + Math.cos(t) * 2, y: -24 + armR };
+  const handL = { x: -16 + Math.sin(t) * 2, y: -44 + armL };
+  const handR = { x:  16 + Math.cos(t) * 2, y: -44 + armR };
   ctx.strokeStyle = skin;
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(-5, -19); ctx.lineTo(handL.x, handL.y);
-  ctx.moveTo( 5, -19); ctx.lineTo(handR.x, handR.y);
+  ctx.moveTo(-8, -36); ctx.lineTo(handL.x, handL.y);
+  ctx.moveTo( 8, -36); ctx.lineTo(handR.x, handR.y);
   ctx.stroke();
   const drawPom = (x, y, col) => {
     ctx.save();
@@ -2302,13 +2280,6 @@ function drawRaceCheerDancer(d, idx) {
   };
   drawPom(handL.x, handL.y, d.pomp);
   drawPom(handR.x, handR.y, d.pomp);
-
-  // Голова/волосы.
-  ctx.fillStyle = skin;
-  ctx.beginPath(); ctx.arc(0, -29, 5.2, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = d.hair;
-  ctx.beginPath(); ctx.arc(-1, -32, 5.7, Math.PI, Math.PI * 2); ctx.fill();
-  ctx.fillRect(-5, -31, 10, 3);
 
   // Маленькая табличка поддержки у первой участницы.
   if (idx === 1) {
@@ -16651,19 +16622,18 @@ function update(dt) {
       if ((qc._race || (qc.model && QUEST_CAR_MODELS[qc.model] && QUEST_CAR_MODELS[qc.model].race))
           && !_inRacePaddock(qc.y, qc.x)) {
         const near = _nearestRaceTrackPoint(qc.y, qc.x);
-        const mmRace = QUEST_CAR_MODELS[qc.model] || { W: 0.9 };
-        const limit = TRACK_HALF_W - Math.min(0.38, Math.max(0.24, (mmRace.W || 0.9) * 0.28));
+        const limit = TRACK_HALF_W + 0.18;
         if (near.d > limit) {
           let nr = near.dr / (near.d || 1), nc = near.dc / (near.d || 1);
           qc.y = near.r + nr * limit;
           qc.x = near.c + nc * limit;
           const outward = curVy * nr + curVx * nc;
-          if (outward > 0.08) {
-            curVy -= (1.25 * outward) * nr;
-            curVx -= (1.25 * outward) * nc;
+          if (outward > 0.25) {
+            curVy -= (0.85 * outward) * nr;
+            curVx -= (0.85 * outward) * nc;
           }
-          curVx *= 0.88;
-          curVy *= 0.88;
+          curVx *= 0.96;
+          curVy *= 0.96;
           if (myDrivingCarId === qc.id && (performance.now() - (qc._lastRaceWallAt || 0)) > 450) {
             qc._lastRaceWallAt = performance.now();
             addShake(Math.min(3.5, 1.0 + Math.hypot(curVx, curVy) * 0.22));
