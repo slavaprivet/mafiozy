@@ -1955,7 +1955,7 @@ function inRaceDriveArea(r, c) {
 const RACE_FINISH_C = 64.5;                  // финиш — шахматка
 const RACE_FINISH_LINE = { ar: 164.45, ac: 64.5, br: 169.45, bc: 64.5 };
 // Старт стоит ниже по треку, в месте выезда на правый спуск.
-const RACE_START_LINE = { ar: 168.80, ac: 69.30, br: 168.80, bc: 74.70 };
+const RACE_START_LINE = { ar: 168.85, ac: 70.35, br: 168.85, bc: 73.65 };
 const RACE_BOARD = { r: 162, c: 69 };        // табло рекордов на пляже у старта
 // Гоночная площадка (паддок) у стартовой прямой: асфальт вместо песка,
 // 3 бокса под спорткары (спавнит сервер, слоты в mafiozi_bot.py —
@@ -2239,9 +2239,9 @@ function drawRaceTrackRibbon() {
     }
   }
   // 9) СТАРТ — ниже по треку, там где машина выходит на правый спуск.
-  fillLineBand(RACE_START_LINE, 0, 0.84, 'rgba(22,22,26,.55)');
-  fillLineBand(RACE_START_LINE, -0.18, 0.16, '#eeeeee');
-  fillLineBand(RACE_START_LINE,  0.18, 0.16, '#eeeeee');
+  fillLineBand(RACE_START_LINE, 0, 1.12, 'rgba(22,22,26,.62)');
+  fillLineBand(RACE_START_LINE, -0.24, 0.26, '#f4f4f4');
+  fillLineBand(RACE_START_LINE,  0.24, 0.26, '#f4f4f4');
   // 10) Разметка паддока: белая окантовка площадки + 3 бокса под спорткары
   //     (координаты боксов = слоты спавна на сервере, менять синхронно)
   ctx.strokeStyle = 'rgba(238,238,238,.42)';
