@@ -1954,8 +1954,8 @@ function inRaceDriveArea(r, c) {
 // фиксирует рекорд, проезд старта — запускает новое время.
 const RACE_FINISH_C = 64.5;                  // финиш — шахматка
 const RACE_FINISH_LINE = { ar: 164.45, ac: 64.5, br: 169.45, bc: 64.5 };
-// Старт стоит ниже по треку, на правом спуске после выезда из паддока.
-const RACE_START_LINE = { ar: 166.95, ac: 70.35, br: 170.30, bc: 73.75 };
+// Старт стоит ниже по треку, в месте выезда на правый спуск.
+const RACE_START_LINE = { ar: 168.80, ac: 69.30, br: 168.80, bc: 74.70 };
 const RACE_BOARD = { r: 162, c: 69 };        // табло рекордов на пляже у старта
 // Гоночная площадка (паддок) у стартовой прямой: асфальт вместо песка,
 // 3 бокса под спорткары (спавнит сервер, слоты в mafiozi_bot.py —
@@ -2061,7 +2061,7 @@ function updateRaceLap() {
     _raceHud(false);
   }
   // СТАРТ (двойная линия): запускает новое время
-  if (crossedLine(RACE_START_LINE, 1, 1)) {
+  if (crossedLine(RACE_START_LINE, 1, 0)) {
     _raceLapStartMs = now; _raceGateIdx = 0;
     spawnFloatText(pr, pc, '🏁 Старт!', { color: '#7be58a', size: 14, life: 1500 });
   } else if (_raceLapStartMs) {
