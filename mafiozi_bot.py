@@ -12602,18 +12602,19 @@ class WorldSim:
         y = max(0.5, min(WORLD_MAP_ROWS - 0.5, y))
         if qc.get('_race') and not _in_race_pit_corridor(y, x):
             rr, cc, dr, dc, dist = _nearest_race_track_point(y, x)
-            limit = WORLD_TRACK_HALF_W - 0.45
+            mdef = self.QUEST_CAR_MODELS.get(qc.get('model')) or {}
+            limit = WORLD_TRACK_HALF_W - min(0.38, max(0.24, float(mdef.get('W') or 0.9) * 0.28))
             if dist > limit:
                 nr = dr / (dist or 1.0)
                 nc = dc / (dist or 1.0)
                 y = rr + nr * limit
                 x = cc + nc * limit
                 outward = vy * nr + vx * nc
-                if outward > 0:
-                    vy -= (1.55 * outward) * nr
-                    vx -= (1.55 * outward) * nc
-                vx *= 0.68
-                vy *= 0.68
+                if outward > 0.08:
+                    vy -= (1.25 * outward) * nr
+                    vx -= (1.25 * outward) * nc
+                vx *= 0.88
+                vy *= 0.88
         qc['x']  = x; qc['y']  = y; qc['ang'] = ang
         qc['vx'] = vx; qc['vy'] = vy
         qc['_last_drive_t'] = time.time()

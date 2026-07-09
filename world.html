@@ -2020,8 +2020,8 @@ function _raceBoardRows() {
   return rows.slice(0, 5);
 }
 function _raceLapPointOk(r, c) {
-  if (r < 150 || _inRacePaddock(r, c) || _inPitCorridor(r, c)) return false;
-  return _nearestRaceTrackPoint(r, c).d <= TRACK_HALF_W - 0.30;
+  if (r < 150 || _inRacePaddock(r, c)) return false;
+  return _nearestRaceTrackPoint(r, c).d <= TRACK_HALF_W + 0.35;
 }
 function _resetRaceLap(reason, r, c) {
   if (!_raceLapStartMs) return;
@@ -2048,6 +2048,18 @@ function _raceProbePoint() {
     };
   }
   return { r: player.r, c: player.c };
+}
+function _raceDrivingCar() {
+  return (myDrivingCarId && !myIsPassenger) ? questCars.get(myDrivingCarId) : null;
+}
+function _raceCarBodyProbe(qc) {
+  const m = resolveCarModel(qc && qc.model) || { L: 1.7 };
+  const off = (m.L || 1.7) * 0.68;
+  const sr = Math.sin(qc.ang || 0), sc = Math.cos(qc.ang || 0);
+  return {
+    rearR: qc.y - sr * off, rearC: qc.x - sc * off,
+    frontR: qc.y + sr * off, frontC: qc.x + sc * off,
+  };
 }
 function _raceHud(show, text) {
   if (!_raceHudEl) {
@@ -2110,6 +2122,15 @@ function updateRaceLap() {
     if (t < 0 || t > 1 || u < 0 || u > 1) return false;
     return ((pr - _racePrevR) * dirR + (pc - _racePrevC) * dirC) > 0.02;
   };
+  const segmentHitsLine = (ar, ac, br, bc, line) => {
+    const ax = ac, ay = ar, bx = bc, by = br;
+    const cx = line.ac, cy = line.ar, dx = line.bc, dy = line.br;
+    const den = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx);
+    if (Math.abs(den) < 1e-6) return false;
+    const t = ((cx - ax) * (dy - cy) - (cy - ay) * (dx - cx)) / den;
+    const u = ((cx - ax) * (by - ay) - (cy - ay) * (bx - ax)) / den;
+    return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+  };
   // ФИНИШ (шахматка): фиксирует рекорд, если пройдены все ворота
   if (crossedLine(RACE_FINISH_LINE, 0, 1)) {
     if (_raceLapStartMs && _raceGateIdx === 3) {
@@ -2128,7 +2149,17 @@ function updateRaceLap() {
   }
   // СТАРТ (двойная линия): запускает новое время
   const startLine = _raceCrossLineAt(RACE_START_AT);
-  if (crossedLine(startLine, startLine.dirR, startLine.dirC)) {
+  const raceCar = _raceDrivingCar();
+  let carStartHit = false;
+  if (raceCar) {
+    const body = _raceCarBodyProbe(raceCar);
+    const noseForward = (body.frontR - body.rearR) * startLine.dirR +
+                        (body.frontC - body.rearC) * startLine.dirC;
+    const speedForward = (raceCar.vy || 0) * startLine.dirR + (raceCar.vx || 0) * startLine.dirC;
+    carStartHit = segmentHitsLine(body.rearR, body.rearC, body.frontR, body.frontC, startLine) &&
+                  (noseForward > 0.15 || speedForward > 0.25);
+  }
+  if (!_raceLapStartMs && (crossedLine(startLine, startLine.dirR, startLine.dirC) || carStartHit)) {
     _raceLapStartMs = now; _raceGateIdx = 0;
     spawnFloatText(pr, pc, '🏁 Старт!', { color: '#7be58a', size: 14, life: 1500 });
   } else if (_raceLapStartMs) {
@@ -16515,18 +16546,19 @@ function update(dt) {
       if ((qc._race || (qc.model && QUEST_CAR_MODELS[qc.model] && QUEST_CAR_MODELS[qc.model].race))
           && !_inRacePaddock(qc.y, qc.x)) {
         const near = _nearestRaceTrackPoint(qc.y, qc.x);
-        const limit = TRACK_HALF_W - 0.95;
+        const mmRace = QUEST_CAR_MODELS[qc.model] || { W: 0.9 };
+        const limit = TRACK_HALF_W - Math.min(0.38, Math.max(0.24, (mmRace.W || 0.9) * 0.28));
         if (near.d > limit) {
           let nr = near.dr / (near.d || 1), nc = near.dc / (near.d || 1);
           qc.y = near.r + nr * limit;
           qc.x = near.c + nc * limit;
           const outward = curVy * nr + curVx * nc;
-          if (outward > 0) {
-            curVy -= (1.55 * outward) * nr;
-            curVx -= (1.55 * outward) * nc;
+          if (outward > 0.08) {
+            curVy -= (1.25 * outward) * nr;
+            curVx -= (1.25 * outward) * nc;
           }
-          curVx *= 0.68;
-          curVy *= 0.68;
+          curVx *= 0.88;
+          curVy *= 0.88;
           if (myDrivingCarId === qc.id && (performance.now() - (qc._lastRaceWallAt || 0)) > 450) {
             qc._lastRaceWallAt = performance.now();
             addShake(Math.min(3.5, 1.0 + Math.hypot(curVx, curVy) * 0.22));
