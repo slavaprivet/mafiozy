@@ -1879,6 +1879,25 @@ const TRACK_PTS = [
 ];
 const TRACK_HALF_W = 2.2;   // полуширина полотна (~4-5 тайлов)
 let _trackTiles = null, _trackPathPts = null;
+function _nearestRaceTrackPoint(r, c) {
+  if (!_trackPathPts) _buildTrackTiles();
+  let best = null, bestD2 = 1e9;
+  for (let i = 0; i < _trackPathPts.length; i++) {
+    const a = _trackPathPts[i], b = _trackPathPts[(i + 1) % _trackPathPts.length];
+    const abr = b[0] - a[0], abc = b[1] - a[1];
+    const len2 = abr * abr + abc * abc || 1e-9;
+    let k = ((r - a[0]) * abr + (c - a[1]) * abc) / len2;
+    k = k < 0 ? 0 : (k > 1 ? 1 : k);
+    const rr = a[0] + abr * k, cc = a[1] + abc * k;
+    const dr = r - rr, dc = c - cc;
+    const d2 = dr * dr + dc * dc;
+    if (d2 < bestD2) {
+      bestD2 = d2;
+      best = { r: rr, c: cc, dr, dc, d: Math.sqrt(d2) };
+    }
+  }
+  return best || { r, c, dr: 0, dc: 0, d: 0 };
+}
 function _buildTrackTiles() {
   // 1) Замкнутый Catmull-Rom по контрольным точкам → плотная ломаная
   const P = TRACK_PTS, n = P.length, pts = [];
@@ -1921,6 +1940,9 @@ function inRaceTrack(r, c) {
   if (!_trackTiles) _buildTrackTiles();
   return _trackTiles.has(r * 1000 + c);
 }
+function inRaceDriveArea(r, c) {
+  return inRaceTrack(Math.floor(r), Math.floor(c)) || _inRacePaddock(r, c) || _inPitCorridor(r, c);
+}
 // ── Гонка: старт/финиш, замер круга, табло рекордов ─────────────────
 // Старт/финиш — на ВОСТОЧНОЙ верхней прямой (примыкает к пляжу, разгонная
 // прямая спускается с песка на полотно). Направление движения = порядок
@@ -1931,9 +1953,9 @@ function inRaceTrack(r, c) {
 // Финиш стоит РАНЬШЕ старта по ходу движения (+c): проезд финиша
 // фиксирует рекорд, проезд старта — запускает новое время.
 const RACE_FINISH_C = 64.5;                  // финиш — шахматка
-const RACE_START_C  = 67.5;                  // старт — двойная белая линия
-const RACE_LINE_R0  = 164.45;
-const RACE_LINE_R1  = 169.45;
+const RACE_FINISH_LINE = { ar: 164.45, ac: 64.5, br: 169.45, bc: 64.5 };
+// Старт стоит ниже по треку, на правом спуске после выезда из паддока.
+const RACE_START_LINE = { ar: 166.95, ac: 70.35, br: 170.30, bc: 73.75 };
 const RACE_BOARD = { r: 162, c: 69 };        // табло рекордов на пляже у старта
 // Гоночная площадка (паддок) у стартовой прямой: асфальт вместо песка,
 // 3 бокса под спорткары (спавнит сервер, слоты в mafiozi_bot.py —
@@ -1991,6 +2013,11 @@ function _raceHud(show, text) {
   _raceHudEl.style.display = show ? 'block' : 'none';
   if (text) _raceHudEl.textContent = text;
 }
+function _raceLineBasis(line) {
+  const sr = line.br - line.ar, sc = line.bc - line.ac;
+  const len = Math.hypot(sr, sc) || 1;
+  return { ur: sr / len, uc: sc / len, nr: -sc / len, nc: sr / len, len };
+}
 function updateRaceLap() {
   const pr = player.r, pc = player.c;
   if (!_racePrevR && !_racePrevC) { _racePrevR = pr; _racePrevC = pc; return; }
@@ -2009,8 +2036,18 @@ function updateRaceLap() {
   const crossed = (plane, dir, r0, r1) =>
     pr >= r0 && pr <= r1 &&
     (dir > 0 ? (_racePrevC < plane && pc >= plane) : (_racePrevC > plane && pc <= plane));
+  const crossedLine = (line, dirR, dirC) => {
+    const ax = _racePrevC, ay = _racePrevR, bx = pc, by = pr;
+    const cx = line.ac, cy = line.ar, dx = line.bc, dy = line.br;
+    const den = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx);
+    if (Math.abs(den) < 1e-6) return false;
+    const t = ((cx - ax) * (dy - cy) - (cy - ay) * (dx - cx)) / den;
+    const u = ((cx - ax) * (by - ay) - (cy - ay) * (bx - ax)) / den;
+    if (t < 0 || t > 1 || u < 0 || u > 1) return false;
+    return ((pr - _racePrevR) * dirR + (pc - _racePrevC) * dirC) > 0.02;
+  };
   // ФИНИШ (шахматка): фиксирует рекорд, если пройдены все ворота
-  if (crossed(RACE_FINISH_C, +1, RACE_LINE_R0 - 1.5, RACE_LINE_R1 + 1.5)) {
+  if (crossedLine(RACE_FINISH_LINE, 0, 1)) {
     if (_raceLapStartMs && _raceGateIdx === 3) {
       const ms = Math.round(now - _raceLapStartMs);
       const car = _raceCarLabel();
@@ -2024,7 +2061,7 @@ function updateRaceLap() {
     _raceHud(false);
   }
   // СТАРТ (двойная линия): запускает новое время
-  if (crossed(RACE_START_C, +1, RACE_LINE_R0 - 1.5, RACE_LINE_R1 + 1.5)) {
+  if (crossedLine(RACE_START_LINE, 1, 1)) {
     _raceLapStartMs = now; _raceGateIdx = 0;
     spawnFloatText(pr, pc, '🏁 Старт!', { color: '#7be58a', size: 14, life: 1500 });
   } else if (_raceLapStartMs) {
@@ -2165,27 +2202,46 @@ function drawRaceTrackRibbon() {
     ctx.stroke();
     ctx.restore();
   }
-  // 8) ФИНИШ — шахматка поперёк ВОСТОЧНОЙ прямой, ровно на плоскости
-  //    триггера RACE_FINISH_C. Подложка гасит старый пунктир трека под клетками.
-  const lineR0 = RACE_LINE_R0;
-  const lineR1 = RACE_LINE_R1;
-  const lineH = lineR1 - lineR0;
-  ctx.fillStyle = 'rgba(22,22,26,.78)';
-  ctx.fillRect(RACE_FINISH_C - 0.52, lineR0 - 0.05, 1.04, lineH + 0.10);
-  const cellR = lineH / 10;
-  const cellC = 0.46;
-  for (let gr = 0; gr < 10; gr++) {       // поперёк полотна (по r)
-    for (let gc = 0; gc < 2; gc++) {      // вдоль (по c)
-      ctx.fillStyle = ((gr + gc) & 1) ? '#eeeeee' : '#101014';
-      ctx.fillRect(RACE_FINISH_C - cellC + gc * cellC, lineR0 + gr * cellR, cellC, cellR);
+  const fillLineBand = (line, off, width, color) => {
+    const b = _raceLineBasis(line);
+    const ar = line.ar + b.nr * off, ac = line.ac + b.nc * off;
+    const br = line.br + b.nr * off, bc = line.bc + b.nc * off;
+    const hr = b.nr * width * 0.5, hc = b.nc * width * 0.5;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(ac - hc, ar - hr);
+    ctx.lineTo(bc - hc, br - hr);
+    ctx.lineTo(bc + hc, br + hr);
+    ctx.lineTo(ac + hc, ar + hr);
+    ctx.closePath();
+    ctx.fill();
+  };
+  const fillLineCell = (line, t0, t1, off0, off1, color) => {
+    const b = _raceLineBasis(line);
+    const ar0 = line.ar + (line.br - line.ar) * t0, ac0 = line.ac + (line.bc - line.ac) * t0;
+    const ar1 = line.ar + (line.br - line.ar) * t1, ac1 = line.ac + (line.bc - line.ac) * t1;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(ac0 + b.nc * off0, ar0 + b.nr * off0);
+    ctx.lineTo(ac1 + b.nc * off0, ar1 + b.nr * off0);
+    ctx.lineTo(ac1 + b.nc * off1, ar1 + b.nr * off1);
+    ctx.lineTo(ac0 + b.nc * off1, ar0 + b.nr * off1);
+    ctx.closePath();
+    ctx.fill();
+  };
+  // 8) ФИНИШ — шахматка поперёк полотна, финиш оставлен на прежнем месте.
+  fillLineBand(RACE_FINISH_LINE, 0, 1.04, 'rgba(22,22,26,.78)');
+  for (let gr = 0; gr < 10; gr++) {
+    for (let gc = 0; gc < 2; gc++) {
+      fillLineCell(RACE_FINISH_LINE, gr / 10, (gr + 1) / 10,
+                   -0.46 + gc * 0.46, -0.46 + (gc + 1) * 0.46,
+                   ((gr + gc) & 1) ? '#eeeeee' : '#101014');
     }
   }
-  // 9) СТАРТ — двойная белая линия на той же ширине полотна, внутри асфальта.
-  ctx.fillStyle = 'rgba(22,22,26,.55)';
-  ctx.fillRect(RACE_START_C - 0.36, lineR0 - 0.05, 0.84, lineH + 0.10);
-  ctx.fillStyle = '#eeeeee';
-  ctx.fillRect(RACE_START_C - 0.26, lineR0, 0.18, lineH);
-  ctx.fillRect(RACE_START_C + 0.12, lineR0, 0.18, lineH);
+  // 9) СТАРТ — ниже по треку, там где машина выходит на правый спуск.
+  fillLineBand(RACE_START_LINE, 0, 0.84, 'rgba(22,22,26,.55)');
+  fillLineBand(RACE_START_LINE, -0.18, 0.16, '#eeeeee');
+  fillLineBand(RACE_START_LINE,  0.18, 0.16, '#eeeeee');
   // 10) Разметка паддока: белая окантовка площадки + 3 бокса под спорткары
   //     (координаты боксов = слоты спавна на сервере, менять синхронно)
   ctx.strokeStyle = 'rgba(238,238,238,.42)';
@@ -16374,6 +16430,30 @@ function update(dt) {
         } else {
           curVx = 0; curVy = 0;
           if (impact > 5.5) reportCarCrash(qc, impact, 'wall');
+        }
+      }
+      // Гоночные бортики: трек остаётся проходимым тайлом, но машина не может
+      // вылететь за край ленты. При ударе отражаем скорость от внешней нормали.
+      if ((qc._race || (qc.model && QUEST_CAR_MODELS[qc.model] && QUEST_CAR_MODELS[qc.model].race))
+          && !(_inRacePaddock(qc.y, qc.x) || _inPitCorridor(qc.y, qc.x))) {
+        const near = _nearestRaceTrackPoint(qc.y, qc.x);
+        const limit = TRACK_HALF_W - 0.18;
+        if (near.d > limit) {
+          let nr = near.dr / (near.d || 1), nc = near.dc / (near.d || 1);
+          qc.y = near.r + nr * limit;
+          qc.x = near.c + nc * limit;
+          const outward = curVy * nr + curVx * nc;
+          if (outward > 0) {
+            curVy -= (1.45 * outward) * nr;
+            curVx -= (1.45 * outward) * nc;
+          }
+          curVx *= 0.72;
+          curVy *= 0.72;
+          if ((performance.now() - (qc._lastRaceWallAt || 0)) > 220) {
+            qc._lastRaceWallAt = performance.now();
+            addShake(Math.min(3.5, 1.0 + Math.hypot(curVx, curVy) * 0.22));
+            spawnFloatText(qc.y, qc.x, 'БОРТ!', { color: '#ffdf7a', size: 12, life: 650 });
+          }
         }
       }
       // Столкновение с NPC-трафиком (декоративный CARS). Включается только

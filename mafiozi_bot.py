@@ -11512,9 +11512,11 @@ WORLD_TRACK_PTS = [
     (190, 8),  (184, 5),  (176, 5),  (170, 7),    # западный загиб вверх
 ]
 WORLD_TRACK_HALF_W = 2.2
+_TRACK_PATH_PTS = []
 
 
 def _build_track_tiles() -> set:
+    global _TRACK_PATH_PTS
     P = WORLD_TRACK_PTS
     n = len(P)
     pts = []
@@ -11527,6 +11529,7 @@ def _build_track_tiles() -> set:
                 0.5 * (2*p1[0] + (p2[0]-p0[0])*t + (2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2 + (3*p1[0]-p0[0]-3*p2[0]+p3[0])*t3),
                 0.5 * (2*p1[1] + (p2[1]-p0[1])*t + (2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2 + (3*p1[1]-p0[1]-3*p2[1]+p3[1])*t3),
             ))
+    _TRACK_PATH_PTS = pts
     tiles = set()
     m = len(pts)
     lim2 = WORLD_TRACK_HALF_W * WORLD_TRACK_HALF_W
@@ -11554,6 +11557,29 @@ _TRACK_TILES = _build_track_tiles()
 
 def _in_race_track(r: int, c: int) -> bool:
     return (r, c) in _TRACK_TILES
+
+
+def _nearest_race_track_point(r: float, c: float) -> tuple[float, float, float, float, float]:
+    best = None
+    best_d2 = 1e18
+    m = len(_TRACK_PATH_PTS)
+    for i in range(m):
+        a = _TRACK_PATH_PTS[i]
+        b = _TRACK_PATH_PTS[(i + 1) % m]
+        abr = b[0] - a[0]
+        abc = b[1] - a[1]
+        len2 = abr * abr + abc * abc or 1e-9
+        k = ((r - a[0]) * abr + (c - a[1]) * abc) / len2
+        k = 0.0 if k < 0 else (1.0 if k > 1 else k)
+        rr = a[0] + abr * k
+        cc = a[1] + abc * k
+        dr = r - rr
+        dc = c - cc
+        d2 = dr * dr + dc * dc
+        if d2 < best_d2:
+            best_d2 = d2
+            best = (rr, cc, dr, dc, d2 ** 0.5)
+    return best or (r, c, 0.0, 0.0, 0.0)
 
 
 def _dist_to_race_seg(r: float, c: float, ar: float, ac: float, br: float, bc: float) -> float:
@@ -12574,6 +12600,20 @@ class WorldSim:
             vx *= k; vy *= k
         x = max(0.5, min(WORLD_MAP_COLS - 0.5, x))
         y = max(0.5, min(WORLD_MAP_ROWS - 0.5, y))
+        if qc.get('_race') and not _in_race_pit_corridor(y, x):
+            rr, cc, dr, dc, dist = _nearest_race_track_point(y, x)
+            limit = WORLD_TRACK_HALF_W - 0.18
+            if dist > limit:
+                nr = dr / (dist or 1.0)
+                nc = dc / (dist or 1.0)
+                y = rr + nr * limit
+                x = cc + nc * limit
+                outward = vy * nr + vx * nc
+                if outward > 0:
+                    vy -= (1.45 * outward) * nr
+                    vx -= (1.45 * outward) * nc
+                vx *= 0.72
+                vy *= 0.72
         qc['x']  = x; qc['y']  = y; qc['ang'] = ang
         qc['vx'] = vx; qc['vy'] = vy
         qc['_last_drive_t'] = time.time()
