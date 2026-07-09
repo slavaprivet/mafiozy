@@ -1893,10 +1893,11 @@ function _nearestRaceTrackPoint(r, c) {
     const d2 = dr * dr + dc * dc;
     if (d2 < bestD2) {
       bestD2 = d2;
-      best = { r: rr, c: cc, dr, dc, d: Math.sqrt(d2) };
+      const segLen = Math.hypot(abr, abc) || 1;
+      best = { r: rr, c: cc, dr, dc, d: Math.sqrt(d2), tr: abr / segLen, tc: abc / segLen };
     }
   }
-  return best || { r, c, dr: 0, dc: 0, d: 0 };
+  return best || { r, c, dr: 0, dc: 0, d: 0, tr: 1, tc: 0 };
 }
 function _buildTrackTiles() {
   // 1) Замкнутый Catmull-Rom по контрольным точкам → плотная ломаная
@@ -1955,8 +1956,8 @@ function inRaceDriveArea(r, c) {
 const RACE_FINISH_C = 64.5;                  // финиш — шахматка
 const RACE_FINISH_LINE = { ar: 164.45, ac: 64.5, br: 169.45, bc: 64.5 };
 // Старт стоит ниже по треку, в месте выезда на правый спуск.
-const RACE_START_LINE = { ar: 168.85, ac: 70.35, br: 168.85, bc: 73.65 };
-const RACE_BOARD = { r: 162, c: 69 };        // табло рекордов на пляже у старта
+const RACE_START_AT = { r: 170.45, c: 72.25 };
+const RACE_BOARD = { r: 162, c: 70 };        // табло рекордов справа на стартовом асфальте
 // Гоночная площадка (паддок) у стартовой прямой: асфальт вместо песка,
 // 3 бокса под спорткары (спавнит сервер, слоты в mafiozi_bot.py —
 // координаты боксов менять СИНХРОННО с _race_slots сервера).
@@ -1996,15 +1997,35 @@ function _fmtLapMs(ms) {
   const m = Math.floor(s / 60);
   return m + ':' + String(Math.floor(s % 60)).padStart(2, '0') + '.' + Math.floor((s % 1) * 10);
 }
+function _upsertRaceTopLocal(ms, car) {
+  const uid = String(QP.uid || 'me');
+  const name = String(QP.name || 'Demo').slice(0, 16);
+  const rows = _raceTop.filter(e => String(e.uid || '') !== uid);
+  rows.push({ uid, name, ms, car });
+  rows.sort((a, b) => (a.ms || 0) - (b.ms || 0));
+  _raceTop = rows.slice(0, 5);
+}
 function _raceCarLabel() {
   const qc = myDrivingCarId ? questCars.get(myDrivingCarId) : null;
   const m = qc ? resolveCarModel(qc.model) : null;
   return String((m && (m.label || m.id)) || (qc && qc.model) || 'Пешком').slice(0, 22);
 }
+function _raceProbePoint() {
+  const qc = (myDrivingCarId && !myIsPassenger) ? questCars.get(myDrivingCarId) : null;
+  if (qc) {
+    const m = resolveCarModel(qc.model) || { L: 1.7 };
+    const off = (m.L || 1.7) * 0.58;
+    return {
+      r: qc.y + Math.sin(qc.ang || 0) * off,
+      c: qc.x + Math.cos(qc.ang || 0) * off,
+    };
+  }
+  return { r: player.r, c: player.c };
+}
 function _raceHud(show, text) {
   if (!_raceHudEl) {
     _raceHudEl = document.createElement('div');
-    _raceHudEl.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);' +
+    _raceHudEl.style.cssText = 'position:fixed;top:92px;right:14px;' +
       'z-index:40;background:rgba(10,10,16,.78);border:1px solid rgba(255,215,107,.5);' +
       'border-radius:8px;padding:4px 12px;font:700 14px monospace;color:#ffd76b;' +
       'pointer-events:none;display:none;white-space:nowrap;';
@@ -2018,8 +2039,19 @@ function _raceLineBasis(line) {
   const len = Math.hypot(sr, sc) || 1;
   return { ur: sr / len, uc: sc / len, nr: -sc / len, nc: sr / len, len };
 }
+function _raceCrossLineAt(anchor, halfW) {
+  const near = _nearestRaceTrackPoint(anchor.r, anchor.c);
+  const nr = -near.tc, nc = near.tr;
+  const hw = halfW === undefined ? TRACK_HALF_W - 0.42 : halfW;
+  return {
+    ar: near.r - nr * hw, ac: near.c - nc * hw,
+    br: near.r + nr * hw, bc: near.c + nc * hw,
+    dirR: near.tr, dirC: near.tc,
+  };
+}
 function updateRaceLap() {
-  const pr = player.r, pc = player.c;
+  const probe = _raceProbePoint();
+  const pr = probe.r, pc = probe.c;
   if (!_racePrevR && !_racePrevC) { _racePrevR = pr; _racePrevC = pc; return; }
   const now = performance.now();
   if (pr < 150) {
@@ -2053,6 +2085,7 @@ function updateRaceLap() {
       const car = _raceCarLabel();
       _raceLastLapMs = ms;
       if (!_raceBestLapMs || ms < _raceBestLapMs) { _raceBestLapMs = ms; _raceBestCar = car; }
+      _upsertRaceTopLocal(ms, car);
       spawnFloatText(pr, pc, '🏁 ' + _fmtLapMs(ms) + ' · ' + car, { color: '#ffd76b', size: 18, life: 2500 });
       try { ws && ws.send(JSON.stringify({ t: 'race_lap', d: { ms, car } })); } catch (e) {}
       _raceTopAskedAt = 0;   // обновить табло сразу
@@ -2061,7 +2094,8 @@ function updateRaceLap() {
     _raceHud(false);
   }
   // СТАРТ (двойная линия): запускает новое время
-  if (crossedLine(RACE_START_LINE, 1, 0)) {
+  const startLine = _raceCrossLineAt(RACE_START_AT);
+  if (crossedLine(startLine, startLine.dirR, startLine.dirC)) {
     _raceLapStartMs = now; _raceGateIdx = 0;
     spawnFloatText(pr, pc, '🏁 Старт!', { color: '#7be58a', size: 14, life: 1500 });
   } else if (_raceLapStartMs) {
@@ -2162,22 +2196,9 @@ function drawRaceTrackRibbon() {
   ctx.setLineDash([1.1, 1.5]);
   ctx.stroke(path);
   ctx.setLineDash([]);
-  // 6) Разгонная прямая — съезд с пляжа на полотно к старту.
-  //    Рисуем её без жирной белой окантовки: иначе на изометрии она
-  //    пересекает паддок как случайная разметка.
-  const pit = new Path2D();
-  pit.moveTo(63.2, 156.8);
-  pit.lineTo(66.8, 163.8);
-  pit.moveTo(67.2, 162.2);
-  pit.lineTo(72.2, 168.5);
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#33343a';
-  ctx.lineWidth = 2.75;
-  ctx.stroke(pit);
-  ctx.strokeStyle = 'rgba(238,238,238,.22)';
-  ctx.lineWidth = 0.16;
-  ctx.stroke(pit);
-  // Стрелки на разгонке — вниз-вправо, к старту и полотну
+  // 6) Стрелки на выезде — вниз-вправо, к старту и полотну.
+  //    Старый отдельный асфальтовый штрих убран: он давал лишние овальные
+  //    пятна на площадке из-за круглых концов толстой линии.
   ctx.strokeStyle = 'rgba(255,215,107,.85)';
   ctx.lineWidth = 0.16;
   for (let i = 0; i < 3; i++) {
@@ -2238,10 +2259,11 @@ function drawRaceTrackRibbon() {
                    ((gr + gc) & 1) ? '#eeeeee' : '#101014');
     }
   }
-  // 9) СТАРТ — ниже по треку, там где машина выходит на правый спуск.
-  fillLineBand(RACE_START_LINE, 0, 1.12, 'rgba(22,22,26,.62)');
-  fillLineBand(RACE_START_LINE, -0.24, 0.26, '#f4f4f4');
-  fillLineBand(RACE_START_LINE,  0.24, 0.26, '#f4f4f4');
+  // 9) СТАРТ — ниже по треку. Строится от сплайна, поэтому ложится ровно от борта до борта.
+  const startLine = _raceCrossLineAt(RACE_START_AT);
+  fillLineBand(startLine, 0, 1.12, 'rgba(22,22,26,.62)');
+  fillLineBand(startLine, -0.24, 0.26, '#f4f4f4');
+  fillLineBand(startLine,  0.24, 0.26, '#f4f4f4');
   // 10) Разметка паддока: белая окантовка площадки + 3 бокса под спорткары
   //     (координаты боксов = слоты спавна на сервере, менять синхронно)
   ctx.strokeStyle = 'rgba(238,238,238,.42)';
@@ -2260,18 +2282,27 @@ function drawRaceTrackRibbon() {
   //     кромке примыкает песок/паддок — это въезды с пляжа и выезд боксов.
   if (!_trackBarrierSegs) _buildTrackBarriers();
   const rowDy = Math.abs(er.y - o.y);              // экранный шаг одного ряда
-  const bh = rowDy * 0.42;                         // высота стенки бортика
+  const bh = rowDy * 0.50;                         // высота стенки бортика
   for (const s of _trackBarrierSegs) {
     const p1 = w2s(s.ar, s.ac), p2 = w2s(s.br, s.bc);
-    ctx.fillStyle = s.red ? '#c23434' : '#e8e8e8';
+    ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y + 2); ctx.lineTo(p2.x, p2.y + 2);
+    ctx.stroke();
+    ctx.fillStyle = s.red ? '#c83a36' : '#ededed';
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
     ctx.lineTo(p2.x, p2.y - bh); ctx.lineTo(p1.x, p1.y - bh);
     ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = s.red ? '#7a1e1e' : '#9a9aa2';   // тёмный верхний кант
+    ctx.strokeStyle = s.red ? '#711b1b' : '#9fa1a8';   // тёмный верхний кант
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y - bh); ctx.lineTo(p2.x, p2.y - bh);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.45)';
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y - bh + 2); ctx.lineTo(p2.x, p2.y - bh + 2);
     ctx.stroke();
   }
 }
@@ -2283,7 +2314,7 @@ let _trackBarrierSegs = null;
 function _buildTrackBarriers() {
   _trackBarrierSegs = [];
   const pts = _trackPathPts, n = pts.length;
-  const off = TRACK_HALF_W + 0.35, STEP = 3;
+  const off = TRACK_HALF_W + 0.08, STEP = 2;
   for (let side = -1; side <= 1; side += 2) {
     for (let i = 0; i < n; i += STEP) {
       const a = pts[i], b = pts[(i + STEP) % n];
@@ -2292,8 +2323,7 @@ function _buildTrackBarriers() {
       const nr = -dc / L * side, nc = dr / L * side;   // нормаль к ходу
       const pr = Math.floor(a[0] + nr * (off + 1.2));
       const pc = Math.floor(a[1] + nc * (off + 1.2));
-      const pt = (MAP[pr] || [])[pc];
-      if (pt === 14 || pt === 18 || _inPitCorridor(pr + 0.5, pc + 0.5)) continue;
+      if (_inRacePaddock(a[0], a[1]) || _inPitCorridor(pr + 0.5, pc + 0.5)) continue;
       _trackBarrierSegs.push({
         ar: a[0] + nr * off, ac: a[1] + nc * off,
         br: b[0] + nr * off, bc: b[1] + nc * off,
@@ -8759,6 +8789,11 @@ const bullets = [];       // {r,c,vr,vc,dist,maxDist,color,thick,hit,...}
 const floatTexts = [];
 function spawnFloatText(r, c, text, opts) {
   opts = opts || {};
+  if (opts.tag) {
+    for (let i = floatTexts.length - 1; i >= 0; i--) {
+      if (floatTexts[i].tag === opts.tag) floatTexts.splice(i, 1);
+    }
+  }
   floatTexts.push({
     r, c,
     text: String(text),
@@ -8769,6 +8804,7 @@ function spawnFloatText(r, c, text, opts) {
     size:  opts.size  || 16,
     weight: opts.weight || 900,
     stroke: opts.stroke || 'rgba(0,0,0,.75)',
+    tag: opts.tag || '',
   });
 }
 // ── Параметры оружия (копия из demo_isometric, без аудио-полей) ───
@@ -11583,6 +11619,7 @@ function wsConnect() {
       handleEventPacket(pkt.d || {});
     } else if (pkt.t === 'race_top') {
       _raceTop = (pkt.d && pkt.d.top) || [];
+      if (_raceBestLapMs) _upsertRaceTopLocal(_raceBestLapMs, _raceBestCar || _raceCarLabel());
     }
   };
   ws.onerror = () => {
@@ -14033,6 +14070,9 @@ function enterCar(carId, asKind) {
 function exitCar(reason) {
   if (!myDrivingCarId) return;
   const qc = questCars.get(myDrivingCarId);
+  for (let i = floatTexts.length - 1; i >= 0; i--) {
+    if (floatTexts[i].tag === 'race_wall') floatTexts.splice(i, 1);
+  }
   // Пассажир: можно выйти на ходу, без тормозов
   if (myIsPassenger) {
     const cid = myDrivingCarId;
@@ -16437,22 +16477,22 @@ function update(dt) {
       if ((qc._race || (qc.model && QUEST_CAR_MODELS[qc.model] && QUEST_CAR_MODELS[qc.model].race))
           && !(_inRacePaddock(qc.y, qc.x) || _inPitCorridor(qc.y, qc.x))) {
         const near = _nearestRaceTrackPoint(qc.y, qc.x);
-        const limit = TRACK_HALF_W - 0.18;
+        const limit = TRACK_HALF_W - 0.45;
         if (near.d > limit) {
           let nr = near.dr / (near.d || 1), nc = near.dc / (near.d || 1);
           qc.y = near.r + nr * limit;
           qc.x = near.c + nc * limit;
           const outward = curVy * nr + curVx * nc;
           if (outward > 0) {
-            curVy -= (1.45 * outward) * nr;
-            curVx -= (1.45 * outward) * nc;
+            curVy -= (1.55 * outward) * nr;
+            curVx -= (1.55 * outward) * nc;
           }
-          curVx *= 0.72;
-          curVy *= 0.72;
-          if ((performance.now() - (qc._lastRaceWallAt || 0)) > 220) {
+          curVx *= 0.68;
+          curVy *= 0.68;
+          if (myDrivingCarId === qc.id && (performance.now() - (qc._lastRaceWallAt || 0)) > 450) {
             qc._lastRaceWallAt = performance.now();
             addShake(Math.min(3.5, 1.0 + Math.hypot(curVx, curVy) * 0.22));
-            spawnFloatText(qc.y, qc.x, 'БОРТ!', { color: '#ffdf7a', size: 12, life: 650 });
+            spawnFloatText(qc.y, qc.x, 'БОРТ!', { color: '#ffdf7a', size: 12, life: 650, tag: 'race_wall' });
           }
         }
       }
