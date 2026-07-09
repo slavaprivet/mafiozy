@@ -1957,7 +1957,7 @@ const RACE_FINISH_C = 64.5;                  // финиш — шахматка
 const RACE_FINISH_LINE = { ar: 164.45, ac: 64.5, br: 169.45, bc: 64.5 };
 // Старт стоит ниже по треку, в месте выезда на правый спуск.
 const RACE_START_AT = { r: 170.45, c: 72.25 };
-const RACE_BOARD = { r: 162, c: 70 };        // табло рекордов справа на стартовом асфальте
+const RACE_BOARD = { r: 162, c: 72 };        // табло рекордов справа на стартовом асфальте
 // Гоночная площадка (паддок) у стартовой прямой: асфальт вместо песка,
 // 3 бокса под спорткары (спавнит сервер, слоты в mafiozi_bot.py —
 // координаты боксов менять СИНХРОННО с _race_slots сервера).
@@ -2004,6 +2004,33 @@ function _upsertRaceTopLocal(ms, car) {
   rows.push({ uid, name, ms, car });
   rows.sort((a, b) => (a.ms || 0) - (b.ms || 0));
   _raceTop = rows.slice(0, 5);
+}
+function _raceBoardRows() {
+  const uid = String(QP.uid || 'me');
+  const rows = _raceTop.slice();
+  if (_raceBestLapMs && !rows.some(e => String(e.uid || '') === uid)) {
+    rows.push({
+      uid,
+      name: String(QP.name || 'Demo').slice(0, 16),
+      ms: _raceBestLapMs,
+      car: _raceBestCar || _raceCarLabel(),
+    });
+  }
+  rows.sort((a, b) => (a.ms || 0) - (b.ms || 0));
+  return rows.slice(0, 5);
+}
+function _raceLapPointOk(r, c) {
+  if (r < 150 || _inRacePaddock(r, c) || _inPitCorridor(r, c)) return false;
+  return _nearestRaceTrackPoint(r, c).d <= TRACK_HALF_W - 0.30;
+}
+function _resetRaceLap(reason, r, c) {
+  if (!_raceLapStartMs) return;
+  _raceLapStartMs = 0;
+  _raceGateIdx = 0;
+  _raceHud(false);
+  if (reason && r !== undefined && c !== undefined) {
+    spawnFloatText(r, c, reason, { color: '#ffdf7a', size: 13, life: 1200 });
+  }
 }
 function _raceCarLabel() {
   const qc = myDrivingCarId ? questCars.get(myDrivingCarId) : null;
@@ -2056,7 +2083,12 @@ function updateRaceLap() {
   const now = performance.now();
   if (pr < 150) {
     // ушёл с юга — круг сгорает
-    if (_raceLapStartMs) { _raceLapStartMs = 0; _raceHud(false); }
+    _resetRaceLap('Круг сброшен', pr, pc);
+    _racePrevR = pr; _racePrevC = pc;
+    return;
+  }
+  if (_raceLapStartMs && !_raceLapPointOk(pr, pc)) {
+    _resetRaceLap('Круг сброшен', pr, pc);
     _racePrevR = pr; _racePrevC = pc;
     return;
   }
@@ -2083,15 +2115,16 @@ function updateRaceLap() {
     if (_raceLapStartMs && _raceGateIdx === 3) {
       const ms = Math.round(now - _raceLapStartMs);
       const car = _raceCarLabel();
+      const isRecord = !_raceBestLapMs || ms < _raceBestLapMs;
       _raceLastLapMs = ms;
-      if (!_raceBestLapMs || ms < _raceBestLapMs) { _raceBestLapMs = ms; _raceBestCar = car; }
+      if (isRecord) { _raceBestLapMs = ms; _raceBestCar = car; }
       _upsertRaceTopLocal(ms, car);
-      spawnFloatText(pr, pc, '🏁 ' + _fmtLapMs(ms) + ' · ' + car, { color: '#ffd76b', size: 18, life: 2500 });
+      spawnFloatText(pr, pc, (isRecord ? 'РЕКОРД ' : 'ФИНИШ ') + _fmtLapMs(ms) + ' · ' + car,
+        { color: isRecord ? '#7be58a' : '#ffd76b', size: 18, life: 2500 });
       try { ws && ws.send(JSON.stringify({ t: 'race_lap', d: { ms, car } })); } catch (e) {}
       _raceTopAskedAt = 0;   // обновить табло сразу
     }
-    _raceLapStartMs = 0;
-    _raceHud(false);
+    _resetRaceLap('', pr, pc);
   }
   // СТАРТ (двойная линия): запускает новое время
   const startLine = _raceCrossLineAt(RACE_START_AT);
@@ -2112,7 +2145,8 @@ function updateRaceLap() {
 // Табло рекордов дня — щит на ножках у старта (depth-sort в render).
 function drawRaceBoard() {
   const p = w2s(RACE_BOARD.r + 0.5, RACE_BOARD.c + 0.5);
-  const W = 188, H = 124, top = p.y - 172;
+  const W = 192, H = 138, top = p.y - 182;
+  const rows = _raceBoardRows();
   ctx.save();
   // Ножки
   ctx.strokeStyle = '#4a4038'; ctx.lineWidth = 4;
@@ -2131,21 +2165,27 @@ function drawRaceBoard() {
   ctx.font = 'bold 11px sans-serif';
   ctx.fillText('🏁 РЕКОРДЫ ДНЯ', p.x, top + 15);
   ctx.font = '10px monospace';
-  if (_raceTop.length) {
-    for (let i = 0; i < Math.min(5, _raceTop.length); i++) {
-      const e = _raceTop[i];
+  for (let i = 0; i < 5; i++) {
+    const e = rows[i];
+    if (e) {
       ctx.fillStyle = i === 0 ? '#ffe48a' : '#d8d8d8';
       const nm = String(e.name || '?').slice(0, 9);
       const car = String(e.car || 'машина').slice(0, 13);
       ctx.fillText(`${i + 1}. ${nm} - ${_fmtLapMs(e.ms)} - ${car}`, p.x, top + 30 + i * 14);
+    } else {
+      ctx.fillStyle = '#73737c';
+      ctx.fillText(`${i + 1}. ---`, p.x, top + 30 + i * 14);
     }
-  } else {
-    ctx.fillStyle = '#9a9a9a';
-    ctx.fillText('Проедь круг первым!', p.x, top + 40);
+  }
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 10px monospace';
+  if (_raceLapStartMs) {
+    ctx.fillStyle = '#ffd76b';
+    ctx.fillText('Круг: ' + _fmtLapMs(performance.now() - _raceLapStartMs), p.x - W / 2 + 12, top + H - 19);
   }
   if (_raceBestLapMs) {
     ctx.fillStyle = '#7be58a';
-    ctx.fillText('Ты: ' + _fmtLapMs(_raceBestLapMs) + (_raceBestCar ? ' - ' + _raceBestCar : ''), p.x, top + H - 6);
+    ctx.fillText('Твой: ' + _fmtLapMs(_raceBestLapMs) + (_raceBestCar ? ' - ' + _raceBestCar : ''), p.x - W / 2 + 12, top + H - 6);
   }
   ctx.textAlign = 'left';
   ctx.restore();
@@ -2307,23 +2347,21 @@ function drawRaceTrackRibbon() {
   }
 }
 // Сегменты бортиков считаем один раз (MAP к первому кадру уже построена):
-// смещаем сэмплы сплайна на нормаль ±(полуширина+0.35), режем на блоки по
-// 3 сэмпла, чередуем красный/белый. Сегмент пропускаем, если сразу за ним
-// песок (14), трек/паддок (18) или разгонный коридор — там въезды.
+// смещаем сэмплы сплайна на нормаль ±(полуширина+0.35), режем короткими
+// блоками, чередуем красный/белый. Разрыв оставляем только у паддока:
+// на самом кольце визуальный борт должен идти без дыр, как физический.
 let _trackBarrierSegs = null;
 function _buildTrackBarriers() {
   _trackBarrierSegs = [];
   const pts = _trackPathPts, n = pts.length;
-  const off = TRACK_HALF_W + 0.08, STEP = 2;
+  const off = TRACK_HALF_W + 0.06, STEP = 1;
   for (let side = -1; side <= 1; side += 2) {
     for (let i = 0; i < n; i += STEP) {
       const a = pts[i], b = pts[(i + STEP) % n];
       const dr = b[0] - a[0], dc = b[1] - a[1];
       const L = Math.hypot(dr, dc) || 1e-9;
       const nr = -dc / L * side, nc = dr / L * side;   // нормаль к ходу
-      const pr = Math.floor(a[0] + nr * (off + 1.2));
-      const pc = Math.floor(a[1] + nc * (off + 1.2));
-      if (_inRacePaddock(a[0], a[1]) || _inPitCorridor(pr + 0.5, pc + 0.5)) continue;
+      if (_inRacePaddock(a[0], a[1])) continue;
       _trackBarrierSegs.push({
         ar: a[0] + nr * off, ac: a[1] + nc * off,
         br: b[0] + nr * off, bc: b[1] + nc * off,
@@ -16475,9 +16513,9 @@ function update(dt) {
       // Гоночные бортики: трек остаётся проходимым тайлом, но машина не может
       // вылететь за край ленты. При ударе отражаем скорость от внешней нормали.
       if ((qc._race || (qc.model && QUEST_CAR_MODELS[qc.model] && QUEST_CAR_MODELS[qc.model].race))
-          && !(_inRacePaddock(qc.y, qc.x) || _inPitCorridor(qc.y, qc.x))) {
+          && !_inRacePaddock(qc.y, qc.x)) {
         const near = _nearestRaceTrackPoint(qc.y, qc.x);
-        const limit = TRACK_HALF_W - 0.45;
+        const limit = TRACK_HALF_W - 0.95;
         if (near.d > limit) {
           let nr = near.dr / (near.d || 1), nc = near.dc / (near.d || 1);
           qc.y = near.r + nr * limit;
@@ -23699,6 +23737,31 @@ function drawQuestCar(qc) {
   // Клевок — вдоль направления машины; крен — поперёк
   const _pR = _shakeRY + Math.sin(qc.ang) * _pitch - Math.cos(qc.ang) * _roll;
   const _pC = _shakeRX + Math.cos(qc.ang) * _pitch + Math.sin(qc.ang) * _roll;
+  if (m.race) {
+    const speed = Math.hypot(qc.vx || 0, qc.vy || 0);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = speed > 1.0 ? 'rgba(120,190,255,.18)' : 'rgba(255,215,80,.12)';
+    ctx.shadowColor = m.accent || '#70a0ff';
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    ctx.ellipse(cp.x, cp.y + 5, TS * 0.62, TS * 0.20, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (speed > 2.0) {
+      const backR = qc.y - Math.sin(qc.ang || 0) * 0.85;
+      const backC = qc.x - Math.cos(qc.ang || 0) * 0.85;
+      const bp = w2s(backR + 0.5, backC + 0.5);
+      ctx.strokeStyle = 'rgba(255,255,255,.35)';
+      ctx.lineWidth = 2;
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(bp.x + i * 5, bp.y - 2);
+        ctx.lineTo(bp.x + i * 9 - Math.cos(qc.ang || 0) * 16, bp.y + 4 - Math.sin(qc.ang || 0) * 8);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
   // Мотоцикл — отдельный изорендер (узкий корпус, 2 колеса). Иначе —
   // обычная тачка через drawCarPretty (с braking для стоп-сигналов).
   if (m.is_bike) {

@@ -19070,12 +19070,12 @@ async def _coop_http_app():
                         except Exception: pass
                     elif t == 'race_lap':
                         # Круг на треке «Прибой». Клиент шлёт время в ms;
-                        # sanity-границы: 15с (читер/телепорт) .. 20 мин.
+                        # sanity-границы: 3с (читер/телепорт) .. 20 мин.
                         try:
                             _lap_ms = int(d.get('ms') or 0)
                         except Exception:
                             _lap_ms = 0
-                        if 15000 <= _lap_ms <= 1200000:
+                        if 3000 <= _lap_ms <= 1200000:
                             _race_day_roll()
                             _pl = world.players.get(uid) or {}
                             _nm = str(_pl.get('name') or 'Гонщик')[:16]

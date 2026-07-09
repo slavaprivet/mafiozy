@@ -7,6 +7,7 @@ from aiohttp import web
 
 players = {}
 race_best = {}
+race_day = ""
 PREVIEW_START_X = 66.0
 PREVIEW_START_Y = 162.5
 RACE_SLOTS = [
@@ -101,11 +102,20 @@ def release_player_cars(uid):
 
 
 def race_top():
+    race_day_roll()
     rows = sorted(race_best.values(), key=lambda row: row["ms"])[:5]
     return [
         {"uid": row["uid"], "name": row["name"], "ms": row["ms"], "car": row.get("car", "машина")}
         for row in rows
     ]
+
+
+def race_day_roll():
+    global race_day, race_best
+    today = time.strftime("%Y-%m-%d")
+    if race_day != today:
+        race_day = today
+        race_best = {}
 
 
 def cors(resp):
@@ -267,7 +277,8 @@ async def world_ws(req):
                     lap_ms = int(d.get("ms") or 0)
                 except Exception:
                     lap_ms = 0
-                if 15000 <= lap_ms <= 1200000:
+                if 3000 <= lap_ms <= 1200000:
+                    race_day_roll()
                     p = players.setdefault(uid, {})
                     cur = race_best.get(uid)
                     if cur is None or lap_ms < cur["ms"]:
