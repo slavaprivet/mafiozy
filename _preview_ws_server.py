@@ -8,6 +8,8 @@ from aiohttp import web
 players = {}
 race_best = {}
 race_day = ""
+next_civ_car_id = 1
+clients = set()
 PREVIEW_START_X = 66.0
 PREVIEW_START_Y = 162.5
 RACE_SLOTS = [
@@ -88,6 +90,44 @@ def race_car_payload():
         }
         for car in quest_cars.values()
     ]
+
+
+def preview_civilian_carjack(uid, data):
+    global next_civ_car_id
+    p = players.setdefault(uid, {})
+    car_id = f"civ_preview_{next_civ_car_id}"
+    next_civ_car_id += 1
+    x = float(data.get("x", p.get("x", PREVIEW_START_X)))
+    y = float(data.get("y", p.get("y", PREVIEW_START_Y)))
+    model = str(data.get("model") or "corvette_c3")
+    car = {
+        "id": car_id,
+        "model": model,
+        "owner_uid": None,
+        "driver_uid": uid,
+        "passenger_uids": [],
+        "x": x,
+        "y": y,
+        "ang": float(p.get("ang", 0.0)),
+        "vx": 0.0,
+        "vy": 0.0,
+        "hp": 220,
+        "max_hp": 220,
+        "wrecked": False,
+        "civilian": True,
+    }
+    quest_cars[car_id] = car
+    p["x"] = x
+    p["y"] = y
+    p["ang"] = car["ang"]
+    return {
+        "ok": True,
+        "car_id": car_id,
+        "model": model,
+        "x": x,
+        "y": y,
+        "civilian": True,
+    }
 
 
 reset_race_cars()
@@ -210,6 +250,7 @@ async def world_ws(req):
     })
     ws = web.WebSocketResponse(heartbeat=20)
     await ws.prepare(req)
+    clients.add(ws)
     await ws.send_str(json.dumps({
         "t": "hello",
         "d": {
@@ -254,6 +295,24 @@ async def world_ws(req):
                     p["x"] = car["x"]
                     p["y"] = car["y"]
                     p["ang"] = car.get("ang", 0.0)
+            elif t == "civilian_carjack":
+                reply = preview_civilian_carjack(uid, d)
+                await ws.send_str(json.dumps({"t": "event", "d": {**reply, "kind": "civilian_hijack_reply"}}))
+                if reply.get("ok"):
+                    spawn_pkt = json.dumps({"t": "event", "d": {
+                        "kind": "quest_car_spawned",
+                        "car_id": reply["car_id"],
+                        "model": reply["model"],
+                        "reward": 0,
+                        "lock_lvl": 0,
+                        "civilian": True,
+                        "by_uid": uid,
+                        "x": reply["x"],
+                        "y": reply["y"],
+                    }})
+                    for other in list(clients):
+                        if not other.closed:
+                            await other.send_str(spawn_pkt)
             elif t == "gta_drive":
                 car = quest_cars.get(str(d.get("car_id") or ""))
                 if car and str(car.get("driver_uid")) == str(uid):
@@ -296,6 +355,7 @@ async def world_ws(req):
                 }))
     finally:
         task.cancel()
+        clients.discard(ws)
         release_player_cars(uid)
         players.pop(uid, None)
     return ws
