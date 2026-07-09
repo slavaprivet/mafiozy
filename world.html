@@ -2145,18 +2145,18 @@ function updateRaceLap() {
 // Табло рекордов дня — щит на ножках у старта (depth-sort в render).
 function drawRaceBoard() {
   const p = w2s(RACE_BOARD.r + 0.5, RACE_BOARD.c + 0.5);
-  const W = 192, H = 138, top = p.y - 182;
+  const W = 176, H = 138, top = p.y - 182;
   const rows = _raceBoardRows();
   ctx.save();
   // Ножки
-  ctx.strokeStyle = '#4a4038'; ctx.lineWidth = 4;
+  ctx.strokeStyle = 'rgba(74,64,56,.82)'; ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(p.x - W * 0.32, p.y - 4); ctx.lineTo(p.x - W * 0.32, top + H);
-  ctx.moveTo(p.x + W * 0.32, p.y - 4); ctx.lineTo(p.x + W * 0.32, top + H);
+  ctx.moveTo(p.x - W * 0.24, p.y - 4); ctx.lineTo(p.x - W * 0.24, top + H);
+  ctx.moveTo(p.x + W * 0.24, p.y - 4); ctx.lineTo(p.x + W * 0.24, top + H);
   ctx.stroke();
   // Щит
-  ctx.fillStyle = 'rgba(12,12,18,.92)';
-  ctx.strokeStyle = '#ffd76b'; ctx.lineWidth = 1.5;
+  ctx.fillStyle = 'rgba(12,12,18,.66)';
+  ctx.strokeStyle = 'rgba(255,215,107,.92)'; ctx.lineWidth = 1.5;
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(p.x - W / 2, top, W, H, 6); else ctx.rect(p.x - W / 2, top, W, H);
   ctx.fill(); ctx.stroke();
