@@ -1959,10 +1959,10 @@ const RACE_FINISH_LINE = { ar: 164.45, ac: 64.5, br: 169.45, bc: 64.5 };
 const RACE_START_AT = { r: 170.45, c: 72.25 };
 const RACE_BOARD = { r: 162, c: 72 };        // табло рекордов справа на стартовом асфальте
 const RACE_CHEER_CREW = [
-  { r: 167.5, c: 39.8, outfit: '#ff3b6b', hair: '#2a160c', pomp: '#ffd84a', phase: 0.0, look: { gender: 1, skin: 1, body: 2, face: 1, hair: 3, hat: 0 } },
-  { r: 168.6, c: 41.2, outfit: '#35d07f', hair: '#17120e', pomp: '#ff4f8b', phase: 1.2, look: { gender: 1, skin: 0, body: 3, face: 1, hair: 4, hat: 0 } },
-  { r: 169.8, c: 40.4, outfit: '#56a6ff', hair: '#6b3b18', pomp: '#ffd84a', phase: 2.4, look: { gender: 1, skin: 2, body: 1, face: 2, hair: 2, hat: 0 } },
-  { r: 170.9, c: 42.0, outfit: '#f0c040', hair: '#23140c', pomp: '#56a6ff', phase: 3.5, look: { gender: 1, skin: 3, body: 0, face: 1, hair: 1, hat: 0 } },
+  { r: 165.9, c: 42.1, outfit: '#ff3b6b', hair: '#2a160c', pomp: '#ffd84a', phase: 0.0, look: { gender: 1, skin: 1, body: 2, face: 1, hair: 3, hat: 0 } },
+  { r: 166.8, c: 43.0, outfit: '#35d07f', hair: '#17120e', pomp: '#ff4f8b', phase: 1.2, look: { gender: 1, skin: 0, body: 3, face: 1, hair: 4, hat: 0 } },
+  { r: 167.8, c: 42.4, outfit: '#56a6ff', hair: '#6b3b18', pomp: '#ffd84a', phase: 2.4, look: { gender: 1, skin: 2, body: 1, face: 2, hair: 2, hat: 0 } },
+  { r: 168.7, c: 43.2, outfit: '#f0c040', hair: '#23140c', pomp: '#56a6ff', phase: 3.5, look: { gender: 1, skin: 3, body: 0, face: 1, hair: 1, hat: 0 } },
 ];
 // Гоночная площадка (паддок) у стартовой прямой: асфальт вместо песка,
 // 3 бокса под спорткары (спавнит сервер, слоты в mafiozi_bot.py —
@@ -1997,6 +1997,7 @@ let _raceBestCar = '';
 let _raceTop = [];                           // топ дня с сервера [{name, ms}]
 let _raceTopAskedAt = 0;
 let _racePrevR = 0, _racePrevC = 0;
+let _raceWasInStartZone = false;
 let _raceHudEl = null;
 function _fmtLapMs(ms) {
   const s = ms / 1000;
@@ -2026,7 +2027,7 @@ function _raceBoardRows() {
   return rows.slice(0, 5);
 }
 function _raceLapPointOk(r, c) {
-  if (r < 150 || _inRacePaddock(r, c)) return false;
+  if (r < 150) return false;
   return _nearestRaceTrackPoint(r, c).d <= TRACK_HALF_W + 0.35;
 }
 function _resetRaceLap(reason, r, c) {
@@ -2067,6 +2068,9 @@ function _raceCarBodyProbe(qc) {
     frontR: qc.y + sr * off, frontC: qc.x + sc * off,
   };
 }
+function _racePointNearLine(r, c, line, pad) {
+  return _distToRaceSeg(r, c, line.ar, line.ac, line.br, line.bc) <= pad;
+}
 function _raceHud(show, text) {
   if (!_raceHudEl) {
     _raceHudEl = document.createElement('div');
@@ -2105,7 +2109,7 @@ function updateRaceLap() {
     _racePrevR = pr; _racePrevC = pc;
     return;
   }
-  if (_raceLapStartMs && !_raceLapPointOk(pr, pc)) {
+  if (_raceLapStartMs && now - _raceLapStartMs > 900 && !_raceLapPointOk(pr, pc)) {
     _resetRaceLap('Круг сброшен', pr, pc);
     _racePrevR = pr; _racePrevC = pc;
     return;
@@ -2157,13 +2161,17 @@ function updateRaceLap() {
   const startLine = _raceCrossLineAt(RACE_START_AT, TRACK_HALF_W + 0.35);
   const raceCar = _raceDrivingCar();
   let carStartHit = false;
+  let startZoneNow = _racePointNearLine(pr, pc, startLine, 1.25);
   if (raceCar) {
     const body = _raceCarBodyProbe(raceCar);
     const carSpeed = Math.hypot(raceCar.vx || 0, raceCar.vy || 0);
-    const centerNearStart = _distToRaceSeg(raceCar.y, raceCar.x,
-      startLine.ar, startLine.ac, startLine.br, startLine.bc) <= 1.25;
-    carStartHit = carSpeed > 0.10 &&
-      (segmentHitsLine(body.rearR, body.rearC, body.frontR, body.frontC, startLine) || centerNearStart);
+    const inputMag = Math.hypot(raceCar._inDx || 0, raceCar._inDy || 0);
+    const moved = Math.hypot(pr - _racePrevR, pc - _racePrevC) > 0.012 || carSpeed > 0.04 || inputMag > 0.08;
+    startZoneNow = _racePointNearLine(raceCar.y, raceCar.x, startLine, 1.65);
+    carStartHit = moved && (
+      segmentHitsLine(body.rearR, body.rearC, body.frontR, body.frontC, startLine) ||
+      startZoneNow
+    );
   }
   if (!_raceLapStartMs && (crossedLine(startLine, startLine.dirR, startLine.dirC) || carStartHit)) {
     _raceLapStartMs = now; _raceGateIdx = 0;
@@ -2173,6 +2181,7 @@ function updateRaceLap() {
     else if (_raceGateIdx === 1 && crossed(15, +1, 163, 172)) _raceGateIdx = 2;  // западный лепесток
     else if (_raceGateIdx === 2 && crossed(42, +1, 184, 192)) _raceGateIdx = 3;  // нырок под кораблём
   }
+  _raceWasInStartZone = startZoneNow;
   if (_raceLapStartMs) {
     _raceHud(true, '⏱ ' + _fmtLapMs(now - _raceLapStartMs) +
       (_raceBestLapMs ? '  ·  луч. ' + _fmtLapMs(_raceBestLapMs) : ''));
@@ -9808,6 +9817,15 @@ function isBlocked(r, c) {
 function isBlockedCar(r, c) {
   return isBlocked(r, c);
 }
+function _isRaceWaterEdgeBlockedForPed(r, c) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (r < BEACH_R1 || !MAP[ri] || MAP[ri][ci] !== 18) return false;
+  if (_inPitCorridor(r, c)) return false;
+  return _nearestRaceTrackPoint(r, c).d > TRACK_HALF_W - 0.15;
+}
+function isBlockedPed(r, c) {
+  return isBlocked(r, c) || _isRaceWaterEdgeBlockedForPed(r, c);
+}
 // Машина стоит на песке? (для замедления + анимации зарывания колёс)
 // Разгонная прямая с пляжа к старту гонки — асфальт, песком не считается.
 function _carOnSand(r, c) {
@@ -9863,20 +9881,29 @@ function tryMove(obj, dr, dc) {
   // ESCAPE MODE: если игрок ЗАЛИП в blocked-тайле — пропускаем коллизии,
   // пока не выберется. Иначе застревает навсегда. После тюрьмы, потому что
   // центр участка тоже считается зданием.
-  const stuck = isBlocked(obj.r, obj.c);
+  const blockedAt = isMe ? isBlockedPed : isBlocked;
+  const raceEdgeStuck = isMe && _isRaceWaterEdgeBlockedForPed(obj.r, obj.c);
+  const stuck = blockedAt(obj.r, obj.c);
   if (stuck) {
+    if (raceEdgeStuck) {
+      const near = _nearestRaceTrackPoint(obj.r, obj.c);
+      const k = (TRACK_HALF_W - 0.45) / (near.d || 1);
+      obj.r = near.r + near.dr * k;
+      obj.c = near.c + near.dc * k;
+      return;
+    }
     obj.r += dr;
     obj.c += dc;
     return;
   }
   let nr = obj.r + dr;
-  if (!isBlocked(nr - pad, obj.c) && !isBlocked(nr + pad, obj.c) &&
-      !isBlocked(nr, obj.c - pad) && !isBlocked(nr, obj.c + pad)) {
+  if (!blockedAt(nr - pad, obj.c) && !blockedAt(nr + pad, obj.c) &&
+      !blockedAt(nr, obj.c - pad) && !blockedAt(nr, obj.c + pad)) {
     obj.r = nr;
   }
   let nc = obj.c + dc;
-  if (!isBlocked(obj.r - pad, nc) && !isBlocked(obj.r + pad, nc) &&
-      !isBlocked(obj.r, nc - pad) && !isBlocked(obj.r, nc + pad)) {
+  if (!blockedAt(obj.r - pad, nc) && !blockedAt(obj.r + pad, nc) &&
+      !blockedAt(obj.r, nc - pad) && !blockedAt(obj.r, nc + pad)) {
     obj.c = nc;
   }
 }
