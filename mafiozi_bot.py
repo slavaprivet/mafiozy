@@ -11576,7 +11576,7 @@ def _in_race_pit_corridor(r: float, c: float) -> bool:
 # ── Рекорды дня на треке «Прибой» ────────────────────────────────────
 # Лучшее время круга на игрока за СЕГОДНЯ; сбрасывается сменой даты
 # (и рестартом сервера — суточный лидерборд, некритично).
-RACE_DAY = {'date': '', 'best': {}}   # best: {uid: (ms, name)}
+RACE_DAY = {'date': '', 'best': {}}   # best: {uid: (ms, name, car)}
 
 
 def _race_day_roll() -> None:
@@ -11589,7 +11589,10 @@ def _race_day_roll() -> None:
 def _race_top_list() -> list:
     _race_day_roll()
     items = sorted(RACE_DAY['best'].items(), key=lambda kv: kv[1][0])[:5]
-    return [{'uid': u, 'ms': v[0], 'name': v[1]} for u, v in items]
+    return [
+        {'uid': u, 'ms': v[0], 'name': v[1], 'car': (v[2] if len(v) > 2 else 'машина')}
+        for u, v in items
+    ]
                       # (тоже город, дорога ведёт на юг), r=100..139 — отдельная
                       # большая арена с Логовом (банда там живёт и бьётся).
                       # Должно совпадать с MAP_COLS/MAP_ROWS в world.html
@@ -12796,6 +12799,39 @@ class WorldSim:
     RACE_RESPAWN_S  = 5.0   # пауза между угоном из бокса и спавном новой
     RACE_LOOSE_CAP  = 6     # анти-утечка: максимум брошенных гоночных вне боксов
     RACE_SLOT_R     = 1.2   # радиус «бокс занят» вокруг центра слота
+    def _park_race_car(self, car: dict, slot_i: int, now: float) -> None:
+        """Вернуть брошенную гоночную машину в её бокс.
+        Если бокс занят другой quest-машиной, занявшую машину удаляем:
+        в паддоке всегда максимум одна машина на слот."""
+        if slot_i < 0 or slot_i >= len(self._race_slots):
+            return
+        slot = self._race_slots[slot_i]
+        car_id = car.get('id')
+        for oid, other in list(self.quest_cars.items()):
+            if oid == car_id or other.get('wrecked'):
+                continue
+            if (abs(other.get('x', 9999) - slot['x']) < self.RACE_SLOT_R
+                    and abs(other.get('y', 9999) - slot['y']) < self.RACE_SLOT_R):
+                owner = other.get('owner_uid')
+                p = self.players.get(str(owner)) if owner is not None else None
+                if p and p.get('_gta_active_car_id') == oid:
+                    p['_gta_active_car_id'] = None
+                self.quest_cars.pop(oid, None)
+        car.update({
+            'x': slot['x'], 'y': slot['y'], 'ang': 1.5708,
+            'vx': 0.0, 'vy': 0.0,
+            'owner_uid': None, 'driver_uid': None,
+            'passenger_uids': [],
+            'state': 'idle', 'wrecked': False,
+            'civilian': True,
+            '_race': True,
+            '_race_slot': slot_i,
+            '_home_slot': slot_i,
+            '_spawn_t': now,
+            '_last_drive_t': 0,
+        })
+        slot['free_t'] = 0.0
+
     def _tick_race_slots(self, now: float) -> None:
         """Паддок: держит по спорткару в каждом из 3 боксов. Бокс опустел
         (машину увезли/разбили) — через RACE_RESPAWN_S рождается новая.
@@ -12816,6 +12852,18 @@ class WorldSim:
                     or abs(q['x'] - s['x']) >= self.RACE_SLOT_R
                     or abs(q['y'] - s['y']) >= self.RACE_SLOT_R):
                 q['_race_slot'] = None
+        # 1b) Брошенная на трассе гоночная машина возвращается в свой бокс.
+        #     Если в боксе уже стоит другая машина, она удаляется.
+        for q in list(self.quest_cars.values()):
+            if not q.get('_race') or q.get('_race_slot') is not None:
+                continue
+            if q.get('driver_uid') or q.get('wrecked'):
+                continue
+            home_i = q.get('_home_slot')
+            if home_i is None:
+                home_i = next((i for i, s in enumerate(self._race_slots)
+                               if s.get('model') == q.get('model')), 0)
+            self._park_race_car(q, int(home_i), now)
         # 2) Пустой бокс → таймер → спавн.
         for i, slot in enumerate(self._race_slots):
             occupied = False
@@ -12859,6 +12907,7 @@ class WorldSim:
                 'civilian':   True,           # gta_enter пускает без владельца
                 '_race':      True,
                 '_race_slot': i,
+                '_home_slot': i,
                 '_spawn_t':   now,
                 '_last_drive_t': 0,
             }
@@ -18990,9 +19039,10 @@ async def _coop_http_app():
                             _race_day_roll()
                             _pl = world.players.get(uid) or {}
                             _nm = str(_pl.get('name') or 'Гонщик')[:16]
+                            _car = str(d.get('car') or 'машина')[:24]
                             _cur = RACE_DAY['best'].get(uid)
                             if _cur is None or _lap_ms < _cur[0]:
-                                RACE_DAY['best'][uid] = (_lap_ms, _nm)
+                                RACE_DAY['best'][uid] = (_lap_ms, _nm, _car)
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'race_top', 'd': {'top': _race_top_list()}},

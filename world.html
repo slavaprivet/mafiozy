@@ -1932,6 +1932,8 @@ function inRaceTrack(r, c) {
 // фиксирует рекорд, проезд старта — запускает новое время.
 const RACE_FINISH_C = 64.5;                  // финиш — шахматка
 const RACE_START_C  = 67.5;                  // старт — двойная белая линия
+const RACE_LINE_R0  = 164.45;
+const RACE_LINE_R1  = 169.45;
 const RACE_BOARD = { r: 162, c: 69 };        // табло рекордов на пляже у старта
 // Гоночная площадка (паддок) у стартовой прямой: асфальт вместо песка,
 // 3 бокса под спорткары (спавнит сервер, слоты в mafiozi_bot.py —
@@ -1962,6 +1964,7 @@ function _inPitCorridor(r, c) {
 let _raceLapStartMs = 0;                     // 0 = круг не идёт
 let _raceGateIdx = 0;                        // 0=ждём юг, 1=запад, 2=нырок, 3=финиш
 let _raceLastLapMs = 0, _raceBestLapMs = 0;
+let _raceBestCar = '';
 let _raceTop = [];                           // топ дня с сервера [{name, ms}]
 let _raceTopAskedAt = 0;
 let _racePrevR = 0, _racePrevC = 0;
@@ -1970,6 +1973,11 @@ function _fmtLapMs(ms) {
   const s = ms / 1000;
   const m = Math.floor(s / 60);
   return m + ':' + String(Math.floor(s % 60)).padStart(2, '0') + '.' + Math.floor((s % 1) * 10);
+}
+function _raceCarLabel() {
+  const qc = myDrivingCarId ? questCars.get(myDrivingCarId) : null;
+  const m = qc ? resolveCarModel(qc.model) : null;
+  return String((m && (m.label || m.id)) || (qc && qc.model) || 'Пешком').slice(0, 22);
 }
 function _raceHud(show, text) {
   if (!_raceHudEl) {
@@ -2002,20 +2010,21 @@ function updateRaceLap() {
     pr >= r0 && pr <= r1 &&
     (dir > 0 ? (_racePrevC < plane && pc >= plane) : (_racePrevC > plane && pc <= plane));
   // ФИНИШ (шахматка): фиксирует рекорд, если пройдены все ворота
-  if (crossed(RACE_FINISH_C, +1, 163, 172)) {
+  if (crossed(RACE_FINISH_C, +1, RACE_LINE_R0 - 1.5, RACE_LINE_R1 + 1.5)) {
     if (_raceLapStartMs && _raceGateIdx === 3) {
       const ms = Math.round(now - _raceLapStartMs);
+      const car = _raceCarLabel();
       _raceLastLapMs = ms;
-      if (!_raceBestLapMs || ms < _raceBestLapMs) _raceBestLapMs = ms;
-      spawnFloatText(pr, pc, '🏁 РЕКОРД ' + _fmtLapMs(ms), { color: '#ffd76b', size: 18, life: 2500 });
-      try { ws && ws.send(JSON.stringify({ t: 'race_lap', d: { ms } })); } catch (e) {}
+      if (!_raceBestLapMs || ms < _raceBestLapMs) { _raceBestLapMs = ms; _raceBestCar = car; }
+      spawnFloatText(pr, pc, '🏁 ' + _fmtLapMs(ms) + ' · ' + car, { color: '#ffd76b', size: 18, life: 2500 });
+      try { ws && ws.send(JSON.stringify({ t: 'race_lap', d: { ms, car } })); } catch (e) {}
       _raceTopAskedAt = 0;   // обновить табло сразу
     }
     _raceLapStartMs = 0;
     _raceHud(false);
   }
   // СТАРТ (двойная линия): запускает новое время
-  if (crossed(RACE_START_C, +1, 163, 172)) {
+  if (crossed(RACE_START_C, +1, RACE_LINE_R0 - 1.5, RACE_LINE_R1 + 1.5)) {
     _raceLapStartMs = now; _raceGateIdx = 0;
     spawnFloatText(pr, pc, '🏁 Старт!', { color: '#7be58a', size: 14, life: 1500 });
   } else if (_raceLapStartMs) {
@@ -2032,7 +2041,7 @@ function updateRaceLap() {
 // Табло рекордов дня — щит на ножках у старта (depth-sort в render).
 function drawRaceBoard() {
   const p = w2s(RACE_BOARD.r + 0.5, RACE_BOARD.c + 0.5);
-  const W = 148, H = 96, top = p.y - 150;
+  const W = 188, H = 124, top = p.y - 172;
   ctx.save();
   // Ножки
   ctx.strokeStyle = '#4a4038'; ctx.lineWidth = 4;
@@ -2055,8 +2064,9 @@ function drawRaceBoard() {
     for (let i = 0; i < Math.min(5, _raceTop.length); i++) {
       const e = _raceTop[i];
       ctx.fillStyle = i === 0 ? '#ffe48a' : '#d8d8d8';
-      const nm = String(e.name || '?').slice(0, 10);
-      ctx.fillText(`${i + 1}. ${nm}  ${_fmtLapMs(e.ms)}`, p.x, top + 30 + i * 12);
+      const nm = String(e.name || '?').slice(0, 9);
+      const car = String(e.car || 'машина').slice(0, 13);
+      ctx.fillText(`${i + 1}. ${nm} - ${_fmtLapMs(e.ms)} - ${car}`, p.x, top + 30 + i * 14);
     }
   } else {
     ctx.fillStyle = '#9a9a9a';
@@ -2064,7 +2074,7 @@ function drawRaceBoard() {
   }
   if (_raceBestLapMs) {
     ctx.fillStyle = '#7be58a';
-    ctx.fillText('Ты: ' + _fmtLapMs(_raceBestLapMs), p.x, top + H - 5);
+    ctx.fillText('Ты: ' + _fmtLapMs(_raceBestLapMs) + (_raceBestCar ? ' - ' + _raceBestCar : ''), p.x, top + H - 6);
   }
   ctx.textAlign = 'left';
   ctx.restore();
@@ -2156,17 +2166,26 @@ function drawRaceTrackRibbon() {
     ctx.restore();
   }
   // 8) ФИНИШ — шахматка поперёк ВОСТОЧНОЙ прямой, ровно на плоскости
-  //    триггера RACE_FINISH_C (страддлит c=64.5)
+  //    триггера RACE_FINISH_C. Подложка гасит старый пунктир трека под клетками.
+  const lineR0 = RACE_LINE_R0;
+  const lineR1 = RACE_LINE_R1;
+  const lineH = lineR1 - lineR0;
+  ctx.fillStyle = 'rgba(22,22,26,.78)';
+  ctx.fillRect(RACE_FINISH_C - 0.52, lineR0 - 0.05, 1.04, lineH + 0.10);
+  const cellR = lineH / 10;
+  const cellC = 0.46;
   for (let gr = 0; gr < 10; gr++) {       // поперёк полотна (по r)
     for (let gc = 0; gc < 2; gc++) {      // вдоль (по c)
-      ctx.fillStyle = ((gr + gc) & 1) ? '#e8e8e8' : '#16161a';
-      ctx.fillRect(RACE_FINISH_C - 0.45 + gc * 0.45, 164.9 + gr * 0.45, 0.45, 0.45);
+      ctx.fillStyle = ((gr + gc) & 1) ? '#eeeeee' : '#101014';
+      ctx.fillRect(RACE_FINISH_C - cellC + gc * cellC, lineR0 + gr * cellR, cellC, cellR);
     }
   }
-  // 9) СТАРТ — двойная белая линия на плоскости RACE_START_C (c=67.5)
-  ctx.fillStyle = '#e8e8e8';
-  ctx.fillRect(RACE_START_C - 0.28, 164.9, 0.20, 4.5);
-  ctx.fillRect(RACE_START_C + 0.08, 164.9, 0.20, 4.5);
+  // 9) СТАРТ — двойная белая линия на той же ширине полотна, внутри асфальта.
+  ctx.fillStyle = 'rgba(22,22,26,.55)';
+  ctx.fillRect(RACE_START_C - 0.36, lineR0 - 0.05, 0.84, lineH + 0.10);
+  ctx.fillStyle = '#eeeeee';
+  ctx.fillRect(RACE_START_C - 0.26, lineR0, 0.18, lineH);
+  ctx.fillRect(RACE_START_C + 0.12, lineR0, 0.18, lineH);
   // 10) Разметка паддока: белая окантовка площадки + 3 бокса под спорткары
   //     (координаты боксов = слоты спавна на сервере, менять синхронно)
   ctx.strokeStyle = 'rgba(238,238,238,.42)';
@@ -6782,9 +6801,9 @@ const EMERGENCY_AMBIENT_MODELS = [
 // id-ы СОВПАДАЮТ с серверным QUEST_CAR_MODELS в mafiozi_bot.py — иначе
 // фото машины Майкла будет пустым (QUEST_CAR_MODELS[id]→undefined).
 const QUEST_CAR_MODELS = {
-  ferrari_f40:    { id: 'ferrari_f40',    label: 'Ferrari F40',     L: 1.70, W: 0.86, palette: ['#ee0e1a','#7a0510'], roof: '#1a0408', wheelR: 0.15, height: 0.50, reward: 2800, sport: true, fast: true },
-  lambo_countach: { id: 'lambo_countach', label: 'Lambo Countach',  L: 1.70, W: 0.86, palette: ['#fad000','#a07a00'], roof: '#1a1100', wheelR: 0.15, height: 0.45, reward: 2600, sport: true, fast: true },
-  porsche_911:    { id: 'porsche_911',    label: 'Porsche 911',     L: 1.65, W: 0.80, palette: ['#3a3a78','#1a1a3a'], roof: '#0a0a1a', wheelR: 0.15, height: 0.50, reward: 2200, sport: true, fast: true },
+  ferrari_f40:    { id: 'ferrari_f40',    label: 'Ferrari F40',     L: 1.86, W: 0.98, palette: ['#ee0e1a','#7a0510'], roof: '#140206', wheelR: 0.20, height: 0.30, reward: 2800, sport: true, fast: true, race: true, raceNo: '40', stripe: '#f5f5f5', accent: '#111111' },
+  lambo_countach: { id: 'lambo_countach', label: 'Lambo Countach',  L: 1.86, W: 1.00, palette: ['#fad000','#a07a00'], roof: '#161000', wheelR: 0.20, height: 0.28, reward: 2600, sport: true, fast: true, race: true, raceNo: '12', stripe: '#111111', accent: '#f5f5f5' },
+  porsche_911:    { id: 'porsche_911',    label: 'Porsche 911',     L: 1.78, W: 0.94, palette: ['#3a3a78','#1a1a3a'], roof: '#06061a', wheelR: 0.19, height: 0.32, reward: 2200, sport: true, fast: true, race: true, raceNo: '911', stripe: '#f5f5f5', accent: '#70a0ff' },
   delorean:       { id: 'delorean',       label: 'DeLorean DMC-12', L: 1.75, W: 0.85, palette: ['#c8c8d0','#82828a'], roof: '#1a1a22', wheelR: 0.16, height: 0.50, reward: 2000, sport: true },
   aston_db5:      { id: 'aston_db5',      label: 'Aston DB5',       L: 1.78, W: 0.85, palette: ['#2a4a6a','#0a1a3a'], roof: '#000a1a', wheelR: 0.16, height: 0.52, reward: 2400, sport: true },
   corvette_c3:    { id: 'corvette_c3',    label: 'Corvette C3',     L: 1.75, W: 0.86, palette: ['#e62810','#7a1010'], roof: '#1a0408', wheelR: 0.15, height: 0.48, reward: 1800, sport: true },
@@ -20652,26 +20671,65 @@ function drawCarPretty(car) {
     // Одиночная белая полоса по центру крыши
     const fMid = { x: (rFR.x + rFL.x) / 2, y: (rFR.y + rFL.y) / 2 };
     const bMid = { x: (rBR.x + rBL.x) / 2, y: (rBR.y + rBL.y) / 2 };
-    ctx.fillStyle = '#f4f4f4';
+    ctx.fillStyle = m.stripe || '#f4f4f4';
     ctx.beginPath();
     ctx.moveTo(fMid.x - 1.5, fMid.y); ctx.lineTo(fMid.x + 1.5, fMid.y);
     ctx.lineTo(bMid.x + 1.5, bMid.y); ctx.lineTo(bMid.x - 1.5, bMid.y);
     ctx.closePath(); ctx.fill();
+    if (m.race) {
+      const cx = (rFR.x + rFL.x + rBR.x + rBL.x) / 4;
+      const cy = (rFR.y + rFL.y + rBR.y + rBL.y) / 4;
+      // Номер на крыше — быстрый сигнал, что это гоночная машина.
+      ctx.fillStyle = 'rgba(245,245,245,.94)';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 8.0, 4.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = m.accent || '#111';
+      ctx.lineWidth = 1.0;
+      ctx.stroke();
+      ctx.fillStyle = '#111';
+      ctx.font = 'bold 6px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(m.raceNo || '7'), cx, cy + 0.2);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      // Воздухозаборники на капоте.
+      const hoodF = { x: rFR.x * 0.62 + rFL.x * 0.38, y: rFR.y * 0.62 + rFL.y * 0.38 };
+      const hoodB = { x: rFR.x * 0.38 + rFL.x * 0.62, y: rFR.y * 0.38 + rFL.y * 0.62 };
+      ctx.strokeStyle = 'rgba(0,0,0,.55)';
+      ctx.lineWidth = 1.1;
+      for (const p of [hoodF, hoodB]) {
+        ctx.beginPath();
+        ctx.moveTo(p.x - 3, p.y + 3);
+        ctx.lineTo(p.x + 3, p.y - 3);
+        ctx.stroke();
+      }
+      // Боковой обвес, чтобы силуэт был ниже и шире.
+      ctx.strokeStyle = m.accent || '#101014';
+      ctx.lineWidth = 2.2;
+      for (const e of visible) {
+        ctx.beginPath();
+        ctx.moveTo(e.a.x, e.a.y - H * 0.08);
+        ctx.lineTo(e.b.x, e.b.y - H * 0.08);
+        ctx.stroke();
+      }
+    }
   }
   // ── Спойлер у спорткара / маслкара ───────────────────────────────
   // Тонкая вертикальная плашка-антикрыло сзади над крышей
   if ((m.sport || m.muscle) && !m.cabrio) {
     const sp1 = { x: rBR.x * 0.85 + rFR.x * 0.15, y: rBR.y * 0.85 + rFR.y * 0.15 };
     const sp2 = { x: rBL.x * 0.85 + rFL.x * 0.15, y: rBL.y * 0.85 + rFL.y * 0.15 };
-    ctx.fillStyle = '#0a0a0a';
+    ctx.fillStyle = m.race ? (m.accent || '#050506') : '#0a0a0a';
     // Антикрыло: тонкая горизонтальная плашка на 3 px выше крыши
     ctx.beginPath();
-    ctx.moveTo(sp1.x, sp1.y - 3); ctx.lineTo(sp2.x, sp2.y - 3);
-    ctx.lineTo(sp2.x, sp2.y - 1); ctx.lineTo(sp1.x, sp1.y - 1);
+    ctx.moveTo(sp1.x, sp1.y - (m.race ? 6 : 3)); ctx.lineTo(sp2.x, sp2.y - (m.race ? 6 : 3));
+    ctx.lineTo(sp2.x, sp2.y - (m.race ? 3 : 1)); ctx.lineTo(sp1.x, sp1.y - (m.race ? 3 : 1));
     ctx.closePath(); ctx.fill();
     // 2 «стойки» антикрыла
-    ctx.fillRect(sp1.x - 0.5, sp1.y - 3, 1, 3);
-    ctx.fillRect(sp2.x - 0.5, sp2.y - 3, 1, 3);
+    ctx.fillRect(sp1.x - 0.5, sp1.y - (m.race ? 6 : 3), 1, m.race ? 6 : 3);
+    ctx.fillRect(sp2.x - 0.5, sp2.y - (m.race ? 6 : 3), 1, m.race ? 6 : 3);
   }
   // ── Bullbar / решётка у SUV ──────────────────────────────────────
   // Серебристая толстая полоса прямо перед фронтальной гранью.

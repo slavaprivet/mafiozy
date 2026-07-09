@@ -34,6 +34,39 @@ def reset_race_cars():
         }
 
 
+def slot_by_car_id(car_id):
+    for slot in RACE_SLOTS:
+        if slot["id"] == car_id:
+            return slot
+    return None
+
+
+def park_race_car(car):
+    slot = slot_by_car_id(car["id"])
+    if not slot:
+        return
+    occupied_ids = []
+    for other in quest_cars.values():
+        if other["id"] == car["id"]:
+            continue
+        if abs(other["x"] - slot["x"]) < 1.2 and abs(other["y"] - slot["y"]) < 1.2:
+            occupied_ids.append(other["id"])
+    for car_id in occupied_ids:
+        quest_cars.pop(car_id, None)
+    car.update({
+        "x": slot["x"],
+        "y": slot["y"],
+        "ang": slot["ang"],
+        "vx": 0.0,
+        "vy": 0.0,
+        "owner_uid": None,
+        "driver_uid": None,
+        "passenger_uids": [],
+        "wrecked": False,
+        "hp": 1000,
+    })
+
+
 def race_car_payload():
     return [
         {
@@ -64,23 +97,15 @@ def release_player_cars(uid):
         car = quest_cars.get(slot["id"])
         if not car or str(car.get("driver_uid")) != str(uid):
             continue
-        car.update({
-            "x": slot["x"],
-            "y": slot["y"],
-            "ang": slot["ang"],
-            "vx": 0.0,
-            "vy": 0.0,
-            "owner_uid": None,
-            "driver_uid": None,
-            "passenger_uids": [],
-            "wrecked": False,
-            "hp": 1000,
-        })
+        park_race_car(car)
 
 
 def race_top():
     rows = sorted(race_best.values(), key=lambda row: row["ms"])[:5]
-    return [{"uid": row["uid"], "name": row["name"], "ms": row["ms"]} for row in rows]
+    return [
+        {"uid": row["uid"], "name": row["name"], "ms": row["ms"], "car": row.get("car", "машина")}
+        for row in rows
+    ]
 
 
 def cors(resp):
@@ -234,10 +259,7 @@ async def world_ws(req):
             elif t == "gta_exit":
                 car = quest_cars.get(str(d.get("car_id") or ""))
                 if car and str(car.get("driver_uid")) == str(uid):
-                    car["driver_uid"] = None
-                    car["owner_uid"] = None
-                    car["vx"] = 0.0
-                    car["vy"] = 0.0
+                    park_race_car(car)
             elif t == "race_top":
                 await ws.send_str(json.dumps({"t": "race_top", "d": {"top": race_top()}}))
             elif t == "race_lap":
@@ -253,6 +275,7 @@ async def world_ws(req):
                             "uid": uid,
                             "name": str(p.get("name") or "Demo")[:16],
                             "ms": lap_ms,
+                            "car": str(d.get("car") or "машина")[:24],
                         }
                 await ws.send_str(json.dumps({"t": "race_top", "d": {"top": race_top()}}))
             elif t == "respawn_status":
