@@ -12881,7 +12881,12 @@ class WorldSim:
         qc['driver_uid']     = None
         qc['vx'] = 0.0; qc['vy'] = 0.0
         qc['state'] = 'idle'
-        qc['_parked_at'] = time.time()
+        # Отсчёт жизни брошенной машины начинается именно с высадки, а не с
+        # последнего пакета движения. Иначе после долгой поездки/лагов tick
+        # мог счесть машину давно бездействующей и удалить почти сразу.
+        parked_now = time.time()
+        qc['_parked_at'] = parked_now
+        qc['_last_drive_t'] = parked_now
         # Civilian-машина: НЕ сдаётся в порту, просто высадка. Стоит на месте.
         if qc.get('civilian'):
             return {'ok': True, 'delivered': False, 'car_id': car_id,
@@ -13005,6 +13010,9 @@ class WorldSim:
                 # Водитель отвалился / молчит
                 qc['driver_uid'] = None
                 qc['state']      = 'idle'
+                qc['vx'] = 0.0; qc['vy'] = 0.0
+                qc['_parked_at'] = now
+                qc['_last_drive_t'] = now
             if not driver:
                 # Спорткар, припаркованный в слоте паддока, живёт вечно —
                 # его жизненным циклом управляет _tick_race_slots.
