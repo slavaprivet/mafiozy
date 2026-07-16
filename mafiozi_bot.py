@@ -12011,6 +12011,12 @@ class WorldSim:
         'uzi': 'smg', 'ump': 'smg', 'mp5': 'smg', 'golden_uzi': 'smg',
         'ak': 'rifle', 'ak74': 'rifle', 'm4': 'rifle', 'm16': 'rifle',
     }
+    WEAPON_AMMO = {
+        'pistol':'9mm', 'pistol_gold':'9mm', 'smg':'9mm', 'tommy_gun':'9mm',
+        'nagan':'magnum', 'pistol_heavy':'magnum', 'shotgun':'shell',
+        'rifle':'rifle', 'sniper':'sniper', 'rpg':'rocket',
+    }
+    AMMO_DROP_ROUNDS = {'9mm':12, 'magnum':6, 'shell':6, 'rifle':15, 'sniper':3, 'rocket':1}
     # Совместимость со старым кодом, который ещё может читать только базовый урон.
     # Новые обработчики используют WEAPON_PROFILE и учитывают дистанцию.
     WEAPON_DMG = {
@@ -13563,6 +13569,17 @@ class WorldSim:
         key = str(weapon or 'pistol')
         key = cls.WEAPON_ALIASES.get(key, key)
         return key if key in cls.WEAPON_PROFILE else 'pistol'
+
+    def _spawn_gang_ammo_drop(self, weapon: str, x: float, y: float) -> None:
+        """Пачка подходящего калибра падает на землю и остаётся общей для мира."""
+        key = self._weapon_key(weapon)
+        ammo_type = self.WEAPON_AMMO.get(key, '9mm')
+        rounds = int(self.AMMO_DROP_ROUNDS.get(ammo_type, 6))
+        loot_id = f'gang_ammo_{int(time.time()*1000)}_{random.randint(100,999)}'
+        self.district_loot[loot_id] = {
+            'id': loot_id, 'kind': 'ammo', 'x': float(x), 'y': float(y),
+            'ammo_type': ammo_type, 'rounds': rounds, 'expires_at': time.time() + 90.0,
+        }
 
     @classmethod
     def _authorize_weapon_shot(cls, shooter: dict, weapon: str) -> dict | None:
@@ -15299,6 +15316,7 @@ class WorldSim:
                     bot['hp']    = 0
                     bot['alive'] = False
                     killed = True
+                    self._spawn_gang_ammo_drop(weapon, bot['x'], bot['y'])
                     if is_district_boss:
                         did = str(g.get('district_did') or '')
                         op = self.district_captures.get(did)
@@ -16030,6 +16048,7 @@ class WorldSim:
                     bot['hp']    = 0
                     bot['alive'] = False
                     killed = True
+                    self._spawn_gang_ammo_drop(weapon, bot['x'], bot['y'])
                 return {
                     'kind':        'aggro_hit',
                     'tid':         ne['id'],
@@ -16492,10 +16511,17 @@ class WorldSim:
                 if (float(picker.get('x') or 0)-float(loot['x']))**2 + (float(picker.get('y') or 0)-float(loot['y']))**2 > 1.25**2:
                     continue
                 self.district_loot.pop(loot_id, None)
-                out.append({'kind':'district_boss_cash_picked','loot_id':loot_id,
-                            'did':loot.get('did'),'picker_uid':str(picker_uid),
-                            'picker_name':str(picker.get('name') or 'Игрок')[:24],
-                            'amount':int(loot.get('amount') or 200)})
+                if loot.get('kind') == 'ammo':
+                    out.append({'kind':'gang_ammo_picked','loot_id':loot_id,
+                                'picker_uid':str(picker_uid),
+                                'picker_name':str(picker.get('name') or 'Игрок')[:24],
+                                'ammo_type':str(loot.get('ammo_type') or '9mm'),
+                                'rounds':int(loot.get('rounds') or 0)})
+                else:
+                    out.append({'kind':'district_boss_cash_picked','loot_id':loot_id,
+                                'did':loot.get('did'),'picker_uid':str(picker_uid),
+                                'picker_name':str(picker.get('name') or 'Игрок')[:24],
+                                'amount':int(loot.get('amount') or 200)})
                 break
         # 1) Операция живёт 12 минут. Смерть не стирает диверсии; если игрок
         # погиб с сейфом, сейф возвращается в штаб и нужно забрать его снова.
@@ -16825,7 +16851,9 @@ class WorldSim:
         dist_loot_payload = [{
             'id': str(q.get('id') or loot_id), 'did': q.get('did'),
             'x': round(float(q.get('x') or 0), 2), 'y': round(float(q.get('y') or 0), 2),
-            'amount': int(q.get('amount') or 200),
+            'kind': str(q.get('kind') or 'cash'),
+            'amount': int(q.get('amount') or 200) if q.get('kind') != 'ammo' else 0,
+            'ammo_type': q.get('ammo_type'), 'rounds': int(q.get('rounds') or 0),
             'expires_in': max(0, int(float(q.get('expires_at') or now_t) - now_t)),
         } for loot_id, q in self.district_loot.items()]
         districts_payload = {'owners': dist_owners_payload, 'captures': dist_caps_payload,
