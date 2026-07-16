@@ -2014,6 +2014,8 @@ async def sell_property_db(telegram_id: int, item_id: str):
 # не под конкретные дома на карте). apt_key — координаты ГОРОДСКОГО БЛОКА
 # ("br,bc"), не буквального тайла входа — см. _aptBlockKey в world.html.
 
+APARTMENT_OWNERSHIP_LIMIT = 5
+
 async def ensure_apartment_tables():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
@@ -18449,6 +18451,11 @@ async def _coop_http_app():
         owned = await get_apartments_owned(uid)
         if apt_key in owned:
             return await _cors(web.json_response({'ok': True, 'already': True, 'cash': char.get('cash') or 0, 'owned': owned}))
+        if len(owned) >= APARTMENT_OWNERSHIP_LIMIT:
+            return await _cors(web.json_response({
+                'ok': False, 'error': 'apartment limit',
+                'count': len(owned), 'limit': APARTMENT_OWNERSHIP_LIMIT, 'owned': owned,
+            }))
         cash = int(char.get('cash') or 0)
         if cash < price:
             return await _cors(web.json_response({'ok': False, 'error': 'no cash', 'cash': cash}))
