@@ -2074,6 +2074,33 @@ async def buy_apartment_db(telegram_id: int, apt_key: str, price: int):
         )
         await db.commit()
 
+async def sell_apartment_db(telegram_id: int, apt_key: str):
+    """Atomically remove an apartment and credit 90% of its stored purchase price."""
+    await ensure_apartment_tables()
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("BEGIN IMMEDIATE")
+        async with db.execute(
+            "SELECT price FROM apartments_owned WHERE telegram_id=? AND apt_key=?",
+            (telegram_id, apt_key),
+        ) as cur:
+            row = await cur.fetchone()
+        if not row:
+            await db.rollback()
+            return None
+        refund = max(0, int(row[0] or 0) * 90 // 100)
+        await db.execute(
+            "DELETE FROM apartments_owned WHERE telegram_id=? AND apt_key=?",
+            (telegram_id, apt_key),
+        )
+        await db.execute(
+            "UPDATE characters SET cash=COALESCE(cash,0)+? WHERE telegram_id=?",
+            (refund, telegram_id),
+        )
+        async with db.execute("SELECT cash FROM characters WHERE telegram_id=?", (telegram_id,)) as cur:
+            cash_row = await cur.fetchone()
+        await db.commit()
+    return {"refund": refund, "cash": int((cash_row or [0])[0] or 0)}
+
 async def upgrade_apartment_db(telegram_id: int, apt_key: str, upgrade: str, cost: int):
     await ensure_apartment_tables()
     col_map = {
@@ -18492,6 +18519,26 @@ async def _coop_http_app():
         owned = await get_apartments_owned(uid)
         return await _cors(web.json_response({'ok': True, 'cash': cash - cost, 'owned': owned}))
 
+    async def h_apartment_sell(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            b = await req.json()
+        except Exception:
+            b = {}
+        apt_key = str(b.get('apt_key', '')).strip()[:32]
+        if not apt_key or ',' not in apt_key:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad apt'}, status=400))
+        sale = await sell_apartment_db(uid, apt_key)
+        if not sale:
+            return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
+        owned = await get_apartments_owned(uid)
+        return await _cors(web.json_response({
+            'ok': True, 'refund': sale['refund'], 'cash': sale['cash'], 'owned': owned,
+        }))
+
     # ── ЧЁРНЫЙ РЫНОК и ИНВЕНТАРЬ (всё внутри мини-аппа) ──────────────────
     async def h_shop_list(req):
         try:
@@ -20945,6 +20992,7 @@ async def _coop_http_app():
     aio_app.router.add_get ('/apartment/{uid}/state',   h_apartment_state)
     aio_app.router.add_post('/apartment/{uid}/buy',     h_apartment_buy)
     aio_app.router.add_post('/apartment/{uid}/upgrade', h_apartment_upgrade)
+    aio_app.router.add_post('/apartment/{uid}/sell',    h_apartment_sell)
     aio_app.router.add_get ('/shop/{uid}/list',    h_shop_list)
     aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
