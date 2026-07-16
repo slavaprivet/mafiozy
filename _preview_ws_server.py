@@ -522,6 +522,9 @@ def preview_owned_apartments(uid):
     return preview_apartments.setdefault(str(uid), {})
 
 
+APARTMENT_OWNERSHIP_LIMIT = 5
+
+
 async def apartment_state(req):
     return cors(web.json_response({
         "ok": True, "owned": preview_owned_apartments(req.match_info.get("uid", "1")),
@@ -542,6 +545,11 @@ async def apartment_buy(req):
     account = preview_account(uid)
     if apt_key in owned:
         return cors(web.json_response({"ok": True, "already": True, "cash": account["cash"], "owned": owned}))
+    if len(owned) >= APARTMENT_OWNERSHIP_LIMIT:
+        return cors(web.json_response({
+            "ok": False, "error": "apartment limit",
+            "count": len(owned), "limit": APARTMENT_OWNERSHIP_LIMIT, "owned": owned,
+        }))
     if account["cash"] < price:
         return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"]}))
     account["cash"] -= price
