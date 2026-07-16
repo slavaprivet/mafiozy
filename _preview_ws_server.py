@@ -886,11 +886,16 @@ async def world_ws(req):
                     if picker.get("dead") or math.hypot(picker.get("x",0)-loot["x"], picker.get("y",0)-loot["y"]) > 1.25:
                         continue
                     district_loot.pop(loot_id, None)
-                    account=preview_account(str(picker_uid));account["cash"]+=int(loot.get("amount") or 200)
-                    await broadcast_event({"kind":"district_boss_cash_picked","loot_id":loot_id,
-                        "did":loot.get("did"),"picker_uid":str(picker_uid),
-                        "picker_name":picker.get("name","Игрок"),"amount":int(loot.get("amount") or 200),
-                        "new_cash":account["cash"]})
+                    if loot.get("kind") == "ammo":
+                        await broadcast_event({"kind":"gang_ammo_picked","loot_id":loot_id,
+                            "picker_uid":str(picker_uid),"picker_name":picker.get("name","Игрок"),
+                            "ammo_type":loot.get("ammo_type","9mm"),"rounds":int(loot.get("rounds") or 0)})
+                    else:
+                        account=preview_account(str(picker_uid));account["cash"]+=int(loot.get("amount") or 200)
+                        await broadcast_event({"kind":"district_boss_cash_picked","loot_id":loot_id,
+                            "did":loot.get("did"),"picker_uid":str(picker_uid),
+                            "picker_name":picker.get("name","Игрок"),"amount":int(loot.get("amount") or 200),
+                            "new_cash":account["cash"]})
                     break
             for did, cap in list(district_captures.items()):
                 if now >= cap.get("expires_at", 0):
@@ -1135,6 +1140,16 @@ async def world_ws(req):
                     killed = found["hp"] <= 0
                     if killed:
                         found["alive"] = False
+                        weapon=str(d.get("weapon") or "pistol")
+                        ammo_map={"pistol":"9mm","pistol_gold":"9mm","smg":"9mm","tommy_gun":"9mm",
+                            "nagan":"magnum","pistol_heavy":"magnum","shotgun":"shell","rifle":"rifle",
+                            "sniper":"sniper","rpg":"rocket"}
+                        round_map={"9mm":12,"magnum":6,"shell":6,"rifle":15,"sniper":3,"rocket":1}
+                        ammo_type=ammo_map.get(weapon,"9mm")
+                        ammo_id=f"preview_ammo_{int(time.time()*1000)}"
+                        district_loot[ammo_id]={"id":ammo_id,"kind":"ammo","x":float(found["x"]),
+                            "y":float(found["y"]),"ammo_type":ammo_type,"rounds":round_map[ammo_type],
+                            "expires_at":time.time()+90.0}
                     is_boss = found.get("kind") == "district_boss"
                     if killed and is_boss:
                         cap = district_captures[found_did]
