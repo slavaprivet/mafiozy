@@ -12285,7 +12285,13 @@ class WorldSim:
     WORLD_C4_MAX_ACTIVE    = 3
     WORLD_C4_PLANT_CD_S    = 0.75
     DIST_BOSS_HP           = 420
+    DIST_GUARD_HP          = 180
     DIST_BOSS_GUARDS       = 4
+    # Охрана босса замечает заряд раньше смертельного радиуса, спринтует
+    # наружу и только после выхода в безопасную зону продолжает огонь.
+    DIST_C4_NOTICE_R       = 7.0
+    DIST_C4_SAFE_R         = 5.25
+    DIST_C4_FLEE_SPEED     = 5.2
     DIST_CONTROL_TTL_S     = 30 * 60
     DIST_INCOME_XP_DIV     = 20
     DIST_CAPTURE_COOLDOWN_S = 60.0
@@ -14917,6 +14923,67 @@ class WorldSim:
             # Центр группы
             cx = sum(b['x'] for b in alive_bots) / len(alive_bots)
             cy = sum(b['y'] for b in alive_bots) / len(alive_bots)
+            # Охрана районного босса не ждёт взрыва под ногами. Любой мировой
+            # C4 в радиусе обнаружения переводит группу в бой с установившим,
+            # а бойцы внутри опасного круга спринтуют наружу. Стрелять они
+            # начинают/продолжают уже после выхода за безопасный радиус.
+            evading_c4_ids = set()
+            if g.get('district_did') and self.world_c4:
+                noticed_charge_ids = g.setdefault('_noticed_c4_ids', set())
+                for bot_i, bot in enumerate(alive_bots):
+                    nearest_charge = None; nearest_dist = 1e9
+                    for charge in self.world_c4.values():
+                        qx = float(charge.get('x') or 0); qy = float(charge.get('y') or 0)
+                        qdist = _m.hypot(bot['x'] - qx, bot['y'] - qy)
+                        if qdist <= self.DIST_C4_NOTICE_R and qdist < nearest_dist:
+                            nearest_charge, nearest_dist = charge, qdist
+                    if nearest_charge is None:
+                        continue
+                    owner_uid = str(nearest_charge.get('owner_uid') or '')
+                    if owner_uid:
+                        g['state'] = 'hostile'
+                        g['_target_uid'] = owner_uid
+                        g['_hostile_until'] = max(float(g.get('_hostile_until') or 0), now + self.CITY_GANG_HOSTILE_S)
+                    charge_id = str(nearest_charge.get('id') or '')
+                    if charge_id and charge_id not in noticed_charge_ids:
+                        noticed_charge_ids.add(charge_id)
+                        pkts.append({'kind':'district_guard_c4_evade', 'gid':g['id'],
+                                     'did':g.get('district_did'), 'charge_id':charge_id,
+                                     'target_uid':owner_uid})
+                    if nearest_dist >= self.DIST_C4_SAFE_R:
+                        continue
+                    evading_c4_ids.add(str(bot['id']))
+                    qx = float(nearest_charge.get('x') or 0); qy = float(nearest_charge.get('y') or 0)
+                    # Если заряд поставлен ровно под бойцом, разводим группу
+                    # веером по стабильным направлениям, а не в одну точку.
+                    if nearest_dist < 0.05:
+                        flee_ang = (bot_i / max(1, len(alive_bots))) * 2 * _m.pi
+                    else:
+                        flee_ang = _m.atan2(bot['y'] - qy, bot['x'] - qx)
+                    step = min(self.DIST_C4_FLEE_SPEED * dt,
+                               self.DIST_C4_SAFE_R - nearest_dist + 0.35)
+                    moved = False
+                    for turn in (0.0, 0.45, -0.45, 0.9, -0.9, 1.35, -1.35, _m.pi):
+                        ang = flee_ang + turn
+                        nx = bot['x'] + _m.cos(ang) * step
+                        ny = bot['y'] + _m.sin(ang) * step
+                        if _world_is_wall(int(ny), int(nx)):
+                            continue
+                        # Манёвр обязан реально увеличивать дистанцию от заряда.
+                        if _m.hypot(nx - qx, ny - qy) <= nearest_dist:
+                            continue
+                        bot['x'], bot['y'], bot['ang'] = nx, ny, ang
+                        bot['_act'] = 'walk'
+                        bot['_evading_c4'] = True
+                        moved = True
+                        break
+                    if not moved:
+                        bot['ang'] = flee_ang
+                live_charge_ids = {str(q.get('id') or '') for q in self.world_c4.values()}
+                noticed_charge_ids.intersection_update(live_charge_ids)
+                for bot in alive_bots:
+                    if str(bot['id']) not in evading_c4_ids:
+                        bot['_evading_c4'] = False
             if g['state'] == 'patrol':
                 # Activity loop — каждый бот раз в 12-28с выбирает занятие.
                 # Группа выглядит живой: один пьёт, второй рисует, третий
@@ -15039,6 +15106,8 @@ class WorldSim:
                     continue
                 tx, ty = target['x'], target['y']
                 for bot in alive_bots:
+                    if str(bot['id']) in evading_c4_ids:
+                        continue
                     dx2 = tx - bot['x']; dy2 = ty - bot['y']
                     dist = _m.hypot(dx2, dy2) + 1e-6
                     bot['ang'] = _m.atan2(dy2, dx2)
@@ -16006,16 +16075,20 @@ class WorldSim:
             'id': boss_id, 'x': float(sx), 'y': float(sy), 'ang': 0.0,
             'hp': self.DIST_BOSS_HP, 'max_hp': self.DIST_BOSS_HP,
             'alive': True, 'kind': 'district_boss', 'weapon': 'uzi', '_shot_t': 0.0,
+            'damage': int(self.AGGRO_WEAPON_STATS['uzi']['dmg']),
             '_act': 'walk', '_act_until': time.time() + 12,
             'look': {'gender':0,'skin':2,'body':3,'face':2,'hair':1,'hat':3,'gang':1},
         }]
         offsets = ((-1.4,-1.0),(-1.0,1.4),(1.2,-1.2),(1.4,1.1))
-        for dy, dx in offsets[:self.DIST_BOSS_GUARDS]:
+        guard_weapons = ('pistol_heavy', 'smg', 'pistol_heavy', 'rifle')
+        for guard_i, (dy, dx) in enumerate(offsets[:self.DIST_BOSS_GUARDS]):
             self._next_bot_id += 1
+            guard_weapon = guard_weapons[guard_i % len(guard_weapons)]
             bots.append({
                 'id': f'dbguard{self._next_bot_id}', 'x': float(sx+dx), 'y': float(sy+dy),
-                'ang': 0.0, 'hp': 130, 'max_hp': 130, 'alive': True,
-                'kind': 'district_guard', 'weapon': self._pick_aggro_weapon(), '_shot_t': 0.0,
+                'ang': 0.0, 'hp': self.DIST_GUARD_HP, 'max_hp': self.DIST_GUARD_HP, 'alive': True,
+                'kind': 'district_guard', 'weapon': guard_weapon, '_shot_t': 0.0,
+                'damage': int(self.AGGRO_WEAPON_STATS[guard_weapon]['dmg']),
                 '_act': 'walk', '_act_until': time.time() + random.uniform(8,15),
                 'look': {'gender':0,'skin':random.choice([1,2,3]),'body':2,
                          'face':random.choice([0,1,2]),'hair':random.choice([0,1,3]),
@@ -16216,6 +16289,7 @@ class WorldSim:
                 continue
             self.world_c4.pop(charge_id, None)
             x = float(charge['x']); y = float(charge['y']); victims = []
+            npc_victims = []
             owner = self.players.get(str(charge.get('owner_uid')))
             for victim_uid, victim in self.players.items():
                 if victim.get('dead') or (victim.get('_mode') or 'pvp') == 'pve':
@@ -16229,6 +16303,34 @@ class WorldSim:
                 victims.append({'uid':str(victim_uid),'name':str(victim.get('name') or 'Игрок')[:24]})
                 if owner is not None and str(victim_uid) != str(charge.get('owner_uid')):
                     owner['kills'] = int(owner.get('kills', 0)) + 1
+            # Босс и телохранители обычно успевают отбежать в tick_city_gangs.
+            # Если бойца зажало стеной и он остался в смертельном круге — C4
+            # честно убивает его, а смерть босса продвигает операцию как выстрел.
+            for gang in self.city_gangs:
+                did = str(gang.get('district_did') or '')
+                if not did:
+                    continue
+                for bot in gang.get('bots') or []:
+                    if not bot.get('alive'):
+                        continue
+                    if (float(bot.get('x') or 0)-x)**2 + (float(bot.get('y') or 0)-y)**2 > self.WORLD_C4_LETHAL_R**2:
+                        continue
+                    bot['hp'] = 0; bot['alive'] = False
+                    is_boss = bot.get('kind') == 'district_boss'
+                    npc_victims.append({'bot_id':str(bot.get('id') or ''),
+                                        'kind':bot.get('kind') or 'district_guard',
+                                        'did':did, 'boss':bool(is_boss)})
+                    if is_boss:
+                        op = self.district_captures.get(did)
+                        if op and str(op.get('boss_id')) == str(bot.get('id')):
+                            op['boss_dead'] = True
+                            loot_id = f'district_cash_{did}_{int(now*1000)}'
+                            self.district_loot[loot_id] = {
+                                'id':loot_id, 'did':did, 'x':float(bot['x']), 'y':float(bot['y']),
+                                'amount':200, 'expires_at':now + 120.0,
+                            }
+                            if op.get('phase') == 'boss':
+                                op['phase'] = 'hq'
             if owner is not None and any(v['uid'] != str(charge.get('owner_uid')) for v in victims):
                 owner['_wanted'] = min(self.WANTED_MAX, max(2.0, float(owner.get('_wanted') or 0) + 1.0))
                 owner['_wanted_t'] = now
@@ -16236,7 +16338,7 @@ class WorldSim:
                 'kind':'world_c4_exploded','id':charge_id,
                 'by_uid':str(charge.get('owner_uid')),'by_name':charge.get('owner_name') or 'Игрок',
                 'x':round(x,2),'y':round(y,2),'lethal_r':self.WORLD_C4_LETHAL_R,
-                'victims':victims,
+                'victims':victims, 'npc_victims':npc_victims,
             })
         return packets
 
@@ -16658,6 +16760,9 @@ class WorldSim:
                     'max_hp':  int(bot['max_hp']),
                     'kind':    bot['kind'],
                     'weapon':  bot.get('weapon') or 'pistol_heavy',
+                    'damage':  int(bot.get('damage') or self.AGGRO_WEAPON_STATS.get(
+                                   bot.get('weapon') or 'pistol_heavy', {}).get('dmg', 0)),
+                    'evading_c4': bool(bot.get('_evading_c4')),
                     'look':    bot.get('look') or {},
                 })
             covers_out = []
@@ -16704,6 +16809,9 @@ class WorldSim:
                     'max_hp':  int(bot['max_hp']),
                     'kind':    bot['kind'],
                     'weapon':  bot.get('weapon') or 'pistol_heavy',
+                    'damage':  int(bot.get('damage') or self.AGGRO_WEAPON_STATS.get(
+                                   bot.get('weapon') or 'pistol_heavy', {}).get('dmg', 0)),
+                    'evading_c4': bool(bot.get('_evading_c4')),
                     'look':    bot.get('look') or {},
                     # Текущая активность: walk/idle/drink/tag/harass —
                     # клиент рисует бутылку/баллончик/стоит спокойно.
