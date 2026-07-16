@@ -15021,6 +15021,20 @@ class WorldSim:
                 for bot in alive_bots:
                     if str(bot['id']) not in evading_c4_ids:
                         bot['_evading_c4'] = False
+            # Районная охрана сама замечает участника операции. Раньше она
+            # переходила в hostile почти только после попадания или C4, из-за
+            # чего вооружённые бойцы выглядели декорацией и не стреляли.
+            if g.get('district_did') and g['state'] == 'patrol':
+                op = self.district_captures.get(str(g.get('district_did')))
+                intruder_uid = str((op or {}).get('by_uid') or '')
+                intruder = self.players.get(intruder_uid) if intruder_uid else None
+                if (intruder and not intruder.get('dead')
+                        and (intruder.get('_mode') or 'pvp') != 'pve'
+                        and (intruder.get('_jail_until') or 0) <= now
+                        and _m.hypot(intruder['x'] - cx, intruder['y'] - cy) <= 15.0):
+                    g['state'] = 'hostile'
+                    g['_target_uid'] = intruder_uid
+                    g['_hostile_until'] = now + self.CITY_GANG_HOSTILE_S
             if g['state'] == 'patrol':
                 # Activity loop — каждый бот раз в 12-28с выбирает занятие.
                 # Группа выглядит живой: один пьёт, второй рисует, третий
@@ -15107,23 +15121,37 @@ class WorldSim:
                             g['_patrol_wp'] = (nwx, nwy)
                             break
                 wx, wy = g['_patrol_wp']
-                for bot in alive_bots:
+                for bot_i, bot in enumerate(alive_bots):
                     # Боты не в режиме 'walk' стоят на месте (пьют/тегят/
                     # пристают к NPC — клиент рисует визуал).
                     if bot.get('_act') != 'walk':
                         continue
-                    dx2 = wx - bot['x']; dy2 = wy - bot['y']
+                    # Не слипаемся в одну точку: босс идёт в центр, охрана
+                    # держит живую формацию вокруг него.
+                    if g.get('district_did') and bot_i:
+                        fa = (bot_i - 1) / max(1, len(alive_bots) - 1) * 2 * _m.pi
+                        bwx = wx + _m.cos(fa) * 1.65
+                        bwy = wy + _m.sin(fa) * 1.35
+                    else:
+                        bwx, bwy = wx, wy
+                    dx2 = bwx - bot['x']; dy2 = bwy - bot['y']
                     dist = _m.hypot(dx2, dy2)
                     if dist < 0.1:
                         continue
                     step = self.CITY_GANG_PATROL_SPEED * dt
-                    nx = bot['x'] + (dx2/dist) * step
-                    ny = bot['y'] + (dy2/dist) * step
-                    if not _world_is_wall(int(ny), int(nx)):
-                        bot['x'] = nx; bot['y'] = ny
-                        bot['ang'] = _m.atan2(dy2, dx2)
-                    elif g.get('district_did'):
-                        g['_patrol_wp'] = (cx, cy)
+                    direct = _m.atan2(dy2, dx2); moved = False
+                    for turn in (0.0, .48, -.48, .9, -.9, 1.35, -1.35):
+                        ang = direct + turn
+                        nx = bot['x'] + _m.cos(ang) * step
+                        ny = bot['y'] + _m.sin(ang) * step
+                        if _world_is_wall(int(ny), int(nx)):
+                            continue
+                        bot['x'], bot['y'], bot['ang'] = nx, ny, ang
+                        bot['_patrol_stuck'] = 0; moved = True; break
+                    if not moved and g.get('district_did'):
+                        bot['_patrol_stuck'] = int(bot.get('_patrol_stuck') or 0) + 1
+                        if bot['_patrol_stuck'] > 18:
+                            g['_patrol_wp'] = (cx, cy); bot['_patrol_stuck'] = 0
             else:
                 # HOSTILE: стреляем по target_uid (или ближайшему игроку)
                 target = self.players.get(g['_target_uid']) if g['_target_uid'] else None
@@ -15151,10 +15179,15 @@ class WorldSim:
                     # Приближаемся если далеко
                     if dist > 5.5:
                         step = self.CITY_GANG_CHASE_SPEED * dt
-                        nx = bot['x'] + (dx2/dist) * step
-                        ny = bot['y'] + (dy2/dist) * step
-                        if not _world_is_wall(int(ny), int(nx)):
-                            bot['x'] = nx; bot['y'] = ny
+                        direct = _m.atan2(dy2, dx2)
+                        for turn in (0.0, .42, -.42, .82, -.82, 1.25, -1.25):
+                            ang = direct + turn
+                            nx = bot['x'] + _m.cos(ang) * step
+                            ny = bot['y'] + _m.sin(ang) * step
+                            if _world_is_wall(int(ny), int(nx)):
+                                continue
+                            bot['x'], bot['y'], bot['ang'] = nx, ny, ang
+                            break
                     # Стрельба: оружие у бота назначено при спауне (рандом).
                     # Урон отложен — пуля летит со speed, можно увернуться.
                     weapon = bot.get('weapon') or 'pistol_heavy'
