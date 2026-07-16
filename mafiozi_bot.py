@@ -14522,6 +14522,10 @@ class WorldSim:
             'last_respawn_at': time.time(),
             'last_kill_t':     0.0,
             'in_combat_uids':  set(),
+            # Банда не нападает первой. В словаре только игроки, которые
+            # действительно попали по одному из бойцов: uid -> время сброса.
+            '_hostile_uids':   {},
+            '_neutral_warned': {},
             'capturing_at':    0.0,
             'capturing_by':    None,
         }
@@ -14661,7 +14665,8 @@ class WorldSim:
                 # Ждём респауна — больше ничего не делаем для этого района
                 # (capturing уже обработан ниже)
                 pass
-            # Кто из игроков в зоне?
+            # Кто из игроков в зоне? Сам вход в Логово не является атакой:
+            # доверие, уровень, репутация и участие в миссии не дают агро.
             in_zone = []
             for uid, p in self.players.items():
                 if p.get('dead'):
@@ -14673,13 +14678,38 @@ class WorldSim:
                 if (p.get('_mode') or 'pvp') == 'pve':
                     continue
                 in_zone.append(p)
+            in_zone_by_uid = {str(p.get('uid') or ''): p for p in in_zone}
+            hostile_uids = st.setdefault('_hostile_uids', {})
+            for hostile_uid, hostile_until in list(hostile_uids.items()):
+                if now > float(hostile_until or 0) or hostile_uid not in in_zone_by_uid:
+                    hostile_uids.pop(hostile_uid, None)
+            hostile_players = [in_zone_by_uid[uid] for uid in hostile_uids
+                               if uid in in_zone_by_uid]
+            # Нейтральная банда может один раз предупредить, но не подходит
+            # вплотную, не выбирает игрока целью и не наносит урон.
+            neutral_warned = st.setdefault('_neutral_warned', {})
+            for p in in_zone:
+                p_uid = str(p.get('uid') or '')
+                if p_uid in hostile_uids or now - float(neutral_warned.get(p_uid, 0)) < 30.0:
+                    continue
+                neutral_warned[p_uid] = now
+                if alive_bots:
+                    speaker = min(alive_bots,
+                                  key=lambda b: (p['x']-b['x'])**2 + (p['y']-b['y'])**2)
+                    pkts.append({
+                        'kind': 'aggro_warn', 'tid': tid,
+                        'bot_id': speaker['id'], 'target_uid': p_uid,
+                        'text': random.choice(['Не ищи проблем.',
+                                               'Проходи мимо — и всё будет тихо.',
+                                               'Руки держи на виду.',]),
+                    })
             # 1) AI для каждого бота
             for bot in alive_bots:
-                # Цель — ближайший игрок в зоне
-                if not in_zone:
+                # Цель — только игрок, который уже нанёс реальный урон банде.
+                if not hostile_players:
                     target = None
                 else:
-                    target = min(in_zone,
+                    target = min(hostile_players,
                                  key=lambda pp: (pp['x']-bot['x'])**2 + (pp['y']-bot['y'])**2)
                 if target is None:
                     continue
@@ -14687,18 +14717,7 @@ class WorldSim:
                 dx, dy = tx - bot['x'], ty - bot['y']
                 dist   = _m.hypot(dx, dy) + 1e-6
                 bot['ang'] = _m.atan2(dy, dx)
-                # WARN: первое 4 сек после входа в зону боты ОРУТ но не стреляют
                 t_uid = str(target.get('uid') or '')
-                warn_t = bot['_warned'].get(t_uid, 0)
-                if warn_t == 0:
-                    bot['_warned'][t_uid] = now
-                    pkts.append({
-                        'kind': 'aggro_warn', 'tid': tid,
-                        'bot_id': bot['id'], 'target_uid': t_uid,
-                        'text': random.choice(['Проваливай отсюда!',
-                                                'Это наша территория!',
-                                                'Уходи пока живой!',]),
-                    })
                 # Движение к цели (но не за пределы зоны!)
                 desired_dist = 1.4 if bot['kind'] == 'aggro_boss' else 4.0
                 if bot['kind'] == 'aggro_boss' and dist > self.AGGRO_BOSS_RANGE_M:
@@ -14715,9 +14734,6 @@ class WorldSim:
                 # Анимация «крутится с саблей» для босса в ближнем
                 if bot['kind'] == 'aggro_boss':
                     bot['_spin_t'] = (bot.get('_spin_t', 0.0) + dt * 8.0) % (2 * _m.pi)
-                # Можно ли стрелять?
-                if (now - bot['_warned'].get(t_uid, now)) < self.AGGRO_WARN_S:
-                    continue
                 # Проверка LOS + дистанция
                 if not _world_los(bot['x'], bot['y'], tx, ty):
                     continue
@@ -14848,6 +14864,9 @@ class WorldSim:
                 bot['hp'] -= dmg
                 # Все участники боя — попадают в combat-команду района
                 st['in_combat_uids'].add(str(uid))
+                # Только подтверждённое попадание разрешает всей группе
+                # отвечать конкретно этому стрелку. Через минуту агро гаснет.
+                st.setdefault('_hostile_uids', {})[str(uid)] = time.time() + 60.0
                 killed = False
                 if bot['hp'] <= 0:
                     bot['hp']    = 0
@@ -15064,20 +15083,8 @@ class WorldSim:
                 for bot in alive_bots:
                     if str(bot['id']) not in evading_c4_ids:
                         bot['_evading_c4'] = False
-            # Районная охрана сама замечает участника операции. Раньше она
-            # переходила в hostile почти только после попадания или C4, из-за
-            # чего вооружённые бойцы выглядели декорацией и не стреляли.
-            if g.get('district_did') and g['state'] == 'patrol':
-                op = self.district_captures.get(str(g.get('district_did')))
-                intruder_uid = str((op or {}).get('by_uid') or '')
-                intruder = self.players.get(intruder_uid) if intruder_uid else None
-                if (intruder and not intruder.get('dead')
-                        and (intruder.get('_mode') or 'pvp') != 'pve'
-                        and (intruder.get('_jail_until') or 0) <= now
-                        and _m.hypot(intruder['x'] - cx, intruder['y'] - cy) <= 15.0):
-                    g['state'] = 'hostile'
-                    g['_target_uid'] = intruder_uid
-                    g['_hostile_until'] = now + self.CITY_GANG_HOSTILE_S
+            # Ни участие в захвате района, ни уровень/репутация не делают
+            # игрока целью. Охрана отвечает только после попадания или C4.
             if g['state'] == 'patrol':
                 # Activity loop — каждый бот раз в 12-28с выбирает занятие.
                 # Группа выглядит живой: один пьёт, второй рисует, третий
@@ -15196,20 +15203,16 @@ class WorldSim:
                         if bot['_patrol_stuck'] > 18:
                             g['_patrol_wp'] = (cx, cy); bot['_patrol_stuck'] = 0
             else:
-                # HOSTILE: стреляем по target_uid (или ближайшему игроку)
+                # HOSTILE: отвечаем только тому игроку, который задел группу.
                 target = self.players.get(g['_target_uid']) if g['_target_uid'] else None
                 if (not target or target.get('dead')
-                        or (target.get('_jail_until') or 0) > now):
-                    candidates = [p for p in self.players.values()
-                                  if not p.get('dead')
-                                  and (p.get('_mode') or 'pvp') != 'pve'
-                                  and (p.get('_jail_until') or 0) <= now]
-                    if candidates:
-                        target = min(candidates,
-                                     key=lambda p: (p['x']-cx)**2 + (p['y']-cy)**2)
-                        g['_target_uid'] = str(target.get('uid') or '')
-                    else:
-                        target = None
+                        or (target.get('_jail_until') or 0) > now
+                        or (target.get('_mode') or 'pvp') == 'pve'
+                        or _m.hypot(target.get('x', 0)-cx, target.get('y', 0)-cy) > 22.0):
+                    g['state'] = 'patrol'
+                    g['_target_uid'] = None
+                    g['_hostile_until'] = 0.0
+                    target = None
                 if target is None:
                     continue
                 tx, ty = target['x'], target['y']
@@ -15477,18 +15480,10 @@ class WorldSim:
         for ne in self.gang_nests:
             alive_bots = [b for b in ne['bots'] if b['alive']]
             ar, ac = ne['anchor_r'], ne['anchor_c']
-            # Проверяем игроков в радиусе AGGRO_R → hostile
+            # Близость к гнезду не провоцирует бой. Оно становится hostile
+            # только в gang_nest_shoot_bot после подтверждённого попадания.
             if ne['state'] == 'guard':
-                for uid, p in self.players.items():
-                    if p.get('dead') or (p.get('_mode') or 'pvp') == 'pve':
-                        continue
-                    if (p.get('_jail_until') or 0) > now:
-                        continue
-                    if ((p['x']-ac)**2 + (p['y']-ar)**2) <= self.NEST_AGGRO_R**2:
-                        ne['state'] = 'hostile'
-                        ne['_hostile_until'] = now + 60.0
-                        ne['_target_uid'] = str(uid)
-                        break
+                pass
             elif ne['state'] == 'hostile':
                 if now > ne['_hostile_until']:
                     ne['state'] = 'guard'
@@ -15510,20 +15505,13 @@ class WorldSim:
                 # HOSTILE — стреляем по target_uid (как обычная городская)
                 target = self.players.get(ne['_target_uid']) if ne['_target_uid'] else None
                 if (not target or target.get('dead')
-                        or (target.get('_jail_until') or 0) > now):
-                    candidates = [p for p in self.players.values()
-                                  if not p.get('dead')
-                                  and (p.get('_mode') or 'pvp') != 'pve'
-                                  and (p.get('_jail_until') or 0) <= now
-                                  and ((p['x']-ac)**2 + (p['y']-ar)**2) <= 144]
-                    if candidates:
-                        target = min(candidates,
-                                     key=lambda p: (p['x']-ac)**2 + (p['y']-ar)**2)
-                        ne['_target_uid'] = str(target.get('uid') or '')
-                    else:
-                        # Никого не видим в радиусе 12 — возвращаемся в guard
-                        ne['state'] = 'guard'
-                        continue
+                        or (target.get('_jail_until') or 0) > now
+                        or (target.get('_mode') or 'pvp') == 'pve'
+                        or ((target.get('x', 0)-ac)**2 + (target.get('y', 0)-ar)**2) > 144):
+                    ne['state'] = 'guard'
+                    ne['_target_uid'] = None
+                    ne['_hostile_until'] = 0.0
+                    continue
                 tx, ty = target['x'], target['y']
                 for bot in alive_bots:
                     dx = tx - bot['x']; dy = ty - bot['y']
