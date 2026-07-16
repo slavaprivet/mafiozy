@@ -551,6 +551,41 @@ def preview_owned_apartments(uid):
 
 
 APARTMENT_OWNERSHIP_LIMIT = 5
+APARTMENT_DISTRICT_PRICES = {
+    "poor": 3500, "lair": 5500, "industrial": 7000,
+    "countryside": 8500, "nightlife": 14000, "downtown": 18000,
+    "coast": 24000, "rich": 32000, "standard": 6500,
+}
+
+
+def apartment_coords_from_key(apt_key):
+    try:
+        if apt_key.startswith("tile:"):
+            r_text, c_text = apt_key[5:].split(",", 1)
+            r, c = int(r_text), int(c_text)
+        else:
+            br_text, bc_text = apt_key.split(",", 1)
+            r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
+    except (AttributeError, TypeError, ValueError):
+        return None
+    return (r, c) if 0 <= r < 200 and 0 <= c < 80 else None
+
+
+def apartment_district_id(r, c):
+    if 0 <= r <= 39 and 40 <= c <= 79: return "downtown"
+    if 0 <= r <= 39 and 0 <= c <= 39: return "poor"
+    if 40 <= r <= 59 and 0 <= c <= 39: return "nightlife"
+    if 60 <= r <= 79 and 0 <= c <= 39: return "rich"
+    if 80 <= r <= 99 and 0 <= c <= 39: return "countryside"
+    if 40 <= r <= 99 and 40 <= c <= 79: return "industrial"
+    if 100 <= r <= 149 and 0 <= c <= 79: return "lair"
+    if 150 <= r <= 199 and 0 <= c <= 79: return "coast"
+    return "standard"
+
+
+def apartment_price_for_key(apt_key):
+    coords = apartment_coords_from_key(apt_key)
+    return None if coords is None else APARTMENT_DISTRICT_PRICES[apartment_district_id(*coords)]
 
 
 async def apartment_state(req):
@@ -566,8 +601,8 @@ async def apartment_buy(req):
     except Exception:
         body = {}
     apt_key = str(body.get("apt_key") or "").strip()[:32]
-    price = max(1, int(body.get("price") or 0))
-    if not apt_key or "," not in apt_key:
+    price = apartment_price_for_key(apt_key)
+    if price is None:
         return cors(web.json_response({"ok": False, "error": "bad apt"}, status=400))
     owned = preview_owned_apartments(uid)
     account = preview_account(uid)
@@ -579,14 +614,18 @@ async def apartment_buy(req):
             "count": len(owned), "limit": APARTMENT_OWNERSHIP_LIMIT, "owned": owned,
         }))
     if account["cash"] < price:
-        return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"]}))
+        return cors(web.json_response({
+            "ok": False, "error": "no cash", "cash": account["cash"], "price": price,
+        }))
     account["cash"] -= price
     owned[apt_key] = {
         "price": price, "bought_at": int(time.time()),
         "safe_level": 0, "weapon_rack_level": 0, "garage_level": 0,
         "cameras_level": 0, "repair_level": 0,
     }
-    return cors(web.json_response({"ok": True, "cash": account["cash"], "owned": owned}))
+    return cors(web.json_response({
+        "ok": True, "cash": account["cash"], "price": price, "owned": owned,
+    }))
 
 
 async def apartment_upgrade(req):
@@ -611,7 +650,9 @@ async def apartment_upgrade(req):
     account["cash"] -= cost
     key = cols[upgrade]
     owned[apt_key][key] = min(3, int(owned[apt_key].get(key, 0)) + 1)
-    return cors(web.json_response({"ok": True, "cash": account["cash"], "owned": owned}))
+    return cors(web.json_response({
+        "ok": True, "cash": account["cash"], "price": price, "owned": owned,
+    }))
 
 
 async def apartment_sell(req):
@@ -675,7 +716,7 @@ async def business_buy(req):
         return cors(web.json_response({"ok": False, "error": "already owned"}))
     price = PREVIEW_BUSINESSES[biz_id][0]
     if account["cash"] < price:
-        return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"]}))
+        return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"], "price": price}))
     account["cash"] -= price
     owned[biz_id] = {"level": 1, "last_collect": time.time()}
     return cors(web.json_response({"ok": True, "cash": account["cash"], "level": 1}))
