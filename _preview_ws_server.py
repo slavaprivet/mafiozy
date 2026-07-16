@@ -58,6 +58,16 @@ quest_cars = {}
 preview_accounts = {}
 preview_apartments = {}
 preview_bank_robs = {}
+preview_businesses = {}
+PREVIEW_BUSINESSES = {
+    "coffee": (3000,150,200,"☕","Кофейня «У Дона»"), "carwash": (5000,220,300,"🚗","Автомойка"),
+    "barbershop": (7500,300,400,"💈","Парикмахерская"), "pizza": (12000,450,600,"🍕","Пиццерия"),
+    "garage": (18000,650,900,"🔧","Гараж-СТО"), "bar": (28000,1000,1400,"🍸","Бар «Чёрная вдова»"),
+    "club": (45000,1600,2200,"🎰","Подпольный клуб"), "warehouse": (70000,2400,3300,"📦","Склад"),
+    "casino": (120000,4000,5500,"🎲","Казино"), "port": (200000,6500,9000,"🚢","Доля в порту"),
+}
+PREVIEW_BIZ_MULT = {1:1.0,2:1.35,3:1.75,4:2.25,5:3.0}
+PREVIEW_BIZ_UP = {2:.45,3:.75,4:1.15,5:1.70}
 PREVIEW_BANK_REWARD = {"small": 1200, "medium": 2500, "large": 5000}
 PREVIEW_SHOP_WEAPONS = {
     "nagan":    {"name": "Наган",        "price": 250,   "canonical": "nagan"},
@@ -626,6 +636,93 @@ async def apartment_sell(req):
     return cors(web.json_response({
         "ok": True, "refund": refund, "cash": account["cash"], "owned": owned,
     }))
+
+
+def preview_owned_businesses(uid):
+    return preview_businesses.setdefault(str(uid), {})
+
+
+def preview_business_row(biz_id, info=None):
+    price, low, high, emoji, name = PREVIEW_BUSINESSES[biz_id]
+    level = max(1, min(5, int((info or {}).get("level", 1)))) if info else 0
+    mult = PREVIEW_BIZ_MULT.get(level, 1.0)
+    pending = 0
+    if info:
+        elapsed = max(0, time.time() - float(info.get("last_collect") or time.time()))
+        pending = int(elapsed * ((low + high) / 2) * mult / 86400)
+    next_level = level + 1
+    return {
+        "id": biz_id, "name": name, "emoji": emoji, "desc": "Стабильный городской бизнес.",
+        "price": price, "owned": bool(info), "status": "ok", "blocked_until": 0,
+        "level": level, "income_multiplier": mult,
+        "daily_min": round(low * mult), "daily_max": round(high * mult), "pending": pending,
+        "upgrade_cost": round(price * PREVIEW_BIZ_UP[next_level]) if info and next_level <= 5 else 0,
+    }
+
+
+async def business_list(req):
+    uid = req.match_info.get("uid", "1")
+    owned = preview_owned_businesses(uid)
+    rows = [preview_business_row(biz_id, owned.get(biz_id)) for biz_id in PREVIEW_BUSINESSES]
+    return cors(web.json_response({"ok": True, "businesses": rows, "cash": preview_account(uid)["cash"]}))
+
+
+async def business_buy(req):
+    uid = req.match_info.get("uid", "1")
+    try: body = await req.json()
+    except Exception: body = {}
+    biz_id = str(body.get("biz_id") or "")
+    if biz_id not in PREVIEW_BUSINESSES:
+        return cors(web.json_response({"ok": False, "error": "unknown biz"}, status=400))
+    owned, account = preview_owned_businesses(uid), preview_account(uid)
+    if biz_id in owned:
+        return cors(web.json_response({"ok": False, "error": "already owned"}))
+    price = PREVIEW_BUSINESSES[biz_id][0]
+    if account["cash"] < price:
+        return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"]}))
+    account["cash"] -= price
+    owned[biz_id] = {"level": 1, "last_collect": time.time()}
+    return cors(web.json_response({"ok": True, "cash": account["cash"], "level": 1}))
+
+
+async def business_upgrade(req):
+    uid = req.match_info.get("uid", "1")
+    try: body = await req.json()
+    except Exception: body = {}
+    biz_id = str(body.get("biz_id") or "")
+    info = preview_owned_businesses(uid).get(biz_id)
+    if not info or biz_id not in PREVIEW_BUSINESSES:
+        return cors(web.json_response({"ok": False, "error": "not owned"}))
+    level = max(1, min(5, int(info.get("level", 1))))
+    if level >= 5:
+        return cors(web.json_response({"ok": False, "error": "max level", "level": level}))
+    price, low, high, _, _ = PREVIEW_BUSINESSES[biz_id]
+    next_level, account = level + 1, preview_account(uid)
+    cost = round(price * PREVIEW_BIZ_UP[next_level])
+    if account["cash"] < cost:
+        return cors(web.json_response({"ok": False, "error": "no cash", "cost": cost, "cash": account["cash"]}))
+    account["cash"] -= cost
+    info["level"] = next_level
+    mult = PREVIEW_BIZ_MULT[next_level]
+    next_cost = round(price * PREVIEW_BIZ_UP[next_level + 1]) if next_level < 5 else 0
+    return cors(web.json_response({"ok": True, "cash": account["cash"], "level": next_level,
+        "income_multiplier": mult, "daily_min": round(low * mult), "daily_max": round(high * mult),
+        "upgrade_cost": next_cost, "next_upgrade_cost": next_cost}))
+
+
+async def business_collect(req):
+    uid = req.match_info.get("uid", "1")
+    try: body = await req.json()
+    except Exception: body = {}
+    biz_id = str(body.get("biz_id") or "")
+    info = preview_owned_businesses(uid).get(biz_id)
+    if not info or biz_id not in PREVIEW_BUSINESSES:
+        return cors(web.json_response({"ok": False, "error": "not owned"}))
+    row = preview_business_row(biz_id, info)
+    pay, account = int(row["pending"]), preview_account(uid)
+    account["cash"] += pay
+    info["last_collect"] = time.time()
+    return cors(web.json_response({"ok": True, "collected": pay, "cash": account["cash"], "events": []}))
 
 
 async def coop_api(_req):
@@ -1215,6 +1312,10 @@ app.router.add_get("/apartment/{uid}/state", apartment_state)
 app.router.add_post("/apartment/{uid}/buy", apartment_buy)
 app.router.add_post("/apartment/{uid}/upgrade", apartment_upgrade)
 app.router.add_post("/apartment/{uid}/sell", apartment_sell)
+app.router.add_get("/biz/{uid}/list", business_list)
+app.router.add_post("/biz/{uid}/buy", business_buy)
+app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
+app.router.add_post("/biz/{uid}/collect", business_collect)
 
 
 if __name__ == "__main__":
