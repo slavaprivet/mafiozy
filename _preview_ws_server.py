@@ -586,6 +586,26 @@ async def apartment_upgrade(req):
     return cors(web.json_response({"ok": True, "cash": account["cash"], "owned": owned}))
 
 
+async def apartment_sell(req):
+    uid = req.match_info.get("uid", "1")
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    apt_key = str(body.get("apt_key") or "").strip()[:32]
+    owned = preview_owned_apartments(uid)
+    info = owned.get(apt_key)
+    if not info:
+        return cors(web.json_response({"ok": False, "error": "not owned"}))
+    refund = max(0, int(info.get("price") or 0) * 90 // 100)
+    account = preview_account(uid)
+    account["cash"] += refund
+    del owned[apt_key]
+    return cors(web.json_response({
+        "ok": True, "refund": refund, "cash": account["cash"], "owned": owned,
+    }))
+
+
 async def coop_api(_req):
     return cors(web.json_response({"base": "http://127.0.0.1:8080"}))
 
@@ -1172,6 +1192,7 @@ app.router.add_get("/world/district_status/{uid}", district_status)
 app.router.add_get("/apartment/{uid}/state", apartment_state)
 app.router.add_post("/apartment/{uid}/buy", apartment_buy)
 app.router.add_post("/apartment/{uid}/upgrade", apartment_upgrade)
+app.router.add_post("/apartment/{uid}/sell", apartment_sell)
 
 
 if __name__ == "__main__":
