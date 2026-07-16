@@ -291,6 +291,7 @@ def make_district_defenders(did, dd):
         "ang": 0.0, "hp": DIST_BOSS_HP, "max_hp": DIST_BOSS_HP,
         "kind": "district_boss", "weapon": "uzi", "act": "walk",
         "boss_name": dd["boss_name"], "alive": True, "damage": 8,
+        "home_x": col, "home_y": row, "patrol_phase": 0.0,
     }]
     guard_offsets = ((1.4, 0.8), (-1.2, 1.0), (0.8, -1.4), (-1.5, -0.7))
     for i, (dx, dy) in enumerate(guard_offsets):
@@ -299,6 +300,7 @@ def make_district_defenders(did, dd):
             "ang": 0.0, "hp": DIST_GUARD_HP, "max_hp": DIST_GUARD_HP,
             "kind": "district_guard", "weapon": "pistol_heavy",
             "act": "walk", "alive": True, "damage": 12,
+            "home_x": col, "home_y": row, "patrol_phase": (i + 1) * math.tau / 4,
         })
     return bots
 
@@ -309,6 +311,15 @@ def tick_district_defenders(now, dt):
     for did, cap in district_captures.items():
         defenders = [b for b in (cap.get("defenders") or []) if b.get("alive")]
         noticed = cap.setdefault("noticed_world_c4", set())
+        # Участник захвата считается нарушителем: охрана замечает его сама,
+        # преследует и стреляет, а не ждёт первого попадания или C4.
+        intruder_uid = str(cap.get("by_uid") or "")
+        intruder = players.get(intruder_uid)
+        if intruder and not intruder.get("dead") and (intruder.get("_mode") or "pvp") != "pve":
+            near_guard = any(math.hypot(intruder.get("x",0)-b["x"], intruder.get("y",0)-b["y"]) <= 15.0 for b in defenders)
+            if near_guard:
+                cap["hostile_uid"] = intruder_uid
+                cap["hostile_until"] = now + 30.0
         for bot_i, bot in enumerate(defenders):
             nearest = None
             nearest_dist = 1e9
@@ -340,6 +351,17 @@ def tick_district_defenders(now, dt):
                     continue
             target = players.get(str(cap.get("hostile_uid") or ""))
             if not target or target.get("dead") or now > float(cap.get("hostile_until") or 0):
+                # Настоящий патруль строем вокруг точки операции.
+                phase = float(bot.get("patrol_phase") or 0) + dt * (0.32 if bot_i else 0.22)
+                bot["patrol_phase"] = phase
+                radius = 2.1 if bot_i else 1.1
+                tx = float(bot.get("home_x") or bot["x"]) + math.cos(phase) * radius
+                ty = float(bot.get("home_y") or bot["y"]) + math.sin(phase) * radius * 0.72
+                dx, dy = tx-bot["x"], ty-bot["y"]
+                dist = math.hypot(dx,dy)+1e-6
+                step = min(dist, .72*dt)
+                bot["x"] += dx/dist*step; bot["y"] += dy/dist*step
+                bot["ang"] = math.atan2(dy,dx)
                 continue
             dx = target.get("x", 0)-bot["x"]; dy = target.get("y", 0)-bot["y"]
             dist = math.hypot(dx, dy)+1e-6
