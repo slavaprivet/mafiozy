@@ -2020,6 +2020,42 @@ async def sell_property_db(telegram_id: int, item_id: str):
 # ("br,bc"), не буквального тайла входа — см. _aptBlockKey в world.html.
 
 APARTMENT_OWNERSHIP_LIMIT = 5
+APARTMENT_DISTRICT_PRICES = {
+    "poor": 3500, "lair": 5500, "industrial": 7000,
+    "countryside": 8500, "nightlife": 14000, "downtown": 18000,
+    "coast": 24000, "rich": 32000, "standard": 6500,
+}
+
+
+def apartment_coords_from_key(apt_key: str):
+    """Координаты тайла для новых tile-ключей и старых ключей квартала."""
+    try:
+        if apt_key.startswith("tile:"):
+            r_text, c_text = apt_key[5:].split(",", 1)
+            r, c = int(r_text), int(c_text)
+        else:
+            br_text, bc_text = apt_key.split(",", 1)
+            r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
+    except (AttributeError, TypeError, ValueError):
+        return None
+    return (r, c) if 0 <= r < 200 and 0 <= c < 80 else None
+
+
+def apartment_district_id(r: int, c: int) -> str:
+    if 0 <= r <= 39 and 40 <= c <= 79: return "downtown"
+    if 0 <= r <= 39 and 0 <= c <= 39: return "poor"
+    if 40 <= r <= 59 and 0 <= c <= 39: return "nightlife"
+    if 60 <= r <= 79 and 0 <= c <= 39: return "rich"
+    if 80 <= r <= 99 and 0 <= c <= 39: return "countryside"
+    if 40 <= r <= 99 and 40 <= c <= 79: return "industrial"
+    if 100 <= r <= 149 and 0 <= c <= 79: return "lair"
+    if 150 <= r <= 199 and 0 <= c <= 79: return "coast"
+    return "standard"
+
+
+def apartment_price_for_key(apt_key: str):
+    coords = apartment_coords_from_key(apt_key)
+    return None if coords is None else APARTMENT_DISTRICT_PRICES[apartment_district_id(*coords)]
 
 async def ensure_apartment_tables():
     async with aiosqlite.connect(DB_PATH) as db:
@@ -18616,8 +18652,8 @@ async def _coop_http_app():
         except Exception:
             b = {}
         apt_key = str(b.get('apt_key', '')).strip()[:32]
-        price = max(1, int(b.get('price', 0) or 0))
-        if not apt_key or ',' not in apt_key:
+        price = apartment_price_for_key(apt_key)
+        if price is None:
             return await _cors(web.json_response({'ok': False, 'error': 'bad apt'}, status=400))
         char = await get_character(uid)
         if not char:
@@ -18632,11 +18668,11 @@ async def _coop_http_app():
             }))
         cash = int(char.get('cash') or 0)
         if cash < price:
-            return await _cors(web.json_response({'ok': False, 'error': 'no cash', 'cash': cash}))
+            return await _cors(web.json_response({'ok': False, 'error': 'no cash', 'cash': cash, 'price': price}))
         await update_character(uid, cash=cash - price)
         await buy_apartment_db(uid, apt_key, price)
         owned = await get_apartments_owned(uid)
-        return await _cors(web.json_response({'ok': True, 'cash': cash - price, 'owned': owned}))
+        return await _cors(web.json_response({'ok': True, 'cash': cash - price, 'price': price, 'owned': owned}))
 
     async def h_apartment_upgrade(req):
         try:
