@@ -1001,9 +1001,14 @@ async def init_db():
                 blocked_until INTEGER DEFAULT 0,
                 last_event_at INTEGER DEFAULT 0,
                 pending_notice TEXT DEFAULT NULL,
+                level         INTEGER DEFAULT 1,
                 PRIMARY KEY (telegram_id, biz_id)
             )
         """)
+        try:
+            await db.execute("ALTER TABLE player_businesses ADD COLUMN level INTEGER DEFAULT 1")
+        except Exception:
+            pass
         await db.execute("""
             CREATE TABLE IF NOT EXISTS gang_members (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -3917,6 +3922,9 @@ HUB_EVENTS = [
 BIZ_INCOME_PERIOD = 24 * 3600  # сутки = одна полная порция дохода
 BIZ_EVENT_CHANCE  = 0.20       # шанс события на бизнес при сборе (если не на кулдауне)
 BIZ_EVENT_COOLDOWN = 6 * 3600  # 6 часов между событиями на одном бизнесе
+BIZ_MAX_LEVEL = 5
+BIZ_LEVEL_MULTIPLIERS = {1: 1.00, 2: 1.35, 3: 1.75, 4: 2.25, 5: 3.00}
+BIZ_UPGRADE_COST_RATIOS = {2: 0.45, 3: 0.75, 4: 1.15, 5: 1.70}
 
 # id, name, emoji, price, daily_min, daily_max, desc
 BUSINESSES = [
@@ -3992,6 +4000,24 @@ def get_business(biz_id: str):
         if b["id"] == biz_id:
             return b
     return None
+
+
+def business_level(value) -> int:
+    try:
+        return max(1, min(BIZ_MAX_LEVEL, int(value or 1)))
+    except Exception:
+        return 1
+
+
+def business_income_multiplier(level) -> float:
+    return BIZ_LEVEL_MULTIPLIERS[business_level(level)]
+
+
+def business_upgrade_cost(biz: dict, next_level: int) -> int:
+    next_level = business_level(next_level)
+    if next_level <= 1:
+        return 0
+    return max(1, int(round(float(biz['price']) * BIZ_UPGRADE_COST_RATIOS[next_level])))
 
 # Координаты бизнес-POI в мире (дублируют BUSINESS_POIS в world.html). Нужны
 # для серверной anti-cheat проверки расстояния при `shop_rob`. Если игрок
@@ -18260,7 +18286,8 @@ async def _coop_http_app():
         if (row.get('blocked_until') or 0) > now:
             return 0
         elapsed = max(0, now - (row.get('last_collect') or now))
-        avg_per_day = (biz['daily_min'] + biz['daily_max']) / 2.0
+        level = business_level(row.get('level'))
+        avg_per_day = (biz['daily_min'] + biz['daily_max']) / 2.0 * business_income_multiplier(level)
         per_sec = avg_per_day / 86400.0
         return int(elapsed * per_sec)
 
@@ -18290,10 +18317,21 @@ async def _coop_http_app():
             entry['owned'] = b['id'] in owned
             if entry['owned']:
                 o = owned[b['id']]
+                level = business_level(o.get('level'))
+                mult = business_income_multiplier(level)
                 entry['status']        = o['status']
                 entry['blocked_until'] = o.get('blocked_until') or 0
                 entry['pending']       = o.get('pending') or 0
                 entry['notice']        = o.get('pending_notice')
+                entry['level']         = level
+                entry['income_multiplier'] = mult
+                entry['daily_min']     = int(round(b['daily_min'] * mult))
+                entry['daily_max']     = int(round(b['daily_max'] * mult))
+                entry['upgrade_cost']  = 0 if level >= BIZ_MAX_LEVEL else business_upgrade_cost(b, level + 1)
+            else:
+                entry['level'] = 0
+                entry['income_multiplier'] = 1.0
+                entry['upgrade_cost'] = 0
             catalog.append(entry)
         return await _cors(web.json_response({
             'ok': True,
@@ -18347,6 +18385,66 @@ async def _coop_http_app():
         except Exception:
             pass
         return await _cors(web.json_response({'ok': True, 'cash': cash - biz['price']}))
+
+    async def h_biz_upgrade(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            body = await req.json()
+        except Exception:
+            body = {}
+        biz_id = str(body.get('biz_id') or '').strip()
+        biz = get_business(biz_id)
+        if not biz:
+            return await _cors(web.json_response({'ok': False, 'error': 'unknown biz'}, status=400))
+        char = await get_character(uid)
+        if not char:
+            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute('BEGIN IMMEDIATE')
+            async with db.execute(
+                "SELECT * FROM player_businesses WHERE telegram_id=? AND biz_id=?",
+                (uid, biz_id)
+            ) as cur:
+                row = await cur.fetchone()
+            if not row:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
+            level = business_level(dict(row).get('level'))
+            if level >= BIZ_MAX_LEVEL:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'max level', 'level': level}))
+            next_level = level + 1
+            cost = business_upgrade_cost(biz, next_level)
+            cash = int(char.get('cash') or 0)
+            debit = await db.execute(
+                "UPDATE characters SET cash=cash-? WHERE telegram_id=? AND cash>=?",
+                (cost, uid, cost)
+            )
+            if debit.rowcount != 1:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'no cash', 'cost': cost}))
+            await db.execute(
+                "UPDATE player_businesses SET level=? WHERE telegram_id=? AND biz_id=? AND level=?",
+                (next_level, uid, biz_id, level)
+            )
+            async with db.execute("SELECT cash FROM characters WHERE telegram_id=?", (uid,)) as cur:
+                cash_row = await cur.fetchone()
+            new_cash = int(cash_row['cash'] if cash_row else cash - cost)
+            await db.commit()
+        mult = business_income_multiplier(next_level)
+        next_cost = 0 if next_level >= BIZ_MAX_LEVEL else business_upgrade_cost(biz, next_level + 1)
+        return await _cors(web.json_response({
+            'ok': True, 'cash': new_cash, 'level': next_level,
+            'income_multiplier': mult,
+            'daily_min': int(round(biz['daily_min'] * mult)),
+            'daily_max': int(round(biz['daily_max'] * mult)),
+            'upgrade_cost': next_cost,
+            'next_upgrade_cost': next_cost,
+        }))
 
     async def h_biz_collect(req):
         try:
@@ -21020,6 +21118,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/event/{uid}/tick',   h_event_tick)
     aio_app.router.add_get ('/biz/{uid}/list',     h_biz_list)
     aio_app.router.add_post('/biz/{uid}/buy',      h_biz_buy)
+    aio_app.router.add_post('/biz/{uid}/upgrade',  h_biz_upgrade)
     aio_app.router.add_post('/biz/{uid}/collect',  h_biz_collect)
     aio_app.router.add_post('/biz/{uid}/restore',  h_biz_restore)
     aio_app.router.add_get ('/apartment/{uid}/state',   h_apartment_state)
