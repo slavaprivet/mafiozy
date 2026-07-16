@@ -167,13 +167,15 @@ def park_race_car(car):
 
 def release_car(car):
     """Освободить машину и оставить её там, где игрок вышел."""
+    parked_now = time.time()
     car.update({
         "vx": 0.0,
         "vy": 0.0,
         "driver_uid": None,
         "passenger_uids": [],
         "state": "idle",
-        "parked_at": time.time(),
+        "parked_at": parked_now,
+        "_last_drive_t": parked_now,
     })
 
 
