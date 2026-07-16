@@ -316,20 +316,12 @@ def make_district_defenders(did, dd):
 
 
 def tick_district_defenders(now, dt):
-    """Preview AI: охрана замечает C4, выбегает из радиуса и отвечает огнём."""
+    """Preview AI: охрана отвечает только на попадание или установленный C4."""
     events = []
     for did, cap in district_captures.items():
         defenders = [b for b in (cap.get("defenders") or []) if b.get("alive")]
         noticed = cap.setdefault("noticed_world_c4", set())
-        # Участник захвата считается нарушителем: охрана замечает его сама,
-        # преследует и стреляет, а не ждёт первого попадания или C4.
-        intruder_uid = str(cap.get("by_uid") or "")
-        intruder = players.get(intruder_uid)
-        if intruder and not intruder.get("dead") and (intruder.get("_mode") or "pvp") != "pve":
-            near_guard = any(math.hypot(intruder.get("x",0)-b["x"], intruder.get("y",0)-b["y"]) <= 15.0 for b in defenders)
-            if near_guard:
-                cap["hostile_uid"] = intruder_uid
-                cap["hostile_until"] = now + 30.0
+        # Само участие в операции, доверие и уровень не дают агро.
         for bot_i, bot in enumerate(defenders):
             nearest = None
             nearest_dist = 1e9
@@ -360,7 +352,11 @@ def tick_district_defenders(now, dt):
                     bot["evading_c4"] = True
                     continue
             target = players.get(str(cap.get("hostile_uid") or ""))
-            if not target or target.get("dead") or now > float(cap.get("hostile_until") or 0):
+            if (not target or target.get("dead")
+                    or (target.get("_mode") or "pvp") == "pve"
+                    or now > float(cap.get("hostile_until") or 0)):
+                cap.pop("hostile_uid", None)
+                cap.pop("hostile_until", None)
                 # Настоящий патруль строем вокруг точки операции.
                 phase = float(bot.get("patrol_phase") or 0) + dt * (0.32 if bot_i else 0.22)
                 bot["patrol_phase"] = phase
@@ -1135,6 +1131,11 @@ async def world_ws(req):
                     if found:
                         break
                 if found:
+                    cap = district_captures[found_did]
+                    # Только подтверждённое попадание разворачивает всю охрану
+                    # на конкретного стрелка. На других игроков не переключаемся.
+                    cap["hostile_uid"] = str(uid)
+                    cap["hostile_until"] = time.time() + 30.0
                     damage = 42
                     found["hp"] = max(0, int(found["hp"]) - damage)
                     killed = found["hp"] <= 0
@@ -1152,7 +1153,6 @@ async def world_ws(req):
                             "expires_at":time.time()+90.0}
                     is_boss = found.get("kind") == "district_boss"
                     if killed and is_boss:
-                        cap = district_captures[found_did]
                         cap["boss_dead"] = True
                         loot_id=f"preview_cash_{found_did}_{int(time.time()*1000)}"
                         district_loot[loot_id]={"id":loot_id,"did":found_did,
