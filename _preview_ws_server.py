@@ -20,6 +20,10 @@ WORLD_C4_FUSE_S = 3.0
 WORLD_C4_LETHAL_R = 4.0
 WORLD_C4_MAX_ACTIVE = 3
 DIST_BOSS_HP = 420
+DIST_GUARD_HP = 180
+DIST_C4_NOTICE_R = 7.0
+DIST_C4_SAFE_R = 5.25
+DIST_C4_FLEE_SPEED = 5.2
 DIST_CONTROL_TTL_S = 30 * 60
 DIST_INCOME_DELAY_S = 60
 DIST_INCOME_TICK_S = 120
@@ -284,17 +288,79 @@ def make_district_defenders(did, dd):
         "id": f"preview_{did}_boss", "x": col, "y": row,
         "ang": 0.0, "hp": DIST_BOSS_HP, "max_hp": DIST_BOSS_HP,
         "kind": "district_boss", "weapon": "uzi", "act": "walk",
-        "boss_name": dd["boss_name"], "alive": True,
+        "boss_name": dd["boss_name"], "alive": True, "damage": 8,
     }]
     guard_offsets = ((1.4, 0.8), (-1.2, 1.0), (0.8, -1.4), (-1.5, -0.7))
     for i, (dx, dy) in enumerate(guard_offsets):
         bots.append({
             "id": f"preview_{did}_guard_{i}", "x": col + dx, "y": row + dy,
-            "ang": 0.0, "hp": 130, "max_hp": 130,
+            "ang": 0.0, "hp": DIST_GUARD_HP, "max_hp": DIST_GUARD_HP,
             "kind": "district_guard", "weapon": "pistol_heavy",
-            "act": "walk", "alive": True,
+            "act": "walk", "alive": True, "damage": 12,
         })
     return bots
+
+
+def tick_district_defenders(now, dt):
+    """Preview AI: охрана замечает C4, выбегает из радиуса и отвечает огнём."""
+    events = []
+    for did, cap in district_captures.items():
+        defenders = [b for b in (cap.get("defenders") or []) if b.get("alive")]
+        noticed = cap.setdefault("noticed_world_c4", set())
+        for bot_i, bot in enumerate(defenders):
+            nearest = None
+            nearest_dist = 1e9
+            for charge in world_c4.values():
+                dist = math.hypot(bot["x"]-charge["x"], bot["y"]-charge["y"])
+                if dist <= DIST_C4_NOTICE_R and dist < nearest_dist:
+                    nearest, nearest_dist = charge, dist
+            bot["evading_c4"] = False
+            if nearest is not None:
+                cap["hostile_uid"] = str(nearest.get("owner_uid") or "")
+                cap["hostile_until"] = now + 30.0
+                charge_id = str(nearest.get("id") or "")
+                if charge_id and charge_id not in noticed:
+                    noticed.add(charge_id)
+                    events.append({"kind":"district_guard_c4_evade",
+                                   "gid":f"preview_district_{did}", "did":did,
+                                   "charge_id":charge_id,
+                                   "target_uid":cap["hostile_uid"]})
+                if nearest_dist < DIST_C4_SAFE_R:
+                    if nearest_dist < 0.05:
+                        flee_ang = bot_i / max(1, len(defenders)) * math.tau
+                    else:
+                        flee_ang = math.atan2(bot["y"]-nearest["y"], bot["x"]-nearest["x"])
+                    step = min(DIST_C4_FLEE_SPEED*dt, DIST_C4_SAFE_R-nearest_dist+0.35)
+                    bot["x"] += math.cos(flee_ang)*step
+                    bot["y"] += math.sin(flee_ang)*step
+                    bot["ang"] = flee_ang
+                    bot["evading_c4"] = True
+                    continue
+            target = players.get(str(cap.get("hostile_uid") or ""))
+            if not target or target.get("dead") or now > float(cap.get("hostile_until") or 0):
+                continue
+            dx = target.get("x", 0)-bot["x"]; dy = target.get("y", 0)-bot["y"]
+            dist = math.hypot(dx, dy)+1e-6
+            bot["ang"] = math.atan2(dy, dx)
+            if dist > 6.0:
+                step = 1.5*dt
+                bot["x"] += dx/dist*step; bot["y"] += dy/dist*step
+            if dist <= 8.0 and now-float(bot.get("shot_at") or 0) >= (0.6 if bot["kind"]=="district_boss" else 1.1):
+                bot["shot_at"] = now
+                damage = int(bot.get("damage") or 8)
+                target["hp"] = max(0, int(target.get("hp", 100))-damage)
+                killed = target["hp"] <= 0
+                if killed:
+                    target["dead"] = True; target["respawn_at"] = now+5.0
+                events.append({"kind":"aggro_shot", "tid":f"preview_district_{did}",
+                               "bot_id":bot["id"], "target_uid":str(cap.get("hostile_uid") or ""),
+                               "weapon":bot["weapon"], "sx":round(bot["x"],2), "sy":round(bot["y"],2),
+                               "tx":round(target.get("x",0),2), "ty":round(target.get("y",0),2)})
+                events.append({"kind":"aggro_apply", "tid":f"preview_district_{did}",
+                               "bot_id":bot["id"], "target_uid":str(cap.get("hostile_uid") or ""),
+                               "weapon":bot["weapon"], "miss":False, "dmg":damage, "killed":killed})
+        noticed.intersection_update({str(q.get("id") or "") for q in world_c4.values()})
+    return events
 
 
 def preview_aggro_payload():
@@ -308,9 +374,15 @@ def preview_aggro_payload():
             # Небольшой патруль вокруг точки сбора — в превью босс не стоит статуей.
             phase = now * 0.35 + i * 1.2
             out = {k: v for k, v in bot.items() if k != "alive"}
-            out["x"] = round(bot["x"] + 0.35 * math.cos(phase), 2)
-            out["y"] = round(bot["y"] + 0.35 * math.sin(phase), 2)
-            out["ang"] = round(phase + 1.57, 2)
+            if bot.get("evading_c4") or cap.get("hostile_uid"):
+                out["x"] = round(bot["x"], 2); out["y"] = round(bot["y"], 2)
+                out["ang"] = round(bot.get("ang", 0), 2)
+            else:
+                out["x"] = round(bot["x"] + 0.35 * math.cos(phase), 2)
+                out["y"] = round(bot["y"] + 0.35 * math.sin(phase), 2)
+                out["ang"] = round(phase + 1.57, 2)
+            out["damage"] = int(bot.get("damage") or 0)
+            out["evading_c4"] = bool(bot.get("evading_c4"))
             visible.append(out)
         result[f"preview_district_{did}"] = {
             "state": "patrol", "bots": visible, "covers": [],
@@ -623,11 +695,14 @@ async def world_ws(req):
                     p["dead"] = False
                     p["hp"] = 100
                     p["x"], p["y"] = PREVIEW_START_X, PREVIEW_START_Y
+            for defender_event in tick_district_defenders(now, 1/15):
+                await broadcast_event(defender_event)
             for charge_id, charge in list(world_c4.items()):
                 if now < charge["explode_at"]:
                     continue
                 world_c4.pop(charge_id, None)
                 victims = []
+                npc_victims = []
                 for victim_uid, victim in players.items():
                     if victim.get("dead"):
                         continue
@@ -636,10 +711,24 @@ async def world_ws(req):
                         victim["dead"] = True
                         victim["respawn_at"] = now + 5.0
                         victims.append({"uid":str(victim_uid),"name":victim.get("name", "Игрок")})
+                for did, cap in district_captures.items():
+                    for bot in cap.get("defenders") or []:
+                        if not bot.get("alive") or math.hypot(bot["x"]-charge["x"], bot["y"]-charge["y"]) > WORLD_C4_LETHAL_R:
+                            continue
+                        bot["hp"] = 0; bot["alive"] = False
+                        is_boss = bot.get("kind") == "district_boss"
+                        npc_victims.append({"bot_id":str(bot.get("id") or ""), "kind":bot.get("kind"),
+                                            "did":did, "boss":is_boss})
+                        if is_boss:
+                            cap["boss_dead"] = True
+                            loot_id=f"preview_cash_{did}_{int(now*1000)}"
+                            district_loot[loot_id]={"id":loot_id,"did":did,"x":float(bot["x"]),"y":float(bot["y"]),
+                                                    "amount":200,"expires_at":now+120.0}
+                            if cap.get("phase") == "boss": cap["phase"] = "hq"
                 await broadcast_event({"kind":"world_c4_exploded","id":charge_id,
                     "by_uid":charge["owner_uid"],"by_name":charge["owner_name"],
                     "x":charge["x"],"y":charge["y"],"lethal_r":WORLD_C4_LETHAL_R,
-                    "victims":victims})
+                    "victims":victims,"npc_victims":npc_victims})
             for loot_id, loot in list(district_loot.items()):
                 if now >= float(loot.get("expires_at") or 0):
                     district_loot.pop(loot_id, None)
