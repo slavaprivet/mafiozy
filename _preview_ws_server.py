@@ -101,6 +101,7 @@ def preview_account(uid):
         "cash": 1000000,
         "exp": 0,
         "police_xp": 0,
+        "mafia_xp": 0,
         "said_hired": False,
         "said_hired_at": 0,
         "said_paid_until": 0,
@@ -1053,6 +1054,7 @@ def snap(uid):
                 "deaths": 0,
                 "cash": preview_account(uid)["cash"],
                 "police_xp": int(preview_account(uid).get("police_xp", 0)),
+                "mafia_xp": int(preview_account(uid).get("mafia_xp", 0)),
                 "police_arrests_today": preview_police_daily_state(uid)[1],
                 "police_arrest_limit": preview_police_daily_state(uid)[2],
                 "police_spikes_cd": max(0.0, round(
@@ -1232,6 +1234,8 @@ async def world_ws(req):
                     if picker.get("dead") or math.hypot(picker.get("x",0)-loot["x"], picker.get("y",0)-loot["y"]) > 1.25:
                         continue
                     if loot.get("kind") == "dossier":
+                        if picker.get("police"):
+                            continue
                         did = str(loot.get("did") or "")
                         cap = district_captures.get(did)
                         if not cap or cap.get("phase") != "dossier" or did in district_owners:
@@ -1354,7 +1358,14 @@ async def world_ws(req):
                     continue
                 if p.get("police_cuffed_by"):
                     continue
+                was_police = bool(p.get("police"))
                 p["police"] = bool(d.get("police", False))
+                if p["police"] and not was_police:
+                    for did, own in list(district_owners.items()):
+                        if str(own.get("owner_uid")) == str(uid): district_owners.pop(did, None)
+                    for did, cap in list(district_captures.items()):
+                        if str(cap.get("by_uid")) == str(uid) and cap.get("phase") not in ("boss_patrol","dossier"):
+                            district_captures.pop(did, None)
                 escort = d.get("police_escort") if isinstance(d.get("police_escort"), dict) else None
                 if escort:
                     p["police_escort"] = {"r": max(0.0, min(120.0, float(escort.get("r", 0)))), "c": max(0.0, min(120.0, float(escort.get("c", 0)))), "ang": float(escort.get("ang", 0)), "name": str(escort.get("name") or "Задержанный")[:32], "look": escort.get("look") if isinstance(escort.get("look"), dict) else {}, "waiting": bool(escort.get("waiting"))}
@@ -1386,6 +1397,11 @@ async def world_ws(req):
                 dd = DISTRICTS.get(did)
                 owner = district_owners.get(did)
                 if not dd:
+                    continue
+                if p.get("police"):
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"district_capture_denied","did":did,"by_uid":str(uid),
+                        "reason":"police_forbidden"}}, ensure_ascii=False))
                     continue
                 if owner:
                     await ws.send_str(json.dumps({"t":"event","d":{
@@ -1427,6 +1443,9 @@ async def world_ws(req):
                                            "name": dd["name"], "icon": dd["icon"]})
                 elif cap["phase"] == "escape" and near_point(p, dd["escape"]):
                     now = time.time()
+                    account = preview_account(uid)
+                    if not p.get("police"):
+                        account["mafia_xp"] = min(4000, int(account.get("mafia_xp", 0)) + 350)
                     district_owners[did] = {"owner_uid":str(uid), "owner_name":cap["by_name"],
                                             "color":cap["color"], "captured_at":now,
                                             "last_payout_at":now,
@@ -1442,7 +1461,10 @@ async def world_ws(req):
                                            "name":dd["name"], "icon":dd["icon"], "income":dd["income"],
                                            "income_xp":max(1, int(dd["income"]) // 20),
                                            "income_tick_s":DIST_INCOME_TICK_S,
-                                           "control_ttl_s":DIST_CONTROL_TTL_S})
+                                           "control_ttl_s":DIST_CONTROL_TTL_S,
+                                           "mafia_xp":account.get("mafia_xp", 0),
+                                           "mafia_xp_gain":0 if p.get("police") else 350,
+                                           "mafia_reason":"Захват района"})
             elif t == "district_c4_plant":
                 p = players.get(uid) or {}
                 did = str(d.get("did") or "")
@@ -1450,7 +1472,9 @@ async def world_ws(req):
                 cap = district_captures.get(did)
                 reason = None
                 target_idx = None
-                if not dd or not cap or str(cap.get("by_uid")) != str(uid):
+                if p.get("police"):
+                    reason = "police_forbidden"
+                elif not dd or not cap or str(cap.get("by_uid")) != str(uid):
                     reason = "no_operation"
                 elif cap.get("phase") != "sabotage":
                     reason = "wrong_phase"
@@ -1505,6 +1529,21 @@ async def world_ws(req):
                 await broadcast_event({"kind":"world_c4_planted","id":charge_id,
                     "by_uid":str(uid),"by_name":charge["owner_name"],
                     "x":charge["x"],"y":charge["y"],"fuse_s":WORLD_C4_FUSE_S})
+            elif t == "gang_hire_bot":
+                target_id = str(d.get("bot_id") or "")
+                found = None; found_did = None
+                for did, cap in district_captures.items():
+                    found = next((b for b in cap.get("defenders") or []
+                                  if b.get("alive") and str(b.get("id")) == target_id), None)
+                    if found: found_did = did; break
+                ok = bool(found and found.get("kind") == "district_boss"
+                          and int(preview_account(uid).get("mafia_xp", 0)) >= 1100)
+                if ok:
+                    found["alive"] = False; found["hp"] = 0
+                    preview_drop_district_dossier(found_did, district_captures[found_did], found, time.time())
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_hire_reply",
+                    "ok":ok,"bot_id":target_id,"is_boss":bool(found),
+                    "reason":"mafia_level" if found and not ok else ("gone" if not found else "")}}, ensure_ascii=False))
             elif t == "aggro_shoot":
                 target_id = str(d.get("target") or "")
                 found = None
@@ -1977,6 +2016,8 @@ async def world_ws(req):
                     payout = PREVIEW_BANK_REWARD.get(bank_id, 0)
                     account = preview_account(uid)
                     account["cash"] += payout
+                    if not p.get("police"):
+                        account["mafia_xp"] = min(4000, int(account.get("mafia_xp", 0)) + 120)
                     apartment = preview_owned_apartments(uid)[apt_key]
                     apartment["stolen_bags"] = max(0, int(apartment.get("stolen_bags") or 0)) + 1
                     preview_bank_robs.pop(str(uid), None)
@@ -1985,6 +2026,9 @@ async def world_ws(req):
                         "ok": True, "payout": payout, "bags": 1,
                         "cash": account["cash"], "place": "apartment",
                         "apt_key": apt_key, "stolen_bags": apartment["stolen_bags"],
+                        "mafia_xp": account.get("mafia_xp", 0),
+                        "mafia_xp_gain": 0 if p.get("police") else 120,
+                        "mafia_reason": "Мешок доставлен в квартиру",
                     }}, ensure_ascii=False))
     finally:
         task.cancel()
