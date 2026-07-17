@@ -113,6 +113,27 @@ def preview_account(uid):
     return account
 
 
+def preview_police_daily_state(uid):
+    account = preview_account(uid)
+    day = time.strftime("%Y-%m-%d", time.localtime())
+    if account.get("police_daily_day") != day:
+        account["police_daily_day"] = day
+        account["police_daily_count"] = 0
+    xp = max(0, int(account.get("police_xp", 0)))
+    level = 1 + sum(1 for threshold in (300, 800, 1600, 2800) if xp >= threshold)
+    limit = (3, 6, 9, 12, None)[level-1]
+    return account, int(account.get("police_daily_count", 0)), limit
+
+
+def preview_claim_police_arrest(uid):
+    account, count, limit = preview_police_daily_state(uid)
+    if limit is not None and count >= limit:
+        return {"ok":False,"error":"daily_limit","count":count,"limit":limit}
+    count += 1
+    account["police_daily_count"] = count
+    return {"ok":True,"count":count,"limit":limit}
+
+
 def preview_said_state(uid):
     account = preview_account(uid)
     now = time.time()
@@ -999,6 +1020,8 @@ def snap(uid):
                 "deaths": 0,
                 "cash": preview_account(uid)["cash"],
                 "police_xp": int(preview_account(uid).get("police_xp", 0)),
+                "police_arrests_today": preview_police_daily_state(uid)[1],
+                "police_arrest_limit": preview_police_daily_state(uid)[2],
                 "diamonds": 0,
                 "wanted": int(p.get("wanted", 0)),
                 "wanted_gangs": 0,
@@ -1516,11 +1539,18 @@ async def world_ws(req):
                 mission_id = str(d.get("mission_id") or "")[:96]
                 rewarded = cop.setdefault("police_npc_rewards", set())
                 ok = bool(cop.get("police") and mission_id and xp in (65, 180, 300) and mission_id not in rewarded)
-                if ok:
+                daily = preview_claim_police_arrest(uid) if ok else None
+                if ok and daily.get("ok"):
                     rewarded.add(mission_id)
                     account = preview_account(uid)
                     account["police_xp"] = min(2800, int(account.get("police_xp", 0)) + xp)
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"police_xp_reply","ok":ok,"police_xp":int(preview_account(uid).get("police_xp",0))}}, ensure_ascii=False))
+                elif ok:
+                    ok = False
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"police_xp_reply","ok":ok,
+                    "error":("" if ok else ((daily or {}).get("error") or "invalid")),
+                    "mission_id":mission_id,"police_xp":int(preview_account(uid).get("police_xp",0)),
+                    "daily_count":((daily or {}).get("count",preview_police_daily_state(uid)[1])),
+                    "daily_limit":((daily or {}).get("limit",preview_police_daily_state(uid)[2]))}}, ensure_ascii=False))
             elif t in ("police_patrol_spawn", "police_spikes", "police_backup"):
                 cop = players.get(uid, {})
                 account = preview_account(uid)
@@ -1671,18 +1701,26 @@ async def world_ws(req):
                         elif (float(cop.get("x",0))-76)**2 + (float(cop.get("y",0))-76)**2 > 5.2**2:
                             reply = {"ok":False,"error":"not_at_station"}
                         else:
-                            first=target_uid not in preview_police_rewards
-                            preview_police_rewards.add(target_uid)
-                            if first: preview_account(uid)["cash"] += 700
-                            preview_account(uid)["police_xp"] = min(2800, int(preview_account(uid).get("police_xp",0)) + 75)
-                            target["wanted"]=0; target["jail_until"]=time.time()+30
-                            target["x"],target["y"]=76.5,76.5
-                            target.pop("police_death_arrest",None)
-                            target.pop("police_cuffed_by",None); target.pop("police_cuff_until",None)
-                            cop.pop("police_escort_uid",None); cop.pop("police_online_target",None)
-                            reply={"ok":True,"target_uid":target_uid,"target_name":target.get("name","Игрок"),
-                                   "first_reward":first,"cash":700 if first else 0,"exp":75 if first else 0,
-                                   "police_xp_gain":75,"police_xp":preview_account(uid)["police_xp"]}
+                            daily=preview_claim_police_arrest(uid)
+                            if not daily.get("ok"):
+                                target.pop("police_cuffed_by",None);target.pop("police_cuff_until",None)
+                                target.pop("police_death_arrest",None);target["hp"]=max(25,int(target.get("hp",0)))
+                                cop.pop("police_escort_uid",None)
+                                reply={"ok":False,"error":"daily_limit","daily_count":daily["count"],"daily_limit":daily["limit"]}
+                            else:
+                                first=target_uid not in preview_police_rewards
+                                preview_police_rewards.add(target_uid)
+                                if first: preview_account(uid)["cash"] += 700
+                                preview_account(uid)["police_xp"] = min(2800, int(preview_account(uid).get("police_xp",0)) + 75)
+                                target["wanted"]=0; target["jail_until"]=time.time()+30
+                                target["x"],target["y"]=76.5,76.5
+                                target.pop("police_death_arrest",None)
+                                target.pop("police_cuffed_by",None); target.pop("police_cuff_until",None)
+                                cop.pop("police_escort_uid",None); cop.pop("police_online_target",None)
+                                reply={"ok":True,"target_uid":target_uid,"target_name":target.get("name","Игрок"),
+                                       "first_reward":first,"cash":700 if first else 0,"exp":75 if first else 0,
+                                       "police_xp_gain":75,"police_xp":preview_account(uid)["police_xp"],
+                                       "daily_count":daily["count"],"daily_limit":daily["limit"]}
                 reply["kind"] = t + "_reply"
                 await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
                 if reply.get("ok"):
