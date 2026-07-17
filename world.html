@@ -12775,6 +12775,7 @@ let _onlinePoliceArrest = null;
 let _policeDowned = null;
 let _policeStunnedIn = 0;
 let _policeDailyCount=0,_policeDailyLimit=3,_policePendingNpcTurnin=null;
+let _policeSpikesReadyAt=0,_policeSpikesPending=false;
 
 // Маркер «в бою с этим игроком» — для мини-карты (красная точка).
 // uid → expiresAt (ms). После TTL сбрасывается обратно в синий.
@@ -13529,7 +13530,9 @@ function handleEventPacket(d) {
     if(!d.ok){showToast(_policeError(d.error),'⚠️',2500);return;}
     showEventBanner('🚓 ПАТРУЛЬНАЯ МАШИНА ГОТОВА',d.existing?'Твоя машина уже отмечена на карте.':'Круизер доставлен рядом. Подойди и садись за руль.',3600,'win');
   } else if (kind === 'police_spikes_reply') {
-    if(!d.ok){showToast(_policeError(d.error),'⚠️',2500);return;}
+    _policeSpikesPending=false;
+    if(!d.ok){_policeSpikesReadyAt=d.error==='cooldown'?performance.now()+Math.max(0,+d.cooldown_left||0)*1000:0;if(_wepPickOpen)renderWeaponPick();showToast(d.error==='cooldown'?`Шипы будут готовы через ${Math.max(.1,+d.cooldown_left||0).toFixed(1)} сек`:_policeError(d.error),'⚠️',2500);return;}
+    _policeSpikesReadyAt=performance.now()+25000;if(_wepPickOpen)renderWeaponPick();renderWeaponHud();
     showToast('🛞 Шипы разложены на 45 секунд','👮',2400);
   } else if (kind === 'police_spikes_deployed') {
     _addPoliceSpikeStrip(d);
@@ -15096,6 +15099,7 @@ function wsConnect() {
         if(typeof d.me.police_arrests_today==='number')_policeDailyCount=Math.max(0,d.me.police_arrests_today|0);
         if(d.me.police_arrest_limit===null)_policeDailyLimit=null;
         else if(typeof d.me.police_arrest_limit==='number')_policeDailyLimit=Math.max(0,d.me.police_arrest_limit|0);
+        if(typeof d.me.police_spikes_cd==='number'&&!_policeSpikesPending)_policeSpikesReadyAt=performance.now()+Math.max(0,+d.me.police_spikes_cd||0)*1000;
         _policeStunnedIn = +d.me.police_stunned_in || 0;
         _policeEvidenceBag = d.me.police_evidence_bag || null;
         if(_policeEvidenceBag)_myBagWeight=Math.max(1,+_policeEvidenceBag.value||1);
@@ -20790,16 +20794,18 @@ let _wepPickOpen = false;
 const WEAPON_LABELS = {
   pistol:'пистолет', nagan:'наган', pistol_heavy:'тяж.пистолет', pistol_gold:'золотой',
   shotgun:'дробовик', smg:'ПП', tommy_gun:'томми-ган',
-  rifle:'винтовка', sniper:'снайперка', taser:'шокер', rpg:'РПГ', c4:'заряд C4',
+  rifle:'винтовка', sniper:'снайперка', taser:'шокер (коп)', police_spikes:'шипы (коп)', rpg:'РПГ', c4:'заряд C4',
 };
 function weaponLabel(w) { if (!w) return 'без оружия'; return WEAPON_LABELS[w] || w; }
 function weaponModeLabel(mode) {
   return ({ semi:'одиночный', duelist:'дуэлянт', pump:'помповый', auto:'автомат', bolt:'болтовик', single:'одиночный' })[mode] || 'одиночный';
 }
+function _policeSpikesCooldownLeft(){return Math.max(0,(_policeSpikesReadyAt-performance.now())/1000);}
 function weaponStatLine(w) {
   if (!w) return 'кулаки · ближний бой';
   if(w==='c4')return 'установка на землю · фитиль 3 сек · смерть до 4 тайлов';
   if(w==='taser')return 'полицейский · дальность 7.5 · оглушение 5 секунд';
+  if(w==='police_spikes'){const left=_policeSpikesCooldownLeft();return left>0?`перезарядка · ${left.toFixed(1)} сек`:'готовы · нажми, чтобы разложить перед копом';}
   const p = weaponProfile(w);
   if (resolveWeapon(w) === 'nagan') {
     return `дуэлянт · крит 12% / ×${p.duelCritMul} после ${(p.duelPauseMs/1000).toFixed(1)}с · пробивает 1 цель`;
@@ -20886,11 +20892,14 @@ function weaponsForPick() {
   const unarmed = [{ id: null, name: 'Без оружия', icon: '✋' }];
   if (_localWeaponShowcase) {
     const allWeapons = Object.keys(WEAPON_FX_CFG).filter(id=>id!=='taser').map(id => ({ id, name: weaponLabel(id), count: 1 }));
-    if(_policeCanUseTaser())allWeapons.unshift({id:'taser',name:'шокер',count:1});
+    if(_policeCanUseTaser())allWeapons.unshift({id:'taser',name:'шокер (коп)',count:1});
+    if(_policeHasLevel(4))allWeapons.unshift({id:'police_spikes',name:'шипы (коп)',count:1});
     return [...unarmed, {id:'c4',name:'заряд C4',count:Math.max(1,_myC4Count)}, ...allWeapons];
   }
   const guns=(_myWeapons&&_myWeapons.length>0)?_myWeapons:[{id:'pistol',name:'пистолет',count:1}];
-  const police=_policeCanUseTaser()?[{id:'taser',name:'шокер',count:1}]:[];
+  const police=[];
+  if(_policeHasLevel(4))police.push({id:'police_spikes',name:'шипы (коп)',count:1});
+  if(_policeCanUseTaser())police.push({id:'taser',name:'шокер (коп)',count:1});
   return _myC4Count>0?[...unarmed,...police,{id:'c4',name:'заряд C4',count:_myC4Count},...guns]:[...unarmed,...police,...guns];
 }
 // Без оружия = currentWeapon === null
@@ -20911,8 +20920,8 @@ function renderWeaponPick() {
     if (w.id === null) {
       cvCtx.font = '20px system-ui'; cvCtx.textAlign = 'center'; cvCtx.textBaseline = 'middle';
       cvCtx.fillText('✋', 30, 16);
-    } else if(w.id==='c4'){
-      cvCtx.font='22px "Segoe UI Emoji",system-ui';cvCtx.textAlign='center';cvCtx.textBaseline='middle';cvCtx.fillText('🧨',30,16);
+    } else if(w.id==='c4'||w.id==='police_spikes'){
+      cvCtx.font='22px "Segoe UI Emoji",system-ui';cvCtx.textAlign='center';cvCtx.textBaseline='middle';cvCtx.fillText(w.id==='police_spikes'?'🛞':'🧨',30,16);
     } else {
       drawWeaponHudIcon(cvCtx, cv, w.id);
     }
@@ -20924,6 +20933,7 @@ function renderWeaponPick() {
     nm.appendChild(title);
     const stats = document.createElement('span');
     stats.className = 'wpStats';
+    if(w.id==='police_spikes')stats.dataset.policeSpikesCd='1';
     stats.textContent = weaponStatLine(w.id);
     nm.appendChild(stats);
     row.appendChild(nm);
@@ -20935,6 +20945,12 @@ function renderWeaponPick() {
     }
     row.addEventListener('click', (e) => {
       e.preventDefault();
+      if(w.id==='police_spikes'){
+        const left=_policeSpikesCooldownLeft();
+        if(left>0||_policeSpikesPending){showToast(`Шипы будут готовы через ${Math.max(.1,left).toFixed(1)} сек`,'🛞',1800);return;}
+        _policeSpikesPending=true;_policeSpikesReadyAt=performance.now()+25000;
+        _sendPoliceAbility('police_spikes');closeWeaponPick();renderWeaponHud();return;
+      }
       const wasArmed = _isArmed();
       cancelWeaponReload();
       currentWeapon = w.id;  // null = без оружия
@@ -20951,6 +20967,10 @@ function renderWeaponPick() {
     });
     _weaponPickEl.appendChild(row);
   }
+}
+function _updatePoliceSpikesPickerCooldown(){
+  if(!_wepPickOpen)return;const el=_weaponPickEl?.querySelector('[data-police-spikes-cd="1"]');
+  if(el)el.textContent=weaponStatLine('police_spikes');
 }
 
 function openWeaponPick() {
@@ -38024,7 +38044,7 @@ function _policeAbilityPanel(){
   ];
   const cards=caps.map(c=>`<div class="police-cap ${level<c.need?'locked':''}"><span class="police-cap-icon">${level<c.need?'🔒':c.icon}</span><b>${c.title}${level<c.need?` · ${c.need} ур.`:' · доступно'}</b><small>${c.desc}</small></div>`).join('');
   const button=(need,action,label)=>`<button class="police-action" data-police-action="${action}" ${level<need?'disabled':''}>${level<need?'🔒 ':''}${label}</button>`;
-  return `<div class="police-section-title">МОИ ПОЛНОМОЧИЯ <span>${caps.filter(c=>level>=c.need).length}/${caps.length} открыто</span></div><div class="police-cap-grid">${cards}</div><div class="police-actions">${button(1,'patrol','🚓 Вызвать машину')}${button(4,'spikes','🛞 Разложить шипы')}${button(4,'backup','📻 Подкрепление')}</div>`;
+  return `<div class="police-section-title">МОИ ПОЛНОМОЧИЯ <span>${caps.filter(c=>level>=c.need).length}/${caps.length} открыто</span></div><div class="police-cap-grid">${cards}</div><div class="police-actions">${button(1,'patrol','🚓 Вызвать машину')}${button(4,'backup','📻 Подкрепление')}</div>`;
 }
 function _policeCareerDetails(p){
   const remaining=_policeDailyLimit===null?'без ограничений':Math.max(0,_policeDailyLimit-_policeDailyCount);
@@ -38173,7 +38193,7 @@ function _rejectPendingPoliceNpcReward(d){
   if(m){_policeState.missions=_policeState.missions.filter(x=>String(x.id)!==String(m.id));_policeState.escort=null;_policeState.cuffs=Math.min(3,_policeState.cuffs+1);_savePoliceState();}
   renderPoliceModal();renderJobStatus();showEventBanner('🕛 СМЕНА ЗАВЕРШЕНА',_policeError(d.error||'daily_limit'),3900,'neutral');
 }
-function _tickPoliceMissions(now){_updateOnlineArrestHud();_updatePoliceDownedButton();_tickPoliceSupport(now);for(const m of [..._policeState.missions]){if(m.status!=='hunt')continue;const n=NPCS.find(x=>x._policeTargetId===m.targetId);if(n&&n.dead&&now-(n.deadAt||now)>900){const i=NPCS.indexOf(n);if(i>=0)NPCS.splice(i,1);_policeState.missions=_policeState.missions.filter(x=>x.id!==m.id);_policeMissionIntel.delete(String(m.id));_savePoliceState();renderPoliceModal();renderJobStatus();showEventBanner('☠️ ПРЕСТУПНИК ПОГИБ',`${m.name} погиб. Ориентировка вычеркнута.`,3900,'lose');showToast(`${m.name}: преступник погиб`,'☠️',2800);}else if(!n)_spawnPoliceTarget(m);}}
+function _tickPoliceMissions(now){_updateOnlineArrestHud();_updatePoliceDownedButton();_updatePoliceSpikesPickerCooldown();_tickPoliceSupport(now);for(const m of [..._policeState.missions]){if(m.status!=='hunt')continue;const n=NPCS.find(x=>x._policeTargetId===m.targetId);if(n&&n.dead&&now-(n.deadAt||now)>900){const i=NPCS.indexOf(n);if(i>=0)NPCS.splice(i,1);_policeState.missions=_policeState.missions.filter(x=>x.id!==m.id);_policeMissionIntel.delete(String(m.id));_savePoliceState();renderPoliceModal();renderJobStatus();showEventBanner('☠️ ПРЕСТУПНИК ПОГИБ',`${m.name} погиб. Ориентировка вычеркнута.`,3900,'lose');showToast(`${m.name}: преступник погиб`,'☠️',2800);}else if(!n)_spawnPoliceTarget(m);}}
 document.getElementById('policeModalClose')?.addEventListener('click',closePoliceDesk);
 _policeModal?.addEventListener('click',e=>{if(e.target===_policeModal){closePoliceDesk();return;}const b=e.target.closest('[data-police-action]');if(!b||b.disabled)return;e.preventDefault();const a=b.dataset.policeAction;if(a==='take')_acceptPoliceMission(false);else if(a==='boss')_acceptPoliceMission(true);else if(a==='patrol')_sendPoliceAbility('police_patrol_spawn');else if(a==='spikes')_sendPoliceAbility('police_spikes');else if(a==='backup')_sendPoliceAbility('police_backup');else if(a==='online_select')_sendPoliceOnline('police_online_select',b.dataset.targetUid);else if(a==='join')_joinPoliceService();else if(a==='leave')_leavePoliceService();else if(a==='decline')closePoliceDesk();});
 _stealthBtn?.addEventListener('pointerdown',e=>{e.preventDefault();_knockoutPoliceTarget();});
