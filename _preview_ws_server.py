@@ -59,12 +59,13 @@ preview_accounts = {}
 preview_apartments = {}
 preview_bank_robs = {}
 preview_businesses = {}
+preview_police_rewards = set()
 PREVIEW_BUSINESSES = {
     "coffee": (3000,150,200,"☕","Кофейня «У Дона»"), "carwash": (5000,220,300,"🚗","Автомойка"),
     "barbershop": (7500,300,400,"💈","Парикмахерская"), "pizza": (12000,450,600,"🍕","Пиццерия"),
     "garage": (18000,650,900,"🔧","Гараж-СТО"), "bar": (28000,1000,1400,"🍸","Бар «Чёрная вдова»"),
     "club": (45000,1600,2200,"🎰","Подпольный клуб"), "warehouse": (70000,2400,3300,"📦","Склад"),
-    "casino": (120000,4000,5500,"🎲","Казино"), "port": (200000,6500,9000,"🚢","Доля в порту"),
+    "casino": (120000,4000,5500,"🎲","Казино"), "port": (200000,6500,9000,"⚓","Порт"),
 }
 PREVIEW_BIZ_MULT = {1:1.0,2:1.35,3:1.75,4:2.25,5:3.0}
 PREVIEW_BIZ_UP = {2:.45,3:.75,4:1.15,5:1.70}
@@ -93,8 +94,14 @@ PREVIEW_SHOP_CONSUMABLES = {
 
 def preview_account(uid):
     account = preview_accounts.setdefault(str(uid), {
-        "cash": 100000,
+        # Тестовый баланс локального превью. Реальные аккаунты и база бота
+        # этим сервером не используются.
+        "cash": 1000000,
         "exp": 0,
+        "police_xp": 0,
+        "said_hired": False,
+        "said_hired_at": 0,
+        "said_paid_until": 0,
         "weapons": {
             "pistol": {"name": "Пистолет", "canonical": "pistol"},
             "shotgun": {"name": "Дробовик", "canonical": "shotgun"},
@@ -103,6 +110,30 @@ def preview_account(uid):
     })
     account.setdefault("consumables", {}).setdefault("c4", 0)
     return account
+
+
+def preview_said_state(uid):
+    account = preview_account(uid)
+    now = time.time()
+    charged = 0
+    auto_fired = False
+    if account.get("said_hired") and now >= float(account.get("said_paid_until") or 0):
+        paid_until = float(account.get("said_paid_until") or now)
+        periods = int((now - paid_until) // 86400) + 1
+        due = periods * 500
+        if account["cash"] >= due:
+            account["cash"] -= due
+            account["said_paid_until"] = paid_until + periods * 86400
+            charged = due
+        else:
+            account["said_hired"] = False
+            account["said_hired_at"] = 0
+            account["said_paid_until"] = 0
+            auto_fired = True
+    return {"hired": bool(account.get("said_hired")), "salary": 500,
+        "hired_at": int(account.get("said_hired_at") or 0),
+        "next_salary_at": int(account.get("said_paid_until") or 0),
+        "salary_charged": charged, "auto_fired": auto_fired, "cash": account["cash"]}
 
 
 def reset_race_cars():
@@ -689,6 +720,8 @@ def preview_business_row(biz_id, info=None):
         pending = int(elapsed * ((low + high) / 2) * mult / 86400)
     next_level = level + 1
     return {
+        "biz_id": biz_id,
+        "bought_at": int((info or {}).get("bought_at") or 0),
         "id": biz_id, "name": name, "emoji": emoji, "desc": "Стабильный городской бизнес.",
         "price": price, "owned": bool(info), "status": "ok", "blocked_until": 0,
         "level": level, "income_multiplier": mult,
@@ -699,9 +732,40 @@ def preview_business_row(biz_id, info=None):
 
 async def business_list(req):
     uid = req.match_info.get("uid", "1")
+    said = preview_said_state(uid)
     owned = preview_owned_businesses(uid)
     rows = [preview_business_row(biz_id, owned.get(biz_id)) for biz_id in PREVIEW_BUSINESSES]
-    return cors(web.json_response({"ok": True, "businesses": rows, "cash": preview_account(uid)["cash"]}))
+    return cors(web.json_response({"ok": True, "businesses": rows,
+        "cash": preview_account(uid)["cash"], "said": said}))
+
+
+async def said_hire(req):
+    uid = req.match_info.get("uid", "1")
+    account, owned = preview_account(uid), preview_owned_businesses(uid)
+    if not owned:
+        return cors(web.json_response({"ok": False, "error": "no business"}))
+    state = preview_said_state(uid)
+    if state["hired"]:
+        return cors(web.json_response({"ok": True, "cash": account["cash"], "said": state}))
+    if account["cash"] < 500:
+        return cors(web.json_response({"ok": False, "error": "no cash"}))
+    now = time.time()
+    account["cash"] -= 500
+    account["said_hired"] = True
+    account["said_hired_at"] = now
+    account["said_paid_until"] = now + 86400
+    return cors(web.json_response({"ok": True, "cash": account["cash"],
+        "said": preview_said_state(uid)}))
+
+
+async def said_fire(req):
+    uid = req.match_info.get("uid", "1")
+    account = preview_account(uid)
+    account["said_hired"] = False
+    account["said_hired_at"] = 0
+    account["said_paid_until"] = 0
+    return cors(web.json_response({"ok": True, "cash": account["cash"],
+        "said": preview_said_state(uid)}))
 
 
 async def business_buy(req):
@@ -718,7 +782,8 @@ async def business_buy(req):
     if account["cash"] < price:
         return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"], "price": price}))
     account["cash"] -= price
-    owned[biz_id] = {"level": 1, "last_collect": time.time()}
+    now = time.time()
+    owned[biz_id] = {"level": 1, "last_collect": now, "bought_at": now}
     return cors(web.json_response({"ok": True, "cash": account["cash"], "level": 1}))
 
 
@@ -752,13 +817,21 @@ async def business_collect(req):
     try: body = await req.json()
     except Exception: body = {}
     biz_id = str(body.get("biz_id") or "")
-    info = preview_owned_businesses(uid).get(biz_id)
-    if not info or biz_id not in PREVIEW_BUSINESSES:
-        return cors(web.json_response({"ok": False, "error": "not owned"}))
-    row = preview_business_row(biz_id, info)
-    pay, account = int(row["pending"]), preview_account(uid)
+    owned = preview_owned_businesses(uid)
+    if biz_id:
+        info = owned.get(biz_id)
+        if not info or biz_id not in PREVIEW_BUSINESSES:
+            return cors(web.json_response({"ok": False, "error": "not owned"}))
+        targets = [(biz_id, info)]
+    else:
+        if not preview_said_state(uid)["hired"]:
+            return cors(web.json_response({"ok": False, "error": "said not hired"}))
+        targets = list(owned.items())
+    pay, account = 0, preview_account(uid)
+    for target_id, info in targets:
+        pay += int(preview_business_row(target_id, info)["pending"])
+        info["last_collect"] = time.time()
     account["cash"] += pay
-    info["last_collect"] = time.time()
     return cors(web.json_response({"ok": True, "collected": pay, "cash": account["cash"], "events": []}))
 
 
@@ -784,6 +857,56 @@ def snap(uid):
         "walking": False,
         "name": "Demo",
     })
+    now = time.time()
+    # Ограниченный серверный конвой: 45 секунд максимум, освобождение при
+    # гибели/выходе копа. Задержанный следует в 0.7 тайла позади.
+    for target_uid, target in list(players.items()):
+        cop_uid = str(target.get("police_cuffed_by") or "")
+        if not cop_uid:
+            continue
+        cop = players.get(cop_uid)
+        if (not cop or not cop.get("police") or cop.get("dead") or
+                now >= float(target.get("police_cuff_until", 0))):
+            target.pop("police_cuffed_by", None); target.pop("police_cuff_until", None)
+            if cop: cop.pop("police_escort_uid", None)
+            continue
+        ang = float(cop.get("ang", 0))
+        target["x"] = float(cop.get("x", 0)) - math.sin(ang) * .72
+        target["y"] = float(cop.get("y", 0)) - math.cos(ang) * .72
+        target["ang"] = ang; target["walking"] = bool(cop.get("walking"))
+    me_biz = str(p.get("business_interior") or "")
+    me_private = bool(p.get("business_private"))
+    visible_others = []
+    for other_uid, other in players.items():
+        if str(other_uid) == str(uid):
+            continue
+        other_biz = str(other.get("business_interior") or "")
+        other_private = bool(other.get("business_private"))
+        if me_biz:
+            if me_private or other_biz != me_biz or other_private:
+                continue
+            ox, oy = float(other.get("interior_x", 0)), float(other.get("interior_y", 0))
+        else:
+            if other_biz:
+                continue
+            ox, oy = float(other.get("x", 0)), float(other.get("y", 0))
+            if (ox-float(p.get("x", 0)))**2 + (oy-float(p.get("y", 0)))**2 > 45**2:
+                continue
+        visible_others.append({
+            "uid": str(other_uid), "name": other.get("name", "Demo"),
+            "look": other.get("look", {}), "x": round(ox, 2), "y": round(oy, 2),
+            "ang": round(float(other.get("ang", 0)), 2), "w": bool(other.get("walking")),
+            "hp": int(other.get("hp", 100)), "dead": bool(other.get("dead", False)),
+            "wanted": int(other.get("wanted", 0)), "gangs": 0, "mode": "pvp",
+            "jail_in": max(0, int(float(other.get("jail_until", 0))-now)),
+            "weapon": other.get("weapon", "pistol"),
+            "police": bool(other.get("police", False)),
+            "police_cuffed": bool(other.get("police_cuffed_by")),
+            "police_stunned_in": max(0, float(other.get("police_stunned_until", 0))-now),
+            "police_escort": other.get("police_escort"),
+            "interior": ({"kind": "business", "biz_id": other_biz,
+                          "private": other_private} if other_biz else None),
+        })
     return {
         "t": "snap",
         "d": {
@@ -799,12 +922,31 @@ def snap(uid):
                 "kills": 0,
                 "deaths": 0,
                 "cash": preview_account(uid)["cash"],
+                "police_xp": int(preview_account(uid).get("police_xp", 0)),
                 "diamonds": 0,
-                "wanted": 0,
+                "wanted": int(p.get("wanted", 0)),
                 "wanted_gangs": 0,
-                "jail_in": 0,
+                "jail_in": max(0, int(float(p.get("jail_until", 0))-now)),
+                "police_stunned_in": max(0, float(p.get("police_stunned_until", 0))-now),
+                "police_arrest": ({"role":"detainee", "cop_uid":str(p.get("police_cuffed_by")),
+                    "cop_name":players.get(str(p.get("police_cuffed_by")),{}).get("name","Полицейский"),
+                    "left":max(0,int(float(p.get("police_cuff_until",0))-now))}
+                    if p.get("police_cuffed_by") else
+                    ({"role":"cop", "target_uid":str(p.get("police_escort_uid")),
+                      "target_name":players.get(str(p.get("police_escort_uid")),{}).get("name","Задержанный"),
+                      "left":max(0,int(float(players.get(str(p.get("police_escort_uid")),{}).get("police_cuff_until",0))-now))}
+                     if p.get("police_escort_uid") else None)),
             },
-            "others": [],
+            "others": visible_others,
+            "wanted_board": ([{
+                "uid": str(tuid), "name": tp.get("name", "Игрок"),
+                "wanted": int(tp.get("wanted", 0)), "x": round(float(tp.get("x",0)),1),
+                "y": round(float(tp.get("y",0)),1),
+                "selected": str(p.get("police_online_target") or "") == str(tuid),
+                "detained": bool(tp.get("police_cuffed_by")),
+                "first_reward": str(tuid) not in preview_police_rewards,
+            } for tuid,tp in players.items() if str(tuid)!=str(uid) and int(tp.get("wanted",0))>0
+                and not tp.get("dead") and float(tp.get("jail_until",0))<=now] if p.get("police") else []),
             "cops": [],
             "event": None,
             "territories": {},
@@ -849,7 +991,7 @@ def snap(uid):
 
 async def world_ws(req):
     uid = req.query.get("uid", "1")
-    players.setdefault(uid, {
+    p0 = players.setdefault(uid, {
         "x": PREVIEW_START_X,
         "y": PREVIEW_START_Y,
         "ang": 0.0,
@@ -858,6 +1000,10 @@ async def world_ws(req):
         "hp": 100,
         "dead": False,
     })
+    try:
+        p0["wanted"] = max(int(p0.get("wanted", 0)), min(3, int(req.query.get("wanted", 0))))
+    except Exception:
+        pass
     ws = web.WebSocketResponse(heartbeat=20)
     await ws.prepare(req)
     clients.add(ws)
@@ -1021,10 +1167,34 @@ async def world_ws(req):
                 p = players.setdefault(uid, {})
                 if p.get("dead"):
                     continue
+                if p.get("police_cuffed_by"):
+                    continue
+                p["police"] = bool(d.get("police", False))
+                escort = d.get("police_escort") if isinstance(d.get("police_escort"), dict) else None
+                if escort:
+                    p["police_escort"] = {"r": max(0.0, min(120.0, float(escort.get("r", 0)))), "c": max(0.0, min(120.0, float(escort.get("c", 0)))), "ang": float(escort.get("ang", 0)), "name": str(escort.get("name") or "Задержанный")[:32], "look": escort.get("look") if isinstance(escort.get("look"), dict) else {}, "waiting": bool(escort.get("waiting"))}
+                else:
+                    p["police_escort"] = None
+                interior = d.get("interior") if isinstance(d.get("interior"), dict) else None
+                biz_id = str((interior or {}).get("biz_id") or "")[:32]
+                if (interior or {}).get("kind") == "business" and biz_id:
+                    p["business_interior"] = biz_id
+                    p["business_private"] = biz_id in preview_owned_businesses(uid)
+                    p["interior_x"] = max(0.0, min(60.0, float(d.get("x", 0))))
+                    p["interior_y"] = max(0.0, min(60.0, float(d.get("y", 0))))
+                    p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
+                    p["walking"] = bool(d.get("w", False))
+                    p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
+                    continue
+                p.pop("business_interior", None)
+                p.pop("business_private", None)
+                p.pop("interior_x", None)
+                p.pop("interior_y", None)
                 p["x"] = float(d.get("x", p.get("x", 40.0)))
                 p["y"] = float(d.get("y", p.get("y", 40.0)))
                 p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
                 p["walking"] = bool(d.get("w", False))
+                p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
             elif t == "district_capture_try":
                 p = players.get(uid) or {}
                 did = str(d.get("did") or "")
@@ -1221,6 +1391,111 @@ async def world_ws(req):
                         await broadcast_event({"kind": "district_capture_cancelled", "did": did,
                                                "by_uid": str(uid), "reason": "cancelled"})
                         break
+            elif t == "police_resign":
+                account = preview_account(uid)
+                account["police_xp"] = 0
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"police_xp_reply","ok":True,"resigned":True,"police_xp":0}}, ensure_ascii=False))
+            elif t == "police_xp_sync":
+                account = preview_account(uid)
+                account["police_xp"] = min(1000, max(int(account.get("police_xp", 0)), max(0, int(d.get("xp") or 0))))
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"police_xp_reply","ok":True,"police_xp":account["police_xp"]}}, ensure_ascii=False))
+            elif t == "police_npc_reward":
+                cop = players.get(uid, {})
+                xp = int(d.get("xp") or 0)
+                mission_id = str(d.get("mission_id") or "")[:96]
+                rewarded = cop.setdefault("police_npc_rewards", set())
+                ok = bool(cop.get("police") and mission_id and xp in (65, 180) and mission_id not in rewarded)
+                if ok:
+                    rewarded.add(mission_id)
+                    account = preview_account(uid)
+                    account["police_xp"] = min(1000, int(account.get("police_xp", 0)) + xp)
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"police_xp_reply","ok":ok,"police_xp":int(preview_account(uid).get("police_xp",0))}}, ensure_ascii=False))
+            elif t in ("police_online_select", "police_online_stun", "police_online_taser", "police_online_cuff", "police_online_turnin"):
+                cop = players.get(uid, {})
+                target_uid = str(d.get("target_uid") or cop.get("police_escort_uid") or "")
+                target = players.get(target_uid)
+                reply = {"ok": False, "error": "not_police"}
+                if cop.get("police"):
+                    if t == "police_online_select":
+                        if target and int(target.get("wanted", 0)) > 0 and not target.get("dead"):
+                            cop["police_online_target"] = target_uid
+                            reply = {"ok":True,"target_uid":target_uid,"name":target.get("name","Игрок")}
+                        else: reply = {"ok":False,"error":"not_wanted"}
+                    elif t == "police_online_stun":
+                        if not target or str(cop.get("police_online_target") or "") != target_uid:
+                            reply = {"ok":False,"error":"not_selected"}
+                        elif cop.get("business_interior") or target.get("business_interior"):
+                            reply = {"ok":False,"error":"interior"}
+                        elif (float(cop.get("x",0))-float(target.get("x",0)))**2 + (float(cop.get("y",0))-float(target.get("y",0)))**2 > 2.15**2:
+                            reply = {"ok":False,"error":"too_far"}
+                        elif int(target.get("wanted",0)) <= 0 or target.get("dead"):
+                            reply = {"ok":False,"error":"not_wanted"}
+                        elif target.get("police_cuffed_by"):
+                            reply = {"ok":False,"error":"already_cuffed"}
+                        else:
+                            target["police_stunned_until"] = time.time()+5
+                            reply = {"ok":True,"target_uid":target_uid,"until":target["police_stunned_until"]}
+                    elif t == "police_online_taser":
+                        now = time.time()
+                        if int(preview_account(uid).get("police_xp", 0)) < 1000:
+                            reply = {"ok":False,"error":"taser_locked"}
+                        elif not target or str(cop.get("police_online_target") or "") != target_uid:
+                            reply = {"ok":False,"error":"not_selected"}
+                        elif cop.get("business_interior") or target.get("business_interior"):
+                            reply = {"ok":False,"error":"interior"}
+                        elif (float(cop.get("x",0))-float(target.get("x",0)))**2 + (float(cop.get("y",0))-float(target.get("y",0)))**2 > 7.5**2:
+                            reply = {"ok":False,"error":"too_far"}
+                        elif now-float(cop.get("police_taser_at",0)) < 1.2:
+                            reply = {"ok":False,"error":"cooldown"}
+                        elif int(target.get("wanted",0)) <= 0 or target.get("dead"):
+                            reply = {"ok":False,"error":"not_wanted"}
+                        elif target.get("police_cuffed_by"):
+                            reply = {"ok":False,"error":"already_cuffed"}
+                        else:
+                            cop["police_taser_at"] = now
+                            target["police_stunned_until"] = now+5
+                            reply = {"ok":True,"target_uid":target_uid,"until":target["police_stunned_until"]}
+                    elif t == "police_online_cuff":
+                        if not target or str(cop.get("police_online_target") or "") != target_uid:
+                            reply = {"ok":False,"error":"not_selected"}
+                        elif cop.get("police_escort_uid"):
+                            reply = {"ok":False,"error":"already_escorting"}
+                        elif int(target.get("wanted",0)) <= 0 or target.get("dead"):
+                            reply = {"ok":False,"error":"not_wanted"}
+                        elif cop.get("business_interior") or target.get("business_interior"):
+                            reply = {"ok":False,"error":"interior"}
+                        elif target.get("police_cuffed_by"):
+                            reply = {"ok":False,"error":"already_cuffed"}
+                        elif float(target.get("police_stunned_until",0)) < time.time():
+                            reply = {"ok":False,"error":"not_stunned"}
+                        elif (float(cop.get("x",0))-float(target.get("x",0)))**2 + (float(cop.get("y",0))-float(target.get("y",0)))**2 > 2.15**2:
+                            reply = {"ok":False,"error":"too_far"}
+                        else:
+                            target["police_cuffed_by"] = uid; target["police_cuff_until"] = time.time()+45
+                            cop["police_escort_uid"] = target_uid
+                            reply = {"ok":True,"target_uid":target_uid,"cop_uid":uid,"until":target["police_cuff_until"]}
+                    else:
+                        if not target or str(target.get("police_cuffed_by") or "") != str(uid):
+                            reply = {"ok":False,"error":"no_escort"}
+                        elif (float(cop.get("x",0))-76)**2 + (float(cop.get("y",0))-76)**2 > 5.2**2:
+                            reply = {"ok":False,"error":"not_at_station"}
+                        else:
+                            first=target_uid not in preview_police_rewards
+                            preview_police_rewards.add(target_uid)
+                            if first: preview_account(uid)["cash"] += 700
+                            preview_account(uid)["police_xp"] = min(1000, int(preview_account(uid).get("police_xp",0)) + 75)
+                            target["wanted"]=0; target["jail_until"]=time.time()+30
+                            target["x"],target["y"]=76.5,76.5
+                            target.pop("police_cuffed_by",None); target.pop("police_cuff_until",None)
+                            cop.pop("police_escort_uid",None); cop.pop("police_online_target",None)
+                            reply={"ok":True,"target_uid":target_uid,"target_name":target.get("name","Игрок"),
+                                   "first_reward":first,"cash":700 if first else 0,"exp":75 if first else 0,
+                                   "police_xp_gain":75,"police_xp":preview_account(uid)["police_xp"]}
+                reply["kind"] = t + "_reply"
+                await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
+                if reply.get("ok"):
+                    action=dict(reply); action["kind"]=t
+                    await broadcast_event(action)
             elif t == "gta_enter":
                 car = quest_cars.get(str(d.get("car_id") or ""))
                 if car:
@@ -1372,6 +1647,8 @@ app.router.add_get("/biz/{uid}/list", business_list)
 app.router.add_post("/biz/{uid}/buy", business_buy)
 app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
 app.router.add_post("/biz/{uid}/collect", business_collect)
+app.router.add_post("/biz/{uid}/said/hire", said_hire)
+app.router.add_post("/biz/{uid}/said/fire", said_fire)
 
 
 if __name__ == "__main__":
