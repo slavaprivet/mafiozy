@@ -12054,7 +12054,7 @@ class WorldSim:
     POLICE_TASER_R = 7.5
     POLICE_TASER_XP = 2800
     POLICE_TASER_CD = 1.2
-    POLICE_PATROL_XP = 800
+    POLICE_VEST_XP = 800
     POLICE_TACTICAL_XP = 1600
     POLICE_SPIKES_CD = 25.0
     POLICE_BACKUP_CD = 90.0
@@ -12820,7 +12820,7 @@ class WorldSim:
     def police_vest_damage(self, target: dict, damage: int) -> int:
         """Level 3 police vest absorbs 30% of incoming world damage."""
         damage = max(0, int(damage or 0))
-        if target and target.get('_police') and int(target.get('_police_xp') or 0) >= self.POLICE_PATROL_XP:
+        if target and target.get('_police') and int(target.get('_police_xp') or 0) >= self.POLICE_VEST_XP:
             return max(1, int(math.ceil(damage * 0.70))) if damage else 0
         return damage
 
@@ -12828,8 +12828,6 @@ class WorldSim:
         cop = self.players.get(str(uid))
         if not cop or not cop.get('_police'):
             return {'ok': False, 'error': 'not_police'}
-        if int(cop.get('_police_xp') or 0) < self.POLICE_PATROL_XP:
-            return {'ok': False, 'error': 'level_locked'}
         if cop.get('dead') or cop.get('_business_interior'):
             return {'ok': False, 'error': 'interior' if cop.get('_business_interior') else 'dead'}
         for car in self.quest_cars.values():
@@ -12847,6 +12845,7 @@ class WorldSim:
             'passenger_uids': [], 'x': x, 'y': y, 'ang': ang, 'vx': 0.0, 'vy': 0.0,
             'hp': 350, 'max_hp': 350, 'reward': 0, 'lock_lvl': 0, 'state': 'idle',
             'wrecked': False, 'civilian': True, 'police_patrol': True,
+            'police_stolen': False,
             '_spawn_t': time.time(), '_last_drive_t': 0.0,
         }
         return {'ok': True, 'car_id': cid, 'x': x, 'y': y}
@@ -13239,7 +13238,7 @@ class WorldSim:
         return {'ok': True, 'car_id': cid, 'model': model,
                 'x': sx, 'y': sy, 'civilian': True}
 
-    def gta_enter(self, uid: str, car_id: str) -> dict:
+    def gta_enter(self, uid: str, car_id: str, police_lockpicked: bool = False) -> dict:
         p = self.players.get(uid)
         qc = self.quest_cars.get(car_id)
         if not p or not qc:
@@ -13250,6 +13249,33 @@ class WorldSim:
         dx = p['x'] - qc['x']; dy = p['y'] - qc['y']
         if (dx*dx + dy*dy) > 2.5 * 2.5:
             return {'ok': False, 'reason': 'too_far'}
+        if qc.get('police_patrol'):
+            driver_uid = str(qc.get('driver_uid') or '')
+            is_police = bool(p.get('_police'))
+            is_stolen_owner = bool(qc.get('police_stolen')) and str(qc.get('owner_uid') or '') == str(uid)
+            if driver_uid and driver_uid != str(uid):
+                # В служебную машину с действующим водителем допускаются только копы.
+                if not is_police:
+                    return {'ok': False, 'reason': 'police_only'}
+                plist = qc.setdefault('passenger_uids', [])
+                if str(uid) in [str(x) for x in plist]:
+                    return {'ok': True, 'car_id': car_id, 'as': 'passenger'}
+                if len(plist) >= 1:
+                    return {'ok': False, 'reason': 'full'}
+                plist.append(str(uid))
+                return {'ok': True, 'car_id': car_id, 'as': 'passenger'}
+            if not is_police and not is_stolen_owner and not police_lockpicked:
+                return {'ok': False, 'reason': 'police_locked'}
+            qc['driver_uid'] = str(uid)
+            qc['owner_uid'] = str(uid)
+            qc['passenger_uids'] = []
+            qc['state'] = 'driving'
+            qc['_last_drive_t'] = time.time()
+            # Любой коп возвращает машину полиции; мафиози становится владельцем
+            # только после прохождения существующей мини-игры взлома.
+            qc['police_stolen'] = not is_police
+            return {'ok': True, 'car_id': car_id, 'as': 'driver',
+                    'police_stolen': bool(qc['police_stolen'])}
         is_owner = (str(qc.get('owner_uid')) == str(uid))
         if is_owner:
             # Владелец садится за руль
@@ -17627,6 +17653,7 @@ class WorldSim:
                 'wrecked':    bool(qc.get('wrecked', False)),
                 'civilian':   bool(qc.get('civilian', False)),
                 'police_patrol': bool(qc.get('police_patrol', False)),
+                'police_stolen': bool(qc.get('police_stolen', False)),
             })
         world_c4_payload = [{
             'id': str(q.get('id') or charge_id),
@@ -21559,7 +21586,8 @@ async def _coop_http_app():
                                 try: await _ws2.send_str(spawn_pkt)
                                 except Exception: pass
                     elif t == 'gta_enter':
-                        reply = world.gta_enter(uid, str(d.get('car_id') or ''))
+                        reply = world.gta_enter(uid, str(d.get('car_id') or ''),
+                                                bool(d.get('police_lockpicked')))
                         if not reply.get('ok'):
                             try:
                                 await ws.send_str(json.dumps(
