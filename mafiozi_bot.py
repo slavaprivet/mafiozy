@@ -12046,7 +12046,8 @@ class WorldSim:
     Wanted-система: за стрельбу по игрокам растут звёзды, спавнятся копы,
     при 3 звёздах копы могут убить → отправка в тюрьму."""
     POLICE_STUN_S = 5.0
-    POLICE_ESCORT_S = 45.0
+    POLICE_ESCORT_S = 20.0
+    POLICE_DOWNED_DECISION_S = 5.0
     POLICE_JAIL_S = 30
     POLICE_ARREST_REWARD = 700
     POLICE_ARREST_EXP = 75
@@ -12738,6 +12739,11 @@ class WorldSim:
         # при disconnect наручники немедленно снимаются.
         p = self.players.get(uid)
         if p:
+            downed_uid = str(p.get('_police_downed_target') or '')
+            if downed_uid:
+                self._clear_police_downed(downed_uid)
+            if p.get('_police_downed_by'):
+                self._clear_police_downed(str(uid))
             evidence = p.get('_police_evidence_bag')
             if evidence:
                 bag_id = f'bag_{self._next_bank_bag_id}'
@@ -12762,19 +12768,36 @@ class WorldSim:
         self._last_dist_at.pop(str(uid), None)
         self._last_terr_at.pop(str(uid), None)
 
+    def _clear_police_downed(self, target_uid: str) -> None:
+        """Убирает пятисекундное решение копа с обеих сторон."""
+        target = self.players.get(str(target_uid))
+        if not target:
+            return
+        cop_uid = str(target.pop('_police_downed_by', '') or '')
+        target.pop('_police_downed_until', None)
+        if cop_uid:
+            cop = self.players.get(cop_uid)
+            if cop and str(cop.get('_police_downed_target') or '') == str(target_uid):
+                cop.pop('_police_downed_target', None)
+
     def _release_online_arrest(self, target_uid: str, reason: str = '') -> dict | None:
         target = self.players.get(str(target_uid))
         if not target:
             return None
         cop_uid = str(target.pop('_police_cuffed_by', '') or '')
+        death_arrest = bool(target.pop('_police_death_arrest', False))
         target.pop('_police_cuff_until', None)
         target.pop('_police_stunned_until', None)
+        if death_arrest and reason != 'jailed':
+            target['dead'] = False
+            target['hp'] = max(25, int(target.get('hp') or 0))
+            target['_wanted'] = 0.0
         if cop_uid:
             cop = self.players.get(cop_uid)
             if cop and str(cop.get('_police_escort_uid') or '') == str(target_uid):
                 cop.pop('_police_escort_uid', None)
         return {'kind': 'police_online_released', 'target_uid': str(target_uid),
-                'cop_uid': cop_uid, 'reason': reason}
+                'cop_uid': cop_uid, 'reason': reason, 'death_arrest': death_arrest}
 
     def _tick_online_arrests(self, now: float | None = None) -> list[dict]:
         now = now or time.time()
@@ -12943,6 +12966,44 @@ class WorldSim:
         cop['_police_escort_uid'] = str(target_uid)
         return {'ok': True, 'target_uid': str(target_uid),
                 'cop_uid': str(cop_uid), 'until': now + self.POLICE_ESCORT_S}
+
+    def police_arrest_downed(self, cop_uid: str, target_uid: str) -> dict:
+        """Коп принимает решение задержать убитого им разыскиваемого игрока."""
+        cop = self.players.get(str(cop_uid)); target = self.players.get(str(target_uid))
+        now = time.time()
+        if not cop or not cop.get('_police'):
+            return {'ok': False, 'error': 'not_police'}
+        if not target or target.get('_police'):
+            return {'ok': False, 'error': 'not_online'}
+        if cop.get('_police_escort_uid'):
+            return {'ok': False, 'error': 'already_escorting'}
+        if float(target.get('_wanted') or 0) < 1:
+            return {'ok': False, 'error': 'not_wanted'}
+        if (not target.get('dead') or
+                str(target.get('_police_downed_by') or '') != str(cop_uid) or
+                now > float(target.get('_police_downed_until') or 0)):
+            return {'ok': False, 'error': 'decision_expired'}
+        if cop.get('_business_interior') or target.get('_business_interior'):
+            return {'ok': False, 'error': 'interior'}
+        if (float(cop['x'])-float(target['x']))**2 + (float(cop['y'])-float(target['y']))**2 > self.POLICE_ACTION_R**2:
+            return {'ok': False, 'error': 'too_far'}
+        self._clear_police_downed(str(target_uid))
+        target['dead'] = False
+        target['hp'] = 1
+        target.pop('_respawn_at', None)
+        target['_police_cuffed_by'] = str(cop_uid)
+        target['_police_cuff_until'] = now + self.POLICE_ESCORT_S
+        target['_police_death_arrest'] = True
+        target['_wanted'] = 0.0
+        cop['_police_escort_uid'] = str(target_uid)
+        try:
+            asyncio.get_running_loop().create_task(
+                update_character(int(target_uid), wanted_stars=0))
+        except Exception:
+            pass
+        return {'ok': True, 'target_uid': str(target_uid),
+                'cop_uid': str(cop_uid), 'until': now + self.POLICE_ESCORT_S,
+                'death_arrest': True}
 
     def police_turnin_online(self, cop_uid: str) -> dict:
         cop = self.players.get(str(cop_uid))
@@ -13964,6 +14025,7 @@ class WorldSim:
                 continue
             if now < p.get('_respawn_at', 0):
                 continue
+            self._clear_police_downed(str(p_uid))
             p['dead'] = False
             p['hp']   = int(p.get('max_hp', 100))
             # После смерти кулачки банд обнуляются (как и при тюремном выкупе).
@@ -14217,6 +14279,13 @@ class WorldSim:
         t_tid, _ = self._territory_at(target['x'], target['y'])
         both_in_territory = bool(s_tid) and (s_tid == t_tid)
         target_is_bounty  = int(target.get('_wanted_gangs') or 0) >= 3
+        police_pursuit = (
+            bool(shooter.get('_police')) and
+            not bool(target.get('_police')) and
+            float(target.get('_wanted') or 0) >= 1 and
+            not shooter.get('_business_interior') and
+            not target.get('_business_interior')
+        )
         # Случай 5: оба СИДЯТ в тюрьме. Проверяем И jail_until > now,
         # И физическую позицию внутри загона (защита от выстрела через
         # лазер по копам / прохожим / только что освобождённым).
@@ -14228,7 +14297,7 @@ class WorldSim:
         )
         if not (both_in_pvp_zone or both_in_arena
                 or both_in_territory or target_is_bounty
-                or both_jailed):
+                or both_jailed or police_pursuit):
             return None
         # Friendly fire OFF: союзники по банде не наносят урон друг другу
         # В ГОРОДЕ (арена — полигон, там FF разрешён).
@@ -14258,6 +14327,16 @@ class WorldSim:
             target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
             shooter['kills']      = int(shooter.get('kills', 0)) + 1
             killed = True
+            if police_pursuit:
+                # Смерть от игрока-копа не превращается в мгновенный арест:
+                # пять секунд цель остаётся на земле, а коп решает, задержать
+                # её или дать обычному респауну завершиться.
+                previous_target = str(shooter.get('_police_downed_target') or '')
+                if previous_target and previous_target != str(target_uid):
+                    self._clear_police_downed(previous_target)
+                target['_police_downed_by'] = str(uid)
+                target['_police_downed_until'] = now + self.POLICE_DOWNED_DECISION_S
+                shooter['_police_downed_target'] = str(target_uid)
             # Если жертва была носителем контракта — пометим, чтобы
             # обработчик в _world_run_loop начислил бонти из БД и
             # сбросил wanted_gangs у жертвы. Сразу обнуляем in-memory
@@ -14270,7 +14349,8 @@ class WorldSim:
         # копы не реагируют. Также при исполнении контракта — это «работа»,
         # копы не приезжают (для bounty wanted-штраф не растёт).
         if (not both_in_arena and not both_in_territory
-                and not target_is_bounty and not both_jailed):
+                and not target_is_bounty and not both_jailed
+                and not police_pursuit):
             self._bump_wanted(shooter, self.WANTED_PER_HIT)
             if killed:
                 self._bump_wanted(shooter,
@@ -14299,6 +14379,9 @@ class WorldSim:
             'crit':        bool(profile.get('_crit')),
             'killed':      killed,
             'bounty':      bounty_done,
+            'police_downed': bool(killed and police_pursuit),
+            'decision_until': (round(now + self.POLICE_DOWNED_DECISION_S, 2)
+                               if killed and police_pursuit else 0),
             'weapon':      weapon or '',
         }
 
@@ -17366,6 +17449,26 @@ class WorldSim:
                 'target_name': target.get('name') or 'Задержанный',
                 'left': max(0, int(round(float(target.get('_police_cuff_until') or 0) - now_t))),
             }
+        my_police_downed = None
+        downed_by = str(me.get('_police_downed_by') or '')
+        if me.get('dead') and downed_by:
+            cop = self.players.get(downed_by) or {}
+            my_police_downed = {
+                'role': 'target', 'cop_uid': downed_by,
+                'cop_name': cop.get('name') or 'Полицейский',
+                'left': max(0, float(me.get('_police_downed_until') or 0) - now_t),
+            }
+        elif me.get('_police_downed_target'):
+            target_uid = str(me.get('_police_downed_target'))
+            target = self.players.get(target_uid) or {}
+            if (target.get('dead') and
+                    str(target.get('_police_downed_by') or '') == str(uid)):
+                my_police_downed = {
+                    'role': 'cop', 'target_uid': target_uid,
+                    'target_name': target.get('name') or 'Разыскиваемый',
+                    'wanted': int(min(3, round(target.get('_wanted') or 0))),
+                    'left': max(0, float(target.get('_police_downed_until') or 0) - now_t),
+                }
         # Шлём ВСЕ живые копы всем клиентам (карта 60×60, их 0..8)
         cops_payload = []
         for cop in self.cops:
@@ -17703,6 +17806,7 @@ class WorldSim:
                     'police_xp': int(me.get('_police_xp') or 0),
                     'police_stunned_in': max(0.0, float(me.get('_police_stunned_until') or 0) - now_t),
                     'police_arrest': my_police_arrest,
+                    'police_downed': my_police_downed,
                     'police_evidence_bag': ({
                         'id': str(me['_police_evidence_bag'].get('id') or ''),
                         'bank_id': str(me['_police_evidence_bag'].get('bank_id') or ''),
@@ -20352,7 +20456,8 @@ async def _coop_http_app():
                                 except Exception:
                                     pass
                     elif t in ('police_online_select', 'police_online_stun', 'police_online_taser',
-                               'police_online_cuff', 'police_online_turnin'):
+                               'police_online_cuff', 'police_downed_arrest',
+                               'police_online_turnin'):
                         if t == 'police_online_select':
                             reply = world.police_select_online(uid, str(d.get('target_uid') or ''))
                         elif t == 'police_online_stun':
@@ -20361,6 +20466,8 @@ async def _coop_http_app():
                             reply = world.police_taser_online(uid, str(d.get('target_uid') or ''))
                         elif t == 'police_online_cuff':
                             reply = world.police_cuff_online(uid, str(d.get('target_uid') or ''))
+                        elif t == 'police_downed_arrest':
+                            reply = world.police_arrest_downed(uid, str(d.get('target_uid') or ''))
                         else:
                             reply = world.police_turnin_online(uid)
                             if reply.get('ok'):
