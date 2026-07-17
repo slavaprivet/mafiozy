@@ -240,6 +240,9 @@ def release_car(car):
         "parked_at": parked_now,
         "_last_drive_t": parked_now,
     })
+    if car.get("police_patrol") and not car.get("police_stolen"):
+        car["owner_uid"] = None
+        car["siren"] = False
 
 
 def race_car_payload():
@@ -261,6 +264,10 @@ def race_car_payload():
             "civilian": bool(car.get("civilian", True)),
             "police_patrol": bool(car.get("police_patrol", False)),
             "police_stolen": bool(car.get("police_stolen", False)),
+            "siren": bool(car.get("siren", False)),
+            "tires_punctured": bool(car.get("tires_punctured", False)),
+            "called_patrol": bool(car.get("called_patrol", False)),
+            "expires_at": float(car.get("expires_at", 0)),
         }
         for car in quest_cars.values()
     ]
@@ -309,23 +316,34 @@ def preview_police_patrol(uid):
     cop = players.get(uid, {})
     if not cop.get("police"):
         return {"ok": False, "error": "not_police"}
+    cooldown_left = 180 - (time.time() - float(cop.get("police_patrol_called_at", 0)))
+    if cooldown_left > 0:
+        return {"ok": False, "error": "cooldown", "cooldown_left": round(cooldown_left, 1)}
     for car in quest_cars.values():
-        if car.get("police_patrol") and str(car.get("owner_uid") or "") == str(uid) and not car.get("wrecked"):
-            return {"ok": False, "error": "already_spawned", "car_id": car["id"]}
         if str(car.get("driver_uid") or "") == str(uid):
             return {"ok": False, "error": "already_driving"}
+    free = [car for car in quest_cars.values() if car.get("police_patrol")
+            and not car.get("police_stolen") and not car.get("driver_uid") and not car.get("wrecked")]
+    if free:
+        nearest = min(free, key=lambda car: (float(car.get("x", 0))-float(cop.get("x", PREVIEW_START_X)))**2
+                                           +(float(car.get("y", 0))-float(cop.get("y", PREVIEW_START_Y)))**2)
+        if (nearest["x"]-float(cop.get("x", PREVIEW_START_X)))**2 + (nearest["y"]-float(cop.get("y", PREVIEW_START_Y)))**2 <= 18**2:
+            cop["police_patrol_called_at"] = time.time()
+            return {"ok": True, "existing": True, "car_id": nearest["id"], "x": nearest["x"], "y": nearest["y"]}
     car_id = f"police_patrol_preview_{next_civ_car_id}"
     next_civ_car_id += 1
     ang = float(cop.get("ang", 0.0))
     x = float(cop.get("x", PREVIEW_START_X)) + math.cos(ang) * 1.8
     y = float(cop.get("y", PREVIEW_START_Y)) + math.sin(ang) * 1.8
     quest_cars[car_id] = {
-        "id": car_id, "model": "cruiser", "owner_uid": uid, "driver_uid": None,
+        "id": car_id, "model": "cruiser", "owner_uid": None, "driver_uid": None,
         "passenger_uids": [], "x": x, "y": y, "ang": ang, "vx": 0.0, "vy": 0.0,
         "hp": 350, "max_hp": 350, "wrecked": False, "civilian": True,
-        "police_patrol": True, "police_stolen": False,
+        "police_patrol": True, "police_stolen": False, "siren": False, "tires_punctured": False,
+        "called_patrol": True, "expires_at": time.time() + 60,
         "state": "idle", "_last_drive_t": 0.0,
     }
+    cop["police_patrol_called_at"] = time.time()
     return {"ok": True, "car_id": car_id, "x": x, "y": y}
 
 
@@ -944,6 +962,10 @@ async def preview_world(_req):
 
 def snap(uid):
     tick_race_cars()
+    now = time.time()
+    for car_id, car in list(quest_cars.items()):
+        if car.get("called_patrol") and now >= float(car.get("expires_at", 0)):
+            quest_cars.pop(car_id, None)
     p = players.setdefault(uid, {
         "x": PREVIEW_START_X,
         "y": PREVIEW_START_Y,
@@ -1792,10 +1814,21 @@ async def world_ws(req):
                     car["ang"] = float(d.get("ang", car.get("ang", 0.0)))
                     car["vx"] = float(d.get("vx", 0.0))
                     car["vy"] = float(d.get("vy", 0.0))
+                    speed = math.hypot(car["vx"], car["vy"])
+                    cap = 5.9 if car.get("tires_punctured") else 14.0
+                    if speed > cap:
+                        car["vx"] *= cap / speed; car["vy"] *= cap / speed
                     p = players.setdefault(uid, {})
                     p["x"] = car["x"]
                     p["y"] = car["y"]
                     p["ang"] = car["ang"]
+            elif t in ("gta_siren", "gta_tires_punctured"):
+                car = quest_cars.get(str(d.get("car_id") or ""))
+                if car and str(car.get("driver_uid") or "") == str(uid):
+                    if t == "gta_siren" and car.get("police_patrol"):
+                        car["siren"] = bool(d.get("enabled")); await broadcast_event({"kind":t,"ok":True,"car_id":car["id"],"siren":car["siren"]})
+                    elif t == "gta_tires_punctured":
+                        car["tires_punctured"] = True; await broadcast_event({"kind":t,"ok":True,"car_id":car["id"],"tires_punctured":True})
             elif t == "gta_exit":
                 car = quest_cars.get(str(d.get("car_id") or ""))
                 if car and str(car.get("driver_uid")) == str(uid):

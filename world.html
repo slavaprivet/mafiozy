@@ -132,6 +132,14 @@ body.in-pvp #gtaActionBtn { top: 104px; }
   box-shadow: 0 0 22px rgba(180,80,255,.9), inset 0 1px 0 rgba(255,255,255,.15);
   border-color: #d080ff;
 }
+#policeSirenBtn {
+  position:absolute; right:82px; bottom:120px; width:70px; height:58px;
+  border-radius:14px; border:2px solid #4aa8ff; color:#fff; display:none; z-index:8;
+  background:linear-gradient(135deg,#153b72,#7a1825); font-size:10px; font-weight:900;
+  box-shadow:0 4px 18px rgba(55,135,255,.5); cursor:pointer; touch-action:manipulation;
+}
+#policeSirenBtn.active { animation:patrolSirenPulse .42s steps(2,end) infinite; }
+@keyframes patrolSirenPulse { 0%{border-color:#38a8ff;box-shadow:0 0 22px #258dff} 50%{border-color:#ff5266;box-shadow:0 0 22px #ff2846} }
 /* Если активна обычная зона-кнопка и GTA-кнопка — раздвигаем */
 #zoneBtn[style*="block"] ~ #gtaActionBtn { top: 110px; }
 
@@ -1528,6 +1536,7 @@ body.in-pvp #robActionBtn { top: 152px; }
   <button id="gtaActionBtn"></button>
   <!-- Ручной тормоз — видна только за рулём -->
   <button id="handbrakeBtn" style="display:none">💨<br>DRIFT</button>
+  <button id="policeSirenBtn" style="display:none">🚨<br>МИГАЛКИ</button>
   <!-- Альтернативная кнопка «Ограбить» — появляется одновременно с
        «Купить бизнес». Стиль красный, чтобы было ясно что это криминал. -->
   <button id="robActionBtn"></button>
@@ -4966,6 +4975,10 @@ function applyQuestCarsSnapshot(arr) {
       if (c.civilian !== undefined) prev.civilian = !!c.civilian;
       if (c.police_patrol !== undefined) prev.police_patrol = !!c.police_patrol;
       if (c.police_stolen !== undefined) prev.police_stolen = !!c.police_stolen;
+      if (c.siren !== undefined) prev.siren = !!c.siren;
+      if (c.tires_punctured !== undefined) prev.tires_punctured = !!c.tires_punctured;
+      if (c.called_patrol !== undefined) prev.called_patrol = !!c.called_patrol;
+      if (c.expires_at !== undefined) prev.expires_at = +c.expires_at || 0;
     } else {
       questCars.set(c.id, {
         id:   c.id,
@@ -4984,6 +4997,10 @@ function applyQuestCarsSnapshot(arr) {
         civilian:   !!c.civilian,
         police_patrol: !!c.police_patrol,
         police_stolen: !!c.police_stolen,
+        siren: !!c.siren,
+        tires_punctured: !!c.tires_punctured,
+        called_patrol: !!c.called_patrol,
+        expires_at: +c.expires_at || 0,
       });
     }
   }
@@ -13527,8 +13544,12 @@ function handleEventPacket(d) {
     if(d.ok&&d.resigned){_policeState.resetPending=true;_policeState.earnedXp=0;_savePoliceState();}
     else if(d.ok&&typeof d.police_xp==='number')_setPoliceXp(d.police_xp,true);
   } else if (kind === 'police_patrol_reply') {
-    if(!d.ok){showToast(_policeError(d.error),'⚠️',2500);return;}
-    showEventBanner('🚓 ПАТРУЛЬНАЯ МАШИНА ГОТОВА',d.existing?'Твоя машина уже отмечена на карте.':'Круизер доставлен рядом. Подойди и садись за руль.',3600,'win');
+    if(!d.ok){showToast(d.error==='cooldown'?`Новый вызов через ${Math.ceil((+d.cooldown_left||0)/60)} мин.`:_policeError(d.error),'⚠️',2500);return;}
+    showEventBanner('🚓 ПАТРУЛЬНАЯ МАШИНА ГОТОВА',d.existing?'Диспетчер отметил ближайшую свободную машину.':'Круизер доставлен на 1 минуту. Подойди и садись за руль.',3600,'win');
+  } else if (kind === 'gta_siren') {
+    const qc=questCars.get(String(d.car_id||''));if(qc)qc.siren=!!d.siren;
+  } else if (kind === 'gta_tires_punctured') {
+    const qc=questCars.get(String(d.car_id||''));if(qc)qc.tires_punctured=true;
   } else if (kind === 'police_spikes_reply') {
     _policeSpikesPending=false;
     if(!d.ok){_policeSpikesReadyAt=d.error==='cooldown'?performance.now()+Math.max(0,+d.cooldown_left||0)*1000:0;if(_wepPickOpen)renderWeaponPick();showToast(d.error==='cooldown'?`Шипы будут готовы через ${Math.max(.1,+d.cooldown_left||0).toFixed(1)} сек`:_policeError(d.error),'⚠️',2500);return;}
@@ -15942,11 +15963,13 @@ if (_robBtn) {
 // ── GTA: взаимодействия (Майкл / сесть-выйти из машины) ────────────
 const _gtaBtn = document.getElementById('gtaActionBtn');
 const _handbrakeBtn = document.getElementById('handbrakeBtn');
+const _policeSirenBtn = document.getElementById('policeSirenBtn');
 // Ручной тормоз — hold для дрифта
 _handbrakeBtn.addEventListener('touchstart', e => { e.preventDefault(); _handbrakeActive = true; _handbrakeBtn.classList.add('active'); }, { passive: false });
 _handbrakeBtn.addEventListener('touchend',   e => { e.preventDefault(); _handbrakeActive = false; _handbrakeBtn.classList.remove('active'); }, { passive: false });
 _handbrakeBtn.addEventListener('mousedown',  () => { _handbrakeActive = true;  _handbrakeBtn.classList.add('active'); });
 _handbrakeBtn.addEventListener('mouseup',    () => { _handbrakeActive = false; _handbrakeBtn.classList.remove('active'); });
+_policeSirenBtn.addEventListener('click',()=>{const qc=myDrivingCarId&&questCars.get(myDrivingCarId);if(!qc||!qc.police_patrol||myIsPassenger)return;qc.siren=!qc.siren;_policeSirenBtn.classList.toggle('active',qc.siren);try{ws&&ws.send(JSON.stringify({t:'gta_siren',d:{car_id:qc.id,enabled:qc.siren}}));}catch(e){}});
 let _gtaActionKind = null;   // 'michael' | 'enter' | 'exit' | 'hijack'
 let _gtaActionCarId = null;
 let _gtaActionBagCarRef = null; // точная машина, чей багажник выбран для мешка
@@ -15974,6 +15997,9 @@ function updateGtaInteractions() {
   _updatePoliceStealthButton();
   // Кнопка ручника — видна только за рулём (не пассажир)
   _handbrakeBtn.style.display = (myDrivingCarId && !myIsPassenger) ? 'flex' : 'none';
+  const _patrolCar=myDrivingCarId&&!myIsPassenger?questCars.get(myDrivingCarId):null;
+  _policeSirenBtn.style.display=(_patrolCar&&_patrolCar.police_patrol)?'block':'none';
+  _policeSirenBtn.classList.toggle('active',!!(_patrolCar&&_patrolCar.siren));
   // Кнопка «Ограбить» по умолчанию скрыта — показывается только в
   // блоке biz_buy (когда подошёл к чужому бизнесу). Прячем здесь чтобы
   // не торчала после ухода от точки. Идёт ограбление — НЕ трогаем,
@@ -15983,6 +16009,7 @@ function updateGtaInteractions() {
   //    (лут-кейс, товар чёрного рынка). Никаких машин/угона/автобуса. ──
   if (_buildingInt) {
     _handbrakeBtn.style.display = 'none';
+    _policeSirenBtn.style.display = 'none';
     if (_buildingInt.type === 'business') {
       const manager = (_buildingInt.npcs || []).find(n => n.role === 'manager');
       if (manager && Math.hypot(player.r - manager.r, player.c - manager.c) < 2.7) {
@@ -21381,6 +21408,13 @@ function update(dt) {
   // ── В МАШИНЕ ── левый стик = газ + руль, правый отключён ──
   if (myDrivingCarId) {
     const qc = questCars.get(myDrivingCarId);
+    if(qc&&qc.called_patrol&&qc.expires_at&&Date.now()>=qc.expires_at*1000){
+      const expiredId=qc.id;myDrivingCarId=null;myIsPassenger=false;_exitRequested=false;_myCarFuelPct=null;
+      _policeSirenBtn.style.display='none';_handbrakeBtn.style.display='none';questCars.delete(expiredId);
+      const safe=_findExitSpot(qc.y,qc.x);player.r=safe?safe.r:qc.y;player.c=safe?safe.c:qc.x;
+      showEventBanner('🚓 ВЫЗОВ ЗАВЕРШЁН','Время патрульной машины истекло. Ты вышел из автомобиля.',2800,'lose');
+      updateGtaInteractions();return;
+    }
     if (!qc) {
       // Машина пропала (сдана/удалена) — сброс
       myDrivingCarId = null;
@@ -21424,9 +21458,9 @@ function update(dt) {
       // Текущая скорость по локальному состоянию qc
       let curVx = qc.vx || 0, curVy = qc.vy || 0;
       let curSpeed = Math.hypot(curVx, curVy);
-      const spikeHit=!qc.police_patrol&&_policeSpikeAt(qc.y,qc.x);
-      if(spikeHit&&performance.now()>=(qc._spikeAgainAt||0)){qc._spikeAgainAt=performance.now()+9000;qc._spikedUntil=performance.now()+7000;curVx*=.08;curVy*=.08;addShake(3);showEventBanner('🛞 ШИНЫ ПРОБИТЫ','Машина попала на полицейские шипы и потеряла скорость.',2600,'lose');}
-      if(performance.now()<(qc._spikedUntil||0)){const cap=2.2,sp=Math.hypot(curVx,curVy);if(sp>cap){curVx*=cap/sp;curVy*=cap/sp;}}
+      const spikeHit=_policeSpikeAt(qc.y,qc.x);
+      if(spikeHit&&!qc.tires_punctured){qc.tires_punctured=true;curVx*=.18;curVy*=.18;addShake(3);try{ws&&ws.send(JSON.stringify({t:'gta_tires_punctured',d:{car_id:qc.id}}));}catch(e){}showEventBanner('🛞 ШИНЫ ПРОБИТЫ','Колёса спущены: скорость и управление ухудшены.',2800,'lose');}
+      if(qc.tires_punctured){const cap=CAR_MAX_SPEED*.42,sp=Math.hypot(curVx,curVy);if(sp>cap){curVx*=cap/sp;curVy*=cap/sp;}}
       // Если игрок попросил выйти — игнорируем стик, тормозим до 0
       const wantingExit = _exitRequested;
       let throttle = 0, steer = 0;
@@ -21458,12 +21492,13 @@ function update(dt) {
         else if (curSpeed > 8.0) speedK = 1.0 + Math.min(0.5, (curSpeed - 8) * 0.10);
         else                     speedK = 1.0;
         const stickK = Math.min(1, inMag * 1.4);    // больше «полного руля»
-        const turnRate = CAR_TURN_RATE_BASE * speedK * stickK;
+        const punctureWobble=qc.tires_punctured?Math.sin(performance.now()*.009)*.22:0;
+        const turnRate = CAR_TURN_RATE_BASE * speedK * stickK * (qc.tires_punctured ? .58 : 1);
         let aDiff = targetAng - qc.ang;
         while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
         while (aDiff < -Math.PI) aDiff += Math.PI * 2;
         const turnStep = Math.sign(aDiff) * Math.min(Math.abs(aDiff), turnRate * dt);
-        qc.ang += turnStep;
+        qc.ang += turnStep + punctureWobble*dt;
         // Газ = магнитуда стика (0..1)
         throttle = Math.min(1, inMag);
         // Skid marks: резкий поворот на скорости → штрихи на асфальте.
@@ -21524,8 +21559,9 @@ function update(dt) {
           if (curSpeed <= dec) { curVx = 0; curVy = 0; }
           else { const k = (curSpeed - dec) / curSpeed; curVx *= k; curVy *= k; }
         } else {
-          curVx += dirVx * CAR_ACCEL * throttle * dt;
-          curVy += dirVy * CAR_ACCEL * throttle * dt;
+          const tireAccel=qc.tires_punctured ? .62 : 1;
+          curVx += dirVx * CAR_ACCEL * tireAccel * throttle * dt;
+          curVy += dirVy * CAR_ACCEL * tireAccel * throttle * dt;
           qc._reversing = false;
         }
       } else {
@@ -29300,11 +29336,22 @@ function drawQuestCar(qc) {
     });
   } else {
     drawCarPretty({
-      r: qc.y + _pR, c: qc.x + _pC,
+      r: qc.y + _pR+(qc.tires_punctured?Math.sin(performance.now()*.018)*.025:0), c: qc.x + _pC,
       ang: qc.ang,
       model: m,
       braking: !!qc.braking,
     });
+  }
+  if(qc.tires_punctured){
+    const sp=Math.hypot(qc.vx||0,qc.vy||0),a=qc.ang||0,back=w2s(qc.y-Math.sin(a)*.62,qc.x-Math.cos(a)*.62);
+    ctx.save();ctx.fillStyle='rgba(15,15,18,.95)';ctx.strokeStyle='#565b62';ctx.lineWidth=2;
+    for(const side of [-1,1]){ctx.beginPath();ctx.ellipse(back.x+side*12,back.y+4,9,3,0,0,Math.PI*2);ctx.fill();ctx.stroke();}
+    if(sp>.7){const t=performance.now()*.02;for(let i=0;i<5;i++){const life=(t+i*.37)%1;ctx.fillStyle=`rgba(255,${145+i*15},45,${1-life})`;ctx.beginPath();ctx.arc(back.x+(i-2)*3-Math.cos(a)*life*18,back.y+8+life*8,2-life,0,Math.PI*2);ctx.fill();}}
+    ctx.restore();
+  }
+  if(isPolicePatrol&&qc.siren){
+    const flash=Math.floor(performance.now()/180)%2,roof=w2s(qc.y+.5,qc.x+.5);
+    ctx.save();ctx.shadowBlur=22;ctx.fillStyle=flash?'#ff304f':'#2e9cff';ctx.shadowColor=ctx.fillStyle;ctx.beginPath();ctx.arc(roof.x+(flash?8:-8),roof.y-24,5,0,Math.PI*2);ctx.fill();ctx.restore();
   }
   // Курсор-указатель (только для машины игрока, пока едет)
   if (drivenByMe && !myIsPassenger && (Math.abs(qc._inDx || 0) > 0.08 || Math.abs(qc._inDy || 0) > 0.08)) {
@@ -29430,18 +29477,22 @@ function drawQuestCar(qc) {
     ctx.fillRect(cp.x - barW / 2, by, barW * hpR, barH);
   }
   // Подсветка иконкой над крышей — для МОЕЙ цели стрелка-маркер.
-  if (isMine && !drivenByMe) {
+  if (isPolicePatrol) {
+    const left=qc.called_patrol&&qc.expires_at?Math.max(0,Math.ceil(qc.expires_at-Date.now()/1000)):null;
+    ctx.save();ctx.textAlign='center';ctx.font='900 11px system-ui';ctx.fillStyle='#8bddff';ctx.shadowColor='#000';ctx.shadowBlur=5;
+    ctx.fillText(`🚓 Патрульная машина${left!==null?` · ${left} сек.`:''}`,cp.x,cp.y-TS*1.55);ctx.restore();
+  } else if (isMine && !drivenByMe) {
     const t = performance.now() * 0.004;
     const bob = Math.sin(t) * 4;
     ctx.font = 'bold 22px system-ui, "Segoe UI Emoji", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillStyle = isPolicePatrol?'#6fd1ff':'#ffd76b';
+    ctx.fillStyle = '#ffd76b';
     ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
-    ctx.fillText(isPolicePatrol?'🚓':'🎯', cp.x, cp.y - TS * 1.4 + bob);
+    ctx.fillText('🎯', cp.x, cp.y - TS * 1.4 + bob);
     ctx.shadowBlur = 0;
     ctx.font = 'bold 11px system-ui, sans-serif';
-    ctx.fillStyle = isPolicePatrol?'#8bddff':'#ffd76b';
-    ctx.fillText(isPolicePatrol?'Патрульная машина':(m.label||m.name||qc.model), cp.x, cp.y - TS * 1.7 + bob);
+    ctx.fillStyle = '#ffd76b';
+    ctx.fillText(m.label||m.name||qc.model, cp.x, cp.y - TS * 1.7 + bob);
   }
   ctx.textAlign = 'left';
 }
@@ -30856,6 +30907,7 @@ function drawPoliceStationDecor(stationR, stationC) {
       r: sl.r, c: sl.c, dirDx: sl.dirDx, dirDy: sl.dirDy,
       model: POLICE_MODELS[sl.model], flash: 0, braking: false,
     });
+    const lp=w2s(sl.r+.5,sl.c+.5);ctx.save();ctx.textAlign='center';ctx.font='900 10px system-ui';ctx.fillStyle='#8bddff';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText('🚓 Патрульная машина',lp.x,lp.y-44);ctx.restore();
   }
   // Башня с пулемётом на крыше станции — активируется если ЛЮБОЙ игрок
   // в зоне (≤7 тайлов) и имеет wanted ≥ 3. Стреляет в него.
