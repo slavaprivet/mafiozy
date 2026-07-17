@@ -1,6 +1,7 @@
 import asyncio
 import json
 import math
+import random
 from pathlib import Path
 import time
 from aiohttp import web
@@ -28,11 +29,11 @@ DIST_CONTROL_TTL_S = 30 * 60
 DIST_INCOME_DELAY_S = 60
 DIST_INCOME_TICK_S = 120
 DISTRICTS = {
-    "northside":  {"hq":(20.,20.), "intel":(11.,20.), "sabotage":((14.,12.),(20.,29.),(29.,18.)), "escape":(35.,20.), "name":"Норт-Сайд", "boss_name":"Мясник Морелло", "icon":"🏪", "income":400, "color":"#4aa3df"},
-    "downtown":   {"hq":(20.,60.), "intel":(11.,60.), "sabotage":((15.,49.),(19.,70.),(30.,58.)), "escape":(35.,60.), "name":"Даунтаун", "boss_name":"Винсент Крысолов", "icon":"🏙", "income":600, "color":"#e0b94a"},
-    "southside":  {"hq":(70.,20.), "intel":(53.,20.), "sabotage":((60.,10.),(72.,30.),(83.,18.)), "escape":(95.,20.), "name":"Саутсайд", "boss_name":"Тони Кувалда", "icon":"🎰", "income":500, "color":"#9b59b6"},
-    "industrial": {"hq":(70.,60.), "intel":(53.,60.), "sabotage":((60.,49.),(72.,70.),(83.,58.)), "escape":(95.,60.), "name":"Промзона", "boss_name":"Борис Шлак", "icon":"🏭", "income":550, "color":"#d2691e"},
-    "coast":      {"hq":(156.,40.), "intel":(165.,40.), "sabotage":((154.,18.),(158.,65.),(178.,40.)), "escape":(196.,40.), "name":"Побережье", "boss_name":"Капитан Риццо", "icon":"⚓", "income":450, "color":"#2ecc71"},
+    "northside":  {"bounds":(0,39,0,39), "hq":(20.,20.), "intel":(11.,20.), "sabotage":((14.,12.),(20.,29.),(29.,18.)), "escape":(35.,20.), "name":"Норт-Сайд", "boss_name":"Мясник Морелло", "icon":"🏪", "income":400, "color":"#4aa3df"},
+    "downtown":   {"bounds":(0,39,40,79), "hq":(20.,60.), "intel":(11.,60.), "sabotage":((15.,49.),(19.,70.),(30.,58.)), "escape":(35.,60.), "name":"Даунтаун", "boss_name":"Винсент Крысолов", "icon":"🏙", "income":600, "color":"#e0b94a"},
+    "southside":  {"bounds":(40,99,0,39), "hq":(70.,20.), "intel":(53.,20.), "sabotage":((60.,10.),(72.,30.),(83.,18.)), "escape":(95.,20.), "name":"Саутсайд", "boss_name":"Тони Кувалда", "icon":"🎰", "income":500, "color":"#9b59b6"},
+    "industrial": {"bounds":(40,99,40,79), "hq":(70.,60.), "intel":(53.,60.), "sabotage":((60.,49.),(72.,70.),(83.,58.)), "escape":(95.,60.), "name":"Промзона", "boss_name":"Борис Шлак", "icon":"🏭", "income":550, "color":"#d2691e"},
+    "coast":      {"bounds":(150,199,0,79), "hq":(156.,40.), "intel":(165.,40.), "sabotage":((154.,18.),(158.,65.),(178.,40.)), "escape":(196.,40.), "name":"Побережье", "boss_name":"Капитан Риццо", "icon":"⚓", "income":450, "color":"#2ecc71"},
 }
 district_owners = {}
 district_captures = {}
@@ -463,6 +464,16 @@ def tick_district_defenders(now, dt):
     events = []
     for did, cap in district_captures.items():
         defenders = [b for b in (cap.get("defenders") or []) if b.get("alive")]
+        boss = next((b for b in defenders if b.get("kind") == "district_boss"), None)
+        dd = DISTRICTS.get(did, {})
+        waypoint = cap.get("patrol_wp")
+        if boss and (not waypoint or math.hypot(waypoint[0]-boss["x"], waypoint[1]-boss["y"]) < 1.35
+                     or now >= float(cap.get("patrol_wp_until") or 0)):
+            r0,r1,c0,c1 = dd.get("bounds", (0,199,0,79))
+            for _ in range(80):
+                tx,ty = random.uniform(c0+3,c1-3),random.uniform(r0+3,r1-3)
+                if math.hypot(tx-boss["x"],ty-boss["y"]) >= 12:
+                    waypoint=(tx,ty);cap["patrol_wp"]=waypoint;cap["patrol_wp_until"]=now+random.uniform(22,34);break
         noticed = cap.setdefault("noticed_world_c4", set())
         # Само участие в операции, доверие и уровень не дают агро.
         for bot_i, bot in enumerate(defenders):
@@ -500,15 +511,15 @@ def tick_district_defenders(now, dt):
                     or now > float(cap.get("hostile_until") or 0)):
                 cap.pop("hostile_uid", None)
                 cap.pop("hostile_until", None)
-                # Настоящий патруль строем вокруг точки операции.
-                phase = float(bot.get("patrol_phase") or 0) + dt * (0.32 if bot_i else 0.22)
-                bot["patrol_phase"] = phase
-                radius = 7.2 if bot_i else 8.5
-                tx = float(bot.get("home_x") or bot["x"]) + math.cos(phase) * radius
-                ty = float(bot.get("home_y") or bot["y"]) + math.sin(phase) * radius * 0.72
+                # Босс ведёт группу к общей далёкой точке по всему району;
+                # охрана сохраняет строй, а не вращается каждый по своей орбите.
+                tx,ty = waypoint if waypoint else (bot["x"],bot["y"])
+                if bot_i:
+                    formation=(bot_i-1)*math.tau/max(1,len(defenders)-1)
+                    tx+=math.cos(formation)*1.65;ty+=math.sin(formation)*1.35
                 dx, dy = tx-bot["x"], ty-bot["y"]
                 dist = math.hypot(dx,dy)+1e-6
-                step = min(dist, .72*dt)
+                step = min(dist, 1.05*dt)
                 bot["x"] += dx/dist*step; bot["y"] += dy/dist*step
                 bot["ang"] = math.atan2(dy,dx)
                 continue
