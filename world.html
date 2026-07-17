@@ -32772,12 +32772,12 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
   // Верхушка спрайта: фигура нарисована от y до y - sh*0.94. Над ней
   // ещё нужно место для имени / hp-бара / чата.
   const topY = y - sh * 0.94;       // голова персонажа
-  const nameY = topY - 8;            // имя сразу над головой
-  // HP-бар поднимаем выше имени на 14px (было 8) — иначе тонкая полоса
-  // визуально «перечёркивает» строчные буквы ника.
-  const hpY   = nameY - 14;
+  // Компактная стопка над головой: ник почти касается верхушки спрайта,
+  // HP и полицейское звание идут следом без прежней большой пустоты.
+  const nameY = topY - 1;
+  const hpY   = nameY - 10;
   const policeRankLevel=(isSelf&&typeof _policeState!=='undefined'&&_policeState.employed)?_policeLevel():0;
-  const chatY = nameY - (policeRankLevel?52:34); // у копа чат выше знаков звания
+  const chatY = nameY - (policeRankLevel?43:30); // у копа чат выше знаков звания
 
   // Имя над головой
   if (name) {
@@ -32794,7 +32794,7 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
     const rankColors=['#b87333','#c9d1d9','#ffd34e','#65dfff','#db86ff'];
     const rankColor=rankColors[policeRankLevel-1],marks='✦'.repeat(policeRankLevel),label=`${_policeRank(policeRankLevel).toUpperCase()}  ${marks}`;
     ctx.save();ctx.font='900 9px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-    const rw=Math.max(54,ctx.measureText(label).width+14),ry=hpY-13;
+    const rw=Math.max(54,ctx.measureText(label).width+14),ry=hpY-10;
     ctx.fillStyle='rgba(5,15,29,.94)';ctx.strokeStyle=rankColor;ctx.lineWidth=1.3;ctx.shadowColor=rankColor;ctx.shadowBlur=5;
     ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x-rw/2,ry-8,rw,16,7);else ctx.rect(x-rw/2,ry-8,rw,16);ctx.fill();ctx.stroke();
     ctx.shadowBlur=0;ctx.fillStyle=rankColor;ctx.fillText(label,x,ry+.5);ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
