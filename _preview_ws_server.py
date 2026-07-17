@@ -239,6 +239,7 @@ def race_car_payload():
             "wrecked": bool(car.get("wrecked")),
             "civilian": bool(car.get("civilian", True)),
             "police_patrol": bool(car.get("police_patrol", False)),
+            "police_stolen": bool(car.get("police_stolen", False)),
         }
         for car in quest_cars.values()
     ]
@@ -287,8 +288,6 @@ def preview_police_patrol(uid):
     cop = players.get(uid, {})
     if not cop.get("police"):
         return {"ok": False, "error": "not_police"}
-    if int(preview_account(uid).get("police_xp", 0)) < 800:
-        return {"ok": False, "error": "level_locked"}
     for car in quest_cars.values():
         if car.get("police_patrol") and str(car.get("owner_uid") or "") == str(uid) and not car.get("wrecked"):
             return {"ok": False, "error": "already_spawned", "car_id": car["id"]}
@@ -303,7 +302,8 @@ def preview_police_patrol(uid):
         "id": car_id, "model": "cruiser", "owner_uid": uid, "driver_uid": None,
         "passenger_uids": [], "x": x, "y": y, "ang": ang, "vx": 0.0, "vy": 0.0,
         "hp": 350, "max_hp": 350, "wrecked": False, "civilian": True,
-        "police_patrol": True, "state": "idle", "_last_drive_t": 0.0,
+        "police_patrol": True, "police_stolen": False,
+        "state": "idle", "_last_drive_t": 0.0,
     }
     return {"ok": True, "car_id": car_id, "x": x, "y": y}
 
@@ -1621,15 +1621,41 @@ async def world_ws(req):
                     await broadcast_event(action)
             elif t == "gta_enter":
                 car = quest_cars.get(str(d.get("car_id") or ""))
-                if car and (not car.get("police_patrol") or str(car.get("owner_uid") or "") == str(uid)):
-                    car["driver_uid"] = uid
-                    if not car.get("police_patrol"):
+                reason = None
+                p = players.setdefault(uid, {})
+                if not car:
+                    reason = "gone"
+                elif car.get("police_patrol"):
+                    driver_uid = str(car.get("driver_uid") or "")
+                    is_police = bool(p.get("police"))
+                    is_stolen_owner = bool(car.get("police_stolen")) and str(car.get("owner_uid") or "") == str(uid)
+                    if driver_uid and driver_uid != str(uid):
+                        if not is_police:
+                            reason = "police_only"
+                        elif len(car.setdefault("passenger_uids", [])) >= 1:
+                            reason = "full"
+                        else:
+                            car["passenger_uids"].append(str(uid))
+                    elif not is_police and not is_stolen_owner and not bool(d.get("police_lockpicked")):
+                        reason = "police_locked"
+                    else:
+                        car["driver_uid"] = uid
                         car["owner_uid"] = uid
+                        car["passenger_uids"] = []
+                        car["state"] = "driving"
+                        car["police_stolen"] = not is_police
+                else:
+                    car["driver_uid"] = uid
+                    car["owner_uid"] = uid
                     car["passenger_uids"] = []
-                    p = players.setdefault(uid, {})
+                if car and not reason:
                     p["x"] = car["x"]
                     p["y"] = car["y"]
                     p["ang"] = car.get("ang", 0.0)
+                elif reason:
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"gta_drive_reject","ok":False,"reason":reason,
+                        "car_id":str(d.get("car_id") or "")}}, ensure_ascii=False))
             elif t == "civilian_carjack":
                 reply = preview_civilian_carjack(uid, d)
                 await ws.send_str(json.dumps({"t": "event", "d": {**reply, "kind": "civilian_hijack_reply"}}))
