@@ -20,6 +20,10 @@ WORLD_C4_FUSE_S = 3.0
 WORLD_C4_LETHAL_R = 4.0
 WORLD_C4_MAX_ACTIVE = 3
 DIST_BOSS_HP = 420
+DIST_GUARD_HP = 180
+DIST_C4_NOTICE_R = 7.0
+DIST_C4_SAFE_R = 5.25
+DIST_C4_FLEE_SPEED = 5.2
 DIST_CONTROL_TTL_S = 30 * 60
 DIST_INCOME_DELAY_S = 60
 DIST_INCOME_TICK_S = 120
@@ -54,6 +58,18 @@ quest_cars = {}
 preview_accounts = {}
 preview_apartments = {}
 preview_bank_robs = {}
+preview_bank_bags = {}
+preview_businesses = {}
+preview_police_rewards = set()
+PREVIEW_BUSINESSES = {
+    "coffee": (3000,150,200,"☕","Кофейня «У Дона»"), "carwash": (5000,220,300,"🚗","Автомойка"),
+    "barbershop": (7500,300,400,"💈","Парикмахерская"), "pizza": (12000,450,600,"🍕","Пиццерия"),
+    "garage": (18000,650,900,"🔧","Гараж-СТО"), "bar": (28000,1000,1400,"🍸","Бар «Чёрная вдова»"),
+    "club": (45000,1600,2200,"🎰","Подпольный клуб"), "warehouse": (70000,2400,3300,"📦","Склад"),
+    "casino": (120000,4000,5500,"🎲","Казино"), "port": (200000,6500,9000,"⚓","Порт"),
+}
+PREVIEW_BIZ_MULT = {1:1.0,2:1.35,3:1.75,4:2.25,5:3.0}
+PREVIEW_BIZ_UP = {2:.45,3:.75,4:1.15,5:1.70}
 PREVIEW_BANK_REWARD = {"small": 1200, "medium": 2500, "large": 5000}
 PREVIEW_SHOP_WEAPONS = {
     "nagan":    {"name": "Наган",        "price": 250,   "canonical": "nagan"},
@@ -79,8 +95,14 @@ PREVIEW_SHOP_CONSUMABLES = {
 
 def preview_account(uid):
     account = preview_accounts.setdefault(str(uid), {
-        "cash": 100000,
+        # Тестовый баланс локального превью. Реальные аккаунты и база бота
+        # этим сервером не используются.
+        "cash": 1000000,
         "exp": 0,
+        "police_xp": 0,
+        "said_hired": False,
+        "said_hired_at": 0,
+        "said_paid_until": 0,
         "weapons": {
             "pistol": {"name": "Пистолет", "canonical": "pistol"},
             "shotgun": {"name": "Дробовик", "canonical": "shotgun"},
@@ -89,6 +111,30 @@ def preview_account(uid):
     })
     account.setdefault("consumables", {}).setdefault("c4", 0)
     return account
+
+
+def preview_said_state(uid):
+    account = preview_account(uid)
+    now = time.time()
+    charged = 0
+    auto_fired = False
+    if account.get("said_hired") and now >= float(account.get("said_paid_until") or 0):
+        paid_until = float(account.get("said_paid_until") or now)
+        periods = int((now - paid_until) // 86400) + 1
+        due = periods * 500
+        if account["cash"] >= due:
+            account["cash"] -= due
+            account["said_paid_until"] = paid_until + periods * 86400
+            charged = due
+        else:
+            account["said_hired"] = False
+            account["said_hired_at"] = 0
+            account["said_paid_until"] = 0
+            auto_fired = True
+    return {"hired": bool(account.get("said_hired")), "salary": 500,
+        "hired_at": int(account.get("said_hired_at") or 0),
+        "next_salary_at": int(account.get("said_paid_until") or 0),
+        "salary_charged": charged, "auto_fired": auto_fired, "cash": account["cash"]}
 
 
 def reset_race_cars():
@@ -163,13 +209,15 @@ def park_race_car(car):
 
 def release_car(car):
     """Освободить машину и оставить её там, где игрок вышел."""
+    parked_now = time.time()
     car.update({
         "vx": 0.0,
         "vy": 0.0,
         "driver_uid": None,
         "passenger_uids": [],
         "state": "idle",
-        "parked_at": time.time(),
+        "parked_at": parked_now,
+        "_last_drive_t": parked_now,
     })
 
 
@@ -189,7 +237,8 @@ def race_car_payload():
             "hp": int(car.get("hp", 1000)),
             "max_hp": int(car.get("max_hp", 1000)),
             "wrecked": bool(car.get("wrecked")),
-            "civilian": True,
+            "civilian": bool(car.get("civilian", True)),
+            "police_patrol": bool(car.get("police_patrol", False)),
         }
         for car in quest_cars.values()
     ]
@@ -231,6 +280,32 @@ def preview_civilian_carjack(uid, data):
         "y": y,
         "civilian": True,
     }
+
+
+def preview_police_patrol(uid):
+    global next_civ_car_id
+    cop = players.get(uid, {})
+    if not cop.get("police"):
+        return {"ok": False, "error": "not_police"}
+    if int(preview_account(uid).get("police_xp", 0)) < 800:
+        return {"ok": False, "error": "level_locked"}
+    for car in quest_cars.values():
+        if car.get("police_patrol") and str(car.get("owner_uid") or "") == str(uid) and not car.get("wrecked"):
+            return {"ok": False, "error": "already_spawned", "car_id": car["id"]}
+        if str(car.get("driver_uid") or "") == str(uid):
+            return {"ok": False, "error": "already_driving"}
+    car_id = f"police_patrol_preview_{next_civ_car_id}"
+    next_civ_car_id += 1
+    ang = float(cop.get("ang", 0.0))
+    x = float(cop.get("x", PREVIEW_START_X)) + math.cos(ang) * 1.8
+    y = float(cop.get("y", PREVIEW_START_Y)) + math.sin(ang) * 1.8
+    quest_cars[car_id] = {
+        "id": car_id, "model": "cruiser", "owner_uid": uid, "driver_uid": None,
+        "passenger_uids": [], "x": x, "y": y, "ang": ang, "vx": 0.0, "vy": 0.0,
+        "hp": 350, "max_hp": 350, "wrecked": False, "civilian": True,
+        "police_patrol": True, "state": "idle", "_last_drive_t": 0.0,
+    }
+    return {"ok": True, "car_id": car_id, "x": x, "y": y}
 
 
 reset_race_cars()
@@ -284,17 +359,97 @@ def make_district_defenders(did, dd):
         "id": f"preview_{did}_boss", "x": col, "y": row,
         "ang": 0.0, "hp": DIST_BOSS_HP, "max_hp": DIST_BOSS_HP,
         "kind": "district_boss", "weapon": "uzi", "act": "walk",
-        "boss_name": dd["boss_name"], "alive": True,
+        "boss_name": dd["boss_name"], "alive": True, "damage": 8,
+        "home_x": col, "home_y": row, "patrol_phase": 0.0,
     }]
     guard_offsets = ((1.4, 0.8), (-1.2, 1.0), (0.8, -1.4), (-1.5, -0.7))
     for i, (dx, dy) in enumerate(guard_offsets):
         bots.append({
             "id": f"preview_{did}_guard_{i}", "x": col + dx, "y": row + dy,
-            "ang": 0.0, "hp": 130, "max_hp": 130,
+            "ang": 0.0, "hp": DIST_GUARD_HP, "max_hp": DIST_GUARD_HP,
             "kind": "district_guard", "weapon": "pistol_heavy",
-            "act": "walk", "alive": True,
+            "act": "walk", "alive": True, "damage": 12,
+            "home_x": col, "home_y": row, "patrol_phase": (i + 1) * math.tau / 4,
         })
     return bots
+
+
+def tick_district_defenders(now, dt):
+    """Preview AI: охрана отвечает только на попадание или установленный C4."""
+    events = []
+    for did, cap in district_captures.items():
+        defenders = [b for b in (cap.get("defenders") or []) if b.get("alive")]
+        noticed = cap.setdefault("noticed_world_c4", set())
+        # Само участие в операции, доверие и уровень не дают агро.
+        for bot_i, bot in enumerate(defenders):
+            nearest = None
+            nearest_dist = 1e9
+            for charge in world_c4.values():
+                dist = math.hypot(bot["x"]-charge["x"], bot["y"]-charge["y"])
+                if dist <= DIST_C4_NOTICE_R and dist < nearest_dist:
+                    nearest, nearest_dist = charge, dist
+            bot["evading_c4"] = False
+            if nearest is not None:
+                cap["hostile_uid"] = str(nearest.get("owner_uid") or "")
+                cap["hostile_until"] = now + 30.0
+                charge_id = str(nearest.get("id") or "")
+                if charge_id and charge_id not in noticed:
+                    noticed.add(charge_id)
+                    events.append({"kind":"district_guard_c4_evade",
+                                   "gid":f"preview_district_{did}", "did":did,
+                                   "charge_id":charge_id,
+                                   "target_uid":cap["hostile_uid"]})
+                if nearest_dist < DIST_C4_SAFE_R:
+                    if nearest_dist < 0.05:
+                        flee_ang = bot_i / max(1, len(defenders)) * math.tau
+                    else:
+                        flee_ang = math.atan2(bot["y"]-nearest["y"], bot["x"]-nearest["x"])
+                    step = min(DIST_C4_FLEE_SPEED*dt, DIST_C4_SAFE_R-nearest_dist+0.35)
+                    bot["x"] += math.cos(flee_ang)*step
+                    bot["y"] += math.sin(flee_ang)*step
+                    bot["ang"] = flee_ang
+                    bot["evading_c4"] = True
+                    continue
+            target = players.get(str(cap.get("hostile_uid") or ""))
+            if (not target or target.get("dead")
+                    or (target.get("_mode") or "pvp") == "pve"
+                    or now > float(cap.get("hostile_until") or 0)):
+                cap.pop("hostile_uid", None)
+                cap.pop("hostile_until", None)
+                # Настоящий патруль строем вокруг точки операции.
+                phase = float(bot.get("patrol_phase") or 0) + dt * (0.32 if bot_i else 0.22)
+                bot["patrol_phase"] = phase
+                radius = 2.1 if bot_i else 1.1
+                tx = float(bot.get("home_x") or bot["x"]) + math.cos(phase) * radius
+                ty = float(bot.get("home_y") or bot["y"]) + math.sin(phase) * radius * 0.72
+                dx, dy = tx-bot["x"], ty-bot["y"]
+                dist = math.hypot(dx,dy)+1e-6
+                step = min(dist, .72*dt)
+                bot["x"] += dx/dist*step; bot["y"] += dy/dist*step
+                bot["ang"] = math.atan2(dy,dx)
+                continue
+            dx = target.get("x", 0)-bot["x"]; dy = target.get("y", 0)-bot["y"]
+            dist = math.hypot(dx, dy)+1e-6
+            bot["ang"] = math.atan2(dy, dx)
+            if dist > 6.0:
+                step = 1.5*dt
+                bot["x"] += dx/dist*step; bot["y"] += dy/dist*step
+            if dist <= 8.0 and now-float(bot.get("shot_at") or 0) >= (0.6 if bot["kind"]=="district_boss" else 1.1):
+                bot["shot_at"] = now
+                damage = int(bot.get("damage") or 8)
+                target["hp"] = max(0, int(target.get("hp", 100))-damage)
+                killed = target["hp"] <= 0
+                if killed:
+                    target["dead"] = True; target["respawn_at"] = now+5.0
+                events.append({"kind":"aggro_shot", "tid":f"preview_district_{did}",
+                               "bot_id":bot["id"], "target_uid":str(cap.get("hostile_uid") or ""),
+                               "weapon":bot["weapon"], "sx":round(bot["x"],2), "sy":round(bot["y"],2),
+                               "tx":round(target.get("x",0),2), "ty":round(target.get("y",0),2)})
+                events.append({"kind":"aggro_apply", "tid":f"preview_district_{did}",
+                               "bot_id":bot["id"], "target_uid":str(cap.get("hostile_uid") or ""),
+                               "weapon":bot["weapon"], "miss":False, "dmg":damage, "killed":killed})
+        noticed.intersection_update({str(q.get("id") or "") for q in world_c4.values()})
+    return events
 
 
 def preview_aggro_payload():
@@ -308,9 +463,15 @@ def preview_aggro_payload():
             # Небольшой патруль вокруг точки сбора — в превью босс не стоит статуей.
             phase = now * 0.35 + i * 1.2
             out = {k: v for k, v in bot.items() if k != "alive"}
-            out["x"] = round(bot["x"] + 0.35 * math.cos(phase), 2)
-            out["y"] = round(bot["y"] + 0.35 * math.sin(phase), 2)
-            out["ang"] = round(phase + 1.57, 2)
+            if bot.get("evading_c4") or cap.get("hostile_uid"):
+                out["x"] = round(bot["x"], 2); out["y"] = round(bot["y"], 2)
+                out["ang"] = round(bot.get("ang", 0), 2)
+            else:
+                out["x"] = round(bot["x"] + 0.35 * math.cos(phase), 2)
+                out["y"] = round(bot["y"] + 0.35 * math.sin(phase), 2)
+                out["ang"] = round(phase + 1.57, 2)
+            out["damage"] = int(bot.get("damage") or 0)
+            out["evading_c4"] = bool(bot.get("evading_c4"))
             visible.append(out)
         result[f"preview_district_{did}"] = {
             "state": "patrol", "bots": visible, "covers": [],
@@ -448,6 +609,44 @@ def preview_owned_apartments(uid):
     return preview_apartments.setdefault(str(uid), {})
 
 
+APARTMENT_OWNERSHIP_LIMIT = 5
+APARTMENT_DISTRICT_PRICES = {
+    "poor": 3500, "lair": 5500, "industrial": 7000,
+    "countryside": 8500, "nightlife": 14000, "downtown": 18000,
+    "coast": 24000, "rich": 32000, "standard": 6500,
+}
+
+
+def apartment_coords_from_key(apt_key):
+    try:
+        if apt_key.startswith("tile:"):
+            r_text, c_text = apt_key[5:].split(",", 1)
+            r, c = int(r_text), int(c_text)
+        else:
+            br_text, bc_text = apt_key.split(",", 1)
+            r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
+    except (AttributeError, TypeError, ValueError):
+        return None
+    return (r, c) if 0 <= r < 200 and 0 <= c < 80 else None
+
+
+def apartment_district_id(r, c):
+    if 0 <= r <= 39 and 40 <= c <= 79: return "downtown"
+    if 0 <= r <= 39 and 0 <= c <= 39: return "poor"
+    if 40 <= r <= 59 and 0 <= c <= 39: return "nightlife"
+    if 60 <= r <= 79 and 0 <= c <= 39: return "rich"
+    if 80 <= r <= 99 and 0 <= c <= 39: return "countryside"
+    if 40 <= r <= 99 and 40 <= c <= 79: return "industrial"
+    if 100 <= r <= 149 and 0 <= c <= 79: return "lair"
+    if 150 <= r <= 199 and 0 <= c <= 79: return "coast"
+    return "standard"
+
+
+def apartment_price_for_key(apt_key):
+    coords = apartment_coords_from_key(apt_key)
+    return None if coords is None else APARTMENT_DISTRICT_PRICES[apartment_district_id(*coords)]
+
+
 async def apartment_state(req):
     return cors(web.json_response({
         "ok": True, "owned": preview_owned_apartments(req.match_info.get("uid", "1")),
@@ -461,22 +660,31 @@ async def apartment_buy(req):
     except Exception:
         body = {}
     apt_key = str(body.get("apt_key") or "").strip()[:32]
-    price = max(1, int(body.get("price") or 0))
-    if not apt_key or "," not in apt_key:
+    price = apartment_price_for_key(apt_key)
+    if price is None:
         return cors(web.json_response({"ok": False, "error": "bad apt"}, status=400))
     owned = preview_owned_apartments(uid)
     account = preview_account(uid)
     if apt_key in owned:
         return cors(web.json_response({"ok": True, "already": True, "cash": account["cash"], "owned": owned}))
+    if len(owned) >= APARTMENT_OWNERSHIP_LIMIT:
+        return cors(web.json_response({
+            "ok": False, "error": "apartment limit",
+            "count": len(owned), "limit": APARTMENT_OWNERSHIP_LIMIT, "owned": owned,
+        }))
     if account["cash"] < price:
-        return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"]}))
+        return cors(web.json_response({
+            "ok": False, "error": "no cash", "cash": account["cash"], "price": price,
+        }))
     account["cash"] -= price
     owned[apt_key] = {
         "price": price, "bought_at": int(time.time()),
         "safe_level": 0, "weapon_rack_level": 0, "garage_level": 0,
-        "cameras_level": 0, "repair_level": 0,
+        "cameras_level": 0, "repair_level": 0, "stolen_bags": 0,
     }
-    return cors(web.json_response({"ok": True, "cash": account["cash"], "owned": owned}))
+    return cors(web.json_response({
+        "ok": True, "cash": account["cash"], "price": price, "owned": owned,
+    }))
 
 
 async def apartment_upgrade(req):
@@ -501,7 +709,158 @@ async def apartment_upgrade(req):
     account["cash"] -= cost
     key = cols[upgrade]
     owned[apt_key][key] = min(3, int(owned[apt_key].get(key, 0)) + 1)
-    return cors(web.json_response({"ok": True, "cash": account["cash"], "owned": owned}))
+    return cors(web.json_response({
+        "ok": True, "cash": account["cash"], "price": price, "owned": owned,
+    }))
+
+
+async def apartment_sell(req):
+    uid = req.match_info.get("uid", "1")
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    apt_key = str(body.get("apt_key") or "").strip()[:32]
+    owned = preview_owned_apartments(uid)
+    info = owned.get(apt_key)
+    if not info:
+        return cors(web.json_response({"ok": False, "error": "not owned"}))
+    refund = max(0, int(info.get("price") or 0) * 90 // 100)
+    account = preview_account(uid)
+    account["cash"] += refund
+    del owned[apt_key]
+    return cors(web.json_response({
+        "ok": True, "refund": refund, "cash": account["cash"], "owned": owned,
+    }))
+
+
+def preview_owned_businesses(uid):
+    return preview_businesses.setdefault(str(uid), {})
+
+
+def preview_business_row(biz_id, info=None):
+    price, low, high, emoji, name = PREVIEW_BUSINESSES[biz_id]
+    level = max(1, min(5, int((info or {}).get("level", 1)))) if info else 0
+    mult = PREVIEW_BIZ_MULT.get(level, 1.0)
+    pending = 0
+    if info:
+        elapsed = max(0, time.time() - float(info.get("last_collect") or time.time()))
+        pending = int(elapsed * ((low + high) / 2) * mult / 86400)
+    next_level = level + 1
+    return {
+        "biz_id": biz_id,
+        "bought_at": int((info or {}).get("bought_at") or 0),
+        "id": biz_id, "name": name, "emoji": emoji, "desc": "Стабильный городской бизнес.",
+        "price": price, "owned": bool(info), "status": "ok", "blocked_until": 0,
+        "level": level, "income_multiplier": mult,
+        "daily_min": round(low * mult), "daily_max": round(high * mult), "pending": pending,
+        "upgrade_cost": round(price * PREVIEW_BIZ_UP[next_level]) if info and next_level <= 5 else 0,
+    }
+
+
+async def business_list(req):
+    uid = req.match_info.get("uid", "1")
+    said = preview_said_state(uid)
+    owned = preview_owned_businesses(uid)
+    rows = [preview_business_row(biz_id, owned.get(biz_id)) for biz_id in PREVIEW_BUSINESSES]
+    return cors(web.json_response({"ok": True, "businesses": rows,
+        "cash": preview_account(uid)["cash"], "said": said}))
+
+
+async def said_hire(req):
+    uid = req.match_info.get("uid", "1")
+    account, owned = preview_account(uid), preview_owned_businesses(uid)
+    if not owned:
+        return cors(web.json_response({"ok": False, "error": "no business"}))
+    state = preview_said_state(uid)
+    if state["hired"]:
+        return cors(web.json_response({"ok": True, "cash": account["cash"], "said": state}))
+    if account["cash"] < 500:
+        return cors(web.json_response({"ok": False, "error": "no cash"}))
+    now = time.time()
+    account["cash"] -= 500
+    account["said_hired"] = True
+    account["said_hired_at"] = now
+    account["said_paid_until"] = now + 86400
+    return cors(web.json_response({"ok": True, "cash": account["cash"],
+        "said": preview_said_state(uid)}))
+
+
+async def said_fire(req):
+    uid = req.match_info.get("uid", "1")
+    account = preview_account(uid)
+    account["said_hired"] = False
+    account["said_hired_at"] = 0
+    account["said_paid_until"] = 0
+    return cors(web.json_response({"ok": True, "cash": account["cash"],
+        "said": preview_said_state(uid)}))
+
+
+async def business_buy(req):
+    uid = req.match_info.get("uid", "1")
+    try: body = await req.json()
+    except Exception: body = {}
+    biz_id = str(body.get("biz_id") or "")
+    if biz_id not in PREVIEW_BUSINESSES:
+        return cors(web.json_response({"ok": False, "error": "unknown biz"}, status=400))
+    owned, account = preview_owned_businesses(uid), preview_account(uid)
+    if biz_id in owned:
+        return cors(web.json_response({"ok": False, "error": "already owned"}))
+    price = PREVIEW_BUSINESSES[biz_id][0]
+    if account["cash"] < price:
+        return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"], "price": price}))
+    account["cash"] -= price
+    now = time.time()
+    owned[biz_id] = {"level": 1, "last_collect": now, "bought_at": now}
+    return cors(web.json_response({"ok": True, "cash": account["cash"], "level": 1}))
+
+
+async def business_upgrade(req):
+    uid = req.match_info.get("uid", "1")
+    try: body = await req.json()
+    except Exception: body = {}
+    biz_id = str(body.get("biz_id") or "")
+    info = preview_owned_businesses(uid).get(biz_id)
+    if not info or biz_id not in PREVIEW_BUSINESSES:
+        return cors(web.json_response({"ok": False, "error": "not owned"}))
+    level = max(1, min(5, int(info.get("level", 1))))
+    if level >= 5:
+        return cors(web.json_response({"ok": False, "error": "max level", "level": level}))
+    price, low, high, _, _ = PREVIEW_BUSINESSES[biz_id]
+    next_level, account = level + 1, preview_account(uid)
+    cost = round(price * PREVIEW_BIZ_UP[next_level])
+    if account["cash"] < cost:
+        return cors(web.json_response({"ok": False, "error": "no cash", "cost": cost, "cash": account["cash"]}))
+    account["cash"] -= cost
+    info["level"] = next_level
+    mult = PREVIEW_BIZ_MULT[next_level]
+    next_cost = round(price * PREVIEW_BIZ_UP[next_level + 1]) if next_level < 5 else 0
+    return cors(web.json_response({"ok": True, "cash": account["cash"], "level": next_level,
+        "income_multiplier": mult, "daily_min": round(low * mult), "daily_max": round(high * mult),
+        "upgrade_cost": next_cost, "next_upgrade_cost": next_cost}))
+
+
+async def business_collect(req):
+    uid = req.match_info.get("uid", "1")
+    try: body = await req.json()
+    except Exception: body = {}
+    biz_id = str(body.get("biz_id") or "")
+    owned = preview_owned_businesses(uid)
+    if biz_id:
+        info = owned.get(biz_id)
+        if not info or biz_id not in PREVIEW_BUSINESSES:
+            return cors(web.json_response({"ok": False, "error": "not owned"}))
+        targets = [(biz_id, info)]
+    else:
+        if not preview_said_state(uid)["hired"]:
+            return cors(web.json_response({"ok": False, "error": "said not hired"}))
+        targets = list(owned.items())
+    pay, account = 0, preview_account(uid)
+    for target_id, info in targets:
+        pay += int(preview_business_row(target_id, info)["pending"])
+        info["last_collect"] = time.time()
+    account["cash"] += pay
+    return cors(web.json_response({"ok": True, "collected": pay, "cash": account["cash"], "events": []}))
 
 
 async def coop_api(_req):
@@ -526,6 +885,56 @@ def snap(uid):
         "walking": False,
         "name": "Demo",
     })
+    now = time.time()
+    # Ограниченный серверный конвой: 45 секунд максимум, освобождение при
+    # гибели/выходе копа. Задержанный следует в 0.7 тайла позади.
+    for target_uid, target in list(players.items()):
+        cop_uid = str(target.get("police_cuffed_by") or "")
+        if not cop_uid:
+            continue
+        cop = players.get(cop_uid)
+        if (not cop or not cop.get("police") or cop.get("dead") or
+                now >= float(target.get("police_cuff_until", 0))):
+            target.pop("police_cuffed_by", None); target.pop("police_cuff_until", None)
+            if cop: cop.pop("police_escort_uid", None)
+            continue
+        ang = float(cop.get("ang", 0))
+        target["x"] = float(cop.get("x", 0)) - math.sin(ang) * .72
+        target["y"] = float(cop.get("y", 0)) - math.cos(ang) * .72
+        target["ang"] = ang; target["walking"] = bool(cop.get("walking"))
+    me_biz = str(p.get("business_interior") or "")
+    me_private = bool(p.get("business_private"))
+    visible_others = []
+    for other_uid, other in players.items():
+        if str(other_uid) == str(uid):
+            continue
+        other_biz = str(other.get("business_interior") or "")
+        other_private = bool(other.get("business_private"))
+        if me_biz:
+            if me_private or other_biz != me_biz or other_private:
+                continue
+            ox, oy = float(other.get("interior_x", 0)), float(other.get("interior_y", 0))
+        else:
+            if other_biz:
+                continue
+            ox, oy = float(other.get("x", 0)), float(other.get("y", 0))
+            if (ox-float(p.get("x", 0)))**2 + (oy-float(p.get("y", 0)))**2 > 45**2:
+                continue
+        visible_others.append({
+            "uid": str(other_uid), "name": other.get("name", "Demo"),
+            "look": other.get("look", {}), "x": round(ox, 2), "y": round(oy, 2),
+            "ang": round(float(other.get("ang", 0)), 2), "w": bool(other.get("walking")),
+            "hp": int(other.get("hp", 100)), "dead": bool(other.get("dead", False)),
+            "wanted": int(other.get("wanted", 0)), "gangs": 0, "mode": "pvp",
+            "jail_in": max(0, int(float(other.get("jail_until", 0))-now)),
+            "weapon": other.get("weapon", "pistol"),
+            "police": bool(other.get("police", False)),
+            "police_cuffed": bool(other.get("police_cuffed_by")),
+            "police_stunned_in": max(0, float(other.get("police_stunned_until", 0))-now),
+            "police_escort": other.get("police_escort"),
+            "interior": ({"kind": "business", "biz_id": other_biz,
+                          "private": other_private} if other_biz else None),
+        })
     return {
         "t": "snap",
         "d": {
@@ -541,18 +950,51 @@ def snap(uid):
                 "kills": 0,
                 "deaths": 0,
                 "cash": preview_account(uid)["cash"],
+                "police_xp": int(preview_account(uid).get("police_xp", 0)),
                 "diamonds": 0,
-                "wanted": 0,
+                "wanted": int(p.get("wanted", 0)),
                 "wanted_gangs": 0,
-                "jail_in": 0,
+                "jail_in": max(0, int(float(p.get("jail_until", 0))-now)),
+                "police_stunned_in": max(0, float(p.get("police_stunned_until", 0))-now),
+                "police_arrest": ({"role":"detainee", "cop_uid":str(p.get("police_cuffed_by")),
+                    "cop_name":players.get(str(p.get("police_cuffed_by")),{}).get("name","Полицейский"),
+                    "left":max(0,int(float(p.get("police_cuff_until",0))-now))}
+                    if p.get("police_cuffed_by") else
+                    ({"role":"cop", "target_uid":str(p.get("police_escort_uid")),
+                      "target_name":players.get(str(p.get("police_escort_uid")),{}).get("name","Задержанный"),
+                      "left":max(0,int(float(players.get(str(p.get("police_escort_uid")),{}).get("police_cuff_until",0))-now))}
+                     if p.get("police_escort_uid") else None)),
+                "police_evidence_bag": ({
+                    "id": str(p["police_evidence_bag"].get("id") or ""),
+                    "bank_id": str(p["police_evidence_bag"].get("bank_id") or ""),
+                    "value": int(p["police_evidence_bag"].get("value") or 0),
+                } if p.get("police_evidence_bag") else None),
             },
-            "others": [],
+            "others": visible_others,
+            "wanted_board": ([{
+                "uid": str(tuid), "name": tp.get("name", "Игрок"),
+                "wanted": int(tp.get("wanted", 0)), "x": round(float(tp.get("x",0)),1),
+                "y": round(float(tp.get("y",0)),1),
+                "selected": str(p.get("police_online_target") or "") == str(tuid),
+                "detained": bool(tp.get("police_cuffed_by")),
+                "first_reward": str(tuid) not in preview_police_rewards,
+            } for tuid,tp in players.items() if str(tuid)!=str(uid) and int(tp.get("wanted",0))>0
+                and not tp.get("dead") and float(tp.get("jail_until",0))<=now] if p.get("police") else []),
             "cops": [],
             "event": None,
             "territories": {},
             "active_captures": {},
             "aggro": preview_aggro_payload(),
             "quest_cars": race_car_payload(),
+            "dropped_bags": [{
+                "id": str(bag["id"]), "bank_id": str(bag.get("bank_id") or ""),
+                "value": int(bag.get("value") or 0),
+                "r": round(float(bag.get("y") or 0), 2),
+                "c": round(float(bag.get("x") or 0), 2),
+            } for bag in preview_bank_bags.values()
+              if now - float(bag.get("dropped_at") or now) <= 300
+              and (float(bag.get("x") or 0)-float(p.get("x") or 0))**2
+                + (float(bag.get("y") or 0)-float(p.get("y") or 0))**2 <= 42**2],
             "beachgoers": PREVIEW_BEACHGOERS,
             "michael_guards": [],
             "gang_nests": [],
@@ -591,7 +1033,7 @@ def snap(uid):
 
 async def world_ws(req):
     uid = req.query.get("uid", "1")
-    players.setdefault(uid, {
+    p0 = players.setdefault(uid, {
         "x": PREVIEW_START_X,
         "y": PREVIEW_START_Y,
         "ang": 0.0,
@@ -600,6 +1042,10 @@ async def world_ws(req):
         "hp": 100,
         "dead": False,
     })
+    try:
+        p0["wanted"] = max(int(p0.get("wanted", 0)), min(3, int(req.query.get("wanted", 0))))
+    except Exception:
+        pass
     ws = web.WebSocketResponse(heartbeat=20)
     await ws.prepare(req)
     clients.add(ws)
@@ -623,11 +1069,14 @@ async def world_ws(req):
                     p["dead"] = False
                     p["hp"] = 100
                     p["x"], p["y"] = PREVIEW_START_X, PREVIEW_START_Y
+            for defender_event in tick_district_defenders(now, 1/15):
+                await broadcast_event(defender_event)
             for charge_id, charge in list(world_c4.items()):
                 if now < charge["explode_at"]:
                     continue
                 world_c4.pop(charge_id, None)
                 victims = []
+                npc_victims = []
                 for victim_uid, victim in players.items():
                     if victim.get("dead"):
                         continue
@@ -636,10 +1085,24 @@ async def world_ws(req):
                         victim["dead"] = True
                         victim["respawn_at"] = now + 5.0
                         victims.append({"uid":str(victim_uid),"name":victim.get("name", "Игрок")})
+                for did, cap in district_captures.items():
+                    for bot in cap.get("defenders") or []:
+                        if not bot.get("alive") or math.hypot(bot["x"]-charge["x"], bot["y"]-charge["y"]) > WORLD_C4_LETHAL_R:
+                            continue
+                        bot["hp"] = 0; bot["alive"] = False
+                        is_boss = bot.get("kind") == "district_boss"
+                        npc_victims.append({"bot_id":str(bot.get("id") or ""), "kind":bot.get("kind"),
+                                            "did":did, "boss":is_boss})
+                        if is_boss:
+                            cap["boss_dead"] = True
+                            loot_id=f"preview_cash_{did}_{int(now*1000)}"
+                            district_loot[loot_id]={"id":loot_id,"did":did,"x":float(bot["x"]),"y":float(bot["y"]),
+                                                    "amount":200,"expires_at":now+120.0}
+                            if cap.get("phase") == "boss": cap["phase"] = "hq"
                 await broadcast_event({"kind":"world_c4_exploded","id":charge_id,
                     "by_uid":charge["owner_uid"],"by_name":charge["owner_name"],
                     "x":charge["x"],"y":charge["y"],"lethal_r":WORLD_C4_LETHAL_R,
-                    "victims":victims})
+                    "victims":victims,"npc_victims":npc_victims})
             for loot_id, loot in list(district_loot.items()):
                 if now >= float(loot.get("expires_at") or 0):
                     district_loot.pop(loot_id, None)
@@ -648,11 +1111,16 @@ async def world_ws(req):
                     if picker.get("dead") or math.hypot(picker.get("x",0)-loot["x"], picker.get("y",0)-loot["y"]) > 1.25:
                         continue
                     district_loot.pop(loot_id, None)
-                    account=preview_account(str(picker_uid));account["cash"]+=int(loot.get("amount") or 200)
-                    await broadcast_event({"kind":"district_boss_cash_picked","loot_id":loot_id,
-                        "did":loot.get("did"),"picker_uid":str(picker_uid),
-                        "picker_name":picker.get("name","Игрок"),"amount":int(loot.get("amount") or 200),
-                        "new_cash":account["cash"]})
+                    if loot.get("kind") == "ammo":
+                        await broadcast_event({"kind":"gang_ammo_picked","loot_id":loot_id,
+                            "picker_uid":str(picker_uid),"picker_name":picker.get("name","Игрок"),
+                            "ammo_type":loot.get("ammo_type","9mm"),"rounds":int(loot.get("rounds") or 0)})
+                    else:
+                        account=preview_account(str(picker_uid));account["cash"]+=int(loot.get("amount") or 200)
+                        await broadcast_event({"kind":"district_boss_cash_picked","loot_id":loot_id,
+                            "did":loot.get("did"),"picker_uid":str(picker_uid),
+                            "picker_name":picker.get("name","Игрок"),"amount":int(loot.get("amount") or 200),
+                            "new_cash":account["cash"]})
                     break
             for did, cap in list(district_captures.items()):
                 if now >= cap.get("expires_at", 0):
@@ -741,10 +1209,34 @@ async def world_ws(req):
                 p = players.setdefault(uid, {})
                 if p.get("dead"):
                     continue
+                if p.get("police_cuffed_by"):
+                    continue
+                p["police"] = bool(d.get("police", False))
+                escort = d.get("police_escort") if isinstance(d.get("police_escort"), dict) else None
+                if escort:
+                    p["police_escort"] = {"r": max(0.0, min(120.0, float(escort.get("r", 0)))), "c": max(0.0, min(120.0, float(escort.get("c", 0)))), "ang": float(escort.get("ang", 0)), "name": str(escort.get("name") or "Задержанный")[:32], "look": escort.get("look") if isinstance(escort.get("look"), dict) else {}, "waiting": bool(escort.get("waiting"))}
+                else:
+                    p["police_escort"] = None
+                interior = d.get("interior") if isinstance(d.get("interior"), dict) else None
+                biz_id = str((interior or {}).get("biz_id") or "")[:32]
+                if (interior or {}).get("kind") == "business" and biz_id:
+                    p["business_interior"] = biz_id
+                    p["business_private"] = biz_id in preview_owned_businesses(uid)
+                    p["interior_x"] = max(0.0, min(60.0, float(d.get("x", 0))))
+                    p["interior_y"] = max(0.0, min(60.0, float(d.get("y", 0))))
+                    p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
+                    p["walking"] = bool(d.get("w", False))
+                    p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
+                    continue
+                p.pop("business_interior", None)
+                p.pop("business_private", None)
+                p.pop("interior_x", None)
+                p.pop("interior_y", None)
                 p["x"] = float(d.get("x", p.get("x", 40.0)))
                 p["y"] = float(d.get("y", p.get("y", 40.0)))
                 p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
                 p["walking"] = bool(d.get("w", False))
+                p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
             elif t == "district_capture_try":
                 p = players.get(uid) or {}
                 did = str(d.get("did") or "")
@@ -892,14 +1384,28 @@ async def world_ws(req):
                     if found:
                         break
                 if found:
+                    cap = district_captures[found_did]
+                    # Только подтверждённое попадание разворачивает всю охрану
+                    # на конкретного стрелка. На других игроков не переключаемся.
+                    cap["hostile_uid"] = str(uid)
+                    cap["hostile_until"] = time.time() + 30.0
                     damage = 42
                     found["hp"] = max(0, int(found["hp"]) - damage)
                     killed = found["hp"] <= 0
                     if killed:
                         found["alive"] = False
+                        weapon=str(d.get("weapon") or "pistol")
+                        ammo_map={"pistol":"9mm","pistol_gold":"9mm","smg":"9mm","tommy_gun":"9mm",
+                            "nagan":"magnum","pistol_heavy":"magnum","shotgun":"shell","rifle":"rifle",
+                            "sniper":"sniper","rpg":"rocket"}
+                        round_map={"9mm":12,"magnum":6,"shell":6,"rifle":15,"sniper":3,"rocket":1}
+                        ammo_type=ammo_map.get(weapon,"9mm")
+                        ammo_id=f"preview_ammo_{int(time.time()*1000)}"
+                        district_loot[ammo_id]={"id":ammo_id,"kind":"ammo","x":float(found["x"]),
+                            "y":float(found["y"]),"ammo_type":ammo_type,"rounds":round_map[ammo_type],
+                            "expires_at":time.time()+90.0}
                     is_boss = found.get("kind") == "district_boss"
                     if killed and is_boss:
-                        cap = district_captures[found_did]
                         cap["boss_dead"] = True
                         loot_id=f"preview_cash_{found_did}_{int(time.time()*1000)}"
                         district_loot[loot_id]={"id":loot_id,"did":found_did,
@@ -927,11 +1433,146 @@ async def world_ws(req):
                         await broadcast_event({"kind": "district_capture_cancelled", "did": did,
                                                "by_uid": str(uid), "reason": "cancelled"})
                         break
+            elif t == "police_resign":
+                account = preview_account(uid)
+                account["police_xp"] = 0
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"police_xp_reply","ok":True,"resigned":True,"police_xp":0}}, ensure_ascii=False))
+            elif t == "police_xp_sync":
+                account = preview_account(uid)
+                account["police_xp"] = min(2800, max(int(account.get("police_xp", 0)), max(0, int(d.get("xp") or 0))))
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"police_xp_reply","ok":True,"police_xp":account["police_xp"]}}, ensure_ascii=False))
+            elif t == "police_npc_reward":
+                cop = players.get(uid, {})
+                xp = int(d.get("xp") or 0)
+                mission_id = str(d.get("mission_id") or "")[:96]
+                rewarded = cop.setdefault("police_npc_rewards", set())
+                ok = bool(cop.get("police") and mission_id and xp in (65, 180, 300) and mission_id not in rewarded)
+                if ok:
+                    rewarded.add(mission_id)
+                    account = preview_account(uid)
+                    account["police_xp"] = min(2800, int(account.get("police_xp", 0)) + xp)
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"police_xp_reply","ok":ok,"police_xp":int(preview_account(uid).get("police_xp",0))}}, ensure_ascii=False))
+            elif t in ("police_patrol_spawn", "police_spikes", "police_backup"):
+                cop = players.get(uid, {})
+                account = preview_account(uid)
+                now = time.time()
+                if t == "police_patrol_spawn":
+                    reply = preview_police_patrol(uid)
+                    reply["kind"] = "police_patrol_reply"
+                elif not cop.get("police"):
+                    reply = {"ok": False, "error": "not_police"}
+                elif int(account.get("police_xp", 0)) < 1600:
+                    reply = {"ok": False, "error": "level_locked"}
+                elif t == "police_spikes" and now - float(cop.get("police_spikes_at", 0)) < 25:
+                    reply = {"ok": False, "error": "cooldown"}
+                elif t == "police_backup" and now - float(cop.get("police_backup_at", 0)) < 90:
+                    reply = {"ok": False, "error": "cooldown"}
+                elif t == "police_spikes":
+                    cop["police_spikes_at"] = now
+                    reply = {"ok": True, "kind": "police_spikes_reply",
+                             "id": f"spikes_{uid}_{int(now*1000)}",
+                             "r": float(cop.get("y", 0)), "c": float(cop.get("x", 0)),
+                             "ang": float(cop.get("ang", 0)), "cop_uid": uid, "life_s": 45}
+                else:
+                    cop["police_backup_at"] = now
+                    reply = {"ok": True, "kind": "police_backup_reply", "cop_uid": uid, "life_s": 45}
+                reply.setdefault("kind", "police_spikes_reply" if t == "police_spikes" else "police_backup_reply")
+                await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
+                if t == "police_spikes" and reply.get("ok"):
+                    deployed = dict(reply); deployed["kind"] = "police_spikes_deployed"
+                    await broadcast_event(deployed)
+            elif t in ("police_online_select", "police_online_stun", "police_online_taser", "police_online_cuff", "police_online_turnin"):
+                cop = players.get(uid, {})
+                target_uid = str(d.get("target_uid") or cop.get("police_escort_uid") or "")
+                target = players.get(target_uid)
+                reply = {"ok": False, "error": "not_police"}
+                if cop.get("police"):
+                    if t == "police_online_select":
+                        if target and int(target.get("wanted", 0)) > 0 and not target.get("dead"):
+                            cop["police_online_target"] = target_uid
+                            reply = {"ok":True,"target_uid":target_uid,"name":target.get("name","Игрок")}
+                        else: reply = {"ok":False,"error":"not_wanted"}
+                    elif t == "police_online_stun":
+                        if not target or str(cop.get("police_online_target") or "") != target_uid:
+                            reply = {"ok":False,"error":"not_selected"}
+                        elif cop.get("business_interior") or target.get("business_interior"):
+                            reply = {"ok":False,"error":"interior"}
+                        elif (float(cop.get("x",0))-float(target.get("x",0)))**2 + (float(cop.get("y",0))-float(target.get("y",0)))**2 > 2.15**2:
+                            reply = {"ok":False,"error":"too_far"}
+                        elif int(target.get("wanted",0)) <= 0 or target.get("dead"):
+                            reply = {"ok":False,"error":"not_wanted"}
+                        elif target.get("police_cuffed_by"):
+                            reply = {"ok":False,"error":"already_cuffed"}
+                        else:
+                            target["police_stunned_until"] = time.time()+5
+                            reply = {"ok":True,"target_uid":target_uid,"until":target["police_stunned_until"]}
+                    elif t == "police_online_taser":
+                        now = time.time()
+                        if int(preview_account(uid).get("police_xp", 0)) < 2800:
+                            reply = {"ok":False,"error":"taser_locked"}
+                        elif not target or str(cop.get("police_online_target") or "") != target_uid:
+                            reply = {"ok":False,"error":"not_selected"}
+                        elif cop.get("business_interior") or target.get("business_interior"):
+                            reply = {"ok":False,"error":"interior"}
+                        elif (float(cop.get("x",0))-float(target.get("x",0)))**2 + (float(cop.get("y",0))-float(target.get("y",0)))**2 > 7.5**2:
+                            reply = {"ok":False,"error":"too_far"}
+                        elif now-float(cop.get("police_taser_at",0)) < 1.2:
+                            reply = {"ok":False,"error":"cooldown"}
+                        elif int(target.get("wanted",0)) <= 0 or target.get("dead"):
+                            reply = {"ok":False,"error":"not_wanted"}
+                        elif target.get("police_cuffed_by"):
+                            reply = {"ok":False,"error":"already_cuffed"}
+                        else:
+                            cop["police_taser_at"] = now
+                            target["police_stunned_until"] = now+5
+                            reply = {"ok":True,"target_uid":target_uid,"until":target["police_stunned_until"]}
+                    elif t == "police_online_cuff":
+                        if not target or str(cop.get("police_online_target") or "") != target_uid:
+                            reply = {"ok":False,"error":"not_selected"}
+                        elif cop.get("police_escort_uid"):
+                            reply = {"ok":False,"error":"already_escorting"}
+                        elif int(target.get("wanted",0)) <= 0 or target.get("dead"):
+                            reply = {"ok":False,"error":"not_wanted"}
+                        elif cop.get("business_interior") or target.get("business_interior"):
+                            reply = {"ok":False,"error":"interior"}
+                        elif target.get("police_cuffed_by"):
+                            reply = {"ok":False,"error":"already_cuffed"}
+                        elif float(target.get("police_stunned_until",0)) < time.time():
+                            reply = {"ok":False,"error":"not_stunned"}
+                        elif (float(cop.get("x",0))-float(target.get("x",0)))**2 + (float(cop.get("y",0))-float(target.get("y",0)))**2 > 2.15**2:
+                            reply = {"ok":False,"error":"too_far"}
+                        else:
+                            target["police_cuffed_by"] = uid; target["police_cuff_until"] = time.time()+45
+                            cop["police_escort_uid"] = target_uid
+                            reply = {"ok":True,"target_uid":target_uid,"cop_uid":uid,"until":target["police_cuff_until"]}
+                    else:
+                        if not target or str(target.get("police_cuffed_by") or "") != str(uid):
+                            reply = {"ok":False,"error":"no_escort"}
+                        elif (float(cop.get("x",0))-76)**2 + (float(cop.get("y",0))-76)**2 > 5.2**2:
+                            reply = {"ok":False,"error":"not_at_station"}
+                        else:
+                            first=target_uid not in preview_police_rewards
+                            preview_police_rewards.add(target_uid)
+                            if first: preview_account(uid)["cash"] += 700
+                            preview_account(uid)["police_xp"] = min(2800, int(preview_account(uid).get("police_xp",0)) + 75)
+                            target["wanted"]=0; target["jail_until"]=time.time()+30
+                            target["x"],target["y"]=76.5,76.5
+                            target.pop("police_cuffed_by",None); target.pop("police_cuff_until",None)
+                            cop.pop("police_escort_uid",None); cop.pop("police_online_target",None)
+                            reply={"ok":True,"target_uid":target_uid,"target_name":target.get("name","Игрок"),
+                                   "first_reward":first,"cash":700 if first else 0,"exp":75 if first else 0,
+                                   "police_xp_gain":75,"police_xp":preview_account(uid)["police_xp"]}
+                reply["kind"] = t + "_reply"
+                await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
+                if reply.get("ok"):
+                    action=dict(reply); action["kind"]=t
+                    await broadcast_event(action)
             elif t == "gta_enter":
                 car = quest_cars.get(str(d.get("car_id") or ""))
-                if car:
+                if car and (not car.get("police_patrol") or str(car.get("owner_uid") or "") == str(uid)):
                     car["driver_uid"] = uid
-                    car["owner_uid"] = uid
+                    if not car.get("police_patrol"):
+                        car["owner_uid"] = uid
                     car["passenger_uids"] = []
                     p = players.setdefault(uid, {})
                     p["x"] = car["x"]
@@ -1003,7 +1644,11 @@ async def world_ws(req):
                 }))
             elif t == "bank_rob_start":
                 bank_id = str(d.get("bank_id") or "")
-                if bank_id in PREVIEW_BANK_REWARD:
+                if p.get("police"):
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"bank_rob_start_reply", "ok":False,
+                        "reason":"police_on_duty"}}, ensure_ascii=False))
+                elif bank_id in PREVIEW_BANK_REWARD:
                     preview_bank_robs[str(uid)] = {
                         "bank_id": bank_id, "carried": 0, "bags_loaded": 0,
                         "started_at": time.time(),
@@ -1021,10 +1666,65 @@ async def world_ws(req):
                     rob["bags_loaded"] = max(0, int(d.get("bags_loaded") or 0))
             elif t == "bank_bag_drop":
                 rob = preview_bank_robs.get(str(uid))
+                evidence = p.get("police_evidence_bag")
+                was_carried = bool(rob and rob.get("carried"))
                 if rob:
                     rob["carried"] = 0
                     if d.get("confiscated"):
                         preview_bank_robs.pop(str(uid), None)
+                if not d.get("confiscated") and (evidence or was_carried):
+                    bank_id = str((evidence or {}).get("bank_id") or (rob or {}).get("bank_id") or "")
+                    value = int((evidence or {}).get("value") or PREVIEW_BANK_REWARD.get(bank_id, 0))
+                    bag_id = str(d.get("bag_id") or "")[:80]
+                    if not bag_id.startswith("bag_") or bag_id in preview_bank_bags:
+                        bag_id = f"bag_preview_{time.time_ns()}"
+                    preview_bank_bags[bag_id] = {
+                        "id":bag_id, "bank_id":bank_id, "value":value,
+                        "x":float(p.get("x",0)), "y":float(p.get("y",0)),
+                        "dropped_at":time.time(), "robber_uid":str(uid),
+                    }
+                    p.pop("police_evidence_bag", None)
+            elif t == "police_bank_bag_pickup":
+                bag_id = str(d.get("bag_id") or "")[:80]
+                bag = preview_bank_bags.get(bag_id)
+                reason = None
+                if not p.get("police"): reason = "not_police"
+                elif p.get("dead"): reason = "dead"
+                elif p.get("police_evidence_bag"): reason = "hands_full"
+                elif not bag: reason = "gone"
+                elif (float(p.get("x",0))-float(bag.get("x",0)))**2 + (float(p.get("y",0))-float(bag.get("y",0)))**2 > 2.5**2:
+                    reason = "too_far"
+                if reason:
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"police_bank_bag_pickup_reply","ok":False,
+                        "reason":reason,"bag_id":bag_id}}, ensure_ascii=False))
+                else:
+                    preview_bank_bags.pop(bag_id, None)
+                    p["police_evidence_bag"] = dict(bag)
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"police_bank_bag_pickup_reply","ok":True,
+                        "bag_id":bag_id,"bank_id":bag.get("bank_id"),
+                        "value":int(bag.get("value") or 0)}}, ensure_ascii=False))
+            elif t == "police_bank_bag_turnin":
+                bag = p.get("police_evidence_bag")
+                reason = None
+                if not p.get("police"): reason = "not_police"
+                elif p.get("dead"): reason = "dead"
+                elif not bag: reason = "no_evidence"
+                elif (float(p.get("x",0))-76)**2 + (float(p.get("y",0))-76)**2 > 5.2**2:
+                    reason = "not_at_station"
+                if reason:
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"police_bank_bag_turnin_reply","ok":False,
+                        "reason":reason}}, ensure_ascii=False))
+                else:
+                    reward = int(bag.get("value") or 0)
+                    account = preview_account(uid); account["cash"] += reward
+                    p.pop("police_evidence_bag", None)
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"police_bank_bag_turnin_reply","ok":True,
+                        "reward":reward,"cash":account["cash"],
+                        "bank_id":bag.get("bank_id")}}, ensure_ascii=False))
             elif t == "bank_rob_apartment_deliver":
                 bank_id = str(d.get("bank_id") or "")
                 apt_key = str(d.get("apt_key") or "").strip()[:32]
@@ -1045,16 +1745,28 @@ async def world_ws(req):
                     payout = PREVIEW_BANK_REWARD.get(bank_id, 0)
                     account = preview_account(uid)
                     account["cash"] += payout
+                    apartment = preview_owned_apartments(uid)[apt_key]
+                    apartment["stolen_bags"] = max(0, int(apartment.get("stolen_bags") or 0)) + 1
                     preview_bank_robs.pop(str(uid), None)
                     await ws.send_str(json.dumps({"t": "event", "d": {
                         "kind": "bank_rob_finished", "bank_id": bank_id,
                         "ok": True, "payout": payout, "bags": 1,
                         "cash": account["cash"], "place": "apartment",
-                        "apt_key": apt_key,
+                        "apt_key": apt_key, "stolen_bags": apartment["stolen_bags"],
                     }}, ensure_ascii=False))
     finally:
         task.cancel()
         clients.discard(ws)
+        leaving = players.get(uid) or {}
+        evidence = leaving.get("police_evidence_bag")
+        if evidence:
+            bag_id = f"bag_preview_{time.time_ns()}"
+            preview_bank_bags[bag_id] = {
+                "id":bag_id, "bank_id":str(evidence.get("bank_id") or ""),
+                "value":int(evidence.get("value") or 0),
+                "x":float(leaving.get("x",0)), "y":float(leaving.get("y",0)),
+                "dropped_at":time.time(), "robber_uid":str(uid),
+            }
         release_player_cars(uid)
         players.pop(uid, None)
     return ws
@@ -1073,6 +1785,13 @@ app.router.add_get("/world/district_status/{uid}", district_status)
 app.router.add_get("/apartment/{uid}/state", apartment_state)
 app.router.add_post("/apartment/{uid}/buy", apartment_buy)
 app.router.add_post("/apartment/{uid}/upgrade", apartment_upgrade)
+app.router.add_post("/apartment/{uid}/sell", apartment_sell)
+app.router.add_get("/biz/{uid}/list", business_list)
+app.router.add_post("/biz/{uid}/buy", business_buy)
+app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
+app.router.add_post("/biz/{uid}/collect", business_collect)
+app.router.add_post("/biz/{uid}/said/hire", said_hire)
+app.router.add_post("/biz/{uid}/said/fire", said_fire)
 
 
 if __name__ == "__main__":
