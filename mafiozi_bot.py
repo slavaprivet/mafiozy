@@ -897,6 +897,8 @@ async def init_db():
             ("lost_return_streak", "INTEGER DEFAULT 0"),
             # Отдельная постоянная карьера полиции. Не сбрасывается при увольнении.
             ("police_xp",          "INTEGER DEFAULT 0"),
+            # Постоянная карьера мафиози. Не сбрасывается при службе в полиции.
+            ("mafia_xp",           "INTEGER DEFAULT 0"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -1257,6 +1259,35 @@ async def police_claim_daily_arrest(cop_uid: int, police_xp: int) -> dict:
             (int(cop_uid), day, count))
         await db.commit()
     return {'ok': True, 'day': day, 'count': count, 'limit': limit}
+
+
+MAFIA_LEVEL_XP = (0, 400, 1100, 2300, 4000)
+MAFIA_XP_MAX = MAFIA_LEVEL_XP[-1]
+
+
+async def grant_mafia_xp(uid: int, amount: int, reason: str,
+                         world_player: dict | None = None) -> dict:
+    """Начисляет серверный опыт мафии только игроку вне полицейской службы."""
+    if world_player and world_player.get('_police'):
+        return {}
+    amount = max(0, int(amount or 0))
+    if not amount:
+        return {}
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE characters SET mafia_xp=MIN(?,COALESCE(mafia_xp,0)+?) "
+            "WHERE telegram_id=?", (MAFIA_XP_MAX, amount, int(uid)))
+        async with db.execute(
+                "SELECT mafia_xp FROM characters WHERE telegram_id=?", (int(uid),)) as cur:
+            row = await cur.fetchone()
+        await db.commit()
+    new_xp = int((row or [0])[0] or 0)
+    old_xp = int((world_player or {}).get('_mafia_xp') or 0)
+    gain = max(0, new_xp - old_xp)
+    if world_player is not None:
+        world_player['_mafia_xp'] = new_xp
+    return {'mafia_xp': new_xp, 'mafia_xp_gain': gain,
+            'mafia_reason': str(reason or '')}
 
 
 CITY_NEWS_WINDOW_S = 24 * 60 * 60
@@ -13150,7 +13181,36 @@ class WorldSim:
             p['last_seen'] = time.time()
             p['_input_t'] = time.time()
             return
+        was_police = bool(p.get('_police'))
         p['_police'] = bool(d.get('police', False))
+        if p['_police'] and not was_police:
+            # Форма несовместима с контролем улиц: при поступлении на службу
+            # личные и совместные владения, а также незавершённые захваты снимаются.
+            for tid, own in list(self.territories.items()):
+                owner_uid = str(own.get('owner_uid') or '')
+                co = [str(x) for x in (own.get('co_owners') or []) if str(x) != str(uid)]
+                if owner_uid == str(uid):
+                    if not co:
+                        self.territories.pop(tid, None)
+                        continue
+                    new_owner_uid = co[0]
+                    new_owner = self.players.get(new_owner_uid) or {}
+                    own['owner_uid'] = new_owner_uid
+                    own['owner_name'] = str(new_owner.get('name') or own.get('owner_name') or '')[:24]
+                    own['color'] = self._terr_color(new_owner_uid)
+                    own['co_owners'] = co
+                elif str(uid) in [str(x) for x in (own.get('co_owners') or [])]:
+                    own['co_owners'] = co
+            for tid, cap in list(self.active_captures.items()):
+                if str(cap.get('by_uid')) == str(uid):
+                    self.active_captures.pop(tid, None)
+            for did, own in list(self.district_owners.items()):
+                if str(own.get('owner_uid')) == str(uid):
+                    self.district_owners.pop(did, None)
+            for did, op in list(self.district_captures.items()):
+                if str(op.get('by_uid')) == str(uid) and op.get('phase') not in ('boss_patrol','dossier'):
+                    self.district_captures.pop(did, None)
+                    self._remove_district_boss(op)
         escort = d.get('police_escort') if isinstance(d.get('police_escort'), dict) else None
         if escort:
             try:
@@ -15061,6 +15121,8 @@ class WorldSim:
         p = self.players.get(uid)
         if not p:
             return None
+        if p.get('_police'):
+            return {'kind':'territory_capture_denied','by_uid':str(uid),'reason':'police_forbidden'}
         if (p.get('_mode') or 'pvp') == 'pve':
             return None
         if p.get('dead'):
@@ -15511,6 +15573,32 @@ class WorldSim:
                             st['state'] = 'alive'
                             st['last_respawn_at'] = now
         return pkts
+
+    def hire_city_gang_bot(self, uid: str, bot_id: str) -> dict:
+        """Убирает нанятого бойца из серверной банды; босс отдаёт досье."""
+        player = self.players.get(str(uid))
+        if not player or player.get('dead') or player.get('_police'):
+            return {'kind':'gang_hire_reply','ok':False,'reason':'unavailable','bot_id':bot_id}
+        for gang in self.city_gangs:
+            for bot in gang.get('bots') or []:
+                if str(bot.get('id')) != str(bot_id) or not bot.get('alive'):
+                    continue
+                if (float(player.get('x') or 0)-float(bot.get('x') or 0))**2 + \
+                   (float(player.get('y') or 0)-float(bot.get('y') or 0))**2 > 3.2**2:
+                    return {'kind':'gang_hire_reply','ok':False,'reason':'too_far','bot_id':bot_id}
+                is_boss = bot.get('kind') == 'district_boss'
+                if is_boss and int(player.get('_mafia_xp') or 0) < MAFIA_LEVEL_XP[2]:
+                    return {'kind':'gang_hire_reply','ok':False,'reason':'mafia_level','bot_id':bot_id}
+                bot['hp'] = 0; bot['alive'] = False; bot['hired_by'] = str(uid)
+                did = str(gang.get('district_did') or '')
+                if is_boss and did:
+                    op = self.district_captures.get(did)
+                    if op and str(op.get('boss_id')) == str(bot.get('id')):
+                        self._drop_district_dossier(
+                            did, op, float(bot.get('x') or 0), float(bot.get('y') or 0), time.time())
+                return {'kind':'gang_hire_reply','ok':True,'bot_id':str(bot_id),
+                        'is_boss':is_boss,'did':did}
+        return {'kind':'gang_hire_reply','ok':False,'reason':'gone','bot_id':bot_id}
 
     def aggro_shoot_bot(self, uid: str, bot_id: str, weapon: str = '') -> dict | None:
         """Игрок стреляет в банда-бота. Из-за зоны хиты не наносятся."""
@@ -16989,6 +17077,9 @@ class WorldSim:
         p = self.players.get(uid)
         if not p:
             return None
+        if p.get('_police'):
+            return {'kind':'district_capture_denied','did':str(requested_did or ''),
+                    'by_uid':str(uid),'reason':'police_forbidden'}
         if (p.get('_mode') or 'pvp') == 'pve':
             return None
         if p.get('dead'):
@@ -17077,6 +17168,9 @@ class WorldSim:
         op = self.district_captures.get(str(did))
         if not p or not dd or not op or str(op.get('by_uid')) != str(uid):
             return None
+        if p.get('_police'):
+            return {'kind':'district_c4_denied','did':str(did),'by_uid':str(uid),
+                    'reason':'police_forbidden'}
         if p.get('dead') or (p.get('_mode') or 'pvp') == 'pve' or op.get('phase') != 'sabotage':
             return None
         done = {int(i) for i in op.get('done', [])}
@@ -17251,6 +17345,8 @@ class WorldSim:
                 if (float(picker.get('x') or 0)-float(loot['x']))**2 + (float(picker.get('y') or 0)-float(loot['y']))**2 > 1.25**2:
                     continue
                 if loot.get('kind') == 'dossier':
+                    if picker.get('_police'):
+                        continue
                     did = str(loot.get('did') or '')
                     op = self.district_captures.get(did)
                     if not op or op.get('phase') != 'dossier' or did in self.district_owners:
@@ -17928,6 +18024,7 @@ class WorldSim:
                     'cash':     int(me.get('_cash') or 0),
                     'diamonds': int(me.get('_diamonds') or 0),
                     'police_xp': int(me.get('_police_xp') or 0),
+                    'mafia_xp': int(me.get('_mafia_xp') or 0),
                     'police_arrests_today': int(me.get('_police_daily_count') or 0),
                     'police_arrest_limit': me.get('_police_daily_limit'),
                     'police_spikes_cd': max(0.0, round(
@@ -20386,10 +20483,12 @@ async def _coop_http_app():
                 p_ref['_cash']     = int(char.get('cash') or 0)
                 p_ref['_diamonds'] = int(char.get('diamonds') or 0)
                 p_ref['_police_xp'] = int(char.get('police_xp') or 0)
+                p_ref['_mafia_xp'] = int(char.get('mafia_xp') or 0)
             except Exception:
                 p_ref['_cash'] = p_ref.get('_cash', 0)
                 p_ref['_diamonds'] = p_ref.get('_diamonds', 0)
                 p_ref['_police_xp'] = p_ref.get('_police_xp', 0)
+                p_ref['_mafia_xp'] = p_ref.get('_mafia_xp', 0)
             p_ref['_police_npc_rewards'] = set()
             try:
                 async with aiosqlite.connect(DB_PATH) as db:
@@ -20823,6 +20922,12 @@ async def _coop_http_app():
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
                                     except Exception: pass
+                    elif t == 'gang_hire_bot':
+                        reply = world.hire_city_gang_bot(uid, str(d.get('bot_id') or '')[:48])
+                        try:
+                            await ws.send_str(json.dumps({'t':'event','d':reply}, ensure_ascii=False))
+                        except Exception:
+                            pass
                     elif t == 'aggro_shoot':
                         # Игрок стреляет в банда-бота агрессивного района.
                         # d = {target: 'gbot123', weapon: 'pistol'}
@@ -20934,6 +21039,13 @@ async def _coop_http_app():
                         # Многоэтапная операция: досье → диверсии → сейф → отход.
                         pkt = world.apply_district_capture_try(uid, str(d.get('did') or ''))
                         if pkt:
+                            if pkt.get('kind') == 'district_captured':
+                                try:
+                                    pkt.update(await grant_mafia_xp(
+                                        int(uid), 350, 'Захват района',
+                                        world.players.get(uid)))
+                                except Exception:
+                                    logger.exception('mafia xp district reward failed for %s', uid)
                             blob = json.dumps({'t': 'event', 'd': pkt}, ensure_ascii=False)
                             for u2, ws2 in list(world.connections.items()):
                                 try: await ws2.send_str(blob)
@@ -21593,12 +21705,20 @@ async def _coop_http_app():
                                 '🏦', uid,
                                 f"bank_robbed:{uid}:{bank_id}:{int(time.time()) // 300}",
                             )
+                            mafia_reward = {}
+                            try:
+                                p['_cash'] = new_cash if new_cash is not None else int(p.get('_cash') or 0) + payout
+                                mafia_reward = await grant_mafia_xp(
+                                    int(uid), 120, 'Мешок доставлен в квартиру', p)
+                            except Exception:
+                                logger.exception('mafia xp bank reward failed for %s', uid)
                             try:
                                 await ws.send_str(json.dumps({'t': 'event', 'd': {
                                     'kind': 'bank_rob_finished', 'bank_id': bank_id,
                                     'ok': True, 'payout': payout, 'bags': 1,
                                     'cash': new_cash, 'place': 'apartment',
                                     'apt_key': apt_key, 'stolen_bags': stolen_bags,
+                                    **mafia_reward,
                                 }}, ensure_ascii=False))
                             except Exception:
                                 pass
@@ -21973,6 +22093,12 @@ async def _coop_http_app():
                             # Broadcast всем — машина доставлена + награда
                             p_me = world.players.get(uid) or {}
                             nm   = (p_me.get('name') or 'Игрок')[:24]
+                            mafia_reward = {}
+                            try:
+                                mafia_reward = await grant_mafia_xp(
+                                    int(uid), 60, 'Угнанная машина доставлена', p_me)
+                            except Exception:
+                                logger.exception('mafia xp gta reward failed for %s', uid)
                             deliv = json.dumps({'t': 'event', 'd': {
                                 'kind':    'quest_car_delivered',
                                 'car_id':  reply.get('car_id'),
@@ -21983,6 +22109,7 @@ async def _coop_http_app():
                                 'lock_lvl': reply.get('lock_lvl', 0),
                                 'skill_up': reply.get('skill_up', False),
                                 'new_sc_lvl': reply.get('new_sc_lvl', 0),
+                                **mafia_reward,
                             }}, ensure_ascii=False)
                             for _u2, _ws2 in list(world.connections.items()):
                                 try: await _ws2.send_str(deliv)
