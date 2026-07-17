@@ -10906,7 +10906,7 @@ function showApartmentUpgradeMenu() {
 
 // ── Наёмники (клиентская банда игрока) ────────────────────────────
 const GANG_HIRE_COST = 100;
-const GANG_MAX = 5;
+let GANG_MAX = 5;
 const GANG_MIN_LVL = 5;
 const _myGang = [];
 const _formerGang = [];
@@ -11065,21 +11065,26 @@ const _GANG_NAMES = [
   'Джек','Хантер','Блэйд','Рэй','Коул','Дейв','Чак','Бакс','Флинт','Рэкс',
   'Спайк','Кэш','Скарр','Зеро','Бойд','Нэш','Фокс','Волк','Крот','Змей',
 ];
-function _hireGangMember(botLook, r, c, sourceBotId = null) {
+function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false) {
+  if(_policeState?.employed){showToast('Сначала сдай полицейскую форму','👮',2200);return false;}
+  const mafiaLevel=_mafiaLevel();
+  if(isBoss&&mafiaLevel<3){showToast('🔒 Нанимать боссов можно с 3 уровня мафии','🔫',2400);return false;}
   if (_myGang.length >= GANG_MAX) { showToast(`👥 Максимум ${GANG_MAX} бойцов`, '⚠️', 1500); return false; }
   const lvl = parseInt(QP.lvl) || 1;
   if (lvl < GANG_MIN_LVL) { showToast(`🔒 Нужен ранг ${GANG_MIN_LVL}+`, '⚠️', 1500); return false; }
+  const hireCost=Math.max(50,Math.round((isBoss?800:GANG_HIRE_COST)*(mafiaLevel>=2?.85:1)));
   const cash = parseInt(QP.cash) || 0;
-  if (cash < GANG_HIRE_COST) { showToast(`💸 Нужно $${GANG_HIRE_COST}`, '❌', 1500); return false; }
-  QP.cash = cash - GANG_HIRE_COST; myCash = parseInt(QP.cash); updateMoneyHud();
+  if (cash < hireCost) { showToast(`💸 Нужно $${hireCost}`, '❌', 1500); return false; }
+  QP.cash = cash - hireCost; myCash = parseInt(QP.cash); updateMoneyHud();
   const look = Object.assign({}, botLook || { gender: 0, skin: 2, body: 1, face: 2, hair: 3, hat: 0 });
-  const weapons = ['pistol', 'smg', 'shotgun'];
+  const weapons = isBoss?['tommy_gun','rifle','shotgun']:(mafiaLevel>=3?['smg','shotgun','tommy_gun']:['pistol','smg','shotgun']);
   const gangName = _GANG_NAMES[Math.floor(Math.random() * _GANG_NAMES.length)];
+  const maxHp=isBoss?180:(mafiaLevel>=3?115:(mafiaLevel>=2?90:80));
   const m = {
     id: '_gang_' + (++_gangIdCounter),
     name: gangName,
     r, c, ang: 0, walkPhase: 0,
-    hp: 80, max_hp: 80,
+    hp: maxHp, max_hp: maxHp, isBoss:!!isBoss,
     look,
     sourceBotId: sourceBotId == null ? null : String(sourceBotId),
     weapon: weapons[Math.floor(Math.random() * weapons.length)],
@@ -11091,12 +11096,13 @@ function _hireGangMember(botLook, r, c, sourceBotId = null) {
   if(m.sourceBotId)_hiredBotIds.add(m.sourceBotId);
   _saveGang();
   _gangSay(m, 'hire');
+  if(isBoss&&ws&&ws.readyState===1)try{ws.send(JSON.stringify({t:'gang_hire_bot',d:{bot_id:String(sourceBotId||'')}}));}catch(e){}
   showToast(`🤝 ${gangName} нанят (${_myGang.length}/${GANG_MAX})`, '👊', 2000);
   return true;
 }
 function _saveGang() {
   try {
-    const data = _myGang.map(g => ({ name: g.name, look: g.look, weapon: g.weapon, hp: g.hp, sourceBotId: g.sourceBotId || null }));
+    const data = _myGang.map(g => ({ name: g.name, look: g.look, weapon: g.weapon, hp: g.hp, max_hp:g.max_hp, isBoss:!!g.isBoss, sourceBotId: g.sourceBotId || null }));
     localStorage.setItem('_myGang', JSON.stringify(data));
     localStorage.removeItem('_myGangFallen');
   } catch(e) {}
@@ -11112,7 +11118,7 @@ function _loadGang() {
       const m = {
         id: '_gang_' + (++_gangIdCounter),
         name: g.name || 'Боец', r: 0, c: 0, ang: 0, walkPhase: 0,
-        hp: g.hp || 80, max_hp: 80, look: g.look || {}, sourceBotId: g.sourceBotId == null ? null : String(g.sourceBotId),
+        hp: g.hp || 80, max_hp: g.max_hp||80, isBoss:!!g.isBoss, look: g.look || {}, sourceBotId: g.sourceBotId == null ? null : String(g.sourceBotId),
         weapon: g.weapon || 'pistol', _nextShootAt: 0,
         _threatId: null, _threatR: 0, _threatC: 0, _threatUntil: 0, _intR: 0, _intC: 0,
       };
@@ -11422,7 +11428,7 @@ function _updateGang(dt) {
     spawnBullet(muzR, muzC, pos.r, pos.c, { hit: true, fromNpc: true, weapon: m.weapon });
     spawnMuzzle(muzR, muzC, m.ang, m.weapon, true);
     _gangSay(m, 'shoot', 0.58, true);
-    const dmg = GANG_SHOT_DMG_MIN + Math.floor(Math.random() * GANG_SHOT_DMG_RANGE);
+    const dmg = Math.round((GANG_SHOT_DMG_MIN + Math.floor(Math.random() * GANG_SHOT_DMG_RANGE)) * _mafiaDamageMultiplier() * (m.isBoss?1.25:1));
     if (m.targetKind === 'bank_guard') {
       _hitBankGuard(m.targetRef, dirY, dirX, dmg);
     } else if (m.targetKind === 'city_cop') {
@@ -13387,8 +13393,14 @@ function _drawSpeechFor(id, x, y) {
 
 function handleEventPacket(d) {
   const kind = d && d.kind;
+  if(typeof d?.mafia_xp==='number'&&(!d.by_uid||String(d.by_uid)===String(QP.uid))){
+    _setMafiaXp(d.mafia_xp);
+    if((d.mafia_xp_gain|0)>0&&String(d.by_uid??QP.uid)===String(QP.uid))
+      showToast(`🔫 +${d.mafia_xp_gain} XP мафии · ${d.mafia_reason||'авторитет вырос'}`,'🏅',2600);
+  }
   if (!kind) return;
-  if (kind === 'inkassator_spawned') {
+  if(kind==='gang_hire_reply'&&!d.ok){showToast(d.reason==='mafia_level'?'Нужен 3 уровень мафии для найма босса':'Босс уже недоступен','⚠️',2600);}
+  else if (kind === 'inkassator_spawned') {
     // Глобально — в ленту (а не центральным баннером). Игрок видит
     // стрелку-указатель на инкассатора через drawEventArrow.
     pushFeedEvent('🚨', `Инкассатор выехал — куш $${d.reward||500}`,
@@ -14279,6 +14291,8 @@ function handleEventPacket(d) {
       if (d.reason === 'cooldown') {
         const m = Math.ceil((d.wait_s || 0) / 60);
         showToast(`⏳ Эту зону ты уже брал. Жди ещё ~${m} мин.`, 3500);
+      } else if (d.reason === 'police_forbidden') {
+        showToast('👮 Коп не может захватывать территории. Сначала сдай форму.',3500);
       } else if (d.reason === 'must_reenter') {
         showToast('🚶 Выйди из зоны и вернись, чтобы снова брать район.', 3500);
       }
@@ -14503,7 +14517,7 @@ function handleEventPacket(d) {
   } else if (kind === 'district_c4_denied') {
     if (String(d.by_uid) === String(QP.uid)) {
       _districtNodeDisable=null;
-      showToast(d.reason==='no_c4'?'❌ Нет C4. Купи заряд на Чёрном рынке.':'🧨 Для диверсии требуется C4.', 3200);
+      showToast(d.reason==='police_forbidden'?'👮 Коп не может участвовать в захвате района. Сначала сдай форму.':(d.reason==='no_c4'?'❌ Нет C4. Купи заряд на Чёрном рынке.':'🧨 Для диверсии требуется C4.'), 3200);
     }
   } else if (kind === 'district_c4_exploded') {
     if (String(d.by_uid) === String(QP.uid)) _districtNodeDisable=null;
@@ -14555,6 +14569,8 @@ function handleEventPacket(d) {
       if (d.reason === 'cooldown') {
         const m = Math.ceil((d.wait_s || 0) / 60);
         showToast(`⏳ Этот район ты недавно брал. Жди ещё ~${m} мин.`, 3500);
+      } else if (d.reason === 'police_forbidden') {
+        showToast('👮 Захват районов — дело мафии. Сначала сдай форму.',3500);
       } else if (d.reason === 'must_reenter') {
         showToast('🚶 Отойди от штаба и вернись, чтобы снова брать район.', 3500);
       } else if (d.reason === 'operation_busy') {
@@ -14985,6 +15001,7 @@ function wsConnect() {
             if((+d.me.police_xp||0)===0){_policeState.earnedXp=0;_policeState.resetPending=false;_savePoliceState();renderJobStatus();renderPoliceModal();}
           }else _setPoliceXp(Math.max(_policeState.earnedXp||0,d.me.police_xp),true);
         }
+        if(typeof d.me.mafia_xp==='number')_setMafiaXp(d.me.mafia_xp);
         if (typeof d.me.diamonds === 'number') {
           // Алмазы — донатная валюта. За активности в мире не начисляются,
           // поэтому всплывашки «+💎» не показываем — только тихо обновляем
@@ -16404,7 +16421,9 @@ function updateGtaInteractions() {
     }
     if (nearBot) {
       _gtaActionKind = 'gang_hire'; _gtaActionCarId = nearBot.id;
-      _gtaBtn.textContent = `🤝 Нанять бойца ($${GANG_HIRE_COST})`;
+      const bossHire=!!(nearBot.is_boss||nearBot.boss||String(nearBot.kind||'').includes('boss'));
+      const hireCost=Math.max(50,Math.round((bossHire?800:GANG_HIRE_COST)*(_mafiaLevel()>=2?.85:1)));
+      _gtaBtn.textContent = bossHire&&_mafiaLevel()<3?'🔒 Босс · мафия 3 ур.':`🤝 Нанять ${bossHire?'босса':'бойца'} ($${hireCost})`;
       _gtaBtn.style.display = 'block';
       return;
     }
@@ -16748,7 +16767,8 @@ _gtaBtn.addEventListener('click', () => {
       for (const b of (z.bots || [])) {
         if (String(b.id) === String(_gtaActionCarId) && b.alive !== false && !b.dead) {
           if(_policeState.missions.some(m=>String(m.targetId)===String(b.id))){showToast('🚔 Этот бандит в розыске — в банду взять нельзя','⚠️',2400);break;}
-          hired = _hireGangMember(b.look, b.y || player.r, b.x || player.c, b.id);
+          const isBoss=!!(b.is_boss||b.boss||String(b.kind||'').includes('boss'));
+          hired = _hireGangMember(b.look, b.y || player.r, b.x || player.c, b.id, isBoss);
           // Оригинал бота остаётся жить на сервере — прячем его на клиенте
           // по id, иначе рядом стоит «клон», который ещё и атакует игрока.
           if (hired) _hiredBotIds.add(String(b.id));
@@ -37949,6 +37969,21 @@ const POLICE_LEVELS=Object.freeze([
   {level:4,rank:'Лейтенант',xp:1600,perk:'12 задержаний в сутки · шипы и подкрепление'},
   {level:5,rank:'Капитан',xp:2800,perk:'Задержания без лимита · шокер и боссы мафии'}
 ]);
+const MAFIA_LEVELS=Object.freeze([
+  {level:1,rank:'Шестёрка',xp:0,perk:'Своя бригада до 5 бойцов'},
+  {level:2,rank:'Боец',xp:400,perk:'Скидка 15% на найм и 90 HP у новых бойцов'},
+  {level:3,rank:'Капо',xp:1100,perk:'Можно нанимать боссов · сильное оружие и 115 HP'},
+  {level:4,rank:'Консильери',xp:2300,perk:'Бригада до 6 бойцов · урон отряда +20%'},
+  {level:5,rank:'Дон',xp:4000,perk:'Бригада до 7 бойцов · урон отряда +35%'}
+]);
+const MAFIA_XP_MAX=MAFIA_LEVELS[MAFIA_LEVELS.length-1].xp;
+let _mafiaXp=0;
+function _mafiaLevel(xp=_mafiaXp){xp=Math.max(0,+xp||0);let level=1;for(const step of MAFIA_LEVELS)if(xp>=step.xp)level=step.level;return level;}
+function _mafiaRank(level=_mafiaLevel()){return MAFIA_LEVELS[Math.max(1,Math.min(5,+level||1))-1].rank;}
+function _mafiaProgress(){const xp=Math.min(MAFIA_XP_MAX,Math.max(0,Math.floor(_mafiaXp||0))),level=_mafiaLevel(xp),maxed=level>=MAFIA_LEVELS.length,current=MAFIA_LEVELS[level-1],nextStep=maxed?current:MAFIA_LEVELS[level],need=maxed?0:nextStep.xp-current.xp,part=maxed?0:xp-current.xp;return{xp,level,rank:current.rank,nextRank:maxed?'':nextStep.rank,maxed,need,part,pct:maxed?100:Math.max(0,Math.min(100,part/need*100))};}
+function _refreshMafiaPerks(){GANG_MAX=_mafiaLevel()>=5?7:(_mafiaLevel()>=4?6:5);_gangRosterUiKey='';syncGangRosterHud();}
+function _setMafiaXp(value){const old=_mafiaLevel(),v=Math.min(MAFIA_XP_MAX,Math.max(0,Math.floor(+value||0)));if(v===_mafiaXp)return;_mafiaXp=v;_refreshMafiaPerks();const level=_mafiaLevel();if(level>old)showEventBanner('🔫 НОВЫЙ РАНГ МАФИИ',`${_mafiaRank(level)} · уровень ${level} · ${MAFIA_LEVELS[level-1].perk}`,4500,'win');renderJobStatus();if(_policeModalView==='mafia')renderPoliceModal();}
+function _mafiaDamageMultiplier(){return _mafiaLevel()>=5?1.35:(_mafiaLevel()>=4?1.2:1);}
 const POLICE_TASER_LEVEL=5,POLICE_TASER_XP=POLICE_LEVELS[POLICE_TASER_LEVEL-1].xp;
 const _policeStoreKey=`mafiozi_police_missions_${QP.uid||'preview'}`;
 let _policeState={employed:false,missions:[],cuffs:0,escort:null,earnedXp:0,seq:0,civilianLook:null,resetPending:false};
@@ -38174,7 +38209,16 @@ function _leavePoliceService(){
 function renderPoliceModal(){
   if(!_policeModalBody)return;
   const modalTitle=_policeModal?.querySelector('.police-head span');
-  if(modalTitle)modalTitle.textContent=_policeModalView==='service'?'👮 Служебная сводка':'👮 Ориентировки участка';
+  if(modalTitle)modalTitle.textContent=_policeModalView==='mafia'?'🔫 Карьера мафиози':(_policeModalView==='service'?'👮 Служебная сводка':'👮 Ориентировки участка');
+  _policeModal?.classList.toggle('mafia',_policeModalView==='mafia');
+  if(_policeModalView==='mafia'){
+    const p=_mafiaProgress(),next=p.maxed?'Высший ранг получен':`До ранга «${p.nextRank}»`;
+    let html=`<div class="police-note" style="border-color:#93672f;background:#21170e"><div style="display:flex;justify-content:space-between;gap:12px"><div><div class="police-name">🔫 ${p.rank}</div><div class="police-sub">Уровень мафии ${p.level} · ${p.xp} XP</div></div><b style="color:#ffd27a">${_myGang.filter(g=>g.hp>0).length}/${GANG_MAX} бойцов</b></div><div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px"><span>${next}</span><span>${p.maxed?'МАКСИМУМ':`${p.part}/${p.need} XP`}</span></div><div style="height:9px;background:#130d08;border-radius:8px;overflow:hidden;margin:6px 0"><div style="height:100%;width:${p.pct}%;background:linear-gradient(90deg,#8b2f28,#f0ad42)"></div></div></div>`;
+    html+=`<div class="police-section-title" style="color:#ffd27a">КАК РАСТЁТ АВТОРИТЕТ <span>серверный прогресс</span></div><div class="police-note">🏴 Захватить район: <b>+350 XP</b><br>💰 Донести мешок из банка в свою купленную квартиру: <b>+120 XP</b><br>🚗 Доставить угнанную машину заказчику: <b>+60 XP</b><br><span style="color:#a8b2c0">На службе в полиции опыт мафии не начисляется.</span></div>`;
+    html+=`<div class="police-section-title" style="color:#ffd27a">ПУТЬ К ДОНУ <span>5 уровней</span></div>`+MAFIA_LEVELS.map(s=>`<div class="police-row ${s.level===p.level?'boss':''}"><div><div class="police-name">${s.level<=p.level?'✓':'🔒'} ${s.level} ур. — ${s.rank}</div><div class="police-sub">${s.perk}</div></div><b style="color:${s.level<=p.level?'#7be59d':'#8993a4'}">${s.xp} XP</b></div>`).join('');
+    html+=`<div class="police-note" style="margin-top:9px">Текущие бонусы: ${MAFIA_LEVELS.slice(0,p.level).map(s=>s.perk).join(' · ')}</div>`;
+    _policeModalBody.innerHTML=html;return;
+  }
   if(!_policeState.employed){_policeModalBody.innerHTML='<div class="police-note">Дежурный: «Работа непростая. Лови бандитов живыми, доставляй сюда — получишь деньги и опыт. Устроишься копом?»</div><div class="police-row"><div><div class="police-name">👮 Служба в полиции · уровень 1</div><div class="police-sub">Дубинка с оглушением · 3 пары наручников · изъятие банковских мешков · до 3 ориентировок</div></div></div><div style="display:flex;gap:8px;margin-top:10px"><button class="police-action" data-police-action="join">✅ Согласиться</button><button class="police-action" data-police-action="decline" style="background:#49384f;border-color:#84618c">Нет, спасибо</button></div>';return;}
   const active=_policeState.missions,p=_policeProgress();
   if(_policeModalView==='service'){
@@ -38197,6 +38241,7 @@ function renderPoliceModal(){
 }
 function openPoliceDesk(){_policeModalView='desk';renderPoliceModal();_policeModal?.classList.add('show');}
 function openPoliceServiceBoard(){if(!_policeState.employed)return;_policeModalView='service';renderPoliceModal();_policeModal?.classList.add('show');}
+function openMafiaBoard(){if(_policeState.employed)return;_policeModalView='mafia';renderPoliceModal();_policeModal?.classList.add('show');}
 function closePoliceDesk(){_policeModal?.classList.remove('show');}
 function _findPoliceStealthTarget(){
   if(!_policeState.employed||_buildingInt||_bankInt||myDrivingCarId||myDead||_policeState.escort||_policeState.cuffs<=0)return null;let best=null,bestD=1.7,now=performance.now();
@@ -38301,16 +38346,14 @@ function renderJobStatus(){
   if(!nm||!sub||!tm)return;
   const title=_jobStatusHud?.querySelector('.js-title span');
   if(_policeState.employed){const p=_policeProgress();if(title)title.textContent='👮 Служба';if(_jobStatusHud){_jobStatusHud.classList.add('ready','police-open');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label','Открыть полную служебную сводку');_jobStatusHud.title='Нажми, чтобы посмотреть весь прогресс копа';}nm.textContent=p.rank;tm.textContent=`УР. ${p.level}`;sub.textContent=_policeEvidenceBag?`💼 Улика $${(+_policeEvidenceBag.value||0).toLocaleString('ru')} · неси в участок`:`Опыт ${p.xp} · задержания ${_policeDailyText()} · цели ${_policeState.missions.length}/3${_policeCanUseTaser()?' · ⚡ шокер':''}`;return;}
-  if(_jobStatusHud){_jobStatusHud.classList.remove('police-open');_jobStatusHud.removeAttribute('tabindex');_jobStatusHud.removeAttribute('role');_jobStatusHud.removeAttribute('title');_jobStatusHud.setAttribute('aria-label','Статус работы');}
-  if(title)title.textContent='💼 Работа';
-  const def=_jobDef(_jobState.job),left=_jobRemaining(),ready=!!def&&left<=0;
-  _jobStatusHud&&_jobStatusHud.classList.toggle('ready',ready);
-  if(!def){nm.textContent='Не трудоустроен';sub.textContent='Устроиться: Биржа труда (36, 16)';tm.textContent='СВОБОДЕН';return;}
-  nm.textContent=def.name;tm.textContent=ready?'ГОТОВО':_jobTime(left);
-  sub.textContent=ready?'Зарплата ждёт у менеджера':'Смена идёт · вернись после таймера';
+  const p=_mafiaProgress(),def=_jobDef(_jobState.job),left=_jobRemaining(),ready=!!def&&left<=0;
+  if(_jobStatusHud){_jobStatusHud.classList.add('ready','police-open');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label','Открыть прогресс мафиози');_jobStatusHud.title='Нажми, чтобы посмотреть путь мафиози';}
+  if(title)title.textContent='🔫 Мафиози';
+  nm.textContent=p.rank;tm.textContent=`УР. ${p.level}`;
+  sub.textContent=`Опыт ${p.xp}${p.maxed?' · высший ранг':` · до ${p.nextRank}: ${p.need-p.part}`} · бригада ${_myGang.filter(g=>g.hp>0).length}/${GANG_MAX}${def?` · работа: ${ready?'зарплата готова':def.name}`:''}`;
 }
-_jobStatusHud?.addEventListener('click',()=>{if(_policeState.employed)openPoliceServiceBoard();});
-_jobStatusHud?.addEventListener('keydown',e=>{if(!_policeState.employed||(e.key!=='Enter'&&e.key!==' '))return;e.preventDefault();openPoliceServiceBoard();});
+_jobStatusHud?.addEventListener('click',()=>{if(_policeState.employed)openPoliceServiceBoard();else openMafiaBoard();});
+_jobStatusHud?.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();if(_policeState.employed)openPoliceServiceBoard();else openMafiaBoard();});
 function renderJobModal(){
   if(!_jobModalBody)return;
   if(_policeState.employed){_jobModalBody.innerHTML=`<div class="job-note">Ты уже служишь в полиции. Звание: ${_policeRank()}. Ориентировки выдаёт дежурный в полицейском участке.</div>`;return;}
