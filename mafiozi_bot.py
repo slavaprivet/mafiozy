@@ -15470,8 +15470,9 @@ class WorldSim:
         self.city_gangs = [g for g in self.city_gangs
                             if any(b['alive'] for b in g['bots'])]
         # Спавн новой группы если их меньше CITY_GANG_MAX
+        normal_gang_count = sum(1 for g in self.city_gangs if not g.get('district_did'))
         if (self.players
-                and len(self.city_gangs) < self.CITY_GANG_MAX
+                and normal_gang_count < self.CITY_GANG_MAX
                 and now >= self._city_gang_next_spawn_at):
             self._spawn_city_gang()
             self._city_gang_next_spawn_at = now + self.CITY_GANG_SPAWN_GAP_S
@@ -15616,7 +15617,18 @@ class WorldSim:
                 if g.get('district_did'):
                     # Главарь района и его охрана держат точку досье, а не
                     # уходят патрулировать весь район до начала боя.
-                    g['_patrol_wp'] = tuple(g.get('_district_anchor', (cx, cy)))
+                    anchor_x, anchor_y = tuple(g.get('_district_anchor', (cx, cy)))
+                    if _m.hypot(wx - cx, wy - cy) < 1.2:
+                        for _ in range(30):
+                            ang = random.random() * _m.tau
+                            radius = random.uniform(4.0, 11.0)
+                            nwx = anchor_x + _m.cos(ang) * radius
+                            nwy = anchor_y + _m.sin(ang) * radius
+                            if (1.5 < nwy < WORLD_MAP_ROWS - 1.5
+                                    and 1.5 < nwx < WORLD_MAP_COLS - 1.5
+                                    and not _world_is_wall(int(nwy), int(nwx))):
+                                g['_patrol_wp'] = (nwx, nwy)
+                                break
                 elif _m.hypot(wx - cx, wy - cy) < 1.2:
                     for _ in range(20):
                         nwx = cx + random.uniform(-7, 7)
@@ -15799,14 +15811,8 @@ class WorldSim:
                         did = str(g.get('district_did') or '')
                         op = self.district_captures.get(did)
                         if op and str(op.get('boss_id')) == str(bot_id):
-                            op['boss_dead'] = True
-                            loot_id = f'district_cash_{did}_{int(time.time()*1000)}'
-                            self.district_loot[loot_id] = {
-                                'id': loot_id, 'did': did, 'x': float(bot['x']), 'y': float(bot['y']),
-                                'amount': 200, 'expires_at': time.time() + 120.0,
-                            }
-                            if op.get('phase') == 'boss':
-                                op['phase'] = 'hq'
+                            self._drop_district_dossier(
+                                did, op, float(bot['x']), float(bot['y']), time.time())
                 return {
                     'kind':        'aggro_hit',
                     'tid':         g['id'],
@@ -16690,6 +16696,66 @@ class WorldSim:
         if gid:
             self.city_gangs = [g for g in self.city_gangs if g.get('id') != gid]
 
+    def _district_boss_is_alive(self, op: dict) -> bool:
+        boss_id = str(op.get('boss_id') or '')
+        gid = str(op.get('boss_gid') or '')
+        for gang in self.city_gangs:
+            if gid and str(gang.get('id') or '') != gid:
+                continue
+            for bot in gang.get('bots') or []:
+                if str(bot.get('id') or '') == boss_id:
+                    return bool(bot.get('alive'))
+        return False
+
+    def _drop_district_dossier(self, did: str, op: dict, x: float, y: float, now: float) -> str:
+        """Boss death creates the physical dossier that starts the operation."""
+        for loot_id, loot in list(self.district_loot.items()):
+            if loot.get('kind') == 'dossier' and str(loot.get('did') or '') == str(did):
+                self.district_loot.pop(loot_id, None)
+        loot_id = f'district_dossier_{did}_{int(now * 1000)}'
+        self.district_loot[loot_id] = {
+            'id': loot_id, 'kind': 'dossier', 'did': str(did),
+            'x': float(x), 'y': float(y), 'expires_at': now + 120.0,
+        }
+        op['boss_dead'] = True
+        op['phase'] = 'dossier'
+        op['dossier_id'] = loot_id
+        op['respawn_at'] = now + 125.0
+        return loot_id
+
+    def _ensure_district_boss_patrols(self, now: float) -> None:
+        """Keep one roaming boss crew in every free district until its dossier is claimed."""
+        for did, dd in self.DISTRICTS_DEF.items():
+            op = self.district_captures.get(did)
+            if did in self.district_owners:
+                if op and op.get('phase') in ('boss_patrol', 'dossier'):
+                    self._remove_district_boss(op)
+                    self.district_captures.pop(did, None)
+                continue
+            if not op:
+                op = {
+                    'by_uid': '', 'by_name': '', 'color': dd.get('color') or '#d43b3b',
+                    'started_at': now, 'expires_at': now + 365 * 86400,
+                    'phase': 'boss_patrol', 'done': [], 'charges': {},
+                }
+                self.district_captures[did] = op
+                self._spawn_district_boss(did, op)
+                continue
+            if op.get('phase') not in ('boss_patrol', 'dossier'):
+                continue
+            dossier_exists = any(
+                q.get('kind') == 'dossier' and str(q.get('did') or '') == str(did)
+                for q in self.district_loot.values())
+            if dossier_exists or self._district_boss_is_alive(op):
+                continue
+            if now < float(op.get('respawn_at') or 0):
+                continue
+            self._remove_district_boss(op)
+            op.update({'phase': 'boss_patrol', 'boss_dead': False,
+                       'started_at': now, 'expires_at': now + 365 * 86400})
+            op.pop('dossier_id', None)
+            self._spawn_district_boss(did, op)
+
     def apply_district_capture_try(self, uid: str, requested_did: str | None = None) -> dict | None:
         """Продвигает многоэтапную операцию захвата района.
 
@@ -16724,29 +16790,16 @@ class WorldSim:
 
         op = self.district_captures.get(did)
         if not op:
-            own_active = sum(1 for active in self.district_captures.values()
-                             if str(active.get('by_uid')) == str(uid))
-            if own_active >= self.DIST_MAX_ACTIVE_PER_PLAYER:
-                return {'kind': 'district_capture_denied', 'did': did,
-                        'by_uid': str(uid), 'reason': 'mission_limit',
-                        'limit': self.DIST_MAX_ACTIVE_PER_PLAYER}
-            if not self._near_point(p, dd['intel'], self.DIST_ACTION_RAD):
-                return None
-            color = self._terr_color(str(uid))
-            op = {
-                'by_uid': str(uid), 'by_name': (p.get('name') or '')[:24],
-                'color': color, 'started_at': now,
-                'expires_at': now + self.DIST_OPERATION_TTL_S,
-                'phase': 'sabotage', 'done': [], 'charges': {},
-            }
-            self.district_captures[did] = op
-            self._spawn_district_boss(did, op)
-            return {
-                'kind': 'district_operation_started', 'did': did,
-                'by_uid': str(uid), 'by_name': op['by_name'], 'color': color,
-                'name': dd['name'], 'icon': dd['icon'],
-                'expires_in': int(self.DIST_OPERATION_TTL_S),
-            }
+            self._ensure_district_boss_patrols(now)
+            return {'kind': 'district_capture_denied', 'did': did,
+                    'by_uid': str(uid), 'reason': 'boss_alive',
+                    'boss_name': dd.get('boss_name') or 'boss'}
+
+        if op.get('phase') in ('boss_patrol', 'dossier'):
+            return {'kind': 'district_capture_denied', 'did': did,
+                    'by_uid': str(uid),
+                    'reason': 'dossier_pending' if op.get('phase') == 'dossier' else 'boss_alive',
+                    'boss_name': dd.get('boss_name') or 'boss'}
 
         if str(op.get('by_uid')) != str(uid):
             return {'kind': 'district_capture_denied', 'did': did,
@@ -16903,14 +16956,8 @@ class WorldSim:
                     if is_boss:
                         op = self.district_captures.get(did)
                         if op and str(op.get('boss_id')) == str(bot.get('id')):
-                            op['boss_dead'] = True
-                            loot_id = f'district_cash_{did}_{int(now*1000)}'
-                            self.district_loot[loot_id] = {
-                                'id':loot_id, 'did':did, 'x':float(bot['x']), 'y':float(bot['y']),
-                                'amount':200, 'expires_at':now + 120.0,
-                            }
-                            if op.get('phase') == 'boss':
-                                op['phase'] = 'hq'
+                            self._drop_district_dossier(
+                                did, op, float(bot['x']), float(bot['y']), now)
             if owner is not None and any(v['uid'] != str(charge.get('owner_uid')) for v in victims):
                 owner['_wanted'] = min(self.WANTED_MAX, max(2.0, float(owner.get('_wanted') or 0) + 1.0))
                 owner['_wanted_t'] = now
@@ -16965,16 +17012,51 @@ class WorldSim:
         """Следит за сроком операций и выплачивает доход владельцам."""
         out: list = []
         now = time.time()
+        self._ensure_district_boss_patrols(now)
         # Общий физический дроп: его видят все, но поднять может только один игрок.
         for loot_id, loot in list(self.district_loot.items()):
             if now >= float(loot.get('expires_at') or 0):
                 self.district_loot.pop(loot_id, None)
+                if loot.get('kind') == 'dossier':
+                    op = self.district_captures.get(str(loot.get('did') or ''))
+                    if op and op.get('phase') == 'dossier':
+                        op['respawn_at'] = now + 2.0
                 continue
             for picker_uid, picker in self.players.items():
                 if picker.get('dead') or (picker.get('_mode') or 'pvp') == 'pve':
                     continue
                 if (float(picker.get('x') or 0)-float(loot['x']))**2 + (float(picker.get('y') or 0)-float(loot['y']))**2 > 1.25**2:
                     continue
+                if loot.get('kind') == 'dossier':
+                    did = str(loot.get('did') or '')
+                    op = self.district_captures.get(did)
+                    if not op or op.get('phase') != 'dossier' or did in self.district_owners:
+                        continue
+                    own_active = sum(1 for active in self.district_captures.values()
+                                     if str(active.get('by_uid') or '') == str(picker_uid))
+                    if own_active >= self.DIST_MAX_ACTIVE_PER_PLAYER:
+                        continue
+                    if self._dist_cooldowns.get((str(picker_uid), did), 0) > now:
+                        continue
+                    self.district_loot.pop(loot_id, None)
+                    op.update({
+                        'by_uid': str(picker_uid),
+                        'by_name': str(picker.get('name') or 'Player')[:24],
+                        'color': self._terr_color(str(picker_uid)),
+                        'started_at': now,
+                        'expires_at': now + self.DIST_OPERATION_TTL_S,
+                        'phase': 'sabotage', 'done': [], 'charges': {},
+                        'boss_dead': True,
+                    })
+                    op.pop('dossier_id', None); op.pop('respawn_at', None)
+                    self._remove_district_boss(op)
+                    dd = self.DISTRICTS_DEF.get(did, {})
+                    out.append({'kind':'district_operation_started','did':did,
+                                'by_uid':str(picker_uid),'by_name':op['by_name'],
+                                'color':op['color'],'name':dd.get('name') or did,
+                                'icon':dd.get('icon') or '',
+                                'expires_in':int(self.DIST_OPERATION_TTL_S)})
+                    break
                 self.district_loot.pop(loot_id, None)
                 if loot.get('kind') == 'ammo':
                     out.append({'kind':'gang_ammo_picked','loot_id':loot_id,

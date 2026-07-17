@@ -374,6 +374,51 @@ def make_district_defenders(did, dd):
     return bots
 
 
+def preview_drop_district_dossier(did, cap, bot, now):
+    for loot_id, loot in list(district_loot.items()):
+        if loot.get("kind") == "dossier" and str(loot.get("did") or "") == str(did):
+            district_loot.pop(loot_id, None)
+    loot_id = f"preview_dossier_{did}_{int(now*1000)}"
+    district_loot[loot_id] = {
+        "id": loot_id, "kind": "dossier", "did": did,
+        "x": float(bot["x"]), "y": float(bot["y"]), "expires_at": now + 120.0,
+    }
+    cap["boss_dead"] = True
+    cap["phase"] = "dossier"
+    cap["dossier_id"] = loot_id
+    cap["respawn_at"] = now + 125.0
+
+
+def ensure_preview_district_bosses(now):
+    for did, dd in DISTRICTS.items():
+        cap = district_captures.get(did)
+        if did in district_owners:
+            if cap and cap.get("phase") in ("boss_patrol", "dossier"):
+                district_captures.pop(did, None)
+            continue
+        if not cap:
+            district_captures[did] = {
+                "by_uid": "", "by_name": "", "color": dd["color"],
+                "started_at": now, "expires_at": now + 365 * 86400,
+                "phase": "boss_patrol", "done": [], "charges": {},
+                "boss_id": f"preview_{did}_boss", "boss_dead": False,
+                "boss_name": dd["boss_name"], "defenders": make_district_defenders(did, dd),
+            }
+            continue
+        if cap.get("phase") not in ("boss_patrol", "dossier"):
+            continue
+        dossier_exists = any(q.get("kind") == "dossier" and str(q.get("did") or "") == did
+                             for q in district_loot.values())
+        boss_alive = any(b.get("alive") and b.get("kind") == "district_boss"
+                         for b in cap.get("defenders") or [])
+        if dossier_exists or boss_alive or now < float(cap.get("respawn_at") or 0):
+            continue
+        cap.update({"phase":"boss_patrol", "boss_dead":False, "started_at":now,
+                    "expires_at":now + 365 * 86400,
+                    "boss_id":f"preview_{did}_boss", "defenders":make_district_defenders(did, dd)})
+        cap.pop("dossier_id", None)
+
+
 def tick_district_defenders(now, dt):
     """Preview AI: охрана отвечает только на попадание или установленный C4."""
     events = []
@@ -419,7 +464,7 @@ def tick_district_defenders(now, dt):
                 # Настоящий патруль строем вокруг точки операции.
                 phase = float(bot.get("patrol_phase") or 0) + dt * (0.32 if bot_i else 0.22)
                 bot["patrol_phase"] = phase
-                radius = 2.1 if bot_i else 1.1
+                radius = 7.2 if bot_i else 8.5
                 tx = float(bot.get("home_x") or bot["x"]) + math.cos(phase) * radius
                 ty = float(bot.get("home_y") or bot["y"]) + math.sin(phase) * radius * 0.72
                 dx, dy = tx-bot["x"], ty-bot["y"]
@@ -1064,6 +1109,7 @@ async def world_ws(req):
     async def sender():
         while not ws.closed:
             now = time.time()
+            ensure_preview_district_bosses(now)
             for p in players.values():
                 if p.get("dead") and now >= float(p.get("respawn_at", now + 1)):
                     p["dead"] = False
@@ -1094,11 +1140,7 @@ async def world_ws(req):
                         npc_victims.append({"bot_id":str(bot.get("id") or ""), "kind":bot.get("kind"),
                                             "did":did, "boss":is_boss})
                         if is_boss:
-                            cap["boss_dead"] = True
-                            loot_id=f"preview_cash_{did}_{int(now*1000)}"
-                            district_loot[loot_id]={"id":loot_id,"did":did,"x":float(bot["x"]),"y":float(bot["y"]),
-                                                    "amount":200,"expires_at":now+120.0}
-                            if cap.get("phase") == "boss": cap["phase"] = "hq"
+                            preview_drop_district_dossier(did, cap, bot, now)
                 await broadcast_event({"kind":"world_c4_exploded","id":charge_id,
                     "by_uid":charge["owner_uid"],"by_name":charge["owner_name"],
                     "x":charge["x"],"y":charge["y"],"lethal_r":WORLD_C4_LETHAL_R,
@@ -1106,10 +1148,36 @@ async def world_ws(req):
             for loot_id, loot in list(district_loot.items()):
                 if now >= float(loot.get("expires_at") or 0):
                     district_loot.pop(loot_id, None)
+                    if loot.get("kind") == "dossier":
+                        cap = district_captures.get(str(loot.get("did") or ""))
+                        if cap and cap.get("phase") == "dossier":
+                            cap["respawn_at"] = now + 2.0
                     continue
                 for picker_uid, picker in players.items():
                     if picker.get("dead") or math.hypot(picker.get("x",0)-loot["x"], picker.get("y",0)-loot["y"]) > 1.25:
                         continue
+                    if loot.get("kind") == "dossier":
+                        did = str(loot.get("did") or "")
+                        cap = district_captures.get(did)
+                        if not cap or cap.get("phase") != "dossier" or did in district_owners:
+                            continue
+                        own_active = sum(1 for active in district_captures.values()
+                                         if str(active.get("by_uid") or "") == str(picker_uid))
+                        if own_active >= DIST_MAX_ACTIVE_PER_PLAYER:
+                            continue
+                        district_loot.pop(loot_id, None)
+                        dd = DISTRICTS[did]
+                        cap.update({"by_uid":str(picker_uid),
+                                    "by_name":picker.get("name","Player")[:24],
+                                    "color":dd["color"], "started_at":now,
+                                    "expires_at":now + DIST_OPERATION_TTL_S,
+                                    "phase":"sabotage", "done":[], "charges":{},
+                                    "boss_dead":True, "defenders":[]})
+                        cap.pop("dossier_id",None); cap.pop("respawn_at",None)
+                        await broadcast_event({"kind":"district_operation_started","did":did,
+                            "by_uid":str(picker_uid),"by_name":cap["by_name"],"color":cap["color"],
+                            "name":dd["name"],"icon":dd["icon"],"expires_in":DIST_OPERATION_TTL_S})
+                        break
                     district_loot.pop(loot_id, None)
                     if loot.get("kind") == "ammo":
                         await broadcast_event({"kind":"gang_ammo_picked","loot_id":loot_id,
@@ -1252,26 +1320,16 @@ async def world_ws(req):
                     continue
                 cap = district_captures.get(did)
                 if not cap:
-                    own_active = sum(1 for active in district_captures.values()
-                                     if str(active.get("by_uid")) == str(uid))
-                    if own_active >= DIST_MAX_ACTIVE_PER_PLAYER:
-                        await ws.send_str(json.dumps({"t":"event","d":{
-                            "kind":"district_capture_denied","did":did,"by_uid":str(uid),
-                            "reason":"mission_limit","limit":DIST_MAX_ACTIVE_PER_PLAYER}}))
-                        continue
-                    if not near_point(p, dd["intel"]):
-                        continue
-                    cap = {"by_uid": str(uid), "by_name": str(p.get("name") or "Demo")[:24],
-                           "color": dd["color"], "started_at": time.time(),
-                           "expires_at": time.time() + DIST_OPERATION_TTL_S,
-                           "phase": "sabotage", "done": [], "charges": {},
-                           "boss_id": f"preview_{did}_boss", "boss_dead": False,
-                           "boss_name": dd["boss_name"],
-                           "defenders": make_district_defenders(did, dd)}
-                    district_captures[did] = cap
-                    await broadcast_event({"kind": "district_operation_started", "did": did,
-                                           "by_uid": str(uid), "by_name": cap["by_name"],
-                                           "color": cap["color"], "name": dd["name"], "icon": dd["icon"]})
+                    ensure_preview_district_bosses(time.time())
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"district_capture_denied","did":did,"by_uid":str(uid),
+                        "reason":"boss_alive","boss_name":dd["boss_name"]}}))
+                    continue
+                if cap.get("phase") in ("boss_patrol", "dossier"):
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"district_capture_denied","did":did,"by_uid":str(uid),
+                        "reason":"dossier_pending" if cap.get("phase")=="dossier" else "boss_alive",
+                        "boss_name":dd["boss_name"]}}))
                     continue
                 if str(cap.get("by_uid")) != str(uid):
                     await broadcast_event({"kind": "district_capture_denied", "did": did,
@@ -1406,13 +1464,7 @@ async def world_ws(req):
                             "expires_at":time.time()+90.0}
                     is_boss = found.get("kind") == "district_boss"
                     if killed and is_boss:
-                        cap["boss_dead"] = True
-                        loot_id=f"preview_cash_{found_did}_{int(time.time()*1000)}"
-                        district_loot[loot_id]={"id":loot_id,"did":found_did,
-                            "x":float(found["x"]),"y":float(found["y"]),"amount":200,
-                            "expires_at":time.time()+120.0}
-                        if cap.get("phase") == "boss":
-                            cap["phase"] = "hq"
+                        preview_drop_district_dossier(found_did, cap, found, time.time())
                     p = players.get(uid) or {}
                     await broadcast_event({
                         "kind": "aggro_hit", "bot_id": target_id,

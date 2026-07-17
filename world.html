@@ -3235,6 +3235,7 @@ let _inventoryItems = [];
 let _myC4Count = 0;
 const worldC4Charges = new Map(); // id → {x,y,ownerUid,ownerName,expiresAt}
 const districtBossCashDrops = new Map(); // общий серверный дроп $200 с боссов районов
+const districtDossierDrops = new Map(); // папки, выпавшие из районных боссов
 const gangAmmoDrops = new Map(); // физические пачки патронов с убитых бандитов
 let _lastWorldC4PlantAt = 0;
 let _goodName=0, _lostReturns=0, _returnStreak=0;
@@ -14294,7 +14295,7 @@ function handleEventPacket(d) {
     if (d.district_boss && d.killed) {
       const op = districtCaptures.get(String(d.did || ''));
       const bossName = (op && op.bossName) || 'Босс района';
-      showEventBanner(`👹 ${bossName} уничтожен`, 'Путь в штаб открыт. Забери сейф.', 4500, 'win');
+      showEventBanner(`👹 ${bossName} уничтожен`, 'Из босса выпало досье. Подбери папку, чтобы начать захват.', 4800, 'win');
     }
   } else if (kind === 'aggro_killed') {
     // Стрелок убил бойца банды. Сервер уже зачислил cash/exp в БД.
@@ -14376,6 +14377,7 @@ function handleEventPacket(d) {
       showToast(`💰 +$${d.amount} с района «${d.name}»`, 3000);
     }
   } else if (kind === 'district_operation_started') {
+    for(const [id,q] of districtDossierDrops)if(String(q.did)===String(d.did))districtDossierDrops.delete(id);
     if (String(d.by_uid) === String(QP.uid)) {
       _districtMissionHudHidden = false; _districtMissionUiKey = '';
       showEventBanner(`${d.icon||'🗺'} Захват района: ${d.name}`,
@@ -14417,6 +14419,7 @@ function handleEventPacket(d) {
     if(victims.some(v=>String(v.uid)===String(QP.uid)))myDeathBy=`взрыв C4 (${d.by_name||'неизвестный'})`;
     const npcVictims=Array.isArray(d.npc_victims)?d.npc_victims:[];
     if(victims.length||npcVictims.length)pushFeedEvent('💥',`C4 взорвалась · жертв: ${victims.length+npcVictims.length}`,{accent:'#ff3b1f'});
+    if(npcVictims.some(v=>v&&v.boss))showEventBanner('📁 Досье выбито из босса','Подойди к выпавшей папке, чтобы начать захват района.',4500,'win');
   } else if (kind === 'district_guard_c4_evade') {
     if(String(d.target_uid||'')===String(QP.uid)){
       showToast('Охрана заметила C4: бойцы разбегаются и занимают позиции!','💣',2600);
@@ -15224,11 +15227,15 @@ function wsConnect() {
         }
         const lootFresh=new Set();
         const ammoFresh=new Set();
+        const dossierFresh=new Set();
         for(const q of ((d.districts&&d.districts.loot)||[])){
           const id=String(q.id||'');if(!id)continue;
           if(q.kind==='ammo'){
             ammoFresh.add(id);gangAmmoDrops.set(id,{id,x:+q.x||0,y:+q.y||0,
               ammoType:String(q.ammo_type||'9mm'),rounds:+q.rounds||0,
+              expiresAt:performance.now()+Math.max(0,+q.expires_in||0)*1000});
+          }else if(q.kind==='dossier'){
+            dossierFresh.add(id);districtDossierDrops.set(id,{id,did:String(q.did||''),x:+q.x||0,y:+q.y||0,
               expiresAt:performance.now()+Math.max(0,+q.expires_in||0)*1000});
           }else{
             lootFresh.add(id);districtBossCashDrops.set(id,{id,did:String(q.did||''),x:+q.x||0,y:+q.y||0,
@@ -15237,6 +15244,7 @@ function wsConnect() {
         }
         for(const id of Array.from(districtBossCashDrops.keys()))if(!lootFresh.has(id))districtBossCashDrops.delete(id);
         for(const id of Array.from(gangAmmoDrops.keys()))if(!ammoFresh.has(id))gangAmmoDrops.delete(id);
+        for(const id of Array.from(districtDossierDrops.keys()))if(!dossierFresh.has(id))districtDossierDrops.delete(id);
       }
     } else if (pkt.t === 'event') {
       handleEventPacket(pkt.d || {});
@@ -21113,10 +21121,11 @@ function updateDistrictCapture() {
   const own = districtOwners[d.id];
   if (own) { _cancelDistrictNodeDisable(); return; }  // контролируемый район нельзя атаковать до конца таймера
   const op = active?active.op:districtCaptures.get(d.id);
-  let point = null, phase = 'intel', label = 'Забрать досье', icon = '📁';
+  let point = null, phase = 'boss_patrol', label = 'Убить босса района', icon = '👹';
   if (!op) {
-    point = d.intel;
+    _cancelDistrictNodeDisable(); return;
   } else {
+    if(op.phase==='boss_patrol'||op.phase==='dossier'){_cancelDistrictNodeDisable();return;}
     if (String(op.byId) !== String(QP.uid)) { _cancelDistrictNodeDisable(); return; }
     phase = op.phase || 'sabotage';
     if (phase === 'sabotage') {
@@ -35623,7 +35632,8 @@ function drawDistrictHQs(r0, r1, c0, c1) {
     ctx.fillText(d.icon, p.x, p.y - poleH - 4);
     // Активная операция — статус над штабом, без таймера стояния в круге.
     if (cap) {
-      const phaseIcon = cap.phase === 'escape' ? '💼' : cap.phase === 'hq' ? '🔓' : cap.phase === 'boss' ? '👹' : '⚡';
+      const phaseIcon = cap.phase === 'escape' ? '💼' : cap.phase === 'hq' ? '🔓' :
+        cap.phase === 'boss_patrol' ? '👹' : cap.phase === 'dossier' ? '📁' : '⚡';
       ctx.font = 'bold 15px system-ui, sans-serif'; ctx.fillStyle = '#fff';
       ctx.fillText(phaseIcon, p.x, p.y - poleH / 2 + 5);
     } else if (owner) {
@@ -35678,6 +35688,23 @@ function drawDistrictBossCashDrops(r0,r1,c0,c1){
     }
     ctx.shadowBlur=0;ctx.rotate(.16);ctx.font='900 11px system-ui,sans-serif';ctx.lineWidth=4;ctx.strokeStyle='rgba(0,0,0,.82)';ctx.strokeText(`ПАЧКА $${q.amount}`,0,-22);
     ctx.fillStyle='#72f08c';ctx.fillText(`ПАЧКА $${q.amount}`,0,-22);ctx.restore();
+  }
+  ctx.textAlign='left';
+}
+function drawDistrictDossierDrops(r0,r1,c0,c1){
+  const now=performance.now();
+  for(const q of districtDossierDrops.values()){
+    if(q.y<r0-3||q.y>r1+3||q.x<c0-3||q.x>c1+3)continue;
+    const p=w2s(q.y+.5,q.x+.5),bob=Math.sin(now*.007+q.x)*3;
+    ctx.save();ctx.translate(p.x,p.y-12+bob);ctx.rotate(-.12);ctx.textAlign='center';
+    ctx.shadowColor='#ffd34e';ctx.shadowBlur=16;
+    ctx.fillStyle='#d8a632';ctx.strokeStyle='#5e3c0c';ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(-17,-11,34,23,3);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#f3c958';ctx.fillRect(-14,-7,28,16);
+    ctx.fillStyle='#7a210f';ctx.font='900 13px system-ui,sans-serif';ctx.fillText('ДОСЬЕ',0,4);
+    ctx.shadowBlur=0;ctx.rotate(.12);ctx.font='900 11px system-ui,sans-serif';ctx.lineWidth=4;
+    ctx.strokeStyle='rgba(0,0,0,.85)';ctx.strokeText('📁 ПОДОБРАТЬ ДОСЬЕ',0,-27);
+    ctx.fillStyle='#ffe57b';ctx.fillText('📁 ПОДОБРАТЬ ДОСЬЕ',0,-27);ctx.restore();
   }
   ctx.textAlign='left';
 }
@@ -35787,6 +35814,7 @@ function drawDistrictOperationTargets(r0, r1, c0, c1) {
   const pulse = 0.72 + Math.abs(Math.sin(performance.now() * 0.005)) * 0.28;
   drawWorldC4Charges(r0,r1,c0,c1);
   drawDistrictBossCashDrops(r0,r1,c0,c1);
+  drawDistrictDossierDrops(r0,r1,c0,c1);
   drawGangAmmoDrops(r0,r1,c0,c1);
   for (const d of DISTRICTS) {
     if (!d.capturable) continue;
@@ -35806,7 +35834,14 @@ function drawDistrictOperationTargets(r0, r1, c0, c1) {
       const left=Math.max(0,Number(owner.controlLeft)||0),mm=Math.floor(left/60),ss=String(Math.floor(left%60)).padStart(2,'0');
       targets = [{ point:d.intel, icon:'🔒', label:`ПОД КОНТРОЛЕМ · ${mm}:${ss}` }];
     } else if (!op) {
-      targets = [{ point:d.intel, icon:'📁', label:'ДОСЬЕ' }];
+      targets = [];
+    } else if (op.phase === 'boss_patrol') {
+      const bots=Object.values(aggroZones).flatMap(z=>z&&Array.isArray(z.bots)?z.bots:[]);
+      const boss=bots.find(b=>String(b.id)===String(op.bossId));
+      if(boss)targets=[{point:{r:+boss.y||0,c:+boss.x||0},icon:'👹',label:`БОСС · ${op.bossName||'ГЛАВАРЬ РАЙОНА'}`}];
+    } else if (op.phase === 'dossier') {
+      const folder=Array.from(districtDossierDrops.values()).find(q=>String(q.did)===String(d.id));
+      if(folder)targets=[{point:{r:folder.y,c:folder.x},icon:'📁',label:'ДОСЬЕ БОССА'}];
     } else if (op.phase === 'safe_dropped' && op.safeX!=null && op.safeY!=null) {
       targets = [{ point:{r:op.safeY,c:op.safeX}, icon:'💼', label:'СЕЙФ · МОЖНО ПЕРЕХВАТИТЬ' }];
     } else if (op.phase === 'escape' && String(op.byId)!==String(QP.uid)) {
@@ -35902,9 +35937,9 @@ function drawDistrictCaptureHud() {
   const dr=player.r-obj.point.r, dc=player.c-obj.point.c;
   const dist=Math.sqrt(dr*dr+dc*dc);
   const barW = Math.min(330, W * 0.82);
-  const phases=['intel','sabotage','boss','hq','escape'];
-  const phaseIcons=['📁','⚡','👹','💼','🏁'];
-  const phaseNames=['ДОСЬЕ','УЗЛЫ','БОСС','СЕЙФ','ОТХОД'];
+  const phases=['boss_patrol','dossier','sabotage','hq','escape'];
+  const phaseIcons=['👹','📁','⚡','💼','🏁'];
+  const phaseNames=['БОСС','ДОСЬЕ','УЗЛЫ','СЕЙФ','ОТХОД'];
   const phaseIndex=Math.max(0,phases.indexOf(obj.phase));
   const doneNodes=(cap?.done||[]).length;
   const partial=obj.phase==='sabotage'?doneNodes/3:0;
