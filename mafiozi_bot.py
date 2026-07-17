@@ -1179,6 +1179,17 @@ async def init_db():
             )
         """)
         await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_police_online_reward_target ON police_online_rewards(target_uid)")
+        # Общий суточный лимит успешных задержаний: онлайн-игроки и NPC
+        # используют один атомарный счётчик, поэтому сменой типа цели лимит
+        # обойти нельзя. День считается по локальному времени сервера.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS police_daily_arrests (
+                cop_uid INTEGER NOT NULL,
+                day     TEXT NOT NULL,
+                count   INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (cop_uid, day)
+            )
+        """)
         # При старте — очищаем все зависшие active_battles (на случай краша)
         await db.execute("DELETE FROM active_battles")
         # Jobs v2 — снимаем старые job-id (janitor/shawarma/etc), их в новом JOBS нет.
@@ -1189,6 +1200,63 @@ async def init_db():
             "WHERE job IS NOT NULL AND job NOT IN ('newspapers','bikes','shawarma_runner','lookout','stall_tax','thimblerig','moonshine','car_jacker','blackmail','arson','smuggling','forger','boss_car','bank_heist','prosecutor_car')"
         )
         await db.commit()
+
+
+POLICE_LEVEL_XP = (0, 300, 800, 1600, 2800)
+POLICE_DAILY_LIMITS = (3, 6, 9, 12, None)
+
+
+def police_level_from_xp(xp: int) -> int:
+    xp = max(0, int(xp or 0))
+    level = 1
+    for idx, threshold in enumerate(POLICE_LEVEL_XP, 1):
+        if xp >= threshold:
+            level = idx
+    return level
+
+
+def police_daily_limit_from_xp(xp: int) -> int | None:
+    return POLICE_DAILY_LIMITS[police_level_from_xp(xp) - 1]
+
+
+def police_day_key(now: float | None = None) -> str:
+    return time.strftime('%Y-%m-%d', time.localtime(now or time.time()))
+
+
+async def police_daily_state(cop_uid: int, police_xp: int) -> dict:
+    day = police_day_key()
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+                "SELECT count FROM police_daily_arrests WHERE cop_uid=? AND day=?",
+                (int(cop_uid), day)) as cur:
+            row = await cur.fetchone()
+    count = int(row[0]) if row else 0
+    return {'day': day, 'count': count,
+            'limit': police_daily_limit_from_xp(police_xp)}
+
+
+async def police_claim_daily_arrest(cop_uid: int, police_xp: int) -> dict:
+    """Атомарно занимает одно место в суточном лимите копа."""
+    day = police_day_key()
+    limit = police_daily_limit_from_xp(police_xp)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute(
+                "SELECT count FROM police_daily_arrests WHERE cop_uid=? AND day=?",
+                (int(cop_uid), day)) as cur:
+            row = await cur.fetchone()
+        count = int(row[0]) if row else 0
+        if limit is not None and count >= limit:
+            await db.rollback()
+            return {'ok': False, 'error': 'daily_limit', 'day': day,
+                    'count': count, 'limit': limit}
+        count += 1
+        await db.execute(
+            "INSERT INTO police_daily_arrests(cop_uid,day,count) VALUES(?,?,?) "
+            "ON CONFLICT(cop_uid,day) DO UPDATE SET count=excluded.count",
+            (int(cop_uid), day, count))
+        await db.commit()
+    return {'ok': True, 'day': day, 'count': count, 'limit': limit}
 
 
 CITY_NEWS_WINDOW_S = 24 * 60 * 60
@@ -17412,6 +17480,12 @@ class WorldSim:
         # Wanted-звёзды (0..3 целое — для UI), сколько до выхода из тюрьмы
         my_wanted   = int(min(3, round(me.get('_wanted') or 0)))
         my_jail_in  = max(0, int(round((me.get('_jail_until') or 0) - now_t)))
+        daily_day = police_day_key(now_t)
+        if me.get('_police_daily_day') != daily_day:
+            me['_police_daily_day'] = daily_day
+            me['_police_daily_count'] = 0
+        me['_police_daily_limit'] = police_daily_limit_from_xp(
+            int(me.get('_police_xp') or 0))
         rewarded = {str(x) for x in (me.get('_police_rewarded') or set())}
         wanted_board = []
         if me.get('_police'):
@@ -17804,6 +17878,8 @@ class WorldSim:
                     'cash':     int(me.get('_cash') or 0),
                     'diamonds': int(me.get('_diamonds') or 0),
                     'police_xp': int(me.get('_police_xp') or 0),
+                    'police_arrests_today': int(me.get('_police_daily_count') or 0),
+                    'police_arrest_limit': me.get('_police_daily_limit'),
                     'police_stunned_in': max(0.0, float(me.get('_police_stunned_until') or 0) - now_t),
                     'police_arrest': my_police_arrest,
                     'police_downed': my_police_downed,
@@ -20269,6 +20345,16 @@ async def _coop_http_app():
                         p_ref['_police_rewarded'] = {str(row[0]) for row in await cur.fetchall()}
             except Exception:
                 p_ref['_police_rewarded'] = set()
+            try:
+                daily = await police_daily_state(uid_int, p_ref.get('_police_xp', 0))
+                p_ref['_police_daily_day'] = daily['day']
+                p_ref['_police_daily_count'] = daily['count']
+                p_ref['_police_daily_limit'] = daily['limit']
+            except Exception:
+                p_ref['_police_daily_day'] = police_day_key()
+                p_ref['_police_daily_count'] = 0
+                p_ref['_police_daily_limit'] = police_daily_limit_from_xp(
+                    p_ref.get('_police_xp', 0))
             # Подгружаем выбранную точку респавна + список купленных бизнесов
             # из БД, чтобы tick_respawn мог проверять без I/O в каждой итерации.
             try:
@@ -20419,10 +20505,26 @@ async def _coop_http_app():
                                 xp_gain = int(d.get('xp') or 0)
                                 rewarded = p_ref.setdefault('_police_npc_rewards', set()) if p_ref else set()
                                 if p_ref and p_ref.get('_police') and mission_id and xp_gain in (65, 180, 300) and mission_id not in rewarded:
-                                    rewarded.add(mission_id)
-                                    new_police_xp = min(world.POLICE_TASER_XP, current_xp + xp_gain)
-                                    await update_character(int(uid), police_xp=new_police_xp)
-                                    reply = {'kind':'police_xp_reply','ok':True,'police_xp':new_police_xp}
+                                    daily = await police_claim_daily_arrest(int(uid), current_xp)
+                                    if not daily.get('ok'):
+                                        new_police_xp = current_xp
+                                        reply = {'kind':'police_xp_reply','ok':False,
+                                                 'error':'daily_limit','mission_id':mission_id,
+                                                 'police_xp':current_xp,
+                                                 'daily_count':daily['count'],
+                                                 'daily_limit':daily['limit']}
+                                    else:
+                                        rewarded.add(mission_id)
+                                        new_police_xp = min(world.POLICE_TASER_XP, current_xp + xp_gain)
+                                        await update_character(int(uid), police_xp=new_police_xp)
+                                        p_ref['_police_daily_day'] = daily['day']
+                                        p_ref['_police_daily_count'] = daily['count']
+                                        p_ref['_police_daily_limit'] = police_daily_limit_from_xp(new_police_xp)
+                                        reply = {'kind':'police_xp_reply','ok':True,
+                                                 'mission_id':mission_id,
+                                                 'police_xp':new_police_xp,
+                                                 'daily_count':daily['count'],
+                                                 'daily_limit':p_ref['_police_daily_limit']}
                                 else:
                                     new_police_xp = current_xp
                             if p_ref:
@@ -20469,7 +20571,31 @@ async def _coop_http_app():
                         elif t == 'police_downed_arrest':
                             reply = world.police_arrest_downed(uid, str(d.get('target_uid') or ''))
                         else:
-                            reply = world.police_turnin_online(uid)
+                            # Суточное место занимаем ДО фактической сдачи, но
+                            # только после дешёвых проверок участка/конвоя.
+                            cop_live = world.players.get(uid) or {}
+                            target_uid = str(cop_live.get('_police_escort_uid') or '')
+                            target_live = world.players.get(target_uid)
+                            daily = None
+                            if not cop_live.get('_police'):
+                                reply = {'ok': False, 'error': 'not_police'}
+                            elif (not target_live or
+                                  str(target_live.get('_police_cuffed_by') or '') != str(uid)):
+                                reply = {'ok': False, 'error': 'no_escort'}
+                            elif ((float(cop_live.get('x') or 0)-76.0)**2 +
+                                  (float(cop_live.get('y') or 0)-76.0)**2 > 5.2**2):
+                                reply = {'ok': False, 'error': 'not_at_station'}
+                            else:
+                                cop_before = await get_character(int(uid))
+                                daily = await police_claim_daily_arrest(
+                                    int(uid), int((cop_before or {}).get('police_xp') or 0))
+                                if not daily.get('ok'):
+                                    world._release_online_arrest(target_uid, 'daily_limit')
+                                    reply = {'ok': False, 'error': 'daily_limit',
+                                             'daily_count': daily['count'],
+                                             'daily_limit': daily['limit']}
+                                else:
+                                    reply = world.police_turnin_online(uid)
                             if reply.get('ok'):
                                 target_uid = str(reply.get('target_uid') or '')
                                 first_reward = False
@@ -20495,6 +20621,9 @@ async def _coop_http_app():
                                         cop_p = world.players.get(uid)
                                         if cop_p:
                                             cop_p['_police_xp'] = new_police_xp
+                                            cop_p['_police_daily_day'] = daily['day']
+                                            cop_p['_police_daily_count'] = daily['count']
+                                            cop_p['_police_daily_limit'] = police_daily_limit_from_xp(new_police_xp)
                                             if first_reward:
                                                 cop_p['_cash'] = new_cash
                                                 cop_p.setdefault('_police_rewarded', set()).add(target_uid)
@@ -20503,6 +20632,8 @@ async def _coop_http_app():
                                     reply['exp'] = world.POLICE_ARREST_EXP if first_reward else 0
                                     reply['police_xp_gain'] = world.POLICE_ARREST_EXP
                                     reply['police_xp'] = new_police_xp
+                                    reply['daily_count'] = daily['count']
+                                    reply['daily_limit'] = police_daily_limit_from_xp(new_police_xp)
                                 except Exception as exc:
                                     logger.warning('online police arrest persistence failed: %r', exc)
                                     reply = {'ok': False, 'error': 'storage'}

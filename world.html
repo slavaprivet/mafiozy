@@ -12774,6 +12774,7 @@ let _onlineWantedBoardUiSig = '';
 let _onlinePoliceArrest = null;
 let _policeDowned = null;
 let _policeStunnedIn = 0;
+let _policeDailyCount=0,_policeDailyLimit=3,_policePendingNpcTurnin=null;
 
 // Маркер «в бою с этим игроком» — для мини-карты (красная точка).
 // uid → expiresAt (ms). После TTL сбрасывается обратно в синий.
@@ -13507,11 +13508,18 @@ function handleEventPacket(d) {
     _policeDowned=null;
     if(String(d.target_uid)===String(QP.uid))showEventBanner('🔗 ТЫ ЗАДЕРЖАН','Коп должен доставить тебя в участок за 20 секунд. Иначе ты освободишься.',4700,'lose');
   } else if (kind === 'police_online_turnin_reply') {
-    if(!d.ok){showToast(_policeError(d.error),'⚠️',2700);return;}
+    _setPoliceDaily(d);
+    if(!d.ok){showToast(_policeError(d.error),'⚠️',2700);renderPoliceModal();renderJobStatus();return;}
     if(typeof d.police_xp==='number')_setPoliceXp(d.police_xp,true);
     const reward=d.first_reward?`Награда: $${d.cash||0} и ${d.exp||0} XP.`:'Повторный арест: без денежной награды.';
     showEventBanner('🏅 ОНЛАЙН-ИГРОК СДАН',`${d.target_name||'Преступник'} отправлен в тюрьму. ${reward} +${d.police_xp_gain||75} опыта копа.`,4700,'win');
   } else if (kind === 'police_xp_reply') {
+    _setPoliceDaily(d);
+    if(d.mission_id){
+      if(d.ok)_completePendingPoliceNpcReward(d);
+      else _rejectPendingPoliceNpcReward(d);
+      return;
+    }
     // Ответ об увольнении ещё не гарантирует, что в очереди WebSocket нет
     // старого snap с прежним званием. resetPending снимается только когда
     // сам серверный снимок подтвердит police_xp=0.
@@ -15085,6 +15093,9 @@ function wsConnect() {
       if (d.me) {
         _onlinePoliceArrest = d.me.police_arrest || null;
         _policeDowned = d.me.police_downed || null;
+        if(typeof d.me.police_arrests_today==='number')_policeDailyCount=Math.max(0,d.me.police_arrests_today|0);
+        if(d.me.police_arrest_limit===null)_policeDailyLimit=null;
+        else if(typeof d.me.police_arrest_limit==='number')_policeDailyLimit=Math.max(0,d.me.police_arrest_limit|0);
         _policeStunnedIn = +d.me.police_stunned_in || 0;
         _policeEvidenceBag = d.me.police_evidence_bag || null;
         if(_policeEvidenceBag)_myBagWeight=Math.max(1,+_policeEvidenceBag.value||1);
@@ -37860,11 +37871,11 @@ Object.assign(_BANK_NPC_LOOKS, {
 // Police wanted missions: stealth knockout, cuffs, escort and hand-in.
 const POLICE_MISSION_MAX=3;
 const POLICE_LEVELS=Object.freeze([
-  {level:1,rank:'Дежурный',xp:0,perk:'Дубинка, наручники, возврат улик и патрульная машина'},
-  {level:2,rank:'Офицер',xp:300,perk:'Полицейская рация: частые координаты целей'},
-  {level:3,rank:'Сержант',xp:800,perk:'Бронежилет'},
-  {level:4,rank:'Лейтенант',xp:1600,perk:'Шипы для машин и вызов подкрепления'},
-  {level:5,rank:'Капитан',xp:2800,perk:'Шокер и ориентировки на боссов мафии'}
+  {level:1,rank:'Дежурный',xp:0,perk:'3 задержания в сутки · дубинка, наручники, улики и патрульная машина'},
+  {level:2,rank:'Офицер',xp:300,perk:'6 задержаний в сутки · полицейская рация'},
+  {level:3,rank:'Сержант',xp:800,perk:'9 задержаний в сутки · бронежилет'},
+  {level:4,rank:'Лейтенант',xp:1600,perk:'12 задержаний в сутки · шипы и подкрепление'},
+  {level:5,rank:'Капитан',xp:2800,perk:'Задержания без лимита · шокер и боссы мафии'}
 ]);
 const POLICE_TASER_LEVEL=5,POLICE_TASER_XP=POLICE_LEVELS[POLICE_TASER_LEVEL-1].xp;
 const _policeStoreKey=`mafiozi_police_missions_${QP.uid||'preview'}`;
@@ -37881,13 +37892,16 @@ const _policeArrestHud=document.createElement('div');
 _policeArrestHud.style.cssText='display:none;position:fixed;z-index:120;left:50%;bottom:105px;transform:translateX(-50%);padding:9px 14px;border-radius:12px;background:rgba(9,18,34,.94);border:1px solid #67b8ff;color:#fff;font:700 13px system-ui;box-shadow:0 6px 24px #0008;pointer-events:none;text-align:center';
 document.body.appendChild(_policeArrestHud);
 function _policeEsc(v){return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
-function _policeError(e){return({not_police:'Сначала устройся в полицию',level_locked:'Эта способность откроется с новым званием',not_selected:'Сначала отметь цель на доске розыска',not_wanted:'Игрок больше не разыскивается',not_online:'Игрок уже вышел',too_far:'Цель слишком далеко',not_stunned:'Сначала оглуши дубинкой или шокером',decision_expired:'Пять секунд истекли — игрок уже возрождается',already_escorting:'Сначала доставь текущего задержанного',already_cuffed:'Его уже задержал другой коп',already_spawned:'Твоя патрульная машина уже ожидает на улице',already_driving:'Сначала выйди из машины',interior:'Способность применяется только на улице',no_escort:'Задержанный уже освобождён',not_at_station:'Доставь улику к полицейскому участку',taser_locked:'Шокер открывается на 5 уровне копа',cooldown:'Способность ещё перезаряжается',storage:'Сервер не сохранил арест',hands_full:'Ты уже несёшь один мешок-улику',gone:'Объект уже недоступен',no_evidence:'У тебя нет мешка-улики',dead:'Дождись возрождения',db_error:'Не удалось выполнить действие'})[e]||'Действие сейчас невозможно';}
-function _sendPoliceOnline(t,targetUid){if(!ws||ws.readyState!==1){showToast('Сервер не отвечает','⚠️',2200);return;}ws.send(JSON.stringify({t,d:{target_uid:targetUid||''}}));}
+function _policeError(e){return({not_police:'Сначала устройся в полицию',level_locked:'Эта способность откроется с новым званием',not_selected:'Сначала отметь цель на доске розыска',not_wanted:'Игрок больше не разыскивается',not_online:'Игрок уже вышел',too_far:'Цель слишком далеко',not_stunned:'Сначала оглуши дубинкой или шокером',decision_expired:'Пять секунд истекли — игрок уже возрождается',daily_limit:'Суточный лимит задержаний исчерпан — новая смена начнётся завтра',already_escorting:'Сначала доставь текущего задержанного',already_cuffed:'Его уже задержал другой коп',already_spawned:'Твоя патрульная машина уже ожидает на улице',already_driving:'Сначала выйди из машины',interior:'Способность применяется только на улице',no_escort:'Задержанный уже освобождён',not_at_station:'Доставь улику к полицейскому участку',taser_locked:'Шокер открывается на 5 уровне копа',cooldown:'Способность ещё перезаряжается',storage:'Сервер не сохранил арест',hands_full:'Ты уже несёшь один мешок-улику',gone:'Объект уже недоступен',no_evidence:'У тебя нет мешка-улики',dead:'Дождись возрождения',db_error:'Не удалось выполнить действие'})[e]||'Действие сейчас невозможно';}
+function _sendPoliceOnline(t,targetUid){if((t==='police_online_cuff'||t==='police_downed_arrest')&&!_policeDailyAvailable()){showToast(_policeError('daily_limit'),'🕛',2800);return;}if(!ws||ws.readyState!==1){showToast('Сервер не отвечает','⚠️',2200);return;}ws.send(JSON.stringify({t,d:{target_uid:targetUid||''}}));}
 function _policeLevel(xp=_policeState.earnedXp){xp=Math.max(0,+xp||0);let level=1;for(const step of POLICE_LEVELS)if(xp>=step.xp)level=step.level;return level;}
 function _policeRank(level=_policeLevel()){return POLICE_LEVELS[Math.max(1,Math.min(5,+level||1))-1].rank;}
 function _policeHasLevel(level){return !!(_policeState?.employed&&_policeLevel()>=level);}
 function _policeCanUseTaser(){return !!(_policeState?.employed&&_policeLevel()>=POLICE_TASER_LEVEL);}
 function _policeProgress(){const xp=Math.min(POLICE_TASER_XP,Math.max(0,Math.floor(_policeState.earnedXp||0))),level=_policeLevel(xp),maxed=level>=POLICE_LEVELS.length,current=POLICE_LEVELS[level-1],nextStep=maxed?current:POLICE_LEVELS[level],need=maxed?0:nextStep.xp-current.xp,part=maxed?0:xp-current.xp;return{xp,level,rank:current.rank,nextRank:maxed?'':nextStep.rank,maxed,floor:current.xp,next:nextStep.xp,need,part,pct:maxed?100:Math.max(0,Math.min(100,part/need*100))};}
+function _policeDailyAvailable(){return _policeDailyLimit===null||_policeDailyCount<_policeDailyLimit;}
+function _policeDailyText(){return _policeDailyLimit===null?`${_policeDailyCount} / ∞`:`${_policeDailyCount} / ${_policeDailyLimit}`;}
+function _setPoliceDaily(d){if(typeof d?.daily_count==='number')_policeDailyCount=Math.max(0,d.daily_count|0);if(d&&Object.prototype.hasOwnProperty.call(d,'daily_limit'))_policeDailyLimit=d.daily_limit===null?null:Math.max(0,d.daily_limit|0);}
 function _setPoliceXp(value,fromServer=false){const old=_policeLevel(),v=Math.min(POLICE_TASER_XP,Math.max(0,Math.floor(+value||0))),current=Math.max(0,Math.floor(_policeState.earnedXp||0));if((fromServer&&v<current)||v===current)return;_policeState.earnedXp=v;_savePoliceState();const level=_policeLevel();if(level>old){showEventBanner('👮 НОВОЕ ЗВАНИЕ',`${_policeRank(level)} · уровень ${level}${level===POLICE_TASER_LEVEL?' · открыт шокер!':''}`,4200,'win');}renderJobStatus();renderPoliceModal();if(_profileTab==='status')renderProfileTab();renderWeaponHud();if(_wepPickOpen)renderWeaponPick();}
 function _syncPoliceXpReward(xp,missionId){if(!ws||ws.readyState!==1)return;try{ws.send(JSON.stringify({t:'police_npc_reward',d:{xp:Math.max(0,xp|0),mission_id:String(missionId||'')}}));}catch(e){}}
 function _selectedOnlineWanted(){return _onlineWantedBoard.find(x=>x.selected)||null;}
@@ -37995,7 +38009,7 @@ function _policeRankSummary(p,active){
   const progressText=p.maxed?'Высшее звание':`До звания «${p.nextRank}»`;
   const progressValue=p.maxed?'МАКСИМУМ':`${p.part} / ${p.need} XP`;
   const evidence=_policeEvidenceBag?`$${(+_policeEvidenceBag.value||0).toLocaleString('ru')}`:'нет';
-  return `<div class="police-summary"><div class="police-level-badge"><b>${p.level}</b><span>УРОВЕНЬ</span></div><div><div class="police-rank-name">👮 ${p.rank}</div><div class="police-rank-xp">Полицейский опыт: ${p.xp} XP</div><div class="police-progress"><i style="width:${p.pct}%"></i></div><div class="police-progress-label"><span>${progressText}</span><b>${progressValue}</b></div></div><div class="police-stats"><div class="police-stat"><b>${active.length}/${POLICE_MISSION_MAX}</b>активные цели</div><div class="police-stat"><b>${_policeState.cuffs}/3</b>наручники</div><div class="police-stat"><b>${evidence}</b>мешок-улика</div></div></div>`;
+  return `<div class="police-summary"><div class="police-level-badge"><b>${p.level}</b><span>УРОВЕНЬ</span></div><div><div class="police-rank-name">👮 ${p.rank}</div><div class="police-rank-xp">Полицейский опыт: ${p.xp} XP</div><div class="police-progress"><i style="width:${p.pct}%"></i></div><div class="police-progress-label"><span>${progressText}</span><b>${progressValue}</b></div></div><div class="police-stats"><div class="police-stat"><b>${active.length}/${POLICE_MISSION_MAX}</b>активные цели</div><div class="police-stat"><b>${_policeDailyText()}</b>задержания сегодня</div><div class="police-stat"><b>${_policeState.cuffs}/3</b>наручники</div><div class="police-stat"><b>${evidence}</b>мешок-улика</div></div></div>`;
 }
 function _policeAbilityPanel(){
   const level=_policeLevel(),caps=[
@@ -38049,6 +38063,7 @@ function _spawnPoliceTarget(m){
 function _ensurePoliceTargets(){for(const m of _policeState.missions)_spawnPoliceTarget(m);}
 function _acceptPoliceMission(forceBoss=false){
   if(!_policeState.employed){showToast('Сначала устройся на службу в участке','👮',2200);return;}
+  if(!_policeDailyAvailable()){showToast(_policeError('daily_limit'),'🕛',2800);return;}
   if(forceBoss&&!_policeHasLevel(5)){showToast('Ориентировки на боссов открываются на 5 уровне','🔒',2400);return;}
   if(_policeState.missions.length>=POLICE_MISSION_MAX){showToast('📋 Можно вести максимум 3 ориентировки','⚠️',2200);return;}
   const boss=!!forceBoss,id=++_policeState.seq,targetId=`police_criminal_${QP.uid||'p'}_${Date.now()}_${id}`,name=boss?`Босс «${_POLICE_CRIMINAL_NAMES[(Math.random()*_POLICE_CRIMINAL_NAMES.length)|0]}»`:_POLICE_CRIMINAL_NAMES[(Math.random()*_POLICE_CRIMINAL_NAMES.length)|0];
@@ -38112,6 +38127,7 @@ function _updatePoliceStealthButton(){_policeStealthTarget=_findOnlinePoliceTarg
 function _knockoutPoliceTarget(){const online=_findOnlinePoliceTarget(false);if(online){player.ang=Math.atan2(online.y-player.r,online.x-player.c);_policeBatonAnim={startAt:performance.now(),ang:player.ang};_sendPoliceOnline('police_online_stun',online.uid);return;}const n=_findPoliceStealthTarget();if(!n)return;const now=performance.now();player.ang=Math.atan2(n.r-player.r,n.c-player.c);_policeBatonAnim={startAt:now,ang:player.ang};n._knockedUntil=now+5000;n.idleUntil=n._knockedUntil;n.walkPhase=0;n._fighting=false;n._fightingMelee=false;n.hp=Math.max(1,(n.hp||n.max_hp)-8);n.cryText=_policePick(_POLICE_KNOCKOUT_CRIES);n.cryUntil=now+1700;setTimeout(()=>{addShake(2.8);hapticHit();spawnFloatText(n.r,n.c,'УДАР ДУБИНКОЙ',{color:'#77c7ff',size:13,life:900});},205);spawnFloatText(n.r,n.c,'ОГЛУШЁН 5 СЕК.',{color:'#dc8cff',size:14,life:1600});showToast('💫 Цель оглушена — успей надеть наручники','👮',2200);}
 function _findArrestablePoliceTarget(){const online=_findOnlinePoliceTarget(true);if(online)return online;if(_policeState.escort)return null;const now=performance.now();let best=null,bestD=2;for(const n of NPCS){if(!n._policeCriminal||n.dead||n._policeCuffed||!(n._knockedUntil>now))continue;const d=Math.hypot(n.r-player.r,n.c-player.c);if(d<bestD){best=n;bestD=d;}}return best;}
 function _arrestPoliceTarget(n){
+  if(!_policeDailyAvailable()){showToast(_policeError('daily_limit'),'🕛',2800);return;}
   if(n&&n.uid){_sendPoliceOnline('police_online_cuff',n.uid);return;}
   if(_policeState.escort){showToast('🚔 Сначала доставь текущего задержанного','⚠️',2200);return;}
   if(!n||_policeState.cuffs<=0)return;const m=_policeMissionForNpc(n);if(!m)return;_policeState.cuffs--;m.status='cuffed';n._policeCuffed=true;const now=performance.now();_policeState.escort={missionId:m.id,targetId:m.targetId,name:m.name,boss:m.boss,look:m.look,r:n.r,c:n.c,ang:n.ang||0,cryText:_policePickDifferent(_POLICE_ARREST_CRIES),cryUntil:now+2100,_nextCryAt:now+2800+Math.random()*800};const ix=NPCS.indexOf(n);if(ix>=0)NPCS.splice(ix,1);_savePoliceState();renderJobStatus();showEventBanner('🔗 ПРЕСТУПНИК АРЕСТОВАН',`${m.name}: «${_policeState.escort.cryText}» · доставь его в участок.`,4200,'win');
@@ -38132,8 +38148,22 @@ function _tickPoliceEscort(dt){
 }
 function _completePoliceEscort(){const e=_policeState.escort;if(!e||e._turningIn)return;e._turningIn=true;e._turningInAt=performance.now();_savePoliceState();showToast('👮 Конвоир принимает задержанного…','🚔',1800);}
 function _finishPoliceEscortReward(){
-  const e=_policeState.escort;if(!e)return;const m=_policeMission(e.missionId);if(!m)return;const cash=m.rewardCash|0,xp=m.rewardXp|0,nextPoliceXp=(_policeState.earnedXp||0)+xp;myCash+=cash;QP.cash=myCash;QP.exp=(+QP.exp||0)+xp;_policeState.cuffs=Math.min(3,_policeState.cuffs+1);_policeState.missions=_policeState.missions.filter(x=>x.id!==m.id);_policeState.escort=null;_savePoliceState();_setPoliceXp(nextPoliceXp);_syncPoliceXpReward(xp,m.id);updateMoneyHud();renderPoliceModal();renderJobStatus();if(_profileTab==='status')renderProfileTab();if(_wepPickOpen)renderWeaponPick();
-  spawnFloatText(player.r,player.c,`+$${cash}  +${xp} XP`,{color:'#7dffad',size:19,life:2300});showEventBanner('🏅 ПРЕСТУПНИК СДАН',`${m.name}: награда $${cash} и ${xp} опыта.`,4300,'win');pushFeedEvent('🚔',`${QP.name||'Игрок'} доставил в участок: ${m.name}`,{accent:'#6bb3ff'});
+  const e=_policeState.escort;if(!e||_policePendingNpcTurnin)return;const m=_policeMission(e.missionId);if(!m)return;
+  _policePendingNpcTurnin={missionId:String(m.id),startedAt:performance.now()};
+  _syncPoliceXpReward(m.rewardXp|0,m.id);showToast('Сервер проверяет суточный лимит…','🚔',1800);
+}
+function _completePendingPoliceNpcReward(d){
+  const pending=_policePendingNpcTurnin,m=pending&&_policeMission(pending.missionId),e=_policeState.escort;
+  _policePendingNpcTurnin=null;if(!m||!e||String(m.id)!==String(d.mission_id))return;
+  const cash=m.rewardCash|0,xp=m.rewardXp|0;myCash+=cash;QP.cash=myCash;QP.exp=(+QP.exp||0)+xp;
+  _policeState.cuffs=Math.min(3,_policeState.cuffs+1);_policeState.missions=_policeState.missions.filter(x=>String(x.id)!==String(m.id));_policeState.escort=null;_savePoliceState();
+  if(typeof d.police_xp==='number')_setPoliceXp(d.police_xp,true);updateMoneyHud();renderPoliceModal();renderJobStatus();if(_profileTab==='status')renderProfileTab();if(_wepPickOpen)renderWeaponPick();
+  spawnFloatText(player.r,player.c,`+$${cash}  +${xp} XP`,{color:'#7dffad',size:19,life:2300});showEventBanner('🏅 ПРЕСТУПНИК СДАН',`${m.name}: награда $${cash} и ${xp} опыта · сегодня ${_policeDailyText()}.`,4300,'win');pushFeedEvent('🚔',`${QP.name||'Игрок'} доставил в участок: ${m.name}`,{accent:'#6bb3ff'});
+}
+function _rejectPendingPoliceNpcReward(d){
+  const pending=_policePendingNpcTurnin,m=pending&&_policeMission(pending.missionId);_policePendingNpcTurnin=null;
+  if(m){_policeState.missions=_policeState.missions.filter(x=>String(x.id)!==String(m.id));_policeState.escort=null;_policeState.cuffs=Math.min(3,_policeState.cuffs+1);_savePoliceState();}
+  renderPoliceModal();renderJobStatus();showEventBanner('🕛 СМЕНА ЗАВЕРШЕНА',_policeError(d.error||'daily_limit'),3900,'neutral');
 }
 function _tickPoliceMissions(now){_updateOnlineArrestHud();_updatePoliceDownedButton();_tickPoliceSupport(now);for(const m of [..._policeState.missions]){if(m.status!=='hunt')continue;const n=NPCS.find(x=>x._policeTargetId===m.targetId);if(n&&n.dead&&now-(n.deadAt||now)>900){const i=NPCS.indexOf(n);if(i>=0)NPCS.splice(i,1);_policeState.missions=_policeState.missions.filter(x=>x.id!==m.id);_policeMissionIntel.delete(String(m.id));_savePoliceState();renderPoliceModal();renderJobStatus();showEventBanner('☠️ ПРЕСТУПНИК ПОГИБ',`${m.name} погиб. Ориентировка вычеркнута.`,3900,'lose');showToast(`${m.name}: преступник погиб`,'☠️',2800);}else if(!n)_spawnPoliceTarget(m);}}
 document.getElementById('policeModalClose')?.addEventListener('click',closePoliceDesk);
