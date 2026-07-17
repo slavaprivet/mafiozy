@@ -4946,6 +4946,7 @@ function applyQuestCarsSnapshot(arr) {
       prev.wrecked    = !!c.wrecked;
       if (c.civilian !== undefined) prev.civilian = !!c.civilian;
       if (c.police_patrol !== undefined) prev.police_patrol = !!c.police_patrol;
+      if (c.police_stolen !== undefined) prev.police_stolen = !!c.police_stolen;
     } else {
       questCars.set(c.id, {
         id:   c.id,
@@ -4963,6 +4964,7 @@ function applyQuestCarsSnapshot(arr) {
         wrecked:    !!c.wrecked,
         civilian:   !!c.civilian,
         police_patrol: !!c.police_patrol,
+        police_stolen: !!c.police_stolen,
       });
     }
   }
@@ -14148,7 +14150,8 @@ function handleEventPacket(d) {
       myDrivingCarId = null;
       myIsPassenger  = false;
       _exitRequested = false;
-      showToast('🚫 Тебя выкинули из машины', '⚠️', 2500);
+      const carRejectText=d.reason==='police_locked'?'Полицейская машина заперта — сначала взломай замок':d.reason==='police_only'?'В занятой полицейской машине могут ехать только копы':'Тебя выкинули из машины';
+      showToast(`🚫 ${carRejectText}`, '⚠️', 2500);
     }
   } else if (kind === 'gta_exit_reply') {
     // Просто бросил машину (не доставил). Никакого баннера не надо.
@@ -18004,6 +18007,46 @@ function enterCar(carId, asKind) {
   qc._locallyParkedUntil = 0;
   if (qc.wrecked) { showToast('🔥 Машина уничтожена', '💥', 1500); return; }
   const isMine = (String(qc.owner_uid) === String(QP.uid));
+  if (qc.police_patrol) {
+    const isPolice = !!_policeState?.employed;
+    const isStolenOwner = !!qc.police_stolen && isMine;
+    const driverIsOther = qc.driver_uid && String(qc.driver_uid) !== String(QP.uid);
+    if (driverIsOther) {
+      if (!isPolice) {
+        showToast('🚫 В занятую полицейскую машину пускают только копов', '👮', 2400);
+        return;
+      }
+      if ((qc.passenger_uids || []).length >= 1) {
+        showToast('🚓 Пассажирское место занято', '🚫', 1800);
+        return;
+      }
+      try { ws && ws.send(JSON.stringify({t:'gta_enter',d:{car_id:carId}})); } catch(e) {}
+      _dropCarriedBagForVehicleEntry();
+      myDrivingCarId=carId;myIsPassenger=true;_exitRequested=false;
+      showToast('🚓 Сел в экипаж', '👮', 1400);
+      return;
+    }
+    const seatPoliceCar = (lockpicked=false) => {
+      try { ws && ws.send(JSON.stringify({t:'gta_enter',d:{car_id:carId,police_lockpicked:!!lockpicked}})); } catch(e) {}
+      _dropCarriedBagForVehicleEntry();
+      myDrivingCarId=carId;myIsPassenger=false;_exitRequested=false;
+      player.r=qc.y;player.c=qc.x;player.ang=qc.ang;
+      playEnterCarAnim(qc.y,qc.x);
+      if(lockpicked){qc.police_stolen=true;qc.owner_uid=String(QP.uid);showToast('🔓 Замок взломан — полицейская машина угнана','🚓',2200);}
+      else showToast('🚓 Сел за руль патрульной машины','👮',1500);
+    };
+    if (isPolice || isStolenOwner) { seatPoliceCar(false); return; }
+    const scLvl=(myGtaStatus&&(myGtaStatus.sc_lvl|0))||0;
+    openLockpick(scLvl,res=>{
+      if(res==='cancel')return;
+      if(res==='fail'){
+        showToast('🚨 Сигнализация сработала — полицейская машина осталась закрыта','⚠️',2600);
+        hapticHit();return;
+      }
+      seatPoliceCar(true);
+    });
+    return;
+  }
   // Если я не владелец — пытаемся сесть пассажиром.
   if (!isMine) {
     if (!qc.driver_uid && !qc.civilian && qc.owner_uid) {
@@ -37756,9 +37799,9 @@ Object.assign(_BANK_NPC_LOOKS, {
 // Police wanted missions: stealth knockout, cuffs, escort and hand-in.
 const POLICE_MISSION_MAX=3;
 const POLICE_LEVELS=Object.freeze([
-  {level:1,rank:'Дежурный',xp:0,perk:'Дубинка, наручники и возврат улик'},
+  {level:1,rank:'Дежурный',xp:0,perk:'Дубинка, наручники, возврат улик и патрульная машина'},
   {level:2,rank:'Офицер',xp:300,perk:'Полицейская рация: частые координаты целей'},
-  {level:3,rank:'Сержант',xp:800,perk:'Бронежилет и патрульная машина'},
+  {level:3,rank:'Сержант',xp:800,perk:'Бронежилет'},
   {level:4,rank:'Лейтенант',xp:1600,perk:'Шипы для машин и вызов подкрепления'},
   {level:5,rank:'Капитан',xp:2800,perk:'Шокер и ориентировки на боссов мафии'}
 ]);
@@ -37883,7 +37926,7 @@ function _sendPoliceAbility(t){
 }
 function _policeAbilityPanel(){
   const level=_policeLevel(),button=(need,action,label)=>`<button class="police-action" data-police-action="${action}" ${level<need?'disabled':''}>${level<need?'🔒 ':''}${label}</button>`;
-  return `<div class="police-note" style="color:#77c7ff;font-weight:900;margin-top:12px">СНАРЯЖЕНИЕ И ПОДДЕРЖКА</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">${button(3,'patrol','🚓 Патрульная машина')}${button(4,'spikes','🛞 Разложить шипы')}${button(4,'backup','📻 Вызвать подкрепление')}</div><div class="police-note">${level>=2?'📻 Рация активна: координаты обновляются каждые 2 секунды.':'🔒 Рация откроется на 2 уровне.'} ${level>=3?'🦺 Бронежилет снижает входящий урон на 30%.':'🔒 Бронежилет откроется на 3 уровне.'}</div>`;
+  return `<div class="police-note" style="color:#77c7ff;font-weight:900;margin-top:12px">СНАРЯЖЕНИЕ И ПОДДЕРЖКА</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">${button(1,'patrol','🚓 Патрульная машина')}${button(4,'spikes','🛞 Разложить шипы')}${button(4,'backup','📻 Вызвать подкрепление')}</div><div class="police-note">🚓 Патрульная машина доступна с момента устройства. ${level>=2?'📻 Рация активна: координаты обновляются каждые 2 секунды.':'🔒 Рация откроется на 2 уровне.'} ${level>=3?'🦺 Бронежилет снижает входящий урон на 30%.':'🔒 Бронежилет откроется на 3 уровне.'}</div>`;
 }
 function _addPoliceSpikeStrip(d){
   const id=String(d.id||`spikes_${Date.now()}`);if(_policeSpikeStrips.some(s=>s.id===id))return;
