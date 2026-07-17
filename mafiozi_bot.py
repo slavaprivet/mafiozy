@@ -12580,11 +12580,11 @@ class WorldSim:
     DIST_INCOME_DELAY_S    = 60.0        # первый доход через 1 мин
     DIST_INCOME_TICK_S     = 120.0       # +income каждые 2 мин
     DISTRICTS_DEF = {
-        'northside':  {'name': 'Норт-Сайд', 'boss_name': 'Мясник Морелло', 'icon': '🏪', 'hq': (20.0, 20.0), 'intel': (11.0, 20.0), 'sabotage': ((14.0, 12.0), (20.0, 29.0), (29.0, 18.0)), 'escape': (35.0, 20.0), 'income': 400, 'color': '#4aa3df'},
-        'downtown':   {'name': 'Даунтаун',  'boss_name': 'Винсент Крысолов', 'icon': '🏙', 'hq': (20.0, 60.0), 'intel': (11.0, 60.0), 'sabotage': ((15.0, 49.0), (19.0, 70.0), (30.0, 58.0)), 'escape': (35.0, 60.0), 'income': 600, 'color': '#e0b94a'},
-        'southside':  {'name': 'Саутсайд',  'boss_name': 'Тони Кувалда', 'icon': '🎰', 'hq': (70.0, 20.0), 'intel': (53.0, 20.0), 'sabotage': ((60.0, 10.0), (72.0, 30.0), (83.0, 18.0)), 'escape': (95.0, 20.0), 'income': 500, 'color': '#9b59b6'},
-        'industrial': {'name': 'Промзона',  'boss_name': 'Борис Шлак', 'icon': '🏭', 'hq': (70.0, 60.0), 'intel': (53.0, 60.0), 'sabotage': ((60.0, 49.0), (72.0, 70.0), (83.0, 58.0)), 'escape': (95.0, 60.0), 'income': 550, 'color': '#d2691e'},
-        'coast':      {'name': 'Побережье', 'boss_name': 'Капитан Риццо', 'icon': '⚓', 'hq': (156.0, 40.0), 'intel': (165.0, 40.0), 'sabotage': ((154.0, 18.0), (158.0, 65.0), (178.0, 40.0)), 'escape': (196.0, 40.0), 'income': 450, 'color': '#2ecc71'},
+        'northside':  {'name': 'Норт-Сайд', 'boss_name': 'Мясник Морелло', 'icon': '🏪', 'bounds': (0,39,0,39), 'hq': (20.0, 20.0), 'intel': (11.0, 20.0), 'sabotage': ((14.0, 12.0), (20.0, 29.0), (29.0, 18.0)), 'escape': (35.0, 20.0), 'income': 400, 'color': '#4aa3df'},
+        'downtown':   {'name': 'Даунтаун',  'boss_name': 'Винсент Крысолов', 'icon': '🏙', 'bounds': (0,39,40,79), 'hq': (20.0, 60.0), 'intel': (11.0, 60.0), 'sabotage': ((15.0, 49.0), (19.0, 70.0), (30.0, 58.0)), 'escape': (35.0, 60.0), 'income': 600, 'color': '#e0b94a'},
+        'southside':  {'name': 'Саутсайд',  'boss_name': 'Тони Кувалда', 'icon': '🎰', 'bounds': (40,99,0,39), 'hq': (70.0, 20.0), 'intel': (53.0, 20.0), 'sabotage': ((60.0, 10.0), (72.0, 30.0), (83.0, 18.0)), 'escape': (95.0, 20.0), 'income': 500, 'color': '#9b59b6'},
+        'industrial': {'name': 'Промзона',  'boss_name': 'Борис Шлак', 'icon': '🏭', 'bounds': (40,99,40,79), 'hq': (70.0, 60.0), 'intel': (53.0, 60.0), 'sabotage': ((60.0, 49.0), (72.0, 70.0), (83.0, 58.0)), 'escape': (95.0, 60.0), 'income': 550, 'color': '#d2691e'},
+        'coast':      {'name': 'Побережье', 'boss_name': 'Капитан Риццо', 'icon': '⚓', 'bounds': (150,199,0,79), 'hq': (156.0, 40.0), 'intel': (165.0, 40.0), 'sabotage': ((154.0, 18.0), (158.0, 65.0), (178.0, 40.0)), 'escape': (196.0, 40.0), 'income': 450, 'color': '#2ecc71'},
     }
 
     def __init__(self):
@@ -15832,19 +15832,22 @@ class WorldSim:
                 # Простой patrol — двигаемся к waypoint, при достижении новый
                 wx, wy = g['_patrol_wp']
                 if g.get('district_did'):
-                    # Главарь района и его охрана держат точку досье, а не
-                    # уходят патрулировать весь район до начала боя.
-                    anchor_x, anchor_y = tuple(g.get('_district_anchor', (cx, cy)))
-                    if _m.hypot(wx - cx, wy - cy) < 1.2:
-                        for _ in range(30):
-                            ang = random.random() * _m.tau
-                            radius = random.uniform(4.0, 11.0)
-                            nwx = anchor_x + _m.cos(ang) * radius
-                            nwy = anchor_y + _m.sin(ang) * radius
-                            if (1.5 < nwy < WORLD_MAP_ROWS - 1.5
-                                    and 1.5 < nwx < WORLD_MAP_COLS - 1.5
+                    # Босс действительно обходит весь район. Выбираем дальнюю
+                    # проходимую точку внутри его границ, а не маленькую орбиту
+                    # вокруг места появления досье.
+                    dd = self.DISTRICTS_DEF.get(g.get('district_did'), {})
+                    r0, r1, c0, c1 = dd.get('bounds', (2, WORLD_MAP_ROWS-3, 2, WORLD_MAP_COLS-3))
+                    boss = alive_bots[0]
+                    need_wp = (_m.hypot(wx - boss['x'], wy - boss['y']) < 1.35
+                               or now >= float(g.get('_patrol_wp_until') or 0))
+                    if need_wp:
+                        for _ in range(80):
+                            nwy = random.uniform(r0 + 3.0, r1 - 3.0)
+                            nwx = random.uniform(c0 + 3.0, c1 - 3.0)
+                            if (_m.hypot(nwx - boss['x'], nwy - boss['y']) >= 12.0
                                     and not _world_is_wall(int(nwy), int(nwx))):
                                 g['_patrol_wp'] = (nwx, nwy)
+                                g['_patrol_wp_until'] = now + random.uniform(22.0, 34.0)
                                 break
                 elif _m.hypot(wx - cx, wy - cy) < 1.2:
                     for _ in range(20):
@@ -15885,7 +15888,9 @@ class WorldSim:
                     if not moved and g.get('district_did'):
                         bot['_patrol_stuck'] = int(bot.get('_patrol_stuck') or 0) + 1
                         if bot['_patrol_stuck'] > 18:
-                            g['_patrol_wp'] = (cx, cy); bot['_patrol_stuck'] = 0
+                            # Не кружим вокруг текущего центра: на следующем
+                            # тике выбираем новую дальнюю точку района.
+                            g['_patrol_wp_until'] = 0.0; bot['_patrol_stuck'] = 0
             else:
                 # HOSTILE: отвечаем только тому игроку, который задел группу.
                 target = self.players.get(g['_target_uid']) if g['_target_uid'] else None
@@ -16903,6 +16908,7 @@ class WorldSim:
             '_hostile_until': 0.0, '_target_uid': None, '_threat_t': {},
             '_patrol_wp': (float(sx), float(sy)), '_cops_dispatched': True,
             'district_did': did, '_district_anchor': (float(sx), float(sy)),
+            '_patrol_wp_until': 0.0,
         })
         op['boss_id'] = boss_id
         op['boss_gid'] = gid

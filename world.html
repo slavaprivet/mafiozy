@@ -28942,10 +28942,10 @@ function drawAggroBot(bot) {
     const flashAt = lastBossShotAt.get(bot.id) || 0;
     drawWeaponInHands(p.x, p.y, bot.ang || 0, weapon, isBoss ? 1.15 : 0.95, flashAt);
   }
-  // Босс с саблей: рисуем «крутящуюся» саблю если близко к игроку
+  // Сабля направлена по взгляду босса. Раньше она постоянно вращалась сама
+  // по себе и визуально усиливала ощущение, что босс кружит на месте.
   if (isBoss) {
-    const tNow = performance.now() * 0.012;
-    const sabAng = (bot.ang || 0) + Math.sin(tNow) * 0.6;
+    const sabAng = bot.ang || 0;
     ctx.save();
     ctx.translate(p.x, p.y - 14);
     ctx.rotate(sabAng);
