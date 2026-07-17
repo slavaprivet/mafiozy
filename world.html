@@ -13512,7 +13512,10 @@ function handleEventPacket(d) {
     const reward=d.first_reward?`Награда: $${d.cash||0} и ${d.exp||0} XP.`:'Повторный арест: без денежной награды.';
     showEventBanner('🏅 ОНЛАЙН-ИГРОК СДАН',`${d.target_name||'Преступник'} отправлен в тюрьму. ${reward} +${d.police_xp_gain||75} опыта копа.`,4700,'win');
   } else if (kind === 'police_xp_reply') {
-    if(d.ok&&d.resigned){_policeState.resetPending=false;_policeState.earnedXp=0;_savePoliceState();}
+    // Ответ об увольнении ещё не гарантирует, что в очереди WebSocket нет
+    // старого snap с прежним званием. resetPending снимается только когда
+    // сам серверный снимок подтвердит police_xp=0.
+    if(d.ok&&d.resigned){_policeState.resetPending=true;_policeState.earnedXp=0;_savePoliceState();}
     else if(d.ok&&typeof d.police_xp==='number')_setPoliceXp(d.police_xp,true);
   } else if (kind === 'police_patrol_reply') {
     if(!d.ok){showToast(_policeError(d.error),'⚠️',2500);return;}
@@ -14942,7 +14945,14 @@ function wsConnect() {
           }
           updateMoneyHud();
         }
-        if(typeof d.me.police_xp==='number'&&typeof _policeState!=='undefined'&&!_policeState.resetPending)_setPoliceXp(Math.max(_policeState.earnedXp||0,d.me.police_xp),true);
+        if(typeof d.me.police_xp==='number'&&typeof _policeState!=='undefined'){
+          if(_policeState.resetPending){
+            // Игнорируем устаревшие снимки с прежним XP после увольнения.
+            // Ноль — серверное подтверждение, после него новый контракт
+            // полиции действительно начинается с «Дежурного», уровень 1.
+            if((+d.me.police_xp||0)===0){_policeState.earnedXp=0;_policeState.resetPending=false;_savePoliceState();renderJobStatus();renderPoliceModal();}
+          }else _setPoliceXp(Math.max(_policeState.earnedXp||0,d.me.police_xp),true);
+        }
         if (typeof d.me.diamonds === 'number') {
           // Алмазы — донатная валюта. За активности в мире не начисляются,
           // поэтому всплывашки «+💎» не показываем — только тихо обновляем
