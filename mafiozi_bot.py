@@ -895,6 +895,8 @@ async def init_db():
             ("good_name",          "INTEGER DEFAULT 0"),
             ("lost_returns",       "INTEGER DEFAULT 0"),
             ("lost_return_streak", "INTEGER DEFAULT 0"),
+            # Отдельная постоянная карьера полиции. Не сбрасывается при увольнении.
+            ("police_xp",          "INTEGER DEFAULT 0"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -1009,6 +1011,13 @@ async def init_db():
             await db.execute("ALTER TABLE player_businesses ADD COLUMN level INTEGER DEFAULT 1")
         except Exception:
             pass
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS business_assistants (
+                telegram_id      INTEGER PRIMARY KEY,
+                hired_at         INTEGER NOT NULL,
+                salary_paid_until INTEGER NOT NULL
+            )
+        """)
         await db.execute("""
             CREATE TABLE IF NOT EXISTS gang_members (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1158,6 +1167,18 @@ async def init_db():
                 reward  INTEGER NOT NULL DEFAULT 0
             )
         """)
+        # Первый денежный бонус за арест конкретного онлайн-игрока во всём
+        # мире. UNIQUE по target_uid не позволяет друзьям менять копа и снова
+        # получать деньги: повторные доставки остаются действием, но без $.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS police_online_rewards (
+                target_uid  INTEGER PRIMARY KEY,
+                cop_uid     INTEGER NOT NULL,
+                arrested_at INTEGER NOT NULL,
+                UNIQUE (target_uid)
+            )
+        """)
+        await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_police_online_reward_target ON police_online_rewards(target_uid)")
         # При старте — очищаем все зависшие active_battles (на случай краша)
         await db.execute("DELETE FROM active_battles")
         # Jobs v2 — снимаем старые job-id (janitor/shawarma/etc), их в новом JOBS нет.
@@ -1324,6 +1345,56 @@ async def add_item(telegram_id: int, item_id: str, qty: int = 1):
             ON CONFLICT(telegram_id,item_id) DO UPDATE SET quantity=quantity+excluded.quantity
         """, (telegram_id, item_id, qty))
         await db.commit()
+
+async def settle_said_salary(telegram_id: int) -> dict:
+    """Charge Саид's due daily salary and return his current persistent state."""
+    now = int(time.time())
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute(
+            "SELECT hired_at,salary_paid_until FROM business_assistants WHERE telegram_id=?",
+            (telegram_id,)
+        ) as cur:
+            row = await cur.fetchone()
+        async with db.execute(
+            "SELECT cash FROM characters WHERE telegram_id=?", (telegram_id,)
+        ) as cur:
+            cash_row = await cur.fetchone()
+        cash = int(cash_row['cash']) if cash_row else 0
+        charged = 0
+        auto_fired = False
+        if row and now >= int(row['salary_paid_until']):
+            paid_until = int(row['salary_paid_until'])
+            periods = ((now - paid_until) // SAID_SALARY_PERIOD) + 1
+            due = periods * SAID_DAILY_SALARY
+            if cash >= due:
+                await db.execute(
+                    "UPDATE characters SET cash=cash-? WHERE telegram_id=?", (due, telegram_id)
+                )
+                paid_until += periods * SAID_SALARY_PERIOD
+                await db.execute(
+                    "UPDATE business_assistants SET salary_paid_until=? WHERE telegram_id=?",
+                    (paid_until, telegram_id)
+                )
+                cash -= due
+                charged = due
+            else:
+                await db.execute(
+                    "DELETE FROM business_assistants WHERE telegram_id=?", (telegram_id,)
+                )
+                row = None
+                auto_fired = True
+        await db.commit()
+    return {
+        'hired': bool(row),
+        'salary': SAID_DAILY_SALARY,
+        'hired_at': int(row['hired_at']) if row else 0,
+        'next_salary_at': int(row['salary_paid_until']) if row else 0,
+        'salary_charged': charged,
+        'auto_fired': auto_fired,
+        'cash': cash,
+    }
 
 async def remove_item(telegram_id: int, item_id: str, qty: int = 1) -> bool:
     async with aiosqlite.connect(DB_PATH) as db:
@@ -3961,6 +4032,8 @@ BIZ_EVENT_COOLDOWN = 6 * 3600  # 6 часов между событиями на
 BIZ_MAX_LEVEL = 5
 BIZ_LEVEL_MULTIPLIERS = {1: 1.00, 2: 1.35, 3: 1.75, 4: 2.25, 5: 3.00}
 BIZ_UPGRADE_COST_RATIOS = {2: 0.45, 3: 0.75, 4: 1.15, 5: 1.70}
+SAID_DAILY_SALARY = 500
+SAID_SALARY_PERIOD = 24 * 3600
 
 # id, name, emoji, price, daily_min, daily_max, desc
 BUSINESSES = [
@@ -3991,9 +4064,9 @@ BUSINESSES = [
     {"id": "casino",     "emoji": "🎲", "name": "Казино",
      "price": 120000, "daily_min": 4000, "daily_max": 5500,
      "desc": "Своё казино — мечта каждого. Высокий доход, высокий риск."},
-    {"id": "port",       "emoji": "🚢", "name": "Доля в порту",
+    {"id": "port",       "emoji": "⚓", "name": "Порт",
      "price": 200000, "daily_min": 6500, "daily_max": 9000,
-     "desc": "Купил долю в порту. Контейнеры идут — деньги капают."},
+     "desc": "Доля в порту. Контейнеры идут — деньги капают."},
 ]
 
 # События по бизнесам — срабатывают редко при сборе дохода
@@ -11732,6 +11805,26 @@ WORLD_PIER_R0  = 165; WORLD_PIER_R1  = 175
 WORLD_PIER_C0  = 36;  WORLD_PIER_C1  = 44
 WORLD_SHIP_R0  = 175; WORLD_SHIP_R1  = 185
 WORLD_SHIP_C0  = 28;  WORLD_SHIP_C1  = 56
+WORLD_PORT_CONTAINER_RECTS = []
+for _ri in range(2):
+    for _ci in range(4):
+        WORLD_PORT_CONTAINER_RECTS.append((
+            WORLD_SHIP_R0 + 4.5 + _ri * 1.4,
+            WORLD_SHIP_C0 + 6 + _ci * 5,
+            0.55, 1.3,
+        ))
+for _i in range(3):
+    WORLD_PORT_CONTAINER_RECTS.append((
+        WORLD_PIER_R0 + 1 + _i * 2.3,
+        WORLD_PIER_C0 + 1.5,
+        0.5, 1.1,
+    ))
+WORLD_PORT_CONTAINER_RECTS.append((WORLD_PIER_R1 - 1.2, WORLD_PIER_C1 - 1.4, 0.5, 1.1))
+
+
+def _world_port_container_wall(r: float, c: float) -> bool:
+    return any(abs(r-cr) <= h + 0.04 and abs(c-cc) <= w + 0.04
+               for cr, cc, h, w in WORLD_PORT_CONTAINER_RECTS)
 # ── Гоночный трек «Прибой» v2 — плавное кольцо в море, ОГИБАЕТ порт ──
 # Замкнутый Catmull-Rom сплайн; полотно не пересекает пирс/корабль.
 # Синхронно с TRACK_PTS/_buildTrackTiles в world.html (менять вместе!).
@@ -11875,6 +11968,8 @@ def _world_is_wall(r: int, c: int) -> bool:
     # ── Южная зона: пляж/вода/причал/палуба (r >= 140) ──
     # ДОЛЖНО совпадать с buildMap()-override'ом в world.html.
     if r >= 140:
+        if _world_port_container_wall(r + 0.5, c + 0.5):
+            return True
         if r < WORLD_BEACH_R1:
             return False  # песок (включая буфер 140-149) — проходим
         # На воде проходимы: причал (PIER), палуба корабля (SHIP) и
@@ -11942,6 +12037,15 @@ class WorldSim:
     Эмерджентные события: инкассатор (см. tick_event / apply_event_shoot).
     Wanted-система: за стрельбу по игрокам растут звёзды, спавнятся копы,
     при 3 звёздах копы могут убить → отправка в тюрьму."""
+    POLICE_STUN_S = 5.0
+    POLICE_ESCORT_S = 45.0
+    POLICE_JAIL_S = 30
+    POLICE_ARREST_REWARD = 700
+    POLICE_ARREST_EXP = 75
+    POLICE_ACTION_R = 2.15
+    POLICE_TASER_R = 7.5
+    POLICE_TASER_XP = 1000
+    POLICE_TASER_CD = 1.2
     __slots__ = (
         'tick_no', 'last_tick_at', 'players', 'connections',
         'alive', 'started_at',
@@ -12614,11 +12718,169 @@ class WorldSim:
             self.players[uid]['y'] = sy + random.uniform(-0.2, 0.2)
 
     def remove(self, uid: str) -> None:
+        # Онлайн-задержание никогда не превращается в плен после выхода копа:
+        # при disconnect наручники немедленно снимаются.
+        p = self.players.get(uid)
+        if p:
+            escorted_uid = str(p.get('_police_escort_uid') or '')
+            if escorted_uid:
+                self._release_online_arrest(escorted_uid, 'cop_left')
+            cop_uid = str(p.get('_police_cuffed_by') or '')
+            if cop_uid:
+                cop = self.players.get(cop_uid)
+                if cop:
+                    cop.pop('_police_escort_uid', None)
         self.players.pop(uid, None)
         self.connections.pop(uid, None)
         # Сессионные указатели не должны копиться после переподключений.
         self._last_dist_at.pop(str(uid), None)
         self._last_terr_at.pop(str(uid), None)
+
+    def _release_online_arrest(self, target_uid: str, reason: str = '') -> dict | None:
+        target = self.players.get(str(target_uid))
+        if not target:
+            return None
+        cop_uid = str(target.pop('_police_cuffed_by', '') or '')
+        target.pop('_police_cuff_until', None)
+        target.pop('_police_stunned_until', None)
+        if cop_uid:
+            cop = self.players.get(cop_uid)
+            if cop and str(cop.get('_police_escort_uid') or '') == str(target_uid):
+                cop.pop('_police_escort_uid', None)
+        return {'kind': 'police_online_released', 'target_uid': str(target_uid),
+                'cop_uid': cop_uid, 'reason': reason}
+
+    def _tick_online_arrests(self, now: float | None = None) -> list[dict]:
+        now = now or time.time()
+        events = []
+        for target_uid, target in list(self.players.items()):
+            cop_uid = str(target.get('_police_cuffed_by') or '')
+            if not cop_uid:
+                continue
+            cop = self.players.get(cop_uid)
+            reason = ''
+            if not cop or not cop.get('_police'):
+                reason = 'cop_left'
+            elif cop.get('dead'):
+                reason = 'cop_dead'
+            elif now >= float(target.get('_police_cuff_until') or 0):
+                reason = 'timeout'
+            elif target.get('dead'):
+                reason = 'target_dead'
+            if reason:
+                ev = self._release_online_arrest(target_uid, reason)
+                if ev: events.append(ev)
+                continue
+            # Сервер ведёт задержанного в 0.7 тайла позади копа. Сам задержанный
+            # не может удерживаться дольше лимита и освобождается при гибели копа.
+            ang = float(cop.get('ang') or 0)
+            target['x'] = float(cop['x']) - math.sin(ang) * .72
+            target['y'] = float(cop['y']) - math.cos(ang) * .72
+            target['ang'] = ang
+            target['walking'] = bool(cop.get('walking'))
+        return events
+
+    def police_select_online(self, cop_uid: str, target_uid: str) -> dict:
+        cop = self.players.get(str(cop_uid)); target = self.players.get(str(target_uid))
+        if not cop or not cop.get('_police'):
+            return {'ok': False, 'error': 'not_police'}
+        if not target or target.get('dead') or (target.get('_jail_until') or 0) > time.time():
+            return {'ok': False, 'error': 'not_online'}
+        if float(target.get('_wanted') or 0) < 1:
+            return {'ok': False, 'error': 'not_wanted'}
+        cop['_police_online_target'] = str(target_uid)
+        return {'ok': True, 'target_uid': str(target_uid), 'name': target.get('name') or 'Игрок'}
+
+    def police_stun_online(self, cop_uid: str, target_uid: str) -> dict:
+        cop = self.players.get(str(cop_uid)); target = self.players.get(str(target_uid))
+        now = time.time()
+        if not cop or not target or not cop.get('_police'):
+            return {'ok': False, 'error': 'not_police'}
+        if str(cop.get('_police_online_target') or '') != str(target_uid):
+            return {'ok': False, 'error': 'not_selected'}
+        if float(target.get('_wanted') or 0) < 1 or target.get('dead'):
+            return {'ok': False, 'error': 'not_wanted'}
+        if cop.get('_business_interior') or target.get('_business_interior'):
+            return {'ok': False, 'error': 'interior'}
+        if (cop['x']-target['x'])**2 + (cop['y']-target['y'])**2 > self.POLICE_ACTION_R**2:
+            return {'ok': False, 'error': 'too_far'}
+        if target.get('_police_cuffed_by'):
+            return {'ok': False, 'error': 'already_cuffed'}
+        target['_police_stunned_until'] = now + self.POLICE_STUN_S
+        return {'ok': True, 'target_uid': str(target_uid), 'until': now + self.POLICE_STUN_S}
+
+    def police_taser_online(self, cop_uid: str, target_uid: str) -> dict:
+        cop = self.players.get(str(cop_uid)); target = self.players.get(str(target_uid))
+        now = time.time()
+        if not cop or not target or not cop.get('_police'):
+            return {'ok': False, 'error': 'not_police'}
+        if int(cop.get('_police_xp') or 0) < self.POLICE_TASER_XP:
+            return {'ok': False, 'error': 'taser_locked'}
+        if str(cop.get('_police_online_target') or '') != str(target_uid):
+            return {'ok': False, 'error': 'not_selected'}
+        if float(target.get('_wanted') or 0) < 1 or target.get('dead'):
+            return {'ok': False, 'error': 'not_wanted'}
+        if cop.get('_business_interior') or target.get('_business_interior'):
+            return {'ok': False, 'error': 'interior'}
+        if (cop['x']-target['x'])**2 + (cop['y']-target['y'])**2 > self.POLICE_TASER_R**2:
+            return {'ok': False, 'error': 'too_far'}
+        if now-float(cop.get('_police_taser_at') or 0) < self.POLICE_TASER_CD:
+            return {'ok': False, 'error': 'cooldown'}
+        if target.get('_police_cuffed_by'):
+            return {'ok': False, 'error': 'already_cuffed'}
+        cop['_police_taser_at'] = now
+        target['_police_stunned_until'] = now + self.POLICE_STUN_S
+        return {'ok': True, 'target_uid': str(target_uid), 'until': now + self.POLICE_STUN_S}
+
+    def police_cuff_online(self, cop_uid: str, target_uid: str) -> dict:
+        cop = self.players.get(str(cop_uid)); target = self.players.get(str(target_uid))
+        now = time.time()
+        if not cop or not target or not cop.get('_police'):
+            return {'ok': False, 'error': 'not_police'}
+        if str(cop.get('_police_online_target') or '') != str(target_uid):
+            return {'ok': False, 'error': 'not_selected'}
+        if cop.get('_police_escort_uid'):
+            return {'ok': False, 'error': 'already_escorting'}
+        if float(target.get('_wanted') or 0) < 1 or target.get('dead'):
+            return {'ok': False, 'error': 'not_wanted'}
+        if cop.get('_business_interior') or target.get('_business_interior'):
+            return {'ok': False, 'error': 'interior'}
+        if target.get('_police_cuffed_by'):
+            return {'ok': False, 'error': 'already_cuffed'}
+        if float(target.get('_police_stunned_until') or 0) < now:
+            return {'ok': False, 'error': 'not_stunned'}
+        if (cop['x']-target['x'])**2 + (cop['y']-target['y'])**2 > self.POLICE_ACTION_R**2:
+            return {'ok': False, 'error': 'too_far'}
+        target['_police_cuffed_by'] = str(cop_uid)
+        target['_police_cuff_until'] = now + self.POLICE_ESCORT_S
+        cop['_police_escort_uid'] = str(target_uid)
+        return {'ok': True, 'target_uid': str(target_uid),
+                'cop_uid': str(cop_uid), 'until': now + self.POLICE_ESCORT_S}
+
+    def police_turnin_online(self, cop_uid: str) -> dict:
+        cop = self.players.get(str(cop_uid))
+        if not cop or not cop.get('_police'):
+            return {'ok': False, 'error': 'not_police'}
+        target_uid = str(cop.get('_police_escort_uid') or '')
+        target = self.players.get(target_uid)
+        if not target or str(target.get('_police_cuffed_by') or '') != str(cop_uid):
+            return {'ok': False, 'error': 'no_escort'}
+        # Участок и тюремный двор находятся у 76,76. Сдать из любой точки нельзя.
+        if (float(cop['x'])-76.0)**2 + (float(cop['y'])-76.0)**2 > 5.2**2:
+            return {'ok': False, 'error': 'not_at_station'}
+        now = time.time()
+        target['_wanted'] = 0.0
+        target['_jail_until'] = int(now + self.POLICE_JAIL_S)
+        target['_jail_released'] = False
+        target['dead'] = False
+        target['hp'] = max(1, int(target.get('hp') or 100))
+        sx, sy = random.choice(self.JAIL_SPAWNS)
+        target['x'], target['y'] = sx, sy
+        self._release_online_arrest(target_uid, 'jailed')
+        cop.pop('_police_online_target', None)
+        return {'ok': True, 'target_uid': target_uid,
+                'target_name': target.get('name') or 'Игрок',
+                'jail_until': target['_jail_until']}
 
     def apply_input(self, uid: str, d: dict) -> None:
         """Клиент шлёт свою предполагаемую позицию. Phase 1: верим (без
@@ -12632,6 +12894,57 @@ class WorldSim:
         # «после респа стою на месте, потом отбрасывает назад».
         if p.get('dead'):
             return
+        if p.get('_police_cuffed_by'):
+            # Позицию задержанного задаёт серверный конвой. Клиентские x/y
+            # игнорируются, но соединение считаем живым.
+            p['last_seen'] = time.time()
+            p['_input_t'] = time.time()
+            return
+        p['_police'] = bool(d.get('police', False))
+        escort = d.get('police_escort') if isinstance(d.get('police_escort'), dict) else None
+        if escort:
+            try:
+                p['_police_escort'] = {
+                    'r': max(0.0, min(120.0, float(escort.get('r', 0)))),
+                    'c': max(0.0, min(120.0, float(escort.get('c', 0)))),
+                    'ang': float(escort.get('ang', 0)),
+                    'name': str(escort.get('name') or 'Задержанный')[:32],
+                    'look': escort.get('look') if isinstance(escort.get('look'), dict) else {},
+                    'waiting': bool(escort.get('waiting')),
+                }
+            except (TypeError, ValueError):
+                p['_police_escort'] = None
+        else:
+            p['_police_escort'] = None
+        interior = d.get('interior') if isinstance(d.get('interior'), dict) else None
+        biz_id = str((interior or {}).get('biz_id') or '').strip()[:32]
+        if (interior or {}).get('kind') == 'business' and biz_id:
+            # Координаты внутри комнаты не являются координатами мира. Храним
+            # их отдельно, а мировую позицию оставляем у двери бизнеса.
+            try:
+                p['_interior_x'] = max(0.0, min(60.0, float(d.get('x', 0))))
+                p['_interior_y'] = max(0.0, min(60.0, float(d.get('y', 0))))
+                p['ang'] = float(d.get('ang', p.get('ang', 0.0)))
+                p['walking'] = bool(d.get('w', False))
+            except Exception:
+                return
+            p['_business_interior'] = biz_id
+            # Клиент не может сам объявить помещение закрытым: собственность
+            # проверяется по серверному кешу, загруженному из БД.
+            p['_business_private'] = biz_id in (p.get('_owned_biz') or set())
+            p['_in_interior'] = True
+            p['_in_interior_until'] = time.time() + 30.0
+            p['_input_t'] = time.time()
+            p['last_seen'] = time.time()
+            p['_weapon'] = str(d.get('weapon') or p.get('_weapon') or 'pistol')[:32]
+            return
+        if p.get('_business_interior'):
+            p.pop('_business_interior', None)
+            p.pop('_business_private', None)
+            p.pop('_interior_x', None)
+            p.pop('_interior_y', None)
+            p['_in_interior'] = False
+            p['_in_interior_until'] = 0
         try:
             nx = float(d.get('x', p['x']))
             ny = float(d.get('y', p['y']))
@@ -12667,6 +12980,7 @@ class WorldSim:
         try:
             p['ang']     = float(d.get('ang', p['ang']))
             p['walking'] = bool(d.get('w', False))
+            p['_weapon'] = str(d.get('weapon') or p.get('_weapon') or 'pistol')[:32]
         except Exception:
             pass
         p['last_seen'] = now
@@ -13744,6 +14058,11 @@ class WorldSim:
             return None
         if shooter.get('dead') or target.get('dead'):
             return None
+        # Задержанный под серверным конвоем неуязвим для игроков: друзья не
+        # могут сорвать доставку расстрелом, а коп не использует наручники как
+        # способ подставить жертву. Защита исчезает вместе с наручниками.
+        if target.get('_police_cuffed_by'):
+            return None
         if str(uid) == str(target_uid):
             return None
         # PvE-наблюдатели не могут стрелять и в них не попадают
@@ -13988,6 +14307,8 @@ class WorldSim:
                 continue
             if (p.get('_jail_until') or 0) > now:
                 continue
+            if p.get('_police_cuffed_by'):
+                continue
             if self._in_lair_zone(p.get('x', 0), p.get('y', 0)):
                 continue   # копы не лезут в Логово
             # Игрок внутри интерьера (банк) — он физически в банк-комнате,
@@ -14025,7 +14346,7 @@ class WorldSim:
                         continue
             # Если target пропал или ушёл в тюрьму — переназначаем на
             # ближайший wanted с уровнем >= уровня этого копа.
-            if not t or t.get('dead') or (t.get('_jail_until') or 0) > now or cur_lvl < 1:
+            if not t or t.get('dead') or t.get('_police_cuffed_by') or (t.get('_jail_until') or 0) > now or cur_lvl < 1:
                 matching = [(p, lv) for (p, lv) in wanted_targets
                             if cop.get('kind') == 'patrol' or lv >= 2]
                 if matching:
@@ -16672,24 +16993,41 @@ class WorldSim:
 
     def snapshot_for(self, uid: str) -> dict:
         """Снапшот для конкретного игрока: видит себя точно + всех в радиусе."""
+        self._tick_online_arrests()
         me = self.players.get(uid)
         if not me:
             return {'t': 'snap', 'd': {'me': None, 'others': []}}
         mx, my = me['x'], me['y']
+        me_biz = str(me.get('_business_interior') or '')
+        me_private = bool(me.get('_business_private'))
         others = []
         for other_uid, p in self.players.items():
             if other_uid == uid:
                 continue
-            dx = p['x'] - mx; dy = p['y'] - my
-            if (dx*dx + dy*dy) > WORLD_VIEW_R * WORLD_VIEW_R:
-                continue
+            other_biz = str(p.get('_business_interior') or '')
+            other_private = bool(p.get('_business_private'))
+            if me_biz:
+                # Закрытый экземпляр владельца всегда пуст. Общий экземпляр
+                # видит только невладельцев внутри того же самого бизнеса.
+                if me_private or other_biz != me_biz or other_private:
+                    continue
+                ox = float(p.get('_interior_x') or 0)
+                oy = float(p.get('_interior_y') or 0)
+            else:
+                # Игроки внутри любого бизнеса не остаются видимыми на улице.
+                if other_biz:
+                    continue
+                ox, oy = p['x'], p['y']
+                dx = ox - mx; dy = oy - my
+                if (dx*dx + dy*dy) > WORLD_VIEW_R * WORLD_VIEW_R:
+                    continue
             jail_left = max(0, int(round((p.get('_jail_until') or 0) - time.time())))
             others.append({
                 'uid':  other_uid,
                 'name': p['name'],
                 'look': p['look'],
-                'x':    round(p['x'], 2),
-                'y':    round(p['y'], 2),
+                'x':    round(ox, 2),
+                'y':    round(oy, 2),
                 'ang':  round(p['ang'], 2),
                 'w':    bool(p.get('walking')),
                 # Чат-баббл живёт до 16с (длинные сообщения дольше). Точная
@@ -16704,6 +17042,13 @@ class WorldSim:
                 'gangs':  int(min(3, p.get('_wanted_gangs') or 0)),
                 'mode':   p.get('_mode') or 'pvp',
                 'jail_in': jail_left,
+                'weapon': p.get('_weapon') or 'pistol',
+                'police': bool(p.get('_police')),
+                'police_cuffed': bool(p.get('_police_cuffed_by')),
+                'police_stunned_in': max(0.0, float(p.get('_police_stunned_until') or 0) - time.time()),
+                'police_escort': p.get('_police_escort'),
+                'interior': ({'kind': 'business', 'biz_id': other_biz,
+                              'private': other_private} if other_biz else None),
             })
         # Активное эмерджентное событие (инкассатор + эскорт) — шлём
         # всем клиентам одинаково, независимо от радиуса. Карта 60×60 —
@@ -16756,6 +17101,43 @@ class WorldSim:
         # Wanted-звёзды (0..3 целое — для UI), сколько до выхода из тюрьмы
         my_wanted   = int(min(3, round(me.get('_wanted') or 0)))
         my_jail_in  = max(0, int(round((me.get('_jail_until') or 0) - now_t)))
+        rewarded = {str(x) for x in (me.get('_police_rewarded') or set())}
+        wanted_board = []
+        if me.get('_police'):
+            for target_uid, target in self.players.items():
+                if str(target_uid) == str(uid) or target.get('dead'):
+                    continue
+                level = int(min(3, round(target.get('_wanted') or 0)))
+                if level < 1 or (target.get('_jail_until') or 0) > now_t:
+                    continue
+                wanted_board.append({
+                    'uid': str(target_uid),
+                    'name': (target.get('name') or 'Игрок')[:24],
+                    'wanted': level,
+                    'x': round(float(target.get('x') or 0), 1),
+                    'y': round(float(target.get('y') or 0), 1),
+                    'selected': str(me.get('_police_online_target') or '') == str(target_uid),
+                    'detained': bool(target.get('_police_cuffed_by')),
+                    'first_reward': str(target_uid) not in rewarded,
+                })
+            wanted_board.sort(key=lambda q: (-q['wanted'], q['name']))
+        cuffed_by = str(me.get('_police_cuffed_by') or '')
+        my_police_arrest = None
+        if cuffed_by:
+            cop = self.players.get(cuffed_by) or {}
+            my_police_arrest = {
+                'role': 'detainee', 'cop_uid': cuffed_by,
+                'cop_name': cop.get('name') or 'Полицейский',
+                'left': max(0, int(round(float(me.get('_police_cuff_until') or 0) - now_t))),
+            }
+        elif me.get('_police_escort_uid'):
+            target_uid = str(me.get('_police_escort_uid'))
+            target = self.players.get(target_uid) or {}
+            my_police_arrest = {
+                'role': 'cop', 'target_uid': target_uid,
+                'target_name': target.get('name') or 'Задержанный',
+                'left': max(0, int(round(float(target.get('_police_cuff_until') or 0) - now_t))),
+            }
         # Шлём ВСЕ живые копы всем клиентам (карта 60×60, их 0..8)
         cops_payload = []
         for cop in self.cops:
@@ -17074,8 +17456,12 @@ class WorldSim:
                     'terr_cd':  my_terr_cd,
                     'cash':     int(me.get('_cash') or 0),
                     'diamonds': int(me.get('_diamonds') or 0),
+                    'police_xp': int(me.get('_police_xp') or 0),
+                    'police_stunned_in': max(0.0, float(me.get('_police_stunned_until') or 0) - now_t),
+                    'police_arrest': my_police_arrest,
                 },
                 'others':        others,
+                'wanted_board':  wanted_board,
                 'event':         ev_payload,
                 'cops':          cops_payload,
                 'next_event_in': next_event_in,
@@ -18348,6 +18734,7 @@ async def _coop_http_app():
             uid = int(req.match_info['uid'])
         except Exception:
             return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        said = await settle_said_salary(uid)
         char = await get_character(uid)
         if not char:
             return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
@@ -18389,7 +18776,69 @@ async def _coop_http_app():
             'ok': True,
             'businesses': catalog,
             'cash':       char.get('cash') or 0,
+            'said':       said,
         }))
+
+    async def h_said_hire(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        now = int(time.time())
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute('BEGIN IMMEDIATE')
+            async with db.execute(
+                "SELECT COUNT(*) AS n FROM player_businesses WHERE telegram_id=?", (uid,)
+            ) as cur:
+                owned = int((await cur.fetchone())['n'])
+            if owned <= 0:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'no business'}))
+            async with db.execute(
+                "SELECT 1 FROM business_assistants WHERE telegram_id=?", (uid,)
+            ) as cur:
+                already_hired = await cur.fetchone()
+            if already_hired:
+                await db.rollback()
+                state = await settle_said_salary(uid)
+                return await _cors(web.json_response({'ok': True, 'said': state, 'cash': state['cash']}))
+            debit = await db.execute(
+                "UPDATE characters SET cash=cash-? WHERE telegram_id=? AND cash>=?",
+                (SAID_DAILY_SALARY, uid, SAID_DAILY_SALARY)
+            )
+            if debit.rowcount != 1:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'no cash'}))
+            paid_until = now + SAID_SALARY_PERIOD
+            await db.execute(
+                "INSERT INTO business_assistants (telegram_id,hired_at,salary_paid_until) VALUES (?,?,?)",
+                (uid, now, paid_until)
+            )
+            async with db.execute("SELECT cash FROM characters WHERE telegram_id=?", (uid,)) as cur:
+                cash = int((await cur.fetchone())['cash'])
+            await db.commit()
+        state = {'hired': True, 'salary': SAID_DAILY_SALARY, 'hired_at': now,
+                 'next_salary_at': paid_until, 'salary_charged': SAID_DAILY_SALARY,
+                 'auto_fired': False, 'cash': cash}
+        return await _cors(web.json_response({'ok': True, 'said': state, 'cash': cash}))
+
+    async def h_said_fire(req):
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute('BEGIN IMMEDIATE')
+            await db.execute("DELETE FROM business_assistants WHERE telegram_id=?", (uid,))
+            async with db.execute("SELECT cash FROM characters WHERE telegram_id=?", (uid,)) as cur:
+                row = await cur.fetchone()
+            cash = int(row['cash']) if row else 0
+            await db.commit()
+        state = {'hired': False, 'salary': SAID_DAILY_SALARY, 'hired_at': 0,
+                 'next_salary_at': 0, 'salary_charged': 0, 'auto_fired': False, 'cash': cash}
+        return await _cors(web.json_response({'ok': True, 'said': state, 'cash': cash}))
 
     async def h_biz_buy(req):
         try:
@@ -18407,24 +18856,35 @@ async def _coop_http_app():
         char = await get_character(uid)
         if not char:
             return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
-        cash = char.get('cash') or 0
-        if cash < biz['price']:
-            return await _cors(web.json_response({'ok': False, 'error': 'no cash'}))
         now = int(time.time())
         async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            # Списание и выдача собственности — одна транзакция. При любой
+            # ошибке нельзя получить состояние «деньги ушли, бизнеса нет».
+            await db.execute('BEGIN IMMEDIATE')
             async with db.execute(
                 "SELECT 1 FROM player_businesses WHERE telegram_id=? AND biz_id=?", (uid, biz_id)
             ) as cur:
                 already = await cur.fetchone()
             if already:
+                await db.rollback()
                 return await _cors(web.json_response({'ok': False, 'error': 'already owned'}))
+            debit = await db.execute(
+                "UPDATE characters SET cash=cash-? WHERE telegram_id=? AND cash>=?",
+                (biz['price'], uid, biz['price'])
+            )
+            if debit.rowcount != 1:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'no cash'}))
             await db.execute(
                 "INSERT INTO player_businesses (telegram_id, biz_id, bought_at, last_collect, status, blocked_until, last_event_at) "
                 "VALUES (?, ?, ?, ?, 'ok', 0, 0)",
                 (uid, biz_id, now, now)
             )
+            async with db.execute("SELECT cash FROM characters WHERE telegram_id=?", (uid,)) as cur:
+                cash_row = await cur.fetchone()
+            new_cash = int(cash_row['cash'])
             await db.commit()
-        await update_character(uid, cash=cash - biz['price'])
         # Обновляем in-memory кеш владений в WorldSim — чтобы set_respawn_point
         # и tick_respawn узнали о покупке сразу, без переподключения к WS.
         try:
@@ -18436,7 +18896,7 @@ async def _coop_http_app():
                     p_ref['_owned_biz'].add(biz_id)
         except Exception:
             pass
-        return await _cors(web.json_response({'ok': True, 'cash': cash - biz['price']}))
+        return await _cors(web.json_response({'ok': True, 'cash': new_cash}))
 
     async def h_biz_upgrade(req):
         try:
@@ -18508,6 +18968,10 @@ async def _coop_http_app():
         except Exception:
             b = {}
         biz_id_filter = str(b.get('biz_id', '')).strip() or None
+        if not biz_id_filter:
+            said = await settle_said_salary(uid)
+            if not said.get('hired'):
+                return await _cors(web.json_response({'ok': False, 'error': 'said not hired'}))
         char = await get_character(uid)
         if not char:
             return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
@@ -18516,6 +18980,9 @@ async def _coop_http_app():
         events_fired = []
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
+            # Снятие кассы и зачисление игроку — одна транзакция. Иначе при
+            # обрыве между двумя записями касса уже обнулена, а деньги потеряны.
+            await db.execute('BEGIN IMMEDIATE')
             q = "SELECT * FROM player_businesses WHERE telegram_id=?"
             args = [uid]
             if biz_id_filter:
@@ -18570,12 +19037,22 @@ async def _coop_http_app():
                      now if event else last_ev,
                      uid, row['biz_id'])
                 )
+            if total > 0:
+                credit = await db.execute(
+                    "UPDATE characters SET cash=cash+? WHERE telegram_id=?",
+                    (total, uid)
+                )
+                if credit.rowcount != 1:
+                    await db.rollback()
+                    return await _cors(web.json_response(
+                        {'ok': False, 'error': 'no character'}, status=404
+                    ))
+            async with db.execute(
+                "SELECT cash FROM characters WHERE telegram_id=?", (uid,)
+            ) as cur:
+                cash_row = await cur.fetchone()
+            cur_cash = int(cash_row['cash']) if cash_row else int(char.get('cash') or 0)
             await db.commit()
-        if total > 0:
-            cur_cash = (char.get('cash') or 0) + total
-            await update_character(uid, cash=cur_cash)
-        else:
-            cur_cash = char.get('cash') or 0
         return await _cors(web.json_response({
             'ok':         True,
             'collected':  total,
@@ -19425,9 +19902,19 @@ async def _coop_http_app():
             try:
                 p_ref['_cash']     = int(char.get('cash') or 0)
                 p_ref['_diamonds'] = int(char.get('diamonds') or 0)
+                p_ref['_police_xp'] = int(char.get('police_xp') or 0)
             except Exception:
                 p_ref['_cash'] = p_ref.get('_cash', 0)
                 p_ref['_diamonds'] = p_ref.get('_diamonds', 0)
+                p_ref['_police_xp'] = p_ref.get('_police_xp', 0)
+            p_ref['_police_npc_rewards'] = set()
+            try:
+                async with aiosqlite.connect(DB_PATH) as db:
+                    async with db.execute(
+                        "SELECT target_uid FROM police_online_rewards") as cur:
+                        p_ref['_police_rewarded'] = {str(row[0]) for row in await cur.fetchall()}
+            except Exception:
+                p_ref['_police_rewarded'] = set()
             # Подгружаем выбранную точку респавна + список купленных бизнесов
             # из БД, чтобы tick_respawn мог проверять без I/O в каждой итерации.
             try:
@@ -19555,6 +20042,102 @@ async def _coop_http_app():
                             kill_blob = json.dumps({'t': 'event', 'd': kill_pkt}, ensure_ascii=False)
                             for u2, ws2 in list(world.connections.items()):
                                 try: await ws2.send_str(kill_blob)
+                                except Exception: pass
+                    elif t in ('police_xp_sync', 'police_npc_reward', 'police_resign'):
+                        p_ref = world.players.get(uid)
+                        reply = {'kind': 'police_xp_reply', 'ok': False, 'error': 'not_police'}
+                        try:
+                            cop_char = await get_character(int(uid))
+                            current_xp = int((cop_char or {}).get('police_xp') or 0)
+                            if t == 'police_resign':
+                                new_police_xp = 0
+                                await update_character(int(uid), police_xp=0)
+                                reply = {'kind':'police_xp_reply','ok':True,'resigned':True,'police_xp':0}
+                            elif t == 'police_xp_sync':
+                                # Одноразово переносим старый локальный прогресс в БД, не уменьшая серверный.
+                                requested = max(0, min(1000, int(d.get('xp') or 0)))
+                                new_police_xp = min(1000, max(current_xp, requested))
+                                if new_police_xp != current_xp:
+                                    await update_character(int(uid), police_xp=new_police_xp)
+                                reply = {'kind':'police_xp_reply','ok':True,'police_xp':new_police_xp}
+                            else:
+                                mission_id = str(d.get('mission_id') or '')[:96]
+                                xp_gain = int(d.get('xp') or 0)
+                                rewarded = p_ref.setdefault('_police_npc_rewards', set()) if p_ref else set()
+                                if p_ref and p_ref.get('_police') and mission_id and xp_gain in (65, 180) and mission_id not in rewarded:
+                                    rewarded.add(mission_id)
+                                    new_police_xp = min(1000, current_xp + xp_gain)
+                                    await update_character(int(uid), police_xp=new_police_xp)
+                                    reply = {'kind':'police_xp_reply','ok':True,'police_xp':new_police_xp}
+                                else:
+                                    new_police_xp = current_xp
+                            if p_ref:
+                                p_ref['_police_xp'] = new_police_xp
+                        except Exception as exc:
+                            logger.warning('police career persistence failed: %r', exc)
+                            reply = {'kind':'police_xp_reply','ok':False,'error':'storage'}
+                        try: await ws.send_str(json.dumps({'t':'event','d':reply}, ensure_ascii=False))
+                        except Exception: pass
+                    elif t in ('police_online_select', 'police_online_stun', 'police_online_taser',
+                               'police_online_cuff', 'police_online_turnin'):
+                        if t == 'police_online_select':
+                            reply = world.police_select_online(uid, str(d.get('target_uid') or ''))
+                        elif t == 'police_online_stun':
+                            reply = world.police_stun_online(uid, str(d.get('target_uid') or ''))
+                        elif t == 'police_online_taser':
+                            reply = world.police_taser_online(uid, str(d.get('target_uid') or ''))
+                        elif t == 'police_online_cuff':
+                            reply = world.police_cuff_online(uid, str(d.get('target_uid') or ''))
+                        else:
+                            reply = world.police_turnin_online(uid)
+                            if reply.get('ok'):
+                                target_uid = str(reply.get('target_uid') or '')
+                                first_reward = False
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        cur = await db.execute(
+                                            "INSERT OR IGNORE INTO police_online_rewards(cop_uid,target_uid,arrested_at) VALUES(?,?,?)",
+                                            (int(uid), int(target_uid), int(time.time())))
+                                        first_reward = cur.rowcount > 0
+                                        await db.commit()
+                                    await update_character(int(target_uid), wanted_stars=0,
+                                                           jail_until=int(reply['jail_until']))
+                                    cop_char = await get_character(int(uid))
+                                    new_police_xp = int((cop_char or {}).get('police_xp') or 0)
+                                    if cop_char:
+                                        new_police_xp = min(1000, new_police_xp + world.POLICE_ARREST_EXP)
+                                        update_fields = {'police_xp': new_police_xp}
+                                        if first_reward:
+                                            new_cash = int(cop_char.get('cash') or 0) + world.POLICE_ARREST_REWARD
+                                            new_exp = int(cop_char.get('exp') or 0) + world.POLICE_ARREST_EXP
+                                            update_fields.update(cash=new_cash, exp=new_exp)
+                                        await update_character(int(uid), **update_fields)
+                                        cop_p = world.players.get(uid)
+                                        if cop_p:
+                                            cop_p['_police_xp'] = new_police_xp
+                                            if first_reward:
+                                                cop_p['_cash'] = new_cash
+                                                cop_p.setdefault('_police_rewarded', set()).add(target_uid)
+                                    reply['first_reward'] = first_reward
+                                    reply['cash'] = world.POLICE_ARREST_REWARD if first_reward else 0
+                                    reply['exp'] = world.POLICE_ARREST_EXP if first_reward else 0
+                                    reply['police_xp_gain'] = world.POLICE_ARREST_EXP
+                                    reply['police_xp'] = new_police_xp
+                                except Exception as exc:
+                                    logger.warning('online police arrest persistence failed: %r', exc)
+                                    reply = {'ok': False, 'error': 'storage'}
+                        reply['kind'] = t + '_reply'
+                        direct = json.dumps({'t': 'event', 'd': reply}, ensure_ascii=False)
+                        try: await ws.send_str(direct)
+                        except Exception: pass
+                        # Оглушение/наручники/сдачу должны сразу увидеть оба клиента.
+                        if reply.get('ok'):
+                            event = dict(reply)
+                            event['kind'] = t.replace('_online_', '_online_')
+                            blob = json.dumps({'t': 'event', 'd': event}, ensure_ascii=False)
+                            for u2, ws2 in list(world.connections.items()):
+                                if ws2 is ws: continue
+                                try: await ws2.send_str(blob)
                                 except Exception: pass
                     elif t == 'player_shoot':
                         # PvP: игрок стреляет в другого игрока. Работает только
@@ -21172,6 +21755,8 @@ async def _coop_http_app():
     aio_app.router.add_post('/biz/{uid}/buy',      h_biz_buy)
     aio_app.router.add_post('/biz/{uid}/upgrade',  h_biz_upgrade)
     aio_app.router.add_post('/biz/{uid}/collect',  h_biz_collect)
+    aio_app.router.add_post('/biz/{uid}/said/hire', h_said_hire)
+    aio_app.router.add_post('/biz/{uid}/said/fire', h_said_fire)
     aio_app.router.add_post('/biz/{uid}/restore',  h_biz_restore)
     aio_app.router.add_get ('/apartment/{uid}/state',   h_apartment_state)
     aio_app.router.add_post('/apartment/{uid}/buy',     h_apartment_buy)
