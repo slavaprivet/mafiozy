@@ -12921,25 +12921,57 @@ class WorldSim:
             return {'ok': False, 'error': 'not_police'}
         if cop.get('dead') or cop.get('_business_interior'):
             return {'ok': False, 'error': 'interior' if cop.get('_business_interior') else 'dead'}
+        cooldown_left = 180 - (time.time() - float(cop.get('_police_patrol_called_at') or 0))
+        if cooldown_left > 0:
+            return {'ok': False, 'error': 'cooldown', 'cooldown_left': round(cooldown_left, 1)}
         for car in self.quest_cars.values():
-            if car.get('police_patrol') and str(car.get('owner_uid') or '') == str(uid) and not car.get('wrecked'):
-                return {'ok': False, 'error': 'already_spawned', 'car_id': car.get('id')}
             if str(car.get('driver_uid') or '') == str(uid):
                 return {'ok': False, 'error': 'already_driving'}
+        # Вызов не создаёт личный автомобиль. Если рядом уже есть свободная
+        # служебная машина, диспетчер просто отмечает её для копа.
+        free = [car for car in self.quest_cars.values()
+                if car.get('police_patrol') and not car.get('police_stolen')
+                and not car.get('driver_uid') and not car.get('wrecked')]
+        if free:
+            nearest = min(free, key=lambda car: (float(car.get('x') or 0) - float(cop.get('x') or 0)) ** 2
+                                             + (float(car.get('y') or 0) - float(cop.get('y') or 0)) ** 2)
+            if (float(nearest.get('x') or 0) - float(cop.get('x') or 0)) ** 2 + \
+               (float(nearest.get('y') or 0) - float(cop.get('y') or 0)) ** 2 <= 18 ** 2:
+                cop['_police_patrol_called_at'] = time.time()
+                return {'ok': True, 'existing': True, 'car_id': nearest['id'],
+                        'x': nearest['x'], 'y': nearest['y']}
         cid = f'police_patrol_{self._quest_car_next_id}'
         self._quest_car_next_id += 1
         ang = float(cop.get('ang') or 0.0)
         x = max(0.5, min(WORLD_MAP_COLS - 0.5, float(cop.get('x') or 1) + math.cos(ang) * 1.8))
         y = max(0.5, min(WORLD_MAP_ROWS - 0.5, float(cop.get('y') or 1) + math.sin(ang) * 1.8))
         self.quest_cars[cid] = {
-            'id': cid, 'model': 'cruiser', 'owner_uid': str(uid), 'driver_uid': None,
+            'id': cid, 'model': 'cruiser', 'owner_uid': None, 'driver_uid': None,
             'passenger_uids': [], 'x': x, 'y': y, 'ang': ang, 'vx': 0.0, 'vy': 0.0,
             'hp': 350, 'max_hp': 350, 'reward': 0, 'lock_lvl': 0, 'state': 'idle',
             'wrecked': False, 'civilian': True, 'police_patrol': True,
-            'police_stolen': False,
+            'police_stolen': False, 'siren': False, 'tires_punctured': False,
+            'called_patrol': True, 'expires_at': time.time() + 60,
             '_spawn_t': time.time(), '_last_drive_t': 0.0,
         }
+        cop['_police_patrol_called_at'] = time.time()
         return {'ok': True, 'car_id': cid, 'x': x, 'y': y}
+
+    def gta_siren(self, uid: str, car_id: str, enabled) -> dict:
+        qc = self.quest_cars.get(car_id)
+        if not qc or qc.get('wrecked'):
+            return {'ok': False, 'reason': 'gone', 'car_id': car_id}
+        if not qc.get('police_patrol') or str(qc.get('driver_uid') or '') != str(uid):
+            return {'ok': False, 'reason': 'police_only', 'car_id': car_id}
+        qc['siren'] = bool(enabled)
+        return {'ok': True, 'car_id': car_id, 'siren': bool(qc['siren'])}
+
+    def gta_puncture_tires(self, uid: str, car_id: str) -> dict:
+        qc = self.quest_cars.get(car_id)
+        if not qc or qc.get('wrecked') or str(qc.get('driver_uid') or '') != str(uid):
+            return {'ok': False, 'reason': 'not_driver', 'car_id': car_id}
+        qc['tires_punctured'] = True
+        return {'ok': True, 'car_id': car_id, 'tires_punctured': True}
 
     def police_deploy_spikes(self, uid: str) -> dict:
         cop = self.players.get(str(uid)); now = time.time()
@@ -13459,8 +13491,9 @@ class WorldSim:
             return None
         # Кламп скорости и позиции
         speed = (vx*vx + vy*vy) ** 0.5
-        if speed > self.QUEST_CAR_MAX_SPEED:
-            k = self.QUEST_CAR_MAX_SPEED / speed
+        max_speed = self.QUEST_CAR_MAX_SPEED * (0.42 if qc.get('tires_punctured') else 1.0)
+        if speed > max_speed:
+            k = max_speed / speed
             vx *= k; vy *= k
         x = max(0.5, min(WORLD_MAP_COLS - 0.5, x))
         y = max(0.5, min(WORLD_MAP_ROWS - 0.5, y))
@@ -13552,6 +13585,9 @@ class WorldSim:
         if qc.get('driver_uid') != uid:
             return {'ok': False, 'reason': 'not_driver'}
         qc['driver_uid']     = None
+        if qc.get('police_patrol') and not qc.get('police_stolen'):
+            qc['owner_uid'] = None
+            qc['siren'] = False
         qc['vx'] = 0.0; qc['vy'] = 0.0
         qc['state'] = 'idle'
         # Отсчёт жизни брошенной машины начинается именно с высадки, а не с
@@ -13675,6 +13711,8 @@ class WorldSim:
         to_drop = []
         for cid, qc in self.quest_cars.items():
             age = now - qc.get('_spawn_t', now)
+            if qc.get('called_patrol') and now >= float(qc.get('expires_at') or 0):
+                to_drop.append(cid); continue
             last_drive = qc.get('_last_drive_t', 0)
             driver = qc.get('driver_uid')
             if qc.get('wrecked') and (now - qc.get('_wrecked_at', now)) > 10:
@@ -17833,6 +17871,10 @@ class WorldSim:
                 'civilian':   bool(qc.get('civilian', False)),
                 'police_patrol': bool(qc.get('police_patrol', False)),
                 'police_stolen': bool(qc.get('police_stolen', False)),
+                'siren': bool(qc.get('siren', False)),
+                'tires_punctured': bool(qc.get('tires_punctured', False)),
+                'called_patrol': bool(qc.get('called_patrol', False)),
+                'expires_at': float(qc.get('expires_at') or 0),
             })
         world_c4_payload = [{
             'id': str(q.get('id') or charge_id),
@@ -21843,6 +21885,16 @@ async def _coop_http_app():
                         world.gta_drive(uid, str(d.get('car_id') or ''),
                                         d.get('x'), d.get('y'),
                                         d.get('ang'), d.get('vx'), d.get('vy'))
+                    elif t in ('gta_siren', 'gta_tires_punctured'):
+                        if t == 'gta_siren':
+                            reply = world.gta_siren(uid, str(d.get('car_id') or ''), d.get('enabled'))
+                        else:
+                            reply = world.gta_puncture_tires(uid, str(d.get('car_id') or ''))
+                        if reply.get('ok'):
+                            pkt = json.dumps({'t': 'event', 'd': dict(reply, kind=t)}, ensure_ascii=False)
+                            for _u2, _ws2 in list(world.connections.items()):
+                                try: await _ws2.send_str(pkt)
+                                except Exception: pass
                     elif t == 'gang_dmg':
                         # Бандиты стреляют по игроку с кулачками. Урон применяем
                         # авторитативно — только если у игрока действительно
