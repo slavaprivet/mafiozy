@@ -688,6 +688,8 @@ body.in-pvp #robActionBtn { top: 152px; }
 #stealthBtn .baton:after{content:'';position:absolute;width:14px;height:8px;border-radius:5px;background:#111820;border:1px solid #7d94a5;left:-3px;bottom:4px}
 #stealthBtn .baton-hit{position:absolute;color:#ffe45b;font:900 21px system-ui;right:-4px;top:-8px;text-shadow:0 0 8px #ffb300;transform:rotate(-12deg)}
 #stealthBtn .baton-label{position:absolute;bottom:-20px;background:rgba(5,15,30,.94);border:1px solid #5da6eb;border-radius:7px;padding:2px 7px;color:#b9dcff;font:900 8px system-ui;white-space:nowrap}
+#policeDownedBtn{display:none;position:fixed;z-index:125;right:22px;bottom:245px;min-width:170px;padding:12px 15px;border-radius:14px;border:2px solid #72c7ff;background:linear-gradient(145deg,#183f69,#0a203d);box-shadow:0 8px 28px #0009,0 0 22px rgba(70,170,255,.42);color:#fff;font:900 13px system-ui;line-height:1.2;text-align:center;animation:policeBtnPulse 1s ease-in-out infinite}
+#policeDownedBtn.show{display:block}#policeDownedBtn:active{transform:scale(.96)}#policeDownedBtn small{display:block;margin-top:4px;color:#bfe6ff;font-size:10px}
 @keyframes policeBtnPulse{50%{box-shadow:0 6px 30px rgba(69,159,255,.95),inset 0 0 0 4px rgba(255,255,255,.14)}}
 #districtMissionClose {
   position: absolute; left: calc(50% + min(38vw, 150px) - 17px); top: calc(70% - 31px);
@@ -1803,6 +1805,7 @@ body.in-pvp #robActionBtn { top: 152px; }
   </div>
   <button id="fireBtn">🔫</button>
   <button id="stealthBtn" type="button" aria-label="Оглушить дубинкой" title="Оглушить дубинкой"><span class="baton"></span><span class="baton-hit">✦</span><span class="baton-label">ОГЛУШИТЬ</span></button>
+  <button id="policeDownedBtn" type="button">🔗 ЗАДЕРЖАТЬ<small>решение: 5 сек</small></button>
   <!-- Огнетушитель — появляется когда у тебя есть хоть один + рядом
        горит уничтоженная тачка. Бейдж = кол-во в инвентаре. -->
   <button id="extinguishBtn">🧯<span class="badge" id="extBadge">0</span></button>
@@ -1812,7 +1815,7 @@ body.in-pvp #robActionBtn { top: 152px; }
 
   <div id="deathOverlay">
     <div class="skull">💀</div>
-    <div class="title">УБИТ</div>
+    <div class="title" id="deathTitle">УБИТ</div>
     <div class="by" id="deathBy">&nbsp;</div>
     <div class="cnt">Респаун через <span id="deathCnt">5</span> сек</div>
     <div class="rp" id="deathRespawnPoint">Точка респа: 🏥 Госпиталь</div>
@@ -12769,6 +12772,7 @@ const others = new Map();   // uid -> {x, y, ang, w, name, look, chat,
 let _onlineWantedBoard = [];
 let _onlineWantedBoardUiSig = '';
 let _onlinePoliceArrest = null;
+let _policeDowned = null;
 let _policeStunnedIn = 0;
 
 // Маркер «в бою с этим игроком» — для мини-карты (красная точка).
@@ -13461,7 +13465,11 @@ function handleEventPacket(d) {
     if (d.killed) {
       const sName = d.shooter_name || 'кто-то';
       const tName = d.target_name  || 'кто-то';
-      if (meIsShooter) {
+      if(d.police_downed&&meIsShooter){
+        showEventBanner('👮 ЦЕЛЬ ПОВАЛЕНА',`${tName}: нажми «Задержать» в течение 5 секунд или он возродится.`,4300,'win');
+      }else if(d.police_downed&&meIsTarget){
+        showEventBanner('🚨 ТЕБЯ ПОВАЛИЛ КОП',`${sName} решает, задержать тебя или отпустить на обычный респаун.`,4300,'lose');
+      }else if (meIsShooter) {
         showEventBanner('🩸 Фраг!', `Ты завалил ${tName}.`, 2800, 'win');
       } else if (meIsTarget) {
         showEventBanner('💀 Тебя завалили',
@@ -13488,9 +13496,16 @@ function handleEventPacket(d) {
     if(String(d.target_uid)===String(QP.uid))showEventBanner('⚡ ТЕБЯ ПОРАЗИЛ ШОКЕР','Оглушение на 5 секунд. Полицейский может надеть наручники.',3300,'lose');
   } else if (kind === 'police_online_cuff_reply') {
     if(!d.ok){showToast(_policeError(d.error),'⚠️',2500);return;}
-    showEventBanner('🔗 ИГРОК В НАРУЧНИКАХ','Доставь его к участку за 45 секунд. При твоей гибели он освободится.',3900,'win');
+    showEventBanner('🔗 ИГРОК В НАРУЧНИКАХ','Доставь его к участку за 20 секунд. При твоей гибели он освободится.',3900,'win');
   } else if (kind === 'police_online_cuff') {
-    if(String(d.target_uid)===String(QP.uid))showEventBanner('🔗 ТЫ ЗАДЕРЖАН','Конвой длится не больше 45 секунд. Если коп погибнет или выйдет — наручники снимутся.',4800,'lose');
+    if(String(d.target_uid)===String(QP.uid))showEventBanner('🔗 ТЫ ЗАДЕРЖАН','Конвой длится не больше 20 секунд. Если коп погибнет или выйдет — наручники снимутся.',4800,'lose');
+  } else if (kind === 'police_downed_arrest_reply') {
+    if(!d.ok){showToast(_policeError(d.error),'⚠️',2500);return;}
+    _policeDowned=null;
+    showEventBanner('🔗 ЗАДЕРЖАНИЕ НАЧАЛОСЬ','Доставь игрока к участку за 20 секунд.',3900,'win');
+  } else if (kind === 'police_downed_arrest') {
+    _policeDowned=null;
+    if(String(d.target_uid)===String(QP.uid))showEventBanner('🔗 ТЫ ЗАДЕРЖАН','Коп должен доставить тебя в участок за 20 секунд. Иначе ты освободишься.',4700,'lose');
   } else if (kind === 'police_online_turnin_reply') {
     if(!d.ok){showToast(_policeError(d.error),'⚠️',2700);return;}
     if(typeof d.police_xp==='number')_setPoliceXp(d.police_xp,true);
@@ -15059,6 +15074,7 @@ function wsConnect() {
       if(wantedUiChanged&&typeof _policeModal!=='undefined'&&_policeModal?.classList.contains('show'))renderPoliceModal();
       if (d.me) {
         _onlinePoliceArrest = d.me.police_arrest || null;
+        _policeDowned = d.me.police_downed || null;
         _policeStunnedIn = +d.me.police_stunned_in || 0;
         _policeEvidenceBag = d.me.police_evidence_bag || null;
         if(_policeEvidenceBag)_myBagWeight=Math.max(1,+_policeEvidenceBag.value||1);
@@ -19113,6 +19129,7 @@ function drawDistrictAtmosphereTint(){
   ctx.fillStyle=g;ctx.fillRect(0,0,gc.width,gc.height);ctx.restore();
 }
 const _deathOv   = document.getElementById('deathOverlay');
+const _deathTitle= document.getElementById('deathTitle');
 const _deathBy   = document.getElementById('deathBy');
 const _deathCnt  = document.getElementById('deathCnt');
 // Текущее экипированное оружие (выбор из инвентаря через weaponBar).
@@ -19311,11 +19328,14 @@ function findNearestConvoyTarget() {
 const PVP_FIRE_R = 8.5;
 function findPvpTargetAlongAim(dirX, dirY) {
   const meInArena = inArena(player.r, player.c);
-  if (!pvpActive && !meInArena) return null;
+  const policeHunt = !!_policeState?.employed;
+  if (!pvpActive && !meInArena && !policeHunt) return null;
   const maxRange = weaponRange(currentWeapon);
   let best = null;
   for (const [uid, o] of others) {
     if (o.dead) continue;
+    const legalPoliceTarget = policeHunt && !o.police && (+o.wanted || 0) > 0;
+    if (!pvpActive && !meInArena && !legalPoliceTarget) continue;
     // Если я в арене — то и таргет должен быть в арене (на сервере та же логика)
     if (meInArena && !inArena(o.y, o.x)) continue;
     const dx = o.x - player.c, dy = o.y - player.r;
@@ -20582,10 +20602,15 @@ function updatePvpUI() {
   // не нужен.
   if (myDead && !(myJailIn > 0)) {
     if (!_deathOv.classList.contains('show')) _deathOv.classList.add('show');
-    _deathBy.textContent = myDeathBy ? `Тебя завалил ${myDeathBy}` : '';
+    const policeDecision=_policeDowned?.role==='target';
+    _deathTitle.textContent=policeDecision?'ПОЛИЦИЯ РЕШАЕТ':'УБИТ';
+    _deathBy.textContent=policeDecision
+      ? `${_policeDowned.cop_name||'Полицейский'} может задержать тебя · иначе обычный респаун`
+      : (myDeathBy ? `Тебя завалил ${myDeathBy}` : '');
     _deathCnt.textContent = Math.max(0, Math.ceil(myDeathLeft));
   } else if (_deathOv.classList.contains('show')) {
     _deathOv.classList.remove('show');
+    _deathTitle.textContent='УБИТ';
   }
   // Обновляем видимость HUD-кнопки респа (скрывается на смерти/в машине)
   try { refreshRespawnHudBtn(); } catch (e) {}
@@ -36334,6 +36359,16 @@ function drawMinimap() {
       ctx2.textAlign = 'left';
     }
   }
+  // Полицейская рация показывает всех разыскиваемых на мини-карте, даже
+  // если они находятся дальше обычного радиуса синхронизации персонажей.
+  if(_policeState?.employed){
+    const pulse=.55+.45*Math.abs(Math.sin(performance.now()*.01));
+    for(const w of _onlineWantedBoard){
+      const x=(w.x+.5)*sx,y=(w.y+.5)*sy;
+      ctx2.fillStyle=`rgba(255,45,55,${.28+.28*pulse})`;ctx2.beginPath();ctx2.arc(x,y,7+2*pulse,0,Math.PI*2);ctx2.fill();
+      ctx2.fillStyle='#ffe36c';ctx2.font='bold 10px "Segoe UI Emoji",sans-serif';ctx2.textAlign='center';ctx2.fillText('★',x,y+3);ctx2.textAlign='left';
+    }
+  }
   // Выбранная на доске онлайн-цель остаётся на мини-карте даже вне
   // обычного радиуса отрисовки игроков.
   const marked=_selectedOnlineWanted();
@@ -37830,13 +37865,13 @@ const _policeSpikeStrips=[];
 const _policeBackupUnits=[];
 let _policeServiceRefreshAt=0,_policeSupportTickAt=0,_policeVestToastAt=0;
 function _isCarryingPoliceEvidence(){return !!(_policeState?.employed&&_policeEvidenceBag);}
-const _policeModal=document.getElementById('policeModal'),_policeModalBody=document.getElementById('policeModalBody'),_stealthBtn=document.getElementById('stealthBtn');
+const _policeModal=document.getElementById('policeModal'),_policeModalBody=document.getElementById('policeModalBody'),_stealthBtn=document.getElementById('stealthBtn'),_policeDownedBtn=document.getElementById('policeDownedBtn');
 let _policeModalView='desk';
 const _policeArrestHud=document.createElement('div');
 _policeArrestHud.style.cssText='display:none;position:fixed;z-index:120;left:50%;bottom:105px;transform:translateX(-50%);padding:9px 14px;border-radius:12px;background:rgba(9,18,34,.94);border:1px solid #67b8ff;color:#fff;font:700 13px system-ui;box-shadow:0 6px 24px #0008;pointer-events:none;text-align:center';
 document.body.appendChild(_policeArrestHud);
 function _policeEsc(v){return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
-function _policeError(e){return({not_police:'Сначала устройся в полицию',level_locked:'Эта способность откроется с новым званием',not_selected:'Сначала отметь цель на доске розыска',not_wanted:'Игрок больше не разыскивается',not_online:'Игрок уже вышел',too_far:'Цель слишком далеко',not_stunned:'Сначала оглуши дубинкой или шокером',already_escorting:'Сначала доставь текущего задержанного',already_cuffed:'Его уже задержал другой коп',already_spawned:'Твоя патрульная машина уже ожидает на улице',already_driving:'Сначала выйди из машины',interior:'Способность применяется только на улице',no_escort:'Задержанный уже освобождён',not_at_station:'Доставь улику к полицейскому участку',taser_locked:'Шокер открывается на 5 уровне копа',cooldown:'Способность ещё перезаряжается',storage:'Сервер не сохранил арест',hands_full:'Ты уже несёшь один мешок-улику',gone:'Объект уже недоступен',no_evidence:'У тебя нет мешка-улики',dead:'Дождись возрождения',db_error:'Не удалось выполнить действие'})[e]||'Действие сейчас невозможно';}
+function _policeError(e){return({not_police:'Сначала устройся в полицию',level_locked:'Эта способность откроется с новым званием',not_selected:'Сначала отметь цель на доске розыска',not_wanted:'Игрок больше не разыскивается',not_online:'Игрок уже вышел',too_far:'Цель слишком далеко',not_stunned:'Сначала оглуши дубинкой или шокером',decision_expired:'Пять секунд истекли — игрок уже возрождается',already_escorting:'Сначала доставь текущего задержанного',already_cuffed:'Его уже задержал другой коп',already_spawned:'Твоя патрульная машина уже ожидает на улице',already_driving:'Сначала выйди из машины',interior:'Способность применяется только на улице',no_escort:'Задержанный уже освобождён',not_at_station:'Доставь улику к полицейскому участку',taser_locked:'Шокер открывается на 5 уровне копа',cooldown:'Способность ещё перезаряжается',storage:'Сервер не сохранил арест',hands_full:'Ты уже несёшь один мешок-улику',gone:'Объект уже недоступен',no_evidence:'У тебя нет мешка-улики',dead:'Дождись возрождения',db_error:'Не удалось выполнить действие'})[e]||'Действие сейчас невозможно';}
 function _sendPoliceOnline(t,targetUid){if(!ws||ws.readyState!==1){showToast('Сервер не отвечает','⚠️',2200);return;}ws.send(JSON.stringify({t,d:{target_uid:targetUid||''}}));}
 function _policeLevel(xp=_policeState.earnedXp){xp=Math.max(0,+xp||0);let level=1;for(const step of POLICE_LEVELS)if(xp>=step.xp)level=step.level;return level;}
 function _policeRank(level=_policeLevel()){return POLICE_LEVELS[Math.max(1,Math.min(5,+level||1))-1].rank;}
@@ -37859,6 +37894,12 @@ function _updateOnlineArrestHud(){
   _policeArrestHud.style.display='block';
   _policeArrestHud.textContent=a.role==='detainee'?`🔗 Тебя ведёт ${a.cop_name||'полицейский'} · освобождение через ${a.left||0}с`:`🚔 ${a.target_name||'Задержанный'} в наручниках · осталось ${a.left||0}с`;
 }
+function _updatePoliceDownedButton(){
+  const d=_policeDowned,show=!!(d&&d.role==='cop'&&d.left>0&&!_onlinePoliceArrest);
+  _policeDownedBtn?.classList.toggle('show',show);
+  if(show)_policeDownedBtn.innerHTML=`🔗 ЗАДЕРЖАТЬ ${_policeEsc(d.target_name||'цель')}<small>решение: ${Math.max(1,Math.ceil(+d.left||0))} сек</small>`;
+}
+_policeDownedBtn?.addEventListener('click',()=>{const d=_policeDowned;if(!d||d.role!=='cop')return;_policeDownedBtn.classList.remove('show');_sendPoliceOnline('police_downed_arrest',d.target_uid);});
 let _policeStealthTarget=null;
 const _POLICE_CRIMINAL_NAMES=['Кривой Макс','Рыжий Боря','Шрам','Филин','Бык','Лом','Седой','Клык','Гвоздь','Чёрный Гена','Малой','Тихоня'];
 const _POLICE_KNOCKOUT_CRIES=['Эй, ты чего?!','За что?!','Башка…','Подло со спины!','Что происходит?!'];
@@ -38084,7 +38125,7 @@ function _finishPoliceEscortReward(){
   const e=_policeState.escort;if(!e)return;const m=_policeMission(e.missionId);if(!m)return;const cash=m.rewardCash|0,xp=m.rewardXp|0,nextPoliceXp=(_policeState.earnedXp||0)+xp;myCash+=cash;QP.cash=myCash;QP.exp=(+QP.exp||0)+xp;_policeState.cuffs=Math.min(3,_policeState.cuffs+1);_policeState.missions=_policeState.missions.filter(x=>x.id!==m.id);_policeState.escort=null;_savePoliceState();_setPoliceXp(nextPoliceXp);_syncPoliceXpReward(xp,m.id);updateMoneyHud();renderPoliceModal();renderJobStatus();if(_profileTab==='status')renderProfileTab();if(_wepPickOpen)renderWeaponPick();
   spawnFloatText(player.r,player.c,`+$${cash}  +${xp} XP`,{color:'#7dffad',size:19,life:2300});showEventBanner('🏅 ПРЕСТУПНИК СДАН',`${m.name}: награда $${cash} и ${xp} опыта.`,4300,'win');pushFeedEvent('🚔',`${QP.name||'Игрок'} доставил в участок: ${m.name}`,{accent:'#6bb3ff'});
 }
-function _tickPoliceMissions(now){_updateOnlineArrestHud();_tickPoliceSupport(now);for(const m of [..._policeState.missions]){if(m.status!=='hunt')continue;const n=NPCS.find(x=>x._policeTargetId===m.targetId);if(n&&n.dead&&now-(n.deadAt||now)>900){const i=NPCS.indexOf(n);if(i>=0)NPCS.splice(i,1);_policeState.missions=_policeState.missions.filter(x=>x.id!==m.id);_policeMissionIntel.delete(String(m.id));_savePoliceState();renderPoliceModal();renderJobStatus();showEventBanner('☠️ ПРЕСТУПНИК ПОГИБ',`${m.name} погиб. Ориентировка вычеркнута.`,3900,'lose');showToast(`${m.name}: преступник погиб`,'☠️',2800);}else if(!n)_spawnPoliceTarget(m);}}
+function _tickPoliceMissions(now){_updateOnlineArrestHud();_updatePoliceDownedButton();_tickPoliceSupport(now);for(const m of [..._policeState.missions]){if(m.status!=='hunt')continue;const n=NPCS.find(x=>x._policeTargetId===m.targetId);if(n&&n.dead&&now-(n.deadAt||now)>900){const i=NPCS.indexOf(n);if(i>=0)NPCS.splice(i,1);_policeState.missions=_policeState.missions.filter(x=>x.id!==m.id);_policeMissionIntel.delete(String(m.id));_savePoliceState();renderPoliceModal();renderJobStatus();showEventBanner('☠️ ПРЕСТУПНИК ПОГИБ',`${m.name} погиб. Ориентировка вычеркнута.`,3900,'lose');showToast(`${m.name}: преступник погиб`,'☠️',2800);}else if(!n)_spawnPoliceTarget(m);}}
 document.getElementById('policeModalClose')?.addEventListener('click',closePoliceDesk);
 _policeModal?.addEventListener('click',e=>{if(e.target===_policeModal){closePoliceDesk();return;}const b=e.target.closest('[data-police-action]');if(!b||b.disabled)return;e.preventDefault();const a=b.dataset.policeAction;if(a==='take')_acceptPoliceMission(false);else if(a==='boss')_acceptPoliceMission(true);else if(a==='patrol')_sendPoliceAbility('police_patrol_spawn');else if(a==='spikes')_sendPoliceAbility('police_spikes');else if(a==='backup')_sendPoliceAbility('police_backup');else if(a==='online_select')_sendPoliceOnline('police_online_select',b.dataset.targetUid);else if(a==='join')_joinPoliceService();else if(a==='leave')_leavePoliceService();else if(a==='decline')closePoliceDesk();});
 _stealthBtn?.addEventListener('pointerdown',e=>{e.preventDefault();_knockoutPoliceTarget();});

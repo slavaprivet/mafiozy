@@ -931,7 +931,7 @@ def snap(uid):
         "name": "Demo",
     })
     now = time.time()
-    # Ограниченный серверный конвой: 45 секунд максимум, освобождение при
+    # Ограниченный серверный конвой: 20 секунд максимум, освобождение при
     # гибели/выходе копа. Задержанный следует в 0.7 тайла позади.
     for target_uid, target in list(players.items()):
         cop_uid = str(target.get("police_cuffed_by") or "")
@@ -940,6 +940,9 @@ def snap(uid):
         cop = players.get(cop_uid)
         if (not cop or not cop.get("police") or cop.get("dead") or
                 now >= float(target.get("police_cuff_until", 0))):
+            if target.pop("police_death_arrest", False):
+                target["dead"] = False; target["hp"] = max(25, int(target.get("hp", 0)))
+                target["wanted"] = 0
             target.pop("police_cuffed_by", None); target.pop("police_cuff_until", None)
             if cop: cop.pop("police_escort_uid", None)
             continue
@@ -1009,6 +1012,15 @@ def snap(uid):
                       "target_name":players.get(str(p.get("police_escort_uid")),{}).get("name","Задержанный"),
                       "left":max(0,int(float(players.get(str(p.get("police_escort_uid")),{}).get("police_cuff_until",0))-now))}
                      if p.get("police_escort_uid") else None)),
+                "police_downed": ({"role":"target", "cop_uid":str(p.get("police_downed_by")),
+                    "cop_name":players.get(str(p.get("police_downed_by")),{}).get("name","Полицейский"),
+                    "left":max(0,float(p.get("police_downed_until",0))-now)}
+                    if p.get("dead") and p.get("police_downed_by") else
+                    ({"role":"cop", "target_uid":str(p.get("police_downed_target")),
+                      "target_name":players.get(str(p.get("police_downed_target")),{}).get("name","Разыскиваемый"),
+                      "wanted":int(players.get(str(p.get("police_downed_target")),{}).get("wanted",0)),
+                      "left":max(0,float(players.get(str(p.get("police_downed_target")),{}).get("police_downed_until",0))-now)}
+                     if p.get("police_downed_target") else None)),
                 "police_evidence_bag": ({
                     "id": str(p["police_evidence_bag"].get("id") or ""),
                     "bank_id": str(p["police_evidence_bag"].get("bank_id") or ""),
@@ -1112,8 +1124,13 @@ async def world_ws(req):
             ensure_preview_district_bosses(now)
             for p in players.values():
                 if p.get("dead") and now >= float(p.get("respawn_at", now + 1)):
+                    cop_uid = str(p.pop("police_downed_by", "") or "")
+                    p.pop("police_downed_until", None)
+                    if cop_uid and players.get(cop_uid):
+                        players[cop_uid].pop("police_downed_target", None)
                     p["dead"] = False
                     p["hp"] = 100
+                    p["wanted"] = 0
                     p["x"], p["y"] = PREVIEW_START_X, PREVIEW_START_Y
             for defender_event in tick_district_defenders(now, 1/15):
                 await broadcast_event(defender_event)
@@ -1533,7 +1550,36 @@ async def world_ws(req):
                 if t == "police_spikes" and reply.get("ok"):
                     deployed = dict(reply); deployed["kind"] = "police_spikes_deployed"
                     await broadcast_event(deployed)
-            elif t in ("police_online_select", "police_online_stun", "police_online_taser", "police_online_cuff", "police_online_turnin"):
+            elif t == "player_shoot":
+                shooter = players.get(uid, {})
+                target_uid = str(d.get("target_uid") or "")
+                target = players.get(target_uid)
+                if (target and shooter.get("police") and not target.get("police") and
+                        int(target.get("wanted", 0)) > 0 and not shooter.get("dead") and
+                        not target.get("dead") and not shooter.get("business_interior") and
+                        not target.get("business_interior") and
+                        (float(shooter.get("x",0))-float(target.get("x",0)))**2 +
+                        (float(shooter.get("y",0))-float(target.get("y",0)))**2 <= 8.5**2):
+                    weapon = str(d.get("weapon") or "pistol")
+                    damage = {"shotgun":55,"rifle":42,"sniper":100,"pistol":28}.get(weapon,32)
+                    target["hp"] = max(0, int(target.get("hp",100))-damage)
+                    killed = target["hp"] <= 0
+                    if killed:
+                        old_uid = str(shooter.get("police_downed_target") or "")
+                        if old_uid and players.get(old_uid):
+                            players[old_uid].pop("police_downed_by",None)
+                            players[old_uid].pop("police_downed_until",None)
+                        target["dead"] = True; target["respawn_at"] = time.time()+5
+                        target["police_downed_by"] = str(uid)
+                        target["police_downed_until"] = time.time()+5
+                        shooter["police_downed_target"] = target_uid
+                    await broadcast_event({"kind":"pvp_shot","shooter_uid":str(uid),
+                        "target_uid":target_uid,"shooter_name":shooter.get("name","Коп"),
+                        "target_name":target.get("name","Игрок"),"sx":shooter.get("x",0),
+                        "sy":shooter.get("y",0),"tx":target.get("x",0),"ty":target.get("y",0),
+                        "dmg":damage,"killed":killed,"police_downed":killed,
+                        "decision_until":target.get("police_downed_until",0),"weapon":weapon})
+            elif t in ("police_online_select", "police_online_stun", "police_online_taser", "police_online_cuff", "police_downed_arrest", "police_online_turnin"):
                 cop = players.get(uid, {})
                 target_uid = str(d.get("target_uid") or cop.get("police_escort_uid") or "")
                 target = players.get(target_uid)
@@ -1594,9 +1640,31 @@ async def world_ws(req):
                         elif (float(cop.get("x",0))-float(target.get("x",0)))**2 + (float(cop.get("y",0))-float(target.get("y",0)))**2 > 2.15**2:
                             reply = {"ok":False,"error":"too_far"}
                         else:
-                            target["police_cuffed_by"] = uid; target["police_cuff_until"] = time.time()+45
+                            target["police_cuffed_by"] = uid; target["police_cuff_until"] = time.time()+20
                             cop["police_escort_uid"] = target_uid
                             reply = {"ok":True,"target_uid":target_uid,"cop_uid":uid,"until":target["police_cuff_until"]}
+                    elif t == "police_downed_arrest":
+                        now=time.time()
+                        if not target or target.get("police"):
+                            reply={"ok":False,"error":"not_online"}
+                        elif cop.get("police_escort_uid"):
+                            reply={"ok":False,"error":"already_escorting"}
+                        elif int(target.get("wanted",0)) <= 0:
+                            reply={"ok":False,"error":"not_wanted"}
+                        elif (not target.get("dead") or str(target.get("police_downed_by") or "") != str(uid)
+                              or now > float(target.get("police_downed_until",0))):
+                            reply={"ok":False,"error":"decision_expired"}
+                        elif (float(cop.get("x",0))-float(target.get("x",0)))**2 + (float(cop.get("y",0))-float(target.get("y",0)))**2 > 2.15**2:
+                            reply={"ok":False,"error":"too_far"}
+                        else:
+                            target.pop("police_downed_by",None); target.pop("police_downed_until",None)
+                            cop.pop("police_downed_target",None)
+                            target["dead"]=False; target["hp"]=1; target.pop("respawn_at",None)
+                            target["wanted"]=0; target["police_cuffed_by"]=str(uid)
+                            target["police_cuff_until"]=now+20; target["police_death_arrest"]=True
+                            cop["police_escort_uid"]=target_uid
+                            reply={"ok":True,"target_uid":target_uid,"cop_uid":str(uid),
+                                   "until":target["police_cuff_until"],"death_arrest":True}
                     else:
                         if not target or str(target.get("police_cuffed_by") or "") != str(uid):
                             reply = {"ok":False,"error":"no_escort"}
@@ -1609,6 +1677,7 @@ async def world_ws(req):
                             preview_account(uid)["police_xp"] = min(2800, int(preview_account(uid).get("police_xp",0)) + 75)
                             target["wanted"]=0; target["jail_until"]=time.time()+30
                             target["x"],target["y"]=76.5,76.5
+                            target.pop("police_death_arrest",None)
                             target.pop("police_cuffed_by",None); target.pop("police_cuff_until",None)
                             cop.pop("police_escort_uid",None); cop.pop("police_online_target",None)
                             reply={"ok":True,"target_uid":target_uid,"target_name":target.get("name","Игрок"),
