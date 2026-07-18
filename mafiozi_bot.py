@@ -13029,8 +13029,10 @@ class WorldSim:
             return {'ok': False, 'error': 'level_locked'}
         if cop.get('dead') or cop.get('_business_interior'):
             return {'ok': False, 'error': 'interior' if cop.get('_business_interior') else 'dead'}
-        if now - float(cop.get('_police_backup_at') or 0) < self.POLICE_BACKUP_CD:
-            return {'ok': False, 'error': 'cooldown'}
+        cooldown_left = self.POLICE_BACKUP_CD - (now - float(cop.get('_police_backup_at') or 0))
+        if cooldown_left > 0:
+            return {'ok': False, 'error': 'cooldown',
+                    'cooldown_left': round(cooldown_left, 1)}
         cop['_police_backup_at'] = now
         return {'ok': True, 'cop_uid': str(uid), 'life_s': 45}
 
@@ -18030,6 +18032,11 @@ class WorldSim:
                     'police_spikes_cd': max(0.0, round(
                         self.POLICE_SPIKES_CD -
                         (now_t - float(me.get('_police_spikes_at') or 0)), 2)),
+                    'police_patrol_cd': max(0.0, round(
+                        180.0 - (now_t - float(me.get('_police_patrol_called_at') or 0)), 1)),
+                    'police_backup_cd': max(0.0, round(
+                        self.POLICE_BACKUP_CD -
+                        (now_t - float(me.get('_police_backup_at') or 0)), 1)),
                     'police_stunned_in': max(0.0, float(me.get('_police_stunned_until') or 0) - now_t),
                     'police_arrest': my_police_arrest,
                     'police_downed': my_police_downed,
