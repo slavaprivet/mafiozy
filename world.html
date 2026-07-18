@@ -10948,7 +10948,7 @@ function showApartmentUpgradeMenu() {
 }
 
 // ── Наёмники (клиентская банда игрока) ────────────────────────────
-const GANG_HIRE_COST = 100;
+const GANG_HIRE_COST = 500;
 let GANG_MAX = 5;
 const GANG_MIN_LVL = 5;
 const _myGang = [];
@@ -11142,6 +11142,10 @@ function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false) {
   if(isBoss&&ws&&ws.readyState===1)try{ws.send(JSON.stringify({t:'gang_hire_bot',d:{bot_id:String(sourceBotId||'')}}));}catch(e){}
   showToast(`🤝 ${gangName} нанят (${_myGang.length}/${GANG_MAX})`, '👊', 2000);
   return true;
+}
+function _isDistrictDefenderBot(bot){
+  const kind=String(bot?.kind||'');
+  return kind==='district_boss'||kind==='district_guard';
 }
 function _saveGang() {
   try {
@@ -13447,7 +13451,7 @@ function handleEventPacket(d) {
       showToast(`🕴️ +${d.mafia_xp_gain} XP мафии · ${d.mafia_reason||'авторитет вырос'}`,'🏅',2600);
   }
   if (!kind) return;
-  if(kind==='gang_hire_reply'&&!d.ok){showToast(d.reason==='mafia_level'?'Нужен 3 уровень мафии для найма босса':'Босс уже недоступен','⚠️',2600);}
+  if(kind==='gang_hire_reply'&&!d.ok){showToast(d.reason==='district_defender'?'Охрану района нельзя нанять — досье нужно добыть в бою':d.reason==='mafia_level'?'Нужен 3 уровень мафии для найма босса':'Боец уже недоступен','⚠️',2700);}
   else if (kind === 'inkassator_spawned') {
     // Глобально — в ленту (а не центральным баннером). Игрок видит
     // стрелку-указатель на инкассатора через drawEventArrow.
@@ -16468,6 +16472,7 @@ function updateGtaInteractions() {
       for (const b of (z.bots || [])) {
         if (!b.alive && b.alive !== undefined) continue;
         if (b.dead) continue;
+        if (_isDistrictDefenderBot(b)) continue;
         const d = Math.hypot(player.r - (b.y||0), player.c - (b.x||0));
         if (d < nearBotD) { nearBotD = d; nearBot = b; nearBotLook = b.look; }
       }
@@ -16820,6 +16825,7 @@ _gtaBtn.addEventListener('click', () => {
       for (const b of (z.bots || [])) {
         if (String(b.id) === String(_gtaActionCarId) && b.alive !== false && !b.dead) {
           if(_policeState.missions.some(m=>String(m.targetId)===String(b.id))){showToast('🚔 Этот бандит в розыске — в банду взять нельзя','⚠️',2400);break;}
+          if(_isDistrictDefenderBot(b)){showToast('📁 Охрана района не нанимается — победи босса и забери досье','⚠️',2800);break;}
           const isBoss=!!(b.is_boss||b.boss||String(b.kind||'').includes('boss'));
           hired = _hireGangMember(b.look, b.y || player.r, b.x || player.c, b.id, isBoss);
           // Оригинал бота остаётся жить на сервере — прячем его на клиенте
