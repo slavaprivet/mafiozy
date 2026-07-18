@@ -12012,6 +12012,9 @@ const PVP = {
 };
 // HP игрока (синхронизируется с сервером в snap.me.hp)
 let myHp = 100;
+// Полоска над своим персонажем нужна только в бою: после каждого полученного
+// урона держим её несколько секунд. Постоянный HP уже виден в левом HUD.
+let _selfHpBarUntil = 0;
 let myDead = false;
 let myDeathBy = '';       // uid того кто убил (последний)
 let myDeathLeft = 0;      // сколько сек до респауна
@@ -12038,6 +12041,7 @@ function _hurtLocal(dmg, by) {
   }
   myHp = Math.max(0, myHp - (dmg | 0));
   _localHpHurtAt = performance.now();
+  _selfHpBarUntil = _localHpHurtAt + 4500;
   if (myHp <= 0 && !myDead) {
     myDead = true; _localDeath = true;
     myDeathBy = by || 'Город'; myDeathLeft = 5;
@@ -14987,6 +14991,7 @@ function wsConnect() {
         // Сервер не знает об интерьере и шлёт снапы с заниженным HP (копы
         // снаружи «стреляют»). Игнорируем сервер пока _bankInt активен.
         if (typeof d.me.hp === 'number' && !_bankShield()) {
+          if(d.me.hp<myHp)_selfHpBarUntil=performance.now()+4500;
           const _localFresh = (performance.now() - _localHpHurtAt) < 2500;
           if (!_localFresh || d.me.hp <= myHp) myHp = d.me.hp;
         }
@@ -28745,7 +28750,8 @@ function drawModeTag(px, py, mode) {
   ctx.textBaseline = 'middle';
   const w = ctx.measureText(txt).width + 8;
   const h = 12;
-  const tagY = py - 50;   // чуть ниже звёзд wanted
+  // Ближайшая к персонажу строка: выше головы, но ниже ника и звания.
+  const tagY = py - 58;
   // Подложка
   ctx.fillStyle = bg;
   ctx.strokeStyle = border;
@@ -28802,13 +28808,13 @@ function drawJailTimer(px, py, secLeft) {
 
 // Звёзды wanted над головой (1..3 шт) с пульсацией и тенью.
 function drawWantedStars(px, py, n) {
-  drawStatusRow(px, py - 64, n, '⭐', '#ffd76b');
+  drawStatusRow(px, py - 132, n, '⭐', '#ffd76b');
 }
 // Кулачки (wanted_gangs) — рисуем чуть ниже звёзд копов, своим цветом.
 // При 3★ играет роль метки «контракт активен» — другой игрок сможет
 // тебя завалить в любом месте (PvP режим обязателен у обоих).
 function drawWantedGangs(px, py, n) {
-  drawStatusRow(px, py - 50, n, '👊', '#ff5050');
+  drawStatusRow(px, py - 118, n, '👊', '#ff5050');
 }
 // Общая отрисовка строки иконок-статусов с пульсацией и чёрной тенью.
 function drawStatusRow(px, baseY, n, icon, color) {
@@ -32030,6 +32036,7 @@ function reportCarCrash(qc, impact, kind) {
       player.r = (qc.y || qc.ty) + (Math.random() - 0.5) * 0.8;
       player.c = (qc.x || qc.tx) + (Math.random() - 0.5) * 0.8;
       myHp = Math.max(1, myHp - 15);
+      _selfHpBarUntil=performance.now()+4500;
       showToast('💥 Машина взорвалась!', '🔥', 2500);
     }
   }
@@ -32926,12 +32933,13 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
   // Верхушка спрайта: фигура нарисована от y до y - sh*0.94. Над ней
   // ещё нужно место для имени / hp-бара / чата.
   const topY = y - sh * 0.94;       // голова персонажа
-  // Компактная стопка над головой: ник почти касается верхушки спрайта,
-  // HP и полицейское звание идут следом без прежней большой пустоты.
-  const nameY = topY - 1;
-  const hpY   = nameY - 10;
+  // Чёткая стопка без наложений: PvP (рисуется отдельно) → ник → звание
+  // → временный HP → статусы. Ник не касается головы и остаётся читаемым.
+  const nameY = topY - 18;
   const policeRankLevel=(isSelf&&typeof _policeState!=='undefined'&&_policeState.employed)?_policeLevel():0;
-  const chatY = nameY - (policeRankLevel?43:30); // у копа чат выше знаков звания
+  const policeRankY = nameY - 21;
+  const hpY = policeRankLevel ? policeRankY - 14 : nameY - 15;
+  const chatY = hpY - 18;
 
   // Имя над головой
   if (name) {
@@ -32948,16 +32956,16 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
     const rankColors=['#b87333','#c9d1d9','#ffd34e','#65dfff','#db86ff'];
     const rankColor=rankColors[policeRankLevel-1],marks='✦'.repeat(policeRankLevel),label=`${_policeRank(policeRankLevel).toUpperCase()}  ${marks}`;
     ctx.save();ctx.font='900 9px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
-    const rw=Math.max(54,ctx.measureText(label).width+14),ry=hpY-10;
+    const rw=Math.max(54,ctx.measureText(label).width+14),ry=policeRankY;
     ctx.fillStyle='rgba(5,15,29,.94)';ctx.strokeStyle=rankColor;ctx.lineWidth=1.3;ctx.shadowColor=rankColor;ctx.shadowBlur=5;
     ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x-rw/2,ry-8,rw,16,7);else ctx.rect(x-rw/2,ry-8,rw,16);ctx.fill();ctx.stroke();
     ctx.shadowBlur=0;ctx.fillStyle=rankColor;ctx.fillText(label,x,ry+.5);ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
   }
   // HP-бар — стилистически один-в-один с demo_isometric (боёвка боссов).
-  // Показываем когда жив И (это я сам ИЛИ hp неполный). Свой бар видим
-  // всегда чтобы понимать состояние; чужие — только когда раненые.
+  // Свой HP показываем только несколько секунд после попадания: постоянное
+  // значение уже есть слева. Чужие бары по-прежнему видны, когда они ранены.
   if (!isDead && typeof hp === 'number' && typeof maxHp === 'number' && hp > 0 &&
-      (isSelf || hp < maxHp)) {
+      (isSelf ? performance.now() < _selfHpBarUntil : hp < maxHp)) {
     const barW = TS * 0.5, barH = 4;
     const by   = hpY;
     // Тёмная подложка (рамка)
