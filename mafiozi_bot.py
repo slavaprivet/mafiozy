@@ -15577,7 +15577,7 @@ class WorldSim:
         return pkts
 
     def hire_city_gang_bot(self, uid: str, bot_id: str) -> dict:
-        """Убирает нанятого бойца из серверной банды; босс отдаёт досье."""
+        """Убирает нанятого бойца из обычной городской банды."""
         player = self.players.get(str(uid))
         if not player or player.get('dead') or player.get('_police'):
             return {'kind':'gang_hire_reply','ok':False,'reason':'unavailable','bot_id':bot_id}
@@ -15588,16 +15588,14 @@ class WorldSim:
                 if (float(player.get('x') or 0)-float(bot.get('x') or 0))**2 + \
                    (float(player.get('y') or 0)-float(bot.get('y') or 0))**2 > 3.2**2:
                     return {'kind':'gang_hire_reply','ok':False,'reason':'too_far','bot_id':bot_id}
+                if gang.get('district_did') or bot.get('kind') in ('district_boss','district_guard'):
+                    return {'kind':'gang_hire_reply','ok':False,
+                            'reason':'district_defender','bot_id':bot_id}
                 is_boss = bot.get('kind') == 'district_boss'
                 if is_boss and int(player.get('_mafia_xp') or 0) < MAFIA_LEVEL_XP[2]:
                     return {'kind':'gang_hire_reply','ok':False,'reason':'mafia_level','bot_id':bot_id}
                 bot['hp'] = 0; bot['alive'] = False; bot['hired_by'] = str(uid)
                 did = str(gang.get('district_did') or '')
-                if is_boss and did:
-                    op = self.district_captures.get(did)
-                    if op and str(op.get('boss_id')) == str(bot.get('id')):
-                        self._drop_district_dossier(
-                            did, op, float(bot.get('x') or 0), float(bot.get('y') or 0), time.time())
                 return {'kind':'gang_hire_reply','ok':True,'bot_id':str(bot_id),
                         'is_boss':is_boss,'did':did}
         return {'kind':'gang_hire_reply','ok':False,'reason':'gone','bot_id':bot_id}
