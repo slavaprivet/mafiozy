@@ -1059,6 +1059,10 @@ def snap(uid):
                 "police_arrest_limit": preview_police_daily_state(uid)[2],
                 "police_spikes_cd": max(0.0, round(
                     25-(now-float(p.get("police_spikes_at",0))), 2)),
+                "police_patrol_cd": max(0.0, round(
+                    180-(now-float(p.get("police_patrol_called_at",0))), 1)),
+                "police_backup_cd": max(0.0, round(
+                    90-(now-float(p.get("police_backup_at",0))), 1)),
                 "diamonds": 0,
                 "wanted": int(p.get("wanted", 0)),
                 "wanted_gangs": 0,
@@ -1640,7 +1644,8 @@ async def world_ws(req):
                     reply = {"ok": False, "error": "cooldown",
                              "cooldown_left": round(25-(now-float(cop.get("police_spikes_at",0))),2)}
                 elif t == "police_backup" and now - float(cop.get("police_backup_at", 0)) < 90:
-                    reply = {"ok": False, "error": "cooldown"}
+                    reply = {"ok": False, "error": "cooldown",
+                             "cooldown_left": round(90-(now-float(cop.get("police_backup_at",0))),1)}
                 elif t == "police_spikes":
                     cop["police_spikes_at"] = now
                     reply = {"ok": True, "kind": "police_spikes_reply",
