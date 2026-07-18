@@ -7246,6 +7246,7 @@ function updateCityCops(dt) {
 // go_to_scene → working → returning → done.
 const serviceVehicles = [];
 let _svcVehId = 0;
+const FIRETRUCK_HOSE_RANGE = 4.5;
 
 // Спецтранспорт едет ПО ДОРОГАМ (тип 0). На последнем участке (от
 // ближайшего к цели дорожного тайла до самой цели) разрешён выезд на
@@ -7635,8 +7636,33 @@ function _dispatchHeistPolice(rob) {
   }
 }
 
+function _fireTruckTarget(v) {
+  if(!v||v.kind!=='firetruck'||!v.payload)return null;
+  const fire=v.payload.fireRef,car=v.payload.carRef;
+  if(fire&&fire.kind==='gas_station'&&fire.station)return{r:fire.station.r+.7,c:fire.station.c+.7};
+  if(car)return{r:+car.r||0,c:+car.c||0};
+  return null;
+}
+function _fireTruckInRange(v) {
+  const target=_fireTruckTarget(v);
+  return !!target&&Math.hypot(target.r-v.y,target.c-v.x)<=FIRETRUCK_HOSE_RANGE;
+}
+function _abortFireTruckJob(v) {
+  if(!v||v.kind!=='firetruck')return;
+  v._fireAborted=true;
+  v.state='returning';
+  _setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
+  if(!v.path||!v.path.length)v.state='done';
+}
+function _releaseAbortedFireCall(v) {
+  if(!v?._fireAborted||!v.payload)return;
+  const car=v.payload.carRef,fire=v.payload.fireRef;
+  if(car)car._fireTruckDispatched=false;
+  if(fire&&fire.kind==='gas_station'&&fire.station)fire.station._fireTruckDispatched=false;
+  v._fireAborted=false;
+}
 function _finishFireTruckJob(v) {
-  if (!v || v.kind !== 'firetruck' || !v.payload) return;
+  if (!v || v.kind !== 'firetruck' || !v.payload || !_fireTruckInRange(v)) return false;
   const cr = v.payload.carRef;
   if (cr && cr._wrecked) {
     cr._burnedOut = true;
@@ -7644,13 +7670,14 @@ function _finishFireTruckJob(v) {
   }
   const fire = v.payload.fireRef;
   if (fire && fire.kind === 'gas_station') _extinguishGasStation(fire.station);
+  return true;
 }
 
 function updateServiceVehicles(dt) {
   const now = performance.now();
   for (let i = serviceVehicles.length - 1; i >= 0; i--) {
     const v = serviceVehicles[i];
-    if (v.state === 'done') { serviceVehicles.splice(i, 1); continue; }
+    if (v.state === 'done') {_releaseAbortedFireCall(v);serviceVehicles.splice(i, 1);continue;}
     // Безопасник: считаем сколько машина НЕ двигается. 14 сек подряд
     // без движения — точно застряла (пробка не должна столько висеть,
     // у обычных тачек _stuckT тоже триггерит респаун за 14с). Раньше
@@ -7666,16 +7693,16 @@ function updateServiceVehicles(dt) {
     }
     v._prevX = v.x; v._prevY = v.y;
     if (now - v._lastMoveT > 14000) {
-      // Застряла. Пожарка перед деспауном ВСЁ РАВНО гасит огонь (фолбэк),
-      // иначе машина горит вечно, а пожарка «тупо исчезает».
-      if (v.kind === 'firetruck') _finishFireTruckJob(v);
+      // Застрявшая пожарка не умеет тушить через полкарты: вызов отменяется,
+      // после её ухода диспетчер сможет отправить другую машину.
+      if (v.kind === 'firetruck') {_abortFireTruckJob(v);continue;}
       v.state = 'done';
       continue;
     }
     if (v.state === 'go_to_scene') {
       // BFS не нашёл путь по дорогам (цель совсем без дороги рядом).
-      // Пожарка как фолбэк гасит огонь сразу (чтобы не горело вечно),
-      // остальные — просто деспаун.
+      // Тушить издалека запрещено: пожарка либо подъедет к близкому проезду,
+      // либо отменит выезд и вернётся в депо.
       if (!v.path || v.path.length === 0) {
         if (v.kind === 'firetruck' && v.payload?.fireRef?.kind === 'gas_station') {
           // Если карта редактора разорвала дорожный граф, бригада всё равно
@@ -7683,10 +7710,11 @@ function updateServiceVehicles(dt) {
           // пожар невидимо в ту же секунду.
           const ft=v.finalTarget||{y:v.y,x:v.x},road=_nearestRoadTile(ft.y,ft.x,20);
           if(road){v.y=road.r+.5;v.x=road.c+.5;}
+          if(!_fireTruckInRange(v)){_abortFireTruckJob(v);continue;}
           v.state='working';v.workDuration=6500;v.workUntil=now+v.workDuration;
           continue;
         }
-        if (v.kind === 'firetruck') _finishFireTruckJob(v);
+        if (v.kind === 'firetruck') {_abortFireTruckJob(v);continue;}
         v.state = 'done';
         continue;
       }
@@ -7695,6 +7723,8 @@ function updateServiceVehicles(dt) {
           // Прибыли к банку — осада: копы выходят, машина стоит с мигалкой
           v.state = 'siege';
           _spawnResponseCops(v);
+        } else if(v.kind==='firetruck'&&!_fireTruckInRange(v)) {
+          _abortFireTruckJob(v);
         } else {
           v.state = 'working';
           v.workDuration = v.kind === 'ambulance' ? 2500 : v.kind === 'tow' ? 3000
@@ -7709,13 +7739,14 @@ function updateServiceVehicles(dt) {
         _setVehicleRoute(v, v.y, v.x, v.homeR, v.homeC);
       }
     } else if (v.state === 'working') {
+      if(v.kind==='firetruck'&&!_fireTruckInRange(v)){_abortFireTruckJob(v);continue;}
       if (now < v.workUntil) continue;
       if (v.kind === 'ambulance' && v.payload.npc) {
         v.payload.npc._evacuated = true;
         v.payload.npc._evacuatedAt = now;
         if (!v.payload.beachgoer) v.payload.npc.deadAt = now - 60000;  // дать prune'у выкинуть из NPCS
       }
-      if (v.kind === 'firetruck') _finishFireTruckJob(v);
+      if (v.kind === 'firetruck' && !_finishFireTruckJob(v)) {_abortFireTruckJob(v);continue;}
       if (v.kind === 'tow') {
         const cr = v.payload.carRef;
         // Грузим машину, ТОЛЬКО если в ней нет игрока (защита от увоза).
@@ -7744,6 +7775,7 @@ function updateServiceVehicles(dt) {
             if (fresh) CARS[ci] = fresh; else CARS.splice(ci, 1);
           }
         }
+        _releaseAbortedFireCall(v);
         v.state = 'done';
       }
     }
@@ -8302,7 +8334,7 @@ function drawServiceVehicle(v) {
   ctx.restore();
 
   // Во время тушения пожарные действительно подают воду к очагу.
-  if (isFire && v.state === 'working' && v.payload) {
+  if (isFire && v.state === 'working' && v.payload && _fireTruckInRange(v)) {
     const fr = v.payload.fireRef;
     const cr = v.payload.carRef;
     const target = fr && fr.kind === 'gas_station'
