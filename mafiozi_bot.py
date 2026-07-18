@@ -12106,6 +12106,39 @@ def _world_is_wall(r: int, c: int) -> bool:
         return False  # парк
     return True
 
+
+def _district_patrol_ok(did: str, x: float, y: float) -> bool:
+    """Районный боец остаётся на суше и внутри своего района."""
+    # Снапшот передаёт две цифры после запятой: проверяем именно ту точку,
+    # которую увидит клиент, чтобы 54.996 не округлилось внутрь стены 55.00.
+    x, y = round(float(x), 2), round(float(y), 2)
+    dd = WorldSim.DISTRICTS_DEF.get(str(did), {})
+    r0, r1, c0, c1 = dd.get('bounds', (1, WORLD_MAP_ROWS - 2, 1, WORLD_MAP_COLS - 2))
+    # В Побережье южнее пляжа начинается вода/гоночный комплекс. Банда
+    # патрулирует доступную пешеходную часть района, а не срезает по воде.
+    if str(did) == 'coast':
+        r1 = min(r1, WORLD_BEACH_R1 - 0.01)
+    return (c0 + 0.5 <= x <= c1 + 0.499
+            and r0 + 0.5 <= y <= r1 + 0.499
+            and not _world_is_wall(int(y), int(x)))
+
+
+def _nearest_district_patrol_point(did: str, x: float, y: float) -> tuple[float, float]:
+    """Находит ближайший безопасный тайл для спавна/восстановления AI."""
+    if _district_patrol_ok(did, x, y):
+        return float(x), float(y)
+    for radius in range(1, 48):
+        for dr in range(-radius, radius + 1):
+            for dc in range(-radius, radius + 1):
+                if abs(dr) != radius and abs(dc) != radius:
+                    continue
+                nx, ny = int(x) + dc + 0.5, int(y) + dr + 0.5
+                if _district_patrol_ok(did, nx, ny):
+                    return nx, ny
+    dd = WorldSim.DISTRICTS_DEF.get(str(did), {})
+    hy, hx = dd.get('hq', (20.0, 20.0))
+    return float(hx), float(hy)
+
 def _world_los(sx: float, sy: float, tx: float, ty: float) -> bool:
     """Можно ли провести прямую пулю из (sx,sy) в (tx,ty) не задев здания.
     Sampling каждые 0.5 тайла — компромисс между точностью и скоростью."""
@@ -15837,6 +15870,9 @@ class WorldSim:
                         ang = flee_ang + turn
                         nx = bot['x'] + _m.cos(ang) * step
                         ny = bot['y'] + _m.sin(ang) * step
+                        if (g.get('district_did')
+                                and not _district_patrol_ok(g['district_did'], nx, ny)):
+                            continue
                         if _world_is_wall(int(ny), int(nx)):
                             continue
                         # Манёвр обязан реально увеличивать дистанцию от заряда.
@@ -15933,7 +15969,7 @@ class WorldSim:
                             nwy = random.uniform(r0 + 3.0, r1 - 3.0)
                             nwx = random.uniform(c0 + 3.0, c1 - 3.0)
                             if (_m.hypot(nwx - boss['x'], nwy - boss['y']) >= 12.0
-                                    and not _world_is_wall(int(nwy), int(nwx))):
+                                    and _district_patrol_ok(g['district_did'], nwx, nwy)):
                                 g['_patrol_wp'] = (nwx, nwy)
                                 g['_patrol_wp_until'] = now + random.uniform(22.0, 34.0)
                                 break
@@ -15969,6 +16005,9 @@ class WorldSim:
                         ang = direct + turn
                         nx = bot['x'] + _m.cos(ang) * step
                         ny = bot['y'] + _m.sin(ang) * step
+                        if (g.get('district_did')
+                                and not _district_patrol_ok(g['district_did'], nx, ny)):
+                            continue
                         if _world_is_wall(int(ny), int(nx)):
                             continue
                         bot['x'], bot['y'], bot['ang'] = nx, ny, ang
@@ -16008,6 +16047,9 @@ class WorldSim:
                             ang = direct + turn
                             nx = bot['x'] + _m.cos(ang) * step
                             ny = bot['y'] + _m.sin(ang) * step
+                            if (g.get('district_did')
+                                    and not _district_patrol_ok(g['district_did'], nx, ny)):
+                                continue
                             if _world_is_wall(int(ny), int(nx)):
                                 continue
                             bot['x'], bot['y'], bot['ang'] = nx, ny, ang
@@ -16965,6 +17007,7 @@ class WorldSim:
         if not dd:
             return
         sy, sx = dd['intel']
+        sx, sy = _nearest_district_patrol_point(did, sx, sy)
         self._next_bot_id += 1
         boss_id = f'dbboss{self._next_bot_id}'
         bots = [{
@@ -16980,8 +17023,9 @@ class WorldSim:
         for guard_i, (dy, dx) in enumerate(offsets[:self.DIST_BOSS_GUARDS]):
             self._next_bot_id += 1
             guard_weapon = guard_weapons[guard_i % len(guard_weapons)]
+            gx, gy = _nearest_district_patrol_point(did, sx + dx, sy + dy)
             bots.append({
-                'id': f'dbguard{self._next_bot_id}', 'x': float(sx+dx), 'y': float(sy+dy),
+                'id': f'dbguard{self._next_bot_id}', 'x': float(gx), 'y': float(gy),
                 'ang': 0.0, 'hp': self.DIST_GUARD_HP, 'max_hp': self.DIST_GUARD_HP, 'alive': True,
                 'kind': 'district_guard', 'weapon': guard_weapon, '_shot_t': 0.0,
                 'damage': int(self.AGGRO_WEAPON_STATS[guard_weapon]['dmg']),
