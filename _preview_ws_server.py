@@ -1540,14 +1540,10 @@ async def world_ws(req):
                     found = next((b for b in cap.get("defenders") or []
                                   if b.get("alive") and str(b.get("id")) == target_id), None)
                     if found: found_did = did; break
-                ok = bool(found and found.get("kind") == "district_boss"
-                          and int(preview_account(uid).get("mafia_xp", 0)) >= 1100)
-                if ok:
-                    found["alive"] = False; found["hp"] = 0
-                    preview_drop_district_dossier(found_did, district_captures[found_did], found, time.time())
+                ok = False
                 await ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_hire_reply",
                     "ok":ok,"bot_id":target_id,"is_boss":bool(found),
-                    "reason":"mafia_level" if found and not ok else ("gone" if not found else "")}}, ensure_ascii=False))
+                    "reason":"district_defender" if found else "gone"}}, ensure_ascii=False))
             elif t == "aggro_shoot":
                 target_id = str(d.get("target") or "")
                 found = None
