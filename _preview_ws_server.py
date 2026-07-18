@@ -394,8 +394,43 @@ def near_point(player, point, radius=DIST_ACTION_RAD):
     return (player.get("x", 0) - px) ** 2 + (player.get("y", 0) - py) ** 2 <= radius ** 2
 
 
+def preview_district_patrol_ok(did, x, y):
+    """Упрощённая копия серверной проходимости для районной банды."""
+    x, y = round(float(x), 2), round(float(y), 2)
+    dd = DISTRICTS.get(str(did), {})
+    r0, r1, c0, c1 = dd.get("bounds", (1, 198, 1, 78))
+    if str(did) == "coast":
+        r1 = min(r1, 164.99)  # ниже начинается вода и гоночный комплекс
+    if not (c0 + .5 <= x <= c1 + .499 and r0 + .5 <= y <= r1 + .499):
+        return False
+    ri, ci = int(y), int(x)
+    if ri >= 140:
+        return ri < 165  # песчаная пешеходная полоса Побережья
+    rm, cm = ri % 10, ci % 10
+    if rm <= 4 or rm == 9 or cm <= 4 or cm == 9:
+        return True
+    h = ((ri // 10) * 17 + (ci // 10) * 31) % 11
+    return h in (0, 7)  # парк; остальные внутренности квартала — здания
+
+
+def nearest_preview_district_point(did, x, y):
+    if preview_district_patrol_ok(did, x, y):
+        return float(x), float(y)
+    for radius in range(1, 48):
+        for dr in range(-radius, radius + 1):
+            for dc in range(-radius, radius + 1):
+                if abs(dr) != radius and abs(dc) != radius:
+                    continue
+                nx, ny = int(x) + dc + .5, int(y) + dr + .5
+                if preview_district_patrol_ok(did, nx, ny):
+                    return nx, ny
+    hy, hx = DISTRICTS.get(str(did), {}).get("hq", (20., 20.))
+    return float(hx), float(hy)
+
+
 def make_district_defenders(did, dd):
     row, col = dd["intel"]
+    col, row = nearest_preview_district_point(did, col, row)
     bots = [{
         "id": f"preview_{did}_boss", "x": col, "y": row,
         "ang": 0.0, "hp": DIST_BOSS_HP, "max_hp": DIST_BOSS_HP,
@@ -405,8 +440,9 @@ def make_district_defenders(did, dd):
     }]
     guard_offsets = ((1.4, 0.8), (-1.2, 1.0), (0.8, -1.4), (-1.5, -0.7))
     for i, (dx, dy) in enumerate(guard_offsets):
+        gx, gy = nearest_preview_district_point(did, col + dx, row + dy)
         bots.append({
-            "id": f"preview_{did}_guard_{i}", "x": col + dx, "y": row + dy,
+            "id": f"preview_{did}_guard_{i}", "x": gx, "y": gy,
             "ang": 0.0, "hp": DIST_GUARD_HP, "max_hp": DIST_GUARD_HP,
             "kind": "district_guard", "weapon": "pistol_heavy",
             "act": "walk", "alive": True, "damage": 12,
@@ -473,7 +509,8 @@ def tick_district_defenders(now, dt):
             r0,r1,c0,c1 = dd.get("bounds", (0,199,0,79))
             for _ in range(80):
                 tx,ty = random.uniform(c0+3,c1-3),random.uniform(r0+3,r1-3)
-                if math.hypot(tx-boss["x"],ty-boss["y"]) >= 12:
+                if (math.hypot(tx-boss["x"],ty-boss["y"]) >= 12
+                        and preview_district_patrol_ok(did, tx, ty)):
                     waypoint=(tx,ty);cap["patrol_wp"]=waypoint;cap["patrol_wp_until"]=now+random.uniform(22,34);break
         noticed = cap.setdefault("noticed_world_c4", set())
         # Само участие в операции, доверие и уровень не дают агро.
@@ -501,11 +538,12 @@ def tick_district_defenders(now, dt):
                     else:
                         flee_ang = math.atan2(bot["y"]-nearest["y"], bot["x"]-nearest["x"])
                     step = min(DIST_C4_FLEE_SPEED*dt, DIST_C4_SAFE_R-nearest_dist+0.35)
-                    bot["x"] += math.cos(flee_ang)*step
-                    bot["y"] += math.sin(flee_ang)*step
-                    bot["ang"] = flee_ang
-                    bot["evading_c4"] = True
-                    continue
+                    nx = bot["x"] + math.cos(flee_ang)*step
+                    ny = bot["y"] + math.sin(flee_ang)*step
+                    if preview_district_patrol_ok(did, nx, ny):
+                        bot["x"], bot["y"], bot["ang"] = nx, ny, flee_ang
+                        bot["evading_c4"] = True
+                        continue
             target = players.get(str(cap.get("hostile_uid") or ""))
             if (not target or target.get("dead")
                     or (target.get("_mode") or "pvp") == "pve"
@@ -521,15 +559,28 @@ def tick_district_defenders(now, dt):
                 dx, dy = tx-bot["x"], ty-bot["y"]
                 dist = math.hypot(dx,dy)+1e-6
                 step = min(dist, 1.05*dt)
-                bot["x"] += dx/dist*step; bot["y"] += dy/dist*step
-                bot["ang"] = math.atan2(dy,dx)
+                direct = math.atan2(dy, dx)
+                for turn in (0., .48, -.48, .9, -.9, 1.35, -1.35):
+                    ang = direct + turn
+                    nx = bot["x"] + math.cos(ang)*step
+                    ny = bot["y"] + math.sin(ang)*step
+                    if preview_district_patrol_ok(did, nx, ny):
+                        bot["x"], bot["y"], bot["ang"] = nx, ny, ang
+                        break
                 continue
             dx = target.get("x", 0)-bot["x"]; dy = target.get("y", 0)-bot["y"]
             dist = math.hypot(dx, dy)+1e-6
             bot["ang"] = math.atan2(dy, dx)
             if dist > 6.0:
                 step = 1.5*dt
-                bot["x"] += dx/dist*step; bot["y"] += dy/dist*step
+                direct = math.atan2(dy, dx)
+                for turn in (0., .42, -.42, .82, -.82, 1.25, -1.25):
+                    ang = direct + turn
+                    nx = bot["x"] + math.cos(ang)*step
+                    ny = bot["y"] + math.sin(ang)*step
+                    if preview_district_patrol_ok(did, nx, ny):
+                        bot["x"], bot["y"], bot["ang"] = nx, ny, ang
+                        break
             if dist <= 8.0 and now-float(bot.get("shot_at") or 0) >= (0.6 if bot["kind"]=="district_boss" else 1.1):
                 bot["shot_at"] = now
                 damage = int(bot.get("damage") or 8)
@@ -556,16 +607,11 @@ def preview_aggro_payload():
         for i, bot in enumerate(cap.get("defenders") or []):
             if not bot.get("alive"):
                 continue
-            # Небольшой патруль вокруг точки сбора — в превью босс не стоит статуей.
-            phase = now * 0.35 + i * 1.2
             out = {k: v for k, v in bot.items() if k != "alive"}
-            if bot.get("evading_c4") or cap.get("hostile_uid"):
-                out["x"] = round(bot["x"], 2); out["y"] = round(bot["y"], 2)
-                out["ang"] = round(bot.get("ang", 0), 2)
-            else:
-                out["x"] = round(bot["x"] + 0.35 * math.cos(phase), 2)
-                out["y"] = round(bot["y"] + 0.35 * math.sin(phase), 2)
-                out["ang"] = round(phase + 1.57, 2)
+            # Координаты уже меняет полноценный patrol AI. Старое декоративное
+            # вращение поверх них могло визуально столкнуть NPC в стену/воду.
+            out["x"] = round(bot["x"], 2); out["y"] = round(bot["y"], 2)
+            out["ang"] = round(bot.get("ang", 0), 2)
             out["damage"] = int(bot.get("damage") or 0)
             out["evading_c4"] = bool(bot.get("evading_c4"))
             visible.append(out)

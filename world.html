@@ -13272,6 +13272,15 @@ function applyAggroTargets(newAggro) {
   for (const tid of freshTids) {
     const fresh = newAggro[tid];
     const cur   = aggroZones[tid];
+    // Последний клиентский предохранитель: районных защитников не рисуем
+    // в стене/воде даже при одном устаревшем или повреждённом снапшоте.
+    if (fresh && fresh.district_did) {
+      fresh.bots = (fresh.bots || []).filter(b => {
+        if (!_isDistrictDefenderBot(b)) return true;
+        const ri=Math.floor(+b.y), ci=Math.floor(+b.x);
+        return !!(MAP[ri] && (MAP[ri][ci]===0 || MAP[ri][ci]===8 || MAP[ri][ci]===9 || MAP[ri][ci]===14));
+      });
+    }
     if (!cur) {
       // Новая зона — копируем как есть, x=tx (нет интерполяции с нуля)
       const z = JSON.parse(JSON.stringify(fresh));
