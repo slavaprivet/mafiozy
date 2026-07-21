@@ -35709,8 +35709,20 @@ function _explodeThrowable(q){
   if(q.kind==='grenade'){spawnCarExplosion(q.toR,q.toC,null,false);for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,d=.35+Math.random()*.7;spawnCarExplosion(q.toR+Math.sin(a)*d,q.toC+Math.cos(a)*d,null,false)}spawnBlastCrater(q.toR,q.toC);spawnShockwave(q.toR,q.toC,{rad0:8,maxRad:88,life:520,color:'#ffbd55',thick:5});spawnSmokePuff(q.toR,q.toC,0);spawnSmokePuff(q.toR+.4,q.toC-.3,2.2);addShake(15);fireScreenFlash('rpg');}
   else{const now=performance.now();_firePools.push({r:q.toR,c:q.toC,start:now,until:now+8500,lastHit:0,seed:Math.random()*20});spawnShockwave(q.toR,q.toC,{rad0:5,maxRad:62,life:420,color:'#ff8a20',thick:4});addShake(7);}
   for(const n of NPCS){if(!n.dead&&Math.hypot(n.r-q.toR,n.c-q.toC)<radius)hitNpc(n,0,0,q.kind,q.kind==='grenade'?95:45)}
+  _damageGangBotsInThrowable(q.toR,q.toC,radius,q.kind==='grenade'?'grenade':'molotov_fire');
   if(_buildingInt)for(const n of (_buildingInt.npcs||[])){if(!n.dead&&Math.hypot(n.r-q.toR,n.c-q.toC)<radius)_hitInteriorNpc(n,0,0,q.kind==='grenade'?95:45,q.kind)}
   const sd=Math.hypot(player.r-q.toR,player.c-q.toC);if(sd<radius)_hurtLocal(Math.max(8,Math.round((q.kind==='grenade'?65:32)*(1-sd/radius))),q.kind==='grenade'?'граната':'огонь');
+}
+function _damageGangBotsInThrowable(r,c,radius,weapon){
+  if(!ws||ws.readyState!==1)return;
+  const sent=new Set();
+  for(const zone of Object.values(aggroZones||{}))for(const bot of (zone?.bots||[])){
+    if(!bot||bot.dead||bot.alive===false||Number(bot.hp)<=0)continue;
+    const id=String(bot.id||'');if(!id||sent.has(id))continue;
+    if(Math.hypot((+bot.y||0)-r,(+bot.x||0)-c)>=radius)continue;
+    sent.add(id);
+    try{ws.send(JSON.stringify({t:'aggro_shoot',d:{target:id,weapon}}))}catch(e){}
+  }
 }
 function _drawWorldFirePatch(f,now){
   const p=w2s(f.r+.5,f.c+.5),t=now*.006+(f.seed||0),flick=.78+.14*Math.sin(t*7.3)+.08*Math.sin(t*13.1+2),glowR=54+Math.sin(t*5.5)*7;
@@ -35721,7 +35733,7 @@ function _drawWorldFirePatch(f,now){
 function drawThrowableFx(){
   const now=performance.now();
   for(let i=_thrownItems.length-1;i>=0;i--){const q=_thrownItems[i],t=Math.min(1,(now-q.start)/q.flight);if(t>=1)_explodeThrowable(q);if(now-q.start>q.flight+(q.kind==='grenade'?850:250)){_thrownItems.splice(i,1);continue}const r=q.fromR+(q.toR-q.fromR)*t,c=q.fromC+(q.toC-q.fromC)*t,p=w2s(r+.5,c+.5),arc=Math.sin(Math.PI*t)*55;ctx.save();ctx.font='18px "Segoe UI Emoji"';ctx.textAlign='center';ctx.shadowColor=q.kind==='molotov'?'#ff6a00':'#000';ctx.shadowBlur=8;ctx.fillText(q.kind==='grenade'?'💣':'🔥',p.x,p.y-_bulletY()-arc);ctx.restore()}
-  for(let i=_firePools.length-1;i>=0;i--){const f=_firePools[i];if(now>f.until){_firePools.splice(i,1);continue}_drawWorldFirePatch(f,now);if(now-f.lastHit>900){f.lastHit=now;for(const n of NPCS)if(!n.dead&&Math.hypot(n.r-f.r,n.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS)hitNpc(n,0,0,'molotov',12);if(Math.hypot(player.r-f.r,player.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS-.2)_hurtLocal(8,'пожар')}}
+  for(let i=_firePools.length-1;i>=0;i--){const f=_firePools[i];if(now>f.until){_firePools.splice(i,1);continue}_drawWorldFirePatch(f,now);if(now-f.lastHit>900){f.lastHit=now;for(const n of NPCS)if(!n.dead&&Math.hypot(n.r-f.r,n.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS)hitNpc(n,0,0,'molotov',12);_damageGangBotsInThrowable(f.r,f.c,THROW_MOLOTOV_FIRE_RADIUS,'molotov_fire');if(Math.hypot(player.r-f.r,player.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS-.2)_hurtLocal(8,'пожар')}}
 }
 function _drawThrowableAim(){const a=_joyRAimAngle();if(a==null)return;const range=_joyRThrowRange(),er=player.r+Math.sin(a)*range,ec=player.c+Math.cos(a)*range;ctx.save();ctx.strokeStyle=currentWeapon==='grenade'?'#ffd65a':'#ff792e';ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.beginPath();for(let i=0;i<=16;i++){const t=i/16,r=player.r+(er-player.r)*t,c=player.c+(ec-player.c)*t,p=w2s(r+.5,c+.5),arc=Math.sin(Math.PI*t)*(22+range*5);if(i)ctx.lineTo(p.x,p.y-_bulletY()-arc);else ctx.moveTo(p.x,p.y-_bulletY())}ctx.stroke();ctx.setLineDash([]);const ep=w2s(er+.5,ec+.5);ctx.beginPath();ctx.ellipse(ep.x,ep.y,22,10,0,0,Math.PI*2);ctx.stroke();ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(`${range.toFixed(1)} м`,ep.x,ep.y+23);ctx.font='18px "Segoe UI Emoji"';ctx.fillText(currentWeapon==='grenade'?'💥':'🔥',ep.x,ep.y-5);ctx.restore()}
 

@@ -12339,6 +12339,10 @@ class WorldSim:
     # Серверный источник баланса совпадает с WEAPON_FX_CFG в world.html.
     # falloff_start — доля дальности, после которой начинает падать урон.
     WEAPON_PROFILE = {
+        # Метательное оружие передаёт отдельный hit для каждого бандита,
+        # попавшего в радиус. Нулевой cooldown нужен именно для настоящего AoE.
+        'grenade':      {'dmg': 95,  'cd': 0.0, 'range': 12.0, 'falloff_start': 1.0, 'min_mul': 1.0},
+        'molotov_fire': {'dmg': 12,  'cd': 0.0, 'range': 12.0, 'falloff_start': 1.0, 'min_mul': 1.0},
         'pistol':       {'dmg': 24,  'cd': 0.38,  'range': 8.0,  'falloff_start': 0.72, 'min_mul': 0.65},
         'nagan':        {'dmg': 32,  'cd': 0.48,  'range': 9.2,  'falloff_start': 0.78, 'min_mul': 0.76,
                          'duel_pause': 0.80, 'duel_crit_mul': 1.80, 'armor_pen': 0.45},
@@ -14533,7 +14537,8 @@ class WorldSim:
         key = cls._weapon_key(weapon)
         owned = shooter.get('_weapon_classes')
         mafia_reward = key == 'golden_tommy' and int(shooter.get('_mafia_xp') or 0) >= 4000 and not shooter.get('_police')
-        if key != 'pistol' and not mafia_reward and (not isinstance(owned, set) or key not in owned):
+        throwable_hit = key in ('grenade', 'molotov_fire')
+        if key != 'pistol' and not throwable_hit and not mafia_reward and (not isinstance(owned, set) or key not in owned):
             return None
         profile = dict(cls.WEAPON_PROFILE[key])
         now = time.time()
