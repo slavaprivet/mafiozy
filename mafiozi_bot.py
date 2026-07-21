@@ -20393,6 +20393,48 @@ async def _coop_http_app():
             'equipped_armor':  char2.get('armor'),
         }))
 
+    async def h_inv_break_armor(req):
+        """Death destroys the currently equipped personal armor.
+
+        The update is atomic and idempotent: repeated death/snapshot requests
+        cannot consume a second vest after the equipped slot has been cleared.
+        """
+        try:
+            uid = int(req.match_info['uid'])
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute('BEGIN IMMEDIATE')
+            async with db.execute("SELECT armor FROM characters WHERE telegram_id=?", (uid,)) as cur:
+                row = await cur.fetchone()
+            if not row:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+            armor_id = str(row[0] or '')
+            if not armor_id:
+                await db.commit()
+                return await _cors(web.json_response({'ok': True, 'broken': None, 'equipped_armor': None}))
+            item = ITEMS.get(armor_id) or {}
+            if item.get('type') == 'armor':
+                async with db.execute(
+                    "SELECT quantity FROM inventory WHERE telegram_id=? AND item_id=?",
+                    (uid, armor_id),
+                ) as cur:
+                    inv_row = await cur.fetchone()
+                qty = int(inv_row[0] or 0) if inv_row else 0
+                if qty <= 1:
+                    await db.execute("DELETE FROM inventory WHERE telegram_id=? AND item_id=?", (uid, armor_id))
+                else:
+                    await db.execute(
+                        "UPDATE inventory SET quantity=quantity-1 WHERE telegram_id=? AND item_id=?",
+                        (uid, armor_id),
+                    )
+            await db.execute("UPDATE characters SET armor=NULL WHERE telegram_id=?", (uid,))
+            await db.commit()
+        return await _cors(web.json_response({
+            'ok': True, 'broken': armor_id, 'equipped_armor': None,
+        }))
+
     async def h_inv_consume(req):
         try:
             uid=int(req.match_info['uid'])
@@ -22935,6 +22977,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
     aio_app.router.add_post('/inv/{uid}/equip',    h_inv_equip)
+    aio_app.router.add_post('/inv/{uid}/break-armor', h_inv_break_armor)
     aio_app.router.add_post('/inv/{uid}/consume',  h_inv_consume)
     aio_app.router.add_post('/inv/{uid}/found',    h_inv_found)
     aio_app.router.add_post('/inv/{uid}/sell-found', h_inv_sell_found)

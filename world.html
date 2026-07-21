@@ -327,6 +327,13 @@ body.in-pvp #robActionBtn { top: 152px; }
 #profileModal .item .info { flex: 1; }
 #profileModal .item .nm { font-size: 13px; font-weight: 700; }
 #profileModal .item .sub { font-size: 11px; color: #7a8098; }
+#profileModal .armor-equip {
+  flex: 0 0 auto; min-width: 72px; padding: 7px 9px; border-radius: 8px;
+  border: 1px solid #5576a8; background: linear-gradient(145deg,#315d91,#223d68);
+  color: #fff; font: 800 10px system-ui,sans-serif; cursor: pointer;
+}
+#profileModal .armor-equip:active { transform: scale(.96); }
+#profileModal .armor-equip:disabled { border-color:#74652e;background:#3c3520;color:#ffd76b;opacity:.9;cursor:default;transform:none; }
 #profileModal .stat-block {
   display: flex; flex-wrap: wrap; gap: 8px;
 }
@@ -716,7 +723,7 @@ body.in-pvp #robActionBtn { top: 152px; }
 #policeDownedBtn.show{display:block}#policeDownedBtn:active{transform:scale(.96)}#policeDownedBtn small{display:block;margin-top:4px;color:#bfe6ff;font-size:10px}
 @keyframes policeBtnPulse{50%{box-shadow:0 6px 30px rgba(69,159,255,.95),inset 0 0 0 4px rgba(255,255,255,.14)}}
 #districtMissionClose {
-  position: absolute; left: calc(50% + min(38vw, 150px) - 17px); top: calc(70% - 31px);
+  position: absolute; left: calc(50% + min(41vw, 165px) - 20px); top: calc(69% - 47px);
   width: 27px; height: 27px; display: none; align-items: center; justify-content: center;
   padding: 0; border-radius: 50%; border: 1px solid rgba(255,255,255,.45);
   background: rgba(94,19,19,.95); color: #fff; font: 900 17px/1 system-ui, sans-serif;
@@ -2254,12 +2261,13 @@ function _worldAngleToScreen(ang) {
 // момент прислал обновление образа из редактора.
 function _livePlayerLook(){
   const base=QP.look||{};
+  let live=base;
   try{
     if(_policeState&&_policeState.employed&&typeof _policeUniformLook==='function')
-      return _policeUniformLook(_policeState.civilianLook||base);
+      live=_policeUniformLook(_policeState.civilianLook||base);
   }catch(e){}
   const armor=typeof _equippedArmor!=='undefined' ? ARMOR_STYLES[_equippedArmor] : null;
-  return armor ? {...base,suit:armor.suit,hat:armor.hat==null?base.hat:armor.hat,armorStyle:_equippedArmor} : base;
+  return armor ? {...live,suit:armor.suit,hat:armor.hat==null?live.hat:armor.hat,armorStyle:_equippedArmor} : live;
 }
 
 const ARMOR_STYLES={
@@ -2274,7 +2282,6 @@ const ARMOR_STYLES={
   titanium_vest:{suit:'#66717e',hat:2,reduction:.28,label:'Титановый жилет'},
 };
 function _armorReduction(){
-  if(typeof _policeState!=='undefined'&&_policeState?.employed)return 0; // служебная броня не складывается с личной
   return Math.max(0,Math.min(.34,ARMOR_STYLES[_equippedArmor]?.reduction||0));
 }
 
@@ -3295,6 +3302,18 @@ const BEACH_FOUND_DEFS = {
 };
 let _inventoryItems = [];
 let _equippedArmor = null;
+let _armorBreakPending = false;
+async function _breakEquippedArmorOnDeath(){
+  if(!_equippedArmor||_armorBreakPending)return;
+  const brokenId=_equippedArmor,label=ARMOR_STYLES[brokenId]?.label||'Броня';
+  _armorBreakPending=true;_equippedArmor=null;renderHudAvatar();
+  showToast(`${label} уничтожена при смерти`,'💥',2400);
+  try{
+    await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/break-armor`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    await loadInventoryItems();
+  }catch(e){}
+  _armorBreakPending=false;
+}
 let _myC4Count = 0, _myGrenadeCount = 0, _myMolotovCount = 0;
 const worldC4Charges = new Map(); // id → {x,y,ownerUid,ownerName,expiresAt}
 const districtBossCashDrops = new Map(); // общий серверный дроп $200 с боссов районов
@@ -12318,7 +12337,7 @@ function _hurtLocal(dmg, by) {
   _selfHpBarUntil = _localHpHurtAt + 4500;
   if (myHp <= 0 && !myDead) {
     myDead = true; _localDeath = true;
-    myDeathBy = by || 'Город'; myDeathLeft = 18;_dispatchPlayerAmbulance();
+    myDeathBy = by || 'Город'; myDeathLeft = 18;_breakEquippedArmorOnDeath();_dispatchPlayerAmbulance();
   }
 }
 let myKills = 0, myDeaths = 0;
@@ -15353,6 +15372,7 @@ function wsConnect() {
           myDeathLeft = d.me.respawn_in || 0;
         }
         if (!wasDead && myDead) {
+          _breakEquippedArmorOnDeath();
           // Только что умер — принудительно выходим из машины, сбрасываем зум
           if (myDrivingCarId) {
             exitCar('death');
@@ -16355,9 +16375,13 @@ function updateGtaInteractions() {
   _gtaActionBagCarRef = null;
   _updatePoliceStealthButton();
   // Кнопка ручника — видна только за рулём (не пассажир)
-  _handbrakeBtn.style.display = (myDrivingCarId && !myIsPassenger) ? 'flex' : 'none';
+  const _activeVehicle=myDrivingCarId?questCars.get(myDrivingCarId):null;
+  const _activeVehicleModel=_activeVehicle?resolveCarModel(_activeVehicle.model):null;
+  const _activeIsHeli=!!(_activeVehicleModel&&_activeVehicleModel.helicopter);
+  if(_activeIsHeli){_handbrakeActive=false;_handbrakeBtn.classList.remove('active');}
+  _handbrakeBtn.style.display = (myDrivingCarId && !myIsPassenger && !_activeIsHeli) ? 'flex' : 'none';
   const _patrolCar=myDrivingCarId&&!myIsPassenger?questCars.get(myDrivingCarId):null;
-  _policeSirenBtn.style.display=(_patrolCar&&_patrolCar.police_patrol)?'block':'none';
+  _policeSirenBtn.style.display=(_patrolCar&&_patrolCar.police_patrol&&!_activeIsHeli)?'block':'none';
   _policeSirenBtn.classList.toggle('active',!!(_patrolCar&&_patrolCar.siren));
   // Кнопка «Ограбить» по умолчанию скрыта — показывается только в
   // блоке biz_buy (когда подошёл к чужому бизнесу). Прячем здесь чтобы
@@ -16550,9 +16574,9 @@ function updateGtaInteractions() {
     }
     _gtaActionKind = 'exit';
     _gtaActionCarId = myDrivingCarId;
-    _gtaBtn.textContent = myIsPassenger
-      ? '🚪 Выйти (пассажир)'
-      : '🚪 Выйти из машины';
+    _gtaBtn.textContent = _activeIsHeli
+      ? '🚁 Приземлиться и выйти'
+      : (myIsPassenger ? '🚪 Выйти (пассажир)' : '🚪 Выйти из машины');
     _gtaBtn.style.display = 'block';
     return;
   }
@@ -18582,9 +18606,26 @@ function enterCar(carId, asKind) {
   }
   _seat();
 }
+function _helicopterCanLand(qc) {
+  if(!qc)return false;
+  const r=Math.floor(qc.y),c=Math.floor(qc.x);
+  if(r<1||c<1||r>=MAP_ROWS-1||c>=MAP_COLS-1)return false;
+  const probes=[[0,0],[.42,0],[-.42,0],[0,.42],[0,-.42]];
+  for(const [dr,dc] of probes){
+    const rr=qc.y+dr,cc=qc.x+dc,tr=Math.floor(rr),tc=Math.floor(cc);
+    if(isBlocked(rr,cc)||!MAP[tr]||MAP[tr][tc]===16)return false;
+  }
+  return true;
+}
 function exitCar(reason) {
   if (!myDrivingCarId) return;
   const qc = questCars.get(myDrivingCarId);
+  const exitModel=qc?resolveCarModel(qc.model):null;
+  if(exitModel&&exitModel.helicopter&&!_helicopterCanLand(qc)){
+    _exitRequested=false;
+    showToast('Нельзя приземлиться на здании — найди свободную площадку','🚁',2400);
+    return;
+  }
   for (let i = floatTexts.length - 1; i >= 0; i--) {
     if (floatTexts[i].tag === 'race_wall') floatTexts.splice(i, 1);
   }
@@ -21896,13 +21937,15 @@ function update(dt) {
       const CAR_COAST_DRAG     = 0.18;   // был 0.85/сек — теперь машина останавливается за ~2с
       const CAR_TURN_RATE_BASE = 3.4;
       const _qcMdl = QUEST_CAR_MODELS[qc.model] || resolveCarModel(qc.model) || {};
+      const _isHelicopter = !!_qcMdl.helicopter;
+      if(_isHelicopter){_handbrakeActive=false;qc.siren=false;qc.tires_punctured=false;}
       // Ручной тормоз активен — сцепление резко падает (дрифт)
-      const grip = _handbrakeActive ? 1.8 : 5.0;
+      const grip = _isHelicopter ? 9.5 : (_handbrakeActive ? 1.8 : 5.0);
       const CAR_DRIFT_GRIP     = grip;
       // Текущая скорость по локальному состоянию qc
       let curVx = qc.vx || 0, curVy = qc.vy || 0;
       let curSpeed = Math.hypot(curVx, curVy);
-      const spikeHit=_policeSpikeAt(qc.y,qc.x);
+      const spikeHit=_isHelicopter?null:_policeSpikeAt(qc.y,qc.x);
       if(spikeHit&&!qc.tires_punctured){qc.tires_punctured=true;curVx*=.18;curVy*=.18;addShake(3);try{ws&&ws.send(JSON.stringify({t:'gta_tires_punctured',d:{car_id:qc.id}}));}catch(e){}showEventBanner('🛞 ШИНЫ ПРОБИТЫ','Колёса спущены: скорость и управление ухудшены.',2800,'lose');}
       if(qc.tires_punctured){const cap=CAR_MAX_SPEED*.42,sp=Math.hypot(curVx,curVy);if(sp>cap){curVx*=cap/sp;curVy*=cap/sp;}}
       // Если игрок попросил выйти — игнорируем стик, тормозим до 0
@@ -21948,7 +21991,7 @@ function update(dt) {
         // Skid marks: резкий поворот на скорости → штрихи на асфальте.
         // Условие: фактическая угловая скорость близка к лимиту И едем быстро.
         const turnSpeed = Math.abs(turnStep) / Math.max(dt, 0.001);
-        if (turnSpeed > CAR_TURN_RATE_BASE * 0.55 && curSpeed > 5.5) {
+        if (!_isHelicopter && turnSpeed > CAR_TURN_RATE_BASE * 0.55 && curSpeed > 5.5) {
           const nowMs = performance.now();
           if (nowMs - _lastSkidAt > 40) {
             _lastSkidAt = nowMs;
@@ -22040,11 +22083,11 @@ function update(dt) {
       // ── Дым выхлопа ────────────────────────────────────────────────
       const _isJunker = !!(qc._junker);
       const _isSport  = !!(_qcMdl && (_qcMdl.sport || _qcMdl.muscle || _qcMdl.fast));
-      spawnExhaust(qc, throttle, _isJunker, _isSport);
+      if(!_isHelicopter)spawnExhaust(qc, throttle, _isJunker, _isSport);
 
       // ── Дым из-под колёс при пробуксовке (резкий старт или ручник) ─
-      const _spinSmoke = (_handbrakeActive && curSpeed > 1.5) ||
-                         (throttle > 0.85 && curSpeed < 2.5 && !inReverse);
+      const _spinSmoke = !_isHelicopter && ((_handbrakeActive && curSpeed > 1.5) ||
+                         (throttle > 0.85 && curSpeed < 2.5 && !inReverse));
       if (_spinSmoke) {
         const nowMs = performance.now();
         if (nowMs - _lastSkidAt > 18) {
@@ -22095,7 +22138,7 @@ function update(dt) {
       }
 
       // ── Скидмарки при ручном тормозе (более частые) ───────────────
-      if (_handbrakeActive && curSpeed > 3) {
+      if (!_isHelicopter && _handbrakeActive && curSpeed > 3) {
         const nowMs2 = performance.now();
         if (nowMs2 - _lastSkidAt > 30) {
           _lastSkidAt = nowMs2;
@@ -22319,6 +22362,12 @@ function update(dt) {
       }
       // Запрошен выход и машина почти стоит → реально вышли
       if (wantingExit && curSpeed < 0.25) {
+        if(_isHelicopter&&!_helicopterCanLand(qc)){
+          _exitRequested=false;curVx=0;curVy=0;qc.vx=0;qc.vy=0;
+          showToast('Посадка невозможна: под вертолётом здание','🚁',2200);
+          updateGtaInteractions();
+          return;
+        }
         const cid = myDrivingCarId;
         // ВАЖНО: включаем парковочную защиту ДО обнуления myDrivingCarId.
         // Иначе applyQuestCarsSnapshot считает машину уже не управляемой и
@@ -29790,15 +29839,25 @@ function drawCar(r, c) {
 // Подсветка: золотой контур + 🎯 над крышей если это МОЙ контракт,
 // либо иконка модели + цвет владельца. Driver-uid отображается рядом.
 function drawCareerHelicopter(qc,m){
-  const p=w2s(qc.y+.5,qc.x+.5),a=qc.ang||0,t=performance.now()*.018;
-  ctx.save();ctx.translate(p.x,p.y-24);
-  ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,31,36,12,0,0,Math.PI*2);ctx.fill();
-  ctx.rotate(-a*.35);ctx.fillStyle=m.palette?.[1]||'#222';ctx.fillRect(-38,-5,30,8);
-  ctx.fillStyle=m.palette?.[0]||'#ddd';ctx.beginPath();ctx.ellipse(2,0,24,14,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=m.roof||'#172033';ctx.beginPath();ctx.ellipse(8,-4,13,8,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#86c9eb';ctx.globalAlpha=.72;ctx.beginPath();ctx.ellipse(13,-6,8,5,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-  ctx.strokeStyle=m.police?'#62b9ff':'#e0b34b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-20,13);ctx.lineTo(21,13);ctx.stroke();
-  ctx.rotate(t);ctx.strokeStyle='rgba(220,235,245,.78)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-44,0);ctx.lineTo(44,0);ctx.moveTo(0,-18);ctx.lineTo(0,18);ctx.stroke();ctx.restore();
+  const p=w2s(qc.y+.5,qc.x+.5),a=qc.ang||0,t=performance.now(),moving=Math.hypot(qc.vx||0,qc.vy||0);
+  const lift=68+Math.sin(t*.004)*2.5,body=m.palette?.[0]||'#e8edf2',dark=m.palette?.[1]||'#25344a',accent=m.police?'#4f9ed8':'#d2a53e';
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(p.x+10,p.y+12,45+lift*.15,15+lift*.04,-a*.15,0,Math.PI*2);ctx.fill();
+  ctx.translate(p.x,p.y-lift);ctx.rotate(-a);
+  ctx.strokeStyle='#121821';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-19,11);ctx.lineTo(-22,19);ctx.lineTo(12,19);ctx.lineTo(17,11);ctx.stroke();
+  ctx.strokeStyle=dark;ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(-18,-1);ctx.lineTo(-52,-7);ctx.stroke();
+  ctx.fillStyle=dark;ctx.beginPath();ctx.moveTo(-48,-13);ctx.lineTo(-58,-25);ctx.lineTo(-55,-4);ctx.lineTo(-43,1);ctx.closePath();ctx.fill();
+  ctx.save();ctx.translate(-54,-9);ctx.rotate(t*.038);ctx.strokeStyle='#b9c8d2';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-10,0);ctx.lineTo(10,0);ctx.moveTo(0,-10);ctx.lineTo(0,10);ctx.stroke();ctx.restore();
+  ctx.fillStyle=dark;ctx.beginPath();ctx.ellipse(1,2,28,16,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(5,-2,25,14,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=accent;ctx.fillRect(-14,4,38,4);
+  ctx.fillStyle='#8dc7e1';ctx.beginPath();ctx.moveTo(7,-13);ctx.quadraticCurveTo(28,-10,29,1);ctx.lineTo(10,2);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(220,245,255,.75)';ctx.lineWidth=1;ctx.stroke();
+  if(m.police){ctx.fillStyle='#f4f7fa';ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.fillText('POLICE',0,8);}
+  else{ctx.fillStyle='#f1d36e';ctx.beginPath();ctx.arc(-3,-3,3,0,Math.PI*2);ctx.fill();}
+  ctx.strokeStyle='#303943';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-15);ctx.lineTo(0,-23);ctx.stroke();
+  ctx.save();ctx.translate(0,-23);ctx.rotate(t*(moving>.5?.045:.035));ctx.strokeStyle='rgba(207,224,235,.82)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-51,0);ctx.lineTo(51,0);ctx.moveTo(0,-20);ctx.lineTo(0,20);ctx.stroke();ctx.strokeStyle='rgba(130,160,180,.35)';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(-43,0);ctx.lineTo(43,0);ctx.stroke();ctx.restore();
+  ctx.restore();
 }
 function drawQuestCar(qc) {
   // Резолвер: угнанная civ-машина имеет модель из CAR_MODELS (sedan/taxi),
@@ -31744,16 +31803,35 @@ function drawChar(ctx, W, H, opts) {
   const suit = opts.suit || null;
   if (gender === 0) drawMale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim, suit);
   else              drawFemale(ctx, px, py, sc, skinCol, body, face, hair, hat, skipArms, skipLegs, swim, suit);
-  if(opts.armorStyle&&!swim)drawArmorSkin(ctx,px,py,sc,opts.armorStyle);
+  if(opts.armorStyle&&!swim)drawArmorSkin(ctx,px,py,sc,opts.armorStyle,gender,body);
 }
 
-function drawArmorSkin(g,px,py,sc,id){
+function drawArmorSkin(g,px,py,sc,id,gender=0,body=1){
   const heavy=['army_armor','swat_suit','composite_armor','exo_armor','titanium_vest'].includes(id);
   const plate=['bulletproof','kevlar_vest','tactical_vest',...(heavy?[id]:[])].includes(id);
   const cols={leather_jacket:['#42271e','#1d100c'],bulletproof:['#253128','#101713'],kevlar_vest:['#526043','#273020'],tactical_vest:['#30463d','#15251f'],army_armor:['#52613e','#26301f'],swat_suit:['#202a35','#090d12'],composite_armor:['#526273','#1b2530'],exo_armor:['#334353','#111b25'],titanium_vest:['#87929d','#35414d']};
-  const [main,dark]=cols[id]||['#333','#111'];g.save();g.lineWidth=2*sc;g.strokeStyle=dark;
-  if(id==='leather_jacket'){g.fillStyle=main;g.beginPath();g.roundRect(px(-25),py(106),50*sc,48*sc,6*sc);g.fill();g.stroke();g.strokeStyle='#b58a55';g.beginPath();g.moveTo(px(0),py(106));g.lineTo(px(0),py(58));g.stroke();}
-  else if(plate){g.fillStyle=main;g.beginPath();g.roundRect(px(heavy?-31:-26),py(112),(heavy?62:52)*sc,(heavy?59:52)*sc,6*sc);g.fill();g.stroke();g.fillStyle=dark;g.fillRect(px(-21),py(99),42*sc,6*sc);g.fillRect(px(-19),py(82),38*sc,5*sc);g.fillStyle='rgba(210,225,215,.22)';g.beginPath();g.roundRect(px(-15),py(106),30*sc,18*sc,3*sc);g.fill();g.strokeStyle=dark;g.stroke();g.fillStyle=dark;g.fillRect(px(-29),py(69),58*sc,7*sc);if(heavy){g.fillStyle=main;for(const s of [-1,1]){g.beginPath();g.roundRect(px(s*30-10),py(116),20*sc,20*sc,5*sc);g.fill();g.stroke();g.fillStyle=dark;g.fillRect(px(s*29-8),py(96),16*sc,7*sc);g.fillStyle=main;}}if(id==='swat_suit'){g.fillStyle='#e8edf2';g.font=`bold ${9*sc}px sans-serif`;g.textAlign='center';g.fillText('SWAT',px(0),py(87));}if(id==='exo_armor'){g.strokeStyle='#58d5ff';g.shadowColor='#58d5ff';g.shadowBlur=5*sc;g.lineWidth=2*sc;g.strokeRect(px(-17),py(104),34*sc,35*sc);g.fillStyle='#58d5ff';g.fillRect(px(-4),py(86),8*sc,8*sc);g.shadowBlur=0;}}
+  const [main,dark]=cols[id]||['#333','#111'];
+  const maleW=[34,44,58,52],femaleW=[30,36,48,34],torsoW=(gender?femaleW:maleW)[body]||40;
+  const half=Math.max(15,torsoW*.48),shoulder=half*(heavy?1.10:1),waist=half*.78;
+  const top=heavy?106:102,mid=84,bottom=61;
+  g.save();g.lineWidth=Math.max(1,1.5*sc);g.lineJoin='round';g.strokeStyle=dark;
+  if(id==='leather_jacket'){
+    g.fillStyle=main;g.beginPath();g.moveTo(px(-shoulder),py(top));g.quadraticCurveTo(px(-half),py(mid),px(-waist),py(bottom));g.lineTo(px(waist),py(bottom));g.quadraticCurveTo(px(half),py(mid),px(shoulder),py(top));g.quadraticCurveTo(px(0),py(top-7),px(-shoulder),py(top));g.closePath();g.fill();g.stroke();
+    g.strokeStyle='#a8794e';g.lineWidth=Math.max(1,sc);g.beginPath();g.moveTo(px(0),py(top-3));g.lineTo(px(0),py(bottom));g.moveTo(px(-half*.78),py(76));g.lineTo(px(-8),py(72));g.moveTo(px(half*.78),py(76));g.lineTo(px(8),py(72));g.stroke();
+  } else if(plate){
+    // Tapered vest follows the actual torso instead of hanging as a rectangle.
+    g.fillStyle=main;g.beginPath();g.moveTo(px(-shoulder*.72),py(top));g.lineTo(px(-shoulder),py(94));g.lineTo(px(-waist),py(bottom));g.quadraticCurveTo(px(0),py(bottom-4),px(waist),py(bottom));g.lineTo(px(shoulder),py(94));g.lineTo(px(shoulder*.72),py(top));g.lineTo(px(8),py(top-5));g.lineTo(px(-8),py(top-5));g.closePath();g.fill();g.stroke();
+    // Shoulder straps and compact chest plate.
+    g.fillStyle=dark;g.beginPath();g.roundRect(px(-shoulder*.72),py(top+2),7*sc,25*sc,2*sc);g.roundRect(px(shoulder*.72)-7*sc,py(top+2),7*sc,25*sc,2*sc);g.fill();
+    g.fillStyle='rgba(210,225,215,.18)';g.beginPath();g.roundRect(px(-waist*.62),py(94),waist*1.24*sc,24*sc,3*sc);g.fill();g.strokeStyle='rgba(5,10,10,.55)';g.stroke();
+    g.fillStyle=dark;g.fillRect(px(-waist*.86),py(72),waist*1.72*sc,4*sc);
+    if(heavy){
+      g.fillStyle=main;for(const s of [-1,1]){const sx=s*shoulder;g.beginPath();g.roundRect(px(sx-(s>0?3:11)),py(105),14*sc,13*sc,4*sc);g.fill();g.stroke();}
+      g.fillStyle=dark;g.fillRect(px(-waist*.72),py(64),waist*1.44*sc,5*sc);
+    }
+    if(id==='swat_suit'){g.fillStyle='#e8edf2';g.font=`bold ${6.5*sc}px sans-serif`;g.textAlign='center';g.fillText('SWAT',px(0),py(79));}
+    if(id==='exo_armor'){g.strokeStyle='#58d5ff';g.shadowColor='#58d5ff';g.shadowBlur=4*sc;g.lineWidth=Math.max(1,1.4*sc);g.beginPath();g.roundRect(px(-waist*.66),py(94),waist*1.32*sc,29*sc,3*sc);g.stroke();g.fillStyle='#58d5ff';g.beginPath();g.arc(px(0),py(77),3*sc,0,Math.PI*2);g.fill();g.shadowBlur=0;}
+  }
   g.restore();
 }
 
@@ -32217,6 +32295,18 @@ function switchProfileTab(tab) {
   document.querySelectorAll('#profileModal .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   renderProfileTab();
 }
+async function _equipArmorFromInventory(itemId){
+  if(!itemId||_equippedArmor===itemId)return;
+  const owned=_inventoryItems.some(i=>i.id===itemId&&i.type==='armor'&&(+i.qty||0)>0);
+  if(!owned){showToast('Этой брони уже нет в инвентаре','⚠️',1800);await loadInventoryItems();return;}
+  try{
+    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:itemId,slot:'armor'})});
+    const j=await r.json();if(!j.ok)throw new Error(j.error||'equip failed');
+    _equippedArmor=j.equipped_armor||itemId;renderHudAvatar();renderProfileTab();
+    const label=ARMOR_STYLES[itemId]?.label||'Броня';
+    showToast(`${label} надета · прежняя броня осталась в инвентаре`,'🦺',2200);
+  }catch(e){showToast('Не удалось надеть броню','❌',1800);}
+}
 function renderProfileTab() {
   const box = document.getElementById('profileContent');
   if (!box) return;
@@ -32238,7 +32328,13 @@ function renderProfileTab() {
     const TYPE_NAME={armor:'Броня',potion:'Расходник',throwable:'Метательное',document:'Документ',thing:'Находка'};
     html += '<div style="padding:14px 4px 7px;color:#ffd76b;font-weight:900;font-size:14px">🎒 Предметы</div>';
     if(!items.length)html+='<div class="empty" style="padding:10px">Предметов пока нет.</div>';
-    for(const it of items){const icon=(it.name||'').match(/^\p{Extended_Pictographic}/u)?.[0]||TYPE_ICON[it.type]||'📦';const extra=it.sell_price?` · продажа: ${it.sell_price}$`:(it.desc?` · ${it.desc}`:'');html+=`<div class="item"><div class="icon">${icon}</div><div class="info"><div class="nm">${it.name||it.id}</div><div class="sub">${TYPE_NAME[it.type]||'Предмет'} · количество: ${+it.qty||1}${extra}</div></div></div>`;}
+    for(const it of items){
+      const icon=(it.name||'').match(/^\p{Extended_Pictographic}/u)?.[0]||TYPE_ICON[it.type]||'📦';
+      const extra=it.sell_price?` · продажа: ${it.sell_price}$`:(it.desc?` · ${it.desc}`:'');
+      const armor=it.type==='armor',equipped=armor&&_equippedArmor===it.id;
+      const armorBtn=armor?`<button class="armor-equip" onclick="_equipArmorFromInventory('${String(it.id).replace(/'/g,"\\'")}')" ${equipped?'disabled':''}>${equipped?'✓ Надето':'Надеть'}</button>`:'';
+      html+=`<div class="item${equipped?' equipped':''}"><div class="icon">${icon}</div><div class="info"><div class="nm">${it.name||it.id}</div><div class="sub">${TYPE_NAME[it.type]||'Предмет'} · количество: ${+it.qty||1}${extra}${equipped?' · экипировано':''}</div></div>${armorBtn}</div>`;
+    }
     html += '</div>';
     box.innerHTML = html;
   } else if (_profileTab === 'status') {
@@ -32612,7 +32708,7 @@ function reportCarCrash(qc, impact, kind) {
 
 // Взрыв машины — мощный «мясной» эффект: 36 искр + чёрный круг копоти
 // + бочка дыма. Переиспользуем impacts/bloodSplats.
-function spawnCarExplosion(wr, wc, car) {
+function spawnCarExplosion(wr, wc, car, leaveSoot = true) {
   // Запоминаем время взрыва на объекте машины — нужно для ударной волны
   if (car) car._explosionT = performance.now();
 
@@ -32648,23 +32744,32 @@ function spawnCarExplosion(wr, wc, car) {
   _capArr(impacts, _MAX_IMPACTS);
   impacts.push({ r: wr, c: wc, parts });
 
-  // Большое чёрное пятно копоти
-  _capArr(bloodSplats, _MAX_BLOOD);
-  bloodSplats.push({
-    r: wr, c: wc, radius: 24 + Math.random() * 10,
-    life: 18000, max: 18000, rot: Math.random() * Math.PI,
-    _isSoot: true,
-  });
-  // Несколько меньших пятен копоти вокруг
-  for (let i = 0; i < 3; i++) {
-    const dr = (Math.random() - 0.5) * 0.8, dc = (Math.random() - 0.5) * 0.8;
+  if (leaveSoot) {
     _capArr(bloodSplats, _MAX_BLOOD);
     bloodSplats.push({
-      r: wr + dr, c: wc + dc, radius: 8 + Math.random() * 8,
-      life: 14000, max: 14000, rot: Math.random() * Math.PI,
+      r: wr, c: wc, radius: 24 + Math.random() * 10,
+      life: 18000, max: 18000, rot: Math.random() * Math.PI,
       _isSoot: true,
     });
+    for (let i = 0; i < 3; i++) {
+      const dr = (Math.random() - 0.5) * 0.8, dc = (Math.random() - 0.5) * 0.8;
+      _capArr(bloodSplats, _MAX_BLOOD);
+      bloodSplats.push({
+        r: wr + dr, c: wc + dc, radius: 8 + Math.random() * 8,
+        life: 14000, max: 14000, rot: Math.random() * Math.PI,
+        _isSoot: true,
+      });
+    }
   }
+}
+
+function spawnBlastCrater(wr, wc) {
+  _capArr(bloodSplats, _MAX_BLOOD);
+  bloodSplats.push({
+    r: wr, c: wc, radius: 30 + Math.random() * 5,
+    life: 26000, max: 26000, rot: Math.random() * Math.PI,
+    _isSoot: true, _isCrater: true,
+  });
 }
 
 // Точка «хвата» (рука персонажа) — на уровне пояса/бёдер (НЕ плеч,
@@ -34007,7 +34112,8 @@ function render() {
   // обычную модель + красный glow если другой игрок за рулём.
   for (const qc of questCars.values()) {
     if (qc.y < r0 || qc.y >= r1 || qc.x < c0 || qc.x >= c1) continue;
-    items.push({ depth: qc.y + qc.x + 0.00085, draw: () => drawQuestCar(qc) });
+    const qm=resolveCarModel(qc.model);
+    items.push({ depth: qm&&qm.helicopter ? Number.MAX_SAFE_INTEGER : qc.y + qc.x + 0.00085, draw: () => drawQuestCar(qc) });
   }
   // Майкл-перекупщик — статичный в порту. Рисуем только если попал во
   // view-окно (иначе чанк за пределами экрана зря тратим CPU).
@@ -35600,7 +35706,7 @@ async function _throwSelected(kind,angle,throwRange){
 }
 function _explodeThrowable(q){
   if(q.exploded)return;q.exploded=true;const radius=q.kind==='grenade'?THROW_GRENADE_RADIUS:THROW_MOLOTOV_IMPACT_RADIUS;
-  if(q.kind==='grenade'){spawnCarExplosion(q.toR,q.toC);for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,d=.35+Math.random()*.7;spawnCarExplosion(q.toR+Math.sin(a)*d,q.toC+Math.cos(a)*d)}spawnShockwave(q.toR,q.toC,{rad0:8,maxRad:88,life:520,color:'#ffbd55',thick:5});spawnSmokePuff(q.toR,q.toC,0);spawnSmokePuff(q.toR+.4,q.toC-.3,2.2);addShake(15);fireScreenFlash('rpg');}
+  if(q.kind==='grenade'){spawnCarExplosion(q.toR,q.toC,null,false);for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,d=.35+Math.random()*.7;spawnCarExplosion(q.toR+Math.sin(a)*d,q.toC+Math.cos(a)*d,null,false)}spawnBlastCrater(q.toR,q.toC);spawnShockwave(q.toR,q.toC,{rad0:8,maxRad:88,life:520,color:'#ffbd55',thick:5});spawnSmokePuff(q.toR,q.toC,0);spawnSmokePuff(q.toR+.4,q.toC-.3,2.2);addShake(15);fireScreenFlash('rpg');}
   else{const now=performance.now();_firePools.push({r:q.toR,c:q.toC,start:now,until:now+8500,lastHit:0,seed:Math.random()*20});spawnShockwave(q.toR,q.toC,{rad0:5,maxRad:62,life:420,color:'#ff8a20',thick:4});addShake(7);}
   for(const n of NPCS){if(!n.dead&&Math.hypot(n.r-q.toR,n.c-q.toC)<radius)hitNpc(n,0,0,q.kind,q.kind==='grenade'?95:45)}
   if(_buildingInt)for(const n of (_buildingInt.npcs||[])){if(!n.dead&&Math.hypot(n.r-q.toR,n.c-q.toC)<radius)_hitInteriorNpc(n,0,0,q.kind==='grenade'?95:45,q.kind)}
@@ -35999,6 +36105,35 @@ function drawBloodSplats() {
     const a = Math.min(0.55, s.life / s.max * 0.55);
     const p = w2s(s.r + 0.5, s.c + 0.5);
     ctx.save();
+    if (s._isSoot) {
+      const fade = Math.max(0, s.life / s.max);
+      ctx.globalAlpha = Math.min(0.94, 0.38 + fade * 0.56);
+      ctx.translate(p.x, p.y);
+      ctx.rotate(s.rot);
+      const soot = ctx.createRadialGradient(0, 0, 2, 0, 0, s.radius);
+      soot.addColorStop(0, s._isCrater ? 'rgba(0,0,0,.98)' : 'rgba(7,7,7,.9)');
+      soot.addColorStop(0.55, 'rgba(12,11,10,.88)');
+      soot.addColorStop(0.82, 'rgba(38,31,25,.52)');
+      soot.addColorStop(1, 'rgba(35,28,22,0)');
+      ctx.fillStyle = soot;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, s.radius, s.radius * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (s._isCrater) {
+        ctx.fillStyle = 'rgba(0,0,0,.88)';
+        ctx.beginPath();
+        ctx.ellipse(0, 1, s.radius * 0.55, s.radius * 0.27, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(92,70,49,.72)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 3, 8, 2]);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, s.radius * 0.72, s.radius * 0.38, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+      continue;
+    }
     ctx.globalAlpha = a;
     ctx.translate(p.x, p.y);
     ctx.rotate(s.rot);
@@ -36771,8 +36906,13 @@ function drawDistrictCaptureHud() {
   const doneNodes=(cap?.done||[]).length;
   const partial=obj.phase==='sabotage'?doneNodes/3:0;
   const totalProgress=Math.min(1,(phaseIndex+partial)/phases.length);
-  const secondsLeft=Math.max(0,Number(cap?.expiresIn)||0);
-  const urgent=secondsLeft>0&&secondsLeft<60;
+  // Boss patrols live for a year internally so they can exist in the open world.
+  // That technical TTL is not an operation timer. The visible countdown begins
+  // only after the dossier has been picked up and the real 12-minute raid starts.
+  const timedPhase=['sabotage','hq','escape'].includes(obj.phase);
+  const rawSecondsLeft=Math.max(0,Number(cap?.expiresIn)||0);
+  const secondsLeft=timedPhase?Math.min(rawSecondsLeft,12*60):0;
+  const urgent=timedPhase&&secondsLeft>0&&secondsLeft<60;
   let nearbyThreats=0;
   for(const zone of Object.values(aggroZones))for(const bot of (zone?.bots||[])){
     if(bot.dead||Number(bot.hp)<=0)continue;
@@ -36788,7 +36928,7 @@ function drawDistrictCaptureHud() {
   ctx.beginPath(); ctx.roundRect(cx - barW / 2 - 10, y - 50, barW + 20, 94, 12); ctx.stroke();ctx.globalAlpha=1;
   ctx.font = '800 13px system-ui, sans-serif'; ctx.fillStyle = d.color;
   ctx.fillText(`${obj.icon} ОПЕРАЦИЯ «${d.name.toUpperCase()}»`, cx, y - 31, barW-78);
-  if(secondsLeft>0){ctx.textAlign='right';ctx.font='900 12px ui-monospace,monospace';ctx.fillStyle=urgent?'#ff736d':'#ffd76b';ctx.fillText(`⏱ ${mm}:${ss}`,cx+barW/2-4,y-31);ctx.textAlign='center';}
+  if(timedPhase&&secondsLeft>0){ctx.textAlign='right';ctx.font='900 12px ui-monospace,monospace';ctx.fillStyle=urgent?'#ff736d':'#ffd76b';ctx.fillText(`⏱ ${mm}:${ss}`,cx+barW/2-8,y-31);ctx.textAlign='center';}
   // Пять этапов операции: игрок сразу понимает, что уже сделано и что впереди.
   const segW=(barW-8)/phases.length,segY=y-20;
   for(let i=0;i<phases.length;i++){
