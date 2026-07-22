@@ -41,6 +41,40 @@ district_captures = {}
 district_loot = {}
 world_c4 = {}
 next_world_c4_id = 1
+PREVIEW_GANG_NESTS = [{
+    "id": "preview_nest_1", "r": 26.0, "c": 26.0,
+    "state": "guard", "expires_in": 3600, "bots_alive": 4,
+}]
+
+
+def preview_bandit_bot(bot_id, x, y, kind="aggro_grunt", weapon="pistol_heavy", hp=100):
+    return {
+        "id": bot_id, "x": float(x), "y": float(y), "ang": 0.0,
+        "hp": hp, "max_hp": hp, "kind": kind, "weapon": weapon,
+        "damage": 18 if kind != "aggro_boss" else 24, "act": "walk",
+        "look": {"gender":0, "skin":1 + (sum(map(ord, bot_id)) % 3),
+                 "body":2, "face":1, "hair":0, "hat":4, "gang":1},
+    }
+
+
+PREVIEW_LAIR_BOTS = [
+    preview_bandit_bot("preview_lair_boss", 40.0, 120.0, "aggro_boss", "uzi", 300),
+    preview_bandit_bot("preview_lair_1", 35.5, 116.0),
+    preview_bandit_bot("preview_lair_2", 44.5, 116.5, weapon="smg"),
+    preview_bandit_bot("preview_lair_3", 34.5, 123.5),
+    preview_bandit_bot("preview_lair_4", 45.5, 124.0, weapon="rifle"),
+    preview_bandit_bot("preview_lair_5", 40.0, 127.0),
+]
+PREVIEW_NEST_BOTS = [
+    preview_bandit_bot("cgbot_preview_nest_1", 24.5, 23.5),
+    preview_bandit_bot("cgbot_preview_nest_2", 27.5, 23.5, weapon="smg"),
+    preview_bandit_bot("cgbot_preview_nest_3", 23.5, 26.5),
+    preview_bandit_bot("cgbot_preview_nest_4", 23.5, 28.5, weapon="rifle"),
+]
+PREVIEW_STREET_GANGS = [
+    ("preview_city_gang_1", 12.0, 33.0),
+    ("preview_city_gang_2", 52.0, 63.0),
+]
 PREVIEW_START_X = 66.0
 PREVIEW_START_Y = 162.5
 PREVIEW_HOSPITAL_X = 43.0
@@ -750,6 +784,32 @@ def preview_aggro_payload():
             "cap_left": 0, "next_respawn": 0, "is_city_gang": True,
             "district_did": did,
         }
+    result["preview_lair"] = {
+        "state": "alive", "bots": [dict(bot) for bot in PREVIEW_LAIR_BOTS],
+        "covers": [], "cap_left": 0, "next_respawn": 0,
+    }
+    result["preview_nest_1"] = {
+        "state": "guard", "bots": [dict(bot) for bot in PREVIEW_NEST_BOTS],
+        "covers": [], "cap_left": 0, "next_respawn": 0, "is_nest": True,
+    }
+    patrol = now * 0.32
+    for gang_i, (gang_id, base_x, base_y) in enumerate(PREVIEW_STREET_GANGS):
+        phase = patrol + gang_i * math.pi
+        center_x = base_x + math.sin(phase) * 6.0
+        direction = 0.0 if math.cos(phase) >= 0 else math.pi
+        bots = []
+        for i in range(3):
+            bot = preview_bandit_bot(
+                f"cgbot_preview_street_{gang_i}_{i}",
+                center_x - i * 1.15, base_y + (i - 1) * 0.45,
+                weapon=("pistol_heavy", "smg", "rifle")[i],
+            )
+            bot["ang"] = direction
+            bots.append(bot)
+        result[gang_id] = {
+            "state": "patrol", "bots": bots, "covers": [],
+            "cap_left": 0, "next_respawn": 0, "is_city_gang": True,
+        }
     return result
 
 
@@ -1379,7 +1439,7 @@ def snap(uid):
                 + (float(bag.get("y") or 0)-float(p.get("y") or 0))**2 <= 42**2],
             "beachgoers": PREVIEW_BEACHGOERS,
             "michael_guards": [],
-            "gang_nests": [],
+            "gang_nests": PREVIEW_GANG_NESTS,
             "districts": {
                 "owners": district_owners,
                 "captures": {
