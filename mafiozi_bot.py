@@ -12281,6 +12281,7 @@ class WorldSim:
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
+        '_business_closed_until',
         # Очередь физических пуль ботов (dodge-механика).
         '_pending_bot_shots',
         # Пляжники — мирные NPC в купальниках/плавках.
@@ -12806,6 +12807,7 @@ class WorldSim:
         self.gang_nests = []
         self._gang_nest_next_id = 1
         self._gang_nest_next_spawn_at = 60.0   # первое через минуту после старта
+        self._business_closed_until = {}
         # Пляжники — мирные NPC. Спавнятся когда есть игроки.
         self.beachgoers = []
         self._beachgoer_next_id = 1
@@ -18448,6 +18450,11 @@ class WorldSim:
                 'world_c4':        world_c4_payload,
                 'aggro':           aggro_payload,
                 'gang_nests':      nests_payload,
+                'business_closures': {
+                    bid: max(0, int(until - now_t))
+                    for bid, until in self._business_closed_until.items()
+                    if until > now_t
+                },
                 'graffiti':        getattr(self, '_graffiti', [])[-20:],
                 'quest_cars':      quest_cars_payload,
                 'dropped_bags':    dropped_bags_payload,
@@ -21807,11 +21814,18 @@ async def _coop_http_app():
                             biz_id = str(d.get('biz_id') or '')
                         cfg = SHOP_ROB_CONFIG.get(biz_id)
                         rc  = BUSINESS_POIS_RC.get(biz_id)
+                        try:
+                            pressure = float(d.get('pressure') or 0) if isinstance(d, dict) else 0
+                            guards_down = int(d.get('guards_down') or 0) if isinstance(d, dict) else 0
+                        except (TypeError, ValueError):
+                            pressure, guards_down = 0, 0
                         reply = {'ok': False, 'reason': 'unknown'}
                         if not p or p.get('dead') or p.get('_mode') == 'pve':
                             reply = {'ok': False, 'reason': 'dead'}
                         elif not cfg or not rc:
                             reply = {'ok': False, 'reason': 'bad_biz'}
+                        elif pressure < 70 or guards_down < 1:
+                            reply = {'ok': False, 'reason': 'not_pressured'}
                         else:
                             poi_r, poi_c = rc
                             dx = float(p.get('x', 0)) - poi_c
@@ -21822,6 +21836,17 @@ async def _coop_http_app():
                                 reply = {'ok': False, 'reason': 'own'}
                             else:
                                 now_ts = int(time.time())
+                                closed_until = float(world._business_closed_until.get(biz_id) or 0)
+                                if closed_until > now_ts:
+                                    reply = {'ok': False, 'reason': 'closed',
+                                             'closed_s': int(closed_until - now_ts)}
+                                    try:
+                                        await ws.send_str(json.dumps(
+                                            {'t':'event','d':dict(reply,kind='shop_rob_reply')},
+                                            ensure_ascii=False))
+                                    except Exception:
+                                        pass
+                                    continue
                                 last_t = 0
                                 try:
                                     async with aiosqlite.connect(DB_PATH) as db:
@@ -21831,6 +21856,9 @@ async def _coop_http_app():
                                         row = await cur.fetchone()
                                         if row: last_t = int(row[0])
                                 except Exception: pass
+                                # Новая система использует общий 5-минутный респавн
+                                # заведения вместо персонального часового кулдауна.
+                                last_t = 0
                                 if now_ts - last_t < 3600:
                                     left = 3600 - (now_ts - last_t)
                                     reply = {'ok': False, 'reason': 'cooldown',
@@ -21855,8 +21883,10 @@ async def _coop_http_app():
                                     p['_wanted'] = max(p.get('_wanted') or 0,
                                                        float(stars))
                                     p['_last_shot_t'] = time.time()
+                                    world._business_closed_until[biz_id] = time.time() + 300.0
                                     reply = {'ok': True, 'biz_id': biz_id,
-                                             'money': money, 'stars': stars}
+                                             'money': money, 'stars': stars,
+                                             'closed_s': 300}
                                     # Broadcast баннер всем — «🔪 ОГРАБЛЕНИЕ:»
                                     nm = (p.get('name') or '')[:20]
                                     try:

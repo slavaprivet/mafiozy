@@ -110,6 +110,7 @@ preview_apartments = {}
 preview_bank_robs = {}
 preview_bank_bags = {}
 preview_businesses = {}
+preview_business_closures = {}
 preview_police_rewards = set()
 preview_gta_quests = {}
 preview_box_quests = {}
@@ -119,6 +120,16 @@ PREVIEW_BUSINESSES = {
     "garage": (18000,650,900,"🔧","Гараж-СТО"), "bar": (28000,1000,1400,"🍸","Бар «Чёрная вдова»"),
     "club": (45000,1600,2200,"🎰","Подпольный клуб"), "warehouse": (70000,2400,3300,"📦","Склад"),
     "casino": (120000,4000,5500,"🎲","Казино"), "port": (200000,6500,9000,"⚓","Порт"),
+}
+PREVIEW_BUSINESS_RC = {
+    "coffee":(33,13), "carwash":(23,25), "barbershop":(53,23),
+    "pizza":(53,53), "garage":(13,63), "bar":(43,33), "club":(63,53),
+    "warehouse":(73,23), "casino":(13,45),
+}
+PREVIEW_ROB_PAYOUT = {
+    "coffee":(60,1), "carwash":(85,1), "barbershop":(110,1),
+    "pizza":(160,1), "garage":(235,2), "bar":(360,2), "club":(550,2),
+    "warehouse":(850,2), "casino":(1400,3),
 }
 PREVIEW_BIZ_MULT = {1:1.0,2:1.35,3:1.75,4:2.25,5:3.0}
 PREVIEW_BIZ_UP = {2:.45,3:.75,4:1.15,5:1.70}
@@ -1452,6 +1463,10 @@ def snap(uid):
             "beachgoers": PREVIEW_BEACHGOERS,
             "michael_guards": [],
             "gang_nests": PREVIEW_GANG_NESTS,
+            "business_closures": {
+                bid: max(0, int(until-now)) for bid,until in preview_business_closures.items()
+                if until > now
+            },
             "districts": {
                 "owners": district_owners,
                 "captures": {
@@ -1742,6 +1757,31 @@ async def world_ws(req):
                 p["walking"] = bool(d.get("w", False))
                 p["swimming"] = bool(d.get("swimming", False))
                 p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
+            elif t == "shop_rob":
+                p = players.get(uid) or {}
+                biz_id = str(d.get("biz_id") or "")
+                rc = PREVIEW_BUSINESS_RC.get(biz_id)
+                reward = PREVIEW_ROB_PAYOUT.get(biz_id)
+                now = time.time()
+                reply = {"kind":"shop_rob_reply", "ok":False, "reason":"bad_biz"}
+                if rc and reward:
+                    closed_until = float(preview_business_closures.get(biz_id) or 0)
+                    if closed_until > now:
+                        reply.update(reason="closed", closed_s=int(closed_until-now))
+                    elif biz_id in preview_owned_businesses(uid):
+                        reply.update(reason="own")
+                    elif float(d.get("pressure") or 0) < 70 or int(d.get("guards_down") or 0) < 1:
+                        reply.update(reason="not_pressured")
+                    elif (float(p.get("x",0))-rc[1])**2 + (float(p.get("y",0))-rc[0])**2 > 9:
+                        reply.update(reason="too_far")
+                    else:
+                        money, stars = reward
+                        preview_account(uid)["cash"] += money
+                        p["wanted"] = max(int(p.get("wanted",0)), stars)
+                        preview_business_closures[biz_id] = now + 300
+                        reply = {"kind":"shop_rob_reply", "ok":True, "biz_id":biz_id,
+                                 "money":money, "stars":stars, "closed_s":300}
+                await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
             elif t == "district_capture_try":
                 p = players.get(uid) or {}
                 did = str(d.get("did") or "")

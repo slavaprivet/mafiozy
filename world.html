@@ -14368,11 +14368,14 @@ function handleEventPacket(d) {
       const s = +d.stars | 0;
       QP.cash = (parseInt(QP.cash) || 0) + m;
       myWanted = Math.max(myWanted || 0, s);
-      if (d.biz_id) _robCooldowns[d.biz_id] = Date.now() + 3600000;
+      if (d.biz_id) _robCooldowns[d.biz_id] = Date.now() + Math.max(1,+d.closed_s||300)*1000;
+      if (d.biz_id) _businessClosures[d.biz_id] = Date.now() + Math.max(1,+d.closed_s||300)*1000;
       showToast(`💰 Ограбление успешно: +$${m.toLocaleString('ru')} (${s}★)`,
                 '🔪', 3000);
       hapticHit();
+      if(_buildingInt&&_buildingInt.robbery)setTimeout(()=>{if(_buildingInt&&_buildingInt.robbery)exitBuildingInterior();},1800);
     } else {
+      if(_buildingInt&&_buildingInt.robbery)_buildingInt.robberyClaimed=false;
       // Кассир-снитч мог уже побежать локально — отменим, чтобы не было
       // несоответствия (сервер отверг — wanted не вырастет, снитчить не надо).
       if (d.reason === 'cooldown') {
@@ -14387,6 +14390,10 @@ function handleEventPacket(d) {
         showToast('🏪 Это твой бизнес — нельзя ограбить себя', '⚠️', 2200);
       } else if (d.reason === 'bad_biz') {
         showToast('❌ Эту точку нельзя ограбить', '⚠️', 2000);
+      } else if (d.reason === 'closed') {
+        showToast(`🔒 Заведение уже закрыто ещё ${Math.ceil((+d.closed_s||0)/60)} мин.`, '⏳', 2400);
+      } else if (d.reason === 'not_pressured') {
+        showToast('Сначала устрани охрану и доведи давление до 70%', '⚠️', 2400);
       } else {
         showToast('❌ Ограбление не прошло', '⚠️', 2000);
       }
@@ -15776,6 +15783,11 @@ function wsConnect() {
         // (красная подсветка здания + маркер на мини-карте).
         gangNests = d.gang_nests || [];
       }
+      if (d.business_closures !== undefined) {
+        const now = Date.now(), fresh = d.business_closures || {};
+        for (const id of Object.keys(_businessClosures)) if (!(id in fresh)) delete _businessClosures[id];
+        for (const [id, left] of Object.entries(fresh)) _businessClosures[id] = now + Math.max(0, +left || 0) * 1000;
+      }
       if (d.quest_cars !== undefined) {
         // GTA-квестовые машины Майкла. Серверные авторитативные позиции —
         // ставим в tx/ty для плавной интерполяции (как для других игроков).
@@ -16040,7 +16052,10 @@ function updateZoneBtn() {
   if (nearBizEntry) {
     _zoneCur = null;
     _zoneEl.dataset.bizId = nearBizEntry.id;
-    _zoneEl.textContent = `🚪 Войти: ${nearBizEntry.emoji} ${nearBizEntry.name}`;
+    const closedLeft = Math.max(0, (_businessClosures[nearBizEntry.id] || 0) - Date.now());
+    _zoneEl.textContent = closedLeft
+      ? `🔒 ЗАВЕДЕНИЕ ЗАКРЫТО · ${Math.ceil(closedLeft/60000)} мин.`
+      : `🚪 Войти: ${nearBizEntry.emoji} ${nearBizEntry.name}`;
     _zoneEl.style.display = 'block';
     return;
   }
@@ -16096,6 +16111,8 @@ _zoneEl.addEventListener('click', () => {
     }
     if (myDead) { showToast('💀 Дождись возрождения', '⚠️', 1600); return; }
     if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
+    const closedLeft = Math.max(0, (_businessClosures[biz.id] || 0) - Date.now());
+    if (closedLeft) { showToast(`🔒 Заведение закрыто ещё ${Math.ceil(closedLeft/60000)} мин.`, '⏳', 2200); return; }
     enterBuildingInterior(biz.r, biz.c, 'business', biz.id);
     return;
   }
@@ -16357,6 +16374,13 @@ const ROB_PAYOUT_PREVIEW = {
   warehouse:  { money:  850, stars: 2 },
   casino:     { money: 1400, stars: 3 },
 };
+const BUSINESS_ROB_TIERS = {
+  coffee:{guards:1,w:16,h:11}, carwash:{guards:2,w:18,h:12},
+  barbershop:{guards:2,w:18,h:12}, pizza:{guards:3,w:19,h:13},
+  garage:{guards:4,w:21,h:14}, bar:{guards:4,w:21,h:14},
+  club:{guards:5,w:23,h:15}, warehouse:{guards:6,w:25,h:17},
+  casino:{guards:8,w:28,h:19},
+};
 const ROB_DURATION_MS = 8000;
 const _robBtn      = document.getElementById('robActionBtn');
 const _robModal    = document.getElementById('robProgress');
@@ -16369,6 +16393,7 @@ let _robTargetR    = 0;
 let _robTargetC    = 0;
 let _robCashierNpc = null;   // ссылка на NPC из NPCS — кассир (если жив бежит)
 const _robCooldowns = {};    // biz_id → timestamp окончания кулдауна
+const _businessClosures = {}; // biz_id → общий серверный респавн владельца/охраны
 
 function startRobbery(biz) {
   if (_robInProgress) return;
@@ -16379,17 +16404,17 @@ function startRobbery(biz) {
     showToast('🌐 Нет соединения с сервером', '⚠️', 1800);
     return;
   }
-  _robInProgress = true;
-  _robStartT     = performance.now();
+  const closedUntil = _businessClosures[biz.id] || 0;
+  if (closedUntil > Date.now()) {
+    showToast(`🔒 Заведение закрыто. Откроется через ${Math.ceil((closedUntil-Date.now())/60000)} мин.`, '⏳', 2600);
+    return;
+  }
   _robTargetBiz  = biz;
   _robTargetR    = biz.r;
   _robTargetC    = biz.c;
-  _robCashierNpc = _spawnCashierAt(biz.r, biz.c);
-  _robModal.classList.add('show');
-  _robBarFill.style.width = '0%';
-  _robSubEl.textContent = `🏪 ${biz.emoji} ${biz.name}`;
   _robBtn.style.display = 'none';
   _gtaBtn.style.display = 'none';
+  enterBuildingInterior(biz.r, biz.c, 'business', biz.id, { robbery:true });
   hapticHit();
 }
 
@@ -16584,6 +16609,16 @@ function updateGtaInteractions() {
     _handbrakeBtn.style.display = 'none';
     _policeSirenBtn.style.display = 'none';
     if (_buildingInt.type === 'business') {
+      if (_buildingInt.robbery) {
+        const owner=(_buildingInt.npcs||[]).find(n=>n.role==='owner');
+        const guardsAlive=(_buildingInt.npcs||[]).filter(n=>n.role==='biz_guard'&&!n.dead).length;
+        if(owner&&!guardsAlive&&Math.hypot(player.r-owner.r,player.c-owner.c)<2.7){
+          _gtaActionKind='biz_rob_pressure';_gtaActionCarId=_buildingInt.bizId;
+          _gtaBtn.textContent=owner.hp<=30?'💰 Ограбить бизнес':'🗣️ Потребовать деньги';
+          _gtaBtn.style.display='block';return;
+        }
+        _gtaBtn.style.display='none';return;
+      }
       const manager = (_buildingInt.npcs || []).find(n => n.role === 'manager');
       if (manager && Math.hypot(player.r - manager.r, player.c - manager.c) < 2.7) {
         const own = myBusinesses.get(_buildingInt.bizId);
@@ -16869,11 +16904,11 @@ function updateGtaInteractions() {
       // ВТОРАЯ кнопка — «Ограбить». Альтернатива покупке.
       // Сумма и ★ серверные, сервер сам отвергнет при cooldown.
       const rcfg = ROB_PAYOUT_PREVIEW[bizNear.id];
-      const robOnCd = _robCooldowns[bizNear.id] && Date.now() < _robCooldowns[bizNear.id];
+      const robOnCd = Date.now() < Math.max(_robCooldowns[bizNear.id]||0,_businessClosures[bizNear.id]||0);
       if (_robBtn && rcfg && !_robInProgress && !robOnCd) {
         _robTargetBiz = bizNear; _robBtn._buySprayCan = false;
         _robBtn._graffitiR = null; _robBtn._graffitiC = null;
-        _robBtn.textContent = `🔪 Ограбить ($${rcfg.money}, ${rcfg.stars}★)`;
+        _robBtn.textContent = `🔫 Войти и ограбить (${rcfg.stars}★)`;
         _robBtn.style.display = 'block';
       }
       return;
@@ -17311,6 +17346,19 @@ _gtaBtn.addEventListener('click', () => {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'biz_manage') {
     openBusinessManagement(_gtaActionCarId);
+  } else if (_gtaActionKind === 'biz_rob_pressure') {
+    const owner=_buildingInt&&(_buildingInt.npcs||[]).find(n=>n.role==='owner');
+    if(!owner||_buildingInt.robberyClaimed)return;
+    if(owner.hp>30){
+      owner._sayText='НЕТ! Я НИЧЕГО НЕ ДАМ!';owner._sayUntil=performance.now()+1500;
+      showToast('Владелец не сломлен — давление должно быть не меньше 70%','🗣️',2200);
+    }else{
+      _buildingInt.robberyClaimed=true;
+      owner._sayText='ДЕРЖИ ДЕНЬГИ, ТОЛЬКО НЕ УБИВАЙ!';owner._sayUntil=performance.now()+2400;
+      const guardsDown=(_buildingInt.npcs||[]).filter(n=>n.role==='biz_guard'&&n.dead).length;
+      if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'shop_rob',d:{biz_id:_buildingInt.bizId,pressure:100-owner.hp,guards_down:guardsDown}}));
+      else{_buildingInt.robberyClaimed=false;showToast('Сервер не отвечает','⚠️',1800);}
+    }
   } else if (_gtaActionKind === 'blackmarket') {
     openShop();
   } else if (_gtaActionKind === 'taxi_ride') {
@@ -27732,6 +27780,7 @@ function drawBusinessBuilding(r, c, b) {
   // ореол-ромб под основанием. Тень-метка «это моё», видно сразу.
   const own = myBusinesses.get(b.id);
   const owned = !!(own && own.owned);
+  const closedLeft = Math.max(0, (_businessClosures[b.id] || 0) - Date.now());
   if (owned) {
     const pBase = w2s(r + 0.5, c + 0.5);
     const wxB = TS * 0.5, wyB = TS * 0.5 * ISO_Y;
@@ -28291,7 +28340,7 @@ function drawBusinessPoi(b) {
   //   куплено + есть доход → ярко-золотой фон, мерцает, показывает +$N
   //   куплено             → тёмно-зелёный фон + «МОЁ»
   //   на продажу          → тёмный фон + название + цена
-  const fgCol  = owned ? '#7eff9a' : '#ffd76b';
+  const fgCol  = closedLeft ? '#ff5c61' : (owned ? '#7eff9a' : '#ffd76b');
   const bgGrad = ctx.createLinearGradient(0, 0, 0, 1);   // placeholder
   // Размеры вывески — заметно крупнее старой
   const W = 96, H = 38;
@@ -28301,7 +28350,9 @@ function drawBusinessPoi(b) {
   ctx.fillRect(p.x - W / 2 + 2, topY + 2, W, H);
   // Основной плакат — двойной градиент (тёмный верх, чуть светлее низ)
   const g = ctx.createLinearGradient(p.x, topY, p.x, topY + H);
-  if (owned) {
+  if (closedLeft) {
+    g.addColorStop(0, '#4a1118');g.addColorStop(1, '#21080c');
+  } else if (owned) {
     g.addColorStop(0, '#0e3a22');
     g.addColorStop(1, '#072216');
   } else {
@@ -28376,7 +28427,9 @@ function drawBusinessPoi(b) {
   ctx.font = 'bold 12px system-ui, sans-serif';
   ctx.fillStyle = fgCol;
   let tag;
-  if (owned) {
+  if (closedLeft) {
+    tag = `ЗАКРЫТО ${Math.ceil(closedLeft/60000)}м`;
+  } else if (owned) {
     tag = (own.pending && own.pending > 0)
       ? `+$${own.pending.toLocaleString('ru')}`
       : '✓ МОЁ';
@@ -28395,7 +28448,7 @@ function drawBusinessPoi(b) {
     ctx.restore();
   }
   // Маленькая иконка-флажок у не купленных бизнесов — «ПРОДАЁТСЯ»
-  if (!owned) {
+  if (!owned && !closedLeft) {
     const fY = topY - 6;
     ctx.fillStyle = '#c83020';
     ctx.beginPath();
@@ -41216,6 +41269,29 @@ const _INTERIOR_NPC_CFG = {
 function _spawnInteriorNpcs(bi) {
   if (bi.type === 'business') {
     const cfg = BUSINESS_INTERIORS[bi.bizId] || BUSINESS_INTERIORS.coffee;
+    if (bi.robbery) {
+      const tier = BUSINESS_ROB_TIERS[bi.bizId] || {guards:2};
+      const owner = {
+        r:2.25,c:bi.W/2,tr:2.25,tc:bi.W/2,ang:Math.PI,walkPhase:0,walking:false,
+        name:cfg.manager,role:'owner',fixed:true,hp:100,maxHp:100,dead:false,
+        look:{gender:0,skin:1,body:1,face:2,hair:2,hat:0,suit:cfg.accent},
+        idleUntil:Infinity,speed:0,
+      };
+      const guards=[];
+      for(let i=0;i<tier.guards;i++){
+        const row=4.6+Math.floor(i/3)*2.5, lane=(i%3+1)*bi.W/4;
+        guards.push({
+          r:Math.min(bi.H-2.5,row),c:lane,tr:row,tc:lane,ang:Math.PI/2,
+          walkPhase:0,walking:false,name:i%3===0?'Старший охранник':'Охранник',
+          role:'biz_guard',fixed:false,hp:90+(tier.guards>=5?30:0),maxHp:90+(tier.guards>=5?30:0),dead:false,
+          look:{gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%3,hat:5,suit:i%3===0?'#171b24':'#273143'},
+          idleUntil:Infinity,speed:1.15+(i%2)*.15,_hostile:false,_shotAt:0,
+          weapon:i%4===0?'shotgun':(i%3===0?'smg':'pistol_heavy'),
+        });
+      }
+      bi.npcs=[owner,...guards];
+      return;
+    }
     const suits = [cfg.accent, '#263243', '#6b4f3d', '#ddd3be'];
     const names = [cfg.manager, ...cfg.staff];
     bi.npcs = names.map((name, i) => {
@@ -41264,6 +41340,20 @@ function _updateInteriorNpcs(bi, dt) {
   const now = performance.now();
   for (const n of bi.npcs) {
     if (n.dead) { n.walking = false; continue; }
+    if (bi.robbery && n.role === 'biz_guard' && bi.robberyStarted) {
+      const dr=player.r-n.r,dc=player.c-n.c,dist=Math.hypot(dr,dc)||1;
+      n.ang=Math.atan2(dr,dc);n._hostile=true;
+      if(dist>5.2){const step=n.speed*dt;n.r+=dr/dist*step;n.c+=dc/dist*step;n.walking=true;n.walkPhase+=dt*9;}
+      else n.walking=false;
+      const cooldown=n.weapon==='smg'?650:(n.weapon==='shotgun'?1450:1050);
+      if(dist<10&&!myDead&&now-(n._shotAt||0)>=cooldown){
+        n._shotAt=now;const hit=Math.random()>.24,damage=n.weapon==='shotgun'?14:(n.weapon==='smg'?7:10);
+        spawnMuzzle(n.r,n.c,n.ang,n.weapon);
+        spawnBullet(n.r,n.c,player.r+(hit?0:(Math.random()-.5)*2),player.c+(hit?0:(Math.random()-.5)*2),{hit,fromNpc:true,weapon:n.weapon});
+        if(hit)_hurtLocal(damage,`охрана ${BUSINESS_INTERIORS[bi.bizId]?.title||'бизнеса'}`);
+      }
+      continue;
+    }
     if (now < (n._knockedUntil || 0)) { n.walking = false; continue; }
     if (n.fixed) { n.walking = false; continue; }
     if (now < n.idleUntil) { n.walking = false; continue; }
@@ -41304,6 +41394,26 @@ function _raycastInteriorNpc(sR, sC, dirY, dirX, range) {
 
 function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon) {
   if (!npc || npc.dead || !_buildingInt) return;
+  const robbery = _buildingInt.type==='business' && _buildingInt.robbery;
+  if (robbery) {
+    _buildingInt.robberyStarted = true;
+    for (const g of _buildingInt.npcs) if (g.role==='biz_guard'&&!g.dead) g._hostile=true;
+    if (npc.role === 'owner') {
+      const guardsAlive = _buildingInt.npcs.some(n=>n.role==='biz_guard'&&!n.dead);
+      if (guardsAlive) {
+        spawnFloatText(npc.r,npc.c,'СНАЧАЛА ОХРАНА',{color:'#ffd36b',size:11,life:900});
+        return;
+      }
+      npc.maxHp=100;
+      npc.hp=Math.max(1,(npc.hp==null?100:npc.hp)-Math.max(1,damage||1));
+      npc._hurtAnimUntil=performance.now()+420;
+      const phrases=['А-А-АЙ!','ХВАТИТ!','НЕ НАДО!','Я ВСЁ ОТДАМ!','ПОЩАДИ!'];
+      npc._sayText=phrases[Math.floor(Math.random()*phrases.length)];
+      npc._sayUntil=performance.now()+1100;
+      spawnFloatText(npc.r,npc.c,`ДАВЛЕНИЕ ${Math.round(100-npc.hp)}%`,{color:npc.hp<=30?'#ff4d4d':'#ffb35b',size:12,life:850});
+      return;
+    }
+  }
   if (npc._keyNpc || npc._invulnerable || _buildingInt.type === 'police_st' || _buildingInt.type === 'mafia_hq') {
     npc.hp = npc.maxHp || 100;
     npc.dead = false;
@@ -41323,6 +41433,9 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon) {
   if (npc.hp <= 0) {
     npc.dead = true; npc.walking = false;
     spawnFloatText(npc.r, npc.c, 'УБИТ', { color:'#ff6969', size:14, life:1300 });
+    if (robbery && npc.role==='biz_guard' && !_buildingInt.npcs.some(n=>n.role==='biz_guard'&&!n.dead)) {
+      showEventBanner('⚠️ ОХРАНА УНИЧТОЖЕНА','Дави на владельца и заставь отдать деньги',2600,'warn');
+    }
   } else {
     spawnFloatText(npc.r, npc.c, `-${Math.round(damage)}`, { color:'#ffca72', size:12, life:800 });
   }
@@ -41333,9 +41446,11 @@ function _pushInteriorNpcs(bi, items) {
     for (const n of bi.npcs) {
       items.push({ d: n.r + n.c + .45, person: true, fn: ((nn) => () => {
         const p = w2s(nn.r + .5, nn.c + .5);
+        const say=performance.now()<(nn._sayUntil||0)?nn._sayText:null;
         drawPerson(p.x, p.y, nn.ang, nn.look, nn.walking ? nn.walkPhase : 0,
-          nn.name, null, false, nn.hp == null ? 100 : nn.hp, nn.maxHp || 100,
-          false, null, false, !!nn.dead || performance.now() < (nn._knockedUntil || 0));
+          nn.name, say, false, nn.hp == null ? 100 : nn.hp, nn.maxHp || 100,
+          false, null, false, !!nn.dead || performance.now() < (nn._knockedUntil || 0) || performance.now() < (nn._hurtAnimUntil||0));
+        if(nn.role==='biz_guard'&&!nn.dead)drawWeaponInHands(p.x,p.y,nn.ang,nn.weapon||'pistol_heavy',.88,nn._shotAt||0);
       })(n) });
     }
   }
@@ -41419,6 +41534,13 @@ function _drawBusinessInterior(bi) {
     case 'casino': table(5.2,4.3,'#176c42','РУЛЕТКА');table(7.5,9,'#176c42','BLACKJACK');box('SLOTS',4.8,14.5,3,1.2,2,'#b13e8f');box('КАССА',9.2,14,3,1.2,1.2,'#d2a83e');break;
     case 'port': box('КОНТЕЙНЕР',4.7,3.2,4,2,2.2,'#b34b36');box('КОНТЕЙНЕР',4.7,14.2,4,2,2.2,'#347a9e');box('ГРУЗ',8,5,3,2,1.35,'#9b6a38');box('ДИСПЕТЧЕР',8,13,3,1.5,1.45,'#3d596c');break;
   }
+  if(BUSINESS_ROB_TIERS[bi.bizId]){
+    const extra=Math.max(0,(BUSINESS_ROB_TIERS[bi.bizId]?.guards||1)-2);
+    for(let i=0;i<extra;i++){
+      const rr=Math.min(H-2.2,5.5+Math.floor(i/3)*2.2),cc=W-2.2-(i%3)*2.2;
+      box(i%2?'ЗАПАСЫ':'ДЕКОР',rr,cc,1.4,1.1,.8,i%2?'#6f5236':cfg.accent);
+    }
+  }
   _pushInteriorNpcs(bi,items);
   // Игроки общего экземпляра этого бизнеса. Сервер не присылает сюда
   // владельцев из закрытых экземпляров и игроков из других зданий.
@@ -41466,6 +41588,13 @@ function _drawBusinessInterior(bi) {
   const ep=w2s(H-.25,W/2);ctx.save();ctx.textAlign='center';ctx.font='900 10px system-ui';ctx.fillStyle='#69ff8d';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('ВЫХОД',ep.x,ep.y-4);ctx.restore();
   const biz=BUSINESS_POIS.find(b=>b.id===bi.bizId),own=myBusinesses.get(bi.bizId),lvl=own&&own.owned?_bizLevel(own):0;
   ctx.save();ctx.textAlign='center';ctx.font='900 14px system-ui';const title=`${biz?.emoji||'🏢'} ${cfg.title}${lvl?` · УР. ${lvl}`:' · НА ПРОДАЖУ'}`;const tw=ctx.measureText(title).width+28;ctx.fillStyle='rgba(7,10,16,.9)';ctx.strokeStyle=lvl?'#62ec91':'#d7ae4c';ctx.lineWidth=1.5;roundRect(SW/2-tw/2,14,tw,34,11);ctx.fill();ctx.stroke();ctx.fillStyle=lvl?'#8effaf':'#ffd76b';ctx.fillText(title,SW/2,36);ctx.restore();
+  if(bi.robbery){
+    const owner=(bi.npcs||[]).find(n=>n.role==='owner'),guards=(bi.npcs||[]).filter(n=>n.role==='biz_guard'&&!n.dead).length;
+    ctx.save();ctx.textAlign='center';ctx.font='900 12px system-ui';ctx.fillStyle='rgba(8,9,14,.92)';ctx.strokeStyle=guards?'#ff8c55':'#ff4055';ctx.lineWidth=1.5;roundRect(SW/2-130,54,260,52,10);ctx.fill();ctx.stroke();
+    if(guards){ctx.fillStyle='#ffb06b';ctx.fillText(`🔫 ОХРАНА: ${guards} · УСТРАНИ ВСЕХ`,SW/2,74);}
+    else if(owner){const pressure=Math.max(0,Math.min(100,100-owner.hp));ctx.fillStyle='#ddd';ctx.fillText(`ДАВЛЕНИЕ НА ВЛАДЕЛЬЦА · ${Math.round(pressure)}%`,SW/2,72);ctx.fillStyle='#28131a';ctx.fillRect(SW/2-108,82,216,11);ctx.fillStyle=pressure>=70?'#ff3f4f':'#f29a3d';ctx.fillRect(SW/2-106,84,212*pressure/100,7);}
+    ctx.restore();
+  }
 }
 
 // ── GENERIC BUILDING INTERIOR (обычные здания MAP[r][c]===1) ─────
@@ -41502,17 +41631,22 @@ function _showLootBanner(amount) {
   setTimeout(() => el.remove(), 2200);
 }
 
-function enterBuildingInterior(r, c, type, bizId = null) {
+function enterBuildingInterior(r, c, type, bizId = null, options = null) {
   if (_buildingInt || _bankInt || myDead || myDrivingCarId) return;
   _captureWorldBeforeInterior();
   const isBM = type === 'blackmarket';
   const isThemed = ['blackmarket','job','gym','hospital','police_st','mafia_hq','business'].includes(type);
   const _sizes = { blackmarket:[10,8], job:[12,9], gym:[14,10], hospital:[14,10], police_st:[18,14], mafia_hq:[18,14], business:[18,13] };
-  const [biW, biH] = _sizes[type] || (isThemed ? [10,8] : [16,12]);
+  let [biW, biH] = _sizes[type] || (isThemed ? [10,8] : [16,12]);
+  if (type === 'business' && BUSINESS_ROB_TIERS[bizId]) {
+    const tier = BUSINESS_ROB_TIERS[bizId] || {guards:2,w:18,h:13};
+    biW = tier.w; biH = tier.h;
+  }
   const seed = ((r * 73 + c * 131) % 97) / 97;
   _buildingInt = { r, c, W: biW, H: biH, seed,
     savedR: player.r, savedC: player.c,
-    type: type || null, bizId: bizId || null, loot: null, npcs: [] };
+    type: type || null, bizId: bizId || null, loot: null, npcs: [],
+    robbery: !!options?.robbery, robberyStarted:false, robberyClaimed:false };
   _spawnInteriorNpcs(_buildingInt);
   _buildingHideTimer = 0;
   {
