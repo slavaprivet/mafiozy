@@ -19556,14 +19556,14 @@ const _SHOP_ITEMS = [
   { id:'ammo_rifle',  name:'5.56 мм', type:'ammo', ammoType:'rifle', rounds:60, desc:'60 шт. · для: Винтовка', price:260 },
   { id:'ammo_sniper', name:'7.62 снайперские', type:'ammo', ammoType:'sniper', rounds:15, desc:'15 шт. · для: Снайперская винтовка', price:300 },
   { id:'ammo_rocket', name:'Заряды РПГ', type:'ammo', ammoType:'rocket', rounds:3, desc:'3 шт. · для: РПГ', price:650 },
-  { id:'leather_jacket',name:'Кожанка',type:'armor',def:12,price:180 },
-  { id:'bulletproof',name:'Бронежилет',type:'armor',def:28,price:450 },
-  { id:'kevlar_vest',name:'Кевларовый жилет',type:'armor',def:38,price:1200 },
-  { id:'tactical_vest',name:'Тактический жилет',type:'armor',def:50,price:2500 },
-  { id:'army_armor',name:'Армейская броня',type:'armor',def:62,price:5000 },
-  { id:'swat_suit',name:'Костюм спецназа',type:'armor',def:78,price:9000 },
-  { id:'composite_armor',name:'Композитный доспех',type:'armor',def:95,price:16000 },
-  { id:'exo_armor',name:'Экзо-броня',type:'armor',def:120,price:28000 },
+  { id:'leather_jacket',name:'Кожанка',type:'armor',def:12,price:100 },
+  { id:'bulletproof',name:'Бронежилет',type:'armor',def:28,price:200 },
+  { id:'kevlar_vest',name:'Кевларовый жилет',type:'armor',def:38,price:350 },
+  { id:'tactical_vest',name:'Тактический жилет',type:'armor',def:50,price:500 },
+  { id:'army_armor',name:'Армейская броня',type:'armor',def:62,price:650 },
+  { id:'swat_suit',name:'Костюм спецназа',type:'armor',def:78,price:800 },
+  { id:'composite_armor',name:'Композитный доспех',type:'armor',def:95,price:900 },
+  { id:'exo_armor',name:'Экзо-броня',type:'armor',def:120,price:1000 },
   { id:'grenade',     pic:'💣', name:'Граната',       type:'consumable', desc:'Урон 80-130', price:50 },
   { id:'molotov',     pic:'🔥', name:'Коктейль Молотова',type:'consumable',desc:'Урон 50-80 + горит',price:130 },
   { id:'c4',           pic:'🧨', name:'Заряд C4',      type:'consumable',desc:'Установка в мире · фитиль 3 сек · смертельно вблизи',price:350 },
@@ -35437,7 +35437,7 @@ if (d.kind === 'plank_path') {
         if (_qc) { try { drawQuestCar(_qc); } catch(e){} }
       } else if (!myDrivingCarId && !_inBus) {
         const _gp = w2s(player.r + 0.5, player.c + 0.5);
-        drawPerson(_gp.x, _gp.y, player.ang, QP.look,
+        drawPerson(_gp.x, _gp.y, player.ang, _livePlayerLook(),
                    player.walking ? player.walkPhase : 0, null, null, true,
                    myHp, PVP.max_hp, myDead, null, false, false);
       }
@@ -40153,7 +40153,7 @@ function _drawJobOfficeInterior(bi) {
   _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
-    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+    drawPerson(pp.x, pp.y, player.ang, _livePlayerLook(),
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
     if (!myDead && myMode !== 'pve' && _isArmed()) {
@@ -40371,7 +40371,7 @@ function _drawGymInterior(bi) {
   _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
-    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+    drawPerson(pp.x, pp.y, player.ang, _livePlayerLook(),
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
     if (!myDead && myMode !== 'pve' && _isArmed()) {
@@ -40556,7 +40556,7 @@ function _drawHospitalInterior(bi) {
   _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
-    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+    drawPerson(pp.x, pp.y, player.ang, _livePlayerLook(),
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
     if (!myDead && myMode !== 'pve' && _isArmed()) {
@@ -40895,7 +40895,7 @@ function _drawPoliceStationInterior(bi) {
   }
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
-    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+    drawPerson(pp.x, pp.y, player.ang, _livePlayerLook(),
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
     if (!myDead && myMode !== 'pve' && _isArmed()) {
@@ -41186,7 +41186,7 @@ function _drawBlackmarketInterior(bi) {
   _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
-    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+    drawPerson(pp.x, pp.y, player.ang, _livePlayerLook(),
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
     if (!myDead && myMode !== 'pve' && _isArmed()) {
@@ -41739,7 +41739,7 @@ function _drawBusinessInterior(bi) {
   }
   items.push({d:player.r+player.c+.5,hero:true,person:true,fn:()=>{
     const p=w2s(player.r+.5,player.c+.5);
-    drawPerson(p.x,p.y,player.ang,QP.look||{},player.walkPhase,'Игрок',null,true,myHp,PVP.max_hp,false,null,false,myDead);
+    drawPerson(p.x,p.y,player.ang,_livePlayerLook(),player.walkPhase,'Игрок',null,true,myHp,PVP.max_hp,false,null,false,myDead);
     // У вооружённого игрока drawPerson намеренно не рисует обычные руки:
     // руки и сам ствол добавляет этот общий оружейный рендер.
     if(!myDead&&myMode!=='pve'&&_isArmed()){
@@ -41918,7 +41918,7 @@ function _drawMafiaHqInterior(bi){
   const safeP=w2s(2.65,W-1.7);ctx.fillStyle='#e8c957';ctx.font='bold 16px serif';ctx.textAlign='center';ctx.fillText('◆',safeP.x,safeP.y-isoH(1.05));
   // Chandelier and warm pools of light.
   const cp=w2s(H/2,W/2),pulse=.78+.14*Math.sin(now*.003);const glow=ctx.createRadialGradient(cp.x,cp.y-85,3,cp.x,cp.y-40,145);glow.addColorStop(0,`rgba(255,215,105,${.24*pulse})`);glow.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=glow;ctx.fillRect(cp.x-150,cp.y-180,300,260);ctx.strokeStyle='#d6aa47';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cp.x,cp.y-160);ctx.lineTo(cp.x,cp.y-105);ctx.stroke();ctx.fillStyle='#ffd56b';ctx.font='25px serif';ctx.fillText('♛',cp.x,cp.y-88);
-  const items=[];_pushInteriorNpcs(bi,items);items.push({d:player.r+player.c+.6,person:true,fn:()=>{const p=w2s(player.r+.5,player.c+.5);drawPerson(p.x,p.y,player.ang,QP.look||{},player.walkPhase,'Игрок',null,true,myHp,PVP.max_hp,false,null,false,myDead);if(!myDead&&myMode!=='pve'&&_isArmed())drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT);}});items.sort((a,b)=>a.d-b.d);for(const it of items)it.fn();
+  const items=[];_pushInteriorNpcs(bi,items);items.push({d:player.r+player.c+.6,person:true,fn:()=>{const p=w2s(player.r+.5,player.c+.5);drawPerson(p.x,p.y,player.ang,_livePlayerLook(),player.walkPhase,'Игрок',null,true,myHp,PVP.max_hp,false,null,false,myDead);if(!myDead&&myMode!=='pve'&&_isArmed())drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT);}});items.sort((a,b)=>a.d-b.d);for(const it of items)it.fn();
   drawAimLaser();drawSmokePuffs();drawBullets();drawMuzzles();drawShockwaves();drawImpacts();drawFloatTexts();
   const ep=w2s(H-.25,W/2);ctx.fillStyle='#78ff9b';ctx.font='900 10px system-ui';ctx.textAlign='center';ctx.fillText('ВЫХОД',ep.x,ep.y-5);
   ctx.fillStyle='rgba(8,4,9,.9)';ctx.strokeStyle='#c6973d';ctx.lineWidth=1.5;roundRect(SW/2-145,12,290,38,12);ctx.fill();ctx.stroke();ctx.fillStyle='#ffd66e';ctx.font='900 16px serif';ctx.fillText('♛  ГЛАВНЫЙ ДОМ СЕМЬИ  ♛',SW/2,37);ctx.textAlign='left';
@@ -42368,7 +42368,7 @@ function drawBuildingInterior() {
   _pushInteriorNpcs(bi, items);
   items.push({ d: player.r + player.c + .5, hero: true, fn: () => {
     const pp = w2s(player.r + .5, player.c + .5);
-    drawPerson(pp.x, pp.y, player.ang, QP.look || {},
+    drawPerson(pp.x, pp.y, player.ang, _livePlayerLook(),
       player.walking ? player.walkPhase : 0, QP.name, null, true,
       myHp, PVP.max_hp, myDead, null, false, false);
     if (!myDead && myMode !== 'pve' && _isArmed()) {
@@ -43829,7 +43829,7 @@ function _drawVaultRoom(int) {
   items.push({d:player.r+player.c*0.01+0.5, fn:()=>{
     const p=w2s(player.r+.5, player.c+.5);
     if (int.myBag) _drawCarryingBag(p.x, p.y, { layer:'back', ang:player.ang, walking:player.walking, walkPhase:player.walkPhase });
-    drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!(_punchAnim && _punchAnim.type !== 'kick'),!!(_punchAnim && _punchAnim.type === 'kick'));
+    drawPerson(p.x,p.y,player.ang,_livePlayerLook(),player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!(_punchAnim && _punchAnim.type !== 'kick'),!!(_punchAnim && _punchAnim.type === 'kick'));
     if (!myDead) { if (_isArmed() && !_punchAnim) drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT); if (_punchAnim) _drawPunchAnim(p.x,p.y); }
     if (int.myBag) _drawCarryingBag(p.x, p.y, { layer:'strap', ang:player.ang, walking:player.walking, walkPhase:player.walkPhase });
   }});
@@ -44504,7 +44504,7 @@ function drawBankInteriorScene() {
   items.push({d:player.r+player.c+.05,fn:()=>{
     const p=w2s(player.r+.5,player.c+.5);
     if (myBag) _drawCarryingBag(p.x, p.y, { layer:'back', ang:player.ang, walking:player.walking, walkPhase:player.walkPhase });
-    drawPerson(p.x,p.y,player.ang,QP.look,player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!(_punchAnim && _punchAnim.type !== 'kick'),!!(_punchAnim && _punchAnim.type === 'kick'));
+    drawPerson(p.x,p.y,player.ang,_livePlayerLook(),player.walking?player.walkPhase:0,QP.name,null,true,myHp,PVP.max_hp||100,myDead,null,!!(_punchAnim && _punchAnim.type !== 'kick'),!!(_punchAnim && _punchAnim.type === 'kick'));
     if (!myDead) { if (_isArmed() && !_punchAnim) drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT); if (_punchAnim) _drawPunchAnim(p.x,p.y); }
     if (myBag) _drawCarryingBag(p.x, p.y, { layer:'strap', ang:player.ang, walking:player.walking, walkPhase:player.walkPhase });
   }});
