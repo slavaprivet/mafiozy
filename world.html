@@ -30094,11 +30094,13 @@ function drawAggroBot(bot) {
     ctx.stroke();
     ctx.restore();
   }
-  // Эмодзи над головой
-  ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#fff';
-  ctx.fillText(isBoss ? '👹' : (isElite ? '💪' : '🥷'), p.x, p.y - (isBoss ? 56 : (isElite ? 50 : 44)));
+  // Векторный знак ранга вместо emoji: одинаково выглядит даже там, где
+  // системный шрифт показывал пустые квадраты над головами бандитов.
+  const badgeY=p.y-(isBoss?58:(isElite?52:46)),badgeR=isBoss?9:7;
+  ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle=isBoss?'#7a2535':(isElite?'#7b5620':'#35205f');ctx.strokeStyle=isBoss?'#ff7588':(isElite?'#ffd064':'#b58cff');ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(p.x,badgeY,badgeR,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font=`900 ${isBoss?10:8}px system-ui,sans-serif`;ctx.fillText(isBoss?'B':(isElite?'E':'G'),p.x,badgeY+.5);ctx.restore();
   if(bot.kind==='district_boss'&&bot.boss_name){ctx.font='900 10px system-ui,sans-serif';ctx.fillStyle='#ffcf55';ctx.fillText(bot.boss_name,p.x,p.y-68);}
   if(bot.kind==='district_boss'||bot.kind==='district_guard'){
     const hp=Math.max(0,+bot.hp||0),maxHp=Math.max(1,+bot.max_hp||1),bw=isBoss?48:40;
