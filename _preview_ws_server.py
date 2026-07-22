@@ -111,6 +111,7 @@ preview_bank_robs = {}
 preview_bank_bags = {}
 preview_businesses = {}
 preview_business_closures = {}
+preview_business_aggro = {}
 preview_police_rewards = set()
 preview_gta_quests = {}
 preview_box_quests = {}
@@ -1467,6 +1468,10 @@ def snap(uid):
                 bid: max(0, int(until-now)) for bid,until in preview_business_closures.items()
                 if until > now
             },
+            "business_aggro": {
+                bid: max(0, int(until-now)) for (aggro_uid,bid),until in preview_business_aggro.items()
+                if str(aggro_uid) == str(uid) and until > now
+            },
             "districts": {
                 "owners": district_owners,
                 "captures": {
@@ -1757,6 +1762,15 @@ async def world_ws(req):
                 p["walking"] = bool(d.get("w", False))
                 p["swimming"] = bool(d.get("swimming", False))
                 p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
+            elif t == "business_aggro":
+                biz_id = str(d.get("biz_id") or "")
+                if biz_id in PREVIEW_BUSINESS_RC:
+                    preview_business_aggro[(str(uid), biz_id)] = time.time() + 300
+                    if len(preview_business_aggro) > 500:
+                        cutoff = time.time()
+                        for key, until in list(preview_business_aggro.items()):
+                            if until <= cutoff:
+                                preview_business_aggro.pop(key, None)
             elif t == "shop_rob":
                 p = players.get(uid) or {}
                 biz_id = str(d.get("biz_id") or "")

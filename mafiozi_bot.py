@@ -12281,7 +12281,7 @@ class WorldSim:
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
-        '_business_closed_until',
+        '_business_closed_until', '_business_aggro_until',
         # Очередь физических пуль ботов (dodge-механика).
         '_pending_bot_shots',
         # Пляжники — мирные NPC в купальниках/плавках.
@@ -12808,6 +12808,9 @@ class WorldSim:
         self._gang_nest_next_id = 1
         self._gang_nest_next_spawn_at = 60.0   # первое через минуту после старта
         self._business_closed_until = {}
+        # (uid, biz_id) -> timestamp. Охрана помнит только конкретного
+        # нападавшего; мирные посетители того же бизнеса не становятся целями.
+        self._business_aggro_until = {}
         # Пляжники — мирные NPC. Спавнятся когда есть игроки.
         self.beachgoers = []
         self._beachgoer_next_id = 1
@@ -18455,6 +18458,11 @@ class WorldSim:
                     for bid, until in self._business_closed_until.items()
                     if until > now_t
                 },
+                'business_aggro': {
+                    bid: max(0, int(until - now_t))
+                    for (aggro_uid, bid), until in self._business_aggro_until.items()
+                    if str(aggro_uid) == str(uid) and until > now_t
+                },
                 'graffiti':        getattr(self, '_graffiti', [])[-20:],
                 'quest_cars':      quest_cars_payload,
                 'dropped_bags':    dropped_bags_payload,
@@ -21800,6 +21808,16 @@ async def _coop_http_app():
                             for u2, ws2 in list(world.connections.items()):
                                 try: await ws2.send_str(blob)
                                 except Exception: pass
+                    elif t == 'business_aggro':
+                        biz_id = str(d.get('biz_id') or '') if isinstance(d, dict) else ''
+                        if biz_id in SHOP_ROB_CONFIG:
+                            now_ts = time.time()
+                            world._business_aggro_until[(str(uid), biz_id)] = now_ts + 300.0
+                            if len(world._business_aggro_until) > 500:
+                                world._business_aggro_until = {
+                                    key: until for key, until in world._business_aggro_until.items()
+                                    if until > now_ts
+                                }
                     elif t == 'shop_rob':
                         # Игрок ограбил магазин/бизнес: d = {biz_id}
                         # Серверная логика:
