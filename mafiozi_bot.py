@@ -12557,7 +12557,8 @@ class WorldSim:
     AGGRO_WARN_S        = 4.0       # сколько секунд предупреждаем «проваливай»
     AGGRO_RESPAWN_S     = 10 * 60   # раз в 10 мин полная партия снова на месте
     AGGRO_CAP_HOLD_S    = 3.0       # сколько сек надо удержать после зачистки
-    AGGRO_BOTS_COUNT    = 20        # обычных бойцов — рассчитано на 30+ игроков
+    AGGRO_BOTS_COUNT    = 20        # бойцов до главаря — рассчитано на 30+ игроков
+    AGGRO_ELITE_COUNT   = 4         # крупные усиленные громилы внутри орды
     # Награды за убийство бойца банды (зачисляются СРАЗУ в БД, broadcast'ятся
     # клиенту как 'aggro_killed' пакет для toast'а). Финальная экономика
     # подстраивается по тестам — сейчас гранд = 15$, босс = 150$.
@@ -15505,26 +15506,28 @@ class WorldSim:
             # Look — банда-стиль: сиреневая футболка, балаклава или
             # тёмные волосы. body=2 (футболка-цвет), hat=4 (балаклава/маска),
             # hair=0/3, face=0/1. Каждый чуть разный.
+            is_elite = i < self.AGGRO_ELITE_COUNT
             bots.append({
                 'id':       f'gbot{self._next_bot_id}',
                 'x':        float(bx),
                 'y':        float(by),
                 'ang':      0.0,
-                'hp':       int(self.AGGRO_BOT_HP),
-                'max_hp':   int(self.AGGRO_BOT_HP),
+                'hp':       int(self.AGGRO_BOT_HP * (1.8 if is_elite else 1.0)),
+                'max_hp':   int(self.AGGRO_BOT_HP * (1.8 if is_elite else 1.0)),
                 'alive':    True,
-                'kind':     'aggro_grunt',
-                'weapon':   self._pick_aggro_weapon(),
+                'kind':     'aggro_elite' if is_elite else 'aggro_grunt',
+                'weapon':   ('shotgun', 'rifle', 'pistol_heavy', 'smg')[i % 4]
+                            if is_elite else self._pick_aggro_weapon(),
                 '_shot_t':  0.0,
                 '_warned':  {},   # uid -> ts когда впервые увидели → начнут стрелять через AGGRO_WARN_S
                 '_strafe_t':0.0, '_strafe_s': 0.0,
                 'look':     {
                     'gender': 0,
                     'skin':   random.choice([1,2,3]),
-                    'body':   2,           # сиреневая футболка
+                    'body':   3 if is_elite else 2,
                     'face':   random.choice([0,1,2]),
                     'hair':   random.choice([0,1,3]),
-                    'hat':    4,           # балаклава
+                    'hat':    3 if is_elite else 4,
                     'gang':   1,           # маркер «банда логова»
                 },
             })

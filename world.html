@@ -29862,6 +29862,7 @@ function drawGraffitiOnGround(cx, cy, botId) {
 
 function drawAggroBot(bot) {
   const p = w2s(bot.y + 0.5, bot.x + 0.5);
+  const isElite = bot.kind === 'aggro_elite';
   const isBoss = (bot.kind === 'aggro_boss' || bot.kind === 'district_boss');
   const look   = bot.look || (isBoss ? _AGGRO_BOSS_LOOK : _AGGRO_GRUNT_LOOK);
   // Activity городских банд — если не 'walk', стоят на месте (не качаемся).
@@ -29889,10 +29890,10 @@ function drawAggroBot(bot) {
   // в drawPerson как chat — рисуется стандартным пузырём над головой.
   const threatChat = (bot.threat) ? String(bot.threat) : null;
   // Босс крупнее — масштабируем человечка.
-  if (isBoss) {
+  if (isBoss || isElite) {
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.scale(1.25, 1.25);
+    ctx.scale(isBoss ? 1.25 : 1.14, isBoss ? 1.25 : 1.14);
     drawPerson(0, 0, bot.ang || 0, look, walkPhase, null, threatChat, false,
                bot.hp, bot.max_hp, false);
     ctx.restore();
@@ -29913,7 +29914,7 @@ function drawAggroBot(bot) {
     // Оружие
     const weapon = bot.weapon || (isBoss ? 'uzi' : 'pistol_heavy');
     const flashAt = lastBossShotAt.get(bot.id) || 0;
-    drawWeaponInHands(p.x, p.y, bot.ang || 0, weapon, isBoss ? 1.15 : 0.95, flashAt);
+    drawWeaponInHands(p.x, p.y, bot.ang || 0, weapon, isBoss ? 1.15 : (isElite ? 1.08 : 0.95), flashAt);
   }
   // Сабля направлена по взгляду босса. Раньше она постоянно вращалась сама
   // по себе и визуально усиливала ощущение, что босс кружит на месте.
@@ -29940,7 +29941,7 @@ function drawAggroBot(bot) {
   ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
-  ctx.fillText(isBoss ? '👹' : '🥷', p.x, p.y - (isBoss ? 56 : 44));
+  ctx.fillText(isBoss ? '👹' : (isElite ? '💪' : '🥷'), p.x, p.y - (isBoss ? 56 : (isElite ? 50 : 44)));
   if(bot.kind==='district_boss'&&bot.boss_name){ctx.font='900 10px system-ui,sans-serif';ctx.fillStyle='#ffcf55';ctx.fillText(bot.boss_name,p.x,p.y-68);}
   if(bot.kind==='district_boss'||bot.kind==='district_guard'){
     const hp=Math.max(0,+bot.hp||0),maxHp=Math.max(1,+bot.max_hp||1),bw=isBoss?48:40;

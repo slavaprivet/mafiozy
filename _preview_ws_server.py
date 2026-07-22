@@ -64,12 +64,19 @@ for _lair_i in range(20):
     _lair_ring = _lair_i // 5
     _lair_ang = (_lair_i % 5) * math.tau / 5 + _lair_ring * 0.43
     _lair_radius = (4.5, 8.0, 11.5, 15.0)[_lair_ring]
-    PREVIEW_LAIR_BOTS.append(preview_bandit_bot(
+    _lair_elite = _lair_i < 4
+    _lair_bot = preview_bandit_bot(
         f"preview_lair_{_lair_i + 1}",
         40.0 + math.cos(_lair_ang) * _lair_radius,
         120.0 + math.sin(_lair_ang) * _lair_radius,
-        weapon=("pistol_heavy", "smg", "rifle")[_lair_i % 3],
-    ))
+        kind="aggro_elite" if _lair_elite else "aggro_grunt",
+        weapon=("shotgun", "rifle", "pistol_heavy", "smg")[_lair_i % 4]
+               if _lair_elite else ("pistol_heavy", "smg", "rifle")[_lair_i % 3],
+        hp=162 if _lair_elite else 100,
+    )
+    if _lair_elite:
+        _lair_bot["look"].update({"body":3, "hat":3})
+    PREVIEW_LAIR_BOTS.append(_lair_bot)
 PREVIEW_NEST_BOTS = [
     preview_bandit_bot("cgbot_preview_nest_1", 24.5, 23.5),
     preview_bandit_bot("cgbot_preview_nest_2", 27.5, 23.5, weapon="smg"),
