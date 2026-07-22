@@ -4980,7 +4980,9 @@ let _myDistrictObjective = null;   // {did, point, phase, label, icon}
 let _districtNodeDisable = null;   // {did,targetIndex,point,startedAt,sentAt}
 let _districtNodeSparkAt = 0;
 let _lastDistCaptureTryAt = 0;
-let _districtMissionHudHidden = false;
+// Большая карточка операции не открывается сама при входе в район.
+// Игрок при необходимости разворачивает её кнопкой «Захват скрыт».
+let _districtMissionHudHidden = true;
 let _districtMissionUiKey = '';
 let _districtHqPresenceKey = '';
 const DISTRICT_BY_ID = new Map(DISTRICTS.map(d => [d.id, d]));
@@ -15040,7 +15042,7 @@ function handleEventPacket(d) {
   } else if (kind === 'district_operation_started') {
     for(const [id,q] of districtDossierDrops)if(String(q.did)===String(d.did))districtDossierDrops.delete(id);
     if (String(d.by_uid) === String(QP.uid)) {
-      _districtMissionHudHidden = false; _districtMissionUiKey = '';
+      _districtMissionHudHidden = true; _districtMissionUiKey = '';
       showEventBanner(`${d.icon||'🗺'} Захват района: ${d.name}`,
         'Досье добыто. Выведи из строя три узла района.', 4200, 'win');
     } else {
@@ -15131,7 +15133,7 @@ function handleEventPacket(d) {
     }
   } else if (kind === 'district_safe_intercepted') {
     if(String(d.by_uid)===String(QP.uid)){
-      _districtMissionHudHidden=false;_districtMissionUiKey='';
+      _districtMissionHudHidden=true;_districtMissionUiKey='';
       showEventBanner('💼 Сейф перехвачен!',`Теперь доставь сейф района «${d.name||d.did}» к точке отхода.`,4300,'win');
     }else{
       pushFeedEvent('💼',`${d.by_name||'Игрок'} перехватил сейф района «${d.name||d.did}»`,{accent:'#ffca55'});
@@ -15139,7 +15141,7 @@ function handleEventPacket(d) {
   } else if (kind === 'district_operation_expired') {
     if (String(d.by_uid) === String(QP.uid)) {
       _districtNodeDisable=null;
-      _districtMissionHudHidden = false; _districtMissionUiKey = '';
+      _districtMissionHudHidden = true; _districtMissionUiKey = '';
       showEventBanner('⌛ Операция провалена', 'Время вышло. Разведку придётся начинать заново.', 3500, 'lose');
     }
   } else if (kind === 'district_capture_denied') {
@@ -15163,7 +15165,7 @@ function handleEventPacket(d) {
   } else if (kind === 'district_capture_cancelled') {
     if (String(d.by_uid) === String(QP.uid)) {
       _districtNodeDisable=null;
-      _districtMissionHudHidden = false; _districtMissionUiKey = '';
+      _districtMissionHudHidden = true; _districtMissionUiKey = '';
       const reasons = { left_hq:'Ты ушёл от штаба.', killed:'Тебя убили.',
         jailed:'Тебя приняли копы.', disconnected:'Разрыв связи.',
         mode_changed:'Сменил режим.', cancelled:'Захват отменён.' };
@@ -15176,7 +15178,7 @@ function handleEventPacket(d) {
     const tickMin = Math.round(((d.income_tick_s|0) || 120) / 60);
     pushFeedEvent('🏴', `${d.by_name||'Игрок'} взял контроль над районом «${d.name||d.did}»`, {accent:d.color||'#ffd76b'});
     if (me) {
-      _districtMissionHudHidden = false; _districtMissionUiKey = '';
+      _districtMissionHudHidden = true; _districtMissionUiKey = '';
       _districtRepAdd(18+_hqLvl('mafia','safe')*2,'район признал твою силу');
       showEventBanner(`${d.icon} ${d.name} — твой район!`,
         `Контроль на 30 минут. Каждые ${tickMin} мин: +$${inc} и +${d.income_xp||Math.max(1,Math.floor(inc/20))} XP.`, 5500, 'win');
@@ -22147,7 +22149,11 @@ function syncDistrictMissionControls(){
   const hidden=hasMission&&_districtMissionHudHidden;
   const hasObjective=!!_myDistrictObjective;
   const missionCount=_myDistrictMissionCount(),ownedCount=_myOwnedDistricts().length;
-  const key=`${hasMission?1:0}:${hidden?1:0}:${hasObjective?1:0}:${missionCount}:${ownedCount}`;
+  const shopOpen=!!_shopOverlay?.classList.contains('open');
+  // Крестик синхронизируется всегда: он не должен оставаться на карте после
+  // исчезновения/скрытия карточки или открытия другого интерфейса.
+  _districtMissionClose?.classList.toggle('show',hasMission&&!hidden&&hasObjective&&!shopOpen);
+  const key=`${hasMission?1:0}:${hidden?1:0}:${hasObjective?1:0}:${missionCount}:${ownedCount}:${shopOpen?1:0}`;
   if(key===_districtMissionUiKey)return;
   _districtMissionUiKey=key;
   _missionHudBtn?.classList.toggle('active',hasMission);
@@ -22155,8 +22161,6 @@ function syncDistrictMissionControls(){
   if(_missionHudLabel)_missionHudLabel.textContent=hidden?'📋 Захват скрыт':'📋 Захват района';
   if(_missionHudCount)_missionHudCount.textContent=String(missionCount||ownedCount);
   if(_missionHudBtn)_missionHudBtn.title=hasMission?(hidden?'Показать активную миссию':'Скрыть активную миссию'):ownedCount?'Информация о моих захваченных районах':'Активных миссий нет';
-  const shopOpen=!!_shopOverlay?.classList.contains('open');
-  _districtMissionClose?.classList.toggle('show',hasMission&&!hidden&&hasObjective&&!shopOpen);
 }
 _missionHudBtn?.addEventListener('click',()=>{
   if(!_hasDistrictMission()){
