@@ -41581,7 +41581,7 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon) {
   npc.r = Math.max(.5, Math.min(_buildingInt.H - .5, npc.r + dirY * .12));
   npc.c = Math.max(.5, Math.min(_buildingInt.W - .5, npc.c + dirX * .12));
   if (npc.hp <= 0) {
-    npc.dead = true; npc.walking = false;
+    npc.dead = true; npc.deadAt = performance.now(); npc.walking = false;
     spawnFloatText(npc.r, npc.c, 'УБИТ', { color:'#ff6969', size:14, life:1300 });
     if (robbery && npc.role==='biz_guard' && !_buildingInt.npcs.some(n=>n.role==='biz_guard'&&!n.dead)) {
       showEventBanner('⚠️ ОХРАНА УНИЧТОЖЕНА','Дави на владельца и заставь отдать деньги',2600,'warn');
@@ -41597,9 +41597,11 @@ function _pushInteriorNpcs(bi, items) {
       items.push({ d: n.r + n.c + .45, person: true, fn: ((nn) => () => {
         const p = w2s(nn.r + .5, nn.c + .5);
         const say=performance.now()<(nn._sayUntil||0)?nn._sayText:null;
+        const now=performance.now(),isDead=!!nn.dead;
+        const isStunned=!isDead&&(now<(nn._knockedUntil||0)||now<(nn._hurtAnimUntil||0));
         drawPerson(p.x, p.y, nn.ang, nn.look, nn.walking ? nn.walkPhase : 0,
           nn.name, say, false, nn.hp == null ? 100 : nn.hp, nn.maxHp || 100,
-          false, null, false, !!nn.dead || performance.now() < (nn._knockedUntil || 0) || performance.now() < (nn._hurtAnimUntil||0));
+          isDead, nn.deadAt || 0, false, false, isStunned);
         if((nn.role==='biz_guard'||nn.role==='biz_ally_guard')&&!nn.dead)drawWeaponInHands(p.x,p.y,nn.ang,nn.weapon||'pistol_heavy',.88,nn._shotAt||0);
       })(n) });
     }
