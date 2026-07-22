@@ -115,6 +115,9 @@ body.in-pvp #zoneBtn { top: 104px; }
   letter-spacing: 0.5px;
 }
 body.in-pvp #gtaActionBtn { top: 104px; }
+/* В бизнес-интерьере верхние 106px занимает карточка давления.
+   Действие ставим отдельной строкой, чтобы оно не закрывало шкалу. */
+#gtaActionBtn.biz-pressure-action { top: 116px; }
 /* Ручной тормоз — круглая кнопка справа снизу, видна только за рулём */
 #handbrakeBtn {
   position: absolute; right: 16px; bottom: 120px;
@@ -16690,6 +16693,7 @@ function playEnterCarAnim(r, c) {
 
 function updateGtaInteractions() {
   _gtaActionBagCarRef = null;
+  _gtaBtn.classList.remove('biz-pressure-action');
   _updatePoliceStealthButton();
   // Кнопка ручника — видна только за рулём (не пассажир)
   const _activeVehicle=myDrivingCarId?questCars.get(myDrivingCarId):null;
@@ -16717,6 +16721,7 @@ function updateGtaInteractions() {
         if(owner&&!guardsAlive&&Math.hypot(player.r-owner.r,player.c-owner.c)<2.7){
           _gtaActionKind='biz_rob_pressure';_gtaActionCarId=_buildingInt.bizId;
           _gtaBtn.textContent=owner.hp<=30?'💰 Ограбить бизнес':'🗣️ Потребовать деньги';
+          _gtaBtn.classList.add('biz-pressure-action');
           _gtaBtn.style.display='block';return;
         }
         _gtaBtn.style.display='none';return;
