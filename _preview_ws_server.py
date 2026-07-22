@@ -112,6 +112,7 @@ preview_bank_bags = {}
 preview_businesses = {}
 preview_business_closures = {}
 preview_business_aggro = {}
+preview_business_rob_cycles = {}
 preview_police_rewards = set()
 preview_gta_quests = {}
 preview_box_quests = {}
@@ -1348,6 +1349,8 @@ def snap(uid):
         target["ang"] = ang; target["walking"] = bool(cop.get("walking"))
     me_biz = str(p.get("business_interior") or "")
     me_private = bool(p.get("business_private"))
+    business_under_attack = bool(me_biz and any(
+        bid == me_biz and until > now for (_attacker_uid,bid),until in preview_business_aggro.items()))
     visible_others = []
     for other_uid, other in players.items():
         if str(other_uid) == str(uid):
@@ -1355,7 +1358,7 @@ def snap(uid):
         other_biz = str(other.get("business_interior") or "")
         other_private = bool(other.get("business_private"))
         if me_biz:
-            if me_private or other_biz != me_biz or other_private:
+            if other_biz != me_biz or ((me_private or other_private) and not business_under_attack):
                 continue
             ox, oy = float(other.get("interior_x", 0)), float(other.get("interior_y", 0))
         else:
@@ -1367,6 +1370,7 @@ def snap(uid):
         visible_others.append({
             "uid": str(other_uid), "name": other.get("name", "Demo"),
             "look": other.get("look", {}), "x": round(ox, 2), "y": round(oy, 2),
+            "business_attacker": bool(me_biz and preview_business_aggro.get((str(other_uid),me_biz),0) > now),
             "ang": round(float(other.get("ang", 0)), 2), "w": bool(other.get("walking")), "swimming": bool(other.get("swimming")),
             "hp": int(other.get("hp", 100)), "dead": bool(other.get("dead", False)),
             "wanted": int(other.get("wanted", 0)), "gangs": 0, "mode": "pvp",
@@ -1771,6 +1775,13 @@ async def world_ws(req):
                         for key, until in list(preview_business_aggro.items()):
                             if until <= cutoff:
                                 preview_business_aggro.pop(key, None)
+            elif t == "business_rob_prepare":
+                biz_id = str(d.get("biz_id") or "")
+                completed = max(0, min(2, int(preview_business_rob_cycles.get((str(uid),biz_id),0))))
+                await ws.send_str(json.dumps({"t":"event","d":{
+                    "kind":"business_rob_prepare_reply","ok":biz_id in PREVIEW_BUSINESS_RC,
+                    "biz_id":biz_id,"attempt":completed+1,"guard_bonus":completed*3,
+                }}, ensure_ascii=False))
             elif t == "shop_rob":
                 p = players.get(uid) or {}
                 biz_id = str(d.get("biz_id") or "")
@@ -1793,6 +1804,8 @@ async def world_ws(req):
                         preview_account(uid)["cash"] += money
                         p["wanted"] = max(int(p.get("wanted",0)), stars)
                         preview_business_closures[biz_id] = now + 300
+                        key = (str(uid), biz_id)
+                        preview_business_rob_cycles[key] = (int(preview_business_rob_cycles.get(key,0)) + 1) % 3
                         reply = {"kind":"shop_rob_reply", "ok":True, "biz_id":biz_id,
                                  "money":money, "stars":stars, "closed_s":300}
                 await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
@@ -2123,7 +2136,24 @@ async def world_ws(req):
                 shooter = players.get(uid, {})
                 target_uid = str(d.get("target_uid") or "")
                 target = players.get(target_uid)
-                if (target and shooter.get("police") and not target.get("police") and
+                now_shot = time.time()
+                biz_id = str(shooter.get("business_interior") or "")
+                same_biz = bool(target and biz_id and str(target.get("business_interior") or "") == biz_id)
+                business_defense = bool(same_biz and (
+                    (shooter.get("business_private") and preview_business_aggro.get((target_uid,biz_id),0)>now_shot) or
+                    (target.get("business_private") and preview_business_aggro.get((str(uid),biz_id),0)>now_shot)))
+                if target and business_defense and not shooter.get("dead") and not target.get("dead"):
+                    sx,sy=float(shooter.get("interior_x",0)),float(shooter.get("interior_y",0))
+                    tx,ty=float(target.get("interior_x",0)),float(target.get("interior_y",0))
+                    if (sx-tx)**2+(sy-ty)**2 <= 10**2:
+                        weapon=str(d.get("weapon") or "pistol")
+                        damage={"shotgun":30,"rifle":26,"sniper":45,"pistol":18,"pistol_heavy":22,"smg":14}.get(weapon,18)
+                        target["hp"]=max(0,int(target.get("hp",100))-damage); killed=target["hp"]<=0
+                        if killed: target["dead"]=True; target["respawn_at"]=now_shot+5
+                        await broadcast_event({"kind":"pvp_shot","shooter_uid":str(uid),"target_uid":target_uid,
+                            "shooter_name":shooter.get("name","Защитник"),"target_name":target.get("name","Грабитель"),
+                            "sx":sx,"sy":sy,"tx":tx,"ty":ty,"dmg":damage,"killed":killed,"weapon":weapon})
+                elif (target and shooter.get("police") and not target.get("police") and
                         int(target.get("wanted", 0)) > 0 and not shooter.get("dead") and
                         not target.get("dead") and not shooter.get("business_interior") and
                         not target.get("business_interior") and

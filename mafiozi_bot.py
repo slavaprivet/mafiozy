@@ -1169,6 +1169,14 @@ async def init_db():
                 reward  INTEGER NOT NULL DEFAULT 0
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS business_rob_cycles (
+                uid INTEGER NOT NULL,
+                biz_id TEXT NOT NULL,
+                cycle_count INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (uid, biz_id)
+            )
+        """)
         # Первый денежный бонус за арест конкретного онлайн-игрока во всём
         # мире. UNIQUE по target_uid не позволяет друзьям менять копа и снова
         # получать деньги: повторные доставки остаются действием, но без $.
@@ -14757,9 +14765,18 @@ class WorldSim:
             self._in_jail(shooter['x'], shooter['y']) and
             self._in_jail(target['x'],  target['y'])
         )
+        s_biz = str(shooter.get('_business_interior') or '')
+        t_biz = str(target.get('_business_interior') or '')
+        same_business = bool(s_biz) and s_biz == t_biz
+        shooter_is_attacker = self._business_aggro_until.get((str(uid), s_biz), 0) > now
+        target_is_attacker = self._business_aggro_until.get((str(target_uid), s_biz), 0) > now
+        business_defense = same_business and (
+            (bool(shooter.get('_business_private')) and target_is_attacker) or
+            (bool(target.get('_business_private')) and shooter_is_attacker)
+        )
         if not (both_in_pvp_zone or both_in_arena
                 or both_in_territory or target_is_bounty
-                or both_jailed or police_pursuit):
+                or both_jailed or police_pursuit or business_defense):
             return None
         # Friendly fire OFF: союзники по банде не наносят урон друг другу
         # В ГОРОДЕ (арена — полигон, там FF разрешён).
@@ -14771,11 +14788,15 @@ class WorldSim:
                 # не возвращаем (никакого урона, никаких звёзд).
                 return None
         # Дистанция
-        d_sq = (shooter['x'] - target['x'])**2 + (shooter['y'] - target['y'])**2
+        if business_defense:
+            d_sq = (float(shooter.get('_interior_x') or 0)-float(target.get('_interior_x') or 0))**2 + \
+                   (float(shooter.get('_interior_y') or 0)-float(target.get('_interior_y') or 0))**2
+        else:
+            d_sq = (shooter['x'] - target['x'])**2 + (shooter['y'] - target['y'])**2
         if d_sq > float(profile['range']) ** 2:
             return None
         # Прямая видимость
-        if not _world_los(shooter['x'], shooter['y'], target['x'], target['y']):
+        if not business_defense and not _world_los(shooter['x'], shooter['y'], target['x'], target['y']):
             return None
         dmg = max(1, min(220, self._weapon_damage(weapon, d_sq ** 0.5, profile)))
         shot_did = self._district_id_at(shooter.get('x'), shooter.get('y'))
@@ -14818,7 +14839,7 @@ class WorldSim:
         # копы не приезжают (для bounty wanted-штраф не растёт).
         if (not both_in_arena and not both_in_territory
                 and not target_is_bounty and not both_jailed
-                and not police_pursuit):
+                and not police_pursuit and not business_defense):
             self._bump_wanted(shooter, self.WANTED_PER_HIT)
             if killed:
                 self._bump_wanted(shooter,
@@ -17911,6 +17932,9 @@ class WorldSim:
                         for u,q in self.players.items() if crew_id and str(q.get('_crew_id') or '')==crew_id]
         me_biz = str(me.get('_business_interior') or '')
         me_private = bool(me.get('_business_private'))
+        business_under_attack = bool(me_biz and any(
+            bid == me_biz and until > time.time()
+            for (_attacker_uid, bid), until in self._business_aggro_until.items()))
         others = []
         for other_uid, p in self.players.items():
             if other_uid == uid:
@@ -17918,9 +17942,9 @@ class WorldSim:
             other_biz = str(p.get('_business_interior') or '')
             other_private = bool(p.get('_business_private'))
             if me_biz:
-                # Закрытый экземпляр владельца всегда пуст. Общий экземпляр
-                # видит только невладельцев внутри того же самого бизнеса.
-                if me_private or other_biz != me_biz or other_private:
+                # Владелец и грабитель видят друг друга только во время атаки.
+                # В мирное время управленческий экземпляр остаётся приватным.
+                if other_biz != me_biz or ((me_private or other_private) and not business_under_attack):
                     continue
                 ox = float(p.get('_interior_x') or 0)
                 oy = float(p.get('_interior_y') or 0)
@@ -17938,6 +17962,8 @@ class WorldSim:
                 'name': p['name'],
                 'look': p['look'],
                 'x':    round(ox, 2),
+                'business_attacker': bool(me_biz and
+                    self._business_aggro_until.get((str(other_uid), me_biz), 0) > time.time()),
                 'y':    round(oy, 2),
                 'ang':  round(p['ang'], 2),
                 'w':    bool(p.get('walking')),
@@ -21818,6 +21844,23 @@ async def _coop_http_app():
                                     key: until for key, until in world._business_aggro_until.items()
                                     if until > now_ts
                                 }
+                    elif t == 'business_rob_prepare':
+                        biz_id = str(d.get('biz_id') or '') if isinstance(d, dict) else ''
+                        completed = 0
+                        if biz_id in SHOP_ROB_CONFIG:
+                            try:
+                                async with aiosqlite.connect(DB_PATH) as db:
+                                    cur = await db.execute(
+                                        "SELECT cycle_count FROM business_rob_cycles WHERE uid=? AND biz_id=?",
+                                        (int(uid), biz_id))
+                                    row = await cur.fetchone()
+                                    completed = max(0, min(2, int(row[0]) if row else 0))
+                            except Exception:
+                                completed = 0
+                        await ws.send_str(json.dumps({'t':'event','d':{
+                            'kind':'business_rob_prepare_reply','ok':biz_id in SHOP_ROB_CONFIG,
+                            'biz_id':biz_id,'attempt':completed+1,'guard_bonus':completed*3,
+                        }}, ensure_ascii=False))
                     elif t == 'shop_rob':
                         # Игрок ограбил магазин/бизнес: d = {biz_id}
                         # Серверная логика:
@@ -21896,6 +21939,10 @@ async def _coop_http_app():
                                                 "INSERT OR REPLACE INTO shop_robs "
                                                 "(uid, biz_id, t) VALUES (?,?,?)",
                                                 (int(uid), biz_id, now_ts))
+                                            await db.execute(
+                                                "INSERT INTO business_rob_cycles(uid,biz_id,cycle_count) VALUES(?,?,1) "
+                                                "ON CONFLICT(uid,biz_id) DO UPDATE SET cycle_count=(cycle_count+1)%3",
+                                                (int(uid), biz_id))
                                             await db.commit()
                                     except Exception: pass
                                     # +★ (минимум stars)
