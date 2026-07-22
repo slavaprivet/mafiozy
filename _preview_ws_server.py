@@ -58,13 +58,18 @@ def preview_bandit_bot(bot_id, x, y, kind="aggro_grunt", weapon="pistol_heavy", 
 
 
 PREVIEW_LAIR_BOTS = [
-    preview_bandit_bot("preview_lair_boss", 40.0, 120.0, "aggro_boss", "uzi", 300),
-    preview_bandit_bot("preview_lair_1", 35.5, 116.0),
-    preview_bandit_bot("preview_lair_2", 44.5, 116.5, weapon="smg"),
-    preview_bandit_bot("preview_lair_3", 34.5, 123.5),
-    preview_bandit_bot("preview_lair_4", 45.5, 124.0, weapon="rifle"),
-    preview_bandit_bot("preview_lair_5", 40.0, 127.0),
+    preview_bandit_bot("preview_lair_boss", 40.0, 120.0, "aggro_boss", "uzi", 240),
 ]
+for _lair_i in range(20):
+    _lair_ring = _lair_i // 5
+    _lair_ang = (_lair_i % 5) * math.tau / 5 + _lair_ring * 0.43
+    _lair_radius = (4.5, 8.0, 11.5, 15.0)[_lair_ring]
+    PREVIEW_LAIR_BOTS.append(preview_bandit_bot(
+        f"preview_lair_{_lair_i + 1}",
+        40.0 + math.cos(_lair_ang) * _lair_radius,
+        120.0 + math.sin(_lair_ang) * _lair_radius,
+        weapon=("pistol_heavy", "smg", "rifle")[_lair_i % 3],
+    ))
 PREVIEW_NEST_BOTS = [
     preview_bandit_bot("cgbot_preview_nest_1", 24.5, 23.5),
     preview_bandit_bot("cgbot_preview_nest_2", 27.5, 23.5, weapon="smg"),
