@@ -4274,7 +4274,7 @@ def business_upgrade_cost(biz: dict, next_level: int) -> int:
 
 # Координаты бизнес-POI в мире (дублируют BUSINESS_POIS в world.html). Нужны
 # для серверной anti-cheat проверки расстояния при `shop_rob`. Если игрок
-# слишком далеко от точки — отказ. NB: 'port' не грабится (это пирс Майкла).
+# слишком далеко от точки — отказ.
 BUSINESS_POIS_RC = {
     "coffee":     (33, 13),
     "carwash":    (23, 25),
@@ -4285,6 +4285,7 @@ BUSINESS_POIS_RC = {
     "club":       (63, 53),
     "warehouse":  (73, 23),
     "casino":     (13, 45),
+    "port":       (181, 31),
 }
 # Награды за ограбление и сколько ★ дают. Намеренно ниже daily_max,
 # чтобы ограбления не вытесняли честный доход от бизнесов и работ.
@@ -4299,6 +4300,7 @@ SHOP_ROB_CONFIG = {
     "club":       {"money": 2000, "stars": 2},
     "warehouse":  {"money": 3200, "stars": 2},
     "casino":     {"money": 5000, "stars": 3},
+    "port":       {"money": 8000, "stars": 3},
 }
 
 # Бригадир — NPC в городе, выдаёт хит-контракты на мирных NPC.
@@ -12290,6 +12292,7 @@ class WorldSim:
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
         '_business_closed_until', '_business_aggro_until', '_business_police_protected_until',
+        '_business_owner_protected_until',
         # Очередь физических пуль ботов (dodge-механика).
         '_pending_bot_shots',
         # Пляжники — мирные NPC в купальниках/плавках.
@@ -12820,6 +12823,7 @@ class WorldSim:
         # нападавшего; мирные посетители того же бизнеса не становятся целями.
         self._business_aggro_until = {}
         self._business_police_protected_until = {}
+        self._business_owner_protected_until = {}
         # Пляжники — мирные NPC. Спавнятся когда есть игроки.
         self.beachgoers = []
         self._beachgoer_next_id = 1
@@ -14824,6 +14828,9 @@ class WorldSim:
             if business_police_fight and shooter.get('_police') and target_is_attacker:
                 self._business_police_protected_until[(str(target_uid), s_biz)] = now + 300.0
                 self._business_aggro_until.pop((str(target_uid), s_biz), None)
+            elif business_defense and shooter.get('_business_private') and target_is_attacker:
+                self._business_owner_protected_until[(str(target_uid), s_biz)] = now + 300.0
+                self._business_aggro_until.pop((str(target_uid), s_biz), None)
             if police_pursuit:
                 # Смерть от игрока-копа не превращается в мгновенный арест:
                 # пять секунд цель остаётся на земле, а коп решает, задержать
@@ -14878,6 +14885,7 @@ class WorldSim:
             'bounty':      bounty_done,
             'police_downed': bool(killed and police_pursuit),
             'business_prevented': bool(killed and business_police_fight and shooter.get('_police') and target_is_attacker),
+            'business_defended': bool(killed and business_defense and shooter.get('_business_private') and target_is_attacker),
             'business_id': s_biz if business_police_fight else '',
             'decision_until': (round(now + self.POLICE_DOWNED_DECISION_S, 2)
                                if killed and police_pursuit else 0),
@@ -18504,6 +18512,11 @@ class WorldSim:
                     for (protected_uid, bid), until in self._business_police_protected_until.items()
                     if str(protected_uid) == str(uid) and until > now_t
                 },
+                'business_owner_protection': {
+                    bid: max(0, int(until - now_t))
+                    for (protected_uid, bid), until in self._business_owner_protected_until.items()
+                    if str(protected_uid) == str(uid) and until > now_t
+                },
                 'graffiti':        getattr(self, '_graffiti', [])[-20:],
                 'quest_cars':      quest_cars_payload,
                 'dropped_bags':    dropped_bags_payload,
@@ -21870,7 +21883,8 @@ async def _coop_http_app():
                         biz_id = str(d.get('biz_id') or '') if isinstance(d, dict) else ''
                         attacker = world.players.get(uid) or {}
                         if (biz_id in SHOP_ROB_CONFIG and not attacker.get('_police') and
-                                world._business_police_protected_until.get((str(uid),biz_id),0) <= time.time()):
+                                world._business_police_protected_until.get((str(uid),biz_id),0) <= time.time() and
+                                world._business_owner_protected_until.get((str(uid),biz_id),0) <= time.time()):
                             now_ts = time.time()
                             world._business_aggro_until[(str(uid), biz_id)] = now_ts + 300.0
                             if len(world._business_aggro_until) > 500:
@@ -21883,8 +21897,10 @@ async def _coop_http_app():
                         robber = world.players.get(uid) or {}
                         protected_left = max(0, int(world._business_police_protected_until.get(
                             (str(uid), biz_id), 0) - time.time()))
+                        defended_left = max(0, int(world._business_owner_protected_until.get(
+                            (str(uid), biz_id), 0) - time.time()))
                         completed = 0
-                        if biz_id in SHOP_ROB_CONFIG and not robber.get('_police') and not protected_left:
+                        if biz_id in SHOP_ROB_CONFIG and not robber.get('_police') and not protected_left and not defended_left:
                             try:
                                 async with aiosqlite.connect(DB_PATH) as db:
                                     cur = await db.execute(
@@ -21896,9 +21912,9 @@ async def _coop_http_app():
                                 completed = 0
                         await ws.send_str(json.dumps({'t':'event','d':{
                             'kind':'business_rob_prepare_reply',
-                            'ok':biz_id in SHOP_ROB_CONFIG and not robber.get('_police') and not protected_left,
-                            'reason':'police' if robber.get('_police') else ('protected' if protected_left else ''),
-                            'protected_s':protected_left,
+                            'ok':biz_id in SHOP_ROB_CONFIG and not robber.get('_police') and not protected_left and not defended_left,
+                            'reason':'police' if robber.get('_police') else ('protected' if protected_left else ('defended' if defended_left else '')),
+                            'protected_s':protected_left or defended_left,
                             'biz_id':biz_id,'attempt':completed+1,'guard_bonus':completed*3,
                         }}, ensure_ascii=False))
                     elif t == 'shop_rob':
@@ -21928,6 +21944,9 @@ async def _coop_http_app():
                         elif world._business_police_protected_until.get((str(uid),biz_id),0) > time.time():
                             reply = {'ok': False, 'reason': 'protected', 'biz_id':biz_id,
                                      'protected_s':int(world._business_police_protected_until[(str(uid),biz_id)]-time.time())}
+                        elif world._business_owner_protected_until.get((str(uid),biz_id),0) > time.time():
+                            reply = {'ok': False, 'reason': 'defended', 'biz_id':biz_id,
+                                     'protected_s':int(world._business_owner_protected_until[(str(uid),biz_id)]-time.time())}
                         elif not cfg or not rc:
                             reply = {'ok': False, 'reason': 'bad_biz'}
                         elif pressure < 70 or guards_down < 1:

@@ -13947,7 +13947,12 @@ function handleEventPacket(d) {
     if (d.killed) {
       const sName = d.shooter_name || 'кто-то';
       const tName = d.target_name  || 'кто-то';
-      if(d.business_prevented&&meIsShooter){
+      if(d.business_defended&&meIsShooter){
+        showEventBanner('🛡️ БИЗНЕС ЗАЩИЩЁН',`${tName} устранён. Ограбление отбито.`,4000,'win');
+      }else if(d.business_defended&&meIsTarget){
+        if(d.business_id)_businessOwnerProtection[d.business_id]=Date.now()+300000;
+        showEventBanner('⛔ ОГРАБЛЕНИЕ СОРВАНО','Владелец или охрана отбили атаку · КД на этот бизнес 05:00.',4400,'lose');
+      }else if(d.business_prevented&&meIsShooter){
         if(typeof d.police_xp==='number')_setPoliceXp(d.police_xp,true);
         QP.cash=(parseInt(QP.cash)||0)+Math.max(0,+d.cash_reward||0);updateMoneyHud();
         showEventBanner('👮 ОГРАБЛЕНИЕ ПРЕДОТВРАЩЕНО',`${tName} устранён · +$${d.cash_reward||0} · +${d.police_xp_gain||0} XP · +${d.hp_reward||0} HP`,4700,'win');
@@ -14384,6 +14389,10 @@ function handleEventPacket(d) {
       const left=Math.max(1,+d.protected_s||1)*1000;if(d.biz_id)_businessPoliceProtection[d.biz_id]=Date.now()+left;
       showEventBanner('🛡️ ЗАВЕДЕНИЕ ПОД ЗАЩИТОЙ',`В прошлый раз тебя накрыли копы · защита ещё ${_businessClosureText(left)}`,3600,'lose');return;
     }
+    if(!d.ok&&d.reason==='defended'){
+      const left=Math.max(1,+d.protected_s||1)*1000;if(d.biz_id)_businessOwnerProtection[d.biz_id]=Date.now()+left;
+      showEventBanner('⛔ ОГРАБЛЕНИЕ НЕДОСТУПНО',`В прошлый раз тебе помешали ограбить · КД ${_businessClosureText(left)}`,3600,'lose');return;
+    }
     if (!d.ok || !biz || biz.id !== d.biz_id || _buildingInt) return;
     _robTargetBiz=biz; _robTargetR=biz.r; _robTargetC=biz.c;
     const attempt=Math.max(1,Math.min(3,+d.attempt||1));
@@ -14428,6 +14437,9 @@ function handleEventPacket(d) {
       } else if(d.reason==='protected'){
         const left=Math.max(1,+d.protected_s||1)*1000;if(d.biz_id)_businessPoliceProtection[d.biz_id]=Date.now()+left;
         showEventBanner('🛡️ ЗАВЕДЕНИЕ ПОД ЗАЩИТОЙ',`В прошлый раз тебя накрыли копы · защита ещё ${_businessClosureText(left)}`,3600,'lose');
+      } else if(d.reason==='defended'){
+        const left=Math.max(1,+d.protected_s||1)*1000;if(d.biz_id)_businessOwnerProtection[d.biz_id]=Date.now()+left;
+        showEventBanner('⛔ ОГРАБЛЕНИЕ НЕДОСТУПНО',`В прошлый раз тебе помешали ограбить · КД ${_businessClosureText(left)}`,3600,'lose');
       } else if (d.reason === 'not_pressured') {
         showToast('Сначала устрани охрану и доведи давление до 70%', '⚠️', 2400);
       } else {
@@ -15835,6 +15847,11 @@ function wsConnect() {
         for(const id of Object.keys(_businessPoliceProtection))if(!(id in fresh))delete _businessPoliceProtection[id];
         for(const [id,left] of Object.entries(fresh))_businessPoliceProtection[id]=now+Math.max(0,+left||0)*1000;
       }
+      if(d.business_owner_protection!==undefined){
+        const now=Date.now(),fresh=d.business_owner_protection||{};
+        for(const id of Object.keys(_businessOwnerProtection))if(!(id in fresh))delete _businessOwnerProtection[id];
+        for(const [id,left] of Object.entries(fresh))_businessOwnerProtection[id]=now+Math.max(0,+left||0)*1000;
+      }
       if (d.quest_cars !== undefined) {
         // GTA-квестовые машины Майкла. Серверные авторитативные позиции —
         // ставим в tx/ty для плавной интерполяции (как для других игроков).
@@ -16421,13 +16438,14 @@ const ROB_PAYOUT_PREVIEW = {
   club:       { money: 2000, stars: 2 },
   warehouse:  { money: 3200, stars: 2 },
   casino:     { money: 5000, stars: 3 },
+  port:       { money: 8000, stars: 3 },
 };
 const BUSINESS_ROB_TIERS = {
   coffee:{guards:1,w:16,h:11}, carwash:{guards:2,w:18,h:12},
   barbershop:{guards:2,w:18,h:12}, pizza:{guards:3,w:19,h:13},
   garage:{guards:4,w:21,h:14}, bar:{guards:4,w:21,h:14},
   club:{guards:5,w:23,h:15}, warehouse:{guards:6,w:25,h:17},
-  casino:{guards:8,w:28,h:19},
+  casino:{guards:8,w:28,h:19}, port:{guards:10,w:30,h:21},
 };
 const BUSINESS_OWNER_PERSONAS = {
   coffee:{pain:['Ай! Костюм испортишь!','Полегче, приятель!'],refuse:'Луиджи не платит нахалам!',give:'Забирай кассу, только без глупостей!'},
@@ -16455,6 +16473,7 @@ const _robCooldowns = {};    // biz_id → timestamp окончания кулд
 const _businessClosures = {}; // biz_id → общий серверный респавн владельца/охраны
 const _businessAggroUntil = {}; // biz_id → охрана помнит именно этого игрока
 const _businessPoliceProtection = {}; // biz_id → личная защита после вмешательства копов
+const _businessOwnerProtection = {}; // biz_id → кулдаун после защиты владельцем/охраной
 let _pendingBusinessRobbery = null;
 
 function _businessClosureText(ms) {
@@ -16488,6 +16507,11 @@ function startRobbery(biz) {
   const protectedUntil=_businessPoliceProtection[biz.id]||0;
   if(protectedUntil>Date.now()){
     showEventBanner('🛡️ ЗАВЕДЕНИЕ ПОД ЗАЩИТОЙ',`В прошлый раз тебя накрыли копы · защита ещё ${_businessClosureText(protectedUntil-Date.now())}`,3600,'lose');
+    return;
+  }
+  const ownerProtectedUntil=_businessOwnerProtection[biz.id]||0;
+  if(ownerProtectedUntil>Date.now()){
+    showEventBanner('⛔ ОГРАБЛЕНИЕ НЕДОСТУПНО',`В прошлый раз тебе помешали ограбить · КД ${_businessClosureText(ownerProtectedUntil-Date.now())}`,3600,'lose');
     return;
   }
   _pendingBusinessRobbery = biz;
