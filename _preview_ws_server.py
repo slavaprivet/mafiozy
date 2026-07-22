@@ -544,6 +544,7 @@ def make_district_defenders(did, dd):
         "kind": "district_boss", "weapon": "uzi", "act": "walk",
         "boss_name": dd["boss_name"], "alive": True, "damage": 8,
         "home_x": col, "home_y": row, "patrol_phase": 0.0,
+        "patrol_turn_sign": random.choice((-1, 1)), "patrol_stuck": 0,
     }]
     guard_offsets = ((1.4, 0.8), (-1.2, 1.0), (0.8, -1.4), (-1.5, -0.7))
     for i, (dx, dy) in enumerate(guard_offsets):
@@ -554,6 +555,7 @@ def make_district_defenders(did, dd):
             "kind": "district_guard", "weapon": "pistol_heavy",
             "act": "walk", "alive": True, "damage": 12,
             "home_x": col, "home_y": row, "patrol_phase": (i + 1) * math.tau / 4,
+            "patrol_turn_sign": random.choice((-1, 1)), "patrol_stuck": 0,
         })
     return bots
 
@@ -611,6 +613,15 @@ def tick_district_defenders(now, dt):
         boss = next((b for b in defenders if b.get("kind") == "district_boss"), None)
         dd = DISTRICTS.get(did, {})
         waypoint = cap.get("patrol_wp")
+        if boss and "patrol_progress_at" not in cap:
+            cap["patrol_progress_at"] = now
+            cap["patrol_progress_xy"] = (boss["x"], boss["y"])
+        if boss and now - float(cap.get("patrol_progress_at") or now) >= 3.0:
+            px, py = cap.get("patrol_progress_xy") or (boss["x"], boss["y"])
+            if math.hypot(boss["x"]-px, boss["y"]-py) < 0.55:
+                cap["patrol_wp_until"] = 0.0
+            cap["patrol_progress_xy"] = (boss["x"], boss["y"])
+            cap["patrol_progress_at"] = now
         if boss and (not waypoint or math.hypot(waypoint[0]-boss["x"], waypoint[1]-boss["y"]) < 1.35
                      or now >= float(cap.get("patrol_wp_until") or 0)):
             r0,r1,c0,c1 = dd.get("bounds", (0,199,0,79))
@@ -667,13 +678,25 @@ def tick_district_defenders(now, dt):
                 dist = math.hypot(dx,dy)+1e-6
                 step = min(dist, 1.05*dt)
                 direct = math.atan2(dy, dx)
-                for turn in (0., .48, -.48, .9, -.9, 1.35, -1.35):
+                turn_sign = int(bot.get("patrol_turn_sign") or 1)
+                turns = (0., turn_sign*.42, turn_sign*.82, turn_sign*1.22,
+                         -turn_sign*.42, -turn_sign*.82, -turn_sign*1.22)
+                moved = False
+                for turn in turns:
                     ang = direct + turn
                     nx = bot["x"] + math.cos(ang)*step
                     ny = bot["y"] + math.sin(ang)*step
                     if preview_district_patrol_ok(did, nx, ny):
                         bot["x"], bot["y"], bot["ang"] = nx, ny, ang
+                        bot["patrol_stuck"] = 0
+                        moved = True
                         break
+                if not moved:
+                    bot["patrol_stuck"] = int(bot.get("patrol_stuck") or 0) + 1
+                    if bot["patrol_stuck"] > 18:
+                        cap["patrol_wp_until"] = 0.0
+                        bot["patrol_turn_sign"] = -turn_sign
+                        bot["patrol_stuck"] = 0
                 continue
             dx = target.get("x", 0)-bot["x"]; dy = target.get("y", 0)-bot["y"]
             dist = math.hypot(dx, dy)+1e-6

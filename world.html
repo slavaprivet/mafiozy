@@ -13652,21 +13652,14 @@ function applyAggroTargets(newAggro) {
   for (const tid of freshTids) {
     const fresh = newAggro[tid];
     const cur   = aggroZones[tid];
-    // Последний клиентский предохранитель: районных защитников не рисуем
-    // в стене/воде даже при одном устаревшем или повреждённом снапшоте.
-    if (fresh && fresh.district_did) {
-      fresh.bots = (fresh.bots || []).filter(b => {
-        if (!_isDistrictDefenderBot(b)) return true;
-        const ri=Math.floor(+b.y), ci=Math.floor(+b.x);
-        return !!(MAP[ri] && (MAP[ri][ci]===0 || MAP[ri][ci]===8 || MAP[ri][ci]===9 || MAP[ri][ci]===14));
-      });
-    }
+    // Сервер — источник истины для районной охраны. Не скрываем бойца из-за
+    // краткого расхождения округлённой координаты с клиентским тайлом.
     if (!cur) {
       // Новая зона — копируем как есть, x=tx (нет интерполяции с нуля)
       const z = JSON.parse(JSON.stringify(fresh));
       // Нанятые игроком боты (сервер про найм не знает) — фильтруем по id
       z.bots = (z.bots || []).filter(b => !_hiredBotIds.has(String(b.id)));
-      for (const b of z.bots) { b.tx = b.x; b.ty = b.y; }
+      for (const b of z.bots) { b.tx = b.x; b.ty = b.y; b.tAng = b.ang || 0; }
       aggroZones[tid] = z;
       continue;
     }
@@ -13686,14 +13679,14 @@ function applyAggroTargets(newAggro) {
       const ob = oldById.get(nb.id);
       if (ob) {
         ob.tx    = nb.x;    ob.ty    = nb.y;
-        ob.ang   = nb.ang;
+        ob.tAng  = nb.ang;
         ob.hp    = nb.hp;   ob.max_hp = nb.max_hp;
         ob.kind  = nb.kind;
         ob.weapon = nb.weapon;
         if (nb.look) ob.look = nb.look;
         merged.push(ob);
       } else {
-        merged.push({ ...nb, tx: nb.x, ty: nb.y });
+        merged.push({ ...nb, tx: nb.x, ty: nb.y, tAng: nb.ang || 0 });
       }
     }
     cur.bots = merged;
@@ -13777,6 +13770,10 @@ function interpWorldNpcs(dt) {
       if (b.tx == null) continue;
       b.x += (b.tx - b.x) * k;
       b.y += (b.ty - b.y) * k;
+      if (b.tAng != null) {
+        const da = Math.atan2(Math.sin(b.tAng - (b.ang || 0)), Math.cos(b.tAng - (b.ang || 0)));
+        b.ang = (b.ang || 0) + da * Math.min(1, dt * 7);
+      }
     }
   }
 }

@@ -16251,6 +16251,13 @@ class WorldSim:
                     boss = alive_bots[0]
                     need_wp = (_m.hypot(wx - boss['x'], wy - boss['y']) < 1.35
                                or now >= float(g.get('_patrol_wp_until') or 0))
+                    progress_at = float(g.get('_patrol_progress_at') or now)
+                    if now - progress_at >= 3.0:
+                        px, py = g.get('_patrol_progress_xy') or (boss['x'], boss['y'])
+                        if _m.hypot(boss['x'] - px, boss['y'] - py) < 0.55:
+                            need_wp = True
+                        g['_patrol_progress_xy'] = (boss['x'], boss['y'])
+                        g['_patrol_progress_at'] = now
                     if need_wp:
                         for _ in range(80):
                             nwy = random.uniform(r0 + 3.0, r1 - 3.0)
@@ -16259,6 +16266,8 @@ class WorldSim:
                                     and _district_patrol_ok(g['district_did'], nwx, nwy)):
                                 g['_patrol_wp'] = (nwx, nwy)
                                 g['_patrol_wp_until'] = now + random.uniform(22.0, 34.0)
+                                g['_patrol_progress_xy'] = (boss['x'], boss['y'])
+                                g['_patrol_progress_at'] = now
                                 break
                 elif _m.hypot(wx - cx, wy - cy) < 1.2:
                     for _ in range(20):
@@ -16288,7 +16297,10 @@ class WorldSim:
                         continue
                     step = self.CITY_GANG_PATROL_SPEED * dt
                     direct = _m.atan2(dy2, dx2); moved = False
-                    for turn in (0.0, .48, -.48, .9, -.9, 1.35, -1.35):
+                    turn_sign = int(bot.get('_patrol_turn_sign') or 1)
+                    turns = (0.0, turn_sign*.42, turn_sign*.82, turn_sign*1.22,
+                             -turn_sign*.42, -turn_sign*.82, -turn_sign*1.22)
+                    for turn in turns:
                         ang = direct + turn
                         nx = bot['x'] + _m.cos(ang) * step
                         ny = bot['y'] + _m.sin(ang) * step
@@ -16304,7 +16316,9 @@ class WorldSim:
                         if bot['_patrol_stuck'] > 18:
                             # Не кружим вокруг текущего центра: на следующем
                             # тике выбираем новую дальнюю точку района.
-                            g['_patrol_wp_until'] = 0.0; bot['_patrol_stuck'] = 0
+                            g['_patrol_wp_until'] = 0.0
+                            bot['_patrol_turn_sign'] = -int(bot.get('_patrol_turn_sign') or 1)
+                            bot['_patrol_stuck'] = 0
             else:
                 # HOSTILE: отвечаем только тому игроку, который задел группу.
                 target = self.players.get(g['_target_uid']) if g['_target_uid'] else None
@@ -17330,6 +17344,7 @@ class WorldSim:
             'alive': True, 'kind': 'district_boss', 'weapon': 'uzi', '_shot_t': 0.0,
             'damage': int(self.AGGRO_WEAPON_STATS['uzi']['dmg']),
             '_act': 'walk', '_act_until': time.time() + 12,
+            '_patrol_turn_sign': random.choice((-1, 1)), '_patrol_stuck': 0,
             'look': {'gender':0,'skin':2,'body':3,'face':2,'hair':1,'hat':3,'gang':1},
         }]
         offsets = ((-1.4,-1.0),(-1.0,1.4),(1.2,-1.2),(1.4,1.1))
@@ -17344,6 +17359,7 @@ class WorldSim:
                 'kind': 'district_guard', 'weapon': guard_weapon, '_shot_t': 0.0,
                 'damage': int(self.AGGRO_WEAPON_STATS[guard_weapon]['dmg']),
                 '_act': 'walk', '_act_until': time.time() + random.uniform(8,15),
+                '_patrol_turn_sign': random.choice((-1, 1)), '_patrol_stuck': 0,
                 'look': {'gender':0,'skin':random.choice([1,2,3]),'body':2,
                          'face':random.choice([0,1,2]),'hair':random.choice([0,1,3]),
                          'hat':4,'gang':1},
@@ -17355,6 +17371,7 @@ class WorldSim:
             '_patrol_wp': (float(sx), float(sy)), '_cops_dispatched': True,
             'district_did': did, '_district_anchor': (float(sx), float(sy)),
             '_patrol_wp_until': 0.0,
+            '_patrol_progress_at': time.time(), '_patrol_progress_xy': (float(sx), float(sy)),
         })
         op['boss_id'] = boss_id
         op['boss_gid'] = gid
