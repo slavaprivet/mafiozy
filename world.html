@@ -1980,7 +1980,7 @@ function _qStr(k, d) { try { return decodeURIComponent(_UP.get(k) || '') || d; }
 const QP = {
   // Страница превью живёт на :8080, игровой WebSocket/API — на :8081.
   // только на localhost и никак не затрагивает Telegram/production URL.
-  api:  _UP.get('api') || (_LOCAL_PREVIEW ? 'http://127.0.0.1:8081' : ''),
+  api:  _UP.get('api') || (_LOCAL_PREVIEW ? location.origin : ''),
   uid:  _UP.get('uid') || (_LOCAL_PREVIEW ? '1' : ''),
   name: _qStr('name', 'Игрок'),
   lvl:  _qInt('lvl', 1),

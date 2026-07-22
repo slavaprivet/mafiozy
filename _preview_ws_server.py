@@ -1298,15 +1298,16 @@ async def business_collect(req):
     return cors(web.json_response({"ok": True, "collected": pay, "cash": account["cash"], "events": []}))
 
 
-async def coop_api(_req):
-    return cors(web.json_response({"base": "http://127.0.0.1:8080"}))
+async def coop_api(req):
+    return cors(web.json_response({"base": f"{req.scheme}://{req.host}"}))
 
 
-async def preview_world(_req):
+async def preview_world(req):
     html = Path("world.html").read_text(encoding="utf-8", errors="replace")
+    origin = f"{req.scheme}://{req.host}"
     html = html.replace(
         "https://slavaprivet.github.io/mafiozi-battle/coop_api.json?t=",
-        "http://127.0.0.1:8080/coop_api.json?t=",
+        f"{origin}/coop_api.json?t=",
     )
     return web.Response(text=html, content_type="text/html")
 
