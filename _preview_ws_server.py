@@ -1809,6 +1809,13 @@ async def world_ws(req):
                         preview_business_rob_cycles[key] = (int(preview_business_rob_cycles.get(key,0)) + 1) % 3
                         reply = {"kind":"shop_rob_reply", "ok":True, "biz_id":biz_id,
                                  "money":money, "stars":stars, "closed_s":300}
+                        if p.get("mafia") and not p.get("police"):
+                            account = preview_account(uid)
+                            old_xp = int(account.get("mafia_xp", 0))
+                            account["mafia_xp"] = min(4000, old_xp + 25)
+                            reply.update(mafia_xp=account["mafia_xp"],
+                                         mafia_xp_gain=account["mafia_xp"]-old_xp,
+                                         mafia_reason="Успешное ограбление бизнеса")
                 await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
             elif t == "district_capture_try":
                 p = players.get(uid) or {}

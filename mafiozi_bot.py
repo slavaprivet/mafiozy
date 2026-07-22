@@ -21953,6 +21953,13 @@ async def _coop_http_app():
                                     reply = {'ok': True, 'biz_id': biz_id,
                                              'money': money, 'stars': stars,
                                              'closed_s': 300}
+                                    # Небольшой авторитет за подтверждённое
+                                    # ограбление получает только действующий мафиози.
+                                    try:
+                                        reply.update(await grant_mafia_xp(
+                                            int(uid), 25, 'Успешное ограбление бизнеса', p))
+                                    except Exception:
+                                        pass
                                     # Broadcast баннер всем — «🔪 ОГРАБЛЕНИЕ:»
                                     nm = (p.get('name') or '')[:20]
                                     try:
