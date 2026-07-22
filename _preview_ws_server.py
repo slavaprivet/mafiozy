@@ -1767,7 +1767,7 @@ async def world_ws(req):
                 if rc and reward:
                     closed_until = float(preview_business_closures.get(biz_id) or 0)
                     if closed_until > now:
-                        reply.update(reason="closed", closed_s=int(closed_until-now))
+                        reply.update(reason="closed", closed_s=int(closed_until-now), biz_id=biz_id)
                     elif biz_id in preview_owned_businesses(uid):
                         reply.update(reason="own")
                     elif float(d.get("pressure") or 0) < 70 or int(d.get("guards_down") or 0) < 1:

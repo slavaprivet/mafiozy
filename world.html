@@ -14391,7 +14391,8 @@ function handleEventPacket(d) {
       } else if (d.reason === 'bad_biz') {
         showToast('❌ Эту точку нельзя ограбить', '⚠️', 2000);
       } else if (d.reason === 'closed') {
-        showToast(`🔒 Заведение уже закрыто ещё ${Math.ceil((+d.closed_s||0)/60)} мин.`, '⏳', 2400);
+        if (d.biz_id) _businessClosures[d.biz_id] = Date.now() + Math.max(1,+d.closed_s||1)*1000;
+        _showBusinessClosed(Math.max(1,+d.closed_s||1)*1000);
       } else if (d.reason === 'not_pressured') {
         showToast('Сначала устрани охрану и доведи давление до 70%', '⚠️', 2400);
       } else {
@@ -16054,7 +16055,7 @@ function updateZoneBtn() {
     _zoneEl.dataset.bizId = nearBizEntry.id;
     const closedLeft = Math.max(0, (_businessClosures[nearBizEntry.id] || 0) - Date.now());
     _zoneEl.textContent = closedLeft
-      ? `🔒 ЗАВЕДЕНИЕ ЗАКРЫТО · ${Math.ceil(closedLeft/60000)} мин.`
+      ? `🔒 ЗАВЕДЕНИЕ ОГРАБЛЕНО · ОТКРЫТИЕ ${_businessClosureText(closedLeft)}`
       : `🚪 Войти: ${nearBizEntry.emoji} ${nearBizEntry.name}`;
     _zoneEl.style.display = 'block';
     return;
@@ -16112,7 +16113,7 @@ _zoneEl.addEventListener('click', () => {
     if (myDead) { showToast('💀 Дождись возрождения', '⚠️', 1600); return; }
     if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
     const closedLeft = Math.max(0, (_businessClosures[biz.id] || 0) - Date.now());
-    if (closedLeft) { showToast(`🔒 Заведение закрыто ещё ${Math.ceil(closedLeft/60000)} мин.`, '⏳', 2200); return; }
+    if (closedLeft) { _showBusinessClosed(closedLeft); return; }
     enterBuildingInterior(biz.r, biz.c, 'business', biz.id);
     return;
   }
@@ -16395,6 +16396,19 @@ let _robCashierNpc = null;   // ссылка на NPC из NPCS — кассир
 const _robCooldowns = {};    // biz_id → timestamp окончания кулдауна
 const _businessClosures = {}; // biz_id → общий серверный респавн владельца/охраны
 
+function _businessClosureText(ms) {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const mm = Math.floor(total / 60);
+  const ss = total % 60;
+  return `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+
+function _showBusinessClosed(leftMs) {
+  const timer = _businessClosureText(leftMs);
+  showEventBanner('🔒 ЗАВЕДЕНИЕ ЗАКРЫТО', `Это заведение ограблено и сейчас закрыто · открытие через ${timer}`, 3200, 'lose');
+  showToast(`Открытие через ${timer}`, '⏳', 3200);
+}
+
 function startRobbery(biz) {
   if (_robInProgress) return;
   if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
@@ -16406,7 +16420,7 @@ function startRobbery(biz) {
   }
   const closedUntil = _businessClosures[biz.id] || 0;
   if (closedUntil > Date.now()) {
-    showToast(`🔒 Заведение закрыто. Откроется через ${Math.ceil((closedUntil-Date.now())/60000)} мин.`, '⏳', 2600);
+    _showBusinessClosed(closedUntil - Date.now());
     return;
   }
   _robTargetBiz  = biz;
@@ -28428,7 +28442,7 @@ function drawBusinessPoi(b) {
   ctx.fillStyle = fgCol;
   let tag;
   if (closedLeft) {
-    tag = `ЗАКРЫТО ${Math.ceil(closedLeft/60000)}м`;
+    tag = `ЗАКРЫТО ${_businessClosureText(closedLeft)}`;
   } else if (owned) {
     tag = (own.pending && own.pending > 0)
       ? `+$${own.pending.toLocaleString('ru')}`
@@ -41399,6 +41413,17 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon) {
     _buildingInt.robberyStarted = true;
     for (const g of _buildingInt.npcs) if (g.role==='biz_guard'&&!g.dead) g._hostile=true;
     if (npc.role === 'owner') {
+      const closedLeft = Math.max(0, (_businessClosures[_buildingInt.bizId] || 0) - Date.now());
+      if (closedLeft) {
+        npc.maxHp=100; npc.hp=100; npc.dead=false;
+        const now=performance.now();
+        if (now > (npc._closedHintAt || 0)) {
+          npc._closedHintAt=now+1800;
+          npc._sayText='ЗАВЕДЕНИЕ ЗАКРЫТО!'; npc._sayUntil=now+1300;
+          _showBusinessClosed(closedLeft);
+        }
+        return;
+      }
       const guardsAlive = _buildingInt.npcs.some(n=>n.role==='biz_guard'&&!n.dead);
       if (guardsAlive) {
         spawnFloatText(npc.r,npc.c,'СНАЧАЛА ОХРАНА',{color:'#ffd36b',size:11,life:900});

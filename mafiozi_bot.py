@@ -21839,7 +21839,8 @@ async def _coop_http_app():
                                 closed_until = float(world._business_closed_until.get(biz_id) or 0)
                                 if closed_until > now_ts:
                                     reply = {'ok': False, 'reason': 'closed',
-                                             'closed_s': int(closed_until - now_ts)}
+                                             'closed_s': int(closed_until - now_ts),
+                                             'biz_id': biz_id}
                                     try:
                                         await ws.send_str(json.dumps(
                                             {'t':'event','d':dict(reply,kind='shop_rob_reply')},
