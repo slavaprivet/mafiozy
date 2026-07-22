@@ -4290,15 +4290,15 @@ BUSINESS_POIS_RC = {
 # чтобы ограбления не вытесняли честный доход от бизнесов и работ.
 # 1 точка / 24ч (см. таблицу shop_robs).
 SHOP_ROB_CONFIG = {
-    "coffee":     {"money":   60, "stars": 1},
-    "carwash":    {"money":   85, "stars": 1},
-    "barbershop": {"money":  110, "stars": 1},
-    "pizza":      {"money":  160, "stars": 1},
-    "garage":     {"money":  235, "stars": 2},
-    "bar":        {"money":  360, "stars": 2},
-    "club":       {"money":  550, "stars": 2},
-    "warehouse":  {"money":  850, "stars": 2},
-    "casino":     {"money": 1400, "stars": 3},
+    "coffee":     {"money":  200, "stars": 1},
+    "carwash":    {"money":  300, "stars": 1},
+    "barbershop": {"money":  400, "stars": 1},
+    "pizza":      {"money":  600, "stars": 1},
+    "garage":     {"money":  900, "stars": 2},
+    "bar":        {"money": 1300, "stars": 2},
+    "club":       {"money": 2000, "stars": 2},
+    "warehouse":  {"money": 3200, "stars": 2},
+    "casino":     {"money": 5000, "stars": 3},
 }
 
 # Бригадир — NPC в городе, выдаёт хит-контракты на мирных NPC.
@@ -12289,7 +12289,7 @@ class WorldSim:
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
-        '_business_closed_until', '_business_aggro_until',
+        '_business_closed_until', '_business_aggro_until', '_business_police_protected_until',
         # Очередь физических пуль ботов (dodge-механика).
         '_pending_bot_shots',
         # Пляжники — мирные NPC в купальниках/плавках.
@@ -12819,6 +12819,7 @@ class WorldSim:
         # (uid, biz_id) -> timestamp. Охрана помнит только конкретного
         # нападавшего; мирные посетители того же бизнеса не становятся целями.
         self._business_aggro_until = {}
+        self._business_police_protected_until = {}
         # Пляжники — мирные NPC. Спавнятся когда есть игроки.
         self.beachgoers = []
         self._beachgoer_next_id = 1
@@ -14774,9 +14775,13 @@ class WorldSim:
             (bool(shooter.get('_business_private')) and target_is_attacker) or
             (bool(target.get('_business_private')) and shooter_is_attacker)
         )
+        business_police_fight = same_business and (
+            (bool(shooter.get('_police')) and target_is_attacker) or
+            (bool(target.get('_police')) and shooter_is_attacker)
+        )
         if not (both_in_pvp_zone or both_in_arena
                 or both_in_territory or target_is_bounty
-                or both_jailed or police_pursuit or business_defense):
+                or both_jailed or police_pursuit or business_defense or business_police_fight):
             return None
         # Friendly fire OFF: союзники по банде не наносят урон друг другу
         # В ГОРОДЕ (арена — полигон, там FF разрешён).
@@ -14788,7 +14793,7 @@ class WorldSim:
                 # не возвращаем (никакого урона, никаких звёзд).
                 return None
         # Дистанция
-        if business_defense:
+        if business_defense or business_police_fight:
             d_sq = (float(shooter.get('_interior_x') or 0)-float(target.get('_interior_x') or 0))**2 + \
                    (float(shooter.get('_interior_y') or 0)-float(target.get('_interior_y') or 0))**2
         else:
@@ -14796,7 +14801,7 @@ class WorldSim:
         if d_sq > float(profile['range']) ** 2:
             return None
         # Прямая видимость
-        if not business_defense and not _world_los(shooter['x'], shooter['y'], target['x'], target['y']):
+        if not (business_defense or business_police_fight) and not _world_los(shooter['x'], shooter['y'], target['x'], target['y']):
             return None
         dmg = max(1, min(220, self._weapon_damage(weapon, d_sq ** 0.5, profile)))
         shot_did = self._district_id_at(shooter.get('x'), shooter.get('y'))
@@ -14816,6 +14821,9 @@ class WorldSim:
             target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
             shooter['kills']      = int(shooter.get('kills', 0)) + 1
             killed = True
+            if business_police_fight and shooter.get('_police') and target_is_attacker:
+                self._business_police_protected_until[(str(target_uid), s_biz)] = now + 300.0
+                self._business_aggro_until.pop((str(target_uid), s_biz), None)
             if police_pursuit:
                 # Смерть от игрока-копа не превращается в мгновенный арест:
                 # пять секунд цель остаётся на земле, а коп решает, задержать
@@ -14839,7 +14847,7 @@ class WorldSim:
         # копы не приезжают (для bounty wanted-штраф не растёт).
         if (not both_in_arena and not both_in_territory
                 and not target_is_bounty and not both_jailed
-                and not police_pursuit and not business_defense):
+                and not police_pursuit and not business_defense and not business_police_fight):
             self._bump_wanted(shooter, self.WANTED_PER_HIT)
             if killed:
                 self._bump_wanted(shooter,
@@ -14860,15 +14868,17 @@ class WorldSim:
             'kind':       'pvp_shot',
             'shooter_uid': str(uid),
             'target_uid':  str(target_uid),
-            'sx':          round(shooter['x'], 2),
-            'sy':          round(shooter['y'], 2),
-            'tx':          round(target['x'], 2),
-            'ty':          round(target['y'], 2),
+            'sx':          round(float(shooter.get('_interior_x') or 0),2) if (business_defense or business_police_fight) else round(shooter['x'],2),
+            'sy':          round(float(shooter.get('_interior_y') or 0),2) if (business_defense or business_police_fight) else round(shooter['y'],2),
+            'tx':          round(float(target.get('_interior_x') or 0),2) if (business_defense or business_police_fight) else round(target['x'],2),
+            'ty':          round(float(target.get('_interior_y') or 0),2) if (business_defense or business_police_fight) else round(target['y'],2),
             'dmg':         int(dmg),
             'crit':        bool(profile.get('_crit')),
             'killed':      killed,
             'bounty':      bounty_done,
             'police_downed': bool(killed and police_pursuit),
+            'business_prevented': bool(killed and business_police_fight and shooter.get('_police') and target_is_attacker),
+            'business_id': s_biz if business_police_fight else '',
             'decision_until': (round(now + self.POLICE_DOWNED_DECISION_S, 2)
                                if killed and police_pursuit else 0),
             'weapon':      weapon or '',
@@ -18489,6 +18499,11 @@ class WorldSim:
                     for (aggro_uid, bid), until in self._business_aggro_until.items()
                     if str(aggro_uid) == str(uid) and until > now_t
                 },
+                'business_police_protection': {
+                    bid: max(0, int(until - now_t))
+                    for (protected_uid, bid), until in self._business_police_protected_until.items()
+                    if str(protected_uid) == str(uid) and until > now_t
+                },
                 'graffiti':        getattr(self, '_graffiti', [])[-20:],
                 'quest_cars':      quest_cars_payload,
                 'dropped_bags':    dropped_bags_payload,
@@ -21366,6 +21381,23 @@ async def _coop_http_app():
                                     hit_pkt['shooter_name'] = (shooter_p.get('name') or '')[:24]
                                 if target_p:
                                     hit_pkt['target_name']  = (target_p.get('name') or '')[:24]
+                                if hit_pkt.get('business_prevented') and shooter_p:
+                                    try:
+                                        cop_char = await get_character(int(uid))
+                                        old_cash = int((cop_char or {}).get('cash') or 0)
+                                        old_xp = int((cop_char or {}).get('police_xp') or shooter_p.get('_police_xp') or 0)
+                                        new_xp = min(world.POLICE_TASER_XP, old_xp + 35)
+                                        await update_character(int(uid), cash=old_cash + 150, police_xp=new_xp)
+                                        shooter_p['_cash'] = old_cash + 150
+                                        shooter_p['_police_xp'] = new_xp
+                                        old_hp=int(shooter_p.get('hp') or 0)
+                                        max_hp=int(shooter_p.get('max_hp') or 100)
+                                        shooter_p['hp']=min(max_hp,old_hp+25)
+                                        hit_pkt.update(cash_reward=150, police_xp=new_xp,
+                                                       police_xp_gain=max(0,new_xp-old_xp),
+                                                       hp_reward=max(0,shooter_p['hp']-old_hp))
+                                    except Exception as exc:
+                                        logger.warning('business prevention reward failed: %r', exc)
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
@@ -21836,7 +21868,9 @@ async def _coop_http_app():
                                 except Exception: pass
                     elif t == 'business_aggro':
                         biz_id = str(d.get('biz_id') or '') if isinstance(d, dict) else ''
-                        if biz_id in SHOP_ROB_CONFIG:
+                        attacker = world.players.get(uid) or {}
+                        if (biz_id in SHOP_ROB_CONFIG and not attacker.get('_police') and
+                                world._business_police_protected_until.get((str(uid),biz_id),0) <= time.time()):
                             now_ts = time.time()
                             world._business_aggro_until[(str(uid), biz_id)] = now_ts + 300.0
                             if len(world._business_aggro_until) > 500:
@@ -21846,8 +21880,11 @@ async def _coop_http_app():
                                 }
                     elif t == 'business_rob_prepare':
                         biz_id = str(d.get('biz_id') or '') if isinstance(d, dict) else ''
+                        robber = world.players.get(uid) or {}
+                        protected_left = max(0, int(world._business_police_protected_until.get(
+                            (str(uid), biz_id), 0) - time.time()))
                         completed = 0
-                        if biz_id in SHOP_ROB_CONFIG:
+                        if biz_id in SHOP_ROB_CONFIG and not robber.get('_police') and not protected_left:
                             try:
                                 async with aiosqlite.connect(DB_PATH) as db:
                                     cur = await db.execute(
@@ -21858,7 +21895,10 @@ async def _coop_http_app():
                             except Exception:
                                 completed = 0
                         await ws.send_str(json.dumps({'t':'event','d':{
-                            'kind':'business_rob_prepare_reply','ok':biz_id in SHOP_ROB_CONFIG,
+                            'kind':'business_rob_prepare_reply',
+                            'ok':biz_id in SHOP_ROB_CONFIG and not robber.get('_police') and not protected_left,
+                            'reason':'police' if robber.get('_police') else ('protected' if protected_left else ''),
+                            'protected_s':protected_left,
                             'biz_id':biz_id,'attempt':completed+1,'guard_bonus':completed*3,
                         }}, ensure_ascii=False))
                     elif t == 'shop_rob':
@@ -21883,6 +21923,11 @@ async def _coop_http_app():
                         reply = {'ok': False, 'reason': 'unknown'}
                         if not p or p.get('dead') or p.get('_mode') == 'pve':
                             reply = {'ok': False, 'reason': 'dead'}
+                        elif p.get('_police'):
+                            reply = {'ok': False, 'reason': 'police'}
+                        elif world._business_police_protected_until.get((str(uid),biz_id),0) > time.time():
+                            reply = {'ok': False, 'reason': 'protected', 'biz_id':biz_id,
+                                     'protected_s':int(world._business_police_protected_until[(str(uid),biz_id)]-time.time())}
                         elif not cfg or not rc:
                             reply = {'ok': False, 'reason': 'bad_biz'}
                         elif pressure < 70 or guards_down < 1:

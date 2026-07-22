@@ -13947,7 +13947,14 @@ function handleEventPacket(d) {
     if (d.killed) {
       const sName = d.shooter_name || 'кто-то';
       const tName = d.target_name  || 'кто-то';
-      if(d.police_downed&&meIsShooter){
+      if(d.business_prevented&&meIsShooter){
+        if(typeof d.police_xp==='number')_setPoliceXp(d.police_xp,true);
+        QP.cash=(parseInt(QP.cash)||0)+Math.max(0,+d.cash_reward||0);updateMoneyHud();
+        showEventBanner('👮 ОГРАБЛЕНИЕ ПРЕДОТВРАЩЕНО',`${tName} устранён · +$${d.cash_reward||0} · +${d.police_xp_gain||0} XP · +${d.hp_reward||0} HP`,4700,'win');
+      }else if(d.business_prevented&&meIsTarget){
+        if(d.business_id)_businessPoliceProtection[d.business_id]=Date.now()+300000;
+        showEventBanner('🛡️ ТЕБЯ НАКРЫЛИ КОПЫ','Ограбление сорвано. Это заведение под защитой для тебя на 05:00.',4700,'lose');
+      }else if(d.police_downed&&meIsShooter){
         showEventBanner('👮 ЦЕЛЬ ПОВАЛЕНА',`${tName}: нажми «Задержать» в течение 5 секунд или он возродится.`,4300,'win');
       }else if(d.police_downed&&meIsTarget){
         showEventBanner('🚨 ТЕБЯ ПОВАЛИЛ КОП',`${sName} решает, задержать тебя или отпустить на обычный респаун.`,4300,'lose');
@@ -14372,6 +14379,11 @@ function handleEventPacket(d) {
   } else if (kind === 'business_rob_prepare_reply') {
     const biz = _pendingBusinessRobbery;
     _pendingBusinessRobbery = null;
+    if(!d.ok&&d.reason==='police'){showToast('Коп не может грабить заведения — войди и защити его','👮',3000);return;}
+    if(!d.ok&&d.reason==='protected'){
+      const left=Math.max(1,+d.protected_s||1)*1000;if(d.biz_id)_businessPoliceProtection[d.biz_id]=Date.now()+left;
+      showEventBanner('🛡️ ЗАВЕДЕНИЕ ПОД ЗАЩИТОЙ',`В прошлый раз тебя накрыли копы · защита ещё ${_businessClosureText(left)}`,3600,'lose');return;
+    }
     if (!d.ok || !biz || biz.id !== d.biz_id || _buildingInt) return;
     _robTargetBiz=biz; _robTargetR=biz.r; _robTargetC=biz.c;
     const attempt=Math.max(1,Math.min(3,+d.attempt||1));
@@ -14411,6 +14423,11 @@ function handleEventPacket(d) {
       } else if (d.reason === 'closed') {
         if (d.biz_id) _businessClosures[d.biz_id] = Date.now() + Math.max(1,+d.closed_s||1)*1000;
         _showBusinessClosed(Math.max(1,+d.closed_s||1)*1000);
+      } else if(d.reason==='police'){
+        showToast('Коп не может грабить — защити заведение от преступника','👮',2800);
+      } else if(d.reason==='protected'){
+        const left=Math.max(1,+d.protected_s||1)*1000;if(d.biz_id)_businessPoliceProtection[d.biz_id]=Date.now()+left;
+        showEventBanner('🛡️ ЗАВЕДЕНИЕ ПОД ЗАЩИТОЙ',`В прошлый раз тебя накрыли копы · защита ещё ${_businessClosureText(left)}`,3600,'lose');
       } else if (d.reason === 'not_pressured') {
         showToast('Сначала устрани охрану и доведи давление до 70%', '⚠️', 2400);
       } else {
@@ -15813,6 +15830,11 @@ function wsConnect() {
         for (const id of Object.keys(_businessAggroUntil)) if (!(id in fresh)) delete _businessAggroUntil[id];
         for (const [id, left] of Object.entries(fresh)) _businessAggroUntil[id] = now + Math.max(0, +left || 0) * 1000;
       }
+      if (d.business_police_protection !== undefined) {
+        const now=Date.now(),fresh=d.business_police_protection||{};
+        for(const id of Object.keys(_businessPoliceProtection))if(!(id in fresh))delete _businessPoliceProtection[id];
+        for(const [id,left] of Object.entries(fresh))_businessPoliceProtection[id]=now+Math.max(0,+left||0)*1000;
+      }
       if (d.quest_cars !== undefined) {
         // GTA-квестовые машины Майкла. Серверные авторитативные позиции —
         // ставим в tx/ty для плавной интерполяции (как для других игроков).
@@ -16390,15 +16412,15 @@ function claimBrigadirReward() {
 // бежит в участок (snitch). Убьёшь кассира до окончания таймера — ★ всё
 // равно прилетит за сам факт ограбления (серверный witness), но без snitch.
 const ROB_PAYOUT_PREVIEW = {
-  coffee:     { money:   60, stars: 1 },
-  carwash:    { money:   85, stars: 1 },
-  barbershop: { money:  110, stars: 1 },
-  pizza:      { money:  160, stars: 1 },
-  garage:     { money:  235, stars: 2 },
-  bar:        { money:  360, stars: 2 },
-  club:       { money:  550, stars: 2 },
-  warehouse:  { money:  850, stars: 2 },
-  casino:     { money: 1400, stars: 3 },
+  coffee:     { money:  200, stars: 1 },
+  carwash:    { money:  300, stars: 1 },
+  barbershop: { money:  400, stars: 1 },
+  pizza:      { money:  600, stars: 1 },
+  garage:     { money:  900, stars: 2 },
+  bar:        { money: 1300, stars: 2 },
+  club:       { money: 2000, stars: 2 },
+  warehouse:  { money: 3200, stars: 2 },
+  casino:     { money: 5000, stars: 3 },
 };
 const BUSINESS_ROB_TIERS = {
   coffee:{guards:1,w:16,h:11}, carwash:{guards:2,w:18,h:12},
@@ -16432,6 +16454,7 @@ let _robCashierNpc = null;   // ссылка на NPC из NPCS — кассир
 const _robCooldowns = {};    // biz_id → timestamp окончания кулдауна
 const _businessClosures = {}; // biz_id → общий серверный респавн владельца/охраны
 const _businessAggroUntil = {}; // biz_id → охрана помнит именно этого игрока
+const _businessPoliceProtection = {}; // biz_id → личная защита после вмешательства копов
 let _pendingBusinessRobbery = null;
 
 function _businessClosureText(ms) {
@@ -16449,6 +16472,7 @@ function _showBusinessClosed(leftMs) {
 
 function startRobbery(biz) {
   if (_robInProgress) return;
+  if(typeof _policeState!=='undefined'&&_policeState.employed){showToast('Коп не может грабить заведения — твоя задача остановить налёт','👮',3000);return;}
   if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
   if (myDead) return;
   const wsReady = !!(ws && ws.readyState === 1);
@@ -16459,6 +16483,11 @@ function startRobbery(biz) {
   const closedUntil = _businessClosures[biz.id] || 0;
   if (closedUntil > Date.now()) {
     _showBusinessClosed(closedUntil - Date.now());
+    return;
+  }
+  const protectedUntil=_businessPoliceProtection[biz.id]||0;
+  if(protectedUntil>Date.now()){
+    showEventBanner('🛡️ ЗАВЕДЕНИЕ ПОД ЗАЩИТОЙ',`В прошлый раз тебя накрыли копы · защита ещё ${_businessClosureText(protectedUntil-Date.now())}`,3600,'lose');
     return;
   }
   _pendingBusinessRobbery = biz;
@@ -20184,13 +20213,15 @@ const PVP_FIRE_R = 8.5;
 function findPvpTargetAlongAim(dirX, dirY) {
   const meInArena = inArena(player.r, player.c);
   const policeHunt = !!_policeState?.employed;
-  if (!pvpActive && !meInArena && !policeHunt) return null;
+  const inBusinessFight=!!(_buildingInt?.type==='business');
+  if (!pvpActive && !meInArena && !policeHunt && !inBusinessFight) return null;
   const maxRange = weaponRange(currentWeapon);
   let best = null;
   for (const [uid, o] of others) {
     if (o.dead) continue;
     const legalPoliceTarget = policeHunt && !o.police && (+o.wanted || 0) > 0;
-    if (!pvpActive && !meInArena && !legalPoliceTarget) continue;
+    const legalBusinessTarget=inBusinessFight&&(o.businessAttacker||(!!_buildingInt.robbery&&o.police));
+    if (!pvpActive && !meInArena && !legalPoliceTarget && !legalBusinessTarget) continue;
     // Если я в арене — то и таргет должен быть в арене (на сервере та же логика)
     if (meInArena && !inArena(o.y, o.x)) continue;
     const dx = o.x - player.c, dy = o.y - player.r;

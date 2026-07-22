@@ -113,6 +113,7 @@ preview_businesses = {}
 preview_business_closures = {}
 preview_business_aggro = {}
 preview_business_rob_cycles = {}
+preview_business_police_protection = {}
 preview_police_rewards = set()
 preview_gta_quests = {}
 preview_box_quests = {}
@@ -129,9 +130,9 @@ PREVIEW_BUSINESS_RC = {
     "warehouse":(73,23), "casino":(13,45),
 }
 PREVIEW_ROB_PAYOUT = {
-    "coffee":(60,1), "carwash":(85,1), "barbershop":(110,1),
-    "pizza":(160,1), "garage":(235,2), "bar":(360,2), "club":(550,2),
-    "warehouse":(850,2), "casino":(1400,3),
+    "coffee":(200,1), "carwash":(300,1), "barbershop":(400,1),
+    "pizza":(600,1), "garage":(900,2), "bar":(1300,2), "club":(2000,2),
+    "warehouse":(3200,2), "casino":(5000,3),
 }
 PREVIEW_BIZ_MULT = {1:1.0,2:1.35,3:1.75,4:2.25,5:3.0}
 PREVIEW_BIZ_UP = {2:.45,3:.75,4:1.15,5:1.70}
@@ -1477,6 +1478,10 @@ def snap(uid):
                 bid: max(0, int(until-now)) for (aggro_uid,bid),until in preview_business_aggro.items()
                 if str(aggro_uid) == str(uid) and until > now
             },
+            "business_police_protection": {
+                bid:max(0,int(until-now)) for (protected_uid,bid),until in preview_business_police_protection.items()
+                if str(protected_uid)==str(uid) and until>now
+            },
             "districts": {
                 "owners": district_owners,
                 "captures": {
@@ -1769,7 +1774,9 @@ async def world_ws(req):
                 p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
             elif t == "business_aggro":
                 biz_id = str(d.get("biz_id") or "")
-                if biz_id in PREVIEW_BUSINESS_RC:
+                p = players.get(uid) or {}
+                if (biz_id in PREVIEW_BUSINESS_RC and not p.get("police") and
+                        preview_business_police_protection.get((str(uid),biz_id),0)<=time.time()):
                     preview_business_aggro[(str(uid), biz_id)] = time.time() + 300
                     if len(preview_business_aggro) > 500:
                         cutoff = time.time()
@@ -1778,9 +1785,13 @@ async def world_ws(req):
                                 preview_business_aggro.pop(key, None)
             elif t == "business_rob_prepare":
                 biz_id = str(d.get("biz_id") or "")
+                p = players.get(uid) or {}
+                protected_left=max(0,int(preview_business_police_protection.get((str(uid),biz_id),0)-time.time()))
                 completed = max(0, min(2, int(preview_business_rob_cycles.get((str(uid),biz_id),0))))
                 await ws.send_str(json.dumps({"t":"event","d":{
-                    "kind":"business_rob_prepare_reply","ok":biz_id in PREVIEW_BUSINESS_RC,
+                    "kind":"business_rob_prepare_reply","ok":biz_id in PREVIEW_BUSINESS_RC and not p.get("police") and not protected_left,
+                    "reason":"police" if p.get("police") else ("protected" if protected_left else ""),
+                    "protected_s":protected_left,
                     "biz_id":biz_id,"attempt":completed+1,"guard_bonus":completed*3,
                 }}, ensure_ascii=False))
             elif t == "shop_rob":
@@ -1792,7 +1803,12 @@ async def world_ws(req):
                 reply = {"kind":"shop_rob_reply", "ok":False, "reason":"bad_biz"}
                 if rc and reward:
                     closed_until = float(preview_business_closures.get(biz_id) or 0)
-                    if closed_until > now:
+                    if p.get("police"):
+                        reply.update(reason="police")
+                    elif preview_business_police_protection.get((str(uid),biz_id),0)>now:
+                        reply.update(reason="protected",biz_id=biz_id,
+                                     protected_s=int(preview_business_police_protection[(str(uid),biz_id)]-now))
+                    elif closed_until > now:
                         reply.update(reason="closed", closed_s=int(closed_until-now), biz_id=biz_id)
                     elif biz_id in preview_owned_businesses(uid):
                         reply.update(reason="own")
@@ -2147,20 +2163,36 @@ async def world_ws(req):
                 now_shot = time.time()
                 biz_id = str(shooter.get("business_interior") or "")
                 same_biz = bool(target and biz_id and str(target.get("business_interior") or "") == biz_id)
+                shooter_attacker=preview_business_aggro.get((str(uid),biz_id),0)>now_shot
+                target_attacker=preview_business_aggro.get((target_uid,biz_id),0)>now_shot
                 business_defense = bool(same_biz and (
-                    (shooter.get("business_private") and preview_business_aggro.get((target_uid,biz_id),0)>now_shot) or
-                    (target.get("business_private") and preview_business_aggro.get((str(uid),biz_id),0)>now_shot)))
-                if target and business_defense and not shooter.get("dead") and not target.get("dead"):
+                    (shooter.get("business_private") and target_attacker) or
+                    (target.get("business_private") and shooter_attacker)))
+                business_police_fight=bool(same_biz and ((shooter.get("police") and target_attacker) or
+                                                         (target.get("police") and shooter_attacker)))
+                if target and (business_defense or business_police_fight) and not shooter.get("dead") and not target.get("dead"):
                     sx,sy=float(shooter.get("interior_x",0)),float(shooter.get("interior_y",0))
                     tx,ty=float(target.get("interior_x",0)),float(target.get("interior_y",0))
                     if (sx-tx)**2+(sy-ty)**2 <= 10**2:
                         weapon=str(d.get("weapon") or "pistol")
                         damage={"shotgun":30,"rifle":26,"sniper":45,"pistol":18,"pistol_heavy":22,"smg":14}.get(weapon,18)
                         target["hp"]=max(0,int(target.get("hp",100))-damage); killed=target["hp"]<=0
-                        if killed: target["dead"]=True; target["respawn_at"]=now_shot+5
+                        prevented=bool(killed and shooter.get("police") and target_attacker)
+                        reward={}
+                        if killed:
+                            target["dead"]=True; target["respawn_at"]=now_shot+5
+                        if prevented:
+                            preview_business_police_protection[(target_uid,biz_id)]=now_shot+300
+                            preview_business_aggro.pop((target_uid,biz_id),None)
+                            account=preview_account(uid);account["cash"]+=150
+                            old_xp=int(account.get("police_xp",0));account["police_xp"]=min(4000,old_xp+35)
+                            old_hp=int(shooter.get("hp",100));shooter["hp"]=min(100,old_hp+25)
+                            reward={"business_prevented":True,"business_id":biz_id,"cash_reward":150,
+                                    "police_xp":account["police_xp"],"police_xp_gain":account["police_xp"]-old_xp,
+                                    "hp_reward":shooter["hp"]-old_hp}
                         await broadcast_event({"kind":"pvp_shot","shooter_uid":str(uid),"target_uid":target_uid,
                             "shooter_name":shooter.get("name","Защитник"),"target_name":target.get("name","Грабитель"),
-                            "sx":sx,"sy":sy,"tx":tx,"ty":ty,"dmg":damage,"killed":killed,"weapon":weapon})
+                            "sx":sx,"sy":sy,"tx":tx,"ty":ty,"dmg":damage,"killed":killed,"weapon":weapon,**reward})
                 elif (target and shooter.get("police") and not target.get("police") and
                         int(target.get("wanted", 0)) > 0 and not shooter.get("dead") and
                         not target.get("dead") and not shooter.get("business_interior") and
