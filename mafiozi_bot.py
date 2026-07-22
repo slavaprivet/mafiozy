@@ -1297,7 +1297,7 @@ def career_progress_text(xp: int, thresholds: tuple[int, ...]) -> str:
 async def grant_mafia_xp(uid: int, amount: int, reason: str,
                          world_player: dict | None = None) -> dict:
     """Начисляет серверный опыт мафии только игроку вне полицейской службы."""
-    if world_player and world_player.get('_police'):
+    if not world_player or not world_player.get('_mafia') or world_player.get('_police'):
         return {}
     amount = max(0, int(amount or 0))
     if not amount:
@@ -8389,6 +8389,7 @@ async def character_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Полицейская служба активна только пока это подтверждает живой мир;
     # в остальных случаях игрок показывается как мафиози с постоянным mafia_xp.
     is_police = bool(live_player and live_player.get('_police'))
+    is_mafia = bool(live_player and live_player.get('_mafia')) and not is_police
     if is_police:
         career_xp = int((live_player or {}).get('_police_xp') or char.get('police_xp') or 0)
         career_lvl = police_level_from_xp(career_xp)
@@ -8406,7 +8407,7 @@ async def character_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"⭐ {career_progress_text(career_xp, POLICE_LEVEL_XP)}\n"
             f"🔓 Возможности: {'; '.join(police_perks[:career_lvl])}"
         )
-    else:
+    elif is_mafia:
         career_xp = int(char.get('mafia_xp') or 0)
         career_lvl = mafia_level_from_xp(career_xp)
         career_line = (
@@ -8415,6 +8416,8 @@ async def character_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"⭐ {career_progress_text(career_xp, MAFIA_LEVEL_XP)}\n"
             f"🔓 Возможности: {'; '.join(MAFIA_LEVEL_PERKS[:career_lvl])}"
         )
+    else:
+        career_line = "\n\n👤 *Роль: гражданский*\n🔒 Фракционные бонусы неактивны. Устройся в полицию или вступи в семью в Burj Mafia."
 
     # Экранируем имя от символов Markdown
     safe_name = md(char['name'])
@@ -13101,7 +13104,9 @@ class WorldSim:
         p = self.players.get(str(uid))
         if not p or p.get('dead') or p.get('_business_interior'):
             return {'ok': False, 'error': 'dead' if p and p.get('dead') else 'interior'}
-        role = 'police' if p.get('_police') else 'mafia'
+        role = 'police' if p.get('_police') else ('mafia' if p.get('_mafia') else '')
+        if not role:
+            return {'ok': False, 'error': 'not_employed'}
         if requested_role and requested_role != role:
             return {'ok': False, 'error': 'wrong_role'}
         xp = int(p.get('_police_xp') or 0) if role == 'police' else int(p.get('_mafia_xp') or 0)
@@ -13404,6 +13409,7 @@ class WorldSim:
             return
         was_police = bool(p.get('_police'))
         p['_police'] = bool(d.get('police', False))
+        p['_mafia'] = bool(d.get('mafia', False)) and not p['_police']
         if p['_police'] and not was_police:
             # Форма несовместима с контролем улиц: при поступлении на службу
             # личные и совместные владения, а также незавершённые захваты снимаются.
@@ -13660,7 +13666,10 @@ class WorldSim:
         qc = {
             'id':         cid,
             'model':      model,
-            'owner_uid':  None,           # civilian — без владельца
+            # После угона машина принадлежит угнавшему её игроку. Это важно
+            # не только для повторной посадки, но и для восстановления после
+            # краткого пропуска quest_cars в сетевом snapshot.
+            'owner_uid':  str(uid),
             'driver_uid': str(uid),       # сразу за рулём
             'passenger_uids': [],
             'x':          sx,
@@ -13877,10 +13886,25 @@ class WorldSim:
         parked_now = time.time()
         qc['_parked_at'] = parked_now
         qc['_last_drive_t'] = parked_now
+        def parked_reply(**extra):
+            payload = {
+                'ok': True, 'delivered': False, 'car_id': car_id,
+                'model': qc.get('model'), 'owner_uid': qc.get('owner_uid'),
+                'x': round(float(qc.get('x', 0)), 3),
+                'y': round(float(qc.get('y', 0)), 3),
+                'ang': round(float(qc.get('ang', 0)), 3),
+                'hp': int(qc.get('hp', self.QUEST_CAR_HP)),
+                'max_hp': int(qc.get('max_hp', self.QUEST_CAR_HP)),
+                'civilian': bool(qc.get('civilian')),
+                'police_patrol': bool(qc.get('police_patrol')),
+                'police_stolen': bool(qc.get('police_stolen')),
+            }
+            payload.update(extra)
+            return payload
+
         # Civilian-машина: НЕ сдаётся в порту, просто высадка. Стоит на месте.
         if qc.get('civilian'):
-            return {'ok': True, 'delivered': False, 'car_id': car_id,
-                    'civilian': True}
+            return parked_reply(civilian=True)
         # Проверяем — машина в drop zone?
         if self._in_drop_zone(qc['x'], qc['y']):
             reward = int(qc.get('reward', 0))
@@ -13925,7 +13949,7 @@ class WorldSim:
                     'car_id': car_id, 'model': qc.get('model'),
                     'lock_lvl': lock_lvl, 'xp_gain': xp_gain,
                     'skill_up': skill_up, 'new_sc_lvl': new_sc}
-        return {'ok': True, 'delivered': False, 'car_id': car_id}
+        return parked_reply()
 
     def world_heal(self, uid: str) -> dict:
         """Полное лечение игрока — если он в радиусе POI больницы (43, 23)
@@ -14536,7 +14560,7 @@ class WorldSim:
         """
         key = cls._weapon_key(weapon)
         owned = shooter.get('_weapon_classes')
-        mafia_reward = key == 'golden_tommy' and int(shooter.get('_mafia_xp') or 0) >= 4000 and not shooter.get('_police')
+        mafia_reward = key == 'golden_tommy' and int(shooter.get('_mafia_xp') or 0) >= 4000 and shooter.get('_mafia') and not shooter.get('_police')
         throwable_hit = key in ('grenade', 'molotov_fire')
         if key != 'pistol' and not throwable_hit and not mafia_reward and (not isinstance(owned, set) or key not in owned):
             return None
@@ -15818,7 +15842,7 @@ class WorldSim:
     def hire_city_gang_bot(self, uid: str, bot_id: str) -> dict:
         """Убирает нанятого бойца из обычной городской банды."""
         player = self.players.get(str(uid))
-        if player and player.get('_police'):
+        if player and (player.get('_police') or not player.get('_mafia')):
             return {'kind':'gang_hire_reply','ok':False,'reason':'police_service','bot_id':bot_id}
         if not player or player.get('dead'):
             return {'kind':'gang_hire_reply','ok':False,'reason':'unavailable','bot_id':bot_id}
