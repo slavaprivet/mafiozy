@@ -693,12 +693,12 @@ ITEMS = {
     "medkit_large":  {"name": "💉 Большая аптечка",  "type": "potion",   "heal": 280, "price": 120, "desc": "Восстанавливает 280 HP"},
     "energy_drink":  {"name": "⚡ Энергетик",        "type": "potion",   "mana": 55,  "price": 45,  "desc": "Восстанавливает 55 энергии"},
     # ── Боеприпасы открытого мира (пачка покупается многократно) ────────
-    "ammo_9mm":     {"name": "📦 Патроны 9 мм",  "type": "ammo", "ammo_type": "9mm",    "rounds": 60, "price": 120, "desc": "60 патронов для пистолетов и ПП"},
-    "ammo_magnum":  {"name": "📦 .357 Magnum",   "type": "ammo", "ammo_type": "magnum", "rounds": 24, "price": 180, "desc": "24 патрона для нагана и тяжёлого пистолета"},
-    "ammo_shell":   {"name": "🟥 12 калибр",     "type": "ammo", "ammo_type": "shell",  "rounds": 24, "price": 160, "desc": "24 дробовых патрона"},
+    "ammo_9mm":     {"name": "Патроны 9 мм",     "type": "ammo", "ammo_type": "9mm",    "rounds": 60, "price": 120, "desc": "Для пистолета, золотого пистолета, ПП и Томми-ганов"},
+    "ammo_magnum":  {"name": ".357 Magnum",      "type": "ammo", "ammo_type": "magnum", "rounds": 24, "price": 180, "desc": "Для нагана, мафиозного револьвера и тяжёлого пистолета"},
+    "ammo_shell":   {"name": "12 калибр",        "type": "ammo", "ammo_type": "shell",  "rounds": 24, "price": 160, "desc": "Для дробовика"},
     "ammo_rifle":   {"name": "📦 5.56 мм",       "type": "ammo", "ammo_type": "rifle",  "rounds": 60, "price": 260, "desc": "60 винтовочных патронов"},
-    "ammo_sniper":  {"name": "🎯 7.62 точные",   "type": "ammo", "ammo_type": "sniper", "rounds": 15, "price": 300, "desc": "15 снайперских патронов"},
-    "ammo_rocket":  {"name": "🚀 Заряды РПГ",    "type": "ammo", "ammo_type": "rocket", "rounds": 3,  "price": 650, "desc": "3 реактивных заряда"},
+    "ammo_sniper":  {"name": "7.62 снайперские", "type": "ammo", "ammo_type": "sniper", "rounds": 15, "price": 300, "desc": "Для снайперской винтовки"},
+    "ammo_rocket":  {"name": "Заряды РПГ",       "type": "ammo", "ammo_type": "rocket", "rounds": 3,  "price": 650, "desc": "Для РПГ"},
     "zatochka":      {"name": "🔪 Заточка",          "type": "weapon",   "attack_bonus": 6,   "price": 60,   "desc": "+6 к атаке. Заточенный кусок металла."},
     "nagan":         {"name": "🔫 Наган",            "type": "weapon",   "attack_bonus": 8,   "price": 250,  "desc": "Дуэльный крит после паузы, пробивание цели и ковбойская серия."},
     "sawn_off":      {"name": "💥 Обрез",            "type": "weapon",   "attack_bonus": 12,  "price": 600,  "desc": "+12 к атаке. Короткий и злой."},
@@ -748,7 +748,7 @@ WEAPON_ITEM_CLASSES = {
     "nagan": "nagan", "tt": "pistol", "tt_pistol": "pistol",
     "sawn_off": "shotgun", "shotgun": "shotgun",
     "uzi": "smg", "golden_uzi": "smg",
-    "revolver": "pistol_heavy", "deagle": "pistol_heavy",
+    "revolver": "revolver", "deagle": "pistol_heavy",
     "m16": "rifle", "ak74": "rifle",
     "sniper": "sniper", "rpg": "rpg",
     "golden_colt": "pistol_gold", "tommy_gun": "tommy_gun",
@@ -12257,6 +12257,7 @@ class WorldSim:
     POLICE_BACKUP_CD = 90.0
     __slots__ = (
         'tick_no', 'last_tick_at', 'players', 'connections',
+        'gang_player_invites',
         'alive', 'started_at',
         'event', '_event_next_at',
         'cops', '_next_cop_id', '_last_wanted_decay',
@@ -12349,6 +12350,8 @@ class WorldSim:
         'pistol':       {'dmg': 24,  'cd': 0.38,  'range': 8.0,  'falloff_start': 0.72, 'min_mul': 0.65},
         'nagan':        {'dmg': 32,  'cd': 0.48,  'range': 9.2,  'falloff_start': 0.78, 'min_mul': 0.76,
                          'duel_pause': 0.80, 'duel_crit_mul': 1.80, 'armor_pen': 0.45},
+        'revolver':     {'dmg': 86,  'cd': 0.58,  'range': 10.5, 'falloff_start': 0.84, 'min_mul': 0.80,
+                         'armor_pen': 0.35},
         'pistol_heavy': {'dmg': 72,  'cd': 0.46,  'range': 11.2, 'falloff_start': 0.80, 'min_mul': 0.76},
         'pistol_gold':  {'dmg': 48,  'cd': 0.24,  'range': 11.5, 'falloff_start': 0.80, 'min_mul': 0.76},
         'shotgun':      {'dmg': 76,  'cd': 0.90,  'range': 6.2,  'falloff_start': 0.36, 'min_mul': 0.38},
@@ -12361,21 +12364,21 @@ class WorldSim:
     }
     WEAPON_ALIASES = {
         'tt': 'pistol', 'tt_pistol': 'pistol', 'pm': 'pistol', 'glock': 'pistol',
-        'revolver': 'pistol_heavy', 'desert_eagle': 'pistol_heavy', 'deagle': 'pistol_heavy',
+        'desert_eagle': 'pistol_heavy', 'deagle': 'pistol_heavy',
         'golden_colt': 'pistol_gold', 'sawn_off': 'shotgun',
         'uzi': 'smg', 'ump': 'smg', 'mp5': 'smg', 'golden_uzi': 'smg',
         'ak': 'rifle', 'ak74': 'rifle', 'm4': 'rifle', 'm16': 'rifle',
     }
     WEAPON_AMMO = {
         'pistol':'9mm', 'pistol_gold':'9mm', 'smg':'9mm', 'tommy_gun':'9mm', 'golden_tommy':'9mm',
-        'nagan':'magnum', 'pistol_heavy':'magnum', 'shotgun':'shell',
+        'nagan':'magnum', 'revolver':'magnum', 'pistol_heavy':'magnum', 'shotgun':'shell',
         'rifle':'rifle', 'sniper':'sniper', 'rpg':'rocket',
     }
     AMMO_DROP_ROUNDS = {'9mm':12, 'magnum':6, 'shell':6, 'rifle':15, 'sniper':3, 'rocket':1}
     # Совместимость со старым кодом, который ещё может читать только базовый урон.
     # Новые обработчики используют WEAPON_PROFILE и учитывают дистанцию.
     WEAPON_DMG = {
-        'pistol':       24, 'nagan':       32,
+        'pistol':       24, 'nagan':       32, 'revolver': 86,
         'pistol_heavy': 72, 'pistol_gold': 48,
         'shotgun':      76, 'smg':         15, 'tommy_gun': 24, 'golden_tommy': 24,
         'rifle':        42, 'sniper':      132, 'rpg':       160,
@@ -12623,15 +12626,15 @@ class WorldSim:
     # Майкл не возьмёт нового. Лимит на сутки при этом тоже расходуется.
     BOX_FAIL_CD_S       = 10 * 60
     # Точка погрузки — пирс рядом с краном (склад с контейнерами).
-    BOX_PICKUP_X        = 32.0
-    BOX_PICKUP_Y        = 169.0
+    # Сухая площадка контейнерного терминала у выезда с пирса.
+    BOX_PICKUP_X        = 40.0
+    BOX_PICKUP_Y        = 166.0
     # Точки доставки — три POI на карте: Порт, Казино, Рынок. Это
     # настоящие здания (drawPortBuilding/drawCasinoBuilding/drawMarketBuilding
     # в world.html), а не «выдуманные адреса». Координаты совпадают с POI.
     BOX_DROPOFFS = [
-        ('Порт',   56.0, 16.0),
-        ('Казино', 16.0, 46.0),
-        ('Рынок',  16.0, 16.0),
+        ('Пиццерия',       53.0, 53.0),
+        ('Подпольный клуб',53.0, 63.0),
     ]
     AGGRO_BOT_HP        = 90
     AGGRO_BOT_DMG       = 7         # было 8 — чуть мягче
@@ -12727,6 +12730,7 @@ class WorldSim:
         self.last_tick_at    = self.started_at
         self.players         = {}   # uid (str) -> {x,y,ang,name,look,hp,last_seen}
         self.connections     = {}   # uid (str) -> aiohttp WebSocketResponse
+        self.gang_player_invites = {}  # target_uid -> {from_uid, expires_at}
         self.alive           = True
         # Активное эмерджентное событие (dict) или None.
         self.event           = None
@@ -12969,7 +12973,15 @@ class WorldSim:
                 cop = self.players.get(cop_uid)
                 if cop:
                     cop.pop('_police_escort_uid', None)
+        crew_id = str((p or {}).get('_crew_id') or '')
         self.players.pop(uid, None)
+        if crew_id:
+            left = [q for q in self.players.values() if str(q.get('_crew_id') or '') == crew_id]
+            if len(left) < 2:
+                for q in left: q.pop('_crew_id', None)
+        self.gang_player_invites.pop(str(uid), None)
+        for target_uid, inv in list(self.gang_player_invites.items()):
+            if str(inv.get('from_uid') or '') == str(uid): self.gang_player_invites.pop(target_uid, None)
         self.connections.pop(uid, None)
         # Сессионные указатели не должны копиться после переподключений.
         self._last_dist_at.pop(str(uid), None)
@@ -13410,6 +13422,12 @@ class WorldSim:
         was_police = bool(p.get('_police'))
         p['_police'] = bool(d.get('police', False))
         p['_mafia'] = bool(d.get('mafia', False)) and not p['_police']
+        if not p['_mafia']:
+            crew_id = str(p.pop('_crew_id', '') or '')
+            if crew_id:
+                left = [q for q in self.players.values() if str(q.get('_crew_id') or '') == crew_id]
+                if len(left) < 2:
+                    for q in left: q.pop('_crew_id', None)
         if p['_police'] and not was_police:
             # Форма несовместима с контролем улиц: при поступлении на службу
             # личные и совместные владения, а также незавершённые захваты снимаются.
@@ -13517,6 +13535,7 @@ class WorldSim:
         try:
             p['ang']     = float(d.get('ang', p['ang']))
             p['walking'] = bool(d.get('w', False))
+            p['_swimming'] = bool(d.get('swimming', False))
             p['_weapon'] = str(d.get('weapon') or p.get('_weapon') or 'pistol')[:32]
         except Exception:
             pass
@@ -13524,7 +13543,7 @@ class WorldSim:
             gang_payload = d.get('gang')
             companions = []
             if isinstance(gang_payload, list):
-                for member in gang_payload[:5]:
+                for member in gang_payload[:7]:
                     if not isinstance(member, dict):
                         continue
                     try:
@@ -13647,10 +13666,12 @@ class WorldSim:
     # Создаёт серверный quest_car-civilian: без owner, без награды, без лимита
     # daily. Видна ВСЕМ игрокам как обычная quest-car (через стандартный
     # snapshot+spawn pkt). Машина живёт долго даже при простое (см. tick).
-    CIVILIAN_HIJACK_MODELS = ('corvette_c3', 'mustang_67', 'cadillac_eldo',
-                              'delorean', 'jaguar_e',
-                              'harley_chopper', 'ducati_750')
-    def civilian_hijack_start(self, uid: str) -> dict:
+    CIVILIAN_HIJACK_MODELS = ('sedan','taxi','sport','pickup','van','coupe','hatch_blue',
+                              'supercar','lambo','ferrari','porsche','truck','minivan','hatch','limo',
+                              'suv_black','suv_white','jeep_safari','jeep_sand','muscle_blue','muscle_org',
+                              'roadster','classic','classic2','corvette_c3','mustang_67','cadillac_eldo',
+                              'delorean','jaguar_e','harley_chopper','ducati_750')
+    def civilian_hijack_start(self, uid: str, requested_model=None) -> dict:
         p = self.players.get(uid)
         if not p:
             return {'ok': False, 'reason': 'no_player'}
@@ -13658,7 +13679,8 @@ class WorldSim:
         for _cid, _qc in self.quest_cars.items():
             if str(_qc.get('driver_uid') or '') == str(uid):
                 return {'ok': False, 'reason': 'busy'}
-        model = random.choice(self.CIVILIAN_HIJACK_MODELS)
+        requested_model = str(requested_model or '')
+        model = requested_model if requested_model in self.CIVILIAN_HIJACK_MODELS else random.choice(self.CIVILIAN_HIJACK_MODELS)
         mdef  = self.QUEST_CAR_MODELS.get(model) or {}
         sx, sy = float(p['x']), float(p['y'])
         cid = f'civ{self._quest_car_next_id}'
@@ -13874,6 +13896,13 @@ class WorldSim:
             return {'ok': True, 'delivered': False, 'car_id': car_id, 'was_passenger': True}
         if qc.get('driver_uid') != uid:
             return {'ok': False, 'reason': 'not_driver'}
+        if qc.get('model') in ('police_heli', 'mafia_heli'):
+            for dr, dc in ((0, 0), (.55, 0), (-.55, 0), (0, .55), (0, -.55),
+                           (.4, .4), (.4, -.4), (-.4, .4), (-.4, -.4)):
+                if _world_is_wall(int(float(qc.get('y', 0)) + dr),
+                                  int(float(qc.get('x', 0)) + dc)):
+                    return {'ok': False, 'reason': 'unsafe_landing',
+                            'car_id': car_id, 'model': qc.get('model')}
         qc['driver_uid']     = None
         if qc.get('police_patrol') and not qc.get('police_stolen'):
             qc['owner_uid'] = None
@@ -15697,9 +15726,26 @@ class WorldSim:
             # Нейтральная банда может один раз предупредить, но не подходит
             # вплотную, не выбирает игрока целью и не наносит урон.
             neutral_warned = st.setdefault('_neutral_warned', {})
+            # Warning is a real grace period. Leaving the lair clears it;
+            # staying beyond AGGRO_WARN_S makes the player hostile even if
+            # they never fired first.
+            for warned_uid in list(neutral_warned):
+                if warned_uid not in in_zone_by_uid:
+                    neutral_warned.pop(warned_uid, None)
             for p in in_zone:
                 p_uid = str(p.get('uid') or '')
-                if p_uid in hostile_uids or now - float(neutral_warned.get(p_uid, 0)) < 30.0:
+                if p_uid in hostile_uids:
+                    continue
+                warned_at = float(neutral_warned.get(p_uid, 0) or 0)
+                if warned_at and now - warned_at >= self.AGGRO_WARN_S:
+                    hostile_uids[p_uid] = now + 3600.0
+                    pkts.append({
+                        'kind': 'aggro_hostile', 'tid': tid,
+                        'target_uid': p_uid,
+                        'text': 'Ты не ушёл. Теперь пеняй на себя!',
+                    })
+                    continue
+                if warned_at:
                     continue
                 neutral_warned[p_uid] = now
                 if alive_bots:
@@ -15903,11 +15949,18 @@ class WorldSim:
                 # отвечать конкретно этому стрелку. Через минуту агро гаснет.
                 st.setdefault('_hostile_uids', {})[str(uid)] = time.time() + 60.0
                 killed = False
+                cleared = False
                 if bot['hp'] <= 0:
                     bot['hp']    = 0
                     bot['alive'] = False
                     killed = True
                     st['last_kill_t'] = time.time()
+                    if not any(b.get('alive') for b in st['bots']):
+                        cleared = True
+                        st['last_respawn_at'] = time.time()
+                        st['state'] = 'claimed_cd'
+                        st.setdefault('_hostile_uids', {}).clear()
+                        st.setdefault('_neutral_warned', {}).clear()
                 return {
                     'kind':        'aggro_hit',
                     'tid':         tid,
@@ -15920,6 +15973,8 @@ class WorldSim:
                     'dmg':         int(dmg),
                     'crit':        bool(profile and profile.get('_crit')),
                     'killed':      killed,
+                    'cleared':     cleared,
+                    'respawn_s':   int(self.AGGRO_RESPAWN_S) if cleared else 0,
                     'is_boss':     (bot.get('kind') == 'aggro_boss'),
                 }
         # Не нашли в обычных aggro-зонах — пробуем городскую банду, потом гнездо.
@@ -16815,6 +16870,33 @@ class WorldSim:
         if (dx*dx + dy*dy) > self.BOX_PICKUP_R * self.BOX_PICKUP_R:
             return {'ok': False, 'reason': 'too_far'}
         q['state'] = 'carrying'
+        return {'ok': True, 'state': 'carrying'}
+
+    def box_load(self, uid: str, car_id: str) -> dict:
+        """Put the carried box into a vehicle trunk."""
+        q = self.box_quests.get(str(uid))
+        if not q:
+            return {'ok': False, 'reason': 'no_quest'}
+        if q.get('state') != 'carrying':
+            return {'ok': False, 'reason': 'wrong_state'}
+        car_id = str(car_id or '')[:96]
+        if not car_id:
+            return {'ok': False, 'reason': 'bad_car'}
+        q['state'] = 'loaded'
+        q['car_id'] = car_id
+        return {'ok': True, 'state': 'loaded', 'car_id': car_id}
+
+    def box_unload(self, uid: str, car_id: str) -> dict:
+        """Take the mission box back out of the same vehicle trunk."""
+        q = self.box_quests.get(str(uid))
+        if not q:
+            return {'ok': False, 'reason': 'no_quest'}
+        if q.get('state') != 'loaded':
+            return {'ok': False, 'reason': 'wrong_state'}
+        if str(q.get('car_id') or '') != str(car_id or ''):
+            return {'ok': False, 'reason': 'wrong_car'}
+        q['state'] = 'carrying'
+        q.pop('car_id', None)
         return {'ok': True, 'state': 'carrying'}
 
     async def box_deliver(self, uid: str) -> dict:
@@ -17799,6 +17881,9 @@ class WorldSim:
         if not me:
             return {'t': 'snap', 'd': {'me': None, 'others': []}}
         mx, my = me['x'], me['y']
+        crew_id = str(me.get('_crew_id') or '')
+        crew_members = [{'uid':str(u),'name':q.get('name','Игрок'),'npc_count':len(q.get('_gang_companions') or [])}
+                        for u,q in self.players.items() if crew_id and str(q.get('_crew_id') or '')==crew_id]
         me_biz = str(me.get('_business_interior') or '')
         me_private = bool(me.get('_business_private'))
         others = []
@@ -17831,6 +17916,7 @@ class WorldSim:
                 'y':    round(oy, 2),
                 'ang':  round(p['ang'], 2),
                 'w':    bool(p.get('walking')),
+                'swimming': bool(p.get('_swimming')),
                 # Чат-баббл живёт до 16с (длинные сообщения дольше). Точная
                 # длительность вычисляется клиентом по длине текста; здесь
                 # просто широкое окно чтобы не отрезать раньше времени.
@@ -17845,6 +17931,8 @@ class WorldSim:
                 'jail_in': jail_left,
                 'weapon': p.get('_weapon') or 'pistol',
                 'police': bool(p.get('_police')),
+                'mafia': bool(p.get('_mafia')),
+                'crew_mate': bool(crew_id and str(p.get('_crew_id') or '')==crew_id),
                 'police_cuffed': bool(p.get('_police_cuffed_by')),
                 'police_stunned_in': max(0.0, float(p.get('_police_stunned_until') or 0) - time.time()),
                 'police_escort': p.get('_police_escort'),
@@ -18305,6 +18393,8 @@ class WorldSim:
                     'diamonds': int(me.get('_diamonds') or 0),
                     'police_xp': int(me.get('_police_xp') or 0),
                     'mafia_xp': int(me.get('_mafia_xp') or 0),
+                    'spray_cans': int(me.get('_spray_cans') or 0),
+                    'online_gang': {'crew_id':crew_id,'members':crew_members,'max_players':3} if crew_id else None,
                     'police_arrests_today': int(me.get('_police_daily_count') or 0),
                     'police_arrest_limit': me.get('_police_daily_limit'),
                     'police_spikes_cd': max(0.0, round(
@@ -18446,6 +18536,12 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     try: await ws.close(code=4001, message=b'afk')
                     except Exception: pass
                 logger.info("WorldSim: kicked AFK uid=%s", uid)
+            # Приглашение в онлайн-банду живёт только 25 секунд. Раньше
+            # непринятые приглашения оставались в словаре до отключения игрока
+            # и при долгой работе сервера постепенно накапливались.
+            for target_uid, invite in list(world.gang_player_invites.items()):
+                if float(invite.get('expires_at') or 0) <= t0:
+                    world.gang_player_invites.pop(target_uid, None)
             # Эмерджентные события + копы — двигаем конвой и копов,
             # спавним новых, AI стрельбы. Возвращают list пакетов на
             # broadcast (inkassator_spawned/inkass_shot/inkassator_escaped/
@@ -20474,8 +20570,29 @@ async def _coop_http_app():
         except Exception:
             b={}
         item_id=str(b.get('item_id') or '')
-        if item_id not in ('grenade','molotov'):
+        medkits={'medkit_small':55,'medkit_medium':130,'medkit_large':280}
+        if item_id not in ('grenade','molotov',*medkits):
             return await _cors(web.json_response({'ok':False,'error':'bad item'},status=400))
+        if item_id in medkits:
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute('BEGIN IMMEDIATE')
+                async with db.execute('SELECT hp,max_hp FROM characters WHERE telegram_id=?',(uid,)) as cur: char=await cur.fetchone()
+                async with db.execute('SELECT quantity FROM inventory WHERE telegram_id=? AND item_id=?',(uid,item_id)) as cur: row=await cur.fetchone()
+                if not char:
+                    await db.rollback();return await _cors(web.json_response({'ok':False,'error':'no character'},status=404))
+                hp,max_hp=int(char[0] or 0),max(1,int(char[1] or 100))
+                if hp>=max_hp:
+                    await db.rollback();return await _cors(web.json_response({'ok':False,'error':'full hp'},status=409))
+                if not row or int(row[0] or 0)<=0:
+                    await db.rollback();return await _cors(web.json_response({'ok':False,'error':'not in inventory'},status=400))
+                healed=min(medkits[item_id],max_hp-hp);new_hp=hp+healed;left=int(row[0])-1
+                if left: await db.execute('UPDATE inventory SET quantity=? WHERE telegram_id=? AND item_id=?',(left,uid,item_id))
+                else: await db.execute('DELETE FROM inventory WHERE telegram_id=? AND item_id=?',(uid,item_id))
+                await db.execute('UPDATE characters SET hp=? WHERE telegram_id=?',(new_hp,uid));await db.commit()
+            try:
+                if _WORLD is not None and str(uid) in _WORLD.players:_WORLD.players[str(uid)]['hp']=new_hp
+            except Exception: pass
+            return await _cors(web.json_response({'ok':True,'item_id':item_id,'hp':new_hp,'max_hp':max_hp,'healed':healed,'left':left}))
         inv=await get_inventory(uid)
         if not inv or int(inv.get(item_id,0))<=0:
             return await _cors(web.json_response({'ok':False,'error':'not in inventory'},status=400))
@@ -21003,11 +21120,13 @@ async def _coop_http_app():
                             cop_char = await get_character(int(uid))
                             current_xp = int((cop_char or {}).get('police_xp') or 0)
                             if t == 'police_resign':
-                                new_police_xp = 0
+                                new_police_xp = current_xp
                                 if p_ref:
-                                    p_ref['_police_taser_ammo'] = 5
-                                await update_character(int(uid), police_xp=0)
-                                reply = {'kind':'police_xp_reply','ok':True,'resigned':True,'police_xp':0}
+                                    p_ref['_police'] = False
+                                    p_ref['_police_taser_ammo'] = 0
+                                    p_ref['_police_online_target'] = None
+                                    p_ref['_police_escort_uid'] = None
+                                reply = {'kind':'police_xp_reply','ok':True,'resigned':True,'police_xp':new_police_xp}
                             elif t == 'police_xp_sync':
                                 # Одноразово переносим старый локальный прогресс в БД, не уменьшая серверный.
                                 requested = max(0, min(world.POLICE_TASER_XP, int(d.get('xp') or 0)))
@@ -21292,6 +21411,35 @@ async def _coop_http_app():
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
                                     except Exception: pass
+                    elif t == 'gang_player_invite':
+                        target_uid=str(d.get('target_uid') or ''); inviter=world.players.get(uid) or {}; target=world.players.get(target_uid)
+                        crew_id=str(inviter.get('_crew_id') or uid); members=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
+                        reason=None
+                        if not inviter.get('_mafia') or not target or not target.get('_mafia'): reason='mafia_only'
+                        elif target_uid==str(uid): reason='self'
+                        elif target.get('_crew_id'): reason='already_in_gang'
+                        elif len(members)>=3: reason='full'
+                        elif ((float(inviter.get('x',0))-float(target.get('x',0)))**2+(float(inviter.get('y',0))-float(target.get('y',0)))**2)>3.2**2: reason='too_far'
+                        if reason: await ws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_reply','ok':False,'reason':reason}},ensure_ascii=False))
+                        else:
+                            world.gang_player_invites[target_uid]={'from_uid':str(uid),'expires_at':time.time()+25}
+                            tws=world.connections.get(target_uid)
+                            if tws: await tws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_invite','from_uid':str(uid),'from_name':inviter.get('name','Игрок')}},ensure_ascii=False))
+                            await ws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_reply','ok':True,'pending':True,'target_name':target.get('name','Игрок')}},ensure_ascii=False))
+                    elif t == 'gang_player_answer':
+                        inv=world.gang_player_invites.pop(str(uid),None); inviter=world.players.get(str(inv.get('from_uid'))) if inv else None; accept=bool(d.get('accept'))
+                        if inv and inviter and time.time()<=float(inv.get('expires_at',0)):
+                            crew_id=str(inviter.get('_crew_id') or inv.get('from_uid')); members=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
+                            if accept and (world.players.get(uid) or {}).get('_mafia') and inviter.get('_mafia') and len(members)<3: inviter['_crew_id']=crew_id;world.players[uid]['_crew_id']=crew_id
+                            for member_uid in (str(inv.get('from_uid')),str(uid)):
+                                mws=world.connections.get(member_uid)
+                                if mws: await mws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_changed','accepted':accept}},ensure_ascii=False))
+                    elif t in ('gang_player_leave','gang_player_kick'):
+                        actor=world.players.get(uid) or {}; crew_id=str(actor.get('_crew_id') or ''); target_uid=str(d.get('target_uid') or uid) if t=='gang_player_kick' else str(uid); target=world.players.get(target_uid)
+                        if crew_id and target and str(target.get('_crew_id') or '')==crew_id:
+                            target.pop('_crew_id',None); left=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
+                            if len(left)<2:
+                                for q in left:q.pop('_crew_id',None)
                     elif t == 'gang_hire_bot':
                         reply = world.hire_city_gang_bot(uid, str(d.get('bot_id') or '')[:48])
                         try:
@@ -21416,6 +21564,10 @@ async def _coop_http_app():
                                         world.players.get(uid)))
                                 except Exception:
                                     logger.exception('mafia xp district reward failed for %s', uid)
+                                # Немедленный финал операции не проходит через
+                                # общий tick-пакет, поэтому раньше мог не попасть
+                                # в газету. Записываем тот же фактический пакет.
+                                await _record_world_event_news(world, pkt)
                             blob = json.dumps({'t': 'event', 'd': pkt}, ensure_ascii=False)
                             for u2, ws2 in list(world.connections.items()):
                                 try: await ws2.send_str(blob)
@@ -21559,7 +21711,7 @@ async def _coop_http_app():
                         p = world.players.get(uid)
                         if p and not p.get('dead') and p.get('_mode') != 'pve':
                             px = p.get('x', 0); py = p.get('y', 0)
-                            reply = world.civilian_hijack_start(uid)
+                            reply = world.civilian_hijack_start(uid, d.get('model'))
                             # Персональный ответ — клиент по нему сетит myDrivingCarId
                             try:
                                 await ws.send_str(json.dumps(
@@ -21707,6 +21859,15 @@ async def _coop_http_app():
                                 {'t': 'event', 'd': dict(reply, kind='shop_rob_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'spray_can_buy':
+                        p=world.players.get(uid) or {}; cash=int(p.get('_cash') or 0)
+                        if cash<5: reply={'ok':False,'reason':'cash','cash':cash,'spray_cans':int(p.get('_spray_cans') or 0)}
+                        else:
+                            p['_cash']=cash-5;p['_spray_cans']=int(p.get('_spray_cans') or 0)+1
+                            reply={'ok':True,'cash':p['_cash'],'spray_cans':p['_spray_cans']}
+                            try: await update_character(int(uid),cash=p['_cash'])
+                            except Exception: pass
+                        await ws.send_str(json.dumps({'t':'event','d':dict(reply,kind='spray_can_buy_reply')},ensure_ascii=False))
                     elif t == 'brigadir_take':
                         # Игрок взял хит-контракт у Бригадира.
                         # Проверки: жив, рядом с BRIGADIR_POS_RC (≤3),
@@ -22580,6 +22741,20 @@ async def _coop_http_app():
                                 {'t': 'event', 'd': dict(reply, kind='set_respawn_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'box_load':
+                        reply = world.box_load(uid, d.get('car_id') if isinstance(d, dict) else '')
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='box_load_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'box_unload':
+                        reply = world.box_unload(uid, d.get('car_id') if isinstance(d, dict) else '')
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='box_unload_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
                     elif t == 'emergency_revive':
                         reply = world.emergency_revive(uid)
                         try:
@@ -22659,6 +22834,53 @@ async def _coop_http_app():
             hours, limit = 24, 12
         items = await get_city_news(hours=hours, limit=limit)
         now = int(time.time())
+        # Живая сводка владельцев районов дополняет исторические события из БД.
+        # Это важно после перезапуска: газета всё равно показывает, кто прямо
+        # сейчас держит район, его фракцию, доход и оставшееся время контроля.
+        world = _WORLD
+        live_items = []
+        live_owner_keys = set()
+        if world and world.alive:
+            for did, owner in sorted(
+                    world.district_owners.items(),
+                    key=lambda row: float(row[1].get('captured_at') or 0),
+                    reverse=True):
+                expires_at = float(owner.get('expires_at') or (
+                    float(owner.get('captured_at') or now) + world.DIST_CONTROL_TTL_S))
+                if expires_at <= time.time():
+                    continue
+                dd = world.DISTRICTS_DEF.get(str(did), {})
+                owner_uid = str(owner.get('owner_uid') or '')
+                owner_name = str(owner.get('owner_name') or 'Неизвестный игрок')[:40]
+                gang_name = str(owner.get('_owner_gang_name') or owner.get('gang_tag') or '').strip()[:24]
+                income = int(dd.get('income') or 400)
+                control_left = max(0, int(expires_at - time.time()))
+                faction = f'мафиози · банда «{gang_name}»' if gang_name else 'мафиози'
+                live_owner_keys.add((owner_uid, owner_name.casefold()))
+                live_items.append({
+                    'id': f'live-district:{did}:{owner_uid}',
+                    'kind': 'district_control_live',
+                    'icon': dd.get('icon') or '🏴',
+                    'headline': f'{owner_name} контролирует район «{dd.get("name") or did}»',
+                    'summary': (f'Фракция: {faction}. Доход: ${income} за выплату. '
+                                f'До конца контроля: {control_left // 60} мин.'),
+                    'actor_uid': owner_uid,
+                    'district_id': str(did),
+                    'owner_name': owner_name,
+                    'faction': 'mafia',
+                    'gang_name': gang_name,
+                    'income': income,
+                    'control_left': control_left,
+                    'created_at': int(owner.get('captured_at') or now),
+                })
+        # Не печатаем рядом старую статью о том же текущем владельце: живая
+        # карточка содержит более точные данные и оставшееся время.
+        historic = [item for item in items if not (
+            str(item.get('kind') or '') == 'district_captured' and
+            (str(item.get('actor_uid') or ''),
+             str(item.get('headline') or '').split(' захватил', 1)[0].casefold())
+            in live_owner_keys)]
+        items = (live_items + historic)[:max(1, min(30, limit))]
         return await _cors(web.json_response({
             'ok': True,
             'edition': time.strftime('%d.%m.%Y', time.localtime(now)),

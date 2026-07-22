@@ -486,9 +486,9 @@ body.in-pvp #robActionBtn { top: 152px; }
   border: 2px solid rgba(255,220,180,.65); box-shadow: 0 4px 10px rgba(0,0,0,.5);
 }
 #joyR .icon {
-  position: absolute; inset: 0; display: flex; align-items: center;
-  justify-content: center; font-size: 22px; pointer-events: none; opacity: .8;
+  display: none;
 }
+#joyR .weapon-icon { position:absolute; width:72px; height:72px; left:29px; top:29px; pointer-events:none; opacity:.95; filter:drop-shadow(0 2px 2px rgba(0,0,0,.75)); }
 #joyR.cd { filter: grayscale(.5) brightness(.55); }
 
 /* Кнопка «🔫 Огонь» — основной триггер в open world (после захвата
@@ -642,6 +642,8 @@ body.in-pvp #robActionBtn { top: 152px; }
 #gangRosterList .gr-row.dead { color:#737b88;opacity:.82; }
 #gangRosterList .gr-row.dead .gr-dot { background:#8a3030;box-shadow:none; }
 #gangRosterList .gr-row.dead .gr-name { text-decoration:line-through;text-decoration-thickness:1.5px; }
+#gangRosterList .gr-row.online {color:#e2b6ff;background:rgba(151,72,204,.16);border:1px solid rgba(205,133,255,.35);border-radius:6px;padding:3px 4px}
+#gangRosterList .gr-row.online .gr-dot{background:#cf78ff;box-shadow:0 0 8px #bd5cff}
 #gangRosterList .gr-empty { color:#727d8f;font-weight:600;font-style:italic;padding:1px 0; }
 #jobStatusHud {
   position:absolute;left:14px;top:246px;width:min(168px,46vw);z-index:7;
@@ -1347,6 +1349,12 @@ body.in-pvp #robActionBtn { top: 152px; }
   border-radius: 10px; padding: 10px; margin-bottom: 8px;
 }
 .shop-item .pic { font-size: 26px; flex-shrink: 0; width: 36px; text-align: center; }
+.shop-item .pic.weapon-preview-wrap { width: 70px; height: 42px; display:flex; align-items:center; justify-content:center; }
+.shop-weapon-preview { width: 70px; height: 42px; display:block; }
+.shop-item .pic.ammo-preview-wrap { width: 70px; height: 42px; display:flex; align-items:center; justify-content:center; }
+.shop-ammo-preview { width: 70px; height: 42px; display:block; }
+.shop-item .pic.armor-preview-wrap { width: 70px; height: 48px; display:flex; align-items:center; justify-content:center; }
+.shop-armor-preview { width: 70px; height: 48px; display:block; }
 .shop-item .info { flex: 1; min-width: 0; }
 .shop-item .name { font-size: 14px; font-weight: 700; color: #fff; }
 .shop-item .desc { font-size: 11px; color: #b89cc8; margin-top: 2px; }
@@ -1690,6 +1698,7 @@ body.in-pvp #robActionBtn { top: 152px; }
   <!-- Правый стик: прицел+огонь (Brawl-Stars style) -->
   <div id="joyR">
     <div class="knob"></div>
+    <canvas class="weapon-icon" id="joyRWeaponIcon" width="144" height="144"></canvas>
     <div class="icon">🔫</div>
   </div>
   <!-- Полоса выбора оружия (из инвентаря) -->
@@ -2200,8 +2209,8 @@ const TRACK_HALF_W = 2.2;   // полуширина полотна (~4-5 тай�
 // Берег остаётся проходимым пешком до воды, затем персонаж сначала идёт
 // вброд, а на глубине ложится на воду. Дальняя граница нужна, чтобы игрок
 // не уплывал за игровую акваторию и не пересекал морское кольцо гонок.
-const SWIM_DEEP_R = BEACH_R1 + 2.25;
-const SWIM_LIMIT_R = BEACH_R1 + 10.5;
+const SWIM_DEEP_R = BEACH_R1 + 0.8;
+const SWIM_LIMIT_R = BEACH_R1 + 12.5;
 let _playerInWater = false;
 let _playerSwimmingDeep = false;
 let _playerWaterDepthM = 0;
@@ -2223,6 +2232,10 @@ function _isSwimmableWater(r, c) {
 }
 function _isPlayerCoastBlocked(r, c) {
   if (_isSwimmableWater(r, c)) return false;
+  // The sea race ring crosses the whole shoreline. It is asphalt for racers,
+  // but must not form an invisible wall between a pedestrian and the water.
+  const ri=Math.floor(r),ci=Math.floor(c),tile=MAP?.[ri]?.[ci];
+  if(tile===18 && r>=BEACH_R1-.4 && r<=SWIM_LIMIT_R)return false;
   return isBlockedPed(r, c);
 }
 function _tryMovePlayerCoast(obj, dr, dc) {
@@ -2450,34 +2463,34 @@ function _drawJetSkiRider(j,p,screenAng,bob){
   const look=_livePlayerLook(),skin=SKINS[look.skin|0]||SKINS[0];
   const ca=Math.cos(screenAng),sa=Math.sin(screenAng);
   const localPoint=(x,y)=>({x:p.x+ca*x-sa*y,y:p.y+bob+sa*x+ca*y});
-  const seat=localPoint(-5,0),handle=localPoint(10,0);seat.y-=3;handle.y-=12;
+  const seat=localPoint(-6,0),handle=localPoint(9,0);seat.y-=1;handle.y-=12;
   // Настоящий спрайт игрока остаётся вертикальным относительно экрана:
   // гидроцикл наклонён изометрией, но человек больше не лежит набок вместе с ним.
   // В getSprite остаётся запас под ноги, поэтому 42px давали крошечный торс.
   // 74px визуально равны обычному персонажу, но сидячая нижняя часть скрыта корпусом.
-  const sprite=getSprite(look,true,true),sh=74,sw=sh*.72;
+  const sprite=getSprite(look,true,true),sh=84,sw=sh*.72;
   const gender=look.gender|0;
   const bodyCols=gender?['#3a1a3a','#1a2a3a','#3a1a1a','#1a3a2a']:['#1a1a2e','#1a2e1a','#2e1a1a','#1a1e2e'];
   const sleeve=look.suit||bodyCols[(look.body|0)%bodyCols.length];
   ctx.save();
   ctx.fillStyle='rgba(0,10,18,.35)';ctx.beginPath();ctx.ellipse(seat.x,seat.y+3,11,4,0,0,Math.PI*2);ctx.fill();
-  ctx.drawImage(sprite,Math.round(seat.x-sw/2),Math.round(seat.y-sh*.91),sw,sh);
+  ctx.drawImage(sprite,Math.round(seat.x-sw/2),Math.round(seat.y-sh*.86),sw,sh);
   // Согнутые руки: плечо → локоть → отдельная рукоять. Прямые линии раньше
   // выглядели длиннее всего персонажа и пересекались над рулём.
   const sideX=-sa,sideY=ca;
-  const shoulders=[{x:seat.x-8,y:seat.y-39},{x:seat.x+8,y:seat.y-39}];
-  const hands=[{x:handle.x+sideX*3,y:handle.y+sideY*3},{x:handle.x-sideX*3,y:handle.y-sideY*3}];
+  const shoulders=[{x:seat.x-8,y:seat.y-30},{x:seat.x+8,y:seat.y-30}];
+  const hands=[{x:handle.x+sideX*3.2,y:handle.y+sideY*3.2},{x:handle.x-sideX*3.2,y:handle.y-sideY*3.2}];
   const elbows=[
-    {x:(shoulders[0].x+hands[0].x)*.5-6,y:(shoulders[0].y+hands[0].y)*.5+3},
-    {x:(shoulders[1].x+hands[1].x)*.5+6,y:(shoulders[1].y+hands[1].y)*.5+3},
+    {x:(shoulders[0].x+hands[0].x)*.5-2.5,y:(shoulders[0].y+hands[0].y)*.5+4},
+    {x:(shoulders[1].x+hands[1].x)*.5+2.5,y:(shoulders[1].y+hands[1].y)*.5+4},
   ];
   ctx.lineCap='round';ctx.lineJoin='round';
   for(let i=0;i<2;i++){
     const s=shoulders[i],e=elbows[i],h=hands[i];
-    ctx.strokeStyle='rgba(18,16,17,.78)';ctx.lineWidth=6.8;ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(e.x,e.y);ctx.lineTo(h.x,h.y);ctx.stroke();
-    ctx.strokeStyle=sleeve;ctx.lineWidth=4.8;ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(e.x,e.y);ctx.stroke();
-    ctx.strokeStyle=skin;ctx.lineWidth=4.1;ctx.beginPath();ctx.moveTo(e.x,e.y);ctx.lineTo(h.x,h.y);ctx.stroke();
-    ctx.fillStyle=skin;ctx.beginPath();ctx.arc(h.x,h.y,2.4,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(18,16,17,.78)';ctx.lineWidth=6.2;ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(e.x,e.y);ctx.lineTo(h.x,h.y);ctx.stroke();
+    ctx.strokeStyle=sleeve;ctx.lineWidth=4.6;ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(e.x,e.y);ctx.stroke();
+    ctx.strokeStyle=skin;ctx.lineWidth=3.8;ctx.beginPath();ctx.moveTo(e.x,e.y);ctx.lineTo(h.x,h.y);ctx.stroke();
+    ctx.fillStyle=skin;ctx.beginPath();ctx.arc(h.x,h.y,2.2,0,Math.PI*2);ctx.fill();
   }
   ctx.restore();
 }
@@ -2490,7 +2503,7 @@ function drawWaterDepthGuides(r0,c0,r1,c1) {
   // Служебные линии «Глубина 1.5 м» и «Граница плавания» скрыты.
   // Ограничения и физика воды остаются игровыми, без разметки поверх карты.
 }
-function drawSwimmingPlayer(px,py) {
+function drawSwimmingPlayerLegacy(px,py) {
   const look=_livePlayerLook(),moving=!!player.walking;
   const t=moving?(player.walkPhase*.72):(performance.now()*.0024);
   const skin=SKINS[look.skin|0]||SKINS[0],gender=look.gender|0;
@@ -2517,6 +2530,24 @@ function drawSwimmingPlayer(px,py) {
   if(moving){ctx.fillStyle='rgba(229,251,255,.85)';for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(25+i*4,-2+i%2*4,1.3-i*.18,0,Math.PI*2);ctx.fill();}}
   ctx.strokeStyle='rgba(178,232,244,.8)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-18,3);ctx.quadraticCurveTo(1,-1,24,3);ctx.stroke();
   ctx.restore();
+}
+function drawSwimmingCreator(px,py,ang,look,phase,moving=true) {
+  look=look||{};
+  const t=Number.isFinite(phase)?phase:performance.now()*.004;
+  const screenAng=_worldAngleToScreen(ang||0),sprite=getSprite(look,false,false);
+  const stroke=Math.sin(t*1.7),kick=Math.sin(t*2.15);
+  ctx.save();ctx.translate(px,py+Math.sin(t*1.35)*1.1);ctx.rotate(screenAng);
+  ctx.strokeStyle='rgba(205,244,252,.55)';ctx.lineWidth=1.7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-8,-8);ctx.quadraticCurveTo(-24,-13,-38,-5);ctx.moveTo(-8,8);ctx.quadraticCurveTo(-24,13,-38,5);ctx.stroke();
+  // Rotate the actual Creator sprite into a swimming pose. Clothes, face,
+  // hair, hat, armor and faction uniform therefore stay exactly the same.
+  ctx.save();ctx.rotate(Math.PI/2+stroke*.045);ctx.scale(.72,1+Math.abs(kick)*.025);ctx.drawImage(sprite,-24,-42,48,87);ctx.restore();
+  const water=ctx.createLinearGradient(0,-3,0,15);water.addColorStop(0,'rgba(54,143,174,.18)');water.addColorStop(1,'rgba(25,101,139,.72)');ctx.fillStyle=water;ctx.fillRect(-31,1,62,15);
+  ctx.strokeStyle='rgba(180,235,247,.86)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-24,3);ctx.quadraticCurveTo(0,-2,29,3);ctx.stroke();
+  if(moving){ctx.fillStyle='rgba(231,252,255,.9)';for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(27+i*4,-4+(i&1)*7,1.5-i*.2,0,Math.PI*2);ctx.fill();}}
+  ctx.restore();
+}
+function drawSwimmingPlayer(px,py) {
+  drawSwimmingCreator(px,py,player.ang,_livePlayerLook(),player.walking?player.walkPhase:performance.now()*.0024,!!player.walking);
 }
 let _trackTiles = null, _trackPathPts = null;
 function _nearestRaceTrackPoint(r, c) {
@@ -4157,6 +4188,9 @@ function _updateGasStations(now) {
 // зданиями, а заливаем газоном с деревьями. Детерминированный набор:
 // 1 парк на каждые ~6 блоков. Раскидаем по карте красиво.
 const PARK_BLOCKS = new Set();
+// Large landmarks occupy a real 3x3 footprint. This set also lets the
+// renderer suppress ordinary houses underneath their enlarged silhouettes.
+const LARGE_LANDMARK_TILES = new Set();
 function isParkBlock(br, bc) { return PARK_BLOCKS.has(br + ',' + bc); }
 
 function buildMap() {
@@ -4334,6 +4368,18 @@ function buildMap() {
         if (onRoadR || onRoadC)      MAP[r][c] = 0;       // дорога остаётся дорогой
         else                          MAP[r][c] = 9;       // всё внутреннее → бордюр-плитка (открытая площадь)
       }
+    }
+  }
+  // Casino and mansion are district-scale landmarks, not one-tile kiosks.
+  // Both anchors sit inside a block, so this 3x3 footprint never reaches roads.
+  LARGE_LANDMARK_TILES.clear();
+  for (const p of POI) {
+    if (p.id !== 'casino' && p.id !== 'mansion') continue;
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const rr = p.r + dr, cc = p.c + dc;
+      if (rr <= 0 || rr >= MAP_ROWS - 1 || cc <= 0 || cc >= MAP_COLS - 1) continue;
+      MAP[rr][cc] = 1;
+      LARGE_LANDMARK_TILES.add(rr + ',' + cc);
     }
   }
   // Зона Логова — отдельный «цыганский лагерь» в радиусе 20 от центра.
@@ -4582,8 +4628,9 @@ function generateBeachDecor() {
   for (const c of [10,26,54,69])
     _beachDecor.push({kind:'sand_path',r:157.0,r0:150.0,r1:164.5,c});
   for (const sp of [
-    {r:152.6,c:3.8},{r:155.4,c:9.0},{r:152.6,c:67.8},{r:155.4,c:73.0},
-    {r:162.7,c:34.0},{r:162.7,c:46.0},
+    {r:151.6,c:6.0},{r:151.6,c:18.0},{r:151.6,c:30.0},{r:151.6,c:42.0},{r:151.6,c:54.0},{r:151.6,c:66.0},{r:151.6,c:76.0},
+    {r:157.2,c:12.0},{r:157.2,c:24.0},{r:157.2,c:36.0},{r:157.2,c:48.0},{r:157.2,c:60.0},{r:157.2,c:72.0},
+    {r:162.7,c:7.0},{r:162.7,c:20.0},{r:162.7,c:33.0},{r:162.7,c:46.0},{r:162.7,c:59.0},{r:162.7,c:72.0},
   ]) _beachDecor.push({kind:'beach_lamp',r:sp.r,c:sp.c});
   // 16) Гоночная зона: у полотна трека, паддока и разгонки декору не место —
   //     пальмы/зонты/замки на трассе мешают и выглядят мусором. Правило:
@@ -4646,7 +4693,7 @@ function ensureCoastStyleDecor(){
   ])defs.push({kind:'big_palm',r:sp.r,c:sp.c,scale:sp.s,variant:sp.v});
   defs.push({kind:'tiki_bar',r:154.0,c:6.5,coastBar:true},{kind:'tiki_bar',r:154.0,c:70.5,coastBar:true});
   for(const c of [10,26,54,69])defs.push({kind:'sand_path',r:157,r0:150,r1:164.5,c});
-  for(const sp of [{r:152.6,c:3.8},{r:155.4,c:9},{r:152.6,c:67.8},{r:155.4,c:73},{r:162.7,c:34},{r:162.7,c:46}])
+  for(const sp of [{r:151.6,c:6},{r:151.6,c:18},{r:151.6,c:30},{r:151.6,c:42},{r:151.6,c:54},{r:151.6,c:66},{r:151.6,c:76},{r:157.2,c:12},{r:157.2,c:24},{r:157.2,c:36},{r:157.2,c:48},{r:157.2,c:60},{r:157.2,c:72},{r:162.7,c:7},{r:162.7,c:20},{r:162.7,c:33},{r:162.7,c:46},{r:162.7,c:59},{r:162.7,c:72}])
     defs.push({kind:'beach_lamp',r:sp.r,c:sp.c});
   for(const d of defs){
     const exists=_beachDecor.some(x=>x.kind===d.kind&&Math.abs((x.r||0)-d.r)<.08&&Math.abs((x.c||0)-d.c)<.08);
@@ -4932,6 +4979,7 @@ let _districtNodeSparkAt = 0;
 let _lastDistCaptureTryAt = 0;
 let _districtMissionHudHidden = false;
 let _districtMissionUiKey = '';
+let _districtHqPresenceKey = '';
 const DISTRICT_BY_ID = new Map(DISTRICTS.map(d => [d.id, d]));
 function districtAt(r, c) {
   for (const d of DISTRICTS) {
@@ -4960,7 +5008,9 @@ function _ensureDistrictRepUi(){
 }
 function _renderDistrictRep(d,force=false){
   if(!d)return;const ui=_ensureDistrictRepUi(),value=_districtRepValue(d.id),tier=_districtRepTier(value),pct=(value+100)/2;
-  ui.innerHTML=`<div class="dr-head"><span>${d.icon||'🏙️'} ${d.name}</span><b style="color:${tier.color}">${value>0?'+':''}${value}</b></div><div class="dr-sub">${tier.icon} ${tier.name} · свидетели ${value>=30?'реже доносят':value<=-30?'быстрее вызывают копов':'ведут себя обычно'}</div><div class="dr-bar"><i style="width:${pct}%"></i></div><button class="dr-info" type="button" title="Как работает район" aria-label="Информация о районе">!</button>`;
+  const influence=_factionWarState.districts?.[d.id]||{},police=Math.max(0,+influence.police||0),mafia=Math.max(0,+influence.mafia||0),gap=Math.abs(police-mafia);
+  const side=gap<15?'neutral':police>mafia?'police':'mafia',lead=side==='police'?'👮 Перевес полиции':side==='mafia'?'🕴️ Перевес мафии':'⚖️ Район нейтрален',leadColor=side==='police'?'#72c7ff':side==='mafia'?'#ff8c72':'#d4d9e2';
+  ui.innerHTML=`<div class="dr-head"><span>${d.icon||'🏙️'} ${d.name}</span><b style="color:${tier.color}">${value>0?'+':''}${value}</b></div><div class="dr-sub">${tier.icon} ${tier.name} · свидетели ${value>=30?'реже доносят':value<=-30?'быстрее вызывают копов':'ведут себя обычно'}</div><div class="dr-sub" style="color:${leadColor};font-weight:900;margin-top:6px">${lead} · 👮 ${police} / ${mafia} 🕴️</div><div class="dr-bar"><i style="width:${pct}%"></i></div><button class="dr-info" type="button" title="Как работает район" aria-label="Информация о районе">!</button>`;
   if(force){ui.classList.add('show');_districtRepHideAt=performance.now()+4200;}
 }
 function _openDistrictInfo(d){
@@ -4981,20 +5031,19 @@ function _tickDistrictReputation(now){
   const d=districtAt(player.r,player.c),id=d?.id||'';if(id!==_districtRepLastId){_districtRepLastId=id;if(d)_renderDistrictRep(d,true);}
   if(_districtRepUi&&now>_districtRepHideAt)_districtRepUi.classList.remove('show');
 }
-let _factionWarHud=null,_factionWarSig='',_factionWarState={police:0,mafia:0,districts:{}};
+let _factionWarSig='',_factionWarState={police:0,mafia:0,districts:{}};
 function _localFactionInfluence(r=player.r,c=player.c){const d=districtAt(r,c),v=d&&_factionWarState.districts?.[d.id];return{district:d,police:Math.max(0,+v?.police||0),mafia:Math.max(0,+v?.mafia||0)};}
 function _localFactionControls(side,r=player.r,c=player.c){const v=_localFactionInfluence(r,c);return side==='police'?v.police>=v.mafia+15:v.mafia>=v.police+15;}
 function _updateFactionWarHud(war){
-  if(!war)return;const police=Math.max(0,+war.police||0),mafia=Math.max(0,+war.mafia||0),districts=war.districts||{},local=_localFactionInfluence(),lp=Math.max(0,+districts[local.district?.id]?.police||0),lm=Math.max(0,+districts[local.district?.id]?.mafia||0),total=Math.max(1,police+mafia),pp=Math.round(police/total*100),sig=`${police}:${mafia}:${local.district?.id||''}:${lp}:${lm}`;_factionWarState={...war,police,mafia,districts};
+  if(!war)return;const police=Math.max(0,+war.police||0),mafia=Math.max(0,+war.mafia||0),districts=war.districts||{},local=_localFactionInfluence(),lp=Math.max(0,+districts[local.district?.id]?.police||0),lm=Math.max(0,+districts[local.district?.id]?.mafia||0),sig=`${police}:${mafia}:${local.district?.id||''}:${lp}:${lm}`;_factionWarState={...war,police,mafia,districts};
   if(sig===_factionWarSig)return;_factionWarSig=sig;
-  if(!_factionWarHud){const st=document.createElement('style');st.textContent=`#factionWarHud{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:47;width:min(330px,46vw);padding:7px 10px;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:rgba(7,10,17,.9);box-shadow:0 7px 24px rgba(0,0,0,.42);font:800 10px system-ui;color:#fff;pointer-events:none}#factionWarHud .fw-head{display:flex;justify-content:space-between;gap:10px}#factionWarHud .fw-bar{height:6px;margin-top:5px;border-radius:5px;overflow:hidden;background:#8b252c}#factionWarHud .fw-bar i{display:block;height:100%;background:#3a9cff;border-right:2px solid #fff}`;document.head.appendChild(st);_factionWarHud=document.createElement('div');_factionWarHud.id='factionWarHud';document.body.appendChild(_factionWarHud);}
-  const lead=police===mafia?'Город в равновесии':(police>mafia?'Полиция влиятельнее':'Мафия влиятельнее'),localLead=lp===lm?'нейтрально':(lp>lm?'контроль полиции':'контроль мафии');
-  _factionWarHud.innerHTML=`<div class="fw-head"><span style="color:#72c7ff">👮 ${police}</span><span>⚔️ ${lead}</span><span style="color:#ff8c72">${mafia} 🕴️</span></div><div class="fw-bar"><i style="width:${pp}%"></i></div><div style="margin-top:4px;text-align:center;color:#aebbd0;font-size:9px">${local.district?.name||'Вне районов'}: 👮 ${lp} · ${localLead} · ${lm} 🕴️</div>`;
+  if(local.district)_renderDistrictRep(local.district,false);
 }
 setTimeout(()=>_updateFactionWarHud(_factionWarState),700);
 // Владельцы районов (придёт с сервера; пока локально пусто).
 // { [districtId]: { ownerId, ownerName, gangTag, color, capturedAt } } — null = ничейный
 const districtOwners = Object.create(null);
+let _districtOwnersSnapshotReady = false;
 // Текущий район игрока + состояние GTA-баннера «въезд в район».
 let _curDistrictId = null;
 let _districtBanner = null;   // { d, t } — район и момент показа
@@ -7380,7 +7429,10 @@ function updateCityCops(dt) {
 const serviceVehicles = [];
 let _svcVehId = 0;
 let _playerEmergencyPatient=null;
-const FIRETRUCK_HOSE_RANGE = 4.5;
+// Пожарка остаётся на дороге, а очаг нередко находится на тротуаре/газоне.
+// 4.5 тайла не хватало до ближайшей законной точки остановки, из-за чего
+// машина приезжала и стояла без воды. Длина штатного рукава покрывает 8 тайлов.
+const FIRETRUCK_HOSE_RANGE = 8.0;
 
 // Спецтранспорт едет ПО ДОРОГАМ (тип 0). На последнем участке (от
 // ближайшего к цели дорожного тайла до самой цели) разрешён выезд на
@@ -7803,6 +7855,18 @@ function _fireTruckInRange(v) {
   const target=_fireTruckTarget(v);
   return !!target&&Math.hypot(target.r-v.y,target.c-v.x)<=FIRETRUCK_HOSE_RANGE;
 }
+function _startFireTruckWater(v, now=performance.now()) {
+  if(!v||v.kind!=='firetruck'||!_fireTruckInRange(v))return false;
+  const target=_fireTruckTarget(v);
+  // Разворачиваем лафет к очагу. Корпус остаётся припаркован вдоль дороги,
+  // направление струи хранится отдельно и не зависит от угла машины.
+  v._hoseAng=Math.atan2(target.r-v.y,target.c-v.x);
+  v.state='working';
+  v._waterStartedAt=now;
+  v.workDuration=v.payload?.fireRef?.kind==='gas_station'?6500:4500;
+  v.workUntil=now+v.workDuration;
+  return true;
+}
 function _abortFireTruckJob(v) {
   if(!v||v.kind!=='firetruck')return;
   v._fireAborted=true;
@@ -7865,17 +7929,16 @@ function updateServiceVehicles(dt) {
       // Тушить издалека запрещено: пожарка либо подъедет к близкому проезду,
       // либо отменит выезд и вернётся в депо.
       if (!v.path || v.path.length === 0) {
-        if (v.kind === 'firetruck' && v.payload?.fireRef?.kind === 'gas_station') {
+        if (v.kind === 'firetruck') {
           // Если карта редактора разорвала дорожный граф, бригада всё равно
           // появляется у ближайшего проезда и полноценно тушит, а не гасит
           // пожар невидимо в ту же секунду.
-          const ft=v.finalTarget||{y:v.y,x:v.x},road=_nearestRoadTile(ft.y,ft.x,20);
+          const target=_fireTruckTarget(v),ft=target||v.finalTarget||{y:v.y,x:v.x};
+          const road=_nearestRoadTile(ft.r??ft.y,ft.c??ft.x,20);
           if(road){v.y=road.r+.5;v.x=road.c+.5;}
-          if(!_fireTruckInRange(v)){_abortFireTruckJob(v);continue;}
-          v.state='working';v.workDuration=6500;v.workUntil=now+v.workDuration;
+          if(!_startFireTruckWater(v,now)){_abortFireTruckJob(v);continue;}
           continue;
         }
-        if (v.kind === 'firetruck') {_abortFireTruckJob(v);continue;}
         v.state = 'done';
         continue;
       }
@@ -7884,8 +7947,8 @@ function updateServiceVehicles(dt) {
           // Прибыли к банку — осада: копы выходят, машина стоит с мигалкой
           v.state = 'siege';
           _spawnResponseCops(v);
-        } else if(v.kind==='firetruck'&&!_fireTruckInRange(v)) {
-          _abortFireTruckJob(v);
+        } else if(v.kind==='firetruck') {
+          if(!_startFireTruckWater(v,now))_abortFireTruckJob(v);
         } else {
           v.state = 'working';
           v.workDuration = v.kind === 'ambulance' ? 2500 : v.kind === 'tow' ? 3000
@@ -7900,7 +7963,11 @@ function updateServiceVehicles(dt) {
         _setVehicleRoute(v, v.y, v.x, v.homeR, v.homeC);
       }
     } else if (v.state === 'working') {
-      if(v.kind==='firetruck'&&!_fireTruckInRange(v)){_abortFireTruckJob(v);continue;}
+      if(v.kind==='firetruck'){
+        if(!_fireTruckInRange(v)){_abortFireTruckJob(v);continue;}
+        const target=_fireTruckTarget(v);
+        if(target)v._hoseAng=Math.atan2(target.r-v.y,target.c-v.x);
+      }
       if (now < v.workUntil) continue;
       if (v.kind === 'ambulance' && v.payload.npc) {
         const patient=v.payload.npc;
@@ -8519,21 +8586,18 @@ function drawServiceVehicle(v) {
 
   // Во время тушения пожарные действительно подают воду к очагу.
   if (isFire && v.state === 'working' && v.payload && _fireTruckInRange(v)) {
-    const fr = v.payload.fireRef;
-    const cr = v.payload.carRef;
-    const target = fr && fr.kind === 'gas_station'
-      ? { r:fr.station.r+.7, c:fr.station.c+.7 }
-      : cr ? { r:cr.r, c:cr.c } : null;
+    const target = _fireTruckTarget(v);
     if (target) {
-      const tp = fr && fr.kind === 'gas_station'
-        ? w2s(target.r,target.c) : w2s(target.r+.5,target.c+.5);
-      const nozzle = {x:p.x+Math.cos(v.ang)*8,y:p.y-H*.72};
+      const gasFire=v.payload.fireRef?.kind==='gas_station';
+      const tp = gasFire?w2s(target.r,target.c):w2s(target.r+.5,target.c+.5);
+      const hoseAng=Number.isFinite(v._hoseAng)?v._hoseAng:v.ang;
+      const nozzle = {x:p.x+Math.cos(hoseAng)*8,y:p.y-H*.72};
       ctx.save();
-      ctx.strokeStyle='rgba(115,205,255,.88)';ctx.lineWidth=3;ctx.lineCap='round';
+      ctx.strokeStyle='rgba(115,205,255,.94)';ctx.lineWidth=4;ctx.lineCap='round';
       ctx.shadowColor='#8bdcff';ctx.shadowBlur=7;
       ctx.beginPath();ctx.moveTo(nozzle.x,nozzle.y);ctx.quadraticCurveTo((nozzle.x+tp.x)/2,(nozzle.y+tp.y)/2-18,tp.x,tp.y-8);ctx.stroke();
       ctx.shadowBlur=0;ctx.fillStyle='rgba(195,235,255,.72)';
-      for(let i=0;i<7;i++){const k=((performance.now()*.0025+i/7)%1);const x=nozzle.x+(tp.x-nozzle.x)*k,y=nozzle.y+(tp.y-8-nozzle.y)*k-Math.sin(k*Math.PI)*18;ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill();}
+      for(let i=0;i<12;i++){const k=((performance.now()*.0025+i/12)%1);const x=nozzle.x+(tp.x-nozzle.x)*k,y=nozzle.y+(tp.y-8-nozzle.y)*k-Math.sin(k*Math.PI)*18;ctx.beginPath();ctx.arc(x,y,1.7,0,Math.PI*2);ctx.fill();}
       ctx.restore();
     }
   }
@@ -8649,7 +8713,12 @@ window.addEventListener('keydown',e=>{if(e.code==='KeyE'&&!e.repeat&&_nearestCal
 function triggerWitnessChain(srcR, srcC, radius, opts) {
   opts = opts || {};
   const baseSnitchChance = (opts.snitchChance != null) ? opts.snitchChance : 0.9;
-  const snitchChance = _districtWitnessChance(baseSnitchChance);
+  // Скрытность влияет на реальную механику свидетелей, а не только на описание.
+  // Каждый уровень уменьшает радиус обнаружения на 6% и шанс звонка на 8%.
+  const stealthLvl = Math.max(0, Math.min(5, +(_characterSkills.stealth || 0)));
+  radius *= 1 - stealthLvl * .06;
+  const snitchChance = Math.max(.12,
+    _districtWitnessChance(baseSnitchChance) * (1 - stealthLvl * .08));
   const snitchCries  = opts.snitchCries  || ['КОПЫ!! ПОМОГИТЕ!!', 'УГНАЛИ!!', 'ВЫЗЫВАЙТЕ ПОЛИЦИЮ!'];
   const panicCries   = opts.panicCries   || ['ААА!!', 'ПОМОГИТЕ!', 'УБЕГАЙ!'];
   const now = performance.now();
@@ -11179,6 +11248,7 @@ const GANG_HIRE_COST = 500;
 let GANG_MAX = 5;
 const GANG_MIN_LVL = 5;
 const _myGang = [];
+let _onlineGang=null;
 const _formerGang = [];
 let _gangIdCounter = 0;
 let _gangRosterUiKey = '';
@@ -11191,10 +11261,11 @@ function syncGangRosterHud() {
   if(!list||!count)return;
   const placeJobHud=()=>{const roster=document.getElementById('gangRosterHud'),job=document.getElementById('jobStatusHud');if(roster&&job)job.style.top=(roster.offsetTop+roster.offsetHeight+8)+'px';};
   const active=_myGang.filter(g=>g&&g.hp>0);
-  const key=`${_gangRosterOpen}:${_gangDismissConfirmId||''}:`+active.map(g=>`${g.id}:${g.name}:${g.weapon}`).join('|');
+  const onlineMembers=(_onlineGang?.members||[]).filter(m=>String(m.uid)!==String(QP.uid));
+  const key=`${_gangRosterOpen}:${_gangDismissConfirmId||''}:`+active.map(g=>`${g.id}:${g.name}:${g.weapon}`).join('|')+'#'+onlineMembers.map(m=>`${m.uid}:${m.name}:${m.npc_count}`).join('|');
   if(key===_gangRosterUiKey){placeJobHud();return;}
   _gangRosterUiKey=key;
-  count.textContent=`${active.length}/${GANG_MAX}`;
+  count.textContent=`${onlineMembers.length+1}/3 игрока · ${active.length}/${GANG_MAX} NPC`;
   list.replaceChildren();
   const addRow=(g)=>{
     const row=document.createElement('div');row.className='gr-row';
@@ -11220,7 +11291,9 @@ function syncGangRosterHud() {
     }
   };
   for(const g of active)addRow(g);
-  if(!active.length){const empty=document.createElement('div');empty.className='gr-empty';empty.textContent='Бойцов пока нет';list.appendChild(empty);}
+  for(const m of onlineMembers){const row=document.createElement('div');row.className='gr-row online';row.innerHTML=`<span class="gr-dot"></span><span class="gr-name">◆ ${m.name||'Мафиози'}</span><span class="gr-weapon">${m.npc_count||0} NPC</span>`;if(_gangRosterOpen){const b=document.createElement('button');b.className='gr-dismiss';b.textContent='×';b.title='Исключить игрока';b.onclick=e=>{e.stopPropagation();if(confirm(`Исключить ${m.name||'игрока'} из банды?`))ws?.send(JSON.stringify({t:'gang_player_kick',d:{target_uid:String(m.uid)}}));};row.appendChild(b);}list.appendChild(row);}
+  if(!active.length&&!onlineMembers.length){const empty=document.createElement('div');empty.className='gr-empty';empty.textContent='Бойцов пока нет';list.appendChild(empty);}
+  if(_gangRosterOpen&&_onlineGang){const leave=document.createElement('button');leave.className='armor-equip';leave.textContent='Выйти из онлайн-банды';leave.onclick=e=>{e.stopPropagation();if(confirm('Выйти из онлайн-банды?'))ws?.send(JSON.stringify({t:'gang_player_leave',d:{}}));};list.appendChild(leave);}
   requestAnimationFrame(placeJobHud);
 }
 // Id уличных ботов, которых игрок НАНЯЛ. Сервер про найм не знает и
@@ -11611,6 +11684,7 @@ function _updateGang(dt) {
   const now = performance.now();
   _updateFormerGang(now);
   _tickGangChatter(now);
+  const formation = _myGang.filter(g => g && g.hp > 0);
   for (let i = _myGang.length - 1; i >= 0; i--) {
     const m = _myGang[i];
     if (m.hp <= 0) {
@@ -11623,16 +11697,19 @@ function _updateGang(dt) {
     if (_bankInt && _bankInt.room === 'vault') {
       continue; // в хранилище наёмники стоят на месте в лобби
     } else if (_buildingInt || _bankInt) {
-      const idx = _myGang.indexOf(m);
-      const ia = ((idx + 1) / (GANG_MAX + 1)) * Math.PI * 2;
-      tR = player.r + Math.sin(ia) * 1.5;
-      tC = player.c + Math.cos(ia) * 1.5;
+      const idx = formation.indexOf(m);
+      const ia = (idx / Math.max(1, formation.length)) * Math.PI * 2;
+      tR = player.r + Math.sin(ia) * 2.1;
+      tC = player.c + Math.cos(ia) * 2.1;
       m._intR = tR; m._intC = tC;
     } else {
-      const idx = _myGang.indexOf(m);
-      const angOff = ((idx + 1) / (GANG_MAX + 1)) * Math.PI * 2;
-      tR = player.r + Math.sin(angOff) * 2.5;
-      tC = player.c + Math.cos(angOff) * 2.5;
+      const idx = formation.indexOf(m);
+      const angOff = (idx / Math.max(1, formation.length)) * Math.PI * 2 + player.ang;
+      // Radius is deliberately larger than a grenade blast. Adjacent members
+      // of a full seven-man crew are still spaced beyond one explosion.
+      const formationRadius = formation.length <= 2 ? 3.3 : 4.25;
+      tR = player.r + Math.sin(angOff) * formationRadius;
+      tC = player.c + Math.cos(angOff) * formationRadius;
     }
     const dr = tR - m.r, dc = tC - m.c;
     const dist = Math.hypot(dr, dc);
@@ -11644,6 +11721,22 @@ function _updateGang(dt) {
       m.ang = Math.atan2(dr, dc);
     } else {
       m.walkPhase = 0;
+    }
+    // Local separation prevents companions crossing through and stacking on
+    // one pixel while the formation rearranges around a moving player.
+    const minGap = (_buildingInt || _bankInt) ? 1.15 : 2.65;
+    for (const other of formation) {
+      if (other === m || other.hp <= 0) continue;
+      let sr = m.r - other.r, sc = m.c - other.c;
+      let sd = Math.hypot(sr, sc);
+      if (sd >= minGap) continue;
+      if (sd < .01) {
+        const a = (formation.indexOf(m) + 1) * 2.399;
+        sr = Math.sin(a); sc = Math.cos(a); sd = 1;
+      }
+      const push = Math.min(.12, (minGap - sd) * .12);
+      m.r += sr / sd * push;
+      m.c += sc / sd * push;
     }
     if (myDead) continue;
     // Игрок взял кого-то в прицел — наёмник реагирует репликой
@@ -12293,6 +12386,8 @@ let _skillCosts = [0,500,2000,5000,12000,30000];
 let _skillBaseMaxHp = 100;
 function _applyCharacterSkills() {
   QP.mark_lvl = Math.max(0, Math.min(5, +_characterSkills.marksman || 0));
+  QP.stlh_lvl = Math.max(0, Math.min(5, +_characterSkills.stealth || 0));
+  QP.hst_lvl = Math.max(0, Math.min(5, +_characterSkills.hustler || 0));
   const oldMax = Math.max(1, PVP.max_hp || 100);
   _skillBaseMaxHp = Math.max(100, oldMax - Math.max(0, +_characterSkills.toughness || 0) * 10);
   PVP.max_hp = _skillBaseMaxHp + Math.max(0, +_characterSkills.toughness || 0) * 10;
@@ -12384,7 +12479,7 @@ function spawnFloatText(r, c, text, opts) {
 // не появлялись в picker'е — игрок не мог их выбрать в открытом мире.
 const WEAPON_ALIASES = {
   nagan: 'pistol', tt: 'pistol', tt_pistol: 'pistol', pm: 'pistol', glock: 'pistol',
-  revolver: 'pistol_heavy', desert_eagle: 'pistol_heavy', deagle: 'pistol_heavy',
+  desert_eagle: 'pistol_heavy', deagle: 'pistol_heavy',
   golden_colt: 'pistol_gold',
   sawn_off: 'shotgun',
   uzi: 'smg', ump: 'smg', mp5: 'smg', tommy_gun: 'smg', golden_uzi: 'smg',
@@ -12415,6 +12510,7 @@ const WEAPON_FX_CFG = {
   // falloffStart/minDamageMul — падение урона к краю дальности.
   pistol:       { mode:'semi', cd:0.38, range:8.0,  dmg:24, spread:0.035, bulletSpeed:26, color:'#ffea80', recoil:1.3, shake:1.1, tip:14, gripReach:0.225, ammoType:'9mm',    magSize:12, reloadMs:1400, falloffStart:0.72, minDamageMul:0.65, twoHanded:false },
   nagan:        { mode:'duelist', cd:0.48, range:9.2,  dmg:32, spread:0.038, bulletSpeed:29, color:'#9edcff', bulletScale:1.15, trailScale:0.85, recoil:1.9, shake:1.6, tip:14, gripReach:0.23, ammoType:'magnum', magSize:6, reloadMs:2160, falloffStart:0.78, minDamageMul:0.76, duelPauseMs:800, duelCritMul:1.8, armorPen:0.45, knockbackMul:1.65, penetrate:1, twoHanded:false },
+  revolver:     { mode:'semi', cd:0.58, range:10.5, dmg:86, spread:0.022, bulletSpeed:32, color:'#ffc15c', bulletScale:1.85, trailScale:1.25, recoil:2.8, shake:2.5, tip:16, gripReach:0.235, ammoType:'magnum', magSize:6, reloadMs:2250, falloffStart:0.84, minDamageMul:0.80, armorPen:0.35, twoHanded:false },
   pistol_heavy: { mode:'semi', cd:0.46, range:11.2, dmg:72, spread:0.026, bulletSpeed:31, color:'#ff7338', bulletScale:1.75, trailScale:1.12, recoil:2.4, shake:2.0, tip:20, gripReach:0.235, ammoType:'magnum', magSize:7,  reloadMs:1900, falloffStart:0.80, minDamageMul:0.76, thick:true, twoHanded:false },
   pistol_gold:  { mode:'semi', cd:0.24, range:11.5, dmg:48, spread:0.020, bulletSpeed:32, color:'#ffd700', bulletScale:1.30, trailScale:1.35, recoil:1.5, shake:1.3, tip:18, gripReach:0.23,  ammoType:'9mm',    magSize:15, reloadMs:1350, falloffStart:0.80, minDamageMul:0.76, twoHanded:false },
   shotgun:      { mode:'pump', cd:0.90, range:6.2,  dmg:76, spread:0.30, pellets:7, bulletSpeed:23, color:'#ffaa50', recoil:3.8, shake:4.0, tip:28, gripReach:0.12, foregrip:0.08, shoulderSpread:0.065, shoulderAimSpread:0.008, ammoType:'shell', magSize:6, reloadMs:2450, falloffStart:0.36, minDamageMul:0.38, thick:true, twoHanded:true },
@@ -12427,6 +12523,16 @@ const WEAPON_FX_CFG = {
   rpg:          { mode:'single',cd:1.65, range:15.0, dmg:160,spread:0.015,bulletSpeed:17, color:'#ff6020', recoil:6.0, shake:7.0, tip:46, gripReach:0.13, foregrip:0.08, shoulderSpread:0.065, shoulderAimSpread:0.008, ammoType:'rocket', magSize:1, reloadMs:1650, falloffStart:1.0, minDamageMul:1.0, thick:true, explosive:true, twoHanded:true },
 };
 function weaponProfile(w) { return WEAPON_FX_CFG[resolveWeapon(w)] || WEAPON_FX_CFG.pistol; }
+function _drivenBike() {
+  if (!myDrivingCarId || myIsPassenger) return null;
+  const car = questCars.get(myDrivingCarId);
+  return car && QUEST_CAR_MODELS[car.model]?.is_bike ? car : null;
+}
+function _canShootFromBike(weapon = currentWeapon) {
+  if (!_drivenBike() || !_isArmed()) return false;
+  const id = resolveWeapon(weapon), cfg = WEAPON_FX_CFG[id];
+  return !!cfg && cfg.twoHanded === false && !['c4','grenade','molotov'].includes(id);
+}
 function weaponRange(w) { return weaponProfile(w).range || 8; }
 function weaponDamageAt(w, dist) {
   const p = weaponProfile(w);
@@ -13229,7 +13335,7 @@ function _joyRThrowRange(){
 }
 function _syncPlayerAimFromJoyR() {
   const ang = _joyRAimAngle();
-  if (ang === null || myDead || myDrivingCarId || myJetSkiId || _playerSwimmingDeep || _inBus) return false;
+  if (ang === null || myDead || (myDrivingCarId && !_canShootFromBike()) || myJetSkiId || _playerSwimmingDeep || _inBus) return false;
   player.ang = ang;
   return true;
 }
@@ -13734,7 +13840,12 @@ function handleEventPacket(d) {
       showToast(`🕴️ +${d.mafia_xp_gain} XP мафии · ${d.mafia_reason||'авторитет вырос'}`,'🏅',2600);
   }
   if (!kind) return;
-  if(kind==='gang_hire_reply'&&!d.ok){showToast(d.reason==='police_service'?'Коп не может нанимать банду — используй служебное подкрепление':d.reason==='district_defender'?'Охрану района нельзя нанять — досье нужно добыть в бою':d.reason==='mafia_level'?'Нужен 3 уровень мафии для найма босса':'Боец уже недоступен','⚠️',2700);}
+  if(kind==='gang_player_invite'){
+    const accept=confirm(`${d.from_name||'Игрок'} приглашает тебя в онлайн-банду. Принять?`);
+    ws?.send(JSON.stringify({t:'gang_player_answer',d:{accept}}));
+  }else if(kind==='gang_player_reply'){showToast(d.ok?`Приглашение отправлено: ${d.target_name||'игрок'}`:({mafia_only:'Оба игрока должны быть мафиози',already_in_gang:'Игрок уже состоит в онлайн-банде',full:'В банде уже лидер и два игрока',too_far:'Подойди к игроку ближе'}[d.reason]||'Нельзя пригласить игрока'),d.ok?'◆':'⚠️',2600);}
+  else if(kind==='gang_player_changed'){showToast(d.accepted?'Онлайн-игрок вступил в банду':'Приглашение отклонено',d.accepted?'◆':'👋',2400);}
+  else if(kind==='gang_hire_reply'&&!d.ok){showToast(d.reason==='police_service'?'Коп не может нанимать банду — используй служебное подкрепление':d.reason==='district_defender'?'Охрану района нельзя нанять — досье нужно добыть в бою':d.reason==='mafia_level'?'Нужен 3 уровень мафии для найма босса':'Боец уже недоступен','⚠️',2700);}
   else if (kind === 'inkassator_spawned') {
     // Глобально — в ленту (а не центральным баннером). Игрок видит
     // стрелку-указатель на инкассатора через drawEventArrow.
@@ -13888,10 +13999,8 @@ function handleEventPacket(d) {
       else _rejectPendingPoliceNpcReward(d);
       return;
     }
-    // Ответ об увольнении ещё не гарантирует, что в очереди WebSocket нет
-    // старого snap с прежним званием. resetPending снимается только когда
-    // сам серверный снимок подтвердит police_xp=0.
-    if(d.ok&&d.resigned){_policeState.resetPending=true;_policeState.earnedXp=0;_savePoliceState();}
+    // Увольнение снимает только активную службу; карьерный XP хранится на сервере.
+    if(d.ok&&d.resigned){_policeState.resetPending=false;if(typeof d.police_xp==='number')_setPoliceXp(d.police_xp,true);_savePoliceState();}
     else if(d.ok&&typeof d.police_xp==='number')_setPoliceXp(d.police_xp,true);
   } else if (kind === 'police_patrol_reply') {
     if(!d.ok){if(d.error==='cooldown')_policePatrolReadyAt=performance.now()+Math.max(0,+d.cooldown_left||0)*1000;_renderPoliceQuickPanel();showToast(d.error==='cooldown'?`Новый вызов через ${Math.ceil((+d.cooldown_left||0)/60)} мин.`:_policeError(d.error),'⚠️',2500);return;}
@@ -13903,6 +14012,10 @@ function handleEventPacket(d) {
     const careerAir=d.vehicle_kind==='air'||d.model==='police_heli'||d.model==='mafia_heli';if(careerAir)_careerAirPending=false;else _careerVehiclePending=false;
     if(!d.ok){_careerVehiclePending=false;_careerAirPending=false;showToast(d.error==='cooldown'?`Техника будет готова через ${Math.ceil(+d.cooldown_left||0)} сек.`:_policeError(d.error),'🚘',2400);_renderPoliceQuickPanel();return;}
     const role=d.role==='police'?'police':'mafia',garage=_hqLvl(role,'garage'),localControl=_localFactionControls(role)?10:0,careerReady=performance.now()+Math.max(65,120-garage*15-localControl)*1000;if(careerAir)_careerAirReadyAt=careerReady;else _careerVehicleReadyAt=careerReady;
+    if(!questCars.has(d.car_id)&&Number.isFinite(+d.x)&&Number.isFinite(+d.y)){
+      const hp=d.model==='harley_chopper'?240:650;
+      questCars.set(d.car_id,{id:d.car_id,model:d.model,owner_uid:String(QP.uid),driver_uid:null,passenger_uids:[],x:+d.x,y:+d.y,tx:+d.x,ty:+d.y,ang:player.ang||0,tAng:player.ang||0,vx:0,vy:0,hp,max_hp:hp,state:'idle',wrecked:false,civilian:false,career_vehicle:true,career_role:role});
+    }
     const names={cruiser:'патрульный круизер',paddyvan:'полицейский фургон',swat_truck:'броневик SWAT',police_heli:'полицейский вертолёт',harley_chopper:'мотоцикл семьи',gold_limo:'золотой лимузин Дона',mafia_armored:'броневик семьи',mafia_heli:'вертолёт Дона'};
     showEventBanner('🚘 ТЕХНИКА ДОСТАВЛЕНА',`${names[d.model]||'Машина'} ожидает рядом.`,3600,'win');_renderPoliceQuickPanel();
   } else if (kind === 'gta_siren') {
@@ -14209,7 +14322,7 @@ function handleEventPacket(d) {
       if (!questCars.has(d.car_id)) {
         questCars.set(d.car_id, {
           id: d.car_id, model: _useModel, _lockedModel: _useModel,
-          owner_uid: null, driver_uid: String(QP.uid),
+          owner_uid: String(QP.uid), driver_uid: String(QP.uid),
           passenger_uids: [],
           x: d.x, y: d.y, ang: player.ang || 0,
           vx: 0, vy: 0,
@@ -14305,6 +14418,9 @@ function handleEventPacket(d) {
     } else {
       showToast('❌ Бригадир не дал контракт', '⚠️', 2000);
     }
+  } else if(kind==='spray_can_buy_reply'){
+    if(d.ok){_sprayCans=Math.max(0,+d.spray_cans||0);myCash=QP.cash=+d.cash||0;updateMoneyHud();showToast(`🎨 Баллон куплен! (${_sprayCans} шт)`,'✅',1700);}
+    else showToast(d.reason==='cash'?'💸 Не хватает денег':'❌ Баллон купить не удалось','⚠️',1900);
   } else if (kind === 'brigadir_kill_reply') {
     // Сервер зафиксировал убийство цели, но НЕ заплатил. Награда висит
     // в pending, пока игрок не вернётся к Бригадиру и не нажмёт «Забрать».
@@ -14555,6 +14671,20 @@ function handleEventPacket(d) {
     } else if (d.reason === 'too_far') {
       showToast('🚫 Подойди ближе к пирсу', '⚠️', 1500);
     }
+  } else if (kind === 'box_load_reply') {
+    if (d.ok && myBoxStatus.active) {
+      myBoxStatus.active.state = 'loaded';
+      myBoxStatus.active.car_id = d.car_id;
+      _boxAnim = { kind: 'load', startT: performance.now(), dur: 650 };
+      showToast('📦 Коробка погружена в багажник', '✅', 2200);
+    }
+  } else if (kind === 'box_unload_reply') {
+    if (d.ok && myBoxStatus.active) {
+      myBoxStatus.active.state = 'carrying';
+      delete myBoxStatus.active.car_id;
+      _boxAnim = { kind: 'unload', startT: performance.now(), dur: 650 };
+      showToast('📦 Коробка выгружена — занеси её в бизнес', '✅', 2400);
+    }
   } else if (kind === 'box_deliver_reply') {
     if (d.ok) {
       const r = d.reward | 0;
@@ -14584,6 +14714,14 @@ function handleEventPacket(d) {
     // Ответ также окончательно переводит обычную машину в припаркованное
     // состояние: она остаётся в мире на месте высадки и доступна повторно.
     let exited = questCars.get(d.car_id);
+    if (!d.ok && d.reason === 'unsafe_landing' && exited) {
+      myDrivingCarId = d.car_id;
+      myIsPassenger = false;
+      _exitRequested = false;
+      exited.state = 'driving';
+      showToast('Посадка невозможна: снизу здание или препятствие', '🚁', 2600);
+      return;
+    }
     // Если устаревший snapshot успел удалить машину между локальной высадкой
     // и ответом сервера, восстанавливаем её из авторитетного exit_reply.
     if (d.ok && !d.delivered && !exited && d.model && Number.isFinite(+d.x) && Number.isFinite(+d.y)) {
@@ -14674,12 +14812,29 @@ function handleEventPacket(d) {
         'Доход с района идёт ему на счёт.', 4000, 'neutral');
     }
   } else if (kind === 'aggro_spawned') {
+    if (_LAIR_POI && Math.hypot(player.r - _LAIR_POI.r, player.c - _LAIR_POI.c) < 28) {
+      showEventBanner('☠️ БАНДИТЫ ВЕРНУЛИСЬ В ЛОГОВО',
+        'Новая группировка заняла территорию. Красная зона снова опасна.',
+        4500, 'lose');
+    }
     // Тихий пакет (только для логов / звуковой триггер при желании).
   } else if (kind === 'aggro_warn') {
     if (String(d.target_uid) === String(QP.uid)) {
-      _aggroWarnMsg.until = performance.now() + 3000;
+      _aggroWarnMsg.until = performance.now() + 4000;
+      showEventBanner('☠️ ТЫ ВОШЁЛ В ЛОГОВО',
+        `${d.text || 'Уходи отсюда!'} У тебя 4 секунды, чтобы отойти за красную линию.`,
+        4000, 'lose');
       _aggroWarnMsg.text  = d.text || 'Проваливай!';
       showToast('☠️ ' + (d.text || 'Проваливай!'), 2200);
+    }
+  } else if (kind === 'aggro_hostile') {
+    if (String(d.target_uid) === String(QP.uid)) {
+      _aggroWarnMsg.until = performance.now() + 4200;
+      _aggroWarnMsg.text = d.text || 'Теперь ты враг Логова!';
+      showEventBanner('☠️ ЛОГОВО АТАКУЕТ',
+        d.text || 'Ты проигнорировал предупреждение. Бандиты открывают огонь!',
+        4300, 'lose');
+      showToast('Бандиты Логова стали враждебными — уходи или сражайся!', '🔫', 3200);
     }
   } else if (kind === 'aggro_shot' || kind === 'aggro_melee') {
     // Нанятый игроком бот (клиентский фильтр, сервер про найм не знает) —
@@ -14736,6 +14891,12 @@ function handleEventPacket(d) {
     if (d.crit && typeof d.ty === 'number' && typeof d.tx === 'number') {
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
       spawnCriticalBlood(d.ty, d.tx, Math.sin(ang), Math.cos(ang));
+    }
+    if (d.cleared) {
+      showEventBanner('✅ ЛОГОВО ПОЛНОСТЬЮ ЗАЧИЩЕНО',
+        'Все бандиты уничтожены. Новая группировка появится через 10 минут.',
+        6000, 'win');
+      showToast('Логово безопасно на 10 минут', '🏆', 4200);
     }
     if (d.district_boss && d.killed) {
       const op = districtCaptures.get(String(d.did || ''));
@@ -15252,7 +15413,7 @@ function wsConnect() {
       // Точка респавна + список купленных бизнесов — чтобы при выходе
       // из dead-overlay лейбл уже знал «🏥 Госпиталь» или «☕ Кофейня».
       try { ws.send(JSON.stringify({ t: 'respawn_status', d: {} })); } catch(e){}
-      try { ws.send(JSON.stringify(_policeState?.resetPending?{t:'police_resign',d:{}}:{t:'police_xp_sync',d:{xp:Math.max(0,Math.floor(_policeState?.earnedXp||0))}})); } catch(e){}
+      try { ws.send(JSON.stringify({t:'police_xp_sync',d:{xp:Math.max(0,Math.floor(_policeState?.earnedXp||0))}})); } catch(e){}
     } else if (pkt.t === 'shot') {
       // Серверный broadcast выстрела. Рисуем трассер и при попадании —
       // эффект на цели.
@@ -15296,6 +15457,7 @@ function wsConnect() {
       // Если игрок реально жульничает (тп) — at 15 тайл snap всё равно
       // вернёт его. Если просто инет лагает — игрок не чувствует rubber.
       if (d.me) {
+        if(typeof d.me.spray_cans==='number')_sprayCans=Math.max(0,d.me.spray_cans|0);
         // Внутри банка координаты — комнатные, не мировые → snap игнорируем.
         // ЗА РУЛЁМ машина клиент-авторитетна (позиция шлётся через gta_drive,
         // серверный d.me — устаревшее эхо). Если применять коррекцию — снапшот
@@ -15359,12 +15521,8 @@ function wsConnect() {
           updateMoneyHud();
         }
         if(typeof d.me.police_xp==='number'&&typeof _policeState!=='undefined'){
-          if(_policeState.resetPending){
-            // Игнорируем устаревшие снимки с прежним XP после увольнения.
-            // Ноль — серверное подтверждение, после него новый контракт
-            // полиции действительно начинается с «Дежурного», уровень 1.
-            if((+d.me.police_xp||0)===0){_policeState.earnedXp=0;_policeState.resetPending=false;_savePoliceState();renderJobStatus();renderPoliceModal();}
-          }else _setPoliceXp(Math.max(_policeState.earnedXp||0,d.me.police_xp),true);
+          _policeState.resetPending=false;
+          _setPoliceXp(Math.max(_policeState.earnedXp||0,d.me.police_xp),true);
         }
         if(typeof d.me.mafia_xp==='number')_setMafiaXp(d.me.mafia_xp);
         if (typeof d.me.diamonds === 'number') {
@@ -15459,6 +15617,7 @@ function wsConnect() {
                 wanted: o.wanted || 0, gangs: o.gangs || 0,
                 mode: o.mode || 'pvp', jail_in: o.jail_in || 0,
                 interior: o.interior || null, weapon: o.weapon || 'pistol', police:!!o.police,
+                mafia:!!o.mafia,crewMate:!!o.crew_mate,swimming:!!o.swimming,
                 policeCuffed:!!o.police_cuffed, policeStunnedIn:+o.police_stunned_in||0,
                 policeEscort:o.police_escort||null };
           others.set(o.uid, p);
@@ -15479,6 +15638,7 @@ function wsConnect() {
           if (o.gang) p.gang = o.gang;
           if (o.weapon) p.weapon = o.weapon;
           p.police=!!o.police;
+          p.mafia=!!o.mafia;p.crewMate=!!o.crew_mate;p.swimming=!!o.swimming;
           p.policeCuffed=!!o.police_cuffed;
           p.policeStunnedIn=+o.police_stunned_in||0;
           p.policeEscort=o.police_escort||null;
@@ -15500,6 +15660,8 @@ function wsConnect() {
       _onlineWantedBoard=nextWantedBoard;_onlineWantedBoardUiSig=nextWantedSig;
       if(wantedUiChanged&&typeof _policeModal!=='undefined'&&_policeModal?.classList.contains('show'))renderPoliceModal();
       if (d.me) {
+        const nextOnlineGang=d.me.online_gang||null;
+        if(JSON.stringify(nextOnlineGang)!==JSON.stringify(_onlineGang)){_onlineGang=nextOnlineGang;_gangRosterUiKey='';syncGangRosterHud();}
         _onlinePoliceArrest = d.me.police_arrest || null;
         _policeDowned = d.me.police_downed || null;
         if(typeof d.me.police_arrests_today==='number')_policeDailyCount=Math.max(0,d.me.police_arrests_today|0);
@@ -15666,6 +15828,16 @@ function wsConnect() {
       if (d.districts !== undefined || d.district_owners !== undefined || d.district_captures !== undefined) {
         // РАЙОНЫ — владельцы + активные захваты штабов. Сервер — источник истины.
         const dOwn = (d.districts && d.districts.owners) || d.district_owners || {};
+        const myLostDistricts = [];
+        if (_districtOwnersSnapshotReady && QP.uid != null) {
+          for (const did of Object.keys(districtOwners)) {
+            const oldOwner = districtOwners[did];
+            const newOwner = dOwn[did];
+            const wasMine = String(oldOwner?.ownerId || oldOwner?.owner_uid || '') === String(QP.uid);
+            const stillMine = String(newOwner?.owner_uid || newOwner?.ownerId || '') === String(QP.uid);
+            if (wasMine && !stillMine) myLostDistricts.push({ did, newOwner });
+          }
+        }
         for (const k of Object.keys(districtOwners)) delete districtOwners[k];
         for (const did of Object.keys(dOwn)) {
           const o = dOwn[did];
@@ -15677,6 +15849,17 @@ function wsConnect() {
             income_xp: o.income_xp, control_ttl_s: o.control_ttl_s,
             expiresAt: o.expires_at, controlLeft: o.control_left,
           };
+        }
+        _districtOwnersSnapshotReady = true;
+        for (const lost of myLostDistricts) {
+          const def = DISTRICTS.find(x => String(x.id) === String(lost.did));
+          const name = def?.name || lost.did || 'район';
+          const nextName = lost.newOwner?.owner_name || lost.newOwner?.ownerName || '';
+          showEventBanner('⚠️ ТЫ ПОТЕРЯЛ РАЙОН',
+            `${def?.icon || '🏴'} «${name}» больше тебе не принадлежит. ${nextName ? `Новый владелец: @${nextName}. ` : 'Контроль вернулся местной банде. '}Выплаты и бонус района прекращены.`,
+            7000, 'lose');
+          showToast(`Район «${name}» потерян — доход больше не начисляется`, '⚠️', 5200);
+          pushFeedEvent('⚠️', `Ты больше не владеешь районом «${name}»`, {accent:'#ff7058'});
         }
         const dCap = (d.districts && d.districts.captures) || d.district_captures || {};
         const dFresh = new Set(Object.keys(dCap));
@@ -16330,12 +16513,8 @@ function updateRobbery(now) {
 if (_robBtn) {
   _robBtn.addEventListener('click', () => {
     if (_robBtn._buySprayCan) {
-      const cost = 5;
-      const cash = parseInt(QP.cash) || 0;
-      if (cash < cost) { showToast('💸 Не хватает денег', '❌', 1500); return; }
-      QP.cash = cash - cost;
-      _sprayCans++;
-      showToast(`🎨 Баллон куплен! (${_sprayCans} шт)`, '✅', 1500);
+      if(!ws||ws.readyState!==1){showToast('🌐 Сервер не отвечает','⚠️',1600);return;}
+      ws.send(JSON.stringify({t:'spray_can_buy',d:{}}));
       return;
     }
     if (_robBtn._taxiHijack && _hijackedCarRef) {
@@ -16805,6 +16984,13 @@ function updateGtaInteractions() {
       return;
     }
   }
+  // Пригласить реального онлайн-мафиози: отдельный лимит 3 игрока,
+  // собственные NPC-отряды участников не объединяем и не ограничиваем.
+  if(_mafiaState?.employed&&!_buildingInt&&!_bankInt&&!myDrivingCarId&&!myDead&&(!_onlineGang||(_onlineGang.members||[]).length<3)){
+    let mate=null,best=2.8;
+    for(const o of others.values()){const dist=Math.hypot(player.r-o.y,player.c-o.x);if(dist<best&&o.mafia&&!o.police&&!o.dead&&!o.crewMate){mate=o;best=dist;}}
+    if(mate){_gtaActionKind='gang_player_invite';_gtaActionCarId=String(mate.uid);_gtaBtn.textContent=`◆ Добавить ${mate.name||'игрока'} в банду`;_gtaBtn.style.display='block';return;}
+  }
   // Нанять бандита из aggroZones (city_gangs)
   if (!_policeState?.employed && !_buildingInt && !_bankInt && !myDrivingCarId && !myDead && _myGang.length < GANG_MAX && !(myGangs > 0)) {
     let nearBot = null, nearBotD = 2.8, nearBotLook = null;
@@ -16839,6 +17025,18 @@ function updateGtaInteractions() {
         return;
       }
     } else if (bq.state === 'carrying') {
+      let trunkCar = null, trunkD = Infinity;
+      for (const car of _bagVehicleCandidates()) {
+        const d = _bagTrunkDistance(car);
+        if (_bagVehicleAvailable(car) && d < trunkD) { trunkD = d; trunkCar = car; }
+      }
+      if (trunkCar && trunkD <= BAG_TRUNK_INTERACT_R) {
+        _gtaActionKind = 'box_load';
+        _gtaActionCarId = String(trunkCar.id || trunkCar._id || trunkCar.car_id || 'local_car');
+        _gtaBtn.textContent = '📦 Погрузить коробку';
+        _gtaBtn.style.display = 'block';
+        return;
+      }
       const dx = bq.dropoff_x - player.c, dy = bq.dropoff_y - player.r;
       if (Math.hypot(dx, dy) <= 3.0) {
         _gtaActionKind = 'box_deliver';
@@ -16846,6 +17044,18 @@ function updateGtaInteractions() {
         _gtaBtn.textContent = `📦 Сдать (${bq.reward}$)`;
         _gtaBtn.style.display = 'block';
         return;
+      }
+    } else if (bq.state === 'loaded') {
+      const wanted = String(bq.car_id || '');
+      for (const car of _bagVehicleCandidates()) {
+        const cid = String(car.id || car._id || car.car_id || 'local_car');
+        if (cid === wanted && _bagVehicleWithinTrunkReach(car)) {
+          _gtaActionKind = 'box_unload';
+          _gtaActionCarId = cid;
+          _gtaBtn.textContent = '📦 Выгрузить коробку';
+          _gtaBtn.style.display = 'block';
+          return;
+        }
       }
     }
   }
@@ -17092,6 +17302,10 @@ _gtaBtn.addEventListener('click', () => {
     try { ws && ws.send(JSON.stringify({ t: 'box_pickup', d: {} })); } catch(e){}
   } else if (_gtaActionKind === 'box_deliver') {
     try { ws && ws.send(JSON.stringify({ t: 'box_deliver', d: {} })); } catch(e){}
+  } else if (_gtaActionKind === 'box_load') {
+    try { ws && ws.send(JSON.stringify({ t: 'box_load', d: { car_id: _gtaActionCarId } })); } catch(e){}
+  } else if (_gtaActionKind === 'box_unload') {
+    try { ws && ws.send(JSON.stringify({ t: 'box_unload', d: { car_id: _gtaActionCarId } })); } catch(e){}
   } else if (_gtaActionKind === 'biz_buy') {
     showBuyBizConfirm(_gtaActionCarId);
   } else if (_gtaActionKind === 'biz_collect') {
@@ -17164,6 +17378,9 @@ _gtaBtn.addEventListener('click', () => {
     deliverBagToApartment();
   } else if (_gtaActionKind === 'apt_upgrade') {
     showApartmentUpgradeMenu();
+  } else if (_gtaActionKind === 'gang_player_invite') {
+    if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'gang_player_invite',d:{target_uid:String(_gtaActionCarId||'')}}));
+    else showToast('Сервер не отвечает','⚠️',1800);
   } else if (_gtaActionKind === 'gang_hire') {
     if(!_mafiaState?.employed){showToast('Бригаду может нанимать только член мафии','🕴️',2500);_gtaActionKind=null;return;}
     let hired = false;
@@ -17955,7 +18172,7 @@ function _completeHijack(car) {
   }
   try {
     ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
-      x: +car.c.toFixed(2), y: +car.r.toFixed(2),
+      x: +car.c.toFixed(2), y: +car.r.toFixed(2), model: _pendingHijackModel,
       // Witness отправляем ТОЛЬКО если рядом коп — он видел угон сам.
       // Мирные NPC, если что, побегут стучать (см. spawnEjectedDriver).
       witness: _copInRadius(player.r, player.c, 10),
@@ -18182,7 +18399,7 @@ const BOX_COP_FAIL_R = 2.2;
 const _boxCopBanner = document.getElementById('boxCopWarn');
 let _boxLastThreatTick = 0;
 function updateBoxThreat(dt) {
-  if (!myBoxStatus.active || myBoxStatus.active.state !== 'carrying') {
+  if (!myBoxStatus.active || !['carrying','loaded'].includes(myBoxStatus.active.state)) {
     if (_boxCopBanner && _boxCopBanner.style.display === 'block') {
       _boxCopBanner.style.display = 'none';
     }
@@ -18190,8 +18407,9 @@ function updateBoxThreat(dt) {
   }
   // Игрок-«носитель»: либо я пеший, либо за рулём машины (qc.x, qc.y).
   let pr = player.r, pc = player.c;
-  if (myDrivingCarId) {
-    const qc = questCars.get(myDrivingCarId);
+  const boxCarId = myBoxStatus.active.state === 'loaded' ? myBoxStatus.active.car_id : myDrivingCarId;
+  if (boxCarId) {
+    const qc = questCars.get(boxCarId) || _bagVehicleCandidates().find(c => String(c.id || c._id || c.car_id || 'local_car') === String(boxCarId));
     if (qc) { pr = qc.y; pc = qc.x; }
     // Если машина уничтожена под носителем — груз тоже потерян
     if (qc && qc.wrecked) { _boxFail('explosion'); return; }
@@ -18630,7 +18848,7 @@ function _helicopterCanLand(qc) {
   if(!qc)return false;
   const r=Math.floor(qc.y),c=Math.floor(qc.x);
   if(r<1||c<1||r>=MAP_ROWS-1||c>=MAP_COLS-1)return false;
-  const probes=[[0,0],[.42,0],[-.42,0],[0,.42],[0,-.42]];
+  const probes=[[0,0],[.55,0],[-.55,0],[0,.55],[0,-.55],[.4,.4],[.4,-.4],[-.4,.4],[-.4,-.4]];
   for(const [dr,dc] of probes){
     const rr=qc.y+dr,cc=qc.x+dc,tr=Math.floor(rr),tc=Math.floor(cc);
     if(isBlocked(rr,cc)||!MAP[tr]||MAP[tr][tc]===16)return false;
@@ -19171,27 +19389,27 @@ const _shopList = document.getElementById('shopList');
 const _shopCash = document.getElementById('shopCash');
 let _shopTab = 'weapons';
 const _SHOP_ITEMS = [
-  { id:'nagan',       pic:'🔫', name:'Наган',         type:'weapon', atk:32,  price:250 },
-  { id:'sawn_off',    pic:'💥', name:'Обрез',         type:'weapon', atk:76,  price:600 },
-  { id:'uzi',         pic:'🔫', name:'Узи',           type:'weapon', atk:143, price:1500 },
-  { id:'revolver',    pic:'🔫', name:'Револьвер',     type:'weapon', atk:104, price:5000 },
-  { id:'m16',         pic:'💥', name:'М-16',          type:'weapon', atk:210, price:42000 },
-  { id:'sniper',      pic:'🎯', name:'Снайперка',     type:'weapon', atk:132, price:32000 },
-  { id:'rpg',         pic:'🚀', name:'Базука',        type:'weapon', atk:160, price:50000 },
-  { id:'ammo_9mm',    pic:'📦', name:'Патроны 9 мм',  type:'ammo', ammoType:'9mm',    rounds:60, desc:'60 патронов', price:120 },
-  { id:'ammo_magnum', pic:'📦', name:'.357 Magnum',   type:'ammo', ammoType:'magnum', rounds:24, desc:'24 патрона',  price:180 },
-  { id:'ammo_shell',  pic:'🟥', name:'12 калибр',     type:'ammo', ammoType:'shell',  rounds:24, desc:'24 патрона',  price:160 },
-  { id:'ammo_rifle',  pic:'📦', name:'5.56 мм',       type:'ammo', ammoType:'rifle',  rounds:60, desc:'60 патронов', price:260 },
-  { id:'ammo_sniper', pic:'🎯', name:'7.62 точные',   type:'ammo', ammoType:'sniper', rounds:15, desc:'15 патронов', price:300 },
-  { id:'ammo_rocket', pic:'🚀', name:'Заряды РПГ',    type:'ammo', ammoType:'rocket', rounds:3,  desc:'3 заряда',     price:650 },
-  { id:'leather_jacket',pic:'🧥',name:'Кожанка',      type:'armor', def:12, price:180 },
-  { id:'bulletproof', pic:'🦺', name:'Бронежилет',    type:'armor', def:28, price:450 },
-  { id:'kevlar_vest', pic:'🛡️', name:'Кевларовый жилет',type:'armor',def:38,price:1200 },
-  { id:'tactical_vest',pic:'🥋',name:'Тактический жилет',type:'armor',def:50,price:2500 },
-  { id:'army_armor',  pic:'🪖', name:'Армейская броня',type:'armor', def:62, price:5000 },
-  { id:'swat_suit',   pic:'👮', name:'Костюм спецназа',type:'armor', def:78, price:9000 },
-  { id:'composite_armor',pic:'🦾',name:'Композитный доспех',type:'armor',def:95,price:16000 },
-  { id:'exo_armor',   pic:'⚙️', name:'Экзо-броня',    type:'armor', def:120,price:28000 },
+  { id:'nagan',       weapon:'nagan',        name:'Наган',                    type:'weapon', price:250 },
+  { id:'revolver',    weapon:'revolver',     name:'Мафиозный револьвер',     type:'weapon', price:5000 },
+  { id:'sawn_off',    weapon:'shotgun',      name:'Дробовик',                type:'weapon', price:600 },
+  { id:'uzi',         weapon:'smg',          name:'Пистолет-пулемёт',         type:'weapon', price:1500 },
+  { id:'m16',         weapon:'rifle',        name:'Винтовка',                 type:'weapon', price:42000 },
+  { id:'sniper',      weapon:'sniper',       name:'Снайперская винтовка', type:'weapon', price:32000 },
+  { id:'rpg',         weapon:'rpg',          name:'РПГ',                       type:'weapon', price:50000 },
+  { id:'ammo_9mm',    name:'Патроны 9 мм', type:'ammo', ammoType:'9mm', rounds:60, desc:'60 шт. · для: Пистолет, Золотой пистолет, ПП, Томми-ган', price:120 },
+  { id:'ammo_magnum', name:'.357 Magnum', type:'ammo', ammoType:'magnum', rounds:24, desc:'24 шт. · для: Наган, Мафиозный револьвер, Тяжёлый пистолет', price:180 },
+  { id:'ammo_shell',  name:'12 калибр', type:'ammo', ammoType:'shell', rounds:24, desc:'24 шт. · для: Дробовик', price:160 },
+  { id:'ammo_rifle',  name:'5.56 мм', type:'ammo', ammoType:'rifle', rounds:60, desc:'60 шт. · для: Винтовка', price:260 },
+  { id:'ammo_sniper', name:'7.62 снайперские', type:'ammo', ammoType:'sniper', rounds:15, desc:'15 шт. · для: Снайперская винтовка', price:300 },
+  { id:'ammo_rocket', name:'Заряды РПГ', type:'ammo', ammoType:'rocket', rounds:3, desc:'3 шт. · для: РПГ', price:650 },
+  { id:'leather_jacket',name:'Кожанка',type:'armor',def:12,price:180 },
+  { id:'bulletproof',name:'Бронежилет',type:'armor',def:28,price:450 },
+  { id:'kevlar_vest',name:'Кевларовый жилет',type:'armor',def:38,price:1200 },
+  { id:'tactical_vest',name:'Тактический жилет',type:'armor',def:50,price:2500 },
+  { id:'army_armor',name:'Армейская броня',type:'armor',def:62,price:5000 },
+  { id:'swat_suit',name:'Костюм спецназа',type:'armor',def:78,price:9000 },
+  { id:'composite_armor',name:'Композитный доспех',type:'armor',def:95,price:16000 },
+  { id:'exo_armor',name:'Экзо-броня',type:'armor',def:120,price:28000 },
   { id:'grenade',     pic:'💣', name:'Граната',       type:'consumable', desc:'Урон 80-130', price:50 },
   { id:'molotov',     pic:'🔥', name:'Коктейль Молотова',type:'consumable',desc:'Урон 50-80 + горит',price:130 },
   { id:'c4',           pic:'🧨', name:'Заряд C4',      type:'consumable',desc:'Установка в мире · фитиль 3 сек · смертельно вблизи',price:350 },
@@ -19217,7 +19435,7 @@ function _renderShopItems() {
   const myCash = parseInt(QP.cash) || 0;
   _shopCash.textContent = `💰 ${myCash} $`;
   _shopList.innerHTML = items.map(it => {
-    const weaponId = it.type === 'weapon' ? resolveWeapon(it.id) : null;
+    const weaponId = it.type === 'weapon' ? (it.weapon||resolveWeapon(it.id)) : null;
     const owned = (!!weaponId && _myWeapons.some(w => w.id === weaponId)) || (it.type==='armor' && _inventoryItems.some(x=>x.id===it.id&&(+x.qty||+x.count||0)>0));
     const ammoDef = it.type==='ammo' ? AMMO_TYPES[it.ammoType] : null;
     const ammoNow = ammoDef ? Math.max(0,+_ammoState.reserve[it.ammoType]||0) : 0;
@@ -19227,11 +19445,47 @@ function _renderShopItems() {
       : it.atk ? `+${it.atk} атк` : it.def ? `Поглощение ${Math.round((ARMOR_STYLES[it.id]?.reduction||0)*100)}%` : it.desc;
     const canBuy = !owned && !ammoFull && myCash >= it.price;
     return `<div class="shop-item">
-      <div class="pic">${it.pic}</div>
+      ${weaponId?`<div class="pic weapon-preview-wrap"><canvas class="shop-weapon-preview" data-shop-weapon="${weaponId}" width="140" height="84"></canvas></div>`:ammoDef?`<div class="pic ammo-preview-wrap"><canvas class="shop-ammo-preview" data-shop-ammo="${it.ammoType}" width="140" height="84"></canvas></div>`:it.type==='armor'?`<div class="pic armor-preview-wrap"><canvas class="shop-armor-preview" data-shop-armor="${it.id}" width="140" height="96"></canvas></div>`:`<div class="pic">${it.pic}</div>`}
       <div class="info"><div class="name">${it.name}</div><div class="desc">${stat} — ${it.price}$</div></div>
       <button class="buy" data-id="${it.id}" ${canBuy ? '' : 'disabled style="opacity:.55;cursor:default"'}>${owned ? (_equippedArmor===it.id?'Надето':'Куплено') : ammoFull ? 'Полный запас' : canBuy ? 'Купить' : 'Нет $'}</button>
     </div>`;
   }).join('');
+  _drawShopWeaponPreviews();
+  _drawShopAmmoPreviews();
+  _drawShopArmorPreviews();
+}
+function _drawShopWeaponPreviews(){
+  _shopList?.querySelectorAll('canvas[data-shop-weapon]').forEach(cv=>{
+    const weapon=cv.dataset.shopWeapon,draw=WEAPON_DRAWERS[weapon]||WEAPON_DRAWERS[resolveWeapon(weapon)];
+    const c=cv.getContext('2d');c.clearRect(0,0,cv.width,cv.height);if(!draw)return;
+    c.save();c.translate(42,42);c.scale(1.7,1.7);draw(c,1);c.restore();
+  });
+}
+function _drawShopAmmoPreviews(){
+  _shopList?.querySelectorAll('canvas[data-shop-ammo]').forEach(cv=>{
+    const c=cv.getContext('2d'),type=cv.dataset.shopAmmo;c.clearRect(0,0,cv.width,cv.height);
+    c.save();c.translate(18,12);
+    const box=type==='shell'?'#9c2427':type==='rocket'?'#41533b':type==='sniper'?'#58452c':type==='magnum'?'#603b28':'#38495d';
+    c.fillStyle='#171218';c.fillRect(10,18,66,44);c.fillStyle=box;c.fillRect(8,14,66,44);
+    c.fillStyle='rgba(255,255,255,.14)';c.fillRect(12,18,58,7);c.strokeStyle='#d8b875';c.lineWidth=2;c.strokeRect(8,14,66,44);
+    c.fillStyle='#f2dfad';c.font='bold 13px sans-serif';c.textAlign='center';c.fillText(type==='rocket'?'RPG':type==='shell'?'12 GA':type==='rifle'?'5.56':type==='sniper'?'7.62':type==='magnum'?'.357':'9 MM',41,43);
+    if(type==='rocket'){
+      c.translate(76,7);c.fillStyle='#596a49';c.fillRect(7,18,34,12);c.beginPath();c.moveTo(41,15);c.lineTo(57,24);c.lineTo(41,33);c.fill();c.fillStyle='#bd762d';c.fillRect(0,20,9,8);
+    }else{
+      const shell=type==='shell',count=shell?3:4;
+      for(let i=0;i<count;i++){const x=82+i*12;c.fillStyle=shell?'#a92329':'#d5a33d';c.fillRect(x,20+(i%2)*5,8,shell?28:23);c.fillStyle='#e8c56e';c.fillRect(x,40+(i%2)*5,8,5);c.beginPath();c.moveTo(x,20+(i%2)*5);c.lineTo(x+4,14+(i%2)*5);c.lineTo(x+8,20+(i%2)*5);c.fill();}
+    }
+    c.restore();
+  });
+}
+function _drawShopArmorPreviews(){
+  _shopList?.querySelectorAll('canvas[data-shop-armor]').forEach(cv=>{
+    const c=cv.getContext('2d'),id=cv.dataset.shopArmor;c.clearRect(0,0,cv.width,cv.height);
+    const sc=.92,px=x=>70+x*sc,py=y=>108-y*sc;
+    c.save();c.shadowColor='rgba(0,0,0,.65)';c.shadowBlur=8;
+    drawArmorSkin(c,px,py,sc,id,0,1);
+    c.restore();
+  });
 }
 async function loadInventoryItems() {
   try {
@@ -19340,10 +19594,11 @@ async function _buyShopItem(itemId) {
 }
 function openShop() {
   _shopOverlay.classList.add('open');
+  _districtMissionClose?.classList.remove('show');
   _renderShopItems();
   loadInventoryItems();
 }
-function closeShop() { _shopOverlay.classList.remove('open'); }
+function closeShop() {_shopOverlay.classList.remove('open');_districtMissionUiKey='';syncDistrictMissionControls();}
 document.getElementById('shopClose').addEventListener('click', closeShop);
 _shopOverlay.addEventListener('click', (e) => { if (e.target === _shopOverlay) closeShop(); });
 document.getElementById('shopTabs').addEventListener('click', (e) => {
@@ -19726,7 +19981,7 @@ function _finishDueWeaponReload(weapon) {
   }
 }
 function reloadCurrentWeapon(manual = true) {
-  if (!_isArmed() || myDead || myDrivingCarId || myJetSkiId || _playerSwimmingDeep || _inBus) return false;
+  if (!_isArmed() || myDead || (myDrivingCarId && !_canShootFromBike()) || myJetSkiId || _playerSwimmingDeep || _inBus) return false;
   _finishDueWeaponReload(currentWeapon);
   const st = _weaponAmmoState(currentWeapon);
   if (_isReloadingWeapon(st.id)) return false;
@@ -19897,7 +20152,7 @@ function fireFromAimHold(angle, active) {
 // Firearms keep direct right-stick fire. In melee the stick only aims/locks;
 // the separate punch button performs the strike.
 function attackFromAimHold(angle, active) {
-  if (!active || myDead || myDrivingCarId || myJetSkiId || _playerSwimmingDeep || _inBus) return;
+  if (!active || myDead || (myDrivingCarId && !_canShootFromBike()) || myJetSkiId || _playerSwimmingDeep || _inBus) return;
   if(currentWeapon==='grenade'||currentWeapon==='molotov')return;
   if (_isArmed()) {
     fireFromAimHold(angle, true);
@@ -20241,7 +20496,7 @@ function fire(angle = null) {
     angle = Math.atan2(_dr, _dc);
   }
   // В машине или в автобусе нельзя стрелять — обе руки на руле / двери закрыты.
-  if (myDrivingCarId || myJetSkiId || _playerSwimmingDeep || _inBus) return;
+  if ((myDrivingCarId && !_canShootFromBike()) || myJetSkiId || _playerSwimmingDeep || _inBus) return;
   if(currentWeapon==='taser'){
     firePoliceTaser(angle);
     return;
@@ -21085,7 +21340,7 @@ function updatePvpUI() {
   // даже если стрелять не в кого, ствол в руке и стик готов — это даёт
   // ощущение полноценной боёвки.
   const isPve      = (myMode === 'pve');
-  const isDriving  = !!myDrivingCarId || !!myJetSkiId || _playerSwimmingDeep || _inBus;
+  const isDriving  = (!!myDrivingCarId && !_canShootFromBike()) || !!myJetSkiId || _playerSwimmingDeep || _inBus;
   // В машине стрельба ОТКЛЮЧЕНА (обе руки на руле), правый стик и weaponBar
   // скрываются. Возвращаются обратно как только вышел из машины.
   const canShoot   = !isPve && !myDead && !isDriving;
@@ -21296,7 +21551,7 @@ let _wepPickOpen = false;
 
 // Красивые названия — copy из demo_isometric.WEAPON_LABELS.
 const WEAPON_LABELS = {
-  pistol:'пистолет', nagan:'наган', pistol_heavy:'тяж.пистолет', pistol_gold:'золотой',
+  pistol:'пистолет', nagan:'наган', revolver:'мафиозный револьвер', pistol_heavy:'тяж.пистолет', pistol_gold:'золотой',
   shotgun:'дробовик', smg:'ПП', tommy_gun:'томми-ган', golden_tommy:'золотой Томми-ган',
   rifle:'винтовка', sniper:'снайперка', taser:'шокер (коп)', police_spikes:'шипы (коп)', rpg:'РПГ', c4:'заряд C4', grenade:'граната', molotov:'коктейль Молотова',
 };
@@ -21336,7 +21591,29 @@ function drawWeaponHudIcon(ctx, canvas, weapon) {
   drawFirearm(weapon, cx, cy, 1, 0, 1.4, ctx);
 }
 
+function renderRightJoystickWeapon() {
+  const canvas = document.getElementById('joyRWeaponIcon');
+  if (!canvas) return;
+  const jc = canvas.getContext('2d');
+  jc.clearRect(0, 0, canvas.width, canvas.height);
+  jc.save();
+  jc.imageSmoothingEnabled = false;
+  if (!_isArmed()) {
+    jc.font = '54px system-ui';
+    jc.textAlign = 'center'; jc.textBaseline = 'middle';
+    jc.fillText('✊', canvas.width / 2, canvas.height / 2 + 2);
+  } else if (currentWeapon === 'c4' || currentWeapon === 'grenade' || currentWeapon === 'molotov') {
+    jc.font = '54px "Segoe UI Emoji",system-ui';
+    jc.textAlign = 'center'; jc.textBaseline = 'middle';
+    jc.fillText(currentWeapon === 'c4' ? '🧨' : currentWeapon === 'grenade' ? '💣' : '🔥', canvas.width / 2, canvas.height / 2 + 2);
+  } else {
+    drawFirearm(currentWeapon, canvas.width / 2, canvas.height / 2, 1, 0, 2.35, jc);
+  }
+  jc.restore();
+}
+
 function renderWeaponHud() {
+  renderRightJoystickWeapon();
   if (!_wepHudCtx) return;
   if (!_isArmed()) {
     _wepHudCtx.clearRect(0, 0, _wepHudCanvas.width, _wepHudCanvas.height);
@@ -21690,24 +21967,46 @@ function _myDistrictMissionCount(){
   for(const op of districtCaptures.values())if(String(op&&op.byId)===String(QP.uid))count++;
   return count;
 }
+function _myOwnedDistricts(){
+  return DISTRICTS.filter(d=>String(districtOwners[d.id]?.ownerId||districtOwners[d.id]?.owner_uid||'')===String(QP.uid));
+}
+function _formatDistrictTime(seconds){
+  const s=Math.max(0,Math.floor(+seconds||0)),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=String(s%60).padStart(2,'0');
+  return h?`${h} ч ${String(m).padStart(2,'0')} мин`:`${m}:${ss}`;
+}
+function _openOwnedDistrictInfo(){
+  const owned=_myOwnedDistricts();if(!owned.length)return false;
+  _ensureDistrictRepUi();
+  let ov=document.getElementById('districtInfoOverlay');if(!ov){ov=document.createElement('div');ov.id='districtInfoOverlay';ov.innerHTML='<div id="districtInfoCard"></div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov||e.target.id==='districtInfoClose')ov.classList.remove('show');});}
+  const cards=owned.map(d=>{
+    const o=districtOwners[d.id]||{},expires=+o.expiresAt||+o.expires_at||0,left=expires?Math.max(0,expires-Date.now()/1000):Math.max(0,+o.controlLeft||0);
+    const income=Math.max(0,+o.income||+d.income||0),xp=Math.max(1,+o.income_xp||Math.floor(income/20)),tick=Math.max(1,+o.income_tick_s||120),delay=Math.max(0,+o.income_delay_s||60),ticksLeft=Math.max(0,Math.floor(left/tick));
+    const captured=(+o.capturedAt||+o.captured_at||0)*1000,firstWait=captured?Math.max(0,delay-(Date.now()-captured)/1000):0;
+    return `<div class="di-box" style="grid-column:1/-1;border-color:${d.color||'#d0a944'}"><div style="display:flex;justify-content:space-between;gap:12px"><b style="color:${d.color||'#ffe07a'};font-size:14px">${d.icon||'🏴'} ${d.name}</b><b style="color:#7ee69a">⏱ ${_formatDistrictTime(left)}</b></div><div style="margin-top:7px"><b>Бонус:</b> ${d.bonus||'бонус района'}</div><div style="margin-top:5px"><b>Выплата:</b> <span style="color:#7ee69a">+$${income}</span> и <span style="color:#ffd76b">+${xp} XP</span> каждые ${Math.round(tick/60)} мин.</div>${firstWait>0?`<div style="margin-top:5px;color:#ffe09a">Доход начнёт начисляться через ${_formatDistrictTime(firstWait)}.</div>`:''}<div style="margin-top:5px;color:#aebbd0">До конца: около ${ticksLeft} выплат · <b style="color:#7ee69a">$${(ticksLeft*income).toLocaleString('ru')}</b> · <b style="color:#ffd76b">${ticksLeft*xp} XP</b>.</div></div>`;
+  }).join('');
+  document.getElementById('districtInfoCard').innerHTML=`<button id="districtInfoClose">✕ Закрыть</button><h2>🏴 Мои захваченные районы</h2><div style="margin-top:5px;color:#aebbd0">Контроль длится 30 минут. Первое начисление начинается после серверной задержки.</div><div class="di-grid">${cards}</div><div class="police-note" style="border-color:#8a4d58;background:#251419"><b style="color:#ff9c9c">Контроль пропадёт:</b> когда истечёт таймер. После этого босс снова подчинит район, и его можно будет захватить заново. Итоговая сумма рассчётная и зависит от оставшихся серверных тиков.</div>`;
+  ov.classList.add('show');return true;
+}
 function _hasDistrictMission(){return !!(_myDistrictObjective||_myActiveDistrictOperation());}
 function syncDistrictMissionControls(){
   const hasMission=_hasDistrictMission();
   const hidden=hasMission&&_districtMissionHudHidden;
   const hasObjective=!!_myDistrictObjective;
-  const missionCount=_myDistrictMissionCount();
-  const key=`${hasMission?1:0}:${hidden?1:0}:${hasObjective?1:0}:${missionCount}`;
+  const missionCount=_myDistrictMissionCount(),ownedCount=_myOwnedDistricts().length;
+  const key=`${hasMission?1:0}:${hidden?1:0}:${hasObjective?1:0}:${missionCount}:${ownedCount}`;
   if(key===_districtMissionUiKey)return;
   _districtMissionUiKey=key;
   _missionHudBtn?.classList.toggle('active',hasMission);
   _missionHudBtn?.classList.toggle('minimized',hidden);
   if(_missionHudLabel)_missionHudLabel.textContent=hidden?'📋 Захват скрыт':'📋 Захват района';
-  if(_missionHudCount)_missionHudCount.textContent=String(missionCount);
-  if(_missionHudBtn)_missionHudBtn.title=hasMission?(hidden?'Показать активную миссию':'Скрыть активную миссию'):'Активных миссий нет';
-  _districtMissionClose?.classList.toggle('show',hasMission&&!hidden&&hasObjective);
+  if(_missionHudCount)_missionHudCount.textContent=String(missionCount||ownedCount);
+  if(_missionHudBtn)_missionHudBtn.title=hasMission?(hidden?'Показать активную миссию':'Скрыть активную миссию'):ownedCount?'Информация о моих захваченных районах':'Активных миссий нет';
+  const shopOpen=!!_shopOverlay?.classList.contains('open');
+  _districtMissionClose?.classList.toggle('show',hasMission&&!hidden&&hasObjective&&!shopOpen);
 }
 _missionHudBtn?.addEventListener('click',()=>{
   if(!_hasDistrictMission()){
+    if(_openOwnedDistrictInfo())return;
     if(_policeState?.employed){
       showToast('Захватывать районы может только мафия. Сначала уволься из полиции в участке.','👮',3200);
     }else{
@@ -21744,6 +22043,21 @@ function _spawnDistrictNodeSparks(point){
   _capArr(impacts,_MAX_IMPACTS);
   impacts.push({r:point.r,c:point.c,parts});
 }
+function _tickDistrictHqOwnerNotice(){
+  let here=null;
+  for(const d of DISTRICTS){
+    if(!d.hq)continue;
+    const dr=player.r-d.hq.r,dc=player.c-d.hq.c;
+    if(dr*dr+dc*dc<=DIST_HQ_RAD*DIST_HQ_RAD){here=d;break;}
+  }
+  if(!here){_districtHqPresenceKey='';return;}
+  const owner=districtOwners[here.id],ownerId=String(owner?.ownerId||owner?.owner_uid||''),key=`${here.id}:${ownerId}`;
+  if(key===_districtHqPresenceKey)return;_districtHqPresenceKey=key;
+  if(!owner){showToast(`${here.icon||'🏴'} ${here.name}: район свободен · владельца нет`,'⚖️',3800);return;}
+  const nick=owner.ownerName||owner.owner_name||'неизвестный игрок',gang=owner.gang_name||owner.gangName||owner.gangTag||owner.gang_tag||'',expires=+owner.expiresAt||+owner.expires_at||0;
+  const left=expires?Math.max(0,expires-Date.now()/1000):Math.max(0,+owner.controlLeft||0),mine=ownerId===String(QP.uid);
+  showToast(`${here.icon||'🏴'} ${here.name} · ${mine?'твой район':'владелец: @'+nick}${gang?` · банда: ${gang}`:''} · ещё ${_formatDistrictTime(left)}`,mine?'👑':'🏴',4600);
+}
 _districtActionBtn?.addEventListener('click',()=>{
   const obj=_myDistrictObjective;
   if(!obj||obj.phase!=='sabotage'||obj.planted||_myC4Count<=0||!ws||ws.readyState!==1||_districtNodeDisable)return;
@@ -21755,6 +22069,7 @@ _districtActionBtn?.addEventListener('click',()=>{
   _districtActionBtn.disabled=true;
 });
 function updateDistrictCapture() {
+  _tickDistrictHqOwnerNotice();
   if(_districtActionBtn){_districtActionBtn.classList.remove('show');_districtActionBtn.disabled=false;}
   _myInsideDistHq = null;
   _myDistrictObjective = null;
@@ -21970,6 +22285,11 @@ function update(dt) {
       if(qc.tires_punctured){const cap=CAR_MAX_SPEED*.42,sp=Math.hypot(curVx,curVy);if(sp>cap){curVx*=cap/sp;curVy*=cap/sp;}}
       // Если игрок попросил выйти — игнорируем стик, тормозим до 0
       const wantingExit = _exitRequested;
+      if (_isHelicopter) {
+        const altitudeTarget = wantingExit ? .18 : 1;
+        qc._heliAltitude = Number.isFinite(qc._heliAltitude) ? qc._heliAltitude : .15;
+        qc._heliAltitude += (altitudeTarget - qc._heliAltitude) * Math.min(1, dt * (wantingExit ? 1.8 : 1.25));
+      }
       let throttle = 0, steer = 0;
       let _carTargetAng = qc.ang;   // для bodyRoll — обновится ниже
       // Задний ход: машина почти стоит + стик смотрит назад → reverse
@@ -22067,8 +22387,16 @@ function update(dt) {
           else { const k = (curSpeed - dec) / curSpeed; curVx *= k; curVy *= k; }
         } else {
           const tireAccel=qc.tires_punctured ? .62 : 1;
-          curVx += dirVx * CAR_ACCEL * tireAccel * throttle * dt;
-          curVy += dirVy * CAR_ACCEL * tireAccel * throttle * dt;
+          if (_isHelicopter) {
+            const targetVx = Math.cos(_carTargetAng) * CAR_MAX_SPEED * .78 * throttle;
+            const targetVy = Math.sin(_carTargetAng) * CAR_MAX_SPEED * .78 * throttle;
+            const blend = Math.min(1, dt * 2.6);
+            curVx += (targetVx - curVx) * blend;
+            curVy += (targetVy - curVy) * blend;
+          } else {
+            curVx += dirVx * CAR_ACCEL * tireAccel * throttle * dt;
+            curVy += dirVy * CAR_ACCEL * tireAccel * throttle * dt;
+          }
           qc._reversing = false;
         }
       } else {
@@ -22399,7 +22727,7 @@ function update(dt) {
         // Высадка на безопасный тайл рядом с машиной
         const _exitSafe = _findExitSpot(qc.y, qc.x);
         if (_exitSafe) { player.r = _exitSafe.r; player.c = _exitSafe.c; }
-        try { ws && ws.send(JSON.stringify({ t: 'gta_exit', d: { car_id: cid } })); }
+        try { ws && ws.send(JSON.stringify({ t: 'gta_exit', d: { car_id: cid, landing_ok: !_isHelicopter || _helicopterCanLand(qc) } })); }
         catch(e){}
       }
       // Камера: следим за СГЛАЖЕННЫМ якорём машины, а не за сырой позицией.
@@ -22724,7 +23052,7 @@ function update(dt) {
     else tryMove(player, dr / mag * speed * dt * mv, dc / mag * speed * dt * mv);
     player.ang = Math.atan2(dr, dc);
     player.walking = mv > 0.15;
-    player.walkPhase += dt * 10 * mv;
+    player.walkPhase += dt * (_playerInWater ? 6.2 : 10) * mv;
   }
   _refreshPlayerWaterState();
   // Ходьба тоже меняет player.ang, поэтому прицел имеет приоритет каждый кадр.
@@ -22785,7 +23113,7 @@ function update(dt) {
   // ближайшей залоченной цели РОВНО в неё. Без лока кнопка бьёт кулаком /
   // стреляет в направление взгляда (fire(null)). Правый стик = только
   // прицеливание/лок (лазер). В PvP-арене (inArena) — free-aim по стику.
-  if (myMode !== 'pve' && !myDead && !myDrivingCarId && !myJetSkiId && !_playerSwimmingDeep) {
+  if (myMode !== 'pve' && !myDead && (!myDrivingCarId || _canShootFromBike()) && !myJetSkiId && !_playerSwimmingDeep) {
     const meInArena = inArena(player.r, player.c);
     if (RIGHT_STICK_DIRECT_FIRE && joyR.active && joyR.hasAim) {
       const ang = _joyRAimAngle();
@@ -24467,8 +24795,10 @@ function drawTile(r, c) {
   // Южная зона: пляж/вода/причал/палуба — отдельная отрисовка.
   if (t >= 14 && t <= 18) { drawSouthTile(r, c, t, p, wx, wy); return; }
   // Тип поверхности — дорога / тротуар / трава / арена-пол
-  const onRoadR = (r % BLOCK <= 2);
-  const onRoadC = (c % BLOCK <= 2);
+  // buildMap creates four road lanes (mod 0..3). Using only 0..2 here
+  // painted every fourth lane as brown sidewalk squares.
+  const onRoadR = (r % BLOCK <= 3);
+  const onRoadC = (c % BLOCK <= 3);
   const isRoad  = (onRoadR || onRoadC);
   // Детерминированный hash (r,c) для выбора подварианта — каждый тайл
   // получает СВОЙ оттенок/паттерн, но всегда тот же между кадрами.
@@ -24501,6 +24831,9 @@ function drawTile(r, c) {
     else               color = '#34322a'; // светлая «новая» плитка
   }
   // Если внутри PVP-арены — красноватый оттенок поверх
+  // Final road palette normalization: cold, tightly grouped asphalt tones.
+  // This intentionally removes the old dusty brown variant.
+  if (isRoad) color = h1 < 10 ? '#282c34' : (h1 < 72 ? '#2b2f37' : '#2d3139');
   if (inArena(r, c)) {
     color = (t === 8 || t === 6) ? '#3a3a18' :
             isRoad                ? '#2a1818' : '#3a2020';
@@ -25108,6 +25441,10 @@ function drawFactoryBuilding(r, c) {
 // фронтоном, золотым куполом сверху и зелёной живой изгородью внизу.
 function drawMansionBuilding(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.scale(1.62, 1.62);
+  ctx.translate(-p.x, -p.y);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
   const H = isoH(2.2);
   // Тень
@@ -25326,6 +25663,7 @@ function drawMansionBuilding(r, c) {
   ctx.moveTo(grdX + 1.5, grdY - 6); ctx.lineTo(grdX + 2.5, grdY - 3);
   ctx.stroke();
   ctx.textAlign = 'left';
+  ctx.restore();
 }
 
 // ── КАЗИНО — неоновая вывеска CASINO, красная дорожка, золотая отделка ──
@@ -25333,6 +25671,10 @@ function drawMansionBuilding(r, c) {
 // в стиле Las Vegas, спереди большая светящаяся вывеска «🎰 CASINO».
 function drawCasinoBuilding(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.scale(1.58, 1.58);
+  ctx.translate(-p.x, -p.y);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
   const H = isoH(2.4);   // выше обычных зданий — это «башня»
   const t = performance.now() / 1000;
@@ -25529,6 +25871,7 @@ function drawCasinoBuilding(r, c) {
   ctx.fillRect(dmX - 2.5, dmY - 10, 5, 1);
   ctx.fillRect(dmX - 2, dmY - 14, 4, 4);
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.restore();
 }
 
 // ── РЫНОК — настоящий восточный базар ─────────────────────────────
@@ -27021,19 +27364,17 @@ function drawCarPretty(car) {
 // dirDy, model }.
 function drawBike(b) {
   const m = b.model;
-  const isHoriz = (b.dirDx !== 0);
   const halfL = m.L * 0.55;
   const halfW = m.W * 0.50;
   const H     = isoH(m.height || 0.42);
   // Точки переда/зада (по центральной линии байка)
-  let fr_r, fr_c, br_r, br_c;
-  if (isHoriz) {
-    fr_r = b.r; fr_c = b.c + b.dirDx * halfL;
-    br_r = b.r; br_c = b.c - b.dirDx * halfL;
-  } else {
-    fr_r = b.r + b.dirDy * halfL; fr_c = b.c;
-    br_r = b.r - b.dirDy * halfL; br_c = b.c;
-  }
+  const worldAng = Number.isFinite(b.ang)
+    ? b.ang
+    : Math.atan2(Number(b.dirDy) || 0, Number(b.dirDx) || 1);
+  const fr_r = b.r + Math.sin(worldAng) * halfL;
+  const fr_c = b.c + Math.cos(worldAng) * halfL;
+  const br_r = b.r - Math.sin(worldAng) * halfL;
+  const br_c = b.c - Math.cos(worldAng) * halfL;
   const F  = w2s(fr_r + 0.5, fr_c + 0.5);
   const B  = w2s(br_r + 0.5, br_c + 0.5);
   const C  = w2s(b.r  + 0.5, b.c  + 0.5);
@@ -29105,7 +29446,7 @@ function _volleyStrike(slot){
   const seq=[0,2,1,3],cycle=_beachBallT/1.25,hit=Math.floor(cycle)%4,u=cycle-Math.floor(cycle);
   return (+slot===seq[hit]&&u<.28)?Math.sin((u/.28)*Math.PI):0;
 }
-function drawSwimmingBeachgoer(b,p,ang){
+function drawSwimmingBeachgoerLegacy(b,p,ang){
   const t=b._swimStroke||performance.now()*.004;
   const wr=Math.sin(ang||0),wc=Math.cos(ang||0);
   let sx=wc-wr,sy=(wc+wr)*ISO_Y;
@@ -29132,6 +29473,10 @@ function drawSwimmingBeachgoer(b,p,ang){
   // Волна поверх нижней части тела создаёт эффект погружения, а не полёта.
   ctx.strokeStyle='rgba(175,230,242,.72)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-18,3);ctx.quadraticCurveTo(0,-1,23,3);ctx.stroke();
   ctx.restore();
+}
+function drawSwimmingBeachgoer(b,p,ang){
+  const look={gender:b.gender|0,skin:(b.skin|0)%4,body:b.gender?(b.hair%4):((b.skin+b.hair)%4),face:1,hair:((b.hair|0)%4)+1,hat:0,swim:true,swimCol:b.outfit||'#e74c3c'};
+  drawSwimmingCreator(p.x,p.y,ang,look,b._swimStroke||performance.now()*.004,true);
 }
 function drawBeachgoer(b) {
   if (b._evacuated) return;
@@ -29860,23 +30205,34 @@ function drawCar(r, c) {
 // либо иконка модели + цвет владельца. Driver-uid отображается рядом.
 function drawCareerHelicopter(qc,m){
   const p=w2s(qc.y+.5,qc.x+.5),a=qc.ang||0,t=performance.now(),moving=Math.hypot(qc.vx||0,qc.vy||0);
-  const lift=68+Math.sin(t*.004)*2.5,body=m.palette?.[0]||'#e8edf2',dark=m.palette?.[1]||'#25344a',accent=m.police?'#4f9ed8':'#d2a53e';
+  const altitude=Number.isFinite(qc._heliAltitude)?qc._heliAltitude:(qc.driver_uid?.55:.08);
+  const lift=14+altitude*58+Math.sin(t*.004)*Math.min(2.4,altitude*2.4);
+  const body=m.palette?.[0]||'#e8edf2',dark=m.palette?.[1]||'#25344a',accent=m.police?'#4f9ed8':'#d2a53e';
   ctx.save();
-  ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(p.x+10,p.y+12,45+lift*.15,15+lift*.04,-a*.15,0,Math.PI*2);ctx.fill();
+  const shadowA=.30-altitude*.16;
+  ctx.fillStyle=`rgba(0,0,0,${shadowA})`;ctx.filter=`blur(${2+altitude*3}px)`;ctx.beginPath();ctx.ellipse(p.x+lift*.13,p.y+12+lift*.06,38+lift*.18,12+lift*.05,-a*.15,0,Math.PI*2);ctx.fill();ctx.filter='none';
   ctx.translate(p.x,p.y-lift);ctx.rotate(-a);
-  ctx.strokeStyle='#121821';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-19,11);ctx.lineTo(-22,19);ctx.lineTo(12,19);ctx.lineTo(17,11);ctx.stroke();
+  // skids and their braces
+  ctx.strokeStyle='#111821';ctx.lineCap='round';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-21,17);ctx.lineTo(17,17);ctx.moveTo(-18,11);ctx.lineTo(-21,17);ctx.moveTo(13,10);ctx.lineTo(17,17);ctx.stroke();
+  ctx.strokeStyle='#52606c';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-25,19);ctx.lineTo(20,19);ctx.stroke();
+  // tail boom, stabilisers and animated tail rotor
   ctx.strokeStyle=dark;ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(-18,-1);ctx.lineTo(-52,-7);ctx.stroke();
   ctx.fillStyle=dark;ctx.beginPath();ctx.moveTo(-48,-13);ctx.lineTo(-58,-25);ctx.lineTo(-55,-4);ctx.lineTo(-43,1);ctx.closePath();ctx.fill();
+  ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(-45,-7);ctx.lineTo(-61,-14);ctx.lineTo(-54,-4);ctx.closePath();ctx.fill();
   ctx.save();ctx.translate(-54,-9);ctx.rotate(t*.038);ctx.strokeStyle='#b9c8d2';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-10,0);ctx.lineTo(10,0);ctx.moveTo(0,-10);ctx.lineTo(0,10);ctx.stroke();ctx.restore();
+  // cabin hull with lower belly and nose
   ctx.fillStyle=dark;ctx.beginPath();ctx.ellipse(1,2,28,16,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=body;ctx.beginPath();ctx.ellipse(5,-2,25,14,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=accent;ctx.fillRect(-14,4,38,4);
-  ctx.fillStyle='#8dc7e1';ctx.beginPath();ctx.moveTo(7,-13);ctx.quadraticCurveTo(28,-10,29,1);ctx.lineTo(10,2);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='rgba(220,245,255,.75)';ctx.lineWidth=1;ctx.stroke();
+  const glass=ctx.createLinearGradient(7,-14,29,3);glass.addColorStop(0,'#c7efff');glass.addColorStop(.45,'#5796b5');glass.addColorStop(1,'#18394f');ctx.fillStyle=glass;ctx.beginPath();ctx.moveTo(5,-13);ctx.quadraticCurveTo(27,-12,30,0);ctx.quadraticCurveTo(27,5,10,2);ctx.closePath();ctx.fill();ctx.strokeStyle='rgba(220,245,255,.8)';ctx.lineWidth=1;ctx.stroke();
+  ctx.strokeStyle='rgba(20,45,60,.8)';ctx.beginPath();ctx.moveTo(17,-11);ctx.lineTo(17,3);ctx.stroke();
+  ctx.fillStyle='#111820';ctx.beginPath();ctx.arc(-7,-2,4,0,Math.PI*2);ctx.fill();
   if(m.police){ctx.fillStyle='#f4f7fa';ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.fillText('POLICE',0,8);}
-  else{ctx.fillStyle='#f1d36e';ctx.beginPath();ctx.arc(-3,-3,3,0,Math.PI*2);ctx.fill();}
+  else{ctx.fillStyle='#f1d36e';ctx.beginPath();ctx.arc(-7,-2,2.3,0,Math.PI*2);ctx.fill();ctx.font='bold 6px system-ui';ctx.textAlign='center';ctx.fillText('FAMIGLIA',2,8);}
+  if(m.police){const flash=(Math.floor(t/150)&1)===0;ctx.fillStyle=flash?'#ff334f':'#268cff';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=7;ctx.fillRect(-4,-15,8,3);ctx.shadowBlur=0;}
   ctx.strokeStyle='#303943';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-15);ctx.lineTo(0,-23);ctx.stroke();
-  ctx.save();ctx.translate(0,-23);ctx.rotate(t*(moving>.5?.045:.035));ctx.strokeStyle='rgba(207,224,235,.82)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-51,0);ctx.lineTo(51,0);ctx.moveTo(0,-20);ctx.lineTo(0,20);ctx.stroke();ctx.strokeStyle='rgba(130,160,180,.35)';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(-43,0);ctx.lineTo(43,0);ctx.stroke();ctx.restore();
+  const rotorSpeed=altitude>.25?(moving>.5?.055:.046):.012;
+  ctx.save();ctx.translate(0,-23);ctx.rotate(t*rotorSpeed);ctx.strokeStyle='rgba(220,235,243,.88)';ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(-55,0);ctx.lineTo(55,0);ctx.moveTo(0,-24);ctx.lineTo(0,24);ctx.stroke();ctx.strokeStyle='rgba(110,150,175,.22)';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(-48,0);ctx.lineTo(48,0);ctx.stroke();ctx.fillStyle='#252f38';ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();ctx.restore();
   ctx.restore();
 }
 function drawQuestCar(qc) {
@@ -31833,7 +32189,11 @@ function drawArmorSkin(g,px,py,sc,id,gender=0,body=1){
   const [main,dark]=cols[id]||['#333','#111'];
   const maleW=[34,44,58,52],femaleW=[30,36,48,34],torsoW=(gender?femaleW:maleW)[body]||40;
   const half=Math.max(15,torsoW*.48),shoulder=half*(heavy?1.10:1),waist=half*.78;
-  const top=heavy?106:102,mid=84,bottom=61;
+  // drawMale/drawFemale build the torso from y=0 up to body height (roughly
+  // 76..92).  Keep the vest inside that interval: the old fixed 61..106
+  // coordinates lifted most armor over the neck and head.
+  const maleH=[80,85,82,92],femaleH=[78,80,76,85],torsoH=(gender?femaleH:maleH)[body]||82;
+  const top=torsoH-2,mid=torsoH*.61,bottom=18;
   g.save();g.lineWidth=Math.max(1,1.5*sc);g.lineJoin='round';g.strokeStyle=dark;
   if(id==='leather_jacket'){
     g.fillStyle=main;g.beginPath();g.moveTo(px(-shoulder),py(top));g.quadraticCurveTo(px(-half),py(mid),px(-waist),py(bottom));g.lineTo(px(waist),py(bottom));g.quadraticCurveTo(px(half),py(mid),px(shoulder),py(top));g.quadraticCurveTo(px(0),py(top-7),px(-shoulder),py(top));g.closePath();g.fill();g.stroke();
@@ -32327,6 +32687,20 @@ async function _equipArmorFromInventory(itemId){
     showToast(`${label} надета · прежняя броня осталась в инвентаре`,'🦺',2200);
   }catch(e){showToast('Не удалось надеть броню','❌',1800);}
 }
+let _usingProfileConsumable=false;
+async function _useProfileConsumable(itemId){
+  if(_usingProfileConsumable||!itemId)return;
+  if(myHp>=(PVP.max_hp||100)){showToast('Здоровье уже полное','❤️',1800);return;}
+  _usingProfileConsumable=true;renderProfileTab();
+  try{
+    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/consume`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:itemId})});
+    const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'consume failed');
+    myHp=Math.max(0,Math.min(PVP.max_hp||100,+j.hp||myHp));_selfHpBarUntil=performance.now()+3500;
+    await loadInventoryItems();updateHud();
+    showToast(`Восстановлено ${+j.healed||0} HP · осталось: ${+j.left||0}`,'❤️‍🩹',2200);
+  }catch(e){showToast(String(e.message)==='full hp'?'Здоровье уже полное':'Не удалось использовать аптечку','❌',2000);await loadInventoryItems();}
+  finally{_usingProfileConsumable=false;renderProfileTab();}
+}
 function renderProfileTab() {
   const box = document.getElementById('profileContent');
   if (!box) return;
@@ -32353,7 +32727,9 @@ function renderProfileTab() {
       const extra=it.sell_price?` · продажа: ${it.sell_price}$`:(it.desc?` · ${it.desc}`:'');
       const armor=it.type==='armor',equipped=armor&&_equippedArmor===it.id;
       const armorBtn=armor?`<button class="armor-equip" onclick="_equipArmorFromInventory('${String(it.id).replace(/'/g,"\\'")}')" ${equipped?'disabled':''}>${equipped?'✓ Надето':'Надеть'}</button>`:'';
-      html+=`<div class="item${equipped?' equipped':''}"><div class="icon">${icon}</div><div class="info"><div class="nm">${it.name||it.id}</div><div class="sub">${TYPE_NAME[it.type]||'Предмет'} · количество: ${+it.qty||1}${extra}${equipped?' · экипировано':''}</div></div>${armorBtn}</div>`;
+      const medkit=it.type==='potion'&&/^medkit_(small|medium|large)$/.test(it.id);
+      const useBtn=medkit?`<button class="armor-equip" onclick="_useProfileConsumable('${it.id}')" ${_usingProfileConsumable||myHp>=(PVP.max_hp||100)?'disabled':''}>Использовать</button>`:'';
+      html+=`<div class="item${equipped?' equipped':''}"><div class="icon">${icon}</div><div class="info"><div class="nm">${it.name||it.id}</div><div class="sub">${TYPE_NAME[it.type]||'Предмет'} · количество: ${+it.qty||1}${extra}${equipped?' · экипировано':''}</div></div>${armorBtn}${useBtn}</div>`;
     }
     html += '</div>';
     box.innerHTML = html;
@@ -32538,6 +32914,8 @@ const WEAPON_FX = {
                   color:'#ffea80', recoil:1.4, shake:1.2, tip:14, spread:0 },
   nagan:        { cd:0.45, sound:()=>_gunShot({body:118,power:1.08,crack:.32,blast:.23,tail:.06,ring:920,ringVol:.025,mechDelay:.13}),
                   color:'#ffe080', recoil:1.5, shake:1.3, tip:14, spread:0 },
+  revolver:     { cd:0.58, sound:()=>_gunShot({body:76,power:1.24,crack:.42,blast:.34,blastDur:.11,low:.24,tail:.13,tailDur:.26,ring:760,ringVol:.05,mechDelay:.17,mechWeight:1.2}),
+                  color:'#ffc15c', recoil:2.8, shake:2.5, tip:16, spread:0, thick:true },
   pistol_heavy: { cd:0.55, sound:()=>_gunShot({body:82,power:1.18,crack:.38,blast:.31,blastDur:.10,tail:.11,tailDur:.22,tailFreq:720,mechDelay:.14,mechWeight:1.15}),
                   color:'#ffb060', recoil:2.0, shake:1.8, tip:20, spread:0, thick:true },
   pistol_gold:  { cd:0.50, sound:()=>_gunShot({body:112,power:1.05,crack:.34,blast:.23,tail:.065,ring:1320,ringVol:.043,ringDur:.13,mechDelay:.11}),
@@ -33879,6 +34257,7 @@ function render() {
       }
       if (t === 1) {
         items.push({ depth: r + c, draw: () => {
+          if (LARGE_LANDMARK_TILES.has(r + ',' + c) && !poi) return;
           // Бурдж — особое здание поверх обычного тайла
           if (r === BURJ_POS.r && c === BURJ_POS.c) {
             drawBurjKhalifa();
@@ -34572,7 +34951,7 @@ if (d.kind === 'plank_path') {
     else if (d.kind === 'tiki_bar')
       items.push({ depth: d.r + d.c, draw: () => _mfzDrawDecorRotated(d, () => drawTikiBar(d.r, d.c, !!d.coastBar))});
     else if (d.kind === 'beach_lamp')
-      items.push({ depth: d.r + d.c, draw: () => _mfzDrawDecorRotated(d, () => drawCoastLamp(d.r, d.c))});
+      items.push({ depth: d.r + d.c, draw: () => drawLamp(d.r - .5, d.c - .5) });
     else if (d.kind === 'surfboard')
       items.push({ depth: d.r + d.c, draw: () => _mfzDrawDecorRotated(d, () => drawSurfboard(d.r, d.c, d.col, d.ang))});
     else if (d.kind === 'ball')
@@ -34789,8 +35168,15 @@ if (d.kind === 'plank_path') {
       const phase = (o.w ? (o._walkPhase || 0) : 0);
       const chat = (o.chat && performance.now() - o.chatT < chatDuration(o.chat)) ? o.chat : null;
       const otherArmed = (o.mode || 'pvp') !== 'pve' && !o.dead && !o.policeCuffed && !(o.policeStunnedIn>0);
+      if(o.crewMate){ctx.save();ctx.fillStyle='rgba(190,92,255,.25)';ctx.shadowColor='#c264ff';ctx.shadowBlur=16;ctx.beginPath();ctx.ellipse(p.x,p.y+2,22,9,0,0,Math.PI*2);ctx.fill();ctx.restore();}
+      if(o.swimming&&!o.dead){
+        const swimLook=o.police?_policeUniformLook(o.look||{}):(o.look||{});
+        drawSwimmingCreator(p.x,p.y,o.ang||0,swimLook,phase||performance.now()*.0024,!!o.w);
+        ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillStyle=o.crewMate?'#d89cff':'#7be58a';ctx.fillText(o.crewMate?`◆ ${o.name}`:o.name,p.x,p.y-32);ctx.textAlign='left';
+        return;
+      }
       if (o.bag && !o.dead) _drawCarryingBag(p.x, p.y, { layer:'back', ang:o.ang||0, walking:!!o.w, walkPhase:phase });
-      drawPerson(p.x, p.y, o.ang || 0, o.police?_policeUniformLook(o.look||{}):(o.look||{}), phase, o.name, chat, false,
+      drawPerson(p.x, p.y, o.ang || 0, o.police?_policeUniformLook(o.look||{}):(o.look||{}), phase, o.crewMate?`◆ ${o.name}`:o.name, chat, false,
                  o.hp, PVP.max_hp, o.dead, o._stunPoseAt||0, otherArmed, false, o.policeStunnedIn>0);
       // Оружие в руке другого игрока — если PvP и жив. Сервер пока не
       // шлёт оружие в snapshot.others, поэтому показываем то что прислал
@@ -35079,7 +35465,11 @@ const lockedTargets = new Map();   // id → { entry, expireAt }
 let _decorLockSeq = 0;             // уникальные id меток для жителей-декора
 // Лимит одновременных меток зависит от навыка «Меткий стрелок»
 // (mark_lvl 0..5 → 1..5 меток). При Lv4 и Lv5 кап одинаковый (5).
-const MAX_LOCKS = Math.max(1, Math.min(5, (QP.mark_lvl | 0) + 1));
+// Навыки загружаются после старта мира, поэтому лимит вычисляется динамически:
+// купленная «Меткость» начинает работать сразу, без перезагрузки страницы.
+function _maxTargetLocks() {
+  return Math.max(1, Math.min(5, (QP.mark_lvl | 0) + 1));
+}
 // Legacy single-target API (для совместимости с местами где было
 // lockedTarget). Возвращает ближайшую активную метку либо null.
 function getActiveTarget() {
@@ -35179,7 +35569,7 @@ function _autoLockThreat(kind, shooterId) {
     return;
   }
   // Превышен лимит ручных + авто — выкидываем самую старую (FIFO)
-  if (lockedTargets.size >= MAX_LOCKS) {
+  if (lockedTargets.size >= _maxTargetLocks()) {
     const oldestId = lockedTargets.keys().next().value;
     lockedTargets.delete(oldestId);
   }
@@ -35237,7 +35627,7 @@ function tryTapLock(canvasX, canvasY) {
     if (bBest) {
       const id = _lockId(bBest);
       if (lockedTargets.has(id)) { lockedTargets.delete(id); return true; }
-      if (lockedTargets.size >= MAX_LOCKS) {
+      if (lockedTargets.size >= _maxTargetLocks()) {
         const oldestId = lockedTargets.keys().next().value;
         lockedTargets.delete(oldestId);
       }
@@ -35389,7 +35779,7 @@ function tryTapLock(canvasX, canvasY) {
       return true;
     }
     // Иначе добавляем новую метку (если слот свободен)
-    if (lockedTargets.size >= MAX_LOCKS) {
+    if (lockedTargets.size >= _maxTargetLocks()) {
       // Освобождаем самую старую
       const oldestId = lockedTargets.keys().next().value;
       lockedTargets.delete(oldestId);
@@ -35410,7 +35800,7 @@ function _updateTargetLock(dt) {
   // → добавляем в lockedTargets (если ещё не там).
   const now = performance.now();
   const meleeLockMode = !_isArmed();
-  if ((!RIGHT_STICK_DIRECT_FIRE || meleeLockMode) && joyR && joyR.active && joyR.hasAim && !myDrivingCarId && !myDead
+  if ((!RIGHT_STICK_DIRECT_FIRE || meleeLockMode) && joyR && joyR.active && joyR.hasAim && (!myDrivingCarId || _canShootFromBike()) && !myDead
       && myMode !== 'pve' && (meleeLockMode || !inArena(player.r, player.c))) {
     const _d = joyR.dx, _s = joyR.dy / ISO_Y;
     const _dc = (_s + _d) * 0.5, _dr = (_s - _d) * 0.5;
@@ -35424,7 +35814,7 @@ function _updateTargetLock(dt) {
         if (now - _autoLockStartAt >= AUTO_LOCK_HOLD_MS) {
           if (meleeLockMode) {
             lockedTargets.clear();
-          } else if (lockedTargets.size >= MAX_LOCKS) {
+          } else if (lockedTargets.size >= _maxTargetLocks()) {
             const oldestId = lockedTargets.keys().next().value;
             lockedTargets.delete(oldestId);
           }
@@ -35761,7 +36151,7 @@ function drawAimLaser() {
   drawThrowableFx();
   if (myDead) return;
   if (myMode === 'pve') return;
-  if (myDrivingCarId) return;
+  if (myDrivingCarId && !_canShootFromBike()) return;
   if (!joyR || !joyR.active || !joyR.hasAim) return;
   if(currentWeapon==='grenade'||currentWeapon==='molotov'){_drawThrowableAim();return;}
 
@@ -38900,7 +39290,7 @@ function _policeUniformLook(base){base=base||{};return{gender:base.gender|0,skin
 function _setPoliceLook(look){QP.look=Object.assign({},look||{});_spriteCache?.clear?.();try{getSprite(QP.look);renderHudAvatar();}catch(e){}}
 function _applyPoliceUniform(){if(!_policeState.employed)return;_setPoliceLook(_policeUniformLook(_policeState.civilianLook||QP.look||{}));}
 function _savePoliceState(){try{localStorage.setItem(_policeStoreKey,JSON.stringify(_policeState));localStorage.setItem('mafiozi_police_employed',_policeState.employed?'1':'0');}catch(e){}}
-function _loadPoliceState(){try{const s=JSON.parse(localStorage.getItem(_policeStoreKey)||'null');if(s&&Array.isArray(s.missions)){let escort=s.escort||null,missions=s.missions.slice(0,POLICE_MISSION_MAX),cuffs=Math.max(0,+s.cuffs||0);if(escort&&(escort._submitted||!missions.some(m=>String(m.id)===String(escort.missionId)))){missions=missions.filter(m=>String(m.id)!==String(escort.missionId));cuffs=Math.min(3,cuffs+1);escort=null;}else if(escort){const now=performance.now();escort._turningIn=false;escort._inside=false;escort.waiting=!!escort.waiting;escort.cryText=_policePickDifferent(_POLICE_ESCORT_CRIES,escort.cryText);escort.cryUntil=now+1900;escort._nextCryAt=now+2600+Math.random()*900;}_policeState={employed:!!s.employed,missions,cuffs,escort,earnedXp:Math.min(POLICE_TASER_XP,+s.earnedXp||0),seq:+s.seq||0,civilianLook:s.civilianLook||null,resetPending:!!s.resetPending};}}catch(e){}if(_policeState.employed){_disbandGangForPolice();if(!_policeState.civilianLook)_policeState.civilianLook=Object.assign({},QP.look||{});_applyPoliceUniform();}_savePoliceState();}
+function _loadPoliceState(){try{const s=JSON.parse(localStorage.getItem(_policeStoreKey)||'null');if(s&&Array.isArray(s.missions)){let escort=s.escort||null,missions=s.missions.slice(0,POLICE_MISSION_MAX),cuffs=Math.max(0,+s.cuffs||0);if(escort&&(escort._submitted||!missions.some(m=>String(m.id)===String(escort.missionId)))){missions=missions.filter(m=>String(m.id)!==String(escort.missionId));cuffs=Math.min(3,cuffs+1);escort=null;}else if(escort){const now=performance.now();escort._turningIn=false;escort._inside=false;escort.waiting=!!escort.waiting;escort.cryText=_policePickDifferent(_POLICE_ESCORT_CRIES,escort.cryText);escort.cryUntil=now+1900;escort._nextCryAt=now+2600+Math.random()*900;}_policeState={employed:!!s.employed,missions,cuffs,escort,earnedXp:Math.min(POLICE_TASER_XP,+s.earnedXp||0),seq:+s.seq||0,civilianLook:s.civilianLook||null,resetPending:false};}}catch(e){}if(_policeState.employed){_disbandGangForPolice();if(!_policeState.civilianLook)_policeState.civilianLook=Object.assign({},QP.look||{});_applyPoliceUniform();}_savePoliceState();}
 let _lastPoliceTaserAt=0,_policeTaserAmmo=5;
 function _findPoliceTaserTarget(angle){
   if(!_policeCanUseTaser()||_bankInt||myDead)return null;
@@ -39096,13 +39486,13 @@ function _leavePoliceService(){
   const old=Object.assign({},_policeState.civilianLook||QP.look||{});
   const ids=new Set(_policeState.missions.map(m=>String(m.targetId)));
   for(let i=NPCS.length-1;i>=0;i--)if(ids.has(String(NPCS[i]._policeTargetId)))NPCS.splice(i,1);
-  _policeState.employed=false;_policeState.missions=[];_policeState.escort=null;_policeState.cuffs=0;_policeState.civilianLook=null;_policeState.earnedXp=0;_policeState.resetPending=true;
+  _policeState.employed=false;_policeState.missions=[];_policeState.escort=null;_policeState.cuffs=0;_policeState.civilianLook=null;_policeState.resetPending=false;
   _clearPoliceLoadoutOnResign();
   _setPoliceLook(old);_savePoliceState();renderJobStatus();closePoliceDesk();
   renderWeaponHud();if(_wepPickOpen)renderWeaponPick();
   if(ws&&ws.readyState===1)try{ws.send(JSON.stringify({t:'police_resign',d:{}}));}catch(e){}
   if(_profileTab==='status')renderProfileTab();
-  showEventBanner('👕 ТЫ УВОЛИЛСЯ ИЗ ПОЛИЦИИ','Форма сдана. Полицейское звание и опыт обнулены.',3900,'neutral');
+  showEventBanner('👕 ТЫ УВОЛИЛСЯ ИЗ ПОЛИЦИИ','Форма сдана, служебные права сняты. Звание и опыт сохранены.',3900,'neutral');
 }
 function renderPoliceModal(){
   if(!_policeModalBody)return;
@@ -39341,7 +39731,7 @@ function renderJobStatus(){
   if(!nm||!sub||!tm)return;
   const title=_jobStatusHud?.querySelector('.js-title span');
   if(_policeState.employed){const p=_policeProgress();if(title)title.textContent='👮 Служба';_policeQuickToggle?.classList.add('show');_jobStatusHud?.classList.remove('mafia-actions');if(_jobStatusHud){_jobStatusHud.classList.add('ready','police-open');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label','Открыть полную служебную сводку');_jobStatusHud.title='Нажми на карточку для сводки или на стрелку для быстрых действий';}nm.textContent=p.rank;tm.textContent=`УР. ${p.level}`;sub.textContent=_policeEvidenceBag?`💼 Улика $${(+_policeEvidenceBag.value||0).toLocaleString('ru')} · неси в участок`:`Опыт ${p.xp} · задержания ${_policeDailyText()} · цели ${_policeState.missions.length}/3${_policeCanUseTaser()?' · ⚡ шокер':''}`;_renderPoliceQuickPanel();return;}
-  if(!_mafiaState.employed){_policeQuickToggle?.classList.remove('show');_jobStatusHud?.classList.remove('mafia-actions','police-open');if(title)title.textContent='Статус';nm.textContent='Гражданский';tm.textContent='—';sub.textContent='Нет фракции · нет служебных бонусов';return;}
+  if(!_mafiaState.employed){_policeQuickToggle?.classList.remove('show');_jobStatusHud?.classList.remove('mafia-actions','police-open');if(_jobStatusHud){_jobStatusHud.classList.add('ready');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label','Открыть справку о ролях и бонусах');_jobStatusHud.title='Нажми, чтобы узнать кем можно стать';}if(title)title.textContent='Статус';nm.textContent='Гражданский';tm.textContent='?';sub.textContent='Нажми: роли, вступление и бонусы';return;}
   _policeQuickToggle?.classList.add('show');_jobStatusHud?.classList.add('mafia-actions');
   const p=_mafiaProgress(),def=_jobDef(_jobState.job),left=_jobRemaining(),ready=!!def&&left<=0;
   if(_jobStatusHud){_jobStatusHud.classList.add('ready','police-open');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label','Открыть прогресс мафиози');_jobStatusHud.title='Нажми, чтобы посмотреть путь мафиози';}
@@ -39350,8 +39740,24 @@ function renderJobStatus(){
   sub.textContent=`Опыт ${p.xp}${p.maxed?' · высший ранг':` · до ${p.nextRank}: ${p.need-p.part}`} · бригада ${_myGang.filter(g=>g.hp>0).length}/${GANG_MAX}${def?` · работа: ${ready?'зарплата готова':def.name}`:''}`;
   _renderPoliceQuickPanel();
 }
-_jobStatusHud?.addEventListener('click',()=>{if(_policeState.employed)openPoliceServiceBoard();else if(_mafiaState.employed)openMafiaBoard();});
-_jobStatusHud?.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();if(_policeState.employed)openPoliceServiceBoard();else if(_mafiaState.employed)openMafiaBoard();});
+function openCitizenRoleGuide(){
+  if(_policeState.employed){openPoliceServiceBoard();return;}
+  if(_mafiaState.employed){openMafiaBoard();return;}
+  const modalTitle=_policeModal?.querySelector('.police-head span');if(modalTitle)modalTitle.textContent='👤 Кем можно стать';
+  _policeModal?.classList.remove('mafia');
+  const policeRanks=POLICE_LEVELS.map(s=>`<div style="margin-top:5px"><b style="color:#78d5ff">${s.level} ур. · ${s.rank}</b> — ${s.perk}</div>`).join('');
+  const mafiaRanks=MAFIA_LEVELS.map(s=>`<div style="margin-top:5px"><b style="color:#ffd27a">${s.level} ур. · ${s.rank}</b> — ${s.perk}</div>`).join('');
+  _policeModalBody.innerHTML=`
+    <div class="police-note" style="border-color:#546579;background:#111923"><b style="color:#dbe8f5">Сейчас ты гражданский</b><div style="margin-top:6px">Можно свободно работать, покупать имущество, заниматься бизнесом, ограблениями и обычными делами города. Служебного оружия и фракционных способностей нет.</div></div>
+    <div class="police-section-title" style="color:#78d5ff">👮 ПОЛИЦИЯ <span>закон и задержания</span></div>
+    <div class="police-note" style="border-color:#315b86;background:#101a29"><b>Как вступить:</b> зайди в полицейский участок и поговори с дежурным.<br><b>Как получать XP:</b> доставляй преступников живыми в участок. Обычная цель — 65 XP, онлайн-преступник — 75 XP, босс мафии — 300 XP.${policeRanks}</div>
+    <div class="police-section-title" style="color:#ffd27a">🕴️ МАФИЯ <span>семья и влияние</span></div>
+    <div class="police-note" style="border-color:#93672f;background:#21170e"><b>Как вступить:</b> приезжай в Burj Mafia и поговори с капореджиме.<br><b>Как получать XP:</b> захват района — 350 XP, банковский мешок в свою квартиру — 120 XP, доставка угнанной машины — 60 XP.${mafiaRanks}</div>
+    <div class="police-note" style="margin-top:10px;border-color:#8a4d58;background:#251419"><b style="color:#ff9c9c">Важно:</b> одновременно быть копом и мафиози нельзя. Для смены стороны сначала нужно уволиться или покинуть семью. После выхода фракционные способности, форма, служебное оружие и бонусы отключаются; накопленный карьерный XP сохраняется.</div>`;
+  _policeModal?.classList.add('show');
+}
+_jobStatusHud?.addEventListener('click',()=>{if(_policeState.employed)openPoliceServiceBoard();else if(_mafiaState.employed)openMafiaBoard();else openCitizenRoleGuide();});
+_jobStatusHud?.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();if(_policeState.employed)openPoliceServiceBoard();else if(_mafiaState.employed)openMafiaBoard();else openCitizenRoleGuide();});
 _policeQuickToggle?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();_setPoliceQuickOpen(!_policeQuickOpen);});
 _policeQuickToggle?.addEventListener('keydown',e=>e.stopPropagation());
 _policeQuickPanel?.addEventListener('click',e=>{e.stopPropagation();const b=e.target.closest('[data-role-quick]');if(!b||b.disabled)return;e.preventDefault();if(b.dataset.roleQuick==='vehicle')_triggerCareerVehicle();else if(b.dataset.roleQuick==='helicopter')_triggerCareerVehicle('air');else if(_policeState.employed)_triggerPoliceQuickAction(b.dataset.roleQuick);else _triggerMafiaAbility(b.dataset.roleQuick);});
@@ -39602,22 +40008,24 @@ function _drawJobOfficeInterior(bi) {
 // ══════════════════════════════════════════════════════════════════
 // ── СПОРТЗАЛ (gym) ───────────────────────────────────────────────
 const _GYM_SKILLS = {
-  toughness:{icon:'❤️',name:'Выносливость',desc:'+10 максимального здоровья за уровень',effect:l=>`Максимум HP: ${100+l*10}`},
-  marksman:{icon:'🎯',name:'Меткость',desc:'+5% урона из оружия за уровень',effect:l=>`Урон оружия: +${l*5}%`},
-  stealth:{icon:'🥷',name:'Скрытность',desc:'свидетели замечают тебя на 8% хуже',effect:l=>`Незаметность: +${l*8}%`},
-  safecracker:{icon:'🔓',name:'Взломщик',desc:'открывает более сложные сейфы и машины',effect:l=>`Доступная сложность: ${l}/5`},
-  hustler:{icon:'💵',name:'Делец',desc:'увеличивает выплаты за работу и добычу из сейфов',effect:l=>`Бонус денег: +${[0,5,10,15,22,30][l]}%`},
+  toughness:{icon:'❤️',name:'Выносливость',group:'БОЙ',desc:'Больше здоровья в перестрелках и при нападении NPC.',effect:l=>`Максимум HP: ${100+l*10}`,next:l=>l<5?`Следующий уровень: +10 HP`:'Максимальное здоровье достигнуто'},
+  marksman:{icon:'🎯',name:'Меткость',group:'БОЙ',desc:'Усиливает всё огнестрельное оружие и добавляет метки целей.',effect:l=>`Урон +${l*5}% · целей одновременно: ${Math.min(5,l+1)}`,next:l=>l<5?`Следующий: ещё +5% урона${l<4?' и +1 цель':''}`:'Максимальная меткость достигнута'},
+  stealth:{icon:'🥷',name:'Скрытность',group:'КРИМИНАЛ',desc:'Сужает обзор свидетелей и уменьшает шанс вызова полиции.',effect:l=>`Радиус свидетелей −${l*6}% · шанс звонка −${l*8}%`,next:l=>l<5?'Следующий: −6% радиуса и −8% шанса звонка':'Максимальная скрытность достигнута'},
+  safecracker:{icon:'🔓',name:'Взломщик',group:'КРИМИНАЛ',desc:'Открывает более сложные сейфы и дорогие машины Майкла.',effect:l=>`Доступная сложность замков: ${l}/5`,next:l=>l<5?`Откроется сложность ${l+1}/5`:'Все замки доступны'},
+  hustler:{icon:'💵',name:'Делец',group:'ДЕНЬГИ',desc:'Повышает выплаты за работу, бои и добычу из сейфов.',effect:l=>`Бонус ко всем поддерживаемым выплатам: +${[0,5,10,15,22,30][l]}%`,next:l=>l<5?`Следующий бонус: +${[0,5,10,15,22,30][l+1]}%`:'Максимальный денежный бонус'},
 };
 let _gymBusy = false;
 function _ensureGymModal(){
   let ov=document.getElementById('gymSkillOverlay');if(ov)return ov;
   ov=document.createElement('div');ov.id='gymSkillOverlay';ov.style.cssText='position:fixed;inset:0;z-index:10040;background:rgba(2,3,8,.82);display:none;align-items:center;justify-content:center;padding:16px';
-  ov.innerHTML=`<div style="width:min(620px,96vw);max-height:88vh;overflow:auto;background:linear-gradient(160deg,#20160d,#0e1118 45%,#15110b);border:2px solid #d58a2c;border-radius:18px;box-shadow:0 20px 70px #000;padding:16px;color:#f4f4f4;font-family:system-ui"><div style="display:flex;align-items:center;gap:12px"><div style="font-size:34px">💪</div><div style="flex:1"><div style="font-size:20px;font-weight:950;color:#ffbd57">ТРЕНИРОВКА ПЕРСОНАЖА</div><div style="font-size:12px;color:#aeb5c4">Навыки личные, сохраняются навсегда · максимум 5 уровней</div></div><button id="gymSkillClose" style="border:0;background:#2b303b;color:white;border-radius:9px;width:34px;height:34px;font-size:20px">×</button></div><div id="gymSkillCash" style="margin:12px 0;padding:9px 12px;background:#111722;border:1px solid #324055;border-radius:10px;color:#ffd76b;font-weight:900"></div><div id="gymSkillRows" style="display:grid;gap:9px"></div><div style="margin-top:12px;color:#788397;font-size:11px;line-height:1.45">Покупка списывает деньги сразу. Каждый следующий уровень дороже предыдущего.</div></div>`;
+  ov.innerHTML=`<div style="width:min(680px,96vw);max-height:90vh;overflow:auto;background:linear-gradient(160deg,#20160d,#0e1118 45%,#15110b);border:2px solid #d58a2c;border-radius:18px;box-shadow:0 20px 70px #000;padding:16px;color:#f4f4f4;font-family:system-ui"><div style="display:flex;align-items:center;gap:12px"><div style="font-size:34px">💪</div><div style="flex:1"><div style="font-size:20px;font-weight:950;color:#ffbd57">НАВЫКИ ПЕРСОНАЖА</div><div style="font-size:12px;color:#aeb5c4">Постоянная прокачка · 5 направлений · максимум 5 уровней</div></div><button id="gymSkillClose" style="border:0;background:#2b303b;color:white;border-radius:9px;width:34px;height:34px;font-size:20px">×</button></div><div id="gymSkillSummary" style="margin-top:12px"></div><div id="gymSkillCash" style="margin:9px 0;padding:9px 12px;background:#111722;border:1px solid #324055;border-radius:10px;color:#ffd76b;font-weight:900"></div><div id="gymSkillRows" style="display:grid;gap:9px"></div><div style="margin-top:12px;color:#788397;font-size:11px;line-height:1.45">Тренировка действует сразу и сохраняется навсегда. Цена растёт с уровнем конкретного навыка.</div></div>`;
   document.body.appendChild(ov);ov.onclick=e=>{if(e.target===ov)ov.style.display='none'};ov.querySelector('#gymSkillClose').onclick=()=>ov.style.display='none';return ov;
 }
 function _renderGymSkills(){
   const ov=_ensureGymModal(),rows=ov.querySelector('#gymSkillRows');ov.querySelector('#gymSkillCash').textContent=`💰 Баланс: $${Math.max(0,+myCash||0).toLocaleString('ru')}`;
-  rows.innerHTML=Object.entries(_GYM_SKILLS).map(([id,s])=>{const l=Math.max(0,Math.min(5,+_characterSkills[id]||0)),cost=_skillCosts[l+1]||0;return `<div style="display:flex;align-items:center;gap:10px;padding:11px;background:rgba(22,29,40,.92);border:1px solid ${l>=5?'#3d9b62':'#374456'};border-radius:12px"><div style="font-size:27px;width:36px;text-align:center">${s.icon}</div><div style="flex:1;min-width:0"><div style="font-weight:900">${s.name} <span style="color:#ffbd57">${l}/5</span></div><div style="font-size:12px;color:#aab3c2">${s.desc}</div><div style="font-size:11px;color:#6fe39a;margin-top:3px">${s.effect(l)}</div></div><button data-gym-skill="${id}" ${l>=5||_gymBusy?'disabled':''} style="min-width:92px;padding:10px 8px;border:0;border-radius:9px;background:${l>=5?'#244531':'linear-gradient(#f4b64c,#b76b1f)'};color:${l>=5?'#91d5aa':'#1b1005'};font-weight:950">${l>=5?'MAX':'$'+cost.toLocaleString('ru')}</button></div>`}).join('');
+  const total=Object.keys(_GYM_SKILLS).reduce((n,id)=>n+Math.max(0,Math.min(5,+_characterSkills[id]||0)),0);
+  ov.querySelector('#gymSkillSummary').innerHTML=`<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:900"><span>ОБЩАЯ ПОДГОТОВКА</span><span style="color:#ffbd57">${total}/25</span></div><div style="height:8px;background:#171d27;border-radius:9px;overflow:hidden;margin-top:5px"><div style="height:100%;width:${total/25*100}%;background:linear-gradient(90deg,#d47722,#ffd76b);transition:width .25s"></div></div>`;
+  rows.innerHTML=Object.entries(_GYM_SKILLS).map(([id,s])=>{const l=Math.max(0,Math.min(5,+_characterSkills[id]||0)),cost=_skillCosts[l+1]||0,canBuy=(+myCash||0)>=cost;return `<div style="display:flex;align-items:center;gap:10px;padding:11px;background:rgba(22,29,40,.92);border:1px solid ${l>=5?'#3d9b62':'#374456'};border-radius:12px"><div style="font-size:27px;width:36px;text-align:center">${s.icon}</div><div style="flex:1;min-width:0"><div style="font-size:9px;color:#7f8ca0;font-weight:950;letter-spacing:.8px">${s.group}</div><div style="font-weight:900">${s.name} <span style="color:#ffbd57">${l}/5</span></div><div style="font-size:12px;color:#aab3c2">${s.desc}</div><div style="font-size:11px;color:#6fe39a;margin-top:3px">Сейчас: ${s.effect(l)}</div><div style="font-size:10px;color:#e8ba72;margin-top:2px">${s.next(l)}</div></div><button data-gym-skill="${id}" ${l>=5||_gymBusy||!canBuy?'disabled':''} style="min-width:96px;padding:10px 8px;border:0;border-radius:9px;background:${l>=5?'#244531':canBuy?'linear-gradient(#f4b64c,#b76b1f)':'#343944'};color:${l>=5?'#91d5aa':canBuy?'#1b1005':'#8992a0'};font-weight:950">${l>=5?'MAX':'$'+cost.toLocaleString('ru')}</button></div>`}).join('');
   rows.querySelectorAll('[data-gym-skill]').forEach(b=>b.onclick=()=>_buyGymSkill(b.dataset.gymSkill));
 }
 async function loadCharacterSkills(){
@@ -40841,6 +41249,15 @@ function _spawnInteriorNpcs(bi) {
     });
   }
   bi.npcs = out;
+  if (bi.type === 'police_st' || bi.type === 'mafia_hq') {
+    for (const npc of bi.npcs) {
+      npc._keyNpc = true;
+      npc._invulnerable = true;
+      npc.maxHp = 100;
+      npc.hp = 100;
+      npc.dead = false;
+    }
+  }
   if(bi.type==='police_st')bi.npcs.push({r:3,c:bi.W-3,tr:3,tc:bi.W-3,ang:Math.PI,walkPhase:0,walking:false,name:'Квартирмейстер',role:'hq_manager',fixed:true,look:{gender:0,skin:1,body:1,face:1,hair:1,hat:2,suit:'#23416b'},idleUntil:0,speed:0});
   if(bi.type==='mafia_hq'){bi.npcs[0].role='hq_manager';bi.npcs[0].fixed=true;bi.npcs[0].r=3;bi.npcs[0].c=bi.W-3;bi.npcs[0].tr=3;bi.npcs[0].tc=bi.W-3;if(bi.npcs[1]){bi.npcs[1].role='mafia_recruiter';bi.npcs[1].name='Капореджиме';bi.npcs[1].fixed=true;bi.npcs[1].r=5;bi.npcs[1].c=4;bi.npcs[1].tr=5;bi.npcs[1].tc=4;}}
 }
@@ -40889,6 +41306,17 @@ function _raycastInteriorNpc(sR, sC, dirY, dirX, range) {
 
 function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon) {
   if (!npc || npc.dead || !_buildingInt) return;
+  if (npc._keyNpc || npc._invulnerable || _buildingInt.type === 'police_st' || _buildingInt.type === 'mafia_hq') {
+    npc.hp = npc.maxHp || 100;
+    npc.dead = false;
+    const now = performance.now();
+    if (now > (npc._protectedHintAt || 0)) {
+      npc._protectedHintAt = now + 1800;
+      spawnFloatText(npc.r, npc.c, 'КЛЮЧЕВОЙ ПЕРСОНАЖ', { color:'#ffe080', size:11, life:1100 });
+      showToast(`${npc.name || 'Этот персонаж'} нужен для заданий и не может быть убит`, '🛡️', 2200);
+    }
+    return;
+  }
   npc.maxHp = npc.maxHp || 100;
   npc.hp = Math.max(0, (npc.hp == null ? npc.maxHp : npc.hp) - Math.max(1, damage || 1));
   npc.idleUntil = performance.now() + 900;
@@ -45277,7 +45705,7 @@ function chatDuration(text) {
       if(!ready())return;clearInterval(wait);await load();
       // Скрытый редактор не имеет права рисовать поверх обычной игры и
       // интерьеров. Цикл нужен только после явного включения через F8.
-      requestAnimationFrame(function loop(){try{if(active){overlay();drawMini();}}catch(_){}requestAnimationFrame(loop);});
+      requestAnimationFrame(function loop(){try{if(active){overlay();drawMini();}}catch(_){}if(active)requestAnimationFrame(loop);else setTimeout(()=>requestAnimationFrame(loop),500);});
       if(!LOCAL)return;
       window.addEventListener('keydown',e=>{
         if(e.key==='F8'){e.preventDefault();toggle();}
@@ -46025,7 +46453,7 @@ function chatDuration(text) {
     buildPanel();
     const wait=setInterval(async()=>{
       if(!ready())return;clearInterval(wait);await load();
-      requestAnimationFrame(function loop(){try{if(active){drawDistrictDecorLayer();overlay();drawMini();}}catch(_){}requestAnimationFrame(loop);});
+      requestAnimationFrame(function loop(){try{if(active){drawDistrictDecorLayer();overlay();drawMini();}}catch(_){}if(active)requestAnimationFrame(loop);else setTimeout(()=>requestAnimationFrame(loop),500);});
       if(!LOCAL)return;
       window.addEventListener('keydown',e=>{
         if(e.key==='F8'){e.preventDefault();toggle();}
@@ -46929,7 +47357,7 @@ function chatDuration(text) {
     buildPanel();
     const wait=setInterval(async()=>{
       if(!ready())return;clearInterval(wait);await load();
-      requestAnimationFrame(function loop(){try{if(active){drawDistrictDecorLayer();overlay();drawMini();}}catch(_){}requestAnimationFrame(loop);});
+      requestAnimationFrame(function loop(){try{if(active){drawDistrictDecorLayer();overlay();drawMini();}}catch(_){}if(active)requestAnimationFrame(loop);else setTimeout(()=>requestAnimationFrame(loop),500);});
       if(!LOCAL)return;
       window.addEventListener('keydown',e=>{
         if(e.key==='F8'){e.preventDefault();toggle();}
@@ -47674,7 +48102,7 @@ function chatDuration(text) {
     buildPanel();
     const wait=setInterval(async()=>{
       if(!ready())return;clearInterval(wait);await load();
-      requestAnimationFrame(function loop(){try{if(active){drawDistrictDecorLayer();overlay();drawMini();}}catch(_){}requestAnimationFrame(loop);});
+      requestAnimationFrame(function loop(){try{if(active){drawDistrictDecorLayer();overlay();drawMini();}}catch(_){}if(active)requestAnimationFrame(loop);else setTimeout(()=>requestAnimationFrame(loop),500);});
       if(!LOCAL)return;
       window.addEventListener('keydown',e=>{
         if(e.key==='F8'){e.preventDefault();toggle();}
@@ -48401,7 +48829,7 @@ function chatDuration(text) {
     buildPanel();
     const wait=setInterval(async()=>{
       if(!ready())return;clearInterval(wait);await load();
-      requestAnimationFrame(function loop(){try{if(active){drawDistrictDecorLayer();overlay();drawMini();}}catch(_){}requestAnimationFrame(loop);});
+      requestAnimationFrame(function loop(){try{if(active){drawDistrictDecorLayer();overlay();drawMini();}}catch(_){}if(active)requestAnimationFrame(loop);else setTimeout(()=>requestAnimationFrame(loop),500);});
       if(!LOCAL)return;
       window.addEventListener('keydown',e=>{
         if(e.key==='F8'){e.preventDefault();toggle();}
