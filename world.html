@@ -41401,7 +41401,8 @@ function _spawnInteriorNpcs(bi) {
           walkPhase:0,walking:false,name:i%3===0?'Старший охранник':'Охранник',
           role:'biz_guard',fixed:false,hp:90+(guardCount>=5?30:0),maxHp:90+(guardCount>=5?30:0),dead:false,
           look:{gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%3,hat:5,suit:i%3===0?'#171b24':'#273143'},
-          idleUntil:Infinity,speed:1.15+(i%2)*.15,_hostile:false,_shotAt:0,
+          // До тревоги охранник патрулирует зал, а не замерзает у точки спавна.
+          idleUntil:performance.now()+500+Math.random()*1800,speed:1.15+(i%2)*.15,_hostile:false,_shotAt:0,
           weapon:i%4===0?'shotgun':(i%3===0?'smg':'pistol_heavy'),
         });
       }
@@ -41480,8 +41481,23 @@ function _updateInteriorNpcs(bi, dt) {
     if (bi.robbery && n.role === 'biz_guard' && bi.robberyStarted) {
       const dr=player.r-n.r,dc=player.c-n.c,dist=Math.hypot(dr,dc)||1;
       n.ang=Math.atan2(dr,dc);n._hostile=true;
-      if(dist>5.2){const step=n.speed*dt;n.r+=dr/dist*step;n.c+=dc/dist*step;n.walking=true;n.walkPhase+=dt*9;}
-      else n.walking=false;
+      // В бою охрана не превращается в неподвижную турель: дальних целей
+      // преследует, от слишком близких отступает, на рабочей дистанции
+      // перемещается боком и периодически меняет направление.
+      if(now>=(n._combatMoveUntil||0)){
+        n._combatMoveUntil=now+900+Math.random()*1300;
+        n._strafeDir=Math.random()<.5?-1:1;
+      }
+      const fy=dr/dist,fx=dc/dist,sy=-fx*(n._strafeDir||1),sx=fy*(n._strafeDir||1);
+      let moveY=0,moveX=0,moveScale=1;
+      if(dist>6.2){moveY=fy;moveX=fx;}
+      else if(dist<3.2){moveY=-fy+sy*.35;moveX=-fx+sx*.35;}
+      else {const rangeBias=(dist-4.7)*.22;moveY=sy+fy*rangeBias;moveX=sx+fx*rangeBias;moveScale=.72;}
+      const moveLen=Math.hypot(moveY,moveX)||1,step=n.speed*moveScale*dt;
+      const nextR=Math.max(.8,Math.min(bi.H-.8,n.r+moveY/moveLen*step));
+      const nextC=Math.max(.8,Math.min(bi.W-.8,n.c+moveX/moveLen*step));
+      if(Math.hypot(nextR-n.r,nextC-n.c)>.001){n.r=nextR;n.c=nextC;n.walking=true;n.walkPhase+=dt*9;}
+      else {n.walking=false;n._combatMoveUntil=0;n._strafeDir=-(n._strafeDir||1);}
       const cooldown=n.weapon==='smg'?650:(n.weapon==='shotgun'?1450:1050);
       if(dist<10&&!myDead&&now-(n._shotAt||0)>=cooldown){
         n._shotAt=now;const hit=Math.random()>.24,damage=n.weapon==='shotgun'?14:(n.weapon==='smg'?7:10);
