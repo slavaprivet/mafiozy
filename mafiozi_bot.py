@@ -4179,6 +4179,14 @@ BIZ_LEVEL_MULTIPLIERS = {1: 1.00, 2: 1.35, 3: 1.75, 4: 2.25, 5: 3.00}
 BIZ_UPGRADE_COST_RATIOS = {2: 0.45, 3: 0.75, 4: 1.15, 5: 1.70}
 SAID_DAILY_SALARY = 500
 SAID_SALARY_PERIOD = 24 * 3600
+NPC_BUSINESS_CAPTURE_COOLDOWN = 2 * 3600
+BUSINESS_WORLD_POS = {
+    "coffee": (13.0, 33.0), "carwash": (25.0, 23.0),
+    "barbershop": (23.0, 53.0), "pizza": (53.0, 53.0),
+    "garage": (63.0, 13.0), "bar": (33.0, 43.0),
+    "club": (53.0, 63.0), "warehouse": (23.0, 73.0),
+    "casino": (45.0, 13.0), "port": (31.0, 181.0),
+}
 
 # id, name, emoji, price, daily_min, daily_max, desc
 BUSINESSES = [
@@ -12671,6 +12679,18 @@ class WorldSim:
     AGGRO_BOSS_CD_R     = 0.50      # было 0.18 — узи больше не «автомат», очередь рваная
     AGGRO_BOSS_RANGE_M  = 1.6       # дистанция саблей
     AGGRO_BOSS_RANGE_R  = 9.0       # дистанция узи
+    BANDIT_MAX_LEVEL    = 25
+    BANDIT_HIGH_LEVEL   = 10
+
+    @classmethod
+    def _bandit_hp(cls, base_hp: int, level: int) -> int:
+        level = max(1, min(cls.BANDIT_MAX_LEVEL, int(level or 1)))
+        return int(round(base_hp * (1.0 + (level - 1) * 0.05)))
+
+    @classmethod
+    def _bandit_damage(cls, base_damage: int, level: int) -> int:
+        level = max(1, min(cls.BANDIT_MAX_LEVEL, int(level or 1)))
+        return max(1, int(round(base_damage * (1.0 + (level - 1) * 0.03))))
     # ── Физика пуль ботов (dodge-механика) ───────────────────────────
     # speed = тайлов/сек (низкая → легко увернуться); dmg + range + cd
     # перекрывают AGGRO_BOT_* константы выше, когда бот реально палит
@@ -12820,6 +12840,7 @@ class WorldSim:
         self.city_gangs = []
         self._city_gang_next_id = 1
         self._city_gang_next_spawn_at = 0.0
+        self._city_gang_encounters = {}
         # Очередь физических пуль ботов (dodge-механика). Каждый shot
         # имеет apply_at — момент, когда пуля долетит до цели. Если к
         # этому моменту игрок ушёл из радиуса BULLET_DODGE_R от точки
@@ -12829,6 +12850,8 @@ class WorldSim:
         self.gang_nests = []
         self._gang_nest_next_id = 1
         self._gang_nest_next_spawn_at = 60.0   # первое через минуту после старта
+        self._business_npc_occupations = {}
+        self._business_npc_capture_cooldown = {}
         self._business_closed_until = {}
         # (uid, biz_id) -> timestamp. Охрана помнит только конкретного
         # нападавшего; мирные посетители того же бизнеса не становятся целями.
@@ -13453,8 +13476,15 @@ class WorldSim:
             p['_input_t'] = time.time()
             return
         was_police = bool(p.get('_police'))
-        p['_police'] = bool(d.get('police', False))
-        p['_mafia'] = bool(d.get('mafia', False)) and not p['_police']
+        requested_police = bool(d.get('police', False))
+        requested_mafia = bool(d.get('mafia', False))
+        was_mafia = bool(p.get('_mafia'))
+        if requested_police and was_mafia:
+            requested_police, requested_mafia = False, True
+        elif requested_mafia and was_police:
+            requested_police, requested_mafia = True, False
+        p['_police'] = requested_police
+        p['_mafia'] = requested_mafia and not p['_police']
         if not p['_mafia']:
             crew_id = str(p.pop('_crew_id', '') or '')
             if crew_id:
@@ -13506,12 +13536,13 @@ class WorldSim:
             p['_police_escort'] = None
         interior = d.get('interior') if isinstance(d.get('interior'), dict) else None
         biz_id = str((interior or {}).get('biz_id') or '').strip()[:32]
-        if (interior or {}).get('kind') == 'business' and biz_id:
+        interior_kind = str((interior or {}).get('kind') or '')
+        if interior_kind == 'business' and biz_id:
             # Координаты внутри комнаты не являются координатами мира. Храним
             # их отдельно, а мировую позицию оставляем у двери бизнеса.
             try:
-                p['_interior_x'] = max(0.0, min(60.0, float(d.get('x', 0))))
-                p['_interior_y'] = max(0.0, min(60.0, float(d.get('y', 0))))
+                p['_interior_x'] = max(0.0, min(60.0, float(interior.get('x', 0))))
+                p['_interior_y'] = max(0.0, min(60.0, float(interior.get('y', 0))))
                 p['ang'] = float(d.get('ang', p.get('ang', 0.0)))
                 p['walking'] = bool(d.get('w', False))
             except Exception:
@@ -13526,13 +13557,26 @@ class WorldSim:
             p['last_seen'] = time.time()
             p['_weapon'] = str(d.get('weapon') or p.get('_weapon') or 'pistol')[:32]
             return
+        if interior_kind in ('bank', 'building'):
+            p.pop('_business_interior', None)
+            p.pop('_business_private', None)
+            p.pop('_interior_x', None)
+            p.pop('_interior_y', None)
+            p['_in_interior'] = True
+            p['_in_interior_until'] = time.time() + 30.0
+            p['_input_t'] = time.time()
+            p['last_seen'] = time.time()
+            p['ang'] = float(d.get('ang', p.get('ang', 0.0)))
+            p['walking'] = False
+            p['_weapon'] = str(d.get('weapon') or p.get('_weapon') or 'pistol')[:32]
+            return
         if p.get('_business_interior'):
             p.pop('_business_interior', None)
             p.pop('_business_private', None)
             p.pop('_interior_x', None)
             p.pop('_interior_y', None)
-            p['_in_interior'] = False
-            p['_in_interior_until'] = 0
+        p['_in_interior'] = False
+        p['_in_interior_until'] = 0
         try:
             nx = float(d.get('x', p['x']))
             ny = float(d.get('y', p['y']))
@@ -14246,6 +14290,9 @@ class WorldSim:
                 'max_hp':   int(self.INKASS_HP),
                 'alive':    True,
                 '_shot_t':  0.0,
+                '_patrol_x': float(bx), '_patrol_y': float(by),
+                '_patrol_until': 0.0, '_chatter_at': time.time() + random.uniform(4, 12),
+                'act': 'idle', 'threat': '',
                 # Threat: какого игрока запомнил как угрозу + когда последний раз вспоминал
                 '_threat_uid':   '',
                 '_threat_until': 0.0,
@@ -14768,6 +14815,10 @@ class WorldSim:
         t_tid, _ = self._territory_at(target['x'], target['y'])
         both_in_territory = bool(s_tid) and (s_tid == t_tid)
         target_is_bounty  = int(target.get('_wanted_gangs') or 0) >= 3
+        if ((shooter.get('_in_interior') or target.get('_in_interior')) and
+                not (shooter.get('_business_interior') and
+                     shooter.get('_business_interior') == target.get('_business_interior'))):
+            return None
         police_pursuit = (
             bool(shooter.get('_police')) and
             not bool(target.get('_police')) and
@@ -15569,13 +15620,17 @@ class WorldSim:
             # тёмные волосы. body=2 (футболка-цвет), hat=4 (балаклава/маска),
             # hair=0/3, face=0/1. Каждый чуть разный.
             is_elite = i < self.AGGRO_ELITE_COUNT
+            bot_level = random.randint(10, 20) if is_elite else random.randint(1, 12)
+            bot_hp = self._bandit_hp(
+                int(self.AGGRO_BOT_HP * (1.8 if is_elite else 1.0)), bot_level)
             bots.append({
                 'id':       f'gbot{self._next_bot_id}',
                 'x':        float(bx),
                 'y':        float(by),
                 'ang':      0.0,
-                'hp':       int(self.AGGRO_BOT_HP * (1.8 if is_elite else 1.0)),
-                'max_hp':   int(self.AGGRO_BOT_HP * (1.8 if is_elite else 1.0)),
+                'hp':       bot_hp,
+                'max_hp':   bot_hp,
+                'level':    bot_level,
                 'alive':    True,
                 'kind':     'aggro_elite' if is_elite else 'aggro_grunt',
                 'weapon':   ('shotgun', 'rifle', 'pistol_heavy', 'smg')[i % 4]
@@ -15595,17 +15650,23 @@ class WorldSim:
             })
         # Босс — главарь банды. Чуть толще, сабля + узи.
         self._next_bot_id += 1
+        boss_level = self.BANDIT_MAX_LEVEL
+        boss_hp = self._bandit_hp(self.AGGRO_BOSS_HP, boss_level)
         bots.append({
             'id':       f'gboss{self._next_bot_id}',
             'x':        float(cx),
             'y':        float(cy),
             'ang':      0.0,
-            'hp':       int(self.AGGRO_BOSS_HP),
-            'max_hp':   int(self.AGGRO_BOSS_HP),
+            'hp':       boss_hp,
+            'max_hp':   boss_hp,
+            'level':    boss_level,
             'alive':    True,
             'kind':     'aggro_boss',
             'weapon':   'uzi',
             '_shot_t':  0.0,
+            '_patrol_x': float(cx), '_patrol_y': float(cy),
+            '_patrol_until': 0.0, '_chatter_at': time.time() + random.uniform(4, 12),
+            'act': 'idle', 'threat': '',
             '_warned':  {},
             '_spin_t':  0.0,    # анимация «крутится с саблей»
             'look':     {
@@ -15666,14 +15727,14 @@ class WorldSim:
         return self.AGGRO_BOT_WEAPON_WEIGHTS[0][0]
 
     def _enqueue_bot_shot(self, *, target, sx, sy, tx, ty, weapon,
-                          bot_id, tid):
+                          bot_id, tid, bot_level=1):
         """Кладёт выстрел бота в очередь. Урон применится через
         dist/speed секунд (см. tick_pending_bot_shots). Возвращает
         пакет 'aggro_shot' для немедленной отправки клиенту (трассер)."""
         stats = self.AGGRO_WEAPON_STATS.get(
             weapon, self.AGGRO_WEAPON_STATS['pistol'])
         speed = float(stats['speed'])
-        dmg   = int(stats['dmg'])
+        dmg   = self._bandit_damage(int(stats['dmg']), bot_level)
         dist  = ((tx - sx) ** 2 + (ty - sy) ** 2) ** 0.5
         eta_s = dist / max(1.0, speed)
         now   = time.time()
@@ -15832,8 +15893,38 @@ class WorldSim:
                     target = min(hostile_players,
                                  key=lambda pp: (pp['x']-bot['x'])**2 + (pp['y']-bot['y'])**2)
                 if target is None:
+                    if now >= float(bot.get('_patrol_until') or 0):
+                        for _try in range(12):
+                            pa = random.random() * 2 * _m.pi
+                            pd = random.uniform(1.5, max(2.0, rad - 2.0))
+                            px, py = cx + _m.cos(pa) * pd, cy + _m.sin(pa) * pd
+                            if not _world_is_wall(int(py), int(px)):
+                                bot['_patrol_x'], bot['_patrol_y'] = px, py
+                                break
+                        bot['_patrol_until'] = now + random.uniform(5.0, 11.0)
+                    dx = float(bot.get('_patrol_x', bot['x'])) - bot['x']
+                    dy = float(bot.get('_patrol_y', bot['y'])) - bot['y']
+                    dist = _m.hypot(dx, dy)
+                    bot['act'] = 'idle'
+                    if dist > 0.25:
+                        step = min(dist, (1.0 if bot['kind'] == 'aggro_boss' else 0.8) * dt)
+                        nx, ny = bot['x'] + dx / dist * step, bot['y'] + dy / dist * step
+                        if not _world_is_wall(int(ny), int(nx)):
+                            bot['x'], bot['y'] = nx, ny
+                            bot['ang'] = _m.atan2(dy, dx)
+                            bot['act'] = 'walk'
+                    if now >= float(bot.get('_chatter_at') or 0):
+                        bot['threat'] = random.choice([
+                            'Чего уставился?', 'Это наша земля.', 'Проходи мимо.',
+                            'Скоро будет шумно.', 'Держи ствол наготове.',
+                        ])
+                        bot['_threat_until'] = now + 2.4
+                        bot['_chatter_at'] = now + random.uniform(8.0, 16.0)
+                    if now > float(bot.get('_threat_until') or 0):
+                        bot['threat'] = ''
                     continue
                 tx, ty = target['x'], target['y']
+                bot['act'] = 'idle'
                 dx, dy = tx - bot['x'], ty - bot['y']
                 dist   = _m.hypot(dx, dy) + 1e-6
                 bot['ang'] = _m.atan2(dy, dx)
@@ -15851,6 +15942,7 @@ class WorldSim:
                     # Не выходим за границы зоны
                     if abs(nx - cx) <= rad and abs(ny - cy) <= rad and not _world_is_wall(int(ny), int(nx)):
                         bot['x'] = nx; bot['y'] = ny
+                        bot['act'] = 'walk'
                 # Анимация «крутится с саблей» для босса в ближнем
                 if bot['kind'] == 'aggro_boss':
                     bot['_spin_t'] = (bot.get('_spin_t', 0.0) + dt * 8.0) % (2 * _m.pi)
@@ -15861,7 +15953,9 @@ class WorldSim:
                     # Ближний бой — сабля
                     if dist <= self.AGGRO_BOSS_RANGE_M and (now - bot['_shot_t']) >= self.AGGRO_BOSS_CD_M:
                         bot['_shot_t'] = now
-                        dmg = self.police_vest_damage(target, int(self.AGGRO_BOSS_DMG_M))
+                        dmg = self.police_vest_damage(
+                            target, self._bandit_damage(
+                                int(self.AGGRO_BOSS_DMG_M), bot.get('level', 1)))
                         target['hp'] = max(0, int(target.get('hp',100)) - dmg)
                         killed = target['hp'] <= 0
                         if killed:
@@ -15880,7 +15974,7 @@ class WorldSim:
                         pkts.append(self._enqueue_bot_shot(
                             target=target, sx=bot['x'], sy=bot['y'],
                             tx=tx, ty=ty, weapon='uzi',
-                            bot_id=bot['id'], tid=tid))
+                            bot_id=bot['id'], tid=tid, bot_level=bot.get('level', 1)))
                 else:
                     # Обычный бандит — оружие назначено при спауне (рандом
                     # из AGGRO_BOT_WEAPON_WEIGHTS). dmg/cd/range берутся
@@ -15895,7 +15989,7 @@ class WorldSim:
                         pkts.append(self._enqueue_bot_shot(
                             target=target, sx=bot['x'], sy=bot['y'],
                             tx=tx, ty=ty, weapon=weapon,
-                            bot_id=bot['id'], tid=tid))
+                            bot_id=bot['id'], tid=tid, bot_level=bot.get('level', 1)))
             # 2) Захват: если ВСЕ боты убиты — стартуем 3-сек хадер.
             #    Зоны с no_capture=True (Логово) НЕ захватываются — это просто
             #    опасная локация. Перебил банду — она респавнится через таймер.
@@ -15968,12 +16062,13 @@ class WorldSim:
                     return {'kind':'gang_hire_reply','ok':False,
                             'reason':'district_defender','bot_id':bot_id}
                 is_boss = bot.get('kind') == 'district_boss'
-                if is_boss and int(player.get('_mafia_xp') or 0) < MAFIA_LEVEL_XP[2]:
+                bot_level = max(1, min(self.BANDIT_MAX_LEVEL, int(bot.get('level') or 1)))
+                if bot_level >= self.BANDIT_HIGH_LEVEL and int(player.get('_mafia_xp') or 0) < MAFIA_LEVEL_XP[3]:
                     return {'kind':'gang_hire_reply','ok':False,'reason':'mafia_level','bot_id':bot_id}
                 bot['hp'] = 0; bot['alive'] = False; bot['hired_by'] = str(uid)
                 did = str(gang.get('district_did') or '')
                 return {'kind':'gang_hire_reply','ok':True,'bot_id':str(bot_id),
-                        'is_boss':is_boss,'did':did}
+                        'is_boss':is_boss,'level':bot_level,'did':did}
         return {'kind':'gang_hire_reply','ok':False,'reason':'gone','bot_id':bot_id}
 
     def aggro_shoot_bot(self, uid: str, bot_id: str, weapon: str = '') -> dict | None:
@@ -16108,18 +16203,22 @@ class WorldSim:
             return  # карта плотно занята, попробуем позже
         gid = f'cg{self._city_gang_next_id}'
         self._city_gang_next_id += 1
+        faction = 'yellow' if self._city_gang_next_id % 2 else 'purple'
         bots = []
         for i in range(self.CITY_GANG_SIZE):
             self._next_bot_id += 1
             # Разносим по тротуару рядом с центром
             bx = x + random.uniform(-1.5, 1.5)
             by = y + random.uniform(-1.5, 1.5)
+            bot_level = random.randint(1, 18)
+            bot_hp = self._bandit_hp(self.AGGRO_BOT_HP, bot_level)
             bots.append({
                 'id':       f'cgbot{self._next_bot_id}',
                 'x':        float(bx), 'y': float(by),
                 'ang':      0.0,
-                'hp':       int(self.AGGRO_BOT_HP),
-                'max_hp':   int(self.AGGRO_BOT_HP),
+                'hp':       bot_hp,
+                'max_hp':   bot_hp,
+                'level':    bot_level,
                 'alive':    True,
                 'kind':     'aggro_grunt',
                 'weapon':   self._pick_aggro_weapon(),
@@ -16131,11 +16230,11 @@ class WorldSim:
                 '_act_until': time.time() + random.uniform(8, 16),
                 'look':     {
                     'gender': 0,
-                    'skin':   random.choice([1,2,3]),
-                    'body':   2, 'face': random.choice([0,1,2]),
+                    'skin':   random.choice([0,2,3]) if faction == 'yellow' else random.choice([1,2,3]),
+                    'body':   4 if faction == 'yellow' else 2, 'face': random.choice([0,1,2]),
                     'hair':   random.choice([0,1,3]),
-                    'hat':    4,
-                    'gang':   1,
+                    'hat':    2 if faction == 'yellow' else 4,
+                    'gang':   2 if faction == 'yellow' else 1,
                 },
             })
         self.city_gangs.append({
@@ -16148,6 +16247,8 @@ class WorldSim:
             '_threat_t':       {},
             '_patrol_wp':      (x, y),
             '_cops_dispatched': False,
+            'faction':          faction,
+            '_gang_fight_at':   0.0,
         })
 
     def tick_city_gangs(self, dt: float) -> list:
@@ -16178,6 +16279,56 @@ class WorldSim:
             # Центр группы
             cx = sum(b['x'] for b in alive_bots) / len(alive_bots)
             cy = sum(b['y'] for b in alive_bots) / len(alive_bots)
+            # Rival street gangs do not fight on every meeting. One bounded
+            # encounter decision is cached for 20 seconds: pass or skirmish.
+            for rival in self.city_gangs:
+                if rival is g or rival.get('district_did'):
+                    continue
+                if rival.get('faction', 'purple') == g.get('faction', 'purple'):
+                    continue
+                rivals = [b for b in rival.get('bots', []) if b.get('alive')]
+                if not rivals:
+                    continue
+                rx = sum(b['x'] for b in rivals) / len(rivals)
+                ry = sum(b['y'] for b in rivals) / len(rivals)
+                if _m.hypot(cx - rx, cy - ry) > 7.0:
+                    continue
+                pair = tuple(sorted((str(g['id']), str(rival['id']))))
+                encounter = self._city_gang_encounters.get(pair)
+                if not encounter or now >= encounter['until']:
+                    encounter = {'fight': random.random() < 0.45,
+                                 'until': now + 20.0, 'shot_at': 0.0}
+                    self._city_gang_encounters[pair] = encounter
+                    if encounter['fight']:
+                        speaker = random.choice(alive_bots)
+                        pkts.append({'kind':'city_gang_threat', 'gid':g['id'],
+                                     'bot_id':speaker['id'],
+                                     'text':random.choice([
+                                         'Это наша улица!', 'Убирайтесь отсюда!',
+                                         'Сегодня вам не пройти!'])})
+                if not encounter['fight'] or now - encounter['shot_at'] < 1.0:
+                    continue
+                encounter['shot_at'] = now
+                attacker = random.choice(alive_bots)
+                victim = random.choice(rivals)
+                damage = random.randint(12, 24)
+                victim['hp'] = max(0, int(victim.get('hp', 0)) - damage)
+                killed = victim['hp'] <= 0
+                if killed:
+                    victim['alive'] = False
+                pkts.append({
+                    'kind':'aggro_hit', 'tid':rival['id'],
+                    'bot_id':victim['id'], 'shooter_bot_id':attacker['id'],
+                    'sx':round(attacker['x'],2), 'sy':round(attacker['y'],2),
+                    'tx':round(victim['x'],2), 'ty':round(victim['y'],2),
+                    'dmg':damage, 'killed':killed, 'npc_gang_fight':True,
+                })
+                break
+            if len(self._city_gang_encounters) > 32:
+                self._city_gang_encounters = {
+                    pair: state for pair, state in self._city_gang_encounters.items()
+                    if state['until'] > now
+                }
             # Охрана районного босса не ждёт взрыва под ногами. Любой мировой
             # C4 в радиусе обнаружения переводит группу в бой с установившим,
             # а бойцы внутри опасного круга спринтуют наружу. Стрелять они
@@ -16434,7 +16585,7 @@ class WorldSim:
                         pkts.append(self._enqueue_bot_shot(
                             target=target, sx=bot['x'], sy=bot['y'],
                             tx=tx, ty=ty, weapon=weapon,
-                            bot_id=bot['id'], tid=g['id']))
+                            bot_id=bot['id'], tid=g['id'], bot_level=bot.get('level', 1)))
             # При hostile — диспатчим копов один раз (они атакуют банду).
             if (g['state'] == 'hostile' and not g['_cops_dispatched']
                     and not g.get('district_did')):
@@ -16555,9 +16706,29 @@ class WorldSim:
         """Спавним заброшенное здание-гнездо в городе с 4 охранниками.
         Здание = центр зоны, боты вокруг него на проходимых тайлах."""
         import math as _m
+        now = time.time()
+        self._business_npc_capture_cooldown = {
+            bid: until for bid, until in self._business_npc_capture_cooldown.items()
+            if until > now
+        }
+        owned_ids = {
+            str(bid) for player_state in self.players.values()
+            for bid in (player_state.get('_owned_biz') or set())
+        }
+        candidates = [
+            bid for bid in owned_ids
+            if bid in BUSINESS_WORLD_POS
+            and bid not in self._business_npc_occupations
+            and self._business_npc_capture_cooldown.get(bid, 0) <= now
+        ]
+        business_id = random.choice(candidates) if candidates and random.random() < 0.70 else None
+        if business_id:
+            c, r = BUSINESS_WORLD_POS[business_id]
         # Ищем подходящий участок — внутри блока (5-8 % 10) где есть стена.
         # Не в захватываемых районах, не у тюрьмы, не у POI.
-        for _try in range(60):
+        for _try in range(1 if business_id else 60):
+            if business_id:
+                break
             r = random.randint(15, 70)
             c = random.randint(15, WORLD_MAP_COLS - 15)
             # Не у тюрьмы
@@ -16582,6 +16753,7 @@ class WorldSim:
             return
         gid = f'nest{self._gang_nest_next_id}'
         self._gang_nest_next_id += 1
+        faction = 'yellow' if self._gang_nest_next_id % 2 else 'purple'
         bots = []
         for i in range(self.NEST_BOTS):
             # Сажаем рядом со зданием на проходимый тайл
@@ -16609,11 +16781,11 @@ class WorldSim:
                 '_act_until': 0.0,
                 'look':     {
                     'gender': 0,
-                    'skin':   random.choice([1,2,3]),
-                    'body':   2, 'face': random.choice([0,1,2]),
+                    'skin':   random.choice([0,2,3]) if faction == 'yellow' else random.choice([1,2,3]),
+                    'body':   4 if faction == 'yellow' else 2, 'face': random.choice([0,1,2]),
                     'hair':   random.choice([0,1,3]),
-                    'hat':    4,
-                    'gang':   1,
+                    'hat':    2 if faction == 'yellow' else 4,
+                    'gang':   2 if faction == 'yellow' else 1,
                 },
             })
         if not bots:
@@ -16631,9 +16803,13 @@ class WorldSim:
             '_threat_t':       {},
             '_cops_dispatched': False,
             '_cleared':        False,
+            'faction':          faction,
+            'business_id':      business_id,
             '_combat_uids':    set(),     # кто стрелял по гнезду — получат бонус
         }
         self.gang_nests.append(nest)
+        if business_id:
+            self._business_npc_occupations[business_id] = gid
 
     def tick_gang_nests(self, dt: float) -> list:
         """AI гнёзд. Возвращает event-пакеты: gang_nest_spawned,
@@ -16670,8 +16846,18 @@ class WorldSim:
                         'exp':        int(self.NEST_CLEAR_EXP),
                         'bonus_uids': sorted(ne.get('_combat_uids') or set()),
                     })
+                business_id = ne.get('business_id')
+                if business_id:
+                    self._business_npc_occupations.pop(str(business_id), None)
+                    self._business_npc_capture_cooldown[str(business_id)] = (
+                        now + NPC_BUSINESS_CAPTURE_COOLDOWN)
                 continue
             if now > ne['_expires_at']:
+                business_id = ne.get('business_id')
+                if business_id:
+                    self._business_npc_occupations.pop(str(business_id), None)
+                    self._business_npc_capture_cooldown[str(business_id)] = (
+                        now + NPC_BUSINESS_CAPTURE_COOLDOWN)
                 pkts.append({'kind': 'gang_nest_expired', 'id': ne['id']})
                 continue
             surviving.append(ne)
@@ -16737,7 +16923,7 @@ class WorldSim:
                         pkts.append(self._enqueue_bot_shot(
                             target=target, sx=bot['x'], sy=bot['y'],
                             tx=tx, ty=ty, weapon=weapon,
-                            bot_id=bot['id'], tid=ne['id']))
+                            bot_id=bot['id'], tid=ne['id'], bot_level=bot.get('level', 1)))
         return pkts
 
     # ── Пляжники (мирные NPC) ──────────────────────────────────────
@@ -17403,9 +17589,11 @@ class WorldSim:
         sx, sy = _nearest_district_patrol_point(did, sx, sy)
         self._next_bot_id += 1
         boss_id = f'dbboss{self._next_bot_id}'
+        boss_level = self.BANDIT_MAX_LEVEL
+        boss_hp = self._bandit_hp(self.DIST_BOSS_HP, boss_level)
         bots = [{
             'id': boss_id, 'x': float(sx), 'y': float(sy), 'ang': 0.0,
-            'hp': self.DIST_BOSS_HP, 'max_hp': self.DIST_BOSS_HP,
+            'hp': boss_hp, 'max_hp': boss_hp, 'level': boss_level,
             'alive': True, 'kind': 'district_boss', 'weapon': 'uzi', '_shot_t': 0.0,
             'damage': int(self.AGGRO_WEAPON_STATS['uzi']['dmg']),
             '_act': 'walk', '_act_until': time.time() + 12,
@@ -17418,9 +17606,12 @@ class WorldSim:
             self._next_bot_id += 1
             guard_weapon = guard_weapons[guard_i % len(guard_weapons)]
             gx, gy = _nearest_district_patrol_point(did, sx + dx, sy + dy)
+            guard_level = random.randint(14, 22)
+            guard_hp = self._bandit_hp(self.DIST_GUARD_HP, guard_level)
             bots.append({
                 'id': f'dbguard{self._next_bot_id}', 'x': float(gx), 'y': float(gy),
-                'ang': 0.0, 'hp': self.DIST_GUARD_HP, 'max_hp': self.DIST_GUARD_HP, 'alive': True,
+                'ang': 0.0, 'hp': guard_hp, 'max_hp': guard_hp,
+                'level': guard_level, 'alive': True,
                 'kind': 'district_guard', 'weapon': guard_weapon, '_shot_t': 0.0,
                 'damage': int(self.AGGRO_WEAPON_STATS[guard_weapon]['dmg']),
                 '_act': 'walk', '_act_until': time.time() + random.uniform(8,15),
@@ -18290,8 +18481,11 @@ class WorldSim:
                     'ang':     round(bot['ang'], 2),
                     'hp':      int(bot['hp']),
                     'max_hp':  int(bot['max_hp']),
+                    'level':   max(1, min(self.BANDIT_MAX_LEVEL, int(bot.get('level') or 1))),
                     'kind':    bot['kind'],
                     'weapon':  bot.get('weapon') or 'pistol_heavy',
+                    'act':     bot.get('act') or 'idle',
+                    'threat':  bot.get('threat') or '',
                     'damage':  int(bot.get('damage') or self.AGGRO_WEAPON_STATS.get(
                                    bot.get('weapon') or 'pistol_heavy', {}).get('dmg', 0)),
                     'evading_c4': bool(bot.get('_evading_c4')),
@@ -18339,6 +18533,7 @@ class WorldSim:
                     'ang':     round(bot['ang'], 2),
                     'hp':      int(bot['hp']),
                     'max_hp':  int(bot['max_hp']),
+                    'level':   max(1, min(self.BANDIT_MAX_LEVEL, int(bot.get('level') or 1))),
                     'kind':    bot['kind'],
                     'weapon':  bot.get('weapon') or 'pistol_heavy',
                     'damage':  int(bot.get('damage') or self.AGGRO_WEAPON_STATS.get(
@@ -18366,6 +18561,7 @@ class WorldSim:
                 'next_respawn':  0,
                 'is_city_gang':  True,
                 'district_did':  g.get('district_did'),
+                'faction':       g.get('faction', 'purple'),
             }
         # Бандитские гнёзда — те же боты через aggro_payload + отдельный
         # nests payload с anchor (для рендера красной подсветки здания).
@@ -18394,6 +18590,7 @@ class WorldSim:
                 'cap_left':      0,
                 'next_respawn':  0,
                 'is_nest':       True,
+                'faction':       ne.get('faction', 'purple'),
             }
             nests_payload.append({
                 'id':         ne['id'],
@@ -18402,6 +18599,8 @@ class WorldSim:
                 'state':      ne.get('state', 'guard'),
                 'expires_in': max(0, int(round(ne['_expires_at'] - now_t))),
                 'bots_alive': len(n_bots),
+                'faction':    ne.get('faction', 'purple'),
+                'business_id': ne.get('business_id'),
             })
         # Квестовые тачки Майкла — шлём всем (их мало). Машину видят все,
         # но сесть и угнать её может только owner_uid (контракт персональный,
@@ -19788,6 +19987,9 @@ async def _coop_http_app():
             return 0
         if row['status'] != 'ok':
             return 0
+        if (_WORLD is not None and
+                str(row.get('biz_id') or '') in _WORLD._business_npc_occupations):
+            return 0
         # Если блокирован — доход начисляется только до момента блокировки... упрощаем:
         # просто пока статус == 'ok' доход накапливается
         if (row.get('blocked_until') or 0) > now:
@@ -19836,6 +20038,13 @@ async def _coop_http_app():
                 entry['daily_min']     = int(round(b['daily_min'] * mult))
                 entry['daily_max']     = int(round(b['daily_max'] * mult))
                 entry['upgrade_cost']  = 0 if level >= BIZ_MAX_LEVEL else business_upgrade_cost(b, level + 1)
+                occupied = bool(_WORLD is not None and
+                                b['id'] in _WORLD._business_npc_occupations)
+                entry['npc_occupied'] = occupied
+                if occupied:
+                    entry['status'] = 'gang_occupied'
+                    entry['notice'] = (
+                        'Бизнес захвачен вражеской бандой и не может приносить прибыль')
             else:
                 entry['level'] = 0
                 entry['income_multiplier'] = 1.0
@@ -22395,6 +22604,15 @@ async def _coop_http_app():
                                 await ws.send_str(json.dumps({'t': 'event', 'd': {
                                     'kind': 'bank_rob_start_reply', 'ok': False,
                                     'reason': 'police_on_duty',
+                                }}, ensure_ascii=False))
+                            except Exception:
+                                pass
+                            continue
+                        if p and not p.get('_mafia'):
+                            try:
+                                await ws.send_str(json.dumps({'t': 'event', 'd': {
+                                    'kind': 'bank_rob_start_reply', 'ok': False,
+                                    'reason': 'mafia_only',
                                 }}, ensure_ascii=False))
                             except Exception:
                                 pass
