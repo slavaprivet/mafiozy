@@ -10217,6 +10217,9 @@ function carCanGo(car, dt) {
   // После команды сирены машина несколько кадров остаётся прижатой к краю,
   // чтобы не вернуться под колёса спецтранспорта сразу после смещения.
   const now = performance.now();
+  // Одна машина в настоящем локальном заторе получает короткое окно,
+  // чтобы покинуть перекрёсток. Стены и игрок всё ещё блокируют движение.
+  const jamEscape = now < (car._jamEscapeUntil || 0);
   if (car._emergencyYieldUntil && now < car._emergencyYieldUntil) return false;
   if (car._emergencyYieldUntil) car._emergencyYieldUntil = 0;
 
@@ -10228,14 +10231,14 @@ function carCanGo(car, dt) {
   const ownLength = (car.model && car.model.L) || 1.8;
   const safeGap = (ownLength + lead.length) * 0.5 + 0.42 + Math.min(0.5, speed * 0.14);
   car._leadGap = lead.gap;
-  if (lead.gap < safeGap) return false;
+  if (!jamEscape && lead.gap < safeGap) return false;
   // Светофор — если близко к перекрёстку и фаза не «зелёная для нас»
   const phase = trafficPhase();
   // Найдём ближайший перекрёсток впереди
   // (перекрёсток = тайл где r%8<=1 И c%8<=1, не наш текущий)
   // Во время поворота машина уже внутри перекрёстка — повторно ловить её
   // светофором посреди дуги нельзя, иначе она зависает поперёк обеих полос.
-  if (!car._turningAtIntersection) for (let look = 0; look < 3; look++) {
+  if (!jamEscape && !car._turningAtIntersection) for (let look = 0; look < 3; look++) {
     const lr = Math.floor(car.r + car.dirDy * (look + 0.5));
     const lc = Math.floor(car.c + car.dirDx * (look + 0.5));
     if (lr < 0 || lc < 0 || lr >= MAP_ROWS || lc >= MAP_COLS) break;
@@ -10656,6 +10659,31 @@ function _carHonkTick(car, dt) {
 }
 
 // П7 ── Ломучие машины (junker) ───────────────────────────────────────────────
+let _trafficJamReleaseCar = null;
+let _trafficJamReleaseUntil = 0;
+function _trafficTryReleaseGridlock(car, now) {
+  if (!car || car.parked || car.gang || car._convoy || car._wrecked) return false;
+  if ((car._stuckT || 0) < 9) return false;
+  if (_trafficJamReleaseCar && now < _trafficJamReleaseUntil &&
+      _trafficJamReleaseCar !== car) return false;
+  let nearbyStuck = 0;
+  for (const other of CARS) {
+    if (!other || other.parked || other.gang || other._wrecked) continue;
+    if ((other._stuckT || 0) < 3) continue;
+    if (Math.hypot(other.r - car.r, other.c - car.c) <= 7) nearbyStuck++;
+  }
+  // Одиночное ожидание светофора не является пробкой.
+  if (nearbyStuck < 3) return false;
+  _trafficJamReleaseCar = car;
+  _trafficJamReleaseUntil = now + 2200;
+  car._jamEscapeUntil = _trafficJamReleaseUntil;
+  car._route = null; car._routeIdx = 0;
+  _planCarRoute(car, true);
+  _updateCarRouteDirection(car);
+  car._hornUntil = 0; car._hornText = undefined;
+  return true;
+}
+
 const _JUNKER_COLORS = ['#6b4c2a','#5a3d1c','#7a5a2a','#4a3510','#6a4a1a'];
 function _maybeJunker(car) {
   if (car._junkerChecked) return;
@@ -12071,6 +12099,7 @@ function updateCars(dt) {
         car._route = null; car._routeIdx = 0;
         _planCarRoute(car, true);
       }
+      _trafficTryReleaseGridlock(car, now);
       let doRespawn = false;
       if (car._blockedByJail && car._stuckT > 3) doRespawn = true;
       else if (car._stuckT > 14 && distP > 16)   doRespawn = true;
@@ -14398,11 +14427,21 @@ function handleEventPacket(d) {
       const left=Math.max(1,+d.protected_s||1)*1000;if(d.biz_id)_businessOwnerProtection[d.biz_id]=Date.now()+left;
       showEventBanner('⛔ ОГРАБЛЕНИЕ НЕДОСТУПНО',`В прошлый раз тебе помешали ограбить · КД ${_businessClosureText(left)}`,3600,'lose');return;
     }
+    if(!d.ok){
+      const reasonText={
+        cooldown:`Повторный налёт доступен через ${_businessClosureText(Math.max(1,+d.cooldown_s||1)*1000)}`,
+        closed:`Заведение откроется через ${_businessClosureText(Math.max(1,+d.closed_s||1)*1000)}`,
+        own:'Нельзя ограбить собственный бизнес',
+        too_far:'Подойди ближе ко входу бизнеса',
+        dead:'Сейчас начать ограбление нельзя'
+      }[d.reason]||'Сервер отклонил начало ограбления';
+      showEventBanner('⛔ ОГРАБЛЕНИЕ НЕДОСТУПНО',reasonText,3200,'lose');return;
+    }
     if (!d.ok || !biz || biz.id !== d.biz_id || _buildingInt) return;
     _robTargetBiz=biz; _robTargetR=biz.r; _robTargetC=biz.c;
     const attempt=Math.max(1,Math.min(3,+d.attempt||1));
     const bonus=Math.max(0,Math.min(6,+d.guard_bonus||0));
-    enterBuildingInterior(biz.r,biz.c,'business',biz.id,{robbery:true,guardBonus:bonus,attempt});
+    enterBuildingInterior(biz.r,biz.c,'business',biz.id,{robbery:true,guardBonus:bonus,attempt,robToken:d.rob_token||''});
     showEventBanner(`🔫 ПОПЫТКА ${attempt} ИЗ 3`,bonus?`Охрана усилилась: ещё ${bonus} бойцов`:'Обычная охрана заведения',2600,bonus?'lose':'warn');
     hapticHit();
   } else if (kind === 'shop_rob_reply') {
@@ -17465,7 +17504,7 @@ _gtaBtn.addEventListener('click', () => {
       _buildingInt.robberyClaimed=true;
       owner._sayText=owner.persona?.give||'ДЕРЖИ ДЕНЬГИ, ТОЛЬКО НЕ УБИВАЙ!';owner._sayUntil=performance.now()+2400;
       const guardsDown=(_buildingInt.npcs||[]).filter(n=>n.role==='biz_guard'&&n.dead).length;
-      if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'shop_rob',d:{biz_id:_buildingInt.bizId,pressure:100-owner.hp,guards_down:guardsDown}}));
+      if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'shop_rob',d:{biz_id:_buildingInt.bizId,rob_token:_buildingInt.robToken||''}}));
       else{_buildingInt.robberyClaimed=false;showToast('Сервер не отвечает','⚠️',1800);}
     }
   } else if (_gtaActionKind === 'blackmarket') {
@@ -19610,9 +19649,13 @@ function _renderShopItems() {
 }
 function _drawShopWeaponPreviews(){
   _shopList?.querySelectorAll('canvas[data-shop-weapon]').forEach(cv=>{
-    const weapon=cv.dataset.shopWeapon,draw=WEAPON_DRAWERS[weapon]||WEAPON_DRAWERS[resolveWeapon(weapon)];
-    const c=cv.getContext('2d');c.clearRect(0,0,cv.width,cv.height);if(!draw)return;
-    c.save();c.translate(42,42);c.scale(1.7,1.7);draw(c,1);c.restore();
+    const weapon=resolveWeapon(cv.dataset.shopWeapon);
+    const c=cv.getContext('2d');
+    c.clearRect(0,0,cv.width,cv.height);
+    c.save();
+    c.imageSmoothingEnabled=false;
+    drawFirearm(weapon,cv.width*.48,cv.height*.52,1,0,2.15,c);
+    c.restore();
   });
 }
 function _drawShopAmmoPreviews(){
@@ -32864,7 +32907,11 @@ async function _useProfileConsumable(itemId){
     myHp=Math.max(0,Math.min(PVP.max_hp||100,+j.hp||myHp));_selfHpBarUntil=performance.now()+3500;
     await loadInventoryItems();updateHud();
     showToast(`Восстановлено ${+j.healed||0} HP · осталось: ${+j.left||0}`,'❤️‍🩹',2200);
-  }catch(e){showToast(String(e.message)==='full hp'?'Здоровье уже полное':'Не удалось использовать аптечку','❌',2000);await loadInventoryItems();}
+  }catch(e){
+    const reason=String(e.message);
+    showToast(reason==='full hp'?'Здоровье уже полное':reason==='in combat'?'В бою аптечку использовать нельзя. Подожди 10 секунд после боя.':'Не удалось использовать аптечку','❌',2200);
+    await loadInventoryItems();
+  }
   finally{_usingProfileConsumable=false;renderProfileTab();}
 }
 function renderProfileTab() {
@@ -41580,7 +41627,15 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon) {
         return;
       }
       npc.maxHp=100;
+      const ownerDamage=Math.min((npc.hp==null?100:npc.hp)-1,Math.max(1,damage||1));
       npc.hp=Math.max(1,(npc.hp==null?100:npc.hp)-Math.max(1,damage||1));
+      _buildingInt.ownerHitSeq=(_buildingInt.ownerHitSeq||0)+1;
+      try {
+        ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'business_rob_owner_hit',d:{
+          biz_id:_buildingInt.bizId,rob_token:_buildingInt.robToken||'',
+          damage:ownerDamage,hit_seq:_buildingInt.ownerHitSeq
+        }}));
+      } catch(e) {}
       npc._hurtAnimUntil=performance.now()+420;
       const phrases=npc.persona?.pain||['А-А-АЙ!','ХВАТИТ!','НЕ НАДО!'];
       npc._sayText=phrases[Math.floor(Math.random()*phrases.length)];
@@ -41607,6 +41662,14 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon) {
   npc.c = Math.max(.5, Math.min(_buildingInt.W - .5, npc.c + dirX * .12));
   if (npc.hp <= 0) {
     npc.dead = true; npc.deadAt = performance.now(); npc.walking = false;
+    if (robbery && npc.role==='biz_guard') {
+      const guardId=_buildingInt.npcs.filter(n=>n.role==='biz_guard').indexOf(npc);
+      try {
+        ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'business_rob_guard_down',d:{
+          biz_id:_buildingInt.bizId,rob_token:_buildingInt.robToken||'',guard_id:guardId
+        }}));
+      } catch(e) {}
+    }
     spawnFloatText(npc.r, npc.c, 'УБИТ', { color:'#ff6969', size:14, life:1300 });
     if (robbery && npc.role==='biz_guard' && !_buildingInt.npcs.some(n=>n.role==='biz_guard'&&!n.dead)) {
       showEventBanner('⚠️ ОХРАНА УНИЧТОЖЕНА','Дави на владельца и заставь отдать деньги',2600,'warn');
@@ -41826,7 +41889,8 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
     type: type || null, bizId: bizId || null, loot: null, npcs: [],
     robbery: !!options?.robbery || rememberedAggro, robberyStarted:rememberedAggro,
     robberyClaimed:false, _aggroReported:rememberedAggro,
-    guardBonus:Math.max(0,+options?.guardBonus||0), robberyAttempt:Math.max(1,+options?.attempt||1) };
+    guardBonus:Math.max(0,+options?.guardBonus||0), robberyAttempt:Math.max(1,+options?.attempt||1),
+    robToken:String(options?.robToken||''), ownerHitSeq:0 };
   _spawnInteriorNpcs(_buildingInt);
   if (rememberedAggro) {
     const threats=['ЭТО СНОВА ОН!','ВАЛИ ЕГО!','ОН ВЕРНУЛСЯ!'];

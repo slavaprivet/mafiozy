@@ -7,6 +7,7 @@ import aiosqlite
 import json
 import urllib.parse
 import os
+import secrets
 from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.error import Forbidden, BadRequest
@@ -4301,6 +4302,16 @@ SHOP_ROB_CONFIG = {
     "warehouse":  {"money": 3200, "stars": 2},
     "casino":     {"money": 5000, "stars": 3},
     "port":       {"money": 8000, "stars": 3},
+}
+
+# Ограбление подтверждается серверной сессией, а не итоговыми числами,
+# присланными браузером. Кулдаун персональный: один игрок / один бизнес.
+SHOP_ROB_PERSONAL_COOLDOWN_S = 3600
+SHOP_ROB_SESSION_TTL_S = 10 * 60
+SHOP_ROB_GUARDS = {
+    "coffee": 1, "carwash": 2, "barbershop": 2, "pizza": 3,
+    "garage": 4, "bar": 4, "club": 5, "warehouse": 6,
+    "casino": 8, "port": 10,
 }
 
 # Бригадир — NPC в городе, выдаёт хит-контракты на мирных NPC.
@@ -12292,7 +12303,7 @@ class WorldSim:
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
         '_business_closed_until', '_business_aggro_until', '_business_police_protected_until',
-        '_business_owner_protected_until',
+        '_business_owner_protected_until', '_business_rob_sessions',
         # Очередь физических пуль ботов (dodge-механика).
         '_pending_bot_shots',
         # Пляжники — мирные NPC в купальниках/плавках.
@@ -12824,6 +12835,9 @@ class WorldSim:
         self._business_aggro_until = {}
         self._business_police_protected_until = {}
         self._business_owner_protected_until = {}
+        # uid -> серверное состояние текущего налёта. Финальный shop_rob
+        # принимается только с одноразовым token и завершёнными этапами.
+        self._business_rob_sessions = {}
         # Пляжники — мирные NPC. Спавнятся когда есть игроки.
         self.beachgoers = []
         self._beachgoer_next_id = 1
@@ -14816,6 +14830,10 @@ class WorldSim:
             dmg = max(1, min(220, int(math.ceil(dmg * 1.05))))
         dmg = self.police_vest_damage(target, dmg)
         target['hp'] = int(max(0, int(target.get('hp', 100)) - dmg))
+        # Аптечки разрешены только после боя. Метка ставится обоим участникам
+        # лишь после подтверждённого сервером попадания.
+        shooter['_combat_until'] = now + 10.0
+        target['_combat_until'] = now + 10.0
         killed = False
         bounty_done = False
         if target['hp'] <= 0:
@@ -20663,6 +20681,26 @@ async def _coop_http_app():
         if item_id not in ('grenade','molotov',*medkits):
             return await _cors(web.json_response({'ok':False,'error':'bad item'},status=400))
         if item_id in medkits:
+            in_world_combat = False
+            try:
+                p_ref = _WORLD.players.get(str(uid)) if _WORLD is not None else None
+                in_world_combat = bool(
+                    p_ref and (
+                        p_ref.get('dead') or
+                        float(p_ref.get('_combat_until') or 0) > time.time()
+                    )
+                )
+            except Exception:
+                in_world_combat = False
+            async with aiosqlite.connect(DB_PATH) as battle_db:
+                async with battle_db.execute(
+                    'SELECT 1 FROM active_battles WHERE telegram_id=?', (uid,)
+                ) as cur:
+                    in_turn_battle = await cur.fetchone()
+            if in_world_combat or in_turn_battle:
+                return await _cors(web.json_response(
+                    {'ok':False,'error':'in combat'}, status=409
+                ))
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute('BEGIN IMMEDIATE')
                 async with db.execute('SELECT hp,max_hp FROM characters WHERE telegram_id=?',(uid,)) as cur: char=await cur.fetchone()
@@ -21895,12 +21933,25 @@ async def _coop_http_app():
                     elif t == 'business_rob_prepare':
                         biz_id = str(d.get('biz_id') or '') if isinstance(d, dict) else ''
                         robber = world.players.get(uid) or {}
+                        now_rob = time.time()
                         protected_left = max(0, int(world._business_police_protected_until.get(
-                            (str(uid), biz_id), 0) - time.time()))
+                            (str(uid), biz_id), 0) - now_rob))
                         defended_left = max(0, int(world._business_owner_protected_until.get(
-                            (str(uid), biz_id), 0) - time.time()))
+                            (str(uid), biz_id), 0) - now_rob))
                         completed = 0
-                        if biz_id in SHOP_ROB_CONFIG and not robber.get('_police') and not protected_left and not defended_left:
+                        cooldown_left = 0
+                        closed_left = max(0, int(world._business_closed_until.get(biz_id, 0) - now_rob))
+                        rc = BUSINESS_POIS_RC.get(biz_id)
+                        close_enough = False
+                        owns_business = False
+                        if rc and robber:
+                            poi_r, poi_c = rc
+                            close_enough = (
+                                (float(robber.get('x', 0)) - poi_c) ** 2 +
+                                (float(robber.get('y', 0)) - poi_r) ** 2 <= 9.0
+                            )
+                        if biz_id in SHOP_ROB_CONFIG and robber:
+                            owns_business = world._biz_owned_sync(int(uid), biz_id)
                             try:
                                 async with aiosqlite.connect(DB_PATH) as db:
                                     cur = await db.execute(
@@ -21908,15 +21959,94 @@ async def _coop_http_app():
                                         (int(uid), biz_id))
                                     row = await cur.fetchone()
                                     completed = max(0, min(2, int(row[0]) if row else 0))
+                                    cur = await db.execute(
+                                        "SELECT t FROM shop_robs WHERE uid=? AND biz_id=?",
+                                        (int(uid), biz_id))
+                                    row = await cur.fetchone()
+                                    if row:
+                                        cooldown_left = max(
+                                            0, SHOP_ROB_PERSONAL_COOLDOWN_S -
+                                            (int(now_rob) - int(row[0])))
                             except Exception:
                                 completed = 0
+                        ok_prepare = bool(
+                            biz_id in SHOP_ROB_CONFIG and robber and
+                            not robber.get('dead') and robber.get('_mode') != 'pve' and
+                            not robber.get('_police') and not protected_left and
+                            not defended_left and not cooldown_left and not closed_left and
+                            close_enough and not owns_business
+                        )
+                        token = ''
+                        guard_count = int(SHOP_ROB_GUARDS.get(biz_id, 1)) + completed * 3
+                        if ok_prepare:
+                            token = secrets.token_urlsafe(24)
+                            world._business_rob_sessions[str(uid)] = {
+                                'token': token, 'biz_id': biz_id, 'started_at': now_rob,
+                                'expires_at': now_rob + SHOP_ROB_SESSION_TTL_S,
+                                'guard_count': guard_count, 'guards_down': set(),
+                                'owner_pressure': 0.0, 'last_guard_at': 0.0,
+                                'owner_hit_seq': 0,
+                            }
+                        else:
+                            world._business_rob_sessions.pop(str(uid), None)
+                        reason = (
+                            'police' if robber.get('_police') else
+                            'protected' if protected_left else
+                            'defended' if defended_left else
+                            'cooldown' if cooldown_left else
+                            'closed' if closed_left else
+                            'own' if owns_business else
+                            'too_far' if not close_enough else
+                            'dead'
+                        )
                         await ws.send_str(json.dumps({'t':'event','d':{
                             'kind':'business_rob_prepare_reply',
-                            'ok':biz_id in SHOP_ROB_CONFIG and not robber.get('_police') and not protected_left and not defended_left,
-                            'reason':'police' if robber.get('_police') else ('protected' if protected_left else ('defended' if defended_left else '')),
+                            'ok':ok_prepare, 'reason':'' if ok_prepare else reason,
                             'protected_s':protected_left or defended_left,
-                            'biz_id':biz_id,'attempt':completed+1,'guard_bonus':completed*3,
+                            'cooldown_s':cooldown_left, 'closed_s':closed_left,
+                            'biz_id':biz_id, 'attempt':completed+1,
+                            'guard_bonus':completed*3, 'guard_count':guard_count,
+                            'rob_token':token,
                         }}, ensure_ascii=False))
+                    elif t in ('business_rob_guard_down', 'business_rob_owner_hit'):
+                        payload = d if isinstance(d, dict) else {}
+                        session = world._business_rob_sessions.get(str(uid))
+                        token = str(payload.get('rob_token') or '')
+                        now_rob = time.time()
+                        if (not session or not token or
+                                not secrets.compare_digest(token, str(session.get('token') or '')) or
+                                now_rob > float(session.get('expires_at') or 0)):
+                            world._business_rob_sessions.pop(str(uid), None)
+                            continue
+                        if t == 'business_rob_guard_down':
+                            try:
+                                guard_id = int(payload.get('guard_id'))
+                            except (TypeError, ValueError):
+                                continue
+                            guards_down = session['guards_down']
+                            # Один и тот же охранник засчитывается один раз. Сервер также
+                            # не позволяет "убить" всю комнату одним пакетом.
+                            if (0 <= guard_id < int(session['guard_count']) and
+                                    guard_id not in guards_down and
+                                    now_rob - float(session.get('last_guard_at') or 0) >= 0.35):
+                                guards_down.add(guard_id)
+                                session['last_guard_at'] = now_rob
+                        else:
+                            if len(session['guards_down']) < int(session['guard_count']):
+                                continue
+                            try:
+                                damage = max(0.0, min(35.0, float(payload.get('damage') or 0)))
+                                hit_seq = int(payload.get('hit_seq') or 0)
+                            except (TypeError, ValueError):
+                                continue
+                            # WebSocket сохраняет порядок пакетов. Последовательный
+                            # номер не теряет честные быстрые попадания, но не даёт
+                            # повторно воспроизвести уже принятый пакет.
+                            expected_seq = int(session.get('owner_hit_seq') or 0) + 1
+                            if damage and hit_seq == expected_seq:
+                                session['owner_pressure'] = min(
+                                    99.0, float(session.get('owner_pressure') or 0) + damage)
+                                session['owner_hit_seq'] = hit_seq
                     elif t == 'shop_rob':
                         # Игрок ограбил магазин/бизнес: d = {biz_id}
                         # Серверная логика:
@@ -21931,11 +22061,15 @@ async def _coop_http_app():
                             biz_id = str(d.get('biz_id') or '')
                         cfg = SHOP_ROB_CONFIG.get(biz_id)
                         rc  = BUSINESS_POIS_RC.get(biz_id)
-                        try:
-                            pressure = float(d.get('pressure') or 0) if isinstance(d, dict) else 0
-                            guards_down = int(d.get('guards_down') or 0) if isinstance(d, dict) else 0
-                        except (TypeError, ValueError):
-                            pressure, guards_down = 0, 0
+                        payload = d if isinstance(d, dict) else {}
+                        session = world._business_rob_sessions.get(str(uid))
+                        rob_token = str(payload.get('rob_token') or '')
+                        session_ok = bool(
+                            session and rob_token and
+                            secrets.compare_digest(rob_token, str(session.get('token') or '')) and
+                            session.get('biz_id') == biz_id and
+                            time.time() <= float(session.get('expires_at') or 0)
+                        )
                         reply = {'ok': False, 'reason': 'unknown'}
                         if not p or p.get('dead') or p.get('_mode') == 'pve':
                             reply = {'ok': False, 'reason': 'dead'}
@@ -21949,7 +22083,12 @@ async def _coop_http_app():
                                      'protected_s':int(world._business_owner_protected_until[(str(uid),biz_id)]-time.time())}
                         elif not cfg or not rc:
                             reply = {'ok': False, 'reason': 'bad_biz'}
-                        elif pressure < 70 or guards_down < 1:
+                        elif not session_ok:
+                            reply = {'ok': False, 'reason': 'invalid_session'}
+                        elif (len(session['guards_down']) < int(session['guard_count']) or
+                              float(session.get('owner_pressure') or 0) < 70 or
+                              time.time() - float(session.get('started_at') or 0) <
+                              max(3.0, int(session['guard_count']) * 0.75)):
                             reply = {'ok': False, 'reason': 'not_pressured'}
                         else:
                             poi_r, poi_c = rc
@@ -21973,7 +22112,6 @@ async def _coop_http_app():
                                     except Exception:
                                         pass
                                     continue
-                                last_t = 0
                                 try:
                                     async with aiosqlite.connect(DB_PATH) as db:
                                         cur = await db.execute(
@@ -21982,11 +22120,8 @@ async def _coop_http_app():
                                         row = await cur.fetchone()
                                         if row: last_t = int(row[0])
                                 except Exception: pass
-                                # Новая система использует общий 5-минутный респавн
-                                # заведения вместо персонального часового кулдауна.
-                                last_t = 0
-                                if now_ts - last_t < 3600:
-                                    left = 3600 - (now_ts - last_t)
+                                if now_ts - last_t < SHOP_ROB_PERSONAL_COOLDOWN_S:
+                                    left = SHOP_ROB_PERSONAL_COOLDOWN_S - (now_ts - last_t)
                                     reply = {'ok': False, 'reason': 'cooldown',
                                              'cooldown_s': left}
                                 else:
@@ -22014,6 +22149,7 @@ async def _coop_http_app():
                                                        float(stars))
                                     p['_last_shot_t'] = time.time()
                                     world._business_closed_until[biz_id] = time.time() + 300.0
+                                    world._business_rob_sessions.pop(str(uid), None)
                                     reply = {'ok': True, 'biz_id': biz_id,
                                              'money': money, 'stars': stars,
                                              'closed_s': 300}

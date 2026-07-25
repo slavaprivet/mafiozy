@@ -2,6 +2,7 @@ import asyncio
 import json
 import math
 import random
+import secrets
 from pathlib import Path
 import time
 from aiohttp import web
@@ -113,6 +114,13 @@ preview_businesses = {}
 preview_business_closures = {}
 preview_business_aggro = {}
 preview_business_rob_cycles = {}
+preview_business_rob_sessions = {}
+preview_business_last_robs = {}
+PREVIEW_ROB_PERSONAL_COOLDOWN_S = 3600
+PREVIEW_ROB_GUARDS = {
+    "coffee":1, "carwash":2, "barbershop":2, "pizza":3, "garage":4,
+    "bar":4, "club":5, "warehouse":6, "casino":8, "port":10,
+}
 preview_business_police_protection = {}
 preview_business_owner_protection = {}
 preview_police_rewards = set()
@@ -902,7 +910,8 @@ async def inv_equip(req):
 
 
 async def inv_consume(req):
-    account=preview_account(req.match_info.get("uid","1"))
+    uid=str(req.match_info.get("uid","1"))
+    account=preview_account(uid)
     try:
         body=await req.json()
     except Exception:
@@ -910,10 +919,16 @@ async def inv_consume(req):
     iid=str(body.get("item_id") or "")
     medkits={"medkit_small":55,"medkit_medium":130,"medkit_large":280}
     if iid in medkits:
-        if account["hp"]>=account["max_hp"]:return cors(web.json_response({"ok":False,"error":"full hp"},status=409))
+        player=players.get(uid)
+        if player and (player.get("dead") or float(player.get("combat_until",0))>time.time()):
+            return cors(web.json_response({"ok":False,"error":"in combat"},status=409))
+        hp=int(player.get("hp",account["hp"])) if player else int(account["hp"])
+        max_hp=int(player.get("max_hp",account["max_hp"])) if player else int(account["max_hp"])
+        if hp>=max_hp:return cors(web.json_response({"ok":False,"error":"full hp"},status=409))
         if int(account["consumables"].get(iid,0))<=0:return cors(web.json_response({"ok":False,"error":"not in inventory"},status=400))
-        healed=min(medkits[iid],account["max_hp"]-account["hp"]);account["hp"]+=healed;account["consumables"][iid]-=1
-        return cors(web.json_response({"ok":True,"item_id":iid,"hp":account["hp"],"max_hp":account["max_hp"],"healed":healed,"left":account["consumables"][iid]}))
+        healed=min(medkits[iid],max_hp-hp);hp+=healed;account["hp"]=hp;account["max_hp"]=max_hp;account["consumables"][iid]-=1
+        if player:player["hp"]=hp
+        return cors(web.json_response({"ok":True,"item_id":iid,"hp":hp,"max_hp":max_hp,"healed":healed,"left":account["consumables"][iid]}))
     if iid not in ("grenade","molotov") or int(account["consumables"].get(iid,0))<=0:
         return cors(web.json_response({"ok":False,"error":"not in inventory"},status=400))
     account["consumables"][iid]-=1
@@ -1794,21 +1809,89 @@ async def world_ws(req):
             elif t == "business_rob_prepare":
                 biz_id = str(d.get("biz_id") or "")
                 p = players.get(uid) or {}
-                protected_left=max(0,int(preview_business_police_protection.get((str(uid),biz_id),0)-time.time()))
-                defended_left=max(0,int(preview_business_owner_protection.get((str(uid),biz_id),0)-time.time()))
+                now_rob=time.time()
+                protected_left=max(0,int(preview_business_police_protection.get((str(uid),biz_id),0)-now_rob))
+                defended_left=max(0,int(preview_business_owner_protection.get((str(uid),biz_id),0)-now_rob))
+                closed_left=max(0,int(preview_business_closures.get(biz_id,0)-now_rob))
+                last_rob=float(preview_business_last_robs.get((str(uid),biz_id),0))
+                cooldown_left=max(0,int(PREVIEW_ROB_PERSONAL_COOLDOWN_S-(now_rob-last_rob))) if last_rob else 0
                 completed = max(0, min(2, int(preview_business_rob_cycles.get((str(uid),biz_id),0))))
+                rc=PREVIEW_BUSINESS_RC.get(biz_id)
+                close_enough=bool(rc and (float(p.get("x",0))-rc[1])**2+(float(p.get("y",0))-rc[0])**2<=9)
+                owns=biz_id in preview_owned_businesses(uid)
+                ok_prepare=bool(
+                    rc and p and not p.get("dead") and not p.get("police") and
+                    not protected_left and not defended_left and not closed_left and
+                    not cooldown_left and close_enough and not owns
+                )
+                guard_count=int(PREVIEW_ROB_GUARDS.get(biz_id,1))+completed*3
+                token=""
+                if ok_prepare:
+                    token=secrets.token_urlsafe(24)
+                    preview_business_rob_sessions[str(uid)]={
+                        "token":token,"biz_id":biz_id,"started_at":now_rob,
+                        "expires_at":now_rob+600,"guard_count":guard_count,
+                        "guards_down":set(),"owner_pressure":0.0,
+                        "last_guard_at":0.0,"owner_hit_seq":0,
+                    }
+                else:
+                    preview_business_rob_sessions.pop(str(uid),None)
+                reason=("police" if p.get("police") else
+                        "protected" if protected_left else
+                        "defended" if defended_left else
+                        "cooldown" if cooldown_left else
+                        "closed" if closed_left else
+                        "own" if owns else
+                        "too_far" if not close_enough else "dead")
                 await ws.send_str(json.dumps({"t":"event","d":{
-                    "kind":"business_rob_prepare_reply","ok":biz_id in PREVIEW_BUSINESS_RC and not p.get("police") and not protected_left and not defended_left,
-                    "reason":"police" if p.get("police") else ("protected" if protected_left else ("defended" if defended_left else "")),
+                    "kind":"business_rob_prepare_reply","ok":ok_prepare,
+                    "reason":"" if ok_prepare else reason,
                     "protected_s":protected_left or defended_left,
+                    "cooldown_s":cooldown_left,"closed_s":closed_left,
                     "biz_id":biz_id,"attempt":completed+1,"guard_bonus":completed*3,
+                    "guard_count":guard_count,"rob_token":token,
                 }}, ensure_ascii=False))
+            elif t in ("business_rob_guard_down","business_rob_owner_hit"):
+                payload=d if isinstance(d,dict) else {}
+                session=preview_business_rob_sessions.get(str(uid))
+                token=str(payload.get("rob_token") or "")
+                now_rob=time.time()
+                if (not session or not token or
+                        not secrets.compare_digest(token,str(session.get("token") or "")) or
+                        now_rob>float(session.get("expires_at") or 0)):
+                    preview_business_rob_sessions.pop(str(uid),None)
+                    continue
+                if t=="business_rob_guard_down":
+                    try: guard_id=int(payload.get("guard_id"))
+                    except (TypeError,ValueError): continue
+                    if (0<=guard_id<int(session["guard_count"]) and
+                            guard_id not in session["guards_down"] and
+                            now_rob-float(session.get("last_guard_at") or 0)>=.35):
+                        session["guards_down"].add(guard_id)
+                        session["last_guard_at"]=now_rob
+                else:
+                    if len(session["guards_down"])<int(session["guard_count"]): continue
+                    try:
+                        damage=max(0.0,min(35.0,float(payload.get("damage") or 0)))
+                        hit_seq=int(payload.get("hit_seq") or 0)
+                    except (TypeError,ValueError): continue
+                    expected_seq=int(session.get("owner_hit_seq") or 0)+1
+                    if damage and hit_seq==expected_seq:
+                        session["owner_pressure"]=min(99.0,float(session.get("owner_pressure") or 0)+damage)
+                        session["owner_hit_seq"]=hit_seq
             elif t == "shop_rob":
                 p = players.get(uid) or {}
                 biz_id = str(d.get("biz_id") or "")
                 rc = PREVIEW_BUSINESS_RC.get(biz_id)
                 reward = PREVIEW_ROB_PAYOUT.get(biz_id)
                 now = time.time()
+                session=preview_business_rob_sessions.get(str(uid))
+                rob_token=str(d.get("rob_token") or "")
+                session_ok=bool(
+                    session and rob_token and
+                    secrets.compare_digest(rob_token,str(session.get("token") or "")) and
+                    session.get("biz_id")==biz_id and now<=float(session.get("expires_at") or 0)
+                )
                 reply = {"kind":"shop_rob_reply", "ok":False, "reason":"bad_biz"}
                 if rc and reward:
                     closed_until = float(preview_business_closures.get(biz_id) or 0)
@@ -1824,7 +1907,11 @@ async def world_ws(req):
                         reply.update(reason="closed", closed_s=int(closed_until-now), biz_id=biz_id)
                     elif biz_id in preview_owned_businesses(uid):
                         reply.update(reason="own")
-                    elif float(d.get("pressure") or 0) < 70 or int(d.get("guards_down") or 0) < 1:
+                    elif not session_ok:
+                        reply.update(reason="invalid_session")
+                    elif (len(session["guards_down"])<int(session["guard_count"]) or
+                          float(session.get("owner_pressure") or 0)<70 or
+                          now-float(session.get("started_at") or 0)<max(3.0,int(session["guard_count"])*.75)):
                         reply.update(reason="not_pressured")
                     elif (float(p.get("x",0))-rc[1])**2 + (float(p.get("y",0))-rc[0])**2 > 9:
                         reply.update(reason="too_far")
@@ -1834,7 +1921,9 @@ async def world_ws(req):
                         p["wanted"] = max(int(p.get("wanted",0)), stars)
                         preview_business_closures[biz_id] = now + 300
                         key = (str(uid), biz_id)
+                        preview_business_last_robs[key] = now
                         preview_business_rob_cycles[key] = (int(preview_business_rob_cycles.get(key,0)) + 1) % 3
+                        preview_business_rob_sessions.pop(str(uid),None)
                         reply = {"kind":"shop_rob_reply", "ok":True, "biz_id":biz_id,
                                  "money":money, "stars":stars, "closed_s":300}
                         if p.get("mafia") and not p.get("police"):
@@ -2189,6 +2278,8 @@ async def world_ws(req):
                         weapon=str(d.get("weapon") or "pistol")
                         damage={"shotgun":30,"rifle":26,"sniper":45,"pistol":18,"pistol_heavy":22,"smg":14}.get(weapon,18)
                         target["hp"]=max(0,int(target.get("hp",100))-damage); killed=target["hp"]<=0
+                        shooter["combat_until"]=now_shot+10
+                        target["combat_until"]=now_shot+10
                         prevented=bool(killed and shooter.get("police") and target_attacker)
                         defended=bool(killed and business_defense and shooter.get("business_private") and target_attacker)
                         reward={}
@@ -2219,6 +2310,8 @@ async def world_ws(req):
                     weapon = str(d.get("weapon") or "pistol")
                     damage = {"shotgun":55,"rifle":42,"sniper":100,"pistol":28}.get(weapon,32)
                     target["hp"] = max(0, int(target.get("hp",100))-damage)
+                    shooter["combat_until"]=now_shot+10
+                    target["combat_until"]=now_shot+10
                     killed = target["hp"] <= 0
                     if killed:
                         old_uid = str(shooter.get("police_downed_target") or "")
@@ -2491,7 +2584,16 @@ async def world_ws(req):
                         "t": "event",
                         "d": {"kind": "gta_exit_reply", "ok": True,
                               "delivered": delivered, "reward": reward,
-                              "car_id": car["id"], "civilian": not delivered},
+                              "car_id": car["id"], "model": car.get("model"),
+                              "owner_uid": car.get("owner_uid"),
+                              "x": round(float(car.get("x", 0)), 3),
+                              "y": round(float(car.get("y", 0)), 3),
+                              "ang": round(float(car.get("ang", 0)), 3),
+                              "hp": int(car.get("hp", 220)),
+                              "max_hp": int(car.get("max_hp", 220)),
+                              "civilian": bool(car.get("civilian", not delivered)),
+                              "police_patrol": bool(car.get("police_patrol", False)),
+                              "police_stolen": bool(car.get("police_stolen", False))},
                     }))
             elif t == "race_top":
                 await ws.send_str(json.dumps({"t": "race_top", "d": {"top": race_top()}}))
