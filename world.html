@@ -5086,6 +5086,7 @@ const aggroZones = Object.create(null);
 // Активные бандитские гнёзда — массив объектов [{id, r, c, state,
 // expires_in, bots_alive}]. Перезаписывается с каждым snap.
 let gangNests = [];
+let _gangNestsSnapshotReady = false;
 
 // ── GTA-контракты Майкла (open-world угоны) ────────────────────────
 // Майкл стоит в порту, выдаёт контракты на угон конкретной модели машины.
@@ -7338,7 +7339,7 @@ function updateCityCops(dt) {
           spawnImpact(player.r, player.c, 'pistol', true);
           if (typeof addShake === 'function') addShake(2.5);
           const dmg = 7 + Math.floor(Math.random() * 5);
-          _hurtLocal(dmg, 'Полиция');
+          _hurtLocal(dmg, 'Полиция', true);
           flashHitOverlay(cop.y, cop.x, cop.id, 'city_cop', cop);
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
           try { hapticHit && hapticHit(); } catch(e) {}
@@ -9051,7 +9052,7 @@ function updateNpcs(dt) {
         const dmg = n._meleeDmg || 8;
         addShake(2);
         flashHitOverlay(n.r, n.c, n._policeTargetId || `street_npc_${NPCS.indexOf(n)}`, 'street_npc', n);
-        _hurtLocal(dmg, 'Охранник');
+        _hurtLocal(dmg, 'Охранник', true);
         spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4444', size: 16, life: 1000 });
         try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
           d: { dmg, sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } })); } catch(e) {}
@@ -9088,7 +9089,7 @@ function updateNpcs(dt) {
           spawnImpact(tR, tC, wep, true);
           addShake(2.5);
           flashHitOverlay(n.r, n.c, n._policeTargetId || `street_npc_${NPCS.indexOf(n)}`, 'street_npc', n);
-          _hurtLocal(npcDmg, 'Бандит');  // локальный урон «прилипает» против снапшота
+          _hurtLocal(npcDmg, 'Бандит', true);  // локальный урон «прилипает» против снапшота
           spawnFloatText(player.r - 0.4, player.c, `−${npcDmg}`, { color: '#ff4444', size: 16, life: 1100 });
           try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
             d: { dmg: npcDmg, sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } })); } catch(e) {}
@@ -9172,7 +9173,7 @@ function updateNpcs(dt) {
         hapticHit();
         flashHitOverlay(n.r, n.c, n._policeTargetId || `street_npc_${NPCS.indexOf(n)}`, 'street_npc', n);
         const dmg = 5 + Math.floor(Math.random() * 6);
-        _hurtLocal(dmg, 'Бандит');
+        _hurtLocal(dmg, 'Бандит', true);
         spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff6644', size: 14, life: 1000 });
         try { ws && ws.send(JSON.stringify({ t: 'npc_melee_shoot',
           d: { dmg, sx: +n.c.toFixed(2), sy: +n.r.toFixed(2) } })); } catch(e) {}
@@ -11075,6 +11076,10 @@ function drawOwnedBusinessWorldMarkers(r0, r1, c0, c1) {
   for (const biz of BUSINESS_POIS) {
     const own = myBusinesses.get(biz.id);
     if (!own || !own.owned) continue;
+    const occupied = _isBusinessGangOccupied(biz.id, own);
+    const guarded = (+own.guards || 0) > 0;
+    // Three exclusive states: red capture, green protection, or no ring.
+    if (!occupied && !guarded) continue;
     if (biz.r < r0 - 2 || biz.r > r1 + 2 || biz.c < c0 - 2 || biz.c > c1 + 2) continue;
     const p = w2s(biz.r + 0.5, biz.c + 0.5);
     const corners = [
@@ -11082,21 +11087,40 @@ function drawOwnedBusinessWorldMarkers(r0, r1, c0, c1) {
       w2s(biz.r+1.25,biz.c+1.25), w2s(biz.r+1.25,biz.c-0.25),
     ];
     ctx.save();
-    ctx.fillStyle = `rgba(72,255,122,${0.08 + pulse * 0.05})`;
-    ctx.strokeStyle = `rgba(126,255,154,${0.72 + pulse * 0.25})`;
-    ctx.lineWidth = 2.6; ctx.shadowColor = '#52ff82'; ctx.shadowBlur = 10 + pulse * 7;
+    ctx.fillStyle = occupied
+      ? `rgba(255,48,65,${0.10 + pulse * 0.08})`
+      : `rgba(72,255,122,${0.08 + pulse * 0.05})`;
+    ctx.strokeStyle = occupied
+      ? `rgba(255,73,86,${0.76 + pulse * 0.24})`
+      : `rgba(126,255,154,${0.72 + pulse * 0.25})`;
+    ctx.lineWidth = 2.6; ctx.shadowColor = occupied ? '#ff3045' : '#52ff82'; ctx.shadowBlur = 10 + pulse * 7;
     ctx.beginPath(); ctx.moveTo(corners[0].x,corners[0].y);
     for (let i=1;i<corners.length;i++) ctx.lineTo(corners[i].x,corners[i].y);
     ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.shadowBlur = 0;
     // Плашка должна висеть над крышей и не перекрывать название/декор фасада.
-    const label = `${biz.emoji} СОБСТВЕННОСТЬ`, y = p.y - 112 - pulse * 3;
+    const label = occupied ? `☠️ ${biz.name.toUpperCase()} ЗАХВАЧЕН`
+      : `${biz.emoji} СОБСТВЕННОСТЬ`, y = p.y - 112 - pulse * 3;
     ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const tw = ctx.measureText(label).width + 20;
-    ctx.fillStyle = 'rgba(7,24,13,.96)'; ctx.strokeStyle = '#7eff9a'; ctx.lineWidth = 1.7;
+    ctx.fillStyle = occupied ? 'rgba(45,5,10,.96)' : 'rgba(7,24,13,.96)';
+    ctx.strokeStyle = occupied ? '#ff5263' : '#7eff9a'; ctx.lineWidth = 1.7;
     roundRect(p.x-tw/2,y-11,tw,22,9); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#e5ffeb'; ctx.fillText(label,p.x,y);
+    ctx.fillStyle = occupied ? '#ffd7da' : '#e5ffeb'; ctx.fillText(label,p.x,y);
     ctx.restore();
+    const liveNest = (gangNests || []).find(ne => _gangNestBusinessId(ne) === String(biz.id));
+    const guards = occupied && liveNest?.guards?.length
+      ? liveNest.guards
+      : Array.from({length: Math.max(0, Math.min(6, +own.guards || 0))}, (_, i) => {
+          const a = i * Math.PI * 2 / Math.max(1, +own.guards || 1);
+          return {x:biz.c+.5+Math.cos(a)*1.45,y:biz.r+.5+Math.sin(a)*1.45,ang:a+Math.PI,hp:100,max_hp:100};
+        });
+    for (const [i, guard] of guards.entries()) {
+      const gp = w2s(+guard.y, +guard.x);
+      const look = {gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%3,hat:5,suit:'#18314a'};
+      drawPerson(gp.x, gp.y, +guard.ang || 0, look, 0, null, null, false,
+        +guard.hp || 100, +guard.max_hp || 100, false, 0, false, false);
+    }
   }
 }
 
@@ -12550,8 +12574,58 @@ function _bankShield() { return !!_bankInt || !!_buildingInt || performance.now(
 // поднимает myHp обратно вверх (иначе урон «откатывался» и HP казались
 // вечными). Сервер может только ДОБИТЬ (прислать hp ниже).
 let _localHpHurtAt = 0;
+const _incomingFireHits = [];
+let _suppressedUntil = 0;
+function _registerIncomingFire(dmg = 0) {
+  const now = performance.now();
+  _incomingFireHits.push({ at: now, dmg: Math.max(0, +dmg || 0) });
+  while (_incomingFireHits.length && now - _incomingFireHits[0].at > 1400) {
+    _incomingFireHits.shift();
+  }
+  const burstDamage = _incomingFireHits.reduce((sum, hit) => sum + hit.dmg, 0);
+  if (_incomingFireHits.length < 3 &&
+      !(_incomingFireHits.length >= 2 && burstDamage >= 24)) return false;
+  const wasSuppressed = now < _suppressedUntil;
+  _suppressedUntil = now + 2800;
+  if (!wasSuppressed) {
+    showToast('ПОДАВЛЕН ОГНЁМ', '💥', 1900);
+    spawnFloatText(player.r, player.c, 'ПОДАВЛЕН ОГНЁМ', {
+      color:'#ff9b63', size:13, weight:900, life:1500, tag:'suppressed_fire'
+    });
+    if (_profileTab === 'status' &&
+        document.getElementById('profileModal')?.classList.contains('show')) {
+      renderProfileTab();
+    }
+  }
+  return true;
+}
+function _isSuppressedByFire() {
+  return !myDead && performance.now() < _suppressedUntil;
+}
+function _drawSuppressedByFire(px, py) {
+  if (!_isSuppressedByFire()) return;
+  const left = Math.max(0, (_suppressedUntil - performance.now()) / 1000);
+  const text = `💥 ПОДАВЛЕН ОГНЁМ · ${left.toFixed(1)}с`;
+  ctx.save();
+  ctx.font = '900 10px system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const width = ctx.measureText(text).width + 16;
+  const y = py - 78;
+  ctx.fillStyle = 'rgba(66,17,12,.92)';
+  ctx.strokeStyle = '#ff7b50';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(px - width / 2, y - 10, width, 20, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ffd1b8';
+  ctx.fillText(text, px, y + .5);
+  ctx.restore();
+}
 // Применить локальный урон: вычесть HP, отметить время, проверить смерть.
-function _hurtLocal(dmg, by) {
+function _hurtLocal(dmg, by, underFire = false) {
+  if (underFire) _registerIncomingFire(dmg);
   if(typeof _policeHasLevel==='function'&&_policeHasLevel(3)){
     const raw=Math.max(0,dmg|0),warArmor=_localFactionControls('police') ? .05 : 0,armor=Math.max(.45,.7-_hqLvl('police','armory')*.05-warArmor);dmg=Math.max(1,Math.ceil(raw*armor));
     const now=performance.now();if(now-_policeVestToastAt>1400){_policeVestToastAt=now;spawnFloatText(player.r,player.c,`🦺 БРОНЯ −${raw-dmg}`,{color:'#79c8ff',size:12,life:850});}
@@ -14017,6 +14091,7 @@ function handleEventPacket(d) {
     }
     if (d.shooter_id) lastBossShotAt.set(d.shooter_id, performance.now());
     if (!d.miss && d.target_uid && String(d.target_uid) === String(QP.uid) && !_bankShield()) {
+      _registerIncomingFire(d.dmg || 1);
       flashHitOverlay(d.sy, d.sx, d.shooter_id, 'convoy');
       addShake(3.5);
       _autoLockThreat('convoy', d.shooter_id);
@@ -14066,6 +14141,7 @@ function handleEventPacket(d) {
     if (meIsShooter && d.target_uid) _markCombat(d.target_uid);
     if (meIsTarget  && d.shooter_uid) _markCombat(d.shooter_uid);
     if (meIsTarget && !_bankShield()) {
+      _registerIncomingFire(d.dmg || 1);
       flashHitOverlay(d.sy, d.sx, d.shooter_uid, 'player');
       addShake(3);
       _autoLockThreat('player', d.shooter_uid);
@@ -14245,6 +14321,7 @@ function handleEventPacket(d) {
       if (g) g.lastShotAt = performance.now();
     }
     if (!d.miss && String(d.target_uid) === String(QP.uid) && !_bankShield()) {
+      _registerIncomingFire(d.dmg || 1);
       flashHitOverlay(d.sy, d.sx, d.guard_id, 'michael_guard');
       addShake(3);
       _autoLockThreat('mg', d.guard_id);
@@ -14287,6 +14364,7 @@ function handleEventPacket(d) {
     // сервера стоит у входа (savedR/savedC), но физически в интерьере и не
     // может уклоняться. Игнорируем эффекты выстрела/ареста пока _bankInt.
     if (!d.miss && String(d.target_uid) === String(QP.uid) && !_bankShield()) {
+      _registerIncomingFire(d.dmg || 1);
       flashHitOverlay(d.sy, d.sx, d.cop_id, 'world_cop');
       addShake(3);
       _autoLockThreat('cop', d.cop_id);
@@ -14588,21 +14666,15 @@ function handleEventPacket(d) {
       }
     }
   } else if (kind === 'brigadir_take_reply') {
-    // Бригадир выдал контракт (или отказал по лимиту/расстоянию).
+    // Сервер разрешил показать предложение. Сам контракт станет активным
+    // только после кнопки «Принять» в досье.
     if (d.ok) {
-      // Цель — случайный бандит из aggroZones (Логово/city_gangs/nests).
       const target = _pickHitTargetBandit();
       if (!target) {
         showToast('🤷 Сейчас банд в городе нет — попробуй позже', '⚠️', 2800);
         return;
       }
-      _myHitTargetBotId    = target.bot_id;
-      _myHitContractActive = true;
-      _myBrigadirKillSent  = false;
-      showEventBanner(
-        '🎯 Контракт',
-        `Завали бандита в городе — куш $${d.payout}. Стрелка 🎯 укажет где.`,
-        4000, 'win');
+      _openBrigadirDossier(target, d.payout, d.left);
     } else if (d.reason === 'limit') {
       showToast(`🚫 Лимит ${d.limit || 3}/сутки исчерпан — приходи завтра`,
                 '⏳', 3500);
@@ -14614,6 +14686,13 @@ function handleEventPacket(d) {
   } else if(kind==='spray_can_buy_reply'){
     if(d.ok){_sprayCans=Math.max(0,+d.spray_cans||0);myCash=QP.cash=+d.cash||0;updateMoneyHud();showToast(`🎨 Баллон куплен! (${_sprayCans} шт)`,'✅',1700);}
     else showToast(d.reason==='cash'?'💸 Не хватает денег':'❌ Баллон купить не удалось','⚠️',1900);
+  } else if (kind === 'brigadir_accept_reply') {
+    if (!d.ok) {
+      _myHitContractActive = false;
+      _myHitTargetBotId = null;
+      _myBrigadirKillSent = false;
+      showToast('Бригадир не подтвердил контракт. Возьми новое досье.', '⚠️', 2600);
+    }
   } else if (kind === 'brigadir_kill_reply') {
     // Сервер зафиксировал убийство цели, но НЕ заплатил. Награда висит
     // в pending, пока игрок не вернётся к Бригадиру и не нажмёт «Забрать».
@@ -15075,6 +15154,7 @@ function handleEventPacket(d) {
   } else if (kind === 'aggro_apply') {
     if (d.bot_id && _hiredBotIds.has(String(d.bot_id))) return;
     if (String(d.target_uid) === String(QP.uid) && !d.miss && !_bankShield()) {
+      _registerIncomingFire(d.dmg || 1);
       try { hitFlash = performance.now() + 240; } catch(e) {}
       flashHitOverlay(d.sy, d.sx, d.bot_id, 'aggro_bot');
       addShake(3.0);
@@ -15129,7 +15209,7 @@ function handleEventPacket(d) {
       _myBrigadirKillSent = true;
       try {
         ws && ws.send(JSON.stringify({ t: 'brigadir_kill',
-          d: { stealth: false } }));
+          d: { stealth: false, target_id: String(_myHitTargetBotId) } }));
       } catch(e) {}
     }
   } else if (kind === 'gang_threat') {
@@ -15977,6 +16057,8 @@ function wsConnect() {
         // expires_in, bots_alive}]. Локально просто кэшируем для рендера
         // (красная подсветка здания + маркер на мини-карте).
         gangNests = d.gang_nests || [];
+        _gangNestsSnapshotReady = true;
+        _applyLiveBusinessOccupations();
       }
       if (d.business_closures !== undefined) {
         const now = Date.now(), fresh = d.business_closures || {};
@@ -16438,9 +16520,10 @@ const BRIGADIR_AI = {
   idleUntil: 0,
   paused: false,
 };
-const BRIGADIR_PAYOUT_PREVIEW = 400;
+const BRIGADIR_PAYOUT_PREVIEW = 700;
 let _myHitTargetBotId = null;   // id бандита-цели из aggroZones (string)
 let _myHitContractActive = false;
+let _pendingBrigadirOffer = null; // досье показано, но контракт ещё не принят
 // Защита от race: когда я завалил цель, между aggro_killed (мы шлём
 // brigadir_kill) и brigadir_kill_reply сервер успевает прислать snap
 // с alive=false для этого бота. Иначе cleanup ошибочно засчитал бы
@@ -16456,12 +16539,19 @@ let _myBrigadirReward = null;
 // без сопротивления. Теперь цель сама стреляет в игрока — реальный риск.
 function _pickHitTargetBandit() {
   const pool = [];
-  for (const z of Object.values(aggroZones || {})) {
+  for (const [zoneId, z] of Object.entries(aggroZones || {})) {
     for (const b of (z.bots || [])) {
       if (b.alive === false || b.dead === true) continue;
       if (!b.id) continue;
       pool.push({ bot_id: String(b.id),
-                  r: +b.y || 0, c: +b.x || 0 });
+                  r: +b.y || 0, c: +b.x || 0,
+                  level: Math.max(1, Math.min(25, +b.level || 1)),
+                  max_hp: Math.max(1, +b.max_hp || 60),
+                  kind: b.kind || 'aggro_grunt',
+                  weapon: b.weapon || 'pistol_heavy',
+                  look: b.look || {},
+                  faction: z.faction || 'purple',
+                  zone_id: zoneId });
     }
   }
   if (!pool.length) return null;
@@ -16553,6 +16643,271 @@ function _tickBrigadir(dt) {
   ai.walkPhase += dt * 9;
 }
 
+const _BRIGADIR_ALIASES = [
+  'Шрам', 'Немой', 'Клещ', 'Филин', 'Рыжий', 'Сапёр', 'Молот',
+  'Костыль', 'Хмурый', 'Седой Пёс', 'Клык', 'Бритва', 'Чёрный',
+  'Шакал', 'Пепел', 'Лом', 'Змей', 'Кочегар', 'Кривой', 'Док',
+  'Бес', 'Тихий', 'Аркан', 'Монгол', 'Сухой', 'Барс', 'Монах',
+  'Кирпич', 'Моряк', 'Сыч', 'Грач', 'Туман', 'Шило', 'Рубин',
+  'Порох', 'Леший', 'Боцман', 'Купец', 'Скрипач', 'Ворон'
+];
+const _BRIGADIR_OFFENCES = [
+  ['Забрал общак', 'Исчез с долей группировки и решил, что долг забудут. Бригадир так не считает.'],
+  ['Сдал своих', 'Передал полиции имена людей и адрес старого схрона. Один свидетель уже слишком много.'],
+  ['Сорвал поставку', 'Самовольно изменил маршрут груза. Машина пропала, водитель найден в канаве.'],
+  ['Работает на конкурентов', 'Продал чужой банде сведения о постах охраны и времени смены караула.'],
+  ['Не вернул долг', 'Взял деньги на дело, проиграл их и третий месяц кормит людей обещаниями.'],
+  ['Тронул семью', 'Перешёл неписаную черту и попытался давить на родственников одного из старших.'],
+  ['Присвоил товар', 'Списал партию оружия как потерянную, а после выставил её на чёрном рынке.'],
+  ['Убрал связного', 'Связной должен был только передать конверт. До места он так и не добрался.'],
+  ['Подделал долю', 'Переписал цифры в кассе и решил, что никто не заметит недостачу.'],
+  ['Открыл рот в баре', 'После лишней бутылки рассказал посторонним слишком много о людях Бригадира.'],
+  ['Переметнулся', 'Снял старые цвета и теперь ходит с теми, против кого ещё вчера воевал.'],
+  ['Сломал перемирие', 'Открыл огонь на нейтральной территории и поставил под удар важную договорённость.'],
+  ['Украл документы', 'Унёс папку с именами, счетами и маршрутами. Папку надо вернуть, его — не обязательно.'],
+  ['Кинул партнёров', 'Получил аванс за охрану сделки, но исчез за десять минут до встречи.'],
+  ['Сам объявил себя боссом', 'Начал собирать дань от имени группировки, хотя никто не давал ему такого права.'],
+  ['Продал меченые стволы', 'Сбыл оружие, которое полиция уже вела по номерам, и подставил всю цепочку.'],
+  ['Устроил засаду', 'Попытался убрать человека Бригадира. Исполнитель промахнулся, заказчик раскрыт.'],
+  ['Не выполнил приказ', 'Получил простую задачу, но решил сыграть в собственную игру. Последствия будут простыми.'],
+  ['Спрятал свидетеля', 'Помог нужному человеку исчезнуть прямо перед важным разговором.'],
+  ['Залез не в тот район', 'Начал собирать деньги на чужой территории и проигнорировал два предупреждения.'],
+  ['Оставил хвост', 'Привёл наружку к складу и даже не заметил машину, которая шла за ним через полгорода.'],
+  ['Подставил бригаду', 'Бросил товарищей во время перестрелки и ушёл один с деньгами.'],
+  ['Торгует именами', 'Предлагает купить список информаторов. Следующим в списке может оказаться кто угодно.'],
+  ['Слишком много знает', 'Когда-то был полезен и видел слишком многое. Теперь собирается покинуть город.'],
+  ['Перехватил курьера', 'Забрал конверт у чужого посыльного и теперь пытается продать его содержимое дважды.'],
+  ['Сжёг склад', 'Хотел скрыть мелкую кражу и устроил пожар. Вместе с уликами сгорел товар на крупную сумму.'],
+  ['Пропустил облаву', 'Дежурил на предупреждении, но выключил рацию. Полиция вошла в помещение без единого сигнала.'],
+  ['Продал маршрут', 'Передал налётчикам расписание инкассаторов и потребовал процент с каждого мешка.'],
+  ['Исчез с залогом', 'Взял деньги за освобождение важного человека, но до нужных людей средства не дошли.'],
+  ['Подкупил не того копа', 'Полицейский оказался под внутренней проверкой, и теперь вся схема попала на плёнку.'],
+  ['Утаил добычу', 'После дела объявил, что сейф был пуст. На следующий день купил новую машину за наличные.'],
+  ['Использовал чужое имя', 'Выдавал себя за представителя Бригадира и подписывал сделки, о которых никто не просил.'],
+  ['Сломал защиту района', 'Снял людей с постов ради личной встречи, оставив бизнесы без прикрытия в опасную ночь.'],
+  ['Завёл крысу', 'Поручился за новичка, который оказался осведомителем. Теперь оба должны ответить за последствия.'],
+  ['Потерял оружие', 'Оставил служебный ствол на месте драки. По нему полиция уже вышла на несколько старых дел.'],
+  ['Обманул вдову', 'Забрал деньги, предназначенные семье погибшего бойца, и потратил их в подпольном казино.'],
+  ['Слил частоту', 'Продал конкурентам радиоканал бригады. Засада услышала переговоры раньше своих.'],
+  ['Самовольно поднял цены', 'Начал брать двойную дань с торговцев и присваивать разницу, прикрываясь приказом сверху.'],
+  ['Испугался на деле', 'Бросил оружие и побежал, когда началась стрельба. Из-за него двое людей не вернулись.'],
+  ['Подменил груз', 'Заменил содержимое контейнера дешёвой подделкой, а настоящий товар спрятал для личной продажи.'],
+  ['Шантажирует старших', 'Собрал записи закрытых разговоров и решил, что компромат сделает его неприкосновенным.'],
+  ['Нарушил слово', 'Получил безопасный выход в обмен на молчание, но уже вечером начал искать покупателя информации.'],
+  ['Увёл людей', 'Переманивает бойцов обещаниями больших денег и готовит собственную маленькую войну.'],
+  ['Забыл про уважение', 'Публично оскорбил старшего и отказался извиняться. На улицах такие слова долго не живут.']
+];
+const _BRIGADIR_FIRST_NAMES = [
+  'Аркадий', 'Вадим', 'Герман', 'Денис', 'Егор', 'Захар', 'Илья',
+  'Кирилл', 'Леонид', 'Максим', 'Назар', 'Олег', 'Павел', 'Роман',
+  'Савелий', 'Тимур', 'Фёдор', 'Харитон', 'Эдуард', 'Ярослав'
+];
+const _BRIGADIR_LAST_NAMES = [
+  'Абрамов', 'Белов', 'Воронцов', 'Громов', 'Дорохов', 'Ершов',
+  'Жаров', 'Зимин', 'Котов', 'Лапин', 'Мельников', 'Никитин',
+  'Орлов', 'Панов', 'Рыков', 'Серов', 'Титов', 'Уваров', 'Фомин', 'Чернов'
+];
+const _BRIGADIR_CASE_DETAILS = [
+  'Последний раз его видели у закрытого склада после полуночи.',
+  'Есть два свидетеля, но оба боятся говорить открыто.',
+  'При нём может находиться записная книжка с важными адресами.',
+  'Он знает, что его ищут, и меняет ночлег каждую ночь.',
+  'Обычно ходит не один, поэтому подходить надо осторожно.',
+  'На встречах представляется чужим именем и не снимает перчаток.',
+  'За последнюю неделю он трижды сменил машину и номер телефона.',
+  'Его люди уже пытались договориться, но предложенная сумма смешная.',
+  'Бригадир требует закончить дело без лишнего шума вокруг мирных.',
+  'После выполнения никаких вещей цели брать не рекомендуется.',
+  'Он уверен, что находится под защитой другой группировки.',
+  'Предположительно готовится покинуть город с ближайшим грузом.',
+  'В кармане носит фотографию человека, которого собирается предать следующим.',
+  'Полиция тоже ищет его, поэтому времени на работу немного.',
+  'Он хвастается, что Бригадир до него не дотянется.',
+  'Один из его сообщников уже исчез и оставил точные приметы.',
+  'Цель нервничает и может открыть огонь при первом подозрении.',
+  'У него есть запасной схрон, но адрес пока неизвестен.',
+  'Он назначил встречу покупателю и собирается передать ему документы.',
+  'После дела нужно лично вернуться к Бригадиру за расчётом.'
+];
+// Один bot_id получает одно постоянное досье на всё время жизни клиента.
+// Использованные комбинации резервируются, поэтому разные бойцы не получают
+// одинаковые имя/кличку и историю даже при совпадении исходного хеша.
+const _brigadirDossiersByBot = new Map();
+const _brigadirUsedNames = new Set();
+const _brigadirUsedAliases = new Set();
+const _brigadirUsedStories = new Set();
+
+function _brigadirSeed(value) {
+  let h = 2166136261;
+  for (const ch of String(value || 'target')) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function _brigadirUniqueIndex(seed, size, used, salt) {
+  let idx = (seed ^ salt) >>> 0;
+  idx %= size;
+  for (let tries = 0; tries < size; tries++) {
+    const candidate = (idx + tries) % size;
+    if (!used.has(candidate)) {
+      used.add(candidate);
+      return candidate;
+    }
+  }
+  // Пул исчерпан только после сотен разных целей; тогда начинаем новый цикл.
+  used.clear();
+  used.add(idx);
+  return idx;
+}
+function _brigadirDossierFor(target) {
+  const id = String(target.bot_id || 'target');
+  const saved = _brigadirDossiersByBot.get(id);
+  if (saved) return saved;
+  const seed = _brigadirSeed(id);
+  const namePoolSize = _BRIGADIR_FIRST_NAMES.length * _BRIGADIR_LAST_NAMES.length;
+  const nameIndex = _brigadirUniqueIndex(seed, namePoolSize, _brigadirUsedNames, 0x51a92d7b);
+  const storyPoolSize = _BRIGADIR_OFFENCES.length * _BRIGADIR_CASE_DETAILS.length;
+  const storyIndex = _brigadirUniqueIndex(seed, storyPoolSize, _brigadirUsedStories, 0xa8f013c5);
+  const aliasIndex = _brigadirUniqueIndex(seed, _BRIGADIR_ALIASES.length, _brigadirUsedAliases, 0x7c3e91ab);
+  const alias = _BRIGADIR_ALIASES[aliasIndex];
+  const dossier = {
+    alias,
+    fullName: `${_BRIGADIR_FIRST_NAMES[nameIndex % _BRIGADIR_FIRST_NAMES.length]} ${_BRIGADIR_LAST_NAMES[Math.floor(nameIndex / _BRIGADIR_FIRST_NAMES.length)]}`,
+    offence: _BRIGADIR_OFFENCES[storyIndex % _BRIGADIR_OFFENCES.length],
+    detail: _BRIGADIR_CASE_DETAILS[Math.floor(storyIndex / _BRIGADIR_OFFENCES.length)]
+  };
+  _brigadirDossiersByBot.set(id, dossier);
+  return dossier;
+}
+function _safeDossierColor(value, fallback) {
+  const s = String(value || '');
+  return /^#[0-9a-f]{3,8}$/i.test(s) ? s : fallback;
+}
+function _brigadirDistrictName(target) {
+  const id = String(target.zone_id || '');
+  if (id.includes('nest')) return 'захваченный бизнес';
+  if (id.includes('city')) return 'городские кварталы';
+  if (id.includes('lair') || id.includes('aggro')) return 'район Логова';
+  if ((+target.r || 0) >= 140) return 'южное побережье';
+  return 'улицы города';
+}
+function _brigadirWeaponName(id) {
+  const names = {
+    pistol: 'пистолет', pistol_heavy: 'тяжёлый пистолет',
+    uzi: 'пистолет-пулемёт', smg: 'пистолет-пулемёт',
+    shotgun: 'дробовик', rifle: 'винтовка', sniper: 'снайперская винтовка'
+  };
+  return names[id] || 'огнестрельное оружие';
+}
+function _closeBrigadirDossier() {
+  const modal = document.getElementById('brigadirDossierModal');
+  if (modal) modal.style.display = 'none';
+}
+function _declineBrigadirOffer() {
+  _pendingBrigadirOffer = null;
+  _closeBrigadirDossier();
+  try { ws && ws.readyState === 1 &&
+    ws.send(JSON.stringify({ t: 'brigadir_decline', d: {} })); } catch (_) {}
+  showToast('Досье возвращено Бригадиру. Можно запросить другой контракт.', '↩️', 2400);
+}
+function _acceptBrigadirOffer() {
+  const offer = _pendingBrigadirOffer;
+  if (!offer) return;
+  const live = _findHitTargetBotById(offer.target.bot_id);
+  if (!live || !live.alive) {
+    _pendingBrigadirOffer = null;
+    _closeBrigadirDossier();
+    showToast('Цель уже устранена кем-то другим. Запроси новое досье.', '⚠️', 2800);
+    return;
+  }
+  _myHitTargetBotId = offer.target.bot_id;
+  _myHitContractActive = true;
+  _myBrigadirKillSent = false;
+  _pendingBrigadirOffer = null;
+  _closeBrigadirDossier();
+  try { ws && ws.readyState === 1 && ws.send(JSON.stringify({
+    t: 'brigadir_accept',
+    d: { target_id: _myHitTargetBotId }
+  })); } catch (_) {}
+  showEventBanner(
+    '🎯 КОНТРАКТ ПРИНЯТ',
+    `${offer.fullName} по кличке «${offer.alias}» отмечен на карте. Награда — $${offer.payout}.`,
+    4200, 'win');
+}
+function _openBrigadirDossier(target, payout, left) {
+  const seed = _brigadirSeed(target.bot_id);
+  const assigned = _brigadirDossierFor(target);
+  const offence = assigned.offence;
+  const alias = assigned.alias;
+  const fullName = assigned.fullName;
+  const danger = target.level >= 20 ? 'КРАЙНЕ ОПАСЕН'
+    : target.level >= 12 ? 'ВЫСОКАЯ ОПАСНОСТЬ'
+    : target.level >= 6 ? 'ВООРУЖЁН И ОПАСЕН' : 'ОПАСЕН';
+  _pendingBrigadirOffer = { target, payout: +payout || BRIGADIR_PAYOUT_PREVIEW,
+                            left: +left || 0, alias, fullName, offence,
+                            detail: assigned.detail };
+
+  let modal = document.getElementById('brigadirDossierModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'brigadirDossierModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:10060;display:none;align-items:center;justify-content:center;background:rgba(5,3,3,.86);backdrop-filter:blur(6px);padding:16px';
+    modal.addEventListener('click', e => {
+      if (e.target === modal) showToast('Выбери: принять контракт или отклонить.', '📁', 1800);
+    });
+    document.body.appendChild(modal);
+  }
+  const look = target.look || {};
+  const skin = _safeDossierColor(look.skin, '#d1a078');
+  const hair = _safeDossierColor(look.hair, '#21130f');
+  const shirt = _safeDossierColor(look.shirt, target.faction === 'yellow' ? '#c79b20' : '#602c82');
+  const faction = target.faction === 'yellow' ? 'Жёлтая банда' : 'Сиреневая банда';
+  modal.innerHTML = `
+    <div style="width:min(455px,95vw);max-height:92vh;overflow:auto;border:2px solid #b78a3c;border-radius:5px;background:#d8c49b;color:#22190f;box-shadow:0 24px 90px #000;padding:15px;font-family:Georgia,serif">
+      <div style="border:1px solid #735528;padding:13px;background:repeating-linear-gradient(0deg,rgba(90,60,25,.035) 0 1px,transparent 1px 4px)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:2px solid #7f1d1d;padding-bottom:8px">
+          <div><div style="font:900 22px system-ui;color:#6f1717;letter-spacing:2px">СЕКРЕТНО · ДОСЬЕ</div>
+          <div style="font:700 12px system-ui;margin-top:3px">КОНТРАКТ БРИГАДИРА №${String(seed).slice(-5)}</div></div>
+          <div style="border:3px double #8b1f1f;color:#8b1f1f;padding:5px 7px;font:900 11px system-ui;transform:rotate(3deg)">${danger}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:126px 1fr;gap:14px;margin-top:14px">
+          <div>
+            <div style="height:154px;border:7px solid #eee5ce;outline:1px solid #5c482a;background:linear-gradient(#807762,#484338);position:relative;overflow:hidden;box-shadow:2px 4px 8px #59462e">
+              <div style="position:absolute;left:43px;top:25px;width:40px;height:46px;border-radius:45% 45% 48% 48%;background:${skin};border:2px solid #291c16"></div>
+              <div style="position:absolute;left:40px;top:18px;width:46px;height:24px;border-radius:55% 55% 20% 20%;background:${hair}"></div>
+              <div style="position:absolute;left:28px;top:69px;width:70px;height:79px;border-radius:18px 18px 5px 5px;background:${shirt};border:3px solid #251d19"></div>
+              <div style="position:absolute;left:10px;bottom:7px;background:#181511;color:#eee;padding:4px 6px;font:700 10px system-ui">${_brigadirWeaponName(target.weapon)}</div>
+            </div>
+            <div style="text-align:center;background:#eee5ce;border:1px solid #695334;border-top:0;padding:5px;font:700 11px/1.25 system-ui">
+              <div style="font-size:13px">${fullName}</div>
+              <div style="color:#761919">КЛИЧКА: «${alias}»</div>
+            </div>
+          </div>
+          <div style="font:14px/1.42 system-ui">
+            <div><b>Принадлежность:</b> ${faction}</div>
+            <div><b>Уровень:</b> ${target.level}/25</div>
+            <div><b>Живучесть:</b> ${target.max_hp} HP</div>
+            <div><b>Вооружение:</b> ${_brigadirWeaponName(target.weapon)}</div>
+            <div><b>Последний район:</b> ${_brigadirDistrictName(target)}</div>
+            <div style="margin-top:10px;border-top:1px dashed #705a37;padding-top:9px"><b>Награда:</b> <span style="font-size:20px;color:#17622e;font-weight:900">$${+payout || BRIGADIR_PAYOUT_PREVIEW}</span></div>
+            <div style="font-size:11px;color:#66553c">Останется контрактов сегодня: ${Math.max(0, (+left || 1) - 1)}</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;background:rgba(255,248,221,.55);border-left:5px solid #821d1d;padding:11px 12px">
+          <div style="font:900 15px system-ui;color:#761919">В ЧЁМ ПРОВИНИЛСЯ: ${offence[0].toUpperCase()}</div>
+          <div style="font:14px/1.48 system-ui;margin-top:5px">${offence[1]} ${assigned.detail}</div>
+        </div>
+        <div style="margin-top:10px;font:italic 13px/1.4 Georgia;color:#4d3b26">«Никакой самодеятельности. Метка появится после принятия. Вернёшься ко мне, когда работа будет закончена.»</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px">
+          <button onclick="_declineBrigadirOffer()" style="border:1px solid #624e32;background:#3c342a;color:#fff;padding:12px;border-radius:6px;font:800 14px system-ui;cursor:pointer">✖ ОТКЛОНИТЬ</button>
+          <button onclick="_acceptBrigadirOffer()" style="border:1px solid #4e1212;background:linear-gradient(#a52b25,#6f1717);color:#fff;padding:12px;border-radius:6px;font:900 14px system-ui;cursor:pointer">✓ ПРИНЯТЬ</button>
+        </div>
+      </div>
+    </div>`;
+  modal.style.display = 'flex';
+}
+
 function takeBrigadirContract() {
   if (_myBrigadirReward) {
     showToast('🏆 Сначала забери награду за прошлый контракт', '⚠️', 2200);
@@ -16560,6 +16915,12 @@ function takeBrigadirContract() {
   }
   if (_myHitContractActive) {
     showToast('🎯 У тебя уже есть активный контракт', '⚠️', 1800);
+    return;
+  }
+  if (_pendingBrigadirOffer) {
+    _openBrigadirDossier(
+      _pendingBrigadirOffer.target, _pendingBrigadirOffer.payout,
+      _pendingBrigadirOffer.left);
     return;
   }
   const wsReady = !!(ws && ws.readyState === 1);
@@ -16882,6 +17243,13 @@ function updateGtaInteractions() {
         const own = myBusinesses.get(_buildingInt.bizId);
         _gtaActionKind = 'biz_manage'; _gtaActionCarId = _buildingInt.bizId;
         _gtaBtn.textContent = own && own.owned ? '📈 Управление бизнесом' : '💬 Поговорить с управляющим';
+        _gtaBtn.style.display = 'block'; return;
+      }
+      const chief = (_buildingInt.npcs || []).find(n => n.role === 'biz_security_chief');
+      if (chief && Math.hypot(player.r - chief.r, player.c - chief.c) < 2.7) {
+        const own = myBusinesses.get(_buildingInt.bizId);
+        _gtaActionKind = 'biz_security'; _gtaActionCarId = _buildingInt.bizId;
+        _gtaBtn.textContent = `🛡 Начальник охраны · ${Math.max(0, Math.min(6, +(own?.guards || 0)))}/6`;
         _gtaBtn.style.display = 'block'; return;
       }
     }
@@ -17634,6 +18002,8 @@ _gtaBtn.addEventListener('click', () => {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'biz_manage') {
     openBusinessManagement(_gtaActionCarId);
+  } else if (_gtaActionKind === 'biz_security') {
+    openBusinessSecurity(_gtaActionCarId);
   } else if (_gtaActionKind === 'biz_rob_pressure') {
     const owner=_buildingInt&&(_buildingInt.npcs||[]).find(n=>n.role==='owner');
     if(!owner||_buildingInt.robberyClaimed)return;
@@ -18280,6 +18650,51 @@ function closeBusinessManagement() {
   const modal = document.getElementById('businessManageModal');
   if (modal) modal.style.display = 'none';
 }
+function openBusinessSecurity(bizId) {
+  const biz = BUSINESS_POIS.find(b => b.id === bizId);
+  const state = myBusinesses.get(bizId);
+  if (!biz || !state?.owned) return;
+  const guards = Math.max(0, Math.min(6, +(state.guards || 0)));
+  const occupied = _isBusinessGangOccupied(bizId, state);
+  const modal = _ensureBusinessManageModal(), card = document.getElementById('businessManageCard');
+  card.innerHTML = `<div style="display:flex;gap:12px;align-items:center">
+    <div style="font-size:42px">🛡️</div><div style="flex:1"><div style="font-size:20px;font-weight:900">Начальник охраны</div><div style="color:#9da8ba">Защита «${biz.name}»</div></div>
+    <button id="bmClose" style="border:0;background:#2a2e38;color:#fff;border-radius:50%;width:34px;height:34px;font-size:18px">×</button></div>
+    <div style="margin:14px 0;padding:13px;border-radius:12px;background:#111722;color:#ccd5e5;line-height:1.5">
+      Нанятые бойцы стоят у бизнеса. Когда уличная банда приходит отжать точку и остановить доход, охрана вступает в перестрелку. Погибший охранник не восстанавливается автоматически — его можно нанять снова.
+    </div>
+    ${occupied ? '<div style="padding:10px;margin-bottom:12px;border:1px solid #ff4354;border-radius:10px;background:#351015;color:#ff9ca5">🔴 Идёт захват: охрана сражается с бандой</div>' : guards ? '<div style="padding:10px;margin-bottom:12px;border:1px solid #2c8b50;border-radius:10px;background:#10291a;color:#7eff9a">🟢 Бизнес под охраной</div>' : '<div style="padding:10px;margin-bottom:12px;border:1px solid #555;border-radius:10px;background:#1b1d22;color:#bbb">Охрана не нанята — защитного круга нет</div>'}
+    <div style="font-size:18px;font-weight:900;margin-bottom:12px">Бойцы: ${guards}/6</div>
+    <button id="bmHireGuard" ${guards>=6?'disabled':''} style="width:100%;padding:13px;border:0;border-radius:11px;background:linear-gradient(#f4cc62,#bd8427);color:#211506;font-weight:900;opacity:${guards<6?1:.5}">${guards>=6?'Отряд укомплектован':'Нанять бойца · $100'}</button>`;
+  modal.style.display = 'flex';
+  document.getElementById('bmClose').onclick = closeBusinessManagement;
+  const hire = document.getElementById('bmHireGuard');
+  if (hire && guards < 6) hire.onclick = () => hireBusinessGuard(bizId);
+}
+async function hireBusinessGuard(bizId) {
+  if (_bizManageBusy || !QP.api || !QP.uid) return;
+  _bizManageBusy = true;
+  const btn = document.getElementById('bmHireGuard');
+  if (btn) { btn.disabled = true; btn.textContent = 'Нанимаем…'; }
+  try {
+    const r = await fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/guards/hire`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({biz_id:bizId})
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      showToast(j.error === 'no cash' ? 'Не хватает денег' : j.error === 'guard limit' ? 'Уже нанято 6 бойцов' : 'Не удалось нанять охранника', '⚠️', 2400);
+      return;
+    }
+    const old = myBusinesses.get(bizId) || {owned:true};
+    myBusinesses.set(bizId, {...old, guards:j.guards});
+    myCash = +j.cash; QP.cash = myCash; updateMoneyHud();
+    if (_buildingInt?.type === 'business' && _buildingInt.bizId === bizId) _spawnInteriorNpcs(_buildingInt);
+    showToast(`Охранник нанят · ${j.guards}/6`, '🛡️', 2200);
+    openBusinessSecurity(bizId);
+    _bizLastSync = 0;
+  } catch(e) { showToast('Связь прервалась', '⚠️', 2200); }
+  finally { _bizManageBusy = false; }
+}
 function openBusinessManagement(bizId) {
   const biz = BUSINESS_POIS.find(b => b.id === bizId);
   if (!biz) return;
@@ -18290,7 +18705,7 @@ function openBusinessManagement(bizId) {
   const min = Math.round(biz.daily_min * mult), max = Math.round(biz.daily_max * mult);
   const cost = owned ? (state.upgrade_cost || _bizUpgradeCost(biz, state)) : 0;
   const pending = owned ? (+state.pending || 0) : 0;
-  const occupied = !!(owned && (state.npc_occupied || state.status === 'gang_occupied'));
+  const occupied = !!(owned && _isBusinessGangOccupied(bizId, state));
   card.innerHTML = `
     <div style="display:flex;gap:13px;align-items:center;margin-bottom:14px">
       <div style="font-size:42px">${biz.emoji}</div><div style="flex:1"><div style="font-weight:900;font-size:20px">${biz.name}</div><div style="color:#9da8ba;font-size:12px">${BUSINESS_INTERIORS[bizId]?.manager || 'Управляющий'}</div></div>
@@ -28112,9 +28527,9 @@ function drawBusinessBuilding(r, c, b) {
   // ореол-ромб под основанием. Тень-метка «это моё», видно сразу.
   const own = myBusinesses.get(b.id);
   const owned = !!(own && own.owned);
-  const occupied = !!(own && (own.npc_occupied || own.status === 'gang_occupied'));
+  const occupied = !!(own && _isBusinessGangOccupied(b.id, own));
   const closedLeft = Math.max(0, (_businessClosures[b.id] || 0) - Date.now());
-  if (owned) {
+  if (owned && (occupied || (+own.guards || 0) > 0)) {
     const pBase = w2s(r + 0.5, c + 0.5);
     const wxB = TS * 0.5, wyB = TS * 0.5 * ISO_Y;
     const pulse = 0.55 + 0.30 * Math.abs(Math.sin(performance.now() * 0.003));
@@ -28595,6 +29010,60 @@ function drawBusinessBuilding(r, c, b) {
 }
 // Локальный статус бизнесов: biz_id → {owned, pending, blocked_until}
 const myBusinesses = new Map();
+function _gangNestBusinessId(ne) {
+  if (!ne) return '';
+  if (ne.business_id) return String(ne.business_id);
+  // Старые/переходные снимки сервера могли прислать гнездо без business_id.
+  // Если охраняющая группа фактически стоит вокруг здания, связываем её с
+  // ближайшим бизнесом. Радиус меньше расстояния между соседними POI.
+  if (ne.state !== 'guard' || !Number.isFinite(+ne.r) || !Number.isFinite(+ne.c)) return '';
+  let nearest = null;
+  let nearestD2 = 5.5 * 5.5;
+  for (const biz of BIZ_LIST) {
+    const dr = (+ne.r || 0) - biz.r;
+    const dc = (+ne.c || 0) - biz.c;
+    const d2 = dr * dr + dc * dc;
+    if (d2 <= nearestD2) {
+      nearest = biz;
+      nearestD2 = d2;
+    }
+  }
+  return nearest ? String(nearest.id) : '';
+}
+function _isBusinessGangOccupied(bizId, state = null) {
+  if (!bizId) return false;
+  const live = (gangNests || []).some(ne =>
+    _gangNestBusinessId(ne) === String(bizId) &&
+    (+ne.bots_alive || 0) > 0);
+  return live || !!(state && (state.npc_occupied || state.status === 'gang_occupied'));
+}
+function _applyLiveBusinessOccupations() {
+  if (!_gangNestsSnapshotReady) return false;
+  const occupiedIds = new Set((gangNests || [])
+    .filter(ne => (+ne.bots_alive || 0) > 0)
+    .map(_gangNestBusinessId)
+    .filter(Boolean));
+  let changed = false;
+  for (const [id, state] of myBusinesses) {
+    if (!state || !state.owned) continue;
+    const occupied = occupiedIds.has(String(id));
+    if (!!state.npc_occupied !== occupied ||
+        (occupied && state.status !== 'gang_occupied') ||
+        (!occupied && state.status === 'gang_occupied')) {
+      state.npc_occupied = occupied;
+      state.status = occupied ? 'gang_occupied' : 'ok';
+      state.notice = occupied
+        ? 'Бизнес захвачен вражеской бандой и не может приносить прибыль'
+        : '';
+      changed = true;
+    }
+  }
+  if (changed && _profileTab === 'biz' &&
+      document.getElementById('profileModal')?.classList.contains('show')) {
+    renderProfileTab();
+  }
+  return changed;
+}
 let _saidState = { hired:false, salary:500, hired_at:0, next_salary_at:0, auto_fired:false };
 let _saidAutoFireShown = false;
 let _bizLastSync = 0;
@@ -28641,6 +29110,7 @@ function syncMyBusinesses() {
             daily_min: b.daily_min || 0,
             daily_max: b.daily_max || 0,
             upgrade_cost: b.upgrade_cost || 0,
+            guards: Math.max(0, Math.min(6, +b.guards || 0)),
           });
         }
       }
@@ -28652,6 +29122,11 @@ function syncMyBusinesses() {
       // Возвращаем preserved — даже если сервер их не вернул
       for (const [id, st] of preserved) {
         if (!myBusinesses.has(id)) myBusinesses.set(id, st);
+      }
+      _applyLiveBusinessOccupations();
+      if (_profileTab === 'biz' &&
+          document.getElementById('profileModal')?.classList.contains('show')) {
+        renderProfileTab();
       }
     })
     .catch(() => {});
@@ -30309,22 +30784,65 @@ function drawAggroBot(bot) {
   // Сабля направлена по взгляду босса. Раньше она постоянно вращалась сама
   // по себе и визуально усиливала ощущение, что босс кружит на месте.
   if (isBoss) {
-    const sabAng = bot.ang || 0;
+    const saberPose = handAnchor(p.x, p.y, bot.ang || 0);
+    const gripX = saberPose.px - saberPose.perpX * TS * 0.11
+      + saberPose.sx * TS * 0.20;
+    const gripY = saberPose.shY - saberPose.perpY * TS * 0.11
+      + saberPose.sy * TS * 0.20;
+    const shoulderX = saberPose.px - saberPose.perpX * TS * 0.13;
+    const shoulderY = saberPose.shY - saberPose.perpY * TS * 0.13;
+    const elbowX = (shoulderX + gripX) * 0.5 - saberPose.perpX * TS * 0.07;
+    const elbowY = (shoulderY + gripY) * 0.5 - saberPose.perpY * TS * 0.07;
+    const bladeLen = TS * 0.43;
+    const guardHalf = TS * 0.075;
     ctx.save();
-    ctx.translate(p.x, p.y - 14);
-    ctx.rotate(sabAng);
-    ctx.strokeStyle = '#dde0ff';
-    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#090a0d';
+    ctx.lineWidth = 6;
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(22, 0);
+    ctx.moveTo(shoulderX, shoulderY);
+    ctx.lineTo(elbowX, elbowY);
+    ctx.lineTo(gripX, gripY);
     ctx.stroke();
-    ctx.strokeStyle = '#7a5a30';
+    ctx.strokeStyle = '#252830';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.strokeStyle = '#c99a38';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(-4, 0);
-    ctx.lineTo(0, 0);
+    ctx.moveTo(gripX - saberPose.perpX * guardHalf, gripY - saberPose.perpY * guardHalf);
+    ctx.lineTo(gripX + saberPose.perpX * guardHalf, gripY + saberPose.perpY * guardHalf);
     ctx.stroke();
+    ctx.strokeStyle = '#6f4526';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(gripX - saberPose.sx * TS * 0.08, gripY - saberPose.sy * TS * 0.08);
+    ctx.lineTo(gripX, gripY);
+    ctx.stroke();
+    ctx.strokeStyle = '#dde0ff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(gripX, gripY);
+    ctx.lineTo(gripX + saberPose.sx * bladeLen, gripY + saberPose.sy * bladeLen);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(130,175,255,.8)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(gripX + saberPose.perpX, gripY + saberPose.perpY);
+    ctx.lineTo(
+      gripX + saberPose.sx * bladeLen + saberPose.perpX,
+      gripY + saberPose.sy * bladeLen + saberPose.perpY
+    );
+    ctx.stroke();
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath();
+    ctx.arc(gripX, gripY, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#d8b48a';
+    ctx.beginPath();
+    ctx.arc(gripX, gripY, 2.8, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
   // Векторный знак ранга вместо emoji: одинаково выглядит даже там, где
@@ -33148,6 +33666,9 @@ function renderProfileTab() {
     const workLabel=_policeState.employed?_policeRank():((typeof _jobState!=='undefined'&&_jobState.job)?(_jobDef(_jobState.job)?.name||_jobState.job):'Не трудоустроен');
     let html = '<div class="stat-block">';
     html += `<div class="stat-card"><div class="label">Режим</div><div class="val" style="color:${modeCol}">${modeLbl}</div></div>`;
+    if (_isSuppressedByFire()) {
+      html += `<div class="stat-card" style="border-color:#a8402e;background:#2d1713"><div class="label">Боевой статус</div><div class="val" style="color:#ff956e">💥 ПОДАВЛЕН ОГНЁМ</div></div>`;
+    }
     html += `<div class="stat-card"><div class="label">Уровень</div><div class="val" style="color:#ffd76b">${QP.lvl || 1}</div></div>`;
     html += `<div class="stat-card"><div class="label">Роль</div><div class="val" style="color:${roleColor}">${roleIcon} ${roleLabel}</div></div>`;
     html += `<div class="stat-card"><div class="label">Работа</div><div class="val" style="color:${_policeState.employed?'#67c8ff':'#b8c1ce'}">${workLabel}</div></div>`;
@@ -33216,7 +33737,10 @@ function renderProfileTab() {
       const name = poi ? poi.name : id;
       const emoji = poi ? (poi.emoji || BIZ_EMOJI[poi.type] || '🏢') : '🏢';
       const pending = val.pending || 0;
-      html += `<div class="item"><div class="icon">${emoji}</div><div class="info"><div class="nm">${name}</div><div class="sub">В кассе: $${Number(pending).toLocaleString('ru')} ${val.working === false ? '🔴 закрыт' : '🟢 работает'}</div></div></div>`;
+      const occupied = _isBusinessGangOccupied(id, val);
+      html += `<div class="item" style="${occupied?'border-color:#9e3442;background:#241419':''}"><div class="icon">${occupied?'☠️':emoji}</div><div class="info"><div class="nm">${name} <span style="color:${occupied?'#ff6574':'#69db91'}">${occupied?'🔴 ЗАХВАЧЕН':'🟢'}</span></div><div class="sub">${occupied
+        ? 'Бизнес захвачен вражеской бандой и не может приносить прибыль. Зачисти бойцов возле здания.'
+        : `В кассе: $${Number(pending).toLocaleString('ru')} · работает`}</div></div></div>`;
     });
     html += '</div>';
     box.innerHTML = html;
@@ -35523,6 +36047,7 @@ if (d.kind === 'plank_path') {
     if (myWanted > 0) drawWantedStars(px, py, myWanted);
     if (myGangs  > 0) drawWantedGangs(px, py, myGangs);
     drawModeTag(px, py, myMode || 'pvp');
+    _drawSuppressedByFire(px, py);
     // Несём мешок по городу — ТА ЖЕ анимация что в банке (мешок на верёвке
     // через плечо + покачивание при ходьбе), а не просто эмодзи над головой.
     if (carryingWorldBag) {
@@ -41700,7 +42225,13 @@ function _spawnInteriorNpcs(bi) {
     });
     const own = myBusinesses.get(bi.bizId);
     if (own?.owned) {
-      const securityCount=Math.max(2,Math.min(4,Math.ceil((BUSINESS_ROB_TIERS[bi.bizId]?.guards||2)/2)));
+      const securityCount=Math.max(0,Math.min(6,+own.guards||0));
+      bi.npcs.push({
+        r:4.2,c:3,tr:4.2,tc:3,ang:Math.PI,walkPhase:0,walking:false,name:'Начальник охраны',
+        role:'biz_security_chief',fixed:true,_allied:true,_invulnerable:true,hp:120,maxHp:120,dead:false,
+        look:{gender:0,skin:1,body:2,face:0,hair:1,hat:5,suit:'#162338'},
+        idleUntil:Infinity,speed:0,weapon:null,_shotAt:0,
+      });
       for(let i=0;i<securityCount;i++) bi.npcs.push({
         r:4.5+i*1.8,c:i%2?bi.W-3:3,tr:4.5+i*1.8,tc:i%2?bi.W-3:3,ang:Math.PI,
         walkPhase:0,walking:false,name:i?'Охрана бизнеса':'Начальник охраны',
@@ -41780,7 +42311,7 @@ function _updateInteriorNpcs(bi, dt) {
         spawnMuzzle(n.r,n.c,n.ang,n.weapon);
         spawnBullet(n.r,n.c,player.r+(hit?0:(Math.random()-.5)*2),player.c+(hit?0:(Math.random()-.5)*2),{hit,fromNpc:true,weapon:n.weapon});
         if(hit){
-          _hurtLocal(damage,`охрана ${BUSINESS_INTERIORS[bi.bizId]?.title||'бизнеса'}`);
+          _hurtLocal(damage,`охрана ${BUSINESS_INTERIORS[bi.bizId]?.title||'бизнеса'}`,true);
           _gangAlertThreat(n.r,n.c,bi.npcs.indexOf(n),'interior_guard',n);
         }
       }
@@ -43357,7 +43888,7 @@ function _updateBankInterior(dt) {
           npc._punchAnim = now;
           npc._punchDir = Math.atan2(player.r - npc.r, player.c - npc.c);
           const dmg = 12 + Math.floor(Math.random()*6);
-          _hurtLocal(dmg, 'Охрана банка');
+          _hurtLocal(dmg, 'Охрана банка', true);
           flashHitOverlay(npc.r, npc.c, int.npcs.indexOf(npc), 'bank_guard', npc);
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff6644', size: 14, life: 1000 });
           try { hapticHit && hapticHit(); } catch(e) {}
@@ -43403,7 +43934,7 @@ function _updateBankInterior(dt) {
             spawnImpact(player.r, player.c, 'pistol', true);
             if (typeof addShake === 'function') addShake(2.5);
             const dmg = 8 + Math.floor(Math.random()*5);
-            _hurtLocal(dmg, 'Охрана банка');
+            _hurtLocal(dmg, 'Охрана банка', true);
             flashHitOverlay(npc.r, npc.c, int.npcs.indexOf(npc), 'bank_guard', npc);
             spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
             try { hapticHit && hapticHit(); } catch(e) {}

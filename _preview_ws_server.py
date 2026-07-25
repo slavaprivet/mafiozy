@@ -1294,6 +1294,23 @@ def preview_tick_business_captures():
     global preview_business_next_capture_at
     now = time.time()
     for bid, nest in list(preview_business_nests.items()):
+        guards = [guard for guard in nest.get("guards", []) if guard.get("alive")]
+        bots = [bot for bot in nest["bots"] if bot.get("alive")]
+        if guards and bots and now >= float(nest.get("combat_at", 0)):
+            guard, bot = random.choice(guards), random.choice(bots)
+            bot["hp"] = max(0, int(bot.get("hp", 100)) - random.randint(22, 31))
+            if bot["hp"] <= 0:
+                bot["alive"] = False
+            bots = [item for item in nest["bots"] if item.get("alive")]
+            if bots:
+                target = random.choice(guards)
+                target["hp"] = max(0, int(target.get("hp", 100)) - random.randint(16, 25))
+                if target["hp"] <= 0:
+                    target["alive"] = False
+                    owner = preview_owned_businesses(nest.get("owner_uid"))
+                    if bid in owner:
+                        owner[bid]["guards"] = max(0, int(owner[bid].get("guards", 0)) - 1)
+            nest["combat_at"] = now + .8
         if any(bot.get("alive") for bot in nest["bots"]):
             continue
         preview_business_nests.pop(bid, None)
@@ -1313,6 +1330,11 @@ def preview_tick_business_captures():
     bid = random.choice(candidates)
     x, y = PREVIEW_BUSINESS_POS[bid]
     faction = "yellow" if len(preview_business_nests) % 2 == 0 else "purple"
+    owner_uid, guard_count = None, 0
+    for candidate_uid, rows in preview_businesses.items():
+        count = max(0, min(6, int(rows.get(bid, {}).get("guards", 0))))
+        if count > guard_count:
+            owner_uid, guard_count = candidate_uid, count
     bots = []
     for i in range(4):
         ang = i * math.tau / 4
@@ -1327,7 +1349,14 @@ def preview_tick_business_captures():
     preview_business_nests[bid] = {
         "id": f"preview_biz_nest_{bid}", "business_id": bid,
         "faction": faction, "r": y, "c": x, "state": "guard",
-        "expires_at": now + 3600.0, "bots": bots,
+        "expires_at": now + 3600.0, "bots": bots, "owner_uid": owner_uid,
+        "combat_at": now + .8,
+        "guards": [{
+            "id": f"preview_guard_{bid}_{i}", "x": x + math.cos(i * math.tau / max(1, guard_count)) * 1.5,
+            "y": y + math.sin(i * math.tau / max(1, guard_count)) * 1.5,
+            "ang": 0.0, "hp": 100, "max_hp": 100, "alive": True,
+            "weapon": "pistol_heavy",
+        } for i in range(guard_count)],
     }
 
 
@@ -1352,6 +1381,7 @@ def preview_business_row(biz_id, info=None):
         "notice": ("Бизнес захвачен вражеской бандой и не может приносить прибыль"
                    if occupied else None),
         "level": level, "income_multiplier": mult,
+        "guards": max(0, min(6, int((info or {}).get("guards", 0)))) if info else 0,
         "daily_min": round(low * mult), "daily_max": round(high * mult), "pending": pending,
         "upgrade_cost": round(price * PREVIEW_BIZ_UP[next_level]) if info and next_level <= 5 else 0,
     }
@@ -1411,7 +1441,7 @@ async def business_buy(req):
         return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"], "price": price}))
     account["cash"] -= price
     now = time.time()
-    owned[biz_id] = {"level": 1, "last_collect": now, "bought_at": now}
+    owned[biz_id] = {"level": 1, "last_collect": now, "bought_at": now, "guards": 0}
     preview_business_next_capture_at = min(preview_business_next_capture_at, now + 5.0)
     return cors(web.json_response({"ok": True, "cash": account["cash"], "level": 1}))
 
@@ -1439,6 +1469,37 @@ async def business_upgrade(req):
     return cors(web.json_response({"ok": True, "cash": account["cash"], "level": next_level,
         "income_multiplier": mult, "daily_min": round(low * mult), "daily_max": round(high * mult),
         "upgrade_cost": next_cost, "next_upgrade_cost": next_cost}))
+
+
+async def business_guard_hire(req):
+    uid = req.match_info.get("uid", "1")
+    try: body = await req.json()
+    except Exception: body = {}
+    biz_id = str(body.get("biz_id") or "")
+    info = preview_owned_businesses(uid).get(biz_id)
+    if not info or biz_id not in PREVIEW_BUSINESSES:
+        return cors(web.json_response({"ok": False, "error": "not owned"}))
+    guards = max(0, min(6, int(info.get("guards", 0))))
+    if guards >= 6:
+        return cors(web.json_response({"ok": False, "error": "guard limit", "guards": guards}))
+    account = preview_account(uid)
+    if account["cash"] < 100:
+        return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"]}))
+    account["cash"] -= 100
+    info["guards"] = guards + 1
+    nest = preview_business_nests.get(biz_id)
+    if nest and nest.get("owner_uid") in (None, str(uid)):
+        angle = info["guards"] * math.tau / 6
+        nest["owner_uid"] = str(uid)
+        nest.setdefault("guards", []).append({
+            "id": f"preview_guard_{biz_id}_{info['guards']}",
+            "x": nest["c"] + math.cos(angle) * 1.5,
+            "y": nest["r"] + math.sin(angle) * 1.5,
+            "ang": angle, "hp": 100, "max_hp": 100, "alive": True,
+            "weapon": "pistol_heavy",
+        })
+    return cors(web.json_response({"ok": True, "biz_id": biz_id,
+        "guards": info["guards"], "guard_limit": 6, "price": 100, "cash": account["cash"]}))
 
 
 async def business_collect(req):
@@ -1640,6 +1701,9 @@ def snap(uid):
                 "expires_in": max(0, int(nest["expires_at"] - now)),
                 "bots_alive": sum(1 for bot in nest["bots"] if bot.get("alive")),
                 "faction": nest["faction"], "business_id": bid,
+                "guards": [guard for guard in nest.get("guards", []) if guard.get("alive")],
+                "guards_alive": sum(
+                    1 for guard in nest.get("guards", []) if guard.get("alive")),
             } for bid, nest in preview_business_nests.items()],
             "business_closures": {
                 bid: max(0, int(until-now)) for bid,until in preview_business_closures.items()
@@ -2258,12 +2322,24 @@ async def world_ws(req):
                 p=players.get(uid) or {};near=(float(p.get("x",0))-34)**2+(float(p.get("y",0))-44)**2<=36
                 reply={"kind":"brigadir_take_reply","ok":False,"reason":"too_far"}
                 if near and not p.get("brigadir_active") and not p.get("brigadir_pending"):
-                    p["brigadir_active"]=True;reply={"kind":"brigadir_take_reply","ok":True,"payout":400,"left":3}
+                    reply={"kind":"brigadir_take_reply","ok":True,"payout":700,"left":3}
                 await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
+            elif t == "brigadir_accept":
+                p=players.get(uid) or {};target_id=str((d or {}).get("target_id") or "")[:96]
+                ok=bool(target_id and not p.get("brigadir_pending"))
+                if ok:
+                    p["brigadir_active"]=True;p["brigadir_target_id"]=target_id
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"brigadir_accept_reply","ok":ok}},ensure_ascii=False))
+            elif t == "brigadir_decline":
+                p=players.get(uid) or {}
+                if not p.get("brigadir_pending"):
+                    p.pop("brigadir_active",None);p.pop("brigadir_target_id",None)
             elif t == "brigadir_kill":
-                p=players.get(uid) or {};ok=bool(p.pop("brigadir_active",False))
-                if ok:p["brigadir_pending"]={"reward":400}
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"brigadir_kill_reply","ok":ok,"reward":400}},ensure_ascii=False))
+                p=players.get(uid) or {};target_id=str((d or {}).get("target_id") or "")
+                ok=bool(p.get("brigadir_active") and target_id and target_id==str(p.get("brigadir_target_id") or ""))
+                if ok:
+                    p.pop("brigadir_active",None);p.pop("brigadir_target_id",None);p["brigadir_pending"]={"reward":700}
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"brigadir_kill_reply","ok":ok,"reason":"none" if ok else "no_contract","reward":700}},ensure_ascii=False))
             elif t == "brigadir_claim":
                 p=players.get(uid) or {};near=(float(p.get("x",0))-34)**2+(float(p.get("y",0))-44)**2<=36;pending=p.get("brigadir_pending")
                 ok=bool(near and pending);reward=int((pending or {}).get("reward",0))
@@ -3046,6 +3122,7 @@ app.router.add_post("/apartment/{uid}/upgrade", apartment_upgrade)
 app.router.add_post("/apartment/{uid}/sell", apartment_sell)
 app.router.add_get("/biz/{uid}/list", business_list)
 app.router.add_post("/biz/{uid}/buy", business_buy)
+app.router.add_post("/biz/{uid}/guards/hire", business_guard_hire)
 app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
 app.router.add_post("/biz/{uid}/collect", business_collect)
 app.router.add_post("/biz/{uid}/said/hire", said_hire)

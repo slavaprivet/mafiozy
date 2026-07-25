@@ -1007,11 +1007,16 @@ async def init_db():
                 last_event_at INTEGER DEFAULT 0,
                 pending_notice TEXT DEFAULT NULL,
                 level         INTEGER DEFAULT 1,
+                guards        INTEGER DEFAULT 0,
                 PRIMARY KEY (telegram_id, biz_id)
             )
         """)
         try:
             await db.execute("ALTER TABLE player_businesses ADD COLUMN level INTEGER DEFAULT 1")
+        except Exception:
+            pass
+        try:
+            await db.execute("ALTER TABLE player_businesses ADD COLUMN guards INTEGER DEFAULT 0")
         except Exception:
             pass
         await db.execute("""
@@ -16722,6 +16727,16 @@ class WorldSim:
             and self._business_npc_capture_cooldown.get(bid, 0) <= now
         ]
         business_id = random.choice(candidates) if candidates and random.random() < 0.70 else None
+        guard_owner_uid = None
+        guard_count = 0
+        if business_id:
+            for player_uid, player_state in self.players.items():
+                if business_id not in (player_state.get('_owned_biz') or set()):
+                    continue
+                count = max(0, min(6, int(
+                    (player_state.get('_biz_guards') or {}).get(business_id, 0))))
+                if count > guard_count:
+                    guard_owner_uid, guard_count = str(player_uid), count
         if business_id:
             c, r = BUSINESS_WORLD_POS[business_id]
         # Ищем подходящий участок — внутри блока (5-8 % 10) где есть стена.
@@ -16790,6 +16805,17 @@ class WorldSim:
             })
         if not bots:
             return
+        defenders = []
+        for i in range(guard_count):
+            ang = (i / max(1, guard_count)) * 2 * _m.pi
+            defenders.append({
+                'id': f'{gid}_guard_{i + 1}',
+                'x': float(c + _m.cos(ang) * 1.45),
+                'y': float(r + _m.sin(ang) * 1.45),
+                'ang': float(ang),
+                'hp': 100, 'max_hp': 100, 'alive': True,
+                'weapon': 'pistol_heavy', '_shot_t': 0.0,
+            })
         nest = {
             'id':              gid,
             'bots':            bots,
@@ -16805,6 +16831,10 @@ class WorldSim:
             '_cleared':        False,
             'faction':          faction,
             'business_id':      business_id,
+            'defenders':        defenders,
+            'guard_owner_uid':  guard_owner_uid,
+            '_guard_shot_t':    0.0,
+            '_gang_shot_t':     0.0,
             '_combat_uids':    set(),     # кто стрелял по гнезду — получат бонус
         }
         self.gang_nests.append(nest)
@@ -16866,6 +16896,34 @@ class WorldSim:
         for ne in self.gang_nests:
             alive_bots = [b for b in ne['bots'] if b['alive']]
             ar, ac = ne['anchor_r'], ne['anchor_c']
+            alive_guards = [g for g in ne.get('defenders', []) if g.get('alive')]
+            # Business security and the raiding gang exchange server-authoritative fire.
+            if alive_bots and alive_guards:
+                if now >= ne.get('_guard_shot_t', 0):
+                    guard = random.choice(alive_guards)
+                    bot = random.choice(alive_bots)
+                    guard['ang'] = _m.atan2(bot['y'] - guard['y'], bot['x'] - guard['x'])
+                    bot['hp'] = max(0, int(bot['hp']) - random.randint(22, 31))
+                    if bot['hp'] <= 0:
+                        bot['alive'] = False
+                    ne['_guard_shot_t'] = now + random.uniform(.62, .92)
+                    pkts.append({'kind':'business_guard_shot','id':ne['id'],
+                                 'guard_id':guard['id'],'bot_id':bot['id']})
+                alive_bots = [b for b in ne['bots'] if b['alive']]
+                if alive_bots and now >= ne.get('_gang_shot_t', 0):
+                    bot = random.choice(alive_bots)
+                    guard = random.choice(alive_guards)
+                    bot['ang'] = _m.atan2(guard['y'] - bot['y'], guard['x'] - bot['x'])
+                    guard['hp'] = max(0, int(guard['hp']) - random.randint(16, 25))
+                    if guard['hp'] <= 0:
+                        guard['alive'] = False
+                        pkts.append({
+                            'kind':'business_guard_down', 'id':ne['id'],
+                            'business_id':ne.get('business_id'),
+                            'owner_uid':ne.get('guard_owner_uid'),
+                            'guard_id':guard['id'],
+                        })
+                    ne['_gang_shot_t'] = now + random.uniform(.72, 1.05)
             # Близость к гнезду не провоцирует бой. Оно становится hostile
             # только в gang_nest_shoot_bot после подтверждённого попадания.
             if ne['state'] == 'guard':
@@ -18601,6 +18659,14 @@ class WorldSim:
                 'bots_alive': len(n_bots),
                 'faction':    ne.get('faction', 'purple'),
                 'business_id': ne.get('business_id'),
+                'guards': [{
+                    'id': guard['id'], 'x': round(guard['x'], 2), 'y': round(guard['y'], 2),
+                    'ang': round(guard.get('ang', 0), 2), 'hp': int(guard.get('hp', 0)),
+                    'max_hp': int(guard.get('max_hp', 100)), 'alive': bool(guard.get('alive')),
+                    'weapon': guard.get('weapon', 'pistol_heavy'),
+                } for guard in ne.get('defenders', []) if guard.get('alive')],
+                'guards_alive': sum(
+                    1 for guard in ne.get('defenders', []) if guard.get('alive')),
             })
         # Квестовые тачки Майкла — шлём всем (их мало). Машину видят все,
         # но сесть и угнать её может только owner_uid (контракт персональный,
@@ -18880,6 +18946,28 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 # Бандитское гнездо в городе (мини-Логово, 4 охранника
                 # вокруг здания, появляется раз в 5 мин, живёт 10 мин).
                 nest_pkts = world.tick_gang_nests(WORLD_TICK_DT) or []
+                for guard_event in nest_pkts:
+                    if guard_event.get('kind') != 'business_guard_down':
+                        continue
+                    try:
+                        owner_uid = int(guard_event.get('owner_uid'))
+                        business_id = str(guard_event.get('business_id') or '')
+                        if not business_id:
+                            continue
+                        async with aiosqlite.connect(DB_PATH) as db:
+                            await db.execute(
+                                """UPDATE player_businesses
+                                   SET guards = CASE WHEN guards > 0 THEN guards - 1 ELSE 0 END
+                                   WHERE telegram_id=? AND biz_id=?""",
+                                (owner_uid, business_id))
+                            await db.commit()
+                        owner_state = world.players.get(str(owner_uid))
+                        if owner_state is not None:
+                            guards_map = owner_state.setdefault('_biz_guards', {})
+                            guards_map[business_id] = max(
+                                0, int(guards_map.get(business_id, 0)) - 1)
+                    except Exception as _e:
+                        logger.warning("WorldSim: guard loss persistence failed: %r", _e)
                 # Бонус всем участникам зачистки гнезда (NEST_CLEAR_CASH/EXP).
                 for np in nest_pkts:
                     if np.get('kind') != 'gang_nest_cleared':
@@ -20019,8 +20107,16 @@ async def _coop_http_app():
                 rows = await cur.fetchall()
         for r in rows:
             d = dict(r)
+            d['guards'] = max(0, min(6, int(d.get('guards') or 0)))
             d['pending'] = _biz_pending_income(d, now)
             owned[d['biz_id']] = d
+        if _WORLD is not None:
+            player_state = _WORLD.players.get(str(uid))
+            if player_state is not None:
+                player_state['_biz_guards'] = {
+                    str(bid): int(row.get('guards') or 0)
+                    for bid, row in owned.items()
+                }
         catalog = []
         for b in BUSINESSES:
             entry = dict(b)
@@ -20038,6 +20134,7 @@ async def _coop_http_app():
                 entry['daily_min']     = int(round(b['daily_min'] * mult))
                 entry['daily_max']     = int(round(b['daily_max'] * mult))
                 entry['upgrade_cost']  = 0 if level >= BIZ_MAX_LEVEL else business_upgrade_cost(b, level + 1)
+                entry['guards']        = int(o.get('guards') or 0)
                 occupied = bool(_WORLD is not None and
                                 b['id'] in _WORLD._business_npc_occupations)
                 entry['npc_occupied'] = occupied
@@ -20047,6 +20144,7 @@ async def _coop_http_app():
                         'Бизнес захвачен вражеской бандой и не может приносить прибыль')
             else:
                 entry['level'] = 0
+                entry['guards'] = 0
                 entry['income_multiplier'] = 1.0
                 entry['upgrade_cost'] = 0
             catalog.append(entry)
@@ -20175,6 +20273,73 @@ async def _coop_http_app():
         except Exception:
             pass
         return await _cors(web.json_response({'ok': True, 'cash': new_cash}))
+
+    async def h_biz_guard_hire(req):
+        try:
+            uid = int(req.match_info['uid'])
+            data = await req.json()
+            biz_id = str(data.get('biz_id') or '')
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad request'}, status=400))
+        if not get_business(biz_id):
+            return await _cors(web.json_response({'ok': False, 'error': 'bad business'}, status=400))
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute('BEGIN IMMEDIATE')
+            async with db.execute(
+                "SELECT guards FROM player_businesses WHERE telegram_id=? AND biz_id=?",
+                (uid, biz_id),
+            ) as cur:
+                row = await cur.fetchone()
+            if not row:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
+            guards = max(0, min(6, int(row['guards'] or 0)))
+            if guards >= 6:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'guard limit'}))
+            async with db.execute(
+                "SELECT cash FROM characters WHERE telegram_id=?", (uid,)
+            ) as cur:
+                char = await cur.fetchone()
+            cash = int(char['cash'] or 0) if char else 0
+            if cash < 100:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'no cash'}))
+            guards += 1
+            cash -= 100
+            await db.execute(
+                "UPDATE player_businesses SET guards=? WHERE telegram_id=? AND biz_id=?",
+                (guards, uid, biz_id),
+            )
+            await db.execute(
+                "UPDATE characters SET cash=? WHERE telegram_id=?", (cash, uid)
+            )
+            await db.commit()
+        if _WORLD is not None:
+            player_state = _WORLD.players.get(str(uid))
+            if player_state is not None:
+                player_state.setdefault('_biz_guards', {})[biz_id] = guards
+            for nest in (_WORLD.gang_nests if _WORLD is not None else []):
+                if str(nest.get('business_id') or '') != biz_id:
+                    continue
+                if nest.get('guard_owner_uid') not in (None, str(uid)):
+                    continue
+                import math as _m
+                angle = guards * 2 * _m.pi / 6
+                nest['guard_owner_uid'] = str(uid)
+                nest.setdefault('defenders', []).append({
+                    'id': f"{nest['id']}_guard_{guards}",
+                    'x': nest['anchor_c'] + _m.cos(angle) * 1.45,
+                    'y': nest['anchor_r'] + _m.sin(angle) * 1.45,
+                    'ang': angle, 'hp': 100, 'max_hp': 100, 'alive': True,
+                    'weapon': 'pistol_heavy', '_shot_t': 0.0,
+                })
+                break
+        return await _cors(web.json_response({
+            'ok': True, 'biz_id': biz_id, 'guards': guards,
+            'guard_limit': 6, 'cash': cash, 'price': 100,
+        }))
 
     async def h_biz_upgrade(req):
         try:
@@ -22447,6 +22612,29 @@ async def _coop_http_app():
                                  'd': dict(reply, kind='brigadir_take_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'brigadir_accept':
+                        # Досье подтверждено игроком. Запоминаем конкретную
+                        # серверную цель, чтобы нельзя было прислать kill за
+                        # другого бойца или получить награду без принятия.
+                        p = world.players.get(uid)
+                        target_id = str((d or {}).get('target_id') or '')[:96]
+                        ok = bool(p and target_id and not p.get('_brigadir_pending'))
+                        if ok:
+                            p['_brigadir_active'] = True
+                            p['_brigadir_target_id'] = target_id
+                        try:
+                            await ws.send_str(json.dumps({
+                                't': 'event',
+                                'd': {'kind': 'brigadir_accept_reply', 'ok': ok}
+                            }, ensure_ascii=False))
+                        except Exception:
+                            pass
+                    elif t == 'brigadir_decline':
+                        # Отклонённое предложение не расходует дневной лимит.
+                        p = world.players.get(uid)
+                        if p and not p.get('_brigadir_pending'):
+                            p['_brigadir_active'] = False
+                            p['_brigadir_target_id'] = None
                     elif t == 'brigadir_kill':
                         # Игрок убил цель из хит-контракта Бригадира.
                         # d = {stealth: bool} — если выстрел не видел никто из копов.
@@ -22459,6 +22647,10 @@ async def _coop_http_app():
                             reply = {'ok': False, 'reason': 'dead'}
                         elif p.get('_brigadir_pending'):
                             reply = {'ok': False, 'reason': 'already_pending'}
+                        elif (not p.get('_brigadir_active') or
+                              str((d or {}).get('target_id') or '') !=
+                              str(p.get('_brigadir_target_id') or '')):
+                            reply = {'ok': False, 'reason': 'no_contract'}
                         else:
                             stealth = bool(d.get('stealth') if isinstance(d, dict) else False)
                             reward = int(BRIGADIR_PAYOUT
@@ -22468,6 +22660,8 @@ async def _coop_http_app():
                                 'stealth': stealth,
                                 't': int(time.time()),
                             }
+                            p['_brigadir_active'] = False
+                            p['_brigadir_target_id'] = None
                             reply = {'ok': True, 'reward': reward,
                                      'stealth': stealth,
                                      'claim_at_brigadir': True}
@@ -23756,6 +23950,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/event/{uid}/tick',   h_event_tick)
     aio_app.router.add_get ('/biz/{uid}/list',     h_biz_list)
     aio_app.router.add_post('/biz/{uid}/buy',      h_biz_buy)
+    aio_app.router.add_post('/biz/{uid}/guards/hire', h_biz_guard_hire)
     aio_app.router.add_post('/biz/{uid}/upgrade',  h_biz_upgrade)
     aio_app.router.add_post('/biz/{uid}/collect',  h_biz_collect)
     aio_app.router.add_post('/biz/{uid}/said/hire', h_said_hire)
