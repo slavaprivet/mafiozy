@@ -48,13 +48,24 @@ async def main():
     await sockets['leader'].send_json({'t':'gta_exit','d':{'car_id':gta_id}});gta_done=await recv_kind(sockets['leader'],'gta_exit_reply');assert gta_done['delivered'] and game.preview_account('leader')['cash']==cash_gta+gta_done['reward'] and gta_id not in game.quest_cars
     await input_role(sockets['leader'],False,x=42,y=183)
     await sockets['leader'].send_json({'t':'box_status','d':{}});assert (await recv_kind(sockets['leader'],'box_status'))['active'] is None
-    await sockets['leader'].send_json({'t':'box_take','d':{}});box=await recv_kind(sockets['leader'],'box_take_reply');assert box['ok'] and (box['pickup_x'],box['pickup_y'])==(40.,166.) and box['addr'] in ('Пиццерия','Подпольный клуб')
+    await sockets['leader'].send_json({'t':'box_take','d':{}});box=await recv_kind(sockets['leader'],'box_take_reply')
+    assert box['ok'] and (box['pickup_x'],box['pickup_y'])==(40.,166.)
+    assert box['business_id'] in game.PREVIEW_BUSINESS_POS
+    assert (box['dropoff_x'],box['dropoff_y'])==game.PREVIEW_BUSINESS_POS[box['business_id']]
     await input_role(sockets['leader'],False,x=box['pickup_x'],y=box['pickup_y'])
     await sockets['leader'].send_json({'t':'box_pickup','d':{}});assert (await recv_kind(sockets['leader'],'box_pickup_reply'))['ok']
     await sockets['leader'].send_json({'t':'box_load','d':{'car_id':'test_trunk'}});loaded=await recv_kind(sockets['leader'],'box_load_reply');assert loaded['ok'] and loaded['state']=='loaded'
     await sockets['leader'].send_json({'t':'box_deliver','d':{}});assert not (await recv_kind(sockets['leader'],'box_deliver_reply'))['ok']
     await sockets['leader'].send_json({'t':'box_unload','d':{'car_id':'test_trunk'}});assert (await recv_kind(sockets['leader'],'box_unload_reply'))['ok']
-    cash_box=game.preview_account('leader')['cash'];await input_role(sockets['leader'],False,x=box['dropoff_x'],y=box['dropoff_y'])
+    await sockets['leader'].send_json({'t':'box_pickup','d':{}});assert (await recv_kind(sockets['leader'],'box_pickup_reply'))['ok']
+    cash_box=game.preview_account('leader')['cash']
+    width=game.PREVIEW_ROB_INTERIOR_WIDTHS[box['business_id']]
+    await sockets['leader'].send_json({'t':'input','d':{
+        'client_active':True,'x':box['dropoff_x'],'y':box['dropoff_y'],
+        'ang':0,'mafia':False,'police':False,'gang':[],
+        'interior':{'kind':'business','biz_id':box['business_id'],
+                    'x':width/2,'y':2.9}}})
+    await asyncio.sleep(.12)
     await sockets['leader'].send_json({'t':'box_deliver','d':{}});delivered=await recv_kind(sockets['leader'],'box_deliver_reply');assert delivered['ok'] and game.preview_account('leader')['cash']==cash_box+delivered['reward']
     # Серверная покупка баллона и полный цикл контракта Бригадира.
     cash0=game.preview_account('leader')['cash']
@@ -62,8 +73,9 @@ async def main():
     spray=await recv_kind(sockets['leader'],'spray_can_buy_reply');assert spray['ok'] and spray['cash']==cash0-5 and spray['spray_cans']==1
     await input_role(sockets['leader'],False,x=34,y=44)
     await sockets['leader'].send_json({'t':'brigadir_take','d':{}});assert (await recv_kind(sockets['leader'],'brigadir_take_reply'))['ok']
+    await sockets['leader'].send_json({'t':'brigadir_accept','d':{'target_id':'test'}});assert (await recv_kind(sockets['leader'],'brigadir_accept_reply'))['ok']
     await sockets['leader'].send_json({'t':'brigadir_kill','d':{'target_id':'test'}});assert (await recv_kind(sockets['leader'],'brigadir_kill_reply'))['ok']
-    await sockets['leader'].send_json({'t':'brigadir_claim','d':{}});claim=await recv_kind(sockets['leader'],'brigadir_claim_reply');assert claim['ok'] and claim['reward']==400
+    await sockets['leader'].send_json({'t':'brigadir_claim','d':{}});claim=await recv_kind(sockets['leader'],'brigadir_claim_reply');assert claim['ok'] and claim['reward']==700
     await input_role(sockets['leader'],False)
     # Гражданские не могут приглашать.
     await sockets['leader'].send_json({'t':'gang_player_invite','d':{'target_uid':'a'}})

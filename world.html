@@ -112,7 +112,7 @@ body.in-pvp #zoneBtn { top: 104px; }
   padding: 10px 18px; font-size: 13px; font-weight: 800;
   cursor: pointer; display: none; z-index: 7;
   box-shadow: 0 4px 14px rgba(80,40,0,.6), inset 0 1px 0 rgba(255,255,255,.15);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.5px; touch-action: manipulation;
 }
 body.in-pvp #gtaActionBtn { top: 104px; }
 /* В бизнес-интерьере верхние 106px занимает карточка давления.
@@ -620,6 +620,18 @@ body.in-pvp #robActionBtn { top: 152px; }
 #missionHudBtn.active .mission-count { display: inline-flex; }
 #missionHudBtn.minimized { animation: missionHudPulse 1.8s ease-in-out infinite; }
 @keyframes missionHudPulse { 50% { box-shadow: 0 0 16px rgba(230,184,63,.62); } }
+#missionsModal { position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(2,5,10,.76);backdrop-filter:blur(5px); }
+#missionsModal.show { display:flex; }
+.missions-card { width:min(520px,calc(100vw - 28px));max-height:min(680px,calc(100vh - 32px));overflow:auto;border:1px solid #d8a936;border-radius:16px;background:linear-gradient(155deg,#151b25,#0b0f16);box-shadow:0 18px 55px rgba(0,0,0,.7);color:#edf2fa;font:700 13px/1.35 system-ui,sans-serif; }
+.missions-head { position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-bottom:1px solid rgba(216,169,54,.35);background:rgba(16,21,30,.98);font-size:17px;color:#ffe49a; }
+.missions-close { width:31px;height:31px;border:1px solid #667286;border-radius:9px;background:#202735;color:#fff;font-size:18px;cursor:pointer; }
+#missionsBody { display:grid;gap:10px;padding:13px; }
+.mission-item { padding:12px;border:1px solid #39465a;border-radius:12px;background:rgba(29,36,49,.9); }
+.mission-item.active { border-color:#d5a536;box-shadow:inset 3px 0 #e7b33c; }
+.mission-item h3 { margin:0 0 6px;color:#fff0b3;font-size:14px; }
+.mission-item p { margin:4px 0;color:#bcc8d8;font-weight:600; }
+.mission-item .mission-route { color:#82e99f; }
+.mission-item button { margin-top:8px;padding:8px 11px;border:1px solid #d8a936;border-radius:9px;background:#8b5b0d;color:#fff3c2;font-weight:900;cursor:pointer; }
 #gangRosterHud {
   position: absolute; left: 14px; top: 174px; width: min(168px, 46vw);
   padding: 7px 8px 8px; border-radius: 9px; z-index: 7;
@@ -1747,7 +1759,7 @@ body.in-pvp #robActionBtn { top: 152px; }
        Показывается только когда myGtaStatus.active есть и модал Майкла закрыт. -->
   <div id="questCarHud">
     <button class="qhd-close" id="questHudToggle">×</button>
-    <div class="qhd-t">🎯 Заказ Майкла</div>
+    <div class="qhd-t" id="questCarHudTitle">🎯 Заказ Майкла</div>
     <div class="qhd-body">
       <canvas id="questCarHudCv" width="160" height="56"></canvas>
       <div class="qhd-name" id="questCarHudName">—</div>
@@ -1760,6 +1772,12 @@ body.in-pvp #robActionBtn { top: 152px; }
   <button id="missionHudBtn" type="button" title="Открыть активные миссии">
     <span class="mission-label">📋 Миссии</span><span class="mission-count">0</span>
   </button>
+  <div id="missionsModal" role="dialog" aria-modal="true" aria-label="Миссии">
+    <section class="missions-card">
+      <div class="missions-head"><span>📋 Миссии</span><button class="missions-close" id="missionsClose" type="button">×</button></div>
+      <div id="missionsBody"></div>
+    </section>
+  </div>
   <section id="gangRosterHud" aria-label="Моя банда">
     <div class="gr-head"><span>👥 Моя банда</span><span class="gr-count" id="gangRosterCount">0/5</span></div>
     <div id="gangRosterList"><div class="gr-empty">Бойцов пока нет</div></div>
@@ -2818,7 +2836,8 @@ function updateRaceLap() {
     return t >= 0 && t <= 1 && u >= 0 && u <= 1;
   };
   // ФИНИШ (шахматка): фиксирует рекорд, если пройдены все ворота
-  if (crossedLine(RACE_FINISH_LINE, 0, 1)) {
+  const startLine = _raceCrossLineAt(RACE_START_AT, TRACK_HALF_W + 0.35);
+  if (crossedLine(startLine, startLine.dirR, startLine.dirC)) {
     if (_raceLapStartMs && _raceGateIdx === 3) {
       const ms = Math.round(now - _raceLapStartMs);
       _raceFinishFxAt = now;
@@ -2835,7 +2854,6 @@ function updateRaceLap() {
     _resetRaceLap('', pr, pc);
   }
   // СТАРТ (двойная линия): запускает новое время
-  const startLine = _raceCrossLineAt(RACE_START_AT, TRACK_HALF_W + 0.35);
   const raceCar = _raceDrivingCar();
   let carStartHit = false;
   let startZoneNow = _racePointNearLine(pr, pc, startLine, 1.25);
@@ -4986,7 +5004,7 @@ const DISTRICTS = [
     r0:100, r1:149, c0:0,  c1:79, capturable:false, bonus:'Территория банды' },
   { id:'coast',      name:'Побережье',  icon:'⚓', color:'#2ecc71',
     r0:150, r1:199, c0:0,  c1:79, capturable:true,  bonus:'+20% с контрактов',
-    hq:{r:156,c:40}, intel:{r:165,c:40}, sabotage:[{r:154,c:18},{r:158,c:65},{r:178,c:40}], escape:{r:196,c:40}, income:450 },
+    hq:{r:156,c:40}, intel:{r:165,c:40}, sabotage:[{r:157,c:14},{r:158,c:65},{r:178,c:40}], escape:{r:196,c:40}, income:450 },
 ];
 const DIST_HQ_RAD = 6;
 const DIST_ACTION_RAD = 2.8;
@@ -10914,6 +10932,7 @@ let _bankInt = null;
 // Состояние интерьера обычного здания (null = снаружи)
 let _buildingInt = null;
 let _selectedBuildingEntry = null;
+let _selectedVehicleEntry = null;
 let _buildingHideTimer = 0;
 // Мягкое возвращение из интерьера. Полный городской кадр (44×44 тайла +
 // сотни depth-items) раньше строился в тот же момент, когда после паузы
@@ -11124,6 +11143,24 @@ function drawOwnedBusinessWorldMarkers(r0, r1, c0, c1) {
   }
 }
 
+function _nearestAutomaticBuildingEntry(maxDistance = 7) {
+  if (_buildingInt || _bankInt || myDrivingCarId || myDead || inArena(player.r, player.c)) return null;
+  const radius = Math.max(2, Math.ceil(maxDistance));
+  const pr = Math.round(player.r), pc = Math.round(player.c);
+  let best = null, bestD = Number(maxDistance) || 7;
+  for (let dr = -radius; dr <= radius; dr++) for (let dc = -radius; dc <= radius; dc++) {
+    const r = pr + dr, c = pc + dc;
+    if (r < 0 || r >= MAP_ROWS || c < 0 || c >= MAP_COLS) continue;
+    if (!MAP[r] || MAP[r][c] !== 1 || r >= 140) continue;
+    const key = r + ',' + c;
+    if (POI_BY_RC.has(key) || _bankTileSet.has(key) ||
+        (BUSINESS_BY_RC && BUSINESS_BY_RC.has(key))) continue;
+    const d = Math.hypot(player.r - r - .5, player.c - c - .5);
+    if (d < bestD) { bestD = d; best = { r, c, d }; }
+  }
+  return best;
+}
+
 function _currentBuildingEntryTarget() {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead) return null;
   if (_selectedBuildingEntry) {
@@ -11155,6 +11192,13 @@ function _currentBuildingEntryTarget() {
 
   if (_zoneCur && _zoneEl && _zoneEl.style.display === 'block') {
     return { r: _zoneCur.r + 0.5, c: _zoneCur.c + 0.5, radius: 1.15 };
+  }
+  // Preserve the original no-click flow: keep the nearest ordinary entrance
+  // marked automatically. A manually tapped building is handled above and
+  // takes priority when several facades overlap.
+  const automatic = _nearestAutomaticBuildingEntry(7);
+  if (automatic) {
+    return { r: automatic.r + .5, c: automatic.c + .5, radius: .58 };
   }
   return null;
 }
@@ -11205,6 +11249,80 @@ function tryTapActiveBuildingEntryMarker(x, y) {
   return activateCurrentBuildingEntry();
 }
 
+function _selectedVehicleObject() {
+  if (!_selectedVehicleEntry || myDrivingCarId || _buildingInt || _bankInt || myDead) return null;
+  if (_selectedVehicleEntry.kind === 'quest') {
+    return questCars.get(_selectedVehicleEntry.id) || null;
+  }
+  const car = _selectedVehicleEntry.car;
+  return car && CARS.includes(car) && !car._wrecked ? car : null;
+}
+
+function _selectedVehiclePosition() {
+  const car = _selectedVehicleObject();
+  if (!car) return null;
+  return _selectedVehicleEntry.kind === 'quest'
+    ? { car, r: +car.y, c: +car.x }
+    : { car, r: +car.r, c: +car.c };
+}
+
+function drawActiveVehicleEntryMarker() {
+  const target = _selectedVehiclePosition();
+  if (!target || !Number.isFinite(target.r) || !Number.isFinite(target.c)) return;
+  const pulse = (Math.sin(performance.now() * 0.008) + 1) * .5;
+  const p = w2s(target.r, target.c), y = p.y - 62 - pulse * 5;
+  ctx.save();
+  ctx.font = '900 12px system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const label = '🚗 СЕСТЬ', width = ctx.measureText(label).width + 28;
+  ctx.shadowColor = '#ffd84f'; ctx.shadowBlur = 14 + pulse * 7;
+  ctx.fillStyle = 'rgba(38,28,5,.96)'; ctx.strokeStyle = '#ffd84f'; ctx.lineWidth = 2;
+  roundRect(p.x-width/2,y-13,width,26,10); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(p.x,y+22); ctx.lineTo(p.x-8,y+13); ctx.lineTo(p.x+8,y+13);
+  ctx.closePath(); ctx.fillStyle='#ffd84f'; ctx.fill();
+  ctx.shadowBlur=0; ctx.fillStyle='#fff5c8'; ctx.fillText(label,p.x,y);
+  ctx.restore();
+}
+
+function tryTapActiveVehicleEntryMarker(x, y) {
+  const target = _selectedVehiclePosition();
+  if (!target) return false;
+  const pulse = (Math.sin(performance.now() * 0.008) + 1) * .5;
+  const p = w2s(target.r, target.c), markerY = p.y - 62 - pulse * 5;
+  ctx.save(); ctx.font = '900 12px system-ui, sans-serif';
+  const width = ctx.measureText('🚗 СЕСТЬ').width + 40; ctx.restore();
+  if (x < p.x-width/2 || x > p.x+width/2 || y < markerY-20 || y > markerY+28) return false;
+  if (Math.hypot(player.r-target.r, player.c-target.c) > GTA_INTERACT_R + .15) {
+    showToast('Подойди ближе к машине', '🚗', 1500);
+    return true;
+  }
+  updateGtaInteractions();
+  if (_gtaActionKind === 'enter' || _gtaActionKind === 'hijack' || _gtaActionKind === 'taxi_ride') {
+    _gtaBtn.click();
+  }
+  return true;
+}
+
+function selectVehicleFromCanvasTap(x, y, hitRadius = 48) {
+  if (_buildingInt || _bankInt || myDrivingCarId || myDead) return false;
+  let best = null, bestD = Math.max(18, Number(hitRadius) || 48);
+  for (const car of questCars.values()) {
+    if (!car || car.wrecked || !Number.isFinite(+car.x) || !Number.isFinite(+car.y)) continue;
+    const p=w2s(+car.y,+car.x), d=Math.hypot(x-p.x,(y-p.y)*1.35);
+    if (d<bestD) { bestD=d; best={kind:'quest',id:String(car.id)}; }
+  }
+  for (const car of CARS) {
+    if (!car || !car.model || car._wrecked || !Number.isFinite(+car.r) || !Number.isFinite(+car.c)) continue;
+    const p=w2s(+car.r,+car.c), d=Math.hypot(x-p.x,(y-p.y)*1.35);
+    if (d<bestD) { bestD=d; best={kind:'traffic',car}; }
+  }
+  if (!best) return false;
+  _selectedVehicleEntry=best;
+  _selectedBuildingEntry=null;
+  showToast('Машина выбрана. Подойди и нажми «Сесть».', '🚗', 1800);
+  return true;
+}
+
 function selectBuildingFromCanvasTap(x, y) {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead) return false;
 
@@ -11217,6 +11335,7 @@ function selectBuildingFromCanvasTap(x, y) {
       r: BURJ_POS.r, c: BURJ_POS.c, type: 'mafia_hq',
       label: 'Burj Mafia'
     };
+    _selectedVehicleEntry = null;
     showToast('📍 Вход в Burj Mafia отмечен. Подойди к жёлтому квадрату.', '🚪', 2600);
     return true;
   }
@@ -11263,6 +11382,7 @@ function selectBuildingFromCanvasTap(x, y) {
     r: best.r, c: best.c, type: special,
     label: special === 'mafia_hq' ? 'Burj Mafia' : 'здание'
   };
+  _selectedVehicleEntry = null;
   showToast('📍 Вход отмечен. Подойди к жёлтому квадрату.', '🚪', 2200);
   return true;
 }
@@ -11391,6 +11511,7 @@ function showApartmentUpgradeMenu() {
 const GANG_HIRE_COST = 500;
 let GANG_MAX = 5;
 const GANG_MIN_LVL = 5;
+const GANG_FIGHTER_MAX_LEVEL = 25;
 const _myGang = [];
 let _onlineGang=null;
 const _formerGang = [];
@@ -11398,15 +11519,52 @@ let _gangIdCounter = 0;
 let _gangRosterUiKey = '';
 let _gangRosterOpen = false;
 let _gangDismissConfirmId = null;
+let _gangFormationAng = null;
 const GANG_RETURN_TO_LAIR_MS = 2 * 60 * 1000;
 const _gangWeaponIcon = { pistol:'🔫',pistol_heavy:'🔫',pistol_gold:'🔫',nagan:'🔫',smg:'▰',tommy_gun:'▰',shotgun:'◼',rifle:'⌁',sniper:'⌖',rpg:'🚀' };
+function _gangXpFloor(level) {
+  level=Math.max(1,Math.min(GANG_FIGHTER_MAX_LEVEL,parseInt(level)||1));
+  return Math.round(55*Math.pow(level-1,1.62));
+}
+function _gangLevelFromXp(xp) {
+  xp=Math.max(0,parseInt(xp)||0);let level=1;
+  while(level<GANG_FIGHTER_MAX_LEVEL&&xp>=_gangXpFloor(level+1))level++;
+  return level;
+}
+function _gangXpProgress(g) {
+  const level=Math.max(1,Math.min(GANG_FIGHTER_MAX_LEVEL,parseInt(g?.level)||1));
+  if(level>=GANG_FIGHTER_MAX_LEVEL)return{current:0,need:0,pct:100,maxed:true};
+  const floor=_gangXpFloor(level),next=_gangXpFloor(level+1),xp=Math.max(floor,+g?.fighterXp||floor);
+  return{current:Math.max(0,xp-floor),need:next-floor,pct:Math.max(0,Math.min(100,(xp-floor)/(next-floor)*100)),maxed:false};
+}
+let _gangSaveTimer=0;
+function _scheduleGangSave(){if(_gangSaveTimer)return;_gangSaveTimer=setTimeout(()=>{_gangSaveTimer=0;_saveGang();},450);}
+function _awardGangXp(member,damage=0,killed=false,targetLevel=1) {
+  if(!member||member.hp<=0)return;
+  const oldLevel=Math.max(1,Math.min(GANG_FIGHTER_MAX_LEVEL,+member.level||1));
+  const floor=_gangXpFloor(oldLevel);
+  member.fighterXp=Math.max(floor,+member.fighterXp||floor);
+  member.fighterXp+=Math.max(1,Math.floor(Math.max(0,+damage||0)/7));
+  if(killed){member.fighterXp+=30+Math.max(0,Math.min(25,+targetLevel||1))*2;member.kills=(+member.kills||0)+1;}
+  member.damageDone=(+member.damageDone||0)+Math.max(0,+damage||0);
+  const newLevel=_gangLevelFromXp(member.fighterXp);
+  if(newLevel>oldLevel){
+    for(let level=oldLevel+1;level<=newLevel;level++){
+      const oldMax=Math.max(1,+member.max_hp||80),newMax=Math.round(oldMax*1.05);
+      member.max_hp=newMax;member.hp=Math.min(newMax,(+member.hp||0)+(newMax-oldMax)+8);
+    }
+    member.level=newLevel;
+    showEventBanner(`⬆️ ${member.name}: ${newLevel} УРОВЕНЬ`,`Больше здоровья и урона. Убийств: ${member.kills||0}`,3000,'win');
+  }
+  _gangRosterUiKey='';syncGangRosterHud();_scheduleGangSave();
+}
 function syncGangRosterHud() {
   const list=document.getElementById('gangRosterList'),count=document.getElementById('gangRosterCount');
   if(!list||!count)return;
   const placeJobHud=()=>{const roster=document.getElementById('gangRosterHud'),job=document.getElementById('jobStatusHud');if(roster&&job)job.style.top=(roster.offsetTop+roster.offsetHeight+8)+'px';};
   const active=_myGang.filter(g=>g&&g.hp>0);
   const onlineMembers=(_onlineGang?.members||[]).filter(m=>String(m.uid)!==String(QP.uid));
-  const key=`${_gangRosterOpen}:${_gangDismissConfirmId||''}:`+active.map(g=>`${g.id}:${g.name}:${g.weapon}:${g.level||1}`).join('|')+'#'+onlineMembers.map(m=>`${m.uid}:${m.name}:${m.npc_count}`).join('|');
+  const key=`${_gangRosterOpen}:${_gangDismissConfirmId||''}:`+active.map(g=>`${g.id}:${g.name}:${g.weapon}:${g.level||1}:${g.fighterXp||0}:${g.kills||0}`).join('|')+'#'+onlineMembers.map(m=>`${m.uid}:${m.name}:${m.npc_count}`).join('|');
   if(key===_gangRosterUiKey){placeJobHud();return;}
   _gangRosterUiKey=key;
   count.textContent=`${onlineMembers.length+1}/3 игрока · ${active.length}/${GANG_MAX} NPC`;
@@ -11414,9 +11572,10 @@ function syncGangRosterHud() {
   const addRow=(g)=>{
     const row=document.createElement('div');row.className='gr-row';
     const dot=document.createElement('span');dot.className='gr-dot';
-    const name=document.createElement('span');name.className='gr-name';name.textContent=`${g.name||'Боец'} · ${g.level||1} ур.`;
+    const progress=_gangXpProgress(g);
+    const name=document.createElement('span');name.className='gr-name';name.textContent=`${g.name||'Боец'} · ${g.level||1} ур.${progress.maxed?' · MAX':` · ${progress.current}/${progress.need} XP`}`;
     const weapon=document.createElement('span');weapon.className='gr-weapon';weapon.textContent=_gangWeaponIcon[g.weapon]||'🔫';
-    row.title=`${g.name||'Боец'} — в строю`;
+    row.title=`${g.name||'Боец'} — ${g.level||1}/25 ур. · убийств ${g.kills||0} · урон ${Math.round(g.damageDone||0)}`;
     row.append(dot,name,weapon);
     if(_gangRosterOpen){
       const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='gr-dismiss';dismiss.textContent='×';dismiss.title=`Удалить ${g.name||'бойца'} из банды`;
@@ -11449,6 +11608,7 @@ function syncGangRosterHud() {
 // визуально «нанятый бросился на меня» уходит. Ids не переживают
 // перезагрузку — после релоада бот вернётся обычным врагом (ок).
 const _hiredBotIds = new Set();
+const _pendingGangHires = new Map();
 // Голос отряда. В спокойной обстановке говорит только один боец, а в бою
 // разрешены короткие пересекающиеся выкрики (но не больше трёх одновременно).
 const _GANG_PHRASES = {
@@ -11552,7 +11712,7 @@ const _GANG_NAMES = [
   'Джек','Хантер','Блэйд','Рэй','Коул','Дейв','Чак','Бакс','Флинт','Рэкс',
   'Спайк','Кэш','Скарр','Зеро','Бойд','Нэш','Фокс','Волк','Крот','Змей',
 ];
-function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false, botLevel = 1, botMaxHp = 0) {
+function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false, botLevel = 1, botMaxHp = 0, serverConfirmed = false) {
   if(!_mafiaState?.employed){showToast('Сначала вступи в мафию в Burj Mafia','🕴️',2200);return false;}
   const mafiaLevel=_mafiaLevel();
   botLevel=Math.max(1,Math.min(25,parseInt(botLevel)||1));
@@ -11563,6 +11723,18 @@ function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false, botL
   const hireCost=Math.max(50,Math.round((isBoss?800:GANG_HIRE_COST)*(mafiaLevel>=2?.85:1)));
   const cash = parseInt(QP.cash) || 0;
   if (cash < hireCost) { showToast(`💸 Нужно $${hireCost}`, '❌', 1500); return false; }
+  if (!serverConfirmed && sourceBotId != null) {
+    const key=String(sourceBotId);
+    if(_pendingGangHires.has(key)){showToast('Запрос на найм уже отправлен','⏳',1500);return 'pending';}
+    if(!ws||ws.readyState!==1){showToast('Сервер не отвечает — деньги не списаны','⚠️',2200);return false;}
+    const requestedAt=performance.now();
+    for(const [id,pending] of _pendingGangHires)if(requestedAt-(pending.requestedAt||0)>12000)_pendingGangHires.delete(id);
+    _pendingGangHires.set(key,{botLook,r,c,sourceBotId:key,isBoss,botLevel,botMaxHp,requestedAt});
+    try{ws.send(JSON.stringify({t:'gang_hire_bot',d:{bot_id:key}}));}
+    catch(e){_pendingGangHires.delete(key);showToast('Не удалось отправить запрос на найм','⚠️',2000);return false;}
+    showToast('Предлагаем бойцу вступить в бригаду…','🤝',1400);
+    return 'pending';
+  }
   QP.cash = cash - hireCost; myCash = parseInt(QP.cash); updateMoneyHud();
   const look = Object.assign({}, botLook || { gender: 0, skin: 2, body: 1, face: 2, hair: 3, hat: 0 });
   const weapons = isBoss?['tommy_gun','rifle','shotgun']:(mafiaLevel>=3?['smg','shotgun','tommy_gun']:['pistol','smg','shotgun']);
@@ -11572,7 +11744,8 @@ function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false, botL
     id: '_gang_' + (++_gangIdCounter),
     name: gangName,
     r, c, ang: 0, walkPhase: 0,
-    hp: maxHp, max_hp: maxHp, level:botLevel, isBoss:!!isBoss,
+    hp: maxHp, max_hp: maxHp, level:botLevel, fighterXp:_gangXpFloor(botLevel),
+    kills:0,damageDone:0,isBoss:!!isBoss,
     look,
     sourceBotId: sourceBotId == null ? null : String(sourceBotId),
     weapon: weapons[Math.floor(Math.random() * weapons.length)],
@@ -11584,7 +11757,6 @@ function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false, botL
   if(m.sourceBotId)_hiredBotIds.add(m.sourceBotId);
   _saveGang();
   _gangSay(m, 'hire');
-  if(ws&&ws.readyState===1)try{ws.send(JSON.stringify({t:'gang_hire_bot',d:{bot_id:String(sourceBotId||'')}}));}catch(e){}
   showToast(`🤝 ${gangName} · ${botLevel} ур. нанят (${_myGang.length}/${GANG_MAX})`, '👊', 2000);
   return true;
 }
@@ -11594,7 +11766,9 @@ function _isDistrictDefenderBot(bot){
 }
 function _saveGang() {
   try {
-    const data = _myGang.map(g => ({ name: g.name, look: g.look, weapon: g.weapon, hp: g.hp, max_hp:g.max_hp, level:g.level||1, isBoss:!!g.isBoss, sourceBotId: g.sourceBotId || null }));
+    const data = _myGang.map(g => ({ name:g.name,look:g.look,weapon:g.weapon,hp:g.hp,max_hp:g.max_hp,
+      level:g.level||1,fighterXp:Math.max(_gangXpFloor(g.level||1),+g.fighterXp||0),
+      kills:+g.kills||0,damageDone:+g.damageDone||0,isBoss:!!g.isBoss,sourceBotId:g.sourceBotId||null }));
     localStorage.setItem('_myGang', JSON.stringify(data));
     localStorage.removeItem('_myGangFallen');
   } catch(e) {}
@@ -11610,7 +11784,9 @@ function _loadGang() {
       const m = {
         id: '_gang_' + (++_gangIdCounter),
         name: g.name || 'Боец', r: 0, c: 0, ang: 0, walkPhase: 0,
-        hp: g.hp || 80, max_hp: g.max_hp||80, level:Math.max(1,Math.min(25,parseInt(g.level)||1)), isBoss:!!g.isBoss, look: g.look || {}, sourceBotId: g.sourceBotId == null ? null : String(g.sourceBotId),
+        hp:g.hp||80,max_hp:g.max_hp||80,level:Math.max(1,Math.min(25,parseInt(g.level)||1)),
+        fighterXp:Math.max(_gangXpFloor(g.level||1),+g.fighterXp||0),kills:+g.kills||0,
+        damageDone:+g.damageDone||0,isBoss:!!g.isBoss,look:g.look||{},sourceBotId:g.sourceBotId==null?null:String(g.sourceBotId),
         weapon: g.weapon || 'pistol', _nextShootAt: 0,
         _threatId: null, _threatR: 0, _threatC: 0, _threatUntil: 0, _intR: 0, _intC: 0,
       };
@@ -11834,9 +12010,22 @@ function _gangTargetPos(kind, ref) {
 
 function _updateGang(dt) {
   const now = performance.now();
+  // A frame after tab switching/loading can be very long.  Never let that
+  // single frame launch the whole crew through its formation.
+  const followDt = Math.max(0, Math.min(.05, Number(dt) || 0));
   _updateFormerGang(now);
   _tickGangChatter(now);
   const formation = _myGang.filter(g => g && g.hp > 0);
+  if (!formation.length) {
+    _gangFormationAng = null;
+  } else {
+    const wantedAng = Number.isFinite(player.ang) ? player.ang : 0;
+    if (!Number.isFinite(_gangFormationAng)) _gangFormationAng = wantedAng;
+    let turn = Math.atan2(Math.sin(wantedAng - _gangFormationAng), Math.cos(wantedAng - _gangFormationAng));
+    const maxTurn = 1.45 * followDt;
+    turn = Math.max(-maxTurn, Math.min(maxTurn, turn));
+    _gangFormationAng += turn;
+  }
   for (let i = _myGang.length - 1; i >= 0; i--) {
     const m = _myGang[i];
     if (m.hp <= 0) {
@@ -11856,7 +12045,10 @@ function _updateGang(dt) {
       m._intR = tR; m._intC = tC;
     } else {
       const idx = formation.indexOf(m);
-      const angOff = (idx / Math.max(1, formation.length)) * Math.PI * 2 + player.ang;
+      // The formation follows the player's heading with a limited turn rate.
+      // Using player.ang directly made every slot jump several tiles on a
+      // sharp turn, so companions instantly accelerated around the player.
+      const angOff = (idx / Math.max(1, formation.length)) * Math.PI * 2 + _gangFormationAng;
       // Radius is deliberately larger than a grenade blast. Adjacent members
       // of a full seven-man crew are still spaced beyond one explosion.
       const formationRadius = formation.length <= 2 ? 3.3 : 4.25;
@@ -11865,13 +12057,24 @@ function _updateGang(dt) {
     }
     const dr = tR - m.r, dc = tC - m.c;
     const dist = Math.hypot(dr, dc);
-    if (dist > 0.5) {
-      const spd = Math.min(dist, 4.0) * dt * 3;
-      m.r += (dr / dist) * spd;
-      m.c += (dc / dist) * spd;
-      m.walkPhase += dt * 10;
-      m.ang = Math.atan2(dr, dc);
+    if (dist > 0.48) {
+      // Arrival steering: accelerate and brake instead of deriving velocity
+      // directly from distance (the old formula jumped as high as 12 tiles/s).
+      const desiredSpeed = Math.min(6.4, 2.15 + Math.max(0, dist - .48) * .82);
+      const currentSpeed = Math.max(0, Number(m._followSpeed) || 0);
+      const rate = desiredSpeed > currentSpeed ? 6.2 : 9.5;
+      m._followSpeed = currentSpeed + Math.max(-rate * followDt,
+        Math.min(rate * followDt, desiredSpeed - currentSpeed));
+      const step = Math.min(dist - .18, m._followSpeed * followDt);
+      m.r += (dr / dist) * step;
+      m.c += (dc / dist) * step;
+      m.walkPhase += step * 2.4;
+      const wantedBodyAng = Math.atan2(dr, dc);
+      const bodyTurn = Math.atan2(Math.sin(wantedBodyAng - m.ang), Math.cos(wantedBodyAng - m.ang));
+      const maxBodyTurn = 5.2 * followDt;
+      m.ang += Math.max(-maxBodyTurn, Math.min(maxBodyTurn, bodyTurn));
     } else {
+      m._followSpeed = Math.max(0, (Number(m._followSpeed) || 0) - 10 * followDt);
       m.walkPhase = 0;
     }
     // Local separation prevents companions crossing through and stacking on
@@ -11886,7 +12089,9 @@ function _updateGang(dt) {
         const a = (formation.indexOf(m) + 1) * 2.399;
         sr = Math.sin(a); sc = Math.cos(a); sd = 1;
       }
-      const push = Math.min(.12, (minGap - sd) * .12);
+      // Separation is time based; a fixed push per frame made behaviour and
+      // apparent speed depend on refresh rate.
+      const push = Math.min(.08, (minGap - sd) * 3.2 * followDt);
       m.r += sr / sd * push;
       m.c += sc / sd * push;
     }
@@ -11966,6 +12171,8 @@ function _updateGang(dt) {
     _gangSay(m, 'shoot', 0.58, true);
     const levelDamage=1+(Math.max(1,Math.min(25,parseInt(m.level)||1))-1)*.03;
     const dmg = Math.round((GANG_SHOT_DMG_MIN + Math.floor(Math.random() * GANG_SHOT_DMG_RANGE)) * levelDamage * _mafiaDamageMultiplier() * (m.isBoss?1.25:1));
+    const localTarget=m.targetRef;
+    const targetWasAlive=!!(localTarget&&!localTarget.dead&&localTarget.alive!==false&&(+localTarget.hp||1)>0);
     if (m.targetKind === 'bank_guard') {
       _hitBankGuard(m.targetRef, dirY, dirX, dmg);
     } else if (m.targetKind === 'interior_guard') {
@@ -11988,6 +12195,10 @@ function _updateGang(dt) {
       try { ws && ws.send(JSON.stringify({ t: 'mg_shoot', d: { target: m.targetId, weapon: m.weapon } })); } catch(e) {}
     } else if (m.targetKind === 'player') {
       try { ws && ws.send(JSON.stringify({ t: 'player_shoot', d: { target_uid: m.targetId, weapon: m.weapon } })); } catch(e) {}
+    }
+    if(['bank_guard','interior_guard','city_cop','gang_car','street_npc'].includes(m.targetKind)){
+      const killed=targetWasAlive&&!!(localTarget&&(localTarget.dead||localTarget.alive===false||(+localTarget.hp||0)<=0||localTarget._wrecked));
+      _awardGangXp(m,dmg,killed,+localTarget?.level||1);
     }
     // Ответный огонь — 25% шанс получить урон
     if (Math.random() < 0.25) {
@@ -13106,6 +13317,7 @@ const muzzles = [];
 const shells  = [];       // {x,y,vx,vy,vz,z,rot,vrot,life,max}
 // Импакт-частицы при попадании пули в цель (брызги крови + искры).
 const impacts = [];       // {r,c,parts:[{vr,vc,life,max,color,isBlood,size}]}
+const explosionBursts = []; // central flash/fireball/smoke volume for heavy explosions
 // Пятна крови на земле — splat-ы живут 8 сек после попадания.
 const bloodSplats = [];   // {r,c,radius,life,max,rot}
 // Жёсткие потолки массивов visual-эффектов: в долгой перестрелке (банда
@@ -13887,12 +14099,17 @@ function applyAggroTargets(newAggro) {
       const ob = oldById.get(nb.id);
       if (ob) {
         const moved = Math.hypot((+nb.x||0)-(+ob.tx||+ob.x||0), (+nb.y||0)-(+ob.ty||+ob.y||0)) > 0.025;
+        const stillInterpolating = Math.hypot((+nb.x||0)-(+ob.x||0), (+nb.y||0)-(+ob.y||0)) > 0.04;
         ob.tx    = nb.x;    ob.ty    = nb.y;
         ob.tAng  = nb.ang;
         ob.hp    = nb.hp;   ob.max_hp = nb.max_hp;
         ob.kind  = nb.kind;
         ob.weapon = nb.weapon;
-        ob.act = nb.act || (moved ? 'walk' : 'idle');
+        ob.burning = !!nb.burning;
+        ob.fleeing_fire = !!nb.fleeing_fire;
+        ob.act = nb.act === 'walk'
+          ? ((moved || stillInterpolating) ? 'walk' : 'idle')
+          : (nb.act || (moved ? 'walk' : 'idle'));
         ob.threat = nb.threat || '';
         if (nb.look) ob.look = nb.look;
         merged.push(ob);
@@ -14048,12 +14265,48 @@ function handleEventPacket(d) {
       showToast(`🕴️ +${d.mafia_xp_gain} XP мафии · ${d.mafia_reason||'авторитет вырос'}`,'🏅',2600);
   }
   if (!kind) return;
-  if(kind==='gang_player_invite'){
+  if(kind==='taxi_ride_reply'){
+    const dest=_taxiPending;
+    if(!d.ok){
+      _taxiPending=null;
+      showToast(d.reason==='cash'?'Не хватает денег на такси':'Поездка не состоялась','⚠️',1900);
+    }else if(dest&&String(dest.id)===String(d.destination)){
+      _completeTaxiRide(dest,d.cash);
+    }
+  }else if(kind==='gang_player_invite'){
     const accept=confirm(`${d.from_name||'Игрок'} приглашает тебя в онлайн-банду. Принять?`);
     ws?.send(JSON.stringify({t:'gang_player_answer',d:{accept}}));
   }else if(kind==='gang_player_reply'){showToast(d.ok?`Приглашение отправлено: ${d.target_name||'игрок'}`:({mafia_only:'Оба игрока должны быть мафиози',already_in_gang:'Игрок уже состоит в онлайн-банде',full:'В банде уже лидер и два игрока',too_far:'Подойди к игроку ближе'}[d.reason]||'Нельзя пригласить игрока'),d.ok?'◆':'⚠️',2600);}
   else if(kind==='gang_player_changed'){showToast(d.accepted?'Онлайн-игрок вступил в банду':'Приглашение отклонено',d.accepted?'◆':'👋',2400);}
-  else if(kind==='gang_hire_reply'&&!d.ok){showToast(d.reason==='police_service'?'Коп не может нанимать банду — используй служебное подкрепление':d.reason==='district_defender'?'Охрану района нельзя нанять — досье нужно добыть в бою':d.reason==='mafia_level'?'Нужен 4 уровень мафии для найма сильных бойцов 10–25 уровня':'Боец уже недоступен','⚠️',3000);}
+  else if(kind==='gang_hire_reply'){
+    const key=String(d.bot_id||''),pending=_pendingGangHires.get(key);
+    _pendingGangHires.delete(key);
+    if(!d.ok){
+      showToast(d.reason==='police_service'?'Коп не может нанимать банду — используй служебное подкрепление':d.reason==='district_defender'?'Охрану района нельзя нанять — досье нужно добыть в бою':d.reason==='mafia_level'?'Нужен 4 уровень мафии для найма сильных бойцов 10–25 уровня':d.reason==='too_far'?'Подойди к бойцу ближе':'Боец уже недоступен','⚠️',3000);
+    }else if(pending){
+      const hired=_hireGangMember(
+        pending.botLook,pending.r,pending.c,pending.sourceBotId,
+        !!d.is_boss,Math.max(1,+d.level||pending.botLevel||1),
+        pending.botMaxHp,true
+      );
+      if(hired===true)_hiredBotIds.add(key);
+      if(hired===true && d.business_cleared && d.business_id){
+        const businessId=String(d.business_id);
+        gangNests=(gangNests||[]).filter(ne=>_gangNestBusinessId(ne)!==businessId);
+        _gangNestsSnapshotReady=true;
+        const oldBusiness=myBusinesses.get(businessId);
+        if(oldBusiness)myBusinesses.set(businessId,{
+          ...oldBusiness,status:'ok',npc_occupied:false,notice:'',
+          npc_capture_cooldown_until:+d.cooldown_until||0,
+        });
+        showEventBanner(
+          '✅ Бизнес освобождён',
+          'Последний захватчик перешёл в твою банду. Доход снова начисляется.',
+          4200,'win'
+        );
+      }
+    }
+  }
   else if (kind === 'inkassator_spawned') {
     // Глобально — в ленту (а не центральным баннером). Игрок видит
     // стрелку-указатель на инкассатора через drawEventArrow.
@@ -14409,6 +14662,13 @@ function handleEventPacket(d) {
       'Засели в здании — зачисти за награду.',
       3000, 'spawn');
   } else if (kind === 'gang_nest_cleared') {
+    if (d.business_id) {
+      const old = myBusinesses.get(String(d.business_id));
+      if (old) myBusinesses.set(String(d.business_id), {
+        ...old, status:'ok', npc_occupied:false, notice:'',
+        npc_capture_cooldown_until:+d.cooldown_until || 0,
+      });
+    }
     // Гнездо зачищено — бонус всем кто стрелял.
     const me = (d.bonus_uids || []).some(u => String(u) === String(QP.uid));
     if (me) {
@@ -14421,6 +14681,13 @@ function handleEventPacket(d) {
         3500, 'spawn');
     }
   } else if (kind === 'gang_nest_expired') {
+    if (d.business_id) {
+      const old = myBusinesses.get(String(d.business_id));
+      if (old) myBusinesses.set(String(d.business_id), {
+        ...old, status:'ok', npc_occupied:false, notice:'',
+        npc_capture_cooldown_until:+d.cooldown_until || 0,
+      });
+    }
     // Бандиты ушли сами — никто не пришёл их зачистить.
     showEventBanner('💨 Банда ушла',
       'Гнездо опустело. Будет новое через несколько минут.',
@@ -14878,6 +15145,7 @@ function handleEventPacket(d) {
     const fcd = d.fail_cd_s | 0;
     myBoxStatus.fail_cd_s     = fcd;
     myBoxStatus._fail_until_t = fcd > 0 ? (performance.now() + fcd * 1000) : 0;
+    updateQuestCarHud();
     refreshMichaelMenu();
   } else if (kind === 'box_abandon_reply') {
     // Сервер подтвердил отмену — фиксируем кулдаун локально сразу,
@@ -14919,10 +15187,14 @@ function handleEventPacket(d) {
       myBoxStatus.active = {
         pickup_x: d.pickup_x, pickup_y: d.pickup_y,
         dropoff_x: d.dropoff_x, dropoff_y: d.dropoff_y,
+        business_id: d.business_id,
         addr: d.addr, reward: d.reward, state: 'pending',
       };
       hideMichaelMenu();
-      showToast(`📦 Возьми ящик на пирсе → ${d.addr}. Награда: ${d.reward}$`, '💼', 4000);
+      showEventBanner('📦 НОВАЯ ДОСТАВКА',
+        `Майкл: «Забери коробку на пирсе. Адрес — ${d.addr}. Награда ${d.reward}$.»`,
+        5600, 'neutral');
+      updateQuestCarHud();
     } else if (d.reason === 'limit') {
       const mins = Math.ceil((d.wait_s || 0) / 60);
       showToast(`🚫 Сегодня уже ${d.limit || 5} доставок — приходи через ~${mins} мин`, '⏳', 4000);
@@ -14942,11 +15214,30 @@ function handleEventPacket(d) {
     }
   } else if (kind === 'box_pickup_reply') {
     if (d.ok) {
-      if (myBoxStatus.active) myBoxStatus.active.state = 'carrying';
-      showToast('📦 Коробка у тебя — везти по адресу', '✅', 2500);
+      if (myBoxStatus.active) {
+        myBoxStatus.active.state = 'carrying';
+        delete myBoxStatus.active.ground_x;
+        delete myBoxStatus.active.ground_y;
+        delete myBoxStatus.active.ground_space;
+        delete myBoxStatus.active.ground_business_id;
+        delete myBoxStatus.active.expires_in;
+      }
+      const boxAddr = myBoxStatus.active?.addr || 'отмеченный бизнес';
+      showEventBanner('📦 КОРОБКА ПОЛУЧЕНА',
+        `Майкл: «Адрес — ${boxAddr}. Войди внутрь и передай коробку отмеченному управляющему.»`,
+        5600, 'win');
       _boxAnim = { kind: 'pickup', startT: performance.now(), dur: 700 };
+      updateQuestCarHud();
     } else if (d.reason === 'too_far') {
-      showToast('🚫 Подойди ближе к пирсу', '⚠️', 1500);
+      showToast(
+        myBoxStatus.active?.state === 'ground'
+          ? '🚫 Подойди ближе к своей коробке'
+          : '🚫 Подойди ближе к коробке на пирсе',
+        '⚠️',
+        1500
+      );
+    } else if (d.reason === 'foreign_box') {
+      showToast('🔒 Чужая коробка — забрать может только владелец', '📦', 2500);
     }
   } else if (kind === 'box_load_reply') {
     if (d.ok && myBoxStatus.active) {
@@ -14954,23 +15245,66 @@ function handleEventPacket(d) {
       myBoxStatus.active.car_id = d.car_id;
       _boxAnim = { kind: 'load', startT: performance.now(), dur: 650 };
       showToast('📦 Коробка погружена в багажник', '✅', 2200);
+      updateQuestCarHud();
     }
   } else if (kind === 'box_unload_reply') {
     if (d.ok && myBoxStatus.active) {
-      myBoxStatus.active.state = 'carrying';
+      Object.assign(myBoxStatus.active, {
+        state: 'ground', ground_x: d.ground_x, ground_y: d.ground_y,
+        ground_space: d.ground_space,
+        ground_business_id: d.ground_business_id,
+        expires_in: d.expires_in || 300,
+      });
       delete myBoxStatus.active.car_id;
       _boxAnim = { kind: 'unload', startT: performance.now(), dur: 650 };
-      showToast('📦 Коробка выгружена — занеси её в бизнес', '✅', 2400);
+      showToast('📦 Коробка выгружена на землю. Забери её за 5 минут.', '✅', 2800);
+      updateQuestCarHud();
+    }
+  } else if (kind === 'box_drop_reply') {
+    if (d.ok && myBoxStatus.active) {
+      Object.assign(myBoxStatus.active, {
+        state: 'ground', ground_x: d.ground_x, ground_y: d.ground_y,
+        ground_space: d.ground_space,
+        ground_business_id: d.ground_business_id,
+        expires_in: d.expires_in || 300,
+      });
+      delete myBoxStatus.active.car_id;
+      showToast('📦 Коробка оставлена на земле на 5 минут', '⏱️', 2600);
+      updateQuestCarHud();
+    }
+  } else if (kind === 'box_dropped') {
+    if (String(d.owner_uid || '') === String(QP.uid || '') && myBoxStatus.active) {
+      Object.assign(myBoxStatus.active, {
+        state: 'ground', ground_x: d.ground_x, ground_y: d.ground_y,
+        ground_space: d.ground_space,
+        ground_business_id: d.ground_business_id,
+        expires_in: d.expires_in || 300,
+      });
+      delete myBoxStatus.active.car_id;
+      showEventBanner('📦 ГРУЗ ВЫПАЛ',
+        'Ты потерял коробку. Она отмечена на карте и исчезнет через 5 минут — вернись и подними её.',
+        5200, 'lose');
+      updateQuestCarHud();
+    }
+  } else if (kind === 'box_expired') {
+    if (String(d.owner_uid || '') === String(QP.uid || '')) {
+      myBoxStatus.active = null;
+      showEventBanner('⌛ КОРОБКА ПРОПАЛА',
+        'Пять минут истекли. Доставка провалена.', 4200, 'lose');
+      updateQuestCarHud();
     }
   } else if (kind === 'box_deliver_reply') {
     if (d.ok) {
       const r = d.reward | 0;
       myBoxStatus.active = null;
+      updateQuestCarHud();
       showEventBanner('📦 Доставлено!',
         `${d.addr} — получено +${r}$. Возвращайся к Майклу за новой работой.`,
         4500, 'win');
-    } else if (d.reason === 'too_far') {
-      showToast('🚫 Не там, ищи правильный адрес', '⚠️', 1500);
+    } else if (d.reason === 'wrong_business') {
+      showToast(`🚫 Нужен другой адрес: «${d.addr || myBoxStatus.active?.addr || 'отмеченный бизнес'}»`, '⚠️', 2600);
+    } else if (d.reason === 'too_far_npc') {
+      showToast('📦 Подойди к отмеченному управляющему и передай коробку лично', '⚠️', 2600);
     } else if (d.reason === 'wrong_state') {
       showToast('📦 Сначала возьми коробку в порту', '⚠️', 2500);
     }
@@ -15162,6 +15496,26 @@ function handleEventPacket(d) {
       if (d.killed) myDeathBy = 'банда «Логова»';
     }
   } else if (kind === 'aggro_hit') {
+    // Немедленно показываем подтверждённый сервером урон. Раньше HP бойца
+    // менялся только со следующим snapshot, поэтому попадание выглядело пустым.
+    for (const zone of Object.values(aggroZones || {})) {
+      const hitBot = (zone?.bots || []).find(
+        bot => String(bot.id) === String(d.bot_id));
+      if (!hitBot) continue;
+      const oldHp = Math.max(0, +hitBot.hp || 0);
+      hitBot.hp = Number.isFinite(+d.hp)
+        ? Math.max(0, +d.hp)
+        : Math.max(0, oldHp - Math.max(0, +d.dmg || +d.damage || 0));
+      if (d.killed || hitBot.hp <= 0) hitBot.alive = false;
+      if (typeof d.ty === 'number' && typeof d.tx === 'number') {
+        const shownDamage = Math.max(
+          1, +d.dmg || +d.damage || oldHp - hitBot.hp || 1);
+        spawnFloatText(d.ty - .45, d.tx, `−${shownDamage}`,
+          {color:d.crit?'#ffd45a':'#ff6868',size:d.crit?20:16,life:1050});
+        spawnImpact(d.ty, d.tx, currentWeapon, false);
+      }
+      break;
+    }
     // Игрок попал в бота — визуал (кровь рисуется по pkt`am). Текстовый
     // toast про убийство БОЛЬШЕ НЕ показываем здесь — для убийств теперь
     // отдельный пакет 'aggro_killed' с наградой (см. ниже). aggro_hit
@@ -15188,6 +15542,12 @@ function handleEventPacket(d) {
     // Показываем toast с конкретной наградой + флаг кулачка если упал.
     const cash = d.cash || 0, exp = d.exp || 0;
     const gAdd = d.gang_added ? `  👊+1 (${d.gang_now}/3)` : '';
+    if (typeof d.mafia_xp === 'number') _setMafiaXp(d.mafia_xp);
+    if (typeof d.police_xp === 'number') _setPoliceXp(d.police_xp, true);
+    const careerGain = Number(d.mafia_xp_gain || d.police_xp_gain || 0);
+    if (careerGain > 0) {
+      showToast(`⭐ +${careerGain} профессионального опыта`, '⭐', 2300);
+    }
     if (d.is_boss) {
       showToast(`☠️ Главарь убит! +$${cash} +${exp} exp${gAdd}`, 3800);
     } else {
@@ -15833,6 +16193,13 @@ function wsConnect() {
           _dispatchPlayerAmbulance();
         } else if (wasDead && !myDead) {
           // Респаун — сбрасываем ВСЕ блокирующие флаги.
+          // Серверное HP при переходе dead→alive авторитетно. Обычный фильтр
+          // выше не принимает увеличение вскоре после попадания, из-за чего
+          // игрок оживал с нулевой полоской здоровья.
+          myHp = Math.max(1, Math.min(PVP.max_hp || 100,
+            Number.isFinite(+d.me.hp) ? +d.me.hp : (PVP.max_hp || 100)));
+          _localHpHurtAt = 0;
+          _selfHpBarUntil = performance.now() + 2600;
           myDeathBy = '';
           _playerEmergencyPatient=null;
           if (_bankInt) exitBankInterior(false);
@@ -16060,6 +16427,18 @@ function wsConnect() {
         _gangNestsSnapshotReady = true;
         _applyLiveBusinessOccupations();
       }
+      if (d.box_quest !== undefined) {
+        myBoxStatus.active = d.box_quest || null;
+      }
+      groundMissionBoxes = Array.isArray(d.ground_boxes) ? d.ground_boxes : [];
+      if (myBoxStatus?.active?.state === 'ground') {
+        const mine = groundMissionBoxes.find(box => box.mine);
+        if (mine) {
+          myBoxStatus.active.expires_in = mine.expires_in | 0;
+          myBoxStatus.active.ground_y = Number(mine.r);
+          myBoxStatus.active.ground_x = Number(mine.c);
+        }
+      }
       if (d.business_closures !== undefined) {
         const now = Date.now(), fresh = d.business_closures || {};
         for (const id of Object.keys(_businessClosures)) if (!(id in fresh)) delete _businessClosures[id];
@@ -16146,6 +16525,7 @@ function wsConnect() {
             ownerId: o.owner_uid, owner_uid: o.owner_uid, ownerName: o.owner_name,
             gangTag: o.gang_tag, gang_name: o.gang_name, flag: o.flag,
             color: o.color, capturedAt: o.captured_at, income: o.income,
+            lastPayoutAt: o.last_payout_at, last_payout_at: o.last_payout_at,
             income_tick_s: o.income_tick_s, income_delay_s: o.income_delay_s,
             income_xp: o.income_xp, control_ttl_s: o.control_ttl_s,
             expiresAt: o.expires_at, controlLeft: o.control_left,
@@ -16349,9 +16729,12 @@ function updateZoneBtn() {
     _zoneCur = null;
     _zoneEl.dataset.bizId = nearBizEntry.id;
     const closedLeft = Math.max(0, (_businessClosures[nearBizEntry.id] || 0) - Date.now());
-    _zoneEl.textContent = closedLeft
+    const isOwner = !!myBusinesses.get(nearBizEntry.id)?.owned;
+    _zoneEl.textContent = closedLeft && !isOwner
       ? `🔒 ЗАВЕДЕНИЕ ОГРАБЛЕНО · ОТКРЫТИЕ ${_businessClosureText(closedLeft)}`
-      : `🚪 Войти: ${nearBizEntry.emoji} ${nearBizEntry.name}`;
+      : (closedLeft
+        ? `🔑 Войти в своё заведение · закрыто для посетителей ${_businessClosureText(closedLeft)}`
+        : `🚪 Войти: ${nearBizEntry.emoji} ${nearBizEntry.name}`);
     _zoneEl.style.display = 'block';
     return;
   }
@@ -16407,9 +16790,10 @@ _zoneEl.addEventListener('click', () => {
     }
     if (myDead) { showToast('💀 Дождись возрождения', '⚠️', 1600); return; }
     if (myDrivingCarId) { showToast('🚗 Сначала выйди из машины', '⚠️', 1600); return; }
+    const isOwner = !!myBusinesses.get(biz.id)?.owned;
     const closedLeft = Math.max(0, (_businessClosures[biz.id] || 0) - Date.now());
-    if (closedLeft) { _showBusinessClosed(closedLeft); return; }
-    if ((_businessAggroUntil[biz.id] || 0) > Date.now()) { startRobbery(biz); return; }
+    if (closedLeft && !isOwner) { _showBusinessClosed(closedLeft); return; }
+    if (!isOwner && (_businessAggroUntil[biz.id] || 0) > Date.now()) { startRobbery(biz); return; }
     enterBuildingInterior(biz.r, biz.c, 'business', biz.id);
     return;
   }
@@ -16552,6 +16936,10 @@ function _pickHitTargetBandit() {
                   look: b.look || {},
                   faction: z.faction || 'purple',
                   zone_id: zoneId });
+    }
+    if(d.gang_member!=null&&String(d.shooter_uid)===String(QP.uid)){
+      const member=_myGang[+d.gang_member];
+      if(member)_awardGangXp(member,+d.dmg||0,!!d.killed,+d.target_level||1);
     }
   }
   if (!pool.length) return null;
@@ -16841,9 +17229,10 @@ function _openBrigadirDossier(target, payout, left) {
   const offence = assigned.offence;
   const alias = assigned.alias;
   const fullName = assigned.fullName;
-  const danger = target.level >= 20 ? 'КРАЙНЕ ОПАСЕН'
-    : target.level >= 12 ? 'ВЫСОКАЯ ОПАСНОСТЬ'
-    : target.level >= 6 ? 'ВООРУЖЁН И ОПАСЕН' : 'ОПАСЕН';
+  const fighterLevel = Math.max(1, Math.min(25, +target.level || 1));
+  const danger = fighterLevel >= 20 ? 'КРАЙНЕ ОПАСЕН'
+    : fighterLevel >= 12 ? 'ВЫСОКАЯ ОПАСНОСТЬ'
+    : fighterLevel >= 6 ? 'ВООРУЖЁН И ОПАСЕН' : 'ОПАСЕН';
   _pendingBrigadirOffer = { target, payout: +payout || BRIGADIR_PAYOUT_PREVIEW,
                             left: +left || 0, alias, fullName, offence,
                             detail: assigned.detail };
@@ -16877,6 +17266,7 @@ function _openBrigadirDossier(target, payout, left) {
               <div style="position:absolute;left:43px;top:25px;width:40px;height:46px;border-radius:45% 45% 48% 48%;background:${skin};border:2px solid #291c16"></div>
               <div style="position:absolute;left:40px;top:18px;width:46px;height:24px;border-radius:55% 55% 20% 20%;background:${hair}"></div>
               <div style="position:absolute;left:28px;top:69px;width:70px;height:79px;border-radius:18px 18px 5px 5px;background:${shirt};border:3px solid #251d19"></div>
+              <div style="position:absolute;right:6px;top:6px;border:2px solid #f1d06c;border-radius:5px;background:#781b1b;color:#fff3bd;padding:4px 6px;font:900 11px system-ui;box-shadow:0 2px 5px #24150c">УР. ${fighterLevel}</div>
               <div style="position:absolute;left:10px;bottom:7px;background:#181511;color:#eee;padding:4px 6px;font:700 10px system-ui">${_brigadirWeaponName(target.weapon)}</div>
             </div>
             <div style="text-align:center;background:#eee5ce;border:1px solid #695334;border-top:0;padding:5px;font:700 11px/1.25 system-ui">
@@ -16886,7 +17276,7 @@ function _openBrigadirDossier(target, payout, left) {
           </div>
           <div style="font:14px/1.42 system-ui">
             <div><b>Принадлежность:</b> ${faction}</div>
-            <div><b>Уровень:</b> ${target.level}/25</div>
+            <div><b>Уровень бойца:</b> ${fighterLevel} из 25</div>
             <div><b>Живучесть:</b> ${target.max_hp} HP</div>
             <div><b>Вооружение:</b> ${_brigadirWeaponName(target.weapon)}</div>
             <div><b>Последний район:</b> ${_brigadirDistrictName(target)}</div>
@@ -17227,6 +17617,41 @@ function updateGtaInteractions() {
     _handbrakeBtn.style.display = 'none';
     _policeSirenBtn.style.display = 'none';
     if (_buildingInt.type === 'business') {
+      const currentOwn = myBusinesses.get(_buildingInt.bizId);
+      // Ownership always wins over a stale robbery state. This can happen
+      // when a business is bought or its state is refreshed while its old
+      // robbery interior is still alive on the client.
+      if (currentOwn?.owned && _buildingInt.robbery) {
+        _buildingInt.robbery = false;
+        _buildingInt.robberyStarted = false;
+        _buildingInt.robberyClaimed = false;
+        _buildingInt._aggroReported = false;
+        delete _businessAggroUntil[_buildingInt.bizId];
+        _spawnInteriorNpcs(_buildingInt);
+      }
+      const boxQuest = myBoxStatus && myBoxStatus.active;
+      const groundBox = groundMissionBoxes.reduce((best, box) => {
+        const dist = Math.hypot(player.r - Number(box.r), player.c - Number(box.c));
+        return dist < 2.3 && (!best || dist < best.dist) ? { box, dist } : best;
+      }, null);
+      if (groundBox) {
+        _gtaActionKind = 'box_ground_pickup';
+        _gtaActionCarId = String(groundBox.box.owner_uid || '');
+        _gtaBtn.textContent = groundBox.box.mine ? '📦 Поднять свою коробку' : '🔒 Чужая коробка';
+        _gtaBtn.style.display = 'block';
+        return;
+      }
+      const boxRecipient = (_buildingInt.npcs || []).find(n => n.role === 'manager');
+      if (boxQuest?.state === 'carrying' &&
+          String(boxQuest.business_id || '') === String(_buildingInt.bizId || '') &&
+          boxRecipient &&
+          Math.hypot(player.r - boxRecipient.r, player.c - boxRecipient.c) < 2.7) {
+        _gtaActionKind = 'box_deliver';
+        _gtaActionCarId = _buildingInt.bizId;
+        _gtaBtn.textContent = `📦 Отдать груз · ${boxRecipient.name}`;
+        _gtaBtn.style.display = 'block';
+        return;
+      }
       if (_buildingInt.robbery) {
         const owner=(_buildingInt.npcs||[]).find(n=>n.role==='owner');
         const guardsAlive=(_buildingInt.npcs||[]).filter(n=>n.role==='biz_guard'&&!n.dead).length;
@@ -17699,6 +18124,17 @@ function updateGtaInteractions() {
       return;
     }
   }
+  const nearbyGroundBox = groundMissionBoxes.reduce((best, box) => {
+    const dist = Math.hypot(player.r - Number(box.r), player.c - Number(box.c));
+    return dist < 2.5 && (!best || dist < best.dist) ? { box, dist } : best;
+  }, null);
+  if (nearbyGroundBox) {
+    _gtaActionKind = 'box_ground_pickup';
+    _gtaActionCarId = String(nearbyGroundBox.box.owner_uid || '');
+    _gtaBtn.textContent = nearbyGroundBox.box.mine ? '📦 Поднять свою коробку' : '🔒 Чужая коробка';
+    _gtaBtn.style.display = 'block';
+    return;
+  }
   // Box-доставка: pickup (взять коробку) или dropoff (сдать)
   if (myBoxStatus.active) {
     const bq = myBoxStatus.active;
@@ -17721,14 +18157,6 @@ function updateGtaInteractions() {
         _gtaActionKind = 'box_load';
         _gtaActionCarId = String(trunkCar.id || trunkCar._id || trunkCar.car_id || 'local_car');
         _gtaBtn.textContent = '📦 Погрузить коробку';
-        _gtaBtn.style.display = 'block';
-        return;
-      }
-      const dx = bq.dropoff_x - player.c, dy = bq.dropoff_y - player.r;
-      if (Math.hypot(dx, dy) <= 3.0) {
-        _gtaActionKind = 'box_deliver';
-        _gtaActionCarId = null;
-        _gtaBtn.textContent = `📦 Сдать (${bq.reward}$)`;
         _gtaBtn.style.display = 'block';
         return;
       }
@@ -17848,6 +18276,8 @@ function updateGtaInteractions() {
   let nearestQc = null, nearestD = GTA_INTERACT_R;
   let nearestKind = null;   // 'driver' | 'passenger'
   for (const qc of questCars.values()) {
+    if (!_selectedVehicleEntry || _selectedVehicleEntry.kind !== 'quest' ||
+        String(_selectedVehicleEntry.id) !== String(qc.id)) continue;
     const dr = qc.y - player.r, dc = qc.x - player.c;
     const d  = Math.hypot(dr, dc);
     if (d > GTA_INTERACT_R) continue;
@@ -17879,13 +18309,15 @@ function updateGtaInteractions() {
     _gtaBtn.textContent = (nearestKind === 'passenger')
       ? `${icon} Сесть пассажиром (${carLabel})`
       : `${icon} Сесть ${verb} ${carLabel}`;
-    _gtaBtn.style.display = 'block';
+    _gtaBtn.style.display = 'none';
     return;
   }
   // ── ТАКСИ — быстрое перемещение ──
   if (!myDead && myJailIn <= 0) {
     let nearTaxi = null, nearTaxiD = GTA_INTERACT_R;
     for (const car of CARS) {
+      if (!_selectedVehicleEntry || _selectedVehicleEntry.kind !== 'traffic' ||
+          _selectedVehicleEntry.car !== car) continue;
       if (!car || !car.model || !car.model.taxi || car._wrecked) continue;
       const d = Math.hypot(car.r - player.r, car.c - player.c);
       if (d < nearTaxiD) { nearTaxiD = d; nearTaxi = car; }
@@ -17893,7 +18325,7 @@ function updateGtaInteractions() {
     if (nearTaxi) {
       _gtaActionKind = 'taxi_ride'; _gtaActionCarId = null;
       _gtaBtn.textContent = '🚖 Такси (50$)';
-      _gtaBtn.style.display = 'block';
+      _gtaBtn.style.display = 'none';
       // Вторая кнопка — угнать такси
       if (_robBtn) {
         _robTargetBiz = null; _robBtn._buySprayCan = false;
@@ -17912,6 +18344,8 @@ function updateGtaInteractions() {
   let nearestCiv = null, nearestCivD = GTA_INTERACT_R;
   const nowAlarm = performance.now();
   for (const car of CARS) {
+    if (!_selectedVehicleEntry || _selectedVehicleEntry.kind !== 'traffic' ||
+        _selectedVehicleEntry.car !== car) continue;
     if (!car || !car.model) continue;
     const nm = car.model.name || '';
     if (nm === 'cop_cruiser' || nm === 'paddyvan' || nm === 'swat_truck') continue;
@@ -17937,7 +18371,7 @@ function updateGtaInteractions() {
     };
     const label = CIV_LABELS[(nearestCiv.model && nearestCiv.model.name) || ''] || 'тачку';
     _gtaBtn.textContent = `🚗 Угнать ${label}`;
-    _gtaBtn.style.display = 'block';
+    _gtaBtn.style.display = 'none';
     return;
   }
   _gtaActionKind = null;
@@ -17956,7 +18390,30 @@ function activateCurrentBuildingEntry() {
   return true;
 }
 
+let _gtaBusinessPointerHandledAt = 0;
+function _activateBusinessInteriorControl(kind, bizId) {
+  if (!_buildingInt || _buildingInt.type !== 'business' ||
+      String(_buildingInt.bizId || '') !== String(bizId || '')) return false;
+  if (!myBusinesses.get(bizId)?.owned) return false;
+  if (kind === 'biz_manage') openBusinessManagement(bizId);
+  else if (kind === 'biz_security') openBusinessSecurity(bizId);
+  else return false;
+  return true;
+}
+
+// On touch screens a tiny movement between press and release can cancel the
+// synthetic click. Business controls are safe and idempotent, so activate
+// them on pointer-down and suppress the duplicate click that follows.
+_gtaBtn.addEventListener('pointerdown', (e) => {
+  if (_gtaActionKind !== 'biz_manage' && _gtaActionKind !== 'biz_security') return;
+  if (!_activateBusinessInteriorControl(_gtaActionKind, _gtaActionCarId)) return;
+  _gtaBusinessPointerHandledAt = performance.now();
+  e.preventDefault();
+  e.stopPropagation();
+});
+
 _gtaBtn.addEventListener('click', () => {
+  if (performance.now() - _gtaBusinessPointerHandledAt < 650) return;
   if (_gtaActionKind === 'michael') {
     openMichaelMenu();
   } else if (_gtaActionKind === 'said') {
@@ -17988,6 +18445,8 @@ _gtaBtn.addEventListener('click', () => {
     hijackCivilianCar(_hijackedCarRef);
   } else if (_gtaActionKind === 'box_pickup') {
     try { ws && ws.send(JSON.stringify({ t: 'box_pickup', d: {} })); } catch(e){}
+  } else if (_gtaActionKind === 'box_ground_pickup') {
+    try { ws && ws.send(JSON.stringify({ t: 'box_pickup', d: { owner_uid: _gtaActionCarId } })); } catch(e){}
   } else if (_gtaActionKind === 'box_deliver') {
     try { ws && ws.send(JSON.stringify({ t: 'box_deliver', d: {} })); } catch(e){}
   } else if (_gtaActionKind === 'box_load') {
@@ -18093,10 +18552,11 @@ _gtaBtn.addEventListener('click', () => {
           if(_policeState.missions.some(m=>String(m.targetId)===String(b.id))){showToast('🚔 Этот бандит в розыске — в банду взять нельзя','⚠️',2400);break;}
           if(_isDistrictDefenderBot(b)){showToast('📁 Охрана района не нанимается — победи босса и забери досье','⚠️',2800);break;}
           const isBoss=!!(b.is_boss||b.boss||String(b.kind||'').includes('boss'));
-          hired = _hireGangMember(
+          const hireResult = _hireGangMember(
             b.look, b.y || player.r, b.x || player.c, b.id, isBoss,
             b.level || 1, b.max_hp || 0
           );
+          hired = hireResult === true;
           // Оригинал бота остаётся жить на сервере — прячем его на клиенте
           // по id, иначе рядом стоит «клон», который ещё и атакует игрока.
           if (hired) _hiredBotIds.add(String(b.id));
@@ -18104,10 +18564,10 @@ _gtaBtn.addEventListener('click', () => {
             _myHitTargetBotId = null; _myHitContractActive = false;
             showToast('⚠️ Контракт бригадира отменён — цель нанята', '📋', 2500);
           }
-          break;
+          if (hireResult) break;
         }
       }
-      if (hired) break;
+      if (hired || _pendingGangHires.has(String(_gtaActionCarId))) break;
     }
   } else if (_gtaActionKind === 'vending') {
     const VEND_COST = 20, VEND_HEAL = 25;
@@ -18153,6 +18613,10 @@ _gtaBtn.addEventListener('click', () => {
 const _dropBagBtn = document.getElementById('dropBagBtn');
 if (_dropBagBtn) {
   _dropBagBtn.addEventListener('click', () => {
+    if (myBoxStatus?.active?.state === 'carrying') {
+      try { ws && ws.send(JSON.stringify({ t: 'box_drop', d: {} })); } catch(e){}
+      return;
+    }
     // В собственной квартире эта кнопка означает сдачу добычи, а не
     // создание уличного мешка в координатах интерьерной комнаты.
     if (_buildingInt && !_buildingInt.type && _bankRob && _bankRob.myBag &&
@@ -18191,7 +18655,10 @@ if (_dropBagBtn) {
 }
 function _updateDropBagBtn() {
   if (!_dropBagBtn) return;
-  const carrying = !!((_bankInt && _bankInt.myBag) || (_bankRob && _bankRob.myBag) || _policeEvidenceBag);
+  const carryingBox = myBoxStatus?.active?.state === 'carrying';
+  const carrying = !!(carryingBox || (_bankInt && _bankInt.myBag) ||
+    (_bankRob && _bankRob.myBag) || _policeEvidenceBag);
+  _dropBagBtn.textContent = carryingBox ? '📦 Бросить коробку' : '💼 Сбросить мешок';
   _dropBagBtn.style.display = (carrying && !myDead) ? 'block' : 'none';
 }
 
@@ -18706,12 +19173,18 @@ function openBusinessManagement(bizId) {
   const cost = owned ? (state.upgrade_cost || _bizUpgradeCost(biz, state)) : 0;
   const pending = owned ? (+state.pending || 0) : 0;
   const occupied = !!(owned && _isBusinessGangOccupied(bizId, state));
+  const cooldownLeft = owned
+    ? Math.max(0, (+state.npc_capture_cooldown_until || 0) - Math.floor(Date.now() / 1000))
+    : 0;
+  const cooldownText = cooldownLeft > 0
+    ? `${Math.floor(cooldownLeft / 3600)} ч ${Math.ceil((cooldownLeft % 3600) / 60)} мин`
+    : '';
   card.innerHTML = `
     <div style="display:flex;gap:13px;align-items:center;margin-bottom:14px">
       <div style="font-size:42px">${biz.emoji}</div><div style="flex:1"><div style="font-weight:900;font-size:20px">${biz.name}</div><div style="color:#9da8ba;font-size:12px">${BUSINESS_INTERIORS[bizId]?.manager || 'Управляющий'}</div></div>
       <button id="bmClose" style="border:0;background:#2a2e38;color:#fff;border-radius:50%;width:34px;height:34px;font-size:18px">×</button>
     </div>
-    ${owned ? `${occupied ? `<div style="padding:11px;margin-bottom:12px;border-radius:11px;background:#351015;border:1px solid #ff4354;color:#ff9ca5;font-weight:800">🔴 Бизнес захвачен вражеской бандой и не может приносить прибыль. Зачисти бойцов возле здания.</div>` : `<div style="padding:9px;margin-bottom:12px;border-radius:10px;background:#10291a;border:1px solid #2c8b50;color:#7eff9a;font-weight:800">🟢 Бизнес работает и приносит прибыль</div>`}<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px">
+    ${owned ? `${occupied ? `<div style="padding:11px;margin-bottom:12px;border-radius:11px;background:#351015;border:1px solid #ff4354;color:#ff9ca5;font-weight:800">🔴 Бизнес захвачен вражеской бандой и не может приносить прибыль. Зачисти бойцов возле здания.</div>` : `<div style="padding:9px;margin-bottom:12px;border-radius:10px;background:#10291a;border:1px solid #2c8b50;color:#7eff9a;font-weight:800">🟢 Бизнес работает и приносит прибыль</div>`}${cooldownLeft > 0 && !occupied ? `<div style="padding:9px;margin:-4px 0 12px;border-radius:10px;background:#102239;border:1px solid #367bc0;color:#8dcbff;font-weight:800">🛡️ Защита после зачистки: банда не сможет снова захватить этот бизнес ещё ${cooldownText}</div>` : ''}<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px">
       <div style="padding:11px;border-radius:11px;background:#101b18;border:1px solid #285d45"><small style="color:#8fa99d">УРОВЕНЬ</small><div style="font-size:20px;font-weight:900;color:#70ee9b">${level}/${BIZ_MAX_LEVEL}</div></div>
       <div style="padding:11px;border-radius:11px;background:#191711;border:1px solid #64552c"><small style="color:#b3a678">ДОХОД</small><div style="font-size:16px;font-weight:900;color:#ffd76b">×${mult.toFixed(2)}</div></div>
     </div>
@@ -19055,6 +19528,7 @@ _michaelBoxBtn.addEventListener('click', () => {
 // Состояние box-доставки (приходит от box_status / box_take_reply)
 let myBoxStatus = { count_today: 0, limit: 5, reset_in_s: 0, active: null,
                     fail_cd_s: 0, _fail_until_t: 0 };
+let groundMissionBoxes = [];
 
 // ── Точка респавна ────────────────────────────────────────────────
 // 'hospital' = у больницы (default). Иначе biz_id ('coffee'/'bar'/...).
@@ -19216,6 +19690,7 @@ function _boxFail(reason) {
     ws && ws.send(JSON.stringify({ t: 'box_abandon', d: { reason } }));
   } catch(e) {}
   myBoxStatus.active = null;
+  updateQuestCarHud();
   if (_boxCopBanner) _boxCopBanner.style.display = 'none';
   // Баннер «груз потерян»
   if (reason === 'cops') {
@@ -19324,6 +19799,7 @@ function renderQuestCarPreview(cv, modelId) {
 // myGtaStatus.active, и при открытии/закрытии модала Майкла.
 const _qcHud      = document.getElementById('questCarHud');
 const _qcHudCv    = document.getElementById('questCarHudCv');
+const _qcHudTitle = document.getElementById('questCarHudTitle');
 const _qcHudName  = document.getElementById('questCarHudName');
 const _qcHudSub   = document.getElementById('questCarHudSub');
 let _questHudMinimized = false;
@@ -19335,19 +19811,39 @@ let _questHudMinimized = false;
     _toggle.textContent = _questHudMinimized ? '🎯' : '×';
   });
 }
+function renderBoxQuestPreview(cv, state) {
+  if (!cv) return;
+  const c = cv.getContext('2d');
+  c.clearRect(0, 0, cv.width, cv.height);
+  c.fillStyle = '#0c1018';
+  c.fillRect(0, 0, cv.width, cv.height);
+  c.strokeStyle = 'rgba(255,215,107,.12)';
+  for (let x = 8; x < cv.width; x += 16) {
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x, cv.height); c.stroke();
+  }
+  const cx = cv.width / 2, cy = cv.height / 2 + 4;
+  c.fillStyle = 'rgba(0,0,0,.55)';
+  c.beginPath(); c.ellipse(cx, cy + 13, 39, 6, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#93642f';
+  c.fillRect(cx - 31, cy - 20, 62, 34);
+  c.fillStyle = '#c58a45';
+  c.beginPath();
+  c.moveTo(cx - 31, cy - 20); c.lineTo(cx, cy - 31);
+  c.lineTo(cx + 31, cy - 20); c.lineTo(cx, cy - 9); c.closePath(); c.fill();
+  c.strokeStyle = '#e5bd72'; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(cx, cy - 30); c.lineTo(cx, cy + 13); c.stroke();
+  c.fillStyle = '#fff1b2'; c.font = 'bold 12px system-ui, sans-serif';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(state === 'pending' ? 'ЗАБРАТЬ' : 'ДОСТАВИТЬ', cx, cy - 1);
+  c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+}
+
 function updateQuestCarHud() {
   if (!_qcHud) return;
-  const a = myGtaStatus && myGtaStatus.active;
-  const modalOpen = _michaelModal && _michaelModal.classList.contains('show');
-  if (!a || modalOpen) { _qcHud.classList.remove('show'); return; }
-  const mdef = QUEST_CAR_MODELS[a.model] || { label: a.model || '—' };
-  _qcHudName.textContent = mdef.label;
-  const lockStr = ((a.lock_lvl | 0) > 0) ? ` · 🔓${a.lock_lvl}` : '';
-  _qcHudSub.innerHTML = (a.state === 'driven')
-    ? 'Везёшь в порт · <span class="qhd-rew">+' + (a.reward | 0) + '$</span>' + lockStr
-    : 'Найди по стрелке 🎯 · <span class="qhd-rew">+' + (a.reward | 0) + '$</span>' + lockStr;
-  renderQuestCarPreview(_qcHudCv, a.model);
-  _qcHud.classList.add('show');
+  // Постоянная карточка перекрывала левую панель и игровой мир. Все текущие
+  // задания теперь собраны по нажатию на компактную кнопку «Миссии».
+  _qcHud.classList.remove('show');
+  if (typeof syncDistrictMissionControls === 'function') syncDistrictMissionControls();
 }
 
 function refreshMichaelMenu() {
@@ -19487,6 +19983,7 @@ function _parkQuestCarLocally(qc, carId) {
   _recentlyExitedCarUntil=now+PARKED_CAR_GRACE_MS;
 }
 function enterCar(carId, asKind) {
+  _selectedVehicleEntry = null;
   const qc = questCars.get(carId);
   if (!qc) return;
   // Повторная посадка завершает локальную парковочную защиту.
@@ -20500,23 +20997,23 @@ const _taxiList = document.getElementById('taxiList');
 const _taxiFade = document.getElementById('taxiFade');
 const TAXI_COST = 50;
 const _TAXI_DESTINATIONS = [
-  { icon: '🏖️', name: 'Пляж',           r: 145, c: 40 },
-  { icon: '🌌', name: 'Чёрный рынок',   r: 6,   c: 36 },
-  { icon: '💪', name: 'Спортзал',       r: 26,  c: 26 },
-  { icon: '💼', name: 'Биржа труда',    r: 36,  c: 16 },
-  { icon: '🏥', name: 'Больница',       r: 26,  c: 46 },
-  { icon: '👮', name: 'Участок',        r: 76,  c: 76 },
-  { icon: '🎯', name: 'PVP-Арена',      r: 36,  c: 66 },
-  { icon: '🏪', name: 'Рынок',          r: 16,  c: 16 },
-  { icon: '⚓', name: 'Порт',           r: 165, c: 38 },
-  { icon: '🎰', name: 'Казино',         r: 46,  c: 16 },
-  { icon: '🏭', name: 'Промзона',       r: 46,  c: 56 },
-  { icon: '🚒', name: 'Пожарная часть', r: 56,  c: 26 },
-  { icon: '🏴', name: 'Логово',         r: 120, c: 40 },
+  { id:'beach', icon: '🏖️', name: 'Пляж',           r: 145, c: 40 },
+  { id:'blackmarket', icon: '🌌', name: 'Чёрный рынок',   r: 6,   c: 36 },
+  { id:'gym', icon: '💪', name: 'Спортзал',       r: 26,  c: 26 },
+  { id:'job', icon: '💼', name: 'Биржа труда',    r: 36,  c: 16 },
+  { id:'hospital', icon: '🏥', name: 'Больница',       r: 26,  c: 46 },
+  { id:'police', icon: '👮', name: 'Участок',        r: 76,  c: 76 },
+  { id:'arena', icon: '🎯', name: 'PVP-Арена',      r: 36,  c: 66 },
+  { id:'market', icon: '🏪', name: 'Рынок',          r: 16,  c: 16 },
+  { id:'port', icon: '⚓', name: 'Порт',           r: 165, c: 38 },
+  { id:'casino', icon: '🎰', name: 'Казино',         r: 13,  c: 45 },
+  { id:'industrial', icon: '🏭', name: 'Промзона',       r: 46,  c: 56 },
+  { id:'firestation', icon: '🚒', name: 'Пожарная часть', r: 56,  c: 26 },
+  { id:'lair', icon: '🏴', name: 'Логово',         r: 120, c: 40 },
 ];
 // Добавляем все банки
 for (const bank of BANKS) {
-  _TAXI_DESTINATIONS.push({ icon: '🏦', name: bank.name, r: bank.r + 2, c: bank.c + 2 });
+  _TAXI_DESTINATIONS.push({ id:`bank:${bank.id}`, icon: '🏦', name: bank.name, r: bank.r + 2, c: bank.c + 2 });
 }
 
 function openTaxiModal() {
@@ -20561,14 +21058,22 @@ function _taxiFindPassable(r, c) {
   }
   return { r, c };
 }
+let _taxiPending = null;
 function _taxiRide(dest) {
   const cash = parseInt(QP.cash) || myCash || 0;
   if (cash < TAXI_COST) { showToast(`💸 Не хватает денег`, '❌', 1500); return; }
   if (_buildingInt || _bankInt) { showToast('Сначала выйди из здания', '🚪', 1500); return; }
   if (myDrivingCarId) { showToast('Сначала выйди из машины', '🚗', 1500); return; }
-  QP.cash = cash - TAXI_COST; myCash = parseInt(QP.cash);
-  updateMoneyHud();
-  showToast(`🚖 Едем: ${dest.name}`, '🚕', 1500);
+  if (_taxiPending) return;
+  if (!ws || ws.readyState !== 1) { showToast('Нет связи с диспетчером такси', '⚠️', 1700); return; }
+  _taxiPending = dest;
+  showToast(`🚖 Заказываем: ${dest.name}`, '🚕', 1200);
+  ws.send(JSON.stringify({t:'taxi_ride',d:{destination:dest.id}}));
+}
+function _completeTaxiRide(dest, cash) {
+  _taxiPending = null;
+  QP.cash = +cash; myCash = +cash; updateMoneyHud();
+  showToast(`🚖 Едем: ${dest.name} · −${TAXI_COST}$`, '🚕', 1500);
   const landing = _taxiFindPassable(dest.r + 1.5, dest.c + 1.5);
   _taxiFade.classList.add('active');
   setTimeout(() => {
@@ -21065,7 +21570,7 @@ function _sendRemoteWeaponHit(remote, weapon) {
 function _remoteBallisticTarget(chosenConvoy, chosenCop, chosenAggro, chosenMg, pvpTarget) {
   if (chosenConvoy) return { kind:'event', id:chosenConvoy.id, r:chosenConvoy.y, c:chosenConvoy.x, radius:0.46 };
   if (chosenCop) return { kind:'cop', id:chosenCop.id, r:chosenCop.y, c:chosenCop.x, radius:0.42 };
-  if (chosenAggro) return { kind:'aggro', id:chosenAggro.id, r:chosenAggro.y, c:chosenAggro.x, radius:0.42 };
+  if (chosenAggro) return { kind:'aggro', id:chosenAggro.id, r:chosenAggro.y, c:chosenAggro.x, radius:0.58 };
   if (chosenMg) return { kind:'mg', id:chosenMg.id, r:chosenMg.y, c:chosenMg.x, radius:0.42 };
   if (pvpTarget) return { kind:'player', id:pvpTarget.uid, r:pvpTarget.y, c:pvpTarget.x, radius:0.42 };
   return null;
@@ -22628,6 +23133,7 @@ function sendInput() {
   const sy = activeInterior ? activeInterior.savedR : player.r;
   const inputData = { x: +sx.toFixed(2), y: +sy.toFixed(2),
        ang: +player.ang.toFixed(2), w: activeInterior ? false : !!player.walking,
+       client_active: document.visibilityState === 'visible',
        weapon: currentWeapon || 'pistol', police:(_policeState&&_policeState.employed)?1:0, mafia:(_mafiaState&&_mafiaState.employed)?1:0,
        bag: (_myBagWeight > 0 && ((_bankRob && _bankRob.myBag) || _policeEvidenceBag)) ? 1 : 0,
        swimming: _playerInWater ? 1 : 0 };
@@ -22651,7 +23157,8 @@ function sendInput() {
     const _gangFull = !sendInput._gangT || (now - sendInput._gangT > 5000);
     if (_gangFull) sendInput._gangT = now;
     inputData.gang = _myGang.map(g => {
-      const o = { r: +g.r.toFixed(1), c: +g.c.toFixed(1), ang: +(g.ang||0).toFixed(1) };
+      const o = { r:+g.r.toFixed(1),c:+g.c.toFixed(1),ang:+(g.ang||0).toFixed(1),
+        lvl:Math.max(1,Math.min(25,+g.level||1)),key:String(g.id||'').slice(0,32) };
       if (_gangFull) { o.look = g.look; o.w = g.weapon; o.nm = g.name; }
       return o;
     });
@@ -22743,7 +23250,13 @@ const _districtActionBtn=document.getElementById('districtActionBtn');
 const _missionHudBtn=document.getElementById('missionHudBtn');
 const _missionHudLabel=_missionHudBtn?.querySelector('.mission-label');
 const _missionHudCount=_missionHudBtn?.querySelector('.mission-count');
+const _missionsModal=document.getElementById('missionsModal');
+const _missionsBody=document.getElementById('missionsBody');
+const _missionsClose=document.getElementById('missionsClose');
 const _districtMissionClose=document.getElementById('districtMissionClose');
+function _missionEsc(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
 function _myActiveDistrictOperation(){
   const here=districtAt(player.r,player.c);
   if(here){
@@ -22759,6 +23272,35 @@ function _myDistrictMissionCount(){
 }
 function _myOwnedDistricts(){
   return DISTRICTS.filter(d=>String(districtOwners[d.id]?.ownerId||districtOwners[d.id]?.owner_uid||'')===String(QP.uid));
+}
+let _districtControlHud=null,_districtControlHudKey='';
+function _syncDistrictControlHud(){
+  const owned=_myOwnedDistricts();
+  if(!owned.length){
+    if(_districtControlHud)_districtControlHud.style.display='none';
+    _districtControlHudKey='';
+    return;
+  }
+  if(!_districtControlHud){
+    _districtControlHud=document.createElement('div');
+    _districtControlHud.id='districtControlHud';
+    _districtControlHud.style.cssText='position:fixed;right:14px;top:286px;z-index:24;width:min(250px,calc(100vw - 28px));padding:10px 12px;border:1px solid rgba(255,211,92,.8);border-radius:12px;background:linear-gradient(145deg,rgba(20,25,29,.94),rgba(22,15,8,.95));box-shadow:0 8px 24px rgba(0,0,0,.48);color:#f7f1df;font:700 12px system-ui,sans-serif;pointer-events:auto;cursor:pointer';
+    _districtControlHud.title='Нажми, чтобы открыть сведения о контролируемых районах';
+    _districtControlHud.addEventListener('click',_openOwnedDistrictInfo);
+    document.body.appendChild(_districtControlHud);
+  }
+  const here=districtAt(player.r,player.c);
+  const d=(here&&owned.some(x=>x.id===here.id))?here:owned[0],o=districtOwners[d.id]||{};
+  const now=Date.now()/1000,expires=+o.expiresAt||+o.expires_at||0;
+  const left=expires?Math.max(0,expires-now):Math.max(0,+o.controlLeft||0);
+  const tick=Math.max(1,+o.income_tick_s||120),last=+o.lastPayoutAt||+o.last_payout_at||+o.capturedAt||+o.captured_at||now;
+  const next=Math.max(0,last+tick-now),income=Math.max(0,+o.income||+d.income||0);
+  const xp=Math.max(1,+o.income_xp||Math.floor(income/20));
+  const key=`${d.id}:${owned.length}:${Math.floor(left)}:${Math.floor(next)}:${income}:${xp}`;
+  _districtControlHud.style.display='block';
+  if(key===_districtControlHudKey)return;
+  _districtControlHudKey=key;
+  _districtControlHud.innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="color:${d.color||'#ffd76b'};font-size:13px">${d.icon||'🏴'} ${d.name}</b><span style="color:#ffe28a">👑 ${_formatDistrictTime(left)}</span></div><div style="margin-top:7px;color:#82f2a6">💵 +$${income.toLocaleString('ru')} · ⭐ +${xp} XP <span style="color:#aebbd0">каждые ${_formatDistrictTime(tick)}</span></div><div style="margin-top:4px;color:#f5d995">Следующая выплата через ${_formatDistrictTime(next)}</div>${owned.length>1?`<div style="margin-top:5px;color:#9eb1c8;font-size:10px">Под контролем районов: ${owned.length} · нажми для списка</div>`:''}`;
 }
 function _formatDistrictTime(seconds){
   const s=Math.max(0,Math.floor(+seconds||0)),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=String(s%60).padStart(2,'0');
@@ -22778,11 +23320,53 @@ function _openOwnedDistrictInfo(){
   ov.classList.add('show');return true;
 }
 function _hasDistrictMission(){return !!(_myDistrictObjective||_myActiveDistrictOperation());}
+function _activeMissionCount(){
+  return _myDistrictMissionCount()+
+    (myBoxStatus?.active?1:0)+
+    (myGtaStatus?.active?1:0);
+}
+function _renderMissions(){
+  if(!_missionsBody)return;
+  const cards=[];
+  const box=myBoxStatus?.active;
+  if(box){
+    const state=box.state==='pending'
+      ?'Забери коробку на пирсе'
+      :box.state==='ground'
+        ?`Коробка лежит на земле ещё ${Math.max(0,box.expires_in|0)} сек. Вернись и подними её, затем доставь по адресу.`
+      :box.state==='loaded'
+        ?'Коробка в багажнике — довези до адреса и выгрузи'
+        :'Доставь коробку по адресу, войди в здание, подойди к отмеченному NPC и нажми «Отдать груз».';
+    cards.push(`<article class="mission-item active"><h3>📦 Доставка Майкла</h3><p class="mission-route">Куда нести: «${_missionEsc(box.addr||'отмеченный бизнес')}»</p><p>${state}</p><p>Как сдать: войди внутрь, подойди к управляющему и нажми <b>«Отдать груз»</b>.</p><p>Награда: <b style="color:#86eba2">+$${box.reward|0}</b></p><button type="button" data-mission-action="box-route">🧭 Показать маршрут</button></article>`);
+  }
+  const gta=myGtaStatus?.active;
+  if(gta){
+    const mdef=QUEST_CAR_MODELS[gta.model]||{label:gta.model||'Автомобиль'};
+    cards.push(`<article class="mission-item active"><h3>🚗 Заказ Майкла</h3><p class="mission-route">${_missionEsc(mdef.label)}</p><p>${gta.state==='driven'?'Доставь машину в порт':'Найди отмеченную машину и угони её'}</p><p>Награда: <b style="color:#86eba2">+$${gta.reward|0}</b></p><button type="button" data-mission-action="gta-route">🧭 Показать маршрут</button></article>`);
+  }
+  const district=_myActiveDistrictOperation();
+  if(_myDistrictObjective||district){
+    const did=_myDistrictObjective?.did||district?.did||'';
+    const d=DISTRICTS.find(x=>x.id===did);
+    const phase=String(_myDistrictObjective?.phase||district?.op?.phase||'операция идёт').replaceAll('_',' ');
+    cards.push(`<article class="mission-item active"><h3>🏴 Захват района${d?`: ${_missionEsc(d.name)}`:''}</h3><p>Этап: ${_missionEsc(phase)}</p><p>Метка задания останется на карте, пока операция не завершена.</p><button type="button" data-mission-action="district-route">🗺️ Показать цель</button></article>`);
+  }
+  const owned=_myOwnedDistricts();
+  if(owned.length)cards.push(`<article class="mission-item"><h3>👑 Контролируемые районы: ${owned.length}</h3><p>Доход, опыт и оставшееся время контроля.</p><button type="button" data-mission-action="district-info">Открыть сведения</button></article>`);
+  if(!cards.length)cards.push('<article class="mission-item"><h3>Активных миссий нет</h3><p>Работу можно взять у Майкла, а захват района начать с главаря.</p></article>');
+  _missionsBody.innerHTML=cards.join('');
+}
+function _openMissions(){
+  _renderMissions();
+  _missionsModal?.classList.add('show');
+}
+function _closeMissions(){_missionsModal?.classList.remove('show');}
 function syncDistrictMissionControls(){
+  _syncDistrictControlHud();
   const hasMission=_hasDistrictMission();
   const hidden=hasMission&&_districtMissionHudHidden;
   const hasObjective=!!_myDistrictObjective;
-  const missionCount=_myDistrictMissionCount(),ownedCount=_myOwnedDistricts().length;
+  const missionCount=_activeMissionCount(),ownedCount=_myOwnedDistricts().length;
   const shopOpen=!!_shopOverlay?.classList.contains('open');
   // Крестик синхронизируется всегда: он не должен оставаться на карте после
   // исчезновения/скрытия карточки или открытия другого интерфейса.
@@ -22790,28 +23374,35 @@ function syncDistrictMissionControls(){
   const key=`${hasMission?1:0}:${hidden?1:0}:${hasObjective?1:0}:${missionCount}:${ownedCount}:${shopOpen?1:0}`;
   if(key===_districtMissionUiKey)return;
   _districtMissionUiKey=key;
-  _missionHudBtn?.classList.toggle('active',hasMission);
-  _missionHudBtn?.classList.toggle('minimized',hidden);
-  if(_missionHudLabel)_missionHudLabel.textContent=hidden?'📋 Захват скрыт':'📋 Захват района';
-  if(_missionHudCount)_missionHudCount.textContent=String(missionCount||ownedCount);
-  if(_missionHudBtn)_missionHudBtn.title=hasMission?(hidden?'Показать активную миссию':'Скрыть активную миссию'):ownedCount?'Информация о моих захваченных районах':'Активных миссий нет';
+  _missionHudBtn?.classList.toggle('active',missionCount>0);
+  _missionHudBtn?.classList.remove('minimized');
+  if(_missionHudLabel)_missionHudLabel.textContent='📋 Миссии';
+  if(_missionHudCount)_missionHudCount.textContent=String(missionCount);
+  if(_missionHudBtn)_missionHudBtn.title=missionCount?`Активных миссий: ${missionCount}`:'Открыть список миссий';
+  if(_missionsModal?.classList.contains('show'))_renderMissions();
 }
-_missionHudBtn?.addEventListener('click',()=>{
-  if(!_hasDistrictMission()){
-    if(_openOwnedDistrictInfo())return;
-    if(_policeState?.employed){
-      showToast('Захватывать районы может только мафия. Сначала уволься из полиции в участке.','👮',3200);
-    }else{
-      const d=districtAt(player.r,player.c);
-      showToast(d?.capturable
-        ?'Найди мигающую метку главаря района: убей босса, подбери досье и следуй заданию.'
-        :'Войди в захватываемый район и найди на карте мигающую метку главаря.','🗺️',3600);
-    }
-    return;
+_missionHudBtn?.addEventListener('click',_openMissions);
+_missionsClose?.addEventListener('click',_closeMissions);
+_missionsModal?.addEventListener('click',e=>{if(e.target===_missionsModal)_closeMissions();});
+_missionsBody?.addEventListener('click',e=>{
+  const action=e.target.closest('[data-mission-action]')?.dataset.missionAction;
+  if(!action)return;
+  if(action==='district-info'){_closeMissions();_openOwnedDistrictInfo();return;}
+  if(action==='district-route'){
+    _districtMissionHudHidden=false;_districtMissionUiKey='';syncDistrictMissionControls();
+    _closeMissions();showToast('Цель захвата снова показана на карте.','🗺️',1800);return;
   }
-  _districtMissionHudHidden=!_districtMissionHudHidden;
-  _districtMissionUiKey=''; syncDistrictMissionControls();
-  showToast(_districtMissionHudHidden?'Задание скрыто. Операция не отменена.':'Задание снова показано.',_districtMissionHudHidden?'🙈':'📋',1800);
+  _closeMissions();
+  const box=myBoxStatus?.active;
+  if(action==='box-route'&&box){
+    showToast(box.state==='pending'
+      ?'Стрелка ведёт к коробке на пирсе.'
+      :box.state==='ground'
+        ?'Стрелка ведёт к твоей брошенной коробке. Она исчезнет через 5 минут.'
+        :`Стрелка ведёт к «${box.addr}». Внутри подойди к управляющему и нажми «Отдать груз».`,'🧭',3600);
+  }else if(action==='gta-route'){
+    showToast('Стрелка ведёт к машине, а после угона — к точке сдачи.','🧭',2800);
+  }
 });
 _districtMissionClose?.addEventListener('click',()=>{
   _districtMissionHudHidden=true;
@@ -29019,7 +29610,10 @@ function _gangNestBusinessId(ne) {
   if (ne.state !== 'guard' || !Number.isFinite(+ne.r) || !Number.isFinite(+ne.c)) return '';
   let nearest = null;
   let nearestD2 = 5.5 * 5.5;
-  for (const biz of BIZ_LIST) {
+  const catalog = (typeof BUSINESS_POIS !== 'undefined' && Array.isArray(BUSINESS_POIS))
+    ? BUSINESS_POIS
+    : [];
+  for (const biz of catalog) {
     const dr = (+ne.r || 0) - biz.r;
     const dc = (+ne.c || 0) - biz.c;
     const d2 = dr * dr + dc * dc;
@@ -29070,7 +29664,9 @@ let _bizLastSync = 0;
 function syncMyBusinesses() {
   if (!QP.api || !QP.uid) return;
   const now = performance.now();
-  if (now - _bizLastSync < 15000) return;
+  // Zero is also used deliberately to force an immediate refresh after a
+  // purchase, hire or page load. Do not mistake it for a recent request.
+  if (_bizLastSync > 0 && now - _bizLastSync < 15000) return;
   _bizLastSync = now;
   fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/list`, { cache: 'no-store' })
     .then(r => r.json())
@@ -29111,6 +29707,7 @@ function syncMyBusinesses() {
             daily_max: b.daily_max || 0,
             upgrade_cost: b.upgrade_cost || 0,
             guards: Math.max(0, Math.min(6, +b.guards || 0)),
+            npc_capture_cooldown_until: +b.npc_capture_cooldown_until || 0,
           });
         }
       }
@@ -29129,7 +29726,16 @@ function syncMyBusinesses() {
         renderProfileTab();
       }
     })
-    .catch(() => {});
+    .catch((err) => {
+      console.warn('business list sync failed', err);
+      if (_profileTab === 'biz' &&
+          document.getElementById('profileModal')?.classList.contains('show')) {
+        const box = document.getElementById('profileContent');
+        if (box && !box.children.length) {
+          box.innerHTML = '<div class="empty">Не удалось обновить список бизнесов. Повтори попытку.</div>';
+        }
+      }
+    });
 }
 
 // Найти ближайший бизнес-POI в радиусе GTA_INTERACT_R от игрока
@@ -30725,6 +31331,41 @@ function drawGraffitiOnGround(cx, cy, botId) {
   ctx.restore();
 }
 
+function drawBurningCharacter(cx, cy, botId, scale=1) {
+  const seed = String(botId || '').split('').reduce((n,ch)=>n+ch.charCodeAt(0),0);
+  const now = performance.now(), t = now * .012 + seed * .17;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const aura = ctx.createRadialGradient(cx,cy-18,1,cx,cy-14,34*scale);
+  aura.addColorStop(0,'rgba(255,245,145,.44)');
+  aura.addColorStop(.45,'rgba(255,105,15,.24)');
+  aura.addColorStop(1,'rgba(255,35,0,0)');
+  ctx.fillStyle=aura;ctx.beginPath();ctx.ellipse(cx,cy-12,34*scale,42*scale,0,0,Math.PI*2);ctx.fill();
+  for(let i=0;i<6;i++){
+    const phase=t+i*1.73, ox=(i-2.5)*4.2*scale+Math.sin(phase)*2.4;
+    const baseY=cy-(i%2)*7*scale, h=(18+(i%3)*6+Math.sin(phase*1.7)*4)*scale;
+    const w=(5+(i%2)*2)*scale;
+    const flame=ctx.createLinearGradient(cx+ox,baseY-h,cx+ox,baseY);
+    flame.addColorStop(0,'rgba(255,255,220,.98)');
+    flame.addColorStop(.28,'rgba(255,220,65,.98)');
+    flame.addColorStop(.68,'rgba(255,76,7,.94)');
+    flame.addColorStop(1,'rgba(90,5,0,.12)');
+    ctx.fillStyle=flame;ctx.beginPath();ctx.moveTo(cx+ox+Math.sin(phase)*w*.55,baseY-h);
+    ctx.quadraticCurveTo(cx+ox+w,baseY-h*.46,cx+ox+w*.55,baseY);
+    ctx.lineTo(cx+ox-w*.55,baseY);
+    ctx.quadraticCurveTo(cx+ox-w,baseY-h*.5,cx+ox+Math.sin(phase)*w*.55,baseY-h);ctx.fill();
+  }
+  for(let i=0;i<5;i++){
+    const age=(now*.09+seed*3+i*19)%75;
+    ctx.globalAlpha=.9*(1-age/75);ctx.fillStyle=i%2?'#fff18a':'#ff6a13';
+    ctx.beginPath();ctx.arc(cx+Math.sin(t*.55+i*2.3)*13*scale,cy-24-age*.48*scale,1.4+(i%2),0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+  ctx.save();ctx.globalAlpha=.28;ctx.fillStyle='#262326';
+  for(let i=0;i<3;i++){const age=(now*.025+seed+i*31)%90;ctx.beginPath();ctx.arc(cx+Math.sin(t*.18+i)*9,cy-38-age*.34,5+age*.07,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+}
+
 function drawAggroBot(bot) {
   const p = w2s(bot.y + 0.5, bot.x + 0.5);
   const isElite = bot.kind === 'aggro_elite';
@@ -30766,6 +31407,7 @@ function drawAggroBot(bot) {
     drawPerson(p.x, p.y, bot.ang || 0, look, walkPhase, null, threatChat, false,
                bot.hp, bot.max_hp, false);
   }
+  if (bot.burning) drawBurningCharacter(p.x, p.y, bot.id, isBoss ? 1.18 : (isElite ? 1.08 : 1));
   // Idle/warn-фразы для бандитов и копов
   _drawSpeechFor(bot.id, p.x, p.y);
   // Activity-предметы (бутылка/баллончик) у городских банд в patrol
@@ -31710,8 +32352,9 @@ function drawBoxQuestMarkers() {
   const bq = myBoxStatus && myBoxStatus.active;
   if (!bq) return;
   const isPickup = (bq.state === 'pending');
-  const tx = isPickup ? bq.pickup_x  : bq.dropoff_x;
-  const ty = isPickup ? bq.pickup_y  : bq.dropoff_y;
+  const isGround = (bq.state === 'ground');
+  const tx = isPickup ? bq.pickup_x : (isGround ? bq.ground_x : bq.dropoff_x);
+  const ty = isPickup ? bq.pickup_y : (isGround ? bq.ground_y : bq.dropoff_y);
   // Guard: если сервер не прислал координаты (или active это локальный
   // заглушка-fail-state) — не рисуем маркер.
   if (!Number.isFinite(tx) || !Number.isFinite(ty)) return;
@@ -31720,7 +32363,7 @@ function drawBoxQuestMarkers() {
   const pulse = 0.55 + Math.sin(tm) * 0.30;
   // Радиальный градиент-подсветка
   const grad = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, 38);
-  const col = isPickup ? 'rgba(120,200,255,' : 'rgba(120,255,140,';
+  const col = (isPickup || isGround) ? 'rgba(255,190,80,' : 'rgba(120,255,140,';
   grad.addColorStop(0, col + `${0.55 * pulse})`);
   grad.addColorStop(1, col + '0)');
   ctx.fillStyle = grad;
@@ -31728,7 +32371,7 @@ function drawBoxQuestMarkers() {
   ctx.arc(p.x, p.y, 38, 0, Math.PI * 2);
   ctx.fill();
   // Тонкое кольцо
-  ctx.strokeStyle = isPickup ? '#6ec8ff' : '#7ee69a';
+  ctx.strokeStyle = (isPickup || isGround) ? '#ffc45d' : '#7ee69a';
   ctx.lineWidth = 2;
   ctx.setLineDash([4, 3]);
   ctx.beginPath();
@@ -31741,10 +32384,12 @@ function drawBoxQuestMarkers() {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
   ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
-  ctx.fillText(isPickup ? '📦' : '🏠', p.x, p.y - 16 + bob);
+  ctx.fillText((isPickup || isGround) ? '📦' : '▼', p.x, p.y - 18 + bob);
   ctx.font = 'bold 10px system-ui, sans-serif';
-  ctx.fillStyle = isPickup ? '#a8d8ff' : '#a8f0bd';
-  ctx.fillText(isPickup ? 'ВЗЯТЬ' : (bq.addr || 'СДАТЬ'), p.x, p.y + 4);
+  ctx.fillStyle = (isPickup || isGround) ? '#ffd18a' : '#a8f0bd';
+  ctx.fillText(isPickup ? 'ВЗЯТЬ КОРОБКУ' :
+    (isGround ? 'ПОДНЯТЬ СВОЮ КОРОБКУ' : `📦 ДОСТАВИТЬ: ${bq.addr || 'БИЗНЕС'}`),
+    p.x, p.y + 4);
   ctx.shadowBlur = 0;
   ctx.textAlign = 'left';
 }
@@ -34034,6 +34679,10 @@ function reportCarCrash(qc, impact, kind) {
 function spawnCarExplosion(wr, wc, car, leaveSoot = true) {
   // Запоминаем время взрыва на объекте машины — нужно для ударной волны
   if (car) car._explosionT = performance.now();
+  _capArr(explosionBursts, 10);
+  explosionBursts.push({r:wr,c:wc,born:performance.now(),life:1550,seed:Math.random()*1000});
+  spawnShockwave(wr,wc,{rad0:5,maxRad:118,life:620,color:'#ff7b25',thick:6});
+  spawnShockwave(wr,wc,{rad0:2,maxRad:72,life:330,color:'#fff4bd',thick:3.5});
 
   const parts = [];
   // Огненные частицы (больше + быстрее)
@@ -36191,6 +36840,7 @@ if (d.kind === 'plank_path') {
   drawOwnedApartmentWorldMarkers(r0, r1, c0, c1);
   drawOwnedBusinessWorldMarkers(r0, r1, c0, c1);
   drawActiveBuildingEntryMarker();
+  drawActiveVehicleEntryMarker();
   drawLeaderboard();
   // ── РЕНТГЕН игрока за зданием ──────────────────────────────────────
   // В изометрии здание на тайле ближе к камере (r+c больше) рисуется
@@ -36225,6 +36875,9 @@ if (d.kind === 'plank_path') {
   // Вывески АЗС — ПОВЕРХ всех зданий (тотем на высоком столбе виден
   // даже когда сама заправка спрятана за домом). Рисуем после depth-sort.
   _drawGasSigns(r0, c0, r1, c1);
+  // Physical mission boxes dropped by their owners. Foreign boxes remain
+  // visible but the server refuses pickup.
+  drawGroundMissionBoxes();
   // Коробка над игроком/машиной если несу груз Майкла
   drawCarriedBox();
   // Автозаки ареста — поверх персонажей (LOADING-фаза скрывает спрайт)
@@ -37040,8 +37693,27 @@ canvas.addEventListener('pointerdown', (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
+  if (_buildingInt?.type === 'business' && myBusinesses.get(_buildingInt.bizId)?.owned) {
+    const staff = (_buildingInt.npcs || []).filter(n =>
+      n && !n.dead && (n.role === 'manager' || n.role === 'biz_security_chief'));
+    for (const npc of staff) {
+      const p = w2s(npc.r + .5, npc.c + .5);
+      if (Math.abs(x - p.x) <= 42 && y >= p.y - 92 && y <= p.y + 18) {
+        if (npc.role === 'manager') openBusinessManagement(_buildingInt.bizId);
+        else openBusinessSecurity(_buildingInt.bizId);
+        return;
+      }
+    }
+  }
+  if (tryTapActiveVehicleEntryMarker(x, y)) return;
   if (tryTapActiveBuildingEntryMarker(x, y)) return;
+  // A broad 48px vehicle target used to steal taps from dense building
+  // facades and clear their yellow entrance marker. Keep a precise car hit
+  // first, then let the building facade win, and only then use the forgiving
+  // vehicle radius where no building was selected.
+  if (selectVehicleFromCanvasTap(x, y, 27)) return;
   if (selectBuildingFromCanvasTap(x, y)) return;
+  if (selectVehicleFromCanvasTap(x, y, 48)) return;
   tryTapLock(x, y);
 }, { passive: true });
 
@@ -37076,14 +37748,36 @@ function _damageGangBotsInThrowable(r,c,radius,weapon){
     const id=String(bot.id||'');if(!id||sent.has(id))continue;
     if(Math.hypot((+bot.y||0)-r,(+bot.x||0)-c)>=radius)continue;
     sent.add(id);
-    try{ws.send(JSON.stringify({t:'aggro_shoot',d:{target:id,weapon}}))}catch(e){}
+    try{ws.send(JSON.stringify({t:'aggro_shoot',d:{
+      target:id,weapon,fire_x:+c,fire_y:+r
+    }}))}catch(e){}
   }
 }
 function _drawWorldFirePatch(f,now){
-  const p=w2s(f.r+.5,f.c+.5),t=now*.006+(f.seed||0),flick=.78+.14*Math.sin(t*7.3)+.08*Math.sin(t*13.1+2),glowR=54+Math.sin(t*5.5)*7;
-  ctx.save();const glow=ctx.createRadialGradient(p.x,p.y-3,3,p.x,p.y-3,glowR);glow.addColorStop(0,`rgba(255,170,55,${.4*flick})`);glow.addColorStop(.55,`rgba(255,75,15,${.18*flick})`);glow.addColorStop(1,'rgba(255,60,10,0)');ctx.fillStyle=glow;ctx.beginPath();ctx.ellipse(p.x,p.y-2,glowR,glowR*.45,0,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='lighter';
-  for(let k=0;k<18;k++){const phase=k*.83,ring=(k%6)/5,ox=Math.sin(phase*2.7+t*.35)*(8+ring*34),oy=Math.cos(phase*1.9+t*.25)*(3+ring*10),h=18+ring*18+Math.sin(t*2.2+phase)*7,w=5+ring*3,cx=p.x+ox,base=p.y+oy;const fg=ctx.createLinearGradient(cx,base-h,cx,base);fg.addColorStop(0,'rgba(255,250,205,.96)');fg.addColorStop(.25,'rgba(255,220,80,.95)');fg.addColorStop(.62,'rgba(255,105,20,.9)');fg.addColorStop(1,'rgba(120,15,5,.25)');ctx.fillStyle=fg;ctx.beginPath();ctx.moveTo(cx+Math.sin(t+phase)*3,base-h);ctx.quadraticCurveTo(cx+w,base-h*.42,cx+w*.45,base);ctx.lineTo(cx-w*.45,base);ctx.quadraticCurveTo(cx-w,base-h*.42,cx+Math.sin(t+phase)*3,base-h);ctx.fill();}
-  ctx.globalCompositeOperation='source-over';for(let k=0;k<5;k++){const age=(t*25+k*23)%115;ctx.globalAlpha=.32*(1-age/115);ctx.fillStyle='#292526';ctx.beginPath();ctx.arc(p.x+Math.sin(t*.7+k)*18,p.y-30-age*.55,9+age*.12,0,Math.PI*2);ctx.fill()}ctx.restore();
+  const p=w2s(f.r+.5,f.c+.5),t=now*.006+(f.seed||0),flick=.8+.13*Math.sin(t*7.3)+.07*Math.sin(t*13.1+2),glowR=72+Math.sin(t*5.5)*8;
+  ctx.save();const glow=ctx.createRadialGradient(p.x,p.y-5,2,p.x,p.y-5,glowR);glow.addColorStop(0,`rgba(255,208,75,${.56*flick})`);glow.addColorStop(.42,`rgba(255,92,15,${.3*flick})`);glow.addColorStop(1,'rgba(255,45,5,0)');ctx.fillStyle=glow;ctx.beginPath();ctx.ellipse(p.x,p.y-2,glowR,glowR*.48,0,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='lighter';
+  for(let k=0;k<26;k++){const phase=k*.83,ring=(k%7)/6,ox=Math.sin(phase*2.7+t*.35)*(7+ring*42),oy=Math.cos(phase*1.9+t*.25)*(3+ring*12),h=24+ring*30+Math.sin(t*2.2+phase)*9,w=6+ring*4,cx=p.x+ox,base=p.y+oy;const fg=ctx.createLinearGradient(cx,base-h,cx,base);fg.addColorStop(0,'rgba(255,255,225,.98)');fg.addColorStop(.22,'rgba(255,225,75,.98)');fg.addColorStop(.6,'rgba(255,92,12,.94)');fg.addColorStop(1,'rgba(105,10,3,.2)');ctx.fillStyle=fg;ctx.beginPath();ctx.moveTo(cx+Math.sin(t+phase)*5,base-h);ctx.quadraticCurveTo(cx+w,base-h*.45,cx+w*.5,base);ctx.lineTo(cx-w*.5,base);ctx.quadraticCurveTo(cx-w,base-h*.45,cx+Math.sin(t+phase)*5,base-h);ctx.fill()}
+  for(let k=0;k<10;k++){const age=(t*38+k*17)%100;ctx.globalAlpha=.9*(1-age/100);ctx.fillStyle=k%2?'#ffd95a':'#ff6a16';ctx.beginPath();ctx.arc(p.x+Math.sin(k*2.1+t)*42,p.y-18-age*.9,1.5+(k%3),0,Math.PI*2);ctx.fill()}
+  ctx.globalCompositeOperation='source-over';for(let k=0;k<8;k++){const age=(t*22+k*19)%135;ctx.globalAlpha=.4*(1-age/135);ctx.fillStyle=k%2?'#242122':'#3a3130';ctx.beginPath();ctx.arc(p.x+Math.sin(t*.7+k)*23,p.y-35-age*.62,11+age*.14,0,Math.PI*2);ctx.fill()}ctx.restore();
+}
+
+function drawGroundMissionBoxes() {
+  for (const box of groundMissionBoxes) {
+    if (!Number.isFinite(Number(box.r)) || !Number.isFinite(Number(box.c))) continue;
+    drawCrate(Number(box.r) - .5, Number(box.c) - .5);
+    const p = w2s(Number(box.r), Number(box.c));
+    const left = Math.max(0, Number(box.expires_in) || 0);
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.font = '900 10px system-ui';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,.85)';
+    ctx.fillStyle = box.mine ? '#ffd166' : '#ff8c8c';
+    const label = box.mine ? `ТВОЯ КОРОБКА · ${Math.ceil(left / 60)} мин` : 'ЧУЖАЯ КОРОБКА';
+    ctx.strokeText(label, p.x, p.y - 33);
+    ctx.fillText(label, p.x, p.y - 33);
+    ctx.restore();
+  }
 }
 function drawThrowableFx(){
   const now=performance.now();
@@ -37654,6 +38348,17 @@ function drawImpacts() {
   const now = performance.now();
   const dy = _bulletY();   // совпадает с уровнем пули в drawBullets
   ctx.save();
+  for(let i=explosionBursts.length-1;i>=0;i--){
+    const b=explosionBursts[i],age=now-b.born;if(age>=b.life){explosionBursts.splice(i,1);continue}
+    const q=age/b.life,p=w2s(b.r+.5,b.c+.5),rise=Math.min(1,age/500),fade=Math.max(0,1-q);
+    ctx.save();ctx.translate(p.x,p.y-dy-rise*19);ctx.globalCompositeOperation='lighter';
+    const flash=Math.max(0,1-age/210),coreR=18+Math.min(1,age/380)*48;
+    if(flash>0){const g=ctx.createRadialGradient(0,0,0,0,0,coreR*1.7);g.addColorStop(0,`rgba(255,255,235,${flash})`);g.addColorStop(.22,`rgba(255,224,90,${flash*.95})`);g.addColorStop(.58,`rgba(255,82,15,${flash*.72})`);g.addColorStop(1,'rgba(180,20,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,coreR*1.7,0,Math.PI*2);ctx.fill()}
+    for(let k=0;k<10;k++){const a=k*2.399+b.seed,spread=(11+(k%4)*8)*Math.min(1,age/330),cx=Math.cos(a)*spread,cy=Math.sin(a)*spread*.48,rr=(22+(k%3)*7)*(.55+fade*.65),g=ctx.createRadialGradient(cx,cy,0,cx,cy,rr);g.addColorStop(0,`rgba(255,250,190,${fade*.92})`);g.addColorStop(.3,`rgba(255,170,35,${fade*.88})`);g.addColorStop(.72,`rgba(230,55,8,${fade*.7})`);g.addColorStop(1,'rgba(90,8,2,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,rr,0,Math.PI*2);ctx.fill()}
+    ctx.globalCompositeOperation='source-over';
+    if(age>260){const smokeA=Math.min(.68,(age-260)/600)*fade;for(let k=0;k<8;k++){const a=k*2.17+b.seed,rr=17+q*25+(k%3)*4;ctx.globalAlpha=smokeA;ctx.fillStyle=k%2?'#231f20':'#3b302b';ctx.beginPath();ctx.arc(Math.cos(a)*(10+q*31),Math.sin(a)*9-q*42-(k%3)*8,rr,0,Math.PI*2);ctx.fill()}}
+    ctx.restore();
+  }
   for (let i = impacts.length - 1; i >= 0; i--) {
     const imp = impacts[i];
     const p = w2s(imp.r + 0.5, imp.c + 0.5);
@@ -37716,6 +38421,40 @@ function drawPOIArrows(r0, r1, c0, c1) {
   const SAFE_TR = { w: 200, h: 200 };  // мини-карта + «N онлайн»
   const SAFE_BL = { w: 200, h: 220 };  // джойстик
   const SAFE_BR = { w: 180, h: 320 };  // правый джойстик + HP-HUD + чат
+  const drawEdgeTarget = (targetR, targetC, icon) => {
+    const visible = targetR >= r0 && targetR < r1 && targetC >= c0 && targetC < c1;
+    if (visible) return;
+    const dist = Math.hypot(targetR - player.r, targetC - player.c);
+    if (dist < 3) return;
+    const sp = w2s(targetR + 0.5, targetC + 0.5);
+    const dx = sp.x - cx, dy = sp.y - cy;
+    const len = Math.hypot(dx, dy) || 1;
+    const ndx = dx / len, ndy = dy / len;
+    const xMin = PAD, xMax = W - PAD, yMin = PAD, yMax = H - PAD;
+    let t = Infinity;
+    if (dx > 0) t = Math.min(t, (xMax - cx) / dx);
+    if (dx < 0) t = Math.min(t, (xMin - cx) / dx);
+    if (dy > 0) t = Math.min(t, (yMax - cy) / dy);
+    if (dy < 0) t = Math.min(t, (yMin - cy) / dy);
+    let ax = cx + t * dx, ay = cy + t * dy;
+    const NEAR_TOP = ay < PAD + 20, NEAR_BOTTOM = ay > H - PAD - 20;
+    const NEAR_LEFT = ax < PAD + 20, NEAR_RIGHT = ax > W - PAD - 20;
+    if (NEAR_TOP && NEAR_LEFT && ax < SAFE_TL.w && ay < SAFE_TL.h) ay = SAFE_TL.h + PAD;
+    if (NEAR_TOP && NEAR_RIGHT && (W - ax) < SAFE_TR.w && ay < SAFE_TR.h) ay = SAFE_TR.h + PAD;
+    if (NEAR_BOTTOM && NEAR_LEFT && ax < SAFE_BL.w && (H - ay) < SAFE_BL.h) ay = H - SAFE_BL.h - PAD;
+    if (NEAR_BOTTOM && NEAR_RIGHT && (W - ax) < SAFE_BR.w && (H - ay) < SAFE_BR.h) ay = H - SAFE_BR.h - PAD;
+    _drawPOIArrow(ax, ay, ndx, ndy, { icon });
+  };
+  const boxQuest = myBoxStatus && myBoxStatus.active;
+  if (boxQuest) {
+    const waitingPickup = boxQuest.state === 'pending';
+    const waitingGround = boxQuest.state === 'ground';
+    drawEdgeTarget(
+      Number(waitingPickup ? boxQuest.pickup_y : (waitingGround ? boxQuest.ground_y : boxQuest.dropoff_y)),
+      Number(waitingPickup ? boxQuest.pickup_x : (waitingGround ? boxQuest.ground_x : boxQuest.dropoff_x)),
+      (waitingPickup || waitingGround) ? '📦' : '🏪'
+    );
+  }
   // Кандидаты: все POI за пределами видимости + достаточно далёкие.
   // Каждому считаем точку пересечения луча из центра экрана с
   // прямоугольником (PAD..W-PAD) × (PAD..H-PAD).
@@ -37764,7 +38503,8 @@ function drawPOIArrows(r0, r1, c0, c1) {
     // Показываем стрелку только если действительно есть смысл идти к Майклу:
     // или активный контракт (надо сдать), или игрок не в машине (можно
     // взять новый заказ). Если игрок просто едет мимо — не отвлекаем.
-    const shouldShow = (myGtaStatus && myGtaStatus.active) || (!myDrivingCarId && dist > 8);
+    const shouldShow = (myGtaStatus && myGtaStatus.active) ||
+      (!boxQuest && !myDrivingCarId && dist > 8);
     if (shouldShow && dist > 8) {
       const sp = w2s(MICHAEL_POS.r + 0.5, MICHAEL_POS.c + 0.5);
       const dx = sp.x - cx, dy = sp.y - cy;
@@ -40136,7 +40876,23 @@ function _mafiaProgress(){const xp=Math.min(MAFIA_XP_MAX,Math.max(0,Math.floor(_
 function _refreshMafiaPerks(){GANG_MAX=_mafiaState.employed?(_mafiaLevel()>=5?7:(_mafiaLevel()>=4?6:5)):0;_gangRosterUiKey='';syncGangRosterHud();}
 function _setMafiaXp(value){const old=_mafiaLevel(),v=Math.min(MAFIA_XP_MAX,Math.max(0,Math.floor(+value||0)));if(v===_mafiaXp)return;_mafiaXp=v;_refreshMafiaPerks();const level=_mafiaLevel();if(level>old)showEventBanner('🕴️ НОВЫЙ РАНГ МАФИИ',`${_mafiaRank(level)} · уровень ${level} · ${MAFIA_LEVELS[level-1].perk}`,4500,'win');renderJobStatus();if(_policeModalView==='mafia')renderPoliceModal();}
 const _hqUpgradeKey=`mafiozi_hq_upgrades_${QP.uid||'preview'}`;
-const _hqUpgradeDefs={armory:{icon:'🔫',name:'Оружейная',desc:'урон отряда / защита копа'},medbay:{icon:'🏥',name:'Медпункт',desc:'лечение после операций'},garage:{icon:'🚘',name:'Гараж',desc:'быстрее вызов техники'},cameras:{icon:'📹',name:'Камеры',desc:'контроль свидетелей'},safe:{icon:'🔐',name:'Сейф',desc:'репутация и награды района'}};
+const _hqUpgradeDefs={
+  armory:{icon:'🔫',name:'Оружейная',
+    police:'Броня и снаряжение: −5% входящего урона за уровень. Помогает дольше выживать в перестрелках.',
+    mafia:'Оружие семьи: +5% к урону за уровень. Бойцы быстрее устраняют противников.'},
+  medbay:{icon:'🏥',name:'Медпункт',
+    police:'После завершения операции восстанавливает +10 HP за уровень. Сокращает паузы между выездами.',
+    mafia:'Помощь семье лечит каждого раненого ещё на +12 HP за уровень. Сохраняет сильных бойцов в строю.'},
+  garage:{icon:'🚘',name:'Гараж',
+    police:'Снижает ожидание повторного вызова служебной техники на 15 секунд за уровень.',
+    mafia:'Снижает ожидание повторного вызова транспорта семьи на 15 секунд за уровень.'},
+  cameras:{icon:'📹',name:'Камеры',
+    police:'Расширяет контроль улиц и свидетелей вокруг подконтрольного района.',
+    mafia:'Снижает вероятность появления свидетелей на 5% за уровень. Меньше внимания после преступлений.'},
+  safe:{icon:'🔐',name:'Сейф',
+    police:'Добавляет $50 к награде за каждую завершённую миссию за уровень.',
+    mafia:'Добавляет +2 репутации района за уровень при успешных силовых операциях.'}
+};
 let _hqUpgrades={mafia:{},police:{}};
 try{const v=JSON.parse(localStorage.getItem(_hqUpgradeKey)||'null');if(v&&v.mafia&&v.police)_hqUpgrades=v;}catch(e){}
 function _hqLvl(role,key){return Math.max(0,Math.min(3,+_hqUpgrades?.[role]?.[key]||0));}
@@ -40153,7 +40909,7 @@ function _buyHqUpgrade(role,key){
 }
 function _hqUpgradePanel(role){
   const title=role==='police'?'УЛУЧШЕНИЯ УЧАСТКА':'УЛУЧШЕНИЯ УБЕЖИЩА';
-  return `<div class="police-section-title">🏗️ ${title}<span>3 уровня</span></div>`+Object.entries(_hqUpgradeDefs).map(([key,d])=>{const l=_hqLvl(role,key),cost=_hqUpgradeCost(role,key);return `<div class="police-row"><div><div class="police-name">${d.icon} ${d.name} · ${l}/3</div><div class="police-sub">${d.desc}</div></div><button class="police-action" data-hq-role="${role}" data-hq-upgrade="${key}" ${l>=3?'disabled':''}>${l>=3?'MAX':'$'+cost.toLocaleString('ru')}</button></div>`;}).join('');
+  return `<div class="police-section-title">🏗️ ${title}<span>3 уровня</span></div>`+Object.entries(_hqUpgradeDefs).map(([key,d])=>{const l=_hqLvl(role,key),cost=_hqUpgradeCost(role,key),desc=d[role]||'';return `<div class="police-row"><div><div class="police-name">${d.icon} ${d.name} · ${l}/3</div><div class="police-sub" style="max-width:390px;line-height:1.35;margin-top:4px">${desc}</div>${l<3?`<div style="font-size:10px;color:#76bfff;margin-top:4px;font-weight:800">Следующее улучшение: уровень ${l+1}/3</div>`:'<div style="font-size:10px;color:#79df9a;margin-top:4px;font-weight:800">Полностью улучшено</div>'}</div><button class="police-action" data-hq-role="${role}" data-hq-upgrade="${key}" ${l>=3?'disabled':''}>${l>=3?'MAX':'$'+cost.toLocaleString('ru')}</button></div>`;}).join('');
 }
 function _mafiaDamageMultiplier(){if(!_mafiaState.employed)return 1;const rank=_mafiaLevel()>=5?1.35:(_mafiaLevel()>=4?1.2:1),war=_localFactionControls('mafia') ? .05 : 0;return rank+war+_hqLvl('mafia','armory')*.05+(Date.now()<(_mafiaOrderUntil||0)?0.25:0);}
 const POLICE_TASER_LEVEL=5,POLICE_TASER_XP=POLICE_LEVELS[POLICE_TASER_LEVEL-1].xp;
@@ -40502,8 +41258,13 @@ function renderHqUpgradeDesk(){
   const role=_hqDeskRole;if(!role||!_policeModalBody)return;
   const title=_policeModal?.querySelector('.police-head span');if(title)title.textContent=role==='police'?'🏗️ Квартирмейстер участка':'🏗️ Консильери семьи';
   _policeModal?.classList.toggle('mafia',role==='mafia');
-  const personal=role==='police'?'Улучшения принадлежат твоему копу и действуют только во время службы.':'Улучшения принадлежат твоему мафиози и действуют, пока ты не служишь в полиции.';
-  _policeModalBody.innerHTML=`<div class="police-note" style="border-color:${role==='police'?'#477bae':'#93672f'}"><b>${personal}</b><br><span style="color:#98a7ba">Они сохраняются в открытом мире и не сбрасываются — раундов больше нет.</span></div>${_hqUpgradePanel(role)}`;
+  const personal=role==='police'
+    ? 'Улучшения принадлежат твоему копу и действуют только во время службы.'
+    : 'Это постоянное развитие семьи: оружейная усиливает урон, медпункт лечит бойцов, гараж ускоряет вызов транспорта, камеры уменьшают число свидетелей, а сейф повышает репутацию за операции.';
+  const purpose=role==='police'
+    ? 'Покупай их, чтобы безопаснее проводить задержания, быстрее возвращаться на выезды и получать больше денег за миссии.'
+    : 'Покупай их, чтобы увереннее захватывать районы, сохранять наёмных бойцов и реже привлекать внимание полиции.';
+  _policeModalBody.innerHTML=`<div class="police-note" style="border-color:${role==='police'?'#477bae':'#93672f'}"><b>${personal}</b><br><span style="color:#c7d0df">${purpose}</span><br><span style="color:#98a7ba">Улучшения сохраняются в открытом мире и не сбрасываются.</span></div>${_hqUpgradePanel(role)}`;
 }
 function openHqUpgradeDesk(role){
   const valid=_buildingInt&&((role==='police'&&_buildingInt.type==='police_st')||(role==='mafia'&&_buildingInt.type==='mafia_hq'));if(!valid)return;
@@ -40714,8 +41475,11 @@ function openCitizenRoleGuide(){
   _policeModal?.classList.remove('mafia');
   const policeRanks=POLICE_LEVELS.map(s=>`<div style="margin-top:5px"><b style="color:#78d5ff">${s.level} ур. · ${s.rank}</b> — ${s.perk}</div>`).join('');
   const mafiaRanks=MAFIA_LEVELS.map(s=>`<div style="margin-top:5px"><b style="color:#ffd27a">${s.level} ур. · ${s.rank}</b> — ${s.perk}</div>`).join('');
+  const civilianJobs=JOB_DEFS.map(j=>`<div style="display:flex;justify-content:space-between;gap:12px;margin-top:6px;padding:7px 9px;border-radius:8px;background:rgba(255,255,255,.035)"><span><b style="color:#e7edf5">${j.name}</b><small style="display:block;color:#8fa0b3;margin-top:2px">Доступно с ранга ${j.rank}</small></span><b style="color:#78e0a1;white-space:nowrap">$${j.payMin}–${j.payMax}</b></div>`).join('');
   _policeModalBody.innerHTML=`
-    <div class="police-note" style="border-color:#546579;background:#111923"><b style="color:#dbe8f5">Сейчас ты гражданский</b><div style="margin-top:6px">Можно свободно работать, покупать имущество, заниматься бизнесом, ограблениями и обычными делами города. Служебного оружия и фракционных способностей нет.</div></div>
+    <div class="police-note" style="border-color:#546579;background:#111923"><b style="color:#dbe8f5">👤 Твой статус: гражданский</b><div style="margin-top:6px">Ты свободен от службы и обязательств перед фракциями. Можно покупать квартиры и бизнесы, работать, торговать, исследовать город или выбрать преступный путь. Служебного оружия, формы и фракционных способностей пока нет.</div></div>
+    <div class="police-section-title" style="color:#dbe8f5">💼 ГРАЖДАНСКИЕ РАБОТЫ <span>заработок без вступления во фракцию</span></div>
+    <div class="police-note" style="border-color:#546579;background:#111923"><b>Как устроиться:</b> зайди на Биржу труда и поговори с менеджером. Смена длится 60 минут и сохраняется после выхода из игры. Чем выше ранг игрока, тем прибыльнее доступные заказы.<div style="margin-top:8px">${civilianJobs}</div></div>
     <div class="police-section-title" style="color:#78d5ff">👮 ПОЛИЦИЯ <span>закон и задержания</span></div>
     <div class="police-note" style="border-color:#315b86;background:#101a29"><b>Как вступить:</b> зайди в полицейский участок и поговори с дежурным.<br><b>Как получать XP:</b> доставляй преступников живыми в участок. Обычная цель — 65 XP, онлайн-преступник — 75 XP, босс мафии — 300 XP.${policeRanks}</div>
     <div class="police-section-title" style="color:#ffd27a">🕴️ МАФИЯ <span>семья и влияние</span></div>
@@ -42575,6 +43339,28 @@ function _drawBusinessInterior(bi) {
   const firstPersonDepth=items.reduce((d,it)=>it.person?Math.min(d,it.d):d,Infinity);
   const businessDepth=(it)=>it.furniture?Math.min(it.d,firstPersonDepth-.01):it.d;
   items.sort((a,b)=>businessDepth(a)-businessDepth(b));for(const it of items)it.fn();
+  drawGroundMissionBoxes();
+  const deliveryQuest = myBoxStatus && myBoxStatus.active;
+  if (deliveryQuest?.state === 'carrying' &&
+      String(deliveryQuest.business_id || '') === String(bi.bizId || '')) {
+    const recipient = (bi.npcs || []).find(n => n.role === 'manager' && !n.dead);
+    if (recipient) {
+      const rp = w2s(recipient.r + .5, recipient.c + .5);
+      const pulse = .6 + .3 * Math.sin(performance.now() * .005);
+      ctx.save();
+      ctx.strokeStyle = `rgba(255,214,82,${pulse})`;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6,4]);
+      ctx.beginPath(); ctx.ellipse(rp.x, rp.y + 4, 27, 12, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#fff0a6'; ctx.strokeStyle = '#171006'; ctx.lineWidth = 4;
+      ctx.font = '900 11px system-ui,sans-serif'; ctx.textAlign = 'center';
+      ctx.strokeText('📦 ОТДАТЬ ГРУЗ', rp.x, rp.y - 70);
+      ctx.fillText('📦 ОТДАТЬ ГРУЗ', rp.x, rp.y - 70);
+      ctx.restore();
+    }
+    drawCarriedBox();
+  }
   // Бизнес использует отдельный ранний render-return, поэтому боевые FX
   // нужно дорисовывать здесь, как в обычных зданиях и банковском интерьере.
   drawAimLaser();
@@ -42643,7 +43429,9 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
     biW = tier.w; biH = tier.h;
   }
   const seed = ((r * 73 + c * 131) % 97) / 97;
-  const rememberedAggro = type === 'business' && (_businessAggroUntil[bizId] || 0) > Date.now();
+  const isOwnedBusiness = type === 'business' && !!myBusinesses.get(bizId)?.owned;
+  const rememberedAggro = type === 'business' && !isOwnedBusiness &&
+    (_businessAggroUntil[bizId] || 0) > Date.now();
   _buildingInt = { r, c, W: biW, H: biH, seed,
     savedR: player.r, savedC: player.c,
     type: type || null, bizId: bizId || null, loot: null, npcs: [],
@@ -42715,6 +43503,34 @@ function exitBuildingInterior() {
   _bankShieldUntil = performance.now() + 1500;
 }
 
+function _pushInteriorLootCase(bi, items, now) {
+  if (!bi?.loot || bi.loot.picked) return;
+  const lt = bi.loot;
+  items.push({d:lt.r + lt.c + .35, fn:()=>{
+    const p=w2s(lt.r+.5,lt.c+.5), bob=Math.sin(now*.004)*2;
+    const x=p.x,y=p.y-isoH(.32)+bob,hp=!!lt.hp,pulse=.75+.25*Math.sin(now*.006);
+    ctx.save();
+    const glow=ctx.createRadialGradient(x,y,2,x,y,42);
+    glow.addColorStop(0,hp?`rgba(255,60,70,${.48*pulse})`:`rgba(255,203,55,${.48*pulse})`);
+    glow.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=glow;ctx.beginPath();ctx.ellipse(x,y,43,25,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.ellipse(p.x,p.y+3,23,8,0,0,Math.PI*2);ctx.fill();
+    ctx.translate(x,y);
+    ctx.fillStyle=hp?'#8f2631':'#74501b';ctx.strokeStyle=hp?'#ff7580':'#ffd35a';ctx.lineWidth=2;
+    roundRect(-20,-13,40,25,4);ctx.fill();ctx.stroke();
+    ctx.fillStyle=hp?'#56151d':'#3e2b11';ctx.fillRect(-19,-2,38,13);
+    ctx.strokeStyle=hp?'#ff7580':'#dcae3f';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(0,-13,10,Math.PI,0);ctx.stroke();
+    ctx.fillStyle=hp?'#ff98a0':'#ffe386';ctx.fillRect(-3,-3,6,7);
+    ctx.font='900 13px system-ui';ctx.textAlign='center';ctx.fillStyle='#fff4bd';
+    ctx.shadowColor=hp?'#ff3040':'#ffc020';ctx.shadowBlur=9;
+    ctx.fillText(hp?'✚':'$',0,7);
+    ctx.font='900 11px system-ui';ctx.fillStyle=hp?'#ffb5bc':'#ffe58d';
+    ctx.fillText(hp?'АПТЕЧКА':'КЕЙС',0,-24);
+    ctx.restore();
+  }});
+}
+
 function _drawMafiaHqInterior(bi){
   const W=bi.W,H=bi.H,stage=document.getElementById('stage'),SW=stage.clientWidth,SH=stage.clientHeight;
   const hx=TS*.5,hy=TS*.5*ISO_Y,wallH=isoH(3.4),now=performance.now();
@@ -42742,7 +43558,7 @@ function _drawMafiaHqInterior(bi){
   const safeP=w2s(2.65,W-1.7);ctx.fillStyle='#e8c957';ctx.font='bold 16px serif';ctx.textAlign='center';ctx.fillText('◆',safeP.x,safeP.y-isoH(1.05));
   // Chandelier and warm pools of light.
   const cp=w2s(H/2,W/2),pulse=.78+.14*Math.sin(now*.003);const glow=ctx.createRadialGradient(cp.x,cp.y-85,3,cp.x,cp.y-40,145);glow.addColorStop(0,`rgba(255,215,105,${.24*pulse})`);glow.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=glow;ctx.fillRect(cp.x-150,cp.y-180,300,260);ctx.strokeStyle='#d6aa47';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cp.x,cp.y-160);ctx.lineTo(cp.x,cp.y-105);ctx.stroke();ctx.fillStyle='#ffd56b';ctx.font='25px serif';ctx.fillText('♛',cp.x,cp.y-88);
-  const items=[];_pushInteriorNpcs(bi,items);items.push({d:player.r+player.c+.6,person:true,fn:()=>{const p=w2s(player.r+.5,player.c+.5);drawPerson(p.x,p.y,player.ang,_livePlayerLook(),player.walkPhase,'Игрок',null,true,myHp,PVP.max_hp,false,null,false,myDead);if(!myDead&&myMode!=='pve'&&_isArmed())drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT);}});items.sort((a,b)=>a.d-b.d);for(const it of items)it.fn();
+  const items=[];_pushInteriorNpcs(bi,items);_pushInteriorLootCase(bi,items,now);items.push({d:player.r+player.c+.6,person:true,fn:()=>{const p=w2s(player.r+.5,player.c+.5);drawPerson(p.x,p.y,player.ang,_livePlayerLook(),player.walkPhase,'Игрок',null,true,myHp,PVP.max_hp,false,null,false,myDead);if(!myDead&&myMode!=='pve'&&_isArmed())drawWeaponInHands(p.x,p.y,player.ang,currentWeapon,.9,lastShotClientT);}});items.sort((a,b)=>a.d-b.d);for(const it of items)it.fn();
   drawAimLaser();drawSmokePuffs();drawBullets();drawMuzzles();drawShockwaves();drawImpacts();drawFloatTexts();
   const ep=w2s(H-.25,W/2);ctx.fillStyle='#78ff9b';ctx.font='900 10px system-ui';ctx.textAlign='center';ctx.fillText('ВЫХОД',ep.x,ep.y-5);
   ctx.fillStyle='rgba(8,4,9,.9)';ctx.strokeStyle='#c6973d';ctx.lineWidth=1.5;roundRect(SW/2-145,12,290,38,12);ctx.fill();ctx.stroke();ctx.fillStyle='#ffd66e';ctx.font='900 16px serif';ctx.fillText('♛  ГЛАВНЫЙ ДОМ СЕМЬИ  ♛',SW/2,37);ctx.textAlign='left';

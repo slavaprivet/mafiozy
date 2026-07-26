@@ -1008,6 +1008,7 @@ async def init_db():
                 pending_notice TEXT DEFAULT NULL,
                 level         INTEGER DEFAULT 1,
                 guards        INTEGER DEFAULT 0,
+                npc_capture_cooldown_until INTEGER DEFAULT 0,
                 PRIMARY KEY (telegram_id, biz_id)
             )
         """)
@@ -1017,6 +1018,12 @@ async def init_db():
             pass
         try:
             await db.execute("ALTER TABLE player_businesses ADD COLUMN guards INTEGER DEFAULT 0")
+        except Exception:
+            pass
+        try:
+            await db.execute(
+                "ALTER TABLE player_businesses "
+                "ADD COLUMN npc_capture_cooldown_until INTEGER DEFAULT 0")
         except Exception:
             pass
         await db.execute("""
@@ -1331,6 +1338,32 @@ async def grant_mafia_xp(uid: int, amount: int, reason: str,
         world_player['_mafia_xp'] = new_xp
     return {'mafia_xp': new_xp, 'mafia_xp_gain': gain,
             'mafia_reason': str(reason or '')}
+
+
+async def grant_police_xp(uid: int, amount: int, reason: str,
+                          world_player: dict | None = None) -> dict:
+    """Начисляет серверный опыт службы только действующему полицейскому."""
+    if not world_player or not world_player.get('_police'):
+        return {}
+    amount = max(0, int(amount or 0))
+    if not amount:
+        return {}
+    max_xp = POLICE_LEVEL_XP[-1]
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE characters SET police_xp=MIN(?,COALESCE(police_xp,0)+?) "
+            "WHERE telegram_id=?", (max_xp, amount, int(uid)))
+        async with db.execute(
+                "SELECT police_xp FROM characters WHERE telegram_id=?", (int(uid),)) as cur:
+            row = await cur.fetchone()
+        await db.commit()
+    new_xp = int((row or [0])[0] or 0)
+    old_xp = int((world_player or {}).get('_police_xp') or 0)
+    gain = max(0, new_xp - old_xp)
+    if world_player is not None:
+        world_player['_police_xp'] = new_xp
+    return {'police_xp': new_xp, 'police_xp_gain': gain,
+            'police_reason': str(reason or '')}
 
 
 CITY_NEWS_WINDOW_S = 24 * 60 * 60
@@ -4326,6 +4359,26 @@ SHOP_ROB_GUARDS = {
     "garage": 4, "bar": 4, "club": 5, "warehouse": 6,
     "casino": 8, "port": 10,
 }
+SHOP_ROB_INTERIOR_WIDTHS = {
+    "coffee": 16, "carwash": 18, "barbershop": 18, "pizza": 19,
+    "garage": 21, "bar": 21, "club": 23, "warehouse": 25,
+    "casino": 28, "port": 30,
+}
+
+
+def business_robber_at_cashier(player: dict, biz_id: str) -> bool:
+    """Server-side proximity check in the business interior, not at its world POI."""
+    if not player or str(player.get('_business_interior') or '') != str(biz_id):
+        return False
+    width = SHOP_ROB_INTERIOR_WIDTHS.get(str(biz_id))
+    if not width:
+        return False
+    try:
+        dx = float(player.get('_interior_x') or 0) - width / 2
+        dy = float(player.get('_interior_y') or 0) - 2.9
+    except (TypeError, ValueError):
+        return False
+    return dx * dx + dy * dy <= 16.0
 
 # Бригадир — NPC в городе, выдаёт хит-контракты на мирных NPC.
 # Стоит на тайле (43, 34) — рядом с баром. Лимит 3 контракта / 24ч,
@@ -12314,7 +12367,9 @@ class WorldSim:
         'aggro', 'aggro_covers', 'aggro_capturing_at', '_next_bot_id',
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
+        '_city_gang_encounters',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
+        '_business_npc_occupations', '_business_npc_capture_cooldown',
         '_business_closed_until', '_business_aggro_until', '_business_police_protected_until',
         '_business_owner_protected_until', '_business_rob_sessions',
         # Очередь физических пуль ботов (dodge-механика).
@@ -12658,7 +12713,7 @@ class WorldSim:
     BOX_REWARD_MIN      = 220
     BOX_REWARD_MAX      = 480
     BOX_PICKUP_R        = 2.0        # радиус подбора коробки в порту
-    BOX_DROPOFF_R       = 3.5        # радиус сдачи у здания (большие POI)
+    BOX_GROUND_TTL_S    = 5 * 60
     # Штраф-кулдаун за провал доставки (копы/взрыв) — 10 минут пока
     # Майкл не возьмёт нового. Лимит на сутки при этом тоже расходуется.
     BOX_FAIL_CD_S       = 10 * 60
@@ -12666,12 +12721,19 @@ class WorldSim:
     # Сухая площадка контейнерного терминала у выезда с пирса.
     BOX_PICKUP_X        = 40.0
     BOX_PICKUP_Y        = 166.0
-    # Точки доставки — три POI на карте: Порт, Казино, Рынок. Это
-    # настоящие здания (drawPortBuilding/drawCasinoBuilding/drawMarketBuilding
-    # в world.html), а не «выдуманные адреса». Координаты совпадают с POI.
+    # Точки доставки — реальные городские бизнесы. Идентификатор нужен,
+    # чтобы коробку принимал управляющий именно внутри назначенного здания.
     BOX_DROPOFFS = [
-        ('Пиццерия',       53.0, 53.0),
-        ('Подпольный клуб',53.0, 63.0),
+        ('coffee',     'Кофейня',             13.0, 33.0),
+        ('carwash',    'Автомойка',           25.0, 23.0),
+        ('barbershop', 'Парикмахерская',      23.0, 53.0),
+        ('pizza',      'Пиццерия',            53.0, 53.0),
+        ('garage',     'Автосервис',          63.0, 13.0),
+        ('bar',        'Бар «Чёрная вдова»',  33.0, 43.0),
+        ('club',       'Подпольный клуб',     53.0, 63.0),
+        ('warehouse',  'Склад',               23.0, 73.0),
+        ('casino',     'Казино',              45.0, 13.0),
+        ('port',       'Порт',                 31.0, 181.0),
     ]
     AGGRO_BOT_HP        = 90
     AGGRO_BOT_DMG       = 7         # было 8 — чуть мягче
@@ -12770,7 +12832,7 @@ class WorldSim:
         'downtown':   {'name': 'Даунтаун',  'boss_name': 'Винсент Крысолов', 'icon': '🏙', 'bounds': (0,39,40,79), 'hq': (20.0, 60.0), 'intel': (11.0, 60.0), 'sabotage': ((15.0, 49.0), (19.0, 70.0), (30.0, 58.0)), 'escape': (35.0, 60.0), 'income': 600, 'color': '#e0b94a'},
         'southside':  {'name': 'Саутсайд',  'boss_name': 'Тони Кувалда', 'icon': '🎰', 'bounds': (40,99,0,39), 'hq': (70.0, 20.0), 'intel': (53.0, 20.0), 'sabotage': ((60.0, 10.0), (72.0, 30.0), (83.0, 18.0)), 'escape': (95.0, 20.0), 'income': 500, 'color': '#9b59b6'},
         'industrial': {'name': 'Промзона',  'boss_name': 'Борис Шлак', 'icon': '🏭', 'bounds': (40,99,40,79), 'hq': (70.0, 60.0), 'intel': (53.0, 60.0), 'sabotage': ((60.0, 49.0), (72.0, 70.0), (83.0, 58.0)), 'escape': (95.0, 60.0), 'income': 550, 'color': '#d2691e'},
-        'coast':      {'name': 'Побережье', 'boss_name': 'Капитан Риццо', 'icon': '⚓', 'bounds': (150,199,0,79), 'hq': (156.0, 40.0), 'intel': (165.0, 40.0), 'sabotage': ((154.0, 18.0), (158.0, 65.0), (178.0, 40.0)), 'escape': (196.0, 40.0), 'income': 450, 'color': '#2ecc71'},
+        'coast':      {'name': 'Побережье', 'boss_name': 'Капитан Риццо', 'icon': '⚓', 'bounds': (150,199,0,79), 'hq': (156.0, 40.0), 'intel': (165.0, 40.0), 'sabotage': ((157.0, 14.0), (158.0, 65.0), (178.0, 40.0)), 'escape': (196.0, 40.0), 'income': 450, 'color': '#2ecc71'},
     }
 
     def __init__(self):
@@ -13011,6 +13073,8 @@ class WorldSim:
         # при disconnect наручники немедленно снимаются.
         p = self.players.get(uid)
         if p:
+            if (self.box_quests.get(str(uid)) or {}).get('state') in ('carrying', 'loaded'):
+                self._drop_box_to_ground(str(uid), p, 'disconnect')
             downed_uid = str(p.get('_police_downed_target') or '')
             if downed_uid:
                 self._clear_police_downed(downed_uid)
@@ -13636,7 +13700,11 @@ class WorldSim:
                     # Наёмник обязан находиться рядом с хозяином. Это не даёт
                     # подделать выстрел банды с другого края карты.
                     if (gx - nx) ** 2 + (gy - ny) ** 2 <= 6.0 ** 2:
-                        companions.append({'x': gx, 'y': gy})
+                        companions.append({
+                            'x': gx, 'y': gy,
+                            'level': max(1, min(25, int(member.get('lvl') or 1))),
+                            'key': str(member.get('key') or '')[:32],
+                        })
             p['_gang_companions'] = companions
         p['last_seen'] = now
 
@@ -15891,6 +15959,10 @@ class WorldSim:
                     })
             # 1) AI для каждого бота
             for bot in alive_bots:
+                if self._tick_bandit_fire_flee(
+                        bot, dt,
+                        lambda nx, ny: abs(nx - cx) <= rad and abs(ny - cy) <= rad):
+                    continue
                 # Цель — только игрок, который уже нанёс реальный урон банде.
                 if not hostile_players:
                     target = None
@@ -16050,13 +16122,18 @@ class WorldSim:
         return pkts
 
     def hire_city_gang_bot(self, uid: str, bot_id: str) -> dict:
-        """Убирает нанятого бойца из обычной городской банды."""
+        """Убирает нанятого бойца из уличной банды или рейда на бизнес."""
         player = self.players.get(str(uid))
         if player and (player.get('_police') or not player.get('_mafia')):
             return {'kind':'gang_hire_reply','ok':False,'reason':'police_service','bot_id':bot_id}
         if not player or player.get('dead'):
             return {'kind':'gang_hire_reply','ok':False,'reason':'unavailable','bot_id':bot_id}
-        for gang in self.city_gangs:
+        # Рейдеры бизнеса приходят через тот же клиентский aggro-контур, но
+        # хранятся отдельно от бродячих city_gangs. Найм обязан авторитетно
+        # удалить бойца именно из его исходной группы.
+        groups = [(gang, False) for gang in self.city_gangs]
+        groups.extend((nest, True) for nest in self.gang_nests)
+        for gang, is_business_raid in groups:
             for bot in gang.get('bots') or []:
                 if str(bot.get('id')) != str(bot_id) or not bot.get('alive'):
                     continue
@@ -16072,11 +16149,108 @@ class WorldSim:
                     return {'kind':'gang_hire_reply','ok':False,'reason':'mafia_level','bot_id':bot_id}
                 bot['hp'] = 0; bot['alive'] = False; bot['hired_by'] = str(uid)
                 did = str(gang.get('district_did') or '')
+                business_id = (
+                    str(gang.get('business_id') or '') if is_business_raid else '')
+                business_cleared = bool(
+                    business_id
+                    and not any(member.get('alive') for member in gang.get('bots') or []))
+                cooldown_until = 0
+                if business_cleared:
+                    # Найм — такой же окончательный вывод захватчика из вражеской
+                    # группы, как убийство. Освобождаем бизнес сразу, не оставляя
+                    # красный статус до следующего общего тика симуляции.
+                    cooldown_until = int(time.time() + NPC_BUSINESS_CAPTURE_COOLDOWN)
+                    self._business_npc_occupations.pop(business_id, None)
+                    self._business_npc_capture_cooldown[business_id] = cooldown_until
                 return {'kind':'gang_hire_reply','ok':True,'bot_id':str(bot_id),
-                        'is_boss':is_boss,'level':bot_level,'did':did}
+                        'is_boss':is_boss,'level':bot_level,'did':did,
+                        'business_id':business_id,
+                        'business_cleared':business_cleared,
+                        'cooldown_until':cooldown_until}
         return {'kind':'gang_hire_reply','ok':False,'reason':'gone','bot_id':bot_id}
 
-    def aggro_shoot_bot(self, uid: str, bot_id: str, weapon: str = '') -> dict | None:
+    def _ignite_bandit(self, bot: dict, source_x: float, source_y: float) -> None:
+        """Marks a bandit as burning and gives it a stable escape target.
+
+        Repeated fire-pool ticks extend the burn but do not roll a new target,
+        otherwise a frightened NPC jitters in place instead of leaving fire.
+        """
+        import math as _m
+        now = time.time()
+        if now >= float(bot.get('_fire_flee_until') or 0):
+            dx = float(bot.get('x') or 0) - float(source_x)
+            dy = float(bot.get('y') or 0) - float(source_y)
+            if _m.hypot(dx, dy) < 0.08:
+                angle = (sum(ord(ch) for ch in str(bot.get('id') or '')) % 360) * _m.pi / 180.0
+            else:
+                angle = _m.atan2(dy, dx)
+            # A per-bot fan prevents a packed group from fleeing as one blob.
+            jitter = (((sum(ord(ch) for ch in str(bot.get('id') or '')) % 9) - 4) * 0.13)
+            angle += jitter
+            distance = 6.5 + (sum(ord(ch) for ch in str(bot.get('id') or '')) % 4)
+            bot['_fire_flee_x'] = max(1.5, min(WORLD_MAP_COLS - 1.5,
+                                                float(bot.get('x') or 0) + _m.cos(angle) * distance))
+            bot['_fire_flee_y'] = max(1.5, min(WORLD_MAP_ROWS - 1.5,
+                                                float(bot.get('y') or 0) + _m.sin(angle) * distance))
+        bot['_burn_until'] = max(float(bot.get('_burn_until') or 0), now + 4.8)
+        bot['_fire_flee_until'] = max(float(bot.get('_fire_flee_until') or 0), now + 3.8)
+        bot['act'] = 'walk'
+        bot['_act'] = 'walk'
+        bot['_moving'] = True
+        bot['threat'] = 'Горю! Врассыпную!'
+        bot['_threat_until'] = now + 1.8
+
+    def _tick_bandit_fire_flee(self, bot: dict, dt: float, validator=None) -> bool:
+        """Moves a burning bandit away from its cached fire escape target."""
+        import math as _m
+        now = time.time()
+        if now >= float(bot.get('_fire_flee_until') or 0):
+            return False
+        tx = float(bot.get('_fire_flee_x', bot.get('x', 0)))
+        ty = float(bot.get('_fire_flee_y', bot.get('y', 0)))
+        dx, dy = tx - float(bot.get('x') or 0), ty - float(bot.get('y') or 0)
+        dist = _m.hypot(dx, dy)
+        if dist < 0.18:
+            bot['_fire_flee_until'] = now
+            return False
+        step = min(dist, 3.6 * max(0.0, dt))
+        direct = _m.atan2(dy, dx)
+        moved = False
+        for turn in (0.0, .38, -.38, .76, -.76, 1.14, -1.14, 1.52, -1.52):
+            ang = direct + turn
+            nx = float(bot.get('x') or 0) + _m.cos(ang) * step
+            ny = float(bot.get('y') or 0) + _m.sin(ang) * step
+            if validator is not None and not validator(nx, ny):
+                continue
+            if _world_is_wall(int(ny), int(nx)):
+                continue
+            bot['x'], bot['y'], bot['ang'] = nx, ny, ang
+            moved = True
+            break
+        bot['act'] = 'walk' if moved else 'idle'
+        bot['_act'] = bot['act']
+        bot['_moving'] = moved
+        return True
+
+    @staticmethod
+    def _safe_fire_origin(shooter: dict, bot: dict, fire_x, fire_y) -> tuple[float, float]:
+        """Accepts a client fire centre only when it is near thrower and victim."""
+        import math as _m
+        sx, sy = float(shooter.get('x') or 0), float(shooter.get('y') or 0)
+        try:
+            fx, fy = float(fire_x), float(fire_y)
+        except (TypeError, ValueError):
+            return sx, sy
+        if not (_m.isfinite(fx) and _m.isfinite(fy)):
+            return sx, sy
+        if _m.hypot(fx - sx, fy - sy) > 7.5:
+            return sx, sy
+        if _m.hypot(fx - float(bot.get('x') or 0), fy - float(bot.get('y') or 0)) > 5.0:
+            return sx, sy
+        return fx, fy
+
+    def aggro_shoot_bot(self, uid: str, bot_id: str, weapon: str = '',
+                        fire_x=None, fire_y=None) -> dict | None:
         """Игрок стреляет в банда-бота. Из-за зоны хиты не наносятся."""
         shooter = self.players.get(uid)
         if not shooter or shooter.get('dead'):
@@ -16108,6 +16282,9 @@ class WorldSim:
                     return None
                 dmg = max(1, min(220, self._weapon_damage(weapon, d_sq ** 0.5, profile)))
                 bot['hp'] -= dmg
+                if weapon == 'molotov_fire' and bot['hp'] > 0:
+                    fx, fy = self._safe_fire_origin(shooter, bot, fire_x, fire_y)
+                    self._ignite_bandit(bot, fx, fy)
                 # Все участники боя — попадают в combat-команду района
                 st['in_combat_uids'].add(str(uid))
                 # Только подтверждённое попадание разрешает всей группе
@@ -16141,12 +16318,13 @@ class WorldSim:
                     'cleared':     cleared,
                     'respawn_s':   int(self.AGGRO_RESPAWN_S) if cleared else 0,
                     'is_boss':     (bot.get('kind') == 'aggro_boss'),
+                    'target_level': max(1, min(25, int(bot.get('level') or 1))),
                 }
         # Не нашли в обычных aggro-зонах — пробуем городскую банду, потом гнездо.
-        r = self.city_gang_shoot_bot(uid, bot_id, weapon)
+        r = self.city_gang_shoot_bot(uid, bot_id, weapon, fire_x=fire_x, fire_y=fire_y)
         if r is not None:
             return r
-        return self.gang_nest_shoot_bot(uid, bot_id, weapon)
+        return self.gang_nest_shoot_bot(uid, bot_id, weapon, fire_x=fire_x, fire_y=fire_y)
 
     # ── Бродячие городские банды ────────────────────────────────────
     # Threat-фразы — когда игрок подошёл слишком близко
@@ -16276,6 +16454,14 @@ class WorldSim:
             alive_bots = [b for b in g['bots'] if b['alive']]
             if not alive_bots:
                 continue
+            fire_flee_ids = set()
+            for bot in alive_bots:
+                district_id = g.get('district_did')
+                validator = ((lambda nx, ny, did=district_id:
+                              _district_patrol_ok(did, nx, ny))
+                             if district_id else None)
+                if self._tick_bandit_fire_flee(bot, dt, validator):
+                    fire_flee_ids.add(str(bot['id']))
             # Сброс hostile если время вышло И никто не атакует
             if g['state'] == 'hostile' and now > g['_hostile_until']:
                 g['state'] = 'patrol'
@@ -16405,6 +16591,8 @@ class WorldSim:
                 # Группа выглядит живой: один пьёт, второй рисует, третий
                 # пристаёт к прохожим.
                 for bot in alive_bots:
+                    if str(bot['id']) in fire_flee_ids:
+                        continue
                     if g.get('district_did'):
                         bot['_act'] = 'walk'
                         bot['_act_until'] = now + 60.0
@@ -16500,6 +16688,8 @@ class WorldSim:
                             break
                 wx, wy = g['_patrol_wp']
                 for bot_i, bot in enumerate(alive_bots):
+                    if str(bot['id']) in fire_flee_ids:
+                        continue
                     # Боты не в режиме 'walk' стоят на месте (пьют/тегят/
                     # пристают к NPC — клиент рисует визуал).
                     if bot.get('_act') != 'walk':
@@ -16556,7 +16746,7 @@ class WorldSim:
                     continue
                 tx, ty = target['x'], target['y']
                 for bot in alive_bots:
-                    if str(bot['id']) in evading_c4_ids:
+                    if str(bot['id']) in evading_c4_ids or str(bot['id']) in fire_flee_ids:
                         continue
                     dx2 = tx - bot['x']; dy2 = ty - bot['y']
                     dist = _m.hypot(dx2, dy2) + 1e-6
@@ -16623,7 +16813,8 @@ class WorldSim:
             cop['target_gang_id'] = g['id']
 
     def city_gang_shoot_bot(self, uid: str, bot_id: str,
-                            weapon: str = '', gang_member: int | None = None) -> dict | None:
+                            weapon: str = '', gang_member: int | None = None,
+                            fire_x=None, fire_y=None) -> dict | None:
         """Игрок стреляет в бойца городской банды. Любое попадание делает
         банду hostile. Wanted у игрока растёт (стрельба в открытом мире)."""
         shooter = self.players.get(uid)
@@ -16663,9 +16854,14 @@ class WorldSim:
                     return None
                 if not _world_los(shot_x, shot_y, bot['x'], bot['y']):
                     return None
-                dmg = (random.randint(10, 18) if companion_shot else
+                dmg = (round(random.randint(10, 18) * (
+                           1.0 + (int(origin.get('level') or 1) - 1) * 0.03))
+                       if companion_shot else
                        max(1, min(220, self._weapon_damage(weapon, d_sq ** 0.5, profile))))
                 bot['hp'] -= dmg
+                if weapon == 'molotov_fire' and bot['hp'] > 0 and not companion_shot:
+                    fx, fy = self._safe_fire_origin(shooter, bot, fire_x, fire_y)
+                    self._ignite_bandit(bot, fx, fy)
                 # Hostile — вся группа разворачивается на стрелка
                 g['state']          = 'hostile'
                 g['_hostile_until'] = time.time() + self.CITY_GANG_HOSTILE_S
@@ -16703,6 +16899,8 @@ class WorldSim:
                     'district_boss': is_district_boss,
                     'did':         g.get('district_did'),
                     'gang_member': gang_member if companion_shot else None,
+                    'gang_member_key': origin.get('key') if companion_shot else None,
+                    'target_level': max(1, min(25, int(bot.get('level') or 1))),
                 }
         return None
 
@@ -16782,12 +16980,15 @@ class WorldSim:
             else:
                 continue
             self._next_bot_id += 1
+            bot_level = random.randint(1, 18)
+            bot_hp = self._bandit_hp(self.AGGRO_BOT_HP, bot_level)
             bots.append({
                 'id':       f'cgbot{self._next_bot_id}',
                 'x':        float(bx), 'y': float(by),
                 'ang':      0.0,
-                'hp':       int(self.AGGRO_BOT_HP),
-                'max_hp':   int(self.AGGRO_BOT_HP),
+                'hp':       bot_hp,
+                'max_hp':   bot_hp,
+                'level':    bot_level,
                 'alive':    True,
                 'kind':     'aggro_grunt',
                 'weapon':   self._pick_aggro_weapon(),
@@ -16867,6 +17068,8 @@ class WorldSim:
         for ne in self.gang_nests:
             alive_bots = [b for b in ne['bots'] if b['alive']]
             if not alive_bots:
+                business_id = str(ne.get('business_id') or '')
+                cooldown_until = int(now + NPC_BUSINESS_CAPTURE_COOLDOWN) if business_id else 0
                 if not ne.get('_cleared'):
                     ne['_cleared'] = True
                     pkts.append({
@@ -16875,27 +17078,37 @@ class WorldSim:
                         'cash':       int(self.NEST_CLEAR_CASH),
                         'exp':        int(self.NEST_CLEAR_EXP),
                         'bonus_uids': sorted(ne.get('_combat_uids') or set()),
+                        'business_id': business_id,
+                        'cooldown_until': cooldown_until,
                     })
-                business_id = ne.get('business_id')
                 if business_id:
-                    self._business_npc_occupations.pop(str(business_id), None)
-                    self._business_npc_capture_cooldown[str(business_id)] = (
-                        now + NPC_BUSINESS_CAPTURE_COOLDOWN)
+                    self._business_npc_occupations.pop(business_id, None)
+                    self._business_npc_capture_cooldown[business_id] = cooldown_until
                 continue
             if now > ne['_expires_at']:
-                business_id = ne.get('business_id')
+                business_id = str(ne.get('business_id') or '')
+                cooldown_until = int(now + NPC_BUSINESS_CAPTURE_COOLDOWN) if business_id else 0
                 if business_id:
-                    self._business_npc_occupations.pop(str(business_id), None)
-                    self._business_npc_capture_cooldown[str(business_id)] = (
-                        now + NPC_BUSINESS_CAPTURE_COOLDOWN)
-                pkts.append({'kind': 'gang_nest_expired', 'id': ne['id']})
+                    self._business_npc_occupations.pop(business_id, None)
+                    self._business_npc_capture_cooldown[business_id] = cooldown_until
+                pkts.append({'kind': 'gang_nest_expired', 'id': ne['id'],
+                             'business_id': business_id,
+                             'cooldown_until': cooldown_until})
                 continue
             surviving.append(ne)
         self.gang_nests = surviving
         # AI каждого гнезда
         for ne in self.gang_nests:
             alive_bots = [b for b in ne['bots'] if b['alive']]
+            for bot in alive_bots:
+                bot['_moving'] = False
             ar, ac = ne['anchor_r'], ne['anchor_c']
+            fire_flee_ids = set()
+            for bot in alive_bots:
+                if self._tick_bandit_fire_flee(
+                        bot, dt,
+                        lambda nx, ny: _m.hypot(nx - ac, ny - ar) <= self.NEST_GUARD_R + 5.0):
+                    fire_flee_ids.add(str(bot['id']))
             alive_guards = [g for g in ne.get('defenders', []) if g.get('alive')]
             # Business security and the raiding gang exchange server-authoritative fire.
             if alive_bots and alive_guards:
@@ -16936,6 +17149,8 @@ class WorldSim:
             if ne['state'] == 'guard':
                 # Идём обратно к anchor если отошли
                 for bot in alive_bots:
+                    if str(bot['id']) in fire_flee_ids:
+                        continue
                     dx = ac - bot['x']; dy = ar - bot['y']
                     dist = _m.hypot(dx, dy)
                     if dist > self.NEST_GUARD_R:
@@ -16945,6 +17160,7 @@ class WorldSim:
                         if not _world_is_wall(int(ny), int(nx)):
                             bot['x'] = nx; bot['y'] = ny
                             bot['ang'] = _m.atan2(dy, dx)
+                            bot['_moving'] = True
             else:
                 # HOSTILE — стреляем по target_uid (как обычная городская)
                 target = self.players.get(ne['_target_uid']) if ne['_target_uid'] else None
@@ -16958,6 +17174,8 @@ class WorldSim:
                     continue
                 tx, ty = target['x'], target['y']
                 for bot in alive_bots:
+                    if str(bot['id']) in fire_flee_ids:
+                        continue
                     dx = tx - bot['x']; dy = ty - bot['y']
                     dist = _m.hypot(dx, dy) + 1e-6
                     bot['ang'] = _m.atan2(dy, dx)
@@ -16969,6 +17187,7 @@ class WorldSim:
                         ny = bot['y'] + (dy/dist) * step
                         if not _world_is_wall(int(ny), int(nx)):
                             bot['x'] = nx; bot['y'] = ny
+                            bot['_moving'] = True
                     weapon = bot.get('weapon') or 'pistol_heavy'
                     w_stats = self.AGGRO_WEAPON_STATS.get(
                         weapon, self.AGGRO_WEAPON_STATS['pistol'])
@@ -17160,7 +17379,7 @@ class WorldSim:
         dx = p['x'] - self.MICHAEL_X; dy = p['y'] - self.MICHAEL_Y
         if (dx*dx + dy*dy) > 3.0 * 3.0:
             return {'ok': False, 'reason': 'too_far'}
-        addr_name, dx2, dy2 = random.choice(self.BOX_DROPOFFS)
+        business_id, addr_name, dx2, dy2 = random.choice(self.BOX_DROPOFFS)
         reward = random.randint(self.BOX_REWARD_MIN, self.BOX_REWARD_MAX)
         quest = {
             'uid':        str(uid),
@@ -17168,6 +17387,7 @@ class WorldSim:
             'pickup_y':   self.BOX_PICKUP_Y,
             'dropoff_x':  float(dx2),
             'dropoff_y':  float(dy2),
+            'business_id': business_id,
             'addr':       addr_name,
             'reward':     int(reward),
             'state':      'pending',
@@ -17178,16 +17398,109 @@ class WorldSim:
         return {'ok': True,
                 'pickup_x':  quest['pickup_x'], 'pickup_y':  quest['pickup_y'],
                 'dropoff_x': quest['dropoff_x'], 'dropoff_y': quest['dropoff_y'],
+                'business_id': quest['business_id'],
                 'addr':      quest['addr'],
                 'reward':    quest['reward']}
 
-    def box_pickup(self, uid: str) -> dict:
-        """Игрок подошёл к pickup и взял коробку — переходим в carrying."""
+    def _drop_box_to_ground(self, uid: str, p: dict | None = None,
+                            reason: str = 'manual') -> dict:
+        """Leave the owner's mission box as a physical, owner-only object."""
+        uid = str(uid)
+        p = p or self.players.get(uid)
+        q = self.box_quests.get(uid)
+        if not p or not q or q.get('state') not in ('carrying', 'loaded'):
+            return {'ok': False, 'reason': 'wrong_state'}
+        business_id = str(p.get('_business_interior') or '')
+        if business_id:
+            gx = float(p.get('_interior_x') or 0)
+            gy = float(p.get('_interior_y') or 0)
+            space = 'business'
+        else:
+            gx = float(p.get('x') or 0)
+            gy = float(p.get('y') or 0)
+            space = 'world'
+        now = time.time()
+        q.update({
+            'state': 'ground',
+            'ground_x': gx,
+            'ground_y': gy,
+            'ground_space': space,
+            'ground_business_id': business_id,
+            'ground_dropped_at': now,
+            'ground_expires_at': now + self.BOX_GROUND_TTL_S,
+            'ground_reason': str(reason or 'manual')[:24],
+        })
+        q.pop('car_id', None)
+        return {
+            'ok': True, 'state': 'ground', 'owner_uid': uid,
+            'ground_x': gx, 'ground_y': gy, 'ground_space': space,
+            'ground_business_id': business_id,
+            'expires_in': int(self.BOX_GROUND_TTL_S),
+            'reason': str(reason or 'manual')[:24],
+        }
+
+    def box_drop(self, uid: str) -> dict:
+        return self._drop_box_to_ground(str(uid), reason='manual')
+
+    def tick_box_quests(self) -> list[dict]:
+        """Drop carried boxes on death and remove abandoned boxes after 5 min."""
+        now = time.time()
+        events = []
+        for owner_uid, q in list(self.box_quests.items()):
+            p = self.players.get(str(owner_uid))
+            if q.get('state') in ('carrying', 'loaded') and p and p.get('dead'):
+                rep = self._drop_box_to_ground(str(owner_uid), p, 'death')
+                if rep.get('ok'):
+                    events.append(dict(rep, kind='box_dropped'))
+            elif (q.get('state') == 'ground' and
+                  now >= float(q.get('ground_expires_at') or 0)):
+                self.box_quests.pop(str(owner_uid), None)
+                if p:
+                    p['_box_fail_until'] = now + self.BOX_FAIL_CD_S
+                events.append({
+                    'kind': 'box_expired', 'owner_uid': str(owner_uid),
+                    'reason': 'timeout',
+                })
+        return events
+
+    def box_pickup(self, uid: str, owner_uid: str = '') -> dict:
+        """Pick up the pier box or the owner's previously dropped box."""
         p = self.players.get(uid)
-        q = self.box_quests.get(str(uid))
+        owner_uid = str(owner_uid or uid)
+        q = self.box_quests.get(owner_uid)
         if not p or not q:
             return {'ok': False, 'reason': 'no_quest'}
-        if q['state'] != 'pending':
+        if q.get('state') == 'ground':
+            same_business = (
+                str(q.get('ground_space') or 'world') == 'business' and
+                str(p.get('_business_interior') or '') ==
+                str(q.get('ground_business_id') or '')
+            )
+            same_world = (
+                str(q.get('ground_space') or 'world') == 'world' and
+                not p.get('_business_interior')
+            )
+            px = float(p.get('_interior_x') or 0) if same_business else float(p.get('x') or 0)
+            py = float(p.get('_interior_y') or 0) if same_business else float(p.get('y') or 0)
+            if not (same_business or same_world):
+                return {'ok': False, 'reason': 'too_far'}
+            if ((px - float(q.get('ground_x') or 0)) ** 2 +
+                    (py - float(q.get('ground_y') or 0)) ** 2 >
+                    self.BOX_PICKUP_R ** 2):
+                return {'ok': False, 'reason': 'too_far'}
+            if owner_uid != str(uid):
+                return {'ok': False, 'reason': 'foreign_box',
+                        'owner_uid': owner_uid}
+            q['state'] = 'carrying'
+            for key in ('ground_x', 'ground_y', 'ground_space',
+                        'ground_business_id', 'ground_dropped_at',
+                        'ground_expires_at', 'ground_reason'):
+                q.pop(key, None)
+            return {'ok': True, 'state': 'carrying', 'source': 'ground'}
+        if owner_uid != str(uid):
+            return {'ok': False, 'reason': 'foreign_box',
+                    'owner_uid': owner_uid}
+        if q.get('state') != 'pending':
             return {'ok': False, 'reason': 'wrong_state'}
         dx = p['x'] - q['pickup_x']; dy = p['y'] - q['pickup_y']
         if (dx*dx + dy*dy) > self.BOX_PICKUP_R * self.BOX_PICKUP_R:
@@ -17210,7 +17523,7 @@ class WorldSim:
         return {'ok': True, 'state': 'loaded', 'car_id': car_id}
 
     def box_unload(self, uid: str, car_id: str) -> dict:
-        """Take the mission box back out of the same vehicle trunk."""
+        """Unload the box from a trunk onto the ground beside the player."""
         q = self.box_quests.get(str(uid))
         if not q:
             return {'ok': False, 'reason': 'no_quest'}
@@ -17218,21 +17531,23 @@ class WorldSim:
             return {'ok': False, 'reason': 'wrong_state'}
         if str(q.get('car_id') or '') != str(car_id or ''):
             return {'ok': False, 'reason': 'wrong_car'}
-        q['state'] = 'carrying'
-        q.pop('car_id', None)
-        return {'ok': True, 'state': 'carrying'}
+        return self._drop_box_to_ground(str(uid), reason='unload')
 
     async def box_deliver(self, uid: str) -> dict:
-        """Игрок подошёл к dropoff и сдал коробку — начисляем cash."""
+        """Игрок передал коробку управляющему внутри назначенного бизнеса."""
         p = self.players.get(uid)
         q = self.box_quests.get(str(uid))
         if not p or not q:
             return {'ok': False, 'reason': 'no_quest'}
         if q['state'] != 'carrying':
             return {'ok': False, 'reason': 'wrong_state'}
-        dx = p['x'] - q['dropoff_x']; dy = p['y'] - q['dropoff_y']
-        if (dx*dx + dy*dy) > self.BOX_DROPOFF_R * self.BOX_DROPOFF_R:
-            return {'ok': False, 'reason': 'too_far'}
+        business_id = str(q.get('business_id') or '')
+        if str(p.get('_business_interior') or '') != business_id:
+            return {'ok': False, 'reason': 'wrong_business',
+                    'business_id': business_id, 'addr': q.get('addr')}
+        if not business_robber_at_cashier(p, business_id):
+            return {'ok': False, 'reason': 'too_far_npc',
+                    'business_id': business_id, 'addr': q.get('addr')}
         reward = int(q.get('reward') or 0)
         try:
             async with aiosqlite.connect(DB_PATH) as db:
@@ -17279,10 +17594,22 @@ class WorldSim:
             active = {
                 'pickup_x':  q['pickup_x'], 'pickup_y':  q['pickup_y'],
                 'dropoff_x': q['dropoff_x'], 'dropoff_y': q['dropoff_y'],
+                'business_id': q.get('business_id'),
                 'addr':      q['addr'],
                 'reward':    int(q['reward']),
                 'state':     q['state'],
             }
+            if q.get('state') == 'loaded':
+                active['car_id'] = q.get('car_id')
+            if q.get('state') == 'ground':
+                active.update({
+                    'ground_x': q.get('ground_x'),
+                    'ground_y': q.get('ground_y'),
+                    'ground_space': q.get('ground_space'),
+                    'ground_business_id': q.get('ground_business_id'),
+                    'expires_in': max(0, int(
+                        float(q.get('ground_expires_at') or now) - now)),
+                })
         fail_until = float(p.get('_box_fail_until') or 0.0)
         fail_cd_s  = int(max(0, fail_until - now))
         return {
@@ -17475,7 +17802,7 @@ class WorldSim:
         }
 
     def gang_nest_shoot_bot(self, uid: str, bot_id: str,
-                             weapon: str = '') -> dict | None:
+                             weapon: str = '', fire_x=None, fire_y=None) -> dict | None:
         """Стрельба игрока по бойцу гнезда."""
         shooter = self.players.get(uid)
         if not shooter or shooter.get('dead'):
@@ -17498,6 +17825,9 @@ class WorldSim:
                     return None
                 dmg = max(1, min(220, self._weapon_damage(weapon, d_sq ** 0.5, profile)))
                 bot['hp'] -= dmg
+                if weapon == 'molotov_fire' and bot['hp'] > 0:
+                    fx, fy = self._safe_fire_origin(shooter, bot, fire_x, fire_y)
+                    self._ignite_bandit(bot, fx, fy)
                 ne['state']          = 'hostile'
                 ne['_hostile_until'] = time.time() + 60.0
                 ne['_target_uid']    = str(uid)
@@ -17522,6 +17852,7 @@ class WorldSim:
                     'crit':        bool(profile.get('_crit')),
                     'killed':      killed,
                     'is_boss':     False,
+                    'target_level': max(1, min(25, int(bot.get('level') or 1))),
                     'is_nest':     True,    # маркер для WS-loop (награда за грунта)
                 }
         return None
@@ -17696,7 +18027,8 @@ class WorldSim:
         if gid:
             self.city_gangs = [g for g in self.city_gangs if g.get('id') != gid]
 
-    def _district_boss_is_alive(self, op: dict) -> bool:
+    def _district_boss_bot(self, op: dict) -> dict | None:
+        """Return the tracked boss even after death so its drop position is retained."""
         boss_id = str(op.get('boss_id') or '')
         gid = str(op.get('boss_gid') or '')
         for gang in self.city_gangs:
@@ -17704,8 +18036,12 @@ class WorldSim:
                 continue
             for bot in gang.get('bots') or []:
                 if str(bot.get('id') or '') == boss_id:
-                    return bool(bot.get('alive'))
-        return False
+                    return bot
+        return None
+
+    def _district_boss_is_alive(self, op: dict) -> bool:
+        bot = self._district_boss_bot(op)
+        return bool(bot and bot.get('alive') and int(bot.get('hp') or 0) > 0)
 
     def _drop_district_dossier(self, did: str, op: dict, x: float, y: float, now: float) -> str:
         """Boss death creates the physical dossier that starts the operation."""
@@ -17746,6 +18082,15 @@ class WorldSim:
             dossier_exists = any(
                 q.get('kind') == 'dossier' and str(q.get('did') or '') == str(did)
                 for q in self.district_loot.values())
+            boss = self._district_boss_bot(op)
+            # Death can come from bullets, companions, C4 or a periodic fire tick.
+            # Reconcile the authoritative state here so no damage path can skip
+            # the physical dossier drop.
+            if (not dossier_exists and boss is not None
+                    and (not boss.get('alive') or int(boss.get('hp') or 0) <= 0)):
+                self._drop_district_dossier(
+                    did, op, float(boss.get('x') or 0), float(boss.get('y') or 0), now)
+                continue
             if dossier_exists or self._district_boss_is_alive(op):
                 continue
             if now < float(op.get('respawn_at') or 0):
@@ -18477,6 +18822,7 @@ class WorldSim:
                 'owner_uid': own['owner_uid'], 'owner_name': own['owner_name'],
                 'gang_tag': own.get('gang_tag') or '', 'color': own['color'],
                 'captured_at': round(own['captured_at'], 2),
+                'last_payout_at': round(own.get('last_payout_at', own['captured_at']), 2),
                 'flag': int(o_flag or 0), 'gang_name': o_gname,
                 'income': int(dd.get('income') or 400),
                 'income_tick_s': int(self.DIST_INCOME_TICK_S),
@@ -18547,6 +18893,8 @@ class WorldSim:
                     'damage':  int(bot.get('damage') or self.AGGRO_WEAPON_STATS.get(
                                    bot.get('weapon') or 'pistol_heavy', {}).get('dmg', 0)),
                     'evading_c4': bool(bot.get('_evading_c4')),
+                    'burning': now_t < float(bot.get('_burn_until') or 0),
+                    'fleeing_fire': now_t < float(bot.get('_fire_flee_until') or 0),
                     'look':    bot.get('look') or {},
                 })
             covers_out = []
@@ -18597,6 +18945,8 @@ class WorldSim:
                     'damage':  int(bot.get('damage') or self.AGGRO_WEAPON_STATS.get(
                                    bot.get('weapon') or 'pistol_heavy', {}).get('dmg', 0)),
                     'evading_c4': bool(bot.get('_evading_c4')),
+                    'burning': now_t < float(bot.get('_burn_until') or 0),
+                    'fleeing_fire': now_t < float(bot.get('_fire_flee_until') or 0),
                     'look':    bot.get('look') or {},
                     # Текущая активность: walk/idle/drink/tag/harass —
                     # клиент рисует бутылку/баллончик/стоит спокойно.
@@ -18639,7 +18989,9 @@ class WorldSim:
                     'kind':    bot['kind'],
                     'weapon':  bot.get('weapon') or 'pistol_heavy',
                     'look':    bot.get('look') or {},
-                    'act':     'walk',   # гнездо никогда не drink/tag
+                    'act':     'walk' if bot.get('_moving') else 'idle',
+                    'burning': now_t < float(bot.get('_burn_until') or 0),
+                    'fleeing_fire': now_t < float(bot.get('_fire_flee_until') or 0),
                 })
             aggro_payload[ne['id']] = {
                 'state':         ne.get('state', 'guard'),
@@ -18722,6 +19074,33 @@ class WorldSim:
         } for bag in self.bank_bags.values()
           if ((float(bag.get('x') or 0) - mx) ** 2 +
               (float(bag.get('y') or 0) - my) ** 2) <= WORLD_VIEW_R ** 2]
+        viewer_business = str(me.get('_business_interior') or '')
+        ground_boxes_payload = []
+        for owner_uid, box in self.box_quests.items():
+            if box.get('state') != 'ground':
+                continue
+            box_business = str(box.get('ground_business_id') or '')
+            if viewer_business:
+                if box.get('ground_space') != 'business' or box_business != viewer_business:
+                    continue
+            else:
+                if box.get('ground_space') != 'world':
+                    continue
+                if ((float(box.get('ground_x') or 0) - mx) ** 2 +
+                        (float(box.get('ground_y') or 0) - my) ** 2 >
+                        WORLD_VIEW_R ** 2):
+                    continue
+            owner = self.players.get(str(owner_uid)) or {}
+            ground_boxes_payload.append({
+                'owner_uid': str(owner_uid),
+                'owner_name': owner.get('name') or 'Игрок',
+                'r': round(float(box.get('ground_y') or 0), 2),
+                'c': round(float(box.get('ground_x') or 0), 2),
+                'mine': str(owner_uid) == str(uid),
+                'expires_in': max(0, int(
+                    float(box.get('ground_expires_at') or now_t) - now_t)),
+            })
+        own_box_quest = self.box_status(str(uid)).get('active')
         return {
             't': 'snap',
             'd': {
@@ -18803,6 +19182,8 @@ class WorldSim:
                 'graffiti':        getattr(self, '_graffiti', [])[-20:],
                 'quest_cars':      quest_cars_payload,
                 'dropped_bags':    dropped_bags_payload,
+                'ground_boxes':    ground_boxes_payload,
+                'box_quest':       own_box_quest,
                 'beachgoers':      [{
                     'id':     b['id'],
                     'x':      round(b['x'], 2),
@@ -18946,6 +19327,27 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 # Бандитское гнездо в городе (мини-Логово, 4 охранника
                 # вокруг здания, появляется раз в 5 мин, живёт 10 мин).
                 nest_pkts = world.tick_gang_nests(WORLD_TICK_DT) or []
+                cooldown_events = [
+                    event for event in nest_pkts
+                    if event.get('kind') in ('gang_nest_cleared', 'gang_nest_expired')
+                    and event.get('business_id')
+                    and int(event.get('cooldown_until') or 0) > 0
+                ]
+                if cooldown_events:
+                    try:
+                        async with aiosqlite.connect(DB_PATH) as db:
+                            for cooldown_event in cooldown_events:
+                                await db.execute(
+                                    """UPDATE player_businesses
+                                       SET npc_capture_cooldown_until =
+                                           MAX(COALESCE(npc_capture_cooldown_until, 0), ?)
+                                       WHERE biz_id=?""",
+                                    (int(cooldown_event['cooldown_until']),
+                                     str(cooldown_event['business_id'])))
+                            await db.commit()
+                    except Exception as _e:
+                        logger.warning(
+                            "WorldSim: business capture cooldown persistence failed: %r", _e)
                 for guard_event in nest_pkts:
                     if guard_event.get('kind') != 'business_guard_down':
                         continue
@@ -19013,6 +19415,9 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 # Свободные C4 тикают на сервере: взрыв и смертельный радиус
                 # происходят один раз для всех клиентов, даже если хозяин вышел.
                 ev_pkts.extend(world.tick_world_c4() or [])
+                # Mission boxes become owner-only ground objects on death and
+                # disappear after five minutes if the owner does not return.
+                ev_pkts.extend(world.tick_box_quests() or [])
                 # Глобальный респаун — воскрешает жертв ЛЮБОЙ системы
                 # (event/aggro/cops/pvp). Должно идти ПОСЛЕ всех tick_*.
                 world.tick_respawn(WORLD_TICK_DT)
@@ -20111,6 +20516,12 @@ async def _coop_http_app():
             d['pending'] = _biz_pending_income(d, now)
             owned[d['biz_id']] = d
         if _WORLD is not None:
+            for bid, row in owned.items():
+                until = int(row.get('npc_capture_cooldown_until') or 0)
+                if until > now:
+                    _WORLD._business_npc_capture_cooldown[str(bid)] = max(
+                        until,
+                        int(_WORLD._business_npc_capture_cooldown.get(str(bid), 0)))
             player_state = _WORLD.players.get(str(uid))
             if player_state is not None:
                 player_state['_biz_guards'] = {
@@ -20135,6 +20546,10 @@ async def _coop_http_app():
                 entry['daily_max']     = int(round(b['daily_max'] * mult))
                 entry['upgrade_cost']  = 0 if level >= BIZ_MAX_LEVEL else business_upgrade_cost(b, level + 1)
                 entry['guards']        = int(o.get('guards') or 0)
+                entry['npc_capture_cooldown_until'] = int(
+                    o.get('npc_capture_cooldown_until') or 0)
+                entry['npc_capture_cooldown_left'] = max(
+                    0, entry['npc_capture_cooldown_until'] - now)
                 occupied = bool(_WORLD is not None and
                                 b['id'] in _WORLD._business_npc_occupations)
                 entry['npc_occupied'] = occupied
@@ -20145,6 +20560,8 @@ async def _coop_http_app():
             else:
                 entry['level'] = 0
                 entry['guards'] = 0
+                entry['npc_capture_cooldown_until'] = 0
+                entry['npc_capture_cooldown_left'] = 0
                 entry['income_multiplier'] = 1.0
                 entry['upgrade_cost'] = 0
             catalog.append(entry)
@@ -21497,11 +21914,20 @@ async def _coop_http_app():
                 async with aiosqlite.connect(DB_PATH) as db:
                     db.row_factory = aiosqlite.Row
                     async with db.execute(
-                        "SELECT biz_id FROM player_businesses WHERE telegram_id=?",
+                        """SELECT biz_id, npc_capture_cooldown_until
+                           FROM player_businesses WHERE telegram_id=?""",
                         (uid_int,)
                     ) as cur:
                         rows = await cur.fetchall()
                 p_ref['_owned_biz'] = set(r['biz_id'] for r in rows)
+                now_ts = int(time.time())
+                for row in rows:
+                    until = int(row['npc_capture_cooldown_until'] or 0)
+                    bid = str(row['biz_id'])
+                    if until > now_ts:
+                        world._business_npc_capture_cooldown[bid] = max(
+                            until,
+                            int(world._business_npc_capture_cooldown.get(bid, 0)))
             except Exception:
                 p_ref['_owned_biz'] = set()
             # Сервер принимает урон только от реально имеющегося класса
@@ -21542,6 +21968,10 @@ async def _coop_http_app():
                         continue
                     t = pkt.get('t') or pkt.get('type')
                     d = pkt.get('d') or {}
+                    if t == 'input' and d.get('client_active'):
+                        world.connections[uid] = ws
+                    if world.connections.get(uid) is not ws:
+                        continue
                     if t == 'input':
                         world.apply_input(uid, d)
                     elif t == 'chat':
@@ -21975,9 +22405,12 @@ async def _coop_http_app():
                             gang_member = None
                         if bot_id:
                             hit_pkt = (world.city_gang_shoot_bot(
-                                uid, bot_id, weapon, gang_member=gang_member)
+                                uid, bot_id, weapon, gang_member=gang_member,
+                                fire_x=d.get('fire_x'), fire_y=d.get('fire_y'))
                                 if gang_member is not None
-                                else world.aggro_shoot_bot(uid, bot_id, weapon))
+                                else world.aggro_shoot_bot(
+                                    uid, bot_id, weapon,
+                                    fire_x=d.get('fire_x'), fire_y=d.get('fire_y')))
                             if hit_pkt:
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
                                 for u2, ws2 in list(world.connections.items()):
@@ -21990,6 +22423,9 @@ async def _coop_http_app():
                                 if hit_pkt.get('killed'):
                                     is_boss = bool(hit_pkt.get('is_boss'))
                                     is_nest = bool(hit_pkt.get('is_nest'))
+                                    target_level = max(
+                                        1, min(25, int(hit_pkt.get('target_level') or
+                                                       (25 if is_boss else 1))))
                                     # Нестовые грунты — толстый награждают: $50/8exp
                                     # (vs Логово 15/8). Игрок реже на них наталкивается.
                                     if is_nest:
@@ -22014,6 +22450,10 @@ async def _coop_http_app():
                                             # контракта, его можно валить в PvP.
                                             gang_added = 0
                                             if ch:
+                                                kp_obj = world.players.get(uid)
+                                                # Основной опыт зависит от уровня бандита для
+                                                # любого игрока, включая гражданского.
+                                                exp_r = max(exp_r, 3 + target_level)
                                                 cur_g = int(ch.get('wanted_gangs') or 0)
                                                 if is_boss and cur_g < 3:
                                                     gang_added = 1
@@ -22029,7 +22469,6 @@ async def _coop_http_app():
                                                     upd['wanted_gangs'] = new_g
                                                 await update_character(killer_uid_int, **upd)
                                                 # Зеркалим in-memory для bounty-логики и HUD
-                                                kp_obj = world.players.get(uid)
                                                 if kp_obj is not None:
                                                     if gang_added:
                                                         kp_obj['_wanted_gangs'] = new_g
@@ -22044,9 +22483,20 @@ async def _coop_http_app():
                                                        'bot_id': bot_id,
                                                        'is_boss': is_boss,
                                                        'cash': cash_r, 'exp': exp_r,
+                                                       'target_level': target_level,
                                                        'gang_added': gang_added,
                                                        'gang_now': (new_g if gang_added else
                                                                     int((ch or {}).get('wanted_gangs') or 0))}
+                                                career_gain = 5 + target_level * 2
+                                                kp_obj = world.players.get(uid)
+                                                if kp_obj and kp_obj.get('_police'):
+                                                    pkt.update(await grant_police_xp(
+                                                        killer_uid_int, career_gain,
+                                                        f'Убит бандит {target_level} ур.', kp_obj))
+                                                elif kp_obj and kp_obj.get('_mafia'):
+                                                    pkt.update(await grant_mafia_xp(
+                                                        killer_uid_int, career_gain,
+                                                        f'Убит бандит {target_level} ур.', kp_obj))
                                                 try:
                                                     await kp.send_str(json.dumps(
                                                         {'t': 'event', 'd': pkt},
@@ -22207,6 +22657,43 @@ async def _coop_http_app():
                                     for u2, ws2 in list(world.connections.items()):
                                         try: await ws2.send_str(banner)
                                         except Exception: pass
+                    elif t == 'taxi_ride':
+                        taxi_cost = 50
+                        taxi_destinations = {
+                            'beach', 'blackmarket', 'gym', 'job', 'hospital',
+                            'police', 'arena', 'market', 'port', 'casino',
+                            'industrial', 'firestation', 'lair',
+                            'bank:small', 'bank:medium', 'bank:large',
+                        }
+                        destination = str(d.get('destination') or '')
+                        ok = destination in taxi_destinations
+                        new_cash = int((world.players.get(uid) or {}).get('_cash') or 0)
+                        if ok:
+                            try:
+                                async with aiosqlite.connect(DB_PATH) as _db:
+                                    cur = await _db.execute(
+                                        "UPDATE characters SET cash = cash - ? "
+                                        "WHERE telegram_id = ? AND cash >= ?",
+                                        (taxi_cost, int(uid), taxi_cost))
+                                    await _db.commit()
+                                    ok = cur.rowcount > 0
+                                    row = await (await _db.execute(
+                                        "SELECT cash FROM characters WHERE telegram_id = ?",
+                                        (int(uid),))).fetchone()
+                                    if row:
+                                        new_cash = int(row[0] or 0)
+                            except Exception:
+                                ok = False
+                        if ok and world.players.get(uid):
+                            world.players[uid]['_cash'] = new_cash
+                        try:
+                            await ws.send_str(json.dumps({'t':'event','d':{
+                                'kind':'taxi_ride_reply', 'ok':ok,
+                                'reason':'' if ok else ('destination' if destination not in taxi_destinations else 'cash'),
+                                'destination':destination, 'cash':new_cash,
+                            }}, ensure_ascii=False))
+                        except Exception:
+                            pass
                     elif t == 'fuel_buy':
                         # Заправка авто на АЗС: списываем $5. Клиент уже
                         # оптимистично обновил HUD, сервер делает реальное списание.
@@ -22316,14 +22803,8 @@ async def _coop_http_app():
                         cooldown_left = 0
                         closed_left = max(0, int(world._business_closed_until.get(biz_id, 0) - now_rob))
                         rc = BUSINESS_POIS_RC.get(biz_id)
-                        close_enough = False
+                        close_enough = business_robber_at_cashier(robber, biz_id)
                         owns_business = False
-                        if rc and robber:
-                            poi_r, poi_c = rc
-                            close_enough = (
-                                (float(robber.get('x', 0)) - poi_c) ** 2 +
-                                (float(robber.get('y', 0)) - poi_r) ** 2 <= 9.0
-                            )
                         if biz_id in SHOP_ROB_CONFIG and robber:
                             owns_business = world._biz_owned_sync(int(uid), biz_id)
                             try:
@@ -22465,10 +22946,7 @@ async def _coop_http_app():
                               max(3.0, int(session['guard_count']) * 0.75)):
                             reply = {'ok': False, 'reason': 'not_pressured'}
                         else:
-                            poi_r, poi_c = rc
-                            dx = float(p.get('x', 0)) - poi_c
-                            dy = float(p.get('y', 0)) - poi_r
-                            if dx*dx + dy*dy > 9.0:
+                            if not business_robber_at_cashier(p, biz_id):
                                 reply = {'ok': False, 'reason': 'too_far'}
                             elif await world._biz_owned_sync(int(uid), biz_id):
                                 reply = {'ok': False, 'reason': 'own'}
@@ -23437,7 +23915,8 @@ async def _coop_http_app():
                                 ensure_ascii=False))
                         except Exception: pass
                     elif t == 'box_pickup':
-                        reply = world.box_pickup(uid)
+                        reply = world.box_pickup(
+                            uid, d.get('owner_uid') if isinstance(d, dict) else '')
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(reply, kind='box_pickup_reply')},
@@ -23474,6 +23953,13 @@ async def _coop_http_app():
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(reply, kind='set_respawn_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'box_drop':
+                        reply = world.box_drop(uid)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='box_drop_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
                     elif t == 'box_load':
@@ -23521,17 +24007,17 @@ async def _coop_http_app():
                 world.connections.pop(uid, None)
             # Перед удалением — сохраняем wanted+jail в БД, чтобы при
             # перезаходе они не сбросились в 0.
-            try:
-                p_save = world.players.get(uid)
-                if p_save:
-                    await update_character(int(uid),
-                        wanted=int(min(3, round(p_save.get('_wanted') or 0))),
-                        jail_until=int(p_save.get('_jail_until') or 0),
-                    )
-            except Exception as _e:
-                logger.warning("WorldSim: failed to persist wanted/jail for %s: %r", uid, _e)
-            world.remove(uid)
-            logger.info("WorldSim: WS closed uid=%s online=%d", uid, len(world.players))
+                try:
+                    p_save = world.players.get(uid)
+                    if p_save:
+                        await update_character(int(uid),
+                            wanted=int(min(3, round(p_save.get('_wanted') or 0))),
+                            jail_until=int(p_save.get('_jail_until') or 0),
+                        )
+                except Exception as _e:
+                    logger.warning("WorldSim: failed to persist wanted/jail for %s: %r", uid, _e)
+                world.remove(uid)
+                logger.info("WorldSim: WS closed uid=%s online=%d", uid, len(world.players))
         return ws
 
     # === HTTP: список онлайн-игроков для баннера Кооператива ===
