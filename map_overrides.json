@@ -1,0 +1,787 @@
+{
+  "version": 20,
+  "decorFull": [
+    {
+      "kind": "palm",
+      "r": 152.1165,
+      "c": 3.176,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 152.2845,
+      "c": 11.344,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 152.6205,
+      "c": 27.68,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 152.7885,
+      "c": 35.848,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 151.2905,
+      "c": 46.35,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 151.4585,
+      "c": 54.518,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 151.6265,
+      "c": 62.686,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 151.7945,
+      "c": 70.854,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 155.4725,
+      "c": 6.532,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 155.6405,
+      "c": 14.7,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 155.8085,
+      "c": 22.868,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 156.3125,
+      "c": 47.372,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 156.8165,
+      "c": 71.876,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 160.4945,
+      "c": 7.554,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 160.6625,
+      "c": 15.722,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 160.8305,
+      "c": 23.89,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 159.3325,
+      "c": 34.392,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 159.6685,
+      "c": 50.728,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 159.8365,
+      "c": 58.896,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 160.1725,
+      "c": 75.232,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 163.6825,
+      "c": 2.742,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 164.1865,
+      "c": 27.246,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 164.3545,
+      "c": 35.414,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "palm",
+      "r": 164.8585,
+      "c": 59.918,
+      "variant": 1,
+      "ang": 0
+    },
+    {
+      "kind": "umbrella",
+      "r": 154,
+      "c": 12,
+      "col": "#e74c3c",
+      "ang": 0
+    },
+    {
+      "kind": "chair",
+      "r": 154.6,
+      "c": 11.1,
+      "ang": 0.2
+    },
+    {
+      "kind": "chair",
+      "r": 154.6,
+      "c": 12.9,
+      "ang": -0.2
+    },
+    {
+      "kind": "umbrella",
+      "r": 156,
+      "c": 19.8,
+      "col": "#3498db",
+      "ang": 0
+    },
+    {
+      "kind": "chair",
+      "r": 156.6,
+      "c": 18.900000000000002,
+      "ang": 0.2
+    },
+    {
+      "kind": "chair",
+      "r": 156.6,
+      "c": 20.7,
+      "ang": -0.2
+    },
+    {
+      "kind": "umbrella",
+      "r": 153,
+      "c": 48,
+      "col": "#f1c40f",
+      "ang": 0
+    },
+    {
+      "kind": "chair",
+      "r": 153.6,
+      "c": 47.1,
+      "ang": 0.2
+    },
+    {
+      "kind": "chair",
+      "r": 153.6,
+      "c": 48.9,
+      "ang": -0.2
+    },
+    {
+      "kind": "umbrella",
+      "r": 158,
+      "c": 58,
+      "col": "#27ae60",
+      "ang": 0
+    },
+    {
+      "kind": "chair",
+      "r": 158.6,
+      "c": 57.1,
+      "ang": 0.2
+    },
+    {
+      "kind": "chair",
+      "r": 158.6,
+      "c": 58.9,
+      "ang": -0.2
+    },
+    {
+      "kind": "umbrella",
+      "r": 155,
+      "c": 70,
+      "col": "#9b59b6",
+      "ang": 0
+    },
+    {
+      "kind": "chair",
+      "r": 155.6,
+      "c": 69.1,
+      "ang": 0.2
+    },
+    {
+      "kind": "chair",
+      "r": 155.6,
+      "c": 70.9,
+      "ang": -0.2
+    },
+    {
+      "kind": "umbrella",
+      "r": 161,
+      "c": 11.8,
+      "col": "#e67e22",
+      "ang": 0
+    },
+    {
+      "kind": "chair",
+      "r": 161.6,
+      "c": 10.9,
+      "ang": 0.2
+    },
+    {
+      "kind": "chair",
+      "r": 161.6,
+      "c": 12.700000000000001,
+      "ang": -0.2
+    },
+    {
+      "kind": "boat",
+      "r": 160,
+      "c": 6,
+      "ang": 0.4,
+      "col": "#c0392b"
+    },
+    {
+      "kind": "boat",
+      "r": 159,
+      "c": 74,
+      "ang": -0.5,
+      "col": "#2980b9"
+    },
+    {
+      "kind": "lifeguard",
+      "r": 156,
+      "c": 26,
+      "ang": 0
+    },
+    {
+      "kind": "surfboard",
+      "r": 152,
+      "c": 8,
+      "col": "#e74c3c",
+      "ang": -0.3
+    },
+    {
+      "kind": "surfboard",
+      "r": 156,
+      "c": 34,
+      "col": "#f1c40f",
+      "ang": -0.1
+    },
+    {
+      "kind": "surfboard",
+      "r": 153,
+      "c": 51,
+      "col": "#3498db",
+      "ang": 0.15
+    },
+    {
+      "kind": "surfboard",
+      "r": 162,
+      "c": 24,
+      "col": "#2ecc71",
+      "ang": 0.2
+    },
+    {
+      "kind": "ball",
+      "r": 159,
+      "c": 32,
+      "col1": "#e74c3c",
+      "col2": "#fff",
+      "ang": 0
+    },
+    {
+      "kind": "ball",
+      "r": 156,
+      "c": 50,
+      "col1": "#3498db",
+      "col2": "#f1c40f",
+      "ang": 0
+    },
+    {
+      "kind": "towel",
+      "r": 158,
+      "c": 19,
+      "col": "#e74c3c",
+      "ang": 0
+    },
+    {
+      "kind": "towel",
+      "r": 160.5,
+      "c": 45.5,
+      "col": "#9b59b6",
+      "ang": 0
+    },
+    {
+      "kind": "towel",
+      "r": 154,
+      "c": 32,
+      "col": "#3498db",
+      "ang": 0
+    },
+    {
+      "kind": "towel",
+      "r": 160,
+      "c": 55,
+      "col": "#f39c12",
+      "ang": 0
+    },
+    {
+      "kind": "towel",
+      "r": 162,
+      "c": 10,
+      "col": "#e91e63",
+      "ang": 0
+    },
+    {
+      "kind": "sandcastle",
+      "r": 160,
+      "c": 16,
+      "ang": 0
+    },
+    {
+      "kind": "volleyball",
+      "r": 155,
+      "c": 38,
+      "ang": 0
+    },
+    {
+      "kind": "icecream_cart",
+      "r": 152,
+      "c": 20,
+      "ang": 0
+    },
+    {
+      "kind": "icecream_cart",
+      "r": 153,
+      "c": 64,
+      "ang": 0
+    },
+    {
+      "kind": "crab",
+      "r": 163.5,
+      "c": 7.5,
+      "ang": 0
+    },
+    {
+      "kind": "starfish",
+      "r": 163.218,
+      "c": 38.2282,
+      "col": "#e74c3c",
+      "ang": 0
+    },
+    {
+      "kind": "crab",
+      "r": 164.5,
+      "c": 37.5,
+      "ang": 0
+    },
+    {
+      "kind": "starfish",
+      "r": 164.212,
+      "c": 45.2222,
+      "col": "#e67e22",
+      "ang": 0
+    },
+    {
+      "kind": "shell",
+      "r": 162.2144,
+      "c": 16.2246,
+      "ang": 0
+    },
+    {
+      "kind": "shell",
+      "r": 162.2222,
+      "c": 39.2324,
+      "ang": 0
+    },
+    {
+      "kind": "shell",
+      "r": 163.2294,
+      "c": 8.2396,
+      "ang": 0
+    },
+    {
+      "kind": "shell",
+      "r": 163.5,
+      "c": 45.75,
+      "ang": 0
+    },
+    {
+      "kind": "shell",
+      "r": 164.2312,
+      "c": 38.2414,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.2426,
+      "c": 7.2528,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.2714,
+      "c": 15.2816,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.2216,
+      "c": 22.2318,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.3002,
+      "c": 23.3104,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.2792,
+      "c": 38.2894,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.2294,
+      "c": 45.2396,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.308,
+      "c": 46.3182,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.287,
+      "c": 61.2972,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.2372,
+      "c": 68.2474,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.3158,
+      "c": 69.326,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 150.266,
+      "c": 76.2762,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 151.2864,
+      "c": 7.2966,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 151.2366,
+      "c": 14.2468,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 151.3152,
+      "c": 15.3254,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 151.2654,
+      "c": 22.2756,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 151.2444,
+      "c": 37.2546,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 151.2732,
+      "c": 45.2834,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 151.2522,
+      "c": 60.2624,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 151.281,
+      "c": 68.2912,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 151.2312,
+      "c": 75.2414,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 151.3098,
+      "c": 76.32,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 152.2516,
+      "c": 6.2618,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 152.2804,
+      "c": 14.2906,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 152.2306,
+      "c": 21.2408,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 152.3092,
+      "c": 22.3194,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 152.2882,
+      "c": 37.2984,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 152.2384,
+      "c": 44.2486,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 152.317,
+      "c": 45.3272,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 152.2174,
+      "c": 59.2276,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 152.296,
+      "c": 60.3062,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "grass",
+      "r": 152.275,
+      "c": 75.2852,
+      "variant": 0,
+      "ang": 0
+    },
+    {
+      "kind": "puddle",
+      "r": 163,
+      "c": 8,
+      "ang": 0
+    },
+    {
+      "kind": "puddle",
+      "r": 163,
+      "c": 22,
+      "ang": 0
+    },
+    {
+      "kind": "puddle",
+      "r": 163,
+      "c": 55.75,
+      "ang": 0
+    },
+    {
+      "kind": "float_ring",
+      "r": 168,
+      "c": 50,
+      "col": "#2ecc71",
+      "ang": 0
+    },
+    {
+      "kind": "big_palm",
+      "r": 154.2,
+      "c": 74,
+      "variant": 2,
+      "scale": 1.65,
+      "ang": 0
+    },
+    {
+      "kind": "surfboard",
+      "r": 161.75,
+      "c": 44.5,
+      "ang": 0.1,
+      "col": "#f1c40f"
+    },
+    {
+      "kind": "boat",
+      "r": 161.75,
+      "c": 52.5,
+      "ang": 0.3,
+      "col": "#2980b9"
+    }
+  ],
+  "mapEdits": [
+    {
+      "r": 14,
+      "c": 38,
+      "value": 9
+    },
+    {
+      "r": 21,
+      "c": 18,
+      "value": 0
+    },
+    {
+      "r": 34,
+      "c": 4,
+      "value": 9
+    },
+    {
+      "r": 35,
+      "c": 44,
+      "value": 1
+    },
+    {
+      "r": 36,
+      "c": 45,
+      "value": 8
+    },
+    {
+      "r": 40,
+      "c": 38,
+      "value": 0
+    },
+    {
+      "r": 41,
+      "c": 68,
+      "value": 0
+    },
+    {
+      "r": 68,
+      "c": 30,
+      "value": 0
+    },
+    {
+      "r": 78,
+      "c": 32,
+      "value": 0
+    },
+    {
+      "r": 81,
+      "c": 38,
+      "value": 0
+    },
+    {
+      "r": 99,
+      "c": 44,
+      "value": 9
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import asyncio
 import json
 import math
 import random
+import os
 from pathlib import Path
 import time
 from aiohttp import web
@@ -42,6 +43,8 @@ world_c4 = {}
 next_world_c4_id = 1
 PREVIEW_START_X = 66.0
 PREVIEW_START_Y = 162.5
+PREVIEW_HOSPITAL_X = 43.0
+PREVIEW_HOSPITAL_Y = 23.0
 PREVIEW_BEACHGOERS = [
     {"id": "preview_bg1", "x": 51.5, "y": 153.0, "ang": 0.3, "act": "walk", "gender": 0, "outfit": "#e74c3c", "skin": 1, "hair": 1},
     {"id": "preview_bg2", "x": 58.5, "y": 156.0, "ang": 2.1, "act": "idle", "gender": 1, "outfit": "#2ebbd1", "skin": 0, "hair": 2},
@@ -62,6 +65,44 @@ preview_bank_robs = {}
 preview_bank_bags = {}
 preview_businesses = {}
 preview_police_rewards = set()
+PREVIEW_MAJOR = {
+    "casino":{"r":46,"c":16,"name":"Казино","boss":"Сальваторе Беллини","guards":20,"total":40,"income":2400},
+    "market":{"r":16,"c":16,"name":"Рынок","boss":"Риккардо Торри","guards":20,"total":34,"income":1200},
+    "factory":{"r":46,"c":56,"name":"Промзона","boss":"Борис Шлак","guards":24,"total":40,"income":3000},
+    "mansion":{"r":66,"c":36,"name":"Резиденция","boss":"Дон Витторио","guards":28,"total":40,"income":4200},
+    "port":{"r":165,"c":38,"name":"Порт","boss":"Капитан Риццо","guards":22,"total":38,"income":2600},
+}
+preview_major_raids = {}
+preview_major_owners = {}
+preview_city_gangs = [
+    {"id":"preview_purple","faction":"purple","bots":[{
+        "id":f"preview_purple_{i}","x":10.0+i*.9,"y":20.0+(i%2)*.8,
+        "ang":0.0,"hp":100,"max_hp":100,"kind":"aggro_grunt","weapon":"pistol",
+        "faction":"purple","look":{"gender":0,"skin":1+i%3,"body":2,
+        "face":i%3,"hair":i%4,"hat":4,"gang":1,"suit":"#512d73"}}
+        for i in range(5)]},
+    {"id":"preview_yellow","faction":"yellow","bots":[{
+        "id":f"preview_yellow_{i}","x":19.0+i*.9,"y":20.0+(i%2)*.8,
+        "ang":math.pi,"hp":100,"max_hp":100,"kind":"aggro_grunt","weapon":"pistol",
+        "faction":"yellow","look":{"gender":0,"skin":1+i%3,"body":2,
+        "face":i%3,"hair":i%4,"hat":4,"gang":2,"suit":"#d2a719"}}
+        for i in range(5)]},
+]
+
+def preview_major_payload():
+    now=time.time()
+    for oid,own in list(preview_major_owners.items()):
+        if own["expires_at"]<=now: preview_major_owners.pop(oid,None)
+    return {oid:{"name":cfg["name"],"boss_name":cfg["boss"],
+        "owner_uid":(preview_major_owners.get(oid) or {}).get("owner_uid"),
+        "owner_name":(preview_major_owners.get(oid) or {}).get("owner_name",cfg["boss"]),
+        "expires_in":max(0,int((preview_major_owners.get(oid) or {}).get("expires_at",0)-now)),
+        "income":cfg["income"],
+        "raid":({"phase":raid["phase"],"alive":sum(1 for g in raid["guards"] if g["alive"]),
+                 "participant_uids":list(raid.get("participants") or []),
+                 "spawned":raid["spawned"],"total":cfg["total"],"pressure":raid["pressure"]}
+                if (raid:=preview_major_raids.get(oid)) else None)}
+        for oid,cfg in PREVIEW_MAJOR.items()}
 PREVIEW_BUSINESSES = {
     "coffee": (3000,150,200,"☕","Кофейня «У Дона»"), "carwash": (5000,220,300,"🚗","Автомойка"),
     "barbershop": (7500,300,400,"💈","Парикмахерская"), "pizza": (12000,450,600,"🍕","Пиццерия"),
@@ -94,14 +135,32 @@ PREVIEW_SHOP_CONSUMABLES = {
 }
 
 
+PREVIEW_SHOP_CONSUMABLES.update({
+    "grenade":{"name":"Граната","price":50},
+    "molotov":{"name":"Коктейль Молотова","price":130},
+})
+PREVIEW_SHOP_ARMOR = {
+    "leather_jacket":{"name":"Кожанка","price":180,"defense_bonus":12},
+    "bulletproof":{"name":"Бронежилет","price":450,"defense_bonus":28},
+    "kevlar_vest":{"name":"Кевларовый жилет","price":1200,"defense_bonus":38},
+    "tactical_vest":{"name":"Тактический жилет","price":2500,"defense_bonus":50},
+    "army_armor":{"name":"Армейская броня","price":5000,"defense_bonus":62},
+    "swat_suit":{"name":"Костюм спецназа","price":9000,"defense_bonus":78},
+    "composite_armor":{"name":"Композитный доспех","price":16000,"defense_bonus":95},
+    "exo_armor":{"name":"Экзо-броня","price":28000,"defense_bonus":120},
+}
+
+
 def preview_account(uid):
     account = preview_accounts.setdefault(str(uid), {
         # Тестовый баланс локального превью. Реальные аккаунты и база бота
         # этим сервером не используются.
         "cash": 1000000,
         "exp": 0,
-        "police_xp": 0,
+        # Превью используется для проверки открытых полицейских способностей.
+        "police_xp": 2800,
         "mafia_xp": 0,
+        "skills": {"safecracker": 0, "marksman": 0, "stealth": 0, "toughness": 0, "hustler": 0},
         "said_hired": False,
         "said_hired_at": 0,
         "said_paid_until": 0,
@@ -109,10 +168,48 @@ def preview_account(uid):
             "pistol": {"name": "Пистолет", "canonical": "pistol"},
             "shotgun": {"name": "Дробовик", "canonical": "shotgun"},
         },
-        "consumables": {"c4": 0},
+        "consumables": {"c4": 0, "grenade": 12, "molotov": 12},
+        "armor": {}, "equipped_armor": None,
+        "found": {}, "wanted": 0,
     })
     account.setdefault("consumables", {}).setdefault("c4", 0)
+    account["consumables"].setdefault("grenade", 12)
+    account["consumables"].setdefault("molotov", 12)
+    account.setdefault("armor", {})
+    account.setdefault("found", {})
+    account.setdefault("skills", {"safecracker": 0, "marksman": 0, "stealth": 0, "toughness": 0, "hustler": 0})
     return account
+
+
+PREVIEW_SKILL_COSTS = [0, 500, 2000, 5000, 12000, 30000]
+PREVIEW_SKILL_IDS = {"safecracker", "marksman", "stealth", "toughness", "hustler"}
+
+
+async def skill_state(req):
+    account = preview_account(req.match_info.get("uid", "1"))
+    return cors(web.json_response({"ok": True, "cash": account["cash"], "skills": account["skills"],
+        "costs": PREVIEW_SKILL_COSTS}))
+
+
+async def skill_upgrade(req):
+    account = preview_account(req.match_info.get("uid", "1"))
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    skill = str(body.get("skill") or "")
+    if skill not in PREVIEW_SKILL_IDS:
+        return cors(web.json_response({"ok": False, "error": "unknown skill"}, status=400))
+    current = max(0, min(5, int(account["skills"].get(skill, 0))))
+    if current >= 5:
+        return cors(web.json_response({"ok": False, "error": "maxed"}))
+    cost = PREVIEW_SKILL_COSTS[current + 1]
+    if account["cash"] < cost:
+        return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"]}))
+    account["cash"] -= cost
+    account["skills"][skill] = current + 1
+    return cors(web.json_response({"ok": True, "cash": account["cash"], "level": current + 1,
+        "skills": account["skills"], "costs": PREVIEW_SKILL_COSTS}))
 
 
 def preview_police_daily_state(uid):
@@ -282,11 +379,16 @@ def preview_civilian_carjack(uid, data):
     next_civ_car_id += 1
     x = float(data.get("x", p.get("x", PREVIEW_START_X)))
     y = float(data.get("y", p.get("y", PREVIEW_START_Y)))
-    model = str(data.get("model") or "corvette_c3")
+    allowed_models = {
+        "corvette_c3", "mustang_67", "cadillac_eldo", "delorean",
+        "jaguar_e", "harley_chopper", "ducati_750",
+    }
+    requested_model = str(data.get("model") or "")
+    model = requested_model if requested_model in allowed_models else "corvette_c3"
     car = {
         "id": car_id,
         "model": model,
-        "owner_uid": None,
+        "owner_uid": uid,
         "driver_uid": uid,
         "passenger_uids": [],
         "x": x,
@@ -347,6 +449,48 @@ def preview_police_patrol(uid):
     }
     cop["police_patrol_called_at"] = time.time()
     return {"ok": True, "car_id": car_id, "x": x, "y": y}
+
+
+def preview_career_vehicle(uid, data):
+    """Create the police/mafia career vehicle used by the local game preview."""
+    global next_civ_car_id
+    p = players.get(uid, {})
+    if not p or p.get("dead") or p.get("business_interior"):
+        return {"ok": False, "error": "dead" if p and p.get("dead") else "interior"}
+    role = "police" if p.get("police") else ("mafia" if p.get("mafia") else "")
+    if not role:
+        return {"ok": False, "error": "not_employed"}
+    if str(data.get("role") or role) != role:
+        return {"ok": False, "error": "wrong_role"}
+    account = preview_account(uid)
+    xp = int(account.get("police_xp" if role == "police" else "mafia_xp", 0))
+    thresholds = (300, 800, 1600, 2800) if role == "police" else (250, 700, 1500, 2800)
+    level = 1 + sum(1 for threshold in thresholds if xp >= threshold)
+    kind = "air" if str(data.get("kind") or "ground") == "air" else "ground"
+    if kind == "air":
+        if level < 5:
+            return {"ok": False, "error": "level_locked"}
+        model, hp = (("police_heli", 650) if role == "police" else ("mafia_heli", 650))
+    else:
+        tiers = ({1:("cruiser",350),3:("paddyvan",520),5:("swat_truck",800)} if role == "police"
+                 else {1:("harley_chopper",240),3:("gold_limo",480),5:("mafia_armored",760)})
+        unlocked = max(tier for tier in tiers if level >= tier)
+        model, hp = tiers[unlocked]
+    cooldown_key = "career_air_called_at" if kind == "air" else "career_ground_called_at"
+    now = time.time()
+    cooldown_left = 65 - (now - float(p.get(cooldown_key, 0)))
+    if cooldown_left > 0:
+        return {"ok": False, "error": "cooldown", "cooldown_left": round(cooldown_left, 1)}
+    car_id = f"career_{role}_{kind}_{next_civ_car_id}"
+    next_civ_car_id += 1
+    ang = float(p.get("ang", 0.0)); x = float(p.get("x", PREVIEW_START_X)) + math.cos(ang)*2.2; y = float(p.get("y", PREVIEW_START_Y)) + math.sin(ang)*2.2
+    quest_cars[car_id] = {"id":car_id,"model":model,"owner_uid":uid,"driver_uid":None,"passenger_uids":[],
+        "x":x,"y":y,"ang":ang,"vx":0.0,"vy":0.0,"hp":hp,"max_hp":hp,"wrecked":False,
+        "civilian":False,"career_vehicle":True,"career_role":role,"career_owner_uid":uid,
+        "police_patrol":role=="police","police_stolen":False,"siren":False,"tires_punctured":False,
+        "expires_at":now+300,"state":"idle","_last_drive_t":0.0}
+    p[cooldown_key] = now
+    return {"ok":True,"car_id":car_id,"model":model,"role":role,"level":level,"vehicle_kind":kind,"x":x,"y":y}
 
 
 reset_race_cars()
@@ -620,6 +764,12 @@ def preview_aggro_payload():
             "cap_left": 0, "next_respawn": 0, "is_city_gang": True,
             "district_did": did,
         }
+    for gang in preview_city_gangs:
+        visible=[dict(bot) for bot in gang["bots"] if bot.get("hp",0)>0]
+        if visible:
+            result[gang["id"]]={"state":"patrol","bots":visible,"covers":[],
+                "cap_left":0,"next_respawn":0,"is_city_gang":True,
+                "faction":gang["faction"]}
     return result
 
 
@@ -648,11 +798,71 @@ async def inv_list(req):
     if c4_count:
         items.append({"id": "c4", "item_id": "c4", "name": "🧨 Заряд C4",
                       "type": "throwable", "qty": c4_count, "count": c4_count})
+    for iid in ("grenade","molotov"):
+        qty=int(account["consumables"].get(iid,0))
+        if qty>0:
+            items.append({"id":iid,"item_id":iid,"name":PREVIEW_SHOP_CONSUMABLES[iid]["name"],
+                          "type":"throwable","qty":qty,"count":qty})
+    for item_id, item in account["armor"].items():
+        items.append({"id":item_id,"item_id":item_id,"name":item["name"],"type":"armor",
+                      "qty":1,"count":1,"defense_bonus":item.get("defense_bonus",0)})
+    found_defs={"lost_phone":("Потерянный телефон",180),"lost_wallet":("Потерянный кошелёк",120),"lost_keys":("Связка чужих ключей",70)}
+    for item_id,qty in account["found"].items():
+        if qty>0:
+            name,price=found_defs[item_id];items.append({"id":item_id,"item_id":item_id,"name":name,"type":"thing","qty":qty,"count":qty,"sell_price":price})
     return cors(web.json_response({
         "ok": True,
         "items": items,
         "cash": account["cash"],
+        "equipped_armor": account.get("equipped_armor"),
     }))
+
+
+async def inv_equip(req):
+    account=preview_account(req.match_info.get("uid","1"))
+    try:
+        body=await req.json()
+    except Exception:
+        body={}
+    item_id=str(body.get("item_id") or "")
+    if item_id and item_id not in account["armor"]:
+        return cors(web.json_response({"ok":False,"error":"not in inventory"},status=400))
+    account["equipped_armor"]=item_id or None
+    return cors(web.json_response({"ok":True,"equipped_armor":account["equipped_armor"]}))
+
+
+async def inv_consume(req):
+    account=preview_account(req.match_info.get("uid","1"))
+    try:
+        body=await req.json()
+    except Exception:
+        body={}
+    iid=str(body.get("item_id") or "")
+    if iid not in ("grenade","molotov") or int(account["consumables"].get(iid,0))<=0:
+        return cors(web.json_response({"ok":False,"error":"not in inventory"},status=400))
+    account["consumables"][iid]-=1
+    return cors(web.json_response({"ok":True,"left":account["consumables"][iid]}))
+
+
+async def inv_found(req):
+    account=preview_account(req.match_info.get("uid","1"))
+    try: body=await req.json()
+    except Exception: body={}
+    iid={"phone":"lost_phone","wallet":"lost_wallet","keys":"lost_keys"}.get(str(body.get("kind") or ""))
+    if not iid:return cors(web.json_response({"ok":False,"error":"bad item"},status=400))
+    account["found"][iid]=int(account["found"].get(iid,0))+1
+    prices={"lost_phone":180,"lost_wallet":120,"lost_keys":70}
+    return cors(web.json_response({"ok":True,"item":{"id":iid,"type":"thing","qty":account["found"][iid],"sell_price":prices[iid]}}))
+
+
+async def inv_sell_found(req):
+    account=preview_account(req.match_info.get("uid","1"))
+    try: body=await req.json()
+    except Exception: body={}
+    iid=str(body.get("item_id") or "");prices={"lost_phone":180,"lost_wallet":120,"lost_keys":70}
+    if iid not in prices or int(account["found"].get(iid,0))<=0:return cors(web.json_response({"ok":False,"error":"not in inventory"},status=400))
+    account["found"][iid]-=1;account["cash"]+=prices[iid]
+    return cors(web.json_response({"ok":True,"cash":account["cash"],"item_id":iid,"price":prices[iid],"caught":False,"wanted":account.get("wanted",0),"return_streak":0}))
 
 
 async def shop_buy(req):
@@ -663,13 +873,14 @@ async def shop_buy(req):
         body = {}
     item_id = str(body.get("item_id", ""))
     item = (PREVIEW_SHOP_WEAPONS.get(item_id) or PREVIEW_SHOP_AMMO.get(item_id)
-            or PREVIEW_SHOP_CONSUMABLES.get(item_id))
+            or PREVIEW_SHOP_CONSUMABLES.get(item_id) or PREVIEW_SHOP_ARMOR.get(item_id))
     if not item:
         return cors(web.json_response({"ok": False, "error": "unknown item"}, status=400))
     account = preview_account(uid)
     is_weapon = item_id in PREVIEW_SHOP_WEAPONS
+    is_armor = item_id in PREVIEW_SHOP_ARMOR
     owned_classes = {w["canonical"] for w in account["weapons"].values()}
-    if is_weapon and item["canonical"] in owned_classes:
+    if (is_weapon and item["canonical"] in owned_classes) or (is_armor and item_id in account["armor"]):
         return cors(web.json_response({
             "ok": False, "error": "already owned", "cash": account["cash"],
         }))
@@ -682,6 +893,8 @@ async def shop_buy(req):
         account["weapons"][item_id] = {
             "name": item["name"], "canonical": item["canonical"],
         }
+    elif is_armor:
+        account["armor"][item_id] = dict(item)
     elif item_id in PREVIEW_SHOP_CONSUMABLES:
         account["consumables"][item_id] = int(account["consumables"].get(item_id, 0)) + 1
     return cors(web.json_response({
@@ -1152,6 +1365,7 @@ def snap(uid):
             "territories": {},
             "active_captures": {},
             "aggro": preview_aggro_payload(),
+            "major_objects": preview_major_payload(),
             "quest_cars": race_car_payload(),
             "dropped_bags": [{
                 "id": str(bag["id"]), "bank_id": str(bag.get("bank_id") or ""),
@@ -1209,6 +1423,14 @@ async def world_ws(req):
         "hp": 100,
         "dead": False,
     })
+    if req.query.get("spawn_r") is not None and req.query.get("spawn_c") is not None:
+        try:
+            p0["y"] = max(0.0, min(199.0, float(req.query["spawn_r"])))
+            p0["x"] = max(0.0, min(79.0, float(req.query["spawn_c"])))
+        except (TypeError, ValueError):
+            pass
+    if req.query.get("mafia_test") == "1":
+        p0["mafia"] = True
     try:
         p0["wanted"] = max(int(p0.get("wanted", 0)), min(3, int(req.query.get("wanted", 0))))
     except Exception:
@@ -1241,7 +1463,10 @@ async def world_ws(req):
                     p["dead"] = False
                     p["hp"] = 100
                     p["wanted"] = 0
-                    p["x"], p["y"] = PREVIEW_START_X, PREVIEW_START_Y
+                    # После смерти игрок выходит у входа в больницу, как на
+                    # основном сервере. Стартовая точка находится на пляже и
+                    # не должна повторно использоваться для возрождения.
+                    p["x"], p["y"] = PREVIEW_HOSPITAL_X, PREVIEW_HOSPITAL_Y
             for defender_event in tick_district_defenders(now, 1/15):
                 await broadcast_event(defender_event)
             for charge_id, charge in list(world_c4.items()):
@@ -1410,6 +1635,7 @@ async def world_ws(req):
                     continue
                 was_police = bool(p.get("police"))
                 p["police"] = bool(d.get("police", False))
+                p["mafia"] = bool(d.get("mafia", False)) and not p["police"]
                 if p["police"] and not was_police:
                     for did, own in list(district_owners.items()):
                         if str(own.get("owner_uid")) == str(uid): district_owners.pop(did, None)
@@ -1422,6 +1648,16 @@ async def world_ws(req):
                 else:
                     p["police_escort"] = None
                 interior = d.get("interior") if isinstance(d.get("interior"), dict) else None
+                major_id = str((interior or {}).get("object_id") or "")[:24]
+                if (interior or {}).get("kind") == "major" and major_id in PREVIEW_MAJOR:
+                    p["major_interior"] = major_id
+                    p["interior_x"] = max(0.0, min(60.0, float(d.get("x", 0))))
+                    p["interior_y"] = max(0.0, min(60.0, float(d.get("y", 0))))
+                    p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
+                    p["walking"] = bool(d.get("w", False))
+                    p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
+                    continue
+                p.pop("major_interior", None)
                 biz_id = str((interior or {}).get("biz_id") or "")[:32]
                 if (interior or {}).get("kind") == "business" and biz_id:
                     p["business_interior"] = biz_id
@@ -1582,14 +1818,68 @@ async def world_ws(req):
             elif t == "gang_hire_bot":
                 target_id = str(d.get("bot_id") or "")
                 found = None; found_did = None
+                found_gang = None
+                for city_gang in preview_city_gangs:
+                    found = next((b for b in city_gang["bots"]
+                                  if b.get("hp",0)>0 and str(b.get("id"))==target_id),None)
+                    if found: found_gang=city_gang;break
                 for did, cap in district_captures.items():
+                    if found: break
                     found = next((b for b in cap.get("defenders") or []
                                   if b.get("alive") and str(b.get("id")) == target_id), None)
                     if found: found_did = did; break
-                ok = False
+                p=players.get(uid,{})
+                ok=bool(found and found_gang and not p.get("police") and p.get("mafia") and
+                        math.hypot(float(p.get("x",0))-found["x"],float(p.get("y",0))-found["y"])<=3.2)
+                if ok: found["hp"]=0
                 await ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_hire_reply",
-                    "ok":ok,"bot_id":target_id,"is_boss":bool(found),
-                    "reason":"district_defender" if found else "gone"}}, ensure_ascii=False))
+                    "ok":ok,"bot_id":target_id,"is_boss":False,
+                    "look":dict(found.get("look") or {}) if ok else None,
+                    "weapon":found.get("weapon") if ok else None,
+                    "hp":int(found.get("hp") or 100) if ok else None,"max_hp":100,
+                    "faction":found_gang.get("faction") if ok else None,
+                    "x":found.get("x") if ok else None,"y":found.get("y") if ok else None,
+                    "reason":None if ok else ("district_defender" if found_did else "gone")}}, ensure_ascii=False))
+            elif t == "major_assault_start":
+                oid=str(d.get("object_id") or "")[:24];cfg=PREVIEW_MAJOR.get(oid);p=players.get(uid,{})
+                own=preview_major_owners.get(oid);raid=preview_major_raids.get(oid)
+                if not cfg: reply={"kind":"major_assault_reply","ok":False,"reason":"bad_object"}
+                elif own and own["expires_at"]>time.time(): reply={"kind":"major_assault_reply","ok":False,"reason":"protected","object_id":oid,"owner_name":own["owner_name"],"expires_in":int(own["expires_at"]-time.time())}
+                elif raid: reply={"kind":"major_assault_reply","ok":False,"reason":"busy","object_id":oid,"by_name":raid["by_name"]}
+                else:
+                    guards=[{"id":f"preview_major_{oid}_{i}","hp":140 if i<4 else 100,"max_hp":140 if i<4 else 100,"alive":True,"weapon":"pistol","wave":1,"slot":i} for i in range(cfg["guards"])]
+                    safes=[{"id":f"{oid}_safe_{i+1}","opened":False,"value":250*(i+1)} for i in range(3 if oid!="mansion" else 4)]
+                    raid={"object_id":oid,"by_uid":uid,"by_name":p.get("name","Demo"),"participants":{uid},"phase":"guards","guards":guards,"spawned":len(guards),"pressure":0,"safes":safes}
+                    preview_major_raids[oid]=raid
+                    reply={"kind":"major_assault_reply","ok":True,"object_id":oid,"phase":"guards","guards":guards,"total":cfg["total"],"boss_name":cfg["boss"],"participants":[uid],"safes":safes}
+                await broadcast_event(reply)
+            elif t == "major_guard_hit":
+                oid=str(d.get("object_id") or "")[:24];gid=str(d.get("guard_id") or "");raid=preview_major_raids.get(oid);cfg=PREVIEW_MAJOR.get(oid)
+                g=next((x for x in (raid or {}).get("guards",[]) if x["id"]==gid and x["alive"]),None)
+                if g:
+                    g["hp"]=max(0,g["hp"]-34);new_guard=None
+                    if g["hp"]<=0:
+                        g["alive"]=False
+                        if raid["spawned"]<cfg["total"]:
+                            i=raid["spawned"];new_guard={"id":f"preview_major_{oid}_{i}","hp":110,"max_hp":110,"alive":True,"weapon":"pistol","wave":2+i//10,"slot":i}
+                            raid["guards"].append(new_guard);raid["spawned"]+=1
+                        elif not any(x["alive"] for x in raid["guards"]):raid["phase"]="boss"
+                    await broadcast_event({"kind":"major_guard_hit","ok":True,"object_id":oid,"guard_id":gid,"hp":g["hp"],"alive":g["alive"],"new_guard":new_guard,"spawned":raid["spawned"],"phase":raid["phase"]})
+            elif t == "major_boss_pressure":
+                oid=str(d.get("object_id") or "")[:24];raid=preview_major_raids.get(oid);cfg=PREVIEW_MAJOR.get(oid)
+                if raid and raid["phase"]=="boss":
+                    raid["pressure"]=min(100,raid["pressure"]+20);captured=raid["pressure"]>=100
+                    reply={"kind":"major_boss_pressure","ok":True,"object_id":oid,"pressure":raid["pressure"],"phrase":"Объект ваш!" if captured else "Я ничего вам не отдам!","captured":captured}
+                    if captured:
+                        preview_major_owners[oid]={"owner_uid":uid,"owner_name":players.get(uid,{}).get("name","Demo"),"expires_at":time.time()+3600}
+                        preview_major_raids.pop(oid,None);reply.update({"owner_name":preview_major_owners[oid]["owner_name"],"income":cfg["income"],"expires_in":3600})
+                    await broadcast_event(reply)
+            elif t == "major_safe_open":
+                oid=str(d.get("object_id") or "")[:24];sid=str(d.get("safe_id") or "")[:64];raid=preview_major_raids.get(oid)
+                safe=next((s for s in (raid or {}).get("safes",[]) if s["id"]==sid),None)
+                if raid and raid["phase"]=="boss" and safe and not safe["opened"]:
+                    safe["opened"]=True
+                    await broadcast_event({"kind":"major_safe_open","ok":True,"object_id":oid,"safe_id":sid,"value":safe["value"],"awards":[{"uid":uid,"amount":safe["value"]}]})
             elif t == "aggro_shoot":
                 target_id = str(d.get("target") or "")
                 found = None
@@ -1647,8 +1937,12 @@ async def world_ws(req):
                         break
             elif t == "police_resign":
                 account = preview_account(uid)
-                account["police_xp"] = 0
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"police_xp_reply","ok":True,"resigned":True,"police_xp":0}}, ensure_ascii=False))
+                cop = players.get(uid, {})
+                cop["police"] = False
+                cop["police_escort_uid"] = None
+                cop["police_online_target"] = None
+                cop["police_taser_ammo"] = 0
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"police_xp_reply","ok":True,"resigned":True,"police_xp":int(account.get("police_xp", 0))}}, ensure_ascii=False))
             elif t == "police_xp_sync":
                 account = preview_account(uid)
                 account["police_xp"] = min(2800, max(int(account.get("police_xp", 0)), max(0, int(d.get("xp") or 0))))
@@ -1671,6 +1965,10 @@ async def world_ws(req):
                     "mission_id":mission_id,"police_xp":int(preview_account(uid).get("police_xp",0)),
                     "daily_count":((daily or {}).get("count",preview_police_daily_state(uid)[1])),
                     "daily_limit":((daily or {}).get("limit",preview_police_daily_state(uid)[2]))}}, ensure_ascii=False))
+            elif t == "career_vehicle_spawn":
+                reply = preview_career_vehicle(uid, d)
+                reply["kind"] = "career_vehicle_reply"
+                await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
             elif t in ("police_patrol_spawn", "police_spikes", "police_backup"):
                 cop = players.get(uid, {})
                 account = preview_account(uid)
@@ -1848,6 +2146,23 @@ async def world_ws(req):
                 if reply.get("ok"):
                     action=dict(reply); action["kind"]=t
                     await broadcast_event(action)
+            elif t == "brigadir_take":
+                p=players.setdefault(uid,{})
+                reply={"kind":"brigadir_take_reply","ok":not p.get("dead"),
+                       "payout":700,"stealth_mul":1.5,"left":3}
+                await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
+            elif t == "brigadir_kill":
+                p=players.setdefault(uid,{})
+                stealth=bool(d.get("stealth"));reward=int(700*(1.5 if stealth else 1))
+                p["brigadir_pending"]={"reward":reward,"stealth":stealth}
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"brigadir_kill_reply",
+                    "ok":True,"reward":reward,"stealth":stealth,"claim_at_brigadir":True}},ensure_ascii=False))
+            elif t == "brigadir_claim":
+                p=players.setdefault(uid,{});pending=p.pop("brigadir_pending",None)
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"brigadir_claim_reply",
+                    "ok":bool(pending),"reward":int((pending or {}).get("reward") or 0),
+                    "stealth":bool((pending or {}).get("stealth")),"left":2,
+                    "reason":None if pending else "no_pending"}},ensure_ascii=False))
             elif t == "gta_enter":
                 car = quest_cars.get(str(d.get("car_id") or ""))
                 reason = None
@@ -1934,7 +2249,12 @@ async def world_ws(req):
                         "t": "event",
                         "d": {"kind": "gta_exit_reply", "ok": True,
                               "delivered": False, "car_id": car["id"],
-                              "civilian": True},
+                              "model":car.get("model"),"owner_uid":car.get("owner_uid"),
+                              "x":car.get("x"),"y":car.get("y"),"ang":car.get("ang",0),
+                              "hp":car.get("hp",220),"max_hp":car.get("max_hp",220),
+                              "civilian":bool(car.get("civilian",True)),
+                              "police_patrol":bool(car.get("police_patrol")),
+                              "police_stolen":bool(car.get("police_stolen"))},
                     }))
             elif t == "race_top":
                 await ws.send_str(json.dumps({"t": "race_top", "d": {"top": race_top()}}))
@@ -2101,6 +2421,10 @@ app.router.add_get("/preview/world.html", preview_world)
 app.router.add_get("/coop_api.json", coop_api)
 app.router.add_get("/world/sim", world_ws)
 app.router.add_get("/inv/{uid}/list", inv_list)
+app.router.add_post("/inv/{uid}/equip", inv_equip)
+app.router.add_post("/inv/{uid}/consume", inv_consume)
+app.router.add_post("/inv/{uid}/found", inv_found)
+app.router.add_post("/inv/{uid}/sell-found", inv_sell_found)
 app.router.add_post("/shop/{uid}/buy", shop_buy)
 app.router.add_get("/world/leaderboard", leaderboard)
 app.router.add_get("/world/newspaper", newspaper)
@@ -2115,7 +2439,9 @@ app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
 app.router.add_post("/biz/{uid}/collect", business_collect)
 app.router.add_post("/biz/{uid}/said/hire", said_hire)
 app.router.add_post("/biz/{uid}/said/fire", said_fire)
+app.router.add_get("/skill/{uid}/state", skill_state)
+app.router.add_post("/skill/{uid}/upgrade", skill_upgrade)
 
 
 if __name__ == "__main__":
-    web.run_app(app, host="127.0.0.1", port=8080)
+    web.run_app(app, host="127.0.0.1", port=int(os.getenv("MAFIOZI_PREVIEW_PORT", "8081")))

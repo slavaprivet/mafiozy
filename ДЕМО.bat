@@ -28,6 +28,8 @@ echo  ────────────────────────�
 echo.
 
 REM Открываем браузер с небольшой задержкой, чтобы сервер успел подняться
+REM Для превью открытого мира запускаем WebSocket/API-помощник на порту 8080.
+start "Mafiozi Open World Preview" /min venv\Scripts\python.exe _preview_ws_server.py
 start "" cmd /c "timeout /t 1 /nobreak >nul & start http://localhost:8765/demo_index.html"
 
 REM Поднимаем простой HTTP-сервер

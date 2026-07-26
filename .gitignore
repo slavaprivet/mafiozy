@@ -1,6 +1,8 @@
 # === SECRETS — никогда не коммитить ===
 .token
 .bot-token
+ai_config.json
+.ai-key
 *.env
 secrets.py
 secrets_local.py

@@ -1,0 +1,847 @@
+{
+  "version": 2,
+  "decor": [
+    {
+      "id": "palm:15212:318:0",
+      "r": 152.1165,
+      "c": 3.176,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15228:1134:1",
+      "r": 152.2845,
+      "c": 11.344,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15262:2768:2",
+      "r": 152.6205,
+      "c": 27.68,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15279:3585:3",
+      "r": 152.7885,
+      "c": 35.848,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15129:4635:4",
+      "r": 151.2905,
+      "c": 46.35,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15146:5452:5",
+      "r": 151.4585,
+      "c": 54.518,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15163:6269:6",
+      "r": 151.6265,
+      "c": 62.686,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15179:7085:7",
+      "r": 151.7945,
+      "c": 70.854,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15547:653:8",
+      "r": 155.4725,
+      "c": 6.532,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15564:1470:9",
+      "r": 155.6405,
+      "c": 14.7,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15581:2287:10",
+      "r": 155.8085,
+      "c": 22.868,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15631:4737:11",
+      "r": 156.3125,
+      "c": 47.372,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15682:7188:12",
+      "r": 156.8165,
+      "c": 71.876,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:16049:755:13",
+      "r": 160.4945,
+      "c": 7.554,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:16066:1572:14",
+      "r": 160.6625,
+      "c": 15.722,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:16083:2389:15",
+      "r": 160.8305,
+      "c": 23.89,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15933:3439:16",
+      "r": 159.3325,
+      "c": 34.392,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15967:5073:17",
+      "r": 159.6685,
+      "c": 50.728,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:15984:5890:18",
+      "r": 159.8365,
+      "c": 58.896,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:16017:7523:19",
+      "r": 160.1725,
+      "c": 75.232,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:16368:274:20",
+      "r": 163.6825,
+      "c": 2.742,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:16419:2725:21",
+      "r": 164.1865,
+      "c": 27.246,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:16435:3541:22",
+      "r": 164.3545,
+      "c": 35.414,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "palm:16486:5992:23",
+      "r": 164.8585,
+      "c": 59.918,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "umbrella:15400:1200:24",
+      "r": 154,
+      "c": 12,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:15460:1110:25",
+      "r": 154.6,
+      "c": 11.1,
+      "angle": 0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:15460:1290:26",
+      "r": 154.6,
+      "c": 12.9,
+      "angle": -0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "umbrella:15600:1980:27",
+      "r": 156,
+      "c": 19.8,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:15660:1890:28",
+      "r": 156.6,
+      "c": 18.900000000000002,
+      "angle": 0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:15660:2070:29",
+      "r": 156.6,
+      "c": 20.7,
+      "angle": -0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "umbrella:15300:4800:30",
+      "r": 153,
+      "c": 48,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:15360:4710:31",
+      "r": 153.6,
+      "c": 47.1,
+      "angle": 0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:15360:4890:32",
+      "r": 153.6,
+      "c": 48.9,
+      "angle": -0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "umbrella:15800:5800:33",
+      "r": 158,
+      "c": 58,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:15860:5710:34",
+      "r": 158.6,
+      "c": 57.1,
+      "angle": 0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:15860:5890:35",
+      "r": 158.6,
+      "c": 58.9,
+      "angle": -0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "umbrella:15500:7000:36",
+      "r": 155,
+      "c": 70,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:15560:6910:37",
+      "r": 155.6,
+      "c": 69.1,
+      "angle": 0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:15560:7090:38",
+      "r": 155.6,
+      "c": 70.9,
+      "angle": -0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "umbrella:16100:1180:39",
+      "r": 161,
+      "c": 11.8,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:16160:1090:40",
+      "r": 161.6,
+      "c": 10.9,
+      "angle": 0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "chair:16160:1270:41",
+      "r": 161.6,
+      "c": 12.700000000000001,
+      "angle": -0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "boat:16000:600:42",
+      "r": 160,
+      "c": 6,
+      "angle": 0.4,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "boat:15900:7400:43",
+      "r": 159,
+      "c": 74,
+      "angle": -0.5,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "lifeguard:15600:2600:44",
+      "r": 156,
+      "c": 26,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "surfboard:15200:800:45",
+      "r": 152,
+      "c": 8,
+      "angle": -0.3,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "surfboard:15600:3400:46",
+      "r": 156,
+      "c": 34,
+      "angle": -0.1,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "surfboard:15300:5100:47",
+      "r": 153,
+      "c": 51,
+      "angle": 0.15,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "surfboard:16200:2400:48",
+      "r": 162,
+      "c": 24,
+      "angle": 0.2,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "ball:15900:3200:49",
+      "r": 159,
+      "c": 32,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "ball:15600:5000:50",
+      "r": 156,
+      "c": 50,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "towel:15800:1900:51",
+      "r": 158,
+      "c": 19,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "towel:16100:4600:52",
+      "r": 161,
+      "c": 46,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "towel:15400:3200:53",
+      "r": 154,
+      "c": 32,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "towel:16000:5500:54",
+      "r": 160,
+      "c": 55,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "towel:16200:1000:55",
+      "r": 162,
+      "c": 10,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "sandcastle:16000:1600:56",
+      "r": 160,
+      "c": 16,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "volleyball:15500:3800:57",
+      "r": 155,
+      "c": 38,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "icecream_cart:15200:2000:58",
+      "r": 152,
+      "c": 20,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "icecream_cart:15300:6400:59",
+      "r": 153,
+      "c": 64,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "crab:16350:750:60",
+      "r": 163.5,
+      "c": 7.5,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "starfish:16322:3823:61",
+      "r": 163.218,
+      "c": 38.2282,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "crab:16450:3750:62",
+      "r": 164.5,
+      "c": 37.5,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "starfish:16421:4522:63",
+      "r": 164.212,
+      "c": 45.2222,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "shell:16221:1622:64",
+      "r": 162.2144,
+      "c": 16.2246,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "shell:16222:3923:65",
+      "r": 162.2222,
+      "c": 39.2324,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "shell:16323:824:66",
+      "r": 163.2294,
+      "c": 8.2396,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "shell:16322:4623:67",
+      "r": 163.2162,
+      "c": 46.2264,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "shell:16423:3824:68",
+      "r": 164.2312,
+      "c": 38.2414,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15024:725:69",
+      "r": 150.2426,
+      "c": 7.2528,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15027:1528:70",
+      "r": 150.2714,
+      "c": 15.2816,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15022:2223:71",
+      "r": 150.2216,
+      "c": 22.2318,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15030:2331:72",
+      "r": 150.3002,
+      "c": 23.3104,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15028:3829:73",
+      "r": 150.2792,
+      "c": 38.2894,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15023:4524:74",
+      "r": 150.2294,
+      "c": 45.2396,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15031:4632:75",
+      "r": 150.308,
+      "c": 46.3182,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15029:6130:76",
+      "r": 150.287,
+      "c": 61.2972,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15024:6825:77",
+      "r": 150.2372,
+      "c": 68.2474,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15032:6933:78",
+      "r": 150.3158,
+      "c": 69.326,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15027:7628:79",
+      "r": 150.266,
+      "c": 76.2762,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15129:730:80",
+      "r": 151.2864,
+      "c": 7.2966,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15124:1425:81",
+      "r": 151.2366,
+      "c": 14.2468,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15132:1533:82",
+      "r": 151.3152,
+      "c": 15.3254,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15127:2228:83",
+      "r": 151.2654,
+      "c": 22.2756,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15124:3725:84",
+      "r": 151.2444,
+      "c": 37.2546,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15127:4528:85",
+      "r": 151.2732,
+      "c": 45.2834,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15125:6026:86",
+      "r": 151.2522,
+      "c": 60.2624,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15128:6829:87",
+      "r": 151.281,
+      "c": 68.2912,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15123:7524:88",
+      "r": 151.2312,
+      "c": 75.2414,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15131:7632:89",
+      "r": 151.3098,
+      "c": 76.32,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15225:626:90",
+      "r": 152.2516,
+      "c": 6.2618,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15228:1429:91",
+      "r": 152.2804,
+      "c": 14.2906,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15223:2124:92",
+      "r": 152.2306,
+      "c": 21.2408,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15231:2232:93",
+      "r": 152.3092,
+      "c": 22.3194,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15229:3730:94",
+      "r": 152.2882,
+      "c": 37.2984,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15224:4425:95",
+      "r": 152.2384,
+      "c": 44.2486,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15232:4533:96",
+      "r": 152.317,
+      "c": 45.3272,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15222:5923:97",
+      "r": 152.2174,
+      "c": 59.2276,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15230:6031:98",
+      "r": 152.296,
+      "c": 60.3062,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "grass:15228:7529:99",
+      "r": 152.275,
+      "c": 75.2852,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "puddle:16300:800:100",
+      "r": 163,
+      "c": 8,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "puddle:16300:2200:101",
+      "r": 163,
+      "c": 22,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "puddle:16200:5600:102",
+      "r": 162,
+      "c": 56,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "float_ring:16800:5000:103",
+      "r": 168,
+      "c": 50,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    },
+    {
+      "id": "big_palm:15420:7400:104",
+      "r": 154.2,
+      "c": 74,
+      "angle": 0,
+      "deleted": false,
+      "added": false
+    }
+  ],
+  "buildingMoves": [],
+  "deletedBuildings": []
+}

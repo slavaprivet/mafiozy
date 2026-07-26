@@ -122,6 +122,17 @@
             "timeout": 10000
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "printf '%s' '[ROUTING] Goal: save Opus limits. Begin every real work task with a one-line Russian routing tag using one of FOUR levels: light, medium, hard, very-hard. LIGHT and MEDIUM: do NOT ask the user, automatically delegate to the cheap external model by running quick.py via Bash (python quick.py for answers, python quick.py -e ... --yes for edits), then verify and relay the result. HARD and VERY-HARD: handle on Opus yourself. If the task needs this conversation context, handle it yourself. Never ask permission to route. Skip the tag only for greetings, thanks, or chit-chat.'",
+            "timeout": 5000,
+            "statusMessage": "routing tag"
+          }
+        ]
       }
     ],
     "SessionStart": [

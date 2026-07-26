@@ -387,6 +387,7 @@ body {
 .biz-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .biz-btn.collect { background: linear-gradient(180deg, #4caf50, #388e3c); color: #fff; }
 .biz-btn.restore { background: linear-gradient(180deg, #ff7043, #d84315); color: #fff; }
+.biz-btn.upgrade { background: linear-gradient(180deg, #72a7ff, #315fbd); color: #fff; }
 .biz-status-badge {
   font-size: 11px;
   font-weight: 700;
@@ -2322,8 +2323,41 @@ function renderStatusBar(){
     }
     sb.appendChild(chip);
   }
+  // Живой контроль районов открытого мира.
+  {
+    const chip = document.createElement('div');
+    const st = _districtControlStatus;
+    const rows = Array.isArray(st.districts) ? st.districts : [];
+    chip.className = 'status-chip' + (rows.length ? ' active' : '');
+    const onlineMark = st.online ? '🟢' : '⚫';
+    if (rows.length) {
+      chip.textContent = `${onlineMark} 🏴 ${rows.map(x=>x.name).join(' · ')}`;
+      chip.title = rows.map(x=>{
+        const left=Math.max(0,Number(x.remaining_s)||0),m=Math.floor(left/60),s=Math.floor(left%60);
+        return `${x.name}: ещё ${m}:${s<10?'0':''}${s}`;
+      }).join('\n');
+    } else {
+      chip.textContent = `${onlineMark} 🏳 Районы: не контролирует`;
+      chip.style.opacity = '0.72';
+      chip.title = st.online ? 'Игрок онлайн, контролируемых районов нет' : 'Игрок не в открытом мире и не контролирует районы';
+    }
+    sb.appendChild(chip);
+  }
   // Розыск перенесён в карточку героя (правый верхний угол) — см. renderHeroWanted()
   renderHeroWanted();
+}
+
+let _districtControlStatus = { online:false, controls:false, districts:[] };
+async function refreshDistrictControlStatus(){
+  if (!DATA.uid || !coopApi()) return;
+  try {
+    const r=await fetch(coopApi()+'/world/district_status/'+encodeURIComponent(DATA.uid),{cache:'no-store'});
+    if(!r.ok)return;
+    const j=await r.json();
+    if(!j.ok)return;
+    _districtControlStatus={online:!!j.online,controls:!!j.controls,districts:Array.isArray(j.districts)?j.districts:[]};
+    renderStatusBar();
+  }catch(e){}
 }
 
 // ── EQUIPPED WEAPON chip in hero-card ─────────────────────────────────
@@ -6985,12 +7019,18 @@ async function pollDistrictIncomes() {
     if (!r.ok) return;
     const j = await r.json().catch(()=>({}));
     if (!j.ok || !j.count) return;
+    const lost = (j.items || []).filter(it => it.kind === 'control_lost');
+    if (lost.length && typeof showToast === 'function') {
+      showToast(lost.map(it => `${it.icon||'⚠️'} ${it.name}: ${it.boss_name||'босс'} вернул контроль`).join(' • '),
+                '⚠️', 7500);
+    }
     // Группируем по tid (несколько начислений с одного района)
     const byTid = {};
-    for (const it of (j.items || [])) {
+    for (const it of (j.items || []).filter(it => it.kind !== 'control_lost')) {
       const k = it.tid || '?';
-      if (!byTid[k]) byTid[k] = { name: it.name, icon: it.icon, amount: 0, count: 0 };
+      if (!byTid[k]) byTid[k] = { name: it.name, icon: it.icon, amount: 0, xp: 0, count: 0 };
       byTid[k].amount += (it.amount | 0);
+      byTid[k].xp     += (it.xp | 0);
       byTid[k].count  += 1;
     }
     const parts = [];
@@ -6998,9 +7038,9 @@ async function pollDistrictIncomes() {
     for (const k of Object.keys(byTid)) {
       const v = byTid[k];
       totalAll += v.amount;
-      parts.push(`${v.icon} ${v.name}: +$${v.amount.toLocaleString('ru')}`);
+      parts.push(`${v.icon} ${v.name}: +$${v.amount.toLocaleString('ru')} · +${v.xp} XP`);
     }
-    if (typeof showToast === 'function') {
+    if (parts.length && typeof showToast === 'function') {
       showToast(parts.join(' • '),
                 '💰', 6500);
     }
@@ -7458,6 +7498,8 @@ setTimeout(() => { try { _startNotifyPolling(); } catch(e) {} }, 1000);
 // одно и то же не показывалось дважды.
 setTimeout(() => { try { pollDistrictIncomes(); } catch(e) {} }, 1500);
 setInterval(() => { try { pollDistrictIncomes(); } catch(e) {} }, 60000);
+setTimeout(() => { try { refreshDistrictControlStatus(); } catch(e) {} }, 500);
+setInterval(() => { if (!document.hidden) { try { refreshDistrictControlStatus(); } catch(e) {} } }, 15000);
 
 // Преднаполняем кэш банды по DATA.gang (она прилетает из URL от бота) —
 // чтобы кнопки «В банду» в лобби сразу показывались как «уже добавлен».
@@ -7993,10 +8035,15 @@ async function renderBusinesses() {
       if (st) {
         out.owned         = true;
         out.status        = st.status || 'ok';
+        out.level         = Math.max(1, Math.min(5, +(st.level || 1)));
         out.blocked_until = st.blocked_until || 0;
         // Накопленный доход: middle income / 86400 * elapsed
         const elapsed = Math.max(0, now - (st.last_collect || now));
-        const avg = (b.daily_min + b.daily_max) / 2;
+        const mult = [1,1,1.35,1.75,2.25,3][out.level] || 1;
+        out.daily_min = Math.round(b.daily_min * mult);
+        out.daily_max = Math.round(b.daily_max * mult);
+        out.upgrade_cost = out.level < 5 ? Math.round(b.price * [0,0,.45,.75,1.15,1.70][out.level+1]) : 0;
+        const avg = (out.daily_min + out.daily_max) / 2;
         out.pending = (out.status === 'ok' && (out.blocked_until || 0) <= now)
           ? Math.floor(elapsed * avg / 86400) : 0;
       } else {
@@ -8065,7 +8112,7 @@ function renderBizCard(b) {
     <div class="biz-row">
       <div class="biz-emoji">${b.emoji}</div>
       <div class="biz-info">
-        <div class="biz-name">${b.name} ${badge}</div>
+        <div class="biz-name">${b.name} ${b.owned ? `<span style="color:#8fb8ff;font-size:11px">УР. ${b.level||1}/5</span>` : ''} ${badge}</div>
         <div class="biz-desc">${b.desc}</div>
       </div>
     </div>
@@ -8094,17 +8141,19 @@ function renderBizCard(b) {
     btn.className = 'biz-btn'; btn.disabled = true;
     btn.textContent = '⏳ Ждёт разблокировки';
     actions.appendChild(btn);
-  } else if ((b.pending || 0) > 0) {
-    const btn = document.createElement('button');
-    btn.className = 'biz-btn collect';
-    btn.textContent = `💰 Забрать $${_fmtCash(b.pending)}`;
-    btn.onclick = () => bizCollect(b.id);
-    actions.appendChild(btn);
   } else {
     const btn = document.createElement('button');
-    btn.className = 'biz-btn'; btn.disabled = true;
-    btn.textContent = 'Доход накапливается…';
+    btn.className = 'biz-btn collect'; btn.disabled = (b.pending || 0) <= 0;
+    btn.textContent = (b.pending || 0) > 0 ? `💰 Забрать $${_fmtCash(b.pending)}` : 'Доход копится…';
+    if ((b.pending || 0) > 0) btn.onclick = () => bizCollect(b.id);
     actions.appendChild(btn);
+    if ((b.level || 1) < 5) {
+      const up = document.createElement('button');
+      up.className = 'biz-btn upgrade';
+      up.textContent = `⬆ Ур. ${(b.level||1)+1} · $${_fmtCash(b.upgrade_cost || 0)}`;
+      up.onclick = () => bizUpgrade(b.id);
+      actions.appendChild(up);
+    }
   }
   return card;
 }
@@ -8117,7 +8166,7 @@ async function bizBuy(bizId) {
     if (_demoBizState[bizId]) { showToast('Уже куплен', '⚠️'); return; }
     _demoCash -= b.price;
     DATA.cash  = _demoCash;
-    _demoBizState[bizId] = { status:'ok', blocked_until:0, last_collect: Math.floor(Date.now()/1000) - 3600 };
+    _demoBizState[bizId] = { status:'ok', level:1, blocked_until:0, last_collect: Math.floor(Date.now()/1000) - 3600 };
     showToast('🏢 Бизнес куплен (демо)', '✅');
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     renderBusinesses();
@@ -8138,6 +8187,27 @@ async function bizBuy(bizId) {
     }
     DATA.cash = j.cash;
     showToast('🏢 Бизнес куплен!', '✅');
+    if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
+    renderBusinesses();
+  } catch(e) { showToast(_botDownMsg(), '⚠️', 5000); }
+}
+async function bizUpgrade(bizId) {
+  const b = _bizCatalogCache[bizId]; if (!b) return;
+  if (_isDemo()) {
+    const st = _demoBizState[bizId]; if (!st) return;
+    const level = Math.max(1, +(st.level || 1));
+    if (level >= 5) return;
+    const cost = Math.round(b.price * [0,0,.45,.75,1.15,1.70][level+1]);
+    if (_demoCash < cost) { showToast('Не хватает наличных', '⚠️'); return; }
+    _demoCash -= cost; DATA.cash = _demoCash; st.level = level + 1;
+    showToast(`Бизнес улучшен до ${st.level} уровня`, '⬆'); renderBusinesses(); return;
+  }
+  const api = coopApi() || DATA.api, uid = jobUidStr(); if (!api || !uid) return;
+  try {
+    const res = await fetch(`${api}/biz/${uid}/upgrade`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({biz_id:bizId})});
+    const j = await res.json();
+    if (!j.ok) { showToast(j.error === 'no cash' ? 'Не хватает наличных' : 'Не удалось улучшить', '⚠️'); return; }
+    DATA.cash = j.cash; showToast(`Уровень ${j.level} · доход ×${j.income_multiplier}`, '⬆');
     if (typeof refreshHero === 'function') { try { refreshHero(); } catch(e){} }
     renderBusinesses();
   } catch(e) { showToast(_botDownMsg(), '⚠️', 5000); }
@@ -10335,6 +10405,7 @@ redraw();
 
 // ── SAVE ───────────────────────────────────────────────────────────────────
 function saveChar() {
+  try { if (localStorage.getItem('mafiozi_police_employed') === '1') { alert('👮 Полицейский не может работать без формы. Сначала увольтесь в полицейском участке.'); return; } } catch(e) {}
   const payload = {
     a:      'set_look',
     gender: state.gender,

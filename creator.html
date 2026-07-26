@@ -1216,6 +1216,7 @@ redraw();
 
 // ── SAVE ───────────────────────────────────────────────────────────────────
 function saveChar() {
+  try { if (localStorage.getItem('mafiozi_police_employed') === '1') { alert('👮 Полицейский не может работать без формы. Сначала увольтесь в полицейском участке.'); return; } } catch(e) {}
   const payload = {
     a:      'set_look',
     gender: state.gender,
