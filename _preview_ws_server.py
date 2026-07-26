@@ -87,6 +87,56 @@ PREVIEW_NPC_CAPTURE_COOLDOWN = 2 * 3600
 preview_business_nests = {}
 preview_business_capture_cooldown = {}
 preview_business_next_capture_at = time.time() + 20.0
+PREVIEW_MAJOR_OBJECTS = {
+    "casino": {"r": 46.0, "c": 16.0, "name": "Казино",
+               "boss": "Сальваторе «Фишка» Моретти",
+               "guards": 20, "total": 40, "income": 2400},
+    "market": {"r": 16.0, "c": 16.0, "name": "Рынок",
+               "boss": "Рафаэль «Весы» Конти",
+               "guards": 20, "total": 34, "income": 1200},
+    "factory": {"r": 46.0, "c": 56.0, "name": "Промзона",
+                "boss": "Бруно «Пресс» Ферретти",
+                "guards": 24, "total": 40, "income": 3000},
+    "mansion": {"r": 66.0, "c": 36.0, "name": "Резиденция",
+                "boss": "Дон Эмилио Витале",
+                "guards": 28, "total": 40, "income": 4200},
+    "port": {"r": 165.0, "c": 38.0, "name": "Порт",
+             "boss": "Марко «Якорь» Беллини",
+             "guards": 22, "total": 38, "income": 2600},
+}
+preview_major_raids = {}
+preview_major_owners = {}
+
+
+def preview_major_payload():
+    now = time.time()
+    for object_id, owner in list(preview_major_owners.items()):
+        if float(owner.get("expires_at") or 0) <= now:
+            preview_major_owners.pop(object_id, None)
+    result = {}
+    for object_id, cfg in PREVIEW_MAJOR_OBJECTS.items():
+        owner = preview_major_owners.get(object_id)
+        raid = preview_major_raids.get(object_id)
+        result[object_id] = {
+            "name": cfg["name"], "boss_name": cfg["boss"],
+            "owner_uid": owner.get("owner_uid") if owner else None,
+            "owner_name": owner.get("owner_name") if owner else cfg["boss"],
+            "expires_in": max(
+                0, int(float(owner.get("expires_at") or 0) - now)
+            ) if owner else 0,
+            "income": int(cfg["income"]),
+            "raid": ({
+                "phase": raid.get("phase"),
+                "participant_uids": list(raid.get("participants") or []),
+                "alive": sum(
+                    1 for guard in raid.get("guards", [])
+                    if guard.get("alive")),
+                "spawned": int(raid.get("spawned") or 0),
+                "total": int(cfg["total"]),
+                "pressure": int(raid.get("pressure") or 0),
+            } if raid else None),
+        }
+    return result
 
 
 def preview_bandit_bot(bot_id, x, y, kind="aggro_grunt", weapon="pistol_heavy", hp=100, level=None):
@@ -2063,6 +2113,7 @@ def snap(uid):
             "event": None,
             "territories": {},
             "active_captures": {},
+            "major_objects": preview_major_payload(),
             "aggro": preview_aggro_payload(),
             "quest_cars": race_car_payload(),
             "dropped_bags": [{
@@ -2406,6 +2457,22 @@ async def world_ws(req):
                 interior = d.get("interior") if isinstance(d.get("interior"), dict) else None
                 biz_id = str((interior or {}).get("biz_id") or "")[:32]
                 interior_kind = str((interior or {}).get("kind") or "")
+                major_id = str((interior or {}).get("object_id") or "")[:24]
+                if interior_kind == "major" and major_id in PREVIEW_MAJOR_OBJECTS:
+                    p["major_interior"] = major_id
+                    p.pop("business_interior", None)
+                    p.pop("business_private", None)
+                    p["interior_x"] = max(
+                        0.0, min(60.0, float(interior.get("x", 0))))
+                    p["interior_y"] = max(
+                        0.0, min(60.0, float(interior.get("y", 0))))
+                    p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
+                    p["walking"] = bool(d.get("w", False))
+                    p["weapon"] = str(
+                        d.get("weapon") or p.get("weapon") or "pistol")[:32]
+                    p["in_interior"] = True
+                    continue
+                p.pop("major_interior", None)
                 if interior_kind == "business" and biz_id:
                     p["business_interior"] = biz_id
                     p["business_private"] = biz_id in preview_owned_businesses(uid)
@@ -2860,6 +2927,186 @@ async def world_ws(req):
                 await ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_hire_reply",
                     "ok":ok,"bot_id":target_id,"is_boss":bool(found),
                     "reason":"district_defender" if found else "gone"}}, ensure_ascii=False))
+            elif t == "major_assault_start":
+                object_id = str(d.get("object_id") or "")[:24]
+                cfg = PREVIEW_MAJOR_OBJECTS.get(object_id)
+                actor = players.get(uid) or {}
+                owner = preview_major_owners.get(object_id)
+                raid = preview_major_raids.get(object_id)
+                was_existing = bool(raid)
+                if not cfg:
+                    reply = {"kind": "major_assault_reply", "ok": False,
+                             "reason": "bad_object"}
+                elif actor.get("police") or not actor.get("mafia"):
+                    reply = {"kind": "major_assault_reply", "ok": False,
+                             "reason": "mafia_only", "object_id": object_id}
+                elif math.hypot(
+                        float(actor.get("x", 0)) - float(cfg["c"]),
+                        float(actor.get("y", 0)) - float(cfg["r"])) > 7.0:
+                    reply = {"kind": "major_assault_reply", "ok": False,
+                             "reason": "too_far", "object_id": object_id}
+                elif owner and float(owner.get("expires_at") or 0) > time.time():
+                    reply = {
+                        "kind": "major_assault_reply", "ok": False,
+                        "reason": "protected", "object_id": object_id,
+                        "owner_name": owner.get("owner_name"),
+                        "expires_in": int(owner["expires_at"] - time.time()),
+                    }
+                elif raid and str(uid) not in raid.get("participants", set()):
+                    reply = {"kind": "major_assault_reply", "ok": False,
+                             "reason": "busy", "object_id": object_id,
+                             "by_name": raid.get("by_name")}
+                else:
+                    if not raid:
+                        participants = {
+                            str(player_uid) for player_uid, player in players.items()
+                            if player.get("mafia") and not player.get("police")
+                            and not player.get("dead")
+                            and math.hypot(
+                                float(player.get("x", 0)) -
+                                float(actor.get("x", 0)),
+                                float(player.get("y", 0)) -
+                                float(actor.get("y", 0))) <= 10.0
+                        }
+                        participants.add(str(uid))
+                        guards = [{
+                            "id": f"preview_major_{object_id}_{i}",
+                            "hp": 140 if i < 4 else 100,
+                            "max_hp": 140 if i < 4 else 100,
+                            "alive": True, "weapon": "pistol_heavy",
+                            "wave": 1, "slot": i,
+                        } for i in range(int(cfg["guards"]))]
+                        raid = {
+                            "object_id": object_id, "by_uid": str(uid),
+                            "by_name": actor.get("name", "Demo"),
+                            "participants": participants, "phase": "guards",
+                            "guards": guards, "spawned": len(guards),
+                            "pressure": 0,
+                            "safes": [{
+                                "id": f"{object_id}_safe_{i + 1}",
+                                "opened": False, "value": 250 * (i + 1),
+                            } for i in range(
+                                4 if object_id == "mansion" else 3)],
+                        }
+                        preview_major_raids[object_id] = raid
+                    reply = {
+                        "kind": "major_assault_reply", "ok": True,
+                        "resume": was_existing,
+                        "object_id": object_id, "phase": raid["phase"],
+                        "guards": [dict(guard) for guard in raid["guards"]
+                                   if guard.get("alive")],
+                        "total": int(cfg["total"]), "boss_name": cfg["boss"],
+                        "participants": list(raid["participants"]),
+                        "safes": [dict(safe) for safe in raid["safes"]],
+                    }
+                await broadcast_event(reply)
+            elif t == "major_guard_hit":
+                object_id = str(d.get("object_id") or "")[:24]
+                guard_id = str(d.get("guard_id") or "")[:64]
+                raid = preview_major_raids.get(object_id)
+                cfg = PREVIEW_MAJOR_OBJECTS.get(object_id)
+                actor = players.get(uid) or {}
+                guard = next((
+                    row for row in (raid or {}).get("guards", [])
+                    if row.get("id") == guard_id and row.get("alive")), None)
+                if (not raid or not cfg
+                        or str(uid) not in raid.get("participants", set())
+                        or actor.get("major_interior") != object_id):
+                    reply = {"kind": "major_guard_hit", "ok": False,
+                             "reason": "not_participant",
+                             "object_id": object_id}
+                elif not guard:
+                    reply = {"kind": "major_guard_hit", "ok": False,
+                             "reason": "bad_target", "object_id": object_id}
+                else:
+                    damage = max(1, min(90, int(d.get("damage") or 34)))
+                    guard["hp"] = max(0, int(guard["hp"]) - damage)
+                    new_guard = None
+                    if guard["hp"] <= 0:
+                        guard["alive"] = False
+                        if int(raid["spawned"]) < int(cfg["total"]):
+                            slot = int(raid["spawned"])
+                            new_guard = {
+                                "id": f"preview_major_{object_id}_{slot}",
+                                "hp": 110, "max_hp": 110, "alive": True,
+                                "weapon": "pistol_heavy",
+                                "wave": 2 + slot // 10, "slot": slot,
+                            }
+                            raid["guards"].append(new_guard)
+                            raid["spawned"] = slot + 1
+                        elif not any(row.get("alive")
+                                     for row in raid["guards"]):
+                            raid["phase"] = "boss"
+                    reply = {
+                        "kind": "major_guard_hit", "ok": True,
+                        "object_id": object_id, "guard_id": guard_id,
+                        "hp": guard["hp"], "alive": guard["alive"],
+                        "new_guard": new_guard, "spawned": raid["spawned"],
+                        "phase": raid["phase"],
+                    }
+                await broadcast_event(reply)
+            elif t == "major_boss_pressure":
+                object_id = str(d.get("object_id") or "")[:24]
+                raid = preview_major_raids.get(object_id)
+                cfg = PREVIEW_MAJOR_OBJECTS.get(object_id)
+                actor = players.get(uid) or {}
+                if (not raid or not cfg or raid.get("phase") != "boss"
+                        or str(uid) not in raid.get("participants", set())
+                        or actor.get("major_interior") != object_id):
+                    reply = {"kind": "major_boss_pressure", "ok": False,
+                             "reason": "guards_alive",
+                             "object_id": object_id}
+                else:
+                    raid["pressure"] = min(
+                        100, int(raid.get("pressure") or 0) + 20)
+                    captured = raid["pressure"] >= 100
+                    reply = {
+                        "kind": "major_boss_pressure", "ok": True,
+                        "object_id": object_id,
+                        "pressure": raid["pressure"],
+                        "phrase": ("Объект ваш!" if captured
+                                   else "Я ничего вам не отдам!"),
+                        "captured": captured,
+                    }
+                    if captured:
+                        preview_major_owners[object_id] = {
+                            "owner_uid": str(uid),
+                            "owner_name": actor.get("name", "Demo"),
+                            "expires_at": time.time() + 3600,
+                        }
+                        preview_major_raids.pop(object_id, None)
+                        reply.update({
+                            "owner_name": actor.get("name", "Demo"),
+                            "income": int(cfg["income"]),
+                            "expires_in": 3600,
+                        })
+                await broadcast_event(reply)
+            elif t == "major_safe_open":
+                object_id = str(d.get("object_id") or "")[:24]
+                safe_id = str(d.get("safe_id") or "")[:64]
+                raid = preview_major_raids.get(object_id)
+                safe = next((
+                    row for row in (raid or {}).get("safes", [])
+                    if row.get("id") == safe_id), None)
+                if (not raid or raid.get("phase") != "boss"
+                        or str(uid) not in raid.get("participants", set())
+                        or not safe or safe.get("opened")):
+                    reply = {
+                        "kind": "major_safe_open", "ok": False,
+                        "reason": "guards_alive" if raid else "not_participant",
+                        "object_id": object_id, "safe_id": safe_id,
+                    }
+                else:
+                    safe["opened"] = True
+                    value = int(safe.get("value") or 0)
+                    preview_account(uid)["cash"] += value
+                    reply = {
+                        "kind": "major_safe_open", "ok": True,
+                        "object_id": object_id, "safe_id": safe_id,
+                        "value": value,
+                        "awards": [{"uid": str(uid), "amount": value}],
+                    }
+                await broadcast_event(reply)
             elif t == "aggro_shoot":
                 target_id = str(d.get("target") or "")
                 shooter = players.get(uid) or {}

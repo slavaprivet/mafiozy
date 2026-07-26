@@ -4849,6 +4849,56 @@ const POI = [
 ];
 const POI_BY_RC = new Map();   // ключ "r,c" → POI
 POI.forEach(p => POI_BY_RC.set(p.r + ',' + p.c, p));
+const MAJOR_OBJECT_IDS = new Set(['casino','market','factory','mansion','port']);
+let _majorObjectsState = {};
+let _majorInteriorObjectId = null;
+let _majorRaidLocal = null;
+
+function _syncMajorAssaultStart(d) {
+  if (Array.isArray(d.participants) &&
+      !d.participants.map(String).includes(String(QP.uid))) return;
+  if (!_buildingInt || _majorInteriorObjectId !== d.object_id) {
+    if (_buildingInt) return;
+    const poi = POI.find(p => p.id === d.object_id);
+    if (!poi) return;
+    _majorInteriorObjectId = d.object_id;
+    enterBuildingInterior(poi.r, poi.c, 'business', `major_${d.object_id}`,
+      { majorObjectId:d.object_id });
+  }
+  _majorRaidLocal = {
+    objectId:d.object_id,
+    phase:d.phase || 'guards',
+    spawned:(d.guards || []).length,
+    safes:(d.safes || []).map((safe, i) => ({
+      ...safe,
+      r:d.object_id === 'casino' ? 23 + i * 2.6 : 7 + (i % 2) * 3,
+      c:d.object_id === 'casino' ? 38 + (i % 2) * 2 : _buildingInt.W - 6 - (i % 2) * 4,
+    })),
+  };
+  const H = _buildingInt.H, W = _buildingInt.W;
+  _buildingInt.npcs = (d.guards || []).map((g, i) => ({
+    id:g.id, majorGuard:true, hp:g.hp || 100, maxHp:g.max_hp || 100,
+    weapon:g.weapon || 'pistol',
+    r:4 + (i % 7) * Math.max(2.4, (H - 8) / 7),
+    c:3 + (Math.floor(i / 7) % 5) * Math.max(4.4, (W - 8) / 5),
+    tr:4 + (i % 7) * Math.max(2.4, (H - 8) / 7),
+    tc:3 + (Math.floor(i / 7) % 5) * Math.max(4.4, (W - 8) / 5),
+    ang:Math.PI, walkPhase:0, walking:false, name:'Охрана', role:'guard',
+    fixed:false, hostile:true,
+    look:{gender:0,skin:1+(i%3),body:1+(i%2),face:i%4,hair:i%5,hat:2,suit:'#171b24'},
+    idleUntil:performance.now()+Math.random()*800, speed:1.15,
+  }));
+}
+
+function _nearestMajorObject(radius = 3.2) {
+  let best = null, bestD = radius;
+  for (const poi of POI) {
+    if (!MAJOR_OBJECT_IDS.has(poi.id)) continue;
+    const dist = Math.hypot(player.r - poi.r, player.c - poi.c);
+    if (dist < bestD) { best = poi; bestD = dist; }
+  }
+  return best;
+}
 
 // PVP-зона — квадрат 8×8 вокруг POI «арена»
 const ARENA_POI = POI.find(p => p.id === 'arena');
@@ -14307,7 +14357,83 @@ function handleEventPacket(d) {
       }
     }
   }
-  else if (kind === 'inkassator_spawned') {
+  else if (kind === 'major_assault_reply') {
+    if (d.ok) {
+      _syncMajorAssaultStart(d);
+      showEventBanner('🚨 ШТУРМ НАЧАТ',
+        `${d.boss_name || 'Главарь'} поднял охрану · бойцов до ${d.total || 40}`,
+        4200, 'spawn');
+    } else {
+      const why = d.reason === 'protected'
+        ? `${d.owner_name || 'Владелец'} контролирует объект ещё ${Math.ceil((d.expires_in || 0) / 60)} мин.`
+        : d.reason === 'busy'
+          ? `Штурм уже ведёт ${d.by_name || 'другая команда'}`
+          : d.reason === 'mafia_only'
+            ? 'Штурм доступен только членам мафии'
+            : 'Штурм сейчас недоступен';
+      showEventBanner('⛔ ШТУРМ НЕДОСТУПЕН', why, 3600, 'lose');
+    }
+  } else if (kind === 'major_guard_hit' && d.ok &&
+             _majorRaidLocal?.objectId === d.object_id) {
+    const npc = (_buildingInt?.npcs || []).find(n => n.id === d.guard_id);
+    if (npc) { npc.hp = d.hp; npc.dead = !d.alive; }
+    if (d.new_guard && _buildingInt) {
+      const g = d.new_guard, i = d.spawned || 20;
+      _buildingInt.npcs.push({
+        id:g.id, majorGuard:true, hp:g.hp, maxHp:g.max_hp,
+        weapon:g.weapon || 'pistol', r:3, c:3+(i%5)*5,
+        tr:5+(i%5)*2.8, tc:4+(i%4)*6, ang:Math.PI,
+        walkPhase:0, walking:false, name:'Подкрепление', role:'guard',
+        fixed:false, hostile:true,
+        look:{gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%5,hat:2,suit:'#241923'},
+        idleUntil:performance.now()+300, speed:1.25,
+      });
+    }
+    _majorRaidLocal.phase = d.phase || _majorRaidLocal.phase;
+    if (d.phase === 'boss' && _buildingInt &&
+        !_buildingInt.npcs.some(n => n.majorBoss)) {
+      const bossName = BUSINESS_INTERIORS[`major_${d.object_id}`]?.manager || 'Главарь';
+      _buildingInt.npcs.push({
+        id:`major_boss_${d.object_id}`, majorBoss:true,
+        r:4, c:_buildingInt.W-5, tr:4, tc:_buildingInt.W-5,
+        ang:Math.PI, walkPhase:0, walking:false, name:bossName, role:'manager',
+        fixed:true, hp:200, maxHp:200,
+        look:{gender:0,skin:1,body:2,face:3,hair:2,hat:3,suit:'#411b20'},
+        idleUntil:performance.now()+999999, speed:0,
+      });
+      showEventBanner('ГЛАВАРЬ ОСТАЛСЯ ОДИН',
+        'Стреляй рядом с ним, чтобы повышать давление', 3600, 'win');
+    }
+  } else if (kind === 'major_income') {
+    const mine = (d.awards || []).find(a => String(a.uid) === String(QP.uid));
+    if (mine) {
+      if (mine.new_cash != null) { myCash=mine.new_cash; QP.cash=mine.new_cash; updateMoneyHud(); }
+      showToast(`${d.name}: доход +$${mine.amount}`, '💵', 2500);
+    }
+  } else if (kind === 'major_control_lost') {
+    pushFeedEvent('⌛', `${d.name}: срок контроля ${d.owner_name || 'владельца'} закончился`,
+      {accent:'#d7b35c'});
+  } else if (kind === 'major_safe_open') {
+    if (d.ok) {
+      const safe = (_majorRaidLocal?.safes || []).find(s => s.id === d.safe_id);
+      if (safe) safe.opened = true;
+      const mine = (d.awards || []).find(a => String(a.uid) === String(QP.uid));
+      showEventBanner('СЕЙФ ВСКРЫТ',
+        `Добыча $${d.value || 0}${mine ? ` · твоя доля $${mine.amount}` : ''}`,
+        3000, 'win');
+    } else if (d.reason !== 'already_open') {
+      showToast(d.reason === 'guards_alive' ? 'Сначала уничтожь охрану' : 'Сейф недоступен',
+        '🔒', 1800);
+    }
+  } else if (kind === 'major_boss_pressure' && d.ok) {
+    showToast(`${d.phrase || 'Главарь нервничает'} · давление ${d.pressure}%`, '🕴️', 2400);
+    if (d.captured) {
+      _majorRaidLocal = null;
+      showEventBanner('ОБЪЕКТ ЗАХВАЧЕН',
+        `${d.owner_name} контролирует его 60 минут · доход $${d.income}`,
+        5200, 'win');
+    }
+  } else if (kind === 'inkassator_spawned') {
     // Глобально — в ленту (а не центральным баннером). Игрок видит
     // стрелку-указатель на инкассатора через drawEventArrow.
     pushFeedEvent('🚨', `Инкассатор выехал — куш $${d.reward||500}`,
@@ -16427,6 +16553,21 @@ function wsConnect() {
         _gangNestsSnapshotReady = true;
         _applyLiveBusinessOccupations();
       }
+  if (d.major_objects !== undefined) {
+    _majorObjectsState = {};
+    const majorPayload = d.major_objects || {};
+    if (Array.isArray(majorPayload)) {
+      for (const obj of majorPayload) {
+        if (obj && obj.id) _majorObjectsState[obj.id] = obj;
+      }
+    } else {
+      for (const [id, obj] of Object.entries(majorPayload)) {
+        if (obj && typeof obj === 'object') {
+          _majorObjectsState[id] = { id, ...obj };
+        }
+      }
+    }
+  }
       if (d.box_quest !== undefined) {
         myBoxStatus.active = d.box_quest || null;
       }
@@ -17541,6 +17682,18 @@ function updateRobbery(now) {
 // Клик «🔪 Ограбить»
 if (_robBtn) {
   _robBtn.addEventListener('click', () => {
+    if (_robBtn._majorAssaultId) {
+      const objectId = _robBtn._majorAssaultId;
+      if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({t:'major_assault_start',d:{object_id:objectId}}));
+        _robBtn.disabled = true;
+        showToast('Охрана поднимается. Входим внутрь…', '⚔️', 1600);
+        setTimeout(() => { if (_robBtn) _robBtn.disabled = false; }, 1800);
+      } else {
+        showToast('Нет связи с городом', '❌', 1800);
+      }
+      return;
+    }
     if (_robBtn._buySprayCan) {
       if(!ws||ws.readyState!==1){showToast('🌐 Сервер не отвечает','⚠️',1600);return;}
       ws.send(JSON.stringify({t:'spray_can_buy',d:{}}));
@@ -17596,6 +17749,7 @@ function playEnterCarAnim(r, c) {
 function updateGtaInteractions() {
   _gtaActionBagCarRef = null;
   _gtaBtn.classList.remove('biz-pressure-action');
+  if (_robBtn) _robBtn._majorAssaultId = null;
   _updatePoliceStealthButton();
   // Кнопка ручника — видна только за рулём (не пассажир)
   const _activeVehicle=myDrivingCarId?questCars.get(myDrivingCarId):null;
@@ -17616,7 +17770,16 @@ function updateGtaInteractions() {
   if (_buildingInt) {
     _handbrakeBtn.style.display = 'none';
     _policeSirenBtn.style.display = 'none';
-    if (_buildingInt.type === 'business') {
+    if (_majorInteriorObjectId && _majorRaidLocal?.phase === 'boss') {
+      const safe = (_majorRaidLocal.safes || []).find(s => !s.opened &&
+        Math.hypot(player.r-s.r, player.c-s.c) < 2.4);
+      if (safe) {
+        _gtaActionKind='major_safe'; _gtaActionCarId=safe.id;
+        _gtaBtn.textContent=`🔓 Вскрыть сейф · $${safe.value || 0}`;
+        _gtaBtn.style.display='block'; return;
+      }
+    }
+    if (_buildingInt.type === 'business' && !_majorInteriorObjectId) {
       const currentOwn = myBusinesses.get(_buildingInt.bizId);
       // Ownership always wins over a stale robbery state. This can happen
       // when a business is bought or its state is refreshed while its old
@@ -18338,6 +18501,25 @@ function updateGtaInteractions() {
       return;
     }
   }
+  const majorPoi = _nearestMajorObject();
+  if (majorPoi && !myDrivingCarId && !myDead) {
+    const state = _majorObjectsState[majorPoi.id] || {};
+    if (_robBtn) {
+      _robTargetBiz = null;
+      _robBtn._buySprayCan = false;
+      _robBtn._taxiHijack = false;
+      _robBtn._graffitiR = null; _robBtn._graffitiC = null;
+      _robBtn._majorAssaultId = majorPoi.id;
+      _robBtn.textContent = state.owner_uid
+        ? `⚔️ Оспорить контроль: ${majorPoi.name}`
+        : `⚔️ Штурмовать: ${majorPoi.name}`;
+      _robBtn.style.display = 'block';
+    }
+    _gtaActionKind = null;
+    _gtaActionCarId = null;
+    _gtaBtn.style.display = 'none';
+    return;
+  }
   // Гражданская тачка из трафика — можно угнать как в GTA. Игнорируем
   // полицию, горящие/повреждённые. В тюрьме угон запрещён.
   if (myJailIn > 0) { _gtaActionKind = null; _gtaBtn.style.display = 'none'; return; }
@@ -18457,6 +18639,12 @@ _gtaBtn.addEventListener('click', () => {
     showBuyBizConfirm(_gtaActionCarId);
   } else if (_gtaActionKind === 'biz_collect') {
     collectBusinessHere(_gtaActionCarId);
+  } else if (_gtaActionKind === 'major_safe') {
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({t:'major_safe_open',d:{
+        object_id:_majorInteriorObjectId, safe_id:_gtaActionCarId,
+      }}));
+    }
   } else if (_gtaActionKind === 'biz_info') {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'biz_manage') {
@@ -23148,8 +23336,10 @@ function sendInput() {
     };
   } else if (_buildingInt) {
     inputData.interior = {
-      kind: _buildingInt.type === 'business' ? 'business' : 'building',
+      kind: _majorInteriorObjectId ? 'major' :
+        (_buildingInt.type === 'business' ? 'business' : 'building'),
       biz_id: _buildingInt.bizId || undefined,
+      object_id: _majorInteriorObjectId || undefined,
       x: +player.c.toFixed(2), y: +player.r.toFixed(2),
     };
   }
@@ -23323,7 +23513,8 @@ function _hasDistrictMission(){return !!(_myDistrictObjective||_myActiveDistrict
 function _activeMissionCount(){
   return _myDistrictMissionCount()+
     (myBoxStatus?.active?1:0)+
-    (myGtaStatus?.active?1:0);
+    (myGtaStatus?.active?1:0)+
+    (_majorRaidLocal?1:0);
 }
 function _renderMissions(){
   if(!_missionsBody)return;
@@ -23350,6 +23541,13 @@ function _renderMissions(){
     const d=DISTRICTS.find(x=>x.id===did);
     const phase=String(_myDistrictObjective?.phase||district?.op?.phase||'операция идёт').replaceAll('_',' ');
     cards.push(`<article class="mission-item active"><h3>🏴 Захват района${d?`: ${_missionEsc(d.name)}`:''}</h3><p>Этап: ${_missionEsc(phase)}</p><p>Метка задания останется на карте, пока операция не завершена.</p><button type="button" data-mission-action="district-route">🗺️ Показать цель</button></article>`);
+  }
+  if (_majorRaidLocal) {
+    const cfg = BUSINESS_INTERIORS[`major_${_majorRaidLocal.objectId}`];
+    const phase = _majorRaidLocal.phase === 'boss'
+      ? 'Охрана уничтожена — сломи главаря и вскрой сейфы.'
+      : 'Зачисти охрану объекта. Подкрепление может прибывать волнами.';
+    cards.push(`<article class="mission-item active"><h3>⚔️ Штурм: ${_missionEsc(cfg?.title || _majorRaidLocal.objectId)}</h3><p>${phase}</p><p>После победы объект будет приносить мафии временный доход.</p></article>`);
   }
   const owned=_myOwnedDistricts();
   if(owned.length)cards.push(`<article class="mission-item"><h3>👑 Контролируемые районы: ${owned.length}</h3><p>Доход, опыт и оставшееся время контроля.</p><button type="button" data-mission-action="district-info">Открыть сведения</button></article>`);
@@ -29014,6 +29212,13 @@ const BUSINESS_INTERIORS = {
   casino:     { floor:['#4c1828','#401321'], wall:'#210916', accent:'#ffd24b', title:'Казино', manager:'Директор Сальваторе', staff:['Крупье','Игрок','Охранник','Хостес'], props:['roulette','blackjack','slots','cashier'] },
   port:       { floor:['#4f6068','#45555d'], wall:'#23343c', accent:'#ff9a3c', title:'Порт', manager:'Капитан Риццо', staff:['Докер','Диспетчер','Грузчик'], props:['containers','crates','barrels','radio'] },
 };
+Object.assign(BUSINESS_INTERIORS, {
+  major_casino:  {floor:['#3b1025','#26091a'],wall:'#160714',accent:'#ffd24b',title:'GRAND CASINO',manager:'Сальваторе Беллини',staff:['Крупье','Игрок','Охранник','Хостес'],props:['roulette','blackjack','slots','cashier']},
+  major_market:  {floor:['#66513a','#55412e'],wall:'#302115',accent:'#f0bd55',title:'ЦЕНТРАЛЬНЫЙ РЫНОК',manager:'Риккардо Торри',staff:['Торговец','Грузчик','Охранник'],props:['racks','crates','cashier','tables']},
+  major_factory: {floor:['#454b50','#373d42'],wall:'#20262b',accent:'#ff8b36',title:'ПРОМЗОНА',manager:'Борис Шлак',staff:['Рабочий','Механик','Охранник'],props:['racks','crates','forklift','tools']},
+  major_mansion: {floor:['#d5c39d','#c6b28a'],wall:'#5a4635',accent:'#e7c15f',title:'РЕЗИДЕНЦИЯ',manager:'Дон Витторио',staff:['Дворецкий','Гость','Охранник'],props:['tables','booths','cashier','roulette']},
+  major_port:    {floor:['#4f6068','#45555d'],wall:'#23343c',accent:'#ff9a3c',title:'ГРУЗОВОЙ ПОРТ',manager:'Капитан Риццо',staff:['Докер','Диспетчер','Охранник'],props:['containers','crates','barrels','radio']},
+});
 // Быстрый поиск бизнеса по тайлу (r,c) — для рендера уникальных зданий.
 const BUSINESS_BY_RC = new Map();
 BUSINESS_POIS.forEach(b => BUSINESS_BY_RC.set(b.r + ',' + b.c, b));
@@ -43121,6 +43326,27 @@ function _raycastInteriorNpc(sR, sC, dirY, dirX, range) {
 
 function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon) {
   if (!npc || npc.dead || !_buildingInt) return;
+  if (_majorInteriorObjectId && npc.majorGuard) {
+    npc._hurtAnimUntil = performance.now() + 420;
+    try {
+      ws && ws.readyState === 1 && ws.send(JSON.stringify({
+        t:'major_guard_hit',
+        d:{object_id:_majorInteriorObjectId, guard_id:npc.id,
+           damage:Math.max(1, Math.round(damage || 1))},
+      }));
+    } catch(e) {}
+    return;
+  }
+  if (_majorInteriorObjectId && npc.majorBoss) {
+    npc._hurtAnimUntil = performance.now() + 420;
+    try {
+      ws && ws.readyState === 1 && ws.send(JSON.stringify({
+        t:'major_boss_pressure',
+        d:{object_id:_majorInteriorObjectId},
+      }));
+    } catch(e) {}
+    return;
+  }
   const robbery = _buildingInt.type==='business' && _buildingInt.robbery;
   if (robbery) {
     if (!_buildingInt._aggroReported) {
@@ -43381,6 +43607,31 @@ function _drawBusinessInterior(bi) {
     else if(owner){const pressure=Math.max(0,Math.min(100,100-owner.hp));ctx.fillStyle='#ddd';ctx.fillText(`ДАВЛЕНИЕ НА ВЛАДЕЛЬЦА · ${Math.round(pressure)}%`,SW/2,72);ctx.fillStyle='#28131a';ctx.fillRect(SW/2-108,82,216,11);ctx.fillStyle=pressure>=70?'#ff3f4f':'#f29a3d';ctx.fillRect(SW/2-106,84,212*pressure/100,7);}
     ctx.restore();
   }
+  if (_majorInteriorObjectId && _majorRaidLocal) {
+    for (const safe of (_majorRaidLocal.safes || [])) {
+      const p = w2s(safe.r+.5, safe.c+.5);
+      ctx.save();
+      ctx.textAlign='center';
+      ctx.font='26px "Segoe UI Emoji"';
+      ctx.globalAlpha=safe.opened?.38:1;
+      ctx.shadowColor=safe.opened?'#333':'#ffd44f';
+      ctx.shadowBlur=safe.opened?0:12;
+      ctx.fillText(safe.opened?'🔓':'🔒',p.x,p.y-18);
+      ctx.font='900 10px system-ui';
+      ctx.fillStyle=safe.opened?'#89909d':'#ffe28a';
+      ctx.fillText(safe.opened?'ПУСТО':`СЕЙФ · $${safe.value||0}`,p.x,p.y+2);
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.textAlign='center';
+    ctx.font='900 12px system-ui';
+    ctx.fillStyle='#ffd86b';
+    const remaining=(bi.npcs||[]).filter(n=>n.majorGuard&&!n.dead).length;
+    ctx.fillText(_majorRaidLocal.phase==='boss'
+      ? 'ГЛАВАРЬ У ЦЕЛИ · СЛОМИ ЕГО СОПРОТИВЛЕНИЕ'
+      : `ШТУРМ · ОХРАНЫ В ЗДАНИИ: ${remaining}`,SW/2,72);
+    ctx.restore();
+  }
 }
 
 // ── GENERIC BUILDING INTERIOR (обычные здания MAP[r][c]===1) ─────
@@ -43420,6 +43671,9 @@ function _showLootBanner(amount) {
 function enterBuildingInterior(r, c, type, bizId = null, options = null) {
   if (_buildingInt || _bankInt || myDead || myDrivingCarId) return;
   _captureWorldBeforeInterior();
+  const majorObjectId = options?.majorObjectId ||
+    (typeof bizId === 'string' && bizId.startsWith('major_') ? bizId.slice(6) : null);
+  _majorInteriorObjectId = majorObjectId || null;
   const isBM = type === 'blackmarket';
   const isThemed = ['blackmarket','job','gym','hospital','police_st','mafia_hq','business'].includes(type);
   const _sizes = { blackmarket:[10,8], job:[12,9], gym:[14,10], hospital:[14,10], police_st:[18,14], mafia_hq:[18,14], business:[18,13] };
@@ -43427,6 +43681,9 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
   if (type === 'business' && BUSINESS_ROB_TIERS[bizId]) {
     const tier = BUSINESS_ROB_TIERS[bizId] || {guards:2,w:18,h:13};
     biW = tier.w; biH = tier.h;
+  }
+  if (majorObjectId) {
+    [biW, biH] = majorObjectId === 'casino' ? [44,32] : [34,24];
   }
   const seed = ((r * 73 + c * 131) % 97) / 97;
   const isOwnedBusiness = type === 'business' && !!myBusinesses.get(bizId)?.owned;
@@ -43486,6 +43743,8 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
 function exitBuildingInterior() {
   if (!_buildingInt) return;
   const bi = _buildingInt; _buildingInt = null;
+  _majorInteriorObjectId = null;
+  _majorRaidLocal = null;
   player.r = bi.r + 1.5; player.c = bi.c + 0.5;
   if (bi.type === 'police_st' && _policeState?.escort && !_policeState.escort._submitted) {
     _policeState.escort.r = player.r + .7; _policeState.escort.c = player.c + .7;
