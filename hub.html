@@ -2322,8 +2322,41 @@ function renderStatusBar(){
     }
     sb.appendChild(chip);
   }
+  // Живой контроль районов открытого мира.
+  {
+    const chip = document.createElement('div');
+    const st = _districtControlStatus;
+    const rows = Array.isArray(st.districts) ? st.districts : [];
+    chip.className = 'status-chip' + (rows.length ? ' active' : '');
+    const onlineMark = st.online ? '🟢' : '⚫';
+    if (rows.length) {
+      chip.textContent = `${onlineMark} 🏴 ${rows.map(x=>x.name).join(' · ')}`;
+      chip.title = rows.map(x=>{
+        const left=Math.max(0,Number(x.remaining_s)||0),m=Math.floor(left/60),s=Math.floor(left%60);
+        return `${x.name}: ещё ${m}:${s<10?'0':''}${s}`;
+      }).join('\n');
+    } else {
+      chip.textContent = `${onlineMark} 🏳 Районы: не контролирует`;
+      chip.style.opacity = '0.72';
+      chip.title = st.online ? 'Игрок онлайн, контролируемых районов нет' : 'Игрок не в открытом мире и не контролирует районы';
+    }
+    sb.appendChild(chip);
+  }
   // Розыск перенесён в карточку героя (правый верхний угол) — см. renderHeroWanted()
   renderHeroWanted();
+}
+
+let _districtControlStatus = { online:false, controls:false, districts:[] };
+async function refreshDistrictControlStatus(){
+  if (!DATA.uid || !coopApi()) return;
+  try {
+    const r=await fetch(coopApi()+'/world/district_status/'+encodeURIComponent(DATA.uid),{cache:'no-store'});
+    if(!r.ok)return;
+    const j=await r.json();
+    if(!j.ok)return;
+    _districtControlStatus={online:!!j.online,controls:!!j.controls,districts:Array.isArray(j.districts)?j.districts:[]};
+    renderStatusBar();
+  }catch(e){}
 }
 
 // ── EQUIPPED WEAPON chip in hero-card ─────────────────────────────────
@@ -6985,12 +7018,18 @@ async function pollDistrictIncomes() {
     if (!r.ok) return;
     const j = await r.json().catch(()=>({}));
     if (!j.ok || !j.count) return;
+    const lost = (j.items || []).filter(it => it.kind === 'control_lost');
+    if (lost.length && typeof showToast === 'function') {
+      showToast(lost.map(it => `${it.icon||'⚠️'} ${it.name}: ${it.boss_name||'босс'} вернул контроль`).join(' • '),
+                '⚠️', 7500);
+    }
     // Группируем по tid (несколько начислений с одного района)
     const byTid = {};
-    for (const it of (j.items || [])) {
+    for (const it of (j.items || []).filter(it => it.kind !== 'control_lost')) {
       const k = it.tid || '?';
-      if (!byTid[k]) byTid[k] = { name: it.name, icon: it.icon, amount: 0, count: 0 };
+      if (!byTid[k]) byTid[k] = { name: it.name, icon: it.icon, amount: 0, xp: 0, count: 0 };
       byTid[k].amount += (it.amount | 0);
+      byTid[k].xp     += (it.xp | 0);
       byTid[k].count  += 1;
     }
     const parts = [];
@@ -6998,9 +7037,9 @@ async function pollDistrictIncomes() {
     for (const k of Object.keys(byTid)) {
       const v = byTid[k];
       totalAll += v.amount;
-      parts.push(`${v.icon} ${v.name}: +$${v.amount.toLocaleString('ru')}`);
+      parts.push(`${v.icon} ${v.name}: +$${v.amount.toLocaleString('ru')} · +${v.xp} XP`);
     }
-    if (typeof showToast === 'function') {
+    if (parts.length && typeof showToast === 'function') {
       showToast(parts.join(' • '),
                 '💰', 6500);
     }
@@ -7458,6 +7497,8 @@ setTimeout(() => { try { _startNotifyPolling(); } catch(e) {} }, 1000);
 // одно и то же не показывалось дважды.
 setTimeout(() => { try { pollDistrictIncomes(); } catch(e) {} }, 1500);
 setInterval(() => { try { pollDistrictIncomes(); } catch(e) {} }, 60000);
+setTimeout(() => { try { refreshDistrictControlStatus(); } catch(e) {} }, 500);
+setInterval(() => { if (!document.hidden) { try { refreshDistrictControlStatus(); } catch(e) {} } }, 15000);
 
 // Преднаполняем кэш банды по DATA.gang (она прилетает из URL от бота) —
 // чтобы кнопки «В банду» в лобби сразу показывались как «уже добавлен».
