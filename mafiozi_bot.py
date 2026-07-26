@@ -975,6 +975,17 @@ async def init_db():
                 last_collected REAL DEFAULT 0
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS major_object_control (
+                object_id TEXT PRIMARY KEY,
+                owner_uid TEXT NOT NULL,
+                owner_name TEXT NOT NULL,
+                team_json TEXT NOT NULL DEFAULT '[]',
+                team_names_json TEXT NOT NULL DEFAULT '[]',
+                expires_at REAL NOT NULL,
+                last_payout_at REAL NOT NULL DEFAULT 0
+            )
+        """)
         # Автоматическая городская газета. Сюда попадают только крупные
         # серверные события; выпуск за 24 часа одинаков для всех игроков и
         # переживает перезапуск процесса.
@@ -12384,6 +12395,7 @@ class WorldSim:
         'quest_cars', '_quest_car_next_id', '_race_slots',
         # Ограбления банков и выброшенные в общий мир мешки-улики.
         'bank_robs', 'bank_bags', '_next_bank_bag_id',
+        'major_assaults', 'major_owners',
         # РАЙОНЫ (districts): захват штаба + пассивный доход банде.
         #   district_owners:   did → {owner_uid, owner_name, color, captured_at, last_payout_at}
         #   district_captures: did → {by_uid, by_name, color, started_at}
@@ -12834,6 +12846,18 @@ class WorldSim:
         'industrial': {'name': 'Промзона',  'boss_name': 'Борис Шлак', 'icon': '🏭', 'bounds': (40,99,40,79), 'hq': (70.0, 60.0), 'intel': (53.0, 60.0), 'sabotage': ((60.0, 49.0), (72.0, 70.0), (83.0, 58.0)), 'escape': (95.0, 60.0), 'income': 550, 'color': '#d2691e'},
         'coast':      {'name': 'Побережье', 'boss_name': 'Капитан Риццо', 'icon': '⚓', 'bounds': (150,199,0,79), 'hq': (156.0, 40.0), 'intel': (165.0, 40.0), 'sabotage': ((157.0, 14.0), (158.0, 65.0), (178.0, 40.0)), 'escape': (196.0, 40.0), 'income': 450, 'color': '#2ecc71'},
     }
+    MAJOR_OBJECTS_DEF = {
+        'casino':  {'name':'Казино','boss':'Сальваторе «Фишка» Моретти',
+                    'r':46,'c':16,'guards':20,'total':40,'income':2400},
+        'market':  {'name':'Рынок','boss':'Рафаэль «Весы» Конти',
+                    'r':16,'c':16,'guards':20,'total':34,'income':1200},
+        'factory': {'name':'Промзона','boss':'Бруно «Пресс» Ферретти',
+                    'r':46,'c':56,'guards':24,'total':40,'income':3000},
+        'mansion': {'name':'Резиденция','boss':'Дон Эмилио Витале',
+                    'r':66,'c':36,'guards':28,'total':40,'income':4200},
+        'port':    {'name':'Порт','boss':'Марко «Якорь» Беллини',
+                    'r':165,'c':38,'guards':22,'total':38,'income':2600},
+    }
 
     def __init__(self):
         self.tick_no         = 0
@@ -12870,6 +12894,8 @@ class WorldSim:
         self._dist_cooldowns     = {}   # (uid, did) → expires_at
         self._dist_needs_reenter = set()  # (uid, did) — выйти из штаба перед повторным захватом
         self._last_dist_at       = {}   # uid → did_or_None (детект выхода из штаба)
+        self.major_assaults      = {}
+        self.major_owners        = {}
         self.faction_war         = {
             'districts': {did: {'police': 0, 'mafia': 0} for did in self.DISTRICTS_DEF},
             'last_decay_at': time.time(),
@@ -13526,6 +13552,321 @@ class WorldSim:
                 'mafia': sum(v['mafia'] for v in districts.values()),
                 'districts': districts, 'decay_minutes': 30, 'decay_points': 2}
 
+    def major_objects_payload(self) -> dict:
+        now = time.time()
+        for object_id, owner in list(self.major_owners.items()):
+            if float(owner.get('expires_at') or 0) <= now:
+                self.major_owners.pop(object_id, None)
+        result = {}
+        for object_id, cfg in self.MAJOR_OBJECTS_DEF.items():
+            owner = self.major_owners.get(object_id)
+            raid = self.major_assaults.get(object_id)
+            result[object_id] = {
+                'name': cfg['name'],
+                'boss_name': cfg['boss'],
+                'owner_uid': owner.get('owner_uid') if owner else None,
+                'owner_name': owner.get('owner_name') if owner else cfg['boss'],
+                'team_names': list(owner.get('team_names') or []) if owner else [],
+                'expires_in': max(
+                    0, int(float(owner.get('expires_at') or 0) - now)
+                ) if owner else 0,
+                'income': int(cfg['income']),
+                'raid': ({
+                    'phase': raid.get('phase'),
+                    'by_uid': raid.get('by_uid'),
+                    'by_name': raid.get('by_name'),
+                    'participant_uids': list(raid.get('participants') or []),
+                    'alive': sum(
+                        1 for guard in raid.get('guards') or []
+                        if guard.get('alive')
+                    ),
+                    'spawned': int(raid.get('spawned') or 0),
+                    'total': int(cfg['total']),
+                    'pressure': int(raid.get('pressure') or 0),
+                } if raid else None),
+            }
+        return result
+
+    def major_assault_start(self, uid: str, object_id: str) -> dict:
+        now = time.time()
+        cfg = self.MAJOR_OBJECTS_DEF.get(object_id)
+        player = self.players.get(str(uid))
+        if not cfg:
+            return {'kind':'major_assault_reply','ok':False,'reason':'bad_object'}
+        if not player or player.get('dead'):
+            return {'kind':'major_assault_reply','ok':False,'reason':'dead',
+                    'object_id':object_id}
+        if player.get('_police') or not player.get('_mafia'):
+            return {'kind':'major_assault_reply','ok':False,'reason':'mafia_only',
+                    'object_id':object_id}
+        if ((float(player.get('y') or 0) - float(cfg['r'])) ** 2
+                + (float(player.get('x') or 0) - float(cfg['c'])) ** 2
+                > 7.0 ** 2):
+            return {'kind':'major_assault_reply','ok':False,'reason':'too_far',
+                    'object_id':object_id}
+        owner = self.major_owners.get(object_id)
+        if owner and float(owner.get('expires_at') or 0) > now:
+            return {
+                'kind':'major_assault_reply','ok':False,'reason':'protected',
+                'object_id':object_id,'owner_name':owner.get('owner_name'),
+                'expires_in':int(owner['expires_at'] - now),
+            }
+        active = self.major_assaults.get(object_id)
+        if active:
+            if str(uid) in active.get('participants', set()):
+                return {
+                    'kind':'major_assault_reply','ok':True,'resume':True,
+                    'object_id':object_id,'phase':active.get('phase'),
+                    'guards':[dict(g) for g in active.get('guards') or []
+                              if g.get('alive')],
+                    'safes':[dict(s) for s in active.get('safes') or []],
+                    'total':int(cfg['total']),'boss_name':cfg['boss'],
+                    'participants':list(active.get('participants') or []),
+                }
+            return {'kind':'major_assault_reply','ok':False,'reason':'busy',
+                    'object_id':object_id,'by_name':active.get('by_name')}
+        participants = {
+            str(other_uid)
+            for other_uid, other in self.players.items()
+            if not other.get('dead') and other.get('_mafia')
+            and not other.get('_police')
+            and ((float(other.get('x') or 0) - float(player.get('x') or 0)) ** 2
+                 + (float(other.get('y') or 0) - float(player.get('y') or 0)) ** 2
+                 <= 10.0 ** 2)
+        }
+        participants.add(str(uid))
+        guards = []
+        for slot in range(int(cfg['guards'])):
+            self._next_bot_id += 1
+            guards.append({
+                'id':f'major_{object_id}_{self._next_bot_id}',
+                'hp':140 if slot < 4 else 100,
+                'max_hp':140 if slot < 4 else 100,
+                'alive':True,'weapon':self._pick_aggro_weapon(),
+                'wave':1,'slot':slot,
+            })
+        raid = {
+            'object_id':object_id,'by_uid':str(uid),
+            'by_name':str(player.get('name') or '')[:24],
+            'participants':participants,'started_at':now,
+            'expires_at':now + 30 * 60,
+            'phase':'guards','guards':guards,'spawned':len(guards),
+            'pressure':0,
+            'safes':[{
+                'id':f'{object_id}_safe_{index + 1}',
+                'opened':False,'value':250 * (index + 1),
+            } for index in range(4 if object_id == 'mansion' else 3)],
+        }
+        self.major_assaults[object_id] = raid
+        return {
+            'kind':'major_assault_reply','ok':True,'object_id':object_id,
+            'phase':'guards','guards':guards,'total':int(cfg['total']),
+            'boss_name':cfg['boss'],'participants':list(participants),
+            'safes':raid['safes'],
+        }
+
+    def major_guard_hit(self, uid: str, object_id: str, guard_id: str,
+                        weapon: str) -> dict:
+        raid = self.major_assaults.get(object_id)
+        cfg = self.MAJOR_OBJECTS_DEF.get(object_id)
+        player = self.players.get(str(uid))
+        if (not raid or not cfg
+                or str(uid) not in raid.get('participants', set())):
+            return {'kind':'major_guard_hit','ok':False,
+                    'reason':'not_participant','object_id':object_id}
+        if (not player or player.get('dead')
+                or player.get('_major_interior') != object_id):
+            return {'kind':'major_guard_hit','ok':False,
+                    'reason':'not_inside','object_id':object_id}
+        guard = next((
+            row for row in raid.get('guards', [])
+            if row.get('id') == guard_id and row.get('alive')
+        ), None)
+        if not guard:
+            return {'kind':'major_guard_hit','ok':False,
+                    'reason':'bad_target','object_id':object_id}
+        damage = max(1, min(90, int(self._weapon_damage(weapon, 4.0))))
+        guard['hp'] = max(0, int(guard.get('hp') or 0) - damage)
+        new_guard = None
+        if guard['hp'] <= 0:
+            guard['alive'] = False
+            if int(raid.get('spawned') or 0) < int(cfg['total']):
+                self._next_bot_id += 1
+                slot = int(raid.get('spawned') or 0)
+                new_guard = {
+                    'id':f'major_{object_id}_{self._next_bot_id}',
+                    'hp':110,'max_hp':110,'alive':True,
+                    'weapon':self._pick_aggro_weapon(),
+                    'wave':2 + slot // 10,'slot':slot,
+                }
+                raid['guards'].append(new_guard)
+                raid['spawned'] = slot + 1
+            elif not any(row.get('alive') for row in raid.get('guards', [])):
+                raid['phase'] = 'boss'
+        return {
+            'kind':'major_guard_hit','ok':True,'object_id':object_id,
+            'guard_id':guard_id,'hp':guard['hp'],'alive':guard['alive'],
+            'phase':raid['phase'],'spawned':raid['spawned'],
+            'new_guard':new_guard,
+            'alive_count':sum(1 for row in raid['guards'] if row.get('alive')),
+        }
+
+    def major_boss_pressure(self, uid: str, object_id: str) -> dict:
+        raid = self.major_assaults.get(object_id)
+        cfg = self.MAJOR_OBJECTS_DEF.get(object_id)
+        player = self.players.get(str(uid))
+        if (not raid or not cfg
+                or str(uid) not in raid.get('participants', set())):
+            return {'kind':'major_boss_pressure','ok':False,
+                    'reason':'not_participant','object_id':object_id}
+        if (raid.get('phase') != 'boss' or not player
+                or player.get('_major_interior') != object_id):
+            return {'kind':'major_boss_pressure','ok':False,
+                    'reason':'guards_alive','object_id':object_id}
+        now = time.time()
+        cooldown_key = f'pressure_{uid}'
+        if now - float(raid.get(cooldown_key) or 0) < 2.0:
+            return {'kind':'major_boss_pressure','ok':False,
+                    'reason':'cooldown','object_id':object_id}
+        raid[cooldown_key] = now
+        raid['pressure'] = min(100, int(raid.get('pressure') or 0) + 20)
+        phrases = [
+            'Я ничего вам не отдам!',
+            'Вы не знаете, с кем связались!',
+            'Ладно... только уберите оружие.',
+            'Семья этого не простит!',
+            'Хватит! Объект ваш.',
+        ]
+        captured = raid['pressure'] >= 100
+        result = {
+            'kind':'major_boss_pressure','ok':True,'object_id':object_id,
+            'pressure':raid['pressure'],
+            'phrase':phrases[min(4, raid['pressure'] // 20 - 1)],
+            'captured':captured,
+        }
+        if captured:
+            team = [
+                member_uid for member_uid in raid.get('participants', set())
+                if member_uid in self.players
+                and not self.players[member_uid].get('dead')
+            ] or [str(uid)]
+            self.major_owners[object_id] = {
+                'owner_uid':str(uid),
+                'owner_name':str(player.get('name') or '')[:24],
+                'team_uids':team,
+                'team_names':[
+                    str((self.players.get(member_uid) or {}).get('name')
+                        or member_uid)[:24]
+                    for member_uid in team
+                ],
+                'expires_at':now + 3600,'last_payout_at':now,
+            }
+            self.major_assaults.pop(object_id, None)
+            result.update({
+                'owner_name':str(player.get('name') or '')[:24],
+                'expires_in':3600,'income':int(cfg['income']),
+                'team_uids':team,
+            })
+        return result
+
+    def major_safe_open(self, uid: str, object_id: str,
+                        safe_id: str) -> dict:
+        raid = self.major_assaults.get(object_id)
+        player = self.players.get(str(uid))
+        if (not raid or str(uid) not in raid.get('participants', set())
+                or not player or player.get('dead')
+                or player.get('_major_interior') != object_id):
+            return {'kind':'major_safe_open','ok':False,
+                    'reason':'not_participant','object_id':object_id,
+                    'safe_id':safe_id}
+        if raid.get('phase') != 'boss':
+            return {'kind':'major_safe_open','ok':False,
+                    'reason':'guards_alive','object_id':object_id,
+                    'safe_id':safe_id}
+        safe = next((
+            row for row in raid.get('safes') or []
+            if row.get('id') == safe_id
+        ), None)
+        if not safe or safe.get('opened'):
+            return {'kind':'major_safe_open','ok':False,
+                    'reason':'already_open','object_id':object_id,
+                    'safe_id':safe_id}
+        safe['opened'] = True
+        safe['opened_by'] = str(uid)
+        team = list(dict.fromkeys(
+            str(member_uid) for member_uid in raid.get('participants', set())
+            if member_uid
+        ))
+        total = int(safe.get('value') or 0)
+        share, remainder = divmod(total, max(1, len(team)))
+        awards = [
+            {'uid':member_uid,
+             'amount':share + (1 if index < remainder else 0)}
+            for index, member_uid in enumerate(team)
+        ]
+        return {'kind':'major_safe_open','ok':True,
+                'object_id':object_id,'safe_id':safe_id,
+                'value':total,'awards':awards,'opened_by':str(uid)}
+
+    def tick_major_objects(self) -> list:
+        now = time.time()
+        events = []
+        for object_id, raid in list(self.major_assaults.items()):
+            active = [
+                member_uid for member_uid in raid.get('participants', set())
+                if member_uid in self.players
+                and not self.players[member_uid].get('dead')
+            ]
+            abandoned = (
+                not active
+                and now - float(raid.get('started_at') or now) > 90
+            )
+            if now >= float(raid.get('expires_at') or 0) or abandoned:
+                self.major_assaults.pop(object_id, None)
+                cfg = self.MAJOR_OBJECTS_DEF.get(object_id, {})
+                events.append({
+                    'kind':'major_assault_failed','object_id':object_id,
+                    'name':cfg.get('name') or object_id,'reason':'team_lost',
+                })
+        for object_id, owner in list(self.major_owners.items()):
+            cfg = self.MAJOR_OBJECTS_DEF.get(object_id)
+            if not cfg:
+                self.major_owners.pop(object_id, None)
+                continue
+            if float(owner.get('expires_at') or 0) <= now:
+                self.major_owners.pop(object_id, None)
+                events.append({
+                    'kind':'major_control_lost','object_id':object_id,
+                    'name':cfg['name'],'owner_name':owner.get('owner_name'),
+                })
+                continue
+            last_payout = float(owner.get('last_payout_at') or now)
+            if now - last_payout < 600:
+                continue
+            owner['last_payout_at'] = last_payout + 600
+            team = list(dict.fromkeys(
+                str(member_uid)
+                for member_uid in (owner.get('team_uids') or
+                                   [owner.get('owner_uid')])
+                if member_uid
+            ))
+            total = max(len(team), int(cfg['income']) // 6)
+            share, remainder = divmod(total, max(1, len(team)))
+            awards = [
+                {'uid':member_uid,
+                 'amount':share + (1 if index < remainder else 0)}
+                for index, member_uid in enumerate(team)
+            ]
+            events.append({
+                'kind':'major_income','object_id':object_id,
+                'name':cfg['name'],'owner_uid':owner.get('owner_uid'),
+                'owner_name':owner.get('owner_name'),'amount':total,
+                'awards':awards,
+                'expires_in':max(0, int(owner['expires_at'] - now)),
+                'last_payout_at':owner['last_payout_at'],
+            })
+        return events
+
     def apply_input(self, uid: str, d: dict) -> None:
         """Клиент шлёт свою предполагаемую позицию. Phase 1: верим (без
         anti-cheat). Phase 2+ можно валидировать скорость/коллизии."""
@@ -13606,6 +13947,28 @@ class WorldSim:
         interior = d.get('interior') if isinstance(d.get('interior'), dict) else None
         biz_id = str((interior or {}).get('biz_id') or '').strip()[:32]
         interior_kind = str((interior or {}).get('kind') or '')
+        major_id = str((interior or {}).get('object_id') or '').strip()[:24]
+        if interior_kind == 'major' and major_id in self.MAJOR_OBJECTS_DEF:
+            try:
+                p['_interior_x'] = max(
+                    0.0, min(60.0, float(interior.get('x', 0))))
+                p['_interior_y'] = max(
+                    0.0, min(60.0, float(interior.get('y', 0))))
+                p['ang'] = float(d.get('ang', p.get('ang', 0.0)))
+                p['walking'] = bool(d.get('w', False))
+            except Exception:
+                return
+            p['_major_interior'] = major_id
+            p.pop('_business_interior', None)
+            p.pop('_business_private', None)
+            p['_in_interior'] = True
+            p['_in_interior_until'] = time.time() + 30.0
+            p['_input_t'] = time.time()
+            p['last_seen'] = time.time()
+            p['_weapon'] = str(
+                d.get('weapon') or p.get('_weapon') or 'pistol')[:32]
+            return
+        p.pop('_major_interior', None)
         if interior_kind == 'business' and biz_id:
             # Координаты внутри комнаты не являются координатами мира. Храним
             # их отдельно, а мировую позицию оставляем у двери бизнеса.
@@ -19152,6 +19515,7 @@ class WorldSim:
                 'next_event_in': next_event_in,
                 'pvp_active':    me_in_pvp,
                 'faction_war':   self.faction_war_payload(),
+                'major_objects': self.major_objects_payload(),
                 'tick':          self.tick_no,
                 'territories':     terr_payload,
                 'active_captures': cap_payload,
@@ -19213,10 +19577,72 @@ class WorldSim:
 _WORLD: 'WorldSim | None' = None
 _WORLD_LOCK = asyncio.Lock() if hasattr(asyncio, 'Lock') else None
 
+async def _major_controls_load(world: 'WorldSim') -> None:
+    """Restore active major-object ownership after a process restart."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            rows = await (await db.execute(
+                "SELECT * FROM major_object_control WHERE expires_at>?",
+                (time.time(),))).fetchall()
+        for row in rows:
+            object_id = str(row['object_id'])
+            if object_id not in world.MAJOR_OBJECTS_DEF:
+                continue
+            world.major_owners[object_id] = {
+                'owner_uid': str(row['owner_uid']),
+                'owner_name': str(row['owner_name'])[:24],
+                'team_uids': [
+                    str(value)
+                    for value in json.loads(row['team_json'] or '[]')
+                ],
+                'team_names': [
+                    str(value)[:24]
+                    for value in json.loads(row['team_names_json'] or '[]')
+                ],
+                'expires_at': float(row['expires_at']),
+                'last_payout_at': float(row['last_payout_at']),
+            }
+    except Exception as exc:
+        logger.warning("WorldSim: major controls load failed: %r", exc)
+
+
+async def _major_control_save(object_id: str, owner: dict | None) -> None:
+    """Persist one major-object owner, or remove an expired owner."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            if owner is None:
+                await db.execute(
+                    "DELETE FROM major_object_control WHERE object_id=?",
+                    (str(object_id),))
+            else:
+                await db.execute(
+                    "INSERT OR REPLACE INTO major_object_control "
+                    "(object_id,owner_uid,owner_name,team_json,team_names_json,"
+                    "expires_at,last_payout_at) VALUES(?,?,?,?,?,?,?)",
+                    (
+                        str(object_id),
+                        str(owner.get('owner_uid') or ''),
+                        str(owner.get('owner_name') or '')[:24],
+                        json.dumps(
+                            list(owner.get('team_uids') or []),
+                            ensure_ascii=False),
+                        json.dumps(
+                            list(owner.get('team_names') or []),
+                            ensure_ascii=False),
+                        float(owner.get('expires_at') or 0),
+                        float(owner.get('last_payout_at') or 0),
+                    ))
+            await db.commit()
+    except Exception as exc:
+        logger.warning("WorldSim: major control save failed: %r", exc)
+
+
 def _world_get() -> 'WorldSim':
     global _WORLD
     if _WORLD is None or not _WORLD.alive:
         _WORLD = WorldSim()
+        asyncio.create_task(_major_controls_load(_WORLD))
         asyncio.create_task(_world_run_loop(_WORLD))
         logger.info("WorldSim: started")
     return _WORLD
@@ -19501,6 +19927,33 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                         except Exception as _e:
                             logger.warning("WorldSim: district income failed: %r", _e)
                 ev_pkts.extend(dist_pkts)
+                # Major objects pay their controlling team every ten minutes.
+                # Persist timestamps so restarts cannot duplicate payouts.
+                major_pkts = world.tick_major_objects() or []
+                for major_pkt in major_pkts:
+                    object_id = str(major_pkt.get('object_id') or '')
+                    if major_pkt.get('kind') == 'major_income':
+                        for award in major_pkt.get('awards') or []:
+                            try:
+                                award_uid = int(award.get('uid'))
+                                amount = int(award.get('amount') or 0)
+                                character = await get_character(award_uid)
+                                if not character or amount <= 0:
+                                    continue
+                                new_cash = int(character.get('cash') or 0) + amount
+                                await update_character(award_uid, cash=new_cash)
+                                live = world.players.get(str(award_uid))
+                                if live is not None:
+                                    live['_cash'] = new_cash
+                                award['new_cash'] = new_cash
+                            except Exception as exc:
+                                logger.warning(
+                                    "WorldSim: major income failed: %r", exc)
+                        await _major_control_save(
+                            object_id, world.major_owners.get(object_id))
+                    elif major_pkt.get('kind') == 'major_control_lost':
+                        await _major_control_save(object_id, None)
+                ev_pkts.extend(major_pkts)
                 # Газета пишет только о событиях из белого списка внутри
                 # _record_world_event_news; частые выстрелы и доходы в БД не идут.
                 for _news_pkt in ev_pkts:
@@ -22394,6 +22847,81 @@ async def _coop_http_app():
                             await ws.send_str(json.dumps({'t':'event','d':reply}, ensure_ascii=False))
                         except Exception:
                             pass
+                    elif t == 'major_assault_start':
+                        reply = world.major_assault_start(
+                            uid, str(d.get('object_id') or '')[:24])
+                        blob = json.dumps(
+                            {'t':'event','d':reply}, ensure_ascii=False)
+                        if reply.get('ok') and not reply.get('resume'):
+                            for _uid2, _ws2 in list(world.connections.items()):
+                                try:
+                                    await _ws2.send_str(blob)
+                                except Exception:
+                                    pass
+                        else:
+                            try:
+                                await ws.send_str(blob)
+                            except Exception:
+                                pass
+                    elif t == 'major_guard_hit':
+                        reply = world.major_guard_hit(
+                            uid,
+                            str(d.get('object_id') or '')[:24],
+                            str(d.get('guard_id') or '')[:64],
+                            str(d.get('weapon') or '')[:24])
+                        blob = json.dumps(
+                            {'t':'event','d':reply}, ensure_ascii=False)
+                        for _uid2, _ws2 in list(world.connections.items()):
+                            try:
+                                await _ws2.send_str(blob)
+                            except Exception:
+                                pass
+                    elif t == 'major_boss_pressure':
+                        reply = world.major_boss_pressure(
+                            uid, str(d.get('object_id') or '')[:24])
+                        if reply.get('captured'):
+                            object_id = str(reply.get('object_id') or '')
+                            await _major_control_save(
+                                object_id, world.major_owners.get(object_id))
+                        blob = json.dumps(
+                            {'t':'event','d':reply}, ensure_ascii=False)
+                        for _uid2, _ws2 in list(world.connections.items()):
+                            try:
+                                await _ws2.send_str(blob)
+                            except Exception:
+                                pass
+                    elif t == 'major_safe_open':
+                        reply = world.major_safe_open(
+                            uid,
+                            str(d.get('object_id') or '')[:24],
+                            str(d.get('safe_id') or '')[:64])
+                        if reply.get('ok'):
+                            for award in reply.get('awards') or []:
+                                try:
+                                    award_uid = int(award.get('uid'))
+                                    amount = int(award.get('amount') or 0)
+                                    character = await get_character(award_uid)
+                                    if character and amount > 0:
+                                        new_cash = (
+                                            int(character.get('cash') or 0)
+                                            + amount)
+                                        await update_character(
+                                            award_uid, cash=new_cash)
+                                        live = world.players.get(str(award_uid))
+                                        if live is not None:
+                                            live['_cash'] = new_cash
+                                        award['new_cash'] = new_cash
+                                except Exception as exc:
+                                    logger.warning(
+                                        "WorldSim: major safe award failed: %r",
+                                        exc)
+                        blob = json.dumps(
+                            {'t':'event','d':reply}, ensure_ascii=False)
+                        for _uid2, _ws2 in list(world.connections.items()):
+                            try:
+                                await _ws2.send_str(blob)
+                            except Exception:
+                                pass
                     elif t == 'aggro_shoot':
                         # Игрок стреляет в банда-бота агрессивного района.
                         # d = {target: 'gbot123', weapon: 'pistol'}
