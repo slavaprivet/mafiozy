@@ -25048,13 +25048,18 @@ async def _coop_http_app():
                               float(world._business_war_sabotage_immunity.get(biz_id) or 0) > time.time()):
                             choice_reply = {'ok': False, 'reason': 'sabotage_immunity',
                                             'wait_s': int(world._business_war_sabotage_immunity[biz_id]-time.time())}
+                        elif (action == 'sabotage' and
+                              not await remove_item(int(uid), 'c4', 1)):
+                            choice_reply = {'ok': False, 'reason': 'no_c4',
+                                            'biz_id': biz_id}
                         else:
                             now_choice = time.time()
                             biz_name = str((get_business(biz_id) or {}).get('name') or biz_id)
                             if action == 'cash':
                                 world._business_war_claims.pop(str(uid), None)
                                 choice_reply = {'ok': True, 'action': action,
-                                                'biz_id': biz_id, 'biz_name': biz_name}
+                                                'biz_id': biz_id, 'biz_name': biz_name,
+                                                'money': int(claim.get('money') or 0)}
                             elif action == 'sabotage':
                                 sabotage_kind = str(d.get('sabotage_kind') or 'shutdown')
                                 if sabotage_kind not in BUSINESS_WAR_SABOTAGE_TYPES:
@@ -25086,6 +25091,7 @@ async def _coop_http_app():
                                         world, str(uid), family, score=35, sabotages=1)
                                 choice_reply = {'ok': True, 'action': action, 'biz_id': biz_id,
                                                 'biz_name': biz_name,
+                                                'c4_left': int((await get_inventory(int(uid))).get('c4', 0)),
                                                 'sabotage_s': int(sabotage_cfg['duration']),
                                                 'sabotage_kind': sabotage_kind,
                                                 'sabotage_label': sabotage_cfg['label']}
@@ -25578,6 +25584,7 @@ async def _coop_http_app():
                                     choice_token = secrets.token_urlsafe(18)
                                     world._business_war_claims[str(uid)] = {
                                         'token': choice_token, 'biz_id': biz_id,
+                                        'money': money,
                                         'family': robbery_family,
                                         'actor_name': str(p.get('name') or '')[:24],
                                         'expires_at': time.time() + BUSINESS_WAR_CHOICE_TTL_S,
