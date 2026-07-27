@@ -69,8 +69,8 @@ async def main():
     assert "suit:'#f3efe5'" in world, "yellow gang must use white luxury suits"
     assert "Семья Карло Беллини" in world and "Семья Витторио Моретти" in world
     assert "mafia_family" in world, "client must send mafia family to the server"
-    assert "const BURJ_POS = { r: 16, c: 66 }" in world
-    assert "{ id: 'mansion', r: 186, c: 16" in world
+    assert "const BURJ_POS = { r: 36, c: 36 }" in world
+    assert "{ id: 'mansion', r: 136, c: 16" in world
     assert "function _peacefulInteriorGunLock" in world
     assert "strokeText('ЖЁЛТАЯ БАНДА'" not in world
     assert "(_majorInteriorObjectId && direct.majorGuard)" in world

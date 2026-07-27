@@ -110,7 +110,7 @@ PREVIEW_MAJOR_OBJECTS = {
     "factory": {"r": 46.0, "c": 56.0, "name": "Промзона",
                 "boss": "Бруно «Пресс» Ферретти",
                 "guards": 24, "total": 40, "income": 3000},
-    "mansion": {"r": 186.0, "c": 16.0, "name": "Резиденция",
+    "mansion": {"r": 136.0, "c": 16.0, "name": "Резиденция",
                 "boss": "Дон Эмилио Витале",
                 "guards": 28, "total": 40, "income": 4200},
     "port": {"r": 165.0, "c": 38.0, "name": "Порт",
