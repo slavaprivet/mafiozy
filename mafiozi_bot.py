@@ -1103,6 +1103,13 @@ async def init_db():
         await db.execute(
             "CREATE INDEX IF NOT EXISTS ix_business_war_contribution_score "
             "ON business_war_contributions(family,score DESC)")
+        # Старые базы могли иметь захваченные бизнесы, но ещё не иметь строк
+        # семейной экономики. Сразу создаём обе записи, чтобы казна и улучшения
+        # работали после миграции без обязательного нового ограбления.
+        await db.execute(
+            "INSERT OR IGNORE INTO mafia_family_scores(family) VALUES('bellini')")
+        await db.execute(
+            "INSERT OR IGNORE INTO mafia_family_scores(family) VALUES('moretti')")
         for col, definition in (
                 ("mafia_family", "TEXT NOT NULL DEFAULT ''"),
                 ("control_points", "INTEGER NOT NULL DEFAULT 60"),
@@ -20807,7 +20814,13 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
                     "UPDATE characters SET cash=cash+? WHERE mafia_family=?",
                     (per_member, family),
                 )
-            control['last_payout_at'] = last_payout + due * SHOP_ROB_FAMILY_INCOME_TICK_S
+            # Для постоянных бизнесов после долгого простоя разрешаем только
+            # одну компенсационную пачку (до 10 минут), затем выравниваем часы.
+            # Иначе цикл 15 Гц за секунды догоняет дни офлайн-выплат и создаёт
+            # лавину UPDATE/событий после каждого перезапуска сервера.
+            control['last_payout_at'] = (
+                now if persistent
+                else last_payout + due * SHOP_ROB_FAMILY_INCOME_TICK_S)
             control['payouts_done'] = int(control.get('payouts_done') or 0) + due
             await db.execute(
                 "UPDATE robbed_business_control SET last_payout_at=?,payouts_done=? WHERE biz_id=?",
