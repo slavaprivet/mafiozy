@@ -15715,8 +15715,9 @@ function handleEventPacket(d) {
                     { accent: '#ff7030' });
     }
   } else if(kind==='business_war_choice_reply'){
-    if(!d.ok){const txt={invalid_choice:'Решение устарело или уже использовано',no_family:'Для захвата нужно вступить в семью',already_owned:'Этот бизнес уже принадлежит твоей семье',ownership_changed:'Бизнес уже перехватили — ограбление остаётся твоим',sabotage_immunity:`После ремонта действует защита от диверсий · ${Math.ceil((+d.wait_s||0)/60)} мин.`}[d.reason]||'Не удалось применить решение';showToast(txt,'⚠️',2600);}
-    else if(d.action==='cash')showToast('Добыча у тебя. Заведение осталось как было','💰',2200);
+    if(!d.ok){const txt={invalid_choice:'Решение устарело или уже использовано',no_family:'Для захвата нужно вступить в семью',no_c4:'Требуется C4 · 1 шт. Купи заряд на Чёрном рынке',already_owned:'Этот бизнес уже принадлежит твоей семье',ownership_changed:'Бизнес уже перехватили — ограбление остаётся твоим',sabotage_immunity:`После ремонта действует защита от диверсий · ${Math.ceil((+d.wait_s||0)/60)} мин.`}[d.reason]||'Не удалось применить решение';showEventBanner('⛔ ВЫБОР НЕ ПРИМЕНЁН',txt,3600,'lose');}
+    else if(d.action==='cash')showEventBanner('💰 КУШ ЗАБРАН',`+$${(+d.money||0).toLocaleString('ru')} уже зачислено на твой счёт · «${d.biz_name||'бизнес'}» осталось без изменений`,4200,'win');
+    else if(d.action==='sabotage'&&d.c4_left!==undefined){_myC4Count=Math.max(0,+d.c4_left||0);renderWeaponHud();showToast(`C4 использована · осталось: ${_myC4Count}`,'🧨',2800);}
   } else if(kind==='business_sabotaged'){
     if(d.biz_id){delete _businessFamilyWars[d.biz_id];if((d.sabotage_kind||'shutdown')==='shutdown')_businessClosures[d.biz_id]=Date.now()+Math.max(1,+d.sabotage_s||720)*1000;}
     showEventBanner('💣 ДИВЕРСИЯ',`${d.actor_name||'Кто-то'}: ${d.sabotage_label||'заведение выведено из строя'} · «${d.biz_name||'бизнес'}»`,3800,'lose');
@@ -18188,11 +18189,12 @@ function _showBusinessWarChoice(data,biz){
   if(!ov){
     const style=document.createElement('style');style.textContent=`#businessChoiceOverlay{position:fixed;inset:0;z-index:180;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,4,9,.78)}#businessChoiceOverlay.show{display:flex}#businessChoiceCard{width:min(590px,95vw);padding:18px;border:1px solid #dcad43;border-radius:16px;background:linear-gradient(145deg,#151b24,#24130c);box-shadow:0 22px 70px #000;color:#e1e7ef;font:700 12px/1.45 system-ui}#businessChoiceCard h2{margin:0 0 5px;color:#ffe176}.bc-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.bc-action{min-height:112px;padding:11px 9px;border:1px solid #5d6672;border-radius:11px;background:rgba(255,255,255,.045);color:#fff;text-align:left;font:800 11px/1.35 system-ui;cursor:pointer}.bc-action b{display:block;margin-bottom:5px;font-size:13px;color:#ffe18a}.bc-action.sabotage{border-color:#c76742}.bc-action.capture{border-color:#8b72e8}.bc-action:disabled{opacity:.38;cursor:default}.bc-timer{height:5px;margin-top:12px;border-radius:5px;background:#333;overflow:hidden}.bc-timer i{display:block;height:100%;background:#e4b947;transform-origin:left}@media(max-width:620px){.bc-actions{grid-template-columns:1fr}.bc-action{min-height:74px}}`;document.head.appendChild(style);
     ov=document.createElement('div');ov.id='businessChoiceOverlay';ov.innerHTML='<div id="businessChoiceCard"></div>';document.body.appendChild(ov);
-    ov.addEventListener('click',e=>{const back=e.target.closest?.('[data-sabotage-back]');if(back){ov.querySelector('.bc-main').style.display='grid';ov.querySelector('.bc-sabotage-menu').style.display='none';return;}const btn=e.target.closest?.('[data-business-choice]');if(!btn||btn.disabled||!_pendingBusinessWarChoice)return;if(btn.dataset.businessChoice==='submenu'){ov.querySelector('.bc-main').style.display='none';ov.querySelector('.bc-sabotage-menu').style.display='grid';return;}if(!ws||ws.readyState!==1){showToast('Нет связи с сервером — решение не потеряно','⚠️',2200);return;}const choice=_pendingBusinessWarChoice;_pendingBusinessWarChoice=null;ov.classList.remove('show');ws.send(JSON.stringify({t:'business_war_choice',d:{action:btn.dataset.businessChoice,token:choice.token,sabotage_kind:btn.dataset.sabotageKind||''}}));});
+    ov.addEventListener('click',e=>{const back=e.target.closest?.('[data-sabotage-back]');if(back){ov.querySelector('.bc-main').style.display='grid';ov.querySelector('.bc-sabotage-menu').style.display='none';return;}const btn=e.target.closest?.('[data-business-choice]');if(!btn||btn.disabled||!_pendingBusinessWarChoice)return;if(btn.dataset.businessChoice==='submenu'){ov.querySelector('.bc-main').style.display='none';ov.querySelector('.bc-sabotage-menu').style.display='grid';return;}if(btn.dataset.businessChoice==='sabotage'&&_myC4Count<1){showEventBanner('🧨 ТРЕБУЕТСЯ C4','Для диверсии нужна C4 · 1 шт. Купи заряд на Чёрном рынке',3400,'lose');return;}if(!ws||ws.readyState!==1){showToast('Нет связи с сервером — решение не потеряно','⚠️',2200);return;}const choice=_pendingBusinessWarChoice;_pendingBusinessWarChoice=null;ov.classList.remove('show');showToast(btn.dataset.businessChoice==='cash'?'Подтверждаем выплату…':btn.dataset.businessChoice==='sabotage'?'Закладываем C4…':'Начинаем захват…','⌛',1800);ws.send(JSON.stringify({t:'business_war_choice',d:{action:btn.dataset.businessChoice,token:choice.token,sabotage_kind:btn.dataset.sabotageKind||''}}));});
   }
   const seconds=Math.max(15,+data.business_choice_s||90),canCapture=!!data.can_capture;
-  _pendingBusinessWarChoice={token:data.business_choice_token,biz_id:data.biz_id,expiresAt:Date.now()+seconds*1000};
-  document.getElementById('businessChoiceCard').innerHTML=`<h2>${biz?.icon||'🏪'} Что сделать с «${biz?.name||'бизнесом'}»?</h2><div style="color:#9eacbe">Деньги уже получены. Выбери судьбу заведения.</div><div class="bc-actions bc-main"><button class="bc-action" data-business-choice="cash"><b>💰 Уйти с добычей</b>Владение не меняется.</button><button class="bc-action sabotage" data-business-choice="submenu"><b>💣 Совершить диверсию</b>Выбрать способ саботажа.</button><button class="bc-action capture" data-business-choice="capture" ${canCapture?'':'disabled'}><b>🏴 Захватить для семьи</b>${canCapture?'Подготовка зависит от числа защитников онлайн.':'Сначала вступи в семью Беллини или Моретти.'}</button></div><div class="bc-actions bc-sabotage-menu" style="display:none"><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="shutdown"><b>⚡ Отключить электричество</b>12 мин полной остановки.</button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="arson"><b>🔥 Поджечь склад</b>20 мин без дохода.</button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="alarm"><b>📡 Сломать сигнализацию</b>20 мин слабее защита этого здания.</button><button class="bc-action" data-sabotage-back><b>← Назад</b>Вернуться к решениям.</button></div><div class="bc-timer"><i style="animation:bcChoiceTimer ${seconds}s linear forwards"></i></div><style>@keyframes bcChoiceTimer{to{transform:scaleX(0)}}</style>`;
+  _pendingBusinessWarChoice={token:data.business_choice_token,biz_id:data.biz_id,money:+data.money||0,expiresAt:Date.now()+seconds*1000};
+  const cash=+data.money||0,c4=Math.max(0,_myC4Count|0),c4Text=c4>0?`C4 есть: ${c4} шт. · будет потрачена 1 шт.`:'ТРЕБУЕТСЯ C4 · 1 ШТ.';
+  document.getElementById('businessChoiceCard').innerHTML=`<h2>${biz?.icon||'🏪'} Что сделать с «${biz?.name||'бизнесом'}»?</h2><div style="color:#9eacbe">Куш <b style="color:#79e69c">+$${cash.toLocaleString('ru')}</b> уже зачислен на твой счёт. Теперь выбери судьбу заведения.</div><div class="bc-actions bc-main"><button class="bc-action" data-business-choice="cash"><b>💰 Забрать куш · +$${cash.toLocaleString('ru')}</b>Подтвердить выплату и уйти. Владение не меняется.</button><button class="bc-action sabotage" data-business-choice="submenu"><b>💣 Совершить диверсию</b>${c4Text}</button><button class="bc-action capture" data-business-choice="capture" ${canCapture?'':'disabled'}><b>🏴 Захватить для семьи</b>${canCapture?'Подготовка зависит от числа защитников онлайн.':'Сначала вступи в семью Беллини или Моретти.'}</button></div><div class="bc-actions bc-sabotage-menu" style="display:none"><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="shutdown"><b>⚡ Отключить электричество</b>12 мин полной остановки.<br><span style="color:${c4?'#7ee6a2':'#ff786f'}">${c4Text}</span></button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="arson"><b>🔥 Поджечь склад</b>20 мин без дохода.<br><span style="color:${c4?'#7ee6a2':'#ff786f'}">${c4Text}</span></button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="alarm"><b>📡 Сломать сигнализацию</b>20 мин слабее защита этого здания.<br><span style="color:${c4?'#7ee6a2':'#ff786f'}">${c4Text}</span></button><button class="bc-action" data-sabotage-back><b>← Назад</b>Вернуться к решениям.</button></div><div class="bc-timer"><i style="animation:bcChoiceTimer ${seconds}s linear forwards"></i></div><style>@keyframes bcChoiceTimer{to{transform:scaleX(0)}}</style>`;
   ov.classList.add('show');
   setTimeout(()=>{if(_pendingBusinessWarChoice?.token===data.business_choice_token){_pendingBusinessWarChoice=null;ov.classList.remove('show');}},seconds*1000);
 }
@@ -18299,6 +18301,14 @@ function startRobbery(biz) {
   }
   _pendingBusinessRobbery = biz;
   _robBtn.style.display = 'none'; _gtaBtn.style.display = 'none';
+  if(_LOCAL_PREVIEW&&_UP.get('previewmafia')){
+    myDead=false;myDrivingCarId=null;_bankInt=null;_buildingInt=null;
+    _pendingBusinessRobbery=null;_robTargetBiz=biz;_robTargetR=biz.r;_robTargetC=biz.c;
+    enterBuildingInterior(biz.r,biz.c,'business',biz.id,{robbery:true,autoStart:true,guardBonus:0,attempt:1,robToken:`preview-${QP.uid}-${biz.id}`});
+    if(!_buildingInt)setTimeout(()=>{myDead=false;myDrivingCarId=null;_bankInt=null;enterBuildingInterior(biz.r,biz.c,'business',biz.id,{robbery:true,autoStart:true,guardBonus:0,attempt:1,robToken:`preview-${QP.uid}-${biz.id}`});},80);
+    showEventBanner('🔫 ПОПЫТКА 1 ИЗ 3','Тестовое ограбление началось',2400,'warn');
+    return;
+  }
   ws.send(JSON.stringify({t:'business_rob_prepare',d:{biz_id:biz.id}}));
   showToast('Охрана готовится к твоему визиту…','🔫',1200);
 }
@@ -30369,6 +30379,27 @@ const BUSINESS_POIS = [
   { id: 'casino',     emoji: '🎲', name: 'Казино',             r: 13, c: 45, price: 120000, daily_min: 4000, daily_max: 5500, desc: 'Своё казино — мечта каждого. Высокий доход, высокий риск.' },
   { id: 'port',       emoji: '⚓', name: 'Порт',                r:181, c: 31, price: 200000, daily_min: 6500, daily_max: 9000, desc: 'Доля в порту. Контейнеры идут — деньги капают.' },
 ];
+// Управляемый стенд для локального превью: позволяет проверять мафиозные
+// действия без изменения настоящего персонажа в БД.
+if (_LOCAL_PREVIEW && _UP.get('previewmafia')) {
+  const previewFamily = ['bellini','moretti'].includes(_UP.get('previewmafia'))
+    ? _UP.get('previewmafia') : 'bellini';
+  const previewPoi = BUSINESS_POIS.find(b => b.id === (_UP.get('previewpoi') || 'coffee')) || BUSINESS_POIS[0];
+  const applyPreviewRole = () => {
+    if (typeof _policeState !== 'undefined') _policeState.employed = false;
+    if (typeof _mafiaState !== 'undefined') {
+      _mafiaState.employed = true;
+      _mafiaState.family = previewFamily;
+    }
+  };
+  setTimeout(applyPreviewRole, 500);
+  setInterval(applyPreviewRole, 1000);
+  setTimeout(() => {
+    player.r = previewPoi.r + 1.2; player.c = previewPoi.c + 0.4;
+    player.tr = player.r; player.tc = player.c;
+    showToast(`Тест: ${MAFIA_FAMILIES[previewFamily]?.short || 'семья'} · ${previewPoi.name}`, '🏴', 2600);
+  }, 700);
+}
 const BIZ_MAX_LEVEL = 5;
 const BIZ_LEVEL_MULTIPLIERS = [1, 1, 1.35, 1.75, 2.25, 3.0];
 const BIZ_UPGRADE_RATIOS = [0, 0, 0.45, 0.75, 1.15, 1.70];
@@ -47268,13 +47299,21 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
   _buildingInt = { r, c, W: biW, H: biH, seed,
     savedR: player.r, savedC: player.c,
     type: type || null, bizId: bizId || null, loot: null, npcs: [],
-    robbery: !!options?.robbery || rememberedAggro, robberyStarted:rememberedAggro,
+    robbery: !!options?.robbery || rememberedAggro,
+    robberyStarted:rememberedAggro || !!options?.autoStart,
     robberyClaimed:false, _aggroReported:rememberedAggro,
     guardBonus:Math.max(0,+options?.guardBonus||0), robberyAttempt:Math.max(1,+options?.attempt||1),
     robToken:String(options?.robToken||''), ownerHitSeq:0,
     apartmentKey:String(options?.apartmentKey||''),
     apartmentOwnerUid:String(options?.apartmentOwnerUid||'') };
   _spawnInteriorNpcs(_buildingInt);
+  if (options?.autoStart) {
+    for (const guard of _buildingInt.npcs.filter(n => n.role === 'biz_guard')) {
+      guard._hostile = true;
+      guard._sayText = 'СТОЯТЬ! ЭТО ОГРАБЛЕНИЕ!';
+      guard._sayUntil = performance.now() + 2200;
+    }
+  }
   if (rememberedAggro) {
     const threats=['ЭТО СНОВА ОН!','ВАЛИ ЕГО!','ОН ВЕРНУЛСЯ!'];
     for (const [i,g] of _buildingInt.npcs.filter(n=>n.role==='biz_guard').entries()) {
