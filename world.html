@@ -1232,6 +1232,28 @@ body.in-pvp #robActionBtn { top: 152px; }
 #eventBanner.win     { border-color: #50d878; background: linear-gradient(135deg, #0a4020, #04201a); box-shadow: 0 4px 16px rgba(80,216,120,.4); }
 #eventBanner.lose    { border-color: #c850a8; background: linear-gradient(135deg, #3a0a3a, #1a041a); box-shadow: 0 4px 16px rgba(200,80,168,.35); }
 #eventBanner.neutral { border-color: #5a708a; background: linear-gradient(135deg, #1a2a3a, #0a141e); box-shadow: 0 4px 16px rgba(90,112,138,.35); }
+#eventBanner.robbery-success {
+  top: 50%;
+  width: min(520px, 88vw);
+  padding: 22px 24px 20px;
+  border: 3px solid #62ec91;
+  background: linear-gradient(145deg, rgba(8,72,37,.98), rgba(3,28,23,.98));
+  box-shadow: 0 12px 42px rgba(50,230,120,.45), 0 0 0 4px rgba(98,236,145,.12);
+  transform: translate(-50%, -50%) scale(.84);
+}
+#eventBanner.robbery-success.show { transform: translate(-50%, -50%) scale(1); }
+#eventBanner.robbery-success .et {
+  padding: 0 18px;
+  font-size: clamp(19px, 3.8vw, 30px);
+  line-height: 1.2;
+  text-shadow: 0 2px 8px rgba(0,0,0,.65);
+}
+#eventBanner.robbery-success .em {
+  margin-top: 10px;
+  font-size: clamp(15px, 2.8vw, 22px);
+  font-weight: 900;
+  color: #fff2a8;
+}
 #eventBanner .et { font-size: 13px; font-weight: 800; letter-spacing: .2px; line-height: 1.1; padding-right: 18px; }
 #eventBanner .em { font-size: 10px; color: #d8d2c8; margin-top: 2px; line-height: 1.25; }
 /* Крестик закрытия — справа сверху, круглая красная кнопка. Кликабельна
@@ -4209,9 +4231,6 @@ function _updateGasStations(now) {
 // зданиями, а заливаем газоном с деревьями. Детерминированный набор:
 // 1 парк на каждые ~6 блоков. Раскидаем по карте красиво.
 const PARK_BLOCKS = new Set();
-// Large landmarks occupy a real 3x3 footprint. This set also lets the
-// renderer suppress ordinary houses underneath their enlarged silhouettes.
-const LARGE_LANDMARK_TILES = new Set();
 function isParkBlock(br, bc) { return PARK_BLOCKS.has(br + ',' + bc); }
 
 function buildMap() {
@@ -4391,18 +4410,15 @@ function buildMap() {
       }
     }
   }
-  // Casino and mansion are district-scale landmarks, not one-tile kiosks.
-  // Both anchors sit inside a block, so this 3x3 footprint never reaches roads.
-  LARGE_LANDMARK_TILES.clear();
-  for (const p of POI) {
-    if (p.id !== 'casino' && p.id !== 'mansion') continue;
-    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
-      const rr = p.r + dr, cc = p.c + dc;
-      if (rr <= 0 || rr >= MAP_ROWS - 1 || cc <= 0 || cc >= MAP_COLS - 1) continue;
-      MAP[rr][cc] = 1;
-      LARGE_LANDMARK_TILES.add(rr + ',' + cc);
-    }
+  // Казино теперь действительно большое и физическое: твёрдыми являются только
+  // тайлы, которые заняты видимыми крыльями и башней. Перед входом остаётся проход.
+  for (const key of MAJOR_CASINO_WORLD_TILES) {
+    const [r,c] = key.split(',').map(Number);
+    if (MAP[r]) MAP[r][c] = 1;
   }
+  // Остальные крупные объекты остаются твёрдыми только на своём видимом
+  // центральном тайле. У казино расширена лишь реально нарисованная часть,
+  // поэтому скрытых фундаментов под площадью по-прежнему нет.
   // Зона Логова — отдельный «цыганский лагерь» в радиусе 20 от центра.
   // Сносим все обычные здания внутри (чтобы вместо офисов рисовался
   // открытый пустырь с палатками/руинами), а декор расставляет
@@ -4849,10 +4865,22 @@ const POI = [
 ];
 const POI_BY_RC = new Map();   // ключ "r,c" → POI
 POI.forEach(p => POI_BY_RC.set(p.r + ',' + p.c, p));
+// Видимый корпус GRAND CASINO занимает почти весь квартальный пьедестал.
+// Передний центральный тайл оставляем проходом к дверям и жёлтой метке входа.
+const MAJOR_CASINO_WORLD_TILES = new Set([
+  '45,15','45,16','45,17',
+  '46,15','46,16','46,17',
+  '47,15',        '47,17',
+]);
 const MAJOR_OBJECT_IDS = new Set(['casino','market','factory','mansion','port']);
 let _majorObjectsState = {};
 let _majorInteriorObjectId = null;
 let _majorRaidLocal = null;
+let _casinoPropsState = {};
+const _casinoDebris = [];
+const MAJOR_GUARD_VISION_RANGE = 9.6;
+const MAJOR_GUARD_CLOSE_NOTICE = 3.0;
+const MAJOR_GUARD_FOV_COS = Math.cos(85 * Math.PI / 180);
 
 function _syncMajorAssaultStart(d) {
   if (Array.isArray(d.participants) &&
@@ -4865,29 +4893,58 @@ function _syncMajorAssaultStart(d) {
     enterBuildingInterior(poi.r, poi.c, 'business', `major_${d.object_id}`,
       { majorObjectId:d.object_id });
   }
+  if(d.object_id==='casino'&&!d.resume){
+    for(const prop of MAJOR_CASINO_STATIC_BLOCKERS)
+      _casinoPropsState[prop.id]={hp:1,destroyed:false};
+  }
   _majorRaidLocal = {
     objectId:d.object_id,
     phase:d.phase || 'guards',
     spawned:(d.guards || []).length,
+    total:d.total || 40,
+    participants:[...(d.participants || [])],
+    combatStarted:false,
+    combatGraceUntil:performance.now()+1800,
     safes:(d.safes || []).map((safe, i) => ({
       ...safe,
-      r:d.object_id === 'casino' ? 23 + i * 2.6 : 7 + (i % 2) * 3,
-      c:d.object_id === 'casino' ? 38 + (i % 2) * 2 : _buildingInt.W - 6 - (i % 2) * 4,
+      r:Number.isFinite(+safe.r)?+safe.r:(d.object_id === 'casino'
+        ? (i === 2 ? 23.6 : 21.35) : 7 + (i % 2) * 3),
+      c:Number.isFinite(+safe.c)?+safe.c:(d.object_id === 'casino'
+        ? (i === 0 ? 38.9 : 41.65) : _buildingInt.W - 6 - (i % 2) * 4),
     })),
   };
   const H = _buildingInt.H, W = _buildingInt.W;
-  _buildingInt.npcs = (d.guards || []).map((g, i) => ({
-    id:g.id, majorGuard:true, hp:g.hp || 100, maxHp:g.max_hp || 100,
-    weapon:g.weapon || 'pistol',
-    r:4 + (i % 7) * Math.max(2.4, (H - 8) / 7),
-    c:3 + (Math.floor(i / 7) % 5) * Math.max(4.4, (W - 8) / 5),
-    tr:4 + (i % 7) * Math.max(2.4, (H - 8) / 7),
-    tc:3 + (Math.floor(i / 7) % 5) * Math.max(4.4, (W - 8) / 5),
-    ang:Math.PI, walkPhase:0, walking:false, name:'Охрана', role:'guard',
-    fixed:false, hostile:true,
-    look:{gender:0,skin:1+(i%3),body:1+(i%2),face:i%4,hair:i%5,hat:2,suit:'#171b24'},
-    idleUntil:performance.now()+Math.random()*800, speed:1.15,
-  }));
+  const casinoGuardSpawns=[];
+  if(d.object_id==='casino'){
+    casinoGuardSpawns.push(..._casinoGuardSpawnPoints(_buildingInt));
+  }
+  _buildingInt.npcs = (d.guards || []).map((g, i) => {
+    const spawn=casinoGuardSpawns[i%casinoGuardSpawns.length]||{
+      r:4+(i%7)*Math.max(2.4,(H-8)/7),
+      c:3+(Math.floor(i/7)%5)*Math.max(4.4,(W-8)/5),
+    };
+    return {
+      id:g.id, majorGuard:true, hp:g.hp || 100, maxHp:g.max_hp || 100,
+      weapon:g.weapon || 'pistol',
+      r:spawn.r,c:spawn.c,tr:spawn.r,tc:spawn.c,
+      ang:Math.PI, walkPhase:0, walking:false, name:'Охрана', role:'guard',
+      fixed:false, hostile:false, _alerted:false,
+      _nextShotAt:performance.now()+1800+Math.random()*700,
+      look:{gender:0,skin:1+(i%3),body:1+(i%2),face:i%4,hair:i%5,hat:2,suit:'#171b24'},
+      idleUntil:performance.now()+Math.random()*800, speed:1.15,
+    };
+  });
+  if (_majorRaidLocal.phase === 'boss') {
+    const bossName = BUSINESS_INTERIORS[`major_${d.object_id}`]?.manager || 'Главарь';
+    _buildingInt.npcs.push({
+      id:`major_boss_${d.object_id}`, majorBoss:true,
+      r:4, c:_buildingInt.W-5, tr:4, tc:_buildingInt.W-5,
+      ang:Math.PI, walkPhase:0, walking:false, name:bossName, role:'manager',
+      fixed:true, hp:200, maxHp:200,
+      look:{gender:0,skin:1,body:2,face:3,hair:2,hat:3,suit:'#411b20'},
+      idleUntil:performance.now()+999999, speed:0,
+    });
+  }
 }
 
 function _nearestMajorObject(radius = 3.2) {
@@ -11194,7 +11251,8 @@ function drawOwnedBusinessWorldMarkers(r0, r1, c0, c1) {
 }
 
 function _nearestAutomaticBuildingEntry(maxDistance = 7) {
-  if (_buildingInt || _bankInt || myDrivingCarId || myDead || inArena(player.r, player.c)) return null;
+  if (_buildingInt || _bankInt || myDrivingCarId || myDead ||
+      inArena(player.r, player.c)) return null;
   const radius = Math.max(2, Math.ceil(maxDistance));
   const pr = Math.round(player.r), pc = Math.round(player.c);
   let best = null, bestD = Number(maxDistance) || 7;
@@ -11204,6 +11262,7 @@ function _nearestAutomaticBuildingEntry(maxDistance = 7) {
     if (!MAP[r] || MAP[r][c] !== 1 || r >= 140) continue;
     const key = r + ',' + c;
     if (POI_BY_RC.has(key) || _bankTileSet.has(key) ||
+        MAJOR_CASINO_WORLD_TILES.has(key) ||
         (BUSINESS_BY_RC && BUSINESS_BY_RC.has(key))) continue;
     const d = Math.hypot(player.r - r - .5, player.c - c - .5);
     if (d < bestD) { bestD = d; best = { r, c, d }; }
@@ -11211,13 +11270,28 @@ function _nearestAutomaticBuildingEntry(maxDistance = 7) {
   return best;
 }
 
+function _refreshManualBuildingEntry() {
+  if (!_selectedBuildingEntry) return null;
+  const moved = Math.hypot(
+    player.r - Number(_selectedBuildingEntry.selectedAtR),
+    player.c - Number(_selectedBuildingEntry.selectedAtC));
+  // Ручной выбор нужен только пока игрок стоит и выбирает один дом из
+  // нескольких. Первое реальное движение возвращает авто-метку ближайшего.
+  if (!Number.isFinite(moved) || moved > .18) {
+    _selectedBuildingEntry = null;
+    return null;
+  }
+  return _selectedBuildingEntry;
+}
+
 function _currentBuildingEntryTarget() {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead) return null;
-  if (_selectedBuildingEntry) {
+  const selected = _refreshManualBuildingEntry();
+  if (selected) {
     return {
-      r: _selectedBuildingEntry.r + 0.5,
-      c: _selectedBuildingEntry.c + 0.5,
-      radius: _selectedBuildingEntry.type === 'mafia_hq' ? 1.35 : 0.68
+      r: selected.r + 0.5,
+      c: selected.c + 0.5,
+      radius: selected.type === 'mafia_hq' ? 1.35 : 0.68
     };
   }
 
@@ -11239,13 +11313,14 @@ function _currentBuildingEntryTarget() {
       return { r: r + 0.5, c: c + 0.5, radius: 1.15 };
     }
   }
+  if (_gtaActionKind === 'major_enter' && _gtaActionCarId === 'casino') {
+    const casinoPoi=POI.find(p=>p.id==='casino');
+    if(casinoPoi) return {r:casinoPoi.r+2.55,c:casinoPoi.c+.5,radius:.62};
+  }
 
   if (_zoneCur && _zoneEl && _zoneEl.style.display === 'block') {
     return { r: _zoneCur.r + 0.5, c: _zoneCur.c + 0.5, radius: 1.15 };
   }
-  // Preserve the original no-click flow: keep the nearest ordinary entrance
-  // marked automatically. A manually tapped building is handled above and
-  // takes priority when several facades overlap.
   const automatic = _nearestAutomaticBuildingEntry(7);
   if (automatic) {
     return { r: automatic.r + .5, c: automatic.c + .5, radius: .58 };
@@ -11285,7 +11360,7 @@ function drawActiveBuildingEntryMarker() {
 }
 
 function tryTapActiveBuildingEntryMarker(x, y) {
-  if (_gtaActionKind !== 'building_enter') return false;
+  if (_gtaActionKind !== 'building_enter' && _gtaActionKind !== 'major_enter') return false;
   const target = _currentBuildingEntryTarget();
   if (!target) return false;
   const pulse = (Math.sin(performance.now() * 0.007) + 1) * 0.5;
@@ -11373,6 +11448,23 @@ function selectVehicleFromCanvasTap(x, y, hitRadius = 48) {
   return true;
 }
 
+function _activateSelectedBuildingIfNear() {
+  const sel = _refreshManualBuildingEntry();
+  if (!sel) return false;
+  const key = sel.r + ',' + sel.c;
+  const reserved = _bankTileSet.has(key) ||
+    MAJOR_CASINO_WORLD_TILES.has(key) ||
+    (BUSINESS_BY_RC && BUSINESS_BY_RC.has(key)) ||
+    (POI_BY_RC && POI_BY_RC.has(key) && !sel.type);
+  const maxDistance = sel.type === 'mafia_hq' ? 4.2 : (sel.type ? 3.5 : 2.25);
+  const distance = Math.hypot(player.r - sel.r - .5, player.c - sel.c - .5);
+  if (reserved || distance > maxDistance ||
+      (sel.type === 'police_st' && (myJailIn || 0) > 0)) return false;
+  _gtaActionKind = 'building_enter';
+  _gtaActionCarId = `${sel.r},${sel.c}${sel.type ? ',' + sel.type : ''}`;
+  return activateCurrentBuildingEntry();
+}
+
 function selectBuildingFromCanvasTap(x, y) {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead) return false;
 
@@ -11383,9 +11475,10 @@ function selectBuildingFromCanvasTap(x, y) {
       y >= burjScreen.y - 330 && y <= burjScreen.y + 35) {
     _selectedBuildingEntry = {
       r: BURJ_POS.r, c: BURJ_POS.c, type: 'mafia_hq',
-      label: 'Burj Mafia'
+      label: 'Burj Mafia', selectedAtR: player.r, selectedAtC: player.c
     };
     _selectedVehicleEntry = null;
+    if (_activateSelectedBuildingIfNear()) return true;
     showToast('📍 Вход в Burj Mafia отмечен. Подойди к жёлтому квадрату.', '🚪', 2600);
     return true;
   }
@@ -11430,9 +11523,11 @@ function selectBuildingFromCanvasTap(x, y) {
   );
   _selectedBuildingEntry = {
     r: best.r, c: best.c, type: special,
-    label: special === 'mafia_hq' ? 'Burj Mafia' : 'здание'
+    label: special === 'mafia_hq' ? 'Burj Mafia' : 'здание',
+    selectedAtR: player.r, selectedAtC: player.c
   };
   _selectedVehicleEntry = null;
+  if (_activateSelectedBuildingIfNear()) return true;
   showToast('📍 Вход отмечен. Подойди к жёлтому квадрату.', '🚪', 2200);
   return true;
 }
@@ -12116,8 +12211,10 @@ function _updateGang(dt) {
       m._followSpeed = currentSpeed + Math.max(-rate * followDt,
         Math.min(rate * followDt, desiredSpeed - currentSpeed));
       const step = Math.min(dist - .18, m._followSpeed * followDt);
-      m.r += (dr / dist) * step;
-      m.c += (dc / dist) * step;
+      const nextR=m.r+(dr/dist)*step,nextC=m.c+(dc/dist)*step;
+      if(!_casinoMovementBlocked(_buildingInt,nextR,nextC)){m.r=nextR;m.c=nextC;}
+      else if(!_casinoMovementBlocked(_buildingInt,nextR,m.c)){m.r=nextR;}
+      else if(!_casinoMovementBlocked(_buildingInt,m.r,nextC)){m.c=nextC;}
       m.walkPhase += step * 2.4;
       const wantedBodyAng = Math.atan2(dr, dc);
       const bodyTurn = Math.atan2(Math.sin(wantedBodyAng - m.ang), Math.cos(wantedBodyAng - m.ang));
@@ -12207,6 +12304,8 @@ function _updateGang(dt) {
       continue;
     }
     m.ang = Math.atan2(tdr, tdc);
+    if(_buildingInt?.bizId==='major_casino'&&
+       !_casinoLineClear(_buildingInt,m.r,m.c,pos.r,pos.c)) continue;
     if (now < (m._nextShootAt || 0)) continue;
     m._nextShootAt = now + GANG_SHOT_CD_MIN + Math.random() * GANG_SHOT_CD_RANGE;
     const nd = tdist > 0.01 ? tdist : 1;
@@ -13581,6 +13680,11 @@ function spawnBullet(sr, sc, er, ec, opts) {
   const dist = rawDist;
   const wcfg = weaponProfile(opts.weapon);
   const speed = opts.speed || wcfg.bulletSpeed || BULLET_SPEED;
+  const casinoFlight = _buildingInt && _buildingInt.bizId === 'major_casino';
+  const startZ = opts.startZ != null ? opts.startZ :
+    (casinoFlight ? _casinoVisualElevation(_buildingInt, sr, sc) : 0);
+  const endZ = opts.endZ != null ? opts.endZ :
+    (casinoFlight ? _casinoVisualElevation(_buildingInt, er, ec) : 0);
   _capArr(bullets, _MAX_BULLETS);
   bullets.push({
     r: sr, c: sc,
@@ -13596,6 +13700,7 @@ function spawnBullet(sr, sc, er, ec, opts) {
     hit:   opts.hit !== false,
     fromPlayer: !!opts.fromPlayer,
     fromNpc:    !!opts.fromNpc,
+    startZ, endZ,
   });
   // Дробь — несколько реально разлетающихся трассеров. Центральный луч несёт
   // рассчитанный суммарный урон, остальные показывают ширину осыпи и не создают
@@ -13626,6 +13731,8 @@ function spawnMuzzle(r, c, angle, weapon, npc) {
   _capArr(muzzles, _MAX_MUZZLES);
   muzzles.push({
     r, c, angle,
+    z: _buildingInt && _buildingInt.bizId === 'major_casino'
+      ? _casinoVisualElevation(_buildingInt, r, c) : 0,
     life: heavy ? 100 : (npc ? 50 : 75), max: heavy ? 100 : (npc ? 50 : 75),
     color: wcfg.color || '#ffd76b',
     weapon: w,
@@ -14376,19 +14483,39 @@ function handleEventPacket(d) {
   } else if (kind === 'major_guard_hit' && d.ok &&
              _majorRaidLocal?.objectId === d.object_id) {
     const npc = (_buildingInt?.npcs || []).find(n => n.id === d.guard_id);
-    if (npc) { npc.hp = d.hp; npc.dead = !d.alive; }
+    if (npc) {
+      const wasDead = !!npc.dead;
+      npc.hp = Math.max(0, +d.hp || 0);
+      npc.dead = !d.alive;
+      if (npc.dead && !wasDead) {
+        npc.deadAt = performance.now();
+        npc.walking = false;
+        npc.walkPhase = 0;
+        spawnFloatText(npc.r, npc.c, 'УБИТ', {color:'#ff6969', size:14, life:1300});
+      } else if (!npc.dead) {
+        npc.deadAt = 0;
+      }
+    }
     if (d.new_guard && _buildingInt) {
       const g = d.new_guard, i = d.spawned || 20;
+      const casinoSpawns=_buildingInt.bizId==='major_casino'
+        ?_casinoGuardSpawnPoints(_buildingInt):[];
+      const spawn=casinoSpawns[i%casinoSpawns.length]||{
+        r:3,c:3+(i%5)*5,tr:5+(i%5)*2.8,tc:4+(i%4)*6,
+      };
       _buildingInt.npcs.push({
         id:g.id, majorGuard:true, hp:g.hp, maxHp:g.max_hp,
-        weapon:g.weapon || 'pistol', r:3, c:3+(i%5)*5,
-        tr:5+(i%5)*2.8, tc:4+(i%4)*6, ang:Math.PI,
+        weapon:g.weapon || 'pistol',r:spawn.r,c:spawn.c,
+        tr:spawn.tr??spawn.r,tc:spawn.tc??spawn.c,ang:Math.PI,
         walkPhase:0, walking:false, name:'Подкрепление', role:'guard',
-        fixed:false, hostile:true,
+        fixed:false, hostile:!!_majorRaidLocal.combatStarted,
+        _alerted:!!_majorRaidLocal.combatStarted,
+        _nextShotAt:performance.now()+650+Math.random()*650,
         look:{gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%5,hat:2,suit:'#241923'},
         idleUntil:performance.now()+300, speed:1.25,
       });
     }
+    _majorRaidLocal.spawned = d.spawned || _majorRaidLocal.spawned;
     _majorRaidLocal.phase = d.phase || _majorRaidLocal.phase;
     if (d.phase === 'boss' && _buildingInt &&
         !_buildingInt.npcs.some(n => n.majorBoss)) {
@@ -14403,6 +14530,20 @@ function handleEventPacket(d) {
       });
       showEventBanner('ГЛАВАРЬ ОСТАЛСЯ ОДИН',
         'Стреляй рядом с ним, чтобы повышать давление', 3600, 'win');
+    }
+  } else if (kind === 'major_guard_hit' && !d.ok &&
+             _majorRaidLocal?.objectId === d.object_id) {
+    showToast(d.reason==='not_inside'
+      ?'Сервер ещё не подтвердил вход — выстрели ещё раз'
+      :'Попадание не подтверждено сервером','⚠️',1600);
+  } else if(kind==='major_prop_hit'&&d.object_id==='casino'){
+    if(d.ok){
+      const previous=!!_casinoPropsState[d.prop_id]?.destroyed;
+      _casinoPropsState[d.prop_id]={hp:+d.hp||0,destroyed:!!d.destroyed};
+      if(d.destroyed&&!previous){
+        const prop=MAJOR_CASINO_STATIC_BLOCKERS.find(p=>p.id===d.prop_id);
+        _spawnCasinoPropDestruction(prop);
+      }
     }
   } else if (kind === 'major_income') {
     const mine = (d.awards || []).find(a => String(a.uid) === String(QP.uid));
@@ -15016,13 +15157,17 @@ function handleEventPacket(d) {
     // Ответ сервера на ограбление. ok → +money toast, fail → причина.
     if (d.ok) {
       const m = +d.money | 0;
-      const s = +d.stars | 0;
+      const difficulty = Math.max(1, Math.min(5, +d.difficulty || +d.stars || 1));
       QP.cash = (parseInt(QP.cash) || 0) + m;
-      myWanted = Math.max(myWanted || 0, s);
       if (d.biz_id) _robCooldowns[d.biz_id] = Date.now() + Math.max(1,+d.closed_s||300)*1000;
       if (d.biz_id) _businessClosures[d.biz_id] = Date.now() + Math.max(1,+d.closed_s||300)*1000;
-      showToast(`💰 Ограбление успешно: +$${m.toLocaleString('ru')} (${s}★)`,
-                '🔪', 3000);
+      const robbedBiz = BUSINESS_POIS.find(b => b.id === d.biz_id);
+      const robbedName = robbedBiz?.name || 'Бизнес';
+      const robbedEmoji = robbedBiz?.emoji || '🏪';
+      showEventBanner(
+        `${robbedEmoji} ${robbedName} — УСПЕШНО ОГРАБЛЕНО`,
+        `КУШ: +$${m.toLocaleString('ru')} · СЛОЖНОСТЬ ${'★'.repeat(difficulty)}`,
+        4800, 'robbery-success');
       hapticHit();
       if(_buildingInt&&_buildingInt.robbery)setTimeout(()=>{if(_buildingInt&&_buildingInt.robbery)exitBuildingInterior();},1800);
     } else {
@@ -15211,6 +15356,10 @@ function handleEventPacket(d) {
   } else if (kind === 'shop_robbed') {
     // Broadcast всем — кто-то ограбил магазин в городе. В ленту,
     // не центральным баннером (онлайн событие, не моё).
+    if (d.biz_id) {
+      _businessClosures[d.biz_id] = Date.now() +
+        Math.max(1, +d.closed_s || 300) * 1000;
+    }
     if (String(d.robber_uid) !== String(QP.uid)) {
       const nm = d.robber_name || 'Кто-то';
       const bn = d.biz_name || 'магазин';
@@ -16567,6 +16716,7 @@ function wsConnect() {
         }
       }
     }
+    _casinoPropsState={...(_majorObjectsState.casino?.props||{})};
   }
       if (d.box_quest !== undefined) {
         myBoxStatus.active = d.box_quest || null;
@@ -17470,21 +17620,23 @@ function claimBrigadirReward() {
 
 // ── Ограбление магазинов/бизнесов ──────────────────────────────────
 // Альтернатива покупке: подходишь к чужому бизнесу → кнопка «🔪 Ограбить».
-// 1 точка / 24ч (сервер фильтрует по shop_robs). Малые суммы (≈0.5 daily_max
-// бизнеса), +★ wanted. NPC-кассир спавнится локально на тайле POI и через 8с
+// После успешного налёта точка закрывается для всех игроков на 5 минут.
+// Малые суммы (≈0.5 daily_max
+// бизнеса). ★ показывают сложность охраны и не являются розыском полиции.
+// NPC-кассир спавнится локально на тайле POI и через 8с
 // бежит в участок (snitch). Убьёшь кассира до окончания таймера — ★ всё
 // равно прилетит за сам факт ограбления (серверный witness), но без snitch.
 const ROB_PAYOUT_PREVIEW = {
-  coffee:     { money:  200, stars: 1 },
-  carwash:    { money:  300, stars: 1 },
-  barbershop: { money:  400, stars: 1 },
-  pizza:      { money:  600, stars: 1 },
-  garage:     { money:  900, stars: 2 },
-  bar:        { money: 1300, stars: 2 },
-  club:       { money: 2000, stars: 2 },
-  warehouse:  { money: 3200, stars: 2 },
-  casino:     { money: 5000, stars: 3 },
-  port:       { money: 8000, stars: 3 },
+  coffee:     { money:  200, difficulty: 1 },
+  carwash:    { money:  300, difficulty: 2 },
+  barbershop: { money:  400, difficulty: 2 },
+  pizza:      { money:  600, difficulty: 2 },
+  garage:     { money:  900, difficulty: 3 },
+  bar:        { money: 1300, difficulty: 3 },
+  club:       { money: 2000, difficulty: 3 },
+  warehouse:  { money: 3200, difficulty: 4 },
+  casino:     { money: 5000, difficulty: 4 },
+  port:       { money: 8000, difficulty: 4 },
 };
 const BUSINESS_ROB_TIERS = {
   coffee:{guards:1,w:16,h:11}, carwash:{guards:2,w:18,h:12},
@@ -17531,8 +17683,10 @@ function _businessClosureText(ms) {
 
 function _showBusinessClosed(leftMs) {
   const timer = _businessClosureText(leftMs);
-  showEventBanner('🔒 ЗАВЕДЕНИЕ ЗАКРЫТО', `Это заведение ограблено и сейчас закрыто · открытие через ${timer}`, 3200, 'lose');
-  showToast(`Открытие через ${timer}`, '⏳', 3200);
+  showEventBanner('💥 БИЗНЕС УЖЕ ОГРАБЛЕН',
+    `Общий кулдаун для всех игроков · новое ограбление через ${timer}`,
+    3400, 'lose');
+  showToast(`КД ограбления: ${timer}`, '⏳', 3200);
 }
 
 function startRobbery(biz) {
@@ -17655,9 +17809,9 @@ function finishRobbery() {
     }
     return; // не шлём серверу — ограбление сорвано
   }
-  // Клиентский кулдаун СРАЗУ (оптимистично) — даже если reply от сервера
-  // потеряется, кнопка «Ограбить» исчезнет на час. Сервер подтвердит/уточнит.
-  if (_robTargetBiz) _robCooldowns[_robTargetBiz.id] = Date.now() + 3600000;
+  // Клиентский кулдаун СРАЗУ (оптимистично) — сервер затем подтвердит
+  // общий для всех игроков пятиминутный таймер.
+  if (_robTargetBiz) _robCooldowns[_robTargetBiz.id] = Date.now() + 300000;
   // Шлём серверу — он валидирует cooldown/дистанцию/owner и начислит cash + ★
   try {
     ws && ws.send(JSON.stringify({ t: 'shop_rob', d: {
@@ -18122,11 +18276,13 @@ function updateGtaInteractions() {
       // ВТОРАЯ кнопка — «Ограбить». Альтернатива покупке.
       // Сумма и ★ серверные, сервер сам отвергнет при cooldown.
       const rcfg = ROB_PAYOUT_PREVIEW[bizNear.id];
-      const robOnCd = Date.now() < Math.max(_robCooldowns[bizNear.id]||0,_businessClosures[bizNear.id]||0);
-      if (_robBtn && rcfg && !_robInProgress && !robOnCd) {
+      const robCdUntil = Math.max(
+        _robCooldowns[bizNear.id]||0, _businessClosures[bizNear.id]||0);
+      const robCdLeft = Math.max(0, robCdUntil - Date.now());
+      if (_robBtn && rcfg && !_robInProgress && !robCdLeft) {
         _robTargetBiz = bizNear; _robBtn._buySprayCan = false;
         _robBtn._graffitiR = null; _robBtn._graffitiC = null;
-        _robBtn.textContent = `🔫 Войти и ограбить (${rcfg.stars}★)`;
+        _robBtn.textContent = `🔫 Войти и ограбить (${'★'.repeat(rcfg.difficulty)})`;
         _robBtn.style.display = 'block';
       }
       return;
@@ -18146,15 +18302,19 @@ function updateGtaInteractions() {
     return;
   }
   // Чёрный рынок — вход в здание
-  // A tapped building remains marked from a distance. Entry becomes available
-  // only after the player physically reaches the selected doorway.
-  if (_selectedBuildingEntry && !_buildingInt && !_bankInt && !myDrivingCarId) {
-    const sel = _selectedBuildingEntry;
+  // Ручной выбор здания имеет приоритет, пока игрок стоит на месте.
+  // После начала движения метка снова автоматически следует за ближайшим домом.
+  const selectedBuilding = _refreshManualBuildingEntry();
+  if (selectedBuilding && !_buildingInt && !_bankInt && !myDrivingCarId) {
+    const sel = selectedBuilding;
     const dist = Math.hypot(player.r - sel.r - .5, player.c - sel.c - .5);
     const reserved = _bankTileSet.has(sel.r + ',' + sel.c) ||
+      MAJOR_CASINO_WORLD_TILES.has(sel.r + ',' + sel.c) ||
       (BUSINESS_BY_RC && BUSINESS_BY_RC.has(sel.r + ',' + sel.c)) ||
       (POI_BY_RC && POI_BY_RC.has(sel.r + ',' + sel.c) && !sel.type);
-    if (dist <= (sel.type === 'mafia_hq' ? 4.2 : 2.25) && !reserved) {
+    const selectedMaxDistance = sel.type === 'mafia_hq' ? 4.2 :
+      (sel.type ? 3.5 : 2.25);
+    if (dist <= selectedMaxDistance && !reserved) {
       if (sel.type !== 'police_st' || (myJailIn || 0) <= 0) {
         _gtaActionKind = 'building_enter';
         _gtaActionCarId = `${sel.r},${sel.c}${sel.type ? ',' + sel.type : ''}`;
@@ -18230,6 +18390,7 @@ function updateGtaInteractions() {
       if (tr >= 140) continue;
       if (POI_BY_RC.has(tr + ',' + tc)) continue;
       if (_bankTileSet.has(tr + ',' + tc)) continue;
+      if (MAJOR_CASINO_WORLD_TILES.has(tr + ',' + tc)) continue;
       if (BUSINESS_BY_RC && BUSINESS_BY_RC.has(tr + ',' + tc)) continue;
       const d = Math.hypot(player.r - tr - 0.5, player.c - tc - 0.5);
       if (d < nearBldD) { nearBldD = d; nearBldR = tr; nearBldC = tc; }
@@ -18504,20 +18665,21 @@ function updateGtaInteractions() {
   const majorPoi = _nearestMajorObject();
   if (majorPoi && !myDrivingCarId && !myDead) {
     const state = _majorObjectsState[majorPoi.id] || {};
+    _gtaActionKind = 'major_enter';
+    _gtaActionCarId = majorPoi.id;
+    _gtaBtn.textContent = `🚪 Войти: ${majorPoi.name}`;
+    _gtaBtn.style.display = 'block';
     if (_robBtn) {
       _robTargetBiz = null;
       _robBtn._buySprayCan = false;
       _robBtn._taxiHijack = false;
       _robBtn._graffitiR = null; _robBtn._graffitiC = null;
-      _robBtn._majorAssaultId = majorPoi.id;
-      _robBtn.textContent = state.owner_uid
-        ? `⚔️ Оспорить контроль: ${majorPoi.name}`
-        : `⚔️ Штурмовать: ${majorPoi.name}`;
-      _robBtn.style.display = 'block';
+      if (!state.owner_uid) {
+        _robBtn._majorAssaultId = majorPoi.id;
+        _robBtn.textContent = `⚔️ Штурмовать: ${majorPoi.name} · ★★★★★`;
+        _robBtn.style.display = 'block';
+      }
     }
-    _gtaActionKind = null;
-    _gtaActionCarId = null;
-    _gtaBtn.style.display = 'none';
     return;
   }
   // Гражданская тачка из трафика — можно угнать как в GTA. Игнорируем
@@ -18563,11 +18725,32 @@ function updateGtaInteractions() {
 }
 
 function activateCurrentBuildingEntry() {
+  if (_gtaActionKind === 'major_enter' && typeof _gtaActionCarId === 'string') {
+    const poi = POI.find(p => p.id === _gtaActionCarId && MAJOR_OBJECT_IDS.has(p.id));
+    if (!poi || _nearestMajorObject()?.id !== poi.id) {
+      showToast('Подойди ближе ко входу', '🚪', 1600);
+      return true;
+    }
+    _gtaActionKind = null;
+    _gtaActionCarId = null;
+    enterBuildingInterior(poi.r, poi.c, 'business', `major_${poi.id}`,
+      {peacefulMajorObjectId:poi.id});
+    return true;
+  }
   if (_gtaActionKind !== 'building_enter' || typeof _gtaActionCarId !== 'string') return false;
   const parts = _gtaActionCarId.split(',');
   const br = Number(parts[0]), bc = Number(parts[1]), btype = parts[2] || null;
   if (!Number.isFinite(br) || !Number.isFinite(bc)) return false;
+  const distance = Math.hypot(player.r - br - .5, player.c - bc - .5);
+  const maxDistance = btype === 'mafia_hq' ? 4.2 : (btype ? 3.5 : 2.25);
+  if (distance > maxDistance) {
+    showToast('Подойди ближе ко входу', '🚪', 1700);
+    return true;
+  }
   _selectedBuildingEntry = null;
+  _gtaActionKind = null;
+  _gtaActionCarId = null;
+  _gtaBtn.style.display = 'none';
   enterBuildingInterior(br, bc, btype);
   return true;
 }
@@ -18645,6 +18828,14 @@ _gtaBtn.addEventListener('click', () => {
         object_id:_majorInteriorObjectId, safe_id:_gtaActionCarId,
       }}));
     }
+  } else if (_gtaActionKind === 'major_enter') {
+    const poi = POI.find(p => p.id === _gtaActionCarId && MAJOR_OBJECT_IDS.has(p.id));
+    if (poi && _nearestMajorObject()?.id === poi.id) {
+      enterBuildingInterior(poi.r, poi.c, 'business', `major_${poi.id}`,
+        {peacefulMajorObjectId:poi.id});
+    } else {
+      showToast('Подойди ближе ко входу', '🚪', 1600);
+    }
   } else if (_gtaActionKind === 'biz_info') {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
   } else if (_gtaActionKind === 'biz_manage') {
@@ -18660,8 +18851,14 @@ _gtaBtn.addEventListener('click', () => {
     }else{
       _buildingInt.robberyClaimed=true;
       owner._sayText=owner.persona?.give||'ДЕРЖИ ДЕНЬГИ, ТОЛЬКО НЕ УБИВАЙ!';owner._sayUntil=performance.now()+2400;
-      const guardsDown=(_buildingInt.npcs||[]).filter(n=>n.role==='biz_guard'&&n.dead).length;
-      if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'shop_rob',d:{biz_id:_buildingInt.bizId,rob_token:_buildingInt.robToken||''}}));
+      if(ws&&ws.readyState===1){
+        // Сначала синхронизируем точную позицию у кассира. WebSocket
+        // сохраняет порядок сообщений, поэтому сервер проверит свежие
+        // координаты до запроса выплаты, не ослабляя anti-cheat дистанцию.
+        lastInputSent=0;
+        sendInput();
+        ws.send(JSON.stringify({t:'shop_rob',d:{biz_id:_buildingInt.bizId,rob_token:_buildingInt.robToken||''}}));
+      }
       else{_buildingInt.robberyClaimed=false;showToast('Сервер не отвечает','⚠️',1800);}
     }
   } else if (_gtaActionKind === 'blackmarket') {
@@ -20806,7 +21003,7 @@ function showEventBanner(title, msg, ms = 4000, style = 'spawn') {
   _evBannerLast = { txt: key, t: now };
   _evBannerT.textContent = title || '';
   _evBannerM.textContent = msg || '';
-  _evBanner.classList.remove('spawn','win','lose','neutral');
+  _evBanner.classList.remove('spawn','win','lose','neutral','robbery-success');
   _evBanner.classList.add(style || 'spawn');
   _evBanner.classList.add('show');
   if (_evBannerT_id) clearTimeout(_evBannerT_id);
@@ -21602,11 +21799,23 @@ function weaponAllowsHoldFire(weapon = currentWeapon) {
   return weaponProfile(weapon).mode === 'auto';
 }
 
+let _peacefulGunHintAt=0;
+function _peacefulInteriorGunLock(silent=false) {
+  const locked=!!(_buildingInt&&_buildingInt.type&&!_buildingInt.robbery&&
+    !_majorInteriorObjectId);
+  if(locked&&!silent&&performance.now()>=_peacefulGunHintAt){
+    _peacefulGunHintAt=performance.now()+1800;
+    showToast('Мирная зона · оружие здесь не применяется','🕊️',1800);
+  }
+  return locked;
+}
+
 // При удержании правого стика любое оружие повторяет выстрелы. Реальную
 // скорострельность ограничивает cooldown его профиля внутри fire().
 function fireFromAimHold(angle, active) {
   if (!active) return;
   if (!_isArmed()) return;
+  if (_peacefulInteriorGunLock()) return;
   const weapon = resolveWeapon(currentWeapon);
   _finishDueWeaponReload(weapon);
   // Удержание стика ждёт полного завершения reload. Особенно важно для
@@ -21669,6 +21878,14 @@ function _weaponWallDistance(sR, sC, dirY, dirX, maxRange) {
     else if (dirY < -0.0001) d = Math.min(d, (pad - sR) / dirY);
     if (dirX > 0.0001) d = Math.min(d, (W - pad - sC) / dirX);
     else if (dirX < -0.0001) d = Math.min(d, (pad - sC) / dirX);
+    if(_buildingInt.bizId==='major_casino'){
+      for(let wd=.18;wd<=d;wd+=.12){
+        const rayR=sR+dirY*wd,rayC=sC+dirX*wd;
+        if(_casinoInteriorBlocked(_buildingInt,rayR,rayC,.14)){
+          d=Math.min(d,wd-.08);break;
+        }
+      }
+    }
     return Math.max(0.18, d - 0.08);
   }
   const step = 0.16;
@@ -21769,6 +21986,7 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
   const pellets = cfg.pellets || 7;
   const local = _localBallisticTargets();
   const damageByTarget = new Map();
+  const damagedProps = new Map();
   let remoteHit = false;
   for (let i = 0; i < pellets; i++) {
     const lane = pellets <= 1 ? 0 : (i / (pellets - 1) - 0.5) * 2;
@@ -21776,6 +21994,8 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
     const dy = Math.sin(a), dx = Math.cos(a);
     const wallD = _weaponWallDistance(sR, sC, dy, dx, range);
     let best = null, bestP = null;
+    const propHit=_raycastCasinoProp(sR,sC,dy,dx,wallD);
+    if(propHit){best={casinoProp:propHit.prop};bestP={along:propHit.dist,perp:0};}
     for (const t of local) {
       const p = _projectTargetOnRay(t, sR, sC, dy, dx, wallD, 0.04);
       if (p && (!bestP || p.along < bestP.along)) { best = t; bestP = p; }
@@ -21787,7 +22007,8 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
     const endD = bestP ? bestP.along : wallD;
     spawnBullet(sR, sC, sR + dy * endD, sC + dx * endD,
       { hit:!!best, fromPlayer:true, weapon:'shotgun', _pelletChild:true, thick:i===Math.floor(pellets/2) });
-    if (best === remote) remoteHit = true;
+    if(best?.casinoProp)damagedProps.set(best.casinoProp.id,best.casinoProp);
+    else if (best === remote) remoteHit = true;
     else if (best) {
       const falloff = weaponDamageAt('shotgun', bestP.along) / Math.max(1, cfg.dmg);
       const pelletDmg = Math.max(1, Math.round((cfg.dmg / pellets) * falloff));
@@ -21811,6 +22032,8 @@ function _firePenetratingRound(sR, sC, dirY, dirX, range, weapon, remote) {
   const isNagan = weapon === 'nagan';
   const wallD = _weaponWallDistance(sR, sC, dirY, dirX, range);
   const candidates = [];
+  const propHit=_raycastCasinoProp(sR,sC,dirY,dirX,wallD);
+  if(propHit)candidates.push({target:propHit.prop,along:propHit.dist,prop:true});
   for (const t of _localBallisticTargets()) {
     const p = _projectTargetOnRay(t, sR, sC, dirY, dirX, wallD, weapon === 'sniper' ? 0.02 : 0.07);
     if (p) candidates.push({ target:t, along:p.along, remote:false });
@@ -21826,7 +22049,8 @@ function _firePenetratingRound(sR, sC, dirY, dirX, range, weapon, remote) {
   spawnBullet(sR, sC, sR + dirY * endD, sC + dirX * endD,
     { hit:hits.length>0, fromPlayer:true, weapon, thick:true });
   hits.forEach((h, idx) => {
-    if (h.remote) _sendRemoteWeaponHit(remote, currentWeapon);
+    if(h.prop)_hitCasinoProp(h.target,weapon);
+    else if (h.remote) _sendRemoteWeaponHit(remote, currentWeapon);
     else {
       const penetrationMul = weapon === 'sniper' ? Math.pow(0.72, idx)
         : isNagan ? Math.pow(0.62, idx) : Math.pow(0.56, idx);
@@ -21872,6 +22096,7 @@ function _spawnRpgExplosion(r, c, remote, firedWeapon) {
   impacts.push({ r, c, parts: blastParts });
   for (let i = 0; i < 9; i++) spawnSmokePuff(r + (Math.random()-.5)*0.8, c + (Math.random()-.5)*0.8, Math.random()*Math.PI*2);
   _spawnBulletWallImpact(r, c, 'rpg');
+  _damageCasinoPropsInRadius(r,c,radius,'rpg');
   for (const t of _localBallisticTargets(firedWeapon)) {
     const d = Math.hypot(t.r-r, t.c-c);
     if (d > radius) continue;
@@ -21933,6 +22158,7 @@ function fire(angle = null) {
     return;
   }
   if (myDead) return;
+  if (_peacefulInteriorGunLock()) return;
   if (_myBagWeight > 0 && ((_bankRob && _bankRob.myBag) || _policeEvidenceBag)) { showToast('🎒 С мешком нельзя стрелять', '⚠️', 1400); return; }
   // ── ТЮРЬМА: стрелять НЕЛЬЗЯ (только кулаки) ────────────────────────
   // Раньше блок был привязан к _meInJail (jailed И внутри радиуса клетки).
@@ -22235,7 +22461,7 @@ function fire(angle = null) {
   // переключаются в panic. Бегут от стрелка, кричат «ПОМОГИТЕ!» по
   // случайному паттерну. Когда отбежали — успокаиваются (см. updateNpcs).
   // Из тюрьмы не паникуем — прохожие за решёткой это игнорят.
-  if (!_meInJail && !_bankInt) {
+  if (!_meInJail && !_bankInt && !_buildingInt) {
     // В банке player.r/c локальные — паника мировых NPC по ним некорректна
     try { triggerNpcPanic(player.r, player.c, 9); } catch(e) {}
   }
@@ -22249,7 +22475,9 @@ function fire(angle = null) {
   // и звать свидетелей в участок бессмысленно (NPC сами там стоят за стенкой).
   // _bankInt: внутри банка координаты локальные — witness-chain/open_fire
   // по мировым NPC не имеют смысла (тревога банка уже и так включена).
-  const lawful    = _meInJail || meInArena || meInAggro || pvpActive || !!_bankInt || chosenConvoy || chosenCop || chosenCityCop || chosenAggro || chosenMg || chosenBankGuard;
+  const lawful    = _meInJail || meInArena || meInAggro || pvpActive ||
+    !!_bankInt || !!_buildingInt || chosenConvoy || chosenCop ||
+    chosenCityCop || chosenAggro || chosenMg || chosenBankGuard;
   if (!lawful) {
     // НОВАЯ механика wanted:
     //   - мгновенный +1 только если КОП видел выстрел сам (witness=true)
@@ -22309,7 +22537,18 @@ function fire(angle = null) {
     _fireRpgRound(sR, sC, dirY, dirX, range, remoteBallistic);
     return;
   }
-  const hitI  = _buildingInt ? _raycastInteriorNpc(sR, sC, dirY, dirX, range) : null;
+  const propRange=_weaponWallDistance(sR,sC,dirY,dirX,range);
+  const hitProp=_raycastCasinoProp(sR,sC,dirY,dirX,propRange);
+  const hitI  = _buildingInt ? _raycastInteriorNpc(sR, sC, dirY, dirX, propRange) : null;
+  if(hitProp&&(!hitI||hitProp.dist<hitI.dist)){
+    spawnBullet(sR,sC,hitProp.point.r,hitProp.point.c,
+      {hit:true,fromPlayer:true,weapon:currentWeapon});
+    _spawnBulletWallImpact(hitProp.point.r,hitProp.point.c,currentWeapon);
+    _hitCasinoProp(hitProp.prop,currentWeapon,hitProp.point.r,hitProp.point.c);
+    triggerHitStop(wcfg.thick?32:16);addShake(wcfg.thick?3:1.6);hapticHit();
+    return;
+  }
+  for(const prop of damagedProps.values())_hitCasinoProp(prop,'shotgun');
   if (hitI) {
     spawnBullet(sR, sC, hitI.point.r, hitI.point.c,
       { hit:true, fromPlayer:true, weapon:currentWeapon });
@@ -23306,10 +23545,10 @@ renderWeaponHud();
 
 // shopGoBtn удалён — магазин теперь встроен прямо в world.html
 
-function sendInput() {
+function sendInput(force = false) {
   if (!ws || ws.readyState !== 1) return;
   const now = performance.now();
-  if (now - lastInputSent < 75) return;   // ~13 Гц
+  if (!force && now - lastInputSent < 75) return;   // ~13 Гц
   lastInputSent = now;
   // ВНУТРИ БАНКА player.r/c — координаты ИНТЕРЬЕРА (0..30), НЕ мировые.
   // Если слать их серверу, он решит что игрок телепортировался в угол
@@ -23544,10 +23783,13 @@ function _renderMissions(){
   }
   if (_majorRaidLocal) {
     const cfg = BUSINESS_INTERIORS[`major_${_majorRaidLocal.objectId}`];
+    const alive = (_buildingInt?.npcs || []).filter(n=>n.majorGuard&&!n.dead).length;
+    const opened = (_majorRaidLocal.safes || []).filter(s=>s.opened).length;
+    const totalSafes = (_majorRaidLocal.safes || []).length;
     const phase = _majorRaidLocal.phase === 'boss'
       ? 'Охрана уничтожена — сломи главаря и вскрой сейфы.'
       : 'Зачисти охрану объекта. Подкрепление может прибывать волнами.';
-    cards.push(`<article class="mission-item active"><h3>⚔️ Штурм: ${_missionEsc(cfg?.title || _majorRaidLocal.objectId)}</h3><p>${phase}</p><p>После победы объект будет приносить мафии временный доход.</p></article>`);
+    cards.push(`<article class="mission-item active"><h3>⚔️ Штурм: ${_missionEsc(cfg?.title || _majorRaidLocal.objectId)}</h3><p>${phase}</p><p>Охрана сейчас: <b>${alive}</b> · введено в бой: <b>${_majorRaidLocal.spawned || 0}/${_majorRaidLocal.total || 40}</b></p><p>Сейфы: <b>${opened}/${totalSafes}</b> · участников команды: <b>${Math.max(1,_majorRaidLocal.participants?.length||1)}</b></p><p>После победы объект принадлежит команде 1 час. Доход делится поровну между участниками.</p></article>`);
   }
   const owned=_myOwnedDistricts();
   if(owned.length)cards.push(`<article class="mission-item"><h3>👑 Контролируемые районы: ${owned.length}</h3><p>Доход, опыт и оставшееся время контроля.</p><button type="button" data-mission-action="district-info">Открыть сведения</button></article>`);
@@ -24475,11 +24717,26 @@ function update(dt) {
         const mag = Math.hypot(dr, dc) || 1;
         const mv = Math.min(1, Math.hypot(inDx, inDy));
         const spd = 4.0;
-        player.r = Math.max(0.4, Math.min(biH - 0.5, player.r + dr / mag * spd * dt * mv));
-        player.c = Math.max(0.4, Math.min(biW - 0.4, player.c + dc / mag * spd * dt * mv));
+        const nextR=Math.max(0.4,Math.min(biH-0.5,player.r+dr/mag*spd*dt*mv));
+        const nextC=Math.max(0.4,Math.min(biW-0.4,player.c+dc/mag*spd*dt*mv));
+        const escapingCasinoFurniture=_casinoMovementBlocked(bi,player.r,player.c);
+        if(!_casinoMovementBlocked(bi,nextR,nextC)||escapingCasinoFurniture){
+          player.r=nextR;player.c=nextC;
+        }else if(!_casinoMovementBlocked(bi,nextR,player.c)){
+          player.r=nextR;
+        }else if(!_casinoMovementBlocked(bi,player.r,nextC)){
+          player.c=nextC;
+        }
         player.ang = Math.atan2(dr, dc);
         player.walking = mv > 0.15;
         player.walkPhase += dt * 10 * mv;
+        if(bi.bizId==='major_casino'){
+          const upstairs=_casinoVisualElevation(bi,player.r,player.c)>1.55;
+          if(upstairs!==!!bi._casinoUpstairs){
+            bi._casinoUpstairs=upstairs;
+            showToast(upstairs?'VIP-балкон · второй этаж':'Главный игровой этаж',upstairs?'⬆️':'⬇️',1400);
+          }
+        }
       }
       // Wanted сбрасывается через 30 секунд внутри
       if (typeof myWanted === 'number' && myWanted > 0) {
@@ -27459,6 +27716,144 @@ function drawCasinoBuilding(r, c) {
 // Каменная платформа-площадь с 5 палатками разных цветов, гирлянды
 // флажков между палатками, корзины с фруктами и мешки на полу,
 // ковёр-дорожка, эмодзи товаров парят над прилавками.
+function drawGrandCasinoExterior(r,c) {
+  const cr=r+.5,cc=c+.5,p=w2s(cr,cc),t=performance.now()/1000;
+  const pulse=.72+.28*Math.sin(t*4.2);
+  const box=(rr,ccc,w,d,h,base,top,left,right,label='')=>{
+    ctx.save();ctx.translate(0,-isoH(base));
+    _bizIsoBox(rr,ccc,w,d,h,top,left,right,label);
+    ctx.restore();
+  };
+  const clipBoxWalls=(rr,ccc,w,d,h,base,draw)=>{
+    const B=w2s(rr-d/2,ccc+w/2),C=w2s(rr+d/2,ccc+w/2);
+    const D=w2s(rr+d/2,ccc-w/2),z=isoH(h),lift=isoH(base);
+    ctx.save();ctx.beginPath();
+    ctx.moveTo(D.x,D.y-z-lift);ctx.lineTo(C.x,C.y-z-lift);
+    ctx.lineTo(C.x,C.y-lift);ctx.lineTo(D.x,D.y-lift);ctx.closePath();
+    ctx.moveTo(B.x,B.y-z-lift);ctx.lineTo(C.x,C.y-z-lift);
+    ctx.lineTo(C.x,C.y-lift);ctx.lineTo(B.x,B.y-lift);ctx.closePath();
+    ctx.clip();draw();ctx.restore();
+  };
+  ctx.save();
+
+  // Два медленных прожектора за башней.
+  for(const side of [-1,1]){
+    const sx=p.x+side*42,sy=p.y-isoH(5.25);
+    const sweep=side*(48+Math.sin(t*.65+side)*34);
+    const grad=ctx.createLinearGradient(sx,sy,sx+sweep,sy-135);
+    grad.addColorStop(0,'rgba(255,221,125,.22)');
+    grad.addColorStop(1,'rgba(255,221,125,0)');
+    ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(sx-4,sy);
+    ctx.lineTo(sx+sweep-28,sy-150);ctx.lineTo(sx+sweep+28,sy-150);ctx.lineTo(sx+4,sy);
+    ctx.closePath();ctx.fill();
+  }
+
+  // Большой мраморный пьедестал 3×3 и красная дорожка к открытому входному тайлу.
+  ctx.fillStyle='rgba(0,0,0,.52)';ctx.beginPath();ctx.ellipse(p.x,p.y+25,125,48,0,0,Math.PI*2);ctx.fill();
+  box(cr,cc,3.25,3.25,.34,0,'#c39a58','#5a352d','#3b2326');
+  const rugA=w2s(r+1.65,c+.08),rugB=w2s(r+1.65,c+.92);
+  const rugC=w2s(r+2.65,c+.92),rugD=w2s(r+2.65,c+.08);
+  ctx.fillStyle='#8f1026';ctx.strokeStyle='#efc558';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(rugA.x,rugA.y-isoH(.36));ctx.lineTo(rugB.x,rugB.y-isoH(.36));
+  ctx.lineTo(rugC.x,rugC.y);ctx.lineTo(rugD.x,rugD.y);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(255,224,132,.55)';ctx.lineWidth=.8;
+  for(let i=1;i<5;i++){const q=i/5;ctx.beginPath();
+    ctx.moveTo(rugA.x+(rugD.x-rugA.x)*q,rugA.y-isoH(.36)+(rugD.y-rugA.y+isoH(.36))*q);
+    ctx.lineTo(rugB.x+(rugC.x-rugB.x)*q,rugB.y-isoH(.36)+(rugC.y-rugB.y+isoH(.36))*q);ctx.stroke();}
+
+  // Боковые крылья — настоящие видимые объёмы на твёрдых тайлах.
+  box(cr-.12,cc-1.05,1.18,2.68,2.55,.34,'#70203d','#32101f','#210b18');
+  box(cr-.12,cc+1.05,1.18,2.68,2.55,.34,'#70203d','#32101f','#210b18');
+  // Центральная башня и ступенчатая золотая корона.
+  box(cr-.52,cc,1.48,2.08,4.55,.34,'#761c3d','#3a0d25','#230918');
+  box(cr-.68,cc,1.72,1.64,.42,4.89,'#d0a84d','#704727','#4b2c25');
+  box(cr-.72,cc,1.30,1.28,.38,5.31,'#8d1739','#4e1229','#2b0c1f');
+  box(cr-.75,cc,.72,.72,.36,5.69,'#e2bd59','#7d522c','#50301f');
+
+  // Низкие угловые павильоны создают силуэт курорта, а не одной коробки.
+  box(cr+.68,cc-1.12,1.05,.9,1.45,.34,'#9a2a48','#401322','#2b0c18');
+  box(cr+.68,cc+1.12,1.05,.9,1.45,.34,'#9a2a48','#401322','#2b0c18');
+
+  // Светящиеся окна центральной башни и крыльев.
+  const drawWindows=(x0,y0,cols,rows,gapX,gapY)=>{
+    for(let yy=0;yy<rows;yy++)for(let xx=0;xx<cols;xx++){
+      const flick=.62+.38*Math.sin(t*2.6+xx*1.7+yy*.9);
+      ctx.fillStyle=(xx+yy)%3===0?`rgba(255,82,133,${flick})`:`rgba(255,218,103,${flick})`;
+      ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=4*flick;
+      roundRect(x0+xx*gapX,y0+yy*gapY,7,10,1.5);ctx.fill();
+    }
+    ctx.shadowBlur=0;
+  };
+  clipBoxWalls(cr-.52,cc,1.48,2.08,4.55,.34,
+    ()=>drawWindows(p.x-24,p.y-isoH(4.52)+20,4,6,14,15));
+  clipBoxWalls(cr-.12,cc-1.05,1.18,2.68,2.55,.34,
+    ()=>drawWindows(p.x-91,p.y-isoH(2.45)+23,4,4,13,16));
+  clipBoxWalls(cr-.12,cc+1.05,1.18,2.68,2.55,.34,
+    ()=>drawWindows(p.x+42,p.y-isoH(2.45)+23,4,4,13,16));
+
+  // Парадный портик: навес, четыре колонны и стеклянные двери.
+  box(cr+1.18,cc,1.62,.72,.24,2.08,'#d7b353','#704321','#45241f');
+  const door=w2s(cr+.94,cc);
+  ctx.fillStyle='#101b2a';ctx.strokeStyle='#dfb94e';ctx.lineWidth=2;
+  roundRect(door.x-27,door.y-isoH(2.16),54,45,3);ctx.fill();ctx.stroke();
+  const dg=ctx.createLinearGradient(door.x-24,0,door.x+24,0);
+  dg.addColorStop(0,'rgba(71,163,190,.32)');dg.addColorStop(.5,'rgba(194,236,235,.5)');dg.addColorStop(1,'rgba(54,111,150,.28)');
+  ctx.fillStyle=dg;ctx.fillRect(door.x-23,door.y-isoH(2.09),46,35);
+  ctx.strokeStyle='#d8b24d';ctx.beginPath();ctx.moveTo(door.x,door.y-isoH(2.09));ctx.lineTo(door.x,door.y-isoH(.8));ctx.stroke();
+  for(const dc of [-.62,-.26,.26,.62]){
+    const cp=w2s(cr+1.34,cc+dc);
+    ctx.strokeStyle='#e5c96e';ctx.lineWidth=6;ctx.beginPath();
+    ctx.moveTo(cp.x,cp.y-isoH(.15));ctx.lineTo(cp.x,cp.y-isoH(2.05));ctx.stroke();
+    ctx.fillStyle='#f1da86';ctx.beginPath();ctx.ellipse(cp.x,cp.y-isoH(2.06),5,2.5,0,0,Math.PI*2);ctx.fill();
+  }
+
+  // Главное неоновое табло на фасаде.
+  const signY=p.y-isoH(3.46),signW=166,signH=37;
+  ctx.shadowColor='#ff315e';ctx.shadowBlur=20*pulse;
+  ctx.fillStyle='rgba(19,5,17,.96)';ctx.strokeStyle='#ff3c70';ctx.lineWidth=3;
+  roundRect(p.x-signW/2,signY-signH/2,signW,signH,9);ctx.fill();ctx.stroke();
+  ctx.shadowBlur=7;ctx.strokeStyle='#f2c653';ctx.lineWidth=1;
+  roundRect(p.x-signW/2+5,signY-signH/2+5,signW-10,signH-10,6);ctx.stroke();
+  ctx.shadowColor='#ffd863';ctx.shadowBlur=13*pulse;ctx.fillStyle='#ffe17a';
+  ctx.font='900 21px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('GRAND CASINO',p.x,signY+1);
+  ctx.shadowBlur=0;
+
+  // Корона и бегущая строка JACKPOT.
+  const crownY=p.y-isoH(5.88);
+  ctx.fillStyle='#5c102d';ctx.strokeStyle='#e7bd54';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(p.x,crownY-27);ctx.lineTo(p.x+11,crownY-8);
+  ctx.lineTo(p.x+32,crownY-11);ctx.lineTo(p.x+18,crownY+5);
+  ctx.lineTo(p.x+25,crownY+26);ctx.lineTo(p.x,crownY+15);
+  ctx.lineTo(p.x-25,crownY+26);ctx.lineTo(p.x-18,crownY+5);
+  ctx.lineTo(p.x-32,crownY-11);ctx.lineTo(p.x-11,crownY-8);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#f4cd60';ctx.font='900 22px serif';ctx.fillText('♛',p.x,crownY+4);
+  const jackpot=1000000+Math.floor((Math.sin(t*1.8)+1)*2499);
+  ctx.fillStyle='#160610';ctx.strokeStyle='#e9bb4e';ctx.lineWidth=1.5;
+  roundRect(p.x-62,crownY+32,124,19,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle=Math.floor(t*4)%2?'#ffd65e':'#ff557d';ctx.font='900 10px monospace';
+  ctx.fillText(`JACKPOT $${jackpot.toLocaleString('ru')}`,p.x,crownY+42);
+
+  // Лампочки по краям крыльев.
+  for(let i=0;i<22;i++){
+    const a=i/21,x=p.x-112+a*224,y=p.y-isoH(2.62)+Math.abs(a-.5)*38;
+    ctx.fillStyle=i%2?'#ffd75e':'#ff4674';ctx.globalAlpha=.62+.38*Math.sin(t*5+i);
+    ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=6;ctx.beginPath();ctx.arc(x,y,2.4,0,Math.PI*2);ctx.fill();
+  }
+  ctx.globalAlpha=1;ctx.shadowBlur=0;
+
+  // Швейцары у дверей.
+  for(const side of [-1,1]){
+    const q=w2s(cr+1.72,cc+side*.56);
+    ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.ellipse(q.x,q.y+3,7,2.5,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#991d35';roundRect(q.x-4,q.y-18,8,17,2);ctx.fill();
+    ctx.fillStyle='#e7bf58';for(let k=0;k<3;k++){ctx.beginPath();ctx.arc(q.x,q.y-14+k*4,1,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='#d9ac83';ctx.beginPath();ctx.arc(q.x,q.y-22,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#11131b';ctx.fillRect(q.x-5,q.y-28,10,3);ctx.fillRect(q.x-4,q.y-34,8,7);
+  }
+  ctx.restore();
+}
+
 function drawMarketBuilding(r, c) {
   const p = w2s(r + 0.5, c + 0.5);
   const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
@@ -29763,6 +30158,64 @@ function drawBusinessBuilding(r, c, b) {
     }
     ctx.restore();
   }
+  // Ограбленный бизнес пять минут выглядит разгромленным у всех игроков:
+  // копоть, дым, доски и мигающая лента «ОГРАБЛЕНО».
+  if (closedLeft) {
+    const wreck = w2s(r + 0.5, c + 0.5);
+    const wx = TS * 0.5, wy = TS * 0.5 * ISO_Y;
+    const pulse = 0.55 + Math.abs(Math.sin(t * 3.2)) * 0.45;
+    ctx.save();
+    ctx.fillStyle = 'rgba(35,5,7,.52)';
+    ctx.beginPath();
+    ctx.moveTo(wreck.x, wreck.y - wy * 1.05);
+    ctx.lineTo(wreck.x + wx * 1.05, wreck.y);
+    ctx.lineTo(wreck.x, wreck.y + wy * 1.05);
+    ctx.lineTo(wreck.x - wx * 1.05, wreck.y);
+    ctx.closePath(); ctx.fill();
+    // Заколоченный вход.
+    ctx.strokeStyle = '#6c432b';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(wreck.x - 12, wreck.y - 25);
+    ctx.lineTo(wreck.x + 13, wreck.y - 10);
+    ctx.moveTo(wreck.x + 12, wreck.y - 26);
+    ctx.lineTo(wreck.x - 13, wreck.y - 11);
+    ctx.stroke();
+    ctx.strokeStyle = '#1b0d09';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // Дым медленно поднимается и колышется.
+    for (let i = 0; i < 4; i++) {
+      const drift = Math.sin(t * 1.4 + i * 1.7) * (3 + i);
+      ctx.fillStyle = `rgba(45,39,42,${0.34 - i * 0.055})`;
+      ctx.beginPath();
+      ctx.arc(wreck.x + drift, wreck.y - 42 - i * 10, 7 + i * 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Обломки у фасада.
+    ctx.fillStyle = '#34221d';
+    for (let i = 0; i < 7; i++) {
+      const dx = ((i * 17) % 31) - 15, dy = ((i * 11) % 10) + 2;
+      ctx.save();
+      ctx.translate(wreck.x + dx, wreck.y + dy);
+      ctx.rotate((i - 3) * .24);
+      ctx.fillRect(-3, -1.5, 7, 3);
+      ctx.restore();
+    }
+    ctx.globalAlpha = .72 + .28 * pulse;
+    ctx.fillStyle = '#a20f1d';
+    ctx.strokeStyle = '#ff6570';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(wreck.x - 34, wreck.y - 55, 68, 16);
+    ctx.strokeRect(wreck.x - 33.5, wreck.y - 54.5, 67, 15);
+    ctx.fillStyle = '#fff';
+    ctx.font = '900 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ОГРАБЛЕНО', wreck.x, wreck.y - 47);
+    ctx.restore();
+  }
+
   // Купленный бизнес — добавляем флажок-вымпел поверх крыши: золотой
   // шток, зелёный треугольный вымпел с галочкой «✓». Колышется на ветру.
   if (owned) {
@@ -29958,6 +30411,7 @@ function drawBusinessPoi(b) {
   const p = w2s(b.r + 0.5, b.c + 0.5);
   const own = myBusinesses.get(b.id);
   const owned = !!(own && own.owned);
+  const closedLeft = Math.max(0, (_businessClosures[b.id] || 0) - Date.now());
   const pulseAt = (Math.sin(performance.now() * 0.004) + 1) * 0.5;
   // Крупная плакат-вывеска над зданием. Состояния:
   //   куплено + есть доход → ярко-золотой фон, мерцает, показывает +$N
@@ -30069,24 +30523,6 @@ function drawBusinessPoi(b) {
     ctx.lineWidth = 1.8;
     ctx.strokeRect(p.x - W / 2 - 0.5, topY - 0.5, W + 1, H + 1);
     ctx.restore();
-  }
-  // Маленькая иконка-флажок у не купленных бизнесов — «ПРОДАЁТСЯ»
-  if (!owned && !closedLeft) {
-    const fY = topY - 6;
-    ctx.fillStyle = '#c83020';
-    ctx.beginPath();
-    ctx.moveTo(p.x + W / 2 - 18, fY);
-    ctx.lineTo(p.x + W / 2 - 2,  fY);
-    ctx.lineTo(p.x + W / 2 - 6,  fY + 6);
-    ctx.lineTo(p.x + W / 2 - 2,  fY + 12);
-    ctx.lineTo(p.x + W / 2 - 18, fY + 12);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 6px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('SALE', p.x + W / 2 - 12, fY + 6);
   }
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
@@ -31709,8 +32145,8 @@ function drawAggroBot(bot) {
     ctx.fillStyle='rgba(5,7,12,.86)';ctx.fillRect(p.x-bw/2,by,bw,5);
     ctx.fillStyle=hp/maxHp>.55?'#48df77':hp/maxHp>.25?'#ffd34d':'#ff4f48';
     ctx.fillRect(p.x-bw/2+1,by+1,(bw-2)*(hp/maxHp),3);
-    ctx.font='800 8px system-ui,sans-serif';ctx.fillStyle='#fff';
-    ctx.fillText(`${Math.ceil(hp)} HP · ${Math.max(0,+bot.damage||0)} УР`,p.x,by-3);
+    ctx.font='800 8px system-ui,sans-serif';ctx.fillStyle='#dce6ef';
+    ctx.fillText(`${Math.ceil(hp)} HP`,p.x,by-3);
     if(bot.evading_c4){ctx.font='900 10px system-ui,sans-serif';ctx.fillStyle='#ff7048';ctx.fillText('💣 ОТХОД!',p.x,by-13);}
   }
   ctx.textAlign = 'left';
@@ -33303,18 +33739,36 @@ function drawBuilding(r, c) {
 // добавлен пульсирующий «гало»-блик за иконкой.
 function drawPOI(r, c, poi) {
   const p = w2s(r + 0.5, c + 0.5);
+  const majorState = MAJOR_OBJECT_IDS.has(poi.id) ? (_majorObjectsState[poi.id] || null) : null;
+  if (majorState?.owner_uid) {
+    const ringColor = '#64f49a';
+    const ringPulse = 1 + Math.sin(performance.now() * .005) * .08;
+    ctx.save();
+    ctx.strokeStyle = ringColor;
+    ctx.fillStyle = 'rgba(70,235,125,.10)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y + TS * .3, TS * 2.7 * ringPulse,
+      TS * ISO_Y * 1.45 * ringPulse, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
   // Та же формула высоты, что и в drawBuilding — чтобы знак сел ровно на крышу.
   const seed = ((r * 73 + c * 131) % 7) / 7;
   const H = isoH(1.3 + seed * 1.4);
   // Спортзал и Биржа труда выше обычного дома и имеют собственный неон.
   // Главную POI-плашку держим над ним, а не внутри крыши.
-  const themedSignLift = (poi.special === 'gym' || poi.special === 'job')
-    ? isoH(0.9) + 12 : 0;
+  const themedSignLift = poi.id === 'casino'
+    ? isoH(5.25) + 18
+    : ((poi.special === 'gym' || poi.special === 'job') ? isoH(0.9) + 12 : 0);
   const topY = p.y - H - TS * 0.18 - themedSignLift;
   // Заблокирован ли по уровню (для районов; шопы/арены — нет)
   const locked = poi.special !== 'shop' && poi.special !== 'arena' && QP.lvl < poi.minLvl;
   // Цвет акцента — золотой если доступен, серо-красный если закрыт
-  const accent = locked ? '#9a3030' : '#ffd76b';
+  const accent = locked ? '#9a3030'
+    : (majorState?.owner_uid ? '#68f39a'
+      : (majorState?.raid ? '#ff5b63' : '#ffd76b'));
   // Пульсирующее свечение (на фоне) — у закрытых тусклее
   const t = performance.now() / 600;
   const pulse = 0.6 + 0.4 * Math.sin(t + r * 0.3 + c * 0.5);
@@ -33352,6 +33806,28 @@ function drawPOI(r, c, poi) {
   ctx.fillText(`ранг ${poi.minLvl}+`, lx + 32, ly + labelH / 2 + 8);
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
+  if (majorState) {
+    const ownerActive = !!majorState.owner_uid;
+    const raidActive = !!majorState.raid;
+    const status = ownerActive
+      ? `СОБСТВЕННОСТЬ: ${majorState.owner_name || 'игрок'} · ${Math.ceil((majorState.expires_in || 0) / 60)} мин`
+      : raidActive
+        ? `ШТУРМ · охрана ${majorState.raid.alive || 0}/${majorState.raid.total || 40}`
+        : `КРУПНЫЙ ОБЪЕКТ · ★★★★★ · доход $${majorState.income || 0}/час`;
+    const statusColor = ownerActive ? '#77f3a1' : (raidActive ? '#ff777d' : '#ffe08a');
+    ctx.save();
+    ctx.font = '900 10px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    const sw = Math.max(150, ctx.measureText(status).width + 18);
+    ctx.fillStyle = 'rgba(7,10,16,.94)';
+    ctx.strokeStyle = statusColor;
+    ctx.lineWidth = 1.5;
+    roundRect(p.x - sw / 2, ly - 25, sw, 20, 7);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = statusColor;
+    ctx.fillText(status, p.x, ly - 11);
+    ctx.restore();
+  }
   // Маркер на крыше
   ctx.fillStyle = accent;
   ctx.beginPath();
@@ -36040,7 +36516,6 @@ function render() {
       }
       if (t === 1) {
         items.push({ depth: r + c, draw: () => {
-          if (LARGE_LANDMARK_TILES.has(r + ',' + c) && !poi) return;
           // Бурдж — особое здание поверх обычного тайла
           if (r === BURJ_POS.r && c === BURJ_POS.c) {
             drawBurjKhalifa();
@@ -36051,9 +36526,11 @@ function render() {
           // Бизнес-POI (купуемые) — у каждого свой силуэт (кофейня,
           // автомойка, гараж и т.д.). Проверяем ДО общих POI-зданий и
           // ДО обычного drawBuilding.
-          const biz = BUSINESS_BY_RC.get(r + ',' + c);
-          if      (biz)                            drawBusinessBuilding(r, c, biz);
-          else if (poi && poi.id === 'casino')    drawCasinoBuilding(r, c);
+          const tileKey = r + ',' + c;
+          const biz = BUSINESS_BY_RC.get(tileKey);
+          if      (poi && poi.id === 'casino')    drawGrandCasinoExterior(r, c);
+          else if (MAJOR_CASINO_WORLD_TILES.has(tileKey)) { /* казино подавляет обычные дома и бизнесы на всём корпусе */ }
+          else if (biz)                            drawBusinessBuilding(r, c, biz);
           else if (poi && poi.id === 'market')    drawMarketBuilding(r, c);
           else if (poi && poi.id === 'port')      drawPortBuilding(r, c);
           else if (poi && poi.id === 'factory')   drawFactoryBuilding(r, c);
@@ -36063,7 +36540,7 @@ function render() {
           else if (poi && poi.special === 'blackmarket') drawBlackmarket(r, c);
           else if (poi && poi.special === 'gym')  drawThemedBuilding(r, c, { left:'#5a3010', right:'#8a5020', roof:'#3a2008', win:'#ffb050', accent:'#ff9030', emoji:'💪', label:'GYM', signLift:18 });
           else if (poi && poi.special === 'job')  drawThemedBuilding(r, c, { left:'#103048', right:'#205070', roof:'#0a1e30', win:'#60c0ff', accent:'#40a0ff', emoji:'💼', label:'РАБОТА', signLift:18 });
-          else if (_bankTileSet.has(r + ',' + c)) { /* bank tile — drawn by drawBankBuilding */ }
+          else if (_bankTileSet.has(tileKey)) { /* bank tile — drawn by drawBankBuilding */ }
           else if (!_ordinaryBuildingBlocksBusiness(r, c)) drawBuilding(r, c);
           if (poi) drawPOI(r, c, poi);
           // Билборд над крышей — если на этом тайле есть запись
@@ -37227,6 +37704,14 @@ function updateProjectiles(dt) {
     p.vr *= 0.92; p.vc *= 0.92;          // замедление
     p.rad += ddt * 14;                    // растёт
   }
+  for(let i=_casinoDebris.length-1;i>=0;i--){
+    const d=_casinoDebris[i];d.life-=ddt*1000;
+    if(d.life<=0){_casinoDebris.splice(i,1);continue;}
+    d.r+=d.vr*ddt;d.c+=d.vc*ddt;d.z+=d.vz*ddt;
+    d.vr*=Math.pow(.17,ddt);d.vc*=Math.pow(.17,ddt);
+    d.vz-=11*ddt;if(d.z<0){d.z=0;d.vz=Math.abs(d.vz)*.28;}
+    d.rot+=d.spin*ddt;
+  }
   // Затухание векторной отдачи камеры (kick) и screen-flash
   camKickX *= Math.pow(0.001, ddt);       // быстрое экспон. затухание (~3 кадра)
   camKickY *= Math.pow(0.001, ddt);
@@ -37942,6 +38427,7 @@ function _explodeThrowable(q){
   else{const now=performance.now();_firePools.push({r:q.toR,c:q.toC,start:now,until:now+8500,lastHit:0,seed:Math.random()*20});spawnShockwave(q.toR,q.toC,{rad0:5,maxRad:62,life:420,color:'#ff8a20',thick:4});addShake(7);}
   for(const n of NPCS){if(!n.dead&&Math.hypot(n.r-q.toR,n.c-q.toC)<radius)hitNpc(n,0,0,q.kind,q.kind==='grenade'?95:45)}
   _damageGangBotsInThrowable(q.toR,q.toC,radius,q.kind==='grenade'?'grenade':'molotov_fire');
+  _damageCasinoPropsInRadius(q.toR,q.toC,radius,q.kind==='grenade'?'grenade':'molotov');
   if(_buildingInt)for(const n of (_buildingInt.npcs||[])){if(!n.dead&&!n._allied&&Math.hypot(n.r-q.toR,n.c-q.toC)<radius)_hitInteriorNpc(n,0,0,q.kind==='grenade'?95:45,q.kind)}
   const sd=Math.hypot(player.r-q.toR,player.c-q.toC);if(sd<radius)_hurtLocal(Math.max(8,Math.round((q.kind==='grenade'?65:32)*(1-sd/radius))),q.kind==='grenade'?'граната':'огонь');
 }
@@ -37987,7 +38473,7 @@ function drawGroundMissionBoxes() {
 function drawThrowableFx(){
   const now=performance.now();
   for(let i=_thrownItems.length-1;i>=0;i--){const q=_thrownItems[i],t=Math.min(1,(now-q.start)/q.flight);if(t>=1)_explodeThrowable(q);if(now-q.start>q.flight+(q.kind==='grenade'?850:250)){_thrownItems.splice(i,1);continue}const r=q.fromR+(q.toR-q.fromR)*t,c=q.fromC+(q.toC-q.fromC)*t,p=w2s(r+.5,c+.5),arc=Math.sin(Math.PI*t)*55;ctx.save();ctx.font='18px "Segoe UI Emoji"';ctx.textAlign='center';ctx.shadowColor=q.kind==='molotov'?'#ff6a00':'#000';ctx.shadowBlur=8;ctx.fillText(q.kind==='grenade'?'💣':'🔥',p.x,p.y-_bulletY()-arc);ctx.restore()}
-  for(let i=_firePools.length-1;i>=0;i--){const f=_firePools[i];if(now>f.until){_firePools.splice(i,1);continue}_drawWorldFirePatch(f,now);if(now-f.lastHit>900){f.lastHit=now;for(const n of NPCS)if(!n.dead&&Math.hypot(n.r-f.r,n.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS)hitNpc(n,0,0,'molotov',12);_damageGangBotsInThrowable(f.r,f.c,THROW_MOLOTOV_FIRE_RADIUS,'molotov_fire');if(Math.hypot(player.r-f.r,player.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS-.2)_hurtLocal(8,'пожар')}}
+  for(let i=_firePools.length-1;i>=0;i--){const f=_firePools[i];if(now>f.until){_firePools.splice(i,1);continue}_drawWorldFirePatch(f,now);if(now-f.lastHit>900){f.lastHit=now;for(const n of NPCS)if(!n.dead&&Math.hypot(n.r-f.r,n.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS)hitNpc(n,0,0,'molotov',12);_damageGangBotsInThrowable(f.r,f.c,THROW_MOLOTOV_FIRE_RADIUS,'molotov_fire');_damageCasinoPropsInRadius(f.r,f.c,THROW_MOLOTOV_FIRE_RADIUS,'molotov_fire');if(Math.hypot(player.r-f.r,player.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS-.2)_hurtLocal(8,'пожар')}}
 }
 function _drawThrowableAim(){const a=_joyRAimAngle();if(a==null)return;const range=_joyRThrowRange(),er=player.r+Math.sin(a)*range,ec=player.c+Math.cos(a)*range;ctx.save();ctx.strokeStyle=currentWeapon==='grenade'?'#ffd65a':'#ff792e';ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.beginPath();for(let i=0;i<=16;i++){const t=i/16,r=player.r+(er-player.r)*t,c=player.c+(ec-player.c)*t,p=w2s(r+.5,c+.5),arc=Math.sin(Math.PI*t)*(22+range*5);if(i)ctx.lineTo(p.x,p.y-_bulletY()-arc);else ctx.moveTo(p.x,p.y-_bulletY())}ctx.stroke();ctx.setLineDash([]);const ep=w2s(er+.5,ec+.5);ctx.beginPath();ctx.ellipse(ep.x,ep.y,22,10,0,0,Math.PI*2);ctx.stroke();ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(`${range.toFixed(1)} м`,ep.x,ep.y+23);ctx.font='18px "Segoe UI Emoji"';ctx.fillText(currentWeapon==='grenade'?'💥':'🔥',ep.x,ep.y-5);ctx.restore()}
 
@@ -38127,8 +38613,14 @@ function drawBullets() {
     const ph = w2s(b.r + 0.5, b.c + 0.5);                          // head
     const pt = w2s(b.r - b.vr * trailSec + 0.5,
                    b.c - b.vc * trailSec + 0.5);                   // tail
-    const hx = ph.x,           hy = ph.y - dy;
-    const tx = pt.x,           ty = pt.y - dy;
+    const headProgress = b.maxDist > 0 ? Math.max(0, Math.min(1, b.dist / b.maxDist)) : 1;
+    const tailDistance = Math.max(0, b.dist - _spd * trailSec);
+    const tailProgress = b.maxDist > 0 ? Math.max(0, Math.min(1, tailDistance / b.maxDist)) : 1;
+    const heightDelta = (b.endZ || 0) - (b.startZ || 0);
+    const headZ = (b.startZ || 0) + heightDelta * headProgress;
+    const tailZ = (b.startZ || 0) + heightDelta * tailProgress;
+    const hx = ph.x,           hy = ph.y - dy - isoH(headZ);
+    const tx = pt.x,           ty = pt.y - dy - isoH(tailZ);
     if (b.weapon === 'rpg') {
       const a = Math.atan2(hy - ty, hx - tx);
       ctx.save();
@@ -38206,7 +38698,7 @@ function drawMuzzles() {
     const t = m.life / m.max;        // 1..0
     const t2 = Math.sqrt(t);
     const p = w2s(m.r + 0.5, m.c + 0.5);
-    const cx = p.x, cy = p.y - dy;
+    const cx = p.x, cy = p.y - dy - isoH(m.z || 0);
     const ang = (m.angle != null ? m.angle : (m.ang || 0));
 
     // NPC-вспышка: простой дешёвый круг — без градиентов
@@ -39427,8 +39919,12 @@ function drawMinimap() {
     const y = (poi.r + 0.5) * sy;
     // Капturable POI — особое выделение (флаг и пульсация по статусу).
     const isCap = TERRITORY_BY_ID.has(poi.id);
+    const major = MAJOR_OBJECT_IDS.has(poi.id) ? (_majorObjectsState[poi.id] || null) : null;
     let ringCol, ringW = 1.5, ringR = 9, pulseR = 0;
-    if (poi.special === 'blackmarket') ringCol = 'rgba(200,112,255,.85)';
+    if (major?.owner_uid) { ringCol = 'rgba(92,245,145,.98)'; ringW = 2.8; pulseR = 2 * tPulse; }
+    else if (major?.raid) { ringCol = 'rgba(255,75,87,.98)'; ringW = 2.8; pulseR = 4 * tPulse; }
+    else if (major) { ringCol = 'rgba(255,215,107,.95)'; ringW = 2.2; pulseR = 2 * tPulse; }
+    else if (poi.special === 'blackmarket') ringCol = 'rgba(200,112,255,.85)';
     else if (poi.special === 'arena')    ringCol = 'rgba(255,80,80,.85)';
     else if (poi.special === 'hospital') ringCol = 'rgba(80,220,120,.90)';
     else if (poi.special === 'firestation') ringCol = 'rgba(255,120,40,.90)';
@@ -39495,6 +39991,7 @@ function drawMinimap() {
     const y = (b.r + 0.5) * sy;
     const own = myBusinesses.get(b.id);
     const owned = !!(own && own.owned);
+    const closed = (_businessClosures[b.id] || 0) > Date.now();
     const hasIncome = owned && own.pending && own.pending > 0;
     const r = 6;
     // Свечение если есть невыбранный доход
@@ -39506,12 +40003,13 @@ function drawMinimap() {
     ctx2.fillStyle = 'rgba(0,0,0,.6)';
     ctx2.beginPath(); ctx2.arc(x, y, r, 0, Math.PI * 2); ctx2.fill();
     // Кольцо
-    ctx2.strokeStyle = owned ? 'rgba(126,255,154,.95)' : 'rgba(170,170,170,.65)';
+    ctx2.strokeStyle = closed ? '#ff4d5d' :
+      (owned ? 'rgba(126,255,154,.95)' : 'rgba(170,170,170,.65)');
     ctx2.lineWidth = owned ? 1.4 : 1;
     ctx2.beginPath(); ctx2.arc(x, y, r, 0, Math.PI * 2); ctx2.stroke();
     // Эмодзи
     ctx2.fillStyle = '#fff';
-    ctx2.fillText(b.emoji, x, y);
+    ctx2.fillText(closed ? '💥' : b.emoji, x, y);
   }
   // Купленные квартиры — яркие зелёные домики с подписью «МОЯ».
   const aptPulse = (Math.sin(performance.now() * 0.005) + 1) * 0.5;
@@ -43192,6 +43690,34 @@ function _spawnInteriorNpcs(bi) {
         idleUntil:performance.now()+Math.random()*2500, speed:1.05+Math.random()*.35,
       };
     });
+    if(bi.bizId==='major_casino'){
+      const peacefulGuests=[
+        ['Официантка',1,'#7b1738'],['Официантка',1,'#8d2449'],
+        ['Официантка',1,'#6b1737'],['Хостес',1,'#b18838'],
+        ['Посетитель',0,'#26354a'],['Посетительница',1,'#5c3154'],
+        ['Игрок',0,'#3a3e48'],['Гость VIP',0,'#5a4028'],
+        ['Посетитель',0,'#243a35'],['Посетительница',1,'#613046'],
+        ['Танцовщица',1,'#c12d68'],['Танцовщица',1,'#743bd1'],
+      ];
+      const guestSpots=[
+        [16.1,9.3],[17.2,16.7],[15.8,28.1],[23.1,27.2],
+        [12.4,10.5],[12.1,16.2],[16.2,22],[12.2,32.5],
+        [22.1,10.8],[22.8,32.7],[11.1,20.5],[11.1,23.5],
+      ];
+      peacefulGuests.forEach(([name,gender,suit],i)=>{
+        const [r,c]=guestSpots[i];
+        const dancer=name==='Танцовщица';
+        bi.npcs.push({
+          r,c,tr:r,tc:c,ang:dancer?Math.PI:Math.random()*Math.PI*2,
+          walkPhase:0,walking:false,name,
+          role:dancer?'casino_dancer':(name==='Официантка'?'casino_waitress':'casino_guest'),
+          fixed:dancer,
+          look:{gender,skin:1+(i%3),body:0,face:i%4,hair:1+(i%5),hat:0,suit},
+          idleUntil:performance.now()+Math.random()*2600,
+          speed:dancer?0:1.0+Math.random()*.25,
+        });
+      });
+    }
     const own = myBusinesses.get(bi.bizId);
     if (own?.owned) {
       const securityCount=Math.max(0,Math.min(6,+own.guards||0));
@@ -43239,11 +43765,256 @@ function _spawnInteriorNpcs(bi) {
   if(bi.type==='police_st')bi.npcs.push({r:3,c:bi.W-3,tr:3,tc:bi.W-3,ang:Math.PI,walkPhase:0,walking:false,name:'Квартирмейстер',role:'hq_manager',fixed:true,look:{gender:0,skin:1,body:1,face:1,hair:1,hat:2,suit:'#23416b'},idleUntil:0,speed:0});
   if(bi.type==='mafia_hq'){bi.npcs[0].role='hq_manager';bi.npcs[0].fixed=true;bi.npcs[0].r=3;bi.npcs[0].c=bi.W-3;bi.npcs[0].tr=3;bi.npcs[0].tc=bi.W-3;if(bi.npcs[1]){bi.npcs[1].role='mafia_recruiter';bi.npcs[1].name='Капореджиме';bi.npcs[1].fixed=true;bi.npcs[1].r=5;bi.npcs[1].c=4;bi.npcs[1].tr=5;bi.npcs[1].tc=4;}}
 }
+
+function _majorGuardSeesPlayer(n, distance, dr, dc) {
+  if (distance > MAJOR_GUARD_VISION_RANGE) return false;
+  // В упор охранник замечает игрока даже со спины. На дистанции действует
+  // невидимый сектор обзора 140°, ориентированный по направлению его лица.
+  if (distance <= MAJOR_GUARD_CLOSE_NOTICE) return true;
+  const inv = 1 / Math.max(.001, distance);
+  const lookR = Math.sin(n.ang || 0), lookC = Math.cos(n.ang || 0);
+  return (dr * inv) * lookR + (dc * inv) * lookC >= MAJOR_GUARD_FOV_COS;
+}
+
+const CASINO_GUARD_NAV_CELL=.72;
+const CASINO_GUARD_NAV_DIRS=[
+  [-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1],
+];
+let _casinoGuardNavCache=null;
+
+function _casinoGuardBuildFlow(bi,now) {
+  const cell=CASINO_GUARD_NAV_CELL;
+  const rows=Math.ceil(bi.H/cell),cols=Math.ceil(bi.W/cell),size=rows*cols;
+  let targetR=Math.max(0,Math.min(rows-1,Math.floor(player.r/cell)));
+  let targetC=Math.max(0,Math.min(cols-1,Math.floor(player.c/cell)));
+  const targetKey=targetR*cols+targetC;
+  if(_casinoGuardNavCache?.bi===bi&&_casinoGuardNavCache.targetKey===targetKey&&
+     now<_casinoGuardNavCache.until)return _casinoGuardNavCache;
+  const blocked=new Uint8Array(size);
+  const navBlockers=MAJOR_CASINO_STATIC_BLOCKERS.filter(b=>_casinoPropAlive(b.id));
+  for(const safe of (_majorRaidLocal?.safes||[]))
+    navBlockers.push({r:safe.r,c:safe.c,w:2.35,d:2.1});
+  for(let rr=0;rr<rows;rr++)for(let cc=0;cc<cols;cc++){
+    const r=Math.min(bi.H-.35,(rr+.5)*cell),c=Math.min(bi.W-.35,(cc+.5)*cell);
+    const wallBlocked=_casinoInteriorBlocked(bi,r,c,.32);
+    const propBlocked=!wallBlocked&&navBlockers.some(b=>
+      Math.abs(r-b.r)<b.d/2+.32&&Math.abs(c-b.c)<b.w/2+.32);
+    blocked[rr*cols+cc]=wallBlocked||propBlocked?1:0;
+  }
+  // Если игрок стоит у самой мебели, берём ближайшую свободную клетку.
+  if(blocked[targetR*cols+targetC]){
+    let found=false;
+    for(let radius=1;radius<=5&&!found;radius++){
+      for(let dr=-radius;dr<=radius&&!found;dr++)for(let dc=-radius;dc<=radius;dc++){
+        const rr=targetR+dr,cc=targetC+dc;
+        if(rr<0||cc<0||rr>=rows||cc>=cols||blocked[rr*cols+cc])continue;
+        targetR=rr;targetC=cc;found=true;break;
+      }
+    }
+  }
+  const dist=new Int16Array(size);dist.fill(-1);
+  const queue=new Int32Array(size);let head=0,tail=0;
+  const start=targetR*cols+targetC;
+  if(!blocked[start]){dist[start]=0;queue[tail++]=start;}
+  while(head<tail){
+    const index=queue[head++],rr=Math.floor(index/cols),cc=index%cols,nextDist=dist[index]+1;
+    for(const [dr,dc] of CASINO_GUARD_NAV_DIRS){
+      const nr=rr+dr,nc=cc+dc;
+      if(nr<0||nc<0||nr>=rows||nc>=cols)continue;
+      const ni=nr*cols+nc;
+      if(blocked[ni]||dist[ni]>=0)continue;
+      // Диагональ не должна срезать угол стены или мебели.
+      if(dr&&dc&&(blocked[rr*cols+nc]||blocked[nr*cols+cc]))continue;
+      dist[ni]=nextDist;queue[tail++]=ni;
+    }
+  }
+  _casinoGuardNavCache={bi,targetKey,until:now+320,cell,rows,cols,blocked,dist};
+  return _casinoGuardNavCache;
+}
+
+function _casinoGuardHazardPenalty(r,c,now) {
+  let penalty=0;
+  for(const fire of _firePools){
+    if(now>=fire.until)continue;
+    const d=Math.hypot(r-fire.r,c-fire.c);
+    if(d<3.2)penalty+=(3.2-d)*3.2;
+  }
+  return penalty;
+}
+
+function _casinoGuardFlowStep(bi,n,now) {
+  const flow=_casinoGuardBuildFlow(bi,now),{cell,rows,cols,dist,blocked}=flow;
+  const rr=Math.max(0,Math.min(rows-1,Math.floor(n.r/cell)));
+  const cc=Math.max(0,Math.min(cols-1,Math.floor(n.c/cell)));
+  const current=dist[rr*cols+cc];
+  let best=null,bestScore=Infinity;
+  for(const [dr,dc] of CASINO_GUARD_NAV_DIRS){
+    const nr=rr+dr,nc=cc+dc;
+    if(nr<0||nc<0||nr>=rows||nc>=cols)continue;
+    const ni=nr*cols+nc,nd=dist[ni];
+    if(blocked[ni]||nd<0||(current>=0&&nd>current+1))continue;
+    if(dr&&dc&&(blocked[rr*cols+nc]||blocked[nr*cols+cc]))continue;
+    const tr=(nr+.5)*cell,tc=(nc+.5)*cell;
+    let crowd=0;
+    for(const other of bi.npcs){
+      if(other===n||!other.majorGuard||other.dead)continue;
+      const d=Math.hypot(other.r-tr,other.c-tc);
+      if(d<1.25)crowd+=(1.25-d);
+    }
+    const tie=((String(n.id).length+nr*3+nc*5)%11)*.002;
+    const score=nd+crowd*2.6+_casinoGuardHazardPenalty(tr,tc,now)+tie;
+    if(score<bestScore){bestScore=score;best={r:tr-n.r,c:tc-n.c};}
+  }
+  return best;
+}
+
+function _casinoGuardAvoidance(bi,n,now) {
+  let r=0,c=0,weight=0;
+  for(const other of bi.npcs){
+    if(other===n||!other.majorGuard||other.dead)continue;
+    let dr=n.r-other.r,dc=n.c-other.c,d=Math.hypot(dr,dc);
+    if(d>=1.18)continue;
+    if(d<.02){
+      const seed=String(n.id).split('').reduce((v,ch)=>v+ch.charCodeAt(0),0);
+      const a=(seed%360)*Math.PI/180;dr=Math.sin(a);dc=Math.cos(a);d=1;
+    }
+    const push=(1.18-d)/1.18;r+=dr/d*push;c+=dc/d*push;weight+=push;
+  }
+  for(const fire of _firePools){
+    if(now>=fire.until)continue;
+    const dr=n.r-fire.r,dc=n.c-fire.c,d=Math.hypot(dr,dc)||.01;
+    if(d>=3.15)continue;
+    const push=(3.15-d)/3.15*2.4;r+=dr/d*push;c+=dc/d*push;weight+=push;
+  }
+  return {r,c,weight};
+}
+
+function _casinoGuardNearestMate(bi,n,r,c) {
+  let nearest=Infinity;
+  for(const other of bi.npcs){
+    if(other===n||!other.majorGuard||other.dead)continue;
+    nearest=Math.min(nearest,Math.hypot(other.r-r,other.c-c));
+  }
+  return nearest;
+}
+
+function _casinoMoveMajorGuard(bi,n,moveR,moveC,step) {
+  const length=Math.hypot(moveR,moveC);
+  if(length<.001)return false;
+  const baseR=moveR/length,baseC=moveC/length;
+  const oldNearest=_casinoGuardNearestMate(bi,n,n.r,n.c);
+  const side=n._navSide||(n._navSide=(String(n.id).length%2?1:-1));
+  for(const angle of [0,.48*side,-.48*side,.92*side,-.92*side]){
+    const sin=Math.sin(angle),cos=Math.cos(angle);
+    const dirR=baseR*cos-baseC*sin,dirC=baseR*sin+baseC*cos;
+    const nr=Math.max(1,Math.min(bi.H-1,n.r+dirR*step));
+    const nc=Math.max(1,Math.min(bi.W-1,n.c+dirC*step));
+    if(_casinoMovementBlocked(bi,nr,nc,.34))continue;
+    const newNearest=_casinoGuardNearestMate(bi,n,nr,nc);
+    if(newNearest<.58&&newNearest<=oldNearest+.012)continue;
+    n.r=nr;n.c=nc;return true;
+  }
+  n._navSide=-side;
+  return false;
+}
+
+function _fireInteriorGuardRound(bi,n,damage,hitChance=.72) {
+  if(!bi||!n||n.dead||myDead)return;
+  const dr=player.r-n.r,dc=player.c-n.c,dist=Math.hypot(dr,dc)||1;
+  const hit=Math.random()<hitChance;
+  const missOffset=1.15+Math.random()*1.55;
+  const side=Math.random()<.5?-1:1;
+  const targetR=hit?player.r:player.r-dc/dist*missOffset*side;
+  const targetC=hit?player.c:player.c+dr/dist*missOffset*side;
+  const muzzle=_npcMuzzleWorldPoint(n.r,n.c,n.ang,n.weapon,.88);
+  spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);
+  spawnBullet(muzzle.r,muzzle.c,targetR,targetC,
+    {hit,fromNpc:true,weapon:n.weapon});
+  if(!hit)return;
+  const speed=weaponProfile(n.weapon).bulletSpeed||BULLET_SPEED;
+  const flightMs=Math.max(35,Math.min(700,
+    Math.hypot(targetR-muzzle.r,targetC-muzzle.c)/speed*1000));
+  setTimeout(()=>{
+    if(_buildingInt!==bi||myDead)return;
+    if(Math.hypot(player.r-targetR,player.c-targetC)>.72)return;
+    if(bi.bizId==='major_casino'&&
+       !_casinoLineClear(bi,muzzle.r,muzzle.c,player.r,player.c))return;
+    spawnImpact(targetR,targetC,n.weapon,true);
+    _hurtLocal(damage,`охрана ${BUSINESS_INTERIORS[bi.bizId]?.title||'объекта'}`,true);
+  },flightMs);
+}
+
 function _updateInteriorNpcs(bi, dt) {
   if (!bi.npcs || !bi.npcs.length) return;
   const now = performance.now();
   for (const n of bi.npcs) {
     if (n.dead) { n.walking = false; continue; }
+    // Оглушение должно останавливать охрану до любой боевой логики.
+    // Иначе majorGuard успевал двигаться и стрелять, пока drawPerson рисовал его лежащим.
+    if (now < (n._knockedUntil || 0) || now < (n._hurtAnimUntil || 0)) {
+      n.walking = false;
+      n.walkPhase = 0;
+      n.tr = n.r;
+      n.tc = n.c;
+      continue;
+    }
+    if (_majorInteriorObjectId && n.majorGuard) {
+      const dr=player.r-n.r,dc=player.c-n.c,dist=Math.hypot(dr,dc)||1;
+      if (!n._alerted) {
+        // До обнаружения охранник остаётся на посту и медленно осматривает
+        // зал. Зона зрения существует только в логике и не рисуется.
+        if (!n._scanDir) n._scanDir = (String(n.id).length % 2 ? 1 : -1) *
+          (.22 + (String(n.id).charCodeAt(0) % 5) * .025);
+        n.ang += n._scanDir * dt;
+        n.walking = false;
+        const graceOver = now >= (_majorRaidLocal?.combatGraceUntil || 0);
+        if (!graceOver || !_casinoLineClear(bi,n.r,n.c,player.r,player.c) ||
+            !_majorGuardSeesPlayer(n,dist,dr,dc)) continue;
+        n._alerted = true;
+        n._hostile = true;
+        n._nextShotAt = now + 650 + Math.random()*500;
+        n._sayText = 'СТОЙ! ТЫ КТО ТАКОЙ?';
+        n._sayUntil = now + 1500;
+      }
+      n.ang=Math.atan2(dr,dc);n._hostile=true;
+      if(now>=(n._combatMoveUntil||0)){
+        n._combatMoveUntil=now+700+Math.random()*1000;
+        n._strafeDir=Math.random()<.5?-1:1;
+      }
+      const fy=dr/dist,fx=dc/dist,sy=-fx*(n._strafeDir||1),sx=fy*(n._strafeDir||1);
+      const hasLine=_casinoLineClear(bi,n.r,n.c,player.r,player.c);
+      let moveY=0,moveX=0,scale=.82;
+      if(!hasLine){
+        const route=_casinoGuardFlowStep(bi,n,now);
+        moveY=route?.r??fy;moveX=route?.c??fx;scale=1.08;
+      }else if(dist>7){moveY=fy;moveX=fx;scale=1;}
+      else if(dist<3.5){moveY=-fy+sy*.4;moveX=-fx+sx*.4;}
+      else {moveY=sy+fy*(dist-5.2)*.16;moveX=sx+fx*(dist-5.2)*.16;scale=.64;}
+      const avoid=_casinoGuardAvoidance(bi,n,now);
+      moveY+=avoid.r*(hasLine?1.05:1.35);moveX+=avoid.c*(hasLine?1.05:1.35);
+      if(avoid.weight>.65)scale=Math.max(scale,1.12);
+      const step=(n.speed||1.15)*scale*dt;
+      const oldR=n.r,oldC=n.c;
+      _casinoMoveMajorGuard(bi,n,moveY,moveX,step);
+      n.walking=Math.hypot(n.r-oldR,n.c-oldC)>.002;
+      if(n.walking)n.walkPhase+=dt*9;
+      // В огромной охране стреляют ближайшие бойцы, остальные меняют позиции:
+      // это сохраняет масштаб боя, но не убивает игрока одновременным залпом 40 NPC.
+      const closer=bi.npcs.reduce((count,o)=>count+(
+        o!==n&&o.majorGuard&&!o.dead&&o._alerted&&
+        Math.hypot(player.r-o.r,player.c-o.c)<dist&&
+        _casinoLineClear(bi,o.r,o.c,player.r,player.c)?1:0),0);
+      const cooldown=n.weapon==='smg'?760:(n.weapon==='shotgun'?1550:1120);
+      if(closer<7&&dist<12&&!myDead&&hasLine&&
+          now>=(n._nextShotAt||0)){
+        n._shotAt=now;
+        n._nextShotAt=now+cooldown+Math.random()*180;
+        if (_majorRaidLocal) _majorRaidLocal.combatStarted=true;
+        const damage=n.weapon==='shotgun'?13:(n.weapon==='smg'?6:9);
+        _fireInteriorGuardRound(bi,n,damage,n.weapon==='shotgun'?.66:.73);
+      }
+      continue;
+    }
     if (n.role === 'biz_ally_guard') {
       let target=null,best=10;
       for(const o of others.values()) if(o.businessAttacker&&!o.dead){const d=Math.hypot(o.y-n.r,o.x-n.c);if(d<best){best=d;target=o;}}
@@ -43276,17 +44047,13 @@ function _updateInteriorNpcs(bi, dt) {
       else {n.walking=false;n._combatMoveUntil=0;n._strafeDir=-(n._strafeDir||1);}
       const cooldown=n.weapon==='smg'?650:(n.weapon==='shotgun'?1450:1050);
       if(dist<10&&!myDead&&now-(n._shotAt||0)>=cooldown){
-        n._shotAt=now;const hit=Math.random()>.24,damage=n.weapon==='shotgun'?14:(n.weapon==='smg'?7:10);
-        spawnMuzzle(n.r,n.c,n.ang,n.weapon);
-        spawnBullet(n.r,n.c,player.r+(hit?0:(Math.random()-.5)*2),player.c+(hit?0:(Math.random()-.5)*2),{hit,fromNpc:true,weapon:n.weapon});
-        if(hit){
-          _hurtLocal(damage,`охрана ${BUSINESS_INTERIORS[bi.bizId]?.title||'бизнеса'}`,true);
-          _gangAlertThreat(n.r,n.c,bi.npcs.indexOf(n),'interior_guard',n);
-        }
+        n._shotAt=now;
+        const damage=n.weapon==='shotgun'?14:(n.weapon==='smg'?7:10);
+        _fireInteriorGuardRound(bi,n,damage,.76);
+        _gangAlertThreat(n.r,n.c,bi.npcs.indexOf(n),'interior_guard',n);
       }
       continue;
     }
-    if (now < (n._knockedUntil || 0)) { n.walking = false; continue; }
     if (n.fixed) { n.walking = false; continue; }
     if (now < n.idleUntil) { n.walking = false; continue; }
     const dr = n.tr - n.r, dc = n.tc - n.c;
@@ -43298,11 +44065,16 @@ function _updateInteriorNpcs(bi, dt) {
       n.tc = 1.2 + Math.random() * (bi.W - 2.4);
     } else {
       const sp = n.speed * dt;
-      n.r += (dr / dist) * sp;
-      n.c += (dc / dist) * sp;
+      const nextR=n.r+(dr/dist)*sp,nextC=n.c+(dc/dist)*sp;
+      if(!_casinoMovementBlocked(bi,nextR,nextC,.32)){
+        n.r=nextR;n.c=nextC;n.walking=true;
+      }else{
+        n.tr=1.2+Math.random()*(bi.H-3);
+        n.tc=1.2+Math.random()*(bi.W-2.4);
+        n.walking=false;
+      }
       n.ang = Math.atan2(dr, dc);
-      n.walking = true;
-      n.walkPhase += dt * 9;
+      if(n.walking)n.walkPhase += dt * 9;
     }
   }
 }
@@ -43327,17 +44099,36 @@ function _raycastInteriorNpc(sR, sC, dirY, dirX, range) {
 function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon) {
   if (!npc || npc.dead || !_buildingInt) return;
   if (_majorInteriorObjectId && npc.majorGuard) {
-    npc._hurtAnimUntil = performance.now() + 420;
+    const alertNow = performance.now();
+    npc._hurtAnimUntil = alertNow + 420;
+    if (_majorRaidLocal) _majorRaidLocal.combatStarted = true;
+    // Первый выстрел игрока поднимает тревогу, но ответный огонь получает
+    // короткую человеческую задержку — без мгновенного синхронного залпа.
+    for (const guard of (_buildingInt.npcs || [])) {
+      if (!guard.majorGuard || guard.dead) continue;
+      guard._alerted = true;
+      guard._hostile = true;
+      guard._nextShotAt = Math.max(
+        guard._nextShotAt || 0, alertNow + 320 + Math.random()*620);
+    }
     try {
+      // WebSocket сохраняет порядок пакетов: сервер сначала получает свежую
+      // позицию внутри казино, затем подтверждает урон по охраннику.
+      sendInput(true);
       ws && ws.readyState === 1 && ws.send(JSON.stringify({
         t:'major_guard_hit',
         d:{object_id:_majorInteriorObjectId, guard_id:npc.id,
+           weapon:weapon || currentWeapon,
            damage:Math.max(1, Math.round(damage || 1))},
       }));
     } catch(e) {}
     return;
   }
   if (_majorInteriorObjectId && npc.majorBoss) {
+    if (Math.hypot(player.r-npc.r, player.c-npc.c) > 3.4) {
+      showToast('Подойди к главарю ближе, чтобы заставить его уступить', '🕴️', 1800);
+      return;
+    }
     npc._hurtAnimUntil = performance.now() + 420;
     try {
       ws && ws.readyState === 1 && ws.send(JSON.stringify({
@@ -43433,20 +44224,26 @@ function _pushInteriorNpcs(bi, items) {
   if (bi.npcs) {
     for (const n of bi.npcs) {
       items.push({ d: n.r + n.c + .45, person: true, fn: ((nn) => () => {
+        if(bi.bizId==='major_casino'&&nn.majorGuard&&
+           !_casinoLineClear(bi,player.r,player.c,nn.r,nn.c)) return;
         const p = w2s(nn.r + .5, nn.c + .5);
+        p.y-=isoH(_casinoVisualElevation(bi,nn.r,nn.c));
         const say=performance.now()<(nn._sayUntil||0)?nn._sayText:null;
         const now=performance.now(),isDead=!!nn.dead;
         const isStunned=!isDead&&(now<(nn._knockedUntil||0)||now<(nn._hurtAnimUntil||0));
+        const armedGuard = nn.majorGuard || nn.role === 'biz_guard' || nn.role === 'biz_ally_guard';
         drawPerson(p.x, p.y, nn.ang, nn.look, nn.walking ? nn.walkPhase : 0,
           nn.name, say, false, nn.hp == null ? 100 : nn.hp, nn.maxHp || 100,
-          isDead, nn.deadAt || 0, false, false, isStunned);
-        if((nn.role==='biz_guard'||nn.role==='biz_ally_guard')&&!nn.dead)drawWeaponInHands(p.x,p.y,nn.ang,nn.weapon||'pistol_heavy',.88,nn._shotAt||0);
+          isDead, nn.deadAt || 0, armedGuard, false, isStunned);
+        if(armedGuard&&!nn.dead&&!isStunned)
+          drawWeaponInHands(p.x,p.y,nn.ang,nn.weapon||'pistol_heavy',.88,nn._shotAt||0);
       })(n) });
     }
   }
   for (const gm of _myGang) {
     items.push({ d: gm.r + gm.c + .46, person: true, fn: ((g) => () => {
       const p = w2s(g.r + .5, g.c + .5);
+      p.y-=isoH(_casinoVisualElevation(bi,g.r,g.c));
       ctx.save();
       const gl = ctx.createRadialGradient(p.x, p.y + 2, 1, p.x, p.y + 2, 14);
       gl.addColorStop(0, 'rgba(60,255,60,.15)');
@@ -43487,16 +44284,737 @@ function _bizIsoBox(r,c,w,d,h,top,left,right,label='') {
   if(label){const p=w2s(r,c);ctx.font='900 7px system-ui';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText(label,p.x,p.y-z-3);}
   ctx.restore();
 }
+
+function _drawCasinoSlotMachine(r,c,index=0) {
+  const accents=['#ff3b7d','#8d56ff','#24d5ff','#ffb52d'];
+  const accent=accents[index%accents.length],p=w2s(r,c),z=isoH(1.85);
+  _bizIsoBox(r,c,1.25,1.05,1.75,'#34152e','#17121f','#241229');
+  ctx.save();
+  // Светящаяся корона и экран с тремя отдельными барабанами.
+  ctx.shadowColor=accent;ctx.shadowBlur=11;ctx.fillStyle=accent;
+  roundRect(p.x-14,p.y-z-9,28,8,4);ctx.fill();
+  ctx.shadowBlur=0;ctx.fillStyle='#080b16';ctx.strokeStyle=accent;ctx.lineWidth=1.4;
+  roundRect(p.x-15,p.y-z+2,30,25,4);ctx.fill();ctx.stroke();
+  const symbols=['7','★','♛','◆','BAR'];
+  for(let i=0;i<3;i++){
+    ctx.fillStyle='#f3ead1';ctx.fillRect(p.x-12+i*8.5,p.y-z+7,7.5,13);
+    ctx.fillStyle=i===1?'#d71739':'#22152b';
+    ctx.font=`900 ${i===1?9:7}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(symbols[(index+i)%symbols.length],p.x-8.2+i*8.5,p.y-z+13.5);
+  }
+  // Монетоприёмник, поддон и боковой рычаг.
+  ctx.fillStyle='#f2c44e';ctx.fillRect(p.x-9,p.y-z+31,5,8);
+  ctx.fillStyle='#080a0e';ctx.fillRect(p.x-1,p.y-z+32,12,5);
+  ctx.strokeStyle='#c9d1dc';ctx.lineWidth=2;ctx.beginPath();
+  ctx.moveTo(p.x+16,p.y-z+10);ctx.lineTo(p.x+22,p.y-z+1);ctx.stroke();
+  ctx.fillStyle=accent;ctx.beginPath();ctx.arc(p.x+22,p.y-z,3.5,0,Math.PI*2);ctx.fill();
+  for(let i=0;i<5;i++){
+    ctx.fillStyle=(i+index)%2?accent:'#ffe78a';ctx.beginPath();
+    ctx.arc(p.x-12+i*6,p.y-z-5,1.3,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+}
+
+function _drawCasinoCardTable(r,c,label,index=0) {
+  const p=w2s(r,c),topY=p.y-isoH(.72);
+  _bizIsoBox(r,c,4.6,2.35,.72,'#116443','#38231e','#21151a');
+  ctx.save();ctx.translate(p.x,topY);
+  ctx.fillStyle='#0d4e36';ctx.strokeStyle='#e0b94e';ctx.lineWidth=1.7;
+  ctx.beginPath();ctx.ellipse(0,0,43,18,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  // Поле ставок, карты и стопки фишек.
+  ctx.strokeStyle='rgba(255,231,155,.72)';ctx.lineWidth=1;
+  for(let i=-2;i<=2;i++){ctx.beginPath();ctx.arc(i*13,2,7,Math.PI,0);ctx.stroke();}
+  const suits=['♠','♥','♦','♣'];
+  for(let i=0;i<4;i++){
+    ctx.save();ctx.translate(-18+i*12,-4+i%2*2);ctx.rotate((i-1.5)*.08);
+    ctx.fillStyle='#f6f0dc';ctx.fillRect(-4,-6,8,12);
+    ctx.fillStyle=i%2?'#bd2037':'#171722';ctx.font='8px serif';ctx.textAlign='center';
+    ctx.fillText(suits[(index+i)%4],0,3);ctx.restore();
+  }
+  for(let i=0;i<3;i++){
+    ctx.fillStyle=['#efca45','#d73755','#5bbaf3'][i];ctx.beginPath();
+    ctx.ellipse(25+i*4,5-i*2,5,2.2,0,0,Math.PI*2);ctx.fill();
+  }
+  ctx.font='900 8px system-ui';ctx.fillStyle='#ffe9a2';ctx.textAlign='center';
+  ctx.fillText(label,0,-24);
+  ctx.restore();
+}
+
+function _drawCasinoRoulette(r,c,index=0) {
+  const p=w2s(r,c),topY=p.y-isoH(.78),spin=performance.now()*.0007+index;
+  _bizIsoBox(r,c,4.9,2.5,.75,'#116443','#38231e','#21151a');
+  ctx.save();ctx.translate(p.x-13,topY-1);
+  ctx.fillStyle='#21151b';ctx.strokeStyle='#e2bb50';ctx.lineWidth=3;
+  ctx.beginPath();ctx.ellipse(0,0,25,12,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  for(let i=0;i<18;i++){
+    const a=spin+i*Math.PI*2/18;
+    ctx.strokeStyle=i%2?'#e13945':'#14131a';ctx.lineWidth=4;
+    ctx.beginPath();ctx.moveTo(Math.cos(a)*10,Math.sin(a)*5);
+    ctx.lineTo(Math.cos(a)*22,Math.sin(a)*10);ctx.stroke();
+  }
+  ctx.fillStyle='#e7c056';ctx.beginPath();ctx.ellipse(0,0,7,3.5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff5c5';ctx.beginPath();ctx.arc(Math.cos(spin*2)*16,Math.sin(spin*2)*7,1.8,0,Math.PI*2);ctx.fill();
+  // Поле ставок рядом с колесом.
+  ctx.translate(38,0);ctx.strokeStyle='rgba(247,218,130,.82)';ctx.lineWidth=.8;
+  for(let x=-2;x<=2;x++)for(let y=-1;y<=1;y++)ctx.strokeRect(x*7,y*7,7,7);
+  ctx.font='900 8px system-ui';ctx.fillStyle='#ffe9a2';ctx.textAlign='center';
+  ctx.fillText('РУЛЕТКА',-19,-23);
+  ctx.restore();
+}
+
+function _drawCasinoGrandWheel(r,c) {
+  const p=w2s(r,c),cy=p.y-isoH(3.65),rot=performance.now()*.00016;
+  ctx.save();
+  // Подиум и две латунные опоры.
+  _bizIsoBox(r+.35,c,6.6,2.6,.62,'#8f182f','#3b101d','#250b17');
+  ctx.strokeStyle='#d6aa42';ctx.lineWidth=7;ctx.beginPath();
+  ctx.moveTo(p.x-35,p.y-8);ctx.lineTo(p.x-35,cy+24);
+  ctx.moveTo(p.x+35,p.y-8);ctx.lineTo(p.x+35,cy+24);ctx.stroke();
+  // Большое вертикальное призовое колесо с 24 секторами.
+  ctx.shadowColor='#ffd45b';ctx.shadowBlur=24;ctx.fillStyle='#1a0a15';
+  ctx.strokeStyle='#f0c75b';ctx.lineWidth=6;ctx.beginPath();ctx.arc(p.x,cy,58,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.shadowBlur=0;
+  for(let i=0;i<24;i++){
+    const a0=rot+i*Math.PI*2/24,a1=a0+Math.PI*2/24;
+    ctx.fillStyle=i%3===0?'#e7b83f':(i%2?'#8c1741':'#25112d');
+    ctx.beginPath();ctx.moveTo(p.x,cy);ctx.arc(p.x,cy,52,a0,a1);ctx.closePath();ctx.fill();
+  }
+  ctx.strokeStyle='rgba(255,237,174,.8)';ctx.lineWidth=1;
+  for(let i=0;i<24;i++){const a=rot+i*Math.PI*2/24;ctx.beginPath();ctx.moveTo(p.x,cy);ctx.lineTo(p.x+Math.cos(a)*52,cy+Math.sin(a)*52);ctx.stroke();}
+  ctx.fillStyle='#f4cc62';ctx.strokeStyle='#6c3f13';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(p.x,cy,12,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#fff3b1';ctx.font='900 12px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('♛',p.x,cy);
+  // Верхний указатель и лампы по ободу.
+  ctx.fillStyle='#ff435d';ctx.beginPath();ctx.moveTo(p.x,cy-66);ctx.lineTo(p.x-7,cy-54);ctx.lineTo(p.x+7,cy-54);ctx.closePath();ctx.fill();
+  for(let i=0;i<16;i++){const a=i*Math.PI*2/16;ctx.fillStyle=i%2?'#fff0a2':'#ff4f7c';ctx.beginPath();ctx.arc(p.x+Math.cos(a)*62,cy+Math.sin(a)*62,2.2,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle='#ffe48a';ctx.font='900 11px system-ui';ctx.fillText('КОЛЕСО ДЖЕКПОТА',p.x,cy-77);
+  ctx.restore();
+}
+
+function _drawCasinoDanceStage(r,c) {
+  const p=w2s(r,c),topY=p.y-isoH(.38);
+  _bizIsoBox(r,c,6,2.4,.38,'#9b1d55','#42102d','#26091c');
+  ctx.save();
+  const glow=ctx.createRadialGradient(p.x,topY,2,p.x,topY,66);
+  glow.addColorStop(0,'rgba(255,74,181,.32)');
+  glow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=glow;ctx.beginPath();ctx.ellipse(p.x,topY,70,28,0,0,Math.PI*2);ctx.fill();
+  for(const cc of [c-1.5,c+1.5]){
+    const q=w2s(r,cc),poleH=isoH(3.2);
+    const metal=ctx.createLinearGradient(q.x-3,0,q.x+3,0);
+    metal.addColorStop(0,'#80692a');metal.addColorStop(.5,'#fff0a2');metal.addColorStop(1,'#8a6420');
+    ctx.strokeStyle=metal;ctx.lineWidth=4;ctx.beginPath();
+    ctx.moveTo(q.x,q.y-isoH(.38));ctx.lineTo(q.x,q.y-poleH);ctx.stroke();
+    ctx.fillStyle='#f5cf58';ctx.beginPath();ctx.ellipse(q.x,q.y-isoH(.38),9,3.5,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(q.x,q.y-poleH,7,2.7,0,0,Math.PI*2);ctx.fill();
+  }
+  ctx.font='900 8px system-ui';ctx.textAlign='center';ctx.fillStyle='#ffd7ed';
+  ctx.shadowColor='#ff3da5';ctx.shadowBlur=8;ctx.fillText('GRAND SHOW',p.x,topY-4);ctx.restore();
+}
+
+function _drawCasinoBar(r,c) {
+  const p=w2s(r,c),topY=p.y-isoH(1.05);
+  _bizIsoBox(r,c,8.5,1.6,1.05,'#8a4b24','#3a1e1c','#21121a');
+  ctx.save();ctx.fillStyle='#1b1118';ctx.strokeStyle='#d3a745';ctx.lineWidth=1.5;
+  ctx.fillRect(p.x-47,topY-35,94,26);ctx.strokeRect(p.x-47,topY-35,94,26);
+  const colors=['#e9bd4c','#7dc9e6','#db4c69','#75b777','#b882dd'];
+  for(let i=0;i<13;i++){
+    ctx.fillStyle=colors[i%colors.length];ctx.fillRect(p.x-42+i*7,topY-31-(i%3),4,13+(i%3));
+    ctx.fillStyle='#e9dfbd';ctx.fillRect(p.x-41+i*7,topY-34-(i%3),2,3);
+  }
+  for(let i=0;i<5;i++){
+    const s=w2s(r+1.45,c-3.4+i*1.7);ctx.fillStyle='#52172a';ctx.strokeStyle='#d6aa46';
+    ctx.beginPath();ctx.ellipse(s.x,s.y-isoH(.45),8,4,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillRect(s.x-1,s.y-isoH(.45),2,12);
+  }
+  ctx.fillStyle='#ffe6a0';ctx.font='900 9px system-ui';ctx.textAlign='center';ctx.fillText('BAR · COCKTAILS',p.x,topY-42);
+  ctx.restore();
+}
+
+function _drawCasinoOffice(r,c) {
+  const p=w2s(r,c),deskTop=p.y-isoH(1.12);
+  // Массивный стол управляющего: все детали остаются внутри прежней коллизии office.
+  _bizIsoBox(r,c,6.8,2.1,1.12,'#6f3d27','#351b1b','#241016');
+  _bizIsoBox(r+.12,c-2.55,1.25,1.72,.92,'#4b261f','#29151a','#1c0d13');
+  _bizIsoBox(r+.12,c+2.55,1.25,1.72,.92,'#4b261f','#29151a','#1c0d13');
+  ctx.save();
+  // Кожаная вставка, документы и папка на столешнице.
+  ctx.fillStyle='#173f35';ctx.strokeStyle='#c9a64b';ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.moveTo(p.x-35,deskTop-2);ctx.lineTo(p.x-5,deskTop-17);
+  ctx.lineTo(p.x+35,deskTop+2);ctx.lineTo(p.x+5,deskTop+17);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#eee5cb';ctx.strokeStyle='#735d3b';ctx.lineWidth=.8;
+  ctx.save();ctx.translate(p.x+9,deskTop-1);ctx.rotate(-.36);
+  ctx.fillRect(-10,-7,20,14);ctx.strokeRect(-10,-7,20,14);
+  ctx.strokeStyle='#9a896a';
+  for(let y=-3;y<=4;y+=3){ctx.beginPath();ctx.moveTo(-7,y);ctx.lineTo(7,y);ctx.stroke();}
+  ctx.fillStyle='#791d2f';ctx.fillRect(8,-8,7,16);ctx.restore();
+  // Телефон с трубкой.
+  ctx.save();ctx.translate(p.x-31,deskTop-8);ctx.rotate(.34);
+  ctx.fillStyle='#151820';ctx.strokeStyle='#c7a34a';ctx.lineWidth=1;
+  roundRect(-11,-6,22,12,3);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#2d3340';roundRect(-8,-10,16,5,3);ctx.fill();
+  ctx.fillStyle='#d8bd65';
+  for(let yy=-1;yy<=3;yy+=4)for(let xx=-5;xx<=5;xx+=5){ctx.beginPath();ctx.arc(xx,yy,1,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+  // Латунная лампа.
+  ctx.strokeStyle='#d8b84d';ctx.lineWidth=3;ctx.beginPath();
+  ctx.moveTo(p.x+34,deskTop+3);ctx.lineTo(p.x+34,deskTop-22);ctx.lineTo(p.x+24,deskTop-31);ctx.stroke();
+  ctx.fillStyle='#f7d66a';ctx.shadowColor='#ffd96a';ctx.shadowBlur=13;
+  ctx.beginPath();ctx.moveTo(p.x+14,deskTop-30);ctx.lineTo(p.x+31,deskTop-35);
+  ctx.lineTo(p.x+34,deskTop-24);ctx.closePath();ctx.fill();ctx.shadowBlur=0;
+  // Высокое кожаное кресло за столом.
+  const chair=w2s(r-1.05,c);
+  ctx.fillStyle='#35131d';ctx.strokeStyle='#c29b42';ctx.lineWidth=1.5;
+  roundRect(chair.x-15,chair.y-isoH(1.55),30,31,8);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#6d2638';roundRect(chair.x-10,chair.y-isoH(1.48)+5,20,18,6);ctx.fill();
+  ctx.strokeStyle='#d3ad50';ctx.beginPath();ctx.moveTo(chair.x-16,chair.y-isoH(.75));
+  ctx.lineTo(chair.x-24,chair.y-isoH(.55));ctx.moveTo(chair.x+16,chair.y-isoH(.75));
+  ctx.lineTo(chair.x+24,chair.y-isoH(.55));ctx.stroke();
+  // Настенная эмблема.
+  const crest=w2s(r-2.18,c);
+  ctx.fillStyle='#49142a';ctx.strokeStyle='#d5ad49';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(crest.x,crest.y-isoH(2.18));ctx.lineTo(crest.x+17,crest.y-isoH(1.92));
+  ctx.lineTo(crest.x+12,crest.y-isoH(1.48));ctx.lineTo(crest.x,crest.y-isoH(1.28));
+  ctx.lineTo(crest.x-12,crest.y-isoH(1.48));ctx.lineTo(crest.x-17,crest.y-isoH(1.92));ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#f0ca61';ctx.font='900 15px serif';ctx.textAlign='center';
+  ctx.fillText('♠',crest.x,crest.y-isoH(1.65));
+  ctx.fillStyle='#ffe292';ctx.strokeStyle='rgba(15,5,10,.9)';ctx.lineWidth=3;
+  ctx.font='900 8px system-ui';ctx.strokeText('КАБИНЕТ УПРАВЛЯЮЩЕГО',p.x,deskTop+30);
+  ctx.fillText('КАБИНЕТ УПРАВЛЯЮЩЕГО',p.x,deskTop+30);
+  ctx.restore();
+}
+
+function _drawCasinoSecurityRoom(r,c) {
+  const p=w2s(r,c),consoleTop=p.y-isoH(1.08),pulse=.55+Math.sin(performance.now()*.009)*.35;
+  // Пульт охраны использует старую коллизию security и не сужает проходы.
+  _bizIsoBox(r,c,5.2,2.1,1.08,'#394452','#202833','#151b23');
+  _bizIsoBox(r+.08,c-2.05,.85,1.65,1.34,'#26313d','#171e27','#10151c');
+  _bizIsoBox(r+.08,c+2.05,.85,1.65,1.34,'#26313d','#171e27','#10151c');
+  ctx.save();
+  // Три монитора видеонаблюдения с разными секторами казино.
+  for(let i=-1;i<=1;i++){
+    const x=p.x+i*30,y=consoleTop-28-Math.abs(i)*3;
+    ctx.fillStyle='#111820';ctx.strokeStyle='#8397a6';ctx.lineWidth=2;
+    roundRect(x-16,y-12,32,24,2);ctx.fill();ctx.stroke();
+    ctx.fillStyle=['#244d55','#3d294f','#3c4937'][i+1];ctx.fillRect(x-12,y-8,24,15);
+    ctx.strokeStyle='rgba(124,225,242,.5)';ctx.lineWidth=.7;
+    ctx.beginPath();ctx.moveTo(x-12,y);ctx.lineTo(x+12,y);
+    ctx.moveTo(x,y-8);ctx.lineTo(x,y+7);ctx.stroke();
+    ctx.fillStyle=i===0?'#ff4b5e':'#7ee4c4';ctx.beginPath();ctx.arc(x+8,y-5,1.8,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#667684';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y+12);ctx.lineTo(x,y+18);ctx.stroke();
+  }
+  // Клавиатура, рация и панель тревоги.
+  ctx.save();ctx.translate(p.x,consoleTop+2);ctx.rotate(.36);
+  ctx.fillStyle='#171d25';ctx.strokeStyle='#718391';ctx.lineWidth=1;
+  roundRect(-25,-7,50,14,2);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='rgba(133,205,217,.45)';ctx.lineWidth=.6;
+  for(let x=-20;x<=20;x+=5){ctx.beginPath();ctx.moveTo(x,-4);ctx.lineTo(x,4);ctx.stroke();}
+  ctx.restore();
+  ctx.fillStyle='#1a222c';ctx.strokeStyle='#91a3ae';ctx.lineWidth=1;
+  roundRect(p.x-54,consoleTop-8,13,22,2);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#9dafba';ctx.beginPath();ctx.moveTo(p.x-48,consoleTop-8);ctx.lineTo(p.x-54,consoleTop-21);ctx.stroke();
+  for(let i=0;i<6;i++){
+    ctx.fillStyle=i<2?'#f14b5b':(i<4?'#e5bf4c':'#55d6a5');
+    ctx.beginPath();ctx.arc(p.x+35+i*5,consoleTop+5+(i%2)*4,1.7,0,Math.PI*2);ctx.fill();
+  }
+  // Красный маяк.
+  ctx.fillStyle='#9da9b1';ctx.fillRect(p.x+54,consoleTop-31,4,30);
+  ctx.globalAlpha=pulse;ctx.shadowColor='#ff314d';ctx.shadowBlur=18;
+  ctx.fillStyle='#ff314d';ctx.beginPath();ctx.arc(p.x+56,consoleTop-35,7,Math.PI,0);ctx.lineTo(p.x+63,consoleTop-35);ctx.closePath();ctx.fill();
+  ctx.globalAlpha=1;ctx.shadowBlur=0;
+  ctx.fillStyle='#dbe6eb';ctx.font='900 8px system-ui';ctx.textAlign='center';
+  ctx.fillText('CCTV · 12 КАМЕР',p.x,consoleTop-50);
+  ctx.fillStyle='#c8d6de';ctx.strokeStyle='rgba(4,8,13,.95)';ctx.lineWidth=3;
+  ctx.strokeText('ЦЕНТР ОХРАНЫ',p.x,consoleTop+31);ctx.fillText('ЦЕНТР ОХРАНЫ',p.x,consoleTop+31);
+  ctx.restore();
+}
+
+function _drawCasinoSafe(safe) {
+  const p=w2s(safe.r,safe.c),z=isoH(2.28),opened=!!safe.opened;
+  _bizIsoBox(safe.r,safe.c,2.2,1.7,2.2,
+    opened?'#303844':'#566473',opened?'#202731':'#313c48','#151b22');
+  ctx.save();
+  ctx.shadowColor=opened?'rgba(0,0,0,0)':'rgba(122,205,255,.28)';
+  ctx.shadowBlur=opened?0:10;
+  ctx.fillStyle=opened?'#0a0e13':'#27313b';
+  ctx.strokeStyle=opened?'#65707b':'#9aa9b5';ctx.lineWidth=2.2;
+  roundRect(p.x-23,p.y-z+4,46,48,3);ctx.fill();ctx.stroke();
+  ctx.shadowBlur=0;
+  ctx.strokeStyle='rgba(207,224,235,.4)';ctx.lineWidth=1;
+  roundRect(p.x-18,p.y-z+9,36,38,2);ctx.stroke();
+  ctx.fillStyle='#b9c6ce';
+  for(const [dx,dy] of [[-17,14],[17,14],[-17,42],[17,42]]){
+    ctx.beginPath();ctx.arc(p.x+dx,p.y-z+dy,1.7,0,Math.PI*2);ctx.fill();
+  }
+  if(opened){
+    ctx.fillStyle='#05080b';ctx.fillRect(p.x-14,p.y-z+13,28,31);
+    for(let i=0;i<3;i++){
+      ctx.fillStyle=i===2?'#e0b646':'#78b788';
+      ctx.fillRect(p.x-11+i*7,p.y-z+33-(i%2)*5,8,5);
+      ctx.strokeStyle='#18251d';ctx.strokeRect(p.x-11+i*7,p.y-z+33-(i%2)*5,8,5);
+    }
+    ctx.save();ctx.translate(p.x+27,p.y-z+28);ctx.rotate(-.28);
+    ctx.fillStyle='#303a45';ctx.strokeStyle='#9ba8b2';ctx.lineWidth=2;
+    roundRect(0,-22,34,44,3);ctx.fill();ctx.stroke();
+    ctx.strokeStyle='#65727c';roundRect(5,-17,24,34,2);ctx.stroke();
+    ctx.restore();
+  }else{
+    ctx.strokeStyle='#d5b95e';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(p.x-2,p.y-z+28,9,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#182029';ctx.beginPath();ctx.arc(p.x-2,p.y-z+28,5,0,Math.PI*2);ctx.fill();
+    for(let i=0;i<8;i++){
+      const a=i*Math.PI/4;
+      ctx.beginPath();ctx.moveTo(p.x-2+Math.cos(a)*4,p.y-z+28+Math.sin(a)*4);
+      ctx.lineTo(p.x-2+Math.cos(a)*9,p.y-z+28+Math.sin(a)*9);ctx.stroke();
+    }
+    ctx.strokeStyle='#cbd5dc';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(p.x+11,p.y-z+22);ctx.lineTo(p.x+11,p.y-z+36);ctx.stroke();
+    ctx.fillStyle='#b8c4cc';ctx.fillRect(p.x-21,p.y-z+15,4,9);ctx.fillRect(p.x-21,p.y-z+34,4,9);
+  }
+  const safeNo=String(safe.id||'').match(/(\d+)$/)?.[1]||'';
+  ctx.fillStyle=opened?'#8b969e':'#d8e3e9';ctx.font='900 7px system-ui';ctx.textAlign='center';
+  ctx.fillText(opened?'ВСКРЫТ':`VAULT ${safeNo}`,p.x,p.y-z+60);
+  ctx.font='900 9px system-ui';ctx.strokeStyle='rgba(5,8,12,.95)';ctx.lineWidth=3;
+  const status=opened?'ПУСТО':`СЕЙФ · $${safe.value||0}`;
+  ctx.strokeText(status,p.x,p.y+8);ctx.fillStyle=opened?'#8c969e':'#ffe28a';ctx.fillText(status,p.x,p.y+8);
+  ctx.restore();
+}
+
+function _drawCasinoSafeRoomFloor() {
+  const minR=20.35,maxR=24.65,minC=36.95,maxC=43.55;
+  ctx.save();
+  for(let r=minR;r<maxR;r+=1)for(let c=minC;c<maxC;c+=1){
+    const p=w2s(r+.5,c+.5),hx=TS*.5,hy=TS*.5*ISO_Y;
+    ctx.fillStyle=((Math.floor(r)+Math.floor(c))&1)?'#222b35':'#2b3540';
+    ctx.strokeStyle='rgba(151,177,193,.24)';ctx.lineWidth=.55;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-hy);ctx.lineTo(p.x+hx,p.y);
+    ctx.lineTo(p.x,p.y+hy);ctx.lineTo(p.x-hx,p.y);ctx.closePath();ctx.fill();ctx.stroke();
+  }
+  const center=w2s(22.45,40.2);
+  ctx.fillStyle='rgba(213,230,239,.45)';ctx.font='900 11px system-ui';ctx.textAlign='center';
+  ctx.fillText('◆  СЕЙФОВАЯ  ◆',center.x,center.y);
+  ctx.restore();
+}
+
+function _drawCasinoVaultEntrance() {
+  const r=23.45,c=36.6,p=w2s(r,c),z=isoH(2.45);
+  _bizIsoBox(r-1.45,c,.55,.55,2.55,'#788894','#303b46','#1d252d');
+  _bizIsoBox(r+1.45,c,.55,.55,2.55,'#788894','#303b46','#1d252d');
+  ctx.save();
+  ctx.fillStyle='#111820';ctx.strokeStyle='#9fb0bb';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(p.x-38,p.y-z*.56-6,26,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#d0b45d';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(p.x-38,p.y-z*.56-6,17,0,Math.PI*2);ctx.stroke();
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4;
+    ctx.beginPath();ctx.moveTo(p.x-38+Math.cos(a)*6,p.y-z*.56-6+Math.sin(a)*6);
+    ctx.lineTo(p.x-38+Math.cos(a)*17,p.y-z*.56-6+Math.sin(a)*17);ctx.stroke();
+  }
+  ctx.fillStyle='#d9c16d';ctx.beginPath();ctx.arc(p.x-38,p.y-z*.56-6,6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#dbe7ed';ctx.strokeStyle='#111820';ctx.lineWidth=3;
+  ctx.font='900 9px system-ui';ctx.textAlign='center';
+  ctx.strokeText('BANK VAULT',p.x,p.y-z-10);ctx.fillText('BANK VAULT',p.x,p.y-z-10);
+  ctx.restore();
+}
+
+// Перегородки GRAND CASINO образуют входной коридор, боковые комнаты,
+// большой игровой зал и отдельную сейфовую. Разрывы между сегментами —
+// настоящие дверные проёмы, а не нарисованные поверх стены двери.
+const MAJOR_CASINO_WALLS = [
+  // Холл и длинный центральный коридор от входа.
+  {r0:25,c0:.4,r1:25,c1:18.7},{r0:25,c0:25.3,r1:25,c1:43.6},
+  {r0:20,c0:.4,r1:20,c1:7.2},{r0:20,c0:10.2,r1:20,c1:18.7},
+  {r0:20,c0:25.3,r1:20,c1:33.8},{r0:20,c0:36.8,r1:20,c1:43.6,kind:'vault'},
+  {r0:20,c0:18.7,r1:25,c1:18.7},{r0:20,c0:25.3,r1:25,c1:25.3},
+  // Боковые стены большого центрального игрового зала.
+  {r0:.4,c0:7.4,r1:16.8,c1:7.4},{r0:19.7,c0:7.4,r1:20,c1:7.4},
+  // Правое служебное крыло: два отдельных проёма ведут в дальний кабинет
+  // директора и в охранную, а не оставляют комнаты за сплошной стеной.
+  {r0:4,c0:36.6,r1:5,c1:36.6},
+  {r0:7.2,c0:36.6,r1:11.8,c1:36.6},
+  {r0:14.2,c0:36.6,r1:16.8,c1:36.6},
+  {r0:19.7,c0:36.6,r1:20,c1:36.6},
+  // Кабинеты и VIP-комнаты в дальней части здания.
+  {r0:9,c0:.4,r1:9,c1:7.4,lowerOnly:true},{r0:9,c0:36.6,r1:9,c1:43.6},
+  {r0:20,c0:13.8,r1:25,c1:13.8},{r0:20,c0:30.2,r1:25,c1:30.2},
+  // Сейфовая справа: вход оставлен между r=22.1 и r=24.8.
+  {r0:20,c0:36.6,r1:22.1,c1:36.6,kind:'vault'},
+  {r0:24.8,c0:36.6,r1:31.6,c1:36.6,kind:'vault'},
+  // Кромка верхней VIP-галереи; попасть туда можно только по лестнице.
+  {r0:14,c0:.4,r1:14,c1:2.2},{r0:14,c0:6.3,r1:14,c1:7.4},
+];
+
+const MAJOR_CASINO_STATIC_BLOCKERS = [
+  // Стойка администратора и большой барабан.
+  {id:'desk',r:2.9,c:22,w:6.2,d:1.15,color:'#d1a63d'},
+  {id:'desk',r:2.45,c:24.1,w:.65,d:.65,color:'#26303c'},
+  {id:'wheel',r:7,c:22,w:6.6,d:2.6,color:'#9b1d3c'},
+  // Два ряда отдельных игровых автоматов.
+  ...[
+    [6,10],[6,13.2],[6,16.4],[6,27.6],[6,30.8],[6,34],
+    [10.2,10],[10.2,13.2],[10.2,30.8],[10.2,34],
+  ].map(([r,c],i)=>({id:`slot_${i}`,r,c,w:1.25,d:1.05,color:['#ff3b7d','#8d56ff','#24d5ff','#ffb52d'][i%4]})),
+  // Рулетки и карточные столы центрального зала.
+  ...[[14,12],[14,22],[14,32]].map(([r,c],i)=>({id:`roulette_${i}`,r,c,w:4.9,d:2.5,color:'#176c42'})),
+  ...[[18.2,12],[18.2,22],[18.2,32]].map(([r,c],i)=>({id:`card_${i}`,r,c,w:4.6,d:2.35,color:'#116443'})),
+  {id:'dance_stage',r:11,c:22,w:6,d:2.4,color:'#9b1d55'},
+  // Бар, VIP-мебель и служебные кабинеты.
+  {id:'bar',r:24.2,c:31.5,w:8.5,d:1.6,color:'#8a4b24'},
+  {id:'vip_table',r:23,c:7.2,w:5.4,d:3.2,color:'#5c1742'},
+  {id:'vip_sofa_n',r:21.6,c:7.2,w:5.4,d:1.25,color:'#6e234f'},
+  {id:'vip_sofa_s',r:24.5,c:7.2,w:5.4,d:1.25,color:'#6e234f'},
+  {id:'champagne',r:23,c:12,w:2.2,d:1.3,color:'#d0a73b'},
+  {id:'office',r:5.8,c:40,w:6.2,d:2.1,color:'#4f2038'},
+  {id:'security',r:13,c:40,w:5.2,d:2.1,color:'#30243a'},
+];
+
+function _casinoPropAlive(id) {
+  return !id||!_casinoPropsState[id]?.destroyed;
+}
+
+function _casinoWallDistance(r,c,wall) {
+  const vr=wall.r1-wall.r0,vc=wall.c1-wall.c0,len2=vr*vr+vc*vc||1;
+  const t=Math.max(0,Math.min(1,((r-wall.r0)*vr+(c-wall.c0)*vc)/len2));
+  return Math.hypot(r-(wall.r0+vr*t),c-(wall.c0+vc*t));
+}
+
+function _casinoInteriorBlocked(bi,r,c,pad=.42) {
+  if(!bi||bi.bizId!=='major_casino') return false;
+  const elevation=_casinoVisualElevation(bi,r,c);
+  return MAJOR_CASINO_WALLS.some(w=>
+    !(w.lowerOnly&&elevation>1.55)&&_casinoWallDistance(r,c,w)<pad);
+}
+
+function _casinoOnStairRoute(r,c) {
+  return r>=12.55&&r<=19.45&&c>=2.1&&c<=5.5;
+}
+
+function _casinoMovementBlocked(bi,r,c,pad=.42) {
+  if(!bi||bi.bizId!=='major_casino') return false;
+  // Вся видимая ширина марша и верхняя площадка гарантированно проходимы.
+  // Это не даёт плоским стенам первого этажа перекрыть лестницу второго.
+  if(_casinoOnStairRoute(r,c)) return false;
+  if(_casinoInteriorBlocked(bi,r,c,pad)) return true;
+  const blockers=MAJOR_CASINO_STATIC_BLOCKERS.filter(b=>_casinoPropAlive(b.id));
+  for(const safe of (_majorRaidLocal?.safes||[]))
+    blockers.push({r:safe.r,c:safe.c,w:2.35,d:2.1});
+  return blockers.some(b=>
+    Math.abs(r-b.r)<b.d/2+pad&&Math.abs(c-b.c)<b.w/2+pad);
+}
+
+function _casinoGuardSpawnPoints(bi) {
+  if(!bi||bi.bizId!=='major_casino') return [];
+  // Точки сгруппированы по реальным помещениям. Возвращаем их не блоками,
+  // а по кругу между зонами: первые 20–40 бойцов сразу расходятся по зданию.
+  const zoneDefs=[
+    // Парадный вход и центральный коридор.
+    {name:'entrance',r0:26.3,r1:30.2,c0:18.9,c1:25.1,rs:1.45,cs:1.65},
+    // Левое VIP-крыло и кабинет управляющего.
+    {name:'vip',r0:20.7,r1:29.6,c0:1.3,c1:13.2,rs:1.55,cs:1.75},
+    // Бар, центр охраны и правое служебное крыло.
+    {name:'security',r0:10.2,r1:17.0,c0:37.4,c1:42.7,rs:1.4,cs:1.35},
+    {name:'executive',r0:3.1,r1:8.1,c0:37.4,c1:42.7,rs:1.3,cs:1.35},
+    // Сейфовая: отдельный постоянный заслон рядом с добычей.
+    {name:'vault',r0:20.8,r1:30.0,c0:37.35,c1:43.0,rs:1.4,cs:1.35},
+    // Главный зал с карточными столами.
+    {name:'main_hall',r0:12.0,r1:19.3,c0:8.2,c1:35.8,rs:1.55,cs:1.85},
+    // Зал автоматов и колесо джекпота.
+    {name:'slots',r0:4.4,r1:11.2,c0:8.2,c1:35.8,rs:1.5,cs:1.8},
+    // VIP-балкон второго этажа.
+    {name:'upper_floor',r0:3.7,r1:13.1,c0:1.0,c1:6.65,rs:1.55,cs:1.4},
+    // Лестница и её нижний пост.
+    {name:'stairs',r0:15.1,r1:19.1,c0:2.35,c1:5.25,rs:1.35,cs:1.35},
+  ];
+  const zones=zoneDefs.map(zone=>{
+    const candidates=[];
+    for(let r=zone.r0;r<=zone.r1;r+=zone.rs)for(let c=zone.c0;c<=zone.c1;c+=zone.cs){
+      if(_casinoMovementBlocked(bi,r,c,.5))continue;
+      candidates.push({r:+r.toFixed(2),c:+c.toFixed(2),zone:zone.name});
+    }
+    // Не начинаем каждый сектор с одного и того же геометрического угла.
+    candidates.sort((a,b)=>(
+      Math.abs(a.r-(zone.r0+zone.r1)/2)+Math.abs(a.c-(zone.c0+zone.c1)/2)
+    )-(
+      Math.abs(b.r-(zone.r0+zone.r1)/2)+Math.abs(b.c-(zone.c0+zone.c1)/2)
+    ));
+    return candidates;
+  });
+  const points=[],maxLength=Math.max(0,...zones.map(z=>z.length));
+  for(let i=0;i<maxLength;i++)for(const zone of zones){
+    if(zone[i])points.push(zone[i]);
+  }
+  return points;
+}
+
+function _raycastCasinoProp(sR,sC,dirY,dirX,maxRange) {
+  if(_buildingInt?.bizId!=='major_casino') return null;
+  let best=null;
+  for(const prop of MAJOR_CASINO_STATIC_BLOCKERS){
+    if(!_casinoPropAlive(prop.id))continue;
+    const minR=prop.r-prop.d/2,maxR=prop.r+prop.d/2;
+    const minC=prop.c-prop.w/2,maxC=prop.c+prop.w/2;
+    let enter=.12,exit=maxRange;
+    for(const [origin,dir,min,max] of [[sR,dirY,minR,maxR],[sC,dirX,minC,maxC]]){
+      if(Math.abs(dir)<1e-5){if(origin<min||origin>max){enter=Infinity;break;}continue;}
+      const a=(min-origin)/dir,b=(max-origin)/dir;
+      enter=Math.max(enter,Math.min(a,b));exit=Math.min(exit,Math.max(a,b));
+    }
+    if(enter<=exit&&enter<=maxRange&&(!best||enter<best.dist)){
+      best={prop,dist:enter,point:{r:sR+dirY*enter,c:sC+dirX*enter}};
+    }
+  }
+  return best;
+}
+
+function _hitCasinoProp(prop,weapon,impactR=prop?.r,impactC=prop?.c) {
+  if(!prop||!_casinoPropAlive(prop.id)||!ws||ws.readyState!==1)return;
+  sendInput(true);
+  try{ws.send(JSON.stringify({t:'major_prop_hit',d:{
+    object_id:'casino',prop_id:prop.id,weapon:weapon||currentWeapon,
+    impact_r:+(+impactR||0).toFixed(2),impact_c:+(+impactC||0).toFixed(2),
+  }}));}catch(e){}
+}
+
+function _damageCasinoPropsInRadius(r,c,radius,weapon) {
+  if(_buildingInt?.bizId!=='major_casino')return;
+  for(const prop of MAJOR_CASINO_STATIC_BLOCKERS){
+    if(_casinoPropAlive(prop.id)&&Math.hypot(prop.r-r,prop.c-c)<=radius+
+       Math.max(prop.w,prop.d)*.3)_hitCasinoProp(prop,weapon,r,c);
+  }
+}
+
+function _spawnCasinoPropDestruction(prop) {
+  if(!prop)return;
+  const colors=[prop.color||'#8b5a3b','#e3b94f','#343b48','#f26b4f'];
+  for(let i=0;i<34;i++){
+    const a=Math.random()*Math.PI*2,sp=1.6+Math.random()*5.2;
+    _casinoDebris.push({r:prop.r,c:prop.c,z:.3+Math.random()*1.5,
+      vr:Math.sin(a)*sp,vc:Math.cos(a)*sp,vz:2.8+Math.random()*5.5,
+      rot:Math.random()*Math.PI,spin:(Math.random()-.5)*9,
+      size:2.5+Math.random()*5.5,color:colors[i%colors.length],
+      life:900+Math.random()*850,max:1750});
+  }
+  spawnShockwave(prop.r,prop.c,{rad0:5,maxRad:58,life:420,color:'#ffc34d',thick:5});
+  for(let i=0;i<5;i++)spawnSmokePuff(prop.r+(Math.random()-.5)*.7,prop.c+(Math.random()-.5)*.7,Math.random()*Math.PI*2);
+  spawnFloatText(prop.r,prop.c,'РАЗРУШЕНО',{color:'#ffd267',size:13,life:1200});
+  addShake(7);
+}
+
+function _drawCasinoDebris() {
+  if(!_casinoDebris.length)return;
+  ctx.save();
+  for(const d of _casinoDebris){
+    const p=w2s(d.r+.5,d.c+.5);
+    ctx.globalAlpha=Math.max(0,d.life/d.max);
+    ctx.translate(p.x,p.y-isoH(d.z));ctx.rotate(d.rot);
+    ctx.fillStyle=d.color;ctx.strokeStyle='rgba(0,0,0,.55)';ctx.lineWidth=.7;
+    ctx.fillRect(-d.size/2,-d.size/3,d.size,d.size*.66);ctx.strokeRect(-d.size/2,-d.size/3,d.size,d.size*.66);
+    ctx.rotate(-d.rot);ctx.translate(-p.x,-p.y+isoH(d.z));
+  }
+  ctx.restore();
+}
+
+function _drawCasinoRoomRugs() {
+  const rug=(r,c,w,d,color,label)=>{
+    const A=w2s(r-d/2,c-w/2),B=w2s(r-d/2,c+w/2),C=w2s(r+d/2,c+w/2),D=w2s(r+d/2,c-w/2);
+    ctx.save();ctx.fillStyle=color;ctx.strokeStyle='#d8ac42';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.lineTo(C.x,C.y);ctx.lineTo(D.x,D.y);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.strokeStyle='rgba(255,225,132,.55)';ctx.lineWidth=.8;
+    for(let i=1;i<4;i++){const t=i/4;ctx.beginPath();ctx.moveTo(A.x+(D.x-A.x)*t,A.y+(D.y-A.y)*t);ctx.lineTo(B.x+(C.x-B.x)*t,B.y+(C.y-B.y)*t);ctx.stroke();}
+    if(label){const p=w2s(r,c);ctx.fillStyle='rgba(255,231,150,.72)';ctx.font='900 9px serif';ctx.textAlign='center';ctx.fillText(label,p.x,p.y+3);}
+    ctx.restore();
+  };
+  rug(23,7.2,10.5,6.8,'#59152f','♛  VIP  ♛');
+  rug(25.7,22,5.4,10.4,'#72172e','◆');
+  rug(24,31.5,9.8,6.2,'#4b1535','BAR');
+  rug(5.8,40,6.6,4.8,'#3e142d','DIRECTOR');
+  rug(13,40,6.2,4.8,'#182432','SECURITY');
+}
+
+function _casinoLineClear(bi,r0,c0,r1,c1) {
+  if(!bi||bi.bizId!=='major_casino') return true;
+  const distance=Math.hypot(r1-r0,c1-c0),steps=Math.max(1,Math.ceil(distance/.18));
+  for(let i=1;i<steps;i++){
+    const t=i/steps;
+    if(_casinoInteriorBlocked(bi,r0+(r1-r0)*t,c0+(c1-c0)*t,.16)) return false;
+  }
+  return true;
+}
+
+function _casinoVisualElevation(bi,r,c) {
+  if(!bi||bi.bizId!=='major_casino'||c>=7.4) return 0;
+  if(r<14) return 1.8;
+  if(c>=2.2&&c<=6.3&&r<=19) return Math.max(0,Math.min(1.8,(19-r)*.36));
+  return 0;
+}
+
+function _casinoUpperGalleryAlpha() {
+  const bi=_buildingInt;
+  if(!bi||bi.bizId!=='major_casino') return 1;
+  let target=1;
+  // На самом балконе ничего не просвечивает. На первом этаже проверяем,
+  // перекрывает ли объём балкона тело игрока в экранных координатах.
+  if(_casinoVisualElevation(bi,player.r,player.c)<.72){
+    const halfR=5.4,halfC=3.35,height=1.78;
+    const projected=[];
+    for(const r of [8.4-halfR,8.4+halfR]){
+      for(const c of [3.8-halfC,3.8+halfC]){
+        const p=w2s(r,c);
+        projected.push({x:p.x,y:p.y},{x:p.x,y:p.y-isoH(height)});
+      }
+    }
+    const minX=Math.min(...projected.map(p=>p.x))-18;
+    const maxX=Math.max(...projected.map(p=>p.x))+18;
+    const minY=Math.min(...projected.map(p=>p.y))-12;
+    const maxY=Math.max(...projected.map(p=>p.y))+18;
+    const hero=w2s(player.r+.5,player.c+.5);
+    hero.y-=TS*.72;
+    const outside=Math.max(minX-hero.x,hero.x-maxX,minY-hero.y,hero.y-maxY,0);
+    if(outside<34){
+      const edgeBlend=Math.max(0,Math.min(1,outside/34));
+      target=.24+.76*edgeBlend;
+    }
+  }
+  const now=performance.now(),last=bi._casinoGalleryFadeAt||now;
+  const blend=1-Math.exp(-Math.min(.08,(now-last)/1000)*11);
+  bi._casinoGalleryFadeAt=now;
+  bi._casinoGalleryAlpha=(bi._casinoGalleryAlpha??1)+
+    (target-(bi._casinoGalleryAlpha??1))*blend;
+  return bi._casinoGalleryAlpha;
+}
+
+function _drawCasinoPartition(wall) {
+  const p=w2s(wall.r0,wall.c0),q=w2s(wall.r1,wall.c1),z=isoH(2.65);
+  const isVault=wall.kind==='vault';
+  ctx.save();ctx.lineJoin='round';
+  ctx.fillStyle=isVault?'#18222c':'#210b18';
+  ctx.strokeStyle=isVault?'#8fa3b0':'#b58a32';ctx.lineWidth=isVault?1.45:1.15;
+  ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.lineTo(q.x,q.y-z);ctx.lineTo(p.x,p.y-z);ctx.closePath();ctx.fill();
+  if(wall._sliced){
+    // Не обводим стык каждой depth-секции: иначе длинная стена превращается
+    // в частый золотой частокол. Оставляем непрерывные верхнюю и нижнюю кромки.
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);
+    ctx.moveTo(p.x,p.y-z);ctx.lineTo(q.x,q.y-z);ctx.stroke();
+    if(wall._first||wall._last){
+      const edge=wall._first?p:q;
+      ctx.beginPath();ctx.moveTo(edge.x,edge.y);ctx.lineTo(edge.x,edge.y-z);ctx.stroke();
+    }
+  }else{
+    ctx.stroke();
+  }
+  ctx.strokeStyle=isVault?'rgba(187,211,225,.38)':'rgba(255,218,108,.34)';ctx.lineWidth=.8;
+  const panelCount=wall._sliced?1:3;
+  for(let i=1;i<=panelCount;i++){
+    const t=i/(panelCount+1),x=p.x+(q.x-p.x)*t,y=p.y+(q.y-p.y)*t;
+    ctx.beginPath();ctx.moveTo(x,y-3);ctx.lineTo(x,y-z+3);ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function _drawCasinoUpperGallery() {
+  ctx.save();
+  ctx.globalAlpha*=_casinoUpperGalleryAlpha();
+  _bizIsoBox(8.4,3.8,6.7,10.8,1.78,'#5b1737','#24101c','#160912');
+  const corners=[[3.2,.7],[3.2,6.9],[13.7,.7],[13.7,6.9]];
+  ctx.save();ctx.strokeStyle='#d8ad49';ctx.lineWidth=2;
+  for(const [r,c] of corners){
+    const p=w2s(r,c);ctx.beginPath();ctx.moveTo(p.x,p.y-isoH(1.8));ctx.lineTo(p.x,p.y-isoH(3.15));ctx.stroke();
+  }
+  for(let r=3.2;r<=13.7;r+=1.3){
+    const a=w2s(r,.7),b=w2s(r,6.9);
+    for(const p of [a,b]){ctx.fillStyle='#efca62';ctx.beginPath();ctx.arc(p.x,p.y-isoH(3.15),1.8,0,Math.PI*2);ctx.fill();}
+  }
+  const a=w2s(13.7,.7),b=w2s(13.7,6.9);
+  ctx.beginPath();ctx.moveTo(a.x,a.y-isoH(3.15));ctx.lineTo(b.x,b.y-isoH(3.15));ctx.stroke();
+  ctx.fillStyle='#ffe397';ctx.font='900 9px system-ui';ctx.textAlign='center';
+  const t=w2s(5,3.8);ctx.fillText('VIP-БАЛКОН · 2 ЭТАЖ',t.x,t.y-isoH(3.1));
+  ctx.restore();
+  ctx.restore();
+}
+
+function _drawCasinoStairs(r,c) {
+  const steps=10,tread=.56,width=3.65,rise=1.8/steps;
+  const railSides=[c-width/2-.05,c+width/2+.05];
+  const rails=[[],[]];
+  ctx.save();
+  // Прямой ковровый марш: одинаковые ступени читаются как лестница,
+  // а не как стопка разрозненных блоков.
+  for(let i=0;i<steps;i++){
+    const rr=r-i*tread,h=(i+1)*rise;
+    _bizIsoBox(rr,c,width,tread+.04,h,'#711735','#3a1324','#200b16');
+    const edgeR=rr+tread*.3;
+    const left=w2s(edgeR,c-width/2),right=w2s(edgeR,c+width/2);
+    ctx.strokeStyle='#e5bd55';ctx.lineWidth=1.35;
+    ctx.beginPath();
+    ctx.moveTo(left.x,left.y-isoH(h)-1);
+    ctx.lineTo(right.x,right.y-isoH(h)-1);
+    ctx.stroke();
+    for(let side=0;side<railSides.length;side++){
+      const p=w2s(rr,railSides[side]),topY=p.y-isoH(h+1.05);
+      rails[side].push({x:p.x,y:topY});
+      if(i%2===0||i===steps-1){
+        ctx.strokeStyle='#b98b2f';ctx.lineWidth=1.7;
+        ctx.beginPath();ctx.moveTo(p.x,p.y-isoH(h));ctx.lineTo(p.x,topY);ctx.stroke();
+        ctx.fillStyle='#f0cf69';ctx.beginPath();ctx.arc(p.x,topY,2,0,Math.PI*2);ctx.fill();
+      }
+    }
+  }
+  const landingR=r-(steps-1)*tread-.58;
+  _bizIsoBox(landingR,c,4.35,1.15,1.8,'#5d1737','#32101f','#1c0a14');
+  for(const points of rails){
+    ctx.strokeStyle='#e2b84c';ctx.lineWidth=2.5;ctx.lineCap='round';
+    ctx.beginPath();
+    points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+    ctx.stroke();
+  }
+  const top=w2s(landingR,c);
+  ctx.fillStyle='#ffe28b';ctx.strokeStyle='rgba(20,7,12,.9)';ctx.lineWidth=3;
+  ctx.font='900 9px system-ui';ctx.textAlign='center';
+  ctx.strokeText('VIP · 2 ЭТАЖ',top.x,top.y-isoH(2.02)-7);
+  ctx.fillText('VIP · 2 ЭТАЖ',top.x,top.y-isoH(2.02)-7);
+  ctx.restore();
+}
+
 function _drawBusinessInterior(bi) {
   const cfg=BUSINESS_INTERIORS[bi.bizId]||BUSINESS_INTERIORS.coffee, W=bi.W,H=bi.H;
   const {clientWidth:SW,clientHeight:SH}=document.getElementById('stage');
   const hx=TS*.5,hy=TS*.5*ISO_Y,items=[];
   ctx.fillStyle='#050711';ctx.fillRect(0,0,SW,SH);
   // Пол и тонкая затирка сохраняют общий изометрический язык города.
+  const isGrandCasino=bi.bizId==='major_casino';
   for(let r=0;r<H;r++)for(let c=0;c<W;c++){
-    const p=w2s(r+.5,c+.5), col=cfg.floor[(r+c)&1];
+    const p=w2s(r+.5,c+.5);
+    const casinoMainCarpet=isGrandCasino&&c>=19&&c<=24&&r>=4&&r<=H-2;
+    const casinoVipCarpet=isGrandCasino&&c>=2&&c<=13&&r>=20&&r<=28;
+    const casinoHall=isGrandCasino&&c>=8&&c<=36&&r>=4&&r<20;
+    const casinoRightRoom=isGrandCasino&&c>=26&&c<=43&&r>=20&&r<=31;
+    const marbleTone=(r*7+c*11)%5;
+    const col=isGrandCasino
+      ?(casinoMainCarpet
+        ?['#74172f','#781a34','#70152d','#7d1c37','#6e142c'][marbleTone]
+        :(casinoVipCarpet
+          ?['#49142f','#4f1736','#46122e','#521839','#44112b'][marbleTone]
+          :(casinoHall
+            ?['#24101f','#291222','#21101d','#2c1426','#261120'][marbleTone]
+            :(casinoRightRoom
+              ?['#281421','#2d1726','#25131f','#301927','#291520'][marbleTone]
+              :['#21101c','#25121f','#1f0e1a','#291321','#23101d'][marbleTone]))))
+      :cfg.floor[(r+c)&1];
     ctx.beginPath();ctx.moveTo(p.x,p.y-hy);ctx.lineTo(p.x+hx,p.y);ctx.lineTo(p.x,p.y+hy);ctx.lineTo(p.x-hx,p.y);ctx.closePath();
-    ctx.fillStyle=col;ctx.fill();ctx.strokeStyle='rgba(5,8,14,.24)';ctx.lineWidth=.45;ctx.stroke();
+    ctx.fillStyle=col;ctx.fill();
+    ctx.strokeStyle=isGrandCasino
+      ?(casinoMainCarpet||casinoVipCarpet?'rgba(239,190,64,.24)':'rgba(220,184,92,.055)')
+      :'rgba(5,8,14,.24)';
+    ctx.lineWidth=isGrandCasino ? .35 : .45;ctx.stroke();
+    if(isGrandCasino&&((r*3+c*5)%13===0)){
+      ctx.strokeStyle='rgba(240,217,174,.12)';ctx.lineWidth=.55;
+      ctx.beginPath();ctx.moveTo(p.x-hx*.72,p.y-hy*.18);
+      ctx.quadraticCurveTo(p.x,p.y+hy*.26,p.x+hx*.75,p.y+hy*.06);ctx.stroke();
+    }
+  }
+  if(isGrandCasino){
+    _drawCasinoRoomRugs();
+    _drawCasinoSafeRoomFloor();
   }
   // Северная и боковые стены с панелями, а не плоская чёрная рамка.
   for(let c=0;c<W;c++) items.push({d:c*.01,fn:()=>_bizIsoBox(.18,c+.5,1,.35,2.9,c%4===1?cfg.accent:cfg.wall,cfg.wall,'#1b202a')});
@@ -43510,8 +45028,10 @@ function _drawBusinessInterior(bi) {
   const box=(kind,r,c,w=2,d=1,h=1,top=cfg.accent)=>items.push({d:r+c,furniture:true,fn:()=>_bizIsoBox(r,c,w,d,h,top,'#343c48','#242a33',kind)});
   const table=(r,c,top='#805a35',label='')=>{box(label,r,c,2.4,1.4,.65,top);box('',r-.2,c-1.7,.55,.55,.45,'#3b2c25');box('',r-.2,c+1.7,.55,.55,.45,'#3b2c25');};
   // Общая стойка и касса. Управляющий стоит за ней.
-  box('КАССА',2.9,W/2,6.2,1.15,1.05,cfg.accent);
-  box('',2.45,W/2+2.1,.65,.65,1.45,'#202631');
+  if(!isGrandCasino||_casinoPropAlive('desk')){
+    box('КАССА',2.9,W/2,6.2,1.15,1.05,cfg.accent);
+    box('',2.45,W/2+2.1,.65,.65,1.45,'#202631');
+  }
   switch(bi.bizId){
     case 'coffee': table(6,4,'#8f6238','☕');table(8.2,9,'#8f6238','☕');box('КОФЕ',4.6,14,2,1.2,1.65,'#9b5132');box('ВИТРИНА',3.8,3,3,1,1.1,'#d6b77d');break;
     case 'carwash': box('МОЙКА',7,8.8,5.8,2.7,.25,'#45a9bd');box('АВТО',7,8.8,3.8,1.75,.9,'#c24646');box('ПЕНА',4.4,3,1.3,1.3,2.1,'#67cad6');box('ВОДА',8.8,14.5,1.4,1.4,2.2,'#3f8ba8');break;
@@ -43523,8 +45043,84 @@ function _drawBusinessInterior(bi) {
     case 'warehouse': box('СТЕЛЛАЖ',4.3,3,3,1.3,2.4,'#6d7783');box('СТЕЛЛАЖ',4.3,14.5,3,1.3,2.4,'#6d7783');box('ЯЩИКИ',7.5,4,2.5,2,1.5,'#a46b36');box('ПОГРУЗЧИК',8,12,2.7,1.8,1.2,'#d6a72f');break;
     case 'casino': table(5.2,4.3,'#176c42','РУЛЕТКА');table(7.5,9,'#176c42','BLACKJACK');box('SLOTS',4.8,14.5,3,1.2,2,'#b13e8f');box('КАССА',9.2,14,3,1.2,1.2,'#d2a83e');break;
     case 'port': box('КОНТЕЙНЕР',4.7,3.2,4,2,2.2,'#b34b36');box('КОНТЕЙНЕР',4.7,14.2,4,2,2.2,'#347a9e');box('ГРУЗ',8,5,3,2,1.35,'#9b6a38');box('ДИСПЕТЧЕР',8,13,3,1.5,1.45,'#3d596c');break;
+    case 'major_casino':
+      for(const wall of MAJOR_CASINO_WALLS){
+        // Длинная стена одним элементом имела один общий depth: дальний NPC
+        // иногда целиком рисовался после неё, и голова просвечивала через перегородку.
+        // Короткие локальные секции сортируются рядом с ногами персонажа.
+        const length=Math.hypot(wall.r1-wall.r0,wall.c1-wall.c0);
+        const slices=Math.max(1,Math.ceil(length/1.05));
+        for(let i=0;i<slices;i++){
+          const t0=i/slices,t1=(i+1)/slices;
+          const segment={
+            r0:wall.r0+(wall.r1-wall.r0)*t0,
+            c0:wall.c0+(wall.c1-wall.c0)*t0,
+            r1:wall.r0+(wall.r1-wall.r0)*t1,
+            c1:wall.c0+(wall.c1-wall.c0)*t1,
+            kind:wall.kind,
+            _sliced:true,_first:i===0,_last:i===slices-1,
+          };
+          const depth=Math.max(segment.r0+segment.c0,segment.r1+segment.c1)+.15;
+          items.push({d:depth,fn:()=>_drawCasinoPartition(segment)});
+        }
+      }
+      items.push({d:60.2,fn:()=>_drawCasinoVaultEntrance()});
+      if(_casinoPropAlive('wheel'))items.push({d:29,furniture:true,fn:()=>_drawCasinoGrandWheel(7,22)});
+      for(const [i,rr,cc] of [
+        [0,6,10],[1,6,13.2],[2,6,16.4],[3,6,27.6],[4,6,30.8],[5,6,34],
+        [6,10.2,10],[7,10.2,13.2],[8,10.2,30.8],[9,10.2,34]
+      ]) if(_casinoPropAlive(`slot_${i}`))
+        items.push({d:rr+cc,furniture:true,fn:()=>_drawCasinoSlotMachine(rr,cc,i)});
+      for(const [i,rr,cc] of [[0,14,12],[1,14,22],[2,14,32]])
+        if(_casinoPropAlive(`roulette_${i}`))
+          items.push({d:rr+cc,furniture:true,fn:()=>_drawCasinoRoulette(rr,cc,i)});
+      for(const [i,rr,cc,label] of [
+        [0,18.2,12,'BLACKJACK'],[1,18.2,22,'POKER'],[2,18.2,32,'BLACKJACK']
+      ]) if(_casinoPropAlive(`card_${i}`))
+        items.push({d:rr+cc,furniture:true,fn:()=>_drawCasinoCardTable(rr,cc,label,i)});
+      if(_casinoPropAlive('dance_stage'))
+        items.push({d:33,furniture:true,fn:()=>_drawCasinoDanceStage(11,22)});
+      if(_casinoPropAlive('bar'))items.push({d:57,furniture:true,fn:()=>_drawCasinoBar(24.2,31.5)});
+      items.push({d:12,furniture:true,fn:()=>_drawCasinoUpperGallery()});
+      items.push({d:23,furniture:true,fn:()=>_drawCasinoStairs(18.8,3.8)});
+      if(_casinoPropAlive('vip_table'))box('VIP LOUNGE',23,7.2,5.4,3.2,.42,'#5c1742');
+      if(_casinoPropAlive('vip_sofa_n'))box('',21.6,7.2,5.4,1.25,1.05,'#6e234f');
+      if(_casinoPropAlive('vip_sofa_s'))box('',24.5,7.2,5.4,1.25,1.05,'#6e234f');
+      if(_casinoPropAlive('champagne'))box('CHAMPAGNE',23,12,2.2,1.3,.82,'#d0a73b');
+      if(_casinoPropAlive('office'))
+        items.push({d:45.8,furniture:true,fn:()=>_drawCasinoOffice(5.8,40)});
+      if(_casinoPropAlive('security'))
+        items.push({d:53,furniture:true,fn:()=>_drawCasinoSecurityRoom(13,40)});
+      break;
+    case 'major_market':
+      for(let rr=6;rr<20;rr+=4)for(let cc=5;cc<30;cc+=6)box((rr+cc)%2?'ЛАВКА':'ТОВАР',rr,cc,4,1.5,1.35,(rr+cc)%3?'#8b5d32':'#c98b38');
+      box('СКЛАД',19,28,7,5,2.2,'#785232');box('ВЕСЫ',7,29,2,2,1.2,'#d8b454');
+      break;
+    case 'major_factory':
+      for(let rr=6;rr<20;rr+=5){box('СТАНОК',rr,7,5,2.4,1.8,'#697681');box('КОНВЕЙЕР',rr,18,10,1.8,1.1,'#b26430');}
+      box('ПРЕСС',9,29,5,5,3.2,'#a14334');box('СКЛАД',19,28,7,5,2.4,'#5f6971');
+      break;
+    case 'major_mansion':
+      box('КАБИНЕТ БОССА',6,28,8,6,.65,'#7b271f');table(7,8,'#7d572f','БАНКЕТ');table(12,8,'#7d572f','БАНКЕТ');
+      box('ГОСТИНАЯ',15,20,9,5,.25,'#9b7449');box('БИБЛИОТЕКА',4,6,7,1.2,2.8,'#5d321f');
+      box('ТРОФЕИ',4,17,7,1.2,2.3,'#b68a3e');
+      break;
+    case 'major_port':
+      for(let rr=6;rr<20;rr+=6){box('КОНТЕЙНЕР',rr,6,7,2.6,2.5,'#b54d37');box('КОНТЕЙНЕР',rr,17,7,2.6,2.5,'#357e9e');}
+      box('КРАН',8,29,4,4,4.2,'#d19c2e');box('ДИСПЕТЧЕРСКАЯ',18,28,7,4,2.5,'#415d6b');
+      break;
   }
-  if(BUSINESS_ROB_TIERS[bi.bizId]){
+  if (_majorInteriorObjectId && _majorRaidLocal) {
+    for (const safe of (_majorRaidLocal.safes || [])) {
+      if(bi.bizId==='major_casino'){
+        items.push({d:safe.r+safe.c,furniture:true,fn:()=>_drawCasinoSafe(safe)});
+      }else{
+        box(safe.opened?'ПУСТО':'СЕЙФ',safe.r,safe.c,2.2,2,2,
+          safe.opened?'#3f4650':'#b68a32');
+      }
+    }
+  }
+  if(BUSINESS_ROB_TIERS[bi.bizId]&&!String(bi.bizId||'').startsWith('major_')){
     const extra=Math.max(0,(BUSINESS_ROB_TIERS[bi.bizId]?.guards||1)-2);
     for(let i=0;i<extra;i++){
       const rr=Math.min(H-2.2,5.5+Math.floor(i/3)*2.2),cc=W-2.2-(i%3)*2.2;
@@ -43538,6 +45134,7 @@ function _drawBusinessInterior(bi) {
     if(!o.interior||o.interior.kind!=='business'||o.interior.biz_id!==bi.bizId)continue;
     items.push({d:o.y+o.x+.49,person:true,fn:((other)=>()=>{
       const p=w2s(other.y+.5,other.x+.5);
+      p.y-=isoH(_casinoVisualElevation(bi,other.y,other.x));
       const phase=other.w?(other._walkPhase||0):0;
       const chat=(other.chat&&performance.now()-other.chatT<chatDuration(other.chat))?other.chat:null;
       const armed=(other.mode||'pvp')!=='pve'&&!other.dead;
@@ -43552,6 +45149,7 @@ function _drawBusinessInterior(bi) {
   }
   items.push({d:player.r+player.c+.5,hero:true,person:true,fn:()=>{
     const p=w2s(player.r+.5,player.c+.5);
+    p.y-=isoH(_casinoVisualElevation(bi,player.r,player.c));
     drawPerson(p.x,p.y,player.ang,_livePlayerLook(),player.walkPhase,'Игрок',null,true,myHp,PVP.max_hp,false,null,false,myDead);
     // У вооружённого игрока drawPerson намеренно не рисует обычные руки:
     // руки и сам ствол добавляет этот общий оружейный рендер.
@@ -43563,8 +45161,10 @@ function _drawBusinessInterior(bi) {
   // Крупный декор рисуется перед самым дальним человеком: так ни игрок,
   // ни управляющий, ни сотрудники не исчезают целиком за стойкой/стеллажом.
   const firstPersonDepth=items.reduce((d,it)=>it.person?Math.min(d,it.d):d,Infinity);
-  const businessDepth=(it)=>it.furniture?Math.min(it.d,firstPersonDepth-.01):it.d;
+  const businessDepth=(it)=>isGrandCasino?it.d:
+    (it.furniture?Math.min(it.d,firstPersonDepth-.01):it.d);
   items.sort((a,b)=>businessDepth(a)-businessDepth(b));for(const it of items)it.fn();
+  if(isGrandCasino)_drawCasinoDebris();
   drawGroundMissionBoxes();
   const deliveryQuest = myBoxStatus && myBoxStatus.active;
   if (deliveryQuest?.state === 'carrying' &&
@@ -43599,7 +45199,7 @@ function _drawBusinessInterior(bi) {
   // Выход и верхняя карточка статуса.
   const ep=w2s(H-.25,W/2);ctx.save();ctx.textAlign='center';ctx.font='900 10px system-ui';ctx.fillStyle='#69ff8d';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('ВЫХОД',ep.x,ep.y-4);ctx.restore();
   const biz=BUSINESS_POIS.find(b=>b.id===bi.bizId),own=myBusinesses.get(bi.bizId),lvl=own&&own.owned?_bizLevel(own):0;
-  ctx.save();ctx.textAlign='center';ctx.font='900 14px system-ui';const title=`${biz?.emoji||'🏢'} ${cfg.title}${lvl?` · УР. ${lvl}`:' · НА ПРОДАЖУ'}`;const tw=ctx.measureText(title).width+28;ctx.fillStyle='rgba(7,10,16,.9)';ctx.strokeStyle=lvl?'#62ec91':'#d7ae4c';ctx.lineWidth=1.5;roundRect(SW/2-tw/2,14,tw,34,11);ctx.fill();ctx.stroke();ctx.fillStyle=lvl?'#8effaf':'#ffd76b';ctx.fillText(title,SW/2,36);ctx.restore();
+  ctx.save();ctx.textAlign='center';ctx.font='900 14px system-ui';const title=`${biz?.emoji||'🏢'} ${cfg.title}${lvl?` · УР. ${lvl}`:''}`;const tw=ctx.measureText(title).width+28;ctx.fillStyle='rgba(7,10,16,.9)';ctx.strokeStyle=lvl?'#62ec91':'#d7ae4c';ctx.lineWidth=1.5;roundRect(SW/2-tw/2,14,tw,34,11);ctx.fill();ctx.stroke();ctx.fillStyle=lvl?'#8effaf':'#ffd76b';ctx.fillText(title,SW/2,36);ctx.restore();
   if(bi.robbery){
     const owner=(bi.npcs||[]).find(n=>n.role==='owner'),guards=(bi.npcs||[]).filter(n=>n.role==='biz_guard'&&!n.dead).length;
     ctx.save();ctx.textAlign='center';ctx.font='900 12px system-ui';ctx.fillStyle='rgba(8,9,14,.92)';ctx.strokeStyle=guards?'#ff8c55':'#ff4055';ctx.lineWidth=1.5;roundRect(SW/2-130,54,260,52,10);ctx.fill();ctx.stroke();
@@ -43609,6 +45209,9 @@ function _drawBusinessInterior(bi) {
   }
   if (_majorInteriorObjectId && _majorRaidLocal) {
     for (const safe of (_majorRaidLocal.safes || [])) {
+      // У казино статус встроен в нарисованный корпус и скрывается вместе с ним.
+      // Для остальных крупных объектов сохраняем прежнюю универсальную метку.
+      if(bi.bizId==='major_casino') continue;
       const p = w2s(safe.r+.5, safe.c+.5);
       ctx.save();
       ctx.textAlign='center';
@@ -43671,8 +45274,11 @@ function _showLootBanner(amount) {
 function enterBuildingInterior(r, c, type, bizId = null, options = null) {
   if (_buildingInt || _bankInt || myDead || myDrivingCarId) return;
   _captureWorldBeforeInterior();
+  const inferredMajorId = typeof bizId === 'string' && bizId.startsWith('major_')
+    ? bizId.slice(6) : null;
   const majorObjectId = options?.majorObjectId ||
-    (typeof bizId === 'string' && bizId.startsWith('major_') ? bizId.slice(6) : null);
+    (options?.peacefulMajorObjectId ? null : inferredMajorId);
+  const majorLayoutId = majorObjectId || options?.peacefulMajorObjectId || inferredMajorId;
   _majorInteriorObjectId = majorObjectId || null;
   const isBM = type === 'blackmarket';
   const isThemed = ['blackmarket','job','gym','hospital','police_st','mafia_hq','business'].includes(type);
@@ -43682,8 +45288,8 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
     const tier = BUSINESS_ROB_TIERS[bizId] || {guards:2,w:18,h:13};
     biW = tier.w; biH = tier.h;
   }
-  if (majorObjectId) {
-    [biW, biH] = majorObjectId === 'casino' ? [44,32] : [34,24];
+  if (majorLayoutId) {
+    [biW, biH] = majorLayoutId === 'casino' ? [44,32] : [34,24];
   }
   const seed = ((r * 73 + c * 131) % 97) / 97;
   const isOwnedBusiness = type === 'business' && !!myBusinesses.get(bizId)?.owned;
