@@ -11546,7 +11546,7 @@ function _currentBuildingEntryTarget() {
 function drawActiveBuildingEntryMarker() {
   // У бизнеса уже есть контекстные кнопки сверху. Большой указатель
   // «ВОЙТИ СЮДА» дублирует их и закрывает само маленькое здание.
-  if (_zoneEl?.dataset?.bizId) return;
+  if (_zoneEl?.dataset?.bizId || BUSINESS_POIS.some(b => Math.hypot(player.r-b.r,player.c-b.c) < 5.5)) return;
   const target = _currentBuildingEntryTarget();
   if (!target) return;
   const pulse = (Math.sin(performance.now() * 0.007) + 1) * 0.5;
@@ -31637,6 +31637,9 @@ function _nearestBusinessPoi() {
 
 function drawBusinessPoi(b) {
   const p = w2s(b.r + 0.5, b.c + 0.5);
+  // Вблизи название, статус и цена уже показаны контекстными кнопками.
+  // Освобождаем фасад небольшого здания от большой плашки со стрелкой.
+  if (Math.hypot(player.r-b.r, player.c-b.c) < 5.5) return;
   const own = myBusinesses.get(b.id);
   const owned = !!(own && own.owned);
   const closedLeft = Math.max(0, (_businessClosures[b.id] || 0) - Date.now());
@@ -33019,6 +33022,12 @@ function drawConvoyNpc(npc, isBoss) {
 // Тег режима (PvP/PvE) — маленький бейдж под именем игрока.
 // PvP — красный (опасный), PvE — серый (мирный наблюдатель).
 function drawModeTag(px, py, mode) {
+  // У бизнеса приоритет у фасада и его состояния, а режим уже виден в HUD.
+  // Это также не даёт нескольким PvP-бейджам закрывать маленькое заведение.
+  if (BUSINESS_POIS.some(b => {
+    const bp=w2s(b.r+.5,b.c+.5);
+    return Math.hypot(px-bp.x,py-bp.y)<86;
+  })) return;
   const isPve = (mode === 'pve');
   const txt   = isPve ? '🕵 PvE' : '🔫 PvP';
   const bg    = isPve ? 'rgba(40,60,80,.85)' : 'rgba(80,20,20,.85)';
@@ -37519,7 +37528,9 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
   const chatY = hpY - 18;
 
   // Имя над головой
-  if (name) {
+  const hideSelfNameAtBusiness = isSelf && BUSINESS_POIS.some(b =>
+    Math.hypot(player.r-b.r,player.c-b.c)<3.2);
+  if (name && !hideSelfNameAtBusiness) {
     ctx.font = 'bold 12px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(0,0,0,.7)';
