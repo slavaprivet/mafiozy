@@ -168,6 +168,15 @@ body.in-pvp #robActionBtn { top: 152px; }
   body.near-business #robActionBtn,
   body.in-pvp.near-business #robActionBtn { left:50%;top:174px;max-width:min(270px,68vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:9px 15px;font-size:13px; }
 }
+/* У заведений действия открываются карточкой возле выбранного здания, а не
+   висят глобально над картой. Исходные кнопки остаются исполнительным слоем. */
+body.near-business #zoneBtn,
+body.near-business #gtaActionBtn,
+body.near-business #robActionBtn,
+body.near-major-establishment #gtaActionBtn,
+body.near-major-establishment #robActionBtn { display:none !important; }
+#businessActionCard{position:fixed;z-index:58;width:min(270px,76vw);padding:9px;border:1px solid #d6ad4e;border-radius:13px;background:linear-gradient(145deg,rgba(12,17,25,.97),rgba(30,20,12,.97));box-shadow:0 12px 34px rgba(0,0,0,.68);color:#fff;font:800 11px system-ui;display:none;transform:translate(-50%,-100%)}
+#businessActionCard.show{display:block}.bac-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;color:#ffe08a}.bac-close{width:24px;height:24px;border:1px solid #687386;border-radius:7px;background:#202735;color:#fff;font-weight:900}.bac-actions{display:grid;gap:6px}.bac-btn{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #4e6177;background:#253347;color:#fff;font:900 11px system-ui;text-align:left}.bac-btn.peace{border-color:#3da45c;background:#174f2a}.bac-btn.buy{border-color:#dfa93e;background:#7d5314}.bac-btn.raid{border-color:#f05252;background:#771b1b}
 
 /* Кнопка «Сбросить мешок» — внизу по центру, видна пока несёшь мешок.
    Низ экрана чтобы не мешала верхним кнопкам «Погрузить/Взлом». */
@@ -11686,6 +11695,28 @@ function _activateSelectedBuildingIfNear() {
 function selectBuildingFromCanvasTap(x, y) {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead) return false;
 
+  // Все коммерческие здания используют единое контекстное меню по тапу.
+  // Проверяем их до обычных домов, чтобы фасад бизнеса не выбирал квартиру сзади.
+  for (const biz of BUSINESS_POIS) {
+    const p=w2s(biz.r+.5,biz.c+.5);
+    if(Math.abs(x-p.x)>72||y<p.y-150||y>p.y+38)continue;
+    if(Math.hypot(player.r-biz.r,player.c-biz.c)>3.2){
+      showToast(`Подойди ближе: ${biz.name}`,'📍',1800);return true;
+    }
+    _selectedBuildingEntry=null;_selectedVehicleEntry=null;
+    _openBusinessActionCard('business',biz);return true;
+  }
+  for (const poi of POI) {
+    if(!MAJOR_OBJECT_IDS.has(poi.id))continue;
+    const p=w2s(poi.r+.5,poi.c+.5);
+    if(Math.abs(x-p.x)>94||y<p.y-250||y>p.y+42)continue;
+    if(Math.hypot(player.r-poi.r,player.c-poi.c)>4.2){
+      showToast(`Подойди ближе: ${poi.name}`,'📍',1800);return true;
+    }
+    _selectedBuildingEntry=null;_selectedVehicleEntry=null;
+    _openBusinessActionCard('major',poi);return true;
+  }
+
   // Tall Burj floors project far above their ground tile, so give the tower
   // an explicit visual hit area instead of relying only on screen-to-world.
   const burjScreen = w2s(BURJ_POS.r + .5, BURJ_POS.c + .5);
@@ -18206,6 +18237,38 @@ const BUSINESS_OWNER_PERSONAS = {
 };
 const ROB_DURATION_MS = 8000;
 const _robBtn      = document.getElementById('robActionBtn');
+let _businessActionSelection=null,_businessActionSignature='';
+const _businessActionCard=document.createElement('div');
+_businessActionCard.id='businessActionCard';document.body.appendChild(_businessActionCard);
+function _closeBusinessActionCard(){_businessActionSelection=null;_businessActionSignature='';_businessActionCard.classList.remove('show');}
+function _businessActionSource(id){return id==='zone'?_zoneEl:id==='gta'?_gtaBtn:_robBtn;}
+function _syncBusinessActionCard(){
+  const sel=_businessActionSelection;if(!sel)return;
+  const poi=sel.kind==='business'?BUSINESS_POIS.find(b=>b.id===sel.id):POI.find(p=>p.id===sel.id);
+  if(!poi||_buildingInt||_bankInt||Math.hypot(player.r-poi.r,player.c-poi.c)>3.5){_closeBusinessActionCard();return;}
+  const actions=[];
+  if(sel.kind==='business'&&_zoneEl.dataset.bizId===sel.id&&_zoneEl.style.display==='block')actions.push(['zone','peace',_zoneEl.textContent]);
+  if(_gtaBtn.style.display==='block'&&String(_gtaActionCarId)===String(sel.id))actions.push(['gta','buy',_gtaBtn.textContent]);
+  if(_robBtn&&_robBtn.style.display==='block'&&((sel.kind==='business'&&_robTargetBiz?.id===sel.id)||(sel.kind==='major'&&_robBtn._majorAssaultId===sel.id)))actions.push(['rob','raid',_robBtn.textContent]);
+  const sig=JSON.stringify(actions.map(a=>[a[0],a[2]]));
+  if(sig!==_businessActionSignature){
+    _businessActionSignature=sig;
+    _businessActionCard.innerHTML=`<div class="bac-head"><span>${poi.icon||poi.emoji||'🏪'} ${poi.name}</span><button class="bac-close">✕</button></div><div class="bac-actions">${actions.map(a=>`<button class="bac-btn ${a[1]}" data-source="${a[0]}">${a[2]}</button>`).join('')}</div>`;
+  }
+  const p=w2s(poi.r+.5,poi.c+.5),margin=12,w=270;
+  _businessActionCard.style.left=`${Math.max(w/2+margin,Math.min(innerWidth-w/2-margin,p.x))}px`;
+  _businessActionCard.style.top=`${Math.max(190,Math.min(innerHeight-20,p.y-32))}px`;
+  _businessActionCard.classList.add('show');
+}
+function _openBusinessActionCard(kind,poi){
+  _businessActionSelection={kind,id:poi.id};_businessActionSignature='';
+  updateGtaInteractions();_syncBusinessActionCard();
+}
+_businessActionCard.addEventListener('click',e=>{
+  if(e.target.closest('.bac-close')){_closeBusinessActionCard();return;}
+  const btn=e.target.closest('[data-source]');if(!btn)return;
+  const source=_businessActionSource(btn.dataset.source);_closeBusinessActionCard();source?.click();
+});
 const _robModal    = document.getElementById('robProgress');
 const _robBarFill  = document.getElementById('robBarFill');
 const _robSubEl    = document.getElementById('robSub');
@@ -18611,6 +18674,8 @@ function playEnterCarAnim(r, c) {
 }
 
 function updateGtaInteractions() {
+  document.body.classList.remove('near-major-establishment');
+  if(_businessActionSelection)_syncBusinessActionCard();
   _gtaActionBagCarRef = null;
   _gtaBtn.classList.remove('biz-pressure-action');
   if (_robBtn) _robBtn._majorAssaultId = null;
@@ -19001,24 +19066,24 @@ function updateGtaInteractions() {
       if (_robBtn && rcfg && !_robInProgress && !robCdLeft) {
         _robTargetBiz = bizNear; _robBtn._buySprayCan = false;
         _robBtn._graffitiR = null; _robBtn._graffitiC = null;
-        _robBtn.textContent = `🔫 Войти и ограбить (${'★'.repeat(rcfg.difficulty)})`;
+        _robBtn.textContent = `💥 Совершить налёт (${'★'.repeat(rcfg.difficulty)})`;
         _robBtn.style.display = 'block';
       }
-      return;
+      _syncBusinessActionCard();return;
     }
     if (own.pending && own.pending > 0) {
       _gtaActionKind = 'biz_collect';
       _gtaActionCarId = bizNear.id;
       _gtaBtn.textContent = `💰 Забрать $${own.pending}`;
       _gtaBtn.style.display = 'block';
-      return;
+      _syncBusinessActionCard();return;
     }
     // Куплен, но дохода нет — просто инфо-плашка
     _gtaActionKind = 'biz_info';
     _gtaActionCarId = bizNear.id;
     _gtaBtn.textContent = `✅ ${bizNear.emoji} ${bizNear.name} — твой`;
     _gtaBtn.style.display = 'block';
-    return;
+    _syncBusinessActionCard();return;
   }
   // Чёрный рынок — вход в здание
   // Ручной выбор здания имеет приоритет, пока игрок стоит на месте.
@@ -19388,6 +19453,7 @@ function updateGtaInteractions() {
   }
   const majorPoi = _nearestMajorObject();
   if (majorPoi && !myDrivingCarId && !myDead) {
+    document.body.classList.add('near-major-establishment');
     const state = _majorObjectsState[majorPoi.id] || {};
     _gtaActionKind = 'major_enter';
     _gtaActionCarId = majorPoi.id;
@@ -19400,11 +19466,11 @@ function updateGtaInteractions() {
       _robBtn._graffitiR = null; _robBtn._graffitiC = null;
       if (!state.owner_uid) {
         _robBtn._majorAssaultId = majorPoi.id;
-        _robBtn.textContent = `⚔️ Штурмовать: ${majorPoi.name} · ★★★★★`;
+        _robBtn.textContent = `💥 Совершить налёт: ${majorPoi.name} · ★★★★★`;
         _robBtn.style.display = 'block';
       }
     }
-    return;
+    _syncBusinessActionCard();return;
   }
   // Гражданская тачка из трафика — можно угнать как в GTA. Игнорируем
   // полицию, горящие/повреждённые. В тюрьме угон запрещён.
