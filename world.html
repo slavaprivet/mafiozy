@@ -45099,6 +45099,26 @@ function _drawCasinoUpperGallery() {
   ctx.save();
   ctx.globalAlpha*=_casinoUpperGalleryAlpha();
   _bizIsoBox(8.4,3.8,6.7,10.8,1.78,'#5b1737','#24101c','#160912');
+  const playerUpstairs=_casinoVisualElevation(_buildingInt,player.r,player.c)>1.55;
+  if(playerUpstairs){
+    // Когда герой наверху, подсвечиваем именно границу поднятого пола:
+    // по одному силуэту персонажа высота в изометрии читалась недостаточно ясно.
+    const pulse=.48+.18*Math.sin(performance.now()*.0045);
+    const floorCorners=[[3.2,.7],[3.2,6.9],[13.7,6.9],[13.7,.7]]
+      .map(([r,c])=>{const p=w2s(r,c);return{x:p.x,y:p.y-isoH(1.8)};});
+    ctx.save();
+    ctx.globalCompositeOperation='screen';
+    ctx.fillStyle=`rgba(255,202,73,${pulse*.09})`;
+    ctx.strokeStyle=`rgba(255,222,117,${pulse})`;
+    ctx.lineWidth=3;
+    ctx.setLineDash([9,5]);
+    ctx.shadowColor='#ffd454';
+    ctx.shadowBlur=12;
+    ctx.beginPath();
+    floorCorners.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+    ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.restore();
+  }
   const corners=[[3.2,.7],[3.2,6.9],[13.7,.7],[13.7,6.9]];
   ctx.save();ctx.strokeStyle='#d8ad49';ctx.lineWidth=2;
   for(const [r,c] of corners){
@@ -45391,7 +45411,30 @@ function _drawBusinessInterior(bi) {
   // Выход и верхняя карточка статуса.
   const ep=w2s(H-.25,W/2);ctx.save();ctx.textAlign='center';ctx.font='900 10px system-ui';ctx.fillStyle='#69ff8d';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText('ВЫХОД',ep.x,ep.y-4);ctx.restore();
   const biz=BUSINESS_POIS.find(b=>b.id===bi.bizId),own=myBusinesses.get(bi.bizId),lvl=own&&own.owned?_bizLevel(own):0;
-  ctx.save();ctx.textAlign='center';ctx.font='900 14px system-ui';const title=`${biz?.emoji||'🏢'} ${cfg.title}${lvl?` · УР. ${lvl}`:''}`;const tw=ctx.measureText(title).width+28;ctx.fillStyle='rgba(7,10,16,.9)';ctx.strokeStyle=lvl?'#62ec91':'#d7ae4c';ctx.lineWidth=1.5;roundRect(SW/2-tw/2,14,tw,34,11);ctx.fill();ctx.stroke();ctx.fillStyle=lvl?'#8effaf':'#ffd76b';ctx.fillText(title,SW/2,36);ctx.restore();
+  const casinoUpstairs=isGrandCasino&&_casinoVisualElevation(bi,player.r,player.c)>1.55;
+  ctx.save();
+  ctx.textAlign='center';ctx.font='900 14px system-ui';
+  const title=`${biz?.emoji||'🏢'} ${cfg.title}${lvl?` · УР. ${lvl}`:''}`;
+  const tw=ctx.measureText(title).width+28;
+  ctx.fillStyle='rgba(7,10,16,.9)';ctx.strokeStyle=lvl?'#62ec91':'#d7ae4c';ctx.lineWidth=1.5;
+  roundRect(SW/2-tw/2,14,tw,34,11);ctx.fill();ctx.stroke();
+  ctx.fillStyle=lvl?'#8effaf':'#ffd76b';ctx.fillText(title,SW/2,36);
+  ctx.restore();
+  if(isGrandCasino){
+    // Постоянный индикатор этажа не зависит от движения: он виден и когда
+    // игрок просто стоит у стены или осматривает VIP-балкон.
+    const floorText=casinoUpstairs?'⬆  2 ЭТАЖ · VIP-БАЛКОН':'●  1 ЭТАЖ · ИГРОВОЙ ЗАЛ';
+    const floorColor=casinoUpstairs?'#ffe071':'#b89a62';
+    const floorStroke=casinoUpstairs?'#ffd14c':'#6f5730';
+    const floorW=casinoUpstairs?204:210;
+    ctx.save();ctx.textAlign='center';ctx.font='900 12px system-ui';
+    ctx.fillStyle=casinoUpstairs?'rgba(85,45,8,.94)':'rgba(18,13,16,.88)';
+    ctx.strokeStyle=floorStroke;ctx.lineWidth=casinoUpstairs?2:1.2;
+    ctx.shadowColor=casinoUpstairs?'#ffc93d':'transparent';ctx.shadowBlur=casinoUpstairs?13:0;
+    roundRect(SW/2-floorW/2,55,floorW,30,10);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;ctx.fillStyle=floorColor;ctx.fillText(floorText,SW/2,75);
+    ctx.restore();
+  }
   if(bi.robbery){
     const owner=(bi.npcs||[]).find(n=>n.role==='owner'),guards=(bi.npcs||[]).filter(n=>n.role==='biz_guard'&&!n.dead).length;
     ctx.save();ctx.textAlign='center';ctx.font='900 12px system-ui';ctx.fillStyle='rgba(8,9,14,.92)';ctx.strokeStyle=guards?'#ff8c55':'#ff4055';ctx.lineWidth=1.5;roundRect(SW/2-130,54,260,52,10);ctx.fill();ctx.stroke();
@@ -45424,7 +45467,7 @@ function _drawBusinessInterior(bi) {
     const remaining=(bi.npcs||[]).filter(n=>n.majorGuard&&!n.dead).length;
     ctx.fillText(_majorRaidLocal.phase==='boss'
       ? 'ГЛАВАРЬ У ЦЕЛИ · СЛОМИ ЕГО СОПРОТИВЛЕНИЕ'
-      : `ШТУРМ · ОХРАНЫ В ЗДАНИИ: ${remaining}`,SW/2,72);
+      : `ШТУРМ · ОХРАНЫ В ЗДАНИИ: ${remaining}`,SW/2,isGrandCasino?104:72);
     ctx.restore();
   }
 }
