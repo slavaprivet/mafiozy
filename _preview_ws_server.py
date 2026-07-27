@@ -1666,6 +1666,8 @@ async def world_ws(req):
                     "kind":"business_war_choice_reply","ok":True,
                     "action":action,"biz_id":"coffee","money":600,
                     "c4_left":int(account["consumables"].get("c4", 0)),
+                    "sabotage_kind":str(d.get("sabotage_kind") or "shutdown"),
+                    "sabotage_s":720,
                     "biz_name":"Кофейня «У Дона»"
                 }}, ensure_ascii=False))
                 if action == "sabotage":
