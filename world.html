@@ -170,17 +170,17 @@ body.in-pvp #robActionBtn { top: 152px; }
 }
 /* У заведений действия открываются карточкой возле выбранного здания, а не
    висят глобально над картой. Исходные кнопки остаются исполнительным слоем. */
-body.near-business #zoneBtn,
-body.near-business #gtaActionBtn,
-body.near-business #robActionBtn,
-body.near-major-establishment #gtaActionBtn,
-body.near-major-establishment #robActionBtn,
-body.near-establishment-focus #zoneBtn,
-body.near-establishment-focus #gtaActionBtn,
-body.near-establishment-focus #robActionBtn,
-#zoneBtn[data-establishment-action="1"],
-#gtaActionBtn[data-establishment-action="1"],
-#robActionBtn[data-establishment-action="1"] { display:none !important; }
+body:not(.in-building-interior).near-business #zoneBtn,
+body:not(.in-building-interior).near-business #gtaActionBtn,
+body:not(.in-building-interior).near-business #robActionBtn,
+body:not(.in-building-interior).near-major-establishment #gtaActionBtn,
+body:not(.in-building-interior).near-major-establishment #robActionBtn,
+body:not(.in-building-interior).near-establishment-focus #zoneBtn,
+body:not(.in-building-interior).near-establishment-focus #gtaActionBtn,
+body:not(.in-building-interior).near-establishment-focus #robActionBtn,
+body:not(.in-building-interior) #zoneBtn[data-establishment-action="1"],
+body:not(.in-building-interior) #gtaActionBtn[data-establishment-action="1"],
+body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { display:none !important; }
 #businessActionCard{position:fixed;z-index:58;width:min(270px,76vw);padding:9px;border:1px solid #d6ad4e;border-radius:13px;background:linear-gradient(145deg,rgba(12,17,25,.97),rgba(30,20,12,.97));box-shadow:0 12px 34px rgba(0,0,0,.68);color:#fff;font:800 11px system-ui;display:none;transform:translate(-50%,-100%)}
 #businessActionCard.show{display:block}.bac-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;color:#ffe08a}.bac-close{width:24px;height:24px;border:1px solid #687386;border-radius:7px;background:#202735;color:#fff;font-weight:900}.bac-actions{display:grid;gap:6px}.bac-btn{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #4e6177;background:#253347;color:#fff;font:900 11px system-ui;text-align:left}.bac-btn.peace{border-color:#3da45c;background:#174f2a}.bac-btn.buy{border-color:#dfa93e;background:#7d5314}.bac-btn.raid{border-color:#f05252;background:#771b1b}
 
@@ -47618,6 +47618,10 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
     apartmentKey:String(options?.apartmentKey||''),
     apartmentOwnerUid:String(options?.apartmentOwnerUid||'') };
   document.body.classList.add('in-building-interior');
+  document.body.classList.remove('near-business','near-major-establishment','near-establishment-focus');
+  delete _zoneEl.dataset.establishmentAction;
+  delete _gtaBtn.dataset.establishmentAction;
+  if(_robBtn)delete _robBtn.dataset.establishmentAction;
   document.getElementById('businessWarOverlay')?.classList.remove('show');
   _spawnInteriorNpcs(_buildingInt);
   if (options?.autoStart) {
