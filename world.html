@@ -15716,19 +15716,26 @@ function handleEventPacket(d) {
     }
   } else if(kind==='business_war_choice_reply'){
     if(!d.ok){const txt={invalid_choice:'Решение устарело или уже использовано',no_family:'Для захвата нужно вступить в семью',no_c4:'Требуется C4 · 1 шт. Купи заряд на Чёрном рынке',already_owned:'Этот бизнес уже принадлежит твоей семье',ownership_changed:'Бизнес уже перехватили — ограбление остаётся твоим',sabotage_immunity:`После ремонта действует защита от диверсий · ${Math.ceil((+d.wait_s||0)/60)} мин.`}[d.reason]||'Не удалось применить решение';showEventBanner('⛔ ВЫБОР НЕ ПРИМЕНЁН',txt,3600,'lose');}
-    else if(d.action==='cash')showEventBanner('💰 КУШ ЗАБРАН',`+$${(+d.money||0).toLocaleString('ru')} уже зачислено на твой счёт · «${d.biz_name||'бизнес'}» осталось без изменений`,4200,'win');
+    else if(d.action==='cash'){
+      const money=(+d.money||0).toLocaleString('ru');
+      showEventBanner('💰 КУШ ЗАБРАН',`+$${money} уже зачислено на твой счёт · «${d.biz_name||'бизнес'}» осталось без изменений`,4200,'win');
+      _showBusinessChoiceReceipt({icon:'💰',title:'Ты забрал куш',biz:d.biz_name,summary:`На твой счёт зачислено +$${money}.`,details:'Заведение осталось у прежнего владельца. Захват и диверсия не начались.',next:'Можно покинуть район или выбрать следующую цель.'});
+    }
     else if(d.action==='sabotage'){
       if(d.c4_left!==undefined){_myC4Count=Math.max(0,+d.c4_left||0);renderWeaponHud();}
       const mins=Math.max(1,Math.round((+d.sabotage_s||720)/60));
       const effect={shutdown:`Электричество отключено · бизнес закрыт и не приносит доход ${mins} мин.`,arson:`Склад подожжён · доход бизнеса остановлен на ${mins} мин.`,alarm:`Сигнализация сломана на ${mins} мин. · охрана здания ослаблена`}[d.sabotage_kind]||`Заведение выведено из строя на ${mins} мин.`;
       _lastOwnBusinessChoice={bizId:d.biz_id,action:'sabotage',at:Date.now()};
       showEventBanner('💣 ДИВЕРСИЯ ВЫПОЛНЕНА',`«${d.biz_name||'Бизнес'}» · ${effect} · потрачена C4: 1 · осталось: ${_myC4Count}`,5200,'win');
+      _showBusinessChoiceReceipt({icon:'💣',title:'Диверсия выполнена',biz:d.biz_name,summary:effect,details:`Потрачена C4: 1 шт. В инвентаре осталось: ${_myC4Count}.`,next:d.sabotage_kind==='alarm'?'Следующее ограбление этого здания будет легче, пока сигнализация сломана.':'Пока действует диверсия, бизнес не приносит доход и его нельзя нормально использовать.'});
     } else if(d.action==='capture'){
       _lastOwnBusinessChoice={bizId:d.biz_id,action:'capture',at:Date.now()};
       showEventBanner('🏴 БИЗНЕС ЗАХВАЧЕН',`«${d.biz_name||'Бизнес'}» теперь принадлежит твоей семье и приносит по $${(+d.income_per_member||0).toLocaleString('ru')} каждому участнику`,5200,'win');
+      _showBusinessChoiceReceipt({icon:'🏴',title:'Бизнес захвачен',biz:d.biz_name,summary:'Заведение теперь принадлежит твоей семье.',details:`Доход: по $${(+d.income_per_member||0).toLocaleString('ru')} каждому участнику семьи за выплату.`,next:'Защищайте точку: другая семья сможет начать отжим бизнеса.'});
     } else if(d.action==='preparation'){
       _lastOwnBusinessChoice={bizId:d.biz_id,action:'preparation',at:Date.now()};
       showEventBanner('⚔️ ЗАХВАТ НАЧАТ',`«${d.biz_name||'Бизнес'}» · подготовка ${+d.preparation_s||20} сек., затем начнётся открытая война семей`,5200,'warn');
+      _showBusinessChoiceReceipt({icon:'⚔️',title:'Начат отжим бизнеса',biz:d.biz_name,summary:`До открытой войны осталось ${+d.preparation_s||20} сек.`,details:'Доход бизнеса временно заморожен. Обе семьи получили предупреждение.',next:'Оставайся возле здания и позови союзников: после подготовки начнётся борьба за шкалу захвата.'});
     }
   } else if(kind==='business_sabotaged'){
     if(d.biz_id){delete _businessFamilyWars[d.biz_id];if((d.sabotage_kind||'shutdown')==='shutdown')_businessClosures[d.biz_id]=Date.now()+Math.max(1,+d.sabotage_s||720)*1000;}
@@ -17592,8 +17599,9 @@ _zoneEl.addEventListener('click', () => {
     const isOwner = !!myBusinesses.get(biz.id)?.owned;
     const closedLeft = Math.max(0, (_businessClosures[biz.id] || 0) - Date.now());
     if (closedLeft && !isOwner) { _showBusinessClosed(closedLeft); return; }
-    if (!isOwner && (_businessAggroUntil[biz.id] || 0) > Date.now()) { startRobbery(biz); return; }
-    enterBuildingInterior(biz.r, biz.c, 'business', biz.id);
+    // Зелёная кнопка — всегда мирный вход. Ограбление запускается только
+    // отдельной красной кнопкой «Войти и ограбить».
+    enterBuildingInterior(biz.r, biz.c, 'business', biz.id, {peaceful:true});
     return;
   }
   // Банк (новая система ограбления банка — BANKS[])
@@ -18191,6 +18199,16 @@ let _businessWarChains={};
 let _businessWarSeason={season_id:0,started_at:0,ends_at:0,status:'loading'};
 let _pendingBusinessWarChoice=null;
 let _lastOwnBusinessChoice=null;
+function _showBusinessChoiceReceipt({icon='✅',title='Решение выполнено',biz='',summary='',details='',next=''}){
+  let ov=document.getElementById('businessChoiceReceipt');
+  if(!ov){
+    const style=document.createElement('style');style.textContent=`#businessChoiceReceipt{position:fixed;inset:0;z-index:205;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(1,3,7,.82)}#businessChoiceReceipt.show{display:flex}#businessChoiceReceiptCard{width:min(510px,94vw);padding:20px;border:1px solid #d7aa45;border-radius:17px;background:linear-gradient(150deg,#17202b,#24150e);box-shadow:0 24px 80px #000;color:#ecf2fa;font:700 13px/1.5 system-ui}#businessChoiceReceiptCard h2{margin:0 0 4px;color:#ffe17c;font-size:21px}#businessChoiceReceiptCard .bcr-biz{color:#aab8c8;margin-bottom:14px}.bcr-row{margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.055)}.bcr-row b{display:block;color:#ffe7a3;font-size:11px;text-transform:uppercase;letter-spacing:.7px}.bcr-ok{width:100%;margin-top:13px;padding:12px;border:1px solid #e5ba55;border-radius:10px;background:linear-gradient(#d69b27,#9a5e12);color:#fff;font:900 13px system-ui;cursor:pointer}`;document.head.appendChild(style);
+    ov=document.createElement('div');ov.id='businessChoiceReceipt';ov.innerHTML='<div id="businessChoiceReceiptCard"></div>';document.body.appendChild(ov);
+    ov.addEventListener('click',e=>{if(e.target.closest?.('[data-bcr-close]'))ov.classList.remove('show');});
+  }
+  document.getElementById('businessChoiceReceiptCard').innerHTML=`<h2>${icon} ${title}</h2><div class="bcr-biz">${biz?`«${biz}»`:''}</div><div class="bcr-row"><b>Что произошло</b>${summary}</div><div class="bcr-row"><b>Последствие</b>${details}</div><div class="bcr-row"><b>Что делать дальше</b>${next}</div><button class="bcr-ok" data-bcr-close>Понятно</button>`;
+  ov.classList.add('show');hapticHit();
+}
 const BUSINESS_WAR_UPGRADE_UI=Object.freeze({
   security:{icon:'🛡️',name:'Охрана',desc:'замедляет вражеский захват',costs:[900,1800,3200]},
   alarm:{icon:'🚨',name:'Сигнализация',desc:'усиливает защиту точки',costs:[700,1400,2600]},
@@ -47307,7 +47325,7 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
   }
   const seed = ((r * 73 + c * 131) % 97) / 97;
   const isOwnedBusiness = type === 'business' && !!myBusinesses.get(bizId)?.owned;
-  const rememberedAggro = type === 'business' && !isOwnedBusiness &&
+  const rememberedAggro = type === 'business' && !options?.peaceful && !isOwnedBusiness &&
     (_businessAggroUntil[bizId] || 0) > Date.now();
   _buildingInt = { r, c, W: biW, H: biH, seed,
     savedR: player.r, savedC: player.c,
