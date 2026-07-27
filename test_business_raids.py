@@ -24,6 +24,7 @@ async def send_world_input(ws, *, x, y, mafia=True, interior=None):
         "ang": 0,
         "w": False,
         "mafia": mafia,
+        "mafia_family": "bellini" if mafia else "",
         "police": False,
         "client_active": True,
         "weapon": "pistol_heavy",

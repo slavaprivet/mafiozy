@@ -913,6 +913,9 @@ async def init_db():
             ("police_xp",          "INTEGER DEFAULT 0"),
             # Постоянная карьера мафиози. Не сбрасывается при службе в полиции.
             ("mafia_xp",           "INTEGER DEFAULT 0"),
+            ("mafia_family",       "TEXT DEFAULT ''"),
+            ("mafia_traitor_until","INTEGER DEFAULT 0"),
+            ("mafia_last_family",  "TEXT DEFAULT ''"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -999,6 +1002,21 @@ async def init_db():
                 last_payout_at REAL NOT NULL DEFAULT 0
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS mafia_family_scores (
+                family TEXT PRIMARY KEY,
+                points INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        for col, definition in (
+                ("mafia_family", "TEXT NOT NULL DEFAULT ''"),
+                ("control_points", "INTEGER NOT NULL DEFAULT 60"),
+                ("protection_until", "REAL NOT NULL DEFAULT 0")):
+            try:
+                await db.execute(
+                    f"ALTER TABLE major_object_control ADD COLUMN {col} {definition}")
+            except Exception:
+                pass
         # Автоматическая городская газета. Сюда попадают только крупные
         # серверные события; выпуск за 24 часа одинаков для всех игроков и
         # переживает перезапуск процесса.
@@ -12685,7 +12703,7 @@ class WorldSim:
         'port':    {'name': 'Порт',       'icon': '⚓', 'r': 16, 'c': 56, 'income':  80},
         'casino':  {'name': 'Казино',     'icon': '🎰', 'r': 46, 'c': 16, 'income': 120},
         'factory': {'name': 'Промзона',   'icon': '🏭', 'r': 46, 'c': 56, 'income': 160},
-        'mansion': {'name': 'Резиденция', 'icon': '🏛', 'r': 66, 'c': 36, 'income': 250},
+        'mansion': {'name': 'Резиденция', 'icon': '🏛', 'r': 186, 'c': 16, 'income': 250},
         # «Логово» — НЕзахватываемая опасная зона в ДАЛЁКОМ ЮЖНОМ КРАЮ карты.
         # Карта 80×140, основной город r=0..79, буфер r=80..99 (тоже город),
         # арена Логова r=100..139. Центр (120, 40), radius=20 → зона r=100..140,
@@ -12721,7 +12739,7 @@ class WorldSim:
     # в город. Сами НЕ стреляют, при подходе игрока бросают threat-фразы
     # («Чё уставился?»). Если атакуют — становятся hostile и отвечают
     # огнём. Хостильную банду атакуют копы — расстреливают за минуту.
-    CITY_GANG_MAX           = 2       # одновременно бродят 2 группы
+    CITY_GANG_MAX           = 4       # по городу одновременно бродят до 4 групп
     CITY_GANG_SIZE          = 3       # бойцов в группе
     CITY_GANG_SPAWN_GAP_S   = 240.0   # 4 мин между новыми спавнами
     CITY_GANG_FORMATION_GAP_S = 25.0  # быстро собираем обе разные фракции
@@ -13154,6 +13172,9 @@ class WorldSim:
             # тоже могут) или 'pve' (наблюдатель — выстрелы не проходят,
             # AI копов/конвоя игнорирует, нет правого стика и оружия)
             '_mode':         (mode if mode in ('pvp', 'pve') else 'pvp'),
+            '_mafia_family': '',
+            '_mafia_traitor_until': 0.0,
+            '_mafia_last_family': '',
         }
         # Если игрок зашёл с активным jail_until — спавним в тюрьму.
         # Точка спавна: ВНУТРИ загона на бордюре (проходимый тайл),
@@ -13638,6 +13659,9 @@ class WorldSim:
                 'boss_name': cfg['boss'],
                 'owner_uid': owner.get('owner_uid') if owner else None,
                 'owner_name': owner.get('owner_name') if owner else cfg['boss'],
+                'mafia_family': owner.get('mafia_family') if owner else '',
+                'control_points': int(owner.get('control_points') or 0) if owner else 0,
+                'protection_in': max(0, int(float(owner.get('protection_until') or 0)-now)) if owner else 0,
                 'team_names': list(owner.get('team_names') or []) if owner else [],
                 'expires_in': max(
                     0, int(float(owner.get('expires_at') or 0) - now)
@@ -13682,11 +13706,14 @@ class WorldSim:
             return {'kind':'major_assault_reply','ok':False,'reason':'too_far',
                     'object_id':object_id}
         owner = self.major_owners.get(object_id)
-        if owner and float(owner.get('expires_at') or 0) > now:
+        if owner and str(owner.get('mafia_family') or '') == str(player.get('_mafia_family') or ''):
+            return {'kind':'major_assault_reply','ok':False,'reason':'same_family',
+                    'object_id':object_id,'owner_name':owner.get('owner_name')}
+        if owner and float(owner.get('protection_until') or 0) > now:
             return {
                 'kind':'major_assault_reply','ok':False,'reason':'protected',
                 'object_id':object_id,'owner_name':owner.get('owner_name'),
-                'expires_in':int(owner['expires_at'] - now),
+                'expires_in':int(owner['protection_until'] - now),
             }
         active = self.major_assaults.get(object_id)
         if active:
@@ -13921,17 +13948,22 @@ class WorldSim:
             self.major_owners[object_id] = {
                 'owner_uid':str(uid),
                 'owner_name':str(player.get('name') or '')[:24],
+                'mafia_family':str(player.get('_mafia_family') or 'bellini'),
+                'control_points':60,
                 'team_uids':team,
                 'team_names':[
                     str((self.players.get(member_uid) or {}).get('name')
                         or member_uid)[:24]
                     for member_uid in team
                 ],
-                'expires_at':now + 3600,'last_payout_at':now,
+                'expires_at':now + 3600,'protection_until':now + 300,
+                'last_payout_at':now,
             }
             self.major_assaults.pop(object_id, None)
             result.update({
                 'owner_name':str(player.get('name') or '')[:24],
+                'mafia_family':str(player.get('_mafia_family') or 'bellini'),
+                'control_points':60,'protection_in':300,
                 'expires_in':3600,'income':int(cfg['income']),
                 'team_uids':team,
             })
@@ -14062,13 +14094,44 @@ class WorldSim:
         was_police = bool(p.get('_police'))
         requested_police = bool(d.get('police', False))
         requested_mafia = bool(d.get('mafia', False))
+        requested_family = str(d.get('mafia_family') or '').lower()
+        if requested_family not in ('bellini', 'moretti'):
+            requested_family = ''
         was_mafia = bool(p.get('_mafia'))
+        old_family = str(p.get('_mafia_family') or '')
+        now_role = time.time()
+        if was_mafia and not requested_mafia:
+            p['_mafia_last_family'] = old_family
+            p['_mafia_traitor_until'] = now_role + 300.0
+        if requested_mafia and float(p.get('_mafia_traitor_until') or 0) > now_role:
+            requested_mafia = False
+            requested_family = ''
+            p['_mafia_join_denied'] = 'traitor'
+        if requested_mafia and not was_mafia and requested_family:
+            family_counts = {
+                family: sum(1 for other_uid, other in self.players.items()
+                            if str(other_uid) != str(uid) and other.get('_mafia')
+                            and str(other.get('_mafia_family') or '') == family)
+                for family in ('bellini', 'moretti')
+            }
+            prospective = dict(family_counts)
+            prospective[requested_family] += 1
+            current_gap = abs(family_counts['bellini'] - family_counts['moretti'])
+            next_gap = abs(prospective['bellini'] - prospective['moretti'])
+            if next_gap > 10 and next_gap >= current_gap:
+                requested_mafia = False
+                requested_family = ''
+                p['_mafia_join_denied'] = 'family_balance'
+                p['_mafia_family_counts'] = family_counts
+            else:
+                p.pop('_mafia_join_denied', None)
         if requested_police and was_mafia:
             requested_police, requested_mafia = False, True
         elif requested_mafia and was_police:
             requested_police, requested_mafia = True, False
         p['_police'] = requested_police
         p['_mafia'] = requested_mafia and not p['_police']
+        p['_mafia_family'] = requested_family if p['_mafia'] else ''
         if not p['_mafia']:
             crew_id = str(p.pop('_crew_id', '') or '')
             if crew_id:
@@ -14166,6 +14229,25 @@ class WorldSim:
         if interior_kind in ('bank', 'building'):
             p.pop('_business_interior', None)
             p.pop('_business_private', None)
+            apartment_key = str(interior.get('apartment_key') or '')[:32]
+            apartment_owner_uid = str(interior.get('apartment_owner_uid') or '')[:32]
+            if interior_kind == 'building' and apartment_key and apartment_owner_uid:
+                owns_apartment = (
+                    apartment_owner_uid == str(uid)
+                    and apartment_key in (p.get('_owned_apartments') or set()))
+                grant = p.get('_apartment_guest_grant') or {}
+                guest_allowed = (
+                    apartment_owner_uid != str(uid)
+                    and str(grant.get('owner_uid') or '') == apartment_owner_uid
+                    and str(grant.get('apartment_key') or '') == apartment_key
+                    and float(grant.get('expires_at') or 0) > time.time())
+                if not owns_apartment and not guest_allowed:
+                    return
+                p['_apartment_key'] = apartment_key
+                p['_apartment_owner_uid'] = apartment_owner_uid
+            else:
+                p.pop('_apartment_key', None)
+                p.pop('_apartment_owner_uid', None)
             try:
                 p['_interior_x'] = max(
                     0.0, min(60.0, float(interior.get('x', 0))))
@@ -14181,6 +14263,8 @@ class WorldSim:
             p['walking'] = bool(d.get('w', False))
             p['_weapon'] = str(d.get('weapon') or p.get('_weapon') or 'pistol')[:32]
             return
+        p.pop('_apartment_key', None)
+        p.pop('_apartment_owner_uid', None)
         if p.get('_business_interior'):
             p.pop('_business_interior', None)
             p.pop('_business_private', None)
@@ -14230,7 +14314,7 @@ class WorldSim:
         if 'gang' in d:
             gang_payload = d.get('gang')
             companions = []
-            if isinstance(gang_payload, list):
+            if p.get('_mafia') and isinstance(gang_payload, list):
                 for member in gang_payload[:7]:
                     if not isinstance(member, dict):
                         continue
@@ -15289,8 +15373,9 @@ class WorldSim:
         key = cls._weapon_key(weapon)
         owned = shooter.get('_weapon_classes')
         mafia_reward = key == 'golden_tommy' and int(shooter.get('_mafia_xp') or 0) >= 4000 and shooter.get('_mafia') and not shooter.get('_police')
+        family_pistol = key == 'pistol' and bool(shooter.get('_mafia_family')) and shooter.get('_mafia') and not shooter.get('_police')
         throwable_hit = key in ('grenade', 'molotov_fire')
-        if key != 'pistol' and not throwable_hit and not mafia_reward and (not isinstance(owned, set) or key not in owned):
+        if not throwable_hit and not mafia_reward and not family_pistol and (not isinstance(owned, set) or key not in owned):
             return None
         profile = dict(cls.WEAPON_PROFILE[key])
         now = time.time()
@@ -15467,6 +15552,11 @@ class WorldSim:
             (bool(shooter.get('_police')) and target_is_attacker) or
             (bool(target.get('_police')) and shooter_is_attacker)
         )
+        # Мирный интерьер является безопасной зоной даже если его мировая
+        # координата попадает в PvP-район. Огонь открывается только после
+        # серверно подтверждённого штурма либо законной защиты бизнеса.
+        if same_business and not (business_defense or business_police_fight):
+            return None
         if not (both_in_pvp_zone or both_in_arena
                 or both_in_territory or target_is_bounty
                 or both_jailed or police_pursuit or business_defense or business_police_fight):
@@ -15474,6 +15564,10 @@ class WorldSim:
         # Friendly fire OFF: союзники по банде не наносят урон друг другу
         # В ГОРОДЕ (арена — полигон, там FF разрешён).
         if not both_in_arena:
+            sh_family = str(shooter.get('_mafia_family') or '')
+            tg_family = str(target.get('_mafia_family') or '')
+            if sh_family and sh_family == tg_family:
+                return None
             sh_leader = shooter.get('_gang_leader')
             tg_leader = target.get('_gang_leader')
             if sh_leader and tg_leader and sh_leader == tg_leader:
@@ -16934,7 +17028,7 @@ class WorldSim:
             if not p.get('dead')
             and not p.get('_business_interior')
             and not p.get('_major_interior')
-            and 10 <= float(p.get('y') or 0) <= 70
+            and 10 <= float(p.get('y') or 0) <= WORLD_MAP_ROWS - 10
         ]
         for _try in range(80):
             # Первую половину попыток ищем точку в 9–14 тайлах от игрока:
@@ -16945,11 +17039,11 @@ class WorldSim:
                 distance = random.uniform(9.0, 14.0)
                 x = float(anchor.get('x') or 0) + _m.cos(angle) * distance
                 y = float(anchor.get('y') or 0) + _m.sin(angle) * distance
-                if not (8 <= x <= WORLD_MAP_COLS - 8 and 8 <= y <= 72):
+                if not (8 <= x <= WORLD_MAP_COLS - 8 and 8 <= y <= WORLD_MAP_ROWS - 8):
                     continue
             else:
                 x = random.uniform(12, WORLD_MAP_COLS - 12)
-                y = random.uniform(10, 70)   # только основной город (0..79)
+                y = random.uniform(10, WORLD_MAP_ROWS - 10)
             # Не у тюрьмы (радиус 15)
             if ((x - self.JAIL_X)**2 + (y - self.JAIL_Y)**2) < 225:
                 continue
@@ -17014,6 +17108,7 @@ class WorldSim:
             '_patrol_wp':      (x, y),
             '_cops_dispatched': False,
             'faction':          faction,
+            'mafia_family':     'moretti' if faction == 'yellow' else 'bellini',
             '_gang_fight_at':   0.0,
         }
         self.city_gangs.append(gang)
@@ -17117,6 +17212,9 @@ class WorldSim:
                 pkts.append({
                     'kind':'aggro_hit', 'tid':rival['id'],
                     'bot_id':victim['id'], 'shooter_bot_id':attacker['id'],
+                    'weapon':attacker.get('weapon') or 'pistol',
+                    'attacker_faction':g.get('faction','purple'),
+                    'victim_faction':rival.get('faction','purple'),
                     'sx':round(attacker['x'],2), 'sy':round(attacker['y'],2),
                     'tx':round(victim['x'],2), 'ty':round(victim['y'],2),
                     'dmg':damage, 'killed':killed, 'npc_gang_fight':True,
@@ -18786,6 +18884,9 @@ class WorldSim:
         if p.get('_police'):
             return {'kind':'district_capture_denied','did':str(requested_did or ''),
                     'by_uid':str(uid),'reason':'police_forbidden'}
+        if not p.get('_mafia') or not p.get('_mafia_family'):
+            return {'kind':'district_capture_denied','did':str(requested_did or ''),
+                    'by_uid':str(uid),'reason':'mafia_only'}
         if (p.get('_mode') or 'pvp') == 'pve':
             return None
         if p.get('dead'):
@@ -18851,6 +18952,7 @@ class WorldSim:
         self.district_owners[did] = {
             'owner_uid': str(uid), 'owner_name': op['by_name'],
             'gang_tag': '', 'color': op['color'],
+            'mafia_family': str(p.get('_mafia_family') or 'bellini'),
             'captured_at': now, 'last_payout_at': now,
             'expires_at': now + self.DIST_CONTROL_TTL_S,
         }
@@ -18863,6 +18965,7 @@ class WorldSim:
             'kind': 'district_captured', 'did': did,
             'name': dd.get('name') or did, 'icon': dd.get('icon') or '🏴',
             'by_uid': str(uid), 'by_name': op['by_name'], 'color': op['color'],
+            'mafia_family': str(p.get('_mafia_family') or 'bellini'),
             'captured_at': round(now, 2), 'income': int(dd.get('income') or 400),
             'income_tick_s': int(self.DIST_INCOME_TICK_S),
             'income_xp': max(1, int(dd.get('income') or 400) // self.DIST_INCOME_XP_DIV),
@@ -19232,7 +19335,23 @@ class WorldSim:
         crew_id = str(me.get('_crew_id') or '')
         crew_members = [{'uid':str(u),'name':q.get('name','Игрок'),'npc_count':len(q.get('_gang_companions') or [])}
                         for u,q in self.players.items() if crew_id and str(q.get('_crew_id') or '')==crew_id]
+        apartment_hosts = []
+        for host_uid, host in self.players.items():
+            host_key = str(host.get('_apartment_key') or '')
+            if (not crew_id or host_uid == uid or
+                    str(host.get('_crew_id') or '') != crew_id or
+                    str(host.get('_apartment_owner_uid') or '') != str(host_uid) or
+                    not host_key):
+                continue
+            coords = apartment_coords_from_key(host_key)
+            if coords:
+                apartment_hosts.append({
+                    'owner_uid':str(host_uid),'name':host.get('name','Игрок'),
+                    'apartment_key':host_key,'r':coords[0],'c':coords[1],
+                })
         me_biz = str(me.get('_business_interior') or '')
+        me_apartment_key = str(me.get('_apartment_key') or '')
+        me_apartment_owner = str(me.get('_apartment_owner_uid') or '')
         me_private = bool(me.get('_business_private'))
         business_under_attack = bool(me_biz and any(
             bid == me_biz and until > time.time()
@@ -19242,8 +19361,18 @@ class WorldSim:
             if other_uid == uid:
                 continue
             other_biz = str(p.get('_business_interior') or '')
+            other_apartment_key = str(p.get('_apartment_key') or '')
+            other_apartment_owner = str(p.get('_apartment_owner_uid') or '')
             other_private = bool(p.get('_business_private'))
-            if me_biz:
+            if me_apartment_key:
+                if (other_apartment_key != me_apartment_key or
+                        other_apartment_owner != me_apartment_owner):
+                    continue
+                ox = float(p.get('_interior_x') or 0)
+                oy = float(p.get('_interior_y') or 0)
+            elif other_apartment_key:
+                continue
+            elif me_biz:
                 # Владелец и грабитель видят друг друга только во время атаки.
                 # В мирное время управленческий экземпляр остаётся приватным.
                 if other_biz != me_biz or ((me_private or other_private) and not business_under_attack):
@@ -19285,12 +19414,15 @@ class WorldSim:
                 'weapon': p.get('_weapon') or 'pistol',
                 'police': bool(p.get('_police')),
                 'mafia': bool(p.get('_mafia')),
+                'mafia_family': str(p.get('_mafia_family') or ''),
                 'crew_mate': bool(crew_id and str(p.get('_crew_id') or '')==crew_id),
                 'police_cuffed': bool(p.get('_police_cuffed_by')),
                 'police_stunned_in': max(0.0, float(p.get('_police_stunned_until') or 0) - time.time()),
                 'police_escort': p.get('_police_escort'),
-                'interior': ({'kind': 'business', 'biz_id': other_biz,
-                              'private': other_private} if other_biz else None),
+                'interior': ({'kind':'apartment','apartment_key':other_apartment_key,
+                              'owner_uid':other_apartment_owner} if other_apartment_key
+                             else ({'kind': 'business', 'biz_id': other_biz,
+                                    'private': other_private} if other_biz else None)),
             })
         # Активное эмерджентное событие (инкассатор + эскорт) — шлём
         # всем клиентам одинаково, независимо от радиуса. Карта 60×60 —
@@ -19799,8 +19931,15 @@ class WorldSim:
                     'diamonds': int(me.get('_diamonds') or 0),
                     'police_xp': int(me.get('_police_xp') or 0),
                     'mafia_xp': int(me.get('_mafia_xp') or 0),
+                    'mafia_family': str(me.get('_mafia_family') or ''),
+                    'mafia_last_family': str(me.get('_mafia_last_family') or ''),
+                    'mafia_traitor_left': max(0, int(math.ceil(
+                        float(me.get('_mafia_traitor_until') or 0) - now_t))),
+                    'mafia_join_denied': str(me.pop('_mafia_join_denied', '') or ''),
+                    'mafia_family_counts': dict(me.get('_mafia_family_counts') or {}),
                     'spray_cans': int(me.get('_spray_cans') or 0),
                     'online_gang': {'crew_id':crew_id,'members':crew_members,'max_players':3} if crew_id else None,
+                    'apartment_hosts': apartment_hosts,
                     'police_arrests_today': int(me.get('_police_daily_count') or 0),
                     'police_arrest_limit': me.get('_police_daily_limit'),
                     'police_spikes_cd': max(0.0, round(
@@ -19904,6 +20043,9 @@ async def _major_controls_load(world: 'WorldSim') -> None:
             world.major_owners[object_id] = {
                 'owner_uid': str(row['owner_uid']),
                 'owner_name': str(row['owner_name'])[:24],
+                'mafia_family': str(row['mafia_family'] or ''),
+                'control_points': int(row['control_points'] or 60),
+                'protection_until': float(row['protection_until'] or 0),
                 'team_uids': [
                     str(value)
                     for value in json.loads(row['team_json'] or '[]')
@@ -19931,7 +20073,8 @@ async def _major_control_save(object_id: str, owner: dict | None) -> None:
                 await db.execute(
                     "INSERT OR REPLACE INTO major_object_control "
                     "(object_id,owner_uid,owner_name,team_json,team_names_json,"
-                    "expires_at,last_payout_at) VALUES(?,?,?,?,?,?,?)",
+                    "expires_at,last_payout_at,mafia_family,control_points,protection_until) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?)",
                     (
                         str(object_id),
                         str(owner.get('owner_uid') or ''),
@@ -19944,6 +20087,9 @@ async def _major_control_save(object_id: str, owner: dict | None) -> None:
                             ensure_ascii=False),
                         float(owner.get('expires_at') or 0),
                         float(owner.get('last_payout_at') or 0),
+                        str(owner.get('mafia_family') or ''),
+                        int(owner.get('control_points') or 60),
+                        float(owner.get('protection_until') or 0),
                     ))
             await db.commit()
     except Exception as exc:
@@ -21774,6 +21920,8 @@ async def _coop_http_app():
         await update_character(uid, cash=cash - price)
         await buy_apartment_db(uid, apt_key, price)
         owned = await get_apartments_owned(uid)
+        if _WORLD is not None and str(uid) in _WORLD.players:
+            _WORLD.players[str(uid)]['_owned_apartments'] = set(owned.keys())
         return await _cors(web.json_response({'ok': True, 'cash': cash - price, 'price': price, 'owned': owned}))
 
     async def h_apartment_upgrade(req):
@@ -21820,6 +21968,8 @@ async def _coop_http_app():
         if not sale:
             return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
         owned = await get_apartments_owned(uid)
+        if _WORLD is not None and str(uid) in _WORLD.players:
+            _WORLD.players[str(uid)]['_owned_apartments'] = set(owned.keys())
         return await _cors(web.json_response({
             'ok': True, 'refund': sale['refund'], 'cash': sale['cash'], 'owned': owned,
         }))
@@ -21942,7 +22092,7 @@ async def _coop_http_app():
                     if p_ref is not None:
                         classes = p_ref.get('_weapon_classes')
                         if not isinstance(classes, set):
-                            classes = {'pistol'}
+                            classes = set()
                             p_ref['_weapon_classes'] = classes
                         classes.add(WEAPON_ITEM_CLASSES.get(item_id, item_id))
             except Exception:
@@ -22645,6 +22795,9 @@ async def _coop_http_app():
                 p_ref['_diamonds'] = int(char.get('diamonds') or 0)
                 p_ref['_police_xp'] = int(char.get('police_xp') or 0)
                 p_ref['_mafia_xp'] = int(char.get('mafia_xp') or 0)
+                p_ref['_mafia_family'] = str(char.get('mafia_family') or '')
+                p_ref['_mafia_traitor_until'] = float(char.get('mafia_traitor_until') or 0)
+                p_ref['_mafia_last_family'] = str(char.get('mafia_last_family') or '')
             except Exception:
                 p_ref['_cash'] = p_ref.get('_cash', 0)
                 p_ref['_diamonds'] = p_ref.get('_diamonds', 0)
@@ -22695,17 +22848,22 @@ async def _coop_http_app():
                             int(world._business_npc_capture_cooldown.get(bid, 0)))
             except Exception:
                 p_ref['_owned_biz'] = set()
+            try:
+                p_ref['_owned_apartments'] = set(
+                    (await get_apartments_owned(uid_int)).keys())
+            except Exception:
+                p_ref['_owned_apartments'] = set()
             # Сервер принимает урон только от реально имеющегося класса
-            # оружия. Базовый пистолет доступен всегда.
+            # оружия. Семейный пистолет выдаётся только действующему мафиози.
             try:
                 inv = await get_inventory(uid_int)
-                p_ref['_weapon_classes'] = {'pistol'} | {
+                p_ref['_weapon_classes'] = {
                     WEAPON_ITEM_CLASSES.get(iid, iid)
                     for iid, count in (inv or {}).items()
                     if int(count or 0) > 0
                 }
             except Exception:
-                p_ref['_weapon_classes'] = {'pistol'}
+                p_ref['_weapon_classes'] = set()
         world.connections[uid] = ws
 
         # Hello-кадр
@@ -22738,7 +22896,31 @@ async def _coop_http_app():
                     if world.connections.get(uid) is not ws:
                         continue
                     if t == 'input':
+                        role_before = (
+                            bool((world.players.get(uid) or {}).get('_mafia')),
+                            str((world.players.get(uid) or {}).get('_mafia_family') or ''),
+                            int((world.players.get(uid) or {}).get('_mafia_traitor_until') or 0),
+                        )
                         world.apply_input(uid, d)
+                        role_player = world.players.get(uid) or {}
+                        role_after = (
+                            bool(role_player.get('_mafia')),
+                            str(role_player.get('_mafia_family') or ''),
+                            int(role_player.get('_mafia_traitor_until') or 0),
+                        )
+                        if role_after != role_before:
+                            try:
+                                async with aiosqlite.connect(DB_PATH) as role_db:
+                                    await role_db.execute(
+                                        "UPDATE characters SET mafia_family=?,"
+                                        "mafia_traitor_until=?,mafia_last_family=? "
+                                        "WHERE telegram_id=?",
+                                        (role_after[1], role_after[2],
+                                         str(role_player.get('_mafia_last_family') or ''),
+                                         uid_int))
+                                    await role_db.commit()
+                            except Exception as role_exc:
+                                logger.warning("mafia role persistence failed: %r", role_exc)
                     elif t == 'chat':
                         world.apply_chat(uid, str(d.get('text', ''))[:80])
                     elif t == 'event_shoot':
@@ -23124,11 +23306,34 @@ async def _coop_http_app():
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
                                     except Exception: pass
+                    elif t == 'apartment_guest_enter':
+                        guest=world.players.get(uid) or {}
+                        owner_uid=str(d.get('owner_uid') or '')
+                        apartment_key=str(d.get('apartment_key') or '')[:32]
+                        owner=world.players.get(owner_uid)
+                        reason=None
+                        crew_id=str(guest.get('_crew_id') or '')
+                        coords=apartment_coords_from_key(apartment_key)
+                        if not owner or str(owner.get('_apartment_key') or '')!=apartment_key or str(owner.get('_apartment_owner_uid') or '')!=owner_uid:
+                            reason='owner_left'
+                        elif not crew_id or str(owner.get('_crew_id') or '')!=crew_id:
+                            reason='not_crew'
+                        elif apartment_key not in (owner.get('_owned_apartments') or set()):
+                            reason='owner_left'
+                        elif not coords or ((float(guest.get('x') or 0)-(coords[1]+.5))**2+(float(guest.get('y') or 0)-(coords[0]+.5))**2)>3.5**2:
+                            reason='too_far'
+                        if reason:
+                            reply={'kind':'apartment_guest_reply','ok':False,'reason':reason}
+                        else:
+                            guest['_apartment_guest_grant']={'owner_uid':owner_uid,'apartment_key':apartment_key,'expires_at':time.time()+15}
+                            reply={'kind':'apartment_guest_reply','ok':True,'owner_uid':owner_uid,'owner_name':owner.get('name','Игрок'),'apartment_key':apartment_key,'r':coords[0],'c':coords[1]}
+                        await ws.send_str(json.dumps({'t':'event','d':reply},ensure_ascii=False))
                     elif t == 'gang_player_invite':
                         target_uid=str(d.get('target_uid') or ''); inviter=world.players.get(uid) or {}; target=world.players.get(target_uid)
                         crew_id=str(inviter.get('_crew_id') or uid); members=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
                         reason=None
                         if not inviter.get('_mafia') or not target or not target.get('_mafia'): reason='mafia_only'
+                        elif str(inviter.get('_mafia_family') or '') != str(target.get('_mafia_family') or ''): reason='other_family'
                         elif target_uid==str(uid): reason='self'
                         elif target.get('_crew_id'): reason='already_in_gang'
                         elif len(members)>=3: reason='full'
@@ -23143,7 +23348,8 @@ async def _coop_http_app():
                         inv=world.gang_player_invites.pop(str(uid),None); inviter=world.players.get(str(inv.get('from_uid'))) if inv else None; accept=bool(d.get('accept'))
                         if inv and inviter and time.time()<=float(inv.get('expires_at',0)):
                             crew_id=str(inviter.get('_crew_id') or inv.get('from_uid')); members=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
-                            if accept and (world.players.get(uid) or {}).get('_mafia') and inviter.get('_mafia') and len(members)<3: inviter['_crew_id']=crew_id;world.players[uid]['_crew_id']=crew_id
+                            same_family = str((world.players.get(uid) or {}).get('_mafia_family') or '') == str(inviter.get('_mafia_family') or '')
+                            if accept and same_family and (world.players.get(uid) or {}).get('_mafia') and inviter.get('_mafia') and len(members)<3: inviter['_crew_id']=crew_id;world.players[uid]['_crew_id']=crew_id
                             for member_uid in (str(inv.get('from_uid')),str(uid)):
                                 mws=world.connections.get(member_uid)
                                 if mws: await mws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_changed','accepted':accept}},ensure_ascii=False))
@@ -23835,6 +24041,9 @@ async def _coop_http_app():
                                 difficulty = robbery_difficulty_for_guards(
                                     int(session['guard_count']))
                                 payout_committed = False
+                                family_points_gain = 0
+                                family_points_total = 0
+                                robbery_family = str(p.get('_mafia_family') or '')
                                 db_closed_left = 0
                                 try:
                                     async with aiosqlite.connect(DB_PATH) as db:
@@ -23866,6 +24075,18 @@ async def _coop_http_app():
                                                 "INSERT INTO business_rob_cycles(uid,biz_id,cycle_count) VALUES(?,?,1) "
                                                 "ON CONFLICT(uid,biz_id) DO UPDATE SET cycle_count=(cycle_count+1)%3",
                                                 (int(uid), biz_id))
+                                            if robbery_family in ('bellini','moretti'):
+                                                family_points_gain = (
+                                                    35 if int(session['guard_count']) >= 7 else
+                                                    20 if int(session['guard_count']) >= 4 else 10)
+                                                await db.execute(
+                                                    "INSERT INTO mafia_family_scores(family,points) VALUES(?,?) "
+                                                    "ON CONFLICT(family) DO UPDATE SET points=points+excluded.points",
+                                                    (robbery_family,family_points_gain))
+                                                score_row = await (await db.execute(
+                                                    "SELECT points FROM mafia_family_scores WHERE family=?",
+                                                    (robbery_family,))).fetchone()
+                                                family_points_total = int(score_row[0] or 0)
                                             await db.commit()
                                             payout_committed = True
                                 except Exception:
@@ -23887,7 +24108,10 @@ async def _coop_http_app():
                                     p['_cash'] = int(p.get('_cash') or 0) + money
                                     reply = {'ok': True, 'biz_id': biz_id,
                                              'money': money, 'difficulty': difficulty,
-                                             'closed_s': 300}
+                                             'closed_s': 300,
+                                             'mafia_family': robbery_family,
+                                             'family_points_gain': family_points_gain,
+                                             'family_points_total': family_points_total}
                                     # Небольшой авторитет за подтверждённое
                                     # ограбление получает только действующий мафиози.
                                     try:
@@ -23909,6 +24133,9 @@ async def _coop_http_app():
                                         'biz_id':       biz_id,
                                         'biz_name':     biz_name,
                                         'closed_s':     300,
+                                        'mafia_family': robbery_family,
+                                        'family_points_gain': family_points_gain,
+                                        'family_points_total': family_points_total,
                                     }}, ensure_ascii=False)
                                     for _u2, _ws2 in list(world.connections.items()):
                                         try: await _ws2.send_str(banner)

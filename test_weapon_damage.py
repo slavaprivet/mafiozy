@@ -22,6 +22,19 @@ async def recv_aggro_hit(ws, bot_id, timeout=2):
 
 async def main():
     world = Path(__file__).with_name("world.html").read_text(encoding="utf-8")
+    bot_source = Path(__file__).with_name("mafiozi_bot.py").read_text(encoding="utf-8")
+    assert "return QP.weapon || null;" in world
+    assert "weapon: currentWeapon || 'fists'" in world
+    assert "id: 'blackmarket_bellini'" in world
+    assert "id: 'blackmarket_moretti'" in world
+    assert "issuedByFamily:true" in world
+    assert "Этот рынок обслуживает только семью" in world
+    assert "family_pistol = key == 'pistol'" in bot_source
+    assert "p_ref['_weapon_classes'] = {'pistol'} |" not in bot_source
+    assert "CITY_GANG_MAX           = 4" in bot_source
+    assert "'npc_gang_fight':True" in bot_source
+    assert "**({'suit':'#f3efe5'} if faction == 'yellow' else {})" in bot_source
+    assert "spawnBullet(sR,sC,d.ty,d.tx,{hit:true,fromNpc:true" in world
     assert "damagedProps.values()" not in world, (
         "fire() references a removed collection and aborts before spawnBullet"
     )
@@ -54,6 +67,11 @@ async def main():
     assert "function _sendAggroWeaponHit(targetId, weapon)" in world
     assert "sendInput(true);" in world and "_sendAggroWeaponHit(chosenAggro.id" in world
     assert "suit:'#f3efe5'" in world, "yellow gang must use white luxury suits"
+    assert "Семья Карло Беллини" in world and "Семья Витторио Моретти" in world
+    assert "mafia_family" in world, "client must send mafia family to the server"
+    assert "const BURJ_POS = { r: 16, c: 66 }" in world
+    assert "{ id: 'mansion', r: 186, c: 16" in world
+    assert "function _peacefulInteriorGunLock" in world
     assert "strokeText('ЖЁЛТАЯ БАНДА'" not in world
     assert "(_majorInteriorObjectId && direct.majorGuard)" in world
     assert "_majorRaidLocal?.combatStarted ? _findGangCompanionTarget(m)" in world

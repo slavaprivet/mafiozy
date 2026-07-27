@@ -1,4 +1,4 @@
-import asyncio, json
+import asyncio, json, time
 from aiohttp.test_utils import TestServer, TestClient
 import _preview_ws_server as game
 
@@ -17,8 +17,8 @@ async def snap_where(ws, predicate, timeout=2):
             if data.get('t')=='snap' and predicate(data['d']):return data['d']
     return await asyncio.wait_for(loop(),timeout)
 
-async def input_role(ws, mafia, x=32, y=32, gang=None):
-    await ws.send_json({'t':'input','d':{'x':x,'y':y,'ang':0,'mafia':mafia,'police':False,'gang':gang or []}})
+async def input_role(ws, mafia, x=32, y=32, gang=None, family="bellini"):
+    await ws.send_json({'t':'input','d':{'x':x,'y':y,'ang':0,'mafia':mafia,'mafia_family':family if mafia else '','police':False,'gang':gang or []}})
     await asyncio.sleep(.12)
 
 async def main():
@@ -98,6 +98,21 @@ async def main():
     await input_role(sockets['b'],True,gang=[{'r':32,'c':32}]*5)
     s=await snap_where(sockets['leader'],lambda d:sum(m['npc_count'] for m in (d['me'].get('online_gang')or{}).get('members',[]))==18)
     assert sorted(m['npc_count'] for m in s['me']['online_gang']['members'])==[5,6,7]
+    # Владелец квартиры открывает гостевой вход только своей онлайн-команде.
+    apt_key='tile:32,32'
+    game.preview_owned_apartments('leader')[apt_key]={'price':6500}
+    await sockets['leader'].send_json({'t':'input','d':{'x':32.5,'y':32.5,'ang':0,'mafia':True,'mafia_family':'bellini','police':False,'gang':[{'r':32,'c':32}]*7,
+        'interior':{'kind':'building','apartment_key':apt_key,'apartment_owner_uid':'leader','x':8,'y':8}}})
+    await input_role(sockets['a'],True,x=32.5,y=32.5,gang=[{'r':32,'c':32}]*6)
+    guest_snap=await snap_where(sockets['a'],lambda d:bool(d['me'].get('apartment_hosts')))
+    assert guest_snap['me']['apartment_hosts'][0]['owner_uid']=='leader'
+    await sockets['a'].send_json({'t':'apartment_guest_enter','d':{'owner_uid':'leader','apartment_key':apt_key}})
+    guest_reply=await recv_kind(sockets['a'],'apartment_guest_reply');assert guest_reply['ok']
+    await sockets['a'].send_json({'t':'input','d':{'x':32.5,'y':32.5,'ang':0,'mafia':True,'mafia_family':'bellini','police':False,'gang':[{'r':32,'c':32}]*6,
+        'interior':{'kind':'building','apartment_key':apt_key,'apartment_owner_uid':'leader','x':9,'y':8}}})
+    inside=await snap_where(sockets['leader'],lambda d:any(o.get('uid')=='a' and (o.get('interior')or{}).get('kind')=='apartment' for o in d.get('others',[])))
+    assert next(o for o in inside['others'] if o['uid']=='a')['x']==9
+    assert len(game.players['a'].get('gang') or [])==6
     # Четвёртый запрещён.
     await sockets['leader'].send_json({'t':'gang_player_invite','d':{'target_uid':'c'}})
     assert (await recv_kind(sockets['leader'],'gang_player_reply'))['reason']=='full'
@@ -112,10 +127,27 @@ async def main():
     await sockets['leader'].send_json({'t':'gang_player_invite','d':{'target_uid':'a'}});await recv_kind(sockets['a'],'gang_player_invite');await sockets['a'].send_json({'t':'gang_player_answer','d':{'accept':True}});await recv_kind(sockets['a'],'gang_player_changed')
     await input_role(sockets['a'],False)
     await snap_where(sockets['leader'],lambda d:d['me'].get('online_gang') is None)
+    assert game.players['a'].get('mafia_traitor_until',0)>time.time()
+    await input_role(sockets['a'],True,family='moretti')
+    assert not game.players['a'].get('mafia'), "traitor must not join another mafia for five minutes"
+    await sockets['a'].send_json({'t':'input','d':{'x':32,'y':32,'ang':0,'mafia':False,'mafia_family':'','police':True}})
+    await asyncio.sleep(.05)
+    assert game.players['a'].get('police'), "traitor must still be allowed to join police"
     # Разрыв соединения удаляет офлайн-участника и распускает оставшуюся пару.
     await sockets['leader'].send_json({'t':'gang_player_invite','d':{'target_uid':'c'}});await recv_kind(sockets['c'],'gang_player_invite');await sockets['c'].send_json({'t':'gang_player_answer','d':{'accept':True}});await recv_kind(sockets['c'],'gang_player_changed')
     await sockets['c'].close();await asyncio.sleep(.15)
     await snap_where(sockets['leader'],lambda d:d['me'].get('online_gang') is None)
+    for i in range(10):
+        game.players[f'balance_b{i}']={'uid':f'balance_b{i}','name':'B','x':32,'y':32,
+            'mafia':True,'mafia_family':'bellini','police':False,'dead':False}
+    balance=await client.ws_connect('/world/sim?uid=balance&name=Balance')
+    await input_role(balance,True,family='bellini')
+    await asyncio.sleep(.05)
+    assert not game.players['balance'].get('mafia')
+    await input_role(balance,True,family='moretti')
+    await asyncio.sleep(.05)
+    assert game.players['balance'].get('mafia_family')=='moretti'
+    await balance.close()
     print('ONLINE_GANG_E2E_OK')
     for ws in sockets.values():await ws.close()
     await client.close()
