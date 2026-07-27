@@ -174,7 +174,13 @@ body.near-business #zoneBtn,
 body.near-business #gtaActionBtn,
 body.near-business #robActionBtn,
 body.near-major-establishment #gtaActionBtn,
-body.near-major-establishment #robActionBtn { display:none !important; }
+body.near-major-establishment #robActionBtn,
+body.near-establishment-focus #zoneBtn,
+body.near-establishment-focus #gtaActionBtn,
+body.near-establishment-focus #robActionBtn,
+#zoneBtn[data-establishment-action="1"],
+#gtaActionBtn[data-establishment-action="1"],
+#robActionBtn[data-establishment-action="1"] { display:none !important; }
 #businessActionCard{position:fixed;z-index:58;width:min(270px,76vw);padding:9px;border:1px solid #d6ad4e;border-radius:13px;background:linear-gradient(145deg,rgba(12,17,25,.97),rgba(30,20,12,.97));box-shadow:0 12px 34px rgba(0,0,0,.68);color:#fff;font:800 11px system-ui;display:none;transform:translate(-50%,-100%)}
 #businessActionCard.show{display:block}.bac-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;color:#ffe08a}.bac-close{width:24px;height:24px;border:1px solid #687386;border-radius:7px;background:#202735;color:#fff;font-weight:900}.bac-actions{display:grid;gap:6px}.bac-btn{width:100%;padding:9px 11px;border-radius:9px;border:1px solid #4e6177;background:#253347;color:#fff;font:900 11px system-ui;text-align:left}.bac-btn.peace{border-color:#3da45c;background:#174f2a}.bac-btn.buy{border-color:#dfa93e;background:#7d5314}.bac-btn.raid{border-color:#f05252;background:#771b1b}
 
@@ -11470,6 +11476,30 @@ function drawOwnedBusinessWorldMarkers(r0, r1, c0, c1) {
     }
   }
 }
+
+function drawNearbyBusinessInteractionSquare() {
+  if(_buildingInt||_bankInt||myDrivingCarId||myDead)return;
+  let target=null,best=3.25;
+  for(const biz of BUSINESS_POIS){
+    const d=Math.hypot(player.r-biz.r,player.c-biz.c);
+    if(d<best){best=d;target=biz;}
+  }
+  if(!target){
+    const major=_nearestMajorObject(4.2);
+    if(major)target=major;
+  }
+  if(!target)return;
+  const pulse=(Math.sin(performance.now()*.006)+1)*.5;
+  const pad=(MAJOR_OBJECT_IDS.has(target.id)?1.05:.42)+pulse*.06;
+  const corners=[w2s(target.r-pad,target.c-pad),w2s(target.r-pad,target.c+1+pad),
+    w2s(target.r+1+pad,target.c+1+pad),w2s(target.r+1+pad,target.c-pad)];
+  ctx.save();ctx.fillStyle=`rgba(255,211,82,${.045+pulse*.035})`;
+  ctx.strokeStyle=`rgba(255,219,91,${.72+pulse*.28})`;ctx.lineWidth=2.3;
+  ctx.setLineDash([7,5]);ctx.shadowColor='#ffd54f';ctx.shadowBlur=6+pulse*7;
+  ctx.beginPath();ctx.moveTo(corners[0].x,corners[0].y);
+  for(let i=1;i<corners.length;i++)ctx.lineTo(corners[i].x,corners[i].y);
+  ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+}
 function _apartmentHostAt(r,c){
   return (_apartmentHosts||[]).find(h=>Math.floor(+h.r)===Math.floor(r)&&Math.floor(+h.c)===Math.floor(c))||null;
 }
@@ -11555,7 +11585,7 @@ function _currentBuildingEntryTarget() {
 function drawActiveBuildingEntryMarker() {
   // У бизнеса уже есть контекстные кнопки сверху. Большой указатель
   // «ВОЙТИ СЮДА» дублирует их и закрывает само маленькое здание.
-  if (_zoneEl?.dataset?.bizId || BUSINESS_POIS.some(b => Math.hypot(player.r-b.r,player.c-b.c) < 5.5)) return;
+  if (_zoneEl?.dataset?.bizId || _nearestMajorObject(4.2) || BUSINESS_POIS.some(b => Math.hypot(player.r-b.r,player.c-b.c) < 5.5)) return;
   const target = _currentBuildingEntryTarget();
   if (!target) return;
   const pulse = (Math.sin(performance.now() * 0.007) + 1) * 0.5;
@@ -17488,6 +17518,7 @@ let _bankZoneCur = null;  // ближайший банк в радиусе
 const _zoneEl = document.getElementById('zoneBtn');
 const _pvpBn  = document.getElementById('pvpBanner');
 function updateZoneBtn() {
+  delete _zoneEl.dataset.establishmentAction;
   // Если мы внутри банка — показываем кнопки по комнате
   if (_bankInt) {
     const int = _bankInt;
@@ -17589,6 +17620,7 @@ function updateZoneBtn() {
   const nearBizEntry = _nearestBusinessPoi();
   document.body.classList.toggle('near-business',!!nearBizEntry);
   if (nearBizEntry) {
+    _zoneEl.dataset.establishmentAction='1';
     _zoneCur = null;
     _zoneEl.dataset.bizId = nearBizEntry.id;
     const closedLeft = Math.max(0, (_businessClosures[nearBizEntry.id] || 0) - Date.now());
@@ -18266,6 +18298,29 @@ function _openBusinessActionCard(kind,poi){
   _businessActionSelection={kind,id:poi.id};_businessActionSignature='';
   updateGtaInteractions();_syncBusinessActionCard();
 }
+function _prepareSelectedEstablishmentActions(){
+  const sel=_businessActionSelection;if(!sel)return false;
+  if(sel.kind==='business'){
+    const biz=BUSINESS_POIS.find(b=>b.id===sel.id);if(!biz)return false;
+    const own=myBusinesses.get(biz.id);_gtaBtn.dataset.establishmentAction='1';
+    if(!own?.owned){
+      _gtaActionKind='biz_buy';_gtaActionCarId=biz.id;
+      _gtaBtn.textContent=`🏪 ${biz.emoji} Купить за $${biz.price.toLocaleString('ru')}`;_gtaBtn.style.display='block';
+      const cfg=ROB_PAYOUT_PREVIEW[biz.id],left=Math.max(0,Math.max(_robCooldowns[biz.id]||0,_businessClosures[biz.id]||0)-Date.now());
+      if(_robBtn&&cfg&&!_robInProgress&&!left){_robTargetBiz=biz;_robBtn.dataset.establishmentAction='1';_robBtn.textContent=`💥 Совершить налёт (${'★'.repeat(cfg.difficulty)})`;_robBtn.style.display='block';}
+    }else{
+      _gtaActionKind=own.pending>0?'biz_collect':'biz_info';_gtaActionCarId=biz.id;
+      _gtaBtn.textContent=own.pending>0?`💰 Забрать $${own.pending}`:`✅ ${biz.emoji} ${biz.name} — твой`;_gtaBtn.style.display='block';
+    }
+    _syncBusinessActionCard();return true;
+  }
+  const poi=POI.find(p=>p.id===sel.id&&MAJOR_OBJECT_IDS.has(p.id));if(!poi)return false;
+  const state=_majorObjectsState[poi.id]||{};document.body.classList.add('near-major-establishment');
+  _gtaActionKind='major_enter';_gtaActionCarId=poi.id;_gtaBtn.dataset.establishmentAction='1';
+  _gtaBtn.textContent=`🚪 Войти: ${poi.name}`;_gtaBtn.style.display='block';
+  if(_robBtn&&!state.owner_uid){_robTargetBiz=null;_robBtn._majorAssaultId=poi.id;_robBtn.dataset.establishmentAction='1';_robBtn.textContent=`💥 Совершить налёт: ${poi.name} · ★★★★★`;_robBtn.style.display='block';}
+  _syncBusinessActionCard();return true;
+}
 _businessActionCard.addEventListener('click',e=>{
   if(e.target.closest('.bac-close')){_closeBusinessActionCard();return;}
   const btn=e.target.closest('[data-source]');if(!btn)return;
@@ -18677,6 +18732,9 @@ function playEnterCarAnim(r, c) {
 
 function updateGtaInteractions() {
   document.body.classList.remove('near-major-establishment');
+  document.body.classList.toggle('near-establishment-focus',!!(_nearestBusinessPoi()||_nearestMajorObject()));
+  delete _gtaBtn.dataset.establishmentAction;
+  if(_robBtn)delete _robBtn.dataset.establishmentAction;
   if(_businessActionSelection)_syncBusinessActionCard();
   _gtaActionBagCarRef = null;
   _gtaBtn.classList.remove('biz-pressure-action');
@@ -18696,6 +18754,7 @@ function updateGtaInteractions() {
   // не торчала после ухода от точки. Идёт ограбление — НЕ трогаем,
   // прячется в finishRob/cancelRob.
   if (_robBtn && !_robInProgress) _robBtn.style.display = 'none';
+  if(!_buildingInt&&!_bankInt&&!myDrivingCarId&&_prepareSelectedEstablishmentActions())return;
   // ── ВНУТРИ ЗДАНИЯ: отдельная эко-система. Только интерьерные действия
   //    (лут-кейс, товар чёрного рынка). Никаких машин/угона/автобуса. ──
   if (_buildingInt) {
@@ -19053,6 +19112,7 @@ function updateGtaInteractions() {
   // Бизнес-POI — купить если рядом и не наш; собрать если наш с доходом
   const bizNear = _nearestBusinessPoi();
   if (bizNear) {
+    _gtaBtn.dataset.establishmentAction='1';
     const own = myBusinesses.get(bizNear.id);
     if (!own || !own.owned) {
       _gtaActionKind = 'biz_buy';
@@ -19066,6 +19126,7 @@ function updateGtaInteractions() {
         _robCooldowns[bizNear.id]||0, _businessClosures[bizNear.id]||0);
       const robCdLeft = Math.max(0, robCdUntil - Date.now());
       if (_robBtn && rcfg && !_robInProgress && !robCdLeft) {
+        _robBtn.dataset.establishmentAction='1';
         _robTargetBiz = bizNear; _robBtn._buySprayCan = false;
         _robBtn._graffitiR = null; _robBtn._graffitiC = null;
         _robBtn.textContent = `💥 Совершить налёт (${'★'.repeat(rcfg.difficulty)})`;
@@ -19456,6 +19517,7 @@ function updateGtaInteractions() {
   const majorPoi = _nearestMajorObject();
   if (majorPoi && !myDrivingCarId && !myDead) {
     document.body.classList.add('near-major-establishment');
+    _gtaBtn.dataset.establishmentAction='1';
     const state = _majorObjectsState[majorPoi.id] || {};
     _gtaActionKind = 'major_enter';
     _gtaActionCarId = majorPoi.id;
@@ -19467,6 +19529,7 @@ function updateGtaInteractions() {
       _robBtn._taxiHijack = false;
       _robBtn._graffitiR = null; _robBtn._graffitiC = null;
       if (!state.owner_uid) {
+        _robBtn.dataset.establishmentAction='1';
         _robBtn._majorAssaultId = majorPoi.id;
         _robBtn.textContent = `💥 Совершить налёт: ${majorPoi.name} · ★★★★★`;
         _robBtn.style.display = 'block';
@@ -38855,6 +38918,7 @@ if (d.kind === 'plank_path') {
   // многоэтажки не перекрывали подпись и контур купленной квартиры.
   drawOwnedApartmentWorldMarkers(r0, r1, c0, c1);
   drawOwnedBusinessWorldMarkers(r0, r1, c0, c1);
+  drawNearbyBusinessInteractionSquare();
   drawActiveBuildingEntryMarker();
   drawActiveVehicleEntryMarker();
   drawLeaderboard();
