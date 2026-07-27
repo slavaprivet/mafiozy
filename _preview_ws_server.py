@@ -222,7 +222,10 @@ def preview_ignite_bandit(bot, shooter, data):
         distance = 6.5 + seed % 4
         bot["fire_flee_x"] = max(1.5, min(78.5, bot["x"]+math.cos(angle)*distance))
         bot["fire_flee_y"] = max(1.5, min(198.5, bot["y"]+math.sin(angle)*distance))
+    was_burning = now < float(bot.get("burn_until") or 0)
     bot["burn_until"] = max(float(bot.get("burn_until") or 0), now+4.8)
+    if not was_burning or not float(bot.get("burn_tick_at") or 0):
+        bot["burn_tick_at"] = now+1.0
     bot["fire_flee_until"] = max(float(bot.get("fire_flee_until") or 0), now+3.8)
     bot["burning"] = True
     bot["act"] = "walk"
@@ -232,6 +235,18 @@ def preview_ignite_bandit(bot, shooter, data):
 
 def preview_tick_fire_flee(bot, now, dt, bounds=None):
     bot["burning"] = now < float(bot.get("burn_until") or 0)
+    if bot["burning"] and now >= float(bot.get("burn_tick_at") or 0):
+        bot["burn_tick_at"] = now + 1.0
+        bot["hp"] = max(0, int(bot.get("hp") or 0) - 6)
+        if bot["hp"] <= 0:
+            bot["alive"] = False
+            bot["burning"] = False
+            bot["threat"] = ""
+            bot["threat_until"] = 0.0
+            return False
+    elif not bot["burning"] and str(bot.get("threat") or "").startswith("Горю!"):
+        bot["threat"] = ""
+        bot["threat_until"] = 0.0
     if now >= float(bot.get("fire_flee_until") or 0):
         return False
     dx = float(bot.get("fire_flee_x", bot["x"]))-bot["x"]
@@ -394,6 +409,61 @@ PREVIEW_STREET_GANGS = [
     ("preview_city_gang_1", 12.0, 33.0),
     ("preview_city_gang_2", 52.0, 63.0),
 ]
+PREVIEW_STREET_GANG_HP = {
+    f"cgbot_preview_street_{gang_i}_{bot_i}": 100
+    for gang_i in range(len(PREVIEW_STREET_GANGS))
+    for bot_i in range(3)
+}
+PREVIEW_WEAPON_DAMAGE = {
+    "pistol": 24, "nagan": 32, "revolver": 86,
+    "pistol_heavy": 72, "pistol_gold": 48,
+    "shotgun": 76, "smg": 15, "tommy_gun": 24,
+    "golden_tommy": 24, "rifle": 42, "sniper": 132,
+    "rpg": 160, "grenade": 95, "molotov_fire": 12,
+}
+PREVIEW_WEAPON_ALIASES = {
+    "tt": "pistol", "tt_pistol": "pistol", "pm": "pistol", "glock": "pistol",
+    "desert_eagle": "pistol_heavy", "deagle": "pistol_heavy",
+    "golden_colt": "pistol_gold", "sawn_off": "shotgun",
+    "uzi": "smg", "ump": "smg", "mp5": "smg", "golden_uzi": "smg",
+    "ak": "rifle", "ak74": "rifle", "m4": "rifle", "m16": "rifle",
+}
+
+
+def preview_weapon_damage(weapon):
+    key = str(weapon or "pistol")
+    key = PREVIEW_WEAPON_ALIASES.get(key, key)
+    return PREVIEW_WEAPON_DAMAGE.get(key, PREVIEW_WEAPON_DAMAGE["pistol"])
+
+
+def preview_street_gang_bots(now=None):
+    now = time.time() if now is None else now
+    patrol = now * 0.32
+    groups = []
+    for gang_i, (gang_id, base_x, base_y) in enumerate(PREVIEW_STREET_GANGS):
+        faction = "yellow" if gang_i % 2 == 0 else "purple"
+        phase = patrol + gang_i * math.pi
+        center_x = base_x + math.sin(phase) * 6.0
+        direction = 0.0 if math.cos(phase) >= 0 else math.pi
+        bots = []
+        for i in range(3):
+            bot_id = f"cgbot_preview_street_{gang_i}_{i}"
+            hp = max(0, int(PREVIEW_STREET_GANG_HP.get(bot_id, 100)))
+            if hp <= 0:
+                continue
+            bot = preview_bandit_bot(
+                bot_id, center_x - i * 1.15, base_y + (i - 1) * 0.45,
+                weapon=("pistol_heavy", "smg", "rifle")[i],
+            )
+            bot["hp"] = hp
+            bot["ang"] = direction
+            if faction == "yellow":
+                bot["look"].update({"skin": (0, 2, 3)[i], "body": 4,
+                                    "hat": 2, "gang": 2})
+            bot["faction"] = faction
+            bots.append(bot)
+        groups.append((gang_id, faction, bots))
+    return groups
 PREVIEW_START_X = 66.0
 PREVIEW_START_Y = 162.5
 PREVIEW_HOSPITAL_X = 43.0
@@ -1304,33 +1374,18 @@ def preview_aggro_payload():
             "state": nest["state"],
             "bots": [dict(
                         bot,
-                        act=bot.get("act") if (nest["state"] == "hostile"
-                                              or now < float(bot.get("fire_flee_until") or 0)) else "idle",
+                        act=("walk" if bot.get("_moving") else
+                             (bot.get("act") if (
+                                 nest["state"] == "hostile" or
+                                 now < float(bot.get("fire_flee_until") or 0))
+                              else "idle")),
                         burning=now < float(bot.get("burn_until") or 0),
                         fleeing_fire=now < float(bot.get("fire_flee_until") or 0))
                      for bot in nest["bots"] if bot.get("alive")],
             "covers": [], "cap_left": 0, "next_respawn": 0,
             "is_nest": True, "faction": nest["faction"],
         }
-    patrol = now * 0.32
-    for gang_i, (gang_id, base_x, base_y) in enumerate(PREVIEW_STREET_GANGS):
-        faction = "yellow" if gang_i % 2 == 0 else "purple"
-        phase = patrol + gang_i * math.pi
-        center_x = base_x + math.sin(phase) * 6.0
-        direction = 0.0 if math.cos(phase) >= 0 else math.pi
-        bots = []
-        for i in range(3):
-            bot = preview_bandit_bot(
-                f"cgbot_preview_street_{gang_i}_{i}",
-                center_x - i * 1.15, base_y + (i - 1) * 0.45,
-                weapon=("pistol_heavy", "smg", "rifle")[i],
-            )
-            bot["ang"] = direction
-            if faction == "yellow":
-                bot["look"].update({"skin": (0, 2, 3)[i], "body": 4,
-                                    "hat": 2, "gang": 2})
-            bot["faction"] = faction
-            bots.append(bot)
+    for gang_id, faction, bots in preview_street_gang_bots(now):
         result[gang_id] = {
             "state": "patrol", "bots": bots, "covers": [],
             "cap_left": 0, "next_respawn": 0, "is_city_gang": True,
@@ -1685,23 +1740,6 @@ def preview_tick_business_captures():
     global preview_business_next_capture_at
     now = time.time()
     for bid, nest in list(preview_business_nests.items()):
-        guards = [guard for guard in nest.get("guards", []) if guard.get("alive")]
-        bots = [bot for bot in nest["bots"] if bot.get("alive")]
-        if guards and bots and now >= float(nest.get("combat_at", 0)):
-            guard, bot = random.choice(guards), random.choice(bots)
-            bot["hp"] = max(0, int(bot.get("hp", 100)) - random.randint(22, 31))
-            if bot["hp"] <= 0:
-                bot["alive"] = False
-            bots = [item for item in nest["bots"] if item.get("alive")]
-            if bots:
-                target = random.choice(guards)
-                target["hp"] = max(0, int(target.get("hp", 100)) - random.randint(16, 25))
-                if target["hp"] <= 0:
-                    target["alive"] = False
-                    owner = preview_owned_businesses(nest.get("owner_uid"))
-                    if bid in owner:
-                        owner[bid]["guards"] = max(0, int(owner[bid].get("guards", 0)) - 1)
-            nest["combat_at"] = now + .8
         if any(bot.get("alive") for bot in nest["bots"]):
             continue
         preview_business_nests.pop(bid, None)
@@ -1756,16 +1794,21 @@ def preview_tick_business_captures():
             "id": f"preview_guard_{bid}_{i}", "x": x + math.cos(i * math.tau / max(1, guard_count)) * 1.5,
             "y": y + math.sin(i * math.tau / max(1, guard_count)) * 1.5,
             "ang": 0.0, "hp": 100, "max_hp": 100, "alive": True,
-            "weapon": "pistol_heavy",
+            "weapon": "pistol",
         } for i in range(guard_count)],
     }
 
 
 def tick_preview_business_raiders(now, dt):
-    """NPC raiders retaliate against the player who attacked their business siege."""
+    """Animate and resolve the street battle for an occupied business."""
     events = []
-    for nest in preview_business_nests.values():
+    for business_id, nest in list(preview_business_nests.items()):
         anchor_x, anchor_y = float(nest.get("c", 0)), float(nest.get("r", 0))
+        alive_bots = [bot for bot in nest.get("bots", []) if bot.get("alive")]
+        alive_guards = [guard for guard in nest.get("guards", []) if guard.get("alive")]
+        for fighter in (*alive_bots, *alive_guards):
+            fighter["act"] = "idle"
+            fighter["_moving"] = False
         for burning_bot in nest.get("bots", []):
             if burning_bot.get("alive"):
                 preview_tick_fire_flee(
@@ -1773,6 +1816,121 @@ def tick_preview_business_raiders(now, dt):
                     (anchor_x - 9.0, anchor_x + 9.0,
                      anchor_y - 9.0, anchor_y + 9.0),
                 )
+        # The security team and raiders now fight in world space: they close
+        # distance, strafe, face their targets and emit visible bullet events.
+        if alive_bots and alive_guards:
+            for index, guard in enumerate(alive_guards):
+                bot = min(
+                    alive_bots,
+                    key=lambda item: math.hypot(
+                        float(item["x"]) - float(guard["x"]),
+                        float(item["y"]) - float(guard["y"])),
+                )
+                dx = float(bot["x"]) - float(guard["x"])
+                dy = float(bot["y"]) - float(guard["y"])
+                dist = math.hypot(dx, dy) + 1e-6
+                guard["ang"] = math.atan2(dy, dx)
+                side = -1.0 if index % 2 else 1.0
+                move_x = dx / dist + (-dy / dist) * .24 * side
+                move_y = dy / dist + (dx / dist) * .24 * side
+                if dist > 4.2:
+                    step = 1.45 * dt
+                elif dist < 2.35:
+                    step = -1.1 * dt
+                else:
+                    step = .42 * dt
+                nx = float(guard["x"]) + move_x * step
+                ny = float(guard["y"]) + move_y * step
+                guard["x"], guard["y"] = nx, ny
+                guard["act"], guard["_moving"] = "walk", True
+                if dist <= 9.5 and now >= float(guard.get("_shot_t") or 0):
+                    guard["_shot_t"] = now + random.uniform(.62, .9)
+                    damage = random.randint(22, 31)
+                    bot["hp"] = max(0, int(bot.get("hp", 100)) - damage)
+                    killed = bot["hp"] <= 0
+                    if killed:
+                        bot["alive"] = False
+                    events.append({
+                        "kind": "business_defense_shot", "side": "guard",
+                        "id": nest["id"], "business_id": business_id,
+                        "shooter_id": guard["id"], "target_id": bot["id"],
+                        "weapon": guard.get("weapon") or "pistol",
+                        "sx": guard["x"], "sy": guard["y"],
+                        "tx": bot["x"], "ty": bot["y"],
+                        "damage": damage, "hp": bot["hp"], "killed": killed,
+                    })
+            alive_bots = [bot for bot in nest.get("bots", []) if bot.get("alive")]
+            alive_guards = [guard for guard in nest.get("guards", []) if guard.get("alive")]
+            for index, bot in enumerate(alive_bots):
+                if now < float(bot.get("fire_flee_until") or 0):
+                    continue
+                current_guards = [
+                    guard for guard in nest.get("guards", [])
+                    if guard.get("alive")]
+                if not current_guards:
+                    break
+                guard = min(
+                    current_guards,
+                    key=lambda item: math.hypot(
+                        float(item["x"]) - float(bot["x"]),
+                        float(item["y"]) - float(bot["y"])),
+                )
+                dx = float(guard["x"]) - float(bot["x"])
+                dy = float(guard["y"]) - float(bot["y"])
+                dist = math.hypot(dx, dy) + 1e-6
+                bot["ang"] = math.atan2(dy, dx)
+                side = 1.0 if index % 2 else -1.0
+                move_x = dx / dist + (-dy / dist) * .2 * side
+                move_y = dy / dist + (dx / dist) * .2 * side
+                if dist > 4.8:
+                    step = 1.2 * dt
+                elif dist < 2.25:
+                    step = -.95 * dt
+                else:
+                    step = .34 * dt
+                nx = float(bot["x"]) + move_x * step
+                ny = float(bot["y"]) + move_y * step
+                if math.hypot(nx-anchor_x, ny-anchor_y) <= 8.5:
+                    bot["x"], bot["y"] = nx, ny
+                    bot["act"], bot["_moving"] = "walk", True
+                if dist <= 9.5 and now >= float(bot.get("_guard_shot_t") or 0):
+                    bot["_guard_shot_t"] = now + random.uniform(.72, 1.04)
+                    damage = random.randint(16, 25)
+                    guard["hp"] = max(0, int(guard.get("hp", 100)) - damage)
+                    killed = guard["hp"] <= 0
+                    if killed:
+                        guard["alive"] = False
+                        owner = preview_owned_businesses(nest.get("owner_uid"))
+                        if business_id in owner:
+                            owner[business_id]["guards"] = max(
+                                0, int(owner[business_id].get("guards", 0)) - 1)
+                    events.append({
+                        "kind": "business_defense_shot", "side": "raider",
+                        "id": nest["id"], "business_id": business_id,
+                        "shooter_id": bot["id"], "target_id": guard["id"],
+                        "weapon": bot.get("weapon") or "pistol_heavy",
+                        "sx": bot["x"], "sy": bot["y"],
+                        "tx": guard["x"], "ty": guard["y"],
+                        "damage": damage, "hp": guard["hp"], "killed": killed,
+                    })
+            alive_bots = [bot for bot in nest.get("bots", []) if bot.get("alive")]
+            alive_guards = [guard for guard in nest.get("guards", []) if guard.get("alive")]
+        if not alive_bots:
+            preview_business_nests.pop(business_id, None)
+            cooldown_until = int(now + PREVIEW_NPC_CAPTURE_COOLDOWN)
+            preview_business_capture_cooldown[business_id] = cooldown_until
+            for rows in preview_businesses.values():
+                if business_id in rows:
+                    rows[business_id]["npc_capture_cooldown_until"] = cooldown_until
+            events.append({
+                "kind": "gang_nest_cleared", "id": nest["id"],
+                "business_id": business_id, "cooldown_until": cooldown_until,
+                "cash": 0, "exp": 0, "bonus_uids": [],
+            })
+            continue
+        if alive_guards:
+            # Business security has priority over pursuing a nearby player.
+            continue
         if nest.get("state") != "hostile":
             continue
         target_uid = str(nest.get("target_uid") or "")
@@ -3087,11 +3245,16 @@ async def world_ws(req):
                                 float(actor.get("y", 0))) <= 10.0
                         }
                         participants.add(str(uid))
+                        guard_weapons = (
+                            "pistol", "pistol_heavy", "smg", "shotgun",
+                            "tommy_gun", "rifle",
+                        )
                         guards = [{
                             "id": f"preview_major_{object_id}_{i}",
                             "hp": 140 if i < 4 else 100,
                             "max_hp": 140 if i < 4 else 100,
-                            "alive": True, "weapon": "pistol_heavy",
+                            "alive": True,
+                            "weapon": guard_weapons[i % len(guard_weapons)],
                             "wave": 1, "slot": i,
                         } for i in range(int(cfg["guards"]))]
                         raid = {
@@ -3151,10 +3314,15 @@ async def world_ws(req):
                         guard["alive"] = False
                         if int(raid["spawned"]) < int(cfg["total"]):
                             slot = int(raid["spawned"])
+                            guard_weapons = (
+                                "pistol", "pistol_heavy", "smg", "shotgun",
+                                "tommy_gun", "rifle",
+                            )
                             new_guard = {
                                 "id": f"preview_major_{object_id}_{slot}",
                                 "hp": 110, "max_hp": 110, "alive": True,
-                                "weapon": "pistol_heavy",
+                                "weapon": guard_weapons[
+                                    slot % len(guard_weapons)],
                                 "wave": 2 + slot // 10, "slot": slot,
                             }
                             raid["guards"].append(new_guard)
@@ -3355,10 +3523,8 @@ async def world_ws(req):
                 if lair_bot:
                     shooter=players.get(uid) or {}
                     if abs(float(shooter.get("x",0))-40)<=20 and abs(float(shooter.get("y",0))-120)<=20:
-                        damage=round({"shotgun":76,"rifle":42,"sniper":132,"pistol":28,
-                                "pistol_heavy":86,"smg":15,"uzi":15,
-                                "grenade":95,"molotov_fire":12}.get(
-                                    str(d.get("weapon") or "pistol"),28)*fighter_mult)
+                        damage=round(preview_weapon_damage(
+                            d.get("weapon"))*fighter_mult)
                         lair_bot["hp"]=max(0,int(lair_bot["hp"])-damage)
                         if str(d.get("weapon") or "") == "molotov_fire" and lair_bot["hp"] > 0:
                             preview_ignite_bandit(lair_bot, shooter, d)
@@ -3382,22 +3548,22 @@ async def world_ws(req):
                                 "is_boss":lair_bot["kind"]=="aggro_boss",
                                 "cash":0, **reward}}))
                     continue
+                business_id = ""
                 business_nest = None
                 business_bot = None
-                for candidate in preview_business_nests.values():
+                for candidate_id, candidate in preview_business_nests.items():
                     business_bot = next((b for b in candidate["bots"]
                                          if b.get("alive") and str(b.get("id")) == target_id), None)
                     if business_bot:
+                        business_id = str(candidate_id)
                         business_nest = candidate
                         break
                 if business_bot and business_nest:
                     shooter = players.get(uid) or {}
                     if math.hypot(float(shooter.get("x", 0)) - business_bot["x"],
                                   float(shooter.get("y", 0)) - business_bot["y"]) <= 18:
-                        damage = round({"shotgun":76, "rifle":42, "sniper":132, "pistol":28,
-                                  "pistol_heavy":86, "smg":15, "uzi":15,
-                                  "grenade":95, "molotov_fire":12}.get(
-                                      str(d.get("weapon") or "pistol"), 28)*fighter_mult)
+                        damage = round(preview_weapon_damage(
+                            d.get("weapon"))*fighter_mult)
                         business_bot["hp"] = max(0, int(business_bot["hp"]) - damage)
                         if str(d.get("weapon") or "") == "molotov_fire" and business_bot["hp"] > 0:
                             preview_ignite_bandit(business_bot, shooter, d)
@@ -3438,7 +3604,80 @@ async def world_ws(req):
                                     **reward,
                                 },
                             }, ensure_ascii=False))
+                            if not any(
+                                    member.get("alive")
+                                    for member in business_nest.get("bots", [])):
+                                cooldown_until = int(
+                                    time.time() + PREVIEW_NPC_CAPTURE_COOLDOWN)
+                                preview_business_nests.pop(business_id, None)
+                                preview_business_capture_cooldown[
+                                    business_id] = cooldown_until
+                                for rows in preview_businesses.values():
+                                    if business_id in rows:
+                                        rows[business_id][
+                                            "npc_capture_cooldown_until"
+                                        ] = cooldown_until
+                                await broadcast_event({
+                                    "kind":"gang_nest_cleared",
+                                    "id":business_nest["id"],
+                                    "cash":0, "exp":0,
+                                    "bonus_uids":[str(uid)],
+                                    "business_id":business_id,
+                                    "cooldown_until":cooldown_until,
+                                })
                         preview_tick_business_captures()
+                    continue
+                street_gang = None
+                street_bot = None
+                for gang_id, faction, gang_bots in preview_street_gang_bots():
+                    street_bot = next(
+                        (b for b in gang_bots if str(b.get("id")) == target_id),
+                        None,
+                    )
+                    if street_bot:
+                        street_gang = (gang_id, faction)
+                        break
+                if street_bot and street_gang:
+                    shooter = players.get(uid) or {}
+                    distance = math.hypot(
+                        float(shooter.get("x", 0)) - street_bot["x"],
+                        float(shooter.get("y", 0)) - street_bot["y"],
+                    )
+                    weapon = str(d.get("weapon") or "pistol")
+                    weapon_key = PREVIEW_WEAPON_ALIASES.get(weapon, weapon)
+                    weapon_range = {
+                        "pistol":8.0, "nagan":9.2, "revolver":10.5,
+                        "pistol_heavy":11.2, "pistol_gold":11.5,
+                        "shotgun":6.2, "smg":8.0, "tommy_gun":10.0,
+                        "golden_tommy":10.0, "rifle":14.0,
+                        "sniper":20.0, "rpg":15.0,
+                    }.get(weapon_key, 8.0)
+                    if distance <= weapon_range + 0.75:
+                        damage = round(preview_weapon_damage(weapon) * fighter_mult)
+                        hp = max(
+                            0,
+                            int(PREVIEW_STREET_GANG_HP.get(target_id, 100)) - damage,
+                        )
+                        PREVIEW_STREET_GANG_HP[target_id] = hp
+                        killed = hp <= 0
+                        await broadcast_event({
+                            "kind":"aggro_hit", "tid":street_gang[0],
+                            "bot_id":target_id, "hp":hp,
+                            "damage":damage, "dmg":damage, "killed":killed,
+                            "sx":shooter.get("x",0), "sy":shooter.get("y",0),
+                            "tx":street_bot["x"], "ty":street_bot["y"],
+                            "shooter_uid":str(uid), "gang_member":gang_member,
+                            "target_level":int(street_bot.get("level") or 1),
+                        })
+                        if killed:
+                            reward = preview_bandit_kill_reward(
+                                uid, street_bot.get("level"), 8)
+                            await ws.send_str(json.dumps({
+                                "t":"event", "d":{
+                                    "kind":"aggro_killed", "bot_id":target_id,
+                                    "is_boss":False, "cash":50, **reward,
+                                },
+                            }, ensure_ascii=False))
                     continue
                 found = None
                 found_did = None
@@ -3455,11 +3694,8 @@ async def world_ws(req):
                     # на конкретного стрелка. На других игроков не переключаемся.
                     cap["hostile_uid"] = str(uid)
                     cap["hostile_until"] = time.time() + 30.0
-                    damage = round({
-                        "shotgun":76, "rifle":42, "sniper":132, "pistol":28,
-                        "pistol_heavy":86, "smg":15, "uzi":15,
-                        "grenade":95, "molotov_fire":12,
-                    }.get(str(d.get("weapon") or "pistol"), 28) * fighter_mult)
+                    damage = round(preview_weapon_damage(
+                        d.get("weapon")) * fighter_mult)
                     found["hp"] = max(0, int(found["hp"]) - damage)
                     if str(d.get("weapon") or "") == "molotov_fire" and found["hp"] > 0:
                         preview_ignite_bandit(found, shooter, d)
