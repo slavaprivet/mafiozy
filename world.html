@@ -44468,6 +44468,10 @@ function _drawCasinoNameOverlay(bi) {
 function _drawCasinoSlotMachine(r,c,index=0) {
   const accents=['#ff3b7d','#8d56ff','#24d5ff','#ffb52d'];
   const accent=accents[index%accents.length],p=w2s(r,c),z=isoH(1.85);
+  // Автомат целиком чуть компактнее: масштабируем корпус и весь неоновый декор
+  // вокруг опорной точки, сохраняя прежние пропорции.
+  ctx.save();
+  ctx.translate(p.x,p.y);ctx.scale(.88,.88);ctx.translate(-p.x,-p.y);
   _bizIsoBox(r,c,1.25,1.05,1.75,'#34152e','#17121f','#241229');
   ctx.save();
   // Светящаяся корона и экран с тремя отдельными барабанами.
@@ -44492,6 +44496,7 @@ function _drawCasinoSlotMachine(r,c,index=0) {
     ctx.fillStyle=(i+index)%2?accent:'#ffe78a';ctx.beginPath();
     ctx.arc(p.x-12+i*6,p.y-z-5,1.3,0,Math.PI*2);ctx.fill();
   }
+  ctx.restore();
   ctx.restore();
 }
 
@@ -44833,7 +44838,7 @@ const MAJOR_CASINO_STATIC_BLOCKERS = [
   ...[
     [6,10],[6,13.2],[6,16.4],[6,27.6],[6,30.8],[6,34],
     [10.2,10],[10.2,13.2],[10.2,30.8],[10.2,34],
-  ].map(([r,c],i)=>({id:`slot_${i}`,r,c,w:1.25,d:1.05,color:['#ff3b7d','#8d56ff','#24d5ff','#ffb52d'][i%4]})),
+  ].map(([r,c],i)=>({id:`slot_${i}`,r,c,w:1.1,d:.92,color:['#ff3b7d','#8d56ff','#24d5ff','#ffb52d'][i%4]})),
   // Рулетки и карточные столы центрального зала.
   ...[[14,12],[14,22],[14,32]].map(([r,c],i)=>({id:`roulette_${i}`,r,c,w:4.9,d:2.5,color:'#176c42'})),
   ...[[18.2,12],[18.2,22],[18.2,32]].map(([r,c],i)=>({id:`card_${i}`,r,c,w:4.6,d:2.35,color:'#116443'})),
