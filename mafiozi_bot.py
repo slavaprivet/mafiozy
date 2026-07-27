@@ -20819,16 +20819,26 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
     for biz_id, sabotage in list(world._business_war_sabotage.items()):
         if float(sabotage.get('until_at') or 0) <= now:
             world._business_war_sabotage.pop(biz_id, None)
+            sabotage_kind = str(sabotage.get('kind') or 'shutdown')
             immunity_until = now + BUSINESS_WAR_SABOTAGE_IMMUNITY_S
             world._business_war_sabotage_immunity[biz_id] = immunity_until
             if float(world._business_closed_until.get(biz_id) or 0) <= now:
                 world._business_closed_until.pop(biz_id, None)
+            # Shutdown/arson pauses income instead of merely delaying it.  Advance the
+            # payout clock so repair cannot retroactively pay for the whole downtime.
+            control = world._robbed_business_controls.get(biz_id)
+            if control is not None and sabotage_kind in ('shutdown', 'arson'):
+                control['last_payout_at'] = now
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute(
                     "DELETE FROM business_war_sabotage WHERE biz_id=?", (biz_id,))
                 await db.execute(
                     "INSERT OR REPLACE INTO business_war_sabotage_immunity(biz_id,until_at) VALUES(?,?)",
                     (biz_id, immunity_until))
+                if control is not None and sabotage_kind in ('shutdown', 'arson'):
+                    await db.execute(
+                        "UPDATE robbed_business_control SET last_payout_at=? WHERE biz_id=?",
+                        (now, biz_id))
                 await db.commit()
             events.append({'kind': 'business_sabotage_ended', 'biz_id': biz_id,
                            'biz_name': str((get_business(biz_id) or {}).get('name') or biz_id)})
@@ -25042,18 +25052,25 @@ async def _coop_http_app():
                                  +(float(p.get('y') or 0)-rc[0])**2 <= 8.0**2))
                         if not valid:
                             choice_reply = {'ok': False, 'reason': 'invalid_choice'}
-                        elif (action == 'capture' and
+                        else:
+                            # Reserve the decision token before any inventory/DB side effect.
+                            # Two tabs for the same player must never spend or apply one choice twice.
+                            world._business_war_claims.pop(str(uid), None)
+                        if valid and (action == 'capture' and
                               (family not in ('bellini','moretti') or family != claim_family)):
+                            world._business_war_claims[str(uid)] = claim
                             choice_reply = {'ok': False, 'reason': 'no_family'}
-                        elif (action == 'sabotage' and
+                        elif valid and (action == 'sabotage' and
                               float(world._business_war_sabotage_immunity.get(biz_id) or 0) > time.time()):
+                            world._business_war_claims[str(uid)] = claim
                             choice_reply = {'ok': False, 'reason': 'sabotage_immunity',
                                             'wait_s': int(world._business_war_sabotage_immunity[biz_id]-time.time())}
-                        elif (action == 'sabotage' and
+                        elif valid and (action == 'sabotage' and
                               not await remove_item(int(uid), 'c4', 1)):
+                            world._business_war_claims[str(uid)] = claim
                             choice_reply = {'ok': False, 'reason': 'no_c4',
                                             'biz_id': biz_id}
-                        else:
+                        elif valid:
                             now_choice = time.time()
                             biz_name = str((get_business(biz_id) or {}).get('name') or biz_id)
                             if action == 'cash':
