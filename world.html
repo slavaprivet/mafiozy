@@ -5272,6 +5272,7 @@ function applyQuestCarsSnapshot(arr) {
       prev.owner_uid  = c.owner_uid;
       // _lockedModel = угнанная civ-машина: держим её скин, не даём серверу подменить
       prev.model      = prev._lockedModel || c.model;
+      prev.paint      = _normalizeVehiclePaint(c.paint) || prev.paint || null;
       prev.reward     = c.reward;
       prev.hp         = c.hp;
       prev.max_hp     = c.max_hp;
@@ -5287,6 +5288,7 @@ function applyQuestCarsSnapshot(arr) {
       questCars.set(c.id, {
         id:   c.id,
         model: c.model,
+        paint: _normalizeVehiclePaint(c.paint),
         x: c.x, y: c.y, ang: c.ang,
         tx: c.x, ty: c.y, tAng: c.ang,
         vx: c.vx, vy: c.vy,
@@ -9568,6 +9570,34 @@ function resolveCarModel(modelId) {
     for (const k in POLICE_MODELS)   _CAR_MODEL_BY_NAME[POLICE_MODELS[k].name || k] = POLICE_MODELS[k];
   }
   return _CAR_MODEL_BY_NAME[modelId] || _CAR_MODEL_BY_NAME['sedan'] || QUEST_CAR_MODELS.cadillac_eldo;
+}
+function _normalizeVehiclePaint(paint) {
+  if (!paint || typeof paint !== 'object') return null;
+  const valid = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+  if (!valid(paint.primary)) return null;
+  return {
+    primary: paint.primary.toLowerCase(),
+    secondary: valid(paint.secondary) ? paint.secondary.toLowerCase() : paint.primary.toLowerCase(),
+    roof: valid(paint.roof) ? paint.roof.toLowerCase() : null,
+  };
+}
+function _vehiclePaintFromCar(car) {
+  const model = car && car.model;
+  if (!model) return null;
+  return _normalizeVehiclePaint({
+    primary: car._junkerColor || model.palette?.[0],
+    secondary: model.palette?.[1] || car._junkerColor || model.palette?.[0],
+    roof: model.roof || model.palette?.[1] || model.palette?.[0],
+  });
+}
+function _vehicleModelWithPaint(model, paint) {
+  const fixed = _normalizeVehiclePaint(paint);
+  if (!model || !fixed) return model;
+  return {
+    ...model,
+    palette: [fixed.primary, fixed.secondary],
+    roof: fixed.roof || model.roof,
+  };
 }
 // Полицейские модели — отдельный pool, используется ТОЛЬКО для патрулей
 // и спецсобытий (не спавнятся как обычные машины). Эти модели имеют
@@ -15099,9 +15129,11 @@ function handleEventPacket(d) {
       // догонит через 1 кадр, поэтому пока создаём болванку.
       // Скин — в какую сел, в той и едешь: предпочитаем локальную модель.
       const _useModel = _pendingHijackModel || d.model;
+      const _usePaint = _normalizeVehiclePaint(_pendingHijackPaint || d.paint);
       if (!questCars.has(d.car_id)) {
         questCars.set(d.car_id, {
           id: d.car_id, model: _useModel, _lockedModel: _useModel,
+          paint: _usePaint,
           owner_uid: String(QP.uid), driver_uid: String(QP.uid),
           passenger_uids: [],
           x: d.x, y: d.y, ang: player.ang || 0,
@@ -15113,8 +15145,10 @@ function handleEventPacket(d) {
       } else {
         const _ex = questCars.get(d.car_id);
         _ex.model = _useModel; _ex._lockedModel = _useModel;
+        _ex.paint = _usePaint || _ex.paint || null;
       }
       _pendingHijackModel = null;
+      _pendingHijackPaint = null;
       _dropCarriedBagForVehicleEntry();
       myDrivingCarId = d.car_id;
       myIsPassenger  = false;
@@ -15191,6 +15225,8 @@ function handleEventPacket(d) {
       hapticHit();
       if(_buildingInt&&_buildingInt.robbery)setTimeout(()=>{if(_buildingInt&&_buildingInt.robbery)exitBuildingInterior();},1800);
     } else {
+      _pendingHijackModel = null;
+      _pendingHijackPaint = null;
       if(_buildingInt&&_buildingInt.robbery)_buildingInt.robberyClaimed=false;
       // Кассир-снитч мог уже побежать локально — отменим, чтобы не было
       // несоответствия (сервер отверг — wanted не вырастет, снитчить не надо).
@@ -15633,6 +15669,7 @@ function handleEventPacket(d) {
     if (d.ok && !d.delivered && !exited && d.model && Number.isFinite(+d.x) && Number.isFinite(+d.y)) {
       exited = {
         id:d.car_id, model:d.model, _lockedModel:d.civilian?d.model:null,
+        paint:_normalizeVehiclePaint(d.paint),
         owner_uid:d.owner_uid, driver_uid:null, passenger_uids:[],
         x:+d.x, y:+d.y, tx:+d.x, ty:+d.y, ang:+d.ang||0, tAng:+d.ang||0,
         vx:0, vy:0, hp:+d.hp||220, max_hp:+d.max_hp||220,
@@ -15643,6 +15680,7 @@ function handleEventPacket(d) {
       questCars.set(d.car_id,exited);
     }
     if (d.ok && exited) {
+      exited.paint = _normalizeVehiclePaint(d.paint) || exited.paint || null;
       _parkQuestCarLocally(exited,d.car_id);
     }
     if (myDrivingCarId === d.car_id) {
@@ -19790,6 +19828,7 @@ function _completeHijack(car) {
   _myCarFuelPct = (car._fuel !== undefined) ? car._fuel : (55 + Math.random() * 45);
   // Запоминаем модель — чтобы серверный civilian_hijack_reply не подменил скин
   _pendingHijackModel = (car.model && car.model.name) || null;
+  _pendingHijackPaint = _vehiclePaintFromCar(car);
   // НЕ удаляем машину из CARS сразу: между splice и приходом серверного
   // civilian_hijack_reply (~100мс RTT) клиент видел «дырку» — машина
   // пропадала с экрана пока серверный quest_car не появится. Теперь
@@ -19810,6 +19849,7 @@ function _completeHijack(car) {
   try {
     ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
       x: +car.c.toFixed(2), y: +car.r.toFixed(2), model: _pendingHijackModel,
+      paint: _pendingHijackPaint,
       // Witness отправляем ТОЛЬКО если рядом коп — он видел угон сам.
       // Мирные NPC, если что, побегут стучать (см. spawnEjectedDriver).
       witness: _copInRadius(player.r, player.c, 10),
@@ -20367,6 +20407,7 @@ let _handbrakeActive = false;   // ручной тормоз — удержив�
 // Модель угоняемой civ-машины — чтобы скин в какую сел, в той и едешь
 // (сервер может прислать другую модель; мы её игнорируем для своей civ-тачки).
 let _pendingHijackModel = null;
+let _pendingHijackPaint = null;
 // Единый локальный переход «машина припаркована». Раньше он выполнялся
 // только при выходе из уже стоящей машины. Выход на ходу шёл через update(),
 // обнулял myDrivingCarId без grace-защиты, и ближайший snapshot успевал
@@ -32474,7 +32515,7 @@ function drawCareerHelicopter(qc,m){
 function drawQuestCar(qc) {
   // Резолвер: угнанная civ-машина имеет модель из CAR_MODELS (sedan/taxi),
   // которой нет в QUEST_CAR_MODELS. Раньше тут был return → машина пропадала.
-  const m = resolveCarModel(qc.model);
+  const m = _vehicleModelWithPaint(resolveCarModel(qc.model), qc.paint);
   if (!m) return;
   if(m.helicopter&&!qc.wrecked){drawCareerHelicopter(qc,m);return;}
   // Непрерывный угол — плавный поворот без 4-snap
@@ -44343,8 +44384,36 @@ function _bizIsoBox(r,c,w,d,h,top,left,right,label='') {
   ctx.fillStyle=left; ctx.beginPath();ctx.moveTo(D.x,D.y-z);ctx.lineTo(C.x,C.y-z);ctx.lineTo(C.x,C.y);ctx.lineTo(D.x,D.y);ctx.closePath();ctx.fill();ctx.stroke();
   ctx.fillStyle=right;ctx.beginPath();ctx.moveTo(B.x,B.y-z);ctx.lineTo(C.x,C.y-z);ctx.lineTo(C.x,C.y);ctx.lineTo(B.x,B.y);ctx.closePath();ctx.fill();ctx.stroke();
   ctx.fillStyle=top;ctx.beginPath();ctx.moveTo(A.x,A.y-z);ctx.lineTo(B.x,B.y-z);ctx.lineTo(C.x,C.y-z);ctx.lineTo(D.x,D.y-z);ctx.closePath();ctx.fill();ctx.stroke();
-  if(label){const p=w2s(r,c);ctx.font='900 7px system-ui';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText(label,p.x,p.y-z-3);}
+  if(label){const p=w2s(r,c);ctx.font='900 8px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='rgba(4,5,10,.94)';ctx.fillStyle='#fff';ctx.strokeText(label,p.x,p.y-z-3);ctx.fillText(label,p.x,p.y-z-3);}
   ctx.restore();
+}
+
+function _drawCasinoReadableLabel(text,x,y,color='#ffe6a0',size=9) {
+  if(!text)return;
+  ctx.save();ctx.font=`900 ${size}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';
+  const w=Math.ceil(ctx.measureText(text).width)+10,h=size+7;
+  ctx.fillStyle='rgba(7,5,12,.86)';ctx.strokeStyle='rgba(232,188,75,.72)';ctx.lineWidth=1;
+  roundRect(x-w/2,y-h/2,w,h,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle=color;ctx.strokeStyle='rgba(0,0,0,.96)';ctx.lineWidth=2.5;
+  ctx.strokeText(text,x,y+.5);ctx.fillText(text,x,y+.5);ctx.restore();
+}
+
+function _drawCasinoNameOverlay(bi) {
+  if(!bi||bi.bizId!=='major_casino')return;
+  const draw=(r,c,name,color)=>{
+    if(!name)return;
+    const p=w2s(r+.5,c+.5);
+    p.y-=isoH(_casinoVisualElevation(bi,r,c));
+    const y=p.y-TS*1.7*.94-18;
+    if(p.x<-100||p.x>canvas.width+100||y<-30||y>canvas.height+30)return;
+    _drawCasinoReadableLabel(name,p.x,y,color,10);
+  };
+  for(const n of (bi.npcs||[]))if(!n.dead)draw(n.r,n.c,n.name,n._allied?'#75ff8b':'#a7ffb0');
+  for(const [,o] of others){
+    if(o.dead||!o.interior||o.interior.kind!=='business'||o.interior.biz_id!==bi.bizId)continue;
+    draw(o.y,o.x,o.name,'#9edbff');
+  }
+  draw(player.r,player.c,'Игрок','#ffd76b');
 }
 
 function _drawCasinoSlotMachine(r,c,index=0) {
@@ -44489,7 +44558,7 @@ function _drawCasinoBar(r,c) {
     ctx.beginPath();ctx.ellipse(s.x,s.y-isoH(.45),8,4,0,0,Math.PI*2);ctx.fill();ctx.stroke();
     ctx.fillRect(s.x-1,s.y-isoH(.45),2,12);
   }
-  ctx.fillStyle='#ffe6a0';ctx.font='900 9px system-ui';ctx.textAlign='center';ctx.fillText('BAR · COCKTAILS',p.x,topY-42);
+  _drawCasinoReadableLabel('BAR · COCKTAILS',p.x,topY-42,'#ffe6a0',9);
   ctx.restore();
 }
 
@@ -44721,10 +44790,10 @@ const MAJOR_CASINO_STATIC_BLOCKERS = [
   ...[[18.2,12],[18.2,22],[18.2,32]].map(([r,c],i)=>({id:`card_${i}`,r,c,w:4.6,d:2.35,color:'#116443'})),
   {id:'dance_stage',r:11,c:22,w:6,d:2.4,color:'#9b1d55'},
   // Бар, VIP-мебель и служебные кабинеты.
-  {id:'bar',r:24.2,c:31.5,w:8.5,d:1.6,color:'#8a4b24'},
+  {id:'bar',r:23.55,c:31.5,w:8.5,d:1.6,color:'#8a4b24'},
   {id:'vip_table',r:23,c:7.2,w:5.4,d:3.2,color:'#5c1742'},
   {id:'vip_sofa_n',r:21.6,c:7.2,w:5.4,d:1.25,color:'#6e234f'},
-  {id:'vip_sofa_s',r:24.5,c:7.2,w:5.4,d:1.25,color:'#6e234f'},
+  {id:'vip_sofa_s',r:23.85,c:7.2,w:5.4,d:1.25,color:'#6e234f'},
   {id:'champagne',r:23,c:12,w:2.2,d:1.3,color:'#d0a73b'},
   {id:'office',r:5.8,c:40,w:6.2,d:2.1,color:'#4f2038'},
   {id:'security',r:13,c:40,w:5.2,d:2.1,color:'#30243a'},
@@ -45142,12 +45211,12 @@ function _drawBusinessInterior(bi) {
         items.push({d:rr+cc,furniture:true,fn:()=>_drawCasinoCardTable(rr,cc,label,i)});
       if(_casinoPropAlive('dance_stage'))
         items.push({d:33,furniture:true,fn:()=>_drawCasinoDanceStage(11,22)});
-      if(_casinoPropAlive('bar'))items.push({d:57,furniture:true,fn:()=>_drawCasinoBar(24.2,31.5)});
+      if(_casinoPropAlive('bar'))items.push({d:56.35,furniture:true,fn:()=>_drawCasinoBar(23.55,31.5)});
       items.push({d:12,furniture:true,fn:()=>_drawCasinoUpperGallery()});
       items.push({d:23,furniture:true,fn:()=>_drawCasinoStairs(18.8,3.8)});
       if(_casinoPropAlive('vip_table'))box('VIP LOUNGE',23,7.2,5.4,3.2,.42,'#5c1742');
       if(_casinoPropAlive('vip_sofa_n'))box('',21.6,7.2,5.4,1.25,1.05,'#6e234f');
-      if(_casinoPropAlive('vip_sofa_s'))box('',24.5,7.2,5.4,1.25,1.05,'#6e234f');
+      if(_casinoPropAlive('vip_sofa_s'))box('',23.85,7.2,5.4,1.25,1.05,'#6e234f');
       if(_casinoPropAlive('champagne'))box('CHAMPAGNE',23,12,2.2,1.3,.82,'#d0a73b');
       if(_casinoPropAlive('office'))
         items.push({d:45.8,furniture:true,fn:()=>_drawCasinoOffice(5.8,40)});
@@ -45226,7 +45295,10 @@ function _drawBusinessInterior(bi) {
   const businessDepth=(it)=>isGrandCasino?it.d:
     (it.furniture?Math.min(it.d,firstPersonDepth-.01):it.d);
   items.sort((a,b)=>businessDepth(a)-businessDepth(b));for(const it of items)it.fn();
-  if(isGrandCasino)_drawCasinoDebris();
+  if(isGrandCasino){
+    _drawCasinoDebris();
+    _drawCasinoNameOverlay(bi);
+  }
   drawGroundMissionBoxes();
   const deliveryQuest = myBoxStatus && myBoxStatus.active;
   if (deliveryQuest?.state === 'carrying' &&

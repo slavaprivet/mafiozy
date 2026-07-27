@@ -8,6 +8,7 @@ import json
 import urllib.parse
 import os
 import secrets
+import re
 from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.error import Forbidden, BadRequest
@@ -60,6 +61,18 @@ if _token_src != _BOT_TOKEN_FILE:
         pass
 
 DB_PATH = os.path.join(os.environ.get("DB_DIR", ""), "mafiozi.db")
+
+
+def _normalize_vehicle_paint(value) -> dict | None:
+    """Accept only compact CSS hex colors; vehicle paint is cosmetic state."""
+    if not isinstance(value, dict):
+        return None
+    result = {}
+    for key in ('primary', 'secondary', 'roof'):
+        color = str(value.get(key) or '').strip().lower()
+        if re.fullmatch(r'#[0-9a-f]{6}', color):
+            result[key] = color
+    return result if 'primary' in result else None
 
 def md(text: str) -> str:
     """Экранирует спецсимволы Markdown v1 для Telegram."""
@@ -14317,7 +14330,8 @@ class WorldSim:
                               'suv_black','suv_white','jeep_safari','jeep_sand','muscle_blue','muscle_org',
                               'roadster','classic','classic2','corvette_c3','mustang_67','cadillac_eldo',
                               'delorean','jaguar_e','harley_chopper','ducati_750')
-    def civilian_hijack_start(self, uid: str, requested_model=None) -> dict:
+    def civilian_hijack_start(self, uid: str, requested_model=None,
+                              requested_paint=None) -> dict:
         p = self.players.get(uid)
         if not p:
             return {'ok': False, 'reason': 'no_player'}
@@ -14327,6 +14341,7 @@ class WorldSim:
                 return {'ok': False, 'reason': 'busy'}
         requested_model = str(requested_model or '')
         model = requested_model if requested_model in self.CIVILIAN_HIJACK_MODELS else random.choice(self.CIVILIAN_HIJACK_MODELS)
+        paint = _normalize_vehicle_paint(requested_paint)
         mdef  = self.QUEST_CAR_MODELS.get(model) or {}
         sx, sy = float(p['x']), float(p['y'])
         cid = f'civ{self._quest_car_next_id}'
@@ -14351,13 +14366,14 @@ class WorldSim:
             'state':      'driven',
             'wrecked':    False,
             'civilian':   True,           # флаг — не считаем как quest-доставку
+            'paint':      paint,
             '_spawn_t':   time.time(),
             '_last_drive_t': time.time(),
         }
         self.quest_cars[cid] = qc
         # НЕ ставим _gta_active_car_id — civilian не считается квестом Майкла
         return {'ok': True, 'car_id': cid, 'model': model,
-                'x': sx, 'y': sy, 'civilian': True}
+                'x': sx, 'y': sy, 'civilian': True, 'paint': paint}
 
     def gta_enter(self, uid: str, car_id: str, police_lockpicked: bool = False) -> dict:
         p = self.players.get(uid)
@@ -14573,6 +14589,7 @@ class WorldSim:
                 'civilian': bool(qc.get('civilian')),
                 'police_patrol': bool(qc.get('police_patrol')),
                 'police_stolen': bool(qc.get('police_stolen')),
+                'paint': qc.get('paint'),
             }
             payload.update(extra)
             return payload
@@ -19591,6 +19608,7 @@ class WorldSim:
                 'tires_punctured': bool(qc.get('tires_punctured', False)),
                 'called_patrol': bool(qc.get('called_patrol', False)),
                 'expires_at': float(qc.get('expires_at') or 0),
+                'paint':      qc.get('paint'),
             })
         world_c4_payload = [{
             'id': str(q.get('id') or charge_id),
@@ -23438,7 +23456,8 @@ async def _coop_http_app():
                         p = world.players.get(uid)
                         if p and not p.get('dead') and p.get('_mode') != 'pve':
                             px = p.get('x', 0); py = p.get('y', 0)
-                            reply = world.civilian_hijack_start(uid, d.get('model'))
+                            reply = world.civilian_hijack_start(
+                                uid, d.get('model'), d.get('paint'))
                             # Персональный ответ — клиент по нему сетит myDrivingCarId
                             try:
                                 await ws.send_str(json.dumps(
@@ -23452,6 +23471,7 @@ async def _coop_http_app():
                                     'kind':     'quest_car_spawned',
                                     'car_id':   reply['car_id'],
                                     'model':    reply['model'],
+                                    'paint':    reply.get('paint'),
                                     'reward':   0,
                                     'lock_lvl': 0,
                                     'civilian': True,

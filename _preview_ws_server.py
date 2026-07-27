@@ -10,6 +10,18 @@ from aiohttp import web
 BASE_DIR = Path(__file__).resolve().parent
 
 
+def normalize_preview_vehicle_paint(value):
+    if not isinstance(value, dict):
+        return None
+    result = {}
+    for key in ("primary", "secondary", "roof"):
+        color = str(value.get(key) or "").strip().lower()
+        if len(color) == 7 and color[0] == "#" and all(
+                ch in "0123456789abcdef" for ch in color[1:]):
+            result[key] = color
+    return result if "primary" in result else None
+
+
 players = {}
 preview_pending_lair_shots = []
 PREVIEW_LAIR_WEAPON_SPEED = {
@@ -752,8 +764,7 @@ def make_race_car(slot):
 
 
 def tick_race_cars():
-    """Keep one preview race car in every pit, like the real server does."""
-    now = time.time()
+    """Do not teleport a parked race car away after its driver exits."""
     for slot in RACE_SLOTS:
         car = quest_cars.get(slot["id"])
         if car is None:
@@ -761,8 +772,9 @@ def tick_race_cars():
             continue
         if car.get("driver_uid") is not None:
             continue
-        away = abs(car["x"] - slot["x"]) >= 1.2 or abs(car["y"] - slot["y"]) >= 1.2
-        if car.get("wrecked") or (away and now - car.get("parked_at", now) >= 12.0):
+        # Разбитую машину можно восстановить в боксе. Исправная оставленная
+        # машина остаётся ровно там, где игрок из неё вышел.
+        if car.get("wrecked"):
             park_race_car(car)
 
 
@@ -791,7 +803,7 @@ def park_race_car(car):
         "ang": slot["ang"],
         "vx": 0.0,
         "vy": 0.0,
-        "owner_uid": uid,
+        "owner_uid": None,
         "driver_uid": None,
         "passenger_uids": [],
         "wrecked": False,
@@ -839,6 +851,7 @@ def race_car_payload():
             "tires_punctured": bool(car.get("tires_punctured", False)),
             "called_patrol": bool(car.get("called_patrol", False)),
             "expires_at": float(car.get("expires_at", 0)),
+            "paint": car.get("paint"),
         }
         for car in quest_cars.values()
     ]
@@ -852,10 +865,11 @@ def preview_civilian_carjack(uid, data):
     x = float(data.get("x", p.get("x", PREVIEW_START_X)))
     y = float(data.get("y", p.get("y", PREVIEW_START_Y)))
     model = str(data.get("model") or "corvette_c3")
+    paint = normalize_preview_vehicle_paint(data.get("paint"))
     car = {
         "id": car_id,
         "model": model,
-        "owner_uid": None,
+        "owner_uid": str(uid),
         "driver_uid": uid,
         "passenger_uids": [],
         "x": x,
@@ -867,6 +881,7 @@ def preview_civilian_carjack(uid, data):
         "max_hp": 220,
         "wrecked": False,
         "civilian": True,
+        "paint": paint,
     }
     quest_cars[car_id] = car
     p["x"] = x
@@ -879,6 +894,7 @@ def preview_civilian_carjack(uid, data):
         "x": x,
         "y": y,
         "civilian": True,
+        "paint": paint,
     }
 
 
@@ -3834,9 +3850,11 @@ async def world_ws(req):
                         "kind": "quest_car_spawned",
                         "car_id": reply["car_id"],
                         "model": reply["model"],
+                        "paint": reply.get("paint"),
                         "reward": 0,
                         "lock_lvl": 0,
                         "civilian": True,
+                        "paint": reply.get("paint"),
                         "by_uid": uid,
                         "x": reply["x"],
                         "y": reply["y"],
@@ -3897,7 +3915,8 @@ async def world_ws(req):
                               "max_hp": int(car.get("max_hp", 220)),
                               "civilian": bool(car.get("civilian", not delivered)),
                               "police_patrol": bool(car.get("police_patrol", False)),
-                              "police_stolen": bool(car.get("police_stolen", False))},
+                              "police_stolen": bool(car.get("police_stolen", False)),
+                              "paint": car.get("paint")},
                     }))
             elif t == "race_top":
                 await ws.send_str(json.dumps({"t": "race_top", "d": {"top": race_top()}}))
