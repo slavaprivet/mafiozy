@@ -35,7 +35,8 @@ async def send_world_input(ws, *, x, y, mafia=True, interior=None):
     await asyncio.sleep(0.03)
 
 
-async def run_business_cycle(ws, uid, biz_id, expected_attempt, expected_guards):
+async def run_business_cycle(
+        ws, uid, biz_id, expected_attempt, expected_guards, preserve_control=False):
     r, c = game.PREVIEW_BUSINESS_RC[biz_id]
     await send_world_input(ws, x=c, y=r)
     await ws.send_json({"t": "business_rob_prepare", "d": {"biz_id": biz_id}})
@@ -101,11 +102,28 @@ async def run_business_cycle(ws, uid, biz_id, expected_attempt, expected_guards)
     assert result["ok"], result
     assert result["money"] == game.PREVIEW_ROB_PAYOUT[biz_id][0]
     assert game.preview_account(uid)["cash"] == cash_before + result["money"]
+    assert result["family_control_s"] == 600
+    assert result["family_income_per_member"] == max(1, result["money"] // 10)
+    control = game.preview_robbed_business_controls[biz_id]
+    assert control["mafia_family"] == "bellini"
+    assert control["owner_uid"] == str(uid)
+
+    # Пока идут 10 минут дохода, вражеская семья не может начать перехват.
+    game.players[str(uid)]["mafia_family"] = "moretti"
+    await ws.send_json({"t": "business_rob_prepare", "d": {"biz_id": biz_id}})
+    blocked = await recv_kind(ws, "business_rob_prepare_reply")
+    assert not blocked["ok"]
+    assert blocked["reason"] == "family_control"
+    assert blocked["control_family"] == "bellini"
+    assert blocked["control_s"] > 0
+    game.players[str(uid)]["mafia_family"] = "bellini"
 
     # Для следующего шага трёхступенчатого сценария прокручиваем 5-минутный
-    # кулдаун, не ослабляя его в самой игре.
+    # кулдаун и 10-минутный контроль, не ослабляя их в самой игре.
     game.preview_business_closures.pop(biz_id, None)
     game.preview_business_last_robs.pop((str(uid), biz_id), None)
+    if not preserve_control:
+        game.preview_robbed_business_controls.pop(biz_id, None)
     return result
 
 
@@ -233,10 +251,55 @@ async def main():
         results = []
         for attempt, guards in ((1, 2), (2, 5), (3, 8)):
             results.append(
-                await run_business_cycle(ws, uid, "carwash", attempt, guards)
+                await run_business_cycle(
+                    ws, uid, "carwash", attempt, guards,
+                    preserve_control=(attempt == 3),
+                )
             )
         assert game.preview_business_rob_cycles[(uid, "carwash")] == 0
         assert sum(row["money"] for row in results) == 900
+        control = game.preview_robbed_business_controls["carwash"]
+        # Семейный перехват не отнимает купленный бизнес у его владельца:
+        # обычная касса продолжает копиться и собираться отдельно.
+        owner_uid = "purchased-business-owner"
+        game.preview_owned_businesses(owner_uid)["carwash"] = {
+            "bought_at": int(game.time.time()) - 86400,
+            "last_collect": game.time.time() - 86400,
+            "level": 1, "guards": 0,
+        }
+        owner_cash_before = game.preview_account(owner_uid)["cash"]
+        collect_response = await client.post(
+            f"/biz/{owner_uid}/collect", json={"biz_id": "carwash"})
+        collected = await collect_response.json()
+        assert collected["ok"], collected
+        assert collected["collected"] > 0
+        assert game.preview_account(owner_uid)["cash"] == (
+            owner_cash_before + collected["collected"]
+        )
+        family_cash_before = game.preview_account(uid)["cash"]
+        control["last_payout_at"] -= 60
+        await game.snap(uid)
+        assert game.preview_account(uid)["cash"] == (
+            family_cash_before + control["income_per_member"]
+        )
+        assert control["payouts_done"] == 1
+        control["expires_at"] = 0
+        await game.snap(uid)
+        assert "carwash" not in game.preview_robbed_business_controls
+        assert "carwash" in game.preview_business_family_wars
+        war = game.preview_business_family_wars["carwash"]
+        r, c = game.PREVIEW_BUSINESS_RC["carwash"]
+        game.players[uid].update({
+            "x": c, "y": r, "mafia": True, "mafia_family": "bellini",
+            "dead": False, "police": False,
+        })
+        war["progress"] = 89.5
+        war["last_tick_at"] = game.time.time() - 1
+        cash_before_war_win = game.preview_account(uid)["cash"]
+        await game.snap(uid)
+        assert "carwash" not in game.preview_business_family_wars
+        assert game.preview_robbed_business_controls["carwash"]["mafia_family"] == "bellini"
+        assert game.preview_account(uid)["cash"] == cash_before_war_win + 150
 
         await run_casino_capture(ws, uid)
     finally:

@@ -742,7 +742,7 @@ ITEMS = {
     "passport":      {"name": "📄 Паспорт",          "type": "document", "desc": "Официальный документ. Открывает новые рабочие места."},
     # Пляжные находки: можно оставить себе и позднее сбыть на чёрном рынке.
     "lost_phone":    {"name": "📱 Потерянный телефон", "type": "thing", "sell_price": 180, "desc": "Чужой телефон, найденный на пляже."},
-    "lost_wallet":   {"name": "👛 Потерянный кошелёк", "type": "thing", "sell_price": 120, "desc": "Кошелёк без документов. Витёк возьмёт без вопросов."},
+    "lost_wallet":   {"name": "👛 Потерянный кошелёк", "type": "thing", "sell_price": 120, "desc": "Кошелёк без документов. Рыночный барыга возьмёт без вопросов."},
     "lost_keys":     {"name": "🔑 Связка чужих ключей", "type": "thing", "sell_price": 70, "desc": "Чья-то связка ключей с брелоком."},
     # Эксклюзивное оружие казино (только через рулетку)
     "knuckles":      {"name": "🥊 Кастет",           "type": "weapon",   "attack_bonus": 10,  "desc": "+10 к атаке. Рынок."},
@@ -1006,6 +1006,33 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS mafia_family_scores (
                 family TEXT PRIMARY KEY,
                 points INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS robbed_business_control (
+                biz_id TEXT PRIMARY KEY,
+                owner_uid TEXT NOT NULL,
+                owner_name TEXT NOT NULL,
+                mafia_family TEXT NOT NULL,
+                captured_at REAL NOT NULL,
+                expires_at REAL NOT NULL,
+                last_payout_at REAL NOT NULL,
+                payouts_done INTEGER NOT NULL DEFAULT 0,
+                income_per_member INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        try:
+            await db.execute(
+                "ALTER TABLE robbed_business_control ADD COLUMN warned INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS business_family_wars (
+                biz_id TEXT PRIMARY KEY,
+                started_at REAL NOT NULL,
+                expires_at REAL NOT NULL,
+                progress REAL NOT NULL DEFAULT 0,
+                previous_family TEXT NOT NULL DEFAULT ''
             )
         """)
         for col, definition in (
@@ -4391,6 +4418,13 @@ SHOP_ROB_CONFIG = {
     "casino":     {"money": 5000, "difficulty": 4},
     "port":       {"money": 8000, "difficulty": 4},
 }
+SHOP_ROB_FAMILY_CONTROL_S = 10 * 60
+SHOP_ROB_FAMILY_INCOME_TICK_S = 60
+BUSINESS_FAMILY_WAR_WARNING_S = 60
+BUSINESS_FAMILY_WAR_DURATION_S = 3 * 60
+BUSINESS_FAMILY_WAR_HOLD_S = 90
+BUSINESS_FAMILY_WAR_RADIUS = 6.0
+BUSINESS_FAMILY_WAR_MAX_ACTIVE = 2
 
 # Ограбление подтверждается серверной сессией, а не итоговыми числами,
 # присланными браузером. Один и тот же бизнес закрыт для всех на 5 минут.
@@ -12327,6 +12361,80 @@ def _world_is_wall(r: int, c: int) -> bool:
     return True
 
 
+def _world_bot_passable(x: float, y: float, radius: float = 0.30) -> bool:
+    """Keep an NPC's whole body out of walls, not only its center point."""
+    return all(
+        not _world_is_wall(int(y + oy), int(x + ox))
+        for ox, oy in (
+            (0.0, 0.0), (-radius, -radius), (radius, -radius),
+            (-radius, radius), (radius, radius),
+        )
+    )
+
+
+def _world_bot_path(sx: float, sy: float, tx: float, ty: float,
+                    max_nodes: int = 12000) -> list[tuple[float, float]]:
+    """A* по пешеходной сетке: маршрут NPC огибает здания и воду."""
+    import heapq
+    start = (int(sy), int(sx))
+    goal = (int(ty), int(tx))
+    if start == goal:
+        return [(tx, ty)]
+    if not _world_bot_passable(goal[1] + .5, goal[0] + .5):
+        return []
+    frontier = [(0.0, start)]
+    came = {start: None}
+    cost = {start: 0.0}
+    visited = 0
+    while frontier and visited < max_nodes:
+        _, current = heapq.heappop(frontier)
+        visited += 1
+        if current == goal:
+            break
+        r, c = current
+        for dr, dc, step_cost in (
+                (-1, 0, 1.0), (1, 0, 1.0), (0, -1, 1.0), (0, 1, 1.0),
+                (-1, -1, 1.414), (-1, 1, 1.414),
+                (1, -1, 1.414), (1, 1, 1.414)):
+            nr, nc = r + dr, c + dc
+            if not _world_bot_passable(nc + .5, nr + .5):
+                continue
+            # Диагональ не должна срезать угол здания.
+            if dr and dc and (
+                    not _world_bot_passable(c + dc + .5, r + .5)
+                    or not _world_bot_passable(c + .5, r + dr + .5)):
+                continue
+            nxt = (nr, nc)
+            new_cost = cost[current] + step_cost
+            if new_cost >= cost.get(nxt, 1e30):
+                continue
+            cost[nxt] = new_cost
+            came[nxt] = current
+            heuristic = abs(goal[0] - nr) + abs(goal[1] - nc)
+            heapq.heappush(frontier, (new_cost + heuristic, nxt))
+    if goal not in came:
+        return []
+    cells = []
+    cur = goal
+    while cur != start:
+        cells.append(cur)
+        cur = came[cur]
+    cells.reverse()
+    # Удаляем лишние соседние точки на прямых участках.
+    route = []
+    last_dir = None
+    prev = start
+    for cell in cells:
+        direction = (cell[0] - prev[0], cell[1] - prev[1])
+        if route and direction == last_dir:
+            route[-1] = (cell[1] + .5, cell[0] + .5)
+        else:
+            route.append((cell[1] + .5, cell[0] + .5))
+        last_dir = direction
+        prev = cell
+    return route
+
+
 def _district_patrol_ok(did: str, x: float, y: float) -> bool:
     """Районный боец остаётся на суше и внутри своего района."""
     # Снапшот передаёт две цифры после запятой: проверяем именно ту точку,
@@ -12441,6 +12549,8 @@ class WorldSim:
         '_business_npc_occupations', '_business_npc_capture_cooldown',
         '_business_closed_until', '_business_aggro_until', '_business_police_protected_until',
         '_business_owner_protected_until', '_business_rob_sessions',
+        '_robbed_business_controls',
+        '_business_family_wars',
         # Очередь физических пуль ботов (dodge-механика).
         '_pending_bot_shots',
         # Пляжники — мирные NPC в купальниках/плавках.
@@ -12741,8 +12851,8 @@ class WorldSim:
     # огнём. Хостильную банду атакуют копы — расстреливают за минуту.
     CITY_GANG_MAX           = 4       # по городу одновременно бродят до 4 групп
     CITY_GANG_SIZE          = 3       # бойцов в группе
-    CITY_GANG_SPAWN_GAP_S   = 240.0   # 4 мин между новыми спавнами
-    CITY_GANG_FORMATION_GAP_S = 25.0  # быстро собираем обе разные фракции
+    CITY_GANG_SPAWN_GAP_S   = 120.0   # 2 мин между заменой уничтоженных патрулей
+    CITY_GANG_FORMATION_GAP_S = 8.0   # быстро собираем все четыре патруля
     CITY_GANG_THREAT_R      = 4.0     # тайлов — порог threat-фразы
     CITY_GANG_THREAT_CD_S   = 6.0     # cooldown threat-фраз на игрока
     CITY_GANG_HOSTILE_S     = 30.0    # сколько секунд hostile после атаки
@@ -12987,7 +13097,8 @@ class WorldSim:
             for prop_id, (_, _, hp) in self.CASINO_PROP_DEFS.items()
         }}
         self.faction_war         = {
-            'districts': {did: {'police': 0, 'mafia': 0} for did in self.DISTRICTS_DEF},
+            'districts': {did: {'police': 0, 'mafia': 0, 'bellini': 0, 'moretti': 0}
+                          for did in self.DISTRICTS_DEF},
             'last_decay_at': time.time(),
         }
         self._faction_war_awards = {}
@@ -13036,6 +13147,10 @@ class WorldSim:
         self._business_npc_occupations = {}
         self._business_npc_capture_cooldown = {}
         self._business_closed_until = {}
+        # Ограбленное здание 10 минут приносит ежеминутный доход каждому
+        # участнику семьи захватчика, затем снова становится нейтральным.
+        self._robbed_business_controls = {}
+        self._business_family_wars = {}
         # (uid, biz_id) -> timestamp. Охрана помнит только конкретного
         # нападавшего; мирные посетители того же бизнеса не становятся целями.
         self._business_aggro_until = {}
@@ -13615,6 +13730,8 @@ class WorldSim:
         for score in self.faction_war.get('districts', {}).values():
             score['police'] = max(0, int(score.get('police') or 0) - loss)
             score['mafia'] = max(0, int(score.get('mafia') or 0) - loss)
+            score['bellini'] = max(0, int(score.get('bellini') or 0) - loss)
+            score['moretti'] = max(0, int(score.get('moretti') or 0) - loss)
         self.faction_war['last_decay_at'] = last + periods * 1800.0
         cutoff = now - 3600.0
         self._faction_war_awards = {k:v for k,v in self._faction_war_awards.items() if v >= cutoff}
@@ -13632,14 +13749,22 @@ class WorldSim:
             if now - float(self._faction_war_awards.get(key) or 0) < float(cooldown_s):
                 return False
             self._faction_war_awards[key] = now
-        score = self.faction_war['districts'].setdefault(did, {'police': 0, 'mafia': 0})
+        score = self.faction_war['districts'].setdefault(
+            did, {'police': 0, 'mafia': 0, 'bellini': 0, 'moretti': 0})
         score[side] = max(0, min(100, int(score.get(side) or 0) + max(0, int(points))))
+        if side == 'mafia' and actor_uid:
+            family = str((self.players.get(str(actor_uid)) or {}).get('_mafia_family') or '')
+            if family in ('bellini', 'moretti'):
+                score[family] = max(
+                    0, min(100, int(score.get(family) or 0) + max(0, int(points))))
         return True
 
     def faction_war_payload(self) -> dict:
         self._tick_faction_war()
         districts = {did: {'police': int(v.get('police') or 0),
-                           'mafia': int(v.get('mafia') or 0)}
+                           'mafia': int(v.get('mafia') or 0),
+                           'bellini': int(v.get('bellini') or 0),
+                           'moretti': int(v.get('moretti') or 0)}
                      for did, v in self.faction_war.get('districts', {}).items()}
         return {'police': sum(v['police'] for v in districts.values()),
                 'mafia': sum(v['mafia'] for v in districts.values()),
@@ -16804,6 +16929,10 @@ class WorldSim:
                     self._business_npc_capture_cooldown[business_id] = cooldown_until
                 return {'kind':'gang_hire_reply','ok':True,'bot_id':str(bot_id),
                         'is_boss':is_boss,'level':bot_level,'did':did,
+                        'max_hp':int(bot.get('max_hp') or bot.get('hp') or 80),
+                        'weapon':str(bot.get('weapon') or 'pistol'),
+                        'look':dict(bot.get('look') or {}),
+                        'faction':str(gang.get('faction') or bot.get('faction') or 'purple'),
                         'business_id':business_id,
                         'business_cleared':business_cleared,
                         'cooldown_until':cooldown_until}
@@ -17047,12 +17176,8 @@ class WorldSim:
             # Не у тюрьмы (радиус 15)
             if ((x - self.JAIL_X)**2 + (y - self.JAIL_Y)**2) < 225:
                 continue
-            # Не в захватываемой зоне
-            tid, _ = self._territory_at(x, y)
-            if tid:
-                continue
             # Хотим стоять на тротуаре/дороге (не в здании)
-            if _world_is_wall(int(y), int(x)):
+            if not _world_bot_passable(x, y):
                 continue
             break
         else:
@@ -17066,9 +17191,15 @@ class WorldSim:
         bots = []
         for i in range(self.CITY_GANG_SIZE):
             self._next_bot_id += 1
-            # Разносим по тротуару рядом с центром
-            bx = x + random.uniform(-1.5, 1.5)
-            by = y + random.uniform(-1.5, 1.5)
+            # Разносим группу только по реально проходимым точкам: случайный
+            # сдвиг не должен поместить бойца внутрь соседнего дома.
+            bx, by = x, y
+            for _offset_try in range(20):
+                candidate_x = x + random.uniform(-1.5, 1.5)
+                candidate_y = y + random.uniform(-1.5, 1.5)
+                if _world_bot_passable(candidate_x, candidate_y):
+                    bx, by = candidate_x, candidate_y
+                    break
             bot_level = random.randint(1, 18)
             bot_hp = self._bandit_hp(self.AGGRO_BOT_HP, bot_level)
             bots.append({
@@ -17106,6 +17237,9 @@ class WorldSim:
             '_target_uid':     None,
             '_threat_t':       {},
             '_patrol_wp':      (x, y),
+            '_patrol_route':   [],
+            '_patrol_route_i': 0,
+            '_patrol_wp_until': 0.0,
             '_cops_dispatched': False,
             'faction':          faction,
             'mafia_family':     'moretti' if faction == 'yellow' else 'bellini',
@@ -17217,7 +17351,8 @@ class WorldSim:
                     'victim_faction':rival.get('faction','purple'),
                     'sx':round(attacker['x'],2), 'sy':round(attacker['y'],2),
                     'tx':round(victim['x'],2), 'ty':round(victim['y'],2),
-                    'dmg':damage, 'killed':killed, 'npc_gang_fight':True,
+                    'hp':int(victim['hp']), 'dmg':damage,
+                    'killed':killed, 'npc_gang_fight':True,
                 })
                 break
             if len(self._city_gang_encounters) > 32:
@@ -17272,7 +17407,7 @@ class WorldSim:
                         if (g.get('district_did')
                                 and not _district_patrol_ok(g['district_did'], nx, ny)):
                             continue
-                        if _world_is_wall(int(ny), int(nx)):
+                        if not _world_bot_passable(nx, ny):
                             continue
                         # Манёвр обязан реально увеличивать дистанцию от заряда.
                         if _m.hypot(nx - qx, ny - qy) <= nearest_dist:
@@ -17383,14 +17518,33 @@ class WorldSim:
                                 g['_patrol_progress_xy'] = (boss['x'], boss['y'])
                                 g['_patrol_progress_at'] = now
                                 break
-                elif _m.hypot(wx - cx, wy - cy) < 1.2:
-                    for _ in range(20):
-                        nwx = cx + random.uniform(-7, 7)
-                        nwy = cy + random.uniform(-7, 7)
-                        valid = (8 < nwy < 72 and 8 < nwx < WORLD_MAP_COLS - 8)
-                        if valid and not _world_is_wall(int(nwy), int(nwx)):
-                            g['_patrol_wp'] = (nwx, nwy)
-                            break
+                else:
+                    route = g.get('_patrol_route') or []
+                    route_i = int(g.get('_patrol_route_i') or 0)
+                    need_route = (
+                        route_i >= len(route)
+                        or now >= float(g.get('_patrol_wp_until') or 0)
+                    )
+                    if not need_route and _m.hypot(wx - cx, wy - cy) < 1.0:
+                        route_i += 1
+                        g['_patrol_route_i'] = route_i
+                        need_route = route_i >= len(route)
+                    if need_route:
+                        for _ in range(60):
+                            nwx = random.uniform(5.5, WORLD_MAP_COLS - 5.5)
+                            nwy = random.uniform(5.5, WORLD_BEACH_R1 - 1.5)
+                            if (_m.hypot(nwx - cx, nwy - cy) < 24.0
+                                    or not _world_bot_passable(nwx, nwy)):
+                                continue
+                            new_route = _world_bot_path(cx, cy, nwx, nwy)
+                            if new_route:
+                                g['_patrol_route'] = new_route
+                                g['_patrol_route_i'] = 0
+                                g['_patrol_wp_until'] = now + 180.0
+                                route, route_i = new_route, 0
+                                break
+                    if route_i < len(route):
+                        g['_patrol_wp'] = route[route_i]
                 wx, wy = g['_patrol_wp']
                 for bot_i, bot in enumerate(alive_bots):
                     if str(bot['id']) in fire_flee_ids:
@@ -17423,16 +17577,18 @@ class WorldSim:
                         if (g.get('district_did')
                                 and not _district_patrol_ok(g['district_did'], nx, ny)):
                             continue
-                        if _world_is_wall(int(ny), int(nx)):
+                        if not _world_bot_passable(nx, ny):
                             continue
                         bot['x'], bot['y'], bot['ang'] = nx, ny, ang
                         bot['_patrol_stuck'] = 0; moved = True; break
-                    if not moved and g.get('district_did'):
+                    if not moved:
                         bot['_patrol_stuck'] = int(bot.get('_patrol_stuck') or 0) + 1
                         if bot['_patrol_stuck'] > 18:
                             # Не кружим вокруг текущего центра: на следующем
                             # тике выбираем новую дальнюю точку района.
                             g['_patrol_wp_until'] = 0.0
+                            g['_patrol_route'] = []
+                            g['_patrol_route_i'] = 0
                             bot['_patrol_turn_sign'] = -int(bot.get('_patrol_turn_sign') or 1)
                             bot['_patrol_stuck'] = 0
             else:
@@ -17467,7 +17623,7 @@ class WorldSim:
                             if (g.get('district_did')
                                     and not _district_patrol_ok(g['district_did'], nx, ny)):
                                 continue
-                            if _world_is_wall(int(ny), int(nx)):
+                            if not _world_bot_passable(nx, ny):
                                 continue
                             bot['x'], bot['y'], bot['ang'] = nx, ny, ang
                             break
@@ -17510,7 +17666,7 @@ class WorldSim:
                 dist = 9 + random.random() * 4
                 sx = max(2, min(WORLD_MAP_COLS - 2, cx + _m.cos(ang) * dist))
                 sy = max(2, min(WORLD_MAP_ROWS - 2, cy + _m.sin(ang) * dist))
-                if not _world_is_wall(int(sy), int(sx)):
+                if _world_bot_passable(sx, sy):
                     break
             else:
                 continue
@@ -17907,27 +18063,47 @@ class WorldSim:
                 alive_bots = [b for b in ne['bots'] if b.get('alive')]
                 alive_guards = [
                     g for g in ne.get('defenders', []) if g.get('alive')]
-            # Близость к гнезду не провоцирует бой. Оно становится hostile
-            # только в gang_nest_shoot_bot после подтверждённого попадания.
+            # Оккупанты охраняют красный периметр: PvP-игрок, вошедший в него,
+            # становится целью даже до первого попадания.
             if ne['state'] == 'guard' and not npc_defense_combat:
-                pass
+                nearby = [
+                    (str(uid), p) for uid, p in self.players.items()
+                    if not p.get('dead')
+                    and (p.get('_mode') or 'pvp') == 'pvp'
+                    and not p.get('_business_interior')
+                    and _m.hypot(float(p.get('x') or 0)-ac,
+                                 float(p.get('y') or 0)-ar) <= 7.5
+                ]
+                if nearby:
+                    target_uid, _target = min(
+                        nearby,
+                        key=lambda row: _m.hypot(
+                            float(row[1].get('x') or 0)-ac,
+                            float(row[1].get('y') or 0)-ar))
+                    ne['state'] = 'hostile'
+                    ne['_target_uid'] = target_uid
+                    ne['_hostile_until'] = now + 45.0
             elif ne['state'] == 'hostile':
                 if now > ne['_hostile_until']:
                     ne['state'] = 'guard'
                     ne['_target_uid'] = None
                     ne['_cops_dispatched'] = False
             if ne['state'] == 'guard' and not npc_defense_combat:
-                # Идём обратно к anchor если отошли
-                for bot in alive_bots:
+                # Обходим здание кольцом. Каждый боец держит собственную фазу,
+                # поэтому группа не слипается в одной точке у входа.
+                for index, bot in enumerate(alive_bots):
                     if str(bot['id']) in fire_flee_ids:
                         continue
-                    dx = ac - bot['x']; dy = ar - bot['y']
+                    phase = now * .34 + index * _m.tau / max(1, len(alive_bots))
+                    patrol_x = ac + _m.cos(phase) * 3.8
+                    patrol_y = ar + _m.sin(phase) * 3.8
+                    dx = patrol_x - bot['x']; dy = patrol_y - bot['y']
                     dist = _m.hypot(dx, dy)
-                    if dist > self.NEST_GUARD_R:
-                        step = 0.8 * dt
+                    if dist > .08:
+                        step = min(dist, .72 * dt)
                         nx = bot['x'] + (dx/dist) * step
                         ny = bot['y'] + (dy/dist) * step
-                        if not _world_is_wall(int(ny), int(nx)):
+                        if _world_bot_passable(nx, ny):
                             bot['x'] = nx; bot['y'] = ny
                             bot['ang'] = _m.atan2(dy, dx)
                             bot['_moving'] = True
@@ -19287,6 +19463,7 @@ class WorldSim:
                 'kind': 'district_income', 'did': did,
                 'name': dd.get('name') or did, 'icon': dd.get('icon') or '🏴',
                 'owner_uid': own['owner_uid'], 'owner_name': own['owner_name'],
+                'mafia_family': str(own.get('mafia_family') or 'bellini'),
                 'amount': income, 'xp': xp,
             })
             log = self._income_log.setdefault(str(own['owner_uid']), [])
@@ -19979,6 +20156,35 @@ class WorldSim:
                     for bid, until in self._business_closed_until.items()
                     if until > now_t
                 },
+                'robbed_business_controls': {
+                    bid: {
+                        'biz_id': bid,
+                        'owner_uid': str(control.get('owner_uid') or ''),
+                        'owner_name': str(control.get('owner_name') or ''),
+                        'mafia_family': str(control.get('mafia_family') or ''),
+                        'captured_at': float(control.get('captured_at') or 0),
+                        'expires_at': float(control.get('expires_at') or 0),
+                        'remaining_s': max(0, int(float(control.get('expires_at') or 0) - now_t)),
+                        'income_per_member': int(control.get('income_per_member') or 0),
+                        'payouts_done': int(control.get('payouts_done') or 0),
+                    }
+                    for bid, control in self._robbed_business_controls.items()
+                    if float(control.get('expires_at') or 0) > now_t
+                },
+                'business_family_wars': {
+                    bid: {
+                        'biz_id': bid,
+                        'started_at': float(war.get('started_at') or 0),
+                        'expires_at': float(war.get('expires_at') or 0),
+                        'remaining_s': max(0, int(float(war.get('expires_at') or 0) - now_t)),
+                        'progress': round(float(war.get('progress') or 0), 2),
+                        'hold_s': BUSINESS_FAMILY_WAR_HOLD_S,
+                        'bellini': int(war.get('bellini') or 0),
+                        'moretti': int(war.get('moretti') or 0),
+                    }
+                    for bid, war in self._business_family_wars.items()
+                    if float(war.get('expires_at') or 0) > now_t
+                },
                 'business_aggro': {
                     bid: max(0, int(until - now_t))
                     for (aggro_uid, bid), until in self._business_aggro_until.items()
@@ -20096,11 +20302,283 @@ async def _major_control_save(object_id: str, owner: dict | None) -> None:
         logger.warning("WorldSim: major control save failed: %r", exc)
 
 
+async def _robbed_business_controls_load(world: 'WorldSim') -> None:
+    """Restore active ten-minute family control of robbed buildings."""
+    try:
+        now = time.time()
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("DELETE FROM robbed_business_control WHERE expires_at<=?", (now,))
+            rows = await (await db.execute(
+                "SELECT * FROM robbed_business_control WHERE expires_at>?", (now,)
+            )).fetchall()
+            await db.execute("DELETE FROM business_family_wars WHERE expires_at<=?", (now,))
+            war_rows = await (await db.execute(
+                "SELECT * FROM business_family_wars WHERE expires_at>?", (now,)
+            )).fetchall()
+            await db.commit()
+        for row in rows:
+            biz_id = str(row['biz_id'])
+            if biz_id in SHOP_ROB_CONFIG:
+                world._robbed_business_controls[biz_id] = dict(row)
+        for row in war_rows:
+            biz_id = str(row['biz_id'])
+            if biz_id in SHOP_ROB_CONFIG:
+                world._business_family_wars[biz_id] = dict(row)
+    except Exception as exc:
+        logger.warning("WorldSim: robbed business controls load failed: %r", exc)
+
+
+async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
+    """Pay family income, then run the open-war window for expired controls."""
+    now = time.time()
+    events: list[dict] = []
+    for biz_id, control in list(world._robbed_business_controls.items()):
+        expires_at = float(control.get('expires_at') or 0)
+        if expires_at <= now:
+            world._robbed_business_controls.pop(biz_id, None)
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("DELETE FROM robbed_business_control WHERE biz_id=?", (biz_id,))
+                if len(world._business_family_wars) < BUSINESS_FAMILY_WAR_MAX_ACTIVE:
+                    war = {
+                        'biz_id': biz_id, 'started_at': now,
+                        'expires_at': now + BUSINESS_FAMILY_WAR_DURATION_S,
+                        'progress': 0.0,
+                        'previous_family': str(control.get('mafia_family') or ''),
+                        'last_tick_at': now, 'bellini': 0, 'moretti': 0,
+                    }
+                    world._business_family_wars[biz_id] = war
+                    await db.execute(
+                        "INSERT OR REPLACE INTO business_family_wars "
+                        "(biz_id,started_at,expires_at,progress,previous_family) VALUES(?,?,?,?,?)",
+                        (biz_id, now, war['expires_at'], 0,
+                         war['previous_family']))
+                await db.commit()
+            biz_name = str((get_business(biz_id) or {}).get('name') or biz_id)
+            if biz_id in world._business_family_wars:
+                events.append({
+                    'kind': 'business_family_war_started', 'biz_id': biz_id,
+                    'biz_name': biz_name,
+                    'duration_s': BUSINESS_FAMILY_WAR_DURATION_S,
+                    'hold_s': BUSINESS_FAMILY_WAR_HOLD_S,
+                })
+            else:
+                events.append({
+                    'kind': 'robbed_business_neutral', 'biz_id': biz_id,
+                    'biz_name': biz_name,
+                    'mafia_family': str(control.get('mafia_family') or ''),
+                    'reason': 'war_limit',
+                })
+            continue
+        remaining = expires_at - now
+        if (remaining <= BUSINESS_FAMILY_WAR_WARNING_S
+                and not int(control.get('warned') or 0)):
+            control['warned'] = 1
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute(
+                    "UPDATE robbed_business_control SET warned=1 WHERE biz_id=?",
+                    (biz_id,))
+                await db.commit()
+            events.append({
+                'kind': 'business_family_war_warning', 'biz_id': biz_id,
+                'biz_name': str((get_business(biz_id) or {}).get('name') or biz_id),
+                'starts_in': max(0, int(remaining)),
+            })
+        last_payout = float(control.get('last_payout_at') or control.get('captured_at') or now)
+        due = min(
+            10 - int(control.get('payouts_done') or 0),
+            int((min(now, expires_at) - last_payout) // SHOP_ROB_FAMILY_INCOME_TICK_S),
+        )
+        if due <= 0:
+            continue
+        family = str(control.get('mafia_family') or '')
+        per_member = int(control.get('income_per_member') or 0) * due
+        async with aiosqlite.connect(DB_PATH) as db:
+            rows = await (await db.execute(
+                "SELECT telegram_id FROM characters WHERE mafia_family=?", (family,)
+            )).fetchall()
+            member_uids = [str(row[0]) for row in rows]
+            if member_uids and per_member > 0:
+                await db.execute(
+                    "UPDATE characters SET cash=cash+? WHERE mafia_family=?",
+                    (per_member, family),
+                )
+            control['last_payout_at'] = last_payout + due * SHOP_ROB_FAMILY_INCOME_TICK_S
+            control['payouts_done'] = int(control.get('payouts_done') or 0) + due
+            await db.execute(
+                "UPDATE robbed_business_control SET last_payout_at=?,payouts_done=? WHERE biz_id=?",
+                (control['last_payout_at'], control['payouts_done'], biz_id),
+            )
+            await db.commit()
+        for member_uid in member_uids:
+            live = world.players.get(member_uid)
+            if live is not None:
+                live['_cash'] = int(live.get('_cash') or 0) + per_member
+        events.append({
+            'kind': 'robbed_business_income', 'biz_id': biz_id,
+            'biz_name': str((get_business(biz_id) or {}).get('name') or biz_id),
+            'mafia_family': family, 'amount': per_member,
+            'members_paid': len(member_uids),
+            'remaining_s': max(0, int(expires_at - now)),
+        })
+    for biz_id, war in list(world._business_family_wars.items()):
+        biz = get_business(biz_id) or {}
+        if float(war.get('expires_at') or 0) <= now:
+            world._business_family_wars.pop(biz_id, None)
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("DELETE FROM business_family_wars WHERE biz_id=?", (biz_id,))
+                await db.commit()
+            events.append({
+                'kind': 'business_family_war_ended', 'biz_id': biz_id,
+                'biz_name': str(biz.get('name') or biz_id), 'winner': '',
+            })
+            continue
+        rc = BUSINESS_POIS_RC.get(biz_id)
+        if not rc:
+            continue
+        r, c = rc
+        in_zone = {'bellini': [], 'moretti': []}
+        for member_uid, player in world.players.items():
+            family = str(player.get('_mafia_family') or '')
+            if (family not in in_zone or player.get('dead') or player.get('_police')
+                    or player.get('_mode') == 'pve'):
+                continue
+            if ((float(player.get('x') or 0)-c)**2
+                    + (float(player.get('y') or 0)-r)**2
+                    <= BUSINESS_FAMILY_WAR_RADIUS**2):
+                in_zone[family].append(str(member_uid))
+        war['bellini'] = len(in_zone['bellini'])
+        war['moretti'] = len(in_zone['moretti'])
+        last_tick = float(war.get('last_tick_at') or now)
+        dt = max(0.0, min(1.0, now-last_tick))
+        war['last_tick_at'] = now
+        if war['bellini'] > war['moretti']:
+            war['progress'] = min(
+                BUSINESS_FAMILY_WAR_HOLD_S,
+                float(war.get('progress') or 0) + dt)
+        elif war['moretti'] > war['bellini']:
+            war['progress'] = max(
+                -BUSINESS_FAMILY_WAR_HOLD_S,
+                float(war.get('progress') or 0) - dt)
+        winner = (
+            'bellini' if float(war.get('progress') or 0) >= BUSINESS_FAMILY_WAR_HOLD_S
+            else 'moretti' if float(war.get('progress') or 0) <= -BUSINESS_FAMILY_WAR_HOLD_S
+            else '')
+        if not winner:
+            if now-float(war.get('_persist_at') or 0) >= 3:
+                war['_persist_at'] = now
+                async with aiosqlite.connect(DB_PATH) as db:
+                    await db.execute(
+                        "UPDATE business_family_wars SET progress=? WHERE biz_id=?",
+                        (float(war.get('progress') or 0), biz_id))
+                    await db.commit()
+            continue
+        winner_uids = in_zone[winner]
+        finisher_uid = winner_uids[0] if winner_uids else ''
+        finisher = world.players.get(finisher_uid) or {}
+        income = max(1, int(SHOP_ROB_CONFIG.get(biz_id, {}).get('money') or 0)//10)
+        bonus = max(50, int(SHOP_ROB_CONFIG.get(biz_id, {}).get('money') or 0)//2)
+        new_control = {
+            'biz_id': biz_id, 'owner_uid': finisher_uid,
+            'owner_name': str(finisher.get('name') or '')[:24],
+            'mafia_family': winner, 'captured_at': now,
+            'expires_at': now+SHOP_ROB_FAMILY_CONTROL_S,
+            'last_payout_at': now, 'payouts_done': 0,
+            'income_per_member': income, 'warned': 0,
+        }
+        world._business_family_wars.pop(biz_id, None)
+        world._robbed_business_controls[biz_id] = new_control
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM business_family_wars WHERE biz_id=?", (biz_id,))
+            await db.execute(
+                "INSERT OR REPLACE INTO robbed_business_control "
+                "(biz_id,owner_uid,owner_name,mafia_family,captured_at,expires_at,"
+                "last_payout_at,payouts_done,income_per_member,warned) "
+                "VALUES(?,?,?,?,?,?,?,?,?,0)",
+                (biz_id, finisher_uid, new_control['owner_name'], winner, now,
+                 new_control['expires_at'], now, 0, income))
+            if finisher_uid:
+                await db.execute(
+                    "UPDATE characters SET cash=cash+? WHERE telegram_id=?",
+                    (bonus, int(finisher_uid)))
+            await db.commit()
+        if finisher:
+            finisher['_cash'] = int(finisher.get('_cash') or 0)+bonus
+        events.append({
+            'kind': 'business_family_war_won', 'biz_id': biz_id,
+            'biz_name': str(biz.get('name') or biz_id), 'winner': winner,
+            'winner_uid': finisher_uid,
+            'winner_name': str(finisher.get('name') or '')[:24],
+            'bonus': bonus, 'control_s': SHOP_ROB_FAMILY_CONTROL_S,
+            'income_per_member': income,
+        })
+    return events
+
+
+_owned_business_income_next_check = 0.0
+
+
+async def _tick_owned_business_income(world: 'WorldSim') -> list[dict]:
+    """Automatically pay every purchased business once per completed minute."""
+    global _owned_business_income_next_check
+    now = time.time()
+    if now < _owned_business_income_next_check:
+        return []
+    _owned_business_income_next_check = now + 2.0
+    events: list[dict] = []
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await (await db.execute(
+            "SELECT telegram_id,biz_id,last_collect,level FROM player_businesses"
+        )).fetchall()
+        for raw in rows:
+            row = dict(raw)
+            last_collect = int(row.get('last_collect') or int(now))
+            due = max(0, int((now - last_collect) // 60))
+            if due <= 0:
+                continue
+            biz = get_business(str(row.get('biz_id') or ''))
+            if not biz:
+                continue
+            level = business_level(row.get('level'))
+            avg_daily = (
+                int(biz.get('daily_min') or 0) + int(biz.get('daily_max') or 0)
+            ) / 2.0
+            per_minute = max(
+                1, int(round(avg_daily * business_income_multiplier(level) / 1440.0)))
+            amount = per_minute * due
+            owner_uid = int(row['telegram_id'])
+            paid_until = last_collect + due * 60
+            await db.execute(
+                "UPDATE player_businesses SET last_collect=? "
+                "WHERE telegram_id=? AND biz_id=?",
+                (paid_until, owner_uid, row['biz_id']))
+            await db.execute(
+                "UPDATE characters SET cash=cash+? WHERE telegram_id=?",
+                (amount, owner_uid))
+            live = world.players.get(str(owner_uid))
+            if live is not None:
+                live['_cash'] = int(live.get('_cash') or 0) + amount
+            events.append({
+                'kind': 'owned_business_income',
+                'owner_uid': str(owner_uid),
+                'biz_id': str(row['biz_id']),
+                'biz_name': str(biz.get('name') or row['biz_id']),
+                'biz_icon': str(biz.get('icon') or '🏪'),
+                'amount': amount,
+                'per_minute': per_minute,
+                'minutes': due,
+            })
+        await db.commit()
+    return events
+
+
 def _world_get() -> 'WorldSim':
     global _WORLD
     if _WORLD is None or not _WORLD.alive:
         _WORLD = WorldSim()
         asyncio.create_task(_major_controls_load(_WORLD))
+        asyncio.create_task(_robbed_business_controls_load(_WORLD))
         asyncio.create_task(_world_run_loop(_WORLD))
         logger.info("WorldSim: started")
     return _WORLD
@@ -20185,6 +20663,8 @@ async def _world_run_loop(world: 'WorldSim') -> None:
             # cop_spawned/cop_shot). Тикаем только если в мире кто-то есть.
             if world.players:
                 ev_pkts = world.tick_event(WORLD_TICK_DT) or []
+                ev_pkts.extend(await _tick_owned_business_income(world))
+                ev_pkts.extend(await _tick_robbed_business_controls(world))
                 ev_pkts.extend(world.tick_cops(WORLD_TICK_DT) or [])
                 # Проверяем, не дошёл ли конвой до цели — добавляем escape-пакет
                 # (tick_event только помечает finished='escaped', но не шлёт)
@@ -20363,25 +20843,41 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                             owner_uid_int = int(dp['owner_uid'])
                             amount        = int(dp['amount'])
                             xp_gain       = int(dp.get('xp') or 0)
+                            family        = str(dp.get('mafia_family') or 'bellini')
+                            async with aiosqlite.connect(DB_PATH) as db:
+                                rows = await (await db.execute(
+                                    "SELECT telegram_id FROM characters WHERE mafia_family=?",
+                                    (family,),
+                                )).fetchall()
+                                member_uids = [str(row[0]) for row in rows]
+                                if member_uids and amount > 0:
+                                    await db.execute(
+                                        "UPDATE characters SET cash=cash+? WHERE mafia_family=?",
+                                        (amount, family),
+                                    )
+                                await db.commit()
+                            for member_uid in member_uids:
+                                live = world.players.get(member_uid)
+                                if live is not None:
+                                    live['_cash'] = int(live.get('_cash') or 0) + amount
                             ch = await get_character(owner_uid_int)
                             if ch:
-                                new_cash = int(ch.get('cash', 0)) + amount
+                                new_cash = int(ch.get('cash', 0))
                                 new_exp = int(ch.get('exp', 0)) + xp_gain
-                                await update_character(owner_uid_int, cash=new_cash, exp=new_exp)
+                                await update_character(owner_uid_int, exp=new_exp)
                                 ch2 = await get_character(owner_uid_int)
                                 if ch2:
                                     await check_level_up(owner_uid_int, ch2)
                                 final_ch = await get_character(owner_uid_int)
-                                # Обновляем live _cash чтобы снапшот сразу показал.
-                                pp = world.players.get(str(owner_uid_int))
-                                if pp is not None:
-                                    pp['_cash'] = new_cash
                                 dp['new_cash'] = new_cash
                                 if final_ch:
                                     dp['new_exp'] = int(final_ch.get('exp') or 0)
                                     dp['new_level'] = int(final_ch.get('level') or 1)
-                            logger.info("WorldSim: district income did=%s owner=%s +$%d +%dXP",
-                                        dp.get('did'), owner_uid_int, amount, xp_gain)
+                            dp['members_paid'] = len(member_uids)
+                            logger.info(
+                                "WorldSim: district family income did=%s family=%s members=%d +$%d; owner=%s +%dXP",
+                                dp.get('did'), family, len(member_uids), amount,
+                                owner_uid_int, xp_gain)
                         except Exception as _e:
                             logger.warning("WorldSim: district income failed: %r", _e)
                 ev_pkts.extend(dist_pkts)
@@ -21766,6 +22262,9 @@ async def _coop_http_app():
                 biz = get_business(row['biz_id'])
                 if not biz:
                     continue
+                # Временный семейный контроль после ограбления не меняет
+                # собственника и не останавливает его обычную кассу.
+                # Здесь учитываются только реальные аварии/блокировки бизнеса.
                 if row['status'] != 'ok' or (row.get('blocked_until') or 0) > now:
                     continue
                 pend = _biz_pending_income(row, now)
@@ -23862,6 +24361,12 @@ async def _coop_http_app():
                             (str(uid), biz_id), 0) - now_rob))
                         defended_left = max(0, int(world._business_owner_protected_until.get(
                             (str(uid), biz_id), 0) - now_rob))
+                        family_control = world._robbed_business_controls.get(biz_id) or {}
+                        family_control_left = max(
+                            0, int(float(family_control.get('expires_at') or 0) - now_rob))
+                        open_war = world._business_family_wars.get(biz_id) or {}
+                        open_war_left = max(
+                            0, int(float(open_war.get('expires_at') or 0) - now_rob))
                         completed = 0
                         cooldown_left = 0
                         closed_left = max(0, int(world._business_closed_until.get(biz_id, 0) - now_rob))
@@ -23903,7 +24408,8 @@ async def _coop_http_app():
                             biz_id in SHOP_ROB_CONFIG and robber and
                             not robber.get('dead') and robber.get('_mode') != 'pve' and
                             not robber.get('_police') and not protected_left and
-                            not defended_left and not cooldown_left and not closed_left and
+                            not defended_left and not family_control_left and not open_war_left and
+                            not cooldown_left and not closed_left and
                             close_enough and not owns_business
                         )
                         token = ''
@@ -23923,6 +24429,8 @@ async def _coop_http_app():
                             'police' if robber.get('_police') else
                             'protected' if protected_left else
                             'defended' if defended_left else
+                            'family_control' if family_control_left else
+                            'open_war' if open_war_left else
                             'closed' if closed_left else
                             'cooldown' if cooldown_left else
                             'own' if owns_business else
@@ -23933,6 +24441,9 @@ async def _coop_http_app():
                             'kind':'business_rob_prepare_reply',
                             'ok':ok_prepare, 'reason':'' if ok_prepare else reason,
                             'protected_s':protected_left or defended_left,
+                            'control_s':family_control_left,
+                            'control_family':str(family_control.get('mafia_family') or ''),
+                            'war_s':open_war_left,
                             'cooldown_s':cooldown_left, 'closed_s':closed_left,
                             'biz_id':biz_id, 'attempt':completed+1,
                             'guard_bonus':completed*3, 'guard_count':guard_count,
@@ -24025,6 +24536,41 @@ async def _coop_http_app():
                                 reply = {'ok': False, 'reason': 'own'}
                             else:
                                 now_ts = int(time.time())
+                                family_control = world._robbed_business_controls.get(biz_id) or {}
+                                family_control_left = max(
+                                    0, int(float(family_control.get('expires_at') or 0) - now_ts))
+                                if family_control_left:
+                                    reply = {
+                                        'ok': False, 'reason': 'family_control',
+                                        'control_s': family_control_left,
+                                        'control_family': str(
+                                            family_control.get('mafia_family') or ''),
+                                        'biz_id': biz_id,
+                                    }
+                                    world._business_rob_sessions.pop(str(uid), None)
+                                    try:
+                                        await ws.send_str(json.dumps(
+                                            {'t':'event','d':dict(reply,kind='shop_rob_reply')},
+                                            ensure_ascii=False))
+                                    except Exception:
+                                        pass
+                                    continue
+                                open_war = world._business_family_wars.get(biz_id) or {}
+                                open_war_left = max(
+                                    0, int(float(open_war.get('expires_at') or 0) - now_ts))
+                                if open_war_left:
+                                    reply = {
+                                        'ok': False, 'reason': 'open_war',
+                                        'war_s': open_war_left, 'biz_id': biz_id,
+                                    }
+                                    world._business_rob_sessions.pop(str(uid), None)
+                                    try:
+                                        await ws.send_str(json.dumps(
+                                            {'t':'event','d':dict(reply,kind='shop_rob_reply')},
+                                            ensure_ascii=False))
+                                    except Exception:
+                                        pass
+                                    continue
                                 closed_until = float(world._business_closed_until.get(biz_id) or 0)
                                 if closed_until > now_ts:
                                     reply = {'ok': False, 'reason': 'closed',
@@ -24087,6 +24633,16 @@ async def _coop_http_app():
                                                     "SELECT points FROM mafia_family_scores WHERE family=?",
                                                     (robbery_family,))).fetchone()
                                                 family_points_total = int(score_row[0] or 0)
+                                                family_income = max(1, money // 10)
+                                                await db.execute(
+                                                    "INSERT OR REPLACE INTO robbed_business_control "
+                                                    "(biz_id,owner_uid,owner_name,mafia_family,captured_at,"
+                                                    "expires_at,last_payout_at,payouts_done,income_per_member) "
+                                                    "VALUES(?,?,?,?,?,?,?,?,?)",
+                                                    (biz_id, str(uid), str(p.get('name') or '')[:24],
+                                                     robbery_family, now_ts,
+                                                     now_ts + SHOP_ROB_FAMILY_CONTROL_S, now_ts,
+                                                     0, family_income))
                                             await db.commit()
                                             payout_committed = True
                                 except Exception:
@@ -24106,12 +24662,29 @@ async def _coop_http_app():
                                     world._business_closed_until[biz_id] = time.time() + 300.0
                                     world._business_rob_sessions.pop(str(uid), None)
                                     p['_cash'] = int(p.get('_cash') or 0) + money
+                                    family_income = max(1, money // 10) if robbery_family in ('bellini','moretti') else 0
+                                    if family_income:
+                                        world._robbed_business_controls[biz_id] = {
+                                            'biz_id': biz_id, 'owner_uid': str(uid),
+                                            'owner_name': str(p.get('name') or '')[:24],
+                                            'mafia_family': robbery_family,
+                                            'captured_at': now_ts,
+                                            'expires_at': now_ts + SHOP_ROB_FAMILY_CONTROL_S,
+                                            'last_payout_at': now_ts, 'payouts_done': 0,
+                                            'income_per_member': family_income,
+                                        }
+                                        world._faction_war_add(
+                                            'mafia', family_points_gain,
+                                            x=p.get('x'), y=p.get('y'), actor_uid=uid,
+                                            action=f'business_rob:{biz_id}', cooldown_s=300)
                                     reply = {'ok': True, 'biz_id': biz_id,
                                              'money': money, 'difficulty': difficulty,
                                              'closed_s': 300,
                                              'mafia_family': robbery_family,
                                              'family_points_gain': family_points_gain,
-                                             'family_points_total': family_points_total}
+                                             'family_points_total': family_points_total,
+                                             'family_control_s': SHOP_ROB_FAMILY_CONTROL_S if family_income else 0,
+                                             'family_income_per_member': family_income}
                                     # Небольшой авторитет за подтверждённое
                                     # ограбление получает только действующий мафиози.
                                     try:
@@ -24136,6 +24709,8 @@ async def _coop_http_app():
                                         'mafia_family': robbery_family,
                                         'family_points_gain': family_points_gain,
                                         'family_points_total': family_points_total,
+                                        'family_control_s': SHOP_ROB_FAMILY_CONTROL_S if family_income else 0,
+                                        'family_income_per_member': family_income,
                                     }}, ensure_ascii=False)
                                     for _u2, _ws2 in list(world.connections.items()):
                                         try: await _ws2.send_str(banner)
