@@ -15715,7 +15715,7 @@ function handleEventPacket(d) {
                     { accent: '#ff7030' });
     }
   } else if(kind==='business_war_choice_reply'){
-    if(!d.ok){const txt={invalid_choice:'Решение устарело или уже использовано',no_family:'Для захвата нужно вступить в семью',already_owned:'Этот бизнес уже принадлежит твоей семье',ownership_changed:'Бизнес уже перехватили — ограбление остаётся твоим'}[d.reason]||'Не удалось применить решение';showToast(txt,'⚠️',2600);}
+    if(!d.ok){const txt={invalid_choice:'Решение устарело или уже использовано',no_family:'Для захвата нужно вступить в семью',already_owned:'Этот бизнес уже принадлежит твоей семье',ownership_changed:'Бизнес уже перехватили — ограбление остаётся твоим',sabotage_immunity:`После ремонта действует защита от диверсий · ${Math.ceil((+d.wait_s||0)/60)} мин.`}[d.reason]||'Не удалось применить решение';showToast(txt,'⚠️',2600);}
     else if(d.action==='cash')showToast('Добыча у тебя. Заведение осталось как было','💰',2200);
   } else if(kind==='business_sabotaged'){
     if(d.biz_id){delete _businessFamilyWars[d.biz_id];if((d.sabotage_kind||'shutdown')==='shutdown')_businessClosures[d.biz_id]=Date.now()+Math.max(1,+d.sabotage_s||720)*1000;}
@@ -15725,6 +15725,9 @@ function handleEventPacket(d) {
     showEventBanner('🚨 ГОТОВИТСЯ НАПАДЕНИЕ',`За «${d.biz_name||'бизнес'}» начнётся война через ${+d.preparation_s||75} сек. Семьи, собирайтесь!`,5200,'lose');
   } else if(kind==='business_robbery_alert'){
     showEventBanner('🚨 СРАБОТАЛА СИГНАЛИЗАЦИЯ',`Нападение на семейный бизнес «${d.biz_name||'бизнес'}» · охрана предупреждена`,4200,'lose');
+  } else if(kind==='business_war_repair_reply'){
+    if(d.ok&&d.biz_id){delete _businessWarSabotage[d.biz_id];delete _businessClosures[d.biz_id];showEventBanner('🔧 БИЗНЕС ОТРЕМОНТИРОВАН',`«${d.biz_name||'Бизнес'}» снова работает`,3200,'win');}
+    else if(!d.ok)showToast('Ремонт доступен семье-владельцу возле здания','⚠️',2400);
   } else if(kind==='business_sabotage_ended'){
     if(d.biz_id)delete _businessClosures[d.biz_id];
     pushFeedEvent('🔧',`«${d.biz_name||'Бизнес'}» снова работает`,{accent:'#72dfa0'});
@@ -15770,6 +15773,9 @@ function handleEventPacket(d) {
     if(d.biz_id)delete _businessFamilyWars[d.biz_id];
     pushFeedEvent('⌛',`${d.biz_name||'Бизнес'}: война окончена, точка нейтральна`,
       {accent:'#aaa'});
+  } else if(kind==='business_war_cancelled'){
+    if(d.biz_id)delete _businessFamilyWars[d.biz_id];
+    showEventBanner('🚫 АТАКА СОРВАНА',`Нападающие не прибыли к «${d.biz_name||'бизнесу'}» вовремя`,3600,'lose');
   } else if(kind==='business_family_war_won'){
     if(d.biz_id){delete _businessFamilyWars[d.biz_id];_robbedBusinessControls[d.biz_id]={
       biz_id:d.biz_id,owner_uid:d.winner_uid||'',owner_name:d.winner_name||'',
@@ -17213,6 +17219,7 @@ function wsConnect() {
       if(d.business_war_season!==undefined)_businessWarSeason=d.business_war_season||{};
       if(d.business_war_journal!==undefined)_businessWarJournal=d.business_war_journal||{bellini:[],moretti:[]};
       if(d.business_war_sabotage!==undefined){
+        _businessWarSabotage=d.business_war_sabotage||{};
         const sabotage=d.business_war_sabotage||{};
         for(const [id,state] of Object.entries(sabotage))if((state.kind||'shutdown')==='shutdown')_businessClosures[id]=Date.now()+Math.max(0,+state.remaining_s||0)*1000;
       }
@@ -18166,6 +18173,7 @@ let _businessWarScore = {
 let _businessWarUpgrades={bellini:{},moretti:{}};
 let _businessWarLeaderboard={bellini:[],moretti:[]};
 let _businessWarJournal={bellini:[],moretti:[]};
+let _businessWarSabotage={};
 let _businessWarChains={};
 let _businessWarSeason={season_id:0,started_at:0,ends_at:0,status:'loading'};
 let _pendingBusinessWarChoice=null;
@@ -18180,11 +18188,11 @@ function _showBusinessWarChoice(data,biz){
   if(!ov){
     const style=document.createElement('style');style.textContent=`#businessChoiceOverlay{position:fixed;inset:0;z-index:180;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,4,9,.78)}#businessChoiceOverlay.show{display:flex}#businessChoiceCard{width:min(590px,95vw);padding:18px;border:1px solid #dcad43;border-radius:16px;background:linear-gradient(145deg,#151b24,#24130c);box-shadow:0 22px 70px #000;color:#e1e7ef;font:700 12px/1.45 system-ui}#businessChoiceCard h2{margin:0 0 5px;color:#ffe176}.bc-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.bc-action{min-height:112px;padding:11px 9px;border:1px solid #5d6672;border-radius:11px;background:rgba(255,255,255,.045);color:#fff;text-align:left;font:800 11px/1.35 system-ui;cursor:pointer}.bc-action b{display:block;margin-bottom:5px;font-size:13px;color:#ffe18a}.bc-action.sabotage{border-color:#c76742}.bc-action.capture{border-color:#8b72e8}.bc-action:disabled{opacity:.38;cursor:default}.bc-timer{height:5px;margin-top:12px;border-radius:5px;background:#333;overflow:hidden}.bc-timer i{display:block;height:100%;background:#e4b947;transform-origin:left}@media(max-width:620px){.bc-actions{grid-template-columns:1fr}.bc-action{min-height:74px}}`;document.head.appendChild(style);
     ov=document.createElement('div');ov.id='businessChoiceOverlay';ov.innerHTML='<div id="businessChoiceCard"></div>';document.body.appendChild(ov);
-    ov.addEventListener('click',e=>{const btn=e.target.closest?.('[data-business-choice]');if(!btn||btn.disabled||!_pendingBusinessWarChoice)return;if(!ws||ws.readyState!==1){showToast('Нет связи с сервером — решение не потеряно','⚠️',2200);return;}const choice=_pendingBusinessWarChoice;_pendingBusinessWarChoice=null;ov.classList.remove('show');ws.send(JSON.stringify({t:'business_war_choice',d:{action:btn.dataset.businessChoice,token:choice.token,sabotage_kind:btn.dataset.sabotageKind||''}}));});
+    ov.addEventListener('click',e=>{const back=e.target.closest?.('[data-sabotage-back]');if(back){ov.querySelector('.bc-main').style.display='grid';ov.querySelector('.bc-sabotage-menu').style.display='none';return;}const btn=e.target.closest?.('[data-business-choice]');if(!btn||btn.disabled||!_pendingBusinessWarChoice)return;if(btn.dataset.businessChoice==='submenu'){ov.querySelector('.bc-main').style.display='none';ov.querySelector('.bc-sabotage-menu').style.display='grid';return;}if(!ws||ws.readyState!==1){showToast('Нет связи с сервером — решение не потеряно','⚠️',2200);return;}const choice=_pendingBusinessWarChoice;_pendingBusinessWarChoice=null;ov.classList.remove('show');ws.send(JSON.stringify({t:'business_war_choice',d:{action:btn.dataset.businessChoice,token:choice.token,sabotage_kind:btn.dataset.sabotageKind||''}}));});
   }
   const seconds=Math.max(15,+data.business_choice_s||90),canCapture=!!data.can_capture;
   _pendingBusinessWarChoice={token:data.business_choice_token,biz_id:data.biz_id,expiresAt:Date.now()+seconds*1000};
-  document.getElementById('businessChoiceCard').innerHTML=`<h2>${biz?.icon||'🏪'} Что сделать с «${biz?.name||'бизнесом'}»?</h2><div style="color:#9eacbe">Деньги уже получены. Выбери судьбу заведения.</div><div class="bc-actions"><button class="bc-action" data-business-choice="cash"><b>💰 Уйти с добычей</b>Владение не меняется.</button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="shutdown"><b>⚡ Отключить электричество</b>12 мин: нельзя ограбить, захватить и получать доход.</button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="arson"><b>🔥 Поджечь склад</b>20 мин: семейный доход остановлен, но бизнес можно атаковать.</button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="alarm"><b>📡 Сломать сигнализацию</b>20 мин: защита владельца ослаблена на 18%.</button><button class="bc-action capture" data-business-choice="capture" ${canCapture?'':'disabled'}><b>🏴 Захватить для семьи</b>${canCapture?'За чужой бизнес сначала будет 75 сек. на сбор семей.':'Сначала вступи в семью Беллини или Моретти.'}</button></div><div class="bc-timer"><i style="animation:bcChoiceTimer ${seconds}s linear forwards"></i></div><style>@keyframes bcChoiceTimer{to{transform:scaleX(0)}}</style>`;
+  document.getElementById('businessChoiceCard').innerHTML=`<h2>${biz?.icon||'🏪'} Что сделать с «${biz?.name||'бизнесом'}»?</h2><div style="color:#9eacbe">Деньги уже получены. Выбери судьбу заведения.</div><div class="bc-actions bc-main"><button class="bc-action" data-business-choice="cash"><b>💰 Уйти с добычей</b>Владение не меняется.</button><button class="bc-action sabotage" data-business-choice="submenu"><b>💣 Совершить диверсию</b>Выбрать способ саботажа.</button><button class="bc-action capture" data-business-choice="capture" ${canCapture?'':'disabled'}><b>🏴 Захватить для семьи</b>${canCapture?'Подготовка зависит от числа защитников онлайн.':'Сначала вступи в семью Беллини или Моретти.'}</button></div><div class="bc-actions bc-sabotage-menu" style="display:none"><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="shutdown"><b>⚡ Отключить электричество</b>12 мин полной остановки.</button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="arson"><b>🔥 Поджечь склад</b>20 мин без дохода.</button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="alarm"><b>📡 Сломать сигнализацию</b>20 мин слабее защита этого здания.</button><button class="bc-action" data-sabotage-back><b>← Назад</b>Вернуться к решениям.</button></div><div class="bc-timer"><i style="animation:bcChoiceTimer ${seconds}s linear forwards"></i></div><style>@keyframes bcChoiceTimer{to{transform:scaleX(0)}}</style>`;
   ov.classList.add('show');
   setTimeout(()=>{if(_pendingBusinessWarChoice?.token===data.business_choice_token){_pendingBusinessWarChoice=null;ov.classList.remove('show');}},seconds*1000);
 }
@@ -18219,11 +18227,12 @@ function _businessWarUpgradeButtons(biz){
   const family=_mafiaState?.family,control=_robbedBusinessControls[biz.id],mine=family&&control?.mafia_family===family;
   if(!mine)return '';
   const levels=_businessWarUpgrades[family]?.[biz.id]||{};
-  return `<div class="bw-upgrades">${Object.entries(BUSINESS_WAR_UPGRADE_UI).map(([id,u])=>{const lvl=+levels[id]||0,max=lvl>=3,cost=max?'MAX':`$${u.costs[lvl].toLocaleString('ru')}`;return `<button class="bw-upgrade" data-bw-biz="${biz.id}" data-bw-upgrade="${id}" ${max?'disabled':''}>${u.icon} ${u.name} ${lvl}/3 · ${cost}</button>`;}).join('')}</div>`;
+  const repair=_businessWarSabotage[biz.id]?`<button class="bw-upgrade" data-bw-repair="${biz.id}">🔧 Устранить диверсию</button>`:'';
+  return `<div class="bw-upgrades">${repair}${Object.entries(BUSINESS_WAR_UPGRADE_UI).map(([id,u])=>{const lvl=+levels[id]||0,max=lvl>=3,cost=max?'MAX':`$${u.costs[lvl].toLocaleString('ru')}`;return `<button class="bw-upgrade" data-bw-biz="${biz.id}" data-bw-upgrade="${id}" ${max?'disabled':''}>${u.icon} ${u.name} ${lvl}/3 · ${cost}</button>`;}).join('')}</div>`;
 }
 function _bwEsc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function _openBusinessWarInfo(){
-  let ov=document.getElementById('businessWarOverlay');if(!ov){ov=document.createElement('div');ov.id='businessWarOverlay';ov.innerHTML='<div id="businessWarCard"></div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov||e.target.id==='businessWarClose')ov.classList.remove('show');const btn=e.target.closest?.('[data-bw-upgrade]');if(btn&&!btn.disabled){if(!ws||ws.readyState!==1){showToast('Нет связи с сервером','⚠️',1800);return;}ws.send(JSON.stringify({t:'business_war_upgrade',d:{biz_id:btn.dataset.bwBiz,upgrade:btn.dataset.bwUpgrade}}));btn.disabled=true;}});}
+  let ov=document.getElementById('businessWarOverlay');if(!ov){ov=document.createElement('div');ov.id='businessWarOverlay';ov.innerHTML='<div id="businessWarCard"></div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov||e.target.id==='businessWarClose')ov.classList.remove('show');const repair=e.target.closest?.('[data-bw-repair]');if(repair){if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'business_war_repair',d:{biz_id:repair.dataset.bwRepair}}));return;}const btn=e.target.closest?.('[data-bw-upgrade]');if(btn&&!btn.disabled){if(!ws||ws.readyState!==1){showToast('Нет связи с сервером','⚠️',1800);return;}ws.send(JSON.stringify({t:'business_war_upgrade',d:{biz_id:btn.dataset.bwBiz,upgrade:btn.dataset.bwUpgrade}}));btn.disabled=true;}});}
   const b=_businessWarScore.bellini||{},m=_businessWarScore.moretti||{};
   const rows=BUSINESS_POIS.map(biz=>{const war=_businessFamilyWars[biz.id],prep=Math.max(0,+war?.preparing_until-Date.now()/1000);const status=war?(prep>0?`🚨 подготовка · ${Math.ceil(prep)} сек.`:'⚔️ идёт открытая война'):_robbedBusinessControls[biz.id]?`Сейчас: ${MAFIA_FAMILIES[_robbedBusinessControls[biz.id].mafia_family]?.short||'семья'}`:'нейтральный';return `<div class="bw-biz">${BUSINESS_WAR_BONUS_INFO[biz.id]||`${biz.icon||'🏪'} ${biz.name}`}<br><span style="color:#99a8bc">${status}</span>${_businessWarUpgradeButtons(biz)}</div>`;}).join('');
   const chains=Object.values(_businessWarChains||{}).map(ch=>`<div class="bw-biz bw-chain ${(ch.active_for||[]).length?'on':''}"><b>🔗 ${ch.label}</b><br>${(ch.businesses||[]).map(id=>BUSINESS_POIS.find(x=>x.id===id)?.name||id).join(' → ')}<br><span style="color:#82dfa1">${(ch.active_for||[]).length?`Активна: ${(ch.active_for||[]).map(f=>MAFIA_FAMILIES[f]?.short||f).join(', ')}`:'цепочка разорвана'}</span></div>`).join('');
