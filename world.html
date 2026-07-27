@@ -4881,6 +4881,16 @@ const _casinoDebris = [];
 const MAJOR_GUARD_VISION_RANGE = 9.6;
 const MAJOR_GUARD_CLOSE_NOTICE = 3.0;
 const MAJOR_GUARD_FOV_COS = Math.cos(85 * Math.PI / 180);
+const MAJOR_GUARD_PATROL_LINES = [
+  'Проверяю сектор.',
+  'В зале спокойно.',
+  'Пост без происшествий.',
+  'Держим вход под контролем.',
+  'Рация на связи.',
+  'Смотрим по сторонам.',
+  'Внимание на VIP-зону.',
+  'Обхожу зал.',
+];
 
 function _syncMajorAssaultStart(d) {
   if (Array.isArray(d.participants) &&
@@ -4927,9 +4937,12 @@ function _syncMajorAssaultStart(d) {
       id:g.id, majorGuard:true, hp:g.hp || 100, maxHp:g.max_hp || 100,
       weapon:g.weapon || 'pistol',
       r:spawn.r,c:spawn.c,tr:spawn.r,tc:spawn.c,
+      postR:spawn.r,postC:spawn.c,patrolZone:spawn.zone || '',
       ang:Math.PI, walkPhase:0, walking:false, name:'Охрана', role:'guard',
       fixed:false, hostile:false, _alerted:false,
       _nextShotAt:performance.now()+1800+Math.random()*700,
+      _nextPatrolSayAt:performance.now()+2200+Math.random()*5200,
+      _patrolTargetUntil:0,
       look:{gender:0,skin:1+(i%3),body:1+(i%2),face:i%4,hair:i%5,hat:2,suit:'#171b24'},
       idleUntil:performance.now()+Math.random()*800, speed:1.15,
     };
@@ -14547,10 +14560,13 @@ function handleEventPacket(d) {
         id:g.id, majorGuard:true, hp:g.hp, maxHp:g.max_hp,
         weapon:g.weapon || 'pistol',r:spawn.r,c:spawn.c,
         tr:spawn.tr??spawn.r,tc:spawn.tc??spawn.c,ang:Math.PI,
+        postR:spawn.r,postC:spawn.c,patrolZone:spawn.zone || '',
         walkPhase:0, walking:false, name:'Подкрепление', role:'guard',
         fixed:false, hostile:!!_majorRaidLocal.combatStarted,
         _alerted:!!_majorRaidLocal.combatStarted,
         _nextShotAt:performance.now()+650+Math.random()*650,
+        _nextPatrolSayAt:performance.now()+1800+Math.random()*4800,
+        _patrolTargetUntil:0,
         look:{gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%5,hat:2,suit:'#241923'},
         idleUntil:performance.now()+300, speed:1.25,
       });
@@ -38003,6 +38019,37 @@ function tryTapLock(canvasX, canvasY) {
     if (lockedTargets.size) lockedTargets.clear();
     return false;
   }
+  // Любой боевой интерьер использует собственные координаты. Без этой
+  // ветки тап по охраннику казино искал цель среди NPC открытого города,
+  // поэтому мобильная кнопка стреляла в старом направлении персонажа.
+  if (_buildingInt) {
+    let iBest=null,iBestD=_isArmed()?86:120;
+    for (const npc of (_buildingInt.npcs || [])) {
+      if (!npc || npc.dead || npc._allied || npc.majorBoss) continue;
+      const d=_screenDistToCell(npc.r,npc.c,canvasX,canvasY);
+      if(d>=iBestD)continue;
+      iBestD=d;
+      const npcId=String(npc.id || _buildingInt.npcs.indexOf(npc));
+      iBest=_lockTargetEntry('interior_guard',npcId,()=>{
+        const current=_buildingInt?.npcs?.find(row =>
+          String(row.id || _buildingInt.npcs.indexOf(row))===npcId);
+        return current&&!current.dead?{r:current.r,c:current.c}:null;
+      },()=>npc.name || 'охранник');
+    }
+    if(iBest){
+      const id=_lockId(iBest);
+      if(lockedTargets.has(id)){lockedTargets.delete(id);return true;}
+      if(lockedTargets.size>=_maxTargetLocks()){
+        lockedTargets.delete(lockedTargets.keys().next().value);
+      }
+      lockedTargets.set(id,{
+        entry:iBest,expireAt:performance.now()+TARGET_LOCK_TIMEOUT_MS,
+      });
+      return true;
+    }
+    if(lockedTargets.size)lockedTargets.clear();
+    return false;
+  }
   // В ближнем бою (без оружия) радиус тапа шире — мобилка, пальцы толще
   const MAX_PX = _isArmed() ? 80 : 120;
   let best = null, bestD = MAX_PX;
@@ -38241,6 +38288,18 @@ function _findLaserTarget(dirY, dirX) {
         const n2 = _bankInt && _bankInt.npcs && _bankInt.npcs[idx];
         return (n2 && !n2.dead) ? { r: n2.r, c: n2.c } : null;
       }, () => 'охранник'));
+    }
+    return best;
+  }
+  if (_buildingInt) {
+    for (const npc of (_buildingInt.npcs || [])) {
+      if (!npc || npc.dead || npc._allied || npc.majorBoss) continue;
+      const npcId=String(npc.id || _buildingInt.npcs.indexOf(npc));
+      _check(npc.r,npc.c,_lockTargetEntry('interior_guard',npcId,()=>{
+        const current=_buildingInt?.npcs?.find(row =>
+          String(row.id || _buildingInt.npcs.indexOf(row))===npcId);
+        return current&&!current.dead?{r:current.r,c:current.c}:null;
+      },()=>npc.name || 'охранник'));
     }
     return best;
   }
@@ -44038,6 +44097,69 @@ function _casinoMoveMajorGuard(bi,n,moveR,moveC,step) {
   return false;
 }
 
+function _casinoPickGuardPatrolTarget(bi,n,now) {
+  if (!bi || !n) return;
+  const allPoints = bi._casinoPatrolPoints ||
+    (bi._casinoPatrolPoints = _casinoGuardSpawnPoints(bi));
+  const sameZone = allPoints.filter(p =>
+    !n.patrolZone || p.zone === n.patrolZone);
+  const pool = sameZone.length ? sameZone : allPoints;
+  const baseR = Number.isFinite(n.postR) ? n.postR : n.r;
+  const baseC = Number.isFinite(n.postC) ? n.postC : n.c;
+  const nearby = pool.filter(p => {
+    const fromPost = Math.hypot(p.r-baseR,p.c-baseC);
+    const fromGuard = Math.hypot(p.r-n.r,p.c-n.c);
+    return fromPost >= 1.1 && fromPost <= 5.8 && fromGuard >= .9 &&
+      _casinoLineClear(bi,n.r,n.c,p.r,p.c);
+  });
+  const choices = nearby.length ? nearby : pool.filter(p =>
+    Math.hypot(p.r-n.r,p.c-n.c) >= .9 &&
+    _casinoLineClear(bi,n.r,n.c,p.r,p.c));
+  const target = choices.length
+    ? choices[Math.floor(Math.random()*choices.length)]
+    : {r:baseR,c:baseC,zone:n.patrolZone};
+  n.tr=target.r;
+  n.tc=target.c;
+  n._patrolTargetUntil=now+4200+Math.random()*4200;
+  n.idleUntil=now+Math.random()*550;
+}
+
+function _updateCasinoGuardPatrol(bi,n,now,dt) {
+  if (now >= (n._nextPatrolSayAt || 0)) {
+    n._sayText = MAJOR_GUARD_PATROL_LINES[
+      Math.floor(Math.random()*MAJOR_GUARD_PATROL_LINES.length)];
+    n._sayUntil = now + 1500 + Math.random()*650;
+    n._nextPatrolSayAt = now + 4800 + Math.random()*6500;
+  }
+  const targetDist=Math.hypot((n.tr??n.r)-n.r,(n.tc??n.c)-n.c);
+  if (!Number.isFinite(n.tr) || !Number.isFinite(n.tc) ||
+      targetDist<.28 || now>=(n._patrolTargetUntil||0)) {
+    if (targetDist<.28 && now<(n.idleUntil||0)) {
+      n.walking=false;
+      n.ang+=(n._scanDir||.18)*dt;
+      return;
+    }
+    _casinoPickGuardPatrolTarget(bi,n,now);
+  }
+  if (now<(n.idleUntil||0)) {
+    n.walking=false;
+    return;
+  }
+  const dr=n.tr-n.r,dc=n.tc-n.c,dist=Math.hypot(dr,dc)||1;
+  n.ang=Math.atan2(dr,dc);
+  const oldR=n.r,oldC=n.c;
+  const moved=_casinoMoveMajorGuard(
+    bi,n,dr,dc,(n.speed||1.15)*.48*dt);
+  n.walking=moved&&Math.hypot(n.r-oldR,n.c-oldC)>.002;
+  if(n.walking){
+    n.walkPhase+=dt*8;
+    n._patrolStuckSince=0;
+  }else{
+    if(!n._patrolStuckSince)n._patrolStuckSince=now;
+    if(now-n._patrolStuckSince>700)n._patrolTargetUntil=0;
+  }
+}
+
 function _fireInteriorGuardRound(bi,n,damage,hitChance=.72) {
   if(!bi||!n||n.dead||myDead)return;
   const dr=player.r-n.r,dc=player.c-n.c,dist=Math.hypot(dr,dc)||1;
@@ -44079,14 +44201,14 @@ function _updateInteriorNpcs(bi, dt) {
       continue;
     }
     if (_majorInteriorObjectId && n.majorGuard) {
-      const dr=player.r-n.r,dc=player.c-n.c,dist=Math.hypot(dr,dc)||1;
+      let dr=player.r-n.r,dc=player.c-n.c,dist=Math.hypot(dr,dc)||1;
       if (!n._alerted) {
-        // До обнаружения охранник остаётся на посту и медленно осматривает
-        // зал. Зона зрения существует только в логике и не рисуется.
+        // До тревоги охрана не превращается в декорацию: каждый боец
+        // обходит свой сектор, делает короткие остановки и переговаривается.
         if (!n._scanDir) n._scanDir = (String(n.id).length % 2 ? 1 : -1) *
           (.22 + (String(n.id).charCodeAt(0) % 5) * .025);
-        n.ang += n._scanDir * dt;
-        n.walking = false;
+        _updateCasinoGuardPatrol(bi,n,now,dt);
+        dr=player.r-n.r;dc=player.c-n.c;dist=Math.hypot(dr,dc)||1;
         const graceOver = now >= (_majorRaidLocal?.combatGraceUntil || 0);
         if (!graceOver || !_casinoLineClear(bi,n.r,n.c,player.r,player.c) ||
             !_majorGuardSeesPlayer(n,dist,dr,dc)) continue;
