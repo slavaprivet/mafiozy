@@ -106,6 +106,25 @@ PREVIEW_MAJOR_OBJECTS = {
 }
 preview_major_raids = {}
 preview_major_owners = {}
+CASINO_PROP_DEFS = {
+    "desk": (2.9, 22.0, 180), "wheel": (7.0, 22.0, 260),
+    **{f"slot_{i}": (r, c, 70) for i, (r, c) in enumerate([
+        (6, 10), (6, 13.2), (6, 16.4), (6, 27.6), (6, 30.8),
+        (6, 34), (10.2, 10), (10.2, 13.2), (10.2, 30.8), (10.2, 34),
+    ])},
+    **{f"roulette_{i}": (14, c, 140)
+       for i, c in enumerate((12, 22, 32))},
+    **{f"card_{i}": (18.2, c, 130)
+       for i, c in enumerate((12, 22, 32))},
+    "bar": (24.2, 31.5, 190), "vip_table": (23, 7.2, 150),
+    "vip_sofa_n": (21.6, 7.2, 110), "vip_sofa_s": (24.5, 7.2, 110),
+    "champagne": (23, 12, 60), "dance_stage": (11, 22, 180),
+    "office": (5.8, 40, 160), "security": (13, 40, 150),
+}
+preview_major_props = {"casino": {
+    prop_id: {"hp": hp, "destroyed": False}
+    for prop_id, (_, _, hp) in CASINO_PROP_DEFS.items()
+}}
 
 
 def preview_major_payload():
@@ -121,10 +140,16 @@ def preview_major_payload():
             "name": cfg["name"], "boss_name": cfg["boss"],
             "owner_uid": owner.get("owner_uid") if owner else None,
             "owner_name": owner.get("owner_name") if owner else cfg["boss"],
+            "team_names": list(owner.get("team_names") or []) if owner else [],
             "expires_in": max(
                 0, int(float(owner.get("expires_at") or 0) - now)
             ) if owner else 0,
             "income": int(cfg["income"]),
+            "props": {
+                prop_id: dict(state)
+                for prop_id, state in preview_major_props.get(
+                    object_id, {}).items()
+            },
             "raid": ({
                 "phase": raid.get("phase"),
                 "participant_uids": list(raid.get("participants") or []),
@@ -385,7 +410,7 @@ preview_business_aggro = {}
 preview_business_rob_cycles = {}
 preview_business_rob_sessions = {}
 preview_business_last_robs = {}
-PREVIEW_ROB_PERSONAL_COOLDOWN_S = 3600
+PREVIEW_ROB_PERSONAL_COOLDOWN_S = 5 * 60
 PREVIEW_ROB_GUARDS = {
     "coffee":1, "carwash":2, "barbershop":2, "pizza":3, "garage":4,
     "bar":4, "club":5, "warehouse":6, "casino":8, "port":10,
@@ -394,6 +419,19 @@ PREVIEW_ROB_INTERIOR_WIDTHS = {
     "coffee":16, "carwash":18, "barbershop":18, "pizza":19, "garage":21,
     "bar":21, "club":23, "warehouse":25, "casino":28, "port":30,
 }
+
+
+def preview_robbery_difficulty(guards):
+    guards = max(0, int(guards or 0))
+    if guards >= 20:
+        return 5
+    if guards >= 6:
+        return 4
+    if guards >= 4:
+        return 3
+    if guards >= 2:
+        return 2
+    return 1
 
 
 def preview_robber_at_cashier(player, biz_id):
@@ -408,6 +446,19 @@ def preview_robber_at_cashier(player, biz_id):
     except (TypeError, ValueError):
         return False
     return dx * dx + dy * dy <= 16.0
+
+
+def preview_robber_at_entrance(player, biz_id):
+    rc = PREVIEW_BUSINESS_RC.get(str(biz_id))
+    if not player or not rc or player.get("business_interior"):
+        return False
+    try:
+        r, c = rc
+        dx = float(player.get("x", 0)) - float(c)
+        dy = float(player.get("y", 0)) - float(r)
+    except (TypeError, ValueError):
+        return False
+    return dx * dx + dy * dy <= 12.25
 
 
 preview_business_police_protection = {}
@@ -500,10 +551,10 @@ PREVIEW_BUSINESS_RC = {
     "port":(181,31),
 }
 PREVIEW_ROB_PAYOUT = {
-    "coffee":(200,1), "carwash":(300,1), "barbershop":(400,1),
-    "pizza":(600,1), "garage":(900,2), "bar":(1300,2), "club":(2000,2),
-    "warehouse":(3200,2), "casino":(5000,3),
-    "port":(8000,3),
+    "coffee":(200,1), "carwash":(300,2), "barbershop":(400,2),
+    "pizza":(600,2), "garage":(900,3), "bar":(1300,3), "club":(2000,3),
+    "warehouse":(3200,4), "casino":(5000,4),
+    "port":(8000,4),
 }
 PREVIEW_BIZ_MULT = {1:1.0,2:1.35,3:1.75,4:2.25,5:3.0}
 PREVIEW_BIZ_UP = {2:.45,3:.75,4:1.15,5:1.70}
@@ -2371,6 +2422,45 @@ async def world_ws(req):
                             "old_uid":str(old_uid),"by_uid":str(picker_uid),"by_name":cap["by_name"],
                             "name":DISTRICTS[did]["name"]})
                         break
+            for object_id, owner in list(preview_major_owners.items()):
+                cfg = PREVIEW_MAJOR_OBJECTS.get(object_id, {})
+                if now >= float(owner.get("expires_at") or 0):
+                    preview_major_owners.pop(object_id, None)
+                    await broadcast_event({
+                        "kind": "major_control_lost",
+                        "object_id": object_id,
+                        "name": cfg.get("name", object_id),
+                        "owner_uid": str(owner.get("owner_uid") or ""),
+                        "owner_name": owner.get("owner_name", ""),
+                    })
+                    continue
+                last_payout = float(owner.get("last_payout_at") or now)
+                if now - last_payout < 600:
+                    continue
+                owner["last_payout_at"] = last_payout + 600
+                team = [
+                    str(member_uid)
+                    for member_uid in owner.get("team_uids") or []
+                    if str(member_uid) in players
+                ] or [str(owner.get("owner_uid") or "")]
+                total = int(cfg.get("income") or 0) // 6
+                share, remainder = divmod(total, max(1, len(team)))
+                awards = []
+                for index, member_uid in enumerate(team):
+                    amount = share + (1 if index < remainder else 0)
+                    preview_account(member_uid)["cash"] += amount
+                    awards.append({"uid": member_uid, "amount": amount})
+                await broadcast_event({
+                    "kind": "major_income",
+                    "object_id": object_id,
+                    "name": cfg.get("name", object_id),
+                    "owner_uid": str(owner.get("owner_uid") or ""),
+                    "owner_name": owner.get("owner_name", ""),
+                    "total": total,
+                    "awards": awards,
+                    "expires_in": max(
+                        0, int(float(owner.get("expires_at") or now) - now)),
+                })
             for did, owner in list(district_owners.items()):
                 dd = DISTRICTS.get(did, {})
                 if now >= float(owner.get("expires_at") or 0):
@@ -2527,7 +2617,7 @@ async def world_ws(req):
                 cooldown_left=max(0,int(PREVIEW_ROB_PERSONAL_COOLDOWN_S-(now_rob-last_rob))) if last_rob else 0
                 completed = max(0, min(2, int(preview_business_rob_cycles.get((str(uid),biz_id),0))))
                 rc=PREVIEW_BUSINESS_RC.get(biz_id)
-                close_enough=preview_robber_at_cashier(p,biz_id)
+                close_enough=preview_robber_at_entrance(p,biz_id)
                 owns=biz_id in preview_owned_businesses(uid)
                 ok_prepare=bool(
                     rc and p and not p.get("dead") and not p.get("police") and
@@ -2549,8 +2639,8 @@ async def world_ws(req):
                 reason=("police" if p.get("police") else
                         "protected" if protected_left else
                         "defended" if defended_left else
-                        "cooldown" if cooldown_left else
                         "closed" if closed_left else
+                        "cooldown" if cooldown_left else
                         "own" if owns else
                         "too_far" if not close_enough else "dead")
                 await ws.send_str(json.dumps({"t":"event","d":{
@@ -2626,16 +2716,21 @@ async def world_ws(req):
                     elif not preview_robber_at_cashier(p,biz_id):
                         reply.update(reason="too_far")
                     else:
-                        money, stars = reward
+                        money, _base_difficulty = reward
+                        difficulty = preview_robbery_difficulty(session["guard_count"])
                         preview_account(uid)["cash"] += money
-                        p["wanted"] = max(int(p.get("wanted",0)), stars)
                         preview_business_closures[biz_id] = now + 300
                         key = (str(uid), biz_id)
                         preview_business_last_robs[key] = now
                         preview_business_rob_cycles[key] = (int(preview_business_rob_cycles.get(key,0)) + 1) % 3
                         preview_business_rob_sessions.pop(str(uid),None)
                         reply = {"kind":"shop_rob_reply", "ok":True, "biz_id":biz_id,
-                                 "money":money, "stars":stars, "closed_s":300}
+                                 "money":money, "difficulty":difficulty, "closed_s":300}
+                        await broadcast_event({
+                            "kind":"shop_robbed","robber_uid":str(uid),
+                            "robber_name":str(p.get("name") or "Demo")[:20],
+                            "biz_id":biz_id,"biz_name":biz_id,"closed_s":300,
+                        })
                         if p.get("mafia") and not p.get("police"):
                             account = preview_account(uid)
                             old_xp = int(account.get("mafia_xp", 0))
@@ -2958,9 +3053,17 @@ async def world_ws(req):
                              "by_name": raid.get("by_name")}
                 else:
                     if not raid:
+                        if object_id == "casino":
+                            preview_major_props["casino"] = {
+                                prop_id: {"hp": hp, "destroyed": False}
+                                for prop_id, (_, _, hp)
+                                in CASINO_PROP_DEFS.items()
+                            }
+                        crew_id = str(actor.get("crew_id") or "")
                         participants = {
                             str(player_uid) for player_uid, player in players.items()
-                            if player.get("mafia") and not player.get("police")
+                            if crew_id and str(player.get("crew_id") or "") == crew_id
+                            and player.get("mafia") and not player.get("police")
                             and not player.get("dead")
                             and math.hypot(
                                 float(player.get("x", 0)) -
@@ -2979,12 +3082,19 @@ async def world_ws(req):
                         raid = {
                             "object_id": object_id, "by_uid": str(uid),
                             "by_name": actor.get("name", "Demo"),
+                            "crew_id": crew_id,
                             "participants": participants, "phase": "guards",
                             "guards": guards, "spawned": len(guards),
                             "pressure": 0,
                             "safes": [{
                                 "id": f"{object_id}_safe_{i + 1}",
                                 "opened": False, "value": 250 * (i + 1),
+                                "r": ((23.6 if i == 2 else 21.35)
+                                      if object_id == "casino"
+                                      else (7 + (i % 2) * 3)),
+                                "c": ((38.9 if i == 0 else 41.65)
+                                      if object_id == "casino"
+                                      else (34 - 6 - (i % 2) * 4)),
                             } for i in range(
                                 4 if object_id == "mansion" else 3)],
                         }
@@ -3045,6 +3155,71 @@ async def world_ws(req):
                         "phase": raid["phase"],
                     }
                 await broadcast_event(reply)
+            elif t == "major_prop_hit":
+                object_id = str(d.get("object_id") or "")[:24]
+                prop_id = str(d.get("prop_id") or "")[:48]
+                weapon = str(d.get("weapon") or "pistol")[:32]
+                actor = players.get(uid) or {}
+                prop_def = CASINO_PROP_DEFS.get(prop_id)
+                state = preview_major_props.get(object_id, {}).get(prop_id)
+                inside = (
+                    actor.get("major_interior") == object_id
+                    or actor.get("business_interior") == f"major_{object_id}"
+                )
+                if object_id != "casino" or not prop_def or not state or not inside:
+                    reply = {"kind": "major_prop_hit", "ok": False,
+                             "reason": "not_inside",
+                             "object_id": object_id, "prop_id": prop_id}
+                elif state.get("destroyed"):
+                    reply = {"kind": "major_prop_hit", "ok": True,
+                             "object_id": object_id, "prop_id": prop_id,
+                             "hp": 0, "destroyed": True}
+                else:
+                    prop_r, prop_c, _ = prop_def
+                    impact_r = float(d.get("impact_r") or prop_r)
+                    impact_c = float(d.get("impact_c") or prop_c)
+                    player_r = float(actor.get("interior_y") or 0)
+                    player_c = float(actor.get("interior_x") or 0)
+                    explosive = weapon in ("grenade", "molotov",
+                                           "molotov_fire", "rpg")
+                    valid = (
+                        math.hypot(impact_r - prop_r, impact_c - prop_c)
+                        <= (5.2 if explosive else 2.8)
+                        and math.hypot(player_r - impact_r,
+                                       player_c - impact_c)
+                        <= (8.0 if explosive else 14.0)
+                    )
+                    now_hit = time.time()
+                    hit_times = actor.setdefault("major_prop_hit_at", {})
+                    hit_key = f"{prop_id}:{weapon}"
+                    min_gap = 0.65 if weapon == "molotov_fire" else 0.06
+                    if now_hit - float(hit_times.get(hit_key) or 0) < min_gap:
+                        reply = {"kind": "major_prop_hit", "ok": False,
+                                 "reason": "cooldown",
+                                 "object_id": object_id,
+                                 "prop_id": prop_id}
+                    elif not valid:
+                        reply = {"kind": "major_prop_hit", "ok": False,
+                                 "reason": "too_far",
+                                 "object_id": object_id,
+                                 "prop_id": prop_id}
+                    else:
+                        hit_times[hit_key] = now_hit
+                        damage = {
+                            "grenade": 110, "rpg": 150, "molotov": 48,
+                            "molotov_fire": 15, "shotgun": 54,
+                            "sniper": 72, "rifle": 42,
+                            "golden_tommy": 24, "tommy_gun": 24,
+                        }.get(weapon, 34)
+                        state["hp"] = max(
+                            0, int(state.get("hp") or 0) - damage)
+                        state["destroyed"] = state["hp"] <= 0
+                        reply = {"kind": "major_prop_hit", "ok": True,
+                                 "object_id": object_id,
+                                 "prop_id": prop_id, "hp": state["hp"],
+                                 "destroyed": state["destroyed"],
+                                 "weapon": weapon}
+                await broadcast_event(reply)
             elif t == "major_boss_pressure":
                 object_id = str(d.get("object_id") or "")[:24]
                 raid = preview_major_raids.get(object_id)
@@ -3055,6 +3230,14 @@ async def world_ws(req):
                         or actor.get("major_interior") != object_id):
                     reply = {"kind": "major_boss_pressure", "ok": False,
                              "reason": "guards_alive",
+                             "object_id": object_id}
+                elif math.hypot(
+                        float(actor.get("interior_y", 0)) - 4.0,
+                        float(actor.get("interior_x", 0)) -
+                        float((44 if object_id == "casino" else 34) - 5)
+                        ) > 4.2:
+                    reply = {"kind": "major_boss_pressure", "ok": False,
+                             "reason": "too_far",
                              "object_id": object_id}
                 else:
                     raid["pressure"] = min(
@@ -3069,16 +3252,29 @@ async def world_ws(req):
                         "captured": captured,
                     }
                     if captured:
+                        team = [
+                            member_uid for member_uid in raid["participants"]
+                            if member_uid in players
+                            and not players[member_uid].get("dead")
+                        ] or [str(uid)]
                         preview_major_owners[object_id] = {
                             "owner_uid": str(uid),
                             "owner_name": actor.get("name", "Demo"),
+                            "team_uids": team,
+                            "team_names": [
+                                str(players.get(member_uid, {}).get("name")
+                                    or member_uid)[:24]
+                                for member_uid in team
+                            ],
                             "expires_at": time.time() + 3600,
+                            "last_payout_at": time.time(),
                         }
                         preview_major_raids.pop(object_id, None)
                         reply.update({
                             "owner_name": actor.get("name", "Demo"),
                             "income": int(cfg["income"]),
                             "expires_in": 3600,
+                            "team_uids": team,
                         })
                 await broadcast_event(reply)
             elif t == "major_safe_open":
@@ -3088,6 +3284,7 @@ async def world_ws(req):
                 safe = next((
                     row for row in (raid or {}).get("safes", [])
                     if row.get("id") == safe_id), None)
+                actor = players.get(uid) or {}
                 if (not raid or raid.get("phase") != "boss"
                         or str(uid) not in raid.get("participants", set())
                         or not safe or safe.get("opened")):
@@ -3096,15 +3293,34 @@ async def world_ws(req):
                         "reason": "guards_alive" if raid else "not_participant",
                         "object_id": object_id, "safe_id": safe_id,
                     }
+                elif math.hypot(
+                        float(actor.get("interior_y", 0)) - float(safe.get("r", 0)),
+                        float(actor.get("interior_x", 0)) - float(safe.get("c", 0))
+                        ) > 3.2:
+                    reply = {
+                        "kind": "major_safe_open", "ok": False,
+                        "reason": "too_far",
+                        "object_id": object_id, "safe_id": safe_id,
+                    }
                 else:
                     safe["opened"] = True
                     value = int(safe.get("value") or 0)
-                    preview_account(uid)["cash"] += value
+                    team = list(dict.fromkeys(
+                        str(member_uid)
+                        for member_uid in raid.get("participants", set())
+                        if member_uid
+                    ))
+                    share, remainder = divmod(value, max(1, len(team)))
+                    awards = []
+                    for index, member_uid in enumerate(team):
+                        amount = share + (1 if index < remainder else 0)
+                        preview_account(member_uid)["cash"] += amount
+                        awards.append({"uid": member_uid, "amount": amount})
                     reply = {
                         "kind": "major_safe_open", "ok": True,
                         "object_id": object_id, "safe_id": safe_id,
                         "value": value,
-                        "awards": [{"uid": str(uid), "amount": value}],
+                        "awards": awards,
                     }
                 await broadcast_event(reply)
             elif t == "aggro_shoot":
