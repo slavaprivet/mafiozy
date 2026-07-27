@@ -43794,6 +43794,13 @@ function _spawnInteriorNpcs(bi) {
       };
     });
     if(bi.bizId==='major_casino'){
+      const casinoOwner=bi.npcs.find(n=>n.role==='manager'||n.role==='owner');
+      if(casinoOwner){
+        casinoOwner.r=casinoOwner.tr=4.35;
+        casinoOwner.c=casinoOwner.tc=17.4;
+        casinoOwner.ang=0;
+        casinoOwner.fixed=true;
+      }
       const peacefulGuests=[
         ['Официантка',1,'#7b1738'],['Официантка',1,'#8d2449'],
         ['Официантка',1,'#6b1737'],['Хостес',1,'#b18838'],
@@ -44335,6 +44342,15 @@ function _pushInteriorNpcs(bi, items) {
         const now=performance.now(),isDead=!!nn.dead;
         const isStunned=!isDead&&(now<(nn._knockedUntil||0)||now<(nn._hurtAnimUntil||0));
         const armedGuard = nn.majorGuard || nn.role === 'biz_guard' || nn.role === 'biz_ally_guard';
+        if(bi.bizId==='major_casino'&&(nn.role==='manager'||nn.role==='owner')){
+          ctx.save();
+          const glow=ctx.createRadialGradient(p.x,p.y+1,2,p.x,p.y+1,22);
+          glow.addColorStop(0,'rgba(255,211,77,.42)');
+          glow.addColorStop(1,'rgba(255,211,77,0)');
+          ctx.fillStyle=glow;ctx.beginPath();ctx.ellipse(p.x,p.y+1,24,10,0,0,Math.PI*2);ctx.fill();
+          ctx.strokeStyle='#ffd34d';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y+2,15,6,0,0,Math.PI*2);ctx.stroke();
+          ctx.restore();
+        }
         drawPerson(p.x, p.y, nn.ang, nn.look, nn.walking ? nn.walkPhase : 0,
           nn.name, say, false, nn.hp == null ? 100 : nn.hp, nn.maxHp || 100,
           isDead, nn.deadAt || 0, armedGuard, false, isStunned);
@@ -44423,7 +44439,10 @@ function _drawCasinoNameOverlay(bi) {
     if(p.x<-100||p.x>canvas.width+100||y<-30||y>canvas.height+30)return;
     _drawCasinoReadableLabel(name,p.x,y,color,10);
   };
-  for(const n of (bi.npcs||[]))if(!n.dead)draw(n.r,n.c,n.name,n._allied?'#75ff8b':'#a7ffb0');
+  for(const n of (bi.npcs||[]))if(!n.dead){
+    const owner=n.role==='manager'||n.role==='owner';
+    draw(n.r,n.c,owner?`👑 ${n.name}`:n.name,owner?'#ffd85c':(n._allied?'#75ff8b':'#a7ffb0'));
+  }
   for(const [,o] of others){
     if(o.dead||!o.interior||o.interior.kind!=='business'||o.interior.biz_id!==bi.bizId)continue;
     draw(o.y,o.x,o.name,'#9edbff');
