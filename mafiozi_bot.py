@@ -21098,6 +21098,7 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
         events.append({
             'kind': 'business_family_war_won', 'biz_id': biz_id,
             'biz_name': str(biz.get('name') or biz_id), 'winner': winner,
+            'previous_family': previous_family,
             'winner_uid': finisher_uid,
             'winner_name': str(finisher.get('name') or '')[:24],
             'bonus': bonus, 'control_s': control_s,
@@ -25219,6 +25220,7 @@ async def _coop_http_app():
                             world._business_war_sabotage.pop(biz_id,None);world._business_closed_until.pop(biz_id,None);world._business_war_sabotage_immunity[biz_id]=immunity_until
                             await _business_war_contribution_add(world,str(uid),family,score=20)
                         reply={'kind':'business_war_repair_reply','ok':ok,'biz_id':biz_id,
+                               'actor_uid':str(uid),
                                'biz_name':str((get_business(biz_id) or {}).get('name') or biz_id)}
                         blob=json.dumps({'t':'event','d':reply},ensure_ascii=False)
                         for _u2,_ws2 in list(world.connections.items()):
