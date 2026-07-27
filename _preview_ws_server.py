@@ -1298,7 +1298,7 @@ def preview_aggro_payload():
         }
     patrol = now * 0.32
     for gang_i, (gang_id, base_x, base_y) in enumerate(PREVIEW_STREET_GANGS):
-        faction = "yellow" if gang_i % 2 else "purple"
+        faction = "yellow" if gang_i % 2 == 0 else "purple"
         phase = patrol + gang_i * math.pi
         center_x = base_x + math.sin(phase) * 6.0
         direction = 0.0 if math.cos(phase) >= 0 else math.pi
@@ -1313,6 +1313,7 @@ def preview_aggro_payload():
             if faction == "yellow":
                 bot["look"].update({"skin": (0, 2, 3)[i], "body": 4,
                                     "hat": 2, "gang": 2})
+            bot["faction"] = faction
             bots.append(bot)
         result[gang_id] = {
             "state": "patrol", "bots": bots, "covers": [],
