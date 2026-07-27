@@ -16705,7 +16705,10 @@ class WorldSim:
                                                 float(bot.get('x') or 0) + _m.cos(angle) * distance))
             bot['_fire_flee_y'] = max(1.5, min(WORLD_MAP_ROWS - 1.5,
                                                 float(bot.get('y') or 0) + _m.sin(angle) * distance))
+        was_burning = now < float(bot.get('_burn_until') or 0)
         bot['_burn_until'] = max(float(bot.get('_burn_until') or 0), now + 4.8)
+        if not was_burning or not float(bot.get('_burn_tick_at') or 0):
+            bot['_burn_tick_at'] = now + 1.0
         bot['_fire_flee_until'] = max(float(bot.get('_fire_flee_until') or 0), now + 3.8)
         bot['act'] = 'walk'
         bot['_act'] = 'walk'
@@ -16717,6 +16720,18 @@ class WorldSim:
         """Moves a burning bandit away from its cached fire escape target."""
         import math as _m
         now = time.time()
+        burning = now < float(bot.get('_burn_until') or 0)
+        if burning and now >= float(bot.get('_burn_tick_at') or 0):
+            bot['_burn_tick_at'] = now + 1.0
+            bot['hp'] = max(0, int(bot.get('hp') or 0) - 6)
+            if bot['hp'] <= 0:
+                bot['alive'] = False
+                bot['threat'] = ''
+                bot['_threat_until'] = 0.0
+                return False
+        elif not burning and str(bot.get('threat') or '').startswith('Горю!'):
+            bot['threat'] = ''
+            bot['_threat_until'] = 0.0
         if now >= float(bot.get('_fire_flee_until') or 0):
             return False
         tx = float(bot.get('_fire_flee_x', bot.get('x', 0)))
@@ -17573,7 +17588,7 @@ class WorldSim:
                 'y': float(r + _m.sin(ang) * 1.45),
                 'ang': float(ang),
                 'hp': 100, 'max_hp': 100, 'alive': True,
-                'weapon': 'pistol_heavy', '_shot_t': 0.0,
+                'weapon': 'pistol', '_shot_t': 0.0,
             })
         nest = {
             'id':              gid,
@@ -17668,43 +17683,107 @@ class WorldSim:
                         lambda nx, ny: _m.hypot(nx - ac, ny - ar) <= self.NEST_GUARD_R + 5.0):
                     fire_flee_ids.add(str(bot['id']))
             alive_guards = [g for g in ne.get('defenders', []) if g.get('alive')]
-            # Business security and the raiding gang exchange server-authoritative fire.
-            if alive_bots and alive_guards:
-                if now >= ne.get('_guard_shot_t', 0):
-                    guard = random.choice(alive_guards)
-                    bot = random.choice(alive_bots)
-                    guard['ang'] = _m.atan2(bot['y'] - guard['y'], bot['x'] - guard['x'])
-                    bot['hp'] = max(0, int(bot['hp']) - random.randint(22, 31))
-                    if bot['hp'] <= 0:
-                        bot['alive'] = False
-                    ne['_guard_shot_t'] = now + random.uniform(.62, .92)
-                    pkts.append({'kind':'business_guard_shot','id':ne['id'],
-                                 'guard_id':guard['id'],'bot_id':bot['id']})
-                alive_bots = [b for b in ne['bots'] if b['alive']]
-                if alive_bots and now >= ne.get('_gang_shot_t', 0):
-                    bot = random.choice(alive_bots)
-                    guard = random.choice(alive_guards)
-                    bot['ang'] = _m.atan2(guard['y'] - bot['y'], guard['x'] - bot['x'])
-                    guard['hp'] = max(0, int(guard['hp']) - random.randint(16, 25))
-                    if guard['hp'] <= 0:
-                        guard['alive'] = False
+            for guard in alive_guards:
+                guard['_moving'] = False
+            npc_defense_combat = bool(alive_bots and alive_guards)
+            # Business security and raiders fight in world space instead of
+            # silently trading HP on a fixed timer.
+            if npc_defense_combat:
+                for index, guard in enumerate(alive_guards):
+                    current_bots = [b for b in ne['bots'] if b.get('alive')]
+                    if not current_bots:
+                        break
+                    bot = min(current_bots, key=lambda item: _m.hypot(
+                        item['x'] - guard['x'], item['y'] - guard['y']))
+                    dx = bot['x'] - guard['x']; dy = bot['y'] - guard['y']
+                    dist = _m.hypot(dx, dy) + 1e-6
+                    guard['ang'] = _m.atan2(dy, dx)
+                    side = -1.0 if index % 2 else 1.0
+                    mx = dx / dist + (-dy / dist) * .24 * side
+                    my = dy / dist + (dx / dist) * .24 * side
+                    step = (1.45 * dt if dist > 4.2 else
+                            (-1.1 * dt if dist < 2.35 else .42 * dt))
+                    nx = guard['x'] + mx * step
+                    ny = guard['y'] + my * step
+                    if (_m.hypot(nx - ac, ny - ar) <= self.NEST_GUARD_R + 4.0
+                            and not _world_is_wall(int(ny), int(nx))):
+                        guard['x'], guard['y'] = nx, ny
+                        guard['_moving'] = True
+                    if dist <= 9.5 and now >= float(guard.get('_shot_t') or 0):
+                        guard['_shot_t'] = now + random.uniform(.62, .9)
+                        damage = random.randint(22, 31)
+                        bot['hp'] = max(0, int(bot['hp']) - damage)
+                        killed = bot['hp'] <= 0
+                        if killed:
+                            bot['alive'] = False
                         pkts.append({
-                            'kind':'business_guard_down', 'id':ne['id'],
-                            'business_id':ne.get('business_id'),
-                            'owner_uid':ne.get('guard_owner_uid'),
-                            'guard_id':guard['id'],
+                            'kind':'business_defense_shot', 'side':'guard',
+                            'id':ne['id'], 'business_id':ne.get('business_id'),
+                            'shooter_id':guard['id'], 'target_id':bot['id'],
+                            'weapon':guard.get('weapon') or 'pistol',
+                            'sx':guard['x'], 'sy':guard['y'],
+                            'tx':bot['x'], 'ty':bot['y'],
+                            'damage':damage, 'hp':bot['hp'], 'killed':killed,
                         })
-                    ne['_gang_shot_t'] = now + random.uniform(.72, 1.05)
+                alive_bots = [b for b in ne['bots'] if b.get('alive')]
+                for index, bot in enumerate(alive_bots):
+                    if str(bot['id']) in fire_flee_ids:
+                        continue
+                    current_guards = [
+                        g for g in ne.get('defenders', []) if g.get('alive')]
+                    if not current_guards:
+                        break
+                    guard = min(current_guards, key=lambda item: _m.hypot(
+                        item['x'] - bot['x'], item['y'] - bot['y']))
+                    dx = guard['x'] - bot['x']; dy = guard['y'] - bot['y']
+                    dist = _m.hypot(dx, dy) + 1e-6
+                    bot['ang'] = _m.atan2(dy, dx)
+                    side = 1.0 if index % 2 else -1.0
+                    mx = dx / dist + (-dy / dist) * .2 * side
+                    my = dy / dist + (dx / dist) * .2 * side
+                    step = (1.2 * dt if dist > 4.8 else
+                            (-.95 * dt if dist < 2.25 else .34 * dt))
+                    nx = bot['x'] + mx * step
+                    ny = bot['y'] + my * step
+                    if (_m.hypot(nx - ac, ny - ar) <= self.NEST_GUARD_R + 4.0
+                            and not _world_is_wall(int(ny), int(nx))):
+                        bot['x'], bot['y'] = nx, ny
+                        bot['_moving'] = True
+                    if dist <= 9.5 and now >= float(bot.get('_guard_shot_t') or 0):
+                        bot['_guard_shot_t'] = now + random.uniform(.72, 1.04)
+                        damage = random.randint(16, 25)
+                        guard['hp'] = max(0, int(guard['hp']) - damage)
+                        killed = guard['hp'] <= 0
+                        if killed:
+                            guard['alive'] = False
+                            pkts.append({
+                                'kind':'business_guard_down', 'id':ne['id'],
+                                'business_id':ne.get('business_id'),
+                                'owner_uid':ne.get('guard_owner_uid'),
+                                'guard_id':guard['id'],
+                            })
+                        pkts.append({
+                            'kind':'business_defense_shot', 'side':'raider',
+                            'id':ne['id'], 'business_id':ne.get('business_id'),
+                            'shooter_id':bot['id'], 'target_id':guard['id'],
+                            'weapon':bot.get('weapon') or 'pistol_heavy',
+                            'sx':bot['x'], 'sy':bot['y'],
+                            'tx':guard['x'], 'ty':guard['y'],
+                            'damage':damage, 'hp':guard['hp'], 'killed':killed,
+                        })
+                alive_bots = [b for b in ne['bots'] if b.get('alive')]
+                alive_guards = [
+                    g for g in ne.get('defenders', []) if g.get('alive')]
             # Близость к гнезду не провоцирует бой. Оно становится hostile
             # только в gang_nest_shoot_bot после подтверждённого попадания.
-            if ne['state'] == 'guard':
+            if ne['state'] == 'guard' and not npc_defense_combat:
                 pass
             elif ne['state'] == 'hostile':
                 if now > ne['_hostile_until']:
                     ne['state'] = 'guard'
                     ne['_target_uid'] = None
                     ne['_cops_dispatched'] = False
-            if ne['state'] == 'guard':
+            if ne['state'] == 'guard' and not npc_defense_combat:
                 # Идём обратно к anchor если отошли
                 for bot in alive_bots:
                     if str(bot['id']) in fire_flee_ids:
@@ -17719,7 +17798,7 @@ class WorldSim:
                             bot['x'] = nx; bot['y'] = ny
                             bot['ang'] = _m.atan2(dy, dx)
                             bot['_moving'] = True
-            else:
+            elif ne['state'] == 'hostile' and not npc_defense_combat:
                 # HOSTILE — стреляем по target_uid (как обычная городская)
                 target = self.players.get(ne['_target_uid']) if ne['_target_uid'] else None
                 if (not target or target.get('dead')
@@ -19575,6 +19654,7 @@ class WorldSim:
                     'ang': round(guard.get('ang', 0), 2), 'hp': int(guard.get('hp', 0)),
                     'max_hp': int(guard.get('max_hp', 100)), 'alive': bool(guard.get('alive')),
                     'weapon': guard.get('weapon', 'pistol_heavy'),
+                    'act': 'walk' if guard.get('_moving') else 'idle',
                 } for guard in ne.get('defenders', []) if guard.get('alive')],
                 'guards_alive': sum(
                     1 for guard in ne.get('defenders', []) if guard.get('alive')),
