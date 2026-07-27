@@ -1655,7 +1655,7 @@ async def world_ws(req):
                 choice_token = f"preview-choice-{uid}-{biz_id}-{time.time_ns()}"
                 preview_business_claims[str(uid)] = {
                     "token": choice_token, "biz_id": biz_id,
-                    "expires_at": time.time() + 90,
+                    "money": money, "expires_at": time.time() + 90,
                 }
                 await ws.send_str(json.dumps({"t":"event","d":{
                     "kind":"shop_rob_reply","ok":True,"biz_id":biz_id,
@@ -1689,9 +1689,14 @@ async def world_ws(req):
                     continue
                 if action == "sabotage":
                     account["consumables"]["c4"] -= 1
+                choice_biz_id = str(claim.get("biz_id") or "coffee")
+                choice_money = max(1, int(claim.get("money") or 600))
+                income_per_member = max(1, choice_money // 10)
                 await ws.send_str(json.dumps({"t":"event","d":{
                     "kind":"business_war_choice_reply","ok":True,
-                    "action":action,"biz_id":"coffee","money":600,
+                    "action":action,"biz_id":choice_biz_id,"money":choice_money,
+                    "income_per_member":income_per_member if action == "capture" else 0,
+                    "family":"bellini",
                     "c4_left":int(account["consumables"].get("c4", 0)),
                     "sabotage_kind":str(d.get("sabotage_kind") or "shutdown"),
                     "sabotage_s":720,
