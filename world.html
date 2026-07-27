@@ -45012,7 +45012,8 @@ function _casinoLineClear(bi,r0,c0,r1,c1) {
 function _casinoVisualElevation(bi,r,c) {
   if(!bi||bi.bizId!=='major_casino'||c>=7.4) return 0;
   if(r<14) return 1.8;
-  if(c>=2.2&&c<=6.3&&r<=19) return Math.max(0,Math.min(1.8,(19-r)*.36));
+  if(c>=2.2&&c<=6.3&&r<=19.08)
+    return Math.max(0,Math.min(1.8,.18+(18.8-r)*(1.62/5.04)));
   return 0;
 }
 
@@ -45106,14 +45107,16 @@ function _drawCasinoStairs(r,c) {
   const railSides=[c-width/2-.05,c+width/2+.05];
   const rails=[[],[]];
   ctx.save();
+  const landingR=r-(steps-1)*tread-.58;
+  _bizIsoBox(landingR,c,4.15,1.08,1.8,'#5d1737','#32101f','#1c0a14');
   // Прямой ковровый марш: одинаковые ступени читаются как лестница,
   // а не как стопка разрозненных блоков.
-  for(let i=0;i<steps;i++){
+  for(let i=steps-1;i>=0;i--){
     const rr=r-i*tread,h=(i+1)*rise;
-    _bizIsoBox(rr,c,width,tread+.04,h,'#711735','#3a1324','#200b16');
-    const edgeR=rr+tread*.3;
+    _bizIsoBox(rr,c,width,tread+.015,h,'#711735','#3a1324','#200b16');
+    const edgeR=rr+tread*.48;
     const left=w2s(edgeR,c-width/2),right=w2s(edgeR,c+width/2);
-    ctx.strokeStyle='#e5bd55';ctx.lineWidth=1.35;
+    ctx.strokeStyle='#e9c45d';ctx.lineWidth=1.25;
     ctx.beginPath();
     ctx.moveTo(left.x,left.y-isoH(h)-1);
     ctx.lineTo(right.x,right.y-isoH(h)-1);
@@ -45128,8 +45131,6 @@ function _drawCasinoStairs(r,c) {
       }
     }
   }
-  const landingR=r-(steps-1)*tread-.58;
-  _bizIsoBox(landingR,c,4.35,1.15,1.8,'#5d1737','#32101f','#1c0a14');
   for(const points of rails){
     ctx.strokeStyle='#e2b84c';ctx.lineWidth=2.5;ctx.lineCap='round';
     ctx.beginPath();
@@ -45255,7 +45256,7 @@ function _drawBusinessInterior(bi) {
         items.push({d:33,furniture:true,fn:()=>_drawCasinoDanceStage(11,22)});
       if(_casinoPropAlive('bar'))items.push({d:56.35,furniture:true,fn:()=>_drawCasinoBar(23.55,31.5)});
       items.push({d:12,furniture:true,fn:()=>_drawCasinoUpperGallery()});
-      items.push({d:23,furniture:true,fn:()=>_drawCasinoStairs(18.8,3.8)});
+      items.push({d:10.8,furniture:true,fn:()=>_drawCasinoStairs(18.8,3.8)});
       if(_casinoPropAlive('vip_table'))box('',22.35,7.2,4.6,1.4,.42,'#5c1742');
       if(_casinoPropAlive('vip_sofa_s'))box('',24.05,7.2,4.7,.8,.88,'#6e234f');
       if(_casinoPropAlive('champagne'))box('CHAMPAGNE',23,12,2.2,1.3,.82,'#d0a73b');
