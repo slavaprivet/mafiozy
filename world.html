@@ -18841,14 +18841,8 @@ function updateGtaInteractions() {
       _gtaBtn.textContent = '👮 Войти в Участок'; _gtaBtn.style.display = 'block'; return;
     }
   }
-  // Главный дом мафии — Burj Mafia. Улучшения семьи покупаются только внутри.
-  if (!_buildingInt && !_bankInt && !myDrivingCarId && !_policeState.employed) {
-    const dx = BURJ_POS.c - player.c, dy = BURJ_POS.r - player.r;
-    if (Math.hypot(dx, dy) <= 4.2) {
-      _gtaActionKind = 'building_enter'; _gtaActionCarId = `${BURJ_POS.r},${BURJ_POS.c},mafia_hq`;
-      _gtaBtn.textContent = '🕴️ Войти в BURJ MAFIA — Беллини'; _gtaBtn.style.display = 'block'; return;
-    }
-  }
+  // У Burj Mafia не показываем дублирующую верхнюю GTA-кнопку.
+  // Вход выполняется через контекстную метку «ВОЙТИ СЮДА» у самого здания.
   // NPC внутри Биржи труда
   // Вход в обычное здание (MAP[r][c]===1, не POI/банк/полиция и т.д.)
   if (!_buildingInt && !_bankInt && !myDrivingCarId && !myDead && !inArena(player.r, player.c)) {
@@ -46226,7 +46220,8 @@ const MAJOR_MANSION_STATIC_BLOCKERS = [
   // Парадный холл.
   ...[[3,13],[3,21],[9,13],[9,21],[16,13],[16,21]]
     .map(([r,c])=>({r,c,w:.9,d:.9,kind:'column'})),
-  {r:5.15,c:17,w:5.75,d:5.55,kind:'stairs'},
+  // Центральный марш лестницы намеренно не блокируется: игрок должен
+  // свободно подняться по ковру к Дону. Коллизии сохраняются у колонн.
   // Библиотека и каминная.
   {r:2.4,c:5.2,w:7,d:.9,kind:'books'},
   {r:7.8,c:1.2,w:5,d:.9,kind:'books'},
