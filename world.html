@@ -15717,13 +15717,25 @@ function handleEventPacket(d) {
   } else if(kind==='business_war_choice_reply'){
     if(!d.ok){const txt={invalid_choice:'Решение устарело или уже использовано',no_family:'Для захвата нужно вступить в семью',no_c4:'Требуется C4 · 1 шт. Купи заряд на Чёрном рынке',already_owned:'Этот бизнес уже принадлежит твоей семье',ownership_changed:'Бизнес уже перехватили — ограбление остаётся твоим',sabotage_immunity:`После ремонта действует защита от диверсий · ${Math.ceil((+d.wait_s||0)/60)} мин.`}[d.reason]||'Не удалось применить решение';showEventBanner('⛔ ВЫБОР НЕ ПРИМЕНЁН',txt,3600,'lose');}
     else if(d.action==='cash')showEventBanner('💰 КУШ ЗАБРАН',`+$${(+d.money||0).toLocaleString('ru')} уже зачислено на твой счёт · «${d.biz_name||'бизнес'}» осталось без изменений`,4200,'win');
-    else if(d.action==='sabotage'&&d.c4_left!==undefined){_myC4Count=Math.max(0,+d.c4_left||0);renderWeaponHud();showToast(`C4 использована · осталось: ${_myC4Count}`,'🧨',2800);}
+    else if(d.action==='sabotage'){
+      if(d.c4_left!==undefined){_myC4Count=Math.max(0,+d.c4_left||0);renderWeaponHud();}
+      const mins=Math.max(1,Math.round((+d.sabotage_s||720)/60));
+      const effect={shutdown:`Электричество отключено · бизнес закрыт и не приносит доход ${mins} мин.`,arson:`Склад подожжён · доход бизнеса остановлен на ${mins} мин.`,alarm:`Сигнализация сломана на ${mins} мин. · охрана здания ослаблена`}[d.sabotage_kind]||`Заведение выведено из строя на ${mins} мин.`;
+      _lastOwnBusinessChoice={bizId:d.biz_id,action:'sabotage',at:Date.now()};
+      showEventBanner('💣 ДИВЕРСИЯ ВЫПОЛНЕНА',`«${d.biz_name||'Бизнес'}» · ${effect} · потрачена C4: 1 · осталось: ${_myC4Count}`,5200,'win');
+    } else if(d.action==='capture'){
+      _lastOwnBusinessChoice={bizId:d.biz_id,action:'capture',at:Date.now()};
+      showEventBanner('🏴 БИЗНЕС ЗАХВАЧЕН',`«${d.biz_name||'Бизнес'}» теперь принадлежит твоей семье и приносит по $${(+d.income_per_member||0).toLocaleString('ru')} каждому участнику`,5200,'win');
+    } else if(d.action==='preparation'){
+      _lastOwnBusinessChoice={bizId:d.biz_id,action:'preparation',at:Date.now()};
+      showEventBanner('⚔️ ЗАХВАТ НАЧАТ',`«${d.biz_name||'Бизнес'}» · подготовка ${+d.preparation_s||20} сек., затем начнётся открытая война семей`,5200,'warn');
+    }
   } else if(kind==='business_sabotaged'){
     if(d.biz_id){delete _businessFamilyWars[d.biz_id];if((d.sabotage_kind||'shutdown')==='shutdown')_businessClosures[d.biz_id]=Date.now()+Math.max(1,+d.sabotage_s||720)*1000;}
-    showEventBanner('💣 ДИВЕРСИЯ',`${d.actor_name||'Кто-то'}: ${d.sabotage_label||'заведение выведено из строя'} · «${d.biz_name||'бизнес'}»`,3800,'lose');
+    if(!(_lastOwnBusinessChoice?.bizId===d.biz_id&&_lastOwnBusinessChoice.action==='sabotage'&&Date.now()-_lastOwnBusinessChoice.at<6000))showEventBanner('💣 ДИВЕРСИЯ',`${d.actor_name||'Кто-то'}: ${d.sabotage_label||'заведение выведено из строя'} · «${d.biz_name||'бизнес'}»`,3800,'lose');
   } else if(kind==='business_war_preparing'){
     if(d.biz_id)_businessFamilyWars[d.biz_id]={...d,preparing_until:Date.now()/1000+(+d.preparation_s||75),progress:0};
-    showEventBanner('🚨 ГОТОВИТСЯ НАПАДЕНИЕ',`За «${d.biz_name||'бизнес'}» начнётся война через ${+d.preparation_s||75} сек. Семьи, собирайтесь!`,5200,'lose');
+    if(!(_lastOwnBusinessChoice?.bizId===d.biz_id&&_lastOwnBusinessChoice.action==='preparation'&&Date.now()-_lastOwnBusinessChoice.at<6000))showEventBanner('🚨 ГОТОВИТСЯ НАПАДЕНИЕ',`За «${d.biz_name||'бизнес'}» начнётся война через ${+d.preparation_s||75} сек. Семьи, собирайтесь!`,5200,'lose');
   } else if(kind==='business_robbery_alert'){
     showEventBanner('🚨 СРАБОТАЛА СИГНАЛИЗАЦИЯ',`Нападение на семейный бизнес «${d.biz_name||'бизнес'}» · охрана предупреждена`,4200,'lose');
   } else if(kind==='business_war_repair_reply'){
@@ -15735,7 +15747,7 @@ function handleEventPacket(d) {
   } else if(kind==='business_captured'){
     if(d.biz_id)_robbedBusinessControls[d.biz_id]={biz_id:d.biz_id,owner_uid:d.actor_uid||'',owner_name:d.actor_name||'',mafia_family:d.family,persistent:true,expires_at:Date.now()/1000+315360000,income_per_member:+d.income_per_member||0};
     if(d.war_score&&d.family){_businessWarScore[d.family]={...(_businessWarScore[d.family]||{}),...d.war_score};_renderBusinessWarHud();}
-    showEventBanner('🏴 БИЗНЕС ЗАХВАЧЕН',`${MAFIA_FAMILIES[d.family]?.short||'Семья'} теперь контролирует «${d.biz_name||'бизнес'}»`,4200,'win');
+    if(!(_lastOwnBusinessChoice?.bizId===d.biz_id&&_lastOwnBusinessChoice.action==='capture'&&Date.now()-_lastOwnBusinessChoice.at<6000))showEventBanner('🏴 БИЗНЕС ЗАХВАЧЕН',`${MAFIA_FAMILIES[d.family]?.short||'Семья'} теперь контролирует «${d.biz_name||'бизнес'}»`,4200,'win');
   } else if(kind==='business_war_upgrade_reply'){
     if(!d.ok){showToast(({treasury:'В семейной казне недостаточно денег',not_controlled:'Семья больше не контролирует этот бизнес',too_far:'Улучшения покупаются возле бизнеса',max_level:'Достигнут максимальный уровень',stale:'Состояние изменилось — открой плашку снова'}[d.reason]||'Не удалось купить улучшение'),'⚠️',2600);}
     else{_businessWarUpgrades[d.family]??={};_businessWarUpgrades[d.family][d.biz_id]={...(d.levels||{})};if(_businessWarScore[d.family])_businessWarScore[d.family].treasury=+d.treasury||0;showToast(`Улучшение куплено · уровень ${d.level}/3`,'🛠️',2200);_openBusinessWarInfo();}
@@ -18178,6 +18190,7 @@ let _businessWarSabotage={};
 let _businessWarChains={};
 let _businessWarSeason={season_id:0,started_at:0,ends_at:0,status:'loading'};
 let _pendingBusinessWarChoice=null;
+let _lastOwnBusinessChoice=null;
 const BUSINESS_WAR_UPGRADE_UI=Object.freeze({
   security:{icon:'🛡️',name:'Охрана',desc:'замедляет вражеский захват',costs:[900,1800,3200]},
   alarm:{icon:'🚨',name:'Сигнализация',desc:'усиливает защиту точки',costs:[700,1400,2600]},
