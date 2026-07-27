@@ -2,48 +2,17 @@ import asyncio
 import json
 import math
 import random
-import secrets
+import os
 from pathlib import Path
 import time
 from aiohttp import web
 
-BASE_DIR = Path(__file__).resolve().parent
-
-
-def normalize_preview_vehicle_paint(value):
-    if not isinstance(value, dict):
-        return None
-    result = {}
-    for key in ("primary", "secondary", "roof"):
-        color = str(value.get(key) or "").strip().lower()
-        if len(color) == 7 and color[0] == "#" and all(
-                ch in "0123456789abcdef" for ch in color[1:]):
-            result[key] = color
-    return result if "primary" in result else None
-
 
 players = {}
-preview_pending_lair_shots = []
-PREVIEW_LAIR_WEAPON_SPEED = {
-    "pistol": 14.0, "pistol_heavy": 13.0, "pistol_gold": 14.0,
-    "shotgun": 11.0, "smg": 16.0, "uzi": 16.0,
-    "rifle": 20.0, "sniper": 32.0, "rpg": 8.0,
-}
-PREVIEW_LAIR_DODGE_RADIUS = 1.3
-gang_player_invites = {}  # target_uid -> {from_uid, expires_at}
 race_best = {}
 race_day = ""
 next_civ_car_id = 1
 clients = set()
-TAXI_COST = 50
-TAXI_DESTINATIONS = {
-    "beach": (145, 40), "blackmarket": (6, 36), "gym": (26, 26),
-    "job": (36, 16), "hospital": (26, 46), "police": (76, 76),
-    "arena": (36, 66), "market": (16, 16), "port": (165, 38),
-    "casino": (13, 45), "industrial": (46, 56), "firestation": (56, 26),
-    "lair": (120, 40), "bank:small": (7, 17), "bank:medium": (17, 57),
-    "bank:large": (57, 37),
-}
 DIST_HQ_RAD = 6.0
 DIST_ACTION_RAD = 2.8
 DIST_OPERATION_TTL_S = 12 * 60
@@ -65,563 +34,13 @@ DISTRICTS = {
     "downtown":   {"bounds":(0,39,40,79), "hq":(20.,60.), "intel":(11.,60.), "sabotage":((15.,49.),(19.,70.),(30.,58.)), "escape":(35.,60.), "name":"Даунтаун", "boss_name":"Винсент Крысолов", "icon":"🏙", "income":600, "color":"#e0b94a"},
     "southside":  {"bounds":(40,99,0,39), "hq":(70.,20.), "intel":(53.,20.), "sabotage":((60.,10.),(72.,30.),(83.,18.)), "escape":(95.,20.), "name":"Саутсайд", "boss_name":"Тони Кувалда", "icon":"🎰", "income":500, "color":"#9b59b6"},
     "industrial": {"bounds":(40,99,40,79), "hq":(70.,60.), "intel":(53.,60.), "sabotage":((60.,49.),(72.,70.),(83.,58.)), "escape":(95.,60.), "name":"Промзона", "boss_name":"Борис Шлак", "icon":"🏭", "income":550, "color":"#d2691e"},
-    "coast":      {"bounds":(150,199,0,79), "hq":(156.,40.), "intel":(165.,40.), "sabotage":((157.,14.),(158.,65.),(178.,40.)), "escape":(196.,40.), "name":"Побережье", "boss_name":"Капитан Риццо", "icon":"⚓", "income":450, "color":"#2ecc71"},
+    "coast":      {"bounds":(150,199,0,79), "hq":(156.,40.), "intel":(165.,40.), "sabotage":((154.,18.),(158.,65.),(178.,40.)), "escape":(196.,40.), "name":"Побережье", "boss_name":"Капитан Риццо", "icon":"⚓", "income":450, "color":"#2ecc71"},
 }
 district_owners = {}
 district_captures = {}
 district_loot = {}
 world_c4 = {}
 next_world_c4_id = 1
-PREVIEW_GANG_NESTS = [{
-    "id": "preview_nest_1", "r": 26.0, "c": 26.0,
-    "state": "guard", "expires_in": 3600, "bots_alive": 4,
-}]
-PREVIEW_BUSINESS_POS = {
-    "coffee": (13.0, 33.0), "carwash": (25.0, 23.0),
-    "barbershop": (23.0, 53.0), "pizza": (53.0, 53.0),
-    "garage": (63.0, 13.0), "bar": (33.0, 43.0),
-    "club": (53.0, 63.0), "warehouse": (23.0, 73.0),
-    "casino": (45.0, 13.0), "port": (31.0, 181.0),
-}
-PREVIEW_BOX_DROPOFFS = [
-    ("coffee", "Кофейня", *PREVIEW_BUSINESS_POS["coffee"]),
-    ("carwash", "Автомойка", *PREVIEW_BUSINESS_POS["carwash"]),
-    ("barbershop", "Парикмахерская", *PREVIEW_BUSINESS_POS["barbershop"]),
-    ("pizza", "Пиццерия", *PREVIEW_BUSINESS_POS["pizza"]),
-    ("garage", "Автосервис", *PREVIEW_BUSINESS_POS["garage"]),
-    ("bar", "Бар «Чёрная вдова»", *PREVIEW_BUSINESS_POS["bar"]),
-    ("club", "Подпольный клуб", *PREVIEW_BUSINESS_POS["club"]),
-    ("warehouse", "Склад", *PREVIEW_BUSINESS_POS["warehouse"]),
-    ("casino", "Казино", *PREVIEW_BUSINESS_POS["casino"]),
-    ("port", "Порт", *PREVIEW_BUSINESS_POS["port"]),
-]
-PREVIEW_NPC_CAPTURE_COOLDOWN = 2 * 3600
-preview_business_nests = {}
-preview_business_capture_cooldown = {}
-preview_family_scores = {"bellini": 0, "moretti": 0}
-preview_business_next_capture_at = time.time() + 20.0
-PREVIEW_MAJOR_OBJECTS = {
-    "casino": {"r": 46.0, "c": 16.0, "name": "Казино",
-               "boss": "Сальваторе «Фишка» Моретти",
-               "guards": 20, "total": 40, "income": 2400},
-    "market": {"r": 16.0, "c": 16.0, "name": "Рынок",
-               "boss": "Рафаэль «Весы» Конти",
-               "guards": 20, "total": 34, "income": 1200},
-    "factory": {"r": 46.0, "c": 56.0, "name": "Промзона",
-                "boss": "Бруно «Пресс» Ферретти",
-                "guards": 24, "total": 40, "income": 3000},
-    "mansion": {"r": 136.0, "c": 16.0, "name": "Резиденция",
-                "boss": "Дон Эмилио Витале",
-                "guards": 28, "total": 40, "income": 4200},
-    "port": {"r": 165.0, "c": 38.0, "name": "Порт",
-             "boss": "Марко «Якорь» Беллини",
-             "guards": 22, "total": 38, "income": 2600},
-}
-PREVIEW_MAJOR_MANAGER_POSITIONS = {
-    "casino": (7.65, 40.0),
-    "market": (4.0, 29.0),
-    "factory": (4.0, 29.0),
-    "mansion": (4.0, 29.0),
-    "port": (4.0, 29.0),
-}
-preview_major_raids = {}
-preview_major_owners = {}
-CASINO_PROP_DEFS = {
-    "desk": (2.9, 22.0, 180), "wheel": (7.0, 22.0, 260),
-    **{f"slot_{i}": (r, c, 70) for i, (r, c) in enumerate([
-        (6, 10), (6, 13.2), (6, 16.4), (6, 27.6), (6, 30.8),
-        (6, 34), (10.2, 10), (10.2, 13.2), (10.2, 30.8), (10.2, 34),
-    ])},
-    **{f"roulette_{i}": (14, c, 140)
-       for i, c in enumerate((12, 22, 32))},
-    **{f"card_{i}": (18.2, c, 130)
-       for i, c in enumerate((12, 22, 32))},
-    "bar": (24.2, 31.5, 190), "vip_table": (23, 7.2, 150),
-    "vip_sofa_n": (21.6, 7.2, 110), "vip_sofa_s": (24.5, 7.2, 110),
-    "champagne": (23, 12, 60), "dance_stage": (11, 22, 180),
-    "office": (5.8, 40, 160), "security": (13, 40, 150),
-}
-preview_major_props = {"casino": {
-    prop_id: {"hp": hp, "destroyed": False}
-    for prop_id, (_, _, hp) in CASINO_PROP_DEFS.items()
-}}
-
-
-def preview_major_payload():
-    now = time.time()
-    for object_id, owner in list(preview_major_owners.items()):
-        if float(owner.get("expires_at") or 0) <= now:
-            preview_major_owners.pop(object_id, None)
-    result = {}
-    for object_id, cfg in PREVIEW_MAJOR_OBJECTS.items():
-        owner = preview_major_owners.get(object_id)
-        raid = preview_major_raids.get(object_id)
-        result[object_id] = {
-            "name": cfg["name"], "boss_name": cfg["boss"],
-            "owner_uid": owner.get("owner_uid") if owner else None,
-            "owner_name": owner.get("owner_name") if owner else cfg["boss"],
-            "mafia_family": owner.get("mafia_family") if owner else "",
-            "control_points": int(owner.get("control_points") or 0) if owner else 0,
-            "protection_in": max(0,int(float(owner.get("protection_until") or 0)-now)) if owner else 0,
-            "team_names": list(owner.get("team_names") or []) if owner else [],
-            "expires_in": max(
-                0, int(float(owner.get("expires_at") or 0) - now)
-            ) if owner else 0,
-            "income": int(cfg["income"]),
-            "props": {
-                prop_id: dict(state)
-                for prop_id, state in preview_major_props.get(
-                    object_id, {}).items()
-            },
-            "raid": ({
-                "phase": raid.get("phase"),
-                "participant_uids": list(raid.get("participants") or []),
-                "alive": sum(
-                    1 for guard in raid.get("guards", [])
-                    if guard.get("alive")),
-                "spawned": int(raid.get("spawned") or 0),
-                "total": int(cfg["total"]),
-                "pressure": int(raid.get("pressure") or 0),
-            } if raid else None),
-        }
-    return result
-
-
-def preview_bandit_bot(bot_id, x, y, kind="aggro_grunt", weapon="pistol_heavy", hp=100, level=None):
-    if level is None:
-        level = 25 if kind == "aggro_boss" else (
-            random.randint(10, 20) if kind == "aggro_elite" else random.randint(1, 18))
-    level = max(1, min(25, int(level)))
-    scaled_hp = int(round(hp * (1.0 + (level - 1) * 0.05)))
-    base_damage = 24 if kind == "aggro_boss" else 18
-    return {
-        "id": bot_id, "x": float(x), "y": float(y), "ang": 0.0,
-        "hp": scaled_hp, "max_hp": scaled_hp, "level": level,
-        "kind": kind, "weapon": weapon,
-        "damage": int(round(base_damage * (1.0 + (level - 1) * 0.03))), "act": "idle",
-        "home_x": float(x), "home_y": float(y), "patrol_x": float(x), "patrol_y": float(y),
-        "patrol_until": 0.0, "shot_at": 0.0, "threat": "", "threat_until": 0.0,
-        "chatter_at": time.time() + random.uniform(3.0, 9.0), "alive": True,
-        "look": {"gender":0, "skin":1 + (sum(map(ord, bot_id)) % 3),
-                 "body":2, "face":1, "hair":0, "hat":4, "gang":1},
-    }
-
-
-def preview_ignite_bandit(bot, shooter, data):
-    now = time.time()
-    try:
-        fire_x = float(data.get("fire_x"))
-        fire_y = float(data.get("fire_y"))
-    except (TypeError, ValueError):
-        fire_x = float(shooter.get("x", 0))
-        fire_y = float(shooter.get("y", 0))
-    if (not math.isfinite(fire_x) or not math.isfinite(fire_y)
-            or math.hypot(fire_x-float(shooter.get("x", 0)),
-                          fire_y-float(shooter.get("y", 0))) > 7.5
-            or math.hypot(fire_x-float(bot.get("x", 0)),
-                          fire_y-float(bot.get("y", 0))) > 5.0):
-        fire_x = float(shooter.get("x", 0))
-        fire_y = float(shooter.get("y", 0))
-    if now >= float(bot.get("fire_flee_until") or 0):
-        dx, dy = float(bot["x"])-fire_x, float(bot["y"])-fire_y
-        if math.hypot(dx, dy) < .08:
-            angle = (sum(map(ord, str(bot.get("id") or ""))) % 360) * math.pi / 180
-        else:
-            angle = math.atan2(dy, dx)
-        seed = sum(map(ord, str(bot.get("id") or "")))
-        angle += ((seed % 9)-4)*.13
-        distance = 6.5 + seed % 4
-        bot["fire_flee_x"] = max(1.5, min(78.5, bot["x"]+math.cos(angle)*distance))
-        bot["fire_flee_y"] = max(1.5, min(198.5, bot["y"]+math.sin(angle)*distance))
-    was_burning = now < float(bot.get("burn_until") or 0)
-    bot["burn_until"] = max(float(bot.get("burn_until") or 0), now+4.8)
-    if not was_burning or not float(bot.get("burn_tick_at") or 0):
-        bot["burn_tick_at"] = now+1.0
-    bot["fire_flee_until"] = max(float(bot.get("fire_flee_until") or 0), now+3.8)
-    bot["burning"] = True
-    bot["act"] = "walk"
-    bot["threat"] = "Горю! Врассыпную!"
-    bot["threat_until"] = now+1.8
-
-
-def preview_tick_fire_flee(bot, now, dt, bounds=None):
-    bot["burning"] = now < float(bot.get("burn_until") or 0)
-    if bot["burning"] and now >= float(bot.get("burn_tick_at") or 0):
-        bot["burn_tick_at"] = now + 1.0
-        bot["hp"] = max(0, int(bot.get("hp") or 0) - 6)
-        if bot["hp"] <= 0:
-            bot["alive"] = False
-            bot["burning"] = False
-            bot["threat"] = ""
-            bot["threat_until"] = 0.0
-            return False
-    elif not bot["burning"] and str(bot.get("threat") or "").startswith("Горю!"):
-        bot["threat"] = ""
-        bot["threat_until"] = 0.0
-    if now >= float(bot.get("fire_flee_until") or 0):
-        return False
-    dx = float(bot.get("fire_flee_x", bot["x"]))-bot["x"]
-    dy = float(bot.get("fire_flee_y", bot["y"]))-bot["y"]
-    dist = math.hypot(dx, dy)
-    if dist < .18:
-        bot["fire_flee_until"] = now
-        return False
-    step = min(dist, 3.6*max(0.0, dt))
-    direct = math.atan2(dy, dx)
-    for turn in (0., .38, -.38, .76, -.76, 1.14, -1.14):
-        angle = direct+turn
-        nx, ny = bot["x"]+math.cos(angle)*step, bot["y"]+math.sin(angle)*step
-        if bounds and not (bounds[0] <= nx <= bounds[1] and bounds[2] <= ny <= bounds[3]):
-            continue
-        bot["x"], bot["y"], bot["ang"], bot["act"] = nx, ny, angle, "walk"
-        return True
-    return True
-
-
-PREVIEW_LAIR_BOTS = [
-    preview_bandit_bot("preview_lair_boss", 40.0, 120.0, "aggro_boss", "uzi", 240),
-]
-for _lair_i in range(20):
-    _lair_ring = _lair_i // 5
-    _lair_ang = (_lair_i % 5) * math.tau / 5 + _lair_ring * 0.43
-    _lair_radius = (4.5, 8.0, 11.5, 15.0)[_lair_ring]
-    _lair_elite = _lair_i < 4
-    _lair_bot = preview_bandit_bot(
-        f"preview_lair_{_lair_i + 1}",
-        40.0 + math.cos(_lair_ang) * _lair_radius,
-        120.0 + math.sin(_lair_ang) * _lair_radius,
-        kind="aggro_elite" if _lair_elite else "aggro_grunt",
-        weapon=("shotgun", "rifle", "pistol_heavy", "smg")[_lair_i % 4]
-               if _lair_elite else ("pistol_heavy", "smg", "rifle")[_lair_i % 3],
-        hp=162 if _lair_elite else 100,
-    )
-    if _lair_elite:
-        _lair_bot["look"].update({"body":3, "hat":3})
-    PREVIEW_LAIR_BOTS.append(_lair_bot)
-PREVIEW_NEST_BOTS = [
-    preview_bandit_bot("cgbot_preview_nest_1", 24.5, 23.5),
-    preview_bandit_bot("cgbot_preview_nest_2", 27.5, 23.5, weapon="smg"),
-    preview_bandit_bot("cgbot_preview_nest_3", 23.5, 26.5),
-    preview_bandit_bot("cgbot_preview_nest_4", 23.5, 28.5, weapon="rifle"),
-]
-preview_lair_warned = {}
-
-
-def tick_preview_lair(now, dt):
-    events = []
-    pending = []
-    for shot in preview_pending_lair_shots:
-        if now < float(shot["apply_at"]):
-            pending.append(shot)
-            continue
-        target = players.get(str(shot["target_uid"]))
-        if not target or target.get("dead"):
-            continue
-        miss = math.hypot(
-            float(target.get("x", 0)) - float(shot["tx"]),
-            float(target.get("y", 0)) - float(shot["ty"]),
-        ) > PREVIEW_LAIR_DODGE_RADIUS
-        damage = 0 if miss else int(shot["damage"])
-        if damage:
-            target["hp"] = max(0, int(target.get("hp", 100)) - damage)
-        killed = bool(damage and target["hp"] <= 0)
-        if killed:
-            target["dead"] = True
-            target["respawn_at"] = now + 5
-        events.append({
-            "kind":"aggro_apply","tid":"preview_lair","bot_id":shot["bot_id"],
-            "target_uid":str(shot["target_uid"]),"weapon":shot["weapon"],
-            "miss":miss,"dmg":damage,"killed":killed,
-            "sx":shot["sx"],"sy":shot["sy"],"tx":shot["tx"],"ty":shot["ty"],
-        })
-    preview_pending_lair_shots[:] = pending
-    for index, bot in enumerate(list(PREVIEW_LAIR_BOTS)):
-        if bot.get("alive") or now-float(bot.get("dead_at") or now) < 45.0:
-            continue
-        # Новая жизнь — новый бросок уровня и заново рассчитанные HP/урон.
-        # Босс остаётся финальным противником 25 уровня.
-        replacement = preview_bandit_bot(
-            bot["id"], bot.get("home_x", 40.0), bot.get("home_y", 120.0),
-            kind=bot.get("kind") or "aggro_grunt",
-            weapon=bot.get("weapon") or "pistol_heavy",
-            hp=240 if bot.get("kind") == "aggro_boss" else (
-                162 if bot.get("kind") == "aggro_elite" else 100))
-        if bot.get("kind") == "aggro_elite":
-            replacement["look"].update({"body":3, "hat":3})
-        PREVIEW_LAIR_BOTS[index] = replacement
-        preview_lair_warned.clear()
-    in_zone = {
-        str(uid): p for uid, p in players.items()
-        if not p.get("dead") and (p.get("_mode") or "pvp") != "pve"
-        and abs(float(p.get("x", 0))-40.0) <= 20
-        and abs(float(p.get("y", 0))-120.0) <= 20
-    }
-    for uid in list(preview_lair_warned):
-        if uid not in in_zone:
-            preview_lair_warned.pop(uid, None)
-            if players.get(uid): players[uid]["lair_hostile"] = False
-    for uid, p in in_zone.items():
-        if uid not in preview_lair_warned:
-            preview_lair_warned[uid] = now
-            events.append({"kind":"aggro_warn","tid":"preview_lair",
-                           "bot_id":"preview_lair_boss","target_uid":uid,
-                           "text":"Не ищи проблем. Уходи из логова."})
-        elif now-preview_lair_warned[uid] >= 3.0 and not p.get("lair_hostile"):
-            p["lair_hostile"] = True
-            events.append({"kind":"aggro_hostile","tid":"preview_lair","target_uid":uid,
-                           "text":"Ты не ушёл. Теперь пеняй на себя!"})
-    for bot in PREVIEW_LAIR_BOTS:
-        if not bot.get("alive"):
-            continue
-        if preview_tick_fire_flee(bot, now, dt, (20.0, 60.0, 100.0, 140.0)):
-            continue
-        targets=[p for p in in_zone.values() if p.get("lair_hostile")]
-        target=min(targets,key=lambda p:(p["x"]-bot["x"])**2+(p["y"]-bot["y"])**2) if targets else None
-        bot["act"]="idle"
-        if target:
-            dx,dy=float(target["x"])-bot["x"],float(target["y"])-bot["y"]
-            dist=math.hypot(dx,dy)+1e-6;bot["ang"]=math.atan2(dy,dx)
-            if dist>4.2:
-                step=min(dist,(1.35 if bot["kind"]=="aggro_boss" else 1.05)*dt)
-                bot["x"]+=dx/dist*step;bot["y"]+=dy/dist*step;bot["act"]="walk"
-            if dist<=9 and now-float(bot.get("shot_at") or 0)>=1.0:
-                bot["shot_at"]=now
-                damage=int(bot.get("damage") or 18)
-                weapon=str(bot.get("weapon") or "pistol_heavy")
-                speed=float(PREVIEW_LAIR_WEAPON_SPEED.get(weapon,14.0))
-                target_uid=str(target.get("uid") or "")
-                sx,sy=float(bot["x"]),float(bot["y"])
-                tx,ty=float(target["x"]),float(target["y"])
-                preview_pending_lair_shots.append({
-                    "bot_id":bot["id"],"target_uid":target_uid,"weapon":weapon,
-                    "damage":damage,"sx":sx,"sy":sy,"tx":tx,"ty":ty,
-                    "apply_at":now+dist/max(1.0,speed),
-                })
-                events.append(
-                    {"kind":"aggro_shot","tid":"preview_lair","bot_id":bot["id"],
-                     "target_uid":target_uid,"weapon":weapon,"bullet_speed":speed,
-                     "sx":sx,"sy":sy,"tx":tx,"ty":ty}
-                )
-        else:
-            if now>=float(bot.get("patrol_until") or 0):
-                a=random.random()*math.tau;r=random.uniform(2.0,17.0)
-                bot["patrol_x"]=40+math.cos(a)*r;bot["patrol_y"]=120+math.sin(a)*r
-                bot["patrol_until"]=now+random.uniform(5,10)
-            dx,dy=bot["patrol_x"]-bot["x"],bot["patrol_y"]-bot["y"];dist=math.hypot(dx,dy)
-            if dist>.2:
-                step=min(dist,.72*dt);bot["x"]+=dx/dist*step;bot["y"]+=dy/dist*step
-                bot["ang"]=math.atan2(dy,dx);bot["act"]="walk"
-            if now>=float(bot.get("chatter_at") or 0):
-                bot["threat"]=random.choice(["Это наша земля.","Чего уставился?","Проходи мимо.","Где моё пиво?"])
-                bot["threat_until"]=now+2.4;bot["chatter_at"]=now+random.uniform(7,14)
-            if now>float(bot.get("threat_until") or 0):bot["threat"]=""
-    return events
-PREVIEW_STREET_GANGS = [
-    # axis y = vertical patrol on a road column; axis x = horizontal road.
-    ("preview_city_gang_1", 43.0, 28.0, "y", 14.0),
-    ("preview_city_gang_2", 53.0, 33.0, "x", 10.0),
-    ("preview_city_gang_3", 33.0, 82.0, "y", 16.0),
-    ("preview_city_gang_4", 52.0, 153.0, "x", 14.0),
-]
-PREVIEW_STREET_GANG_FIGHT_AT = 0.0
-PREVIEW_STREET_GANG_LEVELS = {
-    f"cgbot_preview_street_{gang_i}_{bot_i}":
-        5 + gang_i * 4 + bot_i * 3
-    for gang_i in range(len(PREVIEW_STREET_GANGS))
-    for bot_i in range(3)
-}
-PREVIEW_STREET_GANG_MAX_HP = {
-    bot_id: int(round(100 * (1.0 + (level - 1) * 0.05)))
-    for bot_id, level in PREVIEW_STREET_GANG_LEVELS.items()
-}
-PREVIEW_STREET_GANG_HP = dict(PREVIEW_STREET_GANG_MAX_HP)
-PREVIEW_STREET_GANG_DEAD_AT = {}
-PREVIEW_STREET_GANG_HIRED = set()
-PREVIEW_STREET_GANG_ROUTE_STATE = {}
-PREVIEW_WEAPON_DAMAGE = {
-    "pistol": 24, "nagan": 32, "revolver": 86,
-    "pistol_heavy": 72, "pistol_gold": 48,
-    "shotgun": 76, "smg": 15, "tommy_gun": 24,
-    "golden_tommy": 24, "rifle": 42, "sniper": 132,
-    "rpg": 160, "grenade": 95, "molotov_fire": 12,
-}
-PREVIEW_WEAPON_ALIASES = {
-    "tt": "pistol", "tt_pistol": "pistol", "pm": "pistol", "glock": "pistol",
-    "desert_eagle": "pistol_heavy", "deagle": "pistol_heavy",
-    "golden_colt": "pistol_gold", "sawn_off": "shotgun",
-    "uzi": "smg", "ump": "smg", "mp5": "smg", "golden_uzi": "smg",
-    "ak": "rifle", "ak74": "rifle", "m4": "rifle", "m16": "rifle",
-}
-
-
-def preview_weapon_damage(weapon):
-    key = str(weapon or "pistol")
-    key = PREVIEW_WEAPON_ALIASES.get(key, key)
-    return PREVIEW_WEAPON_DAMAGE.get(key, PREVIEW_WEAPON_DAMAGE["pistol"])
-
-
-def preview_street_passable(x, y):
-    r, c = int(y), int(x)
-    if not (1 <= c < 79 and 1 <= r < 165):
-        return False
-    if r >= 140:
-        return True
-    rm, cm = r % 10, c % 10
-    if rm <= 4 or cm <= 4 or rm == 9 or cm == 9:
-        return True
-    block_hash = ((r // 10) * 17 + (c // 10) * 31) % 11
-    return block_hash in (0, 7)
-
-
-def preview_street_path(sx, sy, tx, ty):
-    import heapq
-    start, goal = (int(sy), int(sx)), (int(ty), int(tx))
-    if not preview_street_passable(goal[1] + .5, goal[0] + .5):
-        return []
-    queue = [(0.0, start)]
-    came, costs = {start: None}, {start: 0.0}
-    while queue and len(came) < 12000:
-        _, current = heapq.heappop(queue)
-        if current == goal:
-            break
-        r, c = current
-        for dr, dc, move_cost in (
-                (-1, 0, 1.0), (1, 0, 1.0), (0, -1, 1.0), (0, 1, 1.0),
-                (-1, -1, 1.414), (-1, 1, 1.414),
-                (1, -1, 1.414), (1, 1, 1.414)):
-            nr, nc = r + dr, c + dc
-            if not preview_street_passable(nc + .5, nr + .5):
-                continue
-            if dr and dc and (
-                    not preview_street_passable(c + dc + .5, r + .5)
-                    or not preview_street_passable(c + .5, r + dr + .5)):
-                continue
-            nxt = (nr, nc)
-            new_cost = costs[current] + move_cost
-            if new_cost >= costs.get(nxt, 1e30):
-                continue
-            costs[nxt], came[nxt] = new_cost, current
-            heapq.heappush(
-                queue,
-                (new_cost + abs(goal[0]-nr) + abs(goal[1]-nc), nxt),
-            )
-    if goal not in came:
-        return []
-    cells, current = [], goal
-    while current != start:
-        cells.append(current)
-        current = came[current]
-    return [(c + .5, r + .5) for r, c in reversed(cells)]
-
-
-def preview_street_gang_bots(now=None):
-    now = time.time() if now is None else now
-    groups = []
-    for gang_i, (gang_id, base_x, base_y, _axis, _distance) in enumerate(PREVIEW_STREET_GANGS):
-        faction = "yellow" if gang_i % 2 == 0 else "purple"
-        state = PREVIEW_STREET_GANG_ROUTE_STATE.setdefault(
-            gang_id,
-            {"x":base_x, "y":base_y, "route":[], "route_i":0,
-             "last_at":now, "direction":0.0},
-        )
-        route, route_i = state["route"], int(state["route_i"])
-        if route_i >= len(route):
-            for _ in range(80):
-                target_x = random.uniform(5.5, 74.5)
-                target_y = random.uniform(5.5, 163.5)
-                if (math.hypot(target_x-state["x"], target_y-state["y"]) < 24
-                        or not preview_street_passable(target_x, target_y)):
-                    continue
-                route = preview_street_path(
-                    state["x"], state["y"], target_x, target_y)
-                if route:
-                    state["route"], state["route_i"] = route, 0
-                    route_i = 0
-                    break
-        dt = max(0.0, min(0.25, now-float(state.get("last_at", now))))
-        state["last_at"] = now
-        if route_i < len(route):
-            target_x, target_y = route[route_i]
-            dx, dy = target_x-state["x"], target_y-state["y"]
-            distance_left = math.hypot(dx, dy)
-            if distance_left < .18:
-                state["route_i"] = route_i + 1
-            elif dt:
-                step = min(distance_left, .78*dt)
-                state["x"] += dx/distance_left*step
-                state["y"] += dy/distance_left*step
-                state["direction"] = math.atan2(dy, dx)
-        center_x, center_y = state["x"], state["y"]
-        direction = state["direction"]
-        bots = []
-        for i in range(3):
-            bot_id = f"cgbot_preview_street_{gang_i}_{i}"
-            if bot_id in PREVIEW_STREET_GANG_HIRED:
-                continue
-            hp = max(0, int(PREVIEW_STREET_GANG_HP.get(bot_id, 100)))
-            if hp <= 0:
-                dead_at = float(PREVIEW_STREET_GANG_DEAD_AT.get(bot_id, now))
-                if now - dead_at < 20.0:
-                    continue
-                hp = PREVIEW_STREET_GANG_MAX_HP[bot_id]
-                PREVIEW_STREET_GANG_HP[bot_id] = hp
-                PREVIEW_STREET_GANG_DEAD_AT.pop(bot_id, None)
-            bot = preview_bandit_bot(
-                bot_id,
-                center_x - math.cos(direction) * i * 1.0
-                    + math.cos(direction + math.pi/2) * (i-1) * .42,
-                center_y - math.sin(direction) * i * 1.0
-                    + math.sin(direction + math.pi/2) * (i-1) * .42,
-                weapon=("pistol_heavy", "smg", "rifle")[i],
-                level=PREVIEW_STREET_GANG_LEVELS[bot_id],
-            )
-            bot["hp"] = hp
-            bot["max_hp"] = PREVIEW_STREET_GANG_MAX_HP[bot_id]
-            bot["ang"] = direction
-            bot["act"] = "walk"
-            if faction == "yellow":
-                bot["look"].update({"skin": (0, 2, 3)[i], "body": 3,
-                                    "hat": 2, "gang": 2,
-                                    "suit": "#f3efe5"})
-            bot["faction"] = faction
-            bots.append(bot)
-        groups.append((gang_id, faction, bots))
-    return groups
-
-
-async def preview_tick_street_gang_conflict(now=None):
-    global PREVIEW_STREET_GANG_FIGHT_AT
-    now = time.time() if now is None else now
-    groups = preview_street_gang_bots(now)
-    if len(groups) < 2 or int(now // 20) % 2 or now-PREVIEW_STREET_GANG_FIGHT_AT < 1:
-        return
-    left, right = groups[0][2], groups[1][2]
-    if not left or not right:
-        return
-    # Обе семьи используют один боевой цикл: каждый следующий залп меняет
-    # атакующую сторону, поэтому белые и сиреневые одинаково стреляют и умирают.
-    if int(PREVIEW_STREET_GANG_FIGHT_AT) % 2:
-        attacker_group, victim_group = groups[1], groups[0]
-    else:
-        attacker_group, victim_group = groups[0], groups[1]
-    attackers, victims = attacker_group[2], victim_group[2]
-    attacker = attackers[int(now) % len(attackers)]
-    victim = victims[int(now) % len(victims)]
-    if math.hypot(attacker["x"]-victim["x"], attacker["y"]-victim["y"]) > 7:
-        return
-    PREVIEW_STREET_GANG_FIGHT_AT = now
-    damage = 16
-    hp = max(0, int(PREVIEW_STREET_GANG_HP.get(victim["id"], victim["max_hp"]))-damage)
-    PREVIEW_STREET_GANG_HP[victim["id"]] = hp
-    if hp <= 0:
-        PREVIEW_STREET_GANG_DEAD_AT[victim["id"]] = now
-    await broadcast_event({
-        "kind":"aggro_hit","tid":victim_group[0],"bot_id":victim["id"],
-        "shooter_bot_id":attacker["id"],"weapon":attacker.get("weapon","pistol"),
-        "attacker_faction":attacker_group[1],"victim_faction":victim_group[1],
-        "sx":attacker["x"],"sy":attacker["y"],"tx":victim["x"],"ty":victim["y"],
-        "hp":hp,"dmg":damage,"killed":hp<=0,"npc_gang_fight":True,
-    })
 PREVIEW_START_X = 66.0
 PREVIEW_START_Y = 162.5
 PREVIEW_HOSPITAL_X = 43.0
@@ -645,140 +64,45 @@ preview_apartments = {}
 preview_bank_robs = {}
 preview_bank_bags = {}
 preview_businesses = {}
-preview_business_closures = {}
-preview_robbed_business_controls = {}
-preview_business_family_wars = {}
-preview_business_aggro = {}
-preview_business_rob_cycles = {}
-preview_business_rob_sessions = {}
-preview_business_last_robs = {}
-PREVIEW_ROB_PERSONAL_COOLDOWN_S = 5 * 60
-PREVIEW_ROB_GUARDS = {
-    "coffee":1, "carwash":2, "barbershop":2, "pizza":3, "garage":4,
-    "bar":4, "club":5, "warehouse":6, "casino":8, "port":10,
-}
-PREVIEW_ROB_INTERIOR_WIDTHS = {
-    "coffee":16, "carwash":18, "barbershop":18, "pizza":19, "garage":21,
-    "bar":21, "club":23, "warehouse":25, "casino":28, "port":30,
-}
-
-
-def preview_robbery_difficulty(guards):
-    guards = max(0, int(guards or 0))
-    if guards >= 20:
-        return 5
-    if guards >= 6:
-        return 4
-    if guards >= 4:
-        return 3
-    if guards >= 2:
-        return 2
-    return 1
-
-
-def preview_robber_at_cashier(player, biz_id):
-    if not player or str(player.get("business_interior") or "") != str(biz_id):
-        return False
-    width = PREVIEW_ROB_INTERIOR_WIDTHS.get(str(biz_id))
-    if not width:
-        return False
-    try:
-        dx = float(player.get("interior_x", 0)) - width / 2
-        dy = float(player.get("interior_y", 0)) - 2.9
-    except (TypeError, ValueError):
-        return False
-    return dx * dx + dy * dy <= 16.0
-
-
-def preview_robber_at_entrance(player, biz_id):
-    rc = PREVIEW_BUSINESS_RC.get(str(biz_id))
-    if not player or not rc or player.get("business_interior"):
-        return False
-    try:
-        r, c = rc
-        dx = float(player.get("x", 0)) - float(c)
-        dy = float(player.get("y", 0)) - float(r)
-    except (TypeError, ValueError):
-        return False
-    return dx * dx + dy * dy <= 12.25
-
-
-preview_business_police_protection = {}
-preview_business_owner_protection = {}
 preview_police_rewards = set()
-preview_gta_quests = {}
-preview_box_quests = {}
-PREVIEW_BOX_GROUND_TTL_S = 5 * 60
+PREVIEW_MAJOR = {
+    "casino":{"r":46,"c":16,"name":"Казино","boss":"Сальваторе Беллини","guards":20,"total":40,"income":2400},
+    "market":{"r":16,"c":16,"name":"Рынок","boss":"Риккардо Торри","guards":20,"total":34,"income":1200},
+    "factory":{"r":46,"c":56,"name":"Промзона","boss":"Борис Шлак","guards":24,"total":40,"income":3000},
+    "mansion":{"r":66,"c":36,"name":"Резиденция","boss":"Дон Витторио","guards":28,"total":40,"income":4200},
+    "port":{"r":165,"c":38,"name":"Порт","boss":"Капитан Риццо","guards":22,"total":38,"income":2600},
+}
+preview_major_raids = {}
+preview_major_owners = {}
+preview_city_gangs = [
+    {"id":"preview_purple","faction":"purple","bots":[{
+        "id":f"preview_purple_{i}","x":10.0+i*.9,"y":20.0+(i%2)*.8,
+        "ang":0.0,"hp":100,"max_hp":100,"kind":"aggro_grunt","weapon":"pistol",
+        "faction":"purple","look":{"gender":0,"skin":1+i%3,"body":2,
+        "face":i%3,"hair":i%4,"hat":4,"gang":1,"suit":"#512d73"}}
+        for i in range(5)]},
+    {"id":"preview_yellow","faction":"yellow","bots":[{
+        "id":f"preview_yellow_{i}","x":19.0+i*.9,"y":20.0+(i%2)*.8,
+        "ang":math.pi,"hp":100,"max_hp":100,"kind":"aggro_grunt","weapon":"pistol",
+        "faction":"yellow","look":{"gender":0,"skin":1+i%3,"body":2,
+        "face":i%3,"hair":i%4,"hat":4,"gang":2,"suit":"#d2a719"}}
+        for i in range(5)]},
+]
 
-
-def preview_drop_box(owner_uid, reason="manual"):
-    owner_uid = str(owner_uid)
-    p = players.get(owner_uid)
-    q = preview_box_quests.get(owner_uid)
-    if not p or not q or q.get("state") not in ("carrying", "loaded"):
-        return {"ok": False, "reason": "wrong_state"}
-    business_id = str(p.get("business_interior") or "")
-    if business_id:
-        gx = float(p.get("interior_x") or 0)
-        gy = float(p.get("interior_y") or 0)
-        space = "business"
-    else:
-        gx = float(p.get("x") or 0)
-        gy = float(p.get("y") or 0)
-        space = "world"
-    now = time.time()
-    q.update({
-        "state": "ground", "ground_x": gx, "ground_y": gy,
-        "ground_space": space, "ground_business_id": business_id,
-        "ground_dropped_at": now,
-        "ground_expires_at": now + PREVIEW_BOX_GROUND_TTL_S,
-        "ground_reason": str(reason or "manual")[:24],
-    })
-    q.pop("car_id", None)
-    return {
-        "ok": True, "state": "ground", "owner_uid": owner_uid,
-        "ground_x": gx, "ground_y": gy, "ground_space": space,
-        "ground_business_id": business_id,
-        "expires_in": PREVIEW_BOX_GROUND_TTL_S,
-        "reason": str(reason or "manual")[:24],
-    }
-
-
-def preview_pickup_box(uid, owner_uid=""):
-    uid, owner_uid = str(uid), str(owner_uid or uid)
-    p, q = players.get(uid), preview_box_quests.get(owner_uid)
-    if not p or not q:
-        return {"ok": False, "reason": "no_quest"}
-    if q.get("state") == "ground":
-        same_business = (
-            q.get("ground_space") == "business" and
-            str(p.get("business_interior") or "") ==
-            str(q.get("ground_business_id") or "")
-        )
-        same_world = q.get("ground_space") == "world" and not p.get("business_interior")
-        px = float(p.get("interior_x") or 0) if same_business else float(p.get("x") or 0)
-        py = float(p.get("interior_y") or 0) if same_business else float(p.get("y") or 0)
-        if not (same_business or same_world) or math.hypot(
-                px-float(q.get("ground_x") or 0),
-                py-float(q.get("ground_y") or 0)) > 2:
-            return {"ok": False, "reason": "too_far"}
-        if owner_uid != uid:
-            return {"ok": False, "reason": "foreign_box", "owner_uid": owner_uid}
-        q["state"] = "carrying"
-        for key in ("ground_x", "ground_y", "ground_space",
-                    "ground_business_id", "ground_dropped_at",
-                    "ground_expires_at", "ground_reason"):
-            q.pop(key, None)
-        return {"ok": True, "state": "carrying", "source": "ground"}
-    if owner_uid != uid:
-        return {"ok": False, "reason": "foreign_box", "owner_uid": owner_uid}
-    if q.get("state") != "pending":
-        return {"ok": False, "reason": "wrong_state"}
-    if math.hypot(float(p.get("x", 0))-float(q["pickup_x"]),
-                  float(p.get("y", 0))-float(q["pickup_y"])) > 2:
-        return {"ok": False, "reason": "too_far"}
-    q["state"] = "carrying"
-    return {"ok": True, "state": "carrying", "source": "pier"}
+def preview_major_payload():
+    now=time.time()
+    for oid,own in list(preview_major_owners.items()):
+        if own["expires_at"]<=now: preview_major_owners.pop(oid,None)
+    return {oid:{"name":cfg["name"],"boss_name":cfg["boss"],
+        "owner_uid":(preview_major_owners.get(oid) or {}).get("owner_uid"),
+        "owner_name":(preview_major_owners.get(oid) or {}).get("owner_name",cfg["boss"]),
+        "expires_in":max(0,int((preview_major_owners.get(oid) or {}).get("expires_at",0)-now)),
+        "income":cfg["income"],
+        "raid":({"phase":raid["phase"],"alive":sum(1 for g in raid["guards"] if g["alive"]),
+                 "participant_uids":list(raid.get("participants") or []),
+                 "spawned":raid["spawned"],"total":cfg["total"],"pressure":raid["pressure"]}
+                if (raid:=preview_major_raids.get(oid)) else None)}
+        for oid,cfg in PREVIEW_MAJOR.items()}
 PREVIEW_BUSINESSES = {
     "coffee": (3000,150,200,"☕","Кофейня «У Дона»"), "carwash": (5000,220,300,"🚗","Автомойка"),
     "barbershop": (7500,300,400,"💈","Парикмахерская"), "pizza": (12000,450,600,"🍕","Пиццерия"),
@@ -786,27 +110,14 @@ PREVIEW_BUSINESSES = {
     "club": (45000,1600,2200,"🎰","Подпольный клуб"), "warehouse": (70000,2400,3300,"📦","Склад"),
     "casino": (120000,4000,5500,"🎲","Казино"), "port": (200000,6500,9000,"⚓","Порт"),
 }
-PREVIEW_BUSINESS_RC = {
-    "coffee":(33,13), "carwash":(23,25), "barbershop":(53,23),
-    "pizza":(53,53), "garage":(13,63), "bar":(43,33), "club":(63,53),
-    "warehouse":(73,23), "casino":(13,45),
-    "port":(181,31),
-}
-PREVIEW_ROB_PAYOUT = {
-    "coffee":(200,1), "carwash":(300,2), "barbershop":(400,2),
-    "pizza":(600,2), "garage":(900,3), "bar":(1300,3), "club":(2000,3),
-    "warehouse":(3200,4), "casino":(5000,4),
-    "port":(8000,4),
-}
 PREVIEW_BIZ_MULT = {1:1.0,2:1.35,3:1.75,4:2.25,5:3.0}
 PREVIEW_BIZ_UP = {2:.45,3:.75,4:1.15,5:1.70}
-preview_business_income_next_check = 0.0
 PREVIEW_BANK_REWARD = {"small": 1200, "medium": 2500, "large": 5000}
 PREVIEW_SHOP_WEAPONS = {
     "nagan":    {"name": "Наган",        "price": 250,   "canonical": "nagan"},
     "sawn_off": {"name": "Обрез",        "price": 600,   "canonical": "shotgun"},
     "uzi":      {"name": "Узи",          "price": 1500,  "canonical": "smg"},
-    "revolver": {"name": "Мафиозный револьвер", "price": 5000, "canonical": "revolver"},
+    "revolver": {"name": "Револьвер",    "price": 5000,  "canonical": "pistol_heavy"},
     "m16":      {"name": "М-16",         "price": 42000, "canonical": "rifle"},
     "sniper":   {"name": "Снайперка",    "price": 32000, "canonical": "sniper"},
     "rpg":      {"name": "Базука",       "price": 50000, "canonical": "rpg"},
@@ -827,9 +138,6 @@ PREVIEW_SHOP_CONSUMABLES = {
 PREVIEW_SHOP_CONSUMABLES.update({
     "grenade":{"name":"Граната","price":50},
     "molotov":{"name":"Коктейль Молотова","price":130},
-    "medkit_small":{"name":"Малая аптечка","price":25,"type":"potion","heal":55},
-    "medkit_medium":{"name":"Аптечка","price":60,"type":"potion","heal":130},
-    "medkit_large":{"name":"Большая аптечка","price":120,"type":"potion","heal":280},
 })
 PREVIEW_SHOP_ARMOR = {
     "leather_jacket":{"name":"Кожанка","price":180,"defense_bonus":12},
@@ -848,8 +156,6 @@ def preview_account(uid):
         # Тестовый баланс локального превью. Реальные аккаунты и база бота
         # этим сервером не используются.
         "cash": 1000000,
-        "hp": 45,
-        "max_hp": 100,
         "exp": 0,
         # Превью используется для проверки открытых полицейских способностей.
         "police_xp": 2800,
@@ -860,6 +166,7 @@ def preview_account(uid):
         "said_paid_until": 0,
         "weapons": {
             "pistol": {"name": "Пистолет", "canonical": "pistol"},
+            "shotgun": {"name": "Дробовик", "canonical": "shotgun"},
         },
         "consumables": {"c4": 0, "grenade": 12, "molotov": 12},
         "armor": {}, "equipped_armor": None,
@@ -872,28 +179,6 @@ def preview_account(uid):
     account.setdefault("found", {})
     account.setdefault("skills", {"safecracker": 0, "marksman": 0, "stealth": 0, "toughness": 0, "hustler": 0})
     return account
-
-
-def preview_bandit_kill_reward(uid, target_level, base_exp=8):
-    """Server-authoritative preview reward for a career bandit kill."""
-    player = players.get(str(uid)) or {}
-    account = preview_account(uid)
-    level = max(1, min(25, int(target_level or 1)))
-    career_gain = 5 + level * 2
-    main_gain = max(int(base_exp or 0), 3 + level)
-    account["exp"] = int(account.get("exp", 0)) + main_gain
-    result = {"exp": main_gain, "target_level": level}
-    if player.get("police"):
-        old = int(account.get("police_xp", 0))
-        account["police_xp"] = min(2800, old + career_gain)
-        result.update({"police_xp": account["police_xp"],
-                       "police_xp_gain": account["police_xp"] - old})
-    elif player.get("mafia"):
-        old = int(account.get("mafia_xp", 0))
-        account["mafia_xp"] = min(4000, old + career_gain)
-        result.update({"mafia_xp": account["mafia_xp"],
-                       "mafia_xp_gain": account["mafia_xp"] - old})
-    return result
 
 
 PREVIEW_SKILL_COSTS = [0, 500, 2000, 5000, 12000, 30000]
@@ -995,7 +280,8 @@ def make_race_car(slot):
 
 
 def tick_race_cars():
-    """Do not teleport a parked race car away after its driver exits."""
+    """Keep one preview race car in every pit, like the real server does."""
+    now = time.time()
     for slot in RACE_SLOTS:
         car = quest_cars.get(slot["id"])
         if car is None:
@@ -1003,9 +289,8 @@ def tick_race_cars():
             continue
         if car.get("driver_uid") is not None:
             continue
-        # Разбитую машину можно восстановить в боксе. Исправная оставленная
-        # машина остаётся ровно там, где игрок из неё вышел.
-        if car.get("wrecked"):
+        away = abs(car["x"] - slot["x"]) >= 1.2 or abs(car["y"] - slot["y"]) >= 1.2
+        if car.get("wrecked") or (away and now - car.get("parked_at", now) >= 12.0):
             park_race_car(car)
 
 
@@ -1082,7 +367,6 @@ def race_car_payload():
             "tires_punctured": bool(car.get("tires_punctured", False)),
             "called_patrol": bool(car.get("called_patrol", False)),
             "expires_at": float(car.get("expires_at", 0)),
-            "paint": car.get("paint"),
         }
         for car in quest_cars.values()
     ]
@@ -1095,12 +379,16 @@ def preview_civilian_carjack(uid, data):
     next_civ_car_id += 1
     x = float(data.get("x", p.get("x", PREVIEW_START_X)))
     y = float(data.get("y", p.get("y", PREVIEW_START_Y)))
-    model = str(data.get("model") or "corvette_c3")
-    paint = normalize_preview_vehicle_paint(data.get("paint"))
+    allowed_models = {
+        "corvette_c3", "mustang_67", "cadillac_eldo", "delorean",
+        "jaguar_e", "harley_chopper", "ducati_750",
+    }
+    requested_model = str(data.get("model") or "")
+    model = requested_model if requested_model in allowed_models else "corvette_c3"
     car = {
         "id": car_id,
         "model": model,
-        "owner_uid": str(uid),
+        "owner_uid": uid,
         "driver_uid": uid,
         "passenger_uids": [],
         "x": x,
@@ -1112,7 +400,6 @@ def preview_civilian_carjack(uid, data):
         "max_hp": 220,
         "wrecked": False,
         "civilian": True,
-        "paint": paint,
     }
     quest_cars[car_id] = car
     p["x"] = x
@@ -1125,7 +412,6 @@ def preview_civilian_carjack(uid, data):
         "x": x,
         "y": y,
         "civilian": True,
-        "paint": paint,
     }
 
 
@@ -1247,38 +533,6 @@ def district_at(x, y):
     return None
 
 
-def preview_family_district_scores(now=None):
-    now = time.time() if now is None else now
-    scores = {
-        did: {"police": 0, "mafia": 0, "bellini": 0, "moretti": 0}
-        for did in DISTRICTS
-    }
-    for did, owner in district_owners.items():
-        family = str(owner.get("mafia_family") or "")
-        if did in scores and family in ("bellini", "moretti"):
-            scores[did]["mafia"] += 100
-            scores[did][family] += 100
-    for biz_id, control in preview_robbed_business_controls.items():
-        if float(control.get("expires_at") or 0) <= now:
-            continue
-        family = str(control.get("mafia_family") or "")
-        pos = PREVIEW_BUSINESS_POS.get(str(biz_id))
-        if not pos or family not in ("bellini", "moretti"):
-            continue
-        x, y = pos
-        did = next((key for key, dd in DISTRICTS.items()
-                    if dd["bounds"][2] <= x <= dd["bounds"][3]
-                    and dd["bounds"][0] <= y <= dd["bounds"][1]), None)
-        if did:
-            scores[did]["mafia"] += 20
-            scores[did][family] += 20
-    return {
-        "police": sum(v["police"] for v in scores.values()),
-        "mafia": sum(v["mafia"] for v in scores.values()),
-        "districts": scores, "decay_minutes": 30, "decay_points": 2,
-    }
-
-
 def near_point(player, point, radius=DIST_ACTION_RAD):
     py, px = point
     return (player.get("x", 0) - px) ** 2 + (player.get("y", 0) - py) ** 2 <= radius ** 2
@@ -1327,7 +581,6 @@ def make_district_defenders(did, dd):
         "kind": "district_boss", "weapon": "uzi", "act": "walk",
         "boss_name": dd["boss_name"], "alive": True, "damage": 8,
         "home_x": col, "home_y": row, "patrol_phase": 0.0,
-        "patrol_turn_sign": random.choice((-1, 1)), "patrol_stuck": 0,
     }]
     guard_offsets = ((1.4, 0.8), (-1.2, 1.0), (0.8, -1.4), (-1.5, -0.7))
     for i, (dx, dy) in enumerate(guard_offsets):
@@ -1338,7 +591,6 @@ def make_district_defenders(did, dd):
             "kind": "district_guard", "weapon": "pistol_heavy",
             "act": "walk", "alive": True, "damage": 12,
             "home_x": col, "home_y": row, "patrol_phase": (i + 1) * math.tau / 4,
-            "patrol_turn_sign": random.choice((-1, 1)), "patrol_stuck": 0,
         })
     return bots
 
@@ -1378,17 +630,8 @@ def ensure_preview_district_bosses(now):
             continue
         dossier_exists = any(q.get("kind") == "dossier" and str(q.get("did") or "") == did
                              for q in district_loot.values())
-        boss = next((
-            b for b in cap.get("defenders") or []
-            if str(b.get("id") or "") == str(cap.get("boss_id") or "")
-            or b.get("kind") == "district_boss"
-        ), None)
-        boss_alive = bool(boss and boss.get("alive") and int(boss.get("hp") or 0) > 0)
-        # Fire and other periodic damage may kill between two network snapshots.
-        # Always reconcile that dead boss into a physical dossier before respawn.
-        if not dossier_exists and boss is not None and not boss_alive:
-            preview_drop_district_dossier(did, cap, boss, now)
-            continue
+        boss_alive = any(b.get("alive") and b.get("kind") == "district_boss"
+                         for b in cap.get("defenders") or [])
         if dossier_exists or boss_alive or now < float(cap.get("respawn_at") or 0):
             continue
         cap.update({"phase":"boss_patrol", "boss_dead":False, "started_at":now,
@@ -1405,15 +648,6 @@ def tick_district_defenders(now, dt):
         boss = next((b for b in defenders if b.get("kind") == "district_boss"), None)
         dd = DISTRICTS.get(did, {})
         waypoint = cap.get("patrol_wp")
-        if boss and "patrol_progress_at" not in cap:
-            cap["patrol_progress_at"] = now
-            cap["patrol_progress_xy"] = (boss["x"], boss["y"])
-        if boss and now - float(cap.get("patrol_progress_at") or now) >= 3.0:
-            px, py = cap.get("patrol_progress_xy") or (boss["x"], boss["y"])
-            if math.hypot(boss["x"]-px, boss["y"]-py) < 0.55:
-                cap["patrol_wp_until"] = 0.0
-            cap["patrol_progress_xy"] = (boss["x"], boss["y"])
-            cap["patrol_progress_at"] = now
         if boss and (not waypoint or math.hypot(waypoint[0]-boss["x"], waypoint[1]-boss["y"]) < 1.35
                      or now >= float(cap.get("patrol_wp_until") or 0)):
             r0,r1,c0,c1 = dd.get("bounds", (0,199,0,79))
@@ -1425,10 +659,6 @@ def tick_district_defenders(now, dt):
         noticed = cap.setdefault("noticed_world_c4", set())
         # Само участие в операции, доверие и уровень не дают агро.
         for bot_i, bot in enumerate(defenders):
-            r0, r1, c0, c1 = dd.get("bounds", (0, 199, 0, 79))
-            if preview_tick_fire_flee(bot, now, dt, (c0 + 1, c1 - 1, r0 + 1, r1 - 1)):
-                bot["evading_c4"] = False
-                continue
             nearest = None
             nearest_dist = 1e9
             for charge in world_c4.values():
@@ -1474,25 +704,13 @@ def tick_district_defenders(now, dt):
                 dist = math.hypot(dx,dy)+1e-6
                 step = min(dist, 1.05*dt)
                 direct = math.atan2(dy, dx)
-                turn_sign = int(bot.get("patrol_turn_sign") or 1)
-                turns = (0., turn_sign*.42, turn_sign*.82, turn_sign*1.22,
-                         -turn_sign*.42, -turn_sign*.82, -turn_sign*1.22)
-                moved = False
-                for turn in turns:
+                for turn in (0., .48, -.48, .9, -.9, 1.35, -1.35):
                     ang = direct + turn
                     nx = bot["x"] + math.cos(ang)*step
                     ny = bot["y"] + math.sin(ang)*step
                     if preview_district_patrol_ok(did, nx, ny):
                         bot["x"], bot["y"], bot["ang"] = nx, ny, ang
-                        bot["patrol_stuck"] = 0
-                        moved = True
                         break
-                if not moved:
-                    bot["patrol_stuck"] = int(bot.get("patrol_stuck") or 0) + 1
-                    if bot["patrol_stuck"] > 18:
-                        cap["patrol_wp_until"] = 0.0
-                        bot["patrol_turn_sign"] = -turn_sign
-                        bot["patrol_stuck"] = 0
                 continue
             dx = target.get("x", 0)-bot["x"]; dy = target.get("y", 0)-bot["y"]
             dist = math.hypot(dx, dy)+1e-6
@@ -1528,7 +746,6 @@ def tick_district_defenders(now, dt):
 def preview_aggro_payload():
     result = {}
     now = time.time()
-    preview_tick_business_captures()
     for did, cap in district_captures.items():
         visible = []
         for i, bot in enumerate(cap.get("defenders") or []):
@@ -1541,49 +758,18 @@ def preview_aggro_payload():
             out["ang"] = round(bot.get("ang", 0), 2)
             out["damage"] = int(bot.get("damage") or 0)
             out["evading_c4"] = bool(bot.get("evading_c4"))
-            out["burning"] = now < float(bot.get("burn_until") or 0)
-            out["fleeing_fire"] = now < float(bot.get("fire_flee_until") or 0)
             visible.append(out)
         result[f"preview_district_{did}"] = {
             "state": "patrol", "bots": visible, "covers": [],
             "cap_left": 0, "next_respawn": 0, "is_city_gang": True,
             "district_did": did,
         }
-    result["preview_lair"] = {
-        "state": "alive", "bots": [
-            dict(bot,
-                 burning=now < float(bot.get("burn_until") or 0),
-                 fleeing_fire=now < float(bot.get("fire_flee_until") or 0))
-            for bot in PREVIEW_LAIR_BOTS
-        ],
-        "covers": [], "cap_left": 0, "next_respawn": 0,
-    }
-    result["preview_nest_1"] = {
-        "state": "guard", "bots": [dict(bot, act="idle") for bot in PREVIEW_NEST_BOTS],
-        "covers": [], "cap_left": 0, "next_respawn": 0, "is_nest": True,
-    }
-    for bid, nest in preview_business_nests.items():
-        result[nest["id"]] = {
-            "state": nest["state"],
-            "bots": [dict(
-                        bot,
-                        act=("walk" if bot.get("_moving") else
-                             (bot.get("act") if (
-                                 nest["state"] == "hostile" or
-                                 now < float(bot.get("fire_flee_until") or 0))
-                              else "idle")),
-                        burning=now < float(bot.get("burn_until") or 0),
-                        fleeing_fire=now < float(bot.get("fire_flee_until") or 0))
-                     for bot in nest["bots"] if bot.get("alive")],
-            "covers": [], "cap_left": 0, "next_respawn": 0,
-            "is_nest": True, "faction": nest["faction"],
-        }
-    for gang_id, faction, bots in preview_street_gang_bots(now):
-        result[gang_id] = {
-            "state": "patrol", "bots": bots, "covers": [],
-            "cap_left": 0, "next_respawn": 0, "is_city_gang": True,
-            "faction": faction,
-        }
+    for gang in preview_city_gangs:
+        visible=[dict(bot) for bot in gang["bots"] if bot.get("hp",0)>0]
+        if visible:
+            result[gang["id"]]={"state":"patrol","bots":visible,"covers":[],
+                "cap_left":0,"next_respawn":0,"is_city_gang":True,
+                "faction":gang["faction"]}
     return result
 
 
@@ -1612,12 +798,11 @@ async def inv_list(req):
     if c4_count:
         items.append({"id": "c4", "item_id": "c4", "name": "🧨 Заряд C4",
                       "type": "throwable", "qty": c4_count, "count": c4_count})
-    for iid in ("grenade","molotov","medkit_small","medkit_medium","medkit_large"):
+    for iid in ("grenade","molotov"):
         qty=int(account["consumables"].get(iid,0))
         if qty>0:
             items.append({"id":iid,"item_id":iid,"name":PREVIEW_SHOP_CONSUMABLES[iid]["name"],
-                          "type":PREVIEW_SHOP_CONSUMABLES[iid].get("type","throwable"),"qty":qty,"count":qty,
-                          "heal":PREVIEW_SHOP_CONSUMABLES[iid].get("heal")})
+                          "type":"throwable","qty":qty,"count":qty})
     for item_id, item in account["armor"].items():
         items.append({"id":item_id,"item_id":item_id,"name":item["name"],"type":"armor",
                       "qty":1,"count":1,"defense_bonus":item.get("defense_bonus",0)})
@@ -1647,25 +832,12 @@ async def inv_equip(req):
 
 
 async def inv_consume(req):
-    uid=str(req.match_info.get("uid","1"))
-    account=preview_account(uid)
+    account=preview_account(req.match_info.get("uid","1"))
     try:
         body=await req.json()
     except Exception:
         body={}
     iid=str(body.get("item_id") or "")
-    medkits={"medkit_small":55,"medkit_medium":130,"medkit_large":280}
-    if iid in medkits:
-        player=players.get(uid)
-        if player and (player.get("dead") or float(player.get("combat_until",0))>time.time()):
-            return cors(web.json_response({"ok":False,"error":"in combat"},status=409))
-        hp=int(player.get("hp",account["hp"])) if player else int(account["hp"])
-        max_hp=int(player.get("max_hp",account["max_hp"])) if player else int(account["max_hp"])
-        if hp>=max_hp:return cors(web.json_response({"ok":False,"error":"full hp"},status=409))
-        if int(account["consumables"].get(iid,0))<=0:return cors(web.json_response({"ok":False,"error":"not in inventory"},status=400))
-        healed=min(medkits[iid],max_hp-hp);hp+=healed;account["hp"]=hp;account["max_hp"]=max_hp;account["consumables"][iid]-=1
-        if player:player["hp"]=hp
-        return cors(web.json_response({"ok":True,"item_id":iid,"hp":hp,"max_hp":max_hp,"healed":healed,"left":account["consumables"][iid]}))
     if iid not in ("grenade","molotov") or int(account["consumables"].get(iid,0))<=0:
         return cors(web.json_response({"ok":False,"error":"not in inventory"},status=400))
     account["consumables"][iid]-=1
@@ -1737,37 +909,29 @@ async def leaderboard(_req):
 
 async def newspaper(_req):
     now = int(time.time())
-    # Только фактическое состояние симуляции. Раньше здесь всегда печатались
-    # Demo/Vito и выдуманное ограбление, поэтому превью маскировало поломку
-    # реальной газеты. Активные владельцы районов являются источником истины.
-    items = []
-    for did, owner in sorted(
-            district_owners.items(),
-            key=lambda row: float(row[1].get("captured_at") or 0), reverse=True):
-        expires_at = float(owner.get("expires_at") or 0)
-        if expires_at and expires_at <= time.time():
-            continue
-        dd = DISTRICTS.get(did, {})
-        owner_name = str(owner.get("owner_name") or "Неизвестный игрок")[:40]
-        income = int(owner.get("income") or dd.get("income") or 0)
-        control_left = max(0, int(expires_at - time.time())) if expires_at else 0
-        items.append({
-            "id": f"district:{did}:{owner.get('owner_uid')}",
-            "kind": "district_captured", "icon": dd.get("icon") or "🏴",
-            "headline": f"{owner_name} контролирует район «{dd.get('name') or did}»",
-            "summary": (f"Фракция: мафиози. Доход: ${income} за выплату. "
-                        f"До конца контроля: {control_left // 60} мин."),
-            "actor_uid": str(owner.get("owner_uid") or ""),
-            "district_id": str(did), "owner_name": owner_name,
-            "faction": "mafia", "income": income,
-            "created_at": int(owner.get("captured_at") or now),
-        })
     return cors(web.json_response({
         "ok": True,
         "edition": time.strftime("%d.%m.%Y", time.localtime(now)),
         "generated_at": now,
         "hours": 24,
-        "items": items[:12],
+        "items": [
+            {"id": 1, "kind": "district_captured", "icon": "🏙",
+             "headline": "Demo захватил крупный район «Даунтаун»",
+             "summary": "Над кварталом подняты новые цвета. Контроль приносит $600 за выплату.",
+             "created_at": now - 7 * 60},
+            {"id": 2, "kind": "bank_robbed", "icon": "🏦",
+             "headline": "Неизвестные ограбили Центральный банк",
+             "summary": "Очевидцы сообщают о мешках с наличными и машине без номеров. Полиция перекрыла мосты.",
+             "created_at": now - 43 * 60},
+            {"id": 3, "kind": "race_record", "icon": "🏁",
+             "headline": "Vito установил рекорд трассы «Прибой»",
+             "summary": "Ferrari F40: 1:24.38. Соперники уже готовят ответный заезд.",
+             "created_at": now - 2 * 60 * 60},
+            {"id": 4, "kind": "gang_nest_cleared", "icon": "💥",
+             "headline": "Бандитское гнездо уничтожено",
+             "summary": "После ночной перестрелки улицы ненадолго стали тише.",
+             "created_at": now - 5 * 60 * 60},
+        ],
     }))
 
 
@@ -1929,303 +1093,12 @@ def preview_owned_businesses(uid):
     return preview_businesses.setdefault(str(uid), {})
 
 
-def preview_tick_business_captures():
-    global preview_business_next_capture_at
-    now = time.time()
-    for bid, nest in list(preview_business_nests.items()):
-        if any(bot.get("alive") for bot in nest["bots"]):
-            continue
-        preview_business_nests.pop(bid, None)
-        cooldown_until = now + PREVIEW_NPC_CAPTURE_COOLDOWN
-        preview_business_capture_cooldown[bid] = cooldown_until
-        for rows in preview_businesses.values():
-            if bid in rows:
-                rows[bid]["npc_capture_cooldown_until"] = cooldown_until
-    for rows in preview_businesses.values():
-        for bid, info in rows.items():
-            until = float(info.get("npc_capture_cooldown_until") or 0)
-            if until > now:
-                preview_business_capture_cooldown[bid] = max(
-                    until, float(preview_business_capture_cooldown.get(bid, 0)))
-    for bid, until in list(preview_business_capture_cooldown.items()):
-        if until <= now:
-            preview_business_capture_cooldown.pop(bid, None)
-    if now < preview_business_next_capture_at:
-        return
-    owned = {bid for rows in preview_businesses.values() for bid in rows}
-    candidates = [bid for bid in owned if bid in PREVIEW_BUSINESS_POS
-                  and bid not in preview_business_nests
-                  and float(preview_business_capture_cooldown.get(bid, 0)) <= now]
-    preview_business_next_capture_at = now + 90.0
-    if not candidates:
-        return
-    bid = random.choice(candidates)
-    x, y = PREVIEW_BUSINESS_POS[bid]
-    faction = "yellow" if len(preview_business_nests) % 2 == 0 else "purple"
-    owner_uid, guard_count = None, 0
-    for candidate_uid, rows in preview_businesses.items():
-        count = max(0, min(6, int(rows.get(bid, {}).get("guards", 0))))
-        if count > guard_count:
-            owner_uid, guard_count = candidate_uid, count
-    bots = []
-    for i in range(4):
-        ang = i * math.tau / 4
-        bot = preview_bandit_bot(
-            f"preview_biz_{bid}_{int(now)}_{i}",
-            x + math.cos(ang) * 2.7, y + math.sin(ang) * 2.7,
-            weapon=("pistol_heavy", "smg", "rifle", "shotgun")[i])
-        if faction == "yellow":
-            bot["look"].update({"skin": (0, 2, 3, 2)[i], "body": 3,
-                                "hat": 2, "gang": 2,
-                                "suit": "#f3efe5"})
-        bots.append(bot)
-    preview_business_nests[bid] = {
-        "id": f"preview_biz_nest_{bid}", "business_id": bid,
-        "faction": faction, "r": y, "c": x, "state": "guard",
-        "expires_at": now + 3600.0, "bots": bots, "owner_uid": owner_uid,
-        "combat_at": now + .8,
-        "guards": [{
-            "id": f"preview_guard_{bid}_{i}", "x": x + math.cos(i * math.tau / max(1, guard_count)) * 1.5,
-            "y": y + math.sin(i * math.tau / max(1, guard_count)) * 1.5,
-            "ang": 0.0, "hp": 100, "max_hp": 100, "alive": True,
-            "weapon": "pistol",
-        } for i in range(guard_count)],
-    }
-
-
-def tick_preview_business_raiders(now, dt):
-    """Animate and resolve the street battle for an occupied business."""
-    events = []
-    for business_id, nest in list(preview_business_nests.items()):
-        anchor_x, anchor_y = float(nest.get("c", 0)), float(nest.get("r", 0))
-        alive_bots = [bot for bot in nest.get("bots", []) if bot.get("alive")]
-        alive_guards = [guard for guard in nest.get("guards", []) if guard.get("alive")]
-        for fighter in (*alive_bots, *alive_guards):
-            fighter["act"] = "idle"
-            fighter["_moving"] = False
-        for burning_bot in nest.get("bots", []):
-            if burning_bot.get("alive"):
-                preview_tick_fire_flee(
-                    burning_bot, now, dt,
-                    (anchor_x - 9.0, anchor_x + 9.0,
-                     anchor_y - 9.0, anchor_y + 9.0),
-                )
-        # The security team and raiders now fight in world space: they close
-        # distance, strafe, face their targets and emit visible bullet events.
-        if alive_bots and alive_guards:
-            for index, guard in enumerate(alive_guards):
-                bot = min(
-                    alive_bots,
-                    key=lambda item: math.hypot(
-                        float(item["x"]) - float(guard["x"]),
-                        float(item["y"]) - float(guard["y"])),
-                )
-                dx = float(bot["x"]) - float(guard["x"])
-                dy = float(bot["y"]) - float(guard["y"])
-                dist = math.hypot(dx, dy) + 1e-6
-                guard["ang"] = math.atan2(dy, dx)
-                side = -1.0 if index % 2 else 1.0
-                move_x = dx / dist + (-dy / dist) * .24 * side
-                move_y = dy / dist + (dx / dist) * .24 * side
-                if dist > 4.2:
-                    step = 1.45 * dt
-                elif dist < 2.35:
-                    step = -1.1 * dt
-                else:
-                    step = .42 * dt
-                nx = float(guard["x"]) + move_x * step
-                ny = float(guard["y"]) + move_y * step
-                guard["x"], guard["y"] = nx, ny
-                guard["act"], guard["_moving"] = "walk", True
-                if dist <= 9.5 and now >= float(guard.get("_shot_t") or 0):
-                    guard["_shot_t"] = now + random.uniform(.62, .9)
-                    damage = random.randint(22, 31)
-                    bot["hp"] = max(0, int(bot.get("hp", 100)) - damage)
-                    killed = bot["hp"] <= 0
-                    if killed:
-                        bot["alive"] = False
-                    events.append({
-                        "kind": "business_defense_shot", "side": "guard",
-                        "id": nest["id"], "business_id": business_id,
-                        "shooter_id": guard["id"], "target_id": bot["id"],
-                        "weapon": guard.get("weapon") or "pistol",
-                        "sx": guard["x"], "sy": guard["y"],
-                        "tx": bot["x"], "ty": bot["y"],
-                        "damage": damage, "hp": bot["hp"], "killed": killed,
-                    })
-            alive_bots = [bot for bot in nest.get("bots", []) if bot.get("alive")]
-            alive_guards = [guard for guard in nest.get("guards", []) if guard.get("alive")]
-            for index, bot in enumerate(alive_bots):
-                if now < float(bot.get("fire_flee_until") or 0):
-                    continue
-                current_guards = [
-                    guard for guard in nest.get("guards", [])
-                    if guard.get("alive")]
-                if not current_guards:
-                    break
-                guard = min(
-                    current_guards,
-                    key=lambda item: math.hypot(
-                        float(item["x"]) - float(bot["x"]),
-                        float(item["y"]) - float(bot["y"])),
-                )
-                dx = float(guard["x"]) - float(bot["x"])
-                dy = float(guard["y"]) - float(bot["y"])
-                dist = math.hypot(dx, dy) + 1e-6
-                bot["ang"] = math.atan2(dy, dx)
-                side = 1.0 if index % 2 else -1.0
-                move_x = dx / dist + (-dy / dist) * .2 * side
-                move_y = dy / dist + (dx / dist) * .2 * side
-                if dist > 4.8:
-                    step = 1.2 * dt
-                elif dist < 2.25:
-                    step = -.95 * dt
-                else:
-                    step = .34 * dt
-                nx = float(bot["x"]) + move_x * step
-                ny = float(bot["y"]) + move_y * step
-                if math.hypot(nx-anchor_x, ny-anchor_y) <= 8.5:
-                    bot["x"], bot["y"] = nx, ny
-                    bot["act"], bot["_moving"] = "walk", True
-                if dist <= 9.5 and now >= float(bot.get("_guard_shot_t") or 0):
-                    bot["_guard_shot_t"] = now + random.uniform(.72, 1.04)
-                    damage = random.randint(16, 25)
-                    guard["hp"] = max(0, int(guard.get("hp", 100)) - damage)
-                    killed = guard["hp"] <= 0
-                    if killed:
-                        guard["alive"] = False
-                        owner = preview_owned_businesses(nest.get("owner_uid"))
-                        if business_id in owner:
-                            owner[business_id]["guards"] = max(
-                                0, int(owner[business_id].get("guards", 0)) - 1)
-                    events.append({
-                        "kind": "business_defense_shot", "side": "raider",
-                        "id": nest["id"], "business_id": business_id,
-                        "shooter_id": bot["id"], "target_id": guard["id"],
-                        "weapon": bot.get("weapon") or "pistol_heavy",
-                        "sx": bot["x"], "sy": bot["y"],
-                        "tx": guard["x"], "ty": guard["y"],
-                        "damage": damage, "hp": guard["hp"], "killed": killed,
-                    })
-            alive_bots = [bot for bot in nest.get("bots", []) if bot.get("alive")]
-            alive_guards = [guard for guard in nest.get("guards", []) if guard.get("alive")]
-        if not alive_bots:
-            preview_business_nests.pop(business_id, None)
-            cooldown_until = int(now + PREVIEW_NPC_CAPTURE_COOLDOWN)
-            preview_business_capture_cooldown[business_id] = cooldown_until
-            for rows in preview_businesses.values():
-                if business_id in rows:
-                    rows[business_id]["npc_capture_cooldown_until"] = cooldown_until
-            events.append({
-                "kind": "gang_nest_cleared", "id": nest["id"],
-                "business_id": business_id, "cooldown_until": cooldown_until,
-                "cash": 0, "exp": 0, "bonus_uids": [],
-            })
-            continue
-        if alive_guards:
-            # Business security has priority over pursuing a nearby player.
-            continue
-        if nest.get("state") != "hostile":
-            nearby = [
-                (str(uid), player)
-                for uid, player in players.items()
-                if not player.get("dead")
-                and (player.get("_mode") or "pvp") == "pvp"
-                and math.hypot(float(player.get("x", 0))-anchor_x,
-                               float(player.get("y", 0))-anchor_y) <= 7.5
-            ]
-            if nearby:
-                target_uid, _target = min(
-                    nearby,
-                    key=lambda row: math.hypot(
-                        float(row[1].get("x", 0))-anchor_x,
-                        float(row[1].get("y", 0))-anchor_y),
-                )
-                nest["state"] = "hostile"
-                nest["target_uid"] = target_uid
-                nest["hostile_until"] = now + 45.0
-        if nest.get("state") == "guard":
-            # Живой периметр: четверо оккупантов обходят здание по кольцу,
-            # а не стоят неподвижными после завершения боя с охраной.
-            for index, bot in enumerate(alive_bots):
-                phase = now * .34 + index * math.tau / max(1, len(alive_bots))
-                target_x = anchor_x + math.cos(phase) * 3.8
-                target_y = anchor_y + math.sin(phase) * 3.8
-                dx, dy = target_x-float(bot["x"]), target_y-float(bot["y"])
-                distance = math.hypot(dx, dy)
-                if distance <= .08:
-                    continue
-                step = min(distance, .72*dt)
-                nx = float(bot["x"]) + dx/distance*step
-                ny = float(bot["y"]) + dy/distance*step
-                if preview_street_passable(nx, ny):
-                    bot["x"], bot["y"] = nx, ny
-                    bot["ang"] = math.atan2(dy, dx)
-                    bot["act"], bot["_moving"] = "walk", True
-            continue
-        if nest.get("state") != "hostile":
-            continue
-        target_uid = str(nest.get("target_uid") or "")
-        target = players.get(target_uid)
-        if (not target or target.get("dead")
-                or (target.get("_mode") or "pvp") == "pve"
-                or now > float(nest.get("hostile_until") or 0)):
-            nest["state"] = "guard"
-            nest["target_uid"] = ""
-            continue
-        if math.hypot(float(target.get("x", 0))-anchor_x,
-                      float(target.get("y", 0))-anchor_y) > 14:
-            nest["state"] = "guard"
-            nest["target_uid"] = ""
-            continue
-        for bot in nest.get("bots", []):
-            if not bot.get("alive"):
-                continue
-            if now < float(bot.get("fire_flee_until") or 0):
-                continue
-            dx = float(target.get("x", 0))-float(bot["x"])
-            dy = float(target.get("y", 0))-float(bot["y"])
-            dist = math.hypot(dx, dy)+1e-6
-            bot["ang"] = math.atan2(dy, dx)
-            bot["act"] = "idle"
-            if dist > 5 and math.hypot(bot["x"]-anchor_x, bot["y"]-anchor_y) < 6:
-                step = min(dist, 1.05*dt)
-                bot["x"] += dx/dist*step
-                bot["y"] += dy/dist*step
-                bot["act"] = "walk"
-            if dist <= 9 and now-float(bot.get("shot_at") or 0) >= 1.05:
-                bot["shot_at"] = now
-                damage = int(bot.get("damage") or 12)
-                target["hp"] = max(0, int(target.get("hp", 100))-damage)
-                killed = target["hp"] <= 0
-                if killed:
-                    target["dead"] = True
-                    target["respawn_at"] = now+5
-                events.extend([
-                    {"kind":"aggro_shot", "tid":nest["id"], "bot_id":bot["id"],
-                     "target_uid":target_uid, "weapon":bot["weapon"],
-                     "sx":bot["x"], "sy":bot["y"],
-                     "tx":target.get("x", 0), "ty":target.get("y", 0)},
-                    {"kind":"aggro_apply", "tid":nest["id"], "bot_id":bot["id"],
-                     "target_uid":target_uid, "weapon":bot["weapon"],
-                     "miss":False, "dmg":damage, "killed":killed},
-                ])
-                if killed:
-                    break
-    return events
-
-
 def preview_business_row(biz_id, info=None):
-    preview_tick_business_captures()
     price, low, high, emoji, name = PREVIEW_BUSINESSES[biz_id]
     level = max(1, min(5, int((info or {}).get("level", 1)))) if info else 0
     mult = PREVIEW_BIZ_MULT.get(level, 1.0)
     pending = 0
-    # Семейный контроль после ограбления даёт отдельный бонус семье, но не
-    # блокирует пассивную прибыль купленного бизнеса его настоящему владельцу.
-    occupied = bool(info and biz_id in preview_business_nests)
-    cooldown_until = int((info or {}).get("npc_capture_cooldown_until") or 0)
-    if info and not occupied:
+    if info:
         elapsed = max(0, time.time() - float(info.get("last_collect") or time.time()))
         pending = int(elapsed * ((low + high) / 2) * mult / 86400)
     next_level = level + 1
@@ -2233,15 +1106,8 @@ def preview_business_row(biz_id, info=None):
         "biz_id": biz_id,
         "bought_at": int((info or {}).get("bought_at") or 0),
         "id": biz_id, "name": name, "emoji": emoji, "desc": "Стабильный городской бизнес.",
-        "price": price, "owned": bool(info),
-        "status": "gang_occupied" if occupied else "ok", "blocked_until": 0,
-        "npc_occupied": occupied,
-        "npc_capture_cooldown_until": cooldown_until,
-        "npc_capture_cooldown_left": max(0, cooldown_until - int(time.time())),
-        "notice": ("Бизнес захвачен вражеской бандой и не может приносить прибыль"
-                   if occupied else None),
+        "price": price, "owned": bool(info), "status": "ok", "blocked_until": 0,
         "level": level, "income_multiplier": mult,
-        "guards": max(0, min(6, int((info or {}).get("guards", 0)))) if info else 0,
         "daily_min": round(low * mult), "daily_max": round(high * mult), "pending": pending,
         "upgrade_cost": round(price * PREVIEW_BIZ_UP[next_level]) if info and next_level <= 5 else 0,
     }
@@ -2286,7 +1152,6 @@ async def said_fire(req):
 
 
 async def business_buy(req):
-    global preview_business_next_capture_at
     uid = req.match_info.get("uid", "1")
     try: body = await req.json()
     except Exception: body = {}
@@ -2301,8 +1166,7 @@ async def business_buy(req):
         return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"], "price": price}))
     account["cash"] -= price
     now = time.time()
-    owned[biz_id] = {"level": 1, "last_collect": now, "bought_at": now, "guards": 0}
-    preview_business_next_capture_at = min(preview_business_next_capture_at, now + 5.0)
+    owned[biz_id] = {"level": 1, "last_collect": now, "bought_at": now}
     return cors(web.json_response({"ok": True, "cash": account["cash"], "level": 1}))
 
 
@@ -2331,37 +1195,6 @@ async def business_upgrade(req):
         "upgrade_cost": next_cost, "next_upgrade_cost": next_cost}))
 
 
-async def business_guard_hire(req):
-    uid = req.match_info.get("uid", "1")
-    try: body = await req.json()
-    except Exception: body = {}
-    biz_id = str(body.get("biz_id") or "")
-    info = preview_owned_businesses(uid).get(biz_id)
-    if not info or biz_id not in PREVIEW_BUSINESSES:
-        return cors(web.json_response({"ok": False, "error": "not owned"}))
-    guards = max(0, min(6, int(info.get("guards", 0))))
-    if guards >= 6:
-        return cors(web.json_response({"ok": False, "error": "guard limit", "guards": guards}))
-    account = preview_account(uid)
-    if account["cash"] < 100:
-        return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"]}))
-    account["cash"] -= 100
-    info["guards"] = guards + 1
-    nest = preview_business_nests.get(biz_id)
-    if nest and nest.get("owner_uid") in (None, str(uid)):
-        angle = info["guards"] * math.tau / 6
-        nest["owner_uid"] = str(uid)
-        nest.setdefault("guards", []).append({
-            "id": f"preview_guard_{biz_id}_{info['guards']}",
-            "x": nest["c"] + math.cos(angle) * 1.5,
-            "y": nest["r"] + math.sin(angle) * 1.5,
-            "ang": angle, "hp": 100, "max_hp": 100, "alive": True,
-            "weapon": "pistol_heavy",
-        })
-    return cors(web.json_response({"ok": True, "biz_id": biz_id,
-        "guards": info["guards"], "guard_limit": 6, "price": 100, "cash": account["cash"]}))
-
-
 async def business_collect(req):
     uid = req.match_info.get("uid", "1")
     try: body = await req.json()
@@ -2385,143 +1218,20 @@ async def business_collect(req):
     return cors(web.json_response({"ok": True, "collected": pay, "cash": account["cash"], "events": []}))
 
 
-async def preview_tick_owned_business_income():
-    global preview_business_income_next_check
-    now = time.time()
-    if now < preview_business_income_next_check:
-        return
-    preview_business_income_next_check = now + 2.0
-    for owner_uid, owned in preview_businesses.items():
-        for biz_id, info in owned.items():
-            last_collect = float(info.get("last_collect") or now)
-            due = max(0, int((now-last_collect)//60))
-            if due <= 0 or biz_id not in PREVIEW_BUSINESSES:
-                continue
-            _price, low, high, icon, name = PREVIEW_BUSINESSES[biz_id]
-            level = max(1, min(5, int(info.get("level") or 1)))
-            per_minute = max(
-                1, round(((low+high)/2)*PREVIEW_BIZ_MULT[level]/1440))
-            amount = per_minute*due
-            info["last_collect"] = last_collect+due*60
-            preview_account(owner_uid)["cash"] += amount
-            await broadcast_event({
-                "kind":"owned_business_income","owner_uid":str(owner_uid),
-                "biz_id":biz_id,"biz_name":name,"biz_icon":icon,
-                "amount":amount,"per_minute":per_minute,"minutes":due,
-            })
+async def coop_api(_req):
+    return cors(web.json_response({"base": "http://127.0.0.1:8080"}))
 
 
-async def coop_api(req):
-    return cors(web.json_response({"base": f"{req.scheme}://{req.host}"}))
-
-
-async def preview_world(req):
-    # Always serve the world that lives next to this server file.  Previously a
-    # launch from another working directory silently served a stale world.html
-    # from that directory and looked like a massive rollback.
-    html = (BASE_DIR / "world.html").read_text(
-        encoding="utf-8", errors="replace")
-    origin = f"{req.scheme}://{req.host}"
+async def preview_world(_req):
+    html = Path("world.html").read_text(encoding="utf-8", errors="replace")
     html = html.replace(
         "https://slavaprivet.github.io/mafiozi-battle/coop_api.json?t=",
-        f"{origin}/coop_api.json?t=",
+        "http://127.0.0.1:8080/coop_api.json?t=",
     )
     return web.Response(text=html, content_type="text/html")
 
 
-async def snap(uid):
-    now_control = time.time()
-    for control_biz_id, control in list(preview_robbed_business_controls.items()):
-        if float(control.get("expires_at") or 0) <= now_control:
-            preview_robbed_business_controls.pop(control_biz_id, None)
-            if len(preview_business_family_wars) < 2:
-                preview_business_family_wars[control_biz_id] = {
-                    "biz_id":control_biz_id,"started_at":now_control,
-                    "expires_at":now_control+180,"progress":0.0,
-                    "previous_family":str(control.get("mafia_family") or ""),
-                    "last_tick_at":now_control,"bellini":0,"moretti":0,
-                }
-                await broadcast_event({
-                    "kind":"business_family_war_started","biz_id":control_biz_id,
-                    "biz_name":next((name for bid,name,_r,_c in PREVIEW_BOX_DROPOFFS
-                                     if bid==control_biz_id),control_biz_id),
-                    "duration_s":180,"hold_s":90,
-                })
-            continue
-        remaining=float(control.get("expires_at") or 0)-now_control
-        if remaining<=60 and not control.get("warned"):
-            control["warned"]=1
-            await broadcast_event({
-                "kind":"business_family_war_warning","biz_id":control_biz_id,
-                "biz_name":next((name for bid,name,_r,_c in PREVIEW_BOX_DROPOFFS
-                                 if bid==control_biz_id),control_biz_id),
-                "starts_in":max(0,int(remaining)),
-            })
-        last_payout = float(control.get("last_payout_at") or now_control)
-        due = min(10-int(control.get("payouts_done") or 0),
-                  int((min(now_control, float(control["expires_at"]))-last_payout)//60))
-        if due > 0:
-            amount = int(control.get("income_per_member") or 0)*due
-            family = str(control.get("mafia_family") or "")
-            for member_uid, member in players.items():
-                if str(member.get("mafia_family") or "") == family:
-                    preview_account(member_uid)["cash"] += amount
-            control["last_payout_at"] = last_payout + due*60
-            control["payouts_done"] = int(control.get("payouts_done") or 0)+due
-            biz_name = next(
-                (name for bid,name,_r,_c in PREVIEW_BOX_DROPOFFS
-                 if bid == control_biz_id),
-                control_biz_id,
-            )
-            await broadcast_event({
-                "kind":"robbed_business_income","biz_id":control_biz_id,
-                "biz_name":biz_name,"mafia_family":family,
-                "amount":amount,"members_paid":sum(
-                    1 for member in players.values()
-                    if str(member.get("mafia_family") or "") == family),
-                "remaining_s":max(0,int(float(control["expires_at"])-now_control)),
-            })
-    for war_biz_id,war in list(preview_business_family_wars.items()):
-        biz_name=next((name for bid,name,_r,_c in PREVIEW_BOX_DROPOFFS
-                       if bid==war_biz_id),war_biz_id)
-        if float(war.get("expires_at") or 0)<=now_control:
-            preview_business_family_wars.pop(war_biz_id,None)
-            await broadcast_event({"kind":"business_family_war_ended",
-                                   "biz_id":war_biz_id,"biz_name":biz_name,"winner":""})
-            continue
-        rc=PREVIEW_BUSINESS_RC.get(war_biz_id)
-        if not rc: continue
-        r,c=rc; inside={"bellini":[],"moretti":[]}
-        for member_uid,member in players.items():
-            family=str(member.get("mafia_family") or "")
-            if family not in inside or member.get("dead") or member.get("police"): continue
-            if (float(member.get("x") or 0)-c)**2+(float(member.get("y") or 0)-r)**2<=36:
-                inside[family].append(str(member_uid))
-        war["bellini"]=len(inside["bellini"]);war["moretti"]=len(inside["moretti"])
-        dt=max(0,min(1,now_control-float(war.get("last_tick_at") or now_control)))
-        war["last_tick_at"]=now_control
-        if war["bellini"]>war["moretti"]:war["progress"]=min(90,float(war.get("progress") or 0)+dt)
-        elif war["moretti"]>war["bellini"]:war["progress"]=max(-90,float(war.get("progress") or 0)-dt)
-        winner="bellini" if war["progress"]>=90 else "moretti" if war["progress"]<=-90 else ""
-        if not winner: continue
-        winner_uid=inside[winner][0] if inside[winner] else ""
-        reward=PREVIEW_ROB_PAYOUT.get(war_biz_id,(200,1))[0]
-        bonus=max(50,reward//2);income=max(1,reward//10)
-        if winner_uid:preview_account(winner_uid)["cash"]+=bonus
-        preview_business_family_wars.pop(war_biz_id,None)
-        preview_robbed_business_controls[war_biz_id]={
-            "biz_id":war_biz_id,"owner_uid":winner_uid,
-            "owner_name":str(players.get(winner_uid,{}).get("name") or "")[:24],
-            "mafia_family":winner,"captured_at":now_control,
-            "expires_at":now_control+600,"last_payout_at":now_control,
-            "payouts_done":0,"income_per_member":income,"warned":0,
-        }
-        await broadcast_event({
-            "kind":"business_family_war_won","biz_id":war_biz_id,
-            "biz_name":biz_name,"winner":winner,"winner_uid":winner_uid,
-            "winner_name":str(players.get(winner_uid,{}).get("name") or "")[:24],
-            "bonus":bonus,"control_s":600,"income_per_member":income,
-        })
+def snap(uid):
     tick_race_cars()
     now = time.time()
     for car_id, car in list(quest_cars.items()):
@@ -2534,19 +1244,6 @@ async def snap(uid):
         "walking": False,
         "name": "Demo",
     })
-    crew_id = str(p.get("crew_id") or "")
-    crew_members = [{"uid":str(u), "name":q.get("name","Игрок"), "npc_count":len(q.get("gang") or [])}
-                    for u,q in players.items() if crew_id and str(q.get("crew_id") or "")==crew_id]
-    apartment_hosts=[]
-    for host_uid,host in players.items():
-        host_key=str(host.get("apartment_key") or "")
-        if (not crew_id or str(host_uid)==str(uid) or str(host.get("crew_id") or "")!=crew_id
-                or str(host.get("apartment_owner_uid") or "")!=str(host_uid) or not host_key):
-            continue
-        coords=apartment_coords_from_key(host_key)
-        if coords:
-            apartment_hosts.append({"owner_uid":str(host_uid),"name":host.get("name","Demo"),
-                                    "apartment_key":host_key,"r":coords[0],"c":coords[1]})
     now = time.time()
     # Ограниченный серверный конвой: 20 секунд максимум, освобождение при
     # гибели/выходе копа. Задержанный следует в 0.7 тайла позади.
@@ -2568,27 +1265,15 @@ async def snap(uid):
         target["y"] = float(cop.get("y", 0)) - math.cos(ang) * .72
         target["ang"] = ang; target["walking"] = bool(cop.get("walking"))
     me_biz = str(p.get("business_interior") or "")
-    me_apartment_key = str(p.get("apartment_key") or "")
-    me_apartment_owner = str(p.get("apartment_owner_uid") or "")
     me_private = bool(p.get("business_private"))
-    business_under_attack = bool(me_biz and any(
-        bid == me_biz and until > now for (_attacker_uid,bid),until in preview_business_aggro.items()))
     visible_others = []
     for other_uid, other in players.items():
         if str(other_uid) == str(uid):
             continue
         other_biz = str(other.get("business_interior") or "")
-        other_apartment_key = str(other.get("apartment_key") or "")
-        other_apartment_owner = str(other.get("apartment_owner_uid") or "")
         other_private = bool(other.get("business_private"))
-        if me_apartment_key:
-            if other_apartment_key != me_apartment_key or other_apartment_owner != me_apartment_owner:
-                continue
-            ox, oy = float(other.get("interior_x", 0)), float(other.get("interior_y", 0))
-        elif other_apartment_key:
-            continue
-        elif me_biz:
-            if other_biz != me_biz or ((me_private or other_private) and not business_under_attack):
+        if me_biz:
+            if me_private or other_biz != me_biz or other_private:
                 continue
             ox, oy = float(other.get("interior_x", 0)), float(other.get("interior_y", 0))
         else:
@@ -2600,55 +1285,21 @@ async def snap(uid):
         visible_others.append({
             "uid": str(other_uid), "name": other.get("name", "Demo"),
             "look": other.get("look", {}), "x": round(ox, 2), "y": round(oy, 2),
-            "business_attacker": bool(me_biz and preview_business_aggro.get((str(other_uid),me_biz),0) > now),
-            "ang": round(float(other.get("ang", 0)), 2), "w": bool(other.get("walking")), "swimming": bool(other.get("swimming")),
+            "ang": round(float(other.get("ang", 0)), 2), "w": bool(other.get("walking")),
             "hp": int(other.get("hp", 100)), "dead": bool(other.get("dead", False)),
             "wanted": int(other.get("wanted", 0)), "gangs": 0, "mode": "pvp",
             "jail_in": max(0, int(float(other.get("jail_until", 0))-now)),
             "weapon": other.get("weapon", "pistol"),
             "police": bool(other.get("police", False)),
-            "mafia": bool(other.get("mafia", False)),
-            "mafia_family": str(other.get("mafia_family") or ""),
-            "crew_mate": bool(crew_id and str(other.get("crew_id") or "")==crew_id),
             "police_cuffed": bool(other.get("police_cuffed_by")),
             "police_stunned_in": max(0, float(other.get("police_stunned_until", 0))-now),
             "police_escort": other.get("police_escort"),
-            "interior": ({"kind":"apartment","apartment_key":other_apartment_key,
-                          "owner_uid":other_apartment_owner} if other_apartment_key else
-                         ({"kind": "business", "biz_id": other_biz,
-                           "private": other_private} if other_biz else None)),
+            "interior": ({"kind": "business", "biz_id": other_biz,
+                          "private": other_private} if other_biz else None),
         })
-    ground_boxes = []
-    for owner_uid, box in preview_box_quests.items():
-        if box.get("state") != "ground":
-            continue
-        box_biz = str(box.get("ground_business_id") or "")
-        if me_biz:
-            if box.get("ground_space") != "business" or box_biz != me_biz:
-                continue
-        else:
-            if box.get("ground_space") != "world":
-                continue
-            if math.hypot(float(box.get("ground_x") or 0)-float(p.get("x") or 0),
-                          float(box.get("ground_y") or 0)-float(p.get("y") or 0)) > 45:
-                continue
-        ground_boxes.append({
-            "owner_uid": str(owner_uid),
-            "owner_name": (players.get(str(owner_uid)) or {}).get("name", "Игрок"),
-            "r": round(float(box.get("ground_y") or 0), 2),
-            "c": round(float(box.get("ground_x") or 0), 2),
-            "mine": str(owner_uid) == str(uid),
-            "expires_in": max(0, int(float(box.get("ground_expires_at") or now)-now)),
-        })
-    own_box = preview_box_quests.get(str(uid))
-    box_quest = dict(own_box) if own_box else None
-    if box_quest and box_quest.get("state") == "ground":
-        box_quest["expires_in"] = max(
-            0, int(float(box_quest.get("ground_expires_at") or now) - now))
     return {
         "t": "snap",
         "d": {
-            "faction_war": preview_family_district_scores(now),
             "me": {
                 "x": round(p["x"], 2),
                 "y": round(p["y"], 2),
@@ -2663,15 +1314,6 @@ async def snap(uid):
                 "cash": preview_account(uid)["cash"],
                 "police_xp": int(preview_account(uid).get("police_xp", 0)),
                 "mafia_xp": int(preview_account(uid).get("mafia_xp", 0)),
-                "mafia_family": str(p.get("mafia_family") or ""),
-                "mafia_last_family": str(p.get("mafia_last_family") or ""),
-                "mafia_traitor_left": max(0, int(math.ceil(
-                    float(p.get("mafia_traitor_until") or 0)-now))),
-                "mafia_join_denied": str(p.pop("mafia_join_denied","") or ""),
-                "mafia_family_counts": dict(p.get("mafia_family_counts") or {}),
-                "spray_cans": int(p.get("spray_cans",0)),
-                "online_gang": {"crew_id":crew_id,"members":crew_members,"max_players":3} if crew_id else None,
-                "apartment_hosts": apartment_hosts,
                 "police_arrests_today": preview_police_daily_state(uid)[1],
                 "police_arrest_limit": preview_police_daily_state(uid)[2],
                 "police_spikes_cd": max(0.0, round(
@@ -2722,8 +1364,8 @@ async def snap(uid):
             "event": None,
             "territories": {},
             "active_captures": {},
-            "major_objects": preview_major_payload(),
             "aggro": preview_aggro_payload(),
+            "major_objects": preview_major_payload(),
             "quest_cars": race_car_payload(),
             "dropped_bags": [{
                 "id": str(bag["id"]), "bank_id": str(bag.get("bank_id") or ""),
@@ -2734,49 +1376,9 @@ async def snap(uid):
               if now - float(bag.get("dropped_at") or now) <= 300
               and (float(bag.get("x") or 0)-float(p.get("x") or 0))**2
                 + (float(bag.get("y") or 0)-float(p.get("y") or 0))**2 <= 42**2],
-            "ground_boxes": ground_boxes,
-            "box_quest": box_quest,
             "beachgoers": PREVIEW_BEACHGOERS,
             "michael_guards": [],
-            "gang_nests": PREVIEW_GANG_NESTS + [{
-                "id": nest["id"], "r": nest["r"], "c": nest["c"],
-                "state": nest["state"],
-                "expires_in": max(0, int(nest["expires_at"] - now)),
-                "bots_alive": sum(1 for bot in nest["bots"] if bot.get("alive")),
-                "faction": nest["faction"], "business_id": bid,
-                "guards": [guard for guard in nest.get("guards", []) if guard.get("alive")],
-                "guards_alive": sum(
-                    1 for guard in nest.get("guards", []) if guard.get("alive")),
-            } for bid, nest in preview_business_nests.items()],
-            "business_closures": {
-                bid: max(0, int(until-now)) for bid,until in preview_business_closures.items()
-                if until > now
-            },
-            "robbed_business_controls": {
-                bid: {
-                    **control,
-                    "remaining_s": max(0, int(float(control["expires_at"])-now)),
-                }
-                for bid,control in preview_robbed_business_controls.items()
-                if float(control.get("expires_at") or 0)>now
-            },
-            "business_family_wars": {
-                bid:{**war,"remaining_s":max(0,int(float(war["expires_at"])-now))}
-                for bid,war in preview_business_family_wars.items()
-                if float(war.get("expires_at") or 0)>now
-            },
-            "business_aggro": {
-                bid: max(0, int(until-now)) for (aggro_uid,bid),until in preview_business_aggro.items()
-                if str(aggro_uid) == str(uid) and until > now
-            },
-            "business_police_protection": {
-                bid:max(0,int(until-now)) for (protected_uid,bid),until in preview_business_police_protection.items()
-                if str(protected_uid)==str(uid) and until>now
-            },
-            "business_owner_protection": {
-                bid:max(0,int(until-now)) for (protected_uid,bid),until in preview_business_owner_protection.items()
-                if str(protected_uid)==str(uid) and until>now
-            },
+            "gang_nests": [],
             "districts": {
                 "owners": district_owners,
                 "captures": {
@@ -2821,14 +1423,20 @@ async def world_ws(req):
         "hp": 100,
         "dead": False,
     })
-    p0["uid"] = str(uid)
+    if req.query.get("spawn_r") is not None and req.query.get("spawn_c") is not None:
+        try:
+            p0["y"] = max(0.0, min(199.0, float(req.query["spawn_r"])))
+            p0["x"] = max(0.0, min(79.0, float(req.query["spawn_c"])))
+        except (TypeError, ValueError):
+            pass
+    if req.query.get("mafia_test") == "1":
+        p0["mafia"] = True
     try:
         p0["wanted"] = max(int(p0.get("wanted", 0)), min(3, int(req.query.get("wanted", 0))))
     except Exception:
         pass
     ws = web.WebSocketResponse(heartbeat=20)
     await ws.prepare(req)
-    p0["_ws"] = ws
     clients.add(ws)
     await ws.send_str(json.dumps({
         "t": "hello",
@@ -2845,21 +1453,7 @@ async def world_ws(req):
     async def sender():
         while not ws.closed:
             now = time.time()
-            await preview_tick_owned_business_income()
             ensure_preview_district_bosses(now)
-            for owner_uid, q in list(preview_box_quests.items()):
-                owner = players.get(str(owner_uid))
-                if q.get("state") in ("carrying", "loaded") and owner and owner.get("dead"):
-                    rep = preview_drop_box(owner_uid, "death")
-                    if rep.get("ok"):
-                        await broadcast_event({"kind": "box_dropped", **rep})
-                elif (q.get("state") == "ground" and
-                      now >= float(q.get("ground_expires_at") or 0)):
-                    preview_box_quests.pop(str(owner_uid), None)
-                    await broadcast_event({
-                        "kind": "box_expired", "owner_uid": str(owner_uid),
-                        "reason": "timeout",
-                    })
             for p in players.values():
                 if p.get("dead") and now >= float(p.get("respawn_at", now + 1)):
                     cop_uid = str(p.pop("police_downed_by", "") or "")
@@ -2875,10 +1469,6 @@ async def world_ws(req):
                     p["x"], p["y"] = PREVIEW_HOSPITAL_X, PREVIEW_HOSPITAL_Y
             for defender_event in tick_district_defenders(now, 1/15):
                 await broadcast_event(defender_event)
-            for lair_event in tick_preview_lair(now, 1/15):
-                await broadcast_event(lair_event)
-            for raider_event in tick_preview_business_raiders(now, 1/15):
-                await broadcast_event(raider_event)
             for charge_id, charge in list(world_c4.items()):
                 if now < charge["explode_at"]:
                     continue
@@ -2994,45 +1584,6 @@ async def world_ws(req):
                             "old_uid":str(old_uid),"by_uid":str(picker_uid),"by_name":cap["by_name"],
                             "name":DISTRICTS[did]["name"]})
                         break
-            for object_id, owner in list(preview_major_owners.items()):
-                cfg = PREVIEW_MAJOR_OBJECTS.get(object_id, {})
-                if now >= float(owner.get("expires_at") or 0):
-                    preview_major_owners.pop(object_id, None)
-                    await broadcast_event({
-                        "kind": "major_control_lost",
-                        "object_id": object_id,
-                        "name": cfg.get("name", object_id),
-                        "owner_uid": str(owner.get("owner_uid") or ""),
-                        "owner_name": owner.get("owner_name", ""),
-                    })
-                    continue
-                last_payout = float(owner.get("last_payout_at") or now)
-                if now - last_payout < 600:
-                    continue
-                owner["last_payout_at"] = last_payout + 600
-                team = [
-                    str(member_uid)
-                    for member_uid in owner.get("team_uids") or []
-                    if str(member_uid) in players
-                ] or [str(owner.get("owner_uid") or "")]
-                total = int(cfg.get("income") or 0) // 6
-                share, remainder = divmod(total, max(1, len(team)))
-                awards = []
-                for index, member_uid in enumerate(team):
-                    amount = share + (1 if index < remainder else 0)
-                    preview_account(member_uid)["cash"] += amount
-                    awards.append({"uid": member_uid, "amount": amount})
-                await broadcast_event({
-                    "kind": "major_income",
-                    "object_id": object_id,
-                    "name": cfg.get("name", object_id),
-                    "owner_uid": str(owner.get("owner_uid") or ""),
-                    "owner_name": owner.get("owner_name", ""),
-                    "total": total,
-                    "awards": awards,
-                    "expires_in": max(
-                        0, int(float(owner.get("expires_at") or now) - now)),
-                })
             for did, owner in list(district_owners.items()):
                 dd = DISTRICTS.get(did, {})
                 if now >= float(owner.get("expires_at") or 0):
@@ -3052,25 +1603,17 @@ async def world_ws(req):
                 owner["last_payout_at"] = now
                 amount = int(dd.get("income") or 400)
                 xp = max(1, amount // 20)
-                family = str(owner.get("mafia_family") or "bellini")
-                member_uids = [
-                    str(member_uid) for member_uid, member in players.items()
-                    if str(member.get("mafia_family") or "") == family
-                ]
-                for member_uid in member_uids:
-                    preview_account(member_uid)["cash"] += amount
                 account = preview_account(owner["owner_uid"])
+                account["cash"] += amount
                 account["exp"] += xp
                 await broadcast_event({
                     "kind": "district_income", "did": did,
                     "name": dd.get("name", did), "icon": dd.get("icon", "🏴"),
                     "owner_uid": str(owner["owner_uid"]), "owner_name": owner["owner_name"],
-                    "mafia_family": family, "members_paid": len(member_uids),
                     "amount": amount, "xp": xp,
                     "new_cash": account["cash"], "new_exp": account["exp"],
                 })
-            await preview_tick_street_gang_conflict(now)
-            await ws.send_str(json.dumps(await snap(uid)))
+            await ws.send_str(json.dumps(snap(uid)))
             await asyncio.sleep(1 / 15)
 
     task = asyncio.create_task(sender())
@@ -3084,10 +1627,54 @@ async def world_ws(req):
                 continue
             t = pkt.get("t") or pkt.get("type")
             d = pkt.get("d") or {}
-            current = players.get(uid) or {}
-            if t == "input" and d.get("client_active"):
-                current["_ws"] = ws
-            if current.get("_ws") is not ws:
+            if t == "business_rob_prepare":
+                biz_id = str(d.get("biz_id") or "")
+                guards = {"coffee":1,"carwash":2,"barbershop":2,"pizza":3,
+                          "garage":4,"bar":4,"club":5,"warehouse":6,
+                          "casino":8,"port":10}.get(biz_id, 1)
+                await ws.send_str(json.dumps({"t":"event","d":{
+                    "kind":"business_rob_prepare_reply","ok":True,
+                    "biz_id":biz_id,"attempt":1,"guard_bonus":0,
+                    "guard_count":guards,"rob_token":f"preview-{uid}-{biz_id}"
+                }}, ensure_ascii=False))
+                continue
+            if t == "shop_rob":
+                biz_id = str(d.get("biz_id") or "coffee")
+                money = {"coffee":600,"carwash":900,"barbershop":1200,"pizza":1500,
+                         "garage":1800,"bar":2200,"club":2000,"warehouse":3200,
+                         "casino":5000,"port":8000}.get(biz_id,600)
+                await ws.send_str(json.dumps({"t":"event","d":{
+                    "kind":"shop_rob_reply","ok":True,"biz_id":biz_id,
+                    "money":money,"difficulty":1,"closed_s":300,
+                    "mafia_family":"bellini","family_points_gain":10,
+                    "business_choice_token":f"preview-choice-{uid}-{biz_id}",
+                    "business_choice_s":90,"can_capture":True,"sabotage_s":720
+                }}, ensure_ascii=False))
+                continue
+            if t == "business_war_choice":
+                action = str(d.get("action") or "cash")
+                account = preview_account(uid)
+                if action == "sabotage" and int(account["consumables"].get("c4", 0)) <= 0:
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"business_war_choice_reply","ok":False,
+                        "reason":"no_c4","biz_id":"coffee"
+                    }}, ensure_ascii=False))
+                    continue
+                if action == "sabotage":
+                    account["consumables"]["c4"] -= 1
+                await ws.send_str(json.dumps({"t":"event","d":{
+                    "kind":"business_war_choice_reply","ok":True,
+                    "action":action,"biz_id":"coffee","money":600,
+                    "c4_left":int(account["consumables"].get("c4", 0)),
+                    "biz_name":"Кофейня «У Дона»"
+                }}, ensure_ascii=False))
+                if action == "sabotage":
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"business_sabotaged","ok":True,"action":action,
+                        "biz_id":"coffee","biz_name":"Кофейня «У Дона»",
+                        "actor_name":"Игрок","sabotage_kind":str(d.get("sabotage_kind") or "shutdown"),
+                        "sabotage_label":"заведение выведено из строя","sabotage_s":720
+                    }}, ensure_ascii=False))
                 continue
             if t == "input":
                 p = players.setdefault(uid, {})
@@ -3096,54 +1683,8 @@ async def world_ws(req):
                 if p.get("police_cuffed_by"):
                     continue
                 was_police = bool(p.get("police"))
-                requested_police = bool(d.get("police", False))
-                requested_mafia = bool(d.get("mafia", False))
-                requested_family = str(d.get("mafia_family") or "").lower()
-                if requested_family not in ("bellini", "moretti"):
-                    requested_family = ""
-                was_mafia = bool(p.get("mafia"))
-                old_family = str(p.get("mafia_family") or "")
-                now_role = time.time()
-                if was_mafia and not requested_mafia:
-                    p["mafia_last_family"] = old_family
-                    p["mafia_traitor_until"] = now_role + 300
-                if requested_mafia and float(p.get("mafia_traitor_until") or 0) > now_role:
-                    requested_mafia = False
-                    requested_family = ""
-                    p["mafia_join_denied"] = "traitor"
-                if requested_mafia and not was_mafia and requested_family:
-                    family_counts = {
-                        family: sum(1 for other_uid, other in players.items()
-                                    if str(other_uid) != str(uid) and other.get("mafia")
-                                    and str(other.get("mafia_family") or "") == family)
-                        for family in ("bellini", "moretti")
-                    }
-                    prospective = dict(family_counts)
-                    prospective[requested_family] += 1
-                    current_gap = abs(family_counts["bellini"]-family_counts["moretti"])
-                    next_gap = abs(prospective["bellini"]-prospective["moretti"])
-                    if next_gap > 10 and next_gap >= current_gap:
-                        requested_mafia = False
-                        requested_family = ""
-                        p["mafia_join_denied"] = "family_balance"
-                        p["mafia_family_counts"] = family_counts
-                    else:
-                        p.pop("mafia_join_denied",None)
-                if requested_police and was_mafia:
-                    requested_police, requested_mafia = False, True
-                elif requested_mafia and was_police:
-                    requested_police, requested_mafia = True, False
-                p["police"] = requested_police
-                p["mafia"] = requested_mafia and not p["police"]
-                p["mafia_family"] = requested_family if p["mafia"] else ""
-                if "gang" in d:
-                    p["gang"] = d.get("gang")[:7] if p["mafia"] and isinstance(d.get("gang"), list) else []
-                if not p["mafia"]:
-                    crew_id=str(p.pop("crew_id","") or "")
-                    if crew_id:
-                        left=[q for q in players.values() if str(q.get("crew_id") or "")==crew_id]
-                        if len(left)<2:
-                            for q in left:q.pop("crew_id",None)
+                p["police"] = bool(d.get("police", False))
+                p["mafia"] = bool(d.get("mafia", False)) and not p["police"]
                 if p["police"] and not was_police:
                     for did, own in list(district_owners.items()):
                         if str(own.get("owner_uid")) == str(uid): district_owners.pop(did, None)
@@ -3156,263 +1697,35 @@ async def world_ws(req):
                 else:
                     p["police_escort"] = None
                 interior = d.get("interior") if isinstance(d.get("interior"), dict) else None
-                biz_id = str((interior or {}).get("biz_id") or "")[:32]
-                interior_kind = str((interior or {}).get("kind") or "")
                 major_id = str((interior or {}).get("object_id") or "")[:24]
-                if interior_kind == "major" and major_id in PREVIEW_MAJOR_OBJECTS:
+                if (interior or {}).get("kind") == "major" and major_id in PREVIEW_MAJOR:
                     p["major_interior"] = major_id
-                    p.pop("business_interior", None)
-                    p.pop("business_private", None)
-                    p["interior_x"] = max(
-                        0.0, min(60.0, float(interior.get("x", 0))))
-                    p["interior_y"] = max(
-                        0.0, min(60.0, float(interior.get("y", 0))))
+                    p["interior_x"] = max(0.0, min(60.0, float(d.get("x", 0))))
+                    p["interior_y"] = max(0.0, min(60.0, float(d.get("y", 0))))
                     p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
                     p["walking"] = bool(d.get("w", False))
-                    p["weapon"] = str(
-                        d.get("weapon") or p.get("weapon") or "fists")[:32]
-                    p["in_interior"] = True
+                    p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
                     continue
                 p.pop("major_interior", None)
-                if interior_kind == "business" and biz_id:
+                biz_id = str((interior or {}).get("biz_id") or "")[:32]
+                if (interior or {}).get("kind") == "business" and biz_id:
                     p["business_interior"] = biz_id
                     p["business_private"] = biz_id in preview_owned_businesses(uid)
-                    p["interior_x"] = max(0.0, min(60.0, float(interior.get("x", 0))))
-                    p["interior_y"] = max(0.0, min(60.0, float(interior.get("y", 0))))
+                    p["interior_x"] = max(0.0, min(60.0, float(d.get("x", 0))))
+                    p["interior_y"] = max(0.0, min(60.0, float(d.get("y", 0))))
                     p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
                     p["walking"] = bool(d.get("w", False))
-                    p["weapon"] = str(d.get("weapon") or p.get("weapon") or "fists")[:32]
-                    p["in_interior"] = True
-                    continue
-                if interior_kind in ("bank", "building"):
-                    p.pop("business_interior", None)
-                    p.pop("business_private", None)
-                    apartment_key = str((interior or {}).get("apartment_key") or "")[:32]
-                    apartment_owner_uid = str((interior or {}).get("apartment_owner_uid") or "")[:32]
-                    if interior_kind == "building" and apartment_key and apartment_owner_uid:
-                        owns = apartment_owner_uid == str(uid) and apartment_key in preview_owned_apartments(uid)
-                        grant = p.get("apartment_guest_grant") or {}
-                        visits = (apartment_owner_uid != str(uid)
-                                  and str(grant.get("owner_uid") or "") == apartment_owner_uid
-                                  and str(grant.get("apartment_key") or "") == apartment_key
-                                  and float(grant.get("expires_at") or 0) > time.time())
-                        if not owns and not visits:
-                            continue
-                        p["apartment_key"] = apartment_key
-                        p["apartment_owner_uid"] = apartment_owner_uid
-                    else:
-                        p.pop("apartment_key", None)
-                        p.pop("apartment_owner_uid", None)
-                    p["interior_x"] = max(
-                        0.0, min(60.0, float(interior.get("x", 0))))
-                    p["interior_y"] = max(
-                        0.0, min(60.0, float(interior.get("y", 0))))
-                    p["in_interior"] = True
-                    p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
-                    p["walking"] = bool(d.get("w", False))
-                    p["weapon"] = str(d.get("weapon") or p.get("weapon") or "fists")[:32]
+                    p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
                     continue
                 p.pop("business_interior", None)
                 p.pop("business_private", None)
-                p.pop("apartment_key", None)
-                p.pop("apartment_owner_uid", None)
                 p.pop("interior_x", None)
                 p.pop("interior_y", None)
-                p["in_interior"] = False
                 p["x"] = float(d.get("x", p.get("x", 40.0)))
                 p["y"] = float(d.get("y", p.get("y", 40.0)))
                 p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
                 p["walking"] = bool(d.get("w", False))
-                p["swimming"] = bool(d.get("swimming", False))
-                p["weapon"] = str(d.get("weapon") or p.get("weapon") or "fists")[:32]
-            elif t == "business_aggro":
-                biz_id = str(d.get("biz_id") or "")
-                p = players.get(uid) or {}
-                if (biz_id in PREVIEW_BUSINESS_RC and not p.get("police") and
-                        preview_business_police_protection.get((str(uid),biz_id),0)<=time.time() and
-                        preview_business_owner_protection.get((str(uid),biz_id),0)<=time.time()):
-                    preview_business_aggro[(str(uid), biz_id)] = time.time() + 300
-                    if len(preview_business_aggro) > 500:
-                        cutoff = time.time()
-                        for key, until in list(preview_business_aggro.items()):
-                            if until <= cutoff:
-                                preview_business_aggro.pop(key, None)
-            elif t == "business_rob_prepare":
-                biz_id = str(d.get("biz_id") or "")
-                p = players.get(uid) or {}
-                now_rob=time.time()
-                protected_left=max(0,int(preview_business_police_protection.get((str(uid),biz_id),0)-now_rob))
-                defended_left=max(0,int(preview_business_owner_protection.get((str(uid),biz_id),0)-now_rob))
-                family_control=preview_robbed_business_controls.get(biz_id) or {}
-                family_control_left=max(0,int(float(family_control.get("expires_at") or 0)-now_rob))
-                open_war=preview_business_family_wars.get(biz_id) or {}
-                open_war_left=max(0,int(float(open_war.get("expires_at") or 0)-now_rob))
-                closed_left=max(0,int(preview_business_closures.get(biz_id,0)-now_rob))
-                last_rob=float(preview_business_last_robs.get((str(uid),biz_id),0))
-                cooldown_left=max(0,int(PREVIEW_ROB_PERSONAL_COOLDOWN_S-(now_rob-last_rob))) if last_rob else 0
-                completed = max(0, min(2, int(preview_business_rob_cycles.get((str(uid),biz_id),0))))
-                rc=PREVIEW_BUSINESS_RC.get(biz_id)
-                close_enough=preview_robber_at_entrance(p,biz_id)
-                owns=biz_id in preview_owned_businesses(uid)
-                ok_prepare=bool(
-                    rc and p and not p.get("dead") and not p.get("police") and
-                    not protected_left and not defended_left and not family_control_left and not open_war_left and
-                    not closed_left and
-                    not cooldown_left and close_enough and not owns
-                )
-                guard_count=int(PREVIEW_ROB_GUARDS.get(biz_id,1))+completed*3
-                token=""
-                if ok_prepare:
-                    token=secrets.token_urlsafe(24)
-                    preview_business_rob_sessions[str(uid)]={
-                        "token":token,"biz_id":biz_id,"started_at":now_rob,
-                        "expires_at":now_rob+600,"guard_count":guard_count,
-                        "guards_down":set(),"owner_pressure":0.0,
-                        "owner_hit_seq":0,
-                    }
-                else:
-                    preview_business_rob_sessions.pop(str(uid),None)
-                reason=("police" if p.get("police") else
-                        "protected" if protected_left else
-                        "defended" if defended_left else
-                        "family_control" if family_control_left else
-                        "open_war" if open_war_left else
-                        "closed" if closed_left else
-                        "cooldown" if cooldown_left else
-                        "own" if owns else
-                        "too_far" if not close_enough else "dead")
-                await ws.send_str(json.dumps({"t":"event","d":{
-                    "kind":"business_rob_prepare_reply","ok":ok_prepare,
-                    "reason":"" if ok_prepare else reason,
-                    "protected_s":protected_left or defended_left,
-                    "control_s":family_control_left,
-                    "control_family":str(family_control.get("mafia_family") or ""),
-                    "war_s":open_war_left,
-                    "cooldown_s":cooldown_left,"closed_s":closed_left,
-                    "biz_id":biz_id,"attempt":completed+1,"guard_bonus":completed*3,
-                    "guard_count":guard_count,"rob_token":token,
-                }}, ensure_ascii=False))
-            elif t in ("business_rob_guard_down","business_rob_owner_hit"):
-                payload=d if isinstance(d,dict) else {}
-                session=preview_business_rob_sessions.get(str(uid))
-                token=str(payload.get("rob_token") or "")
-                now_rob=time.time()
-                if (not session or not token or
-                        not secrets.compare_digest(token,str(session.get("token") or "")) or
-                        now_rob>float(session.get("expires_at") or 0)):
-                    preview_business_rob_sessions.pop(str(uid),None)
-                    continue
-                if t=="business_rob_guard_down":
-                    try: guard_id=int(payload.get("guard_id"))
-                    except (TypeError,ValueError): continue
-                    if (0<=guard_id<int(session["guard_count"]) and
-                            guard_id not in session["guards_down"]):
-                        session["guards_down"].add(guard_id)
-                else:
-                    if len(session["guards_down"])<int(session["guard_count"]): continue
-                    try:
-                        damage=max(0.0,min(35.0,float(payload.get("damage") or 0)))
-                        hit_seq=int(payload.get("hit_seq") or 0)
-                    except (TypeError,ValueError): continue
-                    expected_seq=int(session.get("owner_hit_seq") or 0)+1
-                    if damage and hit_seq==expected_seq:
-                        session["owner_pressure"]=min(99.0,float(session.get("owner_pressure") or 0)+damage)
-                        session["owner_hit_seq"]=hit_seq
-            elif t == "shop_rob":
-                p = players.get(uid) or {}
-                biz_id = str(d.get("biz_id") or "")
-                rc = PREVIEW_BUSINESS_RC.get(biz_id)
-                reward = PREVIEW_ROB_PAYOUT.get(biz_id)
-                now = time.time()
-                session=preview_business_rob_sessions.get(str(uid))
-                rob_token=str(d.get("rob_token") or "")
-                session_ok=bool(
-                    session and rob_token and
-                    secrets.compare_digest(rob_token,str(session.get("token") or "")) and
-                    session.get("biz_id")==biz_id and now<=float(session.get("expires_at") or 0)
-                )
-                reply = {"kind":"shop_rob_reply", "ok":False, "reason":"bad_biz"}
-                if rc and reward:
-                    family_control=preview_robbed_business_controls.get(biz_id) or {}
-                    family_control_left=max(
-                        0,int(float(family_control.get("expires_at") or 0)-now))
-                    open_war=preview_business_family_wars.get(biz_id) or {}
-                    open_war_left=max(0,int(float(open_war.get("expires_at") or 0)-now))
-                    closed_until = float(preview_business_closures.get(biz_id) or 0)
-                    if p.get("police"):
-                        reply.update(reason="police")
-                    elif family_control_left:
-                        reply.update(
-                            reason="family_control",biz_id=biz_id,
-                            control_s=family_control_left,
-                            control_family=str(family_control.get("mafia_family") or ""))
-                    elif open_war_left:
-                        reply.update(reason="open_war",biz_id=biz_id,war_s=open_war_left)
-                    elif preview_business_police_protection.get((str(uid),biz_id),0)>now:
-                        reply.update(reason="protected",biz_id=biz_id,
-                                     protected_s=int(preview_business_police_protection[(str(uid),biz_id)]-now))
-                    elif preview_business_owner_protection.get((str(uid),biz_id),0)>now:
-                        reply.update(reason="defended",biz_id=biz_id,
-                                     protected_s=int(preview_business_owner_protection[(str(uid),biz_id)]-now))
-                    elif closed_until > now:
-                        reply.update(reason="closed", closed_s=int(closed_until-now), biz_id=biz_id)
-                    elif biz_id in preview_owned_businesses(uid):
-                        reply.update(reason="own")
-                    elif not session_ok:
-                        reply.update(reason="invalid_session")
-                    elif (len(session["guards_down"])<int(session["guard_count"]) or
-                          float(session.get("owner_pressure") or 0)<70):
-                        reply.update(reason="not_pressured")
-                    elif not preview_robber_at_cashier(p,biz_id):
-                        reply.update(reason="too_far")
-                    else:
-                        money, _base_difficulty = reward
-                        difficulty = preview_robbery_difficulty(session["guard_count"])
-                        preview_account(uid)["cash"] += money
-                        preview_business_closures[biz_id] = now + 300
-                        key = (str(uid), biz_id)
-                        preview_business_last_robs[key] = now
-                        preview_business_rob_cycles[key] = (int(preview_business_rob_cycles.get(key,0)) + 1) % 3
-                        preview_business_rob_sessions.pop(str(uid),None)
-                        reply = {"kind":"shop_rob_reply", "ok":True, "biz_id":biz_id,
-                                 "money":money, "difficulty":difficulty, "closed_s":300}
-                        robbery_family=str(p.get("mafia_family") or "")
-                        family_points_gain=(35 if int(session["guard_count"])>=7 else
-                                            20 if int(session["guard_count"])>=4 else 10) if robbery_family in preview_family_scores else 0
-                        if family_points_gain:
-                            preview_family_scores[robbery_family]+=family_points_gain
-                        family_income=max(1,money//10) if robbery_family in preview_family_scores else 0
-                        if family_income:
-                            preview_robbed_business_controls[biz_id]={
-                                "biz_id":biz_id,"owner_uid":str(uid),
-                                "owner_name":str(p.get("name") or "Demo")[:24],
-                                "mafia_family":robbery_family,"captured_at":now,
-                                "expires_at":now+600,"last_payout_at":now,
-                                "payouts_done":0,"income_per_member":family_income,
-                            }
-                        reply.update(mafia_family=robbery_family,
-                                     family_points_gain=family_points_gain,
-                                     family_points_total=preview_family_scores.get(robbery_family,0),
-                                     family_control_s=600 if family_income else 0,
-                                     family_income_per_member=family_income)
-                        await broadcast_event({
-                            "kind":"shop_robbed","robber_uid":str(uid),
-                            "robber_name":str(p.get("name") or "Demo")[:20],
-                            "biz_id":biz_id,"biz_name":biz_id,"closed_s":300,
-                            "mafia_family":robbery_family,
-                            "family_points_gain":family_points_gain,
-                            "family_points_total":preview_family_scores.get(robbery_family,0),
-                            "family_control_s":600 if family_income else 0,
-                            "family_income_per_member":family_income,
-                        })
-                        if p.get("mafia") and not p.get("police"):
-                            account = preview_account(uid)
-                            old_xp = int(account.get("mafia_xp", 0))
-                            account["mafia_xp"] = min(4000, old_xp + 25)
-                            reply.update(mafia_xp=account["mafia_xp"],
-                                         mafia_xp_gain=account["mafia_xp"]-old_xp,
-                                         mafia_reason="Успешное ограбление бизнеса")
-                await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
+                p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
             elif t == "district_capture_try":
                 p = players.get(uid) or {}
                 did = str(d.get("did") or "")
@@ -3424,11 +1737,6 @@ async def world_ws(req):
                     await ws.send_str(json.dumps({"t":"event","d":{
                         "kind":"district_capture_denied","did":did,"by_uid":str(uid),
                         "reason":"police_forbidden"}}, ensure_ascii=False))
-                    continue
-                if not p.get("mafia") or not p.get("mafia_family"):
-                    await ws.send_str(json.dumps({"t":"event","d":{
-                        "kind":"district_capture_denied","did":did,"by_uid":str(uid),
-                        "reason":"mafia_only"}}, ensure_ascii=False))
                     continue
                 if owner:
                     await ws.send_str(json.dumps({"t":"event","d":{
@@ -3475,7 +1783,6 @@ async def world_ws(req):
                         account["mafia_xp"] = min(4000, int(account.get("mafia_xp", 0)) + 350)
                     district_owners[did] = {"owner_uid":str(uid), "owner_name":cap["by_name"],
                                             "color":cap["color"], "captured_at":now,
-                                            "mafia_family":str(p.get("mafia_family") or "bellini"),
                                             "last_payout_at":now,
                                             "expires_at":now + DIST_CONTROL_TTL_S,
                                             "income":dd["income"],
@@ -3486,7 +1793,6 @@ async def world_ws(req):
                     district_captures.pop(did, None)
                     await broadcast_event({"kind":"district_captured", "did":did,
                                             "by_uid":str(uid), "by_name":cap["by_name"], "color":cap["color"],
-                                           "mafia_family":str(p.get("mafia_family") or "bellini"),
                                            "name":dd["name"], "icon":dd["icon"], "income":dd["income"],
                                            "income_xp":max(1, int(dd["income"]) // 20),
                                            "income_tick_s":DIST_INCOME_TICK_S,
@@ -3558,694 +1864,73 @@ async def world_ws(req):
                 await broadcast_event({"kind":"world_c4_planted","id":charge_id,
                     "by_uid":str(uid),"by_name":charge["owner_name"],
                     "x":charge["x"],"y":charge["y"],"fuse_s":WORLD_C4_FUSE_S})
-            elif t == "taxi_ride":
-                destination = str(d.get("destination") or "")
-                account = preview_account(uid)
-                ok = destination in TAXI_DESTINATIONS and int(account.get("cash", 0)) >= TAXI_COST
-                if ok:
-                    account["cash"] -= TAXI_COST
-                await ws.send_str(json.dumps({"t":"event","d":{
-                    "kind":"taxi_ride_reply", "ok":ok,
-                    "reason":"" if ok else ("destination" if destination not in TAXI_DESTINATIONS else "cash"),
-                    "destination":destination, "cash":int(account.get("cash", 0)),
-                }}, ensure_ascii=False))
-            elif t == "spray_can_buy":
-                account=preview_account(uid);p=players.get(uid) or {}
-                if int(account.get("cash",0))<5: reply={"ok":False,"reason":"cash"}
-                else:
-                    account["cash"]-=5;p["spray_cans"]=int(p.get("spray_cans",0))+1;reply={"ok":True}
-                reply.update({"kind":"spray_can_buy_reply","cash":account["cash"],"spray_cans":int(p.get("spray_cans",0))})
-                await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
-            elif t == "brigadir_take":
-                p=players.get(uid) or {};near=(float(p.get("x",0))-34)**2+(float(p.get("y",0))-44)**2<=36
-                reply={"kind":"brigadir_take_reply","ok":False,"reason":"too_far"}
-                if near and not p.get("brigadir_active") and not p.get("brigadir_pending"):
-                    reply={"kind":"brigadir_take_reply","ok":True,"payout":700,"left":3}
-                await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
-            elif t == "brigadir_accept":
-                p=players.get(uid) or {};target_id=str((d or {}).get("target_id") or "")[:96]
-                ok=bool(target_id and not p.get("brigadir_pending"))
-                if ok:
-                    p["brigadir_active"]=True;p["brigadir_target_id"]=target_id
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"brigadir_accept_reply","ok":ok}},ensure_ascii=False))
-            elif t == "brigadir_decline":
-                p=players.get(uid) or {}
-                if not p.get("brigadir_pending"):
-                    p.pop("brigadir_active",None);p.pop("brigadir_target_id",None)
-            elif t == "brigadir_kill":
-                p=players.get(uid) or {};target_id=str((d or {}).get("target_id") or "")
-                ok=bool(p.get("brigadir_active") and target_id and target_id==str(p.get("brigadir_target_id") or ""))
-                if ok:
-                    p.pop("brigadir_active",None);p.pop("brigadir_target_id",None);p["brigadir_pending"]={"reward":700}
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"brigadir_kill_reply","ok":ok,"reason":"none" if ok else "no_contract","reward":700}},ensure_ascii=False))
-            elif t == "brigadir_claim":
-                p=players.get(uid) or {};near=(float(p.get("x",0))-34)**2+(float(p.get("y",0))-44)**2<=36;pending=p.get("brigadir_pending")
-                ok=bool(near and pending);reward=int((pending or {}).get("reward",0))
-                if ok:
-                    p.pop("brigadir_pending",None);preview_account(uid)["cash"]+=reward
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"brigadir_claim_reply","ok":ok,"reason":"too_far" if not near else "none","reward":reward,"left":2,"cash":preview_account(uid)["cash"]}},ensure_ascii=False))
-            elif t == "apartment_guest_enter":
-                guest=players.get(uid) or {};owner_uid=str(d.get("owner_uid") or "")
-                apartment_key=str(d.get("apartment_key") or "")[:32];owner=players.get(owner_uid)
-                crew_id=str(guest.get("crew_id") or "");coords=apartment_coords_from_key(apartment_key);reason=None
-                if not owner or str(owner.get("apartment_key") or "")!=apartment_key or str(owner.get("apartment_owner_uid") or "")!=owner_uid: reason="owner_left"
-                elif not crew_id or str(owner.get("crew_id") or "")!=crew_id: reason="not_crew"
-                elif apartment_key not in preview_owned_apartments(owner_uid): reason="owner_left"
-                elif not coords or (float(guest.get("x",0))-(coords[1]+.5))**2+(float(guest.get("y",0))-(coords[0]+.5))**2>3.5**2: reason="too_far"
-                if reason: reply={"kind":"apartment_guest_reply","ok":False,"reason":reason}
-                else:
-                    guest["apartment_guest_grant"]={"owner_uid":owner_uid,"apartment_key":apartment_key,"expires_at":time.time()+15}
-                    reply={"kind":"apartment_guest_reply","ok":True,"owner_uid":owner_uid,"owner_name":owner.get("name","Demo"),"apartment_key":apartment_key,"r":coords[0],"c":coords[1]}
-                await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
-            elif t == "gang_player_invite":
-                target_uid=str(d.get("target_uid") or ""); target=players.get(target_uid); inviter=players.get(uid) or {}
-                crew_id=str(inviter.get("crew_id") or uid); members=[q for q in players.values() if str(q.get("crew_id") or "")==crew_id]
-                reason=None
-                if not inviter.get("mafia") or not target or not target.get("mafia"): reason="mafia_only"
-                elif str(inviter.get("mafia_family") or "") != str(target.get("mafia_family") or ""): reason="other_family"
-                elif target_uid==str(uid): reason="self"
-                elif target.get("crew_id"): reason="already_in_gang"
-                elif len(members)>=3: reason="full"
-                elif math.hypot(float(inviter.get("x",0))-float(target.get("x",0)),float(inviter.get("y",0))-float(target.get("y",0)))>3.2: reason="too_far"
-                if reason: await ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_player_reply","ok":False,"reason":reason}}))
-                else:
-                    gang_player_invites[target_uid]={"from_uid":str(uid),"expires_at":time.time()+25}
-                    tws=target.get("_ws")
-                    if tws and not tws.closed: await tws.send_str(json.dumps({"t":"event","d":{"kind":"gang_player_invite","from_uid":str(uid),"from_name":inviter.get("name","Игрок")}},ensure_ascii=False))
-                    await ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_player_reply","ok":True,"pending":True,"target_name":target.get("name","Игрок")}},ensure_ascii=False))
-            elif t == "gang_player_answer":
-                inv=gang_player_invites.pop(str(uid),None); accept=bool(d.get("accept")); inviter=players.get(str(inv.get("from_uid"))) if inv else None
-                if not inv or time.time()>float(inv.get("expires_at",0)) or not inviter: continue
-                if accept and p0.get("mafia") and inviter.get("mafia") and str(p0.get("mafia_family") or "") == str(inviter.get("mafia_family") or ""):
-                    crew_id=str(inviter.get("crew_id") or inv.get("from_uid")); members=[q for q in players.values() if str(q.get("crew_id") or "")==crew_id]
-                    if len(members)<3: inviter["crew_id"]=crew_id;p0["crew_id"]=crew_id
-                for q in (inviter,p0):
-                    qws=q.get("_ws")
-                    if qws and not qws.closed: await qws.send_str(json.dumps({"t":"event","d":{"kind":"gang_player_changed","accepted":accept}},ensure_ascii=False))
-            elif t in ("gang_player_leave","gang_player_kick"):
-                actor=players.get(uid) or {}; crew_id=str(actor.get("crew_id") or ""); target_uid=str(d.get("target_uid") or uid) if t=="gang_player_kick" else str(uid); target=players.get(target_uid)
-                if crew_id and target and str(target.get("crew_id") or "")==crew_id:
-                    target.pop("crew_id",None)
-                    left=[q for q in players.values() if str(q.get("crew_id") or "")==crew_id]
-                    if len(left)<2:
-                        for q in left:q.pop("crew_id",None)
             elif t == "gang_hire_bot":
                 target_id = str(d.get("bot_id") or "")
-                p = players.get(uid) or {}
-                street_bot = next((b for b in PREVIEW_NEST_BOTS
-                                   if str(b.get("id")) == target_id), None)
-                business_id = ""
-                raid_bot = None
-                for candidate_bid, candidate_nest in preview_business_nests.items():
-                    raid_bot = next((b for b in candidate_nest.get("bots", [])
-                                     if b.get("alive") and str(b.get("id")) == target_id), None)
-                    if raid_bot:
-                        business_id = str(candidate_bid)
-                        break
-                street_gang_bot = None
-                for _gid, _faction, street_bots in preview_street_gang_bots():
-                    street_gang_bot = next(
-                        (b for b in street_bots if str(b.get("id")) == target_id), None)
-                    if street_gang_bot:
-                        break
-                target_bot = raid_bot or street_bot or street_gang_bot
-                target_level = int((target_bot or {}).get("level") or 1)
-                mafia_xp = int(preview_account(uid).get("mafia_xp") or 0)
-                mafia_level = 5 if mafia_xp >= 4000 else (
-                    4 if mafia_xp >= 2300 else (3 if mafia_xp >= 1100 else (
-                        2 if mafia_xp >= 400 else 1)))
-                if target_level >= 10 and mafia_level < 4:
-                    await ws.send_str(json.dumps({"t":"event","d":{
-                        "kind":"gang_hire_reply","ok":False,"bot_id":target_id,
-                        "reason":"mafia_level"}}, ensure_ascii=False))
-                    continue
-                if raid_bot and p.get("mafia") and not p.get("police"):
-                    if math.hypot(float(p.get("x", 0))-float(raid_bot.get("x", 0)),
-                                  float(p.get("y", 0))-float(raid_bot.get("y", 0))) > 3.2:
-                        await ws.send_str(json.dumps({"t":"event","d":{
-                            "kind":"gang_hire_reply","ok":False,"bot_id":target_id,
-                            "reason":"too_far"}}, ensure_ascii=False))
-                        continue
-                    raid_bot["hp"] = 0
-                    raid_bot["alive"] = False
-                    raid_bot["hired_by"] = str(uid)
-                    business_cleared = not any(
-                        member.get("alive")
-                        for member in (candidate_nest.get("bots") or []))
-                    cooldown_until = 0
-                    if business_cleared and business_id:
-                        cooldown_until = int(
-                            time.time() + PREVIEW_NPC_CAPTURE_COOLDOWN)
-                        preview_business_nests.pop(business_id, None)
-                        preview_business_capture_cooldown[business_id] = cooldown_until
-                        for rows in preview_businesses.values():
-                            if business_id in rows:
-                                rows[business_id][
-                                    "npc_capture_cooldown_until"] = cooldown_until
-                    await ws.send_str(json.dumps({"t":"event","d":{
-                        "kind":"gang_hire_reply","ok":True,"bot_id":target_id,
-                        "is_boss":False,"level":target_level,"did":"",
-                        "business_id":business_id,
-                        "business_cleared":business_cleared,
-                        "cooldown_until":cooldown_until}}, ensure_ascii=False))
-                    continue
-                if street_gang_bot and p.get("mafia") and not p.get("police"):
-                    if math.hypot(
-                            float(p.get("x", 0))-float(street_gang_bot.get("x", 0)),
-                            float(p.get("y", 0))-float(street_gang_bot.get("y", 0))) > 3.2:
-                        await ws.send_str(json.dumps({"t":"event","d":{
-                            "kind":"gang_hire_reply","ok":False,"bot_id":target_id,
-                            "reason":"too_far"}}, ensure_ascii=False))
-                        continue
-                    PREVIEW_STREET_GANG_HP[target_id] = 0
-                    PREVIEW_STREET_GANG_HIRED.add(target_id)
-                    await ws.send_str(json.dumps({"t":"event","d":{
-                        "kind":"gang_hire_reply","ok":True,"bot_id":target_id,
-                        "is_boss":False,"level":target_level,"did":"",
-                        "max_hp":int(street_gang_bot.get("max_hp") or 80),
-                        "weapon":str(street_gang_bot.get("weapon") or "pistol"),
-                        "look":dict(street_gang_bot.get("look") or {}),
-                        "faction":str(street_gang_bot.get("faction") or "purple"),
-                    }}, ensure_ascii=False))
-                    continue
                 found = None; found_did = None
+                found_gang = None
+                for city_gang in preview_city_gangs:
+                    found = next((b for b in city_gang["bots"]
+                                  if b.get("hp",0)>0 and str(b.get("id"))==target_id),None)
+                    if found: found_gang=city_gang;break
                 for did, cap in district_captures.items():
+                    if found: break
                     found = next((b for b in cap.get("defenders") or []
                                   if b.get("alive") and str(b.get("id")) == target_id), None)
                     if found: found_did = did; break
-                ok = False
+                p=players.get(uid,{})
+                ok=bool(found and found_gang and not p.get("police") and p.get("mafia") and
+                        math.hypot(float(p.get("x",0))-found["x"],float(p.get("y",0))-found["y"])<=3.2)
+                if ok: found["hp"]=0
                 await ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_hire_reply",
-                    "ok":ok,"bot_id":target_id,"is_boss":bool(found),
-                    "reason":"district_defender" if found else "gone"}}, ensure_ascii=False))
+                    "ok":ok,"bot_id":target_id,"is_boss":False,
+                    "look":dict(found.get("look") or {}) if ok else None,
+                    "weapon":found.get("weapon") if ok else None,
+                    "hp":int(found.get("hp") or 100) if ok else None,"max_hp":100,
+                    "faction":found_gang.get("faction") if ok else None,
+                    "x":found.get("x") if ok else None,"y":found.get("y") if ok else None,
+                    "reason":None if ok else ("district_defender" if found_did else "gone")}}, ensure_ascii=False))
             elif t == "major_assault_start":
-                object_id = str(d.get("object_id") or "")[:24]
-                cfg = PREVIEW_MAJOR_OBJECTS.get(object_id)
-                actor = players.get(uid) or {}
-                owner = preview_major_owners.get(object_id)
-                raid = preview_major_raids.get(object_id)
-                was_existing = bool(raid)
-                if not cfg:
-                    reply = {"kind": "major_assault_reply", "ok": False,
-                             "reason": "bad_object"}
-                elif actor.get("police") or not actor.get("mafia"):
-                    reply = {"kind": "major_assault_reply", "ok": False,
-                             "reason": "mafia_only", "object_id": object_id}
-                elif math.hypot(
-                        float(actor.get("x", 0)) - float(cfg["c"]),
-                        float(actor.get("y", 0)) - float(cfg["r"])) > 7.0:
-                    reply = {"kind": "major_assault_reply", "ok": False,
-                             "reason": "too_far", "object_id": object_id}
-                elif owner and str(owner.get("mafia_family") or "") == str(actor.get("mafia_family") or ""):
-                    reply = {"kind":"major_assault_reply","ok":False,"reason":"same_family",
-                             "object_id":object_id,"owner_name":owner.get("owner_name")}
-                elif owner and float(owner.get("protection_until") or 0) > time.time():
-                    reply = {
-                        "kind": "major_assault_reply", "ok": False,
-                        "reason": "protected", "object_id": object_id,
-                        "owner_name": owner.get("owner_name"),
-                        "expires_in": int(owner["protection_until"] - time.time()),
-                    }
-                elif raid and str(uid) not in raid.get("participants", set()):
-                    reply = {"kind": "major_assault_reply", "ok": False,
-                             "reason": "busy", "object_id": object_id,
-                             "by_name": raid.get("by_name")}
+                oid=str(d.get("object_id") or "")[:24];cfg=PREVIEW_MAJOR.get(oid);p=players.get(uid,{})
+                own=preview_major_owners.get(oid);raid=preview_major_raids.get(oid)
+                if not cfg: reply={"kind":"major_assault_reply","ok":False,"reason":"bad_object"}
+                elif own and own["expires_at"]>time.time(): reply={"kind":"major_assault_reply","ok":False,"reason":"protected","object_id":oid,"owner_name":own["owner_name"],"expires_in":int(own["expires_at"]-time.time())}
+                elif raid: reply={"kind":"major_assault_reply","ok":False,"reason":"busy","object_id":oid,"by_name":raid["by_name"]}
                 else:
-                    if not raid:
-                        if object_id == "casino":
-                            preview_major_props["casino"] = {
-                                prop_id: {"hp": hp, "destroyed": False}
-                                for prop_id, (_, _, hp)
-                                in CASINO_PROP_DEFS.items()
-                            }
-                        crew_id = str(actor.get("crew_id") or "")
-                        participants = {
-                            str(player_uid) for player_uid, player in players.items()
-                            if crew_id and str(player.get("crew_id") or "") == crew_id
-                            and player.get("mafia") and not player.get("police")
-                            and not player.get("dead")
-                            and math.hypot(
-                                float(player.get("x", 0)) -
-                                float(actor.get("x", 0)),
-                                float(player.get("y", 0)) -
-                                float(actor.get("y", 0))) <= 10.0
-                        }
-                        participants.add(str(uid))
-                        guard_weapons = (
-                            "pistol", "pistol_heavy", "smg", "shotgun",
-                            "tommy_gun", "rifle",
-                        )
-                        guards = [{
-                            "id": f"preview_major_{object_id}_{i}",
-                            "hp": 140 if i < 4 else 100,
-                            "max_hp": 140 if i < 4 else 100,
-                            "alive": True,
-                            "weapon": guard_weapons[i % len(guard_weapons)],
-                            "wave": 1, "slot": i,
-                        } for i in range(int(cfg["guards"]))]
-                        raid = {
-                            "object_id": object_id, "by_uid": str(uid),
-                            "by_name": actor.get("name", "Demo"),
-                            "crew_id": crew_id,
-                            "participants": participants, "phase": "guards",
-                            "guards": guards, "spawned": len(guards),
-                            "pressure": 0,
-                            "safes": [{
-                                "id": f"{object_id}_safe_{i + 1}",
-                                "opened": False, "value": 250 * (i + 1),
-                                "r": ((23.6 if i == 2 else 21.35)
-                                      if object_id == "casino"
-                                      else (7 + (i % 2) * 3)),
-                                "c": ((38.9 if i == 0 else 41.65)
-                                      if object_id == "casino"
-                                      else (34 - 6 - (i % 2) * 4)),
-                            } for i in range(
-                                4 if object_id == "mansion" else 3)],
-                        }
-                        preview_major_raids[object_id] = raid
-                    reply = {
-                        "kind": "major_assault_reply", "ok": True,
-                        "resume": was_existing,
-                        "object_id": object_id, "phase": raid["phase"],
-                        "guards": [dict(guard) for guard in raid["guards"]
-                                   if guard.get("alive")],
-                        "total": int(cfg["total"]), "boss_name": cfg["boss"],
-                        "participants": list(raid["participants"]),
-                        "safes": [dict(safe) for safe in raid["safes"]],
-                        "manager": {
-                            "id": f"major_boss_{object_id}",
-                            "name": cfg["boss"],
-                            "r": PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][0],
-                            "c": PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][1],
-                            "pressure": int(raid.get("pressure") or 0),
-                        },
-                    }
+                    guards=[{"id":f"preview_major_{oid}_{i}","hp":140 if i<4 else 100,"max_hp":140 if i<4 else 100,"alive":True,"weapon":"pistol","wave":1,"slot":i} for i in range(cfg["guards"])]
+                    safes=[{"id":f"{oid}_safe_{i+1}","opened":False,"value":250*(i+1)} for i in range(3 if oid!="mansion" else 4)]
+                    raid={"object_id":oid,"by_uid":uid,"by_name":p.get("name","Demo"),"participants":{uid},"phase":"guards","guards":guards,"spawned":len(guards),"pressure":0,"safes":safes}
+                    preview_major_raids[oid]=raid
+                    reply={"kind":"major_assault_reply","ok":True,"object_id":oid,"phase":"guards","guards":guards,"total":cfg["total"],"boss_name":cfg["boss"],"participants":[uid],"safes":safes}
                 await broadcast_event(reply)
             elif t == "major_guard_hit":
-                object_id = str(d.get("object_id") or "")[:24]
-                guard_id = str(d.get("guard_id") or "")[:64]
-                raid = preview_major_raids.get(object_id)
-                cfg = PREVIEW_MAJOR_OBJECTS.get(object_id)
-                actor = players.get(uid) or {}
-                guard = next((
-                    row for row in (raid or {}).get("guards", [])
-                    if row.get("id") == guard_id and row.get("alive")), None)
-                if (not raid or not cfg
-                        or str(uid) not in raid.get("participants", set())
-                        or actor.get("major_interior") != object_id):
-                    reply = {"kind": "major_guard_hit", "ok": False,
-                             "reason": "not_participant",
-                             "object_id": object_id}
-                elif not guard:
-                    reply = {"kind": "major_guard_hit", "ok": False,
-                             "reason": "bad_target", "object_id": object_id}
-                else:
-                    damage = max(1, min(90, int(d.get("damage") or 34)))
-                    guard["hp"] = max(0, int(guard["hp"]) - damage)
-                    new_guard = None
-                    if guard["hp"] <= 0:
-                        guard["alive"] = False
-                        if int(raid["spawned"]) < int(cfg["total"]):
-                            slot = int(raid["spawned"])
-                            guard_weapons = (
-                                "pistol", "pistol_heavy", "smg", "shotgun",
-                                "tommy_gun", "rifle",
-                            )
-                            new_guard = {
-                                "id": f"preview_major_{object_id}_{slot}",
-                                "hp": 110, "max_hp": 110, "alive": True,
-                                "weapon": guard_weapons[
-                                    slot % len(guard_weapons)],
-                                "wave": 2 + slot // 10, "slot": slot,
-                            }
-                            raid["guards"].append(new_guard)
-                            raid["spawned"] = slot + 1
-                        elif not any(row.get("alive")
-                                     for row in raid["guards"]):
-                            raid["phase"] = "boss"
-                    reply = {
-                        "kind": "major_guard_hit", "ok": True,
-                        "object_id": object_id, "guard_id": guard_id,
-                        "hp": guard["hp"], "alive": guard["alive"],
-                        "new_guard": new_guard, "spawned": raid["spawned"],
-                        "phase": raid["phase"],
-                        "manager": ({
-                            "id": f"major_boss_{object_id}",
-                            "name": cfg["boss"],
-                            "r": PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][0],
-                            "c": PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][1],
-                            "pressure": int(raid.get("pressure") or 0),
-                        } if raid["phase"] == "boss" else None),
-                    }
-                await broadcast_event(reply)
-            elif t == "major_prop_hit":
-                object_id = str(d.get("object_id") or "")[:24]
-                prop_id = str(d.get("prop_id") or "")[:48]
-                weapon = str(d.get("weapon") or "pistol")[:32]
-                actor = players.get(uid) or {}
-                prop_def = CASINO_PROP_DEFS.get(prop_id)
-                state = preview_major_props.get(object_id, {}).get(prop_id)
-                inside = (
-                    actor.get("major_interior") == object_id
-                    or actor.get("business_interior") == f"major_{object_id}"
-                )
-                if object_id != "casino" or not prop_def or not state or not inside:
-                    reply = {"kind": "major_prop_hit", "ok": False,
-                             "reason": "not_inside",
-                             "object_id": object_id, "prop_id": prop_id}
-                elif state.get("destroyed"):
-                    reply = {"kind": "major_prop_hit", "ok": True,
-                             "object_id": object_id, "prop_id": prop_id,
-                             "hp": 0, "destroyed": True}
-                else:
-                    prop_r, prop_c, _ = prop_def
-                    impact_r = float(d.get("impact_r") or prop_r)
-                    impact_c = float(d.get("impact_c") or prop_c)
-                    player_r = float(actor.get("interior_y") or 0)
-                    player_c = float(actor.get("interior_x") or 0)
-                    explosive = weapon in ("grenade", "molotov",
-                                           "molotov_fire", "rpg")
-                    valid = (
-                        math.hypot(impact_r - prop_r, impact_c - prop_c)
-                        <= (5.2 if explosive else 2.8)
-                        and math.hypot(player_r - impact_r,
-                                       player_c - impact_c)
-                        <= (8.0 if explosive else 14.0)
-                    )
-                    now_hit = time.time()
-                    hit_times = actor.setdefault("major_prop_hit_at", {})
-                    hit_key = f"{prop_id}:{weapon}"
-                    min_gap = 0.65 if weapon == "molotov_fire" else 0.06
-                    if now_hit - float(hit_times.get(hit_key) or 0) < min_gap:
-                        reply = {"kind": "major_prop_hit", "ok": False,
-                                 "reason": "cooldown",
-                                 "object_id": object_id,
-                                 "prop_id": prop_id}
-                    elif not valid:
-                        reply = {"kind": "major_prop_hit", "ok": False,
-                                 "reason": "too_far",
-                                 "object_id": object_id,
-                                 "prop_id": prop_id}
-                    else:
-                        hit_times[hit_key] = now_hit
-                        damage = {
-                            "grenade": 110, "rpg": 150, "molotov": 48,
-                            "molotov_fire": 15, "shotgun": 54,
-                            "sniper": 72, "rifle": 42,
-                            "golden_tommy": 24, "tommy_gun": 24,
-                        }.get(weapon, 34)
-                        state["hp"] = max(
-                            0, int(state.get("hp") or 0) - damage)
-                        state["destroyed"] = state["hp"] <= 0
-                        reply = {"kind": "major_prop_hit", "ok": True,
-                                 "object_id": object_id,
-                                 "prop_id": prop_id, "hp": state["hp"],
-                                 "destroyed": state["destroyed"],
-                                 "weapon": weapon}
-                await broadcast_event(reply)
+                oid=str(d.get("object_id") or "")[:24];gid=str(d.get("guard_id") or "");raid=preview_major_raids.get(oid);cfg=PREVIEW_MAJOR.get(oid)
+                g=next((x for x in (raid or {}).get("guards",[]) if x["id"]==gid and x["alive"]),None)
+                if g:
+                    g["hp"]=max(0,g["hp"]-34);new_guard=None
+                    if g["hp"]<=0:
+                        g["alive"]=False
+                        if raid["spawned"]<cfg["total"]:
+                            i=raid["spawned"];new_guard={"id":f"preview_major_{oid}_{i}","hp":110,"max_hp":110,"alive":True,"weapon":"pistol","wave":2+i//10,"slot":i}
+                            raid["guards"].append(new_guard);raid["spawned"]+=1
+                        elif not any(x["alive"] for x in raid["guards"]):raid["phase"]="boss"
+                    await broadcast_event({"kind":"major_guard_hit","ok":True,"object_id":oid,"guard_id":gid,"hp":g["hp"],"alive":g["alive"],"new_guard":new_guard,"spawned":raid["spawned"],"phase":raid["phase"]})
             elif t == "major_boss_pressure":
-                object_id = str(d.get("object_id") or "")[:24]
-                raid = preview_major_raids.get(object_id)
-                cfg = PREVIEW_MAJOR_OBJECTS.get(object_id)
-                actor = players.get(uid) or {}
-                if (not raid or not cfg or raid.get("phase") != "boss"
-                        or str(uid) not in raid.get("participants", set())
-                        or actor.get("major_interior") != object_id):
-                    reply = {"kind": "major_boss_pressure", "ok": False,
-                             "reason": "guards_alive",
-                             "object_id": object_id}
-                elif math.hypot(
-                        float(actor.get("interior_y", 0)) -
-                        PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][0],
-                        float(actor.get("interior_x", 0)) -
-                        PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][1]
-                        ) > 4.2:
-                    reply = {"kind": "major_boss_pressure", "ok": False,
-                             "reason": "too_far",
-                             "object_id": object_id}
-                else:
-                    raid["pressure"] = min(
-                        100, int(raid.get("pressure") or 0) + 20)
-                    captured = raid["pressure"] >= 100
-                    reply = {
-                        "kind": "major_boss_pressure", "ok": True,
-                        "object_id": object_id,
-                        "pressure": raid["pressure"],
-                        "phrase": ("Объект ваш!" if captured
-                                   else "Я ничего вам не отдам!"),
-                        "captured": captured,
-                    }
+                oid=str(d.get("object_id") or "")[:24];raid=preview_major_raids.get(oid);cfg=PREVIEW_MAJOR.get(oid)
+                if raid and raid["phase"]=="boss":
+                    raid["pressure"]=min(100,raid["pressure"]+20);captured=raid["pressure"]>=100
+                    reply={"kind":"major_boss_pressure","ok":True,"object_id":oid,"pressure":raid["pressure"],"phrase":"Объект ваш!" if captured else "Я ничего вам не отдам!","captured":captured}
                     if captured:
-                        team = [
-                            member_uid for member_uid in raid["participants"]
-                            if member_uid in players
-                            and not players[member_uid].get("dead")
-                        ] or [str(uid)]
-                        preview_major_owners[object_id] = {
-                            "owner_uid": str(uid),
-                            "owner_name": actor.get("name", "Demo"),
-                            "mafia_family": str(actor.get("mafia_family") or "bellini"),
-                            "control_points": 60,
-                            "team_uids": team,
-                            "team_names": [
-                                str(players.get(member_uid, {}).get("name")
-                                    or member_uid)[:24]
-                                for member_uid in team
-                            ],
-                            "expires_at": time.time() + 3600,
-                            "protection_until": time.time() + 300,
-                            "last_payout_at": time.time(),
-                        }
-                        reply.update(mafia_family=str(actor.get("mafia_family") or "bellini"),
-                                     control_points=60,protection_in=300)
-                        preview_major_raids.pop(object_id, None)
-                        reply.update({
-                            "owner_name": actor.get("name", "Demo"),
-                            "income": int(cfg["income"]),
-                            "expires_in": 3600,
-                            "team_uids": team,
-                        })
-                await broadcast_event(reply)
+                        preview_major_owners[oid]={"owner_uid":uid,"owner_name":players.get(uid,{}).get("name","Demo"),"expires_at":time.time()+3600}
+                        preview_major_raids.pop(oid,None);reply.update({"owner_name":preview_major_owners[oid]["owner_name"],"income":cfg["income"],"expires_in":3600})
+                    await broadcast_event(reply)
             elif t == "major_safe_open":
-                object_id = str(d.get("object_id") or "")[:24]
-                safe_id = str(d.get("safe_id") or "")[:64]
-                raid = preview_major_raids.get(object_id)
-                safe = next((
-                    row for row in (raid or {}).get("safes", [])
-                    if row.get("id") == safe_id), None)
-                actor = players.get(uid) or {}
-                if (not raid or raid.get("phase") != "boss"
-                        or str(uid) not in raid.get("participants", set())
-                        or not safe or safe.get("opened")):
-                    reply = {
-                        "kind": "major_safe_open", "ok": False,
-                        "reason": "guards_alive" if raid else "not_participant",
-                        "object_id": object_id, "safe_id": safe_id,
-                    }
-                elif math.hypot(
-                        float(actor.get("interior_y", 0)) - float(safe.get("r", 0)),
-                        float(actor.get("interior_x", 0)) - float(safe.get("c", 0))
-                        ) > 3.2:
-                    reply = {
-                        "kind": "major_safe_open", "ok": False,
-                        "reason": "too_far",
-                        "object_id": object_id, "safe_id": safe_id,
-                    }
-                else:
-                    safe["opened"] = True
-                    value = int(safe.get("value") or 0)
-                    team = list(dict.fromkeys(
-                        str(member_uid)
-                        for member_uid in raid.get("participants", set())
-                        if member_uid
-                    ))
-                    share, remainder = divmod(value, max(1, len(team)))
-                    awards = []
-                    for index, member_uid in enumerate(team):
-                        amount = share + (1 if index < remainder else 0)
-                        preview_account(member_uid)["cash"] += amount
-                        awards.append({"uid": member_uid, "amount": amount})
-                    reply = {
-                        "kind": "major_safe_open", "ok": True,
-                        "object_id": object_id, "safe_id": safe_id,
-                        "value": value,
-                        "awards": awards,
-                    }
-                await broadcast_event(reply)
+                oid=str(d.get("object_id") or "")[:24];sid=str(d.get("safe_id") or "")[:64];raid=preview_major_raids.get(oid)
+                safe=next((s for s in (raid or {}).get("safes",[]) if s["id"]==sid),None)
+                if raid and raid["phase"]=="boss" and safe and not safe["opened"]:
+                    safe["opened"]=True
+                    await broadcast_event({"kind":"major_safe_open","ok":True,"object_id":oid,"safe_id":sid,"value":safe["value"],"awards":[{"uid":uid,"amount":safe["value"]}]})
             elif t == "aggro_shoot":
                 target_id = str(d.get("target") or "")
-                shooter = players.get(uid) or {}
-                try:
-                    gang_member = int(d.get("member")) if "member" in d else None
-                except (TypeError, ValueError):
-                    gang_member = None
-                gang_rows = shooter.get("gang") if isinstance(shooter.get("gang"), list) else []
-                gang_data = (gang_rows[gang_member] if gang_member is not None
-                             and 0 <= gang_member < len(gang_rows) else {})
-                fighter_level = max(1, min(25, int(gang_data.get("lvl") or 1)))
-                fighter_mult = 1.0 + (fighter_level - 1) * .03
-                lair_bot = next((b for b in PREVIEW_LAIR_BOTS
-                                 if b.get("alive") and str(b.get("id")) == target_id), None)
-                if lair_bot:
-                    shooter=players.get(uid) or {}
-                    if abs(float(shooter.get("x",0))-40)<=20 and abs(float(shooter.get("y",0))-120)<=20:
-                        damage=round(preview_weapon_damage(
-                            d.get("weapon"))*fighter_mult)
-                        lair_bot["hp"]=max(0,int(lair_bot["hp"])-damage)
-                        if str(d.get("weapon") or "") == "molotov_fire" and lair_bot["hp"] > 0:
-                            preview_ignite_bandit(lair_bot, shooter, d)
-                        killed=lair_bot["hp"]<=0
-                        if killed:
-                            lair_bot["alive"]=False
-                            lair_bot["dead_at"]=time.time()
-                        shooter["lair_hostile"]=True
-                        await broadcast_event({"kind":"aggro_hit","tid":"preview_lair",
-                            "bot_id":target_id,"hp":lair_bot["hp"],"damage":damage,"dmg":damage,
-                            "killed":killed,"sx":shooter.get("x",0),"sy":shooter.get("y",0),
-                            "tx":lair_bot["x"],"ty":lair_bot["y"],
-                            "is_boss":lair_bot["kind"]=="aggro_boss",
-                            "shooter_uid":str(uid),"gang_member":gang_member,
-                            "target_level":int(lair_bot.get("level") or 1)})
-                        if killed:
-                            reward = preview_bandit_kill_reward(
-                                uid, lair_bot.get("level"), 0)
-                            await ws.send_str(json.dumps({"t":"event","d":{
-                                "kind":"aggro_killed", "bot_id":target_id,
-                                "is_boss":lair_bot["kind"]=="aggro_boss",
-                                "cash":0, **reward}}))
-                    continue
-                business_id = ""
-                business_nest = None
-                business_bot = None
-                for candidate_id, candidate in preview_business_nests.items():
-                    business_bot = next((b for b in candidate["bots"]
-                                         if b.get("alive") and str(b.get("id")) == target_id), None)
-                    if business_bot:
-                        business_id = str(candidate_id)
-                        business_nest = candidate
-                        break
-                if business_bot and business_nest:
-                    shooter = players.get(uid) or {}
-                    if math.hypot(float(shooter.get("x", 0)) - business_bot["x"],
-                                  float(shooter.get("y", 0)) - business_bot["y"]) <= 18:
-                        damage = round(preview_weapon_damage(
-                            d.get("weapon"))*fighter_mult)
-                        business_bot["hp"] = max(0, int(business_bot["hp"]) - damage)
-                        if str(d.get("weapon") or "") == "molotov_fire" and business_bot["hp"] > 0:
-                            preview_ignite_bandit(business_bot, shooter, d)
-                        killed = business_bot["hp"] <= 0
-                        if killed:
-                            business_bot["alive"] = False
-                        business_nest["state"] = "hostile"
-                        business_nest["target_uid"] = str(uid)
-                        business_nest["hostile_until"] = time.time() + 60.0
-                        for ally in business_nest.get("bots", []):
-                            if ally.get("alive"):
-                                ally["threat"] = random.choice([
-                                    "Он стреляет! Ответить!",
-                                    "За бизнес! Огонь!",
-                                    "Убрать его!",
-                                ])
-                                ally["threat_until"] = time.time() + 2.5
-                        await broadcast_event({
-                            "kind":"aggro_hit", "tid":business_nest["id"],
-                            "bot_id":target_id, "hp":business_bot["hp"],
-                            "damage":damage, "dmg":damage, "killed":killed,
-                            "sx":shooter.get("x",0), "sy":shooter.get("y",0),
-                            "tx":business_bot["x"], "ty":business_bot["y"],
-                            "is_nest":True,"shooter_uid":str(uid),"gang_member":gang_member,
-                            "target_level":int(business_bot.get("level") or 1),
-                        })
-                        if killed:
-                            reward = preview_bandit_kill_reward(
-                                uid, business_bot.get("level"), 8)
-                            await ws.send_str(json.dumps({
-                                "t":"event",
-                                "d":{
-                                    "kind":"aggro_killed",
-                                    "bot_id":target_id,
-                                    "is_boss":False,
-                                    "is_nest":True,
-                                    "cash":50,
-                                    **reward,
-                                },
-                            }, ensure_ascii=False))
-                            if not any(
-                                    member.get("alive")
-                                    for member in business_nest.get("bots", [])):
-                                cooldown_until = int(
-                                    time.time() + PREVIEW_NPC_CAPTURE_COOLDOWN)
-                                preview_business_nests.pop(business_id, None)
-                                preview_business_capture_cooldown[
-                                    business_id] = cooldown_until
-                                for rows in preview_businesses.values():
-                                    if business_id in rows:
-                                        rows[business_id][
-                                            "npc_capture_cooldown_until"
-                                        ] = cooldown_until
-                                await broadcast_event({
-                                    "kind":"gang_nest_cleared",
-                                    "id":business_nest["id"],
-                                    "cash":0, "exp":0,
-                                    "bonus_uids":[str(uid)],
-                                    "business_id":business_id,
-                                    "cooldown_until":cooldown_until,
-                                })
-                        preview_tick_business_captures()
-                    continue
-                street_gang = None
-                street_bot = None
-                for gang_id, faction, gang_bots in preview_street_gang_bots():
-                    street_bot = next(
-                        (b for b in gang_bots if str(b.get("id")) == target_id),
-                        None,
-                    )
-                    if street_bot:
-                        street_gang = (gang_id, faction)
-                        break
-                if street_bot and street_gang:
-                    shooter = players.get(uid) or {}
-                    distance = math.hypot(
-                        float(shooter.get("x", 0)) - street_bot["x"],
-                        float(shooter.get("y", 0)) - street_bot["y"],
-                    )
-                    weapon = str(d.get("weapon") or "pistol")
-                    weapon_key = PREVIEW_WEAPON_ALIASES.get(weapon, weapon)
-                    weapon_range = {
-                        "pistol":8.0, "nagan":9.2, "revolver":10.5,
-                        "pistol_heavy":11.2, "pistol_gold":11.5,
-                        "shotgun":6.2, "smg":8.0, "tommy_gun":10.0,
-                        "golden_tommy":10.0, "rifle":14.0,
-                        "sniper":20.0, "rpg":15.0,
-                    }.get(weapon_key, 8.0)
-                    if distance <= weapon_range + 0.75:
-                        damage = round(preview_weapon_damage(weapon) * fighter_mult)
-                        hp = max(
-                            0,
-                            int(PREVIEW_STREET_GANG_HP.get(target_id, 100)) - damage,
-                        )
-                        PREVIEW_STREET_GANG_HP[target_id] = hp
-                        killed = hp <= 0
-                        if killed:
-                            PREVIEW_STREET_GANG_DEAD_AT[target_id] = time.time()
-                        await broadcast_event({
-                            "kind":"aggro_hit", "tid":street_gang[0],
-                            "bot_id":target_id, "hp":hp,
-                            "damage":damage, "dmg":damage, "killed":killed,
-                            "sx":shooter.get("x",0), "sy":shooter.get("y",0),
-                            "tx":street_bot["x"], "ty":street_bot["y"],
-                            "shooter_uid":str(uid), "gang_member":gang_member,
-                            "target_level":int(street_bot.get("level") or 1),
-                        })
-                        if killed:
-                            reward = preview_bandit_kill_reward(
-                                uid, street_bot.get("level"), 8)
-                            await ws.send_str(json.dumps({
-                                "t":"event", "d":{
-                                    "kind":"aggro_killed", "bot_id":target_id,
-                                    "is_boss":False, "cash":50, **reward,
-                                },
-                            }, ensure_ascii=False))
-                    continue
                 found = None
                 found_did = None
                 for did, cap in district_captures.items():
@@ -4261,11 +1946,8 @@ async def world_ws(req):
                     # на конкретного стрелка. На других игроков не переключаемся.
                     cap["hostile_uid"] = str(uid)
                     cap["hostile_until"] = time.time() + 30.0
-                    damage = round(preview_weapon_damage(
-                        d.get("weapon")) * fighter_mult)
+                    damage = 42
                     found["hp"] = max(0, int(found["hp"]) - damage)
-                    if str(d.get("weapon") or "") == "molotov_fire" and found["hp"] > 0:
-                        preview_ignite_bandit(found, shooter, d)
                     killed = found["hp"] <= 0
                     if killed:
                         found["alive"] = False
@@ -4289,15 +1971,11 @@ async def world_ws(req):
                         "sy": p.get("y", 0), "sx": p.get("x", 0),
                         "ty": found["y"], "tx": found["x"],
                         "district_boss": is_boss, "did": found_did,
-                        "shooter_uid":str(uid),"gang_member":gang_member,
-                        "target_level":int(found.get("level") or 1),
                     })
                     if killed:
-                        reward = preview_bandit_kill_reward(
-                            uid, found.get("level"), 0)
                         await ws.send_str(json.dumps({"t": "event", "d": {
                             "kind": "aggro_killed", "bot_id": target_id,
-                            "is_boss": is_boss, "cash": 0, **reward,
+                            "is_boss": is_boss, "cash": 0, "exp": 0,
                         }}))
             elif t == "district_capture_cancel":
                 for did, cap in list(district_captures.items()):
@@ -4375,60 +2053,15 @@ async def world_ws(req):
                 shooter = players.get(uid, {})
                 target_uid = str(d.get("target_uid") or "")
                 target = players.get(target_uid)
-                now_shot = time.time()
-                biz_id = str(shooter.get("business_interior") or "")
-                same_biz = bool(target and biz_id and str(target.get("business_interior") or "") == biz_id)
-                shooter_attacker=preview_business_aggro.get((str(uid),biz_id),0)>now_shot
-                target_attacker=preview_business_aggro.get((target_uid,biz_id),0)>now_shot
-                business_defense = bool(same_biz and (
-                    (shooter.get("business_private") and target_attacker) or
-                    (target.get("business_private") and shooter_attacker)))
-                business_police_fight=bool(same_biz and ((shooter.get("police") and target_attacker) or
-                                                         (target.get("police") and shooter_attacker)))
-                same_family=bool(target and shooter.get("mafia_family") and
-                                 shooter.get("mafia_family")==target.get("mafia_family"))
-                if target and not same_family and (business_defense or business_police_fight) and not shooter.get("dead") and not target.get("dead"):
-                    sx,sy=float(shooter.get("interior_x",0)),float(shooter.get("interior_y",0))
-                    tx,ty=float(target.get("interior_x",0)),float(target.get("interior_y",0))
-                    if (sx-tx)**2+(sy-ty)**2 <= 10**2:
-                        weapon=str(d.get("weapon") or "pistol")
-                        damage={"shotgun":30,"rifle":26,"sniper":45,"pistol":18,"pistol_heavy":22,"smg":14}.get(weapon,18)
-                        target["hp"]=max(0,int(target.get("hp",100))-damage); killed=target["hp"]<=0
-                        shooter["combat_until"]=now_shot+10
-                        target["combat_until"]=now_shot+10
-                        prevented=bool(killed and shooter.get("police") and target_attacker)
-                        defended=bool(killed and business_defense and shooter.get("business_private") and target_attacker)
-                        reward={}
-                        if killed:
-                            target["dead"]=True; target["respawn_at"]=now_shot+5
-                        if prevented:
-                            preview_business_police_protection[(target_uid,biz_id)]=now_shot+300
-                            preview_business_aggro.pop((target_uid,biz_id),None)
-                            account=preview_account(uid);account["cash"]+=150
-                            old_xp=int(account.get("police_xp",0));account["police_xp"]=min(4000,old_xp+35)
-                            old_hp=int(shooter.get("hp",100));shooter["hp"]=min(100,old_hp+25)
-                            reward={"business_prevented":True,"business_id":biz_id,"cash_reward":150,
-                                    "police_xp":account["police_xp"],"police_xp_gain":account["police_xp"]-old_xp,
-                                    "hp_reward":shooter["hp"]-old_hp}
-                        elif defended:
-                            preview_business_owner_protection[(target_uid,biz_id)]=now_shot+300
-                            preview_business_aggro.pop((target_uid,biz_id),None)
-                            reward={"business_defended":True,"business_id":biz_id}
-                        await broadcast_event({"kind":"pvp_shot","shooter_uid":str(uid),"target_uid":target_uid,
-                            "shooter_name":shooter.get("name","Защитник"),"target_name":target.get("name","Грабитель"),
-                            "sx":sx,"sy":sy,"tx":tx,"ty":ty,"dmg":damage,"killed":killed,"weapon":weapon,**reward})
-                elif (target and shooter.get("police") and not target.get("police") and
+                if (target and shooter.get("police") and not target.get("police") and
                         int(target.get("wanted", 0)) > 0 and not shooter.get("dead") and
                         not target.get("dead") and not shooter.get("business_interior") and
                         not target.get("business_interior") and
-                        not shooter.get("in_interior") and not target.get("in_interior") and
                         (float(shooter.get("x",0))-float(target.get("x",0)))**2 +
                         (float(shooter.get("y",0))-float(target.get("y",0)))**2 <= 8.5**2):
                     weapon = str(d.get("weapon") or "pistol")
                     damage = {"shotgun":55,"rifle":42,"sniper":100,"pistol":28}.get(weapon,32)
                     target["hp"] = max(0, int(target.get("hp",100))-damage)
-                    shooter["combat_until"]=now_shot+10
-                    target["combat_until"]=now_shot+10
                     killed = target["hp"] <= 0
                     if killed:
                         old_uid = str(shooter.get("police_downed_target") or "")
@@ -4562,52 +2195,23 @@ async def world_ws(req):
                 if reply.get("ok"):
                     action=dict(reply); action["kind"]=t
                     await broadcast_event(action)
-            elif t == "gta_status":
-                q=preview_gta_quests.get(str(uid));await ws.send_str(json.dumps({"t":"event","d":{"kind":"gta_status","ok":True,"count_today":1 if q else 0,"limit":2,"reset_in_s":0,"sc_lvl":5,"active":q}},ensure_ascii=False))
-            elif t == "gta_take":
-                p=players.get(uid) or {};q=preview_gta_quests.get(str(uid))
-                if q:reply={"kind":"gta_take_reply","ok":False,"reason":"has_active","model":q["model"]}
-                elif (float(p.get("x",0))-42)**2+(float(p.get("y",0))-183)**2>16:reply={"kind":"gta_take_reply","ok":False,"reason":"too_far"}
-                else:
-                    car_id=f"michael_preview_{uid}";car={"id":car_id,"model":"ferrari_f40","owner_uid":str(uid),"x":49.0,"y":158.0,"ang":0.0,"vx":0,"vy":0,"driver_uid":None,"hp":180,"reward":650}
-                    quest_cars[car_id]=car;q={"car_id":car_id,"model":car["model"],"reward":car["reward"],"x":car["x"],"y":car["y"],"state":"idle"};preview_gta_quests[str(uid)]=q;reply={"kind":"gta_take_reply","ok":True,**q}
+            elif t == "brigadir_take":
+                p=players.setdefault(uid,{})
+                reply={"kind":"brigadir_take_reply","ok":not p.get("dead"),
+                       "payout":700,"stealth_mul":1.5,"left":3}
                 await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
-            elif t == "box_status":
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"box_status","ok":True,"count_today":0,"limit":5,"reset_in_s":0,"fail_cd_s":0,"active":preview_box_quests.get(str(uid))}},ensure_ascii=False))
-            elif t == "box_take":
-                p=players.get(uid) or {};q=preview_box_quests.get(str(uid))
-                if q:reply={"kind":"box_take_reply","ok":False,"reason":"has_active"}
-                elif (float(p.get("x",0))-42)**2+(float(p.get("y",0))-183)**2>16:reply={"kind":"box_take_reply","ok":False,"reason":"too_far"}
-                else:
-                    business_id,addr,dx,dy=random.choice(PREVIEW_BOX_DROPOFFS);q={"pickup_x":40.,"pickup_y":166.,"dropoff_x":dx,"dropoff_y":dy,"business_id":business_id,"addr":addr,"reward":350,"state":"pending"};preview_box_quests[str(uid)]=q;reply={"kind":"box_take_reply","ok":True,**q}
-                await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
-            elif t == "box_pickup":
-                reply=preview_pickup_box(uid,d.get("owner_uid") if isinstance(d,dict) else "")
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"box_pickup_reply",**reply}},ensure_ascii=False))
-            elif t == "box_load":
-                q=preview_box_quests.get(str(uid));car_id=str(d.get("car_id") or "")[:96]
-                ok=bool(q and q.get("state")=="carrying" and car_id)
-                if ok:q["state"]="loaded";q["car_id"]=car_id
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"box_load_reply","ok":ok,"state":"loaded" if ok else None,"car_id":car_id,"reason":None if ok else "wrong_state"}},ensure_ascii=False))
-            elif t == "box_unload":
-                q=preview_box_quests.get(str(uid));car_id=str(d.get("car_id") or "")[:96]
-                ok=bool(q and q.get("state")=="loaded" and str(q.get("car_id") or "")==car_id)
-                reply=preview_drop_box(uid,"unload") if ok else {"ok":False,"reason":"wrong_car"}
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"box_unload_reply",**reply}},ensure_ascii=False))
-            elif t == "box_drop":
-                reply=preview_drop_box(uid,"manual")
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"box_drop_reply",**reply}},ensure_ascii=False))
-            elif t == "box_deliver":
-                p=players.get(uid) or {};q=preview_box_quests.get(str(uid))
-                state_ok=bool(q and q.get("state")=="carrying")
-                right_business=bool(state_ok and str(p.get("business_interior") or "")==str(q.get("business_id") or ""))
-                ok=bool(right_business and preview_robber_at_cashier(p,q.get("business_id")))
-                reward=int(q.get("reward",0)) if ok else 0;addr=q.get("addr") if q else ""
-                if ok:preview_account(uid)["cash"]+=reward;preview_box_quests.pop(str(uid),None)
-                reason=None if ok else ("no_quest" if not q else ("wrong_state" if not state_ok else ("wrong_business" if not right_business else "too_far_npc")))
-                await ws.send_str(json.dumps({"t":"event","d":{"kind":"box_deliver_reply","ok":ok,"reason":reason,"reward":reward,"addr":addr,"business_id":q.get("business_id") if q else None}},ensure_ascii=False))
-            elif t == "box_abandon":
-                ok=preview_box_quests.pop(str(uid),None) is not None;await ws.send_str(json.dumps({"t":"event","d":{"kind":"box_abandon_reply","ok":ok,"wait_s":600}},ensure_ascii=False))
+            elif t == "brigadir_kill":
+                p=players.setdefault(uid,{})
+                stealth=bool(d.get("stealth"));reward=int(700*(1.5 if stealth else 1))
+                p["brigadir_pending"]={"reward":reward,"stealth":stealth}
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"brigadir_kill_reply",
+                    "ok":True,"reward":reward,"stealth":stealth,"claim_at_brigadir":True}},ensure_ascii=False))
+            elif t == "brigadir_claim":
+                p=players.setdefault(uid,{});pending=p.pop("brigadir_pending",None)
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"brigadir_claim_reply",
+                    "ok":bool(pending),"reward":int((pending or {}).get("reward") or 0),
+                    "stealth":bool((pending or {}).get("stealth")),"left":2,
+                    "reason":None if pending else "no_pending"}},ensure_ascii=False))
             elif t == "gta_enter":
                 car = quest_cars.get(str(d.get("car_id") or ""))
                 reason = None
@@ -4653,11 +2257,9 @@ async def world_ws(req):
                         "kind": "quest_car_spawned",
                         "car_id": reply["car_id"],
                         "model": reply["model"],
-                        "paint": reply.get("paint"),
                         "reward": 0,
                         "lock_lvl": 0,
                         "civilian": True,
-                        "paint": reply.get("paint"),
                         "by_uid": uid,
                         "x": reply["x"],
                         "y": reply["y"],
@@ -4691,35 +2293,17 @@ async def world_ws(req):
             elif t == "gta_exit":
                 car = quest_cars.get(str(d.get("car_id") or ""))
                 if car and str(car.get("driver_uid")) == str(uid):
-                    if car.get("model") in ("police_heli", "mafia_heli") and not bool(d.get("landing_ok")):
-                        await ws.send_str(json.dumps({"t":"event","d":{
-                            "kind":"gta_exit_reply","ok":False,"reason":"unsafe_landing",
-                            "car_id":car["id"],"model":car.get("model")}},ensure_ascii=False))
-                        continue
                     release_car(car)
-                    delivered = (37 <= float(car.get("x", 0)) <= 43 and
-                                 167 <= float(car.get("y", 0)) <= 173 and
-                                 str(car.get("owner_uid") or "") == str(uid))
-                    reward = int(car.get("reward") or 0) if delivered else 0
-                    if delivered:
-                        preview_account(uid)["cash"] += reward
-                        preview_gta_quests.pop(str(uid), None)
-                        quest_cars.pop(str(car.get("id") or ""), None)
                     await ws.send_str(json.dumps({
                         "t": "event",
                         "d": {"kind": "gta_exit_reply", "ok": True,
-                              "delivered": delivered, "reward": reward,
-                              "car_id": car["id"], "model": car.get("model"),
-                              "owner_uid": car.get("owner_uid"),
-                              "x": round(float(car.get("x", 0)), 3),
-                              "y": round(float(car.get("y", 0)), 3),
-                              "ang": round(float(car.get("ang", 0)), 3),
-                              "hp": int(car.get("hp", 220)),
-                              "max_hp": int(car.get("max_hp", 220)),
-                              "civilian": bool(car.get("civilian", not delivered)),
-                              "police_patrol": bool(car.get("police_patrol", False)),
-                              "police_stolen": bool(car.get("police_stolen", False)),
-                              "paint": car.get("paint")},
+                              "delivered": False, "car_id": car["id"],
+                              "model":car.get("model"),"owner_uid":car.get("owner_uid"),
+                              "x":car.get("x"),"y":car.get("y"),"ang":car.get("ang",0),
+                              "hp":car.get("hp",220),"max_hp":car.get("max_hp",220),
+                              "civilian":bool(car.get("civilian",True)),
+                              "police_patrol":bool(car.get("police_patrol")),
+                              "police_stolen":bool(car.get("police_stolen"))},
                     }))
             elif t == "race_top":
                 await ws.send_str(json.dumps({"t": "race_top", "d": {"top": race_top()}}))
@@ -4745,20 +2329,12 @@ async def world_ws(req):
                     "t": "event",
                     "d": {"kind": "respawn_status", "ok": True, "point": "hospital"},
                 }))
-            elif t == "bank_enter":
-                p["in_interior"] = True
-            elif t == "bank_exit":
-                p["in_interior"] = False
             elif t == "bank_rob_start":
                 bank_id = str(d.get("bank_id") or "")
                 if p.get("police"):
                     await ws.send_str(json.dumps({"t":"event","d":{
                         "kind":"bank_rob_start_reply", "ok":False,
                         "reason":"police_on_duty"}}, ensure_ascii=False))
-                elif not p.get("mafia"):
-                    await ws.send_str(json.dumps({"t":"event","d":{
-                        "kind":"bank_rob_start_reply", "ok":False,
-                        "reason":"mafia_only"}}, ensure_ascii=False))
                 elif bank_id in PREVIEW_BANK_REWARD:
                     preview_bank_robs[str(uid)] = {
                         "bank_id": bank_id, "carried": 0, "bags_loaded": 0,
@@ -4789,19 +2365,9 @@ async def world_ws(req):
                     bag_id = str(d.get("bag_id") or "")[:80]
                     if not bag_id.startswith("bag_") or bag_id in preview_bank_bags:
                         bag_id = f"bag_preview_{time.time_ns()}"
-                    try:
-                        drop_x = float(d.get("c"))
-                        drop_y = float(d.get("r"))
-                        if not (math.isfinite(drop_x) and math.isfinite(drop_y)):
-                            raise ValueError
-                        if not (0 <= drop_x < 80 and 0 <= drop_y < 200):
-                            raise ValueError
-                    except (TypeError, ValueError):
-                        drop_x = float(p.get("x", 0))
-                        drop_y = float(p.get("y", 0))
                     preview_bank_bags[bag_id] = {
                         "id":bag_id, "bank_id":bank_id, "value":value,
-                        "x":drop_x, "y":drop_y,
+                        "x":float(p.get("x",0)), "y":float(p.get("y",0)),
                         "dropped_at":time.time(), "robber_uid":str(uid),
                     }
                     p.pop("police_evidence_bag", None)
@@ -4884,28 +2450,17 @@ async def world_ws(req):
         task.cancel()
         clients.discard(ws)
         leaving = players.get(uid) or {}
-        if leaving.get("_ws") is ws:
-            if (preview_box_quests.get(str(uid)) or {}).get("state") in ("carrying", "loaded"):
-                preview_drop_box(uid, "disconnect")
-            evidence = leaving.get("police_evidence_bag")
-            if evidence:
-                bag_id = f"bag_preview_{time.time_ns()}"
-                preview_bank_bags[bag_id] = {
-                    "id":bag_id, "bank_id":str(evidence.get("bank_id") or ""),
-                    "value":int(evidence.get("value") or 0),
-                    "x":float(leaving.get("x",0)), "y":float(leaving.get("y",0)),
-                    "dropped_at":time.time(), "robber_uid":str(uid),
-                }
-            release_player_cars(uid)
-            crew_id=str(leaving.get("crew_id") or "")
-            players.pop(uid, None)
-            if crew_id:
-                left=[q for q in players.values() if str(q.get("crew_id") or "")==crew_id]
-                if len(left)<2:
-                    for q in left:q.pop("crew_id",None)
-            gang_player_invites.pop(str(uid),None)
-            for target_uid,inv in list(gang_player_invites.items()):
-                if str(inv.get("from_uid") or "")==str(uid):gang_player_invites.pop(target_uid,None)
+        evidence = leaving.get("police_evidence_bag")
+        if evidence:
+            bag_id = f"bag_preview_{time.time_ns()}"
+            preview_bank_bags[bag_id] = {
+                "id":bag_id, "bank_id":str(evidence.get("bank_id") or ""),
+                "value":int(evidence.get("value") or 0),
+                "x":float(leaving.get("x",0)), "y":float(leaving.get("y",0)),
+                "dropped_at":time.time(), "robber_uid":str(uid),
+            }
+        release_player_cars(uid)
+        players.pop(uid, None)
     return ws
 
 
@@ -4929,7 +2484,6 @@ app.router.add_post("/apartment/{uid}/upgrade", apartment_upgrade)
 app.router.add_post("/apartment/{uid}/sell", apartment_sell)
 app.router.add_get("/biz/{uid}/list", business_list)
 app.router.add_post("/biz/{uid}/buy", business_buy)
-app.router.add_post("/biz/{uid}/guards/hire", business_guard_hire)
 app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
 app.router.add_post("/biz/{uid}/collect", business_collect)
 app.router.add_post("/biz/{uid}/said/hire", said_hire)
@@ -4939,4 +2493,4 @@ app.router.add_post("/skill/{uid}/upgrade", skill_upgrade)
 
 
 if __name__ == "__main__":
-    web.run_app(app, host="127.0.0.1", port=8082)
+    web.run_app(app, host="127.0.0.1", port=int(os.getenv("MAFIOZI_PREVIEW_PORT", "8081")))
