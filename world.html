@@ -44388,6 +44388,21 @@ function _bizIsoBox(r,c,w,d,h,top,left,right,label='') {
   ctx.restore();
 }
 
+function _casinoProximityAlpha(distance) {
+  const t=Math.max(0,Math.min(1,(distance-.55)/2.7));
+  const smooth=t*t*(3-2*t);
+  return .1+.9*smooth;
+}
+
+function _drawCasinoFadingWallBox(r,c,w,d,h,top,left,right,label='') {
+  const dr=Math.max(0,Math.abs(player.r-r)-d/2);
+  const dc=Math.max(0,Math.abs(player.c-c)-w/2);
+  ctx.save();
+  ctx.globalAlpha*=_casinoProximityAlpha(Math.hypot(dr,dc));
+  _bizIsoBox(r,c,w,d,h,top,left,right,label);
+  ctx.restore();
+}
+
 function _drawCasinoReadableLabel(text,x,y,color='#ffe6a0',size=9) {
   if(!text)return;
   ctx.save();ctx.font=`900 ${size}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';
@@ -45021,6 +45036,7 @@ function _drawCasinoPartition(wall) {
   const p=w2s(wall.r0,wall.c0),q=w2s(wall.r1,wall.c1),z=isoH(2.65);
   const isVault=wall.kind==='vault';
   ctx.save();ctx.lineJoin='round';
+  ctx.globalAlpha*=_casinoProximityAlpha(_casinoWallDistance(player.r,player.c,wall));
   ctx.fillStyle=isVault?'#18222c':'#210b18';
   ctx.strokeStyle=isVault?'#8fa3b0':'#b58a32';ctx.lineWidth=isVault?1.45:1.15;
   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.lineTo(q.x,q.y-z);ctx.lineTo(p.x,p.y-z);ctx.closePath();ctx.fill();
@@ -45116,6 +45132,10 @@ function _drawBusinessInterior(bi) {
   ctx.fillStyle='#050711';ctx.fillRect(0,0,SW,SH);
   // Пол и тонкая затирка сохраняют общий изометрический язык города.
   const isGrandCasino=bi.bizId==='major_casino';
+  const wallBox=(r,c,w,d,h,top,left,right)=>
+    isGrandCasino
+      ?_drawCasinoFadingWallBox(r,c,w,d,h,top,left,right)
+      :_bizIsoBox(r,c,w,d,h,top,left,right);
   for(let r=0;r<H;r++)for(let c=0;c<W;c++){
     const p=w2s(r+.5,c+.5);
     const casinoMainCarpet=isGrandCasino&&c>=19&&c<=24&&r>=4&&r<=H-2;
@@ -45151,10 +45171,10 @@ function _drawBusinessInterior(bi) {
     _drawCasinoSafeRoomFloor();
   }
   // Северная и боковые стены с панелями, а не плоская чёрная рамка.
-  for(let c=0;c<W;c++) items.push({d:c*.01,fn:()=>_bizIsoBox(.18,c+.5,1,.35,2.9,c%4===1?cfg.accent:cfg.wall,cfg.wall,'#1b202a')});
+  for(let c=0;c<W;c++) items.push({d:c*.01,fn:()=>wallBox(.18,c+.5,1,.35,2.9,c%4===1?cfg.accent:cfg.wall,cfg.wall,'#1b202a')});
   for(let r=1;r<H-1;r++){
-    items.push({d:r+.01,fn:()=>_bizIsoBox(r+.5,.18,.35,1,2.6,cfg.wall,'#1b202a',cfg.wall)});
-    items.push({d:r+W+.01,fn:()=>_bizIsoBox(r+.5,W-.18,.35,1,2.6,cfg.wall,cfg.wall,'#161b23')});
+    items.push({d:r+.01,fn:()=>wallBox(r+.5,.18,.35,1,2.6,cfg.wall,'#1b202a',cfg.wall)});
+    items.push({d:r+W+.01,fn:()=>wallBox(r+.5,W-.18,.35,1,2.6,cfg.wall,cfg.wall,'#161b23')});
   }
   // Любой крупный предмет бизнеса — мебель. Его опорная координата не
   // учитывает реальную высоту/ширину, поэтому обычный depth-sort мог целиком
