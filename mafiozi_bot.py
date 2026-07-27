@@ -12711,6 +12711,7 @@ class WorldSim:
     CITY_GANG_MAX           = 2       # одновременно бродят 2 группы
     CITY_GANG_SIZE          = 3       # бойцов в группе
     CITY_GANG_SPAWN_GAP_S   = 240.0   # 4 мин между новыми спавнами
+    CITY_GANG_FORMATION_GAP_S = 25.0  # быстро собираем обе разные фракции
     CITY_GANG_THREAT_R      = 4.0     # тайлов — порог threat-фразы
     CITY_GANG_THREAT_CD_S   = 6.0     # cooldown threat-фраз на игрока
     CITY_GANG_HOSTILE_S     = 30.0    # сколько секунд hostile после атаки
@@ -16859,13 +16860,31 @@ class WorldSim:
     NEST_CLEAR_CASH      = 150
     NEST_CLEAR_EXP       = 25
 
-    def _spawn_city_gang(self) -> None:
+    def _spawn_city_gang(self, requested_faction: str | None = None) -> dict | None:
         """Спавнит маленькую группу бандитов в городе на проходимом тайле.
         Не у Логова, не у тюрьмы, не в захватываемых районах."""
         import math as _m
-        for _try in range(60):
-            x = random.uniform(12, WORLD_MAP_COLS - 12)
-            y = random.uniform(10, 70)   # только основной город (0..79)
+        nearby_players = [
+            p for p in self.players.values()
+            if not p.get('dead')
+            and not p.get('_business_interior')
+            and not p.get('_major_interior')
+            and 10 <= float(p.get('y') or 0) <= 70
+        ]
+        for _try in range(80):
+            # Первую половину попыток ищем точку в 9–14 тайлах от игрока:
+            # группа заметна, но не возникает прямо у него за спиной.
+            if nearby_players and _try < 40:
+                anchor = random.choice(nearby_players)
+                angle = random.uniform(0, _m.tau)
+                distance = random.uniform(9.0, 14.0)
+                x = float(anchor.get('x') or 0) + _m.cos(angle) * distance
+                y = float(anchor.get('y') or 0) + _m.sin(angle) * distance
+                if not (8 <= x <= WORLD_MAP_COLS - 8 and 8 <= y <= 72):
+                    continue
+            else:
+                x = random.uniform(12, WORLD_MAP_COLS - 12)
+                y = random.uniform(10, 70)   # только основной город (0..79)
             # Не у тюрьмы (радиус 15)
             if ((x - self.JAIL_X)**2 + (y - self.JAIL_Y)**2) < 225:
                 continue
@@ -16878,10 +16897,13 @@ class WorldSim:
                 continue
             break
         else:
-            return  # карта плотно занята, попробуем позже
-        gid = f'cg{self._city_gang_next_id}'
+            return None  # карта плотно занята, попробуем позже
+        gang_number = self._city_gang_next_id
+        gid = f'cg{gang_number}'
         self._city_gang_next_id += 1
-        faction = 'yellow' if self._city_gang_next_id % 2 else 'purple'
+        faction = requested_faction if requested_faction in ('yellow', 'purple') else (
+            'yellow' if gang_number % 2 else 'purple'
+        )
         bots = []
         for i in range(self.CITY_GANG_SIZE):
             self._next_bot_id += 1
@@ -16915,7 +16937,7 @@ class WorldSim:
                     'gang':   2 if faction == 'yellow' else 1,
                 },
             })
-        self.city_gangs.append({
+        gang = {
             'id':              gid,
             'bots':            bots,
             'state':           'patrol',
@@ -16927,7 +16949,9 @@ class WorldSim:
             '_cops_dispatched': False,
             'faction':          faction,
             '_gang_fight_at':   0.0,
-        })
+        }
+        self.city_gangs.append(gang)
+        return gang
 
     def tick_city_gangs(self, dt: float) -> list:
         """AI для бродячих городских банд. Возвращает event-пакеты:
@@ -16943,8 +16967,30 @@ class WorldSim:
         if (self.players
                 and normal_gang_count < self.CITY_GANG_MAX
                 and now >= self._city_gang_next_spawn_at):
-            self._spawn_city_gang()
-            self._city_gang_next_spawn_at = now + self.CITY_GANG_SPAWN_GAP_S
+            normal_factions = {
+                g.get('faction', 'purple') for g in self.city_gangs
+                if not g.get('district_did')
+            }
+            requested_faction = (
+                'yellow' if 'yellow' not in normal_factions else
+                ('purple' if 'purple' not in normal_factions else None)
+            )
+            spawned = self._spawn_city_gang(requested_faction)
+            if spawned:
+                normal_gang_count += 1
+                pkts.append({
+                    'kind': 'city_gang_spawned',
+                    'gid': spawned['id'],
+                    'faction': spawned.get('faction', 'purple'),
+                    'x': round(sum(b['x'] for b in spawned['bots']) / len(spawned['bots']), 1),
+                    'y': round(sum(b['y'] for b in spawned['bots']) / len(spawned['bots']), 1),
+                })
+                gap = (self.CITY_GANG_FORMATION_GAP_S
+                       if normal_gang_count < self.CITY_GANG_MAX
+                       else self.CITY_GANG_SPAWN_GAP_S)
+                self._city_gang_next_spawn_at = now + gap
+            else:
+                self._city_gang_next_spawn_at = now + 15.0
         for g in self.city_gangs:
             alive_bots = [b for b in g['bots'] if b['alive']]
             if not alive_bots:
@@ -19436,6 +19482,7 @@ class WorldSim:
                     'max_hp':  int(bot['max_hp']),
                     'level':   max(1, min(self.BANDIT_MAX_LEVEL, int(bot.get('level') or 1))),
                     'kind':    bot['kind'],
+                    'faction': g.get('faction', 'purple'),
                     'weapon':  bot.get('weapon') or 'pistol_heavy',
                     'damage':  int(bot.get('damage') or self.AGGRO_WEAPON_STATS.get(
                                    bot.get('weapon') or 'pistol_heavy', {}).get('dmg', 0)),
