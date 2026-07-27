@@ -14236,7 +14236,10 @@ function applyAggroTargets(newAggro) {
       const z = JSON.parse(JSON.stringify(fresh));
       // Нанятые игроком боты (сервер про найм не знает) — фильтруем по id
       z.bots = (z.bots || []).filter(b => !_hiredBotIds.has(String(b.id)));
-      for (const b of z.bots) { b.tx = b.x; b.ty = b.y; b.tAng = b.ang || 0; }
+      for (const b of z.bots) {
+        b.faction = b.faction || z.faction || 'purple';
+        b.tx = b.x; b.ty = b.y; b.tAng = b.ang || 0;
+      }
       aggroZones[tid] = z;
       continue;
     }
@@ -14244,6 +14247,8 @@ function applyAggroTargets(newAggro) {
     cur.state        = fresh.state;
     cur.cap_left     = fresh.cap_left;
     cur.next_respawn = fresh.next_respawn;
+    cur.faction      = fresh.faction || cur.faction || 'purple';
+    cur.is_city_gang = !!fresh.is_city_gang;
     // Боты — мерж по id. Нанятых (см. _hiredBotIds) выкидываем — иначе
     // рядом с наёмником ходит его «клон»-оригинал и атакует игрока.
     const newBots = (fresh.bots || []).filter(b => !_hiredBotIds.has(String(b.id)));
@@ -14261,6 +14266,7 @@ function applyAggroTargets(newAggro) {
         ob.tAng  = nb.ang;
         ob.hp    = nb.hp;   ob.max_hp = nb.max_hp;
         ob.kind  = nb.kind;
+        ob.faction = nb.faction || fresh.faction || cur.faction || 'purple';
         ob.weapon = nb.weapon;
         ob.burning = !!nb.burning;
         ob.fleeing_fire = !!nb.fleeing_fire;
@@ -14271,7 +14277,11 @@ function applyAggroTargets(newAggro) {
         if (nb.look) ob.look = nb.look;
         merged.push(ob);
       } else {
-        merged.push({ ...nb, tx: nb.x, ty: nb.y, tAng: nb.ang || 0 });
+        merged.push({
+          ...nb,
+          faction: nb.faction || fresh.faction || cur.faction || 'purple',
+          tx: nb.x, ty: nb.y, tAng: nb.ang || 0
+        });
       }
     }
     cur.bots = merged;
@@ -14914,6 +14924,16 @@ function handleEventPacket(d) {
       if (!d.miss) spawnImpact(d.ty, d.tx, wp, true);
     }
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
+  } else if (kind === 'city_gang_spawned') {
+    const yellow = d.faction === 'yellow';
+    showEventBanner(
+      yellow ? '🟡 ЖЁЛТАЯ БАНДА В ГОРОДЕ' : '🟣 СИРЕНЕВАЯ БАНДА В ГОРОДЕ',
+      yellow
+        ? 'Группу заметили неподалёку. Ищи жёлтую метку «Ж» на мини-карте.'
+        : 'На улицах появилась ещё одна группа. Она отмечена сиреневой меткой «С».',
+      4200,
+      'spawn'
+    );
   } else if (kind === 'city_gang_combat') {
     // Городская банда стала hostile — баннер всем игрокам поблизости.
     // Без этого «там перестрелка» легко пропустить.
@@ -32015,6 +32035,8 @@ function drawAggroBot(bot) {
   // Activity городских банд — если не 'walk', стоят на месте (не качаемся).
   const act = bot.act || 'idle';
   const isCityGang = String(bot.id || '').startsWith('cgbot');
+  const faction = bot.faction || (look.gang === 2 ? 'yellow' : 'purple');
+  const isYellowGang = isCityGang && faction === 'yellow';
   const walkPhase = act === 'walk'
     ? (performance.now() * 0.008) % (Math.PI * 2)
     : 0;
@@ -32023,11 +32045,15 @@ function drawAggroBot(bot) {
   // имитируем свечение двумя эллипсами — бледный широкий ореол + плотное
   // ядро. Визуально близко, для GPU в разы дешевле.
   ctx.save();
-  ctx.fillStyle = isBoss ? 'rgba(160, 80, 255, .20)' : 'rgba(140, 70, 200, .14)';
+  ctx.fillStyle = isBoss
+    ? 'rgba(160, 80, 255, .20)'
+    : (isYellowGang ? 'rgba(255, 210, 45, .22)' : 'rgba(140, 70, 200, .14)');
   ctx.beginPath();
   ctx.ellipse(p.x, p.y + 6, isBoss ? 30 : 22, isBoss ? 12 : 9, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = isBoss ? 'rgba(180, 80, 255, .55)' : 'rgba(140, 70, 200, .38)';
+  ctx.fillStyle = isBoss
+    ? 'rgba(180, 80, 255, .55)'
+    : (isYellowGang ? 'rgba(255, 225, 65, .60)' : 'rgba(140, 70, 200, .38)');
   ctx.beginPath();
   ctx.ellipse(p.x, p.y + 6, isBoss ? 22 : 16, isBoss ? 8 : 6, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -32139,6 +32165,18 @@ function drawAggroBot(bot) {
   ctx.fillStyle='#ffd76b';ctx.shadowColor='#000';ctx.shadowBlur=3;
   ctx.fillText(`${Math.max(1,Math.min(25,parseInt(bot.level)||1))} ур.`,p.x,badgeY-badgeR-2);ctx.restore();
   if(bot.kind==='district_boss'&&bot.boss_name){ctx.font='900 10px system-ui,sans-serif';ctx.fillStyle='#ffcf55';ctx.fillText(bot.boss_name,p.x,p.y-68);}
+  if (isYellowGang) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.font = '900 9px system-ui,sans-serif';
+    ctx.fillStyle = '#ffe44f';
+    ctx.strokeStyle = 'rgba(0,0,0,.9)';
+    ctx.lineWidth = 3;
+    ctx.strokeText('ЖЁЛТАЯ БАНДА', p.x, p.y - 60);
+    ctx.fillText('ЖЁЛТАЯ БАНДА', p.x, p.y - 60);
+    ctx.restore();
+  }
   if(bot.kind==='district_boss'||bot.kind==='district_guard'){
     const hp=Math.max(0,+bot.hp||0),maxHp=Math.max(1,+bot.max_hp||1),bw=isBoss?48:40;
     const by=p.y-(isBoss?86:58);
@@ -39882,6 +39920,30 @@ function drawMinimap() {
     ctx2.textBaseline = 'middle';
     ctx2.fillStyle = '#fff';
     ctx2.fillText('☠', x, y);
+  }
+  // Бродячие банды видны на мини-карте: жёлтая больше не теряется в городе.
+  for (const zone of Object.values(aggroZones)) {
+    if (!zone?.is_city_gang || zone.district_did) continue;
+    const bots = (zone.bots || []).filter(bot => Number.isFinite(+bot.x) && Number.isFinite(+bot.y));
+    if (!bots.length) continue;
+    const x = (bots.reduce((sum, bot) => sum + (+bot.x), 0) / bots.length + 0.5) * sx;
+    const y = (bots.reduce((sum, bot) => sum + (+bot.y), 0) / bots.length + 0.5) * sy;
+    const yellow = (zone.faction || bots[0].faction) === 'yellow';
+    const color = yellow ? '#ffe34d' : '#b887ff';
+    ctx2.fillStyle = yellow
+      ? `rgba(255,227,77,${0.55 + 0.30 * tPulse})`
+      : `rgba(184,135,255,${0.50 + 0.25 * tPulse})`;
+    ctx2.strokeStyle = color;
+    ctx2.lineWidth = 1.5;
+    ctx2.beginPath();
+    ctx2.arc(x, y, 4.5 + 1.5 * tPulse, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.stroke();
+    ctx2.font = '900 7px system-ui,sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.textBaseline = 'middle';
+    ctx2.fillStyle = '#111';
+    ctx2.fillText(yellow ? 'Ж' : 'С', x, y + 0.5);
   }
   // Майкл-перекупщик на мини-карте — золотой 💼 у порта. Помогает игроку
   // найти его (раньше Майкл «терялся» в углу порта рядом с захватываемым POI).
