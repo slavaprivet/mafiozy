@@ -162,11 +162,11 @@ body.in-pvp #robActionBtn { top: 152px; }
    здание вертикальной колонной. На узких экранах сохраняется старый стек. */
 @media (min-width: 800px) {
   body.near-business #zoneBtn,
-  body.in-pvp.near-business #zoneBtn { left:28%;top:104px;max-width:28vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  body.in-pvp.near-business #zoneBtn { left:50%;top:82px;max-width:min(310px,72vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
   body.near-business #gtaActionBtn,
-  body.in-pvp.near-business #gtaActionBtn { left:50%;top:104px;max-width:28vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  body.in-pvp.near-business #gtaActionBtn { left:50%;top:128px;max-width:min(270px,68vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
   body.near-business #robActionBtn,
-  body.in-pvp.near-business #robActionBtn { left:72%;top:104px;max-width:28vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:10px 16px;font-size:13px; }
+  body.in-pvp.near-business #robActionBtn { left:50%;top:174px;max-width:min(270px,68vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:9px 15px;font-size:13px; }
 }
 
 /* Кнопка «Сбросить мешок» — внизу по центру, видна пока несёшь мешок.
@@ -30517,7 +30517,6 @@ if (_LOCAL_PREVIEW && _UP.get('previewmafia')) {
     cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;
     showToast(`Тест: ${MAFIA_FAMILIES[previewFamily]?.short || 'семья'} · ${previewPoi.name}`, '🏴', 2600);
   }, 700);
-  if(_UP.get('bizvisual'))setInterval(()=>{player.r=previewPoi.r+1.2;player.c=previewPoi.c+.4;player.tr=player.r;player.tc=player.c;cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;},500);
 }
 const BIZ_MAX_LEVEL = 5;
 const BIZ_LEVEL_MULTIPLIERS = [1, 1, 1.35, 1.75, 2.25, 3.0];
