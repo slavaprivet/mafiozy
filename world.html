@@ -15494,7 +15494,9 @@ function handleEventPacket(d) {
         `КУШ: +$${m.toLocaleString('ru')} · ${d.family_points_gain?`${MAFIA_FAMILIES[d.mafia_family]?.short||'Семья'} +${d.family_points_gain} очков · `:''}СЛОЖНОСТЬ ${'★'.repeat(difficulty)}`,
         4800, 'robbery-success');
       if (d.family_control_s) {
-        showToast(`Здание 10 минут приносит семье по $${(+d.family_income_per_member||0).toLocaleString('ru')} каждому в минуту`, '🏴', 5200);
+        const controlMinutes=Math.max(1,Math.round((+d.family_control_s||600)/60));
+        showToast(`Здание ${controlMinutes} мин. приносит семье по $${(+d.family_income_per_member||0).toLocaleString('ru')} каждому в минуту · казна +$${(+d.family_treasury_gain||0).toLocaleString('ru')}`, '🏴', 5200);
+        if(d.business_war_score&&d.mafia_family){_businessWarScore[d.mafia_family]={...(_businessWarScore[d.mafia_family]||{}),...d.business_war_score};_renderBusinessWarHud();}
       }
       hapticHit();
       if(_buildingInt&&_buildingInt.robbery)setTimeout(()=>{if(_buildingInt&&_buildingInt.robbery)exitBuildingInterior();},1800);
@@ -15746,7 +15748,8 @@ function handleEventPacket(d) {
       mafia_family:d.winner,expires_at:Date.now()/1000+(+d.control_s||600),
       income_per_member:+d.income_per_member||0};}
     const fam=MAFIA_FAMILIES[d.winner]?.short||'Семья';
-    pushFeedEvent('🏴',`${fam} победила за «${d.biz_name||'Бизнес'}»`,
+    if(d.war_score&&d.winner){_businessWarScore[d.winner]={...(_businessWarScore[d.winner]||{}),...d.war_score};_renderBusinessWarHud();}
+    pushFeedEvent('🏴',`${fam} ${d.defended?'отстояла':'захватила'} «${d.biz_name||'Бизнес'}» · +${+d.influence_gain||0} влияния`,
       {accent:d.winner==='moretti'?'#f4ead5':'#b68cff'});
     if(String(d.winner_uid)===String(QP.uid))showToast(`За захват точки +$${(+d.bonus||0).toLocaleString('ru')}`,'💰',3000);
   } else if (kind === 'gta_take_reply') {
@@ -17172,6 +17175,10 @@ function wsConnect() {
         for(const id of Object.keys(_businessFamilyWars))if(!(id in fresh))delete _businessFamilyWars[id];
         for(const [id,war] of Object.entries(fresh))_businessFamilyWars[id]={...war};
       }
+      if (d.business_war_score !== undefined) {
+        _businessWarScore={..._businessWarScore,...(d.business_war_score||{})};
+        _renderBusinessWarHud();
+      }
       if (d.business_aggro !== undefined) {
         const now = Date.now(), fresh = d.business_aggro || {};
         for (const id of Object.keys(_businessAggroUntil)) if (!(id in fresh)) delete _businessAggroUntil[id];
@@ -18115,6 +18122,44 @@ const _robCooldowns = {};    // biz_id → timestamp окончания кулд
 const _businessClosures = {}; // biz_id → общий серверный респавн владельца/охраны
 const _robbedBusinessControls = {}; // biz_id → семейный владелец на 10 минут
 const _businessFamilyWars = {}; // biz_id → открытая война семей
+let _businessWarScore = {
+  bellini:{influence:0,treasury:0,captures:0,defenses:0,robberies:0,controlled:0},
+  moretti:{influence:0,treasury:0,captures:0,defenses:0,robberies:0,controlled:0}
+};
+const BUSINESS_WAR_BONUS_INFO = Object.freeze({
+  coffee:'☕ Кофейня · +5% семейного дохода',
+  carwash:'🚿 Автомойка · +10% стойкости защиты',
+  barbershop:'💈 Барбершоп · +6% скорости захвата',
+  pizza:'🍕 Пиццерия · +8% скорости захвата',
+  garage:'🔧 Автосервис · +12% времени контроля',
+  bar:'🍺 Бар · +10% стойкости защиты',
+  club:'🎵 Ночной клуб · +15% очков влияния',
+  warehouse:'📦 Склад · +18% стойкости защиты',
+  casino:'🎰 Казино · +25% поступлений в казну',
+  port:'⚓ Порт · +20% времени контроля'
+});
+let _businessWarHud=null;
+function _ensureBusinessWarUi(){
+  if(_businessWarHud)return _businessWarHud;
+  const style=document.createElement('style');style.textContent=`#businessWarHud{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:47;width:min(330px,calc(100vw - 210px));padding:7px 38px 7px 10px;box-sizing:border-box;border:1px solid rgba(255,210,92,.42);border-radius:11px;background:linear-gradient(90deg,rgba(15,13,21,.93),rgba(20,18,14,.93));box-shadow:0 7px 22px rgba(0,0,0,.4);font:800 10px system-ui;color:#fff;pointer-events:auto}.bw-head{display:flex;justify-content:space-between;gap:10px}.bw-score{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:5px}.bw-side{padding:4px 6px;border-radius:7px;background:rgba(255,255,255,.045)}.bw-side b{display:flex;justify-content:space-between}.bw-bar{height:4px;margin-top:4px;border-radius:4px;background:#34313a;overflow:hidden}.bw-bar i{display:block;height:100%}.bw-help{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:25px;height:25px;border:1px solid #ffe16b;border-radius:50%;background:#49370d;color:#ffe87d;font:1000 16px system-ui;cursor:pointer}#businessWarOverlay{position:fixed;inset:0;z-index:170;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,4,9,.8)}#businessWarOverlay.show{display:flex}#businessWarCard{width:min(650px,96vw);max-height:88vh;overflow:auto;padding:18px;border:1px solid #d5a943;border-radius:16px;background:linear-gradient(145deg,#111925,#1b120d);box-shadow:0 20px 70px #000;color:#dae2ef;font:700 12px/1.5 system-ui}#businessWarCard h2{margin:0;color:#ffe07a}.bw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin:12px 0}.bw-biz{padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:9px;background:rgba(255,255,255,.04)}#businessWarClose{float:right;padding:6px 10px;border:1px solid #66758b;border-radius:8px;background:#202b39;color:#fff;font-weight:900;cursor:pointer}@media(max-width:640px){#businessWarHud{width:min(270px,calc(100vw - 128px));font-size:9px}.bw-grid{grid-template-columns:1fr}}`;document.head.appendChild(style);
+  _businessWarHud=document.createElement('div');_businessWarHud.id='businessWarHud';document.body.appendChild(_businessWarHud);
+  _businessWarHud.addEventListener('click',e=>{if(e.target.closest('.bw-help'))_openBusinessWarInfo();});
+  _renderBusinessWarHud();return _businessWarHud;
+}
+function _renderBusinessWarHud(){
+  const ui=_businessWarHud||_ensureBusinessWarUi(),b=_businessWarScore.bellini||{},m=_businessWarScore.moretti||{};
+  const total=Math.max(1,(+b.influence||0)+(+m.influence||0)),bp=Math.round((+b.influence||0)/total*100),mp=100-bp;
+  const lead=(+b.influence||0)===(+m.influence||0)?'Город разделён':(+b.influence||0)>(+m.influence||0)?'Беллини ведут':'Моретти ведут';
+  ui.innerHTML=`<div class="bw-head"><span>⚔️ ВОЙНА БИЗНЕСОВ</span><span>${lead}</span></div><div class="bw-score"><div class="bw-side"><b><span>🖤 Б ${+b.influence||0}</span><span>🏴 ${+b.controlled||0}</span></b><div class="bw-bar"><i style="width:${bp}%;background:#9a72ff"></i></div></div><div class="bw-side"><b><span>🤍 М ${+m.influence||0}</span><span>🏴 ${+m.controlled||0}</span></b><div class="bw-bar"><i style="width:${mp}%;background:#f3efe5"></i></div></div></div><button class="bw-help" title="Как работает война бизнесов">?</button>`;
+}
+function _openBusinessWarInfo(){
+  let ov=document.getElementById('businessWarOverlay');if(!ov){ov=document.createElement('div');ov.id='businessWarOverlay';ov.innerHTML='<div id="businessWarCard"></div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov||e.target.id==='businessWarClose')ov.classList.remove('show');});}
+  const b=_businessWarScore.bellini||{},m=_businessWarScore.moretti||{};
+  const rows=BUSINESS_POIS.map(biz=>`<div class="bw-biz">${BUSINESS_WAR_BONUS_INFO[biz.id]||`${biz.icon||'🏪'} ${biz.name}`}<br><span style="color:#99a8bc">${_robbedBusinessControls[biz.id]?`Сейчас: ${MAFIA_FAMILIES[_robbedBusinessControls[biz.id].mafia_family]?.short||'семья'}`:_businessFamilyWars[biz.id]?'⚔️ идёт открытая война':'нейтральный'}</span></div>`).join('');
+  document.getElementById('businessWarCard').innerHTML=`<button id="businessWarClose">✕ Закрыть</button><h2>⚔️ Война семей за бизнесы</h2><p>Обычные ограбления сохранены. Успешный налёт мафиози временно переводит здание под контроль его семьи: все участники получают доход, семья — влияние и деньги в казну. После таймера начинается открытая война на 3 минуты.</p><p><b style="color:#ffe07a">Как победить:</b> приезжай к отмеченному зданию и оставайся в зоне. Один человек двигает шкалу за 90 секунд; численный перевес ускоряет захват до трёх раз. Бонусы уже захваченных зданий усиливают атаку, защиту, доход или время контроля.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="bw-biz"><b>🖤 Беллини</b><br>Влияние: ${+b.influence||0}<br>Казна: $${(+b.treasury||0).toLocaleString('ru')}<br>Захваты: ${+b.captures||0} · защиты: ${+b.defenses||0}</div><div class="bw-biz"><b>🤍 Моретти</b><br>Влияние: ${+m.influence||0}<br>Казна: $${(+m.treasury||0).toLocaleString('ru')}<br>Захваты: ${+m.captures||0} · защиты: ${+m.defenses||0}</div></div><h3 style="color:#ffe07a">Бонусы зданий</h3><div class="bw-grid">${rows}</div><p style="color:#9faec2">Газета фиксирует крупные налёты, начало войны и победу семьи. Личная покупка бизнеса и прежние награды за ограбление работают как раньше.</p>`;
+  ov.classList.add('show');
+}
+setTimeout(()=>_ensureBusinessWarUi(),900);
 // Локальный визуальный стенд: ?robbed=pizza (или coffee/carwash/...) сразу
 // показывает разрушенное состояние, не проходя три волны охраны. В Telegram
 // параметр игнорируется, серверная механика и реальные кулдауны не меняются.
@@ -21230,6 +21275,8 @@ window.addEventListener('message', (ev) => {
 // ── Toast (короткие уведомления) ────────────────────────────────
 const _toastEl = document.getElementById('toast');
 let _toastT = null;
+const _toastQueue=[];
+let _toastActive=false;
 // Баннер активного захвата — persistent, обновляется каждый кадр пока
 // идёт захват. По окончании скрывается. Отдельный слот ниже #eventBanner —
 // не перекрывает баннер инкассатора и прочее.
@@ -21278,30 +21325,36 @@ function updateCaptureBanner() {
 // текст пришёл в окне 800мс, игнорируем. Защита от очередей событий типа
 // «началась перестрелка» × 5 раз подряд.
 let _toastLast = { txt: '', t: 0 };
+function _finishToast(){
+  if(_toastT){clearTimeout(_toastT);_toastT=null;}
+  _toastEl.classList.remove('show');_toastActive=false;
+  if(_toastQueue.length)setTimeout(_showNextToast,140);
+}
+function _showNextToast(){
+  if(_toastActive||!_toastQueue.length)return;
+  const {msg,ms}=_toastQueue.shift();_toastActive=true;
+  // Если длинный — добавляем крестик закрытия.
+  if(ms>=2500){
+    _toastEl.innerHTML='';
+    const span=document.createElement('span');span.textContent=msg;
+    const x=document.createElement('span');x.className='tx';x.textContent='×';x.title='Закрыть';
+    x.addEventListener('click',_finishToast);
+    _toastEl.appendChild(span);_toastEl.appendChild(x);
+  }else _toastEl.textContent=msg;
+  _toastEl.classList.add('show');
+  _toastT=setTimeout(_finishToast,ms);
+}
 function showToast(msg, iconOrMs = 2200, duration) {
-  const ms = (typeof iconOrMs === 'number') ? iconOrMs : (typeof duration === 'number' ? duration : 2200);
+  const ms=(typeof iconOrMs==='number')?iconOrMs:(typeof duration==='number'?duration:2200);
   const now = performance.now();
   if (msg === _toastLast.txt && (now - _toastLast.t) < 800) return;
   _toastLast = { txt: msg, t: now };
-  // Если длинный — добавляем крестик закрытия
-  if (ms >= 2500) {
-    _toastEl.innerHTML = '';
-    const span = document.createElement('span');
-    span.textContent = msg;
-    const x = document.createElement('span');
-    x.className = 'tx'; x.textContent = '×'; x.title = 'Закрыть';
-    x.addEventListener('click', () => {
-      _toastEl.classList.remove('show');
-      if (_toastT) { clearTimeout(_toastT); _toastT = null; }
-    });
-    _toastEl.appendChild(span);
-    _toastEl.appendChild(x);
-  } else {
-    _toastEl.textContent = msg;
-  }
-  _toastEl.classList.add('show');
-  if (_toastT) clearTimeout(_toastT);
-  _toastT = setTimeout(() => _toastEl.classList.remove('show'), ms);
+  // Единая ограниченная очередь: уведомления больше не перезаписывают и
+  // не накладываются друг на друга во время массовых семейных событий.
+  if(_toastQueue.some(item=>item.msg===msg))return;
+  _toastQueue.push({msg:String(msg||''),ms:Math.max(700,Math.min(6500,ms))});
+  while(_toastQueue.length>6)_toastQueue.shift();
+  _showNextToast();
 }
 
 // ── Лента глобальных событий (для онлайн-новостей) ───────────────
@@ -40926,6 +40979,19 @@ function drawMinimap() {
     ctx2.textBaseline = 'middle';
     ctx2.fillStyle = '#fff';
     ctx2.fillText('☠', x, y);
+  }
+  // Война бизнесов: владельцы и открытые бои видны на мини-карте.
+  for (const biz of BUSINESS_POIS) {
+    const control=_robbedBusinessControls[biz.id],war=_businessFamilyWars[biz.id];
+    const bx=(biz.c+.5)*sx,by=(biz.r+.5)*sy;
+    ctx2.save();
+    if(war){ctx2.fillStyle=`rgba(255,73,73,${.62+.3*tPulse})`;ctx2.strokeStyle='#ffd45d';}
+    else if(control?.mafia_family==='bellini'){ctx2.fillStyle='rgba(142,96,255,.88)';ctx2.strokeStyle='#d5c2ff';}
+    else if(control?.mafia_family==='moretti'){ctx2.fillStyle='rgba(238,235,225,.9)';ctx2.strokeStyle='#8e806c';}
+    else{ctx2.fillStyle='rgba(80,88,101,.72)';ctx2.strokeStyle='rgba(255,215,107,.65)';}
+    ctx2.lineWidth=war?2:1;ctx2.beginPath();ctx2.arc(bx,by,war?4.8:3.4,0,Math.PI*2);ctx2.fill();ctx2.stroke();
+    if(war){ctx2.fillStyle='#1a0808';ctx2.font='bold 7px system-ui';ctx2.textAlign='center';ctx2.textBaseline='middle';ctx2.fillText('⚔',bx,by+.2);}
+    ctx2.restore();
   }
   // Два крупных семейных штаба нельзя потерять на большой карте.
   for (const hq of [
