@@ -60,6 +60,8 @@ RACE_SLOTS = [
 ]
 quest_cars = {}
 preview_accounts = {}
+preview_business_claims = {}
+preview_connections = {}
 preview_apartments = {}
 preview_bank_robs = {}
 preview_bank_bags = {}
@@ -1437,6 +1439,13 @@ async def world_ws(req):
         pass
     ws = web.WebSocketResponse(heartbeat=20)
     await ws.prepare(req)
+    old_ws = preview_connections.get(str(uid))
+    preview_connections[str(uid)] = ws
+    if old_ws is not None and old_ws is not ws:
+        try:
+            await old_ws.close(code=4000, message=b"replaced")
+        except Exception:
+            pass
     clients.add(ws)
     await ws.send_str(json.dumps({
         "t": "hello",
@@ -1643,18 +1652,36 @@ async def world_ws(req):
                 money = {"coffee":600,"carwash":900,"barbershop":1200,"pizza":1500,
                          "garage":1800,"bar":2200,"club":2000,"warehouse":3200,
                          "casino":5000,"port":8000}.get(biz_id,600)
+                choice_token = f"preview-choice-{uid}-{biz_id}-{time.time_ns()}"
+                preview_business_claims[str(uid)] = {
+                    "token": choice_token, "biz_id": biz_id,
+                    "expires_at": time.time() + 90,
+                }
                 await ws.send_str(json.dumps({"t":"event","d":{
                     "kind":"shop_rob_reply","ok":True,"biz_id":biz_id,
                     "money":money,"difficulty":1,"closed_s":300,
                     "mafia_family":"bellini","family_points_gain":10,
-                    "business_choice_token":f"preview-choice-{uid}-{biz_id}",
+                    "business_choice_token":choice_token,
                     "business_choice_s":90,"can_capture":True,"sabotage_s":720
                 }}, ensure_ascii=False))
                 continue
             if t == "business_war_choice":
                 action = str(d.get("action") or "cash")
+                claim = preview_business_claims.get(str(uid)) or {}
+                token = str(d.get("token") or "")
                 account = preview_account(uid)
+                if (action not in ("cash", "sabotage", "capture") or not token
+                        or token != str(claim.get("token") or "")
+                        or float(claim.get("expires_at") or 0) <= time.time()):
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"business_war_choice_reply","ok":False,
+                        "reason":"invalid_choice","biz_id":str(claim.get("biz_id") or "")
+                    }}, ensure_ascii=False))
+                    continue
+                # Reserve before side effects: duplicated packets/tabs cannot spend twice.
+                preview_business_claims.pop(str(uid), None)
                 if action == "sabotage" and int(account["consumables"].get("c4", 0)) <= 0:
+                    preview_business_claims[str(uid)] = claim
                     await ws.send_str(json.dumps({"t":"event","d":{
                         "kind":"business_war_choice_reply","ok":False,
                         "reason":"no_c4","biz_id":"coffee"
@@ -2451,18 +2478,20 @@ async def world_ws(req):
     finally:
         task.cancel()
         clients.discard(ws)
-        leaving = players.get(uid) or {}
-        evidence = leaving.get("police_evidence_bag")
-        if evidence:
-            bag_id = f"bag_preview_{time.time_ns()}"
-            preview_bank_bags[bag_id] = {
-                "id":bag_id, "bank_id":str(evidence.get("bank_id") or ""),
-                "value":int(evidence.get("value") or 0),
-                "x":float(leaving.get("x",0)), "y":float(leaving.get("y",0)),
-                "dropped_at":time.time(), "robber_uid":str(uid),
-            }
-        release_player_cars(uid)
-        players.pop(uid, None)
+        if preview_connections.get(str(uid)) is ws:
+            preview_connections.pop(str(uid), None)
+            leaving = players.get(uid) or {}
+            evidence = leaving.get("police_evidence_bag")
+            if evidence:
+                bag_id = f"bag_preview_{time.time_ns()}"
+                preview_bank_bags[bag_id] = {
+                    "id":bag_id, "bank_id":str(evidence.get("bank_id") or ""),
+                    "value":int(evidence.get("value") or 0),
+                    "x":float(leaving.get("x",0)), "y":float(leaving.get("y",0)),
+                    "dropped_at":time.time(), "robber_uid":str(uid),
+                }
+            release_player_cars(uid)
+            players.pop(uid, None)
     return ws
 
 
