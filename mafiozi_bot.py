@@ -12899,6 +12899,17 @@ class WorldSim:
         'port':    {'name':'Порт','boss':'Марко «Якорь» Беллини',
                     'r':165,'c':38,'guards':22,'total':38,'income':2600},
     }
+    # The casino desk fills the north half of the manager's office. The old
+    # (4, 39) point was visible only from behind that collision box and could
+    # not be reached from the office door. Keep the authoritative interaction
+    # point on the accessible south side of the desk.
+    MAJOR_MANAGER_POSITIONS = {
+        'casino': (7.65, 40.0),
+        'market': (4.0, 29.0),
+        'factory': (4.0, 29.0),
+        'mansion': (4.0, 29.0),
+        'port': (4.0, 29.0),
+    }
     CASINO_PROP_DEFS = {
         'desk': (2.9, 22.0, 180), 'wheel': (7.0, 22.0, 260),
         **{f'slot_{i}': (r, c, 70) for i, (r, c) in enumerate([
@@ -13680,6 +13691,7 @@ class WorldSim:
         active = self.major_assaults.get(object_id)
         if active:
             if str(uid) in active.get('participants', set()):
+                manager_r, manager_c = self.MAJOR_MANAGER_POSITIONS[object_id]
                 return {
                     'kind':'major_assault_reply','ok':True,'resume':True,
                     'object_id':object_id,'phase':active.get('phase'),
@@ -13688,6 +13700,11 @@ class WorldSim:
                     'safes':[dict(s) for s in active.get('safes') or []],
                     'total':int(cfg['total']),'boss_name':cfg['boss'],
                     'participants':list(active.get('participants') or []),
+                    'manager': {
+                        'id':f'major_boss_{object_id}','name':cfg['boss'],
+                        'r':manager_r,'c':manager_c,
+                        'pressure':int(active.get('pressure') or 0),
+                    },
                 }
             return {'kind':'major_assault_reply','ok':False,'reason':'busy',
                     'object_id':object_id,'by_name':active.get('by_name')}
@@ -13739,11 +13756,16 @@ class WorldSim:
             } for index in range(4 if object_id == 'mansion' else 3)],
         }
         self.major_assaults[object_id] = raid
+        manager_r, manager_c = self.MAJOR_MANAGER_POSITIONS[object_id]
         return {
             'kind':'major_assault_reply','ok':True,'object_id':object_id,
             'phase':'guards','guards':guards,'total':int(cfg['total']),
             'boss_name':cfg['boss'],'participants':list(participants),
             'safes':raid['safes'],
+            'manager': {
+                'id':f'major_boss_{object_id}','name':cfg['boss'],
+                'r':manager_r,'c':manager_c,'pressure':0,
+            },
         }
 
     def major_guard_hit(self, uid: str, object_id: str, guard_id: str,
@@ -13784,12 +13806,18 @@ class WorldSim:
                 raid['spawned'] = slot + 1
             elif not any(row.get('alive') for row in raid.get('guards', [])):
                 raid['phase'] = 'boss'
+        manager_r, manager_c = self.MAJOR_MANAGER_POSITIONS[object_id]
         return {
             'kind':'major_guard_hit','ok':True,'object_id':object_id,
             'guard_id':guard_id,'hp':guard['hp'],'alive':guard['alive'],
             'phase':raid['phase'],'spawned':raid['spawned'],
             'new_guard':new_guard,
             'alive_count':sum(1 for row in raid['guards'] if row.get('alive')),
+            'manager': ({
+                'id':f'major_boss_{object_id}','name':cfg['boss'],
+                'r':manager_r,'c':manager_c,
+                'pressure':int(raid.get('pressure') or 0),
+            } if raid.get('phase') == 'boss' else None),
         }
 
     def major_prop_hit(self, uid: str, object_id: str, prop_id: str,
@@ -13857,9 +13885,9 @@ class WorldSim:
                 or player.get('_major_interior') != object_id):
             return {'kind':'major_boss_pressure','ok':False,
                     'reason':'guards_alive','object_id':object_id}
-        interior_w = 44 if object_id == 'casino' else 34
-        if ((float(player.get('_interior_y') or 0) - 4.0) ** 2
-                + (float(player.get('_interior_x') or 0) - float(interior_w - 5)) ** 2
+        manager_r, manager_c = self.MAJOR_MANAGER_POSITIONS[object_id]
+        if ((float(player.get('_interior_y') or 0) - manager_r) ** 2
+                + (float(player.get('_interior_x') or 0) - manager_c) ** 2
                 > 4.2 ** 2):
             return {'kind':'major_boss_pressure','ok':False,
                     'reason':'too_far','object_id':object_id}
@@ -14138,14 +14166,19 @@ class WorldSim:
         if interior_kind in ('bank', 'building'):
             p.pop('_business_interior', None)
             p.pop('_business_private', None)
-            p.pop('_interior_x', None)
-            p.pop('_interior_y', None)
+            try:
+                p['_interior_x'] = max(
+                    0.0, min(60.0, float(interior.get('x', 0))))
+                p['_interior_y'] = max(
+                    0.0, min(60.0, float(interior.get('y', 0))))
+            except (TypeError, ValueError):
+                return
             p['_in_interior'] = True
             p['_in_interior_until'] = time.time() + 30.0
             p['_input_t'] = time.time()
             p['last_seen'] = time.time()
             p['ang'] = float(d.get('ang', p.get('ang', 0.0)))
-            p['walking'] = False
+            p['walking'] = bool(d.get('w', False))
             p['_weapon'] = str(d.get('weapon') or p.get('_weapon') or 'pistol')[:32]
             return
         if p.get('_business_interior'):
@@ -16963,10 +16996,11 @@ class WorldSim:
                 'look':     {
                     'gender': 0,
                     'skin':   random.choice([0,2,3]) if faction == 'yellow' else random.choice([1,2,3]),
-                    'body':   4 if faction == 'yellow' else 2, 'face': random.choice([0,1,2]),
+                    'body':   3 if faction == 'yellow' else 2, 'face': random.choice([0,1,2]),
                     'hair':   random.choice([0,1,3]),
                     'hat':    2 if faction == 'yellow' else 4,
                     'gang':   2 if faction == 'yellow' else 1,
+                    **({'suit':'#f3efe5'} if faction == 'yellow' else {}),
                 },
             })
         gang = {
@@ -17571,10 +17605,11 @@ class WorldSim:
                 'look':     {
                     'gender': 0,
                     'skin':   random.choice([0,2,3]) if faction == 'yellow' else random.choice([1,2,3]),
-                    'body':   4 if faction == 'yellow' else 2, 'face': random.choice([0,1,2]),
+                    'body':   3 if faction == 'yellow' else 2, 'face': random.choice([0,1,2]),
                     'hair':   random.choice([0,1,3]),
                     'hat':    2 if faction == 'yellow' else 4,
                     'gang':   2 if faction == 'yellow' else 1,
+                    **({'suit':'#f3efe5'} if faction == 'yellow' else {}),
                 },
             })
         if not bots:
@@ -23775,9 +23810,7 @@ async def _coop_http_app():
                         elif not session_ok:
                             reply = {'ok': False, 'reason': 'invalid_session'}
                         elif (len(session['guards_down']) < int(session['guard_count']) or
-                              float(session.get('owner_pressure') or 0) < 70 or
-                              time.time() - float(session.get('started_at') or 0) <
-                              max(3.0, int(session['guard_count']) * 0.75)):
+                              float(session.get('owner_pressure') or 0) < 70):
                             reply = {'ok': False, 'reason': 'not_pressured'}
                         else:
                             if not business_robber_at_cashier(p, biz_id):

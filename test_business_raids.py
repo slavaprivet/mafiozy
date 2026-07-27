@@ -88,8 +88,9 @@ async def run_business_cycle(ws, uid, biz_id, expected_attempt, expected_guards)
     assert session["owner_pressure"] == 99
     assert session["owner_hit_seq"] == 3
 
-    # Не ждём реальное боевое время в автоматическом тесте.
-    session["started_at"] -= max(4, expected_guards)
+    # Как только вся охрана мертва и давление достигло порога, касса должна
+    # выдаваться сразу. Скрытый таймер раньше ошибочно отклонял быстрый,
+    # но полностью честный бой ответом «сначала устрани охрану».
     cash_before = game.preview_account(uid)["cash"]
     await ws.send_json({
         "t": "shop_rob",
@@ -114,6 +115,10 @@ async def run_casino_capture(ws, uid):
     started = await recv_kind(ws, "major_assault_reply")
     assert started["ok"], started
     assert started["phase"] == "guards"
+    manager = started["manager"]
+    assert (manager["r"], manager["c"]) == (
+        game.PREVIEW_MAJOR_MANAGER_POSITIONS["casino"]
+    )
 
     await send_world_input(
         ws,
@@ -141,6 +146,11 @@ async def run_casino_capture(ws, uid):
     raid = game.preview_major_raids["casino"]
     assert raid["phase"] == "boss"
     assert raid["spawned"] == cfg["total"]
+    assert hit["phase"] == "boss"
+    assert hit["manager"]["id"] == "major_boss_casino"
+    assert (hit["manager"]["r"], hit["manager"]["c"]) == (
+        game.PREVIEW_MAJOR_MANAGER_POSITIONS["casino"]
+    )
 
     safe = raid["safes"][0]
     await send_world_input(
@@ -167,7 +177,12 @@ async def run_casino_capture(ws, uid):
         ws,
         x=cfg["c"],
         y=cfg["r"],
-        interior={"kind": "major", "object_id": "casino", "x": 39, "y": 4},
+        interior={
+            "kind": "major",
+            "object_id": "casino",
+            "x": manager["c"],
+            "y": manager["r"],
+        },
     )
     pressure_steps = []
     for _ in range(5):
@@ -200,6 +215,20 @@ async def main():
     ws = await client.ws_connect(f"/world/sim?uid={uid}")
     await ws.receive()
     try:
+        # Обычные здания и банки используют локальные координаты комнаты.
+        # Сервер обязан хранить каждый шаг, а не оставлять игрока в старой
+        # наружной точке — иначе после синхронизации его отбрасывает назад.
+        await send_world_input(
+            ws,
+            x=41,
+            y=42,
+            interior={"kind": "building", "x": 8.25, "y": 6.75},
+        )
+        interior_player = game.players[uid]
+        assert interior_player["in_interior"]
+        assert interior_player["interior_x"] == 8.25
+        assert interior_player["interior_y"] == 6.75
+
         results = []
         for attempt, guards in ((1, 2), (2, 5), (3, 8)):
             results.append(

@@ -4891,6 +4891,81 @@ const MAJOR_GUARD_PATROL_LINES = [
   'Внимание на VIP-зону.',
   'Обхожу зал.',
 ];
+const BUSINESS_GUARD_IDLE_LINES = [
+  'Периметр чист.', 'Всё спокойно.', 'Держу вход.',
+  'Проверяю двор.', 'Пост под контролем.', 'Ни шагу без доклада.',
+];
+const BUSINESS_GUARD_COMBAT_LINES = [
+  'Контакт!', 'Прижать их!', 'Держим вход!', 'Работаем!',
+  'Не отступать!', 'Прикрываю!',
+];
+const BUSINESS_RAIDER_COMBAT_LINES = [
+  'Забираем точку!', 'Дави охрану!', 'Вперёд!', 'Не тормозить!',
+  'Обходим справа!', 'Огонь!',
+];
+const _businessDefenseChat = new Map();
+
+function _majorManagerSpec(d = {}) {
+  const objectId = d.object_id || _majorInteriorObjectId;
+  const cfg = BUSINESS_INTERIORS[`major_${objectId}`] || {};
+  const manager = d.manager || {};
+  const casino = objectId === 'casino';
+  return {
+    id: manager.id || `major_boss_${objectId}`,
+    name: manager.name || d.boss_name || cfg.manager || 'Главарь',
+    r: Number.isFinite(+manager.r) ? +manager.r : (casino ? 7.65 : 4),
+    c: Number.isFinite(+manager.c) ? +manager.c :
+      (casino ? 40 : ((_buildingInt?.W || 34) - 5)),
+    pressure: Math.max(0, Math.min(100, +manager.pressure || 0)),
+  };
+}
+
+function _spawnMajorManager(d = {}) {
+  if (!_buildingInt) return null;
+  const spec = _majorManagerSpec(d);
+  let boss = (_buildingInt.npcs || []).find(n => n.majorBoss);
+  if (!boss) {
+    boss = {
+      id:spec.id, majorBoss:true,
+      r:spec.r, c:spec.c, tr:spec.r, tc:spec.c,
+      ang:Math.PI, walkPhase:0, walking:false, name:spec.name, role:'manager',
+      fixed:true, hp:200, maxHp:200,
+      look:{gender:0,skin:1,body:2,face:3,hair:2,hat:3,suit:'#411b20'},
+      idleUntil:Infinity, speed:0,
+    };
+    _buildingInt.npcs.push(boss);
+  } else {
+    Object.assign(boss, {r:spec.r,c:spec.c,tr:spec.r,tc:spec.c,
+      name:spec.name,dead:false,fixed:true});
+  }
+  boss._majorPressure = spec.pressure;
+  boss._sayText = 'Охраны больше нет. Чего вы хотите?';
+  boss._sayUntil = performance.now() + 3200;
+  return boss;
+}
+
+function _idleBusinessGuardPose(biz, index, now = performance.now()) {
+  const seed = index * 1.913 + String(biz.id).length * .731;
+  const orbit = 1.32 + (index % 3) * .42;
+  const speed = .00018 + (index % 4) * .000017;
+  const cycle = now * speed + seed;
+  const paused = Math.sin(cycle * 2.15 + seed) > .78;
+  const angle = paused ? Math.round(cycle / .42) * .42 : cycle;
+  const squash = .72 + ((index * 7) % 5) * .07;
+  return {
+    id:`idle_${biz.id}_${index}`,
+    x:biz.c + .5 + Math.cos(angle) * orbit,
+    y:biz.r + .5 + Math.sin(angle) * orbit * squash,
+    ang:angle + Math.PI / 2 +
+      (paused ? Math.sin(now * .0015 + seed) * .8 : 0),
+    hp:100, max_hp:100, weapon:'pistol',
+    act:paused ? 'idle' : 'walk',
+    walkPhase:paused ? 0 : now * .011 + index * .73,
+    say:paused && Math.sin(now * .00031 + seed) > .965
+      ? BUSINESS_GUARD_IDLE_LINES[index % BUSINESS_GUARD_IDLE_LINES.length]
+      : '',
+  };
+}
 
 function _syncMajorAssaultStart(d) {
   if (Array.isArray(d.participants) &&
@@ -4948,15 +5023,7 @@ function _syncMajorAssaultStart(d) {
     };
   });
   if (_majorRaidLocal.phase === 'boss') {
-    const bossName = BUSINESS_INTERIORS[`major_${d.object_id}`]?.manager || 'Главарь';
-    _buildingInt.npcs.push({
-      id:`major_boss_${d.object_id}`, majorBoss:true,
-      r:4, c:_buildingInt.W-5, tr:4, tc:_buildingInt.W-5,
-      ang:Math.PI, walkPhase:0, walking:false, name:bossName, role:'manager',
-      fixed:true, hp:200, maxHp:200,
-      look:{gender:0,skin:1,body:2,face:3,hair:2,hat:3,suit:'#411b20'},
-      idleUntil:performance.now()+999999, speed:0,
-    });
+    _spawnMajorManager(d);
   }
 }
 
@@ -11292,21 +11359,26 @@ function drawOwnedBusinessWorldMarkers(r0, r1, c0, c1) {
     ctx.fillStyle = occupied ? '#ffd7da' : '#e5ffeb'; ctx.fillText(label,p.x,y);
     ctx.restore();
     const liveNest = (gangNests || []).find(ne => _gangNestBusinessId(ne) === String(biz.id));
-    const guards = occupied && liveNest?.guards?.length
-      ? liveNest.guards
-      : Array.from({length: Math.max(0, Math.min(6, +own.guards || 0))}, (_, i) => {
-          const a = i * Math.PI * 2 / Math.max(1, +own.guards || 1);
-          return {x:biz.c+.5+Math.cos(a)*1.45,y:biz.r+.5+Math.sin(a)*1.45,
-            ang:a+Math.PI,hp:100,max_hp:100,weapon:'pistol'};
-        });
+    // During an occupation the server is authoritative, including an empty
+    // defender list. Never resurrect decorative guards after the last real
+    // defender has died.
+    const guards = occupied
+      ? (liveNest ? (liveNest.guards || []) : [])
+      : Array.from(
+          {length: Math.max(0, Math.min(6, +own.guards || 0))},
+          (_, i) => _idleBusinessGuardPose(biz, i));
     for (const [i, guard] of guards.entries()) {
       const gp = w2s(+guard.y, +guard.x);
       const look = {gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%3,hat:5,suit:'#18314a'};
       const guardAng = +guard.ang || 0;
-      const guardWalk = guard.act === 'walk'
-        ? performance.now() * .012 + i * .7 : 0;
+      const guardWalk = Number.isFinite(+guard.walkPhase)
+        ? +guard.walkPhase
+        : (guard.act === 'walk' ? performance.now() * .012 + i * .7 : 0);
       const guardShotAt = _businessDefenseShotAt.get(String(guard.id)) || 0;
-      drawPerson(gp.x, gp.y, guardAng, look, guardWalk, '🛡 ОХРАННИК', null, false,
+      const combatChat = _businessDefenseChat.get(String(guard.id));
+      const chat = combatChat && combatChat.until > performance.now()
+        ? combatChat.text : (guard.say || null);
+      drawPerson(gp.x, gp.y, guardAng, look, guardWalk, '🛡 ОХРАННИК', chat, false,
         +guard.hp || 100, +guard.max_hp || 100, false, 0, false, false);
       drawWeaponInHands(gp.x, gp.y, guardAng,
         guard.weapon || 'pistol', 0.88, guardShotAt);
@@ -12105,7 +12177,11 @@ function _resolveGangAlertTarget(m) {
   const id = m._threatId, kind = m._threatKind, direct = m._threatRef;
   const alive = ref => ref && ref.dead !== true && ref.alive !== false && ref.hp !== 0 && !ref._wrecked;
   if (kind === 'bank_guard' && _bankInt && direct && alive(direct)) return { kind, ref: direct, id };
-  if (kind === 'interior_guard' && _buildingInt?.robbery && direct?.role === 'biz_guard' && alive(direct)) return { kind, ref: direct, id };
+  if (kind === 'interior_guard' && direct && alive(direct) &&
+      ((_buildingInt?.robbery && direct.role === 'biz_guard') ||
+       (_majorInteriorObjectId && direct.majorGuard))) {
+    return { kind, ref: direct, id:id ?? direct.id };
+  }
   if (kind === 'city_cop' && direct && direct.alive) return { kind, ref: direct, id: id || direct.id };
   if (kind === 'gang_car' && direct && !direct._wrecked) return { kind, ref: direct, id: id || direct.id };
   if (kind === 'street_npc' && direct && alive(direct)) return { kind, ref: direct, id };
@@ -12152,8 +12228,9 @@ function _resolveGangAlertTarget(m) {
     if (e) take('convoy', e, e.id, e.y, e.x);
   for (const [uid, o] of others) take('player', o, uid, o.y, o.x);
   if (_bankInt) for (const n of (_bankInt.npcs || [])) take('bank_guard', n, _bankInt.npcs.indexOf(n), n.r, n.c);
-  if (_buildingInt?.robbery) for (const n of (_buildingInt.npcs || [])) {
-    if (n.role === 'biz_guard') take('interior_guard', n, _buildingInt.npcs.indexOf(n), n.r, n.c);
+  if (_buildingInt?.robbery || _majorInteriorObjectId) for (const n of (_buildingInt.npcs || [])) {
+    if (n.role === 'biz_guard' || n.majorGuard)
+      take('interior_guard', n, n.id || _buildingInt.npcs.indexOf(n), n.r, n.c);
   }
   return best;
 }
@@ -12173,7 +12250,19 @@ function _findGangCompanionTarget(m) {
     }
     return best ? { kind: 'bank_guard', ref: best } : null;
   }
-  if (_buildingInt) return null;
+  if (_buildingInt) {
+    if (!_majorInteriorObjectId) return null;
+    let best=null,bestD=GANG_ENGAGE_R;
+    for(const guard of (_buildingInt.npcs||[])){
+      if(!guard?.majorGuard||guard.dead||(+guard.hp||0)<=0)continue;
+      if(!guard._alerted&&!_majorRaidLocal?.combatStarted)continue;
+      const d=Math.hypot(guard.r-m.r,guard.c-m.c);
+      if(d<bestD&&_casinoLineClear(_buildingInt,m.r,m.c,guard.r,guard.c)){
+        bestD=d;best=guard;
+      }
+    }
+    return best?{kind:'interior_guard',ref:best,id:best.id}:null;
+  }
   let bestCop = null, bestCopD = GANG_ENGAGE_R;
   for (const c of cityCops) {
     if (!c.alive || !c._pursuing) continue;
@@ -12315,7 +12404,10 @@ function _updateGang(dt) {
     if (m.targetKind === 'bank_guard') {
       stillValid = !!(_bankInt && m.targetRef && !m.targetRef.dead && m.targetRef.state !== 'fled');
     } else if (m.targetKind === 'interior_guard') {
-      stillValid = !!(_buildingInt?.robbery && m.targetRef?.role === 'biz_guard' && !m.targetRef.dead);
+      stillValid = !!(_buildingInt && m.targetRef && !m.targetRef.dead &&
+        (+m.targetRef.hp||0)>0 &&
+        ((_buildingInt.robbery && m.targetRef.role === 'biz_guard') ||
+         (_majorInteriorObjectId && m.targetRef.majorGuard)));
     } else if (m.targetKind === 'city_cop') {
       stillValid = !!(m.targetRef && m.targetRef.alive && m.targetRef._pursuing);
     } else if (m.targetKind === 'gang_car') {
@@ -12348,7 +12440,8 @@ function _updateGang(dt) {
     if (!m.targetKind) {
       // Банда не начинает бой самостоятельно. Цель появляется только после
       // выстрела игрока или после попадания врага по игроку (_gangAlertThreat).
-      const found = _resolveGangAlertTarget(m);
+      const found = _resolveGangAlertTarget(m) ||
+        (_majorRaidLocal?.combatStarted ? _findGangCompanionTarget(m) : null);
       if (found) {
         m.targetKind = found.kind;
         m.targetRef  = found.ref;
@@ -12413,8 +12506,10 @@ function _updateGang(dt) {
       const killed=targetWasAlive&&!!(localTarget&&(localTarget.dead||localTarget.alive===false||(+localTarget.hp||0)<=0||localTarget._wrecked));
       _awardGangXp(m,dmg,killed,+localTarget?.level||1);
     }
-    // Ответный огонь — 25% шанс получить урон
-    if (Math.random() < 0.25) {
+    // В казино ответный урон приходит от настоящей пули конкретного
+    // охранника. Старый случайный самоурон после собственного выстрела
+    // оставляем только для упрощённых боёв вне major-интерьера.
+    if (!_majorInteriorObjectId && Math.random() < 0.25) {
       const retDmg = 5 + Math.floor(Math.random() * 8);
       m.hp -= retDmg;
       _gangSay(m, 'hit', 0.62, true);
@@ -14607,15 +14702,7 @@ function handleEventPacket(d) {
     _majorRaidLocal.phase = d.phase || _majorRaidLocal.phase;
     if (d.phase === 'boss' && _buildingInt &&
         !_buildingInt.npcs.some(n => n.majorBoss)) {
-      const bossName = BUSINESS_INTERIORS[`major_${d.object_id}`]?.manager || 'Главарь';
-      _buildingInt.npcs.push({
-        id:`major_boss_${d.object_id}`, majorBoss:true,
-        r:4, c:_buildingInt.W-5, tr:4, tc:_buildingInt.W-5,
-        ang:Math.PI, walkPhase:0, walking:false, name:bossName, role:'manager',
-        fixed:true, hp:200, maxHp:200,
-        look:{gender:0,skin:1,body:2,face:3,hair:2,hat:3,suit:'#411b20'},
-        idleUntil:performance.now()+999999, speed:0,
-      });
+      _spawnMajorManager(d);
       showEventBanner('ГЛАВАРЬ ОСТАЛСЯ ОДИН',
         'Стреляй рядом с ним, чтобы повышать давление', 3600, 'win');
     }
@@ -15016,6 +15103,14 @@ function handleEventPacket(d) {
     spawnMuzzle(sR, sC, ang, weapon, true);
     spawnImpact(tR, tC, weapon, true);
     _businessDefenseShotAt.set(String(d.shooter_id || ''), performance.now());
+    const combatLines = d.side === 'guard'
+      ? BUSINESS_GUARD_COMBAT_LINES : BUSINESS_RAIDER_COMBAT_LINES;
+    if (d.shooter_id && Math.random() < .34) {
+      _businessDefenseChat.set(String(d.shooter_id), {
+        text:combatLines[Math.floor(Math.random()*combatLines.length)],
+        until:performance.now()+1250,
+      });
+    }
     const liveNest = (gangNests || []).find(ne =>
       String(ne.id) === String(d.id));
     if (liveNest && d.side === 'raider') {
@@ -15033,6 +15128,18 @@ function handleEventPacket(d) {
         if (!bot) continue;
         bot.hp = Math.max(0, +d.hp || 0);
         if (d.killed) bot.alive = false;
+        break;
+      }
+    } else {
+      for (const zone of Object.values(aggroZones || {})) {
+        const shooter = (zone?.bots || []).find(b =>
+          String(b.id) === String(d.shooter_id));
+        if (!shooter) continue;
+        const line = _businessDefenseChat.get(String(d.shooter_id));
+        if (line) {
+          shooter.threat = line.text;
+          shooter.threat_in = 2;
+        }
         break;
       }
     }
@@ -16424,6 +16531,11 @@ function wsConnect() {
     wsFailStreak = 0;
     setConnecting(null);
     setError(null);
+    // On reconnect the server creates a fresh player row at its default
+    // spawn. Publish the client's current world/interior position before the
+    // first snapshot can reconcile against that temporary spawn; otherwise a
+    // player who was already walking gets rubber-banded backwards.
+    sendInput(true);
   };
   socket.onmessage = (ev) => {
     let pkt; try { pkt = JSON.parse(ev.data); } catch(e) { return; }
@@ -22177,10 +22289,22 @@ function _sendRemoteWeaponHit(remote, weapon) {
   try {
     if (remote.kind === 'event') ws && ws.send(JSON.stringify({ t:'event_shoot', d:{ target:remote.id, weapon } }));
     else if (remote.kind === 'cop') ws && ws.send(JSON.stringify({ t:'cop_shoot', d:{ target:remote.id, weapon } }));
-    else if (remote.kind === 'aggro') ws && ws.send(JSON.stringify({ t:'aggro_shoot', d:{ target:remote.id, weapon } }));
+    else if (remote.kind === 'aggro') _sendAggroWeaponHit(remote.id, weapon);
     else if (remote.kind === 'mg') ws && ws.send(JSON.stringify({ t:'mg_shoot', d:{ target:remote.id, weapon } }));
     else if (remote.kind === 'player') ws && ws.send(JSON.stringify({ t:'player_shoot', d:{ target_uid:remote.id, weapon } }));
   } catch(e) {}
+}
+
+function _sendAggroWeaponHit(targetId, weapon) {
+  if (!targetId || !ws || ws.readyState !== 1) return;
+  // Проверка дальности и LOS выполняется сервером по последней известной
+  // позиции игрока. Перед попаданием ставим в WS-очередь свежий input:
+  // иначе после быстрого движения/переподключения сервер мог молча
+  // отклонить честный выстрел, считая расстояние от предыдущей точки.
+  sendInput(true);
+  ws.send(JSON.stringify({t:'aggro_shoot',d:{
+    target:String(targetId),weapon:weapon || currentWeapon,
+  }}));
 }
 
 function _remoteBallisticTarget(chosenConvoy, chosenCop, chosenAggro, chosenMg, pvpTarget) {
@@ -22872,8 +22996,7 @@ function fire(angle = null) {
     spawnBullet(sR, sC, chosenAggro.y, chosenAggro.x,
       { hit: true, fromPlayer: true, weapon: currentWeapon });
     try {
-      ws && ws.send(JSON.stringify({ t: 'aggro_shoot',
-        d: { target: chosenAggro.id, weapon: currentWeapon } }));
+      _sendAggroWeaponHit(chosenAggro.id, currentWeapon);
     } catch(e) {}
     return;
   }
@@ -25001,6 +25124,10 @@ function update(dt) {
     }
     updateGtaInteractions();
     updateZoneBtn();
+    // Этот interior-блок завершается раньше общего sendInput() внизу update().
+    // Без отдельной отправки сервер продолжал хранить наружную точку входа,
+    // и очередная синхронизация/переподключение отбрасывала игрока назад.
+    sendInput();
     return;
   }
   // ── ИНТЕРЬЕР БАНКА: отдельная физика и управление ──
@@ -25090,6 +25217,9 @@ function update(dt) {
     // где раньше был единственный вызов _updateGang(dt) — банда физически
     // не двигалась и не стреляла всё время, пока игрок внутри банка.
     _updateGang(dt);
+    // Как и обычное здание, банк выходит из update() до общего sendInput().
+    // Держим сервер в курсе текущего interior-состояния и направления ходьбы.
+    sendInput();
     return;
   }
 
@@ -32488,12 +32618,18 @@ function drawAggroBot(bot) {
   const p = w2s(bot.y + 0.5, bot.x + 0.5);
   const isElite = bot.kind === 'aggro_elite';
   const isBoss = (bot.kind === 'aggro_boss' || bot.kind === 'district_boss');
-  const look   = bot.look || (isBoss ? _AGGRO_BOSS_LOOK : _AGGRO_GRUNT_LOOK);
+  const baseLook = bot.look || (isBoss ? _AGGRO_BOSS_LOOK : _AGGRO_GRUNT_LOOK);
   // Activity городских банд — если не 'walk', стоят на месте (не качаемся).
   const act = bot.act || 'idle';
   const isCityGang = String(bot.id || '').startsWith('cgbot');
-  const faction = bot.faction || (look.gang === 2 ? 'yellow' : 'purple');
+  const faction = bot.faction || (baseLook.gang === 2 ? 'yellow' : 'purple');
   const isYellowGang = isCityGang && faction === 'yellow';
+  // У жёлтой группировки собственный узнаваемый образ: дорогой белый
+  // костюм вместо перекрашенной стандартной формы. Клиентская нормализация
+  // также обновляет бойцов, созданных старым серверным payload.
+  const look = isYellowGang
+    ? Object.assign({}, baseLook, {body:3,hat:2,gang:2,suit:'#f3efe5'})
+    : baseLook;
   const walkPhase = act === 'walk'
     ? (performance.now() * 0.008) % (Math.PI * 2)
     : 0;
@@ -32625,18 +32761,6 @@ function drawAggroBot(bot) {
   ctx.fillStyle='#ffd76b';ctx.shadowColor='#000';ctx.shadowBlur=3;
   ctx.fillText(`${Math.max(1,Math.min(25,parseInt(bot.level)||1))} ур.`,p.x,badgeY-badgeR-2);ctx.restore();
   if(bot.kind==='district_boss'&&bot.boss_name){ctx.font='900 10px system-ui,sans-serif';ctx.fillStyle='#ffcf55';ctx.fillText(bot.boss_name,p.x,p.y-68);}
-  if (isYellowGang) {
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.font = '900 9px system-ui,sans-serif';
-    ctx.fillStyle = '#ffe44f';
-    ctx.strokeStyle = 'rgba(0,0,0,.9)';
-    ctx.lineWidth = 3;
-    ctx.strokeText('ЖЁЛТАЯ БАНДА', p.x, p.y - 60);
-    ctx.fillText('ЖЁЛТАЯ БАНДА', p.x, p.y - 60);
-    ctx.restore();
-  }
   if(bot.kind==='district_boss'||bot.kind==='district_guard'){
     const hp=Math.max(0,+bot.hp||0),maxHp=Math.max(1,+bot.max_hp||1),bw=isBoss?48:40;
     const by=p.y-(isBoss?86:58);
@@ -44282,7 +44406,10 @@ function _spawnInteriorNpcs(bi) {
       const casinoOwner=bi.npcs.find(n=>n.role==='manager'||n.role==='owner');
       if(casinoOwner){
         casinoOwner.r=casinoOwner.tr=4.35;
-        casinoOwner.c=casinoOwner.tc=17.4;
+        // Stand beside the cashier counter on the customer-facing side.
+        // The old point at c=17.4 put the manager behind the jackpot wheel,
+        // so only his floating crown/name remained visible.
+        casinoOwner.c=casinoOwner.tc=26.35;
         casinoOwner.ang=0;
         casinoOwner.fixed=true;
       }
@@ -44586,29 +44713,75 @@ function _updateCasinoGuardPatrol(bi,n,now,dt) {
   }
 }
 
-function _fireInteriorGuardRound(bi,n,damage,hitChance=.72) {
-  if(!bi||!n||n.dead||myDead)return;
-  const dr=player.r-n.r,dc=player.c-n.c,dist=Math.hypot(dr,dc)||1;
+function _hurtGangMemberInInterior(member,damage,source='охрана казино') {
+  if(!member||member.hp<=0)return;
+  const dealt=Math.max(1,Math.round(damage||1));
+  member.hp=Math.max(0,member.hp-dealt);
+  member._hurtUntil=performance.now()+360;
+  _gangSay(member,'hit',.72,true);
+  spawnFloatText(member.r-.3,member.c,`−${dealt}`,
+    {color:'#ff6644',size:12,life:900});
+  if(member.hp<=0){
+    showToast(`💀 ${member.name} погиб!`,'☠️',2200);
+    if(_buildingInt){
+      _buildingInt.npcs.push({
+        id:`fallen_gang_${member.id}_${Date.now()}`,
+        name:member.name,look:Object.assign({},member.look||{}),
+        r:member.r,c:member.c,tr:member.r,tc:member.c,ang:member.ang||0,
+        hp:0,maxHp:member.max_hp||80,dead:true,deadAt:performance.now(),
+        walking:false,walkPhase:0,_allied:true,role:'fallen_gang',
+      });
+    }
+  }
+  _saveGang();
+}
+
+function _majorGuardCombatTarget(bi,n) {
+  let best=myDead?null:{kind:'player',r:player.r,c:player.c,ref:null};
+  let bestD=best?Math.hypot(player.r-n.r,player.c-n.c):Infinity;
+  for(const member of _myGang){
+    if(!member||member.hp<=0)continue;
+    const d=Math.hypot(member.r-n.r,member.c-n.c);
+    if(d<bestD-.35&&_casinoLineClear(bi,n.r,n.c,member.r,member.c)){
+      best={kind:'gang',r:member.r,c:member.c,ref:member};bestD=d;
+    }
+  }
+  return best;
+}
+
+function _fireInteriorGuardRound(bi,n,damage,hitChance=.72,target=null) {
+  if(!bi||!n||n.dead)return;
+  const victim=target||{kind:'player',r:player.r,c:player.c,ref:null};
+  if(victim.kind==='player'&&myDead)return;
+  if(victim.kind==='gang'&&(!victim.ref||victim.ref.hp<=0))return;
+  const dr=victim.r-n.r,dc=victim.c-n.c,dist=Math.hypot(dr,dc)||1;
   const hit=Math.random()<hitChance;
   const missOffset=1.15+Math.random()*1.55;
   const side=Math.random()<.5?-1:1;
-  const targetR=hit?player.r:player.r-dc/dist*missOffset*side;
-  const targetC=hit?player.c:player.c+dr/dist*missOffset*side;
+  const targetR=hit?victim.r:victim.r-dc/dist*missOffset*side;
+  const targetC=hit?victim.c:victim.c+dr/dist*missOffset*side;
   const muzzle=_npcMuzzleWorldPoint(n.r,n.c,n.ang,n.weapon,.88);
   spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);
   spawnBullet(muzzle.r,muzzle.c,targetR,targetC,
     {hit,fromNpc:true,weapon:n.weapon});
+  if(_majorInteriorObjectId)
+    _gangAlertThreat(n.r,n.c,n.id,'interior_guard',n);
   if(!hit)return;
   const speed=weaponProfile(n.weapon).bulletSpeed||BULLET_SPEED;
   const flightMs=Math.max(35,Math.min(700,
     Math.hypot(targetR-muzzle.r,targetC-muzzle.c)/speed*1000));
   setTimeout(()=>{
-    if(_buildingInt!==bi||myDead)return;
-    if(Math.hypot(player.r-targetR,player.c-targetC)>.72)return;
+    if(_buildingInt!==bi)return;
+    const currentR=victim.kind==='gang'?victim.ref?.r:player.r;
+    const currentC=victim.kind==='gang'?victim.ref?.c:player.c;
+    if(victim.kind==='player'&&myDead)return;
+    if(victim.kind==='gang'&&(!victim.ref||victim.ref.hp<=0))return;
+    if(Math.hypot(currentR-targetR,currentC-targetC)>.72)return;
     if(bi.bizId==='major_casino'&&
-       !_casinoLineClear(bi,muzzle.r,muzzle.c,player.r,player.c))return;
+       !_casinoLineClear(bi,muzzle.r,muzzle.c,currentR,currentC))return;
     spawnImpact(targetR,targetC,n.weapon,true);
-    _hurtLocal(damage,`охрана ${BUSINESS_INTERIORS[bi.bizId]?.title||'объекта'}`,true);
+    if(victim.kind==='gang')_hurtGangMemberInInterior(victim.ref,damage);
+    else _hurtLocal(damage,`охрана ${BUSINESS_INTERIORS[bi.bizId]?.title||'объекта'}`,true);
   },flightMs);
 }
 
@@ -44696,13 +44869,17 @@ function _updateInteriorNpcs(bi, dt) {
         n._sayText = 'СТОЙ! ТЫ КТО ТАКОЙ?';
         n._sayUntil = now + 1500;
       }
+      const combatTarget=_majorGuardCombatTarget(bi,n);
+      if(!combatTarget)continue;
+      dr=combatTarget.r-n.r;dc=combatTarget.c-n.c;
+      dist=Math.hypot(dr,dc)||1;
       n.ang=Math.atan2(dr,dc);n._hostile=true;
       if(now>=(n._combatMoveUntil||0)){
         n._combatMoveUntil=now+700+Math.random()*1000;
         n._strafeDir=Math.random()<.5?-1:1;
       }
       const fy=dr/dist,fx=dc/dist,sy=-fx*(n._strafeDir||1),sx=fy*(n._strafeDir||1);
-      const hasLine=_casinoLineClear(bi,n.r,n.c,player.r,player.c);
+      const hasLine=_casinoLineClear(bi,n.r,n.c,combatTarget.r,combatTarget.c);
       const weaponAi=_interiorGuardWeaponAi(n.weapon);
       let moveY=0,moveX=0,scale=.82;
       if(!hasLine){
@@ -44723,14 +44900,16 @@ function _updateInteriorNpcs(bi, dt) {
       // это сохраняет масштаб боя, но не убивает игрока одновременным залпом 40 NPC.
       const closer=bi.npcs.reduce((count,o)=>count+(
         o!==n&&o.majorGuard&&!o.dead&&o._alerted&&
-        Math.hypot(player.r-o.r,player.c-o.c)<dist&&
-        _casinoLineClear(bi,o.r,o.c,player.r,player.c)?1:0),0);
-      if(closer<7&&dist<weaponAi.range&&!myDead&&hasLine&&
+        Math.hypot(combatTarget.r-o.r,combatTarget.c-o.c)<dist&&
+        _casinoLineClear(bi,o.r,o.c,combatTarget.r,combatTarget.c)?1:0),0);
+      const targetAlive=combatTarget.kind==='gang'
+        ?combatTarget.ref?.hp>0:!myDead;
+      if(closer<7&&dist<weaponAi.range&&targetAlive&&hasLine&&
           now>=(n._nextShotAt||0)){
         n._shotAt=now;
         n._nextShotAt=now+weaponAi.cooldown+Math.random()*180;
         if (_majorRaidLocal) _majorRaidLocal.combatStarted=true;
-        _fireInteriorGuardRound(bi,n,weaponAi.damage,weaponAi.hit);
+        _fireInteriorGuardRound(bi,n,weaponAi.damage,weaponAi.hit,combatTarget);
       }
       continue;
     }
@@ -44833,6 +45012,7 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon, burnTi
       guard._nextShotAt = Math.max(
         guard._nextShotAt || 0, alertNow + 320 + Math.random()*620);
     }
+    _gangAlertThreat(npc.r,npc.c,npc.id,'interior_guard',npc);
     try {
       // WebSocket сохраняет порядок пакетов: сервер сначала получает свежую
       // позицию внутри казино, затем подтверждает урон по охраннику.
@@ -44962,7 +45142,9 @@ function _pushInteriorNpcs(bi, items) {
         const now=performance.now(),isDead=!!nn.dead;
         const isStunned=!isDead&&(now<(nn._knockedUntil||0)||now<(nn._hurtAnimUntil||0));
         const armedGuard = nn.majorGuard || nn.role === 'biz_guard' || nn.role === 'biz_ally_guard';
-        if(bi.bizId==='major_casino'&&(nn.role==='manager'||nn.role==='owner')){
+        const businessOwnerNpc = bi.type === 'business' &&
+          (nn.role === 'manager' || nn.role === 'owner' || nn.majorBoss);
+        if(businessOwnerNpc){
           ctx.save();
           const glow=ctx.createRadialGradient(p.x,p.y+1,2,p.x,p.y+1,22);
           glow.addColorStop(0,'rgba(255,211,77,.42)');
@@ -44971,8 +45153,22 @@ function _pushInteriorNpcs(bi, items) {
           ctx.strokeStyle='#ffd34d';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y+2,15,6,0,0,Math.PI*2);ctx.stroke();
           ctx.restore();
         }
+        if(nn.majorBoss){
+          const pulse=.55+.45*Math.sin(performance.now()*.006);
+          ctx.save();
+          ctx.strokeStyle=`rgba(255,214,74,${.65+pulse*.3})`;
+          ctx.lineWidth=3;ctx.setLineDash([7,4]);
+          ctx.beginPath();ctx.ellipse(p.x,p.y+3,25+pulse*4,11+pulse*2,0,0,Math.PI*2);ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle='#fff0a0';ctx.strokeStyle='rgba(15,7,3,.95)';ctx.lineWidth=4;
+          ctx.font='900 11px system-ui';ctx.textAlign='center';
+          ctx.strokeText('🎯 УПРАВЛЯЮЩИЙ',p.x,p.y-69);
+          ctx.fillText('🎯 УПРАВЛЯЮЩИЙ',p.x,p.y-69);
+          ctx.restore();
+        }
+        const displayName=businessOwnerNpc?`👑 ${nn.name}`:nn.name;
         drawPerson(p.x, p.y, nn.ang, nn.look, nn.walking ? nn.walkPhase : 0,
-          nn.name, say, false, nn.hp == null ? 100 : nn.hp, nn.maxHp || 100,
+          displayName, say, false, nn.hp == null ? 100 : nn.hp, nn.maxHp || 100,
           isDead, nn.deadAt || 0, armedGuard, false, isStunned);
         if(!isDead&&now<(nn._burnUntil||0))
           drawBurningCharacter(p.x,p.y,nn.id||nn.name||'interior_npc',
@@ -45587,7 +45783,9 @@ const MAJOR_CASINO_WALLS = [
   {r0:20,c0:25.3,r1:20,c1:33.8},{r0:20,c0:36.8,r1:20,c1:43.6,kind:'vault'},
   {r0:20,c0:18.7,r1:25,c1:18.7},{r0:20,c0:25.3,r1:25,c1:25.3},
   // Боковые стены большого центрального игрового зала.
-  {r0:.4,c0:7.4,r1:16.8,c1:7.4},{r0:19.7,c0:7.4,r1:20,c1:7.4},
+  // Со стороны VIP-балкона зал отделяет не глухая панель, а тяжёлая
+  // театральная штора. Коллизия стены сохраняется: с галереи нельзя упасть.
+  {r0:.4,c0:7.4,r1:16.8,c1:7.4,kind:'curtain'},{r0:19.7,c0:7.4,r1:20,c1:7.4},
   // Правое служебное крыло: два отдельных проёма ведут в дальний кабинет
   // директора и в охранную, а не оставляют комнаты за сплошной стеной.
   {r0:4,c0:36.6,r1:5,c1:36.6},
@@ -45907,11 +46105,49 @@ function _casinoUpperGalleryAlpha() {
 function _drawCasinoPartition(wall) {
   const p=w2s(wall.r0,wall.c0),q=w2s(wall.r1,wall.c1),z=isoH(2.65);
   const isVault=wall.kind==='vault';
+  const isCurtain=wall.kind==='curtain';
   ctx.save();ctx.lineJoin='round';
   ctx.globalAlpha*=_casinoProximityAlpha(_casinoWallDistance(player.r,player.c,wall));
-  ctx.fillStyle=isVault?'#18222c':'#210b18';
-  ctx.strokeStyle=isVault?'#8fa3b0':'#b58a32';ctx.lineWidth=isVault?1.45:1.15;
+  if(isCurtain){
+    const fabric=ctx.createLinearGradient(p.x,p.y-z,q.x,q.y);
+    fabric.addColorStop(0,'#6f1238');
+    fabric.addColorStop(.28,'#a5234d');
+    fabric.addColorStop(.55,'#4e092b');
+    fabric.addColorStop(.78,'#971c47');
+    fabric.addColorStop(1,'#3a071f');
+    ctx.fillStyle=fabric;
+  }else{
+    ctx.fillStyle=isVault?'#18222c':'#210b18';
+  }
+  ctx.strokeStyle=isVault?'#8fa3b0':(isCurtain?'#e2b746':'#b58a32');
+  ctx.lineWidth=isVault?1.45:(isCurtain?1.8:1.15);
   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.lineTo(q.x,q.y-z);ctx.lineTo(p.x,p.y-z);ctx.closePath();ctx.fill();
+  if(isCurtain){
+    // Каждый короткий depth-сегмент получает светлую выпуклую и тёмную
+    // впадину: вместе они читаются как непрерывные вертикальные складки.
+    const midX=(p.x+q.x)*.5,midY=(p.y+q.y)*.5;
+    ctx.strokeStyle='rgba(255,167,187,.26)';ctx.lineWidth=2.2;
+    ctx.beginPath();ctx.moveTo(midX-2,midY-z+5);
+    ctx.bezierCurveTo(midX+4,midY-z*.68,midX-5,midY-z*.3,midX+1,midY-3);ctx.stroke();
+    ctx.strokeStyle='rgba(35,0,18,.48)';ctx.lineWidth=2.8;
+    ctx.beginPath();ctx.moveTo(q.x-1,q.y-z+4);
+    ctx.bezierCurveTo(q.x-5,q.y-z*.68,q.x+3,q.y-z*.3,q.x-1,q.y-2);ctx.stroke();
+    // Золотой карниз и нижняя тесьма делают материал явно шторой, а не стеной.
+    ctx.strokeStyle='#f0c95b';ctx.lineCap='round';ctx.lineWidth=3.2;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-z);ctx.lineTo(q.x,q.y-z);ctx.stroke();
+    ctx.strokeStyle='rgba(244,193,68,.72)';ctx.lineWidth=1.45;
+    ctx.beginPath();ctx.moveTo(p.x,p.y-5);ctx.lineTo(q.x,q.y-5);ctx.stroke();
+    if(wall._first||wall._last){
+      const edge=wall._first?p:q;
+      ctx.fillStyle='#ffd86d';ctx.beginPath();ctx.arc(edge.x,edge.y-z,3.6,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#d99c2f';ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(edge.x,edge.y-z+2);ctx.lineTo(edge.x,edge.y-z*.48);ctx.stroke();
+      ctx.fillStyle='#f2bf45';ctx.beginPath();ctx.moveTo(edge.x-4,edge.y-z*.48);
+      ctx.lineTo(edge.x+4,edge.y-z*.48);ctx.lineTo(edge.x,edge.y-z*.48+8);ctx.closePath();ctx.fill();
+    }
+    ctx.restore();
+    return;
+  }
   if(wall._sliced){
     // Не обводим стык каждой depth-секции: иначе длинная стена превращается
     // в частый золотой частокол. Оставляем непрерывные верхнюю и нижнюю кромки.
@@ -46523,6 +46759,9 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
   }
   cam.x = (player.c - player.r) * TS * 0.5;
   cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
+  // Не ждём первого 100-мс тика: сервер должен узнать о входе до того,
+  // как успеет прислать снапшот со старой мировой позицией.
+  sendInput(true);
   bullets.length = 0; muzzles.length = 0; impacts.length = 0; lockedTargets.clear();
   const _entryToast = { blackmarket: ['🌌 Чёрный рынок','🌌'], job: ['💼 Биржа труда','💼'], gym: ['💪 Спортзал','💪'], hospital: ['🏥 Больница','🏥'], police_st: ['👮 Участок','👮'], mafia_hq:['🕴️ Главный дом мафии','🕴️'] };
   const _et = type === 'business' && BUSINESS_INTERIORS[bizId]

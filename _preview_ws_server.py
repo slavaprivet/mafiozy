@@ -116,6 +116,13 @@ PREVIEW_MAJOR_OBJECTS = {
              "boss": "Марко «Якорь» Беллини",
              "guards": 22, "total": 38, "income": 2600},
 }
+PREVIEW_MAJOR_MANAGER_POSITIONS = {
+    "casino": (7.65, 40.0),
+    "market": (4.0, 29.0),
+    "factory": (4.0, 29.0),
+    "mansion": (4.0, 29.0),
+    "port": (4.0, 29.0),
+}
 preview_major_raids = {}
 preview_major_owners = {}
 CASINO_PROP_DEFS = {
@@ -409,11 +416,17 @@ PREVIEW_STREET_GANGS = [
     ("preview_city_gang_1", 12.0, 33.0),
     ("preview_city_gang_2", 52.0, 63.0),
 ]
-PREVIEW_STREET_GANG_HP = {
-    f"cgbot_preview_street_{gang_i}_{bot_i}": 100
+PREVIEW_STREET_GANG_LEVELS = {
+    f"cgbot_preview_street_{gang_i}_{bot_i}":
+        5 + gang_i * 4 + bot_i * 3
     for gang_i in range(len(PREVIEW_STREET_GANGS))
     for bot_i in range(3)
 }
+PREVIEW_STREET_GANG_MAX_HP = {
+    bot_id: int(round(100 * (1.0 + (level - 1) * 0.05)))
+    for bot_id, level in PREVIEW_STREET_GANG_LEVELS.items()
+}
+PREVIEW_STREET_GANG_HP = dict(PREVIEW_STREET_GANG_MAX_HP)
 PREVIEW_WEAPON_DAMAGE = {
     "pistol": 24, "nagan": 32, "revolver": 86,
     "pistol_heavy": 72, "pistol_gold": 48,
@@ -454,12 +467,15 @@ def preview_street_gang_bots(now=None):
             bot = preview_bandit_bot(
                 bot_id, center_x - i * 1.15, base_y + (i - 1) * 0.45,
                 weapon=("pistol_heavy", "smg", "rifle")[i],
+                level=PREVIEW_STREET_GANG_LEVELS[bot_id],
             )
             bot["hp"] = hp
+            bot["max_hp"] = PREVIEW_STREET_GANG_MAX_HP[bot_id]
             bot["ang"] = direction
             if faction == "yellow":
-                bot["look"].update({"skin": (0, 2, 3)[i], "body": 4,
-                                    "hat": 2, "gang": 2})
+                bot["look"].update({"skin": (0, 2, 3)[i], "body": 3,
+                                    "hat": 2, "gang": 2,
+                                    "suit": "#f3efe5"})
             bot["faction"] = faction
             bots.append(bot)
         groups.append((gang_id, faction, bots))
@@ -1782,8 +1798,9 @@ def preview_tick_business_captures():
             x + math.cos(ang) * 2.7, y + math.sin(ang) * 2.7,
             weapon=("pistol_heavy", "smg", "rifle", "shotgun")[i])
         if faction == "yellow":
-            bot["look"].update({"skin": (0, 2, 3, 2)[i], "body": 4,
-                                "hat": 2, "gang": 2})
+            bot["look"].update({"skin": (0, 2, 3, 2)[i], "body": 3,
+                                "hat": 2, "gang": 2,
+                                "suit": "#f3efe5"})
         bots.append(bot)
     preview_business_nests[bid] = {
         "id": f"preview_biz_nest_{bid}", "business_id": bid,
@@ -2751,11 +2768,13 @@ async def world_ws(req):
                 if interior_kind in ("bank", "building"):
                     p.pop("business_interior", None)
                     p.pop("business_private", None)
-                    p.pop("interior_x", None)
-                    p.pop("interior_y", None)
+                    p["interior_x"] = max(
+                        0.0, min(60.0, float(interior.get("x", 0))))
+                    p["interior_y"] = max(
+                        0.0, min(60.0, float(interior.get("y", 0))))
                     p["in_interior"] = True
                     p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
-                    p["walking"] = False
+                    p["walking"] = bool(d.get("w", False))
                     p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
                     continue
                 p.pop("business_interior", None)
@@ -2883,8 +2902,7 @@ async def world_ws(req):
                     elif not session_ok:
                         reply.update(reason="invalid_session")
                     elif (len(session["guards_down"])<int(session["guard_count"]) or
-                          float(session.get("owner_pressure") or 0)<70 or
-                          now-float(session.get("started_at") or 0)<max(3.0,int(session["guard_count"])*.75)):
+                          float(session.get("owner_pressure") or 0)<70):
                         reply.update(reason="not_pressured")
                     elif not preview_robber_at_cashier(p,biz_id):
                         reply.update(reason="too_far")
@@ -3286,6 +3304,13 @@ async def world_ws(req):
                         "total": int(cfg["total"]), "boss_name": cfg["boss"],
                         "participants": list(raid["participants"]),
                         "safes": [dict(safe) for safe in raid["safes"]],
+                        "manager": {
+                            "id": f"major_boss_{object_id}",
+                            "name": cfg["boss"],
+                            "r": PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][0],
+                            "c": PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][1],
+                            "pressure": int(raid.get("pressure") or 0),
+                        },
                     }
                 await broadcast_event(reply)
             elif t == "major_guard_hit":
@@ -3336,6 +3361,13 @@ async def world_ws(req):
                         "hp": guard["hp"], "alive": guard["alive"],
                         "new_guard": new_guard, "spawned": raid["spawned"],
                         "phase": raid["phase"],
+                        "manager": ({
+                            "id": f"major_boss_{object_id}",
+                            "name": cfg["boss"],
+                            "r": PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][0],
+                            "c": PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][1],
+                            "pressure": int(raid.get("pressure") or 0),
+                        } if raid["phase"] == "boss" else None),
                     }
                 await broadcast_event(reply)
             elif t == "major_prop_hit":
@@ -3415,9 +3447,10 @@ async def world_ws(req):
                              "reason": "guards_alive",
                              "object_id": object_id}
                 elif math.hypot(
-                        float(actor.get("interior_y", 0)) - 4.0,
+                        float(actor.get("interior_y", 0)) -
+                        PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][0],
                         float(actor.get("interior_x", 0)) -
-                        float((44 if object_id == "casino" else 34) - 5)
+                        PREVIEW_MAJOR_MANAGER_POSITIONS[object_id][1]
                         ) > 4.2:
                     reply = {"kind": "major_boss_pressure", "ok": False,
                              "reason": "too_far",

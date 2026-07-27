@@ -39,6 +39,27 @@ async def main():
     assert "moveScale*1.3*dt" in world
     assert "kind === 'business_defense_shot'" in world
     assert "function _markBusinessOperational(businessId, cooldownUntil = 0)" in world
+    assert "function _idleBusinessGuardPose(biz, index" in world
+    assert "const _businessDefenseChat = new Map()" in world
+    assert "? (liveNest ? (liveNest.guards || []) : [])" in world
+    assert "function _spawnMajorManager(d = {})" in world
+    assert "casino ? 7.65 : 4" in world
+    assert "first snapshot can reconcile against that temporary spawn" in world
+    assert "socket.onopen = () =>" in world and "sendInput(true);" in world
+    assert "casinoOwner.c=casinoOwner.tc=26.35" in world
+    assert "const businessOwnerNpc = bi.type === 'business'" in world
+    assert "businessOwnerNpc?`👑 ${nn.name}`:nn.name" in world
+    assert "kind:'curtain'" in world, "VIP balcony wall must render as a curtain"
+    assert "const isCurtain=wall.kind==='curtain'" in world
+    assert "function _sendAggroWeaponHit(targetId, weapon)" in world
+    assert "sendInput(true);" in world and "_sendAggroWeaponHit(chosenAggro.id" in world
+    assert "suit:'#f3efe5'" in world, "yellow gang must use white luxury suits"
+    assert "strokeText('ЖЁЛТАЯ БАНДА'" not in world
+    assert "(_majorInteriorObjectId && direct.majorGuard)" in world
+    assert "_majorRaidLocal?.combatStarted ? _findGangCompanionTarget(m)" in world
+    assert "function _majorGuardCombatTarget(bi,n)" in world
+    assert "function _hurtGangMemberInInterior(member,damage" in world
+    assert "if (!_majorInteriorObjectId && Math.random() < 0.25)" in world
     burn_bot = {
         "id": "burn-test", "x": 10.0, "y": 10.0,
         "hp": 20, "alive": True, "burn_until": 110.0,
@@ -103,12 +124,23 @@ async def main():
         "sawn_off": 76, "uzi": 15, "ak74": 42,
     }
     bot_id = "cgbot_preview_street_0_0"
+    stable_a = next(
+        bot for _, _, bots in game.preview_street_gang_bots(1000)
+        for bot in bots if bot["id"] == bot_id
+    )
+    stable_b = next(
+        bot for _, _, bots in game.preview_street_gang_bots(1001)
+        for bot in bots if bot["id"] == bot_id
+    )
+    assert stable_a["level"] == stable_b["level"]
+    assert stable_a["max_hp"] == stable_b["max_hp"]
     for weapon, expected_damage in weapons.items():
         game.PREVIEW_STREET_GANG_HP[bot_id] = 220
         target = next(
             bot for _, _, bots in game.preview_street_gang_bots()
             for bot in bots if bot["id"] == bot_id
         )
+        assert target["look"]["suit"] == "#f3efe5", target["look"]
         await ws.send_json({"t":"input", "d":{
             "x":target["x"], "y":target["y"] + 1,
             "ang":0, "mafia":True, "police":False, "gang":[],
