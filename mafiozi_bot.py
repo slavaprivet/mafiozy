@@ -23593,7 +23593,7 @@ async def _coop_http_app():
                                 'token': token, 'biz_id': biz_id, 'started_at': now_rob,
                                 'expires_at': now_rob + SHOP_ROB_SESSION_TTL_S,
                                 'guard_count': guard_count, 'guards_down': set(),
-                                'owner_pressure': 0.0, 'last_guard_at': 0.0,
+                                'owner_pressure': 0.0,
                                 'owner_hit_seq': 0,
                             }
                         else:
@@ -23633,13 +23633,13 @@ async def _coop_http_app():
                             except (TypeError, ValueError):
                                 continue
                             guards_down = session['guards_down']
-                            # Один и тот же охранник засчитывается один раз. Сервер также
-                            # не позволяет "убить" всю комнату одним пакетом.
+                            # Уникальный id уже не даёт засчитать одного охранника дважды.
+                            # Общий таймер между разными id здесь недопустим: граната,
+                            # дробовик или быстрые добивания честно убивают двух бойцов
+                            # почти одновременно, а прежние 0.35 с теряли вторую смерть.
                             if (0 <= guard_id < int(session['guard_count']) and
-                                    guard_id not in guards_down and
-                                    now_rob - float(session.get('last_guard_at') or 0) >= 0.35):
+                                    guard_id not in guards_down):
                                 guards_down.add(guard_id)
-                                session['last_guard_at'] = now_rob
                         else:
                             if len(session['guards_down']) < int(session['guard_count']):
                                 continue

@@ -2649,7 +2649,7 @@ async def world_ws(req):
                         "token":token,"biz_id":biz_id,"started_at":now_rob,
                         "expires_at":now_rob+600,"guard_count":guard_count,
                         "guards_down":set(),"owner_pressure":0.0,
-                        "last_guard_at":0.0,"owner_hit_seq":0,
+                        "owner_hit_seq":0,
                     }
                 else:
                     preview_business_rob_sessions.pop(str(uid),None)
@@ -2682,10 +2682,8 @@ async def world_ws(req):
                     try: guard_id=int(payload.get("guard_id"))
                     except (TypeError,ValueError): continue
                     if (0<=guard_id<int(session["guard_count"]) and
-                            guard_id not in session["guards_down"] and
-                            now_rob-float(session.get("last_guard_at") or 0)>=.35):
+                            guard_id not in session["guards_down"]):
                         session["guards_down"].add(guard_id)
-                        session["last_guard_at"]=now_rob
                 else:
                     if len(session["guards_down"])<int(session["guard_count"]): continue
                     try:

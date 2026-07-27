@@ -44410,8 +44410,15 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon) {
         return;
       }
       npc.maxHp=100;
-      const ownerDamage=Math.min((npc.hp==null?100:npc.hp)-1,Math.max(1,damage||1));
-      npc.hp=Math.max(1,(npc.hp==null?100:npc.hp)-Math.max(1,damage||1));
+      // Сервер принимает не больше 35 единиц давления за одно попадание.
+      // Клиент обязан уменьшать HP владельца тем же числом, иначе мощный
+      // револьвер показывал 99%, когда на сервере было только 48–67%.
+      const ownerDamage=Math.min(
+        (npc.hp==null?100:npc.hp)-1,
+        35,
+        Math.max(1,damage||1)
+      );
+      npc.hp=Math.max(1,(npc.hp==null?100:npc.hp)-ownerDamage);
       _buildingInt.ownerHitSeq=(_buildingInt.ownerHitSeq||0)+1;
       try {
         ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'business_rob_owner_hit',d:{
