@@ -45255,7 +45255,9 @@ function _drawBusinessInterior(bi) {
       if(_casinoPropAlive('dance_stage'))
         items.push({d:33,furniture:true,fn:()=>_drawCasinoDanceStage(11,22)});
       if(_casinoPropAlive('bar'))items.push({d:56.35,furniture:true,fn:()=>_drawCasinoBar(23.55,31.5)});
-      items.push({d:12,furniture:true,fn:()=>_drawCasinoUpperGallery()});
+      // Балкон является приподнятым полом, а не мебелью перед персонажем.
+      // Минимальная глубина гарантирует видимость героя даже у дальней стены.
+      items.push({d:.5,furniture:true,fn:()=>_drawCasinoUpperGallery()});
       items.push({d:10.8,furniture:true,fn:()=>_drawCasinoStairs(18.8,3.8)});
       if(_casinoPropAlive('vip_table'))box('',22.35,7.2,4.6,1.4,.42,'#5c1742');
       if(_casinoPropAlive('vip_sofa_s'))box('',24.05,7.2,4.7,.8,.88,'#6e234f');
