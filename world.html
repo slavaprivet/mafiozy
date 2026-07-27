@@ -40103,7 +40103,7 @@ function drawPOIArrows(r0, r1, c0, c1) {
   const SAFE_TR = { w: 200, h: 200 };  // мини-карта + «N онлайн»
   const SAFE_BL = { w: 200, h: 220 };  // джойстик
   const SAFE_BR = { w: 180, h: 320 };  // правый джойстик + HP-HUD + чат
-  const drawEdgeTarget = (targetR, targetC, icon, label = '', accent = '#ffd76b', persistent = false) => {
+  const drawEdgeTarget = (targetR, targetC, icon, label = '', accent = '#ffd76b', persistent = false, compactLabel = false) => {
     const visible = targetR >= r0 && targetR < r1 && targetC >= c0 && targetC < c1;
     const dist = Math.hypot(targetR - player.r, targetC - player.c);
     if (visible) {
@@ -40111,14 +40111,15 @@ function drawPOIArrows(r0, r1, c0, c1) {
         const sp = w2s(targetR + 0.5, targetC + 0.5);
         const text = `${icon} ${label} · ${Math.round(dist)}м`;
         ctx.save();
-        ctx.font = '900 10px system-ui, "Segoe UI Emoji", sans-serif';
-        const pillW = Math.min(230, ctx.measureText(text).width + 18);
+        ctx.font = `900 ${compactLabel ? 8 : 10}px system-ui, "Segoe UI Emoji", sans-serif`;
+        const pillH = compactLabel ? 20 : 26;
+        const pillW = Math.min(compactLabel ? 190 : 230, ctx.measureText(text).width + (compactLabel ? 12 : 18));
         const markerY = Math.max(54, sp.y - 74);
         ctx.fillStyle = 'rgba(7,9,14,.91)';
         ctx.strokeStyle = accent;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.roundRect(sp.x - pillW / 2, markerY - 13, pillW, 26, 9);
+        ctx.roundRect(sp.x - pillW / 2, markerY - pillH / 2, pillW, pillH, compactLabel ? 7 : 9);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = '#fff';
@@ -40127,9 +40128,9 @@ function drawPOIArrows(r0, r1, c0, c1) {
         ctx.fillText(text, sp.x, markerY);
         ctx.fillStyle = accent;
         ctx.beginPath();
-        ctx.moveTo(sp.x - 7, markerY + 14);
-        ctx.lineTo(sp.x + 7, markerY + 14);
-        ctx.lineTo(sp.x, markerY + 25);
+        ctx.moveTo(sp.x - 7, markerY + pillH / 2 + 1);
+        ctx.lineTo(sp.x + 7, markerY + pillH / 2 + 1);
+        ctx.lineTo(sp.x, markerY + pillH / 2 + 12);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
@@ -40157,19 +40158,20 @@ function drawPOIArrows(r0, r1, c0, c1) {
     _drawPOIArrow(ax, ay, ndx, ndy, { icon });
     if (label) {
       const inwardX = -ndx, inwardY = -ndy;
-      const labelX = ax + inwardX * 92;
-      const labelY = ay + inwardY * 46;
+      const labelX = ax + inwardX * (compactLabel ? 78 : 92);
+      const labelY = ay + inwardY * (compactLabel ? 40 : 46);
       const distance = Math.round(dist) + 'м';
       ctx.save();
-      ctx.font = '800 11px system-ui, sans-serif';
+      ctx.font = `800 ${compactLabel ? 9 : 11}px system-ui, sans-serif`;
       const text = `${label} · ${distance}`;
-      const pillW = Math.min(220, ctx.measureText(text).width + 20);
+      const pillH = compactLabel ? 20 : 26;
+      const pillW = Math.min(compactLabel ? 180 : 220, ctx.measureText(text).width + (compactLabel ? 12 : 20));
       ctx.globalAlpha = 0.96;
       ctx.fillStyle = 'rgba(8,10,16,.9)';
       ctx.strokeStyle = accent;
       ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.roundRect(labelX - pillW / 2, labelY - 13, pillW, 26, 9);
+      ctx.roundRect(labelX - pillW / 2, labelY - pillH / 2, pillW, pillH, compactLabel ? 7 : 9);
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = '#fff';
@@ -40192,8 +40194,8 @@ function drawPOIArrows(r0, r1, c0, c1) {
     );
   }
   // Штабы обеих семей — постоянные ориентиры, даже если игрок ещё не вступил.
-  drawEdgeTarget(BURJ_POS.r, BURJ_POS.c, '🕴️', 'BURJ MAFIA · БЕЛЛИНИ', '#8d78ff', true);
-  drawEdgeTarget(136, 16, '🤵', 'РЕЗИДЕНЦИЯ ДОНА · МОРЕТТИ', '#f2e8c8', true);
+  drawEdgeTarget(BURJ_POS.r, BURJ_POS.c, '🕴️', 'BURJ MAFIA · БЕЛЛИНИ', '#8d78ff', true, true);
+  drawEdgeTarget(136, 16, '🤵', 'РЕЗИДЕНЦИЯ ДОНА · МОРЕТТИ', '#f2e8c8', true, true);
   // Кандидаты: все POI за пределами видимости + достаточно далёкие.
   // Каждому считаем точку пересечения луча из центра экрана с
   // прямоугольником (PAD..W-PAD) × (PAD..H-PAD).
