@@ -1008,6 +1008,19 @@ async def init_db():
                 points INTEGER NOT NULL DEFAULT 0
             )
         """)
+        # Глобальная война бизнесов расширяет старый счёт семей, не меняя
+        # формат существующих записей. Миграции идемпотентны для старых БД.
+        for col, definition in (
+                ("treasury", "INTEGER NOT NULL DEFAULT 0"),
+                ("captures", "INTEGER NOT NULL DEFAULT 0"),
+                ("defenses", "INTEGER NOT NULL DEFAULT 0"),
+                ("robberies", "INTEGER NOT NULL DEFAULT 0"),
+                ("updated_at", "REAL NOT NULL DEFAULT 0")):
+            try:
+                await db.execute(
+                    f"ALTER TABLE mafia_family_scores ADD COLUMN {col} {definition}")
+            except Exception:
+                pass
         await db.execute("""
             CREATE TABLE IF NOT EXISTS robbed_business_control (
                 biz_id TEXT PRIMARY KEY,
@@ -4425,6 +4438,22 @@ BUSINESS_FAMILY_WAR_DURATION_S = 3 * 60
 BUSINESS_FAMILY_WAR_HOLD_S = 90
 BUSINESS_FAMILY_WAR_RADIUS = 6.0
 BUSINESS_FAMILY_WAR_MAX_ACTIVE = 2
+
+# Уникальные семейные бонусы действуют, пока семья контролирует здание.
+# Они усиливают только надстройку войны бизнесов и не меняют старую
+# механику личной покупки/ограбления.
+BUSINESS_WAR_BONUSES = {
+    "coffee":     {"income": 1.05, "label": "+5% семейного дохода"},
+    "carwash":    {"defense": 1.10, "label": "+10% стойкости защиты"},
+    "barbershop": {"capture": 1.06, "label": "+6% скорости захвата"},
+    "pizza":      {"capture": 1.08, "label": "+8% скорости захвата"},
+    "garage":     {"control": 1.12, "label": "+12% времени контроля"},
+    "bar":        {"defense": 1.10, "label": "+10% стойкости защиты"},
+    "club":       {"influence": 1.15, "label": "+15% очков влияния"},
+    "warehouse":  {"defense": 1.18, "label": "+18% стойкости защиты"},
+    "casino":     {"treasury": 1.25, "label": "+25% поступлений в казну"},
+    "port":       {"control": 1.20, "label": "+20% времени контроля"},
+}
 
 # Ограбление подтверждается серверной сессией, а не итоговыми числами,
 # присланными браузером. Один и тот же бизнес закрыт для всех на 5 минут.
@@ -12551,6 +12580,7 @@ class WorldSim:
         '_business_owner_protected_until', '_business_rob_sessions',
         '_robbed_business_controls',
         '_business_family_wars',
+        '_business_war_score',
         # Очередь физических пуль ботов (dodge-механика).
         '_pending_bot_shots',
         # Пляжники — мирные NPC в купальниках/плавках.
@@ -13151,6 +13181,12 @@ class WorldSim:
         # участнику семьи захватчика, затем снова становится нейтральным.
         self._robbed_business_controls = {}
         self._business_family_wars = {}
+        self._business_war_score = {
+            'bellini': {'influence': 0, 'treasury': 0, 'captures': 0,
+                        'defenses': 0, 'robberies': 0},
+            'moretti': {'influence': 0, 'treasury': 0, 'captures': 0,
+                        'defenses': 0, 'robberies': 0},
+        }
         # (uid, biz_id) -> timestamp. Охрана помнит только конкретного
         # нападавшего; мирные посетители того же бизнеса не становятся целями.
         self._business_aggro_until = {}
@@ -20185,6 +20221,20 @@ class WorldSim:
                     for bid, war in self._business_family_wars.items()
                     if float(war.get('expires_at') or 0) > now_t
                 },
+                'business_war_score': {
+                    family: {
+                        **{key: int(value or 0) for key, value in score.items()},
+                        'controlled': sum(
+                            1 for control in self._robbed_business_controls.values()
+                            if str(control.get('mafia_family') or '') == family
+                            and float(control.get('expires_at') or 0) > now_t),
+                    }
+                    for family, score in self._business_war_score.items()
+                },
+                'business_war_bonuses': {
+                    biz_id: str(meta.get('label') or '')
+                    for biz_id, meta in BUSINESS_WAR_BONUSES.items()
+                },
                 'business_aggro': {
                     bid: max(0, int(until - now_t))
                     for (aggro_uid, bid), until in self._business_aggro_until.items()
@@ -20302,6 +20352,50 @@ async def _major_control_save(object_id: str, owner: dict | None) -> None:
         logger.warning("WorldSim: major control save failed: %r", exc)
 
 
+def _family_business_effects(world: 'WorldSim', family: str) -> dict:
+    """Aggregate bonuses of currently controlled businesses for a family."""
+    effects = {'income': 1.0, 'capture': 1.0, 'defense': 1.0,
+               'control': 1.0, 'influence': 1.0, 'treasury': 1.0}
+    now = time.time()
+    for biz_id, control in world._robbed_business_controls.items():
+        if (str(control.get('mafia_family') or '') != family
+                or float(control.get('expires_at') or 0) <= now):
+            continue
+        for key, value in BUSINESS_WAR_BONUSES.get(biz_id, {}).items():
+            if key in effects:
+                effects[key] *= max(1.0, float(value or 1.0))
+    return effects
+
+
+async def _business_war_score_add(world: 'WorldSim', family: str, *,
+                                  influence: int = 0, treasury: int = 0,
+                                  captures: int = 0, defenses: int = 0,
+                                  robberies: int = 0) -> dict:
+    """Atomically persist and mirror the global family business-war score."""
+    if family not in ('bellini', 'moretti'):
+        return {}
+    row = world._business_war_score.setdefault(
+        family, {'influence': 0, 'treasury': 0, 'captures': 0,
+                 'defenses': 0, 'robberies': 0})
+    deltas = {'influence': int(influence), 'treasury': int(treasury),
+              'captures': int(captures), 'defenses': int(defenses),
+              'robberies': int(robberies)}
+    for key, value in deltas.items():
+        row[key] = max(0, int(row.get(key) or 0) + value)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO mafia_family_scores"
+            "(family,points,treasury,captures,defenses,robberies,updated_at) "
+            "VALUES(?,?,?,?,?,?,?) ON CONFLICT(family) DO UPDATE SET "
+            "points=excluded.points,treasury=excluded.treasury,"
+            "captures=excluded.captures,defenses=excluded.defenses,"
+            "robberies=excluded.robberies,updated_at=excluded.updated_at",
+            (family, row['influence'], row['treasury'], row['captures'],
+             row['defenses'], row['robberies'], time.time()))
+        await db.commit()
+    return dict(row)
+
+
 async def _robbed_business_controls_load(world: 'WorldSim') -> None:
     """Restore active ten-minute family control of robbed buildings."""
     try:
@@ -20316,6 +20410,10 @@ async def _robbed_business_controls_load(world: 'WorldSim') -> None:
             war_rows = await (await db.execute(
                 "SELECT * FROM business_family_wars WHERE expires_at>?", (now,)
             )).fetchall()
+            score_rows = await (await db.execute(
+                "SELECT family,points,treasury,captures,defenses,robberies "
+                "FROM mafia_family_scores WHERE family IN ('bellini','moretti')"
+            )).fetchall()
             await db.commit()
         for row in rows:
             biz_id = str(row['biz_id'])
@@ -20325,6 +20423,16 @@ async def _robbed_business_controls_load(world: 'WorldSim') -> None:
             biz_id = str(row['biz_id'])
             if biz_id in SHOP_ROB_CONFIG:
                 world._business_family_wars[biz_id] = dict(row)
+        for row in score_rows:
+            family = str(row['family'] or '')
+            if family in world._business_war_score:
+                world._business_war_score[family] = {
+                    'influence': int(row['points'] or 0),
+                    'treasury': int(row['treasury'] or 0),
+                    'captures': int(row['captures'] or 0),
+                    'defenses': int(row['defenses'] or 0),
+                    'robberies': int(row['robberies'] or 0),
+                }
     except Exception as exc:
         logger.warning("WorldSim: robbed business controls load failed: %r", exc)
 
@@ -20385,14 +20493,21 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
                 'starts_in': max(0, int(remaining)),
             })
         last_payout = float(control.get('last_payout_at') or control.get('captured_at') or now)
+        captured_at = float(control.get('captured_at') or last_payout)
+        max_payouts = max(1, int(math.ceil(
+            max(0.0, expires_at - captured_at) /
+            SHOP_ROB_FAMILY_INCOME_TICK_S)))
         due = min(
-            10 - int(control.get('payouts_done') or 0),
+            max_payouts - int(control.get('payouts_done') or 0),
             int((min(now, expires_at) - last_payout) // SHOP_ROB_FAMILY_INCOME_TICK_S),
         )
         if due <= 0:
             continue
         family = str(control.get('mafia_family') or '')
-        per_member = int(control.get('income_per_member') or 0) * due
+        family_effects = _family_business_effects(world, family)
+        per_member = max(1, int(round(
+            int(control.get('income_per_member') or 0) * due
+            * family_effects['income'])))
         async with aiosqlite.connect(DB_PATH) as db:
             rows = await (await db.execute(
                 "SELECT telegram_id FROM characters WHERE mafia_family=?", (family,)
@@ -20410,6 +20525,11 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
                 (control['last_payout_at'], control['payouts_done'], biz_id),
             )
             await db.commit()
+        treasury_gain = max(0, int(round(
+            per_member * len(member_uids) * 0.15 * family_effects['treasury'])))
+        if treasury_gain:
+            await _business_war_score_add(
+                world, family, treasury=treasury_gain)
         for member_uid in member_uids:
             live = world.players.get(member_uid)
             if live is not None:
@@ -20419,6 +20539,7 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
             'biz_name': str((get_business(biz_id) or {}).get('name') or biz_id),
             'mafia_family': family, 'amount': per_member,
             'members_paid': len(member_uids),
+            'treasury_gain': treasury_gain,
             'remaining_s': max(0, int(expires_at - now)),
         })
     for biz_id, war in list(world._business_family_wars.items()):
@@ -20452,14 +20573,25 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
         last_tick = float(war.get('last_tick_at') or now)
         dt = max(0.0, min(1.0, now-last_tick))
         war['last_tick_at'] = now
+        previous_family = str(war.get('previous_family') or '')
         if war['bellini'] > war['moretti']:
+            advantage = min(3, war['bellini'] - war['moretti'])
+            speed = dt * advantage * _family_business_effects(
+                world, 'bellini')['capture']
+            if previous_family == 'moretti':
+                speed /= _family_business_effects(world, 'moretti')['defense']
             war['progress'] = min(
                 BUSINESS_FAMILY_WAR_HOLD_S,
-                float(war.get('progress') or 0) + dt)
+                float(war.get('progress') or 0) + speed)
         elif war['moretti'] > war['bellini']:
+            advantage = min(3, war['moretti'] - war['bellini'])
+            speed = dt * advantage * _family_business_effects(
+                world, 'moretti')['capture']
+            if previous_family == 'bellini':
+                speed /= _family_business_effects(world, 'bellini')['defense']
             war['progress'] = max(
                 -BUSINESS_FAMILY_WAR_HOLD_S,
-                float(war.get('progress') or 0) - dt)
+                float(war.get('progress') or 0) - speed)
         winner = (
             'bellini' if float(war.get('progress') or 0) >= BUSINESS_FAMILY_WAR_HOLD_S
             else 'moretti' if float(war.get('progress') or 0) <= -BUSINESS_FAMILY_WAR_HOLD_S
@@ -20476,13 +20608,22 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
         winner_uids = in_zone[winner]
         finisher_uid = winner_uids[0] if winner_uids else ''
         finisher = world.players.get(finisher_uid) or {}
-        income = max(1, int(SHOP_ROB_CONFIG.get(biz_id, {}).get('money') or 0)//10)
+        winner_effects = _family_business_effects(world, winner)
+        income = max(1, int(round(
+            (int(SHOP_ROB_CONFIG.get(biz_id, {}).get('money') or 0)//10)
+            * winner_effects['income'])))
         bonus = max(50, int(SHOP_ROB_CONFIG.get(biz_id, {}).get('money') or 0)//2)
+        control_s = max(SHOP_ROB_FAMILY_CONTROL_S, int(round(
+            SHOP_ROB_FAMILY_CONTROL_S * winner_effects['control'])))
+        influence_gain = max(50, int(round(100 * winner_effects['influence'])))
+        treasury_gain = max(25, int(round(
+            bonus * 0.25 * winner_effects['treasury'])))
+        defended = bool(previous_family and previous_family == winner)
         new_control = {
             'biz_id': biz_id, 'owner_uid': finisher_uid,
             'owner_name': str(finisher.get('name') or '')[:24],
             'mafia_family': winner, 'captured_at': now,
-            'expires_at': now+SHOP_ROB_FAMILY_CONTROL_S,
+            'expires_at': now+control_s,
             'last_payout_at': now, 'payouts_done': 0,
             'income_per_member': income, 'warned': 0,
         }
@@ -20502,6 +20643,9 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
                     "UPDATE characters SET cash=cash+? WHERE telegram_id=?",
                     (bonus, int(finisher_uid)))
             await db.commit()
+        score = await _business_war_score_add(
+            world, winner, influence=influence_gain, treasury=treasury_gain,
+            captures=0 if defended else 1, defenses=1 if defended else 0)
         if finisher:
             finisher['_cash'] = int(finisher.get('_cash') or 0)+bonus
         events.append({
@@ -20509,8 +20653,10 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
             'biz_name': str(biz.get('name') or biz_id), 'winner': winner,
             'winner_uid': finisher_uid,
             'winner_name': str(finisher.get('name') or '')[:24],
-            'bonus': bonus, 'control_s': SHOP_ROB_FAMILY_CONTROL_S,
+            'bonus': bonus, 'control_s': control_s,
             'income_per_member': income,
+            'influence_gain': influence_gain, 'treasury_gain': treasury_gain,
+            'defended': defended, 'war_score': score,
         })
     return events
 
@@ -20629,6 +20775,21 @@ async def _record_world_event_news(world: 'WorldSim', pkt: dict) -> None:
             f'В зачистке участвовали: {crew}. Улицы ненадолго стали тише.',
             '💥', dedupe_key=f"{kind}:{pkt.get('id') or int(time.time()) // 60}"
         )
+    elif kind == 'business_family_war_started':
+        place = str(pkt.get('biz_name') or 'бизнес')[:60]
+        await record_city_news(
+            kind, f'За «{place}» началась открытая война',
+            'Беллини и Моретти стягивают людей к зданию. Победит семья, удержавшая точку.',
+            '⚔️', dedupe_key=f"{kind}:{pkt.get('biz_id')}:{int(time.time()) // 180}")
+    elif kind == 'business_family_war_won':
+        place = str(pkt.get('biz_name') or 'бизнес')[:60]
+        family = 'Беллини' if pkt.get('winner') == 'bellini' else 'Моретти'
+        verb = 'отстояла' if pkt.get('defended') else 'захватила'
+        await record_city_news(
+            kind, f'Семья {family} {verb} «{place}»',
+            f"Контроль приносит доход семье и +{int(pkt.get('influence_gain') or 0)} влияния.",
+            '🏴', pkt.get('winner_uid'),
+            f"{kind}:{pkt.get('biz_id')}:{pkt.get('winner')}:{int(time.time()) // 60}")
 
 
 async def _world_run_loop(world: 'WorldSim') -> None:
@@ -24590,6 +24751,14 @@ async def _coop_http_app():
                                 family_points_gain = 0
                                 family_points_total = 0
                                 robbery_family = str(p.get('_mafia_family') or '')
+                                robbery_effects = _family_business_effects(
+                                    world, robbery_family)
+                                family_control_s = max(
+                                    SHOP_ROB_FAMILY_CONTROL_S, int(round(
+                                        SHOP_ROB_FAMILY_CONTROL_S
+                                        * robbery_effects['control'])))
+                                family_income = 0
+                                treasury_gain = 0
                                 db_closed_left = 0
                                 try:
                                     async with aiosqlite.connect(DB_PATH) as db:
@@ -24622,9 +24791,10 @@ async def _coop_http_app():
                                                 "ON CONFLICT(uid,biz_id) DO UPDATE SET cycle_count=(cycle_count+1)%3",
                                                 (int(uid), biz_id))
                                             if robbery_family in ('bellini','moretti'):
-                                                family_points_gain = (
+                                                family_points_gain = int(round((
                                                     35 if int(session['guard_count']) >= 7 else
-                                                    20 if int(session['guard_count']) >= 4 else 10)
+                                                    20 if int(session['guard_count']) >= 4 else 10
+                                                ) * robbery_effects['influence']))
                                                 await db.execute(
                                                     "INSERT INTO mafia_family_scores(family,points) VALUES(?,?) "
                                                     "ON CONFLICT(family) DO UPDATE SET points=points+excluded.points",
@@ -24633,7 +24803,9 @@ async def _coop_http_app():
                                                     "SELECT points FROM mafia_family_scores WHERE family=?",
                                                     (robbery_family,))).fetchone()
                                                 family_points_total = int(score_row[0] or 0)
-                                                family_income = max(1, money // 10)
+                                                family_income = max(1, int(round(
+                                                    (money // 10)
+                                                    * robbery_effects['income'])))
                                                 await db.execute(
                                                     "INSERT OR REPLACE INTO robbed_business_control "
                                                     "(biz_id,owner_uid,owner_name,mafia_family,captured_at,"
@@ -24641,7 +24813,7 @@ async def _coop_http_app():
                                                     "VALUES(?,?,?,?,?,?,?,?,?)",
                                                     (biz_id, str(uid), str(p.get('name') or '')[:24],
                                                      robbery_family, now_ts,
-                                                     now_ts + SHOP_ROB_FAMILY_CONTROL_S, now_ts,
+                                                     now_ts + family_control_s, now_ts,
                                                      0, family_income))
                                             await db.commit()
                                             payout_committed = True
@@ -24662,14 +24834,13 @@ async def _coop_http_app():
                                     world._business_closed_until[biz_id] = time.time() + 300.0
                                     world._business_rob_sessions.pop(str(uid), None)
                                     p['_cash'] = int(p.get('_cash') or 0) + money
-                                    family_income = max(1, money // 10) if robbery_family in ('bellini','moretti') else 0
                                     if family_income:
                                         world._robbed_business_controls[biz_id] = {
                                             'biz_id': biz_id, 'owner_uid': str(uid),
                                             'owner_name': str(p.get('name') or '')[:24],
                                             'mafia_family': robbery_family,
                                             'captured_at': now_ts,
-                                            'expires_at': now_ts + SHOP_ROB_FAMILY_CONTROL_S,
+                                            'expires_at': now_ts + family_control_s,
                                             'last_payout_at': now_ts, 'payouts_done': 0,
                                             'income_per_member': family_income,
                                         }
@@ -24677,14 +24848,24 @@ async def _coop_http_app():
                                             'mafia', family_points_gain,
                                             x=p.get('x'), y=p.get('y'), actor_uid=uid,
                                             action=f'business_rob:{biz_id}', cooldown_s=300)
+                                        world._business_war_score[robbery_family]['influence'] = family_points_total
+                                        treasury_gain = max(10, int(round(
+                                            money * 0.05 * robbery_effects['treasury'])))
+                                        war_score = await _business_war_score_add(
+                                            world, robbery_family,
+                                            treasury=treasury_gain, robberies=1)
+                                    else:
+                                        war_score = {}
                                     reply = {'ok': True, 'biz_id': biz_id,
                                              'money': money, 'difficulty': difficulty,
                                              'closed_s': 300,
                                              'mafia_family': robbery_family,
                                              'family_points_gain': family_points_gain,
                                              'family_points_total': family_points_total,
-                                             'family_control_s': SHOP_ROB_FAMILY_CONTROL_S if family_income else 0,
-                                             'family_income_per_member': family_income}
+                                             'family_control_s': family_control_s if family_income else 0,
+                                             'family_income_per_member': family_income,
+                                             'family_treasury_gain': treasury_gain,
+                                             'business_war_score': war_score}
                                     # Небольшой авторитет за подтверждённое
                                     # ограбление получает только действующий мафиози.
                                     try:
@@ -24709,12 +24890,24 @@ async def _coop_http_app():
                                         'mafia_family': robbery_family,
                                         'family_points_gain': family_points_gain,
                                         'family_points_total': family_points_total,
-                                        'family_control_s': SHOP_ROB_FAMILY_CONTROL_S if family_income else 0,
+                                        'family_control_s': family_control_s if family_income else 0,
                                         'family_income_per_member': family_income,
+                                        'family_treasury_gain': treasury_gain,
+                                        'business_war_score': war_score,
                                     }}, ensure_ascii=False)
                                     for _u2, _ws2 in list(world.connections.items()):
                                         try: await _ws2.send_str(banner)
                                         except Exception: pass
+                                    if robbery_family in ('bellini', 'moretti'):
+                                        family_name = ('Беллини' if robbery_family == 'bellini'
+                                                       else 'Моретти')
+                                        await record_city_news(
+                                            'business_robbed',
+                                            f'{nm or "Мафиози"} ограбил «{biz_name}»',
+                                            f'Семья {family_name} взяла бизнес под временный контроль '
+                                            f'и получила +{family_points_gain} влияния.',
+                                            '🔪', uid,
+                                            f'business_robbed:{biz_id}:{uid}:{now_ts // 300}')
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(reply, kind='shop_rob_reply')},
