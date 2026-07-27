@@ -24332,7 +24332,12 @@ function _myDistrictMissionCount(){
   return count;
 }
 function _myOwnedDistricts(){
-  return DISTRICTS.filter(d=>String(districtOwners[d.id]?.ownerId||districtOwners[d.id]?.owner_uid||'')===String(QP.uid));
+  const myUid=String(QP.uid||'').trim();
+  if(!myUid)return [];
+  return DISTRICTS.filter(d=>{
+    const ownerUid=String(districtOwners[d.id]?.ownerId||districtOwners[d.id]?.owner_uid||'').trim();
+    return ownerUid!==''&&ownerUid===myUid;
+  });
 }
 let _districtControlHud=null,_districtControlHudKey='';
 function _syncDistrictControlHud(){
