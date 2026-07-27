@@ -43801,6 +43801,16 @@ function _spawnInteriorNpcs(bi) {
         casinoOwner.ang=0;
         casinoOwner.fixed=true;
       }
+      // Постоянный дежурный мирного казино сидит за пультом CCTV.
+      // Во время штурма этот мирный состав целиком заменяется серверной охраной.
+      bi.npcs.push({
+        r:11.95,c:40,tr:11.95,tc:40,ang:0,
+        walkPhase:0,walking:false,name:'Штатный охранник',
+        role:'casino_security_operator',fixed:true,casinoSeated:true,
+        _keyNpc:true,_invulnerable:true,hp:120,maxHp:120,dead:false,
+        look:{gender:0,skin:2,body:2,face:1,hair:0,hat:2,suit:'#172334'},
+        idleUntil:Infinity,speed:0,weapon:null,
+      });
       const peacefulGuests=[
         ['Официантка',1,'#7b1738'],['Официантка',1,'#8d2449'],
         ['Официантка',1,'#6b1737'],['Хостес',1,'#b18838'],
@@ -44338,6 +44348,7 @@ function _pushInteriorNpcs(bi, items) {
            !_casinoLineClear(bi,player.r,player.c,nn.r,nn.c)) return;
         const p = w2s(nn.r + .5, nn.c + .5);
         p.y-=isoH(_casinoVisualElevation(bi,nn.r,nn.c));
+        if(nn.casinoSeated)p.y+=8;
         const say=performance.now()<(nn._sayUntil||0)?nn._sayText:null;
         const now=performance.now(),isDead=!!nn.dead;
         const isStunned=!isDead&&(now<(nn._knockedUntil||0)||now<(nn._hurtAnimUntil||0));
