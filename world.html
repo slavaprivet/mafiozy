@@ -44857,10 +44857,20 @@ function _casinoOnStairRoute(r,c) {
   return r>=12.55&&r<=19.45&&c>=2.1&&c<=5.5;
 }
 
+function _casinoUpperGalleryBlocked(r,c,pad=.42) {
+  // Верхняя площадка чуть выступает за прямоугольник балкона и соединяет
+  // его с лестницей. Остальные края совпадают с видимой геометрией пола.
+  const landing=_casinoOnStairRoute(r,c)&&r<=14.05;
+  if(landing) return false;
+  return r<3.2+pad||r>13.7-pad||c<.7+pad||c>6.9-pad;
+}
+
 function _casinoMovementBlocked(bi,r,c,pad=.42) {
   if(!bi||bi.bizId!=='major_casino') return false;
-  // Вся видимая ширина марша и верхняя площадка гарантированно проходимы.
-  // Это не даёт плоским стенам первого этажа перекрыть лестницу второго.
+  // Балкон имеет настоящую физическую кромку: за перила и сквозь боковые
+  // стены пройти нельзя. Верхняя площадка остаётся открытой для лестницы.
+  if(r<14&&c<7.4&&_casinoUpperGalleryBlocked(r,c,pad)) return true;
+  // Видимая ширина марша проходима и не блокируется стенами первого этажа.
   if(_casinoOnStairRoute(r,c)) return false;
   if(_casinoInteriorBlocked(bi,r,c,pad)) return true;
   const blockers=MAJOR_CASINO_STATIC_BLOCKERS.filter(b=>_casinoPropAlive(b.id));
@@ -45011,7 +45021,11 @@ function _casinoLineClear(bi,r0,c0,r1,c1) {
 
 function _casinoVisualElevation(bi,r,c) {
   if(!bi||bi.bizId!=='major_casino'||c>=7.4) return 0;
-  if(r<14) return 1.8;
+  // Высоту второго этажа получает только реальный пол балкона, а не весь
+  // прямоугольник до внешних границ здания.
+  const onGallery=r>=3.2&&r<=13.7&&c>=.7&&c<=6.9;
+  const onLanding=_casinoOnStairRoute(r,c)&&r<14;
+  if(onGallery||onLanding) return 1.8;
   if(c>=2.2&&c<=6.3&&r<=19.08)
     return Math.max(0,Math.min(1.8,.18+(18.8-r)*(1.62/5.04)));
   return 0;
