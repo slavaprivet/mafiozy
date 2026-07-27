@@ -1162,9 +1162,8 @@ async def init_db():
         await db.execute(
             "UPDATE coop_sessions SET status='cancelled' WHERE status IN ('active','pending')"
         )
-        # Кулдаун ограблений: одна точка раз в 24ч на игрока.
-        # Запись с (uid, biz_id) активна 24ч после t — потом игнорится
-        # (запросы сами фильтруют по t > now-86400).
+        # История ограблений. Последняя запись по biz_id также служит
+        # общим для всех игроков пятиминутным кулдауном здания.
         await db.execute("""
             CREATE TABLE IF NOT EXISTS shop_robs (
                 uid     INTEGER NOT NULL,
@@ -4345,25 +4344,26 @@ BUSINESS_POIS_RC = {
     "casino":     (13, 45),
     "port":       (181, 31),
 }
-# Награды за ограбление и сколько ★ дают. Намеренно ниже daily_max,
+# Награды за ограбление и рейтинг сложности (★) по числу охранников.
+# Звёзды сложности не связаны с полицейским розыском.
 # чтобы ограбления не вытесняли честный доход от бизнесов и работ.
-# 1 точка / 24ч (см. таблицу shop_robs).
+# После любого успешного налёта точка закрывается для всех на 5 минут.
 SHOP_ROB_CONFIG = {
-    "coffee":     {"money":  200, "stars": 1},
-    "carwash":    {"money":  300, "stars": 1},
-    "barbershop": {"money":  400, "stars": 1},
-    "pizza":      {"money":  600, "stars": 1},
-    "garage":     {"money":  900, "stars": 2},
-    "bar":        {"money": 1300, "stars": 2},
-    "club":       {"money": 2000, "stars": 2},
-    "warehouse":  {"money": 3200, "stars": 2},
-    "casino":     {"money": 5000, "stars": 3},
-    "port":       {"money": 8000, "stars": 3},
+    "coffee":     {"money":  200, "difficulty": 1},
+    "carwash":    {"money":  300, "difficulty": 2},
+    "barbershop": {"money":  400, "difficulty": 2},
+    "pizza":      {"money":  600, "difficulty": 2},
+    "garage":     {"money":  900, "difficulty": 3},
+    "bar":        {"money": 1300, "difficulty": 3},
+    "club":       {"money": 2000, "difficulty": 3},
+    "warehouse":  {"money": 3200, "difficulty": 4},
+    "casino":     {"money": 5000, "difficulty": 4},
+    "port":       {"money": 8000, "difficulty": 4},
 }
 
 # Ограбление подтверждается серверной сессией, а не итоговыми числами,
-# присланными браузером. Кулдаун персональный: один игрок / один бизнес.
-SHOP_ROB_PERSONAL_COOLDOWN_S = 3600
+# присланными браузером. Один и тот же бизнес закрыт для всех на 5 минут.
+SHOP_ROB_PERSONAL_COOLDOWN_S = 5 * 60
 SHOP_ROB_SESSION_TTL_S = 10 * 60
 SHOP_ROB_GUARDS = {
     "coffee": 1, "carwash": 2, "barbershop": 2, "pizza": 3,
@@ -4375,6 +4375,19 @@ SHOP_ROB_INTERIOR_WIDTHS = {
     "garage": 21, "bar": 21, "club": 23, "warehouse": 25,
     "casino": 28, "port": 30,
 }
+
+
+def robbery_difficulty_for_guards(guards: int) -> int:
+    guards = max(0, int(guards or 0))
+    if guards >= 20:
+        return 5
+    if guards >= 6:
+        return 4
+    if guards >= 4:
+        return 3
+    if guards >= 2:
+        return 2
+    return 1
 
 
 def business_robber_at_cashier(player: dict, biz_id: str) -> bool:
@@ -4390,6 +4403,20 @@ def business_robber_at_cashier(player: dict, biz_id: str) -> bool:
     except (TypeError, ValueError):
         return False
     return dx * dx + dy * dy <= 16.0
+
+
+def business_robber_at_entrance(player: dict, biz_id: str) -> bool:
+    """Check the authoritative world position before allowing robbery entry."""
+    rc = BUSINESS_POIS_RC.get(str(biz_id))
+    if not player or not rc or player.get('_business_interior'):
+        return False
+    try:
+        r, c = rc
+        dx = float(player.get('x') or 0) - float(c)
+        dy = float(player.get('y') or 0) - float(r)
+    except (TypeError, ValueError):
+        return False
+    return dx * dx + dy * dy <= 12.25
 
 # Бригадир — NPC в городе, выдаёт хит-контракты на мирных NPC.
 # Стоит на тайле (43, 34) — рядом с баром. Лимит 3 контракта / 24ч,
@@ -12395,7 +12422,7 @@ class WorldSim:
         'quest_cars', '_quest_car_next_id', '_race_slots',
         # Ограбления банков и выброшенные в общий мир мешки-улики.
         'bank_robs', 'bank_bags', '_next_bank_bag_id',
-        'major_assaults', 'major_owners',
+        'major_assaults', 'major_owners', 'major_props',
         # РАЙОНЫ (districts): захват штаба + пассивный доход банде.
         #   district_owners:   did → {owner_uid, owner_name, color, captured_at, last_payout_at}
         #   district_captures: did → {by_uid, by_name, color, started_at}
@@ -12858,6 +12885,22 @@ class WorldSim:
         'port':    {'name':'Порт','boss':'Марко «Якорь» Беллини',
                     'r':165,'c':38,'guards':22,'total':38,'income':2600},
     }
+    CASINO_PROP_DEFS = {
+        'desk': (2.9, 22.0, 180), 'wheel': (7.0, 22.0, 260),
+        **{f'slot_{i}': (r, c, 70) for i, (r, c) in enumerate([
+            (6, 10), (6, 13.2), (6, 16.4), (6, 27.6), (6, 30.8),
+            (6, 34), (10.2, 10), (10.2, 13.2), (10.2, 30.8), (10.2, 34),
+        ])},
+        **{f'roulette_{i}': (14, c, 140)
+           for i, c in enumerate((12, 22, 32))},
+        **{f'card_{i}': (18.2, c, 130)
+           for i, c in enumerate((12, 22, 32))},
+        'bar': (24.2, 31.5, 190), 'vip_table': (23, 7.2, 150),
+        'vip_sofa_n': (21.6, 7.2, 110),
+        'vip_sofa_s': (24.5, 7.2, 110),
+        'champagne': (23, 12, 60), 'dance_stage': (11, 22, 180),
+        'office': (5.8, 40, 160), 'security': (13, 40, 150),
+    }
 
     def __init__(self):
         self.tick_no         = 0
@@ -12896,6 +12939,10 @@ class WorldSim:
         self._last_dist_at       = {}   # uid → did_or_None (детект выхода из штаба)
         self.major_assaults      = {}
         self.major_owners        = {}
+        self.major_props         = {'casino': {
+            prop_id: {'hp': hp, 'destroyed': False}
+            for prop_id, (_, _, hp) in self.CASINO_PROP_DEFS.items()
+        }}
         self.faction_war         = {
             'districts': {did: {'police': 0, 'mafia': 0} for did in self.DISTRICTS_DEF},
             'last_decay_at': time.time(),
@@ -13571,6 +13618,11 @@ class WorldSim:
                     0, int(float(owner.get('expires_at') or 0) - now)
                 ) if owner else 0,
                 'income': int(cfg['income']),
+                'props': {
+                    prop_id: dict(state)
+                    for prop_id, state in self.major_props.get(
+                        object_id, {}).items()
+                },
                 'raid': ({
                     'phase': raid.get('phase'),
                     'by_uid': raid.get('by_uid'),
@@ -13625,10 +13677,19 @@ class WorldSim:
                 }
             return {'kind':'major_assault_reply','ok':False,'reason':'busy',
                     'object_id':object_id,'by_name':active.get('by_name')}
+        if object_id == 'casino':
+            # Каждый новый штурм начинается с целого интерьера. Иначе после
+            # первого рейда разрушенная мебель навсегда оставалась без HP.
+            self.major_props['casino'] = {
+                prop_id: {'hp': hp, 'destroyed': False}
+                for prop_id, (_, _, hp) in self.CASINO_PROP_DEFS.items()
+            }
+        crew_id = str(player.get('_crew_id') or '')
         participants = {
             str(other_uid)
             for other_uid, other in self.players.items()
-            if not other.get('dead') and other.get('_mafia')
+            if crew_id and str(other.get('_crew_id') or '') == crew_id
+            and not other.get('dead') and other.get('_mafia')
             and not other.get('_police')
             and ((float(other.get('x') or 0) - float(player.get('x') or 0)) ** 2
                  + (float(other.get('y') or 0) - float(player.get('y') or 0)) ** 2
@@ -13648,6 +13709,7 @@ class WorldSim:
         raid = {
             'object_id':object_id,'by_uid':str(uid),
             'by_name':str(player.get('name') or '')[:24],
+            'crew_id':crew_id,
             'participants':participants,'started_at':now,
             'expires_at':now + 30 * 60,
             'phase':'guards','guards':guards,'spawned':len(guards),
@@ -13655,6 +13717,11 @@ class WorldSim:
             'safes':[{
                 'id':f'{object_id}_safe_{index + 1}',
                 'opened':False,'value':250 * (index + 1),
+                'r':(23.6 if index == 2 else 21.35) if object_id == 'casino'
+                    else (7 + (index % 2) * 3),
+                'c':(38.9 if index == 0 else 41.65) if object_id == 'casino'
+                    else ((44 if object_id == 'casino' else 34)
+                          - 6 - (index % 2) * 4),
             } for index in range(4 if object_id == 'mansion' else 3)],
         }
         self.major_assaults[object_id] = raid
@@ -13711,6 +13778,59 @@ class WorldSim:
             'alive_count':sum(1 for row in raid['guards'] if row.get('alive')),
         }
 
+    def major_prop_hit(self, uid: str, object_id: str, prop_id: str,
+                       weapon: str, impact_r: float, impact_c: float) -> dict:
+        player = self.players.get(str(uid))
+        prop_def = self.CASINO_PROP_DEFS.get(prop_id)
+        state = self.major_props.get(object_id, {}).get(prop_id)
+        inside = bool(player) and (
+            player.get('_major_interior') == object_id
+            or player.get('_business_interior') == f'major_{object_id}'
+        )
+        if object_id != 'casino' or not prop_def or not state or not inside:
+            return {'kind':'major_prop_hit','ok':False,
+                    'reason':'not_inside','object_id':object_id,
+                    'prop_id':prop_id}
+        if state.get('destroyed'):
+            return {'kind':'major_prop_hit','ok':True,
+                    'object_id':object_id,'prop_id':prop_id,
+                    'hp':0,'destroyed':True}
+        prop_r, prop_c, _ = prop_def
+        explosive = weapon in ('grenade', 'molotov', 'molotov_fire', 'rpg')
+        player_r = float(player.get('_interior_y') or 0)
+        player_c = float(player.get('_interior_x') or 0)
+        valid = (
+            math.hypot(float(impact_r)-prop_r, float(impact_c)-prop_c)
+            <= (5.2 if explosive else 2.8)
+            and math.hypot(player_r-float(impact_r),
+                           player_c-float(impact_c))
+            <= (8.0 if explosive else 14.0)
+        )
+        now = time.time()
+        hit_times = player.setdefault('_major_prop_hit_at', {})
+        hit_key = f'{prop_id}:{weapon}'
+        min_gap = 0.65 if weapon == 'molotov_fire' else 0.06
+        if now - float(hit_times.get(hit_key) or 0) < min_gap:
+            return {'kind':'major_prop_hit','ok':False,
+                    'reason':'cooldown','object_id':object_id,
+                    'prop_id':prop_id}
+        if not valid:
+            return {'kind':'major_prop_hit','ok':False,
+                    'reason':'too_far','object_id':object_id,
+                    'prop_id':prop_id}
+        hit_times[hit_key] = now
+        damage = {
+            'grenade':110, 'rpg':150, 'molotov':48,
+            'molotov_fire':15, 'shotgun':54, 'sniper':72,
+            'rifle':42, 'golden_tommy':24, 'tommy_gun':24,
+        }.get(weapon, max(8, min(72, self._weapon_damage(weapon, 4.0))))
+        state['hp'] = max(0, int(state.get('hp') or 0) - int(damage))
+        state['destroyed'] = state['hp'] <= 0
+        return {'kind':'major_prop_hit','ok':True,
+                'object_id':object_id,'prop_id':prop_id,
+                'hp':state['hp'],'destroyed':state['destroyed'],
+                'weapon':weapon}
+
     def major_boss_pressure(self, uid: str, object_id: str) -> dict:
         raid = self.major_assaults.get(object_id)
         cfg = self.MAJOR_OBJECTS_DEF.get(object_id)
@@ -13723,6 +13843,12 @@ class WorldSim:
                 or player.get('_major_interior') != object_id):
             return {'kind':'major_boss_pressure','ok':False,
                     'reason':'guards_alive','object_id':object_id}
+        interior_w = 44 if object_id == 'casino' else 34
+        if ((float(player.get('_interior_y') or 0) - 4.0) ** 2
+                + (float(player.get('_interior_x') or 0) - float(interior_w - 5)) ** 2
+                > 4.2 ** 2):
+            return {'kind':'major_boss_pressure','ok':False,
+                    'reason':'too_far','object_id':object_id}
         now = time.time()
         cooldown_key = f'pressure_{uid}'
         if now - float(raid.get(cooldown_key) or 0) < 2.0:
@@ -13790,6 +13916,12 @@ class WorldSim:
         if not safe or safe.get('opened'):
             return {'kind':'major_safe_open','ok':False,
                     'reason':'already_open','object_id':object_id,
+                    'safe_id':safe_id}
+        if ((float(player.get('_interior_y') or 0) - float(safe.get('r') or 0)) ** 2
+                + (float(player.get('_interior_x') or 0) - float(safe.get('c') or 0)) ** 2
+                > 3.2 ** 2):
+            return {'kind':'major_safe_open','ok':False,
+                    'reason':'too_far','object_id':object_id,
                     'safe_id':safe_id}
         safe['opened'] = True
         safe['opened_by'] = str(uid)
@@ -22876,6 +23008,21 @@ async def _coop_http_app():
                                 await _ws2.send_str(blob)
                             except Exception:
                                 pass
+                    elif t == 'major_prop_hit':
+                        reply = world.major_prop_hit(
+                            uid,
+                            str(d.get('object_id') or '')[:24],
+                            str(d.get('prop_id') or '')[:48],
+                            str(d.get('weapon') or '')[:24],
+                            float(d.get('impact_r') or 0),
+                            float(d.get('impact_c') or 0))
+                        blob = json.dumps(
+                            {'t':'event','d':reply}, ensure_ascii=False)
+                        for _uid2, _ws2 in list(world.connections.items()):
+                            try:
+                                await _ws2.send_str(blob)
+                            except Exception:
+                                pass
                     elif t == 'major_boss_pressure':
                         reply = world.major_boss_pressure(
                             uid, str(d.get('object_id') or '')[:24])
@@ -23331,7 +23478,7 @@ async def _coop_http_app():
                         cooldown_left = 0
                         closed_left = max(0, int(world._business_closed_until.get(biz_id, 0) - now_rob))
                         rc = BUSINESS_POIS_RC.get(biz_id)
-                        close_enough = business_robber_at_cashier(robber, biz_id)
+                        close_enough = business_robber_at_entrance(robber, biz_id)
                         owns_business = False
                         if biz_id in SHOP_ROB_CONFIG and robber:
                             owns_business = world._biz_owned_sync(int(uid), biz_id)
@@ -23350,6 +23497,18 @@ async def _coop_http_app():
                                         cooldown_left = max(
                                             0, SHOP_ROB_PERSONAL_COOLDOWN_S -
                                             (int(now_rob) - int(row[0])))
+                                    cur = await db.execute(
+                                        "SELECT MAX(t) FROM shop_robs WHERE biz_id=?",
+                                        (biz_id,))
+                                    row = await cur.fetchone()
+                                    if row and row[0]:
+                                        closed_left = max(
+                                            closed_left,
+                                            SHOP_ROB_PERSONAL_COOLDOWN_S -
+                                            (int(now_rob) - int(row[0])))
+                                        if closed_left > 0:
+                                            world._business_closed_until[biz_id] = (
+                                                now_rob + closed_left)
                             except Exception:
                                 completed = 0
                         ok_prepare = bool(
@@ -23376,8 +23535,8 @@ async def _coop_http_app():
                             'police' if robber.get('_police') else
                             'protected' if protected_left else
                             'defended' if defended_left else
-                            'cooldown' if cooldown_left else
                             'closed' if closed_left else
+                            'cooldown' if cooldown_left else
                             'own' if owns_business else
                             'too_far' if not close_enough else
                             'dead'
@@ -23436,8 +23595,8 @@ async def _coop_http_app():
                         #   1) проверить biz_id ∈ SHOP_ROB_CONFIG
                         #   2) дистанция до POI ≤ 3.0 тайл (anti-cheat)
                         #   3) не свой бизнес (нельзя ограбить себя)
-                        #   4) cooldown 24ч на эту точку (таблица shop_robs)
-                        #   5) +cash в characters, +★ wanted, broadcast баннер
+                        #   4) общий cooldown 5 минут на эту точку (таблица shop_robs)
+                        #   5) +cash, рейтинг сложности ★, broadcast баннер
                         p = world.players.get(uid)
                         biz_id = ''
                         if isinstance(d, dict):
@@ -23476,7 +23635,7 @@ async def _coop_http_app():
                         else:
                             if not business_robber_at_cashier(p, biz_id):
                                 reply = {'ok': False, 'reason': 'too_far'}
-                            elif await world._biz_owned_sync(int(uid), biz_id):
+                            elif world._biz_owned_sync(int(uid), biz_id):
                                 reply = {'ok': False, 'reason': 'own'}
                             else:
                                 now_ts = int(time.time())
@@ -23492,24 +23651,29 @@ async def _coop_http_app():
                                     except Exception:
                                         pass
                                     continue
+                                money = int(cfg['money'])
+                                difficulty = robbery_difficulty_for_guards(
+                                    int(session['guard_count']))
+                                payout_committed = False
+                                db_closed_left = 0
                                 try:
                                     async with aiosqlite.connect(DB_PATH) as db:
+                                        # BEGIN IMMEDIATE сериализует финиш налёта между
+                                        # всеми игроками. Только первый запрос после КД
+                                        # начислит деньги; повторный клик или одновременный
+                                        # второй грабитель увидит уже записанное время.
+                                        await db.execute("BEGIN IMMEDIATE")
                                         cur = await db.execute(
-                                            "SELECT t FROM shop_robs WHERE uid=? AND biz_id=?",
-                                            (int(uid), biz_id))
+                                            "SELECT MAX(t) FROM shop_robs WHERE biz_id=?",
+                                            (biz_id,))
                                         row = await cur.fetchone()
-                                        if row: last_t = int(row[0])
-                                except Exception: pass
-                                if now_ts - last_t < SHOP_ROB_PERSONAL_COOLDOWN_S:
-                                    left = SHOP_ROB_PERSONAL_COOLDOWN_S - (now_ts - last_t)
-                                    reply = {'ok': False, 'reason': 'cooldown',
-                                             'cooldown_s': left}
-                                else:
-                                    money = int(cfg['money'])
-                                    stars = int(cfg['stars'])
-                                    # +cash
-                                    try:
-                                        async with aiosqlite.connect(DB_PATH) as db:
+                                        last_global_t = int(row[0]) if row and row[0] else 0
+                                        db_closed_left = max(
+                                            0, SHOP_ROB_PERSONAL_COOLDOWN_S -
+                                            (now_ts - last_global_t))
+                                        if db_closed_left:
+                                            await db.rollback()
+                                        else:
                                             await db.execute(
                                                 "UPDATE characters SET cash = cash + ? "
                                                 "WHERE telegram_id = ?",
@@ -23523,15 +23687,26 @@ async def _coop_http_app():
                                                 "ON CONFLICT(uid,biz_id) DO UPDATE SET cycle_count=(cycle_count+1)%3",
                                                 (int(uid), biz_id))
                                             await db.commit()
-                                    except Exception: pass
-                                    # +★ (минимум stars)
-                                    p['_wanted'] = max(p.get('_wanted') or 0,
-                                                       float(stars))
-                                    p['_last_shot_t'] = time.time()
+                                            payout_committed = True
+                                except Exception:
+                                    payout_committed = False
+                                if db_closed_left:
+                                    world._business_closed_until[biz_id] = (
+                                        time.time() + db_closed_left)
+                                    world._business_rob_sessions.pop(str(uid), None)
+                                    reply = {'ok': False, 'reason': 'closed',
+                                             'closed_s': db_closed_left,
+                                             'biz_id': biz_id}
+                                elif not payout_committed:
+                                    reply = {'ok': False, 'reason': 'server_error',
+                                             'biz_id': biz_id}
+                                else:
+                                    # ★ describes robbery difficulty, not police wanted.
                                     world._business_closed_until[biz_id] = time.time() + 300.0
                                     world._business_rob_sessions.pop(str(uid), None)
+                                    p['_cash'] = int(p.get('_cash') or 0) + money
                                     reply = {'ok': True, 'biz_id': biz_id,
-                                             'money': money, 'stars': stars,
+                                             'money': money, 'difficulty': difficulty,
                                              'closed_s': 300}
                                     # Небольшой авторитет за подтверждённое
                                     # ограбление получает только действующий мафиози.
@@ -23553,6 +23728,7 @@ async def _coop_http_app():
                                         'robber_name':  nm,
                                         'biz_id':       biz_id,
                                         'biz_name':     biz_name,
+                                        'closed_s':     300,
                                     }}, ensure_ascii=False)
                                     for _u2, _ws2 in list(world.connections.items()):
                                         try: await _ws2.send_str(banner)
