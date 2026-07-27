@@ -42714,6 +42714,7 @@ function _isCarryingPoliceEvidence(){return !!(_policeState?.employed&&_policeEv
 const _policeModal=document.getElementById('policeModal'),_policeModalBody=document.getElementById('policeModalBody'),_stealthBtn=document.getElementById('stealthBtn'),_policeDownedBtn=document.getElementById('policeDownedBtn');
 let _policeModalView='desk';
 let _hqDeskRole=null;
+let _mafiaLeaveConfirm=false;
 const _policeArrestHud=document.createElement('div');
 _policeArrestHud.style.cssText='display:none;position:fixed;z-index:120;left:50%;bottom:105px;transform:translateX(-50%);padding:9px 14px;border-radius:12px;background:rgba(9,18,34,.94);border:1px solid #67b8ff;color:#fff;font:700 13px system-ui;box-shadow:0 6px 24px #0008;pointer-events:none;text-align:center';
 document.body.appendChild(_policeArrestHud);
@@ -42967,7 +42968,7 @@ function _leaveMafiaService(){
   _myWeapons=_myWeapons.filter(w=>!w.issuedByFamily);
   if((currentWeapon==='golden_tommy'||currentWeapon==='pistol')&&!_myWeapons.some(w=>w.id===currentWeapon))currentWeapon=null;
   _saveCurrentWeaponChoice();
-  _mafiaOrderUntil=0;_refreshMafiaPerks();renderJobStatus();renderPoliceModal();renderWeaponHud();if(_wepPickOpen)renderWeaponPick();
+  _mafiaOrderUntil=0;_mafiaLeaveConfirm=false;_refreshMafiaPerks();renderJobStatus();closePoliceDesk();renderWeaponHud();if(_wepPickOpen)renderWeaponPick();
   showEventBanner('⚠️ СТАТУС: ПРЕДАТЕЛЬ','Пять минут нельзя вступать в другую семью. В полицию устроиться можно.',4300,'neutral');
 }
 function _clearPoliceLoadoutOnResign() {
@@ -43011,6 +43012,7 @@ function renderPoliceModal(){
     const recruit=MAFIA_FAMILIES[_mafiaRecruitFamily]||MAFIA_FAMILIES.bellini;
     if(!_mafiaState.employed){_policeModalBody.innerHTML=`<div class="police-note" style="border-color:${recruit.accent};background:#21170e"><b>${recruit.name}</b><br>Семья даёт доступ к бригаде, способностям, технике и войне за районы. Союзников своей семьи атаковать нельзя.</div><div class="police-row"><div><div class="police-name">🕴️ Вступить в ${recruit.short}</div><div class="police-sub">Вы получите ${recruit.id==='moretti'?'белый':'чёрный'} семейный костюм. Накопленный мафиозный ранг сохранится.</div></div></div><button class="police-action" data-mafia-service="join" data-family="${recruit.id}">✅ Принести клятву семье</button>`;return;}
     const family=_mafiaFamily()||MAFIA_FAMILIES.bellini;
+    if(_mafiaLeaveConfirm){_policeModalBody.innerHTML=`<div class="police-note" style="border-color:#d76a72;background:#2b1519;text-align:center;padding:18px"><div style="font-size:28px;margin-bottom:8px">⚠️</div><div class="police-name" style="font-size:16px">Покинуть семью ${family.short}?</div><div class="police-sub" style="margin-top:9px;line-height:1.5;color:#f0c6c9">Твоя личная банда будет распущена, семейное оружие заберут.<br><b style="color:#ff9da5">На 5 минут ты получишь статус «Предатель»</b> и не сможешь вступить в другую семью. Стать копом можно сразу.</div></div><div style="display:flex;gap:10px;margin-top:12px"><button class="police-action" data-mafia-service="leave-confirm" style="flex:1;background:#7b2731;border-color:#e06a76">Да, покинуть</button><button class="police-action" data-mafia-service="leave-cancel" style="flex:1;background:#34425a;border-color:#6d83a5">Нет, остаться</button></div>`;return;}
     const familyPoints={bellini:0,moretti:0};for(const o of Object.values(districtOwners))if(familyPoints[o.mafiaFamily]!=null)familyPoints[o.mafiaFamily]+=100;for(const o of Object.values(_majorObjectsState))if(familyPoints[o.mafia_family]!=null)familyPoints[o.mafia_family]+=Math.max(0,+o.control_points||60);
     const controlled=familyPoints.bellini+familyPoints.moretti,belliniPct=controlled?Math.round(familyPoints.bellini/controlled*100):50,morettiPct=100-belliniPct;
     let html=`<div class="police-note" style="border-color:${family.accent};background:#21170e"><div style="display:flex;justify-content:space-between;gap:12px"><div><div class="police-name">🕴️ ${family.name}</div><div class="police-sub">${p.rank} · уровень ${p.level} · ${p.xp} XP</div></div><b style="color:#ffd27a">${_myGang.filter(g=>g.hp>0).length}/${GANG_MAX} бойцов</b></div><div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px"><span>${next}</span><span>${p.maxed?'МАКСИМУМ':`${p.part}/${p.need} XP`}</span></div><div style="height:9px;background:#130d08;border-radius:8px;overflow:hidden;margin:6px 0"><div style="height:100%;width:${p.pct}%;background:linear-gradient(90deg,${family.accent},#f0ad42)"></div></div></div><div class="police-note" style="margin-top:9px"><b>КОНТРОЛЬ ГОРОДА</b><div style="display:flex;justify-content:space-between;margin-top:7px"><span>🖤 Беллини ${belliniPct}%</span><span>🤍 Моретти ${morettiPct}%</span></div><div style="height:10px;display:flex;border-radius:8px;overflow:hidden;margin-top:6px;background:#333"><i style="width:${belliniPct}%;background:#20232b"></i><i style="width:${morettiPct}%;background:#f3efe5"></i></div></div>`;
@@ -43052,7 +43054,7 @@ function openMafiaBoard(){
     showToast('Для начала увольтесь из полиции, чтобы вступить в мафию. Сдать форму можно в полицейском участке.','🚫',4200);
     return;
   }
-  _policeModalView='mafia';renderPoliceModal();_policeModal?.classList.add('show');
+  _mafiaLeaveConfirm=false;_policeModalView='mafia';renderPoliceModal();_policeModal?.classList.add('show');
 }
 function renderHqUpgradeDesk(){
   const role=_hqDeskRole;if(!role||!_policeModalBody)return;
@@ -43072,7 +43074,7 @@ function openHqUpgradeDesk(role){
   if(role==='mafia'&&_policeState.employed){showToast('Сначала сдай полицейскую форму','🚫',2200);return;}
   _hqDeskRole=role;_policeModalView='hq';renderHqUpgradeDesk();_policeModal?.classList.add('show');
 }
-function closePoliceDesk(){_policeModal?.classList.remove('show');_hqDeskRole=null;}
+function closePoliceDesk(){_policeModal?.classList.remove('show');_hqDeskRole=null;_mafiaLeaveConfirm=false;}
 function _findPoliceStealthTarget(){
   if(!_policeState.employed||_buildingInt||_bankInt||myDrivingCarId||myDead||_policeState.escort||_policeState.cuffs<=0)return null;let best=null,bestD=1.7,now=performance.now();
   for(const n of NPCS){if(!n._policeCriminal||n.dead||n._policeCuffed||(n._knockedUntil||0)>now||!_policeMissionForNpc(n))continue;const dr=player.r-n.r,dc=player.c-n.c,d=Math.hypot(dr,dc);if(d>=bestD)continue;const dot=(Math.sin(n.ang||0)*dr+Math.cos(n.ang||0)*dc)/(d||1);if(dot<-.28){best=n;bestD=d;}}
@@ -43128,7 +43130,7 @@ function _rejectPendingPoliceNpcReward(d){
 }
 function _tickPoliceMissions(now){_updateOnlineArrestHud();_updatePoliceDownedButton();_updatePoliceSpikesPickerCooldown();_updatePoliceQuickPanel(now);_tickPoliceSupport(now);for(const m of [..._policeState.missions]){if(m.status!=='hunt')continue;const n=NPCS.find(x=>x._policeTargetId===m.targetId);if(n&&n.dead&&now-(n.deadAt||now)>900){const i=NPCS.indexOf(n);if(i>=0)NPCS.splice(i,1);_policeState.missions=_policeState.missions.filter(x=>x.id!==m.id);_policeMissionIntel.delete(String(m.id));_savePoliceState();renderPoliceModal();renderJobStatus();showEventBanner('☠️ ПРЕСТУПНИК ПОГИБ',`${m.name} погиб. Ориентировка вычеркнута.`,3900,'lose');showToast(`${m.name}: преступник погиб`,'☠️',2800);}else if(!n)_spawnPoliceTarget(m);}}
 document.getElementById('policeModalClose')?.addEventListener('click',closePoliceDesk);
-_policeModal?.addEventListener('click',e=>{if(e.target===_policeModal){closePoliceDesk();return;}const ms=e.target.closest('[data-mafia-service]');if(ms&&!ms.disabled){e.preventDefault();if(ms.dataset.mafiaService==='join')_joinMafiaService(ms.dataset.family);else _leaveMafiaService();return;}const hb=e.target.closest('[data-hq-upgrade]');if(hb&&!hb.disabled){e.preventDefault();_buyHqUpgrade(hb.dataset.hqRole,hb.dataset.hqUpgrade);return;}const mb=e.target.closest('[data-mafia-action]');if(mb&&!mb.disabled){e.preventDefault();_triggerMafiaAbility(mb.dataset.mafiaAction);return;}const b=e.target.closest('[data-police-action]');if(!b||b.disabled)return;e.preventDefault();const a=b.dataset.policeAction;if(a==='take')_acceptPoliceMission(false);else if(a==='boss')_acceptPoliceMission(true);else if(a==='patrol')_triggerPoliceQuickAction('patrol');else if(a==='spikes')_triggerPoliceQuickAction('spikes');else if(a==='backup')_triggerPoliceQuickAction('backup');else if(a==='online_select')_sendPoliceOnline('police_online_select',b.dataset.targetUid);else if(a==='join')_joinPoliceService();else if(a==='leave')_leavePoliceService();else if(a==='decline')closePoliceDesk();});
+_policeModal?.addEventListener('click',e=>{if(e.target===_policeModal){closePoliceDesk();return;}const ms=e.target.closest('[data-mafia-service]');if(ms&&!ms.disabled){e.preventDefault();const action=ms.dataset.mafiaService;if(action==='join')_joinMafiaService(ms.dataset.family);else if(action==='leave'){_mafiaLeaveConfirm=true;renderPoliceModal();}else if(action==='leave-confirm')_leaveMafiaService();else if(action==='leave-cancel'){_mafiaLeaveConfirm=false;renderPoliceModal();}return;}const hb=e.target.closest('[data-hq-upgrade]');if(hb&&!hb.disabled){e.preventDefault();_buyHqUpgrade(hb.dataset.hqRole,hb.dataset.hqUpgrade);return;}const mb=e.target.closest('[data-mafia-action]');if(mb&&!mb.disabled){e.preventDefault();_triggerMafiaAbility(mb.dataset.mafiaAction);return;}const b=e.target.closest('[data-police-action]');if(!b||b.disabled)return;e.preventDefault();const a=b.dataset.policeAction;if(a==='take')_acceptPoliceMission(false);else if(a==='boss')_acceptPoliceMission(true);else if(a==='patrol')_triggerPoliceQuickAction('patrol');else if(a==='spikes')_triggerPoliceQuickAction('spikes');else if(a==='backup')_triggerPoliceQuickAction('backup');else if(a==='online_select')_sendPoliceOnline('police_online_select',b.dataset.targetUid);else if(a==='join')_joinPoliceService();else if(a==='leave')_leavePoliceService();else if(a==='decline')closePoliceDesk();});
 _stealthBtn?.addEventListener('pointerdown',e=>{e.preventDefault();_knockoutPoliceTarget();});
 _loadMafiaState();_loadPoliceState();if(_policeState.employed&&_mafiaState.employed){_mafiaState.employed=false;_saveMafiaState();}_refreshMafiaPerks();setTimeout(_ensurePoliceTargets,1200);
 
