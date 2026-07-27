@@ -16702,6 +16702,10 @@ function wsUrl() {
   // Только локальная демка: позволяет открыть вторую вкладку преступника
   // (?uid=222&wanted=2) и проверить полный онлайн-арест без базы Telegram.
   if (_LOCAL_PREVIEW && _UP.get('wanted')) params.set('wanted', String(Math.max(0,Math.min(3,_qInt('wanted',0)))));
+  if (_LOCAL_PREVIEW && _UP.get('previewpoi') && typeof BUSINESS_POIS !== 'undefined') {
+    const previewBiz=BUSINESS_POIS.find(b=>b.id===_UP.get('previewpoi'));
+    if(previewBiz){params.set('spawn_r',String(previewBiz.r+1.8));params.set('spawn_c',String(previewBiz.c+.5));}
+  }
   return `${base}/world/sim?${params.toString()}`;
 }
 
@@ -18291,6 +18295,7 @@ function _confirmBusinessChoice(btn){
   document.getElementById('businessChoiceConfirmCard').innerHTML=`<h2 style="margin:0;color:#ffd27b">${cfg.icon} Подтвердить диверсию?</h2><p><b>${cfg.name}</b></p><div style="padding:11px;border-radius:10px;background:#ffffff0c">${cfg.effect}</div><p style="color:#ffca75">Будет безвозвратно потрачена C4 · 1 шт.<br>Сейчас в наличии: ${_myC4Count} шт.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button data-bcc-cancel style="padding:11px;border-radius:9px;border:1px solid #667180;background:#202936;color:#fff;font-weight:900">Назад</button><button data-bcc-confirm="${kind}" style="padding:11px;border-radius:9px;border:1px solid #ff8058;background:#9e301a;color:#fff;font-weight:900">Потратить C4 и выполнить</button></div>`;ov.style.display='flex';
 }
 if(_LOCAL_PREVIEW){const previewChoice=String(_UP.get('businesschoice')||'');if(previewChoice)setTimeout(()=>{const biz=BUSINESS_POIS.find(item=>item.id===previewChoice);if(biz)_showBusinessWarChoice({biz_id:biz.id,money:ROB_PAYOUT_PREVIEW[biz.id]?.money||600,business_choice_token:'preview-token',business_choice_s:300,can_capture:true,sabotage_s:720},biz);},1200);}
+if(_LOCAL_PREVIEW){const visual=String(_UP.get('bizvisual')||'');if(visual)setTimeout(()=>{const id=String(_UP.get('previewpoi')||'coffee'),until=Date.now()+20*60000;if(['shutdown','arson','alarm'].includes(visual))_businessWarSabotage[id]={kind:visual,_untilAt:until,remaining_s:1200};else if(visual==='control')_robbedBusinessControls[id]={biz_id:id,mafia_family:String(_UP.get('previewmafia')||'bellini'),owner_name:'Игрок',persistent:true,expires_at:Date.now()/1000+315360000,income_per_member:60};else if(visual==='war')_businessFamilyWars[id]={biz_id:id,attacker_family:'bellini',previous_family:'moretti',preparing_until:Date.now()/1000+25,expires_at:Date.now()/1000+205,progress:24,hold_s:90,bellini:2,moretti:1};},700);}
 const BUSINESS_WAR_BONUS_INFO = Object.freeze({
   coffee:'☕ Кофейня · +5% семейного дохода',
   carwash:'🚿 Автомойка · +10% стойкости защиты',
@@ -30490,8 +30495,10 @@ if (_LOCAL_PREVIEW && _UP.get('previewmafia')) {
   setTimeout(() => {
     player.r = previewPoi.r + 1.2; player.c = previewPoi.c + 0.4;
     player.tr = player.r; player.tc = player.c;
+    cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;
     showToast(`Тест: ${MAFIA_FAMILIES[previewFamily]?.short || 'семья'} · ${previewPoi.name}`, '🏴', 2600);
   }, 700);
+  if(_UP.get('bizvisual'))setInterval(()=>{player.r=previewPoi.r+1.2;player.c=previewPoi.c+.4;player.tr=player.r;player.tc=player.c;cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;},500);
 }
 const BIZ_MAX_LEVEL = 5;
 const BIZ_LEVEL_MULTIPLIERS = [1, 1, 1.35, 1.75, 2.25, 3.0];
@@ -30751,6 +30758,50 @@ function _drawRobbedBusinessState(b, r, c, t, closedLeft) {
   ctx.fillRect(p.x-38,p.y-58,76,16);ctx.strokeRect(p.x-37.5,p.y-57.5,75,15);
   ctx.fillStyle='#ff5a66';ctx.font='900 10px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('ОГРАБЛЕНО',p.x,p.y-50);
+  ctx.restore();
+}
+
+function _drawBusinessConflictVisuals(b,r,c,t){
+  const p=w2s(r+.5,c+.5),sab=_businessWarSabotage[b.id],war=_businessFamilyWars[b.id],control=_robbedBusinessControls[b.id];
+  if(!sab&&!war&&!control)return;
+  const pulse=.5+.5*Math.sin(t*5),roofY=p.y-isoH(b.id==='club'||b.id==='warehouse'?1.55:1.3);
+  ctx.save();
+  if(sab){
+    const kind=sab.kind||sab.sabotage_kind||'shutdown';
+    if(kind==='shutdown'){
+      // Погасший фасад, оборванный кабель и редкие электрические пробои.
+      ctx.fillStyle='rgba(2,5,10,.58)';ctx.beginPath();ctx.ellipse(p.x,p.y-22,48,31,0,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#222b35';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(p.x+17,roofY-5);ctx.quadraticCurveTo(p.x+28,roofY+11,p.x+15,p.y-8);ctx.stroke();
+      if(pulse>.58){ctx.strokeStyle='#78dfff';ctx.shadowColor='#53cfff';ctx.shadowBlur=10;ctx.lineWidth=1.5;for(let i=0;i<3;i++){const x=p.x+14+i*4,y=roofY+8+i*7;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-4,y+4);ctx.lineTo(x+2,y+7);ctx.lineTo(x-2,y+12);ctx.stroke();}ctx.shadowBlur=0;}
+      ctx.fillStyle=pulse>.7?'#ff9a38':'#55200f';ctx.beginPath();ctx.arc(p.x+13,roofY-8,2.5,0,Math.PI*2);ctx.fill();
+    }else if(kind==='arson'){
+      // Огонь на складе/крыше, густой дым и мерцающий отблеск на земле.
+      const spots=[[-20,-15],[18,-8],[2,-31]];ctx.globalCompositeOperation='lighter';
+      for(let i=0;i<spots.length;i++){const [dx,dy]=spots[i],f=.8+.25*Math.sin(t*8+i);ctx.fillStyle='rgba(255,70,15,.62)';ctx.beginPath();ctx.ellipse(p.x+dx,p.y+dy,7*f,13*f,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffd45b';ctx.beginPath();ctx.ellipse(p.x+dx,p.y+dy+3,3.5*f,8*f,0,0,Math.PI*2);ctx.fill();}
+      ctx.globalCompositeOperation='source-over';for(let i=0;i<6;i++){const drift=Math.sin(t*.9+i)*7,up=((t*13+i*17)%52);ctx.fillStyle=`rgba(35,31,35,${.48-up/150})`;ctx.beginPath();ctx.arc(p.x-5+drift,roofY-up,7+i%3*2,0,Math.PI*2);ctx.fill();}
+      ctx.fillStyle=`rgba(255,67,20,${.10+.07*pulse})`;ctx.beginPath();ctx.ellipse(p.x,p.y+3,58,22,0,0,Math.PI*2);ctx.fill();
+    }else if(kind==='alarm'){
+      // Взломанная сигнализация: сирена захлёбывается, экран глючит.
+      const sx=p.x+24,sy=p.y-42;ctx.fillStyle='#171b20';ctx.strokeStyle='#ff534b';ctx.lineWidth=1.5;ctx.fillRect(sx-7,sy-5,14,10);ctx.strokeRect(sx-7,sy-5,14,10);
+      ctx.fillStyle=pulse>.45?'#ff3028':'#381010';ctx.shadowColor='#ff3028';ctx.shadowBlur=pulse>.45?13:0;ctx.beginPath();ctx.arc(sx,sy-6,3,Math.PI,0);ctx.fill();ctx.shadowBlur=0;
+      ctx.strokeStyle=`rgba(255,58,48,${.35+.35*pulse})`;ctx.lineWidth=1;for(let i=1;i<=3;i++){ctx.beginPath();ctx.arc(sx,sy-6,7+i*5,Math.PI*1.1,Math.PI*1.9);ctx.stroke();}
+      ctx.strokeStyle='#7df4ff';for(let i=0;i<4;i++){const yy=sy-3+i*3;ctx.beginPath();ctx.moveTo(sx-5,yy);ctx.lineTo(sx-1+(i%2)*6,yy);ctx.stroke();}
+    }
+  }
+  if(control){
+    const bellini=control.mafia_family==='bellini',fc=bellini?'#9d72ff':'#f1ebdc',letter=bellini?'B':'M';
+    // Большой семейный флаг на крыше.
+    ctx.strokeStyle='#302b27';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(p.x,roofY+9);ctx.lineTo(p.x,roofY-29);ctx.stroke();
+    const wave=Math.sin(t*4)*3;ctx.fillStyle=fc;ctx.shadowColor=fc;ctx.shadowBlur=8;ctx.beginPath();ctx.moveTo(p.x,roofY-28);ctx.quadraticCurveTo(p.x+17,roofY-23+wave,p.x+31,roofY-19);ctx.lineTo(p.x,roofY-10);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#16121b';ctx.font='900 10px system-ui';ctx.textAlign='center';ctx.fillText(letter,p.x+12,roofY-16+wave*.3);
+    // Два часовых у входа — неподвижные, но следят по сторонам.
+    for(let i=0;i<2;i++){const gx=p.x+(i?28:-28),gy=p.y+5+Math.sin(t*2+i)*.8;ctx.fillStyle='#11151b';ctx.beginPath();ctx.arc(gx,gy-14,3.5,0,Math.PI*2);ctx.fill();ctx.fillRect(gx-3,gy-10,6,11);ctx.strokeStyle=fc;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(gx,gy-7);ctx.lineTo(gx+(i?-8:8),gy-3);ctx.stroke();ctx.fillStyle=fc;ctx.fillRect(gx-1,gy-10,2,4);}
+  }
+  if(war){
+    // Баррикады, прожекторы и вращающаяся опасная зона делают бой читаемым.
+    const a=t*1.3;ctx.strokeStyle=`rgba(255,67,52,${.35+.35*pulse})`;ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.beginPath();ctx.ellipse(p.x,p.y+4,56,27,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+    for(let i=0;i<3;i++){const bx=p.x-34+i*34,by=p.y+16+Math.abs(i-1)*4;ctx.fillStyle='#6c4b2b';ctx.fillRect(bx-9,by-3,18,5);ctx.strokeStyle='#2a1b11';ctx.beginPath();ctx.moveTo(bx-7,by+2);ctx.lineTo(bx-11,by+8);ctx.moveTo(bx+7,by+2);ctx.lineTo(bx+11,by+8);ctx.stroke();}
+    for(let i=0;i<2;i++){const sx=p.x+(i?-48:48),sy=p.y-6,ang=a+i*Math.PI;ctx.fillStyle='rgba(255,221,120,.10)';ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+Math.cos(ang-.24)*74,sy+Math.sin(ang-.24)*35);ctx.lineTo(sx+Math.cos(ang+.24)*74,sy+Math.sin(ang+.24)*35);ctx.closePath();ctx.fill();}
+  }
   ctx.restore();
 }
 
@@ -31349,6 +31400,7 @@ function drawBusinessBuilding(r, c, b) {
   if (closedLeft) {
     _drawRobbedBusinessState(b,r,c,t,closedLeft);
   }
+  _drawBusinessConflictVisuals(b,r,c,t);
 
   // Купленный бизнес — добавляем флажок-вымпел поверх крыши: золотой
   // шток, зелёный треугольный вымпел с галочкой «✓». Колышется на ветру.
