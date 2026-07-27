@@ -15779,8 +15779,10 @@ function handleEventPacket(d) {
       _showBusinessChoiceReceipt({icon:'💣',title:'Диверсия выполнена',biz:d.biz_name,summary:effect,details:`Потрачена C4: 1 шт. В инвентаре осталось: ${_myC4Count}.`,next:d.sabotage_kind==='alarm'?'Следующее ограбление этого здания будет легче, пока сигнализация сломана.':'Пока действует диверсия, бизнес не приносит доход и его нельзя нормально использовать.'});
     } else if(d.action==='capture'){
       _lastOwnBusinessChoice={bizId:d.biz_id,action:'capture',at:Date.now()};
-      showEventBanner('🏴 БИЗНЕС ЗАХВАЧЕН',`«${d.biz_name||'Бизнес'}» теперь принадлежит твоей семье и приносит по $${(+d.income_per_member||0).toLocaleString('ru')} каждому участнику`,5200,'win');
-      _showBusinessChoiceReceipt({icon:'🏴',title:'Бизнес захвачен',biz:d.biz_name,summary:'Заведение теперь принадлежит твоей семье.',details:`Доход: по $${(+d.income_per_member||0).toLocaleString('ru')} каждому участнику семьи за выплату.`,next:'Защищайте точку: другая семья сможет начать отжим бизнеса.'});
+      const captureIncome=+d.income_per_member||0;
+      const incomeText=captureIncome>0?`по $${captureIncome.toLocaleString('ru')} каждому участнику за выплату`:'будет показан после первой серверной выплаты';
+      showEventBanner('🏴 БИЗНЕС ЗАХВАЧЕН',`«${d.biz_name||'Бизнес'}» теперь принадлежит твоей семье · доход ${incomeText}`,5200,'win');
+      _showBusinessChoiceReceipt({icon:'🏴',title:'Бизнес захвачен',biz:d.biz_name,summary:'Заведение теперь принадлежит твоей семье.',details:`Доход: ${incomeText}.`,next:'Защищайте точку: другая семья сможет начать отжим бизнеса.'});
     } else if(d.action==='preparation'){
       _lastOwnBusinessChoice={bizId:d.biz_id,action:'preparation',at:Date.now()};
       showEventBanner('⚔️ ЗАХВАТ НАЧАТ',`«${d.biz_name||'Бизнес'}» · подготовка ${+d.preparation_s||20} сек., затем начнётся открытая война семей`,5200,'warn');
