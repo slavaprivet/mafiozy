@@ -158,6 +158,16 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 }
 body.in-pvp #robActionBtn { top: 152px; }
 #zoneBtn[style*="block"] ~ #robActionBtn { top: 158px; }
+/* Возле бизнеса три действия образуют одну компактную панель и не закрывают
+   здание вертикальной колонной. На узких экранах сохраняется старый стек. */
+@media (min-width: 800px) {
+  body.near-business #zoneBtn,
+  body.in-pvp.near-business #zoneBtn { left:28%;top:104px;max-width:28vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  body.near-business #gtaActionBtn,
+  body.in-pvp.near-business #gtaActionBtn { left:50%;top:104px;max-width:28vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  body.near-business #robActionBtn,
+  body.in-pvp.near-business #robActionBtn { left:72%;top:104px;max-width:28vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:10px 16px;font-size:13px; }
+}
 
 /* Кнопка «Сбросить мешок» — внизу по центру, видна пока несёшь мешок.
    Низ экрана чтобы не мешала верхним кнопкам «Погрузить/Взлом». */
@@ -11378,11 +11388,16 @@ function drawOwnedBusinessWorldMarkers(r0, r1, c0, c1) {
       const label=familyControl.persistent
         ? `🏴 ${familyName.toUpperCase()} · ПОД КОНТРОЛЕМ`
         : `🏴 ${familyName.toUpperCase()} · ДОХОД ${mins} МИН`;
-      ctx.font='900 11px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-      const tw=ctx.measureText(label).width+20,y=fp.y-112-pulse*3;
-      ctx.fillStyle='rgba(12,8,20,.96)';ctx.strokeStyle=fc;ctx.lineWidth=1.7;
-      roundRect(fp.x-tw/2,y-11,tw,22,9);ctx.fill();ctx.stroke();
-      ctx.fillStyle='#fff';ctx.fillText(label,fp.x,y);ctx.restore();
+      // Рядом с заведением владелец уже указан на вывеске. Полную плашку
+      // оставляем только как дальний навигационный маркер.
+      if(Math.hypot(player.r-biz.r,player.c-biz.c)>7){
+        ctx.font='900 11px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        const tw=ctx.measureText(label).width+20,y=fp.y-112-pulse*3;
+        ctx.fillStyle='rgba(12,8,20,.96)';ctx.strokeStyle=fc;ctx.lineWidth=1.7;
+        roundRect(fp.x-tw/2,y-11,tw,22,9);ctx.fill();ctx.stroke();
+        ctx.fillStyle='#fff';ctx.fillText(label,fp.x,y);
+      }
+      ctx.restore();
       continue;
     }
     const own = myBusinesses.get(biz.id);
@@ -11529,6 +11544,9 @@ function _currentBuildingEntryTarget() {
 }
 
 function drawActiveBuildingEntryMarker() {
+  // У бизнеса уже есть контекстные кнопки сверху. Большой указатель
+  // «ВОЙТИ СЮДА» дублирует их и закрывает само маленькое здание.
+  if (_zoneEl?.dataset?.bizId) return;
   const target = _currentBuildingEntryTarget();
   if (!target) return;
   const pulse = (Math.sin(performance.now() * 0.007) + 1) * 0.5;
@@ -17536,6 +17554,7 @@ function updateZoneBtn() {
   // У каждого покупаемого бизнеса есть полноценный интерьер. Эта кнопка отвечает
   // только за вход; покупка, ограбление и сбор дохода остаются на GTA-панели.
   const nearBizEntry = _nearestBusinessPoi();
+  document.body.classList.toggle('near-business',!!nearBizEntry);
   if (nearBizEntry) {
     _zoneCur = null;
     _zoneEl.dataset.bizId = nearBizEntry.id;
@@ -17546,7 +17565,7 @@ function updateZoneBtn() {
       ? `🔒 ЗАВЕДЕНИЕ ОГРАБЛЕНО · ОТКРЫТИЕ ${_businessClosureText(closedLeft)}`
       : (closedLeft
         ? `🔑 Войти в своё заведение · закрыто для посетителей ${_businessClosureText(closedLeft)}`
-        : `🚪 Войти мирно: ${nearBizEntry.emoji} ${nearBizEntry.name}${liveStatus.short==='РАБОТАЕТ'?'':` · ${liveStatus.icon} ${liveStatus.short}`}`);
+        : `🚪 Мирно войти · ${nearBizEntry.emoji} ${nearBizEntry.name}`);
     _zoneEl.style.display = 'block';
     return;
   }
