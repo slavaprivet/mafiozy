@@ -52200,12 +52200,29 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v16-news-helicopter',
+  migrationStage: 'three-full-world-shell-v17-stable-vehicle-colors',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
 // owns gameplay state: movement, ammo, role rules, damage and networking stay
 // in this authoritative world simulation.
+const _threeVehicleIds=new WeakMap();let _threeVehicleIdSeq=0;
+function _threeVehicleEntityId(vehicle){
+  const explicit=vehicle?.id??vehicle?._id;
+  if(explicit!==undefined&&explicit!==null&&String(explicit)!=='')return `vehicle_${String(explicit)}`;
+  let stable=_threeVehicleIds.get(vehicle);
+  if(!stable){stable=`local_vehicle_${++_threeVehicleIdSeq}`;_threeVehicleIds.set(vehicle,stable);}
+  return stable;
+}
+function _threeVehiclePaint(vehicle,model){
+  const raw=vehicle?.paint??vehicle?.color??model?.palette?.[0]??'#445566';
+  if(typeof raw==='string'||typeof raw==='number')return raw;
+  if(raw&&typeof raw==='object'){
+    const primary=raw.primary??raw.color??raw.hex;
+    if(typeof primary==='string'||typeof primary==='number')return primary;
+  }
+  return model?.palette?.[0]||'#445566';
+}
 window.Mafiozi3DBridge = Object.freeze({
   version: 1,
   getPlayerState() {
@@ -52313,8 +52330,8 @@ window.Mafiozi3DBridge = Object.freeze({
     const rad2=Math.max(12,Math.min(65,+radius||38))**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
     const inside=!!(_buildingInt||_bankInt);
     const cars=(inside?[]:(typeof CARS!=='undefined'?CARS:[])).filter(x=>x&&!x._hidden&&near(+x.r||0,+x.c||0)).sort((a,b)=>(((+a.r||0)-player.r)**2+((+a.c||0)-player.c)**2)-(((+b.r||0)-player.r)**2+((+b.c||0)-player.c)**2)||String(a.id??a._id??'').localeCompare(String(b.id??b._id??''))).slice(0,24).map((x,i)=>{const model=x.model||{},modelName=model.name||x.modelName||'sedan';return {
-      id:String(x.id??x._id??i),r:+x.r||0,c:+x.c||0,ang:Number.isFinite(x.ang)?x.ang:Math.atan2(+x.dirDy||0,+x.dirDx||1),
-      model:modelName,paint:x.paint||x.color||model.palette?.[0]||'#445566',parked:!!x.parked,
+      id:_threeVehicleEntityId(x),r:+x.r||0,c:+x.c||0,ang:Number.isFinite(x.ang)?x.ang:Math.atan2(+x.dirDy||0,+x.dirDx||1),
+      model:modelName,paint:_threeVehiclePaint(x,model),parked:!!x.parked,
       length:+model.L||1.7,width:+model.W||.85,height:+model.height||.55,wheelR:+model.wheelR||.18,
       sport:!!(model.sport||model.fast),pickup:!!model.pickup,van:!!model.van,suv:!!model.suv,cabrio:!!model.cabrio,taxi:!!model.taxi,limo:!!model.limo,muscle:!!model.muscle,classic:!!model.classic,gang:!!model.gang,
       helicopter:!!model.helicopter,emergency:model.emergency||'',stripe:model.stripe||'',
