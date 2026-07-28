@@ -1399,6 +1399,14 @@ def snap(uid):
             "active_captures": {},
             "aggro": preview_aggro_payload(),
             "major_objects": preview_major_payload(),
+            "bank_vault_raids": {
+                str(rob.get("bank_id") or ""): {
+                    "robber_uid": str(robber_uid),
+                    "started_at": float(rob.get("started_at") or 0),
+                }
+                for robber_uid, rob in preview_bank_robs.items()
+                if rob.get("vault_open") and rob.get("bank_id")
+            },
             "quest_cars": race_car_payload(),
             "dropped_bags": [{
                 "id": str(bag["id"]), "bank_id": str(bag.get("bank_id") or ""),
@@ -1985,7 +1993,11 @@ async def world_ws(req):
                 own=preview_major_owners.get(oid);raid=preview_major_raids.get(oid)
                 if not cfg: reply={"kind":"major_assault_reply","ok":False,"reason":"bad_object"}
                 elif own and own["expires_at"]>time.time(): reply={"kind":"major_assault_reply","ok":False,"reason":"protected","object_id":oid,"owner_name":own["owner_name"],"expires_in":int(own["expires_at"]-time.time())}
-                elif raid: reply={"kind":"major_assault_reply","ok":False,"reason":"busy","object_id":oid,"by_name":raid["by_name"]}
+                elif raid:
+                    raid.setdefault("participants",set()).add(uid)
+                    reply={"kind":"major_assault_reply","ok":True,"resume":True,"joined":True,
+                           "object_id":oid,"phase":raid.get("phase"),"guards":[dict(g) for g in raid.get("guards",[]) if g.get("alive")],
+                           "total":cfg["total"],"boss_name":cfg["boss"],"participants":list(raid["participants"]),"safes":raid.get("safes",[])}
                 else:
                     guards=[{"id":f"preview_major_{oid}_{i}","hp":140 if i<4 else 100,"max_hp":140 if i<4 else 100,"alive":True,"weapon":"pistol","wave":1,"slot":i} for i in range(cfg["guards"])]
                     safes=[{"id":f"{oid}_safe_{i+1}","opened":False,"value":250*(i+1)} for i in range(3 if oid!="mansion" else 4)]
@@ -2429,8 +2441,12 @@ async def world_ws(req):
                 elif bank_id in PREVIEW_BANK_REWARD:
                     preview_bank_robs[str(uid)] = {
                         "bank_id": bank_id, "carried": 0, "bags_loaded": 0,
-                        "started_at": time.time(),
+                        "started_at": time.time(), "vault_open": False,
                     }
+            elif t == "bank_rob_announce":
+                rob = preview_bank_robs.get(str(uid))
+                if rob and rob.get("bank_id") == str(d.get("bank_id") or ""):
+                    rob["vault_open"] = True
             elif t == "bank_rob_bag_loaded":
                 rob = preview_bank_robs.get(str(uid))
                 if rob and rob.get("bank_id") == str(d.get("bank_id") or ""):
