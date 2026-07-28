@@ -38295,7 +38295,10 @@ function render() {
         ctx.fillStyle = '#ffd040';
         ctx.font = 'bold 10px system-ui';
         ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-        ctx.fillText((_biz.emoji || '🏪') + ' ' + (_biz.name || ''), ep.x, ep.y - hy3 * rad / 14 - 3);
+        // У кофейни флаг семейного контроля и NPC стоят прямо над входом.
+        // Поднимаем только её подпись, не меняя положение здания и активной зоны.
+        const businessLabelLift = _biz.id === 'coffee' ? 24 : 0;
+        ctx.fillText((_biz.emoji || '🏪') + ' ' + (_biz.name || ''), ep.x, ep.y - hy3 * rad / 14 - 3 - businessLabelLift);
         ctx.restore();
       }});
     }
