@@ -14575,10 +14575,23 @@ window.addEventListener('keyup', (e) => {
 // 14 песок, 15 причал, 17 палуба корабля, 18 гоночный трек.
 // Вода (16) и здания (1) блокируют.
 const PASSABLE = new Set([0, 7, 8, 9, 14, 15, 17, 18]);
+const _THREE_WHOLE_BUILDING_COLLISIONS = new URLSearchParams(location.search).get('render') === '3d';
+let _threeWholeBuildingRectsCache = null;
+function _threeWholeBuildingRects() {
+  if (_threeWholeBuildingRectsCache) return _threeWholeBuildingRectsCache;
+  const rects=[];
+  for(let r0=0;r0<MAP_ROWS;r0+=BLOCK)for(let c0=0;c0<MAP_COLS;c0+=BLOCK){let minR=Infinity,maxR=-Infinity,minC=Infinity,maxC=-Infinity;
+    for(let r=r0;r<Math.min(r0+BLOCK,MAP_ROWS);r++)for(let c=c0;c<Math.min(c0+BLOCK,MAP_COLS);c++)if(MAP[r]?.[c]===1){minR=Math.min(minR,r);maxR=Math.max(maxR,r);minC=Math.min(minC,c);maxC=Math.max(maxC,c);}
+    if(Number.isFinite(minR))rects.push({minR,maxR,minC,maxC});
+  }
+  return (_threeWholeBuildingRectsCache=rects);
+}
+function _isThreeWholeBuildingBlocked(r,c){if(!_THREE_WHOLE_BUILDING_COLLISIONS)return false;return _threeWholeBuildingRects().some(q=>r>=q.minR&&r<q.maxR+1&&c>=q.minC&&c<q.maxC+1);}
 function isBlocked(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS) return true;
   if (_isPortContainerSolid(r,c)) return true;
+  if (_isThreeWholeBuildingBlocked(r,c)) return true;
   return !PASSABLE.has(MAP[ri][ci]);
 }
 // Коллизия для МАШИНЫ: в отличие от пешехода, машина НЕ заезжает на песок
@@ -56022,6 +56035,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d55"></script>
+<script type="module" src="three_preview.js?v=3d56"></script>
 </body>
 </html>
