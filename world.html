@@ -31120,17 +31120,25 @@ function drawBusinessBuilding(r, c, b) {
     ctx.fill();
     ctx.restore();
   }
+  // Фасады намеренно крупнее одного технического тайла. Серверная точка,
+  // вход, коллизия и зона захвата остаются прежними — масштабируется только
+  // рисунок вокруг центра здания. Так бизнес читается как отдельное место,
+  // а не как маленькая иконка среди жилых домов.
+  const facadeScale = ({
+    coffee:1.48, carwash:1.52, barbershop:1.42, pizza:1.50, garage:1.58,
+    bar:1.46, club:1.56, warehouse:1.68, casino:1.55, port:1.72,
+  })[b.id] || 1.45;
+  const facadeAnchor = w2s(r + 0.5, c + 0.5);
+  ctx.save();
+  ctx.translate(facadeAnchor.x, facadeAnchor.y);
+  ctx.scale(facadeScale, facadeScale);
+  ctx.translate(-facadeAnchor.x, -facadeAnchor.y);
   switch (b.id) {
     case 'coffee': {
       // Кофейня — уютное приземистое здание, тёплая коричневая палитра,
       // красно-белая полосатая маркиза, столик с двумя стульями на тротуаре.
       // Увеличиваем только графику вокруг основания: вход, коллизия и зона
       // взаимодействия остаются на прежнем тайле и не расходятся с сервером.
-      const coffeeAnchor = w2s(r + 0.5, c + 0.5);
-      ctx.save();
-      ctx.translate(coffeeAnchor.x, coffeeAnchor.y);
-      ctx.scale(1.28, 1.28);
-      ctx.translate(-coffeeAnchor.x, -coffeeAnchor.y);
       const { p, wx, wy, H } = _bizBase(r, c, ['#8a5a30', '#3a2410', '#5a3a1c'], 1.0);
       // Большое окно-витрина на правой грани
       const winY = p.y - H * 0.55;
@@ -31188,7 +31196,6 @@ function drawBusinessBuilding(r, c, b) {
       ctx.fillStyle='#b9824f';ctx.beginPath();ctx.ellipse(terraceX,terraceY-8,7,3,0,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#244b35';for(const dx of [-10,10])ctx.fillRect(terraceX+dx-3,terraceY-3,6,3);
       _bizSign(p,wx,wy,H,'CAFFÈ DEL DON','#21120b','#f6c866');
-      ctx.restore();
       break;
     }
     case 'carwash': {
@@ -31638,12 +31645,62 @@ function drawBusinessBuilding(r, c, b) {
       break;
     }
     case 'port': {
-      // Силуэт маленького банка, но в серой портовой расцветке.
-      // Смещение держит центр двухтайловой модели точно на POI бизнеса.
-      drawBankBuilding({
-        id:'port_facade', name:'Порт', size:'small',
-        r:r-.5, c:c-.5, portFacade:true,
-      });
+      // «Доля в порту» — не банк и не копия большого грузового порта, а
+      // собственная контора на причале: диспетчерская, складской бокс,
+      // контейнеры, кран-балка, сигнальные огни и якорная эмблема.
+      const { p, wx, wy, H } = _bizBase(r, c, ['#416778', '#1d3540', '#6f8790'], 1.18);
+      // Рифлёные металлические стены.
+      ctx.save();
+      ctx.strokeStyle='rgba(190,225,235,.24)';ctx.lineWidth=.65;
+      for(let i=1;i<8;i++){
+        const y=p.y-H+i*H/8;
+        ctx.beginPath();ctx.moveTo(p.x,y+wy*.48);ctx.lineTo(p.x+wx,y-wy*.02);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(p.x-wx,y-wy*.02);ctx.lineTo(p.x,y+wy*.48);ctx.stroke();
+      }
+      ctx.restore();
+      // Широкие ворота погрузочного бокса и жёлто-чёрная рамка безопасности.
+      const gateX=p.x+wx*.16,gateY=p.y-H*.57,gateW=wx*.57,gateH=H*.63;
+      ctx.fillStyle='#101a20';ctx.fillRect(gateX,gateY,gateW,gateH);
+      ctx.strokeStyle='#7f969f';ctx.lineWidth=.7;
+      for(let i=1;i<7;i++){const yy=gateY+i*gateH/7;ctx.beginPath();ctx.moveTo(gateX,yy);ctx.lineTo(gateX+gateW,yy);ctx.stroke();}
+      for(let i=0;i<7;i++){
+        ctx.fillStyle=i&1?'#181c20':'#f0b52f';
+        ctx.fillRect(gateX-3,gateY+i*gateH/7,3,gateH/7+1);
+      }
+      // Стеклянная диспетчерская на левой грани.
+      const officeX=p.x-wx*.68,officeY=p.y-H*.66;
+      ctx.fillStyle='#87d9ee';ctx.shadowColor='#53c9ed';ctx.shadowBlur=6;
+      ctx.fillRect(officeX,officeY,wx*.38,H*.30);ctx.shadowBlur=0;
+      ctx.strokeStyle='#172a33';ctx.lineWidth=1;ctx.strokeRect(officeX,officeY,wx*.38,H*.30);
+      ctx.beginPath();ctx.moveTo(officeX+wx*.19,officeY);ctx.lineTo(officeX+wx*.19,officeY+H*.30);ctx.stroke();
+      // Два разноцветных контейнера и ящики на рампе.
+      const containers=[[-.64,.30,'#b74432'],[-.38,.42,'#2d7896']];
+      for(const [dx,dy,col] of containers){
+        const x=p.x+wx*dx,y=p.y+wy*dy;
+        ctx.fillStyle=col;ctx.fillRect(x,y-8,18,8);
+        ctx.strokeStyle='rgba(10,20,25,.65)';ctx.strokeRect(x+.5,y-7.5,17,7);
+        for(let j=1;j<5;j++){ctx.beginPath();ctx.moveTo(x+j*3.5,y-7);ctx.lineTo(x+j*3.5,y-1);ctx.stroke();}
+      }
+      ctx.fillStyle='#9a6a36';ctx.fillRect(p.x+wx*.62,p.y+wy*.13-6,7,6);
+      ctx.fillRect(p.x+wx*.71,p.y+wy*.08-10,6,10);
+      // Кран-балка над крышей с медленно качающимся крюком.
+      const craneX=p.x-wx*.08,roofY=p.y-H;
+      ctx.strokeStyle='#e0a92c';ctx.lineWidth=2.2;
+      ctx.beginPath();ctx.moveTo(craneX,roofY+2);ctx.lineTo(craneX,roofY-25);ctx.lineTo(craneX+34,roofY-25);ctx.stroke();
+      ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(craneX+5,roofY-25);ctx.lineTo(craneX+29,roofY-17);ctx.stroke();
+      const hookX=craneX+28+Math.sin(t*.8)*2;
+      ctx.strokeStyle='#252b2e';ctx.beginPath();ctx.moveTo(craneX+28,roofY-25);ctx.lineTo(hookX,roofY-9);ctx.arc(hookX+2,roofY-8,3,Math.PI,.15);ctx.stroke();
+      // Радиомачта и сигнальный маяк.
+      ctx.strokeStyle='#a9bdc5';ctx.beginPath();ctx.moveTo(p.x+wx*.30,roofY);ctx.lineTo(p.x+wx*.30,roofY-18);ctx.stroke();
+      const beaconOn=Math.sin(t*5)>.1;
+      ctx.fillStyle=beaconOn?'#ff6a36':'#5a2118';ctx.shadowColor='#ff5b2f';ctx.shadowBlur=beaconOn?10:0;
+      ctx.beginPath();ctx.arc(p.x+wx*.30,roofY-19,2.4,Math.PI,0);ctx.fill();ctx.shadowBlur=0;
+      _bizSign(p,wx,wy,H,'RIZZO DOCKS','#101a20','#ffb23f');
+      // Якорь — собственный знак бизнеса, заметный на общем плане.
+      const ax=p.x-wx*.18,ay=roofY-9;
+      ctx.save();ctx.strokeStyle='#d9edf2';ctx.lineWidth=2;ctx.shadowColor='#8be8ff';ctx.shadowBlur=5;
+      ctx.beginPath();ctx.arc(ax,ay-4,2.8,0,Math.PI*2);ctx.moveTo(ax,ay-1);ctx.lineTo(ax,ay+8);
+      ctx.moveTo(ax-8,ay+3);ctx.quadraticCurveTo(ax-5,ay+10,ax,ay+8);ctx.quadraticCurveTo(ax+5,ay+10,ax+8,ay+3);ctx.stroke();ctx.restore();
       break;
     }
     default:
@@ -47590,6 +47647,7 @@ function _drawBusinessInterior(bi) {
       box('КРАН',8,29,4,4,4.2,'#d19c2e');box('ДИСПЕТЧЕРСКАЯ',18,28,7,4,2.5,'#415d6b');
       break;
   }
+  ctx.restore();
   if (_majorInteriorObjectId && _majorRaidLocal) {
     for (const safe of (_majorRaidLocal.safes || [])) {
       if(bi.bizId==='major_casino'){
