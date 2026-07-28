@@ -52362,7 +52362,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v20-premium-city-gameplay-pass',
+  migrationStage: 'three-full-world-shell-v21-grand-casino-server-layout',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52421,9 +52421,17 @@ window.Mafiozi3DBridge = Object.freeze({
   getInteriorState() {
     const src=_buildingInt||_bankInt||null;
     if(!src)return null;
+    const casino=src.bizId==='major_casino';
+    const casinoLayout=casino?{
+      walls:MAJOR_CASINO_WALLS.map(w=>({r0:+w.r0,c0:+w.c0,r1:+w.r1,c1:+w.c1,kind:w.kind||'',lowerOnly:!!w.lowerOnly})),
+      props:MAJOR_CASINO_STATIC_BLOCKERS.filter(p=>_casinoPropAlive(p.id)).map(p=>({id:p.id,r:+p.r,c:+p.c,w:+p.w,d:+p.d,color:p.color||null})),
+      safes:(_majorRaidLocal?.safes||[]).map((s,i)=>({id:String(s.id??i),r:+s.r,c:+s.c,opened:!!s.opened})),
+    }:null;
     return {
       kind:_buildingInt?'building':'bank',type:src.type||(_bankInt?'bank':'generic'),bizId:src.bizId||null,room:src.room||(_bankInt?'lobby':'main'),
       width:+src.W||16,height:+src.H||12,seed:+src.seed||0,
+      playerElevation:casino?_casinoVisualElevation(src,player.r,player.c):0,
+      layout:casinoLayout,
       npcs:(src.npcs||[]).filter(n=>n&&!n.dead).slice(0,40).map((n,i)=>({id:String(n.id??i),r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||''})),
       loot:src.loot&&!src.loot.picked?{r:+src.loot.r||0,c:+src.loot.c||0,hp:!!src.loot.hp}:null,
     };
@@ -52518,6 +52526,7 @@ window.Mafiozi3DBridge = Object.freeze({
     }
     const npcs=npcSource.filter(x=>x&&!x.dead&&(+x.hp||1)>0&&near(+x.r||0,+x.c||0)).slice(0,36).map((x,i)=>{const role=String(x.role||x._arcKey||'civilian'),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||role==='gang'||role==='boss'||role.includes('district_'));return {
       id:String(x.id??x.uid??i),r:+(x.r??x.y)||0,c:+(x.c??x.x)||0,ang:+x.ang||0,walking:x.walking!==undefined?!!x.walking:(Math.abs(+x.walkPhase||0)>.05&&Math.hypot((Number.isFinite(+x.tr)?+x.tr:+(x.r??x.y)||0)-(+((x.r??x.y)||0)),(Number.isFinite(+x.tc)?+x.tc:+(x.c??x.x)||0)-(+((x.c??x.x)||0)))>.08),walkPhase:+x.walkPhase||0,
+      elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,look:x.look||null,name:x.name||'',hp:Math.max(0,+x.hp||0),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||'',
       gang,police:!!(x.police||role==='police'||role==='cop'),
@@ -56260,6 +56269,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d67"></script>
+<script type="module" src="three_preview.js?v=3d68"></script>
 </body>
 </html>
