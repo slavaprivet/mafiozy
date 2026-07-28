@@ -8556,6 +8556,23 @@ function drawServiceVehicle(v) {
   const BR = w2s(r - sinA * halfL - cosA * halfW + 0.5, c - cosA * halfL + sinA * halfW + 0.5);
   const BL = w2s(r - sinA * halfL + cosA * halfW + 0.5, c - cosA * halfL - sinA * halfW + 0.5);
 
+  // Скорая, полиция, эвакуатор и пожарная машина используют отдельный
+  // рендер, поэтому им нужна собственная фаза колёс. Она также зависит от
+  // реального пути и поддерживает обратное вращение при движении назад.
+  if(!Number.isFinite(v._wheelPhase))v._wheelPhase=0;
+  if(Number.isFinite(v._wheelLastY)&&Number.isFinite(v._wheelLastX)){
+    const dr=r-v._wheelLastY,dc=c-v._wheelLastX,signedTravel=dr*sinA+dc*cosA;
+    if(Math.abs(signedTravel)<2)v._wheelPhase+=signedTravel*14;
+  }
+  v._wheelLastY=r;v._wheelLastX=c;
+  function drawServiceWheel(P,wR,wR2,rim='#8a8a92'){
+    ctx.fillStyle='#08090b';ctx.beginPath();ctx.ellipse(P.x,P.y,wR,wR2,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=rim;ctx.beginPath();ctx.ellipse(P.x,P.y,wR*.54,wR2*.54,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#252a31';ctx.lineWidth=.8;
+    for(let i=0;i<5;i++){const a=v._wheelPhase+i*Math.PI*2/5;ctx.beginPath();ctx.moveTo(P.x,P.y);ctx.lineTo(P.x+Math.cos(a)*wR*.45,P.y+Math.sin(a)*wR2*.45);ctx.stroke();}
+    ctx.fillStyle='#d2d6db';ctx.beginPath();ctx.arc(P.x,P.y,.65,0,Math.PI*2);ctx.fill();
+  }
+
   // Тень
   ctx.fillStyle = 'rgba(0,0,0,.42)';
   ctx.beginPath();
@@ -8643,10 +8660,7 @@ function drawServiceVehicle(v) {
     // Колёса (как в drawCarPretty)
     const wR = 4.5, wR2 = 2.4;
     for (const corner of [FR, FL, BR, BL]) {
-      ctx.fillStyle = '#0a0a0a';
-      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR, wR2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#8a8a92';
-      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR * 0.52, wR2 * 0.52, 0, 0, Math.PI * 2); ctx.fill();
+      drawServiceWheel(corner,wR,wR2,'#8a8a92');
     }
 
     // Контур
@@ -8697,10 +8711,7 @@ function drawServiceVehicle(v) {
     // Колёса
     const wR = 4.2, wR2 = 2.2;
     for (const corner of [FR, FL, BR, BL]) {
-      ctx.fillStyle = '#0a0a0a';
-      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR, wR2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#9a9aa2';
-      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR * 0.5, wR2 * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+      drawServiceWheel(corner,wR,wR2,'#9a9aa2');
     }
 
     // Контур
@@ -8747,10 +8758,7 @@ function drawServiceVehicle(v) {
     // Колёса
     const wR = 4.6, wR2 = 2.4;
     for (const corner of [FR, FL, BR, BL]) {
-      ctx.fillStyle = '#080808';
-      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR, wR2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#888890';
-      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR * 0.5, wR2 * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+      drawServiceWheel(corner,wR,wR2,'#888890');
     }
     // Контур
     ctx.strokeStyle = '#3a1e06'; ctx.lineWidth = 0.8;
@@ -8821,10 +8829,7 @@ function drawServiceVehicle(v) {
     // Колёса
     const wR = 5.2, wR2 = 2.7;
     for (const corner of [FR, FL, BR, BL]) {
-      ctx.fillStyle = '#080808';
-      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR, wR2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#888890';
-      ctx.beginPath(); ctx.ellipse(corner.x, corner.y, wR * 0.52, wR2 * 0.52, 0, 0, Math.PI * 2); ctx.fill();
+      drawServiceWheel(corner,wR,wR2,'#888890');
     }
 
     // Контур
@@ -30024,24 +30029,41 @@ function drawCarPretty(car) {
       }
     }
   }
+  // Окна занимают только реальную кабину конкретного кузова. Раньше одна
+  // длинная полоса 10–90% ставилась вообще всем моделям, поэтому купе,
+  // пикап и спорткар на расстоянии выглядели как одинаковые автобусы.
+  let cabinF = .20, cabinB = .82;
+  if (m.pickup)      { cabinF = .05; cabinB = Math.min(.60, m.cabFrac || .52); }
+  else if (m.sport)  { cabinF = .34; cabinB = .76; }
+  else if (m.sedan)  { cabinF = .31; cabinB = .71; }
+  else if (m.hatch)  { cabinF = .29; cabinB = .88; }
+  else if (m.limo)   { cabinF = .18; cabinB = .82; }
+  else if (m.suv)    { cabinF = .17; cabinB = .84; }
+  else if (m.classic){ cabinF = .28; cabinB = .67; }
+  else if (m.van || m.bus || m.paddyvan) { cabinF = .10; cabinB = .91; }
   // Окна — стеклянная полоса с градиентом + блик (отражение)
   for (const e of visible) {
+    let t0=.12,t1=.88;
+    if(e.name==='left'){t0=cabinF;t1=cabinB;}
+    else if(e.name==='right'){t0=1-cabinB;t1=1-cabinF;}
+    else if(e.name==='back' && (m.pickup || m.sport)){t0=.24;t1=.76;}
     const g = ctx.createLinearGradient(e.a.x, e.a.y - H * 0.85, e.b.x, e.b.y - H * 0.30);
     g.addColorStop(0, 'rgba(180,220,250,.65)');
     g.addColorStop(1, 'rgba(60,110,160,.40)');
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.moveTo(e.a.x + (e.b.x - e.a.x) * 0.10, e.a.y - H * 0.85);
-    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.90, e.b.y - H * 0.85);
-    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.90, e.b.y - H * 0.30);
-    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.10, e.a.y - H * 0.30);
+    ctx.moveTo(e.a.x + (e.b.x - e.a.x) * t0, e.a.y + (e.b.y-e.a.y)*t0 - H * 0.85);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * t1, e.a.y + (e.b.y-e.a.y)*t1 - H * 0.85);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * t1, e.a.y + (e.b.y-e.a.y)*t1 - H * 0.30);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * t0, e.a.y + (e.b.y-e.a.y)*t0 - H * 0.30);
     ctx.closePath(); ctx.fill();
     // Блик-полоса — тонкая косая «отражение»
     ctx.strokeStyle = 'rgba(255,255,255,.40)';
     ctx.lineWidth = 0.7;
     ctx.beginPath();
-    ctx.moveTo(e.a.x + (e.b.x - e.a.x) * 0.30, e.a.y - H * 0.78);
-    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * 0.50, e.b.y - H * 0.55);
+    const tb=t0+(t1-t0)*.28,te=t0+(t1-t0)*.54;
+    ctx.moveTo(e.a.x + (e.b.x - e.a.x) * tb, e.a.y+(e.b.y-e.a.y)*tb - H * 0.78);
+    ctx.lineTo(e.a.x + (e.b.x - e.a.x) * te, e.a.y+(e.b.y-e.a.y)*te - H * 0.55);
     ctx.stroke();
   }
   // B-pillar (стойка между дверями) — не для спорткаров
@@ -30071,8 +30093,21 @@ function drawCarPretty(car) {
   // мультипликатор подобран так, что wheelR=0.16 даёт прежние ~3.5×1.9 px.
   const wR  = (m.wheelR || 0.18) * 22;   // внешний радиус (горизонтальная ось)
   const wR2 = (m.wheelR || 0.18) * 12;   // вертикальная ось (изометрический сплющ)
-  const rimR  = wR * 0.52, rimR2 = wR2 * 0.52;
+  const rimR  = wR * 0.56, rimR2 = wR2 * 0.56;
   const nutR  = Math.max(0.5, wR * 0.17);
+  // Фаза вращения считается не по времени, а по реальному перемещению
+  // машины вдоль её носа. Поэтому на месте колёса стоят, вперёд крутятся
+  // в одну сторону, а при заднем ходе — честно в обратную.
+  const wheelState=car._wheelSource||car;
+  const nowWheel=performance.now();
+  if(!Number.isFinite(wheelState._wheelPhase))wheelState._wheelPhase=0;
+  if(Number.isFinite(wheelState._wheelLastR)&&Number.isFinite(wheelState._wheelLastC)){
+    const dr=car.r-wheelState._wheelLastR,dc=car.c-wheelState._wheelLastC;
+    const signedTravel=dr*sinA+dc*cosA;
+    if(Math.abs(signedTravel)<2)wheelState._wheelPhase+=signedTravel/Math.max(.08,m.wheelR||.18)*2.8;
+  }
+  wheelState._wheelLastR=car.r;wheelState._wheelLastC=car.c;wheelState._wheelLastAt=nowWheel;
+  const wheelPhase=wheelState._wheelPhase;
   for (const corner of [FR, FL, BR, BL]) {
     ctx.fillStyle = '#0a0a0a';
     ctx.beginPath();
@@ -30083,11 +30118,39 @@ function drawCarPretty(car) {
     ctx.beginPath();
     ctx.ellipse(corner.x, corner.y, rimR, rimR2, 0, 0, Math.PI * 2);
     ctx.fill();
+    // Пять контрастных спиц — именно их движение делает вращение заметным
+    // в маленьком изометрическом масштабе.
+    ctx.strokeStyle='#252932';ctx.lineWidth=Math.max(.65,wR*.16);
+    for(let spoke=0;spoke<5;spoke++){
+      const wa=wheelPhase+spoke*Math.PI*2/5;
+      ctx.beginPath();ctx.moveTo(corner.x,corner.y);
+      ctx.lineTo(corner.x+Math.cos(wa)*rimR*.86,corner.y+Math.sin(wa)*rimR2*.86);ctx.stroke();
+    }
+    ctx.strokeStyle='rgba(225,235,245,.55)';ctx.lineWidth=.55;
+    ctx.beginPath();ctx.ellipse(corner.x,corner.y,rimR*.82,rimR2*.82,0,0,Math.PI*2);ctx.stroke();
     // Центральная гайка
     ctx.fillStyle = '#1a1a1a';
     ctx.beginPath();
     ctx.arc(corner.x, corner.y, nutR, 0, Math.PI * 2);
     ctx.fill();
+  }
+  // Детали кузова, читаемые даже без подписи модели.
+  if(m.sport){
+    const rearMid={x:(BR.x+BL.x)/2,y:(BR.y+BL.y)/2-H*.72};
+    ctx.strokeStyle=m.fast?'#e8edf2':'#30343a';ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(rearMid.x-7,rearMid.y-3);ctx.lineTo(rearMid.x+7,rearMid.y+3);ctx.stroke();
+  }
+  if(m.pickup){
+    const bedMid={x:(BR.x+BL.x)/2,y:(BR.y+BL.y)/2-H*.28};
+    ctx.fillStyle='rgba(8,10,12,.72)';ctx.beginPath();ctx.ellipse(bedMid.x,bedMid.y,8,3,0,0,Math.PI*2);ctx.fill();
+  }
+  if(m.suv){
+    ctx.strokeStyle='#b7bdc2';ctx.lineWidth=1.2;
+    for(const e of visible){ctx.beginPath();ctx.moveTo(e.a.x,e.a.y-H*.12);ctx.lineTo(e.b.x,e.b.y-H*.12);ctx.stroke();}
+  }
+  if(m.classic){
+    ctx.fillStyle='#e5e1d7';
+    for(const e of visible){const mx=(e.a.x+e.b.x)/2,my=(e.a.y+e.b.y)/2;ctx.fillRect(mx-5,my-H*.18,10,1.2);}
   }
   // Выхлоп — маленькое тёмное отверстие в нижнем углу задней грани
   // (только для движущихся машин — у припаркованных он не виден)
@@ -32933,6 +32996,7 @@ function drawBus() {
     r: BUS.r, c: BUS.c,
     ang: BUS.ang,
     model: BUS_MODEL,
+    _wheelSource: BUS,
     braking: (BUS.state === 'stopped'),
   });
   const p = w2s(BUS.r + 0.5, BUS.c + 0.5);
@@ -34151,6 +34215,7 @@ function drawQuestCar(qc) {
       r: qc.y + _pR+(qc.tires_punctured?Math.sin(performance.now()*.018)*.025:0), c: qc.x + _pC,
       ang: qc.ang,
       model: m,
+      _wheelSource: qc,
       braking: !!qc.braking,
     });
   }
