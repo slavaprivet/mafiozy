@@ -154,7 +154,21 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       if(worldSnapshot?.landmarks){
         const toX=c=>(c-originC)*WORLD_SCALE,toZ=r=>(r-originR)*WORLD_SCALE;
         const roofAnchorAt=(r,c,fallback=7)=>{let best=null,bestD=1e9;for(const block of worldSnapshot.blocks||[]){const q=block.building;if(!q)continue;const d=Math.hypot(q.r-r,q.c-c);if(d<bestD){bestD=d;best=q;}}return best&&bestD<14?{x:toX(best.c),y:(+best.height||fallback)+3,z:toZ(best.r),onRoof:true}:{x:toX(c),y:fallback,z:toZ(r),onRoof:false};};
-        const labelSprite=(text,color='#65e7ff')=>{const cv=document.createElement('canvas');cv.width=768;cv.height=160;const c=cv.getContext('2d');c.fillStyle='rgba(8,13,22,.94)';c.fillRect(8,8,752,144);c.strokeStyle=color;c.lineWidth=10;c.strokeRect(13,13,742,134);c.fillStyle='#fff6d7';c.font='900 58px system-ui';c.textAlign='center';c.textBaseline='middle';c.fillText(String(text).slice(0,24),384,82);const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=renderer.capabilities.getMaxAnisotropy();const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:true}));sprite.scale.set(10,2.1,1);return sprite;};
+        const labelSprite=(text,color='#65e7ff')=>{
+          const label=String(text).slice(0,28),cv=document.createElement('canvas');cv.width=1024;cv.height=256;
+          const c=cv.getContext('2d');c.clearRect(0,0,1024,256);
+          c.fillStyle='rgba(4,8,14,.97)';c.fillRect(12,12,1000,232);
+          c.strokeStyle='rgba(0,0,0,.95)';c.lineWidth=24;c.strokeRect(17,17,990,222);
+          c.strokeStyle=color;c.lineWidth=12;c.strokeRect(20,20,984,216);
+          c.fillStyle=color;c.fillRect(36,35,952,12);
+          let fontSize=118;c.textAlign='center';c.textBaseline='middle';
+          do{c.font=`900 ${fontSize}px Arial, system-ui, sans-serif`;if(c.measureText(label).width<=900)break;fontSize-=4;}while(fontSize>72);
+          c.lineJoin='round';c.miterLimit=2;c.strokeStyle='rgba(0,0,0,.98)';c.lineWidth=18;c.strokeText(label,512,143);
+          c.fillStyle='#ffffff';c.fillText(label,512,143);
+          const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());tx.generateMipmaps=false;tx.minFilter=THREE.LinearFilter;tx.magFilter=THREE.LinearFilter;tx.needsUpdate=true;
+          const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false,depthWrite:false,alphaTest:.04,toneMapped:false}));
+          sprite.scale.set(Math.min(20,Math.max(14,10+label.length*.46)),4.15,1);sprite.renderOrder=58;sprite.userData.buildingLabel=true;return sprite;
+        };
         const jail=worldSnapshot.landmarks.jail;
         if(jail){
           const x=toX(jail.c),z=toZ(jail.r),span=jail.radius*2*WORLD_SCALE,concrete=new THREE.MeshStandardMaterial({color:0x9aa2a7,roughness:.86}),darkSteel=new THREE.MeshStandardMaterial({color:0x252d34,roughness:.45,metalness:.65});
