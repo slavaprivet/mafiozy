@@ -2506,7 +2506,7 @@ def apartment_coords_from_key(apt_key: str):
             r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
     except (AttributeError, TypeError, ValueError):
         return None
-    return (r, c) if 0 <= r < 200 and 0 <= c < 80 else None
+    return (r, c) if 0 <= r < 200 and 0 <= c < 180 else None
 
 
 def apartment_district_id(r: int, c: int) -> str:
@@ -2517,7 +2517,10 @@ def apartment_district_id(r: int, c: int) -> str:
     if 80 <= r <= 99 and 0 <= c <= 39: return "countryside"
     if 40 <= r <= 99 and 40 <= c <= 79: return "industrial"
     if 100 <= r <= 149 and 0 <= c <= 79: return "lair"
-    if 150 <= r <= 199 and 0 <= c <= 79: return "coast"
+    if 0 <= r <= 74 and 100 <= c <= 179: return "rich"
+    if 75 <= r <= 109 and 100 <= c <= 179: return "nightlife"
+    if 110 <= r <= 149 and 100 <= c <= 179: return "industrial"
+    if 150 <= r <= 199 and 0 <= c <= 179: return "coast"
     return "standard"
 
 
@@ -12376,9 +12379,11 @@ async def _iso_run_sim_loop(sim: 'IsoBattleSim') -> None:
 # ════════════════════════════════════════════════════════════════
 WORLD_TICK_HZ = 15
 WORLD_TICK_DT = 1.0 / WORLD_TICK_HZ
-WORLD_MAP_COLS = 80   # тайлы (Х) — городская сетка, BLOCK=10.
-WORLD_MAP_ROWS = 200  # 80×200: r=0..79 город, r=80..99 буфер, r=100..139 Логово,
-                      # r=140..149 буфер, r=150..199 — пляж/море/корабль Майкла.
+WORLD_MAP_COLS = 180  # старый город 0..79, канал 80..99, второй город 100..179.
+WORLD_MAP_ROWS = 200
+WORLD_CANAL_C0 = 80; WORLD_CANAL_C1 = 100
+WORLD_BRIDGE_R0 = 47; WORLD_BRIDGE_R1 = 56
+WORLD_EAST_CITY_C0 = 100; WORLD_EAST_CITY_R1 = 150
 # ── Южная зона (синхронно с world.html BEACH_*/PIER_*/SHIP_*) ──
 WORLD_BEACH_R0 = 150; WORLD_BEACH_R1 = 165
 WORLD_PIER_R0  = 165; WORLD_PIER_R1  = 175
@@ -12545,9 +12550,32 @@ def _world_is_wall(r: int, c: int) -> bool:
         return True
     if r == 0 or r == WORLD_MAP_ROWS - 1 or c == 0 or c == WORLD_MAP_COLS - 1:
         return True
-    # ── Южная зона: пляж/вода/причал/палуба (r >= 140) ──
+    # Канал между двумя городами. Единственный сухой коридор — широкий мост.
+    if c >= WORLD_CANAL_C0 and c < WORLD_CANAL_C1 and r < WORLD_EAST_CITY_R1:
+        return not (WORLD_BRIDGE_R0 <= r < WORLD_BRIDGE_R1)
+    # Второй город использует 20×20 супер-кварталы: магистраль снаружи,
+    # тупик, дворы, проходы и парковочные карманы внутри.
+    if c >= WORLD_EAST_CITY_C0 and r < WORLD_EAST_CITY_R1:
+        lr = r % 20; lc = (c - WORLD_EAST_CITY_C0) % 20
+        if lr <= 3 or lc <= 3 or lr in (4, 19) or lc in (4, 19):
+            return False
+        vertical = ((r // 20 + (c - WORLD_EAST_CITY_C0) // 20) & 1) == 1
+        a, b = (lc, lr) if vertical else (lr, lc)
+        bulb = math.hypot(a - 11, b - 14)
+        if (10 <= a <= 12 and b <= 14) or bulb <= 4.15:
+            return False
+        if ((6 <= a <= 8) or (14 <= a <= 16)) and b == 5:
+            return False
+        if ((6 <= a <= 8) or (14 <= a <= 16)) and 6 <= b <= 8:
+            return ((a + b + r // 20) & 1) == 0  # занятые парковочные места
+        if b in (9, 13, 14) or (15 <= b <= 18 and 9 <= a <= 13):
+            return False
+        side_lot = 5 <= a <= 7 or 15 <= a <= 18
+        building_lot = 10 <= b <= 12 or 15 <= b <= 18
+        return side_lot and building_lot
+    # ── Южная зона: пляж/вода/причал/палуба (r >= 150) ──
     # ДОЛЖНО совпадать с buildMap()-override'ом в world.html.
-    if r >= 140:
+    if r >= WORLD_BEACH_R0:
         if _world_port_container_wall(r + 0.5, c + 0.5):
             return True
         if r < WORLD_BEACH_R1:
@@ -13237,7 +13265,9 @@ class WorldSim:
         'downtown':   {'name': 'Даунтаун',  'boss_name': 'Винсент Крысолов', 'icon': '🏙', 'bounds': (0,39,40,79), 'hq': (20.0, 60.0), 'intel': (11.0, 60.0), 'sabotage': ((15.0, 49.0), (19.0, 70.0), (30.0, 58.0)), 'escape': (35.0, 60.0), 'income': 600, 'color': '#e0b94a'},
         'southside':  {'name': 'Саутсайд',  'boss_name': 'Тони Кувалда', 'icon': '🎰', 'bounds': (40,99,0,39), 'hq': (70.0, 20.0), 'intel': (53.0, 20.0), 'sabotage': ((60.0, 10.0), (72.0, 30.0), (83.0, 18.0)), 'escape': (95.0, 20.0), 'income': 500, 'color': '#9b59b6'},
         'industrial': {'name': 'Промзона',  'boss_name': 'Борис Шлак', 'icon': '🏭', 'bounds': (40,99,40,79), 'hq': (70.0, 60.0), 'intel': (53.0, 60.0), 'sabotage': ((60.0, 49.0), (72.0, 70.0), (83.0, 58.0)), 'escape': (95.0, 60.0), 'income': 550, 'color': '#d2691e'},
-        'coast':      {'name': 'Побережье', 'boss_name': 'Капитан Риццо', 'icon': '⚓', 'bounds': (150,199,0,79), 'hq': (156.0, 40.0), 'intel': (165.0, 40.0), 'sabotage': ((157.0, 14.0), (158.0, 65.0), (178.0, 40.0)), 'escape': (196.0, 40.0), 'income': 450, 'color': '#2ecc71'},
+        'eastside':   {'name': 'Ист-Сайд', 'boss_name': 'Артур Кедр', 'icon': '🏘', 'bounds': (0,74,100,179), 'hq': (40.0, 140.0), 'intel': (27.0, 140.0), 'sabotage': ((34.0, 112.0), (49.0, 131.0), (61.0, 164.0)), 'escape': (70.0, 140.0), 'income': 700, 'color': '#55b8a9'},
+        'docklands':  {'name': 'Доклендс', 'boss_name': 'Гектор Кран', 'icon': '🏗', 'bounds': (75,149,100,179), 'hq': (120.0, 140.0), 'intel': (107.0, 140.0), 'sabotage': ((94.0, 112.0), (119.0, 131.0), (136.0, 164.0)), 'escape': (145.0, 140.0), 'income': 760, 'color': '#597b9d'},
+        'coast':      {'name': 'Побережье', 'boss_name': 'Капитан Риццо', 'icon': '⚓', 'bounds': (150,199,0,179), 'hq': (156.0, 40.0), 'intel': (165.0, 40.0), 'sabotage': ((157.0, 14.0), (158.0, 65.0), (178.0, 40.0)), 'escape': (196.0, 40.0), 'income': 450, 'color': '#2ecc71'},
     }
     MAJOR_OBJECTS_DEF = {
         'casino':  {'name':'Казино','boss':'Сальваторе «Фишка» Моретти',
