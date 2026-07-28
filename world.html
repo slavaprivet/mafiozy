@@ -49294,10 +49294,10 @@ function _updateBankInterior(dt) {
         if (!npc._nextShootAt) npc._nextShootAt = now + 1000;
         if (now > npc._nextShootAt) {
           npc._nextShootAt = now + 1500;
-          npc._muzzleFlash = now;
           const shootAng = Math.atan2(player.r - npc.r, player.c - npc.c);
-          const muzR = npc.r + Math.sin(shootAng) * 0.45;
-          const muzC = npc.c + Math.cos(shootAng) * 0.45;
+          npc.ang = shootAng;
+          npc._shotAt = now;
+          const muzzle = _npcMuzzleWorldPoint(npc.r, npc.c, shootAng, 'pistol', .88);
           // Промах зависит от дистанции: вблизи 15%, у края 60%
           const missChance = 0.15 + (dist - 1.5) / 6.5 * 0.45;
           const missed = Math.random() < missChance;
@@ -49307,11 +49307,11 @@ function _updateBankInterior(dt) {
             const missAng = shootAng + spread;
             const missTargR = npc.r + Math.sin(missAng) * dist;
             const missTargC = npc.c + Math.cos(missAng) * dist;
-            spawnBullet(muzR, muzC, missTargR, missTargC, { hit: false, fromNpc: true, weapon: 'pistol' });
-            spawnMuzzle(muzR, muzC, missAng, 'pistol', true);
+            spawnBullet(muzzle.r, muzzle.c, missTargR, missTargC, { hit: false, fromNpc: true, weapon: 'pistol' });
+            spawnMuzzle(muzzle.r, muzzle.c, missAng, 'pistol', true);
           } else {
-            spawnBullet(muzR, muzC, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol' });
-            spawnMuzzle(muzR, muzC, shootAng, 'pistol', true);
+            spawnBullet(muzzle.r, muzzle.c, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol' });
+            spawnMuzzle(muzzle.r, muzzle.c, shootAng, 'pistol', true);
             spawnImpact(player.r, player.c, 'pistol', true);
             if (typeof addShake === 'function') addShake(2.5);
             const dmg = 8 + Math.floor(Math.random()*5);
@@ -49742,6 +49742,9 @@ function _drawBankInteriorNpc(npc) {
   }
   // ── Пистолет при тревоге — поднятая рука с оружием + выстрел ──────
   if (npc._usePistol && npc.state==='hostile') {
+    drawWeaponInHands(p.x, p.y, npc.ang, 'pistol', .88, npc._shotAt || 0);
+  }
+  if (false && npc._usePistol && npc.state==='hostile') {
     const dir = npc.ang;
     const shoulderX = p.x, shoulderY = p.y - isoH(0.45);
     const flashAge = npc._muzzleFlash ? now - npc._muzzleFlash : 9999;
