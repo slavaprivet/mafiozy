@@ -1200,6 +1200,15 @@ async def init_db():
                 PRIMARY KEY (telegram_id, biz_id)
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS business_property_owners (
+                biz_id       TEXT PRIMARY KEY,
+                owner_uid    INTEGER NOT NULL,
+                owner_name   TEXT DEFAULT '',
+                acquired_at  INTEGER NOT NULL,
+                protected_until INTEGER DEFAULT 0
+            )
+        """)
         try:
             await db.execute("ALTER TABLE player_businesses ADD COLUMN level INTEGER DEFAULT 1")
         except Exception:
@@ -1214,6 +1223,32 @@ async def init_db():
                 "ADD COLUMN npc_capture_cooldown_until INTEGER DEFAULT 0")
         except Exception:
             pass
+        # Однократная миграция старой одиночной модели: у бизнеса теперь один
+        # мировой владелец. Сохраняем последнюю покупку, а владельцам старых
+        # дублей возвращаем полную цену перед удалением записи.
+        await db.execute("""
+            INSERT OR IGNORE INTO business_property_owners
+                (biz_id,owner_uid,owner_name,acquired_at,protected_until)
+            SELECT pb.biz_id,pb.telegram_id,COALESCE(c.name,''),pb.bought_at,0
+            FROM player_businesses pb
+            LEFT JOIN characters c ON c.telegram_id=pb.telegram_id
+            WHERE pb.bought_at=(SELECT MAX(p2.bought_at) FROM player_businesses p2
+                                WHERE p2.biz_id=pb.biz_id)
+            GROUP BY pb.biz_id
+        """)
+        async with db.execute("""
+            SELECT pb.telegram_id,pb.biz_id
+            FROM player_businesses pb JOIN business_property_owners o ON o.biz_id=pb.biz_id
+            WHERE pb.telegram_id<>o.owner_uid
+        """) as cur:
+            legacy_losers=await cur.fetchall()
+        for legacy_uid,legacy_bid in legacy_losers:
+            legacy_cfg=get_business(str(legacy_bid))
+            if legacy_cfg:
+                await db.execute("UPDATE characters SET cash=cash+? WHERE telegram_id=?",
+                                 (int(legacy_cfg['price']),int(legacy_uid)))
+            await db.execute("DELETE FROM player_businesses WHERE telegram_id=? AND biz_id=?",
+                             (int(legacy_uid),str(legacy_bid)))
         await db.execute("""
             CREATE TABLE IF NOT EXISTS business_assistants (
                 telegram_id      INTEGER PRIMARY KEY,
@@ -20842,6 +20877,39 @@ async def _robbed_business_controls_load(world: 'WorldSim') -> None:
         logger.warning("WorldSim: robbed business controls load failed: %r", exc)
 
 
+async def _transfer_business_property(world:'WorldSim',biz_id:str,new_uid:str,new_name:str)->dict:
+    """Atomically move the unique personal business row to the raid winner."""
+    now=int(time.time()); old_uid=''; old_name=''
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory=aiosqlite.Row; await db.execute('BEGIN IMMEDIATE')
+        async with db.execute("SELECT owner_uid,owner_name FROM business_property_owners WHERE biz_id=?",(biz_id,)) as cur:
+            old=await cur.fetchone()
+        if old: old_uid=str(old['owner_uid']); old_name=str(old['owner_name'] or '')
+        if old_uid==str(new_uid):
+            await db.rollback()
+            return {'old_owner_uid':old_uid,'old_owner_name':old_name,
+                    'new_owner_uid':str(new_uid),'new_owner_name':str(new_name)[:24],
+                    'already_owned':True}
+        async with db.execute("SELECT level FROM player_businesses WHERE telegram_id=? AND biz_id=?",(int(old_uid) if old_uid else -1,biz_id)) as cur:
+            old_row=await cur.fetchone()
+        level=max(1,min(BIZ_MAX_LEVEL,int(old_row['level'] or 1))) if old_row else 1
+        await db.execute("DELETE FROM player_businesses WHERE biz_id=?",(biz_id,))
+        await db.execute("INSERT INTO player_businesses(telegram_id,biz_id,bought_at,last_collect,status,blocked_until,last_event_at,level,guards,pending_notice) VALUES(?,?,?,?, 'ok',0,0,?,0,?)",
+                         (int(new_uid),biz_id,now,now,level,f'Бизнес отжат у {old_name or "прежнего владельца"}'))
+        await db.execute("INSERT OR REPLACE INTO business_property_owners(biz_id,owner_uid,owner_name,acquired_at,protected_until) VALUES(?,?,?,?,?)",
+                         (biz_id,int(new_uid),str(new_name)[:24],now,now+120))
+        await db.commit()
+    if old_uid:
+        old_state=world.players.get(old_uid)
+        if old_state:
+            old_state.setdefault('_owned_biz',set()).discard(biz_id)
+            old_state.setdefault('_biz_guards',{}).pop(biz_id,None)
+    new_state=world.players.get(str(new_uid))
+    if new_state:
+        new_state.setdefault('_owned_biz',set()).add(biz_id)
+        new_state.setdefault('_biz_guards',{})[biz_id]=0
+    return {'old_owner_uid':old_uid,'old_owner_name':old_name,'new_owner_uid':str(new_uid),'new_owner_name':str(new_name)[:24],'level':level}
+
 async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
     """Pay family income, then run the open-war window for expired controls."""
     now = time.time()
@@ -21138,6 +21206,10 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
                 defenses=1 if defended else 0)
         if finisher:
             finisher['_cash'] = int(finisher.get('_cash') or 0)+bonus
+        property_transfer={}
+        if finisher_uid and not defended:
+            property_transfer=await _transfer_business_property(
+                world,biz_id,finisher_uid,str(finisher.get('name') or ''))
         events.append({
             'kind': 'business_family_war_won', 'biz_id': biz_id,
             'biz_name': str(biz.get('name') or biz_id), 'winner': winner,
@@ -21148,6 +21220,7 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
             'income_per_member': income,
             'influence_gain': influence_gain, 'treasury_gain': treasury_gain,
             'defended': defended, 'war_score': score,
+            'property_transfer': property_transfer,
         })
     return events
 
@@ -22631,6 +22704,9 @@ async def _coop_http_app():
                 "SELECT * FROM player_businesses WHERE telegram_id=?", (uid,)
             ) as cur:
                 rows = await cur.fetchall()
+            async with db.execute("SELECT biz_id,owner_uid,owner_name,protected_until FROM business_property_owners") as cur:
+                property_rows=await cur.fetchall()
+        property_owners={str(r['biz_id']):dict(r) for r in property_rows}
         for r in rows:
             d = dict(r)
             d['guards'] = max(0, min(6, int(d.get('guards') or 0)))
@@ -22653,6 +22729,11 @@ async def _coop_http_app():
         for b in BUSINESSES:
             entry = dict(b)
             entry['owned'] = b['id'] in owned
+            property_owner=property_owners.get(b['id']) or {}
+            entry['property_owner_uid']=str(property_owner.get('owner_uid') or '')
+            entry['property_owner_name']=str(property_owner.get('owner_name') or '')
+            entry['property_protected_until']=int(property_owner.get('protected_until') or 0)
+            entry['available_for_purchase']=not bool(property_owner)
             if entry['owned']:
                 o = owned[b['id']]
                 level = business_level(o.get('level'))
@@ -22777,12 +22858,13 @@ async def _coop_http_app():
             # ошибке нельзя получить состояние «деньги ушли, бизнеса нет».
             await db.execute('BEGIN IMMEDIATE')
             async with db.execute(
-                "SELECT 1 FROM player_businesses WHERE telegram_id=? AND biz_id=?", (uid, biz_id)
+                "SELECT owner_uid,owner_name FROM business_property_owners WHERE biz_id=?", (biz_id,)
             ) as cur:
                 already = await cur.fetchone()
             if already:
                 await db.rollback()
-                return await _cors(web.json_response({'ok': False, 'error': 'already owned'}))
+                return await _cors(web.json_response({'ok': False, 'error': 'owned by player',
+                    'owner_uid':str(already['owner_uid']),'owner_name':already['owner_name']}))
             debit = await db.execute(
                 "UPDATE characters SET cash=cash-? WHERE telegram_id=? AND cash>=?",
                 (biz['price'], uid, biz['price'])
@@ -22795,6 +22877,8 @@ async def _coop_http_app():
                 "VALUES (?, ?, ?, ?, 'ok', 0, 0)",
                 (uid, biz_id, now, now)
             )
+            await db.execute("INSERT INTO business_property_owners(biz_id,owner_uid,owner_name,acquired_at,protected_until) VALUES(?,?,?,?,?)",
+                             (biz_id,uid,str(char.get('name') or '')[:24],now,now+300))
             async with db.execute("SELECT cash FROM characters WHERE telegram_id=?", (uid,)) as cur:
                 cash_row = await cur.fetchone()
             new_cash = int(cash_row['cash'])
@@ -25149,6 +25233,22 @@ async def _coop_http_app():
                             else:
                                 old_control = world._robbed_business_controls.get(biz_id) or {}
                                 old_family = str(old_control.get('mafia_family') or '')
+                                property_owner_uid = ''
+                                property_owner_family = ''
+                                async with aiosqlite.connect(DB_PATH) as owner_db:
+                                    owner_db.row_factory = aiosqlite.Row
+                                    async with owner_db.execute(
+                                        "SELECT o.owner_uid,c.mafia_family "
+                                        "FROM business_property_owners o "
+                                        "LEFT JOIN characters c ON c.telegram_id=o.owner_uid "
+                                        "WHERE o.biz_id=?", (biz_id,)
+                                    ) as owner_cur:
+                                        owner_row = await owner_cur.fetchone()
+                                if owner_row:
+                                    property_owner_uid = str(owner_row['owner_uid'] or '')
+                                    property_owner_family = str(owner_row['mafia_family'] or '')
+                                if not old_family and property_owner_uid != str(uid):
+                                    old_family = property_owner_family
                                 if old_family and old_family != family:
                                     counter = (str(old_control.get('counter_family') or '') == family
                                                and float(old_control.get('counter_until') or 0) > now_choice)
@@ -25187,7 +25287,8 @@ async def _coop_http_app():
                                                     'duration_s': BUSINESS_FAMILY_WAR_DURATION_S,
                                                     'counterattack': counter, 'underdog_bonus': underdog}
                                 elif old_family == family:
-                                    choice_reply = {'ok': False, 'reason': 'already_owned'}
+                                    choice_reply={'ok':False,'reason':'same_family_owner',
+                                                  'biz_id':biz_id,'biz_name':biz_name}
                                 else:
                                     income = max(1, int(SHOP_ROB_CONFIG[biz_id]['money'])//10)
                                     control = {'biz_id': biz_id, 'owner_uid': str(uid),
@@ -25212,6 +25313,8 @@ async def _coop_http_app():
                                                         'biz_id': biz_id, 'biz_name': biz_name}
                                     else:
                                         world._robbed_business_controls[biz_id] = control
+                                        transfer=await _transfer_business_property(
+                                            world,biz_id,str(uid),str(p.get('name') or ''))
                                         world._business_war_claims.pop(str(uid), None)
                                         score = await _business_war_score_add(
                                             world, family, influence=75, captures=1)
@@ -25220,7 +25323,7 @@ async def _coop_http_app():
                                         choice_reply = {'ok': True, 'action': 'capture',
                                                         'biz_id': biz_id, 'biz_name': biz_name,
                                                         'family': family, 'income_per_member': income,
-                                                        'war_score': score}
+                                                        'war_score': score,'property_transfer':transfer}
                         try:
                             await ws.send_str(json.dumps({'t':'event','d':dict(
                                 choice_reply, kind='business_war_choice_reply')}, ensure_ascii=False))
@@ -25377,8 +25480,23 @@ async def _coop_http_app():
                         token = ''
                         owner_upgrades = (world._business_war_upgrades.get(
                             control_family, {}).get(biz_id, {}) if control_family else {})
+                        property_owner_uid='';property_owner_name='';personal_guards=0
+                        property_protected_left=0
+                        if biz_id in SHOP_ROB_CONFIG:
+                            async with aiosqlite.connect(DB_PATH) as owner_db:
+                                owner_db.row_factory=aiosqlite.Row
+                                async with owner_db.execute("SELECT owner_uid,owner_name,protected_until FROM business_property_owners WHERE biz_id=?",(biz_id,)) as owner_cur:
+                                    owner_row=await owner_cur.fetchone()
+                                if owner_row:
+                                    property_owner_uid=str(owner_row['owner_uid']);property_owner_name=str(owner_row['owner_name'] or '')
+                                    property_protected_left=max(0,int(owner_row['protected_until'] or 0)-int(now_rob))
+                                    async with owner_db.execute("SELECT guards FROM player_businesses WHERE telegram_id=? AND biz_id=?",(int(property_owner_uid),biz_id)) as guard_cur:
+                                        guard_row=await guard_cur.fetchone()
+                                    personal_guards=max(0,min(6,int(guard_row['guards'] or 0))) if guard_row else 0
+                        if property_protected_left:
+                            ok_prepare=False
                         guard_count = (int(SHOP_ROB_GUARDS.get(biz_id, 1)) + completed * 3
-                                       + int(owner_upgrades.get('security') or 0) * 2)
+                                       + int(owner_upgrades.get('security') or 0) * 2+personal_guards)
                         if ok_prepare:
                             token = secrets.token_urlsafe(24)
                             world._business_rob_sessions[str(uid)] = {
@@ -25398,10 +25516,21 @@ async def _coop_http_app():
                                     if str(member.get('_mafia_family') or '') == control_family:
                                         try: await member_ws.send_str(alert)
                                         except Exception: pass
+                            if property_owner_uid and property_owner_uid!=str(uid):
+                                owner_ws=world.connections.get(property_owner_uid)
+                                if owner_ws:
+                                    try: await owner_ws.send_str(json.dumps({'t':'event','d':{
+                                        'kind':'business_robbery_alert','biz_id':biz_id,
+                                        'biz_name':str((get_business(biz_id) or {}).get('name') or biz_id),
+                                        'personal_owner':True,'attacker_uid':str(uid),
+                                        'attacker_name':str(robber.get('name') or '')[:24],
+                                        'guards':personal_guards}},ensure_ascii=False))
+                                    except Exception: pass
                         else:
                             world._business_rob_sessions.pop(str(uid), None)
                         reason = (
                             'police' if robber.get('_police') else
+                            'property_protected' if property_protected_left else
                             'protected' if protected_left else
                             'defended' if defended_left else
                             'family_control' if family_control_blocks else
@@ -25415,7 +25544,7 @@ async def _coop_http_app():
                         await ws.send_str(json.dumps({'t':'event','d':{
                             'kind':'business_rob_prepare_reply',
                             'ok':ok_prepare, 'reason':'' if ok_prepare else reason,
-                            'protected_s':protected_left or defended_left,
+                            'protected_s':property_protected_left or protected_left or defended_left,
                             'control_s':family_control_left,
                             'control_family':control_family,
                             'war_s':open_war_left,
