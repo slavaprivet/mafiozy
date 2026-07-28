@@ -11868,6 +11868,29 @@ function selectBuildingFrom3D(r,c,screenX=null,screenY=null) {
   return {ok:true,kind:'building',id:`${best.r},${best.c}`,name:_selectedBuildingEntry.label,near};
 }
 
+function _nearbyBuildingInteractionFor3D() {
+  if (_buildingInt || _bankInt || myDrivingCarId || myDead) return null;
+  let best=null,bestD=Infinity;
+  for(const biz of BUSINESS_POIS){const d=Math.hypot(player.r-biz.r,player.c-biz.c);if(d<=3.5&&d<bestD){best={kind:'business',id:String(biz.id),r:+biz.r,c:+biz.c,name:biz.name||'Бизнес',distance:d};bestD=d;}}
+  for(const poi of POI){if(!MAJOR_OBJECT_IDS.has(poi.id))continue;const d=Math.hypot(player.r-poi.r,player.c-poi.c);if(d<=4.2&&d<bestD){best={kind:'major',id:String(poi.id),r:+poi.r,c:+poi.c,name:poi.name||poi.label||'Здание',distance:d};bestD=d;}}
+  const pr=Math.floor(player.r),pc=Math.floor(player.c);
+  for(let r=Math.max(1,pr-4);r<=Math.min(MAP_ROWS-2,pr+4);r++)for(let c=Math.max(1,pc-4);c<=Math.min(MAP_COLS-2,pc+4);c++){
+    if(MAP[r]?.[c]!==1)continue;
+    const d=Math.hypot(player.r-r-.5,player.c-c-.5);if(d>2.65||d>=bestD)continue;
+    const special=POI.find(p=>p.r===r&&p.c===c)?.special||(r===36&&c===16?'job':r===26&&c===26?'gym':r===26&&c===46?'hospital':r===76&&c===76?'police_st':r===BURJ_POS.r&&c===BURJ_POS.c?'mafia_hq':null);
+    best={kind:'building',id:`${r},${c}`,r,c,name:special==='mafia_hq'?'Burj Mafia':special?({job:'Биржа труда',gym:'Спортзал',hospital:'Больница',police_st:'Полицейский участок'}[special]||'Здание'):'Здание',type:special||null,distance:d};bestD=d;
+  }
+  return best;
+}
+
+function toggleNearbyBuildingActionsFrom3D(screenX=null,screenY=null) {
+  const near=_nearbyBuildingInteractionFor3D();
+  if(!near)return {ok:false,reason:'none'};
+  const current=_businessActionSelection&&`${_businessActionSelection.kind}:${_businessActionSelection.id}`;
+  if(_businessActionCard.classList.contains('show')&&current===`${near.kind}:${near.id}`){_closeBusinessActionCard();return {ok:true,closed:true,...near};}
+  return selectBuildingFrom3D(near.r,near.c,screenX,screenY);
+}
+
 function _activateSelectedBuildingIfNear() {
   const sel = _refreshManualBuildingEntry();
   if (!sel) return false;
@@ -52153,6 +52176,10 @@ window.Mafiozi3DBridge = Object.freeze({
   },
   setAim(angle) { if (Number.isFinite(angle)){_threeMouseAimAngle=angle;_threeMouseAimUntil=performance.now()+240;player.ang=angle;} },
   selectBuilding(r,c,screenX,screenY) { return selectBuildingFrom3D(+r,+c,+screenX,+screenY); },
+  getNearbyBuildingInteraction() { return _nearbyBuildingInteractionFor3D(); },
+  toggleNearbyBuildingActions(screenX,screenY) { return toggleNearbyBuildingActionsFrom3D(+screenX,+screenY); },
+  closeBuildingActions() { _closeBusinessActionCard(); return true; },
+  collisionProbe(r,c) { const rr=+r,cc=+c;return {r:rr,c:cc,blocked:Number.isFinite(rr)&&Number.isFinite(cc)?isBlockedPed(rr,cc):true,tile:Number.isFinite(rr)&&Number.isFinite(cc)?MAP[Math.floor(rr)]?.[Math.floor(cc)]??null:null}; },
   getEnvironmentState() {
     const hour = typeof getGameHour === 'function' ? getGameHour() : 12;
     return {
@@ -52192,10 +52219,10 @@ window.Mafiozi3DBridge = Object.freeze({
     const blocks = [];
     for (let r0 = minR; r0 <= maxR; r0 += BLOCK) for (let c0 = minC; c0 <= maxC; c0 += BLOCK) {
       let bMinR = Infinity, bMaxR = -Infinity, bMinC = Infinity, bMaxC = -Infinity;
-      let buildings = 0, roads = 0, pavement = 0, grass = 0, sand = 0, water = 0;
+      let buildings = 0, roads = 0, pavement = 0, grass = 0, sand = 0, water = 0;const buildingTiles=[];
       for (let r = r0; r < Math.min(r0 + BLOCK, MAP_ROWS); r++) for (let c = c0; c < Math.min(c0 + BLOCK, MAP_COLS); c++) {
         const tile = MAP[r]?.[c];
-        if (tile === 1) { buildings++; bMinR=Math.min(bMinR,r);bMaxR=Math.max(bMaxR,r);bMinC=Math.min(bMinC,c);bMaxC=Math.max(bMaxC,c); }
+        if (tile === 1) { buildings++;buildingTiles.push([r,c]);bMinR=Math.min(bMinR,r);bMaxR=Math.max(bMaxR,r);bMinC=Math.min(bMinC,c);bMaxC=Math.max(bMaxC,c); }
         else if (tile === 0 || tile === 18) roads++;
         else if (tile === 9 || tile === 15 || tile === 17) pavement++;
         else if (tile === 8) grass++;
@@ -52208,7 +52235,7 @@ window.Mafiozi3DBridge = Object.freeze({
       const heightSpread = styleId === 'downtown' ? 18 : styleId === 'nightlife' ? 8 : 6;
       blocks.push({
         r0,c0,styleId,buildings,roads,pavement,grass,sand,water,seed,
-        building: buildings ? {r:(bMinR+bMaxR)/2,c:(bMinC+bMaxC)/2,w:bMaxC-bMinC+1,d:bMaxR-bMinR+1,height:heightBase+(seed%heightSpread)} : null,
+        building: buildings ? {r:(bMinR+bMaxR+1)/2,c:(bMinC+bMaxC+1)/2,w:bMaxC-bMinC+1,d:bMaxR-bMinR+1,minR:bMinR,maxR:bMaxR,minC:bMinC,maxC:bMaxC,tiles:buildingTiles,height:heightBase+(seed%heightSpread)} : null,
       });
     }
     const pois = (typeof POI !== 'undefined' ? POI : []).filter(p => p.r >= minR && p.r <= maxR && p.c >= minC && p.c <= maxC).map(p => ({id:p.id,r:p.r,c:p.c,label:p.label||p.name||p.id}));
@@ -55995,6 +56022,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d54"></script>
+<script type="module" src="three_preview.js?v=3d55"></script>
 </body>
 </html>
