@@ -90,7 +90,116 @@ preview_city_gangs = [
         "faction":"yellow","look":{"gender":0,"skin":1+i%3,"body":2,
         "face":i%3,"hair":i%4,"hat":4,"gang":2,"suit":"#d2a719"}}
         for i in range(5)]},
+    # Локальное превью должно отдавать ту же опасную банду Логова, что и
+    # основной сервер. Раньше здесь были только две уличные банды, поэтому
+    # красная зона и лагерь рисовались пустыми.
+    {"id":"lair","faction":"lair","bots":[{
+        "id":f"preview_lair_{i}",
+        "x":(37.0,40.0,43.0,35.5,44.5,37.0,40.0,43.0)[i],
+        "y":(117.0,116.0,118.0,121.0,121.0,124.0,123.0,124.0)[i],
+        "ang":(i/8)*math.tau,"hp":150,"max_hp":150,
+        "kind":"aggro_elite" if i < 2 else "aggro_grunt",
+        "weapon":("shotgun","rifle","pistol_heavy","smg")[i%4],
+        "faction":"lair","look":{"gender":0,"skin":1+i%3,
+        "body":3 if i < 2 else 2,"face":i%3,"hair":i%4,
+        "hat":3 if i < 2 else 4,"gang":1,"suit":"#512d73"}}
+        for i in range(8)] + [{
+        "id":"preview_lair_boss","x":40.0,"y":120.0,"ang":0.0,
+        "hp":360,"max_hp":360,"kind":"aggro_boss","weapon":"uzi",
+        "faction":"lair","look":{"gender":0,"skin":1,"body":3,
+        "face":1,"hair":0,"hat":4,"gang":1,"boss":1,"suit":"#351b48"}}]},
 ]
+for _gang in preview_city_gangs:
+    for _bot in _gang["bots"]:
+        _bot.update({"home_x":_bot["x"], "home_y":_bot["y"], "alive":True,
+                     "act":"walk", "damage":8, "shot_at":0.0,
+                     "threat":"", "threat_until":0.0, "respawn_at":0.0})
+
+_preview_city_gang_tick_at = 0.0
+_CITY_GANG_PHRASES = ("Эй, это наша улица!", "Кошелёк на землю!",
+                      "Зря ты сюда пришёл!", "Вали из нашего района!")
+
+def _turn_towards(current, desired, max_step):
+    delta = math.atan2(math.sin(desired-current), math.cos(desired-current))
+    return current + max(-max_step, min(max_step, delta))
+
+def tick_preview_city_gangs(now, dt):
+    """Live AI for local-preview street gangs and the Lair gang."""
+    global _preview_city_gang_tick_at
+    if now - _preview_city_gang_tick_at < 0.04:
+        return []
+    dt = min(.12, max(.01, now - _preview_city_gang_tick_at)) if _preview_city_gang_tick_at else dt
+    _preview_city_gang_tick_at = now
+    events = []
+    live_players = [(str(uid), p) for uid, p in players.items() if not p.get("dead")]
+    for gang in preview_city_gangs:
+        for bot_index, bot in enumerate(gang["bots"]):
+            if not bot.get("alive") or bot.get("hp", 0) <= 0:
+                if now >= float(bot.get("respawn_at") or 0):
+                    bot.update({"alive":True, "hp":bot.get("max_hp",100),
+                                "x":bot["home_x"], "y":bot["home_y"], "act":"walk"})
+                else:
+                    continue
+            target_uid, target, dist = "", None, 999.0
+            for candidate_uid, candidate in live_players:
+                d = math.hypot(candidate.get("x",0)-bot["x"], candidate.get("y",0)-bot["y"])
+                if d < dist:
+                    target_uid, target, dist = candidate_uid, candidate, d
+            if target is not None and dist <= 9.0:
+                dx, dy = target.get("x",0)-bot["x"], target.get("y",0)-bot["y"]
+                # В упор направление из микроскопической сетевой дельты
+                # нестабильно. Сохраняем прежний прицел и доворачиваем плавно.
+                desired_ang = math.atan2(dy, dx) if dist > .55 else bot.get("aim_ang", bot.get("ang",0.0))
+                bot["aim_ang"] = desired_ang
+                bot["ang"] = _turn_towards(bot.get("ang",desired_ang), desired_ang, 3.2*dt)
+                # Гистерезис не даёт прыгать walk/shoot на границе 3.2 тайла.
+                chasing = bool(bot.get("chasing"))
+                chasing = dist > (2.9 if chasing else 3.7)
+                bot["chasing"] = chasing
+                if chasing:
+                    step = 1.35 * dt
+                    bot["x"] += math.cos(desired_ang)*step; bot["y"] += math.sin(desired_ang)*step
+                    bot["act"] = "walk"
+                else:
+                    bot["act"] = "shoot"
+                if now >= float(bot.get("threat_until") or 0):
+                    bot["threat"] = random.choice(_CITY_GANG_PHRASES)
+                    bot["threat_until"] = now + random.uniform(3.5, 5.5)
+                    events.append({"kind":"city_gang_threat", "bot_id":bot["id"],
+                                   "faction":gang["faction"], "text":bot["threat"]})
+                if dist <= 7.5 and now-float(bot.get("shot_at") or 0) >= 1.25:
+                    bot["shot_at"] = now
+                    damage = int(bot.get("damage") or 8)
+                    target["hp"] = max(0, int(target.get("hp",100))-damage)
+                    killed = target["hp"] <= 0
+                    if killed:
+                        target["dead"] = True; target["respawn_at"] = now+5.0
+                    events.extend([
+                        {"kind":"aggro_shot", "tid":gang["id"], "bot_id":bot["id"],
+                         "target_uid":target_uid, "weapon":bot["weapon"],
+                         "sx":round(bot["x"],2), "sy":round(bot["y"],2),
+                         "tx":round(target.get("x",0),2), "ty":round(target.get("y",0),2)},
+                        {"kind":"aggro_apply", "tid":gang["id"], "bot_id":bot["id"],
+                         "target_uid":target_uid, "weapon":bot["weapon"],
+                         "miss":False, "dmg":damage, "killed":killed}
+                    ])
+            else:
+                # Небольшой живой патруль вокруг точки появления.
+                phase = now*.42 + bot_index*.9
+                tx = bot["home_x"] + math.cos(phase)*2.1
+                ty = bot["home_y"] + math.sin(phase)*1.4
+                dx, dy = tx-bot["x"], ty-bot["y"]
+                d = math.hypot(dx,dy)
+                if d > .12:
+                    desired_ang=math.atan2(dy,dx)
+                    bot["ang"]=_turn_towards(bot.get("ang",desired_ang),desired_ang,2.2*dt)
+                    step = min(d, .72*dt)
+                    bot["x"] += dx/d*step; bot["y"] += dy/d*step
+                    bot["act"] = "walk"
+                else:
+                    bot["act"] = "idle"
+                bot["threat"] = ""
+    return events
 
 def preview_major_payload():
     now=time.time()
@@ -314,8 +423,11 @@ def park_race_car(car):
             continue
         if abs(other["x"] - slot["x"]) < 1.2 and abs(other["y"] - slot["y"]) < 1.2:
             occupied_ids.append(other["id"])
-    for car_id in occupied_ids:
-        quest_cars.pop(car_id, None)
+    # Возврат болида в бокс не имеет права удалять припаркованную машину
+    # игрока. Ждём освобождения слота вместо уничтожения чужого объекта.
+    if occupied_ids:
+        car["parked_at"] = time.time()
+        return
     car.update({
         "x": slot["x"],
         "y": slot["y"],
@@ -370,6 +482,8 @@ def race_car_payload():
             "tires_punctured": bool(car.get("tires_punctured", False)),
             "called_patrol": bool(car.get("called_patrol", False)),
             "expires_at": float(car.get("expires_at", 0)),
+            "state": str(car.get("state") or "idle"),
+            "paint": car.get("paint"),
         }
         for car in quest_cars.values()
     ]
@@ -383,11 +497,25 @@ def preview_civilian_carjack(uid, data):
     x = float(data.get("x", p.get("x", PREVIEW_START_X)))
     y = float(data.get("y", p.get("y", PREVIEW_START_Y)))
     allowed_models = {
-        "corvette_c3", "mustang_67", "cadillac_eldo", "delorean",
+        "sedan", "taxi", "sport", "pickup", "van", "coupe", "hatch_blue",
+        "supercar", "lambo", "ferrari", "porsche", "truck", "minivan",
+        "hatch", "limo", "suv_black", "suv_white", "jeep_safari",
+        "jeep_sand", "muscle_blue", "muscle_org", "roadster", "classic",
+        "classic2", "corvette_c3", "mustang_67", "cadillac_eldo", "delorean",
         "jaguar_e", "harley_chopper", "ducati_750",
     }
     requested_model = str(data.get("model") or "")
     model = requested_model if requested_model in allowed_models else "corvette_c3"
+    requested_paint = data.get("paint") if isinstance(data.get("paint"), dict) else {}
+    def valid_color(value):
+        value = str(value or "").lower()
+        return value if (len(value) == 7 and value[0] == "#" and
+                         all(ch in "0123456789abcdef" for ch in value[1:])) else None
+    primary = valid_color(requested_paint.get("primary"))
+    paint = ({"primary":primary,
+              "secondary":valid_color(requested_paint.get("secondary")) or primary,
+              "roof":valid_color(requested_paint.get("roof"))}
+             if primary else None)
     car = {
         "id": car_id,
         "model": model,
@@ -403,6 +531,7 @@ def preview_civilian_carjack(uid, data):
         "max_hp": 220,
         "wrecked": False,
         "civilian": True,
+        "paint": paint,
     }
     quest_cars[car_id] = car
     p["x"] = x
@@ -415,6 +544,7 @@ def preview_civilian_carjack(uid, data):
         "x": x,
         "y": y,
         "civilian": True,
+        "paint": paint,
     }
 
 
@@ -770,8 +900,10 @@ def preview_aggro_payload():
     for gang in preview_city_gangs:
         visible=[dict(bot) for bot in gang["bots"] if bot.get("hp",0)>0]
         if visible:
-            result[gang["id"]]={"state":"patrol","bots":visible,"covers":[],
-                "cap_left":0,"next_respawn":0,"is_city_gang":True,
+            is_lair = gang["id"] == "lair"
+            result[gang["id"]]={"state":"alive" if is_lair else "patrol",
+                "bots":visible,"covers":[],"cap_left":0,"next_respawn":0,
+                "is_city_gang":not is_lair,
                 "faction":gang["faction"]}
     return result
 
@@ -1517,6 +1649,8 @@ async def world_ws(req):
                     p["x"], p["y"] = PREVIEW_HOSPITAL_X, PREVIEW_HOSPITAL_Y
             for defender_event in tick_district_defenders(now, 1/15):
                 await broadcast_event(defender_event)
+            for gang_event in tick_preview_city_gangs(now, 1/15):
+                await broadcast_event(gang_event)
             for charge_id, charge in list(world_c4.items()):
                 if now < charge["explode_at"]:
                     continue
@@ -1707,12 +1841,16 @@ async def world_ws(req):
                     "token": choice_token, "biz_id": biz_id,
                     "money": money, "expires_at": time.time() + 90,
                 }
+                robber = players.get(str(uid), {})
+                robber_family = str(robber.get("mafia_family") or "")
+                can_capture = bool(robber.get("mafia") and
+                                   robber_family in ("bellini", "moretti"))
                 await ws.send_str(json.dumps({"t":"event","d":{
                     "kind":"shop_rob_reply","ok":True,"biz_id":biz_id,
                     "money":money,"difficulty":1,"closed_s":300,
-                    "mafia_family":"bellini","family_points_gain":10,
+                    "mafia_family":robber_family,"family_points_gain":10 if can_capture else 0,
                     "business_choice_token":choice_token,
-                    "business_choice_s":90,"can_capture":True,"sabotage_s":720
+                    "business_choice_s":90,"can_capture":can_capture,"sabotage_s":720
                 }}, ensure_ascii=False))
                 continue
             if t == "business_war_choice":
@@ -1726,6 +1864,15 @@ async def world_ws(req):
                     await ws.send_str(json.dumps({"t":"event","d":{
                         "kind":"business_war_choice_reply","ok":False,
                         "reason":"invalid_choice","biz_id":str(claim.get("biz_id") or "")
+                    }}, ensure_ascii=False))
+                    continue
+                player = players.get(str(uid), {})
+                family = str(player.get("mafia_family") or "")
+                if action == "capture" and not (
+                        player.get("mafia") and family in ("bellini", "moretti")):
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"business_war_choice_reply","ok":False,
+                        "reason":"no_family","biz_id":str(claim.get("biz_id") or "")
                     }}, ensure_ascii=False))
                     continue
                 # Reserve before side effects: duplicated packets/tabs cannot spend twice.
@@ -1760,7 +1907,7 @@ async def world_ws(req):
                     "kind":"business_war_choice_reply","ok":True,
                     "action":action,"biz_id":choice_biz_id,"money":choice_money,
                     "income_per_member":income_per_member if action == "capture" else 0,
-                    "family":"bellini",
+                    "family":family,
                     "c4_left":int(account["consumables"].get("c4", 0)),
                     "sabotage_kind":str(d.get("sabotage_kind") or "shutdown"),
                     "sabotage_s":720,
@@ -1784,6 +1931,10 @@ async def world_ws(req):
                 was_police = bool(p.get("police"))
                 p["police"] = bool(d.get("police", False))
                 p["mafia"] = bool(d.get("mafia", False)) and not p["police"]
+                requested_family = str(d.get("mafia_family") or "")
+                p["mafia_family"] = (requested_family
+                                     if p["mafia"] and requested_family in ("bellini", "moretti")
+                                     else "")
                 if p["police"] and not was_police:
                     for did, own in list(district_owners.items()):
                         if str(own.get("owner_uid")) == str(uid): district_owners.pop(did, None)
@@ -2036,7 +2187,16 @@ async def world_ws(req):
                 target_id = str(d.get("target") or "")
                 found = None
                 found_did = None
+                found_city_gang = None
+                for city_gang in preview_city_gangs:
+                    found = next((bot for bot in city_gang["bots"]
+                                  if bot.get("alive") and str(bot.get("id")) == target_id), None)
+                    if found:
+                        found_city_gang = city_gang
+                        break
                 for did, cap in district_captures.items():
+                    if found:
+                        break
                     for bot in cap.get("defenders") or []:
                         if bot.get("alive") and str(bot.get("id")) == target_id:
                             found, found_did = bot, did
@@ -2044,16 +2204,18 @@ async def world_ws(req):
                     if found:
                         break
                 if found:
-                    cap = district_captures[found_did]
+                    cap = district_captures.get(found_did) if found_did else None
                     # Только подтверждённое попадание разворачивает всю охрану
                     # на конкретного стрелка. На других игроков не переключаемся.
-                    cap["hostile_uid"] = str(uid)
-                    cap["hostile_until"] = time.time() + 30.0
+                    if cap:
+                        cap["hostile_uid"] = str(uid)
+                        cap["hostile_until"] = time.time() + 30.0
                     damage = 42
                     found["hp"] = max(0, int(found["hp"]) - damage)
                     killed = found["hp"] <= 0
                     if killed:
                         found["alive"] = False
+                        found["respawn_at"] = time.time() + 14.0
                         weapon=str(d.get("weapon") or "pistol")
                         ammo_map={"pistol":"9mm","pistol_gold":"9mm","smg":"9mm","tommy_gun":"9mm",
                             "nagan":"magnum","pistol_heavy":"magnum","shotgun":"shell","rifle":"rifle",
@@ -2065,7 +2227,7 @@ async def world_ws(req):
                             "y":float(found["y"]),"ammo_type":ammo_type,"rounds":round_map[ammo_type],
                             "expires_at":time.time()+90.0}
                     is_boss = found.get("kind") == "district_boss"
-                    if killed and is_boss:
+                    if killed and is_boss and cap:
                         preview_drop_district_dossier(found_did, cap, found, time.time())
                     p = players.get(uid) or {}
                     await broadcast_event({
@@ -2363,6 +2525,7 @@ async def world_ws(req):
                         "reward": 0,
                         "lock_lvl": 0,
                         "civilian": True,
+                        "paint": reply.get("paint"),
                         "by_uid": uid,
                         "x": reply["x"],
                         "y": reply["y"],
@@ -2404,6 +2567,7 @@ async def world_ws(req):
                               "model":car.get("model"),"owner_uid":car.get("owner_uid"),
                               "x":car.get("x"),"y":car.get("y"),"ang":car.get("ang",0),
                               "hp":car.get("hp",220),"max_hp":car.get("max_hp",220),
+                              "paint":car.get("paint"),
                               "civilian":bool(car.get("civilian",True)),
                               "police_patrol":bool(car.get("police_patrol")),
                               "police_stolen":bool(car.get("police_stolen"))},
