@@ -58,6 +58,35 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         scene.add(mesh);
         return mesh;
       };
+      // BoxGeometry normally has six material groups, so a building with the
+      // same facade on four sides still costs six draw calls. Reorder the
+      // indexed faces into two contiguous groups (walls + roof/floor). This
+      // preserves the exact UVs, normals and materials while cutting the main
+      // mass to two calls. Native frustum culling then skips off-screen blocks.
+      const buildingBoxGeometry = (w, h, d) => {
+        const geometry = new THREE.BoxGeometry(w, h, d);
+        const source = geometry.index.array;
+        const order = [0, 1, 4, 5, 2, 3];
+        const IndexArray = source.constructor;
+        const reordered = new IndexArray(source.length);
+        let offset = 0;
+        for (const face of order) {
+          const start = face * 6;
+          for (let i = 0; i < 6; i++) reordered[offset++] = source[start + i];
+        }
+        geometry.setIndex(new THREE.BufferAttribute(reordered, 1));
+        geometry.clearGroups();
+        geometry.addGroup(0, 24, 0);
+        geometry.addGroup(24, 12, 1);
+        return geometry;
+      };
+      const buildingBox = (x, z, w, d, h, wallMat, roofMaterial) => {
+        const mesh = new THREE.Mesh(buildingBoxGeometry(w, h, d), [wallMat, roofMaterial]);
+        mesh.position.set(x, h / 2, z);
+        mesh.castShadow = mesh.receiveShadow = true;
+        scene.add(mesh);
+        return mesh;
+      };
       const outline = mesh => {
         const edges = new THREE.LineSegments(
           new THREE.EdgesGeometry(mesh.geometry, 24),
@@ -252,8 +281,8 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         facadeMaterials.push(wall);
         const localRoof=roofMat.clone();
         const detailed=buildingMeta.primary!==false,steppedTower=detailed&&(districtStyle==='downtown'||districtStyle==='rich')&&h>24,lowerH=steppedTower?h*.64:h;
-        const mainBuilding=box(x,z,w,d,lowerH,[wall,wall,localRoof,localRoof,wall,wall]);mainBuilding.userData.fadeMaterials=[wall,localRoof];mainBuilding.userData.building=buildingMeta;mainBuilding.userData.mainBuilding=true;mainBuilding.frustumCulled=false;occluders.push(mainBuilding);buildingPickables.push(mainBuilding);if(detailed)outline(mainBuilding);
-        if(detailed){if(steppedTower){const upperH=h-lowerH,upper=box(x,z,w*.72,d*.72,upperH,[wall,wall,localRoof,localRoof,wall,wall]);upper.position.y=lowerH+upperH/2;upper.userData.fadeMaterials=[wall,localRoof];upper.userData.building=buildingMeta;occluders.push(upper);buildingPickables.push(upper);outline(upper);const crownBand=box(x,z,w*.78,d*.78,.42,neonMats[bi%3]);crownBand.position.y=lowerH+.2;}
+        const mainBuilding=buildingBox(x,z,w,d,lowerH,wall,localRoof);mainBuilding.userData.fadeMaterials=[wall,localRoof];mainBuilding.userData.building=buildingMeta;mainBuilding.userData.mainBuilding=true;occluders.push(mainBuilding);buildingPickables.push(mainBuilding);if(detailed)outline(mainBuilding);
+        if(detailed){if(steppedTower){const upperH=h-lowerH,upper=buildingBox(x,z,w*.72,d*.72,upperH,wall,localRoof);upper.position.y=lowerH+upperH/2;upper.userData.fadeMaterials=[wall,localRoof];upper.userData.building=buildingMeta;occluders.push(upper);buildingPickables.push(upper);outline(upper);const crownBand=box(x,z,w*.78,d*.78,.42,neonMats[bi%3]);crownBand.position.y=lowerH+.2;}
         // A second mass breaks the repetitive box silhouette.
         if(districtStyle==='downtown'){
           wall.metalness=.22;wall.roughness=.48;
@@ -336,6 +365,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       renderer.domElement.dataset.worldMapBridge=worldSnapshot?'connected':'fallback';
       renderer.domElement.dataset.worldBuildings=String(buildingDefs.length);
       renderer.domElement.dataset.pickableBuildings=String(buildingPickables.length);
+      renderer.domElement.dataset.buildingRenderGroups='walls-roof-2';
       let collisionSamples=0,collisionMismatches=0,visualFootprintSamples=0,visualFootprintMismatches=0;for(const def of buildingDefs){const meta=def[8];if(!meta||!Array.isArray(meta.tiles))continue;for(const [r,c] of meta.tiles){collisionSamples++;if(!bridge?.collisionProbe?.(r+.5,c+.5)?.blocked)collisionMismatches++;}for(let r=meta.minR;r<=meta.maxR;r++)for(let c=meta.minC;c<=meta.maxC;c++){visualFootprintSamples++;if(!bridge?.collisionProbe?.(r+.5,c+.5)?.blocked)visualFootprintMismatches++;}}renderer.domElement.dataset.collisionSamples=String(collisionSamples);renderer.domElement.dataset.collisionMismatches=String(collisionMismatches);renderer.domElement.dataset.visualFootprintSamples=String(visualFootprintSamples);renderer.domElement.dataset.visualFootprintMismatches=String(visualFootprintMismatches);
       console.info(`[ThreePreview] gameplay bridge: ${bridge?'connected':'fallback'}; real map blocks: ${worldSnapshot?.blocks?.length||0}`);
 
