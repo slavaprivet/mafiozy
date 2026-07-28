@@ -17328,8 +17328,10 @@ class WorldSim:
         'А ну стоять!', 'Дай телефон, дядя.',
         'Гражданин, шевелись!', 'Не тот район выбрал.',
     ]
-    CITY_GANG_ACT_CD_MIN = 12.0
-    CITY_GANG_ACT_CD_MAX = 28.0
+    # Короткие сценки оживляют улицу, но пауза длиннее 10–12 секунд уже
+    # выглядит для игрока как зависший AI.
+    CITY_GANG_ACT_CD_MIN = 6.0
+    CITY_GANG_ACT_CD_MAX = 14.0
     # Бандитское гнездо — мини-зона как Логово, но временная и в городе.
     # Заброшенное здание + 4 бойца охраняют его в радиусе 4 тайла.
     # Зачистил всех — большая награда. Само исчезает через NEST_LIFETIME_S.
@@ -17500,6 +17502,22 @@ class WorldSim:
             # Центр группы
             cx = sum(b['x'] for b in alive_bots) / len(alive_bots)
             cy = sum(b['y'] for b in alive_bots) / len(alive_bots)
+            # Общий watchdog движения. Если патруль за пять секунд почти не
+            # сдвинул центр, сбрасываем маршрут и принудительно возвращаем
+            # бойцов в walk. Это лечит группу целиком, а не одного крайнего NPC.
+            if g.get('state') == 'patrol' and now >= float(g.get('_motion_check_at') or 0):
+                old_cx, old_cy = g.get('_motion_center') or (cx, cy)
+                stalled = _m.hypot(cx - old_cx, cy - old_cy) < 0.45
+                if stalled and g.get('_motion_center') is not None:
+                    g['_patrol_wp_until'] = 0.0
+                    g['_patrol_route'] = []
+                    g['_patrol_route_i'] = 0
+                    for bot in alive_bots:
+                        bot['_act'] = 'walk'
+                        bot['_act_until'] = now + random.uniform(7.0, 12.0)
+                        bot['_patrol_stuck'] = 0
+                g['_motion_center'] = (cx, cy)
+                g['_motion_check_at'] = now + 5.0
             # Rival street gangs do not fight on every meeting. One bounded
             # encounter decision is cached for 20 seconds: pass or skirmish.
             for rival in self.city_gangs:
@@ -17651,6 +17669,13 @@ class WorldSim:
                             'bot_id': bot['id'],
                             'text':   random.choice(self.CITY_GANG_HARASS_PHRASES),
                         })
+                # Вся группа одновременно не замирает: пока остальные пьют,
+                # рисуют или переговариваются, один боец продолжает обход.
+                if (not g.get('district_did') and alive_bots
+                        and not any(bot.get('_act') == 'walk' for bot in alive_bots)):
+                    walker = random.choice(alive_bots)
+                    walker['_act'] = 'walk'
+                    walker['_act_until'] = now + random.uniform(7.0, 12.0)
                 # Idle chatter — изредка кто-то из группы говорит фразу
                 # «в воздух» (без триггера от игрока). Шанс 0.5%/тик ≈
                 # раз в 13 сек на группу при 15Гц.
@@ -17749,10 +17774,12 @@ class WorldSim:
                         continue
                     # Не слипаемся в одну точку: босс идёт в центр, охрана
                     # держит живую формацию вокруг него.
-                    if g.get('district_did') and bot_i:
+                    if bot_i:
                         fa = (bot_i - 1) / max(1, len(alive_bots) - 1) * 2 * _m.pi
-                        bwx = wx + _m.cos(fa) * 1.65
-                        bwy = wy + _m.sin(fa) * 1.35
+                        formation_x = 1.65 if g.get('district_did') else 1.25
+                        formation_y = 1.35 if g.get('district_did') else 1.05
+                        bwx = wx + _m.cos(fa) * formation_x
+                        bwy = wy + _m.sin(fa) * formation_y
                     else:
                         bwx, bwy = wx, wy
                     dx2 = bwx - bot['x']; dy2 = bwy - bot['y']
