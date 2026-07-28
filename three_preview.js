@@ -265,7 +265,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         const districtDecor=(worldSnapshot.coast?.decor||[]).filter(d=>d&&Number.isFinite(+d.r)&&Number.isFinite(+d.c));
         const stoneDecor=new THREE.MeshStandardMaterial({color:0xb9b3a8,roughness:.75}),waterDecor=new THREE.MeshPhysicalMaterial({color:0x4bc8ed,roughness:.08,metalness:.06,transparent:true,opacity:.82,clearcoat:1}),woodDecor=new THREE.MeshStandardMaterial({color:0x765034,roughness:.88}),leafDecor=new THREE.MeshStandardMaterial({color:0x256c38,roughness:.92}),trunkDecor=new THREE.MeshStandardMaterial({color:0x67432b,roughness:1});
         for(const d of districtDecor){
-          const probe=collisionProbe(+d.r,+d.c),tile=probe.tile,x=toX(+d.c),z=toZ(+d.r),kind=String(d.kind||'');
+          const probe=bridge?.collisionProbe?.(+d.r,+d.c)||{blocked:true,tile:null},tile=probe.tile,x=toX(+d.c),z=toZ(+d.r),kind=String(d.kind||'');
           if(probe.blocked||tile===16)continue;
           if(kind==='city_fountain'||kind==='luxury_fountain'){
             const scale=(+d.scale||1)*(kind==='luxury_fountain'?1.15:1),basin=new THREE.Mesh(new THREE.CylinderGeometry(4.1*scale,4.55*scale,.75,40),stoneDecor);basin.position.set(x,.38,z);basin.castShadow=basin.receiveShadow=true;scene.add(basin);
