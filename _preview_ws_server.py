@@ -66,6 +66,7 @@ preview_apartments = {}
 preview_bank_robs = {}
 preview_bank_bags = {}
 preview_businesses = {}
+preview_business_owners = {}
 preview_police_rewards = set()
 PREVIEW_MAJOR = {
     "casino":{"r":46,"c":16,"name":"Казино","boss":"Сальваторе Беллини","guards":20,"total":40,"income":2400},
@@ -1104,6 +1105,7 @@ def preview_business_row(biz_id, info=None):
         elapsed = max(0, time.time() - float(info.get("last_collect") or time.time()))
         pending = int(elapsed * ((low + high) / 2) * mult / 86400)
     next_level = level + 1
+    owner = preview_business_owners.get(biz_id) or {}
     return {
         "biz_id": biz_id,
         "bought_at": int((info or {}).get("bought_at") or 0),
@@ -1112,6 +1114,11 @@ def preview_business_row(biz_id, info=None):
         "level": level, "income_multiplier": mult,
         "daily_min": round(low * mult), "daily_max": round(high * mult), "pending": pending,
         "upgrade_cost": round(price * PREVIEW_BIZ_UP[next_level]) if info and next_level <= 5 else 0,
+        "guards": int((info or {}).get("guards") or 0),
+        "property_owner_uid": str(owner.get("uid") or ""),
+        "property_owner_name": str(owner.get("name") or ""),
+        "property_protected_until": int(owner.get("protected_until") or 0),
+        "available_for_purchase": not bool(owner),
     }
 
 
@@ -1161,14 +1168,19 @@ async def business_buy(req):
     if biz_id not in PREVIEW_BUSINESSES:
         return cors(web.json_response({"ok": False, "error": "unknown biz"}, status=400))
     owned, account = preview_owned_businesses(uid), preview_account(uid)
-    if biz_id in owned:
-        return cors(web.json_response({"ok": False, "error": "already owned"}))
+    current_owner = preview_business_owners.get(biz_id)
+    if current_owner:
+        return cors(web.json_response({"ok": False, "error": "owned by player",
+            "owner_uid":str(current_owner.get("uid") or ""),
+            "owner_name":str(current_owner.get("name") or "Игрок")}))
     price = PREVIEW_BUSINESSES[biz_id][0]
     if account["cash"] < price:
         return cors(web.json_response({"ok": False, "error": "no cash", "cash": account["cash"], "price": price}))
     account["cash"] -= price
     now = time.time()
-    owned[biz_id] = {"level": 1, "last_collect": now, "bought_at": now}
+    owned[biz_id] = {"level": 1, "guards":0, "last_collect": now, "bought_at": now}
+    preview_business_owners[biz_id] = {"uid":str(uid),"name":f"Игрок {uid}",
+                                        "protected_until":now+300}
     return cors(web.json_response({"ok": True, "cash": account["cash"], "level": 1}))
 
 
@@ -1195,6 +1207,25 @@ async def business_upgrade(req):
     return cors(web.json_response({"ok": True, "cash": account["cash"], "level": next_level,
         "income_multiplier": mult, "daily_min": round(low * mult), "daily_max": round(high * mult),
         "upgrade_cost": next_cost, "next_upgrade_cost": next_cost}))
+
+
+async def business_guard_hire(req):
+    uid = req.match_info.get("uid", "1")
+    try: body = await req.json()
+    except Exception: body = {}
+    biz_id = str(body.get("biz_id") or "")
+    info = preview_owned_businesses(uid).get(biz_id)
+    owner = preview_business_owners.get(biz_id) or {}
+    if not info or str(owner.get("uid") or "") != str(uid):
+        return cors(web.json_response({"ok":False,"error":"not owned"}))
+    guards=max(0,min(6,int(info.get("guards") or 0)))
+    if guards>=6:
+        return cors(web.json_response({"ok":False,"error":"guard limit"}))
+    account=preview_account(uid)
+    if int(account.get("cash") or 0)<100:
+        return cors(web.json_response({"ok":False,"error":"no cash"}))
+    account["cash"]-=100; guards+=1; info["guards"]=guards
+    return cors(web.json_response({"ok":True,"cash":account["cash"],"guards":guards}))
 
 
 async def business_collect(req):
@@ -1638,9 +1669,20 @@ async def world_ws(req):
             d = pkt.get("d") or {}
             if t == "business_rob_prepare":
                 biz_id = str(d.get("biz_id") or "")
+                owner = preview_business_owners.get(biz_id) or {}
+                protection = max(0, int(float(owner.get("protected_until") or 0)-time.time()))
+                if str(owner.get("uid") or "") == str(uid):
+                    await ws.send_str(json.dumps({"t":"event","d":{"kind":"business_rob_prepare_reply",
+                        "ok":False,"reason":"own","biz_id":biz_id}},ensure_ascii=False)); continue
+                if protection:
+                    await ws.send_str(json.dumps({"t":"event","d":{"kind":"business_rob_prepare_reply",
+                        "ok":False,"reason":"property_protected","protected_s":protection,
+                        "biz_id":biz_id}},ensure_ascii=False)); continue
                 guards = {"coffee":1,"carwash":2,"barbershop":2,"pizza":3,
                           "garage":4,"bar":4,"club":5,"warehouse":6,
                           "casino":8,"port":10}.get(biz_id, 1)
+                old_owner_business=preview_owned_businesses(owner.get("uid","")).get(biz_id,{}) if owner else {}
+                guards += int(old_owner_business.get("guards") or 0)
                 await ws.send_str(json.dumps({"t":"event","d":{
                     "kind":"business_rob_prepare_reply","ok":True,
                     "biz_id":biz_id,"attempt":1,"guard_bonus":0,
@@ -1692,6 +1734,20 @@ async def world_ws(req):
                 choice_biz_id = str(claim.get("biz_id") or "coffee")
                 choice_money = max(1, int(claim.get("money") or 600))
                 income_per_member = max(1, choice_money // 10)
+                property_transfer = {}
+                if action == "capture":
+                    old_owner = preview_business_owners.get(choice_biz_id) or {}
+                    old_uid = str(old_owner.get("uid") or "")
+                    old_info = preview_owned_businesses(old_uid).pop(choice_biz_id, {}) if old_uid else {}
+                    preview_owned_businesses(uid)[choice_biz_id] = {
+                        "level":max(1,int(old_info.get("level") or 1)),"guards":0,
+                        "last_collect":time.time(),"bought_at":time.time()}
+                    preview_business_owners[choice_biz_id] = {
+                        "uid":str(uid),"name":players.get(str(uid),{}).get("name",f"Игрок {uid}"),
+                        "protected_until":time.time()+120}
+                    property_transfer={"old_owner_uid":old_uid,
+                        "old_owner_name":str(old_owner.get("name") or ""),
+                        "new_owner_uid":str(uid),"new_owner_name":preview_business_owners[choice_biz_id]["name"]}
                 await ws.send_str(json.dumps({"t":"event","d":{
                     "kind":"business_war_choice_reply","ok":True,
                     "action":action,"biz_id":choice_biz_id,"money":choice_money,
@@ -1700,7 +1756,8 @@ async def world_ws(req):
                     "c4_left":int(account["consumables"].get("c4", 0)),
                     "sabotage_kind":str(d.get("sabotage_kind") or "shutdown"),
                     "sabotage_s":720,
-                    "biz_name":"Кофейня «У Дона»"
+                    "biz_name":PREVIEW_BUSINESSES.get(choice_biz_id,(0,0,0,"",choice_biz_id))[4],
+                    "property_transfer":property_transfer
                 }}, ensure_ascii=False))
                 if action == "sabotage":
                     await ws.send_str(json.dumps({"t":"event","d":{
@@ -2521,6 +2578,7 @@ app.router.add_post("/apartment/{uid}/sell", apartment_sell)
 app.router.add_get("/biz/{uid}/list", business_list)
 app.router.add_post("/biz/{uid}/buy", business_buy)
 app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
+app.router.add_post("/biz/{uid}/guards/hire", business_guard_hire)
 app.router.add_post("/biz/{uid}/collect", business_collect)
 app.router.add_post("/biz/{uid}/said/hire", said_hire)
 app.router.add_post("/biz/{uid}/said/fire", said_fire)
