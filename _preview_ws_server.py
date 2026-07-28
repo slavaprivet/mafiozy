@@ -34,7 +34,9 @@ DISTRICTS = {
     "downtown":   {"bounds":(0,39,40,79), "hq":(20.,60.), "intel":(11.,60.), "sabotage":((15.,49.),(19.,70.),(30.,58.)), "escape":(35.,60.), "name":"Даунтаун", "boss_name":"Винсент Крысолов", "icon":"🏙", "income":600, "color":"#e0b94a"},
     "southside":  {"bounds":(40,99,0,39), "hq":(70.,20.), "intel":(53.,20.), "sabotage":((60.,10.),(72.,30.),(83.,18.)), "escape":(95.,20.), "name":"Саутсайд", "boss_name":"Тони Кувалда", "icon":"🎰", "income":500, "color":"#9b59b6"},
     "industrial": {"bounds":(40,99,40,79), "hq":(70.,60.), "intel":(53.,60.), "sabotage":((60.,49.),(72.,70.),(83.,58.)), "escape":(95.,60.), "name":"Промзона", "boss_name":"Борис Шлак", "icon":"🏭", "income":550, "color":"#d2691e"},
-    "coast":      {"bounds":(150,199,0,79), "hq":(156.,40.), "intel":(165.,40.), "sabotage":((154.,18.),(158.,65.),(178.,40.)), "escape":(196.,40.), "name":"Побережье", "boss_name":"Капитан Риццо", "icon":"⚓", "income":450, "color":"#2ecc71"},
+    "eastside":   {"bounds":(0,74,100,179), "hq":(40.,140.), "intel":(27.,140.), "sabotage":((34.,112.),(49.,131.),(61.,164.)), "escape":(70.,140.), "name":"Ист-Сайд", "boss_name":"Артур Кедр", "icon":"🏘", "income":700, "color":"#55b8a9"},
+    "docklands":  {"bounds":(75,149,100,179), "hq":(120.,140.), "intel":(107.,140.), "sabotage":((94.,112.),(119.,131.),(136.,164.)), "escape":(145.,140.), "name":"Доклендс", "boss_name":"Гектор Кран", "icon":"🏗", "income":760, "color":"#597b9d"},
+    "coast":      {"bounds":(150,199,0,179), "hq":(156.,40.), "intel":(165.,40.), "sabotage":((154.,18.),(158.,65.),(178.,40.)), "escape":(196.,40.), "name":"Побережье", "boss_name":"Капитан Риццо", "icon":"⚓", "income":450, "color":"#2ecc71"},
 }
 district_owners = {}
 district_captures = {}
@@ -783,7 +785,7 @@ def tick_district_defenders(now, dt):
         waypoint = cap.get("patrol_wp")
         if boss and (not waypoint or math.hypot(waypoint[0]-boss["x"], waypoint[1]-boss["y"]) < 1.35
                      or now >= float(cap.get("patrol_wp_until") or 0)):
-            r0,r1,c0,c1 = dd.get("bounds", (0,199,0,79))
+            r0,r1,c0,c1 = dd.get("bounds", (0,199,0,179))
             for _ in range(80):
                 tx,ty = random.uniform(c0+3,c1-3),random.uniform(r0+3,r1-3)
                 if (math.hypot(tx-boss["x"],ty-boss["y"]) >= 12
@@ -1117,7 +1119,7 @@ def apartment_coords_from_key(apt_key):
             r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
     except (AttributeError, TypeError, ValueError):
         return None
-    return (r, c) if 0 <= r < 200 and 0 <= c < 80 else None
+    return (r, c) if 0 <= r < 200 and 0 <= c < 180 else None
 
 
 def apartment_district_id(r, c):
@@ -1128,7 +1130,10 @@ def apartment_district_id(r, c):
     if 80 <= r <= 99 and 0 <= c <= 39: return "countryside"
     if 40 <= r <= 99 and 40 <= c <= 79: return "industrial"
     if 100 <= r <= 149 and 0 <= c <= 79: return "lair"
-    if 150 <= r <= 199 and 0 <= c <= 79: return "coast"
+    if 0 <= r <= 74 and 100 <= c <= 179: return "rich"
+    if 75 <= r <= 109 and 100 <= c <= 179: return "nightlife"
+    if 110 <= r <= 149 and 100 <= c <= 179: return "industrial"
+    if 150 <= r <= 199 and 0 <= c <= 179: return "coast"
     return "standard"
 
 
@@ -1628,7 +1633,7 @@ async def world_ws(req):
         "d": {
             "your_uid": uid,
             "tick_hz": 15,
-            "map_cols": 80,
+            "map_cols": 180,
             "map_rows": 200,
             "srv_now": round(time.time(), 2),
             "pvp": {"cd": 0.4, "range": 8, "max_hp": 100, "respawn": 5},
