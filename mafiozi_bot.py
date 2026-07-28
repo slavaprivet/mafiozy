@@ -4442,9 +4442,9 @@ BUSINESSES = [
     {"id": "casino",     "emoji": "🎲", "name": "Казино",
      "price": 120000, "daily_min": 4000, "daily_max": 5500,
      "desc": "Своё казино — мечта каждого. Высокий доход, высокий риск."},
-    {"id": "port",       "emoji": "⚓", "name": "Порт",
+    {"id": "port",       "emoji": "⚓", "name": "Доля в порту",
      "price": 200000, "daily_min": 6500, "daily_max": 9000,
-     "desc": "Доля в порту. Контейнеры идут — деньги капают."},
+     "desc": "Личный бизнес в порту. Контейнеры идут — деньги капают."},
 ]
 
 # События по бизнесам — срабатывают редко при сборе дохода
@@ -13202,7 +13202,7 @@ class WorldSim:
                     'r':46,'c':56,'guards':24,'total':40,'income':3000},
         'mansion': {'name':'Резиденция','boss':'Дон Эмилио Витале',
                     'r':66,'c':36,'guards':28,'total':40,'income':4200},
-        'port':    {'name':'Порт','boss':'Марко «Якорь» Беллини',
+        'port':    {'name':'Грузовой порт','boss':'Марко «Якорь» Беллини',
                     'r':165,'c':38,'guards':22,'total':38,'income':2600},
     }
     # The casino desk fills the north half of the manager's office. The old
