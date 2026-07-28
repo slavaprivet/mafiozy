@@ -4594,6 +4594,17 @@ BUSINESS_WAR_BONUSES = {
     "casino":     {"treasury": 1.25, "label": "+25% поступлений в казну"},
     "port":       {"control": 1.20, "label": "+20% времени контроля"},
 }
+# Крупные объекты казино и рынка входят в ту же экономику семейных
+# бизнесов. Их контроль постоянный (до вражеского штурма), а бонусы
+# применяются ко всем обычным захваченным заведениям семьи.
+MAJOR_BUSINESS_WAR_BONUSES = {
+    'casino': {'income': 1.15,
+               'label': '+15% ко всем семейным выплатам от бизнесов'},
+    'market': {'treasury': 1.20,
+               'label': '+20% поступлений в семейную казну'},
+}
+MAJOR_PERSISTENT_OBJECTS = frozenset(MAJOR_BUSINESS_WAR_BONUSES)
+MAJOR_PERSISTENT_EXPIRY_S = 10 * 365 * 24 * 3600
 BUSINESS_WAR_UPGRADE_MAX = 3
 BUSINESS_WAR_UPGRADES = {
     'security':  {'costs': (900, 1800, 3200), 'label': 'Охрана'},
@@ -14002,7 +14013,8 @@ class WorldSim:
     def major_objects_payload(self) -> dict:
         now = time.time()
         for object_id, owner in list(self.major_owners.items()):
-            if float(owner.get('expires_at') or 0) <= now:
+            if (object_id not in MAJOR_PERSISTENT_OBJECTS
+                    and float(owner.get('expires_at') or 0) <= now):
                 self.major_owners.pop(object_id, None)
         result = {}
         for object_id, cfg in self.MAJOR_OBJECTS_DEF.items():
@@ -14020,6 +14032,9 @@ class WorldSim:
                 'expires_in': max(
                     0, int(float(owner.get('expires_at') or 0) - now)
                 ) if owner else 0,
+                'persistent': bool(owner and object_id in MAJOR_PERSISTENT_OBJECTS),
+                'family_bonus': str(
+                    MAJOR_BUSINESS_WAR_BONUSES.get(object_id, {}).get('label') or ''),
                 'income': int(cfg['income']),
                 'props': {
                     prop_id: dict(state)
@@ -14299,6 +14314,7 @@ class WorldSim:
                 if member_uid in self.players
                 and not self.players[member_uid].get('dead')
             ] or [str(uid)]
+            persistent = object_id in MAJOR_PERSISTENT_OBJECTS
             self.major_owners[object_id] = {
                 'owner_uid':str(uid),
                 'owner_name':str(player.get('name') or '')[:24],
@@ -14310,7 +14326,8 @@ class WorldSim:
                         or member_uid)[:24]
                     for member_uid in team
                 ],
-                'expires_at':now + 3600,'protection_until':now + 300,
+                'expires_at':now + (MAJOR_PERSISTENT_EXPIRY_S if persistent else 3600),
+                'persistent':persistent,'protection_until':now + 300,
                 'last_payout_at':now,
             }
             self.major_assaults.pop(object_id, None)
@@ -14318,7 +14335,10 @@ class WorldSim:
                 'owner_name':str(player.get('name') or '')[:24],
                 'mafia_family':str(player.get('_mafia_family') or 'bellini'),
                 'control_points':60,'protection_in':300,
-                'expires_in':3600,'income':int(cfg['income']),
+                'expires_in':0 if persistent else 3600,
+                'persistent':persistent,'income':int(cfg['income']),
+                'family_bonus':str(
+                    MAJOR_BUSINESS_WAR_BONUSES.get(object_id, {}).get('label') or ''),
                 'team_uids':team,
             })
         return result
@@ -14393,7 +14413,8 @@ class WorldSim:
             if not cfg:
                 self.major_owners.pop(object_id, None)
                 continue
-            if float(owner.get('expires_at') or 0) <= now:
+            persistent = object_id in MAJOR_PERSISTENT_OBJECTS
+            if not persistent and float(owner.get('expires_at') or 0) <= now:
                 self.major_owners.pop(object_id, None)
                 events.append({
                     'kind':'major_control_lost','object_id':object_id,
@@ -14424,6 +14445,8 @@ class WorldSim:
                 'awards':awards,
                 'expires_in':max(0, int(owner['expires_at'] - now)),
                 'last_payout_at':owner['last_payout_at'],
+                'persistent':persistent,
+                'mafia_family':str(owner.get('mafia_family') or ''),
             })
         return events
 
@@ -20551,6 +20574,9 @@ async def _major_controls_load(world: 'WorldSim') -> None:
             object_id = str(row['object_id'])
             if object_id not in world.MAJOR_OBJECTS_DEF:
                 continue
+            persistent = object_id in MAJOR_PERSISTENT_OBJECTS
+            expires_at = (time.time() + MAJOR_PERSISTENT_EXPIRY_S
+                          if persistent else float(row['expires_at']))
             world.major_owners[object_id] = {
                 'owner_uid': str(row['owner_uid']),
                 'owner_name': str(row['owner_name'])[:24],
@@ -20565,7 +20591,8 @@ async def _major_controls_load(world: 'WorldSim') -> None:
                     str(value)[:24]
                     for value in json.loads(row['team_names_json'] or '[]')
                 ],
-                'expires_at': float(row['expires_at']),
+                'expires_at': expires_at,
+                'persistent': persistent,
                 'last_payout_at': float(row['last_payout_at']),
             }
     except Exception as exc:
@@ -20631,6 +20658,16 @@ def _family_business_effects(world: 'WorldSim', family: str) -> dict:
         if set(chain['businesses']).issubset(controlled):
             for key, value in chain['effects'].items():
                 effects[key] *= float(value)
+    # GRAND CASINO и Центральный рынок усиливают всю сеть до тех пор,
+    # пока семья удерживает их. Вражеский успешный штурм сразу передаст
+    # бонус новому владельцу вместе с крупным объектом.
+    for object_id, bonus in MAJOR_BUSINESS_WAR_BONUSES.items():
+        owner = world.major_owners.get(object_id) or {}
+        if str(owner.get('mafia_family') or '') != family:
+            continue
+        for key, value in bonus.items():
+            if key in effects:
+                effects[key] *= max(1.0, float(value or 1.0))
     return effects
 
 
@@ -21674,6 +21711,25 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 for major_pkt in major_pkts:
                     object_id = str(major_pkt.get('object_id') or '')
                     if major_pkt.get('kind') == 'major_income':
+                        # Постоянные казино и рынок работают как семейные
+                        # бизнесы: выплату получает вся семья, в том числе
+                        # участники, которые сейчас не находятся в рейдовой
+                        # группе и не стоят возле объекта.
+                        if (major_pkt.get('persistent') and
+                                major_pkt.get('mafia_family') in ('bellini','moretti')):
+                            async with aiosqlite.connect(DB_PATH) as payout_db:
+                                payout_rows = await (await payout_db.execute(
+                                    "SELECT telegram_id FROM characters WHERE mafia_family=?",
+                                    (major_pkt['mafia_family'],))).fetchall()
+                            family_uids = [str(row[0]) for row in payout_rows]
+                            total = max(len(family_uids), int(
+                                world.MAJOR_OBJECTS_DEF.get(object_id, {}).get('income') or 0) // 6)
+                            share, remainder = divmod(total, max(1, len(family_uids)))
+                            major_pkt['awards'] = [
+                                {'uid': member_uid,
+                                 'amount': share + (1 if index < remainder else 0)}
+                                for index, member_uid in enumerate(family_uids)
+                            ]
                         for award in major_pkt.get('awards') or []:
                             try:
                                 award_uid = int(award.get('uid'))
