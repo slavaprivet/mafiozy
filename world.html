@@ -52235,7 +52235,7 @@ window.Mafiozi3DBridge = Object.freeze({
   getDynamicEntities(radius = 38) {
     const rad2=Math.max(12,Math.min(65,+radius||38))**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
     const inside=!!(_buildingInt||_bankInt);
-    const cars=(inside?[]:(typeof CARS!=='undefined'?CARS:[])).filter(x=>x&&!x._hidden&&near(+x.r||0,+x.c||0)).slice(0,24).map((x,i)=>{const model=x.model||{},modelName=model.name||x.modelName||'sedan';return {
+    const cars=(inside?[]:(typeof CARS!=='undefined'?CARS:[])).filter(x=>x&&!x._hidden&&near(+x.r||0,+x.c||0)).sort((a,b)=>(((+a.r||0)-player.r)**2+((+a.c||0)-player.c)**2)-(((+b.r||0)-player.r)**2+((+b.c||0)-player.c)**2)||String(a.id??a._id??'').localeCompare(String(b.id??b._id??''))).slice(0,24).map((x,i)=>{const model=x.model||{},modelName=model.name||x.modelName||'sedan';return {
       id:String(x.id??x._id??i),r:+x.r||0,c:+x.c||0,ang:Number.isFinite(x.ang)?x.ang:Math.atan2(+x.dirDy||0,+x.dirDx||1),
       model:modelName,paint:x.paint||x.color||model.palette?.[0]||'#445566',parked:!!x.parked,
       length:+model.L||1.7,width:+model.W||.85,height:+model.height||.55,wheelR:+model.wheelR||.18,
@@ -55995,6 +55995,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d53"></script>
+<script type="module" src="three_preview.js?v=3d54"></script>
 </body>
 </html>
