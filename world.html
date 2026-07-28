@@ -4977,6 +4977,10 @@ const DISTRICT_DECOR_GENERATED=new Set([
   'luxury_fountain','pool_small','hedge_block','luxury_planter','marble_statue','guard_booth','villa_gate','gold_lamp','topiary','sports_car_prop',
   'oak_tree','pine_tree','wild_bush','gazebo','farm_fence','hay_bales','water_well','picnic_table','camp_fire','mail_box','country_rock'
 ]);
+// Все авторские наборы районов снова являются частью карты. Раньше фильтр случайно
+// оставлял только фонари и заборы, поэтому фонтаны, лавки, деревья и уличные сцены
+// исчезали даже при корректной генерации.
+for(const kind of DISTRICT_DECOR_GENERATED)DISTRICT_DECOR_KEEP.add(kind);
 function pruneDistrictStyleDecor(){
   if(!Array.isArray(_beachDecor))return;
   _beachDecor=_beachDecor.filter(d=>{
@@ -52358,7 +52362,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v19-twin-city-bridge-streaming',
+  migrationStage: 'three-full-world-shell-v20-premium-city-gameplay-pass',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52390,7 +52394,7 @@ window.Mafiozi3DBridge = Object.freeze({
       hp: Math.max(0, +player.hp || 0), dead: !!myDead,
       mode: myMode, weapon: currentWeapon, driving: !!myDrivingCarId,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
-      name: QP.name || 'Игрок', look: QP.look || null,
+      name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
       role: _policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian',
       family: _mafiaState?.employed ? (_mafiaState.family || null) : null,
       joyL: { active: !!joyL.active, dx: +joyL.dx || 0, dy: +joyL.dy || 0 },
@@ -52471,7 +52475,7 @@ window.Mafiozi3DBridge = Object.freeze({
       ship:{r0:SHIP_R0,r1:SHIP_R1,c0:SHIP_C0,c1:SHIP_C1},
       containers:(typeof PORT_CONTAINER_LAYOUT!=='undefined'?PORT_CONTAINER_LAYOUT:[]).map(q=>({r:q.r,c:q.c,w:q.w,h:q.h,height:q.height,presetIndex:q.presetIndex,stackIndex:q.stackIndex})),
       containerColors:(typeof PORT_CONTAINER_PRESETS!=='undefined'?PORT_CONTAINER_PRESETS:[]).map(q=>q.col),
-      decor:(typeof _beachDecor!=='undefined'?_beachDecor:[]).slice(0,320).map(d=>({kind:d.kind,r:+d.r||0,c:+d.c||0,col:d.col||d.col1||null,col2:d.col2||null,ang:+d.ang||0,scale:+d.scale||1,variant:d.variant||0})),
+      decor:(typeof _beachDecor!=='undefined'?_beachDecor:[]).slice(0,900).map(d=>({kind:d.kind,r:+d.r||0,c:+d.c||0,col:d.col||d.col1||null,col2:d.col2||null,ang:+d.ang||0,scale:+d.scale||1,variant:d.variant||0})),
     };
     const lairZone=(typeof AGGRO_ZONES!=='undefined'&&AGGRO_ZONES[0])||null;
     const landmarks={
@@ -52518,11 +52522,11 @@ window.Mafiozi3DBridge = Object.freeze({
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||'',
       gang,police:!!(x.police||role==='police'||role==='cop'),
     };});
-    const projectiles=(typeof bullets!=='undefined'?bullets:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,thick:!!x.thick}));
+    const projectiles=(typeof bullets!=='undefined'?bullets:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,thick:!!x.thick}));
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,color:x.color||'#ffc35a',life:+x.life||0,max:+x.max||80}));
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,blood:!!x.parts?.some?.(p=>p.isBlood),life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1))}));
     const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550}));
-    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null});}
+    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null});}
     return {cars,npcs,projectiles,muzzleFx,impactFx,explosionFx,players:players.slice(0,24)};
   },
   fire(angle) {
@@ -56256,6 +56260,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d65"></script>
+<script type="module" src="three_preview.js?v=3d66"></script>
 </body>
 </html>
