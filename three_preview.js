@@ -197,11 +197,10 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         [-25,23,13,14,13,4,'CLUB'],[-9,23,12,13,17,0,'BANK'],[10,23,14,14,14,2,'MARKET'],[27,23,11,13,18,1,''],
       ];
       const styleIndexes={poor:1,downtown:0,nightlife:4,rich:3,countryside:2,industrial:1,coast:2};
-      const buildingTileRects=q=>{if(!Array.isArray(q.tiles)||!q.tiles.length)return [q];const pending=new Set(q.tiles.map(([r,c])=>`${r},${c}`)),rects=[];while(pending.size){const first=[...pending].map(key=>key.split(',').map(Number)).sort((a,b)=>a[0]-b[0]||a[1]-b[1])[0],r0=first[0],c0=first[1];let w=1;while(pending.has(`${r0},${c0+w}`))w++;let d=1,rowComplete=true;while(rowComplete){for(let c=c0;c<c0+w;c++)if(!pending.has(`${r0+d},${c}`)){rowComplete=false;break;}if(rowComplete)d++;}for(let r=r0;r<r0+d;r++)for(let c=c0;c<c0+w;c++)pending.delete(`${r},${c}`);rects.push({r:r0+d/2,c:c0+w/2,w,d,minR:r0,maxR:r0+d-1,minC:c0,maxC:c0+w-1,height:q.height});}return rects.sort((a,b)=>b.w*b.d-a.w*a.d);};
-      const buildingDefs=worldSnapshot ? worldSnapshot.blocks.filter(b=>b.building).flatMap(b=>buildingTileRects(b.building).map((q,partIndex)=>{
-        const nearPoi=worldSnapshot.pois.find(p=>p.r>=q.minR-2&&p.r<=q.maxR+2&&p.c>=q.minC-2&&p.c<=q.maxC+2);
-        return [(q.c-originC)*WORLD_SCALE,(q.r-originR)*WORLD_SCALE,q.w*WORLD_SCALE,q.d*WORLD_SCALE,Math.max(5,q.height-(partIndex%3)*.8),styleIndexes[b.styleId]??0,(partIndex===0?nearPoi?.label||'':'').toString().slice(0,10).toUpperCase(),b.styleId||'downtown',{r:q.r,c:q.c,w:q.w,d:q.d,minR:q.minR,maxR:q.maxR,minC:q.minC,maxC:q.maxC,primary:partIndex===0}];
-      })) : fallbackBuildingDefs;
+      const buildingDefs=worldSnapshot ? worldSnapshot.blocks.filter(b=>b.building).map(b=>{
+        const q=b.building,nearPoi=worldSnapshot.pois.find(p=>Math.abs(p.r-q.r)<5&&Math.abs(p.c-q.c)<5);
+        return [(q.c-originC)*WORLD_SCALE,(q.r-originR)*WORLD_SCALE,q.w*WORLD_SCALE,q.d*WORLD_SCALE,q.height,styleIndexes[b.styleId]??0,(nearPoi?.label||'').toString().slice(0,10).toUpperCase(),b.styleId||'downtown',{r:q.r,c:q.c,w:q.w,d:q.d,minR:q.minR,maxR:q.maxR,minC:q.minC,maxC:q.maxC,tiles:q.tiles,primary:true}];
+      }) : fallbackBuildingDefs;
       const occluders=[],buildingPickables=[],facadeMaterials=[],shopMaterials=[],buildingCurbDefs=[];
       const glassMat=new THREE.MeshStandardMaterial({color:0x56b9d8,emissive:0x10394b,emissiveIntensity:.35,metalness:.5,roughness:.18});
       const districtProps=new THREE.Group();scene.add(districtProps);
@@ -337,7 +336,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       renderer.domElement.dataset.worldMapBridge=worldSnapshot?'connected':'fallback';
       renderer.domElement.dataset.worldBuildings=String(buildingDefs.length);
       renderer.domElement.dataset.pickableBuildings=String(buildingPickables.length);
-      let collisionSamples=0,collisionMismatches=0;for(const def of buildingDefs){const meta=def[8];if(!meta||!Number.isFinite(meta.minR))continue;for(let r=meta.minR;r<=meta.maxR;r++)for(let c=meta.minC;c<=meta.maxC;c++){collisionSamples++;if(!bridge?.collisionProbe?.(r+.5,c+.5)?.blocked)collisionMismatches++;}}renderer.domElement.dataset.collisionSamples=String(collisionSamples);renderer.domElement.dataset.collisionMismatches=String(collisionMismatches);
+      let collisionSamples=0,collisionMismatches=0,visualFootprintSamples=0,visualFootprintMismatches=0;for(const def of buildingDefs){const meta=def[8];if(!meta||!Array.isArray(meta.tiles))continue;for(const [r,c] of meta.tiles){collisionSamples++;if(!bridge?.collisionProbe?.(r+.5,c+.5)?.blocked)collisionMismatches++;}for(let r=meta.minR;r<=meta.maxR;r++)for(let c=meta.minC;c<=meta.maxC;c++){visualFootprintSamples++;if(!bridge?.collisionProbe?.(r+.5,c+.5)?.blocked)visualFootprintMismatches++;}}renderer.domElement.dataset.collisionSamples=String(collisionSamples);renderer.domElement.dataset.collisionMismatches=String(collisionMismatches);renderer.domElement.dataset.visualFootprintSamples=String(visualFootprintSamples);renderer.domElement.dataset.visualFootprintMismatches=String(visualFootprintMismatches);
       console.info(`[ThreePreview] gameplay bridge: ${bridge?'connected':'fallback'}; real map blocks: ${worldSnapshot?.blocks?.length||0}`);
 
       const cars = [];
