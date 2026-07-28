@@ -14594,9 +14594,10 @@ function applyAggroTargets(newAggro) {
         ob.weapon = nb.weapon;
         ob.burning = !!nb.burning;
         ob.fleeing_fire = !!nb.fleeing_fire;
-        ob.act = nb.act === 'walk'
-          ? ((moved || stillInterpolating) ? 'walk' : 'idle')
-          : (nb.act || (moved ? 'walk' : 'idle'));
+        // Серверный walk остаётся walk даже между двумя одинаково округлёнными
+        // snapshot: иначе патруль на долю секунды превращался в «манекен» и
+        // при плотной группе это выглядело как постоянное зависание.
+        ob.act = nb.act === 'walk' ? 'walk' : (nb.act || (moved ? 'walk' : 'idle'));
         if (moved || stillInterpolating) ob._walkVisualUntil = performance.now() + 220;
         ob.threat = nb.threat || '';
         if (nb.look) ob.look = nb.look;
