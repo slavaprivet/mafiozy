@@ -4925,6 +4925,7 @@ const MAJOR_GUARD_PATROL_LINES = [
   'Внимание на VIP-зону.',
   'Обхожу зал.',
 ];
+let _bankVaultRaids = {};
 const BUSINESS_GUARD_IDLE_LINES = [
   'Периметр чист.', 'Всё спокойно.', 'Держу вход.',
   'Проверяю двор.', 'Пост под контролем.', 'Ни шагу без доклада.',
@@ -17386,6 +17387,9 @@ function wsConnect() {
     }
     _casinoPropsState={...(_majorObjectsState.casino?.props||{})};
   }
+      if (d.bank_vault_raids !== undefined) {
+        _bankVaultRaids = d.bank_vault_raids || {};
+      }
       if (d.box_quest !== undefined) {
         myBoxStatus.active = d.box_quest || null;
       }
@@ -18394,6 +18398,13 @@ function _nearbyEstablishmentForActions(){
   return best;
 }
 function _businessActionSource(id){return id==='zone'?_zoneEl:id==='gta'?_gtaBtn:_robBtn;}
+function _businessRaidActionLabel(biz,cfg){
+  const active=!!_businessFamilyWars[biz.id];
+  return active?`⚔️ Присоединиться к штурму (${'★'.repeat(cfg.difficulty)})`:`💥 Совершить налёт (${'★'.repeat(cfg.difficulty)})`;
+}
+function _majorRaidActionLabel(poi){
+  return _majorObjectsState[poi.id]?.raid?`⚔️ Присоединиться к штурму: ${poi.name}`:`💥 Совершить налёт: ${poi.name} · ★★★★★`;
+}
 function _syncBusinessActionCard(){
   const sel=_businessActionSelection;if(!sel)return;
   const poi=sel.kind==='business'?BUSINESS_POIS.find(b=>b.id===sel.id):POI.find(p=>p.id===sel.id);
@@ -18428,7 +18439,7 @@ function _prepareSelectedEstablishmentActions(){
       _gtaActionKind=property?'biz_foreign_info':'biz_buy';_gtaActionCarId=biz.id;
       _gtaBtn.textContent=property?`🏴 Владелец: ${property.name} · можно отжать после налёта`:`🏪 ${biz.emoji} Купить за $${biz.price.toLocaleString('ru')}`;_gtaBtn.style.display='block';
       const cfg=ROB_PAYOUT_PREVIEW[biz.id],left=Math.max(0,Math.max(_robCooldowns[biz.id]||0,_businessClosures[biz.id]||0)-Date.now());
-      if(_robBtn&&cfg&&!_robInProgress&&!left){_robTargetBiz=biz;_robBtn.dataset.establishmentAction='1';_robBtn.textContent=`💥 Совершить налёт (${'★'.repeat(cfg.difficulty)})`;_robBtn.style.display='block';}
+      if(_robBtn&&cfg&&!_robInProgress&&!left){_robTargetBiz=biz;_robBtn.dataset.establishmentAction='1';_robBtn.textContent=_businessRaidActionLabel(biz,cfg);_robBtn.style.display='block';}
     }else{
       _gtaActionKind=own.pending>0?'biz_collect':'biz_info';_gtaActionCarId=biz.id;
       _gtaBtn.textContent=own.pending>0?`💰 Забрать $${own.pending}`:`✅ ${biz.emoji} ${biz.name} — твой`;_gtaBtn.style.display='block';
@@ -18439,7 +18450,7 @@ function _prepareSelectedEstablishmentActions(){
   const state=_majorObjectsState[poi.id]||{};document.body.classList.add('near-major-establishment');
   _gtaActionKind='major_enter';_gtaActionCarId=poi.id;_gtaBtn.dataset.establishmentAction='1';
   _gtaBtn.textContent=`🚪 Войти: ${poi.name}`;_gtaBtn.style.display='block';
-  if(_robBtn&&!state.owner_uid){_robTargetBiz=null;_robBtn._majorAssaultId=poi.id;_robBtn.dataset.establishmentAction='1';_robBtn.textContent=`💥 Совершить налёт: ${poi.name} · ★★★★★`;_robBtn.style.display='block';}
+  if(_robBtn){_robTargetBiz=null;_robBtn._majorAssaultId=poi.id;_robBtn.dataset.establishmentAction='1';_robBtn.textContent=_majorRaidActionLabel(poi);_robBtn.style.display='block';}
   _syncBusinessActionCard();return true;
 }
 _businessActionCard.addEventListener('click',e=>{
@@ -18843,6 +18854,12 @@ if (_robBtn) {
       _robBtn._taxiHijack = false;
       _gtaActionKind = 'hijack';
       _gtaBtn.click(); // запускаем обычный угон
+      return;
+    }
+    if (_robTargetBiz && _businessFamilyWars[_robTargetBiz.id]) {
+      const war=_businessFamilyWars[_robTargetBiz.id];
+      showToast(`Ты присоединился к штурму «${_robTargetBiz.name}». Оставайся в жёлтой зоне — твой перевес ускоряет захват.`, '⚔️', 3600);
+      _closeBusinessActionCard(false);
       return;
     }
     if (_robTargetBiz) { startRobbery(_robTargetBiz); return; }
@@ -19295,7 +19312,7 @@ function updateGtaInteractions() {
         _robBtn.dataset.establishmentAction='1';
         _robTargetBiz = bizNear; _robBtn._buySprayCan = false;
         _robBtn._graffitiR = null; _robBtn._graffitiC = null;
-        _robBtn.textContent = `💥 Совершить налёт (${'★'.repeat(rcfg.difficulty)})`;
+        _robBtn.textContent = _businessRaidActionLabel(bizNear,rcfg);
         _robBtn.style.display = 'block';
       }
       _syncBusinessActionCard();return;
@@ -19696,7 +19713,7 @@ function updateGtaInteractions() {
       if (!state.owner_uid) {
         _robBtn.dataset.establishmentAction='1';
         _robBtn._majorAssaultId = majorPoi.id;
-        _robBtn.textContent = `💥 Совершить налёт: ${majorPoi.name} · ★★★★★`;
+        _robBtn.textContent = _majorRaidActionLabel(majorPoi);
         _robBtn.style.display = 'block';
       }
     }
@@ -31139,6 +31156,22 @@ function _drawRobbedBusinessState(b, r, c, t, closedLeft) {
   ctx.restore();
 }
 
+function _drawRaidPaperScraps(r,c,t,intensity=1){
+  const p=w2s(r+.5,c+.5);
+  ctx.save();
+  for(let i=0;i<10;i++){
+    const phase=(t*(.55+(i%3)*.13)+i*.173)%1;
+    const side=i&1?1:-1;
+    const x=p.x+side*(10+phase*42)+Math.sin(t*3+i)*7;
+    const y=p.y-48+phase*58+Math.sin(t*5+i*1.7)*5;
+    ctx.save();ctx.translate(x,y);ctx.rotate(t*(i&1?1.8:-1.5)+i);
+    ctx.globalAlpha=(.85-phase*.55)*intensity;
+    ctx.fillStyle=i%3===0?'#e7d6a8':'#f4efe0';
+    ctx.fillRect(-3,-2,6,4);ctx.restore();
+  }
+  ctx.restore();
+}
+
 function _drawBusinessConflictVisuals(b,r,c,t){
   const p=w2s(r+.5,c+.5),sab=_businessWarSabotage[b.id],war=_businessFamilyWars[b.id],control=_robbedBusinessControls[b.id];
   if(!sab&&!war&&!control)return;
@@ -31175,6 +31208,7 @@ function _drawBusinessConflictVisuals(b,r,c,t){
     for(let i=0;i<2;i++){const gx=p.x+(i?28:-28),gy=p.y+5+Math.sin(t*2+i)*.8;ctx.fillStyle='#11151b';ctx.beginPath();ctx.arc(gx,gy-14,3.5,0,Math.PI*2);ctx.fill();ctx.fillRect(gx-3,gy-10,6,11);ctx.strokeStyle=fc;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(gx,gy-7);ctx.lineTo(gx+(i?-8:8),gy-3);ctx.stroke();ctx.fillStyle=fc;ctx.fillRect(gx-1,gy-10,2,4);}
   }
   if(war){
+    _drawRaidPaperScraps(r,c,t,1);
     // Баррикады, прожекторы и вращающаяся опасная зона делают бой читаемым.
     const a=t*1.3;ctx.strokeStyle=`rgba(255,67,52,${.35+.35*pulse})`;ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.beginPath();ctx.ellipse(p.x,p.y+4,56,27,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
     for(let i=0;i<3;i++){const bx=p.x-34+i*34,by=p.y+16+Math.abs(i-1)*4;ctx.fillStyle='#6c4b2b';ctx.fillRect(bx-9,by-3,18,5);ctx.strokeStyle='#2a1b11';ctx.beginPath();ctx.moveTo(bx-7,by+2);ctx.lineTo(bx-11,by+8);ctx.moveTo(bx+7,by+2);ctx.lineTo(bx+11,by+8);ctx.stroke();}
@@ -34599,6 +34633,17 @@ function _drawEdgeArrowToWorld(r, c, icon, accent) {
 // невыданная награда — иначе игрок «теряется» после убийства и не знает
 // что куш надо забирать.
 function drawHitTargetMarker() {
+  // Онлайн-участники своей банды всегда отмечены зелёным указателем.
+  for(const mate of (_onlineGang?.members||[])){
+    if(String(mate.uid)===String(QP.uid)||mate.dead||!Number.isFinite(+mate.r)||!Number.isFinite(+mate.c))continue;
+    const offscreen=_drawEdgeArrowToWorld(+mate.r,+mate.c,'👥','#55f28b');
+    if(!offscreen){
+      const mp=w2s(+mate.r+.5,+mate.c+.5),bob=Math.sin(performance.now()*.006+Number(mate.uid||0))*3;
+      ctx.save();ctx.textAlign='center';ctx.shadowColor='#35ff78';ctx.shadowBlur=12;
+      ctx.fillStyle='#55f28b';ctx.beginPath();ctx.moveTo(mp.x,mp.y-54+bob);ctx.lineTo(mp.x-8,mp.y-67+bob);ctx.lineTo(mp.x+8,mp.y-67+bob);ctx.closePath();ctx.fill();
+      ctx.shadowBlur=3;ctx.fillStyle='#dffff0';ctx.font='900 10px system-ui';ctx.fillText(mate.name||'Друг',mp.x,mp.y-72+bob);ctx.restore();
+    }
+  }
   if (_myHitContractActive && _myHitTargetBotId) {
     const tgt = _findHitTargetBotById(_myHitTargetBotId);
     if (tgt && tgt.alive) {
@@ -35437,6 +35482,7 @@ function drawBuilding(r, c) {
 function drawPOI(r, c, poi) {
   const p = w2s(r + 0.5, c + 0.5);
   const majorState = MAJOR_OBJECT_IDS.has(poi.id) ? (_majorObjectsState[poi.id] || null) : null;
+  if (majorState?.raid) _drawRaidPaperScraps(r,c,performance.now()/1000,1);
   if (majorState?.owner_uid) {
     const ringColor = '#64f49a';
     const ringPulse = 1 + Math.sin(performance.now() * .005) * .08;
@@ -38591,6 +38637,7 @@ function render() {
   for (const bank of BANKS) {
     if (bank.r + 4 < r0 - 2 || bank.r >= r1 + 2 || bank.c + 5 < c0 - 2 || bank.c >= c1 + 2) continue;
     items.push({ depth: bank.r + bank.c - 0.3, draw: () => drawBankBuilding(bank) });
+    if (_bankVaultRaids[bank.id]) items.push({depth:bank.r+bank.c+5.05,draw:()=>_drawRaidPaperScraps(bank.r+2,bank.c+2.3,performance.now()/1000,.9)});
     items.push({ depth: bank.r + bank.c - 0.5, draw: () => drawBankSign(bank) });
     items.push({ depth: bank.r + bank.c - 0.6, draw: () => drawBankPlayerBadge(bank) });
     items.push({ depth: bank.r + bank.c + 0.1, draw: () => drawBankVanZone(bank) });
