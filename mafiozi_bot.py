@@ -15249,22 +15249,25 @@ class WorldSim:
     RACE_SLOT_R     = 1.2   # радиус «бокс занят» вокруг центра слота
     def _park_race_car(self, car: dict, slot_i: int, now: float) -> None:
         """Вернуть брошенную гоночную машину в её бокс.
-        Если бокс занят другой quest-машиной, занявшую машину удаляем:
-        в паддоке всегда максимум одна машина на слот."""
+        Если бокс занят другой машиной, ждём освобождения: транспорт игрока
+        нельзя удалять ради автоматического возврата болида."""
         if slot_i < 0 or slot_i >= len(self._race_slots):
             return
         slot = self._race_slots[slot_i]
         car_id = car.get('id')
+        slot_occupied = False
         for oid, other in list(self.quest_cars.items()):
             if oid == car_id or other.get('wrecked'):
                 continue
             if (abs(other.get('x', 9999) - slot['x']) < self.RACE_SLOT_R
                     and abs(other.get('y', 9999) - slot['y']) < self.RACE_SLOT_R):
-                owner = other.get('owner_uid')
-                p = self.players.get(str(owner)) if owner is not None else None
-                if p and p.get('_gta_active_car_id') == oid:
-                    p['_gta_active_car_id'] = None
-                self.quest_cars.pop(oid, None)
+                slot_occupied = True
+                break
+        # Не удаляем припаркованный транспорт игрока ради возврата болида.
+        # Бокс освободится — следующий тик вернёт гоночную машину на место.
+        if slot_occupied:
+            car['_parked_at'] = now
+            return
         car.update({
             'x': slot['x'], 'y': slot['y'], 'ang': 1.5708,
             'vx': 0.0, 'vy': 0.0,
@@ -25252,8 +25255,11 @@ async def _coop_http_app():
                             # Reserve the decision token before any inventory/DB side effect.
                             # Two tabs for the same player must never spend or apply one choice twice.
                             world._business_war_claims.pop(str(uid), None)
+                        is_active_mafia = bool(
+                            p.get('_mafia') and not p.get('_police')
+                            and family in ('bellini', 'moretti'))
                         if valid and (action == 'capture' and
-                              (family not in ('bellini','moretti') or family != claim_family)):
+                              (not is_active_mafia or family != claim_family)):
                             world._business_war_claims[str(uid)] = claim
                             choice_reply = {'ok': False, 'reason': 'no_family'}
                         elif valid and (action == 'sabotage' and
