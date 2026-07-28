@@ -15626,7 +15626,13 @@ function handleEventPacket(d) {
         if(d.business_war_score&&d.mafia_family){_businessWarScore[d.mafia_family]={...(_businessWarScore[d.mafia_family]||{}),...d.business_war_score};_renderBusinessWarHud();}
       }
       hapticHit();
-      if(_buildingInt&&_buildingInt.robbery)setTimeout(()=>{if(_buildingInt&&_buildingInt.robbery)exitBuildingInterior();},1800);
+      // Старый сценарий всегда выбрасывал игрока наружу через 1,8 сек.
+      // Теперь, если сервер выдал выбор судьбы бизнеса, сохраняем интерьер:
+      // игрок спокойно выбирает захват/диверсию и сам решает, когда выйти.
+      // Автовыход оставлен только для старого ограбления без этапа решения.
+      if(_buildingInt&&_buildingInt.robbery&&!d.business_choice_token){
+        setTimeout(()=>{if(_buildingInt&&_buildingInt.robbery)exitBuildingInterior();},1800);
+      }
     } else {
       _pendingHijackModel = null;
       _pendingHijackPaint = null;
@@ -15845,8 +15851,18 @@ function handleEventPacket(d) {
       const money=(+d.money||0).toLocaleString('ru');
       showEventBanner('💰 КУШ ЗАБРАН',`+$${money} уже зачислено на твой счёт · «${d.biz_name||'бизнес'}» осталось без изменений`,4200,'win');
       _showBusinessChoiceReceipt({icon:'💰',title:'Ты забрал куш',biz:d.biz_name,summary:`На твой счёт зачислено +$${money}.`,details:'Заведение осталось у прежнего владельца. Захват и диверсия не начались.',next:'Можно покинуть район или выбрать следующую цель.'});
+      // «Забрать куш и уйти» — единственный выбор, который действительно
+      // подразумевает выход. Даём сначала увидеть итоговую плашку.
+      if(_buildingInt&&_buildingInt.type==='business')setTimeout(()=>{
+        if(_buildingInt&&_buildingInt.type==='business')exitBuildingInterior();
+      },900);
     }
     else if(d.action==='sabotage'){
+      if(_buildingInt&&_buildingInt.type==='business'){
+        _buildingInt.robbery=false;
+        _buildingInt.robberyResolved=true;
+        _buildingInt.sabotagedByPlayer=true;
+      }
       if(d.c4_left!==undefined){_myC4Count=Math.max(0,+d.c4_left||0);renderWeaponHud();}
       const mins=Math.max(1,Math.round((+d.sabotage_s||720)/60));
       const effect={shutdown:`Электричество отключено · бизнес закрыт и не приносит доход ${mins} мин.`,arson:`Склад подожжён · доход бизнеса остановлен на ${mins} мин.`,alarm:`Сигнализация сломана на ${mins} мин. · охрана здания ослаблена`}[d.sabotage_kind]||`Заведение выведено из строя на ${mins} мин.`;
@@ -15854,6 +15870,11 @@ function handleEventPacket(d) {
       showEventBanner('💣 ДИВЕРСИЯ ВЫПОЛНЕНА',`«${d.biz_name||'Бизнес'}» · ${effect} · потрачена C4: 1 · осталось: ${_myC4Count}`,5200,'win');
       _showBusinessChoiceReceipt({icon:'💣',title:'Диверсия выполнена',biz:d.biz_name,summary:effect,details:`Потрачена C4: 1 шт. В инвентаре осталось: ${_myC4Count}.`,next:d.sabotage_kind==='alarm'?'Следующее ограбление этого здания будет легче, пока сигнализация сломана.':'Пока действует диверсия, бизнес не приносит доход и его нельзя нормально использовать.'});
     } else if(d.action==='capture'){
+      if(_buildingInt&&_buildingInt.type==='business'){
+        _buildingInt.robbery=false;
+        _buildingInt.robberyResolved=true;
+        _buildingInt.capturedByPlayer=true;
+      }
       _lastOwnBusinessChoice={bizId:d.biz_id,action:'capture',at:Date.now()};
       const captureIncome=+d.income_per_member||0;
       const incomeText=captureIncome>0?`по $${captureIncome.toLocaleString('ru')} каждому участнику за выплату`:'будет показан после первой серверной выплаты';
@@ -15861,6 +15882,10 @@ function handleEventPacket(d) {
       showEventBanner('🏴 БИЗНЕС ЗАХВАЧЕН',`«${d.biz_name||'Бизнес'}» ${personal?'теперь твоя личная собственность и ':''}принадлежит твоей семье · доход ${incomeText}`,5200,'win');
       _showBusinessChoiceReceipt({icon:'🏴',title:'Бизнес захвачен',biz:d.biz_name,summary:personal?'Право собственности перешло к тебе. Заведение также контролирует твоя семья.':'Заведение теперь принадлежит твоей семье.',details:`Доход: ${incomeText}. Охрана прежнего владельца уничтожена; новая охрана нанимается отдельно.`,next:'Поставь охрану и защищай точку онлайн: другой игрок сможет провести налёт и отжать собственность.'});
     } else if(d.action==='preparation'){
+      if(_buildingInt&&_buildingInt.type==='business'){
+        _buildingInt.robbery=false;
+        _buildingInt.robberyResolved=true;
+      }
       _lastOwnBusinessChoice={bizId:d.biz_id,action:'preparation',at:Date.now()};
       showEventBanner('⚔️ ЗАХВАТ НАЧАТ',`«${d.biz_name||'Бизнес'}» · подготовка ${+d.preparation_s||20} сек., затем начнётся открытая война семей`,5200,'warn');
       _showBusinessChoiceReceipt({icon:'⚔️',title:'Начат отжим бизнеса',biz:d.biz_name,summary:`До открытой войны осталось ${+d.preparation_s||20} сек.`,details:'Доход бизнеса временно заморожен. Обе семьи получили предупреждение.',next:'Оставайся возле здания и позови союзников: после подготовки начнётся борьба за шкалу захвата.'});
