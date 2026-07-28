@@ -2166,10 +2166,14 @@ const ctx = canvas.getContext('2d');
 // → игрок рисовался не по центру, «карта уезжает». visualViewport даёт точную
 // видимую зону. Берём его если есть, иначе фолбэк на window.
 function _viewSize() {
-  const vv = window.visualViewport;
+  // Canvas, stage и камера обязаны пользоваться одним и тем же размером.
+  // visualViewport меняет width/height и шлёт scroll во время жестов/движения
+  // панелей Telegram, тогда как fixed #stage остаётся в layout viewport. Из-за
+  // этого CSS растягивал уже пересчитанный canvas и выглядело как скачущий зум.
+  const stage = document.getElementById('stage');
   return {
-    W: Math.round((vv && vv.width)  || window.innerWidth),
-    H: Math.round((vv && vv.height) || window.innerHeight),
+    W: Math.max(1, Math.round((stage && stage.clientWidth)  || window.innerWidth)),
+    H: Math.max(1, Math.round((stage && stage.clientHeight) || window.innerHeight)),
   };
 }
 // Установка canvas.width/height ОЧИЩАЕТ холст. Если делать это прямо в
@@ -2179,6 +2183,7 @@ function _viewSize() {
 // флаг _resizePending, а реальный ресайз применяется в начале frame()
 // перед render — очистка совпадает со стартом кадра, мерцания нет.
 let _resizePending = true;
+let _canvasDpr = Math.min(2, window.devicePixelRatio || 1);
 function resizeCanvas() { _resizePending = true; }
 function _applyResizeIfNeeded() {
   if (!_resizePending) return;
@@ -2191,16 +2196,18 @@ function _applyResizeIfNeeded() {
   canvas.height = th;
   canvas.style.width  = W + 'px';
   canvas.style.height = H + 'px';
+  _canvasDpr = dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const _stg = document.getElementById('stage');
-  if (_stg) { _stg.style.width = W + 'px'; _stg.style.height = H + 'px'; }
+  // #stage остаётся привязанным к inset:0. Не записываем ему размеры Canvas:
+  // иначе после поворота экрана/изменения окна старый inline-размер сохранялся.
 }
 _applyResizeIfNeeded();
 window.addEventListener('resize', resizeCanvas);
 try {
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', resizeCanvas);
-    window.visualViewport.addEventListener('scroll', resizeCanvas);
+    // scroll у visualViewport не меняет layout-размер сцены. Ресайз Canvas на
+    // каждом таком событии и создавал заметное «дыхание» масштаба при ходьбе.
   }
 } catch(e) {}
 
@@ -4061,7 +4068,7 @@ function _buildTrackBarriers() {
     }
   }
 }
-const TS     = 56;           // размер тайла на экране — крупнее, как в боях
+const TS     = 48;           // геометрический размер тайла; общий обзор задаёт WORLD_VIEW_ZOOM
 const ISO_Y  = 0.55;         // ужатие по Y (тот же угол что в demo_isometric)
 // Блок города: 10×10 тайлов. Дорога 4 тайла шириной, бордюр 2 тайла,
 // внутри 4×4 — здание (или парк/арена). Пространство между фронтами
@@ -5448,6 +5455,7 @@ function applyQuestCarsSnapshot(arr) {
 let myDrivingCarId = null;
 let _recentlyExitedCarId = null;
 let _recentlyExitedCarUntil = 0;
+let _recentlyExitedCarVisual = null;
 const PARKED_CAR_GRACE_MS = 10 * 60 * 1000;
 function _recentlyExitedQuestCarMustStay(id, car) {
   if (!car || id !== _recentlyExitedCarId) return false;
@@ -8563,15 +8571,18 @@ function drawServiceVehicle(v) {
   if(!Number.isFinite(v._wheelPhase))v._wheelPhase=0;
   if(Number.isFinite(v._wheelLastY)&&Number.isFinite(v._wheelLastX)){
     const dr=r-v._wheelLastY,dc=c-v._wheelLastX,signedTravel=dr*sinA+dc*cosA;
-    if(Math.abs(signedTravel)<2)v._wheelPhase+=signedTravel*14;
+    const travelled=Math.hypot(dr,dc),elapsed=now-(v._wheelLastAt||now);
+    if(travelled>.0006&&travelled<1.25&&elapsed<300)v._wheelPhase+=signedTravel*14;
   }
-  v._wheelLastY=r;v._wheelLastX=c;
+  v._wheelLastY=r;v._wheelLastX=c;v._wheelLastAt=now;
   function drawServiceWheel(P,wR,wR2,rim='#8a8a92'){
-    ctx.fillStyle='#08090b';ctx.beginPath();ctx.ellipse(P.x,P.y,wR,wR2,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=rim;ctx.beginPath();ctx.ellipse(P.x,P.y,wR*.54,wR2*.54,0,0,Math.PI*2);ctx.fill();
+    const x=P.x,y=P.y-wR*.58,rx=Math.max(1.5,wR2),ry=wR;
+    ctx.fillStyle='#08090b';ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(70,74,82,.9)';ctx.lineWidth=Math.max(.65,wR*.14);ctx.beginPath();ctx.ellipse(x,y,rx*.82,ry*.82,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle=rim;ctx.beginPath();ctx.ellipse(x,y,rx*.56,ry*.56,0,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='#252a31';ctx.lineWidth=.8;
-    for(let i=0;i<5;i++){const a=v._wheelPhase+i*Math.PI*2/5;ctx.beginPath();ctx.moveTo(P.x,P.y);ctx.lineTo(P.x+Math.cos(a)*wR*.45,P.y+Math.sin(a)*wR2*.45);ctx.stroke();}
-    ctx.fillStyle='#d2d6db';ctx.beginPath();ctx.arc(P.x,P.y,.65,0,Math.PI*2);ctx.fill();
+    for(let i=0;i<5;i++){const a=v._wheelPhase+i*Math.PI*2/5;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*rx*.48,y+Math.sin(a)*ry*.48);ctx.stroke();}
+    ctx.fillStyle='#d2d6db';ctx.beginPath();ctx.arc(x,y,.65,0,Math.PI*2);ctx.fill();
   }
 
   // Тень
@@ -10486,8 +10497,9 @@ function carCanGo(car, dt) {
   const nextC = car.c + (car.vc || 0) * dt;
   if (!car.gang && !car._convoy &&
       (!_trafficRoadTile(nextR, nextC) || !_trafficCarFootprintClear(car, nextR, nextC))) {
-    car._route = null; car._routeIdx = 0;
-    _planCarRoute(car, true);
+    // Не перестраиваем BFS здесь каждый кадр: новая случайная цель постоянно
+    // меняла направление стоящей машины, поэтому кузов крутился на месте.
+    car._routeBlocked = true;
     return false;
   }
   // Проверяем 1.5 тайла впереди — игрок, машина, светофор-красный
@@ -10498,8 +10510,7 @@ function carCanGo(car, dt) {
   // следующий отрезок перестал быть дорогой, немедленно строим новый маршрут
   // и тормозим на один кадр перед препятствием.
   if (!_trafficRoadTile(fr, fc) && !car.gang && !car._convoy) {
-    car._route = null; car._routeIdx = 0;
-    _planCarRoute(car, true);
+    car._routeBlocked = true;
     return false;
   }
   // Впереди загон тюрьмы — тормозим перед решёткой. Помечаем флагом,
@@ -10813,7 +10824,7 @@ function _planCarRoute(car, forceNewGoal = false) {
   car._cruiseSpeed = car._cruiseSpeed || Math.max(1.35, Math.hypot(car.vr || 0, car.vc || 0));
   return true;
 }
-function _updateCarRouteDirection(car) {
+function _updateCarRouteDirection(car, dt = 0) {
   if (!car || car.parked || car.gang || car._convoy || car._wrecked) return;
   if (!car._route || car._routeIdx >= car._route.length) {
     if (!_planCarRoute(car, !!car._route)) return;
@@ -10833,7 +10844,19 @@ function _updateCarRouteDirection(car) {
   const dr = target.r - car.r, dc = target.c - car.c;
   const d = Math.hypot(dr, dc) || 1;
   car.dirDy = dr / d; car.dirDx = dc / d;
-  car.ang = Math.atan2(car.dirDy, car.dirDx);
+  const targetAng = Math.atan2(car.dirDy, car.dirDx);
+  car._targetAng = targetAng;
+  if (!Number.isFinite(car.ang)) {
+    car.ang = targetAng;
+  } else if (!car.braking || (car._stuckT || 0) < 0.12 || performance.now() < (car._jamEscapeUntil || 0)) {
+    // Плавно доворачиваем кузов только когда машина действительно может ехать.
+    // Физическое направление остаётся точным, но при заторе спрайт не вертится.
+    let delta = targetAng - car.ang;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    const maxTurn = dt > 0 ? Math.max(0.025, dt * 3.2) : Math.PI;
+    car.ang += Math.max(-maxTurn, Math.min(maxTurn, delta));
+  }
   const speed = car._cruiseSpeed || 1.7;
   car.vr = car.dirDy * speed; car.vc = car.dirDx * speed;
   car._turningAtIntersection = Math.abs(car.dirDy) > 0.16 && Math.abs(car.dirDx) > 0.16;
@@ -12846,7 +12869,7 @@ function updateCars(dt) {
     }
     // Маршрут обновляем и для дальнего LOD: иначе за экраном машина снова
     // продолжала бы старый прямой курс и возвращалась уже застрявшей.
-    _updateCarRouteDirection(car);
+    _updateCarRouteDirection(car, dt);
     const spikeHit=!car.model?.police&&_policeSpikeAt(car.r,car.c);
     if(spikeHit&&now>=(car._spikeAgainAt||0)){car._spikeAgainAt=now+9000;car._spikedUntil=now+7000;car._hornText='ШИНЫ!';car._hornUntil=now+1800;spawnFloatText(car.r,car.c,'🛞 ШИНЫ ПРОБИТЫ',{color:'#8fd5ff',size:12,life:1100});}
     if(now<(car._spikedUntil||0)){car.braking=true;continue;}
@@ -12854,14 +12877,20 @@ function updateCars(dt) {
     // физику застревания/столкновений. Экономит ~30% CPU на большой карте.
     const _lodDist = Math.hypot(car.r - player.r, car.c - player.c);
     if (_lodDist > 32 && !car.parked && !car._wrecked && !car.gang) {
-      if (!car.braking) {
-        const nr = car.r + car.vr * dt;
-        const nc = car.c + car.vc * dt;
-        if (_trafficRoadTile(nr, nc) && _trafficCarFootprintClear(car, nr, nc)) {
-          car.r = nr;
-          car.c = nc;
-        } else {
-          car.braking = true;
+      // Дальняя машина могла навсегда сохранить braking=true, если уехала из
+      // ближней физики уже остановленной. Каждый кадр пробуем новый курс снова.
+      const nr = car.r + car.vr * dt;
+      const nc = car.c + car.vc * dt;
+      if (_trafficRoadTile(nr, nc) && _trafficCarFootprintClear(car, nr, nc)) {
+        car.r = nr;
+        car.c = nc;
+        car.braking = false;
+        car._routeBlocked = false;
+      } else {
+        car.braking = true;
+        car._routeBlocked = true;
+        if (now >= (car._routeRetryAt || 0)) {
+          car._routeRetryAt = now + 1500;
           car._route = null; car._routeIdx = 0;
           _planCarRoute(car, true);
         }
@@ -12908,6 +12937,7 @@ function updateCars(dt) {
       car.r += car.vr * dt;
       car.c += car.vc * dt;
       car._stuckT = 0;
+      car._routeBlocked = false;
       if (car._hornUntil && now > car._hornUntil) {
         car._hornUntil = 0;
         car._hornText  = undefined;
@@ -12921,8 +12951,9 @@ function updateCars(dt) {
       const softThresh = car._junker ? 4 : 6;
       // Прежде чем удалять машину как застрявшую, даём ей сменить адрес и
       // перестроить маршрут. Кулдаун не позволяет пересчитывать BFS каждый кадр.
-      if (car._stuckT > softThresh && now >= (car._routeRetryAt || 0)) {
-        car._routeRetryAt = now + 5000;
+      const routeRetryAfter = car._routeBlocked ? 0.65 : softThresh;
+      if (car._stuckT > routeRetryAfter && now >= (car._routeRetryAt || 0)) {
+        car._routeRetryAt = now + (car._routeBlocked ? 1500 : 5000);
         car._route = null; car._routeIdx = 0;
         _planCarRoute(car, true);
       }
@@ -13175,7 +13206,10 @@ const cam = {
 // нет высоких зданий, открытое пространство визуально «отдаляет» вид —
 // игрок становится мелким. Компенсируем масштабом 1.18, плавно лерпим
 // при переходе. Управляется в update(dt) → применяется в render().
-let viewZoom = 1.0;
+// Изометрический culling и depth-sort рассчитаны на 1:1. Масштабирование всего
+// ctx после отбора объектов создаёт чёрные провалы и может скрыть персонажа.
+const WORLD_VIEW_ZOOM = 1.0;
+let viewZoom = WORLD_VIEW_ZOOM;
 
 // Преобразование тайл→экран и обратно
 function w2s(r, c) {
@@ -14631,7 +14665,12 @@ function applyAggroTargets(newAggro) {
         const moved = Math.hypot((+nb.x||0)-(+ob.tx||+ob.x||0), (+nb.y||0)-(+ob.ty||+ob.y||0)) > 0.025;
         const stillInterpolating = Math.hypot((+nb.x||0)-(+ob.x||0), (+nb.y||0)-(+ob.y||0)) > 0.04;
         ob.tx    = nb.x;    ob.ty    = nb.y;
-        ob.tAng  = nb.ang;
+        // Игнорируем микродрожь серверного прицела: именно она мотала руку
+        // с пистолетом вправо-влево у почти неподвижного бандита.
+        const nextAng=Number.isFinite(+nb.ang)?+nb.ang:(ob.tAng??ob.ang??0);
+        const aimDelta=Math.atan2(Math.sin(nextAng-(ob.tAng??ob.ang??0)),
+          Math.cos(nextAng-(ob.tAng??ob.ang??0)));
+        if(Math.abs(aimDelta)>.035)ob.tAng=nextAng;
         ob.hp    = nb.hp;   ob.max_hp = nb.max_hp;
         ob.kind  = nb.kind;
         ob.faction = nb.faction || fresh.faction || cur.faction || 'purple';
@@ -14672,6 +14711,11 @@ const _botLastSeen = new Map();
 // его из снапшота, поэтому без этого тело исчезает в кадр убийства (у обычных
 // NPC труп лежит 60с + лужа крови). Берём позицию/look из текущего снапшота.
 function spawnBotCorpse(botId, isBoss) {
+  // aggro_hit приходит всем, а aggro_killed — ещё раз лично стрелку.
+  // Не создаём два одинаковых трупа из этих двух подтверждений.
+  const corpseKey = String(botId);
+  if (NPCS.some(n => n._botCorpseId === corpseKey &&
+      performance.now() - (n.deadAt || 0) < 60000)) return;
   let bx = null, by = null, look = null, ang = 0, maxHp = 100;
   for (const z of Object.values(aggroZones || {})) {
     for (const b of (z.bots || [])) {
@@ -14694,7 +14738,8 @@ function spawnBotCorpse(botId, isBoss) {
     look: look || (isBoss ? _AGGRO_BOSS_LOOK : _AGGRO_GRUNT_LOOK),
     walkPhase: 0, dead: true, deadAt: now,
     hp: 0, max_hp: maxHp, _arcKey: 'bandit',
-    _botCorpse: true, _evacuated: true,   // не вызывать скорую к трупу банды
+    _botCorpse: true, _botCorpseId:corpseKey,
+    _evacuated: true,   // не вызывать скорую к трупу банды
   });
   for (let i = 0; i < 6; i++) {
     _capArr(bloodSplats, _MAX_BLOOD);
@@ -14739,7 +14784,8 @@ function interpWorldNpcs(dt) {
       b.y += (b.ty - b.y) * k;
       if (b.tAng != null) {
         const da = Math.atan2(Math.sin(b.tAng - (b.ang || 0)), Math.cos(b.tAng - (b.ang || 0)));
-        b.ang = (b.ang || 0) + da * Math.min(1, dt * 7);
+        const turnRate=(b.act==='shoot'?2.8:3.8)*dt;
+        b.ang=(b.ang||0)+Math.max(-turnRate,Math.min(turnRate,da));
       }
     }
   }
@@ -15849,7 +15895,7 @@ function handleEventPacket(d) {
                     { accent: '#ff7030' });
     }
   } else if(kind==='business_war_choice_reply'){
-    if(!d.ok){const txt={invalid_choice:'Решение устарело или уже использовано',no_family:'Для захвата нужно вступить в семью',no_c4:'Требуется C4 · 1 шт. Купи заряд на Чёрном рынке',already_owned:'Этот бизнес уже принадлежит тебе',same_family_owner:'Бизнес принадлежит союзнику твоей семьи — отжимать его нельзя. Защищайте и улучшайте точку вместе.',ownership_changed:'Бизнес уже перехватили — ограбление остаётся твоим',sabotage_immunity:`После ремонта действует защита от диверсий · ${Math.ceil((+d.wait_s||0)/60)} мин.`}[d.reason]||'Не удалось применить решение';showEventBanner('⛔ ВЫБОР НЕ ПРИМЕНЁН',txt,4200,'lose');if(_businessChoiceInFlight&&d.reason!=='invalid_choice'){_pendingBusinessWarChoice=_businessChoiceInFlight.choice;document.getElementById('businessChoiceOverlay')?.classList.add('show');} _businessChoiceInFlight=null;}
+    if(!d.ok){const txt={invalid_choice:'Решение устарело или уже использовано',no_family:'Захватывать заведения может только мафия Беллини или Моретти',no_c4:'Требуется C4 · 1 шт. Купи заряд на Чёрном рынке',already_owned:'Этот бизнес уже принадлежит тебе',same_family_owner:'Бизнес принадлежит союзнику твоей семьи — отжимать его нельзя. Защищайте и улучшайте точку вместе.',ownership_changed:'Бизнес уже перехватили — ограбление остаётся твоим',sabotage_immunity:`После ремонта действует защита от диверсий · ${Math.ceil((+d.wait_s||0)/60)} мин.`}[d.reason]||'Не удалось применить решение';showEventBanner('⛔ ВЫБОР НЕ ПРИМЕНЁН',txt,4200,'lose');if(_businessChoiceInFlight&&d.reason!=='invalid_choice'){_pendingBusinessWarChoice=_businessChoiceInFlight.choice;document.getElementById('businessChoiceOverlay')?.classList.add('show');} _businessChoiceInFlight=null;}
     else if(d.action==='cash'){
       const money=(+d.money||0).toLocaleString('ru');
       showEventBanner('💰 КУШ ЗАБРАН',`+$${money} уже зачислено на твой счёт · «${d.biz_name||'бизнес'}» осталось без изменений`,4200,'win');
@@ -16234,9 +16280,11 @@ function handleEventPacket(d) {
     // Если устаревший snapshot успел удалить машину между локальной высадкой
     // и ответом сервера, восстанавливаем её из авторитетного exit_reply.
     if (d.ok && !d.delivered && !exited && d.model && Number.isFinite(+d.x) && Number.isFinite(+d.y)) {
+      const visual=_recentlyExitedCarVisual?.id===d.car_id?_recentlyExitedCarVisual:null;
+      const restoredModel=visual?.model||d.model;
       exited = {
-        id:d.car_id, model:d.model, _lockedModel:d.civilian?d.model:null,
-        paint:_normalizeVehiclePaint(d.paint),
+        id:d.car_id, model:restoredModel, _lockedModel:d.civilian?restoredModel:null,
+        paint:_normalizeVehiclePaint(visual?.paint||d.paint),
         owner_uid:d.owner_uid, driver_uid:null, passenger_uids:[],
         x:+d.x, y:+d.y, tx:+d.x, ty:+d.y, ang:+d.ang||0, tAng:+d.ang||0,
         vx:0, vy:0, hp:+d.hp||220, max_hp:+d.max_hp||220,
@@ -16247,7 +16295,10 @@ function handleEventPacket(d) {
       questCars.set(d.car_id,exited);
     }
     if (d.ok && exited) {
-      exited.paint = _normalizeVehiclePaint(d.paint) || exited.paint || null;
+      const visual=_recentlyExitedCarVisual?.id===d.car_id?_recentlyExitedCarVisual:null;
+      exited.model=visual?.model||exited.model;
+      if(exited.civilian)exited._lockedModel=exited.model;
+      exited.paint = _normalizeVehiclePaint(visual?.paint||d.paint) || exited.paint || null;
       _parkQuestCarLocally(exited,d.car_id);
     }
     if (myDrivingCarId === d.car_id) {
@@ -16417,7 +16468,7 @@ function handleEventPacket(d) {
       if (d.killed || hitBot.hp <= 0) {
         // Уличные белые и сиреневые банды проходят через один и тот же
         // серверный цикл боя. Сохраняем тело и кровь до удаления из снапшота.
-        if (d.npc_gang_fight && !hitBot._corpseSpawned) {
+        if (!hitBot._corpseSpawned) {
           hitBot._corpseSpawned = true;
           try { spawnBotCorpse(d.bot_id, false); } catch(e) {}
         }
@@ -17130,7 +17181,7 @@ function wsConnect() {
           // Только что умер — принудительно выходим из машины, сбрасываем зум
           if (myDrivingCarId) {
             exitCar('death');
-            viewZoom = 1.0;
+            viewZoom = WORLD_VIEW_ZOOM;
           }
           // Мешок падает на землю при смерти
           if (_myBagWeight > 0 && ((_bankRob && _bankRob.myBag) || _policeEvidenceBag)) { dropVaultBag(); }
@@ -17335,7 +17386,7 @@ function wsConnect() {
             // коллизий) — персонаж сам «бежал» сквозь здания и мог
             // застрять в blocked-тайле. Телепорт в tryMove не спасал:
             // он срабатывает только при нажатом движении.
-            if (myDrivingCarId) { exitCar('arrest'); viewZoom = 1.0; }
+            if (myDrivingCarId) { exitCar('arrest'); viewZoom = WORLD_VIEW_ZOOM; }
             player.r = JAIL_CENTER_R + 1;
             player.c = JAIL_CENTER_C + 1;
             cam.x = (player.c - player.r) * TS * 0.5;
@@ -18544,6 +18595,10 @@ function _businessUpgradeEffect(up,lvl){
   const step=up===BUSINESS_WAR_UPGRADE_UI.security?8:5;
   return `+${lvl*step}% ${up.desc}`;
 }
+function _canMafiaCaptureBusiness(){
+  const family=String(_mafiaState?.family||'');
+  return !!_mafiaState?.employed&&(family==='bellini'||family==='moretti');
+}
 function _showBusinessWarChoice(data,biz){
   let ov=document.getElementById('businessChoiceOverlay');
   if(!ov){
@@ -18551,7 +18606,7 @@ function _showBusinessWarChoice(data,biz){
     ov=document.createElement('div');ov.id='businessChoiceOverlay';ov.innerHTML='<div id="businessChoiceCard"></div>';document.body.appendChild(ov);
     ov.addEventListener('click',e=>{const back=e.target.closest?.('[data-sabotage-back]');if(back){ov.querySelector('.bc-main').style.display='grid';ov.querySelector('.bc-sabotage-menu').style.display='none';return;}const btn=e.target.closest?.('[data-business-choice]');if(!btn||btn.disabled||!_pendingBusinessWarChoice)return;if(btn.dataset.businessChoice==='submenu'){ov.querySelector('.bc-main').style.display='none';ov.querySelector('.bc-sabotage-menu').style.display='grid';return;}if(btn.dataset.businessChoice==='sabotage'){_confirmBusinessChoice(btn);return;}_sendBusinessChoice(btn);});
   }
-  const seconds=Math.max(15,+data.business_choice_s||90),canCapture=!!data.can_capture;
+  const seconds=Math.max(15,+data.business_choice_s||90),canCapture=!!data.can_capture&&_canMafiaCaptureBusiness();
   _pendingBusinessWarChoice={token:data.business_choice_token,biz_id:data.biz_id,money:+data.money||0,expiresAt:Date.now()+seconds*1000};
   const cash=+data.money||0,c4=Math.max(0,_myC4Count|0),c4Text=c4>0?`C4 есть: ${c4} шт. · будет потрачена 1 шт.`:'ТРЕБУЕТСЯ C4 · 1 ШТ.';
   document.getElementById('businessChoiceCard').innerHTML=`<h2>${biz?.icon||'🏪'} Что сделать с «${biz?.name||'бизнесом'}»?</h2><div style="color:#9eacbe">Куш <b style="color:#79e69c">+$${cash.toLocaleString('ru')}</b> уже зачислен на твой счёт. Теперь выбери судьбу заведения.</div><div class="bc-actions bc-main"><button class="bc-action" data-business-choice="cash"><b>💰 Забрать куш · +$${cash.toLocaleString('ru')}</b>Подтвердить выплату и уйти. Владение не меняется.</button><button class="bc-action sabotage" data-business-choice="submenu"><b>💣 Совершить диверсию</b>${c4Text}</button><button class="bc-action capture" data-business-choice="capture" ${canCapture?'':'disabled'}><b>🏴 Захватить для семьи</b>${canCapture?'Подготовка зависит от числа защитников онлайн.':'Сначала вступи в семью Беллини или Моретти.'}</button></div><div class="bc-actions bc-sabotage-menu" style="display:none"><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="shutdown"><b>⚡ Отключить электричество</b>12 мин полной остановки.<br><span style="color:${c4?'#7ee6a2':'#ff786f'}">${c4Text}</span></button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="arson"><b>🔥 Поджечь склад</b>20 мин без дохода.<br><span style="color:${c4?'#7ee6a2':'#ff786f'}">${c4Text}</span></button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="alarm"><b>📡 Сломать сигнализацию</b>20 мин слабее защита этого здания.<br><span style="color:${c4?'#7ee6a2':'#ff786f'}">${c4Text}</span></button><button class="bc-action" data-sabotage-back><b>← Назад</b>Вернуться к решениям.</button></div><div class="bc-timer"><i style="animation:bcChoiceTimer ${seconds}s linear forwards"></i></div><style>@keyframes bcChoiceTimer{to{transform:scaleX(0)}}</style>`;
@@ -18560,9 +18615,11 @@ function _showBusinessWarChoice(data,biz){
 }
 function _sendBusinessChoice(btn){
   if(!_pendingBusinessWarChoice)return;
+  const action=btn.dataset.businessChoice;
+  if(action==='capture'&&!_canMafiaCaptureBusiness()){showEventBanner('⛔ ЗАХВАТ НЕДОСТУПЕН','Захватывать заведения может только мафия Беллини или Моретти. В статусе «Гражданский» это действие запрещено.',4200,'lose');return;}
   if(btn.dataset.businessChoice==='sabotage'&&_myC4Count<1){showEventBanner('🧨 ТРЕБУЕТСЯ C4','Для диверсии нужна C4 · 1 шт. Купи заряд на Чёрном рынке',3400,'lose');return;}
   if(!ws||ws.readyState!==1){showToast('Нет связи с сервером — решение не потеряно','⚠️',2200);return;}
-  const choice=_pendingBusinessWarChoice,action=btn.dataset.businessChoice;
+  const choice=_pendingBusinessWarChoice;
   _businessChoiceInFlight={choice,action,sabotageKind:btn.dataset.sabotageKind||'',sentAt:Date.now()};
   _pendingBusinessWarChoice=null;document.getElementById('businessChoiceOverlay')?.classList.remove('show');const confirmOv=document.getElementById('businessChoiceConfirm');if(confirmOv)confirmOv.style.display='none';
   showEventBanner(action==='cash'?'💰 ПОДТВЕРЖДАЕМ ВЫПЛАТУ':action==='sabotage'?'💣 ЗАКЛАДЫВАЕМ C4':'🏴 ОТПРАВЛЯЕМ ЗАЯВКУ','Ждём подтверждение сервера. Решение не будет применено дважды.',2600,'neutral');
@@ -21439,6 +21496,10 @@ function _parkQuestCarLocally(qc, carId) {
   qc._serverGone=false;
   _recentlyExitedCarId=carId;
   _recentlyExitedCarUntil=now+PARKED_CAR_GRACE_MS;
+  // Отдельно держим визуальный паспорт. Даже если промежуточный snapshot
+  // потеряет объект, exit_reply восстановит ровно ту же модель и окраску.
+  _recentlyExitedCarVisual={id:carId,model:qc.model,
+    paint:_normalizeVehiclePaint(qc.paint),civilian:!!qc.civilian};
 }
 function enterCar(carId, asKind) {
   _selectedVehicleEntry = null;
@@ -21786,7 +21847,9 @@ window.addEventListener('message', (ev) => {
   // Обновляем состояние из результата боя
   if (typeof d.cash === 'number') { QP.cash = d.cash; myCash = d.cash; }
   if (d.hp > 0) myHp = Math.min(d.hp, PVP.max_hp);
-  if (d.lvl > 0) QP.lvl = Math.max(d.lvl, 5); // DEBUG: минимум 5 ранг для теста найма
+  // Ранг после боя приходит с сервера. Не подменяем его тестовым минимумом:
+  // иначе гражданин 1-го уровня видел функции, которые ему ещё недоступны.
+  if (d.lvl > 0) QP.lvl = d.lvl;
   // Обновляем HUD
   try {
     const lv = document.getElementById('hudLvl');
@@ -25811,8 +25874,7 @@ function update(dt) {
       // Зум от скорости: стоим=1.0, макс. скорость=0.80 (видно больше дороги)
       {
         // Пляжный зум 1.18 убран — дёргался у порога r=140 и «двигал карту».
-        const tzoom = 1.0;
-        viewZoom += (tzoom - viewZoom) * Math.min(1, dt * 1.5);
+        viewZoom = WORLD_VIEW_ZOOM;
       }
       // Крен/клевок кузова (для рендера)
       qc._bodyPitch = (qc._bodyPitch || 0);
@@ -26137,8 +26199,10 @@ function update(dt) {
   // и игрок без зума выглядит слишком мелким. Лерпим плавно, дёрганья
   // больше нет благодаря медленному коэффициенту.
   // Пляжный зум 1.18 убран — дёргался у порога r=140 и «двигал карту».
-  const targetZoom = 1.0;
-  viewZoom += (targetZoom - viewZoom) * Math.min(1, dt * 2.0);
+  // Масштаб мира не зависит от ходьбы, транспорта, скорости и зоны карты.
+  // Плавный lerp оставлял промежуточные значения после смены режима и создавал
+  // заметное «дыхание» картинки: при начале движения мир уменьшался/увеличивался.
+  viewZoom = WORLD_VIEW_ZOOM;
   // Поиск ближайшего POI: если игрок в радиусе ENTER_R тайлов от вывески,
   // показываем кнопку входа. Возвращение скрывает её, не дёргая DOM зря.
   updateZoneBtn();
@@ -29653,6 +29717,14 @@ function drawLairPerimeter() {
   ctx.textBaseline = 'middle';
   ctx.shadowBlur = 6;
   ctx.fillText('☠️ ЛОГОВО', top.x, top.y);
+  const lairState = aggroZones.lair;
+  const lairAlive = Array.isArray(lairState?.bots) ? lairState.bots.length : 0;
+  ctx.shadowBlur = 3;
+  ctx.font = 'bold 8px system-ui';
+  ctx.fillStyle = lairAlive ? 'rgba(255,195,105,.9)' : 'rgba(210,215,225,.78)';
+  ctx.fillText(lairAlive ? `БАНДА: ${lairAlive}` :
+    (lairState?.next_respawn ? `ВОЗВРАЩЕНИЕ: ${Math.ceil(lairState.next_respawn)} С` : 'ОЖИДАНИЕ СЕРВЕРА'),
+    top.x, top.y + 13);
   ctx.restore();
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
@@ -29837,6 +29909,11 @@ function drawCarPretty(car) {
   const halfL = m.L * 0.45;
   const halfW = m.W * 0.45;
   const H     = isoH(m.height || 0.55);
+  const tallBody = !!(m.van || m.bus || m.paddyvan || m.swat_truck || m.emergency);
+  const bodyH = H * (tallBody ? .72 : (m.suv ? .58 : (m.pickup ? .50 : .42)));
+  const passengerBody = !!(m.sedan || m.hatch || m.limo || m.classic || m.muscle) ||
+    (!m.van && !m.bus && !m.suv && !m.pickup && !m.paddyvan &&
+     !m.swat_truck && !m.emergency && !m.cabrio && !m.is_bike);
   // Непрерывный угол: приоритет car.ang, фолбэк на dirDx/dirDy для NPC-трафика
   const ang = (car.ang !== undefined)
     ? car.ang
@@ -29873,8 +29950,10 @@ function drawCarPretty(car) {
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
-    ctx.lineTo(b.x, b.y - H);
-    ctx.lineTo(a.x, a.y - H);
+    // Нижний пояс кузова, а не стена до самой крыши. Полная высота оставляла
+    // седанам прямоугольный силуэт микроавтобуса.
+    ctx.lineTo(b.x, b.y - bodyH);
+    ctx.lineTo(a.x, a.y - bodyH);
     ctx.closePath();
     ctx.fill();
   }
@@ -29994,7 +30073,7 @@ function drawCarPretty(car) {
     ctx.moveTo(rFf.x, rFf.y - H); ctx.lineTo(rFl.x, rFl.y - H);
     ctx.lineTo(rBl.x, rBl.y - H); ctx.lineTo(rBf.x, rBf.y - H);
     ctx.closePath(); ctx.fill();
-  } else if (m.sedan || m.hatch || m.limo) {
+  } else if (passengerBody) {
     // СЕДАН / ХЭТЧБЕК / ЛИМУЗИН — настоящий силуэт с капотом + кабиной +
     // багажником. Раньше эти попадали в общий else и рисовались как
     // плоский ромб — отсюда «фургонный» вид у всех машин. Теперь:
@@ -30004,6 +30083,8 @@ function drawCarPretty(car) {
     let fF, fB;
     if (m.hatch)      { fF = 0.28; fB = 0.92; }
     else if (m.limo)  { fF = 0.18; fB = 0.82; }
+    else if(m.classic){ fF = 0.26; fB = 0.68; }
+    else if(m.muscle) { fF = 0.34; fB = 0.67; }
     else              { fF = 0.30; fB = 0.72; }   // sedan/coupe/classic-ish
     function lerpRoof(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
     const rFf = lerpRoof(FR, BR, fF), rFl = lerpRoof(FL, BL, fF);
@@ -30011,14 +30092,14 @@ function drawCarPretty(car) {
     // Передний капот — наклонная грань от низа (FR-FL) к верху крыши (rFf-rFl)
     ctx.fillStyle = sideC;
     ctx.beginPath();
-    ctx.moveTo(FR.x, FR.y); ctx.lineTo(FL.x, FL.y);
+    ctx.moveTo(FR.x, FR.y-bodyH); ctx.lineTo(FL.x, FL.y-bodyH);
     ctx.lineTo(rFl.x, rFl.y - H); ctx.lineTo(rFf.x, rFf.y - H);
     ctx.closePath(); ctx.fill();
     // Задний багажник — наклонная грань от крыши вниз к BR-BL
     ctx.fillStyle = sideC;
     ctx.beginPath();
     ctx.moveTo(rBf.x, rBf.y - H); ctx.lineTo(rBl.x, rBl.y - H);
-    ctx.lineTo(BL.x, BL.y); ctx.lineTo(BR.x, BR.y);
+    ctx.lineTo(BL.x, BL.y-bodyH); ctx.lineTo(BR.x, BR.y-bodyH);
     ctx.closePath(); ctx.fill();
     // Сама крыша — ромб поднятый на H, занимающий fF..fB длины
     ctx.fillStyle = m.roof || topC;
@@ -30135,9 +30216,9 @@ function drawCarPretty(car) {
   // Колёса — размер зависит от m.wheelR (раньше был фиксированный 3.8×2.0
   // у всех машин, поэтому SUV и спорткар выглядели одинаково). Базовый
   // мультипликатор подобран так, что wheelR=0.16 даёт прежние ~3.5×1.9 px.
-  const wR  = (m.wheelR || 0.18) * 22;   // внешний радиус (горизонтальная ось)
-  const wR2 = (m.wheelR || 0.18) * 12;   // вертикальная ось (изометрический сплющ)
-  const rimR  = wR * 0.56, rimR2 = wR2 * 0.56;
+  const wR  = (m.wheelR || 0.18) * 22;   // высота стоящего колеса
+  const wR2 = wR * 0.56;                 // толщина/перспективное сжатие боковины
+  const rimR  = wR2 * 0.58, rimR2 = wR * 0.58;
   const nutR  = Math.max(0.5, wR * 0.17);
   // Фаза вращения считается не по времени, а по реальному перемещению
   // машины вдоль её носа. Поэтому на месте колёса стоят, вперёд крутятся
@@ -30148,34 +30229,52 @@ function drawCarPretty(car) {
   if(Number.isFinite(wheelState._wheelLastR)&&Number.isFinite(wheelState._wheelLastC)){
     const dr=car.r-wheelState._wheelLastR,dc=car.c-wheelState._wheelLastC;
     const signedTravel=dr*sinA+dc*cosA;
-    if(Math.abs(signedTravel)<2)wheelState._wheelPhase+=signedTravel/Math.max(.08,m.wheelR||.18)*2.8;
+    const travelled=Math.hypot(dr,dc),elapsed=nowWheel-(wheelState._wheelLastAt||nowWheel);
+    // Малый dead-zone гасит сетевой jitter у остановленной машины. Знак
+    // проекции сохраняется: задний ход вращает спицы в обратную сторону.
+    if(travelled>.0006&&travelled<1.25&&elapsed<300)
+      wheelState._wheelPhase+=signedTravel/Math.max(.08,m.wheelR||.18)*2.8;
   }
   wheelState._wheelLastR=car.r;wheelState._wheelLastC=car.c;wheelState._wheelLastAt=nowWheel;
   const wheelPhase=wheelState._wheelPhase;
-  for (const corner of [FR, FL, BR, BL]) {
+  const wheelAt=(front,back,t)=>({x:front.x+(back.x-front.x)*t,y:front.y+(back.y-front.y)*t});
+  // Колёсная база короче кузова: колёса стоят под арками, а не на четырёх
+  // крайних углах. У длинных кузовов база чуть больше, у спорткаров компактнее.
+  const axleInset=m.limo ? .14 : (m.sport ? .20 : (m.suv ? .17 : .18));
+  const wheelPoints=[
+    wheelAt(FR,BR,axleInset),wheelAt(FL,BL,axleInset),
+    wheelAt(FR,BR,1-axleInset),wheelAt(FL,BL,1-axleInset),
+  ];
+  for (const corner of wheelPoints) {
+    // Центр приподнят над дорогой: вертикальный радиус идёт вверх/вниз,
+    // поэтому колесо стоит на ребре, а не лежит плоским эллипсом на асфальте.
+    const wheelX = corner.x;
+    const wheelY = corner.y - wR * 0.58;
     ctx.fillStyle = '#0a0a0a';
     ctx.beginPath();
-    ctx.ellipse(corner.x, corner.y, wR, wR2, 0, 0, Math.PI * 2);
+    ctx.ellipse(wheelX, wheelY, wR2, wR, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle='rgba(70,74,82,.9)';ctx.lineWidth=Math.max(.65,wR*.14);
+    ctx.beginPath();ctx.ellipse(wheelX,wheelY,wR2*.82,wR*.82,0,0,Math.PI*2);ctx.stroke();
     // Диск-обод — серый кружок внутри
     ctx.fillStyle = '#8c8c94';
     ctx.beginPath();
-    ctx.ellipse(corner.x, corner.y, rimR, rimR2, 0, 0, Math.PI * 2);
+    ctx.ellipse(wheelX, wheelY, rimR, rimR2, 0, 0, Math.PI * 2);
     ctx.fill();
     // Пять контрастных спиц — именно их движение делает вращение заметным
     // в маленьком изометрическом масштабе.
     ctx.strokeStyle='#252932';ctx.lineWidth=Math.max(.65,wR*.16);
     for(let spoke=0;spoke<5;spoke++){
       const wa=wheelPhase+spoke*Math.PI*2/5;
-      ctx.beginPath();ctx.moveTo(corner.x,corner.y);
-      ctx.lineTo(corner.x+Math.cos(wa)*rimR*.86,corner.y+Math.sin(wa)*rimR2*.86);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(wheelX,wheelY);
+      ctx.lineTo(wheelX+Math.cos(wa)*rimR*.86,wheelY+Math.sin(wa)*rimR2*.86);ctx.stroke();
     }
     ctx.strokeStyle='rgba(225,235,245,.55)';ctx.lineWidth=.55;
-    ctx.beginPath();ctx.ellipse(corner.x,corner.y,rimR*.82,rimR2*.82,0,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(wheelX,wheelY,rimR*.82,rimR2*.82,0,0,Math.PI*2);ctx.stroke();
     // Центральная гайка
     ctx.fillStyle = '#1a1a1a';
     ctx.beginPath();
-    ctx.arc(corner.x, corner.y, nutR, 0, Math.PI * 2);
+    ctx.arc(wheelX, wheelY, nutR, 0, Math.PI * 2);
     ctx.fill();
   }
   // Детали кузова, читаемые даже без подписи модели.
@@ -33726,7 +33825,9 @@ function drawAggroBot(bot) {
   // pose briefly so white and purple patrols animate identically without flicker.
   const act = (bot.act === 'walk' || performance.now() < (bot._walkVisualUntil || 0))
     ? 'walk' : (bot.act || 'idle');
-  const isCityGang = String(bot.id || '').startsWith('cgbot');
+  const botIdText=String(bot.id||'');
+  const isCityGang = botIdText.startsWith('cgbot') ||
+    botIdText.startsWith('preview_purple_') || botIdText.startsWith('preview_yellow_');
   // Короткая серверная остановка теперь выглядит как живая стойка, а не
   // замерший кадр: едва заметное дыхание остаётся синхронным для всего тела.
   if (isCityGang && act === 'idle') p.y += Math.sin(performance.now() * .0035 + String(bot.id).length) * .7;
@@ -36645,7 +36746,6 @@ function initHudIdentity() {
   if (lv) lv.textContent = String(QP.lvl || 1);
   renderHudAvatar();
 }
-QP.lvl = Math.max(QP.lvl || 1, 5); // DEBUG: минимум 5 ранг
 try { initHudIdentity(); } catch (e) {}
 
 // ── Профиль — модал по тапу на аватар ────────────────────────────
@@ -38160,7 +38260,9 @@ function render() {
   // взрывах) НАКАПЛИВАЛСЯ между кадрами → картинку «уносило в бесконечный
   // туннель» (камера будто отдаляется навсегда). Теперь каждый кадр
   // стартуем с чистой трансформы — глитч не накапливается.
-  const _dpr = Math.min(2, window.devicePixelRatio || 1);
+  // Используем ровно тот DPR, под который создан backing-buffer Canvas.
+  // Чтение текущего devicePixelRatio здесь могло менять масштаб между resize.
+  const _dpr = _canvasDpr;
   ctx.setTransform(_dpr, 0, 0, _dpr, 0, 0);
   // Если игрок внутри обычного здания — рисуем интерьер
   if (_buildingInt) { drawBuildingInterior(); return; }
@@ -39275,7 +39377,16 @@ if (d.kind === 'plank_path') {
   // игрок, здания) в этом кадре просто не рисуется → «мерцает, пропадает
   // персонаж/здания» при случайном порядке глубины.
   for (const it of items) {
-    try { it.draw(); } catch (e) {}
+    // Каждый depth-объект получает изолированное состояние Canvas. Если внутри
+    // конкретного здания/декора забыли restore(), его scale/translate больше не
+    // переходит на следующие объекты и не создаёт «зум по направлению ходьбы».
+    const itemTransform = ctx.getTransform();
+    ctx.save();
+    try { it.draw(); } catch (e) {
+    } finally {
+      ctx.restore();
+      ctx.setTransform(itemTransform);
+    }
   }
   drawJetSpray();
   // Маркеры собственности — отдельный верхний слой, чтобы соседние части
@@ -41134,8 +41245,8 @@ function _drawPOIArrow(ax, ay, dx, dy, poi) {
   ctx.restore();
   // Иконка — не вращается. Кладём её СО СТОРОНЫ ОТ КРАЯ внутрь экрана,
   // чтобы не уехать за пределы canvas. Сдвигаем строго к центру экрана.
-  const cx = (canvas.width  / (window.devicePixelRatio || 1)) / 2;
-  const cy = (canvas.height / (window.devicePixelRatio || 1)) / 2;
+  const cx = (canvas.width  / _canvasDpr) / 2;
+  const cy = (canvas.height / _canvasDpr) / 2;
   const tdx = cx - ax, tdy = cy - ay;
   const tl = Math.hypot(tdx, tdy) || 1;
   const ox = (tdx / tl) * 22;
@@ -42272,14 +42383,13 @@ function _heartbeat() {
     let _drift = '?', _stg = '?', _ps = '?', _ctr = '?', _vv = '?';
     try {
       const ps = w2s(player.r, player.c);
-      const vv = window.visualViewport;
-      const cx0 = (vv ? vv.width : window.innerWidth) / 2;
-      const cy0 = (vv ? vv.height : window.innerHeight) / 2;
+      const st = document.getElementById('stage');
+      const cx0 = (st ? st.clientWidth : window.innerWidth) / 2;
+      const cy0 = (st ? st.clientHeight : window.innerHeight) / 2;
       _drift = Math.round(Math.hypot(ps.x - cx0, ps.y - cy0));
       _ps  = Math.round(ps.x) + ',' + Math.round(ps.y);
       _ctr = Math.round(cx0) + ',' + Math.round(cy0);
       _vv  = vv ? (Math.round(vv.width) + 'x' + Math.round(vv.height) + '@' + Math.round(vv.offsetTop)) : 'none';
-      const st = document.getElementById('stage');
       _stg = st ? (st.clientWidth + 'x' + st.clientHeight) : '?';
       // Авто-показ дебаг-плашки отключён — только по долгому тапу на 🗺 или ?dbg=1.
     } catch (e) {}
@@ -46194,7 +46304,41 @@ function _updateInteriorNpcs(bi, dt) {
           spawnBullet(muzzle.r,muzzle.c,target.y,target.x,{hit:true,fromNpc:true,weapon:n.weapon});
           try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'player_shoot',d:{target_uid:target.uid,weapon:n.weapon}}));}catch(e){}
         }
-      }else n.walking=false;
+      }else {
+        // В мирное время нанятая охрана обходит зал, останавливается у постов
+        // и переговаривается, а не превращается в неподвижную декорацию.
+        if(!n._patrolPost || now >= (n._nextPatrolAt||0) ||
+           Math.hypot(n._patrolPost.r-n.r,n._patrolPost.c-n.c)<.22){
+          let post=null;
+          for(let attempt=0;attempt<12;attempt++){
+            const candidate={r:2.2+Math.random()*Math.max(1,bi.H-4.4),
+              c:2.2+Math.random()*Math.max(1,bi.W-4.4)};
+            if(!_businessInteriorMovementBlocked(bi,candidate.r,candidate.c,.32)){
+              post=candidate;break;
+            }
+          }
+          n._patrolPost=post||{r:n.r,c:n.c};
+          n._nextPatrolAt=now+2600+Math.random()*3600;
+          if(Math.random()<.48){
+            n._sayText=BUSINESS_GUARD_IDLE_LINES[
+              Math.floor(Math.random()*BUSINESS_GUARD_IDLE_LINES.length)];
+            n._sayUntil=now+1700;
+          }
+        }
+        const dr=n._patrolPost.r-n.r,dc=n._patrolPost.c-n.c;
+        const dist=Math.hypot(dr,dc)||1;
+        if(dist>.20){
+          n.ang=Math.atan2(dr,dc);
+          const step=Math.min(dist,(n.speed||1.25)*dt);
+          const nextR=n.r+dr/dist*step,nextC=n.c+dc/dist*step;
+          if(!_businessInteriorMovementBlocked(bi,nextR,nextC,.32)){
+            n.r=nextR;n.c=nextC;n.walking=true;n.walkPhase+=dt*8.5;
+          }else {n.walking=false;n._nextPatrolAt=0;}
+        }else {
+          n.walking=false;
+          n.ang+=Math.sin(now*.0015+String(n.name).length)*dt*.45;
+        }
+      }
       continue;
     }
     if (bi.robbery && n.role === 'biz_guard' && bi.robberyStarted) {
@@ -47537,6 +47681,51 @@ function _drawCasinoStairs(r,c) {
   ctx.restore();
 }
 
+// Узнаваемые предметы обычных бизнесов. Раньше все интерьеры собирались из
+// одинаковых подписанных параллелепипедов; теперь у каждого заведения есть
+// собственные силуэты, мелкие детали и источник света, как у большого казино.
+function _drawBusinessFixture(kind,r,c,s=1) {
+  const p=w2s(r,c), z=v=>isoH(v*s);
+  ctx.save();ctx.lineJoin='round';ctx.lineCap='round';
+  const glow=(color,rad=42)=>{const g=ctx.createRadialGradient(p.x,p.y-z(1),2,p.x,p.y-z(.6),rad*s);g.addColorStop(0,color);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(p.x,p.y-z(.45),rad*s,rad*.48*s,0,0,Math.PI*2);ctx.fill();};
+  const sign=(text,color='#fff',y=1.55,size=9)=>{ctx.font=`900 ${size*s}px system-ui`;ctx.textAlign='center';ctx.fillStyle='#090b10';ctx.strokeStyle=color;ctx.lineWidth=3*s;ctx.strokeText(text,p.x,p.y-z(y));ctx.fillStyle=color;ctx.fillText(text,p.x,p.y-z(y));};
+  switch(kind){
+    case 'coffee_machine':
+      _bizIsoBox(r,c,2.4*s,1.2*s,1.15*s,'#6f777c','#333b40','#20262a');
+      ctx.fillStyle='#15191c';ctx.fillRect(p.x-17*s,p.y-z(1.18),34*s,13*s);ctx.fillStyle='#a7d4dc';ctx.fillRect(p.x-12*s,p.y-z(1.08),24*s,5*s);
+      for(const x of [-9,9]){ctx.strokeStyle='#d8edf0';ctx.lineWidth=2*s;ctx.beginPath();ctx.moveTo(p.x+x*s,p.y-z(.82));ctx.lineTo(p.x+x*s,p.y-z(.45));ctx.stroke();ctx.fillStyle='#efe4d0';ctx.fillRect(p.x+(x-4)*s,p.y-z(.42),8*s,5*s);}glow('rgba(255,190,100,.16)',34);sign('ESPRESSO','#ffd18a',1.55,8);break;
+    case 'wash_arch':
+      _bizIsoBox(r,c,5.8*s,2.8*s,.12,'#276a7b','#174451','#12343d');
+      for(const x of [-35,35]){ctx.strokeStyle='#5de2f1';ctx.lineWidth=6*s;ctx.beginPath();ctx.moveTo(p.x+x*s,p.y+5*s);ctx.lineTo(p.x+x*s,p.y-z(2.2));ctx.quadraticCurveTo(p.x+x*s,p.y-z(2.7),p.x+(x>0?10:-10)*s,p.y-z(2.7));ctx.stroke();}
+      ctx.strokeStyle='#8cf4ff';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x-25*s,p.y-z(2.7));ctx.lineTo(p.x+25*s,p.y-z(2.7));ctx.stroke();for(let i=-2;i<=2;i++){ctx.strokeStyle='rgba(125,225,255,.65)';ctx.beginPath();ctx.moveTo(p.x+i*10*s,p.y-z(2.65));ctx.lineTo(p.x+i*10*s,p.y-z(.4));ctx.stroke();}glow('rgba(70,210,255,.19)',55);sign('WASH','#9ef5ff',3.05,10);break;
+    case 'barber_station':
+      _bizIsoBox(r,c,1.55*s,1.55*s,.85*s,'#9b2639','#53151f','#341018');
+      ctx.fillStyle='#c9d3d5';ctx.beginPath();ctx.ellipse(p.x,p.y-z(1.1),13*s,8*s,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#e9f5f6';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x,p.y-z(.85));ctx.lineTo(p.x,p.y-z(.2));ctx.stroke();
+      ctx.fillStyle='#aee5f2';ctx.strokeStyle='#eafcff';ctx.lineWidth=2*s;ctx.fillRect(p.x-19*s,p.y-z(2.45),38*s,25*s);ctx.strokeRect(p.x-19*s,p.y-z(2.45),38*s,25*s);glow('rgba(210,245,255,.14)',36);break;
+    case 'pizza_oven':
+      _bizIsoBox(r,c,3.5*s,2.2*s,2.35*s,'#a94b31','#71301f','#4b1f18');
+      ctx.fillStyle='#25110d';ctx.beginPath();ctx.arc(p.x,p.y-z(.9),17*s,Math.PI,0);ctx.lineTo(p.x+17*s,p.y-z(.35));ctx.lineTo(p.x-17*s,p.y-z(.35));ctx.closePath();ctx.fill();
+      const fire=ctx.createRadialGradient(p.x,p.y-z(.55),1,p.x,p.y-z(.55),18*s);fire.addColorStop(0,'#fff4a0');fire.addColorStop(.35,'#ff9b2f');fire.addColorStop(1,'rgba(180,30,0,0)');ctx.fillStyle=fire;ctx.beginPath();ctx.ellipse(p.x,p.y-z(.52),18*s,10*s,0,0,Math.PI*2);ctx.fill();sign('FORNO','#ffd36b',2.7,9);break;
+    case 'garage_lift':
+      _bizIsoBox(r,c,6.2*s,3*s,.18,'#c89b27','#6d5316','#4b3a10');
+      for(const x of [-37,37]){ctx.fillStyle='#d8a92d';ctx.fillRect(p.x+x*s-4*s,p.y-z(2.5),8*s,z(2.5));ctx.fillStyle='#222930';ctx.fillRect(p.x+x*s-7*s,p.y-z(2.05),14*s,6*s);}ctx.strokeStyle='#ffe074';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x-37*s,p.y-z(2.45));ctx.lineTo(p.x+37*s,p.y-z(2.45));ctx.stroke();sign('SERVICE','#ffe074',2.8,9);break;
+    case 'bar_shelves':
+      _bizIsoBox(r,c,6.8*s,.8*s,1.85*s,'#4b201d','#291014','#1b0b0d');
+      for(let row=0;row<2;row++)for(let i=-5;i<=5;i++){const colors=['#62a866','#b77b35','#9b365c','#4d78a5'];ctx.fillStyle=colors[(i+row+8)%colors.length];ctx.fillRect(p.x+i*8*s-2*s,p.y-z(.65+row*.55),4*s,11*s);}ctx.strokeStyle='#dc9b53';ctx.lineWidth=2*s;for(const yy of [.55,1.1]){ctx.beginPath();ctx.moveTo(p.x-48*s,p.y-z(yy));ctx.lineTo(p.x+48*s,p.y-z(yy));ctx.stroke();}glow('rgba(255,70,150,.16)',52);sign('BLACK WIDOW','#ff61aa',2.18,9);break;
+    case 'dj_stage':
+      _bizIsoBox(r,c,4.8*s,2.5*s,.55*s,'#381b68','#20103e','#160b2b');ctx.fillStyle='#151724';ctx.fillRect(p.x-31*s,p.y-z(1.32),62*s,19*s);
+      for(let i=-3;i<=3;i++){ctx.fillStyle=i%2?'#58e6ff':'#ef4dff';ctx.fillRect(p.x+i*8*s-2*s,p.y-z(1.22),4*s,11*s);}for(const x of [-23,23]){ctx.fillStyle='#090b10';ctx.beginPath();ctx.arc(p.x+x*s,p.y-z(1.65),13*s,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#a44fff';ctx.stroke();}glow('rgba(164,77,255,.22)',65);sign('DJ','#7ff5ff',2.25,12);break;
+    case 'warehouse_rack':
+      for(const x of [-28,28]){ctx.fillStyle='#626d78';ctx.fillRect(p.x+x*s-3*s,p.y-z(2.55),6*s,z(2.55));}for(let row=0;row<3;row++){ctx.fillStyle='#77838e';ctx.fillRect(p.x-31*s,p.y-z(.55+row*.8),62*s,6*s);for(let i=-2;i<=2;i++){ctx.fillStyle=['#9d6232','#6f7f42','#83504a'][(i+row+5)%3];ctx.fillRect(p.x+i*12*s-5*s,p.y-z(.48+row*.8),10*s,13*s);}}sign('STOCK','#ffd078',2.85,8);break;
+    case 'gaming_table':
+      _bizIsoBox(r,c,3.3*s,2*s,.72*s,'#176342','#0c3825','#08271a');ctx.strokeStyle='#e5bd55';ctx.lineWidth=2*s;ctx.beginPath();ctx.ellipse(p.x,p.y-z(.72),31*s,14*s,0,0,Math.PI*2);ctx.stroke();
+      for(let i=0;i<7;i++){const a=i/7*Math.PI*2;ctx.fillStyle=i%2?'#e8e3d2':'#a52d3a';ctx.fillRect(p.x+Math.cos(a)*18*s-2*s,p.y-z(.72)+Math.sin(a)*7*s-2*s,4*s,4*s);}glow('rgba(255,205,75,.13)',44);break;
+    case 'port_crane':
+      ctx.strokeStyle='#e3aa2f';ctx.lineWidth=7*s;ctx.beginPath();ctx.moveTo(p.x-24*s,p.y+8*s);ctx.lineTo(p.x-24*s,p.y-z(3.6));ctx.lineTo(p.x+42*s,p.y-z(3.6));ctx.stroke();ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x+25*s,p.y-z(3.6));ctx.lineTo(p.x+25*s,p.y-z(.65));ctx.stroke();ctx.strokeStyle='#303840';ctx.strokeRect(p.x+19*s,p.y-z(.7),12*s,12*s);sign('CARGO','#ffc94d',4.05,9);break;
+  }
+  ctx.restore();
+}
+
 function _drawBusinessInterior(bi) {
   const cfg=BUSINESS_INTERIORS[bi.bizId]||BUSINESS_INTERIORS.coffee, W=bi.W,H=bi.H;
   const {clientWidth:SW,clientHeight:SH}=document.getElementById('stage');
@@ -47611,6 +47800,7 @@ function _drawBusinessInterior(bi) {
   // закрыть персонажа. Мебель рисуем до героя во всех бизнес-интерьерах.
   const box=(kind,r,c,w=2,d=1,h=1,top=cfg.accent)=>items.push({d:r+c,furniture:true,fn:()=>_bizIsoBox(r,c,w,d,h,top,'#343c48','#242a33',kind)});
   const table=(r,c,top='#805a35',label='')=>{box(label,r,c,2.4,1.4,.65,top);box('',r-.2,c-1.7,.55,.55,.45,'#3b2c25');box('',r-.2,c+1.7,.55,.55,.45,'#3b2c25');};
+  const fixture=(kind,r,c,s=1)=>items.push({d:r+c,furniture:true,fn:()=>_drawBusinessFixture(kind,r,c,s)});
   // Общая стойка и касса. Управляющий стоит за ней.
   if(isGrandCasino ? _casinoPropAlive('desk') : !isMansion){
     box('КАССА',2.9,W/2,6.2,1.15,1.05,cfg.accent);
@@ -47619,14 +47809,14 @@ function _drawBusinessInterior(bi) {
   switch(bi.bizId){
     case 'coffee':
       table(6.2,3.2,'#8f6238','☕');table(8.3,8.8,'#8f6238','☕');table(6.4,14.2,'#8f6238','☕');
-      box('БАРИСТА',4.5,13.8,4.5,1.3,1.15,'#7c442d');box('КОФЕМАШИНА',3.2,14.4,2.1,1.1,1.75,'#66727a');
+      box('',4.5,13.8,4.5,1.3,1.15,'#7c442d');fixture('coffee_machine',3.2,14.4,.9);
       box('ВЫПЕЧКА',3.8,3.1,3.2,1.1,1.15,'#d6b77d');box('МЕШКИ ЗЁРЕН',9.6,14.7,2.1,1.4,1.25,'#8b6037');
       box('КАМИН',3.1,8.3,2.2,1.1,1.85,'#9c4b31');box('ГАЗЕТЫ',10.2,3.1,2.2,1.1,.75,'#b9a77f');
       break;
     case 'carwash':
       // Центральный мокрый тоннель с машиной; по бокам — химия,
       // компрессоры, зона сушки и клиентская касса.
-      box('МОКРЫЙ ТОННЕЛЬ',7,8.8,6.8,3.2,.18,'#3aa8c5');
+      fixture('wash_arch',7,8.8,1);
       box('АВТО',7.1,8.8,4.1,1.8,.88,'#c24646');
       box('ЩЁТКА',5.1,6.1,.85,.85,2.35,'#35b8df');
       box('ЩЁТКА',5.1,11.5,.85,.85,2.35,'#68e2ef');
@@ -47638,16 +47828,14 @@ function _drawBusinessInterior(bi) {
       box('МОКРЫЙ ПОЛ',10.2,8.8,7.2,2.1,.08,'#77d8e6');
       break;
     case 'barbershop':
-      box('ЗЕРКАЛА',1.3,3.5,3.8,.45,2.25,'#b8dce8');box('ЗЕРКАЛА',1.3,9,3.8,.45,2.25,'#b8dce8');box('ЗЕРКАЛА',1.3,14.5,3.8,.45,2.25,'#b8dce8');
-      box('КРЕСЛО',5,3.5,1.5,1.5,1.2,'#a92132');box('КРЕСЛО',5,9,1.5,1.5,1.2,'#a92132');box('КРЕСЛО',5,14.5,1.5,1.5,1.2,'#a92132');
+      fixture('barber_station',4.2,3.5,.92);fixture('barber_station',4.2,9,.92);fixture('barber_station',4.2,14.5,.92);
       box('МОЙКА',8.5,14.2,2.4,1.4,1,'#d8e1df');box('ОЖИДАНИЕ',9.5,4,4,1.2,.9,'#385b72');
       box('ПОЛОТЕНЦА',8.7,9,2.2,1.2,1.5,'#e8e2d2');box('ИНСТРУМЕНТЫ',3.5,17,1.3,1,1.55,'#65717a');
       break;
     case 'pizza':
       // Открытая кухня и печь отделены от уютного зала: посетителю видно,
       // как готовят пиццу, но проходы к NPC и выходу остаются свободными.
-      box('ДРОВЯНАЯ ПЕЧЬ',3.9,14.2,3.5,2.2,2.45,'#a84932');
-      box('ОГОНЬ',4.2,14.2,1.35,.85,1.05,'#f39a32');
+      fixture('pizza_oven',3.9,14.2,1);
       box('ТЕСТО',5.2,3.2,3.5,1.6,.95,'#ddc99e');
       box('НАЧИНКИ',5.2,6.5,2.4,1.25,1.05,'#bc493a');
       box('ХОЛОДИЛЬНИК',3.5,2.1,1.6,1.25,2.2,'#c9d1cc');
@@ -47659,36 +47847,36 @@ function _drawBusinessInterior(bi) {
       box('КОРОБКИ',10.2,14.5,2.4,1.4,1.2,'#c49352');
       break;
     case 'garage':
-      box('ПОДЪЁМНИК',6.8,8.8,6.4,3.1,.3,'#d3a22f');box('АВТО',6.8,8.8,4.4,1.9,.95,'#477bb8');
+      fixture('garage_lift',6.8,8.8,1);box('',6.8,8.8,4.4,1.9,.95,'#477bb8');
       box('ДВИГАТЕЛЬ',4.1,3,2.2,1.6,1.25,'#515b62');box('ШИНЫ',7.7,3,2.1,1.5,1.65,'#22252c');
       box('СВАРКА',10,3.1,2.1,1.3,1.3,'#d07d25');box('ИНСТРУМЕНТЫ',5,14.7,2.8,1.3,1.9,'#a13b35');
       box('ЗАПЧАСТИ',9.5,14.4,3,1.6,1.4,'#6f7881');box('МАСЛО',3.2,9,2.3,1.1,1.3,'#293844');
       break;
     case 'bar':
-      box('ДЛИННЫЙ БАР',4.5,13.7,7.2,1.4,1.2,'#7b452d');box('БУТЫЛКИ',1.35,13.8,6.6,.45,2.2,'#6b8b55');
+      box('',4.5,13.7,7.2,1.4,1.2,'#7b452d');fixture('bar_shelves',2.2,13.8,1);
       box('ПИВО',3.2,10.5,1.5,1.1,1.45,'#d29c34');table(6.8,3.4,'#60402d','');table(9.5,8.8,'#60402d','');
       box('СЦЕНА',3.8,3.3,3.7,2.2,.45,'#6d2347');box('МИКРОФОН',3.7,3.3,.45,.45,1.8,'#bfc6cc');
       box('БОКСЫ',9.5,14.4,3.4,1.5,.95,'#4b1f35');box('БИЛЬЯРД',8,12,3.3,1.9,.8,'#245c42');
       break;
     case 'club':
-      table(6,3.6,'#43306f','VIP');table(8.8,14.2,'#43306f','VIP');box('DJ',3.8,14.3,3.5,1.7,1.45,'#dc3ad0');
+      table(6,3.6,'#43306f','VIP');table(8.8,14.2,'#43306f','VIP');fixture('dj_stage',3.8,14.3,1);
       box('ТАНЦПОЛ',7,8.8,5.8,3.8,.12,'#5c3abf');box('ЛАЗЕРЫ',3.2,8.8,2.2,1.1,2.2,'#35cde8');
       box('БАР',9.8,3.3,4.2,1.25,1.1,'#6f2a55');box('ОХРАНА',3.8,3,2.2,1.2,1.35,'#343b47');
       box('РУЛЕТКА',9.7,9,2.7,1.8,.85,'#176c42');box('ГАРДЕРОБ',6.7,15.8,2.4,1.2,1.6,'#49305d');
       break;
     case 'warehouse':
-      box('СТЕЛЛАЖ A',4,2.7,3,1.3,2.5,'#6d7783');box('СТЕЛЛАЖ B',4,8.7,3,1.3,2.5,'#6d7783');box('СТЕЛЛАЖ C',4,14.7,3,1.3,2.5,'#6d7783');
+      fixture('warehouse_rack',4,2.7,.9);fixture('warehouse_rack',4,8.7,.9);fixture('warehouse_rack',4,14.7,.9);
       box('ЯЩИКИ',7.5,3,2.6,2,1.55,'#a46b36');box('КОНТРАБАНДА',7.5,9,3,1.8,1.4,'#74413a');
       box('ПОГРУЗЧИК',8.1,14.3,2.9,1.9,1.25,'#d6a72f');box('ПАЛЛЕТЫ',10.3,5.8,3.2,1.5,.7,'#81572f');
       box('ДИСПЕТЧЕР',10,14.5,2.6,1.4,1.35,'#445765');
       break;
     case 'casino':
-      table(5.1,3.6,'#176c42','РУЛЕТКА');table(7.7,8.8,'#176c42','BLACKJACK');table(9.5,3.6,'#176c42','POKER');
+      fixture('gaming_table',5.1,3.6,1);fixture('gaming_table',7.7,8.8,1);fixture('gaming_table',9.5,3.6,1);
       box('SLOTS',4.5,14.7,3.5,1.2,2.05,'#b13e8f');box('SLOTS',7.4,14.7,3.5,1.2,2.05,'#8f3eaa');
       box('КАССА',10,14.2,3.2,1.3,1.25,'#d2a83e');box('БАР',9.8,9.5,3,1.2,1.05,'#6f352e');
       box('VIP',3.6,8.8,3.3,1.8,.9,'#7a2149');box('ОХРАНА',10.2,3.2,2.2,1.2,1.35,'#343b47');
       break;
-    case 'port': box('КОНТЕЙНЕР',4.7,3.2,4,2,2.2,'#b34b36');box('КОНТЕЙНЕР',4.7,14.2,4,2,2.2,'#347a9e');box('ГРУЗ',8,5,3,2,1.35,'#9b6a38');box('ДИСПЕТЧЕР',8,13,3,1.5,1.45,'#3d596c');break;
+    case 'port': box('',4.7,3.2,4,2,2.2,'#b34b36');box('',4.7,14.2,4,2,2.2,'#347a9e');fixture('port_crane',6.8,9,1);box('ГРУЗ',8,5,3,2,1.35,'#9b6a38');box('ДИСПЕТЧЕР',8,13,3,1.5,1.45,'#3d596c');break;
     case 'major_casino':
       for(const wall of MAJOR_CASINO_WALLS){
         // Длинная стена одним элементом имела один общий depth: дальний NPC
@@ -47740,11 +47928,11 @@ function _drawBusinessInterior(bi) {
         items.push({d:53,furniture:true,fn:()=>_drawCasinoSecurityRoom(13,40)});
       break;
     case 'major_market':
-      for(let rr=6;rr<20;rr+=4)for(let cc=5;cc<30;cc+=6)box((rr+cc)%2?'ЛАВКА':'ТОВАР',rr,cc,4,1.5,1.35,(rr+cc)%3?'#8b5d32':'#c98b38');
+      for(let rr=6;rr<20;rr+=4)for(let cc=5;cc<30;cc+=6){box('',rr,cc,4,1.5,.72,(rr+cc)%3?'#8b5d32':'#c98b38');fixture('warehouse_rack',rr-.4,cc,.72);}
       box('СКЛАД',19,28,7,5,2.2,'#785232');box('ВЕСЫ',7,29,2,2,1.2,'#d8b454');
       break;
     case 'major_factory':
-      for(let rr=6;rr<20;rr+=5){box('СТАНОК',rr,7,5,2.4,1.8,'#697681');box('КОНВЕЙЕР',rr,18,10,1.8,1.1,'#b26430');}
+      for(let rr=6;rr<20;rr+=5){fixture('garage_lift',rr,7,.72);box('',rr,18,10,1.8,1.1,'#b26430');}
       box('ПРЕСС',9,29,5,5,3.2,'#a14334');box('СКЛАД',19,28,7,5,2.4,'#5f6971');
       break;
     case 'major_mansion':
@@ -47785,7 +47973,7 @@ function _drawBusinessInterior(bi) {
       break;
     case 'major_port':
       for(let rr=6;rr<20;rr+=6){box('КОНТЕЙНЕР',rr,6,7,2.6,2.5,'#b54d37');box('КОНТЕЙНЕР',rr,17,7,2.6,2.5,'#357e9e');}
-      box('КРАН',8,29,4,4,4.2,'#d19c2e');box('ДИСПЕТЧЕРСКАЯ',18,28,7,4,2.5,'#415d6b');
+      fixture('port_crane',8,29,1.25);box('ДИСПЕТЧЕРСКАЯ',18,28,7,4,2.5,'#415d6b');
       break;
   }
   ctx.restore();
