@@ -1396,6 +1396,11 @@ async def preview_world(_req):
     return web.Response(text=html, content_type="text/html")
 
 
+async def preview_three(_req):
+    source = Path("three_preview.js").read_text(encoding="utf-8", errors="replace")
+    return web.Response(text=source, content_type="application/javascript")
+
+
 def snap(uid):
     tick_race_cars()
     now = time.time()
@@ -2740,6 +2745,7 @@ async def world_ws(req):
 app = web.Application()
 app.router.add_route("OPTIONS", "/{tail:.*}", options)
 app.router.add_get("/preview/world.html", preview_world)
+app.router.add_get("/preview/three_preview.js", preview_three)
 app.router.add_get("/coop_api.json", coop_api)
 app.router.add_get("/world/sim", world_ws)
 app.router.add_get("/inv/{uid}/list", inv_list)
