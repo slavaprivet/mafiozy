@@ -59,6 +59,38 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Полноценная стартовая заставка. Она видна ещё до разбора большого игрового
+   скрипта и закрывается только после первого готового кадра выбранного рендера. */
+#cityLoadingScreen {
+  position: fixed; inset: 0; z-index: 1000; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(126,30,28,.24), transparent 35%),
+    linear-gradient(180deg, #07090e 0%, #111722 58%, #050609 100%);
+  transition: opacity .42s ease, visibility .42s ease;
+}
+#cityLoadingScreen.done { opacity: 0; visibility: hidden; pointer-events: none; }
+#cityLoadingScreen::before {
+  content: ''; position: absolute; left: -4%; right: -4%; bottom: 0; height: 42%; opacity: .62;
+  background: linear-gradient(90deg,
+    #05070a 0 7%, transparent 7% 8%, #080b10 8% 15%, transparent 15% 16%,
+    #05070a 16% 27%, transparent 27% 28%, #090c12 28% 35%, transparent 35% 36%,
+    #05070a 36% 48%, transparent 48% 49%, #080b10 49% 58%, transparent 58% 59%,
+    #05070a 59% 72%, transparent 72% 73%, #080b10 73% 82%, transparent 82% 83%,
+    #05070a 83% 100%);
+  clip-path: polygon(0 35%,7% 35%,7% 12%,15% 12%,15% 42%,23% 42%,23% 5%,31% 5%,31% 30%,39% 30%,39% 18%,49% 18%,49% 38%,58% 38%,58% 0,68% 0,68% 28%,76% 28%,76% 10%,85% 10%,85% 34%,94% 34%,94% 18%,100% 18%,100% 100%,0 100%);
+}
+.cityLoadingCard { position: relative; width: min(520px, calc(100vw - 42px)); text-align: center; padding: 28px 24px; }
+.cityLoadingMark { color: #d9b565; font: 900 clamp(11px,2vw,13px)/1 system-ui,sans-serif; letter-spacing: .42em; text-transform: uppercase; }
+.cityLoadingTitle { margin: 10px 0 5px; color: #f5e6bd; font: 900 clamp(36px,9vw,70px)/.95 Georgia,serif; letter-spacing: .08em; text-shadow: 0 5px 24px #000, 0 0 28px rgba(202,47,43,.24); }
+.cityLoadingRule { width: 92px; height: 2px; margin: 17px auto 21px; background: linear-gradient(90deg,transparent,#c62f2b,transparent); box-shadow: 0 0 14px #c62f2b88; }
+#cityLoadingText { min-height: 20px; color: #d7dce4; font: 700 13px/1.4 system-ui,sans-serif; letter-spacing: .03em; }
+.cityLoadingTrack { height: 7px; margin-top: 14px; overflow: hidden; border: 1px solid #3b4350; border-radius: 99px; background: #080b10; box-shadow: inset 0 1px 5px #000; }
+#cityLoadingBar { width: 7%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#7e1719,#df3e35,#e5bd69); box-shadow: 0 0 15px #d23832; transition: width .28s ease; }
+.cityLoadingMeta { display: flex; justify-content: space-between; margin-top: 9px; color: #747f8e; font: 800 10px/1 system-ui,sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+#cityLoadingPct { color: #d9b565; }
+@media (prefers-reduced-motion: reduce) { #cityLoadingScreen, #cityLoadingBar { transition: none; } }
+
 /* Левый стик движения */
 #joyL {
   position: absolute; left: 24px; bottom: 24px;
@@ -2036,7 +2068,47 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
   </div>
 </div>
 
+<div id="cityLoadingScreen" role="status" aria-live="polite" aria-label="Загрузка города">
+  <div class="cityLoadingCard">
+    <div class="cityLoadingMark">Город ждёт хозяина</div>
+    <div class="cityLoadingTitle">МАФИОЗИ</div>
+    <div class="cityLoadingRule"></div>
+    <div id="cityLoadingText">Запускаем городской движок…</div>
+    <div class="cityLoadingTrack"><div id="cityLoadingBar"></div></div>
+    <div class="cityLoadingMeta"><span>Загрузка города</span><span id="cityLoadingPct">7%</span></div>
+  </div>
+</div>
+
 <script>
+// Управляет реальной загрузкой Canvas/Three.js. Прогресс двигают этапы ниже,
+// а не декоративный бесконечный таймер, поэтому зависший renderer не маскируется.
+window.MafioziLoading = (() => {
+  const started = performance.now(); let value = 7, finished = false;
+  const screen = document.getElementById('cityLoadingScreen');
+  const bar = document.getElementById('cityLoadingBar');
+  const text = document.getElementById('cityLoadingText');
+  const pct = document.getElementById('cityLoadingPct');
+  const isThree = new URLSearchParams(location.search).get('render') === '3d';
+  const set = (next, label) => {
+    if (finished) return;
+    value = Math.max(value, Math.min(99, Math.round(Number(next) || value)));
+    if (bar) bar.style.width = `${value}%`;
+    if (pct) pct.textContent = `${value}%`;
+    if (label && text) text.textContent = label;
+  };
+  const complete = label => {
+    if (finished) return; finished = true;
+    if (bar) bar.style.width = '100%'; if (pct) pct.textContent = '100%';
+    if (label && text) text.textContent = label;
+    const wait = Math.max(0, 650 - (performance.now() - started));
+    setTimeout(() => { screen?.classList.add('done'); setTimeout(() => screen?.remove(), 520); }, wait);
+  };
+  // Если WebGL/CDN не ответит, игра всё равно откроет уже работающий Canvas.
+  const canvasReady = () => isThree ? set(48, 'Подключаем трёхмерный город…') : complete('Город готов');
+  setTimeout(() => { if (!finished) complete('Город готов — продолжаем в безопасном режиме'); }, 15000);
+  return Object.freeze({ set, complete, canvasReady, isThree });
+})();
+window.MafioziLoading.set(15, 'Читаем карту и районы…');
 // ════════════════════════════════════════════════════════════════
 //  ОБЩИЙ МИР — клиент. Подключается к /world/sim по WebSocket.
 //  Архитектура такая же как в demo_isometric (изометрия), но без AI:
@@ -2319,14 +2391,13 @@ try {
 
 // ── Карта (статичная) ──────────────────────────────────────────
 // Размер задаст сервер в hello-кадре, но дублируем дефолты на случай оффлайна.
-// Размер задаст сервер. Дефолт 80×140: r=0..79 основной город, r=80..99
-// буфер (тоже город — дорога ведёт на юг), r=100..139 — отдельная
-// арена Логова где живёт банда.
-let MAP_COLS = 80, MAP_ROWS = 200;
+// Старый город сохраняет координаты c=0..79. За каналом c=80..99 лежит
+// второй большой город c=100..179; их соединяет автомобильный мост.
+let MAP_COLS = 180, MAP_ROWS = 200;
 
 // ── Южная зона: пляж + море + причал + корабль ─────────────────────
-// Карта 80×200: r=0..79 город, r=80..99 буфер, r=100..139 Логово,
-// r=140..149 буфер от Логова, r=150..199 — берег и порт Майкла.
+// Карта 180×200: две городские части, канал/мост между ними и общий
+// южный берег r=150..199 с портом Майкла.
 // Координаты ДОЛЖНЫ совпадать с серверным _world_is_wall в mafiozi_bot.py.
 const BEACH_R0 = 150, BEACH_R1 = 165;   // полоса песка (15 рядов)
 const PIER_R0  = 165, PIER_R1  = 175;   // деревянный причал выступает в воду
@@ -4373,6 +4444,37 @@ function _updateGasStations(now) {
 const PARK_BLOCKS = new Set();
 function isParkBlock(br, bc) { return PARK_BLOCKS.has(br + ',' + bc); }
 
+const CITY_CANAL_C0 = 80, CITY_CANAL_C1 = 100;
+const CITY_BRIDGE_R0 = 47, CITY_BRIDGE_R1 = 56;
+const EAST_EXPANSION_C0 = 100;
+const EAST_EXPANSION_R1 = 150;
+// План нового восточного города строится не из одиночных 10×10 островков, а
+// из супер-кварталов 20×20. Внутри: магистраль по периметру, локальный тупик
+// с разворотным кругом, закрытые дворы, проходы между корпусами и парковки.
+function eastNeighborhoodTile(r,c) {
+  if (c < EAST_EXPANSION_C0 || r >= EAST_EXPANSION_R1) return null;
+  const lr=r%20, lc=(c-EAST_EXPANSION_C0)%20;
+  if (lr<=3 || lc<=3) return 0;                       // районная магистраль
+  if (lr===4 || lc===4 || lr===19 || lc===19) return 9;
+  const vertical=((Math.floor(r/20)+Math.floor((c-EAST_EXPANSION_C0)/20))&1)===1;
+  const a=vertical?lc:lr, b=vertical?lr:lc;           // поворачиваем схему
+  const bulb=Math.hypot(a-11,b-14);
+  if ((a>=10&&a<=12&&b<=14) || bulb<=3.05) return 0; // тупик + разворот
+  if (((a===9||a===13)&&b<=14) || (bulb>3.05&&bulb<=4.15)) return 9;
+  // Карманы парковки у въезда; каждая вторая ячейка занята машиной.
+  if (((a>=6&&a<=8)||(a>=14&&a<=16)) && b===5) return 0;
+  if (((a>=6&&a<=8)||(a>=14&&a<=16)) && b>=6&&b<=8) {
+    return ((a+b+Math.floor(r/20))&1)===0 ? 2 : 9;
+  }
+  // Четыре самостоятельных корпуса образуют микрорайон вокруг тупика.
+  // Между ними остаются проходы; за разворотом — закрытый зелёный двор.
+  if (b===9 || b===13 || b===14) return 9;
+  if (b>=15&&b<=18&&a>=9&&a<=13) return 8;
+  const sideLot=(a>=5&&a<=7)||(a>=15&&a<=18);
+  const buildingLot=(b>=10&&b<=12)||(b>=15&&b<=18);
+  return sideLot&&buildingLot?1:9;
+}
+
 function buildMap() {
   // Подбираем парк-блоки: каждый 3-й/5-й по диагонали (детерминистично)
   PARK_BLOCKS.clear();
@@ -4394,6 +4496,13 @@ function buildMap() {
       if (r === 0 || r === MAP_ROWS - 1 || c === 0 || c === MAP_COLS - 1) {
         row.push(1); continue;
       }
+      // Водный канал действительно разделяет две части карты. Тайл 19 —
+      // проезжая часть моста; под ним остаётся вода (визуальный слой в 3D).
+      if(c>=CITY_CANAL_C0&&c<CITY_CANAL_C1&&r<EAST_EXPANSION_R1){
+        row.push(r>=CITY_BRIDGE_R0&&r<CITY_BRIDGE_R1?19:16);continue;
+      }
+      const eastTile=eastNeighborhoodTile(r,c);
+      if(eastTile!==null){row.push(eastTile);continue;}
       // Дорога — ЧЕТЫРЕ клетки шириной (mod 10 ∈ {0..3}). Между фронтами
       // зданий просторно — игрок не запинается об угол.
       const onRoadR = (r % BLOCK <= 3);
@@ -4514,6 +4623,7 @@ function buildMap() {
   for (let r = 2; r < MAP_ROWS - 2; r++) {
     for (let c = 2; c < MAP_COLS - 2; c++) {
       if (MAP[r][c] !== 0) continue;
+      if (c >= EAST_EXPANSION_C0 && r < EAST_EXPANSION_R1) continue;
       if ((r % BLOCK !== BLOCK - 2) && (c % BLOCK !== BLOCK - 2)) continue;
       const x = det(r, c, 7);
       if (x < 0.035) MAP[r][c] = 2; // машина
@@ -5289,8 +5399,7 @@ function inAggroZone(r, c) {
 // TERRITORIES вокруг POI). Логово — отдельная бандитская зона (не
 // захватывается). В будущем игроки захватывают целые районы онлайн и
 // получают с них бонусы (поле bonus — задел под механику). Разбивка
-// покрывает карту 80×200 целиком, зоны не пересекаются:
-//   город r0..99 (4 квадранта по c=40 и r=40) + Логово r100..149 + берег r150..199.
+// покрывает две части карты 180×200. Между c=80..99 — водный канал и мост.
 // hq — штаб района (точка захвата, совпадает с DISTRICTS_DEF на сервере).
 // income — пассивный доход банде-владельцу за тик. capturable:false у Логова.
 // Визуальная классификация независима от механики захвата: один большой
@@ -5313,7 +5422,10 @@ const DISTRICT_STYLE_ZONES = Object.freeze([
   { id:'rich',        r0:60,  r1:79,  c0:0,  c1:39 },
   { id:'countryside', r0:80,  r1:99,  c0:0,  c1:39 },
   { id:'industrial',  r0:40,  r1:99,  c0:40, c1:79 },
-  { id:'coast',       r0:150, r1:199, c0:0,  c1:79 },
+  { id:'rich',        r0:0,   r1:74,  c0:100, c1:179 },
+  { id:'nightlife',   r0:75,  r1:109, c0:100, c1:179 },
+  { id:'industrial',  r0:110, r1:149, c0:100, c1:179 },
+  { id:'coast',       r0:150, r1:199, c0:0,  c1:179 },
 ]);
 function districtStyleAt(r,c){
   const z=DISTRICT_STYLE_ZONES.find(x=>r>=x.r0&&r<=x.r1&&c>=x.c0&&c<=x.c1);
@@ -5335,10 +5447,16 @@ const DISTRICTS = [
   { id:'industrial', name:'Промзона',   icon:'🏭', color:'#d2691e',
     r0:40,  r1:99,  c0:40, c1:79, capturable:true,  bonus:'Скидка на оружие',
     hq:{r:70,c:60}, intel:{r:53,c:60}, sabotage:[{r:60,c:49},{r:72,c:70},{r:83,c:58}], escape:{r:95,c:60}, income:550 },
+  { id:'eastside',   name:'Ист-Сайд',    icon:'🏘', color:'#55b8a9',
+    r0:0,   r1:74,  c0:100, c1:179, capturable:true, bonus:'Доход с жилых кварталов',
+    hq:{r:40,c:140}, intel:{r:27,c:140}, sabotage:[{r:34,c:112},{r:49,c:131},{r:61,c:164}], escape:{r:70,c:140}, income:700 },
+  { id:'docklands',  name:'Доклендс',    icon:'🏗', color:'#597b9d',
+    r0:75,  r1:149, c0:100, c1:179, capturable:true, bonus:'Скидка на транспорт',
+    hq:{r:120,c:140}, intel:{r:107,c:140}, sabotage:[{r:94,c:112},{r:119,c:131},{r:136,c:164}], escape:{r:145,c:140}, income:760 },
   { id:'lair',       name:'Логово',     icon:'☠️', color:'#c0392b',
     r0:100, r1:149, c0:0,  c1:79, capturable:false, bonus:'Территория банды' },
   { id:'coast',      name:'Побережье',  icon:'⚓', color:'#2ecc71',
-    r0:150, r1:199, c0:0,  c1:79, capturable:true,  bonus:'+20% с контрактов',
+    r0:150, r1:199, c0:0,  c1:179, capturable:true,  bonus:'+20% с контрактов',
     hq:{r:156,c:40}, intel:{r:165,c:40}, sabotage:[{r:157,c:14},{r:158,c:65},{r:178,c:40}], escape:{r:196,c:40}, income:450 },
 ];
 const DIST_HQ_RAD = 6;
@@ -5888,6 +6006,7 @@ function ownerColor(key) {
 }
 
 buildMap();
+window.MafioziLoading?.set(40, `Подготовлена сетка города ${MAP_COLS} × ${MAP_ROWS}`);
 
 // ── Декор Логова: цыганский лагерь ──────────────────────────────
 // Палатки/руины/костры/обломки машин/тряпки. Генерируется один раз
@@ -14604,19 +14723,29 @@ window.addEventListener('keyup', (e) => {
 // Проходимые тайлы: 0 дорога, 7 фонарь, 8 парк, 9 бордюр,
 // 14 песок, 15 причал, 17 палуба корабля, 18 гоночный трек.
 // Вода (16) и здания (1) блокируют.
-const PASSABLE = new Set([0, 7, 8, 9, 14, 15, 17, 18]);
+const PASSABLE = new Set([0, 7, 8, 9, 14, 15, 17, 18, 19]);
 const _THREE_WHOLE_BUILDING_COLLISIONS = new URLSearchParams(location.search).get('render') === '3d';
-let _threeWholeBuildingRectsCache = null;
-function _threeWholeBuildingRects() {
-  if (_threeWholeBuildingRectsCache) return _threeWholeBuildingRectsCache;
-  const rects=[];
-  for(let r0=0;r0<MAP_ROWS;r0+=BLOCK)for(let c0=0;c0<MAP_COLS;c0+=BLOCK){let minR=Infinity,maxR=-Infinity,minC=Infinity,maxC=-Infinity;
-    for(let r=r0;r<Math.min(r0+BLOCK,MAP_ROWS);r++)for(let c=c0;c<Math.min(c0+BLOCK,MAP_COLS);c++)if(MAP[r]?.[c]===1){minR=Math.min(minR,r);maxR=Math.max(maxR,r);minC=Math.min(minC,c);maxC=Math.max(maxC,c);}
-    if(Number.isFinite(minR))rects.push({minR,maxR,minC,maxC});
+const _threeBuildingBlockCache = new Map();
+function _connectedBuildingParts(r0,c0,r1,c1){
+  const cells=new Set();
+  for(let r=r0;r<r1;r++)for(let c=c0;c<c1;c++)if(r>0&&r<MAP_ROWS-1&&c>0&&c<MAP_COLS-1&&MAP[r]?.[c]===1)cells.add(`${r},${c}`);
+  const parts=[];
+  while(cells.size){
+    const first=cells.values().next().value,[minR,minC]=first.split(',').map(Number);let maxC=minC,maxR=minR;
+    while(cells.has(`${minR},${maxC+1}`))maxC++;
+    outer:while(maxR+1<r1){for(let c=minC;c<=maxC;c++)if(!cells.has(`${maxR+1},${c}`))break outer;maxR++;}
+    const tiles=[];for(let r=minR;r<=maxR;r++)for(let c=minC;c<=maxC;c++){cells.delete(`${r},${c}`);tiles.push([r,c]);}
+    parts.push({r:(minR+maxR+1)/2,c:(minC+maxC+1)/2,w:maxC-minC+1,d:maxR-minR+1,minR,maxR,minC,maxC,tiles});
   }
-  return (_threeWholeBuildingRectsCache=rects);
+  return parts;
 }
-function _isThreeWholeBuildingBlocked(r,c){if(!_THREE_WHOLE_BUILDING_COLLISIONS)return false;return _threeWholeBuildingRects().some(q=>r>=q.minR&&r<q.maxR+1&&c>=q.minC&&c<q.maxC+1);}
+function _isThreeWholeBuildingBlocked(r,c){
+  if(!_THREE_WHOLE_BUILDING_COLLISIONS)return false;
+  const r0=Math.floor(r/BLOCK)*BLOCK,c0=Math.floor(c/BLOCK)*BLOCK,key=`${r0}:${c0}`;
+  let rects=_threeBuildingBlockCache.get(key);
+  if(!rects){rects=_connectedBuildingParts(r0,c0,Math.min(r0+BLOCK,MAP_ROWS),Math.min(c0+BLOCK,MAP_COLS));_threeBuildingBlockCache.set(key,rects);}
+  return rects.some(q=>r>=q.minR&&r<q.maxR+1&&c>=q.minC&&c<q.maxC+1);
+}
 function isBlocked(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS) return true;
@@ -17216,12 +17345,13 @@ function wsConnect() {
       // Если бот старый (40×40) — мир просто меньше, но всё работает.
       // Пересборка нужна ТОЛЬКО если размер реально изменился — buildMap()
       // детерминирован (тот же MAP), но это дорогая полная регенерация
-      // 80×200 тайлов + банки/АЗС. На каждый реконнект (обычное дело в
+      // 180×200 тайлов + банки/АЗС. На каждый реконнект (обычное дело в
       // мобильной сети — WS рвётся и без смены размера карты) она дёргала
       // MAP синхронно посреди рендер-лупа → видимое мерцание/пропадание
       // зданий на кадр-другой.
       if (srvC !== MAP_COLS || srvR !== MAP_ROWS) {
         MAP_COLS = srvC; MAP_ROWS = srvR; buildMap();
+        _threeBuildingBlockCache.clear();
         // buildMap снова поставил здания на парковки — расчищаем заново,
         // иначе пользователь увидит здания НА парковочных машинах.
         try { _clearParkingTiles(); } catch (e) {}
@@ -28150,7 +28280,7 @@ function drawTile(r, c) {
   // painted every fourth lane as brown sidewalk squares.
   const onRoadR = (r % BLOCK <= 3);
   const onRoadC = (c % BLOCK <= 3);
-  const isRoad  = (onRoadR || onRoadC);
+  const isRoad  = (t === 0 || t === 18 || t === 19 || onRoadR || onRoadC);
   // Детерминированный hash (r,c) для выбора подварианта — каждый тайл
   // получает СВОЙ оттенок/паттерн, но всегда тот же между кадрами.
   // Без флага диагональной чётности город выглядел сеткой клеточек —
@@ -52182,6 +52312,7 @@ function frame() {
       if (_worldResumeFrames === 0) _worldExitSnapshot = null;
     }
     _frameErrStreak = 0;
+    if (!frame._loadingReady) { frame._loadingReady = true; window.MafioziLoading?.canvasReady(); }
   } catch (e) {
     _frameErrStreak++;
     if (_frameErrStreak < 10) {
@@ -52227,7 +52358,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v18-purposeful-civilian-routes',
+  migrationStage: 'three-full-world-shell-v19-twin-city-bridge-streaming',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52304,8 +52435,8 @@ window.Mafiozi3DBridge = Object.freeze({
   },
   // Read-only, compact description of real city blocks near the player.
   // Three.js consumes this instead of inventing a separate map.
-  getWorldSnapshot(radius = 45) {
-    const rad = Math.max(15, Math.min(260, Math.floor(+radius || 45)));
+  getWorldSnapshot(radius = 58) {
+    const rad = Math.max(25, Math.min(90, Math.floor(+radius || 58)));
     const minR = Math.max(0, Math.floor((player.r - rad) / BLOCK) * BLOCK);
     const maxR = Math.min(MAP_ROWS - 1, Math.ceil((player.r + rad) / BLOCK) * BLOCK);
     const minC = Math.max(0, Math.floor((player.c - rad) / BLOCK) * BLOCK);
@@ -52317,7 +52448,7 @@ window.Mafiozi3DBridge = Object.freeze({
       for (let r = r0; r < Math.min(r0 + BLOCK, MAP_ROWS); r++) for (let c = c0; c < Math.min(c0 + BLOCK, MAP_COLS); c++) {
         const tile = MAP[r]?.[c];
         if (tile === 1) { buildings++;buildingTiles.push([r,c]);bMinR=Math.min(bMinR,r);bMaxR=Math.max(bMaxR,r);bMinC=Math.min(bMinC,c);bMaxC=Math.max(bMaxC,c); }
-        else if (tile === 0 || tile === 18) roads++;
+        else if (tile === 0 || tile === 18 || tile === 19) roads++;
         else if (tile === 9 || tile === 15 || tile === 17) pavement++;
         else if (tile === 8) grass++;
         else if (tile === 14) sand++;
@@ -52327,9 +52458,10 @@ window.Mafiozi3DBridge = Object.freeze({
       const seed = Math.abs(((r0 * 73856093) ^ (c0 * 19349663)) | 0);
       const heightBase = {downtown:20,nightlife:12,rich:10,industrial:8,poor:7,countryside:5,coast:6}[styleId] || 8;
       const heightSpread = styleId === 'downtown' ? 18 : styleId === 'nightlife' ? 8 : 6;
+      const buildingParts=_connectedBuildingParts(r0,c0,Math.min(r0+BLOCK,MAP_ROWS),Math.min(c0+BLOCK,MAP_COLS)).map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread)}));
       blocks.push({
         r0,c0,styleId,buildings,roads,pavement,grass,sand,water,seed,
-        building: buildings ? {r:(bMinR+bMaxR+1)/2,c:(bMinC+bMaxC+1)/2,w:bMaxC-bMinC+1,d:bMaxR-bMinR+1,minR:bMinR,maxR:bMaxR,minC:bMinC,maxC:bMaxC,tiles:buildingTiles,height:heightBase+(seed%heightSpread)} : null,
+        building: buildingParts[0]||null,buildingParts,
       });
     }
     const pois = (typeof POI !== 'undefined' ? POI : []).filter(p => p.r >= minR && p.r <= maxR && p.c >= minC && p.c <= maxC).map(p => ({id:p.id,r:p.r,c:p.c,label:p.label||p.name||p.id}));
@@ -52351,7 +52483,13 @@ window.Mafiozi3DBridge = Object.freeze({
       gasStations:(typeof GAS_STATIONS!=='undefined'?GAS_STATIONS:[]).map((g,i)=>({id:String(g.id??i),r:g.r,c:g.c})),
       raceTrack:(typeof TRACK_PTS!=='undefined'?TRACK_PTS:[]).map(p=>({r:p[0],c:p[1]})),
     };
-    return {center:{r:player.r,c:player.c},bounds:{minR,maxR,minC,maxC},blocks,pois,coast,landmarks};
+    const canal={c0:CITY_CANAL_C0,c1:CITY_CANAL_C1,r0:0,r1:EAST_EXPANSION_R1,bridge:{r0:CITY_BRIDGE_R0,r1:CITY_BRIDGE_R1}};
+    const neighborhoods=[];
+    for(let r0=Math.floor(minR/20)*20;r0<=maxR;r0+=20)for(let c0=EAST_EXPANSION_C0;c0<=maxC;c0+=20){
+      if(r0>=EAST_EXPANSION_R1||c0<minC)continue;
+      neighborhoods.push({r0,c0,size:20,vertical:((Math.floor(r0/20)+Math.floor((c0-EAST_EXPANSION_C0)/20))&1)===1});
+    }
+    return {center:{r:player.r,c:player.c},bounds:{minR,maxR,minC,maxC},blocks,pois,coast,canal,neighborhoods,landmarks};
   },
   getDynamicEntities(radius = 38) {
     const rad2=Math.max(12,Math.min(65,+radius||38))**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
@@ -56118,6 +56256,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d64"></script>
+<script type="module" src="three_preview.js?v=3d65"></script>
 </body>
 </html>
