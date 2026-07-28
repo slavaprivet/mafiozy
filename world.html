@@ -34430,10 +34430,12 @@ function drawCareerHelicopter(qc,m){
   const screenAng=Math.atan2((fwdX+fwdY)*ISO_Y,fwdX-fwdY);
   const altitude=Number.isFinite(qc._heliAltitude)?qc._heliAltitude:(qc.driver_uid?.55:.08);
   const lift=14+altitude*58+Math.sin(t*.004)*Math.min(2.4,altitude*2.4);
-  const body=m.palette?.[0]||'#e8edf2',dark=m.palette?.[1]||'#25344a',accent=m.police?'#4f9ed8':'#d2a53e';
+  const news=m.name==='mafia_heli',body=news?'#c91f2b':(m.palette?.[0]||'#e8edf2'),dark=news?'#76101a':(m.palette?.[1]||'#25344a'),accent=news?'#f4f0e8':(m.police?'#4f9ed8':'#d2a53e');
   ctx.save();
   const shadowA=.30-altitude*.16;
   ctx.fillStyle=`rgba(0,0,0,${shadowA})`;ctx.filter=`blur(${2+altitude*3}px)`;ctx.beginPath();ctx.ellipse(p.x+lift*.13,p.y+12+lift*.06,38+lift*.18,12+lift*.05,screenAng,0,Math.PI*2);ctx.fill();ctx.filter='none';
+  const cityHour=typeof getGameHour==='function'?getGameHour():12,newsLightOn=news&&(cityHour>=18||cityHour<6);
+  if(newsLightOn){const scanX=Math.sin(t*.0011)*48,scanY=24+Math.cos(t*.00083)*12,beam=ctx.createLinearGradient(p.x,p.y-lift,p.x+scanX,p.y+scanY);beam.addColorStop(0,'rgba(255,244,196,.05)');beam.addColorStop(.72,'rgba(255,232,158,.16)');beam.addColorStop(1,'rgba(255,221,120,.3)');ctx.save();ctx.globalCompositeOperation='screen';ctx.fillStyle=beam;ctx.beginPath();ctx.moveTo(p.x+4,p.y-lift+8);ctx.lineTo(p.x+scanX-34,p.y+scanY);ctx.lineTo(p.x+scanX+34,p.y+scanY);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(255,234,158,.28)';ctx.beginPath();ctx.ellipse(p.x+scanX,p.y+scanY,34,10,0,0,Math.PI*2);ctx.fill();ctx.restore();}
   ctx.translate(p.x,p.y-lift);ctx.rotate(screenAng);
   // skids and their braces
   ctx.strokeStyle='#111821';ctx.lineCap='round';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-21,17);ctx.lineTo(17,17);ctx.moveTo(-18,11);ctx.lineTo(-21,17);ctx.moveTo(13,10);ctx.lineTo(17,17);ctx.stroke();
@@ -34450,7 +34452,8 @@ function drawCareerHelicopter(qc,m){
   const glass=ctx.createLinearGradient(7,-14,29,3);glass.addColorStop(0,'#c7efff');glass.addColorStop(.45,'#5796b5');glass.addColorStop(1,'#18394f');ctx.fillStyle=glass;ctx.beginPath();ctx.moveTo(5,-13);ctx.quadraticCurveTo(27,-12,30,0);ctx.quadraticCurveTo(27,5,10,2);ctx.closePath();ctx.fill();ctx.strokeStyle='rgba(220,245,255,.8)';ctx.lineWidth=1;ctx.stroke();
   ctx.strokeStyle='rgba(20,45,60,.8)';ctx.beginPath();ctx.moveTo(17,-11);ctx.lineTo(17,3);ctx.stroke();
   ctx.fillStyle='#111820';ctx.beginPath();ctx.arc(-7,-2,4,0,Math.PI*2);ctx.fill();
-  if(m.police){ctx.fillStyle='#f4f7fa';ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.fillText('POLICE',0,8);}
+  if(news){ctx.fillStyle='#fff9ec';ctx.strokeStyle='#611018';ctx.lineWidth=2;ctx.font='900 8px system-ui';ctx.textAlign='center';ctx.strokeText('NEWS',0,7);ctx.fillText('NEWS',0,7);ctx.font='900 4px system-ui';ctx.fillText('НОВОСТИ',0,12);}
+  else if(m.police){ctx.fillStyle='#f4f7fa';ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.fillText('POLICE',0,8);}
   else{ctx.fillStyle='#f1d36e';ctx.beginPath();ctx.arc(-7,-2,2.3,0,Math.PI*2);ctx.fill();ctx.font='bold 6px system-ui';ctx.textAlign='center';ctx.fillText('FAMIGLIA',2,8);}
   if(m.police){const flash=(Math.floor(t/150)&1)===0;ctx.fillStyle=flash?'#ff334f':'#268cff';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=7;ctx.fillRect(-4,-15,8,3);ctx.shadowBlur=0;}
   ctx.strokeStyle='#303943';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-15);ctx.lineTo(0,-23);ctx.stroke();
@@ -52197,7 +52200,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v15-final-graphics-pass',
+  migrationStage: 'three-full-world-shell-v16-news-helicopter',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52317,6 +52320,7 @@ window.Mafiozi3DBridge = Object.freeze({
       helicopter:!!model.helicopter,emergency:model.emergency||'',stripe:model.stripe||'',
       dirR:+x.dirDy||0,dirC:+x.dirDx||0,velR:+x.vr||0,velC:+x.vc||0,braking:!!x.braking,turning:!!x._turningAtIntersection,
     };});
+    if(_LOCAL_PREVIEW&&_UP.get('previewnewsheli')){const a=performance.now()*.00022,r=player.r+Math.sin(a)*8,c=player.c+Math.cos(a)*11;cars.unshift({id:'preview_news_heli',r,c,ang:a+Math.PI/2,model:'mafia_heli',paint:'#c91f2b',parked:false,length:2.5,width:1.25,height:1.05,wheelR:.18,sport:false,pickup:false,van:false,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:true,helicopter:true,emergency:'',stripe:'',dirR:Math.cos(a),dirC:-Math.sin(a),velR:Math.cos(a)*.9,velC:-Math.sin(a)*.9,braking:false,turning:false});}
     let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.npcs||[]):(typeof NPCS!=='undefined'?NPCS:[]);
     if(!inside){
       const combat=[];
