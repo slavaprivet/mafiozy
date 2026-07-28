@@ -33458,6 +33458,9 @@ function drawAggroBot(bot) {
   const act = (bot.act === 'walk' || performance.now() < (bot._walkVisualUntil || 0))
     ? 'walk' : (bot.act || 'idle');
   const isCityGang = String(bot.id || '').startsWith('cgbot');
+  // Короткая серверная остановка теперь выглядит как живая стойка, а не
+  // замерший кадр: едва заметное дыхание остаётся синхронным для всего тела.
+  if (isCityGang && act === 'idle') p.y += Math.sin(performance.now() * .0035 + String(bot.id).length) * .7;
   const faction = bot.faction || (baseLook.gang === 2 ? 'yellow' : 'purple');
   const isYellowGang = isCityGang && faction === 'yellow';
   // У жёлтой группировки собственный узнаваемый образ: дорогой белый
