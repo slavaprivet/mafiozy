@@ -12609,12 +12609,50 @@ function _updateGang(dt) {
       continue;
     }
     m.ang = Math.atan2(tdr, tdc);
-    if(_buildingInt?.bizId==='major_casino'&&
-       !_casinoLineClear(_buildingInt,m.r,m.c,pos.r,pos.c)) continue;
-    if (now < (m._nextShootAt || 0)) continue;
-    m._nextShootAt = now + GANG_SHOT_CD_MIN + Math.random() * GANG_SHOT_CD_RANGE;
+    const hasInteriorLine = !_buildingInt ||
+      _buildingInt.bizId!=='major_casino' ||
+      _casinoLineClear(_buildingInt,m.r,m.c,pos.r,pos.c);
+    // В бою боец выходит из парадного построения: сокращает дистанцию,
+    // при наличии линии огня перемещается боком и не складывается с другими
+    // наёмниками в одну неподвижную точку.
+    const gangAi=_interiorGuardWeaponAi(m.weapon);
     const nd = tdist > 0.01 ? tdist : 1;
     const dirY = tdr / nd, dirX = tdc / nd;
+    if(now>=(m._combatMoveUntil||0)){
+      m._combatMoveUntil=now+650+Math.random()*850;
+      m._strafeDir=Math.random()<.5?-1:1;
+    }
+    let combatY=0,combatX=0,combatScale=1;
+    if(!hasInteriorLine||tdist>gangAi.ideal+1){
+      combatY=dirY;combatX=dirX;
+    }else if(tdist<Math.max(1.7,gangAi.retreat)){
+      combatY=-dirY-dirX*(m._strafeDir||1)*.35;
+      combatX=-dirX+dirY*(m._strafeDir||1)*.35;
+      combatScale=.82;
+    }else{
+      combatY=-dirX*(m._strafeDir||1)+dirY*(tdist-gangAi.ideal)*.18;
+      combatX= dirY*(m._strafeDir||1)+dirX*(tdist-gangAi.ideal)*.18;
+      combatScale=.58;
+    }
+    const combatLen=Math.hypot(combatY,combatX)||1;
+    const combatStep=Math.min(.12,(2.25+(m.isBoss ? .35 : 0))*combatScale*followDt);
+    const combatR=m.r+combatY/combatLen*combatStep;
+    const combatC=m.c+combatX/combatLen*combatStep;
+    let combatMoved=false;
+    if(!_businessInteriorMovementBlocked(_buildingInt,combatR,combatC,.3)){
+      m.r=combatR;m.c=combatC;combatMoved=true;
+    }else if(!_businessInteriorMovementBlocked(_buildingInt,combatR,m.c,.3)){
+      m.r=combatR;combatMoved=true;
+    }else if(!_businessInteriorMovementBlocked(_buildingInt,m.r,combatC,.3)){
+      m.c=combatC;combatMoved=true;
+    }else{
+      m._combatMoveUntil=0;m._strafeDir=-(m._strafeDir||1);
+    }
+    if(combatMoved)m.walkPhase+=combatStep*8;
+    if(!hasInteriorLine) continue;
+    if (now < (m._nextShootAt || 0)) continue;
+    m._nextShootAt = now + GANG_SHOT_CD_MIN + Math.random() * GANG_SHOT_CD_RANGE;
+    m._shotAt=now;
     // Реальный кончик ствола (как у игрока), а не грубая точка m.r±0.45 —
     // та не совпадала с нарисованным оружием («стреляет не из пушки»).
     const _npcScale = (_buildingInt || _bankInt) ? 0.85 : 0.88;
@@ -37486,7 +37524,7 @@ Object.assign(FIREARM_TIP_DEFER, FIREARM_TIP);
 // Рендер: оружие + вспышка дула. Вспышка живёт 80мс после выстрела.
 // shotAtMs — performance.now() момента последнего выстрела (для self
 // это lastShotClientT, для других игроков и NPC — lastBossShotAt.get(id)).
-function drawWeaponInHands(x, y, ang, weapon, scale /*shotAtMs ignored: см. drawMuzzles*/) {
+function drawWeaponInHands(x, y, ang, weapon, scale, shotAtMs = 0) {
   // Безоружный/кулаки — НЕ рисуем руку с оружием. Раньше 'none'/'fists'
   // проходили дальше (truthy), а resolveWeapon('none') → 'pistol', и при
   // ударе кулаком вылезала лишняя «рука с пистолетом» (баг «третья рука»).
@@ -37506,6 +37544,16 @@ function drawWeaponInHands(x, y, ang, weapon, scale /*shotAtMs ignored: см. dr
   weapon = resolveWeapon(weapon);   // 'uzi' → 'smg', 'deagle' → 'pistol_heavy' и т.д.
   const a = weaponHandPose(x, y, ang, weapon);
   let { hx, hy, sx, sy, px, shY, perpX, perpY, shoulderD } = a;
+  // У NPC нет глобального _recoilUntil игрока, поэтому раньше их оружие
+  // оставалось совершенно неподвижным даже при настоящем выстреле.
+  // Короткая локальная отдача использует timestamp конкретного бойца.
+  const npcShotAge = performance.now() - (+shotAtMs || 0);
+  if (npcShotAge >= 0 && npcShotAge < 150) {
+    const shotWave = Math.sin(Math.PI * (1 - npcShotAge / 150));
+    const npcPull = TS * .065 * shotWave;
+    hx -= sx * npcPull;
+    hy -= sy * npcPull;
+  }
   let cycleWave = 0;
   if (_weaponCycle && _weaponCycle.weapon === weapon) {
     const nowCycle = performance.now();
@@ -38145,7 +38193,7 @@ function render() {
       ctx.beginPath(); ctx.ellipse(p.x, p.y + 2, 18, 8, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       drawPerson(p.x, p.y, g.ang, g.look, g.walkPhase, null, null, false, null, null, false, 0);
-      drawWeaponInHands(p.x, p.y, g.ang, g.weapon, 0.88, g._nextShootAt - 900 || 0);
+      drawWeaponInHands(p.x, p.y, g.ang, g.weapon, 0.88, g._shotAt || 0);
       _drawGangHpBar(g,p.x,p.y-49);
       ctx.save();
       ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
@@ -45391,6 +45439,7 @@ function _spawnInteriorNpcs(bi) {
           look:{gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%3,hat:5,suit:i%3===0?'#171b24':'#273143'},
           // До тревоги охранник патрулирует зал, а не замерзает у точки спавна.
           idleUntil:performance.now()+500+Math.random()*1800,speed:1.15+(i%2)*.15,_hostile:false,_shotAt:0,
+          _nextShotAt:performance.now()+450+i*130+Math.random()*650,
           weapon:(['pistol','pistol_heavy','smg','shotgun','tommy_gun','rifle'])[i%6],
         });
       }
@@ -45768,6 +45817,14 @@ function _fireInteriorGuardRound(bi,n,damage,hitChance=.72,target=null) {
   const side=Math.random()<.5?-1:1;
   const targetR=hit?victim.r:victim.r-dc/dist*missOffset*side;
   const targetC=hit?victim.c:victim.c+dr/dist*missOffset*side;
+  const shotNow=performance.now();
+  n._shotAt=shotNow;
+  if(shotNow>=(n._combatSayAt||0)){
+    const phrases=['СТОЙ!','ОГОНЬ!','ЛОЖИСЬ!','НЕ ПОДХОДИ!','ОХРАНА, К БОЮ!','ПРИКРОЙТЕ ВХОД!'];
+    n._sayText=phrases[(Math.random()*phrases.length)|0];
+    n._sayUntil=shotNow+850+Math.random()*450;
+    n._combatSayAt=shotNow+3200+Math.random()*3600;
+  }
   const muzzle=_npcMuzzleWorldPoint(n.r,n.c,n.ang,n.weapon,.88);
   spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);
   spawnBullet(muzzle.r,muzzle.c,targetR,targetC,
@@ -45926,13 +45983,26 @@ function _updateInteriorNpcs(bi, dt) {
       for(const o of others.values()) if(o.businessAttacker&&!o.dead){const d=Math.hypot(o.y-n.r,o.x-n.c);if(d<best){best=d;target=o;}}
       if(target){
         const dr=target.y-n.r,dc=target.x-n.c,dist=Math.hypot(dr,dc)||1;n.ang=Math.atan2(dr,dc);
-        if(dist>5){const step=n.speed*dt;n.r+=dr/dist*step;n.c+=dc/dist*step;n.walking=true;n.walkPhase+=dt*9;}else n.walking=false;
-        if(now-(n._shotAt||0)>1050){n._shotAt=now;spawnMuzzle(n.r,n.c,n.ang,n.weapon);spawnBullet(n.r,n.c,target.y,target.x,{hit:true,fromNpc:true,weapon:n.weapon});try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'player_shoot',d:{target_uid:target.uid,weapon:n.weapon}}));}catch(e){}}
+        if(dist>5){
+          const step=n.speed*dt,nextR=n.r+dr/dist*step,nextC=n.c+dc/dist*step;
+          if(!_businessInteriorMovementBlocked(bi,nextR,nextC,.3)){
+            n.r=nextR;n.c=nextC;n.walking=true;n.walkPhase+=dt*9;
+          }else n.walking=false;
+        }else n.walking=false;
+        if(now-(n._shotAt||0)>1050){
+          n._shotAt=now;
+          const muzzle=_npcMuzzleWorldPoint(n.r,n.c,n.ang,n.weapon,.88);
+          spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);
+          spawnBullet(muzzle.r,muzzle.c,target.y,target.x,{hit:true,fromNpc:true,weapon:n.weapon});
+          try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'player_shoot',d:{target_uid:target.uid,weapon:n.weapon}}));}catch(e){}
+        }
       }else n.walking=false;
       continue;
     }
     if (bi.robbery && n.role === 'biz_guard' && bi.robberyStarted) {
-      const dr=player.r-n.r,dc=player.c-n.c,dist=Math.hypot(dr,dc)||1;
+      const combatTarget=_majorGuardCombatTarget(bi,n);
+      if(!combatTarget){n.walking=false;continue;}
+      const dr=combatTarget.r-n.r,dc=combatTarget.c-n.c,dist=Math.hypot(dr,dc)||1;
       const weaponAi=_interiorGuardWeaponAi(n.weapon);
       n.ang=Math.atan2(dr,dc);n._hostile=true;
       // В бою охрана не превращается в неподвижную турель: дальних целей
@@ -45950,12 +46020,19 @@ function _updateInteriorNpcs(bi, dt) {
       const moveLen=Math.hypot(moveY,moveX)||1,step=n.speed*moveScale*1.3*dt;
       const nextR=Math.max(.8,Math.min(bi.H-.8,n.r+moveY/moveLen*step));
       const nextC=Math.max(.8,Math.min(bi.W-.8,n.c+moveX/moveLen*step));
-      if(Math.hypot(nextR-n.r,nextC-n.c)>.001){n.r=nextR;n.c=nextC;n.walking=true;n.walkPhase+=dt*9;}
-      else {n.walking=false;n._combatMoveUntil=0;n._strafeDir=-(n._strafeDir||1);}
-      if(dist<weaponAi.range&&!myDead&&
-          now-(n._shotAt||0)>=weaponAi.cooldown){
+      if(Math.hypot(nextR-n.r,nextC-n.c)>.001&&
+         !_businessInteriorMovementBlocked(bi,nextR,nextC,.3)){
+        n.r=nextR;n.c=nextC;n.walking=true;n.walkPhase+=dt*9;
+      }else {
+        n.walking=false;n._combatMoveUntil=0;n._strafeDir=-(n._strafeDir||1);
+      }
+      const targetAlive=combatTarget.kind==='gang'
+        ?combatTarget.ref?.hp>0:!myDead;
+      if(dist<weaponAi.range&&targetAlive&&
+          now>=(n._nextShotAt||0)){
         n._shotAt=now;
-        _fireInteriorGuardRound(bi,n,weaponAi.damage,weaponAi.hit);
+        n._nextShotAt=now+weaponAi.cooldown+Math.random()*240;
+        _fireInteriorGuardRound(bi,n,weaponAi.damage,weaponAi.hit,combatTarget);
         _gangAlertThreat(n.r,n.c,bi.npcs.indexOf(n),'interior_guard',n);
       }
       continue;
@@ -46198,7 +46275,7 @@ function _pushInteriorNpcs(bi, items) {
       ctx.beginPath(); ctx.ellipse(p.x, p.y + 2, 14, 6, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       drawPerson(p.x, p.y, g.ang, g.look, g.walkPhase, null, null, false, null, null, false, 0);
-      drawWeaponInHands(p.x, p.y, g.ang, g.weapon, 0.85, 0);
+      drawWeaponInHands(p.x, p.y, g.ang, g.weapon, 0.85, g._shotAt||0);
       _drawGangHpBar(g,p.x,p.y-42);
       ctx.save(); ctx.font = 'bold 7px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       ctx.fillStyle = '#4aff4a'; ctx.shadowColor = '#000'; ctx.shadowBlur = 2;
@@ -50522,7 +50599,7 @@ function drawBankInteriorScene() {
       ctx.fillStyle=gl; ctx.beginPath(); ctx.ellipse(p.x,p.y+2,14,6,0,0,Math.PI*2); ctx.fill();
       ctx.restore();
       drawPerson(p.x,p.y,g.ang,g.look,g.walkPhase,null,null,false,null,null,false,0);
-      drawWeaponInHands(p.x,p.y,g.ang,g.weapon,0.85,0);
+      drawWeaponInHands(p.x,p.y,g.ang,g.weapon,0.85,g._shotAt||0);
       _drawGangHpBar(g,p.x,p.y-42);
       ctx.save(); ctx.font='bold 7px system-ui'; ctx.textAlign='center'; ctx.textBaseline='bottom';
       ctx.fillStyle='#4aff4a'; ctx.shadowColor='#000'; ctx.shadowBlur=2;
