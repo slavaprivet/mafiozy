@@ -12,6 +12,9 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
   overscroll-behavior: none; -webkit-overflow-scrolling: auto; }
 #stage { position: fixed; inset: 0; overflow: hidden; }
 #gc    { display: block; width: 100%; height: 100%; touch-action: none; background: #0a0a10; }
+#pixiFx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:2; }
+#threePreview { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+#stage.three-mode #gc { opacity:0; }
 
 /* Верхняя плашка: онлайн + кнопка выхода */
 #topBar {
@@ -2161,6 +2164,109 @@ document.addEventListener('touchmove', (e) => {
 // ── Canvas ──────────────────────────────────────────────────────
 const canvas = document.getElementById('gc');
 const ctx = canvas.getContext('2d');
+
+// ── Experimental PixiJS atmosphere layer ───────────────────────────────────
+// Open world.html with ?pixi=1 to compare the WebGL layer with the untouched
+// Canvas renderer. Gameplay, hit-testing and server coordinates stay on #gc.
+// If the CDN/WebGL is unavailable the original renderer remains fully usable.
+const _pixiFx = { requested: new URLSearchParams(location.search).get('pixi') === '1', ready:false, failed:false };
+function _pixiGlowTexture(PIXI, colorStops) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+  const c = cv.getContext('2d');
+  const g = c.createRadialGradient(128,128,0,128,128,128);
+  colorStops.forEach(s => g.addColorStop(s[0], s[1]));
+  c.fillStyle=g; c.fillRect(0,0,256,256);
+  return PIXI.Texture.from(cv);
+}
+function _pixiFxTexture(PIXI, w, h, paint) {
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+  paint(cv.getContext('2d'),w,h);
+  return PIXI.Texture.from(cv);
+}
+async function _initPixiFx() {
+  if (!_pixiFx.requested || _pixiFx.ready || _pixiFx.failed) return;
+  try {
+    if (!window.PIXI) {
+      await new Promise((resolve,reject) => {
+        const s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/pixi.js@8.16.0/dist/pixi.min.js';
+        s.onload=resolve; s.onerror=reject; document.head.appendChild(s);
+      });
+    }
+    const PIXI=window.PIXI, app=new PIXI.Application();
+    const size=_viewSize();
+    await app.init({ width:size.W, height:size.H, backgroundAlpha:0, antialias:true, resolution:1, autoDensity:false });
+    app.stop(); app.canvas.id='pixiFx';
+    document.getElementById('stage').appendChild(app.canvas);
+
+    // Clearly visible noir grade. It belongs only to the opt-in comparison mode.
+    const atmosphere=new PIXI.Graphics().rect(0,0,size.W,size.H).fill({color:0x10233f,alpha:.23});
+    app.stage.addChild(atmosphere);
+
+    const warmTex=_pixiGlowTexture(PIXI, [[0,'rgba(255,224,142,.82)'],[.10,'rgba(255,184,74,.42)'],[.42,'rgba(255,125,30,.14)'],[1,'rgba(255,100,20,0)']]);
+    const coolTex=_pixiGlowTexture(PIXI, [[0,'rgba(83,175,255,.30)'],[.32,'rgba(47,111,230,.13)'],[1,'rgba(20,55,150,0)']]);
+    const glows=[];
+    for(let i=0;i<14;i++){
+      const sp=new PIXI.Sprite(i%4===0?coolTex:warmTex); sp.anchor.set(.5); sp.blendMode='add';
+      sp.x=((i*.217+.07)%1)*size.W; sp.y=(.15+((i*.337)%1)*.72)*size.H;
+      sp.scale.set(.48+(i%4)*.13); sp.alpha=.72; app.stage.addChild(sp); glows.push(sp);
+    }
+
+    // Long amber pools suggest wet asphalt without redrawing road tiles.
+    const reflectionTex=_pixiFxTexture(PIXI,96,320,(c,w,h)=>{
+      const g=c.createLinearGradient(0,0,0,h); g.addColorStop(0,'rgba(255,207,109,.38)');
+      g.addColorStop(.18,'rgba(255,148,45,.22)'); g.addColorStop(1,'rgba(255,105,25,0)');
+      c.fillStyle=g; c.beginPath(); c.moveTo(w*.42,0); c.lineTo(w*.58,0); c.lineTo(w,h); c.lineTo(0,h); c.closePath(); c.fill();
+    });
+    const reflections=[];
+    for(let i=0;i<9;i++){
+      const sp=new PIXI.Sprite(reflectionTex); sp.anchor.set(.5,0); sp.blendMode='add';
+      sp.x=((i*.293+.12)%1)*size.W; sp.y=(.20+((i*.181)%1)*.58)*size.H;
+      sp.scale.set(.34+(i%3)*.08,.42+(i%2)*.16); sp.rotation=((i%3)-1)*.12; sp.alpha=.38;
+      app.stage.addChild(sp); reflections.push(sp);
+    }
+
+    const fogTex=_pixiFxTexture(PIXI,512,160,(c,w,h)=>{
+      const g=c.createRadialGradient(w*.5,h*.5,8,w*.5,h*.5,w*.5); g.addColorStop(0,'rgba(116,151,185,.14)'); g.addColorStop(1,'rgba(88,120,160,0)');
+      c.fillStyle=g; c.fillRect(0,0,w,h);
+    });
+    const fog=[];
+    for(let i=0;i<4;i++){
+      const sp=new PIXI.Sprite(fogTex); sp.anchor.set(.5); sp.x=(i*.31+.05)*size.W; sp.y=(.22+i*.19)*size.H;
+      sp.scale.set(1.2+i*.16,.72); sp.alpha=.34; app.stage.addChild(sp); fog.push(sp);
+    }
+
+    const vignetteCv=document.createElement('canvas'); vignetteCv.width=512; vignetteCv.height=320;
+    const vc=vignetteCv.getContext('2d'), vg=vc.createRadialGradient(256,160,80,256,160,300);
+    vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(.68,'rgba(0,0,0,.04)'); vg.addColorStop(1,'rgba(3,7,16,.58)');
+    vc.fillStyle=vg; vc.fillRect(0,0,512,320);
+    const vignette=new PIXI.Sprite(PIXI.Texture.from(vignetteCv)); vignette.width=size.W; vignette.height=size.H; app.stage.addChild(vignette);
+
+    _pixiFx.app=app; _pixiFx.atmosphere=atmosphere; _pixiFx.vignette=vignette;
+    _pixiFx.glows=glows; _pixiFx.reflections=reflections; _pixiFx.fog=fog;
+    _pixiFx.W=size.W; _pixiFx.H=size.H; _pixiFx.ready=true;
+    console.info('[PixiFX] WebGL atmosphere enabled');
+  } catch(e) {
+    _pixiFx.failed=true; console.warn('[PixiFX] fallback to Canvas:', e);
+  }
+}
+function _pixiFxFrame(t) {
+  if (!_pixiFx.ready) return;
+  const fx=_pixiFx, size=_viewSize();
+  if(size.W!==fx.W || size.H!==fx.H){
+    fx.W=size.W; fx.H=size.H; fx.app.renderer.resize(size.W,size.H);
+    fx.atmosphere.clear().rect(0,0,size.W,size.H).fill({color:0x10233f,alpha:.23});
+    fx.vignette.width=size.W; fx.vignette.height=size.H;
+  }
+  fx.glows.forEach((g,i)=>{ g.x=((i*.217+.07)%1)*size.W; g.y=(.15+((i*.337)%1)*.72)*size.H; g.alpha=.64+.15*Math.sin(t*.0011+i*1.7); });
+  fx.reflections.forEach((r,i)=>{ r.x=((i*.293+.12)%1)*size.W; r.y=(.20+((i*.181)%1)*.58)*size.H; r.alpha=.30+.08*Math.sin(t*.0008+i); });
+  fx.fog.forEach((f,i)=>{
+    const span=size.W+600, raw=(i*.31+.05)*size.W+t*.006*(i%2?1:-1);
+    f.x=((raw%span)+span)%span-300; f.y=(.22+i*.19)*size.H;
+  });
+  fx.app.renderer.render(fx.app.stage);
+}
+_initPixiFx();
 // Истинная ВИДИМАЯ область. На iOS/Telegram window.innerWidth/Height могут
 // НЕ совпадать с тем что реально видно (хедер/safe-area/динамическая панель)
 // → игрок рисовался не по центру, «карта уезжает». visualViewport даёт точную
@@ -11729,6 +11835,39 @@ function selectVehicleFromCanvasTap(x, y, hitRadius = 48) {
   return true;
 }
 
+function selectBuildingFrom3D(r,c,screenX=null,screenY=null) {
+  if (_buildingInt || _bankInt || myDrivingCarId || myDead || !Number.isFinite(+r) || !Number.isFinite(+c)) return {ok:false};
+  const anchor=Number.isFinite(+screenX)&&Number.isFinite(+screenY)?{x:+screenX,y:+screenY}:null;
+  const nearest=(items,maxDist)=>items.reduce((best,item)=>{const d=Math.hypot(+item.r-r,+item.c-c);return d<maxDist&&(!best||d<best.d)?{item,d}:best;},null)?.item||null;
+  const biz=nearest(BUSINESS_POIS,7.5);
+  if(biz){
+    const near=Math.hypot(player.r-biz.r,player.c-biz.c)<=3.5;
+    _selectedBuildingEntry=null;_selectedVehicleEntry=null;
+    if(near)_openBusinessActionCard('business',biz,anchor);else showToast(`Подойди ближе: ${biz.name}`,'📍',1800);
+    return {ok:true,kind:'business',id:biz.id,name:biz.name,near};
+  }
+  const major=nearest(POI.filter(p=>MAJOR_OBJECT_IDS.has(p.id)),8.5);
+  if(major){
+    const near=Math.hypot(player.r-major.r,player.c-major.c)<=4.2;
+    _selectedBuildingEntry=null;_selectedVehicleEntry=null;
+    if(near)_openBusinessActionCard('major',major,anchor);else showToast(`Подойди ближе: ${major.name}`,'📍',1800);
+    return {ok:true,kind:'major',id:major.id,name:major.name,near};
+  }
+  let best=null,bestD=7;
+  const rr=Math.round(+r),cc=Math.round(+c);
+  for(let dr=-6;dr<=6;dr++)for(let dc=-6;dc<=6;dc++){
+    const tr=rr+dr,tc=cc+dc;if(tr<1||tr>=MAP_ROWS-1||tc<1||tc>=MAP_COLS-1||MAP[tr]?.[tc]!==1)continue;
+    const d=Math.hypot(tr-r,tc-c);if(d<bestD){bestD=d;best={r:tr,c:tc};}
+  }
+  if(!best)return {ok:false};
+  const special=POI.find(p=>p.r===best.r&&p.c===best.c)?.special||(best.r===36&&best.c===16?'job':best.r===26&&best.c===26?'gym':best.r===26&&best.c===46?'hospital':best.r===76&&best.c===76?'police_st':best.r===BURJ_POS.r&&best.c===BURJ_POS.c?'mafia_hq':null);
+  _selectedBuildingEntry={r:best.r,c:best.c,type:special,label:special==='mafia_hq'?'Burj Mafia':'Здание',selectedAtR:player.r,selectedAtC:player.c};
+  _selectedVehicleEntry=null;
+  const near=Math.hypot(player.r-best.r-.5,player.c-best.c-.5)<=(special==='mafia_hq'?4.2:special?3.5:2.25);
+  if(near)_openBusinessActionCard('building',_selectedBuildingEntry,anchor);else showToast('Вход отмечен. Подойди ближе к зданию.','🚪',2000);
+  return {ok:true,kind:'building',id:`${best.r},${best.c}`,name:_selectedBuildingEntry.label,near};
+}
+
 function _activateSelectedBuildingIfNear() {
   const sel = _refreshManualBuildingEntry();
   if (!sel) return false;
@@ -18433,12 +18572,12 @@ const BUSINESS_OWNER_PERSONAS = {
 };
 const ROB_DURATION_MS = 8000;
 const _robBtn      = document.getElementById('robActionBtn');
-let _businessActionSelection=null,_businessActionSignature='',_businessActionDismissedId='';
+let _businessActionSelection=null,_businessActionSignature='',_businessActionDismissedId='',_businessActionPointerAnchor=null;
 const _businessActionCard=document.createElement('div');
 _businessActionCard.id='businessActionCard';document.body.appendChild(_businessActionCard);
 function _closeBusinessActionCard(dismiss=true){
   if(dismiss&&_businessActionSelection)_businessActionDismissedId=`${_businessActionSelection.kind}:${_businessActionSelection.id}`;
-  _businessActionSelection=null;_businessActionSignature='';_businessActionCard.classList.remove('show');
+  _businessActionSelection=null;_businessActionSignature='';_businessActionPointerAnchor=null;_businessActionCard.classList.remove('show');
 }
 function _nearbyEstablishmentForActions(){
   const entry=_nearestWorldEntryCandidate();
@@ -18458,10 +18597,11 @@ function _majorRaidActionLabel(poi){
 }
 function _syncBusinessActionCard(){
   const sel=_businessActionSelection;if(!sel)return;
-  const poi=sel.kind==='business'?BUSINESS_POIS.find(b=>b.id===sel.id):POI.find(p=>p.id===sel.id);
-  const maxDist=sel.kind==='major'?4.2:3.5;
+  const poi=sel.kind==='business'?BUSINESS_POIS.find(b=>b.id===sel.id):sel.kind==='major'?POI.find(p=>p.id===sel.id):sel.kind==='building'?{id:sel.id,r:sel.r,c:sel.c,name:sel.name||'Здание',icon:'🏢'}:null;
+  const maxDist=sel.kind==='major'?4.2:sel.kind==='building'?(sel.type==='mafia_hq'?4.2:3.5):3.5;
   if(!poi||_buildingInt||_bankInt||Math.hypot(player.r-poi.r,player.c-poi.c)>maxDist){_closeBusinessActionCard(false);return;}
   const actions=[];
+  if(sel.kind==='building')actions.push(['building','peace','🚪 Войти в здание']);
   if(sel.kind==='business'&&_zoneEl.dataset.bizId===sel.id&&_zoneEl.style.display==='block')actions.push(['zone','peace',_zoneEl.textContent]);
   if(_gtaBtn.style.display==='block'&&String(_gtaActionCarId)===String(sel.id))actions.push(['gta','buy',_gtaBtn.textContent]);
   if(_robBtn&&_robBtn.style.display==='block'&&((sel.kind==='business'&&_robTargetBiz?.id===sel.id)||(sel.kind==='major'&&_robBtn._majorAssaultId===sel.id)))actions.push(['rob','raid',_robBtn.textContent]);
@@ -18470,18 +18610,19 @@ function _syncBusinessActionCard(){
     _businessActionSignature=sig;
     _businessActionCard.innerHTML=`<div class="bac-head"><span>${poi.icon||poi.emoji||'🏪'} ${poi.name}</span><button class="bac-close">✕</button></div><div class="bac-actions">${actions.map(a=>`<button class="bac-btn ${a[1]}" data-source="${a[0]}">${a[2]}</button>`).join('')}</div>`;
   }
-  const p=w2s(poi.r+.5,poi.c+.5),margin=12,w=270;
+  const p=_businessActionPointerAnchor||w2s(poi.r+.5,poi.c+.5),margin=12,w=270;
   _businessActionCard.style.left=`${Math.max(w/2+margin,Math.min(innerWidth-w/2-margin,p.x))}px`;
   _businessActionCard.style.top=`${Math.max(190,Math.min(innerHeight-20,p.y-32))}px`;
   _businessActionCard.classList.add('show');
 }
-function _openBusinessActionCard(kind,poi){
+function _openBusinessActionCard(kind,poi,pointerAnchor=null){
   _businessActionDismissedId='';
-  _businessActionSelection={kind,id:poi.id};_businessActionSignature='';
+  _businessActionPointerAnchor=pointerAnchor;_businessActionSelection={kind,id:poi.id||`${poi.r},${poi.c}`,r:poi.r,c:poi.c,type:poi.type||null,name:poi.name||poi.label||'Здание'};_businessActionSignature='';
   updateGtaInteractions();_syncBusinessActionCard();
 }
 function _prepareSelectedEstablishmentActions(){
   const sel=_businessActionSelection;if(!sel)return false;
+  if(sel.kind==='building'){_syncBusinessActionCard();return true;}
   if(sel.kind==='business'){
     const biz=BUSINESS_POIS.find(b=>b.id===sel.id);if(!biz)return false;
     const own=myBusinesses.get(biz.id);_gtaBtn.dataset.establishmentAction='1';
@@ -18507,6 +18648,7 @@ function _prepareSelectedEstablishmentActions(){
 _businessActionCard.addEventListener('click',e=>{
   if(e.target.closest('.bac-close')){_closeBusinessActionCard();return;}
   const btn=e.target.closest('[data-source]');if(!btn)return;
+  if(btn.dataset.source==='building'){_closeBusinessActionCard();_activateSelectedBuildingIfNear();return;}
   const source=_businessActionSource(btn.dataset.source);_closeBusinessActionCard();source?.click();
 });
 const _robModal    = document.getElementById('robProgress');
@@ -26021,6 +26163,7 @@ function update(dt) {
           }
         }
       }
+      _applyThreeMouseAim();
       // Wanted сбрасывается через 30 секунд внутри
       if (typeof myWanted === 'number' && myWanted > 0) {
         _buildingHideTimer += dt;
@@ -26094,6 +26237,7 @@ function update(dt) {
       player.walking=mv>0.15;
       player.walkPhase+=dt*10*mv;
     }
+    _applyThreeMouseAim();
     const targetCamX=(player.c-player.r)*TS*0.5;
     const targetCamY=(player.c+player.r)*TS*0.5*ISO_Y;
     cam.x+=(targetCamX-cam.x)*Math.min(1,dt*8);
@@ -26185,6 +26329,7 @@ function update(dt) {
   _refreshPlayerWaterState();
   // Ходьба тоже меняет player.ang, поэтому прицел имеет приоритет каждый кадр.
   _syncPlayerAimFromJoyR();
+  _applyThreeMouseAim();
   // Камера следит за игроком — держим его ровно по центру экрана.
   // Целевое смещение камеры = изометрические координаты игрока
   // (то самое что прибавляется в w2s до вычитания cam). Плавно.
@@ -51952,6 +52097,7 @@ function frame() {
       update(dt);
       render();
     }
+    _pixiFxFrame(t);
     if (_worldResumeFrames > 0 && !_buildingInt && !_bankInt) {
       _worldResumeFrames--;
       if (_worldResumeFrames === 0) _worldExitSnapshot = null;
@@ -51969,6 +52115,163 @@ function frame() {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+// Central rollback switch for the gradual renderer migration. Canvas remains
+// the safe default; changing threeEnabled to false disables 3D globally even
+// when an old link still contains ?render=3d.
+let _threeMouseAimAngle=null,_threeMouseAimUntil=0;
+function _applyThreeMouseAim(){
+  if(joyR?.active||!Number.isFinite(_threeMouseAimAngle)||performance.now()>_threeMouseAimUntil)return false;
+  player.ang=_threeMouseAimAngle;return true;
+}
+window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
+  threeEnabled: true,
+  interiorsEnabled: true,
+  defaultRenderer: 'canvas',
+  rollbackRenderer: 'canvas',
+  migrationStage: 'three-full-world-shell-v4',
+});
+
+// Stable boundary for the gradual Three.js migration. The 3D renderer never
+// owns gameplay state: movement, ammo, role rules, damage and networking stay
+// in this authoritative world simulation.
+window.Mafiozi3DBridge = Object.freeze({
+  version: 1,
+  getPlayerState() {
+    return {
+      r: +player.r || 0, c: +player.c || 0, ang: +player.ang || 0,
+      walking: !!player.walking, walkPhase: +player.walkPhase || 0,
+      hp: Math.max(0, +player.hp || 0), dead: !!myDead,
+      mode: myMode, weapon: currentWeapon, driving: !!myDrivingCarId,
+      interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
+      name: QP.name || 'Игрок', look: QP.look || null,
+      role: _policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian',
+      family: _mafiaState?.employed ? (_mafiaState.family || null) : null,
+      joyL: { active: !!joyL.active, dx: +joyL.dx || 0, dy: +joyL.dy || 0 },
+      joyR: { active: !!joyR.active, dx: +joyR.dx || 0, dy: +joyR.dy || 0, hasAim: !!joyR.hasAim },
+    };
+  },
+  setAim(angle) { if (Number.isFinite(angle)){_threeMouseAimAngle=angle;_threeMouseAimUntil=performance.now()+240;player.ang=angle;} },
+  selectBuilding(r,c,screenX,screenY) { return selectBuildingFrom3D(+r,+c,+screenX,+screenY); },
+  getEnvironmentState() {
+    const hour = typeof getGameHour === 'function' ? getGameHour() : 12;
+    return {
+      hour, minute: Math.max(0, Math.floor(_gameMinutes || 0) % 60),
+      districtId: typeof districtStyleIdAt === 'function' ? districtStyleIdAt(player.r, player.c) : null,
+      mapRows: MAP_ROWS, mapCols: MAP_COLS, blockSize: BLOCK,
+      beachRow: BEACH_R0, waterRow: BEACH_R1,
+    };
+  },
+  getInteriorState() {
+    const src=_buildingInt||_bankInt||null;
+    if(!src)return null;
+    return {
+      kind:_buildingInt?'building':'bank',type:src.type||(_bankInt?'bank':'generic'),bizId:src.bizId||null,room:src.room||(_bankInt?'lobby':'main'),
+      width:+src.W||16,height:+src.H||12,seed:+src.seed||0,
+      npcs:(src.npcs||[]).filter(n=>n&&!n.dead).slice(0,40).map((n,i)=>({id:String(n.id??i),r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||''})),
+      loot:src.loot&&!src.loot.picked?{r:+src.loot.r||0,c:+src.loot.c||0,hp:!!src.loot.hp}:null,
+    };
+  },
+  // Local browser QA only: exercises the same interior constructor used by
+  // the real entrance button without creating or overriding server state.
+  previewEnterMajorInterior(id) {
+    if(!_LOCAL_PREVIEW)return false;
+    const poi=(typeof POI!=='undefined'?POI:[]).find(p=>p.id===String(id||''));
+    if(!poi)return false;
+    enterBuildingInterior(poi.r,poi.c,'business',`major_${poi.id}`,{peacefulMajorObjectId:poi.id});
+    return true;
+  },
+  // Read-only, compact description of real city blocks near the player.
+  // Three.js consumes this instead of inventing a separate map.
+  getWorldSnapshot(radius = 45) {
+    const rad = Math.max(15, Math.min(260, Math.floor(+radius || 45)));
+    const minR = Math.max(0, Math.floor((player.r - rad) / BLOCK) * BLOCK);
+    const maxR = Math.min(MAP_ROWS - 1, Math.ceil((player.r + rad) / BLOCK) * BLOCK);
+    const minC = Math.max(0, Math.floor((player.c - rad) / BLOCK) * BLOCK);
+    const maxC = Math.min(MAP_COLS - 1, Math.ceil((player.c + rad) / BLOCK) * BLOCK);
+    const blocks = [];
+    for (let r0 = minR; r0 <= maxR; r0 += BLOCK) for (let c0 = minC; c0 <= maxC; c0 += BLOCK) {
+      let bMinR = Infinity, bMaxR = -Infinity, bMinC = Infinity, bMaxC = -Infinity;
+      let buildings = 0, roads = 0, pavement = 0, grass = 0, sand = 0, water = 0;
+      for (let r = r0; r < Math.min(r0 + BLOCK, MAP_ROWS); r++) for (let c = c0; c < Math.min(c0 + BLOCK, MAP_COLS); c++) {
+        const tile = MAP[r]?.[c];
+        if (tile === 1) { buildings++; bMinR=Math.min(bMinR,r);bMaxR=Math.max(bMaxR,r);bMinC=Math.min(bMinC,c);bMaxC=Math.max(bMaxC,c); }
+        else if (tile === 0 || tile === 18) roads++;
+        else if (tile === 9 || tile === 15 || tile === 17) pavement++;
+        else if (tile === 8) grass++;
+        else if (tile === 14) sand++;
+        else if (tile === 16) water++;
+      }
+      const styleId = typeof districtStyleIdAt === 'function' ? districtStyleIdAt(r0 + BLOCK/2, c0 + BLOCK/2) : null;
+      const seed = Math.abs(((r0 * 73856093) ^ (c0 * 19349663)) | 0);
+      const heightBase = {downtown:20,nightlife:12,rich:10,industrial:8,poor:7,countryside:5,coast:6}[styleId] || 8;
+      const heightSpread = styleId === 'downtown' ? 18 : styleId === 'nightlife' ? 8 : 6;
+      blocks.push({
+        r0,c0,styleId,buildings,roads,pavement,grass,sand,water,seed,
+        building: buildings ? {r:(bMinR+bMaxR)/2,c:(bMinC+bMaxC)/2,w:bMaxC-bMinC+1,d:bMaxR-bMinR+1,height:heightBase+(seed%heightSpread)} : null,
+      });
+    }
+    const pois = (typeof POI !== 'undefined' ? POI : []).filter(p => p.r >= minR && p.r <= maxR && p.c >= minC && p.c <= maxC).map(p => ({id:p.id,r:p.r,c:p.c,label:p.label||p.name||p.id}));
+    const coast = {
+      beach:{r0:BEACH_R0,r1:BEACH_R1},water:{r0:BEACH_R1,r1:MAP_ROWS},
+      pier:{r0:PIER_R0,r1:PIER_R1,c0:PIER_C0,c1:PIER_C1},
+      ship:{r0:SHIP_R0,r1:SHIP_R1,c0:SHIP_C0,c1:SHIP_C1},
+      containers:(typeof PORT_CONTAINER_LAYOUT!=='undefined'?PORT_CONTAINER_LAYOUT:[]).map(q=>({r:q.r,c:q.c,w:q.w,h:q.h,height:q.height,presetIndex:q.presetIndex,stackIndex:q.stackIndex})),
+      containerColors:(typeof PORT_CONTAINER_PRESETS!=='undefined'?PORT_CONTAINER_PRESETS:[]).map(q=>q.col),
+      decor:(typeof _beachDecor!=='undefined'?_beachDecor:[]).slice(0,320).map(d=>({kind:d.kind,r:+d.r||0,c:+d.c||0,col:d.col||d.col1||null,col2:d.col2||null,ang:+d.ang||0,scale:+d.scale||1,variant:d.variant||0})),
+    };
+    const lairZone=(typeof AGGRO_ZONES!=='undefined'&&AGGRO_ZONES[0])||null;
+    const landmarks={
+      jail:{r:JAIL_CENTER_R,c:JAIL_CENTER_C,radius:JAIL_RADIUS_TILES},
+      lair:lairZone?{r:lairZone.r,c:lairZone.c,radius:lairZone.radius||18}:null,
+      businesses:(typeof BUSINESS_POIS!=='undefined'?BUSINESS_POIS:[]).map(b=>({id:b.id,r:b.r,c:b.c,name:b.name,emoji:b.emoji})),
+      districtHqs:(typeof DISTRICTS!=='undefined'?DISTRICTS:[]).filter(d=>d.hq).map(d=>({id:d.id,r:d.hq.r,c:d.hq.c,name:d.name,color:d.color,capturable:d.capturable!==false})),
+      banks:(typeof BANKS!=='undefined'?BANKS:[]).map(b=>({id:b.id,r:b.r,c:b.c,name:b.name,size:b.size})),
+      gasStations:(typeof GAS_STATIONS!=='undefined'?GAS_STATIONS:[]).map((g,i)=>({id:String(g.id??i),r:g.r,c:g.c})),
+      raceTrack:(typeof TRACK_PTS!=='undefined'?TRACK_PTS:[]).map(p=>({r:p[0],c:p[1]})),
+    };
+    return {center:{r:player.r,c:player.c},bounds:{minR,maxR,minC,maxC},blocks,pois,coast,landmarks};
+  },
+  getDynamicEntities(radius = 38) {
+    const rad2=Math.max(12,Math.min(65,+radius||38))**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
+    const inside=!!(_buildingInt||_bankInt);
+    const cars=(inside?[]:(typeof CARS!=='undefined'?CARS:[])).filter(x=>x&&!x._hidden&&near(+x.r||0,+x.c||0)).slice(0,24).map((x,i)=>{const model=x.model||{},modelName=model.name||x.modelName||'sedan';return {
+      id:String(x.id??x._id??i),r:+x.r||0,c:+x.c||0,ang:Number.isFinite(x.ang)?x.ang:Math.atan2(+x.dirDy||0,+x.dirDx||1),
+      model:modelName,paint:x.paint||x.color||model.palette?.[0]||'#445566',parked:!!x.parked,
+      length:+model.L||1.7,width:+model.W||.85,height:+model.height||.55,wheelR:+model.wheelR||.18,
+      sport:!!(model.sport||model.fast),pickup:!!model.pickup,van:!!model.van,suv:!!model.suv,cabrio:!!model.cabrio,taxi:!!model.taxi,limo:!!model.limo,muscle:!!model.muscle,classic:!!model.classic,gang:!!model.gang,
+      helicopter:!!model.helicopter,emergency:model.emergency||'',stripe:model.stripe||'',
+    };});
+    let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.npcs||[]):(typeof NPCS!=='undefined'?NPCS:[]);
+    if(!inside){
+      const combat=[];
+      if(typeof _myGang!=='undefined')for(const g of _myGang)if(g&&!g.dead&&(+g.hp||1)>0)combat.push({...g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,name:g.name||'Боец семьи'});
+      if(typeof _policeBackupUnits!=='undefined')for(const cop of _policeBackupUnits)if(cop&&(+cop.hp||1)>0)combat.push({...cop,id:`police_${cop.id}`,role:'police',police:true,name:cop.name||'Офицер'});
+      if(typeof gangNests!=='undefined')for(const nest of gangNests||[])for(const guard of nest?.guards||[])if(guard&&!guard.dead&&(+guard.hp||1)>0)combat.push({...guard,id:`nest_${nest.id||'gang'}_${guard.id}`,r:+(guard.r??guard.y)||0,c:+(guard.c??guard.x)||0,role:guard.kind||'gang_guard',gang:true,name:guard.name||guard.boss_name||'Боец банды'});
+      if(typeof BUSINESS_POIS!=='undefined'&&typeof myBusinesses!=='undefined'&&typeof _idleBusinessGuardPose==='function')for(const biz of BUSINESS_POIS){const own=myBusinesses.get(biz.id);if(!own?.owned||_isBusinessGangOccupied(biz.id,own))continue;for(let i=0;i<Math.min(6,+own.guards||0);i++){const pose=_idleBusinessGuardPose(biz,i);combat.push({...pose,id:`biz_guard_${biz.id}_${i}`,r:+pose.y||0,c:+pose.x||0,role:'guard',name:`Охрана · ${biz.name}`,hp:100,max_hp:100});}}
+      npcSource=[...combat,...npcSource];
+    }
+    const npcs=npcSource.filter(x=>x&&!x.dead&&(+x.hp||1)>0&&near(+x.r||0,+x.c||0)).slice(0,36).map((x,i)=>{const role=String(x.role||x._arcKey||'civilian'),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||role==='gang'||role==='boss'||role.includes('district_'));return {
+      id:String(x.id??x.uid??i),r:+(x.r??x.y)||0,c:+(x.c??x.x)||0,ang:+x.ang||0,walking:!!x.walking||Math.abs(+x.speed||0)>.05,walkPhase:+x.walkPhase||0,
+      role,look:x.look||null,name:x.name||'',hp:Math.max(0,+x.hp||0),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
+      level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||'',
+      gang,police:!!(x.police||role==='police'||role==='cop'),
+    };});
+    const projectiles=(typeof bullets!=='undefined'?bullets:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,thick:!!x.thick}));
+    const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,color:x.color||'#ffc35a',life:+x.life||0,max:+x.max||80}));
+    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,blood:!!x.parts?.some?.(p=>p.isBlood),life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1))}));
+    const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550}));
+    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null});}
+    return {cars,npcs,projectiles,muzzleFx,impactFx,explosionFx,players:players.slice(0,24)};
+  },
+  fire(angle) {
+    if (myDead || myMode === 'pve' || !_isArmed()) return false;
+    fire(Number.isFinite(angle) ? angle : null);
+    return true;
+  },
+  canStand(r, c) { return Number.isFinite(r) && Number.isFinite(c) && !isBlocked(r, c); },
+});
+if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
 
 // При сворачивании Telegram WebApp / переключении вкладок браузер
 // замораживает requestAnimationFrame. После возврата мог остаться
@@ -55692,5 +55995,6 @@ function chatDuration(text) {
 })();
 </script>
 
+<script type="module" src="three_preview.js?v=3d53"></script>
 </body>
 </html>
