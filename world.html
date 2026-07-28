@@ -14553,19 +14553,22 @@ window.addEventListener('touchcancel', (e) => {
   }
 });
 
-// Клавиатура (для теста с десктопа)
+// Desktop movement uses KeyboardEvent.code, not the printed character.
+// Therefore the same physical WASD keys work with English, Russian and any
+// other active keyboard layout.
 const _keyState = { up:false, down:false, left:false, right:false };
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'w' || e.key === 'ArrowUp')    _keyState.up    = true;
-  if (e.key === 's' || e.key === 'ArrowDown')  _keyState.down  = true;
-  if (e.key === 'a' || e.key === 'ArrowLeft')  _keyState.left  = true;
-  if (e.key === 'd' || e.key === 'ArrowRight') _keyState.right = true;
+  if(e.target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
+  if (e.code === 'KeyW' || e.code === 'ArrowUp')    _keyState.up    = true;
+  if (e.code === 'KeyS' || e.code === 'ArrowDown')  _keyState.down  = true;
+  if (e.code === 'KeyA' || e.code === 'ArrowLeft')  _keyState.left  = true;
+  if (e.code === 'KeyD' || e.code === 'ArrowRight') _keyState.right = true;
 });
 window.addEventListener('keyup', (e) => {
-  if (e.key === 'w' || e.key === 'ArrowUp')    _keyState.up    = false;
-  if (e.key === 's' || e.key === 'ArrowDown')  _keyState.down  = false;
-  if (e.key === 'a' || e.key === 'ArrowLeft')  _keyState.left  = false;
-  if (e.key === 'd' || e.key === 'ArrowRight') _keyState.right = false;
+  if (e.code === 'KeyW' || e.code === 'ArrowUp')    _keyState.up    = false;
+  if (e.code === 'KeyS' || e.code === 'ArrowDown')  _keyState.down  = false;
+  if (e.code === 'KeyA' || e.code === 'ArrowLeft')  _keyState.left  = false;
+  if (e.code === 'KeyD' || e.code === 'ArrowRight') _keyState.right = false;
 });
 
 // ── Коллизии ───────────────────────────────────────────────────
@@ -26135,6 +26138,16 @@ function update(dt) {
       _updateGang(dt);
       return;
     }
+  }
+
+  // Desktop Three.js control: the mouse owns the facing direction, therefore
+  // keyboard movement must use the same basis. W/Up walks towards the cursor,
+  // S/Down walks backwards and A/D strafe. The result is converted back into
+  // the existing isometric input axes, so all authoritative movement,
+  // collision, interiors and networking below remain the single source of
+  // truth. Canvas, touch joystick and every vehicle keep their old controls.
+  if (!myDrivingCarId && !_inBus && !myJetSkiId) {
+    [inDx, inDy] = _threeAimRelativeKeyboardInput(inDx, inDy);
   }
 
   // ── Локальная смерть: сервер о ней не знает (убила охрана банка),
@@ -52160,6 +52173,24 @@ function _applyThreeMouseAim(){
   if(joyR?.active||!Number.isFinite(_threeMouseAimAngle)||performance.now()>_threeMouseAimUntil)return false;
   player.ang=_threeMouseAimAngle;return true;
 }
+function _threeAimRelativeKeyboardInput(inDx,inDy){
+  if(_UP.get('render')!=='3d'||joyL?.active||myDrivingCarId||_inBus||myJetSkiId||
+     !Number.isFinite(_threeMouseAimAngle)||performance.now()>_threeMouseAimUntil)return [inDx,inDy];
+  const forward=(_keyState.up?1:0)-(_keyState.down?1:0);
+  const strafe=(_keyState.right?1:0)-(_keyState.left?1:0);
+  const keyMag=Math.min(1,Math.hypot(forward,strafe));
+  if(keyMag<0.01)return [inDx,inDy];
+  const a=_threeMouseAimAngle;
+  let dr=Math.sin(a)*forward+Math.cos(a)*strafe;
+  let dc=Math.cos(a)*forward-Math.sin(a)*strafe;
+  const worldMag=Math.hypot(dr,dc)||1;dr/=worldMag;dc/=worldMag;
+  // Inverse of update()'s isometric conversion:
+  // dc=(inDy/ISO_Y+inDx)/2, dr=(inDy/ISO_Y-inDx)/2.
+  let screenX=dc-dr,screenY=(dc+dr)*ISO_Y;
+  const screenMag=Math.hypot(screenX,screenY)||1;
+  screenX=screenX/screenMag*keyMag;screenY=screenY/screenMag*keyMag;
+  return [screenX,screenY];
+}
 window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   threeEnabled: true,
   interiorsEnabled: true,
@@ -56035,6 +56066,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d57"></script>
+<script type="module" src="three_preview.js?v=3d58"></script>
 </body>
 </html>
