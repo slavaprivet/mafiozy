@@ -14086,10 +14086,15 @@ class WorldSim:
             }
         active = self.major_assaults.get(object_id)
         if active:
+            same_family = str(player.get('_mafia_family') or '') == str(
+                active.get('mafia_family') or '')
+            if str(uid) not in active.get('participants', set()) and same_family:
+                active.setdefault('participants', set()).add(str(uid))
             if str(uid) in active.get('participants', set()):
                 manager_r, manager_c = self.MAJOR_MANAGER_POSITIONS[object_id]
                 return {
                     'kind':'major_assault_reply','ok':True,'resume':True,
+                    'joined':str(uid) != str(active.get('by_uid') or ''),
                     'object_id':object_id,'phase':active.get('phase'),
                     'guards':[dict(g) for g in active.get('guards') or []
                               if g.get('alive')],
@@ -14136,6 +14141,7 @@ class WorldSim:
         raid = {
             'object_id':object_id,'by_uid':str(uid),
             'by_name':str(player.get('name') or '')[:24],
+            'mafia_family':str(player.get('_mafia_family') or ''),
             'crew_id':crew_id,
             'participants':participants,'started_at':now,
             'expires_at':now + 30 * 60,
@@ -19795,7 +19801,12 @@ class WorldSim:
             return {'t': 'snap', 'd': {'me': None, 'others': []}}
         mx, my = me['x'], me['y']
         crew_id = str(me.get('_crew_id') or '')
-        crew_members = [{'uid':str(u),'name':q.get('name','Игрок'),'npc_count':len(q.get('_gang_companions') or [])}
+        crew_members = [{'uid':str(u),'name':q.get('name','Игрок'),
+                         'r':round(float(q.get('y') or 0),2),
+                         'c':round(float(q.get('x') or 0),2),
+                         'interior':str(q.get('_business_interior') or ''),
+                         'dead':bool(q.get('dead')),
+                         'npc_count':len(q.get('_gang_companions') or [])}
                         for u,q in self.players.items() if crew_id and str(q.get('_crew_id') or '')==crew_id]
         apartment_hosts = []
         for host_uid, host in self.players.items():
@@ -20429,6 +20440,14 @@ class WorldSim:
                 'pvp_active':    me_in_pvp,
                 'faction_war':   self.faction_war_payload(),
                 'major_objects': self.major_objects_payload(),
+                'bank_vault_raids': {
+                    str(bank_id): {
+                        'robber_uid': str(rob.get('robber_uid') or ''),
+                        'started_at': float(rob.get('started_at') or 0),
+                    }
+                    for bank_id, rob in self.bank_robs.items()
+                    if rob.get('vault_open')
+                },
                 'tick':          self.tick_no,
                 'territories':     terr_payload,
                 'active_captures': cap_payload,
@@ -20490,7 +20509,11 @@ class WorldSim:
                         'controlled': sum(
                             1 for control in self._robbed_business_controls.values()
                             if str(control.get('mafia_family') or '') == family
-                            and float(control.get('expires_at') or 0) > now_t),
+                            and float(control.get('expires_at') or 0) > now_t)
+                        + sum(
+                            1 for object_id, owner in self.major_owners.items()
+                            if object_id in MAJOR_PERSISTENT_OBJECTS
+                            and str(owner.get('mafia_family') or '') == family),
                     }
                     for family, score in self._business_war_score.items()
                 },
@@ -26168,6 +26191,7 @@ async def _coop_http_app():
                                 'bags_loaded': 0,
                                 'started_at': time.time(),
                                 'robber_uid': uid,
+                                'vault_open': False,
                             }
                             if '_bank_rob' not in p:
                                 p['_bank_rob'] = {}
@@ -26187,6 +26211,8 @@ async def _coop_http_app():
                         p = world.players.get(uid)
                         bank_id = (d or {}).get('bank_id') if isinstance(d, dict) else None
                         if p and bank_id:
+                            if bank_id in world.bank_robs:
+                                world.bank_robs[bank_id]['vault_open'] = True
                             bank_names = {'small': 'Банк «Окраина»', 'medium': 'Банк «Район»', 'large': 'Банк «Центральный»'}
                             bank_label = bank_names.get(bank_id, f'Банк {bank_id}')
                             announce_pkt = json.dumps({'t': 'event', 'd': {
