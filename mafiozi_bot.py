@@ -17651,11 +17651,10 @@ class WorldSim:
                         continue
                     if now < bot.get('_act_until', 0):
                         continue
-                    # Распределение: walk 40%, idle 20%, drink 20%,
-                    # tag 12%, harass 8%.
+                    # Уличная банда не имеет невидимого idle: либо идёт, либо
+                    # выполняет короткое и явно нарисованное действие.
                     r = random.random()
-                    if   r < 0.40: bot['_act'] = 'walk'
-                    elif r < 0.60: bot['_act'] = 'idle'
+                    if   r < 0.68: bot['_act'] = 'walk'
                     elif r < 0.80: bot['_act'] = 'drink'
                     elif r < 0.92: bot['_act'] = 'tag'
                     else:          bot['_act'] = 'harass'
@@ -17671,11 +17670,18 @@ class WorldSim:
                         })
                 # Вся группа одновременно не замирает: пока остальные пьют,
                 # рисуют или переговариваются, один боец продолжает обход.
-                if (not g.get('district_did') and alive_bots
-                        and not any(bot.get('_act') == 'walk' for bot in alive_bots)):
-                    walker = random.choice(alive_bots)
-                    walker['_act'] = 'walk'
-                    walker['_act_until'] = now + random.uniform(7.0, 12.0)
+                if not g.get('district_did') and alive_bots:
+                    # Минимум половина группы постоянно патрулирует. Поэтому
+                    # бутылка/граффити остаются живыми сценками, но не превращают
+                    # весь отряд в неподвижную декорацию.
+                    need_walkers=max(1,(len(alive_bots)+1)//2)
+                    walkers=sum(1 for bot in alive_bots if bot.get('_act')=='walk')
+                    if walkers<need_walkers:
+                        candidates=[bot for bot in alive_bots if bot.get('_act')!='walk']
+                        random.shuffle(candidates)
+                        for walker in candidates[:need_walkers-walkers]:
+                            walker['_act']='walk'
+                            walker['_act_until']=now+random.uniform(7.0,12.0)
                 # Idle chatter — изредка кто-то из группы говорит фразу
                 # «в воздух» (без триггера от игрока). Шанс 0.5%/тик ≈
                 # раз в 13 сек на группу при 15Гц.
