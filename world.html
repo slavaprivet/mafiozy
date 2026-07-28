@@ -18271,15 +18271,25 @@ const BUSINESS_OWNER_PERSONAS = {
 };
 const ROB_DURATION_MS = 8000;
 const _robBtn      = document.getElementById('robActionBtn');
-let _businessActionSelection=null,_businessActionSignature='';
+let _businessActionSelection=null,_businessActionSignature='',_businessActionDismissedId='';
 const _businessActionCard=document.createElement('div');
 _businessActionCard.id='businessActionCard';document.body.appendChild(_businessActionCard);
-function _closeBusinessActionCard(){_businessActionSelection=null;_businessActionSignature='';_businessActionCard.classList.remove('show');}
+function _closeBusinessActionCard(dismiss=true){
+  if(dismiss&&_businessActionSelection)_businessActionDismissedId=`${_businessActionSelection.kind}:${_businessActionSelection.id}`;
+  _businessActionSelection=null;_businessActionSignature='';_businessActionCard.classList.remove('show');
+}
+function _nearbyEstablishmentForActions(){
+  let best=null,bestD=3.25;
+  for(const biz of BUSINESS_POIS){const d=Math.hypot(player.r-biz.r,player.c-biz.c);if(d<bestD){best={kind:'business',poi:biz};bestD=d;}}
+  const major=_nearestMajorObject(4.2);if(major){const d=Math.hypot(player.r-major.r,player.c-major.c);if(!best||d<bestD)best={kind:'major',poi:major};}
+  return best;
+}
 function _businessActionSource(id){return id==='zone'?_zoneEl:id==='gta'?_gtaBtn:_robBtn;}
 function _syncBusinessActionCard(){
   const sel=_businessActionSelection;if(!sel)return;
   const poi=sel.kind==='business'?BUSINESS_POIS.find(b=>b.id===sel.id):POI.find(p=>p.id===sel.id);
-  if(!poi||_buildingInt||_bankInt||Math.hypot(player.r-poi.r,player.c-poi.c)>3.5){_closeBusinessActionCard();return;}
+  const maxDist=sel.kind==='major'?4.2:3.5;
+  if(!poi||_buildingInt||_bankInt||Math.hypot(player.r-poi.r,player.c-poi.c)>maxDist){_closeBusinessActionCard(false);return;}
   const actions=[];
   if(sel.kind==='business'&&_zoneEl.dataset.bizId===sel.id&&_zoneEl.style.display==='block')actions.push(['zone','peace',_zoneEl.textContent]);
   if(_gtaBtn.style.display==='block'&&String(_gtaActionCarId)===String(sel.id))actions.push(['gta','buy',_gtaBtn.textContent]);
@@ -18295,6 +18305,7 @@ function _syncBusinessActionCard(){
   _businessActionCard.classList.add('show');
 }
 function _openBusinessActionCard(kind,poi){
+  _businessActionDismissedId='';
   _businessActionSelection={kind,id:poi.id};_businessActionSignature='';
   updateGtaInteractions();_syncBusinessActionCard();
 }
@@ -18732,7 +18743,16 @@ function playEnterCarAnim(r, c) {
 
 function updateGtaInteractions() {
   document.body.classList.remove('near-major-establishment');
-  document.body.classList.toggle('near-establishment-focus',!!(_nearestBusinessPoi()||_nearestMajorObject()));
+  const nearbyEstablishment=_nearbyEstablishmentForActions();
+  document.body.classList.toggle('near-establishment-focus',!!nearbyEstablishment);
+  if(!nearbyEstablishment)_businessActionDismissedId='';
+  else if(!_businessActionSelection){
+    const autoKey=`${nearbyEstablishment.kind}:${nearbyEstablishment.poi.id}`;
+    if(_businessActionDismissedId!==autoKey){
+      _businessActionSelection={kind:nearbyEstablishment.kind,id:nearbyEstablishment.poi.id};
+      _businessActionSignature='';
+    }
+  }
   delete _gtaBtn.dataset.establishmentAction;
   if(_robBtn)delete _robBtn.dataset.establishmentAction;
   if(_businessActionSelection)_syncBusinessActionCard();
