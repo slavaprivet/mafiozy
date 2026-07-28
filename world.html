@@ -7003,30 +7003,43 @@ function npcWaypointOk(npc, r, c) {
   if (t === 14) return !!npc._allowBeach;                        // городской на песок — редко
   return (t === 9 || t === 8);
 }
+function _clearNpcRoute(npc) {
+  npc._route=null;npc._routeIndex=0;npc._routeGoalR=null;npc._routeGoalC=null;npc._routeBlockedAt=0;
+}
 function pickNpcWaypoint(npc) {
-  // Близкий waypoint в радиусе 4 — чтобы прямой путь почти всегда
-  // не пересекал здания. Дополнительная проверка: путь должен идти
-  // только по проходимым тайлам (sample каждые 0.5 тайла).
-  for (let tries = 0; tries < 30; tries++) {
-    const dr = (Math.random() * 8) - 4;
-    const dc = (Math.random() * 8) - 4;
-    const nr = npc.r + dr, nc = npc.c + dc;
-    if (!npcWaypointOk(npc, nr, nc)) continue;
-    // Проверяем что прямой путь не пересекает стены/чужую зону
-    const steps = Math.max(2, Math.ceil(Math.hypot(dr, dc) * 2));
-    let blocked = false;
-    for (let s = 1; s <= steps; s++) {
-      const k = s / steps;
-      const pr = npc.r + dr * k;
-      const pc = npc.c + dc * k;
-      if (!npcWaypointOk(npc, pr, pc)) { blocked = true; break; }
+  // Гражданин получает не случайный шаг рядом с собой, а достижимую дальнюю цель
+  // и полный маршрут к ней. Поэтому на каждом углу он не передумывает и не идёт
+  // обратно: новая цель выбирается только после прибытия или долгой блокировки.
+  const sr=Math.floor(npc.r),sc=Math.floor(npc.c),maxDepth=npc._beach?22:18,maxVisited=520;
+  const startKey=sr*MAP_COLS+sc,queue=[{r:sr,c:sc,key:startKey,depth:0}],nodes=new Map([[startKey,queue[0]]]);
+  const candidates=[],dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  for(let qi=0;qi<queue.length&&nodes.size<maxVisited;qi++){
+    const cur=queue[qi];
+    if(cur.depth>=6)candidates.push(cur);
+    if(cur.depth>=maxDepth)continue;
+    for(const [dr,dc] of dirs){
+      const r=cur.r+dr,c=cur.c+dc,key=r*MAP_COLS+c;
+      if(nodes.has(key)||!npcWaypointOk(npc,r+.5,c+.5))continue;
+      const node={r,c,key,depth:cur.depth+1,parent:cur.key};nodes.set(key,node);queue.push(node);
     }
-    if (blocked) continue;
-    npc.tr = nr; npc.tc = nc;
-    return;
   }
-  // Не нашли — стоим на месте до следующего тика
-  npc.tr = npc.r; npc.tc = npc.c;
+  let pool=candidates;
+  if(Number.isFinite(npc._routeStartR)&&Number.isFinite(npc._routeStartC)){
+    const forward=candidates.filter(p=>Math.hypot(p.r+.5-npc._routeStartR,p.c+.5-npc._routeStartC)>5.5);
+    if(forward.length)pool=forward;
+  }
+  if(!pool.length){_clearNpcRoute(npc);npc.tr=npc.r;npc.tc=npc.c;npc.idleUntil=performance.now()+900+Math.random()*1200;return false;}
+  const farthest=Math.max(...pool.map(p=>p.depth)),far=pool.filter(p=>p.depth>=Math.max(6,farthest-3));
+  let goal=far[Math.floor(Math.random()*far.length)],path=[];
+  while(goal&&goal.key!==startKey){path.push({r:goal.r+.5,c:goal.c+.5});goal=nodes.get(goal.parent);}
+  path.reverse();
+  if(!path.length){_clearNpcRoute(npc);npc.tr=npc.r;npc.tc=npc.c;return false;}
+  const oldStartR=npc._routeStartR,oldStartC=npc._routeStartC;
+  npc._previousRouteStartR=oldStartR;npc._previousRouteStartC=oldStartC;
+  npc._routeStartR=npc.r;npc._routeStartC=npc.c;npc._route=path;npc._routeIndex=0;
+  npc._routeGoalR=path[path.length-1].r;npc._routeGoalC=path[path.length-1].c;npc._routeBlockedAt=0;
+  npc.tr=path[0].r;npc.tc=path[0].c;
+  return true;
 }
 const TARGET_NPC_COUNT = 48;       // активных прохожих; дальний город заполняется по мере движения
 const NPC_RESPAWN_MIN_DIST = 22;   // не спаунить ближе этого к игроку
@@ -7295,6 +7308,7 @@ function _updateBizClients(now) {
         n._clientOfBiz = biz.id;
         n._clientStage = 'going';
         n._clientUntil = now + 18000;
+        _clearNpcRoute(n);
         n.tr = biz.r; n.tc = biz.c;
         n.cryText  = BIZ_VISIT_ANNOUNCE[Math.floor(Math.random() * BIZ_VISIT_ANNOUNCE.length)];
         n.cryUntil = now + 1800;
@@ -7319,6 +7333,7 @@ function _updateBizClients(now) {
       n._clientUntil = now + 4500;   // уйдёт после фразы
       // Цель — отойти от бизнеса в случайную сторону
       const ang = Math.random() * Math.PI * 2;
+      _clearNpcRoute(n);
       n.tr = biz.r + Math.sin(ang) * 6;
       n.tc = biz.c + Math.cos(ang) * 6;
     }
@@ -9659,28 +9674,40 @@ function updateNpcs(dt) {
     }
     if (now < n.idleUntil) {
       n.walkPhase = 0;
+      n.walking = false;
       continue;
     }
     const dr = n.tr - n.r, dc = n.tc - n.c;
     const d  = Math.hypot(dr, dc);
+    if(d<.4&&n._route?.length){
+      if(n._routeIndex+1<n._route.length){
+        n._routeIndex++;const next=n._route[n._routeIndex];n.tr=next.r;n.tc=next.c;n._routeBlockedAt=0;
+        n.walking=false;continue;
+      }
+      _clearNpcRoute(n);
+    }
     if (d < 0.4) {
       // Дошли — клиенты бизнесов остаются у точки до окончания визита
       if (n._clientOfBiz && n._clientStage === 'thanking') {
         n.idleUntil = now + 1500;
+        n.walking = false;
         continue;
       }
       // Иначе — стоим с учётом idleMult архетипа (пенсионер стоит дольше, студент — почти нет)
       const idM = n._arc ? n._arc.idleMult : 1.0;
-      if (Math.random() < 0.4 * idM) n.idleUntil = now + (1000 + Math.random() * 2000) * idM;
-      pickNpcWaypoint(n);
+      n.idleUntil = now + (1200 + Math.random() * 2600) * Math.max(.65,idM);
+      n.walking = false;
+      if(!n._clientOfBiz)pickNpcWaypoint(n);
       continue;
     }
     const sp = _npcEffectiveSpeed(n) * dt;
     const nr=n.r+(dr/d)*sp,nc=n.c+(dc/d)*sp;
     if(_npcBodyPassable(nr,nc)){
-      n.r=nr;n.c=nc;n.ang=Math.atan2(dr,dc);n.walkPhase+=dt*8;
+      n.r=nr;n.c=nc;n.ang=Math.atan2(dr,dc);n.walkPhase+=dt*8;n.walking=true;n._routeBlockedAt=0;
     }else{
-      n.walkPhase=0;pickNpcWaypoint(n);
+      n.walkPhase=0;n.walking=false;
+      if(!n._routeBlockedAt)n._routeBlockedAt=now;
+      if(now-n._routeBlockedAt>900){_clearNpcRoute(n);pickNpcWaypoint(n);}
     }
   }
 }
@@ -52200,7 +52227,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v17-stable-vehicle-colors',
+  migrationStage: 'three-full-world-shell-v18-purposeful-civilian-routes',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52348,7 +52375,7 @@ window.Mafiozi3DBridge = Object.freeze({
       npcSource=[...combat,...npcSource];
     }
     const npcs=npcSource.filter(x=>x&&!x.dead&&(+x.hp||1)>0&&near(+x.r||0,+x.c||0)).slice(0,36).map((x,i)=>{const role=String(x.role||x._arcKey||'civilian'),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||role==='gang'||role==='boss'||role.includes('district_'));return {
-      id:String(x.id??x.uid??i),r:+(x.r??x.y)||0,c:+(x.c??x.x)||0,ang:+x.ang||0,walking:!!x.walking||Math.abs(+x.speed||0)>.05,walkPhase:+x.walkPhase||0,
+      id:String(x.id??x.uid??i),r:+(x.r??x.y)||0,c:+(x.c??x.x)||0,ang:+x.ang||0,walking:x.walking!==undefined?!!x.walking:(Math.abs(+x.walkPhase||0)>.05&&Math.hypot((Number.isFinite(+x.tr)?+x.tr:+(x.r??x.y)||0)-(+((x.r??x.y)||0)),(Number.isFinite(+x.tc)?+x.tc:+(x.c??x.x)||0)-(+((x.c??x.x)||0)))>.08),walkPhase:+x.walkPhase||0,
       role,look:x.look||null,name:x.name||'',hp:Math.max(0,+x.hp||0),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||'',
       gang,police:!!(x.police||role==='police'||role==='cop'),
