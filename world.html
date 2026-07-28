@@ -52196,7 +52196,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   interiorsEnabled: true,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v6-readable-labels',
+  migrationStage: 'three-full-world-shell-v7-traffic-signals',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52226,11 +52226,13 @@ window.Mafiozi3DBridge = Object.freeze({
   collisionProbe(r,c) { const rr=+r,cc=+c;return {r:rr,c:cc,blocked:Number.isFinite(rr)&&Number.isFinite(cc)?isBlockedPed(rr,cc):true,tile:Number.isFinite(rr)&&Number.isFinite(cc)?MAP[Math.floor(rr)]?.[Math.floor(cc)]??null:null}; },
   getEnvironmentState() {
     const hour = typeof getGameHour === 'function' ? getGameHour() : 12;
+    const lights = typeof trafficPhase === 'function' ? trafficPhase() : { ew:'g', ns:'r' };
     return {
       hour, minute: Math.max(0, Math.floor(_gameMinutes || 0) % 60),
       districtId: typeof districtStyleIdAt === 'function' ? districtStyleIdAt(player.r, player.c) : null,
       mapRows: MAP_ROWS, mapCols: MAP_COLS, blockSize: BLOCK,
       beachRow: BEACH_R0, waterRow: BEACH_R1,
+      traffic: { ew:lights.ew, ns:lights.ns },
     };
   },
   getInteriorState() {
@@ -52312,6 +52314,7 @@ window.Mafiozi3DBridge = Object.freeze({
       length:+model.L||1.7,width:+model.W||.85,height:+model.height||.55,wheelR:+model.wheelR||.18,
       sport:!!(model.sport||model.fast),pickup:!!model.pickup,van:!!model.van,suv:!!model.suv,cabrio:!!model.cabrio,taxi:!!model.taxi,limo:!!model.limo,muscle:!!model.muscle,classic:!!model.classic,gang:!!model.gang,
       helicopter:!!model.helicopter,emergency:model.emergency||'',stripe:model.stripe||'',
+      dirR:+x.dirDy||0,dirC:+x.dirDx||0,velR:+x.vr||0,velC:+x.vc||0,braking:!!x.braking,turning:!!x._turningAtIntersection,
     };});
     let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.npcs||[]):(typeof NPCS!=='undefined'?NPCS:[]);
     if(!inside){
@@ -56066,6 +56069,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d60"></script>
+<script type="module" src="three_preview.js?v=3d64"></script>
 </body>
 </html>
