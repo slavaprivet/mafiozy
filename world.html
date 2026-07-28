@@ -15529,6 +15529,10 @@ function handleEventPacket(d) {
       const left=Math.max(1,+d.protected_s||1)*1000;if(d.biz_id)_businessPoliceProtection[d.biz_id]=Date.now()+left;
       showEventBanner('🛡️ ЗАВЕДЕНИЕ ПОД ЗАЩИТОЙ',`В прошлый раз тебя накрыли копы · защита ещё ${_businessClosureText(left)}`,3600,'lose');return;
     }
+    if(!d.ok&&d.reason==='property_protected'){
+      const left=Math.max(1,+d.protected_s||1)*1000;
+      showEventBanner('🔐 ЗАЩИТА НОВОГО ВЛАДЕЛЬЦА',`Бизнес недавно купили или отжали · новый налёт доступен через ${_businessClosureText(left)}`,4200,'warn');return;
+    }
     if(!d.ok&&d.reason==='defended'){
       const left=Math.max(1,+d.protected_s||1)*1000;if(d.biz_id)_businessOwnerProtection[d.biz_id]=Date.now()+left;
       showEventBanner('⛔ ОГРАБЛЕНИЕ НЕДОСТУПНО',`В прошлый раз тебе помешали ограбить · КД ${_businessClosureText(left)}`,3600,'lose');return;
@@ -15793,7 +15797,7 @@ function handleEventPacket(d) {
                     { accent: '#ff7030' });
     }
   } else if(kind==='business_war_choice_reply'){
-    if(!d.ok){const txt={invalid_choice:'Решение устарело или уже использовано',no_family:'Для захвата нужно вступить в семью',no_c4:'Требуется C4 · 1 шт. Купи заряд на Чёрном рынке',already_owned:'Этот бизнес уже принадлежит твоей семье',ownership_changed:'Бизнес уже перехватили — ограбление остаётся твоим',sabotage_immunity:`После ремонта действует защита от диверсий · ${Math.ceil((+d.wait_s||0)/60)} мин.`}[d.reason]||'Не удалось применить решение';showEventBanner('⛔ ВЫБОР НЕ ПРИМЕНЁН',txt,3600,'lose');if(_businessChoiceInFlight&&d.reason!=='invalid_choice'){_pendingBusinessWarChoice=_businessChoiceInFlight.choice;document.getElementById('businessChoiceOverlay')?.classList.add('show');} _businessChoiceInFlight=null;}
+    if(!d.ok){const txt={invalid_choice:'Решение устарело или уже использовано',no_family:'Для захвата нужно вступить в семью',no_c4:'Требуется C4 · 1 шт. Купи заряд на Чёрном рынке',already_owned:'Этот бизнес уже принадлежит тебе',same_family_owner:'Бизнес принадлежит союзнику твоей семьи — отжимать его нельзя. Защищайте и улучшайте точку вместе.',ownership_changed:'Бизнес уже перехватили — ограбление остаётся твоим',sabotage_immunity:`После ремонта действует защита от диверсий · ${Math.ceil((+d.wait_s||0)/60)} мин.`}[d.reason]||'Не удалось применить решение';showEventBanner('⛔ ВЫБОР НЕ ПРИМЕНЁН',txt,4200,'lose');if(_businessChoiceInFlight&&d.reason!=='invalid_choice'){_pendingBusinessWarChoice=_businessChoiceInFlight.choice;document.getElementById('businessChoiceOverlay')?.classList.add('show');} _businessChoiceInFlight=null;}
     else if(d.action==='cash'){
       const money=(+d.money||0).toLocaleString('ru');
       showEventBanner('💰 КУШ ЗАБРАН',`+$${money} уже зачислено на твой счёт · «${d.biz_name||'бизнес'}» осталось без изменений`,4200,'win');
@@ -15810,8 +15814,9 @@ function handleEventPacket(d) {
       _lastOwnBusinessChoice={bizId:d.biz_id,action:'capture',at:Date.now()};
       const captureIncome=+d.income_per_member||0;
       const incomeText=captureIncome>0?`по $${captureIncome.toLocaleString('ru')} каждому участнику за выплату`:'будет показан после первой серверной выплаты';
-      showEventBanner('🏴 БИЗНЕС ЗАХВАЧЕН',`«${d.biz_name||'Бизнес'}» теперь принадлежит твоей семье · доход ${incomeText}`,5200,'win');
-      _showBusinessChoiceReceipt({icon:'🏴',title:'Бизнес захвачен',biz:d.biz_name,summary:'Заведение теперь принадлежит твоей семье.',details:`Доход: ${incomeText}.`,next:'Защищайте точку: другая семья сможет начать отжим бизнеса.'});
+      const personal=d.property_transfer&&!d.property_transfer.already_owned;
+      showEventBanner('🏴 БИЗНЕС ЗАХВАЧЕН',`«${d.biz_name||'Бизнес'}» ${personal?'теперь твоя личная собственность и ':''}принадлежит твоей семье · доход ${incomeText}`,5200,'win');
+      _showBusinessChoiceReceipt({icon:'🏴',title:'Бизнес захвачен',biz:d.biz_name,summary:personal?'Право собственности перешло к тебе. Заведение также контролирует твоя семья.':'Заведение теперь принадлежит твоей семье.',details:`Доход: ${incomeText}. Охрана прежнего владельца уничтожена; новая охрана нанимается отдельно.`,next:'Поставь охрану и защищай точку онлайн: другой игрок сможет провести налёт и отжать собственность.'});
     } else if(d.action==='preparation'){
       _lastOwnBusinessChoice={bizId:d.biz_id,action:'preparation',at:Date.now()};
       showEventBanner('⚔️ ЗАХВАТ НАЧАТ',`«${d.biz_name||'Бизнес'}» · подготовка ${+d.preparation_s||20} сек., затем начнётся открытая война семей`,5200,'warn');
@@ -15825,7 +15830,10 @@ function handleEventPacket(d) {
     if(d.biz_id)_businessFamilyWars[d.biz_id]={...d,preparing_until:Date.now()/1000+(+d.preparation_s||75),progress:0};
     if(!(_lastOwnBusinessChoice?.bizId===d.biz_id&&_lastOwnBusinessChoice.action==='preparation'&&Date.now()-_lastOwnBusinessChoice.at<6000))showEventBanner('🚨 ГОТОВИТСЯ НАПАДЕНИЕ',`За «${d.biz_name||'бизнес'}» начнётся война через ${+d.preparation_s||75} сек. Семьи, собирайтесь!`,5200,'lose');
   } else if(kind==='business_robbery_alert'){
-    showEventBanner('🚨 СРАБОТАЛА СИГНАЛИЗАЦИЯ',`Нападение на семейный бизнес «${d.biz_name||'бизнес'}» · охрана предупреждена`,4200,'lose');
+    const personalText=d.personal_owner
+      ? `Нападение на твой бизнес «${d.biz_name||'бизнес'}» · ${d.attacker_name||'Противник'} начал налёт · личная охрана: ${+d.guards||0}. Приезжай к точке: после налёта враг сможет начать отжим.`
+      : `Нападение на семейный бизнес «${d.biz_name||'бизнес'}» · охрана предупреждена`;
+    showEventBanner('🚨 СРАБОТАЛА СИГНАЛИЗАЦИЯ',personalText,6500,'lose');
   } else if(kind==='business_war_repair_reply'){
     if(d.ok&&d.biz_id){delete _businessWarSabotage[d.biz_id];delete _businessClosures[d.biz_id];showEventBanner('🔧 БИЗНЕС ОТРЕМОНТИРОВАН',`«${d.biz_name||'Бизнес'}» снова работает`,3200,'win');if(!d.actor_uid||String(d.actor_uid)===String(QP.uid))_showBusinessChoiceReceipt({icon:'🔧',title:'Ремонт завершён',biz:d.biz_name,summary:'Последствия диверсии полностью устранены.',details:'Бизнес снова работает и приносит семье доход. Временная защита не позволит сразу провести новую диверсию.',next:'Можно продолжить улучшение здания или помочь семье защищать его.'});}
     else if(!d.ok)showToast('Ремонт доступен семье-владельцу возле здания','⚠️',2400);
@@ -15836,6 +15844,14 @@ function handleEventPacket(d) {
     if(d.biz_id)_robbedBusinessControls[d.biz_id]={biz_id:d.biz_id,owner_uid:d.actor_uid||'',owner_name:d.actor_name||'',mafia_family:d.family,persistent:true,expires_at:Date.now()/1000+315360000,income_per_member:+d.income_per_member||0};
     if(d.war_score&&d.family){_businessWarScore[d.family]={...(_businessWarScore[d.family]||{}),...d.war_score};_renderBusinessWarHud();}
     if(!(_lastOwnBusinessChoice?.bizId===d.biz_id&&_lastOwnBusinessChoice.action==='capture'&&Date.now()-_lastOwnBusinessChoice.at<6000))showEventBanner('🏴 БИЗНЕС ЗАХВАЧЕН',`${MAFIA_FAMILIES[d.family]?.short||'Семья'} теперь контролирует «${d.biz_name||'бизнес'}»`,4200,'win');
+    const transfer=d.property_transfer||{};
+    if(transfer.old_owner_uid&&String(transfer.old_owner_uid)===String(QP.uid)&&String(transfer.new_owner_uid)!==String(QP.uid)){
+      myBusinesses.delete(d.biz_id);
+      showEventBanner('🚨 ТВОЙ БИЗНЕС ОТОБРАЛИ',`${transfer.new_owner_name||'Игрок'} захватил «${d.biz_name||'бизнес'}». Право собственности и будущий доход потеряны.`,6500,'lose');
+    }
+    if(transfer.new_owner_uid&&String(transfer.new_owner_uid)===String(QP.uid)){
+      _bizLastSync=0;setTimeout(()=>syncMyBusinesses(true),250);
+    }
   } else if(kind==='business_war_upgrade_reply'){
     if(!d.ok){showToast(({treasury:'В семейной казне недостаточно денег',not_controlled:'Семья больше не контролирует этот бизнес',too_far:'Улучшения покупаются возле бизнеса',max_level:'Достигнут максимальный уровень',stale:'Состояние изменилось — открой плашку снова'}[d.reason]||'Не удалось купить улучшение'),'⚠️',2600);}
     else{_businessWarUpgrades[d.family]??={};_businessWarUpgrades[d.family][d.biz_id]={...(d.levels||{})};if(_businessWarScore[d.family])_businessWarScore[d.family].treasury=+d.treasury||0;const biz=BUSINESS_POIS.find(b=>b.id===d.biz_id),up=BUSINESS_WAR_UPGRADE_UI[d.upgrade]||{icon:'🛠️',name:'Улучшение',desc:'усиление бизнеса'};showToast(`Улучшение куплено · уровень ${d.level}/3`,'🛠️',2200);_showBusinessChoiceReceipt({icon:up.icon,title:`Улучшение: ${up.name}`,biz:biz?.name,summary:`Установлен уровень ${d.level}/3. Потрачено из семейной казны: $${(+d.cost||0).toLocaleString('ru')}.`,details:`Теперь действует: ${_businessUpgradeEffect(up,d.level)}. В казне осталось $${(+d.treasury||0).toLocaleString('ru')}.`,next:d.level>=3?'Улучшение достигло максимального уровня.':`Следующий уровень даст: ${_businessUpgradeEffect(up,(+d.level||0)+1)}.`});}
@@ -15890,6 +15906,14 @@ function handleEventPacket(d) {
     pushFeedEvent('🏴',`${fam} ${d.defended?'отстояла':'захватила'} «${d.biz_name||'Бизнес'}» · +${+d.influence_gain||0} влияния`,
       {accent:d.winner==='moretti'?'#f4ead5':'#b68cff'});
     if(String(d.winner_uid)===String(QP.uid))showToast(`За захват точки +$${(+d.bonus||0).toLocaleString('ru')}`,'💰',3000);
+    const property=d.property_transfer||{};
+    if(property.old_owner_uid&&String(property.old_owner_uid)===String(QP.uid)&&String(property.new_owner_uid)!==String(QP.uid)){
+      myBusinesses.delete(d.biz_id);
+      showEventBanner('🚨 СОБСТВЕННОСТЬ ПОТЕРЯНА',`${property.new_owner_name||'Игрок'} отжал «${d.biz_name||'бизнес'}». Будущие выплаты перешли новому владельцу.`,6500,'lose');
+    }
+    if(property.new_owner_uid&&String(property.new_owner_uid)===String(QP.uid)){
+      _bizLastSync=0;setTimeout(syncMyBusinesses,250);
+    }
     if(_mafiaState?.family&&(d.winner===_mafiaState.family||d.previous_family===_mafiaState.family)){
       const won=d.winner===_mafiaState.family;
       _showBusinessChoiceReceipt({icon:won?'🏆':'💔',title:won?(d.defended?'Бизнес защищён':'Отжим завершён победой'):'Бизнес потерян',biz:d.biz_name,summary:won?`${fam} контролирует заведение. Семья получила +${+d.influence_gain||0} влияния.`:`Победила семья ${fam}. Контроль перешёл противнику.`,details:won?`Бизнес снова приносит семье доход.${String(d.winner_uid)===String(QP.uid)?` Твоя награда: +$${(+d.bonus||0).toLocaleString('ru')}.`:''}`:'Доход и бонусы этого бизнеса для твоей семьи отключены.',next:won?'Оставайтесь готовы к контратаке другой семьи.':'Можно подготовить контратаку и вернуть заведение.'});
@@ -18330,8 +18354,9 @@ function _prepareSelectedEstablishmentActions(){
     const biz=BUSINESS_POIS.find(b=>b.id===sel.id);if(!biz)return false;
     const own=myBusinesses.get(biz.id);_gtaBtn.dataset.establishmentAction='1';
     if(!own?.owned){
-      _gtaActionKind='biz_buy';_gtaActionCarId=biz.id;
-      _gtaBtn.textContent=`🏪 ${biz.emoji} Купить за $${biz.price.toLocaleString('ru')}`;_gtaBtn.style.display='block';
+      const property=_businessPropertyOwners.get(biz.id);
+      _gtaActionKind=property?'biz_foreign_info':'biz_buy';_gtaActionCarId=biz.id;
+      _gtaBtn.textContent=property?`🏴 Владелец: ${property.name} · можно отжать после налёта`:`🏪 ${biz.emoji} Купить за $${biz.price.toLocaleString('ru')}`;_gtaBtn.style.display='block';
       const cfg=ROB_PAYOUT_PREVIEW[biz.id],left=Math.max(0,Math.max(_robCooldowns[biz.id]||0,_businessClosures[biz.id]||0)-Date.now());
       if(_robBtn&&cfg&&!_robInProgress&&!left){_robTargetBiz=biz;_robBtn.dataset.establishmentAction='1';_robBtn.textContent=`💥 Совершить налёт (${'★'.repeat(cfg.difficulty)})`;_robBtn.style.display='block';}
     }else{
@@ -19185,9 +19210,10 @@ function updateGtaInteractions() {
     _gtaBtn.dataset.establishmentAction='1';
     const own = myBusinesses.get(bizNear.id);
     if (!own || !own.owned) {
-      _gtaActionKind = 'biz_buy';
+      const property=_businessPropertyOwners.get(bizNear.id);
+      _gtaActionKind = property?'biz_foreign_info':'biz_buy';
       _gtaActionCarId = bizNear.id;
-      _gtaBtn.textContent = `🏪 ${bizNear.emoji} Купить за $${bizNear.price.toLocaleString('ru')}`;
+      _gtaBtn.textContent = property?`🏴 Владелец: ${property.name} · можно отжать после налёта`:`🏪 ${bizNear.emoji} Купить за $${bizNear.price.toLocaleString('ru')}`;
       _gtaBtn.style.display = 'block';
       // ВТОРАЯ кнопка — «Ограбить». Альтернатива покупке.
       // Сумма и ★ серверные, сервер сам отвергнет при cooldown.
@@ -19783,6 +19809,9 @@ _gtaBtn.addEventListener('click', () => {
     }
   } else if (_gtaActionKind === 'biz_info') {
     showToast(`Бизнес уже твой. Доход капает в «Мой бизнес» в меню.`, '💼', 2400);
+  } else if (_gtaActionKind === 'biz_foreign_info') {
+    const owner=_businessPropertyOwners.get(_gtaActionCarId);
+    showToast(`Владелец: ${owner?.name||'игрок'}. Соверши налёт, уничтожь охрану и выбери «Захватить».`, '🏴', 3400);
   } else if (_gtaActionKind === 'biz_manage') {
     openBusinessManagement(_gtaActionCarId);
   } else if (_gtaActionKind === 'biz_security') {
@@ -20173,6 +20202,9 @@ function buyBusinessHere(biz_id) {
       _recentlyBought.set(b.id, performance.now() + 10000);
       showToast('Этот бизнес уже твой', '✅', 2000);
       setTimeout(() => { _bizLastSync = 0; syncMyBusinesses(); }, 2000);
+    } else if(j.error==='owned by player'){
+      _businessPropertyOwners.set(b.id,{uid:String(j.owner_uid||''),name:j.owner_name||'Игрок'});
+      showEventBanner('🏴 БИЗНЕС УЖЕ ЗАНЯТ',`${j.owner_name||'Другой игрок'} владеет «${b.name}». Купить нельзя — проведи налёт и захвати его.`,4300,'lose');
     } else {
       showToast(`Не удалось: ${j.error || 'ошибка'}`, '⚠️', 2500);
     }
@@ -31671,6 +31703,7 @@ function drawBusinessBuilding(r, c, b) {
 }
 // Локальный статус бизнесов: biz_id → {owned, pending, blocked_until}
 const myBusinesses = new Map();
+const _businessPropertyOwners = new Map();
 function _gangNestBusinessId(ne) {
   if (!ne) return '';
   if (ne.business_id) return String(ne.business_id);
@@ -31783,11 +31816,13 @@ function syncMyBusinesses() {
         if (_isRecentlyBought(id)) preserved.set(id, st);
       }
       myBusinesses.clear();
+      _businessPropertyOwners.clear();
       for (const b of (j.businesses || [])) {
         // API каталога возвращает id+owned, старый API списка —
         // biz_id+bought_at. Принимаем оба формата, иначе следующая
         // синхронизация визуально «удаляет» только что купленный бизнес.
         const id = b.biz_id || b.id;
+        if(id&&b.property_owner_uid)_businessPropertyOwners.set(id,{uid:String(b.property_owner_uid),name:b.property_owner_name||'Игрок',protected_until:+b.property_protected_until||0});
         if (id && (b.owned || b.bought_at)) {
           myBusinesses.set(id, {
             owned: true,
