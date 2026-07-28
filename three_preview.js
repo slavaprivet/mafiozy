@@ -6,7 +6,9 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
   (async () => {
     const stage = document.getElementById('stage');
     try {
+      window.MafioziLoading?.set(52, 'Загружаем трёхмерный движок…');
       const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js');
+      window.MafioziLoading?.set(61, 'Настраиваем свет, материалы и тени…');
       const viewSize = () => ({ W: Math.max(1, stage.clientWidth || innerWidth), H: Math.max(1, stage.clientHeight || innerHeight) });
       const size = viewSize();
       const scene = new THREE.Scene();
@@ -49,9 +51,13 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
 
       const bridge=window.Mafiozi3DBridge||null;
       const initialState=bridge?.getPlayerState?.()||null;
-      const worldSnapshot=bridge?.getWorldSnapshot?.(240)||null;
+      // Стартуем только с ближайшего сектора. Остальные кварталы достраиваются
+      // по мере движения и кэшируются — большая двухчастная карта не создаёт
+      // сотни тяжёлых фасадов в первом кадре.
+      const worldSnapshot=bridge?.getWorldSnapshot?.(58)||null;
       const envSnapshot=bridge?.getEnvironmentState?.()||null;
       const originR=initialState?.r||0,originC=initialState?.c||0,WORLD_SCALE=Math.max(3,Math.min(5,+rendererConfig.worldScale||4.1)),selectedWeather=(rendererParams.get('weather')||envSnapshot?.weather||'clear').toLowerCase();
+      window.MafioziLoading?.set(69, 'Разворачиваем ближайший сектор города…');
 
       const skyLight=new THREE.HemisphereLight(0xb9d7ff,0x302634,2.65);scene.add(skyLight);
       const sun = new THREE.DirectionalLight(0xffdfa0, 3.65);
@@ -183,6 +189,18 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       const ground = new THREE.Mesh(new THREE.PlaneGeometry(worldSnapshot?worldWidth+WORLD_SCALE*4:190,worldSnapshot?worldDepth+WORLD_SCALE*4:190),groundMaterial);
       ground.rotation.x = -Math.PI / 2;ground.position.set(worldSnapshot?(worldCols*.5-originC)*WORLD_SCALE:0,0,worldSnapshot?(worldRows*.5-originR)*WORLD_SCALE:0);ground.receiveShadow = true; scene.add(ground);
       let waterSurface=null;
+      if(worldSnapshot?.canal){
+        const canal=worldSnapshot.canal,toX=c=>(c-originC)*WORLD_SCALE,toZ=r=>(r-originR)*WORLD_SCALE;
+        const canalWaterMat=new THREE.MeshStandardMaterial({color:0x087fa5,roughness:.16,metalness:.25,transparent:true,opacity:.92,envMap:cityEnvironment,envMapIntensity:1.1});
+        const canalWater=new THREE.Mesh(new THREE.PlaneGeometry((canal.c1-canal.c0)*WORLD_SCALE,(canal.r1-canal.r0)*WORLD_SCALE),canalWaterMat);canalWater.rotation.x=-Math.PI/2;canalWater.position.set(toX((canal.c0+canal.c1)/2),.09,toZ((canal.r0+canal.r1)/2));scene.add(canalWater);
+        const bridgeWidth=(canal.c1-canal.c0+2)*WORLD_SCALE,bridgeDepth=(canal.bridge.r1-canal.bridge.r0)*WORLD_SCALE;
+        const bridgeDeck=box(toX((canal.c0+canal.c1)/2),toZ((canal.bridge.r0+canal.bridge.r1)/2),bridgeWidth,bridgeDepth,.82,new THREE.MeshStandardMaterial({color:0x303841,roughness:.82,metalness:.14}));bridgeDeck.position.y=.62;bridgeDeck.receiveShadow=true;
+        const railMat=new THREE.MeshStandardMaterial({color:0x7d8990,roughness:.4,metalness:.75});
+        for(const rr of [canal.bridge.r0+.35,canal.bridge.r1-.35]){const rail=box(toX((canal.c0+canal.c1)/2),toZ(rr),bridgeWidth,.22,1.25,railMat);rail.position.y=1.38;}
+        const seawallMat=new THREE.MeshStandardMaterial({color:0x68737a,roughness:.78,metalness:.18});for(const cc of [canal.c0-.15,canal.c1+.15]){const wall=box(toX(cc),toZ((canal.r0+canal.r1)/2),.45*WORLD_SCALE,(canal.r1-canal.r0)*WORLD_SCALE,1.15,seawallMat);wall.position.y=.28;}
+        const bridgeStripeMat=new THREE.MeshBasicMaterial({color:0xe7c75e});for(let c=canal.c0;c<canal.c1;c+=3){const stripe=box(toX(c+1),toZ((canal.bridge.r0+canal.bridge.r1)/2),1.5*WORLD_SCALE,.12*WORLD_SCALE,.045,bridgeStripeMat);stripe.position.y=1.055;}
+        for(let c=canal.c0+2;c<canal.c1;c+=5){const pier=new THREE.Mesh(new THREE.CylinderGeometry(.48,.7,5.5,12),railMat);pier.position.set(toX(c),-2.1,toZ((canal.bridge.r0+canal.bridge.r1)/2));scene.add(pier);}
+      }
       if(worldSnapshot?.coast){
         const coast=worldSnapshot.coast,toX=c=>(c-originC)*WORLD_SCALE,toZ=r=>(r-originR)*WORLD_SCALE,coastWidth=worldCols*WORLD_SCALE,coastCenter=worldCols*.5;
         const sandMat=new THREE.MeshStandardMaterial({color:0xe1bd7c,roughness:.96}),waterMat=new THREE.MeshStandardMaterial({color:0x087fa5,roughness:.16,metalness:.25,transparent:true,opacity:.92}),woodMat=new THREE.MeshStandardMaterial({color:0x775036,roughness:.8}),shipMat=new THREE.MeshStandardMaterial({color:0x253845,roughness:.5,metalness:.35});
@@ -339,10 +357,13 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         [-25,23,13,14,13,4,'CLUB'],[-9,23,12,13,17,0,'BANK'],[10,23,14,14,14,2,'MARKET'],[27,23,11,13,18,1,''],
       ];
       const styleIndexes={poor:1,downtown:0,nightlife:4,rich:3,countryside:2,industrial:1,coast:2};
-      const buildingDefs=worldSnapshot ? worldSnapshot.blocks.filter(b=>b.building).map(b=>{
-        const q=b.building,nearPoi=worldSnapshot.pois.find(p=>Math.abs(p.r-q.r)<5&&Math.abs(p.c-q.c)<5);
-        return [(q.c-originC)*WORLD_SCALE,(q.r-originR)*WORLD_SCALE,q.w*WORLD_SCALE,q.d*WORLD_SCALE,q.height,styleIndexes[b.styleId]??0,(nearPoi?.label||'').toString().slice(0,10).toUpperCase(),b.styleId||'downtown',{r:q.r,c:q.c,w:q.w,d:q.d,minR:q.minR,maxR:q.maxR,minC:q.minC,maxC:q.maxC,tiles:q.tiles,primary:true}];
-      }) : fallbackBuildingDefs;
+      const defsFromSnapshot=snapshot=>(snapshot?.blocks||[]).flatMap(b=>(b.buildingParts?.length?b.buildingParts:(b.building?[b.building]:[])).map((q,partIndex)=>{
+        const nearPoi=(snapshot.pois||[]).find(p=>Math.abs(p.r-q.r)<5&&Math.abs(p.c-q.c)<5);
+        return [(q.c-originC)*WORLD_SCALE,(q.r-originR)*WORLD_SCALE,q.w*WORLD_SCALE,q.d*WORLD_SCALE,q.height,styleIndexes[b.styleId]??0,(nearPoi?.label||'').toString().slice(0,10).toUpperCase(),b.styleId||'downtown',{r:q.r,c:q.c,w:q.w,d:q.d,minR:q.minR,maxR:q.maxR,minC:q.minC,maxC:q.maxC,tiles:q.tiles,primary:partIndex===0}];
+      }));
+      const buildingDefs=worldSnapshot ? defsFromSnapshot(worldSnapshot) : fallbackBuildingDefs;
+      const initialBuildingCount=buildingDefs.length;
+      const loadedBuildingKeys=new Set(buildingDefs.map(d=>`${d[8]?.minR}:${d[8]?.minC}:${d[8]?.maxR}:${d[8]?.maxC}`));
       const occluders=[],buildingPickables=[],facadeMaterials=[],shopMaterials=[],buildingCurbDefs=[];
       const glassMat=new THREE.MeshPhysicalMaterial({color:0x5fbfe0,emissive:0x10394b,emissiveIntensity:.25,metalness:.08,roughness:.08,transmission:.14,thickness:.28,clearcoat:1,clearcoatRoughness:.06,envMap:cityEnvironment,envMapIntensity:1.45});
       const districtProps=new THREE.Group();scene.add(districtProps);
@@ -390,9 +411,10 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
           const billboard=box(x,z-d*.08,5.6,.28,2.7,neonMats[variant%3]);billboard.position.y=h+2;outline(billboard);
         }
       };
-      for (let bi=0;bi<buildingDefs.length;bi++) {
-        const [x,z,w,d,h,style,sign,districtStyle='downtown',sourceMeta]=buildingDefs[bi],buildingMeta=sourceMeta||{r:originR+z/WORLD_SCALE,c:originC+x/WORLD_SCALE,w:w/WORLD_SCALE,d:d/WORLD_SCALE};
+      const createBuilding=(definition,bi)=>{
+        const [x,z,w,d,h,style,sign,districtStyle='downtown',sourceMeta]=definition,buildingMeta=sourceMeta||{r:originR+z/WORLD_SCALE,c:originC+x/WORLD_SCALE,w:w/WORLD_SCALE,d:d/WORLD_SCALE};
         buildingCurbDefs.push([x,z,w+2,d+2]);
+        if(bi>=initialBuildingCount){const streamedCurb=box(x,z,w+2,d+2,.65,curbMat);streamedCurb.position.y=.325;const streamedShadow=makeContactShadow(w*1.08,d*1.08,contactShadowMaterial);streamedShadow.position.set(x,.058,z);scene.add(streamedShadow);}
         const facade=facades[style*3+(bi%3)].clone();facade.repeat.set(Math.max(1,w/24),Math.max(1.35,h/16));facade.needsUpdate=true;
         const wall = new THREE.MeshStandardMaterial({ map:facade, bumpMap:facade, bumpScale:.032, roughness:.66, metalness:.055, envMap:cityEnvironment, envMapIntensity:.16, emissive:0xffb24c, emissiveMap:facade, emissiveIntensity:.075 });
         facadeMaterials.push(wall);
@@ -431,7 +453,12 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
           const signTx=new THREE.CanvasTexture(signCv);signTx.colorSpace=THREE.SRGBColorSpace;signTx.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());const sm=new THREE.MeshBasicMaterial({map:signTx,transparent:false});const sgn=new THREE.Mesh(new THREE.PlaneGeometry(7.6,1.9),sm);sgn.position.set(x,h+2.15,z+d*.18);scene.add(sgn);
         }
         }
-      }
+      };
+      for (let bi=0;bi<buildingDefs.length;bi++) createBuilding(buildingDefs[bi],bi);
+      const neighborhoodSurfaceKeys=new Set(),neighborhoodSurfaceGroup=new THREE.Group();scene.add(neighborhoodSurfaceGroup);
+      const neighborhoodConcreteMat=new THREE.MeshStandardMaterial({color:0x596168,roughness:.9,metalness:.04}),neighborhoodRoadMat=new THREE.MeshStandardMaterial({color:0x252b32,map:asphaltTexture,roughness:.86}),neighborhoodGrassMat=new THREE.MeshStandardMaterial({color:0x31543a,roughness:.98});
+      const addNeighborhoodSurfaces=snapshot=>{for(const n of snapshot?.neighborhoods||[]){const key=`${n.r0}:${n.c0}`;if(neighborhoodSurfaceKeys.has(key))continue;neighborhoodSurfaceKeys.add(key);const x=(n.c0+12-originC)*WORLD_SCALE,z=(n.r0+12-originR)*WORLD_SCALE,slab=new THREE.Mesh(new THREE.PlaneGeometry(16*WORLD_SCALE,16*WORLD_SCALE),neighborhoodConcreteMat);slab.rotation.x=-Math.PI/2;slab.position.set(x,.07,z);slab.receiveShadow=true;neighborhoodSurfaceGroup.add(slab);const stem=new THREE.Mesh(new THREE.PlaneGeometry((n.vertical?3:11)*WORLD_SCALE,(n.vertical?11:3)*WORLD_SCALE),neighborhoodRoadMat);stem.rotation.x=-Math.PI/2;stem.position.set((n.c0+(n.vertical?11:9)-originC)*WORLD_SCALE,.105,(n.r0+(n.vertical?9:11)-originR)*WORLD_SCALE);stem.receiveShadow=true;neighborhoodSurfaceGroup.add(stem);const bulb=new THREE.Mesh(new THREE.CircleGeometry(3.15*WORLD_SCALE,32),neighborhoodRoadMat);bulb.rotation.x=-Math.PI/2;bulb.position.set((n.c0+(n.vertical?11:14)-originC)*WORLD_SCALE,.11,(n.r0+(n.vertical?14:11)-originR)*WORLD_SCALE);neighborhoodSurfaceGroup.add(bulb);const yard=new THREE.Mesh(new THREE.PlaneGeometry((n.vertical?5:4)*WORLD_SCALE,(n.vertical?4:5)*WORLD_SCALE),neighborhoodGrassMat);yard.rotation.x=-Math.PI/2;yard.position.set((n.c0+(n.vertical?11:17)-originC)*WORLD_SCALE,.12,(n.r0+(n.vertical?17:11)-originR)*WORLD_SCALE);yard.receiveShadow=true;neighborhoodSurfaceGroup.add(yard);}};
+      addNeighborhoodSurfaces(worldSnapshot);
       const buildingContactShadows=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),contactShadowMaterial,buildingDefs.length),buildingShadowMatrix=new THREE.Matrix4(),buildingShadowQuat=new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2,0,0));
       buildingDefs.forEach(([x,z,w,d],i)=>{buildingShadowMatrix.compose(new THREE.Vector3(x,.058,z),buildingShadowQuat,new THREE.Vector3(w*1.08,d*1.08,1));buildingContactShadows.setMatrixAt(i,buildingShadowMatrix);});
       buildingContactShadows.instanceMatrix.needsUpdate=true;buildingContactShadows.frustumCulled=false;buildingContactShadows.renderOrder=3;scene.add(buildingContactShadows);
@@ -612,7 +639,13 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
 
       const decorateCasinoInterior=data=>{if(data.bizId!=='major_casino')return;const cx=(data.width/2-originC)*WORLD_SCALE,cz=(data.height/2-originR)*WORLD_SCALE,W=data.width*WORLD_SCALE,H=data.height*WORLD_SCALE,add=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;m.layers.set(1);interiorGroup.add(m);return m;},gold=new THREE.MeshStandardMaterial({color:0xd7ad3e,metalness:.55,roughness:.32}),red=new THREE.MeshStandardMaterial({color:0x7d1534,roughness:.65}),felt=new THREE.MeshStandardMaterial({color:0x126442,roughness:.84}),dark=new THREE.MeshStandardMaterial({color:0x1b1422,metalness:.25,roughness:.52}),neon=new THREE.MeshBasicMaterial({color:0xff3bc8});const carpet=add(new THREE.PlaneGeometry(W*.72,H*.72),new THREE.MeshStandardMaterial({color:0x4e0928,roughness:.92}),cx,.08,cz);carpet.rotation.x=-Math.PI/2;for(let row=0;row<2;row++)for(let col=0;col<6;col++){const x=cx-10+col*4,z=cz-8+row*5,slot=add(new THREE.BoxGeometry(2.2,3.1,1.45),dark,x,1.55,z),screen=add(new THREE.PlaneGeometry(1.45,.95),new THREE.MeshBasicMaterial({color:(row+col)%3===0?0xffca3a:(row+col)%3===1?0x45d9ff:0xff4ba8}),x,1.85,z+.731);screen.layers.set(1);}for(const [dx,dz] of [[-9,5],[0,6],[9,5]]){const table=add(new THREE.CylinderGeometry(2.7,2.7,.5,24),felt,cx+dx,.75,cz+dz);for(let k=0;k<6;k++){const a=k*Math.PI/3;add(new THREE.BoxGeometry(.8,.75,.8),red,cx+dx+Math.cos(a)*3.5,.38,cz+dz+Math.sin(a)*3.5);}}const roulette=add(new THREE.CylinderGeometry(2.4,2.4,.6,32),red,cx-7,.85,cz+13),wheel=add(new THREE.TorusGeometry(1.55,.28,10,28),gold,cx-7,1.55,cz+13);wheel.rotation.x=Math.PI/2;const stage=add(new THREE.CylinderGeometry(5.2,5.2,.55,32),red,cx+8,.28,cz+14);for(const sx of [-3.2,0,3.2]){const beam=add(new THREE.BoxGeometry(.25,5,.25),neon,cx+8+sx,2.5,cz+14);beam.rotation.z=sx*.025;}const bar=add(new THREE.BoxGeometry(W*.4,1.6,2.6),gold,cx,.8,cz-H*.3);for(let k=-4;k<=4;k++)add(new THREE.CylinderGeometry(.42,.52,.72,12),red,cx+k*2.4,.36,cz-H*.3+2.2);const gallery=add(new THREE.BoxGeometry(W*.25,.45,H*.42),new THREE.MeshStandardMaterial({color:0x32152c,roughness:.78}),cx-W*.34,4.2,cz);for(let s=0;s<7;s++){const step=add(new THREE.BoxGeometry(3.2,.35,2.1),gold,cx-W*.18+s*.75,.18+s*.35,cz+H*.2-s*.75);step.layers.set(1);}const vip=add(new THREE.BoxGeometry(8,1.2,3),red,cx-W*.3,.6,cz-H*.22),safe=add(new THREE.BoxGeometry(4.5,4.2,3.2),new THREE.MeshStandardMaterial({color:0x5f6971,metalness:.82,roughness:.24}),cx+W*.32,2.1,cz-H*.26);outline(safe);const casinoLight=new THREE.PointLight(0xff35c8,14,42,2);casinoLight.position.set(cx,7,cz);casinoLight.layers.set(1);interiorGroup.add(casinoLight);for(const dx of [-W*.24,W*.24]){const warm=new THREE.PointLight(0xffd08a,22,32,2);warm.position.set(cx+dx,6,cz-H*.12);warm.layers.set(1);interiorGroup.add(warm);}};
       stage.classList.add('three-mode');
-      let lastW=size.W,lastH=size.H,lastT=performance.now(),walkPhase=0,lampAnchor='',fpsAt=performance.now(),fpsFrames=0,measuredFps=60,lastShadowAt=0,lastOcclusionAt=0,dynamicAt=0,dynamicState=null,nearbyActionAt=0,nearbyActionState=null,cameraZoomMode='world',playerVisualSig='',fadedMaterials=[];
+      renderer.domElement.dataset.worldBounds=`${envSnapshot?.mapCols||80}x${envSnapshot?.mapRows||200}`;
+      window.MafioziLoading?.set(89, 'Заселяем улицы и готовим первый кадр…');
+      let lastW=size.W,lastH=size.H,lastT=performance.now(),walkPhase=0,lampAnchor='',fpsAt=performance.now(),fpsFrames=0,measuredFps=60,lastShadowAt=0,lastOcclusionAt=0,dynamicAt=0,dynamicState=null,nearbyActionAt=0,nearbyActionState=null,cameraZoomMode='world',playerVisualSig='',fadedMaterials=[],firstFramePresented=false;
+      const onIdle=callback=>typeof requestIdleCallback==='function'?requestIdleCallback(callback,{timeout:180}):setTimeout(()=>callback({timeRemaining:()=>4}),16);
+      let sectorAnchor=initialState?`${Math.floor((+initialState.r||0)/36)}:${Math.floor((+initialState.c||0)/36)}`:'',sectorLoadScheduled=false,sectorBuildQueue=[];
+      const pumpSectorBuildings=deadline=>{let made=0;while(sectorBuildQueue.length&&made<4&&(made===0||deadline.timeRemaining()>2)){const [def,index]=sectorBuildQueue.shift();createBuilding(def,index);made++;}renderer.domElement.dataset.worldBuildings=String(buildingDefs.length);renderer.domElement.dataset.pendingBuildings=String(sectorBuildQueue.length);if(sectorBuildQueue.length)onIdle(pumpSectorBuildings);else{renderer.shadowMap.needsUpdate=true;}};
+      const scheduleSectorLoad=(r,c)=>{const key=`${Math.floor(r/36)}:${Math.floor(c/36)}`;if(key===sectorAnchor||sectorLoadScheduled)return;sectorAnchor=key;sectorLoadScheduled=true;onIdle(()=>{sectorLoadScheduled=false;const snapshot=bridge?.getWorldSnapshot?.(58);if(!snapshot)return;addNeighborhoodSurfaces(snapshot);const fresh=[];for(const def of defsFromSnapshot(snapshot)){const meta=def[8],buildingKey=`${meta?.minR}:${meta?.minC}:${meta?.maxR}:${meta?.maxC}`;if(loadedBuildingKeys.has(buildingKey))continue;loadedBuildingKeys.add(buildingKey);const index=buildingDefs.length;buildingDefs.push(def);fresh.push([def,index]);}sectorBuildQueue.push(...fresh);renderer.domElement.dataset.loadedSectors=String(new Set([...loadedBuildingKeys].map(k=>k.split(':').slice(0,2).map(Number).map(v=>Math.floor(v/20)).join(':'))).size);if(fresh.length&&sectorBuildQueue.length===fresh.length)onIdle(pumpSectorBuildings);});};
       const daySky=new THREE.Color(0x62b9ee),sunsetSky=new THREE.Color(0xe56a58),nightSky=new THREE.Color(0x071426),skyColor=new THREE.Color();
       const updateDayNight=t=>{
         // One complete showcase day lasts four minutes; later this can read the authoritative game clock.
@@ -664,6 +697,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         let moving=false;
         if(bridge){
           const state=bridge.getPlayerState();
+          scheduleSectorLoad(+state.r||0,+state.c||0);
            renderer.domElement.dataset.playerR=(+state.r||0).toFixed(3);renderer.domElement.dataset.playerC=(+state.c||0).toFixed(3);renderer.domElement.dataset.playerAngle=(+state.ang||0).toFixed(3);renderer.domElement.dataset.playerHp=String(+state.hp||0);renderer.domElement.dataset.playerRole=String(state.role||'citizen');renderer.domElement.dataset.playerFamily=String(state.family||'');renderer.domElement.dataset.playerWeapon=String(state.weapon||'');renderer.domElement.dataset.playerInterior=state.interior?'1':'0';renderer.domElement.dataset.moveMode=mouseAimActive&&!state.driving?'aim-relative':'legacy';
           const visualSig=`${state.role}:${state.family||''}:${state.look?.skin??0}:${state.weapon||''}:${state.driving?1:0}`;if(visualSig!==playerVisualSig){playerVisualSig=visualSig;const roleColor=state.role==='police'?0x285c91:state.role==='mafia'?(state.family==='moretti'?0xe6e0d3:0x25272d):0x7a3035;suitMat.color.set(roleColor);skinMat.color.set([0xf0c3a0,0xd8a07c,0xb87955,0x8b583e,0x633c2d][Math.max(0,Math.min(4,+state.look?.skin||0))]);const weaponId=String(state.weapon||'').toLowerCase(),unarmed=['','none','fists','unarmed'].includes(weaponId),heavy=weaponId==='rpg'||weaponId.includes('launcher'),longGun=heavy||/(rifle|shotgun|tommy|ak|m4|smg|uzi|nagan|sniper)/.test(weaponId);gun.visible=!unarmed&&!state.driving;rpgTube.visible=heavy;for(const part of [gunReceiver,gunSlide,gunBarrel,gunMuzzle,gunGrip])part.visible=!heavy;gunMagazine.visible=!heavy&&longGun;gunStock.visible=!heavy&&longGun;gunScope.visible=!heavy&&/(rifle|sniper|m4)/.test(weaponId);gun.scale.setScalar(heavy?1.08:longGun?1.02:.72);gun.position.set(.78,longGun?2.82:2.68,longGun?.42:.62);renderer.domElement.dataset.weaponModel=heavy?'launcher':longGun?'long-gun':'pistol';}
           const hpPct=Math.max(0,Math.min(1,(+state.hp||0)/100));playerHpBar.scale.x=3.9*Math.max(.02,hpPct);playerHpBar.material.color.set(hpPct>.55?0x55e778:hpPct>.25?0xffc94d:0xff4d55);
@@ -699,6 +733,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         if(t-lastShadowAt>shadowCadence){renderer.shadowMap.needsUpdate=true;lastShadowAt=t;}
         if(lowFps){renderer.setRenderTarget(null);renderer.render(scene,camera);}
         else{renderer.setRenderTarget(postTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);}
+        if(!firstFramePresented){firstFramePresented=true;window.MafioziLoading?.complete('Город готов');}
         requestAnimationFrame(animate);
       };
       requestAnimationFrame(animate);
@@ -708,6 +743,9 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       document.getElementById('threeCinematicGrade')?.remove();
       document.body.dataset.threeError=String(error?.stack||error?.message||error).slice(0,1200);
       console.warn('[ThreePreview] Canvas fallback:', error);
+      window.MafioziLoading?.complete('3D недоступен — открыт безопасный режим');
     }
   })();
+} else if (rendererParams.get('render') === '3d') {
+  window.MafioziLoading?.complete('Открыт безопасный 2D-режим');
 }
