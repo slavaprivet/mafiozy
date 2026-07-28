@@ -31016,6 +31016,13 @@ function drawBusinessBuilding(r, c, b) {
     case 'coffee': {
       // Кофейня — уютное приземистое здание, тёплая коричневая палитра,
       // красно-белая полосатая маркиза, столик с двумя стульями на тротуаре.
+      // Увеличиваем только графику вокруг основания: вход, коллизия и зона
+      // взаимодействия остаются на прежнем тайле и не расходятся с сервером.
+      const coffeeAnchor = w2s(r + 0.5, c + 0.5);
+      ctx.save();
+      ctx.translate(coffeeAnchor.x, coffeeAnchor.y);
+      ctx.scale(1.28, 1.28);
+      ctx.translate(-coffeeAnchor.x, -coffeeAnchor.y);
       const { p, wx, wy, H } = _bizBase(r, c, ['#8a5a30', '#3a2410', '#5a3a1c'], 1.0);
       // Большое окно-витрина на правой грани
       const winY = p.y - H * 0.55;
@@ -31073,6 +31080,7 @@ function drawBusinessBuilding(r, c, b) {
       ctx.fillStyle='#b9824f';ctx.beginPath();ctx.ellipse(terraceX,terraceY-8,7,3,0,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#244b35';for(const dx of [-10,10])ctx.fillRect(terraceX+dx-3,terraceY-3,6,3);
       _bizSign(p,wx,wy,H,'CAFFÈ DEL DON','#21120b','#f6c866');
+      ctx.restore();
       break;
     }
     case 'carwash': {
