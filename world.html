@@ -11479,15 +11479,9 @@ function drawOwnedBusinessWorldMarkers(r0, r1, c0, c1) {
 
 function drawNearbyBusinessInteractionSquare() {
   if(_buildingInt||_bankInt||myDrivingCarId||myDead)return;
-  let target=null,best=3.25;
-  for(const biz of BUSINESS_POIS){
-    const d=Math.hypot(player.r-biz.r,player.c-biz.c);
-    if(d<best){best=d;target=biz;}
-  }
-  if(!target){
-    const major=_nearestMajorObject(4.2);
-    if(major)target=major;
-  }
+  const entry=_nearestWorldEntryCandidate();
+  if(!entry||entry.kind==='apartment')return;
+  const target=entry.poi;
   if(!target)return;
   const pulse=(Math.sin(performance.now()*.006)+1)*.5;
   const pad=(MAJOR_OBJECT_IDS.has(target.id)?1.05:.42)+pulse*.06;
@@ -11585,7 +11579,8 @@ function _currentBuildingEntryTarget() {
 function drawActiveBuildingEntryMarker() {
   // У бизнеса уже есть контекстные кнопки сверху. Большой указатель
   // «ВОЙТИ СЮДА» дублирует их и закрывает само маленькое здание.
-  if (_zoneEl?.dataset?.bizId || _nearestMajorObject(4.2) || BUSINESS_POIS.some(b => Math.hypot(player.r-b.r,player.c-b.c) < 5.5)) return;
+  const nearestEntry=_nearestWorldEntryCandidate();
+  if(nearestEntry&&(nearestEntry.kind==='business'||nearestEntry.kind==='major'))return;
   const target = _currentBuildingEntryTarget();
   if (!target) return;
   const pulse = (Math.sin(performance.now() * 0.007) + 1) * 0.5;
@@ -11724,10 +11719,12 @@ function _activateSelectedBuildingIfNear() {
 
 function selectBuildingFromCanvasTap(x, y) {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead) return false;
+  const nearestEntry=_nearestWorldEntryCandidate();
 
   // Все коммерческие здания используют единое контекстное меню по тапу.
   // Проверяем их до обычных домов, чтобы фасад бизнеса не выбирал квартиру сзади.
   for (const biz of BUSINESS_POIS) {
+    if(nearestEntry&&(nearestEntry.kind!=='business'||nearestEntry.poi.id!==biz.id))continue;
     const p=w2s(biz.r+.5,biz.c+.5);
     if(Math.abs(x-p.x)>72||y<p.y-150||y>p.y+38)continue;
     if(Math.hypot(player.r-biz.r,player.c-biz.c)>3.2){
@@ -11738,6 +11735,7 @@ function selectBuildingFromCanvasTap(x, y) {
   }
   for (const poi of POI) {
     if(!MAJOR_OBJECT_IDS.has(poi.id))continue;
+    if(nearestEntry&&(nearestEntry.kind!=='major'||nearestEntry.poi.id!==poi.id))continue;
     const p=w2s(poi.r+.5,poi.c+.5);
     if(Math.abs(x-p.x)>94||y<p.y-250||y>p.y+42)continue;
     if(Math.hypot(player.r-poi.r,player.c-poi.c)>4.2){
@@ -17517,6 +17515,19 @@ let _zoneCur = null;   // текущий «активный» POI
 let _bankZoneCur = null;  // ближайший банк в радиусе
 const _zoneEl = document.getElementById('zoneBtn');
 const _pvpBn  = document.getElementById('pvpBanner');
+function _nearestWorldEntryCandidate(){
+  let best=null;
+  const take=(kind,poi,d,max)=>{if(d<=max&&(!best||d<best.d-.04))best={kind,poi,d};};
+  for(const biz of BUSINESS_POIS){
+    take('business',biz,Math.hypot(player.r-(biz.r+.5),player.c-(biz.c+.5)),3.25);
+  }
+  const major=_nearestMajorObject(4.2);
+  if(major)take('major',major,Math.hypot(player.r-(major.r+.5),player.c-(major.c+.5)),4.2);
+  for(const host of (_apartmentHosts||[])){
+    take('apartment',host,Math.hypot(player.r-(+host.r+.5),player.c-(+host.c+.5)),2.25);
+  }
+  return best;
+}
 function updateZoneBtn() {
   delete _zoneEl.dataset.establishmentAction;
   // Если мы внутри банка — показываем кнопки по комнате
@@ -17617,7 +17628,8 @@ function updateZoneBtn() {
 
   // У каждого покупаемого бизнеса есть полноценный интерьер. Эта кнопка отвечает
   // только за вход; покупка, ограбление и сбор дохода остаются на GTA-панели.
-  const nearBizEntry = _nearestBusinessPoi();
+  const entryCandidate=_nearestWorldEntryCandidate();
+  const nearBizEntry=entryCandidate?.kind==='business'?entryCandidate.poi:null;
   document.body.classList.toggle('near-business',!!nearBizEntry);
   if (nearBizEntry) {
     _zoneEl.dataset.establishmentAction='1';
@@ -18279,6 +18291,8 @@ function _closeBusinessActionCard(dismiss=true){
   _businessActionSelection=null;_businessActionSignature='';_businessActionCard.classList.remove('show');
 }
 function _nearbyEstablishmentForActions(){
+  const entry=_nearestWorldEntryCandidate();
+  if(entry?.kind==='apartment')return null;
   let best=null,bestD=3.25;
   for(const biz of BUSINESS_POIS){const d=Math.hypot(player.r-biz.r,player.c-biz.c);if(d<bestD){best={kind:'business',poi:biz};bestD=d;}}
   const major=_nearestMajorObject(4.2);if(major){const d=Math.hypot(player.r-major.r,player.c-major.c);if(!best||d<bestD)best={kind:'major',poi:major};}
@@ -19206,9 +19220,8 @@ function updateGtaInteractions() {
   // Чёрный рынок — вход в здание
   // Ручной выбор здания имеет приоритет, пока игрок стоит на месте.
   // После начала движения метка снова автоматически следует за ближайшим домом.
-  const nearbyApartmentHost=(_apartmentHosts||[])
-    .map(h=>({...h,d:Math.hypot(player.r-(+h.r+.5),player.c-(+h.c+.5))}))
-    .filter(h=>h.d<=2.25).sort((a,b)=>a.d-b.d)[0]||null;
+  const nearestEntry=_nearestWorldEntryCandidate();
+  const nearbyApartmentHost=nearestEntry?.kind==='apartment'?nearestEntry.poi:null;
   if(nearbyApartmentHost){
     _selectedBuildingEntry={r:+nearbyApartmentHost.r,c:+nearbyApartmentHost.c,type:null,
       label:`Квартира ${nearbyApartmentHost.name||'друга'}`,selectedAtR:player.r,selectedAtC:player.c};
