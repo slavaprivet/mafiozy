@@ -11600,6 +11600,9 @@ let _myApartments = {};
 let _apartmentHosts = [];
 let _pendingApartmentGuest = null;
 let _apartmentStateLoaded = false;
+let _customGang = null;
+let _customGangHqs = [];
+let _customGangBusy = false;
 const APARTMENT_OWNERSHIP_LIMIT = 5;
 // Цена квартиры зависит от класса квартала. Сервер использует ту же
 // таблицу и не доверяет сумме, присланной браузером.
@@ -11722,6 +11725,18 @@ function drawOwnedApartmentWorldMarkers(r0, r1, c0, c1) {
     roundRect(p.x-tw/2,markerY-43,tw,22,9);ctx.fill();ctx.stroke();
     ctx.fillStyle='#e5ffeb';ctx.fillText(label,p.x,markerY-32);
     ctx.restore();
+  }
+}
+
+// Купленные бизнесы и выбранный вход рисуем отдельным верхним слоем.
+function drawCustomGangHeadquarters(r0,r1,c0,c1){
+  for(const hq of _customGangHqs||[]){
+    const r=+hq.r+.5,c=+hq.c+.5;if(r<r0-4||r>r1+4||c<c0-4||c>c1+4)continue;
+    const p=w2s(r,c),flag=hq.flag||{},primary=flag.primary||'#9b1f2d',secondary=flag.secondary||'#f0cf72',wave=Math.sin(performance.now()*.004+(+hq.id||0));
+    ctx.save();ctx.lineCap='round';ctx.strokeStyle='#d9b970';ctx.lineWidth=3;ctx.shadowColor=primary;ctx.shadowBlur=14;ctx.beginPath();ctx.moveTo(p.x,p.y-72);ctx.lineTo(p.x,p.y-151);ctx.stroke();
+    ctx.fillStyle=primary;ctx.beginPath();ctx.moveTo(p.x,p.y-148);ctx.lineTo(p.x+52,p.y-139+wave*3);ctx.lineTo(p.x+42,p.y-116);ctx.lineTo(p.x,p.y-124);ctx.closePath();ctx.fill();ctx.fillStyle=secondary;ctx.beginPath();ctx.moveTo(p.x,p.y-132);ctx.lineTo(p.x+48,p.y-126+wave*2);ctx.lineTo(p.x+42,p.y-116);ctx.lineTo(p.x,p.y-124);ctx.closePath();ctx.fill();
+    const emblem={crown:'♛',skull:'☠',diamond:'◆',wolf:'W',eagle:'♜',star:'★'}[flag.emblem]||'♛';ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='900 15px Georgia';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(emblem,p.x+23,p.y-134);
+    ctx.font='900 12px Arial';const label=`🚩 ${String(hq.name||'Банда').toUpperCase()}`,tw=Math.min(230,ctx.measureText(label).width+26);ctx.fillStyle='rgba(8,9,14,.94)';ctx.strokeStyle=primary;ctx.lineWidth=2;roundRect(p.x-tw/2,p.y-181,tw,25,8);ctx.fill();ctx.stroke();ctx.fillStyle='#fff4d2';ctx.fillText(label,p.x,p.y-168);ctx.restore();
   }
 }
 
@@ -12247,6 +12262,24 @@ async function loadApartmentState() {
     }
   } catch (e) { console.warn('apartment state load failed', e); }
 }
+async function loadCustomGangState(showError=false){
+  if(!QP.api||!QP.uid)return;
+  try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/custom-gang/${encodeURIComponent(QP.uid)}/state`,{cache:'no-store'}),j=await r.json();if(j?.ok){_customGang=j.gang||null;_customGangHqs=Array.isArray(j.headquarters)?j.headquarters:[];_refreshMafiaPerks();renderJobStatus();if(_profileTab==='status')renderProfileTab();}}
+  catch(e){if(showError)showToast('Не удалось загрузить состояние банды','⚠️',2200);}
+}
+function _customGangModal(){
+  let m=document.getElementById('customGangModal');if(m)return m;
+  const s=document.createElement('style');s.textContent=`#customGangModal{position:fixed;inset:0;z-index:10030;display:none;align-items:center;justify-content:center;background:#020409cc;backdrop-filter:blur(9px)}#customGangModal.show{display:flex}.cg-card{width:min(510px,calc(100vw - 28px));padding:24px;border-radius:22px;border:1px solid #9b7240;background:linear-gradient(145deg,#1a1216,#080a0f);box-shadow:0 30px 100px #000,0 0 38px #9b1f2d55;color:#f8edd7}.cg-card h2{margin:7px 0;font:900 28px Georgia}.cg-card p{color:#b9afaa;font:600 13px Arial;line-height:1.5}.cg-k{color:#e8bd6d;font:900 11px Arial;letter-spacing:3px}.cg-card input{box-sizing:border-box;width:100%;padding:13px;border-radius:11px;border:1px solid #665342;background:#090a0e;color:#fff;font:800 16px Arial}.cg-label{display:block;margin:16px 0 8px;color:#e9d4aa;font:800 12px Arial}.cg-picks{display:flex;gap:8px;flex-wrap:wrap}.cg-color,.cg-emblem{width:34px;height:34px;border:2px solid #ffffff22;border-radius:9px;cursor:pointer}.cg-emblem{width:44px;background:#1b171b;color:#fff;font:900 18px Georgia}.cg-color.on,.cg-emblem.on{border-color:#fff;box-shadow:0 0 0 2px #d8aa54}.cg-preview{margin-top:16px;padding:14px;border-radius:12px;background:linear-gradient(100deg,var(--a),var(--b));color:#fff;text-shadow:0 2px 4px #000;font:900 18px Georgia}.cg-actions{display:flex;gap:10px;margin-top:18px}.cg-actions button{flex:1;padding:12px;border:0;border-radius:11px;font:900 14px Arial}.cg-ok{background:#d6a652;color:#170e08}.cg-no{background:#29252b;color:#eee}.cg-danger{background:#711d27!important;color:#fff}.cg-member{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #ffffff12;font:700 13px Arial}`;document.head.appendChild(s);
+  m=document.createElement('div');m.id='customGangModal';m.innerHTML='<div class="cg-card"><div class="cg-k">СОБСТВЕННАЯ ОРГАНИЗАЦИЯ</div><h2 id="cgTitle"></h2><p id="cgText"></p><div id="cgForm"><label class="cg-label">НАЗВАНИЕ БАНДЫ</label><input id="cgName" maxlength="24" placeholder="Северные волки"><label class="cg-label">ЦВЕТ ФЛАГА</label><div class="cg-picks" id="cgColors"></div><label class="cg-label">ЗНАК</label><div class="cg-picks" id="cgEmblems"></div><div class="cg-preview" id="cgPreview"></div></div><div id="cgMembers"></div><div class="cg-actions" id="cgActions"></div></div>';document.body.appendChild(m);return m;
+}
+function openCustomGangModal(){
+  const m=_customGangModal(),form=m.querySelector('#cgForm'),members=m.querySelector('#cgMembers'),actions=m.querySelector('#cgActions');
+  if(_customGang){m.querySelector('#cgTitle').textContent=_customGang.name;m.querySelector('#cgText').textContent=`Штаб: дом ${_customGang.hq_r}-${_customGang.hq_c} · ${_customGang.member_count}/${_customGang.max_members} участников`;form.style.display='none';members.innerHTML=(_customGang.members||[]).map(x=>`<div class="cg-member"><span>${x.role==='leader'?'♛':'◆'} ${String(x.name||'Игрок').replace(/[<>&]/g,'')}</span><b>${x.role==='leader'?'Лидер':'Участник'}</b></div>`).join('');actions.innerHTML=`<button class="cg-no" data-close>Закрыть</button><button class="cg-danger" data-${_customGang.role==='leader'?'disband':'leave'}>${_customGang.role==='leader'?'Распустить':'Покинуть'}</button>`;}
+  else{const key=_buildingInt&&!_buildingInt.type?_apartmentOwnedKey(_buildingInt.r,_buildingInt.c):null;if(!key){showToast('Штаб создаётся только в своей квартире','🏠',2300);return;}m.dataset.aptKey=key;m.dataset.primary='#9b1f2d';m.dataset.secondary='#e0b83e';m.dataset.emblem='crown';m.querySelector('#cgTitle').textContent='Создать банду';m.querySelector('#cgText').textContent='Квартира станет постоянным штабом. Все участники твоей пати вступят автоматически.';form.style.display='block';members.innerHTML='';actions.innerHTML='<button class="cg-no" data-close>Отмена</button><button class="cg-ok" data-create>Учредить банду</button>';const colors=['#9b1f2d','#cf303d','#e77b28','#e0b83e','#287f55','#2386a8','#3154a5','#6438a8','#a23482','#151922','#ece5d5','#7a4b2a'];m.querySelector('#cgColors').innerHTML=colors.map((c,i)=>`<button class="cg-color ${i?'':'on'}" data-color="${c}" style="background:${c}"></button>`).join('');m.querySelector('#cgEmblems').innerHTML=Object.entries({crown:'♛',skull:'☠',diamond:'◆',wolf:'W',eagle:'♜',star:'★'}).map(([k,v],i)=>`<button class="cg-emblem ${i?'':'on'}" data-emblem="${k}">${v}</button>`).join('');}
+  const update=()=>{const pv=m.querySelector('#cgPreview');if(!pv)return;pv.style.setProperty('--a',m.dataset.primary);pv.style.setProperty('--b',m.dataset.secondary);pv.textContent=`${{crown:'♛',skull:'☠',diamond:'◆',wolf:'W',eagle:'♜',star:'★'}[m.dataset.emblem]||'♛'} ${(m.querySelector('#cgName').value||'НОВАЯ БАНДА').toUpperCase()}`;};m.onclick=e=>{if(e.target===m||e.target.closest('[data-close]'))m.classList.remove('show');const c=e.target.closest('[data-color]');if(c){m.querySelectorAll('.cg-color').forEach(x=>x.classList.remove('on'));c.classList.add('on');m.dataset.primary=c.dataset.color;update();}const em=e.target.closest('[data-emblem]');if(em){m.querySelectorAll('.cg-emblem').forEach(x=>x.classList.remove('on'));em.classList.add('on');m.dataset.emblem=em.dataset.emblem;update();}if(e.target.closest('[data-create]'))createCustomGang();if(e.target.closest('[data-leave]'))endCustomGang('leave');if(e.target.closest('[data-disband]'))endCustomGang('disband');};m.querySelector('#cgName')?.addEventListener('input',update);update();m.classList.add('show');
+}
+async function createCustomGang(){const m=_customGangModal(),name=m.querySelector('#cgName').value.trim();if(name.length<3){showToast('Название — от 3 до 24 символов','⚠️',2200);return;}if(_customGangBusy)return;_customGangBusy=true;try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/custom-gang/${encodeURIComponent(QP.uid)}/create`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apt_key:m.dataset.aptKey,name,flag:{primary:m.dataset.primary,secondary:m.dataset.secondary,emblem:m.dataset.emblem}})}),j=await r.json();if(!j.ok)throw new Error(j.error||'create');_customGang=j.gang;_customGangHqs=j.headquarters||[];m.classList.remove('show');_refreshMafiaPerks();renderJobStatus();showEventBanner('🚩 БАНДА СОЗДАНА',`${_customGang.name} · штаб учреждён`,4300,'win');}catch(e){showToast({'party leader only':'Только лидер пати может создать банду','faction conflict':'Сначала покинь службу или мафиозную семью','name taken':'Название уже занято','hq taken':'В этом доме уже есть штаб'}[e.message]||'Не удалось создать банду','⚠️',3000);}finally{_customGangBusy=false;}}
+async function endCustomGang(action){if(_customGangBusy||!confirm(action==='disband'?'Распустить банду навсегда?':'Покинуть банду?'))return;_customGangBusy=true;try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/custom-gang/${encodeURIComponent(QP.uid)}/${action}`,{method:'POST'}),j=await r.json();if(!j.ok)throw 0;_customGang=null;_customGangHqs=j.headquarters||[];_customGangModal().classList.remove('show');_refreshMafiaPerks();renderJobStatus();showToast(action==='disband'?'Банда распущена':'Ты покинул банду','🚪',2400);}catch(e){showToast('Действие не выполнено','⚠️',2200);}finally{_customGangBusy=false;}}
 async function buyCurrentApartment() {
   if (!_buildingInt || _buildingInt.type) return;
   const key = _aptTileKey(_buildingInt.r, _buildingInt.c);
@@ -12300,7 +12333,7 @@ async function sellCurrentApartment() {
     });
     const j = await r.json();
     if (!j.ok) {
-      showToast(j.error === 'not owned' ? '🏠 Квартира уже не твоя' : '❌ Не удалось продать', '❌', 2300);
+      showToast(j.error === 'not owned' ? '🏠 Квартира уже не твоя' : j.error === 'hq active' ? '🚩 Сначала распусти банду — действующий штаб не продаётся' : '❌ Не удалось продать', '❌', 2700);
       return;
     }
     if (j.cash !== undefined) { QP.cash = j.cash; myCash = parseInt(j.cash) || 0; updateMoneyHud(); }
@@ -12348,10 +12381,11 @@ function showApartmentUpgradeMenu() {
     return `${u.label} Lv.${lvl}/3 — ${lvl >= 3 ? 'MAX' : '$' + cost.toLocaleString('ru')}`;
   });
   const refund = apartmentSalePrice(info);
-  const choice = prompt('Управление квартирой:\n\n' + lines.join('\n') + `\n\n💰 Продать — $${refund.toLocaleString('ru')} (sell)` + '\n\nВведи: safe, weapon_rack, garage, cameras, repair или sell');
+  const choice = prompt('Управление квартирой:\n\n' + lines.join('\n') + `\n🚩 ${_customGang?'Управление бандой «'+_customGang.name+'»':'Учредить штаб банды'} (gang)` + `\n\n💰 Продать — $${refund.toLocaleString('ru')} (sell)` + '\n\nВведи: safe, weapon_rack, garage, cameras, repair, gang или sell');
   if (!choice) return;
   const action = String(choice).trim().toLowerCase();
   if (action === 'sell' || action === 'продать') { sellCurrentApartment(); return; }
+  if (action === 'gang' || action === 'банда' || action === 'штаб') { openCustomGangModal(); return; }
   if (!APT_UPGRADES[action]) { showToast('❌ Нет такого действия', '❌', 1800); return; }
   upgradeCurrentApartment(action);
 }
@@ -12416,7 +12450,7 @@ function syncGangRosterHud() {
   const key=`${_gangRosterOpen}:${_gangDismissConfirmId||''}:`+active.map(g=>`${g.id}:${g.name}:${g.weapon}:${g.level||1}:${g.fighterXp||0}:${g.kills||0}`).join('|')+'#'+onlineMembers.map(m=>`${m.uid}:${m.name}:${m.npc_count}`).join('|');
   if(key===_gangRosterUiKey){placeJobHud();return;}
   _gangRosterUiKey=key;
-  count.textContent=`${onlineMembers.length+1}/3 игрока · ${active.length}/${GANG_MAX} NPC`;
+  count.textContent=`${onlineMembers.length+1}/${_customGang?.max_members||3} игрока · ${active.length}/${GANG_MAX} NPC`;
   list.replaceChildren();
   const addRow=(g)=>{
     const row=document.createElement('div');row.className='gr-row';
@@ -12443,9 +12477,9 @@ function syncGangRosterHud() {
     }
   };
   for(const g of active)addRow(g);
-  for(const m of onlineMembers){const row=document.createElement('div');row.className='gr-row online';row.innerHTML=`<span class="gr-dot"></span><span class="gr-name">◆ ${m.name||'Мафиози'}</span><span class="gr-weapon">${m.npc_count||0} NPC</span>`;if(_gangRosterOpen){const b=document.createElement('button');b.className='gr-dismiss';b.textContent='×';b.title='Исключить игрока';b.onclick=e=>{e.stopPropagation();if(confirm(`Исключить ${m.name||'игрока'} из банды?`))ws?.send(JSON.stringify({t:'gang_player_kick',d:{target_uid:String(m.uid)}}));};row.appendChild(b);}list.appendChild(row);}
+  for(const m of onlineMembers){const row=document.createElement('div');row.className='gr-row online';row.innerHTML=`<span class="gr-dot"></span><span class="gr-name">◆ ${m.name||'Игрок'}</span><span class="gr-weapon">${m.npc_count||0} NPC</span>`;if(_gangRosterOpen&&!_customGang){const b=document.createElement('button');b.className='gr-dismiss';b.textContent='×';b.title='Исключить из пати';b.onclick=e=>{e.stopPropagation();if(confirm(`Исключить ${m.name||'игрока'} из пати?`))ws?.send(JSON.stringify({t:'gang_player_kick',d:{target_uid:String(m.uid)}}));};row.appendChild(b);}list.appendChild(row);}
   if(!active.length&&!onlineMembers.length){const empty=document.createElement('div');empty.className='gr-empty';empty.textContent='Бойцов пока нет';list.appendChild(empty);}
-  if(_gangRosterOpen&&_onlineGang){const leave=document.createElement('button');leave.className='armor-equip';leave.textContent='Выйти из онлайн-банды';leave.onclick=e=>{e.stopPropagation();if(confirm('Выйти из онлайн-банды?'))ws?.send(JSON.stringify({t:'gang_player_leave',d:{}}));};list.appendChild(leave);}
+  if(_gangRosterOpen&&_onlineGang){const leave=document.createElement('button');leave.className='armor-equip';leave.textContent=_customGang?'Управление постоянной бандой':'Выйти из пати';leave.onclick=e=>{e.stopPropagation();if(_customGang)openCustomGangModal();else if(confirm('Выйти из пати?'))ws?.send(JSON.stringify({t:'gang_player_leave',d:{}}));};list.appendChild(leave);}
   requestAnimationFrame(placeJobHud);
 }
 // Id уличных ботов, которых игрок НАНЯЛ. Сервер про найм не знает и
@@ -12564,10 +12598,10 @@ const _GANG_NAMES = [
 function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false,
   botLevel = 1, botMaxHp = 0, serverConfirmed = false,
   botWeapon = null, botFaction = null) {
-  if(!_mafiaState?.employed){showToast('Сначала вступи в мафию в Burj Mafia','🕴️',2200);return false;}
+  if(!_mafiaState?.employed&&!_customGang){showToast('Сначала вступи в мафию или создай свою банду','🕴️',2200);return false;}
   const mafiaLevel=_mafiaLevel();
   botLevel=Math.max(1,Math.min(25,parseInt(botLevel)||1));
-  if(botLevel>=10&&mafiaLevel<4){showToast('🔒 Сильных бойцов 10–25 уровня можно нанимать с 4 уровня мафии','🕴️',2800);return false;}
+  if(botLevel>=10&&!_customGang&&mafiaLevel<4){showToast('🔒 Сильных бойцов 10–25 уровня можно нанимать с 4 уровня мафии','🕴️',2800);return false;}
   if (_myGang.length >= GANG_MAX) { showToast(`👥 Максимум ${GANG_MAX} бойцов`, '⚠️', 1500); return false; }
   const lvl = parseInt(QP.lvl) || 1;
   if (lvl < GANG_MIN_LVL) { showToast(`🔒 Нужен ранг ${GANG_MIN_LVL}+`, '⚠️', 1500); return false; }
@@ -12604,6 +12638,7 @@ function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false,
     // AI ниже общий для всех: faction влияет только на костюм/принадлежность.
     weapon: botWeapon || weapons[Math.floor(Math.random() * weapons.length)],
     faction: botFaction || null,
+    gangName: _customGang?.name || '',
     _nextShootAt: 0,
     _threatId: null, _threatR: 0, _threatC: 0, _threatUntil: 0,
     _intR: 0, _intC: 0,
@@ -12621,7 +12656,7 @@ function _isDistrictDefenderBot(bot){
 }
 function _saveGang() {
   try {
-    const data = _myGang.map(g => ({ name:g.name,look:g.look,weapon:g.weapon,faction:g.faction||null,hp:g.hp,max_hp:g.max_hp,
+    const data = _myGang.map(g => ({ name:g.name,look:g.look,weapon:g.weapon,faction:g.faction||null,gangName:g.gangName||_customGang?.name||'',hp:g.hp,max_hp:g.max_hp,
       level:g.level||1,fighterXp:Math.max(_gangXpFloor(g.level||1),+g.fighterXp||0),
       kills:+g.kills||0,damageDone:+g.damageDone||0,isBoss:!!g.isBoss,sourceBotId:g.sourceBotId||null }));
     localStorage.setItem('_myGang', JSON.stringify(data));
@@ -12642,7 +12677,7 @@ function _loadGang() {
         hp:g.hp||80,max_hp:g.max_hp||80,level:Math.max(1,Math.min(25,parseInt(g.level)||1)),
         fighterXp:Math.max(_gangXpFloor(g.level||1),+g.fighterXp||0),kills:+g.kills||0,
         damageDone:+g.damageDone||0,isBoss:!!g.isBoss,look:g.look||{},sourceBotId:g.sourceBotId==null?null:String(g.sourceBotId),
-        weapon: g.weapon || 'pistol', faction:g.faction||null, _nextShootAt: 0,
+        weapon: g.weapon || 'pistol', faction:g.faction||null, gangName:g.gangName||'', _nextShootAt: 0,
         _threatId: null, _threatR: 0, _threatC: 0, _threatUntil: 0, _intR: 0, _intC: 0,
       };
       _myGang.push(m);
@@ -15282,9 +15317,13 @@ function handleEventPacket(d) {
       _completeTaxiRide(dest,d.cash);
     }
   }else if(kind==='gang_player_invite'){
-    const accept=confirm(`${d.from_name||'Игрок'} приглашает тебя в онлайн-банду. Принять?`);
+    const accept=confirm(`${d.from_name||'Игрок'} приглашает тебя в пати. Принять?`);
     ws?.send(JSON.stringify({t:'gang_player_answer',d:{accept}}));
-  }else if(kind==='gang_player_reply'){showToast(d.ok?`Приглашение отправлено: ${d.target_name||'игрок'}`:({mafia_only:'Оба игрока должны быть мафиози',already_in_gang:'Игрок уже состоит в онлайн-банде',full:'В банде уже лидер и два игрока',too_far:'Подойди к игроку ближе'}[d.reason]||'Нельзя пригласить игрока'),d.ok?'◆':'⚠️',2600);}
+  }else if(kind==='gang_player_reply'){showToast(d.ok?`Приглашение в пати отправлено: ${d.target_name||'игрок'}`:({custom_gang_conflict:'Участники постоянной банды уже собраны',already_in_party:'Игрок уже состоит в пати',full:'В пати уже три игрока',too_far:'Подойди к игроку ближе'}[d.reason]||'Нельзя пригласить игрока'),d.ok?'◆':'⚠️',2600);}
+  else if(kind==='custom_gang_player_invite'){
+    const accept=confirm(`${d.from_name||'Игрок'} приглашает тебя в банду «${d.gang_name||'Без имени'}». Вступить?`);ws?.send(JSON.stringify({t:'custom_gang_player_answer',d:{accept}}));
+  }else if(kind==='custom_gang_player_reply'){showToast(d.ok?`Приглашение в банду отправлено: ${d.target_name||'игрок'}`:({leader_only:'Приглашать может только лидер банды',already_in_gang:'Игрок уже состоит в банде',faction_conflict:'Игрок служит полиции или мафиозной семье',too_far:'Подойди к игроку ближе'}[d.reason]||'Нельзя пригласить игрока'),d.ok?'🚩':'⚠️',2700);}
+  else if(kind==='custom_gang_player_changed'){loadCustomGangState();showToast(d.accepted?'Новый участник вступил в банду':(d.ok?'Приглашение отклонено':'Вступление не удалось'),d.accepted?'🚩':'⚠️',2500);}
   else if(kind==='apartment_guest_reply'){
     if(d.ok){
       _pendingApartmentGuest=null;_selectedBuildingEntry=null;_gtaActionKind=null;_gtaActionCarId=null;
@@ -15292,7 +15331,7 @@ function handleEventPacket(d) {
       showToast(`Ты в гостях у ${d.owner_name||'друга'}`,'🏠',2200);
     }else showToast(({not_crew:'Только участники одной команды могут ходить в гости',owner_left:'Друг уже вышел из квартиры',too_far:'Подойди к жёлтому входу ближе'}[d.reason]||'Сейчас войти в гости нельзя'),'🔒',2600);
   }
-  else if(kind==='gang_player_changed'){showToast(d.accepted?'Онлайн-игрок вступил в банду':'Приглашение отклонено',d.accepted?'◆':'👋',2400);}
+  else if(kind==='gang_player_changed'){showToast(d.accepted?'Онлайн-игрок вступил в пати':'Приглашение отклонено',d.accepted?'◆':'👋',2400);}
   else if(kind==='gang_hire_reply'){
     const key=String(d.bot_id||''),pending=_pendingGangHires.get(key);
     _pendingGangHires.delete(key);
@@ -17681,7 +17720,7 @@ function wsConnect() {
                 wanted: o.wanted || 0, gangs: o.gangs || 0,
                 mode: o.mode || 'pvp', jail_in: o.jail_in || 0,
                 interior: o.interior || null, weapon: o.weapon || 'pistol', police:!!o.police,
-                mafia:!!o.mafia,mafiaFamily:o.mafia_family||'',crewMate:!!o.crew_mate,swimming:!!o.swimming,
+                mafia:!!o.mafia,mafiaFamily:o.mafia_family||'',customGangId:+o.custom_gang_id||0,customGangName:o.custom_gang_name||'',customGangRole:o.custom_gang_role||'',crewMate:!!o.crew_mate,swimming:!!o.swimming,
                 policeCuffed:!!o.police_cuffed, policeStunnedIn:+o.police_stunned_in||0,
                 policeEscort:o.police_escort||null, businessAttacker:!!o.business_attacker };
           others.set(o.uid, p);
@@ -17702,7 +17741,7 @@ function wsConnect() {
           if (o.gang) p.gang = o.gang;
           if (o.weapon) p.weapon = o.weapon;
           p.police=!!o.police;
-          p.mafia=!!o.mafia;p.mafiaFamily=o.mafia_family||'';p.crewMate=!!o.crew_mate;p.swimming=!!o.swimming;
+          p.mafia=!!o.mafia;p.mafiaFamily=o.mafia_family||'';p.customGangId=+o.custom_gang_id||0;p.customGangName=o.custom_gang_name||'';p.customGangRole=o.custom_gang_role||'';p.crewMate=!!o.crew_mate;p.swimming=!!o.swimming;
           p.policeCuffed=!!o.police_cuffed;
           p.policeStunnedIn=+o.police_stunned_in||0;
           p.policeEscort=o.police_escort||null;
@@ -17725,6 +17764,9 @@ function wsConnect() {
       _onlineWantedBoard=nextWantedBoard;_onlineWantedBoardUiSig=nextWantedSig;
       if(wantedUiChanged&&typeof _policeModal!=='undefined'&&_policeModal?.classList.contains('show'))renderPoliceModal();
       if (d.me) {
+        const nextCustomGang=d.me.custom_gang||null;
+        if(nextCustomGang&&_customGang&&+nextCustomGang.id===+_customGang.id)Object.assign(_customGang,nextCustomGang);
+        else if(JSON.stringify(nextCustomGang)!==JSON.stringify(_customGang)){_customGang=nextCustomGang;_refreshMafiaPerks();renderJobStatus();}
         const nextOnlineGang=d.me.online_gang||null;
         if(JSON.stringify(nextOnlineGang)!==JSON.stringify(_onlineGang)){_onlineGang=nextOnlineGang;_gangRosterUiKey='';syncGangRosterHud();}
         _onlinePoliceArrest = d.me.police_arrest || null;
@@ -19559,7 +19601,7 @@ function updateGtaInteractions() {
         _gtaBtn.style.display = 'block'; return;
       } else {
         _gtaActionKind = 'apt_upgrade'; _gtaActionCarId = null;
-        _gtaBtn.textContent = '🏠 Управление квартирой';
+        _gtaBtn.textContent = _customGang ? `🚩 Штаб и банда «${_customGang.name}»` : '🏠 Квартира · создать штаб банды';
         _gtaBtn.style.display = 'block'; return;
       }
     }
@@ -19935,12 +19977,12 @@ function updateGtaInteractions() {
       return;
     }
   }
-  // Пригласить реального онлайн-мафиози: отдельный лимит 3 игрока,
-  // собственные NPC-отряды участников не объединяем и не ограничиваем.
-  if(_mafiaState?.employed&&!_buildingInt&&!_bankInt&&!myDrivingCarId&&!myDead&&(!_onlineGang||(_onlineGang.members||[]).length<3)){
+  // Лидер постоянной банды зовёт прохожего в состав. До учреждения штаба
+  // та же кнопка собирает пати; её участники станут членами банды разом.
+  if(!_buildingInt&&!_bankInt&&!myDrivingCarId&&!myDead&&(_customGang?.role==='leader'||!_customGang)&&(!_onlineGang||(_onlineGang.members||[]).length<(_customGang?12:3))){
     let mate=null,best=2.8;
-    for(const o of others.values()){const dist=Math.hypot(player.r-o.y,player.c-o.x);if(dist<best&&o.mafia&&o.mafiaFamily===_mafiaState.family&&!o.police&&!o.dead&&!o.crewMate){mate=o;best=dist;}}
-    if(mate){_gtaActionKind='gang_player_invite';_gtaActionCarId=String(mate.uid);_gtaBtn.textContent=`◆ Добавить ${mate.name||'игрока'} в банду`;_gtaBtn.style.display='block';return;}
+    for(const o of others.values()){const dist=Math.hypot(player.r-o.y,player.c-o.x);if(dist<best&&!o.police&&!o.mafia&&!o.dead&&!o.crewMate&&!o.customGangId){mate=o;best=dist;}}
+    if(mate){_gtaActionKind=_customGang?'custom_gang_player_invite':'gang_player_invite';_gtaActionCarId=String(mate.uid);_gtaBtn.textContent=_customGang?`🚩 Позвать ${mate.name||'игрока'} в ${_customGang.name}`:`◆ Позвать ${mate.name||'игрока'} в пати`;_gtaBtn.style.display='block';return;}
   }
   // Нанять бандита из aggroZones (city_gangs)
   if (!_policeState?.employed && !_buildingInt && !_bankInt && !myDrivingCarId && !myDead && _myGang.length < GANG_MAX && !(myGangs > 0)) {
@@ -20475,8 +20517,11 @@ _gtaBtn.addEventListener('click', () => {
   } else if (_gtaActionKind === 'gang_player_invite') {
     if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'gang_player_invite',d:{target_uid:String(_gtaActionCarId||'')}}));
     else showToast('Сервер не отвечает','⚠️',1800);
+  } else if (_gtaActionKind === 'custom_gang_player_invite') {
+    if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'custom_gang_player_invite',d:{target_uid:String(_gtaActionCarId||'')}}));
+    else showToast('Сервер не отвечает','⚠️',1800);
   } else if (_gtaActionKind === 'gang_hire') {
-    if(!_mafiaState?.employed){showToast('Бригаду может нанимать только член мафии','🕴️',2500);_gtaActionKind=null;return;}
+    if(!_mafiaState?.employed&&!_customGang){showToast('Сначала вступи в мафию или создай свою банду','🕴️',2500);_gtaActionKind=null;return;}
     let hired = false;
     for (const z of Object.values(aggroZones || {})) {
       for (const b of (z.bots || [])) {
@@ -37274,9 +37319,9 @@ function renderProfileTab() {
     const isPoliceRole=!!_policeState.employed,isMafiaRole=!!_mafiaState.employed;
     const career=isPoliceRole?_policeProgress():(isMafiaRole?_mafiaProgress():{level:0,rank:'Гражданский',xp:0,maxed:true,part:0,need:0,pct:0,nextRank:''});
     const careerLevels=isPoliceRole?POLICE_LEVELS:MAFIA_LEVELS;
-    const roleLabel=isPoliceRole?'КОП':(isMafiaRole?'МАФИОЗИ':'ГРАЖДАНСКИЙ');
-    const roleIcon=isPoliceRole?'👮':(isMafiaRole?'🕴️':'👤');
-    const roleColor=isPoliceRole?'#67c8ff':(isMafiaRole?'#ffd27a':'#b8c1ce');
+    const roleLabel=isPoliceRole?'КОП':(isMafiaRole?'МАФИОЗИ':(_customGang?(_customGang.role==='leader'?'ЛИДЕР БАНДЫ':'УЧАСТНИК БАНДЫ'):'ГРАЖДАНСКИЙ'));
+    const roleIcon=isPoliceRole?'👮':(isMafiaRole?'🕴️':(_customGang?'🚩':'👤'));
+    const roleColor=isPoliceRole?'#67c8ff':(isMafiaRole?'#ffd27a':(_customGang?(_customGang.flag?.primary||'#d65b68'):'#b8c1ce'));
     const workLabel=_policeState.employed?_policeRank():((typeof _jobState!=='undefined'&&_jobState.job)?(_jobDef(_jobState.job)?.name||_jobState.job):'Не трудоустроен');
     let html = '<div class="stat-block">';
     html += `<div class="stat-card"><div class="label">Режим</div><div class="val" style="color:${modeCol}">${modeLbl}</div></div>`;
@@ -37285,6 +37330,7 @@ function renderProfileTab() {
     }
     html += `<div class="stat-card"><div class="label">Уровень</div><div class="val" style="color:#ffd76b">${QP.lvl || 1}</div></div>`;
     html += `<div class="stat-card"><div class="label">Роль</div><div class="val" style="color:${roleColor}">${roleIcon} ${roleLabel}</div></div>`;
+    if(_customGang)html += `<div class="stat-card"><div class="label">Название банды</div><div class="val" style="color:${_customGang.flag?.secondary||'#f0cf72'}">🚩 ${String(_customGang.name||'')}</div></div><div class="stat-card"><div class="label">Штаб</div><div class="val">Дом ${_customGang.hq_r}-${_customGang.hq_c} · ${_customGang.member_count||1}/${_customGang.max_members||12}</div></div>`;
     html += `<div class="stat-card"><div class="label">Работа</div><div class="val" style="color:${_policeState.employed?'#67c8ff':'#b8c1ce'}">${workLabel}</div></div>`;
     html += `<div class="stat-card"><div class="label">Розыск</div><div class="val" style="color:#ff4040">${stars}</div></div>`;
     html += `<div class="stat-card"><div class="label">K/D</div><div class="val">${myKills}/${myDeaths} (${kd})</div></div>`;
@@ -39835,6 +39881,7 @@ if (d.kind === 'plank_path') {
   // Маркеры собственности — отдельный верхний слой, чтобы соседние части
   // многоэтажки не перекрывали подпись и контур купленной квартиры.
   drawOwnedApartmentWorldMarkers(r0, r1, c0, c1);
+  drawCustomGangHeadquarters(r0, r1, c0, c1);
   drawOwnedBusinessWorldMarkers(r0, r1, c0, c1);
   drawNearbyBusinessInteractionSquare();
   drawActiveBuildingEntryMarker();
@@ -44080,7 +44127,7 @@ function _mafiaHasLevel(level){return !!(_mafiaState.employed&&_mafiaLevel()>=le
 function _mafiaLevel(xp=_mafiaXp){xp=Math.max(0,+xp||0);let level=1;for(const step of MAFIA_LEVELS)if(xp>=step.xp)level=step.level;return level;}
 function _mafiaRank(level=_mafiaLevel()){return MAFIA_LEVELS[Math.max(1,Math.min(5,+level||1))-1].rank;}
 function _mafiaProgress(){const xp=Math.min(MAFIA_XP_MAX,Math.max(0,Math.floor(_mafiaXp||0))),level=_mafiaLevel(xp),maxed=level>=MAFIA_LEVELS.length,current=MAFIA_LEVELS[level-1],nextStep=maxed?current:MAFIA_LEVELS[level],need=maxed?0:nextStep.xp-current.xp,part=maxed?0:xp-current.xp;return{xp,level,rank:current.rank,nextRank:maxed?'':nextStep.rank,maxed,need,part,pct:maxed?100:Math.max(0,Math.min(100,part/need*100))};}
-function _refreshMafiaPerks(){GANG_MAX=_mafiaState.employed?(_mafiaLevel()>=5?7:(_mafiaLevel()>=4?6:5)):0;_gangRosterUiKey='';syncGangRosterHud();}
+function _refreshMafiaPerks(){GANG_MAX=_mafiaState.employed?(_mafiaLevel()>=5?7:(_mafiaLevel()>=4?6:5)):(_customGang?5:0);_gangRosterUiKey='';syncGangRosterHud();}
 function _setMafiaXp(value){const old=_mafiaLevel(),v=Math.min(MAFIA_XP_MAX,Math.max(0,Math.floor(+value||0)));if(v===_mafiaXp)return;_mafiaXp=v;_refreshMafiaPerks();const level=_mafiaLevel();if(level>old)showEventBanner('🕴️ НОВЫЙ РАНГ МАФИИ',`${_mafiaRank(level)} · уровень ${level} · ${MAFIA_LEVELS[level-1].perk}`,4500,'win');renderJobStatus();if(_policeModalView==='mafia')renderPoliceModal();}
 const _hqUpgradeKey=`mafiozi_hq_upgrades_${QP.uid||'preview'}`;
 const _hqUpgradeDefs={
@@ -44360,6 +44407,7 @@ function _acceptPoliceMission(forceBoss=false){
 }
 function _joinPoliceService(){
   if(_policeState.employed)return;
+  if(_customGang){showToast('Сначала покинь свою банду','🚩',2400);return;}
   if(_mafiaState.employed){showToast('Сначала покинь семью в Burj Mafia','🕴️',2400);return;}
   if(typeof _jobState!=='undefined'&&_jobState.job){showToast('Сначала уволься с текущей работы','💼',2400);return;}
   _disbandGangForPolice();
@@ -44369,6 +44417,7 @@ function _joinPoliceService(){
 }
 function _joinMafiaService(family=_mafiaRecruitFamily){
   if(_mafiaState.employed)return;
+  if(_customGang){showToast(`Сначала покинь банду «${_customGang.name}»`,'🚩',2600);return;}
   if(_policeState.employed){showToast('Сначала сдай полицейскую форму','👮',2400);return;}
   if(_mafiaTraitorLeft()>0){showToast(`Ты предатель. Новую клятву можно принести через ${_mafiaTraitorText()}`,'⏳',3200);return;}
   if(typeof _jobState!=='undefined'&&_jobState.job){showToast('Сначала уволься с текущей работы','💼',2400);return;}
@@ -44679,7 +44728,7 @@ function renderJobStatus(){
   const title=_jobStatusHud?.querySelector('.js-title span');
   if(_policeState.employed){const p=_policeProgress();if(title)title.textContent='👮 Служба';_policeQuickToggle?.classList.add('show');_jobStatusHud?.classList.remove('mafia-actions');if(_jobStatusHud){_jobStatusHud.classList.add('ready','police-open');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label','Открыть полную служебную сводку');_jobStatusHud.title='Нажми на карточку для сводки или на стрелку для быстрых действий';}nm.textContent=p.rank;tm.textContent=`УР. ${p.level}`;sub.textContent=_policeEvidenceBag?`💼 Улика $${(+_policeEvidenceBag.value||0).toLocaleString('ru')} · неси в участок`:`Опыт ${p.xp} · задержания ${_policeDailyText()} · цели ${_policeState.missions.length}/3${_policeCanUseTaser()?' · ⚡ шокер':''}`;_renderPoliceQuickPanel();return;}
   if(!_mafiaState.employed&&_mafiaTraitorLeft()>0){_policeQuickToggle?.classList.remove('show');if(title)title.textContent='⚠️ Статус';nm.textContent='Предатель';tm.textContent=_mafiaTraitorText();sub.textContent=`Покинул ${MAFIA_FAMILIES[_mafiaState.lastFamily]?.short||'семью'} · в полицию вступить можно`;return;}
-  if(!_mafiaState.employed){_policeQuickToggle?.classList.remove('show');_jobStatusHud?.classList.remove('mafia-actions','police-open');if(_jobStatusHud){_jobStatusHud.classList.add('ready');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label','Открыть справку о ролях и бонусах');_jobStatusHud.title='Нажми, чтобы узнать кем можно стать';}if(title)title.textContent='Статус';nm.textContent='Гражданский';tm.textContent='?';sub.textContent='Нажми: роли, вступление и бонусы';return;}
+  if(!_mafiaState.employed){_policeQuickToggle?.classList.remove('show');_jobStatusHud?.classList.remove('mafia-actions','police-open');if(_jobStatusHud){_jobStatusHud.classList.add('ready');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label',_customGang?'Открыть управление своей бандой':'Открыть справку о ролях и бонусах');_jobStatusHud.title=_customGang?'Нажми, чтобы открыть состав банды':'Нажми, чтобы узнать кем можно стать';}if(_customGang){if(title)title.textContent='🚩 Моя банда';nm.textContent=_customGang.name;tm.textContent=_customGang.role==='leader'?'ЛИДЕР':'БОЕЦ';sub.textContent=`${_customGang.role==='leader'?'Лидер банды':'Участник банды'} · штаб ${_customGang.hq_apt_key||''} · ${_customGang.member_count||(_onlineGang?.members||[]).length||1}/${_customGang.max_members||12}`;}else{if(title)title.textContent='Статус';nm.textContent='Гражданский';tm.textContent='?';sub.textContent='Нажми: роли, вступление и бонусы';}return;}
   _policeQuickToggle?.classList.add('show');_jobStatusHud?.classList.add('mafia-actions');
   const p=_mafiaProgress(),def=_jobDef(_jobState.job),left=_jobRemaining(),ready=!!def&&left<=0;
   if(_jobStatusHud){_jobStatusHud.classList.add('ready','police-open');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label','Открыть прогресс мафиози');_jobStatusHud.title='Нажми, чтобы посмотреть путь мафиози';}
@@ -44709,8 +44758,8 @@ function openCitizenRoleGuide(){
     <div class="police-note" style="margin-top:10px;border-color:#8a4d58;background:#251419"><b style="color:#ff9c9c">Важно:</b> одновременно быть копом и мафиози нельзя. Для смены стороны сначала нужно уволиться или покинуть семью. После выхода фракционные способности, форма, служебное оружие и бонусы отключаются; накопленный карьерный XP сохраняется.</div>`;
   _policeModal?.classList.add('show');
 }
-_jobStatusHud?.addEventListener('click',()=>{if(_policeState.employed)openPoliceServiceBoard();else if(_mafiaState.employed)openMafiaBoard();else openCitizenRoleGuide();});
-_jobStatusHud?.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();if(_policeState.employed)openPoliceServiceBoard();else if(_mafiaState.employed)openMafiaBoard();else openCitizenRoleGuide();});
+_jobStatusHud?.addEventListener('click',()=>{if(_policeState.employed)openPoliceServiceBoard();else if(_mafiaState.employed)openMafiaBoard();else if(_customGang)openCustomGangModal();else openCitizenRoleGuide();});
+_jobStatusHud?.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();if(_policeState.employed)openPoliceServiceBoard();else if(_mafiaState.employed)openMafiaBoard();else if(_customGang)openCustomGangModal();else openCitizenRoleGuide();});
 _policeQuickToggle?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();_setPoliceQuickOpen(!_policeQuickOpen);});
 _policeQuickToggle?.addEventListener('keydown',e=>e.stopPropagation());
 _policeQuickPanel?.addEventListener('click',e=>{e.stopPropagation();const b=e.target.closest('[data-role-quick]');if(!b||b.disabled)return;e.preventDefault();if(b.dataset.roleQuick==='vehicle')_triggerCareerVehicle();else if(b.dataset.roleQuick==='helicopter')_triggerCareerVehicle('air');else if(_policeState.employed)_triggerPoliceQuickAction(b.dataset.roleQuick);else _triggerMafiaAbility(b.dataset.roleQuick);});
@@ -52447,7 +52496,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v22-casino-art-direction-residents',
+  migrationStage: 'three-full-world-shell-v23-custom-gang-headquarters',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52576,6 +52625,7 @@ window.Mafiozi3DBridge = Object.freeze({
       lair:lairZone?{r:lairZone.r,c:lairZone.c,radius:lairZone.radius||18}:null,
       businesses:(typeof BUSINESS_POIS!=='undefined'?BUSINESS_POIS:[]).map(b=>({id:b.id,r:b.r,c:b.c,name:b.name,emoji:b.emoji})),
       districtHqs:(typeof DISTRICTS!=='undefined'?DISTRICTS:[]).filter(d=>d.hq).map(d=>({id:d.id,r:d.hq.r,c:d.hq.c,name:d.name,color:d.color,capturable:d.capturable!==false})),
+      customGangHqs:(_customGangHqs||[]).map(h=>({id:h.id,r:+h.r||0,c:+h.c||0,name:h.name||'Банда',flag:h.flag||{},memberCount:+h.member_count||0})),
       banks:(typeof BANKS!=='undefined'?BANKS:[]).map(b=>({id:b.id,r:b.r,c:b.c,name:b.name,size:b.size})),
       gasStations:(typeof GAS_STATIONS!=='undefined'?GAS_STATIONS:[]).map((g,i)=>({id:String(g.id??i),r:g.r,c:g.c})),
       raceTrack:(typeof TRACK_PTS!=='undefined'?TRACK_PTS:[]).map(p=>({r:p[0],c:p[1]})),
@@ -52603,7 +52653,7 @@ window.Mafiozi3DBridge = Object.freeze({
     let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.npcs||[]):(typeof NPCS!=='undefined'?NPCS:[]);
     if(!inside){
       const combat=[];
-      if(typeof _myGang!=='undefined')for(const g of _myGang)if(g&&!g.dead&&(+g.hp||1)>0)combat.push({...g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,name:g.name||'Боец семьи'});
+      if(typeof _myGang!=='undefined')for(const g of _myGang)if(g&&!g.dead&&(+g.hp||1)>0)combat.push({...g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,name:g.name||'Боец семьи',family:_customGang?.name||g.gangName||g.faction||''});
       if(typeof _policeBackupUnits!=='undefined')for(const cop of _policeBackupUnits)if(cop&&(+cop.hp||1)>0)combat.push({...cop,id:`police_${cop.id}`,role:'police',police:true,name:cop.name||'Офицер'});
       if(typeof gangNests!=='undefined')for(const nest of gangNests||[])for(const guard of nest?.guards||[])if(guard&&!guard.dead&&(+guard.hp||1)>0)combat.push({...guard,id:`nest_${nest.id||'gang'}_${guard.id}`,r:+(guard.r??guard.y)||0,c:+(guard.c??guard.x)||0,role:guard.kind||'gang_guard',gang:true,name:guard.name||guard.boss_name||'Боец банды'});
       if(typeof BUSINESS_POIS!=='undefined'&&typeof myBusinesses!=='undefined'&&typeof _idleBusinessGuardPose==='function')for(const biz of BUSINESS_POIS){const own=myBusinesses.get(biz.id);if(!own?.owned||_isBusinessGangOccupied(biz.id,own))continue;for(let i=0;i<Math.min(6,+own.guards||0);i++){const pose=_idleBusinessGuardPose(biz,i);combat.push({...pose,id:`biz_guard_${biz.id}_${i}`,r:+pose.y||0,c:+pose.x||0,role:'guard',name:`Охрана · ${biz.name}`,hp:100,max_hp:100});}}
@@ -52620,7 +52670,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,color:x.color||'#ffc35a',life:+x.life||0,max:+x.max||80}));
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,blood:!!x.parts?.some?.(p=>p.isBlood),life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1))}));
     const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550}));
-    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null});}
+    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||''});}
     return {cars,npcs,projectiles,muzzleFx,impactFx,explosionFx,players:players.slice(0,24)};
   },
   fire(angle) {
@@ -52780,6 +52830,8 @@ function chatDuration(text) {
     return;
   }
   loadApartmentState();
+  loadCustomGangState();
+  setInterval(()=>loadCustomGangState(false),20000);
   // Если режим передан в URL (бот передаёт &mode=pvp) — пропускаем модал.
   // Иначе всегда показываем выбор.
   const _urlMode = QP.mode;
@@ -56354,6 +56406,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d69"></script>
+<script type="module" src="three_preview.js?v=3d70"></script>
 </body>
 </html>
