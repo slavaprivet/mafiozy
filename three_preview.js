@@ -948,6 +948,36 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
             if(!armed&&hairStyle===3){hidePart(npcParts.hair,i);setPart(npcParts.hairMohawk,i,rootMatrix,0,3.72,-.02);}
             if(armed||hairStyle===4||hairStyle===5){setPart(npcParts.hat,i,rootMatrix,0,3.77,0);if(armed||hairStyle===4)setPart(npcParts.hatBrim,i,rootMatrix,0,3.63,0);}
           }
+          // Единая смерть для всех 3D-NPC: мост сохраняет момент смерти,
+          // поэтому падение не перезапускается при каждом новом snapshot.
+          for(let i=0;i<Math.min(NPC_CAP,dynamic.npcs.length);i++){
+            const src=dynamic.npcs[i];if(!src?.dead)continue;
+            const age=Math.max(0,t-(+src.deadAt||t));
+            const raw=Math.min(1,age/560),fall=raw*raw*(3-2*raw);
+            const impact=age>480&&age<760?Math.sin((age-480)/280*Math.PI)*.13:0;
+            const x=(src.c-originC)*WORLD_SCALE,z=(src.r-originR)*WORLD_SCALE;
+            instanceQuat.setFromEuler(new THREE.Euler(-Math.PI*.5*fall,-(+src.ang||0),Math.sin((i+1)*2.17)*.09*fall,'XYZ'));
+            rootMatrix.compose(new THREE.Vector3(x,.46+impact,z),instanceQuat,npcScale);
+            setPart(npcParts.body,i,rootMatrix,0,2.05,0,0,npcBodyScale.set(1,1-.08*fall,1));
+            setPart(npcParts.head,i,rootMatrix,0,3.3,0,.08*fall);
+            setPart(npcParts.leftLeg,i,rootMatrix,-.34,.64,0,-.18*fall);
+            setPart(npcParts.rightLeg,i,rootMatrix,.34,.64,0,.12*fall);
+            setPart(npcParts.shoe,i*2,rootMatrix,-.34,.09,.18,-.18*fall);
+            setPart(npcParts.shoe,i*2+1,rootMatrix,.34,.09,.18,.12*fall);
+            setPart(npcParts.leftArm,i,rootMatrix,-.78,2.05,0,.34*fall);
+            setPart(npcParts.rightArm,i,rootMatrix,.78,2.05,0,-.24*fall);
+            for(const [eyeIndex,sx] of [[i*2,-.17],[i*2+1,.17]]){setPart(npcParts.eyeWhite,eyeIndex,rootMatrix,sx,3.37,.405,0,eyeScale);setPart(npcParts.pupil,eyeIndex,rootMatrix,sx,3.37,.455,0,pupilScale);}
+            const key=String(src.id??i);let seed=2166136261;for(let k=0;k<key.length;k++){seed^=key.charCodeAt(k);seed=Math.imul(seed,16777619);}seed>>>=0;
+            const role=String(src.role||'').toLowerCase(),armed=role.includes('gang')||role.includes('boss')||role.includes('guard')||role.includes('police')||role.includes('cop'),hairStyle=(seed>>>16)%6;
+            hidePart(npcParts.hair,i);hidePart(npcParts.hairBun,i);hidePart(npcParts.hairMohawk,i);hidePart(npcParts.hat,i);hidePart(npcParts.hatBrim,i);
+            if(!armed&&hairStyle!==0)setPart(npcParts.hair,i,rootMatrix,0,3.34,0);
+            if(!armed&&hairStyle===2)setPart(npcParts.hairBun,i,rootMatrix,0,3.58,-.34);
+            if(!armed&&hairStyle===3){hidePart(npcParts.hair,i);setPart(npcParts.hairMohawk,i,rootMatrix,0,3.72,-.02);}
+            if(armed||hairStyle===4||hairStyle===5){setPart(npcParts.hat,i,rootMatrix,0,3.77,0);if(armed||hairStyle===4)setPart(npcParts.hatBrim,i,rootMatrix,0,3.63,0);}
+            armed?setPart(npcParts.gun,i,rootMatrix,.72,2,.52,.24*fall):hidePart(npcParts.gun,i);
+            citizenPool[i].hpGroup.visible=false;
+            npcLabels[i].sprite.visible=false;
+          }
           for(const mesh of Object.values(npcParts)){mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;}
           for(let i=0;i<REMOTE_CAP;i++){const src=dynamic.players[i];if(!src){Object.values(remoteParts).forEach(mesh=>hidePart(mesh,i));continue;}const x=(src.c-originC)*WORLD_SCALE,z=(src.r-originR)*WORLD_SCALE;rootMatrix.makeRotationY(-src.ang);rootMatrix.setPosition(x,0,z);setPart(remoteParts.body,i,rootMatrix,0,2.05,0);setPart(remoteParts.head,i,rootMatrix,0,3.48,0);setPart(remoteParts.hat,i,rootMatrix,0,4,0);const remoteRole=String(src.role||'civilian'),remoteFamily=String(src.mafiaFamily||'').toLowerCase(),remoteColor=remoteRole==='police'?0x285c91:remoteRole==='mafia'?(remoteFamily.includes('moretti')?0xe6e0d3:0x25272d):(i%2?0x586378:0x8c6847);instanceColor.set(remoteColor);remoteParts.body.setColorAt(i,instanceColor);remoteParts.hat.setColorAt(i,instanceColor);}Object.values(remoteParts).forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;});
           for(let i=0;i<BULLET_CAP;i++){const src=dynamic.projectiles[i];if(!src){hidePart(worldBullets,i);continue;}const scale=src.weapon==='rpg'?2.7:src.thick?1.55:1,dr=+src.vr||Math.sin(+src.ang||0),dc=+src.vc||Math.cos(+src.ang||0);bulletDirection.set(dc,0,dr).normalize();instanceQuat.setFromUnitVectors(bulletUp,bulletDirection);instanceMatrix.compose(new THREE.Vector3((src.c-originC)*WORLD_SCALE,src.weapon==='rpg'?2.8:2.15,(src.r-originR)*WORLD_SCALE),instanceQuat,new THREE.Vector3(scale,scale,scale));worldBullets.setMatrixAt(i,instanceMatrix);try{worldBullets.setColorAt(i,instanceColor.set(src.color));}catch(_){worldBullets.setColorAt(i,instanceColor.set(0xffdc79));}}worldBullets.instanceMatrix.needsUpdate=true;if(worldBullets.instanceColor)worldBullets.instanceColor.needsUpdate=true;
