@@ -6803,7 +6803,9 @@ function trafficPhase() {
 
 // NPC — простые прохожие на тротуарах. Бродят по случайным waypoint-ам.
 const NPCS = [];
-function spawnNpc(seed) {
+let _residentSerial=0;
+function spawnNpc(seed,opts=null) {
+  const cityOnly=!!opts?.cityOnly;
   for (let tries = 0; tries < 80; tries++) {
     // Spread citizens across rotating city sectors instead of allowing random
     // clusters around a few lucky blocks. Every retry moves to another sector.
@@ -6817,6 +6819,7 @@ function spawnNpc(seed) {
     const _spt = MAP[r][c];
     const _isBeach = (_spt === 14);
     if (_spt === 9 || _spt === 8 || _spt === 14) {
+      if(cityOnly&&_isBeach)continue;
       // Песок плотный → рандом-спавн валит на пляж непропорционально много.
       // Держим квоту пляжных ~18 (как было beachgoers), остальные — в город.
       if (_isBeach) {
@@ -6843,6 +6846,7 @@ function spawnNpc(seed) {
         baseLook.hat = 0;
       }
       const n = {
+        id:`resident_${++_residentSerial}`,
         r: r + 0.5, c: c + 0.5,
         tr: r + 0.5, tc: c + 0.5,
         speed: spMin + Math.random() * (spMax - spMin),
@@ -7310,7 +7314,106 @@ function _npcAdvanceRoute(npc,dt,speed,passFn=npcPassable) {
   npc.r=nr;npc.c=nc;npc.ang=Math.atan2(dr,dc);npc.walkPhase+=dt*14;npc.walking=true;npc._routeBlockedAt=0;
   return true;
 }
+const RESIDENTS_INDOORS=[],RESIDENT_RESPAWN_BACKLOG=[];
+let _residentBuildingDoorsCache=null,_residentRespawnSeed=9000;
+function _isRespawnableResident(npc) {
+  return !!npc&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
+    !npc._policeCriminal&&!npc._clientOfBiz;
+}
+function _residentCanVisitBuilding(npc,now=performance.now()) {
+  return _isRespawnableResident(npc)&&!npc.dead&&!npc._beach&&!npc.snitching&&
+    !npc._hostile&&!npc._fighting&&!npc._fightingMelee&&!npc._medicalDowned&&
+    !(npc._knockedUntil>now)&&!(npc.panicUntil>now)&&now>=(npc._buildingVisitCooldownUntil||0);
+}
+// One or two real pavement doors per connected building footprint. Door
+// points always remain outside the solid MAP=1 footprint.
+function _residentBuildingDoors() {
+  if(_residentBuildingDoorsCache)return _residentBuildingDoorsCache;
+  const doors=[],seen=new Set(),dirs=[[1,0],[-1,0],[0,1],[0,-1]],rowLimit=Math.min(MAP_ROWS-2,BEACH_R0-1);
+  for(let r=2;r<=rowLimit;r++)for(let c=2;c<MAP_COLS-2;c++){
+    const firstKey=r*MAP_COLS+c;if(MAP[r]?.[c]!==1||seen.has(firstKey)||inArena(r,c)||inLair(r,c))continue;
+    const queue=[{r,c}],boundary=new Map();seen.add(firstKey);
+    for(let qi=0;qi<queue.length;qi++){
+      const cell=queue[qi];
+      for(const [dr,dc] of dirs){
+        const rr=cell.r+dr,cc=cell.c+dc,key=rr*MAP_COLS+cc;
+        if(MAP[rr]?.[cc]===1&&!seen.has(key)&&!inArena(rr,cc)&&!inLair(rr,cc)){
+          seen.add(key);queue.push({r:rr,c:cc});
+        }else if((MAP[rr]?.[cc]===8||MAP[rr]?.[cc]===9)&&_npcBodyPassable(rr+.5,cc+.5)){
+          boundary.set(key,{r:rr+.5,c:cc+.5,buildingR:cell.r,buildingC:cell.c});
+        }
+      }
+    }
+    const choices=[...boundary.values()].sort((a,b)=>{
+      const open=q=>dirs.reduce((sum,[dr,dc])=>sum+(npcPassable(q.r+dr,q.c+dc)?1:0),0);
+      return open(b)-open(a)||((a.r*37+a.c*17)%101)-((b.r*37+b.c*17)%101);
+    });
+    if(!choices.length)continue;
+    const chosen=choices[0];chosen.id=`door_${r}_${c}_0`;doors.push(chosen);
+    if(queue.length>=12){
+      const second=choices.find(q=>Math.hypot(q.r-chosen.r,q.c-chosen.c)>=4);
+      if(second){second.id=`door_${r}_${c}_1`;doors.push(second);}
+    }
+  }
+  _residentBuildingDoorsCache=doors;
+  return doors;
+}
+function _maybePlanResidentBuildingVisit(npc) {
+  const now=performance.now();
+  if(!_residentCanVisitBuilding(npc,now)||Math.random()>.14)return false;
+  const candidates=_residentBuildingDoors().filter(d=>{
+    const dist=Math.hypot(d.r-npc.r,d.c-npc.c);return dist>=2&&dist<=11;
+  }).sort((a,b)=>Math.hypot(a.r-npc.r,a.c-npc.c)-Math.hypot(b.r-npc.r,b.c-npc.c)).slice(0,8);
+  if(!candidates.length)return false;
+  const door=candidates[Math.floor(Math.random()*Math.min(4,candidates.length))];
+  _clearNpcRoute(npc);
+  const ok=_planNpcRouteTo(npc,door.r,door.c,(r,c)=>npcWaypointOk(npc,r,c),.18,1200,'building_entry');
+  if(!ok||Math.hypot((npc._routeGoalR??npc.r)-door.r,(npc._routeGoalC??npc.c)-door.c)>.35){
+    _clearNpcRoute(npc);npc._buildingVisitCooldownUntil=now+5000;return false;
+  }
+  npc._residentDoor=door;
+  return true;
+}
+function _pickResidentRespawnDoor() {
+  const doors=_residentBuildingDoors();if(!doors.length)return null;
+  const far=doors.filter(d=>Math.hypot(d.r-player.r,d.c-player.c)>=NPC_RESPAWN_MIN_DIST);
+  const pool=far.length?far:doors;
+  return pool[Math.floor(Math.random()*pool.length)]||null;
+}
+function _residentEnterBuilding(npc,now,door=npc._residentDoor,respawn=false) {
+  if(!door)return false;
+  _clearNpcRoute(npc);npc.r=door.r;npc.c=door.c;npc.tr=door.r;npc.tc=door.c;
+  npc.walking=false;npc.walkPhase=0;npc._residentIndoors=true;npc._residentDoor=door;
+  npc._residentRespawn=!!respawn;npc._residentInsideUntil=now+2000+Math.random()*2000;
+  if(!RESIDENTS_INDOORS.includes(npc))RESIDENTS_INDOORS.push(npc);
+  return true;
+}
+function _scheduleResidentRespawn(deadNpc,now) {
+  const door=_pickResidentRespawnDoor();if(!door)return false;
+  const fresh=spawnNpc(++_residentRespawnSeed,{cityOnly:true});if(!fresh)return false;
+  if(deadNpc?.look&&!deadNpc._beach)fresh.look={...deadNpc.look};
+  fresh._arcKey=deadNpc?._arcKey||fresh._arcKey;fresh._arc=NPC_ARCHETYPES[fresh._arcKey]||fresh._arc;
+  return _residentEnterBuilding(fresh,now,door,true);
+}
+function _updateResidentsIndoors(now) {
+  for(let i=RESIDENTS_INDOORS.length-1;i>=0;i--){
+    const n=RESIDENTS_INDOORS[i];if(!n||now<(n._residentInsideUntil||0))continue;
+    if(n._residentRespawn&&Math.hypot(n._residentDoor.r-player.r,n._residentDoor.c-player.c)<NPC_RESPAWN_MIN_DIST){
+      const safer=_pickResidentRespawnDoor();if(safer)n._residentDoor=safer;
+      n._residentInsideUntil=now+900+Math.random()*700;continue;
+    }
+    const door=n._residentDoor;
+    if(!door||!_npcBodyPassable(door.r,door.c)){
+      const safer=_pickResidentRespawnDoor();if(!safer){n._residentInsideUntil=now+1200;continue;}n._residentDoor=safer;
+    }
+    const exit=n._residentDoor;n.r=exit.r;n.c=exit.c;n.tr=exit.r;n.tc=exit.c;
+    n._residentIndoors=false;n._residentRespawn=false;n._residentInsideUntil=0;
+    n._buildingVisitCooldownUntil=now+18000+Math.random()*26000;n.idleUntil=now+150+Math.random()*350;
+    RESIDENTS_INDOORS.splice(i,1);pickNpcWaypoint(n);NPCS.push(n);
+  }
+}
 function pickNpcWaypoint(npc) {
+  if(_maybePlanResidentBuildingVisit(npc))return true;
   // Гражданин получает не случайный шаг рядом с собой, а достижимую дальнюю цель
   // и полный маршрут к ней. Поэтому на каждом углу он не передумывает и не идёт
   // обратно: новая цель выбирается только после прибытия или долгой блокировки.
@@ -7368,6 +7471,8 @@ function _placeSaidInCity() {
 
 function initNpcs() {
   NPCS.length = 0;
+  RESIDENTS_INDOORS.length=0;
+  RESIDENT_RESPAWN_BACKLOG.length=0;
   for (let i = 0; i < TARGET_NPC_COUNT; i++) {
     const n = spawnNpc(i);
     if (n) { pickNpcWaypoint(n); NPCS.push(n); }
@@ -7741,19 +7846,26 @@ function _npcCheckPlayerProximity(now) {
 function maintainNpcPopulation(now) {
   if (now < _nextNpcRespawnAt) return;
   _nextNpcRespawnAt = now + 1200;
+  for(let i=RESIDENT_RESPAWN_BACKLOG.length-1;i>=0;i--){
+    if(_scheduleResidentRespawn(RESIDENT_RESPAWN_BACKLOG[i],now))RESIDENT_RESPAWN_BACKLOG.splice(i,1);
+  }
   // Пруним старые трупы (n.deadAt + 60s) + истёкших охранников ограбления
   // (иначе _guard NPC копятся в NPCS навсегда → утечка → лаги)
   for (let i = NPCS.length - 1; i >= 0; i--) {
     const n = NPCS[i];
-    if (n.dead && n.deadAt && now - n.deadAt > 60000) {
+    if (n.dead && n.deadAt && (now-n.deadAt>60000||(n._evacuated&&now-n.deadAt>4500))) {
+      const respawn=_isRespawnableResident(n);
       NPCS.splice(i, 1);
+      if(respawn&&!_scheduleResidentRespawn(n,now))RESIDENT_RESPAWN_BACKLOG.push({look:n.look,_arcKey:n._arcKey,_beach:n._beach});
     } else if (n._guard && n._hostileUntil && now > n._hostileUntil + 5000) {
       NPCS.splice(i, 1);
     }
   }
   // Считаем живых
-  let alive = 0;
-  for (const n of NPCS) if (!n.dead) alive++;
+  let alive = RESIDENTS_INDOORS.length+RESIDENT_RESPAWN_BACKLOG.length;
+  // A corpse waiting for the ambulance/removal still owns its population slot.
+  // This prevents the old instant replacement from appearing on a random street.
+  for (const n of NPCS) if (!n.dead||_isRespawnableResident(n)) alive++;
   // После смены лимита или долгой сессии мягко убираем только дальних
   // обычных прохожих. Важные NPC, цели, клиенты и участники боя остаются.
   const target=_targetNpcCount();
@@ -9717,6 +9829,7 @@ function triggerNpcPanic(srcR, srcC, radius) {
 function updateNpcs(dt) {
   const now = performance.now();
   _tickPoliceMissions(now);
+  _updateResidentsIndoors(now);
   maintainNpcPopulation(now);
   _updateBizClients(now);
   _maybeIdleChatter(now);
@@ -10001,6 +10114,7 @@ function updateNpcs(dt) {
         n._routeIndex++;const next=n._route[n._routeIndex];n.tr=next.r;n.tc=next.c;n._routeBlockedAt=0;
         n.walking=false;continue;
       }
+      if(n._routeKind==='building_entry'&&_residentEnterBuilding(n,now))continue;
       _clearNpcRoute(n);
     }
     if (d < 0.4) {
@@ -10027,6 +10141,9 @@ function updateNpcs(dt) {
       if(now-n._routeBlockedAt>900){_clearNpcRoute(n);pickNpcWaypoint(n);}
     }
   }
+  // Entries are collected after iteration so removing one resident cannot
+  // make the following resident lose an update frame.
+  for(let i=NPCS.length-1;i>=0;i--)if(NPCS[i]?._residentIndoors)NPCS.splice(i,1);
 }
 
 // ── Машины (умные, с моделями) ──────────────────────────────────
@@ -52809,7 +52926,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v35-smart-resident-navigation',
+  migrationStage: 'three-full-world-shell-v36-resident-building-life-cycle',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -56784,6 +56901,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d81"></script>
+<script type="module" src="three_preview.js?v=3d82"></script>
 </body>
 </html>
