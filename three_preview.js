@@ -272,25 +272,28 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       // below, so keep the table in the renderer scope rather than inside the
       // optional landmarks branch. Otherwise 3D crashes before its first frame.
       const architecturalHeights={pizza:7,coffee:8,carwash:5.8,barbershop:8,garage:6.4,bar:8.5,club:10,warehouse:7.2,port:7,casino:13,hospital:12,firestation:7.5,police:10,mafia_hq:38,market:8,factory:9,mansion:12,gym:9,job_office:10,blackmarket:8,blackmarket_bellini:9,blackmarket_moretti:9};
+      // Building architecture and landmarks share the same premium roof signs.
+      // Keep this factory outside the optional landmarks branch so streamed
+      // themed buildings can create labels before landmarks are processed.
+      const labelSprite=(text,color='#65e7ff')=>{
+        const label=String(text).slice(0,28),cv=document.createElement('canvas');cv.width=896;cv.height=224;
+        const c=cv.getContext('2d');c.clearRect(0,0,896,224);
+        c.fillStyle='rgba(10,17,27,.96)';c.fillRect(12,16,872,192);
+        c.strokeStyle='rgba(3,6,11,.96)';c.lineWidth=16;c.strokeRect(17,21,862,182);
+        c.strokeStyle=color;c.lineWidth=7;c.strokeRect(21,25,854,174);
+        c.fillStyle=color;c.fillRect(35,39,826,7);
+        let fontSize=92;c.textAlign='center';c.textBaseline='middle';
+        do{c.font=`850 ${fontSize}px system-ui, Arial, sans-serif`;if(c.measureText(label).width<=790)break;fontSize-=4;}while(fontSize>60);
+        c.lineJoin='round';c.strokeStyle='rgba(0,0,0,.94)';c.lineWidth=10;c.strokeText(label,448,126);
+        c.fillStyle='#fff2cf';c.fillText(label,448,126);
+        const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());tx.generateMipmaps=false;tx.minFilter=THREE.LinearFilter;tx.magFilter=THREE.LinearFilter;tx.needsUpdate=true;
+        const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false,depthWrite:false,alphaTest:.04,toneMapped:false}));
+        sprite.scale.set(Math.min(13.8,Math.max(9.5,7.4+label.length*.3)),2.55,1);sprite.renderOrder=58;sprite.userData.buildingLabel=true;return sprite;
+      };
       if(worldSnapshot?.landmarks){
         const toX=c=>(c-originC)*WORLD_SCALE,toZ=r=>(r-originR)*WORLD_SCALE;
         const architecturalKindAt=(r,c)=>{const all=[...(worldSnapshot.landmarks?.businesses||[]),...(worldSnapshot.pois||[]),...(worldSnapshot.landmarks?.mafiaHq?[worldSnapshot.landmarks.mafiaHq]:[])];let best=null,bestD=6.2;for(const p of all){const d=Math.hypot((+p.r||0)-r,(+p.c||0)-c);if(d<bestD){bestD=d;best=p;}}return best?.id||null;};
         const roofAnchorAt=(r,c,fallback=7)=>{let best=null,bestD=1e9;for(const block of worldSnapshot.blocks||[]){for(const q of block.buildingParts||[block.building]){if(!q)continue;const inside=r>=+q.minR-.7&&r<=+q.maxR+1.2&&c>=+q.minC-.7&&c<=+q.maxC+1.2;if(inside){const kind=architecturalKindAt(r,c),height=architecturalHeights[kind]||+q.height||fallback;return{x:toX(q.c),y:height+3,z:toZ(q.r),onRoof:true};}const d=Math.hypot(q.r-r,q.c-c);if(d<bestD){bestD=d;best=q;}}}return best&&bestD<14?{x:toX(best.c),y:(architecturalHeights[architecturalKindAt(r,c)]||+best.height||fallback)+3,z:toZ(best.r),onRoof:true}:{x:toX(c),y:fallback,z:toZ(r),onRoof:false};};
-        const labelSprite=(text,color='#65e7ff')=>{
-          const label=String(text).slice(0,28),cv=document.createElement('canvas');cv.width=896;cv.height=224;
-          const c=cv.getContext('2d');c.clearRect(0,0,896,224);
-          c.fillStyle='rgba(10,17,27,.96)';c.fillRect(12,16,872,192);
-          c.strokeStyle='rgba(3,6,11,.96)';c.lineWidth=16;c.strokeRect(17,21,862,182);
-          c.strokeStyle=color;c.lineWidth=7;c.strokeRect(21,25,854,174);
-          c.fillStyle=color;c.fillRect(35,39,826,7);
-          let fontSize=92;c.textAlign='center';c.textBaseline='middle';
-          do{c.font=`850 ${fontSize}px system-ui, Arial, sans-serif`;if(c.measureText(label).width<=790)break;fontSize-=4;}while(fontSize>60);
-          c.lineJoin='round';c.strokeStyle='rgba(0,0,0,.94)';c.lineWidth=10;c.strokeText(label,448,126);
-          c.fillStyle='#fff2cf';c.fillText(label,448,126);
-          const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());tx.generateMipmaps=false;tx.minFilter=THREE.LinearFilter;tx.magFilter=THREE.LinearFilter;tx.needsUpdate=true;
-          const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false,depthWrite:false,alphaTest:.04,toneMapped:false}));
-          sprite.scale.set(Math.min(13.8,Math.max(9.5,7.4+label.length*.3)),2.55,1);sprite.renderOrder=58;sprite.userData.buildingLabel=true;return sprite;
-        };
         const customGangHqGroup=new THREE.Group();scene.add(customGangHqGroup);let customGangHqSig='';
         const customGangFlagTexture=flag=>{const cv=document.createElement('canvas');cv.width=512;cv.height=288;const c=cv.getContext('2d'),primary=flag.primary||'#9b1f2d',secondary=flag.secondary||'#e0b83e',symbol={crown:'♛',skull:'☠',diamond:'◆',wolf:'W',eagle:'♜',star:'★'}[flag.emblem]||'♛';c.fillStyle=primary;c.fillRect(0,0,512,288);c.fillStyle=secondary;c.fillRect(0,210,512,78);c.strokeStyle='rgba(255,255,255,.22)';c.lineWidth=10;c.strokeRect(5,5,502,278);c.textAlign='center';c.textBaseline='middle';c.font='900 154px Georgia, serif';c.lineWidth=13;c.strokeStyle='rgba(0,0,0,.72)';c.strokeText(symbol,256,120);c.fillStyle=secondary;c.fillText(symbol,256,120);const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());tx.needsUpdate=true;return tx;};
         refreshCustomGangHqs=()=>{const fresh=bridge?.getWorldSnapshot?.(90)?.landmarks?.customGangHqs||[],sig=JSON.stringify(fresh.map(h=>[h.id,h.name,h.r,h.c,h.flag]));if(sig===customGangHqSig)return;customGangHqSig=sig;while(customGangHqGroup.children.length){const q=customGangHqGroup.children.pop();q.traverse?.(o=>{o.geometry?.dispose?.();if(o.material&&!Array.isArray(o.material)){o.material.map?.dispose?.();o.material.dispose?.();}});}for(const hq of fresh){const roof=roofAnchorAt(+hq.r+.5,+hq.c+.5,9),flag=hq.flag||{},primary=flag.primary||'#9b1f2d',g=new THREE.Group(),pole=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,6,10),new THREE.MeshStandardMaterial({color:0xcaa86d,metalness:.65,roughness:.32}));pole.position.y=3;g.add(pole);const cloth=new THREE.Mesh(new THREE.PlaneGeometry(4.8,2.7,8,3),new THREE.MeshStandardMaterial({map:customGangFlagTexture(flag),side:THREE.DoubleSide,roughness:.78,emissive:new THREE.Color(primary),emissiveIntensity:.06}));cloth.position.set(2.45,4.65,0);cloth.rotation.y=.08;g.add(cloth);g.position.set(roof.x,roof.y,roof.z);customGangHqGroup.add(g);const label=labelSprite(`🚩 ${hq.name}`,primary);label.position.set(roof.x,roof.y+8.2,roof.z);customGangHqGroup.add(label);}};refreshCustomGangHqs();
