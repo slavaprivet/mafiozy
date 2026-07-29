@@ -53502,6 +53502,12 @@ function chatDuration(text) {
 
 // ── Старт ──────────────────────────────────────────────────────
 (async () => {
+  // A plain browser launch has no Telegram identity. It is an immediate local
+  // preview and must not wait for a tunnel, weapons or inventory requests.
+  if (!QP.uid || !/^\d+$/.test(QP.uid)) {
+    setConnecting(null);
+    return;
+  }
   // ВСЕГДА тянем свежий URL из coop_api.json — ?api= из URL может быть
   // устаревшим (старый cloudflare-туннель, локальный бот). Railway-URL
   // перезапишет его и WS подключится к живому серверу.
@@ -53510,11 +53516,6 @@ function chatDuration(text) {
   // До определения свежего API ранний loadMyWeapons() ничего не загружает.
   // Повторяем запрос здесь, чтобы оружие сразу появлялось в мире и превью.
   await Promise.all([loadMyWeapons(), loadInventoryItems()]);
-  if (!QP.uid || !/^\d+$/.test(QP.uid)) {
-    // Browser preview remains playable without Telegram credentials.
-    setConnecting(null);
-    return;
-  }
   if (!QP.api) {
     setConnecting('Сервер недоступен. Попробуй зайти чуть позже.');
     return;
