@@ -7454,7 +7454,7 @@ function pickNpcWaypoint(npc) {
   npc._routeStartR=npc.r;npc._routeStartC=npc.c;
   return _setNpcRoute(npc,path,'walk');
 }
-const TARGET_NPC_COUNT = 48;       // активных прохожих; дальний город заполняется по мере движения
+const TARGET_NPC_COUNT = 96;       // плотность старого 2D-города на расширенной карте
 const NPC_RESPAWN_MIN_DIST = 22;   // не спаунить ближе этого к игроку
 let _nextNpcRespawnAt = 0;
 let _gameMinutes = 12 * 60;        // 12:00 — нужно до initNpcs (TDZ fix)
@@ -7494,7 +7494,7 @@ function initNpcs() {
 // empty whenever no raid was active. Two persistent patrolmen per city
 // district provide visible territorial presence without becoming free combat
 // targets or replacing the authoritative server fighters.
-const AMBIENT_GANG_PER_DISTRICT = 2;
+const AMBIENT_GANG_PER_DISTRICT = 4;
 function _ensureAmbientGangPopulation() {
   if (typeof DISTRICTS === 'undefined') return;
   const cityDistricts = DISTRICTS.filter(d => d.capturable && d.r0 < BEACH_R0);
@@ -8045,7 +8045,7 @@ const FIRE_STATION_R = 56, FIRE_STATION_C = 26;   // свободный квар
 // Патрульные копы в городе. Ходят как NPC, считаются «видимыми копами»
 // для witness-цепочки (_copInRadius). Не стреляют — на агрессию реагирует
 // серверная система wanted, эти копы только декорация.
-const CITY_COPS_TARGET = 6;
+const CITY_COPS_TARGET = 12;
 const cityCops = [];
 let _cityCopId = 0;
 
@@ -53322,11 +53322,19 @@ window.Mafiozi3DBridge = Object.freeze({
       if(typeof BUSINESS_POIS!=='undefined'&&typeof myBusinesses!=='undefined'&&typeof _idleBusinessGuardPose==='function')for(const biz of BUSINESS_POIS){const own=myBusinesses.get(biz.id);if(!own?.owned||_isBusinessGangOccupied(biz.id,own))continue;for(let i=0;i<Math.min(6,+own.guards||0);i++){const pose=_idleBusinessGuardPose(biz,i);combat.push({...pose,id:`biz_guard_${biz.id}_${i}`,r:+pose.y||0,c:+pose.x||0,role:'guard',name:`Охрана · ${biz.name}`,hp:100,max_hp:100});}}
       if(typeof beachgoers!=='undefined')for(const beachNpc of beachgoers.values()){if(!beachNpc)continue;const pos=_beachgoerWorldPos(beachNpc);combat.push({...beachNpc,id:`beach_${beachNpc.id}`,r:beachNpc.dead?(beachNpc._deathR??pos.r):pos.r,c:beachNpc.dead?(beachNpc._deathC??pos.c):pos.c,role:'beach_civilian',name:beachNpc.name||'Отдыхающий'});}
       if(typeof cityCops!=='undefined')for(const cop of cityCops||[])if(cop)combat.push({...cop,id:`city_cop_${cop.id}`,r:+cop.y||0,c:+cop.x||0,dead:cop.alive===false,role:'police',police:true,name:cop.name||'Полицейский'});
+      if(typeof worldCops!=='undefined')for(const cop of worldCops||[])if(cop)combat.push({...cop,id:`world_cop_${cop.id}`,r:+(cop.y??cop.r)||0,c:+(cop.x??cop.c)||0,dead:cop.alive===false||cop.dead===true,role:'police_response',police:true,name:cop.name||'Полиция'});
+      // When there is no authoritative aggro snapshot (plain browser launch),
+      // retain the old 2D lair population until real server fighters arrive.
+      if(typeof AGGRO_ZONES!=='undefined')for(const zoneDef of AGGRO_ZONES){
+        const liveZone=typeof aggroZones!=='undefined'?aggroZones[zoneDef.id]:null;
+        if((liveZone?.bots||[]).some(bot=>bot&&bot.alive!==false))continue;
+        for(let i=0;i<12;i++){const a=i/12*Math.PI*2+(i%3)*.17,rad=4+(i%4)*2.15;combat.push({id:`lair_fallback_${zoneDef.id}_${i}`,r:zoneDef.r+Math.sin(a)*rad,c:zoneDef.c+Math.cos(a)*rad,ang:a+Math.PI,walkPhase:0,walking:false,hp:80,max_hp:80,role:i===0?'gang_boss':'gang_fighter',gang:true,faction:i%2?'yellow':'purple',name:i===0?'Главарь Логова':'Бандит Логова'});}
+      }
       if(typeof michaelGuards!=='undefined')for(const guard of michaelGuards.values())if(guard)combat.push({...guard,id:`michael_guard_${guard.id}`,r:+guard.y||0,c:+guard.x||0,dead:guard.alive===false,role:'guard',name:'Охрана Майкла'});
       npcSource=[...combat,...npcSource];
     }
     const npcPriority=x=>{const role=String(x?.role||x?._arcKey||'').toLowerCase();if(x?.gang||x?._gang||x?.gangId||x?.gang_id||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'))return 0;if(x?.police||role.includes('police')||role.includes('cop')||role.includes('guard'))return 1;return 2;};
-    const npcs=npcSource.filter(x=>x&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).sort((a,b)=>npcPriority(a)-npcPriority(b)).slice(0,40).map((x,i)=>{const id=String(x.id??x.uid??i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police'));return {
+    const npcs=npcSource.filter(x=>x&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).sort((a,b)=>npcPriority(a)-npcPriority(b)).slice(0,72).map((x,i)=>{const id=String(x.id??x.uid??i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police'));return {
       id,r:+(x.r??x.y)||0,c:+(x.c??x.x)||0,ang:+x.ang||0,walking:!death.dead&&(x.walking!==undefined?!!x.walking:(Math.abs(+x.walkPhase||0)>.05&&Math.hypot((Number.isFinite(+x.tr)?+x.tr:+(x.r??x.y)||0)-(+((x.r??x.y)||0)),(Number.isFinite(+x.tc)?+x.tc:+(x.c??x.x)||0)-(+((x.c??x.x)||0)))>.08)),walkPhase:+x.walkPhase||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp:Number.isFinite(+x.hp)?Math.max(0,+x.hp):Math.max(1,+x.max_hp||+x.maxHp||60),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
