@@ -53033,7 +53033,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v39-motion-locked-palette',
+  migrationStage: 'three-full-world-shell-v40-premium-suspension-bridge',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -53195,7 +53195,7 @@ window.Mafiozi3DBridge = Object.freeze({
       gasStations:(typeof GAS_STATIONS!=='undefined'?GAS_STATIONS:[]).map((g,i)=>({id:String(g.id??i),r:g.r,c:g.c})),
       raceTrack:(typeof TRACK_PTS!=='undefined'?TRACK_PTS:[]).map(p=>({r:p[0],c:p[1]})),
     };
-    const canal={c0:CITY_CANAL_C0,c1:CITY_CANAL_C1,r0:0,r1:EAST_EXPANSION_R1,bridge:{r0:CITY_BRIDGE_R0,r1:CITY_BRIDGE_R1}};
+    const canal={c0:CITY_CANAL_C0,c1:CITY_CANAL_C1,r0:0,r1:EAST_EXPANSION_R1,bridge:{r0:CITY_BRIDGE_R0,r1:CITY_BRIDGE_R1,style:'premium_red_suspension'}};
     const neighborhoods=[];
     for(let r0=Math.floor(minR/20)*20;r0<=maxR;r0+=20)for(let c0=EAST_EXPANSION_C0;c0<=maxC;c0+=20){
       if(r0>=EAST_EXPANSION_R1||c0<minC)continue;
@@ -57008,6 +57008,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d85"></script>
+<script type="module" src="three_preview.js?v=3d86"></script>
 </body>
 </html>
