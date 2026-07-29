@@ -7505,7 +7505,9 @@ function _ensureAmbientGangPopulation() {
       const spanR=Math.max(4,d.r1-d.r0-4),spanC=Math.max(4,d.c1-d.c0-4),seed=(di+1)*137+slot*61;
       for(let tries=0;tries<80;tries++){
         const r=d.r0+2+((seed+tries*17)%spanR)+.5,c=d.c0+2+((seed*3+tries*29)%spanC)+.5;
-        if(npcPassable(r,c)&&Math.hypot(r-player.r,c-player.c)>5){pos={r,c};break;}
+        // initNpcs() runs before the lexical player object is initialized.
+        // Spawn validity must therefore depend only on the map at this stage.
+        if(npcPassable(r,c)){pos={r,c};break;}
       }
       if(!pos)continue;
       const owner=districtOwners[d.id]||{},family=owner.mafiaFamily||owner.mafia_family||(di%2?'moretti':'bellini'),arc=NPC_ARCHETYPES.bandit||NPC_ARCHETYPES.worker;
@@ -53127,6 +53129,37 @@ function _threeVehiclePaint(vehicle,model){
   return model?.palette?.[0]||'#445566';
 }
 const _threeNpcDeathTimes=new Map();
+// Finds a nearby presentation point for 3D-only markers and small props.
+// Gameplay coordinates never change: sourceR/sourceC remain authoritative.
+// The visual point prefers open pavement/grass and avoids building footprints,
+// water and narrow pockets that are hidden by several adjacent buildings.
+function _threeVisibleObjectAnchor(sourceR,sourceC,maxRadius=7){
+  const sr=+sourceR||0,sc=+sourceC||0;
+  const tileAt=(r,c)=>MAP[Math.floor(r)]?.[Math.floor(c)];
+  const valid=(r,c)=>Number.isFinite(r)&&Number.isFinite(c)&&r>=1&&c>=1&&r<MAP_ROWS-1&&c<MAP_COLS-1&&tileAt(r,c)!==1&&tileAt(r,c)!==16&&!isBlockedPed(r,c);
+  const coverAt=(r,c)=>{
+    let cover=0;
+    for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){
+      if(!dr&&!dc)continue;
+      if(tileAt(r+dr,c+dc)===1)cover+=(Math.abs(dr)+Math.abs(dc)<=2?2:1);
+    }
+    return cover;
+  };
+  let best=null,bestScore=Infinity;
+  for(let radius=0;radius<=Math.max(1,Math.min(12,+maxRadius||7));radius++){
+    for(let dr=-radius;dr<=radius;dr++)for(let dc=-radius;dc<=radius;dc++){
+      if(radius&&Math.max(Math.abs(dr),Math.abs(dc))!==radius)continue;
+      const r=Math.floor(sr)+dr+.5,c=Math.floor(sc)+dc+.5;
+      if(!valid(r,c))continue;
+      const tile=tileAt(r,c),surfaceBonus=[8,9,15,17].includes(tile)?-2:[0,18,19].includes(tile)?1.5:0;
+      const score=Math.hypot(r-sr,c-sc)*2.2+coverAt(r,c)*.72+surfaceBonus;
+      if(score<bestScore){bestScore=score;best={r,c};}
+    }
+    if(best&&radius>=3)break;
+  }
+  const chosen=best||{r:sr,c:sc},distance=Math.hypot(chosen.r-sr,chosen.c-sc);
+  return {sourceR:sr,sourceC:sc,visualR:chosen.r,visualC:chosen.c,moved:distance>.75,distance};
+}
 function _threeNpcDeathState(entity,id){
   const dead=!!(entity?.dead||entity?.alive===false||
     (Number.isFinite(+entity?.hp)&&+entity.hp<=0));
@@ -53310,6 +53343,14 @@ window.Mafiozi3DBridge = Object.freeze({
           sport:!!model.sport,pickup:false,van:false,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'',dirR:0,dirC:0,velR:0,velC:0,braking:true,turning:false,towLoad:true});
       }
     }
+    // These interactive vehicles are stored outside CARS by the 2D game.
+    if(!inside&&typeof questCars!=='undefined'&&questCars instanceof Map)for(const q of questCars.values()){
+      if(!q||q._towed||q._hidden||!near(+q.y||0,+q.x||0))continue;
+      const model=typeof resolveCarModel==='function'?resolveCarModel(q.model):(q.model||{}),modelName=model?.name||model?.id||q.model||'sedan';
+      cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:'',stripe:q.owner_uid?'#ffd76b':'',dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true});
+    }
+    if(!inside&&typeof BUS!=='undefined'&&near(+BUS.r||0,+BUS.c||0))cars.unshift({id:'city_bus',r:+BUS.r||0,c:+BUS.c||0,ang:+BUS.ang||0,model:'city_bus',paint:'#d5aa35',parked:BUS.state==='stopped',length:2.65,width:1.05,height:1.08,wheelR:.22,sport:false,pickup:false,van:true,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'#26364a',dirR:Math.sin(+BUS.ang||0),dirC:Math.cos(+BUS.ang||0),velR:Math.sin(+BUS.ang||0)*(+BUS.speed||0),velC:Math.cos(+BUS.ang||0)*(+BUS.speed||0),braking:BUS.state==='stopped',turning:false,bus:true});
+    if(cars.length>24)cars.length=24;
     if(_LOCAL_PREVIEW&&_UP.get('previewnewsheli')){const a=performance.now()*.00022,r=player.r+Math.sin(a)*8,c=player.c+Math.cos(a)*11;cars.unshift({id:'preview_news_heli',r,c,ang:a+Math.PI/2,model:'mafia_heli',paint:'#c91f2b',parked:false,length:2.5,width:1.25,height:1.05,wheelR:.18,sport:false,pickup:false,van:false,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:true,helicopter:true,emergency:'',stripe:'',dirR:Math.cos(a),dirC:-Math.sin(a),velR:Math.cos(a)*.9,velC:-Math.sin(a)*.9,braking:false,turning:false});}
     let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.npcs||[]):(typeof NPCS!=='undefined'?NPCS:[]);
     if(!inside){
@@ -53331,6 +53372,15 @@ window.Mafiozi3DBridge = Object.freeze({
         for(let i=0;i<12;i++){const a=i/12*Math.PI*2+(i%3)*.17,rad=4+(i%4)*2.15;combat.push({id:`lair_fallback_${zoneDef.id}_${i}`,r:zoneDef.r+Math.sin(a)*rad,c:zoneDef.c+Math.cos(a)*rad,ang:a+Math.PI,walkPhase:0,walking:false,hp:80,max_hp:80,role:i===0?'gang_boss':'gang_fighter',gang:true,faction:i%2?'yellow':'purple',name:i===0?'Главарь Логова':'Бандит Логова'});}
       }
       if(typeof michaelGuards!=='undefined')for(const guard of michaelGuards.values())if(guard)combat.push({...guard,id:`michael_guard_${guard.id}`,r:+guard.y||0,c:+guard.x||0,dead:guard.alive===false,role:'guard',name:'Охрана Майкла'});
+      // Static and ambient people below have their own 2D collections, so they
+      // must be explicitly included in the 3D population snapshot.
+      if(typeof MICHAEL_POS!=='undefined')combat.push({id:'michael_dealer',r:MICHAEL_POS.r,c:MICHAEL_POS.c,ang:Math.PI,role:'quest_giver',name:'Майкл',hp:100,max_hp:100});
+      if(typeof michaelGuards!=='undefined'&&michaelGuards.size===0&&typeof _michaelDecor==='function')for(let i=0;i<_michaelDecor().length;i++){const guard=_michaelDecor()[i];combat.push({...guard,id:`michael_decor_${i}`,r:+guard.y||0,c:+guard.x||0,role:'guard',name:'Охрана Майкла'});}
+      if(typeof _busWaiters!=='undefined')for(let i=0;i<_busWaiters.length;i++){const person=_busWaiters[i];combat.push({...person,id:`bus_waiter_${i}`,role:'bus_passenger',name:'Пассажир'});}
+      if(typeof _busRiders!=='undefined')for(let i=0;i<_busRiders.length;i++){const person=_busRiders[i];combat.push({...person,id:`bus_rider_${i}`,role:'bus_passenger',name:'Пассажир'});}
+      if(typeof RACE_CHEER_CREW!=='undefined')for(let i=0;i<RACE_CHEER_CREW.length;i++){const person=RACE_CHEER_CREW[i];combat.push({...person,id:`race_fan_${i}`,role:'race_fan',name:'Болельщик'});}
+      if(typeof RACE_MECHANICS!=='undefined')for(let i=0;i<RACE_MECHANICS.length;i++){const person=RACE_MECHANICS[i];combat.push({...person,id:`race_mechanic_${i}`,role:'race_mechanic',name:'Механик'});}
+      if(typeof RACE_PHOTOGRAPHER!=='undefined')combat.push({...RACE_PHOTOGRAPHER,id:'race_photographer',role:'race_photographer',name:'Фотограф'});
       npcSource=[...combat,...npcSource];
     }
     const npcPriority=x=>{const role=String(x?.role||x?._arcKey||'').toLowerCase();if(x?.gang||x?._gang||x?.gangId||x?.gang_id||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'))return 0;if(x?.police||role.includes('police')||role.includes('cop')||role.includes('guard'))return 1;return 2;};
@@ -53356,7 +53406,46 @@ window.Mafiozi3DBridge = Object.freeze({
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,blood:!!x.parts?.some?.(p=>p.isBlood),life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1))}));
     const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550}));
     const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||''});}
-    return {cars,npcs,projectiles,muzzleFx,impactFx,explosionFx,players:players.slice(0,24)};
+    const objects=[];
+    const addObject=(kind,id,r,c,label,color,extra={})=>{
+      const rr=+r,cc=+c;if(!Number.isFinite(rr)||!Number.isFinite(cc)||!near(rr,cc))return;
+      const anchor=extra.keepSource?{sourceR:rr,sourceC:cc,visualR:rr,visualC:cc,moved:false,distance:0}:_threeVisibleObjectAnchor(rr,cc,extra.maxRadius||7);
+      objects.push({kind,id:String(id),r:rr,c:cc,label:String(label||''),color:color||'#ffd76b',...anchor,...extra});
+    };
+    if(!inside){
+      for(const t of (typeof TERRITORIES!=='undefined'?TERRITORIES:[])){
+        const owner=territoryOwners?.[t.id]||null,active=activeCaptures?.get?.(t.id)||null;
+        addObject('territory',`territory_${t.id}`,t.r,t.c,`${t.icon||'◆'} ${t.name}`,active?.color||owner?.color||'#aeb6c2',{radius:+t.radius||5,active:!!active,owner:owner?.owner_name||owner?.ownerName||''});
+      }
+      for(const d of (typeof DISTRICTS!=='undefined'?DISTRICTS:[]))if(d.hq){
+        const active=districtCaptures?.get?.(d.id)||null;
+        addObject('district_hq',`district_${d.id}`,d.hq.r,d.hq.c,`${d.icon||'◆'} ${d.name}`,d.color||'#65e7ff',{active:!!active,capturable:d.capturable!==false});
+      }
+      for(const nest of (typeof gangNests!=='undefined'?gangNests:[])){
+        addObject('gang_nest',`gang_nest_${nest.id??nest.r+'_'+nest.c}`,(+nest.r||0)+.5,(+nest.c||0)+.5,nest.boss_name||'Бандитское гнездо',nest.state==='hostile'?'#ff542f':'#df4854',{active:nest.state==='hostile',botsAlive:+nest.bots_alive||0,radius:4.2});
+      }
+      for(let i=0;i<(typeof BUS_STOPS!=='undefined'?BUS_STOPS:[]).length;i++){
+        const stop=BUS_STOPS[i];addObject('bus_stop',`bus_stop_${i}`,stop.r,stop.c,stop.name||`Остановка ${i+1}`,'#62b8ff',{maxRadius:4});
+      }
+      if(typeof BRIGADIR_POS!=='undefined')addObject('brigadir','brigadir',BRIGADIR_POS.r+.5,BRIGADIR_POS.c+.5,'Бригадир','#ffd45b',{maxRadius:5});
+      for(const bag of (typeof _vaultDroppedBags!=='undefined'?_vaultDroppedBags:[]))addObject('money_bag',`bag_${bag.id}`,bag.r,bag.c,'Мешок с деньгами','#f0bd4f',{value:+bag.value||0,maxRadius:4});
+      for(let i=0;i<(typeof PETS!=='undefined'?PETS:[]).length;i++){
+        const pet=PETS[i];if(!pet)continue;addObject('pet',`pet_${i}`,pet.r,pet.c,pet.cryUntil>performance.now()?pet.cryText:'',pet._color||'#a9825c',{keepSource:true,petKind:pet.kind||'dog',ang:+pet.ang||0,walking:Math.hypot((+pet.tr||pet.r)-pet.r,(+pet.tc||pet.c)-pet.c)>.2});
+      }
+      for(let i=0;i<(typeof _graffiti!=='undefined'?_graffiti:[]).length;i++){
+        const g=_graffiti[i];if(!g)continue;addObject('graffiti',`graffiti_${i}_${g.t||0}`,g.r+.5,g.c+.5,g.tag||'GRAFFITI',g.col||'#ff3d76',{keepSource:true,shape:g.shape||'tag',color2:g.col2||'#ffffff'});
+      }
+      for(let i=0;i<(typeof JET_SKIS!=='undefined'?JET_SKIS:[]).length;i++){
+        const jet=JET_SKIS[i];if(!jet)continue;addObject('jet_ski',`jet_ski_${jet.id||i}`,jet.r,jet.c,jet.driver?'':'Гидроцикл',jet.color||'#2f9fe8',{keepSource:true,ang:+jet.ang||0,accent:jet.accent||'#ffffff',driving:!!jet.driver});
+      }
+      if(typeof RACE_START_AT!=='undefined')addObject('race_start','race_start',RACE_START_AT.r,RACE_START_AT.c,'Старт гонки','#ff4b45',{keepSource:true,radius:3.5});
+      if(typeof RACE_BOARD!=='undefined')addObject('race_board','race_board',RACE_BOARD.r,RACE_BOARD.c,'Табло рекордов','#ffd76b',{maxRadius:4});
+      if(typeof DROP_ZONE!=='undefined')addObject('drop_zone','michael_drop_zone',(DROP_ZONE.r0+DROP_ZONE.r1)/2,(DROP_ZONE.c0+DROP_ZONE.c1)/2,'Сдача машин','#5fe0a0',{keepSource:true,radius:Math.max(DROP_ZONE.r1-DROP_ZONE.r0,DROP_ZONE.c1-DROP_ZONE.c0)/2});
+      for(let i=0;i<(typeof groundMissionBoxes!=='undefined'?groundMissionBoxes:[]).length;i++){
+        const box=groundMissionBoxes[i];if(!box)continue;addObject('mission_box',`mission_box_${box.id??i}`,box.r,box.c,box.mine?'Ваш груз':'Груз','#c98743',{maxRadius:4,mine:!!box.mine});
+      }
+    }
+    return {cars,npcs,projectiles,muzzleFx,impactFx,explosionFx,players:players.slice(0,24),objects:objects.slice(0,160)};
   },
   fire(angle) {
     if (myDead || myMode === 'pve' || !_isArmed()) return false;
