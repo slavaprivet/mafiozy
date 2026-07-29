@@ -906,7 +906,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       // Keep daylight in the same desaturated noir family as the city instead
       // of letting a cyan sky fight the dark asphalt and facade materials.
       const daySky=new THREE.Color(0x315f82),sunsetSky=new THREE.Color(0xa95a50),nightSky=new THREE.Color(0x071426),skyColor=new THREE.Color(),dayHorizon=new THREE.Color(0x78929d),nightHorizon=new THREE.Color(0x16263d),dayGround=new THREE.Color(0x46392e),nightGround=new THREE.Color(0x293448),daySun=new THREE.Color(0xffd69a),sunsetSun=new THREE.Color(0xff8a4f);
-      let paletteDaylight=0,paletteSunset=0,paletteReady=false,paletteAt=performance.now();
+      let paletteDaylight=0,paletteSunset=0,paletteReady=false,paletteAt=performance.now(),paletteMotionActive=false;
       const updateDayNight=t=>{
         // Production always reads the authoritative city minute. All visual
         // channels ease toward that same target, so no component can jump to
@@ -914,7 +914,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         const serverTime=bridge?.getEnvironmentState?.();
         setTrafficSignals(serverTime?.traffic);
         const baseHour=serverTime ? serverTime.hour + serverTime.minute/60 : (t/1000)/10;
-        const hour=((baseHour+timeOffset)%24+24)%24,targetDaylight=THREE.MathUtils.smoothstep(Math.sin((hour-6)/24*Math.PI*2),-.18,.42),targetSunset=Math.max(0,1-Math.abs(hour-19)/2.2),paletteDt=Math.min(.1,Math.max(0,(t-paletteAt)/1000));paletteAt=t;if(!paletteReady){paletteDaylight=targetDaylight;paletteSunset=targetSunset;paletteReady=true;}else{const ease=1-Math.exp(-paletteDt*2.4);paletteDaylight=THREE.MathUtils.lerp(paletteDaylight,targetDaylight,ease);paletteSunset=THREE.MathUtils.lerp(paletteSunset,targetSunset,ease);}const daylight=paletteDaylight,sunset=paletteSunset;
+        const hour=((baseHour+timeOffset)%24+24)%24,targetDaylight=THREE.MathUtils.smoothstep(Math.sin((hour-6)/24*Math.PI*2),-.18,.42),targetSunset=Math.max(0,1-Math.abs(hour-19)/2.2),paletteDt=Math.min(.1,Math.max(0,(t-paletteAt)/1000)),motionLocked=paletteMotionActive&&!interiorLightingActive;paletteAt=t;if(!paletteReady){paletteDaylight=targetDaylight;paletteSunset=targetSunset;paletteReady=true;}else if(!motionLocked){const ease=1-Math.exp(-paletteDt*2.4);paletteDaylight=THREE.MathUtils.lerp(paletteDaylight,targetDaylight,ease);paletteSunset=THREE.MathUtils.lerp(paletteSunset,targetSunset,ease);}const daylight=paletteDaylight,sunset=paletteSunset;
         skyColor.copy(nightSky).lerp(daySky,daylight).lerp(sunsetSky,sunset*.48);scene.background.copy(skyColor);scene.fog.color.copy(skyColor);skyUniforms.uTop.value.copy(nightSky).lerp(daySky,daylight).lerp(sunsetSky,sunset*.2);skyUniforms.uHorizon.value.copy(nightHorizon).lerp(dayHorizon,daylight).lerp(sunsetSky,sunset*.22);skyUniforms.uNight.value=1-daylight;skyUniforms.uSunset.value=sunset;
         skyLight.color.setRGB(.4+.34*daylight,.48+.3*daylight,.68+.21*daylight);skyLight.groundColor.copy(nightGround).lerp(dayGround,daylight);skyLight.intensity=1.18+1.22*daylight;
         sun.color.copy(daySun).lerp(sunsetSun,THREE.MathUtils.smoothstep(sunset,0,.7));sun.intensity=.48+2.97*daylight;sunOffsetVector.set(Math.cos(hour/24*Math.PI*2)*75,18+daylight*72,Math.sin(hour/24*Math.PI*2)*65);
@@ -930,7 +930,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
           renderer.toneMappingExposure=1.04;scene.environmentIntensity=.58;
           postMaterial.uniforms.uBloom.value=.08;postMaterial.uniforms.uWarmth.value=.06;postMaterial.uniforms.uNight.value=.04;
         }
-        const hh=Math.floor(hour),mm=Math.floor((hour-hh)*60);clock.textContent=`${daylight>.62?'☀ День':sunset>.15?'◐ Закат':'☾ Ночь'} · ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;renderer.domElement.dataset.palette=`${hh}:${mm}:${daylight.toFixed(3)}:${sunset.toFixed(3)}`;
+        const hh=Math.floor(hour),mm=Math.floor((hour-hh)*60);clock.textContent=`${daylight>.62?'☀ День':sunset>.15?'◐ Закат':'☾ Ночь'} · ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;renderer.domElement.dataset.palette=`${hh}:${mm}:${daylight.toFixed(3)}:${sunset.toFixed(3)}`;renderer.domElement.dataset.paletteSource='server-clock';renderer.domElement.dataset.paletteMotionLock=motionLocked?'1':'0';
       };
       const animate = t => {
         if(t-customGangHqAt>2000){customGangHqAt=t;refreshCustomGangHqs();}
@@ -1040,7 +1040,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
           if(newAnchor!==lampAnchor){lampAnchor=newAnchor;const px=(state.c-originC)*WORLD_SCALE,pz=(state.r-originR)*WORLD_SCALE,nearest=fixedLampHeads.map(([x,z])=>({x,z,d:(x-px)**2+(z-pz)**2})).sort((a,b)=>a.d-b.d).slice(0,streetLights.length);streetLights.forEach((lamp,i)=>{const spot=nearest[i];lamp.light.visible=!!spot;if(spot)lamp.light.position.set(spot.x,6.45,spot.z);});}
         }else if(move.lengthSq()>0){move.normalize();player.position.addScaledVector(move,12*dt);player.position.x=Math.max(-34,Math.min(34,player.position.x));player.position.z=Math.max(-34,Math.min(34,player.position.z));player.rotation.y=Math.atan2(move.x,move.z);walkPhase+=dt*12;moving=true;}
         const playerStep=Math.sin(walkPhase),idleBreath=Math.sin(t*.0022);if(moving){if(!bridge)walkPhase+=0;leftLeg.rotation.x=playerStep*.68;rightLeg.rotation.x=-playerStep*.68;leftArm.rotation.x=-playerStep*.42;rightArm.rotation.x=playerStep*.3;leftLeg.position.y=.88+Math.max(0,playerStep)*.2;rightLeg.position.y=.88+Math.max(0,-playerStep)*.2;body.rotation.z=playerStep*.025;}else{leftLeg.rotation.x*=.72;rightLeg.rotation.x*=.72;leftArm.rotation.x=idleBreath*.025;rightArm.rotation.x=-idleBreath*.02;leftLeg.position.y=THREE.MathUtils.lerp(leftLeg.position.y,.88,.18);rightLeg.position.y=THREE.MathUtils.lerp(rightLeg.position.y,.88,.18);body.rotation.z*=.72;head.rotation.y=Math.sin(t*.00065)*.055;}
-        body.scale.y=moving?1:1+idleBreath*.018;body.position.y=2.65+(moving?0:idleBreath*.025);player.position.y=playerFloorElevation+.08+Math.abs(playerStep)*(moving?.09:0);updateWeather(dt,t);
+        paletteMotionActive=moving;body.scale.y=moving?1:1+idleBreath*.018;body.position.y=2.65+(moving?0:idleBreath*.025);player.position.y=playerFloorElevation+.08+Math.abs(playerStep)*(moving?.09:0);updateWeather(dt,t);
         for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.mesh.position.addScaledVector(b.vel,dt);b.life-=dt;if(b.life<=0){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();bullets.splice(i,1);}}
         recoilKick=Math.max(0,recoilKick-dt*8.5);const gunBaseZ=gun.userData.baseZ===undefined?(gun.userData.baseZ=gun.position.z):gun.userData.baseZ;gun.rotation.x=-.08-recoilKick*.34;gun.position.z=gunBaseZ-recoilKick*.22;
         if(muzzleLife>0){muzzleLife-=dt;muzzle.intensity=42*Math.max(0,muzzleLife/.075);}else muzzle.intensity=0;
