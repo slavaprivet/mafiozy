@@ -193,13 +193,38 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         const canal=worldSnapshot.canal,toX=c=>(c-originC)*WORLD_SCALE,toZ=r=>(r-originR)*WORLD_SCALE;
         const canalWaterMat=new THREE.MeshStandardMaterial({color:0x087fa5,roughness:.16,metalness:.25,transparent:true,opacity:.92,envMap:cityEnvironment,envMapIntensity:1.1});
         const canalWater=new THREE.Mesh(new THREE.PlaneGeometry((canal.c1-canal.c0)*WORLD_SCALE,(canal.r1-canal.r0)*WORLD_SCALE),canalWaterMat);canalWater.rotation.x=-Math.PI/2;canalWater.position.set(toX((canal.c0+canal.c1)/2),.09,toZ((canal.r0+canal.r1)/2));scene.add(canalWater);
-        const bridgeWidth=(canal.c1-canal.c0+2)*WORLD_SCALE,bridgeDepth=(canal.bridge.r1-canal.bridge.r0)*WORLD_SCALE;
-        const bridgeDeck=box(toX((canal.c0+canal.c1)/2),toZ((canal.bridge.r0+canal.bridge.r1)/2),bridgeWidth,bridgeDepth,.82,new THREE.MeshStandardMaterial({color:0x303841,roughness:.82,metalness:.14}));bridgeDeck.position.y=.62;bridgeDeck.receiveShadow=true;
-        const railMat=new THREE.MeshStandardMaterial({color:0x7d8990,roughness:.4,metalness:.75});
-        for(const rr of [canal.bridge.r0+.35,canal.bridge.r1-.35]){const rail=box(toX((canal.c0+canal.c1)/2),toZ(rr),bridgeWidth,.22,1.25,railMat);rail.position.y=1.38;}
+        const bridgeWidth=(canal.c1-canal.c0+2)*WORLD_SCALE,bridgeDepth=(canal.bridge.r1-canal.bridge.r0)*WORLD_SCALE,bridgeX=toX((canal.c0+canal.c1)/2),bridgeZ=toZ((canal.bridge.r0+canal.bridge.r1)/2);
+        const bridgeStoneMat=new THREE.MeshStandardMaterial({color:0x59636b,roughness:.74,metalness:.18,envMap:cityEnvironment,envMapIntensity:.35}),bridgeDarkMat=new THREE.MeshStandardMaterial({color:0x18252c,roughness:.4,metalness:.78,envMap:cityEnvironment,envMapIntensity:.72}),bridgeGoldMat=new THREE.MeshStandardMaterial({color:0xb8862f,roughness:.3,metalness:.86}),bridgeRedMat=new THREE.MeshStandardMaterial({color:0x761f23,roughness:.52,metalness:.28}),bridgeJadeMat=new THREE.MeshStandardMaterial({color:0x184d46,roughness:.42,metalness:.35}),bridgeGlowMat=new THREE.MeshBasicMaterial({color:0xffc45d,toneMapped:false}),bridgeRedGlowMat=new THREE.MeshBasicMaterial({color:0xff3f35,toneMapped:false});
+        const bridgeDeck=box(bridgeX,bridgeZ,bridgeWidth,bridgeDepth,.9,new THREE.MeshStandardMaterial({color:0x303841,map:asphaltTexture,roughness:.78,metalness:.14}));bridgeDeck.position.y=.66;bridgeDeck.receiveShadow=true;
+        // Deep stone fascia and steel girders give the crossing weight when seen from the fixed camera.
+        for(const rr of [canal.bridge.r0+.22,canal.bridge.r1-.22]){
+          const fascia=box(bridgeX,toZ(rr),bridgeWidth,.48,1.8,bridgeStoneMat);fascia.position.y=.18;
+          const lowerGirder=box(bridgeX,toZ(rr),bridgeWidth,.2,.34,bridgeGoldMat);lowerGirder.position.y=-.8;
+          for(let c=canal.c0-1;c<=canal.c1+1;c+=3){const brace=box(toX(c),toZ(rr),.22,.34,2.05,bridgeDarkMat);brace.position.y=.05;brace.rotation.z=(c%2?1:-1)*.43;}
+        }
+        for(let c=canal.c0-1;c<=canal.c1+1;c+=4){const cross=box(toX(c),bridgeZ,.22,bridgeDepth+.65,.3,bridgeDarkMat);cross.position.y=-.55;}
+        // Double colonnade: foundations remain below the deck, capitals and rails stay above the water.
+        const pierGeometry=new THREE.CylinderGeometry(.62,.92,5.9,16),capitalGeometry=new THREE.CylinderGeometry(.86,.62,.52,16);
+        for(let c=canal.c0+2;c<canal.c1;c+=5)for(const rr of [canal.bridge.r0+.72,canal.bridge.r1-.72]){
+          const pier=new THREE.Mesh(pierGeometry,bridgeStoneMat);pier.position.set(toX(c),-2.15,toZ(rr));pier.castShadow=pier.receiveShadow=true;scene.add(pier);
+          const capital=new THREE.Mesh(capitalGeometry,bridgeGoldMat);capital.position.set(toX(c),.82,toZ(rr));capital.castShadow=true;scene.add(capital);
+        }
+        const railY=1.72;
+        for(const rr of [canal.bridge.r0+.38,canal.bridge.r1-.38]){
+          const topRail=box(bridgeX,toZ(rr),bridgeWidth,.18,.2,bridgeGoldMat);topRail.position.y=railY;
+          const lowerRail=box(bridgeX,toZ(rr),bridgeWidth,.12,.13,bridgeDarkMat);lowerRail.position.y=1.15;
+          for(let c=canal.c0-1;c<=canal.c1+1;c+=1.45){const baluster=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,.72,8),bridgeDarkMat);baluster.position.set(toX(c),1.36,toZ(rr));scene.add(baluster);}
+        }
         const seawallMat=new THREE.MeshStandardMaterial({color:0x68737a,roughness:.78,metalness:.18});for(const cc of [canal.c0-.15,canal.c1+.15]){const wall=box(toX(cc),toZ((canal.r0+canal.r1)/2),.45*WORLD_SCALE,(canal.r1-canal.r0)*WORLD_SCALE,1.15,seawallMat);wall.position.y=.28;}
-        const bridgeStripeMat=new THREE.MeshBasicMaterial({color:0xe7c75e});for(let c=canal.c0;c<canal.c1;c+=3){const stripe=box(toX(c+1),toZ((canal.bridge.r0+canal.bridge.r1)/2),1.5*WORLD_SCALE,.12*WORLD_SCALE,.045,bridgeStripeMat);stripe.position.y=1.055;}
-        for(let c=canal.c0+2;c<canal.c1;c+=5){const pier=new THREE.Mesh(new THREE.CylinderGeometry(.48,.7,5.5,12),railMat);pier.position.set(toX(c),-2.1,toZ((canal.bridge.r0+canal.bridge.r1)/2));scene.add(pier);}
+        const bridgeStripeMat=new THREE.MeshBasicMaterial({color:0xe7c75e});for(let c=canal.c0;c<canal.c1;c+=3){const stripe=box(toX(c+1),bridgeZ,1.5*WORLD_SCALE,.12*WORLD_SCALE,.045,bridgeStripeMat);stripe.position.y=1.135;}
+        // Four architectural portals frame both shores; the eastern one becomes Chinatown's red-and-gold gate.
+        const addBridgePortal=(c,east)=>{const px=toX(c),postMat=east?bridgeRedMat:bridgeStoneMat,roofAccent=east?bridgeGoldMat:bridgeDarkMat;for(const side of [-1,1]){const pz=bridgeZ+side*(bridgeDepth*.5-.72),post=box(px,pz,1.25,1.25,7.6,postMat);post.position.y=4.55;const base=box(px,pz,2.05,2.05,.72,bridgeStoneMat);base.position.y=1.42;const cap=box(px,pz,1.75,1.75,.42,bridgeGoldMat);cap.position.y=8.28;}const beam=box(px,bridgeZ,1.05,bridgeDepth-1.1,1.05,postMat);beam.position.y=7.72;const roof1=box(px,bridgeZ,1.65,bridgeDepth+.55,.34,roofAccent);roof1.position.y=8.48;const roof2=box(px,bridgeZ,2.25,bridgeDepth-.5,.28,east?bridgeJadeMat:bridgeGoldMat);roof2.position.y=8.82;for(const side of [-1,1])for(const dz of [-1.35,0,1.35]){const trim=box(px+(east?.88:0),bridgeZ+side*(bridgeDepth*.5-.7)+dz*.08,.13,.55,1.05,east?bridgeRedGlowMat:bridgeGlowMat);trim.position.y=6.45;}};
+        addBridgePortal(canal.c0-.72,false);addBridgePortal(canal.c1+.72,true);
+        // Warm promenade lighting, plus a restrained under-deck glow reflected by the canal.
+        const lampPostGeometry=new THREE.CylinderGeometry(.1,.16,3.8,10),lampBulbGeometry=new THREE.SphereGeometry(.28,12,8);
+        for(let c=canal.c0;c<=canal.c1;c+=2.6)for(const rr of [canal.bridge.r0+.48,canal.bridge.r1-.48]){const post=new THREE.Mesh(lampPostGeometry,bridgeDarkMat);post.position.set(toX(c),3.05,toZ(rr));scene.add(post);const bulb=new THREE.Mesh(lampBulbGeometry,bridgeGlowMat);bulb.position.set(toX(c),5.02,toZ(rr));scene.add(bulb);const crown=box(toX(c),toZ(rr),.72,.72,.12,bridgeGoldMat);crown.position.y=4.72;}
+        for(const rr of [canal.bridge.r0+.24,canal.bridge.r1-.24]){const glow=box(bridgeX,toZ(rr),bridgeWidth-.8,.08,.1,bridgeGlowMat);glow.position.y=-.7;}
+        for(const c of [canal.c0+2,canal.c0+7,canal.c1-7,canal.c1-2]){const light=new THREE.PointLight(c>(canal.c0+canal.c1)/2?0xff5a3d:0xffc46b,1.1,15,2);light.position.set(toX(c),5.1,bridgeZ);light.castShadow=false;scene.add(light);}
       }
       if(worldSnapshot?.coast){
         const coast=worldSnapshot.coast,toX=c=>(c-originC)*WORLD_SCALE,toZ=r=>(r-originR)*WORLD_SCALE,coastWidth=worldCols*WORLD_SCALE,coastCenter=worldCols*.5;
@@ -392,7 +417,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         [-24,-23,14,13,15,1,'BAR'],[-8,-24,11,13,11,3,'DELI'],[11,-23,14,14,18,0,'HOTEL'],[27,-23,11,13,13,2,'CAFE'],
         [-25,23,13,14,13,4,'CLUB'],[-9,23,12,13,17,0,'BANK'],[10,23,14,14,14,2,'MARKET'],[27,23,11,13,18,1,''],
       ];
-      const styleIndexes={poor:1,downtown:0,nightlife:4,rich:3,countryside:2,industrial:1,coast:2};
+      const styleIndexes={poor:1,downtown:0,nightlife:4,rich:3,countryside:2,industrial:1,coast:2,chinatown_poor:1,chinatown_market:3,chinatown_neon:4,chinatown_rich:0,chinatown_docks:1};
       const defsFromSnapshot=snapshot=>(snapshot?.blocks||[]).flatMap(b=>(b.buildingParts?.length?b.buildingParts:(b.building?[b.building]:[])).map((q,partIndex)=>{
         const nearPoi=(snapshot.pois||[]).find(p=>Math.abs(p.r-q.r)<5&&Math.abs(p.c-q.c)<5);
         return [(q.c-originC)*WORLD_SCALE,(q.r-originR)*WORLD_SCALE,q.w*WORLD_SCALE,q.d*WORLD_SCALE,q.height,styleIndexes[b.styleId]??0,(nearPoi?.label||'').toString().slice(0,10).toUpperCase(),b.styleId||'downtown',{r:q.r,c:q.c,w:q.w,d:q.d,minR:q.minR,maxR:q.maxR,minC:q.minC,maxC:q.maxC,tiles:q.tiles,primary:partIndex===0}];
@@ -404,6 +429,10 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       const glassMat=new THREE.MeshPhysicalMaterial({color:0x5fbfe0,emissive:0x10394b,emissiveIntensity:.25,metalness:.08,roughness:.08,transmission:.14,thickness:.28,clearcoat:1,clearcoatRoughness:.06,envMap:cityEnvironment,envMapIntensity:1.45});
       const districtProps=new THREE.Group();scene.add(districtProps);
       const propBox=(x,z,w,d,h,mat,y=h/2)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;districtProps.add(m);return m;};
+      const chinaRedMat=new THREE.MeshStandardMaterial({color:0x781f29,roughness:.62,metalness:.18}),chinaGoldMat=new THREE.MeshStandardMaterial({color:0xc39a3d,roughness:.32,metalness:.72}),chinaJadeMat=new THREE.MeshStandardMaterial({color:0x174f47,roughness:.48,metalness:.28}),chinaBrickMat=new THREE.MeshStandardMaterial({color:0x694039,roughness:.95}),chinaSteelMat=new THREE.MeshStandardMaterial({color:0x39434a,roughness:.48,metalness:.68}),chinaNeonRed=new THREE.MeshBasicMaterial({color:0xff3652,toneMapped:false}),chinaNeonJade=new THREE.MeshBasicMaterial({color:0x33efc2,toneMapped:false}),chinaNeonGold=new THREE.MeshBasicMaterial({color:0xffc84c,toneMapped:false}),chinaNeonViolet=new THREE.MeshBasicMaterial({color:0xd14dff,toneMapped:false});
+      const chinaGlowMats=[chinaNeonRed,chinaNeonJade,chinaNeonGold,chinaNeonViolet];
+      const addChinaVerticalSign=(x,z,y,seed,side=1)=>{const glow=chinaGlowMats[Math.abs(seed)%chinaGlowMats.length],frame=propBox(x,z,.86,.16,Math.min(6.6,3.7+(seed%4)),chinaRedMat,y);frame.rotation.z=(seed%3-1)*.025;for(let gy=-1;gy<=1;gy++){const bar=propBox(x+side*((gy&1)?.17:-.12),z+.1,.42,.08,.12,glow,y+gy*.82);bar.rotation.z=(gy&1)?.45:-.45;}const top=propBox(x,z+.11,1.08,.1,.11,chinaGoldMat,y+2.15);return frame;};
+      const addChinaLantern=(x,z,y,seed)=>{const wire=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.85,6),chinaSteelMat);wire.position.set(x,y+.42,z);districtProps.add(wire);const lantern=new THREE.Mesh(new THREE.SphereGeometry(.24,12,8),seed%2?chinaNeonRed:chinaNeonGold);lantern.scale.y=1.25;lantern.position.set(x,y,z);districtProps.add(lantern);};
       const addDistrictCharacter=(x,z,w,d,h,kind,seed)=>{
         const front=z+d/2+1.15,side=x+w/2+1.1;
         if(kind==='poor'){
@@ -429,8 +458,35 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         }else if(kind==='coast'){
           const aqua=new THREE.MeshStandardMaterial({color:seed%2?0x27cbbb:0xff8b5c,roughness:.5});
           propBox(x,front,w*.62,1.5,.25,aqua,3.5);for(const sx of [-w*.22,w*.22])propBox(x+sx,front+1,.22,.22,2.5,detailMat,1.25);
+        }else if(kind==='chinatown_poor'){
+          // Tight tenements: external fire escapes, patched awnings and laundry lines.
+          propBox(side,z,.72,d*.76,2.8,chinaBrickMat,1.4);propBox(x-w*.24,front,w*.34,.95,.2,chinaRedMat,3.15);
+          for(let floor=3.2;floor<h-1;floor+=2.85){propBox(side+.34,z-d*.12,2.45,.82,.16,chinaSteelMat,floor);for(const dz of [-.92,.92])propBox(side+.43,z-d*.12+dz,.1,.1,1.18,chinaSteelMat,floor+.48);}
+          for(let line=0;line<2;line++){const y=4.2+line*1.25;propBox(x,front+.82,w*.62,.035,.035,chinaSteelMat,y);for(let k=-2;k<=2;k++){const cloth=propBox(x+k*w*.1,front+.84,.48,.035,.65,[chinaRedMat,chinaJadeMat,chinaGoldMat][Math.abs(seed+k)%3],y-.36);cloth.rotation.z=(k%2)*.08;}}
+          addChinaLantern(x-w*.32,front+.5,4.05,seed);
+        }else if(kind==='chinatown_market'){
+          // Layered shopfronts turn every super-block into a readable market street.
+          for(let k=-1;k<=1;k++){const awning=propBox(x+k*w*.27,front+.7,w*.22,1.35,.2,k===0?chinaGoldMat:chinaRedMat,3.35);awning.rotation.x=-.15;addChinaLantern(x+k*w*.27,front+1.15,3.02,seed+k);}
+          addChinaVerticalSign(side+.2,z+d*.18,6.2,seed,1);propBox(x,front+.1,w*.82,.14,.18,chinaNeonGold,4.15);
+          for(let k=-2;k<=2;k++)propBox(x+k*w*.14,front+1.1,.9,.75,.72,k%2?chinaJadeMat:chinaRedMat,.38);
+        }else if(kind==='chinatown_neon'){
+          // Dense vertical neon is deliberately geometric and crisp at the fixed camera distance.
+          addChinaVerticalSign(side+.18,z+d*.2,6.4,seed,1);addChinaVerticalSign(x-w*.28,front+.12,8.1,seed+1,-1);
+          for(let y=3.5;y<h-1;y+=3.4){const band=propBox(x,front-.98,w*.78,.08,.12,chinaGlowMats[(seed+Math.floor(y))%chinaGlowMats.length],y);band.castShadow=false;}
+          for(let k=-2;k<=2;k++)addChinaLantern(x+k*w*.13,front+.72,4.45,seed+k);
+        }else if(kind==='chinatown_rich'){
+          // Stone entrance, guarded jade planters and gold balcony rails distinguish the wealthy enclave.
+          for(const sx of [-w*.3,w*.3]){const col=new THREE.Mesh(new THREE.CylinderGeometry(.3,.4,5.4,14),chinaGoldMat);col.position.set(x+sx,2.7,front);districtProps.add(col);}
+          for(let floor=5;floor<h-2;floor+=4){propBox(x,front-.72,w*.68,.72,.16,chinaGoldMat,floor);for(let k=-2;k<=2;k++)propBox(x+k*w*.11,front-.35,.07,.07,.65,chinaGoldMat,floor+.28);}
+          for(const sx of [-w*.3,w*.3]){const planter=propBox(x+sx,front+.95,1.35,1.35,.75,chinaJadeMat,.38);const crown=new THREE.Mesh(new THREE.SphereGeometry(.72,10,7),new THREE.MeshStandardMaterial({color:0x27664c,roughness:1}));crown.position.set(planter.position.x,1.2,planter.position.z);districtProps.add(crown);}
+        }else if(kind==='chinatown_docks'){
+          propBox(side,z,.85,d*.8,Math.max(3,h*.56),chinaSteelMat,Math.max(3,h*.56)/2);propBox(x,front,w*.7,1.4,.72,chinaRedMat,.36);
+          for(let k=-2;k<=2;k++)propBox(x+k*w*.13,front+1.05,1.15,.85,.65,[chinaRedMat,chinaJadeMat,chinaGoldMat][Math.abs(seed+k)%3],.33+(Math.abs(k)%2)*.35);
+          for(const sx of [-1,1]){const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.18,.26,Math.max(4,h*.48),9),chinaSteelMat);pipe.position.set(side+sx*.58,h*.24,z);districtProps.add(pipe);}
+          addChinaVerticalSign(x-w*.31,front+.12,5.7,seed,-1);
         }
       };
+      const addChinatownRoof=(x,z,w,d,h,seed)=>{const tier1=box(x,z,w*.82,d*.82,.48,chinaJadeMat);tier1.position.y=h+.28;const tier2=box(x,z,w*.62,d*.62,.42,chinaRedMat);tier2.position.y=h+.73;const tier3=box(x,z,w*.38,d*.38,.34,chinaGoldMat);tier3.position.y=h+1.12;for(const [sx,sz] of [[-1,-1],[-1,1],[1,-1],[1,1]]){const finial=new THREE.Mesh(new THREE.ConeGeometry(.13,.72,8),chinaGoldMat);finial.position.set(x+sx*w*.4,h+.76,z+sz*d*.4);districtProps.add(finial);}if(seed%2===0)addChinaLantern(x,z,h+2.05,seed);};
       const addRoofDetails=(x,z,w,d,h,variant)=>{
         // Strong silhouettes are readable even from the fixed isometric camera.
         const parapet=box(x,z,w+.65,d+.65,.38,detailMat);parapet.position.y=h+.19;
@@ -455,7 +511,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         const wall = new THREE.MeshStandardMaterial({ map:facade, bumpMap:facade, bumpScale:.032, roughness:.66, metalness:.055, envMap:cityEnvironment, envMapIntensity:.16, emissive:0xffb24c, emissiveMap:facade, emissiveIntensity:.075 });
         facadeMaterials.push(wall);
         const localRoof=roofMat.clone();
-        const detailed=buildingMeta.primary!==false,steppedTower=detailed&&(districtStyle==='downtown'||districtStyle==='rich')&&h>24,lowerH=steppedTower?h*.64:h;
+        const detailed=buildingMeta.primary!==false,steppedTower=detailed&&(districtStyle==='downtown'||districtStyle==='rich'||districtStyle==='chinatown_rich')&&h>24,lowerH=steppedTower?h*.64:h;
         const mainBuilding=buildingBox(x,z,w,d,lowerH,wall,localRoof);mainBuilding.userData.fadeMaterials=[wall,localRoof];mainBuilding.userData.building=buildingMeta;mainBuilding.userData.mainBuilding=true;occluders.push(mainBuilding);buildingPickables.push(mainBuilding);if(detailed)outline(mainBuilding);
         if(detailed){if(steppedTower){const upperH=h-lowerH,upper=buildingBox(x,z,w*.72,d*.72,upperH,wall,localRoof);upper.position.y=lowerH+upperH/2;upper.userData.fadeMaterials=[wall,localRoof];upper.userData.building=buildingMeta;occluders.push(upper);buildingPickables.push(upper);outline(upper);const crownBand=box(x,z,w*.78,d*.78,.42,neonMats[bi%3]);crownBand.position.y=lowerH+.2;}
         // A second mass breaks the repetitive box silhouette.
@@ -472,10 +528,14 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         if(districtStyle==='rich'){
           const terrace=box(x,z,w*.72,d*.72,2.4,wall);terrace.position.y=h+1.2;outline(terrace);
         }
+        if(districtStyle==='chinatown_poor'||districtStyle==='chinatown_docks'){wall.color.setHex(districtStyle==='chinatown_poor'?0x8b5a4b:0x5e4b43);wall.roughness=.9;}
+        if(districtStyle==='chinatown_market'){wall.color.setHex(0x956347);wall.emissive.setHex(0x4b2112);wall.emissiveIntensity=.18;}
+        if(districtStyle==='chinatown_neon'){wall.color.setHex(0x443554);wall.emissive.setHex(0x28123c);wall.emissiveIntensity=.32;wall.roughness=.48;}
+        if(districtStyle==='chinatown_rich'){wall.color.setHex(0x416568);wall.metalness=.24;wall.roughness=.4;const terrace=box(x,z,w*.74,d*.74,2.1,wall);terrace.position.y=h+1.05;outline(terrace);}
         addDistrictCharacter(x,z,w,d,h,districtStyle,bi);
         if(sign==='HOTEL'){const tower=box(x-2,z-1,w*.52,d*.58,5.5,wall);tower.position.y=h+2.75;outline(tower);}
         if(sign==='BANK'){const crown=box(x,z,w*.68,d*.7,3.3,wall);crown.position.y=h+1.65;outline(crown);}
-        box(x,z,w+.65,d+.65,.48,detailMat).position.y=h-.24;addRoofDetails(x,z,w,d,h,bi%4);
+        box(x,z,w+.65,d+.65,.48,detailMat).position.y=h-.24;if(districtStyle==='chinatown_rich'||districtStyle==='chinatown_market'||districtStyle==='chinatown_neon')addChinatownRoof(x,z,w,d,h,bi);else addRoofDetails(x,z,w,d,h,bi%4);
         const shopGlow=new THREE.MeshBasicMaterial({color:sign==='CLUB'?0xff397d:sign==='CAFE'?0xffa13b:0xffd38a});shopMaterials.push(shopGlow);
         const shop=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w-2,8),2.8),shopGlow);
         shop.position.set(x,2.25,z+d/2+.012); scene.add(shop);
@@ -492,8 +552,8 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       };
       for (let bi=0;bi<buildingDefs.length;bi++) createBuilding(buildingDefs[bi],bi);
       const neighborhoodSurfaceKeys=new Set(),neighborhoodSurfaceGroup=new THREE.Group();scene.add(neighborhoodSurfaceGroup);
-      const neighborhoodConcreteMat=new THREE.MeshStandardMaterial({color:0x596168,roughness:.9,metalness:.04}),neighborhoodRoadMat=new THREE.MeshStandardMaterial({color:0x252b32,map:asphaltTexture,roughness:.86}),neighborhoodGrassMat=new THREE.MeshStandardMaterial({color:0x31543a,roughness:.98});
-      const addNeighborhoodSurfaces=snapshot=>{for(const n of snapshot?.neighborhoods||[]){const key=`${n.r0}:${n.c0}`;if(neighborhoodSurfaceKeys.has(key))continue;neighborhoodSurfaceKeys.add(key);const x=(n.c0+12-originC)*WORLD_SCALE,z=(n.r0+12-originR)*WORLD_SCALE,slab=new THREE.Mesh(new THREE.PlaneGeometry(16*WORLD_SCALE,16*WORLD_SCALE),neighborhoodConcreteMat);slab.rotation.x=-Math.PI/2;slab.position.set(x,.07,z);slab.receiveShadow=true;neighborhoodSurfaceGroup.add(slab);const stem=new THREE.Mesh(new THREE.PlaneGeometry((n.vertical?3:11)*WORLD_SCALE,(n.vertical?11:3)*WORLD_SCALE),neighborhoodRoadMat);stem.rotation.x=-Math.PI/2;stem.position.set((n.c0+(n.vertical?11:9)-originC)*WORLD_SCALE,.105,(n.r0+(n.vertical?9:11)-originR)*WORLD_SCALE);stem.receiveShadow=true;neighborhoodSurfaceGroup.add(stem);const bulb=new THREE.Mesh(new THREE.CircleGeometry(3.15*WORLD_SCALE,32),neighborhoodRoadMat);bulb.rotation.x=-Math.PI/2;bulb.position.set((n.c0+(n.vertical?11:14)-originC)*WORLD_SCALE,.11,(n.r0+(n.vertical?14:11)-originR)*WORLD_SCALE);neighborhoodSurfaceGroup.add(bulb);const yard=new THREE.Mesh(new THREE.PlaneGeometry((n.vertical?5:4)*WORLD_SCALE,(n.vertical?4:5)*WORLD_SCALE),neighborhoodGrassMat);yard.rotation.x=-Math.PI/2;yard.position.set((n.c0+(n.vertical?11:17)-originC)*WORLD_SCALE,.12,(n.r0+(n.vertical?17:11)-originR)*WORLD_SCALE);yard.receiveShadow=true;neighborhoodSurfaceGroup.add(yard);}};
+      const neighborhoodConcreteMat=new THREE.MeshStandardMaterial({color:0x596168,roughness:.9,metalness:.04}),neighborhoodRoadMat=new THREE.MeshStandardMaterial({color:0x252b32,map:asphaltTexture,roughness:.86}),neighborhoodGrassMat=new THREE.MeshStandardMaterial({color:0x31543a,roughness:.98}),chinaOldPavingMat=new THREE.MeshStandardMaterial({color:0x594741,roughness:.96}),chinaMarketPavingMat=new THREE.MeshStandardMaterial({color:0x75533c,roughness:.9}),chinaRichPavingMat=new THREE.MeshStandardMaterial({color:0x536b68,roughness:.72,metalness:.08}),chinaDockPavingMat=new THREE.MeshStandardMaterial({color:0x4b4b49,roughness:.94});
+      const addNeighborhoodSurfaces=snapshot=>{for(const n of snapshot?.neighborhoods||[]){const key=`${n.r0}:${n.c0}`;if(neighborhoodSurfaceKeys.has(key))continue;neighborhoodSurfaceKeys.add(key);const x=(n.c0+12-originC)*WORLD_SCALE,z=(n.r0+12-originR)*WORLD_SCALE,paving=n.styleId==='chinatown_poor'?chinaOldPavingMat:n.styleId==='chinatown_market'||n.styleId==='chinatown_neon'?chinaMarketPavingMat:n.styleId==='chinatown_rich'?chinaRichPavingMat:n.styleId==='chinatown_docks'?chinaDockPavingMat:neighborhoodConcreteMat,slab=new THREE.Mesh(new THREE.PlaneGeometry(16*WORLD_SCALE,16*WORLD_SCALE),paving);slab.rotation.x=-Math.PI/2;slab.position.set(x,.07,z);slab.receiveShadow=true;neighborhoodSurfaceGroup.add(slab);const stem=new THREE.Mesh(new THREE.PlaneGeometry((n.vertical?3:11)*WORLD_SCALE,(n.vertical?11:3)*WORLD_SCALE),neighborhoodRoadMat);stem.rotation.x=-Math.PI/2;stem.position.set((n.c0+(n.vertical?11:9)-originC)*WORLD_SCALE,.105,(n.r0+(n.vertical?9:11)-originR)*WORLD_SCALE);stem.receiveShadow=true;neighborhoodSurfaceGroup.add(stem);const bulb=new THREE.Mesh(new THREE.CircleGeometry(3.15*WORLD_SCALE,32),neighborhoodRoadMat);bulb.rotation.x=-Math.PI/2;bulb.position.set((n.c0+(n.vertical?11:14)-originC)*WORLD_SCALE,.11,(n.r0+(n.vertical?14:11)-originR)*WORLD_SCALE);neighborhoodSurfaceGroup.add(bulb);const yard=new THREE.Mesh(new THREE.PlaneGeometry((n.vertical?5:4)*WORLD_SCALE,(n.vertical?4:5)*WORLD_SCALE),n.styleId==='chinatown_rich'?chinaJadeMat:neighborhoodGrassMat);yard.rotation.x=-Math.PI/2;yard.position.set((n.c0+(n.vertical?11:17)-originC)*WORLD_SCALE,.12,(n.r0+(n.vertical?17:11)-originR)*WORLD_SCALE);yard.receiveShadow=true;neighborhoodSurfaceGroup.add(yard);}};
       addNeighborhoodSurfaces(worldSnapshot);
       const buildingContactShadows=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),contactShadowMaterial,buildingDefs.length),buildingShadowMatrix=new THREE.Matrix4(),buildingShadowQuat=new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2,0,0));
       buildingDefs.forEach(([x,z,w,d],i)=>{buildingShadowMatrix.compose(new THREE.Vector3(x,.058,z),buildingShadowQuat,new THREE.Vector3(w*1.08,d*1.08,1));buildingContactShadows.setMatrixAt(i,buildingShadowMatrix);});
