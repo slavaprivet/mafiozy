@@ -8403,7 +8403,7 @@ function spawnTowTruck(targetR, targetC, carRef) {
   for (const v of serviceVehicles) {
     if (v.kind !== 'tow' || v.state === 'done') continue;
     const ft = v.finalTarget || { x: 0, y: 0 };
-    if (Math.hypot(ft.y - targetR, ft.x - targetC) < 3) return;
+    if (Math.hypot(ft.y - targetR, ft.x - targetC) < 3) return null;
   }
   const door = _fireStationDoor();   // выезжает от пожарной части
   const v = {
@@ -8418,6 +8418,7 @@ function spawnTowTruck(targetR, targetC, carRef) {
   };
   _setVehicleRoute(v, door.r, door.c, targetR, targetC);
   serviceVehicles.push(v);
+  return v;
 }
 
 // ── Полиция при ограблении банка ────────────────────────────────────
@@ -8521,6 +8522,22 @@ function _releaseAbortedFireCall(v) {
   if(fire&&fire.kind==='gas_station'&&fire.station)fire.station._fireTruckDispatched=false;
   v._fireAborted=false;
 }
+function _releaseFailedTowCall(v) {
+  if(v?.kind!=='tow'||v._loaded||!v.payload?.carRef)return;
+  v.payload.carRef._towDispatched=false;
+}
+function _completeTowRemoval(v) {
+  if(v?.kind!=='tow'||!v._loaded||!v.payload?.carRef)return;
+  const car=v.payload.carRef,ci=CARS.indexOf(car);
+  if(ci>=0){
+    const fresh=spawnCar(ci,{awayFromPlayer:true});
+    if(fresh)CARS[ci]=fresh;else CARS.splice(ci,1);
+  }else if(typeof questCars!=='undefined'&&questCars instanceof Map&&questCars.get(car.id)===car){
+    questCars.delete(car.id);
+    try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'service_tow_car',d:{car_id:String(car.id)}}));}catch(e){}
+  }
+  v.payload.carRef=null;v._loaded=false;
+}
 function _finishFireTruckJob(v) {
   if (!v || v.kind !== 'firetruck' || !v.payload || !_fireTruckInRange(v)) return false;
   const cr = v.payload.carRef;
@@ -8539,6 +8556,7 @@ function updateServiceVehicles(dt) {
     const v = serviceVehicles[i];
     if (v.state === 'done') {
       _releaseAbortedFireCall(v);
+      _releaseFailedTowCall(v);
       if(v.kind==='ambulance'&&v.payload?.npc&&!v.payload.npc._evacuated)
         v.payload.npc._ambulanceDispatched=false;
       serviceVehicles.splice(i, 1);continue;
@@ -8561,6 +8579,7 @@ function updateServiceVehicles(dt) {
       // Застрявшая пожарка не умеет тушить через полкарты: вызов отменяется,
       // после её ухода диспетчер сможет отправить другую машину.
       if (v.kind === 'firetruck') {_abortFireTruckJob(v);continue;}
+      if (v.kind === 'tow' && v._loaded) _completeTowRemoval(v);
       v.state = 'done';
       continue;
     }
@@ -8649,13 +8668,7 @@ function updateServiceVehicles(dt) {
         // Доехал до депо. Эвакуатор увёз машину «за карту» → удаляем из
         // CARS и доспавниваем свежую (трафик не редеет, машины не
         // пропадают навсегда).
-        if (v.kind === 'tow' && v._loaded && v.payload.carRef && typeof CARS !== 'undefined') {
-          const ci = CARS.indexOf(v.payload.carRef);
-          if (ci >= 0) {
-            const fresh = spawnCar(ci, { awayFromPlayer: true });
-            if (fresh) CARS[ci] = fresh; else CARS.splice(ci, 1);
-          }
-        }
+        if (v.kind === 'tow' && v._loaded) _completeTowRemoval(v);
         _releaseAbortedFireCall(v);
         v.state = 'done';
       }
@@ -8712,8 +8725,18 @@ function dispatchEmergencyServices() {
       if (myDrivingCarId && car.id === myDrivingCarId) continue;
       if (!car._burnedOutAt) { car._burnedOutAt = now; continue; }
       if (now - car._burnedOutAt < 2500) continue;
-      car._towDispatched = true;
-      spawnTowTruck(car.r, car.c, car);
+      const tow=spawnTowTruck(car.r, car.c, car);
+      if(tow)car._towDispatched = true;
+    }
+    // Механически сломанный или действительно брошенный автомобиль не
+    // респавнится молча: после короткой безопасной паузы его увозит платформа.
+    for (const car of CARS) {
+      if(!car||car._wrecked||car._towed||car._towDispatched)continue;
+      if(!car._mechanicalFailure&&!car._abandonedAt)continue;
+      const since=car._mechanicalFailureAt||car._abandonedAt||now;
+      if(now-since<3500||(myDrivingCarId&&car.id===myDrivingCarId))continue;
+      const tow=spawnTowTruck(car.r,car.c,car);
+      if(tow)car._towDispatched=true;
     }
   }
 
@@ -8723,6 +8746,13 @@ function dispatchEmergencyServices() {
       if(!car||!car.wrecked||car._fireTruckDispatched||car._burnedOut)continue;
       const truck=spawnFireTruck(+car.y||0,+car.x||0,null,car);
       if(truck)car._fireTruckDispatched=true;
+    }
+    for(const car of questCars.values()){
+      if(!car||!car.civilian||car.driver_uid||car._towed||car._towDispatched)continue;
+      if(String(car.owner_uid||'')!==String(QP.uid)||!car._abandonedAt)continue;
+      if(now-car._abandonedAt<45000)continue;
+      const tow=spawnTowTruck(+car.y||0,+car.x||0,car);
+      if(tow)car._towDispatched=true;
     }
   }
 
@@ -13427,6 +13457,12 @@ function updateCars(dt) {
         _planCarRoute(car, true);
       }
       _trafficTryReleaseGridlock(car, now);
+      if(car._junker&&!car._blockedByJail&&car._stuckT>10&&!car._mechanicalFailure){
+        car._mechanicalFailure=true;car._mechanicalFailureAt=now;car._abandonedAt=now;
+        car.parked=true;car.vr=0;car.vc=0;car.braking=true;
+        car._hornText='Заглохла';car._hornUntil=now+2400;
+        continue;
+      }
       let doRespawn = false;
       if (car._blockedByJail && car._stuckT > 3) doRespawn = true;
       else if (car._stuckT > 14 && distP > 16)   doRespawn = true;
@@ -16838,6 +16874,8 @@ function handleEventPacket(d) {
       myDrivingCarId = null;
       myIsPassenger  = false;
     }
+  } else if (kind === 'service_tow_reply') {
+    if(d.ok)pushFeedEvent('🚛','Эвакуатор увёз брошенную машину',{accent:'#e0a62c'});
   } else if (kind === 'world_heal_reply') {
     if (d.ok) {
       myHp = d.hp || (PVP.max_hp || 100);
@@ -22069,6 +22107,7 @@ function _parkQuestCarLocally(qc, carId) {
   if(Number.isFinite(py)){qc.y=py;qc.ty=py;}
   qc._locallyParkedUntil=Math.max(qc._locallyParkedUntil||0,now+PARKED_CAR_GRACE_MS);
   qc._serverGone=false;
+  if(qc.civilian)qc._abandonedAt=now;
   _recentlyExitedCarId=carId;
   _recentlyExitedCarUntil=now+PARKED_CAR_GRACE_MS;
   // Отдельно держим визуальный паспорт. Даже если промежуточный snapshot
@@ -22314,6 +22353,7 @@ let _lastDriveSentAt = 0;
 function _interpQuestCars(dt) {
   const k = Math.min(1, dt * 8);
   for (const qc of questCars.values()) {
+    if(qc._towed)continue;
     if (qc.id === myDrivingCarId) continue;   // свою рулим сами
     qc.x += (qc.tx - qc.x) * k;
     qc.y += (qc.ty - qc.y) * k;
@@ -39231,6 +39271,7 @@ function render() {
   // GTA-квестовые машины (Майкл). owner_uid видит подсветку, остальные —
   // обычную модель + красный glow если другой игрок за рулём.
   for (const qc of questCars.values()) {
+    if(qc._towed)continue;
     if (qc.y < r0 || qc.y >= r1 || qc.x < c0 || qc.x >= c1) continue;
     const qm=resolveCarModel(qc.model);
     items.push({ depth: qm&&qm.helicopter ? Number.MAX_SAFE_INTEGER : qc.y + qc.x + 0.00085, draw: () => drawQuestCar(qc) });
@@ -52714,7 +52755,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v33-unified-npc-death',
+  migrationStage: 'three-full-world-shell-v34-complete-city-services',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52887,7 +52928,7 @@ window.Mafiozi3DBridge = Object.freeze({
   getDynamicEntities(radius = 38) {
     const rad2=Math.max(12,Math.min(65,+radius||38))**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
     const inside=!!(_buildingInt||_bankInt);
-    const cars=(inside?[]:(typeof CARS!=='undefined'?CARS:[])).filter(x=>x&&!x._hidden&&near(+x.r||0,+x.c||0)).sort((a,b)=>(((+a.r||0)-player.r)**2+((+a.c||0)-player.c)**2)-(((+b.r||0)-player.r)**2+((+b.c||0)-player.c)**2)||String(a.id??a._id??'').localeCompare(String(b.id??b._id??''))).slice(0,24).map((x,i)=>{const model=x.model||{},modelName=model.name||x.modelName||'sedan';return {
+    const cars=(inside?[]:(typeof CARS!=='undefined'?CARS:[])).filter(x=>x&&!x._hidden&&!x._towed&&near(+x.r||0,+x.c||0)).sort((a,b)=>(((+a.r||0)-player.r)**2+((+a.c||0)-player.c)**2)-(((+b.r||0)-player.r)**2+((+b.c||0)-player.c)**2)||String(a.id??a._id??'').localeCompare(String(b.id??b._id??''))).slice(0,18).map((x,i)=>{const model=x.model||{},modelName=model.name||x.modelName||'sedan';return {
       id:_threeVehicleEntityId(x),r:+x.r||0,c:+x.c||0,ang:Number.isFinite(x.ang)?x.ang:Math.atan2(+x.dirDy||0,+x.dirDx||1),
       model:modelName,paint:_threeVehiclePaint(x,model),parked:!!x.parked,
       length:+model.L||1.7,width:+model.W||.85,height:+model.height||.55,wheelR:+model.wheelR||.18,
@@ -52895,6 +52936,28 @@ window.Mafiozi3DBridge = Object.freeze({
       helicopter:!!model.helicopter,emergency:model.emergency||'',stripe:model.stripe||'',
       dirR:+x.dirDy||0,dirC:+x.dirDx||0,velR:+x.vr||0,velC:+x.vc||0,braking:!!x.braking,turning:!!x._turningAtIntersection,
     };});
+    if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
+      if(!v||v.state==='done'||!near(+v.y||0,+v.x||0))continue;
+      const ambulance=v.kind==='ambulance',fire=v.kind==='firetruck',tow=v.kind==='tow',police=v.kind==='police';
+      cars.unshift({
+        id:`service_${v.id}`,r:+v.y||0,c:+v.x||0,ang:+v.ang||0,
+        model:ambulance?'ambulance':fire?'firetruck':tow?'tow_truck':'police',
+        paint:ambulance?'#eef3f7':fire?'#b51f27':tow?'#e0a62c':'#244f86',
+        parked:v.state==='working'||v.state==='siege',length:fire?2.4:tow?2.3:ambulance?2.05:1.9,
+        width:fire?1.1:tow?1:ambulance?.98:.9,height:fire?1.05:ambulance?.88:.75,wheelR:.2,
+        sport:false,pickup:tow,van:ambulance||fire,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,
+        emergency:ambulance?'ambulance':fire?'fire':police?'police':'tow',
+        stripe:ambulance?'#1756bd':fire?'#f2c94c':tow?'#22262b':'#d9e8ff',
+        dirR:Math.sin(+v.ang||0),dirC:Math.cos(+v.ang||0),velR:0,velC:0,
+        braking:v.state==='working'||v.state==='siege',turning:false,serviceKind:v.kind,serviceState:v.state,
+      });
+      if(tow&&v._loaded&&v.payload?.carRef){
+        const load=v.payload.carRef,model=load.model||{};
+        cars.unshift({id:`service_load_${v.id}`,r:+v.y-Math.sin(+v.ang||0)*.46,c:+v.x-Math.cos(+v.ang||0)*.46,ang:+v.ang||0,
+          model:model.name||'sedan',paint:model.palette?.[0]||'#555b62',parked:true,length:+model.L||1.65,width:+model.W||.82,height:.58,wheelR:.16,
+          sport:!!model.sport,pickup:false,van:false,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'',dirR:0,dirC:0,velR:0,velC:0,braking:true,turning:false,towLoad:true});
+      }
+    }
     if(_LOCAL_PREVIEW&&_UP.get('previewnewsheli')){const a=performance.now()*.00022,r=player.r+Math.sin(a)*8,c=player.c+Math.cos(a)*11;cars.unshift({id:'preview_news_heli',r,c,ang:a+Math.PI/2,model:'mafia_heli',paint:'#c91f2b',parked:false,length:2.5,width:1.25,height:1.05,wheelR:.18,sport:false,pickup:false,van:false,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:true,helicopter:true,emergency:'',stripe:'',dirR:Math.cos(a),dirC:-Math.sin(a),velR:Math.cos(a)*.9,velC:-Math.sin(a)*.9,braking:false,turning:false});}
     let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.npcs||[]):(typeof NPCS!=='undefined'?NPCS:[]);
     if(!inside){
@@ -52917,7 +52980,17 @@ window.Mafiozi3DBridge = Object.freeze({
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||'',
       gang,police:!!(x.police||role==='police'||role==='cop'),dead:death.dead,deadAt:death.deadAt,
     };});
-    const projectiles=(typeof bullets!=='undefined'?bullets:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,thick:!!x.thick}));
+    const serviceWater=[];
+    if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
+      if(v?.kind!=='firetruck'||v.state!=='working')continue;
+      const target=_fireTruckTarget(v);if(!target)continue;
+      const dr=target.r-v.y,dc=target.c-v.x,dist=Math.hypot(dr,dc)||1;
+      for(let j=1;j<=10;j++){const k=j/11,wave=Math.sin(performance.now()*.012+j*1.7)*.05*(1-k);serviceWater.push({
+        id:`water_${v.id}_${j}`,r:v.y+dr*k+wave*dc/dist,c:v.x+dc*k-wave*dr/dist,
+        vr:dr/dist*8,vc:dc/dist*8,ang:Math.atan2(dr,dc),color:j%3?'#70cfff':'#d8f4ff',weapon:'water_hose',fromNpc:true,thick:true,
+      });}
+    }
+    const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,thick:!!x.thick}));
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,color:x.color||'#ffc35a',life:+x.life||0,max:+x.max||80}));
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,blood:!!x.parts?.some?.(p=>p.isBlood),life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1))}));
     const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550}));
@@ -56657,6 +56730,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d79"></script>
+<script type="module" src="three_preview.js?v=3d80"></script>
 </body>
 </html>
