@@ -53026,10 +53026,12 @@ const _WORLD_MAX_FPS = 72;
 const _WORLD_FRAME_MIN_MS = 1000 / _WORLD_MAX_FPS;
 function frame() {
   const t = performance.now();
+  const threeWorldActive = !!document.getElementById('stage')?.classList.contains('three-mode');
+  const frameMinMs = 1000 / (threeWorldActive ? 45 : _WORLD_MAX_FPS);
   // High-refresh displays were running the entire city simulation at
   // 120-144 FPS. Keep full visual quality, but avoid doing the same expensive
   // world render twice as often as gameplay needs.
-  if (t - prevT < _WORLD_FRAME_MIN_MS) { requestAnimationFrame(frame); return; }
+  if (t - prevT < frameMinMs) { requestAnimationFrame(frame); return; }
   let dt = (t - prevT) / 1000;
   prevT = t;
   if (dt > 0.1) dt = 0.1;
@@ -53046,12 +53048,14 @@ function frame() {
     if (_battleOpen) {
       // Битва в iframe — пропускаем тяжёлый рендер/update мира
     } else if (t < hitStopUntil) {
-      render();
+      if (!threeWorldActive) render();
     } else {
       update(dt);
-      render();
+      // Three.js reads this authoritative state through Mafiozi3DBridge.
+      // Repainting the invisible 2D city here doubled CPU/GPU load.
+      if (!threeWorldActive) render();
     }
-    _pixiFxFrame(t);
+    if (!threeWorldActive) _pixiFxFrame(t);
     if (_worldResumeFrames > 0 && !_buildingInt && !_bankInt) {
       _worldResumeFrames--;
       if (_worldResumeFrames === 0) _worldExitSnapshot = null;
