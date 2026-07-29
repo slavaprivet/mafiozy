@@ -4635,10 +4635,12 @@ function buildMap() {
     }
   }
 
-  // Полицейский участок — расчищаем компаунд (двор) вокруг здания, чтобы
-  // участок было видно, копы могли патрулировать внутрь, а полицейские
-  // машины заезжать в зону. Центр (само здание) оставляем как building=1.
-  for (let dr = -3; dr <= 3; dr++) for (let dc = -3; dc <= 3; dc++) {
+  // Полицейский участок — весь ограждённый компаунд должен быть сушей.
+  // Восточная часть ограды заходит на канал (c=80..82), поэтому прежние
+  // ±3 клетки оставляли воду прямо во дворе. Расчищаем полный квадрат внутри
+  // стен радиуса JAIL_RADIUS_TILES; центр сохраняет коллизию здания.
+  const jailDryHalf = Math.ceil(JAIL_RADIUS_TILES);
+  for (let dr = -jailDryHalf; dr < jailDryHalf; dr++) for (let dc = -jailDryHalf; dc < jailDryHalf; dc++) {
     const r = JAIL_CENTER_R + dr, c = JAIL_CENTER_C + dc;
     // ВАЖНО: было `>= MAP_COLS - 1` — это исключало САМУЮ ПОСЛЕДНЮЮ
     // валидную колонку (c=79 при MAP_COLS=80), то есть восточную грань
@@ -4648,8 +4650,8 @@ function buildMap() {
     // вверх-вниз, «не могу ходить».
     if (r < 1 || r >= MAP_ROWS || c < 1 || c >= MAP_COLS) continue;
     if (r === JAIL_CENTER_R && c === JAIL_CENTER_C) continue;  // здание участка
-    if (MAP[r][c] === 0) continue;       // дороги не трогаем
-    MAP[r][c] = 9;                       // двор-площадка
+    if (MAP[r][c] === 0 || MAP[r][c] === 19) continue; // сухой проезд сохраняем
+    MAP[r][c] = 9;                       // вода/декор/лишняя застройка → двор
   }
 
   // Пожарная часть — небольшой двор перед депо, чтобы гаражные ворота и
@@ -52549,7 +52551,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v29-safe-building-prompt',
+  migrationStage: 'three-full-world-shell-v30-dry-police-compound',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -56470,6 +56472,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d75"></script>
+<script type="module" src="three_preview.js?v=3d76"></script>
 </body>
 </html>
