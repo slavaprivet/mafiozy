@@ -763,16 +763,22 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       let sectorAnchor=initialState?`${Math.floor((+initialState.r||0)/36)}:${Math.floor((+initialState.c||0)/36)}`:'',sectorLoadScheduled=false,sectorBuildQueue=[];
       const pumpSectorBuildings=deadline=>{let made=0;while(sectorBuildQueue.length&&made<4&&(made===0||deadline.timeRemaining()>2)){const [def,index]=sectorBuildQueue.shift();createBuilding(def,index);made++;}renderer.domElement.dataset.worldBuildings=String(buildingDefs.length);renderer.domElement.dataset.pendingBuildings=String(sectorBuildQueue.length);if(sectorBuildQueue.length)onIdle(pumpSectorBuildings);else{renderer.shadowMap.needsUpdate=true;}};
       const scheduleSectorLoad=(r,c)=>{const key=`${Math.floor(r/36)}:${Math.floor(c/36)}`;if(key===sectorAnchor||sectorLoadScheduled)return;sectorAnchor=key;sectorLoadScheduled=true;onIdle(()=>{sectorLoadScheduled=false;const snapshot=bridge?.getWorldSnapshot?.(58);if(!snapshot)return;addNeighborhoodSurfaces(snapshot);const fresh=[];for(const def of defsFromSnapshot(snapshot)){const meta=def[8],buildingKey=`${meta?.minR}:${meta?.minC}:${meta?.maxR}:${meta?.maxC}`;if(loadedBuildingKeys.has(buildingKey))continue;loadedBuildingKeys.add(buildingKey);const index=buildingDefs.length;buildingDefs.push(def);fresh.push([def,index]);}sectorBuildQueue.push(...fresh);renderer.domElement.dataset.loadedSectors=String(new Set([...loadedBuildingKeys].map(k=>k.split(':').slice(0,2).map(Number).map(v=>Math.floor(v/20)).join(':'))).size);if(fresh.length&&sectorBuildQueue.length===fresh.length)onIdle(pumpSectorBuildings);});};
-      const daySky=new THREE.Color(0x62b9ee),sunsetSky=new THREE.Color(0xe56a58),nightSky=new THREE.Color(0x071426),skyColor=new THREE.Color();
+      // A single deterministic grade drives sky, fog, ambient bounce and sun.
+      // Keep daylight in the same desaturated noir family as the city instead
+      // of letting a cyan sky fight the dark asphalt and facade materials.
+      const daySky=new THREE.Color(0x315f82),sunsetSky=new THREE.Color(0xa95a50),nightSky=new THREE.Color(0x071426),skyColor=new THREE.Color(),dayHorizon=new THREE.Color(0x78929d),nightHorizon=new THREE.Color(0x16263d),dayGround=new THREE.Color(0x46392e),nightGround=new THREE.Color(0x293448),daySun=new THREE.Color(0xffd69a),sunsetSun=new THREE.Color(0xff8a4f);
+      let paletteDaylight=0,paletteSunset=0,paletteReady=false,paletteAt=performance.now();
       const updateDayNight=t=>{
-        // One complete showcase day lasts four minutes; later this can read the authoritative game clock.
+        // Production always reads the authoritative city minute. All visual
+        // channels ease toward that same target, so no component can jump to
+        // another palette while the clock still shows the same time.
         const serverTime=bridge?.getEnvironmentState?.();
         setTrafficSignals(serverTime?.traffic);
         const baseHour=serverTime ? serverTime.hour + serverTime.minute/60 : (t/1000)/10;
-        const hour=(baseHour+timeOffset)%24,daylight=THREE.MathUtils.smoothstep(Math.sin((hour-6)/24*Math.PI*2),-.18,.42),sunset=Math.max(0,1-Math.abs(hour-19)/2.2);
-        skyColor.copy(nightSky).lerp(daySky,daylight).lerp(sunsetSky,sunset*.58);scene.background.copy(skyColor);scene.fog.color.copy(skyColor);skyUniforms.uTop.value.copy(nightSky).lerp(daySky,daylight);skyUniforms.uHorizon.value.set(daylight>.35?0xbfd8df:0x16263d);skyUniforms.uNight.value=1-daylight;skyUniforms.uSunset.value=sunset;
-        skyLight.color.setRGB(.4+.34*daylight,.48+.3*daylight,.68+.21*daylight);skyLight.groundColor.set(daylight>.35?0x46392e:0x293448);skyLight.intensity=1.18+1.22*daylight;
-        sun.color.set(sunset>.12?0xff8a4f:0xffd69a);sun.intensity=.48+2.97*daylight;sunOffsetVector.set(Math.cos(hour/24*Math.PI*2)*75,18+daylight*72,Math.sin(hour/24*Math.PI*2)*65);
+        const hour=((baseHour+timeOffset)%24+24)%24,targetDaylight=THREE.MathUtils.smoothstep(Math.sin((hour-6)/24*Math.PI*2),-.18,.42),targetSunset=Math.max(0,1-Math.abs(hour-19)/2.2),paletteDt=Math.min(.1,Math.max(0,(t-paletteAt)/1000));paletteAt=t;if(!paletteReady){paletteDaylight=targetDaylight;paletteSunset=targetSunset;paletteReady=true;}else{const ease=1-Math.exp(-paletteDt*2.4);paletteDaylight=THREE.MathUtils.lerp(paletteDaylight,targetDaylight,ease);paletteSunset=THREE.MathUtils.lerp(paletteSunset,targetSunset,ease);}const daylight=paletteDaylight,sunset=paletteSunset;
+        skyColor.copy(nightSky).lerp(daySky,daylight).lerp(sunsetSky,sunset*.48);scene.background.copy(skyColor);scene.fog.color.copy(skyColor);skyUniforms.uTop.value.copy(nightSky).lerp(daySky,daylight).lerp(sunsetSky,sunset*.2);skyUniforms.uHorizon.value.copy(nightHorizon).lerp(dayHorizon,daylight).lerp(sunsetSky,sunset*.22);skyUniforms.uNight.value=1-daylight;skyUniforms.uSunset.value=sunset;
+        skyLight.color.setRGB(.4+.34*daylight,.48+.3*daylight,.68+.21*daylight);skyLight.groundColor.copy(nightGround).lerp(dayGround,daylight);skyLight.intensity=1.18+1.22*daylight;
+        sun.color.copy(daySun).lerp(sunsetSun,THREE.MathUtils.smoothstep(sunset,0,.7));sun.intensity=.48+2.97*daylight;sunOffsetVector.set(Math.cos(hour/24*Math.PI*2)*75,18+daylight*72,Math.sin(hour/24*Math.PI*2)*65);
         const night=1-daylight;environmentNight=night;renderer.toneMappingExposure=1.15+daylight*.15;scene.environmentIntensity=.42+daylight*.38;lampGlowMat.opacity=.01+night*.72;newsBeamMaterial.opacity=Math.max(0,night-.1)*.24;starMaterial.opacity=Math.max(0,night-.18)*.92;postMaterial.uniforms.uBloom.value=.12+night*.12;postMaterial.uniforms.uWarmth.value=.08+sunset*.72;postMaterial.uniforms.uNight.value=night;
         facadeMaterials.forEach(m=>m.emissiveIntensity=.04+night*.42);shopMaterials.forEach(m=>m.opacity=.74+night*.26);
         contactShadowMaterial.opacity=.2+daylight*.1;dynamicContactShadowMaterial.opacity=.34+daylight*.12;
@@ -785,7 +791,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
           renderer.toneMappingExposure=1.04;scene.environmentIntensity=.58;
           postMaterial.uniforms.uBloom.value=.08;postMaterial.uniforms.uWarmth.value=.06;postMaterial.uniforms.uNight.value=.04;
         }
-        const hh=Math.floor(hour),mm=Math.floor((hour-hh)*60);clock.textContent=`${daylight>.62?'☀ День':sunset>.15?'◐ Закат':'☾ Ночь'} · ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+        const hh=Math.floor(hour),mm=Math.floor((hour-hh)*60);clock.textContent=`${daylight>.62?'☀ День':sunset>.15?'◐ Закат':'☾ Ночь'} · ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;renderer.domElement.dataset.palette=`${hh}:${mm}:${daylight.toFixed(3)}:${sunset.toFixed(3)}`;
       };
       const animate = t => {
         if(t-customGangHqAt>2000){customGangHqAt=t;refreshCustomGangHqs();}
