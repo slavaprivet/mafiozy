@@ -53033,7 +53033,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v42-premium-police-precinct',
+  migrationStage: 'three-full-world-shell-v43-burj-mafia-landmark',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -53188,6 +53188,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const landmarks={
       jail:{r:JAIL_CENTER_R,c:JAIL_CENTER_C,radius:JAIL_RADIUS_TILES},
       lair:lairZone?{r:lairZone.r,c:lairZone.c,radius:lairZone.radius||18}:null,
+      mafiaHq:(typeof BURJ_POS!=='undefined'?{id:'mafia_hq',r:BURJ_POS.r,c:BURJ_POS.c,name:'Burj Mafia · Беллини',family:'bellini'}:null),
       businesses:(typeof BUSINESS_POIS!=='undefined'?BUSINESS_POIS:[]).map(b=>({id:b.id,r:b.r,c:b.c,name:b.name,emoji:b.emoji})),
       districtHqs:(typeof DISTRICTS!=='undefined'?DISTRICTS:[]).filter(d=>d.hq).map(d=>({id:d.id,r:d.hq.r,c:d.hq.c,name:d.name,color:d.color,capturable:d.capturable!==false})),
       customGangHqs:(_customGangHqs||[]).map(h=>({id:h.id,r:+h.r||0,c:+h.c||0,name:h.name||'Банда',flag:h.flag||{},memberCount:+h.member_count||0})),
@@ -57009,6 +57010,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d88"></script>
+<script type="module" src="three_preview.js?v=3d89"></script>
 </body>
 </html>
