@@ -7755,7 +7755,7 @@ function _maybeIdleChatter(now) {
     if (n.dead || n._evacuated) continue;
     if (n.cryUntil && n.cryUntil > now) continue;
     if (n.panicUntil && n.panicUntil > now) continue;
-    if (n.snitching) continue;
+    if (n.snitching||n._talking||n._socialReplyAt) continue;
     const dr = n.r - player.r, dc = n.c - player.c;
     if (Math.hypot(dr, dc) > 14) continue;
     candidates.push(n);
@@ -7772,38 +7772,145 @@ function _maybeIdleChatter(now) {
 // ── Социальные взаимодействия NPC ───────────────────────────────
 // Раз в 2-5 с ищем пару близких NPC и ставим им «диалог»:
 // оба разворачиваются лицом друг к другу, стоят 2-4 с, один говорит фразу.
+const NPC_SOCIAL_DIALOGUES={
+  generic:[
+    ['Как дела?','Потихоньку. Ты как?','calm'],
+    ['Давно не виделись.','Работы много было.','calm'],
+    ['Куда направляешься?','По делам, недалеко.','calm'],
+    ['Что нового в районе?','Сегодня вроде спокойно.','calm'],
+  ],
+  night:[
+    ['Поздно уже.','Да, пора домой.','calm'],
+    ['Темно на улицах.','Пойдём по освещённой.','calm'],
+    ['Ночные автобусы ходят?','Редко, лучше пешком.','calm'],
+  ],
+  danger:[
+    ['Слышал стрельбу?','Да. Держись подальше.','rumor'],
+    ['Тут опасно стало.','Я уже ухожу отсюда.','rumor'],
+    ['Видел подозрительного типа?','Лучше ничего не видеть.','rumor'],
+  ],
+  ambulance:[
+    ['Скорая опять приехала.','Надеюсь, успели помочь.','concern'],
+    ['Кого-то увезли?','Да, врачи уже здесь.','concern'],
+  ],
+  firetruck:[
+    ['Пожар где-то рядом?','Пожарные уже работают.','concern'],
+    ['Дымом пахнет.','Отойдём подальше.','concern'],
+  ],
+  tow:[
+    ['Эвакуатор приехал.','Опять бросили машину.','calm'],
+    ['Чью машину забирают?','Наверное, мешала проезду.','calm'],
+  ],
+  student:[
+    ['На занятия идёшь?','После кофе. Иначе усну.','calm'],
+    ['К сессии готов?','Даже не спрашивай.','calm'],
+  ],
+  worker:[
+    ['Смена длинная?','До вечера ещё далеко.','calm'],
+    ['На перерыв идёшь?','Пять минут — и обратно.','calm'],
+  ],
+  pensioner:[
+    ['Как здоровье?','Спасибо, держусь.','calm'],
+    ['Не спешите так.','Да куда уж мне спешить.','calm'],
+  ],
+  drunk:[
+    ['Тебе точно домой.','Дом сам меня найдёт.','uneasy'],
+    ['Может, хватит на сегодня?','Последняя — и всё.','uneasy'],
+  ],
+  bandit:[
+    ['Чего смотришь?','Ничего. Уже ухожу.','uneasy'],
+    ['Этот район под нами.','Понял, без проблем.','uneasy'],
+  ],
+  bandit_pair:[
+    ['На улице спокойно?','Да. Район под контролем.','calm'],
+    ['Наших давно видел?','На соседнем квартале.','calm'],
+  ],
+};
+function _residentCanSocialize(n,now){
+  return _isRespawnableResident(n)&&!n.dead&&!n._evacuated&&!n._medicalDowned&&
+    !(n._knockedUntil>now)&&!(n.panicUntil>now)&&!n.snitching&&!n._talking&&
+    !n._socialReplyAt&&!n._clientOfBiz&&!n._hostile&&!n._fighting&&!n._fightingMelee&&
+    now>=(n._socialCooldownUntil||0);
+}
+function _nearbyServiceKind(a,b){
+  if(typeof serviceVehicles==='undefined')return '';
+  const mr=(a.r+b.r)/2,mc=(a.c+b.c)/2;
+  for(const v of serviceVehicles){
+    if(!v||v.state==='done'||Math.hypot((+v.y||0)-mr,(+v.x||0)-mc)>9)continue;
+    if(v.kind==='ambulance'||v.kind==='firetruck'||v.kind==='tow')return v.kind;
+  }
+  return '';
+}
+function _npcConversationFor(a,b,now){
+  let speaker=a,listener=b;
+  if(b._arcKey==='bandit'&&a._arcKey!=='bandit'){speaker=b;listener=a;}
+  const danger=(+speaker._fear||0)>.42||(+listener._fear||0)>.42||
+    (+speaker._relation||0)>=1||(+listener._relation||0)>=1||(+myWanted||0)>=2;
+  const service=_nearbyServiceKind(speaker,listener),hour=getGameHour();
+  let context=danger?'danger':(service||((hour>=22||hour<6)?'night':''));
+  if(!context){
+    const sa=speaker._arcKey,la=listener._arcKey;
+    if(sa==='bandit'&&la==='bandit')context='bandit_pair';
+    else if(sa==='bandit'||la==='bandit')context='bandit';
+    else if(sa===la&&NPC_SOCIAL_DIALOGUES[sa])context=sa;
+    else if((sa==='worker'&&la==='businessman')||(la==='worker'&&sa==='businessman'))context='worker';
+    else if(sa==='drunk'||la==='drunk')context='drunk';
+    else if(sa==='pensioner'||la==='pensioner')context='pensioner';
+    else context='generic';
+  }
+  const pool=NPC_SOCIAL_DIALOGUES[context]||NPC_SOCIAL_DIALOGUES.generic;
+  const [first,reply,effect]=pool[Math.floor(Math.random()*pool.length)];
+  return {speaker,listener,first,reply,effect,context};
+}
+function _applyNpcConversationEffect(speaker,listener,effect,now){
+  if(effect==='rumor'){
+    listener._relation=Math.min(2,(+listener._relation||0)+.18);
+    listener._fear=Math.min(1,(+listener._fear||0)+.12);listener._rumorSpreadAt=now;
+  }else if(effect==='uneasy'){
+    listener._fear=Math.min(1,(+listener._fear||0)+.08);
+  }else if(effect==='concern'){
+    speaker._fear=Math.min(1,(+speaker._fear||0)+.025);
+    listener._fear=Math.min(1,(+listener._fear||0)+.035);
+  }else{
+    speaker._fear=Math.max(0,(+speaker._fear||0)-.04);
+    listener._fear=Math.max(0,(+listener._fear||0)-.04);
+  }
+}
 let _nextSocialAt = 0;
 function _npcSocialTick(now) {
-  if (now < _nextSocialAt) return;
-  _nextSocialAt = now + 2200 + Math.random() * 3000;
-  // Снимаем просроченные флаги разговора
   for (const n of NPCS) {
-    if (n._talking && now > n._talking) n._talking = 0;
+    if(n._socialReplyAt&&now>=n._socialReplyAt){
+      if(!n.dead&&!n.snitching&&!(n.panicUntil>now)){
+        n.cryText=n._socialReplyText;n.cryUntil=now+1250+Math.random()*350;
+      }
+      n._socialReplyAt=0;n._socialReplyText='';
+    }
+    if(n._talking&&now>n._talking){n._talking=0;n._socialPartnerId=null;}
   }
-  // Ищем одну пару
+  if (now < _nextSocialAt) return;
+  _nextSocialAt = now + 3500 + Math.random() * 3200;
   for (let i = 0; i < NPCS.length - 1; i++) {
     const a = NPCS[i];
-    if (a.dead || (a.panicUntil > now) || a.snitching || a._talking || a._clientOfBiz) continue;
+    if(!_residentCanSocialize(a,now))continue;
     for (let j = i + 1; j < NPCS.length; j++) {
       const b = NPCS[j];
-      if (b.dead || (b.panicUntil > now) || b.snitching || b._talking || b._clientOfBiz) continue;
+      if(!_residentCanSocialize(b,now))continue;
       const d = Math.hypot(a.r - b.r, a.c - b.c);
       if (d < 0.7 || d > 2.4) continue;
-      // Оба должны быть в видимости игрока чтобы не тратить впустую
       const dpA = Math.hypot(a.r - player.r, a.c - player.c);
       if (dpA > 18) continue;
-      const dur = 2500 + Math.random() * 2000;
-      a._talking = now + dur; a.idleUntil = now + dur;
-      b._talking = now + dur; b.idleUntil = now + dur;
-      // Разворачиваем лицом друг к другу
-      a.ang = Math.atan2(b.r - a.r, b.c - a.c);
-      b.ang = a.ang + Math.PI;
-      // Один говорит фразу своего архетипа
-      if (!(a.cryUntil > now)) {
-        const pool = (a._arc && a._arc.phrases) ? a._arc.phrases : NPC_IDLE_PHRASES;
-        a.cryText  = pool[Math.floor(Math.random() * pool.length)];
-        a.cryUntil = now + 1600 + Math.random() * 500;
-      }
+      const talk=_npcConversationFor(a,b,now),dur=2900+Math.random()*1100;
+      talk.speaker._talking=now+dur;talk.listener._talking=now+dur;
+      talk.speaker.idleUntil=now+dur;talk.listener.idleUntil=now+dur;
+      talk.speaker._socialPartnerId=talk.listener.id;talk.listener._socialPartnerId=talk.speaker.id;
+      talk.speaker._socialCooldownUntil=now+18000+Math.random()*17000;
+      talk.listener._socialCooldownUntil=now+18000+Math.random()*17000;
+      talk.speaker.ang=Math.atan2(talk.listener.r-talk.speaker.r,talk.listener.c-talk.speaker.c);
+      talk.listener.ang=talk.speaker.ang+Math.PI;
+      talk.speaker.cryText=talk.first;talk.speaker.cryUntil=now+1250+Math.random()*300;
+      talk.listener._socialReplyText=talk.reply;talk.listener._socialReplyAt=now+1450;
+      talk.speaker._socialContext=talk.context;talk.listener._socialContext=talk.context;
+      _applyNpcConversationEffect(talk.speaker,talk.listener,talk.effect,now);
       return;
     }
   }
@@ -52926,7 +53033,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v36-resident-building-life-cycle',
+  migrationStage: 'three-full-world-shell-v37-contextual-resident-dialogue',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -53147,7 +53254,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const npcs=npcSource.filter(x=>x&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).slice(0,36).map((x,i)=>{const id=String(x.id??x.uid??i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||role==='gang'||role==='boss'||role.includes('district_'));return {
       id,r:+(x.r??x.y)||0,c:+(x.c??x.x)||0,ang:+x.ang||0,walking:!death.dead&&(x.walking!==undefined?!!x.walking:(Math.abs(+x.walkPhase||0)>.05&&Math.hypot((Number.isFinite(+x.tr)?+x.tr:+(x.r??x.y)||0)-(+((x.r??x.y)||0)),(Number.isFinite(+x.tc)?+x.tc:+(x.c??x.x)||0)-(+((x.c??x.x)||0)))>.08)),walkPhase:+x.walkPhase||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
-      role,look:x.look||null,name:x.name||'',hp:Number.isFinite(+x.hp)?Math.max(0,+x.hp):Math.max(1,+x.max_hp||+x.maxHp||60),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
+      role,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp:Number.isFinite(+x.hp)?Math.max(0,+x.hp):Math.max(1,+x.max_hp||+x.maxHp||60),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||'',
       gang,police:!!(x.police||role==='police'||role==='cop'),dead:death.dead,deadAt:death.deadAt,
     };});
@@ -56901,6 +57008,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d82"></script>
+<script type="module" src="three_preview.js?v=3d83"></script>
 </body>
 </html>
