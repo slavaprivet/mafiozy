@@ -18681,6 +18681,45 @@ class WorldSim:
                 alive_bots = [b for b in ne['bots'] if b.get('alive')]
                 alive_guards = [
                     g for g in ne.get('defenders', []) if g.get('alive')]
+            # После прорыва охраны захватчики контролируют и зал бизнеса.
+            # Урон по вошедшим игрокам рассчитывает сервер; клиент получает
+            # лишь событие выстрела и отображает его в локальных координатах.
+            business_id = str(ne.get('business_id') or '')
+            if business_id and alive_bots and not alive_guards:
+                interior_players = [
+                    (str(uid), player) for uid, player in self.players.items()
+                    if not player.get('dead')
+                    and (player.get('_mode') or 'pvp') == 'pvp'
+                    and str(player.get('_business_interior') or '') == business_id
+                ]
+                if interior_players:
+                    for index, bot in enumerate(alive_bots):
+                        if now < float(bot.get('_interior_shot_t') or 0):
+                            continue
+                        target_uid, target = min(interior_players, key=lambda item:
+                            (float(item[1].get('_interior_x') or 0) - (3.2 + (index % 3) * 3.1)) ** 2
+                            + (float(item[1].get('_interior_y') or 0) - (6.0 + (index // 3) * 2.3)) ** 2)
+                        bot['_interior_shot_t'] = now + random.uniform(.92, 1.32)
+                        miss = random.random() < .27
+                        damage = 0 if miss else random.randint(7, 11)
+                        if not miss:
+                            damage = self.police_vest_damage(target, damage)
+                            target['hp'] = max(0, int(target.get('hp', 100)) - damage)
+                        killed = bool(not miss and target['hp'] <= 0)
+                        if killed:
+                            target['hp'] = 0
+                            target['dead'] = True
+                            target['deaths'] = int(target.get('deaths', 0)) + 1
+                            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                        pkts.append({
+                            'kind':'business_interior_shot', 'id':ne['id'],
+                            'business_id':business_id, 'bot_id':bot['id'],
+                            'target_uid':target_uid,
+                            'weapon':bot.get('weapon') or 'pistol_heavy',
+                            'tx':round(float(target.get('_interior_x') or 0), 2),
+                            'ty':round(float(target.get('_interior_y') or 0), 2),
+                            'dmg':int(damage), 'miss':bool(miss), 'killed':killed,
+                        })
             # Оккупанты охраняют красный периметр: PvP-игрок, вошедший в него,
             # становится целью даже до первого попадания.
             if ne['state'] == 'guard' and not npc_defense_combat:
@@ -19419,6 +19458,56 @@ class WorldSim:
                     'target_level': max(1, min(25, int(bot.get('level') or 1))),
                     'is_nest':     True,    # маркер для WS-loop (награда за грунта)
                 }
+
+    def business_occupier_shoot_bot(self, uid: str, business_id: str,
+                                    nest_id: str, bot_id: str,
+                                    weapon: str = '') -> dict | None:
+        """Серверный урон по захватчику из интерьера занятого бизнеса."""
+        shooter = self.players.get(str(uid))
+        business_id, nest_id = str(business_id or ''), str(nest_id or '')
+        if (not shooter or shooter.get('dead')
+                or shooter.get('_mode') == 'pve'
+                or str(shooter.get('_business_interior') or '') != business_id):
+            return None
+        if (shooter.get('_jail_until') or 0) > time.time():
+            return None
+        nest = next((item for item in self.gang_nests
+                     if str(item.get('id') or '') == nest_id
+                     and str(item.get('business_id') or '') == business_id), None)
+        if not nest:
+            return None
+        bot = next((item for item in nest.get('bots', [])
+                    if str(item.get('id') or '') == str(bot_id)
+                    and item.get('alive')), None)
+        if not bot:
+            return None
+        profile = self._authorize_weapon_shot(shooter, weapon)
+        if not profile:
+            return None
+        # Координаты комнаты хранятся отдельно от мира. Клиент выбирает цель,
+        # а сервер сам проверяет активную оккупацию, темп оружия и считает урон.
+        distance = min(8.0, max(1.0, float(profile.get('range') or 8.0) * .55))
+        damage = max(1, min(220, self._weapon_damage(weapon, distance, profile)))
+        bot['hp'] = max(0, int(bot.get('hp') or 0) - int(damage))
+        nest['state'] = 'hostile'
+        nest['_hostile_until'] = time.time() + 60.0
+        nest['_target_uid'] = str(uid)
+        nest.setdefault('_combat_uids', set()).add(str(uid))
+        killed = bot['hp'] <= 0
+        if killed:
+            bot['alive'] = False
+        return {
+            'kind':'aggro_hit', 'tid':nest['id'], 'bot_id':str(bot_id),
+            'shooter_uid':str(uid), 'dmg':int(damage), 'hp':int(bot['hp']),
+            'crit':bool(profile.get('_crit')), 'killed':bool(killed),
+            'is_boss':False, 'target_level':max(1, min(25, int(bot.get('level') or 1))),
+            'is_nest':True, 'interior_business':True,
+            'business_id':business_id,
+            'sx':round(float(shooter.get('_interior_x') or 0), 2),
+            'sy':round(float(shooter.get('_interior_y') or 0), 2),
+            'tx':round(float(shooter.get('_interior_x') or 0), 2),
+            'ty':round(float(shooter.get('_interior_y') or 0), 2),
+        }
         return None
 
     def tick_capture(self, dt: float) -> list:
@@ -25313,7 +25402,11 @@ async def _coop_http_app():
                         except (TypeError, ValueError):
                             gang_member = None
                         if bot_id:
-                            hit_pkt = (world.city_gang_shoot_bot(
+                            hit_pkt = (world.business_occupier_shoot_bot(
+                                uid, str(d.get('biz_id') or '')[:32],
+                                str(d.get('nest_id') or '')[:32], bot_id, weapon)
+                                if d.get('interior_business') else
+                                world.city_gang_shoot_bot(
                                 uid, bot_id, weapon, gang_member=gang_member,
                                 fire_x=d.get('fire_x'), fire_y=d.get('fire_y'))
                                 if gang_member is not None
