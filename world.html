@@ -15245,6 +15245,16 @@ function spawnBotCorpse(botId, isBoss) {
   }
   spawnImpact(by, bx, isBoss ? 'rifle' : 'pistol', true);
 }
+function spawnTransientNpcCorpse(id,r,c,look,ang=0,role='civilian',maxHp=100) {
+  const corpseId=String(id||`${role}:${Math.round(r*10)}:${Math.round(c*10)}`);
+  if(!Number.isFinite(+r)||!Number.isFinite(+c)||NPCS.some(n=>
+      n._transientCorpseId===corpseId&&performance.now()-(n.deadAt||0)<60000))return;
+  NPCS.push({
+    id:`corpse_${corpseId}`,r:+r,c:+c,ang:+ang||0,look:look||{},walkPhase:0,
+    dead:true,deadAt:performance.now(),hp:0,max_hp:Math.max(1,+maxHp||100),
+    role,_arcKey:role,_transientCorpseId:corpseId,
+  });
+}
 
 // interpWorldNpcs — плавное подтягивание текущих x/y к целевым tx/ty.
 // Обе уличные семьи получают с сервера пешеходный маршрут по всей карте:
@@ -15508,6 +15518,10 @@ function handleEventPacket(d) {
     pushFeedEvent('🚨', `Инкассатор выехал — куш $${d.reward||500}`,
                   { accent: '#ff7030' });
   } else if (kind === 'inkassator_killed') {
+    const fallenBoss=worldEvent?.boss;
+    if(fallenBoss)spawnTransientNpcCorpse(`convoy_${fallenBoss.id||'boss'}`,
+      +(fallenBoss.y??fallenBoss.r),+(fallenBoss.x??fallenBoss.c),_CONVOY_BOSS_LOOK,
+      fallenBoss.ang||0,'convoy_boss',fallenBoss.max_hp||140);
     const me = (String(d.killer_uid) === String(QP.uid));
     const name = (d.killer_name || 'Кто-то');
     if (me) {
@@ -15792,6 +15806,9 @@ function handleEventPacket(d) {
       // Локально удаляем из карты — следующий snap либо вернёт его респаун,
       // либо подтвердит что мёртв. Без локальной правки рисуем мёртвого
       // ещё 200 мс — выглядит как лаг.
+      const fallen=michaelGuards.get(d.guard_id);
+      spawnTransientNpcCorpse(`michael_${d.guard_id}`,d.ty,d.tx,_MG_LOOK,
+        fallen?.ang||0,'guard',fallen?.max_hp||100);
       michaelGuards.delete(d.guard_id);
     }
   } else if (kind === 'cop_shot') {
@@ -15902,7 +15919,14 @@ function handleEventPacket(d) {
     }
     if(insideTarget){
       insideTarget.hp=Math.max(0,+d.hp||0);
-      if(d.killed)insideTarget.dead=true;
+      if(d.killed&&!insideTarget.dead){insideTarget.dead=true;insideTarget.deadAt=performance.now();}
+    }
+    if(d.killed&&!insideSameBusiness){
+      const targetIsGuard=d.side==='raider';
+      spawnTransientNpcCorpse(`business_fight_${d.target_id}`,tR,tC,
+        targetIsGuard?{gender:0,skin:1,body:2,face:0,hair:1,hat:5,suit:'#1d2b3d'}:
+          {gender:0,skin:2,body:2,face:1,hair:0,hat:2,suit:'#7d202b'},
+        ang,targetIsGuard?'guard':'gang',targetIsGuard?100:120);
     }
   } else if (kind === 'city_gang_spawned') {
     const yellow = d.faction === 'yellow';
@@ -16834,6 +16858,12 @@ function handleEventPacket(d) {
       spawnMuzzle(sR, sC, ang, wp);
       spawnImpact(d.ty, d.tx, wp, true);
       if (d.crit) spawnCriticalBlood(d.ty, d.tx, Math.sin(ang), Math.cos(ang));
+    }
+    if(d.killed){
+      const fallen=cityCops.find(c=>String(c.id)===String(d.cop_id));
+      const look=_COP_LOOKS[fallen?.kind||'combat']||_COP_LOOKS.combat;
+      spawnTransientNpcCorpse(`cop_${d.cop_id}`,d.ty,d.tx,look,fallen?.ang||0,
+        'police',fallen?.max_hp||100);
     }
   } else if (kind === 'territory_capture_started') {
     // Кто-то начал захват в ЭТОЙ зоне. Локально не дожидаемся следующего
@@ -46369,7 +46399,9 @@ function _syncBusinessOccupationInterior() {
   for(const npc of (bi.npcs||[])){
     const state=live.get(String(npc.serverId||''));if(!state)continue;
     npc.hp=Math.max(0,+state.hp||0);npc.maxHp=Math.max(1,+state.max_hp||npc.maxHp||100);
-    npc.dead=state.alive===false||npc.hp<=0;
+    const nextDead=state.alive===false||npc.hp<=0;
+    if(nextDead&&!npc.dead)npc.deadAt=performance.now();
+    npc.dead=nextDead;
   }
 }
 function _spawnInteriorNpcs(bi) {
@@ -52682,7 +52714,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v32-server-business-occupation',
+  migrationStage: 'three-full-world-shell-v33-unified-npc-death',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52704,6 +52736,23 @@ function _threeVehiclePaint(vehicle,model){
     if(typeof primary==='string'||typeof primary==='number')return primary;
   }
   return model?.palette?.[0]||'#445566';
+}
+const _threeNpcDeathTimes=new Map();
+function _threeNpcDeathState(entity,id){
+  const dead=!!(entity?.dead||entity?.alive===false||
+    (Number.isFinite(+entity?.hp)&&+entity.hp<=0));
+  const key=String(id||'npc');
+  if(!dead){_threeNpcDeathTimes.delete(key);return {dead:false,deadAt:0};}
+  let deadAt=Number(entity?.deadAt||entity?._deadAt||entity?.deathAt||0);
+  if(!Number.isFinite(deadAt)||deadAt<=0){
+    deadAt=_threeNpcDeathTimes.get(key)||performance.now();
+  }
+  _threeNpcDeathTimes.set(key,deadAt);
+  if(_threeNpcDeathTimes.size>256){
+    const oldest=_threeNpcDeathTimes.keys().next().value;
+    _threeNpcDeathTimes.delete(oldest);
+  }
+  return {dead:true,deadAt};
 }
 window.Mafiozi3DBridge = Object.freeze({
   version: 1,
@@ -52753,7 +52802,7 @@ window.Mafiozi3DBridge = Object.freeze({
       width:+src.W||16,height:+src.H||12,seed:+src.seed||0,
       playerElevation:casino?_casinoVisualElevation(src,player.r,player.c):0,
       layout:casinoLayout,
-      npcs:(src.npcs||[]).filter(n=>n&&!n.dead).slice(0,40).map((n,i)=>({id:String(n.id??i),r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||''})),
+      npcs:(src.npcs||[]).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`);return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
       loot:src.loot&&!src.loot.picked?{r:+src.loot.r||0,c:+src.loot.c||0,hp:!!src.loot.hp}:null,
     };
   },
@@ -52850,18 +52899,23 @@ window.Mafiozi3DBridge = Object.freeze({
     let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.npcs||[]):(typeof NPCS!=='undefined'?NPCS:[]);
     if(!inside){
       const combat=[];
-      if(typeof _myGang!=='undefined')for(const g of _myGang)if(g&&!g.dead&&(+g.hp||1)>0)combat.push({...g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,name:g.name||'Боец семьи',family:_customGang?.name||g.gangName||g.faction||''});
-      if(typeof _policeBackupUnits!=='undefined')for(const cop of _policeBackupUnits)if(cop&&(+cop.hp||1)>0)combat.push({...cop,id:`police_${cop.id}`,role:'police',police:true,name:cop.name||'Офицер'});
+      if(typeof _myGang!=='undefined')for(const g of _myGang)if(g)combat.push({...g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,name:g.name||'Боец семьи',family:_customGang?.name||g.gangName||g.faction||''});
+      if(typeof _policeBackupUnits!=='undefined')for(const cop of _policeBackupUnits)if(cop)combat.push({...cop,id:`police_${cop.id}`,role:'police',police:true,name:cop.name||'Офицер'});
+      if(typeof worldEvent!=='undefined'&&worldEvent){const eventPeople=[worldEvent.boss,...(worldEvent.guards||[])].filter(Boolean);for(const person of eventPeople)combat.push({...person,id:`world_event_${worldEvent.id||'event'}_${person.id}`,r:+person.y||0,c:+person.x||0,dead:person.alive===false,role:person===worldEvent.boss?'convoy_boss':'convoy_guard',gang:true,name:person===worldEvent.boss?'Инкассатор':'Охрана конвоя'});}
+      if(typeof aggroZones!=='undefined')for(const zone of Object.values(aggroZones||{}))for(const bot of zone?.bots||[])if(bot&&bot.alive!==false)combat.push({...bot,id:`aggro_${zone.id||'zone'}_${bot.id}`,r:+bot.y||0,c:+bot.x||0,role:bot.kind||'gang_fighter',gang:true,name:bot.name||'Боец банды'});
       if(typeof gangNests!=='undefined')for(const nest of gangNests||[])for(const guard of nest?.guards||[])if(guard&&!guard.dead&&(+guard.hp||1)>0)combat.push({...guard,id:`nest_${nest.id||'gang'}_${guard.id}`,r:+(guard.r??guard.y)||0,c:+(guard.c??guard.x)||0,role:guard.kind||'gang_guard',gang:true,name:guard.name||guard.boss_name||'Боец банды'});
       if(typeof BUSINESS_POIS!=='undefined'&&typeof myBusinesses!=='undefined'&&typeof _idleBusinessGuardPose==='function')for(const biz of BUSINESS_POIS){const own=myBusinesses.get(biz.id);if(!own?.owned||_isBusinessGangOccupied(biz.id,own))continue;for(let i=0;i<Math.min(6,+own.guards||0);i++){const pose=_idleBusinessGuardPose(biz,i);combat.push({...pose,id:`biz_guard_${biz.id}_${i}`,r:+pose.y||0,c:+pose.x||0,role:'guard',name:`Охрана · ${biz.name}`,hp:100,max_hp:100});}}
+      if(typeof beachgoers!=='undefined')for(const beachNpc of beachgoers.values()){if(!beachNpc)continue;const pos=_beachgoerWorldPos(beachNpc);combat.push({...beachNpc,id:`beach_${beachNpc.id}`,r:beachNpc.dead?(beachNpc._deathR??pos.r):pos.r,c:beachNpc.dead?(beachNpc._deathC??pos.c):pos.c,role:'beach_civilian',name:beachNpc.name||'Отдыхающий'});}
+      if(typeof cityCops!=='undefined')for(const cop of cityCops||[])if(cop)combat.push({...cop,id:`city_cop_${cop.id}`,r:+cop.y||0,c:+cop.x||0,dead:cop.alive===false,role:'police',police:true,name:cop.name||'Полицейский'});
+      if(typeof michaelGuards!=='undefined')for(const guard of michaelGuards.values())if(guard)combat.push({...guard,id:`michael_guard_${guard.id}`,r:+guard.y||0,c:+guard.x||0,dead:guard.alive===false,role:'guard',name:'Охрана Майкла'});
       npcSource=[...combat,...npcSource];
     }
-    const npcs=npcSource.filter(x=>x&&!x.dead&&(+x.hp||1)>0&&near(+x.r||0,+x.c||0)).slice(0,36).map((x,i)=>{const role=String(x.role||x._arcKey||'civilian'),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||role==='gang'||role==='boss'||role.includes('district_'));return {
-      id:String(x.id??x.uid??i),r:+(x.r??x.y)||0,c:+(x.c??x.x)||0,ang:+x.ang||0,walking:x.walking!==undefined?!!x.walking:(Math.abs(+x.walkPhase||0)>.05&&Math.hypot((Number.isFinite(+x.tr)?+x.tr:+(x.r??x.y)||0)-(+((x.r??x.y)||0)),(Number.isFinite(+x.tc)?+x.tc:+(x.c??x.x)||0)-(+((x.c??x.x)||0)))>.08),walkPhase:+x.walkPhase||0,
+    const npcs=npcSource.filter(x=>x&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).slice(0,36).map((x,i)=>{const id=String(x.id??x.uid??i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||role==='gang'||role==='boss'||role.includes('district_'));return {
+      id,r:+(x.r??x.y)||0,c:+(x.c??x.x)||0,ang:+x.ang||0,walking:!death.dead&&(x.walking!==undefined?!!x.walking:(Math.abs(+x.walkPhase||0)>.05&&Math.hypot((Number.isFinite(+x.tr)?+x.tr:+(x.r??x.y)||0)-(+((x.r??x.y)||0)),(Number.isFinite(+x.tc)?+x.tc:+(x.c??x.x)||0)-(+((x.c??x.x)||0)))>.08)),walkPhase:+x.walkPhase||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,look:x.look||null,name:x.name||'',hp:Number.isFinite(+x.hp)?Math.max(0,+x.hp):Math.max(1,+x.max_hp||+x.maxHp||60),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||'',
-      gang,police:!!(x.police||role==='police'||role==='cop'),
+      gang,police:!!(x.police||role==='police'||role==='cop'),dead:death.dead,deadAt:death.deadAt,
     };});
     const projectiles=(typeof bullets!=='undefined'?bullets:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,thick:!!x.thick}));
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,color:x.color||'#ffc35a',life:+x.life||0,max:+x.max||80}));
@@ -56603,6 +56657,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d78"></script>
+<script type="module" src="three_preview.js?v=3d79"></script>
 </body>
 </html>
