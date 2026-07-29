@@ -5652,7 +5652,12 @@ function _ensureDistrictEntryBanner(){
   document.head.appendChild(style);el=document.createElement('section');el.id='districtEntryBanner';el.setAttribute('aria-live','polite');el.innerHTML='<div class="deb-shell"><div class="deb-icon-wrap"><div class="deb-icon"><span></span></div></div><div class="deb-body"><div class="deb-kicker">ВЫ ВЪЕХАЛИ В РАЙОН</div><div class="deb-row"><div class="deb-name"></div><div class="deb-control"></div></div><div class="deb-speciality"></div><div class="deb-bonus"></div></div><i class="deb-line"></i></div>';document.body.appendChild(el);return el;
 }
 function _showDistrictEntryBanner(d,style){
-  if(!d)return;const el=_ensureDistrictEntryBanner(),owner=districtOwners[d.id],token=++_districtEntryBannerToken,accent=(style?.accent||d.color||'#d2691e');
+  // The district is resolved while the city is still booting. Do not leak its
+  // entry notification above the loading screen; the player has not entered
+  // the playable world yet.
+  const loadingScreen=document.getElementById('cityLoadingScreen');
+  if(!d||(loadingScreen&&!loadingScreen.classList.contains('done')))return;
+  const el=_ensureDistrictEntryBanner(),owner=districtOwners[d.id],token=++_districtEntryBannerToken,accent=(style?.accent||d.color||'#d2691e');
   el.style.setProperty('--deb-accent',accent);el.querySelector('.deb-icon span').textContent=style?.icon||d.icon||'🏙️';el.querySelector('.deb-name').textContent=style?.name||d.name||'Район';
   el.querySelector('.deb-control').textContent=owner?`👑 ${owner.ownerName||owner.gangTag||'под контролем'}`:(d.capturable?'◇ НЕ ЗАХВАЧЕН':'☠ ОПАСНАЯ ЗОНА');
   const speciality=el.querySelector('.deb-speciality');speciality.textContent='';const strong=document.createElement('b');strong.textContent=style?.name||d.name||'Район';speciality.append(strong,document.createTextNode(` · ${style?.mood||d.bonus||'городская территория'}`));el.querySelector('.deb-bonus').textContent=d.bonus?`◆ Особенность: ${d.bonus}`:'◆ Следи за обстановкой и влиянием фракций';
