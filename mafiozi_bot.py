@@ -15361,6 +15361,24 @@ class WorldSim:
             'car_id':    car_id,
         }
 
+    def service_tow_car(self, uid: str, car_id: str) -> dict:
+        """Подтверждает вывоз давно брошенной гражданской машины."""
+        qc = self.quest_cars.get(str(car_id or ''))
+        if not qc or not qc.get('civilian'):
+            return {'kind':'service_tow_reply','ok':False,'reason':'gone','car_id':car_id}
+        if str(qc.get('owner_uid') or '') != str(uid):
+            return {'kind':'service_tow_reply','ok':False,'reason':'owner','car_id':car_id}
+        if qc.get('driver_uid') or qc.get('passenger_uids'):
+            return {'kind':'service_tow_reply','ok':False,'reason':'occupied','car_id':car_id}
+        parked_at = float(qc.get('_parked_at') or qc.get('_last_drive_t') or time.time())
+        if time.time() - parked_at < 35.0:
+            return {'kind':'service_tow_reply','ok':False,'reason':'fresh','car_id':car_id}
+        self.quest_cars.pop(str(car_id), None)
+        player = self.players.get(str(uid))
+        if player and str(player.get('_gta_active_car_id') or '') == str(car_id):
+            player['_gta_active_car_id'] = None
+        return {'kind':'service_tow_reply','ok':True,'car_id':str(car_id)}
+
     async def gta_exit(self, uid: str, car_id: str) -> dict:
         """Игрок вышел из машины. Если стоит в DROP_ZONE — автопродажа."""
         qc = self.quest_cars.get(car_id)
@@ -27351,6 +27369,14 @@ async def _coop_http_app():
                                                           kind='gta_status')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'service_tow_car':
+                        reply = world.service_tow_car(
+                            uid, str(d.get('car_id') or '')[:48])
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t':'event','d':reply}, ensure_ascii=False))
+                        except Exception:
+                            pass
                     elif t == 'gta_status':
                         try:
                             await ws.send_str(json.dumps(
