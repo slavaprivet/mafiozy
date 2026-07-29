@@ -5646,6 +5646,9 @@ let _districtEntryBannerTimer=0,_districtEntryBannerToken=0;
 function _ensureDistrictEntryBanner(){
   let el=document.getElementById('districtEntryBanner');if(el)return el;
   const style=document.createElement('style');style.textContent=`#districtEntryBanner{--deb-accent:#d2691e;position:fixed;z-index:10018;left:50%;top:clamp(154px,24vh,260px);width:min(520px,calc(100vw - 30px));transform:translate(-50%,-18px) scale(.96);opacity:0;pointer-events:none;transition:opacity .32s ease,transform .42s cubic-bezier(.2,.8,.2,1);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;filter:drop-shadow(0 18px 34px rgba(0,0,0,.55))}#districtEntryBanner.show{opacity:1;transform:translate(-50%,0) scale(1)}#districtEntryBanner.hide{opacity:0;transform:translate(-50%,12px) scale(.985)}#districtEntryBanner .deb-shell{position:relative;overflow:hidden;display:grid;grid-template-columns:74px 1fr;min-height:108px;border:1px solid color-mix(in srgb,var(--deb-accent) 82%,#fff);border-radius:15px;background:linear-gradient(115deg,rgba(5,9,15,.97),rgba(15,16,21,.94));box-shadow:inset 0 1px rgba(255,255,255,.08),0 0 28px color-mix(in srgb,var(--deb-accent) 22%,transparent)}#districtEntryBanner .deb-shell:before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,color-mix(in srgb,var(--deb-accent) 17%,transparent),transparent 48%);pointer-events:none}#districtEntryBanner .deb-icon-wrap{position:relative;display:flex;align-items:center;justify-content:center;border-right:1px solid color-mix(in srgb,var(--deb-accent) 42%,transparent);background:linear-gradient(160deg,color-mix(in srgb,var(--deb-accent) 25%,#111),#080b10)}#districtEntryBanner .deb-icon{display:grid;place-items:center;width:47px;height:47px;transform:rotate(45deg);border:1px solid var(--deb-accent);border-radius:8px;background:#080b10;box-shadow:0 0 18px color-mix(in srgb,var(--deb-accent) 35%,transparent);font-size:25px}#districtEntryBanner .deb-icon span{transform:rotate(-45deg)}#districtEntryBanner .deb-body{position:relative;padding:13px 17px 12px}#districtEntryBanner .deb-kicker{color:#aeb8c5;font-size:8px;font-weight:950;letter-spacing:3px;text-transform:uppercase}#districtEntryBanner .deb-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px}#districtEntryBanner .deb-name{overflow:hidden;color:var(--deb-accent);font:950 clamp(24px,4vw,32px)/1 Georgia,"Times New Roman",serif;white-space:nowrap;text-overflow:ellipsis;text-shadow:0 0 18px color-mix(in srgb,var(--deb-accent) 30%,transparent)}#districtEntryBanner .deb-control{flex:0 0 auto;padding:4px 8px;border:1px solid color-mix(in srgb,var(--deb-accent) 55%,#777);border-radius:999px;background:#070a0ecc;color:#e9edf2;font-size:8px;font-weight:900;letter-spacing:.5px}#districtEntryBanner .deb-speciality{margin-top:5px;color:#f3f0e8;font-size:11px;font-weight:850}#districtEntryBanner .deb-speciality b{color:var(--deb-accent)}#districtEntryBanner .deb-bonus{margin-top:4px;color:#98a6b7;font-size:9px;font-weight:700}#districtEntryBanner .deb-line{position:absolute;left:74px;right:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--deb-accent),transparent)}@media(max-width:560px){#districtEntryBanner{top:145px}#districtEntryBanner .deb-shell{grid-template-columns:58px 1fr;min-height:94px}#districtEntryBanner .deb-icon{width:38px;height:38px;font-size:21px}#districtEntryBanner .deb-body{padding:11px 12px 10px}#districtEntryBanner .deb-line{left:58px}#districtEntryBanner .deb-control{max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}`;
+  // Районное уведомление занимает освобождённое место строго сверху и не
+  // перекрывает персонажа, здания и контекстную подсказку действия.
+  style.textContent+=`#districtEntryBanner{top:max(6px,env(safe-area-inset-top))}@media(max-width:560px){#districtEntryBanner{top:max(6px,env(safe-area-inset-top))}}`;
   document.head.appendChild(style);el=document.createElement('section');el.id='districtEntryBanner';el.setAttribute('aria-live','polite');el.innerHTML='<div class="deb-shell"><div class="deb-icon-wrap"><div class="deb-icon"><span></span></div></div><div class="deb-body"><div class="deb-kicker">ВЫ ВЪЕХАЛИ В РАЙОН</div><div class="deb-row"><div class="deb-name"></div><div class="deb-control"></div></div><div class="deb-speciality"></div><div class="deb-bonus"></div></div><i class="deb-line"></i></div>';document.body.appendChild(el);return el;
 }
 function _showDistrictEntryBanner(d,style){
@@ -12427,7 +12430,7 @@ function selectBuildingFrom3D(r,c,screenX=null,screenY=null) {
   const nearest=(items,maxDist)=>items.reduce((best,item)=>{const d=Math.hypot(+item.r-r,+item.c-c);return d<maxDist&&(!best||d<best.d)?{item,d}:best;},null)?.item||null;
   const biz=nearest(BUSINESS_POIS,7.5);
   if(biz){
-    const near=Math.hypot(player.r-biz.r,player.c-biz.c)<=3.5;
+    const near=_businessInteractionDistance(biz)<=3.5;
     _selectedBuildingEntry=null;_selectedVehicleEntry=null;
     if(near)_openBusinessActionCard('business',biz,anchor);else showToast(`Подойди ближе: ${biz.name}`,'📍',1800);
     return {ok:true,kind:'business',id:biz.id,name:biz.name,near};
@@ -12457,7 +12460,7 @@ function selectBuildingFrom3D(r,c,screenX=null,screenY=null) {
 function _nearbyBuildingInteractionFor3D() {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead) return null;
   let best=null,bestD=Infinity;
-  for(const biz of BUSINESS_POIS){const d=Math.hypot(player.r-biz.r,player.c-biz.c);if(d<=3.5&&d<bestD){best={kind:'business',id:String(biz.id),r:+biz.r,c:+biz.c,name:biz.name||'Бизнес',distance:d};bestD=d;}}
+  for(const biz of BUSINESS_POIS){const d=_businessInteractionDistance(biz);if(d<=3.5&&d<bestD){const a=_businessInteractionAnchor(biz);best={kind:'business',id:String(biz.id),r:+biz.r,c:+biz.c,entryR:a.r,entryC:a.c,name:biz.name||'Бизнес',distance:d};bestD=d;}}
   for(const poi of POI){if(!MAJOR_OBJECT_IDS.has(poi.id))continue;const d=Math.hypot(player.r-poi.r,player.c-poi.c);if(d<=4.2&&d<bestD){best={kind:'major',id:String(poi.id),r:+poi.r,c:+poi.c,name:poi.name||poi.label||'Здание',distance:d};bestD=d;}}
   const pr=Math.floor(player.r),pc=Math.floor(player.c);
   for(let r=Math.max(1,pr-4);r<=Math.min(MAP_ROWS-2,pr+4);r++)for(let c=Math.max(1,pc-4);c<=Math.min(MAP_COLS-2,pc+4);c++){
@@ -12504,7 +12507,7 @@ function selectBuildingFromCanvasTap(x, y) {
     if(nearestEntry&&(nearestEntry.kind!=='business'||nearestEntry.poi.id!==biz.id))continue;
     const p=w2s(biz.r+.5,biz.c+.5);
     if(Math.abs(x-p.x)>72||y<p.y-150||y>p.y+38)continue;
-    if(Math.hypot(player.r-biz.r,player.c-biz.c)>3.2){
+    if(_businessInteractionDistance(biz)>3.5){
       showToast(`Подойди ближе: ${biz.name}`,'📍',1800);return true;
     }
     _selectedBuildingEntry=null;_selectedVehicleEntry=null;
@@ -18554,7 +18557,7 @@ function _nearestWorldEntryCandidate(){
   let best=null;
   const take=(kind,poi,d,max)=>{if(d<=max&&(!best||d<best.d-.04))best={kind,poi,d};};
   for(const biz of BUSINESS_POIS){
-    take('business',biz,Math.hypot(player.r-(biz.r+.5),player.c-(biz.c+.5)),3.25);
+    take('business',biz,_businessInteractionDistance(biz),3.5);
   }
   const major=_nearestMajorObject(4.2);
   if(major)take('major',major,Math.hypot(player.r-(major.r+.5),player.c-(major.c+.5)),4.2);
@@ -19329,7 +19332,7 @@ function _nearbyEstablishmentForActions(){
   const entry=_nearestWorldEntryCandidate();
   if(entry?.kind==='apartment')return null;
   let best=null,bestD=3.25;
-  for(const biz of BUSINESS_POIS){const d=Math.hypot(player.r-biz.r,player.c-biz.c);if(d<bestD){best={kind:'business',poi:biz};bestD=d;}}
+  for(const biz of BUSINESS_POIS){const d=_businessInteractionDistance(biz);if(d<bestD){best={kind:'business',poi:biz};bestD=d;}}
   const major=_nearestMajorObject(4.2);if(major){const d=Math.hypot(player.r-major.r,player.c-major.c);if(!best||d<bestD)best={kind:'major',poi:major};}
   return best;
 }
@@ -19557,7 +19560,7 @@ const MAJOR_BUSINESS_INFO = Object.freeze([
 let _businessWarHud=null;
 function _ensureBusinessWarUi(){
   if(_businessWarHud)return _businessWarHud;
-  const style=document.createElement('style');style.textContent=`#businessWarHud{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:47;width:min(330px,calc(100vw - 210px));padding:7px 38px 7px 10px;box-sizing:border-box;border:1px solid rgba(255,210,92,.42);border-radius:11px;background:linear-gradient(90deg,rgba(15,13,21,.93),rgba(20,18,14,.93));box-shadow:0 7px 22px rgba(0,0,0,.4);font:800 10px system-ui;color:#fff;pointer-events:auto}body.in-building-interior #businessWarHud{display:none}.bw-head{display:flex;justify-content:space-between;gap:10px}.bw-score{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:5px}.bw-side{padding:4px 6px;border-radius:7px;background:rgba(255,255,255,.045)}.bw-side b{display:flex;justify-content:space-between}.bw-bar{height:4px;margin-top:4px;border-radius:4px;background:#34313a;overflow:hidden}.bw-bar i{display:block;height:100%}.bw-help{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:25px;height:25px;border:1px solid #ffe16b;border-radius:50%;background:#49370d;color:#ffe87d;font:1000 16px system-ui;cursor:pointer}#businessWarOverlay{position:fixed;inset:0;z-index:170;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,4,9,.8)}#businessWarOverlay.show{display:flex}#businessWarCard{width:min(680px,96vw);max-height:88vh;overflow:auto;padding:18px;border:1px solid #d5a943;border-radius:16px;background:linear-gradient(145deg,#111925,#1b120d);box-shadow:0 20px 70px #000;color:#dae2ef;font:700 12px/1.5 system-ui}#businessWarCard h2{margin:0;color:#ffe07a}.bw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin:12px 0}.bw-biz{padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:9px;background:rgba(255,255,255,.04)}.bw-upgrades{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-top:7px}.bw-upgrade{min-height:64px;padding:7px 8px;border:1px solid #66552f;border-radius:7px;background:#2b2415;color:#ffe9a3;text-align:left;font:800 10px/1.25 system-ui;cursor:pointer}.bw-upgrade b{display:block}.bw-upgrade small{display:block;margin-top:5px;color:#c5cfda;font:700 9px/1.3 system-ui}.bw-upgrade small em{color:#79e3a0;font-style:normal}.bw-upgrade:disabled{opacity:.6;cursor:default}.bw-chain.on{border-color:#72e6a0;box-shadow:inset 0 0 14px rgba(70,220,130,.09)}#businessWarClose{float:right;padding:6px 10px;border:1px solid #66758b;border-radius:8px;background:#202b39;color:#fff;font-weight:900;cursor:pointer}@media(max-width:640px){#businessWarHud{width:min(270px,calc(100vw - 128px));font-size:9px}.bw-grid{grid-template-columns:1fr}.bw-upgrades{grid-template-columns:1fr}}`;document.head.appendChild(style);
+  const style=document.createElement('style');style.textContent=`#businessWarHud{display:none!important;position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:47;width:min(330px,calc(100vw - 210px));padding:7px 38px 7px 10px;box-sizing:border-box;border:1px solid rgba(255,210,92,.42);border-radius:11px;background:linear-gradient(90deg,rgba(15,13,21,.93),rgba(20,18,14,.93));box-shadow:0 7px 22px rgba(0,0,0,.4);font:800 10px system-ui;color:#fff;pointer-events:auto}body.in-building-interior #businessWarHud{display:none}.bw-head{display:flex;justify-content:space-between;gap:10px}.bw-score{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:5px}.bw-side{padding:4px 6px;border-radius:7px;background:rgba(255,255,255,.045)}.bw-side b{display:flex;justify-content:space-between}.bw-bar{height:4px;margin-top:4px;border-radius:4px;background:#34313a;overflow:hidden}.bw-bar i{display:block;height:100%}.bw-help{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:25px;height:25px;border:1px solid #ffe16b;border-radius:50%;background:#49370d;color:#ffe87d;font:1000 16px system-ui;cursor:pointer}#businessWarOverlay{position:fixed;inset:0;z-index:170;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,4,9,.8)}#businessWarOverlay.show{display:flex}#businessWarCard{width:min(680px,96vw);max-height:88vh;overflow:auto;padding:18px;border:1px solid #d5a943;border-radius:16px;background:linear-gradient(145deg,#111925,#1b120d);box-shadow:0 20px 70px #000;color:#dae2ef;font:700 12px/1.5 system-ui}#businessWarCard h2{margin:0;color:#ffe07a}.bw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin:12px 0}.bw-biz{padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:9px;background:rgba(255,255,255,.04)}.bw-upgrades{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-top:7px}.bw-upgrade{min-height:64px;padding:7px 8px;border:1px solid #66552f;border-radius:7px;background:#2b2415;color:#ffe9a3;text-align:left;font:800 10px/1.25 system-ui;cursor:pointer}.bw-upgrade b{display:block}.bw-upgrade small{display:block;margin-top:5px;color:#c5cfda;font:700 9px/1.3 system-ui}.bw-upgrade small em{color:#79e3a0;font-style:normal}.bw-upgrade:disabled{opacity:.6;cursor:default}.bw-chain.on{border-color:#72e6a0;box-shadow:inset 0 0 14px rgba(70,220,130,.09)}#businessWarClose{float:right;padding:6px 10px;border:1px solid #66758b;border-radius:8px;background:#202b39;color:#fff;font-weight:900;cursor:pointer}@media(max-width:640px){#businessWarHud{width:min(270px,calc(100vw - 128px));font-size:9px}.bw-grid{grid-template-columns:1fr}.bw-upgrades{grid-template-columns:1fr}}`;document.head.appendChild(style);
   const guideStyle=document.createElement('style');guideStyle.textContent=`.bw-flow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:13px 0}.bw-step{position:relative;min-height:84px;padding:9px;border:1px solid #4b5667;border-radius:10px;background:linear-gradient(145deg,#1b2532,#141921);color:#aeb9c8;font:700 10px/1.35 system-ui}.bw-step strong{display:block;margin-bottom:4px;color:#ffe17b;font-size:12px}.bw-step:not(:last-child):after{content:'›';position:absolute;right:-7px;top:28px;z-index:2;color:#ffd460;font-size:20px}.bw-legend{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0 14px}.bw-state{padding:7px;border-radius:8px;background:#ffffff0b;color:#bac5d3;font:700 9px/1.3 system-ui}.bw-state b{display:block;margin-bottom:2px;font-size:10px}.bw-repair{grid-column:1/-1!important;border-color:#d3694b!important;background:#3a1d16!important}@media(max-width:640px){.bw-flow,.bw-legend{grid-template-columns:1fr 1fr}.bw-step:not(:last-child):after{display:none}}`;document.head.appendChild(guideStyle);
   _businessWarHud=document.createElement('div');_businessWarHud.id='businessWarHud';document.body.appendChild(_businessWarHud);
   _businessWarHud.addEventListener('click',e=>{if(e.target.closest('.bw-help'))_openBusinessWarInfo();});
@@ -20484,7 +20487,7 @@ function updateGtaInteractions() {
       for (const biz of BUSINESS_POIS) {
         const owned = myBusinesses && myBusinesses.get && myBusinesses.get(biz.id);
         if (!owned) continue;
-        const d = Math.hypot(player.r - biz.r, player.c - biz.c);
+        const d = _businessInteractionDistance(biz);
         if (d < nearDist) { nearDist = d; nearBiz = biz; }
       }
     }
@@ -31931,6 +31934,20 @@ Object.assign(BUSINESS_INTERIORS, {
 const BUSINESS_BY_RC = new Map();
 BUSINESS_POIS.forEach(b => BUSINESS_BY_RC.set(b.r + ',' + b.c, b));
 
+// Единая геометрия взаимодействия для 2D и 3D. Координаты BUSINESS_POIS
+// обозначают тайл здания, а не место, где обязан стоять игрок. У фасада есть
+// центр и вход с южной стороны; берём расстояние до ближайшей из этих точек.
+function _businessInteractionAnchor(b) {
+  return { r: +b.r + 1.45, c: +b.c + .5 };
+}
+function _businessInteractionDistance(b, r=player.r, c=player.c) {
+  const a=_businessInteractionAnchor(b);
+  return Math.min(
+    Math.hypot(r-a.r,c-a.c),
+    Math.hypot(r-(+b.r+.5),c-(+b.c+.5))
+  );
+}
+
 const BUSINESS_FRONT_YARD_TILES = new Set();
 for (const b of BUSINESS_POIS) {
   for (let dr = 0; dr <= 3; dr++) for (let dc = 0; dc <= 3; dc++) {
@@ -33106,7 +33123,7 @@ function drawBusinessPoi(b) {
   const p = w2s(b.r + 0.5, b.c + 0.5);
   // Вблизи название, статус и цена уже показаны контекстными кнопками.
   // Освобождаем фасад небольшого здания от большой плашки со стрелкой.
-  if (Math.hypot(player.r-b.r, player.c-b.c) < 5.5) return;
+  if (_businessInteractionDistance(b) < 5.5) return;
   const own = myBusinesses.get(b.id);
   const owned = !!(own && own.owned);
   const closedLeft = Math.max(0, (_businessClosures[b.id] || 0) - Date.now());
@@ -39040,7 +39057,7 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
 
   // Имя над головой
   const hideSelfNameAtBusiness = isSelf && BUSINESS_POIS.some(b =>
-    Math.hypot(player.r-b.r,player.c-b.c)<3.2);
+    _businessInteractionDistance(b)<3.5);
   if (name && !hideSelfNameAtBusiness) {
     ctx.font = 'bold 12px system-ui, sans-serif';
     ctx.textAlign = 'center';
@@ -39622,14 +39639,14 @@ function render() {
     }
     // Бизнес-POI с входом
     for (const biz of BUSINESS_POIS) {
-      const bd = Math.hypot(player.r - (biz.r + 0.5), player.c - (biz.c + 0.5));
+      const bd = _businessInteractionDistance(biz);
       if (bd > enterRadius + 3) continue;
       const _biz = biz;
       items.push({ depth: _biz.r + 1 + _biz.c + 0.5, draw: () => {
         const now2 = performance.now();
         const pulse = 0.5 + 0.5 * Math.sin(now2 * 0.005);
         const ep = w2s(_biz.r + 0.5, _biz.c + 0.5);
-        const dist2 = Math.hypot(player.r - (_biz.r + 0.5), player.c - (_biz.c + 0.5));
+        const dist2 = _businessInteractionDistance(_biz);
         if (dist2 > enterRadius + 3) return;
         const alpha = Math.min(1, (enterRadius + 3 - dist2) / 4) * (0.7 + 0.3 * pulse);
         const hx3 = TS * 0.5, hy3 = TS * 0.5 * ISO_Y;
@@ -53097,10 +53114,11 @@ window.Mafiozi3DBridge = Object.freeze({
   updateDistrictEntry() { _updateDistrictBanner(); },
   collisionProbe(r,c) { const rr=+r,cc=+c;return {r:rr,c:cc,blocked:Number.isFinite(rr)&&Number.isFinite(cc)?isBlockedPed(rr,cc):true,tile:Number.isFinite(rr)&&Number.isFinite(cc)?MAP[Math.floor(rr)]?.[Math.floor(cc)]??null:null}; },
   getEnvironmentState() {
-    const hour = typeof getGameHour === 'function' ? getGameHour() : 12;
+    const safeMinutes = Number.isFinite(_gameMinutes) ? ((_gameMinutes % 1440) + 1440) % 1440 : 12 * 60;
+    const hour = Math.floor(safeMinutes / 60);
     const lights = typeof trafficPhase === 'function' ? trafficPhase() : { ew:'g', ns:'r' };
     return {
-      hour, minute: Math.max(0, Math.floor(_gameMinutes || 0) % 60),
+      hour, minute: Math.floor(safeMinutes % 60),
       districtId: typeof districtStyleIdAt === 'function' ? districtStyleIdAt(player.r, player.c) : null,
       mapRows: MAP_ROWS, mapCols: MAP_COLS, blockSize: BLOCK,
       beachRow: BEACH_R0, waterRow: BEACH_R1,
@@ -53189,7 +53207,7 @@ window.Mafiozi3DBridge = Object.freeze({
       jail:{r:JAIL_CENTER_R,c:JAIL_CENTER_C,radius:JAIL_RADIUS_TILES},
       lair:lairZone?{r:lairZone.r,c:lairZone.c,radius:lairZone.radius||18}:null,
       mafiaHq:(typeof BURJ_POS!=='undefined'?{id:'mafia_hq',r:BURJ_POS.r,c:BURJ_POS.c,name:'Burj Mafia · Беллини',family:'bellini'}:null),
-      businesses:(typeof BUSINESS_POIS!=='undefined'?BUSINESS_POIS:[]).map(b=>({id:b.id,r:b.r,c:b.c,name:b.name,emoji:b.emoji})),
+      businesses:(typeof BUSINESS_POIS!=='undefined'?BUSINESS_POIS:[]).map(b=>({id:b.id,r:b.r+.5,c:b.c+.5,tileR:b.r,tileC:b.c,name:b.name,emoji:b.emoji})),
       districtHqs:(typeof DISTRICTS!=='undefined'?DISTRICTS:[]).filter(d=>d.hq).map(d=>({id:d.id,r:d.hq.r,c:d.hq.c,name:d.name,color:d.color,capturable:d.capturable!==false})),
       customGangHqs:(_customGangHqs||[]).map(h=>({id:h.id,r:+h.r||0,c:+h.c||0,name:h.name||'Банда',flag:h.flag||{},memberCount:+h.member_count||0})),
       banks:(typeof BANKS!=='undefined'?BANKS:[]).map(b=>({id:b.id,r:b.r,c:b.c,name:b.name,size:b.size})),
@@ -57010,6 +57028,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d93"></script>
+<script type="module" src="three_preview.js?v=3d100"></script>
 </body>
 </html>
