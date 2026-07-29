@@ -53499,7 +53499,8 @@ function chatDuration(text) {
   // Повторяем запрос здесь, чтобы оружие сразу появлялось в мире и превью.
   await Promise.all([loadMyWeapons(), loadInventoryItems()]);
   if (!QP.uid || !/^\d+$/.test(QP.uid)) {
-    setConnecting('Нет Telegram ID. Открой через /start в боте.');
+    // Browser preview remains playable without Telegram credentials.
+    setConnecting(null);
     return;
   }
   if (!QP.api) {
