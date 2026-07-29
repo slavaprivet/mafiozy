@@ -298,6 +298,74 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false,depthWrite:false,alphaTest:.04,toneMapped:false}));
         sprite.scale.set(Math.min(13.8,Math.max(9.5,7.4+label.length*.3)),2.55,1);sprite.renderOrder=58;sprite.userData.buildingLabel=true;return sprite;
       };
+      // Shared 3D presentation layer for gameplay objects that used to exist
+      // only on the hidden Canvas. The bridge keeps authoritative coordinates
+      // and supplies a nearby open visual anchor when a building covers them.
+      const gameplayObjectGroup=new THREE.Group();gameplayObjectGroup.name='gameplay-object-layer';scene.add(gameplayObjectGroup);
+      const gameplayObjectActors=new Map();
+      const objectColor=value=>{try{return new THREE.Color(value||'#ffd76b');}catch(_){return new THREE.Color('#ffd76b');}};
+      const disposeObjectActor=actor=>{gameplayObjectGroup.remove(actor);actor.traverse?.(o=>{o.geometry?.dispose?.();if(o.material){const mats=Array.isArray(o.material)?o.material:[o.material];for(const mat of mats){mat.map?.dispose?.();mat.dispose?.();}}});};
+      const createGameplayObjectActor=src=>{
+        const root=new THREE.Group(),color=objectColor(src.color),solid=new THREE.MeshStandardMaterial({color,roughness:.62,metalness:.12}),glow=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.82,depthWrite:false,toneMapped:false}),kind=String(src.kind||'marker');
+        root.userData={kind,id:String(src.id),solid,glow,source:src};
+        if(kind==='pet'){
+          const body=new THREE.Mesh(new THREE.CapsuleGeometry(.26,.68,4,8),solid);body.rotation.z=Math.PI/2;body.position.y=.55;root.add(body);
+          const head=new THREE.Mesh(new THREE.SphereGeometry(.3,10,7),solid);head.position.set(.55,.7,0);root.add(head);
+          for(const [x,z] of [[-.28,-.18],[-.28,.18],[.32,-.18],[.32,.18]]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,.42,7),solid);leg.position.set(x,.22,z);root.add(leg);}
+          const tail=new THREE.Mesh(new THREE.CylinderGeometry(.045,.07,.62,7),solid);tail.position.set(-.68,.72,0);tail.rotation.z=-.72;root.add(tail);
+          if(src.petKind==='cat'){body.scale.set(.72,.72,.72);head.scale.set(.82,.82,.82);}
+          root.userData.body=body;
+        }else if(kind==='money_bag'){
+          const bag=new THREE.Mesh(new THREE.SphereGeometry(.62,12,9),solid);bag.scale.set(.78,1,.68);bag.position.y=.67;root.add(bag);
+          const neck=new THREE.Mesh(new THREE.CylinderGeometry(.18,.27,.32,9),solid);neck.position.y=1.3;root.add(neck);
+          const ring=new THREE.Mesh(new THREE.TorusGeometry(.92,.1,8,28),glow);ring.rotation.x=Math.PI/2;ring.position.y=.08;root.add(ring);root.userData.pulse=ring;
+        }else if(kind==='bus_stop'){
+          const pole=new THREE.Mesh(new THREE.CylinderGeometry(.08,.11,3.8,8),solid);pole.position.y=1.9;root.add(pole);
+          const sign=new THREE.Mesh(new THREE.BoxGeometry(1.25,1.05,.16),solid);sign.position.set(0,3.35,0);root.add(sign);
+          const curb=new THREE.Mesh(new THREE.BoxGeometry(2.6,.18,.7),new THREE.MeshStandardMaterial({color:0x71808b,roughness:.9}));curb.position.y=.09;root.add(curb);
+        }else if(kind==='jet_ski'){
+          const hull=new THREE.Mesh(new THREE.CapsuleGeometry(.42,1.45,5,10),solid);hull.rotation.z=Math.PI/2;hull.position.y=.38;hull.scale.z=.72;root.add(hull);
+          const nose=new THREE.Mesh(new THREE.ConeGeometry(.43,.9,10),solid);nose.rotation.z=-Math.PI/2;nose.position.set(.98,.43,0);root.add(nose);
+          const seat=new THREE.Mesh(new THREE.BoxGeometry(.78,.28,.48),new THREE.MeshStandardMaterial({color:0x20262d,roughness:.8}));seat.position.set(-.24,.75,0);root.add(seat);
+          const wake=new THREE.Mesh(new THREE.RingGeometry(.65,1.05,24),new THREE.MeshBasicMaterial({color:0xbcecff,transparent:true,opacity:.42,depthWrite:false,side:THREE.DoubleSide}));wake.rotation.x=-Math.PI/2;wake.position.y=.04;root.add(wake);root.userData.pulse=wake;
+        }else if(kind==='mission_box'){
+          const crate=new THREE.Mesh(new THREE.BoxGeometry(1.15,1.05,1.15),solid);crate.position.y=.55;root.add(crate);
+          for(const z of [-.59,.59]){const brace=new THREE.Mesh(new THREE.BoxGeometry(1.28,.13,.08),glow);brace.position.set(0,.55,z);root.add(brace);}
+          const ring=new THREE.Mesh(new THREE.TorusGeometry(.9,.09,8,28),glow);ring.rotation.x=Math.PI/2;ring.position.y=.08;root.add(ring);root.userData.pulse=ring;
+        }else if(kind==='race_board'){
+          const pole=new THREE.Mesh(new THREE.CylinderGeometry(.1,.14,3.6,8),solid);pole.position.y=1.8;root.add(pole);
+          const board=new THREE.Mesh(new THREE.BoxGeometry(3.1,1.65,.22),new THREE.MeshStandardMaterial({color:0x171b22,roughness:.55,metalness:.25,emissive:color,emissiveIntensity:.18}));board.position.y=3.35;root.add(board);
+        }else if(kind==='graffiti'){
+          const panel=new THREE.Mesh(new THREE.PlaneGeometry(3.5,1.7),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.78,side:THREE.DoubleSide,depthTest:false,toneMapped:false}));panel.position.y=2.25;panel.renderOrder=54;root.add(panel);
+        }else if(kind==='brigadir'){
+          const body=new THREE.Mesh(new THREE.BoxGeometry(1.15,1.9,.8),solid);body.position.y=1.45;root.add(body);
+          const head=new THREE.Mesh(new THREE.SphereGeometry(.44,12,8),new THREE.MeshStandardMaterial({color:0xc88e68,roughness:.78}));head.position.y=2.82;root.add(head);
+          const trophy=new THREE.Mesh(new THREE.TorusGeometry(.42,.13,8,18,Math.PI),glow);trophy.position.set(0,3.75,0);trophy.rotation.z=Math.PI;root.add(trophy);
+        }else{
+          const radius=Math.max(1.1,Math.min(6,+src.radius||2.2))*WORLD_SCALE*.42,ring=new THREE.Mesh(new THREE.RingGeometry(radius*.82,radius,48),glow);ring.rotation.x=-Math.PI/2;ring.position.y=.16;ring.renderOrder=18;root.add(ring);root.userData.pulse=ring;
+          const post=new THREE.Mesh(new THREE.CylinderGeometry(.08,.15,3.4,9),solid);post.position.y=1.7;root.add(post);
+          const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.52,1),glow);beacon.position.y=3.6;beacon.renderOrder=19;root.add(beacon);
+        }
+        if(src.label){const label=labelSprite(`${src.moved?'↗ ':''}${src.label}`,src.color||'#ffd76b');label.position.y=kind==='graffiti'?4.2:kind==='pet'?2.5:5.1;label.scale.multiplyScalar((kind==='territory'||kind==='district_hq') ? 0.82 : 0.72);root.add(label);root.userData.label=label;}
+        if(src.moved){
+          const dx=(src.sourceC-src.visualC)*WORLD_SCALE,dz=(src.sourceR-src.visualR)*WORLD_SCALE,line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,.2,0),new THREE.Vector3(dx,.2,dz)]),new THREE.LineBasicMaterial({color,transparent:true,opacity:.72,depthTest:false}));line.renderOrder=17;root.add(line);root.userData.anchorLine=line;
+        }
+        gameplayObjectGroup.add(root);return root;
+      };
+      const syncGameplayObjects=(defs,t)=>{
+        const live=new Set(),interior=!!bridge?.getPlayerState?.().interior;gameplayObjectGroup.visible=!interior;
+        for(const src of defs||[]){
+          const id=String(src.id);live.add(id);let actor=gameplayObjectActors.get(id);
+          const signature=`${src.kind}:${src.label}:${src.color}:${src.moved?1:0}:${(+src.sourceR||0).toFixed(1)}:${(+src.sourceC||0).toFixed(1)}`;
+          if(!actor||actor.userData.signature!==signature){if(actor)disposeObjectActor(actor);actor=createGameplayObjectActor(src);actor.userData.signature=signature;gameplayObjectActors.set(id,actor);}
+          actor.userData.source=src;const x=(+src.visualC-originC)*WORLD_SCALE,z=(+src.visualR-originR)*WORLD_SCALE,instant=!Number.isFinite(actor.userData.lastX)||Math.hypot(x-actor.userData.lastX,z-actor.userData.lastZ)>14,alpha=instant?1:.34;
+          actor.position.x=THREE.MathUtils.lerp(actor.position.x,x,alpha);actor.position.z=THREE.MathUtils.lerp(actor.position.z,z,alpha);actor.userData.lastX=x;actor.userData.lastZ=z;
+          if(src.kind==='pet'||src.kind==='jet_ski')actor.rotation.y=-(+src.ang||0);
+          if(actor.userData.pulse){const p=1+Math.sin(t*.004+(id.length%7))*.08;actor.userData.pulse.scale.setScalar(p);actor.userData.pulse.material.opacity=src.active?.96:.68;}
+        }
+        for(const [id,actor] of gameplayObjectActors)if(!live.has(id)){disposeObjectActor(actor);gameplayObjectActors.delete(id);}
+        renderer.domElement.dataset.gameplayObjects=String(gameplayObjectActors.size);renderer.domElement.dataset.relocatedObjects=String((defs||[]).filter(x=>x.moved).length);
+      };
       if(worldSnapshot?.landmarks){
         const toX=c=>(c-originC)*WORLD_SCALE,toZ=r=>(r-originR)*WORLD_SCALE;
         const architecturalKindAt=(r,c)=>{const all=[...(worldSnapshot.landmarks?.businesses||[]),...(worldSnapshot.pois||[]),...(worldSnapshot.landmarks?.mafiaHq?[worldSnapshot.landmarks.mafiaHq]:[])];let best=null,bestD=6.2;for(const p of all){const d=Math.hypot((+p.r||0)-r,(+p.c||0)-c);if(d<bestD){bestD=d;best=p;}}return best?.id||null;};
@@ -866,7 +934,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
       const beamCanvas=document.createElement('canvas');beamCanvas.width=512;beamCanvas.height=192;const beamContext=beamCanvas.getContext('2d'),beamGradient=beamContext.createLinearGradient(0,0,512,0);beamGradient.addColorStop(0,'rgba(255,242,185,.5)');beamGradient.addColorStop(.42,'rgba(255,225,135,.18)');beamGradient.addColorStop(1,'rgba(255,220,120,0)');beamContext.fillStyle=beamGradient;beamContext.fillRect(0,0,512,192);const beamTexture=new THREE.CanvasTexture(beamCanvas);beamTexture.colorSpace=THREE.SRGBColorSpace;const vehicleBeamMaterial=new THREE.MeshBasicMaterial({map:beamTexture,color:0xffe7a0,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}),vehicleLightBeams=new THREE.InstancedMesh(new THREE.PlaneGeometry(8.5,3.6),vehicleBeamMaterial,cars.length),vehicleBeamMatrix=new THREE.Matrix4(),vehicleBeamQuat=new THREE.Quaternion(),vehicleBeamScale=new THREE.Vector3(1,1,1),vehicleBeamHidden=new THREE.Vector3(0,0,0);
       vehicleLightBeams.frustumCulled=false;vehicleLightBeams.renderOrder=8;scene.add(vehicleLightBeams);let environmentNight=0;const newsBeamDown=new THREE.Vector3(0,-1,0),newsBeamDirection=new THREE.Vector3();
       const updateVehicleBeams=()=>{vehicleBeamMaterial.opacity=environmentNight*.24;cars.forEach((car,i)=>{const src=car.userData.source,shown=car.visible&&src&&!src.helicopter&&environmentNight>.04;if(!shown){vehicleBeamMatrix.compose(new THREE.Vector3(0,-1000,0),vehicleBeamQuat.identity(),vehicleBeamHidden);vehicleLightBeams.setMatrixAt(i,vehicleBeamMatrix);return;}const yaw=car.rotation.y,fx=Math.cos(yaw),fz=-Math.sin(yaw);vehicleBeamQuat.setFromEuler(new THREE.Euler(-Math.PI/2,0,-yaw));vehicleBeamMatrix.compose(new THREE.Vector3(car.position.x+fx*5.2,.09,car.position.z+fz*5.2),vehicleBeamQuat,vehicleBeamScale);vehicleLightBeams.setMatrixAt(i,vehicleBeamMatrix);});vehicleLightBeams.instanceMatrix.needsUpdate=true;};
-      const NPC_CAP=40,REMOTE_CAP=12,BULLET_CAP=48,hiddenScale=new THREE.Vector3(0,0,0),unitScale=new THREE.Vector3(1,1,1),npcScale=new THREE.Vector3(1.32,1.32,1.32),instanceMatrix=new THREE.Matrix4(),rootMatrix=new THREE.Matrix4(),localMatrix=new THREE.Matrix4(),instanceQuat=new THREE.Quaternion(),instanceColor=new THREE.Color();
+      const NPC_CAP=72,REMOTE_CAP=12,BULLET_CAP=48,hiddenScale=new THREE.Vector3(0,0,0),unitScale=new THREE.Vector3(1,1,1),npcScale=new THREE.Vector3(1.32,1.32,1.32),instanceMatrix=new THREE.Matrix4(),rootMatrix=new THREE.Matrix4(),localMatrix=new THREE.Matrix4(),instanceQuat=new THREE.Quaternion(),instanceColor=new THREE.Color();
       const npcElevationLookup=new Map(),rootMatrixSetPosition=rootMatrix.setPosition.bind(rootMatrix);rootMatrix.setPosition=(x,y,z)=>rootMatrixSetPosition(x,y+(npcElevationLookup.get(`${(+x).toFixed(3)}:${(+z).toFixed(3)}`)||0),z);
       const eyeScale=new THREE.Vector3(1,.78,.42),pupilScale=new THREE.Vector3(1,.78,.3),npcBodyScale=new THREE.Vector3(1,1,1),gangAuraScale=new THREE.Vector3(1.3,1.3,1.3);
       // Characters still cast a grounding shadow, but do not receive the huge
@@ -1111,7 +1179,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         updateAtmosphere(t,lowFps);
         renderer.domElement.dataset.performanceTier=lowFps?'cadence':'full';
         renderer.domElement.dataset.shadowCadence=String(shadowCadence);
-        if(bridge&&t-dynamicAt>dynamicCadence){dynamicState=bridge.getDynamicEntities(65);syncCarSlots(dynamicState?.cars||[]);dynamicAt=t;}const dynamic=dynamicState;
+        if(bridge&&t-dynamicAt>dynamicCadence){dynamicState=bridge.getDynamicEntities(65);syncCarSlots(dynamicState?.cars||[]);dynamicAt=t;}const dynamic=dynamicState;if(dynamic)syncGameplayObjects(dynamic.objects||[],t);
         if(dynamic){
           npcElevationLookup.clear();for(const src of dynamic.npcs||[]){const x=(+src.c-originC)*WORLD_SCALE,z=(+src.r-originR)*WORLD_SCALE,lift=Math.max(0,+src.elevation||0)*WORLD_SCALE;if(lift)npcElevationLookup.set(`${x.toFixed(3)}:${z.toFixed(3)}`,lift);}
           renderer.domElement.dataset.liveCars=String(dynamic.cars.length);renderer.domElement.dataset.liveNpcs=String(dynamic.npcs.length);renderer.domElement.dataset.liveProjectiles=String(dynamic.projectiles.length);
