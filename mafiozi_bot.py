@@ -12413,6 +12413,7 @@ WORLD_MAP_ROWS = 200
 WORLD_CANAL_C0 = 80; WORLD_CANAL_C1 = 100
 WORLD_BRIDGE_R0 = 47; WORLD_BRIDGE_R1 = 56
 WORLD_EAST_CITY_C0 = 100; WORLD_EAST_CITY_R1 = 150
+WORLD_JAIL_R = 76; WORLD_JAIL_C = 76; WORLD_JAIL_RADIUS = 7
 # ── Южная зона (синхронно с world.html BEACH_*/PIER_*/SHIP_*) ──
 WORLD_BEACH_R0 = 150; WORLD_BEACH_R1 = 165
 WORLD_PIER_R0  = 165; WORLD_PIER_R1  = 175
@@ -12579,7 +12580,13 @@ def _world_is_wall(r: int, c: int) -> bool:
         return True
     if r == 0 or r == WORLD_MAP_ROWS - 1 or c == 0 or c == WORLD_MAP_COLS - 1:
         return True
-    # Канал между двумя городами. Единственный сухой коридор — широкий мост.
+    # Полицейский компаунд заходит на канал до c=82. Весь ограждённый квадрат
+    # является сухой площадкой; коллизия центрального здания сохраняется и
+    # совпадает с клиентским buildMap(). Проверяем до общего правила канала.
+    if (abs((r + 0.5) - WORLD_JAIL_R) < WORLD_JAIL_RADIUS and
+            abs((c + 0.5) - WORLD_JAIL_C) < WORLD_JAIL_RADIUS):
+        return r == WORLD_JAIL_R and c == WORLD_JAIL_C
+    # Канал между двумя городами. Единственный прочий сухой коридор — мост.
     if c >= WORLD_CANAL_C0 and c < WORLD_CANAL_C1 and r < WORLD_EAST_CITY_R1:
         return not (WORLD_BRIDGE_R0 <= r < WORLD_BRIDGE_R1)
     # Второй город использует 20×20 супер-кварталы: магистраль снаружи,
