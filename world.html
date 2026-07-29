@@ -52549,7 +52549,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v27-premium-bridge-chinatown',
+  migrationStage: 'three-full-world-shell-v28-living-premium-coast',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52672,6 +52672,16 @@ window.Mafiozi3DBridge = Object.freeze({
       containers:(typeof PORT_CONTAINER_LAYOUT!=='undefined'?PORT_CONTAINER_LAYOUT:[]).map(q=>({r:q.r,c:q.c,w:q.w,h:q.h,height:q.height,presetIndex:q.presetIndex,stackIndex:q.stackIndex})),
       containerColors:(typeof PORT_CONTAINER_PRESETS!=='undefined'?PORT_CONTAINER_PRESETS:[]).map(q=>q.col),
       decor:(typeof _beachDecor!=='undefined'?_beachDecor:[]).slice(0,900).map(d=>({kind:d.kind,r:+d.r||0,c:+d.c||0,col:d.col||d.col1||null,col2:d.col2||null,ang:+d.ang||0,scale:+d.scale||1,variant:d.variant||0})),
+      // Stable seeds keep the living coast identical for every client and on
+      // every streamed snapshot. These objects are visual only and never alter
+      // swimming, collisions or authoritative world state.
+      marine:{
+        buoys:Array.from({length:18},(_,i)=>({r:171.5+Math.sin(i*1.73)*1.25,c:7+i*9.6,seed:i+11})),
+        rings:[{r:167.8,c:14,seed:3},{r:169.2,c:61,seed:7},{r:168.4,c:112,seed:13},{r:170.1,c:158,seed:19}],
+        fish:[{r:173,c:22,seed:5},{r:180,c:48,seed:11},{r:176,c:86,seed:17},{r:187,c:121,seed:23},{r:178,c:151,seed:29},{r:190,c:169,seed:37}],
+        dolphins:[{r:181,c:34,seed:2},{r:188,c:101,seed:7},{r:179,c:154,seed:13}],
+        birds:Array.from({length:12},(_,i)=>({r:161.5+(i%4)*.9,c:9+i*14.2,seed:i*17+5})),
+      },
     };
     const lairZone=(typeof AGGRO_ZONES!=='undefined'&&AGGRO_ZONES[0])||null;
     const landmarks={
@@ -56460,6 +56470,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d73"></script>
+<script type="module" src="three_preview.js?v=3d74"></script>
 </body>
 </html>
