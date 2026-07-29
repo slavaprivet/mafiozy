@@ -851,6 +851,7 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         const move=new THREE.Vector3((keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),0,(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0));
         let moving=false;
         if(bridge){
+          bridge.updateDistrictEntry?.();
           const state=bridge.getPlayerState();
           scheduleSectorLoad(+state.r||0,+state.c||0);
            renderer.domElement.dataset.playerR=(+state.r||0).toFixed(3);renderer.domElement.dataset.playerC=(+state.c||0).toFixed(3);renderer.domElement.dataset.playerAngle=(+state.ang||0).toFixed(3);renderer.domElement.dataset.playerHp=String(+state.hp||0);renderer.domElement.dataset.playerRole=String(state.role||'citizen');renderer.domElement.dataset.playerFamily=String(state.family||'');renderer.domElement.dataset.playerWeapon=String(state.weapon||'');renderer.domElement.dataset.playerInterior=state.interior?'1':'0';renderer.domElement.dataset.moveMode=mouseAimActive&&!state.driving?'aim-relative':'legacy';
