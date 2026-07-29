@@ -268,9 +268,12 @@ if (rendererParams.get('render') === '3d' && rendererConfig.threeEnabled !== fal
         coast.containers.forEach((q,i)=>{const color=coast.containerColors[q.presetIndex]||'#c45b3d';const container=box(toX(q.c),toZ(q.r),q.w*2*WORLD_SCALE,q.h*2*WORLD_SCALE,q.height*WORLD_SCALE,new THREE.MeshStandardMaterial({color,roughness:.58,metalness:.32}));container.position.y=q.height*WORLD_SCALE/2+.4;if(q.stackIndex>=0){const top=container.clone();top.material=new THREE.MeshStandardMaterial({color:coast.containerColors[q.stackIndex]||'#3b79a8',roughness:.58,metalness:.32});top.position.y+=q.height*WORLD_SCALE;scene.add(top);}});
       }
       let refreshCustomGangHqs=()=>{},casinoExteriorAnimation=()=>{};
+      // Architectural heights are also consumed by streamed city buildings
+      // below, so keep the table in the renderer scope rather than inside the
+      // optional landmarks branch. Otherwise 3D crashes before its first frame.
+      const architecturalHeights={pizza:7,coffee:8,carwash:5.8,barbershop:8,garage:6.4,bar:8.5,club:10,warehouse:7.2,port:7,casino:13,hospital:12,firestation:7.5,police:10,mafia_hq:38,market:8,factory:9,mansion:12,gym:9,job_office:10,blackmarket:8,blackmarket_bellini:9,blackmarket_moretti:9};
       if(worldSnapshot?.landmarks){
         const toX=c=>(c-originC)*WORLD_SCALE,toZ=r=>(r-originR)*WORLD_SCALE;
-        const architecturalHeights={pizza:7,coffee:8,carwash:5.8,barbershop:8,garage:6.4,bar:8.5,club:10,warehouse:7.2,port:7,casino:13,hospital:12,firestation:7.5,police:10,mafia_hq:38,market:8,factory:9,mansion:12,gym:9,job_office:10,blackmarket:8,blackmarket_bellini:9,blackmarket_moretti:9};
         const architecturalKindAt=(r,c)=>{const all=[...(worldSnapshot.landmarks?.businesses||[]),...(worldSnapshot.pois||[]),...(worldSnapshot.landmarks?.mafiaHq?[worldSnapshot.landmarks.mafiaHq]:[])];let best=null,bestD=6.2;for(const p of all){const d=Math.hypot((+p.r||0)-r,(+p.c||0)-c);if(d<bestD){bestD=d;best=p;}}return best?.id||null;};
         const roofAnchorAt=(r,c,fallback=7)=>{let best=null,bestD=1e9;for(const block of worldSnapshot.blocks||[]){for(const q of block.buildingParts||[block.building]){if(!q)continue;const inside=r>=+q.minR-.7&&r<=+q.maxR+1.2&&c>=+q.minC-.7&&c<=+q.maxC+1.2;if(inside){const kind=architecturalKindAt(r,c),height=architecturalHeights[kind]||+q.height||fallback;return{x:toX(q.c),y:height+3,z:toZ(q.r),onRoof:true};}const d=Math.hypot(q.r-r,q.c-c);if(d<bestD){bestD=d;best=q;}}}return best&&bestD<14?{x:toX(best.c),y:(architecturalHeights[architecturalKindAt(r,c)]||+best.height||fallback)+3,z:toZ(best.r),onRoof:true}:{x:toX(c),y:fallback,z:toZ(r),onRoof:false};};
         const labelSprite=(text,color='#65e7ff')=>{
