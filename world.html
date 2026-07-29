@@ -5630,6 +5630,19 @@ let _districtOwnersSnapshotReady = false;
 // Текущий район игрока + состояние GTA-баннера «въезд в район».
 let _curDistrictId = null;
 let _districtBanner = null;   // { d, t } — район и момент показа
+let _districtEntryBannerTimer=0,_districtEntryBannerToken=0;
+function _ensureDistrictEntryBanner(){
+  let el=document.getElementById('districtEntryBanner');if(el)return el;
+  const style=document.createElement('style');style.textContent=`#districtEntryBanner{--deb-accent:#d2691e;position:fixed;z-index:10018;left:50%;top:clamp(154px,24vh,260px);width:min(520px,calc(100vw - 30px));transform:translate(-50%,-18px) scale(.96);opacity:0;pointer-events:none;transition:opacity .32s ease,transform .42s cubic-bezier(.2,.8,.2,1);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;filter:drop-shadow(0 18px 34px rgba(0,0,0,.55))}#districtEntryBanner.show{opacity:1;transform:translate(-50%,0) scale(1)}#districtEntryBanner.hide{opacity:0;transform:translate(-50%,12px) scale(.985)}#districtEntryBanner .deb-shell{position:relative;overflow:hidden;display:grid;grid-template-columns:74px 1fr;min-height:108px;border:1px solid color-mix(in srgb,var(--deb-accent) 82%,#fff);border-radius:15px;background:linear-gradient(115deg,rgba(5,9,15,.97),rgba(15,16,21,.94));box-shadow:inset 0 1px rgba(255,255,255,.08),0 0 28px color-mix(in srgb,var(--deb-accent) 22%,transparent)}#districtEntryBanner .deb-shell:before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,color-mix(in srgb,var(--deb-accent) 17%,transparent),transparent 48%);pointer-events:none}#districtEntryBanner .deb-icon-wrap{position:relative;display:flex;align-items:center;justify-content:center;border-right:1px solid color-mix(in srgb,var(--deb-accent) 42%,transparent);background:linear-gradient(160deg,color-mix(in srgb,var(--deb-accent) 25%,#111),#080b10)}#districtEntryBanner .deb-icon{display:grid;place-items:center;width:47px;height:47px;transform:rotate(45deg);border:1px solid var(--deb-accent);border-radius:8px;background:#080b10;box-shadow:0 0 18px color-mix(in srgb,var(--deb-accent) 35%,transparent);font-size:25px}#districtEntryBanner .deb-icon span{transform:rotate(-45deg)}#districtEntryBanner .deb-body{position:relative;padding:13px 17px 12px}#districtEntryBanner .deb-kicker{color:#aeb8c5;font-size:8px;font-weight:950;letter-spacing:3px;text-transform:uppercase}#districtEntryBanner .deb-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px}#districtEntryBanner .deb-name{overflow:hidden;color:var(--deb-accent);font:950 clamp(24px,4vw,32px)/1 Georgia,"Times New Roman",serif;white-space:nowrap;text-overflow:ellipsis;text-shadow:0 0 18px color-mix(in srgb,var(--deb-accent) 30%,transparent)}#districtEntryBanner .deb-control{flex:0 0 auto;padding:4px 8px;border:1px solid color-mix(in srgb,var(--deb-accent) 55%,#777);border-radius:999px;background:#070a0ecc;color:#e9edf2;font-size:8px;font-weight:900;letter-spacing:.5px}#districtEntryBanner .deb-speciality{margin-top:5px;color:#f3f0e8;font-size:11px;font-weight:850}#districtEntryBanner .deb-speciality b{color:var(--deb-accent)}#districtEntryBanner .deb-bonus{margin-top:4px;color:#98a6b7;font-size:9px;font-weight:700}#districtEntryBanner .deb-line{position:absolute;left:74px;right:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--deb-accent),transparent)}@media(max-width:560px){#districtEntryBanner{top:145px}#districtEntryBanner .deb-shell{grid-template-columns:58px 1fr;min-height:94px}#districtEntryBanner .deb-icon{width:38px;height:38px;font-size:21px}#districtEntryBanner .deb-body{padding:11px 12px 10px}#districtEntryBanner .deb-line{left:58px}#districtEntryBanner .deb-control{max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}`;
+  document.head.appendChild(style);el=document.createElement('section');el.id='districtEntryBanner';el.setAttribute('aria-live','polite');el.innerHTML='<div class="deb-shell"><div class="deb-icon-wrap"><div class="deb-icon"><span></span></div></div><div class="deb-body"><div class="deb-kicker">ВЫ ВЪЕХАЛИ В РАЙОН</div><div class="deb-row"><div class="deb-name"></div><div class="deb-control"></div></div><div class="deb-speciality"></div><div class="deb-bonus"></div></div><i class="deb-line"></i></div>';document.body.appendChild(el);return el;
+}
+function _showDistrictEntryBanner(d,style){
+  if(!d)return;const el=_ensureDistrictEntryBanner(),owner=districtOwners[d.id],token=++_districtEntryBannerToken,accent=(style?.accent||d.color||'#d2691e');
+  el.style.setProperty('--deb-accent',accent);el.querySelector('.deb-icon span').textContent=style?.icon||d.icon||'🏙️';el.querySelector('.deb-name').textContent=d.name||style?.name||'Район';
+  el.querySelector('.deb-control').textContent=owner?`👑 ${owner.ownerName||owner.gangTag||'под контролем'}`:(d.capturable?'◇ НЕ ЗАХВАЧЕН':'☠ ОПАСНАЯ ЗОНА');
+  const speciality=el.querySelector('.deb-speciality');speciality.textContent='';const strong=document.createElement('b');strong.textContent=style?.name||d.name||'Район';speciality.append(strong,document.createTextNode(` · ${style?.mood||d.bonus||'городская территория'}`));el.querySelector('.deb-bonus').textContent=d.bonus?`◆ Особенность: ${d.bonus}`:'◆ Следи за обстановкой и влиянием фракций';
+  clearTimeout(_districtEntryBannerTimer);el.classList.remove('show','hide');requestAnimationFrame(()=>{if(token===_districtEntryBannerToken)el.classList.add('show');});_districtEntryBannerTimer=setTimeout(()=>{if(token!==_districtEntryBannerToken)return;el.classList.add('hide');el.classList.remove('show');},3800);
+}
 
 // State владельцев (приходит с сервера; пока локально пусто).
 // { [tid]: { ownerId, ownerName, gangTag, color, capturedAt } } — null = ничейная
@@ -42137,12 +42150,15 @@ function _updateDistrictBanner() {
   const id = d ? d.id+':'+(style?.name||'') : null;
   if (id !== _curDistrictId) {
     _curDistrictId = id;
-    if (d) _districtBanner = { d, style, t: performance.now() };
+    if (d) {_districtBanner = { d, style, t: performance.now() };_showDistrictEntryBanner(d,style);}
   }
 }
 // GTA-стиль баннер «въезд в район»: название крупно + статус/бонус мелко,
 // выезжает слева, держится, затухает. ~3.5с.
 function drawDistrictBanner() {
+  // The shared DOM card is visible over both Canvas and Three.js. Keeping the
+  // old Canvas card as a fallback would draw the same district twice in 2D.
+  if(document.getElementById('districtEntryBanner'))return;
   if (!_districtBanner) return;
   const age = performance.now() - _districtBanner.t;
   const DUR = 3500;
@@ -52510,7 +52526,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v25-stable-authoritative-lighting',
+  migrationStage: 'three-full-world-shell-v26-shared-district-entry-card',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52554,6 +52570,7 @@ window.Mafiozi3DBridge = Object.freeze({
   getNearbyBuildingInteraction() { return _nearbyBuildingInteractionFor3D(); },
   toggleNearbyBuildingActions(screenX,screenY) { return toggleNearbyBuildingActionsFrom3D(+screenX,+screenY); },
   closeBuildingActions() { _closeBusinessActionCard(); return true; },
+  updateDistrictEntry() { _updateDistrictBanner(); },
   collisionProbe(r,c) { const rr=+r,cc=+c;return {r:rr,c:cc,blocked:Number.isFinite(rr)&&Number.isFinite(cc)?isBlockedPed(rr,cc):true,tile:Number.isFinite(rr)&&Number.isFinite(cc)?MAP[Math.floor(rr)]?.[Math.floor(cc)]??null:null}; },
   getEnvironmentState() {
     const hour = typeof getGameHour === 'function' ? getGameHour() : 12;
@@ -56420,6 +56437,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d71"></script>
+<script type="module" src="three_preview.js?v=3d72"></script>
 </body>
 </html>
