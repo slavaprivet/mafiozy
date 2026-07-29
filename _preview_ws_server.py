@@ -65,6 +65,9 @@ preview_accounts = {}
 preview_business_claims = {}
 preview_connections = {}
 preview_apartments = {}
+preview_custom_gangs = {}
+preview_custom_gang_by_uid = {}
+preview_custom_gang_seq = 0
 preview_bank_robs = {}
 preview_bank_bags = {}
 preview_businesses = {}
@@ -1216,6 +1219,9 @@ async def apartment_sell(req):
     except Exception:
         body = {}
     apt_key = str(body.get("apt_key") or "").strip()[:32]
+    gang_id = preview_custom_gang_by_uid.get(str(uid))
+    if gang_id and preview_custom_gangs.get(gang_id, {}).get("hq_apt_key") == apt_key:
+        return cors(web.json_response({"ok": False, "error": "hq active"}, status=409))
     owned = preview_owned_apartments(uid)
     info = owned.get(apt_key)
     if not info:
@@ -1227,6 +1233,68 @@ async def apartment_sell(req):
     return cors(web.json_response({
         "ok": True, "refund": refund, "cash": account["cash"], "owned": owned,
     }))
+
+
+def preview_custom_gang_payload(uid):
+    gid = preview_custom_gang_by_uid.get(str(uid)); gang = preview_custom_gangs.get(gid)
+    if not gang: return None
+    coords = apartment_coords_from_key(gang["hq_apt_key"]) or (0, 0)
+    members = [{"telegram_id": str(mid), "name": players.get(str(mid), {}).get("name", "Игрок"),
+                "role": "leader" if str(mid) == str(gang["leader_uid"]) else "member"}
+               for mid in gang["members"]]
+    return {"id": gid, "name": gang["name"], "leader_uid": str(gang["leader_uid"]),
+            "role": "leader" if str(uid) == str(gang["leader_uid"]) else "member",
+            "hq_apt_key": gang["hq_apt_key"], "hq_r": coords[0], "hq_c": coords[1],
+            "flag": gang["flag"], "members": members, "member_count": len(members),
+            "max_members": 12, "created_at": gang["created_at"]}
+
+
+def preview_custom_gang_hqs():
+    out=[]
+    for gid,g in preview_custom_gangs.items():
+        coords=apartment_coords_from_key(g["hq_apt_key"])
+        if coords: out.append({"id":gid,"name":g["name"],"leader_uid":str(g["leader_uid"]),
+            "apt_key":g["hq_apt_key"],"r":coords[0],"c":coords[1],"member_count":len(g["members"]),"flag":g["flag"]})
+    return out
+
+
+async def custom_gang_state(req):
+    uid=req.match_info.get("uid","1")
+    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
+
+
+async def custom_gang_create(req):
+    global preview_custom_gang_seq
+    uid=str(req.match_info.get("uid","1")); body=await req.json(); name=" ".join(str(body.get("name") or "").split())[:24]; apt_key=str(body.get("apt_key") or "")[:32]
+    if len(name)<3 or apt_key not in preview_owned_apartments(uid): return cors(web.json_response({"ok":False,"error":"bad name or hq"},status=409))
+    if uid in preview_custom_gang_by_uid: return cors(web.json_response({"ok":False,"error":"already in gang"},status=409))
+    if any(str(g["name"]).casefold()==name.casefold() for g in preview_custom_gangs.values()): return cors(web.json_response({"ok":False,"error":"name taken"},status=409))
+    if any(g["hq_apt_key"]==apt_key for g in preview_custom_gangs.values()): return cors(web.json_response({"ok":False,"error":"hq taken"},status=409))
+    preview_custom_gang_seq+=1;gid=preview_custom_gang_seq;flag=body.get("flag") if isinstance(body.get("flag"),dict) else {}
+    flag={"primary":str(flag.get("primary") or "#9b1f2d"),"secondary":str(flag.get("secondary") or "#e0b83e"),"emblem":str(flag.get("emblem") or "crown")}
+    preview_custom_gangs[gid]={"name":name,"leader_uid":uid,"hq_apt_key":apt_key,"flag":flag,"members":[uid],"created_at":int(time.time())};preview_custom_gang_by_uid[uid]=gid
+    if uid in players: players[uid].update({"custom_gang_id":gid,"custom_gang_name":name,"custom_gang_role":"leader","custom_gang_flag":flag,"custom_gang_hq":apt_key})
+    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
+
+
+async def custom_gang_leave(req):
+    uid=str(req.match_info.get("uid","1"));gid=preview_custom_gang_by_uid.get(uid);g=preview_custom_gangs.get(gid)
+    if not g or str(g["leader_uid"])==uid:return cors(web.json_response({"ok":False,"error":"leader must disband"},status=409))
+    g["members"].remove(uid);preview_custom_gang_by_uid.pop(uid,None)
+    if uid in players:
+        for k in ("custom_gang_id","custom_gang_name","custom_gang_role","custom_gang_flag","custom_gang_hq"):players[uid].pop(k,None)
+    return cors(web.json_response({"ok":True,"gang":None,"headquarters":preview_custom_gang_hqs()}))
+
+
+async def custom_gang_disband(req):
+    uid=str(req.match_info.get("uid","1"));gid=preview_custom_gang_by_uid.get(uid);g=preview_custom_gangs.get(gid)
+    if not g or str(g["leader_uid"])!=uid:return cors(web.json_response({"ok":False,"error":"leader only"},status=409))
+    for mid in list(g["members"]):
+        preview_custom_gang_by_uid.pop(str(mid),None)
+        if str(mid) in players:
+            for k in ("custom_gang_id","custom_gang_name","custom_gang_role","custom_gang_flag","custom_gang_hq"):players[str(mid)].pop(k,None)
+    preview_custom_gangs.pop(gid,None)
+    return cors(web.json_response({"ok":True,"gang":None,"headquarters":preview_custom_gang_hqs()}))
 
 
 def preview_owned_businesses(uid):
@@ -1466,6 +1534,9 @@ def snap(uid):
             "jail_in": max(0, int(float(other.get("jail_until", 0))-now)),
             "weapon": other.get("weapon", "pistol"),
             "police": bool(other.get("police", False)),
+            "custom_gang_id": int(other.get("custom_gang_id", 0)),
+            "custom_gang_name": str(other.get("custom_gang_name", "")),
+            "custom_gang_role": str(other.get("custom_gang_role", "")),
             "police_cuffed": bool(other.get("police_cuffed_by")),
             "police_stunned_in": max(0, float(other.get("police_stunned_until", 0))-now),
             "police_escort": other.get("police_escort"),
@@ -1489,6 +1560,7 @@ def snap(uid):
                 "cash": preview_account(uid)["cash"],
                 "police_xp": int(preview_account(uid).get("police_xp", 0)),
                 "mafia_xp": int(preview_account(uid).get("mafia_xp", 0)),
+                "custom_gang": preview_custom_gang_payload(uid),
                 "police_arrests_today": preview_police_daily_state(uid)[1],
                 "police_arrest_limit": preview_police_daily_state(uid)[2],
                 "police_spikes_cd": max(0.0, round(
@@ -2766,6 +2838,10 @@ app.router.add_get("/apartment/{uid}/state", apartment_state)
 app.router.add_post("/apartment/{uid}/buy", apartment_buy)
 app.router.add_post("/apartment/{uid}/upgrade", apartment_upgrade)
 app.router.add_post("/apartment/{uid}/sell", apartment_sell)
+app.router.add_get("/custom-gang/{uid}/state", custom_gang_state)
+app.router.add_post("/custom-gang/{uid}/create", custom_gang_create)
+app.router.add_post("/custom-gang/{uid}/leave", custom_gang_leave)
+app.router.add_post("/custom-gang/{uid}/disband", custom_gang_disband)
 app.router.add_get("/biz/{uid}/list", business_list)
 app.router.add_post("/biz/{uid}/buy", business_buy)
 app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
