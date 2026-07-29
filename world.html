@@ -15844,8 +15844,12 @@ function handleEventPacket(d) {
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
   } else if (kind === 'business_defense_shot') {
     const weapon = d.weapon || (d.side === 'guard' ? 'pistol' : 'pistol_heavy');
-    const sR0 = +d.sy || 0, sC0 = +d.sx || 0;
-    const tR = +d.ty || 0, tC = +d.tx || 0;
+    const insideSameBusiness=_buildingInt?.type==='business'&&
+      String(_buildingInt.bizId)===String(d.business_id||'');
+    const insideShooter=insideSameBusiness&&(_buildingInt.npcs||[]).find(n=>String(n.serverId||n.id)===String(d.shooter_id));
+    const insideTarget=insideSameBusiness&&(_buildingInt.npcs||[]).find(n=>String(n.serverId||n.id)===String(d.target_id));
+    const sR0 = insideShooter?insideShooter.r:(+d.sy || 0), sC0 = insideShooter?insideShooter.c:(+d.sx || 0);
+    const tR = insideTarget?insideTarget.r:(+d.ty || 0), tC = insideTarget?insideTarget.c:(+d.tx || 0);
     const ang = Math.atan2(tR - sR0, tC - sC0);
     const muzzleD = weaponMuzzleD(weapon, .92);
     const sR = sR0 + Math.sin(ang) * muzzleD;
@@ -15896,6 +15900,10 @@ function handleEventPacket(d) {
         break;
       }
     }
+    if(insideTarget){
+      insideTarget.hp=Math.max(0,+d.hp||0);
+      if(d.killed)insideTarget.dead=true;
+    }
   } else if (kind === 'city_gang_spawned') {
     const yellow = d.faction === 'yellow';
     showEventBanner(
@@ -15923,6 +15931,7 @@ function handleEventPacket(d) {
   } else if (kind === 'gang_nest_cleared') {
     if (d.business_id) {
       _markBusinessOperational(d.business_id, d.cooldown_until);
+      _syncBusinessOccupationInterior();
     }
     // Гнездо зачищено — бонус всем кто стрелял.
     const me = (d.bonus_uids || []).some(u => String(u) === String(QP.uid));
@@ -15938,6 +15947,7 @@ function handleEventPacket(d) {
   } else if (kind === 'gang_nest_expired') {
     if (d.business_id) {
       _markBusinessOperational(d.business_id, d.cooldown_until);
+      _syncBusinessOccupationInterior();
     }
     // Бандиты ушли сами — никто не пришёл их зачистить.
     showEventBanner('💨 Банда ушла',
@@ -16945,7 +16955,32 @@ function handleEventPacket(d) {
       _autoLockThreat('aggro_bot', d.bot_id);
       if (d.killed) myDeathBy = 'банда «Логова»';
     }
+  } else if (kind === 'business_interior_shot') {
+    if(_buildingInt?.type==='business'&&String(_buildingInt.bizId)===String(d.business_id||'')){
+      const shooter=(_buildingInt.npcs||[]).find(n=>String(n.serverId||n.id)===String(d.bot_id));
+      if(shooter){
+        const ang=Math.atan2((+d.ty||player.r)-shooter.r,(+d.tx||player.c)-shooter.c);
+        shooter.ang=ang;shooter._shotAt=performance.now();
+        const muz=_npcMuzzleWorldPoint(shooter.r,shooter.c,ang,shooter.weapon,.88);
+        spawnMuzzle(muz.r,muz.c,ang,shooter.weapon,true);
+        spawnBullet(muz.r,muz.c,+d.ty||player.r,+d.tx||player.c,{hit:!d.miss,fromNpc:true,weapon:shooter.weapon});
+      }
+      if(String(d.target_uid)===String(QP.uid)&&!d.miss){
+        _registerIncomingFire(d.dmg||1);hitFlash=performance.now()+240;addShake(2.6);
+        if(d.killed)myDeathBy='захватчики бизнеса';
+      }
+    }
   } else if (kind === 'aggro_hit') {
+    if(d.interior_business&&_buildingInt?.type==='business'&&String(_buildingInt.bizId)===String(d.business_id||'')){
+      const npc=(_buildingInt.npcs||[]).find(n=>String(n.serverId||n.id)===String(d.bot_id));
+      if(npc){
+        const oldHp=+npc.hp||0;npc.hp=Math.max(0,Number.isFinite(+d.hp)?+d.hp:oldHp-(+d.dmg||0));
+        npc._hurtAnimUntil=performance.now()+420;
+        spawnFloatText(npc.r,npc.c,`−${Math.max(1,+d.dmg||oldHp-npc.hp||1)}`,{color:d.crit?'#ffd45a':'#ff6868',size:d.crit?20:16,life:1050});
+        if(d.killed||npc.hp<=0){npc.dead=true;npc.deadAt=performance.now();}
+      }
+      return;
+    }
     if(d.npc_gang_fight&&typeof d.sy==='number'&&typeof d.sx==='number'&&typeof d.ty==='number'&&typeof d.tx==='number'){
       const wp=d.weapon||'pistol',ang=Math.atan2(d.ty-d.sy,d.tx-d.sx);
       const md=weaponMuzzleD(wp,.92),sR=d.sy+Math.sin(ang)*md,sC=d.sx+Math.cos(ang)*md;
@@ -17922,6 +17957,7 @@ function wsConnect() {
         // expires_in, bots_alive}]. Локально просто кэшируем для рендера
         // (красная подсветка здания + маркер на мини-карте).
         gangNests = d.gang_nests || [];
+        _syncBusinessOccupationInterior();
         _gangNestsSnapshotReady = true;
         _applyLiveBusinessOccupations();
       }
@@ -46267,6 +46303,75 @@ const _INTERIOR_NPC_CFG = {
     { name: 'Посетитель', look: { gender: 1, skin: 2, body: 0, face: 0, hair: 4, hat: 0, suit: '#5a3a4a' } },
   ]},
 };
+function _businessOccupationNest(bizId) {
+  const id=String(bizId||'');
+  return (gangNests||[]).find(ne=>_gangNestBusinessId(ne)===id&&(+ne.bots_alive||0)>0)||null;
+}
+function _businessOccupationSlots(bi,count,defender=false) {
+  const out=[],cols=Math.min(3,Math.max(1,count));
+  for(let i=0;i<count;i++){
+    const row=Math.floor(i/cols),col=i%cols;
+    out.push({
+      r:Math.max(2,Math.min(bi.H-2,defender?3.2+row*2.15:Math.max(5.2,bi.H*.48)+row*2.35)),
+      c:Math.max(2,Math.min(bi.W-2,2.6+(col+.5)*(bi.W-5.2)/cols)),
+    });
+  }
+  return out;
+}
+function _spawnBusinessOccupationNpcs(bi) {
+  const nest=_businessOccupationNest(bi.bizId);
+  if(!nest)return false;
+  const raiders=((aggroZones||{})[nest.id]?.bots||[]).filter(bot=>bot.alive!==false&&(+bot.hp||0)>0);
+  const defenders=(nest.guards||[]).filter(guard=>guard.alive!==false&&(+guard.hp||0)>0);
+  const raiderSlots=_businessOccupationSlots(bi,raiders.length,false);
+  const defenderSlots=_businessOccupationSlots(bi,defenders.length,true);
+  bi.businessOccupationId=String(nest.id);
+  bi.npcs=[
+    ...raiders.map((bot,i)=>({
+      id:String(bot.id),serverId:String(bot.id),r:raiderSlots[i].r,c:raiderSlots[i].c,
+      tr:raiderSlots[i].r,tc:raiderSlots[i].c,ang:Math.PI,walkPhase:0,walking:false,
+      name:'Захватчик',role:'biz_gang_occupier',fixed:false,_hostile:true,
+      hp:+bot.hp||1,maxHp:+bot.max_hp||100,dead:false,weapon:bot.weapon||'pistol_heavy',
+      look:bot.look||{gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%3,hat:2,suit:'#7d202b'},
+      idleUntil:0,speed:1.2+(i%2)*.12,_nextShotAt:performance.now()+500+i*140,
+    })),
+    ...defenders.map((guard,i)=>({
+      id:String(guard.id),serverId:String(guard.id),r:defenderSlots[i].r,c:defenderSlots[i].c,
+      tr:defenderSlots[i].r,tc:defenderSlots[i].c,ang:0,walkPhase:0,walking:false,
+      name:i?'Охрана бизнеса':'Начальник охраны',role:'biz_ally_guard',fixed:false,_allied:true,
+      _invulnerable:true,hp:+guard.hp||1,maxHp:+guard.max_hp||100,dead:false,
+      weapon:guard.weapon||'pistol',look:{gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%3,hat:5,suit:'#1d2b3d'},
+      idleUntil:0,speed:1.25,_shotAt:0,
+    })),
+  ];
+  bi.occupationSignature=`${nest.id}:${raiders.map(b=>`${b.id}:${b.hp}`).join(',')}:${defenders.map(g=>`${g.id}:${g.hp}`).join(',')}`;
+  return true;
+}
+function _syncBusinessOccupationInterior() {
+  const bi=_buildingInt;
+  if(!bi||bi.type!=='business'||bi.robbery)return;
+  const nest=_businessOccupationNest(bi.bizId);
+  if(!nest){
+    if(bi.businessOccupationId){
+      delete bi.businessOccupationId;delete bi.occupationSignature;
+      _spawnInteriorNpcs(bi);
+    }
+    return;
+  }
+  const raiders=((aggroZones||{})[nest.id]?.bots||[]).filter(b=>b.alive!==false&&(+b.hp||0)>0);
+  const defenders=(nest.guards||[]).filter(g=>g.alive!==false&&(+g.hp||0)>0);
+  const serverIds=[...raiders,...defenders].map(item=>String(item.id)).sort().join('|');
+  const localIds=(bi.npcs||[]).filter(n=>n.serverId&&!n.dead).map(n=>String(n.serverId)).sort().join('|');
+  if(String(bi.businessOccupationId)!==String(nest.id)||serverIds!==localIds){
+    _spawnBusinessOccupationNpcs(bi);return;
+  }
+  const live=new Map([...raiders,...defenders].map(item=>[String(item.id),item]));
+  for(const npc of (bi.npcs||[])){
+    const state=live.get(String(npc.serverId||''));if(!state)continue;
+    npc.hp=Math.max(0,+state.hp||0);npc.maxHp=Math.max(1,+state.max_hp||npc.maxHp||100);
+    npc.dead=state.alive===false||npc.hp<=0;
+  }
+}
 function _spawnInteriorNpcs(bi) {
   if (bi.type === 'business') {
     const cfg = BUSINESS_INTERIORS[bi.bizId] || BUSINESS_INTERIORS.coffee;
@@ -46296,6 +46401,9 @@ function _spawnInteriorNpcs(bi) {
       bi.npcs=[owner,...guards];
       return;
     }
+    // Захваченный бизнес показывает реальный серверный состав боя. Мирный
+    // персонал эвакуирован, а локальные декоративные охранники не дублируются.
+    if (_spawnBusinessOccupationNpcs(bi)) return;
     const suits = [cfg.accent, '#263243', '#6b4f3d', '#ddd3be'];
     const names = [cfg.manager, ...cfg.staff];
     bi.npcs = names.map((name, i) => {
@@ -46883,6 +46991,18 @@ function _updateInteriorNpcs(bi, dt) {
       }
       continue;
     }
+    if (n.role === 'biz_gang_occupier') {
+      const dr=player.r-n.r,dc=player.c-n.c,dist=Math.hypot(dr,dc)||1;
+      n.ang=Math.atan2(dr,dc);
+      if(dist>4.6){
+        const step=Math.min(dist-4.2,(n.speed||1.2)*dt);
+        const nextR=n.r+dr/dist*step,nextC=n.c+dc/dist*step;
+        if(!_businessInteriorMovementBlocked(bi,nextR,nextC,.32)){
+          n.r=nextR;n.c=nextC;n.walking=true;n.walkPhase+=dt*9;
+        }else n.walking=false;
+      }else n.walking=false;
+      continue;
+    }
     if (bi.robbery && n.role === 'biz_guard' && bi.robberyStarted) {
       const combatTarget=_majorGuardCombatTarget(bi,n);
       if(!combatTarget){n.walking=false;continue;}
@@ -46968,6 +47088,17 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon, burnTi
   if (!npc || npc.dead || !_buildingInt) return;
   if(!burnTick&&(weapon==='molotov'||weapon==='molotov_fire'))
     _igniteInteriorCharacter(npc,npc.r-dirY,npc.c-dirX);
+  if (npc.role==='biz_gang_occupier' && npc.serverId && _buildingInt.businessOccupationId) {
+    npc._hurtAnimUntil=performance.now()+420;
+    try {
+      sendInput(true);
+      ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'aggro_shoot',d:{
+        biz_id:_buildingInt.bizId,nest_id:_buildingInt.businessOccupationId,
+        target:npc.serverId,weapon:weapon||currentWeapon,interior_business:true,
+      }}));
+    } catch(e) {}
+    return;
+  }
   if (_majorInteriorObjectId && npc.majorGuard) {
     const alertNow = performance.now();
     npc._hurtAnimUntil = alertNow + 420;
@@ -47110,7 +47241,7 @@ function _pushInteriorNpcs(bi, items) {
         const say=performance.now()<(nn._sayUntil||0)?nn._sayText:null;
         const now=performance.now(),isDead=!!nn.dead;
         const isStunned=!isDead&&(now<(nn._knockedUntil||0)||now<(nn._hurtAnimUntil||0));
-        const armedGuard = nn.majorGuard || nn.role === 'biz_guard' || nn.role === 'biz_ally_guard';
+        const armedGuard = nn.majorGuard || nn.role === 'biz_guard' || nn.role === 'biz_ally_guard' || nn.role === 'biz_gang_occupier';
         const businessOwnerNpc = bi.type === 'business' &&
           (nn.role === 'manager' || nn.role === 'owner' || nn.majorBoss);
         if(businessOwnerNpc){
@@ -52551,7 +52682,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v31-themed-poi-architecture',
+  migrationStage: 'three-full-world-shell-v32-server-business-occupation',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -56472,6 +56603,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d77"></script>
+<script type="module" src="three_preview.js?v=3d78"></script>
 </body>
 </html>
