@@ -63,33 +63,69 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
    скрипта и закрывается только после первого готового кадра выбранного рендера. */
 #cityLoadingScreen {
   position: fixed; inset: 0; z-index: 1000; overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-  background:
-    radial-gradient(circle at 50% 38%, rgba(126,30,28,.24), transparent 35%),
-    linear-gradient(180deg, #07090e 0%, #111722 58%, #050609 100%);
-  transition: opacity .42s ease, visibility .42s ease;
+  display: flex; align-items: stretch; justify-content: stretch;
+  background: #05070a;
+  isolation: isolate;
+  transition: opacity .55s ease, visibility .55s ease;
 }
 #cityLoadingScreen.done { opacity: 0; visibility: hidden; pointer-events: none; }
-#cityLoadingScreen::before {
-  content: ''; position: absolute; left: -4%; right: -4%; bottom: 0; height: 42%; opacity: .62;
-  background: linear-gradient(90deg,
-    #05070a 0 7%, transparent 7% 8%, #080b10 8% 15%, transparent 15% 16%,
-    #05070a 16% 27%, transparent 27% 28%, #090c12 28% 35%, transparent 35% 36%,
-    #05070a 36% 48%, transparent 48% 49%, #080b10 49% 58%, transparent 58% 59%,
-    #05070a 59% 72%, transparent 72% 73%, #080b10 73% 82%, transparent 82% 83%,
-    #05070a 83% 100%);
-  clip-path: polygon(0 35%,7% 35%,7% 12%,15% 12%,15% 42%,23% 42%,23% 5%,31% 5%,31% 30%,39% 30%,39% 18%,49% 18%,49% 38%,58% 38%,58% 0,68% 0,68% 28%,76% 28%,76% 10%,85% 10%,85% 34%,94% 34%,94% 18%,100% 18%,100% 100%,0 100%);
+.cityLoadingSlides, .cityLoadingShade, .cityLoadingGrain { position: absolute; inset: 0; }
+.cityLoadingSlide {
+  position: absolute; inset: -2%; width: 104%; height: 104%; object-fit: cover;
+  opacity: 0; transform: scale(1.035); filter: saturate(.88) contrast(1.06) brightness(.84);
+  transition: opacity 1.15s ease, transform 7s ease;
 }
-.cityLoadingCard { position: relative; width: min(520px, calc(100vw - 42px)); text-align: center; padding: 28px 24px; }
-.cityLoadingMark { color: #d9b565; font: 900 clamp(11px,2vw,13px)/1 system-ui,sans-serif; letter-spacing: .42em; text-transform: uppercase; }
-.cityLoadingTitle { margin: 10px 0 5px; color: #f5e6bd; font: 900 clamp(36px,9vw,70px)/.95 Georgia,serif; letter-spacing: .08em; text-shadow: 0 5px 24px #000, 0 0 28px rgba(202,47,43,.24); }
-.cityLoadingRule { width: 92px; height: 2px; margin: 17px auto 21px; background: linear-gradient(90deg,transparent,#c62f2b,transparent); box-shadow: 0 0 14px #c62f2b88; }
-#cityLoadingText { min-height: 20px; color: #d7dce4; font: 700 13px/1.4 system-ui,sans-serif; letter-spacing: .03em; }
-.cityLoadingTrack { height: 7px; margin-top: 14px; overflow: hidden; border: 1px solid #3b4350; border-radius: 99px; background: #080b10; box-shadow: inset 0 1px 5px #000; }
-#cityLoadingBar { width: 7%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#7e1719,#df3e35,#e5bd69); box-shadow: 0 0 15px #d23832; transition: width .28s ease; }
-.cityLoadingMeta { display: flex; justify-content: space-between; margin-top: 9px; color: #747f8e; font: 800 10px/1 system-ui,sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+.cityLoadingSlide.active { opacity: 1; transform: scale(1); }
+.cityLoadingShade {
+  z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(3,5,8,.76) 0%, transparent 20%, transparent 68%, rgba(3,5,8,.92) 100%),
+    linear-gradient(90deg, rgba(2,4,7,.93) 0%, rgba(4,7,11,.69) 31%, rgba(3,5,8,.08) 62%, rgba(2,4,7,.35) 100%);
+  transition: transform .75s ease;
+}
+#cityLoadingScreen.tip-right .cityLoadingShade { transform: scaleX(-1); }
+.cityLoadingGrain {
+  z-index: 2; pointer-events: none; opacity: .16; mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+}
+.cityLoadingBrand {
+  position: absolute; z-index: 4; left: clamp(22px,4vw,68px); top: clamp(20px,4vw,54px);
+  display: flex; align-items: center; gap: 11px; color: #f4e7c5;
+  font: 950 clamp(18px,2.2vw,31px)/1 Georgia,serif; letter-spacing: .12em;
+  text-shadow: 0 3px 20px #000;
+}
+.cityLoadingBrand::before { content: ''; width: 5px; height: 29px; background: #b82026; box-shadow: 0 0 16px #b82026aa; }
+.cityLoadingCard {
+  position: relative; z-index: 4; align-self: center;
+  width: min(530px, calc(100vw - 44px)); margin-left: clamp(22px,7vw,126px);
+  padding: clamp(24px,3vw,42px); text-align: left;
+  border-left: 3px solid #bb2429;
+  background: linear-gradient(110deg, rgba(5,7,11,.92), rgba(8,10,14,.68));
+  box-shadow: 0 25px 80px rgba(0,0,0,.48), inset 0 1px rgba(255,255,255,.07);
+  backdrop-filter: blur(7px); transition: margin .75s ease, opacity .35s ease, transform .35s ease;
+}
+#cityLoadingScreen.tip-right .cityLoadingCard { margin-left: auto; margin-right: clamp(22px,7vw,126px); }
+.cityLoadingCard.changing { opacity: .22; transform: translateY(7px); }
+.cityLoadingMark { color: #d7b56b; font: 900 11px/1 system-ui,sans-serif; letter-spacing: .32em; text-transform: uppercase; }
+.cityLoadingTitle { margin: 12px 0 13px; max-width: 500px; color: #fff5dc; font: 950 clamp(29px,4vw,52px)/.98 Georgia,serif; letter-spacing: -.025em; text-wrap: balance; text-shadow: 0 4px 28px #000; }
+#cityLoadingTip { min-height: 66px; max-width: 470px; color: #d9dde3; font: 650 clamp(14px,1.55vw,18px)/1.48 system-ui,sans-serif; text-shadow: 0 2px 10px #000; }
+.cityLoadingHint { display: inline-flex; margin-top: 20px; padding: 8px 11px; border: 1px solid rgba(214,177,99,.52); color: #e6c985; background: rgba(0,0,0,.4); font: 850 10px/1 system-ui,sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.cityLoadingFooter { position: absolute; z-index: 4; left: clamp(22px,4vw,68px); right: clamp(22px,4vw,68px); bottom: clamp(18px,3.5vw,43px); }
+#cityLoadingText { min-height: 18px; color: #d7dce4; font: 750 12px/1.35 system-ui,sans-serif; letter-spacing: .035em; text-shadow: 0 2px 10px #000; }
+.cityLoadingTrack { height: 5px; margin-top: 10px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.16); box-shadow: 0 2px 12px #000; }
+#cityLoadingBar { width: 7%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#9d171d,#e13934,#e6bd68); box-shadow: 0 0 15px #d23832; transition: width .28s ease; }
+.cityLoadingMeta { display: flex; justify-content: space-between; margin-top: 8px; color: #a9afb9; font: 850 9px/1 system-ui,sans-serif; letter-spacing: .16em; text-transform: uppercase; text-shadow: 0 2px 8px #000; }
 #cityLoadingPct { color: #d9b565; }
-@media (prefers-reduced-motion: reduce) { #cityLoadingScreen, #cityLoadingBar { transition: none; } }
+@media (max-width: 700px) {
+  .cityLoadingSlide { width: 120%; left: -10%; }
+  .cityLoadingShade, #cityLoadingScreen.tip-right .cityLoadingShade { transform: none; background: linear-gradient(180deg,rgba(2,4,7,.66),rgba(2,4,7,.22) 35%,rgba(2,4,7,.86)); }
+  .cityLoadingBrand { font-size: 18px; }
+  .cityLoadingCard, #cityLoadingScreen.tip-right .cityLoadingCard { align-self: flex-end; width: auto; margin: 0 18px 112px; padding: 22px; }
+  .cityLoadingTitle { font-size: clamp(27px,9vw,39px); }
+  #cityLoadingTip { min-height: 60px; font-size: 14px; }
+  .cityLoadingHint { margin-top: 15px; }
+}
+@media (prefers-reduced-motion: reduce) { #cityLoadingScreen, #cityLoadingBar, .cityLoadingSlide, .cityLoadingCard { transition: none; } }
 
 /* Левый стик движения */
 #joyL {
@@ -2069,10 +2105,21 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 </div>
 
 <div id="cityLoadingScreen" role="status" aria-live="polite" aria-label="Загрузка города">
+  <div class="cityLoadingSlides" aria-hidden="true">
+    <img class="cityLoadingSlide active" src="assets/loading/city-empire.webp" alt="" decoding="async" fetchpriority="high">
+    <img class="cityLoadingSlide" src="assets/loading/bank-heist.webp" alt="" decoding="async">
+    <img class="cityLoadingSlide" src="assets/loading/district-empire.webp" alt="" decoding="async">
+  </div>
+  <div class="cityLoadingShade"></div>
+  <div class="cityLoadingGrain"></div>
+  <div class="cityLoadingBrand">МАФИОЗИ</div>
   <div class="cityLoadingCard">
-    <div class="cityLoadingMark">Город ждёт хозяина</div>
-    <div class="cityLoadingTitle">МАФИОЗИ</div>
-    <div class="cityLoadingRule"></div>
+    <div class="cityLoadingMark">Совет из подполья</div>
+    <div class="cityLoadingTitle" id="cityLoadingTipTitle">Город запоминает поступки</div>
+    <div id="cityLoadingTip">Захватывай районы, защищай бизнесы и выбирай союзников: репутация открывает новые возможности.</div>
+    <div class="cityLoadingHint" id="cityLoadingHint">Районы • доход • влияние</div>
+  </div>
+  <div class="cityLoadingFooter">
     <div id="cityLoadingText">Запускаем городской движок…</div>
     <div class="cityLoadingTrack"><div id="cityLoadingBar"></div></div>
     <div class="cityLoadingMeta"><span>Загрузка города</span><span id="cityLoadingPct">7%</span></div>
@@ -2088,6 +2135,39 @@ window.MafioziLoading = (() => {
   const bar = document.getElementById('cityLoadingBar');
   const text = document.getElementById('cityLoadingText');
   const pct = document.getElementById('cityLoadingPct');
+  const card = screen?.querySelector('.cityLoadingCard');
+  const slides = Array.from(screen?.querySelectorAll('.cityLoadingSlide') || []);
+  const tipTitle = document.getElementById('cityLoadingTipTitle');
+  const tipText = document.getElementById('cityLoadingTip');
+  const tipHint = document.getElementById('cityLoadingHint');
+  const tips = [
+    { slide:0, side:'left', title:'Город запоминает поступки', text:'Захватывай районы, защищай бизнесы и выбирай союзников: репутация открывает новые возможности.', hint:'Районы • доход • влияние' },
+    { slide:1, side:'right', title:'К ограблению готовятся заранее', text:'Изучи входы, охрану и путь к хранилищу. Деньги ещё нужно вынести и довезти до безопасного места.', hint:'Банк • охрана • отход' },
+    { slide:2, side:'left', title:'Мост соединяет два города', text:'Северные районы разделены каналом. Широкий мост — единственный сухопутный путь между берегами.', hint:'Ист-Сайд • Доклендс • мост' },
+    { slide:0, side:'left', title:'Не каждый встречный — враг', text:'Мирные жители, банды и полиция выглядят и действуют по-разному. Сначала оцени обстановку, потом открывай огонь.', hint:'Жители • банды • полиция' },
+    { slide:1, side:'right', title:'Шум всегда имеет цену', text:'Выстрелы и драки привлекают внимание. Продумай путь отхода и не оставайся на открытом месте.', hint:'Розыск • укрытия • отступление' },
+    { slide:2, side:'left', title:'Бизнес работает на владельца', text:'Проверяй статус выбранного здания: бизнес может быть нейтральным, твоим или принадлежать другой семье.', hint:'Статус • семья • бизнес' },
+    { slide:0, side:'left', title:'Двери открываются намеренно', text:'Подойди к нужному зданию и нажми E. Табличка появляется только у объекта, с которым можно взаимодействовать.', hint:'Клавиша E • вход в здание' },
+    { slide:1, side:'right', title:'Снаряжение меняет бой', text:'Разные классы оружия отличаются дальностью, отдачей и поведением пули. Выбирай оружие под дистанцию.', hint:'Оружие • дальность • отдача' },
+    { slide:2, side:'left', title:'Район нужно удержать', text:'Захват приносит влияние и доход, но соперники могут вернуть территорию. Оставляй бойцов на важных точках.', hint:'Захват • защита • доход' }
+  ];
+  let tipIndex = 0, tipTimer = 0;
+  const previewHold = (location.hostname === '127.0.0.1' || location.hostname === 'localhost') && new URLSearchParams(location.search).get('loadingpreview') === '1';
+  const showTip = index => {
+    if (!tips.length || finished) return;
+    tipIndex = ((index % tips.length) + tips.length) % tips.length;
+    const tip = tips[tipIndex];
+    card?.classList.add('changing');
+    setTimeout(() => {
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === tip.slide));
+      screen?.classList.toggle('tip-right', tip.side === 'right');
+      if (tipTitle) tipTitle.textContent = tip.title;
+      if (tipText) tipText.textContent = tip.text;
+      if (tipHint) tipHint.textContent = tip.hint;
+      card?.classList.remove('changing');
+    }, 240);
+  };
+  tipTimer = setInterval(() => showTip(tipIndex + 1), 4600);
   const isThree = new URLSearchParams(location.search).get('render') === '3d';
   const set = (next, label) => {
     if (finished) return;
@@ -2095,12 +2175,17 @@ window.MafioziLoading = (() => {
     if (bar) bar.style.width = `${value}%`;
     if (pct) pct.textContent = `${value}%`;
     if (label && text) text.textContent = label;
+    if (value >= 72 && tipIndex < 2) showTip(2);
+    else if (value >= 40 && tipIndex < 1) showTip(1);
   };
   const complete = label => {
-    if (finished) return; finished = true;
+    if (finished) return;
+    if (previewHold) { if (label && text) text.textContent = label; return; }
+    finished = true;
+    clearInterval(tipTimer);
     if (bar) bar.style.width = '100%'; if (pct) pct.textContent = '100%';
     if (label && text) text.textContent = label;
-    const wait = Math.max(0, 650 - (performance.now() - started));
+    const wait = Math.max(0, 1400 - (performance.now() - started));
     setTimeout(() => { screen?.classList.add('done'); setTimeout(() => screen?.remove(), 520); }, wait);
   };
   // Если WebGL/CDN не ответит, игра всё равно откроет уже работающий Canvas.
