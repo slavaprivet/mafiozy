@@ -5503,6 +5503,11 @@ const DISTRICT_STYLE_PROFILES = Object.freeze({
   countryside: { name:'Загородный район',icon:'🌲', mood:'Тихая окраина',         sky:'#8fd68a', accent:'#78c86f' },
   rich:        { name:'Богатый район',   icon:'🏎', mood:'Виллы и охрана',        sky:'#d7c8ff', accent:'#e8ce73' },
   nightlife:   { name:'Ночной район',    icon:'🌃', mood:'Клубы, казино и неон',  sky:'#6842a8', accent:'#ff4fd8' },
+  chinatown_poor:   { name:'Старый Чайна-таун',    icon:'🏮', mood:'Бедные дворы, мастерские и прачечные', sky:'#7d5347', accent:'#ef5b45' },
+  chinatown_market: { name:'Торговый Чайна-таун',  icon:'🥡', mood:'Рынки, чайные и уличные лавки',        sky:'#ad5a3f', accent:'#ffd166' },
+  chinatown_neon:   { name:'Неоновый Чайна-таун',  icon:'🐉', mood:'Ночная улица, клубы и вывески',        sky:'#392b68', accent:'#ff3b88' },
+  chinatown_rich:   { name:'Золотой Чайна-таун',   icon:'🀄', mood:'Богатые дома, отели и закрытые сады', sky:'#315d67', accent:'#e7c45b' },
+  chinatown_docks:  { name:'Красные доки',         icon:'🏗️', mood:'Склады, рыбные рынки и подпольные цеха',sky:'#59463d', accent:'#e66a38' },
 });
 const DISTRICT_STYLE_ZONES = Object.freeze([
   { id:'downtown',    r0:0,   r1:39,  c0:40, c1:79 },
@@ -5511,9 +5516,14 @@ const DISTRICT_STYLE_ZONES = Object.freeze([
   { id:'rich',        r0:60,  r1:79,  c0:0,  c1:39 },
   { id:'countryside', r0:80,  r1:99,  c0:0,  c1:39 },
   { id:'industrial',  r0:40,  r1:99,  c0:40, c1:79 },
-  { id:'rich',        r0:0,   r1:74,  c0:100, c1:179 },
-  { id:'nightlife',   r0:75,  r1:109, c0:100, c1:179 },
-  { id:'industrial',  r0:110, r1:149, c0:100, c1:179 },
+  // Восточный город — единый Чайна-таун с читаемыми социальными поясами.
+  // Серверные районы eastside/docklands ниже остаются прежними: это только визуальная архитектура.
+  { id:'chinatown_poor',   r0:0,   r1:54,  c0:100, c1:139 },
+  { id:'chinatown_rich',   r0:0,   r1:54,  c0:140, c1:179 },
+  { id:'chinatown_market', r0:55,  r1:89,  c0:100, c1:139 },
+  { id:'chinatown_neon',   r0:55,  r1:109, c0:140, c1:179 },
+  { id:'chinatown_docks',  r0:90,  r1:149, c0:100, c1:139 },
+  { id:'chinatown_rich',   r0:110, r1:149, c0:140, c1:179 },
   { id:'coast',       r0:150, r1:199, c0:0,  c1:179 },
 ]);
 function districtStyleAt(r,c){
@@ -5638,7 +5648,7 @@ function _ensureDistrictEntryBanner(){
 }
 function _showDistrictEntryBanner(d,style){
   if(!d)return;const el=_ensureDistrictEntryBanner(),owner=districtOwners[d.id],token=++_districtEntryBannerToken,accent=(style?.accent||d.color||'#d2691e');
-  el.style.setProperty('--deb-accent',accent);el.querySelector('.deb-icon span').textContent=style?.icon||d.icon||'🏙️';el.querySelector('.deb-name').textContent=d.name||style?.name||'Район';
+  el.style.setProperty('--deb-accent',accent);el.querySelector('.deb-icon span').textContent=style?.icon||d.icon||'🏙️';el.querySelector('.deb-name').textContent=style?.name||d.name||'Район';
   el.querySelector('.deb-control').textContent=owner?`👑 ${owner.ownerName||owner.gangTag||'под контролем'}`:(d.capturable?'◇ НЕ ЗАХВАЧЕН':'☠ ОПАСНАЯ ЗОНА');
   const speciality=el.querySelector('.deb-speciality');speciality.textContent='';const strong=document.createElement('b');strong.textContent=style?.name||d.name||'Район';speciality.append(strong,document.createTextNode(` · ${style?.mood||d.bonus||'городская территория'}`));el.querySelector('.deb-bonus').textContent=d.bonus?`◆ Особенность: ${d.bonus}`:'◆ Следи за обстановкой и влиянием фракций';
   clearTimeout(_districtEntryBannerTimer);el.classList.remove('show','hide');requestAnimationFrame(()=>{if(token===_districtEntryBannerToken)el.classList.add('show');});_districtEntryBannerTimer=setTimeout(()=>{if(token!==_districtEntryBannerToken)return;el.classList.add('hide');el.classList.remove('show');},3800);
@@ -11661,6 +11671,9 @@ function apartmentPrice(r, c) {
 }
 function apartmentDistrictMarket(r, c) {
   let id = typeof districtStyleIdAt === 'function' ? districtStyleIdAt(r, c) : null;
+  // Chinatown has finer visual zones, while property pricing remains on the
+  // established server-authoritative eastside/docklands tiers.
+  if (id && id.startsWith('chinatown_')) id = r <= 74 ? 'rich' : r <= 109 ? 'nightlife' : 'industrial';
   if (!id && r >= 100 && r <= 149 && c >= 0 && c <= 79) id = 'lair';
   return APARTMENT_DISTRICT_MARKET[id] || APARTMENT_DISTRICT_MARKET.standard;
 }
@@ -35488,25 +35501,29 @@ function drawBuilding(r, c) {
     bldType=((r*5+c*3)%4===0)?1:3;
     H=isoH(2.35+seed*2.45);
   }
-  if(districtStyleId==='poor'){
+  if(districtStyleId==='poor'||districtStyleId==='chinatown_poor'){
     bldType=((r*7+c*5)%4===0)?2:0;
     H=isoH(1.0+seed*1.05);
   }
-  if(districtStyleId==='industrial'){
+  if(districtStyleId==='industrial'||districtStyleId==='chinatown_docks'){
     bldType=((r*3+c*7)%3===0)?1:2;
     H=isoH(1.15+seed*1.35);
   }
-  if(districtStyleId==='nightlife'){
+  if(districtStyleId==='nightlife'||districtStyleId==='chinatown_neon'){
     bldType=((r*5+c*11)%3===0)?3:2;
     H=isoH(1.55+seed*1.65);
   }
-  if(districtStyleId==='rich'){
+  if(districtStyleId==='rich'||districtStyleId==='chinatown_rich'){
     bldType=((r+c)%5===0)?2:0;
     H=isoH(1.25+seed*1.25);
   }
   if(districtStyleId==='countryside'){
     bldType=0;
     H=isoH(.82+seed*.72);
+  }
+  if(districtStyleId==='chinatown_market'){
+    bldType=((r*5+c*7)%4===0)?0:2;
+    H=isoH(1.25+seed*1.15);
   }
   // Тень — мягкая с альфой
   ctx.fillStyle = 'rgba(0,0,0,.55)';
@@ -35559,22 +35576,25 @@ function drawBuilding(r, c) {
      ['#2c4a5e', '#0c1e2e'],   // синий хай-тек
      ['#48404a', '#1c1820']],  // пурпурный графит
   ];
+  if(districtStyleId==='chinatown_market')palList=[
+    ['#88452f','#402118'],['#95653a','#49301c'],['#6c4937','#33231c'],['#805a38','#3b291b'],['#4d7162','#23382f']
+  ];
   let palList = palettesByType[bldType];
   if(districtStyleId==='downtown')palList=[
     ['#75b9d3','#173b55'],['#71a8c7','#1b3049'],['#87c8cf','#173e47'],
     ['#778fc3','#202c51'],['#a1bac8','#344657'],['#5e91ad','#142b43']
   ];
-  if(districtStyleId==='poor')palList=[
+  if(districtStyleId==='poor'||districtStyleId==='chinatown_poor')palList=[
     ['#7b6047','#3b2c22'],['#806b55','#403328'],['#6f5548','#352821'],
     ['#765b3a','#3b2b1b'],['#657064','#30372f'],['#77504a','#392521']
   ];
-  if(districtStyleId==='industrial')palList=[
+  if(districtStyleId==='industrial'||districtStyleId==='chinatown_docks')palList=[
     ['#777c79','#363b3a'],['#6f7478','#303437'],['#756957','#393128'],['#667379','#303a3e'],['#8a735b','#433528']
   ];
-  if(districtStyleId==='nightlife')palList=[
+  if(districtStyleId==='nightlife'||districtStyleId==='chinatown_neon')palList=[
     ['#493458','#1d1426'],['#303c5b','#11182b'],['#50304f','#211322'],['#294858','#10232c'],['#4f3f69','#20182f']
   ];
-  if(districtStyleId==='rich')palList=[
+  if(districtStyleId==='rich'||districtStyleId==='chinatown_rich')palList=[
     ['#d8c8a7','#756852'],['#d7d3c9','#72716e'],['#d7b9a7','#785b4e'],['#c7d5cf','#65736d'],['#ded3b5','#7d6e52']
   ];
   if(districtStyleId==='countryside')palList=[
@@ -35752,7 +35772,7 @@ function drawBuilding(r, c) {
     }
     ctx.restore();
   }
-  if(districtStyleId==='poor'){
+  if(districtStyleId==='poor'||districtStyleId==='chinatown_poor'){
     // Облупившаяся штукатурка, ремонтные заплаты, трещины и заколоченные окна.
     ctx.save();
     const wear=((r*29+c*43)%4);
@@ -35771,7 +35791,7 @@ function drawBuilding(r, c) {
     }
     ctx.restore();
   }
-  if(districtStyleId==='industrial'){
+  if(districtStyleId==='industrial'||districtStyleId==='chinatown_docks'){
     ctx.save();ctx.strokeStyle='rgba(244,174,73,.78)';ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(p.x+4,p.y-H*.62);ctx.lineTo(p.x+wx-5,p.y-H*.62);ctx.stroke();
     ctx.fillStyle='rgba(20,24,25,.88)';ctx.fillRect(p.x+5,p.y-H*.48,wx-10,11);
@@ -35779,7 +35799,7 @@ function drawBuilding(r, c) {
     if(((r+c)%3)===0){ctx.fillStyle='#62696a';ctx.fillRect(p.x-6,p.y-H-11,12,12);ctx.strokeStyle='#313738';ctx.beginPath();ctx.moveTo(p.x,p.y-H-11);ctx.lineTo(p.x+8,p.y-H-24);ctx.stroke();}
     ctx.restore();
   }
-  if(districtStyleId==='nightlife'){
+  if(districtStyleId==='nightlife'||districtStyleId==='chinatown_neon'){
     // В одном городском блоке десятки составных тайлов. Яркую вывеску
     // получает только один фасад блока, иначе район превращается в стену
     // одинаковых табличек. На остальных остаётся редкая контурная подсветка.
@@ -35806,13 +35826,16 @@ function drawBuilding(r, c) {
     }
     ctx.textAlign='left';ctx.shadowBlur=0;ctx.restore();
   }
-  if(districtStyleId==='rich'){
+  if(districtStyleId==='rich'||districtStyleId==='chinatown_rich'){
     ctx.save();ctx.strokeStyle='rgba(245,218,143,.82)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(p.x-wx,p.y-H);ctx.lineTo(p.x,p.y-H-wy);ctx.lineTo(p.x+wx,p.y-H);ctx.stroke();
     ctx.fillStyle='#f0d785';ctx.fillRect(p.x+wx*.12,p.y-H*.18,wx*.55,2);ctx.restore();
   }
   if(districtStyleId==='countryside'){
     ctx.save();ctx.fillStyle='#70472d';ctx.beginPath();ctx.moveTo(p.x-wx-4,p.y-H);ctx.lineTo(p.x,p.y-H-wy-12);ctx.lineTo(p.x+wx+4,p.y-H);ctx.lineTo(p.x,p.y-H+wy+4);ctx.closePath();ctx.fill();
     ctx.strokeStyle='#4e301e';ctx.lineWidth=1;for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(p.x+i*9,p.y-H-wy+Math.abs(i)*5);ctx.lineTo(p.x+i*12,p.y-H+wy-Math.abs(i)*2);ctx.stroke();}ctx.restore();
+  }
+  if(districtStyleId==='chinatown_market'){
+    ctx.save();const neon=((r+c)&1)?'#ff4d45':'#ffd15a';ctx.shadowColor=neon;ctx.shadowBlur=7;ctx.fillStyle='rgba(81,24,22,.94)';ctx.fillRect(p.x+wx*.12,p.y-H*.52,wx*.72,14);ctx.strokeStyle='#d8a84d';ctx.strokeRect(p.x+wx*.12,p.y-H*.52,wx*.72,14);ctx.fillStyle=neon;ctx.font='900 7px system-ui';ctx.textAlign='center';ctx.fillText(['TEA','JADE','MARKET'][Math.abs(r*3+c)%3],p.x+wx*.48,p.y-H*.52+10);ctx.shadowBlur=0;ctx.textAlign='left';for(let k=0;k<3;k++){ctx.fillStyle=k&1?'#e43d3d':'#f4b642';ctx.beginPath();ctx.arc(p.x-wx*.35+k*9,p.y-H*.22,3,0,Math.PI*2);ctx.fill();}ctx.restore();
   }
   // ── Балкон на жилом доме (стрелочка вперёд+поручни) ───────────
   if (bldType === 0 && winRows >= 2) {
@@ -52526,7 +52549,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v26-shared-district-entry-card',
+  migrationStage: 'three-full-world-shell-v27-premium-bridge-chinatown',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -52633,8 +52656,8 @@ window.Mafiozi3DBridge = Object.freeze({
       }
       const styleId = typeof districtStyleIdAt === 'function' ? districtStyleIdAt(r0 + BLOCK/2, c0 + BLOCK/2) : null;
       const seed = Math.abs(((r0 * 73856093) ^ (c0 * 19349663)) | 0);
-      const heightBase = {downtown:20,nightlife:12,rich:10,industrial:8,poor:7,countryside:5,coast:6}[styleId] || 8;
-      const heightSpread = styleId === 'downtown' ? 18 : styleId === 'nightlife' ? 8 : 6;
+      const heightBase = {downtown:20,nightlife:12,rich:10,industrial:8,poor:7,countryside:5,coast:6,chinatown_poor:7,chinatown_market:9,chinatown_neon:14,chinatown_rich:18,chinatown_docks:7}[styleId] || 8;
+      const heightSpread = styleId === 'downtown' ? 18 : styleId === 'chinatown_rich' ? 14 : (styleId === 'nightlife'||styleId === 'chinatown_neon') ? 9 : 6;
       const buildingParts=_connectedBuildingParts(r0,c0,Math.min(r0+BLOCK,MAP_ROWS),Math.min(c0+BLOCK,MAP_COLS)).map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread)}));
       blocks.push({
         r0,c0,styleId,buildings,roads,pavement,grass,sand,water,seed,
@@ -52665,7 +52688,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const neighborhoods=[];
     for(let r0=Math.floor(minR/20)*20;r0<=maxR;r0+=20)for(let c0=EAST_EXPANSION_C0;c0<=maxC;c0+=20){
       if(r0>=EAST_EXPANSION_R1||c0<minC)continue;
-      neighborhoods.push({r0,c0,size:20,vertical:((Math.floor(r0/20)+Math.floor((c0-EAST_EXPANSION_C0)/20))&1)===1});
+      neighborhoods.push({r0,c0,size:20,vertical:((Math.floor(r0/20)+Math.floor((c0-EAST_EXPANSION_C0)/20))&1)===1,styleId:districtStyleIdAt(r0+10,c0+10)});
     }
     return {center:{r:player.r,c:player.c},bounds:{minR,maxR,minC,maxC},blocks,pois,coast,canal,neighborhoods,landmarks};
   },
@@ -56437,6 +56460,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d72"></script>
+<script type="module" src="three_preview.js?v=3d73"></script>
 </body>
 </html>
