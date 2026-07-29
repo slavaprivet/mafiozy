@@ -6805,8 +6805,13 @@ function trafficPhase() {
 const NPCS = [];
 function spawnNpc(seed) {
   for (let tries = 0; tries < 80; tries++) {
-    const r = 2 + Math.floor(Math.random() * (MAP_ROWS - 4));
-    const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
+    // Spread citizens across rotating city sectors instead of allowing random
+    // clusters around a few lucky blocks. Every retry moves to another sector.
+    const sectorRows=6,sectorCols=5,sectorCount=sectorRows*sectorCols;
+    const sector=(Math.abs((seed|0))+tries*7)%sectorCount;
+    const sr=Math.floor(sector/sectorCols),sc=sector%sectorCols;
+    const r = 2 + Math.min(MAP_ROWS-5,Math.floor(((sr+Math.random())/sectorRows)*(MAP_ROWS-4)));
+    const c = 2 + Math.min(MAP_COLS-5,Math.floor(((sc+Math.random())/sectorCols)*(MAP_COLS-4)));
     if (inArena(r, c)) continue;
     if (inLair(r, c)) continue;   // мирные NPC не заходят в логово
     const _spt = MAP[r][c];
@@ -7191,8 +7196,10 @@ function npcPassableForSnitch(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
   if (inArena(ri, ci)) return false;
+  if (inLair(ri, ci)) return false;
   const t = MAP[ri][ci];
-  return (t === 0 || t === 9 || t === 8);
+  if(t===14&&_inPitCorridor(ri+.5,ci+.5))return false;
+  return (t === 0 || t === 9 || t === 8 || t === 14);
 }
 // Проверяем не только центральную точку, но и небольшой радиус тела. Иначе
 // центр остаётся на тротуаре, а половина спрайта заходит в соседнее здание —
@@ -7239,6 +7246,70 @@ function npcWaypointOk(npc, r, c) {
 function _clearNpcRoute(npc) {
   npc._route=null;npc._routeIndex=0;npc._routeGoalR=null;npc._routeGoalC=null;npc._routeBlockedAt=0;
 }
+function _setNpcRoute(npc,path,kind='walk') {
+  if(!path||!path.length)return false;
+  npc._route=path;npc._routeIndex=0;npc._routeKind=kind;
+  npc._routeGoalR=path[path.length-1].r;npc._routeGoalC=path[path.length-1].c;npc._routeBlockedAt=0;
+  npc.tr=path[0].r;npc.tc=path[0].c;
+  return true;
+}
+// Four-connected pedestrian pathfinder. Cardinal nodes are intentional: a
+// citizen can never cut diagonally across a building corner or a water tile.
+function _planNpcRouteTo(npc,goalR,goalC,passFn=npcPassable,goalRadius=.8,maxVisited=18000,kind='directed') {
+  const sr=Math.floor(npc.r),sc=Math.floor(npc.c),startKey=sr*MAP_COLS+sc;
+  const queue=[{r:sr,c:sc,key:startKey}],nodes=new Map([[startKey,queue[0]]]),dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  let goal=null,best=queue[0],bestD=Math.hypot(sr+.5-goalR,sc+.5-goalC);
+  for(let qi=0;qi<queue.length&&nodes.size<maxVisited;qi++){
+    const cur=queue[qi],dist=Math.hypot(cur.r+.5-goalR,cur.c+.5-goalC);
+    if(dist<bestD){bestD=dist;best=cur;}
+    if(dist<=goalRadius){goal=cur;break;}
+    for(const [dr,dc] of dirs){
+      const r=cur.r+dr,c=cur.c+dc,key=r*MAP_COLS+c;
+      if(nodes.has(key)||!passFn(r+.5,c+.5))continue;
+      const node={r,c,key,parent:cur.key};nodes.set(key,node);queue.push(node);
+    }
+  }
+  goal=goal||best;
+  const path=[];
+  while(goal&&goal.key!==startKey){path.push({r:goal.r+.5,c:goal.c+.5});goal=nodes.get(goal.parent);}
+  path.reverse();
+  return _setNpcRoute(npc,path,kind);
+}
+function _planNpcEscapeRoute(npc,threatR,threatC) {
+  const sr=Math.floor(npc.r),sc=Math.floor(npc.c),startKey=sr*MAP_COLS+sc,maxDepth=14,maxVisited=620;
+  const queue=[{r:sr,c:sc,key:startKey,depth:0}],nodes=new Map([[startKey,queue[0]]]),dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  const initialD=Math.hypot(npc.r-threatR,npc.c-threatC);let best=queue[0],bestScore=initialD*5;
+  for(let qi=0;qi<queue.length&&nodes.size<maxVisited;qi++){
+    const cur=queue[qi],safeD=Math.hypot(cur.r+.5-threatR,cur.c+.5-threatC);
+    const score=safeD*5+cur.depth*.12;
+    if(score>bestScore){bestScore=score;best=cur;}
+    if(cur.depth>=maxDepth)continue;
+    for(const [dr,dc] of dirs){
+      const r=cur.r+dr,c=cur.c+dc,key=r*MAP_COLS+c;
+      if(nodes.has(key)||!npcWaypointOk(npc,r+.5,c+.5))continue;
+      const node={r,c,key,depth:cur.depth+1,parent:cur.key};nodes.set(key,node);queue.push(node);
+    }
+  }
+  if(best===queue[0]||Math.hypot(best.r+.5-threatR,best.c+.5-threatC)<initialD+.75)return false;
+  const path=[];let node=best;
+  while(node&&node.key!==startKey){path.push({r:node.r+.5,c:node.c+.5});node=nodes.get(node.parent);}
+  path.reverse();
+  return _setNpcRoute(npc,path,'panic');
+}
+function _npcAdvanceRoute(npc,dt,speed,passFn=npcPassable) {
+  if(!npc._route?.length)return false;
+  let target=npc._route[npc._routeIndex||0];
+  let dr=target.r-npc.r,dc=target.c-npc.c,d=Math.hypot(dr,dc);
+  if(d<.34){
+    if((npc._routeIndex||0)+1>=npc._route.length)return 'arrived';
+    npc._routeIndex=(npc._routeIndex||0)+1;target=npc._route[npc._routeIndex];
+    npc.tr=target.r;npc.tc=target.c;dr=target.r-npc.r;dc=target.c-npc.c;d=Math.hypot(dr,dc);
+  }
+  const step=Math.min(speed*dt,d),nr=npc.r+(dr/Math.max(.001,d))*step,nc=npc.c+(dc/Math.max(.001,d))*step;
+  if(!_npcBodyPassable(nr,nc,passFn))return 'blocked';
+  npc.r=nr;npc.c=nc;npc.ang=Math.atan2(dr,dc);npc.walkPhase+=dt*14;npc.walking=true;npc._routeBlockedAt=0;
+  return true;
+}
 function pickNpcWaypoint(npc) {
   // Гражданин получает не случайный шаг рядом с собой, а достижимую дальнюю цель
   // и полный маршрут к ней. Поэтому на каждом углу он не передумывает и не идёт
@@ -7269,10 +7340,8 @@ function pickNpcWaypoint(npc) {
   if(!path.length){_clearNpcRoute(npc);npc.tr=npc.r;npc.tc=npc.c;return false;}
   const oldStartR=npc._routeStartR,oldStartC=npc._routeStartC;
   npc._previousRouteStartR=oldStartR;npc._previousRouteStartC=oldStartC;
-  npc._routeStartR=npc.r;npc._routeStartC=npc.c;npc._route=path;npc._routeIndex=0;
-  npc._routeGoalR=path[path.length-1].r;npc._routeGoalC=path[path.length-1].c;npc._routeBlockedAt=0;
-  npc.tr=path[0].r;npc.tc=path[0].c;
-  return true;
+  npc._routeStartR=npc.r;npc._routeStartC=npc.c;
+  return _setNpcRoute(npc,path,'walk');
 }
 const TARGET_NPC_COUNT = 48;       // активных прохожих; дальний город заполняется по мере движения
 const NPC_RESPAWN_MIN_DIST = 22;   // не спаунить ближе этого к игроку
@@ -9856,6 +9925,7 @@ function updateNpcs(dt) {
       if (d < POLICE_REPORT_RADIUS) {
         n.snitching = false;
         n.snitchUntil = 0;
+        _clearNpcRoute(n);
         n._witnessStage = 'reported';
         n.cryUntil = now + 1500;
         n.cryText  = 'ВОТ ОН!!';
@@ -9867,66 +9937,50 @@ function updateNpcs(dt) {
       // Двигаемся к участку, скорость ×2 (бег). Снитчам разрешена дорога
       // (тип 0) — они спешат, перебегают улицу. Обычные NPC по дорогам
       // не ходят, поэтому в свежем коде они просто застревали у бордюра.
-      const sp = n.speed * 2.4 * dt;
-      const stepR = (dr / Math.max(0.001, d)) * sp;
-      const stepC = (dc / Math.max(0.001, d)) * sp;
-      const nr = n.r + stepR, nc = n.c + stepC;
-      if (_npcBodyPassable(nr, nc, npcPassableForSnitch)) {
-        n.r = nr; n.c = nc;
-      } else {
-        // Обходим препятствие — пробуем 4 направления (тоже с разрешением
-        // дорог), плюс шаги вдвое короче.
-        const tries = [
-          [ stepC * 0.7, -stepR * 0.7 ], [-stepC * 0.7,  stepR * 0.7 ],
-          [ stepR * 0.5, 0 ], [ 0, stepC * 0.5 ],
-          [ stepR * 0.3, stepC * 0.3 ],
-        ];
-        for (const [dr2, dc2] of tries) {
-          if (_npcBodyPassable(n.r + dr2, n.c + dc2, npcPassableForSnitch)) {
-            n.r += dr2; n.c += dc2; break;
-          }
-        }
+      // Witnesses use a complete four-connected route to the police area.
+      // Roads are allowed, buildings and water remain hard obstacles.
+      if((n._routeKind!=='snitch'||!n._route?.length)&&now>=(n._routeRetryAt||0)){
+        _clearNpcRoute(n);
+        if(!_planNpcRouteTo(n,POLICE_STATION_R,POLICE_STATION_C,npcPassableForSnitch,
+          Math.max(1,POLICE_REPORT_RADIUS-.7),MAP_ROWS*MAP_COLS,'snitch'))n._routeRetryAt=now+1200;
       }
-      n.ang = Math.atan2(dr, dc);
-      n.walkPhase += dt * 14;
+      const moved=_npcAdvanceRoute(n,dt,n.speed*2.4,npcPassableForSnitch);
+      if(moved==='blocked'){
+        if(!n._routeBlockedAt)n._routeBlockedAt=now;
+        if(now-n._routeBlockedAt>500)_clearNpcRoute(n);
+      }else if(moved==='arrived'){
+        _clearNpcRoute(n);
+      }
       continue;
     } else if (n.snitching) {
       // Истёк таймер — сбрасываем (не успел добежать)
       n.snitching = false;
       n.snitchUntil = 0;
+      _clearNpcRoute(n);
     }
     // PANIC: NPC видит стрельбу — бежит ОТ источника. Скорость × panicMult архетипа.
     if (n.panicUntil && now < n.panicUntil) {
       // Бандит (panicMult=0) не паникует — сбрасываем флаг
-      if (n._arc && n._arc.panicMult === 0) { n.panicUntil = 0; }
-      const dr = n.r - (n.panicSrcR || 0);
-      const dc = n.c - (n.panicSrcC || 0);
+      if (n._arc && n._arc.panicMult === 0) { n.panicUntil=0;_clearNpcRoute(n);continue; }
+      const srcR=Number.isFinite(n.panicSrcR)?n.panicSrcR:n.r;
+      const srcC=Number.isFinite(n.panicSrcC)?n.panicSrcC:n.c;
+      const dr = n.r-srcR;
+      const dc = n.c-srcC;
       const d  = Math.hypot(dr, dc) || 1;
       const arcPanicMult = (n._arc && n._arc.panicMult) ? n._arc.panicMult : 2.5;
-      const sp = n.speed * arcPanicMult * dt;
-      const stepR = (dr / d) * sp;
-      const stepC = (dc / d) * sp;
-      const nr = n.r + stepR, nc = n.c + stepC;
-      if (_npcBodyPassable(nr, nc)) {
-        n.r = nr; n.c = nc;
-      } else {
-        // Поворот: пробуем 4 направления отскока
-        const tries = [
-          [ stepC, -stepR ],
-          [-stepC,  stepR ],
-          [-stepR, -stepC ],
-          [ stepR * 0.5,  stepC * 0.5 ],
-        ];
-        for (const [dr2, dc2] of tries) {
-          if (_npcBodyPassable(n.r + dr2, n.c + dc2)) {
-            n.r += dr2; n.c += dc2; break;
-          }
-        }
+      if((n._routeKind!=='panic'||!n._route?.length)&&now>=(n._routeRetryAt||0)){
+        _clearNpcRoute(n);if(!_planNpcEscapeRoute(n,srcR,srcC))n._routeRetryAt=now+450;
       }
-      n.ang = Math.atan2(dr, dc);
-      n.walkPhase += dt * 14;
+      const moved=_npcAdvanceRoute(n,dt,n.speed*arcPanicMult,npcPassable);
+      if(moved==='blocked'){
+        if(!n._routeBlockedAt)n._routeBlockedAt=now;
+        if(now-n._routeBlockedAt>350)_clearNpcRoute(n);
+      }else if(moved==='arrived'){
+        _clearNpcRoute(n);
+        if(d<=14&&!_planNpcEscapeRoute(n,srcR,srcC))n._routeRetryAt=now+450;
+      }
       // Если отбежали достаточно далеко — выходим из паники досрочно
-      if (d > 14) n.panicUntil = 0;
+      if (d > 14) {n.panicUntil=0;_clearNpcRoute(n);}
       continue;
     } else if (n.panicUntil) {
       // Только что вышли из паники — ставим небольшой idle (отдышаться)
@@ -52755,7 +52809,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v34-complete-city-services',
+  migrationStage: 'three-full-world-shell-v35-smart-resident-navigation',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -56730,6 +56784,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d80"></script>
+<script type="module" src="three_preview.js?v=3d81"></script>
 </body>
 </html>
