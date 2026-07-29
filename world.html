@@ -53033,7 +53033,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'canvas',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v43-burj-mafia-landmark',
+  migrationStage: 'three-full-world-shell-v44-don-premium-estate',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -53165,7 +53165,7 @@ window.Mafiozi3DBridge = Object.freeze({
         building: buildingParts[0]||null,buildingParts,
       });
     }
-    const pois = (typeof POI !== 'undefined' ? POI : []).filter(p => p.r >= minR && p.r <= maxR && p.c >= minC && p.c <= maxC).map(p => ({id:p.id,r:p.r,c:p.c,label:p.label||p.name||p.id,architecture:p.id==='police'?'premium_city_precinct':null}));
+    const pois = (typeof POI !== 'undefined' ? POI : []).filter(p => p.r >= minR && p.r <= maxR && p.c >= minC && p.c <= maxC).map(p => ({id:p.id,r:p.r,c:p.c,label:p.label||p.name||p.id,architecture:p.id==='police'?'premium_city_precinct':p.id==='mansion'?'don_premium_estate':null}));
     const coast = {
       beach:{r0:BEACH_R0,r1:BEACH_R1},water:{r0:BEACH_R1,r1:MAP_ROWS},
       pier:{r0:PIER_R0,r1:PIER_R1,c0:PIER_C0,c1:PIER_C1},
@@ -57010,6 +57010,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d89"></script>
+<script type="module" src="three_preview.js?v=3d90"></script>
 </body>
 </html>
