@@ -68,6 +68,11 @@ preview_apartments = {}
 preview_custom_gangs = {}
 preview_custom_gang_by_uid = {}
 preview_custom_gang_seq = 0
+CUSTOM_GANG_FLAG_COLORS = {
+    "#9b1f2d", "#cf303d", "#e77b28", "#e0b83e", "#287f55", "#2386a8",
+    "#3154a5", "#6438a8", "#a23482", "#151922", "#ece5d5", "#7a4b2a",
+}
+CUSTOM_GANG_FLAG_EMBLEMS = {"crown", "skull", "diamond", "wolf", "eagle", "star"}
 preview_bank_robs = {}
 preview_bank_bags = {}
 preview_businesses = {}
@@ -1271,7 +1276,12 @@ async def custom_gang_create(req):
     if any(str(g["name"]).casefold()==name.casefold() for g in preview_custom_gangs.values()): return cors(web.json_response({"ok":False,"error":"name taken"},status=409))
     if any(g["hq_apt_key"]==apt_key for g in preview_custom_gangs.values()): return cors(web.json_response({"ok":False,"error":"hq taken"},status=409))
     preview_custom_gang_seq+=1;gid=preview_custom_gang_seq;flag=body.get("flag") if isinstance(body.get("flag"),dict) else {}
-    flag={"primary":str(flag.get("primary") or "#9b1f2d"),"secondary":str(flag.get("secondary") or "#e0b83e"),"emblem":str(flag.get("emblem") or "crown")}
+    primary=str(flag.get("primary") or "").strip().lower();secondary=str(flag.get("secondary") or "").strip().lower();emblem=str(flag.get("emblem") or "").strip().lower()
+    if primary not in CUSTOM_GANG_FLAG_COLORS: primary="#9b1f2d"
+    if secondary not in CUSTOM_GANG_FLAG_COLORS or secondary==primary: secondary="#e0b83e"
+    if secondary==primary: secondary="#ece5d5" if primary!="#ece5d5" else "#151922"
+    if emblem not in CUSTOM_GANG_FLAG_EMBLEMS: emblem="crown"
+    flag={"primary":primary,"secondary":secondary,"emblem":emblem}
     preview_custom_gangs[gid]={"name":name,"leader_uid":uid,"hq_apt_key":apt_key,"flag":flag,"members":[uid],"created_at":int(time.time())};preview_custom_gang_by_uid[uid]=gid
     if uid in players: players[uid].update({"custom_gang_id":gid,"custom_gang_name":name,"custom_gang_role":"leader","custom_gang_flag":flag,"custom_gang_hq":apt_key})
     return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
