@@ -1275,7 +1275,7 @@ async def init_db():
                 leader_uid INTEGER NOT NULL UNIQUE,
                 name TEXT NOT NULL COLLATE NOCASE UNIQUE,
                 flag_primary TEXT NOT NULL DEFAULT '#9b1f2d',
-                flag_secondary TEXT NOT NULL DEFAULT '#f0cf72',
+                flag_secondary TEXT NOT NULL DEFAULT '#e0b83e',
                 flag_emblem TEXT NOT NULL DEFAULT 'crown',
                 hq_apt_key TEXT NOT NULL UNIQUE,
                 created_at INTEGER NOT NULL DEFAULT 0
@@ -12659,7 +12659,9 @@ def normalize_custom_gang_flag(primary, secondary, emblem) -> dict:
     s = str(secondary or '').strip().lower()
     e = str(emblem or '').strip().lower()
     if p not in CUSTOM_GANG_FLAG_COLORS: p = '#9b1f2d'
-    if s not in CUSTOM_GANG_FLAG_COLORS or s == p: s = '#f0cf72'
+    if s not in CUSTOM_GANG_FLAG_COLORS or s == p: s = '#e0b83e'
+    if s == p:
+        s = '#ece5d5' if p != '#ece5d5' else '#151922'
     if e not in CUSTOM_GANG_FLAG_EMBLEMS: e = 'crown'
     return {'primary': p, 'secondary': s, 'emblem': e}
 
@@ -12750,6 +12752,12 @@ async def create_custom_gang_db(leader_uid: int, apt_key: str, name: str,
             await db.rollback(); return {'ok': False, 'error': 'party member missing'}
         if any(str(row.get('mafia_family') or '') for row in characters.values()):
             await db.rollback(); return {'ok': False, 'error': 'mafia conflict'}
+        # SQLite NOCASE only folds ASCII.  Compare with Python casefold so names
+        # such as «Волки» and «ВОЛКИ» cannot create visually duplicate gangs.
+        async with db.execute("SELECT name FROM custom_gangs") as cur:
+            existing_names = [str(row['name']) for row in await cur.fetchall()]
+        if any(existing.casefold() == name.casefold() for existing in existing_names):
+            await db.rollback(); return {'ok': False, 'error': 'name taken'}
         async with db.execute(
             f"SELECT telegram_id FROM custom_gang_members WHERE telegram_id IN ({placeholders}) LIMIT 1",
             members,
@@ -25153,7 +25161,8 @@ async def _coop_http_app():
                                 if mws: await mws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_changed','accepted':accept}},ensure_ascii=False))
                     elif t in ('gang_player_leave','gang_player_kick'):
                         actor=world.players.get(uid) or {}; crew_id=str(actor.get('_crew_id') or ''); target_uid=str(d.get('target_uid') or uid) if t=='gang_player_kick' else str(uid); target=world.players.get(target_uid)
-                        if crew_id and not crew_id.startswith('cg:') and target and str(target.get('_crew_id') or '')==crew_id:
+                        can_remove = t == 'gang_player_leave' or crew_id == str(uid)
+                        if can_remove and crew_id and not crew_id.startswith('cg:') and target and str(target.get('_crew_id') or '')==crew_id:
                             target.pop('_crew_id',None); left=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
                             if len(left)<2:
                                 for q in left:q.pop('_crew_id',None)
@@ -25178,7 +25187,11 @@ async def _coop_http_app():
                         inv=world.custom_gang_invites.pop(str(uid),None); inviter=world.players.get(str(inv.get('from_uid'))) if inv else None; target=world.players.get(uid); accept=bool(d.get('accept'))
                         result={'ok':False,'error':'expired'}
                         if inv and inviter and target and time.time()<=float(inv.get('expires_at',0)):
-                            if accept and str(inviter.get('_custom_gang_role') or '')=='leader':
+                            target_conflict = bool(target.get('_custom_gang_id') or target.get('_mafia') or
+                                                   target.get('_mafia_family') or target.get('_police'))
+                            if accept and target_conflict:
+                                result={'ok':False,'error':'faction conflict'}
+                            elif accept and str(inviter.get('_custom_gang_role') or '')=='leader':
                                 result=await join_custom_gang_db(int(inv['gang_id']),int(uid),int(inv['from_uid']))
                                 if result.get('ok'):
                                     apply_custom_gang_to_player(target,await get_custom_gang_for_user(int(uid)))
@@ -27357,7 +27370,7 @@ async def _coop_http_app():
                     p_save = world.players.get(uid)
                     if p_save:
                         await update_character(int(uid),
-                            wanted=int(min(3, round(p_save.get('_wanted') or 0))),
+                            wanted_stars=int(min(3, round(p_save.get('_wanted') or 0))),
                             jail_until=int(p_save.get('_jail_until') or 0),
                         )
                 except Exception as _e:
@@ -27827,6 +27840,7 @@ async def _coop_http_app():
     site = _web.TCPSite(runner, '0.0.0.0', _api_port)
     await site.start()
     logger.info("Co-op HTTP API listening on :%d", _api_port)
+    return runner
 
 
 def main():
