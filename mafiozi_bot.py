@@ -2520,7 +2520,7 @@ async def sell_property_db(telegram_id: int, item_id: str):
 # не под конкретные дома на карте). apt_key — координаты ГОРОДСКОГО БЛОКА
 # ("br,bc"), не буквального тайла входа — см. _aptBlockKey в world.html.
 
-APARTMENT_OWNERSHIP_LIMIT = 5
+APARTMENT_OWNERSHIP_LIMIT = 1
 APARTMENT_DISTRICT_PRICES = {
     "poor": 3500, "lair": 5500, "industrial": 7000,
     "countryside": 8500, "nightlife": 14000, "downtown": 18000,
@@ -21877,6 +21877,7 @@ async def _coop_fetch_char_stats(uid_str: str) -> dict:
             'face':   int(look.get('face',   0) or 0),
             'hair':   int(look.get('hair',   0) or 0),
             'hat':    int(look.get('hat',    0) or 0),
+            '_saved': bool(char.get('look_json')),
         },
     }
 
