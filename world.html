@@ -23765,10 +23765,7 @@ function _finishWeaponReload() {
   const take = Math.min(shellByShell ? 1 : need, st.reserve);
   st.slot.mag += take;
   _ammoState.reserve[st.cfg.ammoType] = st.reserve - take;
-  try {
-    if (shellByShell) { _tone({freq:520,freqEnd:260,dur:.07,type:'square',vol:.12}); _noise({dur:.035,vol:.07}); }
-    else { _tone({freq:300,freqEnd:520,dur:.09,type:'square',vol:.12}); _noise({dur:.05,vol:.08}); }
-  } catch(e) {}
+  try { _weaponReloadSound(weapon,'step'); } catch(e) {}
   _saveAmmoState();
   const left = Math.max(0, +_ammoState.reserve[st.cfg.ammoType] || 0);
   if (shellByShell && st.slot.mag < st.cfg.magSize && left > 0) {
@@ -23807,10 +23804,7 @@ function reloadCurrentWeapon(manual = true) {
     ? Math.max(360, (st.cfg.reloadMs || 2550) / st.cfg.magSize)
     : (st.cfg.reloadMs || 1800);
   _reloadUntil = performance.now() + reloadStepMs;
-  try {
-    _tone({freq:210,freqEnd:130,dur:.09,type:'square',vol:.10});
-    _noise({dur:.06,vol:.07,filter:'highpass',filterFreq:900});
-  } catch(e) {}
+  try { _weaponReloadSound(st.id,'start'); } catch(e) {}
   _stopReloadTicker();
   _reloadTicker = setInterval(() => {
     if (!_reloadWeapon) return _stopReloadTicker();
@@ -23829,6 +23823,7 @@ function _spendWeaponRound() {
     else return false;
   }
   if (st.slot.mag <= 0) {
+    try { _weaponDryFireSound(st.id); } catch(e) {}
     reloadCurrentWeapon(false);
     if (st.reserve <= 0 && performance.now() - _emptyAmmoToastAt > 1800) {
       _emptyAmmoToastAt = performance.now();
@@ -24285,6 +24280,9 @@ function _firePenetratingRound(sR, sC, dirY, dirX, range, weapon, remote) {
 function _spawnRpgExplosion(r, c, remote, firedWeapon) {
   const cfg = weaponProfile('rpg');
   const radius = 2.7;
+  try { _explosionSound('rpg'); } catch(e) {}
+  _capArr(explosionBursts, 10);
+  explosionBursts.push({r,c,born:performance.now(),life:1650,seed:Math.random()*1000,kind:'rpg'});
   // Два кольца + огненное ядро: ракета должна явно завершаться взрывом,
   // а не просто исчезать в точке попадания.
   spawnShockwave(r, c, { rad0:3, maxRad:48, life:260, color:'#fff2a0', thick:7 });
@@ -37988,6 +37986,17 @@ function _gunShot(p={}){
   if(p.mech!==false)_gunMechanic(p.mechDelay===undefined ? .085 : p.mechDelay,p.mechWeight||1);
   if(p.echo)_noise({dur:p.echoDur||.12,vol:p.echo*power,filter:'bandpass',filterFreq:p.echoFreq||520,q:.5,delay:p.echoDelay||.105,attack:.006});
 }
+function _weaponDryFireSound(weapon){const heavy=['revolver','pistol_heavy','shotgun','rifle','sniper','rpg'].includes(resolveWeapon(weapon));_tone({freq:heavy?155:220,freqEnd:heavy?92:135,dur:.045,type:'square',vol:heavy ? .12 : .085});_noise({dur:.018,vol:.045,filter:'highpass',filterFreq:heavy?1250:1900});}
+function _weaponReloadSound(weapon,phase='start'){
+  const id=resolveWeapon(weapon),cfg=weaponProfile(id);
+  if(id==='rpg'){_noise({dur:.11,vol:.11,filter:'bandpass',filterFreq:620});_tone({freq:115,freqEnd:72,dur:.18,type:'sawtooth',vol:.09,delay:.04});return;}
+  if(id==='shotgun'){_gunMechanic(0,1.2);_tone({freq:180,freqEnd:110,dur:.065,type:'square',vol:.095,delay:.045});return;}
+  if(id==='nagan'||id==='revolver'){_tone({freq:phase==='start'?520:680,freqEnd:240,dur:.07,type:'triangle',vol:.085});_gunMechanic(.055,.75);return;}
+  if(id==='sniper'){_gunMechanic(0,1.25);_gunMechanic(.12,1);_tone({freq:185,freqEnd:105,dur:.12,type:'square',vol:.08,delay:.06});return;}
+  const weight=cfg.twoHanded?1.12:.9;_noise({dur:.055,vol:.075*weight,filter:'highpass',filterFreq:1050});_tone({freq:phase==='start'?245:340,freqEnd:phase==='start'?125:510,dur:.075,type:'square',vol:.08*weight,delay:.025});_gunMechanic(.11,weight);
+}
+function _explosionSound(kind='blast'){const power=kind==='rpg'?1.25:kind==='grenade' ? .9 : 1.05;_noise({dur:.52,vol:.34*power,filter:'lowpass',filterFreq:580,q:.42,attack:.004});_noise({dur:.14,vol:.25*power,filter:'highpass',filterFreq:1250,q:.55,attack:.001});_tone({freq:68,freqEnd:22,dur:.48,type:'sawtooth',vol:.3*power,attack:.006});for(let i=0;i<4;i++)_noise({dur:.045,vol:.055,filter:'bandpass',filterFreq:900+i*420,delay:.08+i*.055});}
+function _molotovIgnitionSound(){_noise({dur:.12,vol:.14,filter:'highpass',filterFreq:2900,attack:.0005});for(let i=0;i<5;i++)_tone({freq:820+i*95,freqEnd:220+i*25,dur:.055,type:'triangle',vol:.038,delay:i*.014});_noise({dur:.7,vol:.085,filter:'bandpass',filterFreq:430,delay:.06,attack:.03});}
 // Разбудить аудио на первом тапе/клике (firefox/ios safari)
 window.addEventListener('pointerdown', () => {
   const ac = _ac();
@@ -38022,6 +38031,8 @@ const WEAPON_FX = {
                   color:'#ff5050', recoil:5.0, shake:5.0, tip:44, spread:0, thick:true },
   rpg:          { cd:1.80, sound:()=>{_noise({dur:.42,vol:.38,filter:'lowpass',filterFreq:520,q:.5,attack:.012});_noise({dur:.15,vol:.25,filter:'highpass',filterFreq:1450,q:.5,attack:.001});_tone({freq:72,freqEnd:24,dur:.46,type:'sawtooth',vol:.34,attack:.008});},
                   color:'#ff6020', recoil:6.0, shake:7.0, tip:46, spread:0, thick:true },
+  taser:        { cd:1.25, sound:()=>{for(let i=0;i<5;i++)_tone({freq:1220+i*135,freqEnd:410+i*40,dur:.045,type:'sawtooth',vol:.055,delay:i*.018});_noise({dur:.11,vol:.12,filter:'highpass',filterFreq:2600});},
+                  color:'#58ddff', recoil:.45, shake:.7, tip:17, spread:0 },
 };
 function weaponFx(w) {
   const key = resolveWeapon(w);
@@ -38194,9 +38205,10 @@ function reportCarCrash(qc, impact, kind) {
 
 // Взрыв машины — мощный «мясной» эффект: 36 искр + чёрный круг копоти
 // + бочка дыма. Переиспользуем impacts/bloodSplats.
-function spawnCarExplosion(wr, wc, car, leaveSoot = true) {
+function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true) {
   // Запоминаем время взрыва на объекте машины — нужно для ударной волны
   if (car) car._explosionT = performance.now();
+  if(playSound&&Math.hypot(wr-player.r,wc-player.c)<18)try{_explosionSound('blast')}catch(e){}
   _capArr(explosionBursts, 10);
   explosionBursts.push({r:wr,c:wc,born:performance.now(),life:1550,seed:Math.random()*1000});
   spawnShockwave(wr,wc,{rad0:5,maxRad:118,life:620,color:'#ff7b25',thick:6});
@@ -41341,8 +41353,8 @@ async function _throwSelected(kind,angle,throwRange){
 }
 function _explodeThrowable(q){
   if(q.exploded)return;q.exploded=true;const radius=q.kind==='grenade'?THROW_GRENADE_RADIUS:THROW_MOLOTOV_IMPACT_RADIUS;
-  if(q.kind==='grenade'){spawnCarExplosion(q.toR,q.toC,null,false);for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,d=.35+Math.random()*.7;spawnCarExplosion(q.toR+Math.sin(a)*d,q.toC+Math.cos(a)*d,null,false)}spawnBlastCrater(q.toR,q.toC);spawnShockwave(q.toR,q.toC,{rad0:8,maxRad:88,life:520,color:'#ffbd55',thick:5});spawnSmokePuff(q.toR,q.toC,0);spawnSmokePuff(q.toR+.4,q.toC-.3,2.2);addShake(15);fireScreenFlash('rpg');}
-  else{const now=performance.now();_firePools.push({r:q.toR,c:q.toC,start:now,until:now+8500,lastHit:0,seed:Math.random()*20});spawnShockwave(q.toR,q.toC,{rad0:5,maxRad:62,life:420,color:'#ff8a20',thick:4});addShake(7);}
+  if(q.kind==='grenade'){spawnCarExplosion(q.toR,q.toC,null,false);for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,d=.35+Math.random()*.7;spawnCarExplosion(q.toR+Math.sin(a)*d,q.toC+Math.cos(a)*d,null,false,false)}spawnBlastCrater(q.toR,q.toC);spawnShockwave(q.toR,q.toC,{rad0:8,maxRad:88,life:520,color:'#ffbd55',thick:5});spawnSmokePuff(q.toR,q.toC,0);spawnSmokePuff(q.toR+.4,q.toC-.3,2.2);addShake(15);fireScreenFlash('rpg');}
+  else{const now=performance.now();_firePools.push({r:q.toR,c:q.toC,start:now,until:now+8500,lastHit:0,seed:Math.random()*20});spawnShockwave(q.toR,q.toC,{rad0:5,maxRad:62,life:420,color:'#ff8a20',thick:4});try{_molotovIgnitionSound()}catch(e){}addShake(7);}
   for(const n of NPCS){if(!n.dead&&Math.hypot(n.r-q.toR,n.c-q.toC)<radius)hitNpc(n,0,0,q.kind,q.kind==='grenade'?95:45)}
   _damageGangBotsInThrowable(q.toR,q.toC,radius,q.kind==='grenade'?'grenade':'molotov_fire');
   _damageCasinoPropsInRadius(q.toR,q.toC,radius,q.kind==='grenade'?'grenade':'molotov');
@@ -53179,11 +53191,13 @@ function _threeNpcDeathState(entity,id){
 window.Mafiozi3DBridge = Object.freeze({
   version: 1,
   getPlayerState() {
+    const reloadId=resolveWeapon(currentWeapon),reloading=_isReloadingWeapon(reloadId),reloadCfg=weaponProfile(reloadId),reloadStepMs=(reloadCfg.mode==='pump'||reloadId==='nagan')?Math.max(360,(reloadCfg.reloadMs||2550)/(reloadCfg.magSize||1)):(reloadCfg.reloadMs||1800),reloadProgress=reloading?Math.max(0,Math.min(1,1-(_reloadUntil-performance.now())/reloadStepMs)):0;
     return {
       r: +player.r || 0, c: +player.c || 0, ang: +player.ang || 0,
       walking: !!player.walking, walkPhase: +player.walkPhase || 0,
       hp: Math.max(0, +player.hp || 0), dead: !!myDead,
       mode: myMode, weapon: currentWeapon, driving: !!myDrivingCarId,
+      reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
       name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
       role: _policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian',
@@ -53390,6 +53404,7 @@ window.Mafiozi3DBridge = Object.freeze({
       role,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp:Number.isFinite(+x.hp)?Math.max(0,+x.hp):Math.max(1,+x.max_hp||+x.maxHp||60),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||x.gangName||x.faction||'',faction:x.faction||x.gangFaction||'',
       gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,
+      burning:!!x.burning||performance.now()<(+x._burnUntil||0),
     };});
     const serviceWater=[];
     if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
@@ -53401,10 +53416,13 @@ window.Mafiozi3DBridge = Object.freeze({
         vr:dr/dist*8,vc:dc/dist*8,ang:Math.atan2(dr,dc),color:j%3?'#70cfff':'#d8f4ff',weapon:'water_hose',fromNpc:true,thick:true,
       });}
     }
-    const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,thick:!!x.thick}));
-    const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,color:x.color||'#ffc35a',life:+x.life||0,max:+x.max||80}));
-    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,blood:!!x.parts?.some?.(p=>p.isBlood),life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1))}));
-    const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550}));
+    const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
+    const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
+    const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
+    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,blood:!!x.parts?.some?.(p=>p.isBlood),life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))}));
+    const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550,seed:+x.seed||0,kind:x.kind||'blast'}));
+    const throwableFx=(typeof _thrownItems!=='undefined'?_thrownItems:[]).filter(x=>x&&!x.exploded).slice(0,8).map((x,i)=>{const p=Math.max(0,Math.min(1,(performance.now()-(+x.start||0))/(+x.flight||720)));return {id:i,kind:x.kind||'grenade',r:(+x.fromR||0)+((+x.toR||0)-(+x.fromR||0))*p,c:(+x.fromC||0)+((+x.toC||0)-(+x.fromC||0))*p,height:Math.sin(Math.PI*p)*3.8,progress:p};});
+    const fireFx=(typeof _firePools!=='undefined'?_firePools:[]).filter(x=>x&&performance.now()<+x.until&&near(+x.r||0,+x.c||0)).slice(0,12).map(x=>({r:+x.r||0,c:+x.c||0,age:performance.now()-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2}));
     const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||''});}
     const objects=[];
     const addObject=(kind,id,r,c,label,color,extra={})=>{
@@ -53445,7 +53463,7 @@ window.Mafiozi3DBridge = Object.freeze({
         const box=groundMissionBoxes[i];if(!box)continue;addObject('mission_box',`mission_box_${box.id??i}`,box.r,box.c,box.mine?'Ваш груз':'Груз','#c98743',{maxRadius:4,mine:!!box.mine});
       }
     }
-    return {cars,npcs,projectiles,muzzleFx,impactFx,explosionFx,players:players.slice(0,24),objects:objects.slice(0,160)};
+    return {cars,npcs,projectiles,muzzleFx,shellFx,impactFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
   },
   fire(angle) {
     if (myDead || myMode === 'pve' || !_isArmed()) return false;
@@ -57182,6 +57200,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d110"></script>
+<script type="module" src="three_preview.js?v=3d112"></script>
 </body>
 </html>
