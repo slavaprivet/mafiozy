@@ -799,6 +799,17 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         }
         if(districtStyle==='industrial'){add(x-w*.28,z-d*.18,1.15,1.15,2.4,identityDark,h+1.2);}
       };
+      const staticDetailBuckets=new Map();
+      const queueStaticBuildingDetail=mesh=>{
+        if(!mesh?.isMesh||Array.isArray(mesh.material)||mesh.userData?.building||mesh.userData?.mainBuilding)return;
+        // Small facade details remain visible and receive the main building
+        // shadow, but do not each trigger another expensive shadow draw.
+        mesh.castShadow=false;
+        if(mesh.geometry?.type!=='BoxGeometry'||mesh.material?.transparent||mesh.material?.skinning)return;
+        const key=mesh.material.uuid;
+        if(!staticDetailBuckets.has(key))staticDetailBuckets.set(key,{material:mesh.material,meshes:[]});
+        staticDetailBuckets.get(key).meshes.push(mesh);
+      };
       const createBuilding=(definition,bi)=>{
         const [x,z,w,d,rawH,style,sign,districtStyle='downtown',sourceMeta]=definition,buildingMeta=sourceMeta||{r:originR+z/WORLD_SCALE,c:originC+x/WORLD_SCALE,w:w/WORLD_SCALE,d:d/WORLD_SCALE},architecturalKind=buildingMeta.architecturalKind||null,h=architecturalHeights[architecturalKind]||rawH;
         buildingCurbDefs.push([x,z,w+2,d+2]);
@@ -816,6 +827,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const detailRadius=Math.max(20,Math.min(WORLD_SNAPSHOT_RADIUS,+rendererConfig.detailRadius||24));
         const detailed=buildingMeta.primary!==false&&detailDistanceTiles<=detailRadius,steppedTower=detailed&&!architecturalKind&&(districtStyle==='downtown'||districtStyle==='rich'||districtStyle==='chinatown_rich')&&h>24,lowerH=steppedTower?h*.64:h;
         const mainBuilding=buildingBox(x,z,w,d,lowerH,wall,localRoof);mainBuilding.userData.fadeMaterials=[wall,localRoof];mainBuilding.userData.building=buildingMeta;mainBuilding.userData.mainBuilding=true;occluders.push(mainBuilding);buildingPickables.push(mainBuilding);if(detailed)outline(mainBuilding);
+        const detailSceneStart=scene.children.length;
         if(detailed){if(steppedTower){const upperH=h-lowerH,upper=buildingBox(x,z,w*.72,d*.72,upperH,wall,localRoof);upper.position.y=lowerH+upperH/2;upper.userData.fadeMaterials=[wall,localRoof];upper.userData.building=buildingMeta;occluders.push(upper);buildingPickables.push(upper);outline(upper);const crownBand=box(x,z,w*.78,d*.78,.42,neonMats[bi%3]);crownBand.position.y=lowerH+.2;}
         // A second mass breaks the repetitive box silhouette.
         if(districtStyle==='downtown'){
@@ -852,8 +864,36 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           const signTx=new THREE.CanvasTexture(signCv);signTx.colorSpace=THREE.SRGBColorSpace;signTx.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());const sm=new THREE.MeshBasicMaterial({map:signTx,transparent:false});const sgn=new THREE.Mesh(new THREE.PlaneGeometry(7.6,1.9),sm);sgn.position.set(x,h+2.15,z+d*.18);scene.add(sgn);
         }
         }
+        for(const child of scene.children.slice(detailSceneStart))queueStaticBuildingDetail(child);
       };
       for (let bi=0;bi<buildingDefs.length;bi++) createBuilding(buildingDefs[bi],bi);
+      let batchedStaticDetailMeshes=0,batchedStaticDetailSources=0;
+      for(const {material,meshes} of staticDetailBuckets.values()){
+        if(meshes.length<3)continue;
+        const geometries=[];
+        for(const mesh of meshes){
+          mesh.updateMatrixWorld(true);
+          const geometry=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();
+          geometry.applyMatrix4(mesh.matrixWorld);
+          geometries.push(geometry);
+        }
+        const attributes=['position','normal','uv'];
+        if(!attributes.every(name=>geometries.every(g=>g.getAttribute(name)))){geometries.forEach(g=>g.dispose());continue;}
+        const merged=new THREE.BufferGeometry();
+        for(const name of attributes){
+          const source=geometries[0].getAttribute(name),total=geometries.reduce((sum,g)=>sum+g.getAttribute(name).array.length,0),ArrayType=source.array.constructor,values=new ArrayType(total);
+          let offset=0;
+          for(const geometry of geometries){const array=geometry.getAttribute(name).array;values.set(array,offset);offset+=array.length;}
+          merged.setAttribute(name,new THREE.BufferAttribute(values,source.itemSize,source.normalized));
+        }
+        merged.computeBoundingBox();merged.computeBoundingSphere();
+        const batch=new THREE.Mesh(merged,material);batch.name='batched-static-building-detail';batch.castShadow=false;batch.receiveShadow=true;scene.add(batch);
+        for(const mesh of meshes){scene.remove(mesh);mesh.geometry.dispose();}
+        geometries.forEach(g=>g.dispose());
+        batchedStaticDetailMeshes++;batchedStaticDetailSources+=meshes.length;
+      }
+      renderer.domElement.dataset.batchedStaticDetailMeshes=String(batchedStaticDetailMeshes);
+      renderer.domElement.dataset.batchedStaticDetailSources=String(batchedStaticDetailSources);
       // Purchasable businesses are one-tile authored establishments in Canvas,
       // not ordinary block buildings. Build them at their exact authoritative
       // coordinates so labels, prompts, entrances and architecture agree.
