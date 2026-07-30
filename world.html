@@ -14647,6 +14647,7 @@ let _recoilUntil = 0;    // до этого момента рука/оружие
 // стрелка до цели) пуля исчезает — визуально совпадает с моментом
 // «попадания». Поле .hit — попадёт ли по цели (для финального эффекта).
 const bullets = [];       // {r,c,vr,vc,dist,maxDist,color,thick,hit,...}
+const bulletHoles = [];   // ограниченные следы попаданий в стенах интерьеров
 // Floating texts — всплывающие подписи в МИРЕ (а не на UI), например «+150$»
 // над головой игрока при награде, «-12» при попадании пулей и т.п.
 // Каждый: {r,c,text,color,life,max,dy} — dy растёт со временем, текст
@@ -15108,7 +15109,7 @@ const bloodSplats = [];   // {r,c,radius,life,max,rot}
 // + копы шлют десятки 'aggro_shot'/'cop_shot' пакетов в секунду) без
 // капов impacts/bloodSplats/bullets разрастаются до тысяч и фризят
 // рендер. Спавнеры дропают самое старое если упёрлись в лимит.
-const _MAX_BULLETS = 50, _MAX_IMPACTS = 16, _MAX_BLOOD = 48,
+const _MAX_BULLETS = 50, _MAX_IMPACTS = 16, _MAX_BLOOD = 48, _MAX_BULLET_HOLES = 32,
       _MAX_MUZZLES = 16, _MAX_SHOCKW = 18, _MAX_SMOKE = 30,
       _MAX_SHELLS = 30;
 function _capArr(arr, cap) { if (arr.length >= cap) arr.shift(); }
@@ -41321,6 +41322,13 @@ function updateProjectiles(dt) {
       b.r -= b.vr / _sp * _ov;
       b.c -= b.vc / _sp * _ov;
       b.dist = b.maxDist;
+      if (_buildingInt && b.weapon !== 'water_hose' && !b._holePlaced) {
+        b._holePlaced = true;
+        _capArr(bulletHoles, _MAX_BULLET_HOLES);
+        bulletHoles.push({r:b.r,c:b.c,ang:Math.atan2(b.vr,b.vc),
+          heavy:b.weapon==='shotgun'||b.weapon==='sniper'||b.weapon==='rpg',
+          born:performance.now(),space:_gangSpaceKey()});
+      }
       // оставляем флаг для финального drawBullets — он отрисует вспышку
       b._finished = true;
     }
@@ -54291,6 +54299,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
     const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,blood:!!x.parts?.some?.(p=>p.isBlood),life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))}));
+    const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,heavy:!!x.heavy,age:performance.now()-(+x.born||performance.now())}));
     const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail}));
     if(_LOCAL_PREVIEW&&_UP.has('previewcombatfx')){const target=npcs.find(x=>!x.dead),cycle=performance.now()%1600,shotAge=cycle-800;if(target){target.hp=target.maxHp*(cycle<800?.66:.22);target.hitAt=performance.now()-Math.max(0,shotAge);target.bleeding=true;target.bleedSeverity=1;for(let i=0;i<6;i++)bloodFx.push({id:`preview_blood_${i}`,r:target.r+Math.sin(target.ang||0)*i*.22+(i%2?.08:-.05),c:target.c+Math.cos(target.ang||0)*i*.22+(i%2?-.05:.06),radius:3+i%3,rot:(target.ang||0)+.2,life:12000-i*700,max:14000,trail:true});if(shotAge>=0&&shotAge<680){const life=680-shotAge,parts=Array.from({length:12},(_,i)=>({vr:Math.sin(i*2.19)*(2.5+i%4),vc:Math.cos(i*2.19)*(2.5+i%4),life,max:680,size:3,blood:true,color:i%4?'#c30d1b':'#5c0509'}));impactFx.unshift({r:target.r,c:target.c,blood:true,life,max:680,parts});}}}
     const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550,seed:+x.seed||0,kind:x.kind||'blast'}));
@@ -54336,7 +54345,7 @@ window.Mafiozi3DBridge = Object.freeze({
         const box=groundMissionBoxes[i];if(!box)continue;addObject('mission_box',`mission_box_${box.id??i}`,box.r,box.c,box.mine?'Ваш груз':'Груз','#c98743',{maxRadius:4,mine:!!box.mine});
       }
     }
-    return {cars,npcs,projectiles,muzzleFx,shellFx,impactFx,bloodFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
+    return {cars,npcs,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
   },
   fire(angle) {
     if(_LOCAL_PREVIEW&&_UP.get('previewweapon'))return true;
@@ -58085,6 +58094,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d166"></script>
+<script type="module" src="three_preview.js?v=3d167"></script>
 </body>
 </html>
