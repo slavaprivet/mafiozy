@@ -1294,7 +1294,20 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         for(const [c,r] of [[12,14],[22,14],[32,14],[22,7],[7.2,23]]){const chain=add(new THREE.CylinderGeometry(.045,.045,2.1,7),brass,xOf(c),7.6,zOf(r)),lamp=add(new THREE.SphereGeometry(.62,16,10),new THREE.MeshBasicMaterial({color:0xffd9a0,toneMapped:true}),xOf(c),6.4,zOf(r));lamp.scale.y=.48;addLight(new THREE.PointLight(0xffc98a,7.2,22,2),xOf(c),6.2,zOf(r));}
         for(const [c,r,color] of [[10,6,0xb46a85],[34,6,0x668e9e],[22,11,0x756c91],[31.5,23.5,0x9a835b]])addLight(new THREE.PointLight(color,.65,9,2),xOf(c),4.8,zOf(r));
         const hallFill=new THREE.RectAreaLight(0xffdfc0,2.7,30*WORLD_SCALE,17*WORLD_SCALE);hallFill.position.set(xOf(22),9.5,zOf(13));hallFill.lookAt(xOf(22),0,zOf(13));hallFill.layers.set(1);interiorGroup.add(hallFill);
-        renderer.domElement.dataset.casinoWalls=String((layout.walls||[]).length);renderer.domElement.dataset.casinoProps=String((layout.props||[]).length);renderer.domElement.dataset.casinoPremium='server-layout-v2';
+        // Premium detailing pass: static geometry only, built once when the casino opens.
+        const mirrorMat=new THREE.MeshPhysicalMaterial({color:0xb7d8df,metalness:.72,roughness:.08,clearcoat:1}),cardMat=new THREE.MeshBasicMaterial({color:0xf4ead4,toneMapped:true});
+        for(const c of [19.72,24.28])add(new THREE.BoxGeometry(.07,.045,24.5*WORLD_SCALE),brass,xOf(c),.145,zOf(15.5)).castShadow=false;
+        for(const r of [5.5,12,18.5,25]){const medallion=add(new THREE.RingGeometry(.75*WORLD_SCALE,1.02*WORLD_SCALE,24),gold,xOf(22),.16,zOf(r));medallion.rotation.x=-Math.PI/2;medallion.castShadow=false;}
+        for(const [c,r,rot] of [[10,.62,0],[16,.62,0],[28,.62,0],[34,.62,0],[.62,7,Math.PI/2],[.62,13,Math.PI/2],[43.38,6,Math.PI/2],[43.38,13,Math.PI/2]]){const panel=add(new THREE.PlaneGeometry(3.6*WORLD_SCALE,2.25),mirrorMat,xOf(c),2.35,zOf(r));panel.rotation.y=rot;for(const y of [1.15,3.55]){const bar=add(new THREE.BoxGeometry(3.9*WORLD_SCALE,.14,.16),gold,panel.position.x,y,panel.position.z);bar.rotation.y=rot;bar.castShadow=false;}}
+        for(const p of layout.props||[]){
+          const id=String(p.id||''),x=xOf(p.c),z=zOf(p.r);
+          if(id.startsWith('slot_')){const lever=add(new THREE.CylinderGeometry(.055,.055,.78,8),brass,x+.68*WORLD_SCALE,1.28,z+.28*WORLD_SCALE);lever.rotation.z=-.28;add(new THREE.SphereGeometry(.13,10,8),neonMats[Math.abs(parseInt(id.split('_')[1])||0)%neonMats.length],x+.78*WORLD_SCALE,1.64,z+.28*WORLD_SCALE);add(new THREE.CylinderGeometry(.34,.4,.54,12),velvet,x,.28,z+1.18*WORLD_SCALE);}
+          if(id.startsWith('card_')){for(let k=0;k<5;k++){const card=add(new THREE.PlaneGeometry(.45,.66),cardMat,x+(-1.1+k*.55)*WORLD_SCALE,1.43,z+.22*WORLD_SCALE);card.rotation.x=-Math.PI/2;card.rotation.z=(k-2)*.08;}}
+        }
+        if(stageProp){const x=xOf(stageProp.c),z=zOf(stageProp.r);add(new THREE.TorusGeometry(3.18*WORLD_SCALE,.13,8,32),gold,x,.58,z);for(let k=0;k<11;k++){const a=Math.PI*(.08+.84*k/10),bulb=add(new THREE.SphereGeometry(.1,8,6),neonMats[k%4],x+Math.cos(a)*3.05*WORLD_SCALE,.72,z+Math.sin(a)*3.05*WORLD_SCALE);bulb.castShadow=false;}}
+        if(barProp){const x=xOf(barProp.c),z=zOf(barProp.r),mirror=add(new THREE.PlaneGeometry(7.5*WORLD_SCALE,3.25),mirrorMat,x,3.34,z-1.7*WORLD_SCALE);mirror.rotation.y=0;for(let i=-3;i<=3;i++){const glassCup=add(new THREE.CylinderGeometry(.08,.13,.4,10),glass,x+i*.65*WORLD_SCALE,1.84,z+.25*WORLD_SCALE);glassCup.castShadow=false;}}
+        if(vipTable){const x=xOf(vipTable.c),z=zOf(vipTable.r);add(new THREE.TorusGeometry(1.8*WORLD_SCALE,.1,8,24),gold,x,1.03,z);for(const dz of [-1.7,1.7])for(const dx of [-1.55,0,1.55])add(new THREE.BoxGeometry(1.2*WORLD_SCALE,.28,.72*WORLD_SCALE),cream,x+dx*WORLD_SCALE,1.42,z+dz*WORLD_SCALE);}
+        renderer.domElement.dataset.casinoWalls=String((layout.walls||[]).length);renderer.domElement.dataset.casinoProps=String((layout.props||[]).length);renderer.domElement.dataset.casinoPremium='server-layout-v3';
       };
       const decorateApartmentInterior=data=>{
         if(!(data.kind==='building'&&data.type==='generic'&&!data.bizId))return false;
