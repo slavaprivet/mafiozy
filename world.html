@@ -12707,9 +12707,33 @@ function selectBuildingFrom3D(r,c,screenX=null,screenY=null) {
   const special=POI.find(p=>p.r===best.r&&p.c===best.c)?.special||(best.r===36&&best.c===16?'job':best.r===26&&best.c===26?'gym':best.r===26&&best.c===46?'hospital':best.r===76&&best.c===76?'police_st':best.r===BURJ_POS.r&&best.c===BURJ_POS.c?'mafia_hq':null);
   _selectedBuildingEntry={r:best.r,c:best.c,type:special,label:special==='mafia_hq'?'Burj Mafia':'Здание',selectedAtR:player.r,selectedAtC:player.c};
   _selectedVehicleEntry=null;
-  const near=Math.hypot(player.r-best.r-.5,player.c-best.c-.5)<=(special==='mafia_hq'?4.2:special?3.5:2.25);
+  const entrance=_genericBuildingEntranceAnchor(best.r,best.c);
+  const near=Math.min(
+    Math.hypot(player.r-best.r-.5,player.c-best.c-.5),
+    Math.hypot(player.r-entrance.r,player.c-entrance.c)
+  )<=(special==='mafia_hq'?4.2:special?3.5:2.25);
   if(near)_openBusinessActionCard('building',_selectedBuildingEntry,anchor);else showToast('Вход отмечен. Подойди ближе к зданию.','🚪',2000);
   return {ok:true,kind:'building',id:`${best.r},${best.c}`,name:_selectedBuildingEntry.label,near};
+}
+
+function _genericBuildingEntranceAnchor(r,c) {
+  const br=Math.floor(+r),bc=Math.floor(+c);
+  let best=null,bestScore=Infinity;
+  // Stable clockwise preference keeps one doorway on one facade. It never
+  // jumps to the player's side while they walk around the same building.
+  for(let radius=1;radius<=5;radius++){
+    for(let dr=-radius;dr<=radius;dr++)for(let dc=-radius;dc<=radius;dc++){
+      if(Math.max(Math.abs(dr),Math.abs(dc))!==radius)continue;
+      const rr=br+dr+.5,cc=bc+dc+.5,tile=MAP[br+dr]?.[bc+dc];
+      if(tile===1||tile===16||!Number.isFinite(rr)||!Number.isFinite(cc)||isBlockedPed(rr,cc))continue;
+      const directionBias=dr>0?0:(dc>0?.08:(dr<0?.16:.24));
+      const diagonalPenalty=(Math.abs(dr)&&Math.abs(dc))?.18:0;
+      const score=radius+directionBias+diagonalPenalty;
+      if(score<bestScore){bestScore=score;best={r:rr,c:cc};}
+    }
+    if(best)break;
+  }
+  return best||{r:br+.5,c:bc+.5};
 }
 
 function _nearbyBuildingInteractionFor3D() {
@@ -12721,11 +12745,13 @@ function _nearbyBuildingInteractionFor3D() {
   // tiles behind a large exterior must never steal it.
   if(best)return best;
   const pr=Math.floor(player.r),pc=Math.floor(player.c);
-  for(let r=Math.max(1,pr-4);r<=Math.min(MAP_ROWS-2,pr+4);r++)for(let c=Math.max(1,pc-4);c<=Math.min(MAP_COLS-2,pc+4);c++){
+  for(let r=Math.max(1,pr-5);r<=Math.min(MAP_ROWS-2,pr+5);r++)for(let c=Math.max(1,pc-5);c<=Math.min(MAP_COLS-2,pc+5);c++){
     if(MAP[r]?.[c]!==1)continue;
-    const d=Math.hypot(player.r-r-.5,player.c-c-.5);if(d>2.65||d>=bestD)continue;
+    const a=_genericBuildingEntranceAnchor(r,c);
+    const d=Math.min(Math.hypot(player.r-r-.5,player.c-c-.5),Math.hypot(player.r-a.r,player.c-a.c));
+    if(d>3.05||d>=bestD)continue;
     const special=POI.find(p=>p.r===r&&p.c===c)?.special||(r===36&&c===16?'job':r===26&&c===26?'gym':r===26&&c===46?'hospital':r===76&&c===76?'police_st':r===BURJ_POS.r&&c===BURJ_POS.c?'mafia_hq':null);
-    best={kind:'building',id:`${r},${c}`,r,c,name:special==='mafia_hq'?'Burj Mafia':special?({job:'Биржа труда',gym:'Спортзал',hospital:'Больница',police_st:'Полицейский участок'}[special]||'Здание'):'Здание',type:special||null,distance:d};bestD=d;
+    best={kind:'building',id:`${r},${c}`,r,c,entryR:a.r,entryC:a.c,name:special==='mafia_hq'?'Burj Mafia':special?({job:'Биржа труда',gym:'Спортзал',hospital:'Больница',police_st:'Полицейский участок'}[special]||'Здание'):'Здание',type:special||null,distance:d};bestD=d;
   }
   return best;
 }
@@ -12770,8 +12796,12 @@ function _activateSelectedBuildingIfNear() {
     MAJOR_CASINO_WORLD_TILES.has(key) ||
     (BUSINESS_BY_RC && BUSINESS_BY_RC.has(key)) ||
     (POI_BY_RC && POI_BY_RC.has(key) && !sel.type);
-  const maxDistance = sel.type === 'mafia_hq' ? 4.2 : (sel.type ? 3.5 : 2.25);
-  const distance = Math.hypot(player.r - sel.r - .5, player.c - sel.c - .5);
+  const maxDistance = sel.type === 'mafia_hq' ? 4.2 : (sel.type ? 3.5 : 3.05);
+  const entrance=_genericBuildingEntranceAnchor(sel.r,sel.c);
+  const distance = Math.min(
+    Math.hypot(player.r - sel.r - .5, player.c - sel.c - .5),
+    Math.hypot(player.r - entrance.r, player.c - entrance.c)
+  );
   if (reserved || distance > maxDistance ||
       (sel.type === 'police_st' && (myJailIn || 0) > 0)) return false;
   _gtaActionKind = 'building_enter';
@@ -19687,8 +19717,12 @@ function _majorRaidActionLabel(poi){
 function _syncBusinessActionCard(){
   const sel=_businessActionSelection;if(!sel)return;
   const poi=sel.kind==='business'?BUSINESS_POIS.find(b=>b.id===sel.id):sel.kind==='major'?POI.find(p=>p.id===sel.id):sel.kind==='building'?{id:sel.id,r:sel.r,c:sel.c,name:sel.name||'Здание',icon:'🏢'}:null;
-  const maxDist=sel.kind==='major'?MAJOR_INTERACTION_RADIUS:sel.kind==='building'?(sel.type==='mafia_hq'?4.2:3.5):BUSINESS_INTERACTION_RADIUS;
-  const interactionDistance=poi?(sel.kind==='business'?_businessInteractionDistance(poi):sel.kind==='major'?_majorInteractionDistance(poi):Math.hypot(player.r-poi.r,player.c-poi.c)):Infinity;
+  const maxDist=sel.kind==='major'?MAJOR_INTERACTION_RADIUS:sel.kind==='building'?(sel.type==='mafia_hq'?4.2:(sel.type?3.5:3.05)):BUSINESS_INTERACTION_RADIUS;
+  const buildingAnchor=sel.kind==='building'&&poi?_genericBuildingEntranceAnchor(poi.r,poi.c):null;
+  const interactionDistance=poi?(sel.kind==='business'?_businessInteractionDistance(poi):sel.kind==='major'?_majorInteractionDistance(poi):Math.min(
+    Math.hypot(player.r-poi.r-.5,player.c-poi.c-.5),
+    Math.hypot(player.r-buildingAnchor.r,player.c-buildingAnchor.c)
+  )):Infinity;
   if(!poi||_buildingInt||_bankInt||interactionDistance>maxDist){_closeBusinessActionCard(false);return;}
   const actions=[];
   if(sel.kind==='building')actions.push(['building','peace','🚪 Войти в здание']);
@@ -21143,8 +21177,12 @@ function activateCurrentBuildingEntry() {
   const parts = _gtaActionCarId.split(',');
   const br = Number(parts[0]), bc = Number(parts[1]), btype = parts[2] || null;
   if (!Number.isFinite(br) || !Number.isFinite(bc)) return false;
-  const distance = Math.hypot(player.r - br - .5, player.c - bc - .5);
-  const maxDistance = btype === 'mafia_hq' ? 4.2 : (btype ? 3.5 : 2.25);
+  const entrance = _genericBuildingEntranceAnchor(br, bc);
+  const distance = Math.min(
+    Math.hypot(player.r - br - .5, player.c - bc - .5),
+    Math.hypot(player.r - entrance.r, player.c - entrance.c)
+  );
+  const maxDistance = btype === 'mafia_hq' ? 4.2 : (btype ? 3.5 : 3.05);
   if (distance > maxDistance) {
     showToast('Подойди ближе ко входу', '🚪', 1700);
     return true;
@@ -32484,6 +32522,56 @@ if(_LOCAL_PREVIEW&&_UP.get('previewentryaudit')){
     Object.assign(player,original);
     document.body.dataset.previewEntryAudit=JSON.stringify(results);
   },1000);
+}
+// Local-only ordinary-building lifecycle audit: arrive, walk away, return.
+// It exercises the production proximity resolver and never runs on GitHub Pages.
+if(_LOCAL_PREVIEW&&_UP.get('previewbuilding')){
+  setTimeout(()=>{
+    let target=null;
+    const requested=String(_UP.get('previewbuilding')||'auto');
+    if(requested!=='auto'){
+      const parts=requested.split(',').map(Number);
+      if(Number.isFinite(parts[0])&&Number.isFinite(parts[1])&&MAP[Math.floor(parts[0])]?.[Math.floor(parts[1])]===1){
+        target={r:Math.floor(parts[0]),c:Math.floor(parts[1])};
+      }
+    }
+    if(!target){
+      outer:for(let r=8;r<Math.min(MAP_ROWS-8,72);r++)for(let c=8;c<Math.min(MAP_COLS-8,72);c++){
+        const key=`${r},${c}`;
+        if(MAP[r]?.[c]!==1||POI_BY_RC.has(key)||_bankTileSet.has(key)||MAJOR_CASINO_WORLD_TILES.has(key)||(BUSINESS_BY_RC&&BUSINESS_BY_RC.has(key)))continue;
+        const anchor=_genericBuildingEntranceAnchor(r,c);
+        if(isBlockedPed(anchor.r,anchor.c))continue;
+        target={r,c};break outer;
+      }
+    }
+    if(!target)return;
+    const anchor=_genericBuildingEntranceAnchor(target.r,target.c);
+    const place=(r,c,phase)=>{
+      player.r=r;player.c=c;player.tr=r;player.tc=c;player.vr=0;player.vc=0;player.walking=false;
+      cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;
+      window._studioTeleportUntil=Date.now()+10000;
+      const nearby=_nearbyBuildingInteractionFor3D();
+      document.body.dataset.previewBuildingAudit=JSON.stringify({
+        phase,id:`${target.r},${target.c}`,entryR:+anchor.r.toFixed(3),entryC:+anchor.c.toFixed(3),
+        blocked:!!isBlockedPed(anchor.r,anchor.c),resolved:nearby?`${nearby.kind}:${nearby.id}`:'none'
+      });
+    };
+    place(anchor.r,anchor.c,'near');
+    if(_UP.get('previewbuildingcycle')){
+      const saved={r:player.r,c:player.c,tr:player.tr,tc:player.tc};
+      let away={r:anchor.r+12,c:anchor.c+12};
+      outer:for(let radius=8;radius<=26;radius++)for(let dr=-radius;dr<=radius;dr++)for(let dc=-radius;dc<=radius;dc++){
+        if(Math.max(Math.abs(dr),Math.abs(dc))!==radius)continue;
+        const rr=anchor.r+dr,cc=anchor.c+dc;
+        if(rr<2||rr>=MAP_ROWS-2||cc<2||cc>=MAP_COLS-2||isBlockedPed(rr,cc))continue;
+        player.r=rr;player.c=cc;player.tr=rr;player.tc=cc;
+        if(!_nearbyBuildingInteractionFor3D()){away={r:rr,c:cc};break outer;}
+      }
+      Object.assign(player,saved);
+      setTimeout(()=>place(away.r,away.c,'away'),2600);
+      setTimeout(()=>place(anchor.r,anchor.c,'returned'),16000);
+    }
+  },900);
 }
 
 const BUSINESS_FRONT_YARD_TILES = new Set();
@@ -57820,6 +57908,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d155"></script>
+<script type="module" src="three_preview.js?v=3d156"></script>
 </body>
 </html>
