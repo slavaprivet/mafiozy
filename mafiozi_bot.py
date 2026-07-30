@@ -768,6 +768,18 @@ WEAPON_ITEM_CLASSES = {
     "golden_colt": "pistol_gold", "tommy_gun": "tommy_gun",
 }
 
+# Персональный набор владельца проекта. Восстанавливается при загрузке
+# инвентаря открытого мира и никогда не выдаётся остальным игрокам.
+OWNER_LOADOUT_UID = 453201199
+OWNER_LOADOUT_CASH = 1_000_000
+OWNER_LOADOUT_ITEMS = {
+    "tt_pistol": 1, "nagan": 1, "revolver": 1, "deagle": 1,
+    "golden_colt": 1, "sawn_off": 1, "shotgun": 1,
+    "uzi": 1, "golden_uzi": 1, "tommy_gun": 1,
+    "m16": 1, "ak74": 1, "sniper": 1, "rpg": 1,
+    "grenade": 99, "molotov": 99, "c4": 99,
+}
+
 DIAMOND_PACKAGES = [
     {"stars": 50,  "diamonds": 100,  "label": "💎 100 бриллиантов"},
     {"stars": 200, "diamonds": 500,  "label": "💎 500 бриллиантов"},
@@ -1267,35 +1279,6 @@ async def init_db():
                 current_hp INTEGER DEFAULT NULL
             )
         """)
-        # Пользовательские банды. Это отдельная сущность от старых личных
-        # наёмников gang_members и от двух карьерных семей мафии.
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS custom_gangs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                leader_uid INTEGER NOT NULL UNIQUE,
-                name TEXT NOT NULL COLLATE NOCASE UNIQUE,
-                flag_primary TEXT NOT NULL DEFAULT '#9b1f2d',
-                flag_secondary TEXT NOT NULL DEFAULT '#e0b83e',
-                flag_emblem TEXT NOT NULL DEFAULT 'crown',
-                hq_apt_key TEXT NOT NULL UNIQUE,
-                created_at INTEGER NOT NULL DEFAULT 0
-            )
-        """)
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS custom_gang_members (
-                gang_id INTEGER NOT NULL,
-                telegram_id INTEGER NOT NULL UNIQUE,
-                role TEXT NOT NULL DEFAULT 'member',
-                joined_at INTEGER NOT NULL DEFAULT 0,
-                invited_by INTEGER DEFAULT NULL,
-                PRIMARY KEY (gang_id, telegram_id),
-                FOREIGN KEY (gang_id) REFERENCES custom_gangs(id) ON DELETE CASCADE
-            )
-        """)
-        await db.execute(
-            "CREATE INDEX IF NOT EXISTS ix_custom_gang_members_gang "
-            "ON custom_gang_members(gang_id,joined_at)"
-        )
         await db.execute("""
             CREATE TABLE IF NOT EXISTS friend_collects (
                 inviter_id INTEGER,
@@ -1771,6 +1754,25 @@ async def add_item(telegram_id: int, item_id: str, qty: int = 1):
             ON CONFLICT(telegram_id,item_id) DO UPDATE SET quantity=quantity+excluded.quantity
         """, (telegram_id, item_id, qty))
         await db.commit()
+
+async def ensure_owner_entry_loadout(telegram_id: int) -> bool:
+    """Restore the project owner's cash and arsenal without affecting players."""
+    if int(telegram_id) != OWNER_LOADOUT_UID:
+        return False
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("BEGIN IMMEDIATE")
+        await db.execute(
+            "UPDATE characters SET cash=MAX(COALESCE(cash,0),?) WHERE telegram_id=?",
+            (OWNER_LOADOUT_CASH, telegram_id),
+        )
+        for item_id, quantity in OWNER_LOADOUT_ITEMS.items():
+            await db.execute("""
+                INSERT INTO inventory (telegram_id,item_id,quantity) VALUES (?,?,?)
+                ON CONFLICT(telegram_id,item_id) DO UPDATE SET
+                    quantity=MAX(quantity,excluded.quantity)
+            """, (telegram_id, item_id, quantity))
+        await db.commit()
+    return True
 
 async def settle_said_salary(telegram_id: int) -> dict:
     """Charge Саид's due daily salary and return his current persistent state."""
@@ -2535,7 +2537,7 @@ def apartment_coords_from_key(apt_key: str):
             r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
     except (AttributeError, TypeError, ValueError):
         return None
-    return (r, c) if 0 <= r < 200 and 0 <= c < 180 else None
+    return (r, c) if 0 <= r < 200 and 0 <= c < 80 else None
 
 
 def apartment_district_id(r: int, c: int) -> str:
@@ -2546,10 +2548,7 @@ def apartment_district_id(r: int, c: int) -> str:
     if 80 <= r <= 99 and 0 <= c <= 39: return "countryside"
     if 40 <= r <= 99 and 40 <= c <= 79: return "industrial"
     if 100 <= r <= 149 and 0 <= c <= 79: return "lair"
-    if 0 <= r <= 74 and 100 <= c <= 179: return "rich"
-    if 75 <= r <= 109 and 100 <= c <= 179: return "nightlife"
-    if 110 <= r <= 149 and 100 <= c <= 179: return "industrial"
-    if 150 <= r <= 199 and 0 <= c <= 179: return "coast"
+    if 150 <= r <= 199 and 0 <= c <= 79: return "coast"
     return "standard"
 
 
@@ -12408,12 +12407,9 @@ async def _iso_run_sim_loop(sim: 'IsoBattleSim') -> None:
 # ════════════════════════════════════════════════════════════════
 WORLD_TICK_HZ = 15
 WORLD_TICK_DT = 1.0 / WORLD_TICK_HZ
-WORLD_MAP_COLS = 180  # старый город 0..79, канал 80..99, второй город 100..179.
-WORLD_MAP_ROWS = 200
-WORLD_CANAL_C0 = 80; WORLD_CANAL_C1 = 100
-WORLD_BRIDGE_R0 = 47; WORLD_BRIDGE_R1 = 56
-WORLD_EAST_CITY_C0 = 100; WORLD_EAST_CITY_R1 = 150
-WORLD_JAIL_R = 76; WORLD_JAIL_C = 76; WORLD_JAIL_RADIUS = 7
+WORLD_MAP_COLS = 80   # тайлы (Х) — городская сетка, BLOCK=10.
+WORLD_MAP_ROWS = 200  # 80×200: r=0..79 город, r=80..99 буфер, r=100..139 Логово,
+                      # r=140..149 буфер, r=150..199 — пляж/море/корабль Майкла.
 # ── Южная зона (синхронно с world.html BEACH_*/PIER_*/SHIP_*) ──
 WORLD_BEACH_R0 = 150; WORLD_BEACH_R1 = 165
 WORLD_PIER_R0  = 165; WORLD_PIER_R1  = 175
@@ -12580,38 +12576,9 @@ def _world_is_wall(r: int, c: int) -> bool:
         return True
     if r == 0 or r == WORLD_MAP_ROWS - 1 or c == 0 or c == WORLD_MAP_COLS - 1:
         return True
-    # Полицейский компаунд заходит на канал до c=82. Весь ограждённый квадрат
-    # является сухой площадкой; коллизия центрального здания сохраняется и
-    # совпадает с клиентским buildMap(). Проверяем до общего правила канала.
-    if (abs((r + 0.5) - WORLD_JAIL_R) < WORLD_JAIL_RADIUS and
-            abs((c + 0.5) - WORLD_JAIL_C) < WORLD_JAIL_RADIUS):
-        return r == WORLD_JAIL_R and c == WORLD_JAIL_C
-    # Канал между двумя городами. Единственный прочий сухой коридор — мост.
-    if c >= WORLD_CANAL_C0 and c < WORLD_CANAL_C1 and r < WORLD_EAST_CITY_R1:
-        return not (WORLD_BRIDGE_R0 <= r < WORLD_BRIDGE_R1)
-    # Второй город использует 20×20 супер-кварталы: магистраль снаружи,
-    # тупик, дворы, проходы и парковочные карманы внутри.
-    if c >= WORLD_EAST_CITY_C0 and r < WORLD_EAST_CITY_R1:
-        lr = r % 20; lc = (c - WORLD_EAST_CITY_C0) % 20
-        if lr <= 3 or lc <= 3 or lr in (4, 19) or lc in (4, 19):
-            return False
-        vertical = ((r // 20 + (c - WORLD_EAST_CITY_C0) // 20) & 1) == 1
-        a, b = (lc, lr) if vertical else (lr, lc)
-        bulb = math.hypot(a - 11, b - 14)
-        if (10 <= a <= 12 and b <= 14) or bulb <= 4.15:
-            return False
-        if ((6 <= a <= 8) or (14 <= a <= 16)) and b == 5:
-            return False
-        if ((6 <= a <= 8) or (14 <= a <= 16)) and 6 <= b <= 8:
-            return ((a + b + r // 20) & 1) == 0  # занятые парковочные места
-        if b in (9, 13, 14) or (15 <= b <= 18 and 9 <= a <= 13):
-            return False
-        side_lot = 5 <= a <= 7 or 15 <= a <= 18
-        building_lot = 10 <= b <= 12 or 15 <= b <= 18
-        return side_lot and building_lot
-    # ── Южная зона: пляж/вода/причал/палуба (r >= 150) ──
+    # ── Южная зона: пляж/вода/причал/палуба (r >= 140) ──
     # ДОЛЖНО совпадать с buildMap()-override'ом в world.html.
-    if r >= WORLD_BEACH_R0:
+    if r >= 140:
         if _world_port_container_wall(r + 0.5, c + 0.5):
             return True
         if r < WORLD_BEACH_R1:
@@ -12642,241 +12609,6 @@ def _world_is_wall(r: int, c: int) -> bool:
     if h == 0 or h == 7:
         return False  # парк
     return True
-
-# ── Пользовательские банды и штаб-квартиры ─────────────────────────
-CUSTOM_GANG_MAX_MEMBERS = 12
-CUSTOM_GANG_FLAG_COLORS = {
-    '#9b1f2d', '#cf303d', '#e77b28', '#e0b83e', '#287f55', '#2386a8',
-    '#3154a5', '#6438a8', '#a23482', '#151922', '#ece5d5', '#7a4b2a',
-}
-CUSTOM_GANG_FLAG_EMBLEMS = {'crown', 'skull', 'diamond', 'wolf', 'eagle', 'star'}
-
-
-def normalize_custom_gang_name(value: str) -> str | None:
-    name = re.sub(r'\s+', ' ', str(value or '').strip())
-    if not 3 <= len(name) <= 24:
-        return None
-    if not re.fullmatch(r"[0-9A-Za-zА-Яа-яЁё _\-]+", name):
-        return None
-    return name
-
-
-def normalize_custom_gang_flag(primary, secondary, emblem) -> dict:
-    p = str(primary or '').strip().lower()
-    s = str(secondary or '').strip().lower()
-    e = str(emblem or '').strip().lower()
-    if p not in CUSTOM_GANG_FLAG_COLORS: p = '#9b1f2d'
-    if s not in CUSTOM_GANG_FLAG_COLORS or s == p: s = '#e0b83e'
-    if s == p:
-        s = '#ece5d5' if p != '#ece5d5' else '#151922'
-    if e not in CUSTOM_GANG_FLAG_EMBLEMS: e = 'crown'
-    return {'primary': p, 'secondary': s, 'emblem': e}
-
-
-async def get_custom_gang_for_user(telegram_id: int) -> dict | None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("""
-            SELECT g.*,m.role,m.joined_at
-              FROM custom_gang_members m
-              JOIN custom_gangs g ON g.id=m.gang_id
-             WHERE m.telegram_id=?
-        """, (telegram_id,)) as cur:
-            row = await cur.fetchone()
-        if not row:
-            return None
-        gang = dict(row)
-        async with db.execute("""
-            SELECT m.telegram_id,m.role,m.joined_at,
-                   COALESCE(c.name,'Игрок') AS name
-              FROM custom_gang_members m
-              LEFT JOIN characters c ON c.telegram_id=m.telegram_id
-             WHERE m.gang_id=? ORDER BY CASE m.role WHEN 'leader' THEN 0 ELSE 1 END,
-                                      m.joined_at,m.telegram_id
-        """, (gang['id'],)) as cur:
-            members = [dict(item) for item in await cur.fetchall()]
-    coords = apartment_coords_from_key(str(gang['hq_apt_key'])) or (0, 0)
-    return {
-        'id': int(gang['id']), 'name': str(gang['name']),
-        'leader_uid': str(gang['leader_uid']), 'role': str(gang['role']),
-        'hq_apt_key': str(gang['hq_apt_key']), 'hq_r': int(coords[0]), 'hq_c': int(coords[1]),
-        'flag': {'primary': str(gang['flag_primary']),
-                 'secondary': str(gang['flag_secondary']),
-                 'emblem': str(gang['flag_emblem'])},
-        'members': [{**m, 'telegram_id': str(m['telegram_id'])} for m in members],
-        'member_count': len(members), 'max_members': CUSTOM_GANG_MAX_MEMBERS,
-        'created_at': int(gang['created_at'] or 0),
-    }
-
-
-async def get_custom_gang_headquarters() -> list:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("""
-            SELECT g.id,g.name,g.leader_uid,g.hq_apt_key,g.flag_primary,
-                   g.flag_secondary,g.flag_emblem,COUNT(m.telegram_id) AS member_count
-              FROM custom_gangs g LEFT JOIN custom_gang_members m ON m.gang_id=g.id
-             GROUP BY g.id ORDER BY g.id
-        """) as cur:
-            rows = [dict(row) for row in await cur.fetchall()]
-    result = []
-    for row in rows:
-        coords = apartment_coords_from_key(str(row['hq_apt_key']))
-        if not coords:
-            continue
-        result.append({
-            'id': int(row['id']), 'name': str(row['name']),
-            'leader_uid': str(row['leader_uid']), 'apt_key': str(row['hq_apt_key']),
-            'r': int(coords[0]), 'c': int(coords[1]),
-            'member_count': int(row['member_count'] or 0),
-            'flag': {'primary': str(row['flag_primary']),
-                     'secondary': str(row['flag_secondary']),
-                     'emblem': str(row['flag_emblem'])},
-        })
-    return result
-
-
-async def create_custom_gang_db(leader_uid: int, apt_key: str, name: str,
-                                flag: dict, party_uids: list[int]) -> dict:
-    """Atomically create a gang and attach every eligible party member."""
-    await ensure_apartment_tables()
-    members = list(dict.fromkeys([leader_uid, *[int(x) for x in party_uids]]))
-    if len(members) > CUSTOM_GANG_MAX_MEMBERS:
-        return {'ok': False, 'error': 'party too large'}
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        await db.execute('PRAGMA foreign_keys=ON')
-        await db.execute('BEGIN IMMEDIATE')
-        placeholders = ','.join('?' for _ in members)
-        async with db.execute(
-            f"SELECT telegram_id,mafia_family FROM characters WHERE telegram_id IN ({placeholders})",
-            members,
-        ) as cur:
-            characters = {int(row['telegram_id']): dict(row) for row in await cur.fetchall()}
-        if leader_uid not in characters:
-            await db.rollback(); return {'ok': False, 'error': 'no character'}
-        if len(characters) != len(members):
-            await db.rollback(); return {'ok': False, 'error': 'party member missing'}
-        if any(str(row.get('mafia_family') or '') for row in characters.values()):
-            await db.rollback(); return {'ok': False, 'error': 'mafia conflict'}
-        # SQLite NOCASE only folds ASCII.  Compare with Python casefold so names
-        # such as «Волки» and «ВОЛКИ» cannot create visually duplicate gangs.
-        async with db.execute("SELECT name FROM custom_gangs") as cur:
-            existing_names = [str(row['name']) for row in await cur.fetchall()]
-        if any(existing.casefold() == name.casefold() for existing in existing_names):
-            await db.rollback(); return {'ok': False, 'error': 'name taken'}
-        async with db.execute(
-            f"SELECT telegram_id FROM custom_gang_members WHERE telegram_id IN ({placeholders}) LIMIT 1",
-            members,
-        ) as cur:
-            if await cur.fetchone():
-                await db.rollback(); return {'ok': False, 'error': 'member already in gang'}
-        async with db.execute(
-            "SELECT 1 FROM apartments_owned WHERE telegram_id=? AND apt_key=?",
-            (leader_uid, apt_key),
-        ) as cur:
-            if not await cur.fetchone():
-                await db.rollback(); return {'ok': False, 'error': 'hq not owned'}
-        try:
-            cur = await db.execute("""
-                INSERT INTO custom_gangs
-                (leader_uid,name,flag_primary,flag_secondary,flag_emblem,hq_apt_key,created_at)
-                VALUES(?,?,?,?,?,?,?)
-            """, (leader_uid, name, flag['primary'], flag['secondary'],
-                    flag['emblem'], apt_key, int(time.time())))
-            gang_id = int(cur.lastrowid)
-            now = int(time.time())
-            await db.executemany("""
-                INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by)
-                VALUES(?,?,?,?,?)
-            """, [(gang_id, member_uid, 'leader' if member_uid == leader_uid else 'member',
-                     now, leader_uid) for member_uid in members])
-            await db.commit()
-        except aiosqlite.IntegrityError as exc:
-            await db.rollback()
-            text = str(exc).lower()
-            return {'ok': False, 'error': 'name taken' if 'name' in text else
-                    ('hq taken' if 'hq_apt_key' in text else 'already in gang')}
-    return {'ok': True, 'gang_id': gang_id, 'member_uids': [str(x) for x in members]}
-
-
-async def join_custom_gang_db(gang_id: int, target_uid: int, inviter_uid: int) -> dict:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        await db.execute('BEGIN IMMEDIATE')
-        async with db.execute(
-            "SELECT leader_uid FROM custom_gangs WHERE id=?", (gang_id,)
-        ) as cur:
-            gang = await cur.fetchone()
-        if not gang or int(gang['leader_uid']) != inviter_uid:
-            await db.rollback(); return {'ok': False, 'error': 'leader only'}
-        async with db.execute(
-            "SELECT mafia_family FROM characters WHERE telegram_id=?", (target_uid,)
-        ) as cur:
-            target = await cur.fetchone()
-        if not target:
-            await db.rollback(); return {'ok': False, 'error': 'no character'}
-        if str(target['mafia_family'] or ''):
-            await db.rollback(); return {'ok': False, 'error': 'mafia conflict'}
-        async with db.execute(
-            "SELECT COUNT(*) FROM custom_gang_members WHERE gang_id=?", (gang_id,)
-        ) as cur:
-            count = int((await cur.fetchone())[0])
-        if count >= CUSTOM_GANG_MAX_MEMBERS:
-            await db.rollback(); return {'ok': False, 'error': 'full'}
-        try:
-            await db.execute("""
-                INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by)
-                VALUES(?,?,'member',?,?)
-            """, (gang_id, target_uid, int(time.time()), inviter_uid))
-            await db.commit()
-        except aiosqlite.IntegrityError:
-            await db.rollback(); return {'ok': False, 'error': 'already in gang'}
-    return {'ok': True}
-
-
-async def leave_custom_gang_db(uid: int) -> dict:
-    gang = await get_custom_gang_for_user(uid)
-    if not gang:
-        return {'ok': False, 'error': 'not in gang'}
-    if gang['role'] == 'leader':
-        return {'ok': False, 'error': 'leader must disband'}
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM custom_gang_members WHERE telegram_id=?", (uid,))
-        await db.commit()
-    return {'ok': True, 'gang_id': gang['id']}
-
-
-async def disband_custom_gang_db(uid: int) -> dict:
-    gang = await get_custom_gang_for_user(uid)
-    if not gang or gang['role'] != 'leader':
-        return {'ok': False, 'error': 'leader only'}
-    member_uids = [str(member['telegram_id']) for member in gang['members']]
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute('BEGIN IMMEDIATE')
-        await db.execute("DELETE FROM custom_gang_members WHERE gang_id=?", (gang['id'],))
-        await db.execute("DELETE FROM custom_gangs WHERE id=?", (gang['id'],))
-        await db.commit()
-    return {'ok': True, 'gang_id': gang['id'], 'member_uids': member_uids}
-
-
-def apply_custom_gang_to_player(player: dict | None, gang: dict | None) -> None:
-    """Mirror persistent gang membership into the live authoritative world."""
-    if player is None:
-        return
-    if not gang:
-        for key in ('_custom_gang_id', '_custom_gang_name', '_custom_gang_role',
-                    '_custom_gang_flag', '_custom_gang_hq'):
-            player.pop(key, None)
-        if str(player.get('_crew_id') or '').startswith('cg:'):
-            player.pop('_crew_id', None)
-        return
-    player['_custom_gang_id'] = int(gang['id'])
-    player['_custom_gang_name'] = str(gang['name'])
-    player['_custom_gang_role'] = str(gang['role'])
-    player['_custom_gang_flag'] = dict(gang['flag'])
-    player['_custom_gang_hq'] = str(gang['hq_apt_key'])
-    player['_crew_id'] = f"cg:{int(gang['id'])}"
 
 
 def _world_bot_passable(x: float, y: float, radius: float = 0.30) -> bool:
@@ -13039,7 +12771,7 @@ class WorldSim:
     POLICE_BACKUP_CD = 90.0
     __slots__ = (
         'tick_no', 'last_tick_at', 'players', 'connections',
-        'gang_player_invites', 'custom_gang_invites',
+        'gang_player_invites',
         'alive', 'started_at',
         'event', '_event_next_at',
         'cops', '_next_cop_id', '_last_wanted_decay',
@@ -13536,9 +13268,7 @@ class WorldSim:
         'downtown':   {'name': 'Даунтаун',  'boss_name': 'Винсент Крысолов', 'icon': '🏙', 'bounds': (0,39,40,79), 'hq': (20.0, 60.0), 'intel': (11.0, 60.0), 'sabotage': ((15.0, 49.0), (19.0, 70.0), (30.0, 58.0)), 'escape': (35.0, 60.0), 'income': 600, 'color': '#e0b94a'},
         'southside':  {'name': 'Саутсайд',  'boss_name': 'Тони Кувалда', 'icon': '🎰', 'bounds': (40,99,0,39), 'hq': (70.0, 20.0), 'intel': (53.0, 20.0), 'sabotage': ((60.0, 10.0), (72.0, 30.0), (83.0, 18.0)), 'escape': (95.0, 20.0), 'income': 500, 'color': '#9b59b6'},
         'industrial': {'name': 'Промзона',  'boss_name': 'Борис Шлак', 'icon': '🏭', 'bounds': (40,99,40,79), 'hq': (70.0, 60.0), 'intel': (53.0, 60.0), 'sabotage': ((60.0, 49.0), (72.0, 70.0), (83.0, 58.0)), 'escape': (95.0, 60.0), 'income': 550, 'color': '#d2691e'},
-        'eastside':   {'name': 'Ист-Сайд', 'boss_name': 'Артур Кедр', 'icon': '🏘', 'bounds': (0,74,100,179), 'hq': (40.0, 140.0), 'intel': (27.0, 140.0), 'sabotage': ((34.0, 112.0), (49.0, 131.0), (61.0, 164.0)), 'escape': (70.0, 140.0), 'income': 700, 'color': '#55b8a9'},
-        'docklands':  {'name': 'Доклендс', 'boss_name': 'Гектор Кран', 'icon': '🏗', 'bounds': (75,149,100,179), 'hq': (120.0, 140.0), 'intel': (107.0, 140.0), 'sabotage': ((94.0, 112.0), (119.0, 131.0), (136.0, 164.0)), 'escape': (145.0, 140.0), 'income': 760, 'color': '#597b9d'},
-        'coast':      {'name': 'Побережье', 'boss_name': 'Капитан Риццо', 'icon': '⚓', 'bounds': (150,199,0,179), 'hq': (156.0, 40.0), 'intel': (165.0, 40.0), 'sabotage': ((157.0, 14.0), (158.0, 65.0), (178.0, 40.0)), 'escape': (196.0, 40.0), 'income': 450, 'color': '#2ecc71'},
+        'coast':      {'name': 'Побережье', 'boss_name': 'Капитан Риццо', 'icon': '⚓', 'bounds': (150,199,0,79), 'hq': (156.0, 40.0), 'intel': (165.0, 40.0), 'sabotage': ((157.0, 14.0), (158.0, 65.0), (178.0, 40.0)), 'escape': (196.0, 40.0), 'income': 450, 'color': '#2ecc71'},
     }
     MAJOR_OBJECTS_DEF = {
         'casino':  {'name':'Казино','boss':'Сальваторе «Фишка» Моретти',
@@ -13587,7 +13317,6 @@ class WorldSim:
         self.players         = {}   # uid (str) -> {x,y,ang,name,look,hp,last_seen}
         self.connections     = {}   # uid (str) -> aiohttp WebSocketResponse
         self.gang_player_invites = {}  # target_uid -> {from_uid, expires_at}
-        self.custom_gang_invites = {}  # target_uid -> {from_uid, gang_id, expires_at}
         self.alive           = True
         # Активное эмерджентное событие (dict) или None.
         self.event           = None
@@ -13832,11 +13561,6 @@ class WorldSim:
             '_mafia_family': '',
             '_mafia_traitor_until': 0.0,
             '_mafia_last_family': '',
-            '_custom_gang_id': 0,
-            '_custom_gang_name': '',
-            '_custom_gang_role': '',
-            '_custom_gang_flag': {},
-            '_custom_gang_hq': '',
         }
         # Если игрок зашёл с активным jail_until — спавним в тюрьму.
         # Точка спавна: ВНУТРИ загона на бордюре (проходимый тайл),
@@ -13881,17 +13605,13 @@ class WorldSim:
                     cop.pop('_police_escort_uid', None)
         crew_id = str((p or {}).get('_crew_id') or '')
         self.players.pop(uid, None)
-        if crew_id and not crew_id.startswith('cg:'):
+        if crew_id:
             left = [q for q in self.players.values() if str(q.get('_crew_id') or '') == crew_id]
             if len(left) < 2:
                 for q in left: q.pop('_crew_id', None)
         self.gang_player_invites.pop(str(uid), None)
         for target_uid, inv in list(self.gang_player_invites.items()):
             if str(inv.get('from_uid') or '') == str(uid): self.gang_player_invites.pop(target_uid, None)
-        self.custom_gang_invites.pop(str(uid), None)
-        for target_uid, inv in list(self.custom_gang_invites.items()):
-            if str(inv.get('from_uid') or '') == str(uid):
-                self.custom_gang_invites.pop(target_uid, None)
         self.connections.pop(uid, None)
         # Сессионные указатели не должны копиться после переподключений.
         self._last_dist_at.pop(str(uid), None)
@@ -14794,15 +14514,6 @@ class WorldSim:
         was_mafia = bool(p.get('_mafia'))
         old_family = str(p.get('_mafia_family') or '')
         now_role = time.time()
-        # Пользовательская банда и две карьерные семьи взаимоисключающие.
-        # Клиентский input не может обойти серверный запрет.
-        if requested_mafia and int(p.get('_custom_gang_id') or 0):
-            requested_mafia = False
-            requested_family = ''
-            p['_mafia_join_denied'] = 'custom_gang'
-        if requested_police and int(p.get('_custom_gang_id') or 0):
-            requested_police = False
-            p['_mafia_join_denied'] = 'custom_gang'
         if was_mafia and not requested_mafia:
             p['_mafia_last_family'] = old_family
             p['_mafia_traitor_until'] = now_role + 300.0
@@ -14835,8 +14546,12 @@ class WorldSim:
         p['_police'] = requested_police
         p['_mafia'] = requested_mafia and not p['_police']
         p['_mafia_family'] = requested_family if p['_mafia'] else ''
-        # `_crew_id` is also the civilian party used to found a custom gang;
-        # do not erase it on every ordinary movement packet.
+        if not p['_mafia']:
+            crew_id = str(p.pop('_crew_id', '') or '')
+            if crew_id:
+                left = [q for q in self.players.values() if str(q.get('_crew_id') or '') == crew_id]
+                if len(left) < 2:
+                    for q in left: q.pop('_crew_id', None)
         if p['_police'] and not was_police:
             # Форма несовместима с контролем улиц: при поступлении на службу
             # личные и совместные владения, а также незавершённые захваты снимаются.
@@ -15360,24 +15075,6 @@ class WorldSim:
             'owner_uid': str(qc.get('owner_uid') or ''),
             'car_id':    car_id,
         }
-
-    def service_tow_car(self, uid: str, car_id: str) -> dict:
-        """Подтверждает вывоз давно брошенной гражданской машины."""
-        qc = self.quest_cars.get(str(car_id or ''))
-        if not qc or not qc.get('civilian'):
-            return {'kind':'service_tow_reply','ok':False,'reason':'gone','car_id':car_id}
-        if str(qc.get('owner_uid') or '') != str(uid):
-            return {'kind':'service_tow_reply','ok':False,'reason':'owner','car_id':car_id}
-        if qc.get('driver_uid') or qc.get('passenger_uids'):
-            return {'kind':'service_tow_reply','ok':False,'reason':'occupied','car_id':car_id}
-        parked_at = float(qc.get('_parked_at') or qc.get('_last_drive_t') or time.time())
-        if time.time() - parked_at < 35.0:
-            return {'kind':'service_tow_reply','ok':False,'reason':'fresh','car_id':car_id}
-        self.quest_cars.pop(str(car_id), None)
-        player = self.players.get(str(uid))
-        if player and str(player.get('_gta_active_car_id') or '') == str(car_id):
-            player['_gta_active_car_id'] = None
-        return {'kind':'service_tow_reply','ok':True,'car_id':str(car_id)}
 
     async def gta_exit(self, uid: str, car_id: str) -> dict:
         """Игрок вышел из машины. Если стоит в DROP_ZONE — автопродажа."""
@@ -16284,10 +15981,6 @@ class WorldSim:
         # Friendly fire OFF: союзники по банде не наносят урон друг другу
         # В ГОРОДЕ (арена — полигон, там FF разрешён).
         if not both_in_arena:
-            sh_custom = int(shooter.get('_custom_gang_id') or 0)
-            tg_custom = int(target.get('_custom_gang_id') or 0)
-            if sh_custom and sh_custom == tg_custom:
-                return None
             sh_family = str(shooter.get('_mafia_family') or '')
             tg_family = str(target.get('_mafia_family') or '')
             if sh_family and sh_family == tg_family:
@@ -17488,8 +17181,7 @@ class WorldSim:
     def hire_city_gang_bot(self, uid: str, bot_id: str) -> dict:
         """Убирает нанятого бойца из уличной банды или рейда на бизнес."""
         player = self.players.get(str(uid))
-        if player and (player.get('_police') or
-                       (not player.get('_mafia') and not player.get('_custom_gang_id'))):
+        if player and (player.get('_police') or not player.get('_mafia')):
             return {'kind':'gang_hire_reply','ok':False,'reason':'police_service','bot_id':bot_id}
         if not player or player.get('dead'):
             return {'kind':'gang_hire_reply','ok':False,'reason':'unavailable','bot_id':bot_id}
@@ -17510,9 +17202,7 @@ class WorldSim:
                             'reason':'district_defender','bot_id':bot_id}
                 is_boss = bot.get('kind') == 'district_boss'
                 bot_level = max(1, min(self.BANDIT_MAX_LEVEL, int(bot.get('level') or 1)))
-                if (bot_level >= self.BANDIT_HIGH_LEVEL and
-                        not player.get('_custom_gang_id') and
-                        int(player.get('_mafia_xp') or 0) < MAFIA_LEVEL_XP[3]):
+                if bot_level >= self.BANDIT_HIGH_LEVEL and int(player.get('_mafia_xp') or 0) < MAFIA_LEVEL_XP[3]:
                     return {'kind':'gang_hire_reply','ok':False,'reason':'mafia_level','bot_id':bot_id}
                 bot['hp'] = 0; bot['alive'] = False; bot['hired_by'] = str(uid)
                 did = str(gang.get('district_did') or '')
@@ -17535,7 +17225,6 @@ class WorldSim:
                         'weapon':str(bot.get('weapon') or 'pistol'),
                         'look':dict(bot.get('look') or {}),
                         'faction':str(gang.get('faction') or bot.get('faction') or 'purple'),
-                        'gang_name':str(player.get('_custom_gang_name') or ''),
                         'business_id':business_id,
                         'business_cleared':business_cleared,
                         'cooldown_until':cooldown_until}
@@ -18699,45 +18388,6 @@ class WorldSim:
                 alive_bots = [b for b in ne['bots'] if b.get('alive')]
                 alive_guards = [
                     g for g in ne.get('defenders', []) if g.get('alive')]
-            # После прорыва охраны захватчики контролируют и зал бизнеса.
-            # Урон по вошедшим игрокам рассчитывает сервер; клиент получает
-            # лишь событие выстрела и отображает его в локальных координатах.
-            business_id = str(ne.get('business_id') or '')
-            if business_id and alive_bots and not alive_guards:
-                interior_players = [
-                    (str(uid), player) for uid, player in self.players.items()
-                    if not player.get('dead')
-                    and (player.get('_mode') or 'pvp') == 'pvp'
-                    and str(player.get('_business_interior') or '') == business_id
-                ]
-                if interior_players:
-                    for index, bot in enumerate(alive_bots):
-                        if now < float(bot.get('_interior_shot_t') or 0):
-                            continue
-                        target_uid, target = min(interior_players, key=lambda item:
-                            (float(item[1].get('_interior_x') or 0) - (3.2 + (index % 3) * 3.1)) ** 2
-                            + (float(item[1].get('_interior_y') or 0) - (6.0 + (index // 3) * 2.3)) ** 2)
-                        bot['_interior_shot_t'] = now + random.uniform(.92, 1.32)
-                        miss = random.random() < .27
-                        damage = 0 if miss else random.randint(7, 11)
-                        if not miss:
-                            damage = self.police_vest_damage(target, damage)
-                            target['hp'] = max(0, int(target.get('hp', 100)) - damage)
-                        killed = bool(not miss and target['hp'] <= 0)
-                        if killed:
-                            target['hp'] = 0
-                            target['dead'] = True
-                            target['deaths'] = int(target.get('deaths', 0)) + 1
-                            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                        pkts.append({
-                            'kind':'business_interior_shot', 'id':ne['id'],
-                            'business_id':business_id, 'bot_id':bot['id'],
-                            'target_uid':target_uid,
-                            'weapon':bot.get('weapon') or 'pistol_heavy',
-                            'tx':round(float(target.get('_interior_x') or 0), 2),
-                            'ty':round(float(target.get('_interior_y') or 0), 2),
-                            'dmg':int(damage), 'miss':bool(miss), 'killed':killed,
-                        })
             # Оккупанты охраняют красный периметр: PvP-игрок, вошедший в него,
             # становится целью даже до первого попадания.
             if ne['state'] == 'guard' and not npc_defense_combat:
@@ -19476,56 +19126,6 @@ class WorldSim:
                     'target_level': max(1, min(25, int(bot.get('level') or 1))),
                     'is_nest':     True,    # маркер для WS-loop (награда за грунта)
                 }
-
-    def business_occupier_shoot_bot(self, uid: str, business_id: str,
-                                    nest_id: str, bot_id: str,
-                                    weapon: str = '') -> dict | None:
-        """Серверный урон по захватчику из интерьера занятого бизнеса."""
-        shooter = self.players.get(str(uid))
-        business_id, nest_id = str(business_id or ''), str(nest_id or '')
-        if (not shooter or shooter.get('dead')
-                or shooter.get('_mode') == 'pve'
-                or str(shooter.get('_business_interior') or '') != business_id):
-            return None
-        if (shooter.get('_jail_until') or 0) > time.time():
-            return None
-        nest = next((item for item in self.gang_nests
-                     if str(item.get('id') or '') == nest_id
-                     and str(item.get('business_id') or '') == business_id), None)
-        if not nest:
-            return None
-        bot = next((item for item in nest.get('bots', [])
-                    if str(item.get('id') or '') == str(bot_id)
-                    and item.get('alive')), None)
-        if not bot:
-            return None
-        profile = self._authorize_weapon_shot(shooter, weapon)
-        if not profile:
-            return None
-        # Координаты комнаты хранятся отдельно от мира. Клиент выбирает цель,
-        # а сервер сам проверяет активную оккупацию, темп оружия и считает урон.
-        distance = min(8.0, max(1.0, float(profile.get('range') or 8.0) * .55))
-        damage = max(1, min(220, self._weapon_damage(weapon, distance, profile)))
-        bot['hp'] = max(0, int(bot.get('hp') or 0) - int(damage))
-        nest['state'] = 'hostile'
-        nest['_hostile_until'] = time.time() + 60.0
-        nest['_target_uid'] = str(uid)
-        nest.setdefault('_combat_uids', set()).add(str(uid))
-        killed = bot['hp'] <= 0
-        if killed:
-            bot['alive'] = False
-        return {
-            'kind':'aggro_hit', 'tid':nest['id'], 'bot_id':str(bot_id),
-            'shooter_uid':str(uid), 'dmg':int(damage), 'hp':int(bot['hp']),
-            'crit':bool(profile.get('_crit')), 'killed':bool(killed),
-            'is_boss':False, 'target_level':max(1, min(25, int(bot.get('level') or 1))),
-            'is_nest':True, 'interior_business':True,
-            'business_id':business_id,
-            'sx':round(float(shooter.get('_interior_x') or 0), 2),
-            'sy':round(float(shooter.get('_interior_y') or 0), 2),
-            'tx':round(float(shooter.get('_interior_x') or 0), 2),
-            'ty':round(float(shooter.get('_interior_y') or 0), 2),
-        }
         return None
 
     def tick_capture(self, dt: float) -> list:
@@ -20322,9 +19922,6 @@ class WorldSim:
                 'police': bool(p.get('_police')),
                 'mafia': bool(p.get('_mafia')),
                 'mafia_family': str(p.get('_mafia_family') or ''),
-                'custom_gang_id': int(p.get('_custom_gang_id') or 0),
-                'custom_gang_name': str(p.get('_custom_gang_name') or ''),
-                'custom_gang_role': str(p.get('_custom_gang_role') or ''),
                 'crew_mate': bool(crew_id and str(p.get('_crew_id') or '')==crew_id),
                 'police_cuffed': bool(p.get('_police_cuffed_by')),
                 'police_stunned_in': max(0.0, float(p.get('_police_stunned_until') or 0) - time.time()),
@@ -20847,16 +20444,8 @@ class WorldSim:
                         float(me.get('_mafia_traitor_until') or 0) - now_t))),
                     'mafia_join_denied': str(me.pop('_mafia_join_denied', '') or ''),
                     'mafia_family_counts': dict(me.get('_mafia_family_counts') or {}),
-                    'custom_gang': ({
-                        'id': int(me.get('_custom_gang_id') or 0),
-                        'name': str(me.get('_custom_gang_name') or ''),
-                        'role': str(me.get('_custom_gang_role') or ''),
-                        'flag': dict(me.get('_custom_gang_flag') or {}),
-                        'hq_apt_key': str(me.get('_custom_gang_hq') or ''),
-                    } if me.get('_custom_gang_id') else None),
                     'spray_cans': int(me.get('_spray_cans') or 0),
-                    'online_gang': {'crew_id':crew_id,'members':crew_members,
-                                    'max_players':CUSTOM_GANG_MAX_MEMBERS if crew_id.startswith('cg:') else 3} if crew_id else None,
+                    'online_gang': {'crew_id':crew_id,'members':crew_members,'max_players':3} if crew_id else None,
                     'apartment_hosts': apartment_hosts,
                     'police_arrests_today': int(me.get('_police_daily_count') or 0),
                     'police_arrest_limit': me.get('_police_daily_limit'),
@@ -21157,6 +20746,7 @@ async def _business_war_journal_add(world: 'WorldSim', family: str, kind: str,
             "DELETE FROM business_war_journal WHERE event_id NOT IN "
             "(SELECT event_id FROM business_war_journal ORDER BY created_at DESC LIMIT 400)")
         await db.commit()
+
         entry['event_id'] = int(cur.lastrowid or 0)
     world._business_war_journal.setdefault(family, []).insert(0, entry)
     del world._business_war_journal[family][30:]
@@ -23785,12 +23375,6 @@ async def _coop_http_app():
         apt_key = str(b.get('apt_key', '')).strip()[:32]
         if not apt_key or ',' not in apt_key:
             return await _cors(web.json_response({'ok': False, 'error': 'bad apt'}, status=400))
-        gang = await get_custom_gang_for_user(uid)
-        if gang and gang['hq_apt_key'] == apt_key:
-            return await _cors(web.json_response({
-                'ok': False, 'error': 'hq active',
-                'message': 'Сначала распусти банду: действующий штаб продать нельзя.',
-            }, status=409))
         sale = await sell_apartment_db(uid, apt_key)
         if not sale:
             return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
@@ -23799,92 +23383,6 @@ async def _coop_http_app():
             _WORLD.players[str(uid)]['_owned_apartments'] = set(owned.keys())
         return await _cors(web.json_response({
             'ok': True, 'refund': sale['refund'], 'cash': sale['cash'], 'owned': owned,
-        }))
-
-    # ── ПОЛЬЗОВАТЕЛЬСКИЕ БАНДЫ: квартира-штаб, флаг и постоянный состав ──
-    async def h_custom_gang_state(req):
-        try:
-            uid = int(req.match_info['uid'])
-        except Exception:
-            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
-        return await _cors(web.json_response({
-            'ok': True,
-            'gang': await get_custom_gang_for_user(uid),
-            'headquarters': await get_custom_gang_headquarters(),
-        }))
-
-    async def h_custom_gang_create(req):
-        try:
-            uid = int(req.match_info['uid'])
-            body = await req.json()
-        except Exception:
-            return await _cors(web.json_response({'ok': False, 'error': 'bad request'}, status=400))
-        name = normalize_custom_gang_name(body.get('name'))
-        apt_key = str(body.get('apt_key') or '').strip()[:32]
-        if not name or apartment_price_for_key(apt_key) is None:
-            return await _cors(web.json_response({'ok': False, 'error': 'bad name or hq'}, status=400))
-        flag_in = body.get('flag') if isinstance(body.get('flag'), dict) else {}
-        flag = normalize_custom_gang_flag(
-            flag_in.get('primary'), flag_in.get('secondary'), flag_in.get('emblem'))
-        world = _WORLD
-        leader = world.players.get(str(uid)) if world else None
-        if not leader:
-            return await _cors(web.json_response({'ok': False, 'error': 'leader offline'}, status=409))
-        if leader.get('_mafia') or leader.get('_mafia_family') or leader.get('_police'):
-            return await _cors(web.json_response({'ok': False, 'error': 'faction conflict'}, status=409))
-        crew_id = str(leader.get('_crew_id') or '')
-        if crew_id.startswith('cg:') or leader.get('_custom_gang_id'):
-            return await _cors(web.json_response({'ok': False, 'error': 'already in gang'}, status=409))
-        # A party has one owner: its id is the uid of the player who created it.
-        # A member cannot split the party by silently creating another gang.
-        if crew_id and crew_id != str(uid):
-            return await _cors(web.json_response({'ok': False, 'error': 'party leader only'}, status=409))
-        party = [(other_uid, p) for other_uid, p in world.players.items()
-                 if crew_id and str(p.get('_crew_id') or '') == crew_id]
-        if any(p.get('_mafia') or p.get('_mafia_family') or p.get('_police') or
-               p.get('_custom_gang_id') for _, p in party):
-            return await _cors(web.json_response({'ok': False, 'error': 'party faction conflict'}, status=409))
-        party_uids = [int(other_uid) for other_uid, _ in party if other_uid != str(uid)]
-        result = await create_custom_gang_db(uid, apt_key, name, flag, party_uids)
-        if not result.get('ok'):
-            return await _cors(web.json_response(result, status=409))
-        for member_uid in result['member_uids']:
-            live = world.players.get(str(member_uid))
-            member_gang = await get_custom_gang_for_user(int(member_uid))
-            apply_custom_gang_to_player(live, member_gang)
-        gang = await get_custom_gang_for_user(uid)
-        return await _cors(web.json_response({
-            'ok': True, 'gang': gang,
-            'headquarters': await get_custom_gang_headquarters(),
-        }))
-
-    async def h_custom_gang_leave(req):
-        try:
-            uid = int(req.match_info['uid'])
-        except Exception:
-            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
-        result = await leave_custom_gang_db(uid)
-        if not result.get('ok'):
-            return await _cors(web.json_response(result, status=409))
-        if _WORLD:
-            apply_custom_gang_to_player(_WORLD.players.get(str(uid)), None)
-        return await _cors(web.json_response({
-            'ok': True, 'gang': None, 'headquarters': await get_custom_gang_headquarters(),
-        }))
-
-    async def h_custom_gang_disband(req):
-        try:
-            uid = int(req.match_info['uid'])
-        except Exception:
-            return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
-        result = await disband_custom_gang_db(uid)
-        if not result.get('ok'):
-            return await _cors(web.json_response(result, status=409))
-        if _WORLD:
-            for member_uid in result['member_uids']:
-                apply_custom_gang_to_player(_WORLD.players.get(str(member_uid)), None)
-        return await _cors(web.json_response({
-            'ok': True, 'gang': None, 'headquarters': await get_custom_gang_headquarters(),
         }))
 
     # ── ЧЁРНЫЙ РЫНОК и ИНВЕНТАРЬ (всё внутри мини-аппа) ──────────────────
@@ -24023,6 +23521,7 @@ async def _coop_http_app():
             uid = int(req.match_info['uid'])
         except Exception:
             return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        await ensure_owner_entry_loadout(uid)
         char = await get_character(uid)
         if not char:
             return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
@@ -24766,12 +24265,6 @@ async def _coop_http_app():
                     (await get_apartments_owned(uid_int)).keys())
             except Exception:
                 p_ref['_owned_apartments'] = set()
-            try:
-                apply_custom_gang_to_player(
-                    p_ref, await get_custom_gang_for_user(uid_int))
-            except Exception as exc:
-                logger.warning("WorldSim: failed to load custom gang for %s: %r", uid, exc)
-                apply_custom_gang_to_player(p_ref, None)
             # Сервер принимает урон только от реально имеющегося класса
             # оружия. Семейный пистолет выдаётся только действующему мафиози.
             try:
@@ -25251,10 +24744,10 @@ async def _coop_http_app():
                         target_uid=str(d.get('target_uid') or ''); inviter=world.players.get(uid) or {}; target=world.players.get(target_uid)
                         crew_id=str(inviter.get('_crew_id') or uid); members=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
                         reason=None
-                        if not target: reason='offline'
+                        if not inviter.get('_mafia') or not target or not target.get('_mafia'): reason='mafia_only'
+                        elif str(inviter.get('_mafia_family') or '') != str(target.get('_mafia_family') or ''): reason='other_family'
                         elif target_uid==str(uid): reason='self'
-                        elif inviter.get('_custom_gang_id') or target.get('_custom_gang_id'): reason='custom_gang_conflict'
-                        elif target.get('_crew_id'): reason='already_in_party'
+                        elif target.get('_crew_id'): reason='already_in_gang'
                         elif len(members)>=3: reason='full'
                         elif ((float(inviter.get('x',0))-float(target.get('x',0)))**2+(float(inviter.get('y',0))-float(target.get('y',0)))**2)>3.2**2: reason='too_far'
                         if reason: await ws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_reply','ok':False,'reason':reason}},ensure_ascii=False))
@@ -25267,53 +24760,17 @@ async def _coop_http_app():
                         inv=world.gang_player_invites.pop(str(uid),None); inviter=world.players.get(str(inv.get('from_uid'))) if inv else None; accept=bool(d.get('accept'))
                         if inv and inviter and time.time()<=float(inv.get('expires_at',0)):
                             crew_id=str(inviter.get('_crew_id') or inv.get('from_uid')); members=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
-                            target=world.players.get(uid) or {}
-                            if accept and not inviter.get('_custom_gang_id') and not target.get('_custom_gang_id') and len(members)<3:
-                                inviter['_crew_id']=crew_id;target['_crew_id']=crew_id
+                            same_family = str((world.players.get(uid) or {}).get('_mafia_family') or '') == str(inviter.get('_mafia_family') or '')
+                            if accept and same_family and (world.players.get(uid) or {}).get('_mafia') and inviter.get('_mafia') and len(members)<3: inviter['_crew_id']=crew_id;world.players[uid]['_crew_id']=crew_id
                             for member_uid in (str(inv.get('from_uid')),str(uid)):
                                 mws=world.connections.get(member_uid)
                                 if mws: await mws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_changed','accepted':accept}},ensure_ascii=False))
                     elif t in ('gang_player_leave','gang_player_kick'):
                         actor=world.players.get(uid) or {}; crew_id=str(actor.get('_crew_id') or ''); target_uid=str(d.get('target_uid') or uid) if t=='gang_player_kick' else str(uid); target=world.players.get(target_uid)
-                        can_remove = t == 'gang_player_leave' or crew_id == str(uid)
-                        if can_remove and crew_id and not crew_id.startswith('cg:') and target and str(target.get('_crew_id') or '')==crew_id:
+                        if crew_id and target and str(target.get('_crew_id') or '')==crew_id:
                             target.pop('_crew_id',None); left=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
                             if len(left)<2:
                                 for q in left:q.pop('_crew_id',None)
-                    elif t == 'custom_gang_player_invite':
-                        target_uid=str(d.get('target_uid') or ''); inviter=world.players.get(uid) or {}; target=world.players.get(target_uid)
-                        reason=None
-                        if str(inviter.get('_custom_gang_role') or '')!='leader': reason='leader_only'
-                        elif not target: reason='offline'
-                        elif target_uid==str(uid): reason='self'
-                        elif target.get('_custom_gang_id'): reason='already_in_gang'
-                        elif target.get('_mafia') or target.get('_mafia_family') or target.get('_police'): reason='faction_conflict'
-                        elif ((float(inviter.get('x',0))-float(target.get('x',0)))**2+(float(inviter.get('y',0))-float(target.get('y',0)))**2)>3.2**2: reason='too_far'
-                        if reason:
-                            await ws.send_str(json.dumps({'t':'event','d':{'kind':'custom_gang_player_reply','ok':False,'reason':reason}},ensure_ascii=False))
-                        else:
-                            gang_id=int(inviter.get('_custom_gang_id') or 0)
-                            world.custom_gang_invites[target_uid]={'from_uid':str(uid),'gang_id':gang_id,'expires_at':time.time()+25}
-                            tws=world.connections.get(target_uid)
-                            if tws: await tws.send_str(json.dumps({'t':'event','d':{'kind':'custom_gang_player_invite','from_uid':str(uid),'from_name':inviter.get('name','Игрок'),'gang_name':inviter.get('_custom_gang_name','')}},ensure_ascii=False))
-                            await ws.send_str(json.dumps({'t':'event','d':{'kind':'custom_gang_player_reply','ok':True,'pending':True,'target_name':target.get('name','Игрок')}},ensure_ascii=False))
-                    elif t == 'custom_gang_player_answer':
-                        inv=world.custom_gang_invites.pop(str(uid),None); inviter=world.players.get(str(inv.get('from_uid'))) if inv else None; target=world.players.get(uid); accept=bool(d.get('accept'))
-                        result={'ok':False,'error':'expired'}
-                        if inv and inviter and target and time.time()<=float(inv.get('expires_at',0)):
-                            target_conflict = bool(target.get('_custom_gang_id') or target.get('_mafia') or
-                                                   target.get('_mafia_family') or target.get('_police'))
-                            if accept and target_conflict:
-                                result={'ok':False,'error':'faction conflict'}
-                            elif accept and str(inviter.get('_custom_gang_role') or '')=='leader':
-                                result=await join_custom_gang_db(int(inv['gang_id']),int(uid),int(inv['from_uid']))
-                                if result.get('ok'):
-                                    apply_custom_gang_to_player(target,await get_custom_gang_for_user(int(uid)))
-                            else: result={'ok':True,'declined':True}
-                        event={'kind':'custom_gang_player_changed','accepted':bool(accept and result.get('ok')),'ok':bool(result.get('ok')),'error':result.get('error','')}
-                        for member_uid in ({str(inv.get('from_uid')),str(uid)} if inv else {str(uid)}):
-                            mws=world.connections.get(member_uid)
-                            if mws: await mws.send_str(json.dumps({'t':'event','d':event},ensure_ascii=False))
                     elif t == 'gang_hire_bot':
                         reply = world.hire_city_gang_bot(uid, str(d.get('bot_id') or '')[:48])
                         try:
@@ -25420,11 +24877,7 @@ async def _coop_http_app():
                         except (TypeError, ValueError):
                             gang_member = None
                         if bot_id:
-                            hit_pkt = (world.business_occupier_shoot_bot(
-                                uid, str(d.get('biz_id') or '')[:32],
-                                str(d.get('nest_id') or '')[:32], bot_id, weapon)
-                                if d.get('interior_business') else
-                                world.city_gang_shoot_bot(
+                            hit_pkt = (world.city_gang_shoot_bot(
                                 uid, bot_id, weapon, gang_member=gang_member,
                                 fire_x=d.get('fire_x'), fire_y=d.get('fire_y'))
                                 if gang_member is not None
@@ -27369,14 +26822,6 @@ async def _coop_http_app():
                                                           kind='gta_status')},
                                 ensure_ascii=False))
                         except Exception: pass
-                    elif t == 'service_tow_car':
-                        reply = world.service_tow_car(
-                            uid, str(d.get('car_id') or '')[:48])
-                        try:
-                            await ws.send_str(json.dumps(
-                                {'t':'event','d':reply}, ensure_ascii=False))
-                        except Exception:
-                            pass
                     elif t == 'gta_status':
                         try:
                             await ws.send_str(json.dumps(
@@ -27496,7 +26941,7 @@ async def _coop_http_app():
                     p_save = world.players.get(uid)
                     if p_save:
                         await update_character(int(uid),
-                            wanted_stars=int(min(3, round(p_save.get('_wanted') or 0))),
+                            wanted=int(min(3, round(p_save.get('_wanted') or 0))),
                             jail_until=int(p_save.get('_jail_until') or 0),
                         )
                 except Exception as _e:
@@ -27931,10 +27376,6 @@ async def _coop_http_app():
     aio_app.router.add_post('/apartment/{uid}/buy',     h_apartment_buy)
     aio_app.router.add_post('/apartment/{uid}/upgrade', h_apartment_upgrade)
     aio_app.router.add_post('/apartment/{uid}/sell',    h_apartment_sell)
-    aio_app.router.add_get ('/custom-gang/{uid}/state',   h_custom_gang_state)
-    aio_app.router.add_post('/custom-gang/{uid}/create',  h_custom_gang_create)
-    aio_app.router.add_post('/custom-gang/{uid}/leave',   h_custom_gang_leave)
-    aio_app.router.add_post('/custom-gang/{uid}/disband', h_custom_gang_disband)
     aio_app.router.add_get ('/shop/{uid}/list',    h_shop_list)
     aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
@@ -27966,7 +27407,6 @@ async def _coop_http_app():
     site = _web.TCPSite(runner, '0.0.0.0', _api_port)
     await site.start()
     logger.info("Co-op HTTP API listening on :%d", _api_port)
-    return runner
 
 
 def main():
