@@ -12461,26 +12461,31 @@ function selectVehicleFromCanvasTap(x, y, hitRadius = 48) {
 
 function activateNearbyVehicleFrom3D() {
   if (_buildingInt || _bankInt || myDead) return {ok:false,reason:'unavailable'};
+  if (_threeVehicleEntrySequence) return {ok:true,kind:'vehicle_entering'};
+  if(_LOCAL_PREVIEW&&_UP.has('previewdrive')&&!window.__threePreviewDrivePlaced){const demo=CARS.find(car=>car?.model&&!['cop_cruiser','paddyvan','swat_truck'].includes(car.model?.name||''));if(demo){demo.r=player.r+1.15;demo.c=player.c+.15;demo.vr=0;demo.vc=0;demo.parked=false;window.__threePreviewDrivePlaced=true;}}
   // E also exits the current car, matching the same contextual GTA action.
   if (myDrivingCarId) {
     updateGtaInteractions();
     if (_gtaActionKind === 'exit') {_gtaBtn.click();return {ok:true,kind:'vehicle_exit'};}
     return {ok:false,reason:'driving'};
   }
-  let best=null,bestD=GTA_INTERACT_R+.15;
+  let best=null,bestD=Math.max(GTA_INTERACT_R+.15,2.85);
   for(const car of questCars.values()){
     if(!car||car.wrecked||!Number.isFinite(+car.x)||!Number.isFinite(+car.y))continue;
     const d=Math.hypot(+car.y-player.r,+car.x-player.c);if(d<bestD){bestD=d;best={kind:'quest',id:String(car.id)};}
   }
   for(const car of CARS){
     if(!car||!car.model||car._wrecked||!Number.isFinite(+car.r)||!Number.isFinite(+car.c))continue;
+    const modelName=car.model?.name||'';if(['cop_cruiser','paddyvan','swat_truck'].includes(modelName))continue;
     const d=Math.hypot(+car.r-player.r,+car.c-player.c);if(d<bestD){bestD=d;best={kind:'traffic',car};}
   }
   if(!best)return {ok:false,reason:'none'};
   _selectedVehicleEntry=best;_selectedBuildingEntry=null;
-  updateGtaInteractions();
-  if(!['enter','hijack','taxi_ride'].includes(_gtaActionKind))return {ok:false,reason:'locked'};
-  const action=_gtaActionKind;_gtaBtn.click();return {ok:true,kind:action,distance:bestD};
+  if(best.kind==='quest'){
+    const car=questCars.get(best.id);if(!car)return {ok:false,reason:'gone'};
+    enterCar(best.id,'driver');return {ok:true,kind:'enter',distance:bestD};
+  }
+  hijackCivilianCar(best.car);return {ok:true,kind:'hijack',distance:bestD};
 }
 
 function selectBuildingFrom3D(r,c,screenX=null,screenY=null) {
@@ -19901,6 +19906,27 @@ let _hijackedCarRef = null;
 // Анимация посадки: метка времени до которой рисуется вспышка «хлопок двери»
 let _carEnterAnimUntil = 0;
 let _carEnterAnimR = 0, _carEnterAnimC = 0;
+let _threeVehicleEntrySequence = null;
+let _threeVehicleEntryBypass = false;
+function _threeVehicleEntryId(car, kind='traffic') {
+  return kind==='quest' ? `quest_${car.id}` : _threeVehicleEntityId(car);
+}
+function _beginThreeVehicleEntry(car, kind, done) {
+  if (_UP.get('render')!=='3d' || _threeVehicleEntryBypass || !car || _threeVehicleEntrySequence) return false;
+  const r=kind==='quest'?+car.y:+car.r,c=kind==='quest'?+car.x:+car.c,ang=Number.isFinite(+car.ang)?+car.ang:Math.atan2(+car.dirDy||0,+car.dirDx||1);
+  if(!Number.isFinite(r)||!Number.isFinite(c))return false;
+  if(kind==='traffic'){car.vr=0;car.vc=0;car._hijackPending=performance.now();}
+  player.r=r+Math.cos(ang)*.7;player.c=c-Math.sin(ang)*.7;player.ang=ang;player.walking=false;
+  const token=`entry_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
+  _threeVehicleEntrySequence={token,vehicleId:_threeVehicleEntryId(car,kind),r,c,ang,startedAt:performance.now(),duration:1050,kind};
+  showToast(kind==='traffic'?'🚗 Открываю дверь — угоняем…':'🚗 Открываю дверь — садимся…','🚪',1300);
+  setTimeout(()=>{
+    if(_threeVehicleEntrySequence?.token!==token)return;
+    _threeVehicleEntryBypass=true;
+    try{done();}finally{_threeVehicleEntryBypass=false;_threeVehicleEntrySequence=null;}
+  },1050);
+  return true;
+}
 function playEnterCarAnim(r, c) {
   _carEnterAnimUntil = performance.now() + 380;
   _carEnterAnimR = r; _carEnterAnimC = c;
@@ -21842,6 +21868,7 @@ _lpModal.addEventListener('click', (e) => {
 //      Успех = тихий угон. Провал = сигналка 10с, повтор недоступен.
 //      Отмена = ничего.
 function _completeHijack(car) {
+  if(_beginThreeVehicleEntry(car,'traffic',()=>_completeHijack(car)))return;
   // Сохраняем уровень топлива угоняемой машины
   _myCarFuelPct = (car._fuel !== undefined) ? car._fuel : (55 + Math.random() * 45);
   // Запоминаем модель — чтобы серверный civilian_hijack_reply не подменил скин
@@ -22452,9 +22479,10 @@ function _parkQuestCarLocally(qc, carId) {
     paint:_normalizeVehiclePaint(qc.paint),civilian:!!qc.civilian};
 }
 function enterCar(carId, asKind) {
-  _selectedVehicleEntry = null;
   const qc = questCars.get(carId);
   if (!qc) return;
+  if(_beginThreeVehicleEntry(qc,'quest',()=>enterCar(carId,asKind)))return;
+  _selectedVehicleEntry = null;
   // Повторная посадка завершает локальную парковочную защиту.
   qc._locallyParkedUntil = 0;
   if (qc.wrecked) { showToast('🔥 Машина уничтожена', '💥', 1500); return; }
@@ -26270,6 +26298,7 @@ function update(dt) {
   if (_keyState.right) inDx += 1;
   if (_keyState.up)    inDy -= 1;
   if (_keyState.down)  inDy += 1;
+  if(_threeVehicleEntrySequence){inDx=0;inDy=0;}
   // Нормализация если выходит за круг
   const inMag = Math.hypot(inDx, inDy);
   if (inMag > 1) { inDx /= inMag; inDy /= inMag; }
@@ -53195,11 +53224,12 @@ window.Mafiozi3DBridge = Object.freeze({
   version: 1,
   getPlayerState() {
     const reloadId=resolveWeapon(currentWeapon),reloading=_isReloadingWeapon(reloadId),reloadCfg=weaponProfile(reloadId),reloadStepMs=(reloadCfg.mode==='pump'||reloadId==='nagan')?Math.max(360,(reloadCfg.reloadMs||2550)/(reloadCfg.magSize||1)):(reloadCfg.reloadMs||1800),reloadProgress=reloading?Math.max(0,Math.min(1,1-(_reloadUntil-performance.now())/reloadStepMs)):0;
+    const vehicleEntry=_threeVehicleEntrySequence?{..._threeVehicleEntrySequence,progress:Math.max(0,Math.min(1,(performance.now()-_threeVehicleEntrySequence.startedAt)/_threeVehicleEntrySequence.duration))}:null;
     return {
       r: +player.r || 0, c: +player.c || 0, ang: +player.ang || 0,
       walking: !!player.walking, walkPhase: +player.walkPhase || 0,
       hp: Math.max(0, +player.hp || 0), dead: !!myDead,
-      mode: myMode, weapon: currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId,
+      mode: myMode, weapon: currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
       name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
@@ -57203,6 +57233,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d114"></script>
+<script type="module" src="three_preview.js?v=3d115"></script>
 </body>
 </html>
