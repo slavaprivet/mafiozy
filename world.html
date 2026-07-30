@@ -23685,6 +23685,7 @@ let currentWeapon = (() => {
   } catch(e) {}
   return QP.weapon || null;
 })();
+let _lastEquippedWeapon = currentWeapon || null;
 function _saveCurrentWeaponChoice() {
   try { localStorage.setItem(_weaponChoiceSaveKey, currentWeapon == null ? '__unarmed__' : String(currentWeapon)); } catch(e) {}
 }
@@ -25610,7 +25611,8 @@ function weaponsForPick() {
     if(_policeHasLevel(4))allWeapons.unshift({id:'police_spikes',name:'шипы (коп)',count:1});
     return [...unarmed,{id:'grenade',name:'граната',count:Math.max(1,_myGrenadeCount)},{id:'molotov',name:'коктейль Молотова',count:Math.max(1,_myMolotovCount)},{id:'c4',name:'заряд C4',count:Math.max(1,_myC4Count)}, ...allWeapons];
   }
-  const guns=(_myWeapons&&_myWeapons.length>0)?_myWeapons:[];
+  const guns=(_myWeapons&&_myWeapons.length>0)?_myWeapons.slice():[];
+  if(_familyPistolActive()&&!guns.some(w=>w.id==='pistol'))guns.unshift({id:'pistol',name:'Семейный пистолет',count:1,issuedByFamily:true});
   const police=[];
   if(_mafiaHasLevel(5))police.push({id:'golden_tommy',name:'золотой Томми-ган (мафия ур. 5)',count:1});
   if(_policeHasLevel(4))police.push({id:'police_spikes',name:'шипы (коп)',count:1});
@@ -25669,6 +25671,7 @@ function renderWeaponPick() {
       const wasArmed = _isArmed();
       cancelWeaponReload();
       currentWeapon = w.id;  // null = без оружия
+      if(w.id&&!['grenade','molotov','c4','police_spikes'].includes(w.id))_lastEquippedWeapon=w.id;
       _saveCurrentWeaponChoice();
       renderWeaponHud();
       renderWeaponPick();
@@ -53196,7 +53199,7 @@ window.Mafiozi3DBridge = Object.freeze({
       r: +player.r || 0, c: +player.c || 0, ang: +player.ang || 0,
       walking: !!player.walking, walkPhase: +player.walkPhase || 0,
       hp: Math.max(0, +player.hp || 0), dead: !!myDead,
-      mode: myMode, weapon: currentWeapon, driving: !!myDrivingCarId,
+      mode: myMode, weapon: currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId,
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
       name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
@@ -57200,6 +57203,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d112"></script>
+<script type="module" src="three_preview.js?v=3d114"></script>
 </body>
 </html>
