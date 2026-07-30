@@ -8,6 +8,7 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
     try {
       window.MafioziLoading?.set(52, 'Загружаем трёхмерный движок…');
       const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js');
+      const {mergeGeometries}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/utils/BufferGeometryUtils.js');
       window.MafioziLoading?.set(61, 'Настраиваем свет, материалы и тени…');
       const viewSize = () => ({ W: Math.max(1, stage.clientWidth || innerWidth), H: Math.max(1, stage.clientHeight || innerHeight) });
       const size = viewSize();
@@ -165,11 +166,18 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         scene.add(mesh);
         return mesh;
       };
+      const staticOutlineGeometries=[];
+      let batchStaticOutlines=true;
+      const sharedOutlineMaterial=new THREE.LineBasicMaterial({color:0x0a111b,transparent:true,opacity:.78});
       const outline = mesh => {
-        const edges = new THREE.LineSegments(
-          new THREE.EdgesGeometry(mesh.geometry, 24),
-          new THREE.LineBasicMaterial({ color: 0x0a111b, transparent: true, opacity: .78 })
-        );
+        const edgeGeometry=new THREE.EdgesGeometry(mesh.geometry,24);
+        if(batchStaticOutlines&&mesh.layers.mask!==2){
+          mesh.updateMatrixWorld(true);
+          edgeGeometry.applyMatrix4(mesh.matrixWorld);
+          staticOutlineGeometries.push(edgeGeometry);
+          return null;
+        }
+        const edges = new THREE.LineSegments(edgeGeometry,sharedOutlineMaterial);
         if(mesh.layers.mask===2){edges.layers.set(1);mesh.add(edges);}
         else{edges.position.copy(mesh.position);edges.rotation.copy(mesh.rotation);edges.scale.copy(mesh.scale);scene.add(edges);}
         return edges;
@@ -892,6 +900,19 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const light = new THREE.PointLight(0xffb45e, 0, 25, 2); light.position.set(x, 6.7, z); light.castShadow = false; scene.add(light);streetLights.push({light});
       });
 
+      if(staticOutlineGeometries.length){
+        const mergedOutlineGeometry=mergeGeometries(staticOutlineGeometries,false);
+        if(mergedOutlineGeometry){
+          const staticOutlines=new THREE.LineSegments(mergedOutlineGeometry,sharedOutlineMaterial);
+          staticOutlines.name='batched-static-building-outlines';
+          staticOutlines.castShadow=false;
+          staticOutlines.receiveShadow=false;
+          scene.add(staticOutlines);
+          renderer.domElement.dataset.batchedOutlineGeometries=String(staticOutlineGeometries.length);
+        }
+        staticOutlineGeometries.forEach(g=>g.dispose());
+      }
+      batchStaticOutlines=false;
       const player = new THREE.Group();
       const playerContactShadow=makeContactShadow(3.6,2.7);player.add(playerContactShadow);
       const suitMat=new THREE.MeshStandardMaterial({color:0x731f24,roughness:.58,emissive:0x1a0d10,emissiveIntensity:.48}),skinMat=new THREE.MeshStandardMaterial({color:0xd39b78,roughness:.7,emissive:0x211611,emissiveIntensity:.35}),darkMat=new THREE.MeshStandardMaterial({color:0x151922,roughness:.48,metalness:.25});
