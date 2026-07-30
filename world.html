@@ -54083,6 +54083,7 @@ window.Mafiozi3DBridge = Object.freeze({
       mode: myMode, weapon:_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
+      carryingBag:!!((_bankInt&&_bankInt.myBag)||(_bankRob&&_bankRob.myBag)||_myBagWeight>0),
       name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
       role: _policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian',
       family: _mafiaState?.employed ? (_mafiaState.family || null) : null,
@@ -54096,6 +54097,20 @@ window.Mafiozi3DBridge = Object.freeze({
   getNearbyVehicleInteraction() { return getNearbyVehicleInteractionFor3D(); },
   activateNearbyVehicle(vehicleId) { return activateNearbyVehicleFrom3D(vehicleId); },
   toggleNearbyBuildingActions(screenX,screenY) { return toggleNearbyBuildingActionsFrom3D(+screenX,+screenY); },
+  interactBank() {
+    const int=_bankInt;if(!int)return {ok:false,reason:'not-bank'};
+    if(int.room==='vault'&&!int.myBag){
+      let best=null,dist=2.5;for(const bag of int.bags||[]){if(!bag||bag.taken)continue;const d=Math.hypot(player.r-bag.r,player.c-bag.c);if(d<dist){best=bag;dist=d;}}
+      if(best){_takeVaultBagDirect(best);return {ok:true,kind:'vault-bag'};}
+    }
+    if(int.room==='lobby'&&!int.myBag){
+      let best=null,dist=2.2;for(const bag of int._lobbyBags||[]){if(!bag||bag.taken)continue;const d=Math.hypot(player.r-bag.r,player.c-bag.c);if(d<dist){best=bag;dist=d;}}
+      if(best){best.taken=true;int.myBag={id:best.id,value:int.bank.reward_per_bag||500};_myBagWeight=1;showToast('💼 Мешок подобран','💰',1200);return {ok:true,kind:'lobby-bag'};}
+    }
+    const nearVault=int.room==='lobby'&&player.r<3.5&&Math.abs(player.c-int.W/2)<4.5;
+    if(nearVault&&int.phase==='lobby'){_zoneEl.dataset.bankId=int.bank.id;_zoneEl.click();return {ok:true,kind:'vault-crack'};}
+    return {ok:false,reason:int.phase==='cracking'?'cracking':'nothing-nearby'};
+  },
   closeBuildingActions() { _closeBusinessActionCard(); return true; },
   updateDistrictEntry() { _updateDistrictBanner(); },
   collisionProbe(r,c) { const rr=+r,cc=+c;return {r:rr,c:cc,blocked:Number.isFinite(rr)&&Number.isFinite(cc)?isBlockedPed(rr,cc):true,tile:Number.isFinite(rr)&&Number.isFinite(cc)?MAP[Math.floor(rr)]?.[Math.floor(cc)]??null:null}; },
@@ -54122,13 +54137,22 @@ window.Mafiozi3DBridge = Object.freeze({
       props:MAJOR_CASINO_STATIC_BLOCKERS.filter(p=>_casinoPropAlive(p.id)).map(p=>({id:p.id,r:+p.r,c:+p.c,w:+p.w,d:+p.d,color:p.color||null})),
       safes:(_majorRaidLocal?.safes||[]).map((s,i)=>({id:String(s.id??i),r:+s.r,c:+s.c,opened:!!s.opened})),
     }:null;
+    const bankState=_bankInt?{
+      name:_bankInt.bank?.name||'Банк',phase:_bankInt.phase||'lobby',
+      counterRow:+_bankInt.counterRow||Math.floor((+_bankInt.H||18)*.58),
+      alarmTriggered:!!_bankInt.alarmTriggered,crackProg:+_bankInt.crackProg||0,
+      vaultW:+_bankInt.vaultW||8,vaultH:+_bankInt.vaultH||12,
+      carryingBag:!!_bankInt.myBag,
+      bags:(_bankInt.room==='vault'?(_bankInt.bags||[]):(_bankInt._lobbyBags||[]))
+        .filter(b=>b&&!b.taken).slice(0,24).map((b,i)=>({id:String(b.id??i),r:+b.r||0,c:+b.c||0})),
+    }:null;
     return {
       kind:_buildingInt?'building':'bank',type:src.type||(_bankInt?'bank':'generic'),bizId:src.bizId||null,room:src.room||(_bankInt?'lobby':'main'),
-      width:+src.W||16,height:+src.H||12,seed:+src.seed||0,
+      width:_bankInt&&src.room==='vault'?(+src.vaultW||8):(+src.W||16),height:_bankInt&&src.room==='vault'?(+src.vaultH||12):(+src.H||12),seed:+src.seed||0,
       apartment:!src.type?{key:apartmentKey,owned:!!_myApartments[apartmentKey],district:apartmentDistrictMarket(src.r,src.c)?.label||'Городская квартира',levels:{repair:+apartmentInfo.repair_level||0,safe:+apartmentInfo.safe_level||0,weaponRack:+apartmentInfo.weapon_rack_level||0,cameras:+apartmentInfo.cameras_level||0,garage:+apartmentInfo.garage_level||0}}:null,
       playerElevation:casino?_casinoVisualElevation(src,player.r,player.c):0,
-      layout:casinoLayout,
-      npcs:(src.npcs||[]).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`);return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
+      layout:casinoLayout,bank:bankState,
+      npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`);return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
       loot:src.loot&&!src.loot.picked?{r:+src.loot.r||0,c:+src.loot.c||0,hp:!!src.loot.hp}:null,
     };
   },
@@ -54282,7 +54306,7 @@ window.Mafiozi3DBridge = Object.freeze({
     if(!inside&&typeof BUS!=='undefined'&&near(+BUS.r||0,+BUS.c||0))cars.unshift({id:'city_bus',r:+BUS.r||0,c:+BUS.c||0,ang:+BUS.ang||0,model:'city_bus',paint:'#d5aa35',parked:BUS.state==='stopped',length:2.65,width:1.05,height:1.08,wheelR:.22,sport:false,pickup:false,van:true,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'#26364a',dirR:Math.sin(+BUS.ang||0),dirC:Math.cos(+BUS.ang||0),velR:Math.sin(+BUS.ang||0)*(+BUS.speed||0),velC:Math.cos(+BUS.ang||0)*(+BUS.speed||0),braking:BUS.state==='stopped',turning:false,bus:true});
     if(cars.length>24)cars.length=24;
     if(_LOCAL_PREVIEW&&_UP.get('previewnewsheli')){const a=performance.now()*.00022,r=player.r+Math.sin(a)*8,c=player.c+Math.cos(a)*11;cars.unshift({id:'preview_news_heli',r,c,ang:a+Math.PI/2,model:'mafia_heli',paint:'#c91f2b',parked:false,length:2.5,width:1.25,height:1.05,wheelR:.18,sport:false,pickup:false,van:false,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:true,helicopter:true,emergency:'',stripe:'',dirR:Math.cos(a),dirC:-Math.sin(a),velR:Math.cos(a)*.9,velC:-Math.sin(a)*.9,braking:false,turning:false});}
-    let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.npcs||[]):(typeof NPCS!=='undefined'?NPCS:[]);
+    let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.room==='vault'?[]:(_bankInt.npcs||[])):(typeof NPCS!=='undefined'?NPCS:[]);
     if(!inside){
       const combat=[];
       if(typeof _myGang!=='undefined')for(const g of _myGang)if(g)combat.push({...g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,behavior:'follows_player',name:g.name||'Боец семьи',family:_customGang?.name||g.gangName||g.faction||''});
@@ -58138,6 +58162,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d168"></script>
+<script type="module" src="three_preview.js?v=3d169"></script>
 </body>
 </html>
