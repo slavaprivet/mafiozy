@@ -53831,8 +53831,8 @@ window.Mafiozi3DBridge = Object.freeze({
       npcSource=[...combat,...npcSource];
     }
     const npcPriority=x=>{const role=String(x?.role||x?._arcKey||'').toLowerCase();if(x?.gang||x?._gang||x?.gangId||x?.gang_id||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'))return 0;if(x?.police||role.includes('police')||role.includes('cop')||role.includes('guard'))return 1;return 2;};
-    const npcs=npcSource.filter(x=>x&&!x._ambientGang&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).sort((a,b)=>npcPriority(a)-npcPriority(b)).slice(0,72).map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:r,targetC=Number.isFinite(+x.tc)?+x.tc:c,targetMoving=Math.hypot(targetR-r,targetC-c)>.06;return {
-      id,r,c,ang:+x.ang||0,walking:!death.dead&&(!!x.walking||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
+    const npcs=npcSource.filter(x=>x&&!x._ambientGang&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).sort((a,b)=>npcPriority(a)-npcPriority(b)).slice(0,72).map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:Number.isFinite(+x.tgtR)?+x.tgtR:Number.isFinite(+x.ty)?+x.ty:r,targetC=Number.isFinite(+x.tc)?+x.tc:Number.isFinite(+x.tgtC)?+x.tgtC:Number.isFinite(+x.tx)?+x.tx:c,targetMoving=Math.hypot(targetR-r,targetC-c)>.035,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving);return {
+      id,r,c,ang:+x.ang||0,walking:!death.dead&&(declaredMoving||targetMoving),moving:!death.dead&&(declaredMoving||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp:Number.isFinite(+x.hp)?Math.max(0,+x.hp):Math.max(1,+x.max_hp||+x.maxHp||60),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||x.gangName||x.faction||'',faction:x.faction||x.gangFaction||'',
@@ -53840,6 +53840,12 @@ window.Mafiozi3DBridge = Object.freeze({
       burning:!!x.burning||performance.now()<(+x._burnUntil||0),
     };});
     if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const npc of npcs.slice(0,8))if(!npc.dead){npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.walking=true;}
+    // Browser-only animation QA. It never changes the authoritative NPC and
+    // lets the renderer exercise a complete fresh-death -> fallen lifecycle.
+    if(_LOCAL_PREVIEW&&_UP.has('previewdeath')){
+      const victim=npcs.find(n=>!n.dead);
+      if(victim){const cycle=performance.now()%3200;if(cycle<1700){victim.dead=true;victim.hp=0;victim.walking=false;victim.moving=false;victim.deadAt=performance.now()-cycle;}}
+    }
     const serviceWater=[];
     if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
       if(v?.kind!=='firetruck'||v.state!=='working')continue;
@@ -57647,6 +57653,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d152"></script>
+<script type="module" src="three_preview.js?v=3d153"></script>
 </body>
 </html>
