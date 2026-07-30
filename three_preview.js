@@ -801,7 +801,13 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         facadeMaterials.push(wall);
         const localRoof=roofMat.clone();
         if(architecturalKind){const palette={hospital:0xdfe7e5,police:0xaeb8bd,mafia_hq:0x20364b,mansion:0xd0c6ad,pizza:0xc96b43,coffee:0x8f553b,carwash:0x5496ab,barbershop:0xd6d2c8,garage:0x596872,firestation:0xd7d4ca,warehouse:0x667177,port:0x59666d,bar:0x4a2934,club:0x332c4d,casino:0x5a3b52,market:0x98734a,factory:0x655b54,gym:0x556d82,job_office:0x84745b}[architecturalKind];if(palette)wall.color.setHex(palette);wall.emissiveIntensity=['bar','club','casino','mafia_hq'].includes(architecturalKind)?.18:.035;}
-        const detailed=buildingMeta.primary!==false,steppedTower=detailed&&!architecturalKind&&(districtStyle==='downtown'||districtStyle==='rich'||districtStyle==='chinatown_rich')&&h>24,lowerH=steppedTower?h*.64:h;
+        // Keep every visible facade at full fidelity, but do not construct
+        // balconies, roof HVAC, railings and signs for blocks well beyond the
+        // orthographic camera. Their main textured mass and silhouette remain,
+        // so approaching them is seamless after the next sector stream.
+        const detailDistanceTiles=Math.hypot(x/WORLD_SCALE,z/WORLD_SCALE);
+        const detailRadius=Math.max(20,Math.min(WORLD_SNAPSHOT_RADIUS,+rendererConfig.detailRadius||24));
+        const detailed=buildingMeta.primary!==false&&detailDistanceTiles<=detailRadius,steppedTower=detailed&&!architecturalKind&&(districtStyle==='downtown'||districtStyle==='rich'||districtStyle==='chinatown_rich')&&h>24,lowerH=steppedTower?h*.64:h;
         const mainBuilding=buildingBox(x,z,w,d,lowerH,wall,localRoof);mainBuilding.userData.fadeMaterials=[wall,localRoof];mainBuilding.userData.building=buildingMeta;mainBuilding.userData.mainBuilding=true;occluders.push(mainBuilding);buildingPickables.push(mainBuilding);if(detailed)outline(mainBuilding);
         if(detailed){if(steppedTower){const upperH=h-lowerH,upper=buildingBox(x,z,w*.72,d*.72,upperH,wall,localRoof);upper.position.y=lowerH+upperH/2;upper.userData.fadeMaterials=[wall,localRoof];upper.userData.building=buildingMeta;occluders.push(upper);buildingPickables.push(upper);outline(upper);const crownBand=box(x,z,w*.78,d*.78,.42,neonMats[bi%3]);crownBand.position.y=lowerH+.2;}
         // A second mass breaks the repetitive box silhouette.
