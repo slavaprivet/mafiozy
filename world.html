@@ -5349,6 +5349,7 @@ const POI = [
 const POI_BY_RC = new Map();   // ключ "r,c" → POI
 POI.forEach(p => POI_BY_RC.set(p.r + ',' + p.c, p));
 // Видимый корпус GRAND CASINO занимает почти весь квартальный пьедестал.
+// В 3D эти тайлы обслуживает отдельный корпус: обычный дом на них подавлен.
 // Передний центральный тайл оставляем проходом к дверям и жёлтой метке входа.
 const MAJOR_CASINO_WORLD_TILES = new Set([
   '45,15','45,16','45,17',
@@ -57640,6 +57641,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d138"></script>
+<script type="module" src="three_preview.js?v=3d139"></script>
 </body>
 </html>
