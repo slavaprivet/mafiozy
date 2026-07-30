@@ -1542,7 +1542,10 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         }
         if(!dynamic){cars.slice(0,3).forEach(x=>x.visible=true);cars[0].position.x = -30 + (tt * 13) % 60; cars[1].position.z = 29 - (tt * 11) % 58; cars[2].position.x = 27 - (tt * 9) % 54;}
         if(t-lastShadowAt>shadowCadence){renderer.shadowMap.needsUpdate=true;lastShadowAt=t;}
-        renderer.setRenderTarget(postTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
+        // Render the authored ACES/sRGB palette directly. The legacy fullscreen
+        // pass sampled an already encoded target and darkened the whole city.
+        renderer.setRenderTarget(null);renderer.render(scene,camera);
+        renderer.domElement.dataset.palettePipeline='direct-aces-srgb';
         if(!firstFramePresented){firstFramePresented=true;window.MafioziLoading?.complete('Город готов');}
         requestAnimationFrame(animate);
       };
