@@ -981,8 +981,9 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 #leftCommandHud #hudPlayer::after{content:"DOSSIER";position:absolute;right:7px;top:6px;color:#8d7446;font:900 6px/1 system-ui;letter-spacing:1.5px}
 #leftCommandHud #hudPlayer .hud-ava{width:68px;height:68px;padding:2px;border-radius:2px;background:linear-gradient(145deg,#f3d98f,#705124);box-shadow:0 0 0 2px #0b0907,0 4px 12px #000}
 #leftCommandHud #hudPlayer #hudAvatar{width:64px;height:64px;border:0;border-radius:1px;background:#141414;image-rendering:pixelated;cursor:pointer}
-#leftCommandHud #hudPlayer .hud-lvl{right:-5px;bottom:-5px;top:auto;min-width:23px;height:23px;border:1px solid #f1d68a;border-radius:2px;background:#651824;color:#fff0c7;font-size:11px;line-height:21px;box-shadow:0 2px 6px #000}
+#leftCommandHud #hudPlayer .hud-lvl{position:static;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:30px;height:21px;padding:0 7px;border:1px solid #f1d68a;border-radius:7px;background:#651824;color:#fff0c7;font-size:10px;line-height:19px;box-shadow:0 2px 6px #000}
 #leftCommandHud #hudPlayer .hud-info{flex:1;justify-content:center;gap:7px}
+#leftCommandHud #hudPlayer .hud-identity{display:flex;align-items:center;gap:7px;min-width:0;padding-right:39px}
 #leftCommandHud #hudPlayer .hud-name{max-width:154px;color:#fff1c8;font-size:14px;text-transform:uppercase;letter-spacing:.65px;text-shadow:0 2px 2px #000;line-height:1.1}
 #leftCommandHud #hudPlayer .hp-row{display:grid;grid-template-columns:1fr auto;gap:4px 7px;align-items:center}
 #leftCommandHud #hudPlayer .hp-row .label{color:#f0d392;font-size:9px;letter-spacing:.75px;text-shadow:0 1px 2px #000}
@@ -2242,10 +2243,9 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
   <div id="hudPlayer">
     <div class="hud-ava">
       <canvas id="hudAvatar" width="64" height="64"></canvas>
-      <span class="hud-lvl" id="hudLvl">1</span>
     </div>
     <div class="hud-info">
-      <div class="hud-name" id="hudName">Игрок</div>
+      <div class="hud-identity"><div class="hud-name" id="hudName">Игрок</div><span class="hud-lvl" id="hudLvl">1</span></div>
       <div class="hp-row">
         <span class="label">ЗДОРОВЬЕ</span>
         <div id="hpBarBig"><div id="hpBarFill"></div></div>
@@ -12291,7 +12291,7 @@ let _apartmentStateLoaded = false;
 let _customGang = null;
 let _customGangHqs = [];
 let _customGangBusy = false;
-const APARTMENT_OWNERSHIP_LIMIT = 5;
+const APARTMENT_OWNERSHIP_LIMIT = 1;
 // Цена квартиры зависит от класса квартала. Сервер использует ту же
 // таблицу и не доверяет сумме, присланной браузером.
 const APARTMENT_DISTRICT_MARKET = Object.freeze({
@@ -13102,9 +13102,9 @@ async function endCustomGang(action){if(_customGangBusy||!confirm(action==='disb
 async function buyCurrentApartment() {
   if (!_buildingInt || _buildingInt.type) return;
   const key = _aptTileKey(_buildingInt.r, _buildingInt.c);
-  if (_myApartments[key]) { showToast('🏠 Эта квартира уже твоя', '✅', 1800); return; }
+  if (_myApartments[key]) { showToast('🏛️ Этот штаб уже твой', '✅', 1800); return; }
   if (_apartmentOwnedCount() >= APARTMENT_OWNERSHIP_LIMIT) {
-    showToast(`🏠 Лимит квартир: ${_apartmentCounterLabel()}`, '⚠️', 2600);
+    showToast('🏛️ У тебя уже есть штаб. Одновременно можно владеть только одним зданием.', '⚠️', 3000);
     return;
   }
   const price = apartmentPrice(_buildingInt.r, _buildingInt.c);
@@ -13119,15 +13119,15 @@ async function buyCurrentApartment() {
     const j = await r.json();
     if (!j.ok) {
       const msg = j.error === 'no cash' ? '💸 Недостаточно денег'
-        : j.error === 'apartment limit' ? `🏠 Лимит квартир: ${APARTMENT_OWNERSHIP_LIMIT}/${APARTMENT_OWNERSHIP_LIMIT}`
-        : '❌ Не удалось купить';
+        : j.error === 'apartment limit' ? '🏛️ У тебя уже есть штаб. Сначала продай прежний.'
+        : '❌ Не удалось создать штаб';
       showToast(msg, '❌', 2600);
       return;
     }
     if (j.cash !== undefined) { QP.cash = j.cash; myCash = parseInt(j.cash) || 0; updateMoneyHud(); }
     if (j.owned) _myApartments = j.owned;
     const paid = Number(j.price) || price;
-    showToast(`🏠 Квартира куплена за $${paid.toLocaleString('ru')}! ${_apartmentCounterLabel()}`, '✅', 2800);
+    showToast(`🏛️ Штаб создан за $${paid.toLocaleString('ru')}!`, '✅', 2800);
     openApartmentControlPanel();
     if (_profileTab === 'status') renderProfileTab();
   } catch (e) { showToast('⚠️ Ошибка связи с сервером', '❌', 2200); }
@@ -18606,7 +18606,7 @@ function wsConnect() {
             QP.has_look=1;
           } else {
           // Не перетираем URL-look дефолтными нулями сервера (skin=0,body=0,hair=0 = дефолт)
-          const srvIsDefault = !srv.skin && !srv.hair && !srv.hat && !srv.face;
+          const srvIsDefault = !srv._saved && !srv.skin && !srv.hair && !srv.hat && !srv.face;
           if (!srvIsDefault || !QP.has_look) {
             const merged = Object.assign({}, QP.look, srv);
             if (mkKey(merged) !== mkKey(QP.look)) {
@@ -20619,8 +20619,8 @@ function updateGtaInteractions() {
         const market = apartmentDistrictMarket(_buildingInt.r, _buildingInt.c);
         _gtaActionKind = 'apt_buy'; _gtaActionCarId = null;
         _gtaBtn.textContent = _apartmentOwnedCount() >= APARTMENT_OWNERSHIP_LIMIT
-          ? `🏠 Лимит квартир ${_apartmentCounterLabel()}`
-          : `🏠 ${market.label}: $${price.toLocaleString('ru')} · ${_apartmentCounterLabel()}`;
+          ? '🏛️ Штаб уже создан · лимит 1/1'
+          : `🏛️ Создать штаб · ${market.label} · $${price.toLocaleString('ru')}`;
         _gtaBtn.style.display = 'block'; return;
       } else {
         _gtaActionKind = 'apt_upgrade'; _gtaActionCarId = null;
