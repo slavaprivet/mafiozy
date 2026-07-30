@@ -12708,7 +12708,8 @@ function tryTapActiveBuildingEntryMarker(x, y) {
 function _selectedVehicleObject() {
   if (!_selectedVehicleEntry || myDrivingCarId || _buildingInt || _bankInt || myDead) return null;
   if (_selectedVehicleEntry.kind === 'quest') {
-    return questCars.get(_selectedVehicleEntry.id) || null;
+    const car = questCars.get(_selectedVehicleEntry.id);
+    return car && !car.wrecked && !car._wrecked && !car._shotWrecked ? car : null;
   }
   const car = _selectedVehicleEntry.car;
   return car && CARS.includes(car) && !car._wrecked ? car : null;
@@ -20388,7 +20389,8 @@ function _threeVehicleEntryId(car, kind='traffic') {
   return kind==='quest' ? `quest_${car.id}` : _threeVehicleEntityId(car);
 }
 function _beginThreeVehicleEntry(car, kind, done) {
-  if (_UP.get('render')!=='3d' || _threeVehicleEntryBypass || !car || _threeVehicleEntrySequence) return false;
+  if (_UP.get('render')!=='3d' || _threeVehicleEntryBypass || !car || _threeVehicleEntrySequence ||
+      car.wrecked || car._wrecked || car._shotWrecked) return false;
   const r=kind==='quest'?+car.y:+car.r,c=kind==='quest'?+car.x:+car.c,ang=Number.isFinite(+car.ang)?+car.ang:Math.atan2(+car.dirDy||0,+car.dirDx||1);
   if(!Number.isFinite(r)||!Number.isFinite(c))return false;
   if(kind==='traffic'){car.vr=0;car.vc=0;car._hijackPending=performance.now();}
@@ -22464,6 +22466,10 @@ function _completeHijack(car) {
 
 function hijackCivilianCar(car) {
   if (!car || myDrivingCarId) return;
+  if (car._wrecked || car.wrecked || car._shotWrecked) {
+    showToast('🔥 От машины остался только горящий остов', '🚫', 1700);
+    return;
+  }
   // Защита от двойного клика: если уже идёт процесс угона — игнорируем
   if (car._hijackPending && (performance.now() - car._hijackPending) < 4000) return;
   if (car._driverEjected) return;  // водитель уже выброшен — не спавним ещё раз
@@ -23028,11 +23034,15 @@ function _parkQuestCarLocally(qc, carId) {
 function enterCar(carId, asKind) {
   const qc = questCars.get(carId);
   if (!qc) return;
+  if (qc.wrecked || qc._wrecked || qc._shotWrecked) {
+    _selectedVehicleEntry = null;
+    showToast('🔥 Машина уничтожена — сесть невозможно', '🚫', 1700);
+    return;
+  }
   if(_beginThreeVehicleEntry(qc,'quest',()=>enterCar(carId,asKind)))return;
   _selectedVehicleEntry = null;
   // Повторная посадка завершает локальную парковочную защиту.
   qc._locallyParkedUntil = 0;
-  if (qc.wrecked) { showToast('🔥 Машина уничтожена', '💥', 1500); return; }
   const isMine = (String(qc.owner_uid) === String(QP.uid));
   if (qc.police_patrol) {
     const isPolice = !!_policeState?.employed;
@@ -24970,12 +24980,14 @@ function _damageCarByGun(hit,weapon,damage){
   car._ballisticHp=Math.max(0,car._ballisticHp-amount);car._ballisticMax=max;
   car._bulletHoleCount=Math.min(8,(car._bulletHoleCount||0)+1);
   car._lastCarHitAt=performance.now();
-  spawnImpact(hit.point.r,hit.point.c,weapon);
+  const hitDr=hit.r-player.r,hitDc=hit.c-player.c,hitLen=Math.hypot(hitDr,hitDc)||1;
+  spawnMetalImpact(hit.point.r,hit.point.c,weapon,hitDr/hitLen,hitDc/hitLen);
   const ratio=car._ballisticHp/max;
   if(ratio<=.55)car._hoodSmoking=true;
   if(ratio<=.24)car._hoodBurning=true;
   if(car._ballisticHp<=0&&!car._shotWrecked){
-    car._shotWrecked=true;car._wrecked=true;car.wrecked=true;car.vr=car.vc=car.vx=car.vy=0;
+    car._shotWrecked=true;car._wrecked=true;car.wrecked=true;car._hoodBurning=true;
+    car._wreckedAt=performance.now();car.vr=car.vc=car.vx=car.vy=0;
     spawnCarExplosion(hit.r,hit.c,car,true,true);addShake(16);fireScreenFlash('rpg');
     spawnFloatText(hit.r,hit.c,'МАШИНА УНИЧТОЖЕНА',{color:'#ff7b25',size:16,life:1700});
   }
@@ -39001,10 +39013,14 @@ function reportCarCrash(qc, impact, kind) {
 // + бочка дыма. Переиспользуем impacts/bloodSplats.
 function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true) {
   // Запоминаем время взрыва на объекте машины — нужно для ударной волны
-  if (car) car._explosionT = performance.now();
+  if (car) {
+    car._explosionT = performance.now();
+    car._wreckedAt = car._explosionT;
+    car._hoodBurning = !car._burnedOut;
+  }
   if(playSound&&Math.hypot(wr-player.r,wc-player.c)<18)try{_explosionSound('blast')}catch(e){}
   _capArr(explosionBursts, 10);
-  explosionBursts.push({r:wr,c:wc,born:performance.now(),life:1550,seed:Math.random()*1000});
+  explosionBursts.push({r:wr,c:wc,born:performance.now(),life:1850,seed:Math.random()*1000,kind:'vehicle'});
   spawnShockwave(wr,wc,{rad0:5,maxRad:118,life:620,color:'#ff7b25',thick:6});
   spawnShockwave(wr,wc,{rad0:2,maxRad:72,life:330,color:'#fff4bd',thick:3.5});
 
@@ -43453,6 +43469,30 @@ function _updateDistrictBanner() {
     _curDistrictId = id;
     if (d) {_districtBanner = { d, style, t: performance.now() };_showDistrictEntryBanner(d,style);}
   }
+}
+
+// v170: отдельный металлический импакт для кузова — ни одной кровавой
+// частицы или лужи; только направленные искры, горячая стружка и рикошет.
+function spawnMetalImpact(wr, wc, weapon, dirR = 0, dirC = 1) {
+  const fx = weaponFx(weapon), parts = [];
+  const base = Math.atan2(dirR, dirC) + Math.PI;
+  const count = fx.thick ? 20 : 13;
+  for (let i = 0; i < count; i++) {
+    const a = base + (Math.random() - .5) * 1.65;
+    const sp = 1.25 + Math.random() * (fx.thick ? 4.2 : 3.0);
+    parts.push({
+      vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
+      life: 300 + Math.random() * 440, max: 740,
+      color: i % 5 === 0 ? '#e9f7ff' : i % 3 === 0 ? '#ff8b27' : '#ffd45c',
+      isBlood: false, size: 1.25 + Math.random() * 1.45,
+    });
+  }
+  _capArr(impacts, _MAX_IMPACTS);
+  impacts.push({ r:wr, c:wc, type:'metal', parts });
+  spawnShockwave(wr, wc, {
+    rad0:1.5, maxRad:fx.thick ? 24 : 15, life:180,
+    color:'#fff0a0', thick:fx.thick ? 2.2 : 1.45,
+  });
 }
 // GTA-стиль баннер «въезд в район»: название крупно + статус/бонус мелко,
 // выезжает слева, держится, затухает. ~3.5с.
@@ -54274,7 +54314,13 @@ window.Mafiozi3DBridge = Object.freeze({
       dirR:+x.dirDy||0,dirC:+x.dirDx||0,velR:+x.vr||0,velC:+x.vc||0,braking:!!x.braking,turning:!!x._turningAtIntersection,
       damageRatio:Number.isFinite(x._ballisticHp)?Math.max(0,x._ballisticHp/Math.max(1,x._ballisticMax||240)):1,
       bulletHoles:+x._bulletHoleCount||0,smoking:!!x._hoodSmoking,burning:!!x._hoodBurning,wrecked:!!(x._shotWrecked||x._wrecked),
+      burnedOut:!!x._burnedOut,wreckAge:x._explosionT?Math.max(0,performance.now()-x._explosionT):99999,
     };});
+    if(_LOCAL_PREVIEW&&_UP.has('previewwreck')&&cars[0]){
+      Object.assign(cars[0],{r:player.r+2.8,c:player.c+1.1,dirR:0,dirC:1,velR:0,velC:0,parked:true,
+        damageRatio:0,bulletHoles:8,smoking:false,burning:true,wrecked:true,burnedOut:false,
+        wreckAge:performance.now()%5200});
+    }
     if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
       if(!v||v.state==='done'||!near(+v.y||0,+v.x||0))continue;
       const ambulance=v.kind==='ambulance',fire=v.kind==='firetruck',tow=v.kind==='tow',police=v.kind==='police';
@@ -54301,7 +54347,7 @@ window.Mafiozi3DBridge = Object.freeze({
     if(!inside&&typeof questCars!=='undefined'&&questCars instanceof Map)for(const q of questCars.values()){
       if(!q||q._towed||q._hidden||!near(+q.y||0,+q.x||0))continue;
       const model=typeof resolveCarModel==='function'?resolveCarModel(q.model):(q.model||{}),modelName=model?.name||model?.id||q.model||'sedan';
-      cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:'',stripe:q.owner_uid?'#ffd76b':'',dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true,damageRatio:Number.isFinite(q._ballisticHp)?Math.max(0,q._ballisticHp/Math.max(1,q._ballisticMax||q.max_hp||240)):1,bulletHoles:+q._bulletHoleCount||0,smoking:!!q._hoodSmoking,burning:!!q._hoodBurning,wrecked:!!(q._shotWrecked||q._wrecked||q.wrecked)});
+      cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:'',stripe:q.owner_uid?'#ffd76b':'',dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true,damageRatio:Number.isFinite(q._ballisticHp)?Math.max(0,q._ballisticHp/Math.max(1,q._ballisticMax||q.max_hp||240)):1,bulletHoles:+q._bulletHoleCount||0,smoking:!!q._hoodSmoking,burning:!!q._hoodBurning,wrecked:!!(q._shotWrecked||q._wrecked||q.wrecked),burnedOut:!!q._burnedOut,wreckAge:q._explosionT?Math.max(0,performance.now()-q._explosionT):99999});
     }
     if(!inside&&typeof BUS!=='undefined'&&near(+BUS.r||0,+BUS.c||0))cars.unshift({id:'city_bus',r:+BUS.r||0,c:+BUS.c||0,ang:+BUS.ang||0,model:'city_bus',paint:'#d5aa35',parked:BUS.state==='stopped',length:2.65,width:1.05,height:1.08,wheelR:.22,sport:false,pickup:false,van:true,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'#26364a',dirR:Math.sin(+BUS.ang||0),dirC:Math.cos(+BUS.ang||0),velR:Math.sin(+BUS.ang||0)*(+BUS.speed||0),velC:Math.cos(+BUS.ang||0)*(+BUS.speed||0),braking:BUS.state==='stopped',turning:false,bus:true});
     if(cars.length>24)cars.length=24;
@@ -54366,11 +54412,14 @@ window.Mafiozi3DBridge = Object.freeze({
     const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
     const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
-    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,blood:!!x.parts?.some?.(p=>p.isBlood),life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))}));
+    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),metal:x.type==='metal',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
     const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,heavy:!!x.heavy,age:performance.now()-(+x.born||performance.now())}));
-    const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail}));
+    const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail,soot:!!x._isSoot,crater:!!x._isCrater}));
     if(_LOCAL_PREVIEW&&_UP.has('previewcombatfx')){const target=npcs.find(x=>!x.dead),cycle=performance.now()%1600,shotAge=cycle-800;if(target){target.hp=target.maxHp*(cycle<800?.66:.22);target.hitAt=performance.now()-Math.max(0,shotAge);target.bleeding=true;target.bleedSeverity=1;for(let i=0;i<6;i++)bloodFx.push({id:`preview_blood_${i}`,r:target.r+Math.sin(target.ang||0)*i*.22+(i%2?.08:-.05),c:target.c+Math.cos(target.ang||0)*i*.22+(i%2?-.05:.06),radius:3+i%3,rot:(target.ang||0)+.2,life:12000-i*700,max:14000,trail:true});if(shotAge>=0&&shotAge<680){const life=680-shotAge,parts=Array.from({length:12},(_,i)=>({vr:Math.sin(i*2.19)*(2.5+i%4),vc:Math.cos(i*2.19)*(2.5+i%4),life,max:680,size:3,blood:true,color:i%4?'#c30d1b':'#5c0509'}));impactFx.unshift({r:target.r,c:target.c,blood:true,life,max:680,parts});}}}
     const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550,seed:+x.seed||0,kind:x.kind||'blast'}));
+    if(_LOCAL_PREVIEW&&_UP.has('previewwreck')&&cars[0]){
+      const age=performance.now()%5200;if(age<1850)explosionFx.unshift({r:cars[0].r,c:cars[0].c,age,life:1850,seed:170,kind:'vehicle'});
+    }
     const throwableFx=(typeof _thrownItems!=='undefined'?_thrownItems:[]).filter(x=>x&&!x.exploded).slice(0,8).map((x,i)=>{const p=Math.max(0,Math.min(1,(performance.now()-(+x.start||0))/(+x.flight||720)));return {id:i,kind:x.kind||'grenade',r:(+x.fromR||0)+((+x.toR||0)-(+x.fromR||0))*p,c:(+x.fromC||0)+((+x.toC||0)-(+x.fromC||0))*p,height:Math.sin(Math.PI*p)*3.8,progress:p};});
     const fireFx=(typeof _firePools!=='undefined'?_firePools:[]).filter(x=>x&&performance.now()<+x.until&&near(+x.r||0,+x.c||0)).slice(0,12).map(x=>({r:+x.r||0,c:+x.c||0,age:performance.now()-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2}));
     const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||''});}
@@ -58162,6 +58211,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d169"></script>
+<script type="module" src="three_preview.js?v=3d170"></script>
 </body>
 </html>
