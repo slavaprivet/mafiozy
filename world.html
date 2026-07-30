@@ -19939,6 +19939,45 @@ function playEnterCarAnim(r, c) {
   });
 }
 
+let _threeSelectedGangBotId = null;
+let _threeSelectedGangBotUntil = 0;
+let _threeForcedGangShotId = null;
+let _threeForcedGangShotUntil = 0;
+function _findLiveAggroBotById(botId) {
+  const wanted=String(botId||'');
+  if(!wanted)return null;
+  for(const zone of Object.values(aggroZones||{})){
+    for(const bot of (zone?.bots||[])){
+      if(String(bot?.id)!==wanted||bot.dead||bot.alive===false||(+bot.hp||0)<=0)continue;
+      return {bot,zone};
+    }
+  }
+  return null;
+}
+function selectGangNpcFrom3D(botId) {
+  const found=_findLiveAggroBotById(botId);
+  if(!found)return {ok:false,reason:'missing'};
+  const {bot}=found,dist=Math.hypot(player.r-(+bot.y||0),player.c-(+bot.x||0));
+  if(dist>4.4){showToast('Подойди ближе к бойцу','👣',1500);return {ok:false,reason:'far'};}
+  if(_isDistrictDefenderBot(bot)){showToast('Охрана района не нанимается','📁',1900);return {ok:false,reason:'district_guard'};}
+  _threeSelectedGangBotId=String(bot.id);
+  _threeSelectedGangBotUntil=performance.now()+10000;
+  updateGtaInteractions();
+  return {ok:true,sourceId:String(bot.id),action:'gang_hire',name:bot.name||'Боец банды'};
+}
+function _showGangHireAction(bot) {
+  if(!bot)return false;
+  _gtaActionKind='gang_hire';_gtaActionCarId=String(bot.id);
+  const bossHire=!!(bot.is_boss||bot.boss||String(bot.kind||'').includes('boss'));
+  const hireCost=Math.max(50,Math.round((bossHire?800:GANG_HIRE_COST)*(_mafiaLevel()>=2?.85:1)));
+  const botLevel=Math.max(1,Math.min(25,parseInt(bot.level)||1));
+  _gtaBtn.textContent=botLevel>=10&&_mafiaLevel()<4
+    ? `🔒 Боец ${botLevel} ур. · мафия 4 ур.`
+    : `🤝 Нанять ${bossHire?'босса':'бойца'} ${botLevel} ур. ($${hireCost})`;
+  _gtaBtn.style.display='block';
+  return true;
+}
+
 function updateGtaInteractions() {
   document.body.classList.remove('near-major-establishment');
   const nearbyEstablishment=_nearbyEstablishmentForActions();
@@ -19953,6 +19992,12 @@ function updateGtaInteractions() {
   _gtaBtn.classList.remove('biz-pressure-action');
   if (_robBtn) _robBtn._majorAssaultId = null;
   _updatePoliceStealthButton();
+  if(_threeSelectedGangBotId&&performance.now()<_threeSelectedGangBotUntil&&!_policeState?.employed&&!_buildingInt&&!_bankInt&&!myDrivingCarId&&!myDead&&_myGang.length<GANG_MAX&&!(myGangs>0)){
+    const selected=_findLiveAggroBotById(_threeSelectedGangBotId);
+    if(selected&&!_isDistrictDefenderBot(selected.bot)&&Math.hypot(player.r-(+selected.bot.y||0),player.c-(+selected.bot.x||0))<=4.4){
+      _showGangHireAction(selected.bot);return;
+    }
+  }
   // Кнопка ручника — видна только за рулём (не пассажир)
   const _activeVehicle=myDrivingCarId?questCars.get(myDrivingCarId):null;
   const _activeVehicleModel=_activeVehicle?resolveCarModel(_activeVehicle.model):null;
@@ -20492,25 +20537,24 @@ function updateGtaInteractions() {
   // Нанять бандита из aggroZones (city_gangs)
   if (!_policeState?.employed && !_buildingInt && !_bankInt && !myDrivingCarId && !myDead && _myGang.length < GANG_MAX && !(myGangs > 0)) {
     let nearBot = null, nearBotD = 2.8, nearBotLook = null;
+    if(_threeSelectedGangBotId&&performance.now()<_threeSelectedGangBotUntil){
+      const selected=_findLiveAggroBotById(_threeSelectedGangBotId);
+      if(selected&&!_isDistrictDefenderBot(selected.bot)){
+        const d=Math.hypot(player.r-(+selected.bot.y||0),player.c-(+selected.bot.x||0));
+        if(d<=4.4){nearBot=selected.bot;nearBotD=d;nearBotLook=selected.bot.look;}
+      }
+    }else if(_threeSelectedGangBotId){_threeSelectedGangBotId=null;}
     for (const z of Object.values(aggroZones || {})) {
       for (const b of (z.bots || [])) {
         if (!b.alive && b.alive !== undefined) continue;
         if (b.dead) continue;
         if (_isDistrictDefenderBot(b)) continue;
         const d = Math.hypot(player.r - (b.y||0), player.c - (b.x||0));
-        if (d < nearBotD) { nearBotD = d; nearBot = b; nearBotLook = b.look; }
+        if (!nearBot && d < nearBotD) { nearBotD = d; nearBot = b; nearBotLook = b.look; }
       }
     }
     if (nearBot) {
-      _gtaActionKind = 'gang_hire'; _gtaActionCarId = nearBot.id;
-      const bossHire=!!(nearBot.is_boss||nearBot.boss||String(nearBot.kind||'').includes('boss'));
-      const hireCost=Math.max(50,Math.round((bossHire?800:GANG_HIRE_COST)*(_mafiaLevel()>=2?.85:1)));
-      const botLevel=Math.max(1,Math.min(25,parseInt(nearBot.level)||1));
-      _gtaBtn.textContent = botLevel>=10&&_mafiaLevel()<4
-        ? `🔒 Боец ${botLevel} ур. · мафия 4 ур.`
-        : `🤝 Нанять ${bossHire?'босса':'бойца'} ${botLevel} ур. ($${hireCost})`;
-      _gtaBtn.style.display = 'block';
-      return;
+      _showGangHireAction(nearBot);return;
     }
   }
   const nearbyGroundBox = groundMissionBoxes.reduce((best, box) => {
@@ -21043,6 +21087,7 @@ _gtaBtn.addEventListener('click', () => {
           // Оригинал бота остаётся жить на сервере — прячем его на клиенте
           // по id, иначе рядом стоит «клон», который ещё и атакует игрока.
           if (hired) _hiredBotIds.add(String(b.id));
+          if (hired) {_threeSelectedGangBotId=null;_threeSelectedGangBotUntil=0;}
           if (hired && _myHitTargetBotId && String(b.id) === String(_myHitTargetBotId)) {
             _myHitTargetBotId = null; _myHitContractActive = false;
             showToast('⚠️ Контракт бригадира отменён — цель нанята', '📋', 2500);
@@ -24568,11 +24613,14 @@ function fire(angle = null) {
   }
   // 3) Бот агрессивного района — стрелять можно только если я САМ в этой зоне
   let chosenAggro = null;
+  const forcedGangShotId=performance.now()<_threeForcedGangShotUntil?String(_threeForcedGangShotId||''):'';
   if (!chosenConvoy && !chosenCop && !chosenCityCop && !_meInJail && !_bankInt) {
     for (const tid of Object.keys(aggroZones)) {
       const az = aggroZones[tid];
       if (!az || !az.bots) continue;
       for (const bot of az.bots) {
+        if(!bot||bot.dead||bot.alive===false||(+bot.hp||0)<=0)continue;
+        if(forcedGangShotId&&String(bot.id)!==forcedGangShotId)continue;
         const dx = bot.x - player.c, dy = bot.y - player.r;
         const d  = Math.hypot(dx, dy);
         if (d > shotRange) continue;
@@ -24583,6 +24631,7 @@ function fire(angle = null) {
       }
     }
   }
+  _threeForcedGangShotId=null;_threeForcedGangShotUntil=0;
   // 4) Охранник Майкла — стрелять можно, но это разозлит охрану
   let chosenMg = null;
   if (!chosenConvoy && !chosenCop && !chosenCityCop && !chosenAggro && !_meInJail && !_bankInt) {
@@ -53430,7 +53479,7 @@ window.Mafiozi3DBridge = Object.freeze({
       if(typeof _myGang!=='undefined')for(const g of _myGang)if(g)combat.push({...g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,behavior:'follows_player',name:g.name||'Боец семьи',family:_customGang?.name||g.gangName||g.faction||''});
       if(typeof _policeBackupUnits!=='undefined')for(const cop of _policeBackupUnits)if(cop)combat.push({...cop,id:`police_${cop.id}`,role:'police',police:true,name:cop.name||'Офицер'});
       if(typeof worldEvent!=='undefined'&&worldEvent){const eventPeople=[worldEvent.boss,...(worldEvent.guards||[])].filter(Boolean);for(const person of eventPeople)combat.push({...person,id:`world_event_${worldEvent.id||'event'}_${person.id}`,r:+person.y||0,c:+person.x||0,dead:person.alive===false,role:person===worldEvent.boss?'convoy_boss':'convoy_guard',gang:true,name:person===worldEvent.boss?'Инкассатор':'Охрана конвоя'});}
-      if(typeof aggroZones!=='undefined')for(const zone of Object.values(aggroZones||{}))for(const bot of zone?.bots||[])if(bot&&bot.alive!==false)combat.push({...bot,id:`aggro_${zone.id||'zone'}_${bot.id}`,r:+bot.y||0,c:+bot.x||0,role:bot.kind||'gang_fighter',gang:true,behavior:'hostile_zone',name:bot.name||'Боец банды'});
+      if(typeof aggroZones!=='undefined')for(const zone of Object.values(aggroZones||{}))for(const bot of zone?.bots||[])if(bot&&bot.alive!==false)combat.push({...bot,id:`aggro_${zone.id||'zone'}_${bot.id}`,sourceId:String(bot.id),hireable:!_isDistrictDefenderBot(bot),r:+bot.y||0,c:+bot.x||0,role:bot.kind||'gang_fighter',gang:true,behavior:'hostile_zone',name:bot.name||'Боец банды'});
       if(typeof gangNests!=='undefined')for(const nest of gangNests||[])for(const guard of nest?.guards||[])if(guard&&!guard.dead&&(+guard.hp||1)>0)combat.push({...guard,id:`nest_${nest.id||'gang'}_${guard.id}`,r:+(guard.r??guard.y)||0,c:+(guard.c??guard.x)||0,role:guard.kind||'gang_guard',gang:true,behavior:'guards_nest',name:guard.name||guard.boss_name||'Боец банды'});
       if(typeof BUSINESS_POIS!=='undefined'&&typeof myBusinesses!=='undefined'&&typeof _idleBusinessGuardPose==='function')for(const biz of BUSINESS_POIS){const own=myBusinesses.get(biz.id);if(!own?.owned||_isBusinessGangOccupied(biz.id,own))continue;for(let i=0;i<Math.min(6,+own.guards||0);i++){const pose=_idleBusinessGuardPose(biz,i);combat.push({...pose,id:`biz_guard_${biz.id}_${i}`,r:+pose.y||0,c:+pose.x||0,role:'guard',name:`Охрана · ${biz.name}`,hp:100,max_hp:100});}}
       if(typeof beachgoers!=='undefined')for(const beachNpc of beachgoers.values()){if(!beachNpc)continue;const pos=_beachgoerWorldPos(beachNpc);combat.push({...beachNpc,id:`beach_${beachNpc.id}`,r:beachNpc.dead?(beachNpc._deathR??pos.r):pos.r,c:beachNpc.dead?(beachNpc._deathC??pos.c):pos.c,role:'beach_civilian',name:beachNpc.name||'Отдыхающий'});}
@@ -53459,7 +53508,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const npcs=npcSource.filter(x=>x&&!x._ambientGang&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).sort((a,b)=>npcPriority(a)-npcPriority(b)).slice(0,72).map((x,i)=>{const id=String(x.id??x.uid??i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police'));return {
       id,r:+(x.r??x.y)||0,c:+(x.c??x.x)||0,ang:+x.ang||0,walking:!death.dead&&(x.walking!==undefined?!!x.walking:(Math.abs(+x.walkPhase||0)>.05&&Math.hypot((Number.isFinite(+x.tr)?+x.tr:+(x.r??x.y)||0)-(+((x.r??x.y)||0)),(Number.isFinite(+x.tc)?+x.tc:+(x.c??x.x)||0)-(+((x.c??x.x)||0)))>.08)),walkPhase:+x.walkPhase||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
-      role,behavior:x.behavior||'',look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp:Number.isFinite(+x.hp)?Math.max(0,+x.hp):Math.max(1,+x.max_hp||+x.maxHp||60),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
+      role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp:Number.isFinite(+x.hp)?Math.max(0,+x.hp):Math.max(1,+x.max_hp||+x.maxHp||60),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||x.gangName||x.faction||'',faction:x.faction||x.gangFaction||'',
       gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,
       burning:!!x.burning||performance.now()<(+x._burnUntil||0),
@@ -53531,6 +53580,16 @@ window.Mafiozi3DBridge = Object.freeze({
     fire(Number.isFinite(angle) ? angle : null);
     return true;
   },
+  fireAtGangNpc(sourceId) {
+    if(myDead||myMode==='pve'||!_isArmed())return false;
+    const found=_findLiveAggroBotById(sourceId);if(!found)return false;
+    const bot=found.bot,dist=Math.hypot(player.r-(+bot.y||0),player.c-(+bot.x||0));
+    if(dist>(weaponProfile(currentWeapon).range||8)+.4)return false;
+    _threeForcedGangShotId=String(bot.id);_threeForcedGangShotUntil=performance.now()+180;
+    fire(Math.atan2((+bot.y||0)-player.r,(+bot.x||0)-player.c));
+    return true;
+  },
+  selectGangNpc(sourceId) { return selectGangNpcFrom3D(sourceId); },
   canStand(r, c) { return Number.isFinite(r) && Number.isFinite(c) && !isBlocked(r, c); },
 });
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
@@ -57261,6 +57320,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d119"></script>
+<script type="module" src="three_preview.js?v=3d120"></script>
 </body>
 </html>
