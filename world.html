@@ -15365,6 +15365,7 @@ function spawnBullet(sr, sc, er, ec, opts) {
     vc: (dc / dist) * speed,
     dist: 0,
     maxDist: dist,
+    born: performance.now(),
     color: opts.color || wcfg.color || '#ffd76b',
     weapon: resolvedBulletWeapon,
     thick: opts.fromNpc && resolvedBulletWeapon !== 'rpg'
@@ -24991,7 +24992,7 @@ function _damageCarByGun(hit,weapon,damage){
   const cabZone=Math.abs(hit.localU||0)<.48,glass=(markY>.57&&cabZone&&hit.panel==='side')||(markY>.68&&Math.abs(hit.localV||0)<.58&&hit.panel!=='side');
   const mark={id:markId,u:+hit.localU||0,v:+hit.localV||0,y:markY,panel:hit.panel||'side',surface:glass?'glass':'metal',heavy:!!weaponFx(weapon).thick};
   if(!Array.isArray(car._threeBulletMarks))car._threeBulletMarks=[];
-  car._threeBulletMarks.push(mark);if(car._threeBulletMarks.length>12)car._threeBulletMarks.splice(0,car._threeBulletMarks.length-12);
+  car._threeBulletMarks.push(mark);if(car._threeBulletMarks.length>10)car._threeBulletMarks.splice(0,car._threeBulletMarks.length-10);
   car._bulletHoleCount=car._threeBulletMarks.length;
   car._lastCarHitAt=performance.now();
   const hitDr=hit.r-player.r,hitDc=hit.c-player.c,hitLen=Math.hypot(hitDr,hitDc)||1;
@@ -25400,7 +25401,7 @@ function fire(angle = null) {
   if(hitDamageableCar){
     spawnBullet(sR,sC,hitDamageableCar.point.r,hitDamageableCar.point.c,{hit:true,fromPlayer:true,weapon:currentWeapon});
     _damageCarByGun(hitDamageableCar,currentWeapon,_currentShotDamage(weaponDamageAt(currentWeapon,hitDamageableCar.dist)));
-    triggerHitStop(wcfg.thick?34:17);addShake(wcfg.thick?4:2.2);hapticHit();
+    addShake(wcfg.thick?2.2:1.1);hapticHit();
     return;
   }
   // Эти классы полностью разрешают собственную баллистику и завершают
@@ -41377,6 +41378,15 @@ function updateProjectiles(dt) {
   updateFloatTexts(dt);
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
+    const bulletAge = performance.now() - (+b.born || 0);
+    const bulletSpeed = Math.hypot(+b.vr || 0, +b.vc || 0);
+    const bulletTtl = Math.max(900, ((+b.maxDist || 0) / Math.max(.1, bulletSpeed)) * 1000 + 450);
+    if (!Number.isFinite(+b.r) || !Number.isFinite(+b.c) ||
+        !Number.isFinite(+b.vr) || !Number.isFinite(+b.vc) ||
+        !Number.isFinite(+b.maxDist) || bulletAge > bulletTtl) {
+      bullets.splice(i, 1);
+      continue;
+    }
     // В 3D-режиме drawBullets() не вызывается, поэтому завершённый снаряд
     // обязан удаляться общим апдейтом, а не ждать 2D-отрисовку.
     if (b._finished) {
@@ -43490,23 +43500,20 @@ function _updateDistrictBanner() {
 function spawnMetalImpact(wr, wc, weapon, dirR = 0, dirC = 1, surface = 'metal') {
   const fx = weaponFx(weapon), parts = [];
   const base = Math.atan2(dirR, dirC) + Math.PI;
-  const glass = surface === 'glass', count = fx.thick ? 20 : glass ? 17 : 13;
+  const glass = surface === 'glass', count = fx.thick ? 6 : glass ? 5 : 4;
   for (let i = 0; i < count; i++) {
-    const a = base + (Math.random() - .5) * (glass ? 2.15 : 1.65);
-    const sp = 1.25 + Math.random() * (fx.thick ? 4.2 : glass ? 3.55 : 3.0);
+    const a = base + (Math.random() - .5) * (glass ? 1.35 : .92);
+    const sp = .65 + Math.random() * (fx.thick ? 1.65 : glass ? 1.35 : 1.05);
+    const life = 105 + Math.random() * (fx.thick ? 95 : 70);
     parts.push({
       vr: Math.sin(a) * sp, vc: Math.cos(a) * sp,
-      life: 300 + Math.random() * 440, max: 740,
-      color: glass ? (i%3===0?'#ffffff':i%2?'#aeeaff':'#dff8ff') : i % 5 === 0 ? '#e9f7ff' : i % 3 === 0 ? '#ff8b27' : '#ffd45c',
-      isBlood: false, size: (glass ? .85 : 1.25) + Math.random() * (glass ? 1.1 : 1.45),
+      life, max: life,
+      color: glass ? (i%2?'#bfefff':'#f4fdff') : i%3===0 ? '#fff3bd' : i%2 ? '#ff9a32' : '#ffd45c',
+      isBlood: false, size: .55 + Math.random() * .55,
     });
   }
   _capArr(impacts, _MAX_IMPACTS);
-  impacts.push({ r:wr, c:wc, type:'metal', surface, parts });
-  spawnShockwave(wr, wc, {
-    rad0:1.5, maxRad:fx.thick ? 24 : glass ? 18 : 15, life:180,
-    color:glass?'#c9f4ff':'#fff0a0', thick:fx.thick ? 2.2 : glass ? 1.7 : 1.45,
-  });
+  impacts.push({ r:wr, c:wc, type:'metal', surface, vehicle:true, parts });
 }
 // GTA-стиль баннер «въезд в район»: название крупно + статус/бонус мелко,
 // выезжает слева, держится, затухает. ~3.5с.
@@ -54327,7 +54334,7 @@ window.Mafiozi3DBridge = Object.freeze({
       helicopter:!!model.helicopter,emergency:model.emergency||'',stripe:model.stripe||'',
       dirR:+x.dirDy||0,dirC:+x.dirDx||0,velR:+x.vr||0,velC:+x.vc||0,braking:!!x.braking,turning:!!x._turningAtIntersection,
       damageRatio:Number.isFinite(x._ballisticHp)?Math.max(0,x._ballisticHp/Math.max(1,x._ballisticMax||240)):1,
-      bulletHoles:+x._bulletHoleCount||0,bulletMarks:(x._threeBulletMarks||[]).slice(-12).map(m=>({id:+m.id||0,u:+m.u||0,v:+m.v||0,y:+m.y||0,panel:m.panel||'side',surface:m.surface||'metal',heavy:!!m.heavy})),smoking:!!x._hoodSmoking,burning:!!x._hoodBurning,wrecked:!!(x._shotWrecked||x._wrecked),
+      bulletHoles:+x._bulletHoleCount||0,bulletMarks:(x._threeBulletMarks||[]).slice(-10).map(m=>({id:+m.id||0,u:+m.u||0,v:+m.v||0,y:+m.y||0,panel:m.panel||'side',surface:m.surface||'metal',heavy:!!m.heavy})),hitAge:performance.now()-(+x._lastCarHitAt||0),smoking:!!x._hoodSmoking,burning:!!x._hoodBurning,wrecked:!!(x._shotWrecked||x._wrecked),
       burnedOut:!!x._burnedOut,wreckAge:x._explosionT?Math.max(0,performance.now()-x._explosionT):99999,
     };});
     if(_LOCAL_PREVIEW&&_UP.has('previewwreck')&&cars[0]){
@@ -54370,7 +54377,7 @@ window.Mafiozi3DBridge = Object.freeze({
     if(!inside&&typeof questCars!=='undefined'&&questCars instanceof Map)for(const q of questCars.values()){
       if(!q||q._towed||q._hidden||!near(+q.y||0,+q.x||0))continue;
       const model=typeof resolveCarModel==='function'?resolveCarModel(q.model):(q.model||{}),modelName=model?.name||model?.id||q.model||'sedan';
-      cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:'',stripe:q.owner_uid?'#ffd76b':'',dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true,damageRatio:Number.isFinite(q._ballisticHp)?Math.max(0,q._ballisticHp/Math.max(1,q._ballisticMax||q.max_hp||240)):1,bulletHoles:+q._bulletHoleCount||0,bulletMarks:(q._threeBulletMarks||[]).slice(-12).map(m=>({id:+m.id||0,u:+m.u||0,v:+m.v||0,y:+m.y||0,panel:m.panel||'side',surface:m.surface||'metal',heavy:!!m.heavy})),smoking:!!q._hoodSmoking,burning:!!q._hoodBurning,wrecked:!!(q._shotWrecked||q._wrecked||q.wrecked),burnedOut:!!q._burnedOut,wreckAge:q._explosionT?Math.max(0,performance.now()-q._explosionT):99999});
+      cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:'',stripe:q.owner_uid?'#ffd76b':'',dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true,damageRatio:Number.isFinite(q._ballisticHp)?Math.max(0,q._ballisticHp/Math.max(1,q._ballisticMax||q.max_hp||240)):1,bulletHoles:+q._bulletHoleCount||0,bulletMarks:(q._threeBulletMarks||[]).slice(-10).map(m=>({id:+m.id||0,u:+m.u||0,v:+m.v||0,y:+m.y||0,panel:m.panel||'side',surface:m.surface||'metal',heavy:!!m.heavy})),hitAge:performance.now()-(+q._lastCarHitAt||0),smoking:!!q._hoodSmoking,burning:!!q._hoodBurning,wrecked:!!(q._shotWrecked||q._wrecked||q.wrecked),burnedOut:!!q._burnedOut,wreckAge:q._explosionT?Math.max(0,performance.now()-q._explosionT):99999});
     }
     if(!inside&&typeof BUS!=='undefined'&&near(+BUS.r||0,+BUS.c||0))cars.unshift({id:'city_bus',r:+BUS.r||0,c:+BUS.c||0,ang:+BUS.ang||0,model:'city_bus',paint:'#d5aa35',parked:BUS.state==='stopped',length:2.65,width:1.05,height:1.08,wheelR:.22,sport:false,pickup:false,van:true,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'#26364a',dirR:Math.sin(+BUS.ang||0),dirC:Math.cos(+BUS.ang||0),velR:Math.sin(+BUS.ang||0)*(+BUS.speed||0),velC:Math.cos(+BUS.ang||0)*(+BUS.speed||0),braking:BUS.state==='stopped',turning:false,bus:true});
     if(cars.length>24)cars.length=24;
@@ -54432,10 +54439,10 @@ window.Mafiozi3DBridge = Object.freeze({
         vr:dr/dist*8,vc:dc/dist*8,ang:Math.atan2(dr,dc),color:j%3?'#70cfff':'#d8f4ff',weapon:'water_hose',fromNpc:true,thick:true,
       });}
     }
-    const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
+    const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&!x._finished&&Number.isFinite(+x.r)&&Number.isFinite(+x.c)&&Number.isFinite(+x.vr)&&Number.isFinite(+x.vc)&&near(+x.r,+x.c)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
     const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
-    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
+    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
     const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,heavy:!!x.heavy,age:performance.now()-(+x.born||performance.now())}));
     const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail,soot:!!x._isSoot,crater:!!x._isCrater}));
     if(_LOCAL_PREVIEW&&_UP.has('previewcombatfx')){const target=npcs.find(x=>!x.dead),cycle=performance.now()%1600,shotAge=cycle-800;if(target){target.hp=target.maxHp*(cycle<800?.66:.22);target.hitAt=performance.now()-Math.max(0,shotAge);target.bleeding=true;target.bleedSeverity=1;for(let i=0;i<6;i++)bloodFx.push({id:`preview_blood_${i}`,r:target.r+Math.sin(target.ang||0)*i*.22+(i%2?.08:-.05),c:target.c+Math.cos(target.ang||0)*i*.22+(i%2?-.05:.06),radius:3+i%3,rot:(target.ang||0)+.2,life:12000-i*700,max:14000,trail:true});if(shotAge>=0&&shotAge<680){const life=680-shotAge,parts=Array.from({length:12},(_,i)=>({vr:Math.sin(i*2.19)*(2.5+i%4),vc:Math.cos(i*2.19)*(2.5+i%4),life,max:680,size:3,blood:true,color:i%4?'#c30d1b':'#5c0509'}));impactFx.unshift({r:target.r,c:target.c,blood:true,life,max:680,parts});}}}
@@ -58234,6 +58241,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d171"></script>
+<script type="module" src="three_preview.js?v=3d172"></script>
 </body>
 </html>
