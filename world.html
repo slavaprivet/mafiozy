@@ -7142,6 +7142,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     return;
   }
   npc.hp = Math.max(0, (npc.hp | 0) - (damage | 0));
+  _markCombatBleeding(npc, npc.r, npc.c, damage);
   // Knockback
   const kb = 0.09;
   const nr = npc.r + dirY * kb, nc = npc.c + dirX * kb;
@@ -7207,6 +7208,7 @@ function hitCityCop(cop, dirY, dirX, damage) {
   if (!cop || !cop.alive) return;
   cop.hp = Math.max(0, (cop.hp | 0) - (damage | 0));
   cop.y += dirY * 0.07; cop.x += dirX * 0.07;
+  _markCombatBleeding(cop, cop.y, cop.x, damage);
   cop._pursuing = true;
   cop._reactUntil = performance.now() + 2800;
   if (cop.hp <= 0) {
@@ -7320,6 +7322,7 @@ function _hitBankGuard(npc, dirY, dirX, damage) {
   // _isBlockedInterior проверяется в апдейте AI, тут просто лёгкий толчок)
   const kb = 0.07;
   npc.r += dirY * kb; npc.c += dirX * kb;
+  _markCombatBleeding(npc, npc.r, npc.c, damage);
   npc.idleUntil = performance.now() + 250;
   // Кровь на месте охранника
   for (let i = 0; i < (npc.hp <= 0 ? 6 : 2); i++) {
@@ -10763,6 +10766,7 @@ function _raycastBeachgoer(sR,sC,dirY,dirX,maxRange) {
 function _hitBeachgoer(b,dirY,dirX,damage) {
   if(!b||b.dead)return;b.hp=Math.max(0,(b.hp||60)-(damage||20));
   const q=_beachgoerWorldPos(b);b._shopSay='ААА!';b._shopSayUntil=performance.now()+900;
+  _markCombatBleeding(b,q.r,q.c,damage);
   for(let i=0;i<(b.hp<=0?6:2);i++){_capArr(bloodSplats,_MAX_BLOOD);bloodSplats.push({r:q.r+(Math.random()-.5)*.55,c:q.c+(Math.random()-.5)*.55,radius:(b.hp<=0?7:4)+Math.random()*4,life:14000,max:14000,rot:Math.random()*Math.PI});}
   if(b.hp>0)return;
   b.dead=true;b.deadAt=performance.now();b._deathR=q.r+dirY*.18;b._deathC=q.c+dirX*.18;
@@ -14922,10 +14926,31 @@ const bloodSplats = [];   // {r,c,radius,life,max,rot}
 // + копы шлют десятки 'aggro_shot'/'cop_shot' пакетов в секунду) без
 // капов impacts/bloodSplats/bullets разрастаются до тысяч и фризят
 // рендер. Спавнеры дропают самое старое если упёрлись в лимит.
-const _MAX_BULLETS = 50, _MAX_IMPACTS = 16, _MAX_BLOOD = 40,
+const _MAX_BULLETS = 50, _MAX_IMPACTS = 16, _MAX_BLOOD = 48,
       _MAX_MUZZLES = 16, _MAX_SHOCKW = 18, _MAX_SMOKE = 30,
       _MAX_SHELLS = 30;
 function _capArr(arr, cap) { if (arr.length >= cap) arr.shift(); }
+function _markCombatBleeding(target, r, c, damage = 1) {
+  if (!target) return;
+  const now = performance.now();
+  target._lastHitAt = now;
+  target._bleedUntil = Math.max(
+    +target._bleedUntil || 0,
+    now + Math.min(9000, 3200 + Math.max(0, +damage || 0) * 42)
+  );
+  target._bleedSeverity = Math.max(
+    +target._bleedSeverity || 0,
+    Math.min(1.6, .45 + Math.max(0, +damage || 0) / 55)
+  );
+  _capArr(bloodSplats, _MAX_BLOOD);
+  bloodSplats.push({
+    r: +r || 0, c: +c || 0,
+    radius: 2.8 + Math.random() * 2.2,
+    life: 12000, max: 12000,
+    rot: Math.random() * Math.PI,
+    trail: true,
+  });
+}
 const WEAPON_CRIT_CHANCE = 0.12;
 const WEAPON_CRIT_MUL = 1.25;
 function spawnCriticalBlood(r, c, dirY = 0, dirX = 1, label = 'КРИТ ×1.25') {
@@ -48117,6 +48142,7 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon, burnTi
   npc.idleUntil = performance.now() + 900;
   npc.r = Math.max(.5, Math.min(_buildingInt.H - .5, npc.r + dirY * .045));
   npc.c = Math.max(.5, Math.min(_buildingInt.W - .5, npc.c + dirX * .045));
+  _markCombatBleeding(npc, npc.r, npc.c, damage);
   if (npc.hp <= 0) {
     npc.dead = true; npc.deadAt = performance.now(); npc.walking = false;
     if (robbery && npc.role==='biz_guard') {
@@ -53630,6 +53656,8 @@ function _threeVehiclePaint(vehicle,model){
   return model?.palette?.[0]||'#445566';
 }
 const _threeNpcDeathTimes=new Map();
+const _threeCombatBleedStates=new Map();
+let _threeCombatBleedCleanupAt=0;
 // Finds a nearby presentation point for 3D-only markers and small props.
 // Gameplay coordinates never change: sourceR/sourceC remain authoritative.
 // The visual point prefers open pavement/grass and avoids building footprints,
@@ -53677,6 +53705,46 @@ function _threeNpcDeathState(entity,id){
   }
   return {dead:true,deadAt};
 }
+function _threeTrackCombatBleed(id,hp,maxHp,r,c,dead,sourceHitAt=0){
+  const now=performance.now(),key=String(id),safeHp=Math.max(0,+hp||0),safeMax=Math.max(1,+maxHp||1);
+  let state=_threeCombatBleedStates.get(key);
+  if(!state){
+    state={lastHp:safeHp,hitAt:0,bleedUntil:0,severity:0,lastDropR:r,lastDropC:c,lastDropAt:0,nextDropAt:0,lastSourceHitAt:0,lastSeenAt:now};
+    _threeCombatBleedStates.set(key,state);
+  }
+  const incomingHitAt=Math.max(0,+sourceHitAt||0),lost=Math.max(0,state.lastHp-safeHp);
+  if(!dead&&(lost>.001||incomingHitAt>state.lastSourceHitAt)){
+    const damage=lost>.001?lost:Math.max(1,safeMax*.08);
+    state.hitAt=Math.max(now,incomingHitAt);
+    state.bleedUntil=Math.max(state.bleedUntil,now+Math.min(9000,3200+damage*42));
+    state.severity=Math.max(state.severity,Math.min(1.6,.45+damage/55));
+    state.nextDropAt=Math.min(state.nextDropAt||now,now+140);
+  }
+  state.lastSourceHitAt=Math.max(state.lastSourceHitAt,incomingHitAt);
+  state.lastHp=safeHp;state.lastSeenAt=now;
+  const bleeding=!dead&&safeHp>0&&now<state.bleedUntil;
+  if(bleeding&&now>=state.nextDropAt){
+    const moved=Math.hypot(r-state.lastDropR,c-state.lastDropC),waited=now-state.lastDropAt;
+    if(moved>.18||waited>820){
+      const backR=moved>.01?(r-state.lastDropR)/moved:0,backC=moved>.01?(c-state.lastDropC)/moved:0;
+      _capArr(bloodSplats,_MAX_BLOOD);
+      bloodSplats.push({
+        r:r-backR*(.08+Math.random()*.16)+(Math.random()-.5)*.13,
+        c:c-backC*(.08+Math.random()*.16)+(Math.random()-.5)*.13,
+        radius:2.1+Math.random()*2.1*Math.min(1.25,state.severity),
+        life:12000,max:12000,rot:Math.atan2(backR,backC)+(Math.random()-.5)*.7,trail:true,
+      });
+      state.lastDropR=r;state.lastDropC=c;state.lastDropAt=now;
+    }
+    state.nextDropAt=now+Math.max(300,610-state.severity*120)+Math.random()*170;
+  }
+  if(now>state.bleedUntil)state.severity=0;
+  if(now>_threeCombatBleedCleanupAt){
+    _threeCombatBleedCleanupAt=now+5000;
+    for(const [oldKey,oldState] of _threeCombatBleedStates)if(now-oldState.lastSeenAt>18000)_threeCombatBleedStates.delete(oldKey);
+  }
+  return {hitAt:state.hitAt,bleeding,bleedSeverity:state.severity};
+}
 // The 3D renderer must only animate recoil/muzzle flash after gameplay really
 // accepted a shot. fire() intentionally returns early for an empty magazine,
 // reload, cooldown and role/zone locks, so compare the authoritative shot
@@ -53697,7 +53765,7 @@ window.Mafiozi3DBridge = Object.freeze({
       r: +player.r || 0, c: +player.c || 0, ang: +player.ang || 0,
       walking: !!player.walking, walkPhase: +player.walkPhase || 0,
       hp: _LOCAL_PREVIEW&&_UP.has('previewlimp')?20:Math.max(0, +player.hp || 0), dead: !!myDead,
-      mode: myMode, weapon: currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
+      mode: myMode, weapon:_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
       name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
@@ -53929,13 +53997,13 @@ window.Mafiozi3DBridge = Object.freeze({
       npcSource=[...combat,...npcSource];
     }
     const npcPriority=x=>{const role=String(x?.role||x?._arcKey||'').toLowerCase();if(x?.gang||x?._gang||x?.gangId||x?.gang_id||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'))return 0;if(x?.police||role.includes('police')||role.includes('cop')||role.includes('guard'))return 1;return 2;};
-    const npcs=npcSource.filter(x=>x&&!x._ambientGang&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).sort((a,b)=>npcPriority(a)-npcPriority(b)).slice(0,72).map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:Number.isFinite(+x.tgtR)?+x.tgtR:Number.isFinite(+x.ty)?+x.ty:r,targetC=Number.isFinite(+x.tc)?+x.tc:Number.isFinite(+x.tgtC)?+x.tgtC:Number.isFinite(+x.tx)?+x.tx:c,targetMoving=Math.hypot(targetR-r,targetC-c)>.035,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving);return {
+    const npcs=npcSource.filter(x=>x&&!x._ambientGang&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).sort((a,b)=>npcPriority(a)-npcPriority(b)).slice(0,72).map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:Number.isFinite(+x.tgtR)?+x.tgtR:Number.isFinite(+x.ty)?+x.ty:r,targetC=Number.isFinite(+x.tc)?+x.tc:Number.isFinite(+x.tgtC)?+x.tgtC:Number.isFinite(+x.tx)?+x.tx:c,targetMoving=Math.hypot(targetR-r,targetC-c)>.035,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,+x.max_hp||+x.maxHp||60),hp=death.dead?0:(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0);return {
       id,r,c,ang:+x.ang||0,walking:!death.dead&&(declaredMoving||targetMoving),moving:!death.dead&&(declaredMoving||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
-      role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp:Number.isFinite(+x.hp)?Math.max(0,+x.hp):Math.max(1,+x.max_hp||+x.maxHp||60),maxHp:Math.max(1,+x.max_hp||+x.maxHp||60),
+      role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp,maxHp,
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||x.gangName||x.faction||'',faction:x.faction||x.gangFaction||'',
       gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,
-      burning:!!x.burning||performance.now()<(+x._burnUntil||0),
+      burning:!!x.burning||performance.now()<(+x._burnUntil||0),hitAt:combatFx.hitAt,bleeding:combatFx.bleeding,bleedSeverity:combatFx.bleedSeverity,
     };});
     if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const npc of npcs.slice(0,8))if(!npc.dead){npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.walking=true;}
     // Browser-only animation QA. It never changes the authoritative NPC and
@@ -53958,8 +54026,8 @@ window.Mafiozi3DBridge = Object.freeze({
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
     const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,blood:!!x.parts?.some?.(p=>p.isBlood),life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))}));
-    const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
-    if(_LOCAL_PREVIEW&&_UP.has('previewcombatfx')){const target=npcs.find(x=>!x.dead),cycle=performance.now()%1600,shotAge=cycle-800;if(target){target.hp=target.maxHp*(cycle<800?.66:.22);if(shotAge>=0&&shotAge<680){const life=680-shotAge,parts=Array.from({length:12},(_,i)=>({vr:Math.sin(i*2.19)*(2.5+i%4),vc:Math.cos(i*2.19)*(2.5+i%4),life,max:680,size:3,blood:true,color:i%4?'#c30d1b':'#5c0509'}));impactFx.unshift({r:target.r,c:target.c,blood:true,life,max:680,parts});bloodFx.push({id:'preview_blood',r:target.r+.22,c:target.c-.12,radius:8,rot:.7,life:12000,max:14000});}}}
+    const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail}));
+    if(_LOCAL_PREVIEW&&_UP.has('previewcombatfx')){const target=npcs.find(x=>!x.dead),cycle=performance.now()%1600,shotAge=cycle-800;if(target){target.hp=target.maxHp*(cycle<800?.66:.22);target.hitAt=performance.now()-Math.max(0,shotAge);target.bleeding=true;target.bleedSeverity=1;for(let i=0;i<6;i++)bloodFx.push({id:`preview_blood_${i}`,r:target.r+Math.sin(target.ang||0)*i*.22+(i%2?.08:-.05),c:target.c+Math.cos(target.ang||0)*i*.22+(i%2?-.05:.06),radius:3+i%3,rot:(target.ang||0)+.2,life:12000-i*700,max:14000,trail:true});if(shotAge>=0&&shotAge<680){const life=680-shotAge,parts=Array.from({length:12},(_,i)=>({vr:Math.sin(i*2.19)*(2.5+i%4),vc:Math.cos(i*2.19)*(2.5+i%4),life,max:680,size:3,blood:true,color:i%4?'#c30d1b':'#5c0509'}));impactFx.unshift({r:target.r,c:target.c,blood:true,life,max:680,parts});}}}
     const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550,seed:+x.seed||0,kind:x.kind||'blast'}));
     const throwableFx=(typeof _thrownItems!=='undefined'?_thrownItems:[]).filter(x=>x&&!x.exploded).slice(0,8).map((x,i)=>{const p=Math.max(0,Math.min(1,(performance.now()-(+x.start||0))/(+x.flight||720)));return {id:i,kind:x.kind||'grenade',r:(+x.fromR||0)+((+x.toR||0)-(+x.fromR||0))*p,c:(+x.fromC||0)+((+x.toC||0)-(+x.fromC||0))*p,height:Math.sin(Math.PI*p)*3.8,progress:p};});
     const fireFx=(typeof _firePools!=='undefined'?_firePools:[]).filter(x=>x&&performance.now()<+x.until&&near(+x.r||0,+x.c||0)).slice(0,12).map(x=>({r:+x.r||0,c:+x.c||0,age:performance.now()-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2}));
@@ -54006,6 +54074,7 @@ window.Mafiozi3DBridge = Object.freeze({
     return {cars,npcs,projectiles,muzzleFx,shellFx,impactFx,bloodFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
   },
   fire(angle) {
+    if(_LOCAL_PREVIEW&&_UP.get('previewweapon'))return true;
     if (myDead || myMode === 'pve' || !_isArmed()) return false;
     return _threeBridgeFireAccepted(angle);
   },
@@ -57751,6 +57820,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d154"></script>
+<script type="module" src="three_preview.js?v=3d155"></script>
 </body>
 </html>
