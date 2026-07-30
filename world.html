@@ -996,8 +996,11 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 @keyframes hudCriticalHp{to{filter:brightness(1.38);box-shadow:0 0 14px #ff2435}}
 #leftCommandHud #hudPlayer .hp-nums{font-size:11px;font-weight:900;color:#fff1db;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
 #leftCommandHud #hudPlayer .hp-nums #hpMaxVal{color:#a99c88}
-#leftCommandHud #hudPlayer .stat-row{gap:10px;color:#d3c29e;font-size:11px}
-#leftCommandHud #hudPlayer .stat-money{border:0;border-radius:2px;background:#171710;color:#e5c66f;padding:2px 5px}
+#leftCommandHud #hudPlayer .stat-row{gap:12px;color:#d3c29e;font-size:13px}
+#leftCommandHud #hudPlayer .stat-money{min-height:25px;border:1px solid rgba(194,155,71,.36);border-radius:7px;background:#171710;color:#f5d477;padding:3px 8px;font-size:14px;font-weight:1000;font-variant-numeric:tabular-nums;box-sizing:border-box}
+#leftCommandHud #hudPlayer .stat-money.exact{color:#fff0ad;border-color:#e5bd62;background:linear-gradient(180deg,#463718,#21190d);box-shadow:0 0 12px rgba(224,185,99,.25)}
+#leftCommandHud #hudPlayer .stat-time{min-height:25px;font-size:14px;font-weight:1000;font-variant-numeric:tabular-nums}
+#leftCommandHud #hudPlayer .stat-time .clock{font-size:14px;font-weight:1000;letter-spacing:.25px}
 #leftCommandHud #modeHud,#leftCommandHud #missionHudBtn{
   position:relative!important;inset:auto!important;width:100%;min-height:31px;margin:0;padding:5px 7px;justify-content:center;
   border-radius:2px;border:1px solid #594b36;background:linear-gradient(180deg,#26252a,#111318);color:#dfd3bb;
@@ -1054,7 +1057,7 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 #leftCommandHud #hudPlayer .hp-row .label{font-size:10px;font-weight:1000;color:#e8c978}
 #leftCommandHud #hudPlayer .hp-nums{font-size:12px}
 #leftCommandHud #hudPlayer .stat-row{padding-top:1px;border-top:1px solid rgba(207,171,91,.16)}
-#leftCommandHud #hudPlayer .stat-money{padding:3px 7px;border:1px solid rgba(194,155,71,.26);border-radius:6px;background:linear-gradient(180deg,#252116,#12120e);color:#f0cf73}
+#leftCommandHud #hudPlayer .stat-money{padding:3px 8px;border:1px solid rgba(194,155,71,.36);border-radius:7px;background:linear-gradient(180deg,#252116,#12120e);color:#f5d477}
 #leftCommandHud #modeHud,#leftCommandHud #missionHudBtn{min-height:36px;border-radius:8px;font-size:10px;background:linear-gradient(180deg,rgba(48,48,54,.96),rgba(16,18,23,.98));border-color:#665942;transition:transform .12s ease,filter .12s ease}
 #leftCommandHud #modeHud:hover,#leftCommandHud #missionHudBtn:hover{filter:brightness(1.13)}
 #leftCommandHud #modeHud.pvp{background:linear-gradient(180deg,#5c1923,#251116);border-color:#c14855;box-shadow:inset 0 1px #ff9a9a22}
@@ -25994,6 +25997,8 @@ function toggleExactMoney() {
   _moneyExactVisible = !_moneyExactVisible;
   updateMoneyHud();
   if (_hudMoneyToggle) {
+    _hudMoneyToggle.classList.toggle('exact', _moneyExactVisible);
+    _hudMoneyToggle.setAttribute('aria-pressed', _moneyExactVisible ? 'true' : 'false');
     _hudMoneyToggle.title = _moneyExactVisible
       ? 'Точный баланс — нажми, чтобы свернуть'
       : 'Нажми, чтобы показать точный баланс';
