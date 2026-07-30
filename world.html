@@ -401,60 +401,201 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 #bizConfirmModal .btn.ghost   { background: #232a36; color: #aab2c2; }
 /* ── Profile Modal ─────────────────────────────────────────── */
 #profileModal {
-  position: fixed; inset: 0; background: rgba(0,0,0,.75);
+  position: fixed; inset: 0; padding: 18px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(91,25,18,.18), transparent 42%),
+    rgba(2,3,5,.84);
+  backdrop-filter: blur(6px) saturate(.75);
   display: none; z-index: 50; align-items: center; justify-content: center;
 }
-#profileModal.show { display: flex; }
+#profileModal.show { display: flex; animation: profileBackdropIn .18s ease-out both; }
 #profileModal .card {
-  width: min(380px, 92vw); max-height: 80vh; background: #10141c;
-  border: 1px solid #3a4060; border-radius: 16px; padding: 16px 14px 12px;
-  color: #fff; font-family: inherit; position: relative;
-  box-shadow: 0 16px 40px rgba(0,0,0,.8); overflow-y: auto;
+  width: min(590px, 94vw); max-height: min(88vh, 820px);
+  display: flex; flex-direction: column; overflow: hidden;
+  color: #f6ead0; font-family: Georgia, 'Times New Roman', serif; position: relative;
+  border: 1px solid #c18b35; border-radius: 7px; padding: 0;
+  background:
+    linear-gradient(90deg, transparent 49.7%, rgba(255,225,157,.018) 50%, transparent 50.3%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 50% 0, rgba(132,70,28,.21), transparent 35%),
+    linear-gradient(150deg,#20120f 0%,#100c0c 42%,#090d12 100%);
+  box-shadow:
+    0 0 0 3px #1b0e09, 0 0 0 4px rgba(213,164,73,.36),
+    0 24px 80px rgba(0,0,0,.88), inset 0 0 48px rgba(0,0,0,.52);
+  animation: profileDossierIn .28s cubic-bezier(.2,.9,.25,1) both;
+}
+#profileModal .card::before {
+  content: ''; position: absolute; inset: 7px; z-index: 0; pointer-events: none;
+  border: 1px solid rgba(221,180,96,.19); border-radius: 3px;
+}
+#profileModal .card::after {
+  content: ''; position: absolute; left: 30px; right: 30px; top: 0; height: 3px;
+  background: linear-gradient(90deg,transparent,#e1b95f 18%,#fff0aa 50%,#e1b95f 82%,transparent);
+  box-shadow: 0 0 14px rgba(238,187,77,.45); pointer-events: none;
+}
+.profile-dossier-head {
+  position: relative; z-index: 1; flex: 0 0 auto;
+  display: grid; grid-template-columns: 58px 1fr; gap: 13px; align-items: center;
+  min-height: 82px; padding: 14px 55px 11px 18px;
+  border-bottom: 1px solid rgba(202,148,55,.42);
+  background: linear-gradient(90deg,rgba(87,24,18,.58),rgba(18,12,12,.34));
+}
+.profile-dossier-seal {
+  width: 52px; height: 52px; display: grid; place-items: center;
+  border: 2px solid #deb55a; border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 32%,#b84931 0 9%,transparent 10%),
+    radial-gradient(circle,#7f251f,#3f1212 68%,#170909);
+  box-shadow: 0 0 0 3px #32100d, 0 0 0 4px rgba(236,187,81,.48), inset 0 2px 8px rgba(255,189,102,.25);
+  color: #ffe4a0; font: 900 27px/1 Georgia,serif; text-shadow: 0 2px 2px #260706;
+}
+.profile-dossier-copy { min-width: 0; }
+.profile-dossier-kicker {
+  color: #c39b61; font: 800 9px/1.2 system-ui,sans-serif;
+  letter-spacing: 2.4px; text-transform: uppercase;
+}
+.profile-dossier-title {
+  margin-top: 3px; color: #ffe1a0; font: 900 23px/.95 Georgia,serif;
+  letter-spacing: .7px; text-transform: uppercase; text-shadow: 0 2px 10px #000;
+}
+.profile-dossier-sub {
+  margin-top: 5px; color: #8e8375; font: 700 9px/1.2 system-ui,sans-serif;
+  letter-spacing: 1.2px; text-transform: uppercase;
 }
 #profileModal .close {
-  position: absolute; top: 8px; right: 12px; font-size: 22px;
-  color: #888; cursor: pointer; background: none; border: none; z-index: 2;
+  position: absolute; top: 18px; right: 17px; z-index: 4;
+  width: 35px; height: 35px; display: grid; place-items: center; padding: 0;
+  color: #ffe1ac; cursor: pointer; border: 1px solid #b86d3c; border-radius: 50%;
+  background: radial-gradient(circle at 38% 30%,#8d3428,#46130f 72%);
+  box-shadow: 0 4px 13px #000a, inset 0 1px 1px rgba(255,255,255,.18);
+  font: 900 23px/30px Georgia,serif; transition: transform .15s,filter .15s;
 }
+#profileModal .close:hover { filter: brightness(1.18); transform: rotate(5deg) scale(1.04); }
+#profileModal .close:active { transform: scale(.92); }
 #profileModal .tabs {
-  display: flex; gap: 4px; margin-bottom: 12px;
+  position: relative; z-index: 2; flex: 0 0 auto;
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 7px;
+  padding: 10px 14px 11px; margin: 0;
+  border-bottom: 1px solid rgba(157,111,46,.32);
+  background: rgba(4,5,7,.52);
 }
 #profileModal .tab {
-  flex: 1; padding: 8px 4px; border-radius: 8px; cursor: pointer;
-  font-size: 12px; font-weight: 700; border: 1px solid #2a3040;
-  background: #1a1e2a; color: #8890a8; text-align: center;
-  transition: all .15s;
+  min-width: 0; padding: 10px 5px 9px; border-radius: 4px; cursor: pointer;
+  border: 1px solid #49331e; outline: 1px solid rgba(255,255,255,.025);
+  background: linear-gradient(#211914,#120f0e); color: #8f8271; text-align: center;
+  font: 800 11px/1 system-ui,sans-serif; letter-spacing: .55px; text-transform: uppercase;
+  box-shadow: inset 0 1px rgba(255,255,255,.035); transition: all .16s;
+}
+#profileModal .tab:hover {
+  color: #d7c29b; border-color: #79582d; transform: translateY(-1px);
 }
 #profileModal .tab.active {
-  background: linear-gradient(135deg, #2a3858, #1a2848);
-  border-color: #4a6090; color: #ffd76b;
+  background: linear-gradient(180deg,#a87328,#614019);
+  border-color: #f0c76c; color: #fff0bf;
+  box-shadow: inset 0 1px rgba(255,255,255,.22), 0 4px 13px rgba(180,113,24,.23);
+  text-shadow: 0 1px 2px #3e2109;
+}
+#profileContent {
+  position: relative; z-index: 1; min-height: 160px;
+  padding: 14px 15px 18px; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-color: #a4722d #140e0d; scrollbar-width: thin;
+}
+#profileContent::-webkit-scrollbar { width: 8px; }
+#profileContent::-webkit-scrollbar-track { background: #130d0c; border-left: 1px solid #2d2118; }
+#profileContent::-webkit-scrollbar-thumb { background: linear-gradient(#c8943e,#6d461d); border: 2px solid #130d0c; border-radius: 8px; }
+#profileContent.profile-refresh { animation: profileContentIn .2s ease-out both; }
+.profile-section-title {
+  display: flex; align-items: center; gap: 8px;
+  margin: 1px 1px 9px; padding: 0 2px 7px;
+  border-bottom: 1px solid rgba(200,146,55,.31);
+  color: #efc56e; font: 900 15px/1 Georgia,serif; letter-spacing: .4px;
+}
+.profile-section-title::after {
+  content: ''; height: 1px; flex: 1; margin-left: 4px;
+  background: linear-gradient(90deg,rgba(221,166,63,.48),transparent);
 }
 #profileModal .items { display: flex; flex-direction: column; gap: 6px; }
 #profileModal .item {
-  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
-  background: #181c28; border: 1px solid #252a3a; border-radius: 10px;
+  display: flex; align-items: center; gap: 11px; padding: 10px 11px;
+  background:
+    linear-gradient(90deg,rgba(103,53,25,.15),transparent 40%),
+    linear-gradient(145deg,#171312,#0e1014);
+  border: 1px solid #3d3024; border-radius: 5px;
+  box-shadow: inset 3px 0 #3c2117, inset 0 1px rgba(255,255,255,.025);
+  transition: border-color .15s,transform .15s,background .15s;
 }
-#profileModal .item.equipped { border-color: #c0a040; box-shadow: 0 0 8px rgba(200,160,60,.3); }
-#profileModal .item .icon { font-size: 22px; }
+#profileModal .item:hover { border-color:#72532b; transform:translateX(2px); }
+#profileModal .item.equipped {
+  border-color: #d3a53e;
+  background: linear-gradient(100deg,rgba(142,86,19,.28),rgba(18,17,15,.96) 55%);
+  box-shadow: inset 3px 0 #e0b44e, 0 0 13px rgba(218,162,54,.14);
+}
+#profileModal .item .icon {
+  width: 39px; height: 39px; flex: 0 0 39px; display:grid; place-items:center;
+  border: 1px solid #604523; border-radius: 50%; background: radial-gradient(circle,#30251b,#130e0c);
+  font-size: 21px; filter: drop-shadow(0 2px 2px #000);
+}
 #profileModal .item .info { flex: 1; }
-#profileModal .item .nm { font-size: 13px; font-weight: 700; }
-#profileModal .item .sub { font-size: 11px; color: #7a8098; }
+#profileModal .item .nm { color:#f4e6c9; font: 800 14px/1.15 Georgia,serif; }
+#profileModal .item .sub { margin-top:4px; color:#8f877c; font:700 10px/1.3 system-ui,sans-serif; }
 #profileModal .armor-equip {
-  flex: 0 0 auto; min-width: 72px; padding: 7px 9px; border-radius: 8px;
-  border: 1px solid #5576a8; background: linear-gradient(145deg,#315d91,#223d68);
-  color: #fff; font: 800 10px system-ui,sans-serif; cursor: pointer;
+  flex: 0 0 auto; min-width: 78px; padding: 8px 10px; border-radius: 4px;
+  border: 1px solid #b67f2d; background: linear-gradient(#8a5d21,#503416);
+  color: #fff0be; font: 900 9px system-ui,sans-serif; letter-spacing:.6px;text-transform:uppercase;cursor:pointer;
 }
 #profileModal .armor-equip:active { transform: scale(.96); }
-#profileModal .armor-equip:disabled { border-color:#74652e;background:#3c3520;color:#ffd76b;opacity:.9;cursor:default;transform:none; }
+#profileModal .armor-equip:disabled { border-color:#63512e;background:#2d281c;color:#c4a963;opacity:.86;cursor:default;transform:none; }
 #profileModal .stat-block {
-  display: flex; flex-wrap: wrap; gap: 8px;
+  display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px;
 }
 #profileModal .stat-card {
-  flex: 1 1 45%; padding: 10px; background: #181c28;
-  border: 1px solid #252a3a; border-radius: 10px; min-width: 120px;
+  min-width: 0; padding: 11px;
+  background: linear-gradient(145deg,rgba(44,25,19,.92),rgba(13,15,19,.96));
+  border: 1px solid #463427; border-radius: 5px;
+  box-shadow: inset 0 1px rgba(255,255,255,.025), inset 3px 0 rgba(137,80,30,.35);
 }
-#profileModal .stat-card .label { font-size: 10px; color: #6a7088; text-transform: uppercase; margin-bottom: 4px; }
-#profileModal .stat-card .val { font-size: 16px; font-weight: 800; }
-#profileModal .empty { text-align: center; color: #5a6078; font-size: 13px; padding: 20px 10px; }
+#profileModal .stat-card .label {
+  color:#8d806f; font:800 8px/1.2 system-ui,sans-serif;
+  letter-spacing:1.15px;text-transform:uppercase;margin-bottom:6px;
+}
+#profileModal .stat-card .val {
+  color:#f5e5c5;font:900 17px/1.05 Georgia,serif;text-shadow:0 2px 4px #000;
+}
+#profileModal .empty {
+  text-align:center;color:#776e62;font:italic 13px/1.45 Georgia,serif;padding:22px 12px;
+  border:1px dashed rgba(160,118,54,.24);border-radius:5px;background:rgba(0,0,0,.12);
+}
+#profileModal .profile-career-panel,
+#profileModal .profile-influence-panel,
+#profileModal .profile-said-card {
+  border-radius:5px !important;border-color:#7e582b !important;
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),
+    linear-gradient(145deg,#21150f,#0e0d10) !important;
+  box-shadow:inset 0 0 28px rgba(0,0,0,.32);
+}
+@keyframes profileBackdropIn { from{opacity:0} to{opacity:1} }
+@keyframes profileDossierIn {
+  from{opacity:0;transform:translateY(13px) scale(.96)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes profileContentIn { from{opacity:.3;transform:translateX(5px)} to{opacity:1;transform:none} }
+@media (max-width: 640px) {
+  #profileModal { padding:8px;align-items:flex-end; }
+  #profileModal .card { width:100%;max-height:92vh;border-radius:7px 7px 0 0; }
+  .profile-dossier-head { grid-template-columns:46px 1fr;min-height:68px;padding:10px 48px 9px 13px; }
+  .profile-dossier-seal { width:40px;height:40px;font-size:22px; }
+  .profile-dossier-title { font-size:18px; }
+  .profile-dossier-sub { display:none; }
+  #profileModal .close { top:14px;right:13px;width:32px;height:32px; }
+  #profileModal .tabs { padding:8px;gap:5px; }
+  #profileModal .tab { padding:9px 3px;font-size:9px;letter-spacing:.25px; }
+  #profileContent { padding:11px 10px 15px; }
+  #profileModal .stat-block { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #profileModal .stat-card .val { font-size:15px; }
+  #profileModal .item { padding:9px 8px;gap:8px; }
+  #profileModal .item .icon { width:34px;height:34px;flex-basis:34px;font-size:19px; }
+}
 #michaelModal .card {
   width: min(360px, 90vw); background: #14181f;
   border: 1px solid #d8a040; border-radius: 14px; padding: 18px 18px 14px;
@@ -1851,6 +1992,14 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
   <div id="profileModal">
     <div class="card">
       <button class="close" onclick="toggleProfileModal()">&times;</button>
+      <div class="profile-dossier-head">
+        <div class="profile-dossier-seal" aria-hidden="true">M</div>
+        <div class="profile-dossier-copy">
+          <div class="profile-dossier-kicker">MAFIOZI / ЛИЧНОЕ ДЕЛО</div>
+          <div class="profile-dossier-title" id="profileDossierTitle">Арсенал семьи</div>
+          <div class="profile-dossier-sub" id="profileDossierSub">Опись оружия, брони и ценных предметов</div>
+        </div>
+      </div>
       <div class="tabs">
         <div class="tab active" data-tab="inv" onclick="switchProfileTab('inv')">🎒 Инвентарь</div>
         <div class="tab" data-tab="status" onclick="switchProfileTab('status')">📋 Статус</div>
@@ -38333,6 +38482,14 @@ function toggleProfileModal() {
 function switchProfileTab(tab) {
   _profileTab = tab;
   document.querySelectorAll('#profileModal .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  const chrome={
+    inv:['Арсенал семьи','Опись оружия, брони и ценных предметов'],
+    status:['Личное досье','Роль, репутация и влияние в городе'],
+    biz:['Империя и активы','Бизнесы, касса и доверенные люди'],
+  }[tab]||['Личное дело','Закрытый архив семьи'];
+  const title=document.getElementById('profileDossierTitle'),sub=document.getElementById('profileDossierSub');
+  if(title)title.textContent=chrome[0];if(sub)sub.textContent=chrome[1];
+  document.getElementById('profileModal')?.setAttribute('data-profile-tab',tab);
   renderProfileTab();
 }
 async function _equipArmorFromInventory(itemId){
@@ -38371,7 +38528,7 @@ function renderProfileTab() {
   if (_profileTab === 'inv') {
     const WEAP_EMOJI = { pistol:'🔫', nagan:'🔫', pistol_heavy:'🔫', pistol_gold:'✨', shotgun:'💥', smg:'🔫', tommy_gun:'🔫', rifle:'🎯', sniper:'🎯', rpg:'💣' };
     let html = '<div class="items">';
-    html += '<div style="padding:4px 4px 7px;color:#ffbc62;font-weight:900;font-size:14px">🔫 Оружие</div>';
+    html += '<div class="profile-section-title">🔫 Оружие</div>';
     html += `<div class="item${(!currentWeapon || currentWeapon === 'fists' || currentWeapon === 'none') ? ' equipped' : ''}"><div class="icon">✊</div><div class="info"><div class="nm">Кулаки</div><div class="sub">всегда с тобой</div></div></div>`;
     const weaponItems=_inventoryItems.filter(i=>i.type==='weapon'&&(+i.qty||0)>0);
     if(_mafiaState?.employed&&!weaponItems.some(i=>i.id==='pistol')) weaponItems.unshift({id:'pistol',name:'Семейный пистолет',qty:1,type:'weapon'});
@@ -38384,7 +38541,7 @@ function renderProfileTab() {
     const items=_inventoryItems.filter(i=>i.type!=='weapon'&&(+i.qty||0)>0);
     const TYPE_ICON={armor:'🦺',potion:'🧪',throwable:'💣',document:'📄',thing:'📦'};
     const TYPE_NAME={armor:'Броня',potion:'Расходник',throwable:'Метательное',document:'Документ',thing:'Находка'};
-    html += '<div style="padding:14px 4px 7px;color:#ffd76b;font-weight:900;font-size:14px">🎒 Предметы</div>';
+    html += '<div class="profile-section-title" style="margin-top:14px">🎒 Предметы</div>';
     if(!items.length)html+='<div class="empty" style="padding:10px">Предметов пока нет.</div>';
     for(const it of items){
       const icon=(it.name||'').match(/^\p{Extended_Pictographic}/u)?.[0]||TYPE_ICON[it.type]||'📦';
@@ -38429,9 +38586,9 @@ function renderProfileTab() {
     html += `<div class="stat-card"><div class="label">Заказы сегодня</div><div class="val">${myGtaStatus ? myGtaStatus.count_today : 0} / ${myGtaStatus ? myGtaStatus.limit : 2}</div></div>`;
     html += '</div>';
     const unlocked=careerLevels.slice(0,career.level).map(s=>s.perk);
-    html += `<div style="margin-top:12px;padding:13px;border:1px solid ${isPoliceRole?'#315b86':'#93672f'};border-radius:13px;background:${isPoliceRole?'linear-gradient(135deg,#101a29,#111722)':'linear-gradient(135deg,#21170e,#17110d)'}"><div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:900;color:${roleColor}">${roleIcon} ${career.rank}</div><div style="font-weight:900;color:#fff">Ур. ${career.level}/5</div></div><div style="display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:11px;color:#aebbd0"><span>Всего: ${career.xp} XP</span><span style="text-align:right">${career.maxed?'МАКСИМАЛЬНЫЙ УРОВЕНЬ':`${career.part}/${career.need} XP до «${career.nextRank}»`}</span></div><div style="height:9px;background:#172335;border-radius:8px;overflow:hidden;margin:7px 0"><div style="height:100%;width:${career.pct}%;background:${isPoliceRole?'linear-gradient(90deg,#397dff,#67e9ff)':'linear-gradient(90deg,#8b2f28,#f0ad42)'};box-shadow:0 0 8px ${isPoliceRole?'#56cfff':'#d78d37'}"></div></div><div style="font-size:11px;color:#c9d2df"><b style="color:${roleColor}">Открытые возможности:</b><br>${unlocked.map(x=>`✓ ${x}`).join('<br>')}</div>${career.maxed?'':`<div style="margin-top:8px;font-size:11px;color:#8993a4">🔒 Следующий уровень: ${careerLevels[career.level].perk}</div>`}</div>`;
+    html += `<div class="profile-career-panel" style="margin-top:12px;padding:13px;border:1px solid ${isPoliceRole?'#315b86':'#93672f'};border-radius:13px;background:${isPoliceRole?'linear-gradient(135deg,#101a29,#111722)':'linear-gradient(135deg,#21170e,#17110d)'}"><div style="display:flex;align-items:center;justify-content:space-between"><div style="font-weight:900;color:${roleColor}">${roleIcon} ${career.rank}</div><div style="font-weight:900;color:#fff">Ур. ${career.level}/5</div></div><div style="display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:11px;color:#aebbd0"><span>Всего: ${career.xp} XP</span><span style="text-align:right">${career.maxed?'МАКСИМАЛЬНЫЙ УРОВЕНЬ':`${career.part}/${career.need} XP до «${career.nextRank}»`}</span></div><div style="height:9px;background:#172335;border-radius:8px;overflow:hidden;margin:7px 0"><div style="height:100%;width:${career.pct}%;background:${isPoliceRole?'linear-gradient(90deg,#397dff,#67e9ff)':'linear-gradient(90deg,#8b2f28,#f0ad42)'};box-shadow:0 0 8px ${isPoliceRole?'#56cfff':'#d78d37'}"></div></div><div style="font-size:11px;color:#c9d2df"><b style="color:${roleColor}">Открытые возможности:</b><br>${unlocked.map(x=>`✓ ${x}`).join('<br>')}</div>${career.maxed?'':`<div style="margin-top:8px;font-size:11px;color:#8993a4">🔒 Следующий уровень: ${careerLevels[career.level].perk}</div>`}</div>`;
     const influenceRows=DISTRICTS.filter(d=>d.id!=='lair').map(d=>{const v=_factionWarState.districts?.[d.id]||{},p=Math.max(0,+v.police||0),m=Math.max(0,+v.mafia||0),lead=p===m?'нейтрально':(p>m?'полиция':'мафия'),col=p===m?'#aebbd0':(p>m?'#72c7ff':'#ff8c72');return `<div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;padding:5px 7px;border-radius:7px;background:rgba(255,255,255,.025)"><span>${d.icon||'🏙️'} ${d.name}</span><span style="color:#72c7ff">👮 ${p}</span><b style="color:${col}">${m} 🕴️ · ${lead}</b></div>`;}).join('');
-    html += `<div style="margin-top:12px;padding:13px;border:1px solid #674858;border-radius:13px;background:linear-gradient(135deg,#121925,#201217)">
+    html += `<div class="profile-influence-panel" style="margin-top:12px;padding:13px;border:1px solid #674858;border-radius:13px;background:linear-gradient(135deg,#121925,#201217)">
       <div style="display:flex;justify-content:space-between;gap:8px"><b style="color:#ffcf7a">⚔️ ВЛИЯНИЕ ФРАКЦИЙ</b><span style="font-size:10px;color:#91a0b5">постоянный открытый мир</span></div>
       <div style="margin-top:8px;display:grid;gap:4px;font-size:10px;color:#d2d9e3">${influenceRows}</div>
       <div style="margin-top:10px;padding:9px;border-radius:9px;background:rgba(0,0,0,.2);font-size:11px;line-height:1.55;color:#cbd3df">
@@ -38449,7 +38606,7 @@ function renderProfileTab() {
     const apartments = _ownedApartmentEntries();
     let ownedBizCount = 0;
     if (myBusinesses && myBusinesses.forEach) myBusinesses.forEach(v => { if (v && v.owned) ownedBizCount++; });
-    html += '<div style="padding:16px 4px 7px;color:#7eff9a;font-weight:900;font-size:14px">🏠 Моё имущество</div>';
+    html += '<div class="profile-section-title" style="margin-top:16px">🏠 Моё имущество</div>';
     html += '<div class="items">';
     if (!apartments.length && !ownedBizCount) {
       html += '<div class="empty" style="padding:12px">Имущества пока нет. Купленная квартира появится здесь.</div>';
@@ -38466,7 +38623,7 @@ function renderProfileTab() {
     const ownedStates = Array.from(myBusinesses.values()).filter(v => v && v.owned);
     const totalPending = ownedStates.reduce((sum, v) => sum + (Number(v.pending) || 0), 0);
     const saidHired = !!_saidState.hired;
-    const saidHtml = `<div style="padding:12px;margin-bottom:10px;border-radius:13px;border:1px solid ${saidHired?'#397657':'#66552d'};background:${saidHired?'#101d18':'#1d1a12'}">
+    const saidHtml = `<div class="profile-said-card" style="padding:12px;margin-bottom:10px;border-radius:13px;border:1px solid ${saidHired?'#397657':'#66552d'};background:${saidHired?'#101d18':'#1d1a12'}">
       <div style="display:flex;gap:10px;align-items:center"><div style="font-size:30px">👔</div><div style="flex:1"><div style="font-weight:900;color:#fff">Саид · правая рука</div><div style="font-size:11px;color:#aeb8c8">${saidHired?'🟢 нанят':'⚪ не нанят'} · зарплата $500 в день</div></div></div>
       <div style="font-size:12px;color:#cbd3df;margin:9px 0">${saidHired?`Соберёт всю кассу одним нажатием: <b style="color:#7eff9a">$${totalPending.toLocaleString('ru')}</b>`:'Найми Саида — он собирает деньги сразу со всех бизнесов.'}</div>
       ${saidHired?`<div style="display:flex;gap:7px"><button onclick="saidCollectAll()" style="flex:1;padding:9px;border:0;border-radius:9px;background:#23874c;color:#fff;font-weight:900">💰 Собрать всё</button><button onclick="saidFire()" style="padding:9px;border:1px solid #743b3b;border-radius:9px;background:#30191d;color:#ffaaaa;font-weight:800">Уволить</button></div>`:`<button onclick="saidHire()" ${ownedStates.length?'':'disabled'} style="width:100%;padding:10px;border:0;border-radius:9px;background:linear-gradient(#f4cc62,#bd8427);font-weight:900;opacity:${ownedStates.length?1:.45}">🤝 Нанять за $500/день</button>`}
@@ -38491,6 +38648,7 @@ function renderProfileTab() {
     html += '</div>';
     box.innerHTML = html;
   }
+  box.classList.remove('profile-refresh');void box.offsetWidth;box.classList.add('profile-refresh');
 }
 // Click outside card closes modal
 document.getElementById('profileModal')?.addEventListener('click', function(e) {
