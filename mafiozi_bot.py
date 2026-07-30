@@ -777,6 +777,8 @@ OWNER_LOADOUT_ITEMS = {
     "golden_colt": 1, "sawn_off": 1, "shotgun": 1,
     "uzi": 1, "golden_uzi": 1, "tommy_gun": 1,
     "m16": 1, "ak74": 1, "sniper": 1, "rpg": 1,
+    "ammo_9mm": 99, "ammo_magnum": 99, "ammo_shell": 99,
+    "ammo_rifle": 99, "ammo_sniper": 99, "ammo_rocket": 99,
     "grenade": 99, "molotov": 99, "c4": 99,
 }
 
