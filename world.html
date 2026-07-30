@@ -53434,8 +53434,13 @@ function frame() {
     // Ресайз canvas (если событие resize/scroll поставило флаг) — строго
     // в начале кадра, ДО render. Очистка холста совпадает со стартом кадра.
     _applyResizeIfNeeded();
+    const _threeRendererActive = document.getElementById('stage')?.classList.contains('three-mode');
     if (_battleOpen) {
       // Битва в iframe — пропускаем тяжёлый рендер/update мира
+    } else if (_threeRendererActive) {
+      // Three.js owns the visible frame. Keep gameplay/bridge simulation
+      // alive, but do not rasterize a second invisible Canvas city frame.
+      if (t >= hitStopUntil) update(dt);
     } else if (t < hitStopUntil) {
       render();
     } else {
@@ -53494,7 +53499,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
   worldScale: 4.1,
   defaultRenderer: 'three',
   rollbackRenderer: 'canvas',
-  migrationStage: 'three-full-world-shell-v47-3d-shared-label-hotfix',
+  migrationStage: 'three-full-world-shell-v48-performance-no-double-render',
 });
 
 // Stable boundary for the gradual Three.js migration. The 3D renderer never
@@ -57641,6 +57646,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d139"></script>
+<script type="module" src="three_preview.js?v=3d140"></script>
 </body>
 </html>
