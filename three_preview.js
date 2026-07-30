@@ -58,7 +58,7 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
       // сотни тяжёлых фасадов в первом кадре.
       // Camera-visible quality is unchanged; only far off-screen preload is
       // bounded so invisible facade meshes do not dominate every frame.
-      const WORLD_SNAPSHOT_RADIUS=Math.max(28,Math.min(58,+rendererConfig.snapshotRadius||34));
+      const WORLD_SNAPSHOT_RADIUS=Math.max(28,Math.min(58,+rendererConfig.snapshotRadius||58));
       const worldSnapshot=bridge?.getWorldSnapshot?.(WORLD_SNAPSHOT_RADIUS)||null;
       const envSnapshot=bridge?.getEnvironmentState?.()||null;
       const originR=initialState?.r||0,originC=initialState?.c||0,WORLD_SCALE=Math.max(3,Math.min(5,+rendererConfig.worldScale||4.1)),selectedWeather=(rendererParams.get('weather')||envSnapshot?.weather||'clear').toLowerCase();
@@ -1383,7 +1383,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         // auxiliary world snapshots, raycasts and shadow-map refreshes back off;
         // movement, aiming, shooting and the authoritative Canvas simulation
         // continue to run every frame unchanged.
-        const lowFps=measuredFps<24,dynamicCadence=lowFps?70:45,occlusionCadence=lowFps?240:125,shadowCadence=lowFps?900:220;
+        const lowFps=measuredFps<24,dynamicCadence=lowFps?70:45,occlusionCadence=lowFps?240:125,shadowCadence=220;
         updateAtmosphere(t,lowFps);
         renderer.domElement.dataset.performanceTier=lowFps?'cadence':'full';
         renderer.domElement.dataset.shadowCadence=String(shadowCadence);
@@ -1542,8 +1542,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         }
         if(!dynamic){cars.slice(0,3).forEach(x=>x.visible=true);cars[0].position.x = -30 + (tt * 13) % 60; cars[1].position.z = 29 - (tt * 11) % 58; cars[2].position.x = 27 - (tt * 9) % 54;}
         if(t-lastShadowAt>shadowCadence){renderer.shadowMap.needsUpdate=true;lastShadowAt=t;}
-        if(lowFps){renderer.setRenderTarget(null);renderer.render(scene,camera);}
-        else{renderer.setRenderTarget(postTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);}
+        renderer.setRenderTarget(postTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
         if(!firstFramePresented){firstFramePresented=true;window.MafioziLoading?.complete('Город готов');}
         requestAnimationFrame(animate);
       };
