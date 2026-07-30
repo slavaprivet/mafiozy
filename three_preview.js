@@ -8,7 +8,6 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
     try {
       window.MafioziLoading?.set(52, 'Загружаем трёхмерный движок…');
       const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js');
-      const {mergeGeometries}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/utils/BufferGeometryUtils.js');
       window.MafioziLoading?.set(61, 'Настраиваем свет, материалы и тени…');
       const viewSize = () => ({ W: Math.max(1, stage.clientWidth || innerWidth), H: Math.max(1, stage.clientHeight || innerHeight) });
       const size = viewSize();
@@ -901,7 +900,19 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       });
 
       if(staticOutlineGeometries.length){
-        const mergedOutlineGeometry=mergeGeometries(staticOutlineGeometries,false);
+        const totalOutlineValues=staticOutlineGeometries.reduce((sum,g)=>sum+(g.getAttribute('position')?.array.length||0),0);
+        const mergedOutlineGeometry=totalOutlineValues?new THREE.BufferGeometry():null;
+        if(mergedOutlineGeometry){
+          const mergedPositions=new Float32Array(totalOutlineValues);
+          let mergedOffset=0;
+          for(const g of staticOutlineGeometries){
+            const values=g.getAttribute('position').array;
+            mergedPositions.set(values,mergedOffset);
+            mergedOffset+=values.length;
+          }
+          mergedOutlineGeometry.setAttribute('position',new THREE.BufferAttribute(mergedPositions,3));
+          mergedOutlineGeometry.computeBoundingSphere();
+        }
         if(mergedOutlineGeometry){
           const staticOutlines=new THREE.LineSegments(mergedOutlineGeometry,sharedOutlineMaterial);
           staticOutlines.name='batched-static-building-outlines';
