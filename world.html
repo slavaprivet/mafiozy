@@ -24945,6 +24945,41 @@ function placeWorldC4(){
   catch(e){_lastWorldC4PlantAt=0;}
 }
 
+function _raycastDamageableCar(sr,sc,dirY,dirX,maxDist){
+  if(_buildingInt||_bankInt)return null;
+  let best=null;
+  const test=(car,r,c,quest=false)=>{
+    if(!car||car._shotWrecked||car._wrecked||car.wrecked||car._hidden||car._towed)return;
+    const along=(r-sr)*dirY+(c-sc)*dirX;
+    if(along<.25||along>maxDist)return;
+    const side=Math.abs((c-sc)*dirY-(r-sr)*dirX);
+    const model=quest?resolveCarModel(car.model):(car.model||{});
+    const radius=Math.max(.48,(+model?.W||.85)*.72);
+    if(side>radius||best&&along>=best.dist)return;
+    best={car,r,c,quest,dist:along,point:{r:sr+dirY*along,c:sc+dirX*along}};
+  };
+  for(const car of CARS)test(car,+car.r||0,+car.c||0,false);
+  if(typeof questCars!=='undefined')for(const car of questCars.values())test(car,+car.y||0,+car.x||0,true);
+  return best;
+}
+function _damageCarByGun(hit,weapon,damage){
+  const car=hit.car,model=hit.quest?resolveCarModel(car.model):(car.model||{});
+  const max=Math.max(120,+car.max_hp||(+model?.suv?360:+model?.van?420:240));
+  if(!Number.isFinite(car._ballisticHp))car._ballisticHp=Math.max(1,+car.hp||max);
+  const armor=model?.armored ? 1.65 : 1,amount=Math.max(4,Math.round((+damage||12)/armor));
+  car._ballisticHp=Math.max(0,car._ballisticHp-amount);car._ballisticMax=max;
+  car._bulletHoleCount=Math.min(8,(car._bulletHoleCount||0)+1);
+  car._lastCarHitAt=performance.now();
+  spawnImpact(hit.point.r,hit.point.c,weapon);
+  const ratio=car._ballisticHp/max;
+  if(ratio<=.55)car._hoodSmoking=true;
+  if(ratio<=.24)car._hoodBurning=true;
+  if(car._ballisticHp<=0&&!car._shotWrecked){
+    car._shotWrecked=true;car._wrecked=true;car.wrecked=true;car.vr=car.vc=car.vx=car.vy=0;
+    spawnCarExplosion(hit.r,hit.c,car,true,true);addShake(16);fireScreenFlash('rpg');
+    spawnFloatText(hit.r,hit.c,'МАШИНА УНИЧТОЖЕНА',{color:'#ff7b25',size:16,life:1700});
+  }
+}
 // fire(angle): если angle задан — стреляем в эту сторону, иначе берём
 // направление из правого стика (если активен), и только потом — player.ang.
 // Это лечит «первый выстрел уходит в сторону ходьбы»: при тапе по fireBtn
@@ -25232,6 +25267,7 @@ function fire(angle = null) {
   const sR = muzPt.r;
   const sC = muzPt.c;
   const hitGasPump = _raycastGasPump(sR, sC, dirY, dirX, shotRange);
+  const hitDamageableCar = _raycastDamageableCar(sR,sC,dirY,dirX,shotRange);
   // Единый эффект выстрела: вспышка, звук, гильза и тряска. Раньше fire()
   // вызывал только spawnMuzzle, поэтому локальный выстрел мог быть беззвучным.
   spawnShot(sR, sC, _shotAng, currentWeapon, true);
@@ -25333,6 +25369,12 @@ function fire(angle = null) {
       { hit:true, fromPlayer:true, weapon:currentWeapon });
     _hitGasPump(hitGasPump);
     triggerHitStop(20); addShake(2.5); hapticHit();
+    return;
+  }
+  if(hitDamageableCar){
+    spawnBullet(sR,sC,hitDamageableCar.point.r,hitDamageableCar.point.c,{hit:true,fromPlayer:true,weapon:currentWeapon});
+    _damageCarByGun(hitDamageableCar,currentWeapon,_currentShotDamage(weaponDamageAt(currentWeapon,hitDamageableCar.dist)));
+    triggerHitStop(wcfg.thick?34:17);addShake(wcfg.thick?4:2.2);hapticHit();
     return;
   }
   // Эти классы полностью разрешают собственную баллистику и завершают
@@ -54206,6 +54248,8 @@ window.Mafiozi3DBridge = Object.freeze({
       sport:!!(model.sport||model.fast),pickup:!!model.pickup,van:!!model.van,suv:!!model.suv,cabrio:!!model.cabrio,taxi:!!model.taxi,limo:!!model.limo,muscle:!!model.muscle,classic:!!model.classic,gang:!!model.gang,
       helicopter:!!model.helicopter,emergency:model.emergency||'',stripe:model.stripe||'',
       dirR:+x.dirDy||0,dirC:+x.dirDx||0,velR:+x.vr||0,velC:+x.vc||0,braking:!!x.braking,turning:!!x._turningAtIntersection,
+      damageRatio:Number.isFinite(x._ballisticHp)?Math.max(0,x._ballisticHp/Math.max(1,x._ballisticMax||240)):1,
+      bulletHoles:+x._bulletHoleCount||0,smoking:!!x._hoodSmoking,burning:!!x._hoodBurning,wrecked:!!(x._shotWrecked||x._wrecked),
     };});
     if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
       if(!v||v.state==='done'||!near(+v.y||0,+v.x||0))continue;
@@ -54233,7 +54277,7 @@ window.Mafiozi3DBridge = Object.freeze({
     if(!inside&&typeof questCars!=='undefined'&&questCars instanceof Map)for(const q of questCars.values()){
       if(!q||q._towed||q._hidden||!near(+q.y||0,+q.x||0))continue;
       const model=typeof resolveCarModel==='function'?resolveCarModel(q.model):(q.model||{}),modelName=model?.name||model?.id||q.model||'sedan';
-      cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:'',stripe:q.owner_uid?'#ffd76b':'',dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true});
+      cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:'',stripe:q.owner_uid?'#ffd76b':'',dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true,damageRatio:Number.isFinite(q._ballisticHp)?Math.max(0,q._ballisticHp/Math.max(1,q._ballisticMax||q.max_hp||240)):1,bulletHoles:+q._bulletHoleCount||0,smoking:!!q._hoodSmoking,burning:!!q._hoodBurning,wrecked:!!(q._shotWrecked||q._wrecked||q.wrecked)});
     }
     if(!inside&&typeof BUS!=='undefined'&&near(+BUS.r||0,+BUS.c||0))cars.unshift({id:'city_bus',r:+BUS.r||0,c:+BUS.c||0,ang:+BUS.ang||0,model:'city_bus',paint:'#d5aa35',parked:BUS.state==='stopped',length:2.65,width:1.05,height:1.08,wheelR:.22,sport:false,pickup:false,van:true,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'#26364a',dirR:Math.sin(+BUS.ang||0),dirC:Math.cos(+BUS.ang||0),velR:Math.sin(+BUS.ang||0)*(+BUS.speed||0),velC:Math.cos(+BUS.ang||0)*(+BUS.speed||0),braking:BUS.state==='stopped',turning:false,bus:true});
     if(cars.length>24)cars.length=24;
@@ -58094,6 +58138,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d167"></script>
+<script type="module" src="three_preview.js?v=3d168"></script>
 </body>
 </html>
