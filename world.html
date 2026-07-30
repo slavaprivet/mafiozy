@@ -41304,6 +41304,12 @@ function updateProjectiles(dt) {
   updateFloatTexts(dt);
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
+    // В 3D-режиме drawBullets() не вызывается, поэтому завершённый снаряд
+    // обязан удаляться общим апдейтом, а не ждать 2D-отрисовку.
+    if (b._finished) {
+      bullets.splice(i, 1);
+      continue;
+    }
     b.r += b.vr * ddt;
     b.c += b.vc * ddt;
     b.dist += Math.hypot(b.vr, b.vc) * ddt;
@@ -58079,6 +58085,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d165"></script>
+<script type="module" src="three_preview.js?v=3d166"></script>
 </body>
 </html>
