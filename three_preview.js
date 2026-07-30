@@ -56,7 +56,10 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
       // Стартуем только с ближайшего сектора. Остальные кварталы достраиваются
       // по мере движения и кэшируются — большая двухчастная карта не создаёт
       // сотни тяжёлых фасадов в первом кадре.
-      const worldSnapshot=bridge?.getWorldSnapshot?.(58)||null;
+      // Camera-visible quality is unchanged; only far off-screen preload is
+      // bounded so invisible facade meshes do not dominate every frame.
+      const WORLD_SNAPSHOT_RADIUS=Math.max(28,Math.min(58,+rendererConfig.snapshotRadius||34));
+      const worldSnapshot=bridge?.getWorldSnapshot?.(WORLD_SNAPSHOT_RADIUS)||null;
       const envSnapshot=bridge?.getEnvironmentState?.()||null;
       const originR=initialState?.r||0,originC=initialState?.c||0,WORLD_SCALE=Math.max(3,Math.min(5,+rendererConfig.worldScale||4.1)),selectedWeather=(rendererParams.get('weather')||envSnapshot?.weather||'clear').toLowerCase();
       window.MafioziLoading?.set(69, 'Разворачиваем ближайший сектор города…');
@@ -1251,7 +1254,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const onIdle=callback=>typeof requestIdleCallback==='function'?requestIdleCallback(callback,{timeout:180}):setTimeout(()=>callback({timeRemaining:()=>4}),16);
       let sectorAnchor=initialState?`${Math.floor((+initialState.r||0)/36)}:${Math.floor((+initialState.c||0)/36)}`:'',sectorLoadScheduled=false,sectorBuildQueue=[];
       const pumpSectorBuildings=deadline=>{let made=0;while(sectorBuildQueue.length&&made<4&&(made===0||deadline.timeRemaining()>2)){const [def,index]=sectorBuildQueue.shift();createBuilding(def,index);made++;}renderer.domElement.dataset.worldBuildings=String(buildingDefs.length);renderer.domElement.dataset.pendingBuildings=String(sectorBuildQueue.length);if(sectorBuildQueue.length)onIdle(pumpSectorBuildings);else{renderer.shadowMap.needsUpdate=true;}};
-      const scheduleSectorLoad=(r,c)=>{const key=`${Math.floor(r/36)}:${Math.floor(c/36)}`;if(key===sectorAnchor||sectorLoadScheduled)return;sectorAnchor=key;sectorLoadScheduled=true;onIdle(()=>{sectorLoadScheduled=false;const snapshot=bridge?.getWorldSnapshot?.(58);if(!snapshot)return;addNeighborhoodSurfaces(snapshot);addMapCollisionVisuals(snapshot);const fresh=[];for(const def of defsFromSnapshot(snapshot)){const meta=def[8],buildingKey=`${meta?.minR}:${meta?.minC}:${meta?.maxR}:${meta?.maxC}`;if(loadedBuildingKeys.has(buildingKey))continue;loadedBuildingKeys.add(buildingKey);const index=buildingDefs.length;buildingDefs.push(def);fresh.push([def,index]);}sectorBuildQueue.push(...fresh);renderer.domElement.dataset.loadedSectors=String(new Set([...loadedBuildingKeys].map(k=>k.split(':').slice(0,2).map(Number).map(v=>Math.floor(v/20)).join(':'))).size);if(fresh.length&&sectorBuildQueue.length===fresh.length)onIdle(pumpSectorBuildings);});};
+      const scheduleSectorLoad=(r,c)=>{const key=`${Math.floor(r/36)}:${Math.floor(c/36)}`;if(key===sectorAnchor||sectorLoadScheduled)return;sectorAnchor=key;sectorLoadScheduled=true;onIdle(()=>{sectorLoadScheduled=false;const snapshot=bridge?.getWorldSnapshot?.(WORLD_SNAPSHOT_RADIUS);if(!snapshot)return;addNeighborhoodSurfaces(snapshot);addMapCollisionVisuals(snapshot);const fresh=[];for(const def of defsFromSnapshot(snapshot)){const meta=def[8],buildingKey=`${meta?.minR}:${meta?.minC}:${meta?.maxR}:${meta?.maxC}`;if(loadedBuildingKeys.has(buildingKey))continue;loadedBuildingKeys.add(buildingKey);const index=buildingDefs.length;buildingDefs.push(def);fresh.push([def,index]);}sectorBuildQueue.push(...fresh);renderer.domElement.dataset.loadedSectors=String(new Set([...loadedBuildingKeys].map(k=>k.split(':').slice(0,2).map(Number).map(v=>Math.floor(v/20)).join(':'))).size);if(fresh.length&&sectorBuildQueue.length===fresh.length)onIdle(pumpSectorBuildings);});};
       // A single deterministic grade drives sky, fog, ambient bounce and sun.
       // Keep daylight in the same desaturated noir family as the city instead
       // of letting a cyan sky fight the dark asphalt and facade materials.
