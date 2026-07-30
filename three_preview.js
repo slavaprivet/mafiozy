@@ -798,6 +798,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         }
         if(districtStyle==='industrial'){add(x-w*.28,z-d*.18,1.15,1.15,2.4,identityDark,h+1.2);}
       };
+      const STATIC_DETAIL_CHUNK_WORLD=80;
       const staticDetailBuckets=new Map();
       const queueStaticBuildingDetail=mesh=>{
         if(!mesh?.isMesh||Array.isArray(mesh.material)||mesh.userData?.building||mesh.userData?.mainBuilding)return;
@@ -805,7 +806,12 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         // shadow, but do not each trigger another expensive shadow draw.
         mesh.castShadow=false;
         if(mesh.geometry?.type!=='BoxGeometry'||mesh.material?.transparent||mesh.material?.skinning)return;
-        const key=mesh.material.uuid;
+        // A material-wide city batch kept perfect visuals but defeated frustum
+        // culling: one visible roof detail submitted every matching detail in
+        // the loaded sector. Spatial batches preserve the exact same geometry
+        // and material while giving Three.js useful per-chunk bounds.
+        const chunkX=Math.floor(mesh.position.x/STATIC_DETAIL_CHUNK_WORLD),chunkZ=Math.floor(mesh.position.z/STATIC_DETAIL_CHUNK_WORLD);
+        const key=`${mesh.material.uuid}:${chunkX}:${chunkZ}`;
         if(!staticDetailBuckets.has(key))staticDetailBuckets.set(key,{material:mesh.material,meshes:[]});
         staticDetailBuckets.get(key).meshes.push(mesh);
       };
@@ -893,6 +899,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       }
       renderer.domElement.dataset.batchedStaticDetailMeshes=String(batchedStaticDetailMeshes);
       renderer.domElement.dataset.batchedStaticDetailSources=String(batchedStaticDetailSources);
+      renderer.domElement.dataset.staticDetailChunkWorld=String(STATIC_DETAIL_CHUNK_WORLD);
       // Purchasable businesses are one-tile authored establishments in Canvas,
       // not ordinary block buildings. Build them at their exact authoritative
       // coordinates so labels, prompts, entrances and architecture agree.
