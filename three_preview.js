@@ -1311,7 +1311,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         // auxiliary world snapshots, raycasts and shadow-map refreshes back off;
         // movement, aiming, shooting and the authoritative Canvas simulation
         // continue to run every frame unchanged.
-        const lowFps=measuredFps<24,dynamicCadence=lowFps?70:45,occlusionCadence=lowFps?240:125,shadowCadence=lowFps?420:220;
+        const lowFps=measuredFps<24,dynamicCadence=lowFps?70:45,occlusionCadence=lowFps?240:125,shadowCadence=lowFps?900:220;
         updateAtmosphere(t,lowFps);
         renderer.domElement.dataset.performanceTier=lowFps?'cadence':'full';
         renderer.domElement.dataset.shadowCadence=String(shadowCadence);
