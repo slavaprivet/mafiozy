@@ -70,12 +70,19 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
 }
 #cityLoadingScreen.done { opacity: 0; visibility: hidden; pointer-events: none; }
 .cityLoadingSlides, .cityLoadingShade, .cityLoadingGrain { position: absolute; inset: 0; }
+.cityLoadingSlides {
+  background:
+    radial-gradient(circle at 28% 42%, rgba(125,48,32,.34), transparent 29%),
+    radial-gradient(circle at 72% 34%, rgba(31,66,91,.32), transparent 34%),
+    linear-gradient(135deg,#120d0e 0%,#07101a 58%,#030508 100%);
+}
 .cityLoadingSlide {
   position: absolute; inset: -2%; width: 104%; height: 104%; object-fit: cover;
   opacity: 0; transform: scale(1.035); filter: saturate(.88) contrast(1.06) brightness(.84);
   transition: opacity 1.15s ease, transform 7s ease;
 }
 .cityLoadingSlide.active { opacity: 1; transform: scale(1); }
+.cityLoadingSlide.load-failed { display: none; }
 .cityLoadingShade {
   z-index: 1; pointer-events: none;
   background:
@@ -2106,9 +2113,9 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 
 <div id="cityLoadingScreen" role="status" aria-live="polite" aria-label="Загрузка города">
   <div class="cityLoadingSlides" aria-hidden="true">
-    <img class="cityLoadingSlide active" src="assets/loading/city-empire.webp" alt="" decoding="async" fetchpriority="high">
-    <img class="cityLoadingSlide" src="assets/loading/bank-heist.webp" alt="" decoding="async">
-    <img class="cityLoadingSlide" src="assets/loading/district-empire.webp" alt="" decoding="async">
+    <img class="cityLoadingSlide active" src="assets/loading/city-empire.webp?v=3d117" alt="" decoding="async" fetchpriority="high">
+    <img class="cityLoadingSlide" src="assets/loading/bank-heist.webp?v=3d117" alt="" decoding="async">
+    <img class="cityLoadingSlide" src="assets/loading/district-empire.webp?v=3d117" alt="" decoding="async">
   </div>
   <div class="cityLoadingShade"></div>
   <div class="cityLoadingGrain"></div>
@@ -2137,6 +2144,7 @@ window.MafioziLoading = (() => {
   const pct = document.getElementById('cityLoadingPct');
   const card = screen?.querySelector('.cityLoadingCard');
   const slides = Array.from(screen?.querySelectorAll('.cityLoadingSlide') || []);
+  slides.forEach(slide => slide.addEventListener('error', () => slide.classList.add('load-failed'), { once:true }));
   const tipTitle = document.getElementById('cityLoadingTipTitle');
   const tipText = document.getElementById('cityLoadingTip');
   const tipHint = document.getElementById('cityLoadingHint');
