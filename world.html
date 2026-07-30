@@ -12541,7 +12541,31 @@ function toggleNearbyBuildingActionsFrom3D(screenX=null,screenY=null) {
   if(!near)return {ok:false,reason:'none'};
   const current=_businessActionSelection&&`${_businessActionSelection.kind}:${_businessActionSelection.id}`;
   if(_businessActionCard.classList.contains('show')&&current===`${near.kind}:${near.id}`){_closeBusinessActionCard();return {ok:true,closed:true,...near};}
-  return selectBuildingFrom3D(near.r,near.c,screenX,screenY);
+  const anchor=Number.isFinite(+screenX)&&Number.isFinite(+screenY)?{x:+screenX,y:+screenY}:null;
+  // The proximity scan has already selected the exact facade in front of the
+  // player. A broad pointer search here could let a nearby business steal E.
+  if(near.kind==='business'){
+    const biz=BUSINESS_POIS.find(item=>String(item.id)===String(near.id));
+    if(!biz)return {ok:false,reason:'gone'};
+    _selectedBuildingEntry=null;_selectedVehicleEntry=null;
+    _openBusinessActionCard('business',biz,anchor);
+    return {ok:true,opened:true,...near};
+  }
+  if(near.kind==='major'){
+    const poi=POI.find(item=>String(item.id)===String(near.id)&&MAJOR_OBJECT_IDS.has(item.id));
+    if(!poi)return {ok:false,reason:'gone'};
+    _selectedBuildingEntry=null;_selectedVehicleEntry=null;
+    _openBusinessActionCard('major',poi,anchor);
+    return {ok:true,opened:true,...near};
+  }
+  _selectedBuildingEntry={r:near.r,c:near.c,type:near.type||null,label:near.name||'Здание',selectedAtR:player.r,selectedAtC:player.c};
+  _selectedVehicleEntry=null;
+  if(!near.type){
+    const entered=_activateSelectedBuildingIfNear();
+    return {ok:!!entered,entered:!!entered,...near};
+  }
+  _openBusinessActionCard('building',_selectedBuildingEntry,anchor);
+  return {ok:true,opened:true,...near};
 }
 
 function _activateSelectedBuildingIfNear() {
@@ -53286,6 +53310,29 @@ window.Mafiozi3DBridge = Object.freeze({
     enterBuildingInterior(poi.r,poi.c,'business',`major_${poi.id}`,{peacefulMajorObjectId:poi.id});
     return true;
   },
+  previewApproachGenericBuilding() {
+    if(!_LOCAL_PREVIEW)return false;
+    let best=null;
+    for(let br=2;br<Math.min(140,MAP_ROWS-2);br++)for(let bc=2;bc<MAP_COLS-2;bc++){
+      if(MAP[br]?.[bc]!==1)continue;
+      const key=`${br},${bc}`;
+      if(POI_BY_RC.has(key)||_bankTileSet.has(key)||MAJOR_CASINO_WORLD_TILES.has(key)||(BUSINESS_BY_RC&&BUSINESS_BY_RC.has(key)))continue;
+      if(POI.some(p=>Math.hypot(p.r-br,p.c-bc)<8)||BUSINESS_POIS.some(p=>Math.hypot(p.r-br,p.c-bc)<8))continue;
+      const centerR=br+.5,centerC=bc+.5,preferred=Math.atan2(player.c-centerC,player.r-centerR);
+      for(let i=0;i<16;i++){
+        const angle=preferred+(i%2?1:-1)*Math.ceil(i/2)*Math.PI/8;
+        const r=centerR+Math.cos(angle)*1.75,c=centerC+Math.sin(angle)*1.75;
+        if(isBlockedPed(r,c))continue;
+        const d=Math.hypot(player.r-r,player.c-c);
+        if(!best||d<best.d)best={r,c,br,bc,d};
+        break;
+      }
+    }
+    if(!best)return false;
+    player.r=best.r;player.c=best.c;player.vr=0;player.vc=0;player.walking=false;
+    window._studioTeleportUntil=Date.now()+10000;
+    return {r:best.br,c:best.bc};
+  },
   // Read-only, compact description of real city blocks near the player.
   // Three.js consumes this instead of inventing a separate map.
   getWorldSnapshot(radius = 58) {
@@ -57233,6 +57280,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d115"></script>
+<script type="module" src="three_preview.js?v=3d116"></script>
 </body>
 </html>
