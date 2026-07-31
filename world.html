@@ -51753,7 +51753,8 @@ function _updateBankInterior(dt) {
   // про _inVaultRoom): иначе охранники «уезжают» к координатам игрока в
   // системе хранилища и пропадают из лобби (БАГ 5).
   for (const npc of (_inVaultRoom ? [] : int.npcs)) {
-    npc.walkPhase=(npc.walkPhase||0)+dt*9;
+    const oldR=npc.r,oldC=npc.c;
+    npc.walking=false;
     if (npc.state==='normal') {
       if (npc.type==='client') {
         npc.wanderTimer=(npc.wanderTimer||0)-dt;
@@ -51888,6 +51889,9 @@ function _updateBankInterior(dt) {
           ejected:true});
       }
     }
+    const moved=Math.hypot(npc.r-oldR,npc.c-oldC)>.002;
+    npc.walking=npc.state!=='fled'&&moved;
+    if(npc.walking)npc.walkPhase=(npc.walkPhase||0)+dt*(npc.state==='panic'?12:npc.state==='hostile'?10:8);
   }
   // Авто-подбор убран — мешок берётся только кнопкой (см. updateZoneBtn / _zoneEl click)
   // Переход в хранилище / обратно
@@ -54553,7 +54557,7 @@ window.Mafiozi3DBridge = Object.freeze({
       apartment:!src.type?{key:apartmentKey,owned:!!_myApartments[apartmentKey],district:apartmentDistrictMarket(src.r,src.c)?.label||'Городская квартира',levels:{repair:+apartmentInfo.repair_level||0,safe:+apartmentInfo.safe_level||0,weaponRack:+apartmentInfo.weapon_rack_level||0,cameras:+apartmentInfo.cameras_level||0,garage:+apartmentInfo.garage_level||0}}:null,
       playerElevation:casino?_casinoVisualElevation(src,player.r,player.c):0,
       layout:casinoLayout,bank:bankState,
-      npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`);return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
+      npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`);return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||'',look:n.look||null,hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
       loot:src.loot&&!src.loot.picked?{r:+src.loot.r||0,c:+src.loot.c||0,hp:!!src.loot.hp}:null,
     };
   },
@@ -58586,6 +58590,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d182"></script>
+<script type="module" src="three_preview.js?v=3d183"></script>
 </body>
 </html>
