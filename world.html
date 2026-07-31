@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v222: ambulance calls recover from stale reused-NPC and orphaned-dispatch state. -->
+<!DOCTYPE html><!-- v223: coastal junkyard replaces four generic towers with scrap mountains and burning wreck lots. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -5124,6 +5124,15 @@ function buildMap() {
     if (p.r > 0 && p.r < MAP_ROWS - 1 && p.c > 0 && p.c < MAP_COLS - 1) {
       MAP[p.r][p.c] = 1;
     }
+  }
+  // The coastal junkyard owns the whole 20x20 super-block. Preserve its two
+  // crossing roads for service vehicles, but demolish the four generic towers
+  // (including the blue waterfront buildings) and turn every inner lot into
+  // one continuous hard-standing scrapyard.
+  for(let r=80;r<=109;r++)for(let c=60;c<=79;c++){
+    if(r<=0||r>=MAP_ROWS-1||c<=0||c>=MAP_COLS-1)continue;
+    const onRoadR=(r%BLOCK)<=3,onRoadC=(c%BLOCK)<=3;
+    MAP[r][c]=(onRoadR||onRoadC)?0:9;
   }
   // Освобождаем «площадь» вокруг захватываемых POI 7×7 — чтобы было где
   // вести перестрелки за район. Сносим соседние здания внутри квартала,
@@ -56212,11 +56221,11 @@ window.Mafiozi3DBridge = Object.freeze({
 });
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
 if(_LOCAL_PREVIEW&&_UP.get('threebusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInterior(_UP.get('threebusiness')),900);
-if(_LOCAL_PREVIEW&&_UP.has('previewjunkyard'))setTimeout(()=>{
+if(_LOCAL_PREVIEW&&_UP.has('previewjunkyard')){
   player.r=JUNKYARD_R+4.5;player.c=JUNKYARD_C;player.vr=0;player.vc=0;player.walking=false;
   window._studioTeleportUntil=Date.now()+10000;
   document.documentElement.dataset.junkyardPreview='positioned';
-},1200);
+}
 if(_LOCAL_PREVIEW&&_UP.has('previewcarexplosion'))setTimeout(()=>{
   const requested=Math.max(1,Math.min(6,+_UP.get('previewcarexplosion')||5));
   const qaCars=CARS.filter(car=>car?.model&&!car.model?.helicopter).slice(0,requested);
@@ -59980,6 +59989,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d222"></script>
+<script type="module" src="three_preview.js?v=3d223"></script>
 </body>
 </html>
