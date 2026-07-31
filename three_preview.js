@@ -1,3 +1,4 @@
+// 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace.
 // 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames.
 // 3D sync v198: sharp native rendering, dramatic pooled explosions, black burning wrecks, detailed bridge deck, four-layer bullets and wall impacts.
 // 3D sync v198: Brigadir is full-size, speaks contextually and opens a styled, working contract flow.
@@ -1445,24 +1446,24 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const npcAnimationPose=(src,i,t)=>{
         const key=String(src.id??src.uid??i),motion=npcMotionStates.get(key),dead=npcIsDead(src);
         const hpPct=Math.max(0,Math.min(1,(+src.hp||0)/(+src.maxHp||60)));
-        const crawling=!dead&&(!!src.forcedCrawl||((+src.severMask||0)&12)!==0||(hpPct>0&&hpPct<=.18));
-        const limping=!dead&&!crawling&&hpPct>.18&&hpPct<=.35;
+        const crawling=!dead&&(!!src.forcedCrawl||((+src.severMask||0)&12)!==0);
+        const limping=!dead&&!crawling&&hpPct>0&&hpPct<=.35;
         const crawlBlend=Math.max(0,Math.min(1,+motion?.crawlBlend||(crawling?1:0)));
         const phase=npcVisualPhases[i]||t*.008+i*.73,idle=Math.sin(t*.0018+i*1.7);
-        const step=Math.sin(phase*(crawling?.42:limping?.72:1));
+        const step=Math.sin(phase*(limping?.78:1));
         const hitRemaining=Math.max(0,(motion?.hitUntil||0)-t);
         const hit=hitRemaining?Math.sin(Math.min(1,hitRemaining/650)*Math.PI)*Math.max(.7,+motion?.hitStrength||1):0;
         const hitSide=motion?.hitSide||1,gait=Math.max(0,Math.min(1,+motion?.gaitBlend||0)),walking=gait>.035&&!dead;
         const measuredSpeed=Math.hypot(+motion?.velocityX||0,+motion?.velocityZ||0),pace=Math.max(0,Math.min(1,measuredSpeed/9));
         const strideScale=walking?(.76+pace*.24):1,swing=walking?step*(crawling?.28:limping?.42:.82)*gait*strideScale:idle*.035;
-        const leftSwing=crawling?step*.62*gait:limping?(step>0?step*.18:step*.52)*gait:swing;
-        const rightSwing=crawling?-step*.62*gait:limping?-step*.62*gait:-swing;
-        const leftLift=walking?Math.max(0,step)*(crawling?.08:limping?.075:.31)*gait:0;
-        const rightLift=walking?Math.max(0,-step)*(crawling?.08:limping?.26:.31)*gait:0;
+        const leftSwing=crawling?step*.34*gait:limping?(step>0?step*.18:step*.52)*gait:swing;
+        const rightSwing=crawling?-step*.34*gait:limping?-step*.62*gait:-swing;
+        const leftLift=walking?Math.max(0,step)*(crawling?.035:limping?.075:.31)*gait:0;
+        const rightLift=walking?Math.max(0,-step)*(crawling?.035:limping?.26:.31)*gait:0;
         const uprightBob=walking?(limping?Math.max(0,-step)*.045+Math.abs(step)*.018:Math.abs(step)*(.035+pace*.022)*gait):idle*.012;
-        const bob=crawling?THREE.MathUtils.lerp(uprightBob,.58+(walking?Math.abs(step)*.018:idle*.012),crawlBlend):uprightBob;
-        const roll=(crawling?step*.025*gait:(limping?.105+step*.038*gait:step*.03*gait))+hit*hitSide*.24;
-        const pitch=(crawling?Math.PI/2*crawlBlend:(walking?-(.025+pace*.035)*gait:0))+hit*.2;
+        const bob=crawling?THREE.MathUtils.lerp(uprightBob,.42+(walking?Math.abs(step)*.012:idle*.008),crawlBlend):uprightBob;
+        const roll=(crawling?step*.016*gait:(limping?.105+step*.038*gait:step*.03*gait))+hit*hitSide*.24;
+        const pitch=(crawling?1.22*crawlBlend:(walking?-(.025+pace*.035)*gait:0))+hit*.2;
         // Shoes counter-rotate during the planted half of each stride, keeping
         // the sole close to the road instead of rotating with the whole leg.
         const leftPlanted=step<0,rightPlanted=step>0;
@@ -2073,7 +2074,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             if(!actuallyMoving){motion.velocityX*=motionFade;motion.velocityZ*=motionFade;}
             const gaitTarget=actuallyMoving?Math.min(1,.72+Math.max(measuredSpeed,sourceWalking?2.4:0)*.075):0;
             motion.gaitBlend=THREE.MathUtils.lerp(motion.gaitBlend,gaitTarget,1-Math.exp(-dt*(actuallyMoving?14:7)));
-            const crawlTarget=!dead&&(!!src.forcedCrawl||((+src.severMask||0)&12)!==0||(hpNow>0&&hpNow<=Math.max(1,+src.maxHp||60)*.18))?1:0;
+            const crawlTarget=!dead&&(!!src.forcedCrawl||((+src.severMask||0)&12)!==0)?1:0;
             if(!Number.isFinite(+motion.crawlBlend))motion.crawlBlend=0;
             motion.crawlBlend=THREE.MathUtils.lerp(motion.crawlBlend,crawlTarget,1-Math.exp(-dt*(crawlTarget?5.4:8)));
             if(motion.gaitBlend>.08&&!dead){
@@ -2086,7 +2087,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             }
             const prediction=recentMeasuredMove?Math.min(.055,Math.max(0,(t-motion.lastSampleAt)/1000)):0,desiredX=motion.targetX+motion.velocityX*prediction,desiredZ=motion.targetZ+motion.velocityZ*prediction,alpha=1-Math.exp(-dt*12),followDx=(desiredX-motion.visualX)*alpha,followDz=(desiredZ-motion.visualZ)*alpha,followDistance=Math.hypot(followDx,followDz),maxFollow=Math.max(.1,Math.min(.82,(Math.max(measuredSpeed,2.2)*1.25+1.2)*dt)),followScale=followDistance>maxFollow?maxFollow/followDistance:1;
             motion.visualX+=followDx*followScale;motion.visualZ+=followDz*followScale;
-            if(motion.gaitBlend>.025&&!dead){const cadence=(hpNow>0&&hpNow<=Math.max(1,+src.maxHp||60)*.3)?6.1:Math.min(13.2,7.6+Math.max(measuredSpeed,sourceWalking?2.4:0)*.34);motion.phase+=dt*cadence*Math.max(.38,motion.gaitBlend);}
+            if(motion.gaitBlend>.025&&!dead){const cadence=crawlTarget?1.25:(hpNow>0&&hpNow<=Math.max(1,+src.maxHp||60)*.35?4.6:Math.min(13.2,7.6+Math.max(measuredSpeed,sourceWalking?2.4:0)*.34));motion.phase+=dt*cadence*Math.max(crawlTarget?.28:.38,motion.gaitBlend);}
             else motion.phase=THREE.MathUtils.lerp(motion.phase,sourcePhase||motion.phase,Math.min(1,dt*5));
             if(dead){const deathAge=t-(motion.deadStartedAt||t);if(deathAge<760)deathAnimatingNpcs++;else deathSettledNpcs++;}
             npcVisualXs[i]=motion.visualX;npcVisualZs[i]=motion.visualZ;npcVisualPhases[i]=motion.phase;
@@ -2198,7 +2199,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             instanceColor.set(bodyColor);npcParts.body.setColorAt(i,instanceColor);npcParts.leftArm.setColorAt(i,instanceColor);npcParts.rightArm.setColorAt(i,instanceColor);instanceColor.set([0xf2c7a4,0xc98b65,0xe8b590][i%3]);npcParts.head.setColorAt(i,instanceColor);
             const pct=Math.max(.03,pose.hpPct);npc.hpGroup.visible=true;npc.hpGroup.position.set(x,pose.crawling?.24:pose.bob+.45,z);npc.hpBar.scale.x=1.7*pct;npc.hpBar.material.color.set(pct>.55?0x58e67c:pct>.25?0xffc94d:0xff5252);
           });
-          Object.values(npcParts).forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;});renderer.domElement.dataset.crawlingNpcs=String(crawlingNpcCount);renderer.domElement.dataset.limpingNpcs=String(limpingNpcCount);renderer.domElement.dataset.hitReactingNpcs=String(reactingNpcCount);renderer.domElement.dataset.bleedingNpcs=String(bleedingNpcCount);renderer.domElement.dataset.npcFootPlant='speed-aware-heel-toe';
+          Object.values(npcParts).forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;});renderer.domElement.dataset.crawlingNpcs=String(crawlingNpcCount);renderer.domElement.dataset.limpingNpcs=String(limpingNpcCount);renderer.domElement.dataset.hitReactingNpcs=String(reactingNpcCount);renderer.domElement.dataset.bleedingNpcs=String(bleedingNpcCount);renderer.domElement.dataset.injuryLocomotion='limp-default-critical-crawl-slow-v200';renderer.domElement.dataset.npcFootPlant='speed-aware-heel-toe';
           for(let i=0;i<NPC_CAP;i++){const src=dynamic.npcs[i],label=npcLabels[i];if(!src){label.sprite.visible=false;continue;}const x=npcVisualXs[i],z=npcVisualZs[i],role=String(src.role||'').toLowerCase(),family=String(src.family||src.faction||'').toLowerCase(),gang=src.visualRole==='gang'||!!src.gang||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'),police=src.visualRole==='police'||!!src.police||role.includes('police')||role.includes('cop'),guard=src.visualRole==='guard'||role.includes('guard'),medic=role.includes('medic'),gangSuit=family.includes('yellow')?0xf1e8cf:family.includes('purple')?0x7043a5:family.includes('moretti')?0xe6dfd1:family.includes('bellini')?0x3f4652:Math.max(1,+src.level||1)>=4?0x8f3044:0xb54859,bright=medic?0xe8f2f4:police?0x328fe2:gang?gangSuit:guard?0xc48a28:[0x3e9bd1,0xdb5c68,0x79a84f,0xd39b42,0x8a6dbe][i%5];instanceColor.set(bright);npcParts.body.setColorAt(i,instanceColor);npcParts.leftArm.setColorAt(i,instanceColor);npcParts.rightArm.setColorAt(i,instanceColor);npcParts.hat.setColorAt(i,instanceColor);updateNpcSpeechLabel(label,src,x,5.75,z);}for(const mesh of [npcParts.body,npcParts.leftArm,npcParts.rightArm,npcParts.hat])if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
           let visibleGangCount=0;for(let i=0;i<NPC_CAP;i++){const src=dynamic.npcs[i];if(!src){hidePart(npcParts.gangAura,i);hidePart(npcParts.gangBand,i);continue;}const role=String(src.role||'').toLowerCase(),gang=src.visualRole==='gang'||!!src.gang||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier');if(!gang||src.dead){hidePart(npcParts.gangAura,i);hidePart(npcParts.gangBand,i);continue;}visibleGangCount++;const faction=String(src.faction||src.family||'').toLowerCase(),auraColor=faction.includes('yellow')?0xffd83d:faction.includes('purple')?0xa668ff:faction.includes('moretti')?0xf5ead2:faction.includes('bellini')?0x596274:0xff4f68,x=npcVisualXs[i],z=npcVisualZs[i],phase=npcVisualPhases[i]||t*.008+i*.73,bob=src.walking?Math.abs(Math.sin(phase))*.13:Math.sin(t*.0018+i*1.7)*.018;rootMatrix.makeRotationY(npcFacingYaws[i]);rootMatrix.scale(npcScale);rootMatrix.setPosition(x,bob,z);setPart(npcParts.gangBand,i,rootMatrix,0,2.25,.405);npcParts.gangBand.setColorAt(i,instanceColor.setHex(auraColor));rootMatrix.makeRotationY(0);rootMatrix.setPosition(x,.11,z);setPart(npcParts.gangAura,i,rootMatrix,0,0,0,-Math.PI/2,gangAuraScale);npcParts.gangAura.setColorAt(i,instanceColor.setHex(auraColor));}npcParts.gangAura.instanceMatrix.needsUpdate=true;npcParts.gangAura.instanceColor.needsUpdate=true;npcParts.gangBand.instanceMatrix.needsUpdate=true;npcParts.gangBand.instanceColor.needsUpdate=true;renderer.domElement.dataset.visibleGangs=String(visibleGangCount);const selectedIndex=performance.now()<selectedNpcUntil?dynamic.npcs.findIndex(n=>!n.dead&&String(n.sourceId||'')===selectedNpcSourceId):-1;if(selectedIndex>=0){selectedNpcRing.visible=true;selectedNpcRing.position.set(npcVisualXs[selectedIndex],.15,npcVisualZs[selectedIndex]);const pulse=1+Math.sin(t*.009)*.09;selectedNpcRing.scale.setScalar(pulse);selectedNpcRing.rotation.y=t*.0017;selectedNpcOuter.material.opacity=.82+Math.sin(t*.011)*.16;renderer.domElement.dataset.selectedGangNpc=selectedNpcSourceId;}else{selectedNpcRing.visible=false;if(selectedNpcSourceId&&performance.now()>=selectedNpcUntil){selectedNpcSourceId='';renderer.domElement.dataset.selectedGangNpc='none';}}
           // Appearance is derived from the authoritative entity id instead of the
