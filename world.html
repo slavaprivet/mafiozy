@@ -7294,7 +7294,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
     return;
   }
   npc.hp = Math.max(0, (npc.hp | 0) - (damage | 0));
-  _markCombatBleeding(npc, npc.r, npc.c, damage);
+  _markCombatBleeding(npc, npc.r, npc.c, damage, dirY, dirX, weapon);
   // Knockback
   const kb = 0.09;
   const nr = npc.r + dirY * kb, nc = npc.c + dirX * kb;
@@ -7307,7 +7307,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
   _npcSpreadRumor(npc, performance.now());
   if(npc.hp<=0&&!npc._policeCriminal&&!npc._guard&&!npc._cashier&&!npc._invulnerable&&Math.random()<.72){
     const now=performance.now();npc.hp=1;npc._medicalDowned=true;npc._medicalDownedAt=now;npc._medicalBleedoutAt=now+30000;
-    npc._knockedAt=now;npc._knockedUntil=npc._medicalBleedoutAt;npc.walkPhase=0;npc.snitching=false;npc.panicUntil=0;
+    npc._knockedAt=now;npc._knockedUntil=npc._medicalBleedoutAt;npc.walkPhase=0;npc.snitching=false;npc.panicUntil=0;npc._forcedCrawl=true;npc.panicSrcR=player.r;npc.panicSrcC=player.c;
     npc.cryText='Помогите…';npc.cryUntil=now+1800;npc._ambulanceDispatched=false;
     spawnFloatText(npc.r,npc.c,'ТЯЖЕЛО РАНЕН',{color:'#ffb06a',size:14,life:1700});
     return;
@@ -7360,7 +7360,7 @@ function hitCityCop(cop, dirY, dirX, damage) {
   if (!cop || !cop.alive) return;
   cop.hp = Math.max(0, (cop.hp | 0) - (damage | 0));
   cop.y += dirY * 0.07; cop.x += dirX * 0.07;
-  _markCombatBleeding(cop, cop.y, cop.x, damage);
+  _markCombatBleeding(cop, cop.y, cop.x, damage, dirY, dirX, currentWeapon);
   cop._pursuing = true;
   cop._reactUntil = performance.now() + 2800;
   if (cop.hp <= 0) {
@@ -7389,7 +7389,7 @@ function hitCityCop(cop, dirY, dirX, damage) {
     // Труп — рисуем как мёртвого NPC (cityCops сразу удаляются из массива)
     NPCS.push({ r: cop.y, c: cop.x, tr: cop.y, tc: cop.x, speed: 0,
       ang: cop.ang || 0, walkPhase: 0, idleUntil: 0, hp: 0, max_hp: 100,
-      dead: true, deadAt: performance.now(),
+      dead: true, deadAt: performance.now(), _severMask:+cop._severMask||0,
       look: { gender: 0, skin: 2, body: 4, face: 1, hair: 1, hat: 3 } });
     _alertNearbyCops('kill');
   }
@@ -7474,7 +7474,7 @@ function _hitBankGuard(npc, dirY, dirX, damage) {
   // _isBlockedInterior проверяется в апдейте AI, тут просто лёгкий толчок)
   const kb = 0.07;
   npc.r += dirY * kb; npc.c += dirX * kb;
-  _markCombatBleeding(npc, npc.r, npc.c, damage);
+  _markCombatBleeding(npc, npc.r, npc.c, damage, dirY, dirX, currentWeapon);
   npc.idleUntil = performance.now() + 250;
   // Кровь на месте охранника
   for (let i = 0; i < (npc.hp <= 0 ? 6 : 2); i++) {
@@ -9259,7 +9259,7 @@ function updateServiceVehicles(dt) {
           showEventBanner('🏥 ТЕБЯ СПАСЛИ','Медики стабилизировали состояние. Восстановлено 40% здоровья.',3300,'win');
           _playerEmergencyPatient=null;
         }else if(patient._medicalDowned){
-          patient._medicalDowned=false;patient._medicalDownedAt=0;patient._medicalBleedoutAt=0;patient._knockedUntil=0;
+          patient._medicalDowned=false;patient._medicalDownedAt=0;patient._medicalBleedoutAt=0;patient._knockedUntil=0;patient._forcedCrawl=!!((+patient._severMask||0)&12);
           patient.hp=Math.max(35,Math.ceil((patient.max_hp||60)*.45));patient.dead=false;patient.idleUntil=now+1800;
           patient.cryText='Спасибо, док!';patient.cryUntil=now+1800;patient._ambulanceDispatched=false;
           spawnFloatText(patient.r,patient.c,'СПАСЁН',{color:'#70f0a0',size:15,life:1800});
@@ -10144,7 +10144,11 @@ function _tickNpcEmotions(now) {
 function _npcEffectiveSpeed(n) {
   const fatK = 1 - (n._fatigue || 0) * 0.35;   // усталость: -35% скорости макс
   const fearK = 1 + (n._fear || 0) * 0.5;       // страх: до +50% (торопится)
-  return n.speed * fatK * fearK;
+  const maxHp = Math.max(1, +(n.max_hp || n.maxHp || 100));
+  const hpRatio = Math.max(0, Math.min(1, +(n.hp ?? maxHp) / maxHp));
+  const injuryK = n._forcedCrawl || (hpRatio > 0 && hpRatio <= .18) ? .24 :
+    (hpRatio <= .35 ? .58 : 1);
+  return n.speed * fatK * fearK * injuryK;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -10330,6 +10334,23 @@ function updateNpcs(dt) {
     // Оглушённый преступник лежит 5 секунд и не может атаковать/убегать.
     if(n._medicalDowned&&now>=(n._medicalBleedoutAt||0)){
       n._medicalDowned=false;n._knockedUntil=0;n.hp=0;n.dead=true;n.deadAt=now;n.cryText='…';n.cryUntil=now+500;continue;
+    }
+    if(n._medicalDowned){
+      n._forcedCrawl=true;
+      const awayR=n.r-(Number.isFinite(n.panicSrcR)?n.panicSrcR:player.r);
+      const awayC=n.c-(Number.isFinite(n.panicSrcC)?n.panicSrcC:player.c);
+      const awayLen=Math.hypot(awayR,awayC)||1;
+      const crawlStep=Math.max(.12,(n.speed||.8)*.22)*dt;
+      const nr=n.r+awayR/awayLen*crawlStep,nc=n.c+awayC/awayLen*crawlStep;
+      if(_npcBodyPassable(nr,nc)){n.r=nr;n.c=nc;n.ang=Math.atan2(awayR,awayC);n.walking=true;n.walkPhase+=dt*2.8;}
+      else n.walking=false;
+      n.tr=n.r;n.tc=n.c;
+      if(now>=(n._nextDownedBloodAt||0)){
+        n._nextDownedBloodAt=now+620+Math.random()*360;
+        _capArr(bloodSplats,_MAX_BLOOD);
+        bloodSplats.push({r:n.r+(Math.random()-.5)*.12,c:n.c+(Math.random()-.5)*.12,radius:2.2+Math.random()*1.7,life:12000,max:12000,rot:n.ang||0,trail:true});
+      }
+      continue;
     }
     if (n._knockedUntil && n._knockedUntil > now) { n.walkPhase = 0; n.tr = n.r; n.tc = n.c; continue; }
     if (n._knockedUntil && n._knockedUntil <= now) {
@@ -10918,7 +10939,7 @@ function _raycastBeachgoer(sR,sC,dirY,dirX,maxRange) {
 function _hitBeachgoer(b,dirY,dirX,damage) {
   if(!b||b.dead)return;b.hp=Math.max(0,(b.hp||60)-(damage||20));
   const q=_beachgoerWorldPos(b);b._shopSay='ААА!';b._shopSayUntil=performance.now()+900;
-  _markCombatBleeding(b,q.r,q.c,damage);
+  _markCombatBleeding(b,q.r,q.c,damage,dirY,dirX,currentWeapon);
   for(let i=0;i<(b.hp<=0?6:2);i++){_capArr(bloodSplats,_MAX_BLOOD);bloodSplats.push({r:q.r+(Math.random()-.5)*.55,c:q.c+(Math.random()-.5)*.55,radius:(b.hp<=0?7:4)+Math.random()*4,life:14000,max:14000,rot:Math.random()*Math.PI});}
   if(b.hp>0)return;
   b.dead=true;b.deadAt=performance.now();b._deathR=q.r+dirY*.18;b._deathC=q.c+dirX*.18;
@@ -14705,6 +14726,31 @@ function _hurtLocal(dmg, by, underFire = false) {
 let myKills = 0, myDeaths = 0;
 let lastShotClientT = 0;  // локальный cooldown (предотвращает спам)
 let _recoilUntil = 0;    // до этого момента рука/оружие «отдыхает» назад
+let _shotMoveSlowUntil = 0;
+let _shotMoveSlowStrength = 1;
+function _applyShotMoveSlow(weapon = currentWeapon) {
+  const resolved = resolveWeapon(weapon);
+  const heavy = resolved === 'rpg' || resolved === 'sniper' || resolved === 'shotgun';
+  const automatic = resolved === 'smg' || resolved === 'tommy_gun' ||
+    resolved === 'golden_tommy' || resolved === 'rifle';
+  const now = performance.now();
+  const duration = heavy ? 310 : (automatic ? 155 : 215);
+  const strength = heavy ? .72 : (automatic ? .84 : .80);
+  _shotMoveSlowUntil = Math.max(_shotMoveSlowUntil, now + duration);
+  _shotMoveSlowStrength = Math.min(
+    now < _shotMoveSlowUntil ? _shotMoveSlowStrength : 1,
+    strength
+  );
+}
+function _shotMoveMultiplier(now = performance.now()) {
+  if (now >= _shotMoveSlowUntil) {
+    _shotMoveSlowStrength = 1;
+    return 1;
+  }
+  const remaining = Math.max(0, _shotMoveSlowUntil - now);
+  const recovery = 1 - Math.min(1, remaining / 310);
+  return _shotMoveSlowStrength + (1 - _shotMoveSlowStrength) * recovery;
+}
 // Активные пули на клиенте — летящие объекты с реальной физикой (как в
 // demo_isometric). Каждая пуля движется со speed тайлов/сек по вектору
 // vr/vc от точки выстрела к цели. По истечении maxDist (расстояние от
@@ -15169,6 +15215,9 @@ const impacts = [];       // {r,c,parts:[{vr,vc,life,max,color,isBlood,size}]}
 const explosionBursts = []; // central flash/fireball/smoke volume for heavy explosions
 // Пятна крови на земле — splat-ы живут 8 сек после попадания.
 const bloodSplats = [];   // {r,c,radius,life,max,rot}
+const bodyPartFx = [];    // bounded detached limbs animated by the 3D renderer
+const _MAX_BODY_PART_FX = 12;
+let _bodyPartFxSeq = 0;
 // Жёсткие потолки массивов visual-эффектов: в долгой перестрелке (банда
 // + копы шлют десятки 'aggro_shot'/'cop_shot' пакетов в секунду) без
 // капов impacts/bloodSplats/bullets разрастаются до тысяч и фризят
@@ -15178,26 +15227,94 @@ const _MAX_BULLETS = 50, _MAX_IMPACTS = 16, _MAX_BLOOD = 48, _MAX_BULLET_HOLES =
       _MAX_SHELLS = 30;
 function _capArr(arr, cap) { if (arr.length >= cap) arr.shift(); }
 function _usesPooled3DFx(){return !!document.getElementById('stage')?.classList.contains('three-mode');}
-function _markCombatBleeding(target, r, c, damage = 1) {
+const _SEVER_PARTS = [
+  {bit:1, part:'leftArm'}, {bit:2, part:'rightArm'},
+  {bit:4, part:'leftLeg'}, {bit:8, part:'rightLeg'},
+];
+function _weaponSeverChance(weapon) {
+  const w = resolveWeapon(weapon);
+  return {
+    rpg:.34, shotgun:.15, sniper:.17, pistol_heavy:.065, revolver:.055,
+    rifle:.045, nagan:.04, tommy_gun:.016, golden_tommy:.018,
+    smg:.013, pistol:.008, pistol_gold:.012,
+  }[w] || 0;
+}
+function _maybeSeverLimb(target, r, c, dirY, dirX, weapon, damage) {
+  if (!target || target._invulnerable || target._keyNpc) return 0;
+  const chance = _weaponSeverChance(weapon);
+  if (!chance) return 0;
+  const maxHp = Math.max(1, +(target.maxHp || target.max_hp || 100));
+  const hp = Math.max(0, +(target.hp ?? maxHp));
+  const severeHit = (+damage || 0) >= maxHp * .18;
+  const criticalState = hp <= maxHp * .18;
+  const lethal = hp <= 0 || target.dead || target.alive === false;
+  if (!severeHit && !criticalState && !lethal) return 0;
+  const oldMask = +target._severMask || 0;
+  if (oldMask && !lethal) return 0;
+  const available = _SEVER_PARTS.filter(p => !(oldMask & p.bit));
+  if (!available.length || Math.random() > chance * (lethal ? 1.65 : 1)) return 0;
+  const picked = available[Math.floor(Math.random() * available.length)];
+  target._severMask = oldMask | picked.bit;
+  target._severedAt = performance.now();
+  if (picked.bit & 12) target._forcedCrawl = true;
+  const len = Math.hypot(dirY, dirX) || 1;
+  const fy = dirY / len, fx = dirX / len;
+  const side = (Math.random() - .5) * 1.8;
+  _capArr(bodyPartFx, _MAX_BODY_PART_FX);
+  bodyPartFx.push({
+    id:`limb_${++_bodyPartFxSeq}`, r:+r||0, c:+c||0,
+    vr:fy*(1.8+Math.random()*1.4)-fx*side,
+    vc:fx*(1.8+Math.random()*1.4)+fy*side,
+    vz:3.4+Math.random()*2.1, spin:(Math.random()-.5)*15,
+    part:picked.part, born:performance.now(), life:8000,
+    role:String(target.role||target._arcKey||'civilian'),
+    faction:String(target.faction||target.family||''),
+    skin:+target.look?.skin||0,
+  });
+  spawnFloatText(r-.25,c,picked.bit&12?'НОГА ОТОРВАНА':'РУКА ОТОРВАНА',
+    {color:'#ff5151',size:12,life:1050,tag:'severed_limb'});
+  return picked.bit;
+}
+function _markCombatBleeding(target, r, c, damage = 1, dirY = 0, dirX = 1,
+    weapon = currentWeapon) {
   if (!target) return;
   const now = performance.now();
+  const maxHp = Math.max(1, +(target.maxHp || target.max_hp || 100));
+  const hp = Math.max(0, +(target.hp ?? maxHp));
+  const severity = Math.min(1.6, .45 + Math.max(0, +damage || 0) / 55);
   target._lastHitAt = now;
-  target._bleedUntil = Math.max(
-    +target._bleedUntil || 0,
-    now + Math.min(9000, 3200 + Math.max(0, +damage || 0) * 42)
-  );
-  target._bleedSeverity = Math.max(
-    +target._bleedSeverity || 0,
-    Math.min(1.6, .45 + Math.max(0, +damage || 0) / 55)
-  );
+  target._bloodDirR = +dirY || 0;
+  target._bloodDirC = +dirX || 1;
+  target._bleedUntil = Math.max(+target._bleedUntil || 0,
+    now + Math.min(9000, 3200 + Math.max(0, +damage || 0) * 42));
+  target._bleedSeverity = Math.max(+target._bleedSeverity || 0, severity);
+  if (now - (+target._lastBloodJetAt || 0) >= 70) {
+    target._lastBloodJetAt = now;
+    const base = Math.atan2(dirY, dirX);
+    const critical = hp <= maxHp * .35 || (+damage || 0) >= maxHp * .18;
+    const count = critical ? 10 : 6;
+    const parts = [];
+    for (let i = 0; i < count; i++) {
+      const a = base + (Math.random() - .5) * (critical ? 1.05 : .78);
+      const sp = .9 + Math.random() * (critical ? 3.4 : 2.1);
+      parts.push({
+        vr:Math.sin(a)*sp, vc:Math.cos(a)*sp,
+        life:360+Math.random()*360, max:720,
+        color:Math.random()<.76?'#c30d1b':'#58060a',
+        isBlood:true, size:1.5+Math.random()*(critical?2.1:1.3),
+      });
+    }
+    _capArr(impacts, _MAX_IMPACTS);
+    impacts.push({r:+r||0,c:+c||0,type:'blood',parts});
+  }
   _capArr(bloodSplats, _MAX_BLOOD);
   bloodSplats.push({
-    r: +r || 0, c: +c || 0,
-    radius: 2.8 + Math.random() * 2.2,
-    life: 12000, max: 12000,
-    rot: Math.random() * Math.PI,
-    trail: true,
+    r:(+r||0)+(+dirY||0)*(.12+Math.random()*.18),
+    c:(+c||0)+(+dirX||0)*(.12+Math.random()*.18),
+    radius:2.8+Math.random()*2.2, life:12000, max:12000,
+    rot:Math.atan2(dirY,dirX)+(Math.random()-.5)*.55, trail:true,
   });
+  _maybeSeverLimb(target, r, c, dirY, dirX, weapon, damage);
 }
 const WEAPON_CRIT_CHANCE = 0.12;
 const WEAPON_CRIT_MUL = 1.25;
@@ -25406,6 +25523,7 @@ function fire(angle = null) {
   // (трассер летит вперёд + отдача + cd). Локально, серверу не шлём.
   const noTarget = !chosenConvoy && !chosenCop && !chosenCityCop && !chosenAggro && !chosenMg && !chosenBankGuard && !pvpTarget;
   lastShotClientT = now;
+  _applyShotMoveSlow(resolvedShotWeapon);
   // ── Выстрел ВНУТРИ банка → мгновенная паника + тревога ──────────────
   // Раньше паника/враждебность охраны включались только в фазе ограбления
   // (cracking/vault_open). Если просто зайти с оружием и стрелять — ничего
@@ -27809,7 +27927,7 @@ function update(dt) {
         const dc = (s + d) * 0.5, dr = (s - d) * 0.5;
         const mag = Math.hypot(dr, dc) || 1;
         const mv = Math.min(1, Math.hypot(inDx, inDy));
-        const spd = 4.0;
+        const spd = 4.0 * _shotMoveMultiplier();
         const nextR=Math.max(0.4,Math.min(biH-0.5,player.r+dr/mag*spd*dt*mv));
         const nextC=Math.max(0.4,Math.min(biW-0.4,player.c+dc/mag*spd*dt*mv));
         const escapingInteriorFurniture=_businessInteriorMovementBlocked(bi,player.r,player.c);
@@ -27880,7 +27998,7 @@ function update(dt) {
   }
   // ── ИНТЕРЬЕР БАНКА: отдельная физика и управление ──
   if (_bankInt) {
-    const intSpeed = 4.5;
+    const intSpeed = 4.5 * _shotMoveMultiplier();
     player.walking = false;
     // Мёртвый игрок не двигается в банке
     if (myDead) inDx = 0, inDy = 0;
@@ -27979,7 +28097,8 @@ function update(dt) {
   const _injuryHpRatio = Math.max(0, Math.min(1, (+myHp || 0) / Math.max(1, +(PVP?.max_hp || 100))));
   const _injurySpeedMul = _injuryHpRatio > 0 && _injuryHpRatio <= 0.15 ? 0.28 :
     (_injuryHpRatio <= 0.35 ? 0.62 : 1.0);
-  const speed = 5.0 * _bagSpeedMul * _waterSpeedMul * _injurySpeedMul; // тайлов/сек
+  const speed = 5.0 * _bagSpeedMul * _waterSpeedMul * _injurySpeedMul *
+    _shotMoveMultiplier(); // тайлов/сек
   player.walking = false;
   // Мёртвый игрок не двигается — ждём респауна сервера, иначе появлялся
   // в той же точке где умер (баг: «бегать могу и возрождаюсь там же»).
@@ -48916,7 +49035,7 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon, burnTi
   npc.idleUntil = performance.now() + 900;
   npc.r = Math.max(.5, Math.min(_buildingInt.H - .5, npc.r + dirY * .045));
   npc.c = Math.max(.5, Math.min(_buildingInt.W - .5, npc.c + dirX * .045));
-  _markCombatBleeding(npc, npc.r, npc.c, damage);
+  _markCombatBleeding(npc, npc.r, npc.c, damage, dirY, dirX, weapon);
   if (npc.hp <= 0) {
     npc.dead = true; npc.deadAt = performance.now(); npc.walking = false;
     if (robbery && npc.role==='biz_guard') {
@@ -54843,6 +54962,8 @@ window.Mafiozi3DBridge = Object.freeze({
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||x.gangName||x.faction||'',faction:x.faction||x.gangFaction||'',
       gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,
       burning:!!x.burning||performance.now()<(+x._burnUntil||0),hitAt:combatFx.hitAt,bleeding:combatFx.bleeding,bleedSeverity:combatFx.bleedSeverity,
+      bloodDirR:+x._bloodDirR||0,bloodDirC:+x._bloodDirC||1,
+      severMask:+x._severMask||0,forcedCrawl:!!x._forcedCrawl,
     };});
     if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const npc of npcs.slice(0,8))if(!npc.dead){npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.walking=true;}
     // Browser-only animation QA. It never changes the authoritative NPC and
@@ -54867,6 +54988,20 @@ window.Mafiozi3DBridge = Object.freeze({
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&(x.parts||[]).some(p=>(+p.life||0)>0)&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
     const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,heavy:!!x.heavy,age:performance.now()-(+x.born||performance.now())}));
     const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&(+x.life||0)>0&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail,soot:!!x._isSoot,crater:!!x._isCrater}));
+    const goreFx=(typeof bodyPartFx!=='undefined'?bodyPartFx:[]).filter(x=>x&&fxNow-(+x.born||fxNow)<Math.max(1,+x.life||8000)&&near(+x.r||0,+x.c||0)).slice(-12).map(x=>({
+      id:String(x.id||''),r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,
+      vz:+x.vz||4,spin:+x.spin||0,part:String(x.part||'leftArm'),
+      age:Math.max(0,fxNow-(+x.born||fxNow)),life:+x.life||8000,
+      role:String(x.role||'civilian'),faction:String(x.faction||''),skin:+x.skin||0,
+    }));
+    if(_LOCAL_PREVIEW&&_UP.has('previewgore')){
+      const target=npcs.find(x=>!x.dead);
+      if(target){target.hp=Math.min(target.hp,target.maxHp*.12);target.severMask=5;target.forcedCrawl=true;
+        if(!goreFx.length){const age=performance.now()%7600;goreFx.push(
+          {id:'preview_arm',r:target.r,c:target.c,vr:1.8,vc:2.4,vz:4.8,spin:11,part:'leftArm',age,life:8000,role:target.role||'civilian',faction:target.faction||'',skin:1},
+          {id:'preview_leg',r:target.r,c:target.c,vr:-1.4,vc:2.1,vz:5.2,spin:-9,part:'leftLeg',age,life:8000,role:target.role||'civilian',faction:target.faction||'',skin:1}
+        );}}
+    }
     if(_LOCAL_PREVIEW&&_UP.has('previewcombatfx')){const target=npcs.find(x=>!x.dead),cycle=performance.now()%1600,shotAge=cycle-800;if(target){target.hp=target.maxHp*(cycle<800?.66:.22);target.hitAt=performance.now()-Math.max(0,shotAge);target.bleeding=true;target.bleedSeverity=1;for(let i=0;i<6;i++)bloodFx.push({id:`preview_blood_${i}`,r:target.r+Math.sin(target.ang||0)*i*.22+(i%2?.08:-.05),c:target.c+Math.cos(target.ang||0)*i*.22+(i%2?-.05:.06),radius:3+i%3,rot:(target.ang||0)+.2,life:12000-i*700,max:14000,trail:true});if(shotAge>=0&&shotAge<680){const life=680-shotAge,parts=Array.from({length:12},(_,i)=>({vr:Math.sin(i*2.19)*(2.5+i%4),vc:Math.cos(i*2.19)*(2.5+i%4),life,max:680,size:3,blood:true,color:i%4?'#c30d1b':'#5c0509'}));impactFx.unshift({r:target.r,c:target.c,blood:true,life,max:680,parts});}}}
     const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&fxNow-(+x.born||fxNow)<Math.max(1,+x.life||1550)&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,fxNow-(+x.born||fxNow)),life:+x.life||1550,seed:+x.seed||0,kind:x.kind||'blast'}));
     if(_LOCAL_PREVIEW&&_UP.has('previewwreck')&&cars[0]){
@@ -54914,7 +55049,7 @@ window.Mafiozi3DBridge = Object.freeze({
         const box=groundMissionBoxes[i];if(!box)continue;addObject('mission_box',`mission_box_${box.id??i}`,box.r,box.c,box.mine?'Ваш груз':'Груз','#c98743',{maxRadius:4,mine:!!box.mine});
       }
     }
-    return {cars,npcs,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
+    return {cars,npcs,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
   },
   fire(angle, muzzleR, muzzleC) {
     if(_LOCAL_PREVIEW&&_UP.get('previewweapon'))return true;
@@ -58666,6 +58801,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d183"></script>
+<script type="module" src="three_preview.js?v=3d185"></script>
 </body>
 </html>
