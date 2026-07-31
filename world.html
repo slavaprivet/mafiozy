@@ -14442,15 +14442,16 @@ function _spawnStreetFireEvent() {
   // Спавним «брошенную» горящую тачку
   const model = (typeof CAR_MODELS !== 'undefined' && CAR_MODELS[0]) || null;
   if (!model) return false;
-  CARS.push({
+  const burningCar={
     r: spot.r + 0.5, c: spot.c + 0.5,
     vr: 0, vc: 0, dirDx: 0, dirDy: 1,
     model, braking: true, flash: 0,
     parked: true, _wrecked: true,
     _respawnAt: performance.now() + 35000,
     _streetFireEvent: true,
-  });
-  spawnCarExplosion(spot.r + 0.5, spot.c + 0.5);
+  };
+  CARS.push(burningCar);
+  spawnCarExplosion(spot.r + 0.5, spot.c + 0.5, burningCar);
   pushFeedEvent('🔥', 'Машина горит на улице', { accent: '#ff5050' });
   return true;
 }
@@ -16944,7 +16945,7 @@ function handleEventPacket(d) {
       qc.state   = 'wrecked';
       qc.x = d.x; qc.y = d.y; qc.tx = d.x; qc.ty = d.y;
     }
-    spawnCarExplosion(d.y, d.x);
+    spawnCarExplosion(d.y, d.x, qc||null);
     const mineOwn = String(d.owner_uid) === String(QP.uid);
     if (myDrivingCarId === d.car_id) {
       // Меня выкинуло из горящего корпуса — телепорт чуть в сторону
@@ -25096,21 +25097,36 @@ function _raycastDamageableCar(sr,sc,dirY,dirX,maxDist){
   return best;
 }
 const CAR_GUN_DESTRUCTION_DELAY=1550;
-function _startCarGunDestruction(hit,car){
+const CAR_CHAIN_BLAST_RADIUS=5.2,CAR_CHAIN_LETHAL_RADIUS=2.85,
+      CAR_CHAIN_MAX_TARGETS=6,CAR_CHAIN_MAX_EXPLOSIONS=9;
+let _carChainSerial=0;
+function _startCarGunDestruction(hit,car,delay=CAR_GUN_DESTRUCTION_DELAY,chainContext=null){
   if(!car||car._destroySequenceAt||car._shotWrecked||car._explosionT)return;
-  const started=performance.now(),blastR=+hit.r||0,blastC=+hit.c||0;
-  car._destroySequenceAt=started;car._destroySequenceDelay=CAR_GUN_DESTRUCTION_DELAY;
+  const started=performance.now(),blastR=+hit.r||0,blastC=+hit.c||0,
+        destructionDelay=Math.max(380,Math.min(2200,+delay||CAR_GUN_DESTRUCTION_DELAY));
+  car._destroySequenceAt=started;car._destroySequenceDelay=destructionDelay;
+  if(chainContext)car._chainExplosionContext=chainContext;
   car._hoodSmoking=true;car._hoodBurning=false;car.parked=true;
   car.vr=car.vc=car.vx=car.vy=0;
   setTimeout(()=>{
     if(!car._destroySequenceAt)return;
     car._destroySequenceAt=0;
     if(car._shotWrecked||car._explosionT||car._wrecked||car.wrecked)return;
+    const nextChain=car._chainExplosionContext||null;car._chainExplosionContext=null;
     car._shotWrecked=true;car._wrecked=true;car.wrecked=true;car._hoodBurning=true;
-    car._wreckedAt=performance.now();car.vr=car.vc=car.vx=car.vy=0;
-    spawnCarExplosion(blastR,blastC,car,true,true);addShake(16);fireScreenFlash('rpg');
-    spawnFloatText(blastR,blastC,'МАШИНА УНИЧТОЖЕНА',{color:'#ff7b25',size:16,life:1700});
-  },CAR_GUN_DESTRUCTION_DELAY);
+    car._wreckedAt=performance.now();car._respawnAt=performance.now()+25000;
+    car.state='wrecked';car.vr=car.vc=car.vx=car.vy=0;
+    const playerDistance=Math.hypot(blastR-player.r,blastC-player.c);
+    if(myDrivingCarId&&String(car.id)===String(myDrivingCarId)){
+      myDrivingCarId=null;_exitRequested=false;_myCarFuelPct=null;
+      player.r=blastR+.9;player.c=blastC+.65;
+      if(!myDead)_hurtLocal(22,'взрыв машины');
+    }
+    spawnCarExplosion(blastR,blastC,car,true,true,nextChain);
+    addShake(Math.max(2,(nextChain?11:16)-playerDistance*1.5));
+    if(playerDistance<7)fireScreenFlash('rpg');
+    spawnFloatText(blastR,blastC,nextChain?'ЦЕПНАЯ РЕАКЦИЯ':'МАШИНА УНИЧТОЖЕНА',{color:'#ff7b25',size:16,life:1700});
+  },destructionDelay);
 }
 function _damageCarByGun(hit,weapon,damage){
   const car=hit.car,model=hit.quest?resolveCarModel(car.model):(car.model||{});
@@ -39345,10 +39361,68 @@ function reportCarCrash(qc, impact, kind) {
   }
 }
 
+function _carExplosionPosition(car,quest=false){
+  if(!car)return null;
+  const r=+(quest?(car.y??car.ty):(car.r??car.y));
+  const c=+(quest?(car.x??car.tx):(car.c??car.x));
+  return Number.isFinite(r)&&Number.isFinite(c)?{r,c}:null;
+}
+function _applyCarExplosionChain(wr,wc,sourceCar,chainContext=null){
+  if(!sourceCar||_buildingInt||_bankInt)return chainContext;
+  const chain=chainContext||{id:++_carChainSerial,remaining:CAR_CHAIN_MAX_EXPLOSIONS,
+    hits:new Map(),explosions:0,scheduled:0};
+  if(!(chain.hits instanceof Map))chain.hits=new Map();
+  chain.hits.set(sourceCar,2);chain.explosions=(chain.explosions||0)+1;
+  const candidates=[],seen=new Set();
+  const consider=(target,quest=false)=>{
+    if(!target||target===sourceCar||seen.has(target)||target._hidden||target._towed||
+       target._destroySequenceAt||target._shotWrecked||target._wrecked||target.wrecked||target._explosionT)return;
+    seen.add(target);
+    const hitCount=chain.hits.get(target)||0;if(hitCount>=2)return;
+    const pos=_carExplosionPosition(target,quest);if(!pos)return;
+    const d=Math.hypot(pos.r-wr,pos.c-wc);if(d<=.08||d>CAR_CHAIN_BLAST_RADIUS)return;
+    const model=quest?resolveCarModel(target.model):(target.model||{});
+    if(model?.helicopter)return;
+    candidates.push({target,quest,pos,d,model,order:candidates.length});
+  };
+  for(const target of CARS)consider(target,false);
+  if(typeof questCars!=='undefined')for(const target of questCars.values())consider(target,true);
+  candidates.sort((a,b)=>a.d-b.d);
+  let damaged=0,scheduled=0;
+  for(const candidate of candidates.slice(0,CAR_CHAIN_MAX_TARGETS)){
+    const {target,quest,pos,d,model}=candidate;
+    chain.hits.set(target,(chain.hits.get(target)||0)+1);
+    const max=Math.max(120,+target.max_hp||(+model?.suv?360:+model?.van?420:240));
+    if(!Number.isFinite(target._ballisticHp))target._ballisticHp=Math.max(1,+target.hp||max);
+    target._ballisticMax=max;
+    const armor=model?.armored?1.65:1,falloff=Math.max(0,1-d/CAR_CHAIN_BLAST_RADIUS);
+    let amount=Math.max(10,Math.round(max*(.18+.82*falloff)/armor));
+    const lethal=d<=CAR_CHAIN_LETHAL_RADIUS&&(!model?.armored||d<=1.65);
+    if(lethal)amount=Math.max(amount,target._ballisticHp);
+    target._ballisticHp=Math.max(0,target._ballisticHp-amount);damaged++;
+    const ratio=target._ballisticHp/max;
+    if(ratio<=.76)target._hoodSmoking=true;
+    if(ratio<=.38)target._hoodBurning=true;
+    target.parked=true;target.vr=target.vc=target.vx=target.vy=0;
+    if(target._ballisticHp<=0){
+      if(chain.remaining<=0){target._ballisticHp=1;target._hoodBurning=true;continue;}
+      chain.remaining--;chain.scheduled=(chain.scheduled||0)+1;scheduled++;
+      target._respawnAt=performance.now()+25000;
+      if(quest)target.state='destroying';
+      const delay=480+d*105+((chain.id*37+candidate.order*83)%180);
+      _startCarGunDestruction(pos,target,delay,chain);
+    }
+  }
+  document.documentElement.dataset.carChainReaction=
+    `${chain.id}:explosions=${chain.explosions}:scheduled=${chain.scheduled}:damaged=${chain.hits.size}:wave=${scheduled}/${damaged}`;
+  return chain;
+}
+
 // Взрыв машины — мощный «мясной» эффект: 36 искр + чёрный круг копоти
 // + бочка дыма. Переиспользуем impacts/bloodSplats.
-function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true) {
+function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true, chainContext = null) {
   const explosionNow = performance.now();
+  if(car&&car._explosionT&&explosionNow-car._explosionT<3500)return false;
   // Запоминаем время взрыва на объекте машины — нужно для ударной волны
   if (car) {
     car._explosionT = explosionNow;
@@ -39415,6 +39489,8 @@ function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true) {
       });
     }
   }
+  if(car)_applyCarExplosionChain(wr,wc,car,chainContext);
+  return true;
 }
 
 function spawnBlastCrater(wr, wc) {
