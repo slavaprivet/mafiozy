@@ -8696,6 +8696,38 @@ let _playerEmergencyPatient=null;
 // машина приезжала и стояла без воды. Длина штатного рукава покрывает 8 тайлов.
 const FIRETRUCK_HOSE_RANGE = 8.0;
 
+// Обычный трафик и серверные/сюжетные машины исторически используют разные
+// флаги разрушения. Все системы (посадка, пожарные, эвакуатор и 3D-мост)
+// должны трактовать их одинаково.
+function _vehicleIsWrecked(car) {
+  if (!car) return false;
+  const hpDestroyed = typeof car.hp === 'number' && Number.isFinite(car.hp) && car.hp <= 0;
+  return !!(car.wrecked || car._wrecked || car._shotWrecked ||
+    car.state === 'wrecked' || car.state === 'destroyed' || hpDestroyed);
+}
+function _vehicleCanBeEntered(car) {
+  return !!car && !_vehicleIsWrecked(car) && !car._destroySequenceAt &&
+    !car._towed && !car._hidden && !car._mechanicalFailure;
+}
+function _vehicleWorldPosition(car) {
+  if (!car) return null;
+  const r = Number.isFinite(+car.r) ? +car.r : +car.y;
+  const c = Number.isFinite(+car.c) ? +car.c : +car.x;
+  return Number.isFinite(r) && Number.isFinite(c) ? {r,c} : null;
+}
+function _markVehicleExtinguished(car, now = performance.now()) {
+  if (!_vehicleIsWrecked(car)) return false;
+  car.wrecked = true;
+  car._wrecked = true;
+  car.state = 'wrecked';
+  car._burnedOut = true;
+  car._burnedOutAt ||= now;
+  car._hoodBurning = false;
+  car._hoodSmoking = false;
+  car.vr = car.vc = car.vx = car.vy = 0;
+  return true;
+}
+
 // Спецтранспорт едет ПО ДОРОГАМ (тип 0). На последнем участке (от
 // ближайшего к цели дорожного тайла до самой цели) разрешён выезд на
 // тротуар/газон, иначе скорая не может подъехать к телу на бордюре.
@@ -9111,7 +9143,7 @@ function _fireTruckTarget(v) {
   if(!v||v.kind!=='firetruck'||!v.payload)return null;
   const fire=v.payload.fireRef,car=v.payload.carRef;
   if(fire&&fire.kind==='gas_station'&&fire.station)return{r:fire.station.r+.7,c:fire.station.c+.7};
-  if(car)return{r:Number.isFinite(+car.r)?+car.r:(+car.y||0),c:Number.isFinite(+car.c)?+car.c:(+car.x||0)};
+  if(car&&!car._towed)return{r:Number.isFinite(+car.r)?+car.r:(+car.y||0),c:Number.isFinite(+car.c)?+car.c:(+car.x||0)};
   return null;
 }
 function _fireTruckInRange(v) {
@@ -9163,10 +9195,7 @@ function _completeTowRemoval(v) {
 function _finishFireTruckJob(v) {
   if (!v || v.kind !== 'firetruck' || !v.payload || !_fireTruckInRange(v)) return false;
   const cr = v.payload.carRef;
-  if (cr && cr._wrecked) {
-    cr._burnedOut = true;
-    if (!cr._burnedOutAt) cr._burnedOutAt = performance.now();
-  }
+  if (cr && !_markVehicleExtinguished(cr)) return false;
   const fire = v.payload.fireRef;
   if (fire && fire.kind === 'gas_station') _extinguishGasStation(fire.station);
   return true;
@@ -9334,7 +9363,8 @@ function dispatchEmergencyServices() {
   // Пожарные на взорванные машины
   if (typeof CARS !== 'undefined' && Array.isArray(CARS)) {
     for (const car of CARS) {
-      if (!car || !car._wrecked || car._fireTruckDispatched) continue;
+      if (!car || !_vehicleIsWrecked(car) || car._towed ||
+          car._burnedOut || car._fireTruckDispatched) continue;
       const truck = spawnFireTruck(car.r, car.c, null, car);
       if (truck) car._fireTruckDispatched = true;
     }
@@ -9342,7 +9372,7 @@ function dispatchEmergencyServices() {
     // увозим. Не на машину игрока (myDrivingCarId) — её не эвакуируем пока
     // он за рулём. Небольшая задержка после тушения для естественности.
     for (const car of CARS) {
-      if (!car || !car._wrecked || !car._burnedOut) continue;
+      if (!car || !_vehicleIsWrecked(car) || !car._burnedOut) continue;
       if (car._towDispatched || car._towed) continue;
       if (myDrivingCarId && car.id === myDrivingCarId) continue;
       if (!car._burnedOutAt) { car._burnedOutAt = now; continue; }
@@ -9365,12 +9395,24 @@ function dispatchEmergencyServices() {
   // Сюжетные, угнанные и карьерные машины хранятся отдельно от CARS.
   if(typeof questCars!=='undefined'&&questCars instanceof Map){
     for(const car of questCars.values()){
-      if(!car||!car.wrecked||car._fireTruckDispatched||car._burnedOut)continue;
+      if(!car||!_vehicleIsWrecked(car)||car._towed||
+         car._fireTruckDispatched||car._burnedOut)continue;
       const truck=spawnFireTruck(+car.y||0,+car.x||0,null,car);
       if(truck)car._fireTruckDispatched=true;
     }
+    // Потушенный серверный/сюжетный остов тоже должен уехать на платформе.
+    for(const car of questCars.values()){
+      if(!car||!_vehicleIsWrecked(car)||!car._burnedOut||
+         car._towDispatched||car._towed)continue;
+      if(myDrivingCarId&&String(car.id)===String(myDrivingCarId))continue;
+      if(!car._burnedOutAt){car._burnedOutAt=now;continue;}
+      if(now-car._burnedOutAt<2500)continue;
+      const tow=spawnTowTruck(+car.y||0,+car.x||0,car);
+      if(tow)car._towDispatched=true;
+    }
     for(const car of questCars.values()){
       if(!car||!car.civilian||car.driver_uid||car._towed||car._towDispatched)continue;
+      if(_vehicleIsWrecked(car))continue;
       if(String(car.owner_uid||'')!==String(QP.uid)||!car._abandonedAt)continue;
       if(now-car._abandonedAt<45000)continue;
       const tow=spawnTowTruck(+car.y||0,+car.x||0,car);
@@ -12759,10 +12801,10 @@ function _selectedVehicleObject() {
   if (!_selectedVehicleEntry || myDrivingCarId || _buildingInt || _bankInt || myDead) return null;
   if (_selectedVehicleEntry.kind === 'quest') {
     const car = questCars.get(_selectedVehicleEntry.id);
-    return car && !car.wrecked && !car._wrecked && !car._shotWrecked ? car : null;
+    return _vehicleCanBeEntered(car) ? car : null;
   }
   const car = _selectedVehicleEntry.car;
-  return car && CARS.includes(car) && !car._wrecked ? car : null;
+  return car && CARS.includes(car) && _vehicleCanBeEntered(car) ? car : null;
 }
 
 function _selectedVehiclePosition() {
@@ -12814,12 +12856,12 @@ function selectVehicleFromCanvasTap(x, y, hitRadius = 48) {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead) return false;
   let best = null, bestD = Math.max(18, Number(hitRadius) || 48);
   for (const car of questCars.values()) {
-    if (!car || car.wrecked || !Number.isFinite(+car.x) || !Number.isFinite(+car.y)) continue;
+    if (!_vehicleCanBeEntered(car) || !Number.isFinite(+car.x) || !Number.isFinite(+car.y)) continue;
     const p=w2s(+car.y,+car.x), d=Math.hypot(x-p.x,(y-p.y)*1.35);
     if (d<bestD) { bestD=d; best={kind:'quest',id:String(car.id)}; }
   }
   for (const car of CARS) {
-    if (!car || !car.model || car._wrecked || !Number.isFinite(+car.r) || !Number.isFinite(+car.c)) continue;
+    if (!_vehicleCanBeEntered(car) || !car.model || !Number.isFinite(+car.r) || !Number.isFinite(+car.c)) continue;
     const p=w2s(+car.r,+car.c), d=Math.hypot(x-p.x,(y-p.y)*1.35);
     if (d<bestD) { bestD=d; best={kind:'traffic',car}; }
   }
@@ -12844,18 +12886,18 @@ function activateNearbyVehicleFrom3D(preferredId='') {
   const lockedId=String(preferredId||'');
   if(lockedId.startsWith('quest_')){
     const id=lockedId.slice(6),car=questCars.get(id),d=car?Math.hypot(+car.y-player.r,+car.x-player.c):Infinity;
-    if(car&&!car.wrecked&&Number.isFinite(d)&&d<4.5){bestD=d;best={kind:'quest',id};}
+    if(_vehicleCanBeEntered(car)&&Number.isFinite(d)&&d<4.5){bestD=d;best={kind:'quest',id};}
   }else if(lockedId){
     const car=CARS.find(q=>q&&_threeVehicleEntityId(q)===lockedId),d=car?Math.hypot(+car.r-player.r,+car.c-player.c):Infinity;
-    if(car&&car.model&&!car._wrecked&&Number.isFinite(d)&&d<4.5){bestD=d;best={kind:'traffic',car};}
+    if(_vehicleCanBeEntered(car)&&car.model&&Number.isFinite(d)&&d<4.5){bestD=d;best={kind:'traffic',car};}
   }
   const preferredMatched=!!best;
   for(const car of questCars.values()){
-    if(!car||car.wrecked||!Number.isFinite(+car.x)||!Number.isFinite(+car.y))continue;
+    if(!_vehicleCanBeEntered(car)||!Number.isFinite(+car.x)||!Number.isFinite(+car.y))continue;
     const d=Math.hypot(+car.y-player.r,+car.x-player.c);if(!preferredMatched&&d<bestD){bestD=d;best={kind:'quest',id:String(car.id)};}
   }
   for(const car of CARS){
-    if(!car||!car.model||car._wrecked||!Number.isFinite(+car.r)||!Number.isFinite(+car.c))continue;
+    if(!_vehicleCanBeEntered(car)||!car.model||!Number.isFinite(+car.r)||!Number.isFinite(+car.c))continue;
     const modelName=car.model?.name||'';if(['cop_cruiser','paddyvan','swat_truck'].includes(modelName))continue;
     const d=Math.hypot(+car.r-player.r,+car.c-player.c);if(!preferredMatched&&d<bestD){bestD=d;best={kind:'traffic',car};}
   }
@@ -12872,11 +12914,11 @@ function getNearbyVehicleInteractionFor3D() {
   if (_buildingInt || _bankInt || myDead || myDrivingCarId || _threeVehicleEntrySequence) return null;
   let best=null,bestD=Math.max(GTA_INTERACT_R+.15,3.25);
   for(const car of questCars.values()){
-    if(!car||car.wrecked||!Number.isFinite(+car.x)||!Number.isFinite(+car.y))continue;
+    if(!_vehicleCanBeEntered(car)||!Number.isFinite(+car.x)||!Number.isFinite(+car.y))continue;
     const d=Math.hypot(+car.y-player.r,+car.x-player.c);if(d<bestD){bestD=d;best={id:`quest_${car.id}`,kind:'enter',r:+car.y,c:+car.x,distance:d};}
   }
   for(const car of CARS){
-    if(!car||!car.model||car._wrecked||!Number.isFinite(+car.r)||!Number.isFinite(+car.c)||['cop_cruiser','paddyvan','swat_truck'].includes(car.model?.name||''))continue;
+    if(!_vehicleCanBeEntered(car)||!car.model||!Number.isFinite(+car.r)||!Number.isFinite(+car.c)||['cop_cruiser','paddyvan','swat_truck'].includes(car.model?.name||''))continue;
     const d=Math.hypot(+car.r-player.r,+car.c-player.c);if(d<bestD){bestD=d;best={id:_threeVehicleEntityId(car),kind:'hijack',r:+car.r,c:+car.c,distance:d};}
   }
   return best;
@@ -17059,7 +17101,11 @@ function handleEventPacket(d) {
     const qc = questCars.get(d.car_id);
     if (qc) {
       qc.wrecked = true;
+      qc._wrecked = true;
+      qc._hoodBurning = true;
+      qc._hoodSmoking = false;
       qc.state   = 'wrecked';
+      qc.vx = 0; qc.vy = 0;
       qc.x = d.x; qc.y = d.y; qc.tx = d.x; qc.ty = d.y;
     }
     spawnCarExplosion(d.y, d.x, qc||null);
@@ -19608,7 +19654,7 @@ function _findHitTargetBotById(bid) {
 function _brigadirPassable(r, c) {
   if (!npcPassable(r, c)) return false;
   for (const qc of questCars.values()) {
-    if (qc.wrecked) continue;
+    if (!_vehicleCanBeEntered(qc)) continue;
     const dy = (qc.y || 0) - r;
     const dx = (qc.x || 0) - c;
     if (dy * dy + dx * dx < 0.7 * 0.7) return false;
@@ -20571,7 +20617,7 @@ function _threeVehicleEntryId(car, kind='traffic') {
 }
 function _beginThreeVehicleEntry(car, kind, done) {
   if (_UP.get('render')!=='3d' || _threeVehicleEntryBypass || !car || _threeVehicleEntrySequence ||
-      car.wrecked || car._wrecked || car._shotWrecked) return false;
+      !_vehicleCanBeEntered(car)) return false;
   const r=kind==='quest'?+car.y:+car.r,c=kind==='quest'?+car.x:+car.c,ang=Number.isFinite(+car.ang)?+car.ang:Math.atan2(+car.dirDy||0,+car.dirDx||1);
   if(!Number.isFinite(r)||!Number.isFinite(c))return false;
   if(kind==='traffic'){car.vr=0;car.vc=0;car._hijackPending=performance.now();}
@@ -21374,7 +21420,7 @@ function updateGtaInteractions() {
     const dr = qc.y - player.r, dc = qc.x - player.c;
     const d  = Math.hypot(dr, dc);
     if (d > GTA_INTERACT_R) continue;
-    if (qc.wrecked) continue;
+    if (!_vehicleCanBeEntered(qc)) continue;
     const isMine = String(qc.owner_uid) === String(QP.uid);
     if (isMine && !qc.driver_uid) {
       if (d < nearestD) { nearestD = d; nearestQc = qc; nearestKind = 'driver'; }
@@ -21411,7 +21457,7 @@ function updateGtaInteractions() {
     for (const car of CARS) {
       if (!_selectedVehicleEntry || _selectedVehicleEntry.kind !== 'traffic' ||
           _selectedVehicleEntry.car !== car) continue;
-      if (!car || !car.model || !car.model.taxi || car._wrecked) continue;
+      if (!_vehicleCanBeEntered(car) || !car.model || !car.model.taxi) continue;
       const d = Math.hypot(car.r - player.r, car.c - player.c);
       if (d < nearTaxiD) { nearTaxiD = d; nearTaxi = car; }
     }
@@ -22076,11 +22122,16 @@ function _saveExtState() {
 // которую ещё можно тушить (не _burnedOut). null если нет.
 function _nearestBurningCar() {
   let best = null, bestD = EXT_USE_R + 0.01;
-  for (const car of CARS) {
-    if (!car._wrecked || car._burnedOut) continue;
-    const d = Math.hypot(car.r - player.r, car.c - player.c);
+  const consider = car => {
+    if (!_vehicleIsWrecked(car) || car._burnedOut || car._towed) return;
+    const pos = _vehicleWorldPosition(car);
+    if (!pos) return;
+    const d = Math.hypot(pos.r - player.r, pos.c - player.c);
     if (d < bestD) { bestD = d; best = car; }
-  }
+  };
+  for (const car of CARS) consider(car);
+  if(typeof questCars!=='undefined'&&questCars instanceof Map)
+    for(const car of questCars.values())consider(car);
   return best;
 }
 // Открывает модалку пожарной части. Подтягивает текущие счётчики и
@@ -22164,13 +22215,14 @@ function useExtinguisher() {
   if (extinguisherCount <= 0) { showToast('Нечего использовать', '⚠️', 1500); return; }
   const car = _nearestBurningCar();
   if (!car) { showToast('Рядом ничего не горит', '⚠️', 1500); return; }
-  car._burnedOut = true;
+  const pos = _vehicleWorldPosition(car);
+  if (!pos || !_markVehicleExtinguished(car)) return;
   extinguisherCount--;
   _saveExtState();
   _updateExtBadge();
   // Эффект: облачко дыма-вспышка
-  spawnFloatText(car.r, car.c, 'Потушено', { color: '#ffd76b', size: 16, life: 1400 });
-  spawnShockwave(car.r, car.c, { rad0: 6, maxRad: 36, life: 480, color: '#ffd76b', thick: 2.0 });
+  spawnFloatText(pos.r, pos.c, 'Потушено', { color: '#ffd76b', size: 16, life: 1400 });
+  spawnShockwave(pos.r, pos.c, { rad0: 6, maxRad: 36, life: 480, color: '#ffd76b', thick: 2.0 });
   showToast('🧯 Потушено', '✅', 1400);
 }
 document.getElementById('extinguishBtn').addEventListener('click', useExtinguisher);
@@ -22647,8 +22699,12 @@ function _completeHijack(car) {
 
 function hijackCivilianCar(car) {
   if (!car || myDrivingCarId) return;
-  if (car._wrecked || car.wrecked || car._shotWrecked) {
+  if (_vehicleIsWrecked(car)) {
     showToast('🔥 От машины остался только горящий остов', '🚫', 1700);
+    return;
+  }
+  if (!_vehicleCanBeEntered(car)) {
+    showToast('🚗 Машина неисправна или её уже забирает эвакуатор', '🚫', 1700);
     return;
   }
   // Защита от двойного клика: если уже идёт процесс угона — игнорируем
@@ -23215,9 +23271,14 @@ function _parkQuestCarLocally(qc, carId) {
 function enterCar(carId, asKind) {
   const qc = questCars.get(carId);
   if (!qc) return;
-  if (qc.wrecked || qc._wrecked || qc._shotWrecked) {
+  if (_vehicleIsWrecked(qc)) {
     _selectedVehicleEntry = null;
     showToast('🔥 Машина уничтожена — сесть невозможно', '🚫', 1700);
+    return;
+  }
+  if (!_vehicleCanBeEntered(qc)) {
+    _selectedVehicleEntry = null;
+    showToast('🚗 Машина неисправна или её уже забирает эвакуатор', '🚫', 1700);
     return;
   }
   if(_beginThreeVehicleEntry(qc,'quest',()=>enterCar(carId,asKind)))return;
@@ -39580,7 +39641,9 @@ function reportCarCrash(qc, impact, kind) {
   }
   // Клиентский взрыв — если HP упал до 0, а сервер ещё не прислал quest_car_destroyed
   if (qc.hp <= 0 && !qc.wrecked) {
-    qc.wrecked = true; qc.state = 'wrecked';
+    qc.wrecked = true; qc._wrecked = true; qc.state = 'wrecked';
+    qc._hoodBurning = true; qc._hoodSmoking = false;
+    qc.vx = 0; qc.vy = 0;
     spawnCarExplosion(qc.y || qc.ty, qc.x || qc.tx, qc);
     if (myDrivingCarId === qc.id) {
       myDrivingCarId = null; _exitRequested = false;
@@ -55032,10 +55095,10 @@ window.Mafiozi3DBridge = Object.freeze({
         braking:v.state==='working'||v.state==='siege',turning:false,serviceKind:v.kind,serviceState:v.state,
       });
       if(tow&&v._loaded&&v.payload?.carRef){
-        const load=v.payload.carRef,model=load.model||{};
+        const load=v.payload.carRef,model=typeof resolveCarModel==='function'?resolveCarModel(load.model):(load.model||{});
         cars.unshift({id:`service_load_${v.id}`,r:+v.y-Math.sin(+v.ang||0)*.46,c:+v.x-Math.cos(+v.ang||0)*.46,ang:+v.ang||0,
-          model:model.name||'sedan',paint:model.palette?.[0]||'#555b62',parked:true,length:+model.L||1.65,width:+model.W||.82,height:.58,wheelR:.16,
-          sport:!!model.sport,pickup:false,van:false,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'',dirR:0,dirC:0,velR:0,velC:0,braking:true,turning:false,towLoad:true});
+          model:model?.name||model?.id||load.model||'sedan',paint:load.color||load.paint||model?.palette?.[0]||'#555b62',parked:true,length:+model?.L||1.65,width:+model?.W||.82,height:.58,wheelR:.16,
+          sport:!!model?.sport,pickup:false,van:false,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'',dirR:0,dirC:0,velR:0,velC:0,braking:true,turning:false,towLoad:true,wrecked:true,burnedOut:true,damageRatio:0,wreckAge:99999});
       }
     }
     // These interactive vehicles are stored outside CARS by the 2D game.
@@ -58926,6 +58989,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d186"></script>
+<script type="module" src="three_preview.js?v=3d187"></script>
 </body>
 </html>
