@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v218: special services now extinguish, tow and dispose wrecks at the city junkyard. -->
+<!DOCTYPE html><!-- v219: animated junkyard workers clean and sort scrap around the disposal yard. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -55683,6 +55683,11 @@ window.Mafiozi3DBridge = Object.freeze({
     player.vr=0;player.vc=0;player.walking=false;window._studioTeleportUntil=Date.now()+10000;
     return {r:player.r,c:player.c};
   },
+  previewApproachJunkyard() {
+    if(!_LOCAL_PREVIEW)return false;
+    player.r=JUNKYARD_R+4.5;player.c=JUNKYARD_C;player.vr=0;player.vc=0;player.walking=false;
+    window._studioTeleportUntil=Date.now()+10000;return {r:player.r,c:player.c};
+  },
   previewApproachGenericBuilding() {
     if(!_LOCAL_PREVIEW)return false;
     let best=null;
@@ -55892,6 +55897,14 @@ window.Mafiozi3DBridge = Object.freeze({
       npcSource=[...combat,...npcSource];
     }
     const npcPriority=x=>{const role=String(x?.role||x?._arcKey||'').toLowerCase();if(role.includes('medic'))return 0;if(x?.gang||x?._gang||x?.gangId||x?.gang_id||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'))return 0;if(x?.police||role.includes('police')||role.includes('cop')||role.includes('guard'))return 1;return 2;};
+    if(!inside&&near(JUNKYARD_R,JUNKYARD_C)){
+      const workerRoutes=[[[84.1,62.5],[84.1,67.3],[87.2,67.3],[87.2,62.5]],[[88.2,64.2],[88.2,69.1],[84.8,69.1],[84.8,64.2]],[[82.9,65.1],[86.1,65.1],[86.1,70],[82.9,70]]];
+      const workerLooks=[{skin:1,body:2,face:1,hair:1,hat:2,suit:'#665b46'},{skin:2,body:1,face:2,hair:3,hat:1,suit:'#4e5a55'},{skin:0,body:3,face:3,hair:2,hat:2,suit:'#72513d'}];
+      for(let wi=0;wi<workerRoutes.length;wi++){
+        const route=workerRoutes[wi],cycle=(fxNow*.00022+wi*.27)%1,leg=Math.floor(cycle*route.length),u=cycle*route.length-leg,a=route[leg],b=route[(leg+1)%route.length],pause=u>.82,pauseU=Math.min(u,.82)/.82,r=a[0]+(b[0]-a[0])*pauseU,c=a[1]+(b[1]-a[1])*pauseU;
+        npcSource.push({id:`junkyard_worker_${wi}`,r,c,tr:b[0],tc:b[1],ang:Math.atan2(b[0]-a[0],b[1]-a[1]),walking:!pause,moving:!pause,walkPhase:fxNow*.009+wi*2.1,role:'junkyard_worker',visualRole:'civilian',name:pause?(wi===1?'Сортирует металл':'Убирает мусор'):'Работяга свалки',look:workerLooks[wi],hp:80,max_hp:80,_junkyardWorker:true});
+      }
+    }
     const npcs=npcSource.filter(x=>x&&!x._ambientGang&&!x._evacuated&&!x._carriedByAmbulance&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).sort((a,b)=>npcPriority(a)-npcPriority(b)).slice(0,72).map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:Number.isFinite(+x.tgtR)?+x.tgtR:Number.isFinite(+x.ty)?+x.ty:r,targetC=Number.isFinite(+x.tc)?+x.tc:Number.isFinite(+x.tgtC)?+x.tgtC:Number.isFinite(+x.tx)?+x.tx:c,targetMoving=Math.hypot(targetR-r,targetC-c)>.035,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,+x.max_hp||+x.maxHp||60),hp=death.dead?0:(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0);return {
       id,r,c,ang:+x.ang||0,walking:!death.dead&&(declaredMoving||targetMoving),moving:!death.dead&&(declaredMoving||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
@@ -56049,6 +56062,7 @@ window.Mafiozi3DBridge = Object.freeze({
         const box=groundMissionBoxes[i];if(!box)continue;addObject('mission_box',`mission_box_${box.id??i}`,box.r,box.c,box.mine?'Ваш груз':'Груз','#c98743',{maxRadius:4,mine:!!box.mine});
       }
     }
+    document.documentElement.dataset.junkyardWorkers=String(npcs.filter(n=>n.role==='junkyard_worker').length);
     return {cars,npcs,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
   },
   throwSelected(kind, angle, throwRange) {
@@ -56109,6 +56123,11 @@ window.Mafiozi3DBridge = Object.freeze({
 });
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
 if(_LOCAL_PREVIEW&&_UP.get('threebusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInterior(_UP.get('threebusiness')),900);
+if(_LOCAL_PREVIEW&&_UP.has('previewjunkyard'))setTimeout(()=>{
+  player.r=JUNKYARD_R+4.5;player.c=JUNKYARD_C;player.vr=0;player.vc=0;player.walking=false;
+  window._studioTeleportUntil=Date.now()+10000;
+  document.documentElement.dataset.junkyardPreview='positioned';
+},1200);
 if(_LOCAL_PREVIEW&&_UP.has('previewcarexplosion'))setTimeout(()=>{
   const requested=Math.max(1,Math.min(6,+_UP.get('previewcarexplosion')||5));
   const qaCars=CARS.filter(car=>car?.model&&!car.model?.helicopter).slice(0,requested);
@@ -59872,6 +59891,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d218"></script>
+<script type="module" src="three_preview.js?v=3d219"></script>
 </body>
 </html>
