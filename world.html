@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v212: residents, police and medics inherit the player's restrained walk cycle with body-safe leg attachment. -->
+<!DOCTYPE html><!-- v213: distinct sidearms plus hold-to-throw grenades/Molotovs and separate C4 placement in the 3D renderer. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -25791,12 +25791,12 @@ function _fireRpgRound(sR, sC, dirY, dirX, range, remote) {
 
 function placeWorldC4(){
   const now=performance.now();
-  if(now-_lastWorldC4PlantAt<900)return;
-  if(_myC4Count<=0){showToast('C4 закончилась — купи заряд на Чёрном рынке.','❌',2200);return;}
-  if(!ws||ws.readyState!==1){showToast('Нет связи с городом — заряд не установлен.','⚠️',2000);return;}
+  if(now-_lastWorldC4PlantAt<900)return false;
+  if(_myC4Count<=0){showToast('C4 закончилась — купи заряд на Чёрном рынке.','❌',2200);return false;}
+  if(!ws||ws.readyState!==1){showToast('Нет связи с городом — заряд не установлен.','⚠️',2000);return false;}
   _lastWorldC4PlantAt=now;
-  try{ws.send(JSON.stringify({t:'world_c4_plant',d:{}}));}
-  catch(e){_lastWorldC4PlantAt=0;}
+  try{ws.send(JSON.stringify({t:'world_c4_plant',d:{}}));return true;}
+  catch(e){_lastWorldC4PlantAt=0;return false;}
 }
 
 function _raycastDamageableCar(sr,sc,dirY,dirX,maxDist){
@@ -43554,20 +43554,21 @@ let _throwAimCancelled=false;
 const _thrownItems=[],_firePools=[];
 const THROW_GRENADE_RADIUS=4.4;
 const THROW_MOLOTOV_IMPACT_RADIUS=3.6;
-const THROW_MOLOTOV_FIRE_RADIUS=4.2;
+const THROW_MOLOTOV_FIRE_RADIUS=5.0;
 async function _consumeThrowable(kind){try{const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/consume`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:kind})});const j=await r.json();return !!j.ok}catch(e){return _LOCAL_PREVIEW}}
 async function _throwSelected(kind,angle,throwRange){
-  const count=kind==='grenade'?_myGrenadeCount:_myMolotovCount;if(count<=0)return;
-  if(!await _consumeThrowable(kind)){showToast('Предмет не удалось использовать','❌',1500);return;}
+  const count=kind==='grenade'?_myGrenadeCount:_myMolotovCount;if(count<=0)return false;
+  if(!await _consumeThrowable(kind)){showToast('Предмет не удалось использовать','❌',1500);return false;}
   if(kind==='grenade')_myGrenadeCount--;else _myMolotovCount--;renderWeaponHud();if(_wepPickOpen)renderWeaponPick();
   const range=Math.max(1.4,Math.min(6.5,+throwRange||6.5)),fromR=player.r,fromC=player.c,toR=fromR+Math.sin(angle)*range,toC=fromC+Math.cos(angle)*range;
   _thrownItems.push({kind,fromR,fromC,toR,toC,start:performance.now(),flight:720,exploded:false});
   try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'grenade',d:{from_x:fromR,from_y:fromC,to_x:toR,to_y:toC,kind}}))}catch(e){}
+  return true;
 }
 function _explodeThrowable(q){
   if(q.exploded)return;q.exploded=true;const radius=q.kind==='grenade'?THROW_GRENADE_RADIUS:THROW_MOLOTOV_IMPACT_RADIUS;
   if(q.kind==='grenade'){const pooled3D=_usesPooled3DFx();spawnCarExplosion(q.toR,q.toC,null,false);if(!pooled3D){for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,d=.35+Math.random()*.7;spawnCarExplosion(q.toR+Math.sin(a)*d,q.toC+Math.cos(a)*d,null,false,false)}spawnShockwave(q.toR,q.toC,{rad0:8,maxRad:88,life:520,color:'#ffbd55',thick:5});spawnSmokePuff(q.toR,q.toC,0);spawnSmokePuff(q.toR+.4,q.toC-.3,2.2)}spawnBlastCrater(q.toR,q.toC);addShake(15);fireScreenFlash('rpg');}
-  else{const now=performance.now();_firePools.push({r:q.toR,c:q.toC,start:now,until:now+8500,lastHit:0,seed:Math.random()*20});spawnShockwave(q.toR,q.toC,{rad0:5,maxRad:62,life:420,color:'#ff8a20',thick:4});try{_molotovIgnitionSound()}catch(e){}addShake(7);}
+  else{const now=performance.now();spawnCarExplosion(q.toR,q.toC,null,false,false);_firePools.push({r:q.toR,c:q.toC,start:now,until:now+3800,lastHit:0,seed:Math.random()*20});spawnShockwave(q.toR,q.toC,{rad0:5,maxRad:72,life:460,color:'#ff8a20',thick:4});try{_molotovIgnitionSound()}catch(e){}addShake(8);}
   for(const n of NPCS){if(!n.dead&&Math.hypot(n.r-q.toR,n.c-q.toC)<radius)hitNpc(n,0,0,q.kind,q.kind==='grenade'?95:45)}
   _damageGangBotsInThrowable(q.toR,q.toC,radius,q.kind==='grenade'?'grenade':'molotov_fire');
   _damageCasinoPropsInRadius(q.toR,q.toC,radius,q.kind==='grenade'?'grenade':'molotov');
@@ -55919,6 +55920,7 @@ window.Mafiozi3DBridge = Object.freeze({
     if(_LOCAL_PREVIEW&&_UP.has('previewwrecks')&&!_UP.has('previewcalm')&&!_UP.has('previewnoexplosions')){
       const count=Math.max(1,Math.min(8,+_UP.get('previewwrecks')||5));for(let i=0;i<Math.min(count,cars.length);i++){const age=(performance.now()+i*260)%5200;if(age<1850)explosionFx.unshift({r:cars[i].r,c:cars[i].c,age,life:1850,seed:170+i*37,kind:'vehicle'});}
     }
+    if(typeof _thrownItems!=='undefined')for(let i=_thrownItems.length-1;i>=0;i--){const q=_thrownItems[i],age=fxNow-(+q.start||fxNow),flight=+q.flight||720;if(age>=flight&&!q.exploded)_explodeThrowable(q);if(age>flight+(q.kind==='grenade'?850:250))_thrownItems.splice(i,1);}
     const throwableFx=(typeof _thrownItems!=='undefined'?_thrownItems:[]).filter(x=>x&&!x.exploded).slice(0,8).map((x,i)=>{const p=Math.max(0,Math.min(1,(performance.now()-(+x.start||0))/(+x.flight||720)));return {id:i,kind:x.kind||'grenade',r:(+x.fromR||0)+((+x.toR||0)-(+x.fromR||0))*p,c:(+x.fromC||0)+((+x.toC||0)-(+x.fromC||0))*p,height:Math.sin(Math.PI*p)*3.8,progress:p};});
     const fireFx=(typeof _firePools!=='undefined'?_firePools:[]).filter(x=>x&&fxNow<+x.until&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:fxNow-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2,kind:'ground'}));
     // Wreck flames share the existing instanced ground-fire pool. This restores
@@ -55972,7 +55974,29 @@ window.Mafiozi3DBridge = Object.freeze({
     }
     return {cars,npcs,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
   },
+  throwSelected(kind, angle, throwRange) {
+    kind=String(kind||'').toLowerCase();
+    if(!['grenade','molotov'].includes(kind)||myDead||myMode==='pve')return false;
+    const selected=_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():currentWeapon;
+    if(selected!==kind)return false;
+    if(_LOCAL_PREVIEW&&_UP.get('previewweapon')){
+      const range=Math.max(1.4,Math.min(6.5,+throwRange||6.5)),fromR=player.r,fromC=player.c;
+      _thrownItems.push({kind,fromR,fromC,toR:fromR+Math.sin(angle)*range,toC:fromC+Math.cos(angle)*range,start:performance.now(),flight:720,exploded:false});
+      document.documentElement.dataset.threeThrowableRoute=`preview:${kind}:${range.toFixed(2)}`;
+      return true;
+    }
+    const count=kind==='grenade'?_myGrenadeCount:_myMolotovCount;if(count<=0)return false;
+    void _throwSelected(kind,angle,throwRange);document.documentElement.dataset.threeThrowableRoute=`live:${kind}`;return true;
+  },
+  plantC4() {
+    const selected=_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():currentWeapon;
+    if(selected!=='c4'||myDead||myMode==='pve')return false;
+    if(_LOCAL_PREVIEW&&_UP.get('previewweapon')){document.documentElement.dataset.threeC4Route='preview-place';return true;}
+    const accepted=placeWorldC4();document.documentElement.dataset.threeC4Route=accepted?'live-place':'rejected';return accepted;
+  },
   fire(angle, muzzleR, muzzleC) {
+    const selected=_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():currentWeapon;
+    if(['grenade','molotov','c4'].includes(selected)){document.documentElement.dataset.threeSpecialFireBlocked=selected;return false;}
     if(_LOCAL_PREVIEW&&_UP.get('previewweapon'))return true;
     if (myDead || myMode === 'pve' || !_isArmed()) return false;
     return _threeBridgeFireAccepted(angle, muzzleR, muzzleC);
@@ -59771,6 +59795,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d212"></script>
+<script type="module" src="three_preview.js?v=3d213"></script>
 </body>
 </html>
