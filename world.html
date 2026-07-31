@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v205: dead NPCs remain fixed with persistent blood pools in 3D. -->
+<!DOCTYPE html><!-- v206: 3D ambulances recover dead residents with a visible stretcher crew and loading sequence. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -9164,7 +9164,7 @@ function _startAmbulanceBodyCrew(v, now = performance.now()) {
     targetR: target.r, targetC: target.c, rearR, rearC,
     centerR: rearR, centerC: rearC, ang: approachAng,
     deployMs, approachMs, assessMs, liftMs, returnMs, loadMs, total,
-    approachAng, returnAng, liftProgress: 0,
+    approachAng, returnAng, liftProgress: 0, loadProgress: 0,
     stretcherVisible: true, bodyVisible: false,
   };
   const looks = [
@@ -9233,8 +9233,11 @@ function _updateAmbulanceBodyCrew(v, dt, now = performance.now()) {
     centerC = lerp(scene.targetC, scene.rearC, p);
     patient._carriedByAmbulance = true;
   } else if (age < scene.total) {
-    scene.phase = 'loading'; carrying = true; ang = scene.returnAng;
-    centerR = scene.rearR; centerC = scene.rearC;
+    const p = Math.max(0, Math.min(1, (age - (scene.total - scene.loadMs)) / scene.loadMs));
+    scene.phase = 'loading'; scene.loadProgress = p; carrying = true; ang = scene.returnAng;
+    // The stretcher rolls through the rear doors instead of vanishing at the bumper.
+    centerR = scene.rearR + Math.sin(v.ang || 0) * p * .72;
+    centerC = scene.rearC + Math.cos(v.ang || 0) * p * .72;
     patient._carriedByAmbulance = true;
   } else {
     scene.phase = 'loaded'; scene.active = false;
@@ -9248,7 +9251,8 @@ function _updateAmbulanceBodyCrew(v, dt, now = performance.now()) {
     return true;
   }
   scene.centerR = centerR; scene.centerC = centerC; scene.ang = ang;
-  scene.bodyVisible = patient._carriedByAmbulance || scene.phase === 'lifting';
+  scene.bodyVisible = (patient._carriedByAmbulance || scene.phase === 'lifting') &&
+    !(scene.phase === 'loading' && scene.loadProgress > .9);
   _setAmbulanceCrewPose(v, centerR, centerC, ang, walking, carrying, dt);
   return false;
 }
@@ -9915,7 +9919,7 @@ function drawAmbulanceMedicalScene(v) {
   if (scene.stretcherVisible) {
     const fr = Math.sin(scene.ang || 0), fc = Math.cos(scene.ang || 0);
     const sr = Math.cos(scene.ang || 0), sc = -Math.sin(scene.ang || 0);
-    const lift = (scene.phase === 'lifting' ? scene.liftProgress : scene.phase === 'carrying' ? 1 : 0) * 7;
+    const lift = (scene.phase === 'lifting' ? scene.liftProgress : (scene.phase === 'carrying' || scene.phase === 'loading') ? 1 : 0) * 7;
     const corners = [
       w2s(scene.centerR + fr * .72 + sr * .31, scene.centerC + fc * .72 + sc * .31),
       w2s(scene.centerR + fr * .72 - sr * .31, scene.centerC + fc * .72 - sc * .31),
@@ -55673,9 +55677,28 @@ window.Mafiozi3DBridge = Object.freeze({
     if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
       const scene=v?._medicalScene;
       if(v?.kind!=='ambulance'||!scene?.active||!scene.stretcherVisible||!near(+scene.centerR||0,+scene.centerC||0))continue;
+      const patient=v.payload?.npc,look=patient?.look||{};
       medicalFx.push({id:`medical_${v.id}`,r:+scene.centerR||0,c:+scene.centerC||0,ang:+scene.ang||0,
-        phase:scene.phase||'',lift:+scene.liftProgress||0,bodyVisible:!!scene.bodyVisible,
-        carrying:scene.phase==='carrying'||scene.phase==='loading'});
+        phase:scene.phase||'',lift:+scene.liftProgress||0,load:+scene.loadProgress||0,
+        bodyVisible:!!scene.bodyVisible,carrying:scene.phase==='carrying'||scene.phase==='loading',
+        patientLook:{skin:+look.skin||0,body:+look.body||0,suit:look.suit||''},
+        ambulanceR:+v.y||0,ambulanceC:+v.x||0,ambulanceAng:+v.ang||0});
+    }
+    // Local-only complete recovery cycle for visual regression checks.
+    if(_LOCAL_PREVIEW&&_UP.has('previewambulance')){
+      const forcedPhase=_UP.get('previewambulance'),age=forcedPhase==='loaded'?10380:performance.now()%10500,ambR=player.r+1.5,ambC=player.c+4.2,targetR=player.r+6,targetC=player.c+4.2,rearR=ambR+1.15,rearC=ambC;
+      let phase='deploying',p=age/900,r=rearR,c=rearC,lift=0,load=0,bodyVisible=false,carrying=false,walking=true;
+      if(age<900){r=rearR+(1-p)*.28;}
+      else if(age<3500){phase='approaching';p=(age-900)/2600;r=rearR+(targetR-rearR)*p;}
+      else if(age<4300){phase='assessing';r=targetR;p=0;walking=false;}
+      else if(age<5400){phase='lifting';r=targetR;lift=(age-4300)/1100;bodyVisible=true;carrying=lift>.42;walking=false;}
+      else if(age<9000){phase='carrying';p=(age-5400)/3600;r=targetR+(rearR-targetR)*p;lift=1;bodyVisible=carrying=true;}
+      else{phase='loading';load=(age-9000)/1500;r=rearR-(load*.72);lift=1;bodyVisible=load<.9;carrying=true;walking=false;}
+      cars.unshift({id:'preview_ambulance',r:ambR,c:ambC,ang:Math.PI,model:'ambulance',paint:'#eef3f7',parked:true,length:2.05,width:.98,height:.88,wheelR:.2,van:true,emergency:'ambulance',stripe:'#1756bd',dirR:0,dirC:-1,velR:0,velC:0,braking:true,serviceKind:'ambulance',serviceState:'medical_response',medicalDoorsOpen:true});
+      if(cars.length>24)cars.length=24;
+      medicalFx.unshift({id:'medical_preview',r,c,ang:phase==='carrying'||phase==='loading'?Math.PI:0,phase,lift,load,bodyVisible,carrying,patientLook:{skin:1,body:2,suit:'#596b7a'},ambulanceR:ambR,ambulanceC:ambC,ambulanceAng:Math.PI});
+      const sideC=.48;for(let slot=0;slot<2;slot++)npcs.push({id:`preview_medic_${slot}`,r,c:c+(slot?sideC:-sideC),ang:phase==='carrying'||phase==='loading'?Math.PI:0,walking,moving:walking,walkPhase:age*.009+slot*Math.PI,role:'medic',visualRole:'civilian',behavior:'ambulance_body_recovery',name:slot?'Врач скорой':'Старший врач',look:{skin:slot+1,body:1,face:slot+1,hair:slot?3:1,hat:0,suit:slot?'#dcecf2':'#e9f4f6'},hp:100,maxHp:100,dead:false,medicCarry:carrying,medicSlot:slot});
+      if(!carrying)npcs.push({id:'preview_ambulance_victim',r:targetR,c:targetC,ang:Math.PI/2,walking:false,moving:false,role:'civilian',visualRole:'civilian',name:'Житель',look:{skin:1,body:2,face:2,hair:4,hat:0,suit:'#596b7a'},hp:0,maxHp:60,dead:true,deadAt:performance.now()-5000});
     }
     const serviceWater=[];
     if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
@@ -59572,6 +59595,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d201"></script>
+<script type="module" src="three_preview.js?v=3d206"></script>
 </body>
 </html>
