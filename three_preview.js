@@ -1,3 +1,4 @@
+// 3D sync v196: pooled wreck fire restores burning cars without dynamic-light shader stalls.
 // 3D sync v195: bounded vehicle explosions, hold-E entry, bounded pets and speed-aware NPC gait.
 // Reversible Three.js city prototype. Canvas stays the default and emergency
 // fallback. The central flag can disable 3D without removing this module.
@@ -1472,6 +1473,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const vehicleFxWarmupSources=[],vehicleFxWarmupActive=[];
       for(const layer of cars[0]?.userData?.bodyHoleLayers||[])vehicleFxWarmupSources.push(layer.mesh);
       explosionPool[0]?.traverse(o=>{if(o.isMesh)vehicleFxWarmupSources.push(o);});
+      firePool[0]?.traverse(o=>{if(o.isMesh)vehicleFxWarmupSources.push(o);});
       // Wrecks reuse the already-uploaded live car shell, so only one reference
       // effect set needs shader warm-up; there is no per-slot wreck upload spike.
       const warmupCar=cars[0];
@@ -1720,7 +1722,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       // palettes. A deliberate offset remains available only for local QA.
       let timeOffset=rendererParams.has('previewtimeoffset')&&rendererParams.has('preview')?Number(rendererParams.get('previewtimeoffset'))||0:0;
       clock.title='Серверное время города';clock.style.cursor='default';
-      const keys=new Set(),bullets=[],reloadDebris=[],vehicleHoldMs=260;let aimPoint=new THREE.Vector3(0,0,-10),lastShot=0,muzzleLife=0,recoilKick=0,recoilSide=1,recoilShotSeq=0,reloadWasActive=false,activeReloadProgress=0,triggerHeld=false,eHoldStarted=0,eHoldTimer=0,eHoldTriggered=false,eHoldVehicleId='',eHoldHasBuilding=false;
+      const keys=new Set(),bullets=[],reloadDebris=[],vehicleHoldMs=170;let aimPoint=new THREE.Vector3(0,0,-10),lastShot=0,muzzleLife=0,recoilKick=0,recoilSide=1,recoilShotSeq=0,reloadWasActive=false,activeReloadProgress=0,triggerHeld=false,eHoldStarted=0,eHoldTimer=0,eHoldTriggered=false,eHoldVehicleId='',eHoldHasBuilding=false;
       const muzzle=new THREE.PointLight(0xffb14a,0,9,2);scene.add(muzzle);
       const triggerVehicleEntry=()=>{if(!eHoldVehicleId)return null;clearTimeout(eHoldTimer);const result=bridge?.activateNearbyVehicle?.(eHoldVehicleId);eHoldTriggered=!!result?.ok;vehicleHoldPrompt.style.display='none';renderer.domElement.dataset.vehicleHold=eHoldTriggered?'complete':`rejected:${result?.reason||'none'}`;if(eHoldTriggered)renderer.domElement.dataset.vehicleAction=result.kind;return result;};
       addEventListener('keydown',e=>{keys.add(e.code);const typing=e.target?.matches?.('input,textarea,select,[contenteditable="true"]');if(e.code==='KeyE'&&!e.repeat&&!typing){const vehicle=bridge?.getNearbyVehicleInteraction?.(),building=bridge?.getNearbyBuildingInteraction?.();eHoldStarted=performance.now();eHoldTriggered=false;eHoldVehicleId=String(vehicle?.id||'');eHoldHasBuilding=!!building;if(vehicle){vehicleHoldPrompt.firstElementChild.textContent=eHoldHasBuilding?'🚪 Короткое E — здание · удержание — машина':'🚗 Удерживайте E — сесть в машину';vehicleHoldPrompt.style.display='block';vehicleHoldFill.style.width='0';renderer.domElement.dataset.vehicleHold=`waiting:${eHoldVehicleId}`;renderer.domElement.dataset.interactionPriority=eHoldHasBuilding?'tap-building-hold-vehicle':'hold-vehicle-only';eHoldTimer=setTimeout(()=>{if(keys.has('KeyE'))triggerVehicleEntry();},vehicleHoldMs);}else renderer.domElement.dataset.interactionPriority=building?'building-only':'none';e.preventDefault();e.stopImmediatePropagation();}else if(e.code==='Escape'&&!typing){bridge?.closeBuildingActions?.();}else if(e.code==='Space'&&!typing){e.preventDefault();e.stopImmediatePropagation();shoot(performance.now());}},true);
@@ -2086,7 +2088,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             // five cars to five unique wreck geometry trees on the explosion
             // frame was the remaining multi-second GPU upload hitch.
             if(wrecked){
-              ux.wreckGroup.visible=false;ux.base.visible=ux.hood.visible=ux.driverDoorPivot.visible=true;
+              ux.wreckGroup.visible=false;ux.paint.color.setHex(0x201a17);ux.base.visible=ux.hood.visible=ux.driverDoorPivot.visible=true;
               ux.cab.visible=!src.cabrio&&!src.pickup;ux.wheelMeshes.forEach(part=>part.visible=true);
               ux.pickupBed.visible=!!src.pickup;ux.cabrioSeats.visible=!!src.cabrio;
               ux.taxiSign.visible=ux.spoiler.visible=ux.roofRack.visible=ux.stripe.visible=false;
@@ -2129,6 +2131,9 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             }
           });
           let visibleVehicleMarks=0;cars.forEach(car=>{const src=car.userData.source;if(!car.visible||!src)return;const wrecked=!src.helicopter&&(!!src.wrecked||Math.max(0,Math.min(1,Number.isFinite(+src.damageRatio)?+src.damageRatio:1))<=0&&!src.destroying);updateVehicleHitMarks(car,src,wrecked);visibleVehicleMarks+=Math.min(10,Array.isArray(src.bulletMarks)?src.bulletMarks.length:+src.bulletHoles||0);});renderer.domElement.dataset.vehicleBulletMarks=String(visibleVehicleMarks);
+          // Apply the light-weight wreck shell after every vehicle visibility
+          // pass; the detailed wreck branch above intentionally hides live parts.
+          for(const car of cars){const src=car.userData.source,ux=car.userData;if(!car.visible||!src)continue;const ratio=Math.max(0,Math.min(1,Number.isFinite(+src.damageRatio)?+src.damageRatio:1)),wrecked=!src.helicopter&&(!!src.wrecked||ratio<=0&&!src.destroying);if(!wrecked)continue;ux.wreckGroup.visible=false;ux.paint.color.setHex(0x201a17);ux.base.visible=ux.hood.visible=ux.driverDoorPivot.visible=true;ux.cab.visible=!src.cabrio&&!src.pickup;ux.wheelMeshes.forEach(part=>part.visible=true);ux.pickupBed.visible=!!src.pickup;ux.cabrioSeats.visible=!!src.cabrio;ux.taxiSign.visible=ux.spoiler.visible=ux.roofRack.visible=ux.stripe.visible=false;ux.fireEquipment.visible=ux.towEquipment.visible=ux.ambulanceRearDoors.visible=false;}
           let crawlingNpcCount=0,limpingNpcCount=0,reactingNpcCount=0,bleedingNpcCount=0;
           citizenPool.forEach((npc,i)=>{
             const src=dynamic.npcs[i];if(!src){npc.hpGroup.visible=false;hideNpcVisual(i);return;}
@@ -2285,6 +2290,8 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           renderer.domElement.dataset.activeExplosionLights='0';
           throwablePool.forEach((item,i)=>{const src=dynamic.throwableFx?.[i];item.visible=!!src;if(!src)return;const molotov=src.kind==='molotov';item.userData.grenade.visible=!molotov;item.userData.bottle.visible=item.userData.wick.visible=molotov;item.position.set((src.c-originC)*WORLD_SCALE,1.2+(+src.height||0)*WORLD_SCALE,(src.r-originR)*WORLD_SCALE);item.rotation.set(src.progress*9,src.progress*13,src.progress*7);item.userData.wick.scale.setScalar(.8+Math.sin(t*.03+i)*.2);});
           firePool.forEach((fire,i)=>{const src=dynamic.fireFx?.[i];fire.visible=!!src;if(!src)return;const lifePct=Math.max(0,Math.min(1,1-src.age/src.life)),seed=+src.seed||i;fire.position.set((src.c-originC)*WORLD_SCALE,.06,(src.r-originR)*WORLD_SCALE);fire.userData.glow.scale.setScalar(.8+lifePct*.65);fire.userData.glow.material.opacity=.16+lifePct*.24;fire.userData.flames.forEach((flame,s)=>{const a=s*2.399+seed,rad=.35+(s%7)*.34,flick=.75+.25*Math.sin(t*.018+s*1.7);flame.position.set(Math.cos(a)*rad,.34+flame.geometry.parameters.height*.45*flick,Math.sin(a)*rad);flame.scale.set(.75+flick*.25,flick, .75+flick*.25);flame.rotation.y=-a;flame.material.opacity=lifePct*.94;});fire.userData.smokes.forEach((smoke,s)=>{const q=((t*.00028+s*.24+seed)%1);smoke.position.set(Math.sin(seed+s*2.1)*.8,1.2+q*4.6,Math.cos(seed+s*1.7)*.8);smoke.scale.setScalar(.5+q*1.35);smoke.material.opacity=(1-q)*lifePct*.28;});});
+          let activeWreckFireFx=0;
+          firePool.forEach((fire,i)=>{const src=dynamic.fireFx?.[i];if(!fire.visible||src?.kind!=='vehicle_wreck')return;activeWreckFireFx++;const seed=+src.seed||i;fire.position.y=.26;fire.userData.glow.scale.setScalar(1.3);fire.userData.glow.material.opacity=.34;fire.userData.flames.forEach((flame,s)=>{const a=s*2.399+seed,rad=.48+(s%7)*.43,flick=.68+.32*Math.sin(t*.019+s*1.71);flame.position.set(Math.cos(a)*rad,.82+(s%4)*.38+flick*.86,Math.sin(a)*Math.min(1.72,rad));flame.scale.set(1.35+flick*.38,2.35+flick*1.35,1.35+flick*.38);flame.rotation.y=-a;flame.material.opacity=.96;});fire.userData.smokes.forEach((smoke,s)=>{const q=(t*.00022+s*.24+seed)%1;smoke.position.set(Math.sin(seed+s*2.1)*1.05,2.15+q*7.2,Math.cos(seed+s*1.7)*1.08);smoke.scale.setScalar(1.05+q*2.35);smoke.material.opacity=(1-q)*.42;});});renderer.domElement.dataset.wreckFireFx=String(activeWreckFireFx);
           const burningActors=dynamic.npcs.filter(x=>x?.burning&&!x.dead).slice(0,burningActorPool.length);burningActorPool.forEach((fire,i)=>{const src=burningActors[i];fire.visible=!!src;if(!src)return;const key=String(src.id??src.uid??dynamic.npcs.indexOf(src)),motion=npcMotionStates.get(key),x=motion?.visualX??(+src.c-originC)*WORLD_SCALE,z=motion?.visualZ??(+src.r-originR)*WORLD_SCALE;fire.position.set(x,.15+(+src.elevation||0)*WORLD_SCALE,z);fire.userData.flames.forEach((flame,s)=>{const a=s*2.31,flick=.72+.28*Math.sin(t*.02+s*1.9);flame.position.set(Math.cos(a)*.34,.6+s*.45,Math.sin(a)*.34);flame.scale.set(.8,flick,.8);flame.material.opacity=.72+.22*flick;});});
           renderer.domElement.dataset.bulletHoles=String(dynamic.bulletHoleFx?.length||0);renderer.domElement.dataset.activeWeaponFx=`p${dynamic.projectiles.length}:m${dynamic.muzzleFx.length}:s${dynamic.shellFx?.length||0}:i${dynamic.impactFx.length}:h${dynamic.bulletHoleFx?.length||0}:x${dynamic.explosionFx.length}:f${dynamic.fireFx?.length||0}`;
         }
