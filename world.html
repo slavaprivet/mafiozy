@@ -8906,7 +8906,10 @@ function _vehicleRoadPassable(r, c) {
   if (inArena(ri, ci)) return false;
   if (inLair(ri, ci)) return false;    // копы/техника не въезжают в логово
   if (!MAP[ri]) return false;
-  return MAP[ri][ci] === 0;
+  // 19 — проезжая часть большого моста через городской канал. Без неё
+  // восточная больница оказывалась в отдельном дорожном графе: скорая могла
+  // забрать пациента, но не могла физически вернуться через мост.
+  return MAP[ri][ci] === 0 || MAP[ri][ci] === 19;
 }
 function _vehicleOffroadPassable(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
@@ -8915,19 +8918,19 @@ function _vehicleOffroadPassable(r, c) {
   if (inLair(ri, ci)) return false;    // транспорт не въезжает в логово
   if (!MAP[ri]) return false;
   const t = MAP[ri][ci];
-  return (t === 0 || t === 9 || t === 8);
+  return (t === 0 || t === 9 || t === 8 || t === 19);
 }
 
 // Ближайший дорожный тайл (тип 0) к точке (r,c) в радиусе до 12.
 function _nearestRoadTile(r, c, maxRadius = 12) {
   const ri = Math.floor(r), ci = Math.floor(c);
-  if (MAP[ri] && MAP[ri][ci] === 0) return { r: ri, c: ci };
+  if (_vehicleRoadPassable(ri+.5,ci+.5)) return { r: ri, c: ci };
   for (let radius = 1; radius <= maxRadius; radius++) {
     for (let dr = -radius; dr <= radius; dr++) {
       for (let dc = -radius; dc <= radius; dc++) {
         if (Math.abs(dr) !== radius && Math.abs(dc) !== radius) continue;
         const rr = ri + dr, cc = ci + dc;
-        if (MAP[rr] && MAP[rr][cc] === 0) return { r: rr, c: cc };
+        if (_vehicleRoadPassable(rr+.5,cc+.5)) return { r: rr, c: cc };
       }
     }
   }
@@ -8958,8 +8961,7 @@ function _bfsRoadPath(startR, startC, goalR, goalC, searchRadius = 12) {
     for (const [dr, dc] of dirs) {
       const nr = r + dr, nc = c + dc;
       if (nr < 1 || nr >= MAP_ROWS - 1 || nc < 1 || nc >= MAP_COLS - 1) continue;
-      if (!MAP[nr] || MAP[nr][nc] !== 0) continue;
-      if (inArena(nr, nc)) continue;
+      if (!_vehicleRoadPassable(nr+.5,nc+.5)) continue;
       const nk = nr * COLS + nc;
       if (cameFrom.has(nk)) continue;
       cameFrom.set(nk, k);
@@ -9451,10 +9453,29 @@ function _cancelAmbulanceCallForPatient(patient){
   for(const v of serviceVehicles){
     if(v?.kind!=='ambulance'||v.payload?.npc!==patient||v.state==='ambulance_parked')continue;
     _releaseFailedAmbulanceCall(v);v.payload={};v._medicalScene=null;v._medicalCrew=[];
-    v.state='returning';_setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
+    _sendAmbulanceToHospital(v,performance.now(),'cancelled-call-return');
   }
 }
-function _completeAmbulanceHospitalDelivery(v,now=performance.now()){
+function _sendAmbulanceToHospital(v,now=performance.now(),reason='patient-loaded'){
+  if(v?.kind!=='ambulance')return false;
+  v.speed=AMBULANCE_RESPONSE_SPEED;v.state='returning';v._lastMoveT=now;
+  v._prevX=v.x;v._prevY=v.y;v._ambulanceReturnStartedAt=now;v._ambulanceReturnMoveObserved=false;
+  v._returnRouteMissingSince=0;v._ambulanceNextReturnRetry=0;
+  _setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
+  if(!v.path?.length)v._returnRouteMissingSince=now;
+  document.documentElement.dataset.ambulanceReturnLast=reason;
+  document.documentElement.dataset.ambulanceReturnState=v.path?.length?'driving':'waiting-for-route';
+  return true;
+}
+function _retryAmbulanceHospitalRoute(v,now=performance.now()){
+  if(v?.kind!=='ambulance'||v.state!=='returning')return false;
+  v.speed=AMBULANCE_RESPONSE_SPEED;
+  _setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
+  v._ambulanceNextReturnRetry=now+AMBULANCE_ROUTE_RETRY_MS;
+  if(v.path?.length){v._returnRouteMissingSince=0;document.documentElement.dataset.ambulanceReturnState='route-restored';return true;}
+  v._returnRouteMissingSince||=now;document.documentElement.dataset.ambulanceReturnState='waiting-for-route';return false;
+}
+function _completeAmbulanceHospitalDelivery(v,now=performance.now(),mode='road-arrival'){
   const patient=v?.payload?.npc;
   if(patient?._ambulanceInTransit){
     if(patient._medicalDowned&&!patient.dead){
@@ -9467,6 +9488,10 @@ function _completeAmbulanceHospitalDelivery(v,now=performance.now()){
     patient._ambulanceInTransit=false;patient._carriedByAmbulance=false;patient._ambulanceLoading=false;
     patient._ambulanceDispatched=false;patient._evacuated=true;patient._evacuatedAt=now;patient._ambulanceDeliveredAt=now;
     _ambulanceDeliveryCount++;document.documentElement.dataset.ambulanceHospitalDeliveries=String(_ambulanceDeliveryCount);
+    const road=mode==='road-arrival'&&v._ambulanceReturnMoveObserved===true,key=road?'ambulanceHospitalRoadDeliveries':'ambulanceHospitalEmergencyDeliveries';
+    document.documentElement.dataset[key]=String((+document.documentElement.dataset[key]||0)+1);
+    document.documentElement.dataset.ambulanceHospitalLastMode=road?'road-arrival':mode;
+    document.documentElement.dataset.ambulanceReturnState=road?'parked-after-road-arrival':`parked-after-${mode}`;
   }
   v.payload={};v._medicalScene=null;v._medicalCrew=[];v.path=[];v.pathIdx=0;v.finalTarget=null;
   v.x=v.homeC;v.y=v.homeR;v.speed=0;v.state='ambulance_parked';v._lastMoveT=now;v._sceneNearSince=0;
@@ -9478,7 +9503,7 @@ function _ambulanceWatchdogAdvance(v,now=performance.now(),reason='stuck'){
   document.documentElement.dataset.ambulanceWatchdogTeleports=String(_ambulanceWatchdogCount);
   document.documentElement.dataset.ambulanceWatchdogLast=reason;
   if(v.state==='returning'&&v.payload?.npc?._ambulanceInTransit){
-    _completeAmbulanceHospitalDelivery(v,now);
+    _completeAmbulanceHospitalDelivery(v,now,`watchdog:${reason}`);
     return true;
   }
   if(v.state==='go_to_scene'){
@@ -9815,6 +9840,11 @@ function updateServiceVehicles(dt) {
       const moved = Math.hypot(v.x - px, v.y - py);
       if (moved > 0.04 || v.state === 'working' || v.state === 'medical_response' ||
           v.state === 'siege') v._lastMoveT = now;
+      if(v.kind==='ambulance'&&v.state==='returning'&&moved>0.04){
+        v._ambulanceReturnMoveObserved=true;
+        document.documentElement.dataset.ambulanceReturnState='driving';
+        document.documentElement.dataset.ambulanceReturnMoves=String((+document.documentElement.dataset.ambulanceReturnMoves||0)+1);
+      }
     } else {
       v._lastMoveT = now;
     }
@@ -9901,8 +9931,7 @@ function updateServiceVehicles(dt) {
       }
     } else if (v.state === 'medical_response') {
       if (_updateAmbulanceBodyCrew(v, dt, now)) {
-        v.state = 'returning';
-        _setVehicleRoute(v, v.y, v.x, v.homeR, v.homeC);
+        _sendAmbulanceToHospital(v,now,'patient-loaded');
       }
     } else if (v.state === 'working') {
       if(v.kind==='firetruck'){
@@ -9947,6 +9976,14 @@ function updateServiceVehicles(dt) {
       v.state = 'returning';
       _setVehicleRoute(v, v.y, v.x, v.homeR, v.homeC);
     } else if (v.state === 'returning') {
+      if(v.kind==='ambulance'&&(!v.path||v.path.length===0)){
+        v._returnRouteMissingSince||=now;
+        if(now>=(+v._ambulanceNextReturnRetry||0)&&_retryAmbulanceHospitalRoute(v,now))continue;
+        if(now-v._returnRouteMissingSince>=AMBULANCE_ROUTE_GRACE_MS){
+          if(_ambulanceWatchdogAdvance(v,now,'hospital-no-connected-road'))continue;
+        }
+        continue;
+      }
       // Эвакуатор с гружёной машиной — машина «едет» на платформе за кабиной.
       if (v.kind === 'tow' && v._loaded && v.payload.carRef) {
         const cr = v.payload.carRef;
@@ -9955,7 +9992,7 @@ function updateServiceVehicles(dt) {
         cr._towLoadingProgress=1;
       }
       if (_vehicleStep(v, dt)) {
-        if(v.kind==='ambulance'){_completeAmbulanceHospitalDelivery(v,now);continue;}
+        if(v.kind==='ambulance'){_completeAmbulanceHospitalDelivery(v,now,'road-arrival');continue;}
         // Доехал до депо. Эвакуатор увёз машину «за карту» → удаляем из
         // CARS и доспавниваем свежую (трафик не редеет, машины не
         // пропадают навсегда).
@@ -10015,7 +10052,7 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.ambulanceMedicsDeployed=String(fleet.reduce((sum,v)=>sum+(v._medicalCrew||[]).filter(m=>m.visible).length,0));
   document.documentElement.dataset.ambulanceParkingDistances=fleet.filter(v=>v.payload?.npc&&Number.isFinite(+v.sceneParkingR)).map(v=>Math.hypot(v.sceneParkingR-(v.payload.npc.r??v.payload.npc.y),v.sceneParkingC-(v.payload.npc.c??v.payload.npc.x)).toFixed(2)).join(',')||'idle';
   document.documentElement.dataset.ambulanceFieldRevives='0';
-  document.documentElement.dataset.ambulanceRecoveryPolicy='route-retry-arrival-guard-stretcher-lock-hospital-v225';
+  document.documentElement.dataset.ambulanceRecoveryPolicy='full-outbound-load-moving-road-return-with-retry-v227';
 
   // Пляжники живут в отдельной Map и не входят в NPCS — им нужен свой вызов.
   for (const b of beachgoers.values()) {
@@ -60106,6 +60143,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d226"></script>
+<script type="module" src="three_preview.js?v=3d227"></script>
 </body>
 </html>
