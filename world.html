@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 3D sync v195: bounded vehicle explosions, hold-E entry, bounded pets, and speed-aware NPC gait. -->
 <!-- 3D sync v193: collision props and vehicle effects are instanced/shared; explosion and wreck lights are bounded after a five-car stress test. -->
 <!-- 3D sync v191: vehicle hits use bounded NPC reactions; chain explosions are staggered to prevent shot-time frame stalls. -->
 <!-- 3D sync v190: ordinary buildings use stable glass, brick, limestone, concrete, art-deco and industrial architecture families without changing collisions. -->
@@ -9666,8 +9667,9 @@ function dispatchEmergencyServices() {
 // Бегают по тротуарам как маленькие NPC. Иногда «Гав!» / «Мяу!».
 // Убивать нельзя — пули проходят сквозь (нет коллизии с raycast).
 const PETS = [];
-const PETS_TARGET = 10;
-const PETS_HARD_CAP = 10;
+const PETS_TARGET = 8;
+const PETS_HARD_CAP = 8;
+const PETS_CAT_CAP = 4;
 let _petsInitialized = false;
 let _petIdSeq = 0;
 let _petsLastIntegrityAt = 0;
@@ -9683,7 +9685,10 @@ function _spawnPet() {
     const dr = r - player.r, dc = c - player.c;
     if (Math.hypot(dr, dc) < 18) continue;
     if (PETS.some(p => p && Math.hypot(p.r-(r+.5), p.c-(c+.5)) < 7)) continue;
-    const isDog = Math.random() < 0.55;
+    const catCount = PETS.reduce((count, pet) => count + (pet?.kind === 'cat' ? 1 : 0), 0);
+    // Cats and dogs share one persistent pool. A separate cat ceiling prevents
+    // repeated recovery spawns from turning the whole city into cat clones.
+    const isDog = catCount >= PETS_CAT_CAP || Math.random() < 0.62;
     const colors = isDog
       ? ['#8a6a44', '#3a2818', '#d0a878', '#5a3018', '#c0c0c0']
       : ['#1a1a1a', '#d8d8d8', '#a08050', '#f0c878', '#5a4030'];
@@ -9724,19 +9729,43 @@ function initPets() {
     const p = _spawnPet();
     if (p) { _pickPetWaypoint(p); PETS.push(p); }
   }
+  if (_LOCAL_PREVIEW && _UP.has('previewpetstress')) {
+    const seed=PETS[0];
+    if(seed)for(let i=0;i<18;i++)PETS.push({...seed,id:i<3?seed.id:`qa_cat_${i}`,kind:'cat'});
+    _normalizePetPopulation();
+  }
 }
 let _petsLastSpawnAt = 0;
+function _normalizePetPopulation() {
+  const seen = new Set(), kept = [];
+  let cats = 0;
+  for (const pet of PETS) {
+    if (!pet || !pet.id || seen.has(pet.id)) continue;
+    if (!Number.isFinite(+pet.r) || !Number.isFinite(+pet.c)) continue;
+    if (pet.kind === 'cat') {
+      if (cats >= PETS_CAT_CAP) continue;
+      cats++;
+    }
+    seen.add(pet.id);
+    kept.push(pet);
+    if (kept.length >= PETS_HARD_CAP) break;
+  }
+  if (kept.length !== PETS.length || kept.some((pet, i) => pet !== PETS[i])) {
+    PETS.length = 0;
+    PETS.push(...kept);
+  }
+  return cats;
+}
 function updatePets(dt) {
   const now = performance.now();
   // Defensive integrity pass. Hot reloads, duplicate startup callbacks or a
   // malformed snapshot must never grow the ambient animal collection.
   if(now-_petsLastIntegrityAt>1000){
     _petsLastIntegrityAt=now;
-    const seen=new Set();
-    for(let i=PETS.length-1;i>=0;i--){const pet=PETS[i];if(!pet||seen.has(pet.id)){PETS.splice(i,1);continue;}seen.add(pet.id);}
-    if(PETS.length>PETS_HARD_CAP)PETS.splice(PETS_HARD_CAP);
+    const cats=_normalizePetPopulation(),canvas=document.getElementById('threePreview');
+    if(canvas){canvas.dataset.petPoolTotal=String(PETS.length);canvas.dataset.petPoolCats=String(cats);canvas.dataset.petPoolUnique=String(new Set(PETS.map(p=>p.id)).size);}
   }
-  if (PETS.length < PETS_TARGET && now - _petsLastSpawnAt > 3000) {
+  if (PETS.length < PETS_TARGET && now - _petsLastSpawnAt > 8000) {
     _petsLastSpawnAt = now;
     const p = _spawnPet();
     if (p) { _pickPetWaypoint(p); PETS.push(p); }
@@ -9771,6 +9800,21 @@ function updatePets(dt) {
       pet._wayUntil = 0;
     }
   }
+}
+if (_LOCAL_PREVIEW) {
+  window.MafioziPetDiagnostics = Object.freeze({
+    snapshot() {
+      return { total:PETS.length, cats:PETS.filter(p=>p?.kind==='cat').length,
+        uniqueIds:new Set(PETS.map(p=>p?.id).filter(Boolean)).size,
+        hardCap:PETS_HARD_CAP, catCap:PETS_CAT_CAP };
+    },
+    stress() {
+      const seed=PETS[0]||{r:player.r+20,c:player.c+20,tr:player.r+20,tc:player.c+20,ang:0,walkPhase:0,speed:1,_wayUntil:0,cryUntil:0,cryText:'',_color:'#777'};
+      for(let i=0;i<18;i++)PETS.push({...seed,id:i<3?seed.id:`qa_cat_${i}`,kind:'cat'});
+      _normalizePetPopulation();
+      return this.snapshot();
+    }
+  });
 }
 function drawPet(pet) {
   const sp = w2s(pet.r, pet.c);
@@ -13168,24 +13212,34 @@ function selectVehicleFromCanvasTap(x, y, hitRadius = 48) {
   return true;
 }
 
+const THREE_VEHICLE_DETECT_R = 4.1;
+const THREE_VEHICLE_PREFERRED_R = 5.2;
+function _ensureThreePreviewDriveCar() {
+  if (!_LOCAL_PREVIEW || !_UP.has('previewdrive') || window.__threePreviewDrivePlaced) return null;
+  const demo=CARS.find(car=>car?.model&&!['cop_cruiser','paddyvan','swat_truck'].includes(car.model?.name||''));
+  if(!demo)return null;
+  demo.r=player.r+1.15;demo.c=player.c+.15;demo.vr=0;demo.vc=0;demo.parked=false;
+  window.__threePreviewDrivePlaced=true;
+  return demo;
+}
 function activateNearbyVehicleFrom3D(preferredId='') {
   if (_buildingInt || _bankInt || myDead) return {ok:false,reason:'unavailable'};
   if (_threeVehicleEntrySequence) return {ok:true,kind:'vehicle_entering'};
-  if(_LOCAL_PREVIEW&&_UP.has('previewdrive')&&!window.__threePreviewDrivePlaced){const demo=CARS.find(car=>car?.model&&!['cop_cruiser','paddyvan','swat_truck'].includes(car.model?.name||''));if(demo){demo.r=player.r+1.15;demo.c=player.c+.15;demo.vr=0;demo.vc=0;demo.parked=false;window.__threePreviewDrivePlaced=true;}}
+  _ensureThreePreviewDriveCar();
   // E also exits the current car, matching the same contextual GTA action.
   if (myDrivingCarId) {
     updateGtaInteractions();
     if (_gtaActionKind === 'exit') {_gtaBtn.click();return {ok:true,kind:'vehicle_exit'};}
     return {ok:false,reason:'driving'};
   }
-  let best=null,bestD=Math.max(GTA_INTERACT_R+.15,3.25);
+  let best=null,bestD=Math.max(GTA_INTERACT_R+.15,THREE_VEHICLE_DETECT_R);
   const lockedId=String(preferredId||'');
   if(lockedId.startsWith('quest_')){
     const id=lockedId.slice(6),car=questCars.get(id),d=car?Math.hypot(+car.y-player.r,+car.x-player.c):Infinity;
-    if(_vehicleCanBeEntered(car)&&Number.isFinite(d)&&d<4.5){bestD=d;best={kind:'quest',id};}
+    if(_vehicleCanBeEntered(car)&&Number.isFinite(d)&&d<THREE_VEHICLE_PREFERRED_R){bestD=d;best={kind:'quest',id};}
   }else if(lockedId){
     const car=CARS.find(q=>q&&_threeVehicleEntityId(q)===lockedId),d=car?Math.hypot(+car.r-player.r,+car.c-player.c):Infinity;
-    if(_vehicleCanBeEntered(car)&&car.model&&Number.isFinite(d)&&d<4.5){bestD=d;best={kind:'traffic',car};}
+    if(_vehicleCanBeEntered(car)&&car.model&&Number.isFinite(d)&&d<THREE_VEHICLE_PREFERRED_R){bestD=d;best={kind:'traffic',car};}
   }
   const preferredMatched=!!best;
   for(const car of questCars.values()){
@@ -13208,7 +13262,8 @@ function activateNearbyVehicleFrom3D(preferredId='') {
 
 function getNearbyVehicleInteractionFor3D() {
   if (_buildingInt || _bankInt || myDead || myDrivingCarId || _threeVehicleEntrySequence) return null;
-  let best=null,bestD=Math.max(GTA_INTERACT_R+.15,3.25);
+  _ensureThreePreviewDriveCar();
+  let best=null,bestD=Math.max(GTA_INTERACT_R+.15,THREE_VEHICLE_DETECT_R);
   for(const car of questCars.values()){
     if(!_vehicleCanBeEntered(car)||!Number.isFinite(+car.x)||!Number.isFinite(+car.y))continue;
     const d=Math.hypot(+car.y-player.r,+car.x-player.c);if(d<bestD){bestD=d;best={id:`quest_${car.id}`,kind:'enter',r:+car.y,c:+car.x,distance:d};}
@@ -20919,13 +20974,14 @@ function _beginThreeVehicleEntry(car, kind, done) {
   if(kind==='traffic'){car.vr=0;car.vc=0;car._hijackPending=performance.now();}
   player.r=r+Math.cos(ang)*.7;player.c=c-Math.sin(ang)*.7;player.ang=ang;player.walking=false;
   const token=`entry_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
-  _threeVehicleEntrySequence={token,vehicleId:_threeVehicleEntryId(car,kind),r,c,ang,startedAt:performance.now(),duration:1050,kind};
-  showToast(kind==='traffic'?'🚗 Открываю дверь — угоняем…':'🚗 Открываю дверь — садимся…','🚪',1300);
+  const duration=620;
+  _threeVehicleEntrySequence={token,vehicleId:_threeVehicleEntryId(car,kind),r,c,ang,startedAt:performance.now(),duration,kind};
+  showToast(kind==='traffic'?'🚗 Открываю дверь — угоняем…':'🚗 Открываю дверь — садимся…','🚪',800);
   setTimeout(()=>{
     if(_threeVehicleEntrySequence?.token!==token)return;
     _threeVehicleEntryBypass=true;
     try{done();}finally{_threeVehicleEntryBypass=false;_threeVehicleEntrySequence=null;}
-  },1050);
+  },duration);
   return true;
 }
 function playEnterCarAnim(r, c) {
@@ -25572,9 +25628,20 @@ function _raycastDamageableCar(sr,sc,dirY,dirX,maxDist){
 }
 const CAR_GUN_DESTRUCTION_DELAY=1550;
 const CAR_CHAIN_BLAST_RADIUS=5.2,CAR_CHAIN_LETHAL_RADIUS=2.85,
-      CAR_CHAIN_MAX_TARGETS=6,CAR_CHAIN_MAX_EXPLOSIONS=9,
-      CAR_CHAIN_WAVE_GAP=620;
+      CAR_CHAIN_MAX_TARGETS=5,CAR_CHAIN_MAX_EXPLOSIONS=4,
+      CAR_CHAIN_WAVE_GAP=760,CAR_EXPLOSION_VISUAL_CAP=4;
 let _carChainSerial=0;
+const _carExplosionDiag={calls:0,deduped:0,totalMs:0,maxMs:0,audioMs:0,chainMs:0};
+function _publishCarExplosionDiagnostics(){
+  const root=document.documentElement;
+  root.dataset.carExplosionCalls=String(_carExplosionDiag.calls);
+  root.dataset.carExplosionDuplicateDrops=String(_carExplosionDiag.deduped);
+  root.dataset.carExplosionCostMs=_carExplosionDiag.totalMs.toFixed(2);
+  root.dataset.carExplosionMaxCostMs=_carExplosionDiag.maxMs.toFixed(2);
+  root.dataset.carExplosionAudioMs=_carExplosionDiag.audioMs.toFixed(2);
+  root.dataset.carExplosionChainMs=_carExplosionDiag.chainMs.toFixed(2);
+  root.dataset.carExplosionVisuals=String(explosionBursts.length);
+}
 function _startCarGunDestruction(hit,car,delay=CAR_GUN_DESTRUCTION_DELAY,chainContext=null){
   if(!car||car._destroySequenceAt||car._shotWrecked||car._explosionT)return;
   const maxSequenceDelay=chainContext?7000:2200;
@@ -39780,11 +39847,17 @@ const WEAPON_FX = {
   taser:        { cd:1.25, sound:_preparedShot('taser'),
                   color:'#58ddff', recoil:.45, shake:.7, tip:17, spread:0 },
 };
+const _weaponFxCache = new Map();
 function weaponFx(w) {
   const key = resolveWeapon(w);
   // Звук остаётся в WEAPON_FX, а весь игровой баланс берётся из единого
   // WEAPON_FX_CFG. Порядок важен: профиль перекрывает старые дубли чисел.
-  return Object.assign({}, WEAPON_FX[key] || WEAPON_FX.pistol, weaponProfile(key));
+  let fx = _weaponFxCache.get(key);
+  if (!fx) {
+    fx = Object.freeze(Object.assign({}, WEAPON_FX[key] || WEAPON_FX.pistol, weaponProfile(key)));
+    _weaponFxCache.set(key, fx);
+  }
+  return fx;
 }
 function weaponCd(w) { return weaponProfile(w).cd || 0.4; }
 // Backwards-compat: оставить WEAPON_CD как алиас (старый код мог читать)
@@ -40022,16 +40095,24 @@ function _applyCarExplosionChain(wr,wc,sourceCar,chainContext=null){
 // Взрыв машины — мощный «мясной» эффект: 36 искр + чёрный круг копоти
 // + бочка дыма. Переиспользуем impacts/bloodSplats.
 function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true, chainContext = null) {
-  const explosionNow = performance.now();
-  if(car&&car._explosionT&&explosionNow-car._explosionT<3500)return false;
+  const startedAt=performance.now(),explosionNow=startedAt;
+  _carExplosionDiag.calls++;
+  if(car&&car._explosionT&&explosionNow-car._explosionT<3500){
+    _carExplosionDiag.deduped++;_publishCarExplosionDiagnostics();return false;
+  }
   // Запоминаем время взрыва на объекте машины — нужно для ударной волны
   if (car) {
     car._explosionT = explosionNow;
     car._wreckedAt = car._explosionT;
     car._hoodBurning = !car._burnedOut;
   }
+  const audioStarted=performance.now();
   if(playSound&&Math.hypot(wr-player.r,wc-player.c)<18)try{_explosionSound('blast')}catch(e){}
-  _capArr(explosionBursts, 10);
+  _carExplosionDiag.audioMs=performance.now()-audioStarted;
+  for(let i=explosionBursts.length-1;i>=0;i--){
+    const fx=explosionBursts[i];if(!fx||explosionNow-(+fx.born||0)>=Math.max(1,+fx.life||1850))explosionBursts.splice(i,1);
+  }
+  _capArr(explosionBursts, CAR_EXPLOSION_VISUAL_CAP);
   explosionBursts.push({r:wr,c:wc,born:explosionNow,life:1850,seed:Math.random()*1000,kind:'vehicle'});
   const pooled3D=_usesPooled3DFx();
   if(!pooled3D){
@@ -40090,7 +40171,12 @@ function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true, chai
       });
     }
   }
+  const chainStarted=performance.now();
   if(car)_applyCarExplosionChain(wr,wc,car,chainContext);
+  _carExplosionDiag.chainMs=performance.now()-chainStarted;
+  _carExplosionDiag.totalMs=performance.now()-startedAt;
+  _carExplosionDiag.maxMs=Math.max(_carExplosionDiag.maxMs,_carExplosionDiag.totalMs);
+  _publishCarExplosionDiagnostics();
   return true;
 }
 
@@ -55370,8 +55456,8 @@ window.Mafiozi3DBridge = Object.freeze({
       dirR:+x.dirDy||0,dirC:+x.dirDx||0,velR:+x.vr||0,velC:+x.vc||0,braking:!!x.braking,turning:!!x._turningAtIntersection,
       damageRatio:Number.isFinite(x._ballisticHp)?Math.max(0,x._ballisticHp/Math.max(1,x._ballisticMax||240)):1,
       bulletHoles:+x._bulletHoleCount||0,bulletMarks:x._threeBulletMarks||[],hitAge:fxNow-(+x._lastCarHitAt||0),smoking:!!x._hoodSmoking,burning:!!x._hoodBurning,wrecked:!!(x._shotWrecked||x._wrecked),
-      destroying:!!x._destroySequenceAt,destroyAge:x._destroySequenceAt?Math.max(0,performance.now()-x._destroySequenceAt):0,destroyDelay:+x._destroySequenceDelay||CAR_GUN_DESTRUCTION_DELAY,
-      burnedOut:!!x._burnedOut,wreckAge:x._explosionT?Math.max(0,performance.now()-x._explosionT):99999,
+      destroying:!!x._destroySequenceAt,destroyAge:x._destroySequenceAt?Math.max(0,fxNow-x._destroySequenceAt):0,destroyDelay:+x._destroySequenceDelay||CAR_GUN_DESTRUCTION_DELAY,
+      burnedOut:!!x._burnedOut,wreckAge:x._explosionT?Math.max(0,fxNow-x._explosionT):99999,
     };});
     if(_LOCAL_PREVIEW&&_UP.has('previewwreck')&&cars[0]){
       Object.assign(cars[0],{r:player.r+2.8,c:player.c+1.1,dirR:0,dirC:1,velR:0,velC:0,parked:true,
@@ -55472,7 +55558,7 @@ window.Mafiozi3DBridge = Object.freeze({
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp,maxHp,
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||x.gangName||x.faction||'',faction:x.faction||x.gangFaction||'',
       gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,
-      burning:!!x.burning||performance.now()<(+x._burnUntil||0),hitAt:combatFx.hitAt,bleeding:combatFx.bleeding,bleedSeverity:combatFx.bleedSeverity,
+      burning:!!x.burning||fxNow<(+x._burnUntil||0),hitAt:combatFx.hitAt,bleeding:combatFx.bleeding,bleedSeverity:combatFx.bleedSeverity,
       bloodDirR:+x._bloodDirR||0,bloodDirC:+x._bloodDirC||1,
       severMask:+x._severMask||0,forcedCrawl:!!x._forcedCrawl,
       medicCarry:!!x._medicCarry,medicSlot:+x._medicSlot||0,
@@ -55506,7 +55592,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
     const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&(x.parts||[]).some(p=>(+p.life||0)>0)&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
-    const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,heavy:!!x.heavy,age:performance.now()-(+x.born||performance.now())}));
+    const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,heavy:!!x.heavy,age:fxNow-(+x.born||fxNow)}));
     const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&(+x.life||0)>0&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail,soot:!!x._isSoot,crater:!!x._isCrater}));
     const goreFx=(typeof bodyPartFx!=='undefined'?bodyPartFx:[]).filter(x=>x&&fxNow-(+x.born||fxNow)<Math.max(1,+x.life||8000)&&near(+x.r||0,+x.c||0)).slice(-12).map(x=>({
       id:String(x.id||''),r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,
@@ -55531,7 +55617,7 @@ window.Mafiozi3DBridge = Object.freeze({
       const count=Math.max(1,Math.min(8,+_UP.get('previewwrecks')||5));for(let i=0;i<Math.min(count,cars.length);i++){const age=(performance.now()+i*260)%5200;if(age<1850)explosionFx.unshift({r:cars[i].r,c:cars[i].c,age,life:1850,seed:170+i*37,kind:'vehicle'});}
     }
     const throwableFx=(typeof _thrownItems!=='undefined'?_thrownItems:[]).filter(x=>x&&!x.exploded).slice(0,8).map((x,i)=>{const p=Math.max(0,Math.min(1,(performance.now()-(+x.start||0))/(+x.flight||720)));return {id:i,kind:x.kind||'grenade',r:(+x.fromR||0)+((+x.toR||0)-(+x.fromR||0))*p,c:(+x.fromC||0)+((+x.toC||0)-(+x.fromC||0))*p,height:Math.sin(Math.PI*p)*3.8,progress:p};});
-    const fireFx=(typeof _firePools!=='undefined'?_firePools:[]).filter(x=>x&&performance.now()<+x.until&&near(+x.r||0,+x.c||0)).slice(0,12).map(x=>({r:+x.r||0,c:+x.c||0,age:performance.now()-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2}));
+    const fireFx=(typeof _firePools!=='undefined'?_firePools:[]).filter(x=>x&&fxNow<+x.until&&near(+x.r||0,+x.c||0)).slice(0,12).map(x=>({r:+x.r||0,c:+x.c||0,age:fxNow-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2}));
     const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||''});}
     const objects=[];
     const addObject=(kind,id,r,c,label,color,extra={})=>{
@@ -55598,6 +55684,28 @@ window.Mafiozi3DBridge = Object.freeze({
 });
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
 if(_LOCAL_PREVIEW&&_UP.get('threebusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInterior(_UP.get('threebusiness')),900);
+if(_LOCAL_PREVIEW&&_UP.has('previewcarexplosion'))setTimeout(()=>{
+  const requested=Math.max(1,Math.min(6,+_UP.get('previewcarexplosion')||5));
+  const qaCars=CARS.filter(car=>car?.model&&!car.model?.helicopter).slice(0,requested);
+  const now=performance.now();
+  qaCars.forEach((car,i)=>{
+    const a=i*Math.PI*2/Math.max(1,qaCars.length),radius=i?2.15+(i%2)*.28:0;
+    car.r=player.r+Math.sin(a)*radius;car.c=player.c+Math.cos(a)*radius;
+    car.vr=car.vc=car.vx=car.vy=0;car.parked=true;
+    car._destroySequenceAt=car._shotWrecked=car._explosionT=car._wrecked=car.wrecked=0;
+    car._ballisticHp=car._ballisticMax=240;car._hoodBurning=car._hoodSmoking=false;
+  });
+  document.documentElement.dataset.carExplosionQa=`armed:${qaCars.length}`;
+  if(qaCars[0]){
+    const source=qaCars[0];source._shotWrecked=source._wrecked=source.wrecked=true;source._wreckedAt=now;
+    spawnCarExplosion(source.r,source.c,source,true,true,null);
+    document.documentElement.dataset.carExplosionQa=`running:${qaCars.length}`;
+  }
+},Math.max(3200,Math.min(12000,+_UP.get('previewcarexplosiondelay')||3200)));
+if(_LOCAL_PREVIEW&&_UP.has('previewholdetest'))setTimeout(()=>{
+  window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyE',key:'e',bubbles:true}));
+  setTimeout(()=>window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyE',key:'e',bubbles:true})),420);
+},4800);
 
 // При сворачивании Telegram WebApp / переключении вкладок браузер
 // замораживает requestAnimationFrame. После возврата мог остаться
@@ -59325,6 +59433,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d193"></script>
+<script type="module" src="three_preview.js?v=3d195"></script>
 </body>
 </html>
