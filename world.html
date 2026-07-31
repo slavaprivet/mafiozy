@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
 <!-- 3D sync v198: native-sharp rendering, dramatic pooled explosions, black burning wrecks, bridge details, bullets and wall impacts. -->
 <!-- 3D sync v198: Brigadir contracts recover their target flow; contextual dialogue and dossier presentation are synchronized. -->
@@ -10532,9 +10533,9 @@ function _npcEffectiveSpeed(n) {
   const fearK = 1 + (n._fear || 0) * 0.5;       // страх: до +50% (торопится)
   const maxHp = Math.max(1, +(n.max_hp || n.maxHp || 100));
   const hpRatio = Math.max(0, Math.min(1, +(n.hp ?? maxHp) / maxHp));
-  const injuryK = n._forcedCrawl || (hpRatio > 0 && hpRatio <= .18) ? .24 :
-    (hpRatio <= .35 ? .58 : 1);
-  return n.speed * fatK * fearK * injuryK;
+  const crawling=!!n._forcedCrawl||((+n._severMask||0)&12)!==0;
+  const injuryK = crawling ? .1 : (hpRatio > 0 && hpRatio <= .35 ? .52 : 1);
+  return n.speed * fatK * (crawling ? 1 : fearK) * injuryK;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -10738,9 +10739,9 @@ function updateNpcs(dt) {
       const awayR=n.r-(Number.isFinite(n.panicSrcR)?n.panicSrcR:player.r);
       const awayC=n.c-(Number.isFinite(n.panicSrcC)?n.panicSrcC:player.c);
       const awayLen=Math.hypot(awayR,awayC)||1;
-      const crawlStep=Math.max(.12,(n.speed||.8)*.22)*dt;
+      const crawlStep=Math.max(.035,(n.speed||.8)*.075)*dt;
       const nr=n.r+awayR/awayLen*crawlStep,nc=n.c+awayC/awayLen*crawlStep;
-      if(_npcBodyPassable(nr,nc)){n.r=nr;n.c=nc;n.ang=Math.atan2(awayR,awayC);n.walking=true;n.walkPhase+=dt*2.8;}
+      if(_npcBodyPassable(nr,nc)){n.r=nr;n.c=nc;n.ang=Math.atan2(awayR,awayC);n.walking=true;n.walkPhase+=dt*.85;}
       else n.walking=false;
       n.tr=n.r;n.tc=n.c;
       if(now>=(n._nextDownedBloodAt||0)){
@@ -55628,7 +55629,8 @@ window.Mafiozi3DBridge = Object.freeze({
       severMask:+x._severMask||0,forcedCrawl:!!x._forcedCrawl,
       medicCarry:!!x._medicCarry,medicSlot:+x._medicSlot||0,
     };});
-    if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const npc of npcs.slice(0,8))if(!npc.dead){npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.walking=true;}
+    if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const [j,npc] of npcs.slice(0,8).entries())if(!npc.dead){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*3.8;npc.c=player.c+Math.cos(a)*3.8;npc.ang=a;npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.forcedCrawl=false;npc.severMask=0;npc.walking=true;}
+    if(_LOCAL_PREVIEW&&_UP.has('previewcrawl')){const npc=npcs.find(x=>!x.dead);if(npc){npc.r=player.r+2.8;npc.c=player.c+1.4;npc.ang=-2.68;npc.hp=Math.min(npc.hp,npc.maxHp*.04);npc.forcedCrawl=true;npc.walking=true;}}
     // Browser-only animation QA. It never changes the authoritative NPC and
     // lets the renderer exercise a complete fresh-death -> fallen lifecycle.
     if(_LOCAL_PREVIEW&&_UP.has('previewdeath')){
@@ -59530,6 +59532,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d199"></script>
+<script type="module" src="three_preview.js?v=3d200"></script>
 </body>
 </html>
