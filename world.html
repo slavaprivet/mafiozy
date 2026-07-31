@@ -8853,6 +8853,8 @@ const serviceVehicles = [];
 let _svcVehId = 0;
 let _playerEmergencyPatient=null;
 const AMBULANCES_PER_HOSPITAL=3,AMBULANCE_FLEET_SIZE=6,AMBULANCE_RESPONSE_SPEED=8.6;
+const AMBULANCE_ROUTE_RETRY_MS=900,AMBULANCE_ROUTE_GRACE_MS=5200;
+const AMBULANCE_DEPLOY_PARKING_TOLERANCE=1.6,AMBULANCE_DEPLOY_MAX_PATIENT_DISTANCE=7.25;
 let _ambulanceDeliveryCount=0;
 let _ambulanceWatchdogCount=0;
 let _ambulanceHospitalRecoveryCount=0;
@@ -9192,7 +9194,7 @@ function _setVehicleRoute(v, fromR, fromC, toR, toC) {
   v.finalTarget = { x: sceneC, y: sceneR };
 }
 
-function _ambulanceSceneParking(targetR,targetC,fromR,fromC){
+function _ambulanceSceneParking(targetR,targetC,fromR,fromC,excludeVehicle=null){
   const candidates=[];
   const tr=Math.floor(targetR),tc=Math.floor(targetC);
   for(let dr=-7;dr<=7;dr++)for(let dc=-7;dc<=7;dc++){
@@ -9200,7 +9202,7 @@ function _ambulanceSceneParking(targetR,targetC,fromR,fromC){
     if(d<2.8||d>6.4||!_vehicleRoadPassable(r,c))continue;
     let occupied=false;
     if(typeof CARS!=='undefined'&&Array.isArray(CARS))occupied=CARS.some(car=>car&&!car._towed&&Math.hypot((+car.r||0)-r,(+car.c||0)-c)<1.65);
-    if(!occupied)occupied=serviceVehicles.some(other=>other?.state!=='done'&&Math.hypot((+other.y||0)-r,(+other.x||0)-c)<1.65);
+    if(!occupied)occupied=serviceVehicles.some(other=>other!==excludeVehicle&&other?.state!=='done'&&Math.hypot((+other.y||0)-r,(+other.x||0)-c)<1.65);
     if(occupied)continue;
     candidates.push({r,c,score:Math.abs(d-3.8)*3+Math.hypot(r-fromR,c-fromC)*.025});
   }
@@ -9216,11 +9218,38 @@ function spawnAmbulance(targetR, targetC, npc) {
   const v=fleet.filter(v=>v.state==='ambulance_parked').sort((a,b)=>Math.hypot(a.y-targetR,a.x-targetC)-Math.hypot(b.y-targetR,b.x-targetC))[0];
   if(!v)return null;
   const parking=_ambulanceSceneParking(targetR,targetC,v.y,v.x);
+  const now=performance.now();
   v.payload={npc};v.speed=AMBULANCE_RESPONSE_SPEED;v.state='go_to_scene';v.workUntil=0;
   v.sceneParkingR=parking.r;v.sceneParkingC=parking.c;v._sceneNearSince=0;
-  v._medicalScene=null;v._medicalCrew=[];v._lastMoveT=performance.now();
+  v._medicalScene=null;v._medicalCrew=[];v._lastMoveT=now;
+  v._responseStartedAt=now;v._routeMissingSince=0;v._ambulanceNextRouteRetry=0;
   _setVehicleRoute(v,v.y,v.x,parking.r,parking.c);
+  if(!v.path?.length)v._routeMissingSince=now;
   return v;
+}
+
+function _rerouteAmbulance(v,now=performance.now(),reason='route-refresh'){
+  if(v?.kind!=='ambulance'||v.state!=='go_to_scene'||!v.payload?.npc)return false;
+  const target=_ambulancePatientPosition(v);
+  if(!target)return false;
+  const parking=_ambulanceSceneParking(target.r,target.c,v.y,v.x,v);
+  v.sceneParkingR=parking.r;v.sceneParkingC=parking.c;
+  _setVehicleRoute(v,v.y,v.x,parking.r,parking.c);
+  v._ambulanceNextRouteRetry=now+AMBULANCE_ROUTE_RETRY_MS;
+  if(v.path?.length)v._routeMissingSince=0;
+  else v._routeMissingSince||=now;
+  document.documentElement.dataset.ambulanceReroutes=String((+document.documentElement.dataset.ambulanceReroutes||0)+1);
+  document.documentElement.dataset.ambulanceRerouteLast=reason;
+  return !!v.path?.length;
+}
+
+function _ambulanceReadyToDeploy(v,target){
+  if(!v||!target)return false;
+  const parkingR=Number.isFinite(+v.sceneParkingR)?+v.sceneParkingR:+v.finalTarget?.y;
+  const parkingC=Number.isFinite(+v.sceneParkingC)?+v.sceneParkingC:+v.finalTarget?.x;
+  const parkingError=Number.isFinite(parkingR)&&Number.isFinite(parkingC)?Math.hypot(v.y-parkingR,v.x-parkingC):Infinity;
+  const patientDistance=Math.hypot(target.r-v.y,target.c-v.x);
+  return parkingError<=AMBULANCE_DEPLOY_PARKING_TOLERANCE&&patientDistance<=AMBULANCE_DEPLOY_MAX_PATIENT_DISTANCE;
 }
 
 function _ambulancePatientPosition(v) {
@@ -9244,6 +9273,15 @@ function _startAmbulanceBodyCrew(v, now = performance.now()) {
   if (!_ambulanceNeedsBodyCrew(v)) return false;
   const target = _ambulancePatientPosition(v);
   if (!target) return false;
+  // Носилки нельзя выпускать, пока сама машина реально не остановилась у
+  // выбранной парковочной точки. Если пострадавший сдвинулся или маршрут
+  // закончился преждевременно, сначала перестраиваем подъезд.
+  if(!_ambulanceReadyToDeploy(v,target)){
+    v.state='go_to_scene';v.speed=AMBULANCE_RESPONSE_SPEED;
+    v._medicalScene=null;v._medicalCrew=[];
+    _rerouteAmbulance(v,now,'deploy-before-vehicle-arrival');
+    return false;
+  }
   const forwardR = Math.sin(v.ang || 0), forwardC = Math.cos(v.ang || 0);
   const rearR = v.y - forwardR * 1.16, rearC = v.x - forwardC * 1.16;
   const distance = Math.hypot(target.r - rearR, target.c - rearC);
@@ -9274,6 +9312,7 @@ function _startAmbulanceBodyCrew(v, now = performance.now()) {
   const patient = v.payload.npc;
   patient._ambulanceLoading = true;
   patient._carriedByAmbulance = false;
+  v.speed = 0;v.path=[];v.pathIdx=0;v.finalTarget=null;
   v.state = 'medical_response';
   v.workDuration = total;
   v.workUntil = now + total;
@@ -9298,6 +9337,16 @@ function _setAmbulanceCrewPose(v, centerR, centerC, ang, walking, carrying, dt) 
 function _updateAmbulanceBodyCrew(v, dt, now = performance.now()) {
   const scene = v?._medicalScene, patient = v?.payload?.npc;
   if (!scene?.active || !patient) return true;
+  // Машина во время погрузки неподвижна, а точка задних дверей каждый кадр
+  // синхронизируется с её фактическим положением. Так носилки не могут
+  // продолжить путь отдельно после watchdog-переноса или коррекции позиции.
+  v.speed=0;
+  const actualRearR=v.y-Math.sin(v.ang||0)*1.16,actualRearC=v.x-Math.cos(v.ang||0)*1.16;
+  if(Math.hypot(actualRearR-scene.rearR,actualRearC-scene.rearC)>.12){
+    scene.rearR=actualRearR;scene.rearC=actualRearC;
+    scene.returnAng=Math.atan2(scene.rearR-scene.targetR,scene.rearC-scene.targetC);
+    document.documentElement.dataset.ambulanceStretcherResyncs=String((+document.documentElement.dataset.ambulanceStretcherResyncs||0)+1);
+  }
   const age = Math.max(0, now - scene.startedAt);
   const lerp = (a, b, p) => a + (b - a) * Math.max(0, Math.min(1, p));
   let cursor = 0, centerR = scene.rearR, centerC = scene.rearC;
@@ -9770,6 +9819,10 @@ function updateServiceVehicles(dt) {
     }
     v._prevX = v.x; v._prevY = v.y;
     if(v.kind==='ambulance'&&v.state==='go_to_scene'&&v.finalTarget){
+      const patientPos=_ambulancePatientPosition(v);
+      if(patientPos&&Math.hypot(patientPos.r-(+v.sceneParkingR||v.finalTarget.y),patientPos.c-(+v.sceneParkingC||v.finalTarget.x))>AMBULANCE_DEPLOY_MAX_PATIENT_DISTANCE&&now>=(+v._ambulanceNextRouteRetry||0)){
+        _rerouteAmbulance(v,now,'patient-moved-before-arrival');
+      }
       const near=Math.hypot(v.y-v.finalTarget.y,v.x-v.finalTarget.x)<1.35;
       if(near){v._sceneNearSince||=now;if(now-v._sceneNearSince>2200&&_ambulanceWatchdogAdvance(v,now,'near-scene-timeout'))continue;}
       else v._sceneNearSince=0;
@@ -9807,7 +9860,16 @@ function updateServiceVehicles(dt) {
           if(now>=(+v._towNextRouteRetry||0))_rerouteTowTruck(v,now,'empty-road-route');
           continue;
         }
-        if(v.kind==='ambulance')_releaseFailedAmbulanceCall(v);
+        if(v.kind==='ambulance'){
+          v._routeMissingSince||=now;
+          if(now>=(+v._ambulanceNextRouteRetry||0)&&_rerouteAmbulance(v,now,'empty-road-route'))continue;
+          if(now-v._routeMissingSince>=AMBULANCE_ROUTE_GRACE_MS){
+            if(_ambulanceWatchdogAdvance(v,now,'no-connected-road-after-retries'))continue;
+          }
+          // Не отменяем вызов и не освобождаем пациента: иначе диспетчер
+          // бесконечно создаёт новые выезды, а ни одна скорая не забирает его.
+          continue;
+        }
         v.state = 'done';
         continue;
       }
@@ -9819,7 +9881,7 @@ function updateServiceVehicles(dt) {
         } else if(v.kind==='firetruck') {
           if(!_startFireTruckWater(v,now))_abortFireTruckJob(v);
         } else if(v.kind==='ambulance'&&_ambulanceNeedsBodyCrew(v)) {
-          if(!_startAmbulanceBodyCrew(v,now))v.state='done';
+          if(!_startAmbulanceBodyCrew(v,now)&&v.state!=='go_to_scene')v.state='done';
         } else if(v.kind==='tow') {
           if(!_beginTowLoadingAtScene(v,now))_rerouteTowTruck(v,now,'wreck-moved-before-arrival');
         } else {
@@ -9940,6 +10002,10 @@ function dispatchEmergencyServices() {
     const stuck=fleet.find(v=>v.state==='go_to_scene');
     if(stuck){stuck._lastMoveT=now-9000;stuck.path=[];document.documentElement.dataset.previewAmbulanceStuckSeeded=stuck.id;}
   }
+  if(_LOCAL_PREVIEW&&_UP.has('previewambulanceemptyroute')&&!document.documentElement.dataset.previewAmbulanceEmptyRouteSeeded){
+    const stuck=fleet.find(v=>v.state==='go_to_scene');
+    if(stuck){stuck.path=[];stuck._routeMissingSince=now-AMBULANCE_ROUTE_GRACE_MS-100;stuck._ambulanceNextRouteRetry=now+5000;document.documentElement.dataset.previewAmbulanceEmptyRouteSeeded=stuck.id;}
+  }
   document.documentElement.dataset.ambulanceFleetSize=String(fleet.length);
   document.documentElement.dataset.ambulanceHospitals='2';
   document.documentElement.dataset.ambulanceParked=String(fleet.filter(v=>v.state==='ambulance_parked').length);
@@ -9948,7 +10014,7 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.ambulanceMedicsDeployed=String(fleet.reduce((sum,v)=>sum+(v._medicalCrew||[]).filter(m=>m.visible).length,0));
   document.documentElement.dataset.ambulanceParkingDistances=fleet.filter(v=>v.payload?.npc&&Number.isFinite(+v.sceneParkingR)).map(v=>Math.hypot(v.sceneParkingR-(v.payload.npc.r??v.payload.npc.y),v.sceneParkingC-(v.payload.npc.c??v.payload.npc.x)).toFixed(2)).join(',')||'idle';
   document.documentElement.dataset.ambulanceFieldRevives='0';
-  document.documentElement.dataset.ambulanceRecoveryPolicy='safe-road-parking-two-medics-load-hospital-no-field-revive-v211';
+  document.documentElement.dataset.ambulanceRecoveryPolicy='route-retry-arrival-guard-stretcher-lock-hospital-v225';
 
   // Пляжники живут в отдельной Map и не входят в NPCS — им нужен свой вызов.
   for (const b of beachgoers.values()) {
@@ -60037,6 +60103,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d224"></script>
+<script type="module" src="three_preview.js?v=3d225"></script>
 </body>
 </html>
