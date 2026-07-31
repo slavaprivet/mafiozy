@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v211: ambulances park safely off the casualty, deploy two medics, load every NPC casualty, and transport without field resurrection. -->
+<!DOCTYPE html><!-- v212: residents, police and medics inherit the player's restrained walk cycle with body-safe leg attachment. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -55828,6 +55828,7 @@ window.Mafiozi3DBridge = Object.freeze({
       medicAction:x._medicAction||'',medicActionProgress:+x._medicActionProgress||0,
     };});
     if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const [j,npc] of npcs.slice(0,8).entries())if(!npc.dead){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*3.8;npc.c=player.c+Math.cos(a)*3.8;npc.ang=a;npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.forcedCrawl=false;npc.severMask=0;npc.walking=true;}
+    if(_LOCAL_PREVIEW&&_UP.has('previewnpcwalk'))for(const [j,npc] of npcs.filter(x=>!x.dead).slice(0,6).entries()){const a=-1.05+j*.42;npc.r=player.r+Math.sin(a)*4.2;npc.c=player.c+Math.cos(a)*4.2;npc.ang=a+Math.PI;npc.hp=npc.maxHp;npc.forcedCrawl=false;npc.severMask=0;npc.walking=npc.moving=true;npc.speed=2.4;npc.look={...(npc.look||{}),suit:j===0?'#20b8aa':j===1?'#4a9bd8':j===2?'#e59b45':npc.look?.suit};}
     if(_LOCAL_PREVIEW&&_UP.has('previewlabels')){
       const samples=[
         {role:'civilian',visualRole:'civilian',name:'Житель',hp:42,maxHp:60},
@@ -59770,6 +59771,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d211"></script>
+<script type="module" src="three_preview.js?v=3d212"></script>
 </body>
 </html>
