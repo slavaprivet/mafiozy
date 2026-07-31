@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 3D sync v196: bounded pooled wreck fire restores burning cars without dynamic-light shader stalls. -->
 <!-- 3D sync v195: bounded vehicle explosions, hold-E entry, bounded pets, and speed-aware NPC gait. -->
 <!-- 3D sync v193: collision props and vehicle effects are instanced/shared; explosion and wreck lights are bounded after a five-car stress test. -->
 <!-- 3D sync v191: vehicle hits use bounded NPC reactions; chain explosions are staggered to prevent shot-time frame stalls. -->
@@ -13212,8 +13213,8 @@ function selectVehicleFromCanvasTap(x, y, hitRadius = 48) {
   return true;
 }
 
-const THREE_VEHICLE_DETECT_R = 4.1;
-const THREE_VEHICLE_PREFERRED_R = 5.2;
+const THREE_VEHICLE_DETECT_R = 5.4;
+const THREE_VEHICLE_PREFERRED_R = 6.4;
 function _ensureThreePreviewDriveCar() {
   if (!_LOCAL_PREVIEW || !_UP.has('previewdrive') || window.__threePreviewDrivePlaced) return null;
   const demo=CARS.find(car=>car?.model&&!['cop_cruiser','paddyvan','swat_truck'].includes(car.model?.name||''));
@@ -23001,12 +23002,7 @@ function _completeHijack(car) {
   // запрос просто молча терялся в catch и пользователь видел «нажал —
   // ничего». Теперь явный фидбек.
   const wsReady = !!(ws && ws.readyState === 1);
-  if (!wsReady) {
-    car._hijackPending = 0;
-    showToast('🌐 Нет соединения с сервером — пробуй ещё', '⚠️', 2000);
-    return;
-  }
-  try {
+  if (wsReady) try {
     ws.send(JSON.stringify({ t: 'civilian_carjack', d: {
       x: +car.c.toFixed(2), y: +car.r.toFixed(2), model: _pendingHijackModel,
       paint: _pendingHijackPaint,
@@ -23028,16 +23024,17 @@ function _completeHijack(car) {
     paint:_pendingHijackPaint,owner_uid:String(QP.uid),driver_uid:String(QP.uid),passenger_uids:[],
     x:+car.c,y:+car.r,ang:Number.isFinite(+car.ang)?+car.ang:Math.atan2(+car.dirDy||0,+car.dirDx||1),
     vx:0,vy:0,hp:220,max_hp:220,state:'driven',wrecked:false,civilian:true,
-    _pendingServerHijack:true,
+    _pendingServerHijack:wsReady,_offlineLocalHijack:!wsReady,
   });
   _dropCarriedBagForVehicleEntry();
   myDrivingCarId=localId;myIsPassenger=false;_exitRequested=false;
   player.r=+car.r;player.c=+car.c;
   playEnterCarAnim(car.r, car.c);
   hapticHit();
+  if(!wsReady){car._hijackPending=0;showToast('🚗 Сервер переподключается — машина доступна локально','⚠️',2200);}
   // Failsafe-toast: если за 2.5с не приехало ни ok ни reject —
   // пользователь видит что что-то пошло не так (раньше была тишина).
-  setTimeout(() => {
+  if(wsReady)setTimeout(() => {
     if (_pendingHijackLocalId !== localId) return;
     if (!car._hijackPending) return;   // уже ответили (ok или reject)
     car._hijackPending = 0;
@@ -28148,7 +28145,7 @@ function update(dt) {
       // Шлём серверу инпут позиции (15 Гц, синк с обычным input rate)
       if (!_lastDriveSentAt) _lastDriveSentAt = 0;
       const nowMs = performance.now();
-      if (!qc._pendingServerHijack && nowMs - _lastDriveSentAt > 66) {   // ~15 Hz
+      if (!qc._pendingServerHijack && !qc._offlineLocalHijack && nowMs - _lastDriveSentAt > 66) {   // ~15 Hz
         _lastDriveSentAt = nowMs;
         try {
           ws && ws.send(JSON.stringify({ t: 'gta_drive', d: {
@@ -55617,7 +55614,15 @@ window.Mafiozi3DBridge = Object.freeze({
       const count=Math.max(1,Math.min(8,+_UP.get('previewwrecks')||5));for(let i=0;i<Math.min(count,cars.length);i++){const age=(performance.now()+i*260)%5200;if(age<1850)explosionFx.unshift({r:cars[i].r,c:cars[i].c,age,life:1850,seed:170+i*37,kind:'vehicle'});}
     }
     const throwableFx=(typeof _thrownItems!=='undefined'?_thrownItems:[]).filter(x=>x&&!x.exploded).slice(0,8).map((x,i)=>{const p=Math.max(0,Math.min(1,(performance.now()-(+x.start||0))/(+x.flight||720)));return {id:i,kind:x.kind||'grenade',r:(+x.fromR||0)+((+x.toR||0)-(+x.fromR||0))*p,c:(+x.fromC||0)+((+x.toC||0)-(+x.fromC||0))*p,height:Math.sin(Math.PI*p)*3.8,progress:p};});
-    const fireFx=(typeof _firePools!=='undefined'?_firePools:[]).filter(x=>x&&fxNow<+x.until&&near(+x.r||0,+x.c||0)).slice(0,12).map(x=>({r:+x.r||0,c:+x.c||0,age:fxNow-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2}));
+    const fireFx=(typeof _firePools!=='undefined'?_firePools:[]).filter(x=>x&&fxNow<+x.until&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:fxNow-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2,kind:'ground'}));
+    // Wreck flames share the existing instanced ground-fire pool. This restores
+    // the burning-car silhouette without per-car geometry trees or a dynamic
+    // PointLight that recompiles the entire city's materials.
+    const wreckFireFx=cars.filter(x=>x&&!x.helicopter&&x.wrecked&&x.burning&&!x.burnedOut).slice(0,2).map((x,i)=>({
+      r:+x.r||0,c:+x.c||0,age:Math.max(0,+x.wreckAge||0),life:Number.MAX_SAFE_INTEGER,
+      seed:(String(x.id||i).length*17+i*31)%97,radius:2.5,kind:'vehicle_wreck'
+    }));
+    fireFx.unshift(...wreckFireFx);if(fireFx.length>12)fireFx.length=12;
     const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||''});}
     const objects=[];
     const addObject=(kind,id,r,c,label,color,extra={})=>{
@@ -59433,6 +59438,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d195"></script>
+<script type="module" src="three_preview.js?v=3d196"></script>
 </body>
 </html>
