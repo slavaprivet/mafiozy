@@ -32956,6 +32956,119 @@ Object.assign(BUSINESS_INTERIORS, {
   major_mansion: {floor:['#d5c39d','#c6b28a'],wall:'#5a4635',accent:'#e7c15f',title:'РЕЗИДЕНЦИЯ',manager:'Дон Витторио',staff:['Дворецкий','Гость','Охранник'],props:['tables','booths','cashier','roulette']},
   major_port:    {floor:['#4f6068','#45555d'],wall:'#23343c',accent:'#ff9a3c',title:'ГРУЗОВОЙ ПОРТ',manager:'Капитан Риццо',staff:['Докер','Диспетчер','Охранник'],props:['containers','crates','barrels','radio']},
 });
+
+// One authored layout feeds the 3D renderer and gameplay collision checks.
+// Coordinates intentionally mirror _drawBusinessInterior so Canvas and Three.js
+// show the same rooms instead of two unrelated versions of each establishment.
+const BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION = 2;
+function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
+  const id=String(bizId||''),W=Math.max(8,+width||18),H=Math.max(8,+height||13);
+  const cfg=BUSINESS_INTERIORS[id]||BUSINESS_INTERIORS.coffee,items=[];
+  const item=(kind,r,c,w=2,d=1,h=1,color=cfg.accent,solid=true,extra=null)=>{
+    const q={kind,r:+r,c:+c,w:+w,d:+d,h:+h,color:String(color||cfg.accent),solid:solid!==false};
+    if(extra)Object.assign(q,extra);items.push(q);return q;
+  };
+  const box=(kind,r,c,w=2,d=1,h=1,color=cfg.accent,solid=true,extra=null)=>item(kind,r,c,w,d,h,color,solid,extra);
+  const table=(r,c,color='#805a35',extra=null)=>item('table',r,c,2.4,1.4,.65,color,true,extra);
+  if(id!=='major_mansion'&&id!=='major_casino')box('cashier',2.9,W/2,6.2,1.15,1.05,cfg.accent);
+  switch(id){
+    case 'coffee':
+      table(6.2,3.2,'#8f6238');table(8.3,8.8,'#8f6238');table(6.4,14.2,'#8f6238');
+      box('service_counter',4.5,13.8,4.5,1.3,1.15,'#7c442d');box('coffee_machine',3.2,14.4,2.4,1.2,1.15,'#6f777c');
+      box('pastry_case',3.8,3.1,3.2,1.1,1.15,'#d6b77d');box('bean_sacks',9.6,14.7,2.1,1.4,1.25,'#8b6037');
+      box('fireplace',3.1,8.3,2.2,1.1,1.85,'#9c4b31');box('newspaper_rack',10.2,3.1,2.2,1.1,.75,'#b9a77f');
+      break;
+    case 'carwash':
+      box('wash_arch',7,8.8,5.8,2.8,2.7,'#55d6e8');box('vehicle',7.1,8.8,4.1,1.8,.88,'#c24646');
+      box('wash_brush',5.1,6.1,.85,.85,2.35,'#35b8df');box('wash_brush',5.1,11.5,.85,.85,2.35,'#68e2ef');
+      box('chemical_tank',4.2,2.5,1.25,1.25,2.15,'#79dce6');box('chemical_tank',6.2,2.5,1.25,1.25,1.75,'#57b9d0');
+      box('pumps',8.5,2.7,2.3,1.2,1.35,'#2c718a');box('dryer',4.5,15.1,2.2,1.15,2.05,'#3194ae');
+      box('vacuums',8.7,14.8,2.4,1.3,1.3,'#406f82');box('wet_floor',10.2,8.8,7.2,2.1,.08,'#77d8e6',false);
+      break;
+    case 'barbershop':
+      for(const c of [3.5,9,14.5])box('barber_station',4.2,c,1.55,1.55,2.45,'#9b2639');
+      box('wash_sink',8.5,14.2,2.4,1.4,1,'#d8e1df');box('waiting_sofa',9.5,4,4,1.2,.9,'#385b72');
+      box('towel_cabinet',8.7,9,2.2,1.2,1.5,'#e8e2d2');box('tool_cabinet',3.5,17,1.3,1,1.55,'#65717a');
+      break;
+    case 'pizza':
+      box('pizza_oven',3.9,14.2,3.5,2.2,2.35,'#a94b31');box('prep_counter',5.2,3.2,3.5,1.6,.95,'#ddc99e');
+      box('ingredients',5.2,6.5,2.4,1.25,1.05,'#bc493a');box('fridge',3.5,2.1,1.6,1.25,2.2,'#c9d1cc');
+      box('pickup_counter',3.8,9.1,3.3,1.1,1.05,'#b5352d');table(8,3.3,'#8d332b');table(8.3,9,'#8d332b');table(8,14.3,'#8d332b');
+      box('delivery_rack',10.3,3.2,2.6,1.2,.85,'#397a3d');box('pizza_boxes',10.2,14.5,2.4,1.4,1.2,'#c49352');
+      break;
+    case 'garage':
+      box('garage_lift',6.8,8.8,6.2,3,2.5,'#d8a92d');box('vehicle',6.8,8.8,4.4,1.9,.95,'#477bb8');
+      box('engine_stand',4.1,3,2.2,1.6,1.25,'#515b62');box('tire_stack',7.7,3,2.1,1.5,1.65,'#22252c');
+      box('welder',10,3.1,2.1,1.3,1.3,'#d07d25');box('tool_wall',5,14.7,2.8,1.3,1.9,'#a13b35');
+      box('parts_rack',9.5,14.4,3,1.6,1.4,'#6f7881');box('oil_drums',3.2,9,2.3,1.1,1.3,'#293844');
+      break;
+    case 'bar':
+      box('bar_counter',4.5,13.7,7.2,1.4,1.2,'#7b452d');box('bar_shelves',2.2,13.8,6.8,.8,1.85,'#4b201d');
+      box('beer_taps',3.2,10.5,1.5,1.1,1.45,'#d29c34');table(6.8,3.4,'#60402d');table(9.5,8.8,'#60402d');
+      box('stage',3.8,3.3,3.7,2.2,.45,'#6d2347');box('microphone',3.7,3.3,.45,.45,1.8,'#bfc6cc',false);
+      box('booth',9.5,14.4,3.4,1.5,.95,'#4b1f35');box('pool_table',8,12,3.3,1.9,.8,'#245c42');
+      break;
+    case 'club':
+      table(6,3.6,'#43306f',{vip:true});table(8.8,14.2,'#43306f',{vip:true});
+      box('dj_stage',3.8,14.3,4.8,2.5,2.25,'#381b68');box('dance_floor',7,8.8,5.8,3.8,.12,'#5c3abf',false);
+      box('laser_rig',3.2,8.8,2.2,1.1,2.2,'#35cde8',false);box('bar_counter',9.8,3.3,4.2,1.25,1.1,'#6f2a55');
+      box('security_desk',3.8,3,2.2,1.2,1.35,'#343b47');box('gaming_table',9.7,9,2.7,1.8,.85,'#176c42');
+      box('wardrobe',6.7,15.8,2.4,1.2,1.6,'#49305d');
+      break;
+    case 'warehouse':
+      for(const c of [2.7,8.7,14.7])box('warehouse_rack',4,c,4,1.15,2.55,'#626d78');
+      box('crate_stack',7.5,3,2.6,2,1.55,'#a46b36');box('contraband',7.5,9,3,1.8,1.4,'#74413a');
+      box('forklift',8.1,14.3,2.9,1.9,1.25,'#d6a72f');box('pallets',10.3,5.8,3.2,1.5,.7,'#81572f');
+      box('dispatch_desk',10,14.5,2.6,1.4,1.35,'#445765');
+      break;
+    case 'casino':
+      box('gaming_table',5.1,3.6,3.3,2,.72,'#176342');box('gaming_table',7.7,8.8,3.3,2,.72,'#176342');
+      box('gaming_table',9.5,3.6,3.3,2,.72,'#176342');box('slot_bank',4.5,14.7,3.5,1.2,2.05,'#b13e8f');
+      box('slot_bank',7.4,14.7,3.5,1.2,2.05,'#8f3eaa');box('cashier',10,14.2,3.2,1.3,1.25,'#d2a83e');
+      box('bar_counter',9.8,9.5,3,1.2,1.05,'#6f352e');box('vip_sofa',3.6,8.8,3.3,1.8,.9,'#7a2149');
+      box('security_desk',10.2,3.2,2.2,1.2,1.35,'#343b47');
+      break;
+    case 'port':
+      box('container',4.7,3.2,4,2,2.2,'#b34b36');box('container',4.7,14.2,4,2,2.2,'#347a9e');
+      box('port_crane',6.8,9,5.2,2,3.6,'#e3aa2f');box('cargo',8,5,3,2,1.35,'#9b6a38');
+      box('dispatch_office',8,13,3,1.5,1.45,'#3d596c');
+      break;
+    case 'major_market':
+      for(let r=6;r<20;r+=4)for(let c=5;c<30;c+=6)box('market_stall',r,c,4,1.5,.72,(r+c)%3?'#8b5d32':'#c98b38');
+      box('market_store',19,28,7,5,2.2,'#785232');box('market_scale',7,29,2,2,1.2,'#d8b454');
+      break;
+    case 'major_factory':
+      for(let r=6;r<20;r+=5){box('production_lift',r,7,5.5,2.7,2.25,'#d6a72f');box('conveyor',r,18,10,1.8,1.1,'#b26430');}
+      box('industrial_press',9,29,5,5,3.2,'#a14334');box('factory_store',19,28,7,5,2.4,'#5f6971');
+      break;
+    case 'major_mansion':
+      for(const [r,c] of [[3,13],[3,21],[9,13],[9,21],[16,13],[16,21]])box('mansion_column',r,c,1.1,1.1,3.8,'#d2b06a');
+      box('mansion_stairs',7.5,17,7,4,2.5,'#8c6842');box('portrait',.8,17,4.2,.35,3.1,'#8d704f',false);
+      box('bookshelf',2.4,5.2,7,1.2,3.5,'#5b3423');box('bookshelf',7.8,1.2,1.2,5,3.5,'#5b3423');
+      box('fireplace',4.5,10.3,3.2,1.2,2.6,'#8d4a32');box('mansion_sofa',8.7,7,4.2,1.5,1.05,'#5f2632');
+      box('dining_table',14.2,7.5,7,3,1,'#713922');box('wine_cabinet',18.2,2,4.4,1.2,3.2,'#713922');
+      box('mansion_sofa',16.7,19,4.8,1.5,1.05,'#6f2836');box('mansion_sofa',20.5,19,4.8,1.5,1.05,'#6f2836');
+      box('coffee_table',18.6,19,2.8,1.7,.58,'#7e502b');box('grand_piano',18.5,24,3.7,2.1,1.05,'#18191d');
+      box('don_desk',6.3,28.5,6,2.4,1.15,'#5b3423');box('bookshelf',2.1,27.8,6.5,1.2,3.5,'#5b3423');
+      box('safe',8.7,31.2,2.1,1.8,2.2,'#a68544');box('mansion_sofa',11.5,27.8,3.8,1.5,1.05,'#54202b');
+      for(const [r,c] of [[4,23],[9,23],[14,27],[20,28]])box('statue',r,c,1.4,1.4,2.2,'#d2b06a');
+      break;
+    case 'major_port':
+      for(let r=6;r<20;r+=6){box('container',r,6,7,2.6,2.5,'#b54d37');box('container',r,17,7,2.6,2.5,'#357e9e');}
+      box('port_crane',8,29,7,3,4.2,'#e3aa2f');box('dispatch_office',18,28,7,4,2.5,'#415d6b');
+      break;
+  }
+  return {version:BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION,id,title:cfg.title||id,floor:[...(cfg.floor||['#62584f'])],wall:cfg.wall||'#313943',accent:cfg.accent||'#d7ae4c',items};
+}
+function _businessInteriorVisualLayoutFor(bi) {
+  if(!bi||bi.type!=='business'||!bi.bizId)return null;
+  const key=`${bi.bizId}:${bi.W}x${bi.H}:v${BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION}`;
+  if(bi._businessVisualLayoutKey!==key){
+    bi._businessVisualLayoutKey=key;
+    bi._businessVisualLayout=_buildBusinessInteriorVisualLayout(bi.bizId,bi.W,bi.H);
+  }
+  return bi._businessVisualLayout;
+}
 // Быстрый поиск бизнеса по тайлу (r,c) — для рендера уникальных зданий.
 const BUSINESS_BY_RC = new Map();
 BUSINESS_POIS.forEach(b => BUSINESS_BY_RC.set(b.r + ',' + b.c, b));
@@ -49840,7 +49953,9 @@ function _businessInteriorMovementBlocked(bi,r,c,pad=.42) {
   if(!bi)return false;
   if(bi.bizId==='major_casino')return _casinoMovementBlocked(bi,r,c,pad);
   if(bi.bizId==='major_mansion')return _mansionMovementBlocked(bi,r,c,Math.min(pad,.38));
-  return false;
+  const layout=_businessInteriorVisualLayoutFor(bi);
+  return !!layout?.items?.some(q=>q.solid!==false&&
+    Math.abs(r-q.r)<q.d/2+pad&&Math.abs(c-q.c)<q.w/2+pad);
 }
 
 function _casinoGuardSpawnPoints(bi) {
@@ -54751,7 +54866,7 @@ window.Mafiozi3DBridge = Object.freeze({
       width:_bankInt&&src.room==='vault'?(+src.vaultW||8):(+src.W||16),height:_bankInt&&src.room==='vault'?(+src.vaultH||12):(+src.H||12),seed:+src.seed||0,
       apartment:!src.type?{key:apartmentKey,owned:!!_myApartments[apartmentKey],district:apartmentDistrictMarket(src.r,src.c)?.label||'Городская квартира',levels:{repair:+apartmentInfo.repair_level||0,safe:+apartmentInfo.safe_level||0,weaponRack:+apartmentInfo.weapon_rack_level||0,cameras:+apartmentInfo.cameras_level||0,garage:+apartmentInfo.garage_level||0}}:null,
       playerElevation:casino?_casinoVisualElevation(src,player.r,player.c):0,
-      layout:casinoLayout,bank:bankState,
+      layout:casinoLayout,businessLayout:src.type==='business'?_businessInteriorVisualLayoutFor(src):null,bank:bankState,
       npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`);return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||'',look:n.look||null,hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
       loot:src.loot&&!src.loot.picked?{r:+src.loot.r||0,c:+src.loot.c||0,hp:!!src.loot.hp}:null,
     };
@@ -54763,6 +54878,15 @@ window.Mafiozi3DBridge = Object.freeze({
     const poi=(typeof POI!=='undefined'?POI:[]).find(p=>p.id===String(id||''));
     if(!poi)return false;
     enterBuildingInterior(poi.r,poi.c,'business',`major_${poi.id}`,{peacefulMajorObjectId:poi.id});
+    return true;
+  },
+  previewEnterBusinessInterior(id) {
+    if(!_LOCAL_PREVIEW)return false;
+    const key=String(id||'');
+    if(key.startsWith('major_'))return this.previewEnterMajorInterior(key.slice(6));
+    const biz=(typeof BUSINESS_POIS!=='undefined'?BUSINESS_POIS:[]).find(b=>b.id===key);
+    if(!biz)return false;
+    enterBuildingInterior(biz.r,biz.c,'business',biz.id,{peaceful:true});
     return true;
   },
   previewApproachGenericBuilding() {
@@ -55074,6 +55198,7 @@ window.Mafiozi3DBridge = Object.freeze({
   canStand(r, c) { return Number.isFinite(r) && Number.isFinite(c) && !isBlocked(r, c); },
 });
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
+if(_LOCAL_PREVIEW&&_UP.get('threebusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInterior(_UP.get('threebusiness')),900);
 
 // При сворачивании Telegram WebApp / переключении вкладок браузер
 // замораживает requestAnimationFrame. После возврата мог остаться
@@ -58801,6 +58926,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d185"></script>
+<script type="module" src="three_preview.js?v=3d186"></script>
 </body>
 </html>
