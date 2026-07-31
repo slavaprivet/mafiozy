@@ -369,36 +369,127 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 #fireStationModal .btn.primary { background: linear-gradient(135deg, #c85020, #ff8030); color: #fff; }
 #fireStationModal .btn.primary:disabled { background: #3a2820; color: #7a6050; cursor: not-allowed; }
 #fireStationModal .btn.ghost   { background: #232a36; color: #aab2c2; }
-/* bizConfirmModal заимствует разметку и стили .card/.head/.talk/.meta/.btns
-   от michaelModal — повторно описываем их с тем же селектором. */
+/* Покупка бизнеса — не системный popup, а фирменное мафиозное досье. */
+#bizConfirmModal {
+  z-index: 86;
+  padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% 42%, rgba(111,23,29,.20), transparent 42%),
+    linear-gradient(rgba(4,6,9,.78), rgba(2,3,5,.91));
+  backdrop-filter: blur(5px) saturate(.72);
+}
 #bizConfirmModal .card {
-  width: min(360px, 90vw); background: #14181f;
-  border: 1px solid #d8a040; border-radius: 14px; padding: 18px 18px 14px;
-  color: #fff; font-family: inherit; position: relative;
-  box-shadow: 0 12px 30px rgba(0,0,0,.7);
+  width: min(430px, 94vw); color: #f5ead1; position: relative; overflow: hidden;
+  border: 1px solid #c9a24c; border-radius: 5px 5px 16px 16px;
+  background:
+    linear-gradient(90deg, rgba(111,23,29,.30) 0 7px, transparent 7px),
+    radial-gradient(circle at 88% 4%, rgba(202,161,71,.13), transparent 28%),
+    linear-gradient(155deg, #17181b 0%, #0d1015 62%, #15100e 100%);
+  box-shadow: 0 28px 80px rgba(0,0,0,.88), 0 0 0 1px rgba(56,13,18,.9),
+    inset 0 1px 0 rgba(255,235,178,.15);
+  font-family: inherit;
+  animation: bizDossierIn .22s cubic-bezier(.2,.82,.28,1) both;
 }
-#bizConfirmModal .head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-#bizConfirmModal .head .icon { font-size: 32px; }
-#bizConfirmModal .head .nm   { font-size: 16px; font-weight: 800; color: #ffd76b; }
-#bizConfirmModal .head .sub  { font-size: 11px; color: #b8a880; }
+#bizConfirmModal .card::before {
+  content:""; position:absolute; inset:7px; border:1px solid rgba(201,162,76,.16);
+  border-radius:2px 2px 11px 11px; pointer-events:none;
+}
+#bizConfirmModal .deal-kicker {
+  min-height: 31px; padding: 8px 17px 7px 22px; display:flex; align-items:center;
+  justify-content:space-between; gap:12px; border-bottom:1px solid rgba(201,162,76,.34);
+  background: linear-gradient(90deg,#63151d,#2c1115 62%,#151318);
+  color:#e7ca80; font:900 9px Georgia,serif; letter-spacing:2.1px; text-transform:uppercase;
+}
+#bizConfirmModal .deal-kicker span:last-child { color:#9f8b62; letter-spacing:1.1px; }
+#bizConfirmModal .head {
+  display:flex; align-items:center; gap:13px; min-height:82px; padding:16px 19px 12px 22px;
+  border-bottom:1px solid rgba(201,162,76,.18);
+}
+#bizConfirmModal .head .icon {
+  width:52px; height:52px; flex:0 0 52px; display:grid; place-items:center; font-size:29px;
+  border:1px solid #bb9141; border-radius:4px; background:linear-gradient(145deg,#2c2117,#11151a);
+  box-shadow:inset 0 0 0 3px rgba(7,8,10,.75),0 5px 14px rgba(0,0,0,.55);
+}
+#bizConfirmModal .head-copy { min-width:0; flex:1; }
+#bizConfirmModal .head .nm {
+  color:#ffe083; font:900 21px Georgia,serif; letter-spacing:.45px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 2px 8px #000;
+}
+#bizConfirmModal .head .sub {
+  margin-top:4px; color:#9f9175; font:800 9px system-ui,sans-serif;
+  letter-spacing:1.7px; text-transform:uppercase;
+}
+#bizConfirmModal .deal-seal {
+  width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:50%;
+  border:2px double #b48a3b;color:#d9bd71;background:#54151c;
+  font:900 11px Georgia,serif;transform:rotate(-8deg);box-shadow:0 3px 12px #0009;
+}
 #bizConfirmModal .talk {
-  background: rgba(255,215,107,.06); border: 1px solid rgba(255,215,107,.20);
-  border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: #e0d8b8;
-  margin-bottom: 12px; line-height: 1.45;
+  margin:13px 18px 12px 21px; padding:11px 13px 11px 15px; min-height:48px;
+  color:#d4cab6; font:600 12px/1.48 system-ui,sans-serif;
+  border-left:3px solid #7c1e27; border-top:1px solid rgba(201,162,76,.14);
+  border-bottom:1px solid rgba(201,162,76,.14); background:rgba(255,241,204,.035);
 }
-#bizConfirmModal .meta {
-  display: flex; justify-content: space-between; font-size: 11px;
-  color: #aaa; margin-bottom: 10px;
+#bizConfirmModal .deal-stats {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  padding:0 18px 13px 21px;
 }
-#bizConfirmModal .meta .lim { color: #ffd76b; font-weight: 700; }
-#bizConfirmModal .btns { display: flex; gap: 8px; }
+#bizConfirmModal .deal-stat {
+  min-width:0; padding:10px 11px; border:1px solid #343238; border-radius:3px;
+  background:linear-gradient(145deg,rgba(36,37,41,.92),rgba(17,19,23,.96));
+  box-shadow:inset 3px 0 0 #5c1720;
+}
+#bizConfirmModal .deal-stat .lbl {
+  display:block; margin-bottom:5px; color:#857e72; font:800 8px system-ui,sans-serif;
+  letter-spacing:1.25px; text-transform:uppercase;
+}
+#bizConfirmModal .deal-stat .lim {
+  display:block; color:#f2d477; font:900 13px Georgia,serif;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#bizConfirmModal .deal-stat.income .lim { color:#84d19a; }
+#bizConfirmModal .deal-stat.payback .lim { color:#d9c8a2; }
+#bizConfirmModal .deal-footnote {
+  display:flex; gap:8px; align-items:flex-start; margin:0 18px 14px 21px; padding:8px 10px;
+  color:#8f887c; font:700 9px/1.35 system-ui,sans-serif; letter-spacing:.35px;
+  border:1px dashed rgba(178,145,75,.28); background:rgba(86,20,27,.08);
+}
+#bizConfirmModal .btns {
+  display:grid; grid-template-columns:1.35fr .85fr; gap:9px; padding:0 18px 18px 21px;
+}
 #bizConfirmModal .btn {
-  flex: 1; padding: 11px 12px; border-radius: 10px; cursor: pointer;
-  font-size: 13px; font-weight: 800; border: none; font-family: inherit;
-  letter-spacing: 0.5px;
+  min-height:43px; padding:11px 12px; border-radius:3px; cursor:pointer;
+  font:900 11px system-ui,sans-serif; letter-spacing:1.05px; text-transform:uppercase;
+  transition:transform .12s ease,filter .12s ease,box-shadow .12s ease;
 }
-#bizConfirmModal .btn.primary { background: linear-gradient(135deg, #2c8d4a, #44b86a); color: #fff; }
-#bizConfirmModal .btn.ghost   { background: #232a36; color: #aab2c2; }
+#bizConfirmModal .btn.primary {
+  border:1px solid #d0a74c; color:#ffe9ae;
+  background:linear-gradient(145deg,#751c27,#461118);
+  box-shadow:inset 0 1px 0 rgba(255,232,166,.13),0 5px 16px rgba(75,9,17,.42);
+}
+#bizConfirmModal .btn.ghost {
+  border:1px solid #4b4a4d; color:#aca599; background:linear-gradient(145deg,#24262b,#17191d);
+}
+#bizConfirmModal .btn:hover { filter:brightness(1.12); }
+#bizConfirmModal .btn:active { transform:translateY(1px) scale(.985); }
+@keyframes bizDossierIn {
+  from { opacity:0; transform:translateY(14px) scale(.965); }
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+@media (max-width:520px) {
+  #bizConfirmModal { padding-left:10px; padding-right:10px; }
+  #bizConfirmModal .head { min-height:72px; padding:13px 14px 10px 18px; }
+  #bizConfirmModal .head .icon { width:45px;height:45px;flex-basis:45px;font-size:25px; }
+  #bizConfirmModal .head .nm { font-size:18px; }
+  #bizConfirmModal .deal-seal { display:none; }
+  #bizConfirmModal .talk { margin-left:17px;margin-right:13px; }
+  #bizConfirmModal .deal-stats { padding-left:17px;padding-right:13px;gap:6px; }
+  #bizConfirmModal .deal-stat { padding:8px; }
+  #bizConfirmModal .deal-stat .lim { font-size:11px; }
+  #bizConfirmModal .deal-footnote { margin-left:17px;margin-right:13px; }
+  #bizConfirmModal .btns { padding-left:17px;padding-right:13px;grid-template-columns:1fr; }
+}
+@media (prefers-reduced-motion:reduce) { #bizConfirmModal .card { animation:none; } }
 /* ── Profile Modal ─────────────────────────────────────────── */
 #profileModal {
   position: fixed; inset: 0; padding: 18px;
@@ -2052,26 +2143,27 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
        показывает название, описание, цену, ожидаемый доход в сутки и
        просит подтвердить (Да/Нет). Без подтверждения покупка не пройдёт. -->
   <div id="bizConfirmModal">
-    <div class="card">
+    <div class="card" role="dialog" aria-modal="true" aria-labelledby="bizCnfName">
+      <div class="deal-kicker"><span>MAFIOZI · ДЕЛОВОЕ ДОСЬЕ</span><span>КОНФИДЕНЦИАЛЬНО</span></div>
       <div class="head">
         <div class="icon" id="bizCnfIcon">🏪</div>
-        <div>
+        <div class="head-copy">
           <div class="nm" id="bizCnfName">—</div>
-          <div class="sub" id="bizCnfSub">бизнес</div>
+          <div class="sub" id="bizCnfSub">коммерческая собственность</div>
         </div>
+        <div class="deal-seal">MF</div>
       </div>
       <div class="talk" id="bizCnfDesc">—</div>
-      <div class="meta">
-        <span>💵 Цена: <span class="lim" id="bizCnfPrice">—</span></span>
-        <span>📈 Доход: <span class="lim" id="bizCnfIncome">—</span></span>
+      <div class="deal-stats">
+        <div class="deal-stat price"><span class="lbl">Цена объекта</span><span class="lim" id="bizCnfPrice">—</span></div>
+        <div class="deal-stat income"><span class="lbl">Прогноз дохода</span><span class="lim" id="bizCnfIncome">—</span></div>
+        <div class="deal-stat"><span class="lbl">Начисление</span><span class="lim">раз в сутки</span></div>
+        <div class="deal-stat payback"><span class="lbl">Окупаемость</span><span class="lim" id="bizCnfPayback">—</span></div>
       </div>
-      <div class="meta" style="margin-top:-6px">
-        <span>⏱ Период: <span class="lim">раз в сутки</span></span>
-        <span>⌛ Окупится: <span class="lim" id="bizCnfPayback">—</span></span>
-      </div>
+      <div class="deal-footnote"><span>⚖</span><span>После оформления объект появится в разделе «Мой бизнес». Доход и владелец подтверждаются сервером.</span></div>
       <div class="btns">
-        <button class="btn primary" id="bizCnfYes">✅ Да, купить</button>
-        <button class="btn ghost"   id="bizCnfNo">Отмена</button>
+        <button class="btn primary" id="bizCnfYes">Оформить сделку</button>
+        <button class="btn ghost"   id="bizCnfNo">Не сейчас</button>
       </div>
     </div>
   </div>
@@ -22170,7 +22262,7 @@ function showBuyBizConfirm(biz_id) {
   const modal = document.getElementById('bizConfirmModal');
   document.getElementById('bizCnfIcon').textContent  = b.emoji || '🏪';
   document.getElementById('bizCnfName').textContent  = b.name;
-  document.getElementById('bizCnfSub').textContent   = 'покупка бизнеса';
+  document.getElementById('bizCnfSub').textContent   = 'коммерческая собственность';
   document.getElementById('bizCnfDesc').textContent  = b.desc || '';
   document.getElementById('bizCnfPrice').textContent = '$' + b.price.toLocaleString('ru');
   const dmin = b.daily_min || 0, dmax = b.daily_max || 0;
@@ -59196,6 +59288,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d188"></script>
+<script type="module" src="three_preview.js?v=3d189"></script>
 </body>
 </html>
