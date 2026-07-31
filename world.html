@@ -1332,7 +1332,7 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 /* Поповер выбора оружия — поднимается над weaponBar при тапе */
 #weaponPick {
   position: absolute; left: 8px; bottom: 220px;
-  display: none; z-index: 7;
+  display: none; z-index: 25;
   background: linear-gradient(180deg, rgba(20,24,32,.95) 0%, rgba(10,12,18,.92) 100%);
   border: 1px solid #3a4452; border-radius: 10px;
   padding: 6px; gap: 4px; flex-direction: column;
@@ -15306,6 +15306,9 @@ function fireScreenFlash(weapon) {
   else if (w === 'rifle' || w === 'pistol_heavy') { screenFlash = Math.max(screenFlash, 0.14); screenFlashColor = '#fff2c0'; }
 }
 function triggerHitStop(ms) {
+  // 3D already has camera and weapon recoil; freezing the main loop here
+  // presents as a severe frame hitch on every successful shot.
+  if (_UP.get('render') === '3d') return;
   const until = performance.now() + (ms || 40);
   if (until > hitStopUntil) hitStopUntil = until;
 }
@@ -24563,6 +24566,7 @@ let _autoSpreadHeat = 0, _autoSpreadAt = 0, _autoSpreadWeapon = '';
 let _naganChain = 0, _naganLastShotAt = 0, _naganShotCrit = false;
 let _shotCritical = false, _shotCritMul = 1;
 let _weaponCycle = null; // { weapon, mode, start, end }
+let _lastPlayerShotPanicAt = 0, _lastPlayerWitnessAt = 0, _lastPlayerCopAlertAt = 0;
 
 function _currentShotDamage(damage) {
   const marksman = Math.max(0, Math.min(5, +(_characterSkills.marksman || 0)));
@@ -25089,6 +25093,7 @@ function fire(angle = null) {
   // Пуля списывается до расчёта попаданий: пустой магазин не создаёт ни
   // трассер, ни урон, ни тревогу. При нуле автоматически начинается reload.
   if (!_spendWeaponRound()) return;
+  document.documentElement.dataset.lastShotWeapon = resolvedShotWeapon;
   _shotCritical = _naganShotCrit || Math.random() < WEAPON_CRIT_CHANCE;
   _shotCritMul = _naganShotCrit ? (weaponProfile('nagan').duelCritMul || 1.8) : WEAPON_CRIT_MUL;
   if (resolvedShotWeapon === 'nagan') {
@@ -25277,7 +25282,10 @@ function fire(angle = null) {
     }
   }
   // Копы в радиусе реагируют на выстрел
-  _alertNearbyCops('shot');
+  if (now - _lastPlayerCopAlertAt >= 450) {
+    _lastPlayerCopAlertAt = now;
+    _alertNearbyCops('shot');
+  }
   _fireBtn.classList.add('cd');
   joyREl.classList.add('cd');
   // Cd снимаем в момент когда реально можно снова стрелять (зависит от оружия)
@@ -25350,7 +25358,8 @@ function fire(angle = null) {
   // переключаются в panic. Бегут от стрелка, кричат «ПОМОГИТЕ!» по
   // случайному паттерну. Когда отбежали — успокаиваются (см. updateNpcs).
   // Из тюрьмы не паникуем — прохожие за решёткой это игнорят.
-  if (!_meInJail && !_bankInt && !_buildingInt) {
+  if (!_meInJail && !_bankInt && !_buildingInt && now - _lastPlayerShotPanicAt >= 850) {
+    _lastPlayerShotPanicAt = now;
     // В банке player.r/c локальные — паника мировых NPC по ним некорректна
     try { triggerNpcPanic(player.r, player.c, 9); } catch(e) {}
   }
@@ -25374,11 +25383,14 @@ function fire(angle = null) {
     //     (snitch), 10% просто паникуют. snitch даёт +1 если добежал.
     //   - убил всех свидетелей до того как добежали — wanted не вырастет
     const copNear = _copInRadius(player.r, player.c, 12);
-    triggerWitnessChain(player.r, player.c, 10, {
-      snitchChance: 0.9,
-      snitchCries: ['ОН СТРЕЛЯЕТ!!', 'КОПЫ!! ПОМОГИТЕ!!', 'ЗВОНИТЕ В 911!'],
-      panicCries:  ['ААА!!', 'УБЕГАЙ!', 'СТРЕЛЯЮТ!'],
-    });
+    if (now - _lastPlayerWitnessAt >= 1100) {
+      _lastPlayerWitnessAt = now;
+      triggerWitnessChain(player.r, player.c, 10, {
+        snitchChance: 0.9,
+        snitchCries: ['ОН СТРЕЛЯЕТ!!', 'КОПЫ!! ПОМОГИТЕ!!', 'ЗВОНИТЕ В 911!'],
+        panicCries:  ['ААА!!', 'УБЕГАЙ!', 'СТРЕЛЯЮТ!'],
+      });
+    }
     try {
       ws && ws.send(JSON.stringify({ t: 'open_fire',
         d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
@@ -26357,11 +26369,11 @@ function renderWeaponPick() {
       const wasArmed = _isArmed();
       cancelWeaponReload();
       currentWeapon = w.id;  // null = без оружия
+      document.documentElement.dataset.selectedWeapon = currentWeapon || 'none';
       if(w.id&&!['grenade','molotov','c4','police_spikes'].includes(w.id))_lastEquippedWeapon=w.id;
       _saveCurrentWeaponChoice();
-      renderWeaponHud();
-      renderWeaponPick();
       closeWeaponPick();
+      renderWeaponHud();
       if (w.id === null) {
         showToast('✋ Оружие убрано', '✋', 1000);
       } else {
@@ -26439,7 +26451,7 @@ async function loadMyWeapons() {
     if (_familyPistolActive() && !seen.has('pistol')) {
       _myWeapons.unshift({ id: 'pistol', name: 'Семейный пистолет', count: 1, issuedByFamily: true });
     }
-    const previewWeaponAvailable = _localWeaponShowcase &&
+    const previewWeaponAvailable = (_ownerFullLoadout || _localWeaponShowcase) &&
       (currentWeapon == null || currentWeapon in WEAPON_FX_CFG);
     if (currentWeapon!=='taser'&&!previewWeaponAvailable&&!_myWeapons.find(w => w.id === currentWeapon)) {
       currentWeapon = _myWeapons[0]?.id || null;
@@ -38828,8 +38840,77 @@ function _playPreparedShotgun() {
   src.connect(gain);gain.connect(_sfxOut(ac));src.start(now);
   return true;
 }
+// Every regular shot used to create 8-14 WebAudio nodes on the gameplay
+// thread. On slower machines that cost is visible as a freeze. Build each
+// weapon report once while idle and play it through one source + one gain.
+const _weaponShotMixes = Object.freeze({
+  pistol:       {duration:.24,body:135,power:.90,crack:.30,blast:.22,tail:.055,mech:.095},
+  nagan:        {duration:.28,body:118,power:1.00,crack:.32,blast:.23,tail:.060,mech:.13,ring:920},
+  revolver:     {duration:.36,body:76, power:1.18,crack:.42,blast:.34,tail:.130,mech:.17,ring:760},
+  pistol_heavy: {duration:.33,body:82, power:1.12,crack:.38,blast:.31,tail:.110,mech:.14},
+  pistol_gold:  {duration:.27,body:112,power:1.00,crack:.34,blast:.23,tail:.065,mech:.11,ring:1320},
+  smg:          {duration:.17,body:158,power:.76,crack:.22,blast:.15,tail:.032,mech:.05},
+  tommy_gun:    {duration:.20,body:104,power:.86,crack:.25,blast:.19,tail:.043,mech:.065},
+  golden_tommy: {duration:.20,body:104,power:.88,crack:.25,blast:.19,tail:.043,mech:.065,ring:1180},
+  rifle:        {duration:.36,body:92, power:1.08,crack:.42,blast:.28,tail:.100,mech:.15,echo:.095},
+  sniper:       {duration:.58,body:54, power:1.28,crack:.50,blast:.36,tail:.160,mech:.34,echo:.12},
+  rpg:          {duration:.58,body:60, power:1.30,crack:.25,blast:.42,tail:.180,mech:0,echo:.10},
+  taser:        {duration:.19,body:410,power:.72,crack:.18,blast:.08,tail:.025,mech:.07,ring:1350},
+});
+const _weaponShotBuffers = new Map();
+function _prepareWeaponShotMix(weapon) {
+  const id=resolveWeapon(weapon);
+  if(id==='shotgun')return _prepareShotgunSound();
+  const ac=_ac(),p=_weaponShotMixes[id]||_weaponShotMixes.pistol;if(!ac||!p)return null;
+  const cached=_weaponShotBuffers.get(id);
+  if(cached&&cached.sampleRate===ac.sampleRate)return cached.buffer;
+  const rate=ac.sampleRate,length=Math.max(256,Math.ceil(rate*p.duration));
+  const buf=ac.createBuffer(1,length,rate),out=buf.getChannelData(0);
+  let seed=0x811c9dc5;
+  for(let i=0;i<id.length;i++){seed^=id.charCodeAt(i);seed=Math.imul(seed,16777619);}
+  let fast=0,slow=0,phase=0,ringPhase=0,max=0;
+  const aFast=1-Math.exp(-2*Math.PI*1800/rate),aSlow=1-Math.exp(-2*Math.PI*520/rate);
+  for(let i=0;i<length;i++){
+    seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;
+    const white=((seed>>>0)/2147483648)-1,t=i/rate;
+    fast+=aFast*(white-fast);slow+=aSlow*(white-slow);
+    const crackEnv=Math.exp(-t/Math.max(.006,p.duration*.055));
+    const blastEnv=Math.exp(-t/Math.max(.025,p.duration*.22));
+    const tailEnv=Math.exp(-t/Math.max(.05,p.duration*.55));
+    const f=p.body*Math.pow(.28,Math.min(1,t/Math.max(.06,p.duration*.45)));
+    phase+=Math.PI*2*f/rate;
+    let sample=(white-fast)*p.crack*crackEnv+(fast-slow)*p.blast*blastEnv+
+      slow*p.tail*tailEnv+Math.sin(phase)*.20*p.power*Math.exp(-t/Math.max(.04,p.duration*.31));
+    if(p.ring){ringPhase+=Math.PI*2*p.ring/rate;sample+=Math.sin(ringPhase)*.035*Math.exp(-t/.105);}
+    if(p.echo&&t>p.echo)sample+=slow*.12*Math.exp(-(t-p.echo)/.17);
+    if(p.mech&&t>=p.mech&&t<p.mech+.032){
+      const u=(t-p.mech)/.032;
+      sample+=(white-fast)*.095*(1-u)+Math.sin(u*Math.PI*10)*.055*(1-u);
+    }
+    sample*=p.power;
+    out[i]=sample;if(Math.abs(sample)>max)max=Math.abs(sample);
+  }
+  const ceiling=.88,scale=max>ceiling?ceiling/max:1;
+  if(scale!==1)for(let i=0;i<length;i++)out[i]*=scale;
+  _weaponShotBuffers.set(id,{sampleRate:rate,buffer:buf});
+  return buf;
+}
+function _playPreparedWeaponShot(weapon) {
+  const id=resolveWeapon(weapon);
+  if(id==='shotgun')return _playPreparedShotgun();
+  const ac=_ac(),buf=_prepareWeaponShotMix(id);if(!ac||!buf)return false;
+  const src=ac.createBufferSource(),gain=ac.createGain(),now=ac.currentTime;
+  src.buffer=buf;gain.gain.setValueAtTime(Math.max(.0001,_sfxVol),now);
+  src.connect(gain);gain.connect(_sfxOut(ac));src.start(now);
+  return true;
+}
+const _preparedShot=weapon=>()=>_playPreparedWeaponShot(weapon);
 const _queueSharedNoiseWarmup=()=>{
-  const warm=()=>{try{_prepareSharedNoise();_prepareShotgunSound();}catch(_){}};
+  const warm=()=>{try{
+    _prepareSharedNoise();_prepareShotgunSound();
+    for(const id of Object.keys(_weaponShotMixes))_prepareWeaponShotMix(id);
+    document.documentElement.dataset.weaponAudio='mixed-buffers';
+  }catch(_){}};
   if('requestIdleCallback' in window)requestIdleCallback(warm,{timeout:1200});
   else setTimeout(warm,180);
 };
@@ -38902,31 +38983,31 @@ window.addEventListener('pointerdown', () => {
 // Порт из demo_isometric WEAPON_FX_CFG. cd — секунды. tip — длина ствола
 // в пикселях (для muzzle). thick=true делает трассер толще + светится.
 const WEAPON_FX = {
-  pistol:       { cd:0.40, sound:()=>_gunShot({body:135,crack:.30,blast:.22,tail:.055,tailDur:.11,mechDelay:.095}),
+  pistol:       { cd:0.40, sound:_preparedShot('pistol'),
                   color:'#ffea80', recoil:1.4, shake:1.2, tip:14, spread:0 },
-  nagan:        { cd:0.45, sound:()=>_gunShot({body:118,power:1.08,crack:.32,blast:.23,tail:.06,ring:920,ringVol:.025,mechDelay:.13}),
+  nagan:        { cd:0.45, sound:_preparedShot('nagan'),
                   color:'#ffe080', recoil:1.5, shake:1.3, tip:14, spread:0 },
-  revolver:     { cd:0.58, sound:()=>_gunShot({body:76,power:1.24,crack:.42,blast:.34,blastDur:.11,low:.24,tail:.13,tailDur:.26,ring:760,ringVol:.05,mechDelay:.17,mechWeight:1.2}),
+  revolver:     { cd:0.58, sound:_preparedShot('revolver'),
                   color:'#ffc15c', recoil:2.8, shake:2.5, tip:16, spread:0, thick:true },
-  pistol_heavy: { cd:0.55, sound:()=>_gunShot({body:82,power:1.18,crack:.38,blast:.31,blastDur:.10,tail:.11,tailDur:.22,tailFreq:720,mechDelay:.14,mechWeight:1.15}),
+  pistol_heavy: { cd:0.55, sound:_preparedShot('pistol_heavy'),
                   color:'#ffb060', recoil:2.0, shake:1.8, tip:20, spread:0, thick:true },
-  pistol_gold:  { cd:0.50, sound:()=>_gunShot({body:112,power:1.05,crack:.34,blast:.23,tail:.065,ring:1320,ringVol:.043,ringDur:.13,mechDelay:.11}),
+  pistol_gold:  { cd:0.50, sound:_preparedShot('pistol_gold'),
                   color:'#ffd76b', recoil:1.6, shake:1.4, tip:18, spread:0 },
-  shotgun:      { cd:0.85, sound:()=>{if(!_playPreparedShotgun()){_gunShot({body:58,power:1.24,crack:.38,blast:.43,blastDur:.14,blastFreq:520,low:.30,bodyDur:.18,tail:.15,tailDur:.30,tailFreq:580,mech:false});_gunMechanic(.31,1.25);_gunMechanic(.43,1.0);}},
+  shotgun:      { cd:0.85, sound:_preparedShot('shotgun'),
                   color:'#ffaa50', recoil:3.5, shake:3.8, tip:28, spread:0.32, pellets:6, thick:true },
-  smg:          { cd:0.20, sound:()=>_gunShot({body:158,crack:.22,crackDur:.012,blast:.15,blastDur:.045,low:.13,bodyDur:.055,tail:.032,tailDur:.07,mechDelay:.05,mechWeight:.7}),
+  smg:          { cd:0.20, sound:_preparedShot('smg'),
                   color:'#ffea80', recoil:0.9, shake:0.9, tip:22, spread:0.10 },
-  tommy_gun:    { cd:0.25, sound:()=>_gunShot({body:104,crack:.25,crackDur:.014,blast:.19,blastDur:.06,blastFreq:610,low:.17,bodyDur:.07,tail:.043,tailDur:.09,mechDelay:.065,mechWeight:.8}),
+  tommy_gun:    { cd:0.25, sound:_preparedShot('tommy_gun'),
                   color:'#ffce70', recoil:1.0, shake:1.0, tip:22, spread:0.08 },
-  golden_tommy: { cd:0.25, sound:()=>_gunShot({body:104,crack:.25,crackDur:.014,blast:.19,blastDur:.06,blastFreq:610,low:.17,bodyDur:.07,tail:.043,tailDur:.09,mechDelay:.065,mechWeight:.8}),
+  golden_tommy: { cd:0.25, sound:_preparedShot('golden_tommy'),
                   color:'#ffd700', recoil:1.0, shake:1.0, tip:22, spread:0.08 },
-  rifle:        { cd:0.50, sound:()=>_gunShot({body:92,power:1.10,crack:.42,crackFreq:2600,blast:.28,blastDur:.09,blastFreq:820,tail:.10,tailDur:.22,echo:.038,echoDelay:.095,mechDelay:.15}),
+  rifle:        { cd:0.50, sound:_preparedShot('rifle'),
                   color:'#ffea80', recoil:2.4, shake:2.0, tip:32, spread:0.02, thick:true },
-  sniper:       { cd:1.20, sound:()=>{_gunShot({body:54,power:1.34,crack:.50,crackFreq:3100,crackDur:.025,blast:.36,blastDur:.14,blastFreq:650,low:.32,bodyDur:.24,tail:.16,tailDur:.40,tailFreq:520,echo:.10,echoDur:.24,echoDelay:.12,echoFreq:420,mech:false});_gunMechanic(.34,1.25);_gunMechanic(.49,1.05);},
+  sniper:       { cd:1.20, sound:_preparedShot('sniper'),
                   color:'#ff5050', recoil:5.0, shake:5.0, tip:44, spread:0, thick:true },
-  rpg:          { cd:1.80, sound:()=>{_noise({dur:.42,vol:.38,filter:'lowpass',filterFreq:520,q:.5,attack:.012});_noise({dur:.15,vol:.25,filter:'highpass',filterFreq:1450,q:.5,attack:.001});_tone({freq:72,freqEnd:24,dur:.46,type:'sawtooth',vol:.34,attack:.008});},
+  rpg:          { cd:1.80, sound:_preparedShot('rpg'),
                   color:'#ff6020', recoil:6.0, shake:7.0, tip:46, spread:0, thick:true },
-  taser:        { cd:1.25, sound:()=>{for(let i=0;i<5;i++)_tone({freq:1220+i*135,freqEnd:410+i*40,dur:.045,type:'sawtooth',vol:.055,delay:i*.018});_noise({dur:.11,vol:.12,filter:'highpass',filterFreq:2600});},
+  taser:        { cd:1.25, sound:_preparedShot('taser'),
                   color:'#58ddff', recoil:.45, shake:.7, tip:17, spread:0 },
 };
 function weaponFx(w) {
@@ -54579,7 +54660,7 @@ window.Mafiozi3DBridge = Object.freeze({
     return _threeBridgeFireAccepted(angle);
   },
   getShotPerformance() {
-    return {gameplayMs:_last3DFireCostMs,soundMs:_lastWeaponSoundCostMs,audio:_shotgunSoundBuffer?'mixed-buffer':'live-nodes'};
+    return {gameplayMs:_last3DFireCostMs,soundMs:_lastWeaponSoundCostMs,audio:document.documentElement.dataset.weaponAudio||'warming'};
   },
   fireAtGangNpc(sourceId) {
     if(myDead||myMode==='pve'||!_isArmed())return false;
@@ -58323,6 +58404,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d175"></script>
+<script type="module" src="three_preview.js?v=3d176"></script>
 </body>
 </html>
