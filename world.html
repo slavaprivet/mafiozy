@@ -7839,7 +7839,9 @@ function _residentEnterBuilding(npc,now,door=npc._residentDoor,respawn=false) {
 function _scheduleResidentRespawn(deadNpc,now) {
   const door=_pickResidentRespawnDoor();if(!door)return false;
   const fresh=spawnNpc(++_residentRespawnSeed,{cityOnly:true});if(!fresh)return false;
-  if(deadNpc?.look&&!deadNpc._beach)fresh.look={...deadNpc.look};
+  // A respawn is a new citizen, not the old corpse recycled behind a door.
+  // Keep the population/archetype balance but generate a fresh face, hair and outfit.
+  fresh._appearanceGeneration=(+deadNpc?._appearanceGeneration||0)+1;
   fresh._arcKey=deadNpc?._arcKey||fresh._arcKey;fresh._arc=NPC_ARCHETYPES[fresh._arcKey]||fresh._arc;
   return _residentEnterBuilding(fresh,now,door,true);
 }
@@ -8411,7 +8413,7 @@ function maintainNpcPopulation(now) {
     if (n.dead && n.deadAt && (now-n.deadAt>60000||(n._evacuated&&now-n.deadAt>4500))) {
       const respawn=_isRespawnableResident(n);
       NPCS.splice(i, 1);
-      if(respawn&&!_scheduleResidentRespawn(n,now))RESIDENT_RESPAWN_BACKLOG.push({look:n.look,_arcKey:n._arcKey,_beach:n._beach});
+      if(respawn&&!_scheduleResidentRespawn(n,now))RESIDENT_RESPAWN_BACKLOG.push({_arcKey:n._arcKey,_beach:n._beach,_appearanceGeneration:(+n._appearanceGeneration||0)+1});
     } else if (n._guard && n._hostileUntil && now > n._hostileUntil + 5000) {
       NPCS.splice(i, 1);
     }
