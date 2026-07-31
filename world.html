@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v214: reliable RMB+LMB laser fire and the Mafiozi brass-diamond combat reticle. -->
+<!DOCTYPE html><!-- v215: bounded throwable/fire lifecycle prevents long-session 3D stalls. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -42786,6 +42786,10 @@ function updateProjectiles(dt) {
     const b=explosionBursts[i];
     if(!b||burnNow-(+b.born||0)>=Math.max(1,+b.life||1550))explosionBursts.splice(i,1);
   }
+  // Throwable/fire lifetime belongs to simulation, not Canvas drawing. Pure 3D
+  // skips drawAimLaser(), so draw-only cleanup used to retain every Molotov and
+  // rescan the ever-growing _firePools array in the 3D bridge each frame.
+  _updateThrowableLifecycle(burnNow);
   // Shockwave-кольца: расширяются, теряют life, удаляются по нулю.
   for (let i = shockwaves.length - 1; i >= 0; i--) {
     const s = shockwaves[i];
@@ -43552,6 +43556,7 @@ canvas.addEventListener('pointerdown', (e) => {
 
 let _throwAimCancelled=false;
 const _thrownItems=[],_firePools=[];
+const _MAX_THROWN_ITEMS=16,_MAX_FIRE_POOLS=12;
 const THROW_GRENADE_RADIUS=4.4;
 const THROW_MOLOTOV_IMPACT_RADIUS=3.6;
 const THROW_MOLOTOV_FIRE_RADIUS=5.0;
@@ -43561,6 +43566,7 @@ async function _throwSelected(kind,angle,throwRange){
   if(!await _consumeThrowable(kind)){showToast('Предмет не удалось использовать','❌',1500);return false;}
   if(kind==='grenade')_myGrenadeCount--;else _myMolotovCount--;renderWeaponHud();if(_wepPickOpen)renderWeaponPick();
   const range=Math.max(1.4,Math.min(6.5,+throwRange||6.5)),fromR=player.r,fromC=player.c,toR=fromR+Math.sin(angle)*range,toC=fromC+Math.cos(angle)*range;
+  _capArr(_thrownItems,_MAX_THROWN_ITEMS);
   _thrownItems.push({kind,fromR,fromC,toR,toC,start:performance.now(),flight:720,exploded:false});
   try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'grenade',d:{from_x:fromR,from_y:fromC,to_x:toR,to_y:toC,kind}}))}catch(e){}
   return true;
@@ -43568,7 +43574,7 @@ async function _throwSelected(kind,angle,throwRange){
 function _explodeThrowable(q){
   if(q.exploded)return;q.exploded=true;const radius=q.kind==='grenade'?THROW_GRENADE_RADIUS:THROW_MOLOTOV_IMPACT_RADIUS;
   if(q.kind==='grenade'){const pooled3D=_usesPooled3DFx();spawnCarExplosion(q.toR,q.toC,null,false);if(!pooled3D){for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,d=.35+Math.random()*.7;spawnCarExplosion(q.toR+Math.sin(a)*d,q.toC+Math.cos(a)*d,null,false,false)}spawnShockwave(q.toR,q.toC,{rad0:8,maxRad:88,life:520,color:'#ffbd55',thick:5});spawnSmokePuff(q.toR,q.toC,0);spawnSmokePuff(q.toR+.4,q.toC-.3,2.2)}spawnBlastCrater(q.toR,q.toC);addShake(15);fireScreenFlash('rpg');}
-  else{const now=performance.now();spawnCarExplosion(q.toR,q.toC,null,false,false);_firePools.push({r:q.toR,c:q.toC,start:now,until:now+3800,lastHit:0,seed:Math.random()*20});spawnShockwave(q.toR,q.toC,{rad0:5,maxRad:72,life:460,color:'#ff8a20',thick:4});try{_molotovIgnitionSound()}catch(e){}addShake(8);}
+  else{const now=performance.now();spawnCarExplosion(q.toR,q.toC,null,false,false);_capArr(_firePools,_MAX_FIRE_POOLS);_firePools.push({r:q.toR,c:q.toC,start:now,until:now+3800,lastHit:0,seed:Math.random()*20});spawnShockwave(q.toR,q.toC,{rad0:5,maxRad:72,life:460,color:'#ff8a20',thick:4});try{_molotovIgnitionSound()}catch(e){}addShake(8);}
   for(const n of NPCS){if(!n.dead&&Math.hypot(n.r-q.toR,n.c-q.toC)<radius)hitNpc(n,0,0,q.kind,q.kind==='grenade'?95:45)}
   _damageGangBotsInThrowable(q.toR,q.toC,radius,q.kind==='grenade'?'grenade':'molotov_fire');
   _damageCasinoPropsInRadius(q.toR,q.toC,radius,q.kind==='grenade'?'grenade':'molotov');
@@ -43618,10 +43624,33 @@ function drawGroundMissionBoxes() {
     ctx.restore();
   }
 }
+
+function _updateThrowableLifecycle(now=performance.now()){
+  for(let i=_thrownItems.length-1;i>=0;i--){
+    const q=_thrownItems[i];
+    if(!q){_thrownItems.splice(i,1);continue;}
+    if(now-q.start>=q.flight)_explodeThrowable(q);
+    if(now-q.start>q.flight+(q.kind==='grenade'?850:250))_thrownItems.splice(i,1);
+  }
+  for(let i=_firePools.length-1;i>=0;i--){
+    const f=_firePools[i];
+    if(!f||now>f.until){_firePools.splice(i,1);continue;}
+    if(now-f.lastHit<=900)continue;
+    f.lastHit=now;
+    for(const n of NPCS)if(!n.dead&&Math.hypot(n.r-f.r,n.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS)hitNpc(n,0,0,'molotov',12);
+    if(_buildingInt)for(const n of (_buildingInt.npcs||[])){if(n.dead||n._allied||Math.hypot(n.r-f.r,n.c-f.c)>=THROW_MOLOTOV_FIRE_RADIUS)continue;_igniteInteriorCharacter(n,f.r,f.c);_hitInteriorNpc(n,0,0,12,'molotov_fire',true);}
+    _damageGangBotsInThrowable(f.r,f.c,THROW_MOLOTOV_FIRE_RADIUS,'molotov_fire');
+    _damageCasinoPropsInRadius(f.r,f.c,THROW_MOLOTOV_FIRE_RADIUS,'molotov_fire');
+    if(Math.hypot(player.r-f.r,player.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS-.2)_hurtLocal(8,'пожар');
+  }
+  if(_thrownItems.length>_MAX_THROWN_ITEMS)_thrownItems.splice(0,_thrownItems.length-_MAX_THROWN_ITEMS);
+  if(_firePools.length>_MAX_FIRE_POOLS)_firePools.splice(0,_firePools.length-_MAX_FIRE_POOLS);
+  document.documentElement.dataset.throwablePools=`t${_thrownItems.length}:f${_firePools.length}`;
+}
 function drawThrowableFx(){
   const now=performance.now();
-  for(let i=_thrownItems.length-1;i>=0;i--){const q=_thrownItems[i],t=Math.min(1,(now-q.start)/q.flight);if(t>=1)_explodeThrowable(q);if(now-q.start>q.flight+(q.kind==='grenade'?850:250)){_thrownItems.splice(i,1);continue}const r=q.fromR+(q.toR-q.fromR)*t,c=q.fromC+(q.toC-q.fromC)*t,p=w2s(r+.5,c+.5),arc=Math.sin(Math.PI*t)*55;ctx.save();ctx.font='18px "Segoe UI Emoji"';ctx.textAlign='center';ctx.shadowColor=q.kind==='molotov'?'#ff6a00':'#000';ctx.shadowBlur=8;ctx.fillText(q.kind==='grenade'?'💣':'🔥',p.x,p.y-_bulletY()-arc);ctx.restore()}
-  for(let i=_firePools.length-1;i>=0;i--){const f=_firePools[i];if(now>f.until){_firePools.splice(i,1);continue}_drawWorldFirePatch(f,now);if(now-f.lastHit>900){f.lastHit=now;for(const n of NPCS)if(!n.dead&&Math.hypot(n.r-f.r,n.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS)hitNpc(n,0,0,'molotov',12);if(_buildingInt)for(const n of (_buildingInt.npcs||[])){if(n.dead||n._allied||Math.hypot(n.r-f.r,n.c-f.c)>=THROW_MOLOTOV_FIRE_RADIUS)continue;_igniteInteriorCharacter(n,f.r,f.c);_hitInteriorNpc(n,0,0,12,'molotov_fire',true)}_damageGangBotsInThrowable(f.r,f.c,THROW_MOLOTOV_FIRE_RADIUS,'molotov_fire');_damageCasinoPropsInRadius(f.r,f.c,THROW_MOLOTOV_FIRE_RADIUS,'molotov_fire');if(Math.hypot(player.r-f.r,player.c-f.c)<THROW_MOLOTOV_FIRE_RADIUS-.2)_hurtLocal(8,'пожар')}}
+  for(const q of _thrownItems){const t=Math.min(1,(now-q.start)/q.flight),r=q.fromR+(q.toR-q.fromR)*t,c=q.fromC+(q.toC-q.fromC)*t,p=w2s(r+.5,c+.5),arc=Math.sin(Math.PI*t)*55;ctx.save();ctx.font='18px "Segoe UI Emoji"';ctx.textAlign='center';ctx.shadowColor=q.kind==='molotov'?'#ff6a00':'#000';ctx.shadowBlur=8;ctx.fillText(q.kind==='grenade'?'💣':'🔥',p.x,p.y-_bulletY()-arc);ctx.restore()}
+  for(const f of _firePools)_drawWorldFirePatch(f,now);
 }
 function _drawThrowableAim(){const a=_joyRAimAngle();if(a==null)return;const range=_joyRThrowRange(),er=player.r+Math.sin(a)*range,ec=player.c+Math.cos(a)*range;ctx.save();ctx.strokeStyle=currentWeapon==='grenade'?'#ffd65a':'#ff792e';ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.beginPath();for(let i=0;i<=16;i++){const t=i/16,r=player.r+(er-player.r)*t,c=player.c+(ec-player.c)*t,p=w2s(r+.5,c+.5),arc=Math.sin(Math.PI*t)*(22+range*5);if(i)ctx.lineTo(p.x,p.y-_bulletY()-arc);else ctx.moveTo(p.x,p.y-_bulletY())}ctx.stroke();ctx.setLineDash([]);const ep=w2s(er+.5,ec+.5);ctx.beginPath();ctx.ellipse(ep.x,ep.y,22,10,0,0,Math.PI*2);ctx.stroke();ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(`${range.toFixed(1)} м`,ep.x,ep.y+23);ctx.font='18px "Segoe UI Emoji"';ctx.fillText(currentWeapon==='grenade'?'💥':'🔥',ep.x,ep.y-5);ctx.restore()}
 
@@ -59795,6 +59824,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d214"></script>
+<script type="module" src="three_preview.js?v=3d215"></script>
 </body>
 </html>
