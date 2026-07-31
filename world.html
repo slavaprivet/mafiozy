@@ -2566,12 +2566,23 @@ window.MafioziLoading = (() => {
     clearInterval(tipTimer);
     if (bar) bar.style.width = '100%'; if (pct) pct.textContent = '100%';
     if (label && text) text.textContent = label;
-    const wait = Math.max(0, 1400 - (performance.now() - started));
+    // Keep the authored splash visible long enough to cover the boot proxy and
+    // the first GPU material compile. Players should enter on a complete frame.
+    const wait = Math.max(0, 2300 - (performance.now() - started));
     setTimeout(() => { screen?.classList.add('done'); setTimeout(() => screen?.remove(), 520); }, wait);
   };
   // Если WebGL/CDN не ответит, игра всё равно откроет уже работающий Canvas.
   const canvasReady = () => isThree ? set(48, 'Подключаем трёхмерный город…') : complete('Город готов');
-  setTimeout(() => { if (!finished) complete('Город готов — продолжаем в безопасном режиме'); }, 15000);
+  setTimeout(() => {
+    if (finished) return;
+    if (isThree) {
+      document.getElementById('threePreview')?.remove();
+      document.getElementById('threeCinematicGrade')?.remove();
+      document.getElementById('stage')?.classList.remove('three-mode');
+      document.documentElement.dataset.threeStartupFallback='loading-timeout-v199';
+    }
+    complete('Город готов — продолжаем в безопасном режиме');
+  }, 25000);
   return Object.freeze({ set, complete, canvasReady, isThree });
 })();
 window.MafioziLoading.set(15, 'Читаем карту и районы…');
