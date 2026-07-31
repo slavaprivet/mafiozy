@@ -1,4 +1,4 @@
-// 3D sync v218: priority emergency fleet, visible close-range fire hose, animated towing and industrial junkyard disposal.
+// 3D sync v219: three dirty-clothed junkyard workers patrol, sort scrap and clean the disposal yard.
 // 3D sync v216: compact burgundy-gold famiglia seal reticle and verified RMB+LMB shot chord.
 // 3D sync v215: bounded simulation-owned throwable/fire lifecycle prevents long-session stalls.
 // 3D sync v214: RMB laser aiming accepts simultaneous LMB fire and uses the Mafiozi brass-diamond reticle.
