@@ -1,3 +1,4 @@
+// 3D sync v224: tow trucks drive complete road routes without scene teleports.
 // 3D sync v223: the coastal junkyard replaces four generic towers with scrap mountains and burning wreck lots.
 // 3D sync v222: ambulance patients recover from stale prior-trip and orphaned-dispatch flags.
 // 3D sync v221: visible road-side fire response and reliable tow loading after extinguishing.
