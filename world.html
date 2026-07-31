@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 3D sync v192: the first frame uses a bounded vehicle pool and nearest buildings; remaining geometry streams after entry without changing collisions or quality. -->
+<!-- 3D sync v193: collision props and vehicle effects are instanced/shared; explosion and wreck lights are bounded after a five-car stress test. -->
 <!-- 3D sync v191: vehicle hits use bounded NPC reactions; chain explosions are staggered to prevent shot-time frame stalls. -->
 <!-- 3D sync v190: ordinary buildings use stable glass, brick, limestone, concrete, art-deco and industrial architecture families without changing collisions. -->
 <html lang="ru">
@@ -55378,6 +55378,13 @@ window.Mafiozi3DBridge = Object.freeze({
         damageRatio:0,bulletHoles:8,smoking:false,burning:true,wrecked:true,burnedOut:false,
         wreckAge:performance.now()%5200});
     }
+    if(_LOCAL_PREVIEW&&_UP.has('previewwrecks')){
+      const count=Math.max(1,Math.min(8,+_UP.get('previewwrecks')||5)),previewBurning=!_UP.has('previewcalm');
+      for(let i=0;i<Math.min(count,cars.length);i++){const a=i/count*Math.PI*2;Object.assign(cars[i],{
+        r:player.r+Math.sin(a)*5.2,c:player.c+Math.cos(a)*5.2,ang:-a,dirR:0,dirC:1,velR:0,velC:0,parked:true,
+        damageRatio:0,bulletHoles:8,smoking:false,burning:previewBurning,wrecked:true,burnedOut:!previewBurning,
+        wreckAge:(performance.now()+i*170)%5200});}
+    }
     if(_LOCAL_PREVIEW&&_UP.has('previewcarhits')&&cars[0]){
       const previewMarks=[
         {id:1,u:-.76,v:1,y:.31,panel:'side',surface:'metal'},{id:2,u:-.22,v:1,y:.72,panel:'side',surface:'glass'},
@@ -55519,6 +55526,9 @@ window.Mafiozi3DBridge = Object.freeze({
     const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&fxNow-(+x.born||fxNow)<Math.max(1,+x.life||1550)&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,fxNow-(+x.born||fxNow)),life:+x.life||1550,seed:+x.seed||0,kind:x.kind||'blast'}));
     if(_LOCAL_PREVIEW&&_UP.has('previewwreck')&&cars[0]){
       const age=performance.now()%5200;if(age<1850)explosionFx.unshift({r:cars[0].r,c:cars[0].c,age,life:1850,seed:170,kind:'vehicle'});
+    }
+    if(_LOCAL_PREVIEW&&_UP.has('previewwrecks')&&!_UP.has('previewcalm')&&!_UP.has('previewnoexplosions')){
+      const count=Math.max(1,Math.min(8,+_UP.get('previewwrecks')||5));for(let i=0;i<Math.min(count,cars.length);i++){const age=(performance.now()+i*260)%5200;if(age<1850)explosionFx.unshift({r:cars[i].r,c:cars[i].c,age,life:1850,seed:170+i*37,kind:'vehicle'});}
     }
     const throwableFx=(typeof _thrownItems!=='undefined'?_thrownItems:[]).filter(x=>x&&!x.exploded).slice(0,8).map((x,i)=>{const p=Math.max(0,Math.min(1,(performance.now()-(+x.start||0))/(+x.flight||720)));return {id:i,kind:x.kind||'grenade',r:(+x.fromR||0)+((+x.toR||0)-(+x.fromR||0))*p,c:(+x.fromC||0)+((+x.toC||0)-(+x.fromC||0))*p,height:Math.sin(Math.PI*p)*3.8,progress:p};});
     const fireFx=(typeof _firePools!=='undefined'?_firePools:[]).filter(x=>x&&performance.now()<+x.until&&near(+x.r||0,+x.c||0)).slice(0,12).map(x=>({r:+x.r||0,c:+x.c||0,age:performance.now()-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2}));
@@ -59315,6 +59325,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d192f"></script>
+<script type="module" src="three_preview.js?v=3d193"></script>
 </body>
 </html>
