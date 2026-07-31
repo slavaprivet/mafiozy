@@ -14496,7 +14496,13 @@ function s2w(x, y) {
 // при заданном угле прицела. Используем тот же handAnchor + FIREARM_TIP
 // что и drawWeaponInHands — гарантирует «пуля вылетает из дула», а не
 // «из груди» или «из-за спины».
+let _threeMuzzleWorldOverride = null;
 function muzzleWorldPoint(angleRad) {
+  if (_threeMuzzleWorldOverride &&
+      Number.isFinite(_threeMuzzleWorldOverride.r) &&
+      Number.isFinite(_threeMuzzleWorldOverride.c)) {
+    return { r:_threeMuzzleWorldOverride.r, c:_threeMuzzleWorldOverride.c };
+  }
   // Берём tip по РЕАЛЬНОМУ id (deagle ≠ pistol_heavy по длине ствола),
   // с fallback'ом через weaponTip на resolved-класс.
   const tip = weaponTip(currentWeapon);
@@ -54400,11 +54406,18 @@ function _threeTrackCombatBleed(id,hp,maxHp,r,c,dead,sourceHitAt=0){
 // accepted a shot. fire() intentionally returns early for an empty magazine,
 // reload, cooldown and role/zone locks, so compare the authoritative shot
 // clocks instead of blindly returning true from the bridge.
-function _threeBridgeFireAccepted(angle) {
+function _threeBridgeFireAccepted(angle, muzzleR, muzzleC) {
   const firearmShotBefore = lastShotClientT;
   const taserShotBefore = typeof _lastPoliceTaserAt === 'number' ? _lastPoliceTaserAt : 0;
   const fireStarted=performance.now();
-  fire(Number.isFinite(angle) ? angle : null);
+  const previousMuzzleOverride=_threeMuzzleWorldOverride;
+  if(Number.isFinite(muzzleR)&&Number.isFinite(muzzleC))
+    _threeMuzzleWorldOverride={r:muzzleR,c:muzzleC};
+  try {
+    fire(Number.isFinite(angle) ? angle : null);
+  } finally {
+    _threeMuzzleWorldOverride=previousMuzzleOverride;
+  }
   _last3DFireCostMs=performance.now()-fireStarted;
   return lastShotClientT !== firearmShotBefore ||
     (typeof _lastPoliceTaserAt === 'number' && _lastPoliceTaserAt !== taserShotBefore);
@@ -54773,21 +54786,21 @@ window.Mafiozi3DBridge = Object.freeze({
     }
     return {cars,npcs,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
   },
-  fire(angle) {
+  fire(angle, muzzleR, muzzleC) {
     if(_LOCAL_PREVIEW&&_UP.get('previewweapon'))return true;
     if (myDead || myMode === 'pve' || !_isArmed()) return false;
-    return _threeBridgeFireAccepted(angle);
+    return _threeBridgeFireAccepted(angle, muzzleR, muzzleC);
   },
   getShotPerformance() {
     return {gameplayMs:_last3DFireCostMs,soundMs:_lastWeaponSoundCostMs,audio:document.documentElement.dataset.weaponAudio||'warming',explosionAudio:document.documentElement.dataset.explosionAudio||'warming',liveFx:{bullets:bullets.length,shells:shells.length,impacts:impacts.length,blood:bloodSplats.length,explosions:explosionBursts.length}};
   },
-  fireAtGangNpc(sourceId) {
+  fireAtGangNpc(sourceId, muzzleR, muzzleC) {
     if(myDead||myMode==='pve'||!_isArmed())return false;
     const found=_findLiveAggroBotById(sourceId);if(!found)return false;
     const bot=found.bot,dist=Math.hypot(player.r-(+bot.y||0),player.c-(+bot.x||0));
     if(dist>(weaponProfile(currentWeapon).range||8)+.4)return false;
     _threeForcedGangShotId=String(bot.id);_threeForcedGangShotUntil=performance.now()+180;
-    const accepted=_threeBridgeFireAccepted(Math.atan2((+bot.y||0)-player.r,(+bot.x||0)-player.c));
+    const accepted=_threeBridgeFireAccepted(Math.atan2((+bot.y||0)-player.r,(+bot.x||0)-player.c),muzzleR,muzzleC);
     if(!accepted){_threeForcedGangShotId=null;_threeForcedGangShotUntil=0;}
     return accepted;
   },
@@ -58523,6 +58536,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d180"></script>
+<script type="module" src="three_preview.js?v=3d181"></script>
 </body>
 </html>
