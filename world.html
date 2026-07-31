@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v221: fire engines park visibly at hose range and tow trucks reach wreck loading points. -->
+<!DOCTYPE html><!-- v222: ambulance calls recover from stale reused-NPC and orphaned-dispatch state. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -8433,7 +8433,9 @@ function maintainNpcPopulation(now) {
   // (иначе _guard NPC копятся в NPCS навсегда → утечка → лаги)
   for (let i = NPCS.length - 1; i >= 0; i--) {
     const n = NPCS[i];
-    const delivered=!!n._ambulanceDeliveredAt;
+    _repairAmbulancePatientState(n,now);
+    const incidentAt=n._medicalDowned?n._medicalDownedAt:n.deadAt;
+    const delivered=!!n._ambulanceDeliveredAt&&(!incidentAt||n._ambulanceDeliveredAt>=incidentAt);
     const timedOut=n.dead&&n.deadAt&&!n._ambulanceInTransit&&!n._evacuated&&now-n.deadAt>CORPSE_AUTO_REMOVE_MS;
     if (delivered || (n.dead && timedOut)) {
       if(timedOut){n._corpseExpired=true;_corpseTimeoutCount++;document.documentElement.dataset.corpseTimeoutRemovals=String(_corpseTimeoutCount);document.documentElement.dataset.lastCorpseRemoval='timeout-180s';if(typeof _cancelAmbulanceCallForPatient==='function')_cancelAmbulanceCallForPatient(n);}
@@ -9365,6 +9367,27 @@ function _releaseFailedAmbulanceCall(v) {
   for (const medic of (v._medicalCrew || [])) medic.visible = false;
 }
 
+function _repairAmbulancePatientState(patient,now=performance.now()){
+  if(!patient||(patient.dead!==true&&!patient._medicalDowned&&+patient.hp>0))return;
+  const incidentAt=+(patient._medicalDowned?patient._medicalDownedAt:patient.deadAt)||0;
+  const previousEnd=Math.max(+patient._ambulanceDeliveredAt||0,+patient._evacuatedAt||0);
+  const active=serviceVehicles.some(v=>v?.kind==='ambulance'&&v.state!=='done'&&
+    v.state!=='ambulance_parked'&&v.payload?.npc===patient);
+  if(incidentAt&&previousEnd&&incidentAt>previousEnd+50){
+    patient._ambulanceDeliveredAt=0;patient._evacuatedAt=0;patient._evacuated=false;
+    patient._corpseExpired=false;patient._ambulanceDispatched=false;
+    patient._ambulanceInTransit=false;patient._ambulanceLoading=false;patient._carriedByAmbulance=false;
+  }
+  if(patient._corpseExpired&&incidentAt&&now-incidentAt<CORPSE_AUTO_REMOVE_MS)patient._corpseExpired=false;
+  if(!active&&(patient._ambulanceDispatched||patient._ambulanceLoading||
+      patient._ambulanceInTransit||patient._carriedByAmbulance)){
+    patient._ambulanceDispatched=false;patient._ambulanceLoading=false;
+    patient._ambulanceInTransit=false;patient._carriedByAmbulance=false;
+    if(!patient._ambulanceDeliveredAt){patient._evacuated=false;patient._evacuatedAt=0;}
+    document.documentElement.dataset.ambulanceOrphanRepairs=String((+document.documentElement.dataset.ambulanceOrphanRepairs||0)+1);
+  }
+}
+
 function _cancelAmbulanceCallForPatient(patient){
   for(const v of serviceVehicles){
     if(v?.kind!=='ambulance'||v.payload?.npc!==patient||v.state==='ambulance_parked')continue;
@@ -9842,6 +9865,8 @@ function dispatchEmergencyServices() {
       n.hp=i===0?1:0;n.dead=i!==0;n.deadAt=now-(i===4?CORPSE_AUTO_REMOVE_MS+2000:2400+i*120);
       n._medicalDowned=i===0;n._medicalDownedAt=i===0?now-2600:0;n._medicalBleedoutAt=i===0?now+30000:0;
       n.walking=false;n._ambulanceDispatched=false;n._ambulanceInTransit=false;n._evacuated=false;n._corpseExpired=false;
+      if(i===1){n._ambulanceDeliveredAt=now-5000;n._evacuatedAt=now-5000;n._evacuated=true;n._ambulanceDispatched=true;}
+      if(i===2)n._ambulanceDispatched=true;
     });
     document.documentElement.dataset.previewAmbulanceQueueSeeded=String(testVictims.length);
   }
@@ -9874,6 +9899,7 @@ function dispatchEmergencyServices() {
 
   // Пляжники живут в отдельной Map и не входят в NPCS — им нужен свой вызов.
   for (const b of beachgoers.values()) {
+    _repairAmbulancePatientState(b,now);
     if (!b.dead || b._evacuated || b._ambulanceDispatched) continue;
     if (!b.deadAt || now - b.deadAt < 2000) continue;
     const br = b._deathR ?? b.y, bc = b._deathC ?? b.x;
@@ -59954,6 +59980,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d221"></script>
+<script type="module" src="three_preview.js?v=3d222"></script>
 </body>
 </html>
