@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 3D sync v191: vehicle hits use bounded NPC reactions; chain explosions are staggered to prevent shot-time frame stalls. -->
 <!-- 3D sync v190: ordinary buildings use stable glass, brick, limestone, concrete, art-deco and industrial architecture families without changing collisions. -->
 <html lang="ru">
 <head>
@@ -10378,10 +10379,12 @@ function triggerWitnessChain(srcR, srcC, radius, opts) {
   let newSnitchSlots = Math.max(0, MAX_SNITCHERS_TOTAL - currentSnitchers);
   for (const n of NPCS) {
     if (n.dead) continue;
-    _recoverNpcFromCollision(n);
-    if (n.snitching && now < n.snitchUntil) continue;   // уже стучит
     const dr = n.r - srcR, dc = n.c - srcC;
     if (dr * dr + dc * dc > r2) continue;
+    // Восстановление коллизии нужно только реальным свидетелям рядом.
+    // Раньше оно синхронно запускалось для всего города на каждый выстрел.
+    _recoverNpcFromCollision(n);
+    if (n.snitching && now < n.snitchUntil) continue;   // уже стучит
     if (newSnitchSlots > 0 && Math.random() < snitchChance) {
       markNpcSnitch(n, snitchCries[Math.floor(Math.random() * snitchCries.length)]);
       newSnitchSlots--;
@@ -10493,9 +10496,11 @@ function _npcRememberAggression(n, delta) {
 function _npcSpreadRumor(n, now) {
   if (n._rumorSpreadAt && now - n._rumorSpreadAt < 8000) return;
   n._rumorSpreadAt = now;
+  let shared = 0;
   for (const other of NPCS) {
     if (other === n || other.dead) continue;
-    if (Math.hypot(other.r - n.r, other.c - n.c) > 5) continue;
+    const dr=other.r-n.r,dc=other.c-n.c;
+    if (dr*dr+dc*dc > 25) continue;
     if (other._relation == null) other._relation = 0;
     // Сосед становится чуть более осторожным
     other._relation = Math.min(2, (other._relation || 0) + 0.5);
@@ -10505,6 +10510,9 @@ function _npcSpreadRumor(n, now) {
       other.cryText  = (Math.random() < 0.5) ? 'Слыхал?' : 'Говорят, стреляли…';
       other.cryUntil = now + 1400;
     }
+    // Достаточно ближайшей группы: слух остаётся заметным, но один выстрел
+    // больше не создаёт десятки вложенных полных проходов по NPCS.
+    if (++shared >= 10) break;
   }
 }
 
@@ -10581,10 +10589,13 @@ function triggerNpcCrashWitness(crashR, crashC) {
 // логике. cryUntil = когда показывать чат-баббл (выводится в drawNpc).
 function triggerNpcPanic(srcR, srcC, radius) {
   const now = performance.now();
+  const r2=radius*radius;
+  let rumorBudget=2,affected=0;
   for (const n of NPCS) {
+    if (!n || n.dead) continue;
     const dr = n.r - srcR, dc = n.c - srcC;
-    const d  = Math.hypot(dr, dc);
-    if (d > radius) continue;
+    if (dr*dr+dc*dc > r2) continue;
+    affected++;
     // Бандит не убегает — злится и кричит
     const arcKey = n._arcKey || 'worker';
     const pm = n._arc ? n._arc.panicMult : 2.5;
@@ -10612,8 +10623,12 @@ function triggerNpcPanic(srcR, srcC, radius) {
     // Запоминает что рядом была угроза → чуть более wary к игроку
     _npcRememberAggression(n, 0.3);
     // Распространяет слух соседям
-    if (Math.random() < 0.4) _npcSpreadRumor(n, now);
+    if (rumorBudget>0 && Math.random() < 0.4) {
+      rumorBudget--;
+      _npcSpreadRumor(n, now);
+    }
   }
+  document.documentElement.dataset.lastPanicBatch=`affected:${affected}:rumors:${2-rumorBudget}`;
 }
 
 function updateNpcs(dt) {
@@ -25556,12 +25571,14 @@ function _raycastDamageableCar(sr,sc,dirY,dirX,maxDist){
 }
 const CAR_GUN_DESTRUCTION_DELAY=1550;
 const CAR_CHAIN_BLAST_RADIUS=5.2,CAR_CHAIN_LETHAL_RADIUS=2.85,
-      CAR_CHAIN_MAX_TARGETS=6,CAR_CHAIN_MAX_EXPLOSIONS=9;
+      CAR_CHAIN_MAX_TARGETS=6,CAR_CHAIN_MAX_EXPLOSIONS=9,
+      CAR_CHAIN_WAVE_GAP=620;
 let _carChainSerial=0;
 function _startCarGunDestruction(hit,car,delay=CAR_GUN_DESTRUCTION_DELAY,chainContext=null){
   if(!car||car._destroySequenceAt||car._shotWrecked||car._explosionT)return;
+  const maxSequenceDelay=chainContext?7000:2200;
   const started=performance.now(),blastR=+hit.r||0,blastC=+hit.c||0,
-        destructionDelay=Math.max(380,Math.min(2200,+delay||CAR_GUN_DESTRUCTION_DELAY));
+        destructionDelay=Math.max(380,Math.min(maxSequenceDelay,+delay||CAR_GUN_DESTRUCTION_DELAY));
   car._destroySequenceAt=started;car._destroySequenceDelay=destructionDelay;
   if(chainContext)car._chainExplosionContext=chainContext;
   car._hoodSmoking=true;car._hoodBurning=false;car.parked=true;
@@ -25582,7 +25599,9 @@ function _startCarGunDestruction(hit,car,delay=CAR_GUN_DESTRUCTION_DELAY,chainCo
     }
     spawnCarExplosion(blastR,blastC,car,true,true,nextChain);
     addShake(Math.max(2,(nextChain?11:16)-playerDistance*1.5));
-    if(playerDistance<7)fireScreenFlash('rpg');
+    // У цепной реакции оставляем мощную вспышку в начале, но не перекрываем
+    // экран и GPU новой полноэкранной вспышкой на каждом следующем автомобиле.
+    if(playerDistance<7&&(!nextChain||(+nextChain.explosions||0)<=2))fireScreenFlash('rpg');
     spawnFloatText(blastR,blastC,nextChain?'ЦЕПНАЯ РЕАКЦИЯ':'МАШИНА УНИЧТОЖЕНА',{color:'#ff7b25',size:16,life:1700});
   },destructionDelay);
 }
@@ -39945,7 +39964,7 @@ function _carExplosionPosition(car,quest=false){
 function _applyCarExplosionChain(wr,wc,sourceCar,chainContext=null){
   if(!sourceCar||_buildingInt||_bankInt)return chainContext;
   const chain=chainContext||{id:++_carChainSerial,remaining:CAR_CHAIN_MAX_EXPLOSIONS,
-    hits:new Map(),explosions:0,scheduled:0};
+    hits:new Map(),explosions:0,scheduled:0,nextBlastAt:0};
   if(!(chain.hits instanceof Map))chain.hits=new Map();
   chain.hits.set(sourceCar,2);chain.explosions=(chain.explosions||0)+1;
   const candidates=[],seen=new Set();
@@ -39984,12 +40003,18 @@ function _applyCarExplosionChain(wr,wc,sourceCar,chainContext=null){
       chain.remaining--;chain.scheduled=(chain.scheduled||0)+1;scheduled++;
       target._respawnAt=performance.now()+25000;
       if(quest)target.state='destroying';
-      const delay=480+d*105+((chain.id*37+candidate.order*83)%180);
+      // Все цели по-прежнему получают урон и могут взорваться, но тяжёлые
+      // 3D-взрывы запускаются общей волной, а не пачкой в одном кадре.
+      const now=performance.now();
+      const naturalAt=now+480+d*105+((chain.id*37+candidate.order*83)%180);
+      const blastAt=Math.max(naturalAt,+chain.nextBlastAt||0);
+      chain.nextBlastAt=blastAt+CAR_CHAIN_WAVE_GAP;
+      const delay=Math.max(380,blastAt-now);
       _startCarGunDestruction(pos,target,delay,chain);
     }
   }
   document.documentElement.dataset.carChainReaction=
-    `${chain.id}:explosions=${chain.explosions}:scheduled=${chain.scheduled}:damaged=${chain.hits.size}:wave=${scheduled}/${damaged}`;
+    `${chain.id}:explosions=${chain.explosions}:scheduled=${chain.scheduled}:damaged=${chain.hits.size}:wave=${scheduled}/${damaged}:gap=${CAR_CHAIN_WAVE_GAP}`;
   return chain;
 }
 
@@ -59289,6 +59314,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d190"></script>
+<script type="module" src="three_preview.js?v=3d191"></script>
 </body>
 </html>
