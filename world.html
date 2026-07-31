@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
 <!-- 3D sync v198: native-sharp rendering, dramatic pooled explosions, black burning wrecks, bridge details, bullets and wall impacts. -->
 <!-- 3D sync v198: Brigadir contracts recover their target flow; contextual dialogue and dossier presentation are synchronized. -->
 <!-- 3D sync v197: adaptive native resolution, lighter wreck fire and car-locked tracers restore smooth combat animation. -->
@@ -2561,7 +2562,7 @@ window.MafioziLoading = (() => {
   };
   const complete = label => {
     if (finished) return;
-    if (previewHold) { if (label && text) text.textContent = label; return; }
+    if (previewHold) { finished=true;clearInterval(tipTimer);if(bar)bar.style.width='100%';if(pct)pct.textContent='100%';if(label&&text)text.textContent=label;if(screen)screen.dataset.previewReady='true';return; }
     finished = true;
     clearInterval(tipTimer);
     if (bar) bar.style.width = '100%'; if (pct) pct.textContent = '100%';
@@ -21027,6 +21028,8 @@ let _threeSelectedGangBotId = null;
 let _threeSelectedGangBotUntil = 0;
 let _threeForcedGangShotId = null;
 let _threeForcedGangShotUntil = 0;
+let _threeForcedVehicleShotId = null;
+let _threeForcedVehicleShotUntil = 0;
 function _findLiveAggroBotById(botId) {
   const wanted=String(botId||'');
   if(!wanted)return null;
@@ -25865,7 +25868,10 @@ function fire(angle = null) {
   }
   // Реальная неточность применяется ДО выбора цели. У автомата разброс
   // растёт во время очереди; отпускание огня быстро возвращает точность.
-  const spreadDir = _applyWeaponSpread(dirX, dirY, wcfg, now);
+  const forcedVehicleShotId=performance.now()<_threeForcedVehicleShotUntil?String(_threeForcedVehicleShotId||''):'';
+  const forcedVehicleShot=forcedVehicleShotId?(typeof CARS!=='undefined'?CARS:[]).find(car=>car&&!car._hidden&&!car._towed&&!car._destroySequenceAt&&!car._shotWrecked&&!car._wrecked&&!car.wrecked&&String(_threeVehicleEntityId(car))===forcedVehicleShotId):null;
+  const forcedVehicleDistance=forcedVehicleShot?Math.hypot((+forcedVehicleShot.r||0)-player.r,(+forcedVehicleShot.c||0)-player.c):Infinity;
+  const spreadDir=forcedVehicleShot&&forcedVehicleDistance<=shotRange+1?{dirX:((+forcedVehicleShot.c||0)-player.c)/Math.max(.001,forcedVehicleDistance),dirY:((+forcedVehicleShot.r||0)-player.r)/Math.max(.001,forcedVehicleDistance)}:_applyWeaponSpread(dirX, dirY, wcfg, now);
   dirX = spreadDir.dirX; dirY = spreadDir.dirY;
   player.ang = Math.atan2(dirY, dirX);
   // Ни локальная цель, ни серверная не выбираются за первой стеной.
@@ -26016,7 +26022,7 @@ function fire(angle = null) {
   // Стартовая точка пули — конец ствола (учитываем scale 0.9 у игрока).
   // Без этого пуля «вырывается из груди» (на коротких) или из «впереди дула»
   // (на длинных rifle/sniper). Вспышка дула рисуется в той же точке.
-  const _shotAng = Math.atan2(dirY, dirX);
+  let _shotAng = Math.atan2(dirY, dirX);
   // Поворачиваем игрока ЛИЦОМ к цели на момент выстрела — иначе
   // drawWeaponInHands рисует пушку по player.ang (направление бега),
   // а muzzleWorldPoint считает дуло по _shotAng (направление на врага),
@@ -26035,6 +26041,8 @@ function fire(angle = null) {
   const muzPt = muzzleWorldPoint(_shotAng);
   const sR = muzPt.r;
   const sC = muzPt.c;
+  if(forcedVehicleShot&&forcedVehicleDistance<=shotRange+1){const dr=(+forcedVehicleShot.r||0)-sR,dc=(+forcedVehicleShot.c||0)-sC,d=Math.max(.001,Math.hypot(dr,dc));dirY=dr/d;dirX=dc/d;_shotAng=Math.atan2(dirY,dirX);player.ang=_shotAng;shotRange=_weaponWallDistance(sR,sC,dirY,dirX,wcfg.range||8);document.documentElement.dataset.vehicleDirectRay=`${forcedVehicleShotId}:${d.toFixed(2)}`;}
+  _threeForcedVehicleShotId=null;_threeForcedVehicleShotUntil=0;
   const hitGasPump = _raycastGasPump(sR, sC, dirY, dirX, shotRange);
   const hitDamageableCar = _raycastDamageableCar(sR,sC,dirY,dirX,shotRange);
   // Единый эффект выстрела: вспышка, звук, гильза и тряска. Раньше fire()
@@ -42533,7 +42541,7 @@ function updateProjectiles(dt) {
         if(stepLen>.0001){const speed=Math.hypot(+b.vr||0,+b.vc||0)||1;b.vr=stepR/stepLen*speed;b.vc=stepC/stepLen*speed;}
         b.maxDist=Math.max(.05,Math.hypot(point.r-(+b.startR||0),point.c-(+b.startC||0)));
         b.dist=b.maxDist*p;
-        if(p>=1)b._finished=true;
+        if(p>=1){b.impactHoldUntil=b.impactHoldUntil||performance.now()+72;if(performance.now()>=b.impactHoldUntil)b._finished=true;}
         continue;
       }
       b.targetVehicle=null;
@@ -55735,6 +55743,18 @@ window.Mafiozi3DBridge = Object.freeze({
     if (myDead || myMode === 'pve' || !_isArmed()) return false;
     return _threeBridgeFireAccepted(angle, muzzleR, muzzleC);
   },
+  fireAtVehicle(vehicleId, muzzleR, muzzleC) {
+    if(myDead||myMode==='pve'||!_isArmed())return false;
+    const key=String(vehicleId||''),car=(typeof CARS!=='undefined'?CARS:[]).find(x=>x&&!x._hidden&&!x._towed&&String(_threeVehicleEntityId(x))===key);
+    if(!car||car._destroySequenceAt||car._shotWrecked||car._wrecked||car.wrecked)return false;
+    const r=+car.r||0,c=+car.c||0,sr=Number.isFinite(muzzleR)?muzzleR:player.r,sc=Number.isFinite(muzzleC)?muzzleC:player.c;
+    if(Math.hypot(r-sr,c-sc)>(weaponProfile(currentWeapon).range||8)+1)return false;
+    _threeForcedVehicleShotId=key;_threeForcedVehicleShotUntil=performance.now()+180;
+    const accepted=_threeBridgeFireAccepted(Math.atan2(r-sr,c-sc),muzzleR,muzzleC);
+    if(!accepted){_threeForcedVehicleShotId=null;_threeForcedVehicleShotUntil=0;}
+    document.documentElement.dataset.vehicleDirectAim=accepted?`hit:${key}`:`rejected:${key}`;
+    return accepted;
+  },
   getShotPerformance() {
     return {gameplayMs:_last3DFireCostMs,soundMs:_lastWeaponSoundCostMs,audio:document.documentElement.dataset.weaponAudio||'warming',explosionAudio:document.documentElement.dataset.explosionAudio||'warming',liveFx:{bullets:bullets.length,shells:shells.length,impacts:impacts.length,blood:bloodSplats.length,explosions:explosionBursts.length}};
   },
@@ -59510,6 +59530,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d198"></script>
+<script type="module" src="three_preview.js?v=3d199"></script>
 </body>
 </html>
