@@ -39284,15 +39284,16 @@ function reportCarCrash(qc, impact, kind) {
 // Взрыв машины — мощный «мясной» эффект: 36 искр + чёрный круг копоти
 // + бочка дыма. Переиспользуем impacts/bloodSplats.
 function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true) {
+  const explosionNow = performance.now();
   // Запоминаем время взрыва на объекте машины — нужно для ударной волны
   if (car) {
-    car._explosionT = performance.now();
+    car._explosionT = explosionNow;
     car._wreckedAt = car._explosionT;
     car._hoodBurning = !car._burnedOut;
   }
   if(playSound&&Math.hypot(wr-player.r,wc-player.c)<18)try{_explosionSound('blast')}catch(e){}
   _capArr(explosionBursts, 10);
-  explosionBursts.push({r:wr,c:wc,born:performance.now(),life:1850,seed:Math.random()*1000,kind:'vehicle'});
+  explosionBursts.push({r:wr,c:wc,born:explosionNow,life:1850,seed:Math.random()*1000,kind:'vehicle'});
   const pooled3D=_usesPooled3DFx();
   if(!pooled3D){
     spawnShockwave(wr,wc,{rad0:5,maxRad:118,life:620,color:'#ff7b25',thick:6});
@@ -54611,7 +54612,7 @@ window.Mafiozi3DBridge = Object.freeze({
       helicopter:!!model.helicopter,emergency:model.emergency||'',stripe:model.stripe||'',
       dirR:+x.dirDy||0,dirC:+x.dirDx||0,velR:+x.vr||0,velC:+x.vc||0,braking:!!x.braking,turning:!!x._turningAtIntersection,
       damageRatio:Number.isFinite(x._ballisticHp)?Math.max(0,x._ballisticHp/Math.max(1,x._ballisticMax||240)):1,
-      bulletHoles:+x._bulletHoleCount||0,bulletMarks:(x._threeBulletMarks||[]).slice(-10).map(m=>({id:+m.id||0,u:+m.u||0,v:+m.v||0,y:+m.y||0,panel:m.panel||'side',surface:m.surface||'metal',heavy:!!m.heavy})),hitAge:performance.now()-(+x._lastCarHitAt||0),smoking:!!x._hoodSmoking,burning:!!x._hoodBurning,wrecked:!!(x._shotWrecked||x._wrecked),
+      bulletHoles:+x._bulletHoleCount||0,bulletMarks:x._threeBulletMarks||[],hitAge:fxNow-(+x._lastCarHitAt||0),smoking:!!x._hoodSmoking,burning:!!x._hoodBurning,wrecked:!!(x._shotWrecked||x._wrecked),
       destroying:!!x._destroySequenceAt,destroyAge:x._destroySequenceAt?Math.max(0,performance.now()-x._destroySequenceAt):0,destroyDelay:+x._destroySequenceDelay||CAR_GUN_DESTRUCTION_DELAY,
       burnedOut:!!x._burnedOut,wreckAge:x._explosionT?Math.max(0,performance.now()-x._explosionT):99999,
     };});
@@ -54655,7 +54656,7 @@ window.Mafiozi3DBridge = Object.freeze({
     if(!inside&&typeof questCars!=='undefined'&&questCars instanceof Map)for(const q of questCars.values()){
       if(!q||q._towed||q._hidden||!near(+q.y||0,+q.x||0))continue;
       const model=typeof resolveCarModel==='function'?resolveCarModel(q.model):(q.model||{}),modelName=model?.name||model?.id||q.model||'sedan';
-      cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:'',stripe:q.owner_uid?'#ffd76b':'',dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true,damageRatio:Number.isFinite(q._ballisticHp)?Math.max(0,q._ballisticHp/Math.max(1,q._ballisticMax||q.max_hp||240)):1,bulletHoles:+q._bulletHoleCount||0,bulletMarks:(q._threeBulletMarks||[]).slice(-10).map(m=>({id:+m.id||0,u:+m.u||0,v:+m.v||0,y:+m.y||0,panel:m.panel||'side',surface:m.surface||'metal',heavy:!!m.heavy})),hitAge:performance.now()-(+q._lastCarHitAt||0),smoking:!!q._hoodSmoking,burning:!!q._hoodBurning,wrecked:!!(q._shotWrecked||q._wrecked||q.wrecked),destroying:!!q._destroySequenceAt,destroyAge:q._destroySequenceAt?Math.max(0,performance.now()-q._destroySequenceAt):0,destroyDelay:+q._destroySequenceDelay||CAR_GUN_DESTRUCTION_DELAY,burnedOut:!!q._burnedOut,wreckAge:q._explosionT?Math.max(0,performance.now()-q._explosionT):99999});
+      cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:'',stripe:q.owner_uid?'#ffd76b':'',dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true,damageRatio:Number.isFinite(q._ballisticHp)?Math.max(0,q._ballisticHp/Math.max(1,q._ballisticMax||q.max_hp||240)):1,bulletHoles:+q._bulletHoleCount||0,bulletMarks:q._threeBulletMarks||[],hitAge:fxNow-(+q._lastCarHitAt||0),smoking:!!q._hoodSmoking,burning:!!q._hoodBurning,wrecked:!!(q._shotWrecked||q._wrecked||q.wrecked),destroying:!!q._destroySequenceAt,destroyAge:q._destroySequenceAt?Math.max(0,fxNow-q._destroySequenceAt):0,destroyDelay:+q._destroySequenceDelay||CAR_GUN_DESTRUCTION_DELAY,burnedOut:!!q._burnedOut,wreckAge:q._explosionT?Math.max(0,fxNow-q._explosionT):99999});
     }
     if(!inside&&typeof BUS!=='undefined'&&near(+BUS.r||0,+BUS.c||0))cars.unshift({id:'city_bus',r:+BUS.r||0,c:+BUS.c||0,ang:+BUS.ang||0,model:'city_bus',paint:'#d5aa35',parked:BUS.state==='stopped',length:2.65,width:1.05,height:1.08,wheelR:.22,sport:false,pickup:false,van:true,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'#26364a',dirR:Math.sin(+BUS.ang||0),dirC:Math.cos(+BUS.ang||0),velR:Math.sin(+BUS.ang||0)*(+BUS.speed||0),velC:Math.cos(+BUS.ang||0)*(+BUS.speed||0),braking:BUS.state==='stopped',turning:false,bus:true});
     if(cars.length>24)cars.length=24;
@@ -58522,6 +58523,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d179"></script>
+<script type="module" src="three_preview.js?v=3d180"></script>
 </body>
 </html>
