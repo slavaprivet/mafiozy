@@ -38763,6 +38763,9 @@ try { document.getElementById('hudAvatar').addEventListener('click', toggleProfi
 let _audioCtx = null;
 let _sfxBus = null;
 let _sharedNoiseBuffer = null;
+let _shotgunSoundBuffer = null;
+let _lastWeaponSoundCostMs = 0;
+let _last3DFireCostMs = 0;
 let _sfxVol = 0.5;
 function _ac() {
   if (_audioCtx) {
@@ -38788,8 +38791,45 @@ function _prepareSharedNoise() {
   document.documentElement.dataset.sfxNoise='warmed';
   return buf;
 }
+function _prepareShotgunSound() {
+  const ac=_ac();if(!ac)return null;
+  if(_shotgunSoundBuffer&&_shotgunSoundBuffer.sampleRate===ac.sampleRate)return _shotgunSoundBuffer;
+  const rate=ac.sampleRate,length=Math.ceil(rate*.5),buf=ac.createBuffer(1,length,rate),out=buf.getChannelData(0);
+  let seed=0x9e3779b9;
+  const random=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return((seed>>>0)/2147483648)-1;};
+  const env=(t,dur,attack)=>t<attack?t/Math.max(.0001,attack):Math.exp(-6*(t-attack)/Math.max(.001,dur-attack));
+  const addNoise=(start,dur,vol,type,freq,attack)=>{
+    const from=Math.max(0,Math.floor(start*rate)),count=Math.min(length-from,Math.ceil(dur*rate)),a=1-Math.exp(-2*Math.PI*Math.max(30,freq)/rate),aLow=1-Math.exp(-2*Math.PI*Math.max(20,freq*.46)/rate);
+    let low=0,lower=0;
+    for(let i=0;i<count;i++){const white=random();low+=a*(white-low);lower+=aLow*(white-lower);const filtered=type==='lowpass'?low:type==='bandpass'?low-lower:white-low;out[from+i]+=filtered*vol*env(i/rate,dur,attack);}
+  };
+  const addTone=(start,dur,vol,f0,f1,triangle=false,attack=.0005)=>{
+    const from=Math.max(0,Math.floor(start*rate)),count=Math.min(length-from,Math.ceil(dur*rate));let phase=0;
+    for(let i=0;i<count;i++){const u=i/Math.max(1,count-1),freq=f0*Math.pow(Math.max(.001,f1/f0),u);phase+=Math.PI*2*freq/rate;const wave=triangle?2*Math.asin(Math.sin(phase))/Math.PI:Math.sin(phase);out[from+i]+=wave*vol*env(i/rate,dur,attack);}
+  };
+  // Полный прежний микс: щелчок, низкий хлопок, корпус, хвост и два хода помпы.
+  addNoise(0,.018,.38*1.24,'highpass',1800,.0004);
+  addNoise(0,.14,.43*1.24,'bandpass',520,.0007);
+  addTone(0,.18,.30*1.24,58,24,false,.0007);
+  addNoise(.012,.30,.15*1.24,'lowpass',580,.004);
+  addNoise(.31,.018,.09*1.25,'highpass',2400,.0005);
+  addTone(.31,.028,.055*1.25,760,280,true,.0005);
+  addNoise(.43,.018,.09,'highpass',2400,.0005);
+  addTone(.43,.028,.055,760,280,true,.0005);
+  for(let i=0;i<length;i++)out[i]=Math.max(-1.25,Math.min(1.25,out[i]));
+  _shotgunSoundBuffer=buf;
+  document.documentElement.dataset.shotgunAudio='mixed-buffer';
+  return buf;
+}
+function _playPreparedShotgun() {
+  const ac=_ac(),buf=_prepareShotgunSound();if(!ac||!buf)return false;
+  const src=ac.createBufferSource(),gain=ac.createGain(),now=ac.currentTime;
+  src.buffer=buf;gain.gain.setValueAtTime(Math.max(.0001,_sfxVol),now);
+  src.connect(gain);gain.connect(_sfxOut(ac));src.start(now);
+  return true;
+}
 const _queueSharedNoiseWarmup=()=>{
-  const warm=()=>{try{_prepareSharedNoise();}catch(_){}};
+  const warm=()=>{try{_prepareSharedNoise();_prepareShotgunSound();}catch(_){}};
   if('requestIdleCallback' in window)requestIdleCallback(warm,{timeout:1200});
   else setTimeout(warm,180);
 };
@@ -38872,7 +38912,7 @@ const WEAPON_FX = {
                   color:'#ffb060', recoil:2.0, shake:1.8, tip:20, spread:0, thick:true },
   pistol_gold:  { cd:0.50, sound:()=>_gunShot({body:112,power:1.05,crack:.34,blast:.23,tail:.065,ring:1320,ringVol:.043,ringDur:.13,mechDelay:.11}),
                   color:'#ffd76b', recoil:1.6, shake:1.4, tip:18, spread:0 },
-  shotgun:      { cd:0.85, sound:()=>{_gunShot({body:58,power:1.24,crack:.38,blast:.43,blastDur:.14,blastFreq:520,low:.30,bodyDur:.18,tail:.15,tailDur:.30,tailFreq:580,mech:false});_gunMechanic(.31,1.25);_gunMechanic(.43,1.0);},
+  shotgun:      { cd:0.85, sound:()=>{if(!_playPreparedShotgun()){_gunShot({body:58,power:1.24,crack:.38,blast:.43,blastDur:.14,blastFreq:520,low:.30,bodyDur:.18,tail:.15,tailDur:.30,tailFreq:580,mech:false});_gunMechanic(.31,1.25);_gunMechanic(.43,1.0);}},
                   color:'#ffaa50', recoil:3.5, shake:3.8, tip:28, spread:0.32, pellets:6, thick:true },
   smg:          { cd:0.20, sound:()=>_gunShot({body:158,crack:.22,crackDur:.012,blast:.15,blastDur:.045,low:.13,bodyDur:.055,tail:.032,tailDur:.07,mechDelay:.05,mechWeight:.7}),
                   color:'#ffea80', recoil:0.9, shake:0.9, tip:22, spread:0.10 },
@@ -38937,7 +38977,9 @@ function spawnShot(wr, wc, ang, weapon, isMyShot) {
     try {
       const oldVol = _sfxVol;
       _sfxVol = oldVol * volMul;
+      const soundStarted=performance.now();
       fx.sound();
+      _lastWeaponSoundCostMs=performance.now()-soundStarted;
       _sfxVol = oldVol;
     } catch (e) {}
   }
@@ -54162,7 +54204,9 @@ function _threeTrackCombatBleed(id,hp,maxHp,r,c,dead,sourceHitAt=0){
 function _threeBridgeFireAccepted(angle) {
   const firearmShotBefore = lastShotClientT;
   const taserShotBefore = typeof _lastPoliceTaserAt === 'number' ? _lastPoliceTaserAt : 0;
+  const fireStarted=performance.now();
   fire(Number.isFinite(angle) ? angle : null);
+  _last3DFireCostMs=performance.now()-fireStarted;
   return lastShotClientT !== firearmShotBefore ||
     (typeof _lastPoliceTaserAt === 'number' && _lastPoliceTaserAt !== taserShotBefore);
 }
@@ -54533,6 +54577,9 @@ window.Mafiozi3DBridge = Object.freeze({
     if(_LOCAL_PREVIEW&&_UP.get('previewweapon'))return true;
     if (myDead || myMode === 'pve' || !_isArmed()) return false;
     return _threeBridgeFireAccepted(angle);
+  },
+  getShotPerformance() {
+    return {gameplayMs:_last3DFireCostMs,soundMs:_lastWeaponSoundCostMs,audio:_shotgunSoundBuffer?'mixed-buffer':'live-nodes'};
   },
   fireAtGangNpc(sourceId) {
     if(myDead||myMode==='pve'||!_isArmed())return false;
@@ -58276,6 +58323,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d174"></script>
+<script type="module" src="three_preview.js?v=3d175"></script>
 </body>
 </html>
