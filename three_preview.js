@@ -1,3 +1,4 @@
+// 3D sync v215: bounded simulation-owned throwable/fire lifecycle prevents long-session stalls.
 // 3D sync v214: RMB laser aiming accepts simultaneous LMB fire and uses the Mafiozi brass-diamond reticle.
 // 3D sync v213: distinct sidearms, hold-to-throw aiming, guaranteed 3D detonation and wide short-lived Molotov fire.
 // 3D sync v212: every living NPC uses the player's restrained stride, weight shift and arm cadence with a deeper, body-safe leg attachment.
@@ -72,6 +73,7 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
 
       const bridge=window.Mafiozi3DBridge||null;
       renderer.domElement.dataset.npcInteractionBridge=bridge&&typeof bridge.fireAtGangNpc==='function'&&typeof bridge.selectGangNpc==='function'?'targeted-fire-right-click-hire':'missing';
+      renderer.domElement.dataset.sessionStabilityProfile='bounded-throwables-fire-v215';
       if(rendererParams.has('previewbuilding'))bridge?.previewApproachGenericBuilding?.();
       if(rendererParams.has('previewbridge'))bridge?.previewApproachBridge?.();
       const initialState=bridge?.getPlayerState?.()||null;
