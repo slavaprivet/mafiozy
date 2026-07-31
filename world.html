@@ -15114,6 +15114,7 @@ const _MAX_BULLETS = 50, _MAX_IMPACTS = 16, _MAX_BLOOD = 48, _MAX_BULLET_HOLES =
       _MAX_MUZZLES = 16, _MAX_SHOCKW = 18, _MAX_SMOKE = 30,
       _MAX_SHELLS = 30;
 function _capArr(arr, cap) { if (arr.length >= cap) arr.shift(); }
+function _usesPooled3DFx(){return !!document.getElementById('stage')?.classList.contains('three-mode');}
 function _markCombatBleeding(target, r, c, damage = 1) {
   if (!target) return;
   const now = performance.now();
@@ -24926,15 +24927,18 @@ function _firePenetratingRound(sR, sC, dirY, dirX, range, weapon, remote) {
 function _spawnRpgExplosion(r, c, remote, firedWeapon) {
   const cfg = weaponProfile('rpg');
   const radius = 2.7;
+  const pooled3D=_usesPooled3DFx();
   try { _explosionSound('rpg'); } catch(e) {}
   _capArr(explosionBursts, 10);
   explosionBursts.push({r,c,born:performance.now(),life:1650,seed:Math.random()*1000,kind:'rpg'});
   // Два кольца + огненное ядро: ракета должна явно завершаться взрывом,
   // а не просто исчезать в точке попадания.
-  spawnShockwave(r, c, { rad0:3, maxRad:48, life:260, color:'#fff2a0', thick:7 });
-  spawnShockwave(r, c, { rad0:5, maxRad:92, life:520, color:'#ff7428', thick:5 });
+  if(!pooled3D){
+    spawnShockwave(r, c, { rad0:3, maxRad:48, life:260, color:'#fff2a0', thick:7 });
+    spawnShockwave(r, c, { rad0:5, maxRad:92, life:520, color:'#ff7428', thick:5 });
+  }
   const blastParts = [];
-  for (let i = 0; i < 42; i++) {
+  for (let i = 0; i < (pooled3D ? 0 : 42); i++) {
     const a = Math.random() * Math.PI * 2;
     const sp = 1.8 + Math.random() * 5.2;
     const hot = Math.random();
@@ -24945,10 +24949,14 @@ function _spawnRpgExplosion(r, c, remote, firedWeapon) {
       isBlood: false, size: 2.2 + Math.random() * 3.2,
     });
   }
-  _capArr(impacts, _MAX_IMPACTS);
-  impacts.push({ r, c, parts: blastParts });
-  for (let i = 0; i < 9; i++) spawnSmokePuff(r + (Math.random()-.5)*0.8, c + (Math.random()-.5)*0.8, Math.random()*Math.PI*2);
-  _spawnBulletWallImpact(r, c, 'rpg');
+  if(blastParts.length){
+    _capArr(impacts, _MAX_IMPACTS);
+    impacts.push({ r, c, parts: blastParts });
+  }
+  if(!pooled3D){
+    for (let i = 0; i < 9; i++) spawnSmokePuff(r + (Math.random()-.5)*0.8, c + (Math.random()-.5)*0.8, Math.random()*Math.PI*2);
+    _spawnBulletWallImpact(r, c, 'rpg');
+  }
   _damageCasinoPropsInRadius(r,c,radius,'rpg');
   for (const t of _localBallisticTargets(firedWeapon)) {
     const d = Math.hypot(t.r-r, t.c-c);
@@ -38963,11 +38971,38 @@ function _playPreparedWeaponShot(weapon) {
   return true;
 }
 const _preparedShot=weapon=>()=>_playPreparedWeaponShot(weapon);
+const _explosionSoundBuffers=new Map();
+function _prepareExplosionSound(kind='blast'){
+  const key=kind==='rpg'?'rpg':kind==='grenade'?'grenade':'blast',cached=_explosionSoundBuffers.get(key);
+  if(cached)return cached;
+  const ac=_ac();if(!ac)return null;
+  const power=key==='rpg'?1.25:key==='grenade'?.9:1.05,duration=key==='rpg'?.72:.62,rate=ac.sampleRate;
+  const length=Math.ceil(rate*duration),buf=ac.createBuffer(1,length,rate),out=buf.getChannelData(0);
+  let seed=key==='rpg'?0x4f1bbcdc:key==='grenade'?0x16d0a91d:0x7a4f2e31,low=0,body=0,phase=0,max=0;
+  for(let i=0;i<length;i++){
+    seed=(Math.imul(seed,1664525)+1013904223)|0;
+    const white=((seed>>>8)/0x800000)-1,t=i/rate,boom=Math.exp(-t/(key==='rpg'?.29:.24)),crack=Math.exp(-t/.045);
+    low+=(white-low)*.035;body+=(low-body)*.12;phase+=Math.PI*2*(68-46*Math.min(1,t/.48))/rate;
+    let sample=(white-low)*.34*crack+(low-body)*.72*boom+body*.9*boom+Math.sin(phase)*.34*boom;
+    for(let p=0;p<4;p++){const at=.08+p*.055,delta=t-at;if(delta>=0&&delta<.048)sample+=(white-low)*.13*(1-delta/.048);}
+    sample*=power;out[i]=sample;if(Math.abs(sample)>max)max=Math.abs(sample);
+  }
+  const scale=max>.88?.88/max:1;if(scale!==1)for(let i=0;i<length;i++)out[i]*=scale;
+  _explosionSoundBuffers.set(key,buf);return buf;
+}
+function _playPreparedExplosion(kind='blast'){
+  const ac=_ac(),buf=_prepareExplosionSound(kind);if(!ac||!buf)return false;
+  const src=ac.createBufferSource(),gain=ac.createGain(),now=ac.currentTime;
+  src.buffer=buf;gain.gain.setValueAtTime(Math.max(.0001,_sfxVol),now);
+  src.connect(gain);gain.connect(_sfxOut(ac));src.start(now);return true;
+}
 const _queueSharedNoiseWarmup=()=>{
   const warm=()=>{try{
     _prepareSharedNoise();_prepareShotgunSound();
     for(const id of Object.keys(_weaponShotMixes))_prepareWeaponShotMix(id);
+    for(const kind of ['blast','rpg','grenade'])_prepareExplosionSound(kind);
     document.documentElement.dataset.weaponAudio='mixed-buffers';
+    document.documentElement.dataset.explosionAudio='mixed-buffer';
   }catch(_){}};
   if('requestIdleCallback' in window)requestIdleCallback(warm,{timeout:1200});
   else setTimeout(warm,180);
@@ -39029,7 +39064,7 @@ function _weaponReloadSound(weapon,phase='start'){
   if(id==='sniper'){_gunMechanic(0,1.25);_gunMechanic(.12,1);_tone({freq:185,freqEnd:105,dur:.12,type:'square',vol:.08,delay:.06});return;}
   const weight=cfg.twoHanded?1.12:.9;_noise({dur:.055,vol:.075*weight,filter:'highpass',filterFreq:1050});_tone({freq:phase==='start'?245:340,freqEnd:phase==='start'?125:510,dur:.075,type:'square',vol:.08*weight,delay:.025});_gunMechanic(.11,weight);
 }
-function _explosionSound(kind='blast'){const power=kind==='rpg'?1.25:kind==='grenade' ? .9 : 1.05;_noise({dur:.52,vol:.34*power,filter:'lowpass',filterFreq:580,q:.42,attack:.004});_noise({dur:.14,vol:.25*power,filter:'highpass',filterFreq:1250,q:.55,attack:.001});_tone({freq:68,freqEnd:22,dur:.48,type:'sawtooth',vol:.3*power,attack:.006});for(let i=0;i<4;i++)_noise({dur:.045,vol:.055,filter:'bandpass',filterFreq:900+i*420,delay:.08+i*.055});}
+function _explosionSound(kind='blast'){return _playPreparedExplosion(kind);}
 function _molotovIgnitionSound(){_noise({dur:.12,vol:.14,filter:'highpass',filterFreq:2900,attack:.0005});for(let i=0;i<5;i++)_tone({freq:820+i*95,freqEnd:220+i*25,dur:.055,type:'triangle',vol:.038,delay:i*.014});_noise({dur:.7,vol:.085,filter:'bandpass',filterFreq:430,delay:.06,attack:.03});}
 // Разбудить аудио на первом тапе/клике (firefox/ios safari)
 window.addEventListener('pointerdown', () => {
@@ -39093,12 +39128,14 @@ function spawnShot(wr, wc, ang, weapon, isMyShot) {
   // (для NPC/чужих игроков она важна, у них нет своего timer'а)
   // NPC/чужой выстрел — npc:true → упрощённый дешёвый рендер в drawMuzzles
   const _mLife = isMyShot ? 80 : 50;
+  _capArr(muzzles,_MAX_MUZZLES);
   muzzles.push({ r: wr, c: wc, ang: ang || 0,
                  life: _mLife, max: _mLife, weapon, npc: !isMyShot });
   // Гильзы — 1-3шт вылетают вбок от ствола. Для огнестрела (не melee)
   const nShells = (weapon === 'shotgun') ? 2 :
                   (weapon === 'rpg' || weapon === 'sniper') ? 0 : 1;
   for (let i = 0; i < nShells; i++) {
+    _capArr(shells,_MAX_SHELLS);
     const side = ang + Math.PI / 2 + (Math.random() - 0.5) * 0.5;
     shells.push({
       r: wr, c: wc, z: 0.3,
@@ -39131,7 +39168,8 @@ function spawnShot(wr, wc, ang, weapon, isMyShot) {
 function spawnImpact(wr, wc, weapon, npcShot) {
   const fx = weaponFx(weapon);
   const parts = [];
-  const N = npcShot ? (fx.thick ? 12 : 8) : (fx.thick ? 22 : 16);
+  const pooled3D = _usesPooled3DFx();
+  const N = pooled3D ? 12 : (npcShot ? (fx.thick ? 12 : 8) : (fx.thick ? 22 : 16));
   for (let i = 0; i < N; i++) {
     const a = Math.random() * Math.PI * 2;
     const sp = 0.8 + Math.random() * 1.8 * (fx.thick ? 1.5 : 1.0);
@@ -39149,7 +39187,7 @@ function spawnImpact(wr, wc, weapon, npcShot) {
   }
   _capArr(impacts, _MAX_IMPACTS);
   impacts.push({ r: wr, c: wc, parts });
-  if (!npcShot) {
+  if (!npcShot && !pooled3D) {
     spawnShockwave(wr, wc, {
       rad0: 2,
       maxRad: fx.thick ? 36 : 24,
@@ -39251,12 +39289,15 @@ function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true) {
   if(playSound&&Math.hypot(wr-player.r,wc-player.c)<18)try{_explosionSound('blast')}catch(e){}
   _capArr(explosionBursts, 10);
   explosionBursts.push({r:wr,c:wc,born:performance.now(),life:1850,seed:Math.random()*1000,kind:'vehicle'});
-  spawnShockwave(wr,wc,{rad0:5,maxRad:118,life:620,color:'#ff7b25',thick:6});
-  spawnShockwave(wr,wc,{rad0:2,maxRad:72,life:330,color:'#fff4bd',thick:3.5});
+  const pooled3D=_usesPooled3DFx();
+  if(!pooled3D){
+    spawnShockwave(wr,wc,{rad0:5,maxRad:118,life:620,color:'#ff7b25',thick:6});
+    spawnShockwave(wr,wc,{rad0:2,maxRad:72,life:330,color:'#fff4bd',thick:3.5});
+  }
 
   const parts = [];
   // Огненные частицы (больше + быстрее)
-  for (let i = 0; i < 55; i++) {
+  for (let i = 0; i < (pooled3D ? 0 : 55); i++) {
     const a = Math.random() * Math.PI * 2;
     const sp = 2.0 + Math.random() * 5.0;
     const t  = Math.random();
@@ -39272,7 +39313,7 @@ function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true) {
     });
   }
   // Металлические обломки (крупнее + дальше летят)
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < (pooled3D ? 0 : 18); i++) {
     const a = Math.random() * Math.PI * 2;
     const sp = 2.5 + Math.random() * 5.5;
     parts.push({
@@ -39283,8 +39324,10 @@ function spawnCarExplosion(wr, wc, car, leaveSoot = true, playSound = true) {
       size: 2.8 + Math.random() * 2.0,
     });
   }
-  _capArr(impacts, _MAX_IMPACTS);
-  impacts.push({ r: wr, c: wc, parts });
+  if(parts.length){
+    _capArr(impacts, _MAX_IMPACTS);
+    impacts.push({ r: wr, c: wc, parts });
+  }
 
   if (leaveSoot) {
     _capArr(bloodSplats, _MAX_BLOOD);
@@ -40087,6 +40130,11 @@ function drawWalkingLegs(x, y, ang, look, phase, bodyBob) {
 function spawnWorldC4Explosion(wr,wc){
   // Главный огненный шар + две быстрые ударные волны: C4 заметно мощнее машины.
   spawnCarExplosion(wr,wc);
+  if(_usesPooled3DFx()){
+    const dist=Math.hypot(player.r-wr,player.c-wc);
+    if(dist<15){addShake(Math.max(2,14-dist));fireScreenFlash('rpg');hapticHit();}
+    return;
+  }
   spawnShockwave(wr,wc,{rad0:4,maxRad:92,life:520,color:'#ff8a28',thick:5});
   spawnShockwave(wr,wc,{rad0:2,maxRad:58,life:310,color:'#fff2a0',thick:3});
   const fire=[];
@@ -41582,6 +41630,7 @@ function drawFloatTexts() {
 }
 function updateProjectiles(dt) {
   const ddt = Math.min(dt, 0.05);
+  const fxDtMs=Math.min(100,Math.max(0,dt*1000));
   const burnNow=performance.now();
   for(const npc of NPCS){
     if(!npc||npc.dead||burnNow>=(npc._burnUntil||0))continue;
@@ -41634,6 +41683,32 @@ function updateProjectiles(dt) {
     const m = muzzles[i];
     m.life -= ddt * 1000;
     if (m.life <= 0) muzzles.splice(i, 1);
+  }
+  // Visual FX age in the simulation. The 3D renderer intentionally skips all
+  // Canvas draw calls, so mutating these arrays from draw functions leaked
+  // shells/impacts after every shot and kept finished explosions alive forever.
+  for(let i=shells.length-1;i>=0;i--){
+    const s=shells[i];s.life-=fxDtMs;
+    if(s.life<=0){shells.splice(i,1);continue;}
+    s.r+=s.vr*ddt;s.c+=s.vc*ddt;s.z+=s.vz*ddt;s.vz-=5.5*ddt;
+    if(s.z<0){s.z=0;s.vz*=-.35;s.vc*=.6;s.vr*=.6;}
+    s.rot+=s.vrot*ddt;
+  }
+  for(let i=bloodSplats.length-1;i>=0;i--){
+    const s=bloodSplats[i];s.life-=fxDtMs;
+    if(s.life<=0)bloodSplats.splice(i,1);
+  }
+  for(let i=impacts.length-1;i>=0;i--){
+    const imp=impacts[i];let aliveAny=false;
+    for(const pt of (imp.parts||[])){
+      pt.life-=fxDtMs;if(pt.life<=0)continue;aliveAny=true;
+      pt._x=(pt._x||0)+pt.vc*ddt*22;pt._y=(pt._y||0)+pt.vr*ddt*22;pt.vr+=12*ddt;
+    }
+    if(!aliveAny)impacts.splice(i,1);
+  }
+  for(let i=explosionBursts.length-1;i>=0;i--){
+    const b=explosionBursts[i];
+    if(!b||burnNow-(+b.born||0)>=Math.max(1,+b.life||1550))explosionBursts.splice(i,1);
   }
   // Shockwave-кольца: расширяются, теряют life, удаляются по нулю.
   for (let i = shockwaves.length - 1; i >= 0; i--) {
@@ -42415,7 +42490,7 @@ async function _throwSelected(kind,angle,throwRange){
 }
 function _explodeThrowable(q){
   if(q.exploded)return;q.exploded=true;const radius=q.kind==='grenade'?THROW_GRENADE_RADIUS:THROW_MOLOTOV_IMPACT_RADIUS;
-  if(q.kind==='grenade'){spawnCarExplosion(q.toR,q.toC,null,false);for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,d=.35+Math.random()*.7;spawnCarExplosion(q.toR+Math.sin(a)*d,q.toC+Math.cos(a)*d,null,false,false)}spawnBlastCrater(q.toR,q.toC);spawnShockwave(q.toR,q.toC,{rad0:8,maxRad:88,life:520,color:'#ffbd55',thick:5});spawnSmokePuff(q.toR,q.toC,0);spawnSmokePuff(q.toR+.4,q.toC-.3,2.2);addShake(15);fireScreenFlash('rpg');}
+  if(q.kind==='grenade'){const pooled3D=_usesPooled3DFx();spawnCarExplosion(q.toR,q.toC,null,false);if(!pooled3D){for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,d=.35+Math.random()*.7;spawnCarExplosion(q.toR+Math.sin(a)*d,q.toC+Math.cos(a)*d,null,false,false)}spawnShockwave(q.toR,q.toC,{rad0:8,maxRad:88,life:520,color:'#ffbd55',thick:5});spawnSmokePuff(q.toR,q.toC,0);spawnSmokePuff(q.toR+.4,q.toC-.3,2.2)}spawnBlastCrater(q.toR,q.toC);addShake(15);fireScreenFlash('rpg');}
   else{const now=performance.now();_firePools.push({r:q.toR,c:q.toC,start:now,until:now+8500,lastHit:0,seed:Math.random()*20});spawnShockwave(q.toR,q.toC,{rad0:5,maxRad:62,life:420,color:'#ff8a20',thick:4});try{_molotovIgnitionSound()}catch(e){}addShake(7);}
   for(const n of NPCS){if(!n.dead&&Math.hypot(n.r-q.toR,n.c-q.toC)<radius)hitNpc(n,0,0,q.kind,q.kind==='grenade'?95:45)}
   _damageGangBotsInThrowable(q.toR,q.toC,radius,q.kind==='grenade'?'grenade':'molotov_fire');
@@ -42829,19 +42904,9 @@ function drawSmokePuffs() {
 // ── Гильзы (shells) ────────────────────────────────────────────────
 // Маленькие латунные прямоугольники, падают с гравитацией, крутятся.
 function drawShells() {
-  const now = performance.now();
   for (let i = shells.length - 1; i >= 0; i--) {
     const s = shells[i];
-    const dt = now - (s._lastT || (s._lastT = now));
-    s._lastT = now;
-    const dts = Math.min(0.06, dt / 1000);
-    s.life -= dt;
-    if (s.life <= 0) { shells.splice(i, 1); continue; }
-    // Физика: горизонталь идёт vc/vr, вертикаль vz с гравитацией.
-    s.r += s.vr * dts; s.c += s.vc * dts;
-    s.z += s.vz * dts; s.vz -= 5.5 * dts;
-    if (s.z < 0) { s.z = 0; s.vz *= -0.35; s.vc *= 0.6; s.vr *= 0.6; }
-    s.rot += s.vrot * dts;
+    if (s.life <= 0) continue;
     const p = w2s(s.r + 0.5, s.c + 0.5);
     // Уровень выброса гильзы = плечо стрелка. Согласовано с _bulletY().
     const cx = p.x, cy = p.y - _bulletY() - s.z * 18;
@@ -42860,13 +42925,9 @@ function drawShells() {
 
 // ── Пятна крови на земле (живут 8с, медленно затухают) ────────────
 function drawBloodSplats() {
-  const now = performance.now();
   for (let i = bloodSplats.length - 1; i >= 0; i--) {
     const s = bloodSplats[i];
-    const dt = now - (s._lastT || (s._lastT = now));
-    s._lastT = now;
-    s.life -= dt;
-    if (s.life <= 0) { bloodSplats.splice(i, 1); continue; }
+    if (s.life <= 0) continue;
     const a = Math.min(0.55, s.life / s.max * 0.55);
     const p = w2s(s.r + 0.5, s.c + 0.5);
     ctx.save();
@@ -43053,7 +43114,7 @@ function drawImpacts() {
   const dy = _bulletY();   // совпадает с уровнем пули в drawBullets
   ctx.save();
   for(let i=explosionBursts.length-1;i>=0;i--){
-    const b=explosionBursts[i],age=now-b.born;if(age>=b.life){explosionBursts.splice(i,1);continue}
+    const b=explosionBursts[i],age=now-b.born;if(age>=b.life)continue;
     const q=age/b.life,p=w2s(b.r+.5,b.c+.5),rise=Math.min(1,age/500),fade=Math.max(0,1-q);
     ctx.save();ctx.translate(p.x,p.y-dy-rise*19);ctx.globalCompositeOperation='lighter';
     const flash=Math.max(0,1-age/210),coreR=18+Math.min(1,age/380)*48;
@@ -43066,17 +43127,8 @@ function drawImpacts() {
   for (let i = impacts.length - 1; i >= 0; i--) {
     const imp = impacts[i];
     const p = w2s(imp.r + 0.5, imp.c + 0.5);
-    let aliveAny = false;
     for (const pt of imp.parts) {
-      const dt = now - (pt._lastT || (pt._lastT = now));
-      pt._lastT = now;
-      const dts = Math.min(0.05, dt / 1000);
-      pt.life -= dt;
       if (pt.life <= 0) continue;
-      aliveAny = true;
-      pt._x = (pt._x || 0) + pt.vc * dts * 22;
-      pt._y = (pt._y || 0) + pt.vr * dts * 22;
-      pt.vr += 12 * dts;        // гравитация для падения капель
       const t = Math.max(0, pt.life / pt.max);
       ctx.globalAlpha = t;
       ctx.fillStyle = pt.color;
@@ -43097,7 +43149,6 @@ function drawImpacts() {
         ctx.fill();
       }
     }
-    if (!aliveAny) impacts.splice(i, 1);
   }
   ctx.restore();
 }
@@ -54116,6 +54167,10 @@ function _capArrays() {
   if (bullets.length    > MAX_BUL)   bullets.length    = MAX_BUL;
   if (muzzles.length    > MAX_MUZ)   muzzles.length    = MAX_MUZ;
   if (floatTexts.length > MAX_FLOAT) floatTexts.length = MAX_FLOAT;
+  if (shells.length > _MAX_SHELLS) shells.splice(0,shells.length-_MAX_SHELLS);
+  if (impacts.length > _MAX_IMPACTS) impacts.splice(0,impacts.length-_MAX_IMPACTS);
+  if (bloodSplats.length > _MAX_BLOOD) bloodSplats.splice(0,bloodSplats.length-_MAX_BLOOD);
+  if (explosionBursts.length > 10) explosionBursts.splice(0,explosionBursts.length-10);
   if (typeof shockwaves !== 'undefined' && shockwaves.length > MAX_SHOCK) {
     shockwaves.length = MAX_SHOCK;
   }
@@ -54542,6 +54597,7 @@ window.Mafiozi3DBridge = Object.freeze({
   },
   getDynamicEntities(radius = 38) {
     const rad2=Math.max(12,Math.min(65,+radius||38))**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
+    const fxNow=performance.now();
     const inside=!!(_buildingInt||_bankInt);
     const cars=(inside?[]:(typeof CARS!=='undefined'?CARS:[])).filter(x=>x&&!x._hidden&&!x._towed&&near(+x.r||0,+x.c||0)).sort((a,b)=>(((+a.r||0)-player.r)**2+((+a.c||0)-player.c)**2)-(((+b.r||0)-player.r)**2+((+b.c||0)-player.c)**2)||String(a.id??a._id??'').localeCompare(String(b.id??b._id??''))).slice(0,18).map((x,i)=>{const model=x.model||{},modelName=model.name||x.modelName||'sedan';return {
       id:_threeVehicleEntityId(x),r:+x.r||0,c:+x.c||0,ang:Number.isFinite(x.ang)?x.ang:Math.atan2(+x.dirDy||0,+x.dirDx||1),
@@ -54660,11 +54716,11 @@ window.Mafiozi3DBridge = Object.freeze({
     const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&!x._finished&&Number.isFinite(+x.r)&&Number.isFinite(+x.c)&&Number.isFinite(+x.vr)&&Number.isFinite(+x.vc)&&near(+x.r,+x.c)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
     const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
-    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
+    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&(x.parts||[]).some(p=>(+p.life||0)>0)&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
     const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,heavy:!!x.heavy,age:performance.now()-(+x.born||performance.now())}));
-    const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail,soot:!!x._isSoot,crater:!!x._isCrater}));
+    const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&(+x.life||0)>0&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail,soot:!!x._isSoot,crater:!!x._isCrater}));
     if(_LOCAL_PREVIEW&&_UP.has('previewcombatfx')){const target=npcs.find(x=>!x.dead),cycle=performance.now()%1600,shotAge=cycle-800;if(target){target.hp=target.maxHp*(cycle<800?.66:.22);target.hitAt=performance.now()-Math.max(0,shotAge);target.bleeding=true;target.bleedSeverity=1;for(let i=0;i<6;i++)bloodFx.push({id:`preview_blood_${i}`,r:target.r+Math.sin(target.ang||0)*i*.22+(i%2?.08:-.05),c:target.c+Math.cos(target.ang||0)*i*.22+(i%2?-.05:.06),radius:3+i%3,rot:(target.ang||0)+.2,life:12000-i*700,max:14000,trail:true});if(shotAge>=0&&shotAge<680){const life=680-shotAge,parts=Array.from({length:12},(_,i)=>({vr:Math.sin(i*2.19)*(2.5+i%4),vc:Math.cos(i*2.19)*(2.5+i%4),life,max:680,size:3,blood:true,color:i%4?'#c30d1b':'#5c0509'}));impactFx.unshift({r:target.r,c:target.c,blood:true,life,max:680,parts});}}}
-    const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,performance.now()-(+x.born||performance.now())),life:+x.life||1550,seed:+x.seed||0,kind:x.kind||'blast'}));
+    const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&fxNow-(+x.born||fxNow)<Math.max(1,+x.life||1550)&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,fxNow-(+x.born||fxNow)),life:+x.life||1550,seed:+x.seed||0,kind:x.kind||'blast'}));
     if(_LOCAL_PREVIEW&&_UP.has('previewwreck')&&cars[0]){
       const age=performance.now()%5200;if(age<1850)explosionFx.unshift({r:cars[0].r,c:cars[0].c,age,life:1850,seed:170,kind:'vehicle'});
     }
@@ -54718,7 +54774,7 @@ window.Mafiozi3DBridge = Object.freeze({
     return _threeBridgeFireAccepted(angle);
   },
   getShotPerformance() {
-    return {gameplayMs:_last3DFireCostMs,soundMs:_lastWeaponSoundCostMs,audio:document.documentElement.dataset.weaponAudio||'warming'};
+    return {gameplayMs:_last3DFireCostMs,soundMs:_lastWeaponSoundCostMs,audio:document.documentElement.dataset.weaponAudio||'warming',explosionAudio:document.documentElement.dataset.explosionAudio||'warming',liveFx:{bullets:bullets.length,shells:shells.length,impacts:impacts.length,blood:bloodSplats.length,explosions:explosionBursts.length}};
   },
   fireAtGangNpc(sourceId) {
     if(myDead||myMode==='pve'||!_isArmed())return false;
@@ -58462,6 +58518,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d177"></script>
+<script type="module" src="three_preview.js?v=3d178"></script>
 </body>
 </html>
