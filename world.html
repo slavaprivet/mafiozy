@@ -24795,8 +24795,11 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
   const pellets = cfg.pellets || 7;
   const local = _localBallisticTargets();
   const damageByTarget = new Map();
+  const damageByCar = new Map();
   const damagedProps = new Map();
+  const wallImpacts = [];
   let remoteHit = false;
+  let pelletHits = 0;
   for (let i = 0; i < pellets; i++) {
     const lane = pellets <= 1 ? 0 : (i / (pellets - 1) - 0.5) * 2;
     const a = baseAng + lane * cfg.spread * 0.72 + (Math.random() - 0.5) * cfg.spread * 0.22;
@@ -24805,6 +24808,10 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
     let best = null, bestP = null;
     const propHit=_raycastCasinoProp(sR,sC,dy,dx,wallD);
     if(propHit){best={casinoProp:propHit.prop};bestP={along:propHit.dist,perp:0};}
+    const carHit = _raycastDamageableCar(sR, sC, dy, dx, wallD);
+    if (carHit && (!bestP || carHit.dist < bestP.along)) {
+      best = { carHit }; bestP = { along:carHit.dist, perp:0 };
+    }
     for (const t of local) {
       const p = _projectTargetOnRay(t, sR, sC, dy, dx, wallD, 0.04);
       if (p && (!bestP || p.along < bestP.along)) { best = t; bestP = p; }
@@ -24816,15 +24823,31 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
     const endD = bestP ? bestP.along : wallD;
     spawnBullet(sR, sC, sR + dy * endD, sC + dx * endD,
       { hit:!!best, fromPlayer:true, weapon:'shotgun', _pelletChild:true, thick:i===Math.floor(pellets/2) });
-    if(best?.casinoProp)damagedProps.set(best.casinoProp.id,best.casinoProp);
-    else if (best === remote) remoteHit = true;
+    if(best?.casinoProp) {
+      damagedProps.set(best.casinoProp.id, {
+        prop:best.casinoProp, r:sR + dy * endD, c:sC + dx * endD,
+      });
+      pelletHits++;
+    } else if (best?.carHit) {
+      const falloff = weaponDamageAt('shotgun', bestP.along) / Math.max(1, cfg.dmg);
+      const pelletDmg = Math.max(1, (cfg.dmg / pellets) * falloff);
+      const key = best.carHit.car;
+      const entry = damageByCar.get(key) || { hits:[], damage:0 };
+      entry.hits.push(best.carHit); entry.damage += pelletDmg;
+      damageByCar.set(key, entry); pelletHits++;
+    } else if (remote && best === remote) {
+      remoteHit = true; pelletHits++;
+    }
     else if (best) {
       const falloff = weaponDamageAt('shotgun', bestP.along) / Math.max(1, cfg.dmg);
-      const pelletDmg = Math.max(1, Math.round((cfg.dmg / pellets) * falloff));
+      const pelletDmg = Math.max(1, (cfg.dmg / pellets) * falloff);
       damageByTarget.set(best, (damageByTarget.get(best) || 0) + pelletDmg);
+      pelletHits++;
     } else if (wallD < range - 0.08) {
-      const delay = wallD / (cfg.bulletSpeed || 22) * 1000;
-      setTimeout(() => _spawnBulletWallImpact(sR + dy * wallD, sC + dx * wallD, 'shotgun'), delay);
+      wallImpacts.push({
+        r:sR + dy * wallD, c:sC + dx * wallD,
+        delay:wallD / (cfg.bulletSpeed || 22) * 1000,
+      });
     }
   }
   for (const [target, dmg] of damageByTarget) {
@@ -24832,10 +24855,26 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
     spawnImpact(target.r, target.c, 'shotgun');
     _showCurrentShotCritical(target.r, target.c, Math.sin(baseAng), Math.cos(baseAng));
   }
+  for (const entry of damageByCar.values()) {
+    _damageCarByShotgun(entry.hits, _currentShotDamage(entry.damage));
+  }
+  for (const hit of damagedProps.values()) {
+    _hitCasinoProp(hit.prop, 'shotgun', hit.r, hit.c);
+  }
+  // Семь трассеров остаются отдельными, но близкие точки удара об стену
+  // объединяются максимум в три вспышки — без пачки таймеров и частиц.
+  const impactCount = Math.min(3, wallImpacts.length);
+  for (let i = 0; i < impactCount; i++) {
+    const idx = impactCount === 1 ? 0 : Math.round(i * (wallImpacts.length - 1) / (impactCount - 1));
+    const hit = wallImpacts[idx];
+    setTimeout(() => _spawnBulletWallImpact(hit.r, hit.c, 'shotgun'), hit.delay);
+  }
   if (remoteHit) _sendRemoteWeaponHit(remote, currentWeapon);
+  document.documentElement.dataset.lastShotPattern =
+    `shotgun:${pellets}:hits${pelletHits}:cars${damageByCar.size}:walls${wallImpacts.length}`;
   // У дробовика уже есть сильная отдача, вспышка, тряска и вибрация.
   // Искусственная остановка симуляции выглядела как лаг в момент выстрела.
-  if (damageByTarget.size || remoteHit) hapticHit();
+  if (damageByTarget.size || damageByCar.size || damagedProps.size || remoteHit) hapticHit();
 }
 
 function _firePenetratingRound(sR, sC, dirY, dirX, range, weapon, remote) {
@@ -24968,8 +25007,11 @@ function _raycastDamageableCar(sr,sc,dirY,dirX,maxDist){
   const test=(car,r,c,quest=false)=>{
     if(!car||car._destroySequenceAt||car._shotWrecked||car._wrecked||car.wrecked||car._hidden||car._towed)return;
     const model=quest?resolveCarModel(car.model):(car.model||{});
+    const halfL=Math.max(.68,(+model?.L||1.7)*.54),halfW=Math.max(.42,(+model?.W||.85)*.62);
+    const broad=maxDist+Math.max(halfL,halfW)+.3,br=r-sr,bc=c-sc;
+    if(br*br+bc*bc>broad*broad)return;
     const ang=Number.isFinite(+car.ang)?+car.ang:Math.atan2(+car.dirDy||+car.vy||+car.vr||0,+car.dirDx||+car.vx||+car.vc||1);
-    const fr=Math.sin(ang),fc=Math.cos(ang),halfL=Math.max(.68,(+model?.L||1.7)*.54),halfW=Math.max(.42,(+model?.W||.85)*.62);
+    const fr=Math.sin(ang),fc=Math.cos(ang);
     const rr=sr-r,cc=sc-c,ox=rr*fr+cc*fc,oz=rr*fc-cc*fr,dx=dirY*fr+dirX*fc,dz=dirY*fc-dirX*fr;
     let enter=.22,exit=maxDist;
     const clip=(o,d,h)=>{
@@ -25010,6 +25052,16 @@ function _damageCarByGun(hit,weapon,damage){
   if(!Number.isFinite(car._ballisticHp))car._ballisticHp=Math.max(1,+car.hp||max);
   const armor=model?.armored ? 1.65 : 1,amount=Math.max(4,Math.round((+damage||12)/armor));
   car._ballisticHp=Math.max(0,car._ballisticHp-amount);car._ballisticMax=max;
+  const mark=_addCarBulletMark(hit,weapon);
+  const hitDr=hit.r-player.r,hitDc=hit.c-player.c,hitLen=Math.hypot(hitDr,hitDc)||1;
+  spawnMetalImpact(hit.point.r,hit.point.c,weapon,hitDr/hitLen,hitDc/hitLen,mark.surface);
+  const ratio=car._ballisticHp/max;
+  if(ratio<=.55)car._hoodSmoking=true;
+  if(ratio<=.24)car._hoodBurning=true;
+  if(car._ballisticHp<=0)_startCarGunDestruction(hit,car);
+}
+function _addCarBulletMark(hit,weapon){
+  const car=hit.car;
   const markId=(car._carHitSeq||0)+1;car._carHitSeq=markId;
   const markY=.2+((markId*.61803398875+Math.abs(hit.localU||0)*.27)%1)*.72;
   const cabZone=Math.abs(hit.localU||0)<.48,glass=(markY>.57&&cabZone&&hit.panel==='side')||(markY>.68&&Math.abs(hit.localV||0)<.58&&hit.panel!=='side');
@@ -25018,12 +25070,18 @@ function _damageCarByGun(hit,weapon,damage){
   car._threeBulletMarks.push(mark);if(car._threeBulletMarks.length>10)car._threeBulletMarks.splice(0,car._threeBulletMarks.length-10);
   car._bulletHoleCount=car._threeBulletMarks.length;
   car._lastCarHitAt=performance.now();
-  const hitDr=hit.r-player.r,hitDc=hit.c-player.c,hitLen=Math.hypot(hitDr,hitDc)||1;
-  spawnMetalImpact(hit.point.r,hit.point.c,weapon,hitDr/hitLen,hitDc/hitLen,mark.surface);
-  const ratio=car._ballisticHp/max;
-  if(ratio<=.55)car._hoodSmoking=true;
-  if(ratio<=.24)car._hoodBurning=true;
-  if(car._ballisticHp<=0)_startCarGunDestruction(hit,car);
+  return mark;
+}
+function _damageCarByShotgun(hits,damage){
+  if(!Array.isArray(hits)||!hits.length)return;
+  const primary=hits[Math.floor((hits.length-1)*.5)];
+  _damageCarByGun(primary,'shotgun',damage);
+  // Урон применяется один раз за нажатие, но кузов получает несколько
+  // настоящих отметин дроби. Ограничение защищает сцену от лишних объектов.
+  let added=0;
+  for(const hit of hits){
+    if(hit!==primary&&added<4){_addCarBulletMark(hit,'shotgun');added++;}
+  }
 }
 // fire(angle): если angle задан — стреляем в эту сторону, иначе берём
 // направление из правого стика (если активен), и только потом — player.ang.
@@ -25424,7 +25482,7 @@ function fire(angle = null) {
     triggerHitStop(20); addShake(2.5); hapticHit();
     return;
   }
-  if(hitDamageableCar){
+  if(hitDamageableCar&&resolvedShotWeapon!=='shotgun'){
     spawnBullet(sR,sC,hitDamageableCar.point.r,hitDamageableCar.point.c,{hit:true,fromPlayer:true,weapon:currentWeapon});
     _damageCarByGun(hitDamageableCar,currentWeapon,_currentShotDamage(weaponDamageAt(currentWeapon,hitDamageableCar.dist)));
     addShake(wcfg.thick?2.2:1.1);hapticHit();
@@ -58404,6 +58462,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d176"></script>
+<script type="module" src="three_preview.js?v=3d177"></script>
 </body>
 </html>
