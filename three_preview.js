@@ -1,3 +1,4 @@
+// 3D sync v221: visible road-side fire response and reliable tow loading after extinguishing.
 // 3D sync v220: East-Side hospital and six-ambulance dual-station response; police corpses retain uniforms.
 // 3D sync v219: three dirty-clothed junkyard workers patrol, sort scrap and clean the disposal yard.
 // 3D sync v216: compact burgundy-gold famiglia seal reticle and verified RMB+LMB shot chord.
