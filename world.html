@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<!-- 3D sync v198: native-sharp rendering, dramatic pooled explosions, black burning wrecks, bridge details, bullets and wall impacts. -->
+<!-- 3D sync v198: Brigadir contracts recover their target flow; contextual dialogue and dossier presentation are synchronized. -->
 <!-- 3D sync v197: adaptive native resolution, lighter wreck fire and car-locked tracers restore smooth combat animation. -->
 <!-- 3D sync v196: bounded pooled wreck fire restores burning cars without dynamic-light shader stalls. -->
 <!-- 3D sync v195: bounded vehicle explosions, hold-E entry, bounded pets, and speed-aware NPC gait. -->
@@ -19935,7 +19937,7 @@ _zoneEl.addEventListener('click', () => {
 // бара — раньше стоял на тайле дороги (0), npcPassable не пускал
 // никуда. Сейчас (44, 34) — тротуар (9), можно бродить.
 const BRIGADIR_HOME = { r: 44, c: 34 };
-const BRIGADIR_WANDER_R = 2.4;     // макс уход от HOME
+const BRIGADIR_WANDER_R = 1.5;     // держим маршрут внутри серверной зоны разговора
 const BRIGADIR_STOP_R   = 3.5;     // подошёл игрок ближе — остановился
 const BRIGADIR_POS = { r: 44, c: 34 };   // текущая позиция (двигается)
 // Стейт AI Бригадира — обновляется в _tickBrigadir каждый кадр.
@@ -19958,6 +19960,18 @@ let _myBrigadirKillSent = false;
 // { reward, stealth }. null = нечего получать. См. brigadir_kill_reply.
 let _myBrigadirReward = null;
 
+const _BRIGADIR_IDLE_LINES = [
+  'Есть работа. Без лишнего шума.',
+  'Подойди ближе — есть разговор.',
+  'Мне нужен человек, который держит слово.',
+];
+function _brigadirSpeechLine() {
+  if (_myBrigadirReward) return 'Дело сделано. Подойди — рассчитаемся.';
+  if (_myHitContractActive) return 'Метка на карте. Возвращайся, когда закончишь.';
+  if (_pendingBrigadirOffer) return 'Досье на столе. Решай.';
+  return _BRIGADIR_IDLE_LINES[Math.floor(performance.now() / 5200) % _BRIGADIR_IDLE_LINES.length];
+}
+
 // Случайный живой бандит из aggroZones (Логово / city_gangs / nests).
 // Возвращает { bot_id, r, c } или null если нет живых ботов.
 // Раньше брали обычного NPC-прохожего — это было «бесплатное» убийство
@@ -19977,10 +19991,6 @@ function _pickHitTargetBandit() {
                   look: b.look || {},
                   faction: z.faction || 'purple',
                   zone_id: zoneId });
-    }
-    if(d.gang_member!=null&&String(d.shooter_uid)===String(QP.uid)){
-      const member=_myGang[+d.gang_member];
-      if(member)_awardGangXp(member,+d.dmg||0,!!d.killed,+d.target_level||1);
     }
   }
   if (!pool.length) return null;
@@ -20439,11 +20449,12 @@ function _businessActionCopy(source,tone,raw,poi){
 }
 function openBrigadirActionCardFrom3D() {
   const distance=Math.hypot(BRIGADIR_POS.r-player.r,BRIGADIR_POS.c-player.c);
-  if(distance>4.6){showToast('Подойди ближе к Бригадиру','👣',1700);return {ok:false,reason:'far'};}
+  if(distance>2.4){showToast('Подойди ближе к Бригадиру','👣',1700);return {ok:false,reason:'far'};}
   let modal=document.getElementById('brigadirActionModal');
   if(!modal){modal=document.createElement('div');modal.id='brigadirActionModal';modal.style.cssText='position:fixed;inset:0;z-index:10055;display:none;align-items:center;justify-content:center;background:rgba(4,5,8,.68);backdrop-filter:blur(5px);padding:18px';modal.addEventListener('click',e=>{if(e.target===modal)modal.style.display='none';});document.body.appendChild(modal);}
   const active=_myHitContractActive,reward=_myBrigadirReward,pending=_pendingBrigadirOffer;
-  modal.innerHTML=`<section style="width:min(410px,94vw);border:1px solid #c49b48;border-radius:14px;background:linear-gradient(145deg,#201b18,#0d1118);color:#f5e5bd;box-shadow:0 28px 90px #000;padding:18px;font:14px/1.45 system-ui"><div style="display:flex;gap:14px;align-items:center;border-bottom:1px solid #705629;padding-bottom:13px"><div style="width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#7b2026;border:2px solid #d7ad57;font-size:31px">👔</div><div><div style="font:900 22px Georgia;color:#ffd778">Бригадир</div><div style="color:#b9ad96">Контракты · взыскание долгов</div></div></div><p>${reward?'Расчёт готов. Забери награду за выполненную работу.':active?'Цель отмечена. Закончи дело и возвращайся за расчётом.':pending?'Досье уже подготовлено — проверь детали.':'Есть работа. Настоящее досье придёт с сервера после запроса.'}</p><div style="display:grid;gap:9px"><button id="brigadirPrimary3d" style="padding:12px;border:1px solid #e0b45c;border-radius:8px;background:linear-gradient(#a22d31,#65181d);color:#fff4cf;font:900 14px system-ui;cursor:pointer">${reward?'🏆 ЗАБРАТЬ НАГРАДУ':active?'🎯 ПОКАЗАТЬ АКТИВНЫЙ КОНТРАКТ':pending?'📁 ОТКРЫТЬ ДОСЬЕ':'📁 ЗАПРОСИТЬ ДОСЬЕ'}</button><button id="brigadirClose3d" style="padding:10px;border:1px solid #50483d;border-radius:8px;background:#24262b;color:#ddd;font:800 13px system-ui;cursor:pointer">Закрыть</button></div></section>`;
+  const stateLabel=reward?'РАСЧЁТ ГОТОВ':active?'КОНТРАКТ В РАБОТЕ':pending?'ДОСЬЕ ПОДГОТОВЛЕНО':'ЕСТЬ НОВАЯ РАБОТА';
+  modal.innerHTML=`<section style="width:min(455px,94vw);border:2px solid #b78a3c;border-radius:5px;background:linear-gradient(145deg,#241713,#0b0e14);color:#f5e5bd;box-shadow:0 30px 100px #000;padding:7px;font:14px/1.45 system-ui"><div style="border:1px solid #634a28;padding:15px;background:repeating-linear-gradient(0deg,rgba(255,220,150,.025) 0 1px,transparent 1px 4px)"><div style="display:flex;gap:14px;align-items:center;border-bottom:2px solid #781d24;padding-bottom:12px"><div style="width:64px;height:64px;flex:0 0 64px;display:grid;place-items:center;background:#721b22;border:2px solid #d7ad57;box-shadow:inset 0 0 0 5px #271417;font-size:34px">👔</div><div style="min-width:0"><div style="font:900 25px Georgia;color:#ffd778;letter-spacing:.5px">Бригадир</div><div style="color:#c7b38b;font:800 11px system-ui;letter-spacing:1.5px">${stateLabel}</div></div><div style="margin-left:auto;border:2px solid #8b2027;color:#f0c76b;padding:5px 7px;font:900 10px system-ui;transform:rotate(2deg)">ТОЛЬКО ЛИЧНО</div></div><blockquote style="margin:14px 0 12px;border-left:4px solid #a72a31;background:rgba(0,0,0,.28);padding:11px 12px;color:#fff0ca;font:italic 15px/1.45 Georgia">«${_brigadirSpeechLine()}»</blockquote><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:13px;text-align:center"><div style="border:1px solid #604b2e;background:#19171a;padding:8px 5px"><b style="color:#ffd778">$${BRIGADIR_PAYOUT_PREVIEW}</b><br><small>за работу</small></div><div style="border:1px solid #604b2e;background:#19171a;padding:8px 5px"><b style="color:#ffd778">3</b><br><small>в сутки</small></div><div style="border:1px solid #604b2e;background:#19171a;padding:8px 5px"><b style="color:#ffd778">ЛИЧНО</b><br><small>забрать куш</small></div></div><div style="display:grid;gap:9px"><button id="brigadirPrimary3d" style="padding:13px;border:1px solid #e0b45c;border-radius:5px;background:linear-gradient(#a52b31,#65171d);box-shadow:inset 0 1px #e57a74;color:#fff4cf;font:900 14px system-ui;letter-spacing:.4px;cursor:pointer">${reward?'🏆 ЗАБРАТЬ НАГРАДУ':active?'🎯 ПОКАЗАТЬ АКТИВНЫЙ КОНТРАКТ':pending?'📁 ОТКРЫТЬ ДОСЬЕ':'📁 ЗАПРОСИТЬ ДОСЬЕ'}</button><button id="brigadirClose3d" style="padding:10px;border:1px solid #50483d;border-radius:5px;background:#202126;color:#d8d1c4;font:800 13px system-ui;cursor:pointer">Уйти</button></div></div></section>`;
   modal.style.display='flex';modal.querySelector('#brigadirClose3d').onclick=()=>modal.style.display='none';modal.querySelector('#brigadirPrimary3d').onclick=()=>{modal.style.display='none';if(reward)claimBrigadirReward();else if(pending)_openBrigadirDossier(pending.target,pending.payout,pending.left);else if(active)showToast('Цель отмечена на карте. Возвращайся после устранения.','🎯',2600);else takeBrigadirContract();};return {ok:true,state:reward?'reward':active?'active':pending?'pending':'available'};
 }
 function _businessRaidActionLabel(biz,cfg){
@@ -37277,9 +37288,7 @@ function drawBrigadir() {
   const dr = BRIGADIR_POS.r - player.r;
   const dc = BRIGADIR_POS.c - player.c;
   if (Math.hypot(dr, dc) <= 6.0) {
-    const txt = _myHitContractActive
-      ? 'Цель в городе. Не вернёшься без работы.'
-      : 'Есть заказ — нужно убрать одного.';
+    const txt = _brigadirSpeechLine();
     ctx.font = 'bold 11px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -42529,12 +42538,16 @@ function updateProjectiles(dt) {
       b.r -= b.vr / _sp * _ov;
       b.c -= b.vc / _sp * _ov;
       b.dist = b.maxDist;
-      if (_buildingInt && b.weapon !== 'water_hose' && !b._holePlaced) {
+      const wallDirR=(+b.vr||0)/_sp,wallDirC=(+b.vc||0)/_sp,probeR=b.r+wallDirR*.22,probeC=b.c+wallDirC*.22;
+      let endedOnWall=false;
+      if(_buildingInt&&!_bankInt){endedOnWall=_buildingInt.bizId==='major_casino'?_casinoInteriorBlocked(_buildingInt,probeR,probeC,.08):(probeR<=.12||probeC<=.12||probeR>=_buildingInt.H-.12||probeC>=_buildingInt.W-.12);}
+      else endedOnWall=_bankInt?_isBlockedInterior(probeR,probeC):isBlocked(probeR,probeC);
+      if (endedOnWall && b.weapon !== 'water_hose' && b.weapon !== 'rpg' && !b._holePlaced) {
         b._holePlaced = true;
         _capArr(bulletHoles, _MAX_BULLET_HOLES);
-        bulletHoles.push({r:b.r,c:b.c,ang:Math.atan2(b.vr,b.vc),
-          heavy:b.weapon==='shotgun'||b.weapon==='sniper'||b.weapon==='rpg',
-          born:performance.now(),space:_gangSpaceKey()});
+        const holeId=(performance.now()*10+bulletHoles.length)|0;
+        bulletHoles.push({id:holeId,r:b.r+wallDirR*.055,c:b.c+wallDirC*.055,ang:Math.atan2(b.vr,b.vc),rot:(holeId*.618)%Math.PI,
+          heavy:b.weapon==='shotgun'||b.weapon==='sniper',born:performance.now(),space:_gangSpaceKey()});
       }
       // оставляем флаг для финального drawBullets — он отрисует вспышку
       b._finished = true;
@@ -55373,6 +55386,12 @@ window.Mafiozi3DBridge = Object.freeze({
     enterBuildingInterior(biz.r,biz.c,'business',biz.id,{peaceful:true});
     return true;
   },
+  previewApproachBridge() {
+    if(!_LOCAL_PREVIEW)return false;
+    player.r=(CITY_BRIDGE_R0+CITY_BRIDGE_R1)*.5;player.c=(CITY_CANAL_C0+CITY_CANAL_C1)*.5;
+    player.vr=0;player.vc=0;player.walking=false;window._studioTeleportUntil=Date.now()+10000;
+    return {r:player.r,c:player.c};
+  },
   previewApproachGenericBuilding() {
     if(!_LOCAL_PREVIEW)return false;
     let best=null;
@@ -55619,7 +55638,12 @@ window.Mafiozi3DBridge = Object.freeze({
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
     const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&(x.parts||[]).some(p=>(+p.life||0)>0)&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
-    const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,heavy:!!x.heavy,age:fxNow-(+x.born||fxNow)}));
+    const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:+x.id||i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,rot:+x.rot||0,scale:+x.scale||1,heavy:!!x.heavy,age:fxNow-(+x.born||fxNow)}));
+    if(_LOCAL_PREVIEW&&_UP.has('previewbulletfx')){
+      const cycle=(performance.now()%1800)/1800,profiles=[['pistol','#ffe49a',1,1],['smg','#ffd061',.86,1.22],['shotgun','#ff9f38',1.38,.78],['sniper','#fff2bd',1.24,1.8]];
+      profiles.forEach(([weapon,color,bulletScale,trailScale],i)=>{const a=-.72+i*.48,dist=2.2+cycle*7.4;projectiles.unshift({id:`preview_${weapon}`,r:player.r+Math.sin(a)*dist,c:player.c+Math.cos(a)*dist,vr:Math.sin(a)*24,vc:Math.cos(a)*24,ang:a,color,weapon,fromPlayer:true,tracked:i===1,bulletScale,trailScale,startZ:0,endZ:0,dist,maxDist:10});});
+      for(let i=0;i<8;i++){const a=i<4?0:Math.PI/2,offset=(i%4-1.5)*.62;bulletHoleFx.unshift({id:8800+i,r:player.r+(a?3.2:offset),c:player.c+(a?offset:3.2),ang:a,rot:(i*.47)%Math.PI,scale:i%3===0?1.18:.9,heavy:i%4===0,age:800+i*170});}
+    }
     const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&(+x.life||0)>0&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail,soot:!!x._isSoot,crater:!!x._isCrater}));
     const goreFx=(typeof bodyPartFx!=='undefined'?bodyPartFx:[]).filter(x=>x&&fxNow-(+x.born||fxNow)<Math.max(1,+x.life||8000)&&near(+x.r||0,+x.c||0)).slice(-12).map(x=>({
       id:String(x.id||''),r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,
@@ -55675,7 +55699,7 @@ window.Mafiozi3DBridge = Object.freeze({
       for(let i=0;i<(typeof BUS_STOPS!=='undefined'?BUS_STOPS:[]).length;i++){
         const stop=BUS_STOPS[i];addObject('bus_stop',`bus_stop_${i}`,stop.r,stop.c,stop.name||`Остановка ${i+1}`,'#62b8ff',{maxRadius:4});
       }
-      if(typeof BRIGADIR_POS!=='undefined'){const moving=!BRIGADIR_AI.paused&&performance.now()>=BRIGADIR_AI.idleUntil&&Math.hypot(BRIGADIR_AI.tgtR-BRIGADIR_POS.r,BRIGADIR_AI.tgtC-BRIGADIR_POS.c)>=.18;addObject('brigadir','brigadir',BRIGADIR_POS.r+.5,BRIGADIR_POS.c+.5,'Бригадир','#ffd45b',{keepSource:true,maxRadius:5,ang:+BRIGADIR_AI.ang||0,walking:moving,walkPhase:+BRIGADIR_AI.walkPhase||0});}
+      if(typeof BRIGADIR_POS!=='undefined'){const moving=!BRIGADIR_AI.paused&&performance.now()>=BRIGADIR_AI.idleUntil&&Math.hypot(BRIGADIR_AI.tgtR-BRIGADIR_POS.r,BRIGADIR_AI.tgtC-BRIGADIR_POS.c)>=.18,brigadirDistance=Math.hypot(BRIGADIR_POS.r-player.r,BRIGADIR_POS.c-player.c);addObject('brigadir','brigadir',BRIGADIR_POS.r+.5,BRIGADIR_POS.c+.5,'Бригадир','#ffd45b',{keepSource:true,maxRadius:5,ang:+BRIGADIR_AI.ang||0,walking:moving,walkPhase:+BRIGADIR_AI.walkPhase||0,speech:brigadirDistance<=7.5?_brigadirSpeechLine():'',contractState:_myBrigadirReward?'reward':_myHitContractActive?'active':_pendingBrigadirOffer?'offer':'available'});}
       for(const bag of (typeof _vaultDroppedBags!=='undefined'?_vaultDroppedBags:[]))addObject('money_bag',`bag_${bag.id}`,bag.r,bag.c,'Мешок с деньгами','#f0bd4f',{value:+bag.value||0,maxRadius:4});
       for(let i=0;i<(typeof PETS!=='undefined'?PETS:[]).length;i++){
         const pet=PETS[i];if(!pet)continue;const petMoving=Math.hypot((+pet.tr||pet.r)-pet.r,(+pet.tc||pet.c)-pet.c)>.2,petThreat=Math.hypot(player.r-pet.r,player.c-pet.c)<3.4||cars.some(car=>Math.hypot((+car.r||0)-pet.r,(+car.c||0)-pet.c)<2.8&&!car.parked),petIdleSeed=(i*17+Math.floor(performance.now()/1000))%19;addObject('pet',pet.id||`city_pet_fallback_${i}`,pet.r,pet.c,pet.cryUntil>performance.now()?pet.cryText:'',pet._color||'#a9825c',{keepSource:true,petKind:pet.kind||'dog',ang:+pet.ang||0,walking:petMoving,speed:+pet.speed||1,walkPhase:+pet.walkPhase||0,alerted:petThreat,sitting:pet.kind==='cat'&&!petMoving&&!petThreat&&petIdleSeed<6});
@@ -59475,6 +59499,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d197"></script>
+<script type="module" src="three_preview.js?v=3d198"></script>
 </body>
 </html>
