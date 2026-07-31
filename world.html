@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 3D sync v197: adaptive native resolution, lighter wreck fire and car-locked tracers restore smooth combat animation. -->
 <!-- 3D sync v196: bounded pooled wreck fire restores burning cars without dynamic-light shader stalls. -->
 <!-- 3D sync v195: bounded vehicle explosions, hold-E entry, bounded pets, and speed-aware NPC gait. -->
 <!-- 3D sync v193: collision props and vehicle effects are instanced/shared; explosion and wreck lights are bounded after a five-car stress test. -->
@@ -15938,11 +15939,16 @@ function spawnBullet(sr, sc, er, ec, opts) {
     : baseTrailScale;
   _capArr(bullets, _MAX_BULLETS);
   bullets.push({
-    r: sr, c: sc,
+    r: sr, c: sc, startR:sr, startC:sc,
     vr: (dr / dist) * speed,
     vc: (dc / dist) * speed,
     dist: 0,
     maxDist: dist,
+    flightMs:Math.max(80,dist/Math.max(.1,speed)*1000),
+    targetVehicle:opts.targetVehicleHit?{
+      car:opts.targetVehicleHit.car,quest:!!opts.targetVehicleHit.quest,
+      localU:+opts.targetVehicleHit.localU||0,localV:+opts.targetVehicleHit.localV||0,
+    }:null,
     born: performance.now(),
     color: opts.color || wcfg.color || '#ffd76b',
     weapon: resolvedBulletWeapon,
@@ -25409,7 +25415,7 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
     }
     const endD = bestP ? bestP.along : wallD;
     spawnBullet(sR, sC, sR + dy * endD, sC + dx * endD,
-      { hit:!!best, fromPlayer:true, weapon:'shotgun', _pelletChild:true, thick:i===Math.floor(pellets/2) });
+      { hit:!!best, fromPlayer:true, weapon:'shotgun', _pelletChild:true, thick:i===Math.floor(pellets/2),targetVehicleHit:best?.carHit||null });
     if(best?.casinoProp) {
       damagedProps.set(best.casinoProp.id, {
         prop:best.casinoProp, r:sR + dy * endD, c:sC + dx * endD,
@@ -25622,6 +25628,15 @@ function _raycastDamageableCar(sr,sc,dirY,dirX,maxDist){
   for(const car of CARS)test(car,+car.r||0,+car.c||0,false);
   if(typeof questCars!=='undefined')for(const car of questCars.values())test(car,+car.y||0,+car.x||0,true);
   return best;
+}
+function _trackedCarBulletPoint(target){
+  const car=target?.car;if(!car||car._hidden||car._towed)return null;
+  const quest=!!target.quest,model=quest?resolveCarModel(car.model):(car.model||{}),
+        r=quest?(+car.y||0):(+car.r||0),c=quest?(+car.x||0):(+car.c||0),
+        halfL=Math.max(.68,(+model?.L||1.7)*.54),halfW=Math.max(.42,(+model?.W||.85)*.62),
+        ang=Number.isFinite(+car.ang)?+car.ang:Math.atan2(+car.dirDy||+car.vy||+car.vr||0,+car.dirDx||+car.vx||+car.vc||1),
+        fr=Math.sin(ang),fc=Math.cos(ang),lx=(+target.localU||0)*halfL,lz=(+target.localV||0)*halfW;
+  return {r:r+lx*fr+lz*fc,c:c+lx*fc-lz*fr};
 }
 const CAR_GUN_DESTRUCTION_DELAY=1550;
 const CAR_CHAIN_BLAST_RADIUS=5.2,CAR_CHAIN_LETHAL_RADIUS=2.85,
@@ -26108,7 +26123,7 @@ function fire(angle = null) {
     return;
   }
   if(hitDamageableCar&&resolvedShotWeapon!=='shotgun'){
-    spawnBullet(sR,sC,hitDamageableCar.point.r,hitDamageableCar.point.c,{hit:true,fromPlayer:true,weapon:currentWeapon});
+    spawnBullet(sR,sC,hitDamageableCar.point.r,hitDamageableCar.point.c,{hit:true,fromPlayer:true,weapon:currentWeapon,targetVehicleHit:hitDamageableCar});
     _damageCarByGun(hitDamageableCar,currentWeapon,_currentShotDamage(weaponDamageAt(currentWeapon,hitDamageableCar.dist)));
     addShake(wcfg.thick?2.2:1.1);hapticHit();
     return;
@@ -42488,6 +42503,21 @@ function updateProjectiles(dt) {
       bullets.splice(i, 1);
       continue;
     }
+    if(b.targetVehicle){
+      const point=_trackedCarBulletPoint(b.targetVehicle);
+      if(point){
+        const prevR=b.r,prevC=b.c,p=Math.max(0,Math.min(1,bulletAge/Math.max(80,+b.flightMs||130)));
+        b.r=(+b.startR||0)+(point.r-(+b.startR||0))*p;
+        b.c=(+b.startC||0)+(point.c-(+b.startC||0))*p;
+        const stepR=b.r-prevR,stepC=b.c-prevC,stepLen=Math.hypot(stepR,stepC);
+        if(stepLen>.0001){const speed=Math.hypot(+b.vr||0,+b.vc||0)||1;b.vr=stepR/stepLen*speed;b.vc=stepC/stepLen*speed;}
+        b.maxDist=Math.max(.05,Math.hypot(point.r-(+b.startR||0),point.c-(+b.startC||0)));
+        b.dist=b.maxDist*p;
+        if(p>=1)b._finished=true;
+        continue;
+      }
+      b.targetVehicle=null;
+    }
     b.r += b.vr * ddt;
     b.c += b.vc * ddt;
     b.dist += Math.hypot(b.vr, b.vc) * ddt;
@@ -55585,7 +55615,7 @@ window.Mafiozi3DBridge = Object.freeze({
         vr:dr/dist*8,vc:dc/dist*8,ang:Math.atan2(dr,dc),color:j%3?'#70cfff':'#d8f4ff',weapon:'water_hose',fromNpc:true,thick:true,
       });}
     }
-    const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&!x._finished&&Number.isFinite(+x.r)&&Number.isFinite(+x.c)&&Number.isFinite(+x.vr)&&Number.isFinite(+x.vc)&&near(+x.r,+x.c)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
+    const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&!x._finished&&Number.isFinite(+x.r)&&Number.isFinite(+x.c)&&Number.isFinite(+x.vr)&&Number.isFinite(+x.vc)&&near(+x.r,+x.c)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,tracked:!!x.targetVehicle,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
     const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&(x.parts||[]).some(p=>(+p.life||0)>0)&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
@@ -55707,6 +55737,13 @@ if(_LOCAL_PREVIEW&&_UP.has('previewcarexplosion'))setTimeout(()=>{
     document.documentElement.dataset.carExplosionQa=`running:${qaCars.length}`;
   }
 },Math.max(3200,Math.min(12000,+_UP.get('previewcarexplosiondelay')||3200)));
+if(_LOCAL_PREVIEW&&_UP.has('previewcartrack'))setTimeout(()=>{
+  const car=CARS.find(x=>x?.model&&!x.model?.helicopter&&!x._hidden&&!x._towed);
+  if(!car)return;
+  car.r=player.r;car.c=player.c+4.5;car.ang=Math.PI/2;car.dirDy=1;car.dirDx=0;car.vr=.72;car.vc=0;car.parked=false;
+  const fireQaTracer=()=>{const sr=player.r,sc=player.c+.55,dr=(+car.r||0)-sr,dc=(+car.c||0)-sc,len=Math.hypot(dr,dc)||1,hit=_raycastDamageableCar(sr,sc,dr/len,dc/len,8);if(!hit)return;spawnBullet(sr,sc,hit.point.r,hit.point.c,{hit:true,fromPlayer:true,weapon:'pistol',speed:1.35,targetVehicleHit:hit});document.documentElement.dataset.carTracerQa=`tracking:${String(car.id??'car')}`;};
+  fireQaTracer();setTimeout(fireQaTracer,900);setTimeout(fireQaTracer,1800);
+},4200);
 if(_LOCAL_PREVIEW&&_UP.has('previewholdetest'))setTimeout(()=>{
   window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyE',key:'e',bubbles:true}));
   setTimeout(()=>window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyE',key:'e',bubbles:true})),420);
@@ -59438,6 +59475,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d196"></script>
+<script type="module" src="three_preview.js?v=3d197"></script>
 </body>
 </html>
