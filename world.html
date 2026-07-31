@@ -9,6 +9,7 @@
 <!-- 3D sync v195: bounded vehicle explosions, hold-E entry, bounded pets, and speed-aware NPC gait. -->
 <!-- 3D sync v193: collision props and vehicle effects are instanced/shared; explosion and wreck lights are bounded after a five-car stress test. -->
 <!-- 3D sync v191: vehicle hits use bounded NPC reactions; chain explosions are staggered to prevent shot-time frame stalls. -->
+<!-- 3D sync v226: the junkyard landmark is rebuilt by sector streaming after the player travels into its cleared six-lot area. -->
 <!-- 3D sync v190: ordinary buildings use stable glass, brick, limestone, concrete, art-deco and industrial architecture families without changing collisions. -->
 <html lang="ru">
 <head>
@@ -55995,7 +55996,8 @@ window.Mafiozi3DBridge = Object.freeze({
       if(r0>=EAST_EXPANSION_R1||c0<minC)continue;
       neighborhoods.push({r0,c0,size:20,vertical:((Math.floor(r0/20)+Math.floor((c0-EAST_EXPANSION_C0)/20))&1)===1,styleId:districtStyleIdAt(r0+10,c0+10)});
     }
-    return {center:{r:player.r,c:player.c},bounds:{minR,maxR,minC,maxC},blocks,obstacles,pois,coast,canal,neighborhoods,landmarks};
+    const streamableLandmarks=pois.filter(p=>p.id==='junkyard');
+    return {center:{r:player.r,c:player.c},bounds:{minR,maxR,minC,maxC},blocks,obstacles,pois,streamableLandmarks,coast,canal,neighborhoods,landmarks};
   },
   getDynamicEntities(radius = 38) {
     const rad2=Math.max(12,Math.min(65,+radius||38))**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
@@ -56335,6 +56337,7 @@ window.Mafiozi3DBridge = Object.freeze({
 });
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
 if(_LOCAL_PREVIEW&&_UP.get('threebusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInterior(_UP.get('threebusiness')),900);
+if(_LOCAL_PREVIEW&&_UP.has('previewjunkyardstream'))setTimeout(()=>window.Mafiozi3DBridge.previewApproachJunkyard(),1600);
 if(_LOCAL_PREVIEW&&_UP.has('previewjunkyard')){
   player.r=JUNKYARD_R+4.5;player.c=JUNKYARD_C;player.vr=0;player.vc=0;player.walking=false;
   window._studioTeleportUntil=Date.now()+10000;
@@ -60103,6 +60106,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d225"></script>
+<script type="module" src="three_preview.js?v=3d226"></script>
 </body>
 </html>
