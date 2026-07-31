@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v223: coastal junkyard replaces four generic towers with scrap mountains and burning wreck lots. -->
+<!DOCTYPE html><!-- v224: tow trucks drive the full road route and never teleport to a wreck. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -9498,19 +9498,24 @@ function spawnFireTruck(targetR, targetC, fireRef, carRef) {
 // платформу, увозит к депо (home) и УДАЛЯЕТ из CARS — трафик доспавнит
 // новую (машины не пропадают навсегда). Если в машине игрок — НЕ грузим
 // (защита от увоза игрока за карту).
-function _towTruckParkingPoint(targetR,targetC){
-  let best=null,bestScore=Infinity;
+function _towTruckParkingPoint(targetR,targetC,fromR=JUNKYARD_R,fromC=JUNKYARD_C){
+  let best=null,bestScore=Infinity,unrouted=null,unroutedScore=Infinity;
   const r0=Math.floor(targetR),c0=Math.floor(targetC);
   for(let dr=-5;dr<=5;dr++)for(let dc=-5;dc<=5;dc++){
     const r=r0+dr+.5,c=c0+dc+.5,d=Math.hypot(r-targetR,c-targetC);
     if(d<1.7||d>3.6||!_vehicleRoadPassable(r,c))continue;
     if(_vehicleBlockedByCar({kind:'tow'},r,c))continue;
-    const score=Math.abs(d-2.35)+Math.hypot(r-JUNKYARD_R,c-JUNKYARD_C)*.003;
-    if(score<bestScore){bestScore=score;best={r,c};}
+    const path=_bfsRoadPath(fromR,fromC,r,c,30);
+    const score=Math.abs(d-2.35)+(path?.length||0)*.004;
+    if(!path?.length){if(Math.abs(d-2.35)<unroutedScore){unroutedScore=Math.abs(d-2.35);unrouted={r,c,path:[]};}continue;}
+    if(score<bestScore){bestScore=score;best={r,c,path};}
   }
   if(best)return best;
+  if(unrouted)return unrouted;
   const road=_nearestRoadTile(targetR,targetC,12);
-  return road?{r:road.r+.5,c:road.c+.5}:null;
+  if(!road)return null;
+  const r=road.r+.5,c=road.c+.5,path=_bfsRoadPath(fromR,fromC,r,c,30);
+  return {r,c,path:path||[]};
 }
 function spawnTowTruck(targetR, targetC, carRef) {
   for (const v of serviceVehicles) {
@@ -9521,7 +9526,8 @@ function spawnTowTruck(targetR, targetC, carRef) {
   }
   const junkRoad = _nearestRoadTile(JUNKYARD_R, JUNKYARD_C, 16);
   const door = junkRoad ? {r:junkRoad.r+.5,c:junkRoad.c+.5} : _fireStationDoor();
-  const parking=_towTruckParkingPoint(targetR,targetC);
+  const parking=_towTruckParkingPoint(targetR,targetC,door.r,door.c);
+  if(!parking)return null;
   const v = {
     id: 'tow_' + (++_svcVehId), kind: 'tow',
     x: door.c, y: door.r,
@@ -9533,12 +9539,12 @@ function spawnTowTruck(targetR, targetC, carRef) {
     _loaded: false, _loadProgress: 0,
   };
   v.sceneParkingR=parking?.r;v.sceneParkingC=parking?.c;
-  _setVehicleRoute(v, door.r, door.c, parking?.r??targetR, parking?.c??targetC);
+  v.path=parking.path;v.pathIdx=0;v.finalTarget={x:parking.c,y:parking.r};v._offroadRoute=false;
   serviceVehicles.push(v);
   return v;
 }
 
-function _startTowLoadingAtScene(v,now){
+function _beginTowLoadingAtScene(v,now){
   const car=v?.payload?.carRef;
   if(v?.kind!=='tow'||!car||car._towed||(myDrivingCarId&&String(car.id)===String(myDrivingCarId))){
     _releaseFailedTowCall(v);
@@ -9546,16 +9552,56 @@ function _startTowLoadingAtScene(v,now){
     return false;
   }
   const targetR=+(car.r??car.y),targetC=+(car.c??car.x);
-  const parking=(Number.isFinite(+v.sceneParkingR)&&Number.isFinite(+v.sceneParkingC))
-    ?{r:+v.sceneParkingR,c:+v.sceneParkingC}:_towTruckParkingPoint(targetR,targetC);
-  if(!parking){
-    _releaseFailedTowCall(v);v.state='done';return false;
-  }
-  v.y=parking.r;v.x=parking.c;v.path=[];v.pathIdx=0;
+  if(Math.hypot(v.y-targetR,v.x-targetC)>4.25)return false;
+  v.path=[];v.pathIdx=0;
   v.state='working';v.workDuration=4600;v.workUntil=now+v.workDuration;
   v._loadStartedAt=now;v._loadProgress=0;v._lastMoveT=now;
-  document.documentElement.dataset.towSceneFallback='road-wreck-side-v221';
+  document.documentElement.dataset.towRouteProfile='full-road-drive-no-scene-teleport-v224';
   return true;
+}
+
+function _rerouteTowTruck(v,now,reason='route-rebuild'){
+  if(v?.kind!=='tow')return false;
+  const car=v.payload?.carRef;
+  if(!car||car._towed&&!v._loaded||(myDrivingCarId&&String(car.id)===String(myDrivingCarId))){
+    _releaseFailedTowCall(v);v.state='done';return false;
+  }
+  v._towRouteRetries=(+v._towRouteRetries||0)+1;
+  document.documentElement.dataset.towRouteRetries=String(v._towRouteRetries);
+  document.documentElement.dataset.towRouteLast=reason;
+  if(v._loaded){
+    _setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
+    v.state='returning';v._lastMoveT=now;
+    return true;
+  }
+  const targetR=+(car.r??car.y),targetC=+(car.c??car.x);
+  const parking=_towTruckParkingPoint(targetR,targetC,v.y,v.x);
+  if(!parking){v._towNextRouteRetry=now+1200;return false;}
+  if(!parking.path?.length){v.path=[];v.pathIdx=0;v._towNextRouteRetry=now+1200;document.documentElement.dataset.towRouteLast='waiting-for-connected-road';return false;}
+  v.sceneParkingR=parking.r;v.sceneParkingC=parking.c;
+  v.path=parking.path;v.pathIdx=0;v.finalTarget={x:parking.c,y:parking.r};v._offroadRoute=false;
+  v.state='go_to_scene';v._lastMoveT=now;
+  return true;
+}
+
+function _teleportTowTruckAfterStall(v,now){
+  if(v?.kind!=='tow')return false;
+  if(v._loaded){
+    _completeTowRemoval(v);v.state='done';
+    document.documentElement.dataset.towEmergencyTeleport='loaded-return-after-14s-stall-v224';
+    return true;
+  }
+  const car=v.payload?.carRef;
+  if(!car||car._towed||(myDrivingCarId&&String(car.id)===String(myDrivingCarId))){
+    _releaseFailedTowCall(v);v.state='done';return false;
+  }
+  const targetR=+(car.r??car.y),targetC=+(car.c??car.x);
+  const parking=(Number.isFinite(+v.sceneParkingR)&&Number.isFinite(+v.sceneParkingC))
+    ?{r:+v.sceneParkingR,c:+v.sceneParkingC}:_nearestRoadTile(targetR,targetC,12);
+  if(!parking){_releaseFailedTowCall(v);v.state='done';return false;}
+  v.y=parking.r;v.x=parking.c;v.path=[];v.pathIdx=0;v._lastMoveT=now;
+  document.documentElement.dataset.towEmergencyTeleport='scene-after-14s-stall-v224';
+  return _beginTowLoadingAtScene(v,now);
 }
 
 // ── Полиция при ограблении банка ────────────────────────────────────
@@ -9736,9 +9782,7 @@ function updateServiceVehicles(dt) {
       // после её ухода диспетчер сможет отправить другую машину.
       if (v.kind === 'firetruck') {_abortFireTruckJob(v);continue;}
       if (v.kind === 'tow') {
-        if(v._loaded)_completeTowRemoval(v);
-        else if(_startTowLoadingAtScene(v,now))continue;
-        else _releaseFailedTowCall(v);
+        if(_teleportTowTruckAfterStall(v,now))continue;
       }
       if (v.kind === 'ambulance') _releaseFailedAmbulanceCall(v);
       v.state = 'done';
@@ -9760,8 +9804,8 @@ function updateServiceVehicles(dt) {
           continue;
         }
         if(v.kind==='tow'){
-          if(_startTowLoadingAtScene(v,now))continue;
-          _releaseFailedTowCall(v);
+          if(now>=(+v._towNextRouteRetry||0))_rerouteTowTruck(v,now,'empty-road-route');
+          continue;
         }
         if(v.kind==='ambulance')_releaseFailedAmbulanceCall(v);
         v.state = 'done';
@@ -9777,7 +9821,7 @@ function updateServiceVehicles(dt) {
         } else if(v.kind==='ambulance'&&_ambulanceNeedsBodyCrew(v)) {
           if(!_startAmbulanceBodyCrew(v,now))v.state='done';
         } else if(v.kind==='tow') {
-          _startTowLoadingAtScene(v,now);
+          if(!_beginTowLoadingAtScene(v,now))_rerouteTowTruck(v,now,'wreck-moved-before-arrival');
         } else {
           v.state = 'working';
           v.workDuration = v.kind === 'ambulance' ? 2500 : v.kind === 'tow' ? 4600
@@ -9992,6 +10036,10 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.fireParkingDistances=serviceVehicles.filter(v=>v?.kind==='firetruck'&&_fireTruckTarget(v)).map(v=>Math.hypot(v.y-_fireTruckTarget(v).r,v.x-_fireTruckTarget(v).c).toFixed(2)).join(',')||'idle';
   document.documentElement.dataset.towEligibleWrecks=String(CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).length);
   document.documentElement.dataset.towCandidateAges=CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).map(car=>Math.round(now-(+car._burnedOutAt||now))).join(',')||'idle';
+  if(_LOCAL_PREVIEW&&_UP.has('previewtowstuck')&&!document.documentElement.dataset.previewTowStuckSeeded){
+    const stuck=serviceVehicles.find(v=>v?.kind==='tow'&&v.state==='go_to_scene');
+    if(stuck){stuck.path=[];stuck.pathIdx=0;stuck._prevX=stuck.x;stuck._prevY=stuck.y;stuck._lastMoveT=now-15000;document.documentElement.dataset.previewTowStuckSeeded=stuck.id;}
+  }
 }
 
 // ── Собаки и кошки ─────────────────────────────────────────────
@@ -59989,6 +60037,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d223"></script>
+<script type="module" src="three_preview.js?v=3d224"></script>
 </body>
 </html>
