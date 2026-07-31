@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
 <!-- 3D sync v198: native-sharp rendering, dramatic pooled explosions, black burning wrecks, bridge details, bullets and wall impacts. -->
@@ -55630,6 +55631,17 @@ window.Mafiozi3DBridge = Object.freeze({
       medicCarry:!!x._medicCarry,medicSlot:+x._medicSlot||0,
     };});
     if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const [j,npc] of npcs.slice(0,8).entries())if(!npc.dead){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*3.8;npc.c=player.c+Math.cos(a)*3.8;npc.ang=a;npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.forcedCrawl=false;npc.severMask=0;npc.walking=true;}
+    if(_LOCAL_PREVIEW&&_UP.has('previewlabels')){
+      const samples=[
+        {role:'civilian',visualRole:'civilian',name:'Житель',hp:42,maxHp:60},
+        {role:'police',visualRole:'police',police:true,name:'Патрульный',hp:76,maxHp:100},
+        {role:'gang',visualRole:'gang',gang:true,behavior:'hostile_zone',family:'Беллини',level:3,name:'Солдат',hp:54,maxHp:85},
+        {role:'guard',visualRole:'guard',name:'Охранник',hp:60,maxHp:60},
+        {role:'medic',visualRole:'civilian',name:'Фельдшер',hp:48,maxHp:60},
+        {role:'civilian',visualRole:'civilian',name:'Прохожий',hp:60,maxHp:60,speech:'Здесь опасно, лучше уйти с улицы.'},
+      ];
+      for(const [j,sample] of samples.entries()){const npc=npcs[j];if(!npc)break;const a=-1.05+j*.42;Object.assign(npc,{gang:false,police:false,behavior:'',family:'',level:1,speech:'',dead:false,walking:false,moving:false,severMask:0,forcedCrawl:false,r:player.r+Math.sin(a)*5.2,c:player.c+Math.cos(a)*5.2,ang:a+Math.PI},sample);}
+    }
     if(_LOCAL_PREVIEW&&_UP.has('previewcrawl')){const npc=npcs.find(x=>!x.dead);if(npc){npc.r=player.r+2.8;npc.c=player.c+1.4;npc.ang=-2.68;npc.hp=Math.min(npc.hp,npc.maxHp*.04);npc.forcedCrawl=true;npc.walking=true;}}
     // Browser-only animation QA. It never changes the authoritative NPC and
     // lets the renderer exercise a complete fresh-death -> fallen lifecycle.
@@ -55722,6 +55734,7 @@ window.Mafiozi3DBridge = Object.freeze({
       }
       if(typeof BRIGADIR_POS!=='undefined'){const moving=!BRIGADIR_AI.paused&&performance.now()>=BRIGADIR_AI.idleUntil&&Math.hypot(BRIGADIR_AI.tgtR-BRIGADIR_POS.r,BRIGADIR_AI.tgtC-BRIGADIR_POS.c)>=.18,brigadirDistance=Math.hypot(BRIGADIR_POS.r-player.r,BRIGADIR_POS.c-player.c);addObject('brigadir','brigadir',BRIGADIR_POS.r+.5,BRIGADIR_POS.c+.5,'Бригадир','#ffd45b',{keepSource:true,maxRadius:5,ang:+BRIGADIR_AI.ang||0,walking:moving,walkPhase:+BRIGADIR_AI.walkPhase||0,speech:brigadirDistance<=7.5?_brigadirSpeechLine():'',contractState:_myBrigadirReward?'reward':_myHitContractActive?'active':_pendingBrigadirOffer?'offer':'available'});}
       for(const bag of (typeof _vaultDroppedBags!=='undefined'?_vaultDroppedBags:[]))addObject('money_bag',`bag_${bag.id}`,bag.r,bag.c,'Мешок с деньгами','#f0bd4f',{value:+bag.value||0,maxRadius:4});
+      if(_LOCAL_PREVIEW&&_UP.has('previewlabels'))addObject('brigadir','brigadir_preview_labels',player.r-2.8,player.c+2.2,'Бригадир','#ffd45b',{keepSource:true,maxRadius:5,ang:2.4,walking:false,walkPhase:0,speech:'Есть работа. Без лишнего шума.',contractState:'available'});
       for(let i=0;i<(typeof PETS!=='undefined'?PETS:[]).length;i++){
         const pet=PETS[i];if(!pet)continue;const petMoving=Math.hypot((+pet.tr||pet.r)-pet.r,(+pet.tc||pet.c)-pet.c)>.2,petThreat=Math.hypot(player.r-pet.r,player.c-pet.c)<3.4||cars.some(car=>Math.hypot((+car.r||0)-pet.r,(+car.c||0)-pet.c)<2.8&&!car.parked),petIdleSeed=(i*17+Math.floor(performance.now()/1000))%19;addObject('pet',pet.id||`city_pet_fallback_${i}`,pet.r,pet.c,pet.cryUntil>performance.now()?pet.cryText:'',pet._color||'#a9825c',{keepSource:true,petKind:pet.kind||'dog',ang:+pet.ang||0,walking:petMoving,speed:+pet.speed||1,walkPhase:+pet.walkPhase||0,alerted:petThreat,sitting:pet.kind==='cat'&&!petMoving&&!petThreat&&petIdleSeed<6});
       }
@@ -59532,6 +59545,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d200"></script>
+<script type="module" src="three_preview.js?v=3d201"></script>
 </body>
 </html>
