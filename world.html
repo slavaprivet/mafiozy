@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v220: police corpses retain their uniform; two hospitals operate six ambulances. -->
+<!DOCTYPE html><!-- v221: fire engines park visibly at hose range and tow trucks reach wreck loading points. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -9435,6 +9435,7 @@ function spawnFireTruck(targetR, targetC, fireRef, carRef) {
   // Не дублировать — если в радиусе 3 уже едет пожарка, ничего не делаем
   for (const v of serviceVehicles) {
     if (v.kind !== 'firetruck' || v.state === 'done') continue;
+    if ((carRef && v.payload?.carRef === carRef) || (fireRef && v.payload?.fireRef === fireRef)) return null;
     const ft = v.finalTarget || { x: 0, y: 0 };
     const dr = ft.y - targetR, dc = ft.x - targetC;
     if (Math.hypot(dr, dc) < 3) return null;
@@ -9450,7 +9451,8 @@ function spawnFireTruck(targetR, targetC, fireRef, carRef) {
     homeR: FIRE_STATION_R, homeC: FIRE_STATION_C,
     path: [], pathIdx: 0, finalTarget: null,
   };
-  _setVehicleRoute(v, door.r, door.c, targetR, targetC);
+  v.sceneParkingR=parking?.r;v.sceneParkingC=parking?.c;
+  _setVehicleRoute(v, door.r, door.c, parking?.r??targetR, parking?.c??targetC);
   if (fireRef && fireRef.kind === 'gas_station' && (!v.path || !v.path.length)) {
     v.path = _bfsFireStationPath(door.r,door.c,targetR,targetC) || [];
     v.pathIdx = 0;
@@ -9464,14 +9466,30 @@ function spawnFireTruck(targetR, targetC, fireRef, carRef) {
 // платформу, увозит к депо (home) и УДАЛЯЕТ из CARS — трафик доспавнит
 // новую (машины не пропадают навсегда). Если в машине игрок — НЕ грузим
 // (защита от увоза игрока за карту).
+function _towTruckParkingPoint(targetR,targetC){
+  let best=null,bestScore=Infinity;
+  const r0=Math.floor(targetR),c0=Math.floor(targetC);
+  for(let dr=-5;dr<=5;dr++)for(let dc=-5;dc<=5;dc++){
+    const r=r0+dr+.5,c=c0+dc+.5,d=Math.hypot(r-targetR,c-targetC);
+    if(d<1.7||d>3.6||!_vehicleRoadPassable(r,c))continue;
+    if(_vehicleBlockedByCar({kind:'tow'},r,c))continue;
+    const score=Math.abs(d-2.35)+Math.hypot(r-JUNKYARD_R,c-JUNKYARD_C)*.003;
+    if(score<bestScore){bestScore=score;best={r,c};}
+  }
+  if(best)return best;
+  const road=_nearestRoadTile(targetR,targetC,12);
+  return road?{r:road.r+.5,c:road.c+.5}:null;
+}
 function spawnTowTruck(targetR, targetC, carRef) {
   for (const v of serviceVehicles) {
     if (v.kind !== 'tow' || v.state === 'done') continue;
+    if (carRef && v.payload?.carRef === carRef) return null;
     const ft = v.finalTarget || { x: 0, y: 0 };
     if (Math.hypot(ft.y - targetR, ft.x - targetC) < 3) return null;
   }
   const junkRoad = _nearestRoadTile(JUNKYARD_R, JUNKYARD_C, 16);
   const door = junkRoad ? {r:junkRoad.r+.5,c:junkRoad.c+.5} : _fireStationDoor();
+  const parking=_towTruckParkingPoint(targetR,targetC);
   const v = {
     id: 'tow_' + (++_svcVehId), kind: 'tow',
     x: door.c, y: door.r,
@@ -9486,6 +9504,26 @@ function spawnTowTruck(targetR, targetC, carRef) {
   _setVehicleRoute(v, door.r, door.c, parking?.r??targetR, parking?.c??targetC);
   serviceVehicles.push(v);
   return v;
+}
+
+function _startTowLoadingAtScene(v,now){
+  const car=v?.payload?.carRef;
+  if(v?.kind!=='tow'||!car||car._towed||(myDrivingCarId&&String(car.id)===String(myDrivingCarId))){
+    _releaseFailedTowCall(v);
+    if(v)v.state='done';
+    return false;
+  }
+  const targetR=+(car.r??car.y),targetC=+(car.c??car.x);
+  const parking=(Number.isFinite(+v.sceneParkingR)&&Number.isFinite(+v.sceneParkingC))
+    ?{r:+v.sceneParkingR,c:+v.sceneParkingC}:_towTruckParkingPoint(targetR,targetC);
+  if(!parking){
+    _releaseFailedTowCall(v);v.state='done';return false;
+  }
+  v.y=parking.r;v.x=parking.c;v.path=[];v.pathIdx=0;
+  v.state='working';v.workDuration=4600;v.workUntil=now+v.workDuration;
+  v._loadStartedAt=now;v._loadProgress=0;v._lastMoveT=now;
+  document.documentElement.dataset.towSceneFallback='road-wreck-side-v221';
+  return true;
 }
 
 // ── Полиция при ограблении банка ────────────────────────────────────
@@ -9665,7 +9703,11 @@ function updateServiceVehicles(dt) {
       // Застрявшая пожарка не умеет тушить через полкарты: вызов отменяется,
       // после её ухода диспетчер сможет отправить другую машину.
       if (v.kind === 'firetruck') {_abortFireTruckJob(v);continue;}
-      if (v.kind === 'tow' && v._loaded) _completeTowRemoval(v);
+      if (v.kind === 'tow') {
+        if(v._loaded)_completeTowRemoval(v);
+        else if(_startTowLoadingAtScene(v,now))continue;
+        else _releaseFailedTowCall(v);
+      }
       if (v.kind === 'ambulance') _releaseFailedAmbulanceCall(v);
       v.state = 'done';
       continue;
@@ -9680,10 +9722,14 @@ function updateServiceVehicles(dt) {
           // появляется у ближайшего проезда и полноценно тушит, а не гасит
           // пожар невидимо в ту же секунду.
           const target=_fireTruckTarget(v),ft=target||v.finalTarget||{y:v.y,x:v.x};
-          const road=_nearestRoadTile(ft.r??ft.y,ft.c??ft.x,20);
-          if(road){v.y=road.r+.5;v.x=road.c+.5;}
+          const fallback=(Number.isFinite(+v.sceneParkingR)&&Number.isFinite(+v.sceneParkingC))?{r:+v.sceneParkingR,c:+v.sceneParkingC}:_fireTruckParkingPoint(ft.r??ft.y,ft.c??ft.x);
+          if(fallback){v.y=fallback.r;v.x=fallback.c;}
           if(!_startFireTruckWater(v,now)){_abortFireTruckJob(v);continue;}
           continue;
+        }
+        if(v.kind==='tow'){
+          if(_startTowLoadingAtScene(v,now))continue;
+          _releaseFailedTowCall(v);
         }
         if(v.kind==='ambulance')_releaseFailedAmbulanceCall(v);
         v.state = 'done';
@@ -9698,6 +9744,8 @@ function updateServiceVehicles(dt) {
           if(!_startFireTruckWater(v,now))_abortFireTruckJob(v);
         } else if(v.kind==='ambulance'&&_ambulanceNeedsBodyCrew(v)) {
           if(!_startAmbulanceBodyCrew(v,now))v.state='done';
+        } else if(v.kind==='tow') {
+          _startTowLoadingAtScene(v,now);
         } else {
           v.state = 'working';
           v.workDuration = v.kind === 'ambulance' ? 2500 : v.kind === 'tow' ? 4600
@@ -9904,6 +9952,8 @@ function dispatchEmergencyServices() {
   }
 
   document.documentElement.dataset.specialServiceStates=serviceVehicles.filter(v=>v&&v.state!=='done').map(v=>`${v.kind}:${v.state}`).join(',')||'idle';
+  document.documentElement.dataset.fireVisibleParking='road-hose-range-v221';
+  document.documentElement.dataset.towLoadingParking='road-wreck-side-v221';
   document.documentElement.dataset.fireParkingDistances=serviceVehicles.filter(v=>v?.kind==='firetruck'&&_fireTruckTarget(v)).map(v=>Math.hypot(v.y-_fireTruckTarget(v).r,v.x-_fireTruckTarget(v).c).toFixed(2)).join(',')||'idle';
   document.documentElement.dataset.towEligibleWrecks=String(CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).length);
   document.documentElement.dataset.towCandidateAges=CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).map(car=>Math.round(now-(+car._burnedOutAt||now))).join(',')||'idle';
@@ -59904,6 +59954,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d220"></script>
+<script type="module" src="three_preview.js?v=3d221"></script>
 </body>
 </html>
