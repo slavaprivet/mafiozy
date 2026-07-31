@@ -12249,6 +12249,33 @@ function _drawGasSigns(r0, c0, r1, c1) {
 // ══════════════════════════════════════════════════════════════════════════════
 const BANK_INTERACT_R = 5.0;  // радиус взаимодействия с банком (увеличен)
 
+// Один физически достижимый вход для маркера, подсказки, Canvas и Three.js.
+// Раньше зона считалась от центра, а банковские тайлы попадали в обработчик
+// обычных домов: подсказка появлялась, но общий вход закономерно отклонялся.
+function _bankInteractionAnchor(bank) {
+  const scale = { small:1, medium:1.5, large:2 }[bank?.size] || 1.5;
+  const center = { small:1, medium:1.5, large:1.5 }[bank?.size] || 1.5;
+  return _walkableEstablishmentAnchor({
+    r: +bank.r + center + scale * .5,
+    c: +bank.c + center + scale,
+  });
+}
+function _bankInteractionDistance(bank,r=player.r,c=player.c) {
+  const a=_bankInteractionAnchor(bank);
+  return Math.min(
+    Math.hypot(r-a.r,c-a.c),
+    Math.hypot(r-(+bank.r+1.5),c-(+bank.c+1.5))
+  );
+}
+function _nearestBankInteraction(radius=BANK_INTERACT_R) {
+  let best=null,bestD=radius;
+  for(const bank of BANKS){
+    const d=_bankInteractionDistance(bank);
+    if(d<bestD){best=bank;bestD=d;}
+  }
+  return best;
+}
+
 // Состояние активного ограбления банка (null = не активно)
 let _bankRob = null;
 let _vaultDroppedBags = [];  // мешки на земле: [{id,r,c,value,bankId,droppedAt}]
@@ -12626,7 +12653,8 @@ function _currentBuildingEntryTarget() {
   // Банк использует отдельную кнопку зоны, но выбор ближайшего банка уже
   // сделан той же логикой, которая обрабатывает нажатие «Войти в банк».
   if (_bankZoneCur && _zoneEl && _zoneEl.style.display === 'block' && _zoneEl.dataset.bankId) {
-    return { r: _bankZoneCur.r + 1.5, c: _bankZoneCur.c + 1.5, radius: 1.8 };
+    const entrance=_bankInteractionAnchor(_bankZoneCur);
+    return { r:entrance.r, c:entrance.c, radius:1.8 };
   }
 
   if (_zoneEl && _zoneEl.style.display === 'block' && _zoneEl.dataset.bizId) {
@@ -12837,6 +12865,14 @@ function selectBuildingFrom3D(r,c,screenX=null,screenY=null) {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead || !Number.isFinite(+r) || !Number.isFinite(+c)) return {ok:false};
   const anchor=Number.isFinite(+screenX)&&Number.isFinite(+screenY)?{x:+screenX,y:+screenY}:null;
   const nearest=(items,maxDist)=>items.reduce((best,item)=>{const d=Math.hypot(+item.r-r,+item.c-c);return d<maxDist&&(!best||d<best.d)?{item,d}:best;},null)?.item||null;
+  const bank=nearest(BANKS.map(item=>({...item,r:+item.r+1.5,c:+item.c+1.5})),6.5);
+  if(bank){
+    const source=BANKS.find(item=>String(item.id)===String(bank.id));
+    const near=!!source&&_bankInteractionDistance(source)<=BANK_INTERACT_R;
+    _selectedBuildingEntry=null;_selectedVehicleEntry=null;
+    if(near)_activateBankEntryFrom3D(source);else showToast(`Подойди ближе: ${source?.name||'банк'}`,'🏦',1800);
+    return {ok:true,kind:'bank',id:bank.id,name:bank.name,near};
+  }
   const biz=nearest(BUSINESS_POIS,7.5);
   if(biz){
     const near=_businessInteractionDistance(biz)<=BUSINESS_INTERACTION_RADIUS;
@@ -12893,6 +12929,7 @@ function _genericBuildingEntranceAnchor(r,c) {
 function _nearbyBuildingInteractionFor3D() {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead) return null;
   let best=null,bestD=Infinity;
+  for(const bank of BANKS){const d=_bankInteractionDistance(bank);if(d<=BANK_INTERACT_R&&d<bestD){const a=_bankInteractionAnchor(bank);best={kind:'bank',id:String(bank.id),r:+bank.r+1.5,c:+bank.c+1.5,entryR:a.r,entryC:a.c,name:bank.name||'Банк',distance:d};bestD=d;}}
   for(const biz of BUSINESS_POIS){const d=_businessInteractionDistance(biz);if(d<=BUSINESS_INTERACTION_RADIUS&&d<bestD){const a=_businessInteractionAnchor(biz);best={kind:'business',id:String(biz.id),r:+biz.r,c:+biz.c,entryR:a.r,entryC:a.c,name:biz.name||'Бизнес',distance:d};bestD=d;}}
   for(const poi of POI){if(!MAJOR_OBJECT_IDS.has(poi.id))continue;const d=_majorInteractionDistance(poi);if(d<=MAJOR_INTERACTION_RADIUS&&d<bestD){const a=_majorInteractionAnchor(poi);best={kind:'major',id:String(poi.id),r:+poi.r,c:+poi.c,entryR:a.r,entryC:a.c,name:poi.name||poi.label||'Здание',distance:d};bestD=d;}}
   // A landmark/business facade owns the nearby E action. Ordinary blocked
@@ -12910,9 +12947,27 @@ function _nearbyBuildingInteractionFor3D() {
   return best;
 }
 
+function _activateBankEntryFrom3D(bank) {
+  if(!bank)return {ok:false,reason:'gone'};
+  if(_bankInteractionDistance(bank)>BANK_INTERACT_R)return {ok:false,reason:'far'};
+  _closeBusinessActionCard();
+  _selectedBuildingEntry=null;_selectedVehicleEntry=null;
+  _bankZoneCur=bank;
+  delete _zoneEl.dataset.bizId;
+  delete _zoneEl.dataset.establishmentAction;
+  _zoneEl.dataset.bankId=bank.id;
+  _zoneEl.style.display='block';
+  _zoneEl.click();
+  return {ok:true,entered:!!_bankInt,kind:'bank',id:String(bank.id),name:bank.name||'Банк'};
+}
+
 function toggleNearbyBuildingActionsFrom3D(screenX=null,screenY=null) {
   const near=_nearbyBuildingInteractionFor3D();
   if(!near)return {ok:false,reason:'none'};
+  if(near.kind==='bank'){
+    const bank=BANKS.find(item=>String(item.id)===String(near.id));
+    return _activateBankEntryFrom3D(bank);
+  }
   const current=_businessActionSelection&&`${_businessActionSelection.kind}:${_businessActionSelection.id}`;
   if(_businessActionCard.classList.contains('show')&&current===`${near.kind}:${near.id}`){_closeBusinessActionCard();return {ok:true,closed:true,...near};}
   const anchor=Number.isFinite(+screenX)&&Number.isFinite(+screenY)?{x:+screenX,y:+screenY}:null;
@@ -19124,11 +19179,7 @@ function updateZoneBtn() {
   delete _zoneEl.dataset.bizId;
 
   // Проверяем близость к банкам (приоритет — своя кнопка через _bankZoneCur)
-  let nearBank = null, nearBankD = BANK_INTERACT_R;
-  for (const bank of BANKS) {
-    const d = Math.hypot(player.r - (bank.r + 1.5), player.c - (bank.c + 1.5));
-    if (d < nearBankD) { nearBank = bank; nearBankD = d; }
-  }
+  const nearBank = _nearestBankInteraction();
   // Обновляем кнопку банка если ближайший банк изменился или изменилась фаза
   const prevBank = _bankZoneCur;
   _bankZoneCur = nearBank;
@@ -32818,19 +32869,25 @@ if(_LOCAL_PREVIEW&&_UP.get('previewentry')){
   setTimeout(()=>{
     const id=String(_UP.get('previewentry')||'');
     const requestedKind=String(_UP.get('previewentrykind')||'');
-    const biz=requestedKind==='major'?null:BUSINESS_POIS.find(b=>b.id===id);
-    const major=requestedKind==='business'?null:POI.find(p=>p.id===id&&MAJOR_OBJECT_IDS.has(p.id));
-    const anchor=biz?_businessInteractionAnchor(biz):major?_majorInteractionAnchor(major):null;
+    const bank=requestedKind&&requestedKind!=='bank'?null:BANKS.find(b=>b.id===id);
+    const biz=requestedKind==='major'||requestedKind==='bank'?null:BUSINESS_POIS.find(b=>b.id===id);
+    const major=requestedKind==='business'||requestedKind==='bank'?null:POI.find(p=>p.id===id&&MAJOR_OBJECT_IDS.has(p.id));
+    const anchor=bank?_bankInteractionAnchor(bank):biz?_businessInteractionAnchor(biz):major?_majorInteractionAnchor(major):null;
     if(!anchor)return;
     player.r=anchor.r;player.c=anchor.c;player.tr=anchor.r;player.tc=anchor.c;
     player.vr=0;player.vc=0;player.walking=false;
     cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;
     window._studioTeleportUntil=Date.now()+10000;
     const nearby=_nearbyBuildingInteractionFor3D();
+    const action=_UP.get('previewentryactivate')&&nearby
+      ? toggleNearbyBuildingActionsFrom3D()
+      : null;
     document.body.dataset.previewEntryAudit=JSON.stringify({
-      id,kind:biz?'business':'major',r:+anchor.r.toFixed(3),c:+anchor.c.toFixed(3),
+      id,kind:bank?'bank':biz?'business':'major',r:+anchor.r.toFixed(3),c:+anchor.c.toFixed(3),
       blocked:!!isBlockedPed(anchor.r,anchor.c),
       resolved:nearby?`${nearby.kind}:${nearby.id}`:'none',
+      action:action?(action.ok?`${action.kind}:${action.entered?'entered':'handled'}`:`rejected:${action.reason||'unknown'}`):'not-run',
+      interior:!!(_bankInt||_buildingInt),
     });
   },900);
 }
@@ -32838,6 +32895,7 @@ if(_LOCAL_PREVIEW&&_UP.get('previewentryaudit')){
   setTimeout(()=>{
     const original={r:player.r,c:player.c,tr:player.tr,tc:player.tc};
     const targets=[
+      ...BANKS.map(p=>({kind:'bank',p,anchor:_bankInteractionAnchor(p)})),
       ...BUSINESS_POIS.map(p=>({kind:'business',p,anchor:_businessInteractionAnchor(p)})),
       ...POI.filter(p=>MAJOR_OBJECT_IDS.has(p.id)).map(p=>({kind:'major',p,anchor:_majorInteractionAnchor(p)})),
     ];
@@ -45683,17 +45741,9 @@ function drawBankEntrance(bank) {
   if (_bankInt) return;  // уже внутри — не рисуем
   const now = performance.now();
   const pulse = 0.5 + 0.5 * Math.sin(now * 0.005);
-  // Позиция ромба = у ступеней двери (то же что drawBankBuilding рисует дверь)
-  const bankScale3 = { small: 1.0, medium: 1.5, large: 2.0 }[bank.size] || 1.5;
-  const bankCenter3 = { small: 1.0, medium: 1.5, large: 1.5 }[bank.size] || 1.5;
-  const pc = w2s(bank.r + bankCenter3, bank.c + bankCenter3);
-  const wx3 = TS * bankScale3, wy3 = TS * bankScale3 * ISO_Y;
-  const archK = 0.25;
-  const doorX = pc.x + wx3 * archK;    // экранная X двери
-  const doorY = pc.y + wy3 * (1 - archK); // экранная Y ступеней
-  // Фиктивный p для существующей логики
-  const p = { x: doorX, y: doorY };
-  const dist = Math.hypot(player.r - (bank.r+1.5), player.c - (bank.c+1.5));
+  const entrance=_bankInteractionAnchor(bank);
+  const p=w2s(entrance.r,entrance.c);
+  const dist=_bankInteractionDistance(bank);
   const showRadius = BANK_INTERACT_R + 6;
   if (dist > showRadius) return;
 
@@ -58536,6 +58586,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d181"></script>
+<script type="module" src="three_preview.js?v=3d182"></script>
 </body>
 </html>
