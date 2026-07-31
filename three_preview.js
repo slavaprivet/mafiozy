@@ -1,3 +1,4 @@
+// 3D sync v212: every living NPC uses the player's restrained stride, weight shift and arm cadence with a deeper, body-safe leg attachment.
 // 3D sync v205: dead NPCs freeze at their fall point and keep a pooled blood pool beneath the body.
 // 3D sync v204: NPC identity/HP panels float safely above heads at gameplay zoom.
 // 3D sync v203: fresh resident faces on respawn, natural asymmetric gait/bleeding and invariant blue police uniforms.
@@ -1465,23 +1466,28 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const hit=hitRemaining?Math.sin(Math.min(1,hitRemaining/650)*Math.PI)*Math.max(.7,+motion?.hitStrength||1):0;
         const hitSide=motion?.hitSide||1,gait=Math.max(0,Math.min(1,+motion?.gaitBlend||0)),walking=gait>.035&&!dead;
         const measuredSpeed=Math.hypot(+motion?.velocityX||0,+motion?.velocityZ||0),pace=Math.max(0,Math.min(1,measuredSpeed/9));
-        const strideScale=walking?(.72+pace*.32):1,swing=walking?step*(crawling?.28:limping?.42:.88)*gait*strideScale:idle*.035;
-        const leftSwing=crawling?step*.34*gait:limping?(step>0?step*.18:step*.52)*gait:swing;
+        // The player's gait is the visual baseline: a restrained .72 leg swing,
+        // .21 step lift and small lateral weight shift. NPC-specific injury
+        // modifiers are layered on top instead of replacing that cadence.
+        const strideScale=walking?(.9+pace*.1):1,swing=walking?step*(crawling?.28:limping?.42:.72)*gait*strideScale:idle*.025;
+        const leftSwing=crawling?step*.34*gait:limping?(step>0?step*.16:step*.46)*gait:swing;
         const rightSwing=crawling?-step*.34*gait:limping?-step*.62*gait:-swing;
-        const leftLift=walking?Math.pow(Math.max(0,step),1.35)*(crawling?.035:limping?.065:.34)*gait:0;
-        const rightLift=walking?Math.pow(Math.max(0,-step),1.35)*(crawling?.035:limping?.29:.34)*gait:0;
-        const uprightBob=walking?(limping?Math.max(0,-step)*.065+Math.abs(step)*.022:(.018-Math.cos(phase*2)*(.022+pace*.014))*gait):idle*.012;
+        const leftLift=walking?Math.pow(Math.max(0,step),1.35)*(crawling?.035:limping?.06:.21)*gait:0;
+        const rightLift=walking?Math.pow(Math.max(0,-step),1.35)*(crawling?.035:limping?.22:.21)*gait:0;
+        const uprightBob=walking?(limping?Math.max(0,-step)*.06+Math.abs(step)*.02:Math.abs(step)*(.055+pace*.015)*gait):idle*.012;
         const bob=crawling?THREE.MathUtils.lerp(uprightBob,.42+(walking?Math.abs(step)*.012:idle*.008),crawlBlend):uprightBob;
-        const roll=(crawling?step*.016*gait:(limping?.105+step*.038*gait:step*.03*gait))+hit*hitSide*.24;
+        const roll=(crawling?step*.016*gait:(limping?.105+step*.04*gait:step*.026*gait))+hit*hitSide*.24;
         const pitch=(crawling?1.22*crawlBlend:(walking?-(.025+pace*.035)*gait:0))+hit*.2;
         // Shoes counter-rotate during the planted half of each stride, keeping
         // the sole close to the road instead of rotating with the whole leg.
         const leftPlanted=step<0,rightPlanted=step>0;
         const leftFootPitch=walking?leftSwing*(leftPlanted?.12:.58)-leftLift*.38:0;
         const rightFootPitch=walking?rightSwing*(rightPlanted?.12:.58)-rightLift*.38:0;
-        const torsoTwist=walking&&!crawling?-step*(.072+pace*.052)*gait:0;
-        const headCounter=-torsoTwist*.7,shoulderSway=walking?Math.sin(phase+Math.PI*.5)*(.04+pace*.018)*gait:idle*.008;
-        return {key,motion,dead,hpPct,crawling,limping,crawlBlend,phase,idle,step,hit,hitSide,gait,walking,leftSwing,rightSwing,leftLift,rightLift,leftFootPitch,rightFootPitch,torsoTwist,headCounter,shoulderSway,bob,roll,pitch};
+        const torsoTwist=walking&&!crawling?-step*(.022+pace*.012)*gait:0;
+        const leftArmSwing=crawling?-step*.62*gait:limping?-step*.28*gait:-step*.46*gait;
+        const rightArmSwing=crawling?step*.62*gait:limping?step*.2*gait:step*.34*gait;
+        const headCounter=-torsoTwist*.7,shoulderSway=walking?Math.sin(phase+Math.PI*.5)*(.025+pace*.012)*gait:idle*.008;
+        return {key,motion,dead,hpPct,crawling,limping,crawlBlend,phase,idle,step,hit,hitSide,gait,walking,leftSwing,rightSwing,leftLift,rightLift,leftFootPitch,rightFootPitch,leftArmSwing,rightArmSwing,torsoTwist,headCounter,shoulderSway,bob,roll,pitch};
       };
       const setNpcRoot=(pose,i,x,z)=>{npcRootQuat.setFromEuler(new THREE.Euler(pose.pitch,npcFacingYaws[i],pose.roll,'YXZ'));rootMatrix.compose(new THREE.Vector3(x,pose.bob,z),npcRootQuat,npcScale);};
       const hidePart=(mesh,index)=>{instanceMatrix.compose(instancePosition.set(0,-1000,0),instanceQuat.identity(),hiddenScale);mesh.setMatrixAt(index,instanceMatrix);};
@@ -2114,7 +2120,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             npcVisualXs[i]=motion.visualX;npcVisualZs[i]=motion.visualZ;npcVisualPhases[i]=motion.phase;
           }
           for(const key of npcMotionStates.keys())if(!liveNpcMotion.has(key))npcMotionStates.delete(key);
-          renderer.domElement.dataset.animatedWalkingNpcs=String(animatedWalkingNpcs);renderer.domElement.dataset.walkingNpcRoles=`gang:${walkingByRole.gang},police:${walkingByRole.police},bandit:${walkingByRole.bandit},civilian:${walkingByRole.civilian}`;renderer.domElement.dataset.deathAnimatingNpcs=String(deathAnimatingNpcs);renderer.domElement.dataset.deathSettledNpcs=String(deathSettledNpcs);renderer.domElement.dataset.npcAnimationSystem='weight-shift-heel-toe-asymmetric-limp-v203';
+          renderer.domElement.dataset.animatedWalkingNpcs=String(animatedWalkingNpcs);renderer.domElement.dataset.walkingNpcRoles=`gang:${walkingByRole.gang},police:${walkingByRole.police},bandit:${walkingByRole.bandit},civilian:${walkingByRole.civilian}`;renderer.domElement.dataset.deathAnimatingNpcs=String(deathAnimatingNpcs);renderer.domElement.dataset.deathSettledNpcs=String(deathSettledNpcs);renderer.domElement.dataset.npcAnimationSystem='player-derived-stride-weight-shift-v212';
           npcElevationLookup.clear();for(let i=0;i<(dynamic.npcs||[]).length;i++){const src=dynamic.npcs[i],x=npcVisualXs[i],z=npcVisualZs[i],lift=Math.max(0,+src.elevation||0)*WORLD_SCALE;if(lift)npcElevationLookup.set(`${x.toFixed(3)}:${z.toFixed(3)}`,lift);}
           renderer.domElement.dataset.liveCars=String(dynamic.cars.length);renderer.domElement.dataset.liveNpcs=String(dynamic.npcs.length);renderer.domElement.dataset.liveProjectiles=String(dynamic.projectiles.length);
           medicalScenePool.forEach((medical,i)=>{
@@ -2211,13 +2217,16 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             const faceStyle=Math.abs(+look.face||0)%4,faceScale=instanceScale.set(.94+faceStyle*.025,1.03+(faceStyle%2)*.055,.9+(faceStyle===3?.07:0));
             setPart(npcParts.head,i,rootMatrix,pose.hit*pose.hitSide*.08,3.3+(pose.walking?0:pose.idle*.025)-medicCrouch,0,pose.hit*.12*pose.hitSide,faceScale,pose.headCounter);
             setPart(npcParts.hair,i,rootMatrix,0,3.34-medicCrouch,0);
-            setPart(npcParts.leftLeg,i,rootMatrix,-.34,.64+pose.leftLift-medicCrouch*.16,0,pose.leftSwing+medicCrouch*.52);
-            setPart(npcParts.rightLeg,i,rootMatrix,.34,.64+pose.rightLift-medicCrouch*.16,0,pose.rightSwing-medicCrouch*.52);
+            // Player-proportioned hip overlap keeps the top of each rotating leg
+            // inside the shirt throughout the stride instead of exposing it at
+            // the waist on turquoise and other light-coloured outfits.
+            setPart(npcParts.leftLeg,i,rootMatrix,-.34,.72+pose.leftLift-medicCrouch*.16,0,pose.leftSwing+medicCrouch*.52);
+            setPart(npcParts.rightLeg,i,rootMatrix,.34,.72+pose.rightLift-medicCrouch*.16,0,pose.rightSwing-medicCrouch*.52);
             setPart(npcParts.shoe,i*2,rootMatrix,-.34,.09+pose.leftLift,.18,pose.leftFootPitch);
             setPart(npcParts.shoe,i*2+1,rootMatrix,.34,.09+pose.rightLift,.18,pose.rightFootPitch);
             const medicArmY=src.medicCarry?1.94:medicReach?1.9-medicCrouch*.55:2.05,medicArmZ=src.medicCarry||medicReach?.34:0,medicArmPitch=src.medicCarry?-.72:medicReach?-1.02:NaN;
-            setPart(npcParts.leftArm,i,rootMatrix,-.78,medicArmY,medicArmZ,Number.isFinite(medicArmPitch)?medicArmPitch:-pose.rightSwing-pose.hit*.42*pose.hitSide);
-            setPart(npcParts.rightArm,i,rootMatrix,.78,medicArmY,medicArmZ,Number.isFinite(medicArmPitch)?medicArmPitch:-pose.leftSwing+pose.hit*.36*pose.hitSide);
+            setPart(npcParts.leftArm,i,rootMatrix,-.78,medicArmY,medicArmZ,Number.isFinite(medicArmPitch)?medicArmPitch:pose.leftArmSwing-pose.hit*.42*pose.hitSide);
+            setPart(npcParts.rightArm,i,rootMatrix,.78,medicArmY,medicArmZ,Number.isFinite(medicArmPitch)?medicArmPitch:pose.rightArmSwing+pose.hit*.36*pose.hitSide);
             const severMask=+src.severMask||0;
             if(severMask&1)hidePart(npcParts.leftArm,i);
             if(severMask&2)hidePart(npcParts.rightArm,i);
@@ -2235,7 +2244,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             instanceColor.set(bodyColor);npcParts.body.setColorAt(i,instanceColor);npcParts.leftArm.setColorAt(i,instanceColor);npcParts.rightArm.setColorAt(i,instanceColor);instanceColor.set([0xf2c7a4,0xc98b65,0xe8b590][i%3]);npcParts.head.setColorAt(i,instanceColor);
             const pct=Math.max(.03,pose.hpPct);npc.hpGroup.visible=true;npc.hpGroup.position.set(x,pose.crawling?.24:pose.bob+.45,z);npc.hpBar.scale.x=1.7*pct;npc.hpBar.material.color.set(pct>.55?0x58e67c:pct>.25?0xffc94d:0xff5252);
           });
-          Object.values(npcParts).forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;});renderer.domElement.dataset.crawlingNpcs=String(crawlingNpcCount);renderer.domElement.dataset.limpingNpcs=String(limpingNpcCount);renderer.domElement.dataset.hitReactingNpcs=String(reactingNpcCount);renderer.domElement.dataset.bleedingNpcs=String(bleedingNpcCount);renderer.domElement.dataset.injuryLocomotion='visible-wound-drip-asymmetric-limp-critical-crawl-v203';renderer.domElement.dataset.npcFootPlant='weighted-heel-toe-v203';
+          Object.values(npcParts).forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;});renderer.domElement.dataset.crawlingNpcs=String(crawlingNpcCount);renderer.domElement.dataset.limpingNpcs=String(limpingNpcCount);renderer.domElement.dataset.hitReactingNpcs=String(reactingNpcCount);renderer.domElement.dataset.bleedingNpcs=String(bleedingNpcCount);renderer.domElement.dataset.injuryLocomotion='player-derived-limp-critical-crawl-v212';renderer.domElement.dataset.npcFootPlant='player-stride-deep-hip-overlap-v212';renderer.domElement.dataset.npcGaitSource='player-character-v212';renderer.domElement.dataset.npcHipOverlapMinimum=(.72+.625*Math.cos(.72)-1.15).toFixed(3);
           for(let i=0;i<NPC_CAP;i++){const src=dynamic.npcs[i],label=npcLabels[i];if(!src){label.sprite.visible=false;continue;}const x=npcVisualXs[i],z=npcVisualZs[i],role=String(src.role||'').toLowerCase(),family=String(src.family||src.faction||'').toLowerCase(),gang=src.visualRole==='gang'||!!src.gang||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'),police=src.visualRole==='police'||!!src.police||role.includes('police')||role.includes('cop'),guard=src.visualRole==='guard'||role.includes('guard'),medic=role.includes('medic'),gangSuit=family.includes('yellow')?0xf1e8cf:family.includes('purple')?0x7043a5:family.includes('moretti')?0xe6dfd1:family.includes('bellini')?0x3f4652:Math.max(1,+src.level||1)>=4?0x8f3044:0xb54859,bright=medic?0xe8f2f4:police?0x328fe2:gang?gangSuit:guard?0xc48a28:[0x3e9bd1,0xdb5c68,0x79a84f,0xd39b42,0x8a6dbe][i%5];instanceColor.set(bright);npcParts.body.setColorAt(i,instanceColor);npcParts.leftArm.setColorAt(i,instanceColor);npcParts.rightArm.setColorAt(i,instanceColor);npcParts.hat.setColorAt(i,instanceColor);updateNpcSpeechLabel(label,src,x,8.05,z);}for(const mesh of [npcParts.body,npcParts.leftArm,npcParts.rightArm,npcParts.hat])if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
           let visibleGangCount=0;for(let i=0;i<NPC_CAP;i++){const src=dynamic.npcs[i];if(!src){hidePart(npcParts.gangAura,i);hidePart(npcParts.gangBand,i);continue;}const role=String(src.role||'').toLowerCase(),gang=src.visualRole==='gang'||!!src.gang||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier');if(!gang||src.dead){hidePart(npcParts.gangAura,i);hidePart(npcParts.gangBand,i);continue;}visibleGangCount++;const faction=String(src.faction||src.family||'').toLowerCase(),auraColor=faction.includes('yellow')?0xffd83d:faction.includes('purple')?0xa668ff:faction.includes('moretti')?0xf5ead2:faction.includes('bellini')?0x596274:0xff4f68,x=npcVisualXs[i],z=npcVisualZs[i],phase=npcVisualPhases[i]||t*.008+i*.73,bob=src.walking?Math.abs(Math.sin(phase))*.13:Math.sin(t*.0018+i*1.7)*.018;rootMatrix.makeRotationY(npcFacingYaws[i]);rootMatrix.scale(npcScale);rootMatrix.setPosition(x,bob,z);setPart(npcParts.gangBand,i,rootMatrix,0,2.25,.405);npcParts.gangBand.setColorAt(i,instanceColor.setHex(auraColor));rootMatrix.makeRotationY(0);rootMatrix.setPosition(x,.11,z);setPart(npcParts.gangAura,i,rootMatrix,0,0,0,-Math.PI/2,gangAuraScale);npcParts.gangAura.setColorAt(i,instanceColor.setHex(auraColor));}npcParts.gangAura.instanceMatrix.needsUpdate=true;npcParts.gangAura.instanceColor.needsUpdate=true;npcParts.gangBand.instanceMatrix.needsUpdate=true;npcParts.gangBand.instanceColor.needsUpdate=true;renderer.domElement.dataset.visibleGangs=String(visibleGangCount);const selectedIndex=performance.now()<selectedNpcUntil?dynamic.npcs.findIndex(n=>!n.dead&&String(n.sourceId||'')===selectedNpcSourceId):-1;if(selectedIndex>=0){selectedNpcRing.visible=true;selectedNpcRing.position.set(npcVisualXs[selectedIndex],.15,npcVisualZs[selectedIndex]);const pulse=1+Math.sin(t*.009)*.09;selectedNpcRing.scale.setScalar(pulse);selectedNpcRing.rotation.y=t*.0017;selectedNpcOuter.material.opacity=.82+Math.sin(t*.011)*.16;renderer.domElement.dataset.selectedGangNpc=selectedNpcSourceId;}else{selectedNpcRing.visible=false;if(selectedNpcSourceId&&performance.now()>=selectedNpcUntil){selectedNpcSourceId='';renderer.domElement.dataset.selectedGangNpc='none';}}
           // Appearance is derived from the authoritative entity id instead of the
