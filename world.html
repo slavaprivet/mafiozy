@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v207: paramedics assess and lift bodies, carry visible equipment, then close the ambulance before departure. -->
+<!DOCTYPE html><!-- v208: three permanent fast ambulance crews queue corpses, deliver them to hospital, and residents emerge from buildings. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -6364,7 +6364,7 @@ function _interpBeachgoers(dt) {
     }
     if (b.dead) {
       // Тело остаётся минуту, затем житель снова включается в серверный поток.
-      if (performance.now() - b.deadAt > 60000) { b.dead=false;b.hp=b.max_hp||60; }
+      if (performance.now() - b.deadAt > CORPSE_AUTO_REMOVE_MS) { b.dead=false;b.hp=b.max_hp||60; }
       else continue;
     }
     b.x += (b.tx - b.x) * Math.min(1, dt * 8);
@@ -7763,7 +7763,7 @@ function _npcAdvanceRoute(npc,dt,speed,passFn=npcPassable) {
   return true;
 }
 const RESIDENTS_INDOORS=[],RESIDENT_RESPAWN_BACKLOG=[];
-let _residentBuildingDoorsCache=null,_residentRespawnSeed=9000;
+let _residentBuildingDoorsCache=null,_residentRespawnSeed=9000,_residentInvisibleSpawnCount=0;
 function _isRespawnableResident(npc) {
   return !!npc&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
     !npc._policeCriminal&&!npc._clientOfBiz;
@@ -7803,6 +7803,20 @@ function _residentBuildingDoors() {
       if(second){second.id=`door_${r}_${c}_1`;doors.push(second);}
     }
   }
+  // Include authored entrances that may sit outside a generic MAP=1 footprint,
+  // so residents can emerge from casinos, shops and major public buildings.
+  const addAuthoredDoor=(id,anchor,kind)=>{
+    if(!anchor||!_npcBodyPassable(anchor.r,anchor.c))return;
+    const existing=doors.find(d=>Math.hypot(d.r-anchor.r,d.c-anchor.c)<.7);
+    if(existing){existing.sourceId=id;existing.sourceKind=kind;existing.authored=true;return;}
+    doors.push({id:`door_${kind}_${id}`,r:anchor.r,c:anchor.c,sourceId:id,sourceKind:kind,authored:true});
+  };
+  try{
+    if(typeof BUSINESS_POIS!=='undefined'&&typeof _businessInteractionAnchor==='function')for(const biz of BUSINESS_POIS)addAuthoredDoor(biz.id,_businessInteractionAnchor(biz),'business');
+    if(typeof POI!=='undefined'&&typeof MAJOR_OBJECT_IDS!=='undefined'&&typeof _majorInteractionAnchor==='function')for(const poi of POI)if(MAJOR_OBJECT_IDS.has(poi.id))addAuthoredDoor(poi.id,_majorInteractionAnchor(poi),'major');
+  }catch(_){/* generic residential doors remain a complete fallback */}
+  document.documentElement.dataset.residentSpawnDoors=String(doors.length);
+  document.documentElement.dataset.residentAuthoredSpawnDoors=String(doors.filter(d=>d.authored).length);
   _residentBuildingDoorsCache=doors;
   return doors;
 }
@@ -7856,10 +7870,12 @@ function _updateResidentsIndoors(now) {
     if(!door||!_npcBodyPassable(door.r,door.c)){
       const safer=_pickResidentRespawnDoor();if(!safer){n._residentInsideUntil=now+1200;continue;}n._residentDoor=safer;
     }
+    const wasRespawn=!!n._residentRespawn;
     const exit=n._residentDoor;n.r=exit.r;n.c=exit.c;n.tr=exit.r;n.tc=exit.c;
     n._residentIndoors=false;n._residentRespawn=false;n._residentInsideUntil=0;
     n._buildingVisitCooldownUntil=now+18000+Math.random()*26000;n.idleUntil=now+150+Math.random()*350;
     RESIDENTS_INDOORS.splice(i,1);pickNpcWaypoint(n);NPCS.push(n);
+    if(wasRespawn&&n._residentDoor){_residentInvisibleSpawnCount++;document.documentElement.dataset.residentInvisibleSpawns=String(_residentInvisibleSpawnCount);document.documentElement.dataset.lastResidentSpawnSource=`${n._residentDoor.sourceKind||'building'}:${n._residentDoor.sourceId||n._residentDoor.id||'door'}`;}
   }
 }
 function pickNpcWaypoint(npc) {
@@ -7898,6 +7914,8 @@ function pickNpcWaypoint(npc) {
 }
 const TARGET_NPC_COUNT = 96;       // плотность старого 2D-города на расширенной карте
 const NPC_RESPAWN_MIN_DIST = 22;   // не спаунить ближе этого к игроку
+const CORPSE_AUTO_REMOVE_MS = 180000;
+let _corpseTimeoutCount=0;
 let _nextNpcRespawnAt = 0;
 let _gameMinutes = 12 * 60;        // 12:00 — нужно до initNpcs (TDZ fix)
 
@@ -8410,7 +8428,11 @@ function maintainNpcPopulation(now) {
   // (иначе _guard NPC копятся в NPCS навсегда → утечка → лаги)
   for (let i = NPCS.length - 1; i >= 0; i--) {
     const n = NPCS[i];
-    if (n.dead && n.deadAt && (now-n.deadAt>60000||(n._evacuated&&now-n.deadAt>4500))) {
+    const delivered=!!n._ambulanceDeliveredAt;
+    const timedOut=n.dead&&n.deadAt&&!n._ambulanceInTransit&&!n._evacuated&&now-n.deadAt>CORPSE_AUTO_REMOVE_MS;
+    if (n.dead && (delivered||timedOut)) {
+      if(timedOut){n._corpseExpired=true;_corpseTimeoutCount++;document.documentElement.dataset.corpseTimeoutRemovals=String(_corpseTimeoutCount);document.documentElement.dataset.lastCorpseRemoval='timeout-180s';if(typeof _cancelAmbulanceCallForPatient==='function')_cancelAmbulanceCallForPatient(n);}
+      else document.documentElement.dataset.lastCorpseRemoval='hospital-delivery';
       const respawn=_isRespawnableResident(n);
       NPCS.splice(i, 1);
       if(respawn&&!_scheduleResidentRespawn(n,now))RESIDENT_RESPAWN_BACKLOG.push({_arcKey:n._arcKey,_beach:n._beach,_appearanceGeneration:(+n._appearanceGeneration||0)+1});
@@ -8440,7 +8462,10 @@ function maintainNpcPopulation(now) {
       if (Math.hypot(dr, dc) < NPC_RESPAWN_MIN_DIST) continue;
       placed = n; break;
     }
-    if (placed) { pickNpcWaypoint(placed); NPCS.push(placed); }
+    if (placed) {
+      const door=_pickResidentRespawnDoor();
+      if(!door||!_residentEnterBuilding(placed,now,door,true)){pickNpcWaypoint(placed);NPCS.push(placed);}
+    }
   }
 }
 
@@ -8807,6 +8832,9 @@ function updateCityCops(dt) {
 const serviceVehicles = [];
 let _svcVehId = 0;
 let _playerEmergencyPatient=null;
+const AMBULANCE_FLEET_SIZE=3,AMBULANCE_RESPONSE_SPEED=6.6;
+let _ambulanceDeliveryCount=0;
+let _hospitalAmbulanceBaysCache=null;
 // Пожарка остаётся на дороге, а очаг нередко находится на тротуаре/газоне.
 // 4.5 тайла не хватало до ближайшей законной точки остановки, из-за чего
 // машина приезжала и стояла без воды. Длина штатного рукава покрывает 8 тайлов.
@@ -9070,6 +9098,37 @@ function _hospitalDoor() {
   const d = _nearestRoadTile(HOSPITAL_R, HOSPITAL_C);
   return d ? { r: d.r + 0.5, c: d.c + 0.5 } : { r: HOSPITAL_R, c: HOSPITAL_C };
 }
+function _hospitalAmbulanceBays(){
+  if(_hospitalAmbulanceBaysCache)return _hospitalAmbulanceBaysCache;
+  const door=_hospitalDoor(),candidates=[];
+  for(let dr=-7;dr<=7;dr++)for(let dc=-7;dc<=7;dc++){
+    const r=Math.floor(door.r)+dr+.5,c=Math.floor(door.c)+dc+.5;
+    if(_vehicleRoadPassable(r,c))candidates.push({r,c,d:Math.hypot(r-door.r,c-door.c)});
+  }
+  candidates.sort((a,b)=>a.d-b.d||a.r-b.r||a.c-b.c);
+  const bays=[];for(const spot of candidates){if(bays.every(b=>Math.hypot(b.r-spot.r,b.c-spot.c)>=1.8))bays.push({r:spot.r,c:spot.c});if(bays.length>=AMBULANCE_FLEET_SIZE)break;}
+  while(bays.length<AMBULANCE_FLEET_SIZE)bays.push({r:door.r,c:door.c});
+  _hospitalAmbulanceBaysCache=bays;return bays;
+}
+function _ensureAmbulanceFleet(){
+  const bays=_hospitalAmbulanceBays();
+  const live=serviceVehicles.filter(v=>v?.kind==='ambulance'&&v.state!=='done');
+  const occupied=new Set(live.map(v=>+v.fleetSlot||0));
+  for(let slot=0;slot<AMBULANCE_FLEET_SIZE;slot++){
+    if(occupied.has(slot))continue;
+    const bay=bays[slot]||bays[0],v={id:'amb_'+(++_svcVehId),kind:'ambulance',x:bay.c,y:bay.r,ang:0,
+      speed:4.4,state:'ambulance_patrol',workUntil:0,payload:{},homeR:bay.r,homeC:bay.c,
+      fleetSlot:slot,path:[],pathIdx:0,finalTarget:null,_patrolWaitUntil:performance.now()+slot*850,_lastMoveT:performance.now()};
+    serviceVehicles.push(v);
+  }
+  return serviceVehicles.filter(v=>v?.kind==='ambulance'&&v.state!=='done');
+}
+function _nextAmbulancePatrolTarget(v){
+  const stops=[[18,18],[18,72],[42,92],[72,74],[78,24],[48,18],[108,68],[126,34]];
+  v._patrolIndex=((+v._patrolIndex||+v.fleetSlot||0)+1)%stops.length;
+  const [r,c]=stops[v._patrolIndex],road=_nearestRoadTile(r,c,18);
+  return road?{r:road.r+.5,c:road.c+.5}:{r:v.homeR,c:v.homeC};
+}
 function _fireStationDoor() {
   const d = _nearestRoadTile(FIRE_STATION_R, FIRE_STATION_C);
   return d ? { r: d.r + 0.5, c: d.c + 0.5 } : { r: FIRE_STATION_R, c: FIRE_STATION_C };
@@ -9106,26 +9165,13 @@ function _setVehicleRoute(v, fromR, fromC, toR, toC) {
 }
 
 function spawnAmbulance(targetR, targetC, npc) {
-  // Не дублировать — если в радиусе 3 уже едет другая скорая на ту же
-  // зону, ничего не делаем. Без этого 10 трупов рядом порождают 10 машин.
-  for (const v of serviceVehicles) {
-    if (v.kind !== 'ambulance' || v.state === 'done') continue;
-    const ft = v.finalTarget || { x: 0, y: 0 };
-    const dr = ft.y - targetR, dc = ft.x - targetC;
-    if (Math.hypot(dr, dc) < 3) return null;
-  }
-  const door = _hospitalDoor();
-  const v = {
-    id: 'amb_' + (++_svcVehId), kind: 'ambulance',
-    x: door.c, y: door.r,
-    ang: 0, speed: 4.0,                   // чуть быстрее обычных машин (с сиреной)
-    state: 'go_to_scene', workUntil: 0,
-    payload: { npc },
-    homeR: HOSPITAL_R, homeC: HOSPITAL_C,
-    path: [], pathIdx: 0, finalTarget: null,
-  };
-  _setVehicleRoute(v, door.r, door.c, targetR, targetC);
-  serviceVehicles.push(v);
+  const fleet=_ensureAmbulanceFleet();
+  if(fleet.some(v=>v.payload?.npc===npc&&!['ambulance_idle','ambulance_patrol'].includes(v.state)))return null;
+  const v=fleet.filter(v=>v.state==='ambulance_idle'||v.state==='ambulance_patrol').sort((a,b)=>Math.hypot(a.y-targetR,a.x-targetC)-Math.hypot(b.y-targetR,b.x-targetC))[0];
+  if(!v)return null;
+  v.payload={npc};v.speed=AMBULANCE_RESPONSE_SPEED;v.state='go_to_scene';v.workUntil=0;
+  v._medicalScene=null;v._medicalCrew=[];v._lastMoveT=performance.now();
+  _setVehicleRoute(v,v.y,v.x,targetR,targetC);
   return v;
 }
 
@@ -9140,7 +9186,8 @@ function _ambulancePatientPosition(v) {
 
 function _ambulanceNeedsBodyCrew(v) {
   const patient = v?.payload?.npc;
-  return !!patient && !patient._playerPatient && !patient._medicalDowned &&
+  return !!patient && !patient._playerPatient && !patient._medicalDowned && !patient._corpseExpired &&
+    !patient._evacuated && !patient._ambulanceInTransit &&
     (patient.dead === true || +patient.hp <= 0);
 }
 
@@ -9249,11 +9296,11 @@ function _updateAmbulanceBodyCrew(v, dt, now = performance.now()) {
     scene.phase = 'loaded'; scene.active = false;
     scene.stretcherVisible = false; scene.bodyVisible = false;
     for (const medic of (v._medicalCrew || [])) medic.visible = false;
-    patient._carriedByAmbulance = false;
+    patient._carriedByAmbulance = true;
     patient._ambulanceLoading = false;
     patient._evacuated = true;
-    patient._evacuatedAt = now;
-    if (!v.payload.beachgoer) patient.deadAt = now - 60000;
+    patient._evacuatedAt = 0;
+    patient._ambulanceInTransit = true;
     return true;
   }
   scene.centerR = centerR; scene.centerC = centerC; scene.ang = ang;
@@ -9278,6 +9325,24 @@ function _releaseFailedAmbulanceCall(v) {
     v._medicalScene.stretcherVisible = false;
   }
   for (const medic of (v._medicalCrew || [])) medic.visible = false;
+}
+
+function _cancelAmbulanceCallForPatient(patient){
+  for(const v of serviceVehicles){
+    if(v?.kind!=='ambulance'||v.payload?.npc!==patient||v.state==='ambulance_idle'||v.state==='ambulance_patrol')continue;
+    _releaseFailedAmbulanceCall(v);v.payload={};v._medicalScene=null;v._medicalCrew=[];
+    v.state='returning';_setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
+  }
+}
+function _completeAmbulanceHospitalDelivery(v,now=performance.now()){
+  const patient=v?.payload?.npc;
+  if(patient?._ambulanceInTransit){
+    patient._ambulanceInTransit=false;patient._carriedByAmbulance=false;patient._ambulanceLoading=false;
+    patient._ambulanceDispatched=false;patient._evacuated=true;patient._evacuatedAt=now;patient._ambulanceDeliveredAt=now;
+    _ambulanceDeliveryCount++;document.documentElement.dataset.ambulanceHospitalDeliveries=String(_ambulanceDeliveryCount);
+  }
+  v.payload={};v._medicalScene=null;v._medicalCrew=[];v.path=[];v.pathIdx=0;v.finalTarget=null;
+  v.x=v.homeC;v.y=v.homeR;v.speed=4.4;v.state='ambulance_patrol';v._patrolWaitUntil=now+1200;v._lastMoveT=now;
 }
 
 function _dispatchPlayerAmbulance(){
@@ -9478,6 +9543,13 @@ function updateServiceVehicles(dt) {
       _releaseFailedAmbulanceCall(v);
       serviceVehicles.splice(i, 1);continue;
     }
+    if(v.state==='ambulance_idle')v.state='ambulance_patrol';
+    if(v.state==='ambulance_patrol'){
+      v.speed=4.4;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
+      if(now<(v._patrolWaitUntil||0))continue;
+      if(!v.path?.length||_vehicleStep(v,dt)){const target=_nextAmbulancePatrolTarget(v);_setVehicleRoute(v,v.y,v.x,target.r,target.c);}
+      continue;
+    }
     // Безопасник: считаем сколько машина НЕ двигается. 14 сек подряд
     // без движения — точно застряла (пробка не должна столько висеть,
     // у обычных тачек _stuckT тоже триггерит респаун за 14с). Раньше
@@ -9517,6 +9589,7 @@ function updateServiceVehicles(dt) {
           if(!_startFireTruckWater(v,now)){_abortFireTruckJob(v);continue;}
           continue;
         }
+        if(v.kind==='ambulance')_releaseFailedAmbulanceCall(v);
         v.state = 'done';
         continue;
       }
@@ -9591,6 +9664,7 @@ function updateServiceVehicles(dt) {
         cr.c = v.x - Math.cos(v.ang) * 0.6;
       }
       if (_vehicleStep(v, dt)) {
+        if(v.kind==='ambulance'){_completeAmbulanceHospitalDelivery(v,now);continue;}
         // Доехал до депо. Эвакуатор увёз машину «за карту» → удаляем из
         // CARS и доспавниваем свежую (трафик не редеет, машины не
         // пропадают навсегда).
@@ -9608,14 +9682,31 @@ function dispatchEmergencyServices() {
   if (now < _nextEmergencyScan) return;
   _nextEmergencyScan = now + 1500;
 
-  // Скорая выезжает и к тяжело раненым, и к погибшим.
-  for (const n of NPCS) {
-    if ((!n.dead&&!n._medicalDowned) || n._evacuated || n._ambulanceDispatched) continue;
+  if(_LOCAL_PREVIEW&&_UP.has('previewambulancequeue')&&!document.documentElement.dataset.previewAmbulanceQueueSeeded){
+    const testVictims=NPCS.filter(n=>_isRespawnableResident(n)&&!n.dead).slice(0,5),door=_hospitalDoor();
+    testVictims.forEach((n,i)=>{
+      n.r=door.r+3+(i%2)*1.1;n.c=door.c+3+Math.floor(i/2)*1.1;n.tr=n.r;n.tc=n.c;
+      n.hp=0;n.dead=true;n.deadAt=now-(i===4?CORPSE_AUTO_REMOVE_MS+2000:2400+i*120);
+      n.walking=false;n._ambulanceDispatched=false;n._ambulanceInTransit=false;n._evacuated=false;n._corpseExpired=false;
+    });
+    document.documentElement.dataset.previewAmbulanceQueueSeeded=String(testVictims.length);
+  }
+
+  // Three permanent crews pull the oldest corpses from one shared queue.
+  // Dead residents are prioritized over wounded residents.
+  _ensureAmbulanceFleet();
+  const ambulanceQueue=NPCS.filter(n=>(n.dead||n._medicalDowned)&&!n._corpseExpired&&!n._evacuated&&!n._ambulanceInTransit&&!n._ambulanceDispatched)
+    .sort((a,b)=>(a.dead?0:1)-(b.dead?0:1)||((a._medicalDowned?a._medicalDownedAt:a.deadAt)||0)-((b._medicalDowned?b._medicalDownedAt:b.deadAt)||0));
+  for (const n of ambulanceQueue) {
     const incidentAt=n._medicalDowned?n._medicalDownedAt:n.deadAt;
     if (!incidentAt || now - incidentAt < 1200) continue;
     const ambulance = spawnAmbulance(n.r, n.c, n);
     if (ambulance) n._ambulanceDispatched = true;
   }
+  const fleet=serviceVehicles.filter(v=>v?.kind==='ambulance'&&v.state!=='done');
+  document.documentElement.dataset.ambulanceFleetSize=String(fleet.length);
+  document.documentElement.dataset.ambulanceBusy=String(fleet.filter(v=>!['ambulance_idle','ambulance_patrol'].includes(v.state)).length);
+  document.documentElement.dataset.ambulanceQueue=String(ambulanceQueue.filter(n=>!n._ambulanceDispatched&&!n._corpseExpired).length);
 
   // Пляжники живут в отдельной Map и не входят в NPCS — им нужен свой вызов.
   for (const b of beachgoers.values()) {
@@ -33603,6 +33694,11 @@ function _businessInteractionDistance(b, r=player.r, c=player.c) {
   );
 }
 
+// BUSINESS_POIS is declared after the first city population pass. Rebuild the
+// cached entrances now that casinos, shops and their exact 3D doors exist.
+_residentBuildingDoorsCache=null;
+_residentBuildingDoors();
+
 // Local-only entrance audit. It uses the same coordinates and proximity
 // resolver as production, so browser QA can verify every establishment without
 // changing a real account or server state.
@@ -55589,13 +55685,13 @@ window.Mafiozi3DBridge = Object.freeze({
         id:`service_${v.id}`,r:+v.y||0,c:+v.x||0,ang:+v.ang||0,
         model:ambulance?'ambulance':fire?'firetruck':tow?'tow_truck':'police',
         paint:ambulance?'#eef3f7':fire?'#b51f27':tow?'#e0a62c':'#244f86',
-        parked:v.state==='working'||v.state==='medical_response'||v.state==='siege',length:fire?2.4:tow?2.3:ambulance?2.05:1.9,
+        parked:v.state==='ambulance_idle'||v.state==='working'||v.state==='medical_response'||v.state==='siege',length:fire?2.4:tow?2.3:ambulance?2.05:1.9,
         width:fire?1.1:tow?1:ambulance?.98:.9,height:fire?1.05:ambulance?.88:.75,wheelR:.2,
         sport:false,pickup:tow,van:ambulance||fire,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,
         emergency:ambulance?'ambulance':fire?'fire':police?'police':'tow',
         stripe:ambulance?'#1756bd':fire?'#f2c94c':tow?'#22262b':'#d9e8ff',
         dirR:Math.sin(+v.ang||0),dirC:Math.cos(+v.ang||0),velR:0,velC:0,
-        braking:v.state==='working'||v.state==='medical_response'||v.state==='siege',turning:false,
+        braking:v.state==='ambulance_idle'||v.state==='working'||v.state==='medical_response'||v.state==='siege',turning:false,
         serviceKind:v.kind,serviceState:v.state,medicalDoorsOpen:medicalDoorProgress>.5,medicalDoorProgress,
       });
       if(tow&&v._loaded&&v.payload?.carRef){
@@ -59610,6 +59706,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d207"></script>
+<script type="module" src="three_preview.js?v=3d208"></script>
 </body>
 </html>
