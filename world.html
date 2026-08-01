@@ -56146,6 +56146,11 @@ window.Mafiozi3DBridge = Object.freeze({
     player.r=JUNKYARD_R+4.5;player.c=JUNKYARD_C;player.vr=0;player.vc=0;player.walking=false;
     window._studioTeleportUntil=Date.now()+10000;return {r:player.r,c:player.c};
   },
+  previewApproachJail() {
+    if(!_LOCAL_PREVIEW)return false;
+    player.r=JAIL_CENTER_R+1.25;player.c=JAIL_CENTER_C+.35;player.vr=0;player.vc=0;player.walking=false;
+    window._studioTeleportUntil=Date.now()+10000;return {r:player.r,c:player.c};
+  },
   previewApproachGenericBuilding() {
     if(!_LOCAL_PREVIEW)return false;
     let best=null;
@@ -56225,7 +56230,16 @@ window.Mafiozi3DBridge = Object.freeze({
     };
     const lairZone=(typeof AGGRO_ZONES!=='undefined'&&AGGRO_ZONES[0])||null;
     const landmarks={
-      jail:{r:JAIL_CENTER_R,c:JAIL_CENTER_C,radius:JAIL_RADIUS_TILES},
+      // The prison layout is descriptive 3D metadata only. Authoritative jail
+      // time, player placement and collision remain in the existing server and
+      // simulation code; the renderer uses this contract to build the detailed
+      // two-storey correctional complex without inventing gameplay state.
+      jail:{
+        r:JAIL_CENTER_R,c:JAIL_CENTER_C,radius:JAIL_RADIUS_TILES,
+        architecture:'open_gallery_correctional_complex',floors:2,
+        cells:20,capacity:40,bedsPerCell:2,cellsPerWingFloor:5,
+        zones:{commonYard:true,exercise:true,guardPost:true,corridors:4,stairs:2},
+      },
       lair:lairZone?{r:lairZone.r,c:lairZone.c,radius:lairZone.radius||18}:null,
       mafiaHq:(typeof BURJ_POS!=='undefined'?{id:'mafia_hq',r:BURJ_POS.r,c:BURJ_POS.c,name:'Burj Mafia · Беллини',family:'bellini'}:null),
       businesses:(typeof BUSINESS_POIS!=='undefined'?BUSINESS_POIS:[]).map(b=>{const entry=_businessInteractionAnchor(b),exterior=BUSINESS_EXTERIOR_GEOMETRY_3D[b.id]||null;return {id:b.id,r:b.r+.5,c:b.c+.5,tileR:b.r,tileC:b.c,entryR:entry.r,entryC:entry.c,exterior,name:b.name,emoji:b.emoji};}),
@@ -56607,6 +56621,10 @@ if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridg
 if(_LOCAL_PREVIEW&&_UP.has('previewcombatregression'))setTimeout(()=>{const npc=NPCS.find(n=>n&&!n.dead&&!n._evacuated&&!n._ambientGang),car=(typeof CARS!=='undefined'?CARS:[]).find(x=>x&&!x._hidden&&!x._towed&&!x._destroySequenceAt&&!x._shotWrecked&&!x._wrecked&&!x.wrecked),until=performance.now()+12000;if(!npc||!car)return;document.documentElement.dataset.combatQaNpc=_threeNpcEntityId(npc);document.documentElement.dataset.combatQaVehicle=_threeVehicleEntityId(car);const pin=setInterval(()=>{document.documentElement.dataset.combatQaNpcHp=String(Math.max(0,+npc.hp||0));document.documentElement.dataset.combatQaVehicleHp=String(Number.isFinite(+car._ballisticHp)?+car._ballisticHp:240);document.documentElement.dataset.combatQaVehicleHoles=String(+car._bulletHoleCount||0);if(performance.now()>until||npc.dead||car._shotWrecked||car._wrecked||car.wrecked){clearInterval(pin);return;}npc.r=player.r+3.2;npc.c=player.c+1.6;npc.tr=npc.r;npc.tc=npc.c;npc.walking=false;npc.moving=false;car.r=player.r+1.8;car.c=player.c-3.1;car.v=0;car.speed=0;},40);},1200);
 if(_LOCAL_PREVIEW&&_UP.get('threebusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInterior(_UP.get('threebusiness')),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewjunkyardstream'))setTimeout(()=>window.Mafiozi3DBridge.previewApproachJunkyard(),1600);
+if(_LOCAL_PREVIEW&&_UP.has('previewjail')){
+  window.Mafiozi3DBridge.previewApproachJail();
+  document.documentElement.dataset.jailPreview='positioned';
+}
 if(_LOCAL_PREVIEW&&_UP.has('previewjunkyard')){
   player.r=JUNKYARD_R+4.5;player.c=JUNKYARD_C;player.vr=0;player.vc=0;player.walking=false;
   window._studioTeleportUntil=Date.now()+10000;
@@ -60375,6 +60393,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d232"></script>
+<script type="module" src="three_preview.js?v=3d233"></script>
 </body>
 </html>
