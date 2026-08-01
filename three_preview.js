@@ -1,3 +1,4 @@
+// 3D sync v231: full-body building clearance keeps service vehicles out of facades; active hose trucks stream with their water.
 // 3D sync v230: fire engines use road-first response; compact arched hose spray and staged tow loading/carrying replace abrupt effects.
 // 3D sync v229: shots lock to the visible silhouette of clicked residents and cars before testing buildings.
 // 3D sync v228: fire engines and tow trucks remain parked in persistent fleets and reuse their bays after every road return.
