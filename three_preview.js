@@ -1,3 +1,4 @@
+// 3D sync v233: premium two-storey prison adds twenty double cells, open galleries, stairs and a complete common yard.
 // 3D sync v232: ambulances use full-body-safe depot and patient-side parking so their complete recovery cycle stays road-driven.
 // 3D sync v232 combat: clicked resident and vehicle silhouettes stay locked through the world ballistic pass.
 // 3D sync v231: full-body building clearance keeps service vehicles out of facades; active hose trucks stream with their water.
@@ -509,17 +510,103 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         refreshCustomGangHqs=()=>{const fresh=bridge?.getWorldSnapshot?.(90)?.landmarks?.customGangHqs||[],sig=JSON.stringify(fresh.map(h=>[h.id,h.name,h.r,h.c,h.flag]));if(sig===customGangHqSig)return;customGangHqSig=sig;while(customGangHqGroup.children.length){const q=customGangHqGroup.children.pop();q.traverse?.(o=>{o.geometry?.dispose?.();if(o.material&&!Array.isArray(o.material)){o.material.map?.dispose?.();o.material.dispose?.();}});}for(const hq of fresh){const roof=roofAnchorAt(+hq.r+.5,+hq.c+.5,9),flag=hq.flag||{},primary=flag.primary||'#9b1f2d',g=new THREE.Group(),pole=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,6,10),new THREE.MeshStandardMaterial({color:0xcaa86d,metalness:.65,roughness:.32}));pole.position.y=3;g.add(pole);const cloth=new THREE.Mesh(new THREE.PlaneGeometry(4.8,2.7,8,3),new THREE.MeshStandardMaterial({map:customGangFlagTexture(flag),side:THREE.DoubleSide,roughness:.78,emissive:new THREE.Color(primary),emissiveIntensity:.06}));cloth.position.set(2.45,4.65,0);cloth.rotation.y=.08;g.add(cloth);g.position.set(roof.x,roof.y,roof.z);customGangHqGroup.add(g);const label=labelSprite(`🚩 ${hq.name}`,primary);label.position.set(roof.x,roof.y+8.2,roof.z);customGangHqGroup.add(label);}};refreshCustomGangHqs();
         const jail=worldSnapshot.landmarks.jail;
         if(jail){
-          const x=toX(jail.c),z=toZ(jail.r),span=jail.radius*2*WORLD_SCALE,concrete=new THREE.MeshStandardMaterial({color:0x9aa2a7,map:concreteTexture,roughness:.86,bumpMap:concreteTexture,bumpScale:.025}),darkSteel=new THREE.MeshStandardMaterial({color:0x252d34,roughness:.45,metalness:.65}),yardMat=new THREE.MeshStandardMaterial({color:0x68747a,map:concreteTexture,roughness:.9,bumpMap:concreteTexture,bumpScale:.035}),curbMat=new THREE.MeshStandardMaterial({color:0x303a42,roughness:.7,metalness:.28}),markMat=new THREE.MeshBasicMaterial({color:0xe8c75b});
-          // Opaque raised foundation covers the canal sheet under the complete
-          // fenced footprint. It is visual only: authoritative map/server
-          // collision remains tile-based and is synchronised in world.html.
-          const dryFoundation=box(x,z,span+1.2,span+1.2,.58,yardMat);dryFoundation.position.y=.29;dryFoundation.receiveShadow=true;
-          for(const [px,pz,pw,pd] of [[x,z-span/2,span+1.2,.42],[x,z+span/2,span+1.2,.42],[x-span/2,z,.42,span],[x+span/2,z,.42,span]]){const curb=box(px,pz,pw,pd,.34,curbMat);curb.position.y=.55;}
-          for(let lane=-1;lane<=1;lane+=2){const stripe=box(x+lane*span*.22,z+span*.22,.16,span*.42,.035,markMat);stripe.position.y=.605;}
-          const drainMat=new THREE.MeshStandardMaterial({color:0x172126,roughness:.38,metalness:.76});for(let i=-2;i<=2;i++){const drain=box(x+i*span*.14,z-span*.34,span*.075,.16,.045,drainMat);drain.position.y=.612;}
-          const wallN=box(x,z-span/2,span,1,3.2,concrete),wallS=box(x,z+span/2,span,1,3.2,concrete),wallW=box(x-span/2,z,1,span,3.2,concrete),wallE=box(x+span/2,z,1,span,3.2,concrete);[wallN,wallS,wallW,wallE].forEach(w=>{w.position.y+=.58;outline(w);});
-          for(const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const tower=box(x+sx*span/2,z+sz*span/2,3.5,3.5,6.8,darkSteel);tower.position.y+=.58;outline(tower);const lamp=new THREE.PointLight(0xc8e7ff,10,22,2);lamp.position.set(tower.position.x,7.78,tower.position.z);scene.add(lamp);}
-          const jailBlock=box(x,z,span*.48,span*.38,8.5,new THREE.MeshStandardMaterial({color:0x59646d,roughness:.72}));jailBlock.position.y+=.58;outline(jailBlock);
+          const x=toX(jail.c),z=toZ(jail.r),span=jail.radius*2*WORLD_SCALE,half=span/2;
+          const prison=new THREE.Group();prison.name='mafiosi-correctional-complex';prison.position.set(x,0,z);scene.add(prison);
+          const concrete=new THREE.MeshStandardMaterial({color:0x929ba0,map:concreteTexture,roughness:.9,bumpMap:concreteTexture,bumpScale:.032}),concreteDark=new THREE.MeshStandardMaterial({color:0x4d575e,map:concreteTexture,roughness:.92,bumpMap:concreteTexture,bumpScale:.03}),paintedWall=new THREE.MeshStandardMaterial({color:0xb6bec1,roughness:.84}),darkSteel=new THREE.MeshStandardMaterial({color:0x202930,roughness:.34,metalness:.76}),galvanized=new THREE.MeshStandardMaterial({color:0x78858c,roughness:.28,metalness:.82}),yardMat=new THREE.MeshStandardMaterial({color:0x626d72,map:concreteTexture,roughness:.94,bumpMap:concreteTexture,bumpScale:.04}),curbMat=new THREE.MeshStandardMaterial({color:0x2b343a,roughness:.7,metalness:.3}),markMat=new THREE.MeshBasicMaterial({color:0xe8c65b,toneMapped:false}),warningMat=new THREE.MeshBasicMaterial({color:0xf2a33a,toneMapped:false}),cellLightMat=new THREE.MeshBasicMaterial({color:0xcbeaff,toneMapped:false}),mattressMat=new THREE.MeshStandardMaterial({color:0x526d7c,roughness:.92}),blanketMat=new THREE.MeshStandardMaterial({color:0x304d60,roughness:.96}),pillowMat=new THREE.MeshStandardMaterial({color:0xd5d8d3,roughness:1}),ceramicMat=new THREE.MeshStandardMaterial({color:0xbfc8c9,roughness:.32,metalness:.12}),glassMat=new THREE.MeshPhysicalMaterial({color:0x7ec9e5,roughness:.08,metalness:.08,transparent:true,opacity:.58,transmission:.22,thickness:.2,clearcoat:1}),courtMat=new THREE.MeshBasicMaterial({color:0xe1ddd0,toneMapped:false}),rubberMat=new THREE.MeshStandardMaterial({color:0x1c2428,roughness:.88});
+          const pbox=(px,pz,w,d,h,mat,bottom=0)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.set(px,bottom+h/2,pz);mesh.castShadow=mesh.receiveShadow=true;prison.add(mesh);return mesh;};
+          const pcylinder=(px,pz,rt,rb,h,mat,bottom=0,segments=12)=>{const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,segments),mat);mesh.position.set(px,bottom+h/2,pz);mesh.castShadow=mesh.receiveShadow=true;prison.add(mesh);return mesh;};
+          const instance=(name,geometry,material,defs,shadow=true)=>{if(!defs.length)return null;const mesh=new THREE.InstancedMesh(geometry,material,defs.length),dummy=new THREE.Object3D();mesh.name=name;defs.forEach((q,i)=>{const [px,py,pz,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1]=q;dummy.position.set(px,py,pz);dummy.rotation.set(rx,ry,rz);dummy.scale.set(sx,sy,sz);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);});mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=shadow;mesh.receiveShadow=shadow;mesh.computeBoundingSphere?.();prison.add(mesh);return mesh;};
+          const panel=(text,px,py,pz,w=8,h=1.5,accent='#9edcff')=>{const cv=document.createElement('canvas');cv.width=1024;cv.height=192;const c=cv.getContext('2d'),g=c.createLinearGradient(0,0,1024,0);g.addColorStop(0,'#111a22');g.addColorStop(.5,'#203746');g.addColorStop(1,'#111a22');c.fillStyle=g;c.fillRect(0,0,1024,192);c.strokeStyle=accent;c.lineWidth=10;c.strokeRect(8,8,1008,176);c.fillStyle='#eef8ff';c.font='900 67px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(text,512,99);const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());tx.generateMipmaps=false;const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tx,toneMapped:false}));mesh.position.set(px,py,pz);prison.add(mesh);return mesh;};
+
+          // Raised dry slab: visual only. Jail collision and all authoritative
+          // player state continue to come from world.html and the server.
+          const foundation=pbox(0,0,span+1.4,span+1.4,.68,yardMat);foundation.receiveShadow=true;outline(foundation);
+          for(const [px,pz,pw,pd] of [[0,-half,span+1.2,.5],[0,half,span+1.2,.5],[-half,0,.5,span],[half,0,.5,span]])pbox(px,pz,pw,pd,.34,curbMat,.68);
+
+          // Fortified perimeter with a real sally-port opening in the south.
+          const wallH=4.25,wallT=.82,gateW=10.5,sideWallW=(span-gateW)/2;
+          const perimeter=[pbox(0,-half,span,wallT,wallH,concrete,.68),pbox(-half,0,wallT,span,wallH,concrete,.68),pbox(half,0,wallT,span,wallH,concrete,.68),pbox(-(gateW+sideWallW)/2,half,sideWallW,wallT,wallH,concrete,.68),pbox((gateW+sideWallW)/2,half,sideWallW,wallT,wallH,concrete,.68)];perimeter.forEach(outline);
+          const gateBarDefs=[];for(let gx=-gateW/2+.45;gx<=gateW/2-.45;gx+=.72)gateBarDefs.push([gx,.68+2.15,half,0,0,0]);instance('prison-sally-port-bars',new THREE.BoxGeometry(.12,4.3,.12),darkSteel,gateBarDefs);
+          for(const gy of [1.45,3.4])pbox(0,half+.02,gateW,.14,.13,darkSteel,.68+gy);
+          for(let s=-1;s<=1;s+=2){const post=pbox(s*(gateW/2+.48),half,1.05,1.3,5.5,concreteDark,.68);outline(post);for(let band=0;band<4;band++)pbox(s*(gateW/2+.48),half+.67,.98,.08,.28,band%2?warningMat:darkSteel,1.2+band*.62);}
+
+          // Razor coils are instanced so the detailed perimeter remains cheap.
+          const coilDefs=[],coilStep=2.35;for(let q=-half+2;q<=half-2;q+=coilStep){coilDefs.push([q,5.35,-half,0,Math.PI/2,0],[q,5.35,half,0,Math.PI/2,0],[-half,5.35,q,0,0,0],[half,5.35,q,0,0,0]);}instance('prison-razor-wire',new THREE.TorusGeometry(.62,.038,5,12),galvanized,coilDefs,false);
+
+          // Four full guard towers with enclosed glass cabins and floodlights.
+          for(const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]){const tx=sx*(half-1.8),tz=sz*(half-1.8),base=pbox(tx,tz,4.4,4.4,6.6,concreteDark,.68);outline(base);const cabin=pbox(tx,tz,5.35,5.35,2.15,darkSteel,7.28);outline(cabin);for(const [dx,dz,w,d] of [[0,2.71,4.15,.08],[0,-2.71,4.15,.08],[2.71,0,.08,4.15],[-2.71,0,.08,4.15]]){const pane=pbox(tx+dx,tz+dz,w,d,1.18,glassMat,7.72);pane.castShadow=false;}const roof=pbox(tx,tz,6.05,6.05,.32,darkSteel,9.43);outline(roof);const lamp=new THREE.PointLight(0xc9e9ff,12,27,2);lamp.position.set(tx,10.25,tz);lamp.castShadow=false;prison.add(lamp);for(const [lx,lz] of [[-1.55,0],[1.55,0]]){const flood=pbox(tx+lx,tz+sz*3.15,.62,.45,.34,cellLightMat,8.58);flood.castShadow=false;}}
+
+          // Two open-gallery cell wings: five cells per floor, two floors and
+          // two wings = twenty double cells / forty inmate places.
+          const cellSpan=5.18,wingLen=cellSpan*5,outerX=half-2.45,barX=12.25,wingDepth=outerX-barX,floorBases=[.72,5.12],barDefs=[],railDefs=[],bedPostDefs=[],bedRailDefs=[],mattressDefs=[],blanketDefs=[],pillowDefs=[],toiletDefs=[],tankDefs=[],sinkDefs=[],lightDefs=[];
+          let authoredCells=0;
+          for(const side of [-1,1]){
+            const rear=side*outerX,front=side*barX,wingCenter=(rear+front)/2;
+            for(const [floorIndex,floorY] of floorBases.entries()){
+              pbox(wingCenter,0,wingDepth+.55,wingLen+.65,.26,concreteDark,floorY-.04);
+              pbox(rear,0,.42,wingLen+.65,4.25,paintedWall,floorY+.22);
+              pbox(wingCenter,0,wingDepth+.75,.42,.3,darkSteel,floorY+4.42);
+              for(let divider=0;divider<=5;divider++){const dz=-wingLen/2+divider*cellSpan;pbox(wingCenter,dz,wingDepth,.26,4.15,concrete,floorY+.22);}
+              // The inmate corridor is wide on both levels; the upper gallery
+              // has a continuous guard rail looking into the common yard.
+              const corridorX=front-side*1.72,innerRailX=front-side*3.35;
+              pbox(corridorX,0,3.45,wingLen+.45,.22,galvanized,floorY+.03);
+              if(floorIndex===1){for(let rz=-wingLen/2;rz<=wingLen/2+.01;rz+=2.55)railDefs.push([innerRailX,floorY+1.02,rz]);for(const ry of [.42,1.15])railDefs.push([innerRailX,floorY+ry,0,0,0,0,1,.07,wingLen/.1]);}
+              for(let cell=0;cell<5;cell++){
+                const cz=-wingLen/2+(cell+.5)*cellSpan,cellNo=(side<0?0:10)+floorIndex*5+cell+1;authoredCells++;
+                for(let bi=0;bi<7;bi++)barDefs.push([front,floorY+2.3,cz-cellSpan*.42+bi*(cellSpan*.84/6)]);
+                for(const by of [floorY+1.18,floorY+3.2])barDefs.push([front,by,cz,0,0,0,1,.03,cellSpan/.12]);
+                // One steel bunk with two separate berths makes every room
+                // visibly and unambiguously double occupancy.
+                const bunkX=side*(outerX-3.0),bunkZ=cz-.7;
+                for(const bx of [bunkX-1.55,bunkX+1.55])for(const bz of [bunkZ-.44,bunkZ+.44])bedPostDefs.push([bx,floorY+1.53,bz]);
+                for(const level of [.68,2.05]){mattressDefs.push([bunkX,floorY+level,bunkZ]);blanketDefs.push([bunkX-side*.72,floorY+level+.15,bunkZ]);pillowDefs.push([bunkX+side*1.16,floorY+level+.16,bunkZ]);for(const bz of [bunkZ-.45,bunkZ+.45])bedRailDefs.push([bunkX,floorY+level+.03,bz]);}
+                const toiletX=side*(outerX-1.35),toiletZ=cz+1.45;toiletDefs.push([toiletX,floorY+.48,toiletZ]);tankDefs.push([side*(outerX-.62),floorY+.88,toiletZ]);sinkDefs.push([side*(outerX-.55),floorY+1.12,cz+.42]);lightDefs.push([(rear+front)/2,floorY+4.36,cz]);
+                // Amber cell-number plate beside every barred door.
+                pbox(front-side*.09,cz+cellSpan*.41,.26,.46,.26,warningMat,floorY+3.54);
+                const door=pbox(front-side*.04,cz+cellSpan*.28,.24,cellSpan*.25,3.78,darkSteel,floorY+.25);door.castShadow=true;
+                door.userData.cellNumber=cellNo;
+              }
+              const rangeStart=(side<0?1:11)+floorIndex*5,rangeEnd=rangeStart+4,sign=panel(`${side<0?'КРЫЛО A':'КРЫЛО B'} · ${String(rangeStart).padStart(2,'0')}–${String(rangeEnd).padStart(2,'0')}`,front-side*.18,floorY+4.16,-wingLen/2-.35,6.9,1.05,'#e8ad48');sign.rotation.y=side<0?Math.PI/2:-Math.PI/2;
+            }
+            // Roof canopy covers the cells but deliberately leaves both
+            // galleries and the central yard open to the isometric camera.
+            const canopy=pbox((rear+side*(barX+2.2))/2,0,wingDepth-2.2,wingLen+1.0,.4,darkSteel,9.72);outline(canopy);
+          }
+          instance('cell-front-bars',new THREE.BoxGeometry(.12,4.12,.12),darkSteel,barDefs);
+          instance('cell-gallery-rails',new THREE.BoxGeometry(.1,1.45,.1),galvanized,railDefs);
+          instance('double-bunk-posts',new THREE.BoxGeometry(.1,2.65,.1),darkSteel,bedPostDefs);
+          instance('double-bunk-rails',new THREE.BoxGeometry(3.25,.1,.1),darkSteel,bedRailDefs);
+          instance('prison-mattresses',new THREE.BoxGeometry(3.12,.24,.82),mattressMat,mattressDefs);
+          instance('prison-blankets',new THREE.BoxGeometry(1.18,.08,.84),blanketMat,blanketDefs);
+          instance('prison-pillows',new THREE.BoxGeometry(.55,.14,.7),pillowMat,pillowDefs);
+          instance('prison-toilets',new THREE.CylinderGeometry(.28,.34,.38,12),ceramicMat,toiletDefs);
+          instance('prison-toilet-tanks',new THREE.BoxGeometry(.42,.7,.62),ceramicMat,tankDefs);
+          instance('prison-sinks',new THREE.BoxGeometry(.46,.2,.7),ceramicMat,sinkDefs);
+          instance('cell-ceiling-lights',new THREE.BoxGeometry(2.05,.08,.38),cellLightMat,lightDefs,false);
+
+          // Two opposite staircases connect the lower corridors to the upper
+          // galleries. Every tread is modelled, with steel stringers and rails.
+          for(const [side,dir] of [[-1,-1],[1,1]]){const sx=side*10.45,startZ=dir*(wingLen/2+4.2);for(let step=0;step<13;step++){const sy=.82+step*.335,sz=startZ-dir*step*.48;pbox(sx,sz,3.25,.58,.18,galvanized,sy);for(const edge of [-1,1])pbox(sx+edge*1.52,sz,.09,.62,.92,darkSteel,sy+.12);}const stringer=pbox(sx,startZ-dir*3.0,3.48,.14,.14,darkSteel,2.95);stringer.rotation.x=dir*.62;}
+
+          // Common zone: marked half court, exercise frame, benches and fixed
+          // stainless tables. These are deliberately clear of cell corridors.
+          const courtZ=-2.2,courtW=14.8,courtD=18.2;pbox(0,courtZ,courtW,courtD,.055,new THREE.MeshStandardMaterial({color:0x59666b,roughness:.98}),.69);for(const [lx,lz,lw,ld] of [[0,courtZ-courtD/2,courtW,.12],[0,courtZ+courtD/2,courtW,.12],[-courtW/2,courtZ,.12,courtD],[courtW/2,courtZ,.12,courtD],[0,courtZ,courtW,.1]])pbox(lx,lz,lw,ld,.035,courtMat,.75);
+          const circle=new THREE.Mesh(new THREE.RingGeometry(2.3,2.43,40),courtMat);circle.rotation.x=-Math.PI/2;circle.position.set(0,.79,courtZ);prison.add(circle);
+          for(const hz of [courtZ-courtD/2+1.1,courtZ+courtD/2-1.1]){const post=pcylinder(0,hz,.11,.16,4.2,darkSteel,.76);post.rotation.z=0;pbox(0,hz-Math.sign(hz-courtZ)*.42,3.2,.18,1.85,paintedWall,4.05);const hoop=new THREE.Mesh(new THREE.TorusGeometry(.72,.075,8,24),warningMat);hoop.rotation.x=Math.PI/2;hoop.position.set(0,3.72,hz-Math.sign(hz-courtZ)*.92);prison.add(hoop);}
+          const tableTops=[],stoolDefs=[];for(const tx of [-5,0,5]){tableTops.push([tx,1.63,10.15]);for(const [dx,dz] of [[-1.25,0],[1.25,0],[0,-1.25],[0,1.25]])stoolDefs.push([tx+dx,1.05,10.15+dz]);}instance('common-zone-tables',new THREE.CylinderGeometry(1.05,1.05,.18,18),galvanized,tableTops);instance('common-zone-stools',new THREE.CylinderGeometry(.42,.48,.22,14),galvanized,stoolDefs);for(const tx of [-5,0,5])pcylinder(tx,10.15,.12,.16,.85,darkSteel,.75);
+          // Exercise corner: pull-up frame, bench press and free weights.
+          for(const ex of [5.6,8.2])pcylinder(ex,6.2,.11,.15,3.4,darkSteel,.75);pbox(6.9,6.2,2.8,.12,.12,galvanized,4.0);pbox(-5.3,6.25,3.1,1.0,.28,rubberMat,.84);for(const wx of [-7.2,-3.4])pcylinder(wx,6.25,.68,.68,.3,rubberMat,1.5,16);pbox(-5.3,6.25,4.6,.16,.16,galvanized,1.55);
+
+          // Elevated south control room watches the gate and both corridors.
+          const boothZ=half-5.05,booth=pbox(0,boothZ,10.2,5.1,4.85,concreteDark,.7);outline(booth);for(const [px,pz,w,d,ry] of [[0,boothZ-2.58,7.8,.08,0],[-5.12,boothZ,.08,3.6,Math.PI/2],[5.12,boothZ,.08,3.6,-Math.PI/2]]){const pane=pbox(px,pz,w,d,1.6,glassMat,3.05);pane.rotation.y=ry;pane.castShadow=false;}pbox(0,boothZ,11,5.9,.34,darkSteel,5.55);const desk=pbox(0,boothZ-1.45,5.8,1.0,1.0,darkSteel,.75);for(const dx of [-2,-.7,.7,2]){const screen=pbox(dx,boothZ-2.03,1.15,.09,.75,new THREE.MeshBasicMaterial({color:dx<0?0x5ad5ff:0x73ff9c,toneMapped:false}),1.8);screen.castShadow=false;}
+          panel('ИСПРАВИТЕЛЬНЫЙ КОМПЛЕКС № 20',0,8.3,half+.46,18.5,2.05,'#e5b44d');panel(`${jail.cells||20} КАМЕР · ${jail.capacity||40} МЕСТ`,0,6.05,half+.48,11.4,1.18,'#91d7ff');
+          panel('ОБЩАЯ ЗОНА',0,1.22,13.28,7.5,1.0,'#e8c65b').rotation.x=-Math.PI/2;
+
+          // CCTV housings and blue-white gallery lighting complete the secure
+          // institutional look without introducing any gameplay behaviour.
+          for(const [cx,cy,cz,ry] of [[-8.8,8.75,-15,0],[8.8,8.75,-15,Math.PI],[-8.8,8.75,15,0],[8.8,8.75,15,Math.PI]]){const arm=pbox(cx,cz,.14,.14,1.25,galvanized,cy-1.1);arm.rotation.z=.65;const cam=pbox(cx+(ry?-.55:.55),cz,.95,.52,.52,darkSteel,cy);cam.rotation.y=ry;const lens=pcylinder(cx+(ry?-.98:.98),cz,.16,.2,.18,cellLightMat,cy+.16,12);lens.rotation.z=Math.PI/2;}
+          renderer.domElement.dataset.jailArchitecture=jail.architecture||'open-gallery-correctional-complex';renderer.domElement.dataset.jailCells=String(authoredCells);renderer.domElement.dataset.jailCapacity=String(jail.capacity||authoredCells*2);renderer.domElement.dataset.jailFloors='2';renderer.domElement.dataset.jailCommonZone='court-exercise-tables';renderer.domElement.dataset.jailVisualOnly='true';
         }
         const lair=worldSnapshot.landmarks.lair;
         if(lair){
@@ -589,7 +676,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           casinoExteriorAnimation=(t,night)=>{const pulse=.72+.28*Math.sin(t*.0052);bulbMaterial.opacity=.42+night*.55*pulse;entranceGlow.intensity=4+night*(18+8*pulse);root.children.forEach(q=>{if(q.isSpotLight)q.intensity=night*(30+12*Math.sin(t*.0007+(q.position.x>0?1:0)));});jackpot.visible=true;};
           renderer.domElement.dataset.casinoExterior='grand-resort-canvas-parity';
         };
-        const specialColors={hospital:'#e64b55',hospital_east:'#e64b55',firestation:'#f05a45',junkyard:'#e1a33a',police:'#58a9ff',casino:'#d957ff',mansion:'#e4c267',factory:'#e58b3c',market:'#47d79b',arena:'#ffcf4d',blackmarket:'#7d6cff',blackmarket_bellini:'#22242a',blackmarket_moretti:'#eee8da',gym:'#66b8ff',job_office:'#e7c75d'};
+        const specialColors={hospital:'#e64b55',hospital_east:'#e64b55',firestation:'#f05a45',junkyard:'#e1a33a',police:null,casino:'#d957ff',mansion:'#e4c267',factory:'#e58b3c',market:'#47d79b',arena:'#ffcf4d',blackmarket:'#7d6cff',blackmarket_bellini:'#22242a',blackmarket_moretti:'#eee8da',gym:'#66b8ff',job_office:'#e7c75d'};
         for(const poi of worldSnapshot.pois||[]){const accent=specialColors[poi.id];if(!accent)continue;const x=toX(poi.c),z=toZ(poi.r),mat=new THREE.MeshBasicMaterial({color:accent}),steel=new THREE.MeshStandardMaterial({color:0x46515a,metalness:.55,roughness:.42});if(poi.id==='hospital'){const a=box(x,z,1.2,.35,5.2,mat);a.position.y=8;const b=box(x,z,4.2,.35,1.2,mat);b.position.y=8;}else if(poi.id==='factory'){for(let i=-1;i<=1;i++){const chimney=new THREE.Mesh(new THREE.CylinderGeometry(.55,.75,8+i*2,12),new THREE.MeshStandardMaterial({color:i%2?0xb64a3e:0x515b60,roughness:.8}));chimney.position.set(x+i*2.2,7+i,z);scene.add(chimney);}}else if(poi.id==='casino'){const crown=new THREE.Mesh(new THREE.TorusGeometry(3.3,.28,10,32),mat);crown.rotation.x=Math.PI/2;crown.position.set(x,11,z);scene.add(crown);const glow=new THREE.PointLight(accent,22,24,2);glow.position.set(x,9,z);scene.add(glow);}else if(poi.id==='firestation'){for(const dx of [-2.4,0,2.4]){const door=box(x+dx,z+4.1,2.05,.16,3.1,new THREE.MeshStandardMaterial({color:0x8e2525,roughness:.65}));door.position.y=1.55;}const mast=new THREE.Mesh(new THREE.CylinderGeometry(.1,.14,8,8),steel);mast.position.set(x-4,4,z+3);scene.add(mast);}else if(poi.id==='arena'){const ring=new THREE.Mesh(new THREE.TorusGeometry(5,.32,8,40),mat);ring.rotation.x=-Math.PI/2;ring.position.set(x,.3,z);scene.add(ring);for(let i=0;i<6;i++){const a=i/6*Math.PI*2,pole=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,4.5,8),steel);pole.position.set(x+Math.cos(a)*5,2.25,z+Math.sin(a)*5);scene.add(pole);}}else if(poi.id==='gym'){for(const dx of [-2.4,2.4]){const bar=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,4.2,10),steel);bar.rotation.z=Math.PI/2;bar.position.set(x+dx,6,z);scene.add(bar);for(const sx of [-1.7,1.7]){const weight=new THREE.Mesh(new THREE.CylinderGeometry(.65,.65,.35,14),mat);weight.rotation.z=Math.PI/2;weight.position.set(x+dx+sx,6,z);scene.add(weight);}}}else if(poi.id.startsWith('blackmarket')){const portal=new THREE.Mesh(new THREE.TorusGeometry(2.6,.32,10,32),mat);portal.position.set(x,4.5,z+3.6);scene.add(portal);const glow=new THREE.PointLight(accent,16,18,2);glow.position.set(x,4,z+3);scene.add(glow);}else if(poi.id==='market'){for(let i=-2;i<=2;i++){const awning=box(x+i*2.1,z+4,1.8,2.1,.18,new THREE.MeshStandardMaterial({color:i%2?0xf3d560:0x48b887,roughness:.6}));awning.position.y=3.4;}}else if(poi.id==='job_office'){const clockFace=new THREE.Mesh(new THREE.CylinderGeometry(1.45,1.45,.22,24),new THREE.MeshBasicMaterial({color:0xffe59a}));clockFace.rotation.x=Math.PI/2;clockFace.position.set(x,8,z+3.7);scene.add(clockFace);}const roof=roofAnchorAt(poi.r,poi.c,9),label=labelSprite(`${poi.id==='firestation'?'🚒':poi.id==='arena'?'🎯':'◆'} ${poi.label}`,accent);label.position.set(roof.x,roof.y,roof.z);scene.add(label);}
         // Свалка занимает почти квартал: ограда, штабеля остовов и пресс.
         // Она может отсутствовать в начальном снимке и приехать позднее вместе
@@ -789,8 +876,9 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             ? br>=+q.minR&&br<=+q.maxR&&bc>=+q.minC&&bc<=+q.maxC
             : Math.abs(br-(+q.r||0))<=Math.max(1,(+q.d||1)*.5)&&Math.abs(bc-(+q.c||0))<=Math.max(1,(+q.w||1)*.5);
         });
-        const ownsCasinoTile=nearPoi?.id==='casino'&&+q.minR<=+nearPoi.r&&+q.maxR>=+nearPoi.r&&+q.minC<=+nearPoi.c&&+q.maxC>=+nearPoi.c;
-        if(ownsCasinoTile||ownsDedicatedBusiness){if(ownsDedicatedBusiness)suppressedDedicatedExteriorOverlaps++;return [];}
+          const ownsCasinoTile=nearPoi?.id==='casino'&&+q.minR<=+nearPoi.r&&+q.maxR>=+nearPoi.r&&+q.minC<=+nearPoi.c&&+q.maxC>=+nearPoi.c;
+          const jail=snapshot.landmarks?.jail,ownsPrisonTile=!!jail&&(Number.isFinite(+q.minR)?+jail.r>=+q.minR&&+jail.r<=+q.maxR&&+jail.c>=+q.minC&&+jail.c<=+q.maxC:Math.hypot((+q.r||0)-(+jail.r||0),(+q.c||0)-(+jail.c||0))<2.2);
+          if(ownsCasinoTile||ownsDedicatedBusiness||ownsPrisonTile){if(ownsDedicatedBusiness||ownsPrisonTile)suppressedDedicatedExteriorOverlaps++;return [];}
         return [[(q.c-originC)*WORLD_SCALE,(q.r-originR)*WORLD_SCALE,q.w*WORLD_SCALE,q.d*WORLD_SCALE,q.height,styleIndexes[b.styleId]??0,(nearPoi?.name||nearPoi?.label||'').toString().slice(0,14).toUpperCase(),b.styleId||'downtown',{r:q.r,c:q.c,w:q.w,d:q.d,minR:q.minR,maxR:q.maxR,minC:q.minC,maxC:q.maxC,tiles:q.tiles,primary:partIndex===0,architecturalKind}]];
       }));
       const buildingDefs=worldSnapshot ? defsFromSnapshot(worldSnapshot) : fallbackBuildingDefs;
