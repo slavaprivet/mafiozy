@@ -1,4 +1,5 @@
-<!DOCTYPE html><!-- v231: service vehicles validate their full body against buildings; active hose trucks stay visible with their water stream. -->
+<!DOCTYPE html><!-- v232: ambulance depots and patient-side parking validate the full body so normal recovery never needs a watchdog teleport. -->
+<!-- v231: service vehicles validate their full body against buildings; active hose trucks stay visible with their water stream. -->
 <!-- v224: tow trucks drive the full road route and never teleport to a wreck. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
@@ -9135,14 +9136,20 @@ function _vehicleStep(v, dt) {
     // воду и закрытые зоны машины службы по-прежнему не проходят.
     const nextAng = Math.atan2(dr, dc);
     let safeAng=nextAng;
-    if(['ambulance','firetruck','tow','police','taxi'].includes(v.kind)){
+    if(['firetruck','tow'].includes(v.kind)){
       const oldAng=Number.isFinite(+v.ang)?+v.ang:nextAng;
       const turnDelta=Math.atan2(Math.sin(nextAng-oldAng),Math.cos(nextAng-oldAng));
       const turnLimit=Math.max(.04,Math.min(.22,dt*3.4));
       safeAng=oldAng+Math.max(-turnLimit,Math.min(turnLimit,turnDelta));
       if(!_serviceVehicleFootprintClear(v,ny,nx,safeAng)){
         if(_serviceVehicleFootprintClear(v,ny,nx,oldAng))safeAng=oldAng;
-        else {v._bodyBlockedSince||=performance.now();return false;}
+        else {
+          // At a tight road corner the nose cannot translate until the long
+          // body has turned. Rotate in place through collision-safe angles;
+          // the following frame can then advance along the same road path.
+          if(_serviceVehicleFootprintClear(v,v.y,v.x,safeAng))v.ang=safeAng;
+          v._bodyBlockedSince||=performance.now();return false;
+        }
       }
       v._bodyBlockedSince=0;
     }
@@ -9186,7 +9193,7 @@ function _hospitalAmbulanceBays(){
     const door=_hospitalDoorAt(hospital.r,hospital.c),candidates=[];
     for(let dr=-7;dr<=7;dr++)for(let dc=-7;dc<=7;dc++){
       const r=Math.floor(door.r)+dr+.5,c=Math.floor(door.c)+dc+.5;
-      if(_vehicleRoadPassable(r,c))candidates.push({r,c,d:Math.hypot(r-door.r,c-door.c)});
+      if(_vehicleRoadPassable(r,c)&&_serviceVehicleFootprintClear({kind:'ambulance',ang:0},r,c,0))candidates.push({r,c,d:Math.hypot(r-door.r,c-door.c)});
     }
     candidates.sort((a,b)=>a.d-b.d||a.r-b.r||a.c-b.c);
     let added=0;for(const spot of candidates){if(bays.filter(b=>b.hospitalId===hospital.id).every(b=>Math.hypot(b.r-spot.r,b.c-spot.c)>=1.8)){bays.push({r:spot.r,c:spot.c,hospitalId:hospital.id});added++;}if(added>=AMBULANCES_PER_HOSPITAL)break;}
@@ -9305,6 +9312,11 @@ function _ambulanceSceneParking(targetR,targetC,fromR,fromC,excludeVehicle=null)
   for(let dr=-7;dr<=7;dr++)for(let dc=-7;dc<=7;dc++){
     const r=tr+dr+.5,c=tc+dc+.5,d=Math.hypot(r-targetR,c-targetC);
     if(d<2.8||d>6.4||!_vehicleRoadPassable(r,c))continue;
+    const path=_bfsRoadPath(fromR,fromC,r,c,30);
+    if(!path?.length)continue;
+    const before=path.length>1?path[path.length-2]:{r:fromR,c:fromC};
+    const parkingAng=Math.atan2(r-before.r,c-before.c);
+    if(!_serviceVehicleFootprintClear({kind:'ambulance',ang:parkingAng},r,c,parkingAng))continue;
     let occupied=false;
     if(typeof CARS!=='undefined'&&Array.isArray(CARS))occupied=CARS.some(car=>car&&!car._towed&&Math.hypot((+car.r||0)-r,(+car.c||0)-c)<1.65);
     if(!occupied)occupied=serviceVehicles.some(other=>other!==excludeVehicle&&other?.state!=='done'&&Math.hypot((+other.y||0)-r,(+other.x||0)-c)<1.65);
@@ -9604,6 +9616,9 @@ function _ambulanceWatchdogAdvance(v,now=performance.now(),reason='stuck'){
   _ambulanceWatchdogCount++;
   document.documentElement.dataset.ambulanceWatchdogTeleports=String(_ambulanceWatchdogCount);
   document.documentElement.dataset.ambulanceWatchdogLast=reason;
+  document.documentElement.dataset.ambulanceWatchdogVehicle=String(v.id||'unknown');
+  document.documentElement.dataset.ambulanceWatchdogPosition=`${(+v.y||0).toFixed(2)}:${(+v.x||0).toFixed(2)}:${+v.pathIdx||0}/${v.path?.length||0}`;
+  document.documentElement.dataset.ambulanceWatchdogBodyClear=_serviceVehicleFootprintClear(v,+v.y||0,+v.x||0,+v.ang||0)?'1':'0';
   if(v.state==='returning'&&v.payload?.npc?._ambulanceInTransit){
     _completeAmbulanceHospitalDelivery(v,now,`watchdog:${reason}`);
     return true;
@@ -10167,6 +10182,7 @@ function dispatchEmergencyServices() {
       if(i===1){n._ambulanceDeliveredAt=now-5000;n._evacuatedAt=now-5000;n._evacuated=true;n._ambulanceDispatched=true;}
       if(i===2)n._ambulanceDispatched=true;
     });
+    if(_UP.has('previewambulancefocus')){player.r=door.r+5.2;player.c=door.c+5.1;player.vr=player.vc=0;}
     document.documentElement.dataset.previewAmbulanceQueueSeeded=String(testVictims.length);
   }
 
@@ -10198,7 +10214,7 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.ambulanceMedicsDeployed=String(fleet.reduce((sum,v)=>sum+(v._medicalCrew||[]).filter(m=>m.visible).length,0));
   document.documentElement.dataset.ambulanceParkingDistances=fleet.filter(v=>v.payload?.npc&&Number.isFinite(+v.sceneParkingR)).map(v=>Math.hypot(v.sceneParkingR-(v.payload.npc.r??v.payload.npc.y),v.sceneParkingC-(v.payload.npc.c??v.payload.npc.x)).toFixed(2)).join(',')||'idle';
   document.documentElement.dataset.ambulanceFieldRevives='0';
-  document.documentElement.dataset.ambulanceRecoveryPolicy='full-outbound-load-moving-road-return-with-retry-v227';
+  document.documentElement.dataset.ambulanceRecoveryPolicy='full-body-parking-outbound-load-road-return-no-normal-watchdog-v232';
 
   // Fire and towing use fixed visible fleets too: a free parked vehicle is dispatched,
   // completes the call, drives back to its own bay and waits for the next incident.
@@ -10315,6 +10331,7 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.towLoadingParking='three-permanent-bays-road-wreck-side-v230';
   document.documentElement.dataset.fireParkingDistances=serviceVehicles.filter(v=>v?.kind==='firetruck'&&_fireTruckTarget(v)).map(v=>Math.hypot(v.y-_fireTruckTarget(v).r,v.x-_fireTruckTarget(v).c).toFixed(2)).join(',')||'idle';
   document.documentElement.dataset.serviceBuildingOverlaps=serviceVehicles.filter(v=>v&&v.state!=='done'&&['firetruck','tow'].includes(v.kind)&&!_serviceVehicleFootprintClear(v,+v.y||0,+v.x||0,+v.ang||0)).map(v=>`${v.kind}:${v.id}`).join(',')||'0';
+  document.documentElement.dataset.ambulanceParkingBodyOverlaps=serviceVehicles.filter(v=>v?.kind==='ambulance'&&['ambulance_parked','medical_response','working'].includes(v.state)&&!_serviceVehicleFootprintClear(v,+v.y||0,+v.x||0,+v.ang||0)).map(v=>v.id).join(',')||'0';
   document.documentElement.dataset.serviceBuildingCollisionProfile='full-body-hard-world-v231';
   document.documentElement.dataset.towEligibleWrecks=String(CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).length);
   document.documentElement.dataset.towCandidateAges=CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).map(car=>Math.round(now-(+car._burnedOutAt||now))).join(',')||'idle';
@@ -26702,12 +26719,13 @@ function fire(angle = null) {
   const muzPt = muzzleWorldPoint(_shotAng);
   const sR = muzPt.r;
   const sC = muzPt.c;
-  if(forcedNpcShot&&forcedNpcDistance<=shotRange+1){const dr=(+forcedNpcShot.r||0)-sR,dc=(+forcedNpcShot.c||0)-sC,d=Math.max(.001,Math.hypot(dr,dc));dirY=dr/d;dirX=dc/d;_shotAng=Math.atan2(dirY,dirX);player.ang=_shotAng;shotRange=_weaponWallDistance(sR,sC,dirY,dirX,wcfg.range||8);document.documentElement.dataset.npcDirectRay=`${forcedNpcShotId}:${d.toFixed(2)}`;}
+  let forcedNpcHit=null;
+  if(forcedNpcShot&&forcedNpcDistance<=(wcfg.range||8)+1){const dr=(+forcedNpcShot.r||0)-sR,dc=(+forcedNpcShot.c||0)-sC,d=Math.max(.001,Math.hypot(dr,dc));dirY=dr/d;dirX=dc/d;_shotAng=Math.atan2(dirY,dirX);player.ang=_shotAng;shotRange=Math.max(_weaponWallDistance(sR,sC,dirY,dirX,wcfg.range||8),Math.min(wcfg.range||8,d+.2));forcedNpcHit={npc:forcedNpcShot,dist:d,point:{r:+forcedNpcShot.r||0,c:+forcedNpcShot.c||0}};document.documentElement.dataset.npcDirectRay=`${forcedNpcShotId}:${d.toFixed(2)}`;}
   _threeForcedNpcShotId=null;_threeForcedNpcShotUntil=0;
-  if(forcedVehicleShot&&forcedVehicleDistance<=shotRange+1){const dr=(+forcedVehicleShot.r||0)-sR,dc=(+forcedVehicleShot.c||0)-sC,d=Math.max(.001,Math.hypot(dr,dc));dirY=dr/d;dirX=dc/d;_shotAng=Math.atan2(dirY,dirX);player.ang=_shotAng;shotRange=_weaponWallDistance(sR,sC,dirY,dirX,wcfg.range||8);document.documentElement.dataset.vehicleDirectRay=`${forcedVehicleShotId}:${d.toFixed(2)}`;}
+  if(forcedVehicleShot&&forcedVehicleDistance<=(wcfg.range||8)+1){const dr=(+forcedVehicleShot.r||0)-sR,dc=(+forcedVehicleShot.c||0)-sC,d=Math.max(.001,Math.hypot(dr,dc));dirY=dr/d;dirX=dc/d;_shotAng=Math.atan2(dirY,dirX);player.ang=_shotAng;shotRange=Math.max(_weaponWallDistance(sR,sC,dirY,dirX,wcfg.range||8),Math.min(wcfg.range||8,d+.2));document.documentElement.dataset.vehicleDirectRay=`${forcedVehicleShotId}:${d.toFixed(2)}`;}
   _threeForcedVehicleShotId=null;_threeForcedVehicleShotUntil=0;
   const hitGasPump = _raycastGasPump(sR, sC, dirY, dirX, shotRange);
-  const hitDamageableCar = _raycastDamageableCar(sR,sC,dirY,dirX,shotRange);
+  const hitDamageableCar = forcedNpcHit?null:_raycastDamageableCar(sR,sC,dirY,dirX,shotRange);
   // Единый эффект выстрела: вспышка, звук, гильза и тряска. Раньше fire()
   // вызывал только spawnMuzzle, поэтому локальный выстрел мог быть беззвучным.
   spawnShot(sR, sC, _shotAng, currentWeapon, true);
@@ -26858,7 +26876,7 @@ function fire(angle = null) {
     triggerHitStop(wcfg.thick ? 35 : 18); addShake(wcfg.thick ? 3.5 : 2); hapticHit();
     return;
   }
-  const hitN  = (_meInJail || _bankInt || _buildingInt) ? null : _raycastNpc(sR, sC, dirY, dirX, range);
+  const hitN  = (_meInJail || _bankInt || _buildingInt) ? null : (forcedNpcHit||_raycastNpc(sR, sC, dirY, dirX, range));
   // Пляжники хранятся отдельно от NPCS, но являются такими же мирными целями.
   const hitB  = (_meInJail || _bankInt) ? null : _raycastBeachgoer(sR, sC, dirY, dirX, range);
   // Raycast по жителям-декору (автобусные пассажиры/хозяева парковок)
@@ -26912,6 +26930,7 @@ function fire(angle = null) {
       { hit: true, fromPlayer: true, weapon: currentWeapon });
     spawnImpact(hitN.point.r, hitN.point.c, currentWeapon);
     hitNpc(hitN.npc, dirY, dirX, currentWeapon, _currentShotDamage(weaponDamageAt(currentWeapon, hitN.dist)));
+    if(forcedNpcHit)document.documentElement.dataset.npcDirectHit=`${forcedNpcShotId}:${Math.max(0,+hitN.npc.hp||0).toFixed(1)}`;
     _showCurrentShotCritical(hitN.point.r, hitN.point.c, dirY, dirX);
     triggerHitStop(wcfg.thick ? 35 : 18);
     addShake(wcfg.thick ? 3.5 : 2);
@@ -56585,7 +56604,7 @@ window.Mafiozi3DBridge = Object.freeze({
   canStand(r, c) { return Number.isFinite(r) && Number.isFinite(c) && !isBlocked(r, c); },
 });
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
-if(_LOCAL_PREVIEW&&_UP.has('previewcombatregression'))setTimeout(()=>{const npc=NPCS.find(n=>n&&!n.dead&&!n._evacuated&&!n._ambientGang),car=(typeof CARS!=='undefined'?CARS:[]).find(x=>x&&!x._hidden&&!x._towed&&!x._destroySequenceAt&&!x._shotWrecked&&!x._wrecked&&!x.wrecked),until=performance.now()+12000;if(!npc||!car)return;document.documentElement.dataset.combatQaNpc=_threeNpcEntityId(npc);document.documentElement.dataset.combatQaVehicle=_threeVehicleEntityId(car);const pin=setInterval(()=>{if(performance.now()>until||npc.dead||car._shotWrecked||car._wrecked||car.wrecked){clearInterval(pin);return;}npc.r=player.r+3.2;npc.c=player.c+1.6;npc.tr=npc.r;npc.tc=npc.c;npc.walking=false;npc.moving=false;car.r=player.r+1.8;car.c=player.c-3.1;car.v=0;car.speed=0;},40);},1200);
+if(_LOCAL_PREVIEW&&_UP.has('previewcombatregression'))setTimeout(()=>{const npc=NPCS.find(n=>n&&!n.dead&&!n._evacuated&&!n._ambientGang),car=(typeof CARS!=='undefined'?CARS:[]).find(x=>x&&!x._hidden&&!x._towed&&!x._destroySequenceAt&&!x._shotWrecked&&!x._wrecked&&!x.wrecked),until=performance.now()+12000;if(!npc||!car)return;document.documentElement.dataset.combatQaNpc=_threeNpcEntityId(npc);document.documentElement.dataset.combatQaVehicle=_threeVehicleEntityId(car);const pin=setInterval(()=>{document.documentElement.dataset.combatQaNpcHp=String(Math.max(0,+npc.hp||0));document.documentElement.dataset.combatQaVehicleHp=String(Number.isFinite(+car._ballisticHp)?+car._ballisticHp:240);document.documentElement.dataset.combatQaVehicleHoles=String(+car._bulletHoleCount||0);if(performance.now()>until||npc.dead||car._shotWrecked||car._wrecked||car.wrecked){clearInterval(pin);return;}npc.r=player.r+3.2;npc.c=player.c+1.6;npc.tr=npc.r;npc.tc=npc.c;npc.walking=false;npc.moving=false;car.r=player.r+1.8;car.c=player.c-3.1;car.v=0;car.speed=0;},40);},1200);
 if(_LOCAL_PREVIEW&&_UP.get('threebusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInterior(_UP.get('threebusiness')),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewjunkyardstream'))setTimeout(()=>window.Mafiozi3DBridge.previewApproachJunkyard(),1600);
 if(_LOCAL_PREVIEW&&_UP.has('previewjunkyard')){
@@ -60356,6 +60375,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d231"></script>
+<script type="module" src="three_preview.js?v=3d232"></script>
 </body>
 </html>
