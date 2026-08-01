@@ -1,4 +1,5 @@
-<!DOCTYPE html><!-- v224: tow trucks drive the full road route and never teleport to a wreck. -->
+<!DOCTYPE html><!-- v230: fire engines drive connected road routes before a 14-second stall fallback; compact hose spray and staged tow loading/carrying. -->
+<!-- v224: tow trucks drive the full road route and never teleport to a wreck. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
 <!-- 3D sync v199: loading stays masked until the full frame, vehicle shots lock to the clicked mesh, and collapsed wrecks burn with textured pooled flames. -->
@@ -9585,17 +9586,23 @@ function _dispatchPlayerAmbulance(){
   else _playerEmergencyPatient=null;
 }
 
-function _fireTruckParkingPoint(targetR,targetC){
-  let best=null,bestScore=Infinity;
+function _fireTruckParkingPoint(targetR,targetC,fromR=FIRE_STATION_R,fromC=FIRE_STATION_C){
+  let best=null,bestScore=Infinity,unrouted=null,unroutedScore=Infinity;
   const r0=Math.floor(targetR),c0=Math.floor(targetC);
   for(let dr=-6;dr<=6;dr++)for(let dc=-6;dc<=6;dc++){
     const r=r0+dr+.5,c=c0+dc+.5,d=Math.hypot(r-targetR,c-targetC);
     if(d<2.8||d>FIRETRUCK_HOSE_RANGE-.25||!_vehicleRoadPassable(r,c))continue;
-    if(_vehicleBlockedByCar({kind:'firetruck'},r,c))continue;
-    const score=Math.abs(d-3.65)+Math.hypot(r-FIRE_STATION_R,c-FIRE_STATION_C)*.004;
-    if(score<bestScore){bestScore=score;best={r,c};}
+    const path=_bfsRoadPath(fromR,fromC,r,c,30);
+    const score=Math.abs(d-3.65)+(path?.length||0)*.004;
+    if(!path?.length){if(Math.abs(d-3.65)<unroutedScore){unroutedScore=Math.abs(d-3.65);unrouted={r,c,path:[]};}continue;}
+    if(score<bestScore){bestScore=score;best={r,c,path};}
   }
-  return best;
+  if(best)return best;
+  if(unrouted)return unrouted;
+  const road=_nearestRoadTile(targetR,targetC,12);
+  if(!road)return null;
+  const r=road.r+.5,c=road.c+.5,path=_bfsRoadPath(fromR,fromC,r,c,30);
+  return {r,c,path:path||[]};
 }
 
 function spawnFireTruck(targetR, targetC, fireRef, carRef) {
@@ -9610,11 +9617,12 @@ function spawnFireTruck(targetR, targetC, fireRef, carRef) {
   const fleet=_ensureFireTruckFleet();
   const v=fleet.filter(q=>q.state==='firetruck_parked').sort((a,b)=>Math.hypot(a.y-targetR,a.x-targetC)-Math.hypot(b.y-targetR,b.x-targetC))[0];
   if(!v)return null;
-  const parking=_fireTruckParkingPoint(targetR,targetC);
+  const parking=_fireTruckParkingPoint(targetR,targetC,v.y,v.x);
+  if(!parking)return null;
   v.speed=FIRETRUCK_RESPONSE_SPEED;v.state='go_to_scene';v.workUntil=0;v.payload={fireRef,carRef};
-  v._fireAborted=false;v._lastMoveT=performance.now();v._prevX=v.x;v._prevY=v.y;
+  v._fireAborted=false;v._fireRouteRetries=0;v._fireNextRouteRetry=0;v._responseStartedAt=performance.now();v._fireOutboundMoveObserved=false;v._lastMoveT=v._responseStartedAt;v._prevX=v.x;v._prevY=v.y;
   v.sceneParkingR=parking?.r;v.sceneParkingC=parking?.c;
-  _setVehicleRoute(v, v.y, v.x, parking?.r??targetR, parking?.c??targetC);
+  v.path=parking.path||[];v.pathIdx=0;v.finalTarget={x:parking.c,y:parking.r};v._offroadRoute=false;
   if (fireRef && fireRef.kind === 'gas_station' && (!v.path || !v.path.length)) {
     v.path = _bfsFireStationPath(v.y,v.x,targetR,targetC) || [];
     v.pathIdx = 0;
@@ -9723,6 +9731,38 @@ function _teleportTowTruckAfterStall(v,now){
   v.y=parking.r;v.x=parking.c;v.path=[];v.pathIdx=0;v._lastMoveT=now;
   document.documentElement.dataset.towEmergencyTeleport='scene-after-14s-stall-v224';
   return _beginTowLoadingAtScene(v,now);
+}
+
+function _rerouteFireTruck(v,now,reason='route-rebuild'){
+  if(v?.kind!=='firetruck')return false;
+  const target=_fireTruckTarget(v);
+  if(!target){_abortFireTruckJob(v);return false;}
+  v._fireRouteRetries=(+v._fireRouteRetries||0)+1;
+  document.documentElement.dataset.fireRouteRetries=String(v._fireRouteRetries);
+  document.documentElement.dataset.fireRouteLast=reason;
+  const parking=_fireTruckParkingPoint(target.r,target.c,v.y,v.x);
+  if(!parking?.path?.length){v.path=[];v.pathIdx=0;v._fireNextRouteRetry=now+1200;document.documentElement.dataset.fireRouteLast='waiting-for-connected-road';return false;}
+  v.sceneParkingR=parking.r;v.sceneParkingC=parking.c;
+  v.path=parking.path;v.pathIdx=0;v.finalTarget={x:parking.c,y:parking.r};v._offroadRoute=false;
+  v.state='go_to_scene';v._lastMoveT=now;
+  return true;
+}
+
+function _teleportFireTruckAfterStall(v,now){
+  if(v?.kind!=='firetruck')return false;
+  if(v.state==='returning'){
+    _parkPermanentServiceVehicle(v,now,'watchdog:return-stall');
+    document.documentElement.dataset.fireEmergencyTeleport='depot-after-14s-stall-v230';
+    return true;
+  }
+  const target=_fireTruckTarget(v);
+  if(!target){_abortFireTruckJob(v);return false;}
+  const parking=(Number.isFinite(+v.sceneParkingR)&&Number.isFinite(+v.sceneParkingC))
+    ?{r:+v.sceneParkingR,c:+v.sceneParkingC}:_fireTruckParkingPoint(target.r,target.c,v.y,v.x);
+  if(!parking){_abortFireTruckJob(v);return false;}
+  v.y=parking.r;v.x=parking.c;v.path=[];v.pathIdx=0;v._lastMoveT=now;
+  document.documentElement.dataset.fireEmergencyTeleport='scene-after-14s-stall-v230';
+  return _startFireTruckWater(v,now);
 }
 
 // ── Полиция при ограблении банка ────────────────────────────────────
@@ -9893,6 +9933,11 @@ function updateServiceVehicles(dt) {
         document.documentElement.dataset.ambulanceReturnState='driving';
         document.documentElement.dataset.ambulanceReturnMoves=String((+document.documentElement.dataset.ambulanceReturnMoves||0)+1);
       }
+      if(v.kind==='firetruck'&&v.state==='go_to_scene'&&moved>0.04){
+        v._fireOutboundMoveObserved=true;
+        document.documentElement.dataset.fireOutboundState='driving';
+        document.documentElement.dataset.fireOutboundMoves=String((+document.documentElement.dataset.fireOutboundMoves||0)+1);
+      }
       if((v.kind==='firetruck'||v.kind==='tow')&&v.state==='returning'&&moved>0.04){
         v._serviceReturnMoveObserved=true;
         const prefix=v.kind==='firetruck'?'fire':'tow';
@@ -9919,8 +9964,7 @@ function updateServiceVehicles(dt) {
       // Застрявшая пожарка не умеет тушить через полкарты: вызов отменяется,
       // после её ухода диспетчер сможет отправить другую машину.
       if (v.kind === 'firetruck') {
-        if(v.state==='returning')_parkPermanentServiceVehicle(v,now,'watchdog:return-stall');
-        else _abortFireTruckJob(v);
+        _teleportFireTruckAfterStall(v,now);
         continue;
       }
       if (v.kind === 'tow') {
@@ -9939,10 +9983,7 @@ function updateServiceVehicles(dt) {
           // Если карта редактора разорвала дорожный граф, бригада всё равно
           // появляется у ближайшего проезда и полноценно тушит, а не гасит
           // пожар невидимо в ту же секунду.
-          const target=_fireTruckTarget(v),ft=target||v.finalTarget||{y:v.y,x:v.x};
-          const fallback=(Number.isFinite(+v.sceneParkingR)&&Number.isFinite(+v.sceneParkingC))?{r:+v.sceneParkingR,c:+v.sceneParkingC}:_fireTruckParkingPoint(ft.r??ft.y,ft.c??ft.x);
-          if(fallback){v.y=fallback.r;v.x=fallback.c;}
-          if(!_startFireTruckWater(v,now)){_abortFireTruckJob(v);continue;}
+          if(now>=(+v._fireNextRouteRetry||0))_rerouteFireTruck(v,now,'empty-road-route');
           continue;
         }
         if(v.kind==='tow'){
@@ -10067,7 +10108,7 @@ function dispatchEmergencyServices() {
   const now = performance.now();
   if (now < _nextEmergencyScan) return;
   _nextEmergencyScan = now + 1500;
-  document.documentElement.dataset.specialServicePriority='ambulance-firetruck-tow-police-taxi-road-only-v218';
+  document.documentElement.dataset.specialServicePriority='ambulance-firetruck-tow-police-taxi-road-first-stall-fallback-v230';
 
   if(_LOCAL_PREVIEW&&_UP.has('previewambulancequeue')&&!document.documentElement.dataset.previewAmbulanceQueueSeeded){
     const testVictims=NPCS.filter(n=>_isRespawnableResident(n)&&!n.dead).slice(0,5),door=_hospitalDoor();
@@ -10139,7 +10180,7 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.towFleetSize=String(towFleet.length);
   document.documentElement.dataset.towParked=String(towFleet.filter(v=>v.state==='tow_parked').length);
   document.documentElement.dataset.towBusy=String(towFleet.filter(v=>v.state!=='tow_parked').length);
-  document.documentElement.dataset.serviceFleetProfile='persistent-visible-fire-and-tow-road-return-v228';
+  document.documentElement.dataset.serviceFleetProfile='persistent-visible-fire-and-tow-road-return-v230';
 
   // Пляжники живут в отдельной Map и не входят в NPCS — им нужен свой вызов.
   for (const b of beachgoers.values()) {
@@ -10222,8 +10263,8 @@ function dispatchEmergencyServices() {
   }
 
   document.documentElement.dataset.specialServiceStates=serviceVehicles.filter(v=>v&&v.state!=='done').map(v=>`${v.kind}:${v.state}`).join(',')||'idle';
-  document.documentElement.dataset.fireVisibleParking='three-permanent-bays-road-hose-range-v228';
-  document.documentElement.dataset.towLoadingParking='three-permanent-bays-road-wreck-side-v228';
+  document.documentElement.dataset.fireVisibleParking='three-permanent-bays-road-hose-range-v230';
+  document.documentElement.dataset.towLoadingParking='three-permanent-bays-road-wreck-side-v230';
   document.documentElement.dataset.fireParkingDistances=serviceVehicles.filter(v=>v?.kind==='firetruck'&&_fireTruckTarget(v)).map(v=>Math.hypot(v.y-_fireTruckTarget(v).r,v.x-_fireTruckTarget(v).c).toFixed(2)).join(',')||'idle';
   document.documentElement.dataset.towEligibleWrecks=String(CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).length);
   document.documentElement.dataset.towCandidateAges=CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).map(car=>Math.round(now-(+car._burnedOutAt||now))).join(',')||'idle';
@@ -56188,6 +56229,9 @@ window.Mafiozi3DBridge = Object.freeze({
         dirR:Math.sin(+v.ang||0),dirC:Math.cos(+v.ang||0),velR:0,velC:0,
         braking:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='working'||v.state==='medical_response'||v.state==='siege',turning:false,
         serviceKind:v.kind,serviceState:v.state,medicalDoorsOpen:medicalDoorProgress>.5,medicalDoorProgress,
+        fireWorkProgress:fire&&v.state==='working'?Math.max(0,Math.min(1,(fxNow-(+v._waterStartedAt||fxNow))/Math.max(1,+v.workDuration||4500))):0,
+        fireHoseAngle:fire&&Number.isFinite(+v._hoseAng)?+v._hoseAng:null,
+        towLoadProgress:tow?Math.max(0,Math.min(1,+v._loadProgress||0)):0,towLoaded:tow&&!!v._loaded,
       });
       if(tow&&v._loaded&&v.payload?.carRef){
         const load=v.payload.carRef,model=typeof resolveCarModel==='function'?resolveCarModel(load.model):(load.model||{});
@@ -56320,10 +56364,16 @@ window.Mafiozi3DBridge = Object.freeze({
       if(v?.kind!=='firetruck'||v.state!=='working')continue;
       const target=_fireTruckTarget(v);if(!target)continue;
       const dr=target.r-v.y,dc=target.c-v.x,dist=Math.hypot(dr,dc)||1;
-      for(let j=1;j<=22;j++){const k=j/23,wave=Math.sin(performance.now()*.016+j*1.35)*.085*(1-k);serviceWater.push({
+      const pulse=(performance.now()*.0028)%1;
+      for(let j=0;j<16;j++){const k=((j/16+pulse)%1)*.94+.03,wave=Math.sin(performance.now()*.009+j*1.61)*.026*(1-k);serviceWater.push({
         id:`water_${v.id}_${j}`,r:v.y+dr*k+wave*dc/dist,c:v.x+dc*k-wave*dr/dist,
-        vr:dr/dist*8,vc:dc/dist*8,ang:Math.atan2(dr,dc),color:j%4?'#54c9ff':'#effcff',weapon:'water_hose',fromNpc:true,thick:true,
-        bulletScale:j%3===0?2.7:2.15,trailScale:2.8,
+        vr:dr/dist*7.2,vc:dc/dist*7.2,ang:Math.atan2(dr,dc),color:j%5?'#67d7ff':'#e8fbff',weapon:'water_hose',fromNpc:true,thick:false,
+        bulletScale:j%4===0?.52:.38,trailScale:j%3===0?.92:.68,startZ:1,endZ:-1,dist:k*dist,maxDist:dist,
+      });}
+      for(let j=0;j<5;j++){const a=j*2.399+performance.now()*.004,k=.94+(j%2)*.035;serviceWater.push({
+        id:`mist_${v.id}_${j}`,r:v.y+dr*k+Math.sin(a)*.13,c:v.x+dc*k+Math.cos(a)*.13,
+        vr:dr/dist*2.1,vc:dc/dist*2.1,ang:Math.atan2(dr,dc),color:'#c8f4ff',weapon:'water_hose',fromNpc:true,thick:false,
+        bulletScale:.2+(j%3)*.045,trailScale:.2,startZ:.02,endZ:0,dist:dist,maxDist:dist,
       });}
     }
     const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&!x._finished&&Number.isFinite(+x.r)&&Number.isFinite(+x.c)&&Number.isFinite(+x.vr)&&Number.isFinite(+x.vc)&&near(+x.r,+x.c)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,tracked:!!x.targetVehicle,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
