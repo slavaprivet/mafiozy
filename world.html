@@ -8854,12 +8854,15 @@ const serviceVehicles = [];
 let _svcVehId = 0;
 let _playerEmergencyPatient=null;
 const AMBULANCES_PER_HOSPITAL=3,AMBULANCE_FLEET_SIZE=6,AMBULANCE_RESPONSE_SPEED=8.6;
+const FIRETRUCK_FLEET_SIZE=3,FIRETRUCK_RESPONSE_SPEED=7.4;
+const TOW_FLEET_SIZE=3,TOW_RESPONSE_SPEED=6.6;
 const AMBULANCE_ROUTE_RETRY_MS=900,AMBULANCE_ROUTE_GRACE_MS=5200;
 const AMBULANCE_DEPLOY_PARKING_TOLERANCE=1.6,AMBULANCE_DEPLOY_MAX_PATIENT_DISTANCE=7.25;
 let _ambulanceDeliveryCount=0;
 let _ambulanceWatchdogCount=0;
 let _ambulanceHospitalRecoveryCount=0;
 let _hospitalAmbulanceBaysCache=null;
+let _fireTruckBaysCache=null,_towTruckBaysCache=null;
 // Пожарка остаётся на дороге, а очаг нередко находится на тротуаре/газоне.
 // 4.5 тайла не хватало до ближайшей законной точки остановки, из-за чего
 // машина приезжала и стояла без воды. Длина штатного рукава покрывает 8 тайлов.
@@ -9165,6 +9168,63 @@ function _ensureAmbulanceFleet(){
 function _fireStationDoor() {
   const d = _nearestRoadTile(FIRE_STATION_R, FIRE_STATION_C);
   return d ? { r: d.r + 0.5, c: d.c + 0.5 } : { r: FIRE_STATION_R, c: FIRE_STATION_C };
+}
+
+function _serviceDepotBays(originR,originC,count){
+  const door=_nearestRoadTile(originR,originC,20),center=door?{r:door.r+.5,c:door.c+.5}:{r:originR,c:originC};
+  const candidates=[];
+  for(let dr=-9;dr<=9;dr++)for(let dc=-9;dc<=9;dc++){
+    const r=Math.floor(center.r)+dr+.5,c=Math.floor(center.c)+dc+.5;
+    if(!_vehicleRoadPassable(r,c))continue;
+    candidates.push({r,c,d:Math.hypot(r-center.r,c-center.c)});
+  }
+  candidates.sort((a,b)=>a.d-b.d||a.r-b.r||a.c-b.c);
+  const bays=[];
+  for(const spot of candidates){
+    if(bays.every(b=>Math.hypot(b.r-spot.r,b.c-spot.c)>=2.05))bays.push({r:spot.r,c:spot.c});
+    if(bays.length>=count)break;
+  }
+  while(bays.length<count)bays.push({r:center.r,c:center.c});
+  return bays;
+}
+function _fireTruckBays(){return _fireTruckBaysCache||= _serviceDepotBays(FIRE_STATION_R,FIRE_STATION_C,FIRETRUCK_FLEET_SIZE);}
+function _towTruckBays(){return _towTruckBaysCache||= _serviceDepotBays(JUNKYARD_R,JUNKYARD_C,TOW_FLEET_SIZE);}
+function _ensurePermanentServiceFleet(kind,count,bays,parkedState){
+  const live=serviceVehicles.filter(v=>v?.kind===kind&&v.state!=='done'),occupied=new Set(live.map(v=>+v.fleetSlot||0));
+  for(let slot=0;slot<count;slot++){
+    if(occupied.has(slot))continue;
+    const bay=bays[slot]||bays[0];
+    serviceVehicles.push({id:`${kind==='firetruck'?'fire':'tow'}_${++_svcVehId}`,kind,x:bay.c,y:bay.r,ang:0,speed:0,
+      state:parkedState,workUntil:0,payload:{},homeR:bay.r,homeC:bay.c,fleetSlot:slot,path:[],pathIdx:0,
+      finalTarget:null,_loaded:false,_loadProgress:0,_lastMoveT:performance.now()});
+  }
+  return serviceVehicles.filter(v=>v?.kind===kind&&v.state!=='done');
+}
+function _ensureFireTruckFleet(){return _ensurePermanentServiceFleet('firetruck',FIRETRUCK_FLEET_SIZE,_fireTruckBays(),'firetruck_parked');}
+function _ensureTowTruckFleet(){return _ensurePermanentServiceFleet('tow',TOW_FLEET_SIZE,_towTruckBays(),'tow_parked');}
+function _parkPermanentServiceVehicle(v,now=performance.now(),mode='road-arrival'){
+  if(!v||!['firetruck','tow'].includes(v.kind))return false;
+  if(v.kind==='firetruck')_releaseAbortedFireCall(v);else _releaseFailedTowCall(v);
+  v.payload={};v.path=[];v.pathIdx=0;v.finalTarget=null;v.speed=0;v.workUntil=0;
+  v._loaded=false;v._loadProgress=0;v._towRouteRetries=0;v._hoseAng=null;
+  v.x=v.homeC;v.y=v.homeR;v.state=v.kind==='firetruck'?'firetruck_parked':'tow_parked';v._lastMoveT=now;
+  const prefix=v.kind==='firetruck'?'fire':'tow',road=mode==='road-arrival'&&v._serviceReturnMoveObserved===true;
+  const key=road?`${prefix}RoadReturns`:`${prefix}EmergencyReturns`;
+  document.documentElement.dataset[key]=String((+document.documentElement.dataset[key]||0)+1);
+  document.documentElement.dataset[`${prefix}ReturnLast`]=road?'road-arrival':mode;
+  v._serviceReturnMoveObserved=false;
+  return true;
+}
+function _sendPermanentServiceHome(v,now=performance.now(),reason='job-complete'){
+  if(!v||!['firetruck','tow'].includes(v.kind))return false;
+  v.speed=v.kind==='firetruck'?FIRETRUCK_RESPONSE_SPEED:TOW_RESPONSE_SPEED;v.state='returning';v._lastMoveT=now;
+  v._prevX=v.x;v._prevY=v.y;v._serviceReturnMoveObserved=false;
+  _setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
+  document.documentElement.dataset[`${v.kind==='firetruck'?'fire':'tow'}ReturnState`]=v.path?.length?'driving':`no-route:${reason}`;
+  if(v.path?.length)return true;
+  if(v.kind==='tow'&&v._loaded)_completeTowRemoval(v);
+  _parkPermanentServiceVehicle(v,now,`no-route:${reason}`);
+  return false;
 }
 
 function _setVehicleRoute(v, fromR, fromC, toR, toC) {
@@ -9541,30 +9601,24 @@ function _fireTruckParkingPoint(targetR,targetC){
 function spawnFireTruck(targetR, targetC, fireRef, carRef) {
   // Не дублировать — если в радиусе 3 уже едет пожарка, ничего не делаем
   for (const v of serviceVehicles) {
-    if (v.kind !== 'firetruck' || v.state === 'done') continue;
+    if (v.kind !== 'firetruck' || v.state === 'done' || v.state === 'firetruck_parked') continue;
     if ((carRef && v.payload?.carRef === carRef) || (fireRef && v.payload?.fireRef === fireRef)) return null;
     const ft = v.finalTarget || { x: 0, y: 0 };
     const dr = ft.y - targetR, dc = ft.x - targetC;
     if (Math.hypot(dr, dc) < 3) return null;
   }
-  const door = _fireStationDoor();
+  const fleet=_ensureFireTruckFleet();
+  const v=fleet.filter(q=>q.state==='firetruck_parked').sort((a,b)=>Math.hypot(a.y-targetR,a.x-targetC)-Math.hypot(b.y-targetR,b.x-targetC))[0];
+  if(!v)return null;
   const parking=_fireTruckParkingPoint(targetR,targetC);
-  const v = {
-    id: 'fire_' + (++_svcVehId), kind: 'firetruck',
-    x: door.c, y: door.r,
-    ang: 0, speed: 7.4,
-    state: 'go_to_scene', workUntil: 0,
-    payload: { fireRef, carRef },
-    homeR: FIRE_STATION_R, homeC: FIRE_STATION_C,
-    path: [], pathIdx: 0, finalTarget: null,
-  };
+  v.speed=FIRETRUCK_RESPONSE_SPEED;v.state='go_to_scene';v.workUntil=0;v.payload={fireRef,carRef};
+  v._fireAborted=false;v._lastMoveT=performance.now();v._prevX=v.x;v._prevY=v.y;
   v.sceneParkingR=parking?.r;v.sceneParkingC=parking?.c;
-  _setVehicleRoute(v, door.r, door.c, parking?.r??targetR, parking?.c??targetC);
+  _setVehicleRoute(v, v.y, v.x, parking?.r??targetR, parking?.c??targetC);
   if (fireRef && fireRef.kind === 'gas_station' && (!v.path || !v.path.length)) {
-    v.path = _bfsFireStationPath(door.r,door.c,targetR,targetC) || [];
+    v.path = _bfsFireStationPath(v.y,v.x,targetR,targetC) || [];
     v.pathIdx = 0;
   }
-  serviceVehicles.push(v);
   return v;
 }
 
@@ -9594,28 +9648,20 @@ function _towTruckParkingPoint(targetR,targetC,fromR=JUNKYARD_R,fromC=JUNKYARD_C
 }
 function spawnTowTruck(targetR, targetC, carRef) {
   for (const v of serviceVehicles) {
-    if (v.kind !== 'tow' || v.state === 'done') continue;
+    if (v.kind !== 'tow' || v.state === 'done' || v.state === 'tow_parked') continue;
     if (carRef && v.payload?.carRef === carRef) return null;
     const ft = v.finalTarget || { x: 0, y: 0 };
     if (Math.hypot(ft.y - targetR, ft.x - targetC) < 3) return null;
   }
-  const junkRoad = _nearestRoadTile(JUNKYARD_R, JUNKYARD_C, 16);
-  const door = junkRoad ? {r:junkRoad.r+.5,c:junkRoad.c+.5} : _fireStationDoor();
-  const parking=_towTruckParkingPoint(targetR,targetC,door.r,door.c);
+  const fleet=_ensureTowTruckFleet();
+  const v=fleet.filter(q=>q.state==='tow_parked').sort((a,b)=>Math.hypot(a.y-targetR,a.x-targetC)-Math.hypot(b.y-targetR,b.x-targetC))[0];
+  if(!v)return null;
+  const parking=_towTruckParkingPoint(targetR,targetC,v.y,v.x);
   if(!parking)return null;
-  const v = {
-    id: 'tow_' + (++_svcVehId), kind: 'tow',
-    x: door.c, y: door.r,
-    ang: 0, speed: 6.6,
-    state: 'go_to_scene', workUntil: 0,
-    payload: { carRef },
-    homeR: JUNKYARD_R, homeC: JUNKYARD_C,
-    path: [], pathIdx: 0, finalTarget: null,
-    _loaded: false, _loadProgress: 0,
-  };
+  v.speed=TOW_RESPONSE_SPEED;v.state='go_to_scene';v.workUntil=0;v.payload={carRef};
+  v._loaded=false;v._loadProgress=0;v._towRouteRetries=0;v._lastMoveT=performance.now();v._prevX=v.x;v._prevY=v.y;
   v.sceneParkingR=parking?.r;v.sceneParkingC=parking?.c;
   v.path=parking.path;v.pathIdx=0;v.finalTarget={x:parking.c,y:parking.r};v._offroadRoute=false;
-  serviceVehicles.push(v);
   return v;
 }
 
@@ -9623,7 +9669,7 @@ function _beginTowLoadingAtScene(v,now){
   const car=v?.payload?.carRef;
   if(v?.kind!=='tow'||!car||car._towed||(myDrivingCarId&&String(car.id)===String(myDrivingCarId))){
     _releaseFailedTowCall(v);
-    if(v)v.state='done';
+    if(v)_sendPermanentServiceHome(v,now,'invalid-scene-call');
     return false;
   }
   const targetR=+(car.r??car.y),targetC=+(car.c??car.x);
@@ -9639,7 +9685,7 @@ function _rerouteTowTruck(v,now,reason='route-rebuild'){
   if(v?.kind!=='tow')return false;
   const car=v.payload?.carRef;
   if(!car||car._towed&&!v._loaded||(myDrivingCarId&&String(car.id)===String(myDrivingCarId))){
-    _releaseFailedTowCall(v);v.state='done';return false;
+    _releaseFailedTowCall(v);_sendPermanentServiceHome(v,now,'invalid-reroute-call');return false;
   }
   v._towRouteRetries=(+v._towRouteRetries||0)+1;
   document.documentElement.dataset.towRouteRetries=String(v._towRouteRetries);
@@ -9662,18 +9708,18 @@ function _rerouteTowTruck(v,now,reason='route-rebuild'){
 function _teleportTowTruckAfterStall(v,now){
   if(v?.kind!=='tow')return false;
   if(v._loaded){
-    _completeTowRemoval(v);v.state='done';
+    _completeTowRemoval(v);_parkPermanentServiceVehicle(v,now,'watchdog:loaded-return-stall');
     document.documentElement.dataset.towEmergencyTeleport='loaded-return-after-14s-stall-v224';
     return true;
   }
   const car=v.payload?.carRef;
   if(!car||car._towed||(myDrivingCarId&&String(car.id)===String(myDrivingCarId))){
-    _releaseFailedTowCall(v);v.state='done';return false;
+    _releaseFailedTowCall(v);_sendPermanentServiceHome(v,now,'watchdog:invalid-call');return false;
   }
   const targetR=+(car.r??car.y),targetC=+(car.c??car.x);
   const parking=(Number.isFinite(+v.sceneParkingR)&&Number.isFinite(+v.sceneParkingC))
     ?{r:+v.sceneParkingR,c:+v.sceneParkingC}:_nearestRoadTile(targetR,targetC,12);
-  if(!parking){_releaseFailedTowCall(v);v.state='done';return false;}
+  if(!parking){_releaseFailedTowCall(v);_sendPermanentServiceHome(v,now,'watchdog:no-scene-parking');return false;}
   v.y=parking.r;v.x=parking.c;v.path=[];v.pathIdx=0;v._lastMoveT=now;
   document.documentElement.dataset.towEmergencyTeleport='scene-after-14s-stall-v224';
   return _beginTowLoadingAtScene(v,now);
@@ -9771,9 +9817,7 @@ function _abortFireTruckJob(v) {
   if(!v||v.kind!=='firetruck')return;
   v._fireAborted=true;
   document.documentElement.dataset.fireServiceLast=`aborted:${(_fireTruckTarget(v)?Math.hypot(_fireTruckTarget(v).r-v.y,_fireTruckTarget(v).c-v.x):0).toFixed(2)}`;
-  v.state='returning';
-  _setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
-  if(!v.path||!v.path.length)v.state='done';
+  _sendPermanentServiceHome(v,performance.now(),'aborted-call');
 }
 function _releaseAbortedFireCall(v) {
   if(!v?._fireAborted||!v.payload)return;
@@ -9829,6 +9873,10 @@ function updateServiceVehicles(dt) {
       v.speed=0;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
       continue;
     }
+    if(v.state==='firetruck_parked'||v.state==='tow_parked'){
+      v.speed=0;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
+      continue;
+    }
     // Безопасник: считаем сколько машина НЕ двигается. 14 сек подряд
     // без движения — точно застряла (пробка не должна столько висеть,
     // у обычных тачек _stuckT тоже триггерит респаун за 14с). Раньше
@@ -9844,6 +9892,12 @@ function updateServiceVehicles(dt) {
         v._ambulanceReturnMoveObserved=true;
         document.documentElement.dataset.ambulanceReturnState='driving';
         document.documentElement.dataset.ambulanceReturnMoves=String((+document.documentElement.dataset.ambulanceReturnMoves||0)+1);
+      }
+      if((v.kind==='firetruck'||v.kind==='tow')&&v.state==='returning'&&moved>0.04){
+        v._serviceReturnMoveObserved=true;
+        const prefix=v.kind==='firetruck'?'fire':'tow';
+        document.documentElement.dataset[`${prefix}ReturnState`]='driving';
+        document.documentElement.dataset[`${prefix}ReturnMoves`]=String((+document.documentElement.dataset[`${prefix}ReturnMoves`]||0)+1);
       }
     } else {
       v._lastMoveT = now;
@@ -9864,7 +9918,11 @@ function updateServiceVehicles(dt) {
     if (now - v._lastMoveT > 14000) {
       // Застрявшая пожарка не умеет тушить через полкарты: вызов отменяется,
       // после её ухода диспетчер сможет отправить другую машину.
-      if (v.kind === 'firetruck') {_abortFireTruckJob(v);continue;}
+      if (v.kind === 'firetruck') {
+        if(v.state==='returning')_parkPermanentServiceVehicle(v,now,'watchdog:return-stall');
+        else _abortFireTruckJob(v);
+        continue;
+      }
       if (v.kind === 'tow') {
         if(_teleportTowTruckAfterStall(v,now))continue;
       }
@@ -9973,8 +10031,8 @@ function updateServiceVehicles(dt) {
           cr._towLoadingProgress=1;
         }
       }
-      v.state = 'returning';
-      _setVehicleRoute(v, v.y, v.x, v.homeR, v.homeC);
+      if(v.kind==='firetruck'||v.kind==='tow')_sendPermanentServiceHome(v,now,'job-complete');
+      else {v.state = 'returning';_setVehicleRoute(v, v.y, v.x, v.homeR, v.homeC);}
     } else if (v.state === 'returning') {
       if(v.kind==='ambulance'&&(!v.path||v.path.length===0)){
         v._returnRouteMissingSince||=now;
@@ -9997,8 +10055,8 @@ function updateServiceVehicles(dt) {
         // CARS и доспавниваем свежую (трафик не редеет, машины не
         // пропадают навсегда).
         if (v.kind === 'tow' && v._loaded) _completeTowRemoval(v);
-        _releaseAbortedFireCall(v);
-        v.state = 'done';
+        if(v.kind==='firetruck'||v.kind==='tow')_parkPermanentServiceVehicle(v,now,'road-arrival');
+        else {_releaseAbortedFireCall(v);v.state = 'done';}
       }
     }
   }
@@ -10053,6 +10111,35 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.ambulanceParkingDistances=fleet.filter(v=>v.payload?.npc&&Number.isFinite(+v.sceneParkingR)).map(v=>Math.hypot(v.sceneParkingR-(v.payload.npc.r??v.payload.npc.y),v.sceneParkingC-(v.payload.npc.c??v.payload.npc.x)).toFixed(2)).join(',')||'idle';
   document.documentElement.dataset.ambulanceFieldRevives='0';
   document.documentElement.dataset.ambulanceRecoveryPolicy='full-outbound-load-moving-road-return-with-retry-v227';
+
+  // Fire and towing use fixed visible fleets too: a free parked vehicle is dispatched,
+  // completes the call, drives back to its own bay and waits for the next incident.
+  const fireFleet=_ensureFireTruckFleet(),towFleet=_ensureTowTruckFleet();
+  if(_LOCAL_PREVIEW&&_UP.has('previewservicefleet')&&!document.documentElement.dataset.previewServiceFleetSeeded&&CARS.length>=2){
+    const nearbyRoad=(homeR,homeC)=>{
+      let best=null,bestScore=Infinity;
+      for(let dr=-10;dr<=10;dr++)for(let dc=-10;dc<=10;dc++){
+        const r=Math.floor(homeR)+dr+.5,c=Math.floor(homeC)+dc+.5,d=Math.hypot(r-homeR,c-homeC);
+        if(d<6||d>10||!_vehicleRoadPassable(r,c))continue;
+        const path=_bfsRoadPath(homeR,homeC,r,c,24);
+        if(path?.length&&Math.abs(d-8)<bestScore){bestScore=Math.abs(d-8);best={r,c};}
+      }
+      return best||{r:homeR,c:homeC};
+    };
+    const fireCar=CARS.find(car=>car&&String(car.id)!==String(myDrivingCarId));
+    const towCar=CARS.find(car=>car&&car!==fireCar&&String(car.id)!==String(myDrivingCarId));
+    const fireAt=nearbyRoad(fireFleet[0].homeR,fireFleet[0].homeC),towAt=nearbyRoad(towFleet[0].homeR,towFleet[0].homeC);
+    Object.assign(fireCar,{r:fireAt.r,c:fireAt.c,hp:0,wrecked:true,_wrecked:true,_shotWrecked:true,_burnedOut:false,_burnedOutAt:0,_hoodBurning:true,_hoodSmoking:true,_towed:false,_towDispatched:false,_fireTruckDispatched:false});
+    Object.assign(towCar,{r:towAt.r,c:towAt.c,hp:0,wrecked:true,_wrecked:true,_shotWrecked:true,_burnedOut:true,_burnedOutAt:now-6000,_hoodBurning:false,_hoodSmoking:false,_towed:false,_towDispatched:false,_fireTruckDispatched:false});
+    document.documentElement.dataset.previewServiceFleetSeeded=`${fireCar.id||'fire'}:${towCar.id||'tow'}`;
+  }
+  document.documentElement.dataset.fireFleetSize=String(fireFleet.length);
+  document.documentElement.dataset.fireParked=String(fireFleet.filter(v=>v.state==='firetruck_parked').length);
+  document.documentElement.dataset.fireBusy=String(fireFleet.filter(v=>v.state!=='firetruck_parked').length);
+  document.documentElement.dataset.towFleetSize=String(towFleet.length);
+  document.documentElement.dataset.towParked=String(towFleet.filter(v=>v.state==='tow_parked').length);
+  document.documentElement.dataset.towBusy=String(towFleet.filter(v=>v.state!=='tow_parked').length);
+  document.documentElement.dataset.serviceFleetProfile='persistent-visible-fire-and-tow-road-return-v228';
 
   // Пляжники живут в отдельной Map и не входят в NPCS — им нужен свой вызов.
   for (const b of beachgoers.values()) {
@@ -10135,8 +10222,8 @@ function dispatchEmergencyServices() {
   }
 
   document.documentElement.dataset.specialServiceStates=serviceVehicles.filter(v=>v&&v.state!=='done').map(v=>`${v.kind}:${v.state}`).join(',')||'idle';
-  document.documentElement.dataset.fireVisibleParking='road-hose-range-v221';
-  document.documentElement.dataset.towLoadingParking='road-wreck-side-v221';
+  document.documentElement.dataset.fireVisibleParking='three-permanent-bays-road-hose-range-v228';
+  document.documentElement.dataset.towLoadingParking='three-permanent-bays-road-wreck-side-v228';
   document.documentElement.dataset.fireParkingDistances=serviceVehicles.filter(v=>v?.kind==='firetruck'&&_fireTruckTarget(v)).map(v=>Math.hypot(v.y-_fireTruckTarget(v).r,v.x-_fireTruckTarget(v).c).toFixed(2)).join(',')||'idle';
   document.documentElement.dataset.towEligibleWrecks=String(CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).length);
   document.documentElement.dataset.towCandidateAges=CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).map(car=>Math.round(now-(+car._burnedOutAt||now))).join(',')||'idle';
@@ -56082,13 +56169,13 @@ window.Mafiozi3DBridge = Object.freeze({
         id:`service_${v.id}`,r:+v.y||0,c:+v.x||0,ang:+v.ang||0,
         model:ambulance?'ambulance':fire?'firetruck':tow?'tow_truck':'police',
         paint:ambulance?'#eef3f7':fire?'#b51f27':tow?'#e0a62c':'#244f86',
-        parked:v.state==='ambulance_parked'||v.state==='working'||v.state==='medical_response'||v.state==='siege',length:fire?2.4:tow?2.3:ambulance?2.05:1.9,
+        parked:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='working'||v.state==='medical_response'||v.state==='siege',length:fire?2.4:tow?2.3:ambulance?2.05:1.9,
         width:fire?1.1:tow?1:ambulance?.98:.9,height:fire?1.05:ambulance?.88:.75,wheelR:.2,
         sport:false,pickup:tow,van:ambulance||fire,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,
-        emergency:ambulance?'ambulance':fire?'fire':police?'police':'tow',emergencyLights:ambulance?ambulanceOnCall:true,
+        emergency:ambulance?'ambulance':fire?'fire':police?'police':'tow',emergencyLights:ambulance?ambulanceOnCall:fire?v.state!=='firetruck_parked':tow?v.state!=='tow_parked':true,
         stripe:ambulance?'#1756bd':fire?'#f2c94c':tow?'#22262b':'#d9e8ff',
         dirR:Math.sin(+v.ang||0),dirC:Math.cos(+v.ang||0),velR:0,velC:0,
-        braking:v.state==='ambulance_parked'||v.state==='working'||v.state==='medical_response'||v.state==='siege',turning:false,
+        braking:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='working'||v.state==='medical_response'||v.state==='siege',turning:false,
         serviceKind:v.kind,serviceState:v.state,medicalDoorsOpen:medicalDoorProgress>.5,medicalDoorProgress,
       });
       if(tow&&v._loaded&&v.payload?.carRef){
