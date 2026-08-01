@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v230: fire engines drive connected road routes before a 14-second stall fallback; compact hose spray and staged tow loading/carrying. -->
+<!DOCTYPE html><!-- v231: service vehicles validate their full body against buildings; active hose trucks stay visible with their water stream. -->
 <!-- v224: tow trucks drive the full road route and never teleport to a wreck. -->
 <!-- 3D sync v201: NPC role, name, HP and speech panels enlarged for gameplay readability. -->
 <!-- 3D sync v200: injured residents limp by default; only genuinely downed or leg-disabled NPCs crawl, at a deliberately slow pace. -->
@@ -8925,6 +8925,34 @@ function _vehicleOffroadPassable(r, c) {
   return (t === 0 || t === 9 || t === 8 || t === 19);
 }
 
+// The centre can remain on asphalt while a long emergency vehicle clips a
+// neighbouring facade. Driving, depot and work parking validate the complete
+// visible body against buildings/water; ordinary traffic remains non-blocking.
+function _serviceVehicleFootprintClear(v, r, c, ang = null) {
+  if (!v || !['ambulance','firetruck','tow','police','taxi'].includes(v.kind)) return true;
+  const heading = Number.isFinite(+ang) ? +ang : (Number.isFinite(+v.ang) ? +v.ang : 0);
+  const halfLength = v.kind === 'firetruck' ? 1.22 : v.kind === 'tow' ? 1.16 : v.kind === 'ambulance' ? 1.04 : .98;
+  const halfWidth = v.kind === 'firetruck' ? .58 : v.kind === 'tow' ? .54 : .5;
+  const forwardR = Math.sin(heading), forwardC = Math.cos(heading);
+  const sideR = Math.cos(heading), sideC = -Math.sin(heading);
+  const samples = [[0,0],[halfLength,0],[-halfLength,0],[0,halfWidth],[0,-halfWidth],
+    [halfLength*.9,halfWidth*.9],[halfLength*.9,-halfWidth*.9],[-halfLength*.9,halfWidth*.9],[-halfLength*.9,-halfWidth*.9]];
+  for (const [forward, side] of samples) {
+    const sampleR = r + forwardR * forward + sideR * side;
+    const sampleC = c + forwardC * forward + sideC * side;
+    if (_serviceVehicleBodyPointBlocked(sampleR, sampleC)) return false;
+  }
+  return true;
+}
+
+function _serviceVehicleBodyPointBlocked(r,c){
+  const ri=Math.floor(r),ci=Math.floor(c);
+  if(ri<0||ri>=MAP_ROWS||ci<0||ci>=MAP_COLS)return true;
+  if(_isPortContainerSolid(r,c)||_isThreeWholeBuildingBlocked(r,c))return true;
+  const tile=MAP[ri]?.[ci];
+  return tile===1||tile===16;
+}
+
 // Ближайший дорожный тайл (тип 0) к точке (r,c) в радиусе до 12.
 function _nearestRoadTile(r, c, maxRadius = 12) {
   const ri = Math.floor(r), ci = Math.floor(c);
@@ -9105,6 +9133,19 @@ function _vehicleStep(v, dt) {
     // Весь спецтранспорт имеет абсолютный приоритет перед обычным трафиком.
     // Проверка дорожной маски уже выполнена выше, поэтому сквозь здания,
     // воду и закрытые зоны машины службы по-прежнему не проходят.
+    const nextAng = Math.atan2(dr, dc);
+    let safeAng=nextAng;
+    if(['ambulance','firetruck','tow','police','taxi'].includes(v.kind)){
+      const oldAng=Number.isFinite(+v.ang)?+v.ang:nextAng;
+      const turnDelta=Math.atan2(Math.sin(nextAng-oldAng),Math.cos(nextAng-oldAng));
+      const turnLimit=Math.max(.04,Math.min(.22,dt*3.4));
+      safeAng=oldAng+Math.max(-turnLimit,Math.min(turnLimit,turnDelta));
+      if(!_serviceVehicleFootprintClear(v,ny,nx,safeAng)){
+        if(_serviceVehicleFootprintClear(v,ny,nx,oldAng))safeAng=oldAng;
+        else {v._bodyBlockedSince||=performance.now();return false;}
+      }
+      v._bodyBlockedSince=0;
+    }
     const blocker = ['ambulance','firetruck','tow','police','taxi'].includes(v.kind)?null:_vehicleBlockedByCar(v, ny, nx);
     if (blocker) {
       v._blockedSince ||= performance.now();
@@ -9114,13 +9155,13 @@ function _vehicleStep(v, dt) {
       // Экстренная машина не должна навсегда исчезать в плотной пробке.
       // После короткого ожидания сирена получает приоритет и проезжает.
       if (performance.now() - v._blockedSince < 1200) {
-        v.ang = Math.atan2(dr, dc);
+        v.ang = nextAng;
         return false;
       }
     }
     v._blockedSince = 0;
     v.x = nx; v.y = ny;
-    v.ang = Math.atan2(dr, dc);
+    v.ang = safeAng;
     return false;
   }
   // Путь закончился — считаем что прибыли (стоим у ближайшего к цели
@@ -9171,12 +9212,12 @@ function _fireStationDoor() {
   return d ? { r: d.r + 0.5, c: d.c + 0.5 } : { r: FIRE_STATION_R, c: FIRE_STATION_C };
 }
 
-function _serviceDepotBays(originR,originC,count){
+function _serviceDepotBays(originR,originC,count,kind){
   const door=_nearestRoadTile(originR,originC,20),center=door?{r:door.r+.5,c:door.c+.5}:{r:originR,c:originC};
   const candidates=[];
   for(let dr=-9;dr<=9;dr++)for(let dc=-9;dc<=9;dc++){
     const r=Math.floor(center.r)+dr+.5,c=Math.floor(center.c)+dc+.5;
-    if(!_vehicleRoadPassable(r,c))continue;
+    if(!_vehicleRoadPassable(r,c)||!_serviceVehicleFootprintClear({kind,ang:0},r,c,0))continue;
     candidates.push({r,c,d:Math.hypot(r-center.r,c-center.c)});
   }
   candidates.sort((a,b)=>a.d-b.d||a.r-b.r||a.c-b.c);
@@ -9188,8 +9229,8 @@ function _serviceDepotBays(originR,originC,count){
   while(bays.length<count)bays.push({r:center.r,c:center.c});
   return bays;
 }
-function _fireTruckBays(){return _fireTruckBaysCache||= _serviceDepotBays(FIRE_STATION_R,FIRE_STATION_C,FIRETRUCK_FLEET_SIZE);}
-function _towTruckBays(){return _towTruckBaysCache||= _serviceDepotBays(JUNKYARD_R,JUNKYARD_C,TOW_FLEET_SIZE);}
+function _fireTruckBays(){return _fireTruckBaysCache||= _serviceDepotBays(FIRE_STATION_R,FIRE_STATION_C,FIRETRUCK_FLEET_SIZE,'firetruck');}
+function _towTruckBays(){return _towTruckBaysCache||= _serviceDepotBays(JUNKYARD_R,JUNKYARD_C,TOW_FLEET_SIZE,'tow');}
 function _ensurePermanentServiceFleet(kind,count,bays,parkedState){
   const live=serviceVehicles.filter(v=>v?.kind===kind&&v.state!=='done'),occupied=new Set(live.map(v=>+v.fleetSlot||0));
   for(let slot=0;slot<count;slot++){
@@ -9593,6 +9634,9 @@ function _fireTruckParkingPoint(targetR,targetC,fromR=FIRE_STATION_R,fromC=FIRE_
     const r=r0+dr+.5,c=c0+dc+.5,d=Math.hypot(r-targetR,c-targetC);
     if(d<2.8||d>FIRETRUCK_HOSE_RANGE-.25||!_vehicleRoadPassable(r,c))continue;
     const path=_bfsRoadPath(fromR,fromC,r,c,30);
+    const before=path?.length>1?path[path.length-2]:{r:fromR,c:fromC};
+    const parkingAng=Math.atan2(r-before.r,c-before.c);
+    if(!_serviceVehicleFootprintClear({kind:'firetruck',ang:parkingAng},r,c,parkingAng))continue;
     const score=Math.abs(d-3.65)+(path?.length||0)*.004;
     if(!path?.length){if(Math.abs(d-3.65)<unroutedScore){unroutedScore=Math.abs(d-3.65);unrouted={r,c,path:[]};}continue;}
     if(score<bestScore){bestScore=score;best={r,c,path};}
@@ -9643,6 +9687,9 @@ function _towTruckParkingPoint(targetR,targetC,fromR=JUNKYARD_R,fromC=JUNKYARD_C
     if(d<1.7||d>3.6||!_vehicleRoadPassable(r,c))continue;
     if(_vehicleBlockedByCar({kind:'tow'},r,c))continue;
     const path=_bfsRoadPath(fromR,fromC,r,c,30);
+    const before=path?.length>1?path[path.length-2]:{r:fromR,c:fromC};
+    const parkingAng=Math.atan2(r-before.r,c-before.c);
+    if(!_serviceVehicleFootprintClear({kind:'tow',ang:parkingAng},r,c,parkingAng))continue;
     const score=Math.abs(d-2.35)+(path?.length||0)*.004;
     if(!path?.length){if(Math.abs(d-2.35)<unroutedScore){unroutedScore=Math.abs(d-2.35);unrouted={r,c,path:[]};}continue;}
     if(score<bestScore){bestScore=score;best={r,c,path};}
@@ -10172,6 +10219,7 @@ function dispatchEmergencyServices() {
     const fireAt=nearbyRoad(fireFleet[0].homeR,fireFleet[0].homeC),towAt=nearbyRoad(towFleet[0].homeR,towFleet[0].homeC);
     Object.assign(fireCar,{r:fireAt.r,c:fireAt.c,hp:0,wrecked:true,_wrecked:true,_shotWrecked:true,_burnedOut:false,_burnedOutAt:0,_hoodBurning:true,_hoodSmoking:true,_towed:false,_towDispatched:false,_fireTruckDispatched:false});
     Object.assign(towCar,{r:towAt.r,c:towAt.c,hp:0,wrecked:true,_wrecked:true,_shotWrecked:true,_burnedOut:true,_burnedOutAt:now-6000,_hoodBurning:false,_hoodSmoking:false,_towed:false,_towDispatched:false,_fireTruckDispatched:false});
+    if(_UP.has('previewservicefocus')){player.r=fireAt.r+1.1;player.c=fireAt.c+.7;player.vr=player.vc=0;}
     document.documentElement.dataset.previewServiceFleetSeeded=`${fireCar.id||'fire'}:${towCar.id||'tow'}`;
   }
   document.documentElement.dataset.fireFleetSize=String(fireFleet.length);
@@ -10263,9 +10311,11 @@ function dispatchEmergencyServices() {
   }
 
   document.documentElement.dataset.specialServiceStates=serviceVehicles.filter(v=>v&&v.state!=='done').map(v=>`${v.kind}:${v.state}`).join(',')||'idle';
-  document.documentElement.dataset.fireVisibleParking='three-permanent-bays-road-hose-range-v230';
+  document.documentElement.dataset.fireVisibleParking='three-permanent-bays-full-body-road-hose-range-v231';
   document.documentElement.dataset.towLoadingParking='three-permanent-bays-road-wreck-side-v230';
   document.documentElement.dataset.fireParkingDistances=serviceVehicles.filter(v=>v?.kind==='firetruck'&&_fireTruckTarget(v)).map(v=>Math.hypot(v.y-_fireTruckTarget(v).r,v.x-_fireTruckTarget(v).c).toFixed(2)).join(',')||'idle';
+  document.documentElement.dataset.serviceBuildingOverlaps=serviceVehicles.filter(v=>v&&v.state!=='done'&&['firetruck','tow'].includes(v.kind)&&!_serviceVehicleFootprintClear(v,+v.y||0,+v.x||0,+v.ang||0)).map(v=>`${v.kind}:${v.id}`).join(',')||'0';
+  document.documentElement.dataset.serviceBuildingCollisionProfile='full-body-hard-world-v231';
   document.documentElement.dataset.towEligibleWrecks=String(CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).length);
   document.documentElement.dataset.towCandidateAges=CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).map(car=>Math.round(now-(+car._burnedOutAt||now))).join(',')||'idle';
   if(_LOCAL_PREVIEW&&_UP.has('previewtowstuck')&&!document.documentElement.dataset.previewTowStuckSeeded){
@@ -56214,7 +56264,9 @@ window.Mafiozi3DBridge = Object.freeze({
         damageRatio:.68,bulletHoles:previewMarks.length,bulletMarks:previewMarks,smoking:false,burning:false,wrecked:false,burnedOut:false});
     }
     if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
-      if(!v||v.state==='done'||!near(+v.y||0,+v.x||0))continue;
+      if(!v||v.state==='done')continue;
+      const visibleFireTarget=v.kind==='firetruck'&&v.state==='working'?_fireTruckTarget(v):null;
+      if(!near(+v.y||0,+v.x||0)&&!(visibleFireTarget&&near(visibleFireTarget.r,visibleFireTarget.c)))continue;
       const ambulance=v.kind==='ambulance',fire=v.kind==='firetruck',tow=v.kind==='tow',police=v.kind==='police',ambulanceOnCall=ambulance&&v.state!=='ambulance_parked';
       const medicalScene=ambulance?v._medicalScene:null,medicalDoorProgress=ambulance&&medicalScene?.active?(medicalScene.phase==='sealing'?Math.max(0,1-(+medicalScene.sealProgress||0)):1):0;
       cars.unshift({
@@ -60304,6 +60356,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d227"></script>
+<script type="module" src="three_preview.js?v=3d231"></script>
 </body>
 </html>
