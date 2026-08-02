@@ -26717,6 +26717,10 @@ if (_ownerFullLoadout) {
   for (const [weapon, cfg] of Object.entries(WEAPON_FX_CFG)) {
     if (cfg.ammoType) _ammoState.mags[weapon] = { mag: cfg.magSize || 1 };
   }
+  _myGrenadeCount=Math.max(999,_myGrenadeCount);_myMolotovCount=Math.max(999,_myMolotovCount);_myC4Count=Math.max(999,_myC4Count);
+  if (!currentWeapon || !WEAPON_FX_CFG[currentWeapon]) {
+    currentWeapon='tommy_gun';_lastEquippedWeapon=currentWeapon;_saveCurrentWeaponChoice();
+  }
 }
 function _weaponAmmoState(weapon) {
   const id = resolveWeapon(weapon);
