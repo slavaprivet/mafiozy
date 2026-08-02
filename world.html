@@ -1,4 +1,5 @@
-<!DOCTYPE html><!-- prison island preview: the visual correctional complex moves onto the empty canal and grows to roughly three times its former footprint. -->
+<!DOCTYPE html><!-- v247: 3D police response adds physical cuffing, vehicle loading, prison transport and gang-rescue interruption. -->
+<!-- prison island preview: the visual correctional complex moves onto the empty canal and grows to roughly three times its former footprint. -->
 <!-- v232: ambulance depots and patient-side parking validate the full body so normal recovery never needs a watchdog teleport. -->
 <!-- v231: service vehicles validate their full body against buildings; active hose trucks stay visible with their water stream. -->
 <!-- v224: tow trucks drive the full road route and never teleport to a wreck. -->
@@ -7507,8 +7508,15 @@ function _igniteLocalCharacter(npc, sourceR, sourceC) {
   npc._burnSourceC=Number.isFinite(sourceC)?sourceC:npc.c;
 }
 
-function hitNpc(npc, dirY, dirX, weapon, damage) {
+function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
   if (!npc || npc.dead) return;
+  const hitNow=performance.now();
+  // Запоминаем реального последнего нападавшего. Горение продолжает причину
+  // первоначального попадания, поэтому burn_tick не переписывает убийцу.
+  if(weapon!=='burn_tick'){
+    npc._lastViolentSource=source||{kind:'player',uid:String(QP?.uid||'local')};
+    npc._lastViolentAt=hitNow;
+  }
   if(weapon==='molotov'||weapon==='molotov_fire')
     _igniteLocalCharacter(npc,npc.r-dirY,npc.c-dirX);
   if (npc._invulnerable) {
@@ -7540,6 +7548,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
   if (npc.hp <= 0) {
     npc.dead = true;
     npc.deadAt = performance.now();
+    _registerMurderIncident(npc,npc._lastViolentSource,npc.deadAt);
     // Копы рядом реагируют на убийство
     _alertNearbyCops('kill');
     // Большой splat крови на месте смерти + взрыв-фонтан частиц по сторонам
@@ -7581,7 +7590,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
 // Раньше в патрульных вообще нельзя было ни целиться, ни попасть.
 // Любая атака копа — witness-инцидент: open_fire(witness=true) бампает
 // wanted; раненый патрульный сразу переходит в погоню.
-function hitCityCop(cop, dirY, dirX, damage) {
+function hitCityCop(cop, dirY, dirX, damage, source = null) {
   if (!cop || !cop.alive) return;
   cop.hp = Math.max(0, (cop.hp | 0) - (damage | 0));
   cop.y += dirY * 0.07; cop.x += dirX * 0.07;
@@ -7617,9 +7626,12 @@ function hitCityCop(cop, dirY, dirX, damage) {
       dead: true, deadAt: performance.now(), _severMask:+cop._severMask||0,
       role: 'police', kind: 'police', isPolice: true,
       look: Object.assign({}, cop.look || { gender: 0, skin: 2, body: 8, face: 1, hair: 1, hat: 3 }) });
-    _alertNearbyCops('kill');
+    // При спасении задержанного оставшиеся копы вызова сами разбираются
+    // со стрелком. Не поднимаем заодно весь обычный городской патруль.
+    const arrestInterrupted = _onMurderArrestCopKilled(cop, source);
+    if (!arrestInterrupted) _alertNearbyCops('kill');
   }
-  try {
+  if (!source || source.kind === 'player') try {
     ws && ws.send(JSON.stringify({ t: 'open_fire',
       d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
            weapon: currentWeapon || 'fists', civilian: false, witness: true } }));
@@ -7656,10 +7668,13 @@ function _killDecorNpc(obj, arr, dirY, dirX) {
   }
   _capArr(impacts, _MAX_IMPACTS);
   impacts.push({ r: obj.r, c: obj.c, parts });
-  NPCS.push({ r: obj.r + dirY * 0.2, c: obj.c + dirX * 0.2, tr: obj.r, tc: obj.c,
+  const corpse={ r: obj.r + dirY * 0.2, c: obj.c + dirX * 0.2, tr: obj.r, tc: obj.c,
     speed: 0, ang: obj.ang || 0, walkPhase: 0, idleUntil: 0, hp: 0, max_hp: 100,
     dead: true, deadAt: performance.now(),
-    look: obj.look || { gender: Math.random() < 0.5 ? 0 : 1, skin: 2, body: 1, face: 0, hair: 1 } });
+    look: obj.look || { gender: Math.random() < 0.5 ? 0 : 1, skin: 2, body: 1, face: 0, hair: 1 },
+    _lastViolentSource:{kind:'player',uid:String(QP?.uid||'local')} };
+  NPCS.push(corpse);
+  _registerMurderIncident(corpse,corpse._lastViolentSource,corpse.deadAt);
   _alertNearbyCops('kill');
 }
 // Луч от пули по жителям-декору (автобусные пассажиры/ожидающие/хозяева
@@ -8776,6 +8791,9 @@ function updateCityCops(dt) {
   for (let i = cityCops.length - 1; i >= 0; i--) {
     const cop = cityCops[i];
     if (!cop.alive) { cityCops.splice(i, 1); continue; }
+    // Экипаж убийства имеет собственные фазы: выход из участка, посадка,
+    // высадка, поиск/опрос/бой и возвращение в ту же машину.
+    if(cop.kind==='murder_response'&&_updateMurderResponseCop(cop,dt,now))continue;
     // ── КОП-ОТВЕТНИК (приехал на ограбление банка) ─────────────────
     if (cop.kind === 'response') {
       // Ограбление кончилось или игрок мёртв/в тюрьме — становится
@@ -8980,13 +8998,20 @@ let _playerEmergencyPatient=null;
 const AMBULANCES_PER_HOSPITAL=3,AMBULANCE_FLEET_SIZE=6,AMBULANCE_RESPONSE_SPEED=8.6;
 const FIRETRUCK_FLEET_SIZE=3,FIRETRUCK_RESPONSE_SPEED=7.4;
 const TOW_FLEET_SIZE=3,TOW_RESPONSE_SPEED=6.6;
+const POLICE_RESPONSE_FLEET_SIZE=3,POLICE_RESPONSE_SPEED=8.1;
+const POLICE_MURDER_ZONE_R=11,POLICE_MURDER_SEARCH_MS=5000;
+const POLICE_ARREST_CUFF_MS=2700,POLICE_ARREST_LOAD_MS=1350;
 const AMBULANCE_ROUTE_RETRY_MS=900,AMBULANCE_ROUTE_GRACE_MS=5200;
 const AMBULANCE_DEPLOY_PARKING_TOLERANCE=1.6,AMBULANCE_DEPLOY_MAX_PATIENT_DISTANCE=7.25;
 let _ambulanceDeliveryCount=0;
 let _ambulanceWatchdogCount=0;
 let _ambulanceHospitalRecoveryCount=0;
 let _hospitalAmbulanceBaysCache=null;
-let _fireTruckBaysCache=null,_towTruckBaysCache=null;
+let _fireTruckBaysCache=null,_towTruckBaysCache=null,_policeResponseBaysCache=null;
+let _murderIncidentSeq=0;
+const _murderIncidents=[];
+let _murderPoliceArrest=null;
+let _murderPoliceRescueGraceUntil=0;
 // Пожарка остаётся на дороге, а очаг нередко находится на тротуаре/газоне.
 // 4.5 тайла не хватало до ближайшей законной точки остановки, из-за чего
 // машина приезжала и стояла без воды. Длина штатного рукава покрывает 8 тайлов.
@@ -10061,6 +10086,522 @@ function _dispatchHeistPolice(rob) {
   }
 }
 
+// ── Постоянная служба полиции на убийства жителей ───────────────────
+// Три машины всегда стоят у участка. Первый выезд начинается только после
+// того, как два видимых офицера вышли из участка, дошли до машины и сели.
+// На месте тот же экипаж физически выходит, прочёсывает зону и возвращается
+// в машину. После посадки наряд едет домой либо сразу на следующий вызов.
+function _policeResponseOrigin(){
+  if(typeof JAIL_ISLAND_3D_ENABLED!=='undefined'&&JAIL_ISLAND_3D_ENABLED)
+    return{r:JAIL_POLICE_STATION_3D.entryR,c:JAIL_POLICE_STATION_3D.entryC};
+  return{r:POLICE_STATION_R,c:POLICE_STATION_C};
+}
+function _policeResponseBays(){
+  if(_policeResponseBaysCache)return _policeResponseBaysCache;
+  const origin=_policeResponseOrigin();
+  return _policeResponseBaysCache=_serviceDepotBays(origin.r,origin.c,POLICE_RESPONSE_FLEET_SIZE,'police');
+}
+function _ensurePoliceResponseFleet(){
+  const bays=_policeResponseBays();
+  const live=serviceVehicles.filter(v=>v?._murderFleet&&v.state!=='done');
+  const occupied=new Set(live.map(v=>+v.fleetSlot||0));
+  for(let slot=0;slot<POLICE_RESPONSE_FLEET_SIZE;slot++){
+    if(occupied.has(slot))continue;
+    const bay=bays[slot]||bays[0];
+    serviceVehicles.push({id:`murder_pol_${++_svcVehId}`,kind:'police',_murderFleet:true,
+      x:bay.c,y:bay.r,ang:0,speed:0,state:'police_parked',workUntil:0,payload:{},
+      homeR:bay.r,homeC:bay.c,fleetSlot:slot,path:[],pathIdx:0,finalTarget:null,
+      _policeCrewIds:[],_policeBoarded:0,_policeReturned:0,_lastMoveT:performance.now()});
+  }
+  return serviceVehicles.filter(v=>v?._murderFleet&&v.state!=='done');
+}
+function _isCivilianMurderVictim(victim){
+  if(!victim||victim._policeMurderIgnored||victim.isPolice||victim.police||victim._policeCriminal||victim._guard||victim._invulnerable)return false;
+  const role=String(victim.role||victim.kind||'').toLowerCase();
+  return !role.includes('police')&&!role.includes('cop')&&!role.includes('guard')&&!role.includes('gang');
+}
+function _registerMurderIncident(victim,source=null,now=performance.now()){
+  if(!victim||victim._policeMurderIncidentId)return null;
+  if(source?.kind==='city_cop'||source?.kind==='police'){
+    victim._policeMurderIgnored=true;return null;
+  }
+  if(!_isCivilianMurderVictim(victim))return null;
+  const r=Number.isFinite(+(victim._deathR??victim.r??victim.y))?+(victim._deathR??victim.r??victim.y):NaN;
+  const c=Number.isFinite(+(victim._deathC??victim.c??victim.x))?+(victim._deathC??victim.c??victim.x):NaN;
+  if(!Number.isFinite(r)||!Number.isFinite(c)||inLair(r,c)||inArena(r,c))return null;
+  const incident={id:`murder_${++_murderIncidentSeq}`,r,c,victim,source:source||null,
+    occurredAt:+victim.deadAt||now,status:'queued',assignedVehicleId:null,searchStartedAt:0,
+    initialSearchUntil:0,lostAt:0,questionStartedAt:0,armedContact:false,closedAt:0};
+  victim._policeMurderIncidentId=incident.id;
+  _murderIncidents.push(incident);
+  while(_murderIncidents.length>24)_murderIncidents.shift();
+  document.documentElement.dataset.policeMurderLast=incident.id;
+  return incident;
+}
+function _nextQueuedMurderIncident(){
+  return _murderIncidents.filter(q=>q.status==='queued').sort((a,b)=>a.occurredAt-b.occurredAt)[0]||null;
+}
+function _policeSceneParking(targetR,targetC,fromR,fromC){
+  const tree=_buildRoadBfsTree(fromR,fromC,30),r0=Math.floor(targetR),c0=Math.floor(targetC);
+  let best=null,bestKey=-1,bestScore=Infinity;
+  for(let dr=-7;dr<=7;dr++)for(let dc=-7;dc<=7;dc++){
+    const r=r0+dr+.5,c=c0+dc+.5,d=Math.hypot(r-targetR,c-targetC);
+    if(d<1.8||d>5.8||!_vehicleRoadPassable(r,c))continue;
+    const goalK=Math.floor(r)*(MAP_COLS|0)+Math.floor(c);
+    if(!_roadBfsHas(tree,goalK))continue;
+    const before=_roadBfsPreviousPoint(tree,goalK,fromR,fromC),ang=Math.atan2(r-before.r,c-before.c);
+    if(!_serviceVehicleFootprintClear({kind:'police',ang},r,c,ang))continue;
+    const score=Math.abs(d-3.15)+_roadBfsDistances[goalK]*.003;
+    if(score<bestScore){bestScore=score;best={r,c,ang};bestKey=goalK;}
+  }
+  if(!best)return null;
+  best.path=_roadBfsPathToKey(tree,bestKey)||[];
+  return best.path.length?best:null;
+}
+function _policeCrewPassable(r,c){
+  const prison=typeof _prisonIslandCollisionAt==='function'?_prisonIslandCollisionAt(r,c):null;
+  return prison?!prison.blocked:npcPassableForSnitch(r,c);
+}
+function _moveMurderResponseCop(cop,tr,tc,dt,mul=1){
+  const dr=tr-cop.y,dc=tc-cop.x,d=Math.hypot(dr,dc);
+  cop.ang=Math.atan2(dr,dc);
+  if(d<.18)return true;
+  const step=Math.min(d,(cop.speed||1.35)*mul*dt),sr=dr/d*step,sc=dc/d*step;
+  const tries=[[sr,sc],[sc*.72,-sr*.72],[-sc*.72,sr*.72],[sr*.45,0],[0,sc*.45]];
+  for(const [rr,cc] of tries){
+    if(!_policeCrewPassable(cop.y+rr,cop.x+cc))continue;
+    cop.y+=rr;cop.x+=cc;cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;return false;
+  }
+  return false;
+}
+function _policeCrewBoardPoint(v,slot){
+  const side=slot?1:-1,ang=Number.isFinite(+v.ang)?+v.ang:0;
+  return{r:v.y+Math.cos(ang)*side*.62-Math.sin(ang)*.08,
+    c:v.x-Math.sin(ang)*side*.62-Math.cos(ang)*.08};
+}
+function _stationOfficerSpawn(v,slot){
+  const entry=_policeResponseOrigin(),side=slot?1:-1;
+  return{r:entry.r+.34,c:entry.c+side*.46};
+}
+function _createMurderCrewCop(v,incident,slot,phase,now=performance.now()){
+  const start=phase==='boarding'?_stationOfficerSpawn(v,slot):_policeCrewBoardPoint(v,slot);
+  const cop={id:`murdercop_${++_cityCopId}`,x:start.c,y:start.r,tx:start.c,ty:start.r,
+    ang:v.ang||0,walkPhase:0,kind:'murder_response',weapon:'pistol',hp:100,max_hp:100,
+    alive:true,role:'police',isPolice:true,look:{gender:slot,skin:slot?1:2,body:8,face:slot?2:1,hair:slot?2:1,hat:3},
+    speed:1.45+slot*.08,_wayUntil:0,_responseVehicleId:v.id,_murderIncidentId:incident.id,
+    _crewSlot:slot,_casePhase:phase,_phaseStartedAt:now,_nextCaseCryAt:0,_nextShootAt:0};
+  cityCops.push(cop);v._policeCrewIds.push(cop.id);return cop;
+}
+function _removeMurderCrewForVehicle(v){
+  for(const cop of cityCops)if(cop?._responseVehicleId===v.id)cop.alive=false;
+}
+function _assignMurderPoliceCall(v,incident,now=performance.now(),crewAlreadyAboard=false){
+  if(!v||!incident||incident.status!=='queued')return false;
+  const parking=_policeSceneParking(incident.r,incident.c,v.y,v.x);
+  if(!parking)return false;
+  incident.status=crewAlreadyAboard?'enroute':'boarding';incident.assignedVehicleId=v.id;incident.dispatchedAt=now;
+  v.payload={murderIncident:incident};v.sceneParkingR=parking.r;v.sceneParkingC=parking.c;
+  v.path=parking.path;v.pathIdx=0;v.finalTarget={x:parking.c,y:parking.r};v._offroadRoute=false;
+  v._policeCrewIds=[];v._policeBoarded=crewAlreadyAboard?2:0;v._policeReturned=0;
+  v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
+  if(crewAlreadyAboard){v.speed=POLICE_RESPONSE_SPEED;v.state='go_to_scene';}
+  else{
+    v.speed=0;v.state='police_boarding';v._boardingStartedAt=now;
+    _createMurderCrewCop(v,incident,0,'boarding',now);_createMurderCrewCop(v,incident,1,'boarding',now);
+  }
+  if(Math.hypot(player.r-incident.r,player.c-incident.c)<18)
+    showEventBanner('🚔 ПОЛИЦИЯ ВЫЕХАЛА','Два офицера направлены к месту убийства.',2600,'neutral');
+  return true;
+}
+function _dispatchMurderPoliceCalls(now=performance.now()){
+  const fleet=_ensurePoliceResponseFleet();
+  for(;;){
+    const incident=_nextQueuedMurderIncident();if(!incident)break;
+    const v=fleet.find(q=>q.state==='police_parked'||(q.state==='returning'&&!q.payload?.murderIncident));
+    if(!v||!_assignMurderPoliceCall(v,incident,now,v.state==='returning'))break;
+  }
+}
+function _pickMurderSearchPoint(incident,slot,seed=0){
+  for(let i=0;i<28;i++){
+    const a=(slot?Math.PI:0)+seed*.91+i*1.37,dist=2.2+(i%7)*1.05;
+    const r=incident.r+Math.sin(a)*dist,c=incident.c+Math.cos(a)*dist;
+    if(_policeCrewPassable(r,c))return{r,c};
+  }
+  return{r:incident.r,c:incident.c};
+}
+function _startMurderPoliceScene(v,now=performance.now()){
+  const incident=v?.payload?.murderIncident;if(!incident)return false;
+  v.state='police_search';v.speed=0;v.path=[];v.pathIdx=0;v._policeCrewIds=[];v._policeReturned=0;
+  incident.status='searching';incident.searchStartedAt=now;incident.initialSearchUntil=now+11000;incident.lostAt=0;
+  for(let slot=0;slot<2;slot++){
+    const cop=_createMurderCrewCop(v,incident,slot,'disembark',now),p=_pickMurderSearchPoint(incident,slot,slot+1);
+    cop._searchR=p.r;cop._searchC=p.c;
+  }
+  if(Math.hypot(player.r-incident.r,player.c-incident.c)<18)
+    showToast('Два полицейских прочёсывают место убийства','🚔',2400);
+  return true;
+}
+function _policeWorldLineClear(r0,c0,r1,c1){
+  const steps=Math.max(4,Math.ceil(Math.hypot(r1-r0,c1-c0)*1.7));
+  for(let i=1;i<steps;i++){
+    const k=i/steps,ri=Math.floor(r0+(r1-r0)*k),ci=Math.floor(c0+(c1-c0)*k);
+    if(!MAP[ri]||MAP[ri][ci]===1)return false;
+  }
+  return true;
+}
+function _murderPlayerInZone(incident){
+  return !!incident&&!myDead&&performance.now()>=_murderPoliceRescueGraceUntil&&!_bankInt&&!_buildingInt&&Math.hypot(player.r-incident.r,player.c-incident.c)<=POLICE_MURDER_ZONE_R;
+}
+function _playerWeaponVisibleToMurderPolice(){
+  return _isArmed()&&(!myDrivingCarId||(typeof _canShootFromBike==='function'&&_canShootFromBike()));
+}
+function _murderCrewForVehicle(v){
+  return cityCops.filter(c=>c?.alive&&c._responseVehicleId===v.id&&c._murderIncidentId===v.payload?.murderIncident?.id);
+}
+function _murderCrewCanSeePlayer(v){
+  if(!_murderPlayerInZone(v.payload?.murderIncident))return false;
+  return _murderCrewForVehicle(v).some(c=>Math.hypot(player.r-c.y,player.c-c.x)<=10.5&&
+    _policeWorldLineClear(c.y,c.x,player.r,player.c));
+}
+function _murderNpcPosition(n){
+  if(!n||n.dead||n.alive===false||n._medicalDowned||(+n.hp||1)<=0)return null;
+  const r=Number.isFinite(+n.r)?+n.r:+n.y,c=Number.isFinite(+n.c)?+n.c:+n.x;
+  return Number.isFinite(r)&&Number.isFinite(c)?{r,c}:null;
+}
+function _findArmedNpcAtMurderScene(v){
+  const incident=v?.payload?.murderIncident,crew=_murderCrewForVehicle(v);if(!incident||!crew.length)return null;
+  const pool=[];
+  if(incident.source?.kind==='npc'&&incident.source.ref)pool.push(incident.source.ref);
+  for(const n of NPCS)if(n&&!n.dead&&(n._fighting||n._hostile||n._fightWeapon||n.weapon))pool.push(n);
+  let best=null,bestD=POLICE_MURDER_ZONE_R;
+  for(const n of pool){
+    const p=_murderNpcPosition(n);if(!p)continue;
+    const armed=!!(n._fighting||n._hostile||n._fightWeapon||(n.weapon&&n.weapon!=='fists'&&n.weapon!=='none'));
+    if(!armed)continue;
+    const sceneD=Math.hypot(p.r-incident.r,p.c-incident.c);if(sceneD>POLICE_MURDER_ZONE_R)continue;
+    const seen=crew.some(c=>Math.hypot(p.r-c.y,p.c-c.x)<=10.5&&_policeWorldLineClear(c.y,c.x,p.r,p.c));
+    if(seen&&sceneD<bestD){best=n;bestD=sceneD;}
+  }
+  return best;
+}
+function _murderCrewCanSeeNpc(v,n){
+  const incident=v?.payload?.murderIncident,p=_murderNpcPosition(n);if(!incident||!p||Math.hypot(p.r-incident.r,p.c-incident.c)>POLICE_MURDER_ZONE_R)return false;
+  return _murderCrewForVehicle(v).some(c=>Math.hypot(p.r-c.y,p.c-c.x)<=10.5&&_policeWorldLineClear(c.y,c.x,p.r,p.c));
+}
+function _orderMurderCrewReturn(v,reason='search-complete',now=performance.now()){
+  const incident=v?.payload?.murderIncident;if(!incident||v.state==='police_reboarding')return;
+  incident.status='returning-to-car';incident.returnReason=reason;v.state='police_reboarding';v._policeReturned=0;v._reboardingStartedAt=now;
+  const crew=_murderCrewForVehicle(v);
+  for(const cop of crew){cop._casePhase='return';cop._phaseStartedAt=now;cop._pursuing=false;}
+  if(!crew.length)v._policeReturned=2;
+}
+function _updateMurderPoliceScene(v,now=performance.now()){
+  const incident=v?.payload?.murderIncident;if(!incident){_orderMurderCrewReturn(v,'missing-incident',now);return;}
+  const inZone=_murderPlayerInZone(incident),visible=inZone&&_murderCrewCanSeePlayer(v);
+  const armedPlayer=visible&&_playerWeaponVisibleToMurderPolice();
+  const armedNpc=!armedPlayer&&!incident.armedContact?_findArmedNpcAtMurderScene(v):null;
+  if((armedPlayer||armedNpc)&&!incident.armedContact){
+    incident.armedContact=true;incident.armedTargetType=armedPlayer?'player':'npc';incident.armedTargetRef=armedNpc||null;
+    incident.status='armed-contact';incident.lostAt=0;
+    showEventBanner('🚨 ПОЛИЦИЯ ОТКРЫЛА ОГОНЬ',armedPlayer?'Офицеры заметили оружие в зоне убийства.':'Офицеры нашли вооружённого подозреваемого.',2800,'lose');
+    for(const cop of _murderCrewForVehicle(v)){cop._casePhase=armedPlayer?'combat':'npc_combat';cop._pursuing=true;}
+  }else if(visible){
+    incident.lastPlayerSeenAt=now;incident.lostAt=0;
+    if(!incident.armedContact&&!incident.questionStartedAt){
+      incident.questionStartedAt=now;incident.status='questioning';
+      for(const cop of _murderCrewForVehicle(v))cop._casePhase='question';
+      showEventBanner('👮 ПОЛИЦИЯ ОПРАШИВАЕТ','Уберите руки от карманов и ответьте на вопросы.',2600,'neutral');
+    }
+  }
+  if(incident.armedContact){
+    const targetVisible=incident.armedTargetType==='npc'?_murderCrewCanSeeNpc(v,incident.armedTargetRef):(inZone&&visible);
+    if(!targetVisible){
+      incident.lostAt||=now;
+      if(now-incident.lostAt>=POLICE_MURDER_SEARCH_MS){_orderMurderCrewReturn(v,'armed-suspect-left-zone',now);return;}
+      for(const cop of _murderCrewForVehicle(v))if(cop._casePhase!=='return')cop._casePhase='search';
+    }else{
+      incident.lostAt=0;
+      for(const cop of _murderCrewForVehicle(v)){cop._casePhase=incident.armedTargetType==='npc'?'npc_combat':'combat';cop._pursuing=true;}
+    }
+  }else if(incident.questionStartedAt){
+    if(_playerWeaponVisibleToMurderPolice()&&visible){
+      incident.armedContact=true;incident.status='armed-contact';
+      for(const cop of _murderCrewForVehicle(v)){cop._casePhase='combat';cop._pursuing=true;}
+      return;
+    }
+    if(!inZone||!visible){
+      incident.lostAt||=now;
+      if(now-incident.lostAt>=POLICE_MURDER_SEARCH_MS){_orderMurderCrewReturn(v,'questioned-person-left-zone',now);return;}
+      for(const cop of _murderCrewForVehicle(v))if(cop._casePhase!=='return')cop._casePhase='search';
+    }else if(now-incident.questionStartedAt>7800){_orderMurderCrewReturn(v,'questioning-complete',now);return;}
+  }else if(now>=incident.initialSearchUntil){
+    _orderMurderCrewReturn(v,'no-suspect-found',now);
+  }
+}
+function _finishMurderPoliceCall(v,now=performance.now()){
+  const incident=v?.payload?.murderIncident;
+  if(incident){incident.status='closed';incident.closedAt=now;incident.assignedVehicleId=null;}
+  _removeMurderCrewForVehicle(v);v._policeCrewIds=[];v._policeReturned=2;v.payload={};
+  const next=_nextQueuedMurderIncident();
+  if(next&&_assignMurderPoliceCall(v,next,now,true))return;
+  v.speed=POLICE_RESPONSE_SPEED;v.state='returning';v.path=[];v.pathIdx=0;v.finalTarget=null;
+  v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;_setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
+}
+function _parkMurderPoliceVehicle(v,now=performance.now()){
+  _removeMurderCrewForVehicle(v);v.payload={};v.path=[];v.pathIdx=0;v.finalTarget=null;v.speed=0;
+  v.x=v.homeC;v.y=v.homeR;v.state='police_parked';v._policeCrewIds=[];v._policeBoarded=0;v._policeReturned=0;v._lastMoveT=now;
+  document.documentElement.dataset.policeMurderReturns=String((+document.documentElement.dataset.policeMurderReturns||0)+1);
+}
+function _setMurderPoliceArrestPhase(ar,phase,now=performance.now()){
+  if(!ar)return;
+  ar.phase=phase;ar.phaseAt=now;
+  document.documentElement.dataset.policeArrestPhase=phase;
+}
+function _murderPoliceArrestProgress(ar=_murderPoliceArrest,now=performance.now()){
+  if(!ar)return 0;
+  const duration=ar.phase==='downed'?900:ar.phase==='cuffing'?POLICE_ARREST_CUFF_MS:
+    ar.phase==='escort'?6200:ar.phase==='loading'?POLICE_ARREST_LOAD_MS:1;
+  return Math.max(0,Math.min(1,(now-(ar.phaseAt||now))/duration));
+}
+function _beginMurderPoliceArrest(cop,now=performance.now()){
+  if(_murderPoliceArrest||!cop?.alive)return false;
+  const v=serviceVehicles.find(q=>q.id===cop._responseVehicleId),incident=v?.payload?.murderIncident;
+  if(!v||!incident||!v._murderFleet)return false;
+  if(myDrivingCarId){exitCar('police_arrest');viewZoom=WORLD_VIEW_ZOOM;}
+  if(myJetSkiId)exitJetSki(true);
+  myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;
+  player.walking=false;player.vr=0;player.vc=0;
+  _playerEmergencyPatient=null;
+  _deathOv?.classList.remove('show');
+  if(_myBagWeight>0&&((_bankRob&&_bankRob.myBag)||_policeEvidenceBag))dropVaultBag();
+  const crew=_murderCrewForVehicle(v),cover=crew.find(q=>q!==cop)||null;
+  _murderPoliceArrest={vehicleId:v.id,incidentId:incident.id,copId:cop.id,coverCopId:cover?.id||'',
+    phase:'downed',startedAt:now,phaseAt:now,lastGangShots:Object.create(null),serverRequested:false,
+    serverAccepted:false,serverRejectedReason:''};
+  v.state='police_arrest_scene';v.speed=0;v.path=[];v.pathIdx=0;v._policePrisonTransport=false;
+  incident.status='arresting-player';incident.arrestStartedAt=now;
+  for(const officer of crew){
+    officer._casePhase=officer===cop?'arrest_approach':'arrest_cover';
+    officer._phaseStartedAt=now;officer._pursuing=true;officer._lifeState='';officer._lifeGesture='';
+  }
+  _copChats.set(cop.id,{text:'Не двигаться! Вы задержаны!',untilMs:now+2300});
+  document.documentElement.dataset.policeArrestPhase='downed';
+  document.documentElement.dataset.policeArrestRescuable='1';
+  showEventBanner('🚔 НЕ ДВИГАЙСЯ','Ты ранен, но жив. Офицер идёт надеть наручники.',3500,'lose');
+  return true;
+}
+function _applyGangmateRescueFire(ar,now=performance.now()){
+  if(!ar||ar.phase==='transport')return;
+  const cop=cityCops.find(q=>q?.alive&&q.id===ar.copId);
+  if(!cop)return;
+  for(const mate of others.values()){
+    if(!mate?.crewMate||mate.dead)continue;
+    const uid=String(mate.uid),shotAt=lastPlayerShotAt.get(uid)||0;
+    if(!shotAt||shotAt<=(ar.lastGangShots[uid]||0)||now-shotAt>420)continue;
+    ar.lastGangShots[uid]=shotAt;
+    const dr=cop.y-(+mate.y||0),dc=cop.x-(+mate.x||0),dist=Math.hypot(dr,dc)||.001;
+    const aimR=Math.sin(+mate.ang||0),aimC=Math.cos(+mate.ang||0),aimDot=(dr/dist)*aimR+(dc/dist)*aimC;
+    if(dist>15||aimDot<.955||!_policeWorldLineClear(+mate.y||0,+mate.x||0,cop.y,cop.x))continue;
+    const weapon=lastPlayerWeapon.get(uid)||mate.weapon||'pistol',dmg=Math.max(8,weaponDamageAt(weapon,dist));
+    const muzR=(+mate.y||0)+aimR*.45,muzC=(+mate.x||0)+aimC*.45;
+    spawnBullet(muzR,muzC,cop.y,cop.x,{hit:true,fromPlayer:true,weapon});
+    spawnImpact(cop.y,cop.x,weapon,true);
+    hitCityCop(cop,dr/dist,dc/dist,dmg,{kind:'gang_player',ref:mate,weapon});
+    document.documentElement.dataset.policeArrestGangFire=`${uid}:${dmg}`;
+    break;
+  }
+}
+function _cancelMurderPoliceArrest(source=null,now=performance.now()){
+  const ar=_murderPoliceArrest;if(!ar||ar.phase==='transport')return false;
+  const v=serviceVehicles.find(q=>q.id===ar.vehicleId),incident=v?.payload?.murderIncident;
+  _murderPoliceArrest=null;_murderPoliceRescueGraceUntil=now+3500;
+  myDead=false;_localDeath=false;myHp=1;myDeathLeft=0;myDeathBy='';
+  player.walking=false;player.vr=0;player.vc=0;_localHpHurtAt=now;_selfHpBarUntil=now+4500;
+  _deathOv?.classList.remove('show');
+  if(v&&incident){
+    v._policePrisonTransport=false;v.state='police_search';v.speed=0;v.path=[];v.pathIdx=0;v._lastMoveT=now;
+    incident.status='rescue-interrupted';incident.lostAt=now;incident.initialSearchUntil=now+POLICE_MURDER_SEARCH_MS;
+    const npcRescuer=source?.kind==='gang_companion'&&source.ref;
+    incident.armedContact=!!npcRescuer;incident.armedTargetType=npcRescuer?'npc':'';incident.armedTargetRef=npcRescuer||null;
+    for(const officer of _murderCrewForVehicle(v)){
+      officer._lifeState='';officer._lifeGesture='';officer._phaseStartedAt=now;officer._pursuing=!!npcRescuer;
+      officer._casePhase=npcRescuer?'npc_combat':'search';
+    }
+  }
+  document.documentElement.dataset.policeArrestPhase='rescued';
+  document.documentElement.dataset.policeArrestRescuable='0';
+  showEventBanner('◆ АРЕСТ СОРВАН','Союзник остановил полицейского. У тебя 1 HP — уходи!',3600,'win');
+  return true;
+}
+function _onMurderArrestCopKilled(cop,source=null){
+  const ar=_murderPoliceArrest;
+  if(!ar||ar.phase==='transport'||String(cop?._responseVehicleId)!==String(ar.vehicleId))return false;
+  if(!['gang_companion','gang_player'].includes(String(source?.kind||'')))return false;
+  return _cancelMurderPoliceArrest(source,performance.now());
+}
+function _startMurderPolicePrisonTransport(v,ar,now=performance.now()){
+  if(!v||!ar||_murderPoliceArrest!==ar)return false;
+  _setMurderPoliceArrestPhase(ar,'transport',now);ar.transportStartedAt=now;
+  player.walking=false;player.r=v.y;player.c=v.x;
+  for(const cop of _murderCrewForVehicle(v)){cop.alive=false;cop._lifeState='';cop._lifeGesture='';}
+  v._policeCrewIds=[];v._policeBoarded=2;v._policeReturned=2;v._policePrisonTransport=true;
+  v.state='returning';v.speed=POLICE_RESPONSE_SPEED;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
+  _setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
+  if(!ar.serverRequested){
+    ar.serverRequested=true;
+    try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'citycop_arrest',d:{cop_id:ar.copId,
+      x:+v.x.toFixed(2),y:+v.y.toFixed(2),response_vehicle:v.id}}));}catch(e){}
+  }
+  _confiscateBagOnArrest();
+  document.documentElement.dataset.policeArrestRescuable='0';
+  showEventBanner('🚓 В АВТОМОБИЛЕ','Наряд везёт тебя в блок полицейского участка.',3200,'lose');
+  return true;
+}
+function _completeMurderPolicePrisonTransport(v,now=performance.now(),reason='road-arrival'){
+  const ar=_murderPoliceArrest;
+  if(!ar||String(ar.vehicleId)!==String(v?.id))return false;
+  const jailR=JAIL_ISLAND_3D_ENABLED?JAIL_ISLAND_LAYOUT.intake.spawnR:JAIL_CENTER_R+1;
+  const jailC=JAIL_ISLAND_3D_ENABLED?JAIL_ISLAND_LAYOUT.intake.spawnC:JAIL_CENTER_C+1;
+  player.r=jailR;player.c=jailC;player.vr=0;player.vc=0;player.walking=false;
+  cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;
+  window._studioTeleportUntil=Date.now()+5000;
+  myDead=false;_localDeath=false;myHp=Math.max(1,Math.ceil((PVP.max_hp||100)*.25));myDeathLeft=0;myDeathBy='';
+  _localHpHurtAt=0;_selfHpBarUntil=now+3000;_deathOv?.classList.remove('show');
+  v._policePrisonTransport=false;
+  _murderPoliceArrest=null;
+  document.documentElement.dataset.policeArrestPhase=`jailed:${reason}`;
+  document.documentElement.dataset.policeArrestDelivered=String((+document.documentElement.dataset.policeArrestDelivered||0)+1);
+  showEventBanner('🔒 ДОСТАВЛЕН В БЛОК',ar.serverAccepted?`Срок: ${Math.max(1,Math.round((ar.jailSeconds||60)/60))} мин.`:'Оформление задержания завершено.',3900,'lose');
+  _finishMurderPoliceCall(v,now);
+  return true;
+}
+function _updateMurderPoliceArrest(v,dt,now=performance.now()){
+  const ar=_murderPoliceArrest;
+  if(!ar||String(ar.vehicleId)!==String(v?.id)){if(v)v.state='police_search';return false;}
+  _applyGangmateRescueFire(ar,now);
+  if(_murderPoliceArrest!==ar)return false;
+  const primary=cityCops.find(q=>q?.alive&&q.id===ar.copId),cover=cityCops.find(q=>q?.alive&&q.id===ar.coverCopId);
+  if(!primary)return _cancelMurderPoliceArrest({kind:'gang_player'},now);
+  if(_LOCAL_PREVIEW&&_UP.has('previewpolicerescue')&&ar.phase==='cuffing'&&now-ar.phaseAt>1100&&!document.documentElement.dataset.previewPoliceRescueTriggered){
+    document.documentElement.dataset.previewPoliceRescueTriggered=primary.id;
+    hitCityCop(primary,0,1,999,{kind:'gang_player',ref:{uid:'preview-gangmate'},weapon:'rifle'});
+    document.documentElement.dataset.previewPoliceRescueCorpse=NPCS.some(n=>n.id===`${primary.id}_corpse`)?'1':'0';
+    return false;
+  }
+  primary.ang=Math.atan2(player.r-primary.y,player.c-primary.x);
+  if(cover){
+    const coverPoint=_policeCrewBoardPoint(v,cover._crewSlot);
+    if(ar.phase==='escort'||ar.phase==='loading')_moveMurderResponseCop(cover,coverPoint.r,coverPoint.c,dt,1.08);
+    else{cover.ang=Math.atan2(player.r-cover.y,player.c-cover.x);}
+  }
+  if(ar.phase==='downed'){
+    primary._lifeState='';primary._lifeGesture='';
+    const reached=_moveMurderResponseCop(primary,player.r,player.c,dt,1.12);
+    if(reached||Math.hypot(primary.y-player.r,primary.x-player.c)<.9||now-ar.phaseAt>6500){
+      if(Math.hypot(primary.y-player.r,primary.x-player.c)>1.3){primary.y=player.r-Math.sin(primary.ang)*.72;primary.x=player.c-Math.cos(primary.ang)*.72;}
+      primary._lifeState='helping';primary._lifeGesture='aid';primary._lifeStateSince=now;
+      _copChats.set(primary.id,{text:'Руки за спину.',untilMs:now+1900});
+      _setMurderPoliceArrestPhase(ar,'cuffing',now);
+    }
+  }else if(ar.phase==='cuffing'){
+    primary._lifeState='helping';primary._lifeGesture='aid';primary.walkPhase=0;
+    if(now-ar.phaseAt>=POLICE_ARREST_CUFF_MS){
+      primary._lifeState='';primary._lifeGesture='';primary._casePhase='arrest_escort';
+      _setMurderPoliceArrestPhase(ar,'escort',now);player.walking=true;
+      _copChats.set(primary.id,{text:'К машине. Без резких движений.',untilMs:now+2100});
+    }
+  }else if(ar.phase==='escort'){
+    const door=_policeCrewBoardPoint(v,primary._crewSlot),reached=_moveMurderResponseCop(primary,door.r,door.c,dt,1.02);
+    const followR=primary.y-Math.sin(primary.ang)*.58,followC=primary.x-Math.cos(primary.ang)*.58,k=Math.min(1,dt*7);
+    player.r+=(followR-player.r)*k;player.c+=(followC-player.c)*k;player.ang=primary.ang;player.walking=true;player.walkPhase+=dt*7;
+    if(reached||Math.hypot(primary.y-door.r,primary.x-door.c)<.35||now-ar.phaseAt>8200){
+      player.r=door.r;player.c=door.c;player.walking=false;primary._casePhase='arrest_loading';
+      _setMurderPoliceArrestPhase(ar,'loading',now);
+    }
+  }else if(ar.phase==='loading'){
+    const door=_policeCrewBoardPoint(v,primary._crewSlot);player.r=door.r;player.c=door.c;player.ang=v.ang;player.walking=false;
+    primary.y=door.r;primary.x=door.c;primary.ang=v.ang;
+    if(now-ar.phaseAt>=POLICE_ARREST_LOAD_MS)_startMurderPolicePrisonTransport(v,ar,now);
+  }
+  return true;
+}
+function _murderCopShootPlayer(cop,dt,now){
+  const dr=player.r-cop.y,dc=player.c-cop.x,d=Math.hypot(dr,dc)||.001;cop.ang=Math.atan2(dr,dc);
+  if(d>7)_moveMurderResponseCop(cop,player.r,player.c,dt,1.45);
+  if(d>13||now<(cop._nextShootAt||0)||myDead)return;
+  cop._nextShootAt=now+1150+Math.random()*650;
+  const muzR=cop.y+Math.sin(cop.ang)*.45,muzC=cop.x+Math.cos(cop.ang)*.45,miss=(Math.random()-.5)*.72;
+  const tR=player.r+miss,tC=player.c-miss*.35,hit=Math.abs(miss)<.38;
+  spawnBullet(muzR,muzC,tR,tC,{hit,fromNpc:true,weapon:'pistol'});spawnMuzzle(muzR,muzC,cop.ang,'pistol',true);
+  if(hit){const dmg=7+Math.floor(Math.random()*5);spawnImpact(player.r,player.c,'pistol',true);_hurtLocal(dmg,'Полиция',true,{kind:'murder_police',cop});
+    spawnFloatText(player.r-.4,player.c,`−${dmg}`,{color:'#ff4422',size:13,life:900});
+    try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'npc_melee_shoot',d:{dmg,sx:+cop.x.toFixed(2),sy:+cop.y.toFixed(2)}}));}catch(e){}}
+}
+function _murderCopShootNpc(cop,target,dt,now){
+  const p=_murderNpcPosition(target);if(!p)return;
+  const dr=p.r-cop.y,dc=p.c-cop.x,d=Math.hypot(dr,dc)||.001;cop.ang=Math.atan2(dr,dc);
+  if(d>6.5)_moveMurderResponseCop(cop,p.r,p.c,dt,1.35);
+  if(d>12||now<(cop._nextShootAt||0))return;
+  cop._nextShootAt=now+1200+Math.random()*700;
+  const muzR=cop.y+Math.sin(cop.ang)*.45,muzC=cop.x+Math.cos(cop.ang)*.45,miss=(Math.random()-.5)*.55,hit=Math.abs(miss)<.34;
+  spawnBullet(muzR,muzC,p.r+miss,p.c-miss*.3,{hit,fromNpc:true,weapon:'pistol'});spawnMuzzle(muzR,muzC,cop.ang,'pistol',true);
+  if(!hit)return;
+  const dmg=15+Math.floor(Math.random()*8);
+  if(NPCS.includes(target))hitNpc(target,dr/d,dc/d,'pistol',dmg,{kind:'city_cop',ref:cop});
+  else{
+    target.hp=Math.max(0,(+target.hp||60)-dmg);
+    if(target.hp<=0){target.dead=true;target.alive=false;target.deadAt=now;}
+  }
+  spawnImpact(p.r,p.c,'pistol',true);spawnFloatText(p.r,p.c,`−${dmg}`,{color:'#ff6848',size:12,life:850});
+}
+function _updateMurderResponseCop(cop,dt,now){
+  const v=serviceVehicles.find(q=>q.id===cop._responseVehicleId),incident=v?.payload?.murderIncident;
+  if(!v||!incident){cop.alive=false;return true;}
+  if(String(cop._casePhase||'').startsWith('arrest_'))return true;
+  if(cop._casePhase==='boarding'){
+    const p=_policeCrewBoardPoint(v,cop._crewSlot);
+    if(_moveMurderResponseCop(cop,p.r,p.c,dt,1.15)||now-cop._phaseStartedAt>6500){v._policeBoarded=Math.min(2,(v._policeBoarded||0)+1);cop.alive=false;}
+    return true;
+  }
+  if(cop._casePhase==='return'){
+    const p=_policeCrewBoardPoint(v,cop._crewSlot);
+    if(_moveMurderResponseCop(cop,p.r,p.c,dt,1.18)||now-cop._phaseStartedAt>6500){v._policeReturned=Math.min(2,(v._policeReturned||0)+1);cop.alive=false;}
+    return true;
+  }
+  if(cop._casePhase==='disembark'){
+    if(now-cop._phaseStartedAt<(cop._crewSlot||0)*320)return true;
+    cop._casePhase='search';cop._phaseStartedAt=now;
+    _copChats.set(cop.id,{text:cop._crewSlot?'Обхожу справа!':'Осматриваем место!',untilMs:now+1500});
+  }
+  if(cop._casePhase==='combat'&&incident.armedContact&&_murderPlayerInZone(incident)){
+    _murderCopShootPlayer(cop,dt,now);return true;
+  }
+  if(cop._casePhase==='npc_combat'&&incident.armedContact&&incident.armedTargetType==='npc'){
+    _murderCopShootNpc(cop,incident.armedTargetRef,dt,now);return true;
+  }
+  if(cop._casePhase==='question'&&_murderPlayerInZone(incident)){
+    const d=Math.hypot(player.r-cop.y,player.c-cop.x);cop.ang=Math.atan2(player.r-cop.y,player.c-cop.x);
+    if(d>2.2)_moveMurderResponseCop(cop,player.r,player.c,dt,1.05);
+    if(now>=(cop._nextCaseCryAt||0)){
+      const elapsed=now-incident.questionStartedAt,lines=cop._crewSlot?
+        ['Оставайтесь на месте.','Вы видели стрелявшего?','Куда он побежал?']:
+        ['Полиция. Оружие есть?','Что произошло здесь?','Назовите ваше имя.'];
+      _copChats.set(cop.id,{text:lines[Math.min(lines.length-1,Math.floor(elapsed/2400))],untilMs:now+2100});cop._nextCaseCryAt=now+2400;
+    }
+    return true;
+  }
+  if(!Number.isFinite(cop._searchR)||Math.hypot(cop.y-cop._searchR,cop.x-cop._searchC)<.35||now>(cop._searchRetargetAt||0)){
+    const p=_pickMurderSearchPoint(incident,cop._crewSlot,(now*.001+(cop._crewSlot||0)*3)|0);
+    cop._searchR=p.r;cop._searchC=p.c;cop._searchRetargetAt=now+1900+Math.random()*1600;
+  }
+  _moveMurderResponseCop(cop,cop._searchR,cop._searchC,dt,1.0);
+  if(now>=(cop._nextCaseCryAt||0)&&Math.random()<.08){
+    const lines=['Проверяю двор!','Осмотрите переулок!','Есть кто-нибудь?','Прочёсываем район.'];
+    _copChats.set(cop.id,{text:lines[(Math.random()*lines.length)|0],untilMs:now+1700});cop._nextCaseCryAt=now+2500;
+  }
+  return true;
+}
+
 function _fireTruckTarget(v) {
   if(!v||v.kind!=='firetruck'||!v.payload)return null;
   const fire=v.payload.fireRef,car=v.payload.carRef;
@@ -10145,6 +10686,29 @@ function updateServiceVehicles(dt) {
       v.speed=0;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
       continue;
     }
+    if(v.state==='police_parked'){
+      v.speed=0;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
+      continue;
+    }
+    if(v._murderFleet&&v.state==='police_boarding'){
+      v._lastMoveT=now;
+      if((v._policeBoarded||0)>=2||now-(v._boardingStartedAt||now)>7000){
+        _removeMurderCrewForVehicle(v);v._policeBoarded=2;v.speed=POLICE_RESPONSE_SPEED;
+        v.state='go_to_scene';if(v.payload?.murderIncident)v.payload.murderIncident.status='enroute';
+      }
+      continue;
+    }
+    if(v._murderFleet&&v.state==='police_search'){
+      v._lastMoveT=now;_updateMurderPoliceScene(v,now);continue;
+    }
+    if(v._murderFleet&&v.state==='police_arrest_scene'){
+      v._lastMoveT=now;_updateMurderPoliceArrest(v,dt,now);continue;
+    }
+    if(v._murderFleet&&v.state==='police_reboarding'){
+      v._lastMoveT=now;
+      if((v._policeReturned||0)>=2||now-(v._reboardingStartedAt||now)>7000)_finishMurderPoliceCall(v,now);
+      continue;
+    }
     if(v.state==='firetruck_parked'||v.state==='tow_parked'){
       v.speed=0;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
       continue;
@@ -10203,6 +10767,14 @@ function updateServiceVehicles(dt) {
         if(_teleportTowTruckAfterStall(v,now))continue;
       }
       if (v.kind === 'ambulance') _releaseFailedAmbulanceCall(v);
+      if(v._murderFleet){
+        if(v._policePrisonTransport&&_murderPoliceArrest){
+          _completeMurderPolicePrisonTransport(v,now,'watchdog-arrival');continue;
+        }
+        const incident=v.payload?.murderIncident;
+        if(incident){incident.status='queued';incident.assignedVehicleId=null;}
+        _parkMurderPoliceVehicle(v,now);continue;
+      }
       v.state = 'done';
       continue;
     }
@@ -10237,9 +10809,14 @@ function updateServiceVehicles(dt) {
       }
       if (_vehicleStep(v, dt)) {
         if (v.kind === 'police') {
-          // Прибыли к банку — осада: копы выходят, машина стоит с мигалкой
-          v.state = 'siege';
-          _spawnResponseCops(v);
+          if(v._murderFleet&&v.payload?.murderIncident){
+            // Убийство: из машины физически выходят те же два офицера.
+            _startMurderPoliceScene(v,now);
+          }else{
+            // Прибыли к банку — осада: копы выходят, машина стоит с мигалкой
+            v.state = 'siege';
+            _spawnResponseCops(v);
+          }
         } else if(v.kind==='firetruck') {
           if(!_startFireTruckWater(v,now))_abortFireTruckJob(v);
         } else if(v.kind==='ambulance'&&_ambulanceNeedsBodyCrew(v)) {
@@ -10322,8 +10899,15 @@ function updateServiceVehicles(dt) {
         cr.c = v.x - Math.cos(v.ang) * 0.6;
         cr._towLoadingProgress=1;
       }
+      if(v._murderFleet&&v._policePrisonTransport&&_murderPoliceArrest){
+        player.r=v.y;player.c=v.x;player.ang=v.ang;player.walking=false;
+      }
       if (_vehicleStep(v, dt)) {
         if(v.kind==='ambulance'){_completeAmbulanceHospitalDelivery(v,now,'road-arrival');continue;}
+        if(v._murderFleet){
+          if(v._policePrisonTransport&&_completeMurderPolicePrisonTransport(v,now,'road-arrival'))continue;
+          _parkMurderPoliceVehicle(v,now);continue;
+        }
         // Доехал до депо. Эвакуатор увёз машину «за карту» → удаляем из
         // CARS и доспавниваем свежую (трафик не редеет, машины не
         // пропадают навсегда).
@@ -10355,6 +10939,43 @@ function dispatchEmergencyServices() {
     if(_UP.has('previewambulancefocus')){player.r=door.r+5.2;player.c=door.c+5.1;player.vr=player.vc=0;}
     document.documentElement.dataset.previewAmbulanceQueueSeeded=String(testVictims.length);
   }
+
+  // Убийства идут в отдельную очередь полиции. Машины уже стоят у участка;
+  // свободный экипаж сначала выходит из здания и садится, как настоящий наряд.
+  _ensurePoliceResponseFleet();
+  for(const n of NPCS){
+    if(!n?.dead||!n.deadAt||n._policeMurderIncidentId||n._policeMurderIgnored)continue;
+    if(now-n.deadAt>CORPSE_AUTO_REMOVE_MS)continue;
+    _registerMurderIncident(n,n._lastViolentSource||null,now);
+  }
+  for(const b of beachgoers.values()){
+    if(!b?.dead||!b.deadAt||b._policeMurderIncidentId||b._policeMurderIgnored)continue;
+    _registerMurderIncident(b,b._lastViolentSource||null,now);
+  }
+  if(_LOCAL_PREVIEW&&(_UP.has('previewpoliceresponse')||_UP.has('previewpolicearrest'))&&!document.documentElement.dataset.previewPoliceResponseSeeded){
+    if(_UP.has('previewpolicearrest')){
+      const bay=_policeResponseBays()[0],road=_nearestRoadTile(bay.r+7,bay.c+2,14);
+      if(road){player.r=road.r+.5;player.c=road.c+.5;player.vr=0;player.vc=0;}
+      currentWeapon='pistol';myHp=1;myDead=false;_localDeath=false;
+    }
+    const victim=NPCS.find(n=>_isCivilianMurderVictim(n)&&!n.dead);
+    if(victim){
+      victim.r=player.r+4.2;victim.c=player.c+2.2;victim.tr=victim.r;victim.tc=victim.c;
+      victim.hp=0;victim.dead=true;victim.deadAt=now;victim._lastViolentSource={kind:'player',uid:String(QP?.uid||'local')};
+      _registerMurderIncident(victim,victim._lastViolentSource,now);
+      document.documentElement.dataset.previewPoliceResponseSeeded=victim._policeMurderIncidentId||'1';
+    }
+  }
+  _dispatchMurderPoliceCalls(now);
+  const policeFleet=serviceVehicles.filter(v=>v?._murderFleet&&v.state!=='done');
+  document.documentElement.dataset.policeMurderFleet=String(policeFleet.length);
+  document.documentElement.dataset.policeMurderParked=String(policeFleet.filter(v=>v.state==='police_parked').length);
+  document.documentElement.dataset.policeMurderBusy=String(policeFleet.filter(v=>v.state!=='police_parked').length);
+  document.documentElement.dataset.policeMurderQueue=String(_murderIncidents.filter(q=>q.status==='queued').length);
+  document.documentElement.dataset.policeMurderCrew=String(cityCops.filter(c=>c?.alive&&c.kind==='murder_response').length);
+  document.documentElement.dataset.policeMurderProfile='3d-station-board-drive-search-question-fire-cuff-load-prison-gang-rescue-v247';
+  document.documentElement.dataset.policeArrestPhase=_murderPoliceArrest?.phase||document.documentElement.dataset.policeArrestPhase||'idle';
+  document.documentElement.dataset.policeArrestProgress=_murderPoliceArrest?_murderPoliceArrestProgress().toFixed(3):'0.000';
 
   // Six permanent crews (three per hospital) pull the oldest corpses from one shared queue.
   // Dead residents are prioritized over wounded residents.
@@ -11111,7 +11732,8 @@ function drawServiceVehicle(v) {
   const sirenPts = isAmb
     ? [[s1.x, s1.y], [s2.x, s2.y], [s3.x, s3.y]]
     : [[s1.x, s1.y], [s3.x, s3.y]];
-  const emergencyLightsOn = !isAmb || v.state !== 'ambulance_parked';
+  const emergencyLightsOn = isAmb ? v.state !== 'ambulance_parked'
+    : isPolice ? v.state !== 'police_parked' : true;
 
   ctx.save();
   for (let fi = 0; fi < sirenPts.length; fi++) {
@@ -11801,7 +12423,8 @@ function updateNpcs(dt) {
     if (n.dead) continue;
     // Оглушённый преступник лежит 5 секунд и не может атаковать/убегать.
     if(n._medicalDowned&&now>=(n._medicalBleedoutAt||0)){
-      n._medicalDowned=false;n._knockedUntil=0;n.hp=0;n.dead=true;n.deadAt=now;n.cryText='…';n.cryUntil=now+500;continue;
+      n._medicalDowned=false;n._knockedUntil=0;n.hp=0;n.dead=true;n.deadAt=now;n.cryText='…';n.cryUntil=now+500;
+      _registerMurderIncident(n,n._lastViolentSource,now);continue;
     }
     if(n._medicalDowned){
       n._forcedCrawl=true;
@@ -11949,7 +12572,8 @@ function updateNpcs(dt) {
             spawnMuzzle(cmR, cmC, copAng, 'pistol', true);
             if (cHit) {
               // Наносим урон NPC от копа
-              hitNpc(n, Math.sin(copAng), Math.cos(copAng), 'pistol', 18 + Math.floor(Math.random()*10));
+              hitNpc(n, Math.sin(copAng), Math.cos(copAng), 'pistol', 18 + Math.floor(Math.random()*10),
+                {kind:'city_cop',ref:nearCop});
               spawnImpact(ctR, ctC, 'pistol', true);
               if (!n._copAlertShown) {
                 n._copAlertShown = true;
@@ -12457,12 +13081,13 @@ function _raycastBeachgoer(sR,sC,dirY,dirX,maxRange) {
   return best;
 }
 function _hitBeachgoer(b,dirY,dirX,damage) {
-  if(!b||b.dead)return;b.hp=Math.max(0,(b.hp||60)-(damage||20));
+  if(!b||b.dead)return;b._lastViolentSource={kind:'player',uid:String(QP?.uid||'local')};b.hp=Math.max(0,(b.hp||60)-(damage||20));
   const q=_beachgoerWorldPos(b);b._shopSay='ААА!';b._shopSayUntil=performance.now()+900;
   _markCombatBleeding(b,q.r,q.c,damage,dirY,dirX,currentWeapon);
   for(let i=0;i<(b.hp<=0?6:2);i++){_capArr(bloodSplats,_MAX_BLOOD);bloodSplats.push({r:q.r+(Math.random()-.5)*.55,c:q.c+(Math.random()-.5)*.55,radius:(b.hp<=0?7:4)+Math.random()*4,life:14000,max:14000,rot:Math.random()*Math.PI});}
   if(b.hp>0)return;
   b.dead=true;b.deadAt=performance.now();b._deathR=q.r+dirY*.18;b._deathC=q.c+dirX*.18;
+  _registerMurderIncident(b,b._lastViolentSource,b.deadAt);
   const qi=_beachShopQueue.indexOf(b.id);if(qi>=0){_beachShopQueue.splice(qi,1);_beachShopRetargetQueue();}
   b._shopState=null;b._beachRole=null;
   _alertNearbyCops('kill');
@@ -15554,11 +16179,11 @@ function _updateGang(dt) {
     } else if (m.targetKind === 'interior_guard') {
       _hitInteriorNpc(m.targetRef, dirY, dirX, dmg, m.weapon);
     } else if (m.targetKind === 'city_cop') {
-      hitCityCop(m.targetRef, dirY, dirX, dmg);
+      hitCityCop(m.targetRef, dirY, dirX, dmg,{kind:'gang_companion',ref:m,weapon:m.weapon});
     } else if (m.targetKind === 'gang_car') {
       hitGangCar(m.targetRef, dmg);
     } else if (m.targetKind === 'street_npc') {
-      hitNpc(m.targetRef, dirY, dirX, m.weapon, dmg);
+      hitNpc(m.targetRef, dirY, dirX, m.weapon, dmg,{kind:'npc',ref:m});
     } else if (m.targetKind === 'aggro_bot') {
       try { ws && ws.send(JSON.stringify({ t: 'aggro_shoot', d: {
         target: m.targetRef.id, weapon: m.weapon, member: i,
@@ -16237,7 +16862,7 @@ function _drawSuppressedByFire(px, py) {
   ctx.restore();
 }
 // Применить локальный урон: вычесть HP, отметить время, проверить смерть.
-function _hurtLocal(dmg, by, underFire = false) {
+function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
   if (underFire) _registerIncomingFire(dmg);
   if(typeof _policeHasLevel==='function'&&_policeHasLevel(3)){
     const raw=Math.max(0,dmg|0),warArmor=_localFactionControls('police') ? .05 : 0,armor=Math.max(.45,.7-_hqLvl('police','armory')*.05-warArmor);dmg=Math.max(1,Math.ceil(raw*armor));
@@ -16252,6 +16877,7 @@ function _hurtLocal(dmg, by, underFire = false) {
   _localHpHurtAt = performance.now();
   _selfHpBarUntil = _localHpHurtAt + 4500;
   if (myHp <= 0 && !myDead) {
+    if(deathMode?.kind==='murder_police'&&_beginMurderPoliceArrest(deathMode.cop,_localHpHurtAt))return;
     myDead = true; _localDeath = true;
     myDeathBy = by || 'Город'; myDeathLeft = 18;_breakEquippedArmorOnDeath();_dispatchPlayerAmbulance();
   }
@@ -18886,13 +19512,19 @@ function handleEventPacket(d) {
     // не просто предупреждение при 1★). Сервер посадил в тюрьму, обнулил
     // звёзды. Локально — тост + showArrestOverlay.
     if (d.ok) {
+      if(_murderPoliceArrest){
+        _murderPoliceArrest.serverAccepted=true;
+        _murderPoliceArrest.jailSeconds=Math.max(1,+d.jail_s||60);
+      }
       // Копы забирают мешок при аресте — нельзя сидеть в тюрьме с добычей.
       _confiscateBagOnArrest();
       showEventBanner(
         '🚓 ЗАДЕРЖАН',
         `Патруль схватил на месте. Срок: ${Math.round((d.jail_s || 60) / 60)} мин.`,
         4200, 'lose');
-      try { showArrestOverlay && showArrestOverlay(); } catch(e) {}
+      if(!_murderPoliceArrest)try { showArrestOverlay && showArrestOverlay(); } catch(e) {}
+    }else if(_murderPoliceArrest){
+      _murderPoliceArrest.serverRejectedReason=String(d.reason||'unknown');
     }
     // ok=false молча — это либо лагнувший пакет, либо сервер уже посадил
   } else if (kind === 'bank_rob_announce') {
@@ -20221,7 +20853,7 @@ function wsConnect() {
         // В ТЮРЬМЕ позиция клиент-авторитетна (tryMove клампит к двору 7×7,
         // телепорт при аресте — см. обработку jail_in ниже). Сервер держит
         // игрока у центра участка → коррекция тянула бы сквозь здания.
-        if (!_bankInt && !_buildingInt && !_driving && !_inBus && !(myJailIn > 0) && Date.now() >= (window._studioTeleportUntil||0)) {
+        if (!_bankInt && !_buildingInt && !_driving && !_inBus && !_murderPoliceArrest && !(myJailIn > 0) && Date.now() >= (window._studioTeleportUntil||0)) {
         const dist = Math.hypot(player.r - d.me.y, player.c - d.me.x);
         if (_firstSnap || dist > 15.0) {
           player.r = d.me.y; player.c = d.me.x;
@@ -20247,7 +20879,7 @@ function wsConnect() {
         // Внутри банка HP управляется только локально (_hurtLocal/больница).
         // Сервер не знает об интерьере и шлёт снапы с заниженным HP (копы
         // снаружи «стреляют»). Игнорируем сервер пока _bankInt активен.
-        if (typeof d.me.hp === 'number' && !_bankShield()) {
+        if (typeof d.me.hp === 'number' && !_bankShield() && !_murderPoliceArrest) {
           if(d.me.hp<myHp)_selfHpBarUntil=performance.now()+4500;
           const _localFresh = (performance.now() - _localHpHurtAt) < 2500;
           if (!_localFresh || d.me.hp <= myHp) myHp = d.me.hp;
@@ -20521,11 +21153,13 @@ function wsConnect() {
             // коллизий) — персонаж сам «бежал» сквозь здания и мог
             // застрять в blocked-тайле. Телепорт в tryMove не спасал:
             // он срабатывает только при нажатом движении.
-            if (myDrivingCarId) { exitCar('arrest'); viewZoom = WORLD_VIEW_ZOOM; }
-            player.r = JAIL_ISLAND_3D_ENABLED ? JAIL_ISLAND_LAYOUT.intake.spawnR : JAIL_CENTER_R + 1;
-            player.c = JAIL_ISLAND_3D_ENABLED ? JAIL_ISLAND_LAYOUT.intake.spawnC : JAIL_CENTER_C + 1;
-            cam.x = (player.c - player.r) * TS * 0.5;
-            cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
+            if(_murderPoliceArrest?.phase!=='transport'){
+              if (myDrivingCarId) { exitCar('arrest'); viewZoom = WORLD_VIEW_ZOOM; }
+              player.r = JAIL_ISLAND_3D_ENABLED ? JAIL_ISLAND_LAYOUT.intake.spawnR : JAIL_CENTER_R + 1;
+              player.c = JAIL_ISLAND_3D_ENABLED ? JAIL_ISLAND_LAYOUT.intake.spawnC : JAIL_CENTER_C + 1;
+              cam.x = (player.c - player.r) * TS * 0.5;
+              cam.y = (player.c + player.r) * TS * 0.5 * ISO_Y;
+            }
           }
           myJailIn = d.me.jail_in;
           _prisonReleaseGateSeconds=myJailIn;
@@ -27895,7 +28529,7 @@ function updatePvpUI() {
   // (из дебаг-скрина: fps=60, ws=OPEN, но видно сразу два затемнения).
   // Тюремный overlay в drawJailOverlay есть отдельно, ему deathOverlay
   // не нужен.
-  if (myDead && !(myJailIn > 0)) {
+  if (myDead && !_murderPoliceArrest && !(myJailIn > 0)) {
     if (!_deathOv.classList.contains('show')) _deathOv.classList.add('show');
     const policeDecision=_policeDowned?.role==='target';
     const rescueComing=!!_playerEmergencyPatient;
@@ -27953,7 +28587,7 @@ function updatePvpUI() {
   }
   // Jail overlay — большой блок при сидении в тюрьме
   if (_jailOvEl) {
-    if (myJailIn > 0) {
+    if (myJailIn > 0 && _murderPoliceArrest?.phase!=='transport') {
       _jailOvEl.classList.add('show');
       const m = Math.floor(myJailIn / 60);
       const s = myJailIn % 60;
@@ -57166,10 +57800,12 @@ window.Mafiozi3DBridge = Object.freeze({
   getPlayerState() {
     const reloadId=resolveWeapon(currentWeapon),reloading=_isReloadingWeapon(reloadId),reloadCfg=weaponProfile(reloadId),reloadStepMs=(reloadCfg.mode==='pump'||reloadId==='nagan')?Math.max(360,(reloadCfg.reloadMs||2550)/(reloadCfg.magSize||1)):(reloadCfg.reloadMs||1800),reloadProgress=reloading?Math.max(0,Math.min(1,1-(_reloadUntil-performance.now())/reloadStepMs)):0;
     const vehicleEntry=_threeVehicleEntrySequence?{..._threeVehicleEntrySequence,progress:Math.max(0,Math.min(1,(performance.now()-_threeVehicleEntrySequence.startedAt)/_threeVehicleEntrySequence.duration))}:null;
+    const arrest=_murderPoliceArrest,arrestPhase=arrest?.phase||'',arrestProgress=arrest?_murderPoliceArrestProgress(arrest):0;
     const state={
       r: +player.r || 0, c: +player.c || 0, ang: +player.ang || 0,
       walking: !!player.walking, walkPhase: +player.walkPhase || 0,
-      hp: _LOCAL_PREVIEW&&_UP.has('previewlimp')?20:Math.max(0, +player.hp || 0), dead: !!myDead,
+      hp: _LOCAL_PREVIEW&&_UP.has('previewlimp')?20:Math.max(0,+myHp||0),dead:!!myDead,
+      arrestPhase,arrestProgress,cuffed:['cuffing','escort','loading','transport'].includes(arrestPhase),arrestHidden:arrestPhase==='transport',
       mode: myMode, weapon:_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
@@ -57283,6 +57919,15 @@ window.Mafiozi3DBridge = Object.freeze({
     myDead=false;_localDeath=false;myHp=PVP.max_hp;myDeathLeft=0;_deathOv?.classList.remove('show');if(_deathOv)_deathOv.style.display='none';
     window._studioTeleportUntil=Date.now()+10000;
     return true;
+  },
+  previewInterruptMurderArrest() {
+    if(!_LOCAL_PREVIEW||!_murderPoliceArrest||_murderPoliceArrest.phase==='transport')return {ok:false,phase:_murderPoliceArrest?.phase||'idle'};
+    const ar=_murderPoliceArrest,cop=cityCops.find(c=>c?.alive&&c._responseVehicleId===ar.vehicleId);
+    if(!cop)return {ok:false,phase:ar.phase};
+    const corpseId=`${cop.id}_corpse`;
+    hitCityCop(cop,0,1,999,{kind:'gang_player',ref:{uid:'preview-gangmate'},weapon:'rifle'});
+    return {ok:true,phase:document.documentElement.dataset.policeArrestPhase||'',hp:myHp,dead:myDead,
+      corpse:NPCS.some(n=>n.id===corpseId)};
   },
   previewEnterBusinessInterior(id) {
     if(!_LOCAL_PREVIEW)return false;
@@ -57485,14 +58130,15 @@ window.Mafiozi3DBridge = Object.freeze({
         id:`service_${v.id}`,r:+v.y||0,c:+v.x||0,ang:+v.ang||0,
         model:ambulance?'ambulance':fire?'firetruck':tow?'tow_truck':'police',
         paint:ambulance?'#eef3f7':fire?'#b51f27':tow?'#e0a62c':'#244f86',
-        parked:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='working'||v.state==='medical_response'||v.state==='siege',length:fire?2.4:tow?2.3:ambulance?2.05:1.9,
+        parked:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='police_parked'||v.state==='police_boarding'||v.state==='police_search'||v.state==='police_arrest_scene'||v.state==='police_reboarding'||v.state==='working'||v.state==='medical_response'||v.state==='siege',length:fire?2.4:tow?2.3:ambulance?2.05:1.9,
         width:fire?1.1:tow?1:ambulance?.98:.9,height:fire?1.05:ambulance?.88:.75,wheelR:.2,
         sport:false,pickup:tow,van:ambulance||fire,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,
-        emergency:ambulance?'ambulance':fire?'fire':police?'police':'tow',emergencyLights:ambulance?ambulanceOnCall:fire?v.state!=='firetruck_parked':tow?v.state!=='tow_parked':true,
+        emergency:ambulance?'ambulance':fire?'fire':police?'police':'tow',emergencyLights:ambulance?ambulanceOnCall:fire?v.state!=='firetruck_parked':tow?v.state!=='tow_parked':police?v.state!=='police_parked':true,
         stripe:ambulance?'#1756bd':fire?'#f2c94c':tow?'#22262b':'#d9e8ff',
         dirR:Math.sin(+v.ang||0),dirC:Math.cos(+v.ang||0),velR:0,velC:0,
-        braking:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='working'||v.state==='medical_response'||v.state==='siege',turning:false,
+        braking:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='police_parked'||v.state==='police_boarding'||v.state==='police_search'||v.state==='police_arrest_scene'||v.state==='police_reboarding'||v.state==='working'||v.state==='medical_response'||v.state==='siege',turning:false,
         serviceKind:v.kind,serviceState:v.state,medicalDoorsOpen:medicalDoorProgress>.5,medicalDoorProgress,
+        policeDoorsOpen:police&&v.state==='police_arrest_scene'&&['escort','loading'].includes(_murderPoliceArrest?.phase||''),
         fireWorkProgress:fire&&v.state==='working'?Math.max(0,Math.min(1,(fxNow-(+v._waterStartedAt||fxNow))/Math.max(1,+v.workDuration||4500))):0,
         fireHoseAngle:fire&&Number.isFinite(+v._hoseAng)?+v._hoseAng:null,
         towLoadProgress:tow?Math.max(0,Math.min(1,+v._loadProgress||0)):0,towLoaded:tow&&!!v._loaded,
@@ -61669,6 +62315,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d247-business-visuals-daylight-hotfix"></script>
+<script type="module" src="three_preview.js?v=3d248-police-response-startup-opt"></script>
 </body>
 </html>
