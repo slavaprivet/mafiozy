@@ -12409,9 +12409,12 @@ async def _iso_run_sim_loop(sim: 'IsoBattleSim') -> None:
 # ════════════════════════════════════════════════════════════════
 WORLD_TICK_HZ = 15
 WORLD_TICK_DT = 1.0 / WORLD_TICK_HZ
-WORLD_MAP_COLS = 80   # тайлы (Х) — городская сетка, BLOCK=10.
-WORLD_MAP_ROWS = 200  # 80×200: r=0..79 город, r=80..99 буфер, r=100..139 Логово,
-                      # r=140..149 буфер, r=150..199 — пляж/море/корабль Майкла.
+WORLD_MAP_COLS = 180  # c=0..79 старый город, c=80..99 канал, c=100..179 восточный город.
+WORLD_MAP_ROWS = 200  # r=0..139 город/Логово, r=140..149 буфер,
+                      # r=150..199 — пляж/море/корабль Майкла.
+WORLD_CITY_CANAL_C0 = 80; WORLD_CITY_CANAL_C1 = 100
+WORLD_CITY_BRIDGE_R0 = 47; WORLD_CITY_BRIDGE_R1 = 56
+WORLD_EAST_EXPANSION_C0 = 100; WORLD_EAST_EXPANSION_R1 = 140
 # ── Южная зона (синхронно с world.html BEACH_*/PIER_*/SHIP_*) ──
 WORLD_BEACH_R0 = 150; WORLD_BEACH_R1 = 165
 WORLD_PIER_R0  = 165; WORLD_PIER_R1  = 175
@@ -12472,7 +12475,9 @@ def _build_track_tiles() -> set:
     m = len(pts)
     lim2 = WORLD_TRACK_HALF_W * WORLD_TRACK_HALF_W
     for r in range(160, WORLD_MAP_ROWS - 1):
-        for c in range(1, WORLD_MAP_COLS - 1):
+        # Кольцо остаётся в старой прибрежной части (c<=75); расширение
+        # восточного города не должно умножать стоимость загрузки трека.
+        for c in range(1, min(WORLD_MAP_COLS - 1, 82)):
             pr = r + 0.5; pc = c + 0.5
             best = 1e9
             for i in range(m):
@@ -12577,6 +12582,32 @@ def _world_is_wall(r: int, c: int) -> bool:
     if r < 0 or r >= WORLD_MAP_ROWS or c < 0 or c >= WORLD_MAP_COLS:
         return True
     if r == 0 or r == WORLD_MAP_ROWS - 1 or c == 0 or c == WORLD_MAP_COLS - 1:
+        return True
+    # Канал делит город, но мост и четыре клетки подхода с каждого берега
+    # образуют широкий непрерывный путь. Это совпадает с финальным override
+    # buildMap() в world.html и не оставляет невидимой стены у красных опор.
+    if (WORLD_CITY_BRIDGE_R0 <= r < WORLD_CITY_BRIDGE_R1 and
+            WORLD_CITY_CANAL_C0 - 4 <= c < WORLD_CITY_CANAL_C1 + 4):
+        return False
+    if (WORLD_CITY_CANAL_C0 <= c < WORLD_CITY_CANAL_C1 and
+            r < WORLD_EAST_EXPANSION_R1):
+        return True
+    # Восточные супер-кварталы используют тот же 20×20 план, что клиент.
+    if c >= WORLD_EAST_EXPANSION_C0 and r < WORLD_EAST_EXPANSION_R1:
+        lr = r % 20; lc = (c - WORLD_EAST_EXPANSION_C0) % 20
+        if lr <= 3 or lc <= 3 or lr in (4, 19) or lc in (4, 19):
+            return False
+        vertical = ((r // 20 + (c - WORLD_EAST_EXPANSION_C0) // 20) & 1) == 1
+        a, b = (lc, lr) if vertical else (lr, lc)
+        bulb = ((a - 11) ** 2 + (b - 14) ** 2) ** .5
+        if (10 <= a <= 12 and b <= 14) or bulb <= 3.05:
+            return False
+        if ((a in (9, 13) and b <= 14) or 3.05 < bulb <= 4.15):
+            return False
+        if ((6 <= a <= 8) or (14 <= a <= 16)) and b == 5:
+            return False
+        if b in (9, 13, 14) or (b >= 15 and 9 <= a <= 13):
+            return False
         return True
     # ── Южная зона: пляж/вода/причал/палуба (r >= 140) ──
     # ДОЛЖНО совпадать с buildMap()-override'ом в world.html.
