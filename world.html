@@ -57550,12 +57550,27 @@ function _capArrays() {
 }
 const _WORLD_MAX_FPS = 72;
 const _WORLD_FRAME_MIN_MS = 1000 / _WORLD_MAX_FPS;
+const _THREE_IDLE_SIM_FPS = 30;
+const _THREE_ACTIVE_SIM_FPS = 48;
 function frame() {
   const t = performance.now();
   const _threeRendererActive = document.getElementById('stage')?.classList.contains('three-mode');
-  // Three.js interpolates movement independently, so the hidden Canvas-side
-  // simulation does not need 48 full updates per second while 3D is active.
-  const _activeFrameMinMs = _threeRendererActive ? (1000 / 30) : _WORLD_FRAME_MIN_MS;
+  // В спокойном 3D-мире оставляем экономные 30 Гц из startup-оптимизации.
+  // Управление, бой, транспорт и активные городские службы сразу возвращают
+  // симуляцию к 48 Гц: Three.js продолжает интерполировать, но input/AI больше
+  // не ощущаются «вязкими» во время движения и полицейского вызова.
+  const _threeServiceBusy = _threeRendererActive && serviceVehicles.some(v=>{
+    if(!v||v.state==='done')return false;
+    const state=String(v.state||'');
+    return !['idle','parked'].includes(state)&&!state.endsWith('_parked');
+  });
+  const _threeResponsiveSim = _threeRendererActive && (
+    !!player.walking || !!joyL.active || !!joyR.active || !!myDrivingCarId || !!myJetSkiId ||
+    !!_murderPoliceArrest || _threeServiceBusy || myWanted>0 ||
+    t-(+lastShotClientT||0)<1400 || t-(+_localHpHurtAt||0)<1400);
+  const _threeSimFps = _threeResponsiveSim ? _THREE_ACTIVE_SIM_FPS : _THREE_IDLE_SIM_FPS;
+  const _activeFrameMinMs = _threeRendererActive ? (1000 / _threeSimFps) : _WORLD_FRAME_MIN_MS;
+  if(_threeRendererActive)document.documentElement.dataset.worldSimulationFps=String(_threeSimFps);
   // High-refresh displays were running the entire city simulation at
   // 120-144 FPS. Keep full visual quality, but avoid doing the same expensive
   // world render twice as often as gameplay needs.
@@ -59945,7 +59960,7 @@ function chatDuration(text) {
   let panel=null, info=null, snap=true, loaded=false;
   let baseMap=null, undoStack=[], redoStack=[];
 
-
+  
   const DECOR_GROUPS = {
     coast: {
       title: '🌴 Побережье — Premium',
@@ -60781,7 +60796,7 @@ function chatDuration(text) {
       const btn=document.createElement('button');btn.textContent=p.title;btn.onclick=()=>placePrefab(id);prefabBox.appendChild(btn);
     });
     const cat=panel.querySelector('#mfzCatalog');
-
+    
     Object.entries(DECOR_GROUPS).forEach(([groupId,group])=>{
       const title=document.createElement('div');
       title.textContent=group.title;title.className='groupTitle';cat.appendChild(title);
@@ -60854,7 +60869,7 @@ function chatDuration(text) {
   let panel=null, info=null, snap=true, loaded=false;
   let baseMap=null, undoStack=[], redoStack=[];
 
-
+  
   const DECOR_GROUPS = {
     coast: {
       title: '🌴 Побережье — Premium',
@@ -61526,7 +61541,7 @@ function chatDuration(text) {
       const btn=document.createElement('button');btn.textContent=p.title;btn.onclick=()=>placePrefab(id);prefabBox.appendChild(btn);
     });
     const cat=panel.querySelector('#mfzCatalog');
-
+    
     Object.entries(DECOR_GROUPS).forEach(([groupId,group])=>{
       const title=document.createElement('div');
       title.textContent=group.title;title.className='groupTitle';cat.appendChild(title);
@@ -61599,7 +61614,7 @@ function chatDuration(text) {
   let panel=null, info=null, snap=true, loaded=false;
   let baseMap=null, undoStack=[], redoStack=[];
 
-
+  
   const DECOR_GROUPS = {
     nature:{
       title:'🌴 Родная природа',
@@ -62253,7 +62268,7 @@ function chatDuration(text) {
       const btn=document.createElement('button');btn.textContent=p.title;btn.onclick=()=>placePrefab(id);prefabBox.appendChild(btn);
     });
     const cat=panel.querySelector('#mfzCatalog');
-
+    
     Object.entries(DECOR_GROUPS).forEach(([groupId,group])=>{
       const title=document.createElement('div');
       title.textContent=group.title;title.className='groupTitle';cat.appendChild(title);
