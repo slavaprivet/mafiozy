@@ -1,3 +1,4 @@
+// 3D composite v250: stable 30 FPS WebView profile, prewarmed combat shaders and fixed light budgets prevent police/arrest stalls.
 // 3D composite v247: murder-response officers physically cuff, escort, load and transport the player; gang rescue interrupts the scene.
 // 3D composite v246: origin/main v245 prison intake, release gate and staff stay authoritative; casino, bank, market, factory and business art are integrated without gameplay changes.
 // 3D sync v245: intake room and per-player timed release portcullis extend the prison over the canal.
@@ -76,7 +77,14 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
       // Start at native density. Forced 1.65x supersampling made a 1080p city
       // render more than five million pixels per frame and visibly degraded
       // every character/vehicle animation on ordinary desktop GPUs.
-      const baseRenderPixelRatio=Math.min(1.5,Math.max(1,devicePixelRatio||1));
+      const coarsePointer=!!globalThis.matchMedia?.('(pointer:coarse)')?.matches;
+      const mobileRenderProfile=coarsePointer||Math.min(size.W,size.H)<700;
+      const shadowPreference=rendererParams.get('shadows');
+      const realTimeShadows=shadowPreference==='1'||(shadowPreference!=='0'&&!mobileRenderProfile);
+      const requestedRenderFps=Math.max(24,Math.min(60,+rendererParams.get('fps')||0));
+      const targetRenderFps=requestedRenderFps||(mobileRenderProfile?30:60);
+      const threeFrameMinMs=1000/targetRenderFps;
+      const baseRenderPixelRatio=Math.min(mobileRenderProfile?1:1.25,Math.max(1,devicePixelRatio||1));
       let renderPixelRatio=baseRenderPixelRatio;
       renderer.setPixelRatio(renderPixelRatio);
       renderer.setSize(size.W, size.H, false);
@@ -88,6 +96,9 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.32;
       renderer.domElement.id = 'threePreview';
+      renderer.domElement.dataset.deviceProfile=mobileRenderProfile?'mobile-stable':'desktop-full';
+      renderer.domElement.dataset.targetRenderFps=String(targetRenderFps);
+      renderer.domElement.dataset.realTimeShadows=realTimeShadows?'on':'off';
       renderer.domElement.style.cursor = 'crosshair';
       renderer.domElement.style.pointerEvents = 'auto';
       renderer.domElement.style.filter = 'saturate(1.09) contrast(1.035)';
@@ -2048,6 +2059,19 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       for(const layer of cars[0]?.userData?.bodyHoleLayers||[])vehicleFxWarmupSources.push(layer.mesh);
       explosionPool[0]?.traverse(o=>{if(o.isMesh)vehicleFxWarmupSources.push(o);});
       firePool[0]?.traverse(o=>{if(o.isMesh)vehicleFxWarmupSources.push(o);});
+      // Police fire is often the first combat seen in a fresh session. Pooled
+      // meshes have count=0 / visible=false at startup, so Three otherwise
+      // compiles their shader variants on the first shot and can block a WebView
+      // for several seconds. Render one invisible proxy of every essential
+      // combat variant while the loading screen is still up.
+      for(const source of [worldBullets,worldBulletTrails,worldBulletGlows,worldBulletCores,shellPool,bloodDecals,corpseBloodDecals,goreLimbs,goreChunks,bulletHoleDecals])vehicleFxWarmupSources.push(source);
+      // Each pooled muzzle/impact owns material instances because opacity and
+      // tint animate independently. Warm every instance, not just slot zero.
+      for(const fx of muzzlePool)fx.traverse(o=>{if(o.isMesh)vehicleFxWarmupSources.push(o);});
+      for(const fx of impactPool)fx.traverse(o=>{if(o.isMesh)vehicleFxWarmupSources.push(o);});
+      throwablePool[0]?.traverse(o=>{if(o.isMesh)vehicleFxWarmupSources.push(o);});
+      burningActorPool[0]?.traverse(o=>{if(o.isMesh)vehicleFxWarmupSources.push(o);});
+      arrestCuffs.traverse(o=>{if(o.isMesh)vehicleFxWarmupSources.push(o);});
       // Wrecks reuse the already-uploaded live car shell, so only one reference
       // effect set needs shader warm-up; there is no per-slot wreck upload spike.
       const warmupCar=cars[0];
@@ -2055,7 +2079,9 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         vehicleFxWarmupSources.push(warmupCar.userData.damageSmoke.mesh,warmupCar.userData.damageFlames.mesh);
         warmupCar.userData.wreckGroup.traverse(o=>{if(o.isMesh)vehicleFxWarmupSources.push(o);});
       }
-      const vehicleFxWarmupMatrix=new THREE.Matrix4();let vehicleFxWarmupCursor=0,vehicleFxWarmupDone=false;
+      const vehicleFxWarmupMatrix=new THREE.Matrix4(),startupFxWarmupGroup=new THREE.Group();let vehicleFxWarmupCursor=0,vehicleFxWarmupDone=false;
+      for(const source of vehicleFxWarmupSources){const proxy=source.isInstancedMesh?new THREE.InstancedMesh(source.geometry,source.material,1):new THREE.Mesh(source.geometry,source.material);if(proxy.isInstancedMesh){proxy.setMatrixAt(0,vehicleFxWarmupMatrix.identity());if(source.instanceColor)proxy.setColorAt(0,new THREE.Color(0xffffff));proxy.instanceMatrix.needsUpdate=true;if(proxy.instanceColor)proxy.instanceColor.needsUpdate=true;}proxy.position.set(0,-900,0);proxy.frustumCulled=false;proxy.castShadow=proxy.receiveShadow=false;proxy.layers.set(0);startupFxWarmupGroup.add(proxy);}scene.add(startupFxWarmupGroup);renderer.domElement.dataset.combatFxWarmup=`queued:${startupFxWarmupGroup.children.length}`;
+      const finishStartupFxWarmup=()=>{scene.remove(startupFxWarmupGroup);startupFxWarmupGroup.clear();vehicleFxWarmupActive.length=0;vehicleFxWarmupSources.length=0;vehicleFxWarmupCursor=0;vehicleFxWarmupDone=true;renderer.domElement.dataset.vehicleFxWarmup='ready';renderer.domElement.dataset.combatFxWarmup='ready-before-gameplay';};
       const stepVehicleFxWarmup=()=>{
         if(vehicleFxWarmupDone)return;
         while(vehicleFxWarmupActive.length)scene.remove(vehicleFxWarmupActive.pop());
@@ -3346,7 +3372,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       stage.classList.add('three-mode');
       renderer.domElement.dataset.worldBounds=`${envSnapshot?.mapCols||80}x${envSnapshot?.mapRows||200}`;
       window.MafioziLoading?.set(89, 'Заселяем улицы и готовим первый кадр…');
-      let lastW=size.W,lastH=size.H,lastT=performance.now(),walkPhase=0,lampAnchor='',fpsAt=performance.now(),fpsFrames=0,measuredFps=60,lastPixelRatioChangeAt=0,lastShadowAt=0,lastOcclusionAt=0,dynamicAt=0,dynamicState=null,nearbyActionAt=0,nearbyActionState=null,customGangHqAt=0,cameraZoomMode='world',worldZoom=1,playerFloorElevation=0,playerVisualSig='',vehicleEntryState=null,fadedMaterials=[],firstFramePresented=false,fullMaterialsReady=false,materialCompileStarted=false,deferredWorldLoadStarted=false,playerHpPct=1,lastPlayerHp=-1,playerHitUntil=0,playerHitSide=1;
+      let lastW=size.W,lastH=size.H,lastT=performance.now(),lastPresentedAt=0,walkPhase=0,lampAnchor='',fpsAt=performance.now(),fpsFrames=0,measuredFps=60,lastPixelRatioChangeAt=0,lastShadowAt=0,lastOcclusionAt=0,dynamicAt=0,dynamicState=null,nearbyActionAt=0,nearbyActionState=null,customGangHqAt=0,cameraZoomMode='world',worldZoom=1,playerFloorElevation=0,playerVisualSig='',vehicleEntryState=null,fadedMaterials=[],firstFramePresented=false,fullMaterialsReady=false,materialCompileStarted=false,deferredWorldLoadStarted=false,playerHpPct=1,lastPlayerHp=-1,playerHitUntil=0,playerHitSide=1;
       const sceneDiagnosticsEnabled=rendererParams.has('perfdiag')||rendererParams.has('previewwrecks');
       const collectSceneDiagnostics=()=>{
         if(!sceneDiagnosticsEnabled)return;
@@ -3362,15 +3388,17 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       let buildingPumpStarted=false,staticDetailFlushScheduled=false,initialCompileRunning=false,deferredWarmupRunning=false;
       let compileLoadedScene=()=>{},warmDeferredSceneRoots=()=>{};
       const pumpStaticDetailBatches=deadline=>{
+        const pumpStartedAt=performance.now();
         stageStaticDetailBuckets();
         if(pendingStaticDetailBatches.length&&(deadline.timeRemaining()>2||pendingStaticDetailBatches.length))mergeStaticDetailBatch(pendingStaticDetailBatches.shift());
         publishStaticDetailStats();
+        const pumpElapsed=performance.now()-pumpStartedAt;renderer.domElement.dataset.staticDetailPumpMs=pumpElapsed.toFixed(1);renderer.domElement.dataset.staticDetailPumpMaxMs=Math.max(pumpElapsed,+renderer.domElement.dataset.staticDetailPumpMaxMs||0).toFixed(1);
         if(pendingStaticDetailBatches.length||staticDetailBuckets.size)onIdle(pumpStaticDetailBatches);
         else{staticDetailFlushScheduled=false;renderer.shadowMap.needsUpdate=true;if(materialCompileStarted&&!fullMaterialsReady)compileLoadedScene();else if(fullMaterialsReady)warmDeferredSceneRoots();}
       };
       const scheduleStaticDetailFlush=()=>{if(staticDetailFlushScheduled)return;staticDetailFlushScheduled=true;onIdle(pumpStaticDetailBatches);};
       const scheduleBuildingPump=()=>setTimeout(()=>onIdle(pumpSectorBuildings),34);
-      const pumpSectorBuildings=deadline=>{let made=0;while(sectorBuildQueue.length&&made<2&&(made===0||deadline.timeRemaining()>2)){const [def,index]=sectorBuildQueue.shift(),sceneStart=scene.children.length,districtStart=districtProps.children.length;createBuilding(def,index);const roots=scene.children.slice(sceneStart),districtRoots=districtProps.children.slice(districtStart);for(const root of districtRoots){districtProps.remove(root);roots.push(root);}for(const root of roots)registerOutdoorPointLights(root);updateOutdoorPointLightBudget(performance.now(),true);if(fullMaterialsReady)for(const root of roots){root.visible=false;root.userData.mfzDeferredReveal=true;deferredRevealRoots.push(root);}placeStreamedBuildingRoots(def,roots);made++;}renderer.domElement.dataset.worldBuildings=String(buildingDefs.length);renderer.domElement.dataset.pendingBuildings=String(sectorBuildQueue.length);if(sectorBuildQueue.length)scheduleBuildingPump();else scheduleStaticDetailFlush();};
+      const pumpSectorBuildings=deadline=>{const pumpStartedAt=performance.now();let made=0;while(sectorBuildQueue.length&&made<2&&(made===0||deadline.timeRemaining()>2)){const [def,index]=sectorBuildQueue.shift(),sceneStart=scene.children.length,districtStart=districtProps.children.length;createBuilding(def,index);const roots=scene.children.slice(sceneStart),districtRoots=districtProps.children.slice(districtStart);for(const root of districtRoots){districtProps.remove(root);roots.push(root);}for(const root of roots)registerOutdoorPointLights(root);updateOutdoorPointLightBudget(performance.now(),true);if(fullMaterialsReady)for(const root of roots){root.visible=false;root.userData.mfzDeferredReveal=true;deferredRevealRoots.push(root);}placeStreamedBuildingRoots(def,roots);made++;}const pumpElapsed=performance.now()-pumpStartedAt;renderer.domElement.dataset.buildingPumpMs=pumpElapsed.toFixed(1);renderer.domElement.dataset.buildingPumpMaxMs=Math.max(pumpElapsed,+renderer.domElement.dataset.buildingPumpMaxMs||0).toFixed(1);renderer.domElement.dataset.worldBuildings=String(buildingDefs.length);renderer.domElement.dataset.pendingBuildings=String(sectorBuildQueue.length);if(sectorBuildQueue.length)scheduleBuildingPump();else scheduleStaticDetailFlush();};
       const startDeferredWorldLoad=()=>{
         if(deferredWorldLoadStarted)return;
         deferredWorldLoadStarted=true;
@@ -3381,7 +3409,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const activateFullScene=()=>{
         if(fullMaterialsReady)return;
         fullMaterialsReady=true;
-        renderer.shadowMap.enabled=true;
+        renderer.shadowMap.enabled=realTimeShadows;
         renderer.shadowMap.needsUpdate=true;
         renderer.domElement.dataset.materialCompile='ready';
         startupMark('materials-ready');
@@ -3391,6 +3419,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const finishInitialCompile=(mode,error=null)=>{
         if(error)console.warn('[ThreeStartup] material warmup fallback',error);
         initialCompileRunning=false;
+        finishStartupFxWarmup();
         activateFullScene();
         renderer.domElement.dataset.materialCompile=mode;
         // The warmup render is already a complete authored frame. Mark loading
@@ -3414,7 +3443,12 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       };
       warmDeferredSceneRoots=()=>{
         if(!fullMaterialsReady||deferredWarmupRunning)return;
-        const roots=[...new Set(deferredRevealRoots.splice(0))].filter(root=>root?.parent);
+        const warmupStartedAt=performance.now();
+        // Compiling every streamed facade in one giant scene caused 1-2 second
+        // gameplay freezes on WebView GPUs. Warm a small slice, reveal it, then
+        // yield before the next slice; authored geometry and materials stay the
+        // same, only the scheduling changes.
+        const roots=[...new Set(deferredRevealRoots.splice(0,mobileRenderProfile?1:2))].filter(root=>root?.parent);
         if(!roots.length)return;
         deferredWarmupRunning=true;
         const warmupScene=new THREE.Scene();warmupScene.environment=scene.environment;warmupScene.fog=scene.fog;
@@ -3422,21 +3456,22 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         scene.traverseVisible(object=>{if(object.isLight)warmupScene.add(object.clone());});
         let pendingCompile=null;
         try{pendingCompile=renderer.compileAsync?.(warmupScene,camera)||null;}catch(error){console.warn('[ThreeStream] parallel material warmup failed',error);}
-        const reveal=()=>{warmupScene.clear();for(const root of roots){delete root.userData.mfzWarmupInFlight;if(root.parent){root.visible=true;delete root.userData.mfzDeferredReveal;}}deferredWarmupRunning=false;renderer.shadowMap.needsUpdate=true;if(deferredRevealRoots.length)onIdle(warmDeferredSceneRoots);};
+        const warmupElapsed=performance.now()-warmupStartedAt;renderer.domElement.dataset.deferredWarmupSubmitMs=warmupElapsed.toFixed(1);renderer.domElement.dataset.deferredWarmupSubmitMaxMs=Math.max(warmupElapsed,+renderer.domElement.dataset.deferredWarmupSubmitMaxMs||0).toFixed(1);
+        const reveal=()=>{warmupScene.clear();for(const root of roots){delete root.userData.mfzWarmupInFlight;if(root.parent){root.visible=true;delete root.userData.mfzDeferredReveal;}}deferredWarmupRunning=false;if(realTimeShadows)renderer.shadowMap.needsUpdate=true;if(deferredRevealRoots.length)onIdle(warmDeferredSceneRoots);};
         if(pendingCompile?.then)pendingCompile.then(reveal,error=>{console.warn('[ThreeStream] material warmup fallback',error);reveal();});
         else reveal();
       };
       const beginFullMaterialCompile=()=>{
         if(materialCompileStarted)return;
         materialCompileStarted=true;
-        renderer.shadowMap.enabled=true;
+        renderer.shadowMap.enabled=realTimeShadows;
         renderer.domElement.dataset.materialCompile='warming-start-area';
         window.MafioziLoading?.set(94,'Прогреваем материалы ближайшего района…');
         compileLoadedScene();
       };
       renderer.domElement.dataset.worldBuildings=String(buildingDefs.length);
       renderer.domElement.dataset.pendingBuildings=String(sectorBuildQueue.length);
-      const scheduleSectorLoad=(r,c)=>{const key=`${Math.floor(r/STREAM_SECTOR_SIZE)}:${Math.floor(c/STREAM_SECTOR_SIZE)}`;if(key===sectorAnchor||sectorLoadScheduled)return;sectorAnchor=key;sectorLoadScheduled=true;renderer.domElement.dataset.streamAnchor=key;onIdle(()=>{sectorLoadScheduled=false;const snapshot=bridge?.getWorldSnapshot?.(WORLD_SNAPSHOT_RADIUS);if(!snapshot)return;ensureJunkyardVisual(snapshot,'sector');ensureMajorFactoryExterior(snapshot,'sector');addNeighborhoodSurfaces(snapshot);addMapCollisionVisuals(snapshot);const fresh=[];for(const def of defsFromSnapshot(snapshot)){const meta=def[8],buildingKey=`${meta?.minR}:${meta?.minC}:${meta?.maxR}:${meta?.maxC}`;if(loadedBuildingKeys.has(buildingKey))continue;loadedBuildingKeys.add(buildingKey);const index=buildingDefs.length;buildingDefs.push(def);fresh.push([def,index]);}sectorBuildQueue.push(...fresh);renderer.domElement.dataset.streamRadius=String(WORLD_SNAPSHOT_RADIUS);renderer.domElement.dataset.loadedSectors=String(new Set([...loadedBuildingKeys].map(k=>k.split(':').slice(0,2).map(Number).map(v=>Math.floor(v/STREAM_SECTOR_SIZE)).join(':'))).size);if(fresh.length&&sectorBuildQueue.length===fresh.length)onIdle(pumpSectorBuildings);});};
+      const scheduleSectorLoad=(r,c)=>{const key=`${Math.floor(r/STREAM_SECTOR_SIZE)}:${Math.floor(c/STREAM_SECTOR_SIZE)}`;if(key===sectorAnchor||sectorLoadScheduled)return;sectorAnchor=key;sectorLoadScheduled=true;renderer.domElement.dataset.streamAnchor=key;onIdle(()=>{sectorLoadScheduled=false;const snapshot=bridge?.getWorldSnapshot?.(WORLD_SNAPSHOT_RADIUS);if(!snapshot)return;ensureJunkyardVisual(snapshot,'sector');ensureMajorFactoryExterior(snapshot,'sector');addNeighborhoodSurfaces(snapshot);addMapCollisionVisuals(snapshot);registerOutdoorPointLights(scene);updateOutdoorPointLightBudget(performance.now(),true);const fresh=[];for(const def of defsFromSnapshot(snapshot)){const meta=def[8],buildingKey=`${meta?.minR}:${meta?.minC}:${meta?.maxR}:${meta?.maxC}`;if(loadedBuildingKeys.has(buildingKey))continue;loadedBuildingKeys.add(buildingKey);const index=buildingDefs.length;buildingDefs.push(def);fresh.push([def,index]);}sectorBuildQueue.push(...fresh);renderer.domElement.dataset.streamRadius=String(WORLD_SNAPSHOT_RADIUS);renderer.domElement.dataset.loadedSectors=String(new Set([...loadedBuildingKeys].map(k=>k.split(':').slice(0,2).map(Number).map(v=>Math.floor(v/STREAM_SECTOR_SIZE)).join(':'))).size);if(fresh.length&&sectorBuildQueue.length===fresh.length)onIdle(pumpSectorBuildings);});};
       // A single deterministic grade drives sky, fog, ambient bounce and sun.
       // Keep daylight in the same desaturated noir family as the city instead
       // of letting a cyan sky fight the dark asphalt and facade materials.
@@ -3473,14 +3508,24 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         }
         const hh=Math.floor(hour),mm=Math.floor((hour-hh)*60);clock.textContent=`${daylight>.62?'☀ День':sunset>.15?'◐ Закат':'☾ Ночь'} · ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;renderer.domElement.dataset.palette=`${hh}:${mm}:${daylight.toFixed(3)}:${sunset.toFixed(3)}`;renderer.domElement.dataset.paletteSource=serverTime?'server-clock':'cached-server-clock';renderer.domElement.dataset.paletteMotionLock='0';renderer.domElement.dataset.paletteTransition='continuous-shared-grade';renderer.domElement.dataset.paletteGrade=`${renderer.toneMappingExposure.toFixed(3)}:${postMaterial.uniforms.uWarmth.value.toFixed(3)}:${postMaterial.uniforms.uNight.value.toFixed(3)}`;
       };
+      addEventListener('error',event=>{
+        const message=String(event?.error?.stack||event?.error?.message||event?.message||'unknown frame error');
+        renderer.domElement.dataset.runtimeFrameError=message.slice(0,1200);
+      });
       const animate = t => {
         if(t-customGangHqAt>2000){customGangHqAt=t;refreshCustomGangHqs();}
         if (!document.body.contains(renderer.domElement)) return;
+        // Queue the next frame before doing any scene work. A transient error in
+        // one NPC/vehicle animation must drop one frame, not permanently stop
+        // the whole 3D city until the player reloads the WebApp.
+        requestAnimationFrame(animate);
+        if(lastPresentedAt&&t-lastPresentedAt<threeFrameMinMs)return;
+        lastPresentedAt=t;
         if(fullMaterialsReady)stepVehicleFxWarmup();
         const s = viewSize();
         if (s.W !== lastW || s.H !== lastH) { lastW = s.W; lastH = s.H; camera.left = -cameraSpan * s.W / s.H; camera.right = cameraSpan * s.W / s.H; camera.updateProjectionMatrix(); renderer.setSize(s.W, s.H, false); }
         updateOutdoorPointLightBudget(t);
-        const dt=Math.min(.05,(t-lastT)/1000);lastT=t;const tt=t*.00035;if(eHoldStarted&&!eHoldTriggered&&keys.has('KeyE'))vehicleHoldFill.style.width=`${Math.min(100,(t-eHoldStarted)/vehicleHoldMs*100).toFixed(1)}%`;updateDayNight(t);casinoExteriorAnimation(t,environmentNight);skyDome.position.copy(player.position);starField.position.copy(player.position);starField.rotation.y=t*.000004;windLeafMaterials.forEach(m=>{if(m.userData.shader)m.userData.shader.uniforms.mfzWindTime.value=t*.00115;});
+        const frameGapMs=Math.max(0,t-lastT),dt=Math.min(.05,frameGapMs/1000);lastT=t;const tt=t*.00035;if(frameGapMs>16.8){renderer.domElement.dataset.lastFrameGapMs=frameGapMs.toFixed(1);renderer.domElement.dataset.maxFrameGapMs=Math.max(frameGapMs,+renderer.domElement.dataset.maxFrameGapMs||0).toFixed(1);}if(eHoldStarted&&!eHoldTriggered&&keys.has('KeyE'))vehicleHoldFill.style.width=`${Math.min(100,(t-eHoldStarted)/vehicleHoldMs*100).toFixed(1)}%`;updateDayNight(t);casinoExteriorAnimation(t,environmentNight);skyDome.position.copy(player.position);starField.position.copy(player.position);starField.rotation.y=t*.000004;windLeafMaterials.forEach(m=>{if(m.userData.shader)m.userData.shader.uniforms.mfzWindTime.value=t*.00115;});
         if(bridge&&t-nearbyActionAt>120){nearbyActionState=bridge.getNearbyBuildingInteraction?.()||null;nearbyActionAt=t;}if(document.getElementById('bizConfirmModal')?.classList.contains('show')){buildingPrompt.style.display='none';entranceMarker.visible=false;renderer.domElement.dataset.buildingPrompt='hidden-by-business-modal';}else showNearbyBuilding(nearbyActionState);
         if(waterSurface){waterSurface.position.y=.08+Math.sin(t*.00072)*.018;coastalAnimation?.(t,measuredFps<24);}
         if(buildingSelectionFrame.visible){const wave=Math.sin(t*.0065);selectionFrameMat.opacity=.88+(wave+1)*.05;selectionGlowMat.opacity=.2+(wave+1)*.08;}
@@ -3879,7 +3924,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           player.position.x=THREE.MathUtils.lerp(player.position.x,tx,Math.min(1,dt*14));player.position.z=THREE.MathUtils.lerp(player.position.z,tz,Math.min(1,dt*14));syncMouseAim();
           player.rotation.y=state.vehicleEntry?Math.PI/2-(+state.vehicleEntry.ang||0):Math.atan2(Math.cos(state.ang),Math.sin(state.ang));moving=!state.vehicleEntry&&!['downed','cuffing','loading','transport'].includes(playerArrestPhase)&&(state.walking||delta>.025);walkPhase=state.walkPhase||walkPhase;
           const env=bridge.getEnvironmentState(),ar=Math.floor(state.r/10)*10,ac=Math.floor(state.c/10)*10,newAnchor=`${ar}:${ac}`;
-          if(newAnchor!==lampAnchor){lampAnchor=newAnchor;const px=(state.c-originC)*WORLD_SCALE,pz=(state.r-originR)*WORLD_SCALE,nearest=fixedLampHeads.map(([x,z])=>({x,z,d:(x-px)**2+(z-pz)**2})).sort((a,b)=>a.d-b.d).slice(0,streetLights.length);streetLights.forEach((lamp,i)=>{const spot=nearest[i];lamp.light.visible=!!spot;if(spot)lamp.light.position.set(spot.x,6.45,spot.z);});}
+          if(newAnchor!==lampAnchor){lampAnchor=newAnchor;const px=(state.c-originC)*WORLD_SCALE,pz=(state.r-originR)*WORLD_SCALE,nearest=fixedLampHeads.map(([x,z])=>({x,z,d:(x-px)**2+(z-pz)**2})).sort((a,b)=>a.d-b.d).slice(0,streetLights.length);streetLights.forEach((lamp,i)=>{const spot=nearest[i];lamp.light.visible=!!spot&&lamp.light.userData.mfzBudgetVisible!==false&&environmentNight>.08;if(spot)lamp.light.position.set(spot.x,6.45,spot.z);});}
         }else if(move.lengthSq()>0){move.normalize();player.position.addScaledVector(move,12*dt);player.position.x=Math.max(-34,Math.min(34,player.position.x));player.position.z=Math.max(-34,Math.min(34,player.position.z));player.rotation.y=Math.atan2(move.x,move.z);walkPhase+=dt*12;moving=true;}
         const playerCrawling=playerHpPct>0&&playerHpPct<=.15&&!vehicleEntryState&&!playerArrestPhase,playerLimping=playerHpPct>.15&&playerHpPct<=.35&&!vehicleEntryState&&!playerArrestPhase,playerStep=Math.sin(walkPhase*(playerCrawling?.42:playerLimping?.72:1)),idleBreath=Math.sin(t*.0022),playerHitRemaining=Math.max(0,playerHitUntil-t),playerHitPulse=playerHitRemaining?Math.sin(Math.min(1,playerHitRemaining/480)*Math.PI):0;if(moving){if(!bridge)walkPhase+=0;if(playerCrawling){leftLeg.rotation.x=playerStep*.18;rightLeg.rotation.x=-playerStep*.18;leftArm.rotation.x=-playerStep*.62;rightArm.rotation.x=playerStep*.62;leftLeg.position.y=.88;rightLeg.position.y=.88;body.rotation.z=playerStep*.025;}else if(playerLimping){leftLeg.rotation.x=playerStep>0?playerStep*.16:playerStep*.46;rightLeg.rotation.x=-playerStep*.62;leftArm.rotation.x=-playerStep*.28;rightArm.rotation.x=playerStep*.2;leftLeg.position.y=.88+Math.max(0,playerStep)*.06;rightLeg.position.y=.88+Math.max(0,-playerStep)*.22;body.rotation.z=.105+playerStep*.04;}else{leftLeg.rotation.x=playerStep*.72;rightLeg.rotation.x=-playerStep*.72;leftArm.rotation.x=-playerStep*.46;rightArm.rotation.x=playerStep*.34;leftLeg.position.y=.88+Math.max(0,playerStep)*.21;rightLeg.position.y=.88+Math.max(0,-playerStep)*.21;body.rotation.z=playerStep*.026;}head.rotation.y=Math.sin(t*.00065)*.035;}else{leftLeg.rotation.x*=.72;rightLeg.rotation.x*=.72;leftArm.rotation.x=idleBreath*.025;rightArm.rotation.x=-idleBreath*.02;leftLeg.position.y=THREE.MathUtils.lerp(leftLeg.position.y,.88,.18);rightLeg.position.y=THREE.MathUtils.lerp(rightLeg.position.y,.88,.18);body.rotation.z=THREE.MathUtils.lerp(body.rotation.z,playerLimping?.09:0,.18);head.rotation.y=Math.sin(t*.00065)*.055;}renderer.domElement.dataset.playerGait=playerArrestPhase?`arrest-${playerArrestPhase}`:playerCrawling?'crawl':playerLimping?'limp':'normal';renderer.domElement.dataset.playerHitReaction=playerHitPulse>0?'active':'idle';
         if(gun.visible){const grip=currentWeaponFx.grip,kick=Math.min(1.9,recoilKick/Math.max(.7,currentWeaponFx.recoil||1));if(grip==='two'){gun.rotation.z=-recoilSide*kick*.042;}else if(grip==='throw'||currentWeaponFx.family==='c4'){hidePlayerGripParts();leftArm.quaternion.identity();rightArm.quaternion.identity();const charge=throwAimHeld?Math.max(0,Math.min(1,(t-throwAimStartedAt)/850)):0,release=Math.max(0,Math.min(1,(throwReleaseUntil-t)/420));leftArm.position.set(-1.02,2.75,0);rightArm.position.set(.82,3.08,.18);leftArm.rotation.set(moving?-playerStep*.25:idleBreath*.02,0,0);rightArm.rotation.set(currentWeaponFx.family==='c4'?(-.72-charge*.42):throwAimHeld?(-.72+charge*.92):release?(-1.86+release*.8):-.82,0,.2+charge*.2);gun.rotation.z=currentWeaponFx.family==='c4'?.02:.12+charge*.22;renderer.domElement.dataset.throwPose=throwAimHeld?`windup:${charge.toFixed(2)}`:release?'release':'carry';}else{hidePlayerGripParts();leftArm.quaternion.identity();rightArm.quaternion.identity();leftArm.position.set(-1.02,2.75,0);rightArm.position.set(.82,2.98,.22-kick*.16);leftArm.rotation.set(moving?-playerStep*.34:idleBreath*.025,0,0);rightArm.rotation.set(-1.05-kick*.34,0,.18+kick*.055);gun.rotation.z=.03-recoilSide*kick*.065;}renderer.domElement.dataset.weaponPose=`${grip}-grip`;}else{hidePlayerGripParts();leftArm.quaternion.identity();rightArm.quaternion.identity();leftArm.position.set(-1.02,2.75,0);rightArm.position.set(1.02,2.75,0);renderer.domElement.dataset.weaponPose='unarmed';}
@@ -3929,16 +3974,16 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           lastOcclusionAt=t;
         }
         if(!dynamic){cars.slice(0,3).forEach(x=>x.visible=true);cars[0].position.x = -30 + (tt * 13) % 60; cars[1].position.z = 29 - (tt * 11) % 58; cars[2].position.x = 27 - (tt * 9) % 54;}
-        if(t-lastShadowAt>shadowCadence){renderer.shadowMap.needsUpdate=true;lastShadowAt=t;}
+        if(realTimeShadows&&t-lastShadowAt>shadowCadence){renderer.shadowMap.needsUpdate=true;lastShadowAt=t;}
         // Render the authored ACES/sRGB palette directly. The legacy fullscreen
         // pass sampled an already encoded target and darkened the whole city.
         bootPlayerMarker.position.set(player.position.x,0,player.position.z);
         bootPlayerMarker.rotation.y=player.rotation.y;
-        renderer.setRenderTarget(null);renderer.render(fullMaterialsReady?scene:bootScene,camera);
+        const programsBefore=renderer.info.programs?.length||0,renderStartedAt=performance.now();renderer.setRenderTarget(null);renderer.render(fullMaterialsReady?scene:bootScene,camera);const renderElapsed=performance.now()-renderStartedAt,programsAfter=renderer.info.programs?.length||0,previousRenderMax=+renderer.domElement.dataset.renderMaxMs||0;if(programsAfter>programsBefore){const lightKinds={},pointDetails=[];scene.traverseVisible?.(object=>{if(!object.isLight||!object.layers.test(camera.layers))return;lightKinds[object.type]=(lightKinds[object.type]||0)+1;if(object.isPointLight){const source=object===muzzle?'muzzle':streetLightSet.has(object)?'street':outdoorPointLights.includes(object)?'outdoor':'other';pointDetails.push(`${source}@${object.parent?.name||object.parent?.type||'root'}:${(+object.intensity||0).toFixed(1)}:${object.position.x.toFixed(0)},${object.position.z.toFixed(0)}`);}});renderer.domElement.dataset.lastProgramGrowth=`${programsBefore}>${programsAfter}:${playerArrestPhase||'normal'}:${renderer.domElement.dataset.activeWeaponFx||'none'}`;renderer.domElement.dataset.lastProgramGrowthLights=Object.entries(lightKinds).map(([kind,count])=>`${kind}:${count}`).join(',');renderer.domElement.dataset.lastProgramGrowthPointLights=pointDetails.join('|').slice(0,1200);renderer.domElement.dataset.lastProgramGrowthMuzzle=String(muzzle.intensity||0);renderer.domElement.dataset.lastProgramGrowthCameraLayer=String(camera.layers.mask);}renderer.domElement.dataset.renderMs=renderElapsed.toFixed(1);if(renderElapsed>previousRenderMax){renderer.domElement.dataset.renderMaxMs=renderElapsed.toFixed(1);renderer.domElement.dataset.renderMaxPhase=playerArrestPhase||'normal';renderer.domElement.dataset.renderMaxFx=renderer.domElement.dataset.activeWeaponFx||'none';renderer.domElement.dataset.renderMaxPrograms=String(programsAfter);renderer.domElement.dataset.renderMaxProgramGrowth=`${programsBefore}>${programsAfter}`;renderer.domElement.dataset.renderMaxDeferredRoots=String(deferredRevealRoots.length);renderer.domElement.dataset.renderMaxAt=String(Math.round(t));renderer.domElement.dataset.renderMaxLights=renderer.domElement.dataset.lastProgramGrowthLights||'';renderer.domElement.dataset.renderMaxPointLights=renderer.domElement.dataset.lastProgramGrowthPointLights||'';}
+        const frameWorkMs=Math.max(0,performance.now()-t);renderer.domElement.dataset.frameWorkMs=frameWorkMs.toFixed(1);renderer.domElement.dataset.maxFrameWorkMs=Math.max(frameWorkMs,+renderer.domElement.dataset.maxFrameWorkMs||0).toFixed(1);
         renderer.domElement.dataset.palettePipeline='direct-aces-srgb';
         if(!materialCompileStarted){renderer.domElement.dataset.materialCompile='queued';setTimeout(()=>onIdle(beginFullMaterialCompile),48);}
-        if(fullMaterialsReady&&!firstFramePresented){firstFramePresented=true;startupMark('first-complete-frame');renderer.domElement.dataset.firstPresentedFrame='full-scene-v199';window.MafioziLoading?.complete('Город готов');}
-        requestAnimationFrame(animate);
+        if(fullMaterialsReady&&!firstFramePresented){firstFramePresented=true;renderer.domElement.dataset.maxFrameGapMs='0';renderer.domElement.dataset.maxFrameWorkMs='0';renderer.domElement.dataset.renderMaxMs='0';renderer.domElement.dataset.renderMaxPhase='startup-reset';renderer.domElement.dataset.buildingPumpMaxMs='0';renderer.domElement.dataset.staticDetailPumpMaxMs='0';renderer.domElement.dataset.deferredWarmupSubmitMaxMs='0';startupMark('first-complete-frame');renderer.domElement.dataset.firstPresentedFrame='full-scene-v199';window.MafioziLoading?.complete('Город готов');}
       };
       requestAnimationFrame(animate);
       startupMark('animation-scheduled');

@@ -10197,7 +10197,9 @@ function _removeMurderCrewForVehicle(v){
 }
 function _assignMurderPoliceCall(v,incident,now=performance.now(),crewAlreadyAboard=false){
   if(!v||!incident||incident.status!=='queued')return false;
+  const routeStartedAt=performance.now();
   const parking=_policeSceneParking(incident.r,incident.c,v.y,v.x);
+  const routeMs=performance.now()-routeStartedAt;document.documentElement.dataset.policeRouteMs=routeMs.toFixed(1);document.documentElement.dataset.policeRouteMaxMs=Math.max(routeMs,+document.documentElement.dataset.policeRouteMaxMs||0).toFixed(1);
   if(!parking)return false;
   incident.status=crewAlreadyAboard?'enroute':'boarding';incident.assignedVehicleId=v.id;incident.dispatchedAt=now;
   v.payload={murderIncident:incident};v.sceneParkingR=parking.r;v.sceneParkingC=parking.c;
@@ -26695,6 +26697,7 @@ const AMMO_TYPES = {
 const _ammoSaveKey = `mafiozi_weapon_ammo_v2_${QP.uid || 'guest'}`;
 let _ammoState = { reserve:{}, mags:{} };
 const _ownerFullLoadout = String(QP.uid || '') === '453201199';
+const _ownerAmmoReserve = 9999;
 // Локальное превью — оружейный стенд для проверки всех поз и эффектов.
 // На реальном хосте состав арсенала по-прежнему приходит из инвентаря игрока.
 const _localWeaponShowcase = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
@@ -26710,7 +26713,7 @@ for (const [ammoType, def] of Object.entries(AMMO_TYPES)) {
 // Владелец входит с полным боезапасом: резерв и магазины всех стволов
 // восстанавливаются при каждой новой загрузке WebApp.
 if (_ownerFullLoadout) {
-  for (const [ammoType, def] of Object.entries(AMMO_TYPES)) _ammoState.reserve[ammoType] = def.max;
+  for (const ammoType of Object.keys(AMMO_TYPES)) _ammoState.reserve[ammoType] = _ownerAmmoReserve;
   for (const [weapon, cfg] of Object.entries(WEAPON_FX_CFG)) {
     if (cfg.ammoType) _ammoState.mags[weapon] = { mag: cfg.magSize || 1 };
   }
@@ -28829,9 +28832,9 @@ function weaponsForPick() {
   if (_ownerFullLoadout) {
     const allWeapons = Object.keys(WEAPON_FX_CFG).map(id => ({ id, name: weaponLabel(id), count: 1 }));
     return [...unarmed,
-      {id:'grenade',name:'граната',count:Math.max(99,_myGrenadeCount)},
-      {id:'molotov',name:'коктейль Молотова',count:Math.max(99,_myMolotovCount)},
-      {id:'c4',name:'заряд C4',count:Math.max(99,_myC4Count)},
+      {id:'grenade',name:'граната',count:Math.max(999,_myGrenadeCount)},
+      {id:'molotov',name:'коктейль Молотова',count:Math.max(999,_myMolotovCount)},
+      {id:'c4',name:'заряд C4',count:Math.max(999,_myC4Count)},
       ...allWeapons];
   }
   if (_localWeaponShowcase) {
@@ -57551,13 +57554,21 @@ function _capArrays() {
 const _WORLD_MAX_FPS = 72;
 const _WORLD_FRAME_MIN_MS = 1000 / _WORLD_MAX_FPS;
 const _THREE_IDLE_SIM_FPS = 30;
-const _THREE_ACTIVE_SIM_FPS = 48;
+// On the stable 30 FPS WebView profile, a separate 48 Hz world loop competes
+// with WebGL exactly when police AI, bullets and arrest effects are busiest.
+// Thirty fixed simulation steps remain fully real-time and match presentation.
+const _THREE_ACTIVE_SIM_FPS = 30;
+function _timedWorldUpdate(dt){
+  const started=performance.now();update(dt);const elapsed=performance.now()-started;
+  document.documentElement.dataset.worldUpdateMs=elapsed.toFixed(1);
+  document.documentElement.dataset.worldUpdateMaxMs=Math.max(elapsed,+document.documentElement.dataset.worldUpdateMaxMs||0).toFixed(1);
+}
 function frame() {
   const t = performance.now();
   const _threeRendererActive = document.getElementById('stage')?.classList.contains('three-mode');
   // В спокойном 3D-мире оставляем экономные 30 Гц из startup-оптимизации.
   // Управление, бой, транспорт и активные городские службы сразу возвращают
-  // симуляцию к 48 Гц: Three.js продолжает интерполировать, но input/AI больше
+  // симуляцию к 30 Гц: Three.js продолжает интерполировать, но input/AI больше
   // не ощущаются «вязкими» во время движения и полицейского вызова.
   const _threeServiceBusy = _threeRendererActive && serviceVehicles.some(v=>{
     if(!v||v.state==='done')return false;
@@ -57593,11 +57604,11 @@ function frame() {
     } else if (_threeRendererActive) {
       // Three.js owns the visible frame. Keep gameplay/bridge simulation
       // alive, but do not rasterize a second invisible Canvas city frame.
-      if (t >= hitStopUntil) update(dt);
+      if (t >= hitStopUntil) _timedWorldUpdate(dt);
     } else if (t < hitStopUntil) {
       render();
     } else {
-      update(dt);
+      _timedWorldUpdate(dt);
       render();
     }
     _pixiFxFrame(t);
@@ -62330,6 +62341,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d248-police-response-startup-opt"></script>
+<script type="module" src="three_preview.js?v=3d250-stable-police-arsenal"></script>
 </body>
 </html>

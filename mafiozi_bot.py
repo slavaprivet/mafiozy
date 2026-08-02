@@ -773,13 +773,15 @@ WEAPON_ITEM_CLASSES = {
 OWNER_LOADOUT_UID = 453201199
 OWNER_LOADOUT_CASH = 1_000_000
 OWNER_LOADOUT_ITEMS = {
+    "zatochka": 1, "machete": 1, "katana": 1, "spiked_bat": 1,
+    "knuckles": 1, "chain": 1,
     "tt_pistol": 1, "nagan": 1, "revolver": 1, "deagle": 1,
     "golden_colt": 1, "sawn_off": 1, "shotgun": 1,
     "uzi": 1, "golden_uzi": 1, "tommy_gun": 1,
     "m16": 1, "ak74": 1, "sniper": 1, "rpg": 1,
-    "ammo_9mm": 99, "ammo_magnum": 99, "ammo_shell": 99,
-    "ammo_rifle": 99, "ammo_sniper": 99, "ammo_rocket": 99,
-    "grenade": 99, "molotov": 99, "c4": 99,
+    "ammo_9mm": 999, "ammo_magnum": 999, "ammo_shell": 999,
+    "ammo_rifle": 999, "ammo_sniper": 999, "ammo_rocket": 999,
+    "grenade": 999, "molotov": 999, "c4": 999,
 }
 
 DIAMOND_PACKAGES = [
