@@ -56919,7 +56919,9 @@ const _WORLD_FRAME_MIN_MS = 1000 / _WORLD_MAX_FPS;
 function frame() {
   const t = performance.now();
   const _threeRendererActive = document.getElementById('stage')?.classList.contains('three-mode');
-  const _activeFrameMinMs = _threeRendererActive ? (1000 / 48) : _WORLD_FRAME_MIN_MS;
+  // Three.js interpolates movement independently, so the hidden Canvas-side
+  // simulation does not need 48 full updates per second while 3D is active.
+  const _activeFrameMinMs = _threeRendererActive ? (1000 / 30) : _WORLD_FRAME_MIN_MS;
   // High-refresh displays were running the entire city simulation at
   // 120-144 FPS. Keep full visual quality, but avoid doing the same expensive
   // world render twice as often as gameplay needs.
@@ -61667,6 +61669,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d246-business-visuals-prison-intake"></script>
+<script type="module" src="three_preview.js?v=3d247-business-visuals-daylight-hotfix"></script>
 </body>
 </html>
