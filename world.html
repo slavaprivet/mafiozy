@@ -10257,8 +10257,14 @@ function _murderPlayerInZone(incident){
 function _playerWeaponVisibleToMurderPolice(){
   return _isArmed()&&(!myDrivingCarId||(typeof _canShootFromBike==='function'&&_canShootFromBike()));
 }
+function _murderPoliceCopActive(cop,ar=null){
+  if(!cop||cop.alive===false||cop.dead===true)return false;
+  if(cop.hp!=null&&Number.isFinite(Number(cop.hp))&&Number(cop.hp)<=0)return false;
+  if(ar&&String(cop._responseVehicleId)!==String(ar.vehicleId))return false;
+  return true;
+}
 function _murderCrewForVehicle(v){
-  return cityCops.filter(c=>c?.alive&&c._responseVehicleId===v.id&&c._murderIncidentId===v.payload?.murderIncident?.id);
+  return cityCops.filter(c=>_murderPoliceCopActive(c)&&c._responseVehicleId===v.id&&c._murderIncidentId===v.payload?.murderIncident?.id);
 }
 function _murderCrewCanSeePlayer(v){
   if(!_murderPlayerInZone(v.payload?.murderIncident))return false;
@@ -10366,9 +10372,11 @@ function _murderPoliceArrestProgress(ar=_murderPoliceArrest,now=performance.now(
   return Math.max(0,Math.min(1,(now-(ar.phaseAt||now))/duration));
 }
 function _beginMurderPoliceArrest(cop,now=performance.now()){
-  if(_murderPoliceArrest||!cop?.alive)return false;
+  if(_murderPoliceArrest||!_murderPoliceCopActive(cop))return false;
   const v=serviceVehicles.find(q=>q.id===cop._responseVehicleId),incident=v?.payload?.murderIncident;
   if(!v||!incident||!v._murderFleet)return false;
+  const crew=_murderCrewForVehicle(v);
+  if(crew.length<2||!crew.includes(cop))return false;
   if(myDrivingCarId){exitCar('police_arrest');viewZoom=WORLD_VIEW_ZOOM;}
   if(myJetSkiId)exitJetSki(true);
   myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;
@@ -10376,7 +10384,7 @@ function _beginMurderPoliceArrest(cop,now=performance.now()){
   _playerEmergencyPatient=null;
   _deathOv?.classList.remove('show');
   if(_myBagWeight>0&&((_bankRob&&_bankRob.myBag)||_policeEvidenceBag))dropVaultBag();
-  const crew=_murderCrewForVehicle(v),cover=crew.find(q=>q!==cop)||null;
+  const cover=crew.find(q=>q!==cop)||null;
   _murderPoliceArrest={vehicleId:v.id,incidentId:incident.id,copId:cop.id,coverCopId:cover?.id||'',
     phase:'downed',startedAt:now,phaseAt:now,lastGangShots:Object.create(null),serverRequested:false,
     serverAccepted:false,serverRejectedReason:''};
@@ -10394,7 +10402,7 @@ function _beginMurderPoliceArrest(cop,now=performance.now()){
 }
 function _applyGangmateRescueFire(ar,now=performance.now()){
   if(!ar||ar.phase==='transport')return;
-  const cop=cityCops.find(q=>q?.alive&&q.id===ar.copId);
+  const cop=cityCops.find(q=>q.id===ar.copId&&_murderPoliceCopActive(q,ar));
   if(!cop)return;
   for(const mate of others.values()){
     if(!mate?.crewMate||mate.dead)continue;
@@ -10438,7 +10446,7 @@ function _cancelMurderPoliceArrest(source=null,now=performance.now()){
 function _onMurderArrestCopKilled(cop,source=null){
   const ar=_murderPoliceArrest;
   if(!ar||ar.phase==='transport'||String(cop?._responseVehicleId)!==String(ar.vehicleId))return false;
-  if(!['gang_companion','gang_player'].includes(String(source?.kind||'')))return false;
+  if(![String(ar.copId),String(ar.coverCopId)].includes(String(cop?.id)))return false;
   return _cancelMurderPoliceArrest(source,performance.now());
 }
 function _startMurderPolicePrisonTransport(v,ar,now=performance.now()){
@@ -10482,8 +10490,9 @@ function _updateMurderPoliceArrest(v,dt,now=performance.now()){
   if(!ar||String(ar.vehicleId)!==String(v?.id)){if(v)v.state='police_search';return false;}
   _applyGangmateRescueFire(ar,now);
   if(_murderPoliceArrest!==ar)return false;
-  const primary=cityCops.find(q=>q?.alive&&q.id===ar.copId),cover=cityCops.find(q=>q?.alive&&q.id===ar.coverCopId);
-  if(!primary)return _cancelMurderPoliceArrest({kind:'gang_player'},now);
+  const primary=cityCops.find(q=>q?.id===ar.copId),cover=cityCops.find(q=>q?.id===ar.coverCopId);
+  if(!_murderPoliceCopActive(primary,ar)||(ar.coverCopId&&!_murderPoliceCopActive(cover,ar)))
+    return _cancelMurderPoliceArrest({kind:'arrest_officer_lost'},now);
   if(_LOCAL_PREVIEW&&_UP.has('previewpolicerescue')&&ar.phase==='cuffing'&&now-ar.phaseAt>1100&&!document.documentElement.dataset.previewPoliceRescueTriggered){
     document.documentElement.dataset.previewPoliceRescueTriggered=primary.id;
     hitCityCop(primary,0,1,999,{kind:'gang_player',ref:{uid:'preview-gangmate'},weapon:'rifle'});
@@ -57950,12 +57959,12 @@ window.Mafiozi3DBridge = Object.freeze({
     window._studioTeleportUntil=Date.now()+10000;
     return true;
   },
-  previewInterruptMurderArrest() {
+  previewInterruptMurderArrest(sourceKind='gang_player') {
     if(!_LOCAL_PREVIEW||!_murderPoliceArrest||_murderPoliceArrest.phase==='transport')return {ok:false,phase:_murderPoliceArrest?.phase||'idle'};
-    const ar=_murderPoliceArrest,cop=cityCops.find(c=>c?.alive&&c._responseVehicleId===ar.vehicleId);
+    const ar=_murderPoliceArrest,cop=cityCops.find(c=>c?.id===ar.copId&&_murderPoliceCopActive(c,ar));
     if(!cop)return {ok:false,phase:ar.phase};
     const corpseId=`${cop.id}_corpse`;
-    hitCityCop(cop,0,1,999,{kind:'gang_player',ref:{uid:'preview-gangmate'},weapon:'rifle'});
+    hitCityCop(cop,0,1,999,{kind:String(sourceKind||'player'),ref:{uid:'preview-gangmate'},weapon:'rifle'});
     return {ok:true,phase:document.documentElement.dataset.policeArrestPhase||'',hp:myHp,dead:myDead,
       corpse:NPCS.some(n=>n.id===corpseId)};
   },
