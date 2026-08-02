@@ -8998,7 +8998,7 @@ let _playerEmergencyPatient=null;
 const AMBULANCES_PER_HOSPITAL=3,AMBULANCE_FLEET_SIZE=6,AMBULANCE_RESPONSE_SPEED=8.6;
 const FIRETRUCK_FLEET_SIZE=3,FIRETRUCK_RESPONSE_SPEED=7.4;
 const TOW_FLEET_SIZE=3,TOW_RESPONSE_SPEED=6.6;
-const POLICE_RESPONSE_FLEET_SIZE=3,POLICE_RESPONSE_SPEED=8.1;
+const POLICE_RESPONSE_FLEET_SIZE=3,POLICE_RESPONSE_SPEED=12.4,POLICE_RETURN_SPEED=7.6,POLICE_BOARDING_TIMEOUT_MS=4200;
 const POLICE_MURDER_ZONE_R=11,POLICE_MURDER_SEARCH_MS=5000;
 const POLICE_ARREST_CUFF_MS=2700,POLICE_ARREST_LOAD_MS=1350;
 const AMBULANCE_ROUTE_RETRY_MS=900,AMBULANCE_ROUTE_GRACE_MS=5200;
@@ -10184,7 +10184,10 @@ function _policeCrewBoardPoint(v,slot){
     c:v.x-Math.sin(ang)*side*.62-Math.cos(ang)*.08};
 }
 function _stationOfficerSpawn(v,slot){
-  const entry=_policeResponseOrigin(),side=slot?1:-1;
+  const entry=_policeResponseOrigin(),side=slot?1:-1,dr=entry.r-v.y,dc=entry.c-v.x,d=Math.hypot(dr,dc)||1;
+  // The 3D station is visually offset from the road graph. Use its direction
+  // as the doorway side, but keep the visible walk short enough to be real.
+  if(d>4)return{r:v.y+dr/d*1.75-dc/d*side*.34,c:v.x+dc/d*1.75+dr/d*side*.34};
   return{r:entry.r+.34,c:entry.c+side*.46};
 }
 function _createMurderCrewCop(v,incident,slot,phase,now=performance.now()){
@@ -10192,7 +10195,7 @@ function _createMurderCrewCop(v,incident,slot,phase,now=performance.now()){
   const cop={id:`murdercop_${++_cityCopId}`,x:start.c,y:start.r,tx:start.c,ty:start.r,
     ang:v.ang||0,walkPhase:0,kind:'murder_response',weapon:'pistol',hp:100,max_hp:100,
     alive:true,role:'police',isPolice:true,look:{gender:slot,skin:slot?1:2,body:8,face:slot?2:1,hair:slot?2:1,hat:3},
-    speed:1.45+slot*.08,_wayUntil:0,_responseVehicleId:v.id,_murderIncidentId:incident.id,
+    speed:1.95+slot*.08,_wayUntil:0,_responseVehicleId:v.id,_murderIncidentId:incident.id,
     _crewSlot:slot,_casePhase:phase,_phaseStartedAt:now,_nextCaseCryAt:0,_nextShootAt:0};
   cityCops.push(cop);v._policeCrewIds.push(cop.id);return cop;
 }
@@ -10358,7 +10361,7 @@ function _finishMurderPoliceCall(v,now=performance.now()){
   _removeMurderCrewForVehicle(v);v._policeCrewIds=[];v._policeReturned=2;v.payload={};
   const next=_nextQueuedMurderIncident();
   if(next&&_assignMurderPoliceCall(v,next,now,true))return;
-  v.speed=POLICE_RESPONSE_SPEED;v.state='returning';v.path=[];v.pathIdx=0;v.finalTarget=null;
+  v.speed=POLICE_RETURN_SPEED;v.state='returning';v.path=[];v.pathIdx=0;v.finalTarget=null;
   v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;_setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
 }
 function _parkMurderPoliceVehicle(v,now=performance.now()){
@@ -10709,7 +10712,7 @@ function updateServiceVehicles(dt) {
     }
     if(v._murderFleet&&v.state==='police_boarding'){
       v._lastMoveT=now;
-      if((v._policeBoarded||0)>=2||now-(v._boardingStartedAt||now)>7000){
+      if((v._policeBoarded||0)>=2||now-(v._boardingStartedAt||now)>POLICE_BOARDING_TIMEOUT_MS){
         _removeMurderCrewForVehicle(v);v._policeBoarded=2;v.speed=POLICE_RESPONSE_SPEED;
         v.state='go_to_scene';if(v.payload?.murderIncident)v.payload.murderIncident.status='enroute';
       }
