@@ -10138,25 +10138,29 @@ function _registerMurderIncident(victim,source=null,now=performance.now()){
   document.documentElement.dataset.policeMurderLast=incident.id;
   return incident;
 }
-function _nextQueuedMurderIncident(){
-  return _murderIncidents.filter(q=>q.status==='queued').sort((a,b)=>a.occurredAt-b.occurredAt)[0]||null;
+function _nextQueuedMurderIncident(now=performance.now()){
+  return _murderIncidents.filter(q=>q.status==='queued'&&now>=(+q.routeRetryAt||0)).sort((a,b)=>a.occurredAt-b.occurredAt)[0]||null;
 }
 function _policeSceneParking(targetR,targetC,fromR,fromC){
   const tree=_buildRoadBfsTree(fromR,fromC,30),r0=Math.floor(targetR),c0=Math.floor(targetC);
-  let best=null,bestKey=-1,bestScore=Infinity;
-  for(let dr=-7;dr<=7;dr++)for(let dc=-7;dc<=7;dc++){
+  let best=null,bestKey=-1,bestScore=Infinity,fallback=null,fallbackKey=-1,fallbackScore=Infinity;
+  for(let dr=-14;dr<=14;dr++)for(let dc=-14;dc<=14;dc++){
     const r=r0+dr+.5,c=c0+dc+.5,d=Math.hypot(r-targetR,c-targetC);
-    if(d<1.8||d>5.8||!_vehicleRoadPassable(r,c))continue;
+    if(d<1.8||d>14||!_vehicleRoadPassable(r,c))continue;
     const goalK=Math.floor(r)*(MAP_COLS|0)+Math.floor(c);
     if(!_roadBfsHas(tree,goalK))continue;
     const before=_roadBfsPreviousPoint(tree,goalK,fromR,fromC),ang=Math.atan2(r-before.r,c-before.c);
-    if(!_serviceVehicleFootprintClear({kind:'police',ang},r,c,ang))continue;
     const score=Math.abs(d-3.15)+_roadBfsDistances[goalK]*.003;
+    if(score<fallbackScore){fallbackScore=score;fallback={r,c,ang};fallbackKey=goalK;}
+    if(d>5.8)continue;
+    if(!_serviceVehicleFootprintClear({kind:'police',ang},r,c,ang))continue;
     if(score<bestScore){bestScore=score;best={r,c,ang};bestKey=goalK;}
   }
-  if(!best)return null;
-  best.path=_roadBfsPathToKey(tree,bestKey)||[];
-  return best.path.length?best:null;
+  const chosen=best||fallback,chosenKey=best?bestKey:fallbackKey;
+  if(!chosen)return null;
+  chosen.path=_roadBfsPathToKey(tree,chosenKey)||[];
+  if(!best&&chosen.path.length)document.documentElement.dataset.policeRouteFallbacks=String((+document.documentElement.dataset.policeRouteFallbacks||0)+1);
+  return chosen.path.length?chosen:null;
 }
 function _policeCrewPassable(r,c){
   const prison=typeof _prisonIslandCollisionAt==='function'?_prisonIslandCollisionAt(r,c):null;
@@ -10200,7 +10204,8 @@ function _assignMurderPoliceCall(v,incident,now=performance.now(),crewAlreadyAbo
   const routeStartedAt=performance.now();
   const parking=_policeSceneParking(incident.r,incident.c,v.y,v.x);
   const routeMs=performance.now()-routeStartedAt;document.documentElement.dataset.policeRouteMs=routeMs.toFixed(1);document.documentElement.dataset.policeRouteMaxMs=Math.max(routeMs,+document.documentElement.dataset.policeRouteMaxMs||0).toFixed(1);
-  if(!parking)return false;
+  if(!parking){incident.routeFailures=(+incident.routeFailures||0)+1;incident.routeRetryAt=now+Math.min(6000,900+incident.routeFailures*650);return false;}
+  incident.routeRetryAt=0;incident.routeFailures=0;
   incident.status=crewAlreadyAboard?'enroute':'boarding';incident.assignedVehicleId=v.id;incident.dispatchedAt=now;
   v.payload={murderIncident:incident};v.sceneParkingR=parking.r;v.sceneParkingC=parking.c;
   v.path=parking.path;v.pathIdx=0;v.finalTarget={x:parking.c,y:parking.r};v._offroadRoute=false;
@@ -10218,9 +10223,10 @@ function _assignMurderPoliceCall(v,incident,now=performance.now(),crewAlreadyAbo
 function _dispatchMurderPoliceCalls(now=performance.now()){
   const fleet=_ensurePoliceResponseFleet();
   for(;;){
-    const incident=_nextQueuedMurderIncident();if(!incident)break;
+    const incident=_nextQueuedMurderIncident(now);if(!incident)break;
     const v=fleet.find(q=>q.state==='police_parked'||(q.state==='returning'&&!q.payload?.murderIncident));
-    if(!v||!_assignMurderPoliceCall(v,incident,now,v.state==='returning'))break;
+    if(!v)break;
+    if(!_assignMurderPoliceCall(v,incident,now,v.state==='returning'))continue;
   }
 }
 function _pickMurderSearchPoint(incident,slot,seed=0){
@@ -10814,6 +10820,11 @@ function updateServiceVehicles(dt) {
           // Не отменяем вызов и не освобождаем пациента: иначе диспетчер
           // бесконечно создаёт новые выезды, а ни одна скорая не забирает его.
           continue;
+        }
+        if(v._murderFleet){
+          const incident=v.payload?.murderIncident;
+          if(incident){incident.status='queued';incident.assignedVehicleId=null;incident.routeRetryAt=now+900;}
+          _parkMurderPoliceVehicle(v,now);continue;
         }
         v.state = 'done';
         continue;
