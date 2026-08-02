@@ -7629,7 +7629,8 @@ function hitCityCop(cop, dirY, dirX, damage, source = null) {
     // При спасении задержанного оставшиеся копы вызова сами разбираются
     // со стрелком. Не поднимаем заодно весь обычный городской патруль.
     const arrestInterrupted = _onMurderArrestCopKilled(cop, source);
-    if (!arrestInterrupted) _alertNearbyCops('kill');
+    const backupQueued = _queueMurderOfficerDownBackup(cop, performance.now());
+    if (!arrestInterrupted && !backupQueued) _alertNearbyCops('kill');
   }
   if (!source || source.kind === 'player') try {
     ws && ws.send(JSON.stringify({ t: 'open_fire',
@@ -10208,7 +10209,7 @@ function _assignMurderPoliceCall(v,incident,now=performance.now(),crewAlreadyAbo
   const parking=_policeSceneParking(incident.r,incident.c,v.y,v.x);
   const routeMs=performance.now()-routeStartedAt;document.documentElement.dataset.policeRouteMs=routeMs.toFixed(1);document.documentElement.dataset.policeRouteMaxMs=Math.max(routeMs,+document.documentElement.dataset.policeRouteMaxMs||0).toFixed(1);
   if(!parking){incident.routeFailures=(+incident.routeFailures||0)+1;incident.routeRetryAt=now+Math.min(6000,900+incident.routeFailures*650);return false;}
-  incident.routeRetryAt=0;incident.routeFailures=0;
+  incident.routeRetryAt=0;incident.routeFailures=0;v._officerDownBackupQueued=false;
   incident.status=crewAlreadyAboard?'enroute':'boarding';incident.assignedVehicleId=v.id;incident.dispatchedAt=now;
   v.payload={murderIncident:incident};v.sceneParkingR=parking.r;v.sceneParkingC=parking.c;
   v.path=parking.path;v.pathIdx=0;v.finalTarget={x:parking.c,y:parking.r};v._offroadRoute=false;
@@ -10274,6 +10275,23 @@ function _murderPoliceCopActive(cop,ar=null){
 }
 function _murderCrewForVehicle(v){
   return cityCops.filter(c=>_murderPoliceCopActive(c)&&c._responseVehicleId===v.id&&c._murderIncidentId===v.payload?.murderIncident?.id);
+}
+function _queueMurderOfficerDownBackup(cop,now=performance.now()){
+  if(cop?.kind!=='murder_response'||!cop._responseVehicleId)return false;
+  const v=serviceVehicles.find(q=>q?.id===cop._responseVehicleId),incident=v?.payload?.murderIncident;
+  if(!v||!incident||v._officerDownBackupQueued)return false;
+  const survivor=cityCops.some(q=>q!==cop&&_murderPoliceCopActive(q)&&q._responseVehicleId===v.id&&q._murderIncidentId===incident.id);
+  if(survivor)return false;
+  v._officerDownBackupQueued=true;
+  const backup={id:`murder_${++_murderIncidentSeq}`,r:+cop.y||incident.r,c:+cop.x||incident.c,
+    victim:null,source:{kind:'officer_down',vehicleId:v.id},occurredAt:now,status:'queued',assignedVehicleId:null,
+    searchStartedAt:0,initialSearchUntil:0,lostAt:0,questionStartedAt:0,armedContact:false,closedAt:0,
+    officerDown:true,parentIncidentId:incident.id,routeRetryAt:0,routeFailures:0};
+  _murderIncidents.push(backup);while(_murderIncidents.length>24)_murderIncidents.shift();
+  document.documentElement.dataset.policeOfficerDownCalls=String((+document.documentElement.dataset.policeOfficerDownCalls||0)+1);
+  showEventBanner('🚨 ЭКИПАЖ НЕ ОТВЕЧАЕТ','Диспетчер направил к месту второй полицейский наряд.',2800,'lose');
+  _dispatchMurderPoliceCalls(now);
+  return true;
 }
 function _murderCrewCanSeePlayer(v){
   if(!_murderPlayerInZone(v.payload?.murderIncident))return false;
