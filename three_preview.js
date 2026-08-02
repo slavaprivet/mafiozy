@@ -1,3 +1,4 @@
+// 3D sync v234: pooled NPC rigs consume authoritative life-state flags for panic, cover, surrender, helping and social gestures.
 // 3D sync v233: premium two-storey prison adds twenty double cells, open galleries, stairs and a complete common yard.
 // 3D sync v232: ambulances use full-body-safe depot and patient-side parking so their complete recovery cycle stays road-driven.
 // 3D sync v232 combat: clicked resident and vehicle silhouettes stay locked through the world ballistic pass.
@@ -1683,41 +1684,63 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const bulletHoleCanvas=document.createElement('canvas');bulletHoleCanvas.width=96;bulletHoleCanvas.height=96;const bulletHoleCtx=bulletHoleCanvas.getContext('2d'),bulletHoleGradient=bulletHoleCtx.createRadialGradient(48,48,3,48,48,42);bulletHoleGradient.addColorStop(0,'rgba(0,0,0,1)');bulletHoleGradient.addColorStop(.18,'rgba(10,8,7,.98)');bulletHoleGradient.addColorStop(.34,'rgba(86,69,53,.94)');bulletHoleGradient.addColorStop(.48,'rgba(28,22,18,.76)');bulletHoleGradient.addColorStop(1,'rgba(0,0,0,0)');bulletHoleCtx.fillStyle=bulletHoleGradient;bulletHoleCtx.fillRect(0,0,96,96);bulletHoleCtx.strokeStyle='rgba(226,204,166,.62)';bulletHoleCtx.lineWidth=2;for(let i=0;i<8;i++){const a=i*2.399;bulletHoleCtx.beginPath();bulletHoleCtx.moveTo(48+Math.cos(a)*12,48+Math.sin(a)*12);bulletHoleCtx.lineTo(48+Math.cos(a)*31,48+Math.sin(a)*31);bulletHoleCtx.stroke();}const bulletHoleTexture=new THREE.CanvasTexture(bulletHoleCanvas);bulletHoleTexture.colorSpace=THREE.SRGBColorSpace;const bulletHoleDecals=makeInstances(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:bulletHoleTexture,transparent:true,opacity:.94,depthWrite:false,depthTest:true,side:THREE.DoubleSide,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4}),32,false);bulletHoleDecals.renderOrder=29;renderer.domElement.dataset.bulletHoleRendering='oriented-instanced-wall-decals-v198';
       const bulletUp=new THREE.Vector3(0,1,0),bulletDirection=new THREE.Vector3();
       const setPart=(mesh,index,root,px,py,pz,rx=0,scale=unitScale,ry=0,rz=0)=>{instanceQuat.setFromEuler(instanceEuler.set(rx,ry,rz));localMatrix.compose(instancePosition.set(px,py,pz),instanceQuat,scale);instanceMatrix.multiplyMatrices(root,localMatrix);mesh.setMatrixAt(index,instanceMatrix);};
-      const npcAnimationPose=(src,i,t)=>{
-        const key=String(src.id??src.uid??i),motion=npcMotionStates.get(key),dead=npcIsDead(src);
+      const NPC_ANIM_CRAWL=1,NPC_ANIM_LIMP=2,NPC_ANIM_PANIC=4,NPC_ANIM_COWER=8,NPC_ANIM_SURRENDER=16,NPC_ANIM_HELP=32,NPC_ANIM_TALK=64,NPC_ANIM_ALERT=128,NPC_SOCIAL_GESTURES=new Set(['talk','talking','explain','argue','point','wave']);
+      const npcAnimationBits=(src,t,dead=npcIsDead(src))=>{
+        if(dead)return 0;
+        const state=String(src.lifeState||src.animationState||src.animState||src.state||src.action||src.act||'').toLowerCase(),gesture=String(src.gesture||'').toLowerCase(),stateUntil=+src.stateUntil||0,stateActive=!stateUntil||stateUntil>t;
+        let bits=0;
+        if(src.crawling||src.crawl||src.forcedCrawl||((+src.severMask||0)&12)!==0||(stateActive&&(state==='crawl'||state==='crawling'||state==='downed')))bits|=NPC_ANIM_CRAWL;
+        if(src.injured||src.limping||src.limp||(stateActive&&(state==='injured'||state==='limp'||state==='limping')))bits|=NPC_ANIM_LIMP;
+        if(src.panic||src.panicking||src.flee||src.fleeing||gesture==='flee'||gesture==='call'||(+src.panicUntil||0)>t||(stateActive&&(state==='panic'||state==='panicking'||state==='flee'||state==='fleeing')))bits|=NPC_ANIM_PANIC;
+        if(src.cowering||src.cower||src.inCover||src.takingCover||gesture==='cower'||gesture==='cover'||gesture==='freeze'||(stateActive&&(state==='cower'||state==='cowering'||state==='cover'||state==='take_cover'||state==='taking_cover'||state==='freeze'||state==='frozen')))bits|=NPC_ANIM_COWER;
+        if(src.surrendering||src.surrendered||src.surrender||gesture==='hands_up'||(stateActive&&(state==='surrender'||state==='surrendering'||state==='surrendered')))bits|=NPC_ANIM_SURRENDER;
+        if(src.helping||src.helpingInjured||src.givingAid||gesture==='help'||gesture==='aid'||(stateActive&&(state==='help'||state==='helping'||state==='aiding'||state==='first_aid')))bits|=NPC_ANIM_HELP;
+        if(src.talking||src.social||src.socializing||NPC_SOCIAL_GESTURES.has(gesture)||(stateActive&&(state==='talk'||state==='talking'||state==='social'||state==='socializing')))bits|=NPC_ANIM_TALK;
+        if(src.alerted||src.alert||gesture==='lookout'||(stateActive&&(state==='alert'||state==='alerted'||state==='watching')))bits|=NPC_ANIM_ALERT;
+        return bits;
+      };
+      const npcLifeAnimationPose=(src,i,t)=>{
+        const key=String(src.id??src.uid??i),motion=npcMotionStates.get(key),dead=npcIsDead(src),animBits=Number.isFinite(+motion?.animBits)?motion.animBits:npcAnimationBits(src,t,dead);
+        if(i===0){renderer.domElement.dataset.npcLifeSystem=document.documentElement.dataset.npcLifeSystem||'active:v1';renderer.domElement.dataset.npcLifeStates=document.documentElement.dataset.npcLifeStates||'warming';renderer.domElement.dataset.npcLifePools=document.documentElement.dataset.npcLifePools||`shown:${dynamicState?.npcs?.length||0}:cap:${NPC_CAP}`;renderer.domElement.dataset.npcLifeMemory=document.documentElement.dataset.npcLifeMemory||'bounded';}
         const hpPct=Math.max(0,Math.min(1,(+src.hp||0)/(+src.maxHp||60)));
-        const crawling=!dead&&(!!src.forcedCrawl||((+src.severMask||0)&12)!==0);
-        const limping=!dead&&!crawling&&hpPct>0&&hpPct<=.35;
+        const crawling=!!(animBits&NPC_ANIM_CRAWL),cowering=!crawling&&!!(animBits&NPC_ANIM_COWER),surrendering=!crawling&&!cowering&&!!(animBits&NPC_ANIM_SURRENDER),helping=!crawling&&!cowering&&!surrendering&&!!(animBits&NPC_ANIM_HELP),panicking=!crawling&&!cowering&&!surrendering&&!helping&&!!(animBits&NPC_ANIM_PANIC),talking=!crawling&&!cowering&&!surrendering&&!helping&&!panicking&&!!(animBits&NPC_ANIM_TALK),alerted=!crawling&&!cowering&&!surrendering&&!helping&&!panicking&&!talking&&!!(animBits&NPC_ANIM_ALERT);
+        const limping=!dead&&!crawling&&(!!(animBits&NPC_ANIM_LIMP)||(hpPct>0&&hpPct<=.35));
         const crawlBlend=Math.max(0,Math.min(1,+motion?.crawlBlend||(crawling?1:0)));
         const phase=npcVisualPhases[i]||t*.008+i*.73,idle=Math.sin(t*.0018+i*1.7);
         const step=Math.sin(phase*(limping?.78:1));
         const hitRemaining=Math.max(0,(motion?.hitUntil||0)-t);
         const hit=hitRemaining?Math.sin(Math.min(1,hitRemaining/650)*Math.PI)*Math.max(.7,+motion?.hitStrength||1):0;
-        const hitSide=motion?.hitSide||1,gait=Math.max(0,Math.min(1,+motion?.gaitBlend||0)),walking=gait>.035&&!dead;
+        const hitSide=motion?.hitSide||1,gait=Math.max(0,Math.min(1,+motion?.gaitBlend||0)),walking=gait>.035&&!dead&&!cowering&&!surrendering&&!helping;
         const measuredSpeed=Math.hypot(+motion?.velocityX||0,+motion?.velocityZ||0),pace=Math.max(0,Math.min(1,measuredSpeed/9));
         // The player's gait is the visual baseline: a restrained .72 leg swing,
         // .21 step lift and small lateral weight shift. NPC-specific injury
         // modifiers are layered on top instead of replacing that cadence.
-        const strideScale=walking?(.9+pace*.1):1,swing=walking?step*(crawling?.28:limping?.42:.72)*gait*strideScale:idle*.025;
+        const strideScale=walking?(.9+pace*.1)*(panicking?1.14:1):1,swing=walking?step*(crawling?.28:limping?.42:.72)*gait*strideScale:idle*.025;
         const leftSwing=crawling?step*.34*gait:limping?(step>0?step*.16:step*.46)*gait:swing;
         const rightSwing=crawling?-step*.34*gait:limping?-step*.62*gait:-swing;
         const leftLift=walking?Math.pow(Math.max(0,step),1.35)*(crawling?.035:limping?.06:.21)*gait:0;
         const rightLift=walking?Math.pow(Math.max(0,-step),1.35)*(crawling?.035:limping?.22:.21)*gait:0;
-        const uprightBob=walking?(limping?Math.max(0,-step)*.06+Math.abs(step)*.02:Math.abs(step)*(.055+pace*.015)*gait):idle*.012;
+        const uprightBob=walking?(limping?Math.max(0,-step)*.06+Math.abs(step)*.02:Math.abs(step)*(.055+pace*.015+(panicking?.022:0))*gait):idle*.012;
         const bob=crawling?THREE.MathUtils.lerp(uprightBob,.42+(walking?Math.abs(step)*.012:idle*.008),crawlBlend):uprightBob;
         const roll=(crawling?step*.016*gait:(limping?.105+step*.04*gait:step*.026*gait))+hit*hitSide*.24;
-        const pitch=(crawling?1.22*crawlBlend:(walking?-(.025+pace*.035)*gait:0))+hit*.2;
+        const crouch=cowering?.86:helping?.42:0,statePitch=cowering?.28:helping?.38:panicking?-.055:alerted?-.025:0,pitch=(crawling?1.22*crawlBlend:(walking?-(.025+pace*.035)*gait:0))+statePitch+hit*.2;
         // Shoes counter-rotate during the planted half of each stride, keeping
         // the sole close to the road instead of rotating with the whole leg.
         const leftPlanted=step<0,rightPlanted=step>0;
         const leftFootPitch=walking?leftSwing*(leftPlanted?.12:.58)-leftLift*.38:0;
         const rightFootPitch=walking?rightSwing*(rightPlanted?.12:.58)-rightLift*.38:0;
-        const torsoTwist=walking&&!crawling?-step*(.022+pace*.012)*gait:0;
-        const leftArmSwing=crawling?-step*.62*gait:limping?-step*.28*gait:-step*.46*gait;
-        const rightArmSwing=crawling?step*.62*gait:limping?step*.2*gait:step*.34*gait;
-        const headCounter=-torsoTwist*.7,shoulderSway=walking?Math.sin(phase+Math.PI*.5)*(.025+pace*.012)*gait:idle*.008;
-        return {key,motion,dead,hpPct,crawling,limping,crawlBlend,phase,idle,step,hit,hitSide,gait,walking,leftSwing,rightSwing,leftLift,rightLift,leftFootPitch,rightFootPitch,leftArmSwing,rightArmSwing,torsoTwist,headCounter,shoulderSway,bob,roll,pitch};
+        const torsoTwist=walking&&!crawling?-step*(.022+pace*.012)*gait:talking?Math.sin(t*.004+i)*.075:0;
+        let leftArmPitch=crawling?-step*.62*gait:limping?-step*.28*gait:-step*.46*gait,rightArmPitch=crawling?step*.62*gait:limping?step*.2*gait:step*.34*gait,leftArmRoll=0,rightArmRoll=0,leftArmYaw=0,rightArmYaw=0,leftArmX=-.78,rightArmX=.78,armY=2.05,armZ=0;
+        if(panicking){const wave=Math.sin(t*.014+i*1.91);armY=3.12;armZ=.08;leftArmPitch=-.12+wave*.2;rightArmPitch=.12-wave*.17;leftArmRoll=-.28-wave*.08;rightArmRoll=.28+wave*.08;}
+        else if(cowering){const tremble=Math.sin(t*.019+i*2.3)*.035;leftArmX=-.52;rightArmX=.52;armY=2.56-crouch*.24;armZ=.27;leftArmPitch=-.52+tremble;rightArmPitch=-.72-tremble;leftArmRoll=-.7;rightArmRoll=.7;}
+        else if(surrendering){const tremble=Math.sin(t*.012+i*1.37)*.035;leftArmX=-.68;rightArmX=.68;armY=3.38;armZ=.02;leftArmPitch=tremble;rightArmPitch=-tremble;leftArmRoll=-.22;rightArmRoll=.22;}
+        else if(helping){const tend=Math.sin(t*.006+i)*.08;leftArmX=-.64;rightArmX=.64;armY=1.92-crouch*.48;armZ=.4;leftArmPitch=-1.02+tend;rightArmPitch=-.92-tend;leftArmRoll=-.12;rightArmRoll=.12;}
+        else if(talking){const gestureWave=Math.sin(t*.0075+i*1.83),otherWave=Math.sin(t*.0052+i*.71);armY=2.32;armZ=.18;leftArmPitch=-.48+gestureWave*.34;rightArmPitch=-.18-otherWave*.2;leftArmRoll=-.18-gestureWave*.08;rightArmRoll=.1;}
+        else if(alerted){armY=2.18;armZ=.13;leftArmPitch=-.28;rightArmPitch=-.46;leftArmRoll=-.08;rightArmRoll=.08;}
+        const headScan=panicking?Math.sin(t*.008+i*2.11)*.48:cowering?Math.sin(t*.014+i)*.08:talking?Math.sin(t*.0038+i*.67)*.24:alerted?Math.sin(t*.0029+i)*.34:0,headCounter=-torsoTwist*.7+headScan,headTilt=cowering?.08*Math.sin(t*.011+i):panicking?.04*Math.sin(t*.013+i):0,shoulderSway=walking?Math.sin(phase+Math.PI*.5)*(.025+pace*.012+(panicking?.018:0))*gait:idle*.008,legBend=cowering?.72:helping?.34:0,activeState=cowering?'cower':surrendering?'surrender':helping?'helping':panicking?'panic':talking?'social':alerted?'alert':crawling?'crawl':limping?'limp':'idle';
+        return {key,motion,dead,hpPct,crawling,limping,cowering,surrendering,helping,panicking,talking,alerted,activeState,crawlBlend,phase,idle,step,hit,hitSide,gait,walking,leftSwing,rightSwing,leftLift,rightLift,leftFootPitch,rightFootPitch,leftArmPitch,rightArmPitch,leftArmRoll,rightArmRoll,leftArmYaw,rightArmYaw,leftArmX,rightArmX,armY,armZ,torsoTwist,headCounter,headTilt,shoulderSway,legBend,crouch,bob,roll,pitch};
       };
+      const npcAnimationPose=npcLifeAnimationPose;
       const setNpcRoot=(pose,i,x,z)=>{npcRootQuat.setFromEuler(new THREE.Euler(pose.pitch,npcFacingYaws[i],pose.roll,'YXZ'));rootMatrix.compose(new THREE.Vector3(x,pose.bob,z),npcRootQuat,npcScale);};
       const hidePart=(mesh,index)=>{instanceMatrix.compose(instancePosition.set(0,-1000,0),instanceQuat.identity(),hiddenScale);mesh.setMatrixAt(index,instanceMatrix);};
       const hideNpcVisual=i=>{for(const [key,mesh] of Object.entries(npcParts)){if(key==='eyeWhite'||key==='pupil'||key==='shoe'){hidePart(mesh,i*2);hidePart(mesh,i*2+1);}else hidePart(mesh,i);}};
@@ -2400,10 +2423,10 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           renderer.domElement.dataset.activeInstanceBudget=`n${activeNpcInstances}:r${activeRemoteInstances}:p${activeProjectileInstances}:s${activeShellInstances}:b${activeBloodInstances}:g${activeGoreInstances}`;
           const liveNpcMotion=new Set(),walkingByRole={gang:0,police:0,bandit:0,civilian:0};let animatedWalkingNpcs=0,deathAnimatingNpcs=0,deathSettledNpcs=0;
           for(let i=0;i<Math.min(NPC_CAP,dynamic.npcs.length);i++){
-            const src=dynamic.npcs[i],key=String(src.id??src.uid??i),sourceC=Number.isFinite(+src.visualC)?+src.visualC:Number.isFinite(+src.c)?+src.c:+src.x||0,sourceR=Number.isFinite(+src.visualR)?+src.visualR:Number.isFinite(+src.r)?+src.r:+src.y||0,rawX=(sourceC-originC)*WORLD_SCALE,rawZ=(sourceR-originR)*WORLD_SCALE,hpNow=Math.max(0,+src.hp||0),sourcePhase=+src.walkPhase||0,dead=npcIsDead(src);
+            const src=dynamic.npcs[i],key=String(src.id??src.uid??i),sourceC=Number.isFinite(+src.visualC)?+src.visualC:Number.isFinite(+src.c)?+src.c:+src.x||0,sourceR=Number.isFinite(+src.visualR)?+src.visualR:Number.isFinite(+src.r)?+src.r:+src.y||0,rawX=(sourceC-originC)*WORLD_SCALE,rawZ=(sourceR-originR)*WORLD_SCALE,hpNow=Math.max(0,+src.hp||0),sourcePhase=+src.walkPhase||0,dead=npcIsDead(src),animBits=npcAnimationBits(src,t,dead);
             liveNpcMotion.add(key);
             let motion=npcMotionStates.get(key);
-            if(!motion){const sourceDeadAt=+src.deadAt,deadStartedAt=dead&&Number.isFinite(sourceDeadAt)&&sourceDeadAt>0&&t-sourceDeadAt>=0&&t-sourceDeadAt<60000?sourceDeadAt:dead?t:0;motion={visualX:rawX,visualZ:rawZ,targetX:rawX,targetZ:rawZ,velocityX:0,velocityZ:0,lastSampleAt:t,lastMoveAt:0,gaitBlend:0,phase:sourcePhase||i*.73,lastSourcePhase:sourcePhase,lastHp:hpNow,lastSourceHitAt:+src.hitAt||0,hitUntil:0,hitSide:i%2?1:-1,deadStartedAt,deathX:dead?rawX:null,deathZ:dead?rawZ:null};npcMotionStates.set(key,motion);}
+            if(!motion){const sourceDeadAt=+src.deadAt,deadStartedAt=dead&&Number.isFinite(sourceDeadAt)&&sourceDeadAt>0&&t-sourceDeadAt>=0&&t-sourceDeadAt<60000?sourceDeadAt:dead?t:0;motion={visualX:rawX,visualZ:rawZ,targetX:rawX,targetZ:rawZ,velocityX:0,velocityZ:0,lastSampleAt:t,lastMoveAt:0,gaitBlend:0,phase:sourcePhase||i*.73,lastSourcePhase:sourcePhase,lastHp:hpNow,lastSourceHitAt:+src.hitAt||0,hitUntil:0,hitSide:i%2?1:-1,deadStartedAt,deathX:dead?rawX:null,deathZ:dead?rawZ:null,animBits};npcMotionStates.set(key,motion);}else motion.animBits=animBits;
             if(dead&&!motion.deadStartedAt){motion.deadStartedAt=t;motion.deathX=motion.visualX;motion.deathZ=motion.visualZ;motion.targetX=motion.visualX;motion.targetZ=motion.visualZ;motion.velocityX=motion.velocityZ=0;}else if(!dead){motion.deadStartedAt=0;motion.deathX=motion.deathZ=null;}
             const sourceHitAt=+src.hitAt||0,hpLost=Math.max(0,motion.lastHp-hpNow);
             if(!dead&&(hpLost>0||sourceHitAt>motion.lastSourceHitAt)){motion.hitUntil=t+650;motion.hitSide=motion.hitSide>0?-1:1;motion.hitStrength=Math.min(1.5,Math.max(.72,hpLost/Math.max(1,+src.maxHp||60)*3.4));}
@@ -2418,11 +2441,11 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
               else{motion.velocityX=THREE.MathUtils.lerp(motion.velocityX,dx/sampleDt*limit,.72);motion.velocityZ=THREE.MathUtils.lerp(motion.velocityZ,dz/sampleDt*limit,.72);if(targetDelta>.006)motion.lastMoveAt=t;}
               motion.targetX=rawX;motion.targetZ=rawZ;motion.lastSampleAt=t;
             }
-            const measuredSpeed=Math.hypot(motion.velocityX,motion.velocityZ),recentMeasuredMove=t-motion.lastMoveAt<440&&measuredSpeed>.018,actuallyMoving=!dead&&(sourceWalking||recentMeasuredMove),motionFade=Math.max(0,1-dt*(actuallyMoving?1.8:7.5));
+            const measuredSpeed=Math.hypot(motion.velocityX,motion.velocityZ),recentMeasuredMove=t-motion.lastMoveAt<440&&measuredSpeed>.018,poseLocksGait=!!(animBits&(NPC_ANIM_COWER|NPC_ANIM_SURRENDER|NPC_ANIM_HELP)),panicMoving=!!(animBits&NPC_ANIM_PANIC),actuallyMoving=!dead&&!poseLocksGait&&(sourceWalking||recentMeasuredMove),motionFade=Math.max(0,1-dt*(actuallyMoving?1.8:7.5));
             if(!actuallyMoving){motion.velocityX*=motionFade;motion.velocityZ*=motionFade;}
-            const gaitTarget=actuallyMoving?Math.min(1,.72+Math.max(measuredSpeed,sourceWalking?2.4:0)*.075):0;
+            const gaitTarget=actuallyMoving?Math.min(1,(panicMoving?.88:.72)+Math.max(measuredSpeed,sourceWalking?2.4:0)*.075):0;
             motion.gaitBlend=THREE.MathUtils.lerp(motion.gaitBlend,gaitTarget,1-Math.exp(-dt*(actuallyMoving?14:7)));
-            const crawlTarget=!dead&&(!!src.forcedCrawl||((+src.severMask||0)&12)!==0)?1:0;
+            const crawlTarget=animBits&NPC_ANIM_CRAWL?1:0;
             if(!Number.isFinite(+motion.crawlBlend))motion.crawlBlend=0;
             motion.crawlBlend=THREE.MathUtils.lerp(motion.crawlBlend,crawlTarget,1-Math.exp(-dt*(crawlTarget?5.4:8)));
             if(motion.gaitBlend>.08&&!dead){
@@ -2435,13 +2458,13 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             }
             const prediction=recentMeasuredMove?Math.min(.055,Math.max(0,(t-motion.lastSampleAt)/1000)):0,desiredX=motion.targetX+motion.velocityX*prediction,desiredZ=motion.targetZ+motion.velocityZ*prediction,alpha=1-Math.exp(-dt*12),followDx=(desiredX-motion.visualX)*alpha,followDz=(desiredZ-motion.visualZ)*alpha,followDistance=Math.hypot(followDx,followDz),maxFollow=Math.max(.1,Math.min(.82,(Math.max(measuredSpeed,2.2)*1.25+1.2)*dt)),followScale=followDistance>maxFollow?maxFollow/followDistance:1;
             motion.visualX+=followDx*followScale;motion.visualZ+=followDz*followScale;
-            if(motion.gaitBlend>.025&&!dead){const cadence=crawlTarget?1.25:(hpNow>0&&hpNow<=Math.max(1,+src.maxHp||60)*.35?4.6:Math.min(13.2,7.6+Math.max(measuredSpeed,sourceWalking?2.4:0)*.34));motion.phase+=dt*cadence*Math.max(crawlTarget?.28:.38,motion.gaitBlend);}
+            if(motion.gaitBlend>.025&&!dead){const cadence=crawlTarget?1.25:panicMoving?Math.min(16.8,12.6+Math.max(measuredSpeed,sourceWalking?3.4:0)*.38):(hpNow>0&&hpNow<=Math.max(1,+src.maxHp||60)*.35?4.6:Math.min(13.2,7.6+Math.max(measuredSpeed,sourceWalking?2.4:0)*.34));motion.phase+=dt*cadence*Math.max(crawlTarget?.28:.38,motion.gaitBlend);}
             else motion.phase=THREE.MathUtils.lerp(motion.phase,sourcePhase||motion.phase,Math.min(1,dt*5));
             if(dead){motion.visualX=Number.isFinite(motion.deathX)?motion.deathX:motion.visualX;motion.visualZ=Number.isFinite(motion.deathZ)?motion.deathZ:motion.visualZ;motion.targetX=motion.visualX;motion.targetZ=motion.visualZ;motion.velocityX=motion.velocityZ=0;const deathAge=t-(motion.deadStartedAt||t);if(deathAge<760)deathAnimatingNpcs++;else deathSettledNpcs++;}
             npcVisualXs[i]=motion.visualX;npcVisualZs[i]=motion.visualZ;npcVisualPhases[i]=motion.phase;
           }
           for(const key of npcMotionStates.keys())if(!liveNpcMotion.has(key))npcMotionStates.delete(key);
-          renderer.domElement.dataset.animatedWalkingNpcs=String(animatedWalkingNpcs);renderer.domElement.dataset.walkingNpcRoles=`gang:${walkingByRole.gang},police:${walkingByRole.police},bandit:${walkingByRole.bandit},civilian:${walkingByRole.civilian}`;renderer.domElement.dataset.deathAnimatingNpcs=String(deathAnimatingNpcs);renderer.domElement.dataset.deathSettledNpcs=String(deathSettledNpcs);renderer.domElement.dataset.npcAnimationSystem='player-derived-stride-weight-shift-v212';
+          renderer.domElement.dataset.animatedWalkingNpcs=String(animatedWalkingNpcs);renderer.domElement.dataset.walkingNpcRoles=`gang:${walkingByRole.gang},police:${walkingByRole.police},bandit:${walkingByRole.bandit},civilian:${walkingByRole.civilian}`;renderer.domElement.dataset.deathAnimatingNpcs=String(deathAnimatingNpcs);renderer.domElement.dataset.deathSettledNpcs=String(deathSettledNpcs);renderer.domElement.dataset.npcAnimationSystem='instanced-life-state-layered-over-player-gait-v234';
           npcElevationLookup.clear();for(let i=0;i<(dynamic.npcs||[]).length;i++){const src=dynamic.npcs[i],x=npcVisualXs[i],z=npcVisualZs[i],lift=Math.max(0,+src.elevation||0)*WORLD_SCALE;if(lift)npcElevationLookup.set(`${x.toFixed(3)}:${z.toFixed(3)}`,lift);}
           renderer.domElement.dataset.liveCars=String(dynamic.cars.length);renderer.domElement.dataset.liveNpcs=String(dynamic.npcs.length);renderer.domElement.dataset.liveProjectiles=String(dynamic.projectiles.length);
           medicalScenePool.forEach((medical,i)=>{
@@ -2538,27 +2561,27 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           for(const car of cars){const src=car.userData.source;if(!car.visible||!src?.towLoad)continue;const p=Math.max(0,Math.min(1,+src.towLoadProgress||0)),lift=p*p*(3-2*p);car.position.y=THREE.MathUtils.lerp(.04,1.38,lift);car.rotation.z=THREE.MathUtils.lerp(-.16,-.035,lift);car.rotation.x=Math.sin(p*Math.PI)*.075;if(p>=.98)towCarriedWrecks++;}
           renderer.domElement.dataset.towCarriedWrecks=String(towCarriedWrecks);
           renderer.domElement.dataset.towLoadingProfile='winch-deck-lift-carry-v230';
-          let crawlingNpcCount=0,limpingNpcCount=0,reactingNpcCount=0,bleedingNpcCount=0;
+          let crawlingNpcCount=0,limpingNpcCount=0,reactingNpcCount=0,bleedingNpcCount=0,panickingNpcCount=0,coweringNpcCount=0,surrenderingNpcCount=0,helpingNpcCount=0,socialNpcCount=0,alertedNpcCount=0;
           citizenPool.forEach((npc,i)=>{
             const src=dynamic.npcs[i];if(!src){npc.hpGroup.visible=false;hideNpcVisual(i);return;}
             const x=npcVisualXs[i],z=npcVisualZs[i],pose=npcAnimationPose(src,i,t),role=String(src.role||'').toLowerCase(),look=src.look||{},police=src.visualRole==='police'||!!src.police||role.includes('police')||role.includes('cop'),medic=role.includes('medic'),armed=role.includes('gang')||role.includes('boss')||role.includes('guard')||police,bodyColor=medic?0xe8f2f4:police?0x245f9b:role.includes('gang')||role.includes('boss')||role.includes('guard')?0xd94f61:[0x52b8ee,0xf0717f,0x8acb63,0xefae46,0xa184dc][i%5];
-            if(pose.crawling)crawlingNpcCount++;else if(pose.limping)limpingNpcCount++;if(pose.hit>0)reactingNpcCount++;
+            if(pose.crawling)crawlingNpcCount++;else if(pose.limping)limpingNpcCount++;if(pose.hit>0)reactingNpcCount++;if(pose.panicking)panickingNpcCount++;else if(pose.cowering)coweringNpcCount++;else if(pose.surrendering)surrenderingNpcCount++;else if(pose.helping)helpingNpcCount++;else if(pose.talking)socialNpcCount++;else if(pose.alerted)alertedNpcCount++;
             const medicAction=medic?String(src.medicAction||''):'',medicActionProgress=Math.max(0,Math.min(1,+src.medicActionProgress||0)),medicCrouch=medicAction==='assessing'?.38+.045*Math.sin(t*.012+i):medicAction==='lifting'?Math.sin(medicActionProgress*Math.PI)*.34:0,medicReach=medicAction==='assessing'||medicAction==='lifting';
-            setNpcRoot(pose,i,x,z);npcBodyScale.set(1,pose.walking?1:1+pose.idle*.018,1);
-            setPart(npcParts.body,i,rootMatrix,0,2.05-pose.hit*.08-medicCrouch,0,-pose.hit*.09,npcBodyScale,pose.torsoTwist,pose.shoulderSway);
+            setNpcRoot(pose,i,x,z);npcBodyScale.set(1,pose.cowering?.92:pose.walking?1:1+pose.idle*.018,1);
+            setPart(npcParts.body,i,rootMatrix,0,2.05-pose.crouch-pose.hit*.08-medicCrouch,0,-pose.hit*.09,npcBodyScale,pose.torsoTwist,pose.shoulderSway);
             const faceStyle=Math.abs(+look.face||0)%4,faceScale=instanceScale.set(.94+faceStyle*.025,1.03+(faceStyle%2)*.055,.9+(faceStyle===3?.07:0));
-            setPart(npcParts.head,i,rootMatrix,pose.hit*pose.hitSide*.08,3.3+(pose.walking?0:pose.idle*.025)-medicCrouch,0,pose.hit*.12*pose.hitSide,faceScale,pose.headCounter);
-            setPart(npcParts.hair,i,rootMatrix,0,3.34-medicCrouch,0);
+            setPart(npcParts.head,i,rootMatrix,pose.hit*pose.hitSide*.08,3.3-pose.crouch+(pose.walking?0:pose.idle*.025)-medicCrouch,0,pose.hit*.12*pose.hitSide,faceScale,pose.headCounter,pose.headTilt);
+            setPart(npcParts.hair,i,rootMatrix,0,3.34-pose.crouch-medicCrouch,0);
             // Player-proportioned hip overlap keeps the top of each rotating leg
             // inside the shirt throughout the stride instead of exposing it at
             // the waist on turquoise and other light-coloured outfits.
-            setPart(npcParts.leftLeg,i,rootMatrix,-.34,.72+pose.leftLift-medicCrouch*.16,0,pose.leftSwing+medicCrouch*.52);
-            setPart(npcParts.rightLeg,i,rootMatrix,.34,.72+pose.rightLift-medicCrouch*.16,0,pose.rightSwing-medicCrouch*.52);
+            setPart(npcParts.leftLeg,i,rootMatrix,-.34,.72+pose.leftLift-pose.crouch*.16-medicCrouch*.16,0,pose.leftSwing+pose.legBend+medicCrouch*.52);
+            setPart(npcParts.rightLeg,i,rootMatrix,.34,.72+pose.rightLift-pose.crouch*.16-medicCrouch*.16,0,pose.rightSwing-pose.legBend-medicCrouch*.52);
             setPart(npcParts.shoe,i*2,rootMatrix,-.34,.09+pose.leftLift,.18,pose.leftFootPitch);
             setPart(npcParts.shoe,i*2+1,rootMatrix,.34,.09+pose.rightLift,.18,pose.rightFootPitch);
-            const medicArmY=src.medicCarry?1.94:medicReach?1.9-medicCrouch*.55:2.05,medicArmZ=src.medicCarry||medicReach?.34:0,medicArmPitch=src.medicCarry?-.72:medicReach?-1.02:NaN;
-            setPart(npcParts.leftArm,i,rootMatrix,-.78,medicArmY,medicArmZ,Number.isFinite(medicArmPitch)?medicArmPitch:pose.leftArmSwing-pose.hit*.42*pose.hitSide);
-            setPart(npcParts.rightArm,i,rootMatrix,.78,medicArmY,medicArmZ,Number.isFinite(medicArmPitch)?medicArmPitch:pose.rightArmSwing+pose.hit*.36*pose.hitSide);
+            const medicArmY=src.medicCarry?1.94:medicReach?1.9-medicCrouch*.55:pose.armY,medicArmZ=src.medicCarry||medicReach?.34:pose.armZ,medicArmPitch=src.medicCarry?-.72:medicReach?-1.02:NaN,lifeArmPose=!Number.isFinite(medicArmPitch);
+            setPart(npcParts.leftArm,i,rootMatrix,lifeArmPose?pose.leftArmX:-.78,medicArmY,medicArmZ,lifeArmPose?pose.leftArmPitch-pose.hit*.42*pose.hitSide:medicArmPitch,unitScale,lifeArmPose?pose.leftArmYaw:0,lifeArmPose?pose.leftArmRoll:0);
+            setPart(npcParts.rightArm,i,rootMatrix,lifeArmPose?pose.rightArmX:.78,medicArmY,medicArmZ,lifeArmPose?pose.rightArmPitch+pose.hit*.36*pose.hitSide:medicArmPitch,unitScale,lifeArmPose?pose.rightArmYaw:0,lifeArmPose?pose.rightArmRoll:0);
             const severMask=+src.severMask||0;
             if(severMask&1)hidePart(npcParts.leftArm,i);
             if(severMask&2)hidePart(npcParts.rightArm,i);
@@ -2571,12 +2594,12 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
               setPart(npcParts.wound,i,rootMatrix,woundSide*.42,2.38,.39,pose.hit*.18*woundSide,instanceScale.setScalar(.82+bleedPower*.24));
               setPart(npcParts.bloodDrop,i,rootMatrix,woundSide*.44,2.22-drip*(1.5+bleedPower*.42),.4,0,instanceScale.setScalar(.72+bleedPower*.28));
             }else{hidePart(npcParts.wound,i);hidePart(npcParts.bloodDrop,i);}
-            for(const [eyeIndex,sx] of [[i*2,-.17],[i*2+1,.17]]){setPart(npcParts.eyeWhite,eyeIndex,rootMatrix,sx,3.37,.405,0,eyeScale);setPart(npcParts.pupil,eyeIndex,rootMatrix,sx,3.37,.455,0,pupilScale);}
-            armed?setPart(npcParts.hat,i,rootMatrix,0,3.77,0):hidePart(npcParts.hat,i);armed&&!(severMask&2)?setPart(npcParts.gun,i,rootMatrix,.72,2,.52,pose.hit*.18):hidePart(npcParts.gun,i);
+            for(const [eyeIndex,sx] of [[i*2,-.17],[i*2+1,.17]]){setPart(npcParts.eyeWhite,eyeIndex,rootMatrix,sx,3.37-pose.crouch,.405,0,eyeScale,pose.headCounter,pose.headTilt);setPart(npcParts.pupil,eyeIndex,rootMatrix,sx,3.37-pose.crouch,.455,0,pupilScale,pose.headCounter,pose.headTilt);}
+            armed?setPart(npcParts.hat,i,rootMatrix,0,3.77-pose.crouch,0):hidePart(npcParts.hat,i);const lifeGestureDisarms=pose.surrendering||pose.cowering||pose.helping||pose.panicking||pose.talking;armed&&!lifeGestureDisarms&&!(severMask&2)?setPart(npcParts.gun,i,rootMatrix,.72,2-pose.crouch*.35,.52,pose.hit*.18):hidePart(npcParts.gun,i);
             instanceColor.set(bodyColor);npcParts.body.setColorAt(i,instanceColor);npcParts.leftArm.setColorAt(i,instanceColor);npcParts.rightArm.setColorAt(i,instanceColor);instanceColor.set([0xf2c7a4,0xc98b65,0xe8b590][i%3]);npcParts.head.setColorAt(i,instanceColor);
-            const pct=Math.max(.03,pose.hpPct);npc.hpGroup.visible=true;npc.hpGroup.position.set(x,pose.crawling?.24:pose.bob+.45,z);npc.hpBar.scale.x=1.7*pct;npc.hpBar.material.color.set(pct>.55?0x58e67c:pct>.25?0xffc94d:0xff5252);
+            const pct=Math.max(.03,pose.hpPct);npc.hpGroup.visible=true;npc.hpGroup.position.set(x,pose.crawling?.24:pose.bob+.45-pose.crouch*.68,z);npc.hpBar.scale.x=1.7*pct;npc.hpBar.material.color.set(pct>.55?0x58e67c:pct>.25?0xffc94d:0xff5252);
           });
-          Object.values(npcParts).forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;});renderer.domElement.dataset.crawlingNpcs=String(crawlingNpcCount);renderer.domElement.dataset.limpingNpcs=String(limpingNpcCount);renderer.domElement.dataset.hitReactingNpcs=String(reactingNpcCount);renderer.domElement.dataset.bleedingNpcs=String(bleedingNpcCount);renderer.domElement.dataset.injuryLocomotion='player-derived-limp-critical-crawl-v212';renderer.domElement.dataset.npcFootPlant='player-stride-deep-hip-overlap-v212';renderer.domElement.dataset.npcGaitSource='player-character-v212';renderer.domElement.dataset.npcHipOverlapMinimum=(.72+.625*Math.cos(.72)-1.15).toFixed(3);
+          Object.values(npcParts).forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;});renderer.domElement.dataset.crawlingNpcs=String(crawlingNpcCount);renderer.domElement.dataset.limpingNpcs=String(limpingNpcCount);renderer.domElement.dataset.hitReactingNpcs=String(reactingNpcCount);renderer.domElement.dataset.bleedingNpcs=String(bleedingNpcCount);renderer.domElement.dataset.panickingNpcs=String(panickingNpcCount);renderer.domElement.dataset.coweringNpcs=String(coweringNpcCount);renderer.domElement.dataset.surrenderingNpcs=String(surrenderingNpcCount);renderer.domElement.dataset.helpingNpcs=String(helpingNpcCount);renderer.domElement.dataset.socialNpcs=String(socialNpcCount);renderer.domElement.dataset.alertedNpcs=String(alertedNpcCount);renderer.domElement.dataset.npcLifeAnimationStates=`panic:${panickingNpcCount},cower:${coweringNpcCount},surrender:${surrenderingNpcCount},help:${helpingNpcCount},social:${socialNpcCount},alert:${alertedNpcCount}`;renderer.domElement.dataset.npcLifeAnimationProfile='instanced-priority-poses-v234';renderer.domElement.dataset.injuryLocomotion='life-state-compatible-limp-critical-crawl-v234';renderer.domElement.dataset.npcFootPlant='player-stride-deep-hip-overlap-v212';renderer.domElement.dataset.npcGaitSource='player-character-plus-life-state-v234';renderer.domElement.dataset.npcHipOverlapMinimum=(.72+.625*Math.cos(.72)-1.15).toFixed(3);
           for(let i=0;i<NPC_CAP;i++){const src=dynamic.npcs[i],label=npcLabels[i];if(!src){label.sprite.visible=false;continue;}const x=npcVisualXs[i],z=npcVisualZs[i],role=String(src.role||'').toLowerCase(),family=String(src.family||src.faction||'').toLowerCase(),gang=src.visualRole==='gang'||!!src.gang||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'),police=src.visualRole==='police'||!!src.police||role.includes('police')||role.includes('cop'),guard=src.visualRole==='guard'||role.includes('guard'),medic=role.includes('medic'),gangSuit=family.includes('yellow')?0xf1e8cf:family.includes('purple')?0x7043a5:family.includes('moretti')?0xe6dfd1:family.includes('bellini')?0x3f4652:Math.max(1,+src.level||1)>=4?0x8f3044:0xb54859,bright=medic?0xe8f2f4:police?0x328fe2:gang?gangSuit:guard?0xc48a28:[0x3e9bd1,0xdb5c68,0x79a84f,0xd39b42,0x8a6dbe][i%5];instanceColor.set(bright);npcParts.body.setColorAt(i,instanceColor);npcParts.leftArm.setColorAt(i,instanceColor);npcParts.rightArm.setColorAt(i,instanceColor);npcParts.hat.setColorAt(i,instanceColor);updateNpcSpeechLabel(label,src,x,8.05,z);}for(const mesh of [npcParts.body,npcParts.leftArm,npcParts.rightArm,npcParts.hat])if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
           let visibleGangCount=0;for(let i=0;i<NPC_CAP;i++){const src=dynamic.npcs[i];if(!src){hidePart(npcParts.gangAura,i);hidePart(npcParts.gangBand,i);continue;}const role=String(src.role||'').toLowerCase(),gang=src.visualRole==='gang'||!!src.gang||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier');if(!gang||src.dead){hidePart(npcParts.gangAura,i);hidePart(npcParts.gangBand,i);continue;}visibleGangCount++;const faction=String(src.faction||src.family||'').toLowerCase(),auraColor=faction.includes('yellow')?0xffd83d:faction.includes('purple')?0xa668ff:faction.includes('moretti')?0xf5ead2:faction.includes('bellini')?0x596274:0xff4f68,x=npcVisualXs[i],z=npcVisualZs[i],phase=npcVisualPhases[i]||t*.008+i*.73,bob=src.walking?Math.abs(Math.sin(phase))*.13:Math.sin(t*.0018+i*1.7)*.018;rootMatrix.makeRotationY(npcFacingYaws[i]);rootMatrix.scale(npcScale);rootMatrix.setPosition(x,bob,z);setPart(npcParts.gangBand,i,rootMatrix,0,2.25,.405);npcParts.gangBand.setColorAt(i,instanceColor.setHex(auraColor));rootMatrix.makeRotationY(0);rootMatrix.setPosition(x,.11,z);setPart(npcParts.gangAura,i,rootMatrix,0,0,0,-Math.PI/2,gangAuraScale);npcParts.gangAura.setColorAt(i,instanceColor.setHex(auraColor));}npcParts.gangAura.instanceMatrix.needsUpdate=true;npcParts.gangAura.instanceColor.needsUpdate=true;npcParts.gangBand.instanceMatrix.needsUpdate=true;npcParts.gangBand.instanceColor.needsUpdate=true;renderer.domElement.dataset.visibleGangs=String(visibleGangCount);const selectedIndex=performance.now()<selectedNpcUntil?dynamic.npcs.findIndex(n=>!n.dead&&String(n.sourceId||'')===selectedNpcSourceId):-1;if(selectedIndex>=0){selectedNpcRing.visible=true;selectedNpcRing.position.set(npcVisualXs[selectedIndex],.15,npcVisualZs[selectedIndex]);const pulse=1+Math.sin(t*.009)*.09;selectedNpcRing.scale.setScalar(pulse);selectedNpcRing.rotation.y=t*.0017;selectedNpcOuter.material.opacity=.82+Math.sin(t*.011)*.16;renderer.domElement.dataset.selectedGangNpc=selectedNpcSourceId;}else{selectedNpcRing.visible=false;if(selectedNpcSourceId&&performance.now()>=selectedNpcUntil){selectedNpcSourceId='';renderer.domElement.dataset.selectedGangNpc='none';}}
           // Appearance is derived from the authoritative entity id instead of the
@@ -2595,14 +2618,14 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             const x=npcVisualXs[i],z=npcVisualZs[i],pose=npcAnimationPose(src,i,t);
             setNpcRoot(pose,i,x,z);
             hidePart(npcParts.hair,i);hidePart(npcParts.hairBun,i);hidePart(npcParts.hairMohawk,i);hidePart(npcParts.hat,i);hidePart(npcParts.hatBrim,i);hidePart(npcParts.glasses,i);hidePart(npcParts.neckAccent,i);hidePart(npcParts.bag,i);hidePart(npcParts.moustache,i);
-            if(!wearHat&&hairStyle!==0)setPart(npcParts.hair,i,rootMatrix,0,3.34,0);
-            if(!wearHat&&hairStyle===2)setPart(npcParts.hairBun,i,rootMatrix,0,3.58,-.34);
-            if(!wearHat&&hairStyle===3){hidePart(npcParts.hair,i);setPart(npcParts.hairMohawk,i,rootMatrix,0,3.72,-.02);}
-            if(wearHat){setPart(npcParts.hat,i,rootMatrix,0,police?3.69:3.77,0,0,police?instanceScale.set(1.08,.72,1.08):unitScale);if(police||armed||hairStyle===4||+look.hat>1)setPart(npcParts.hatBrim,i,rootMatrix,0,3.63,.04,0,police?instanceScale.set(1.18,.68,1.32):unitScale);}
-            if(glassesOn)setPart(npcParts.glasses,i,rootMatrix,0,3.38,.43);
-            if(neckOn)setPart(npcParts.neckAccent,i,rootMatrix,0,2.42,.42);
-            if(bagOn)setPart(npcParts.bag,i,rootMatrix,.62,1.78,-.28,.06);
-            if(moustacheOn)setPart(npcParts.moustache,i,rootMatrix,0,3.17,.435);
+            if(!wearHat&&hairStyle!==0)setPart(npcParts.hair,i,rootMatrix,0,3.34-pose.crouch,0,0,unitScale,pose.headCounter,pose.headTilt);
+            if(!wearHat&&hairStyle===2)setPart(npcParts.hairBun,i,rootMatrix,0,3.58-pose.crouch,-.34,0,unitScale,pose.headCounter,pose.headTilt);
+            if(!wearHat&&hairStyle===3){hidePart(npcParts.hair,i);setPart(npcParts.hairMohawk,i,rootMatrix,0,3.72-pose.crouch,-.02,0,unitScale,pose.headCounter,pose.headTilt);}
+            if(wearHat){setPart(npcParts.hat,i,rootMatrix,0,(police?3.69:3.77)-pose.crouch,0,0,police?instanceScale.set(1.08,.72,1.08):unitScale,pose.headCounter,pose.headTilt);if(police||armed||hairStyle===4||+look.hat>1)setPart(npcParts.hatBrim,i,rootMatrix,0,3.63-pose.crouch,.04,0,police?instanceScale.set(1.18,.68,1.32):unitScale,pose.headCounter,pose.headTilt);}
+            if(glassesOn)setPart(npcParts.glasses,i,rootMatrix,0,3.38-pose.crouch,.43,0,unitScale,pose.headCounter,pose.headTilt);
+            if(neckOn)setPart(npcParts.neckAccent,i,rootMatrix,0,2.42-pose.crouch,.42);
+            if(bagOn)setPart(npcParts.bag,i,rootMatrix,.62,1.78-pose.crouch,-.28,.06);
+            if(moustacheOn)setPart(npcParts.moustache,i,rootMatrix,0,3.17-pose.crouch,.435,0,unitScale,pose.headCounter,pose.headTilt);
             npcAppearanceSignatures.add(`${bodyColor}:${legColor}:${skinColor}:${hairColor}:${hairStyle}:${wearHat?1:0}:${glassesOn?1:0}:${neckOn?1:0}:${bagOn?1:0}:${moustacheOn?1:0}`);
           }
           renderer.domElement.dataset.npcAppearanceVariants=String(npcAppearanceSignatures.size);renderer.domElement.dataset.npcAppearanceSystem='fresh-respawn-faces-hair-police-uniform-v203';

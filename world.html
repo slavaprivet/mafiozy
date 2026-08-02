@@ -4843,7 +4843,7 @@ function _hitGasPump(hit) {
     gs._leakAt = now;
     gs._explodeAt = now + GAS_LEAK_FUSE_MS;
     showToast('⛽ Топливо течёт! БЕГИ!', '🔥', 1800);
-    triggerNpcPanic(gs.r, gs.c, 11);
+    triggerNpcPanic(gs.r, gs.c, 11, 'fire');
   }
   return true;
 }
@@ -4904,7 +4904,7 @@ function _explodeGasStation(gs) {
       myDrivingCarId = null; _exitRequested = false; _myCarFuelPct = null;
     }
   }
-  triggerNpcPanic(blast.r, blast.c, 14);
+  triggerNpcPanic(blast.r, blast.c, 14, 'fire');
 }
 
 function _extinguishGasStation(gs) {
@@ -7435,6 +7435,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage) {
   _npcRememberAggression(npc, 1);
   // Соседние NPC видят попадание → слух + испуг
   _npcSpreadRumor(npc, performance.now());
+  if(npc.hp>0&&_npcTrySurrenderAfterHit(npc,performance.now()))return;
   if(npc.hp<=0&&!npc._policeCriminal&&!npc._guard&&!npc._cashier&&!npc._invulnerable&&Math.random()<.72){
     const now=performance.now();npc.hp=1;npc._medicalDowned=true;npc._medicalDownedAt=now;npc._medicalBleedoutAt=now+30000;
     npc._knockedAt=now;npc._knockedUntil=npc._medicalBleedoutAt;npc.walkPhase=0;npc.snitching=false;npc.panicUntil=0;npc._forcedCrawl=true;npc.panicSrcR=player.r;npc.panicSrcC=player.c;
@@ -7783,7 +7784,7 @@ const RESIDENTS_INDOORS=[],RESIDENT_RESPAWN_BACKLOG=[];
 let _residentBuildingDoorsCache=null,_residentRespawnSeed=9000,_residentInvisibleSpawnCount=0;
 function _isRespawnableResident(npc) {
   return !!npc&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
-    !npc._policeCriminal&&!npc._clientOfBiz;
+    !npc._policeCriminal&&!npc._clientOfBiz&&!npc._botCorpse&&!npc._transientCorpseId;
 }
 function _residentCanVisitBuilding(npc,now=performance.now()) {
   return _isRespawnableResident(npc)&&!npc.dead&&!npc._beach&&!npc.snitching&&
@@ -7839,18 +7840,22 @@ function _residentBuildingDoors() {
 }
 function _maybePlanResidentBuildingVisit(npc) {
   const now=performance.now();
-  if(!_residentCanVisitBuilding(npc,now)||Math.random()>.14)return false;
-  const candidates=_residentBuildingDoors().filter(d=>{
+  const routine=npc._npcRoutine||_npcRoutineFor(npc,getGameHour());
+  const visitChance=['home','work','study','errands'].includes(routine) ? .26 : (routine==='rest' ? .18 : .09);
+  if(!_residentCanVisitBuilding(npc,now)||Math.random()>visitChance)return false;
+  let candidates=_residentBuildingDoors().filter(d=>{
     const dist=Math.hypot(d.r-npc.r,d.c-npc.c);return dist>=2&&dist<=11;
   }).sort((a,b)=>Math.hypot(a.r-npc.r,a.c-npc.c)-Math.hypot(b.r-npc.r,b.c-npc.c)).slice(0,8);
   if(!candidates.length)return false;
+  const authored=candidates.filter(d=>d.authored&&(routine==='work'||routine==='study'||routine==='errands'));
+  if(authored.length)candidates=authored;
   const door=candidates[Math.floor(Math.random()*Math.min(4,candidates.length))];
   _clearNpcRoute(npc);
   const ok=_planNpcRouteTo(npc,door.r,door.c,(r,c)=>npcWaypointOk(npc,r,c),.18,1200,'building_entry');
   if(!ok||Math.hypot((npc._routeGoalR??npc.r)-door.r,(npc._routeGoalC??npc.c)-door.c)>.35){
     _clearNpcRoute(npc);npc._buildingVisitCooldownUntil=now+5000;return false;
   }
-  npc._residentDoor=door;
+  npc._residentDoor=door;_npcRememberEvent(npc,'routine',now,door.r,door.c,.25);
   return true;
 }
 function _pickResidentRespawnDoor() {
@@ -7863,7 +7868,10 @@ function _residentEnterBuilding(npc,now,door=npc._residentDoor,respawn=false) {
   if(!door)return false;
   _clearNpcRoute(npc);npc.r=door.r;npc.c=door.c;npc.tr=door.r;npc.tc=door.c;
   npc.walking=false;npc.walkPhase=0;npc._residentIndoors=true;npc._residentDoor=door;
-  npc._residentRespawn=!!respawn;npc._residentInsideUntil=now+2000+Math.random()*2000;
+  npc._residentRespawn=!!respawn;
+  const routine=npc._npcRoutine||'wander',stay=routine==='home'?8000+Math.random()*7000:
+    (routine==='work'||routine==='study'?5000+Math.random()*5000:2000+Math.random()*2000);
+  npc._residentInsideUntil=now+stay;
   if(!RESIDENTS_INDOORS.includes(npc))RESIDENTS_INDOORS.push(npc);
   return true;
 }
@@ -8312,8 +8320,11 @@ const NPC_SOCIAL_DIALOGUES={
   ],
 };
 function _residentCanSocialize(n,now){
-  return _isRespawnableResident(n)&&!n.dead&&!n._evacuated&&!n._medicalDowned&&
+  const lifeState=n?._lifeState||'routine';
+  const lifeBusy=(n?._lifeStateUntil||0)>now&&lifeState!=='routine'&&lifeState!=='idle';
+  return _npcLifeEligible(n)&&!n.dead&&!n._evacuated&&!n._medicalDowned&&
     !(n._knockedUntil>now)&&!(n.panicUntil>now)&&!n.snitching&&!n._talking&&
+    !(n._alertUntil>now)&&!(n._npcSurrenderUntil>now)&&!(n._npcHelpingUntil>now)&&!lifeBusy&&
     !n._socialReplyAt&&!n._clientOfBiz&&!n._hostile&&!n._fighting&&!n._fightingMelee&&
     now>=(n._socialCooldownUntil||0);
 }
@@ -8329,8 +8340,10 @@ function _nearbyServiceKind(a,b){
 function _npcConversationFor(a,b,now){
   let speaker=a,listener=b;
   if(b._arcKey==='bandit'&&a._arcKey!=='bandit'){speaker=b;listener=a;}
+  const recalledDanger=[...(speaker._npcMemory||[]),...(listener._npcMemory||[])]
+    .some(m=>now-(+m.at||0)<NPC_MEMORY_TTL_MS&&['bullet','fire','vehicle','corpse','fight'].includes(m.kind));
   const danger=(+speaker._fear||0)>.42||(+listener._fear||0)>.42||
-    (+speaker._relation||0)>=1||(+listener._relation||0)>=1||(+myWanted||0)>=2;
+    (+speaker._relation||0)>=1||(+listener._relation||0)>=1||(+myWanted||0)>=2||recalledDanger;
   const service=_nearbyServiceKind(speaker,listener),hour=getGameHour();
   let context=danger?'danger':(service||((hour>=22||hour<6)?'night':''));
   if(!context){
@@ -8365,7 +8378,7 @@ let _nextSocialAt = 0;
 function _npcSocialTick(now) {
   for (const n of NPCS) {
     if(n._socialReplyAt&&now>=n._socialReplyAt){
-      if(!n.dead&&!n.snitching&&!(n.panicUntil>now)){
+      if(!n.dead&&!n.snitching&&!(n.panicUntil>now)&&_npcSpeechSlots(now)>0){
         n.cryText=n._socialReplyText;n.cryUntil=now+1250+Math.random()*350;
       }
       n._socialReplyAt=0;n._socialReplyText='';
@@ -8385,6 +8398,7 @@ function _npcSocialTick(now) {
       const dpA = Math.hypot(a.r - player.r, a.c - player.c);
       if (dpA > 18) continue;
       const talk=_npcConversationFor(a,b,now),dur=2900+Math.random()*1100;
+      const socialMembers=_npcAttachSocialGroup(talk.speaker,talk.listener,now);
       talk.speaker._talking=now+dur;talk.listener._talking=now+dur;
       talk.speaker.idleUntil=now+dur;talk.listener.idleUntil=now+dur;
       talk.speaker._socialPartnerId=talk.listener.id;talk.listener._socialPartnerId=talk.speaker.id;
@@ -8392,9 +8406,18 @@ function _npcSocialTick(now) {
       talk.listener._socialCooldownUntil=now+18000+Math.random()*17000;
       talk.speaker.ang=Math.atan2(talk.listener.r-talk.speaker.r,talk.listener.c-talk.speaker.c);
       talk.listener.ang=talk.speaker.ang+Math.PI;
-      talk.speaker.cryText=talk.first;talk.speaker.cryUntil=now+1250+Math.random()*300;
+      if(_npcSpeechSlots(now)>0){talk.speaker.cryText=talk.first;talk.speaker.cryUntil=now+1250+Math.random()*300;}
       talk.listener._socialReplyText=talk.reply;talk.listener._socialReplyAt=now+1450;
       talk.speaker._socialContext=talk.context;talk.listener._socialContext=talk.context;
+      _npcRememberEvent(talk.speaker,'social',now,talk.listener.r,talk.listener.c,.25);
+      _npcRememberEvent(talk.listener,'social',now,talk.speaker.r,talk.speaker.c,.25);
+      for(const member of socialMembers){
+        if(member===talk.speaker||member===talk.listener)continue;
+        member._talking=now+dur;member.idleUntil=now+dur;
+        member._socialContext=talk.context;member._socialCooldownUntil=now+14000+Math.random()*9000;
+        member.ang=Math.atan2((talk.speaker.r+talk.listener.r)/2-member.r,(talk.speaker.c+talk.listener.c)/2-member.c);
+        _npcRememberEvent(member,'social',now,talk.speaker.r,talk.speaker.c,.18);
+      }
       _applyNpcConversationEffect(talk.speaker,talk.listener,talk.effect,now);
       return;
     }
@@ -8449,8 +8472,10 @@ function maintainNpcPopulation(now) {
     const incidentAt=n._medicalDowned?n._medicalDownedAt:n.deadAt;
     const delivered=!!n._ambulanceDeliveredAt&&(!incidentAt||n._ambulanceDeliveredAt>=incidentAt);
     const timedOut=n.dead&&n.deadAt&&!n._ambulanceInTransit&&!n._evacuated&&now-n.deadAt>CORPSE_AUTO_REMOVE_MS;
-    if (delivered || (n.dead && timedOut)) {
+    const transientExpired=n.dead&&n.deadAt&&(n._botCorpse||n._transientCorpseId)&&now-n.deadAt>60000;
+    if (delivered || (n.dead && timedOut) || transientExpired) {
       if(timedOut){n._corpseExpired=true;_corpseTimeoutCount++;document.documentElement.dataset.corpseTimeoutRemovals=String(_corpseTimeoutCount);document.documentElement.dataset.lastCorpseRemoval='timeout-180s';if(typeof _cancelAmbulanceCallForPatient==='function')_cancelAmbulanceCallForPatient(n);}
+      else if(transientExpired)document.documentElement.dataset.lastCorpseRemoval='transient-timeout-60s';
       else document.documentElement.dataset.lastCorpseRemoval='hospital-delivery';
       const respawn=_isRespawnableResident(n);
       NPCS.splice(i, 1);
@@ -11094,6 +11119,7 @@ function spawnEjectedDriver(carR, carC) {
 function markNpcSnitch(npc, customCry) {
   if (!npc || npc.dead) return;
   const now = performance.now();
+  _npcCancelHelping(npc);_npcCancelSocial(npc);
   npc.snitching   = true;
   npc.snitchUntil = now + 60000;
   const fear=Math.max(0,Math.min(1,+npc._fear||0));
@@ -11101,8 +11127,7 @@ function markNpcSnitch(npc, customCry) {
   npc._witnessReliability=npc._witnessKind==='brave'?3:(npc._witnessKind==='panicked'?1:2);
   npc._witnessCallUntil=now+(npc._witnessKind==='brave'?1800:3200+Math.random()*2600);
   npc._witnessStage='calling';
-  npc.cryUntil    = now + 2000;
-  npc.cryText     = customCry || 'КОПЫ!! ПОМОГИТЕ!!';
+  if(_npcSpeechSlots(now)>0){npc.cryUntil=now+2000;npc.cryText=customCry||'КОПЫ!! ПОМОГИТЕ!!';}
   npc.panicUntil  = 0;   // snitch перекрывает panic — он бежит к копам
   npc.idleUntil   = 0;
 }
@@ -11150,7 +11175,7 @@ function triggerWitnessChain(srcR, srcC, radius, opts) {
   for (const n of NPCS) if (n.snitching && now < n.snitchUntil) currentSnitchers++;
   let newSnitchSlots = Math.max(0, MAX_SNITCHERS_TOTAL - currentSnitchers);
   for (const n of NPCS) {
-    if (n.dead) continue;
+    if (!_npcCanWitnessEvent(n,now)) continue;
     const dr = n.r - srcR, dc = n.c - srcC;
     if (dr * dr + dc * dc > r2) continue;
     // Восстановление коллизии нужно только реальным свидетелям рядом.
@@ -11162,12 +11187,10 @@ function triggerWitnessChain(srcR, srcC, radius, opts) {
       newSnitchSlots--;
     } else {
       // Все остальные — только паникуют (бегут с криком), но не стучат.
-      n.panicUntil = now + 4000 + Math.random() * 2500;
-      n.cryUntil   = now + 1800 + Math.random() * 1000;
-      n.cryText    = panicCries[Math.floor(Math.random() * panicCries.length)];
-      n.panicSrcR  = srcR;
-      n.panicSrcC  = srcC;
-      n.idleUntil  = 0;
+      if(_npcBeginPanic(n,now,now+4000+Math.random()*2500,srcR,srcC,'fight')&&_npcSpeechSlots(now)>0){
+        n.cryUntil=now+1800+Math.random()*1000;
+        n.cryText=panicCries[Math.floor(Math.random()*panicCries.length)];
+      }
     }
   }
 }
@@ -11245,7 +11268,249 @@ function _npcEffectiveSpeed(n) {
   const hpRatio = Math.max(0, Math.min(1, +(n.hp ?? maxHp) / maxHp));
   const crawling=!!n._forcedCrawl||((+n._severMask||0)&12)!==0;
   const injuryK = crawling ? .1 : (hpRatio > 0 && hpRatio <= .35 ? .52 : 1);
-  return n.speed * fatK * (crawling ? 1 : fearK) * injuryK;
+  const routineK = Number.isFinite(+n._routineSpeedK) ? +n._routineSpeedK : 1;
+  return n.speed * fatK * (crawling ? 1 : fearK) * injuryK * routineK;
+}
+
+// NPC_LIFE_SYSTEM_START
+// Локальный слой поведения прохожих. Он управляет только маршрутом,
+// позой, репликами и краткосрочными воспоминаниями этого клиента.
+// Награды, урон и серверное состояние игрока здесь не меняются.
+const NPC_LIFE_STATES=Object.freeze({
+  IDLE:'idle',ROUTINE:'routine',SOCIAL:'social',ALERT:'alert',PANIC:'panic',
+  COWER:'cower',HELP:'help',HELPING:'helping',SURRENDER:'surrender',INJURED:'injured',
+  includes(state){return Object.values(this).some(value=>typeof value==='string'&&value===state);},
+});
+const NPC_LIFE_TRANSITIONS=Object.freeze({
+  idle:['routine','social','alert','panic','help','helping','surrender'],
+  routine:['idle','social','alert','panic','help','helping','surrender','injured'],
+  social:['routine','alert','panic','help','helping','injured'],
+  alert:['routine','panic','help','helping','surrender','injured'],
+  panic:['routine','cower','help','helping','injured'],
+  cower:['panic','routine','injured'],
+  help:['routine','helping','alert','panic','injured'],
+  helping:['routine','alert','panic','injured'],
+  surrender:['routine','alert','injured'],injured:['routine'],
+});
+const NPC_MEMORY_MAX=6;
+const NPC_MEMORY_TTL_MS=60000;
+const NPC_GROUP_MAX=4;
+const NPC_SPEECH_MAX=5;
+const NPC_STATE_COOLDOWN_MS=650;
+const NPC_LIFE_NPC_CAP=72;
+const NPC_LIFE_EVENT_PRIORITY=Object.freeze({
+  bullet:60,fire:50,vehicle:40,corpse:30,fight:20,social:10,routine:0,
+});
+const NPC_LIFE_POOL_PRIORITY=Object.freeze({
+  'mission':0,'police':1,'guard':2,'gang':3,'civilian':4,
+});
+const _NPC_LIFE_STATE_PRIORITY=Object.freeze({
+  injured:0,surrender:1,panic:2,cower:2,helping:3,alert:4,social:5,routine:6,
+});
+let _npcLifeCursor=0,_nextNpcLifeTickAt=0,_nextNpcLifeDiagAt=0,_nextNpcHelperAt=0,_npcGroupSerial=0;
+
+function _npcStableUnit(n,salt=''){
+  const text=`${n?.id||n?._residentSerial||'npc'}:${salt}`;let h=2166136261;
+  for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}
+  return (h>>>0)/4294967295;
+}
+function _npcRememberEvent(n,kind,now,r=n.r,c=n.c,weight=1){
+  if(!n||!kind)return;
+  const memory=Array.isArray(n._npcMemory)?n._npcMemory:(n._npcMemory=[]);
+  for(let i=memory.length-1;i>=0;i--)if(now-(+memory[i].at||0)>NPC_MEMORY_TTL_MS)memory.splice(i,1);
+  const recent=memory[memory.length-1];
+  if(recent&&recent.kind===kind&&now-recent.at<1800){recent.at=now;recent.r=r;recent.c=c;recent.weight=Math.max(recent.weight||0,weight);return;}
+  memory.push({kind,at:now,r:+r||0,c:+c||0,weight:Math.max(0,Math.min(1,+weight||0))});
+  if(memory.length>NPC_MEMORY_MAX)memory.splice(0,memory.length-NPC_MEMORY_MAX);
+}
+function _npcSetLifeState(n,state,now,duration=0,gesture=''){
+  if(!n||!state)return false;
+  if(!NPC_LIFE_STATES.includes(state))return false;
+  const current=n._lifeState||NPC_LIFE_STATES.ROUTINE;
+  const currentActive=(n._lifeStateUntil||0)>now;
+  const transitionAllowed=current===state||!currentActive||
+    !!NPC_LIFE_TRANSITIONS[current]?.includes(state);
+  if(!transitionAllowed)return false;
+  const currentPriority=_NPC_LIFE_STATE_PRIORITY[current]??99;
+  const nextPriority=_NPC_LIFE_STATE_PRIORITY[state]??99;
+  if(currentActive&&nextPriority>currentPriority&&now<(n._lifeStateLockUntil||0))return false;
+  if(current===NPC_LIFE_STATES.SOCIAL&&state!==NPC_LIFE_STATES.SOCIAL)_npcCancelSocial(n);
+  if(current!==state){n._lifeState=state;n._lifeStateSince=now;}
+  n._lifeStateUntil=duration>0?Math.max(n._lifeStateUntil||0,now+duration):0;
+  n._lifeStateLockUntil=now+NPC_STATE_COOLDOWN_MS;
+  n._lifeGesture=gesture||'';
+  return true;
+}
+function _npcRoutineFor(n,h){
+  const arc=n?._arcKey||'worker';
+  if(h>=23||h<6)return arc==='drunk'||arc==='bandit'?'nightlife':'home';
+  if(arc==='worker'||arc==='businessman')return h<9||h>=18?'commute':'work';
+  if(arc==='student')return h<16?'study':'leisure';
+  if(arc==='housewife')return h<13?'errands':'home';
+  if(arc==='pensioner')return h<12?'walk':'home';
+  if(arc==='homeless')return h<8?'rest':'wander';
+  return 'wander';
+}
+function _npcPanicStyle(n,eventKind='bullet'){
+  const arc=n?._arcKey||'worker',u=_npcStableUnit(n,`${eventKind}:${Math.floor(performance.now()/9000)}`);
+  if(arc==='drunk')return u<.58?'freeze':u<.76?'cower':'flee';
+  if(arc==='pensioner')return u<.48?'cower':u<.64?'freeze':'flee';
+  if(arc==='homeless')return u<.38?'cower':'flee';
+  if(arc==='businessman'||arc==='housewife')return u<.3?'call':'flee';
+  if(arc==='student')return u<.16?'call':'flee';
+  return u<.12?'freeze':'flee';
+}
+function _npcLifeEligible(n){
+  return !!n&&String(n.id||'').startsWith('resident_')&&!n._said&&!n._invulnerable&&
+    !n._guard&&!n._cashier&&!n._policeCriminal&&!n._botCorpse&&!n._transientCorpseId;
+}
+function _npcCancelHelping(n){
+  if(!n)return;
+  if(n._routeKind==='help')_clearNpcRoute(n);
+  n._npcHelpingTarget=null;n._npcHelpingTargetId='';n._npcHelpingUntil=0;n._npcHelpSpoke=false;
+}
+function _npcCancelSocial(n){
+  if(!n)return;const partnerId=n._socialPartnerId;
+  n._talking=0;n._socialPartnerId=null;n._socialReplyAt=0;n._socialReplyText='';
+  if(!partnerId)return;
+  const partner=NPCS.find(other=>other&&other.id===partnerId&&other._socialPartnerId===n.id);
+  if(partner){partner._talking=0;partner._socialPartnerId=null;partner._socialReplyAt=0;partner._socialReplyText='';}
+}
+function _npcCanWitnessEvent(n,now){
+  return _npcLifeEligible(n)&&!n.dead&&!n._medicalDowned&&!(n._knockedUntil>now)&&
+    !n._hostile&&!n._fighting&&!n._fightingMelee&&n._arc?.panicMult!==0;
+}
+function _npcBeginPanic(n,now,until,srcR,srcC,eventKind='bullet'){
+  if(!_npcCanWitnessEvent(n,now)||n.snitching)return false;
+  if(n._arc?.panicMult===0)return false;
+  _npcCancelHelping(n);
+  const eventPriority=NPC_LIFE_EVENT_PRIORITY[eventKind]??0;
+  if(n._lifeEventUntil>now&&eventPriority<(n._lifeEventPriority||0))return false;
+  n._lifeEventPriority=eventPriority;n._lifeEventUntil=until;
+  const style=_npcPanicStyle(n,eventKind);
+  n.panicUntil=Math.max(n.panicUntil||0,until);n.panicSrcR=srcR;n.panicSrcC=srcC;
+  n._panicStyle=style;n._panicStartedAt=now;n.idleUntil=0;
+  n._panicCallSpoke=false;
+  n._panicFreezeUntil=style==='freeze'?now+650+_npcStableUnit(n,'freeze')*650:0;
+  n._panicCowerUntil=style==='cower'?Math.min(until,now+1800+_npcStableUnit(n,'cower')*1600):0;
+  n._panicCallUntil=style==='call'?Math.min(until,now+1200+_npcStableUnit(n,'call')*800):0;
+  _npcRememberEvent(n,eventKind,now,srcR,srcC,1);
+  _npcSetLifeState(n,style==='cower'?NPC_LIFE_STATES.COWER:NPC_LIFE_STATES.PANIC,now,until-now,style);
+  return true;
+}
+function _npcSpeechSlots(now){
+  let active=0;for(const n of NPCS)if(!n.dead&&n.cryUntil>now&&++active>=NPC_SPEECH_MAX)break;
+  return Math.max(0,NPC_SPEECH_MAX-active);
+}
+function _npcAttachSocialGroup(a,b,now){
+  const nearby=[];const midR=(a.r+b.r)/2,midC=(a.c+b.c)/2;
+  for(const n of NPCS){
+    if(nearby.length>=NPC_GROUP_MAX)break;
+    if(n!==a&&n!==b&&(!_residentCanSocialize(n,now)||Math.hypot(n.r-midR,n.c-midC)>2.7))continue;
+    nearby.push(n);
+  }
+  const members=[a,b,...nearby.filter(n=>n!==a&&n!==b)].slice(0,NPC_GROUP_MAX);
+  const groupId=`npc_group_${++_npcGroupSerial}`;
+  for(let i=0;i<members.length;i++){
+    const n=members[i];n._npcGroupId=groupId;n._npcGroupRole=i===0?'leader':'member';n._npcGroupUntil=now+6500;
+  }
+  return members;
+}
+function _npcAssignHelper(now){
+  const patients=NPCS.filter(n=>n&&!n.dead&&n._medicalDowned&&!n._evacuated);
+  if(!patients.length)return;
+  for(const patient of patients){
+    if(NPCS.some(n=>n._npcHelpingTarget===patient&&n._npcHelpingUntil>now))continue;
+    const candidates=[];
+    for(const n of NPCS){
+      if(!_npcLifeEligible(n)||n===patient||n.dead||n._medicalDowned||n.snitching||n.panicUntil>now||n._talking>now||n._fighting||n._fightingMelee)continue;
+      if((n._alertUntil||0)>now||(n._npcHelpRetryAfter||0)>now)continue;
+      if((n._fear||0)>.48||n._arcKey==='bandit'||n._arcKey==='drunk')continue;
+      const d=Math.hypot(n.r-patient.r,n.c-patient.c);if(d<7)candidates.push({n,d});
+    }
+    candidates.sort((a,b)=>a.d-b.d||String(a.n.id||'').localeCompare(String(b.n.id||'')));
+    for(const {n:helper,d} of candidates){
+      const routeReady=d<=1.35||_planNpcRouteTo(helper,patient.r,patient.c,npcPassable,1.1,420,'help');
+      if(!routeReady){helper._npcHelpRetryAfter=now+3500;continue;}
+      if(d<=1.35)_clearNpcRoute(helper);
+      helper._npcHelpingTarget=patient;helper._npcHelpingTargetId=patient.id||'';helper._npcHelpingUntil=now+7000;
+      helper._npcHelpSpoke=false;_npcRememberEvent(helper,'helping',now,patient.r,patient.c,.7);
+      _npcSetLifeState(helper,NPC_LIFE_STATES.HELPING,now,7000,'help');return;
+    }
+  }
+}
+function _npcSenseNearbyDanger(n,now,corpses){
+  if(!n||n.dead||n._medicalDowned||n.snitching||n._hostile||n._fighting||n._fightingMelee)return;
+  if(!(n.panicUntil>now)&&typeof CARS!=='undefined'){
+    const recentVehicle=n._npcMemory?.some(m=>m.kind==='vehicle'&&now-m.at<4200);
+    if(!recentVehicle)for(let i=0;i<Math.min(24,CARS.length);i++){
+      const car=CARS[i];if(!car||car.parked||car._wrecked||car._towed)continue;
+      const speed=Math.hypot(+car.vr||+car.vy||0,+car.vc||+car.vx||0);
+      if(speed<1.75||Math.hypot(n.r-(+car.r||0),n.c-(+car.c||0))>2.35)continue;
+      _npcBeginPanic(n,now,now+2600,+car.r||n.r,+car.c||n.c,'vehicle');break;
+    }
+  }
+  if(n.panicUntil>now||n._alertUntil>now)return;
+  const recentCorpse=n._npcMemory?.some(m=>m.kind==='corpse'&&now-m.at<10000);
+  if(recentCorpse)return;
+  for(const corpse of corpses){
+    const d=Math.hypot(n.r-corpse.r,n.c-corpse.c);if(d>4.2)continue;
+    n.ang=Math.atan2(corpse.r-n.r,corpse.c-n.c);n.idleUntil=Math.max(n.idleUntil||0,now+900);
+    n._alertUntil=now+2200;_npcRememberEvent(n,'corpse',now,corpse.r,corpse.c,.65);
+    const cower=d<2.5&&_npcStableUnit(n,'corpse')<.32;
+    _npcSetLifeState(n,cower?NPC_LIFE_STATES.COWER:NPC_LIFE_STATES.ALERT,now,cower?1300:2200,cower?'cower':'point');
+    if(_npcSpeechSlots(now)>0&&!(n.cryUntil>now)){n.cryText=cower?'Не подходите!':'Кто-нибудь, вызовите помощь!';n.cryUntil=now+1500;}
+    break;
+  }
+}
+function _npcLifeTick(now){
+  if(now<_nextNpcLifeTickAt)return;
+  _nextNpcLifeTickAt=now+250;
+  if(now>=_nextNpcHelperAt){_nextNpcHelperAt=now+1000;_npcAssignHelper(now);}
+  const count=NPCS.length,budget=Math.min(18,count),hour=getGameHour();
+  const nearbyCorpses=NPCS.filter(n=>n?.dead&&!n._evacuated&&Math.hypot(n.r-player.r,n.c-player.c)<24).slice(0,12);
+  for(let step=0;step<budget;step++){
+    const n=NPCS[(_npcLifeCursor+step)%Math.max(1,count)];if(!n)continue;
+    const memory=Array.isArray(n._npcMemory)?n._npcMemory:(n._npcMemory=[]);
+    for(let i=memory.length-1;i>=0;i--)if(now-(+memory[i].at||0)>NPC_MEMORY_TTL_MS)memory.splice(i,1);
+    if(n._npcGroupUntil&&now>=n._npcGroupUntil){n._npcGroupId='';n._npcGroupRole='';n._npcGroupUntil=0;}
+    if(!_npcLifeEligible(n)||n.dead)continue;
+    _npcSenseNearbyDanger(n,now,nearbyCorpses);
+    const routine=_npcRoutineFor(n,hour);
+    if(n._npcRoutine!==routine){n._npcRoutine=routine;_npcRememberEvent(n,'routine',now,n.r,n.c,.15);}
+    n._routineSpeedK=routine==='commute'?1.08:((routine==='home'||routine==='rest') ? .9 : 1);
+    if(n._medicalDowned||n._forcedCrawl){_npcSetLifeState(n,NPC_LIFE_STATES.INJURED,now,900,'injured');continue;}
+    if(n._npcSurrenderUntil>now){_npcSetLifeState(n,NPC_LIFE_STATES.SURRENDER,now,n._npcSurrenderUntil-now,'surrender');continue;}
+    if(n.panicUntil>now){
+      const cower=n._panicCowerUntil>now;
+      _npcSetLifeState(n,cower?NPC_LIFE_STATES.COWER:NPC_LIFE_STATES.PANIC,now,n.panicUntil-now,cower?'cower':(n._panicStyle||'flee'));continue;
+    }
+    if(n._npcHelpingTarget&&n._npcHelpingUntil>now){_npcSetLifeState(n,NPC_LIFE_STATES.HELPING,now,n._npcHelpingUntil-now,'help');continue;}
+    if(n._talking>now){_npcSetLifeState(n,NPC_LIFE_STATES.SOCIAL,now,n._talking-now,'talk');continue;}
+    if(n._alertUntil>now||n._hostile||n._fighting||n._fightingMelee){_npcSetLifeState(n,NPC_LIFE_STATES.ALERT,now,Math.max(800,(n._alertUntil||now)-now),'alert');continue;}
+    _npcSetLifeState(n,NPC_LIFE_STATES.ROUTINE,now,0,routine);
+  }
+  _npcLifeCursor=count?(_npcLifeCursor+budget)%count:0;
+  if(now>=_nextNpcLifeDiagAt){
+    _nextNpcLifeDiagAt=now+1000;const states={},groups=new Set();let memories=0;
+    for(const n of NPCS){if(!_npcLifeEligible(n))continue;const s=n._lifeState||NPC_LIFE_STATES.ROUTINE;states[s]=(states[s]||0)+1;memories+=n._npcMemory?.length||0;if(n._npcGroupId)groups.add(n._npcGroupId);}
+    document.documentElement.dataset.npcLifeSystem='active:v1';
+    document.documentElement.dataset.npcLifeStates=Object.entries(states).map(([k,v])=>`${k}:${v}`).join(',');
+    document.documentElement.dataset.npcLifeMemory=`entries:${memories}:max:${NPC_MEMORY_MAX}:ttl:${NPC_MEMORY_TTL_MS}`;
+    document.documentElement.dataset.npcLifeGroups=`groups:${groups.size}:max:${NPC_GROUP_MAX}`;
+  }
+}
+// NPC_LIFE_SYSTEM_END
+
+function _npcTrySurrenderAfterHit(n,now){
+  if(!n||n.dead||n._arcKey!=='bandit'||n._medicalDowned||n._invulnerable)return false;
+  const max=Math.max(1,+(n.max_hp||n.maxHp||60)),ratio=Math.max(0,+(n.hp||0))/max;
+  if(ratio>.28||_npcStableUnit(n,`surrender:${Math.floor(now/5000)}`)>.7)return false;
+  n._npcSurrenderUntil=now+5000;n._fighting=false;n._fightingMelee=false;n._hostile=false;
+  n.walking=false;n.walkPhase=0;n.idleUntil=n._npcSurrenderUntil;
+  n.cryText='Сдаюсь! Не стреляй!';n.cryUntil=now+1600;
+  _npcRememberEvent(n,'fight',now,player.r,player.c,1);
+  _npcSetLifeState(n,NPC_LIFE_STATES.SURRENDER,now,5000,'surrender');return true;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -11299,9 +11564,7 @@ function _npcRelationTick(now) {
     const d = Math.hypot(n.r - pr, n.c - pc);
     // Hostile NPC (запомнил агрессию) — паникует при виде игрока ближе 8 тайлов
     if (n._relation >= 2 && d < 8 && !(n.panicUntil > now)) {
-      n.panicUntil = now + 4000 + Math.random() * 2000;
-      n.panicSrcR  = pr; n.panicSrcC = pc;
-      n.idleUntil  = 0;
+      if(!_npcBeginPanic(n,now,now+4000+Math.random()*2000,pr,pc,'fight'))continue;
       if (!(n.cryUntil > now)) {
         n.cryText  = (Math.random() < 0.5) ? 'Это ОН!' : 'Спасайтесь!';
         n.cryUntil = now + 1800;
@@ -11344,11 +11607,15 @@ function triggerNpcCrashWitness(crashR, crashC) {
     'Всё цело?','Осторожней надо!','Лихач!','Страшно смотреть'];
   let count = 0;
   for (const n of NPCS) {
-    if (n.dead || count >= 4) break;
+    if (count >= 4) break;
+    if(!_npcCanWitnessEvent(n,now))continue;
     const d = Math.hypot(n.r - crashR, n.c - crashC);
     if (d > 9 || n.panicUntil > now) continue;
     n.ang      = Math.atan2(crashR - n.r, crashC - n.c);
     n.idleUntil= now + 1800 + Math.random() * 1200;
+    n._alertUntil=Math.max(n._alertUntil||0,now+2600);
+    _npcRememberEvent(n,'vehicle',now,crashR,crashC,.55);
+    _npcSetLifeState(n,NPC_LIFE_STATES.ALERT,now,2600,'point');
     if (!(n.cryUntil > now)) {
       n.cryText  = WITNESS_PHRASES[Math.floor(Math.random() * WITNESS_PHRASES.length)];
       n.cryUntil = now + 1600;
@@ -11359,12 +11626,12 @@ function triggerNpcCrashWitness(crashR, crashC) {
 
 // отбежали на >12 тайлов или истёк panicUntil — возвращаются к обычной
 // логике. cryUntil = когда показывать чат-баббл (выводится в drawNpc).
-function triggerNpcPanic(srcR, srcC, radius) {
+function triggerNpcPanic(srcR, srcC, radius, eventKind='bullet') {
   const now = performance.now();
   const r2=radius*radius;
-  let rumorBudget=2,affected=0;
+  let rumorBudget=2,affected=0,speechBudget=_npcSpeechSlots(now);
   for (const n of NPCS) {
-    if (!n || n.dead) continue;
+    if (!_npcLifeEligible(n)||n.dead) continue;
     const dr = n.r - srcR, dc = n.c - srcC;
     if (dr*dr+dc*dc > r2) continue;
     affected++;
@@ -11372,26 +11639,22 @@ function triggerNpcPanic(srcR, srcC, radius) {
     const arcKey = n._arcKey || 'worker';
     const pm = n._arc ? n._arc.panicMult : 2.5;
     if (pm === 0) {
-      if (!(n.cryUntil > now)) {
+      n._alertUntil=Math.max(n._alertUntil||0,now+2600);
+      _npcRememberEvent(n,eventKind,now,srcR,srcC,.9);
+      _npcSetLifeState(n,NPC_LIFE_STATES.ALERT,now,2600,'threaten');
+      if (speechBudget>0&&!(n.cryUntil > now)) {
         const pool = _PANIC_PHRASES_BY_ARC[arcKey] || _PANIC_PHRASES_BY_ARC.worker;
         n.cryText  = pool[Math.floor(Math.random() * pool.length)];
         n.cryUntil = now + 1600;
+        speechBudget--;
       }
       continue;
     }
-    // Пьяный — реагирует с задержкой (0.3–0.8 с «заморозки»)
-    const freezeMs = (arcKey === 'drunk') ? 400 + Math.random() * 400
-                   : (arcKey === 'pensioner') ? 200 + Math.random() * 300
-                   : 0;
     const panicDur = (3500 + Math.random() * 2500) * (n._arc ? n._arc.idleMult * 0.3 + 0.7 : 1);
-    n.panicUntil = now + freezeMs + panicDur;
-    n.panicSrcR  = srcR;
-    n.panicSrcC  = srcC;
-    n.idleUntil  = 0;
+    if(!_npcBeginPanic(n,now,now+panicDur,srcR,srcC,eventKind))continue;
     // Архетипные фразы в панике
     const pool = _PANIC_PHRASES_BY_ARC[arcKey] || _PANIC_PHRASES_BY_ARC.worker;
-    n.cryText  = pool[Math.floor(Math.random() * pool.length)];
-    n.cryUntil = now + 1800 + Math.random() * 1000;
+    if(speechBudget>0){n.cryText=pool[Math.floor(Math.random()*pool.length)];n.cryUntil=now+1800+Math.random()*1000;speechBudget--;}
     // Запоминает что рядом была угроза → чуть более wary к игроку
     _npcRememberAggression(n, 0.3);
     // Распространяет слух соседям
@@ -11414,6 +11677,7 @@ function updateNpcs(dt) {
   _npcCheckPlayerProximity(now);
   _tickNpcEmotions(now);
   _npcRelationTick(now);
+  _npcLifeTick(now);
   _maybeAuthorityChatter(now);
   // Если рядом с NPC прохожим стоит бот городской банды с act='harass'
   // — NPC паникует и убегает. Триггерим один раз в секунду на NPC.
@@ -11428,12 +11692,10 @@ function updateNpcs(dt) {
         if (n.panicUntil && now < n.panicUntil) continue;
         const dr = n.r - bot.y, dc = n.c - bot.x;
         if (Math.hypot(dr, dc) < 2.5) {
-          n.panicUntil = now + 3500 + Math.random() * 1500;
-          n.cryUntil   = now + 1800;
-          n.cryText    = (Math.random() < 0.5) ? 'ОТСТАНЬТЕ!' : 'ПОМОГИТЕ!';
-          n.panicSrcR  = bot.y;
-          n.panicSrcC  = bot.x;
-          n.idleUntil  = 0;
+          if(_npcBeginPanic(n,now,now+3500+Math.random()*1500,bot.y,bot.x,'fight')){
+            n.cryUntil=now+1800;
+            n.cryText=(Math.random()<0.5)?'ОТСТАНЬТЕ!':'ПОМОГИТЕ!';
+          }
         }
       }
     }
@@ -11465,6 +11727,43 @@ function updateNpcs(dt) {
     if (n._knockedUntil && n._knockedUntil <= now) {
       n._knockedUntil = 0;n._knockedAt=0; n.cryText = 'Чё происходит?!'; n.cryUntil = now + 1700;
     }
+    if(n._npcHelpingTarget&&(n.snitching||n.panicUntil>now||n._hostile||n._fighting||n._fightingMelee))_npcCancelHelping(n);
+
+    // Сдающийся локальный бандит на несколько секунд прекращает бой и
+    // показывает игроку пустые руки. Серверные награды этим не выдаются.
+    if(n._npcSurrenderUntil>now){
+      n.walking=false;n.walkPhase=0;n.tr=n.r;n.tc=n.c;
+      n.ang=Math.atan2(player.r-n.r,player.c-n.c);
+      continue;
+    }else if(n._npcSurrenderUntil){n._npcSurrenderUntil=0;n._lifeGesture='';}
+
+    // Спокойный прохожий подходит к тяжело раненому, зовёт помощь и остаётся
+    // рядом. Лечение и эвакуация по-прежнему выполняются медицинской системой.
+    if(n._npcHelpingTarget&&n._npcHelpingUntil>now){
+      const patient=n._npcHelpingTarget;
+      if(patient.dead||!patient._medicalDowned||patient._evacuated){
+        _npcCancelHelping(n);
+      }else{
+        const dr=patient.r-n.r,dc=patient.c-n.c,d=Math.hypot(dr,dc)||1;
+        n.ang=Math.atan2(dr,dc);
+        if(d>1.35){
+          const sp=Math.max(.35,_npcEffectiveSpeed(n)*.82);
+          if(n._routeKind!=='help'||!n._route?.length)_planNpcRouteTo(n,patient.r,patient.c,npcPassable,1.1,420,'help');
+          const routeStep=_npcAdvanceRoute(n,dt,sp,npcPassable);
+          if(routeStep==='arrived'){_clearNpcRoute(n);n.walking=false;}
+          else if(routeStep==='blocked'||routeStep===false){
+            _clearNpcRoute(n);n._npcHelpRetryAfter=now+3500;_npcCancelHelping(n);n.walking=false;
+          }
+        }else{
+          if(n._routeKind==='help')_clearNpcRoute(n);
+          n.walking=false;n.walkPhase=0;n.tr=n.r;n.tc=n.c;
+          if(!n._npcHelpSpoke&&_npcSpeechSlots(now)>0){
+            n._npcHelpSpoke=true;n.cryText='Держись! Скорая уже едет!';n.cryUntil=now+1900;
+          }
+        }
+        continue;
+      }
+    }else if(n._npcHelpingTarget){_npcCancelHelping(n);}
 
     // ── Охранник бизнеса — бежит к игроку и бьёт дубинкой ────────────
     if (n._hostile && now < n._hostileUntil && !myDead && !_buildingInt && !_bankInt) {
@@ -11671,6 +11970,21 @@ function updateNpcs(dt) {
       if (n._arc && n._arc.panicMult === 0) { n.panicUntil=0;_clearNpcRoute(n);continue; }
       const srcR=Number.isFinite(n.panicSrcR)?n.panicSrcR:n.r;
       const srcC=Number.isFinite(n.panicSrcC)?n.panicSrcC:n.c;
+      // Реальные короткие реакции перед бегством: замереть, пригнуться или
+      // позвонить. Раньше «freeze» лишь удлинял таймер, но NPC сразу бежал.
+      const holding=n._panicFreezeUntil>now||n._panicCowerUntil>now||n._panicCallUntil>now;
+      if(holding){
+        n.walking=false;n.walkPhase=0;n.tr=n.r;n.tc=n.c;
+        n.ang=Math.atan2(srcR-n.r,srcC-n.c);
+        if(n._panicCallUntil>now&&!n._panicCallSpoke&&_npcSpeechSlots(now)>0){
+          n._panicCallSpoke=true;n.cryText='Алло, полиция?!';n.cryUntil=now+1500;
+        }
+        continue;
+      }
+      if(n._panicStyle!=='flee'){
+        n._panicStyle='flee';n._lifeGesture='flee';
+        _npcSetLifeState(n,NPC_LIFE_STATES.PANIC,now,n.panicUntil-now,'flee');
+      }
       const dr = n.r-srcR;
       const dc = n.c-srcC;
       const d  = Math.hypot(dr, dc) || 1;
@@ -27313,6 +27627,7 @@ function punch(force, aimAngle = null) {
 function _npcTriggerFight(npc) {
   if (!npc || npc.dead) return;
   if (npc._fighting || npc._fightingMelee) return;  // уже реагирует
+  _npcCancelHelping(npc);_npcCancelSocial(npc);
   const arc      = npc._arc || {};
   const isBandit = arc.panicMult === 0;
   npc._hits = (npc._hits || 0) + 1;
@@ -27329,6 +27644,8 @@ function _npcTriggerFight(npc) {
     const cries = ['Ты напал не на того!', 'ПОЖАЛЕЕШЬ!', 'Убью!', 'Попрощайся с жизнью!'];
     npc.cryText  = cries[Math.floor(Math.random() * cries.length)];
     npc.cryUntil = now + 1800;
+    npc._alertUntil=now+5000;_npcRememberEvent(npc,'fight',now,player.r,player.c,1);
+    _npcSetLifeState(npc,NPC_LIFE_STATES.ALERT,now,5000,'fight');
     return;
   }
 
@@ -27336,9 +27653,7 @@ function _npcTriggerFight(npc) {
   // На первый удар всегда паника, после 2+ ударов начинает злиться
   if (npc._hits < 2) {
     // Первый удар — убегает
-    npc.panicUntil  = now + 4000 + Math.random() * 2000;
-    npc.panicSrcR   = player.r;
-    npc.panicSrcC   = player.c;
+    _npcBeginPanic(npc,now,now+4000+Math.random()*2000,player.r,player.c,'fight');
     npc.cryText     = ['Ай!', 'Помогите!', 'Что вы делаете!?', 'Ауч!'][Math.floor(Math.random()*4)];
     npc.cryUntil    = now + 1500;
     return;
@@ -27347,9 +27662,7 @@ function _npcTriggerFight(npc) {
   const roll = Math.random();
   if (roll < 0.55) {
     // 55% — убегает с криком
-    npc.panicUntil  = now + 5000 + Math.random() * 3000;
-    npc.panicSrcR   = player.r;
-    npc.panicSrcC   = player.c;
+    _npcBeginPanic(npc,now,now+5000+Math.random()*3000,player.r,player.c,'fight');
     npc.cryText     = ['Стой! Стой!', 'ПОМОГИТЕ!', 'Буду жаловаться!', 'ОН БЬЁТ!'][Math.floor(Math.random()*4)];
     npc.cryUntil    = now + 2000;
   } else if (roll < 0.90) {
@@ -27361,6 +27674,8 @@ function _npcTriggerFight(npc) {
     npc.idleUntil      = 0;
     npc.cryText  = ['Ах ты!', 'Получи!', 'Сам напросился!', 'Не трогай меня!!'][Math.floor(Math.random()*4)];
     npc.cryUntil = now + 1500;
+    npc._alertUntil=now+5000;_npcRememberEvent(npc,'fight',now,player.r,player.c,.9);
+    _npcSetLifeState(npc,NPC_LIFE_STATES.ALERT,now,5000,'fight');
   } else {
     // 10% — достаёт пушку (случайный прохожий оказался вооружён)
     npc._fighting    = true;
@@ -27372,6 +27687,8 @@ function _npcTriggerFight(npc) {
     npc.idleUntil    = 0;
     npc.cryText  = 'У меня есть пушка!!';
     npc.cryUntil = now + 2000;
+    npc._alertUntil=now+5000;_npcRememberEvent(npc,'fight',now,player.r,player.c,1);
+    _npcSetLifeState(npc,NPC_LIFE_STATES.ALERT,now,5000,'fight');
   }
 }
 
@@ -36633,11 +36950,44 @@ function drawBusRider(rd) {
   ctx.restore();
 }
 
+function drawNpcLifePose2D(p,npc,now){
+  const state=npc._lifeState||'',gesture=npc._lifeGesture||'';
+  if(!state||state===NPC_LIFE_STATES.ROUTINE||npc.dead)return;
+  const phase=now*.012+_npcStableUnit(npc,'pose')*Math.PI*2;
+  const sway=Math.sin(phase)*2,skin=SKINS[npc.look?.skin]||'#f0c27f';
+  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=3.4;ctx.strokeStyle=skin;ctx.fillStyle=skin;
+  if(state===NPC_LIFE_STATES.SURRENDER){
+    ctx.beginPath();ctx.moveTo(p.x-7,p.y-22);ctx.lineTo(p.x-13,p.y-38+sway);ctx.moveTo(p.x+7,p.y-22);ctx.lineTo(p.x+13,p.y-38-sway);ctx.stroke();
+    ctx.beginPath();ctx.arc(p.x-13,p.y-40+sway,3,0,Math.PI*2);ctx.arc(p.x+13,p.y-40-sway,3,0,Math.PI*2);ctx.fill();
+  }else if(state===NPC_LIFE_STATES.COWER||gesture==='freeze'||gesture==='cover'){
+    const tremble=Math.sin(phase*2.6)*1.3;
+    ctx.beginPath();ctx.moveTo(p.x-7,p.y-23);ctx.lineTo(p.x-10+tremble,p.y-34);ctx.lineTo(p.x-3,p.y-39);
+    ctx.moveTo(p.x+7,p.y-23);ctx.lineTo(p.x+10+tremble,p.y-34);ctx.lineTo(p.x+3,p.y-39);ctx.stroke();
+  }else if(state===NPC_LIFE_STATES.PANIC){
+    ctx.beginPath();ctx.moveTo(p.x-7,p.y-22);ctx.lineTo(p.x-12+sway,p.y-34);ctx.moveTo(p.x+7,p.y-22);ctx.lineTo(p.x+12-sway,p.y-35);ctx.stroke();
+  }else if(state===NPC_LIFE_STATES.HELPING){
+    ctx.beginPath();ctx.moveTo(p.x-6,p.y-22);ctx.lineTo(p.x-12+sway*.3,p.y-8);ctx.moveTo(p.x+5,p.y-22);ctx.lineTo(p.x+10,p.y-12);ctx.stroke();
+    ctx.strokeStyle='rgba(116,220,255,.9)';ctx.lineWidth=1.8;ctx.strokeRect(p.x+8,p.y-17,4,7);
+  }else if(state===NPC_LIFE_STATES.SOCIAL){
+    ctx.beginPath();ctx.moveTo(p.x+6,p.y-23);ctx.quadraticCurveTo(p.x+14,p.y-30+sway,p.x+17,p.y-23+sway);
+    ctx.moveTo(p.x-6,p.y-23);ctx.lineTo(p.x-10,p.y-12);ctx.stroke();
+  }else if(state===NPC_LIFE_STATES.ALERT){
+    ctx.strokeStyle='#ffd66b';ctx.lineWidth=1.7;
+    for(const [dx,dy] of [[-12,-39],[0,-45],[12,-39]]){ctx.beginPath();ctx.moveTo(p.x+dx*.68,p.y+dy*.86);ctx.lineTo(p.x+dx,p.y+dy);ctx.stroke();}
+  }
+  ctx.restore();document.documentElement.dataset.npcLifePose='canvas-v1';
+}
+
 function drawNpc(npc) {
   const p = w2s(npc.r, npc.c);
-  const _knocked=!!(npc._knockedUntil&&npc._knockedUntil>performance.now());
+  const _drawNow=performance.now(),_knocked=!!(npc._knockedUntil&&npc._knockedUntil>_drawNow);
+  const _lifePoseArms=!npc.dead&&!_knocked&&[
+    NPC_LIFE_STATES.PANIC,NPC_LIFE_STATES.COWER,NPC_LIFE_STATES.SURRENDER,
+    NPC_LIFE_STATES.HELPING,NPC_LIFE_STATES.SOCIAL,
+  ].includes(npc._lifeState);
   drawPerson(p.x, p.y, npc.ang, npc.look, npc.walkPhase, null, null, false, npc.hp, npc.max_hp,
-             !!npc.dead, _knocked?(npc._knockedAt||performance.now()):(npc.deadAt||0), !!(npc._fighting && !npc.dead&&!_knocked), false, _knocked);
+             !!npc.dead, _knocked?(npc._knockedAt||_drawNow):(npc.deadAt||0), !!(npc._fighting && !npc.dead&&!_knocked)||_lifePoseArms, false, _knocked);
+  drawNpcLifePose2D(p,npc,_drawNow);
   if(!npc.dead&&performance.now()<(npc._burnUntil||0))
     drawBurningCharacter(p.x,p.y,npc.id||npc._lid||'npc',1);
   if (npc._said && !npc.dead) {
@@ -36703,7 +37053,11 @@ function drawNpc(npc) {
   // Эмодзи выбираем по приоритету: snitch > panic > зевака > дружелюбный
   let _npcEmoji = null;
   if (isSnitching)       _npcEmoji = '📱';
+  else if (npc._lifeState===NPC_LIFE_STATES.SURRENDER) _npcEmoji='🏳️';
+  else if (npc._lifeState===NPC_LIFE_STATES.HELPING) _npcEmoji='🆘';
+  else if (npc._lifeState===NPC_LIFE_STATES.COWER) _npcEmoji='🙈';
   else if (isPanicking)  _npcEmoji = '😱';
+  else if (npc._lifeState===NPC_LIFE_STATES.SOCIAL) _npcEmoji='💬';
   else if (npc.idleUntil && now < npc.idleUntil && isCrying) _npcEmoji = '👀';
   if (_npcEmoji) {
     const bob2  = Math.sin(now * 0.006 + npc.r * 7) * 2;
@@ -56438,7 +56792,14 @@ window.Mafiozi3DBridge = Object.freeze({
       }
       npcSource=[...combat,...npcSource];
     }
-    const npcPriority=x=>{const role=String(x?.role||x?._arcKey||'').toLowerCase();if(role.includes('medic'))return 0;if(x?.gang||x?._gang||x?.gangId||x?.gang_id||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'))return 0;if(x?.police||role.includes('police')||role.includes('cop')||role.includes('guard'))return 1;return 2;};
+    const npcLifePool=x=>{
+      const role=String(x?.role||x?._arcKey||'').toLowerCase(),behavior=String(x?.behavior||'').toLowerCase();
+      if(role.includes('medic')||role.includes('quest')||role.includes('convoy')||role.includes('michael')||role.includes('race_')||behavior.includes('mission'))return 'mission';
+      if(x?.police||role.includes('police')||role.includes('cop'))return 'police';
+      if(x?._guard||role.includes('guard'))return 'guard';
+      if(x?.gang||x?._gang||x?.gangId||x?.gang_id||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'))return 'gang';
+      return 'civilian';
+    };
     if(!inside&&near(JUNKYARD_R,JUNKYARD_C)){
       const workerRoutes=[[[84.1,62.5],[84.1,67.3],[87.2,67.3],[87.2,62.5]],[[88.2,64.2],[88.2,69.1],[84.8,69.1],[84.8,64.2]],[[82.9,65.1],[86.1,65.1],[86.1,70],[82.9,70]]];
       const workerLooks=[{skin:1,body:2,face:1,hair:1,hat:2,suit:'#665b46'},{skin:2,body:1,face:2,hair:3,hat:1,suit:'#4e5a55'},{skin:0,body:3,face:3,hair:2,hat:2,suit:'#72513d'}];
@@ -56447,10 +56808,33 @@ window.Mafiozi3DBridge = Object.freeze({
         npcSource.push({id:`junkyard_worker_${wi}`,r,c,tr:b[0],tc:b[1],ang:Math.atan2(b[0]-a[0],b[1]-a[1]),walking:!pause,moving:!pause,walkPhase:fxNow*.009+wi*2.1,role:'junkyard_worker',visualRole:'civilian',name:pause?(wi===1?'Сортирует металл':'Убирает мусор'):'Работяга свалки',look:workerLooks[wi],hp:80,max_hp:80,_junkyardWorker:true});
       }
     }
-    const npcs=npcSource.filter(x=>x&&!x._ambientGang&&!x._evacuated&&!x._carriedByAmbulance&&near(+(x.r??x.y)||0,+(x.c??x.x)||0)).sort((a,b)=>npcPriority(a)-npcPriority(b)).slice(0,72).map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:Number.isFinite(+x.tgtR)?+x.tgtR:Number.isFinite(+x.ty)?+x.ty:r,targetC=Number.isFinite(+x.tc)?+x.tc:Number.isFinite(+x.tgtC)?+x.tgtC:Number.isFinite(+x.tx)?+x.tx:c,targetMoving=Math.hypot(targetR-r,targetC-c)>.035,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,+x.max_hp||+x.maxHp||60),hp=death.dead?0:(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0);return {
+    const npcEligible=npcSource.filter(x=>x&&!x._ambientGang&&!x._evacuated&&!x._carriedByAmbulance&&near(+(x.r??x.y)||0,+(x.c??x.x)||0));
+    const npcPools={mission:[],police:[],guard:[],gang:[],civilian:[]};
+    for(const x of npcEligible)npcPools[npcLifePool(x)].push(x);
+    const npcDist=x=>Math.hypot((+(x.r??x.y)||0)-player.r,(+(x.c??x.x)||0)-player.c);
+    const stableNpcSort=(a,b)=>npcDist(a)-npcDist(b)||String(a.id||'').localeCompare(String(b.id||''));
+    for(const pool of Object.values(npcPools))pool.sort(stableNpcSort);
+    const civilianReserve=Math.min(24,npcPools.civilian.length,NPC_LIFE_NPC_CAP);
+    const npcSelected=[];let criticalBudget=NPC_LIFE_NPC_CAP-civilianReserve;
+    for(const key of ['mission','police','guard','gang']){
+      const take=Math.min(criticalBudget,npcPools[key].length);npcSelected.push(...npcPools[key].slice(0,take));
+      npcPools[key]=npcPools[key].slice(take);criticalBudget-=take;
+    }
+    npcSelected.push(...npcPools.civilian.slice(0,civilianReserve));npcPools.civilian=npcPools.civilian.slice(civilianReserve);
+    if(npcSelected.length<NPC_LIFE_NPC_CAP){
+      const overflow=[...npcPools.mission,...npcPools.police,...npcPools.guard,...npcPools.gang,...npcPools.civilian]
+        .sort((a,b)=>NPC_LIFE_POOL_PRIORITY[npcLifePool(a)]-NPC_LIFE_POOL_PRIORITY[npcLifePool(b)]||stableNpcSort(a,b));
+      npcSelected.push(...overflow.slice(0,NPC_LIFE_NPC_CAP-npcSelected.length));
+    }
+    document.documentElement.dataset.npcLifePools=`mission:${npcEligible.filter(x=>npcLifePool(x)==='mission').length},police:${npcEligible.filter(x=>npcLifePool(x)==='police').length},guard:${npcEligible.filter(x=>npcLifePool(x)==='guard').length},gang:${npcEligible.filter(x=>npcLifePool(x)==='gang').length},civilian:${npcEligible.filter(x=>npcLifePool(x)==='civilian').length},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
+    const npcs=npcSelected.map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:Number.isFinite(+x.tgtR)?+x.tgtR:Number.isFinite(+x.ty)?+x.ty:r,targetC=Number.isFinite(+x.tc)?+x.tc:Number.isFinite(+x.tgtC)?+x.tgtC:Number.isFinite(+x.tx)?+x.tx:c,targetMoving=Math.hypot(targetR-r,targetC-c)>.035,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,+x.max_hp||+x.maxHp||60),hp=death.dead?0:(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._lifeState||x.lifeState||''),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow));return {
       id,r,c,ang:+x.ang||0,walking:!death.dead&&(declaredMoving||targetMoving),moving:!death.dead&&(declaredMoving||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp,maxHp,
+      lifeState:lifeState||'',panic,cowering,surrendering,surrendered:surrendering,helping,
+      talking:social,social,alerted:!death.dead&&(lifeState==='alert'||x._alertUntil>fxNow),
+      gesture:String(x._lifeGesture||x.gesture||''),stateSince:+x._lifeStateSince||0,stateUntil:+x._lifeStateUntil||0,
+      groupId:String(x._npcGroupId||''),groupRole:String(x._npcGroupRole||''),routine:String(x._npcRoutine||''),
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||x.gangName||x.faction||'',faction:x.faction||x.gangFaction||'',
       gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,
       burning:!!x.burning||fxNow<(+x._burnUntil||0),hitAt:combatFx.hitAt,bleeding:combatFx.bleeding,bleedSeverity:combatFx.bleedSeverity,
@@ -56471,6 +56855,20 @@ window.Mafiozi3DBridge = Object.freeze({
         {role:'civilian',visualRole:'civilian',name:'Прохожий',hp:60,maxHp:60,speech:'Здесь опасно, лучше уйти с улицы.'},
       ];
       for(const [j,sample] of samples.entries()){const npc=npcs[j];if(!npc)break;const a=-1.05+j*.42;Object.assign(npc,{gang:false,police:false,behavior:'',family:'',level:1,speech:'',dead:false,walking:false,moving:false,severMask:0,forcedCrawl:false,r:player.r+Math.sin(a)*5.2,c:player.c+Math.cos(a)*5.2,ang:a+Math.PI},sample);}
+    }
+    if(_LOCAL_PREVIEW&&_UP.has('previewnpclife')){
+      const poses=[
+        {lifeState:'panic',panic:true,gesture:'flee',speech:'А-А-А!',walking:true,moving:true},
+        {lifeState:'cower',cowering:true,gesture:'cower',speech:'Не подходите!'},
+        {lifeState:'surrender',surrendering:true,surrendered:true,gesture:'surrender',speech:'Сдаюсь!'},
+        {lifeState:'helping',helping:true,gesture:'help',speech:'Держись!'},
+        {lifeState:'social',talking:true,social:true,gesture:'talk',speech:'Как дела?'},
+        {lifeState:'alert',alerted:true,gesture:'alert',speech:'Что это было?'},
+      ];
+      for(const [j,pose] of poses.entries()){
+        const npc=npcs[j];if(!npc)break;const a=-1.15+j*.46;
+        Object.assign(npc,{r:player.r+Math.sin(a)*4.8,c:player.c+Math.cos(a)*4.8,ang:a+Math.PI,dead:false,forcedCrawl:false,severMask:0,stateSince:fxNow-500,stateUntil:fxNow+5000,walking:false,moving:false,panic:false,cowering:false,surrendering:false,surrendered:false,helping:false,talking:false,social:false,alerted:false,gesture:''},pose);
+      }
     }
     if(_LOCAL_PREVIEW&&_UP.has('previewcrawl')){const npc=npcs.find(x=>!x.dead);if(npc){npc.r=player.r+2.8;npc.c=player.c+1.4;npc.ang=-2.68;npc.hp=Math.min(npc.hp,npc.maxHp*.04);npc.forcedCrawl=true;npc.walking=true;}}
     // Browser-only animation QA. It never changes the authoritative NPC and
@@ -60457,6 +60855,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d233"></script>
+<script type="module" src="three_preview.js?v=3d234"></script>
 </body>
 </html>
