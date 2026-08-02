@@ -8970,48 +8970,91 @@ function _nearestRoadTile(r, c, maxRadius = 12) {
   return null;
 }
 
-// BFS по дорожным тайлам от старта до цели. Возвращает массив
-// {r, c} (центры тайлов) или null. Узлы — 4-связные.
-function _bfsRoadPath(startR, startC, goalR, goalC, searchRadius = 12) {
+// Reusable typed buffers avoid allocating a Map, queue and thousands of boxed
+// keys for every route. Parking searches can build one tree and inspect every
+// candidate in O(1), then materialise only the winning path.
+let _roadBfsParents = new Int32Array(0);
+let _roadBfsDistances = new Int32Array(0);
+let _roadBfsVisited = new Uint32Array(0);
+let _roadBfsQueue = new Int32Array(0);
+let _roadBfsGeneration = 0;
+const _roadBfsDr = new Int8Array([0, 0, 1, -1]);
+const _roadBfsDc = new Int8Array([1, -1, 0, 0]);
+
+function _ensureRoadBfsBuffers() {
+  const size = Math.max(1, (MAP_ROWS | 0) * (MAP_COLS | 0));
+  if (_roadBfsQueue.length === size) return;
+  _roadBfsParents = new Int32Array(size);
+  _roadBfsDistances = new Int32Array(size);
+  _roadBfsVisited = new Uint32Array(size);
+  _roadBfsQueue = new Int32Array(size);
+  _roadBfsGeneration = 0;
+}
+
+function _buildRoadBfsTree(startR, startC, searchRadius = 12, stopGoalK = -1) {
   const start = _nearestRoadTile(startR, startC, searchRadius);
-  const goal  = _nearestRoadTile(goalR,  goalC, searchRadius);
-  if (!start || !goal) return null;
-  const COLS = MAP_COLS | 0;
-  const key  = (r, c) => r * COLS + c;
-  const startK = key(start.r, start.c);
-  const goalK  = key(goal.r,  goal.c);
-  if (startK === goalK) return [{ r: start.r + 0.5, c: start.c + 0.5 }];
-  const cameFrom = new Map();
-  cameFrom.set(startK, -1);
-  const queue = [startK];
-  let head = 0;
-  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-  let found = false;
-  while (head < queue.length) {
-    const k = queue[head++];
-    if (k === goalK) { found = true; break; }
-    const r = (k / COLS) | 0, c = k % COLS;
-    for (const [dr, dc] of dirs) {
-      const nr = r + dr, nc = c + dc;
-      if (nr < 1 || nr >= MAP_ROWS - 1 || nc < 1 || nc >= MAP_COLS - 1) continue;
-      if (!_vehicleRoadPassable(nr+.5,nc+.5)) continue;
-      const nk = nr * COLS + nc;
-      if (cameFrom.has(nk)) continue;
-      cameFrom.set(nk, k);
-      queue.push(nk);
+  if (!start) return null;
+  _ensureRoadBfsBuffers();
+  _roadBfsGeneration = (_roadBfsGeneration + 1) >>> 0;
+  if (_roadBfsGeneration === 0) {
+    _roadBfsVisited.fill(0);
+    _roadBfsGeneration = 1;
+  }
+  const cols = MAP_COLS | 0, rows = MAP_ROWS | 0;
+  const startK = start.r * cols + start.c;
+  const generation = _roadBfsGeneration;
+  let head = 0, tail = 0;
+  _roadBfsQueue[tail++] = startK;
+  _roadBfsVisited[startK] = generation;
+  _roadBfsParents[startK] = -1;
+  _roadBfsDistances[startK] = 0;
+  while (head < tail) {
+    const k = _roadBfsQueue[head++];
+    if (k === stopGoalK) break;
+    const r = (k / cols) | 0, c = k % cols, nextDistance = _roadBfsDistances[k] + 1;
+    for (let i = 0; i < 4; i++) {
+      const nr = r + _roadBfsDr[i], nc = c + _roadBfsDc[i];
+      if (nr < 1 || nr >= rows - 1 || nc < 1 || nc >= cols - 1) continue;
+      const nk = nr * cols + nc;
+      if (_roadBfsVisited[nk] === generation || !_vehicleRoadPassable(nr + .5, nc + .5)) continue;
+      _roadBfsVisited[nk] = generation;
+      _roadBfsParents[nk] = k;
+      _roadBfsDistances[nk] = nextDistance;
+      _roadBfsQueue[tail++] = nk;
     }
   }
-  if (!found) return null;
-  // Восстанавливаем путь
+  return { cols, rows, startK, generation };
+}
+
+function _roadBfsHas(tree, key) {
+  return !!tree && key >= 0 && key < _roadBfsVisited.length && _roadBfsVisited[key] === tree.generation;
+}
+
+function _roadBfsPathToKey(tree, goalK) {
+  if (!_roadBfsHas(tree, goalK)) return null;
   const path = [];
-  let cur = goalK;
-  while (cur !== -1) {
-    const r = (cur / COLS) | 0, c = cur % COLS;
-    path.push({ r: r + 0.5, c: c + 0.5 });
-    cur = cameFrom.get(cur);
+  for (let cur = goalK; cur !== -1; cur = _roadBfsParents[cur]) {
+    const r = (cur / tree.cols) | 0, c = cur % tree.cols;
+    path.push({ r: r + .5, c: c + .5 });
   }
   path.reverse();
   return path;
+}
+
+function _roadBfsPreviousPoint(tree, goalK, fallbackR, fallbackC) {
+  if (!_roadBfsHas(tree, goalK) || _roadBfsDistances[goalK] < 1) return { r: fallbackR, c: fallbackC };
+  const previousK = _roadBfsParents[goalK];
+  return { r: ((previousK / tree.cols) | 0) + .5, c: previousK % tree.cols + .5 };
+}
+
+// BFS по дорожным тайлам от старта до цели. Возвращает массив
+// {r, c} (центры тайлов) или null. Узлы — 4-связные.
+function _bfsRoadPath(startR, startC, goalR, goalC, searchRadius = 12) {
+  const goal = _nearestRoadTile(goalR, goalC, searchRadius);
+  if (!goal) return null;
+  const goalK = goal.r * (MAP_COLS | 0) + goal.c;
+  const tree = _buildRoadBfsTree(startR, startC, searchRadius, goalK);
+  return _roadBfsPathToKey(tree, goalK);
 }
 
 // Запасной путь к АЗС: пожарной машине разрешены дорога и открытые
@@ -9307,24 +9350,25 @@ function _setVehicleRoute(v, fromR, fromC, toR, toC) {
 }
 
 function _ambulanceSceneParking(targetR,targetC,fromR,fromC,excludeVehicle=null){
-  const candidates=[];
+  let best=null,bestScore=Infinity;
   const tr=Math.floor(targetR),tc=Math.floor(targetC);
+  const tree=_buildRoadBfsTree(fromR,fromC,30);
   for(let dr=-7;dr<=7;dr++)for(let dc=-7;dc<=7;dc++){
     const r=tr+dr+.5,c=tc+dc+.5,d=Math.hypot(r-targetR,c-targetC);
     if(d<2.8||d>6.4||!_vehicleRoadPassable(r,c))continue;
-    const path=_bfsRoadPath(fromR,fromC,r,c,30);
-    if(!path?.length)continue;
-    const before=path.length>1?path[path.length-2]:{r:fromR,c:fromC};
+    const goalK=Math.floor(r)*(MAP_COLS|0)+Math.floor(c);
+    if(!_roadBfsHas(tree,goalK))continue;
+    const before=_roadBfsPreviousPoint(tree,goalK,fromR,fromC);
     const parkingAng=Math.atan2(r-before.r,c-before.c);
     if(!_serviceVehicleFootprintClear({kind:'ambulance',ang:parkingAng},r,c,parkingAng))continue;
     let occupied=false;
     if(typeof CARS!=='undefined'&&Array.isArray(CARS))occupied=CARS.some(car=>car&&!car._towed&&Math.hypot((+car.r||0)-r,(+car.c||0)-c)<1.65);
     if(!occupied)occupied=serviceVehicles.some(other=>other!==excludeVehicle&&other?.state!=='done'&&Math.hypot((+other.y||0)-r,(+other.x||0)-c)<1.65);
     if(occupied)continue;
-    candidates.push({r,c,score:Math.abs(d-3.8)*3+Math.hypot(r-fromR,c-fromC)*.025});
+    const score=Math.abs(d-3.8)*3+Math.hypot(r-fromR,c-fromC)*.025;
+    if(score<bestScore){bestScore=score;best={r,c};}
   }
-  candidates.sort((a,b)=>a.score-b.score);
-  if(candidates.length)return candidates[0];
+  if(best)return best;
   const road=_nearestRoadTile(targetR,targetC,12);
   return road?{r:road.r+.5,c:road.c+.5}:{r:targetR,c:targetC};
 }
@@ -9643,20 +9687,22 @@ function _dispatchPlayerAmbulance(){
 }
 
 function _fireTruckParkingPoint(targetR,targetC,fromR=FIRE_STATION_R,fromC=FIRE_STATION_C){
-  let best=null,bestScore=Infinity,unrouted=null,unroutedScore=Infinity;
+  let best=null,bestKey=-1,bestScore=Infinity,unrouted=null,unroutedScore=Infinity;
   const r0=Math.floor(targetR),c0=Math.floor(targetC);
+  const tree=_buildRoadBfsTree(fromR,fromC,30);
   for(let dr=-6;dr<=6;dr++)for(let dc=-6;dc<=6;dc++){
     const r=r0+dr+.5,c=c0+dc+.5,d=Math.hypot(r-targetR,c-targetC);
     if(d<2.8||d>FIRETRUCK_HOSE_RANGE-.25||!_vehicleRoadPassable(r,c))continue;
-    const path=_bfsRoadPath(fromR,fromC,r,c,30);
-    const before=path?.length>1?path[path.length-2]:{r:fromR,c:fromC};
+    const goalK=Math.floor(r)*(MAP_COLS|0)+Math.floor(c),hasPath=_roadBfsHas(tree,goalK);
+    const before=hasPath?_roadBfsPreviousPoint(tree,goalK,fromR,fromC):{r:fromR,c:fromC};
     const parkingAng=Math.atan2(r-before.r,c-before.c);
     if(!_serviceVehicleFootprintClear({kind:'firetruck',ang:parkingAng},r,c,parkingAng))continue;
-    const score=Math.abs(d-3.65)+(path?.length||0)*.004;
-    if(!path?.length){if(Math.abs(d-3.65)<unroutedScore){unroutedScore=Math.abs(d-3.65);unrouted={r,c,path:[]};}continue;}
-    if(score<bestScore){bestScore=score;best={r,c,path};}
+    const pathLength=hasPath?_roadBfsDistances[goalK]+1:0;
+    const score=Math.abs(d-3.65)+pathLength*.004;
+    if(!hasPath){if(Math.abs(d-3.65)<unroutedScore){unroutedScore=Math.abs(d-3.65);unrouted={r,c,path:[]};}continue;}
+    if(score<bestScore){bestScore=score;best={r,c};bestKey=goalK;}
   }
-  if(best)return best;
+  if(best){best.path=_roadBfsPathToKey(tree,bestKey)||[];return best;}
   if(unrouted)return unrouted;
   const road=_nearestRoadTile(targetR,targetC,12);
   if(!road)return null;
@@ -9695,21 +9741,23 @@ function spawnFireTruck(targetR, targetC, fireRef, carRef) {
 // новую (машины не пропадают навсегда). Если в машине игрок — НЕ грузим
 // (защита от увоза игрока за карту).
 function _towTruckParkingPoint(targetR,targetC,fromR=JUNKYARD_R,fromC=JUNKYARD_C){
-  let best=null,bestScore=Infinity,unrouted=null,unroutedScore=Infinity;
+  let best=null,bestKey=-1,bestScore=Infinity,unrouted=null,unroutedScore=Infinity;
   const r0=Math.floor(targetR),c0=Math.floor(targetC);
+  const tree=_buildRoadBfsTree(fromR,fromC,30);
   for(let dr=-5;dr<=5;dr++)for(let dc=-5;dc<=5;dc++){
     const r=r0+dr+.5,c=c0+dc+.5,d=Math.hypot(r-targetR,c-targetC);
     if(d<1.7||d>3.6||!_vehicleRoadPassable(r,c))continue;
     if(_vehicleBlockedByCar({kind:'tow'},r,c))continue;
-    const path=_bfsRoadPath(fromR,fromC,r,c,30);
-    const before=path?.length>1?path[path.length-2]:{r:fromR,c:fromC};
+    const goalK=Math.floor(r)*(MAP_COLS|0)+Math.floor(c),hasPath=_roadBfsHas(tree,goalK);
+    const before=hasPath?_roadBfsPreviousPoint(tree,goalK,fromR,fromC):{r:fromR,c:fromC};
     const parkingAng=Math.atan2(r-before.r,c-before.c);
     if(!_serviceVehicleFootprintClear({kind:'tow',ang:parkingAng},r,c,parkingAng))continue;
-    const score=Math.abs(d-2.35)+(path?.length||0)*.004;
-    if(!path?.length){if(Math.abs(d-2.35)<unroutedScore){unroutedScore=Math.abs(d-2.35);unrouted={r,c,path:[]};}continue;}
-    if(score<bestScore){bestScore=score;best={r,c,path};}
+    const pathLength=hasPath?_roadBfsDistances[goalK]+1:0;
+    const score=Math.abs(d-2.35)+pathLength*.004;
+    if(!hasPath){if(Math.abs(d-2.35)<unroutedScore){unroutedScore=Math.abs(d-2.35);unrouted={r,c,path:[]};}continue;}
+    if(score<bestScore){bestScore=score;best={r,c};bestKey=goalK;}
   }
-  if(best)return best;
+  if(best){best.path=_roadBfsPathToKey(tree,bestKey)||[];return best;}
   if(unrouted)return unrouted;
   const road=_nearestRoadTile(targetR,targetC,12);
   if(!road)return null;
@@ -56032,6 +56080,15 @@ function _threeBridgeFireAccepted(angle, muzzleR, muzzleC) {
   return lastShotClientT !== firearmShotBefore ||
     (typeof _lastPoliceTaserAt === 'number' && _lastPoliceTaserAt !== taserShotBefore);
 }
+// Custom-gang headquarters change independently from the static city map.
+// Keep this bridge payload compact: the 3D renderer polls it periodically and
+// must not rebuild a radius-90 world snapshot just to discover a flag update.
+function _threeCustomGangHqSnapshot() {
+  return (_customGangHqs || []).map(h => ({
+    id:h.id, r:+h.r||0, c:+h.c||0, name:h.name||'Банда',
+    flag:h.flag||{}, memberCount:+h.member_count||0,
+  }));
+}
 window.Mafiozi3DBridge = Object.freeze({
   version: 1,
   getPlayerState() {
@@ -56087,6 +56144,7 @@ window.Mafiozi3DBridge = Object.freeze({
       traffic: { ew:lights.ew, ns:lights.ns },
     };
   },
+  getCustomGangHqs() { return _threeCustomGangHqSnapshot(); },
   getInteriorState() {
     const src=_buildingInt||_bankInt||null;
     if(!src)return null;
@@ -56200,7 +56258,13 @@ window.Mafiozi3DBridge = Object.freeze({
       const seed = Math.abs(((r0 * 73856093) ^ (c0 * 19349663)) | 0);
       const heightBase = {downtown:20,nightlife:12,rich:10,industrial:8,poor:7,countryside:5,coast:6,chinatown_poor:7,chinatown_market:9,chinatown_neon:14,chinatown_rich:18,chinatown_docks:7}[styleId] || 8;
       const heightSpread = styleId === 'downtown' ? 18 : styleId === 'chinatown_rich' ? 14 : (styleId === 'nightlife'||styleId === 'chinatown_neon') ? 9 : 6;
-      const buildingParts=_connectedBuildingParts(r0,c0,Math.min(r0+BLOCK,MAP_ROWS),Math.min(c0+BLOCK,MAP_COLS)).map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread)}));
+      const blockKey=`${r0}:${c0}`;
+      let cachedBuildingParts=_threeBuildingBlockCache.get(blockKey);
+      if(!cachedBuildingParts){
+        cachedBuildingParts=_connectedBuildingParts(r0,c0,Math.min(r0+BLOCK,MAP_ROWS),Math.min(c0+BLOCK,MAP_COLS));
+        _threeBuildingBlockCache.set(blockKey,cachedBuildingParts);
+      }
+      const buildingParts=cachedBuildingParts.map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread)}));
       blocks.push({
         r0,c0,styleId,buildings,roads,pavement,grass,sand,water,seed,
         building: buildingParts[0]||null,buildingParts,
@@ -56244,7 +56308,7 @@ window.Mafiozi3DBridge = Object.freeze({
       mafiaHq:(typeof BURJ_POS!=='undefined'?{id:'mafia_hq',r:BURJ_POS.r,c:BURJ_POS.c,name:'Burj Mafia · Беллини',family:'bellini'}:null),
       businesses:(typeof BUSINESS_POIS!=='undefined'?BUSINESS_POIS:[]).map(b=>{const entry=_businessInteractionAnchor(b),exterior=BUSINESS_EXTERIOR_GEOMETRY_3D[b.id]||null;return {id:b.id,r:b.r+.5,c:b.c+.5,tileR:b.r,tileC:b.c,entryR:entry.r,entryC:entry.c,exterior,name:b.name,emoji:b.emoji};}),
       districtHqs:(typeof DISTRICTS!=='undefined'?DISTRICTS:[]).filter(d=>d.hq).map(d=>({id:d.id,r:d.hq.r,c:d.hq.c,name:d.name,color:d.color,capturable:d.capturable!==false})),
-      customGangHqs:(_customGangHqs||[]).map(h=>({id:h.id,r:+h.r||0,c:+h.c||0,name:h.name||'Банда',flag:h.flag||{},memberCount:+h.member_count||0})),
+      customGangHqs:_threeCustomGangHqSnapshot(),
       banks:(typeof BANKS!=='undefined'?BANKS:[]).map(b=>({id:b.id,r:b.r,c:b.c,name:b.name,size:b.size})),
       gasStations:(typeof GAS_STATIONS!=='undefined'?GAS_STATIONS:[]).map((g,i)=>({id:String(g.id??i),r:g.r,c:g.c})),
       raceTrack:(typeof TRACK_PTS!=='undefined'?TRACK_PTS:[]).map(p=>({r:p[0],c:p[1]})),
