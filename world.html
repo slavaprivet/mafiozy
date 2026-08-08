@@ -14650,7 +14650,7 @@ function drawOwnedApartmentWorldMarkers(r0, r1, c0, c1) {
     ctx.shadowBlur = 0; ctx.font = '16px Arial'; ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('🏠',p.x,markerY+1);
     ctx.font = '900 12px Arial';
-    const label='🏠 ШТАБ-КВАРТИРА', tw=ctx.measureText(label).width+24;
+    const isGangHq=String(_customGang?.hq_apt_key||'')===String(apt.key||''),label=isGangHq?'🚩 ШТАБ БАНДЫ':'🏠 МОЯ КВАРТИРА',tw=ctx.measureText(label).width+24;
     ctx.fillStyle='rgba(7,24,13,.96)';ctx.strokeStyle='#7eff9a';ctx.lineWidth=1.8;
     roundRect(p.x-tw/2,markerY-43,tw,22,9);ctx.fill();ctx.stroke();
     ctx.fillStyle='#e5ffeb';ctx.fillText(label,p.x,markerY-32);
@@ -18588,7 +18588,7 @@ function handleEventPacket(d) {
   else if(kind==='apartment_guest_reply'){
     if(d.ok){
       _pendingApartmentGuest=null;_selectedBuildingEntry=null;_gtaActionKind=null;_gtaActionCarId=null;
-      enterBuildingInterior(+d.r,+d.c,null,null,{apartmentKey:String(d.apartment_key),apartmentOwnerUid:String(d.owner_uid)});
+      enterBuildingInterior(+d.r,+d.c,null,null,{apartmentKey:String(d.apartment_key),apartmentOwnerUid:String(d.owner_uid),apartmentOwnerName:String(d.owner_name||'')});
       showToast(`Ты в гостях у ${d.owner_name||'друга'}`,'🏠',2200);
     }else showToast(({not_crew:'Только участники одной команды могут ходить в гости',owner_left:'Друг уже вышел из квартиры',too_far:'Подойди к жёлтому входу ближе'}[d.reason]||'Сейчас войти в гости нельзя'),'🔒',2600);
   }
@@ -35427,7 +35427,7 @@ if(_LOCAL_PREVIEW)_verifyBusinessInteriorCollisionLayoutLegacyV2();
 
 // Visual layout v7 is consumed by Canvas and Three.js only.  Its authored
 // rooms may evolve freely because gameplay collision stays on legacy v2 above.
-const BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION = 7;
+const BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION = 8;
 function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
   const id=String(bizId||''),W=Math.max(8,+width||18),H=Math.max(8,+height||13);
   const cfg=BUSINESS_INTERIORS[id]||BUSINESS_INTERIORS.coffee,items=[];
@@ -35673,6 +35673,13 @@ function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
       box('major_port_locker_bank',19.2,10.5,5,1.05,2.15,'#66737b',true,{zone:'locker_room',lockers:8,helmets:true});
       box('major_port_docker_bench',21.05,10.5,3.2,.9,.42,'#775334',true,{zone:'locker_room',boots:true,hooks:true});
       break;
+  }
+  // Compact-business plans were authored on an 18x13 board. Expand the visual
+  // composition to the real 16x11..28x19 room instead of leaving large
+  // warehouses, clubs and casinos half empty. Collision remains frozen on v2.
+  if(!['port','major_mansion','major_casino','major_factory','major_market','major_port'].includes(id)){
+    const sx=(W-2)/16,sy=(H-2)/11;
+    for(const q of items){q.c=1+(q.c-1)*sx;q.r=1+(q.r-1)*sy;q.w*=sx;q.d*=sy;}
   }
   return {version:BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION,id,title:cfg.title||id,floor:[...(cfg.floor||['#62584f'])],wall:cfg.wall||'#313943',accent:cfg.accent||'#d7ae4c',items};
 }
@@ -53257,6 +53264,29 @@ function _drawBusinessFixture(kind,r,c,s=1) {
     case 'gaming_table':
       _bizIsoBox(r,c,3.3*s,2*s,.72*s,'#176342','#0c3825','#08271a');ctx.strokeStyle='#e5bd55';ctx.lineWidth=2*s;ctx.beginPath();ctx.ellipse(p.x,p.y-z(.72),31*s,14*s,0,0,Math.PI*2);ctx.stroke();
       for(let i=0;i<7;i++){const a=i/7*Math.PI*2;ctx.fillStyle=i%2?'#e8e3d2':'#a52d3a';ctx.fillRect(p.x+Math.cos(a)*18*s-2*s,p.y-z(.72)+Math.sin(a)*7*s-2*s,4*s,4*s);}glow('rgba(255,205,75,.13)',44);break;
+    case 'slot_bank': {
+      const colors=['#c73988','#6f41b5','#d17828'];
+      for(let i=-1;i<=1;i++){
+        const x=p.x+i*27*s,body=colors[i+1];
+        ctx.fillStyle=body;ctx.strokeStyle='#efc75d';ctx.lineWidth=2*s;roundRect(x-11*s,p.y-z(2.05),22*s,z(1.92),4*s);ctx.fill();ctx.stroke();
+        ctx.fillStyle='#111724';roundRect(x-8*s,p.y-z(1.72),16*s,25*s,3*s);ctx.fill();
+        ctx.fillStyle='#f4ead5';for(let reel=0;reel<3;reel++){ctx.fillRect(x-6*s+reel*5*s,p.y-z(1.49),4*s,9*s);ctx.fillStyle=reel===1?'#dc3b48':'#2d865f';ctx.beginPath();ctx.arc(x-4*s+reel*5*s,p.y-z(1.34),1.6*s,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f4ead5';}
+        ctx.fillStyle='#f5c84b';ctx.fillRect(x-7*s,p.y-z(.78),14*s,5*s);ctx.strokeStyle='#d7dde4';ctx.lineWidth=2*s;ctx.beginPath();ctx.moveTo(x+12*s,p.y-z(1.35));ctx.lineTo(x+18*s,p.y-z(.88));ctx.stroke();ctx.fillStyle='#e34d56';ctx.beginPath();ctx.arc(x+18*s,p.y-z(.82),3.5*s,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#2a222d';ctx.beginPath();ctx.ellipse(x,p.y+7*s,10*s,5*s,0,0,Math.PI*2);ctx.fill();
+      }
+      glow('rgba(230,65,195,.2)',58);sign('JACKPOT','#ffd45f',2.48,8);break;
+    }
+    case 'pool_table': {
+      _bizIsoBox(r,c,3.5*s,1.95*s,.8*s,'#176040','#0b3826','#08271b');
+      ctx.strokeStyle='#ddb65c';ctx.lineWidth=3*s;ctx.beginPath();ctx.ellipse(p.x,p.y-z(.82),33*s,15*s,0,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle='#101419';for(const [x,y] of [[-27,-7],[0,-13],[27,-7],[-27,7],[0,13],[27,7]]){ctx.beginPath();ctx.arc(p.x+x*s,p.y-z(.82)+y*s,3.2*s,0,Math.PI*2);ctx.fill();}
+      for(let i=0;i<7;i++){ctx.fillStyle=['#f3e7d0','#e34d43','#e0bc35','#3d7bc0'][i%4];ctx.beginPath();ctx.arc(p.x+(-11+i*4)*s,p.y-z(.82)+(i%2?3:-2)*s,2.4*s,0,Math.PI*2);ctx.fill();}
+      ctx.strokeStyle='#d9b36b';ctx.lineWidth=2*s;ctx.beginPath();ctx.moveTo(p.x-38*s,p.y-z(1.2));ctx.lineTo(p.x+33*s,p.y-z(.52));ctx.stroke();sign('BILLIARDS','#c9f5d7',1.42,7);break;
+    }
+    case 'casino_stairs': {
+      for(let step=0;step<6;step++)_bizIsoBox(r-step*.2,c,3.2*s,(2.65-step*.33)*s,(.18+step*.28)*s,step%2?'#8a315c':'#6f234b','#4a1735','#321024');
+      ctx.strokeStyle='#e3bd62';ctx.lineWidth=3*s;for(const x of [-31,31]){ctx.beginPath();ctx.moveTo(p.x+x*s,p.y+8*s);ctx.lineTo(p.x+x*s,p.y-z(2.45));ctx.stroke();}sign('VIP  ↑','#ffd86e',2.72,9);break;
+    }
     case 'port_dispatch_booth': {
       ctx.fillStyle='rgba(88,159,180,.2)';ctx.strokeStyle='#a8dce8';ctx.lineWidth=2*s;
       ctx.fillRect(p.x-61*s,p.y-z(2.48),122*s,38*s);ctx.strokeRect(p.x-61*s,p.y-z(2.48),122*s,38*s);
@@ -53487,11 +53517,23 @@ function _drawBusinessInterior(bi) {
       box('ДИСПЕТЧЕР',10,14.5,2.6,1.4,1.35,'#445765');
       break;
     case 'casino':
-      fixture('gaming_table',5.1,3.6,1);fixture('gaming_table',7.7,8.8,1);fixture('gaming_table',9.5,3.6,1);
-      box('SLOTS',4.5,14.7,3.5,1.2,2.05,'#b13e8f');box('SLOTS',7.4,14.7,3.5,1.2,2.05,'#8f3eaa');
-      box('КАССА',10,14.2,3.2,1.3,1.25,'#d2a83e');box('БАР',9.8,9.5,3,1.2,1.05,'#6f352e');
-      box('VIP',3.6,8.8,3.3,1.8,.9,'#7a2149');box('ОХРАНА',10.2,3.2,2.2,1.2,1.35,'#343b47');
-      break;
+      {
+        // The 2D renderer consumes the same scaled room plan as the 3D bridge.
+        // This keeps corridors, VIP stairs and furniture aligned in every room size.
+        const layout=_businessInteriorVisualLayoutFor(bi);let cashierSeen=0;
+        for(const q of layout.items){
+          if(q.kind==='cashier'&&cashierSeen++===0)continue;
+          if(q.kind==='gaming_table'||q.kind==='slot_bank'||q.kind==='pool_table'||q.kind==='casino_stairs'){
+            fixture(q.kind,q.r,q.c,Math.max(.82,Math.min(1.28,(q.w||3.2)/3.2)));continue;
+          }
+          if(q.kind==='casino_room_wall'){box('',q.r,q.c,q.w,q.d,q.h,q.color||'#2b1123');continue;}
+          if(q.kind==='cashier')box('CASHIER',q.r,q.c,q.w,q.d,q.h,q.color||'#d2a83e');
+          else if(q.kind==='bar_counter')box('BAR',q.r,q.c,q.w,q.d,q.h,q.color||'#6f352e');
+          else if(q.kind==='security_desk')box('SECURITY',q.r,q.c,q.w,q.d,q.h,q.color||'#343b47');
+          else if(q.kind==='vip_sofa')box('VIP',q.r,q.c,q.w,q.d,q.h,q.color||'#7a2149');
+        }
+        break;
+      }
     case 'port':
       floorZone('ДИСПЕТЧЕРСКАЯ',2.15,W/2,11,3.35,'#314a56','#83d7e8');
       floorZone('КРАНОВЫЙ ПРОЛЁТ',10.8,W/2,7.2,3.5,'#3d4a50','#e6b52d');
@@ -53856,7 +53898,8 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
     guardBonus:Math.max(0,+options?.guardBonus||0), robberyAttempt:Math.max(1,+options?.attempt||1),
     robToken:String(options?.robToken||''), ownerHitSeq:0,
     apartmentKey:String(options?.apartmentKey||''),
-    apartmentOwnerUid:String(options?.apartmentOwnerUid||'') };
+    apartmentOwnerUid:String(options?.apartmentOwnerUid||''),
+    apartmentOwnerName:String(options?.apartmentOwnerName||'') };
   document.body.classList.add('in-building-interior');
   document.body.classList.remove('near-business','near-major-establishment','near-establishment-focus');
   delete _zoneEl.dataset.establishmentAction;
@@ -54096,18 +54139,20 @@ function drawBuildingInterior() {
     ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const txt = info
+    const guestOwner=String(bi.apartmentOwnerName||''),txt = info
       ? `🏠 Твоя квартира · ${_apartmentCounterLabel()}`
-      : `🏠 ${apartmentDistrictMarket(bi.r, bi.c).label}: $${apartmentPrice(bi.r, bi.c).toLocaleString('ru')} · ${_apartmentCounterLabel()}`;
+      : guestOwner
+        ? `🏠 В гостях у ${guestOwner}`
+        : `🏠 ${apartmentDistrictMarket(bi.r, bi.c).label}: $${apartmentPrice(bi.r, bi.c).toLocaleString('ru')} · ${_apartmentCounterLabel()}`;
     const stat = info ? `💼 Украдено мешков: ${Math.max(0, parseInt(info.stolen_bags) || 0).toLocaleString('ru')}` : '';
     const tw = Math.max(ctx.measureText(txt).width, stat ? ctx.measureText(stat).width : 0) + 18;
     const boxY = p.y - isoH(2.0), boxH = info ? 40 : 22;
     ctx.fillStyle = 'rgba(0,0,0,.55)';
-    ctx.strokeStyle = info ? 'rgba(130,255,160,.7)' : 'rgba(255,215,107,.7)';
+    ctx.strokeStyle = info ? 'rgba(130,255,160,.7)' : guestOwner ? 'rgba(105,202,255,.72)' : 'rgba(255,215,107,.7)';
     ctx.lineWidth = 1;
     ctx.fillRect(p.x - tw / 2, boxY, tw, boxH);
     ctx.strokeRect(p.x - tw / 2, boxY, tw, boxH);
-    ctx.fillStyle = info ? '#9dffb0' : '#ffd76b';
+    ctx.fillStyle = info ? '#9dffb0' : guestOwner ? '#9ddfff' : '#ffd76b';
     ctx.fillText(txt, p.x, boxY + 11);
     if (stat) {
       ctx.font = 'bold 11px Arial';
@@ -54187,6 +54232,13 @@ function drawBuildingInterior() {
     ctx.lineTo(p.x, p.y + ch2); ctx.lineTo(p.x - cw2, p.y); ctx.closePath(); ctx.stroke();
     ctx.restore();
   }});
+
+  // Distinct apartment rooms in 2D: kitchen, bedroom and bathroom mirror the
+  // authored 3D home without changing collision or the central exit lane.
+  for(const [r,c,w,d] of [[H*.52,W*.24,W*.34,.22],[H*.52,W*.72,W*.22,.22],[H*.75,W*.57,.22,H*.3]])items.push({d:r+c,furniture:true,fn:()=>_bizIsoBox(r,c,w,d,2.4,'#8a7966','#51483f','#38332e')});
+  items.push({d:H-3+W-4,furniture:true,fn:()=>{const r=H-3,c=W-4,p=w2s(r,c);_bizIsoBox(r,c,4.6,3.5,.42,'#e4ddcf','#81766e','#625954');_bizIsoBox(r+.35,c,4.15,2.25,.3,'#5b3342','#3b202c','#28151e');ctx.fillStyle='#f3ecdf';for(const x of [-18,18]){ctx.beginPath();ctx.ellipse(p.x+x,p.y-isoH(.82),15,7,0,0,Math.PI*2);ctx.fill();}ctx.fillStyle='#e8c674';ctx.font='900 9px system-ui';ctx.textAlign='center';ctx.fillText('СПАЛЬНЯ',p.x,p.y-isoH(1.55));}});
+  items.push({d:3+3.1,furniture:true,fn:()=>{const r=3,c=3.1,p=w2s(r,c);_bizIsoBox(r,c,5.8,1.35,1.05,'#d7ccb6','#766a5a','#51483f');ctx.fillStyle='#20252a';for(const x of [-22,-8,8,22]){ctx.beginPath();ctx.arc(p.x+x,p.y-isoH(1.14),5,0,Math.PI*2);ctx.fill();}ctx.strokeStyle='#b9d9df';ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x+34,p.y-isoH(1.35),8,Math.PI,0);ctx.stroke();ctx.fillStyle='#ffd36c';ctx.font='900 9px system-ui';ctx.textAlign='center';ctx.fillText('КУХНЯ',p.x,p.y-isoH(1.65));}});
+  items.push({d:H-3+3.1,furniture:true,fn:()=>{const r=H-3,c=3.1,p=w2s(r,c);_bizIsoBox(r,c,3.8,1.65,.72,'#d8e4df','#7b8e8d','#596b6b');ctx.fillStyle='rgba(135,220,238,.46)';ctx.beginPath();ctx.ellipse(p.x,p.y-isoH(.82),32,12,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#e8f5f2';ctx.lineWidth=3;ctx.stroke();ctx.fillStyle='#e9eee9';ctx.beginPath();ctx.ellipse(p.x+37,p.y-isoH(.4),10,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#8de8df';ctx.font='900 9px system-ui';ctx.textAlign='center';ctx.fillText('ВАННАЯ',p.x,p.y-isoH(1.45));}});
 
   // ── Диван (левая стена) ─────────────────────────────────────
   items.push({ d: 4 + 1.5, furniture: true, fn: () => {
@@ -54563,7 +54615,7 @@ function drawBuildingInterior() {
 
 // ── BANK INTERIOR CFG — единая большая комната ─────────────────
 // The detailed 2D bank below is the canonical visual source for every renderer.
-const BANK_INTERIOR_VISUAL_VERSION = 3;
+const BANK_INTERIOR_VISUAL_VERSION = 4;
 const _BINT = {
   small:  { W:28, H:24, crackTime:10, counterRow:15 },
   medium: { W:36, H:30, crackTime:15, counterRow:19 },
@@ -56729,6 +56781,76 @@ function drawBankInteriorScene() {
   }
 
   // Арочные проёмы — depth = r + c (правильный изо-порядок)
+  // BANK VISUAL PLAN V4: readable rooms inside the rear service zone.
+  // Visual-only architecture: authoritative movement and NPC routes stay in
+  // _isBlockedInterior(), so this does not change robbery gameplay.
+  const staffSplitR=Math.max(5,Math.floor(archRow*.54));
+  const loungeSplitR=Math.max(5,Math.floor(archRow*.58));
+  const staffDoorC=Math.max(2,Math.floor(partColL*.52));
+  const loungeDoorC=Math.min(W-3,Math.floor((partColR+W)*.5));
+  const _pushRoomWall=(r,c0,c1,doorC,front,side)=>{
+    for(let c=c0;c<c1;c++){
+      if(Math.abs(c-doorC)<1)continue;
+      const _r=r,_c=c;
+      items.push({d:_r+_c+.04,fn:()=>_wFace(_r,_c,_r,_c+1,front,'rgba(20,24,34,.72)',side)});
+    }
+  };
+  _pushRoomWall(staffSplitR,0,partColL,staffDoorC,'#2f3b52','#222c3c');
+  _pushRoomWall(loungeSplitR,partColR,W,loungeDoorC,'#5a4030','#38271d');
+
+  const _pushBankDoorFrame=(r,c,label,color)=>items.push({d:r+c+.22,fn:()=>{
+    const a=w2s(r,c-1),b=w2s(r,c+1),doorH=isoH(2.45),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    ctx.fillStyle='rgba(8,10,16,.82)';ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.lineTo(b.x,b.y-doorH);ctx.lineTo(a.x,a.y-doorH);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(a.x,a.y-doorH);ctx.lineTo(b.x,b.y-doorH);ctx.lineTo(b.x,b.y);ctx.stroke();
+    ctx.fillStyle='rgba(18,24,32,.88)';ctx.fillRect(mx-36,my-doorH-15,72,12);ctx.strokeStyle=color;ctx.lineWidth=.8;ctx.strokeRect(mx-36,my-doorH-15,72,12);
+    ctx.fillStyle='#f2ead8';ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,mx,my-doorH-9);ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  }});
+  _pushBankDoorFrame(staffSplitR,staffDoorC,'КАБИНЕТ / АРХИВ','#78bde8');
+  _pushBankDoorFrame(loungeSplitR,loungeDoorC,'ПЕРЕГОВОРНАЯ','#e4b874');
+
+  // Archive cabinets with individual drawers and brass handles.
+  for(let fi=0;fi<Math.max(3,Math.floor(partColL/3));fi++){
+    const fr=Math.min(archRow-1,staffSplitR+1.5),fc=1.2+fi*1.45;
+    items.push({d:fr+fc+.1,fn:((_r,_c,_i)=>()=>{
+      _bizIsoBox(_r,_c,1.05,.75,2.25,'#526270','#2c3742','#3a4652');
+      const p=w2s(_r+.18,_c+.48);
+      for(let row=0;row<4;row++){ctx.fillStyle=row%2?'#7f8d96':'#667681';ctx.fillRect(p.x-7,p.y-29+row*6,14,4.4);ctx.fillStyle='#d1aa4a';ctx.fillRect(p.x-1.5,p.y-27.5+row*6,3,1);}
+      if(_i===0){ctx.fillStyle='#9ed8ff';ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.fillText('АРХИВ',p.x,p.y-37);ctx.textAlign='left';}
+    })(fr,fc,fi)});
+  }
+
+  // Manager office with guest chairs and documents.
+  {const mr=Math.min(archRow-2,staffSplitR+3.2),mc=Math.max(2.7,partColL*.55);
+  items.push({d:mr+mc+.18,fn:()=>{
+    _bizIsoBox(mr,mc,3.4,1.35,.78,'#795033','#3d291f','#563822');
+    const p=w2s(mr+.4,mc+.1);ctx.fillStyle='#e9e1cf';ctx.fillRect(p.x-12,p.y-15,18,7);ctx.strokeStyle='#aa9e86';ctx.strokeRect(p.x-12,p.y-15,18,7);
+    ctx.fillStyle='#22354a';ctx.fillRect(p.x+5,p.y-24,15,10);ctx.fillStyle='#5ed1ff';ctx.fillRect(p.x+7,p.y-22,11,6);
+    for(const dc of [-1.35,1.35])_bizIsoBox(mr+1.55,mc+dc,.72,.72,.58,'#355b72','#203545','#29495d');
+  }});}
+
+  // Meeting room: table, folders, six chairs and a presentation screen.
+  if(W>=36){const tr=Math.min(archRow-2,loungeSplitR+2.65),tc=(partColR+W)*.5;
+  items.push({d:tr+tc+.16,fn:()=>{
+    _bizIsoBox(tr,tc,4.6,1.8,.62,'#805a3b','#493124','#61432e');
+    for(let i=-2;i<=2;i++){const p=w2s(tr+.22,tc+i*.68);ctx.fillStyle=i%2?'#d8e0e8':'#d4b65c';ctx.fillRect(p.x-4,p.y-13,8,5);}
+    for(const side of [-1,1])for(let i=-1;i<=1;i++)_bizIsoBox(tr+side*1.45,tc+i*1.35,.72,.72,.58,side<0?'#385c70':'#75404a','#263944','#4a2b34');
+    const screenP=w2s(loungeSplitR+.35,tc);ctx.fillStyle='#111820';ctx.fillRect(screenP.x-18,screenP.y-39,36,20);ctx.fillStyle='#4bbbe8';ctx.fillRect(screenP.x-15,screenP.y-36,30,14);
+  }});}
+
+  // Closed cash-processing point beside the secure corridor.
+  {const sr=Math.min(archRow-1.25,Math.max(4,archRow*.78)),sc=W*.5;
+  items.push({d:sr+sc+.2,fn:()=>{
+    _bizIsoBox(sr,sc,2.2,1.45,.92,'#d8d4ca','#6a737a','#8a9298');
+    const p=w2s(sr+.15,sc);ctx.fillStyle='#173029';ctx.fillRect(p.x-10,p.y-24,18,9);ctx.fillStyle='#6ae29a';ctx.fillRect(p.x-8,p.y-22,14,5);
+    for(let i=-2;i<=2;i++){ctx.fillStyle='#729653';ctx.fillRect(p.x-15+i*7,p.y-12,6,3);ctx.fillStyle='#e9dfc8';ctx.fillRect(p.x-14+i*7,p.y-11,4,1);}
+    ctx.fillStyle='#b9dfff';ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.fillText('ПЕРЕСЧЁТ',p.x,p.y-31);ctx.textAlign='left';
+  }});}
+
+  // Water cooler and fire extinguisher make the staff rooms unmistakable.
+  {const wr=Math.min(archRow-1.2,loungeSplitR+1.1),wc=partColR+1.1;
+  items.push({d:wr+wc+.08,fn:()=>{const p=w2s(wr,wc);ctx.fillStyle='#e8ece8';ctx.fillRect(p.x-7,p.y-26,14,22);ctx.fillStyle='rgba(90,200,235,.6)';ctx.beginPath();ctx.ellipse(p.x,p.y-30,7,10,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#43bce8';ctx.fillRect(p.x-4,p.y-13,3,3);ctx.fillStyle='#d64040';ctx.fillRect(p.x+2,p.y-13,3,3);}});
+  const er=archRow-.5,ec=partColR+.5;items.push({d:er+ec+.12,fn:()=>{const p=w2s(er,ec);ctx.fillStyle='#b8232e';ctx.fillRect(p.x-4,p.y-21,8,12);ctx.beginPath();ctx.arc(p.x,p.y-21,4,Math.PI,0);ctx.arc(p.x,p.y-9,4,0,Math.PI);ctx.fill();ctx.strokeStyle='#20242a';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(p.x+4,p.y-23,5,-Math.PI*.6,Math.PI*.35);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 6px system-ui';ctx.fillText('ОГН',p.x-4,p.y-13);}});}
+
   const drawArch = (r, c, label, col) => {
     items.push({d: r + c + .1, fn: () => {
       const a = w2s(r, c), b = w2s(r, c + 3);
@@ -57936,6 +58058,8 @@ window.Mafiozi3DBridge = Object.freeze({
     const casino=src.bizId==='major_casino';
     const apartmentKey=_buildingInt&&!src.type?(_apartmentOwnedKey(src.r,src.c)||src.apartmentKey||''):'';
     const apartmentInfo=apartmentKey?(_myApartments[apartmentKey]||{}):{};
+    const apartmentHost=!src.type?(_apartmentHosts||[]).find(h=>Math.floor(+h.r)===Math.floor(+src.r)&&Math.floor(+h.c)===Math.floor(+src.c)):null;
+    const venuePoi=src.type?POI.find(p=>Math.floor(+p.r)===Math.floor(+src.r)&&Math.floor(+p.c)===Math.floor(+src.c)):null;
     const majorBusinessId=src.type==='business'&&String(src.bizId||'').startsWith('major_')
       ?String(src.bizId).slice(6):'';
     const majorSafes=majorBusinessId&&String(_majorRaidLocal?.objectId||'')===majorBusinessId
@@ -57953,8 +58077,12 @@ window.Mafiozi3DBridge = Object.freeze({
       safes:majorSafes,
     }:null;
     const bankState=_bankInt?{
-      visualVersion:BANK_INTERIOR_VISUAL_VERSION,
+      visualVersion:BANK_INTERIOR_VISUAL_VERSION,size:_bankInt.bank?.size||'small',
       name:_bankInt.bank?.name||'Банк',phase:_bankInt.phase||'lobby',
+      architecture:'bank-rooms-v4',
+      rooms:_bankInt.room==='vault'
+        ?['vault','deposit_box_gallery','cash_cage','counting_zone','service_bay','biometric_airlock']
+        :['main_hall','teller_hall','security_booth','staff_office','manager_office','archive','break_room','conference_room','screening_corridor','cash_processing','vault_approach','atm_zone'],
       counterRow:+_bankInt.counterRow||Math.floor((+_bankInt.H||18)*.58),
       alarmTriggered:!!_bankInt.alarmTriggered,crackProg:+_bankInt.crackProg||0,
       vaultW:+_bankInt.vaultW||8,vaultH:+_bankInt.vaultH||12,
@@ -57964,8 +58092,9 @@ window.Mafiozi3DBridge = Object.freeze({
     }:null;
     return {
       kind:_buildingInt?'building':'bank',type:src.type||(_bankInt?'bank':'generic'),bizId:src.bizId||null,room:src.room||(_bankInt?'lobby':'main'),
+      venueId:String(venuePoi?.id||''),venueFamily:String(venuePoi?.mafiaFamily||''),
       width:_bankInt&&src.room==='vault'?(+src.vaultW||8):(+src.W||16),height:_bankInt&&src.room==='vault'?(+src.vaultH||12):(+src.H||12),seed:+src.seed||0,
-      apartment:!src.type?{key:apartmentKey,owned:!!_myApartments[apartmentKey],district:apartmentDistrictMarket(src.r,src.c)?.label||'Городская квартира',levels:{repair:+apartmentInfo.repair_level||0,safe:+apartmentInfo.safe_level||0,weaponRack:+apartmentInfo.weapon_rack_level||0,cameras:+apartmentInfo.cameras_level||0,garage:+apartmentInfo.garage_level||0}}:null,
+      apartment:!src.type?{key:apartmentKey,owned:!!_myApartments[apartmentKey],ownerUid:String(src.apartmentOwnerUid||apartmentHost?.owner_uid||(_myApartments[apartmentKey]?QP.uid:'')),ownerName:String(src.apartmentOwnerName||apartmentHost?.name||(_myApartments[apartmentKey]?(QP.name||'Игрок'):'')),district:apartmentDistrictMarket(src.r,src.c)?.label||'Городская квартира',levels:{repair:+apartmentInfo.repair_level||0,safe:+apartmentInfo.safe_level||0,weaponRack:+apartmentInfo.weapon_rack_level||0,cameras:+apartmentInfo.cameras_level||0,garage:+apartmentInfo.garage_level||0}}:null,
       playerElevation:casino?_casinoVisualElevation(src,player.r,player.c):0,
       layout:casinoLayout,businessLayout,bank:bankState,
       npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`);return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||'',look:n.look||null,hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
@@ -58133,7 +58262,7 @@ window.Mafiozi3DBridge = Object.freeze({
           policeStationEntry:{r:JAIL_POLICE_STATION_3D.entryR,c:JAIL_POLICE_STATION_3D.entryC,targetR:JAIL_CENTER_R,targetC:JAIL_CENTER_C},
           collisionProfile:'visible_perimeter_intake_timed_gate_wings_admin_causeways_v4',staffOnly:true,
         },
-        zones:{commonYard:true,exercise:true,intakeHolding:true,guardPost:true,policeStation:true,corridors:4,stairs:2},
+        zones:{commonYard:true,exercise:true,intakeHolding:true,guardPost:true,policeStation:true,canteen:true,kitchen:true,showers:true,infirmary:true,visitation:true,laundry:true,corridors:4,stairs:2},
       },
       lair:lairZone?{r:lairZone.r,c:lairZone.c,radius:lairZone.radius||18}:null,
       mafiaHq:(typeof BURJ_POS!=='undefined'?{id:'mafia_hq',r:BURJ_POS.r,c:BURJ_POS.c,name:'Burj Mafia · Беллини',family:'bellini'}:null),
@@ -62386,6 +62515,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d250-stable-police-arsenal"></script>
+<script type="module" src="three_preview.js?v=3d253-complete-visual-world-pass"></script>
 </body>
 </html>
