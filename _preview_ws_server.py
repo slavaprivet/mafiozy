@@ -68,6 +68,9 @@ preview_apartments = {}
 preview_custom_gangs = {}
 preview_custom_gang_by_uid = {}
 preview_custom_gang_seq = 0
+preview_custom_gang_npc_seq = 0
+custom_gang_player_invites = {}
+gang_player_invites = {}
 CUSTOM_GANG_FLAG_COLORS = {
     "#9b1f2d", "#cf303d", "#e77b28", "#e0b83e", "#287f55", "#2386a8",
     "#3154a5", "#6438a8", "#a23482", "#151922", "#ece5d5", "#7a4b2a",
@@ -1251,7 +1254,11 @@ def preview_custom_gang_payload(uid):
             "role": "leader" if str(uid) == str(gang["leader_uid"]) else "member",
             "hq_apt_key": gang["hq_apt_key"], "hq_r": coords[0], "hq_c": coords[1],
             "flag": gang["flag"], "members": members, "member_count": len(members),
-            "max_members": 12, "created_at": gang["created_at"]}
+            "max_members": 12, "treasury":int(gang.get("treasury",0)),
+            "edited_at":int(gang.get("edited_at",0)),"edit_cost":1000,
+            "edit_cooldown":3600,"npcs":list(gang.get("npcs") or []),
+            "history":list(reversed((gang.get("history") or [])[-20:])),
+            "created_at": gang["created_at"]}
 
 
 def preview_custom_gang_hqs():
@@ -1282,8 +1289,8 @@ async def custom_gang_create(req):
     if secondary==primary: secondary="#ece5d5" if primary!="#ece5d5" else "#151922"
     if emblem not in CUSTOM_GANG_FLAG_EMBLEMS: emblem="crown"
     flag={"primary":primary,"secondary":secondary,"emblem":emblem}
-    preview_custom_gangs[gid]={"name":name,"leader_uid":uid,"hq_apt_key":apt_key,"flag":flag,"members":[uid],"created_at":int(time.time())};preview_custom_gang_by_uid[uid]=gid
-    if uid in players: players[uid].update({"custom_gang_id":gid,"custom_gang_name":name,"custom_gang_role":"leader","custom_gang_flag":flag,"custom_gang_hq":apt_key})
+    now=int(time.time());preview_custom_gangs[gid]={"name":name,"leader_uid":uid,"hq_apt_key":apt_key,"flag":flag,"members":[uid],"treasury":0,"edited_at":0,"npcs":[],"history":[{"actor_uid":uid,"action":"create","details":{"name":name},"created_at":now}],"created_at":now};preview_custom_gang_by_uid[uid]=gid
+    if uid in players: players[uid].update({"custom_gang_id":gid,"custom_gang_name":name,"custom_gang_role":"leader","custom_gang_flag":flag,"custom_gang_hq":apt_key,"crew_id":f"cg:{gid}"})
     return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
 
 
@@ -1292,7 +1299,7 @@ async def custom_gang_leave(req):
     if not g or str(g["leader_uid"])==uid:return cors(web.json_response({"ok":False,"error":"leader must disband"},status=409))
     g["members"].remove(uid);preview_custom_gang_by_uid.pop(uid,None)
     if uid in players:
-        for k in ("custom_gang_id","custom_gang_name","custom_gang_role","custom_gang_flag","custom_gang_hq"):players[uid].pop(k,None)
+        for k in ("custom_gang_id","custom_gang_name","custom_gang_role","custom_gang_flag","custom_gang_hq","crew_id"):players[uid].pop(k,None)
     return cors(web.json_response({"ok":True,"gang":None,"headquarters":preview_custom_gang_hqs()}))
 
 
@@ -1302,9 +1309,87 @@ async def custom_gang_disband(req):
     for mid in list(g["members"]):
         preview_custom_gang_by_uid.pop(str(mid),None)
         if str(mid) in players:
-            for k in ("custom_gang_id","custom_gang_name","custom_gang_role","custom_gang_flag","custom_gang_hq"):players[str(mid)].pop(k,None)
+            for k in ("custom_gang_id","custom_gang_name","custom_gang_role","custom_gang_flag","custom_gang_hq","crew_id"):players[str(mid)].pop(k,None)
     preview_custom_gangs.pop(gid,None)
     return cors(web.json_response({"ok":True,"gang":None,"headquarters":preview_custom_gang_hqs()}))
+
+
+def _preview_gang_action(g, uid, action, details=None):
+    g.setdefault("history", []).append({"actor_uid":str(uid),"action":action,
+        "details":details or {},"created_at":int(time.time())})
+
+
+async def custom_gang_kick(req):
+    uid=str(req.match_info.get("uid","1"));body=await req.json();target=str(body.get("target_uid") or "")
+    gid=preview_custom_gang_by_uid.get(uid);g=preview_custom_gangs.get(gid)
+    if not g or str(g["leader_uid"])!=uid:return cors(web.json_response({"ok":False,"error":"leader only"},status=409))
+    if target==uid:return cors(web.json_response({"ok":False,"error":"cannot kick self"},status=409))
+    if target not in g["members"]:return cors(web.json_response({"ok":False,"error":"member not found"},status=409))
+    g["members"].remove(target);g["npcs"]=[n for n in g.get("npcs",[]) if str(n.get("owner_uid"))!=target];preview_custom_gang_by_uid.pop(target,None);_preview_gang_action(g,uid,"kick",{"target_uid":target})
+    if target in players:
+        for key in ("custom_gang_id","custom_gang_name","custom_gang_role","custom_gang_flag","custom_gang_hq","crew_id"):players[target].pop(key,None)
+    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
+
+
+async def custom_gang_transfer(req):
+    uid=str(req.match_info.get("uid","1"));body=await req.json();target=str(body.get("target_uid") or "")
+    gid=preview_custom_gang_by_uid.get(uid);g=preview_custom_gangs.get(gid)
+    if not g or str(g["leader_uid"])!=uid:return cors(web.json_response({"ok":False,"error":"leader only"},status=409))
+    if target not in g["members"]:return cors(web.json_response({"ok":False,"error":"member not found"},status=409))
+    g["leader_uid"]=target;_preview_gang_action(g,uid,"transfer",{"target_uid":target})
+    for mid in g["members"]:
+        if str(mid) in players:players[str(mid)]["custom_gang_role"]="leader" if str(mid)==target else "member"
+    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
+
+
+async def custom_gang_treasury(req):
+    uid=str(req.match_info.get("uid","1"));body=await req.json();amount=int(body.get("amount") or 0)
+    gid=preview_custom_gang_by_uid.get(uid);g=preview_custom_gangs.get(gid);account=preview_account(uid)
+    if not g:return cors(web.json_response({"ok":False,"error":"not in gang"},status=409))
+    if not amount or abs(amount)>1000000:return cors(web.json_response({"ok":False,"error":"bad amount"},status=409))
+    if amount>0:
+        if account["cash"]<amount:return cors(web.json_response({"ok":False,"error":"not enough cash"},status=409))
+        account["cash"]-=amount;g["treasury"]+=amount;action="deposit"
+    else:
+        take=-amount
+        if str(g["leader_uid"])!=uid:return cors(web.json_response({"ok":False,"error":"leader only"},status=409))
+        if g["treasury"]<take:return cors(web.json_response({"ok":False,"error":"not enough treasury"},status=409))
+        g["treasury"]-=take;account["cash"]+=take;action="withdraw"
+    _preview_gang_action(g,uid,action,{"amount":abs(amount)})
+    return cors(web.json_response({"ok":True,"cash":account["cash"],"gang":preview_custom_gang_payload(uid)}))
+
+
+async def custom_gang_edit(req):
+    uid=str(req.match_info.get("uid","1"));body=await req.json();name=" ".join(str(body.get("name") or "").split())[:24]
+    gid=preview_custom_gang_by_uid.get(uid);g=preview_custom_gangs.get(gid)
+    if not g or str(g["leader_uid"])!=uid:return cors(web.json_response({"ok":False,"error":"leader only"},status=409))
+    if len(name)<3:return cors(web.json_response({"ok":False,"error":"bad name"},status=400))
+    if int(time.time())<int(g.get("edited_at",0))+3600:return cors(web.json_response({"ok":False,"error":"edit cooldown"},status=409))
+    if g.get("treasury",0)<1000:return cors(web.json_response({"ok":False,"error":"not enough treasury"},status=409))
+    if any(oid!=gid and str(other["name"]).casefold()==name.casefold() for oid,other in preview_custom_gangs.items()):return cors(web.json_response({"ok":False,"error":"name taken"},status=409))
+    raw=body.get("flag") if isinstance(body.get("flag"),dict) else {};primary=str(raw.get("primary") or "").lower();secondary=str(raw.get("secondary") or "").lower();emblem=str(raw.get("emblem") or "").lower()
+    if primary not in CUSTOM_GANG_FLAG_COLORS:primary="#9b1f2d"
+    if secondary not in CUSTOM_GANG_FLAG_COLORS or secondary==primary:secondary="#e0b83e"
+    if secondary==primary:secondary="#ece5d5" if primary!="#ece5d5" else "#151922"
+    if emblem not in CUSTOM_GANG_FLAG_EMBLEMS:emblem="crown"
+    g.update({"name":name,"flag":{"primary":primary,"secondary":secondary,"emblem":emblem},"edited_at":int(time.time()),"treasury":g["treasury"]-1000});_preview_gang_action(g,uid,"edit",{"name":name})
+    for mid in g["members"]:
+        if str(mid) in players:players[str(mid)].update({"custom_gang_name":name,"custom_gang_flag":g["flag"]})
+    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
+
+
+async def custom_gang_npc_sync(req):
+    uid=str(req.match_info.get("uid","1"));body=await req.json();gid=preview_custom_gang_by_uid.get(uid);g=preview_custom_gangs.get(gid)
+    if not g:return cors(web.json_response({"ok":False,"error":"not in gang"},status=409))
+    incoming={str(n.get("id")):n for n in (body.get("npcs") or [])[:5] if isinstance(n,dict)}
+    kept=[]
+    for npc in g.get("npcs",[]):
+        if str(npc.get("owner_uid"))!=uid:kept.append(npc);continue
+        raw=incoming.get(str(npc.get("id")))
+        if raw:
+            npc.update({"hp":max(0,int(raw.get("hp") or 0)),"max_hp":max(1,int(raw.get("max_hp") or 80)),"level":max(1,min(25,int(raw.get("level") or 1))),"fighter_xp":max(0,int(raw.get("fighterXp") or 0)),"kills":max(0,int(raw.get("kills") or 0)),"damage_done":max(0,int(raw.get("damageDone") or 0))});kept.append(npc)
+    g["npcs"]=kept
+    return cors(web.json_response({"ok":True,"npcs":list(g["npcs"])}))
 
 
 def preview_owned_businesses(uid):
@@ -1484,6 +1569,27 @@ async def preview_three(_req):
     return web.Response(text=source, content_type="application/javascript")
 
 
+def preview_online_gang(uid):
+    p=players.get(str(uid)) or {};crew=str(p.get("crew_id") or "")
+    if not crew:return None
+    members=[]
+    for member_uid,member in players.items():
+        if str(member.get("crew_id") or "")!=crew:continue
+        members.append({"uid":str(member_uid),"name":member.get("name","Игрок"),
+                        "npc_count":len(member.get("gang") or []),
+                        "leader":str(member_uid)==crew})
+    return {"id":crew,"members":members,"max_players":12 if crew.startswith("cg:") else 3}
+
+
+def preview_leave_online_gang(uid):
+    p=players.get(str(uid)) or {};crew=str(p.get("crew_id") or "")
+    if not crew or crew.startswith("cg:"):return
+    p.pop("crew_id",None)
+    left=[member for member in players.values() if str(member.get("crew_id") or "")==crew]
+    if len(left)<2:
+        for member in left:member.pop("crew_id",None)
+
+
 def snap(uid):
     tick_race_cars()
     now = time.time()
@@ -1518,19 +1624,24 @@ def snap(uid):
         target["y"] = float(cop.get("y", 0)) - math.cos(ang) * .72
         target["ang"] = ang; target["walking"] = bool(cop.get("walking"))
     me_biz = str(p.get("business_interior") or "")
+    me_apt = str(p.get("apartment_key") or "")
     me_private = bool(p.get("business_private"))
     visible_others = []
     for other_uid, other in players.items():
         if str(other_uid) == str(uid):
             continue
         other_biz = str(other.get("business_interior") or "")
+        other_apt = str(other.get("apartment_key") or "")
         other_private = bool(other.get("business_private"))
-        if me_biz:
+        if me_apt:
+            if other_apt != me_apt:continue
+            ox,oy=float(other.get("interior_x",0)),float(other.get("interior_y",0))
+        elif me_biz:
             if me_private or other_biz != me_biz or other_private:
                 continue
             ox, oy = float(other.get("interior_x", 0)), float(other.get("interior_y", 0))
         else:
-            if other_biz:
+            if other_biz or other_apt:
                 continue
             ox, oy = float(other.get("x", 0)), float(other.get("y", 0))
             if (ox-float(p.get("x", 0)))**2 + (oy-float(p.get("y", 0)))**2 > 45**2:
@@ -1543,15 +1654,18 @@ def snap(uid):
             "wanted": int(other.get("wanted", 0)), "gangs": 0, "mode": "pvp",
             "jail_in": max(0, int(float(other.get("jail_until", 0))-now)),
             "weapon": other.get("weapon", "pistol"),
+            "swimming": bool(other.get("swimming", False)),
             "police": bool(other.get("police", False)),
             "custom_gang_id": int(other.get("custom_gang_id", 0)),
             "custom_gang_name": str(other.get("custom_gang_name", "")),
             "custom_gang_role": str(other.get("custom_gang_role", "")),
+            "custom_gang_flag": dict(other.get("custom_gang_flag") or {}),
             "police_cuffed": bool(other.get("police_cuffed_by")),
             "police_stunned_in": max(0, float(other.get("police_stunned_until", 0))-now),
             "police_escort": other.get("police_escort"),
-            "interior": ({"kind": "business", "biz_id": other_biz,
-                          "private": other_private} if other_biz else None),
+            "interior": ({"kind":"apartment","apartment_key":other_apt}
+                          if other_apt else ({"kind": "business", "biz_id": other_biz,
+                          "private": other_private} if other_biz else None)),
         })
     return {
         "t": "snap",
@@ -1571,6 +1685,11 @@ def snap(uid):
                 "police_xp": int(preview_account(uid).get("police_xp", 0)),
                 "mafia_xp": int(preview_account(uid).get("mafia_xp", 0)),
                 "custom_gang": preview_custom_gang_payload(uid),
+                "online_gang": preview_online_gang(uid),
+                "apartment_hosts":[{"owner_uid":str(owner_uid),"owner_name":owner.get("name","Игрок"),"apartment_key":str(owner.get("apartment_key"))}
+                    for owner_uid,owner in players.items() if str(owner_uid)!=str(uid) and owner.get("apartment_key")
+                    and str(owner.get("crew_id") or "")==str(p.get("crew_id") or "") and p.get("crew_id")
+                    and (float(owner.get("x",0))-float(p.get("x",0)))**2+(float(owner.get("y",0))-float(p.get("y",0)))**2<=3.2**2],
                 "police_arrests_today": preview_police_daily_state(uid)[1],
                 "police_arrest_limit": preview_police_daily_state(uid)[2],
                 "police_spikes_cd": max(0.0, round(
@@ -1678,6 +1797,7 @@ def snap(uid):
 
 
 async def world_ws(req):
+    global preview_custom_gang_npc_seq
     uid = req.query.get("uid", "1")
     p0 = players.setdefault(uid, {
         "x": PREVIEW_START_X,
@@ -1696,6 +1816,14 @@ async def world_ws(req):
             pass
     if req.query.get("mafia_test") == "1":
         p0["mafia"] = True
+    saved_custom_gang = preview_custom_gang_payload(uid)
+    if saved_custom_gang:
+        p0.update({"custom_gang_id":saved_custom_gang["id"],
+                   "custom_gang_name":saved_custom_gang["name"],
+                   "custom_gang_role":saved_custom_gang["role"],
+                   "custom_gang_flag":saved_custom_gang["flag"],
+                   "custom_gang_hq":saved_custom_gang["hq_apt_key"],
+                   "crew_id":f"cg:{saved_custom_gang['id']}"})
     try:
         p0["wanted"] = max(int(p0.get("wanted", 0)), min(3, int(req.query.get("wanted", 0))))
     except Exception:
@@ -2021,12 +2149,18 @@ async def world_ws(req):
                 if p.get("police_cuffed_by"):
                     continue
                 was_police = bool(p.get("police"))
+                was_mafia = bool(p.get("mafia"));old_family=str(p.get("mafia_family") or "")
                 p["police"] = bool(d.get("police", False))
-                p["mafia"] = bool(d.get("mafia", False)) and not p["police"]
                 requested_family = str(d.get("mafia_family") or "")
-                p["mafia_family"] = (requested_family
-                                     if p["mafia"] and requested_family in ("bellini", "moretti")
-                                     else "")
+                wants_mafia=bool(d.get("mafia",False)) and not p["police"] and not p.get("custom_gang_id") and requested_family in ("bellini","moretti")
+                if wants_mafia and time.time()<float(p.get("mafia_traitor_until",0)) and requested_family!=old_family:wants_mafia=False
+                if wants_mafia and not was_mafia:
+                    same=sum(1 for q in players.values() if q.get("mafia") and q.get("mafia_family")==requested_family)
+                    if same>=10:wants_mafia=False
+                if was_mafia and not wants_mafia:
+                    preview_leave_online_gang(uid)
+                    if not p["police"]:p["mafia_traitor_until"]=time.time()+300
+                p["mafia"]=wants_mafia;p["mafia_family"]=requested_family if wants_mafia else ""
                 if p["police"] and not was_police:
                     for did, own in list(district_owners.items()):
                         if str(own.get("owner_uid")) == str(uid): district_owners.pop(did, None)
@@ -2039,6 +2173,14 @@ async def world_ws(req):
                 else:
                     p["police_escort"] = None
                 interior = d.get("interior") if isinstance(d.get("interior"), dict) else None
+                apartment_key=str((interior or {}).get("apartment_key") or "")[:32]
+                if (interior or {}).get("kind") in ("building","apartment") and apartment_key:
+                    p["apartment_key"]=apartment_key;p["apartment_owner_uid"]=str((interior or {}).get("apartment_owner_uid") or uid)
+                    p["interior_x"]=max(0.0,min(60.0,float((interior or {}).get("x",d.get("x",0)))))
+                    p["interior_y"]=max(0.0,min(60.0,float((interior or {}).get("y",d.get("y",0)))))
+                    p["ang"]=float(d.get("ang",p.get("ang",0.0)));p["walking"]=bool(d.get("w",False));p["gang"]=list(d.get("gang") or [])[:7]
+                    continue
+                p.pop("apartment_key",None);p.pop("apartment_owner_uid",None)
                 major_id = str((interior or {}).get("object_id") or "")[:24]
                 if (interior or {}).get("kind") == "major" and major_id in PREVIEW_MAJOR:
                     p["major_interior"] = major_id
@@ -2068,6 +2210,8 @@ async def world_ws(req):
                 p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
                 p["walking"] = bool(d.get("w", False))
                 p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
+                p["swimming"] = bool(d.get("swimming", False))
+                p["gang"] = list(d.get("gang") or [])[:7]
             elif t == "district_capture_try":
                 p = players.get(uid) or {}
                 did = str(d.get("did") or "")
@@ -2206,6 +2350,68 @@ async def world_ws(req):
                 await broadcast_event({"kind":"world_c4_planted","id":charge_id,
                     "by_uid":str(uid),"by_name":charge["owner_name"],
                     "x":charge["x"],"y":charge["y"],"fuse_s":WORLD_C4_FUSE_S})
+            elif t == "apartment_guest_enter":
+                owner_uid=str(d.get("owner_uid") or "");apt_key=str(d.get("apartment_key") or "")
+                guest=players.get(uid) or {};owner=players.get(owner_uid) or {};reason=None
+                if not owner or str(owner.get("apartment_key") or "")!=apt_key:reason="owner_left"
+                elif not guest.get("crew_id") or str(guest.get("crew_id"))!=str(owner.get("crew_id") or ""):reason="not_crew"
+                elif (float(guest.get("x",0))-float(owner.get("x",0)))**2+(float(guest.get("y",0))-float(owner.get("y",0)))**2>3.2**2:reason="too_far"
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"apartment_guest_reply","ok":not reason,"reason":reason,"owner_uid":owner_uid,"owner_name":owner.get("name","Игрок"),"apartment_key":apt_key,"r":float(guest.get("y",0)),"c":float(guest.get("x",0))}},ensure_ascii=False))
+            elif t == "gang_player_invite":
+                target_uid=str(d.get("target_uid") or "");inviter=players.get(uid) or {};target=players.get(target_uid);reason=None
+                crew=str(inviter.get("crew_id") or uid);members=[q for q in players.values() if str(q.get("crew_id") or "")==crew]
+                if not inviter.get("mafia"):reason="mafia_only"
+                elif not target:reason="offline"
+                elif not target.get("mafia") or target.get("mafia_family")!=inviter.get("mafia_family"):reason="family_conflict"
+                elif target.get("crew_id"):reason="already_in_party"
+                elif len(members)>=3:reason="full"
+                elif (float(inviter.get("x",0))-float(target.get("x",0)))**2+(float(inviter.get("y",0))-float(target.get("y",0)))**2>3.2**2:reason="too_far"
+                if reason:await ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_player_reply","ok":False,"reason":reason}}))
+                else:
+                    gang_player_invites[target_uid]={"from_uid":str(uid),"expires_at":time.time()+25};target_ws=preview_connections.get(target_uid)
+                    if target_ws:await target_ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_player_invite","from_uid":str(uid),"from_name":inviter.get("name","Игрок")}},ensure_ascii=False))
+                    await ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_player_reply","ok":True,"pending":True,"target_name":target.get("name","Игрок")}},ensure_ascii=False))
+            elif t == "gang_player_answer":
+                inv=gang_player_invites.pop(str(uid),None);inviter=players.get(str((inv or {}).get("from_uid"))) if inv else None;accept=bool(d.get("accept"));ok=False
+                if inv and inviter and time.time()<=float(inv.get("expires_at",0)) and accept:
+                    crew=str(inviter.get("crew_id") or inv.get("from_uid"));members=[q for q in players.values() if str(q.get("crew_id") or "")==crew]
+                    target=players.get(uid) or {};ok=bool(inviter.get("mafia") and target.get("mafia") and inviter.get("mafia_family")==target.get("mafia_family") and len(members)<3)
+                    if ok:inviter["crew_id"]=crew;target["crew_id"]=crew
+                event=json.dumps({"t":"event","d":{"kind":"gang_player_changed","accepted":bool(ok)}},ensure_ascii=False)
+                for member_uid in {str(uid),str((inv or {}).get("from_uid") or "")}:
+                    target_ws=preview_connections.get(member_uid)
+                    if target_ws:await target_ws.send_str(event)
+            elif t in ("gang_player_leave","gang_player_kick"):
+                actor=players.get(uid) or {};crew=str(actor.get("crew_id") or "");target_uid=str(d.get("target_uid") or uid) if t=="gang_player_kick" else str(uid);target=players.get(target_uid)
+                if crew and not crew.startswith("cg:") and target and str(target.get("crew_id") or "")==crew:
+                    target.pop("crew_id",None);left=[q for q in players.values() if str(q.get("crew_id") or "")==crew]
+                    if len(left)<2:
+                        for q in left:q.pop("crew_id",None)
+            elif t == "custom_gang_player_invite":
+                target_uid=str(d.get("target_uid") or "");inviter=players.get(uid) or {};target=players.get(target_uid);gang=preview_custom_gang_payload(uid);reason=None
+                if not gang or gang.get("role")!="leader":reason="leader_only"
+                elif not target:reason="offline"
+                elif target_uid==str(uid):reason="self"
+                elif preview_custom_gang_by_uid.get(target_uid):reason="already_in_gang"
+                elif target.get("mafia") or target.get("police"):reason="faction_conflict"
+                elif (float(inviter.get("x",0))-float(target.get("x",0)))**2+(float(inviter.get("y",0))-float(target.get("y",0)))**2>3.2**2:reason="too_far"
+                if reason:await ws.send_str(json.dumps({"t":"event","d":{"kind":"custom_gang_player_reply","ok":False,"reason":reason}}))
+                else:
+                    custom_gang_player_invites[target_uid]={"from_uid":str(uid),"gang_id":gang["id"],"expires_at":time.time()+25};target_ws=preview_connections.get(target_uid)
+                    if target_ws:await target_ws.send_str(json.dumps({"t":"event","d":{"kind":"custom_gang_player_invite","from_uid":str(uid),"from_name":inviter.get("name","Игрок"),"gang_name":gang["name"],"flag":gang["flag"]}},ensure_ascii=False))
+                    await ws.send_str(json.dumps({"t":"event","d":{"kind":"custom_gang_player_reply","ok":True,"pending":True,"target_name":target.get("name","Игрок")}},ensure_ascii=False))
+            elif t == "custom_gang_player_answer":
+                inv=custom_gang_player_invites.pop(str(uid),None);accept=bool(d.get("accept"));ok=False;error="expired"
+                gang=preview_custom_gangs.get(int((inv or {}).get("gang_id") or 0));target=players.get(uid)
+                if inv and gang and target and time.time()<=float(inv.get("expires_at",0)):
+                    if accept and not (target.get("mafia") or target.get("police") or preview_custom_gang_by_uid.get(str(uid))) and len(gang["members"])<12:
+                        gang["members"].append(str(uid));preview_custom_gang_by_uid[str(uid)]=int(inv["gang_id"]);target.update({"custom_gang_id":int(inv["gang_id"]),"custom_gang_name":gang["name"],"custom_gang_role":"member","custom_gang_flag":gang["flag"],"custom_gang_hq":gang["hq_apt_key"],"crew_id":f"cg:{int(inv['gang_id'])}"});_preview_gang_action(gang,int(inv["from_uid"]),"join",{"target_uid":str(uid)});ok=True;error=""
+                    elif not accept:ok=True;error=""
+                    else:error="faction conflict"
+                event=json.dumps({"t":"event","d":{"kind":"custom_gang_player_changed","accepted":bool(accept and ok),"ok":ok,"error":error}},ensure_ascii=False)
+                for member_uid in {str(uid),str((inv or {}).get("from_uid") or "")}:
+                    target_ws=preview_connections.get(member_uid)
+                    if target_ws:await target_ws.send_str(event)
             elif t == "gang_hire_bot":
                 target_id = str(d.get("bot_id") or "")
                 found = None; found_did = None
@@ -2220,17 +2426,39 @@ async def world_ws(req):
                                   if b.get("alive") and str(b.get("id")) == target_id), None)
                     if found: found_did = did; break
                 p=players.get(uid,{})
-                ok=bool(found and found_gang and not p.get("police") and p.get("mafia") and
-                        math.hypot(float(p.get("x",0))-found["x"],float(p.get("y",0))-found["y"])<=3.2)
-                if ok: found["hp"]=0
+                account=preview_account(uid)
+                is_boss=bool(found and (found.get("boss") or found.get("is_boss") or "boss" in str(found.get("kind") or "")))
+                hire_cost=800 if is_boss else 500
+                role_ok=bool(p.get("mafia") or p.get("custom_gang_id"))
+                close_enough=bool(found and math.hypot(float(p.get("x",0))-found["x"],float(p.get("y",0))-found["y"])<=4.4)
+                ok=bool(found and found_gang and not p.get("police") and role_ok and close_enough)
+                npc=None;reason=None
+                if ok and int(account.get("cash",0))<hire_cost:ok=False;reason="cash"
+                if ok and p.get("custom_gang_id"):
+                    custom=preview_custom_gangs.get(int(p.get("custom_gang_id") or 0))
+                    owned=[n for n in (custom or {}).get("npcs",[]) if str(n.get("owner_uid"))==str(uid)]
+                    if not custom or len(owned)>=5:
+                        ok=False;reason="custom_gang_npc_full"
+                    else:
+                        preview_custom_gang_npc_seq+=1;max_hp=int(found.get("max_hp") or found.get("hp") or 100)
+                        npc={"id":str(preview_custom_gang_npc_seq),"owner_uid":str(uid),
+                             "name":random.choice(("Тони","Вито","Марко","Рико","Бруно","Энцо")),
+                             "look":dict(found.get("look") or {}),"weapon":found.get("weapon") or "pistol",
+                             "faction":found_gang.get("faction"),"hp":max_hp,"max_hp":max_hp,
+                             "level":max(1,int(found.get("level") or 1)),"fighter_xp":0,"kills":0,
+                             "damage_done":0,"is_boss":is_boss,"source_bot_id":target_id,
+                             "updated_at":int(time.time())};custom.setdefault("npcs",[]).append(npc);_preview_gang_action(custom,uid,"hire_npc",{"npc_id":npc["id"],"name":npc["name"]})
+                if ok: found["hp"]=0;account["cash"]-=hire_cost
                 await ws.send_str(json.dumps({"t":"event","d":{"kind":"gang_hire_reply",
-                    "ok":ok,"bot_id":target_id,"is_boss":False,
+                    "ok":ok,"bot_id":target_id,"is_boss":is_boss,
                     "look":dict(found.get("look") or {}) if ok else None,
                     "weapon":found.get("weapon") if ok else None,
-                    "hp":int(found.get("hp") or 100) if ok else None,"max_hp":100,
+                    "hp":int(found.get("hp") or 100) if ok else None,
+                    "max_hp":int(found.get("max_hp") or found.get("hp") or 100) if ok else None,
+                    "level":max(1,int(found.get("level") or 1)) if ok else None,
                     "faction":found_gang.get("faction") if ok else None,
                     "x":found.get("x") if ok else None,"y":found.get("y") if ok else None,
-                    "reason":None if ok else ("district_defender" if found_did else "gone")}}, ensure_ascii=False))
+                    "npc":npc,"cost":hire_cost,"cash":account["cash"],"reason":None if ok else (reason or ("district_defender" if found_did else "police_service" if p.get("police") else "not_mafia" if found and not role_ok else "too_far" if found and not close_enough else "gone"))}}, ensure_ascii=False))
             elif t == "major_assault_start":
                 oid=str(d.get("object_id") or "")[:24];cfg=PREVIEW_MAJOR.get(oid);p=players.get(uid,{})
                 own=preview_major_owners.get(oid);raid=preview_major_raids.get(oid)
@@ -2815,6 +3043,7 @@ async def world_ws(req):
         if preview_connections.get(str(uid)) is ws:
             preview_connections.pop(str(uid), None)
             leaving = players.get(uid) or {}
+            preview_leave_online_gang(uid)
             evidence = leaving.get("police_evidence_bag")
             if evidence:
                 bag_id = f"bag_preview_{time.time_ns()}"
@@ -2852,6 +3081,11 @@ app.router.add_get("/custom-gang/{uid}/state", custom_gang_state)
 app.router.add_post("/custom-gang/{uid}/create", custom_gang_create)
 app.router.add_post("/custom-gang/{uid}/leave", custom_gang_leave)
 app.router.add_post("/custom-gang/{uid}/disband", custom_gang_disband)
+app.router.add_post("/custom-gang/{uid}/kick", custom_gang_kick)
+app.router.add_post("/custom-gang/{uid}/transfer", custom_gang_transfer)
+app.router.add_post("/custom-gang/{uid}/treasury", custom_gang_treasury)
+app.router.add_post("/custom-gang/{uid}/edit", custom_gang_edit)
+app.router.add_post("/custom-gang/{uid}/npcs/sync", custom_gang_npc_sync)
 app.router.add_get("/biz/{uid}/list", business_list)
 app.router.add_post("/biz/{uid}/buy", business_buy)
 app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
