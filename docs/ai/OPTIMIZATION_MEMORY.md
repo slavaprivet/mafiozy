@@ -79,6 +79,13 @@ Read this before adding or expanding a 3D feature in `world.html` or
 - Add transition-focused preview checks. A steady-state FPS test will not catch
   a retained input flag, first-shot warmup or duplicate response spawned only
   on the first frame after a state change.
+- Keep the number and kinds of visible Three.js lights stable across gameplay
+  state changes. Switching a zero-intensity light's colour/intensity is cheap;
+  adding a newly visible `PointLight` can recompile every affected material.
+  Pre-create one light slot when only one alarm colour is emitted at a time.
+- Prime `InstancedMesh.instanceColor` before shader warmup whenever live code
+  later calls `setColorAt`. Creating that attribute on the first projectile or
+  decal changes shader defines and moves compilation back into gameplay.
 
 ## Proximity prompts and DOM overlays
 

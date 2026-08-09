@@ -733,7 +733,11 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           const lockGatePart=(w,h,d,mat,px,py,pz)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.set(px,py,pz);mesh.castShadow=mesh.receiveShadow=true;prisonVehicleLockGate.add(mesh);return mesh;};
           for(let gi=0;gi<15;gi++)lockGatePart(.2,4.75,.2,gateSteel,0,2.375,-westGateOpen*.47+gi*(westGateOpen*.94/14));
           for(const gy of [.2,2.35,4.52])lockGatePart(.3,.2,westGateOpen*.98,gy===2.35?warningMat:gateSteel,0,gy,0);
-          const addPrisonBeacon=(bx,by,bz,lit=false)=>{const root=new THREE.Group(),red=new THREE.Mesh(new THREE.BoxGeometry(.7,.3,.5),new THREE.MeshBasicMaterial({color:0xff2424,toneMapped:false})),blue=new THREE.Mesh(new THREE.BoxGeometry(.7,.3,.5),new THREE.MeshBasicMaterial({color:0x2589ff,toneMapped:false}));red.position.x=-.42;blue.position.x=.42;root.add(red,blue);let redLight=null,blueLight=null;if(lit){redLight=new THREE.PointLight(0xff2020,0,22,2);blueLight=new THREE.PointLight(0x2589ff,0,22,2);root.add(redLight,blueLight);}root.position.set(bx,by,bz);root.visible=false;prison.add(root);prisonAlarmBeacons.push({root,red,blue,redLight,blueLight});};
+          // A beacon only emits one colour at a time. Keep one zero-intensity
+          // light per illuminated beacon in the scene and switch its colour;
+          // toggling whole red/blue PointLights changed the global light count
+          // and recompiled dozens of city shaders on the first prison shot.
+          const addPrisonBeacon=(bx,by,bz,lit=false)=>{const root=new THREE.Group(),red=new THREE.Mesh(new THREE.BoxGeometry(.7,.3,.5),new THREE.MeshBasicMaterial({color:0xff2424,toneMapped:false})),blue=new THREE.Mesh(new THREE.BoxGeometry(.7,.3,.5),new THREE.MeshBasicMaterial({color:0x2589ff,toneMapped:false}));red.position.x=-.42;blue.position.x=.42;root.add(red,blue);let alarmLight=null;if(lit){alarmLight=new THREE.PointLight(0xff2020,0,22,2);root.add(alarmLight);}root.position.set(bx,by,bz);root.visible=!!alarmLight;red.visible=blue.visible=false;prison.add(root);prisonAlarmBeacons.push({root,red,blue,alarmLight});};
           addPrisonBeacon(-halfX-.7,6.55,westGateLocalZ,true);addPrisonBeacon(0,6.65,-halfZ,true);
           for(const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]])addPrisonBeacon(sx*(halfX-1.8),10.15,sz*(halfZ-1.8),false);
           renderer.domElement.dataset.jailGateLeaves='main-west-vehicle-open-old-center-sealed-south-personal-lift';renderer.domElement.dataset.jailGateStyle='main-west-vehicle-sally-port-v266';renderer.domElement.dataset.jailConvoyAccess='road-stop-open-gate-handoff-inside-v266';renderer.domElement.dataset.jailIntakeRoom='9x12-tiles-half-main-width-over-water';
@@ -2306,6 +2310,11 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const corpseBloodDecals=makeInstances(new THREE.CircleGeometry(1,24),new THREE.MeshBasicMaterial({color:0x52070d,transparent:true,opacity:.84,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}),NPC_CAP,false);corpseBloodDecals.renderOrder=10;
       const GORE_LIMB_CAP=12,GORE_CHUNK_CAP=24,goreLimbs=makeInstances(new THREE.BoxGeometry(.36,1.18,.4),new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.82,metalness:0}),GORE_LIMB_CAP,false),goreChunks=makeInstances(new THREE.IcosahedronGeometry(.14,1),new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.9,metalness:0}),GORE_CHUNK_CAP,false);goreLimbs.count=0;goreChunks.count=0;goreLimbs.renderOrder=27;goreChunks.renderOrder=28;
       const bulletHoleCanvas=document.createElement('canvas');bulletHoleCanvas.width=96;bulletHoleCanvas.height=96;const bulletHoleCtx=bulletHoleCanvas.getContext('2d'),bulletHoleGradient=bulletHoleCtx.createRadialGradient(48,48,3,48,48,42);bulletHoleGradient.addColorStop(0,'rgba(0,0,0,1)');bulletHoleGradient.addColorStop(.18,'rgba(10,8,7,.98)');bulletHoleGradient.addColorStop(.34,'rgba(86,69,53,.94)');bulletHoleGradient.addColorStop(.48,'rgba(28,22,18,.76)');bulletHoleGradient.addColorStop(1,'rgba(0,0,0,0)');bulletHoleCtx.fillStyle=bulletHoleGradient;bulletHoleCtx.fillRect(0,0,96,96);bulletHoleCtx.strokeStyle='rgba(226,204,166,.62)';bulletHoleCtx.lineWidth=2;for(let i=0;i<8;i++){const a=i*2.399;bulletHoleCtx.beginPath();bulletHoleCtx.moveTo(48+Math.cos(a)*12,48+Math.sin(a)*12);bulletHoleCtx.lineTo(48+Math.cos(a)*31,48+Math.sin(a)*31);bulletHoleCtx.stroke();}const bulletHoleTexture=new THREE.CanvasTexture(bulletHoleCanvas);bulletHoleTexture.colorSpace=THREE.SRGBColorSpace;const bulletHoleDecals=makeInstances(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:bulletHoleTexture,transparent:true,opacity:.94,depthWrite:false,depthTest:true,side:THREE.DoubleSide,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4}),32,false);bulletHoleDecals.renderOrder=29;renderer.domElement.dataset.bulletHoleRendering='oriented-instanced-wall-decals-v198';
+      // setColorAt() lazily creates instanceColor and therefore changes the
+      // material program on the first live projectile. Allocate the bounded
+      // colour buffers before shader warmup so first fire uses the same program.
+      const primeInstanceColor=mesh=>{if(mesh&&!mesh.instanceColor){mesh.setColorAt(0,new THREE.Color(0xffffff));mesh.instanceColor.needsUpdate=true;}};
+      for(const mesh of [worldBullets,worldBulletTrails,worldBulletGlows,worldBulletCores,bloodDecals,goreLimbs,goreChunks,bulletHoleDecals])primeInstanceColor(mesh);
       const bulletUp=new THREE.Vector3(0,1,0),bulletDirection=new THREE.Vector3();
       const setPart=(mesh,index,root,px,py,pz,rx=0,scale=unitScale,ry=0,rz=0)=>{instanceQuat.setFromEuler(instanceEuler.set(rx,ry,rz));localMatrix.compose(instancePosition.set(px,py,pz),instanceQuat,scale);instanceMatrix.multiplyMatrices(root,localMatrix);mesh.setMatrixAt(index,instanceMatrix);};
       const NPC_ANIM_CRAWL=1,NPC_ANIM_LIMP=2,NPC_ANIM_PANIC=4,NPC_ANIM_COWER=8,NPC_ANIM_SURRENDER=16,NPC_ANIM_HELP=32,NPC_ANIM_TALK=64,NPC_ANIM_ALERT=128,NPC_SOCIAL_GESTURES=new Set(['talk','talking','explain','argue','point','wave']);
@@ -3924,6 +3933,13 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           // first use behind the loading screen instead of inside gameplay rAF.
           renderer.compile(scene,camera);
           renderer.render(scene,camera);
+          // Prison custody/alarm transitions briefly hide the two authored
+          // beacon light roots. Three includes visible light counts in every
+          // lit shader key, so the first shot otherwise recompiles the complete
+          // city from the three-point-light variant to the one-light variant.
+          // Warm that exact quiet/transition variant behind the loading screen.
+          const prisonLightRoots=prisonAlarmBeacons.filter(beacon=>beacon.alarmLight).map(beacon=>beacon.root),prisonLightVisibility=prisonLightRoots.map(root=>root.visible);
+          if(prisonLightRoots.length){const prisonWarmStartedAt=performance.now();prisonLightRoots.forEach(root=>{root.visible=false;});renderer.compile(scene,camera);renderer.render(scene,camera);prisonLightRoots.forEach((root,index)=>{root.visible=prisonLightVisibility[index];});renderer.domElement.dataset.prisonCombatWarmup=`ready:${prisonLightRoots.length}:${(performance.now()-prisonWarmStartedAt).toFixed(1)}ms`;}
           finishInitialCompile('ready-warmup-frame');
         }catch(error){finishInitialCompile('ready-normal-render',error);}
       };
@@ -4417,7 +4433,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             const eased=prisonVehicleLockVisual*prisonVehicleLockVisual*(3-2*prisonVehicleLockVisual);prisonVehicleLockGate.position.y=6.3-eased*5.62;
           }
           const alarmFlash=(Math.floor(t/180)&1)===0;
-          prisonAlarmBeacons.forEach((beacon,i)=>{beacon.root.visible=prisonAlarmActive;beacon.root.rotation.y=t*.009+i*.72;beacon.red.visible=alarmFlash;beacon.blue.visible=!alarmFlash;if(beacon.redLight)beacon.redLight.intensity=prisonAlarmActive&&alarmFlash?28:0;if(beacon.blueLight)beacon.blueLight.intensity=prisonAlarmActive&&!alarmFlash?28:0;});
+          prisonAlarmBeacons.forEach((beacon,i)=>{beacon.root.visible=prisonAlarmActive||!!beacon.alarmLight;beacon.root.rotation.y=t*.009+i*.72;beacon.red.visible=prisonAlarmActive&&alarmFlash;beacon.blue.visible=prisonAlarmActive&&!alarmFlash;if(beacon.alarmLight){beacon.alarmLight.color.setHex(alarmFlash?0xff2020:0x2589ff);beacon.alarmLight.intensity=prisonAlarmActive?28:0;}});
           renderer.domElement.dataset.prisonAlarmVisual=prisonAlarmActive?`active:${alarmFlash?'red':'blue'}:${prisonAlarmBeacons.length}`:'quiet';renderer.domElement.dataset.prisonVehicleGateLock=prisonAlarmActive?'closed':'open';
           if(!junkyardVisualBuilt&&t>=junkyardProbeAt&&Math.hypot((+state.r||0)-86,(+state.c||0)-66)<=WORLD_SNAPSHOT_RADIUS+4){
             junkyardProbeAt=t+750;
