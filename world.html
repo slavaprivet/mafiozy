@@ -174,21 +174,29 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
    Инпут раскрывается ВЛЕВО (flex-direction: row-reverse) — кнопка
    остаётся прижата к правому краю, поле бежит к центру экрана. */
 #chatBar {
-  position: absolute; right: 14px; bottom: 240px;
-  display: flex; flex-direction: row-reverse; gap: 6px;
-  align-items: center; z-index: 6;
+  position: absolute; left: 50%; bottom: 44px; transform: translate(-50%, 10px);
+  display: flex; flex-direction: column; gap: 6px; align-items: stretch;
+  width: min(520px, calc(100vw - 40px)); opacity: 0; visibility: hidden;
+  pointer-events: none; z-index: 80; transition: opacity .14s ease, transform .14s ease;
+}
+#chatBar.open {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0);
+}
+#chatModeLabel {
+  align-self: flex-start; padding: 4px 9px; color: #f5cf67;
+  background: rgba(8,10,14,.96); border: 1px solid #b78a2c; border-radius: 3px;
+  box-shadow: 0 3px 12px rgba(0,0,0,.5); font: 800 10px/1.15 inherit;
+  letter-spacing: .08em; text-transform: uppercase;
 }
 #chatInput {
-  width: 0; opacity: 0; transition: width .2s ease, opacity .2s ease;
-  background: rgba(20,24,32,.92); border: 1px solid #3a4452; border-radius: 10px;
-  padding: 10px 12px; font-size: 14px; color: #fff; outline: none;
-  font-family: inherit;
+  box-sizing: border-box; width: 100%; opacity: 1;
+  background: linear-gradient(180deg, rgba(24,21,15,.98), rgba(9,10,13,.98));
+  border: 2px solid #d2a947; border-radius: 4px; padding: 12px 14px;
+  box-shadow: 0 7px 24px rgba(0,0,0,.62), inset 0 0 0 2px rgba(255,229,148,.08);
+  color: #fff7dc; outline: none; font: 800 15px/1.2 inherit;
 }
-#chatInput.open { width: min(240px, 56vw); opacity: 1; }
-#btnChat {
-  background: rgba(40,60,100,.92); border: 2px solid #5aa8ff; border-radius: 14px;
-  color: #bcd9ff; font-size: 22px; cursor: pointer; width: 48px; height: 48px;
-}
+#chatInput::placeholder { color: rgba(255,247,220,.48); }
+#chatInput:focus { border-color: #f2cc66; box-shadow: 0 7px 24px rgba(0,0,0,.62), 0 0 0 2px rgba(210,169,71,.22); }
 
 /* Floating «Зайти в район» — для перехода к боям */
 #zoneBtn {
@@ -2394,9 +2402,9 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
     <button class="em" data-e="🤝">🤝</button>
   </div>
 
-  <div id="chatBar">
-    <input id="chatInput" placeholder="Сообщение…" maxlength="80">
-    <button id="btnChat">💬</button>
+  <div id="chatBar" aria-hidden="true">
+    <div id="chatModeLabel">ЧАТ · ENTER — ОТПРАВИТЬ · ESC — ЗАКРЫТЬ</div>
+    <input id="chatInput" placeholder="Введите сообщение…" maxlength="80" autocomplete="off" aria-label="Сообщение в общий чат">
   </div>
 
   <div id="errorBanner"></div>
@@ -10660,7 +10668,57 @@ function _policeSceneParking(targetR,targetC,fromR,fromC){
 }
 function _policeCrewPassable(r,c){
   const prison=typeof _prisonIslandCollisionAt==='function'?_prisonIslandCollisionAt(r,c):null;
-  return prison?!prison.blocked:npcPassableForSnitch(r,c);
+  if(prison)return !prison.blocked;
+  return npcPassableForSnitch(r,c)&&!isBlockedPed(r,c);
+}
+function _policeCrewBodyPassable(r,c){
+  const pad=.24;
+  return _policeCrewPassable(r,c)&&_policeCrewPassable(r-pad,c-pad)&&
+    _policeCrewPassable(r-pad,c+pad)&&_policeCrewPassable(r+pad,c-pad)&&
+    _policeCrewPassable(r+pad,c+pad);
+}
+function _clearPoliceFootRoute(cop){
+  cop._policeFootRoute=null;cop._policeFootRouteIndex=0;cop._policeFootRouteUntil=0;
+}
+function _planPoliceFootRoute(cop,targetR,targetC,now=performance.now()){
+  const sr=Math.floor(cop.y),sc=Math.floor(cop.x),startKey=sr*MAP_COLS+sc;
+  const queue=[{r:sr,c:sc,key:startKey}],nodes=new Map([[startKey,queue[0]]]),dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  let best=queue[0],bestD=Math.hypot(sr+.5-targetR,sc+.5-targetC),goal=null;
+  for(let qi=0;qi<queue.length&&nodes.size<5200;qi++){
+    const cur=queue[qi],d=Math.hypot(cur.r+.5-targetR,cur.c+.5-targetC);
+    if(d<bestD){best=cur;bestD=d;}if(d<.82){goal=cur;break;}
+    for(const [dr,dc] of dirs){const r=cur.r+dr,c=cur.c+dc,key=r*MAP_COLS+c;
+      if(nodes.has(key)||!_policeCrewBodyPassable(r+.5,c+.5))continue;
+      const node={r,c,key,parent:cur.key};nodes.set(key,node);queue.push(node);
+    }
+  }
+  goal=goal||best;const path=[];
+  while(goal&&goal.key!==startKey){path.push({r:goal.r+.5,c:goal.c+.5});goal=nodes.get(goal.parent);}
+  path.reverse();cop._policeFootRoute=path;cop._policeFootRouteIndex=0;
+  cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;cop._policeFootRouteUntil=now+900;
+  return path.length>0;
+}
+function _markPoliceShot(cop,weapon,now=performance.now()){
+  if(!cop)return;cop._shotAt=now;cop._shotWeapon=weapon||cop.weapon||'pistol';cop._shotSeq=(+cop._shotSeq||0)+1;
+}
+// One collision-aware mover for patrol, response, tactical and prison police.
+// It validates the actor's whole body against 3D building footprints and uses
+// a short cached cardinal route whenever the direct pursuit step meets a wall.
+function _movePoliceFootCop(cop,targetR,targetC,dt,mul=1){
+  const now=performance.now(),directR=targetR-cop.y,directC=targetC-cop.x,directD=Math.hypot(directR,directC);
+  if(directD<.18){_clearPoliceFootRoute(cop);return true;}
+  const speed=(cop.speed||1.35)*mul,step=Math.min(directD,speed*dt);
+  const tryStep=(wr,wc)=>{const d=Math.hypot(wr,wc)||1,rr=wr/d*step,cc=wc/d*step;
+    if(!_policeCrewBodyPassable(cop.y+rr,cop.x+cc))return false;
+    cop.y+=rr;cop.x+=cc;cop.ang=Math.atan2(rr,cc);cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;return true;};
+  if(!cop._policeFootRoute?.length&&tryStep(directR,directC))return false;
+  const routeStale=now>=(cop._policeFootRouteUntil||0)||Math.hypot(targetR-(cop._policeFootRouteTargetR||0),targetC-(cop._policeFootRouteTargetC||0))>1.25;
+  if(routeStale||!cop._policeFootRoute?.length)_planPoliceFootRoute(cop,targetR,targetC,now);
+  const route=cop._policeFootRoute||[];let idx=Math.max(0,+cop._policeFootRouteIndex||0),wp=route[idx];
+  while(wp&&Math.hypot(wp.r-cop.y,wp.c-cop.x)<.24){idx++;wp=route[idx];cop._policeFootRouteIndex=idx;}
+  if(wp&&tryStep(wp.r-cop.y,wp.c-cop.x))return false;
+  if(tryStep(directR,directC)){_clearPoliceFootRoute(cop);return false;}
+  cop._policeFootRouteUntil=0;return false;
 }
 function _murderPoliceSpacingVector(cop,radius=1.55){
   const phase=String(cop?._casePhase||'');
@@ -10685,16 +10743,8 @@ function _moveMurderResponseCop(cop,tr,tc,dt,mul=1){
   const dr=tr-cop.y,dc=tc-cop.x,d=Math.hypot(dr,dc);
   const spacing=_murderPoliceSpacingVector(cop),hasSpacing=spacing.count&&Math.hypot(spacing.r,spacing.c)>.01;
   if(d<.18&&!hasSpacing)return true;
-  let wishR=d>.001?dr/d:0,wishC=d>.001?dc/d:0;
-  if(hasSpacing){wishR+=spacing.r*3.4;wishC+=spacing.c*3.4;}
-  const wishD=Math.hypot(wishR,wishC)||1,step=Math.min(Math.max(d,.3),(cop.speed||1.35)*mul*dt),sr=wishR/wishD*step,sc=wishC/wishD*step;
-  cop.ang=Math.atan2(sr,sc);
-  const tries=[[sr,sc],[sc*.72,-sr*.72],[-sc*.72,sr*.72],[sr*.45,0],[0,sc*.45]];
-  for(const [rr,cc] of tries){
-    if(!_policeCrewPassable(cop.y+rr,cop.x+cc))continue;
-    cop.y+=rr;cop.x+=cc;cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;return false;
-  }
-  return false;
+  const targetR=tr+(hasSpacing?spacing.r*2.1:0),targetC=tc+(hasSpacing?spacing.c*2.1:0);
+  return _movePoliceFootCop(cop,targetR,targetC,dt,mul);
 }
 function _policeCrewBoardPoint(v,slot){
   const side=slot%2?1:-1,row=Math.floor(slot/2),ang=Number.isFinite(+v.ang)?+v.ang:0,long=-.08+row*.58;
@@ -12841,7 +12891,7 @@ function _silenceWitness(){
   if(Math.random()<chance){n.snitching=false;n._witnessStage='silent';n._witnessCallUntil=0;n.panicUntil=performance.now()+2800;n.cryText='Я ничего не видел…';n.cryUntil=performance.now()+1800;_districtRepAdd(1,'свидетель промолчал',true);showToast(`🤫 Свидетель промолчал · −$${cost}`,'🤝',2200);}
   else{n._witnessCallUntil=performance.now()+650;n.cryText='Не подходи! Я уже звоню!';n.cryUntil=performance.now()+1500;showToast(`Свидетель отказался · −$${cost}`,'📱',2200);}
 }
-window.addEventListener('keydown',e=>{if(e.code==='KeyE'&&!e.repeat&&_nearestCallingWitness())_silenceWitness();});
+window.addEventListener('keydown',e=>{if(!chatOpen&&e.code==='KeyE'&&!e.repeat&&_nearestCallingWitness())_silenceWitness();});
 
 // Главная функция «свидетели заметили нарушение». Применяется ко всем
 // NPC в радиусе. С шансом snitchChance (по умолчанию 90%) NPC бежит в
@@ -19074,7 +19124,7 @@ window.addEventListener('touchcancel', (e) => {
 // other active keyboard layout.
 const _keyState = { up:false, down:false, left:false, right:false };
 window.addEventListener('keydown', (e) => {
-  if(e.target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
+  if(chatOpen||e.target?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
   if (e.code === 'KeyW' || e.code === 'ArrowUp')    _keyState.up    = true;
   if (e.code === 'KeyS' || e.code === 'ArrowDown')  _keyState.down  = true;
   if (e.code === 'KeyA' || e.code === 'ArrowLeft')  _keyState.left  = true;
@@ -22098,8 +22148,8 @@ function wsConnect() {
           p = { uid: o.uid,
                 x: o.x, y: o.y, ang: o.ang || 0, w: !!o.w,
                 tx: o.x, ty: o.y, tAng: o.ang || 0,
-                name: o.name || '?', look: o.look || {}, chat: '',
-                chatT: 0, lastT: performance.now(),
+                name: o.name || '?', look: o.look || {}, chat: o.chat || '',
+                chatT: o.chat ? performance.now() : 0, lastT: performance.now(),
                 hp: o.hp || PVP.max_hp, dead: !!o.dead,
                 wanted: o.wanted || 0, gangs: o.gangs || 0,
                 mode: o.mode || 'pvp', jail_in: o.jail_in || 0,
@@ -59343,6 +59393,7 @@ window.Mafiozi3DBridge = Object.freeze({
       prisonAlarm:{active:_prisonAlarmActive(),startedAt:+_prisonAlarmState.startedAt||0,sequence:+_prisonAlarmState.sequence||0,reason:_prisonAlarmState.reason||'',lockdown:_prisonAlarmActive()},
       carryingBag:!!((_bankInt&&_bankInt.myBag)||(_bankRob&&_bankRob.myBag)||_myBagWeight>0),
       name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
+      chat: _localChat && stateNow-_localChatT<chatDuration(_localChat) ? _localChat : '',
       role: servingSentence ? 'prisoner' : (_policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian'),
       family: servingSentence ? null : (_mafiaState?.employed ? (_mafiaState.family || null) : null),
       armor:armorId||null,armorDurability,armorMax,
@@ -59990,7 +60041,7 @@ window.Mafiozi3DBridge = Object.freeze({
       seed:(String(x.id||i).length*17+i*31)%97,radius:2.5,kind:'vehicle_wreck'
     }));
     fireFx.unshift(...wreckFireFx);if(fireFx.length>12)fireFx.length=12;
-    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||''});}
+    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||'',chat:x.chat&&fxNow-(+x.chatT||0)<chatDuration(x.chat)?x.chat:''});}
     const objects=[];
     const addObject=(kind,id,r,c,label,color,extra={})=>{
       const rr=+r,cc=+c;if(!Number.isFinite(rr)||!Number.isFinite(cc)||!near(rr,cc))return;
@@ -60281,7 +60332,6 @@ document.getElementById('btnHome').addEventListener('click', () => {
 
 // ── Чат + быстрые смайлики ─────────────────────────────────────
 const chatInput = document.getElementById('chatInput');
-const btnChat   = document.getElementById('btnChat');
 const emojiBar  = document.getElementById('emojiBar');
 let chatOpen = false;
 
@@ -60299,7 +60349,7 @@ function _syncChatBarOverKb() {
   // Высота клавиатуры = инициальный экран минус видимый viewport.
   const kbH = Math.max(0, _initialStageH - vv.height - vv.offsetTop);
   if (chatOpen && kbH > 40) {
-    _chatBar.style.bottom = (240 + kbH) + 'px';
+    _chatBar.style.bottom = (24 + kbH) + 'px';
     if (emojiBar) emojiBar.style.bottom = (296 + kbH) + 'px';
   } else {
     _chatBar.style.bottom = '';   // вернуть к CSS-значению
@@ -60312,22 +60362,34 @@ if (window.visualViewport) {
 }
 
 function openChat() {
+  if (chatOpen) return;
   chatOpen = true;
+  document.body.classList.add('chat-mode');
+  document.documentElement.dataset.chatMode = 'open';
+  _keyState.up = _keyState.down = _keyState.left = _keyState.right = false;
+  _fireBtnDown = false;
+  joyL.active = false; joyL.dx = joyL.dy = 0;
+  joyR.active = false; joyR.dx = joyR.dy = 0; joyR.hasAim = false;
+  window.dispatchEvent(new CustomEvent('mafiozi-chat-mode', {detail:{open:true}}));
   // Замораживаем layout до момента, пока клавиатура не открылась —
   // иначе #stage сожмётся под visualViewport и absolute-иконки уедут.
   _stage.style.height = _initialStageH + 'px';
-  chatInput.classList.add('open');
-  emojiBar.classList.add('open');
+  _chatBar.classList.add('open');
+  _chatBar.setAttribute('aria-hidden','false');
   setTimeout(() => { chatInput.focus(); _syncChatBarOverKb(); }, 50);
 }
 function closeChat() {
+  if (!chatOpen) return;
   chatOpen = false;
-  chatInput.classList.remove('open');
-  emojiBar.classList.remove('open');
+  document.body.classList.remove('chat-mode');
+  delete document.documentElement.dataset.chatMode;
+  _chatBar.classList.remove('open');
+  _chatBar.setAttribute('aria-hidden','true');
   chatInput.blur();
   _chatBar.style.bottom = '';
-  emojiBar.style.bottom = '';
+  if (emojiBar) emojiBar.style.bottom = '';
   _stage.style.height = '';   // вернуть в `inset: 0`
+  window.dispatchEvent(new CustomEvent('mafiozi-chat-mode', {detail:{open:false}}));
 }
 function _submitChat(t) {
   if (!t) return;
@@ -60337,23 +60399,22 @@ function _submitChat(t) {
   _localChat = t.slice(0, 80);
   _localChatT = performance.now();
 }
-btnChat.addEventListener('click', () => {
-  if (!chatOpen) openChat();
-  else {
-    const t = chatInput.value.trim();
-    _submitChat(t);
-    chatInput.value = '';
-    closeChat();
-  }
-});
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
+    e.preventDefault(); e.stopPropagation();
     const t = chatInput.value.trim();
     _submitChat(t);
     chatInput.value = '';
     closeChat();
-  } else if (e.key === 'Escape') closeChat();
+  } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeChat(); }
 });
+chatInput.addEventListener('keyup', e => e.stopPropagation());
+window.addEventListener('keydown', (e) => {
+  const typing = e.target?.matches?.('input,textarea,select,[contenteditable="true"]');
+  if (e.key === 'Enter' && !chatOpen && !typing && !e.repeat) {
+    e.preventDefault(); e.stopImmediatePropagation(); openChat();
+  }
+}, true);
 // Быстрые смайлики: тап → мгновенная отправка
 emojiBar.querySelectorAll('.em').forEach(btn => {
   btn.addEventListener('click', (e) => {
@@ -63973,6 +64034,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d268-npc-actions-prompt"></script>
+<script type="module" src="three_preview.js?v=3d269-enter-chat-speech"></script>
 </body>
 </html>
