@@ -3077,6 +3077,8 @@ function _worldAngleToScreen(ang) {
 // момент прислал обновление образа из редактора.
 function _livePlayerLook(){
   const base=QP.look||{};
+  if(typeof _effectivePrisonJailSeconds==='function'&&_effectivePrisonJailSeconds()>0)
+    return {...base,body:2,hat:0,suit:'#f07818',prisoner:true};
   let live=base;
   try{
     if(_policeState&&_policeState.employed&&typeof _policeUniformLook==='function')
@@ -4847,6 +4849,7 @@ const JAIL_CENTER_R = 76, JAIL_CENTER_C = 76;
 const JAIL_RADIUS_TILES = 7.0;
 const JAIL_GATE_HALF_RAD = 0.50;
 let _prisonReleaseGateSeconds=0,_prisonLocalJailUntil=0,_prisonReleaseGateOpenedAt=-Infinity;
+let _prisonStatusJailActive=false,_prisonWeaponLockToastAt=0;
 const _prisonAlarmState={active:false,startedAt:0,lastHostileAt:0,reason:'',spawnRemaining:0,nextSpawnAt:0,sequence:0,clearedAt:0,clearReason:''};
 let _prisonAlarmServerSyncAt=0;
 function _prisonAlarmActive(){return !!_prisonAlarmState.active;}
@@ -4886,6 +4889,15 @@ function _prisonReleaseGateProgress(){
   if(_effectivePrisonJailSeconds()>0)return 0;
   if(!Number.isFinite(_prisonReleaseGateOpenedAt))return 1;
   return Math.max(0,Math.min(1,(performance.now()-_prisonReleaseGateOpenedAt)/1250));
+}
+function _prisonWeaponLocked(notify=true){
+  if(!_inPrisonIslandRestrictedZone(player.r,player.c,.35))return false;
+  document.documentElement.dataset.prisonFireBlocked='inside-prison';
+  if(notify&&performance.now()-_prisonWeaponLockToastAt>1400){
+    _prisonWeaponLockToastAt=performance.now();
+    showToast('В тюрьме оружие конфисковано — стрелять нельзя','🔒',1800);
+  }
+  return true;
 }
 // The enlarged 3D prison sits on a dry slab above the canal. Keep this layout
 // contract in world coordinates so movement, NPC filtering and the renderer
@@ -28574,6 +28586,7 @@ function _fireRpgRound(sR, sC, dirY, dirX, range, remote) {
 
 function placeWorldC4(){
   const now=performance.now();
+  if(_prisonWeaponLocked())return false;
   if(now-_lastWorldC4PlantAt<900)return false;
   if(_myC4Count<=0){showToast('C4 закончилась — купи заряд на Чёрном рынке.','❌',2200);return false;}
   if(!ws||ws.readyState!==1){showToast('Нет связи с городом — заряд не установлен.','⚠️',2000);return false;}
@@ -28735,11 +28748,8 @@ function fire(angle = null) {
   if (myDead||_murderPoliceArrest) return;
   if (_peacefulInteriorGunLock()) return;
   if (_myBagWeight > 0 && ((_bankRob && _bankRob.myBag) || _policeEvidenceBag)) { showToast('🎒 С мешком нельзя стрелять', '⚠️', 1400); return; }
-  // Заключённый обычно остаётся без оружия, но найденное/пронесённое оружие
-  // является настоящим игровым предметом: им можно атаковать охрану. Старая
-  // заглушка превращала любой выстрел в удар кулаком и делала 3D-патруль
-  // полностью неуязвимым.
-  const _meInJail = (_effectivePrisonJailSeconds() > 0)&&_inPrisonIslandRestrictedZone(player.r,player.c,.35);
+  if(_prisonWeaponLocked())return;
+  const _meInJail=false;
   // Авто-fallback: angle не задан.
   //   1) если есть locked-цель — стреляем В НЕЁ (auto-aim после тапа)
   //   2) иначе если правый стик сдвинут — берём его направление
@@ -28752,18 +28762,6 @@ function fire(angle = null) {
     const _dc = (_s + _d) * 0.5;
     const _dr = (_s - _d) * 0.5;
     angle = Math.atan2(_dr, _dc);
-  }
-  // The fire button remains useful in a locked cell: when there is no manual
-  // stick direction, aim at the nearest visible prison officer. The normal
-  // wall raycast below still stops bullets at bars and solid walls.
-  if(angle===null&&_meInJail){
-    let nearest=null,nearestD=Infinity;
-    for(const cop of cityCops){
-      if(!cop?.alive||cop.kind!=='prison_staff')continue;
-      const d=Math.hypot(cop.y-player.r,cop.x-player.c);
-      if(d<nearestD){nearest=cop;nearestD=d;}
-    }
-    if(nearest){angle=Math.atan2(nearest.y-player.r,nearest.x-player.c);document.documentElement.dataset.prisonFireTarget=String(nearest.id);}
   }
   // В машине или в автобусе нельзя стрелять — обе руки на руле / двери закрыты.
   if ((myDrivingCarId && !_canShootFromBike()) || myJetSkiId || _playerSwimmingDeep || _inBus) return;
@@ -29777,6 +29775,11 @@ function updatePvpUI() {
   // Jail overlay — большой блок при сидении в тюрьме
   if (_jailOvEl) {
     const jailSeconds=Math.ceil(_effectivePrisonJailSeconds());
+    const jailActive=jailSeconds>0;
+    if(jailActive!==_prisonStatusJailActive){
+      _prisonStatusJailActive=jailActive;
+      if(typeof renderJobStatus==='function')renderJobStatus();
+    }
     if (jailSeconds > 0 && !_murderPoliceArrest) {
       _jailOvEl.classList.add('show');
       const m = Math.floor(jailSeconds / 60);
@@ -46809,6 +46812,7 @@ const THROW_MOLOTOV_IMPACT_RADIUS=3.6;
 const THROW_MOLOTOV_FIRE_RADIUS=5.0;
 async function _consumeThrowable(kind){if(_ownerFullLoadout)return true;try{const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/consume`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:kind})});const j=await r.json();return !!j.ok}catch(e){return _LOCAL_PREVIEW}}
 async function _throwSelected(kind,angle,throwRange){
+  if(_prisonWeaponLocked())return false;
   const count=kind==='grenade'?_myGrenadeCount:_myMolotovCount;if(count<=0)return false;
   if(!await _consumeThrowable(kind)){showToast('Предмет не удалось использовать','❌',1500);return false;}
   if(_ownerFullLoadout){_myGrenadeCount=_ownerAmmoReserve;_myMolotovCount=_ownerAmmoReserve;}
@@ -50760,6 +50764,16 @@ function renderJobStatus(){
   const nm=document.getElementById('jobStatusName'),sub=document.getElementById('jobStatusSub'),tm=document.getElementById('jobStatusTimer');
   if(!nm||!sub||!tm)return;
   const title=_jobStatusHud?.querySelector('.js-title span');
+  const jailSeconds=Math.ceil(_effectivePrisonJailSeconds());
+  if(jailSeconds>0){
+    _policeQuickToggle?.classList.remove('show');
+    _jobStatusHud?.classList.remove('mafia-actions','police-open');
+    _jobStatusHud?.classList.add('ready');
+    if(title)title.textContent='🔒 Статус';
+    nm.textContent='Заключённый';tm.textContent='СРОК';
+    sub.textContent='Оружие конфисковано · освобождение по таймеру';
+    return;
+  }
   if(_policeState.employed){const p=_policeProgress();if(title)title.textContent='👮 Служба';_policeQuickToggle?.classList.add('show');_jobStatusHud?.classList.remove('mafia-actions');if(_jobStatusHud){_jobStatusHud.classList.add('ready','police-open');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label','Открыть полную служебную сводку');_jobStatusHud.title='Нажми на карточку для сводки или на стрелку для быстрых действий';}nm.textContent=p.rank;tm.textContent=`УР. ${p.level}`;sub.textContent=_policeEvidenceBag?`💼 Улика $${(+_policeEvidenceBag.value||0).toLocaleString('ru')} · неси в участок`:`Опыт ${p.xp} · задержания ${_policeDailyText()} · цели ${_policeState.missions.length}/3${_policeCanUseTaser()?' · ⚡ шокер':''}`;_renderPoliceQuickPanel();return;}
   if(!_mafiaState.employed&&_mafiaTraitorLeft()>0){_policeQuickToggle?.classList.remove('show');if(title)title.textContent='⚠️ Статус';nm.textContent='Предатель';tm.textContent=_mafiaTraitorText();sub.textContent=`Покинул ${MAFIA_FAMILIES[_mafiaState.lastFamily]?.short||'семью'} · в полицию вступить можно`;return;}
   if(!_mafiaState.employed){_policeQuickToggle?.classList.remove('show');_jobStatusHud?.classList.remove('mafia-actions','police-open');if(_jobStatusHud){_jobStatusHud.classList.add('ready');_jobStatusHud.tabIndex=0;_jobStatusHud.setAttribute('role','button');_jobStatusHud.setAttribute('aria-label',_customGang?'Открыть управление своей бандой':'Открыть справку о ролях и бонусах');_jobStatusHud.title=_customGang?'Нажми, чтобы открыть состав банды':'Нажми, чтобы узнать кем можно стать';}if(_customGang){if(title)title.textContent='🚩 Моя банда';nm.textContent=_customGang.name;tm.textContent=_customGang.role==='leader'?'ЛИДЕР':'БОЕЦ';sub.textContent=`${_customGang.role==='leader'?'Лидер банды':'Участник банды'} · штаб ${_customGang.hq_apt_key||''} · ${_customGang.member_count||(_onlineGang?.members||[]).length||1}/${_customGang.max_members||12}`;}else{if(title)title.textContent='Статус';nm.textContent='Гражданский';tm.textContent='?';sub.textContent='Нажми: роли, вступление и бонусы';}return;}
@@ -59278,8 +59292,8 @@ window.Mafiozi3DBridge = Object.freeze({
       prisonAlarm:{active:_prisonAlarmActive(),startedAt:+_prisonAlarmState.startedAt||0,sequence:+_prisonAlarmState.sequence||0,reason:_prisonAlarmState.reason||'',lockdown:_prisonAlarmActive()},
       carryingBag:!!((_bankInt&&_bankInt.myBag)||(_bankRob&&_bankRob.myBag)||_myBagWeight>0),
       name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
-      role: _policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian',
-      family: _mafiaState?.employed ? (_mafiaState.family || null) : null,
+      role: _effectivePrisonJailSeconds()>0 ? 'prisoner' : (_policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian'),
+      family: _effectivePrisonJailSeconds()>0 ? null : (_mafiaState?.employed ? (_mafiaState.family || null) : null),
       armor:armorId||null,armorDurability,armorMax,
       joyL: { active: !!joyL.active, dx: +joyL.dx || 0, dy: +joyL.dy || 0 },
       joyR: { active: !!joyR.active, dx: +joyR.dx || 0, dy: +joyR.dy || 0, hasAim: !!joyR.hasAim },
@@ -59975,7 +59989,7 @@ window.Mafiozi3DBridge = Object.freeze({
   },
   throwSelected(kind, angle, throwRange) {
     kind=String(kind||'').toLowerCase();
-    if(!['grenade','molotov'].includes(kind)||myDead||myMode==='pve')return false;
+    if(!['grenade','molotov'].includes(kind)||myDead||myMode==='pve'||_prisonWeaponLocked())return false;
     const selected=_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():currentWeapon;
     if(selected!==kind)return false;
     if(_LOCAL_PREVIEW&&_UP.get('previewweapon')){
@@ -59989,12 +60003,13 @@ window.Mafiozi3DBridge = Object.freeze({
   },
   plantC4() {
     const selected=_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():currentWeapon;
-    if(selected!=='c4'||myDead||myMode==='pve')return false;
+    if(selected!=='c4'||myDead||myMode==='pve'||_prisonWeaponLocked())return false;
     if(_LOCAL_PREVIEW&&_UP.get('previewweapon')){document.documentElement.dataset.threeC4Route='preview-place';return true;}
     const accepted=placeWorldC4();document.documentElement.dataset.threeC4Route=accepted?'live-place':'rejected';return accepted;
   },
   fire(angle, muzzleR, muzzleC) {
     const selected=_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():currentWeapon;
+    if(_prisonWeaponLocked()){document.documentElement.dataset.threeSpecialFireBlocked='prison';return false;}
     if(['grenade','molotov','c4'].includes(selected)){document.documentElement.dataset.threeSpecialFireBlocked=selected;return false;}
     if(_LOCAL_PREVIEW&&_UP.get('previewweapon'))return true;
     if (myDead || myMode === 'pve' || !_isArmed()) return false;
@@ -60097,6 +60112,14 @@ if(_LOCAL_PREVIEW&&_UP.has('previewprisonassault'))setTimeout(()=>{
     if(!_prisonAlarmActive()&&(+document.documentElement.dataset.policeArrestDelivered||0)>0)clearInterval(trace);
   },180);
 },1500);
+if(_LOCAL_PREVIEW&&_UP.has('previewprisonweaponqa'))setTimeout(()=>{
+  const bridge=window.Mafiozi3DBridge,ammo=_weaponAmmoState(resolveWeapon(currentWeapon));
+  const before={mag:+ammo?.slot?.mag||0,reserve:+ammo?.reserve||0,grenade:_myGrenadeCount,molotov:_myMolotovCount,c4:_myC4Count};
+  const results={shot:bridge?.fire?.(player.ang,player.r,player.c),grenade:bridge?.throwSelected?.('grenade',player.ang,3),c4:bridge?.plantC4?.()};
+  const ammoAfter=_weaponAmmoState(resolveWeapon(currentWeapon));
+  const after={mag:+ammoAfter?.slot?.mag||0,reserve:+ammoAfter?.reserve||0,grenade:_myGrenadeCount,molotov:_myMolotovCount,c4:_myC4Count};
+  document.documentElement.dataset.prisonWeaponQa=JSON.stringify({ok:Object.values(results).every(v=>v===false)&&JSON.stringify(before)===JSON.stringify(after),results,before,after,blocked:document.documentElement.dataset.prisonFireBlocked||''});
+},2600);
 if(_LOCAL_PREVIEW&&_UP.has('previewprisonconvoy'))setTimeout(()=>{
   const now=performance.now(),v=_ensurePoliceResponseFleet()[0];
   if(!v)return;
