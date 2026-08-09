@@ -9638,22 +9638,63 @@ function _bfsFireStationPath(startR,startC,goalR,goalC) {
 // Проверка: занят ли впереди дорожный тайл другой машиной (CARS) или
 // другим спецтранспортом. Самого себя в проверку не включаем.
 function _vehicleBlockedByCar(v, r, c) {
-  const safeR = 1.85;
+  const heading=Number.isFinite(+v?.ang)?+v.ang:0,forwardR=Math.sin(heading),forwardC=Math.cos(heading),sideR=Math.cos(heading),sideC=-Math.sin(heading);
+  const overlapsLane=(otherR,otherC)=>{
+    const dr=otherR-r,dc=otherC-c,forward=Math.abs(dr*forwardR+dc*forwardC),side=Math.abs(dr*sideR+dc*sideC);
+    return forward<2.15&&side<1.08;
+  };
   if (typeof CARS !== 'undefined' && Array.isArray(CARS)) {
     for (const car of CARS) {
       if (!car || car._towed) continue;
-      const dr = car.r - r, dc = car.c - c;
-      if (dr * dr + dc * dc < safeR * safeR) return { type:'traffic', ref:car };
+      if(overlapsLane(car.r,car.c))return { type:'traffic', ref:car };
     }
   }
   if (Array.isArray(serviceVehicles)) {
     for (const other of serviceVehicles) {
       if (other === v || other.state === 'done') continue;
-      const dr = other.y - r, dc = other.x - c;
-      if (dr * dr + dc * dc < safeR * safeR) return { type:'service', ref:other };
+      if(overlapsLane(other.y,other.x))return { type:'service', ref:other };
     }
   }
   return null;
+}
+
+function _serviceVehiclePriority(v){
+  if(!v||v.state==='done')return -1;
+  if(v._policePrisonTransport)return 100;
+  if(v._murderFleet&&['police_arrest_scene','police_reboarding'].includes(v.state))return 86;
+  if(v.state==='go_to_scene')return 78;
+  if(v.state==='returning')return 58;
+  if(['working','medical_response','siege','police_search'].includes(v.state))return 42;
+  if(String(v.state||'').includes('parked'))return 8;
+  return 24;
+}
+
+// A higher-priority emergency vehicle asks the lower-priority one to clear a
+// neighbouring lane. The displacement is gradual and collision checked, so a
+// dense police queue untangles visibly instead of teleporting or ghosting.
+function _yieldServiceVehicleForPriority(priorityVehicle,other,dirR,dirC,dt){
+  if(!priorityVehicle||!other||other.state==='done')return false;
+  const now=performance.now(),relR=other.y-priorityVehicle.y,relC=other.x-priorityVehicle.x;
+  const cross=relR*dirC-relC*dirR,preferred=cross>=0?1:-1,shift=Math.min(.075,Math.max(.022,dt*1.45));
+  for(const side of [preferred,-preferred]){
+    const nr=other.y+dirC*side*shift,nc=other.x-dirR*side*shift;
+    if(!_vehicleRoadPassable(nr,nc)||!_serviceVehicleFootprintClear(other,nr,nc,other.ang))continue;
+    if(Math.hypot(nr-priorityVehicle.y,nc-priorityVehicle.x)<=Math.hypot(other.y-priorityVehicle.y,other.x-priorityVehicle.x)+.00005)continue;
+    let occupied=false;
+    for(const candidate of serviceVehicles){
+      if(candidate===other||candidate===priorityVehicle||candidate?.state==='done')continue;
+      if(Math.hypot(candidate.y-nr,candidate.x-nc)<1.18){occupied=true;break;}
+    }
+    if(!occupied&&typeof CARS!=='undefined')for(const car of CARS){
+      if(!car||car._towed)continue;
+      if(Math.hypot(car.r-nr,car.c-nc)<1.08){occupied=true;break;}
+    }
+    if(occupied)continue;
+    other.y=nr;other.x=nc;other._lastMoveT=now;other._priorityYieldUntil=now+420;
+    document.documentElement.dataset.servicePoliceDeadlock=`yield:${priorityVehicle.id}:${other.id}`;
+    return true;
+  }
+  return false;
 }
 
 // Сирена не проталкивает кузова насквозь. Машина впереди постепенно
@@ -9759,9 +9800,16 @@ function _vehicleStep(v, dt) {
       }
       // Экстренная машина не должна навсегда исчезать в плотной пробке.
       // После короткого ожидания сирена получает приоритет и проезжает.
-      if (blocker.type==='service'&&_serviceVehicleMustYield(v,blocker.ref,dr/d,dc/d)) {
-        v.ang = nextAng;
-        return false;
+      if(blocker.type==='service'){
+        const mustYield=_serviceVehicleMustYield(v,blocker.ref,dr/d,dc/d),blockedAge=performance.now()-v._blockedSince;
+        if(mustYield){
+          if(blockedAge>850)_yieldServiceVehicleForPriority(blocker.ref,v,-dr/d,-dc/d,dt);
+          v.ang=nextAng;return false;
+        }
+        if(blockedAge>420){
+          _yieldServiceVehicleForPriority(v,blocker.ref,dr/d,dc/d,dt);
+          v.ang=nextAng;return false;
+        }
       }
       if (performance.now() - v._blockedSince < 1200) {
         v.ang = nextAng;
@@ -23872,6 +23920,8 @@ function _findLiveAggroBotById(botId) {
 // head-on meeting the stable id order prevents a permanent two-way deadlock.
 function _serviceVehicleMustYield(v,other,dirR,dirC){
   if(!other)return false;
+  const ownPriority=_serviceVehiclePriority(v),otherPriority=_serviceVehiclePriority(other);
+  if(ownPriority!==otherPriority)return ownPriority<otherPriority;
   const relR=other.y-v.y,relC=other.x-v.x,dist=Math.hypot(relR,relC);
   const otherAng=Number.isFinite(+other.ang)?+other.ang:0;
   const alignment=dirR*Math.sin(otherAng)+dirC*Math.cos(otherAng);
@@ -63923,6 +63973,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d267-compact-aim-throwables"></script>
+<script type="module" src="three_preview.js?v=3d268-npc-actions-prompt"></script>
 </body>
 </html>
