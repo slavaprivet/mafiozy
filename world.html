@@ -59676,7 +59676,7 @@ window.Mafiozi3DBridge = Object.freeze({
       }
       const buildingParts=cachedBuildingParts
         .filter(q=>!(JAIL_ISLAND_3D_ENABLED&&JAIL_CENTER_R>=q.minR&&JAIL_CENTER_R<=q.maxR&&JAIL_CENTER_C>=q.minC&&JAIL_CENTER_C<=q.maxC))
-        .map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread)}));
+        .map((q,i)=>{const entry=_genericBuildingEntranceAnchor(q.r,q.c);return {...q,height:heightBase+((seed+i*13)%heightSpread),entryR:entry.r,entryC:entry.c};});
       blocks.push({
         r0,c0,styleId,buildings,roads,pavement,grass,sand,water,seed,
         building: buildingParts[0]||null,buildingParts,
@@ -64023,6 +64023,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d265-authored-blackmarket-door-sync"></script>
+<script type="module" src="three_preview.js?v=3d272-dark-door-portals-stream-safe"></script>
 </body>
 </html>
