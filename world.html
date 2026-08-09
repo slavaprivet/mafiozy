@@ -26996,9 +26996,14 @@ async function loadInventoryItems() {
   const grenadeItem=_inventoryItems.find(i=>i.id==='grenade'),molotovItem=_inventoryItems.find(i=>i.id==='molotov');
   _myGrenadeCount=Math.max(0,Number(grenadeItem&&(grenadeItem.qty??grenadeItem.count??grenadeItem.quantity))||0);
   _myMolotovCount=Math.max(0,Number(molotovItem&&(molotovItem.qty??molotovItem.count??molotovItem.quantity))||0);
-  if(currentWeapon==='grenade'&&_myGrenadeCount<=0)currentWeapon=null;
-  if(currentWeapon==='molotov'&&_myMolotovCount<=0)currentWeapon=null;
-  if(currentWeapon==='c4'&&_myC4Count<=0){currentWeapon='pistol';renderWeaponHud();}
+  // UID владельца используется для ручной проверки production-сборки.
+  // Синхронизация с серверным инвентарём не должна обнулять его тестовый комплект.
+  if(typeof _ownerFullLoadout!=='undefined'&&_ownerFullLoadout){
+    _myGrenadeCount=_ownerAmmoReserve;_myMolotovCount=_ownerAmmoReserve;_myC4Count=_ownerAmmoReserve;
+  }
+  if(!_ownerFullLoadout&&currentWeapon==='grenade'&&_myGrenadeCount<=0)currentWeapon=null;
+  if(!_ownerFullLoadout&&currentWeapon==='molotov'&&_myMolotovCount<=0)currentWeapon=null;
+  if(!_ownerFullLoadout&&currentWeapon==='c4'&&_myC4Count<=0){currentWeapon='pistol';renderWeaponHud();}
   else if(currentWeapon==='c4')renderWeaponHud();
   if(_wepPickOpen)renderWeaponPick();
   if(_profileTab==='inv'&&document.getElementById('profileModal')?.classList.contains('show')) renderProfileTab();
@@ -46394,11 +46399,13 @@ const _MAX_THROWN_ITEMS=16,_MAX_FIRE_POOLS=12;
 const THROW_GRENADE_RADIUS=4.4;
 const THROW_MOLOTOV_IMPACT_RADIUS=3.6;
 const THROW_MOLOTOV_FIRE_RADIUS=5.0;
-async function _consumeThrowable(kind){try{const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/consume`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:kind})});const j=await r.json();return !!j.ok}catch(e){return _LOCAL_PREVIEW}}
+async function _consumeThrowable(kind){if(_ownerFullLoadout)return true;try{const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/consume`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:kind})});const j=await r.json();return !!j.ok}catch(e){return _LOCAL_PREVIEW}}
 async function _throwSelected(kind,angle,throwRange){
   const count=kind==='grenade'?_myGrenadeCount:_myMolotovCount;if(count<=0)return false;
   if(!await _consumeThrowable(kind)){showToast('Предмет не удалось использовать','❌',1500);return false;}
-  if(kind==='grenade')_myGrenadeCount--;else _myMolotovCount--;renderWeaponHud();if(_wepPickOpen)renderWeaponPick();
+  if(_ownerFullLoadout){_myGrenadeCount=_ownerAmmoReserve;_myMolotovCount=_ownerAmmoReserve;}
+  else if(kind==='grenade')_myGrenadeCount--;else _myMolotovCount--;
+  renderWeaponHud();if(_wepPickOpen)renderWeaponPick();
   const range=Math.max(1.4,Math.min(6.5,+throwRange||6.5)),fromR=player.r,fromC=player.c,toR=fromR+Math.sin(angle)*range,toC=fromC+Math.cos(angle)*range;
   _capArr(_thrownItems,_MAX_THROWN_ITEMS);
   _thrownItems.push({kind,fromR,fromC,toR,toC,start:performance.now(),flight:720,exploded:false});
