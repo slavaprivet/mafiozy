@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v259: black-market entrances override nearby generic buildings in 2D and 3D. -->
+<!DOCTYPE html><!-- v260: moved black market plus duplicate-weapon ownership lock. -->
 <!-- v254: shop purchases reconcile atomically with arsenal, armor and ammo. -->
 <!-- v253: every weapon rig and reload family is audited by automated 3D QA. -->
 <!-- v252: animation conflict audit adds authoritative state priority, teleport resets and pooled vehicle cleanup. -->
@@ -5782,7 +5782,9 @@ const POI = [
   // на сервере). Босс даёт x10 больше.
   { id: 'lair',    r: 120, c: 40, icon: '☠️', name: 'Логово',       minLvl: 10, aggro: true, radius: 20, noCapture: true },
   // Особые POI
-  { id: 'blackmarket', r:  6, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'blackmarket' },
+  // На один тайл выше прежнего места: весь фасад и портал остаются внутри
+  // квартала и не цепляют южную дорогу, но вход сохраняет привычный район.
+  { id: 'blackmarket', r:  5, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'blackmarket' },
   // Отдельное соседнее здание к западу от банка «Район»: рынок больше не
   // накладывается на банковский корпус (банк занимает r=15..17, c=55..57).
   { id: 'blackmarket_bellini', r:36, c:46, icon:'🌌', name:'Рынок Беллини', minLvl:1, special:'blackmarket', mafiaFamily:'bellini' },
@@ -26841,6 +26843,15 @@ const _SHOP_ITEMS = [
   { id:'medkit_medium',pic:'🏥',name:'Аптечка',       type:'consumable', desc:'+130 HP', price:60 },
   { id:'medkit_large',pic:'💉', name:'Большая аптечка',type:'consumable',desc:'+280 HP',price:120 },
 ];
+function _shopItemOwned(it){
+  if(!it)return false;
+  if(it.type==='weapon'){
+    const weaponId=resolveWeapon(it.weapon||it.id);
+    return _myWeapons.some(w=>resolveWeapon(w.id)===weaponId)||
+      _inventoryItems.some(x=>x.type==='weapon'&&(+x.qty||+x.count||+x.quantity||0)>0&&resolveWeapon(x.id)===weaponId);
+  }
+  return it.type==='armor'&&_inventoryItems.some(x=>x.id===it.id&&(+x.qty||+x.count||+x.quantity||0)>0);
+}
 function _renderShopItems() {
   if (_shopTab === 'sell') {
     const things = _inventoryItems.filter(i => i.type === 'thing' && (+i.qty || 0) > 0);
@@ -26859,7 +26870,7 @@ function _renderShopItems() {
   _shopCash.textContent = `💰 ${shopCash} $ · 💎 ${shopDiamonds}`;
   _shopList.innerHTML = items.map(it => {
     const weaponId = it.type === 'weapon' ? (it.weapon||resolveWeapon(it.id)) : null;
-    const owned = (!!weaponId && _myWeapons.some(w => w.id === weaponId)) || (it.type==='armor' && _inventoryItems.some(x=>x.id===it.id&&(+x.qty||+x.count||0)>0));
+    const owned = _shopItemOwned(it);
     const ammoDef = it.type==='ammo' ? AMMO_TYPES[it.ammoType] : null;
     const ammoNow = ammoDef ? Math.max(0,+_ammoState.reserve[it.ammoType]||0) : 0;
     const ammoFull = !!ammoDef && ammoNow>=ammoDef.max;
@@ -26874,7 +26885,7 @@ function _renderShopItems() {
     return `<div class="shop-item">
       ${weaponId?`<div class="pic weapon-preview-wrap"><canvas class="shop-weapon-preview" data-shop-weapon="${weaponId}" width="140" height="84"></canvas></div>`:ammoDef?`<div class="pic ammo-preview-wrap"><canvas class="shop-ammo-preview" data-shop-ammo="${it.ammoType}" width="140" height="84"></canvas></div>`:it.type==='armor'?`<div class="pic armor-preview-wrap"><canvas class="shop-armor-preview" data-shop-armor="${it.id}" width="140" height="96"></canvas></div>`:`<div class="pic">${it.pic}</div>`}
       <div class="info"><div class="name">${it.name}</div><div class="desc">${stat} — ${priceLabel}</div></div>
-      <button class="buy" data-id="${it.id}" ${canBuy ? '' : 'disabled style="opacity:.55;cursor:default"'}>${pending ? 'Покупка…' : owned ? (_equippedArmor===it.id?'Надето':'Куплено') : ammoFull ? 'Полный запас' : canBuy ? 'Купить' : premiumCost?'Нет 💎':'Нет $'}</button>
+      <button class="buy" data-id="${it.id}" ${canBuy ? '' : 'disabled style="opacity:.55;cursor:default"'}>${pending ? 'Покупка…' : owned ? (it.type==='weapon'?'Уже имеется':_equippedArmor===it.id?'Надето':'Уже имеется') : ammoFull ? 'Полный запас' : canBuy ? 'Купить' : premiumCost?'Нет 💎':'Нет $'}</button>
     </div>`;
   }).join('');
   _drawShopWeaponPreviews();
@@ -27024,6 +27035,13 @@ async function _buyShopItem(itemId) {
   if (_shopPurchasesPending.has(itemId)) return;
   const wanted=_SHOP_ITEMS.find(it=>it.id===itemId);
   if(!wanted){showToast('Товар не найден','❌',1500);return;}
+  // UI уже блокирует купленную карточку, но этот guard защищает от двойного
+  // тапа, устаревшей DOM-кнопки и прямого повторного вызова обработчика.
+  if(_shopItemOwned(wanted)){
+    showToast(wanted.type==='weapon'?'Это оружие уже имеется в арсенале':'Такой жилет уже имеется','✅',1700);
+    _renderShopItems();
+    return;
+  }
   if(wanted?.type==='ammo'){
     const def=AMMO_TYPES[wanted.ammoType],now=Math.max(0,+_ammoState.reserve[wanted.ammoType]||0);
     if(def&&now>=def.max){showToast(`Запас ${def.label} уже полный`,'📦',1500);return;}
@@ -27239,7 +27257,7 @@ const _taxiFade = document.getElementById('taxiFade');
 const TAXI_COST = 50;
 const _TAXI_DESTINATIONS = [
   { id:'beach', icon: '🏖️', name: 'Пляж',           r: 145, c: 40 },
-  { id:'blackmarket', icon: '🌌', name: 'Чёрный рынок',   r: 6,   c: 36 },
+  { id:'blackmarket', icon: '🌌', name: 'Чёрный рынок',   r: 5,   c: 36 },
   { id:'gym', icon: '💪', name: 'Спортзал',       r: 26,  c: 26 },
   { id:'job', icon: '💼', name: 'Биржа труда',    r: 36,  c: 16 },
   { id:'hospital', icon: '🏥', name: 'Больница',       r: 26,  c: 46 },
@@ -46387,6 +46405,27 @@ async function _throwSelected(kind,angle,throwRange){
   try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'grenade',d:{from_x:fromR,from_y:fromC,to_x:toR,to_y:toC,kind}}))}catch(e){}
   return true;
 }
+// Автотест расходников доступен только в локальном preview по явному флагу.
+// Он проверяет несколько последовательных бросков и повторную серверную
+// синхронизацию — именно она раньше обнуляла гранаты и Молотовы владельца.
+if(_LOCAL_PREVIEW&&_UP.has('previewownerthrowables'))setTimeout(async()=>{
+  try{
+    const before={grenade:_myGrenadeCount,molotov:_myMolotovCount,c4:_myC4Count};
+    const results=[
+      await _throwSelected('grenade',0,3),await _throwSelected('grenade',.45,3),
+      await _throwSelected('molotov',.9,3),await _throwSelected('molotov',1.35,3)
+    ];
+    const afterThrows={grenade:_myGrenadeCount,molotov:_myMolotovCount,c4:_myC4Count};
+    await loadInventoryItems();
+    const afterSync={grenade:_myGrenadeCount,molotov:_myMolotovCount,c4:_myC4Count};
+    document.documentElement.dataset.ownerThrowablesQa=JSON.stringify({
+      ok:_ownerFullLoadout&&results.every(Boolean)&&
+        afterThrows.grenade===_ownerAmmoReserve&&afterThrows.molotov===_ownerAmmoReserve&&
+        afterSync.grenade===_ownerAmmoReserve&&afterSync.molotov===_ownerAmmoReserve,
+      uid:String(QP.uid||''),owner:_ownerFullLoadout,before,results,afterThrows,afterSync
+    });
+  }catch(error){document.documentElement.dataset.ownerThrowablesQa=JSON.stringify({ok:false,error:String(error)})}
+},1200);
 function _explodeThrowable(q){
   if(q.exploded)return;q.exploded=true;const radius=q.kind==='grenade'?THROW_GRENADE_RADIUS:THROW_MOLOTOV_IMPACT_RADIUS;
   if(q.kind==='grenade'){const pooled3D=_usesPooled3DFx();spawnCarExplosion(q.toR,q.toC,null,false);if(!pooled3D){for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,d=.35+Math.random()*.7;spawnCarExplosion(q.toR+Math.sin(a)*d,q.toC+Math.cos(a)*d,null,false,false)}spawnShockwave(q.toR,q.toC,{rad0:8,maxRad:88,life:520,color:'#ffbd55',thick:5});spawnSmokePuff(q.toR,q.toC,0);spawnSmokePuff(q.toR+.4,q.toC-.3,2.2)}spawnBlastCrater(q.toR,q.toC);addShake(15);fireScreenFlash('rpg');}
@@ -63400,6 +63439,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d259-blackmarket-entry-priority"></script>
+<script type="module" src="three_preview.js?v=3d260-blackmarket-owned-weapon"></script>
 </body>
 </html>
