@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v261: main black market replaces the northern park block, with the old site restored to a regular building. -->
+<!DOCTYPE html><!-- v265: authored black-market facade, guarded animated entrance and collision-safe approach. -->
 <!-- v254: shop purchases reconcile atomically with arsenal, armor and ammo. -->
 <!-- v253: every weapon rig and reload family is audited by automated 3D QA. -->
 <!-- v252: animation conflict audit adds authoritative state priority, teleport resets and pooled vehicle cleanup. -->
@@ -7687,14 +7687,21 @@ function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
 function hitCityCop(cop, dirY, dirX, damage, source = null) {
   if (!cop || !cop.alive) return;
   let deathWitnessAlerted=false;
+  if(cop.kind==='prison_staff'&&cop.shield)damage=Math.max(1,Math.round((+damage||0)*.62));
   cop.hp = Math.max(0, (cop.hp | 0) - (damage | 0));
   cop.y += dirY * 0.07; cop.x += dirX * 0.07;
   _markCombatBleeding(cop, cop.y, cop.x, damage, dirY, dirX, currentWeapon);
   cop._pursuing = true;
   cop._reactUntil = performance.now() + 2800;
+  if(cop.kind==='prison_staff'){
+    const alarmNow=performance.now();
+    for(const guard of cityCops)if(guard?.alive&&guard.kind==='prison_staff'&&Math.hypot(guard.y-cop.y,guard.x-cop.x)<24){guard._pursuing=true;guard._reactUntil=alarmNow+45000;}
+    document.documentElement.dataset.prisonAlarm='active';
+  }
   if (cop.hp <= 0) {
     cop.alive = false;   // updateCityCops удалит из массива
     if(cop.kind==='patrol')_cityCopReplacementQueue=Math.min(CITY_COPS_TARGET,_cityCopReplacementQueue+1);
+    if(cop.kind==='prison_staff'&&Number.isInteger(cop._prisonSlot))_prisonStaffRespawnAt[cop._prisonSlot]=performance.now()+8000;
     for (let i = 0; i < 6; i++) {
       _capArr(bloodSplats, _MAX_BLOOD);
       bloodSplats.push({
@@ -8775,6 +8782,67 @@ const JUNKYARD_R     = 86, JUNKYARD_C     = 66;   // POI 'junkyard'
 const CITY_COPS_TARGET = 12;
 const cityCops = [];
 let _cityCopId = 0;
+const PRISON_STAFF_ROUTES = Object.freeze([
+  [[64.0,86.8],[70.7,86.8],[70.7,92.2],[64.0,92.2]],
+  [[65.0,87.4],[65.0,91.6],[70.2,91.6],[70.2,87.4]],
+  [[71.1,87.2],[71.1,91.8],[80.9,91.8],[80.9,87.2]],
+  [[73.0,87.5],[78.8,87.5],[78.8,91.5],[73.0,91.5]],
+  [[81.5,86.8],[88.6,86.8],[88.6,92.2],[81.5,92.2]],
+  [[82.2,87.3],[87.8,87.3],[87.8,91.7],[82.2,91.7]],
+]);
+const PRISON_STAFF_LOOKS = Object.freeze([
+  {skin:1,body:2,face:1,hair:1,hat:2,suit:'#183e68'},
+  {skin:2,body:1,face:2,hair:2,hat:2,suit:'#263f5e'},
+  {skin:0,body:3,face:3,hair:1,hat:1,suit:'#173554'},
+  {skin:2,body:2,face:1,hair:3,hat:2,suit:'#303940'},
+  {skin:1,body:1,face:3,hair:2,hat:2,suit:'#39434a'},
+  {skin:0,body:3,face:2,hair:1,hat:1,suit:'#2a333a'},
+]);
+const _prisonStaffRespawnAt = new Float64Array(PRISON_STAFF_ROUTES.length);
+function _createPrisonStaffCop(slot,replacement=false,now=performance.now()){
+  const route=PRISON_STAFF_ROUTES[slot],police=slot<3,start=replacement
+    ?{r:JAIL_POLICE_STATION_3D.entryR,c:JAIL_POLICE_STATION_3D.entryC}
+    :{r:route[0][0],c:route[0][1]};
+  return{id:`prison_staff_${slot}_${++_cityCopId}`,x:start.c,y:start.r,tx:route[0][1],ty:route[0][0],ang:0,walkPhase:0,
+    kind:'prison_staff',weapon:police?'pistol':'shotgun',hp:200,max_hp:200,alive:true,role:police?'prison_police':'prison_guard',
+    isPolice:police,police,name:police?'Патруль':'Караул',look:{...PRISON_STAFF_LOOKS[slot]},speed:police?1.2:1.08,
+    _prisonStaff:true,_prisonSlot:slot,_prisonRouteIndex:0,_prisonPauseUntil:0,_prisonReplacement:replacement,
+    staffVariant:slot%3,prisonGear:police?['cap','tactical_helmet','bare'][slot%3]:'riot_helmet_shield',shield:!police,
+    behavior:'prison_patrol',_nextShootAt:now+700+slot*120,_nextCaseCryAt:0};
+}
+function _ensurePrisonStaffCops(now=performance.now()){
+  for(let slot=0;slot<PRISON_STAFF_ROUTES.length;slot++){
+    if(cityCops.some(c=>c?.alive&&c.kind==='prison_staff'&&c._prisonSlot===slot))continue;
+    if(_prisonStaffRespawnAt[slot]&&now<_prisonStaffRespawnAt[slot])continue;
+    const replacement=!!_prisonStaffRespawnAt[slot],cop=_createPrisonStaffCop(slot,replacement,now);
+    _prisonStaffRespawnAt[slot]=0;cityCops.push(cop);
+    if(replacement)_copChats.set(cop.id,{text:'Смена прибыла!',untilMs:now+2200});
+  }
+}
+function _updatePrisonStaffCop(cop,dt,now){
+  const playerInside=_inPrisonIslandRestrictedZone(player.r,player.c,.25)&&!myDead;
+  if(cop._pursuing&&playerInside){
+    const dr=player.r-cop.y,dc=player.c-cop.x,d=Math.hypot(dr,dc)||.001;cop.ang=Math.atan2(dr,dc);
+    if(d>5.4)_moveMurderResponseCop(cop,player.r,player.c,dt,1.22);
+    else if(d<2.7)_moveMurderResponseCop(cop,cop.y-dr/d*1.5,cop.x-dc/d*1.5,dt,1.05);
+    if(now>=(cop._nextCaseCryAt||0)){_copChats.set(cop.id,{text:['Брось оружие!','Тревога в блоке!','Охрана, к бою!','На землю!'][((cop._prisonSlot||0)+Math.floor(now/2300))%4],untilMs:now+1700});cop._nextCaseCryAt=now+2300;}
+    if(d<=9.5&&now>=(cop._nextShootAt||0)&&_policeWorldLineClear(cop.y,cop.x,player.r,player.c)){
+      const shotgun=cop.weapon==='shotgun',damage=shotgun?18+Math.floor(Math.random()*8):10+Math.floor(Math.random()*6),miss=(Math.random()-.5)*(shotgun?.48:.34),
+        muzR=cop.y+Math.sin(cop.ang)*.45,muzC=cop.x+Math.cos(cop.ang)*.45;
+      cop._nextShootAt=now+(shotgun?1050:680)+Math.random()*320;
+      spawnBullet(muzR,muzC,player.r+miss,player.c-miss*.3,{hit:Math.abs(miss)<(shotgun?.32:.28),fromNpc:true,weapon:cop.weapon});spawnMuzzle(muzR,muzC,cop.ang,cop.weapon,true);
+      if(Math.abs(miss)<(shotgun?.32:.28))_hurtLocal(damage,'Тюремная охрана',true,{kind:'city_cop',cop});
+    }
+    return true;
+  }
+  if(cop._pursuing&&!playerInside)cop._pursuing=false;
+  if(now<(cop._prisonPauseUntil||0))return true;
+  const route=PRISON_STAFF_ROUTES[cop._prisonSlot]||PRISON_STAFF_ROUTES[0],idx=Math.max(0,+cop._prisonRouteIndex||0)%route.length,target=route[idx];
+  if(_moveMurderResponseCop(cop,target[0],target[1],dt,1)){
+    cop._prisonRouteIndex=(idx+1)%route.length;cop._prisonPauseUntil=now+650+((cop._prisonSlot||0)%3)*180;
+  }
+  return true;
+}
 
 // Реакция ближайших копов на стрельбу / драку / убийство рядом с игроком.
 // reason: 'shot' | 'fight' | 'kill'
@@ -8897,6 +8965,7 @@ function initCityCops() {
     const c = spawnCityCop();
     if (c) { pickCityCopWaypoint(c); cityCops.push(c); }
   }
+  _ensurePrisonStaffCops();
 }
 
 let _cityCopsLastSpawnAt = 0;
@@ -8922,6 +8991,7 @@ function updateCityCops(dt) {
     const c = spawnCityCop(true);
     if (c) { cityCops.push(c);_cityCopReplacementQueue--;document.documentElement.dataset.policeHqReplacementLast=c.id; }
   }
+  _ensurePrisonStaffCops(now);
   document.documentElement.dataset.policeHqReplacementQueue=String(_cityCopReplacementQueue);
   document.documentElement.dataset.policePatrolLive=String(livePatrols);
   document.documentElement.dataset.policeLocalActors=String(cityCops.length);
@@ -8959,6 +9029,7 @@ function updateCityCops(dt) {
     const cop = cityCops[i];
     if (!cop.alive) continue;
     if(cop._hqReplacement&&Math.hypot(cop.y-cop.ty,cop.x-cop.tx)<.5){cop._hqReplacement=false;pickCityCopWaypoint(cop);}
+    if(cop.kind==='prison_staff'&&_updatePrisonStaffCop(cop,dt,now))continue;
     // Экипаж убийства имеет собственные фазы: выход из участка, посадка,
     // высадка, поиск/опрос/бой и возвращение в ту же машину.
     if(cop.kind==='murder_response'&&_updateMurderResponseCop(cop,dt,now))continue;
@@ -15703,11 +15774,20 @@ function _buildingInteriorTypeAt(r,c) {
   return poi?.special||(br===36&&bc===16?'job':br===26&&bc===26?'gym':br===26&&bc===46?'hospital':br===BURJ_POS.r&&bc===BURJ_POS.c?'mafia_hq':null);
 }
 
+function _blackmarketEntranceAnchor(poi) {
+  if (!poi) return { r: player.r, c: player.c };
+  // The main market occupies r 5..8 / c 25..28 and visibly faces south.
+  // Keep gameplay, the entrance marker and the animated 3D door on that same
+  // pavement instead of selecting the shorter but hidden northern wall.
+  if (poi.id === 'blackmarket') return { r: 9.5, c: 26.5 };
+  return _genericBuildingEntranceAnchor(poi.r, poi.c);
+}
+
 function _nearestBlackmarketInteraction(maxDistance = 3.5, fromR = player.r, fromC = player.c) {
   let best = null;
   for (const poi of POI) {
     if (poi.special !== 'blackmarket') continue;
-    const entrance = _genericBuildingEntranceAnchor(poi.r, poi.c);
+    const entrance = _blackmarketEntranceAnchor(poi);
     const distance = Math.min(
       Math.hypot(fromR - poi.r - .5, fromC - poi.c - .5),
       Math.hypot(fromR - entrance.r, fromC - entrance.c)
@@ -28405,29 +28485,17 @@ function fire(angle = null) {
   if (myDead) return;
   if (_peacefulInteriorGunLock()) return;
   if (_myBagWeight > 0 && ((_bankRob && _bankRob.myBag) || _policeEvidenceBag)) { showToast('🎒 С мешком нельзя стрелять', '⚠️', 1400); return; }
-  // ── ТЮРЬМА: стрелять НЕЛЬЗЯ (только кулаки) ────────────────────────
-  // Раньше блок был привязан к _meInJail (jailed И внутри радиуса клетки).
-  // Если игрок «в тюрьме» (myJailIn>0), но физически вне клетки, запрет не
-  // срабатывал и можно было стрелять. Теперь блок по самому факту срока:
-  // любой выстрел в тюрьме превращается в удар кулаком.
-  if (myJailIn > 0) {
-    if (!myDead) punch(true);   // только кулаки, даже с оружием в руках
-    return;
-  }
-  // В тюрьме NPC-цели запрещены (см. использование _meInJail ниже).
-  // Вычисляем здесь, чтобы и lock-on на NPC отключить.
-  const _meInJail = (myJailIn > 0) &&
-    (Math.hypot(player.r - JAIL_CENTER_R, player.c - JAIL_CENTER_C) <= JAIL_RADIUS_TILES + 0.5);
+  // Заключённый обычно остаётся без оружия, но найденное/пронесённое оружие
+  // является настоящим игровым предметом: им можно атаковать охрану. Старая
+  // заглушка превращала любой выстрел в удар кулаком и делала 3D-патруль
+  // полностью неуязвимым.
+  const _meInJail = (myJailIn > 0)&&_inPrisonIslandRestrictedZone(player.r,player.c,.35);
   // Авто-fallback: angle не задан.
   //   1) если есть locked-цель — стреляем В НЕЁ (auto-aim после тапа)
   //   2) иначе если правый стик сдвинут — берём его направление
   if (angle === null && lockedTarget) {
-    // В тюрьме лок на NPC-целей (cop/convoy/mg/aggro_bot/npc/gang_car)
-    // не наводит выстрел — только лок на сокамерника (player).
-    if (!(_meInJail && lockedTarget.kind !== 'player')) {
-      const pos = lockedTarget.getPos();
-      if (pos) angle = Math.atan2(pos.r - player.r, pos.c - player.c);
-    }
+    const pos = lockedTarget.getPos();
+    if (pos) angle = Math.atan2(pos.r - player.r, pos.c - player.c);
   }
   if (angle === null && joyR && joyR.active && joyR.hasAim) {
     const _d = joyR.dx, _s = joyR.dy / ISO_Y;
@@ -28572,7 +28640,7 @@ function fire(angle = null) {
   // 2b) NPC-патрульный (cityCops) — локальный коп в городе. Раньше в них
   // нельзя было целиться вообще (fire() знал только серверных worldCops).
   let chosenCityCop = null;
-  if (!chosenConvoy && !chosenCop && !_meInJail && !_bankInt) {
+  if (!chosenConvoy && !chosenCop && !_bankInt) {
     for (const c of cityCops) {
       if (!c.alive) continue;
       const dx = c.x - player.c, dy = c.y - player.r;
@@ -36240,10 +36308,9 @@ function _verifyBusinessInteriorCollisionLayoutLegacyV2() {
 }
 if(_LOCAL_PREVIEW)_verifyBusinessInteriorCollisionLayoutLegacyV2();
 
-// Visual layout v9 is shared by Canvas, Three.js and runtime interior movement.
-// solid:false remains the explicit escape hatch for rugs, light rigs, open
-// portals and other detail that must never become an invisible obstacle.
-const BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION = 9;
+// Visual layout v7 is consumed by Canvas and Three.js only.  Its authored
+// rooms may evolve freely because gameplay collision stays on legacy v2 above.
+const BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION = 8;
 function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
   const id=String(bizId||''),W=Math.max(8,+width||18),H=Math.max(8,+height||13);
   const cfg=BUSINESS_INTERIORS[id]||BUSINESS_INTERIORS.coffee,items=[];
@@ -36490,13 +36557,12 @@ function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
       box('major_port_docker_bench',21.05,10.5,3.2,.9,.42,'#775334',true,{zone:'locker_room',boots:true,hooks:true});
       break;
   }
-  // Compact-business plans were authored on an 18x13 board. Decorative floor,
-  // wall and ceiling pieces may expand to the real room, but solid furniture
-  // stays on the frozen v2 footprint so it never becomes a fake obstacle that
-  // the player can walk through. Extra edge detail is authored as solid:false.
+  // Compact-business plans were authored on an 18x13 board. Expand the visual
+  // composition to the real 16x11..28x19 room instead of leaving large
+  // warehouses, clubs and casinos half empty. Collision remains frozen on v2.
   if(!['port','major_mansion','major_casino','major_factory','major_market','major_port'].includes(id)){
     const sx=(W-2)/16,sy=(H-2)/11;
-    for(const q of items)if(q.solid===false){q.c=1+(q.c-1)*sx;q.r=1+(q.r-1)*sy;q.w*=sx;q.d*=sy;}
+    for(const q of items){q.c=1+(q.c-1)*sx;q.r=1+(q.r-1)*sy;q.w*=sx;q.d*=sy;}
   }
   return {version:BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION,id,title:cfg.title||id,floor:[...(cfg.floor||['#62584f'])],wall:cfg.wall||'#313943',accent:cfg.accent||'#d7ae4c',items};
 }
@@ -53639,62 +53705,11 @@ function _mansionMovementBlocked(bi,r,c,pad=.36) {
     Math.abs(r-b.r)<b.d/2+pad&&Math.abs(c-b.c)<b.w/2+pad);
 }
 
-const APARTMENT_INTERIOR_COLLISION_PROFILES = Object.freeze([
-  [-.02,.01,-.01,.01,0,0],[.055,-.015,.045,.055,-.025,.005],[-.055,.035,.02,-.045,.035,-.018],
-  [.075,-.015,-.03,.075,-.055,.02],[-.075,.02,.04,.035,.045,-.035],[.02,.065,-.06,-.03,.06,.015],
-  [-.045,-.055,.04,.04,-.035,.045],[.065,.045,-.055,-.05,.025,-.045],[-.075,-.02,.035,.075,.055,.035],
-  [.045,-.065,-.065,.025,-.015,.055],[-.055,.065,.04,-.035,.035,-.055],[.075,.025,-.035,-.07,-.06,-.01],
-]);
-function _interiorVisualCollisionBlockers(bi) {
-  if(!bi)return [];
-  const W=+bi.W||16,H=+bi.H||12;
-  if(!bi.type){
-    const identity=String(bi.apartmentKey||`${bi.seed||0}:${W}x${H}`);
-    let seed=2166136261;
-    for(const ch of identity)seed=Math.imul(seed^ch.charCodeAt(0),16777619)>>>0;
-    const variant=seed%12,[livingDx,livingDz,diningDx,diningDz,bedDx,bedDz]=APARTMENT_INTERIOR_COLLISION_PROFILES[variant],S=Math.max(3,Math.min(5,+window.MAFIOZI_RENDERER_CONFIG?.worldScale||4.1)),turnDining=variant%4===1||variant%4===3;
-    return [
-      {kind:'sofa',c:W*(.26+livingDx),r:H*(.7+livingDz),w:7.4/S,d:2.8/S},
-      {kind:'coffee_table',c:W*(.48+livingDx*.45),r:H*(.58+livingDz*.55),w:5.2/S,d:2.55/S},
-      {kind:'television',c:W*.27,r:H*.465,w:6.1/S,d:1.35/S},
-      {kind:'kitchen',c:W*.3,r:H*.11,w:13.7/S,d:2.02/S},
-      {kind:'fridge',c:W*.03,r:H*.11,w:2.6/S,d:2/S},
-      {kind:'dining_table',c:W*(.33+diningDx),r:H*(.32+diningDz),w:(turnDining?3:5.3)/S,d:(turnDining?5.3:3)/S},
-      {kind:'bed',c:W*(.79+bedDx),r:H*(.67+bedDz),w:7.1/S,d:7.2/S},
-      {kind:'wardrobe',c:W*.95,r:H*.68,w:5.4/S,d:1.8/S},
-      {kind:'bath',c:W*.84,r:H*.22,w:5.2/S,d:2.35/S},
-    ];
-  }
-  if(bi.type==='hospital')return [
-    ...[[2.3,3],[5.4,3],[2.3,6],[5.4,6]].map(([c,r])=>({kind:'bed',c,r,w:2.15,d:1})),
-    {kind:'desk',c:W-2.35,r:H-2.05,w:3.1,d:1.05},{kind:'cabinet',c:W-1.1,r:2,w:1.05,d:.72},
-  ];
-  if(bi.type==='police_st')return [
-    {kind:'front_desk',c:W/2,r:2.15,w:4.7,d:1.05},{kind:'cabinet',c:1.1,r:3.2,w:1.05,d:.72},
-    {kind:'cabinet',c:1.1,r:6.2,w:1.05,d:.72},{kind:'office_desk',c:W*.72,r:H-1.75,w:3.8,d:1.05},
-  ];
-  if(bi.type==='gym')return [
-    {kind:'rack',c:3,r:3,w:2.9,d:1.8},{kind:'rack',c:8,r:3,w:2.9,d:1.8},
-    {kind:'bench',c:W-2.3,r:3.1,w:2.3,d:1.05},{kind:'bench',c:W-2.3,r:6.3,w:2.3,d:1.05},
-    {kind:'desk',c:W-2.25,r:H-2.05,w:3.3,d:1.05},
-  ];
-  if(bi.type==='job')return [2.4,6,9.6].map(c=>({kind:'desk',c,r:3,w:2.7,d:1.05}));
-  if(bi.type==='blackmarket')return [
-    ...[[2.1,3],[5,3],[7.9,3]].map(([c,r])=>({kind:'counter',c,r,w:2.3,d:1.25})),
-    {kind:'desk',c:W-1.6,r:4.8,w:2.2,d:1.05},
-  ];
-  return [];
-}
-
 function _businessInteriorMovementBlocked(bi,r,c,pad=.42) {
   if(!bi)return false;
   if(bi.bizId==='major_casino')return _casinoMovementBlocked(bi,r,c,pad);
   if(bi.bizId==='major_mansion')return _mansionMovementBlocked(bi,r,c,Math.min(pad,.38));
-  const authoredBlockers=_interiorVisualCollisionBlockers(bi);
-  if(authoredBlockers.some(q=>Math.abs(r-q.r)<q.d/2+pad&&Math.abs(c-q.c)<q.w/2+pad))return true;
-  // Collision follows the same authored footprint that both renderers show.
-  // The frozen v2 builder stays available for compatibility auditing only.
-  const layout=_businessInteriorVisualLayoutFor(bi)||_businessInteriorCollisionLayoutLegacyV2For(bi);
+  const layout=_businessInteriorCollisionLayoutLegacyV2For(bi);
   return !!layout?.items?.some(q=>q.solid!==false&&
     Math.abs(r-q.r)<q.d/2+pad&&Math.abs(c-q.c)<q.w/2+pad);
 }
@@ -55581,7 +55596,7 @@ function drawBuildingInterior() {
 
 // ── BANK INTERIOR CFG — единая большая комната ─────────────────
 // The detailed 2D bank below is the canonical visual source for every renderer.
-const BANK_INTERIOR_VISUAL_VERSION = 5;
+const BANK_INTERIOR_VISUAL_VERSION = 4;
 const _BINT = {
   small:  { W:28, H:24, crackTime:10, counterRow:15 },
   medium: { W:36, H:30, crackTime:15, counterRow:19 },
@@ -59073,20 +59088,11 @@ window.Mafiozi3DBridge = Object.freeze({
     const bankState=_bankInt?{
       visualVersion:BANK_INTERIOR_VISUAL_VERSION,size:_bankInt.bank?.size||'small',
       name:_bankInt.bank?.name||'Банк',phase:_bankInt.phase||'lobby',
-      architecture:'bank-rooms-v5',
+      architecture:'bank-rooms-v4',
       rooms:_bankInt.room==='vault'
         ?['vault','deposit_box_gallery','cash_cage','counting_zone','service_bay','biometric_airlock']
         :['main_hall','teller_hall','security_booth','staff_office','manager_office','archive','break_room','conference_room','screening_corridor','cash_processing','vault_approach','atm_zone'],
       counterRow:+_bankInt.counterRow||Math.floor((+_bankInt.H||18)*.58),
-      visualPlan:{
-        archRow:Math.max(4.8,(+_bankInt.counterRow||Math.floor((+_bankInt.H||18)*.58))-4),
-        staffEnd:Math.floor((+_bankInt.W||16)*.38),
-        loungeStart:Math.floor((+_bankInt.W||16)*.62),
-        staffOpening:[Math.floor((+_bankInt.W||16)*.1),Math.floor((+_bankInt.W||16)*.1)+3],
-        centerOpening:[Math.floor((+_bankInt.W||16)/2)-3,Math.floor((+_bankInt.W||16)/2)+3],
-        loungeOpening:[Math.floor((+_bankInt.W||16)*.65),Math.floor((+_bankInt.W||16)*.65)+3],
-        vaultSouthOpen:_bankInt.room==='vault',
-      },
       alarmTriggered:!!_bankInt.alarmTriggered,crackProg:+_bankInt.crackProg||0,
       vaultW:+_bankInt.vaultW||8,vaultH:+_bankInt.vaultH||12,
       carryingBag:!!_bankInt.myBag,
@@ -59128,7 +59134,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const poi=(typeof POI!=='undefined'?POI:[]).find(p=>p.id===String(id)&&p.special==='blackmarket');
     if(!poi)return {ok:false,reason:'market-not-found'};
     if(_buildingInt)exitBuildingInterior();
-    const entrance=_genericBuildingEntranceAnchor(poi.r,poi.c);
+    const entrance=_blackmarketEntranceAnchor(poi);
     player.r=entrance.r;player.c=entrance.c;player.vr=0;player.vc=0;player.walking=false;
     myDead=false;myDrivingCarId=null;window._studioTeleportUntil=Date.now()+10000;
     updateGtaInteractions();
@@ -59279,7 +59285,7 @@ window.Mafiozi3DBridge = Object.freeze({
       });
     }
     const pois = (typeof POI !== 'undefined' ? POI : []).filter(p => p.r >= minR && p.r <= maxR && p.c >= minC && p.c <= maxC && !(JAIL_ISLAND_3D_ENABLED&&p.id==='police')).map(p => {
-      const entry=MAJOR_OBJECT_IDS.has(p.id)?_majorInteractionAnchor(p):null;
+      const entry=MAJOR_OBJECT_IDS.has(p.id)?_majorInteractionAnchor(p):p.special==='blackmarket'?_blackmarketEntranceAnchor(p):null;
       return {id:p.id,r:p.r,c:p.c,entryR:entry?.r,entryC:entry?.c,label:p.label||p.name||p.id,architecture:p.id==='police'?'premium_city_precinct':p.id==='mansion'?'don_premium_estate':null};
     });
     const coast = {
@@ -59472,30 +59478,6 @@ window.Mafiozi3DBridge = Object.freeze({
       if(x?.gang||x?._gang||x?.gangId||x?.gang_id||role.includes('gang')||role.includes('boss')||role.includes('district_')||role.includes('occupier'))return 'gang';
       return 'civilian';
     };
-    if(!inside&&near(JAIL_ISLAND_LAYOUT.centerR,JAIL_ISLAND_LAYOUT.centerC)){
-      // Deterministic visual patrols for the 3D prison. They do not mutate NPCS
-      // or server state; real civilians are filtered out of the restricted zone.
-      const patrolRoutes=[
-        [[64.0,86.8],[70.7,86.8],[70.7,92.2],[64.0,92.2]],
-        [[65.0,87.4],[65.0,91.6],[70.2,91.6],[70.2,87.4]],
-        [[71.1,87.2],[71.1,91.8],[80.9,91.8],[80.9,87.2]],
-        [[73.0,87.5],[78.8,87.5],[78.8,91.5],[73.0,91.5]],
-        [[81.5,86.8],[88.6,86.8],[88.6,92.2],[81.5,92.2]],
-        [[82.2,87.3],[87.8,87.3],[87.8,91.7],[82.2,91.7]],
-      ];
-      const staffLooks=[
-        {skin:1,body:2,face:1,hair:1,hat:2,suit:'#183e68'},
-        {skin:2,body:1,face:2,hair:2,hat:2,suit:'#263f5e'},
-        {skin:0,body:3,face:3,hair:1,hat:1,suit:'#173554'},
-        {skin:2,body:2,face:1,hair:3,hat:2,suit:'#303940'},
-        {skin:1,body:1,face:3,hair:2,hat:2,suit:'#39434a'},
-        {skin:0,body:3,face:2,hair:1,hat:1,suit:'#2a333a'},
-      ];
-      for(let pi=0;pi<patrolRoutes.length;pi++){
-        const route=patrolRoutes[pi],cycle=(fxNow*.000045+pi*.157)%1,leg=Math.floor(cycle*route.length),u=cycle*route.length-leg,a=route[leg],b=route[(leg+1)%route.length],pause=u>.88,travel=Math.min(u,.88)/.88,r=a[0]+(b[0]-a[0])*travel,c=a[1]+(b[1]-a[1])*travel,police=pi<3,staffVariant=pi%3;
-        npcSource.push({id:`prison_staff_${pi}`,r,c,tr:b[0],tc:b[1],ang:Math.atan2(b[0]-a[0],b[1]-a[1]),walking:!pause,moving:!pause,walkPhase:fxNow*.0056+pi*1.7,speed:1.05,role:police?'prison_police':'prison_guard',police,name:police?'Патруль':'Караул',look:staffLooks[pi],hp:200,max_hp:200,_prisonStaff:true,staffVariant,prisonGear:police?['cap','tactical_helmet','bare'][staffVariant]:'riot_helmet_shield',shield:!police,behavior:'prison_patrol'});
-      }
-    }
     if(!inside&&near(JUNKYARD_R,JUNKYARD_C)){
       const workerRoutes=[[[84.1,62.5],[84.1,67.3],[87.2,67.3],[87.2,62.5]],[[88.2,64.2],[88.2,69.1],[84.8,69.1],[84.8,64.2]],[[82.9,65.1],[86.1,65.1],[86.1,70],[82.9,70]]];
       const workerLooks=[{skin:1,body:2,face:1,hair:1,hat:2,suit:'#665b46'},{skin:2,body:1,face:2,hair:3,hat:1,suit:'#4e5a55'},{skin:0,body:3,face:3,hair:2,hat:2,suit:'#72513d'}];
@@ -59712,6 +59694,7 @@ window.Mafiozi3DBridge = Object.freeze({
     document.documentElement.dataset.junkyardWorkers=String(npcs.filter(n=>n.role==='junkyard_worker').length);
     const prisonStaff=npcs.filter(n=>_inPrisonIslandRestrictedZone(n.r,n.c,.12)&&_isPrisonStaffActor(n));
     document.documentElement.dataset.prisonStaff=String(prisonStaff.length);
+    document.documentElement.dataset.prisonStaffCombat=`live:${prisonStaff.filter(n=>!n.dead).length}:attackable-response-respawn-v265`;
     document.documentElement.dataset.prisonCivilians=String(npcs.filter(n=>_inPrisonIslandRestrictedZone(n.r,n.c,.12)&&n.visualRole==='civilian').length);
     return {cars,npcs,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
   },
@@ -59756,7 +59739,15 @@ window.Mafiozi3DBridge = Object.freeze({
   },
   fireAtNpc(npcId, muzzleR, muzzleC) {
     if(myDead||myMode==='pve'||!_isArmed())return false;
-    const key=String(npcId||''),npc=NPCS.find(n=>n&&!n.dead&&!n._evacuated&&String(_threeNpcEntityId(n))===key);
+    const key=String(npcId||''),cityCop=cityCops.find(c=>c?.alive&&key===`npc_city_cop_${c.id}`);
+    if(cityCop){
+      const r=+cityCop.y||0,c=+cityCop.x||0,sr=Number.isFinite(muzzleR)?muzzleR:player.r,sc=Number.isFinite(muzzleC)?muzzleC:player.c;
+      if(Math.hypot(r-sr,c-sc)>(weaponProfile(currentWeapon).range||8)+1)return false;
+      const hpBefore=+cityCop.hp||0,accepted=_threeBridgeFireAccepted(Math.atan2(r-sr,c-sc),muzzleR,muzzleC);
+      document.documentElement.dataset.prisonStaffDirectAim=accepted?`${(+cityCop.hp||0)<hpBefore?'hit':'fired'}:${cityCop.id}`:`rejected:${cityCop.id}`;
+      return accepted;
+    }
+    const npc=NPCS.find(n=>n&&!n.dead&&!n._evacuated&&String(_threeNpcEntityId(n))===key);
     if(!npc)return false;
     const r=+npc.r||0,c=+npc.c||0,sr=Number.isFinite(muzzleR)?muzzleR:player.r,sc=Number.isFinite(muzzleC)?muzzleC:player.c;
     if(Math.hypot(r-sr,c-sc)>(weaponProfile(currentWeapon).range||8)+1)return false;
@@ -59797,10 +59788,10 @@ if(_LOCAL_PREVIEW&&_UP.has('previewjail')){
     player.r=JAIL_POLICE_STATION_3D.entryR+.35;player.c=JAIL_POLICE_STATION_3D.entryC;player.vr=0;player.vc=0;player.walking=false;
     window._studioTeleportUntil=Date.now()+10000;
   }else if(_UP.get('previewjail')==='westgate'){
-    player.r=JAIL_CENTER_R;player.c=JAIL_ISLAND_3D_BOUNDS.c0-2.2;player.vr=0;player.vc=0;player.walking=false;
+    player.r=JAIL_ISLAND_LAYOUT.centerR;player.c=JAIL_ISLAND_LAYOUT.west-2.2;player.vr=0;player.vc=0;player.walking=false;
     window._studioTeleportUntil=Date.now()+10000;
   }else if(_UP.get('previewjail')==='northgate'){
-    player.r=JAIL_ISLAND_3D_BOUNDS.r0-2.2;player.c=JAIL_POLICE_STATION_3D.entryC;player.vr=0;player.vc=0;player.walking=false;
+    player.r=JAIL_ISLAND_LAYOUT.north-2.2;player.c=JAIL_POLICE_STATION_3D.entryC;player.vr=0;player.vc=0;player.walking=false;
     window._studioTeleportUntil=Date.now()+10000;
   }
   if(_UP.has('previewjailopening'))_prisonReleaseGateOpenedAt=performance.now();
@@ -63607,6 +63598,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d264-readable-prison-zones"></script>
+<script type="module" src="three_preview.js?v=3d265-authored-blackmarket"></script>
 </body>
 </html>
