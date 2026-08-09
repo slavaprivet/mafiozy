@@ -1,4 +1,9 @@
-<!DOCTYPE html><!-- v247: 3D police response adds physical cuffing, vehicle loading, prison transport and gang-rescue interruption. -->
+<!DOCTYPE html><!-- v258: race-safe armor destruction plus verified dossier inventory controls. -->
+<!-- v254: shop purchases reconcile atomically with arsenal, armor and ammo. -->
+<!-- v253: every weapon rig and reload family is audited by automated 3D QA. -->
+<!-- v252: animation conflict audit adds authoritative state priority, teleport resets and pooled vehicle cleanup. -->
+<!-- v251: high-quality 3D animation pass adds blended movement, directional impacts, staged reloads and living-world motion. -->
+<!-- v247: 3D police response adds physical cuffing, vehicle loading, prison transport and gang-rescue interruption. -->
 <!-- prison island preview: the visual correctional complex moves onto the empty canal and grows to roughly three times its former footprint. -->
 <!-- v232: ambulance depots and patient-side parking validate the full body so normal recovery never needs a watchdog teleport. -->
 <!-- v231: service vehicles validate their full body against buildings; active hose trucks stay visible with their water stream. -->
@@ -652,6 +657,33 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 }
 #profileModal .armor-equip:active { transform: scale(.96); }
 #profileModal .armor-equip:disabled { border-color:#63512e;background:#2d281c;color:#c4a963;opacity:.86;cursor:default;transform:none; }
+.inventory-summary { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:13px; }
+.inventory-summary-card { min-width:0;padding:9px 10px;border:1px solid #4d3925;border-radius:5px;background:linear-gradient(145deg,rgba(65,35,21,.74),rgba(12,14,18,.96));box-shadow:inset 3px 0 rgba(197,139,51,.42),inset 0 1px rgba(255,255,255,.035); }
+.inventory-summary-card span { display:block;color:#8f816d;font:800 8px/1.2 system-ui,sans-serif;letter-spacing:1px;text-transform:uppercase; }
+.inventory-summary-card b { display:block;margin-top:5px;overflow:hidden;color:#f3ddb4;font:900 12px/1.15 Georgia,serif;text-overflow:ellipsis;white-space:nowrap; }
+.inventory-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px; }
+.inventory-section { margin-top:14px; }
+.inventory-card { position:relative;min-width:0;overflow:hidden;border:1px solid #453326;border-radius:6px;background:linear-gradient(150deg,rgba(54,30,19,.9),rgba(11,14,18,.98) 58%);box-shadow:inset 3px 0 #43251a,inset 0 1px rgba(255,255,255,.035),0 6px 14px rgba(0,0,0,.18);transition:border-color .15s,transform .15s,box-shadow .15s; }
+.inventory-card:hover { border-color:#806035;transform:translateY(-1px); }
+.inventory-card.equipped { border-color:#d0a043;box-shadow:inset 3px 0 #e1b14d,0 0 16px rgba(218,162,54,.14); }
+.inventory-visual { position:relative;height:78px;border-bottom:1px solid #3b3027;background:radial-gradient(circle at 50% 42%,#303943,#090b0e 75%); }
+.inventory-visual canvas { display:block;width:100%;height:100%; }
+.inventory-visual.inventory-symbol { display:grid;place-items:center;font-size:36px;text-shadow:0 4px 8px #000; }
+.inventory-qty,.inventory-state { position:absolute;z-index:2;top:6px;padding:4px 6px;border-radius:3px;font:900 8px/1 system-ui,sans-serif;letter-spacing:.55px;text-transform:uppercase;box-shadow:0 2px 7px #0009; }
+.inventory-qty { right:6px;color:#f8e5b6;border:1px solid #806032;background:#20170fd9; }
+.inventory-state { left:6px;color:#1a160c;border:1px solid #ffe28b;background:linear-gradient(#f4cf72,#b9822d); }
+.inventory-card-body { padding:9px 10px 10px; }
+.inventory-card-name { color:#f7e6c5;font:900 14px/1.1 Georgia,serif; }
+.inventory-card-meta { min-height:26px;margin-top:4px;color:#8e867a;font:700 9px/1.35 system-ui,sans-serif; }
+.inventory-durability { margin-top:7px; }
+.inventory-durability-copy { display:flex;justify-content:space-between;gap:7px;color:#b9aa93;font:800 8px/1 system-ui,sans-serif;letter-spacing:.35px;text-transform:uppercase; }
+.inventory-durability-track { height:6px;margin-top:5px;overflow:hidden;border:1px solid #342a21;border-radius:5px;background:#090b0e; }
+.inventory-durability-fill { height:100%;background:linear-gradient(90deg,#7d352c,#e0b04d);box-shadow:0 0 7px currentColor; }
+.inventory-actions { display:flex;gap:6px;margin-top:8px; }
+.inventory-btn { flex:1;min-height:31px;padding:7px 8px;border:1px solid #b67f2d;border-radius:4px;cursor:pointer;background:linear-gradient(#8a5d21,#503416);color:#fff0be;font:900 9px/1 system-ui,sans-serif;letter-spacing:.55px;text-transform:uppercase; }
+.inventory-btn.secondary { border-color:#6d5540;background:linear-gradient(#30271f,#1a1715);color:#d4c4aa; }
+.inventory-btn:active { transform:scale(.97); }
+.inventory-btn:disabled { border-color:#51483b;background:#28231e;color:#786e5f;cursor:default;transform:none; }
 #profileModal .stat-block {
   display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px;
 }
@@ -702,7 +734,15 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
   #profileModal .stat-card .val { font-size:15px; }
   #profileModal .item { padding:9px 8px;gap:8px; }
   #profileModal .item .icon { width:34px;height:34px;flex-basis:34px;font-size:19px; }
+  .inventory-summary { grid-template-columns:1fr 1fr; }
+  .inventory-summary-card:last-child { grid-column:1/-1; }
+  .inventory-grid { grid-template-columns:1fr 1fr;gap:7px; }
+  .inventory-visual { height:68px; }
+  .inventory-card-body { padding:8px; }
+  .inventory-card-name { font-size:12px; }
+  .inventory-card-meta { font-size:8px; }
 }
+@media (max-width:390px) { .inventory-grid { grid-template-columns:1fr; }.inventory-visual{height:76px;} }
 #michaelModal .card {
   width: min(360px, 90vw); background: #14181f;
   border: 1px solid #d8a040; border-radius: 14px; padding: 18px 18px 14px;
@@ -1163,6 +1203,15 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 #leftCommandHud #hpBarFill{border-radius:4px}
 #leftCommandHud #hudPlayer .hp-row .label{font-size:10px;font-weight:1000;color:#e8c978}
 #leftCommandHud #hudPlayer .hp-nums{font-size:12px}
+#leftCommandHud #hudPlayer .armor-row{display:grid;grid-template-columns:20px 1fr auto;gap:3px 6px;align-items:center;min-height:22px}
+#leftCommandHud #hudPlayer .armor-row.hidden{display:none}
+#leftCommandHud #armorHudIcon{grid-row:1/3;width:20px;height:24px;image-rendering:auto;filter:drop-shadow(0 2px 2px #000)}
+#leftCommandHud #armorHudName{overflow:hidden;color:#b9dfff;font-size:8px;font-weight:1000;letter-spacing:.45px;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 2px #000}
+#leftCommandHud #armorHudValue{color:#d9efff;font-size:9px;font-weight:1000;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
+#leftCommandHud #armorBarBig{grid-column:2/4;height:7px;padding:1px;border:1px solid #49657a;border-radius:4px;background:#070b10;box-shadow:inset 0 1px 3px #000;overflow:hidden}
+#leftCommandHud #armorBarFill{height:100%;width:100%;border-radius:2px;background:linear-gradient(90deg,#2878a9,#62c7ee 62%,#d5f7ff);box-shadow:0 0 7px #4fc9ff88;transition:width .18s ease}
+#leftCommandHud #armorBarFill.low{background:linear-gradient(90deg,#9b5d12,#e6a627,#ffe09a);box-shadow:0 0 7px #e6a62777}
+#leftCommandHud #armorBarFill.crit{background:linear-gradient(90deg,#851925,#ef4552,#ffafa7);box-shadow:0 0 8px #ef455299;animation:hudCriticalHp .65s ease-in-out infinite alternate}
 #leftCommandHud #hudPlayer .stat-row{padding-top:1px;border-top:1px solid rgba(207,171,91,.16)}
 #leftCommandHud #hudPlayer .stat-money{padding:3px 8px;border:1px solid rgba(194,155,71,.36);border-radius:7px;background:linear-gradient(180deg,#252116,#12120e);color:#f5d477}
 #leftCommandHud #modeHud,#leftCommandHud #missionHudBtn{min-height:36px;border-radius:8px;font-size:10px;background:linear-gradient(180deg,rgba(48,48,54,.96),rgba(16,18,23,.98));border-color:#665942;transition:transform .12s ease,filter .12s ease}
@@ -1837,7 +1886,7 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 }
 #shopOverlay.open { display: flex; }
 #shopModal {
-  width: min(360px, 92vw); max-height: 86vh; overflow-y: auto;
+  box-sizing:border-box; width: min(420px, 94vw); max-height: 86vh; overflow-x:hidden; overflow-y: auto;
   -webkit-overflow-scrolling: touch; touch-action: pan-y;
   background: linear-gradient(160deg, #1a0f24, #150818);
   border: 2px solid #5a2058; border-radius: 16px; padding: 16px;
@@ -1846,6 +1895,8 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 #shopHeader {
   display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
 }
+#shopTabs{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px!important}
+#shopTabs .shop-tab{min-width:0;padding:8px 4px!important;font-size:11px!important}
 #shopHeader .icon { font-size: 28px; }
 #shopHeader .title { font-size: 17px; font-weight: 800; color: #ffd76b; }
 #shopHeader .sub   { font-size: 11px; color: #b8a070; margin-top: 1px; }
@@ -1877,6 +1928,7 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
   font-family: inherit;
 }
 .shop-item .buy:active { transform: scale(.96); }
+@media(max-width:420px){#shopTabs{grid-template-columns:repeat(3,minmax(0,1fr))}.shop-item{gap:7px;padding:8px}.shop-item .buy{padding:8px 9px}.shop-item .pic.weapon-preview-wrap,.shop-item .pic.ammo-preview-wrap,.shop-item .pic.armor-preview-wrap{width:62px}.shop-weapon-preview,.shop-ammo-preview,.shop-armor-preview{width:62px}}
 
 /* Модал арены — выбор района для боёвки */
 #arenaOverlay {
@@ -2363,6 +2415,11 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
         <span class="hp-nums">
           <span id="hpVal">100</span><span style="color:#5a6478">/</span><span id="hpMaxVal">100</span>
         </span>
+      </div>
+      <div class="armor-row hidden" id="armorHudRow">
+        <canvas id="armorHudIcon" width="40" height="48"></canvas>
+        <span id="armorHudName">БРОНЯ</span><span id="armorHudValue">0/0</span>
+        <div id="armorBarBig"><div id="armorBarFill"></div></div>
       </div>
       <div class="stat-row">
         <span class="stat-money" id="hudMoneyToggle" role="button" tabindex="0" title="Нажми, чтобы показать точный баланс" aria-label="Показать точный баланс">💰<span id="hudMoneyVal">0</span></span>
@@ -3032,17 +3089,18 @@ function _livePlayerLook(){
 }
 
 const ARMOR_STYLES={
-  leather_jacket:{suit:'#3b2118',hat:null,reduction:.05,label:'Кожанка'},
-  bulletproof:{suit:'#26302a',hat:null,reduction:.10,label:'Бронежилет'},
-  kevlar_vest:{suit:'#48543a',hat:null,reduction:.14,label:'Кевларовый жилет'},
-  tactical_vest:{suit:'#263b34',hat:3,reduction:.18,label:'Тактический жилет'},
-  army_armor:{suit:'#3e4d32',hat:3,reduction:.22,label:'Армейская броня'},
-  swat_suit:{suit:'#151b22',hat:2,reduction:.26,label:'Костюм спецназа'},
-  composite_armor:{suit:'#394654',hat:2,reduction:.30,label:'Композитный доспех'},
-  exo_armor:{suit:'#27313d',hat:2,reduction:.34,label:'Экзо-броня'},
-  titanium_vest:{suit:'#66717e',hat:2,reduction:.28,label:'Титановый жилет'},
+  leather_jacket:{suit:'#3b2118',hat:null,reduction:.05,durability:45,wear:.42,accent:'#c58a54',label:'Кожанка'},
+  bulletproof:{suit:'#26302a',hat:null,reduction:.10,durability:65,wear:.46,accent:'#7e9b83',label:'Бронежилет'},
+  kevlar_vest:{suit:'#48543a',hat:null,reduction:.14,durability:80,wear:.48,accent:'#a7b96b',label:'Кевларовый жилет'},
+  tactical_vest:{suit:'#263b34',hat:3,reduction:.18,durability:95,wear:.50,accent:'#55a584',label:'Тактический жилет'},
+  army_armor:{suit:'#3e4d32',hat:3,reduction:.22,durability:115,wear:.52,accent:'#9caa69',label:'Армейская броня'},
+  swat_suit:{suit:'#151b22',hat:2,reduction:.26,durability:135,wear:.54,accent:'#5f91bd',label:'Костюм спецназа'},
+  composite_armor:{suit:'#394654',hat:2,reduction:.30,durability:160,wear:.56,accent:'#8eabc4',label:'Композитный доспех'},
+  exo_armor:{suit:'#27313d',hat:2,reduction:.34,durability:190,wear:.58,accent:'#58d5ff',label:'Экзо-броня'},
+  titanium_vest:{suit:'#66717e',hat:2,reduction:.28,durability:150,wear:.54,accent:'#c9e3f4',label:'Титановый жилет'},
 };
 function _armorReduction(){
+  if(!_equippedArmor||_armorDurability(_equippedArmor)<=0)return 0;
   return Math.max(0,Math.min(.34,ARMOR_STYLES[_equippedArmor]?.reduction||0));
 }
 
@@ -4082,17 +4140,41 @@ const BEACH_FOUND_DEFS = {
 let _inventoryItems = [];
 let _equippedArmor = null;
 let _armorBreakPending = false;
-async function _breakEquippedArmorOnDeath(){
+let _armorWearFloatAt = 0;
+const _armorDurabilitySaveKey=`mafiozi_armor_durability_v1_${QP.uid||'guest'}`;
+let _armorDurabilityState={};
+try{_armorDurabilityState=JSON.parse(localStorage.getItem(_armorDurabilitySaveKey)||'{}')||{};}catch(e){}
+function _armorMaxDurability(id=_equippedArmor){return Math.max(0,+ARMOR_STYLES[id]?.durability||0);}
+function _saveArmorDurability(){try{localStorage.setItem(_armorDurabilitySaveKey,JSON.stringify(_armorDurabilityState));}catch(e){}}
+function _ensureArmorDurability(id=_equippedArmor,fresh=false){
+  if(!id||!ARMOR_STYLES[id])return 0;const max=_armorMaxDurability(id),has=Object.prototype.hasOwnProperty.call(_armorDurabilityState,id),saved=+_armorDurabilityState[id];
+  if(fresh||!has||!Number.isFinite(saved))_armorDurabilityState[id]=max;
+  else _armorDurabilityState[id]=Math.min(max,Math.max(0,Math.round(saved)));
+  _saveArmorDurability();return _armorDurabilityState[id];
+}
+function _armorDurability(id=_equippedArmor){return id?_ensureArmorDurability(id,false):0;}
+function _resetArmorDurability(id){return _ensureArmorDurability(id,true);}
+function _damageEquippedArmor(rawDamage,absorbedDamage){
+  const id=_equippedArmor,style=ARMOR_STYLES[id];if(!id||!style||_armorBreakPending)return 0;
+  const before=_armorDurability(id),loss=Math.max(1,Math.ceil(Math.max(1,+rawDamage||0)*(style.wear||.5))),after=Math.max(0,before-loss);
+  _armorDurabilityState[id]=after;_saveArmorDurability();updateArmorHud();
+  const now=performance.now();if(after<=0||now-_armorWearFloatAt>320){_armorWearFloatAt=now;spawnFloatText(player.r,player.c,after>0?`🛡 ${after}/${style.durability}`:'💥 БРОНЯ РАЗБИТА',{color:after>0?style.accent:'#ff776e',size:11,life:after>0?720:1200,tag:'armor_wear'});}
+  if(after<=0)_breakEquippedArmor('hit');
+  return Math.max(0,+absorbedDamage||0);
+}
+async function _breakEquippedArmor(reason='death'){
   if(!_equippedArmor||_armorBreakPending)return;
   const brokenId=_equippedArmor,label=ARMOR_STYLES[brokenId]?.label||'Броня';
-  _armorBreakPending=true;_equippedArmor=null;renderHudAvatar();
-  showToast(`${label} уничтожена при смерти`,'💥',2400);
+  _armorBreakPending=true;_equippedArmor=null;_armorDurabilityState[brokenId]=0;_saveArmorDurability();renderHudAvatar();updateArmorHud();
+  showToast(reason==='hit'?`${label} разбита попаданиями`:`${label} уничтожена при смерти`,'💥',2400);
   try{
-    await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/break-armor`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/break-armor`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({armor_id:brokenId})});
+    const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'armor sync failed');delete _armorDurabilityState[brokenId];_saveArmorDurability();
     await loadInventoryItems();
   }catch(e){}
   _armorBreakPending=false;
 }
+function _breakEquippedArmorOnDeath(){return _breakEquippedArmor('death');}
 let _myC4Count = 0, _myGrenadeCount = 0, _myMolotovCount = 0;
 const worldC4Charges = new Map(); // id → {x,y,ownerUid,ownerName,expiresAt}
 const districtBossCashDrops = new Map(); // общий серверный дроп $200 с боссов районов
@@ -7500,7 +7582,7 @@ function hitGangCar(car, damage) {
 // Локальное попадание пули в мирного NPC: knockback назад + кровь +
 // hp вычитается. При hp<=0 → dead (тело остаётся как splat).
 function _igniteLocalCharacter(npc, sourceR, sourceC) {
-  if (!npc || npc.dead) return;
+  if (!npc || npc.dead || npc._invulnerable || npc._keyNpc) return;
   const now=performance.now(),wasBurning=now<(npc._burnUntil||0);
   npc._burnUntil=Math.max(npc._burnUntil||0,now+4800);
   if(!wasBurning||!npc._burnTickAt)npc._burnTickAt=now+1000;
@@ -7511,6 +7593,9 @@ function _igniteLocalCharacter(npc, sourceR, sourceC) {
 function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
   if (!npc || npc.dead) return;
   const hitNow=performance.now();
+  npc._threeHitAngle=Math.atan2(+dirY||0,+dirX||0);
+  npc._threeHitPower=Math.max(.18,Math.min(1.6,(+damage||0)/72));
+  npc._threeHitWeapon=String(weapon||'generic');
   // Запоминаем реального последнего нападавшего. Горение продолжает причину
   // первоначального попадания, поэтому burn_tick не переписывает убийцу.
   if(weapon!=='burn_tick'){
@@ -7549,8 +7634,6 @@ function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
     npc.dead = true;
     npc.deadAt = performance.now();
     _registerMurderIncident(npc,npc._lastViolentSource,npc.deadAt);
-    // Копы рядом реагируют на убийство
-    _alertNearbyCops('kill');
     // Большой splat крови на месте смерти + взрыв-фонтан частиц по сторонам
     for (let i = 0; i < 6; i++) {
       _capArr(bloodSplats, _MAX_BLOOD);
@@ -7592,6 +7675,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
 // wanted; раненый патрульный сразу переходит в погоню.
 function hitCityCop(cop, dirY, dirX, damage, source = null) {
   if (!cop || !cop.alive) return;
+  let deathWitnessAlerted=false;
   cop.hp = Math.max(0, (cop.hp | 0) - (damage | 0));
   cop.y += dirY * 0.07; cop.x += dirX * 0.07;
   _markCombatBleeding(cop, cop.y, cop.x, damage, dirY, dirX, currentWeapon);
@@ -7599,6 +7683,7 @@ function hitCityCop(cop, dirY, dirX, damage, source = null) {
   cop._reactUntil = performance.now() + 2800;
   if (cop.hp <= 0) {
     cop.alive = false;   // updateCityCops удалит из массива
+    if(cop.kind==='patrol')_cityCopReplacementQueue=Math.min(CITY_COPS_TARGET,_cityCopReplacementQueue+1);
     for (let i = 0; i < 6; i++) {
       _capArr(bloodSplats, _MAX_BLOOD);
       bloodSplats.push({
@@ -7622,17 +7707,21 @@ function hitCityCop(cop, dirY, dirX, damage, source = null) {
     impacts.push({ r: cop.y, c: cop.x, parts });
     // Труп — рисуем как мёртвого NPC (cityCops сразу удаляются из массива)
     NPCS.push({ id: cop.id + '_corpse', r: cop.y, c: cop.x, tr: cop.y, tc: cop.x, speed: 0,
-      ang: cop.ang || 0, walkPhase: 0, idleUntil: 0, hp: 0, max_hp: 100,
+      ang: cop.ang || 0, walkPhase: 0, idleUntil: 0, hp: 0, max_hp: cop.max_hp || 100,
       dead: true, deadAt: performance.now(), _severMask:+cop._severMask||0,
-      role: 'police', kind: 'police', isPolice: true,
+      role: 'police', kind: 'police', isPolice: true, name:cop.name||'Полицейский',
+      _policeMurderIgnored:true,_policeAnyKillNotified:true,
+      responseTier:+cop.responseTier||0,prisonGear:cop.prisonGear||'',shield:!!cop.shield,
       look: Object.assign({}, cop.look || { gender: 0, skin: 2, body: 8, face: 1, hair: 1, hat: 3 }) });
     // При спасении задержанного оставшиеся копы вызова сами разбираются
     // со стрелком. Не поднимаем заодно весь обычный городской патруль.
-    const arrestInterrupted = _onMurderArrestCopKilled(cop, source);
-    const backupQueued = _queueMurderOfficerDownBackup(cop, performance.now());
-    if (!arrestInterrupted && !backupQueued) _alertNearbyCops('kill');
+    const killedAt=performance.now();
+    _onAnyNpcKilledByPlayer(cop,source,killedAt);
+    deathWitnessAlerted=!!cop._policeAnyKillWitnessed;
+    _onMurderArrestCopKilled(cop, source);
+    _queueMurderOfficerDownBackup(cop, killedAt);
   }
-  if (!source || source.kind === 'player') try {
+  if ((!source || source.kind === 'player')&&!deathWitnessAlerted) try {
     ws && ws.send(JSON.stringify({ t: 'open_fire',
       d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
            weapon: currentWeapon || 'fists', civilian: false, witness: true } }));
@@ -7676,7 +7765,6 @@ function _killDecorNpc(obj, arr, dirY, dirX) {
     _lastViolentSource:{kind:'player',uid:String(QP?.uid||'local')} };
   NPCS.push(corpse);
   _registerMurderIncident(corpse,corpse._lastViolentSource,corpse.deadAt);
-  _alertNearbyCops('kill');
 }
 // Луч от пули по жителям-декору (автобусные пассажиры/ожидающие/хозяева
 // парковок) — та же геометрия что _raycastNpc.
@@ -7821,6 +7909,7 @@ function npcWaypointOk(npc, r, c) {
   if (inArena(ri, ci)) return false;
   if (inLair(ri, ci)) return false;
   const t = MAP[ri][ci];
+  if(npc?._said)return _saidCityPassable(r,c);
   if (t === 14 && _inPitCorridor(ri + 0.5, ci + 0.5)) return false; // разгонка гонки — не для прогулок
   if (npc._beach) return (t === 14 && ri >= 138 && ri <= 168);  // пляжный — только пляж
   if (t === 14) return !!npc._allowBeach;                        // городской на песок — редко
@@ -7828,6 +7917,19 @@ function npcWaypointOk(npc, r, c) {
 }
 function _clearNpcRoute(npc) {
   npc._route=null;npc._routeIndex=0;npc._routeGoalR=null;npc._routeGoalC=null;npc._routeBlockedAt=0;
+}
+
+// A traffic signal is street furniture, so never place one in a coastal/water
+// block even when an old generated road tile happens to continue through it.
+function trafficSignalLandSafe(r,c) {
+  if(r>=BEACH_R0)return false;
+  const street=t=>t===0||t===18||t===19;
+  if(!street(MAP[Math.floor(r)]?.[Math.floor(c)]))return false;
+  for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){
+    const t=MAP[Math.floor(r+dr)]?.[Math.floor(c+dc)];
+    if(t===16)return false;
+  }
+  return true;
 }
 function _setNpcRoute(npc,path,kind='walk') {
   if(!path||!path.length)return false;
@@ -8061,18 +8163,38 @@ const SAID_NPC = {
   r: 86.5, c: 82.5, tr: 86.5, tc: 82.5, speed: 0.82, ang: 0,
   walkPhase: 0, idleUntil: 0, hp: 999999, max_hp: 999999,
   look: { gender:0, skin:2, body:1, face:2, hair:1, hat:0, suit:'#f4f2e9' },
+  id: 'said_story_npc', role:'said', name:'Саид',
   _arcKey: 'businessman', _arc: null,
-  _relation: 1, _said: true, _invulnerable: true, _allowBeach: true,
+  _relation: 1, _said: true, _keyNpc:true, _invulnerable: true, _allowBeach: false,
 };
+
+function _saidCityPassable(r,c) {
+  const ri=Math.floor(r),ci=Math.floor(c);
+  return ri>0&&ri<Math.min(BEACH_R0,MAP_ROWS-1)&&ci>0&&ci<MAP_COLS-1&&
+    !_inPrisonIslandRestrictedZone(r,c,.35)&&!inArena(ri,ci)&&!inLair(ri,ci)&&
+    (MAP[ri]?.[ci]===8||MAP[ri]?.[ci]===9);
+}
+
+function _saidSafeCityPoint(preferredR=86.5,preferredC=82.5) {
+  const anchors=[[86.5,82.5],[52.5,62.5],[112.5,95.5],[35.5,42.5],[132.5,68.5]];
+  const authored=anchors.find(([r,c])=>_npcBodyPassable(r,c,_saidCityPassable));
+  if(authored)return authored;
+  let best=null,bestScore=Infinity;
+  for(let r=2;r<Math.min(BEACH_R0,MAP_ROWS-2);r++)for(let c=2;c<MAP_COLS-2;c++){
+    const rr=r+.5,cc=c+.5;if(!_npcBodyPassable(rr,cc,_saidCityPassable))continue;
+    const score=Math.hypot(rr-preferredR,cc-preferredC)+((r*37+c*17)%19)*.002;
+    if(score<bestScore){bestScore=score;best=[rr,cc];}
+  }
+  return best;
+}
 
 function _placeSaidInCity() {
   SAID_NPC._arc = NPC_ARCHETYPES.businessman || NPC_ARCHETYPES.worker;
-  const anchors = [[86.5,82.5],[52.5,62.5],[112.5,95.5],[35.5,42.5],[132.5,68.5]];
-  const pos = anchors.find(([r,c]) => npcPassable(r,c)) || [86.5,82.5];
+  const pos = _saidSafeCityPoint(SAID_NPC.r,SAID_NPC.c) || [86.5,82.5];
   SAID_NPC.r=pos[0]; SAID_NPC.c=pos[1]; SAID_NPC.tr=pos[0]; SAID_NPC.tc=pos[1];
   SAID_NPC.dead=false; SAID_NPC.hp=999999; SAID_NPC.idleUntil=0;
   pickNpcWaypoint(SAID_NPC);
-  NPCS.push(SAID_NPC);
+  if(!NPCS.includes(SAID_NPC))NPCS.push(SAID_NPC);
 }
 
 function initNpcs() {
@@ -8656,13 +8778,13 @@ const _COP_REACT_CRIES = {
   fight: ['Разойтись! Полиция!', 'Прекратить драку!', 'Стоять оба!', 'Спокойно!'],
   kill:  ['Убийца! Стоять!', 'Ты арестован!', 'Руки за голову!', 'Никуда не денешься!'],
 };
-function _alertNearbyCops(reason) {
+function _alertNearbyCops(reason,eventR=player.r,eventC=player.c,forceMurderAttack=false) {
   const cries = _COP_REACT_CRIES[reason] || _COP_REACT_CRIES.shot;
   const now = performance.now();
   let reacted = false;
   for (const cop of cityCops) {
     if (!cop.alive) continue;
-    const d = Math.hypot(cop.y - player.r, cop.x - player.c);
+    const d = Math.hypot(cop.y - eventR, cop.x - eventC);
     if (d > COP_REACT_R) continue;
     cop.ang = Math.atan2(player.r - cop.y, player.c - cop.x);
     cop._reactUntil = now + 2800;
@@ -8675,8 +8797,26 @@ function _alertNearbyCops(reason) {
       });
     }
     // Убийство — немедленно гонится даже без wanted
-    if (reason === 'kill') cop._pursuing = true;
+    if (reason === 'kill') {
+      cop._pursuing = true;
+      if(forceMurderAttack){
+        cop._murderAggroUntil=Math.max(cop._murderAggroUntil||0,now+45000);
+        cop._murderWitnessR=eventR;cop._murderWitnessC=eventC;
+        if(cop.kind==='murder_response'){
+          const vehicle=serviceVehicles.find(v=>v?.id===cop._responseVehicleId),incident=vehicle?.payload?.murderIncident;
+          if(incident){incident.armedContact=true;incident.armedTargetType='player';incident.armedTargetRef=null;incident.status='armed-contact';}
+          cop._casePhase='combat';cop._lifeState='';cop._lifeGesture='';
+        }
+      }
+    }
     reacted = true;
+  }
+  // Server-authoritative cops use wanted/open_fire for combat. Counting them as
+  // witnesses here makes every nearby police type react, not only cityCops.
+  for(const cop of (typeof worldCops!=='undefined'?worldCops:[])){
+    if(!cop||cop.alive===false||cop.dead)continue;
+    if(Math.hypot((+cop.y||0)-eventR,(+cop.x||0)-eventC)>COP_REACT_R)continue;
+    cop._murderWitnessUntil=now+45000;reacted=true;
   }
   // Сообщаем серверу: свидетель-коп зафиксировал инцидент → увеличивает wanted
   if (reacted) {
@@ -8687,9 +8827,23 @@ function _alertNearbyCops(reason) {
              civilian: false, witness: true } }));
     } catch(e) {}
   }
+  return reacted;
 }
 
-function spawnCityCop() {
+function spawnCityCop(fromHeadquarters=false) {
+  if(fromHeadquarters){
+    const origin=_policeResponseOrigin(),door=_nearestRoadTile(origin.r,origin.c,12);
+    if(door){
+      const now=performance.now(),cop={id:'citycop_'+(++_cityCopId),x:door.c+.5,y:door.r+.5,tx:door.c+.5,ty:door.r+.5,
+        ang:0,walkPhase:0,kind:'patrol',weapon:'pistol',hp:100,max_hp:100,alive:true,role:'police',isPolice:true,
+        name:'Новый патрульный',look:{gender:_cityCopId%2,skin:_cityCopId%3,body:8,face:_cityCopId%4,hair:_cityCopId%3,hat:3},
+        speed:1.35+Math.random()*.22,_wayUntil:0,_hqReplacement:true,_hqExitStartedAt:now};
+      const exit=_nearestRoadTile(door.r+3+(cop.id.length%3),door.c+2-(cop.id.length%2),12);
+      if(exit){cop.tx=exit.c+.5;cop.ty=exit.r+.5;cop.ang=Math.atan2(cop.ty-cop.y,cop.tx-cop.x);}
+      _copChats.set(cop.id,{text:['Смена принята!','Выхожу на патруль!','Замена готова!'][_cityCopId%3],untilMs:now+2300});
+      return cop;
+    }
+  }
   for (let tries = 0; tries < 60; tries++) {
     const r = 4 + Math.floor(Math.random() * 72);
     const c = 4 + Math.floor(Math.random() * (MAP_COLS - 8));
@@ -8742,6 +8896,7 @@ function initCityCops() {
 }
 
 let _cityCopsLastSpawnAt = 0;
+let _cityCopReplacementQueue=0;
 // Радиус, в котором NPC-патрульный «замечает» игрока с wanted и переключается
 // в pursue. 16 тайлов ≈ полтора квартала — реалистично: патруль увидел и побежал.
 const CITYCOP_PURSUE_R = 16;
@@ -8753,12 +8908,19 @@ const CITYCOP_ARREST_CD_MS = 3000;
 let _lastCitycopArrestAt = 0;
 function updateCityCops(dt) {
   const now = performance.now();
-  // Поддержание численности
-  if (cityCops.length < CITY_COPS_TARGET && now - _cityCopsLastSpawnAt > 2500) {
+  // Сначала окончательно удаляем погибших и их чаты. Так массив не растёт
+  // бесконечно, а замена считается по живым патрульным, не по спецгруппам.
+  for(let i=cityCops.length-1;i>=0;i--)if(!cityCops[i]?.alive){_copChats.delete(cityCops[i]?.id);cityCops.splice(i,1);}
+  const livePatrols=cityCops.filter(c=>c?.alive&&c.kind==='patrol').length;
+  _cityCopReplacementQueue=Math.min(CITY_COPS_TARGET,Math.max(_cityCopReplacementQueue,CITY_COPS_TARGET-livePatrols));
+  if (_cityCopReplacementQueue>0 && livePatrols<CITY_COPS_TARGET && now - _cityCopsLastSpawnAt > 420) {
     _cityCopsLastSpawnAt = now;
-    const c = spawnCityCop();
-    if (c) { pickCityCopWaypoint(c); cityCops.push(c); }
+    const c = spawnCityCop(true);
+    if (c) { cityCops.push(c);_cityCopReplacementQueue--;document.documentElement.dataset.policeHqReplacementLast=c.id; }
   }
+  document.documentElement.dataset.policeHqReplacementQueue=String(_cityCopReplacementQueue);
+  document.documentElement.dataset.policePatrolLive=String(livePatrols);
+  document.documentElement.dataset.policeLocalActors=String(cityCops.length);
   // Игрок розыскной? Тогда патрульные в радиусе включают pursue.
   // Не трогаем если игрок мёртв, в тюрьме или в машине (за рулём всё равно
   // патруль пеший не догонит — wantedcops с тачкой это уже worldCops).
@@ -8791,7 +8953,8 @@ function updateCityCops(dt) {
   }
   for (let i = cityCops.length - 1; i >= 0; i--) {
     const cop = cityCops[i];
-    if (!cop.alive) { cityCops.splice(i, 1); continue; }
+    if (!cop.alive) continue;
+    if(cop._hqReplacement&&Math.hypot(cop.y-cop.ty,cop.x-cop.tx)<.5){cop._hqReplacement=false;pickCityCopWaypoint(cop);}
     // Экипаж убийства имеет собственные фазы: выход из участка, посадка,
     // высадка, поиск/опрос/бой и возвращение в ту же машину.
     if(cop.kind==='murder_response'&&_updateMurderResponseCop(cop,dt,now))continue;
@@ -8883,7 +9046,7 @@ function updateCityCops(dt) {
           spawnImpact(player.r, player.c, 'pistol', true);
           if (typeof addShake === 'function') addShake(2.5);
           const dmg = 7 + Math.floor(Math.random() * 5);
-          _hurtLocal(dmg, 'Полиция', true);
+          _hurtLocal(dmg, 'Полиция', true, {kind:'city_police',cop});
           flashHitOverlay(cop.y, cop.x, cop.id, 'city_cop', cop);
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4422', size: 13, life: 900 });
           try { hapticHit && hapticHit(); } catch(e) {}
@@ -8901,8 +9064,34 @@ function updateCityCops(dt) {
     // П6: скрытие в потоке — радиус обнаружения сокращается на 40%
     const _effectivePursueR = (_trafficHideActive && myDrivingCarId)
       ? CITYCOP_PURSUE_R * 0.6 : CITYCOP_PURSUE_R;
-    if (playerWanted && distToPlayer <= _effectivePursueR) {
+    const murderAggro=now<(cop._murderAggroUntil||0)&&!myDead
+      &&!(typeof myJailIn==='number'&&myJailIn>0)&&!_bankInt&&!_buildingInt;
+    const activePursueR=murderAggro?Math.max(24,_effectivePursueR):_effectivePursueR;
+    if ((playerWanted||murderAggro) && distToPlayer <= activePursueR) {
       cop._pursuing = true;
+      cop.ang = Math.atan2(dpr,dpc);
+      // Увидев убийство, обычный патруль не ждёт синхронизации wanted с
+      // сервером: сразу открывает прицельный огонь и продолжает сближение.
+      if(murderAggro&&distToPlayer>.9&&distToPlayer<14&&_policeWorldLineClear(cop.y,cop.x,player.r,player.c)){
+        if(!cop._murderNextShootAt)cop._murderNextShootAt=now+280+Math.random()*420;
+        if(now>=cop._murderNextShootAt){
+          cop._murderNextShootAt=now+900+Math.random()*550;
+          const miss=(Math.random()-.5)*Math.min(1.15,.15+distToPlayer*.055);
+          const targetR=player.r+Math.sin(cop.ang+Math.PI/2)*miss,targetC=player.c+Math.cos(cop.ang+Math.PI/2)*miss;
+          const muzzleR=cop.y+Math.sin(cop.ang)*.45,muzzleC=cop.x+Math.cos(cop.ang)*.45;
+          const hit=Math.abs(miss)<.38;
+          spawnBullet(muzzleR,muzzleC,targetR,targetC,{hit,fromNpc:true,weapon:'pistol'});
+          spawnMuzzle(muzzleR,muzzleC,cop.ang,'pistol',true);
+          if(hit){
+            const dmg=8+Math.floor(Math.random()*5);
+            spawnImpact(player.r,player.c,'pistol',true);
+            _hurtLocal(dmg,'Полиция',true,{kind:'city_police',cop});
+            spawnFloatText(player.r-.4,player.c,`−${dmg}`,{color:'#ff4422',size:13,life:900});
+          }
+          document.documentElement.dataset.policeWitnessAttackShots=String((+document.documentElement.dataset.policeWitnessAttackShots||0)+1);
+          try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'npc_melee_shoot',d:{dmg:hit?10:0,sx:+cop.x.toFixed(2),sy:+cop.y.toFixed(2)}}));}catch(e){}
+        }
+      }
       // Игрок в машине — бежим к точке за машиной, но не лезем под колёса.
       // Если игрок прямо тут и НЕ в машине — пробуем арестовать.
       if (distToPlayer <= CITYCOP_ARREST_R && !myDrivingCarId) {
@@ -9002,6 +9191,18 @@ const TOW_FLEET_SIZE=3,TOW_RESPONSE_SPEED=6.6;
 const POLICE_RESPONSE_FLEET_SIZE=3,POLICE_RESPONSE_SPEED=12.4,POLICE_RETURN_SPEED=7.6,POLICE_BOARDING_TIMEOUT_MS=4200;
 const POLICE_MURDER_ZONE_R=11,POLICE_MURDER_SEARCH_MS=5000;
 const POLICE_ARREST_CUFF_MS=2700,POLICE_ARREST_LOAD_MS=1350;
+const POLICE_ARREST_UNLOAD_MS=1800,POLICE_ARREST_HANDOFF_MS=2200,POLICE_ARREST_BOOK_MS=1400;
+const POLICE_RESPONSE_MAX_TIER=3;
+const POLICE_RESPONSE_PROFILES=Object.freeze([
+  {label:'Патруль',crew:2,hp:100,speed:1.95,weapon:'pistol',damage:[7,11],cadence:[1150,1800],range:13,
+    suit:'#245f9b',gear:'cap',vehiclePaint:'#244f86',vehicleStripe:'#d9e8ff',vehicleSize:[1.9,.9,.75]},
+  {label:'Тактическая группа',crew:4,hp:145,speed:2.06,weapon:'smg',damage:[10,15],cadence:[760,1220],range:14,
+    suit:'#18334a',gear:'tactical_helmet',vehiclePaint:'#172b3d',vehicleStripe:'#78bde8',vehicleSize:[2.15,1,.86]},
+  {label:'Спецназ',crew:4,hp:190,speed:2.14,weapon:'rifle',damage:[13,19],cadence:[620,980],range:15,
+    suit:'#151b22',gear:'riot_helmet',vehiclePaint:'#10161e',vehicleStripe:'#dbe8f2',vehicleSize:[2.52,1.12,1.08],armoredVan:true,vehicleHp:1050,turretDamage:[22,34],turretCadence:[720,1020]},
+  {label:'Тяжёлый спецназ',crew:4,hp:240,speed:2.22,weapon:'rifle',damage:[16,23],cadence:[500,820],range:16,
+    suit:'#090c11',gear:'riot_helmet_shield',vehiclePaint:'#080b10',vehicleStripe:'#b82f38',vehicleSize:[2.68,1.16,1.14],armoredVan:true,vehicleHp:1350,turretDamage:[30,46],turretCadence:[520,780]},
+]);
 const AMBULANCE_ROUTE_RETRY_MS=900,AMBULANCE_ROUTE_GRACE_MS=5200;
 const AMBULANCE_DEPLOY_PARKING_TOLERANCE=1.6,AMBULANCE_DEPLOY_MAX_PATIENT_DISTANCE=7.25;
 let _ambulanceDeliveryCount=0;
@@ -9643,6 +9844,38 @@ function _setAmbulanceCrewPose(v, centerR, centerC, ang, walking, carrying, dt) 
   }
 }
 
+function _deathWasCausedByPlayer(source){
+  const kind=String(source?.kind||'player').toLowerCase();
+  return !['city_cop','police','npc','world_cop','murder_police'].includes(kind);
+}
+let _lastAnyNpcPlayerKillAt=0;
+function _onAnyNpcKilledByPlayer(victim,source=null,now=performance.now()){
+  if(!_deathWasCausedByPlayer(source))return false;
+  if(victim?._policeAnyKillNotified)return false;
+  const r=+(victim?._deathR??victim?.r??victim?.y),c=+(victim?._deathC??victim?.c??victim?.x);
+  if(!Number.isFinite(r)||!Number.isFinite(c))return false;
+  if(victim)victim._policeAnyKillNotified=true;
+  _lastAnyNpcPlayerKillAt=now;
+  const role=String(victim?.role||victim?.kind||victim?._arcKey||'npc').toLowerCase();
+  document.documentElement.dataset.policeAnyNpcKillEvents=String((+document.documentElement.dataset.policeAnyNpcKillEvents||0)+1);
+  document.documentElement.dataset.policeAnyNpcKill=`${role}:${r.toFixed(1)},${c.toFixed(1)}`;
+  const witnessed=_alertNearbyCops('kill',r,c,true);
+  if(victim)victim._policeAnyKillWitnessed=!!witnessed;
+  for(const v of (typeof serviceVehicles!=='undefined'?serviceVehicles:[])){
+    if(!v?._murderFleet)continue;
+    const incident=v.payload?.murderIncident,profile=_murderPoliceProfile(incident);
+    if(!profile?.armoredVan)continue;
+    v._turretProvokedUntil=Math.max(v._turretProvokedUntil||0,now+45000);
+    v._anyNpcKillAt=now;v._anyNpcKillRole=role;
+    if(incident){
+      incident.armedContact=true;incident.armedTargetType='player';incident.armedTargetRef=null;incident.status='armed-contact';incident.lastPlayerSeenAt=now;
+      for(const cop of _murderCrewForVehicle(v)){cop._casePhase='combat';cop._pursuing=true;cop._lifeState='';cop._lifeGesture='';}
+    }
+  }
+  document.documentElement.dataset.policeAnyNpcKillTurrets=String((typeof serviceVehicles!=='undefined'?serviceVehicles:[]).filter(v=>v?._murderFleet&&now<(v._turretProvokedUntil||0)).length);
+  return true;
+}
+
 function _updateAmbulanceBodyCrew(v, dt, now = performance.now()) {
   const scene = v?._medicalScene, patient = v?.payload?.npc;
   if (!scene?.active || !patient) return true;
@@ -10089,7 +10322,7 @@ function _dispatchHeistPolice(rob) {
 
 // ── Постоянная служба полиции на убийства жителей ───────────────────
 // Три машины всегда стоят у участка. Первый выезд начинается только после
-// того, как два видимых офицера вышли из участка, дошли до машины и сели.
+// того, как назначенные 2 или 4 видимых офицера вышли из участка, дошли до машины и сели.
 // На месте тот же экипаж физически выходит, прочёсывает зону и возвращается
 // в машину. После посадки наряд едет домой либо сразу на следующий вызов.
 function _policeResponseOrigin(){
@@ -10126,6 +10359,10 @@ function _registerMurderIncident(victim,source=null,now=performance.now()){
   if(source?.kind==='city_cop'||source?.kind==='police'){
     victim._policeMurderIgnored=true;return null;
   }
+  // Любое убийство игроком (мирный, бандит или коп) немедленно будит
+  // ближайший патруль и пулемёт уже прибывшего броневэна. Отдельный вызов
+  // следственной группы по-прежнему создаётся только для мирной жертвы.
+  _onAnyNpcKilledByPlayer(victim,source,now);
   if(!_isCivilianMurderVictim(victim))return null;
   const r=Number.isFinite(+(victim._deathR??victim.r??victim.y))?+(victim._deathR??victim.r??victim.y):NaN;
   const c=Number.isFinite(+(victim._deathC??victim.c??victim.x))?+(victim._deathC??victim.c??victim.x):NaN;
@@ -10180,23 +10417,33 @@ function _moveMurderResponseCop(cop,tr,tc,dt,mul=1){
   return false;
 }
 function _policeCrewBoardPoint(v,slot){
-  const side=slot?1:-1,ang=Number.isFinite(+v.ang)?+v.ang:0;
-  return{r:v.y+Math.cos(ang)*side*.62-Math.sin(ang)*.08,
-    c:v.x-Math.sin(ang)*side*.62-Math.cos(ang)*.08};
+  const side=slot%2?1:-1,row=Math.floor(slot/2),ang=Number.isFinite(+v.ang)?+v.ang:0,long=-.08+row*.58;
+  return{r:v.y+Math.cos(ang)*side*.62-Math.sin(ang)*long,
+    c:v.x-Math.sin(ang)*side*.62-Math.cos(ang)*long};
 }
 function _stationOfficerSpawn(v,slot){
-  const entry=_policeResponseOrigin(),side=slot?1:-1,dr=entry.r-v.y,dc=entry.c-v.x,d=Math.hypot(dr,dc)||1;
+  const entry=_policeResponseOrigin(),side=slot%2?1:-1,row=Math.floor(slot/2),dr=entry.r-v.y,dc=entry.c-v.x,d=Math.hypot(dr,dc)||1;
   // The 3D station is visually offset from the road graph. Use its direction
   // as the doorway side, but keep the visible walk short enough to be real.
-  if(d>4)return{r:v.y+dr/d*1.75-dc/d*side*.34,c:v.x+dc/d*1.75+dr/d*side*.34};
-  return{r:entry.r+.34,c:entry.c+side*.46};
+  if(d>4)return{r:v.y+dr/d*(1.75+row*.42)-dc/d*side*.34,c:v.x+dc/d*(1.75+row*.42)+dr/d*side*.34};
+  return{r:entry.r+.34+row*.38,c:entry.c+side*.46};
 }
+function _murderPoliceTier(incident){return Math.max(0,Math.min(POLICE_RESPONSE_MAX_TIER,+incident?.policeTier||0));}
+function _murderPoliceProfile(incident){return POLICE_RESPONSE_PROFILES[_murderPoliceTier(incident)]||POLICE_RESPONSE_PROFILES[0];}
+function _murderPoliceCrewCount(incident){return Math.max(1,+incident?.crewCount||_murderPoliceProfile(incident).crew);}
+function _murderVehicleCrewCount(v){return Math.max(1,+v?._policeExpectedCrew||_murderPoliceCrewCount(v?.payload?.murderIncident));}
 function _createMurderCrewCop(v,incident,slot,phase,now=performance.now()){
-  const start=phase==='boarding'?_stationOfficerSpawn(v,slot):_policeCrewBoardPoint(v,slot);
+  const start=phase==='boarding'?_stationOfficerSpawn(v,slot):_policeCrewBoardPoint(v,slot),tier=_murderPoliceTier(incident),profile=_murderPoliceProfile(incident);
+  const skins=[2,1,0,2],faces=[1,2,3,0],names=tier===0?['Патрульный','Старший патруля']:
+    tier===1?['Тактик «Альфа»','Тактик «Браво»','Тактик «Чарли»','Тактик «Дельта»']:
+    tier===2?['Штурмовик «Щит»','Штурмовик «Гром»','Штурмовик «Барс»','Штурмовик «Сокол»']:
+    ['Тяжёлый «Один»','Тяжёлый «Два»','Тяжёлый «Три»','Командир спецназа'];
   const cop={id:`murdercop_${++_cityCopId}`,x:start.c,y:start.r,tx:start.c,ty:start.r,
-    ang:v.ang||0,walkPhase:0,kind:'murder_response',weapon:'pistol',hp:100,max_hp:100,
-    alive:true,role:'police',isPolice:true,look:{gender:slot,skin:slot?1:2,body:8,face:slot?2:1,hair:slot?2:1,hat:3},
-    speed:1.95+slot*.08,_wayUntil:0,_responseVehicleId:v.id,_murderIncidentId:incident.id,
+    ang:v.ang||0,walkPhase:0,kind:'murder_response',weapon:profile.weapon,hp:profile.hp,max_hp:profile.hp,
+    alive:true,role:'police',isPolice:true,name:names[slot]||profile.label,responseTier:tier,
+    prisonGear:profile.gear,shield:tier>=3&&slot%2===0,
+    look:{gender:slot%2,skin:skins[slot%skins.length],body:tier?3:8,face:faces[slot%faces.length],hair:tier?0:(slot?2:1),hat:tier?6:3,suit:profile.suit},
+    speed:profile.speed+slot*.035,_wayUntil:0,_responseVehicleId:v.id,_murderIncidentId:incident.id,
     _crewSlot:slot,_casePhase:phase,_phaseStartedAt:now,_nextCaseCryAt:0,_nextShootAt:0};
   cityCops.push(cop);v._policeCrewIds.push(cop.id);return cop;
 }
@@ -10209,19 +10456,21 @@ function _assignMurderPoliceCall(v,incident,now=performance.now(),crewAlreadyAbo
   const parking=_policeSceneParking(incident.r,incident.c,v.y,v.x);
   const routeMs=performance.now()-routeStartedAt;document.documentElement.dataset.policeRouteMs=routeMs.toFixed(1);document.documentElement.dataset.policeRouteMaxMs=Math.max(routeMs,+document.documentElement.dataset.policeRouteMaxMs||0).toFixed(1);
   if(!parking){incident.routeFailures=(+incident.routeFailures||0)+1;incident.routeRetryAt=now+Math.min(6000,900+incident.routeFailures*650);return false;}
-  incident.routeRetryAt=0;incident.routeFailures=0;v._officerDownBackupQueued=false;
+  const profile=_murderPoliceProfile(incident),crewCount=_murderPoliceCrewCount(incident);
+  incident.routeRetryAt=0;incident.routeFailures=0;v._officerDownBackupQueued=false;v._policeTier=_murderPoliceTier(incident);v._policeExpectedCrew=crewCount;
   incident.status=crewAlreadyAboard?'enroute':'boarding';incident.assignedVehicleId=v.id;incident.dispatchedAt=now;
+  if(incident.playerArrestPickup&&_murderPoliceArrest?.incidentId===incident.id)_murderPoliceArrest.vehicleId=v.id;
   v.payload={murderIncident:incident};v.sceneParkingR=parking.r;v.sceneParkingC=parking.c;
   v.path=parking.path;v.pathIdx=0;v.finalTarget={x:parking.c,y:parking.r};v._offroadRoute=false;
-  v._policeCrewIds=[];v._policeBoarded=crewAlreadyAboard?2:0;v._policeReturned=0;
+  v._policeCrewIds=[];v._policeBoarded=crewAlreadyAboard?crewCount:0;v._policeReturned=0;
   v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
   if(crewAlreadyAboard){v.speed=POLICE_RESPONSE_SPEED;v.state='go_to_scene';}
   else{
     v.speed=0;v.state='police_boarding';v._boardingStartedAt=now;
-    _createMurderCrewCop(v,incident,0,'boarding',now);_createMurderCrewCop(v,incident,1,'boarding',now);
+    for(let slot=0;slot<crewCount;slot++)_createMurderCrewCop(v,incident,slot,'boarding',now);
   }
   if(Math.hypot(player.r-incident.r,player.c-incident.c)<18)
-    showEventBanner('🚔 ПОЛИЦИЯ ВЫЕХАЛА','Два офицера направлены к месту убийства.',2600,'neutral');
+    showEventBanner(incident.officerDown?'🚨 УСИЛЕНИЕ ВЫЕХАЛО':'🚔 ПОЛИЦИЯ ВЫЕХАЛА',`${profile.label}: ${crewCount} офицера направлены к месту происшествия.`,2800,incident.officerDown?'lose':'neutral');
   return true;
 }
 function _dispatchMurderPoliceCalls(now=performance.now()){
@@ -10235,22 +10484,49 @@ function _dispatchMurderPoliceCalls(now=performance.now()){
 }
 function _pickMurderSearchPoint(incident,slot,seed=0){
   for(let i=0;i<28;i++){
-    const a=(slot?Math.PI:0)+seed*.91+i*1.37,dist=2.2+(i%7)*1.05;
+    const a=slot*Math.PI/2+seed*.91+i*1.37,dist=2.2+(i%7)*1.05;
     const r=incident.r+Math.sin(a)*dist,c=incident.c+Math.cos(a)*dist;
     if(_policeCrewPassable(r,c))return{r,c};
   }
   return{r:incident.r,c:incident.c};
 }
+function _murderSceneWitnesses(incident){
+  if(!incident)return[];
+  return NPCS.filter(n=>n&&n!==incident.victim&&!n.dead&&!n._medicalDowned&&!n.isPolice&&!n.police&&!n._guard&&
+    !String(n.role||n.kind||'').toLowerCase().match(/police|cop|guard|gang|boss/)&&
+    Math.hypot((+n.r||0)-incident.r,(+n.c||0)-incident.c)<=8.5)
+    .sort((a,b)=>Math.hypot((+a.r||0)-incident.r,(+a.c||0)-incident.c)-Math.hypot((+b.r||0)-incident.r,(+b.c||0)-incident.c)).slice(0,3);
+}
+function _assignMurderWitnessInterviews(v,now=performance.now()){
+  const incident=v?.payload?.murderIncident,witnesses=_murderSceneWitnesses(incident),crew=_murderCrewForVehicle(v);
+  for(let i=0;i<Math.min(witnesses.length,Math.max(1,Math.floor(crew.length/2)));i++){
+    const cop=crew[i],witness=witnesses[i];cop._witnessRef=witness;cop._casePhase='witness_question';cop._phaseStartedAt=now;
+    witness._lifeState='social';witness._lifeGesture='talk';witness._lifeStateSince=now;witness._lifeStateUntil=now+7600;
+  }
+  incident.witnessCount=witnesses.length;
+}
 function _startMurderPoliceScene(v,now=performance.now()){
   const incident=v?.payload?.murderIncident;if(!incident)return false;
   v.state='police_search';v.speed=0;v.path=[];v.pathIdx=0;v._policeCrewIds=[];v._policeReturned=0;
   incident.status='searching';incident.searchStartedAt=now;incident.initialSearchUntil=now+11000;incident.lostAt=0;
-  for(let slot=0;slot<2;slot++){
+  const crewCount=_murderVehicleCrewCount(v);
+  for(let slot=0;slot<crewCount;slot++){
     const cop=_createMurderCrewCop(v,incident,slot,'disembark',now),p=_pickMurderSearchPoint(incident,slot,slot+1);
     cop._searchR=p.r;cop._searchC=p.c;
   }
+  if(!incident.playerArrestPickup)_assignMurderWitnessInterviews(v,now);
+  if(incident.playerArrestPickup&&_murderPoliceArrest?.incidentId===incident.id){
+    const ar=_murderPoliceArrest,crew=_murderCrewForVehicle(v),primary=crew[0],cover=crew[1];
+    if(!primary)return false;
+    ar.vehicleId=v.id;ar.copId=primary.id;ar.coverCopId=cover?.id||'';
+    v.state='police_arrest_scene';incident.status='arresting-player';incident.arrestStartedAt=now;
+    for(const officer of crew){officer._casePhase=officer===primary?'arrest_approach':'arrest_cover';officer._phaseStartedAt=now;officer._pursuing=true;}
+    _setMurderPoliceArrestPhase(ar,'downed',now);
+    document.documentElement.dataset.policeArrestRescuable='1';
+    return true;
+  }
   if(Math.hypot(player.r-incident.r,player.c-incident.c)<18)
-    showToast('Два полицейских прочёсывают место убийства','🚔',2400);
+    showToast(`${_murderPoliceProfile(incident).label}: ${crewCount} бойца прочёсывают место происшествия`,'🚔',2600);
   return true;
 }
 function _policeWorldLineClear(r0,c0,r1,c1){
@@ -10277,19 +10553,21 @@ function _murderCrewForVehicle(v){
   return cityCops.filter(c=>_murderPoliceCopActive(c)&&c._responseVehicleId===v.id&&c._murderIncidentId===v.payload?.murderIncident?.id);
 }
 function _queueMurderOfficerDownBackup(cop,now=performance.now()){
-  if(cop?.kind!=='murder_response'||!cop._responseVehicleId)return false;
-  const v=serviceVehicles.find(q=>q?.id===cop._responseVehicleId),incident=v?.payload?.murderIncident;
-  if(!v||!incident||v._officerDownBackupQueued)return false;
-  const survivor=cityCops.some(q=>q!==cop&&_murderPoliceCopActive(q)&&q._responseVehicleId===v.id&&q._murderIncidentId===incident.id);
-  if(survivor)return false;
-  v._officerDownBackupQueued=true;
-  const backup={id:`murder_${++_murderIncidentSeq}`,r:+cop.y||incident.r,c:+cop.x||incident.c,
-    victim:null,source:{kind:'officer_down',vehicleId:v.id},occurredAt:now,status:'queued',assignedVehicleId:null,
+  // Вызывается только из hitCityCop, поэтому сюда попадает любой городской
+  // полицейский: патрульный, спецназ или офицер уже приехавшего наряда.
+  if(!cop)return false;
+  const v=cop._responseVehicleId?serviceVehicles.find(q=>q?.id===cop._responseVehicleId):null,incident=v?.payload?.murderIncident||null;
+  if((v&&v._officerDownBackupQueued)||(!v&&cop._officerDownBackupQueued))return false;
+  if(v)v._officerDownBackupQueued=true;else cop._officerDownBackupQueued=true;
+  const nextTier=Math.min(POLICE_RESPONSE_MAX_TIER,_murderPoliceTier(incident)+1),profile=POLICE_RESPONSE_PROFILES[nextTier];
+  const backup={id:`murder_${++_murderIncidentSeq}`,r:+cop.y||incident?.r||player.r,c:+cop.x||incident?.c||player.c,
+    victim:null,source:{kind:'officer_down',vehicleId:v?.id||'',copId:String(cop.id||'')},occurredAt:now,status:'queued',assignedVehicleId:null,
     searchStartedAt:0,initialSearchUntil:0,lostAt:0,questionStartedAt:0,armedContact:false,closedAt:0,
-    officerDown:true,parentIncidentId:incident.id,routeRetryAt:0,routeFailures:0};
+    officerDown:true,parentIncidentId:incident?.id||null,policeTier:nextTier,crewCount:profile.crew,routeRetryAt:0,routeFailures:0};
   _murderIncidents.push(backup);while(_murderIncidents.length>24)_murderIncidents.shift();
   document.documentElement.dataset.policeOfficerDownCalls=String((+document.documentElement.dataset.policeOfficerDownCalls||0)+1);
-  showEventBanner('🚨 ЭКИПАЖ НЕ ОТВЕЧАЕТ','Диспетчер направил к месту второй полицейский наряд.',2800,'lose');
+  document.documentElement.dataset.policeReinforcementTier=String(nextTier);
+  showEventBanner('🚨 ОФИЦЕР РАНЕН',`${profile.label}: к месту направлены ${profile.crew} усиленных бойца.`,3000,'lose');
   _dispatchMurderPoliceCalls(now);
   return true;
 }
@@ -10328,7 +10606,7 @@ function _orderMurderCrewReturn(v,reason='search-complete',now=performance.now()
   incident.status='returning-to-car';incident.returnReason=reason;v.state='police_reboarding';v._policeReturned=0;v._reboardingStartedAt=now;
   const crew=_murderCrewForVehicle(v);
   for(const cop of crew){cop._casePhase='return';cop._phaseStartedAt=now;cop._pursuing=false;}
-  if(!crew.length)v._policeReturned=2;
+  if(!crew.length)v._policeReturned=_murderVehicleCrewCount(v);
 }
 function _updateMurderPoliceScene(v,now=performance.now()){
   const incident=v?.payload?.murderIncident;if(!incident){_orderMurderCrewReturn(v,'missing-incident',now);return;}
@@ -10339,10 +10617,11 @@ function _updateMurderPoliceScene(v,now=performance.now()){
     incident.armedContact=true;incident.armedTargetType=armedPlayer?'player':'npc';incident.armedTargetRef=armedNpc||null;
     incident.status='armed-contact';incident.lostAt=0;
     showEventBanner('🚨 ПОЛИЦИЯ ОТКРЫЛА ОГОНЬ',armedPlayer?'Офицеры заметили оружие в зоне убийства.':'Офицеры нашли вооружённого подозреваемого.',2800,'lose');
-    for(const cop of _murderCrewForVehicle(v)){cop._casePhase=armedPlayer?'combat':'npc_combat';cop._pursuing=true;}
+    for(const cop of _murderCrewForVehicle(v)){if(cop._witnessRef){cop._witnessRef._lifeState='';cop._witnessRef._lifeGesture='';cop._witnessRef=null;}cop._lifeState='';cop._lifeGesture='';cop._casePhase=armedPlayer?'combat':'npc_combat';cop._pursuing=true;}
   }else if(visible){
     incident.lastPlayerSeenAt=now;incident.lostAt=0;
-    if(!incident.armedContact&&!incident.questionStartedAt){
+    const witnessInterviewActive=_murderCrewForVehicle(v).some(c=>c._casePhase==='witness_question'&&now-c._phaseStartedAt<5000);
+    if(!incident.armedContact&&!incident.questionStartedAt&&!witnessInterviewActive){
       incident.questionStartedAt=now;incident.status='questioning';
       for(const cop of _murderCrewForVehicle(v))cop._casePhase='question';
       showEventBanner('👮 ПОЛИЦИЯ ОПРАШИВАЕТ','Уберите руки от карманов и ответьте на вопросы.',2600,'neutral');
@@ -10373,10 +10652,37 @@ function _updateMurderPoliceScene(v,now=performance.now()){
     _orderMurderCrewReturn(v,'no-suspect-found',now);
   }
 }
+function _updatePoliceArmoredVanTurret(v,dt,now=performance.now()){
+  if(!v?._murderFleet)return false;
+  const incident=v.payload?.murderIncident,profile=_murderPoliceProfile(incident),tier=_murderPoliceTier(incident);
+  v._roofGunner=!!profile.armoredVan&&!v._turretDisabled;
+  if(!v._roofGunner)return false;
+  const sceneActive=['police_search','police_arrest_scene'].includes(v.state),d=Math.hypot(player.r-v.y,player.c-v.x);
+  const provoked=now<(v._turretProvokedUntil||0),armedInZone=sceneActive&&d<=18&&_playerWeaponVisibleToMurderPolice()&&_murderPlayerInZone(incident);
+  const lineClear=_policeWorldLineClear(v.y,v.x,player.r,player.c);
+  v._turretActive=sceneActive&&!myDead&&d<=19&&(provoked||armedInZone)&&lineClear;
+  if(provoked)document.documentElement.dataset.policeTurretState=`${v._turretActive?'firing':'blocked'}:${v.state}:${d.toFixed(1)}:${myDead?'dead':lineClear?'clear':'cover'}`;
+  if(!v._turretActive)return false;
+  v._turretAng=Math.atan2(player.r-v.y,player.c-v.x);
+  if(now<(v._turretNextShotAt||0))return true;
+  v._turretNextShotAt=now+profile.turretCadence[0]+Math.random()*(profile.turretCadence[1]-profile.turretCadence[0]);
+  v._turretFlashAt=now;v._turretBurst=(+v._turretBurst||0)+1;
+  const miss=(Math.random()-.5)*(tier>=3?.32:.46),hit=Math.abs(miss)<(tier>=3?.32:.25),weapon='smg';
+  const muzR=v.y+Math.sin(v._turretAng)*.7,muzC=v.x+Math.cos(v._turretAng)*.7;
+  spawnBullet(muzR,muzC,player.r+miss,player.c-miss*.28,{hit,fromNpc:true,weapon,thick:true});spawnMuzzle(muzR,muzC,v._turretAng,weapon,true);
+  if(hit){
+    const dmg=profile.turretDamage[0]+Math.floor(Math.random()*(profile.turretDamage[1]-profile.turretDamage[0]+1)),arrestCop=_murderCrewForVehicle(v)[0]||null;
+    spawnImpact(player.r,player.c,weapon,true);_hurtLocal(dmg,'пулемёт полицейского фургона',true,{kind:'murder_police',cop:arrestCop});
+    spawnFloatText(player.r-.5,player.c,`−${dmg} ПУЛЕМЁТ`,{color:'#ff2d22',size:15,life:1000});
+  }
+  if(v._turretBurst%3===1){const crew=_murderCrewForVehicle(v),speaker=crew[(v._turretBurst>>1)%Math.max(1,crew.length)];if(speaker)_copChats.set(speaker.id,{text:['Оружие на землю!','Стрелок! Подавить цель!','Сектор держу!','Не приближаться к фургону!'][v._turretBurst%4],untilMs:now+1900});}
+  document.documentElement.dataset.policeTurretShots=String((+document.documentElement.dataset.policeTurretShots||0)+1);
+  return true;
+}
 function _finishMurderPoliceCall(v,now=performance.now()){
   const incident=v?.payload?.murderIncident;
   if(incident){incident.status='closed';incident.closedAt=now;incident.assignedVehicleId=null;}
-  _removeMurderCrewForVehicle(v);v._policeCrewIds=[];v._policeReturned=2;v.payload={};
+  _removeMurderCrewForVehicle(v);v._policeCrewIds=[];v._policeReturned=_murderVehicleCrewCount(v);v.payload={};
   const next=_nextQueuedMurderIncident();
   if(next&&_assignMurderPoliceCall(v,next,now,true))return;
   v.speed=POLICE_RETURN_SPEED;v.state='returning';v.path=[];v.pathIdx=0;v.finalTarget=null;
@@ -10395,15 +10701,20 @@ function _setMurderPoliceArrestPhase(ar,phase,now=performance.now()){
 function _murderPoliceArrestProgress(ar=_murderPoliceArrest,now=performance.now()){
   if(!ar)return 0;
   const duration=ar.phase==='downed'?900:ar.phase==='cuffing'?POLICE_ARREST_CUFF_MS:
-    ar.phase==='escort'?6200:ar.phase==='loading'?POLICE_ARREST_LOAD_MS:1;
+    ar.phase==='escort'?6200:ar.phase==='loading'?POLICE_ARREST_LOAD_MS:
+    ar.phase==='unloading'?POLICE_ARREST_UNLOAD_MS:ar.phase==='handoff'?POLICE_ARREST_HANDOFF_MS:
+    ar.phase==='booking'?POLICE_ARREST_BOOK_MS:ar.phase==='prison_escort'?22000:1;
   return Math.max(0,Math.min(1,(now-(ar.phaseAt||now))/duration));
+}
+function _murderPoliceArrestInCustody(ar=_murderPoliceArrest){
+  return !!ar&&['transport','unloading','handoff','prison_escort','booking'].includes(ar.phase);
 }
 function _beginMurderPoliceArrest(cop,now=performance.now()){
   if(_murderPoliceArrest||!_murderPoliceCopActive(cop))return false;
   const v=serviceVehicles.find(q=>q.id===cop._responseVehicleId),incident=v?.payload?.murderIncident;
   if(!v||!incident||!v._murderFleet)return false;
   const crew=_murderCrewForVehicle(v);
-  if(crew.length<2||!crew.includes(cop))return false;
+  if(crew.length<1||!crew.includes(cop))return false;
   if(myDrivingCarId){exitCar('police_arrest');viewZoom=WORLD_VIEW_ZOOM;}
   if(myJetSkiId)exitJetSki(true);
   myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;
@@ -10427,8 +10738,30 @@ function _beginMurderPoliceArrest(cop,now=performance.now()){
   showEventBanner('🚔 НЕ ДВИГАЙСЯ','Ты ранен, но жив. Офицер идёт надеть наручники.',3500,'lose');
   return true;
 }
+function _queueAnyPoliceDeathPickup(cop=null,meta={},now=performance.now()){
+  if(_murderPoliceArrest)return true;
+  if(myDrivingCarId){exitCar('police_arrest');viewZoom=WORLD_VIEW_ZOOM;}
+  if(myJetSkiId)exitJetSki(true);
+  myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;
+  player.walking=false;player.vr=0;player.vc=0;_playerEmergencyPatient=null;
+  _deathOv?.classList.remove('show');
+  if(_myBagWeight>0&&((_bankRob&&_bankRob.myBag)||_policeEvidenceBag))dropVaultBag();
+  const incident={id:`police_pickup_${++_murderIncidentSeq}`,r:+player.r||0,c:+player.c||0,
+    victim:null,source:{kind:'police_death',copId:String(cop?.id??meta.copId??'')},occurredAt:now,
+    status:'queued',assignedVehicleId:null,searchStartedAt:0,initialSearchUntil:0,lostAt:0,
+    questionStartedAt:0,armedContact:false,closedAt:0,playerArrestPickup:true,routeRetryAt:0,routeFailures:0};
+  _murderIncidents.push(incident);while(_murderIncidents.length>24)_murderIncidents.shift();
+  _murderPoliceArrest={vehicleId:'',incidentId:incident.id,copId:'',coverCopId:'',phase:'awaiting_pickup',
+    startedAt:now,phaseAt:now,lastGangShots:Object.create(null),serverRequested:!!meta.serverAlreadyJailed,
+    serverAccepted:!!meta.serverAlreadyJailed,jailSeconds:Math.max(1,+meta.jailSeconds||60),serverRejectedReason:''};
+  _dispatchMurderPoliceCalls(now);
+  document.documentElement.dataset.policeArrestPhase='awaiting_pickup';
+  document.documentElement.dataset.policeArrestRescuable='0';
+  showEventBanner('🚔 ПОЛИЦИЯ ВЫЗВАЛА КОНВОЙ','Ты остаёшься на месте ранения. Наряд едет забрать тебя в тюрьму.',3600,'lose');
+  return true;
+}
 function _applyGangmateRescueFire(ar,now=performance.now()){
-  if(!ar||ar.phase==='transport')return;
+  if(!ar||_murderPoliceArrestInCustody(ar))return;
   const cop=cityCops.find(q=>q.id===ar.copId&&_murderPoliceCopActive(q,ar));
   if(!cop)return;
   for(const mate of others.values()){
@@ -10449,7 +10782,7 @@ function _applyGangmateRescueFire(ar,now=performance.now()){
   }
 }
 function _cancelMurderPoliceArrest(source=null,now=performance.now()){
-  const ar=_murderPoliceArrest;if(!ar||ar.phase==='transport')return false;
+  const ar=_murderPoliceArrest;if(!ar||_murderPoliceArrestInCustody(ar))return false;
   const v=serviceVehicles.find(q=>q.id===ar.vehicleId),incident=v?.payload?.murderIncident;
   _murderPoliceArrest=null;_murderPoliceRescueGraceUntil=now+3500;
   myDead=false;_localDeath=false;myHp=1;myDeathLeft=0;myDeathBy='';
@@ -10472,16 +10805,25 @@ function _cancelMurderPoliceArrest(source=null,now=performance.now()){
 }
 function _onMurderArrestCopKilled(cop,source=null){
   const ar=_murderPoliceArrest;
-  if(!ar||ar.phase==='transport'||String(cop?._responseVehicleId)!==String(ar.vehicleId))return false;
-  if(![String(ar.copId),String(ar.coverCopId)].includes(String(cop?.id)))return false;
-  return _cancelMurderPoliceArrest(source,performance.now());
+  if(!ar||_murderPoliceArrestInCustody(ar)||String(cop?._responseVehicleId)!==String(ar.vehicleId))return false;
+  if(String(cop?.id)===String(ar.copId))return _cancelMurderPoliceArrest(source,performance.now());
+  if(String(cop?.id)===String(ar.coverCopId)){
+    const v=serviceVehicles.find(q=>String(q?.id)===String(ar.vehicleId));
+    const replacement=_murderCrewForVehicle(v).find(q=>String(q.id)!==String(ar.copId)&&String(q.id)!==String(cop.id));
+    ar.coverCopId=replacement?.id||'';
+    if(replacement){replacement._casePhase='arrest_cover';replacement._phaseStartedAt=performance.now();replacement._pursuing=true;}
+  }
+  return false;
 }
 function _startMurderPolicePrisonTransport(v,ar,now=performance.now()){
   if(!v||!ar||_murderPoliceArrest!==ar)return false;
   _setMurderPoliceArrestPhase(ar,'transport',now);ar.transportStartedAt=now;
   player.walking=false;player.r=v.y;player.c=v.x;
-  for(const cop of _murderCrewForVehicle(v)){cop.alive=false;cop._lifeState='';cop._lifeGesture='';}
-  v._policeCrewIds=[];v._policeBoarded=2;v._policeReturned=2;v._policePrisonTransport=true;
+  const transportCrew=_murderCrewForVehicle(v);
+  ar.transportCrew=transportCrew.map(cop=>({look:cop.look||null,name:cop.name||'Офицер',slot:+cop._crewSlot||0}));
+  for(const cop of transportCrew){cop.alive=false;cop._lifeState='';cop._lifeGesture='';}
+  const expectedCrew=_murderVehicleCrewCount(v);
+  v._policeCrewIds=[];v._policeBoarded=expectedCrew;v._policeReturned=expectedCrew;v._policePrisonTransport=true;
   v.state='returning';v.speed=POLICE_RESPONSE_SPEED;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
   _setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
   if(!ar.serverRequested){
@@ -10492,6 +10834,93 @@ function _startMurderPolicePrisonTransport(v,ar,now=performance.now()){
   _confiscateBagOnArrest();
   document.documentElement.dataset.policeArrestRescuable='0';
   showEventBanner('🚓 В АВТОМОБИЛЕ','Наряд везёт тебя в блок полицейского участка.',3200,'lose');
+  return true;
+}
+function _spawnMurderPrisonHandoffOfficer(v,ar,slot,receiver=false,now=performance.now()){
+  const door=_policeCrewBoardPoint(v,slot),target=JAIL_ISLAND_3D_ENABLED
+    ?{r:JAIL_ISLAND_LAYOUT.intake.spawnR,c:JAIL_ISLAND_LAYOUT.intake.spawnC}
+    :{r:JAIL_CENTER_R+1,c:JAIL_CENTER_C+1};
+  const dr=target.r-v.y,dc=target.c-v.x,d=Math.hypot(dr,dc)||1,side=slot?1:-1;
+  const saved=ar.transportCrew?.[slot]||null;
+  const start=receiver
+    ?{r:v.y+dr/d*2.15-dc/d*side*.42,c:v.x+dc/d*2.15+dr/d*side*.42}
+    :door;
+  const cop={id:`arrest_${receiver?'intake':'delivery'}_${++_cityCopId}`,x:start.c,y:start.r,tx:start.c,ty:start.r,
+    ang:Math.atan2(target.r-start.r,target.c-start.c),walkPhase:0,kind:'murder_response',weapon:'pistol',
+    hp:100,max_hp:100,alive:true,role:receiver?'prison_police':'police',isPolice:true,_prisonStaff:!!receiver,
+    prisonGear:receiver?(slot?'tactical_helmet':'cap'):'',name:receiver?(slot?'Тюремный конвой':'Приёмный офицер'):(saved?.name||'Патрульный'),
+    look:saved?.look||{gender:slot,skin:slot?1:2,body:8,face:slot?2:1,hair:slot?2:1,hat:3},
+    speed:receiver?2.18:1.95,_wayUntil:0,_responseVehicleId:v.id,_murderIncidentId:ar.incidentId,
+    _crewSlot:slot,_casePhase:receiver?'arrest_prison_receive':'arrest_unload',_phaseStartedAt:now,_nextCaseCryAt:0,_nextShootAt:0};
+  cityCops.push(cop);return cop;
+}
+function _startMurderPolicePrisonHandoff(v,now=performance.now(),reason='road-arrival'){
+  const ar=_murderPoliceArrest;
+  if(!ar||String(ar.vehicleId)!==String(v?.id)||ar.phase!=='transport')return false;
+  v._policePrisonTransport=false;v.state='police_arrest_scene';v.speed=0;v.path=[];v.pathIdx=0;v.finalTarget=null;v._lastMoveT=now;
+  const delivery=[0,1].map(slot=>_spawnMurderPrisonHandoffOfficer(v,ar,slot,false,now));
+  const receivers=[0,1].map(slot=>_spawnMurderPrisonHandoffOfficer(v,ar,slot,true,now));
+  ar.deliveryCopIds=delivery.map(c=>c.id);ar.prisonCopIds=receivers.map(c=>c.id);ar.arrivalReason=reason;
+  const door=_policeCrewBoardPoint(v,0);player.r=door.r;player.c=door.c;player.ang=v.ang;player.vr=0;player.vc=0;player.walking=false;
+  _setMurderPoliceArrestPhase(ar,'unloading',now);
+  document.documentElement.dataset.policeArrestHandoff='delivery-to-prison-crew';
+  showEventBanner('🚔 ПРИБЫЛИ В ТЮРЬМУ','Патруль вытаскивает тебя из машины и передаёт тюремному конвою.',3600,'lose');
+  return true;
+}
+function _murderArrestCopsByIds(ids){
+  const wanted=new Set((ids||[]).map(String));return cityCops.filter(c=>c?.alive&&wanted.has(String(c.id)));
+}
+function _movePrisonEscortCop(cop,tr,tc,dt,mul=1){
+  const dr=tr-cop.y,dc=tc-cop.x,d=Math.hypot(dr,dc);cop.ang=Math.atan2(dr,dc);
+  if(d<.18)return true;
+  const step=Math.min(d,(cop.speed||2.1)*mul*dt),nr=cop.y+dr/d*step,nc=cop.x+dc/d*step;
+  const collision=typeof _prisonIslandCollisionAt==='function'?_prisonIslandCollisionAt(nr,nc):null;
+  const escortGate=collision?.kind==='personal-release-gate-locked';
+  if(!collision||!collision.blocked||escortGate){cop.y=nr;cop.x=nc;cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;return false;}
+  return _moveMurderResponseCop(cop,tr,tc,dt,mul);
+}
+function _updateMurderPolicePrisonHandoff(v,ar,dt,now=performance.now()){
+  const delivery=_murderArrestCopsByIds(ar.deliveryCopIds),receivers=_murderArrestCopsByIds(ar.prisonCopIds);
+  if(delivery.length<2||receivers.length<2){
+    if(now-ar.phaseAt>2500)return _completeMurderPolicePrisonTransport(v,now,'handoff-crew-fallback');
+    return true;
+  }
+  const door=_policeCrewBoardPoint(v,0),target=JAIL_ISLAND_3D_ENABLED
+    ?{r:JAIL_ISLAND_LAYOUT.intake.spawnR,c:JAIL_ISLAND_LAYOUT.intake.spawnC}
+    :{r:JAIL_CENTER_R+1,c:JAIL_CENTER_C+1};
+  if(ar.phase==='unloading'){
+    player.r=door.r;player.c=door.c;player.ang=v.ang;player.walking=false;
+    delivery[0]._lifeState='helping';delivery[0]._lifeGesture='aid';
+    if(now-ar.phaseAt>=POLICE_ARREST_UNLOAD_MS){
+      delivery[0]._lifeState='';delivery[0]._lifeGesture='';
+      _setMurderPoliceArrestPhase(ar,'handoff',now);
+      _copChats.set(receivers[0].id,{text:'Приняли. Ведём в блок.',untilMs:now+2200});
+    }
+  }else if(ar.phase==='handoff'){
+    const dr=target.r-door.r,dc=target.c-door.c,d=Math.hypot(dr,dc)||1;
+    const handoffR=door.r+dr/d*.9,handoffC=door.c+dc/d*.9;
+    player.r=handoffR;player.c=handoffC;player.ang=Math.atan2(dr,dc);player.walking=false;
+    for(let i=0;i<receivers.length;i++)_movePrisonEscortCop(receivers[i],handoffR,handoffC+(i ? .52 : -.52),dt,1.05);
+    if(now-ar.phaseAt>=POLICE_ARREST_HANDOFF_MS){
+      for(const cop of delivery){cop._casePhase='arrest_handoff_complete';cop._lifeGesture='salute';}
+      for(const cop of receivers)cop._casePhase='arrest_prison_escort';
+      _setMurderPoliceArrestPhase(ar,'prison_escort',now);player.walking=true;
+      showEventBanner('🔒 ТЮРЕМНЫЙ КОНВОЙ','Тюремные полицейские ведут тебя в приёмный блок.',3000,'lose');
+    }
+  }else if(ar.phase==='prison_escort'){
+    const lead=receivers[0],rear=receivers[1],reached=_movePrisonEscortCop(lead,target.r,target.c,dt,1.04);
+    const followR=lead.y-Math.sin(lead.ang)*.68,followC=lead.x-Math.cos(lead.ang)*.68,k=Math.min(1,dt*7);
+    player.r+=(followR-player.r)*k;player.c+=(followC-player.c)*k;player.ang=lead.ang;player.walking=true;player.walkPhase+=dt*7;
+    const rearR=player.r-Math.sin(lead.ang)*.78,rearC=player.c-Math.cos(lead.ang)*.78;
+    _movePrisonEscortCop(rear,rearR,rearC,dt,1.08);
+    if(reached||Math.hypot(lead.y-target.r,lead.x-target.c)<.35||now-ar.phaseAt>22000){
+      player.r=target.r;player.c=target.c;player.walking=false;_setMurderPoliceArrestPhase(ar,'booking',now);
+      receivers[0]._lifeState='helping';receivers[0]._lifeGesture='aid';
+    }
+  }else if(ar.phase==='booking'){
+    player.r=target.r;player.c=target.c;player.walking=false;
+    if(now-ar.phaseAt>=POLICE_ARREST_BOOK_MS)_completeMurderPolicePrisonTransport(v,now,'escorted-to-booking');
+  }
   return true;
 }
 function _completeMurderPolicePrisonTransport(v,now=performance.now(),reason='road-arrival'){
@@ -10515,11 +10944,15 @@ function _completeMurderPolicePrisonTransport(v,now=performance.now(),reason='ro
 function _updateMurderPoliceArrest(v,dt,now=performance.now()){
   const ar=_murderPoliceArrest;
   if(!ar||String(ar.vehicleId)!==String(v?.id)){if(v)v.state='police_search';return false;}
+  if(['unloading','handoff','prison_escort','booking'].includes(ar.phase))return _updateMurderPolicePrisonHandoff(v,ar,dt,now);
   _applyGangmateRescueFire(ar,now);
   if(_murderPoliceArrest!==ar)return false;
-  const primary=cityCops.find(q=>q?.id===ar.copId),cover=cityCops.find(q=>q?.id===ar.coverCopId);
-  if(!_murderPoliceCopActive(primary,ar)||(ar.coverCopId&&!_murderPoliceCopActive(cover,ar)))
-    return _cancelMurderPoliceArrest({kind:'arrest_officer_lost'},now);
+  const primary=cityCops.find(q=>q?.id===ar.copId);let cover=cityCops.find(q=>q?.id===ar.coverCopId);
+  if(!_murderPoliceCopActive(primary,ar))return _cancelMurderPoliceArrest({kind:'arrest_officer-lost'},now);
+  if(ar.coverCopId&&!_murderPoliceCopActive(cover,ar)){
+    cover=_murderCrewForVehicle(v).find(q=>q!==primary)||null;ar.coverCopId=cover?.id||'';
+    if(cover){cover._casePhase='arrest_cover';cover._phaseStartedAt=now;cover._pursuing=true;}
+  }
   if(_LOCAL_PREVIEW&&_UP.has('previewpolicerescue')&&ar.phase==='cuffing'&&now-ar.phaseAt>1100&&!document.documentElement.dataset.previewPoliceRescueTriggered){
     document.documentElement.dataset.previewPoliceRescueTriggered=primary.id;
     hitCityCop(primary,0,1,999,{kind:'gang_player',ref:{uid:'preview-gangmate'},weapon:'rifle'});
@@ -10564,14 +10997,19 @@ function _updateMurderPoliceArrest(v,dt,now=performance.now()){
   return true;
 }
 function _murderCopShootPlayer(cop,dt,now){
+  const incident=serviceVehicles.find(v=>v?.id===cop._responseVehicleId)?.payload?.murderIncident,profile=_murderPoliceProfile(incident);
+  const slot=+cop._crewSlot||0,tier=_murderPoliceTier(incident),ring=5.2+(slot%2)*1.1,flank=(slot-1.5)*.72,
+    targetR=player.r-Math.sin(player.ang+flank)*ring,targetC=player.c-Math.cos(player.ang+flank)*ring;
   const dr=player.r-cop.y,dc=player.c-cop.x,d=Math.hypot(dr,dc)||.001;cop.ang=Math.atan2(dr,dc);
-  if(d>7)_moveMurderResponseCop(cop,player.r,player.c,dt,1.45);
-  if(d>13||now<(cop._nextShootAt||0)||myDead)return;
-  cop._nextShootAt=now+1150+Math.random()*650;
-  const muzR=cop.y+Math.sin(cop.ang)*.45,muzC=cop.x+Math.cos(cop.ang)*.45,miss=(Math.random()-.5)*.72;
-  const tR=player.r+miss,tC=player.c-miss*.35,hit=Math.abs(miss)<.38;
-  spawnBullet(muzR,muzC,tR,tC,{hit,fromNpc:true,weapon:'pistol'});spawnMuzzle(muzR,muzC,cop.ang,'pistol',true);
-  if(hit){const dmg=7+Math.floor(Math.random()*5);spawnImpact(player.r,player.c,'pistol',true);_hurtLocal(dmg,'Полиция',true,{kind:'murder_police',cop});
+  if(d>8||Math.hypot(cop.y-targetR,cop.x-targetC)>2.4)_moveMurderResponseCop(cop,targetR,targetC,dt,1.25+tier*.08);
+  else if(d<3.2)_moveMurderResponseCop(cop,cop.y-dr/d*1.8,cop.x-dc/d*1.8,dt,1.15);
+  if(d>profile.range||now<(cop._nextShootAt||0)||myDead)return;
+  if(!_policeWorldLineClear(cop.y,cop.x,player.r,player.c)){cop._searchR=targetR;cop._searchC=targetC;return;}
+  cop._nextShootAt=now+profile.cadence[0]+Math.random()*(profile.cadence[1]-profile.cadence[0]);
+  const accuracy=.38+_murderPoliceTier(incident)*.055,muzR=cop.y+Math.sin(cop.ang)*.45,muzC=cop.x+Math.cos(cop.ang)*.45,miss=(Math.random()-.5)*(.72-_murderPoliceTier(incident)*.08);
+  const tR=player.r+miss,tC=player.c-miss*.35,hit=Math.abs(miss)<accuracy,weapon=profile.weapon;
+  spawnBullet(muzR,muzC,tR,tC,{hit,fromNpc:true,weapon});spawnMuzzle(muzR,muzC,cop.ang,weapon,true);
+  if(hit){const dmg=profile.damage[0]+Math.floor(Math.random()*(profile.damage[1]-profile.damage[0]+1));spawnImpact(player.r,player.c,weapon,true);_hurtLocal(dmg,'Полиция',true,{kind:'murder_police',cop});
     spawnFloatText(player.r-.4,player.c,`−${dmg}`,{color:'#ff4422',size:13,life:900});
     try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'npc_melee_shoot',d:{dmg,sx:+cop.x.toFixed(2),sy:+cop.y.toFixed(2)}}));}catch(e){}}
 }
@@ -10598,12 +11036,12 @@ function _updateMurderResponseCop(cop,dt,now){
   if(String(cop._casePhase||'').startsWith('arrest_'))return true;
   if(cop._casePhase==='boarding'){
     const p=_policeCrewBoardPoint(v,cop._crewSlot);
-    if(_moveMurderResponseCop(cop,p.r,p.c,dt,1.15)||now-cop._phaseStartedAt>6500){v._policeBoarded=Math.min(2,(v._policeBoarded||0)+1);cop.alive=false;}
+    if(_moveMurderResponseCop(cop,p.r,p.c,dt,1.15)||now-cop._phaseStartedAt>6500){const expected=_murderVehicleCrewCount(v);v._policeBoarded=Math.min(expected,(v._policeBoarded||0)+1);cop.alive=false;}
     return true;
   }
   if(cop._casePhase==='return'){
     const p=_policeCrewBoardPoint(v,cop._crewSlot);
-    if(_moveMurderResponseCop(cop,p.r,p.c,dt,1.18)||now-cop._phaseStartedAt>6500){v._policeReturned=Math.min(2,(v._policeReturned||0)+1);cop.alive=false;}
+    if(_moveMurderResponseCop(cop,p.r,p.c,dt,1.18)||now-cop._phaseStartedAt>6500){const expected=_murderVehicleCrewCount(v);v._policeReturned=Math.min(expected,(v._policeReturned||0)+1);cop.alive=false;}
     return true;
   }
   if(cop._casePhase==='disembark'){
@@ -10611,7 +11049,19 @@ function _updateMurderResponseCop(cop,dt,now){
     cop._casePhase='search';cop._phaseStartedAt=now;
     _copChats.set(cop.id,{text:cop._crewSlot?'Обхожу справа!':'Осматриваем место!',untilMs:now+1500});
   }
+  if(cop._casePhase==='witness_question'&&!incident.armedContact){
+    const witness=cop._witnessRef,p=_murderNpcPosition(witness);
+    if(!p||now-cop._phaseStartedAt>7600){if(witness){witness._lifeState='';witness._lifeGesture='';}cop._witnessRef=null;cop._lifeState='';cop._lifeGesture='';cop._casePhase='search';cop._phaseStartedAt=now;return true;}
+    const d=Math.hypot(p.r-cop.y,p.c-cop.x);cop.ang=Math.atan2(p.r-cop.y,p.c-cop.x);
+    if(d>1.65)_moveMurderResponseCop(cop,p.r,p.c,dt,1.02);
+    else{
+      cop._lifeState='social';cop._lifeGesture='point';witness.ang=Math.atan2(cop.y-p.r,cop.x-p.c);witness._lifeState='social';witness._lifeGesture='talk';
+      if(now>=(cop._nextCaseCryAt||0)){const lines=['Полиция. Что вы видели?','Опишите подозреваемого.','Куда он побежал?','Оружие у него было?'];_copChats.set(cop.id,{text:lines[((now-cop._phaseStartedAt)/1800|0)%lines.length],untilMs:now+1700});witness.cryText=['Я слышал выстрелы!','Он побежал туда!','У него было оружие!'][cop._crewSlot%3];witness.cryUntil=now+1600;cop._nextCaseCryAt=now+1900;}
+    }
+    return true;
+  }
   if(cop._casePhase==='combat'&&incident.armedContact&&_murderPlayerInZone(incident)){
+    if(now>=(cop._nextCaseCryAt||0)){const lines=['Вижу оружие!','Обхожу слева!','Прикройте сектор!','Не дайте ему уйти!','Фургон, держи цель!'];_copChats.set(cop.id,{text:lines[(cop._crewSlot+Math.floor(now/2600))%lines.length],untilMs:now+1800});cop._nextCaseCryAt=now+2400+cop._crewSlot*180;}
     _murderCopShootPlayer(cop,dt,now);return true;
   }
   if(cop._casePhase==='npc_combat'&&incident.armedContact&&incident.armedTargetType==='npc'){
@@ -10633,9 +11083,9 @@ function _updateMurderResponseCop(cop,dt,now){
     cop._searchR=p.r;cop._searchC=p.c;cop._searchRetargetAt=now+1900+Math.random()*1600;
   }
   _moveMurderResponseCop(cop,cop._searchR,cop._searchC,dt,1.0);
-  if(now>=(cop._nextCaseCryAt||0)&&Math.random()<.08){
-    const lines=['Проверяю двор!','Осмотрите переулок!','Есть кто-нибудь?','Прочёсываем район.'];
-    _copChats.set(cop.id,{text:lines[(Math.random()*lines.length)|0],untilMs:now+1700});cop._nextCaseCryAt=now+2500;
+  if(now>=(cop._nextCaseCryAt||0)){
+    const lines=['Проверяю двор!','Осмотрите переулок!','Ищу свидетелей!','Прочёсываем район.','Держим периметр!','Проверьте подъезды!'];
+    _copChats.set(cop.id,{text:lines[(cop._crewSlot+Math.floor(now/3100))%lines.length],untilMs:now+1800});cop._nextCaseCryAt=now+2800+cop._crewSlot*220;
   }
   return true;
 }
@@ -10717,6 +11167,7 @@ function updateServiceVehicles(dt) {
       _releaseFailedAmbulanceCall(v);
       serviceVehicles.splice(i, 1);continue;
     }
+    if(v._murderFleet)_updatePoliceArmoredVanTurret(v,dt,now);
     if(v.state==='ambulance_idle'||v.state==='ambulance_patrol'){
       v.state='ambulance_parked';v.x=v.homeC;v.y=v.homeR;v.path=[];v.pathIdx=0;v.finalTarget=null;
     }
@@ -10730,8 +11181,9 @@ function updateServiceVehicles(dt) {
     }
     if(v._murderFleet&&v.state==='police_boarding'){
       v._lastMoveT=now;
-      if((v._policeBoarded||0)>=2||now-(v._boardingStartedAt||now)>POLICE_BOARDING_TIMEOUT_MS){
-        _removeMurderCrewForVehicle(v);v._policeBoarded=2;v.speed=POLICE_RESPONSE_SPEED;
+      const expected=_murderVehicleCrewCount(v);
+      if((v._policeBoarded||0)>=expected||now-(v._boardingStartedAt||now)>POLICE_BOARDING_TIMEOUT_MS){
+        _removeMurderCrewForVehicle(v);v._policeBoarded=expected;v.speed=POLICE_RESPONSE_SPEED;
         v.state='go_to_scene';if(v.payload?.murderIncident)v.payload.murderIncident.status='enroute';
       }
       continue;
@@ -10744,7 +11196,7 @@ function updateServiceVehicles(dt) {
     }
     if(v._murderFleet&&v.state==='police_reboarding'){
       v._lastMoveT=now;
-      if((v._policeReturned||0)>=2||now-(v._reboardingStartedAt||now)>7000)_finishMurderPoliceCall(v,now);
+      if((v._policeReturned||0)>=_murderVehicleCrewCount(v)||now-(v._reboardingStartedAt||now)>7000)_finishMurderPoliceCall(v,now);
       continue;
     }
     if(v.state==='firetruck_parked'||v.state==='tow_parked'){
@@ -10807,7 +11259,7 @@ function updateServiceVehicles(dt) {
       if (v.kind === 'ambulance') _releaseFailedAmbulanceCall(v);
       if(v._murderFleet){
         if(v._policePrisonTransport&&_murderPoliceArrest){
-          _completeMurderPolicePrisonTransport(v,now,'watchdog-arrival');continue;
+          _startMurderPolicePrisonHandoff(v,now,'watchdog-arrival');continue;
         }
         const incident=v.payload?.murderIncident;
         if(incident){incident.status='queued';incident.assignedVehicleId=null;}
@@ -10853,7 +11305,7 @@ function updateServiceVehicles(dt) {
       if (_vehicleStep(v, dt)) {
         if (v.kind === 'police') {
           if(v._murderFleet&&v.payload?.murderIncident){
-            // Убийство: из машины физически выходят те же два офицера.
+            // Из машины физически выходит весь назначенный экипаж (2 или 4 бойца).
             _startMurderPoliceScene(v,now);
           }else{
             // Прибыли к банку — осада: копы выходят, машина стоит с мигалкой
@@ -10948,7 +11400,7 @@ function updateServiceVehicles(dt) {
       if (_vehicleStep(v, dt)) {
         if(v.kind==='ambulance'){_completeAmbulanceHospitalDelivery(v,now,'road-arrival');continue;}
         if(v._murderFleet){
-          if(v._policePrisonTransport&&_completeMurderPolicePrisonTransport(v,now,'road-arrival'))continue;
+          if(v._policePrisonTransport&&_startMurderPolicePrisonHandoff(v,now,'road-arrival'))continue;
           _parkMurderPoliceVehicle(v,now);continue;
         }
         // Доехал до депо. Эвакуатор увёз машину «за карту» → удаляем из
@@ -10995,17 +11447,29 @@ function dispatchEmergencyServices() {
     if(!b?.dead||!b.deadAt||b._policeMurderIncidentId||b._policeMurderIgnored)continue;
     _registerMurderIncident(b,b._lastViolentSource||null,now);
   }
-  if(_LOCAL_PREVIEW&&(_UP.has('previewpoliceresponse')||_UP.has('previewpolicearrest'))&&!document.documentElement.dataset.previewPoliceResponseSeeded){
-    if(_UP.has('previewpolicearrest')){
+  if(_LOCAL_PREVIEW&&(_UP.has('previewpoliceresponse')||_UP.has('previewpolicearrest')||_UP.has('previewpolicesmart')||_UP.has('previewpoliceanykill')||_UP.has('previewpolicecivilkill'))&&!document.documentElement.dataset.previewPoliceResponseSeeded){
+    if(_UP.has('previewpolicearrest')||_UP.has('previewpolicesmart')||_UP.has('previewpoliceanykill')||_UP.has('previewpolicecivilkill')){
       const bay=_policeResponseBays()[0],road=_nearestRoadTile(bay.r+7,bay.c+2,14);
       if(road){player.r=road.r+.5;player.c=road.c+.5;player.vr=0;player.vc=0;}
-      currentWeapon='pistol';myHp=1;myDead=false;_localDeath=false;
+      currentWeapon='pistol';myHp=_UP.has('previewpolicecivilkill')?5000:1;myDead=false;_localDeath=false;
     }
     const victim=NPCS.find(n=>_isCivilianMurderVictim(n)&&!n.dead);
     if(victim){
       victim.r=player.r+4.2;victim.c=player.c+2.2;victim.tr=victim.r;victim.tc=victim.c;
-      victim.hp=0;victim.dead=true;victim.deadAt=now;victim._lastViolentSource={kind:'player',uid:String(QP?.uid||'local')};
-      _registerMurderIncident(victim,victim._lastViolentSource,now);
+      let seeded=null;
+      if(_UP.has('previewpolicecivilkill')){
+        const patrol=cityCops.find(c=>c?.alive&&c.kind==='patrol');
+        if(patrol){patrol.y=victim.r+1.5;patrol.x=victim.c;patrol.ty=patrol.y;patrol.tx=patrol.x;}
+        victim.hp=1;victim._cashier=true;
+        hitNpc(victim,0,0,'pistol',999,{kind:'player',uid:String(QP?.uid||'local')});
+        delete victim._cashier;
+        seeded=_murderIncidents.find(q=>q.id===victim._policeMurderIncidentId)||null;
+        document.documentElement.dataset.previewPoliceCivilKill=seeded?'actual-hit':'failed';
+      }else{
+        victim.hp=0;victim.dead=true;victim.deadAt=now;victim._lastViolentSource={kind:'player',uid:String(QP?.uid||'local')};
+        seeded=_registerMurderIncident(victim,victim._lastViolentSource,now);
+      }
+      if(seeded&&(_UP.has('previewpolicesmart')||_UP.has('previewpoliceanykill'))){seeded.policeTier=2;seeded.crewCount=4;for(const [wi,w] of NPCS.filter(n=>n&&!n.dead&&n!==victim&&_isCivilianMurderVictim(n)).slice(0,3).entries()){w.r=victim.r+2+wi*.7;w.c=victim.c-1.2+wi*.8;w.tr=w.r;w.tc=w.c;}currentWeapon='fists';}
       document.documentElement.dataset.previewPoliceResponseSeeded=victim._policeMurderIncidentId||'1';
     }
   }
@@ -11016,9 +11480,51 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.policeMurderBusy=String(policeFleet.filter(v=>v.state!=='police_parked').length);
   document.documentElement.dataset.policeMurderQueue=String(_murderIncidents.filter(q=>q.status==='queued').length);
   document.documentElement.dataset.policeMurderCrew=String(cityCops.filter(c=>c?.alive&&c.kind==='murder_response').length);
-  document.documentElement.dataset.policeMurderProfile='3d-station-board-drive-search-question-fire-cuff-load-prison-gang-rescue-v247';
+  document.documentElement.dataset.policeMurderTierCounts=[0,1,2,3].map(t=>`${t}:${cityCops.filter(c=>c?.alive&&c.kind==='murder_response'&&(+c.responseTier||0)===t).length}`).join(',');
+  document.documentElement.dataset.policeMurderGear=cityCops.filter(c=>c?.alive&&c.kind==='murder_response').map(c=>`${+c.responseTier||0}:${c.weapon}:${c.prisonGear||'none'}:${c.shield?'shield':'free'}`).join('|');
+  document.documentElement.dataset.policeWitnessInterviews=String(_murderIncidents.reduce((sum,q)=>sum+(+q.witnessCount||0),0));
+  document.documentElement.dataset.policeWitnessInterviewsActive=String(cityCops.filter(c=>c?.alive&&c._casePhase==='witness_question').length);
+  document.documentElement.dataset.policeArmoredVans=String(policeFleet.filter(v=>_murderPoliceProfile(v.payload?.murderIncident).armoredVan).length);
+  document.documentElement.dataset.policeRoofGunners=String(policeFleet.filter(v=>v._roofGunner&&!v._turretDisabled).length);
+  document.documentElement.dataset.policeMurderProfile='smart-flank-witness-hq-replacement-armored-turret-cuff-v249';
   document.documentElement.dataset.policeArrestPhase=_murderPoliceArrest?.phase||document.documentElement.dataset.policeArrestPhase||'idle';
   document.documentElement.dataset.policeArrestProgress=_murderPoliceArrest?_murderPoliceArrestProgress().toFixed(3):'0.000';
+  // Deterministic browser QA: each arrived unit loses one officer, then a tier-2
+  // responder delivers the lethal hit so the real cuffing pipeline is exercised.
+  if(_LOCAL_PREVIEW&&_UP.has('previewpoliceescalation')){
+    const stage=+document.documentElement.dataset.previewPoliceEscalationStage||0;
+    if(stage<=2&&!_murderPoliceArrest){myHp=PVP.max_hp;myDead=false;_localDeath=false;}
+    const arrived=tier=>cityCops.find(c=>c?.alive&&c.kind==='murder_response'&&(+c.responseTier||0)===tier&&c._casePhase!=='boarding');
+    if(stage===0){const cop=arrived(0);if(cop){hitCityCop(cop,0,1,999,{kind:'player',weapon:'rifle'});document.documentElement.dataset.previewPoliceEscalationStage='1';}}
+    else if(stage===1){const cop=arrived(1);if(cop){hitCityCop(cop,0,1,999,{kind:'player',weapon:'rifle'});document.documentElement.dataset.previewPoliceEscalationStage='2';}}
+    else if(stage===2&&!_murderPoliceArrest){const cop=arrived(2);if(cop){myHp=1;myDead=false;_localDeath=false;_hurtLocal(999,'Полиция',true,{kind:'murder_police',cop});document.documentElement.dataset.previewPoliceEscalationStage='3';}}
+  }
+  if(_LOCAL_PREVIEW&&_UP.has('previewpolicesmart')&&!document.documentElement.dataset.previewPoliceHqDeath){
+    const patrol=cityCops.find(c=>c?.alive&&c.kind==='patrol');if(patrol){document.documentElement.dataset.previewPoliceHqDeath=patrol.id;hitCityCop(patrol,0,1,999,{kind:'player',weapon:'rifle'});}
+  }
+  if(_LOCAL_PREVIEW&&_UP.has('previewpolicesmart')&&!_UP.has('previewpoliceanykill')){const incident=_murderIncidents.find(q=>q.policeTier===2&&q.searchStartedAt);if(incident&&now-incident.searchStartedAt>5200&&!_murderPoliceArrest)currentWeapon='pistol';}
+  if(_LOCAL_PREVIEW&&_UP.has('previewpolicesmart')&&currentWeapon==='pistol'&&!document.documentElement.dataset.previewPoliceVanRaycast){
+    const van=policeFleet.find(v=>_murderPoliceProfile(v.payload?.murderIncident).armoredVan&&v.state==='police_search');
+    if(van){const dr=van.y-player.r,dc=van.x-player.c,d=Math.hypot(dr,dc)||1,hit=_raycastDamageableCar(player.r,player.c,dr/d,dc/d,d+2);document.documentElement.dataset.previewPoliceVanRaycast=hit?.service?'service-hit':'miss';if(hit?.service)_damageCarByGun(hit,'pistol',weaponProfile('pistol').damage||18);}
+  }
+  // Deterministic 3D QA for this rule: while the tier-2 van is searching and
+  // the player is unarmed, a nearby gang member dies. Both a street patrol and
+  // the roof gun must attack without waiting for wanted synchronization.
+  if(_LOCAL_PREVIEW&&_UP.has('previewpoliceanykill')&&!document.documentElement.dataset.previewPoliceAnyKillTriggered){
+    const van=policeFleet.find(v=>_murderPoliceProfile(v.payload?.murderIncident).armoredVan&&v.state==='police_search');
+    if(van){
+      currentWeapon='fists';myHp=Math.max(+myHp||0,5000);myDead=false;_localDeath=false;
+      const patrol=cityCops.find(c=>c?.alive&&c.kind==='patrol');
+      if(patrol){
+        const spots=[[0,4],[0,-4],[4,0],[-4,0],[2.8,2.8],[-2.8,-2.8]];
+        const spot=spots.find(([dr,dc])=>npcPassableForSnitch(player.r+dr,player.c+dc)&&_policeWorldLineClear(player.r+dr,player.c+dc,player.r,player.c))||[0,2];
+        patrol.y=player.r+spot[0];patrol.x=player.c+spot[1];patrol.ty=patrol.y;patrol.tx=patrol.x;
+      }
+      _onAnyNpcKilledByPlayer({r:player.r+2,c:player.c+.4,role:'gang_fighter'},
+        {kind:'player',uid:String(QP?.uid||'local')},now);
+      document.documentElement.dataset.previewPoliceAnyKillTriggered='gang_fighter';
+    }
+  }
 
   // Six permanent crews (three per hospital) pull the oldest corpses from one shared queue.
   // Dead residents are prioritized over wounded residents.
@@ -11448,6 +11954,7 @@ function drawServiceVehicle(v) {
   const isPolice = v.kind === 'police';
   const isTow = v.kind === 'tow';
   const isFire = v.kind === 'firetruck';
+  const policeProfile=isPolice?_murderPoliceProfile(v.payload?.murderIncident):null,policeTier=isPolice?_murderPoliceTier(v.payload?.murderIncident):0,armoredPoliceVan=!!policeProfile?.armoredVan;
   let workFrac = 0, workLabel = null;
   if ((v.state === 'working' || v.state === 'medical_response') && v.workUntil) {
     const total = v.workDuration || (isAmb ? 2500 : isTow ? 3000 : 4000);
@@ -11457,9 +11964,9 @@ function drawServiceVehicle(v) {
   }
 
   // Изометрические размеры (в тайлах, как у drawCarPretty)
-  const mL   = isAmb ? 2.05 : isPolice ? 1.90 : isTow ? 2.30 : 2.40;
-  const mW   = isAmb ? 0.98 : isPolice ? 0.90 : isTow ? 1.00 : 1.10;
-  const mHt  = isAmb ? 0.88 : isPolice ? 0.70 : isTow ? 0.78 : 1.05;
+  const mL   = isAmb ? 2.05 : isPolice ? policeProfile.vehicleSize[0] : isTow ? 2.30 : 2.40;
+  const mW   = isAmb ? 0.98 : isPolice ? policeProfile.vehicleSize[1] : isTow ? 1.00 : 1.10;
+  const mHt  = isAmb ? 0.88 : isPolice ? policeProfile.vehicleSize[2] : isTow ? 0.78 : 1.05;
   const halfL = mL * 0.45;
   const halfW = mW * 0.45;
   const H = isoH(mHt);
@@ -11595,13 +12102,13 @@ function drawServiceVehicle(v) {
     ctx.stroke();
 
   } else if (isPolice) {
-    // ── ПОЛИЦЕЙСКАЯ (чёрно-белый круизер) ──────────────────────────
-    sideQuad(vis[0].a, vis[0].b, '#16161c');
-    sideQuad(vis[1].a, vis[1].b, '#24242c');
+    // ── ПОЛИЦЕЙСКИЙ КРУИЗЕР / БРОНЕФУРГОН ──────────────────────────
+    sideQuad(vis[0].a, vis[0].b,armoredPoliceVan?'#090d12':'#16161c');
+    sideQuad(vis[1].a, vis[1].b,armoredPoliceVan?'#151c24':'#24242c');
 
     // Белые двери (центральная часть борта)
-    faceStripe(vis[0].a, vis[0].b, 0.18, 0.55, '#d8d8e0');
-    faceStripe(vis[1].a, vis[1].b, 0.18, 0.55, '#e8e8f0');
+    faceStripe(vis[0].a, vis[0].b, 0.18, 0.55, armoredPoliceVan?'#293440':'#d8d8e0');
+    faceStripe(vis[1].a, vis[1].b, 0.18, 0.55, armoredPoliceVan?'#34424f':'#e8e8f0');
     // Синяя полоса POLICE по дверям
     faceStripe(vis[0].a, vis[0].b, 0.32, 0.44, '#1545b0');
     faceStripe(vis[1].a, vis[1].b, 0.32, 0.44, '#1a50c8');
@@ -11620,6 +12127,15 @@ function drawServiceVehicle(v) {
     // Лайтбар поперёк крыши (красная и синяя половины)
     roofQuad(0.30, 0.18, 0.30, 0.50, 0.42, 0.50, 0.42, 0.18, '#c01818');
     roofQuad(0.30, 0.50, 0.30, 0.82, 0.42, 0.82, 0.42, 0.50, '#1838c0');
+
+    if(armoredPoliceVan&&v._roofGunner){
+      const hatch=roofPt(.58,.5),aim=w2s(v.y+Math.sin(v._turretAng||v.ang)*2.2+.5,v.x+Math.cos(v._turretAng||v.ang)*2.2+.5),dx=aim.x-hatch.x,dy=aim.y-hatch.y,len=Math.hypot(dx,dy)||1;
+      ctx.fillStyle='#05070a';ctx.strokeStyle=policeTier>=3?'#9c2630':'#536577';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(hatch.x,hatch.y,8,4,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#172330';ctx.fillRect(hatch.x-4,hatch.y-14,8,12);ctx.fillStyle='#c79a78';ctx.beginPath();ctx.arc(hatch.x,hatch.y-17,4,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#121820';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(hatch.x,hatch.y-12);ctx.lineTo(hatch.x+dx/len*19,hatch.y-12+dy/len*19);ctx.stroke();
+      ctx.strokeStyle='#5f6d78';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(hatch.x+dx/len*10,hatch.y-12+dy/len*10);ctx.lineTo(hatch.x+dx/len*23,hatch.y-12+dy/len*23);ctx.stroke();
+      if(performance.now()-(v._turretFlashAt||0)<90){ctx.fillStyle='#fff0a0';ctx.beginPath();ctx.arc(hatch.x+dx/len*24,hatch.y-12+dy/len*24,5,0,Math.PI*2);ctx.fill();}
+    }
 
     // Белая надпись на крыше (номер наряда)
     const lblPt = roofPt(0.68, 0.50);
@@ -12463,6 +12979,17 @@ function updateNpcs(dt) {
     }
   }
   for (const n of NPCS) {
+    if(n?._said){
+      // Саид is a persistent story character: no combat, fire, medical or
+      // panic subsystem may remove him or strand him outside the city walknet.
+      n.dead=false;n.hp=n.max_hp=999999;n._burnUntil=0;n._medicalDowned=false;
+      n._knockedUntil=0;n._forcedCrawl=false;n.snitching=false;n.panicUntil=0;
+      n._hostile=false;n._fighting=false;n._fightingMelee=false;
+      if(!_saidCityPassable(n.r,n.c)){
+        const safe=_saidSafeCityPoint(n.r,n.c);
+        if(safe){_clearNpcRoute(n);n.r=n.tr=safe[0];n.c=n.tc=safe[1];pickNpcWaypoint(n);}
+      }
+    }
     if (n.dead) continue;
     // Оглушённый преступник лежит 5 секунд и не может атаковать/убегать.
     if(n._medicalDowned&&now>=(n._medicalBleedoutAt||0)){
@@ -13133,7 +13660,6 @@ function _hitBeachgoer(b,dirY,dirX,damage) {
   _registerMurderIncident(b,b._lastViolentSource,b.deadAt);
   const qi=_beachShopQueue.indexOf(b.id);if(qi>=0){_beachShopQueue.splice(qi,1);_beachShopRetargetQueue();}
   b._shopState=null;b._beachRole=null;
-  _alertNearbyCops('kill');
 }
 // Возвращает ambient-машину с трассы в город без создания нового объекта.
 // Сохраняем identity (на неё могут ссылаться эффекты/AI), полностью очищаем
@@ -16904,6 +17430,10 @@ function _drawSuppressedByFire(px, py) {
   ctx.fillText(text, px, y + .5);
   ctx.restore();
 }
+// Compact authoritative combat impulse consumed by the 3D procedural rig.
+// It deliberately stores only numbers/strings so polling it does not allocate
+// scene objects or leak renderer state in Telegram WebView.
+let _threePlayerImpactState={at:0,angle:0,power:0,kind:'generic',bodyPart:'torso'};
 // Применить локальный урон: вычесть HP, отметить время, проверить смерть.
 function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
   if (underFire) _registerIncomingFire(dmg);
@@ -16914,13 +17444,25 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
   const armorReduction=_armorReduction();
   if(armorReduction>0){
     const before=Math.max(1,dmg|0);dmg=Math.max(1,Math.ceil(before*(1-armorReduction)));
-    if(before>dmg)spawnFloatText(player.r,player.c,`🦺 −${before-dmg}`,{color:'#a9d6ff',size:11,life:650,tag:'armor_block'});
+    if(before>dmg){spawnFloatText(player.r,player.c,`🦺 −${before-dmg}`,{color:'#a9d6ff',size:11,life:650,tag:'armor_block'});if(underFire)_damageEquippedArmor(before,before-dmg);}
   }
-  myHp = Math.max(0, myHp - (dmg | 0));
-  _localHpHurtAt = performance.now();
+  const appliedDamage=Math.max(1,dmg|0),impactNow=performance.now(),source=deathMode?.cop||deathMode?.source||deathMode||null;
+  const sourceR=Number.isFinite(+(source?.r??source?.y))?+(source.r??source.y):NaN;
+  const sourceC=Number.isFinite(+(source?.c??source?.x))?+(source.c??source.x):NaN;
+  const impactAngle=Number.isFinite(sourceR)&&Number.isFinite(sourceC)
+    ?Math.atan2(player.r-sourceR,player.c-sourceC)
+    :(+player.ang||0)+Math.PI+(Math.random()-.5)*.45;
+  const impactKind=String(deathMode?.weapon||deathMode?.kind||by||'generic').toLowerCase();
+  _threePlayerImpactState={
+    at:impactNow,angle:impactAngle,power:Math.max(.16,Math.min(1,appliedDamage/72)),kind:impactKind,
+    bodyPart:deathMode?.bodyPart||(/head|sniper/.test(impactKind)?'head':/leg|fire|пожар/.test(impactKind)?'leg':'torso')
+  };
+  myHp = Math.max(0, myHp - appliedDamage);
+  _localHpHurtAt = impactNow;
   _selfHpBarUntil = _localHpHurtAt + 4500;
   if (myHp <= 0 && !myDead) {
     if(deathMode?.kind==='murder_police'&&_beginMurderPoliceArrest(deathMode.cop,_localHpHurtAt))return;
+    if(deathMode?.cop&&String(deathMode?.kind||'').includes('police')&&_queueAnyPoliceDeathPickup(deathMode.cop,{},_localHpHurtAt))return;
     myDead = true; _localDeath = true;
     myDeathBy = by || 'Город'; myDeathLeft = 18;_breakEquippedArmorOnDeath();_dispatchPlayerAmbulance();
   }
@@ -19039,6 +19581,7 @@ function handleEventPacket(d) {
       if (!d.miss) spawnImpact(d.ty, d.tx, wp, true);
     }
     if (d.cop_id) lastBossShotAt.set(d.cop_id, performance.now());
+    let localPoliceDeathPickup=false;
     // Внутри банка серверные копы по игроку «попадать» не должны — он для
     // сервера стоит у входа (savedR/savedC), но физически в интерьере и не
     // может уклоняться. Игнорируем эффекты выстрела/ареста пока _bankInt.
@@ -19049,14 +19592,18 @@ function handleEventPacket(d) {
       _autoLockThreat('cop', d.cop_id);
       if (d.killed) {
         myDeathBy = d.jailed ? 'Копы (тюрьма)' : 'Копы';
+        if(d.jailed){
+          const killer=(worldCops||[]).find(c=>String(c.id)===String(d.cop_id))||{id:d.cop_id,x:d.sx,y:d.sy};
+          localPoliceDeathPickup=_queueAnyPoliceDeathPickup(killer,{serverAlreadyJailed:true,jailSeconds:d.jail_s||60},performance.now());
+        }
       }
     }
     if (d.killed && d.jailed && !(String(d.target_uid) === String(QP.uid) && _bankShield())) {
       // Спавним локальный автозак у точки смерти — все клиенты видят
       // как полиция забирает жертву. Для самого жертвы — overlay+shake.
-      spawnArrestAnim(d.target_uid, d.ty, d.tx);
+      if(!(String(d.target_uid)===String(QP.uid)&&localPoliceDeathPickup))spawnArrestAnim(d.target_uid, d.ty, d.tx);
       if (String(d.target_uid) === String(QP.uid)) {
-        showArrestOverlay();
+        if(!localPoliceDeathPickup)showArrestOverlay();
       }
     }
   } else if (kind === 'cop_shot_bot') {
@@ -20304,6 +20851,11 @@ function handleEventPacket(d) {
     // Стрелок убил бойца банды. Сервер уже зачислил cash/exp в БД.
     // Спавним локальный труп — иначе тело исчезает в кадр убийства.
     try { spawnBotCorpse(d.bot_id, d.is_boss); } catch(e){}
+    const lastSeen=_botLastSeen.get(String(d.bot_id||''));
+    const killedR=d.ty!=null&&Number.isFinite(Number(d.ty))?Number(d.ty):(Number.isFinite(+lastSeen?.y)?+lastSeen.y:player.r);
+    const killedC=d.tx!=null&&Number.isFinite(Number(d.tx))?Number(d.tx):(Number.isFinite(+lastSeen?.x)?+lastSeen.x:player.c);
+    _onAnyNpcKilledByPlayer({r:killedR,c:killedC,role:d.is_boss?'gang_boss':'gang_fighter'},
+      {kind:'player',uid:String(QP?.uid||'local')},performance.now());
     // Показываем toast с конкретной наградой + флаг кулачка если упал.
     const cash = d.cash || 0, exp = d.exp || 0;
     const gAdd = d.gang_added ? `  👊+1 (${d.gang_now}/3)` : '';
@@ -21196,7 +21748,7 @@ function wsConnect() {
             // коллизий) — персонаж сам «бежал» сквозь здания и мог
             // застрять в blocked-тайле. Телепорт в tryMove не спасал:
             // он срабатывает только при нажатом движении.
-            if(_murderPoliceArrest?.phase!=='transport'){
+            if(!_murderPoliceArrest){
               if (myDrivingCarId) { exitCar('arrest'); viewZoom = WORLD_VIEW_ZOOM; }
               player.r = JAIL_ISLAND_3D_ENABLED ? JAIL_ISLAND_LAYOUT.intake.spawnR : JAIL_CENTER_R + 1;
               player.c = JAIL_ISLAND_3D_ENABLED ? JAIL_ISLAND_LAYOUT.intake.spawnC : JAIL_CENTER_C + 1;
@@ -21205,6 +21757,10 @@ function wsConnect() {
             }
           }
           myJailIn = d.me.jail_in;
+          if(_murderPoliceArrest&&myJailIn>0){
+            _murderPoliceArrest.serverAccepted=true;
+            _murderPoliceArrest.jailSeconds=Math.max(_murderPoliceArrest.jailSeconds||0,myJailIn);
+          }
           _prisonReleaseGateSeconds=myJailIn;
           if(previousJailIn>0&&myJailIn<=0)_prisonReleaseGateOpenedAt=performance.now();
           else if(myJailIn>0)_prisonReleaseGateOpenedAt=-Infinity;
@@ -26171,6 +26727,7 @@ const _shopList = document.getElementById('shopList');
 const _shopCash = document.getElementById('shopCash');
 const _shopTitle = document.getElementById('shopTitle');
 let _shopTab = 'weapons';
+const _shopPurchasesPending = new Set();
 const BLACKMARKET_SELLERS = Object.freeze({
   blackmarket: {
     name:'Аркадий «Шрам» Мельников', short:'Аркадий «Шрам»',
@@ -26211,13 +26768,13 @@ const _SHOP_ITEMS = [
   { id:'swat_suit',name:'Костюм спецназа',type:'armor',def:78,price:800 },
   { id:'composite_armor',name:'Композитный доспех',type:'armor',def:95,price:900 },
   { id:'exo_armor',name:'Экзо-броня',type:'armor',def:120,price:1000 },
+  { id:'titanium_vest',name:'Титановый жилет',type:'armor',def:100,diamondsPrice:100 },
   { id:'grenade',     pic:'💣', name:'Граната',       type:'consumable', desc:'Урон 80-130', price:50 },
   { id:'molotov',     pic:'🔥', name:'Коктейль Молотова',type:'consumable',desc:'Урон 50-80 + горит',price:130 },
   { id:'c4',           pic:'🧨', name:'Заряд C4',      type:'consumable',desc:'Установка в мире · фитиль 3 сек · смертельно вблизи',price:350 },
   { id:'medkit_small',pic:'🩹', name:'Малая аптечка', type:'consumable', desc:'+55 HP', price:25 },
   { id:'medkit_medium',pic:'🏥',name:'Аптечка',       type:'consumable', desc:'+130 HP', price:60 },
   { id:'medkit_large',pic:'💉', name:'Большая аптечка',type:'consumable',desc:'+280 HP',price:120 },
-  { id:'energy_drink',pic:'⚡', name:'Энергетик',     type:'consumable', desc:'+55 энергии', price:45 },
 ];
 function _renderShopItems() {
   if (_shopTab === 'sell') {
@@ -26233,22 +26790,26 @@ function _renderShopItems() {
   const tabMap = { weapons:'weapon', ammo:'ammo', armor:'armor', consumables:'consumable' };
   const filter = tabMap[_shopTab] || 'weapon';
   const items = _SHOP_ITEMS.filter(i => i.type === filter);
-  const myCash = parseInt(QP.cash) || 0;
-  _shopCash.textContent = `💰 ${myCash} $`;
+  const shopCash = parseInt(QP.cash) || 0,shopDiamonds=parseInt(myDiamonds)||0;
+  _shopCash.textContent = `💰 ${shopCash} $ · 💎 ${shopDiamonds}`;
   _shopList.innerHTML = items.map(it => {
     const weaponId = it.type === 'weapon' ? (it.weapon||resolveWeapon(it.id)) : null;
     const owned = (!!weaponId && _myWeapons.some(w => w.id === weaponId)) || (it.type==='armor' && _inventoryItems.some(x=>x.id===it.id&&(+x.qty||+x.count||0)>0));
     const ammoDef = it.type==='ammo' ? AMMO_TYPES[it.ammoType] : null;
     const ammoNow = ammoDef ? Math.max(0,+_ammoState.reserve[it.ammoType]||0) : 0;
     const ammoFull = !!ammoDef && ammoNow>=ammoDef.max;
+    const armorOwned=it.type==='armor'&&owned;
     const stat = weaponId ? weaponStatLine(weaponId)
       : ammoDef ? `${it.desc} · запас ${ammoNow}/${ammoDef.max}`
-      : it.atk ? `+${it.atk} атк` : it.def ? `Поглощение ${Math.round((ARMOR_STYLES[it.id]?.reduction||0)*100)}%` : it.desc;
-    const canBuy = !owned && !ammoFull && myCash >= it.price;
+      : it.atk ? `+${it.atk} атк` : it.def ? `Поглощение ${Math.round((ARMOR_STYLES[it.id]?.reduction||0)*100)}% · ${armorOwned?'в наличии: 1':'одноразовый'}` : it.desc;
+    const pending = _shopPurchasesPending.has(it.id);
+    const premiumCost=+it.diamondsPrice||0,currencyEnough=premiumCost?shopDiamonds>=premiumCost:shopCash>=(+it.price||0);
+    const priceLabel=premiumCost?`💎 ${premiumCost}`:`${it.price}$`;
+    const canBuy = !pending && !owned && !ammoFull && currencyEnough;
     return `<div class="shop-item">
       ${weaponId?`<div class="pic weapon-preview-wrap"><canvas class="shop-weapon-preview" data-shop-weapon="${weaponId}" width="140" height="84"></canvas></div>`:ammoDef?`<div class="pic ammo-preview-wrap"><canvas class="shop-ammo-preview" data-shop-ammo="${it.ammoType}" width="140" height="84"></canvas></div>`:it.type==='armor'?`<div class="pic armor-preview-wrap"><canvas class="shop-armor-preview" data-shop-armor="${it.id}" width="140" height="96"></canvas></div>`:`<div class="pic">${it.pic}</div>`}
-      <div class="info"><div class="name">${it.name}</div><div class="desc">${stat} — ${it.price}$</div></div>
-      <button class="buy" data-id="${it.id}" ${canBuy ? '' : 'disabled style="opacity:.55;cursor:default"'}>${owned ? (_equippedArmor===it.id?'Надето':'Куплено') : ammoFull ? 'Полный запас' : canBuy ? 'Купить' : 'Нет $'}</button>
+      <div class="info"><div class="name">${it.name}</div><div class="desc">${stat} — ${priceLabel}</div></div>
+      <button class="buy" data-id="${it.id}" ${canBuy ? '' : 'disabled style="opacity:.55;cursor:default"'}>${pending ? 'Покупка…' : owned ? (_equippedArmor===it.id?'Надето':'Куплено') : ammoFull ? 'Полный запас' : canBuy ? 'Купить' : premiumCost?'Нет 💎':'Нет $'}</button>
     </div>`;
   }).join('');
   _drawShopWeaponPreviews();
@@ -26266,31 +26827,66 @@ function _drawShopWeaponPreviews(){
     c.restore();
   });
 }
-function _drawShopAmmoPreviews(){
-  _shopList?.querySelectorAll('canvas[data-shop-ammo]').forEach(cv=>{
-    const c=cv.getContext('2d'),type=cv.dataset.shopAmmo;c.clearRect(0,0,cv.width,cv.height);
-    c.save();c.translate(18,12);
-    const box=type==='shell'?'#9c2427':type==='rocket'?'#41533b':type==='sniper'?'#58452c':type==='magnum'?'#603b28':'#38495d';
-    c.fillStyle='#171218';c.fillRect(10,18,66,44);c.fillStyle=box;c.fillRect(8,14,66,44);
-    c.fillStyle='rgba(255,255,255,.14)';c.fillRect(12,18,58,7);c.strokeStyle='#d8b875';c.lineWidth=2;c.strokeRect(8,14,66,44);
-    c.fillStyle='#f2dfad';c.font='bold 13px sans-serif';c.textAlign='center';c.fillText(type==='rocket'?'RPG':type==='shell'?'12 GA':type==='rifle'?'5.56':type==='sniper'?'7.62':type==='magnum'?'.357':'9 MM',41,43);
+function _drawAmmoPreviews(root){
+  root?.querySelectorAll('canvas[data-shop-ammo],canvas[data-inventory-ammo]').forEach(cv=>{
+    const c=cv.getContext('2d'),type=cv.dataset.shopAmmo||cv.dataset.inventoryAmmo,def=AMMO_TYPES[type];c.clearRect(0,0,cv.width,cv.height);c.save();
+    const accent={shell:'#d64a45',rocket:'#84965d',sniper:'#c19a62',magnum:'#c27a4d',rifle:'#6c9ab4','9mm':'#6687aa'}[type]||'#7890a8';
+    const caliber=type==='rocket'?'RPG':type==='shell'?'12 GA':type==='rifle'?'5.56':type==='sniper'?'7.62':type==='magnum'?'.357':'9 MM';
+    const bg=c.createRadialGradient(68,36,4,70,42,72);bg.addColorStop(0,'#28313a');bg.addColorStop(1,'#090b0f');c.fillStyle=bg;c.fillRect(0,0,cv.width,cv.height);
+    c.fillStyle='rgba(0,0,0,.55)';c.beginPath();c.ellipse(68,70,55,8,0,0,Math.PI*2);c.fill();
+    // Объёмная картонная/металлическая пачка в общей оружейной стилистике.
+    const x=9,y=19,w=66,h=43,depth=7;c.fillStyle='#11161b';c.beginPath();c.moveTo(x+w,y);c.lineTo(x+w+depth,y-6);c.lineTo(x+w+depth,y+h-6);c.lineTo(x+w,y+h);c.closePath();c.fill();
+    const face=c.createLinearGradient(x,y,x+w,y+h);face.addColorStop(0,accent);face.addColorStop(.55,'#303942');face.addColorStop(1,'#151a20');c.fillStyle=face;c.fillRect(x,y,w,h);
+    c.fillStyle='rgba(255,255,255,.22)';c.fillRect(x+4,y+4,w-8,5);c.strokeStyle='#d7bd78';c.lineWidth=1.5;c.strokeRect(x+.5,y+.5,w-1,h-1);
+    c.fillStyle='#f8e7b7';c.font='900 14px Georgia,serif';c.textAlign='center';c.fillText(caliber,x+w/2,y+25);c.font='700 6px system-ui';c.letterSpacing='1px';c.fillStyle='#d9d2c0';c.fillText(`MAFIOZI · ${def?.pack||''} RDS`,x+w/2,y+36);
     if(type==='rocket'){
-      c.translate(76,7);c.fillStyle='#596a49';c.fillRect(7,18,34,12);c.beginPath();c.moveTo(41,15);c.lineTo(57,24);c.lineTo(41,33);c.fill();c.fillStyle='#bd762d';c.fillRect(0,20,9,8);
+      c.translate(77,5);const metal=c.createLinearGradient(0,14,0,40);metal.addColorStop(0,'#9dad78');metal.addColorStop(.48,'#536140');metal.addColorStop(1,'#242d20');c.fillStyle=metal;c.fillRect(5,25,40,12);c.beginPath();c.moveTo(45,20);c.lineTo(61,31);c.lineTo(45,42);c.closePath();c.fill();c.fillStyle='#be7034';c.fillRect(0,27,8,8);c.strokeStyle='#c9d39e';c.strokeRect(5.5,25.5,39,11);
     }else{
-      const shell=type==='shell',count=shell?3:4;
-      for(let i=0;i<count;i++){const x=82+i*12;c.fillStyle=shell?'#a92329':'#d5a33d';c.fillRect(x,20+(i%2)*5,8,shell?28:23);c.fillStyle='#e8c56e';c.fillRect(x,40+(i%2)*5,8,5);c.beginPath();c.moveTo(x,20+(i%2)*5);c.lineTo(x+4,14+(i%2)*5);c.lineTo(x+8,20+(i%2)*5);c.fill();}
+      const shell=type==='shell',long=type==='rifle'||type==='sniper',count=shell?3:4;
+      for(let i=0;i<count;i++){const bx=84+i*12,by=22+(i%2)*5,bh=shell?32:(long?30:24),bw=shell?9:7;const brass=c.createLinearGradient(bx,0,bx+bw,0);brass.addColorStop(0,shell?'#751b20':'#815c20');brass.addColorStop(.45,shell?'#cf3339':'#e0b551');brass.addColorStop(1,shell?'#66161a':'#6f4b19');c.fillStyle=brass;c.fillRect(bx,by,bw,bh);c.fillStyle='#f0ce75';c.fillRect(bx,by+bh-5,bw,5);c.beginPath();c.moveTo(bx,by);c.lineTo(bx+bw/2,by-(shell?1:7));c.lineTo(bx+bw,by);c.closePath();c.fill();c.fillStyle='rgba(255,255,255,.28)';c.fillRect(bx+1,by+2,1,bh-8);}
     }
+    c.strokeStyle='rgba(255,255,255,.13)';c.strokeRect(.5,.5,cv.width-1,cv.height-1);
     c.restore();
   });
 }
-function _drawShopArmorPreviews(){
-  _shopList?.querySelectorAll('canvas[data-shop-armor]').forEach(cv=>{
-    const c=cv.getContext('2d'),id=cv.dataset.shopArmor;c.clearRect(0,0,cv.width,cv.height);
-    const sc=.92,px=x=>70+x*sc,py=y=>108-y*sc;
-    c.save();c.shadowColor='rgba(0,0,0,.65)';c.shadowBlur=8;
+function _drawShopAmmoPreviews(){_drawAmmoPreviews(_shopList);}
+function _drawArmorPreviews(root){
+  root?.querySelectorAll('canvas[data-shop-armor],canvas[data-inventory-armor]').forEach(cv=>{
+    const c=cv.getContext('2d'),id=cv.dataset.shopArmor||cv.dataset.inventoryArmor,style=ARMOR_STYLES[id];c.clearRect(0,0,cv.width,cv.height);
+    const sc=.86,px=x=>70+x*sc,py=y=>103-y*sc,bg=c.createRadialGradient(70,35,5,70,46,76);bg.addColorStop(0,'#303942');bg.addColorStop(1,'#090b0e');c.fillStyle=bg;c.fillRect(0,0,cv.width,cv.height);
+    c.fillStyle='rgba(0,0,0,.55)';c.beginPath();c.ellipse(70,87,37,6,0,0,Math.PI*2);c.fill();
+    // Нейтральный манекен делает посадку и толщину каждого жилета читаемой.
+    c.fillStyle='#171b20';c.beginPath();c.moveTo(px(-23),py(84));c.lineTo(px(-18),py(17));c.lineTo(px(18),py(17));c.lineTo(px(23),py(84));c.quadraticCurveTo(px(0),py(94),px(-23),py(84));c.fill();
+    c.save();c.shadowColor=style?.accent||'rgba(0,0,0,.65)';c.shadowBlur=7;
     drawArmorSkin(c,px,py,sc,id,0,1);
     c.restore();
+    c.fillStyle=style?.accent||'#d8c68c';c.font='900 7px system-ui';c.textAlign='left';c.fillText(`${style?.durability||0} AP`,6,90);c.textAlign='right';c.fillText(`${Math.round((style?.reduction||0)*100)}%`,134,90);
+    c.strokeStyle='rgba(255,255,255,.13)';c.strokeRect(.5,.5,cv.width-1,cv.height-1);
   });
+}
+function _drawShopArmorPreviews(){_drawArmorPreviews(_shopList);}
+function _drawInventoryPreviews(){
+  const root=document.getElementById('profileContent');if(!root)return;
+  root.querySelectorAll('canvas[data-inventory-weapon]').forEach(cv=>{
+    const c=cv.getContext('2d'),weapon=cv.dataset.inventoryWeapon;c.clearRect(0,0,cv.width,cv.height);
+    const bg=c.createRadialGradient(cv.width*.5,cv.height*.38,4,cv.width*.5,cv.height*.5,cv.width*.55);bg.addColorStop(0,'#323b45');bg.addColorStop(1,'#090b0e');c.fillStyle=bg;c.fillRect(0,0,cv.width,cv.height);
+    c.save();c.imageSmoothingEnabled=false;drawFirearm(weapon,cv.width*.5,cv.height*.54,1,0,Math.min(2.25,cv.width/72),c);c.restore();
+    c.strokeStyle='rgba(255,255,255,.12)';c.strokeRect(.5,.5,cv.width-1,cv.height-1);
+  });
+  _drawAmmoPreviews(root);_drawArmorPreviews(root);
+}
+function _seedPreviewInventory(){
+  if(!_LOCAL_PREVIEW||!_UP.has('previewinventory'))return;
+  const showcase=[
+    {id:'revolver',name:'Мафиозный револьвер',type:'weapon',qty:1},
+    {id:'sawn_off',name:'Дробовик',type:'weapon',qty:1},
+    {id:'ammo_magnum',name:'.357 Magnum',type:'ammo',qty:2,ammo_type:'magnum',rounds:24},
+    {id:'ammo_shell',name:'12 калибр',type:'ammo',qty:1,ammo_type:'shell',rounds:24},
+    {id:'tactical_vest',name:'Тактический жилет',type:'armor',qty:1,defense_bonus:18},
+    {id:'medkit_medium',name:'🏥 Аптечка',type:'potion',qty:3,heal:130,desc:'Восстанавливает 130 HP'},
+  ];
+  for(const local of showcase)if(!_inventoryItems.some(i=>i.id===local.id))_inventoryItems.push(local);
+  _equippedArmor='tactical_vest';_ensureArmorDurability(_equippedArmor,false);
 }
 async function loadInventoryItems() {
   try {
@@ -26298,6 +26894,8 @@ async function loadInventoryItems() {
     const j=await r.json(); if(!j.ok||!Array.isArray(j.items))throw new Error('inventory');
     _inventoryItems=j.items;
     _equippedArmor=j.equipped_armor||null;
+    if(_equippedArmor&&_ensureArmorDurability(_equippedArmor,false)<=0&&!_armorBreakPending)setTimeout(()=>_breakEquippedArmor('hit'),0);
+    _syncMyWeaponsFromInventory(_inventoryItems);
     _goodName=+j.good_name||0;_lostReturns=+j.lost_returns||0;_returnStreak=+j.return_streak||0;
     if(_LOCAL_PREVIEW) {
       const gs=_readPreviewGood();_goodName=Math.max(_goodName,gs.good_name);_lostReturns=Math.max(_lostReturns,gs.lost_returns);_returnStreak=Math.max(_returnStreak,gs.return_streak);
@@ -26306,12 +26904,15 @@ async function loadInventoryItems() {
         if(server) {server.qty=Math.max(+server.qty||0,+local.qty||0);server.sell_price=local.sell_price;}
         else _inventoryItems.push(local);
       }
+      _seedPreviewInventory();
     }
     if(j.cash!==undefined){QP.cash=j.cash;myCash=+j.cash||0;updateMoneyHud();}
+    if(j.diamonds!==undefined){QP.diamonds=j.diamonds;myDiamonds=+j.diamonds||0;updateMoneyHud();}
   } catch(e) {
     if(_LOCAL_PREVIEW) {
       _inventoryItems=_previewFoundItems();const gs=_readPreviewGood();
       _goodName=gs.good_name;_lostReturns=gs.lost_returns;_returnStreak=gs.return_streak;
+      _seedPreviewInventory();
     }
   }
   const c4Item=_inventoryItems.find(i=>i.id==='c4');
@@ -26355,47 +26956,73 @@ async function _sellFoundItem(itemId) {
 }
 async function _buyShopItem(itemId) {
   if (!QP.api || !QP.uid) { showToast('Нет связи с сервером', '❌', 1500); return; }
+  if (_shopPurchasesPending.has(itemId)) return;
   const wanted=_SHOP_ITEMS.find(it=>it.id===itemId);
+  if(!wanted){showToast('Товар не найден','❌',1500);return;}
   if(wanted?.type==='ammo'){
     const def=AMMO_TYPES[wanted.ammoType],now=Math.max(0,+_ammoState.reserve[wanted.ammoType]||0);
     if(def&&now>=def.max){showToast(`Запас ${def.label} уже полный`,'📦',1500);return;}
   }
+  _shopPurchasesPending.add(itemId);
+  _renderShopItems();
   try {
     const r = await fetch(`${QP.api}/shop/${QP.uid}/buy`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ item_id: itemId, qty: 1 })
     });
-    const j = await r.json();
-    if (j.ok) {
-      const bought = _SHOP_ITEMS.find(it => it.id === itemId);
+    const j = await r.json().catch(()=>({}));
+    if (r.ok && j.ok) {
+      const bought = wanted;
       if (j.cash !== undefined) {
         QP.cash = j.cash;
         myCash = +j.cash || 0;
         updateMoneyHud();
       }
-      if (bought && bought.type === 'ammo') {
-        const added=addAmmoPack(bought.ammoType, bought.rounds);
+      if(j.diamonds!==undefined){QP.diamonds=+j.diamonds||0;myDiamonds=+j.diamonds||0;updateMoneyHud();}
+      // Сразу отражаем успешную серверную покупку, затем подтверждаем её
+      // полным снимком инвентаря. Так арсенал не зависит от второго запроса.
+      if(bought.type==='weapon'){
+        const optimistic={id:bought.id,name:bought.name,type:'weapon',qty:Math.max(1,+j.inventory_qty||1)};
+        const without=_inventoryItems.filter(i=>i.id!==bought.id);
+        _inventoryItems=[...without,optimistic];
+        _syncMyWeaponsFromInventory(_inventoryItems);
+      }
+      if (bought.type === 'ammo') {
+        const added=addAmmoPack(j.ammo_type||bought.ammoType, +j.rounds||bought.rounds);
+        await loadInventoryItems();
         showToast(`${bought.name}: +${added}`, '📦', 1600);
-      } else if (bought && bought.type === 'consumable') {
+      } else if (bought.type === 'consumable') {
         await loadInventoryItems();
         showToast(bought.id==='c4' ? `${bought.name} куплен. В наличии: ${_myC4Count}` : `${bought.name} куплен`, bought.pic, 1900);
-      } else if (bought && bought.type === 'armor') {
+      } else if (bought.type === 'armor') {
+        let equipped=j.equipped_armor===bought.id;
+        // Совместимость со старым сервером: там покупка и экипировка были
+        // двумя запросами. Новый сервер делает их одной транзакцией.
+        if(!equipped&&j.equipped_armor===undefined){
+          const er=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:bought.id,slot:'armor'})});
+          const ej=await er.json().catch(()=>({}));
+          equipped=!!(er.ok&&ej.ok&&ej.equipped_armor===bought.id);
+        }
+        if(equipped){_equippedArmor=bought.id;_resetArmorDurability(bought.id);}
         await loadInventoryItems();
-        const er=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:bought.id,slot:'armor'})});
-        const ej=await er.json();if(ej.ok)_equippedArmor=ej.equipped_armor||bought.id;
-        renderHudAvatar();showToast(`${bought.name} надета · защита ${Math.round(_armorReduction()*100)}%`,bought.pic,2200);
+        renderHudAvatar();
+        showToast(equipped?`${bought.name} надета · защита ${Math.round(_armorReduction()*100)}%`:`${bought.name} куплена, но не удалось надеть`,equipped?'🦺':'⚠️',2200);
       } else {
-        await loadMyWeapons();
+        await loadInventoryItems();
         showToast('Оружие куплено и добавлено в выбор!', '✅', 1800);
       }
-      _renderShopItems();
     } else {
       const msg = j.error === 'no cash' ? 'Не хватает денег!'
-        : j.error === 'already owned' ? 'Это оружие уже куплено'
+        : j.error === 'no diamonds' ? 'Не хватает алмазов!'
+        : j.error === 'already owned' ? (wanted.type==='armor'?'Такой жилет уже есть · можно хранить по одному каждого вида':'Это оружие уже куплено')
         : 'Ошибка: ' + j.error;
       showToast(msg, '❌', 1500);
     }
   } catch(e) { showToast('Ошибка сети', '❌', 1500); }
+  finally{
+    _shopPurchasesPending.delete(itemId);
+    _renderShopItems();
+  }
 }
 function openShop() {
   if(_shopTitle)_shopTitle.textContent=_blackmarketSeller().name;
@@ -26429,6 +27056,9 @@ _shopList.addEventListener('click', async (e) => {
   btn.disabled = true;
   await _buyShopItem(btn.dataset.id);
 });
+if(_LOCAL_PREVIEW&&['weapons','ammo','armor','consumables','sell'].includes(String(_UP.get('previewshop')||''))){
+  setTimeout(()=>{const tab=String(_UP.get('previewshop'));openShop();document.querySelector(`#shopTabs [data-tab="${tab}"]`)?.click();},900);
+}
 // ── Арена — модал выбора района + боссы ───────────────────────
 const _arenaOverlay = document.getElementById('arenaOverlay');
 const _arenaList = document.getElementById('arenaList');
@@ -27461,9 +28091,10 @@ function placeWorldC4(){
 function _raycastDamageableCar(sr,sc,dirY,dirX,maxDist){
   if(_buildingInt||_bankInt)return null;
   let best=null;
-  const test=(car,r,c,quest=false)=>{
+  const test=(car,r,c,quest=false,service=false)=>{
     if(!car||car._destroySequenceAt||car._shotWrecked||car._wrecked||car.wrecked||car._hidden||car._towed)return;
-    const model=quest?resolveCarModel(car.model):(car.model||{});
+    const profile=service?_murderPoliceProfile(car.payload?.murderIncident):null;
+    const model=service?{L:profile.vehicleSize[0],W:profile.vehicleSize[1],van:true,armored:true}:quest?resolveCarModel(car.model):(car.model||{});
     const halfL=Math.max(.68,(+model?.L||1.7)*.54),halfW=Math.max(.42,(+model?.W||.85)*.62);
     const broad=maxDist+Math.max(halfL,halfW)+.3,br=r-sr,bc=c-sc;
     if(br*br+bc*bc>broad*broad)return;
@@ -27480,16 +28111,17 @@ function _raycastDamageableCar(sr,sc,dirY,dirX,maxDist){
     const lx=ox+dx*enter,lz=oz+dz*enter;
     const endGap=Math.abs(Math.abs(lx)-halfL),sideGap=Math.abs(Math.abs(lz)-halfW);
     const panel=endGap<sideGap?(lx>=0?'front':'rear'):'side';
-    best={car,r,c,quest,dist:enter,point:{r:sr+dirY*enter,c:sc+dirX*enter},localU:Math.max(-1,Math.min(1,lx/halfL)),localV:Math.max(-1,Math.min(1,lz/halfW)),panel};
+    best={car,r,c,quest,service,dist:enter,point:{r:sr+dirY*enter,c:sc+dirX*enter},localU:Math.max(-1,Math.min(1,lx/halfL)),localV:Math.max(-1,Math.min(1,lz/halfW)),panel};
   };
   for(const car of CARS)test(car,+car.r||0,+car.c||0,false);
   if(typeof questCars!=='undefined')for(const car of questCars.values())test(car,+car.y||0,+car.x||0,true);
+  for(const v of serviceVehicles)if(v?._murderFleet&&_murderPoliceProfile(v.payload?.murderIncident).armoredVan)test(v,+v.y||0,+v.x||0,false,true);
   return best;
 }
 function _trackedCarBulletPoint(target){
   const car=target?.car;if(!car||car._hidden||car._towed)return null;
-  const quest=!!target.quest,model=quest?resolveCarModel(car.model):(car.model||{}),
-        r=quest?(+car.y||0):(+car.r||0),c=quest?(+car.x||0):(+car.c||0),
+  const quest=!!target.quest,service=!!target.service,profile=service?_murderPoliceProfile(car.payload?.murderIncident):null,model=service?{L:profile.vehicleSize[0],W:profile.vehicleSize[1]}:quest?resolveCarModel(car.model):(car.model||{}),
+        r=service?(+car.y||0):quest?(+car.y||0):(+car.r||0),c=service?(+car.x||0):quest?(+car.x||0):(+car.c||0),
         halfL=Math.max(.68,(+model?.L||1.7)*.54),halfW=Math.max(.42,(+model?.W||.85)*.62),
         ang=Number.isFinite(+car.ang)?+car.ang:Math.atan2(+car.dirDy||+car.vy||+car.vr||0,+car.dirDx||+car.vx||+car.vc||1),
         fr=Math.sin(ang),fc=Math.cos(ang),lx=(+target.localU||0)*halfL,lz=(+target.localV||0)*halfW;
@@ -27542,7 +28174,20 @@ function _startCarGunDestruction(hit,car,delay=CAR_GUN_DESTRUCTION_DELAY,chainCo
     spawnFloatText(blastR,blastC,nextChain?'ЦЕПНАЯ РЕАКЦИЯ':'МАШИНА УНИЧТОЖЕНА',{color:'#ff7b25',size:16,life:1700});
   },destructionDelay);
 }
+function _damagePoliceArmoredVanByGun(hit,weapon,damage){
+  const v=hit?.car,incident=v?.payload?.murderIncident,profile=_murderPoliceProfile(incident);if(!v||!profile.armoredVan)return false;
+  const max=profile.vehicleHp||1050;if(!Number.isFinite(v._ballisticHp))v._ballisticHp=max;
+  const amount=Math.max(2,Math.round((+damage||12)/3.6));v._ballisticHp=Math.max(0,v._ballisticHp-amount);v._ballisticMax=max;
+  const mark=_addCarBulletMark(hit,weapon);mark.damage=amount;mark.hp=v._ballisticHp;mark.hpRatio=v._ballisticHp/max;
+  v._lastConfirmedGunDamage=amount;v._lastConfirmedGunHitAt=performance.now();v._turretProvokedUntil=performance.now()+30000;
+  if(incident){incident.armedContact=true;incident.armedTargetType='player';incident.armedTargetRef=null;incident.status='armed-contact';for(const cop of _murderCrewForVehicle(v)){cop._casePhase='combat';cop._pursuing=true;}}
+  const dr=hit.r-player.r,dc=hit.c-player.c,d=Math.hypot(dr,dc)||1;spawnMetalImpact(hit.point.r,hit.point.c,weapon,dr/d,dc/d,mark.surface);playVehicleMetalHit(mark.surface,!!mark.heavy);
+  if(v._ballisticHp<=0){v._turretDisabled=true;v._turretActive=false;v._roofGunner=false;showEventBanner('⚙️ ПУЛЕМЁТ ПОДАВЛЕН','Бронефургон повреждён, стрелок больше не ведёт огонь.',2500,'win');}
+  else if(performance.now()>(v._nextArmorWarningAt||0)){v._nextArmorWarningAt=performance.now()+2600;showEventBanner('🚨 БРОНЕФУРГОН ОТВЕТИЛ ОГНЁМ',`Броня: ${Math.ceil(v._ballisticHp/max*100)}%. Отойди от линии пулемёта!`,2300,'lose');}
+  document.documentElement.dataset.policeVanDamage=`${amount}:${Math.round(v._ballisticHp)}/${max}`;return true;
+}
 function _damageCarByGun(hit,weapon,damage){
+  if(hit?.service&&_damagePoliceArmoredVanByGun(hit,weapon,damage))return;
   const car=hit.car,model=hit.quest?resolveCarModel(car.model):(car.model||{});
   const max=Math.max(120,+car.max_hp||(+model?.suv?360:+model?.van?420:240));
   if(!Number.isFinite(car._ballisticHp))car._ballisticHp=Math.max(1,+car.hp||max);
@@ -28570,6 +29215,7 @@ function updatePvpUI() {
   _hpBarFill.classList.toggle('crit', pct <= 25);
   _hpVal.textContent     = Math.max(0, Math.round(myHp));
   _hpMaxVal.textContent  = maxHp;
+  updateArmorHud();
   _hudKills.textContent  = myKills;
   _hudDeaths.textContent = myDeaths;
   // deathOverlay скрываем когда в тюрьме — иначе АРЕСТ + В ТЮРЬМЕ
@@ -28635,7 +29281,7 @@ function updatePvpUI() {
   }
   // Jail overlay — большой блок при сидении в тюрьме
   if (_jailOvEl) {
-    if (myJailIn > 0 && _murderPoliceArrest?.phase!=='transport') {
+    if (myJailIn > 0 && !_murderPoliceArrest) {
       _jailOvEl.classList.add('show');
       const m = Math.floor(myJailIn / 60);
       const s = myJailIn % 60;
@@ -29004,6 +29650,35 @@ function _familyPistolActive(){
   }catch(e){return false;}
 }
 
+function _syncMyWeaponsFromInventory(items){
+  const next=[],seen=new Set();
+  for(const it of (Array.isArray(items)?items:[])){
+    const rawId=it.id||it.item_id;
+    if(!rawId||(it.type&&it.type!=='weapon'))continue;
+    // Сначала сохраняем отдельные реально реализованные 3D-стволы (Наган и
+    // револьвер), для старых 2D id используем совместимый алиас.
+    const id=(rawId in WEAPON_FX_CFG)?rawId:(WEAPON_ALIASES[rawId]||null);
+    if(!id||!(id in WEAPON_FX_CFG)||seen.has(id))continue;
+    seen.add(id);
+    next.push({id,name:it.name||weaponLabel(id),count:Math.max(1,+it.qty||+it.count||+it.quantity||1)});
+  }
+  if(_familyPistolActive()&&!seen.has('pistol')){
+    next.unshift({id:'pistol',name:'Семейный пистолет',count:1,issuedByFamily:true});
+  }
+  _myWeapons=next;
+  const previewWeaponAvailable=(_ownerFullLoadout||_localWeaponShowcase)&&
+    (currentWeapon==null||currentWeapon in WEAPON_FX_CFG);
+  const specialWeapon=currentWeapon==='taser'||currentWeapon==='police_spikes'||currentWeapon==='golden_tommy'||currentWeapon==='c4'||currentWeapon==='grenade'||currentWeapon==='molotov';
+  if(!specialWeapon&&!previewWeaponAvailable&&currentWeapon&&!_myWeapons.some(w=>w.id===currentWeapon)){
+    currentWeapon=_myWeapons[0]?.id||null;
+    _saveCurrentWeaponChoice();
+  }
+  renderWeaponHud();
+  if(_wepPickOpen)renderWeaponPick();
+  if(_profileTab==='inv'&&document.getElementById('profileModal')?.classList.contains('show'))renderProfileTab();
+  return _myWeapons;
+}
+
 async function loadMyWeapons() {
   if (!QP.api || !QP.uid) return;
   try {
@@ -29011,33 +29686,7 @@ async function loadMyWeapons() {
                           { cache: 'no-store' });
     const j = await r.json().catch(()=>({}));
     if (!j || !Array.isArray(j.items)) return;
-    _myWeapons = [];
-    // Гарантируем стартовый пистолет даже если сервер забыл
-    const seen = new Set();
-    for (const it of j.items) {
-      const rawId = it.id || it.item_id;
-      if (!rawId) continue;
-      if (it.type && it.type !== 'weapon') continue;
-      // Применяем алиас shop-id → ISO-id (deagle → pistol_heavy и т.п.),
-      // иначе купленное в магазине оружие не появится в picker'е.
-      const id = (rawId in WEAPON_FX_CFG) ? rawId : (WEAPON_ALIASES[rawId] || null);
-      if (!id || !(id in WEAPON_FX_CFG)) continue;
-      if (seen.has(id)) continue;
-      seen.add(id);
-      _myWeapons.push({ id, name: it.name || weaponLabel(id),
-                        count: it.count || 1 });
-    }
-    if (_familyPistolActive() && !seen.has('pistol')) {
-      _myWeapons.unshift({ id: 'pistol', name: 'Семейный пистолет', count: 1, issuedByFamily: true });
-    }
-    const previewWeaponAvailable = (_ownerFullLoadout || _localWeaponShowcase) &&
-      (currentWeapon == null || currentWeapon in WEAPON_FX_CFG);
-    if (currentWeapon!=='taser'&&!previewWeaponAvailable&&!_myWeapons.find(w => w.id === currentWeapon)) {
-      currentWeapon = _myWeapons[0]?.id || null;
-      _saveCurrentWeaponChoice();
-    }
-    renderWeaponHud();
-    if (_wepPickOpen) renderWeaponPick();
+    _syncMyWeaponsFromInventory(j.items);
   } catch(e) { /* тихо */ }
 }
 // Подгружаем оружие при загрузке мира (и потом раз в 60с — на случай
@@ -29982,9 +30631,11 @@ function update(dt) {
             npc.hp = 0;
             npc.dead = true;
             npc.deadAt = performance.now();
+            npc._lastViolentSource={kind:'player',uid:String(QP?.uid||'local')};
             const ang = Math.atan2(curVy, curVx);
             npc.r += Math.sin(ang) * 0.6;
             npc.c += Math.cos(ang) * 0.6;
+            _registerMurderIncident(npc,npc._lastViolentSource,npc.deadAt);
             // Кровь
             for (let i = 0; i < 5; i++) {
               _capArr(bloodSplats, _MAX_BLOOD);
@@ -30210,7 +30861,7 @@ function update(dt) {
 
   // ── Локальная смерть: сервер о ней не знает (убила охрана банка),
   // поэтому счётчик респауна тикаем сами и возрождаем у госпиталя.
-  if (_localDeath && myDead) {
+  if (_localDeath && myDead && !_murderPoliceArrest) {
     myDeathLeft -= dt;
     if (myDeathLeft <= 0) {
       _localDeath = false;
@@ -38877,13 +39528,14 @@ function drawCover(cv) {
 function drawCopNpc(cop) {
   const p = w2s(cop.y + 0.5, cop.x + 0.5);
   const kind = cop.kind || 'patrol';
-  const look = _COP_LOOKS[kind] || _COP_LOOKS.combat;
+  const responseTier=Math.max(0,+cop.responseTier||0),tactical=responseTier>0,heavy=responseTier>=2;
+  const look = cop.look || _COP_LOOKS[kind] || _COP_LOOKS.combat;
   const t = performance.now();
   const walkPhase = (t * 0.008) % (Math.PI * 2);
   // Сирена — патруль/бой синий-красный, спецназ чёрно-красный (агрессивнее)
-  const sirenPhase = Math.floor(t / (kind === 'swat' ? 180 : 250)) % 2;
+  const sirenPhase = Math.floor(t / (heavy||kind === 'swat' ? 180 : 250)) % 2;
   let sirenCol, sirenGlow;
-  if (kind === 'swat') {
+  if (heavy||kind === 'swat') {
     sirenCol  = sirenPhase ? 'rgba(20,20,20,.75)' : 'rgba(255,40,40,.65)';
     sirenGlow = sirenPhase ? '#000' : '#ff3030';
   } else {
@@ -38895,11 +39547,11 @@ function drawCopNpc(cop) {
   ctx.save();
   ctx.fillStyle = sirenCol.replace(/[\d.]+\)$/, '.18)');
   ctx.beginPath();
-  ctx.ellipse(p.x, p.y + 6, kind === 'swat' ? 30 : 28, 11, 0, 0, Math.PI * 2);
+   ctx.ellipse(p.x, p.y + 6, heavy||kind === 'swat' ? 30 : 28, 11, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = sirenCol;
   ctx.beginPath();
-  ctx.ellipse(p.x, p.y + 6, kind === 'swat' ? 22 : 20, 8, 0, 0, Math.PI * 2);
+   ctx.ellipse(p.x, p.y + 6, heavy||kind === 'swat' ? 22 : 20, 8, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
   drawPerson(p.x, p.y, cop.ang || 0, look, walkPhase, null, null, false,
@@ -38913,17 +39565,17 @@ function drawCopNpc(cop) {
   // SWAT-щит: рисуется СПЕРЕДИ персонажа (под рукой с оружием). Чёрный
   // с белой надписью POLICE, отражает (визуально) пули — частицы при
   // попадании искрят сильнее. Рисуем ДО оружия чтобы ствол был сверху.
-  if (kind === 'swat') {
+  if (cop.shield||kind === 'swat') {
     drawSwatShield(p.x, p.y, cop.ang || 0);
   }
   drawWeaponInHands(p.x, p.y, cop.ang || 0, weapon, 0.95, flashAt);
   // Каска с забралом — чёрный шлем + светлая полоска забрала.
   // Рисуется поверх головы спрайта (top of body).
-  if (kind === 'swat') {
+  if (tactical||kind === 'swat') {
     drawSwatHelmet(p.x, p.y);
   }
   // Эмодзи над головой по типу: 🚓 патруль, 👮 бой, 🪖 спецназ
-  const icon = (kind === 'swat') ? '🪖' : (kind === 'combat' ? '👮' : '🚓');
+  const icon = responseTier>=3?'🛡️':tactical?'🪖':(kind === 'swat')?'🪖':(kind === 'combat' ? '👮' : '🚓');
   ctx.font = '14px system-ui, "Segoe UI Emoji", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
@@ -41157,6 +41809,8 @@ function drawArmorSkin(g,px,py,sc,id,gender=0,body=1){
   if(id==='leather_jacket'){
     g.fillStyle=main;g.beginPath();g.moveTo(px(-shoulder),py(top));g.quadraticCurveTo(px(-half),py(mid),px(-waist),py(bottom));g.lineTo(px(waist),py(bottom));g.quadraticCurveTo(px(half),py(mid),px(shoulder),py(top));g.quadraticCurveTo(px(0),py(top-7),px(-shoulder),py(top));g.closePath();g.fill();g.stroke();
     g.strokeStyle='#a8794e';g.lineWidth=Math.max(1,sc);g.beginPath();g.moveTo(px(0),py(top-3));g.lineTo(px(0),py(bottom));g.moveTo(px(-half*.78),py(76));g.lineTo(px(-8),py(72));g.moveTo(px(half*.78),py(76));g.lineTo(px(8),py(72));g.stroke();
+    g.fillStyle='#16100e';for(const s of [-1,1]){g.beginPath();g.roundRect(px(s*waist*.35-(s>0?0:9)),py(48),9*sc,13*sc,2*sc);g.fill();g.stroke();}
+    g.fillStyle='#d6a260';for(let y=26;y<top-8;y+=7){g.fillRect(px(-.8),py(y),1.6*sc,2.5*sc);}
   } else if(plate){
     // Tapered vest follows the actual torso instead of hanging as a rectangle.
     g.fillStyle=main;g.beginPath();g.moveTo(px(-shoulder*.72),py(top));g.lineTo(px(-shoulder),py(94));g.lineTo(px(-waist),py(bottom));g.quadraticCurveTo(px(0),py(bottom-4),px(waist),py(bottom));g.lineTo(px(shoulder),py(94));g.lineTo(px(shoulder*.72),py(top));g.lineTo(px(8),py(top-5));g.lineTo(px(-8),py(top-5));g.closePath();g.fill();g.stroke();
@@ -41168,8 +41822,36 @@ function drawArmorSkin(g,px,py,sc,id,gender=0,body=1){
       g.fillStyle=main;for(const s of [-1,1]){const sx=s*shoulder;g.beginPath();g.roundRect(px(sx-(s>0?3:11)),py(105),14*sc,13*sc,4*sc);g.fill();g.stroke();}
       g.fillStyle=dark;g.fillRect(px(-waist*.72),py(64),waist*1.44*sc,5*sc);
     }
-    if(id==='swat_suit'){g.fillStyle='#e8edf2';g.font=`bold ${6.5*sc}px sans-serif`;g.textAlign='center';g.fillText('SWAT',px(0),py(79));}
-    if(id==='exo_armor'){g.strokeStyle='#58d5ff';g.shadowColor='#58d5ff';g.shadowBlur=4*sc;g.lineWidth=Math.max(1,1.4*sc);g.beginPath();g.roundRect(px(-waist*.66),py(94),waist*1.32*sc,29*sc,3*sc);g.stroke();g.fillStyle='#58d5ff';g.beginPath();g.arc(px(0),py(77),3*sc,0,Math.PI*2);g.fill();g.shadowBlur=0;}
+    if(id==='bulletproof'){
+      g.fillStyle='#a8b6aa';g.fillRect(px(-10),py(82),20*sc,8*sc);g.fillStyle='#17201a';g.font=`900 ${5.2*sc}px sans-serif`;g.textAlign='center';g.fillText('IIIA',px(0),py(76));
+    }
+    if(id==='kevlar_vest'){
+      g.strokeStyle='rgba(214,229,163,.34)';g.lineWidth=Math.max(.7,.65*sc);for(let y=35;y<92;y+=9){g.beginPath();g.moveTo(px(-waist*.7),py(y));g.lineTo(px(waist*.7),py(y+7));g.stroke();g.beginPath();g.moveTo(px(waist*.7),py(y));g.lineTo(px(-waist*.7),py(y+7));g.stroke();}
+    }
+    if(id==='tactical_vest'){
+      for(let i=-1;i<=1;i++){const x=i*waist*.48;g.fillStyle=i?'#1c3028':'#243d33';g.beginPath();g.roundRect(px(x-6),py(58),12*sc,19*sc,2*sc);g.fill();g.stroke();g.fillStyle='#5b806d';g.fillRect(px(x-5),py(55),10*sc,3*sc);}
+      g.strokeStyle='#80a995';g.beginPath();g.moveTo(px(-waist*.72),py(86));g.lineTo(px(waist*.72),py(86));g.stroke();
+    }
+    if(id==='army_armor'){
+      const camo=['#25321f','#718052','#988f59'];for(let i=0;i<9;i++){const x=-waist*.68+(i%3)*waist*.68,y=35+Math.floor(i/3)*19;g.fillStyle=camo[i%3];g.beginPath();g.ellipse(px(x),py(y),6*sc,9*sc,(i%2?.4:-.35),0,Math.PI*2);g.fill();}
+      g.fillStyle='#b7ad77';g.beginPath();g.roundRect(px(-12),py(83),24*sc,7*sc,1.5*sc);g.fill();
+    }
+    if(id==='swat_suit'){
+      g.fillStyle='#e8edf2';g.beginPath();g.roundRect(px(-15),py(84),30*sc,10*sc,1.5*sc);g.fill();g.fillStyle='#101721';g.font=`900 ${6.5*sc}px sans-serif`;g.textAlign='center';g.fillText('SWAT',px(0),py(76));
+      g.fillStyle='#33485b';for(const s of [-1,1]){g.beginPath();g.roundRect(px(s*waist*.48-5),py(53),10*sc,19*sc,2*sc);g.fill();}
+    }
+    if(id==='composite_armor'){
+      g.strokeStyle='#9bb4c9';g.lineWidth=Math.max(1,1.1*sc);for(const s of [-1,1]){g.fillStyle=s<0?'#435565':'#596b7c';g.beginPath();g.moveTo(px(s*3),py(91));g.lineTo(px(s*waist*.7),py(84));g.lineTo(px(s*waist*.62),py(51));g.lineTo(px(s*4),py(57));g.closePath();g.fill();g.stroke();}
+      g.fillStyle='#d5e1ea';for(const x of [-waist*.55,waist*.55])for(const y of [77,58]){g.beginPath();g.arc(px(x),py(y),1.4*sc,0,Math.PI*2);g.fill();}
+    }
+    if(id==='titanium_vest'){
+      const shine=g.createLinearGradient(px(-waist),0,px(waist),0);shine.addColorStop(0,'rgba(15,25,34,.35)');shine.addColorStop(.45,'rgba(239,249,255,.48)');shine.addColorStop(.6,'rgba(125,161,188,.22)');shine.addColorStop(1,'rgba(12,22,30,.4)');g.fillStyle=shine;g.beginPath();g.roundRect(px(-waist*.67),py(91),waist*1.34*sc,37*sc,3*sc);g.fill();g.strokeStyle='#d3edf9';g.stroke();
+    }
+    if(id==='exo_armor'){
+      g.strokeStyle='#58d5ff';g.shadowColor='#58d5ff';g.shadowBlur=4*sc;g.lineWidth=Math.max(1,1.4*sc);g.beginPath();g.roundRect(px(-waist*.66),py(94),waist*1.32*sc,29*sc,3*sc);g.stroke();
+      for(const s of [-1,1]){g.beginPath();g.moveTo(px(s*waist*.72),py(88));g.lineTo(px(s*(shoulder+7)),py(101));g.lineTo(px(s*(shoulder+9)),py(68));g.stroke();g.fillStyle='#1a2833';g.beginPath();g.arc(px(s*(shoulder+8)),py(82),4*sc,0,Math.PI*2);g.fill();g.stroke();}
+      g.fillStyle='#58d5ff';g.beginPath();g.arc(px(0),py(77),3*sc,0,Math.PI*2);g.fill();g.shadowBlur=0;
+    }
   }
   g.restore();
 }
@@ -41615,6 +42297,19 @@ function renderHudAvatar() {
     const shade=g.createLinearGradient(0,0,cv.width,0);shade.addColorStop(0,'rgba(0,0,0,.28)');shade.addColorStop(.55,'rgba(0,0,0,0)');shade.addColorStop(1,'rgba(0,0,0,.18)');
     g.fillStyle=shade;g.fillRect(0,0,cv.width,cv.height);
   } catch (e) {}
+  updateArmorHud(true);
+}
+let _armorHudSignature='';
+function updateArmorHud(force=false){
+  const row=document.getElementById('armorHudRow'),fill=document.getElementById('armorBarFill'),name=document.getElementById('armorHudName'),value=document.getElementById('armorHudValue'),cv=document.getElementById('armorHudIcon');
+  if(!row||!fill||!name||!value||!cv)return;
+  const previewId=_LOCAL_PREVIEW&&ARMOR_STYLES[String(_UP.get('previewarmor')||'')]?String(_UP.get('previewarmor')):'',id=previewId||_equippedArmor,style=ARMOR_STYLES[id];
+  row.classList.toggle('hidden',!style);if(!style){_armorHudSignature='';return;}
+  const max=_armorMaxDurability(id),previewWear=_UP.has('previewarmorwear')?Math.max(0,Math.min(1,+_UP.get('previewarmorwear')||0)):1,now=previewId?Math.round(max*previewWear):_armorDurability(id),pct=max?Math.max(0,Math.min(100,now/max*100)):0,sig=`${id}:${now}:${max}`;
+  if(!force&&sig===_armorHudSignature)return;_armorHudSignature=sig;
+  name.textContent=style.label.toUpperCase();value.textContent=`${now}/${max}`;fill.style.width=`${pct.toFixed(1)}%`;fill.classList.toggle('low',pct<=50&&pct>25);fill.classList.toggle('crit',pct<=25);
+  const g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);const grad=g.createRadialGradient(20,19,2,20,22,24);grad.addColorStop(0,'#27323d');grad.addColorStop(1,'#080b0f');g.fillStyle=grad;g.fillRect(0,0,40,48);
+  const px=x=>20+x*.31,py=y=>43-y*.31;g.save();g.shadowColor=style.accent;g.shadowBlur=3;drawArmorSkin(g,px,py,.31,id,0,1);g.restore();
 }
 function mountLeftCommandHud(){
   const dock=document.getElementById('leftCommandHud');if(!dock||dock.dataset.mounted)return;
@@ -41654,17 +42349,42 @@ function switchProfileTab(tab) {
   document.getElementById('profileModal')?.setAttribute('data-profile-tab',tab);
   renderProfileTab();
 }
+let _profileEquipPending=false;
 async function _equipArmorFromInventory(itemId){
-  if(!itemId||_equippedArmor===itemId)return;
+  if(_profileEquipPending||!itemId||_equippedArmor===itemId)return;
   const owned=_inventoryItems.some(i=>i.id===itemId&&i.type==='armor'&&(+i.qty||0)>0);
   if(!owned){showToast('Этой брони уже нет в инвентаре','⚠️',1800);await loadInventoryItems();return;}
+  _profileEquipPending=true;renderProfileTab();
   try{
     const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:itemId,slot:'armor'})});
-    const j=await r.json();if(!j.ok)throw new Error(j.error||'equip failed');
-    _equippedArmor=j.equipped_armor||itemId;renderHudAvatar();renderProfileTab();
+    const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'equip failed');
+    _equippedArmor=j.equipped_armor||itemId;_ensureArmorDurability(_equippedArmor,false);renderHudAvatar();await loadInventoryItems();
     const label=ARMOR_STYLES[itemId]?.label||'Броня';
     showToast(`${label} надета · прежняя броня осталась в инвентаре`,'🦺',2200);
-  }catch(e){showToast('Не удалось надеть броню','❌',1800);}
+  }catch(e){showToast('Не удалось надеть броню','❌',1800);await loadInventoryItems();}
+  finally{_profileEquipPending=false;renderProfileTab();}
+}
+async function _unequipArmorFromInventory(){
+  if(_profileEquipPending||!_equippedArmor)return;
+  const removedId=_equippedArmor,label=ARMOR_STYLES[removedId]?.label||'Броня';_profileEquipPending=true;renderProfileTab();
+  try{
+    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:null,slot:'armor'})});
+    const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'unequip failed');
+    _equippedArmor=null;renderHudAvatar();updateArmorHud();await loadInventoryItems();
+    showToast(`${label} снята · сохранена в инвентаре`,'🧥',2000);
+  }catch(e){showToast('Не удалось снять броню','❌',1800);await loadInventoryItems();}
+  finally{_profileEquipPending=false;renderProfileTab();}
+}
+async function _selectProfileWeapon(itemId,granted=false){
+  if(_profileEquipPending)return;const raw=itemId||'',wid=(typeof WEAPON_ALIASES!=='undefined'&&WEAPON_ALIASES[raw])||raw||null;
+  if(raw&&!granted&&!_inventoryItems.some(i=>i.id===raw&&i.type==='weapon'&&(+i.qty||0)>0)){showToast('Этого оружия уже нет в инвентаре','⚠️',1700);await loadInventoryItems();return;}
+  _profileEquipPending=true;renderProfileTab();
+  try{
+    if(!granted){const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(raw?{item_id:raw,slot:'weapon'}:{item_id:null,slot:'weapon'})});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'equip failed');}
+    cancelWeaponReload();currentWeapon=wid;document.documentElement.dataset.selectedWeapon=wid||'none';if(wid)_lastEquippedWeapon=wid;_saveCurrentWeaponChoice();renderWeaponHud();
+    showToast(wid?`${weaponLabel(wid)} выбрано`:'Оружие убрано',wid?'🔫':'✋',1500);
+  }catch(e){showToast('Не удалось сменить оружие','❌',1800);await loadInventoryItems();}
+  finally{_profileEquipPending=false;renderProfileTab();}
 }
 let _usingProfileConsumable=false;
 async function _useProfileConsumable(itemId){
@@ -41688,34 +42408,39 @@ function renderProfileTab() {
   const box = document.getElementById('profileContent');
   if (!box) return;
   if (_profileTab === 'inv') {
-    const WEAP_EMOJI = { pistol:'🔫', nagan:'🔫', pistol_heavy:'🔫', pistol_gold:'✨', shotgun:'💥', smg:'🔫', tommy_gun:'🔫', rifle:'🎯', sniper:'🎯', rpg:'💣' };
-    let html = '<div class="items">';
-    html += '<div class="profile-section-title">🔫 Оружие</div>';
-    html += `<div class="item${(!currentWeapon || currentWeapon === 'fists' || currentWeapon === 'none') ? ' equipped' : ''}"><div class="icon">✊</div><div class="info"><div class="nm">Кулаки</div><div class="sub">всегда с тобой</div></div></div>`;
+    const esc=_escapeApartmentUi,unarmed=!currentWeapon||currentWeapon==='fists'||currentWeapon==='none';
     const weaponItems=_inventoryItems.filter(i=>i.type==='weapon'&&(+i.qty||0)>0);
-    if(_mafiaState?.employed&&!weaponItems.some(i=>i.id==='pistol')) weaponItems.unshift({id:'pistol',name:'Семейный пистолет',qty:1,type:'weapon'});
+    if(_mafiaState?.employed&&!weaponItems.some(i=>i.id==='pistol'))weaponItems.unshift({id:'pistol',name:'Семейный пистолет',qty:1,type:'weapon',granted:true});
+    const armorItems=_inventoryItems.filter(i=>i.type==='armor'&&(+i.qty||0)>0),ammoItems=_inventoryItems.filter(i=>i.type==='ammo'&&(+i.qty||0)>0),otherItems=_inventoryItems.filter(i=>!['weapon','armor','ammo'].includes(i.type)&&(+i.qty||0)>0);
+    const equippedLabel=_equippedArmor?(ARMOR_STYLES[_equippedArmor]?.label||_equippedArmor):'не надета';
+    let html=`<div class="inventory-summary"><div class="inventory-summary-card"><span>Позиций в деле</span><b>${_inventoryItems.filter(i=>(+i.qty||0)>0).length}</b></div><div class="inventory-summary-card"><span>В руках</span><b>${esc(unarmed?'кулаки':weaponLabel(currentWeapon))}</b></div><div class="inventory-summary-card"><span>Защита</span><b>${esc(equippedLabel)}</b></div></div>`;
+    html+='<div class="profile-section-title">🔫 Оружие</div><div class="inventory-grid">';
+    html+=`<div class="inventory-card${unarmed?' equipped':''}"><div class="inventory-visual inventory-symbol">✊${unarmed?'<span class="inventory-state">выбрано</span>':''}</div><div class="inventory-card-body"><div class="inventory-card-name">Кулаки</div><div class="inventory-card-meta">Всегда доступны · оружие убрано</div><div class="inventory-actions"><button class="inventory-btn secondary" onclick="_selectProfileWeapon('',false)" ${_profileEquipPending||unarmed?'disabled':''}>${unarmed?'Выбрано':'Убрать оружие'}</button></div></div></div>`;
     for (const w of weaponItems) {
       const wid=(typeof WEAPON_ALIASES!=='undefined'&&WEAPON_ALIASES[w.id])||w.id;
       const eq=currentWeapon===w.id||currentWeapon===wid;
-      const emoji=WEAP_EMOJI[wid]||(w.name||'').match(/^\p{Extended_Pictographic}/u)?.[0]||'🔫';
-      html += `<div class="item${eq?' equipped':''}"><div class="icon">${emoji}</div><div class="info"><div class="nm">${w.name||weaponLabel(wid)}</div><div class="sub">Количество: ${+w.qty||1} ${eq?'· ⭐ экипировано':''}</div></div></div>`;
+      html+=`<div class="inventory-card${eq?' equipped':''}"><div class="inventory-visual"><canvas width="180" height="78" data-inventory-weapon="${esc(wid)}"></canvas><span class="inventory-qty">×${+w.qty||1}</span>${eq?'<span class="inventory-state">в руках</span>':''}</div><div class="inventory-card-body"><div class="inventory-card-name">${esc(w.name||weaponLabel(wid))}</div><div class="inventory-card-meta">Оружие семьи · доступно в арсенале</div><div class="inventory-actions"><button class="inventory-btn" onclick="_selectProfileWeapon('${esc(w.id)}',${w.granted?'true':'false'})" ${_profileEquipPending||eq?'disabled':''}>${eq?'Выбрано':'Взять'}</button></div></div></div>`;
     }
-    const items=_inventoryItems.filter(i=>i.type!=='weapon'&&(+i.qty||0)>0);
-    const TYPE_ICON={armor:'🦺',potion:'🧪',throwable:'💣',document:'📄',thing:'📦'};
-    const TYPE_NAME={armor:'Броня',potion:'Расходник',throwable:'Метательное',document:'Документ',thing:'Находка'};
-    html += '<div class="profile-section-title" style="margin-top:14px">🎒 Предметы</div>';
-    if(!items.length)html+='<div class="empty" style="padding:10px">Предметов пока нет.</div>';
-    for(const it of items){
+    html+='</div><div class="inventory-section"><div class="profile-section-title">🦺 Броня · одноразовая</div>';
+    if(!armorItems.length)html+='<div class="empty">Брони пока нет. Каждый вид можно хранить по одной штуке.</div>';else html+='<div class="inventory-grid">';
+    for(const it of armorItems){
+      const style=ARMOR_STYLES[it.id]||{},equipped=_equippedArmor===it.id,cur=_armorDurability(it.id),max=_armorMaxDurability(it.id),pct=max?Math.round(cur/max*100):0;
+      html+=`<div class="inventory-card${equipped?' equipped':''}"><div class="inventory-visual"><canvas width="140" height="96" data-inventory-armor="${esc(it.id)}"></canvas><span class="inventory-qty">×1</span>${equipped?'<span class="inventory-state">надето</span>':''}</div><div class="inventory-card-body"><div class="inventory-card-name">${esc(it.name||style.label||it.id)}</div><div class="inventory-card-meta">Поглощение ${Math.round((style.reduction||0)*100)}% · после износа уничтожается</div><div class="inventory-durability"><div class="inventory-durability-copy"><span>прочность</span><b>${cur}/${max}</b></div><div class="inventory-durability-track"><div class="inventory-durability-fill" style="width:${pct}%;color:${style.accent||'#d7aa4d'};background:linear-gradient(90deg,#7d352c,${style.accent||'#d7aa4d'})"></div></div></div><div class="inventory-actions"><button class="inventory-btn${equipped?' secondary':''}" onclick="${equipped?'_unequipArmorFromInventory()':`_equipArmorFromInventory('${esc(it.id)}')`}" ${_profileEquipPending?'disabled':''}>${equipped?'Снять':'Надеть'}</button></div></div></div>`;
+    }
+    if(armorItems.length)html+='</div>';html+='</div><div class="inventory-section"><div class="profile-section-title">📦 Боезапас</div>';
+    if(!ammoItems.length)html+='<div class="empty">Патронов в инвентаре пока нет.</div>';else html+='<div class="inventory-grid">';
+    for(const it of ammoItems){const shop=_SHOP_ITEMS.find(x=>x.id===it.id),type=it.ammo_type||shop?.ammoType||String(it.id).replace(/^ammo_/,'');const reserve=Math.max(0,+_ammoState.reserve[type]||0),pack=+it.rounds||shop?.rounds||AMMO_TYPES[type]?.pack||0;html+=`<div class="inventory-card"><div class="inventory-visual"><canvas width="140" height="92" data-inventory-ammo="${esc(type)}"></canvas><span class="inventory-qty">×${+it.qty||1} пач.</span></div><div class="inventory-card-body"><div class="inventory-card-name">${esc(it.name||AMMO_TYPES[type]?.label||it.id)}</div><div class="inventory-card-meta">В пачке ${pack} · боевой запас: ${reserve}/${AMMO_TYPES[type]?.max||'∞'}</div></div></div>`;}
+    if(ammoItems.length)html+='</div>';html+='</div><div class="inventory-section"><div class="profile-section-title">🎒 Остальные предметы</div>';
+    if(!otherItems.length)html+='<div class="empty">Других предметов пока нет.</div>';else html+='<div class="inventory-grid">';
+    const TYPE_ICON={potion:'🧪',throwable:'💣',consumable:'🧨',document:'📄',thing:'📦'},TYPE_NAME={potion:'Расходник',throwable:'Метательное',consumable:'Боевой расходник',document:'Документ',thing:'Находка'};
+    for(const it of otherItems){
       const icon=(it.name||'').match(/^\p{Extended_Pictographic}/u)?.[0]||TYPE_ICON[it.type]||'📦';
-      const extra=it.sell_price?` · продажа: ${it.sell_price}$`:(it.desc?` · ${it.desc}`:'');
-      const armor=it.type==='armor',equipped=armor&&_equippedArmor===it.id;
-      const armorBtn=armor?`<button class="armor-equip" onclick="_equipArmorFromInventory('${String(it.id).replace(/'/g,"\\'")}')" ${equipped?'disabled':''}>${equipped?'✓ Надето':'Надеть'}</button>`:'';
+      const extra=it.sell_price?`Продажа: ${it.sell_price}$`:(it.desc||TYPE_NAME[it.type]||'Предмет');
       const medkit=it.type==='potion'&&/^medkit_(small|medium|large)$/.test(it.id);
-      const useBtn=medkit?`<button class="armor-equip" onclick="_useProfileConsumable('${it.id}')" ${_usingProfileConsumable||myHp>=(PVP.max_hp||100)?'disabled':''}>Использовать</button>`:'';
-      html+=`<div class="item${equipped?' equipped':''}"><div class="icon">${icon}</div><div class="info"><div class="nm">${it.name||it.id}</div><div class="sub">${TYPE_NAME[it.type]||'Предмет'} · количество: ${+it.qty||1}${extra}${equipped?' · экипировано':''}</div></div>${armorBtn}${useBtn}</div>`;
+      html+=`<div class="inventory-card"><div class="inventory-visual inventory-symbol">${icon}<span class="inventory-qty">×${+it.qty||1}</span></div><div class="inventory-card-body"><div class="inventory-card-name">${esc(it.name||it.id)}</div><div class="inventory-card-meta">${esc(extra)}</div>${medkit?`<div class="inventory-actions"><button class="inventory-btn" onclick="_useProfileConsumable('${esc(it.id)}')" ${_usingProfileConsumable||myHp>=(PVP.max_hp||100)?'disabled':''}>Использовать</button></div>`:''}</div></div>`;
     }
-    html += '</div>';
-    box.innerHTML = html;
+    if(otherItems.length)html+='</div>';html+='</div>';
+    box.innerHTML=html;_drawInventoryPreviews();
   } else if (_profileTab === 'status') {
     const kd = myDeaths > 0 ? (myKills / myDeaths).toFixed(2) : myKills.toFixed(0);
     const stars = '★'.repeat(Math.min(5, myWanted || 0)) + '☆'.repeat(Math.max(0, 5 - (myWanted || 0)));
@@ -43600,6 +44325,7 @@ function render() {
     if (r >= 140) continue;
     for (let c = c0; c < c1; c++) {
       if (c % BLOCK !== 2) continue;
+      if(!trafficSignalLandSafe(r+.5,c+.5))continue;
       items.push({ depth: r + c - 0.3, draw: () => drawTrafficLight(r, c) });
     }
   }
@@ -57988,18 +58714,45 @@ function _threeCustomGangHqSnapshot() {
     flag:h.flag||{}, memberCount:+h.member_count||0,
   }));
 }
+const _threePlayerMotionSample={at:0,r:NaN,c:NaN,speed:0,accel:0,moveAng:0};
+function _threePlayerAnimationTelemetry(now=performance.now()){
+  const r=+player.r||0,c=+player.c||0,prevAt=_threePlayerMotionSample.at||now;
+  const dt=Math.max(1/120,Math.min(.12,(now-prevAt)/1000||1/30));
+  const dr=Number.isFinite(_threePlayerMotionSample.r)?r-_threePlayerMotionSample.r:0;
+  const dc=Number.isFinite(_threePlayerMotionSample.c)?c-_threePlayerMotionSample.c:0;
+  const displacement=Math.hypot(dr,dc),teleported=displacement>3;
+  const rawSpeed=teleported?0:displacement/dt,speed=Math.min(12,rawSpeed);
+  const accel=(speed-_threePlayerMotionSample.speed)/dt;
+  if(!teleported&&speed>.04)_threePlayerMotionSample.moveAng=Math.atan2(dr,dc);
+  _threePlayerMotionSample.at=now;_threePlayerMotionSample.r=r;_threePlayerMotionSample.c=c;
+  _threePlayerMotionSample.accel=accel;_threePlayerMotionSample.speed=speed;
+  const impact=_threePlayerImpactState||{};
+  return {
+    speed,accel:teleported?0:Math.max(-30,Math.min(30,accel)),moveAng:_threePlayerMotionSample.moveAng,teleported,
+    aiming:!!(joyR?.active||joyR?.hasAim||now<(_threeMouseAimUntil||0)),
+    impact:{stamp:+impact.at||0,age:Math.max(0,now-(+impact.at||0)),angle:+impact.angle||0,power:+impact.power||0,kind:impact.kind||'generic',bodyPart:impact.bodyPart||'torso'}
+  };
+}
 window.Mafiozi3DBridge = Object.freeze({
   version: 1,
   getPlayerState() {
-    const reloadId=resolveWeapon(currentWeapon),reloading=_isReloadingWeapon(reloadId),reloadCfg=weaponProfile(reloadId),reloadStepMs=(reloadCfg.mode==='pump'||reloadId==='nagan')?Math.max(360,(reloadCfg.reloadMs||2550)/(reloadCfg.magSize||1)):(reloadCfg.reloadMs||1800),reloadProgress=reloading?Math.max(0,Math.min(1,1-(_reloadUntil-performance.now())/reloadStepMs)):0;
+    const stateNow=performance.now(),anim=_threePlayerAnimationTelemetry(stateNow),previewWeaponId=_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():'',reloadId=resolveWeapon(previewWeaponId||currentWeapon),liveReloading=_isReloadingWeapon(reloadId),reloadCfg=weaponProfile(reloadId),reloadStepMs=(reloadCfg.mode==='pump'||reloadId==='nagan')?Math.max(360,(reloadCfg.reloadMs||2550)/(reloadCfg.magSize||1)):(reloadCfg.reloadMs||1800),previewReloadProgress=_LOCAL_PREVIEW&&_UP.has('previewreload')?Math.max(0,Math.min(.999,+_UP.get('previewreload')||0)):0,reloading=liveReloading||previewReloadProgress>0,reloadProgress=previewReloadProgress||liveReloading?Math.max(0,Math.min(1,previewReloadProgress||1-(_reloadUntil-stateNow)/reloadStepMs)):0;
+    const previewArmorId=_LOCAL_PREVIEW&&ARMOR_STYLES[String(_UP.get('previewarmor')||'')]?String(_UP.get('previewarmor')):'',armorId=previewArmorId||_equippedArmor,armorMax=_armorMaxDurability(armorId),previewArmorWear=_UP.has('previewarmorwear')?Math.max(0,Math.min(1,+_UP.get('previewarmorwear')||0)):1,armorDurability=previewArmorId?Math.round(armorMax*previewArmorWear):_armorDurability(armorId);
     const vehicleEntry=_threeVehicleEntrySequence?{..._threeVehicleEntrySequence,progress:Math.max(0,Math.min(1,(performance.now()-_threeVehicleEntrySequence.startedAt)/_threeVehicleEntrySequence.duration))}:null;
     const arrest=_murderPoliceArrest,arrestPhase=arrest?.phase||'',arrestProgress=arrest?_murderPoliceArrestProgress(arrest):0;
+    // Keep the transport state machine detailed while feeding the existing
+    // renderer poses it already understands: prone extraction and walking escort.
+    const arrestVisualPhase=arrestPhase==='awaiting_pickup'?'downed':
+      arrestPhase==='unloading'||arrestPhase==='booking'?'cuffing':
+      arrestPhase==='prison_escort'?'escort':arrestPhase;
     const state={
       r: +player.r || 0, c: +player.c || 0, ang: +player.ang || 0,
       walking: !!player.walking, walkPhase: +player.walkPhase || 0,
-      hp: _LOCAL_PREVIEW&&_UP.has('previewlimp')?20:Math.max(0,+myHp||0),dead:!!myDead,
-      arrestPhase,arrestProgress,cuffed:['cuffing','escort','loading','transport'].includes(arrestPhase),arrestHidden:arrestPhase==='transport',
-      mode: myMode, weapon:_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
+      speed:anim.speed,accel:anim.accel,moveAng:anim.moveAng,teleported:anim.teleported,aiming:anim.aiming,impact:anim.impact,
+      hp: _LOCAL_PREVIEW&&_UP.has('previewlimp')?20:Math.max(0,+myHp||0),
+      dead:arrest?['awaiting_pickup','downed','cuffing','unloading'].includes(arrestPhase):!!myDead,
+      arrestPhase:arrestVisualPhase,arrestProgress,cuffed:['cuffing','escort','loading','transport','unloading','handoff','prison_escort','booking'].includes(arrestPhase),arrestHidden:arrestPhase==='transport',
+      mode: myMode, weapon:previewWeaponId||currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
       jailIn:_effectivePrisonJailSeconds(),jailGateProgress:_prisonReleaseGateProgress(),
@@ -58007,6 +58760,7 @@ window.Mafiozi3DBridge = Object.freeze({
       name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
       role: _policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian',
       family: _mafiaState?.employed ? (_mafiaState.family || null) : null,
+      armor:armorId||null,armorDurability,armorMax,
       joyL: { active: !!joyL.active, dx: +joyL.dx || 0, dy: +joyL.dy || 0 },
       joyR: { active: !!joyR.active, dx: +joyR.dx || 0, dy: +joyR.dy || 0, hasAim: !!joyR.hasAim },
     };
@@ -58129,6 +58883,32 @@ window.Mafiozi3DBridge = Object.freeze({
     return {ok:true,phase:document.documentElement.dataset.policeArrestPhase||'',hp:myHp,dead:myDead,
       corpse:NPCS.some(n=>n.id===corpseId)};
   },
+  previewPoliceEscalationState() {
+    if(!_LOCAL_PREVIEW)return null;
+    return {
+      incidents:_murderIncidents.map(q=>({id:q.id,status:q.status,tier:_murderPoliceTier(q),crew:_murderPoliceCrewCount(q),officerDown:!!q.officerDown,vehicleId:q.assignedVehicleId||''})),
+      vehicles:serviceVehicles.filter(v=>v?._murderFleet).map(v=>({id:v.id,state:v.state,tier:+v._policeTier||0,expected:_murderVehicleCrewCount(v),incidentId:v.payload?.murderIncident?.id||'',roofGunner:!!v._roofGunner,turretActive:!!v._turretActive,turretProvoked:performance.now()<(v._turretProvokedUntil||0),distanceToPlayer:Math.hypot(player.r-v.y,player.c-v.x)})),
+      cops:cityCops.filter(c=>c?.alive&&c.kind==='murder_response').map(c=>({id:c.id,tier:+c.responseTier||0,hp:+c.hp||0,weapon:c.weapon,gear:c.prisonGear||'',shield:!!c.shield,phase:c._casePhase||'',vehicleId:c._responseVehicleId||''})),
+      arrestPhase:_murderPoliceArrest?.phase||'idle'
+    };
+  },
+  previewDefeatPoliceTier(tier=0,all=false) {
+    if(!_LOCAL_PREVIEW)return {ok:false};
+    const wanted=Math.max(0,Math.min(POLICE_RESPONSE_MAX_TIER,+tier||0));
+    const targets=cityCops.filter(c=>c?.alive&&c.kind==='murder_response'&&(+c.responseTier||0)===wanted);
+    const chosen=all?targets:targets.slice(0,1);
+    for(const cop of chosen)hitCityCop(cop,0,1,999,{kind:'player',weapon:'rifle'});
+    return {ok:chosen.length>0,killed:chosen.length,state:this.previewPoliceEscalationState()};
+  },
+  previewKilledByResponseTier(tier=0) {
+    if(!_LOCAL_PREVIEW)return {ok:false};
+    const wanted=Math.max(0,Math.min(POLICE_RESPONSE_MAX_TIER,+tier||0));
+    const cop=cityCops.find(c=>c?.alive&&c.kind==='murder_response'&&(+c.responseTier||0)===wanted);
+    if(!cop)return {ok:false,state:this.previewPoliceEscalationState()};
+    myHp=1;myDead=false;_localDeath=false;
+    _hurtLocal(999,'Полиция',true,{kind:'murder_police',cop});
+    return {ok:true,copId:cop.id,phase:_murderPoliceArrest?.phase||'idle',state:this.previewPoliceEscalationState()};
+  },
   previewEnterBusinessInterior(id) {
     if(!_LOCAL_PREVIEW)return false;
     const key=String(id||'');
@@ -58148,6 +58928,20 @@ window.Mafiozi3DBridge = Object.freeze({
     if(!_LOCAL_PREVIEW)return false;
     player.r=JUNKYARD_R+4.5;player.c=JUNKYARD_C;player.vr=0;player.vc=0;player.walking=false;
     window._studioTeleportUntil=Date.now()+10000;return {r:player.r,c:player.c};
+  },
+  previewApproachSaid() {
+    if(!_LOCAL_PREVIEW)return false;
+    const said=NPCS.find(n=>n?._said);if(!said)return false;
+    player.r=said.r;player.c=said.c-1.4;player.vr=0;player.vc=0;player.walking=false;
+    window._studioTeleportUntil=Date.now()+10000;
+    return {r:said.r,c:said.c,hp:said.hp,dead:said.dead,citySafe:_saidCityPassable(said.r,said.c)};
+  },
+  previewAttackSaid() {
+    if(!_LOCAL_PREVIEW)return false;
+    const said=NPCS.find(n=>n?._said);if(!said)return false;
+    hitNpc(said,0,1,'rifle',999999,{kind:'player',uid:'preview'});
+    _igniteLocalCharacter(said,said.r,said.c-1);
+    return {hp:said.hp,dead:said.dead,burning:(said._burnUntil||0)>performance.now(),important:!!said._keyNpc};
   },
   previewApproachJail() {
     if(!_LOCAL_PREVIEW)return false;
@@ -58324,21 +59118,26 @@ window.Mafiozi3DBridge = Object.freeze({
       if(!v||v.state==='done')continue;
       const visibleFireTarget=v.kind==='firetruck'&&v.state==='working'?_fireTruckTarget(v):null;
       if(!near(+v.y||0,+v.x||0)&&!(visibleFireTarget&&near(visibleFireTarget.r,visibleFireTarget.c)))continue;
-      const ambulance=v.kind==='ambulance',fire=v.kind==='firetruck',tow=v.kind==='tow',police=v.kind==='police',ambulanceOnCall=ambulance&&v.state!=='ambulance_parked';
+      const ambulance=v.kind==='ambulance',fire=v.kind==='firetruck',tow=v.kind==='tow',police=v.kind==='police',policeProfile=police?POLICE_RESPONSE_PROFILES[Math.max(0,Math.min(POLICE_RESPONSE_MAX_TIER,+v._policeTier||0))]:null,serviceSize=policeProfile?.vehicleSize||[2.05,.98,.88],ambulanceOnCall=ambulance&&v.state!=='ambulance_parked';
       const medicalScene=ambulance?v._medicalScene:null,medicalDoorProgress=ambulance&&medicalScene?.active?(medicalScene.phase==='sealing'?Math.max(0,1-(+medicalScene.sealProgress||0)):1):0;
       cars.unshift({
         id:`service_${v.id}`,r:+v.y||0,c:+v.x||0,ang:+v.ang||0,
-        model:ambulance?'ambulance':fire?'firetruck':tow?'tow_truck':'police',
-        paint:ambulance?'#eef3f7':fire?'#b51f27':tow?'#e0a62c':'#244f86',
-        parked:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='police_parked'||v.state==='police_boarding'||v.state==='police_search'||v.state==='police_arrest_scene'||v.state==='police_reboarding'||v.state==='working'||v.state==='medical_response'||v.state==='siege',length:fire?2.4:tow?2.3:ambulance?2.05:1.9,
-        width:fire?1.1:tow?1:ambulance?.98:.9,height:fire?1.05:ambulance?.88:.75,wheelR:.2,
-        sport:false,pickup:tow,van:ambulance||fire,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,
+        model:ambulance?'ambulance':fire?'firetruck':tow?'tow_truck':policeProfile?.armoredVan?'police_armored_van':'police',
+        paint:ambulance?'#eef3f7':fire?'#b51f27':tow?'#e0a62c':policeProfile?.vehiclePaint||'#315d88',
+        parked:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='police_parked'||v.state==='police_boarding'||v.state==='police_search'||v.state==='police_arrest_scene'||v.state==='police_reboarding'||v.state==='working'||v.state==='medical_response'||v.state==='siege',
+        width:fire?1.1:tow?1:ambulance?.98:serviceSize[1],height:fire?1.05:ambulance?.88:serviceSize[2],wheelR:.2,
+        length:fire?2.4:tow?2.3:ambulance?2.05:serviceSize[0],
+        sport:false,pickup:tow,van:ambulance||fire||!!policeProfile?.armoredVan,suv:police&&!policeProfile?.armoredVan&&(+v._policeTier||0)>0,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,
         emergency:ambulance?'ambulance':fire?'fire':police?'police':'tow',emergencyLights:ambulance?ambulanceOnCall:fire?v.state!=='firetruck_parked':tow?v.state!=='tow_parked':police?v.state!=='police_parked':true,
-        stripe:ambulance?'#1756bd':fire?'#f2c94c':tow?'#22262b':'#d9e8ff',
+        stripe:ambulance?'#1756bd':fire?'#f2c94c':tow?'#22262b':policeProfile?.vehicleStripe||'#d7e8f5',
         dirR:Math.sin(+v.ang||0),dirC:Math.cos(+v.ang||0),velR:0,velC:0,
         braking:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='police_parked'||v.state==='police_boarding'||v.state==='police_search'||v.state==='police_arrest_scene'||v.state==='police_reboarding'||v.state==='working'||v.state==='medical_response'||v.state==='siege',turning:false,
-        serviceKind:v.kind,serviceState:v.state,medicalDoorsOpen:medicalDoorProgress>.5,medicalDoorProgress,
-        policeDoorsOpen:police&&v.state==='police_arrest_scene'&&['escort','loading'].includes(_murderPoliceArrest?.phase||''),
+        serviceKind:v.kind,serviceState:v.state,policeTier:+v._policeTier||0,armoredPoliceVan:!!policeProfile?.armoredVan,
+        roofGunner:!!v._roofGunner,turretActive:!!v._turretActive,turretDisabled:!!v._turretDisabled,turretAng:+v._turretAng||0,turretFlashAt:+v._turretFlashAt||0,
+        damageRatio:policeProfile?.armoredVan&&Number.isFinite(v._ballisticHp)?Math.max(.01,v._ballisticHp/Math.max(1,v._ballisticMax||policeProfile.vehicleHp)):1,
+        bulletHoles:+v._bulletHoleCount||0,bulletMarks:v._threeBulletMarks||[],hitAge:fxNow-(+v._lastConfirmedGunHitAt||0),smoking:!!policeProfile?.armoredVan&&Number.isFinite(v._ballisticHp)&&v._ballisticHp<(v._ballisticMax||policeProfile.vehicleHp)*.45,
+        medicalDoorsOpen:medicalDoorProgress>.5,medicalDoorProgress,
+        policeDoorsOpen:police&&v.state==='police_arrest_scene'&&['escort','loading','unloading','handoff'].includes(_murderPoliceArrest?.phase||''),
         fireWorkProgress:fire&&v.state==='working'?Math.max(0,Math.min(1,(fxNow-(+v._waterStartedAt||fxNow))/Math.max(1,+v.workDuration||4500))):0,
         fireHoseAngle:fire&&Number.isFinite(+v._hoseAng)?+v._hoseAng:null,
         towLoadProgress:tow?Math.max(0,Math.min(1,+v._loadProgress||0)):0,towLoaded:tow&&!!v._loaded,
@@ -58401,6 +59200,7 @@ window.Mafiozi3DBridge = Object.freeze({
     }
     const npcLifePool=x=>{
       const role=String(x?.role||x?._arcKey||'').toLowerCase(),behavior=String(x?.behavior||'').toLowerCase();
+      if(x?._said||x?._keyNpc||role==='said')return 'mission';
       if(role.includes('medic')||role.includes('quest')||role.includes('convoy')||role.includes('michael')||role.includes('race_')||behavior.includes('mission'))return 'mission';
       if(x?.police||role.includes('police')||role.includes('cop'))return 'police';
       if(x?._guard||role.includes('guard'))return 'guard';
@@ -58463,14 +59263,17 @@ window.Mafiozi3DBridge = Object.freeze({
       id,r,c,ang:+x.ang||0,walking:!death.dead&&(declaredMoving||targetMoving),moving:!death.dead&&(declaredMoving||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp,maxHp,
+      said:!!x._said,important:!!(x._said||x._keyNpc||x._invulnerable),talkable:!!x._said,hired:!!(x._said&&_saidState?.hired),
       lifeState:lifeState||'',panic,cowering,surrendering,surrendered:surrendering,helping,
       talking:social,social,alerted:!death.dead&&(lifeState==='alert'||x._alertUntil>fxNow),
       gesture:String(x._lifeGesture||x.gesture||''),stateSince:+x._lifeStateSince||0,stateUntil:+x._lifeStateUntil||0,
       groupId:String(x._npcGroupId||''),groupRole:String(x._npcGroupRole||''),routine:String(x._npcRoutine||''),
       prisonStaff:!!x._prisonStaff,staffVariant:+x.staffVariant||0,prisonGear:x.prisonGear||'',shield:!!x.shield,
+      responseTier:Math.max(0,+x.responseTier||0),
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:x.family||x.mafiaFamily||x.gangFamily||x.gangName||x.faction||'',faction:x.faction||x.gangFaction||'',
       gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,
       burning:!!x.burning||fxNow<(+x._burnUntil||0),hitAt:combatFx.hitAt,bleeding:combatFx.bleeding,bleedSeverity:combatFx.bleedSeverity,
+      hitAngle:Number.isFinite(+x._threeHitAngle)?+x._threeHitAngle:null,hitPower:+x._threeHitPower||0,hitWeapon:x._threeHitWeapon||'',
       bloodDirR:+x._bloodDirR||0,bloodDirC:+x._bloodDirC||1,
       severMask:+x._severMask||0,forcedCrawl:!!x._forcedCrawl,
       medicCarry:!!x._medicCarry,medicSlot:+x._medicSlot||0,
@@ -62515,6 +63318,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d253-complete-visual-world-pass"></script>
+<script type="module" src="three_preview.js?v=3d258-inventory-armor-complete-visual-world"></script>
 </body>
 </html>
