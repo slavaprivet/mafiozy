@@ -34,9 +34,7 @@ DISTRICTS = {
     "downtown":   {"bounds":(0,39,40,79), "hq":(20.,60.), "intel":(11.,60.), "sabotage":((15.,49.),(19.,70.),(30.,58.)), "escape":(35.,60.), "name":"Даунтаун", "boss_name":"Винсент Крысолов", "icon":"🏙", "income":600, "color":"#e0b94a"},
     "southside":  {"bounds":(40,99,0,39), "hq":(70.,20.), "intel":(53.,20.), "sabotage":((60.,10.),(72.,30.),(83.,18.)), "escape":(95.,20.), "name":"Саутсайд", "boss_name":"Тони Кувалда", "icon":"🎰", "income":500, "color":"#9b59b6"},
     "industrial": {"bounds":(40,99,40,79), "hq":(70.,60.), "intel":(53.,60.), "sabotage":((60.,49.),(72.,70.),(83.,58.)), "escape":(95.,60.), "name":"Промзона", "boss_name":"Борис Шлак", "icon":"🏭", "income":550, "color":"#d2691e"},
-    "eastside":   {"bounds":(0,74,100,179), "hq":(40.,140.), "intel":(27.,140.), "sabotage":((34.,112.),(49.,131.),(61.,164.)), "escape":(70.,140.), "name":"Ист-Сайд", "boss_name":"Артур Кедр", "icon":"🏘", "income":700, "color":"#55b8a9"},
-    "docklands":  {"bounds":(75,149,100,179), "hq":(120.,140.), "intel":(107.,140.), "sabotage":((94.,112.),(119.,131.),(136.,164.)), "escape":(145.,140.), "name":"Доклендс", "boss_name":"Гектор Кран", "icon":"🏗", "income":760, "color":"#597b9d"},
-    "coast":      {"bounds":(150,199,0,179), "hq":(156.,40.), "intel":(165.,40.), "sabotage":((154.,18.),(158.,65.),(178.,40.)), "escape":(196.,40.), "name":"Побережье", "boss_name":"Капитан Риццо", "icon":"⚓", "income":450, "color":"#2ecc71"},
+    "coast":      {"bounds":(150,199,0,79), "hq":(156.,40.), "intel":(165.,40.), "sabotage":((154.,18.),(158.,65.),(178.,40.)), "escape":(196.,40.), "name":"Побережье", "boss_name":"Капитан Риццо", "icon":"⚓", "income":450, "color":"#2ecc71"},
 }
 district_owners = {}
 district_captures = {}
@@ -65,14 +63,6 @@ preview_accounts = {}
 preview_business_claims = {}
 preview_connections = {}
 preview_apartments = {}
-preview_custom_gangs = {}
-preview_custom_gang_by_uid = {}
-preview_custom_gang_seq = 0
-CUSTOM_GANG_FLAG_COLORS = {
-    "#9b1f2d", "#cf303d", "#e77b28", "#e0b83e", "#287f55", "#2386a8",
-    "#3154a5", "#6438a8", "#a23482", "#151922", "#ece5d5", "#7a4b2a",
-}
-CUSTOM_GANG_FLAG_EMBLEMS = {"crown", "skull", "diamond", "wolf", "eagle", "star"}
 preview_bank_robs = {}
 preview_bank_bags = {}
 preview_businesses = {}
@@ -793,7 +783,7 @@ def tick_district_defenders(now, dt):
         waypoint = cap.get("patrol_wp")
         if boss and (not waypoint or math.hypot(waypoint[0]-boss["x"], waypoint[1]-boss["y"]) < 1.35
                      or now >= float(cap.get("patrol_wp_until") or 0)):
-            r0,r1,c0,c1 = dd.get("bounds", (0,199,0,179))
+            r0,r1,c0,c1 = dd.get("bounds", (0,199,0,79))
             for _ in range(80):
                 tx,ty = random.uniform(c0+3,c1-3),random.uniform(r0+3,r1-3)
                 if (math.hypot(tx-boss["x"],ty-boss["y"]) >= 12
@@ -1127,7 +1117,7 @@ def apartment_coords_from_key(apt_key):
             r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
     except (AttributeError, TypeError, ValueError):
         return None
-    return (r, c) if 0 <= r < 200 and 0 <= c < 180 else None
+    return (r, c) if 0 <= r < 200 and 0 <= c < 80 else None
 
 
 def apartment_district_id(r, c):
@@ -1138,10 +1128,7 @@ def apartment_district_id(r, c):
     if 80 <= r <= 99 and 0 <= c <= 39: return "countryside"
     if 40 <= r <= 99 and 40 <= c <= 79: return "industrial"
     if 100 <= r <= 149 and 0 <= c <= 79: return "lair"
-    if 0 <= r <= 74 and 100 <= c <= 179: return "rich"
-    if 75 <= r <= 109 and 100 <= c <= 179: return "nightlife"
-    if 110 <= r <= 149 and 100 <= c <= 179: return "industrial"
-    if 150 <= r <= 199 and 0 <= c <= 179: return "coast"
+    if 150 <= r <= 199 and 0 <= c <= 79: return "coast"
     return "standard"
 
 
@@ -1224,9 +1211,6 @@ async def apartment_sell(req):
     except Exception:
         body = {}
     apt_key = str(body.get("apt_key") or "").strip()[:32]
-    gang_id = preview_custom_gang_by_uid.get(str(uid))
-    if gang_id and preview_custom_gangs.get(gang_id, {}).get("hq_apt_key") == apt_key:
-        return cors(web.json_response({"ok": False, "error": "hq active"}, status=409))
     owned = preview_owned_apartments(uid)
     info = owned.get(apt_key)
     if not info:
@@ -1238,73 +1222,6 @@ async def apartment_sell(req):
     return cors(web.json_response({
         "ok": True, "refund": refund, "cash": account["cash"], "owned": owned,
     }))
-
-
-def preview_custom_gang_payload(uid):
-    gid = preview_custom_gang_by_uid.get(str(uid)); gang = preview_custom_gangs.get(gid)
-    if not gang: return None
-    coords = apartment_coords_from_key(gang["hq_apt_key"]) or (0, 0)
-    members = [{"telegram_id": str(mid), "name": players.get(str(mid), {}).get("name", "Игрок"),
-                "role": "leader" if str(mid) == str(gang["leader_uid"]) else "member"}
-               for mid in gang["members"]]
-    return {"id": gid, "name": gang["name"], "leader_uid": str(gang["leader_uid"]),
-            "role": "leader" if str(uid) == str(gang["leader_uid"]) else "member",
-            "hq_apt_key": gang["hq_apt_key"], "hq_r": coords[0], "hq_c": coords[1],
-            "flag": gang["flag"], "members": members, "member_count": len(members),
-            "max_members": 12, "created_at": gang["created_at"]}
-
-
-def preview_custom_gang_hqs():
-    out=[]
-    for gid,g in preview_custom_gangs.items():
-        coords=apartment_coords_from_key(g["hq_apt_key"])
-        if coords: out.append({"id":gid,"name":g["name"],"leader_uid":str(g["leader_uid"]),
-            "apt_key":g["hq_apt_key"],"r":coords[0],"c":coords[1],"member_count":len(g["members"]),"flag":g["flag"]})
-    return out
-
-
-async def custom_gang_state(req):
-    uid=req.match_info.get("uid","1")
-    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
-
-
-async def custom_gang_create(req):
-    global preview_custom_gang_seq
-    uid=str(req.match_info.get("uid","1")); body=await req.json(); name=" ".join(str(body.get("name") or "").split())[:24]; apt_key=str(body.get("apt_key") or "")[:32]
-    if len(name)<3 or apt_key not in preview_owned_apartments(uid): return cors(web.json_response({"ok":False,"error":"bad name or hq"},status=409))
-    if uid in preview_custom_gang_by_uid: return cors(web.json_response({"ok":False,"error":"already in gang"},status=409))
-    if any(str(g["name"]).casefold()==name.casefold() for g in preview_custom_gangs.values()): return cors(web.json_response({"ok":False,"error":"name taken"},status=409))
-    if any(g["hq_apt_key"]==apt_key for g in preview_custom_gangs.values()): return cors(web.json_response({"ok":False,"error":"hq taken"},status=409))
-    preview_custom_gang_seq+=1;gid=preview_custom_gang_seq;flag=body.get("flag") if isinstance(body.get("flag"),dict) else {}
-    primary=str(flag.get("primary") or "").strip().lower();secondary=str(flag.get("secondary") or "").strip().lower();emblem=str(flag.get("emblem") or "").strip().lower()
-    if primary not in CUSTOM_GANG_FLAG_COLORS: primary="#9b1f2d"
-    if secondary not in CUSTOM_GANG_FLAG_COLORS or secondary==primary: secondary="#e0b83e"
-    if secondary==primary: secondary="#ece5d5" if primary!="#ece5d5" else "#151922"
-    if emblem not in CUSTOM_GANG_FLAG_EMBLEMS: emblem="crown"
-    flag={"primary":primary,"secondary":secondary,"emblem":emblem}
-    preview_custom_gangs[gid]={"name":name,"leader_uid":uid,"hq_apt_key":apt_key,"flag":flag,"members":[uid],"created_at":int(time.time())};preview_custom_gang_by_uid[uid]=gid
-    if uid in players: players[uid].update({"custom_gang_id":gid,"custom_gang_name":name,"custom_gang_role":"leader","custom_gang_flag":flag,"custom_gang_hq":apt_key})
-    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
-
-
-async def custom_gang_leave(req):
-    uid=str(req.match_info.get("uid","1"));gid=preview_custom_gang_by_uid.get(uid);g=preview_custom_gangs.get(gid)
-    if not g or str(g["leader_uid"])==uid:return cors(web.json_response({"ok":False,"error":"leader must disband"},status=409))
-    g["members"].remove(uid);preview_custom_gang_by_uid.pop(uid,None)
-    if uid in players:
-        for k in ("custom_gang_id","custom_gang_name","custom_gang_role","custom_gang_flag","custom_gang_hq"):players[uid].pop(k,None)
-    return cors(web.json_response({"ok":True,"gang":None,"headquarters":preview_custom_gang_hqs()}))
-
-
-async def custom_gang_disband(req):
-    uid=str(req.match_info.get("uid","1"));gid=preview_custom_gang_by_uid.get(uid);g=preview_custom_gangs.get(gid)
-    if not g or str(g["leader_uid"])!=uid:return cors(web.json_response({"ok":False,"error":"leader only"},status=409))
-    for mid in list(g["members"]):
-        preview_custom_gang_by_uid.pop(str(mid),None)
-        if str(mid) in players:
-            for k in ("custom_gang_id","custom_gang_name","custom_gang_role","custom_gang_flag","custom_gang_hq"):players[str(mid)].pop(k,None)
-    preview_custom_gangs.pop(gid,None)
-    return cors(web.json_response({"ok":True,"gang":None,"headquarters":preview_custom_gang_hqs()}))
 
 
 def preview_owned_businesses(uid):
@@ -1479,9 +1396,14 @@ async def preview_world(_req):
     return web.Response(text=html, content_type="text/html")
 
 
-async def preview_three(_req):
-    source = Path("three_preview.js").read_text(encoding="utf-8", errors="replace")
-    return web.Response(text=source, content_type="application/javascript")
+async def preview_three_module(_req):
+    """Serve the local 3D renderer next to /preview/world.html.
+
+    The relative module URL in world.html resolves under /preview/ during the
+    integrated backend run. Without this explicit route aiohttp returned 404
+    and browser QA silently exercised the 2D fallback instead of Three.js.
+    """
+    return web.FileResponse(Path("three_preview.js"))
 
 
 def snap(uid):
@@ -1544,9 +1466,6 @@ def snap(uid):
             "jail_in": max(0, int(float(other.get("jail_until", 0))-now)),
             "weapon": other.get("weapon", "pistol"),
             "police": bool(other.get("police", False)),
-            "custom_gang_id": int(other.get("custom_gang_id", 0)),
-            "custom_gang_name": str(other.get("custom_gang_name", "")),
-            "custom_gang_role": str(other.get("custom_gang_role", "")),
             "police_cuffed": bool(other.get("police_cuffed_by")),
             "police_stunned_in": max(0, float(other.get("police_stunned_until", 0))-now),
             "police_escort": other.get("police_escort"),
@@ -1570,7 +1489,6 @@ def snap(uid):
                 "cash": preview_account(uid)["cash"],
                 "police_xp": int(preview_account(uid).get("police_xp", 0)),
                 "mafia_xp": int(preview_account(uid).get("mafia_xp", 0)),
-                "custom_gang": preview_custom_gang_payload(uid),
                 "police_arrests_today": preview_police_daily_state(uid)[1],
                 "police_arrest_limit": preview_police_daily_state(uid)[2],
                 "police_spikes_cd": max(0.0, round(
@@ -1715,7 +1633,7 @@ async def world_ws(req):
         "d": {
             "your_uid": uid,
             "tick_hz": 15,
-            "map_cols": 180,
+            "map_cols": 80,
             "map_rows": 200,
             "srv_now": round(time.time(), 2),
             "pvp": {"cd": 0.4, "range": 8, "max_hp": 100, "respawn": 5},
@@ -2832,7 +2750,7 @@ async def world_ws(req):
 app = web.Application()
 app.router.add_route("OPTIONS", "/{tail:.*}", options)
 app.router.add_get("/preview/world.html", preview_world)
-app.router.add_get("/preview/three_preview.js", preview_three)
+app.router.add_get("/preview/three_preview.js", preview_three_module)
 app.router.add_get("/coop_api.json", coop_api)
 app.router.add_get("/world/sim", world_ws)
 app.router.add_get("/inv/{uid}/list", inv_list)
@@ -2848,10 +2766,6 @@ app.router.add_get("/apartment/{uid}/state", apartment_state)
 app.router.add_post("/apartment/{uid}/buy", apartment_buy)
 app.router.add_post("/apartment/{uid}/upgrade", apartment_upgrade)
 app.router.add_post("/apartment/{uid}/sell", apartment_sell)
-app.router.add_get("/custom-gang/{uid}/state", custom_gang_state)
-app.router.add_post("/custom-gang/{uid}/create", custom_gang_create)
-app.router.add_post("/custom-gang/{uid}/leave", custom_gang_leave)
-app.router.add_post("/custom-gang/{uid}/disband", custom_gang_disband)
 app.router.add_get("/biz/{uid}/list", business_list)
 app.router.add_post("/biz/{uid}/buy", business_buy)
 app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
