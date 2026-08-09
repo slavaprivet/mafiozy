@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v258: race-safe armor destruction plus verified dossier inventory controls. -->
+<!DOCTYPE html><!-- v259: black-market entrances override nearby generic buildings in 2D and 3D. -->
 <!-- v254: shop purchases reconcile atomically with arsenal, armor and ammo. -->
 <!-- v253: every weapon rig and reload family is audited by automated 3D QA. -->
 <!-- v252: animation conflict audit adds authoritative state priority, teleport resets and pooled vehicle cleanup. -->
@@ -7623,7 +7623,10 @@ function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
   // Соседние NPC видят попадание → слух + испуг
   _npcSpreadRumor(npc, performance.now());
   if(npc.hp>0&&_npcTrySurrenderAfterHit(npc,performance.now()))return;
-  if(npc.hp<=0&&!npc._policeCriminal&&!npc._guard&&!npc._cashier&&!npc._invulnerable&&Math.random()<.72){
+  // Шанс выжить и перейти в тяжёлое ранение даётся только при первом падении.
+  // Раньше лежачий NPC при каждом новом попадании снова получал hp=1 с шансом
+  // 72%, из-за чего несколько пуль подряд визуально не могли его добить.
+  if(npc.hp<=0&&!npc._medicalDowned&&!npc._policeCriminal&&!npc._guard&&!npc._cashier&&!npc._invulnerable&&Math.random()<.72){
     const now=performance.now();npc.hp=1;npc._medicalDowned=true;npc._medicalDownedAt=now;npc._medicalBleedoutAt=now+30000;
     npc._knockedAt=now;npc._knockedUntil=npc._medicalBleedoutAt;npc.walkPhase=0;npc.snitching=false;npc.panicUntil=0;npc._forcedCrawl=true;npc.panicSrcR=player.r;npc.panicSrcC=player.c;
     npc.cryText='Помогите…';npc.cryUntil=now+1800;npc._ambulanceDispatched=false;
@@ -7633,6 +7636,8 @@ function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
   if (npc.hp <= 0) {
     npc.dead = true;
     npc.deadAt = performance.now();
+    npc._medicalDowned=false;npc._medicalDownedAt=0;npc._medicalBleedoutAt=0;
+    npc._knockedUntil=0;npc._forcedCrawl=false;npc.walking=false;
     _registerMurderIncident(npc,npc._lastViolentSource,npc.deadAt);
     // Большой splat крови на месте смерти + взрыв-фонтан частиц по сторонам
     for (let i = 0; i < 6; i++) {
@@ -7721,11 +7726,7 @@ function hitCityCop(cop, dirY, dirX, damage, source = null) {
     _onMurderArrestCopKilled(cop, source);
     _queueMurderOfficerDownBackup(cop, killedAt);
   }
-  if ((!source || source.kind === 'player')&&!deathWitnessAlerted) try {
-    ws && ws.send(JSON.stringify({ t: 'open_fire',
-      d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
-           weapon: currentWeapon || 'fists', civilian: false, witness: true } }));
-  } catch(e) {}
+  if ((!source || source.kind === 'player')&&!deathWitnessAlerted)_sendPoliceWitnessOpenFire();
 }
 // ── Жители-декор: пассажиры автобуса / ожидающие / хозяева парковок ──
 // У них нет hp — одно попадание убивает. Раньше в них нельзя было ни
@@ -8778,6 +8779,10 @@ const _COP_REACT_CRIES = {
   fight: ['Разойтись! Полиция!', 'Прекратить драку!', 'Стоять оба!', 'Спокойно!'],
   kill:  ['Убийца! Стоять!', 'Ты арестован!', 'Руки за голову!', 'Никуда не денешься!'],
 };
+function _sendPoliceWitnessOpenFire(){
+  document.documentElement.dataset.policeWitnessOpenFireSignals=String((+document.documentElement.dataset.policeWitnessOpenFireSignals||0)+1);
+  try{ws&&ws.send(JSON.stringify({t:'open_fire',d:{x:+player.c.toFixed(2),y:+player.r.toFixed(2),weapon:currentWeapon||'fists',civilian:false,witness:true}}));}catch(e){}
+}
 function _alertNearbyCops(reason,eventR=player.r,eventC=player.c,forceMurderAttack=false) {
   const cries = _COP_REACT_CRIES[reason] || _COP_REACT_CRIES.shot;
   const now = performance.now();
@@ -8819,14 +8824,7 @@ function _alertNearbyCops(reason,eventR=player.r,eventC=player.c,forceMurderAtta
     cop._murderWitnessUntil=now+45000;reacted=true;
   }
   // Сообщаем серверу: свидетель-коп зафиксировал инцидент → увеличивает wanted
-  if (reacted) {
-    try {
-      ws && ws.send(JSON.stringify({ t: 'open_fire',
-        d: { x: +player.c.toFixed(2), y: +player.r.toFixed(2),
-             weapon: currentWeapon || 'fists',
-             civilian: false, witness: true } }));
-    } catch(e) {}
-  }
+  if(reacted)_sendPoliceWitnessOpenFire();
   return reacted;
 }
 
@@ -11438,6 +11436,24 @@ function dispatchEmergencyServices() {
   // Убийства идут в отдельную очередь полиции. Машины уже стоят у участка;
   // свободный экипаж сначала выходит из здания и садится, как настоящий наряд.
   _ensurePoliceResponseFleet();
+  if(_LOCAL_PREVIEW&&_UP.has('previewdownedfinish')&&!document.documentElement.dataset.previewDownedFinish){
+    const victim=NPCS.find(n=>_isCivilianMurderVictim(n)&&!n.dead&&!n._medicalDowned);
+    const bay=_policeResponseBays()[0],road=_nearestRoadTile(bay.r+7,bay.c+2,14);
+    if(victim&&road){
+      player.r=road.r+.5;player.c=road.c+.5;player.vr=player.vc=0;currentWeapon='pistol';myHp=5000;myDead=false;_localDeath=false;
+      victim.r=player.r+3;victim.c=player.c+1;victim.tr=victim.r;victim.tc=victim.c;
+      victim.hp=1;victim._medicalDowned=true;victim._medicalDownedAt=now-2500;victim._medicalBleedoutAt=now+30000;
+      victim._knockedAt=now-2500;victim._knockedUntil=victim._medicalBleedoutAt;victim._forcedCrawl=true;victim._ambulanceDispatched=false;
+      _ensureAmbulanceFleet();
+      const ambulance=spawnAmbulance(victim.r,victim.c,victim);
+      if(ambulance)victim._ambulanceDispatched=true;
+      const patrol=cityCops.find(c=>c?.alive&&c.kind==='patrol');
+      if(patrol){patrol.y=victim.r+1.5;patrol.x=victim.c;patrol.ty=patrol.y;patrol.tx=patrol.x;}
+      hitNpc(victim,0,0,'pistol',20,{kind:'player',uid:String(QP?.uid||'local')});
+      const ambulanceStillAssigned=serviceVehicles.some(v=>v?.kind==='ambulance'&&v.payload?.npc===victim&&v.state!=='done');
+      document.documentElement.dataset.previewDownedFinish=`${victim.dead?'dead':'alive'}:${victim._medicalDowned?'downed':'cleared'}:${victim._policeMurderIncidentId?'police':'no-police'}:${ambulanceStillAssigned?'ambulance':'no-ambulance'}`;
+    }
+  }
   for(const n of NPCS){
     if(!n?.dead||!n.deadAt||n._policeMurderIncidentId||n._policeMurderIgnored)continue;
     if(now-n.deadAt>CORPSE_AUTO_REMOVE_MS)continue;
@@ -11451,7 +11467,7 @@ function dispatchEmergencyServices() {
     if(_UP.has('previewpolicearrest')||_UP.has('previewpolicesmart')||_UP.has('previewpoliceanykill')||_UP.has('previewpolicecivilkill')){
       const bay=_policeResponseBays()[0],road=_nearestRoadTile(bay.r+7,bay.c+2,14);
       if(road){player.r=road.r+.5;player.c=road.c+.5;player.vr=0;player.vc=0;}
-      currentWeapon='pistol';myHp=_UP.has('previewpolicecivilkill')?5000:1;myDead=false;_localDeath=false;
+      currentWeapon='pistol';myHp=(_UP.has('previewpolicecivilkill')||_UP.has('previewpoliceanykill'))?5000:1;myDead=false;_localDeath=false;
     }
     const victim=NPCS.find(n=>_isCivilianMurderVictim(n)&&!n.dead);
     if(victim){
@@ -11513,7 +11529,8 @@ function dispatchEmergencyServices() {
   if(_LOCAL_PREVIEW&&_UP.has('previewpoliceanykill')&&!document.documentElement.dataset.previewPoliceAnyKillTriggered){
     const van=policeFleet.find(v=>_murderPoliceProfile(v.payload?.murderIncident).armoredVan&&v.state==='police_search');
     if(van){
-      currentWeapon='fists';myHp=Math.max(+myHp||0,5000);myDead=false;_localDeath=false;
+  currentWeapon='fists';myHp=Math.max(+myHp||0,5000);myDead=false;_localDeath=false;
+  document.documentElement.dataset.previewPoliceAnyKillWeapon=currentWeapon;
       const patrol=cityCops.find(c=>c?.alive&&c.kind==='patrol');
       if(patrol){
         const spots=[[0,4],[0,-4],[4,0],[-4,0],[2.8,2.8],[-2.8,-2.8]];
@@ -15613,6 +15630,22 @@ function _buildingInteriorTypeAt(r,c) {
   return poi?.special||(br===36&&bc===16?'job':br===26&&bc===26?'gym':br===26&&bc===46?'hospital':br===BURJ_POS.r&&bc===BURJ_POS.c?'mafia_hq':null);
 }
 
+function _nearestBlackmarketInteraction(maxDistance = 3.5, fromR = player.r, fromC = player.c) {
+  let best = null;
+  for (const poi of POI) {
+    if (poi.special !== 'blackmarket') continue;
+    const entrance = _genericBuildingEntranceAnchor(poi.r, poi.c);
+    const distance = Math.min(
+      Math.hypot(fromR - poi.r - .5, fromC - poi.c - .5),
+      Math.hypot(fromR - entrance.r, fromC - entrance.c)
+    );
+    if (distance <= maxDistance && (!best || distance < best.distance)) {
+      best = { poi, entrance, distance };
+    }
+  }
+  return best;
+}
+
 function selectBuildingFrom3D(r,c,screenX=null,screenY=null) {
   if (_buildingInt || _bankInt || myDrivingCarId || myDead || !Number.isFinite(+r) || !Number.isFinite(+c)) return {ok:false};
   const anchor=Number.isFinite(+screenX)&&Number.isFinite(+screenY)?{x:+screenX,y:+screenY}:null;
@@ -15638,6 +15671,19 @@ function selectBuildingFrom3D(r,c,screenX=null,screenY=null) {
     _selectedBuildingEntry=null;_selectedVehicleEntry=null;
     if(near)_openBusinessActionCard('major',major,anchor);else showToast(`Подойди ближе: ${major.name}`,'📍',1800);
     return {ok:true,kind:'major',id:major.id,name:major.name,near};
+  }
+  // A black-market facade can overlap the screen footprint of an ordinary
+  // house. Resolve the authored POI before the generic blocked-tile scan.
+  const market=nearest(POI.filter(p=>p.special==='blackmarket'),7.5);
+  if(market){
+    const target=_nearestBlackmarketInteraction(3.5);
+    const near=!!target&&target.poi.id===market.id;
+    _selectedBuildingEntry={r:+market.r,c:+market.c,type:'blackmarket',label:market.name||'Чёрный рынок',
+      entryR:target?.entrance.r??null,entryC:target?.entrance.c??null,interactionId:String(market.id),selectedAtR:player.r,selectedAtC:player.c};
+    _selectedVehicleEntry=null;
+    if(near)_openBusinessActionCard('building',_selectedBuildingEntry,anchor);
+    else showToast(`Подойди ближе: ${market.name||'Чёрный рынок'}`,'🌌',1800);
+    return {ok:true,kind:'building',id:String(market.id),name:market.name||'Чёрный рынок',type:'blackmarket',near};
   }
   let best=null,bestD=7;
   const rr=Math.round(+r),cc=Math.round(+c);
@@ -15690,6 +15736,8 @@ function _nearbyBuildingInteractionFor3D() {
   for(const bank of BANKS){const d=_bankInteractionDistance(bank);if(d<=BANK_INTERACT_R&&d<bestD){const a=_bankInteractionAnchor(bank);best={kind:'bank',id:String(bank.id),r:+bank.r+1.5,c:+bank.c+1.5,entryR:a.r,entryC:a.c,name:bank.name||'Банк',distance:d};bestD=d;}}
   for(const biz of BUSINESS_POIS){const d=_businessInteractionDistance(biz);if(d<=BUSINESS_INTERACTION_RADIUS&&d<bestD){const a=_businessInteractionAnchor(biz);best={kind:'business',id:String(biz.id),r:+biz.r,c:+biz.c,entryR:a.r,entryC:a.c,name:biz.name||'Бизнес',distance:d};bestD=d;}}
   for(const poi of POI){if(!MAJOR_OBJECT_IDS.has(poi.id))continue;const d=_majorInteractionDistance(poi);if(d<=MAJOR_INTERACTION_RADIUS&&d<bestD){const a=_majorInteractionAnchor(poi);best={kind:'major',id:String(poi.id),r:+poi.r,c:+poi.c,entryR:a.r,entryC:a.c,name:poi.name||poi.label||'Здание',distance:d};bestD=d;}}
+  const market=_nearestBlackmarketInteraction(3.5);
+  if(market&&market.distance<bestD){const p=market.poi,a=market.entrance;best={kind:'building',id:String(p.id),r:+p.r,c:+p.c,entryR:a.r,entryC:a.c,name:p.name||'Чёрный рынок',type:'blackmarket',distance:market.distance};bestD=market.distance;}
   // A landmark/business facade owns the nearby E action. Ordinary blocked
   // tiles behind a large exterior must never steal it.
   if(best)return best;
@@ -15800,6 +15848,20 @@ function selectBuildingFromCanvasTap(x, y) {
     }
     _selectedBuildingEntry=null;_selectedVehicleEntry=null;
     _openBusinessActionCard('major',poi);return true;
+  }
+
+  // The market owns its complete facade hit area. Without this pass a roof
+  // tap could select an adjacent blocked tile and open a generic apartment.
+  for (const poi of POI) {
+    if (poi.special !== 'blackmarket') continue;
+    const p=w2s(poi.r+.5,poi.c+.5);
+    if(Math.abs(x-p.x)>72||y<p.y-170||y>p.y+38)continue;
+    const target=_nearestBlackmarketInteraction(3.5);
+    if(!target||target.poi.id!==poi.id){showToast(`Подойди ближе: ${poi.name}`,'🌌',1800);return true;}
+    _selectedBuildingEntry={r:+poi.r,c:+poi.c,type:'blackmarket',label:poi.name,
+      entryR:target.entrance.r,entryC:target.entrance.c,interactionId:String(poi.id),selectedAtR:player.r,selectedAtC:player.c};
+    _selectedVehicleEntry=null;
+    return _activateSelectedBuildingIfNear();
   }
 
   // Tall Burj floors project far above their ground tile, so give the tower
@@ -23878,7 +23940,18 @@ function updateGtaInteractions() {
     _gtaBtn.style.display = 'block';
     _syncBusinessActionCard();return;
   }
-  // Чёрный рынок — вход в здание
+  // Чёрный рынок всегда важнее вручную выбранного соседнего дома. Иначе
+  // фасад рынка мог оставить stale-выбор обычного здания и открыть его.
+  const nearBM=_nearestBlackmarketInteraction(3.5);
+  if (nearBM && !_buildingInt && !_bankInt && !myDrivingCarId) {
+    _selectedBuildingEntry=null;
+    _gtaActionKind = 'building_enter';
+    _gtaActionCarId = `${nearBM.poi.r},${nearBM.poi.c},blackmarket`;
+    _gtaBtn.textContent = `🌌 Войти: ${nearBM.poi.name}`;
+    _gtaBtn.style.display = 'block';
+    return;
+  }
+  // Обычные здания и квартиры.
   // Ручной выбор здания имеет приоритет, пока игрок стоит на месте.
   // После начала движения метка снова автоматически следует за ближайшим домом.
   const nearestEntry=_nearestWorldEntryCandidate();
@@ -23914,14 +23987,6 @@ function updateGtaInteractions() {
         return;
       }
     }
-  }
-  const nearBM=POI.filter(p=>p.special==='blackmarket').map(p=>({...p,d:Math.hypot(p.c-player.c,p.r-player.r)})).sort((a,b)=>a.d-b.d)[0];
-  if (nearBM&&nearBM.d <= 3.5 && !_buildingInt && !_bankInt && !myDrivingCarId) {
-    _gtaActionKind = 'building_enter';
-    _gtaActionCarId = `${nearBM.r},${nearBM.c},blackmarket`;
-    _gtaBtn.textContent = `🌌 Войти: ${nearBM.name}`;
-    _gtaBtn.style.display = 'block';
-    return;
   }
   // Биржа труда — вход
   if (!_buildingInt && !_bankInt && !myDrivingCarId) {
@@ -58874,6 +58939,22 @@ window.Mafiozi3DBridge = Object.freeze({
     window._studioTeleportUntil=Date.now()+10000;
     return true;
   },
+  previewBlackmarketEntryAudit(id='blackmarket', activate=true) {
+    if(!_LOCAL_PREVIEW)return {ok:false,reason:'preview-only'};
+    const poi=(typeof POI!=='undefined'?POI:[]).find(p=>p.id===String(id)&&p.special==='blackmarket');
+    if(!poi)return {ok:false,reason:'market-not-found'};
+    if(_buildingInt)exitBuildingInterior();
+    const entrance=_genericBuildingEntranceAnchor(poi.r,poi.c);
+    player.r=entrance.r;player.c=entrance.c;player.vr=0;player.vc=0;player.walking=false;
+    myDead=false;myDrivingCarId=null;window._studioTeleportUntil=Date.now()+10000;
+    updateGtaInteractions();
+    const action={kind:_gtaActionKind,id:_gtaActionCarId,label:_gtaBtn.textContent};
+    if(activate)activateCurrentBuildingEntry();
+    const result={ok:action.kind==='building_enter'&&action.id===`${poi.r},${poi.c},blackmarket`,
+      market:poi.id,action,interiorType:_buildingInt?.type||null};
+    document.documentElement.dataset.blackmarketEntryAudit=JSON.stringify(result);
+    return result;
+  },
   previewInterruptMurderArrest(sourceKind='gang_player') {
     if(!_LOCAL_PREVIEW||!_murderPoliceArrest||_murderPoliceArrest.phase==='transport')return {ok:false,phase:_murderPoliceArrest?.phase||'idle'};
     const ar=_murderPoliceArrest,cop=cityCops.find(c=>c?.id===ar.copId&&_murderPoliceCopActive(c,ar));
@@ -59519,6 +59600,7 @@ window.Mafiozi3DBridge = Object.freeze({
   canStand(r, c) { return Number.isFinite(r) && Number.isFinite(c) && !isBlocked(r, c); },
 });
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
+if(_LOCAL_PREVIEW&&_UP.get('previewblackmarket'))setTimeout(()=>window.Mafiozi3DBridge.previewBlackmarketEntryAudit(_UP.get('previewblackmarket'),_UP.get('previewblackmarketenter')!=='0'),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewcombatregression'))setTimeout(()=>{const npc=NPCS.find(n=>n&&!n.dead&&!n._evacuated&&!n._ambientGang),car=(typeof CARS!=='undefined'?CARS:[]).find(x=>x&&!x._hidden&&!x._towed&&!x._destroySequenceAt&&!x._shotWrecked&&!x._wrecked&&!x.wrecked),until=performance.now()+12000;if(!npc||!car)return;document.documentElement.dataset.combatQaNpc=_threeNpcEntityId(npc);document.documentElement.dataset.combatQaVehicle=_threeVehicleEntityId(car);const pin=setInterval(()=>{document.documentElement.dataset.combatQaNpcHp=String(Math.max(0,+npc.hp||0));document.documentElement.dataset.combatQaVehicleHp=String(Number.isFinite(+car._ballisticHp)?+car._ballisticHp:240);document.documentElement.dataset.combatQaVehicleHoles=String(+car._bulletHoleCount||0);if(performance.now()>until||npc.dead||car._shotWrecked||car._wrecked||car.wrecked){clearInterval(pin);return;}npc.r=player.r+3.2;npc.c=player.c+1.6;npc.tr=npc.r;npc.tc=npc.c;npc.walking=false;npc.moving=false;car.r=player.r+1.8;car.c=player.c-3.1;car.v=0;car.speed=0;},40);},1200);
 if(_LOCAL_PREVIEW&&_UP.get('threebusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInterior(_UP.get('threebusiness')),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewjunkyardstream'))setTimeout(()=>window.Mafiozi3DBridge.previewApproachJunkyard(),1600);
@@ -63318,6 +63400,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d258-inventory-armor-complete-visual-world"></script>
+<script type="module" src="three_preview.js?v=3d259-blackmarket-entry-priority"></script>
 </body>
 </html>
