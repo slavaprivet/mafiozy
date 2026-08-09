@@ -4848,7 +4848,28 @@ const JAIL_RADIUS_TILES = 7.0;
 const JAIL_GATE_HALF_RAD = 0.50;
 let _prisonReleaseGateSeconds=0,_prisonReleaseGateOpenedAt=-Infinity;
 const _prisonAlarmState={active:false,startedAt:0,lastHostileAt:0,reason:'',spawnRemaining:0,nextSpawnAt:0,sequence:0,clearedAt:0,clearReason:''};
+let _prisonAlarmServerSyncAt=0;
 function _prisonAlarmActive(){return !!_prisonAlarmState.active;}
+function _sendPrisonAlarmServer(action,reason=''){
+  if(_LOCAL_PREVIEW||!ws||ws.readyState!==1)return false;
+  const now=performance.now();if(now-_prisonAlarmServerSyncAt<450)return false;_prisonAlarmServerSyncAt=now;
+  try{ws.send(JSON.stringify({t:'prison_alarm',d:{action,reason,x:+player.c.toFixed(2),y:+player.r.toFixed(2)}}));return true;}catch(_){return false;}
+}
+function _syncPrisonAlarmFromServer(payload,now=performance.now()){
+  if(!payload||typeof payload.active!=='boolean')return;
+  if(payload.active){
+    const wasActive=_prisonAlarmState.active;
+    _prisonAlarmState.active=true;_prisonAlarmState.reason=String(payload.reason||'server');
+    _prisonAlarmState.sequence=Math.max(+_prisonAlarmState.sequence||0,+payload.sequence||0);
+    _prisonAlarmState.startedAt=now-Math.max(0,+payload.age_s||0)*1000;
+    _prisonAlarmState.lastHostileAt=now;
+    if(!wasActive){_prisonAlarmState.spawnRemaining=PRISON_ASSAULT_WEAPONS.length;_prisonAlarmState.nextSpawnAt=now+260;_prisonAlarmSirenNextAt=0;}
+    document.documentElement.dataset.prisonAlarm=`active:${_prisonAlarmState.sequence}:server`;
+    document.documentElement.dataset.prisonLockdown='locked';
+  }else if(_prisonAlarmState.active){
+    _clearPrisonAssault(String(payload.clear_reason||'server-clear'),now,false);
+  }
+}
 function _effectivePrisonJailSeconds(){
   if(_LOCAL_PREVIEW&&_UP.has('previewjailtimer'))return Math.max(0,+_UP.get('previewjailtimer')||0);
   return Math.max(0,+_prisonReleaseGateSeconds||0);
@@ -8829,7 +8850,7 @@ function _spawnPrisonAssaultOfficer(index,now=performance.now()){
   cityCops.push(cop);_copChats.set(cop.id,{text:['Штурм! К воротам!','Контакт во дворе!','Оружие на землю!','Блокировать выход!'][index%4],untilMs:now+2100});
   return cop;
 }
-function _activatePrisonAssault(cop=null,reason='guard-hit',now=performance.now()){
+function _activatePrisonAssault(cop=null,reason='guard-hit',now=performance.now(),notifyServer=true){
   const first=!_prisonAlarmState.active;
   _prisonAlarmState.active=true;_prisonAlarmState.lastHostileAt=now;_prisonAlarmState.reason=reason;
   if(first){
@@ -8842,15 +8863,17 @@ function _activatePrisonAssault(cop=null,reason='guard-hit',now=performance.now(
   }
   document.documentElement.dataset.prisonAlarm=`active:${_prisonAlarmState.sequence}:${reason}`;
   document.documentElement.dataset.prisonLockdown='locked';
+  if(notifyServer&&(first||now-_prisonAlarmServerSyncAt>2500))_sendPrisonAlarmServer('activate',reason);
   return true;
 }
-function _clearPrisonAssault(reason='booked',now=performance.now()){
+function _clearPrisonAssault(reason='booked',now=performance.now(),notifyServer=true){
   if(!_prisonAlarmState.active)return false;
   _prisonAlarmState.active=false;_prisonAlarmState.clearedAt=now;_prisonAlarmState.clearReason=reason;_prisonAlarmState.spawnRemaining=0;
   for(const guard of cityCops)if(guard?.alive&&guard.kind==='prison_staff'){
     guard._pursuing=false;guard._reactUntil=0;if(guard._prisonAssaultUnit)guard._prisonReturningToStation=true;
   }
   document.documentElement.dataset.prisonAlarm=`cleared:${reason}`;document.documentElement.dataset.prisonLockdown='open';
+  if(notifyServer)_sendPrisonAlarmServer('clear',reason);
   showEventBanner('🔕 ТРЕВОГА СНЯТА','Нападавший оформлен и помещён в тюремный блок.',3000,'neutral');
   return true;
 }
@@ -10700,8 +10723,8 @@ function _startMurderPoliceScene(v,now=performance.now()){
     ar.vehicleId=v.id;ar.copId=primary.id;ar.coverCopId=cover?.id||'';
     v.state='police_arrest_scene';incident.status='arresting-player';incident.arrestStartedAt=now;
     for(const officer of crew){officer._casePhase=officer===primary?'arrest_approach':'arrest_cover';officer._phaseStartedAt=now;officer._pursuing=true;}
-    _setMurderPoliceArrestPhase(ar,'downed',now);
-    document.documentElement.dataset.policeArrestRescuable='1';
+    _setMurderPoliceArrestPhase(ar,ar.voluntary?'surrendering':'downed',now);
+    document.documentElement.dataset.policeArrestRescuable=ar.voluntary?'0':'1';
     return true;
   }
   if(Math.hypot(player.r-incident.r,player.c-incident.c)<18)
@@ -10879,7 +10902,7 @@ function _setMurderPoliceArrestPhase(ar,phase,now=performance.now()){
 }
 function _murderPoliceArrestProgress(ar=_murderPoliceArrest,now=performance.now()){
   if(!ar)return 0;
-  const duration=ar.phase==='downed'?900:ar.phase==='cuffing'?POLICE_ARREST_CUFF_MS:
+  const duration=ar.phase==='surrendering'?6500:ar.phase==='downed'?900:ar.phase==='cuffing'?POLICE_ARREST_CUFF_MS:
     ar.phase==='escort'?6200:ar.phase==='loading'?POLICE_ARREST_LOAD_MS:
     ar.phase==='unloading'?POLICE_ARREST_UNLOAD_MS:ar.phase==='handoff'?12000:
     ar.phase==='booking'?POLICE_ARREST_BOOK_MS:ar.phase==='prison_escort'?22000:1;
@@ -10937,6 +10960,35 @@ function _queueAnyPoliceDeathPickup(cop=null,meta={},now=performance.now()){
   document.documentElement.dataset.policeArrestPhase='awaiting_pickup';
   document.documentElement.dataset.policeArrestRescuable='0';
   showEventBanner('🚔 ПОЛИЦИЯ ВЫЗВАЛА КОНВОЙ','Ты остаёшься на месте ранения. Наряд едет забрать тебя в тюрьму.',3600,'lose');
+  return true;
+}
+function _nearestSurrenderPolice(maxDistance=12){
+  let best=null,bestD=maxDistance;
+  for(const cop of cityCops){
+    if(!cop?.alive||(!cop.isPolice&&!cop.police&&cop.kind!=='prison_staff'))continue;
+    const d=Math.hypot((+cop.y||0)-player.r,(+cop.x||0)-player.c);
+    if(d<bestD){best=cop;bestD=d;}
+  }
+  return best?{cop:best,distance:bestD}:null;
+}
+function _canVoluntarilySurrender(){
+  return !myDead&&!_murderPoliceArrest&&!myDrivingCarId&&!myJetSkiId&&(myWanted>0||_prisonAlarmActive())&&!!_nearestSurrenderPolice(12);
+}
+function _beginVoluntarySurrender(now=performance.now()){
+  if(!_canVoluntarilySurrender())return false;
+  const found=_nearestSurrenderPolice(12),cop=found?.cop;if(!cop)return false;
+  if(_myBagWeight>0&&((_bankRob&&_bankRob.myBag)||_policeEvidenceBag))dropVaultBag();
+  currentWeapon=null;player.walking=false;player.vr=0;player.vc=0;myDead=false;_localDeath=false;myHp=Math.max(1,myHp);
+  const incident={id:`police_surrender_${++_murderIncidentSeq}`,r:+player.r||0,c:+player.c||0,
+    victim:null,source:{kind:'voluntary_surrender',copId:String(cop.id||'')},occurredAt:now,status:'queued',assignedVehicleId:null,
+    searchStartedAt:0,initialSearchUntil:0,lostAt:0,questionStartedAt:0,armedContact:false,closedAt:0,
+    playerArrestPickup:true,voluntarySurrender:true,routeRetryAt:0,routeFailures:0};
+  _murderIncidents.push(incident);while(_murderIncidents.length>24)_murderIncidents.shift();
+  _murderPoliceArrest={vehicleId:'',incidentId:incident.id,copId:'',coverCopId:'',phase:'surrendering',voluntary:true,
+    startedAt:now,phaseAt:now,lastGangShots:Object.create(null),serverRequested:false,serverAccepted:false,serverRejectedReason:''};
+  _dispatchMurderPoliceCalls(now);
+  document.documentElement.dataset.policeArrestPhase='surrendering';document.documentElement.dataset.policeArrestRescuable='0';
+  showEventBanner('🙌 ТЫ СДАЛСЯ','Оружие убрано. Не двигайся: наряд наденет наручники и отвезёт тебя в тюрьму.',3800,'neutral');
   return true;
 }
 function _applyGangmateRescueFire(ar,now=performance.now()){
@@ -11183,7 +11235,15 @@ function _updateMurderPoliceArrest(v,dt,now=performance.now()){
     if(ar.phase==='escort'||ar.phase==='loading')_moveMurderResponseCop(cover,coverPoint.r,coverPoint.c,dt,1.08);
     else{cover.ang=Math.atan2(player.r-cover.y,player.c-cover.x);}
   }
-  if(ar.phase==='downed'){
+  if(ar.phase==='surrendering'){
+    primary._lifeState='';primary._lifeGesture='';player.walking=false;
+    const reached=_moveMurderResponseCop(primary,player.r,player.c,dt,1.08);
+    if(reached||Math.hypot(primary.y-player.r,primary.x-player.c)<.9||now-ar.phaseAt>6500){
+      if(Math.hypot(primary.y-player.r,primary.x-player.c)>1.3){primary.y=player.r-Math.sin(primary.ang)*.72;primary.x=player.c-Math.cos(primary.ang)*.72;}
+      primary._lifeState='helping';primary._lifeGesture='aid';_setMurderPoliceArrestPhase(ar,'cuffing',now);
+      _copChats.set(primary.id,{text:'Правильное решение. Руки за спину.',untilMs:now+2200});
+    }
+  }else if(ar.phase==='downed'){
     primary._lifeState='';primary._lifeGesture='';
     const reached=_moveMurderResponseCop(primary,player.r,player.c,dt,1.12);
     if(reached||Math.hypot(primary.y-player.r,primary.x-player.c)<.9||now-ar.phaseAt>6500){
@@ -11659,6 +11719,14 @@ function dispatchEmergencyServices() {
   // Убийства идут в отдельную очередь полиции. Машины уже стоят у участка;
   // свободный экипаж сначала выходит из здания и садится, как настоящий наряд.
   _ensurePoliceResponseFleet();
+  if(_LOCAL_PREVIEW&&_UP.has('previewsurrender')&&!document.documentElement.dataset.previewSurrenderSeeded){
+    const cop=cityCops.find(c=>c?.alive&&(c.isPolice||c.police));
+    if(cop){
+      cop.y=player.r+2.2;cop.x=player.c+.6;cop.ty=cop.y;cop.tx=cop.x;
+      myWanted=2;myDead=false;_localDeath=false;myHp=Math.max(25,+myHp||0);currentWeapon='pistol';
+      document.documentElement.dataset.previewSurrenderSeeded=_beginVoluntarySurrender(now)?'started':'failed';
+    }
+  }
   if(_LOCAL_PREVIEW&&_UP.has('previewdownedfinish')&&!document.documentElement.dataset.previewDownedFinish){
     const victim=NPCS.find(n=>_isCivilianMurderVictim(n)&&!n.dead&&!n._medicalDowned);
     const bay=_policeResponseBays()[0],road=_nearestRoadTile(bay.r+7,bay.c+2,14);
@@ -20415,6 +20483,10 @@ function handleEventPacket(d) {
       _murderPoliceArrest.serverRejectedReason=String(d.reason||'unknown');
     }
     // ok=false молча — это либо лагнувший пакет, либо сервер уже посадил
+  } else if (kind === 'prison_alarm_reply') {
+    if(d.alarm)_syncPrisonAlarmFromServer(d.alarm,performance.now());
+    if(!d.ok&&d.reason==='not_hostile_or_too_far')
+      document.documentElement.dataset.prisonAlarmServerReject=d.reason;
   } else if (kind === 'bank_rob_announce') {
     // Кто-то вскрыл хранилище банка — уведомление ВСЕМ игрокам мира.
     if (d && d.msg) {
@@ -21713,6 +21785,7 @@ function wsConnect() {
       // Маркер для heartbeat-диагностики — sec since last snap
       try { _lastSnapT = performance.now(); } catch(e){}
       _updateFactionWarHud(d.faction_war);
+      if(d.prison_alarm!==undefined)_syncPrisonAlarmFromServer(d.prison_alarm,performance.now());
       // Reconcile серверной позиции с КЛИЕНТСКОЙ
       // (client-side prediction).
       //
@@ -23767,6 +23840,7 @@ function updateGtaInteractions() {
   _gtaBtn.classList.remove('biz-pressure-action');
   if (_robBtn) _robBtn._majorAssaultId = null;
   _updatePoliceStealthButton();
+  if(_murderPoliceArrest){_gtaActionKind=null;_gtaActionCarId=null;_gtaBtn.style.display='none';if(_robBtn)_robBtn.style.display='none';return;}
   if(_threeSelectedGangBotId&&performance.now()<_threeSelectedGangBotUntil&&!_policeState?.employed&&!_buildingInt&&!_bankInt&&!myDrivingCarId&&!myDead&&_myGang.length<GANG_MAX&&!(myGangs>0)){
     const selected=_findLiveAggroBotById(_threeSelectedGangBotId);
     if(selected&&!_isDistrictDefenderBot(selected.bot)&&Math.hypot(player.r-(+selected.bot.y||0),player.c-(+selected.bot.x||0))<=4.4){
@@ -24038,6 +24112,10 @@ function updateGtaInteractions() {
     _gtaActionKind='police_arrest';_gtaActionCarId=_arrestable._policeTargetId;
     _gtaBtn.textContent=`🔗 Арестовать · наручники ${_policeState.cuffs}`;
     _gtaBtn.style.display='block';return;
+  }
+  if(_canVoluntarilySurrender()){
+    _gtaActionKind='police_surrender';_gtaActionCarId=null;
+    _gtaBtn.textContent='🙌 Сдаться полиции';_gtaBtn.style.display='block';return;
   }
   if (myDrivingCarId) {
     // Если рядом АЗС и не пассажир — предлагаем заправиться
@@ -24718,6 +24796,8 @@ _gtaBtn.addEventListener('click', () => {
     }
   } else if (_gtaActionKind === 'exit') {
     exitCar('manual');
+  } else if (_gtaActionKind === 'police_surrender') {
+    _beginVoluntarySurrender();
   } else if (_gtaActionKind === 'jetski_enter') {
     enterJetSki(_gtaActionCarId);
   } else if (_gtaActionKind === 'jetski_exit') {
@@ -27792,7 +27872,7 @@ function _finishDueWeaponReload(weapon) {
   }
 }
 function reloadCurrentWeapon(manual = true) {
-  if (!_isArmed() || myDead || (myDrivingCarId && !_canShootFromBike()) || myJetSkiId || _playerSwimmingDeep || _inBus) return false;
+  if (!_isArmed() || myDead || _murderPoliceArrest || (myDrivingCarId && !_canShootFromBike()) || myJetSkiId || _playerSwimmingDeep || _inBus) return false;
   _finishDueWeaponReload(currentWeapon);
   const st = _weaponAmmoState(currentWeapon);
   if (_isReloadingWeapon(st.id)) return false;
@@ -28566,7 +28646,7 @@ function fire(angle = null) {
     showToast('🕵️ Ты в режиме наблюдателя — стрелять нельзя', 'ℹ️', 1500);
     return;
   }
-  if (myDead) return;
+  if (myDead||_murderPoliceArrest) return;
   if (_peacefulInteriorGunLock()) return;
   if (_myBagWeight > 0 && ((_bankRob && _bankRob.myBag) || _policeEvidenceBag)) { showToast('🎒 С мешком нельзя стрелять', '⚠️', 1400); return; }
   // Заключённый обычно остаётся без оружия, но найденное/пронесённое оружие
@@ -31391,7 +31471,7 @@ function update(dt) {
   player.walking = false;
   // Мёртвый игрок не двигается — ждём респауна сервера, иначе появлялся
   // в той же точке где умер (баг: «бегать могу и возрождаюсь там же»).
-  if (myDead || _policeStunnedIn > 0 || _onlinePoliceArrest?.role === 'detainee') inDx = 0, inDy = 0;
+  if (myDead || _murderPoliceArrest || _policeStunnedIn > 0 || _onlinePoliceArrest?.role === 'detainee') inDx = 0, inDy = 0;
   if (!myJetSkiId && (Math.abs(inDx) > 0.08 || Math.abs(inDy) > 0.08)) {
     const d = inDx, s = inDy / ISO_Y;
     const dc = (s + d) * 0.5;
@@ -59091,7 +59171,7 @@ window.Mafiozi3DBridge = Object.freeze({
       speed:anim.speed,accel:anim.accel,moveAng:anim.moveAng,teleported:anim.teleported,aiming:anim.aiming,impact:anim.impact,
       hp: _LOCAL_PREVIEW&&_UP.has('previewlimp')?20:Math.max(0,+myHp||0),
       dead:arrest?['awaiting_pickup','downed','cuffing','unloading'].includes(arrestPhase):!!myDead,
-      arrestPhase:arrestVisualPhase,arrestProgress,cuffed:['cuffing','escort','loading','transport','unloading','handoff','prison_escort','booking'].includes(arrestPhase),arrestHidden:arrestPhase==='transport',
+      arrestPhase:arrestVisualPhase,arrestProgress,voluntarySurrender:!!arrest?.voluntary,cuffed:['cuffing','escort','loading','transport','unloading','handoff','prison_escort','booking'].includes(arrestPhase),arrestHidden:arrestPhase==='transport',
       mode: myMode, weapon:previewWeaponId||currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
@@ -63712,6 +63792,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d267-blackmarket-forced-authored-facade"></script>
+<script type="module" src="three_preview.js?v=3d265-authored-blackmarket-door-sync"></script>
 </body>
 </html>
