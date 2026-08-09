@@ -8,6 +8,7 @@ import json
 import urllib.parse
 import os
 import secrets
+import hashlib
 import re
 from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
@@ -50,9 +51,10 @@ if not BOT_TOKEN:
     print(f"    На Railway: добавь переменную BOT_TOKEN в Variables сервиса.")
     print(f"    Локально: создай .bot-token рядом со скриптом.")
     _sys.exit(1)
-if _token_src != _BOT_TOKEN_FILE:
+if _token_src and _token_src not in {_BOT_TOKEN_FILE, "env:BOT_TOKEN"}:
     print(f"[i] BOT_TOKEN подхвачен из fallback: {_token_src}")
-    # Сразу копируем в .bot-token чтобы в следующий раз стартовало без fallback.
+    # Кэшируем только локальный backup. Значение из окружения может быть
+    # временным (например, в тестах/CI) и не должно попадать на диск.
     try:
         with open(_BOT_TOKEN_FILE, "w", encoding="utf-8") as _f:
             _f.write(BOT_TOKEN)
@@ -1077,6 +1079,34 @@ async def init_db():
                 previous_family TEXT NOT NULL DEFAULT ''
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS npc_business_control (
+                biz_id TEXT PRIMARY KEY,
+                faction TEXT NOT NULL,
+                mafia_family TEXT NOT NULL DEFAULT '',
+                gang_name TEXT NOT NULL DEFAULT '',
+                color TEXT NOT NULL DEFAULT '#999999',
+                captured_at REAL NOT NULL DEFAULT 0,
+                defense_level INTEGER NOT NULL DEFAULT 0,
+                last_fortified_at REAL NOT NULL DEFAULT 0
+            )
+        """)
+        for column_sql in (
+                "ALTER TABLE npc_business_control ADD COLUMN defense_level INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE npc_business_control ADD COLUMN last_fortified_at REAL NOT NULL DEFAULT 0"):
+            try:
+                await db.execute(column_sql)
+            except aiosqlite.OperationalError:
+                pass
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS npc_gang_economy (
+                faction TEXT PRIMARY KEY,
+                treasury INTEGER NOT NULL DEFAULT 240,
+                last_income_at REAL NOT NULL DEFAULT 0,
+                earned INTEGER NOT NULL DEFAULT 0,
+                spent INTEGER NOT NULL DEFAULT 0
+            )
+        """)
         try:
             await db.execute(
                 "ALTER TABLE business_family_wars ADD COLUMN preparing_until REAL NOT NULL DEFAULT 0")
@@ -1281,6 +1311,112 @@ async def init_db():
                 role_display TEXT,
                 last_collected INTEGER DEFAULT 0,
                 current_hp INTEGER DEFAULT NULL
+            )
+        """)
+        # Пользовательские банды. Это отдельная сущность от старых личных
+        # наёмников gang_members и от двух карьерных семей мафии.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS custom_gangs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                leader_uid INTEGER NOT NULL UNIQUE,
+                name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+                flag_primary TEXT NOT NULL DEFAULT '#9b1f2d',
+                flag_secondary TEXT NOT NULL DEFAULT '#e0b83e',
+                flag_emblem TEXT NOT NULL DEFAULT 'crown',
+                hq_apt_key TEXT NOT NULL UNIQUE,
+                treasury INTEGER NOT NULL DEFAULT 0,
+                edited_at INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        for column, definition in (
+            ('treasury', 'INTEGER NOT NULL DEFAULT 0'),
+            ('edited_at', 'INTEGER NOT NULL DEFAULT 0'),
+        ):
+            try:
+                await db.execute(
+                    f"ALTER TABLE custom_gangs ADD COLUMN {column} {definition}")
+            except Exception:
+                pass
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS custom_gang_members (
+                gang_id INTEGER NOT NULL,
+                telegram_id INTEGER NOT NULL UNIQUE,
+                role TEXT NOT NULL DEFAULT 'member',
+                joined_at INTEGER NOT NULL DEFAULT 0,
+                invited_by INTEGER DEFAULT NULL,
+                PRIMARY KEY (gang_id, telegram_id),
+                FOREIGN KEY (gang_id) REFERENCES custom_gangs(id) ON DELETE CASCADE
+            )
+        """)
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS ix_custom_gang_members_gang "
+            "ON custom_gang_members(gang_id,joined_at)"
+        )
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS custom_gang_npcs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gang_id INTEGER NOT NULL,
+                owner_uid INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                look_json TEXT NOT NULL DEFAULT '{}',
+                weapon TEXT NOT NULL DEFAULT 'pistol',
+                faction TEXT DEFAULT NULL,
+                hp INTEGER NOT NULL DEFAULT 80,
+                max_hp INTEGER NOT NULL DEFAULT 80,
+                level INTEGER NOT NULL DEFAULT 1,
+                fighter_xp INTEGER NOT NULL DEFAULT 0,
+                kills INTEGER NOT NULL DEFAULT 0,
+                damage_done INTEGER NOT NULL DEFAULT 0,
+                is_boss INTEGER NOT NULL DEFAULT 0,
+                source_bot_id TEXT DEFAULT NULL,
+                updated_at INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(gang_id,owner_uid,source_bot_id),
+                FOREIGN KEY (gang_id) REFERENCES custom_gangs(id) ON DELETE CASCADE
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS custom_gang_audit (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gang_id INTEGER NOT NULL,
+                actor_uid INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                details_json TEXT NOT NULL DEFAULT '{}',
+                created_at INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        # Steam — основной провайдер личности для desktop-сборки. Старый
+        # telegram_id пока остаётся внутренним числовым player_id, чтобы не
+        # переписывать за один релиз десятки связанных таблиц.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS platform_accounts (
+                player_id INTEGER PRIMARY KEY,
+                provider TEXT NOT NULL,
+                external_id TEXT NOT NULL,
+                display_name TEXT NOT NULL DEFAULT '',
+                created_at INTEGER NOT NULL DEFAULT 0,
+                last_login_at INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(provider,external_id)
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS game_sessions (
+                token_hash TEXT PRIMARY KEY,
+                player_id INTEGER NOT NULL,
+                provider TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL
+            )
+        """)
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS ix_game_sessions_expiry "
+            "ON game_sessions(expires_at)"
+        )
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS game_ws_tickets (
+                token_hash TEXT PRIMARY KEY,
+                player_id INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL
             )
         """)
         await db.execute("""
@@ -12645,6 +12781,720 @@ def _world_is_wall(r: int, c: int) -> bool:
         return False  # парк
     return True
 
+# ── Пользовательские банды и штаб-квартиры ─────────────────────────
+CUSTOM_GANG_MAX_MEMBERS = 12
+CUSTOM_GANG_FLAG_COLORS = {
+    '#9b1f2d', '#cf303d', '#e77b28', '#e0b83e', '#287f55', '#2386a8',
+    '#3154a5', '#6438a8', '#a23482', '#151922', '#ece5d5', '#7a4b2a',
+}
+CUSTOM_GANG_FLAG_EMBLEMS = {'crown', 'skull', 'diamond', 'wolf', 'eagle', 'star'}
+CUSTOM_GANG_EDIT_COST = 1000
+CUSTOM_GANG_EDIT_COOLDOWN = 3600
+STEAM_SESSION_TTL = 7 * 24 * 3600
+CUSTOM_GANG_NPC_NAMES = (
+    'Тони', 'Вито', 'Марко', 'Рико', 'Бруно', 'Энцо', 'Рокко', 'Джино',
+    'Костя', 'Борис', 'Руслан', 'Данте', 'Леон', 'Фокс', 'Волк', 'Змей',
+)
+
+
+def _steam_auth_required() -> bool:
+    configured = str(os.environ.get('STEAM_AUTH_REQUIRED', '')).strip().lower()
+    if configured:
+        return configured in {'1', 'true', 'yes', 'on'}
+    # A configured Steam production server is secure by default. Legacy/dev
+    # fallback survives only while Steam credentials are deliberately absent.
+    return bool(str(os.environ.get('STEAM_APP_ID', '')).strip()
+                and str(os.environ.get('STEAM_WEB_API_KEY', '')).strip())
+
+
+async def authenticate_steam_ticket(ticket: str) -> dict:
+    """Validate a Steam Web API ticket without exposing the publisher key."""
+    ticket = str(ticket or '').strip()
+    if (not ticket or len(ticket) > 8192 or len(ticket) % 2
+            or not re.fullmatch(r'[0-9a-fA-F]+', ticket)):
+        return {'ok': False, 'error': 'bad ticket'}
+    app_id = str(os.environ.get('STEAM_APP_ID', '')).strip()
+    api_key = str(os.environ.get('STEAM_WEB_API_KEY', '')).strip()
+    identity = str(os.environ.get('STEAM_WEB_API_IDENTITY', 'mafiozi-game')).strip()
+    if not app_id.isdigit() or not api_key:
+        return {'ok': False, 'error': 'steam auth not configured'}
+    try:
+        import aiohttp
+        timeout = aiohttp.ClientTimeout(total=10)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(
+                'https://partner.steam-api.com/ISteamUserAuth/AuthenticateUserTicket/v1/',
+                data={
+                    'key': api_key, 'appid': app_id, 'ticket': ticket,
+                    'identity': identity,
+                },
+            ) as response:
+                payload = await response.json(content_type=None)
+                if response.status != 200:
+                    return {'ok': False, 'error': 'steam unavailable'}
+    except Exception:
+        logger.exception('Steam ticket validation failed')
+        return {'ok': False, 'error': 'steam unavailable'}
+    params = ((payload or {}).get('response') or {}).get('params') or {}
+    if str(params.get('result') or '').upper() != 'OK':
+        return {'ok': False, 'error': 'invalid steam ticket'}
+    steam_id = str(params.get('steamid') or '').strip()
+    if not steam_id.isdigit():
+        return {'ok': False, 'error': 'invalid steam id'}
+    return {'ok': True, 'steam_id': steam_id,
+            'owner_steam_id': str(params.get('ownersteamid') or steam_id)}
+
+
+async def issue_steam_session(steam_id: str, display_name: str = '') -> dict:
+    """Map SteamID64 to the existing internal player id and issue a bearer token."""
+    if not str(steam_id).isdigit():
+        return {'ok': False, 'error': 'invalid steam id'}
+    player_id = int(steam_id)
+    if player_id <= 0 or player_id >= 2 ** 63:
+        return {'ok': False, 'error': 'invalid steam id'}
+    safe_name = re.sub(r'[\x00-\x1f<>]', '', str(display_name or '').strip())[:24]
+    safe_name = safe_name or f'Игрок {str(steam_id)[-6:]}'
+    now = int(time.time())
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        await db.execute("""
+            INSERT INTO platform_accounts
+                (player_id,provider,external_id,display_name,created_at,last_login_at)
+            VALUES(?,'steam',?,?,?,?)
+            ON CONFLICT(provider,external_id) DO UPDATE SET
+                display_name=excluded.display_name,last_login_at=excluded.last_login_at
+        """, (player_id, str(steam_id), safe_name, now, now))
+        async with db.execute(
+            'SELECT 1 FROM characters WHERE telegram_id=?', (player_id,)
+        ) as cur:
+            character_exists = bool(await cur.fetchone())
+        if not character_exists:
+            cls = CLASSES['killer']
+            await db.execute("""
+                INSERT INTO characters
+                    (telegram_id,username,name,class,hp,max_hp,mana,max_mana,
+                     attack,defense,cash)
+                VALUES(?,?,?,?,?,?,?,?,?,?,0)
+            """, (player_id, f'steam_{steam_id}', safe_name, 'killer',
+                    cls['hp'], cls['hp'], cls['mana'], cls['mana'],
+                    cls['attack'], cls['defense']))
+        await db.execute('DELETE FROM game_sessions WHERE expires_at<=?', (now,))
+        await db.execute("""
+            INSERT INTO game_sessions(token_hash,player_id,provider,created_at,expires_at)
+            VALUES(?,?,'steam',?,?)
+        """, (token_hash, player_id, now, now + STEAM_SESSION_TTL))
+        await db.commit()
+    return {'ok': True, 'session': token, 'expires_at': now + STEAM_SESSION_TTL,
+            'player_id': str(player_id), 'provider': 'steam'}
+
+
+async def issue_world_ws_ticket(player_id: int) -> dict:
+    """Issue a one-use, short-lived token so the bearer session stays out of WS URLs."""
+    now = int(time.time())
+    token = secrets.token_urlsafe(24)
+    digest = hashlib.sha256(token.encode('utf-8')).hexdigest()
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('DELETE FROM game_ws_tickets WHERE expires_at<=?', (now,))
+        await db.execute("""
+            INSERT INTO game_ws_tickets(token_hash,player_id,expires_at)
+            VALUES(?,?,?)
+        """, (digest, int(player_id), now + 30))
+        await db.commit()
+    return {'ok': True, 'ticket': token, 'expires_at': now + 30}
+
+
+async def consume_world_ws_ticket(token: str) -> int | None:
+    """Atomically consume a WebSocket ticket; replaying it must fail."""
+    token = str(token or '').strip()
+    if not token:
+        return None
+    digest = hashlib.sha256(token.encode('utf-8')).hexdigest()
+    now = int(time.time())
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute("""
+            SELECT player_id FROM game_ws_tickets
+             WHERE token_hash=? AND expires_at>?
+        """, (digest, now)) as cur:
+            row = await cur.fetchone()
+        if not row:
+            await db.rollback()
+            return None
+        await db.execute('DELETE FROM game_ws_tickets WHERE token_hash=?', (digest,))
+        await db.commit()
+    return int(row[0])
+
+
+async def resolve_request_player(req, claimed_uid=None) -> int | None:
+    """Resolve a bearer or one-use WS ticket; legacy uid is dev-only fallback."""
+    auth = str(req.headers.get('Authorization') or '').strip()
+    token = auth[7:].strip() if auth.lower().startswith('bearer ') else ''
+    resolved = None
+    ws_ticket = str(req.query.get('ws_ticket') or '').strip()
+    if ws_ticket:
+        resolved = await consume_world_ws_ticket(ws_ticket)
+        if resolved is None:
+            return None
+    elif token:
+        digest = hashlib.sha256(token.encode('utf-8')).hexdigest()
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("""
+                SELECT player_id FROM game_sessions
+                 WHERE token_hash=? AND expires_at>?
+            """, (digest, int(time.time()))) as cur:
+                row = await cur.fetchone()
+        if row:
+            resolved = int(row[0])
+        else:
+            return None
+    elif not _steam_auth_required() and claimed_uid is not None:
+        try:
+            resolved = int(claimed_uid)
+        except Exception:
+            return None
+    if resolved is None:
+        return None
+    if claimed_uid is not None:
+        try:
+            if int(claimed_uid) != resolved:
+                return None
+        except Exception:
+            return None
+    return resolved
+
+
+def normalize_custom_gang_name(value: str) -> str | None:
+    name = re.sub(r'\s+', ' ', str(value or '').strip())
+    if not 3 <= len(name) <= 24:
+        return None
+    if not re.fullmatch(r"[0-9A-Za-zА-Яа-яЁё _\-]+", name):
+        return None
+    return name
+
+
+def normalize_custom_gang_flag(primary, secondary, emblem) -> dict:
+    p = str(primary or '').strip().lower()
+    s = str(secondary or '').strip().lower()
+    e = str(emblem or '').strip().lower()
+    if p not in CUSTOM_GANG_FLAG_COLORS:
+        p = '#9b1f2d'
+    if s not in CUSTOM_GANG_FLAG_COLORS or s == p:
+        s = '#e0b83e'
+    if s == p:
+        s = '#ece5d5' if p != '#ece5d5' else '#151922'
+    if e not in CUSTOM_GANG_FLAG_EMBLEMS:
+        e = 'crown'
+    return {'primary': p, 'secondary': s, 'emblem': e}
+
+
+async def get_custom_gang_for_user(telegram_id: int) -> dict | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT g.*,m.role,m.joined_at
+              FROM custom_gang_members m
+              JOIN custom_gangs g ON g.id=m.gang_id
+             WHERE m.telegram_id=?
+        """, (telegram_id,)) as cur:
+            row = await cur.fetchone()
+        if not row:
+            return None
+        gang = dict(row)
+        async with db.execute("""
+            SELECT m.telegram_id,m.role,m.joined_at,
+                   COALESCE(c.name,'Игрок') AS name
+              FROM custom_gang_members m
+              LEFT JOIN characters c ON c.telegram_id=m.telegram_id
+             WHERE m.gang_id=? ORDER BY CASE m.role WHEN 'leader' THEN 0 ELSE 1 END,
+                                      m.joined_at,m.telegram_id
+        """, (gang['id'],)) as cur:
+            members = [dict(item) for item in await cur.fetchall()]
+        async with db.execute("""
+            SELECT id,owner_uid,name,look_json,weapon,faction,hp,max_hp,level,
+                   fighter_xp,kills,damage_done,is_boss,source_bot_id,updated_at
+              FROM custom_gang_npcs WHERE gang_id=? ORDER BY id
+        """, (gang['id'],)) as cur:
+            npc_rows = [dict(item) for item in await cur.fetchall()]
+        async with db.execute("""
+            SELECT actor_uid,action,details_json,created_at
+              FROM custom_gang_audit WHERE gang_id=? ORDER BY id DESC LIMIT 20
+        """, (gang['id'],)) as cur:
+            audit_rows = [dict(item) for item in await cur.fetchall()]
+    npcs = []
+    for npc in npc_rows:
+        try:
+            look = json.loads(npc.pop('look_json') or '{}')
+        except Exception:
+            look = {}
+        npc['id'] = str(npc['id'])
+        npc['owner_uid'] = str(npc['owner_uid'])
+        npc['is_boss'] = bool(npc['is_boss'])
+        npc['look'] = look if isinstance(look, dict) else {}
+        npcs.append(npc)
+    history = []
+    for item in audit_rows:
+        try:
+            details = json.loads(item.pop('details_json') or '{}')
+        except Exception:
+            details = {}
+        item['actor_uid'] = str(item['actor_uid'])
+        item['details'] = details if isinstance(details, dict) else {}
+        history.append(item)
+    coords = apartment_coords_from_key(str(gang['hq_apt_key'])) or (0, 0)
+    return {
+        'id': int(gang['id']), 'name': str(gang['name']),
+        'leader_uid': str(gang['leader_uid']), 'role': str(gang['role']),
+        'hq_apt_key': str(gang['hq_apt_key']), 'hq_r': int(coords[0]), 'hq_c': int(coords[1]),
+        'flag': {'primary': str(gang['flag_primary']),
+                 'secondary': str(gang['flag_secondary']),
+                 'emblem': str(gang['flag_emblem'])},
+        'members': [{**m, 'telegram_id': str(m['telegram_id'])} for m in members],
+        'member_count': len(members), 'max_members': CUSTOM_GANG_MAX_MEMBERS,
+        'npcs': npcs, 'treasury': int(gang.get('treasury') or 0),
+        'edited_at': int(gang.get('edited_at') or 0),
+        'edit_cost': CUSTOM_GANG_EDIT_COST,
+        'edit_cooldown': CUSTOM_GANG_EDIT_COOLDOWN,
+        'history': history,
+        'created_at': int(gang['created_at'] or 0),
+    }
+
+
+async def _custom_gang_audit(db, gang_id: int, actor_uid: int,
+                             action: str, details: dict | None = None) -> None:
+    await db.execute("""
+        INSERT INTO custom_gang_audit
+            (gang_id,actor_uid,action,details_json,created_at)
+        VALUES(?,?,?,?,?)
+    """, (gang_id, actor_uid, str(action)[:32],
+            json.dumps(details or {}, ensure_ascii=False), int(time.time())))
+
+
+async def kick_custom_gang_member_db(leader_uid: int, target_uid: int) -> dict:
+    if leader_uid == target_uid:
+        return {'ok': False, 'error': 'cannot kick self'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute("""
+            SELECT g.id,g.leader_uid,m.role FROM custom_gangs g
+              JOIN custom_gang_members m ON m.gang_id=g.id
+             WHERE m.telegram_id=?
+        """, (leader_uid,)) as cur:
+            gang = await cur.fetchone()
+        if not gang or int(gang['leader_uid']) != leader_uid:
+            await db.rollback()
+            return {'ok': False, 'error': 'leader only'}
+        async with db.execute("""
+            SELECT role FROM custom_gang_members WHERE gang_id=? AND telegram_id=?
+        """, (gang['id'], target_uid)) as cur:
+            target = await cur.fetchone()
+        if not target or str(target['role']) == 'leader':
+            await db.rollback()
+            return {'ok': False, 'error': 'member not found'}
+        await db.execute('DELETE FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=?',
+                         (gang['id'], target_uid))
+        await db.execute('DELETE FROM custom_gang_members WHERE gang_id=? AND telegram_id=?',
+                         (gang['id'], target_uid))
+        await _custom_gang_audit(db, int(gang['id']), leader_uid, 'kick',
+                                 {'target_uid': str(target_uid)})
+        await db.commit()
+    return {'ok': True, 'gang_id': int(gang['id']),
+            'member_uids': [str(leader_uid), str(target_uid)]}
+
+
+async def transfer_custom_gang_leadership_db(leader_uid: int, target_uid: int) -> dict:
+    if leader_uid == target_uid:
+        return {'ok': False, 'error': 'already leader'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute(
+            'SELECT id FROM custom_gangs WHERE leader_uid=?', (leader_uid,)
+        ) as cur:
+            gang = await cur.fetchone()
+        if not gang:
+            await db.rollback()
+            return {'ok': False, 'error': 'leader only'}
+        async with db.execute(
+            'SELECT 1 FROM custom_gang_members WHERE gang_id=? AND telegram_id=?',
+            (gang['id'], target_uid),
+        ) as cur:
+            if not await cur.fetchone():
+                await db.rollback()
+                return {'ok': False, 'error': 'member not found'}
+        await db.execute(
+            "UPDATE custom_gang_members SET role='member' WHERE gang_id=? AND telegram_id=?",
+            (gang['id'], leader_uid))
+        await db.execute(
+            "UPDATE custom_gang_members SET role='leader' WHERE gang_id=? AND telegram_id=?",
+            (gang['id'], target_uid))
+        await db.execute('UPDATE custom_gangs SET leader_uid=? WHERE id=?',
+                         (target_uid, gang['id']))
+        await _custom_gang_audit(db, int(gang['id']), leader_uid, 'transfer',
+                                 {'target_uid': str(target_uid)})
+        await db.commit()
+    return {'ok': True, 'gang_id': int(gang['id']),
+            'member_uids': [str(leader_uid), str(target_uid)]}
+
+
+async def custom_gang_treasury_db(uid: int, amount: int) -> dict:
+    amount = int(amount or 0)
+    if amount == 0 or abs(amount) > 1_000_000:
+        return {'ok': False, 'error': 'bad amount'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute("""
+            SELECT g.id,g.leader_uid,g.treasury,c.cash
+              FROM custom_gang_members m JOIN custom_gangs g ON g.id=m.gang_id
+              JOIN characters c ON c.telegram_id=m.telegram_id
+             WHERE m.telegram_id=?
+        """, (uid,)) as cur:
+            row = await cur.fetchone()
+        if not row:
+            await db.rollback()
+            return {'ok': False, 'error': 'not in gang'}
+        cash, treasury = int(row['cash'] or 0), int(row['treasury'] or 0)
+        action = 'deposit'
+        if amount > 0:
+            if cash < amount:
+                await db.rollback()
+                return {'ok': False, 'error': 'not enough cash'}
+            cash -= amount
+            treasury += amount
+        else:
+            action = 'withdraw'
+            take = -amount
+            if int(row['leader_uid']) != uid:
+                await db.rollback()
+                return {'ok': False, 'error': 'leader only'}
+            if treasury < take:
+                await db.rollback()
+                return {'ok': False, 'error': 'not enough treasury'}
+            cash += take
+            treasury -= take
+        await db.execute('UPDATE characters SET cash=? WHERE telegram_id=?', (cash, uid))
+        await db.execute('UPDATE custom_gangs SET treasury=? WHERE id=?',
+                         (treasury, row['id']))
+        await _custom_gang_audit(db, int(row['id']), uid, action,
+                                 {'amount': abs(amount)})
+        await db.commit()
+    return {'ok': True, 'cash': cash, 'treasury': treasury,
+            'gang_id': int(row['id'])}
+
+
+async def edit_custom_gang_db(uid: int, name: str, flag: dict) -> dict:
+    now = int(time.time())
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute('SELECT * FROM custom_gangs WHERE leader_uid=?', (uid,)) as cur:
+            gang = await cur.fetchone()
+        if not gang:
+            await db.rollback()
+            return {'ok': False, 'error': 'leader only'}
+        if now < int(gang['edited_at'] or 0) + CUSTOM_GANG_EDIT_COOLDOWN:
+            await db.rollback()
+            return {'ok': False, 'error': 'edit cooldown',
+                    'retry_at': int(gang['edited_at']) + CUSTOM_GANG_EDIT_COOLDOWN}
+        async with db.execute('SELECT id,name FROM custom_gangs WHERE id<>?', (gang['id'],)) as cur:
+            names = await cur.fetchall()
+        if any(str(row['name']).casefold() == name.casefold() for row in names):
+            await db.rollback()
+            return {'ok': False, 'error': 'name taken'}
+        if int(gang['treasury'] or 0) < CUSTOM_GANG_EDIT_COST:
+            await db.rollback()
+            return {'ok': False, 'error': 'not enough treasury'}
+        await db.execute("""
+            UPDATE custom_gangs SET name=?,flag_primary=?,flag_secondary=?,
+                   flag_emblem=?,treasury=treasury-?,edited_at=? WHERE id=?
+        """, (name, flag['primary'], flag['secondary'], flag['emblem'],
+                CUSTOM_GANG_EDIT_COST, now, gang['id']))
+        await _custom_gang_audit(db, int(gang['id']), uid, 'edit',
+                                 {'name': name, 'flag': flag})
+        await db.commit()
+    return {'ok': True, 'gang_id': int(gang['id'])}
+
+
+async def persist_custom_gang_npc(owner_uid: int, reply: dict) -> dict | None:
+    gang = await get_custom_gang_for_user(owner_uid)
+    if not gang:
+        return None
+    owned = [npc for npc in gang.get('npcs', [])
+             if str(npc.get('owner_uid')) == str(owner_uid)]
+    if len(owned) >= 5:
+        return None
+    name = random.choice(CUSTOM_GANG_NPC_NAMES)
+    level = max(1, min(25, int(reply.get('level') or 1)))
+    max_hp = max(1, min(5000, int(reply.get('max_hp') or 80)))
+    source_bot_id = str(reply.get('bot_id') or '')[:64]
+    now = int(time.time())
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("""
+            INSERT INTO custom_gang_npcs
+                (gang_id,owner_uid,name,look_json,weapon,faction,hp,max_hp,level,
+                 fighter_xp,kills,damage_done,is_boss,source_bot_id,updated_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(gang_id,owner_uid,source_bot_id) DO UPDATE SET
+                look_json=excluded.look_json,weapon=excluded.weapon,
+                faction=excluded.faction,hp=excluded.hp,max_hp=excluded.max_hp,
+                level=excluded.level,is_boss=excluded.is_boss,updated_at=excluded.updated_at
+        """, (gang['id'], owner_uid, name,
+                json.dumps(reply.get('look') or {}, ensure_ascii=False),
+                str(reply.get('weapon') or 'pistol')[:24],
+                str(reply.get('faction') or '')[:24] or None,
+                max_hp, max_hp, level, 0, 0, 0,
+                1 if reply.get('is_boss') else 0, source_bot_id, now))
+        npc_id = int(cur.lastrowid or 0)
+        if not npc_id:
+            async with db.execute("""
+                SELECT id FROM custom_gang_npcs
+                 WHERE gang_id=? AND owner_uid=? AND source_bot_id=?
+            """, (gang['id'], owner_uid, source_bot_id)) as find_cur:
+                found = await find_cur.fetchone()
+                npc_id = int(found[0]) if found else 0
+        await _custom_gang_audit(db, gang['id'], owner_uid, 'hire_npc',
+                                 {'npc_id': str(npc_id), 'name': name})
+        await db.commit()
+    refreshed = await get_custom_gang_for_user(owner_uid)
+    return next((npc for npc in (refreshed or {}).get('npcs', [])
+                 if str(npc.get('id')) == str(npc_id)), None)
+
+
+async def sync_custom_gang_npcs_db(owner_uid: int, items: list) -> dict:
+    gang = await get_custom_gang_for_user(owner_uid)
+    if not gang:
+        return {'ok': False, 'error': 'not in gang'}
+    safe_items = []
+    for raw in (items if isinstance(items, list) else [])[:5]:
+        if not isinstance(raw, dict) or not str(raw.get('id') or '').isdigit():
+            continue
+        safe_items.append({
+            'id': int(raw['id']), 'hp': max(0, min(5000, int(raw.get('hp') or 0))),
+            'max_hp': max(1, min(5000, int(raw.get('max_hp') or 80))),
+            'level': max(1, min(25, int(raw.get('level') or 1))),
+            'fighter_xp': max(0, min(10_000_000, int(raw.get('fighterXp') or 0))),
+            'kills': max(0, min(1_000_000, int(raw.get('kills') or 0))),
+            'damage_done': max(0, min(1_000_000_000, int(raw.get('damageDone') or 0))),
+        })
+    keep = [item['id'] for item in safe_items]
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        for item in safe_items:
+            await db.execute("""
+                UPDATE custom_gang_npcs SET hp=?,max_hp=?,level=?,fighter_xp=?,
+                       kills=?,damage_done=?,updated_at=?
+                 WHERE id=? AND gang_id=? AND owner_uid=?
+            """, (item['hp'], item['max_hp'], item['level'], item['fighter_xp'],
+                    item['kills'], item['damage_done'], int(time.time()), item['id'],
+                    gang['id'], owner_uid))
+        if keep:
+            placeholders = ','.join('?' for _ in keep)
+            await db.execute(
+                f'DELETE FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=? '
+                f'AND id NOT IN ({placeholders})', (gang['id'], owner_uid, *keep))
+        else:
+            await db.execute('DELETE FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=?',
+                             (gang['id'], owner_uid))
+        await db.commit()
+    refreshed = await get_custom_gang_for_user(owner_uid)
+    return {'ok': True, 'npcs': (refreshed or {}).get('npcs', [])}
+
+
+async def get_custom_gang_headquarters() -> list:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT g.id,g.name,g.leader_uid,g.hq_apt_key,g.flag_primary,
+                   g.flag_secondary,g.flag_emblem,COUNT(m.telegram_id) AS member_count
+              FROM custom_gangs g LEFT JOIN custom_gang_members m ON m.gang_id=g.id
+             GROUP BY g.id ORDER BY g.id
+        """) as cur:
+            rows = [dict(row) for row in await cur.fetchall()]
+    result = []
+    for row in rows:
+        coords = apartment_coords_from_key(str(row['hq_apt_key']))
+        if not coords:
+            continue
+        result.append({
+            'id': int(row['id']), 'name': str(row['name']),
+            'leader_uid': str(row['leader_uid']), 'apt_key': str(row['hq_apt_key']),
+            'r': int(coords[0]), 'c': int(coords[1]),
+            'member_count': int(row['member_count'] or 0),
+            'flag': {'primary': str(row['flag_primary']),
+                     'secondary': str(row['flag_secondary']),
+                     'emblem': str(row['flag_emblem'])},
+        })
+    return result
+
+
+async def create_custom_gang_db(leader_uid: int, apt_key: str, name: str,
+                                flag: dict, party_uids: list[int]) -> dict:
+    """Atomically create a gang and attach every eligible party member."""
+    await ensure_apartment_tables()
+    members = list(dict.fromkeys([leader_uid, *[int(x) for x in party_uids]]))
+    if len(members) > CUSTOM_GANG_MAX_MEMBERS:
+        return {'ok': False, 'error': 'party too large'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('PRAGMA foreign_keys=ON')
+        await db.execute('BEGIN IMMEDIATE')
+        placeholders = ','.join('?' for _ in members)
+        async with db.execute(
+            f"SELECT telegram_id,mafia_family FROM characters WHERE telegram_id IN ({placeholders})",
+            members,
+        ) as cur:
+            characters = {int(row['telegram_id']): dict(row) for row in await cur.fetchall()}
+        if leader_uid not in characters:
+            await db.rollback()
+            return {'ok': False, 'error': 'no character'}
+        if len(characters) != len(members):
+            await db.rollback()
+            return {'ok': False, 'error': 'party member missing'}
+        if any(str(row.get('mafia_family') or '') for row in characters.values()):
+            await db.rollback()
+            return {'ok': False, 'error': 'mafia conflict'}
+        # SQLite NOCASE only folds ASCII. Python casefold also protects
+        # visually identical Cyrillic names such as «Волки» and «ВОЛКИ».
+        async with db.execute("SELECT name FROM custom_gangs") as cur:
+            existing_names = [str(row['name']) for row in await cur.fetchall()]
+        if any(existing.casefold() == name.casefold() for existing in existing_names):
+            await db.rollback()
+            return {'ok': False, 'error': 'name taken'}
+        async with db.execute(
+            f"SELECT telegram_id FROM custom_gang_members WHERE telegram_id IN ({placeholders}) LIMIT 1",
+            members,
+        ) as cur:
+            if await cur.fetchone():
+                await db.rollback()
+                return {'ok': False, 'error': 'member already in gang'}
+        async with db.execute(
+            "SELECT 1 FROM apartments_owned WHERE telegram_id=? AND apt_key=?",
+            (leader_uid, apt_key),
+        ) as cur:
+            if not await cur.fetchone():
+                await db.rollback()
+                return {'ok': False, 'error': 'hq not owned'}
+        try:
+            cur = await db.execute("""
+                INSERT INTO custom_gangs
+                (leader_uid,name,flag_primary,flag_secondary,flag_emblem,hq_apt_key,created_at)
+                VALUES(?,?,?,?,?,?,?)
+            """, (leader_uid, name, flag['primary'], flag['secondary'],
+                    flag['emblem'], apt_key, int(time.time())))
+            gang_id = int(cur.lastrowid)
+            now = int(time.time())
+            await db.executemany("""
+                INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by)
+                VALUES(?,?,?,?,?)
+            """, [(gang_id, member_uid, 'leader' if member_uid == leader_uid else 'member',
+                     now, leader_uid) for member_uid in members])
+            await _custom_gang_audit(db, gang_id, leader_uid, 'create',
+                                     {'name': name, 'members': [str(x) for x in members]})
+            await db.commit()
+        except aiosqlite.IntegrityError as exc:
+            await db.rollback()
+            text = str(exc).lower()
+            return {'ok': False, 'error': 'name taken' if 'name' in text else
+                    ('hq taken' if 'hq_apt_key' in text else 'already in gang')}
+    return {'ok': True, 'gang_id': gang_id, 'member_uids': [str(x) for x in members]}
+
+
+async def join_custom_gang_db(gang_id: int, target_uid: int, inviter_uid: int) -> dict:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute(
+            "SELECT leader_uid FROM custom_gangs WHERE id=?", (gang_id,)
+        ) as cur:
+            gang = await cur.fetchone()
+        if not gang or int(gang['leader_uid']) != inviter_uid:
+            await db.rollback()
+            return {'ok': False, 'error': 'leader only'}
+        async with db.execute(
+            "SELECT mafia_family FROM characters WHERE telegram_id=?", (target_uid,)
+        ) as cur:
+            target = await cur.fetchone()
+        if not target:
+            await db.rollback()
+            return {'ok': False, 'error': 'no character'}
+        if str(target['mafia_family'] or ''):
+            await db.rollback()
+            return {'ok': False, 'error': 'mafia conflict'}
+        async with db.execute(
+            "SELECT COUNT(*) FROM custom_gang_members WHERE gang_id=?", (gang_id,)
+        ) as cur:
+            count = int((await cur.fetchone())[0])
+        if count >= CUSTOM_GANG_MAX_MEMBERS:
+            await db.rollback()
+            return {'ok': False, 'error': 'full'}
+        try:
+            await db.execute("""
+                INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by)
+                VALUES(?,?,'member',?,?)
+            """, (gang_id, target_uid, int(time.time()), inviter_uid))
+            await _custom_gang_audit(db, gang_id, inviter_uid, 'join',
+                                     {'target_uid': str(target_uid)})
+            await db.commit()
+        except aiosqlite.IntegrityError:
+            await db.rollback()
+            return {'ok': False, 'error': 'already in gang'}
+    return {'ok': True}
+
+
+async def leave_custom_gang_db(uid: int) -> dict:
+    gang = await get_custom_gang_for_user(uid)
+    if not gang:
+        return {'ok': False, 'error': 'not in gang'}
+    if gang['role'] == 'leader':
+        return {'ok': False, 'error': 'leader must disband'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('DELETE FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=?',
+                         (gang['id'], uid))
+        await db.execute("DELETE FROM custom_gang_members WHERE telegram_id=?", (uid,))
+        await _custom_gang_audit(db, gang['id'], uid, 'leave')
+        await db.commit()
+    return {
+        'ok': True, 'gang_id': gang['id'],
+        'member_uids': [str(member['telegram_id']) for member in gang['members']],
+    }
+
+
+async def disband_custom_gang_db(uid: int) -> dict:
+    gang = await get_custom_gang_for_user(uid)
+    if not gang or gang['role'] != 'leader':
+        return {'ok': False, 'error': 'leader only'}
+    member_uids = [str(member['telegram_id']) for member in gang['members']]
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        await _custom_gang_audit(db, gang['id'], uid, 'disband')
+        await db.execute("DELETE FROM custom_gang_npcs WHERE gang_id=?", (gang['id'],))
+        await db.execute("DELETE FROM custom_gang_members WHERE gang_id=?", (gang['id'],))
+        await db.execute("DELETE FROM custom_gangs WHERE id=?", (gang['id'],))
+        await db.commit()
+    return {'ok': True, 'gang_id': gang['id'], 'member_uids': member_uids}
+
+
+def apply_custom_gang_to_player(player: dict | None, gang: dict | None) -> None:
+    """Mirror persistent gang membership into the live authoritative world."""
+    if player is None:
+        return
+    if not gang:
+        for key in ('_custom_gang_id', '_custom_gang_name', '_custom_gang_role',
+                    '_custom_gang_flag', '_custom_gang_hq'):
+            player.pop(key, None)
+        if str(player.get('_crew_id') or '').startswith('cg:'):
+            player.pop('_crew_id', None)
+        return
+    player['_custom_gang_id'] = int(gang['id'])
+    player['_custom_gang_name'] = str(gang['name'])
+    player['_custom_gang_role'] = str(gang['role'])
+    player['_custom_gang_flag'] = dict(gang['flag'])
+    player['_custom_gang_hq'] = str(gang['hq_apt_key'])
+    player['_crew_id'] = f"cg:{int(gang['id'])}"
+
 
 def _world_bot_passable(x: float, y: float, radius: float = 0.30) -> bool:
     """Keep an NPC's whole body out of walls, not only its center point."""
@@ -12806,7 +13656,7 @@ class WorldSim:
     POLICE_BACKUP_CD = 90.0
     __slots__ = (
         'tick_no', 'last_tick_at', 'players', 'connections',
-        'gang_player_invites',
+        'gang_player_invites', 'custom_gang_invites',
         'alive', 'started_at',
         'event', '_event_next_at',
         'cops', '_next_cop_id', '_last_wanted_decay',
@@ -12829,7 +13679,8 @@ class WorldSim:
         'aggro', 'aggro_covers', 'aggro_capturing_at', '_next_bot_id',
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
-        '_city_gang_encounters',
+        '_city_gang_encounters', '_gang_throwables', '_street_control',
+        '_npc_business_controls', '_npc_gang_economy',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
         '_business_npc_occupations', '_business_npc_capture_cooldown',
         '_business_closed_until', '_business_aggro_until', '_business_police_protected_until',
@@ -13150,6 +14001,43 @@ class WorldSim:
     CITY_GANG_CHASE_SPEED   = 1.5
     CITY_GANG_FIRE_R        = 7.0
     CITY_GANG_COPS_PER_GANG = 3       # копов спавним когда банда hostile
+    CITY_GANG_GRENADE_NOTICE_R = 7.2
+    CITY_GANG_GRENADE_SAFE_R   = 5.0
+    CITY_GANG_MOLOTOV_SAFE_R   = 5.7
+    CITY_GANG_DODGE_SPEED      = 4.7
+    CITY_GANG_COVER_HP_RATIO   = 0.42
+    CITY_GANG_RIVAL_SEEK_R     = 42.0
+    CITY_GANG_RIVAL_REPLAN_S   = 24.0
+    CITY_GANG_CONTROL_S        = 180.0
+    CITY_GANG_REINFORCE_DELAY_S = 6.0
+    CITY_GANG_BUSINESS_REPLAN_MIN_S = 18.0
+    CITY_GANG_BUSINESS_REPLAN_MAX_S = 38.0
+    CITY_GANG_BUSINESS_CAPTURE_S = 7.0
+    CITY_GANG_BUSINESS_RADIUS = 5.2
+    CITY_GANG_BUSINESS_FIGHT_R = 9.0
+    CITY_GANG_BUSINESS_ROUTE_TTL_S = 75.0
+    NPC_GANG_ECONOMY_TICK_S = 30.0
+    NPC_GANG_BUSINESS_INCOME = 18
+    NPC_GANG_COMEBACK_INCOME = 8
+    NPC_GANG_TREASURY_CAP = 5000
+    NPC_GANG_FORTIFY_COST = 90
+    NPC_GANG_FORTIFY_GAP_S = 120.0
+    NPC_GANG_MAX_DEFENSE = 3
+    NPC_GANG_PROFILES = {
+        'purple': {
+            'doctrine': 'Оборона и укрепление', 'aggression': .88,
+            'defense': 1.28, 'income': 1.15, 'backup_cost': 55,
+            'replan': 1.12,
+        },
+        'yellow': {
+            'doctrine': 'Налёты и экспансия', 'aggression': 1.30,
+            'defense': .92, 'income': .96, 'backup_cost': 65,
+            'replan': .82,
+        },
+    }
+    CITY_GANG_MAX_REINFORCEMENTS = 2
+    CITY_GANG_RETREAT_HP_RATIO = 0.28
+    LAIR_SENTRY_COUNT          = 4
     # ── Пляжники ────────────────────────────────────────────────────
     # Мирные NPC на пляже в купальниках/плавках. Гуляют, пьют сок,
     # загорают. При выстреле рядом — бегут в глубь пляжа.
@@ -13234,15 +14122,15 @@ class WorldSim:
     # перекрывают AGGRO_BOT_* константы выше, когда бот реально палит
     # из конкретного оружия. ИСПОЛЬЗУЕТСЯ в _enqueue_bot_shot.
     AGGRO_WEAPON_STATS = {
-        'pistol':       {'speed': 14.0, 'dmg':  7, 'range':  6.0, 'cd': 1.0},
-        'pistol_heavy': {'speed': 13.0, 'dmg':  9, 'range':  6.5, 'cd': 1.1},
-        'pistol_gold':  {'speed': 14.0, 'dmg': 10, 'range':  6.5, 'cd': 1.0},
-        'shotgun':      {'speed': 11.0, 'dmg': 18, 'range':  4.5, 'cd': 1.7},
-        'smg':          {'speed': 16.0, 'dmg':  6, 'range':  7.0, 'cd': 0.5},
-        'uzi':          {'speed': 16.0, 'dmg':  6, 'range':  7.0, 'cd': 0.55},
-        'rifle':        {'speed': 20.0, 'dmg': 12, 'range':  9.0, 'cd': 1.0},
-        'sniper':       {'speed': 32.0, 'dmg': 28, 'range': 14.0, 'cd': 2.6},
-        'rpg':          {'speed':  8.0, 'dmg': 40, 'range': 10.0, 'cd': 3.5},
+        'pistol':       {'speed': 14.0, 'dmg':  7, 'range':  6.0, 'cd': 1.0,  'mag':12, 'reload':1.4},
+        'pistol_heavy': {'speed': 13.0, 'dmg':  9, 'range':  6.5, 'cd': 1.1,  'mag':7,  'reload':1.9},
+        'pistol_gold':  {'speed': 14.0, 'dmg': 10, 'range':  6.5, 'cd': 1.0,  'mag':15, 'reload':1.35},
+        'shotgun':      {'speed': 11.0, 'dmg': 18, 'range':  4.5, 'cd': 1.7,  'mag':6,  'reload':2.45},
+        'smg':          {'speed': 16.0, 'dmg':  6, 'range':  7.0, 'cd': 0.5,  'mag':30, 'reload':1.8},
+        'uzi':          {'speed': 16.0, 'dmg':  6, 'range':  7.0, 'cd': 0.55, 'mag':32, 'reload':1.75},
+        'rifle':        {'speed': 20.0, 'dmg': 12, 'range':  9.0, 'cd': 1.0,  'mag':30, 'reload':2.05},
+        'sniper':       {'speed': 32.0, 'dmg': 28, 'range': 14.0, 'cd': 2.6,  'mag':5,  'reload':2.65},
+        'rpg':          {'speed':  8.0, 'dmg': 40, 'range': 10.0, 'cd': 3.5,  'mag':1,  'reload':2.4},
     }
     # Вес выбора пушки при спауне бандита Логова/городской банды.
     # Базук/снайперок — мало (1 на 3-4 банды), пистолетов — много.
@@ -13352,6 +14240,7 @@ class WorldSim:
         self.players         = {}   # uid (str) -> {x,y,ang,name,look,hp,last_seen}
         self.connections     = {}   # uid (str) -> aiohttp WebSocketResponse
         self.gang_player_invites = {}  # target_uid -> {from_uid, expires_at}
+        self.custom_gang_invites = {}  # target_uid -> {from_uid, gang_id, expires_at}
         self.alive           = True
         # Активное эмерджентное событие (dict) или None.
         self.event           = None
@@ -13425,6 +14314,22 @@ class WorldSim:
         self._city_gang_next_id = 1
         self._city_gang_next_spawn_at = 0.0
         self._city_gang_encounters = {}
+        self._street_control = {}
+        # Autonomous NPC ownership is separate from player/family economy.
+        # Each control points at a physical city-gang garrison.
+        self._npc_business_controls = {}
+        economy_now = time.time()
+        self._npc_gang_economy = {
+            faction: {
+                'faction': faction, 'treasury': 240,
+                'last_income_at': economy_now, 'earned': 0, 'spent': 0,
+            }
+            for faction in ('purple', 'yellow')
+        }
+        # Короткоживущие опасные зоны от летящих гранат и Молотова.
+        # Сервер хранит их, чтобы уличные банды и боссы действительно
+        # уклонялись, а не только проигрывали анимацию на одном клиенте.
+        self._gang_throwables = []
         # Очередь физических пуль ботов (dodge-механика). Каждый shot
         # имеет apply_at — момент, когда пуля долетит до цели. Если к
         # этому моменту игрок ушёл из радиуса BULLET_DODGE_R от точки
@@ -13596,6 +14501,11 @@ class WorldSim:
             '_mafia_family': '',
             '_mafia_traitor_until': 0.0,
             '_mafia_last_family': '',
+            '_custom_gang_id': 0,
+            '_custom_gang_name': '',
+            '_custom_gang_role': '',
+            '_custom_gang_flag': {},
+            '_custom_gang_hq': '',
         }
         # Если игрок зашёл с активным jail_until — спавним в тюрьму.
         # Точка спавна: ВНУТРИ загона на бордюре (проходимый тайл),
@@ -13640,13 +14550,17 @@ class WorldSim:
                     cop.pop('_police_escort_uid', None)
         crew_id = str((p or {}).get('_crew_id') or '')
         self.players.pop(uid, None)
-        if crew_id:
+        if crew_id and not crew_id.startswith('cg:'):
             left = [q for q in self.players.values() if str(q.get('_crew_id') or '') == crew_id]
             if len(left) < 2:
                 for q in left: q.pop('_crew_id', None)
         self.gang_player_invites.pop(str(uid), None)
         for target_uid, inv in list(self.gang_player_invites.items()):
             if str(inv.get('from_uid') or '') == str(uid): self.gang_player_invites.pop(target_uid, None)
+        self.custom_gang_invites.pop(str(uid), None)
+        for target_uid, inv in list(self.custom_gang_invites.items()):
+            if str(inv.get('from_uid') or '') == str(uid):
+                self.custom_gang_invites.pop(target_uid, None)
         self.connections.pop(uid, None)
         # Сессионные указатели не должны копиться после переподключений.
         self._last_dist_at.pop(str(uid), None)
@@ -14549,6 +15463,15 @@ class WorldSim:
         was_mafia = bool(p.get('_mafia'))
         old_family = str(p.get('_mafia_family') or '')
         now_role = time.time()
+        # Постоянная пользовательская банда и служебные фракции
+        # взаимоисключающие. Клиентский input не может обойти это правило.
+        if requested_mafia and int(p.get('_custom_gang_id') or 0):
+            requested_mafia = False
+            requested_family = ''
+            p['_mafia_join_denied'] = 'custom_gang'
+        if requested_police and int(p.get('_custom_gang_id') or 0):
+            requested_police = False
+            p['_mafia_join_denied'] = 'custom_gang'
         if was_mafia and not requested_mafia:
             p['_mafia_last_family'] = old_family
             p['_mafia_traitor_until'] = now_role + 300.0
@@ -14581,12 +15504,17 @@ class WorldSim:
         p['_police'] = requested_police
         p['_mafia'] = requested_mafia and not p['_police']
         p['_mafia_family'] = requested_family if p['_mafia'] else ''
+        # Временная мафиозная пати распускается при выходе из семьи. Состав
+        # постоянной пользовательской банды (`cg:*`) живёт в БД и сохраняется.
         if not p['_mafia']:
-            crew_id = str(p.pop('_crew_id', '') or '')
-            if crew_id:
-                left = [q for q in self.players.values() if str(q.get('_crew_id') or '') == crew_id]
+            crew_id = str(p.get('_crew_id') or '')
+            if crew_id and not crew_id.startswith('cg:'):
+                p.pop('_crew_id', None)
+                left = [q for q in self.players.values()
+                        if str(q.get('_crew_id') or '') == crew_id]
                 if len(left) < 2:
-                    for q in left: q.pop('_crew_id', None)
+                    for q in left:
+                        q.pop('_crew_id', None)
         if p['_police'] and not was_police:
             # Форма несовместима с контролем улиц: при поступлении на службу
             # личные и совместные владения, а также незавершённые захваты снимаются.
@@ -16016,6 +16944,10 @@ class WorldSim:
         # Friendly fire OFF: союзники по банде не наносят урон друг другу
         # В ГОРОДЕ (арена — полигон, там FF разрешён).
         if not both_in_arena:
+            sh_custom = int(shooter.get('_custom_gang_id') or 0)
+            tg_custom = int(target.get('_custom_gang_id') or 0)
+            if sh_custom and sh_custom == tg_custom:
+                return None
             sh_family = str(shooter.get('_mafia_family') or '')
             tg_family = str(target.get('_mafia_family') or '')
             if sh_family and sh_family == tg_family:
@@ -16801,6 +17733,8 @@ class WorldSim:
                 'weapon':   ('shotgun', 'rifle', 'pistol_heavy', 'smg')[i % 4]
                             if is_elite else self._pick_aggro_weapon(),
                 '_shot_t':  0.0,
+                '_sentry':  i < self.LAIR_SENTRY_COUNT,
+                '_sentry_slot': i if i < self.LAIR_SENTRY_COUNT else -1,
                 '_warned':  {},   # uid -> ts когда впервые увидели → начнут стрелять через AGGRO_WARN_S
                 '_strafe_t':0.0, '_strafe_s': 0.0,
                 'look':     {
@@ -16855,6 +17789,11 @@ class WorldSim:
             # действительно попали по одному из бойцов: uid -> время сброса.
             '_hostile_uids':   {},
             '_neutral_warned': {},
+            '_alarm_level':    0,
+            '_alarm_at':       0.0,
+            '_alarm_source':   '',
+            '_boss_alive_last': True,
+            '_boss_fallen_at': 0.0,
             'capturing_at':    0.0,
             'capturing_by':    None,
         }
@@ -16984,6 +17923,22 @@ class WorldSim:
             rad = td.get('radius', self.TERR_RADIUS)
             cx, cy = td['c'], td['r']
             alive_bots = [b for b in st['bots'] if b['alive']]
+            boss_alive = any(bot.get('alive') and bot.get('kind') == 'aggro_boss'
+                             for bot in st['bots'])
+            if st.get('_boss_alive_last', True) and not boss_alive and alive_bots:
+                st['_boss_fallen_at'] = now
+                st['_alarm_level'] = 3
+                for index, survivor in enumerate(alive_bots):
+                    if survivor.get('kind') == 'aggro_elite' or index % 2 == 0:
+                        survivor['_last_stand'] = True
+                        survivor['_panic_until'] = 0.0
+                    else:
+                        survivor['_panic_until'] = now + random.uniform(7.0, 12.0)
+                        survivor['_last_stand'] = False
+                pkts.append({'kind':'lair_boss_fallen', 'tid':tid,
+                             'x':round(cx,2), 'y':round(cy,2),
+                             'survivors':len(alive_bots)})
+            st['_boss_alive_last'] = boss_alive
             # Респаун партии: state=='claimed_cd' (зачищен) или alive==0 → таймер
             if not alive_bots and (now - st['last_respawn_at']) >= self.AGGRO_RESPAWN_S:
                 self._aggro_spawn(tid, td)
@@ -17014,6 +17969,13 @@ class WorldSim:
                     hostile_uids.pop(hostile_uid, None)
             hostile_players = [in_zone_by_uid[uid] for uid in hostile_uids
                                if uid in in_zone_by_uid]
+            if (not hostile_players and not in_zone
+                    and now - float(st.get('_alarm_at') or 0) > 20.0):
+                st['_alarm_level'] = 0
+                st['_alarm_source'] = ''
+            throwable_evade_ids, dodge_events = self._tick_lair_throwable_dodge(
+                tid, st, alive_bots, dt, now)
+            pkts.extend(dodge_events)
             # Нейтральная банда может один раз предупредить, но не подходит
             # вплотную, не выбирает игрока целью и не наносит урон.
             neutral_warned = st.setdefault('_neutral_warned', {})
@@ -17030,17 +17992,28 @@ class WorldSim:
                 warned_at = float(neutral_warned.get(p_uid, 0) or 0)
                 if warned_at and now - warned_at >= self.AGGRO_WARN_S:
                     hostile_uids[p_uid] = now + 3600.0
+                    st['_alarm_level'] = 2
+                    st['_alarm_at'] = now
+                    st['_alarm_source'] = p_uid
                     pkts.append({
                         'kind': 'aggro_hostile', 'tid': tid,
                         'target_uid': p_uid,
                         'text': 'Ты не ушёл. Теперь пеняй на себя!',
                     })
+                    pkts.append({'kind':'lair_alarm', 'tid':tid, 'level':2,
+                                 'target_uid':p_uid, 'x':round(cx,2), 'y':round(cy,2),
+                                 'text':'Тревога! К оружию!'})
                     continue
                 if warned_at:
                     continue
                 neutral_warned[p_uid] = now
+                if int(st.get('_alarm_level') or 0) < 1:
+                    st['_alarm_level'] = 1
+                    st['_alarm_at'] = now
+                    st['_alarm_source'] = p_uid
                 if alive_bots:
-                    speaker = min(alive_bots,
+                    sentries = [bot for bot in alive_bots if bot.get('_sentry')]
+                    speaker = min(sentries or alive_bots,
                                   key=lambda b: (p['x']-b['x'])**2 + (p['y']-b['y'])**2)
                     pkts.append({
                         'kind': 'aggro_warn', 'tid': tid,
@@ -17051,9 +18024,23 @@ class WorldSim:
                     })
             # 1) AI для каждого бота
             for bot in alive_bots:
+                if str(bot.get('id')) in throwable_evade_ids:
+                    continue
                 if self._tick_bandit_fire_flee(
                         bot, dt,
                         lambda nx, ny: abs(nx - cx) <= rad and abs(ny - cy) <= rad):
+                    continue
+                if now < float(bot.get('_panic_until') or 0):
+                    flee_angle = _m.atan2(bot['y']-cy, bot['x']-cx)
+                    step = 2.35 * dt
+                    nx = bot['x'] + _m.cos(flee_angle)*step
+                    ny = bot['y'] + _m.sin(flee_angle)*step
+                    if (abs(nx-cx) <= rad and abs(ny-cy) <= rad
+                            and not _world_is_wall(int(ny), int(nx))):
+                        bot['x'], bot['y'], bot['ang'] = nx, ny, flee_angle
+                        bot['act'] = 'walk'
+                    bot['threat'] = 'Главаря убили! Отходим!'
+                    bot['_threat_until'] = now + 1.0
                     continue
                 # Цель — только игрок, который уже нанёс реальный урон банде.
                 if not hostile_players:
@@ -17062,6 +18049,12 @@ class WorldSim:
                     target = min(hostile_players,
                                  key=lambda pp: (pp['x']-bot['x'])**2 + (pp['y']-bot['y'])**2)
                 if target is None:
+                    if bot.get('_sentry'):
+                        sentry_slot = max(0, int(bot.get('_sentry_slot') or 0))
+                        sentry_angle = sentry_slot * _m.tau / max(1, self.LAIR_SENTRY_COUNT)
+                        bot['_patrol_x'] = cx + _m.cos(sentry_angle) * max(4.0, rad - 3.0)
+                        bot['_patrol_y'] = cy + _m.sin(sentry_angle) * max(4.0, rad - 3.0)
+                        bot['_patrol_until'] = now + 30.0
                     if now >= float(bot.get('_patrol_until') or 0):
                         for _try in range(12):
                             pa = random.random() * 2 * _m.pi
@@ -17213,11 +18206,13 @@ class WorldSim:
                             st['last_respawn_at'] = now
         return pkts
 
-    def hire_city_gang_bot(self, uid: str, bot_id: str) -> dict:
+    async def hire_city_gang_bot(self, uid: str, bot_id: str) -> dict:
         """Убирает нанятого бойца из уличной банды или рейда на бизнес."""
         player = self.players.get(str(uid))
-        if player and (player.get('_police') or not player.get('_mafia')):
+        if player and player.get('_police'):
             return {'kind':'gang_hire_reply','ok':False,'reason':'police_service','bot_id':bot_id}
+        if player and not player.get('_mafia') and not player.get('_custom_gang_id'):
+            return {'kind':'gang_hire_reply','ok':False,'reason':'not_mafia','bot_id':bot_id}
         if not player or player.get('dead'):
             return {'kind':'gang_hire_reply','ok':False,'reason':'unavailable','bot_id':bot_id}
         # Рейдеры бизнеса приходят через тот же клиентский aggro-контур, но
@@ -17230,15 +18225,34 @@ class WorldSim:
                 if str(bot.get('id')) != str(bot_id) or not bot.get('alive'):
                     continue
                 if (float(player.get('x') or 0)-float(bot.get('x') or 0))**2 + \
-                   (float(player.get('y') or 0)-float(bot.get('y') or 0))**2 > 3.2**2:
+                   (float(player.get('y') or 0)-float(bot.get('y') or 0))**2 > 4.4**2:
                     return {'kind':'gang_hire_reply','ok':False,'reason':'too_far','bot_id':bot_id}
                 if gang.get('district_did') or bot.get('kind') in ('district_boss','district_guard'):
                     return {'kind':'gang_hire_reply','ok':False,
                             'reason':'district_defender','bot_id':bot_id}
-                is_boss = bot.get('kind') == 'district_boss'
+                is_boss = bool(bot.get('boss') or 'boss' in str(bot.get('kind') or ''))
                 bot_level = max(1, min(self.BANDIT_MAX_LEVEL, int(bot.get('level') or 1)))
-                if bot_level >= self.BANDIT_HIGH_LEVEL and int(player.get('_mafia_xp') or 0) < MAFIA_LEVEL_XP[3]:
-                    return {'kind':'gang_hire_reply','ok':False,'reason':'mafia_level','bot_id':bot_id}
+                hire_cost = 800 if is_boss else 500
+                if (not player.get('_custom_gang_id')
+                        and int(player.get('_mafia_xp') or 0) >= MAFIA_LEVEL_XP[1]):
+                    hire_cost = max(50, round(hire_cost * .85))
+                try:
+                    async with aiosqlite.connect(DB_PATH) as db:
+                        cur = await db.execute("""
+                            UPDATE characters SET cash=cash-?
+                             WHERE telegram_id=? AND cash>=?
+                        """, (hire_cost, int(uid), hire_cost))
+                        if cur.rowcount != 1:
+                            await db.rollback()
+                            return {'kind':'gang_hire_reply','ok':False,
+                                    'reason':'cash','bot_id':bot_id,
+                                    'cost':hire_cost}
+                        await db.commit()
+                except Exception:
+                    logger.exception('Failed to debit gang hire for %s', uid)
+                    return {'kind':'gang_hire_reply','ok':False,
+                            'reason':'payment_failed','bot_id':bot_id}
+                player['_cash'] = max(0, int(player.get('_cash') or 0) - hire_cost)
                 bot['hp'] = 0; bot['alive'] = False; bot['hired_by'] = str(uid)
                 did = str(gang.get('district_did') or '')
                 business_id = (
@@ -17260,10 +18274,24 @@ class WorldSim:
                         'weapon':str(bot.get('weapon') or 'pistol'),
                         'look':dict(bot.get('look') or {}),
                         'faction':str(gang.get('faction') or bot.get('faction') or 'purple'),
+                        'gang_name':str(player.get('_custom_gang_name') or ''),
+                        'gang_color':str((player.get('_custom_gang_flag') or {}).get('primary') or ''),
+                        'cost':hire_cost,'cash':int(player.get('_cash') or 0),
                         'business_id':business_id,
                         'business_cleared':business_cleared,
                         'cooldown_until':cooldown_until}
         return {'kind':'gang_hire_reply','ok':False,'reason':'gone','bot_id':bot_id}
+
+    def restore_hired_city_gang_bot(self, bot_id: str) -> None:
+        """Compensating rollback when persistent custom-NPC storage fails."""
+        for gang in [*self.city_gangs, *self.gang_nests]:
+            for bot in gang.get('bots') or []:
+                if str(bot.get('id')) != str(bot_id) or not bot.get('hired_by'):
+                    continue
+                bot['hp'] = max(1, int(bot.get('max_hp') or 80))
+                bot['alive'] = True
+                bot.pop('hired_by', None)
+                return
 
     def _ignite_bandit(self, bot: dict, source_x: float, source_y: float) -> None:
         """Marks a bandit as burning and gives it a stable escape target.
@@ -17360,6 +18388,219 @@ class WorldSim:
             return sx, sy
         return fx, fy
 
+    def register_gang_throwable(self, uid: str, payload: dict) -> dict | None:
+        """Registers a validated street grenade/Molotov danger zone."""
+        import math as _m
+        player = self.players.get(str(uid))
+        kind = str(payload.get('kind') or '')
+        if not player or player.get('dead') or kind not in ('grenade', 'molotov'):
+            return None
+        try:
+            fx, fy = float(payload.get('from_x')), float(payload.get('from_y'))
+            tx, ty = float(payload.get('to_x')), float(payload.get('to_y'))
+        except (TypeError, ValueError):
+            return None
+        if not all(_m.isfinite(v) for v in (fx, fy, tx, ty)):
+            return None
+        px, py = float(player.get('x') or 0), float(player.get('y') or 0)
+        if _m.hypot(fx - px, fy - py) > 2.4 or _m.hypot(tx - fx, ty - fy) > 7.0:
+            return None
+        now = time.time()
+        if now-float(player.get('_gang_throw_at') or 0) < .45:
+            return None
+        player['_gang_throw_at'] = now
+        landing = now + .72
+        self._gang_throwables.append({
+            'id': f'{uid}:{now:.4f}', 'owner_uid': str(uid), 'kind': kind,
+            'from_x': fx, 'from_y': fy, 'x': tx, 'y': ty,
+            'land_at': landing,
+            'expires_at': landing + (4.2 if kind == 'molotov' else 1.0),
+        })
+        if len(self._gang_throwables) > 24:
+            self._gang_throwables = self._gang_throwables[-24:]
+        return {'kind':'gang_throwable', 'throw_kind':kind, 'owner_uid':str(uid),
+                'from_x':round(fx,2), 'from_y':round(fy,2),
+                'to_x':round(tx,2), 'to_y':round(ty,2), 'flight':.72}
+
+    @staticmethod
+    def _city_gang_shot_safe(gang: dict, shooter: dict, tx: float, ty: float) -> bool:
+        """Rejects a shot when another member is standing in its lane."""
+        sx, sy = float(shooter.get('x') or 0), float(shooter.get('y') or 0)
+        dx, dy = tx - sx, ty - sy
+        length = (dx * dx + dy * dy) ** .5
+        if length < .2:
+            return False
+        ux, uy = dx / length, dy / length
+        for ally in gang.get('bots') or []:
+            if ally is shooter or not ally.get('alive'):
+                continue
+            ax = float(ally.get('x') or 0) - sx
+            ay = float(ally.get('y') or 0) - sy
+            along = ax * ux + ay * uy
+            if .2 < along < length - .15 and abs(ax * uy - ay * ux) < .58:
+                return False
+        return True
+
+    def _city_gang_cover_point(self, gang: dict, bot: dict,
+                               tx: float, ty: float) -> tuple | None:
+        """Finds a nearby passable point that breaks LOS or opens spacing."""
+        import math as _m
+        bx, by = float(bot.get('x') or 0), float(bot.get('y') or 0)
+        best = None; best_score = -1e9
+        seed = sum(ord(ch) for ch in str(bot.get('id') or '')) * .17
+        for radius in (2.2, 3.4, 4.6):
+            for index in range(12):
+                angle = seed + index * _m.tau / 12
+                nx, ny = bx + _m.cos(angle) * radius, by + _m.sin(angle) * radius
+                did = gang.get('district_did')
+                if did and not _district_patrol_ok(did, nx, ny):
+                    continue
+                if not _world_bot_passable(nx, ny):
+                    continue
+                blocked_los = not _world_los(nx, ny, tx, ty)
+                nearest_ally = min((_m.hypot(nx-float(a.get('x') or 0),
+                                              ny-float(a.get('y') or 0))
+                                    for a in gang.get('bots') or []
+                                    if a is not bot and a.get('alive')), default=3.0)
+                score = (5.0 if blocked_los else 0.0) + min(2.0, nearest_ally)
+                score += min(2.0, _m.hypot(nx-tx, ny-ty) * .12)
+                if score > best_score:
+                    best, best_score = (nx, ny), score
+        return best
+
+    def _city_gang_fire_on_cops(self, gang: dict, bots: list,
+                                now: float) -> list:
+        """Lets a hostile street gang return fire at dispatched police."""
+        import math as _m
+        cops = [c for c in self.cops if c.get('alive')
+                and str(c.get('target_gang_id') or '') == str(gang.get('id'))]
+        if not cops:
+            return []
+        for bot in sorted(bots, key=lambda b: float(b.get('_shot_t') or 0)):
+            if (not bot.get('alive') or now < float(bot.get('_reload_until') or 0)
+                    or now < float(bot.get('_dodging_until') or 0)):
+                continue
+            cop = min(cops, key=lambda c: (float(c.get('x') or 0)-float(bot.get('x') or 0))**2
+                                       +(float(c.get('y') or 0)-float(bot.get('y') or 0))**2)
+            dx = float(cop.get('x') or 0)-float(bot.get('x') or 0)
+            dy = float(cop.get('y') or 0)-float(bot.get('y') or 0)
+            dist = _m.hypot(dx, dy)
+            weapon = bot.get('weapon') or 'pistol_heavy'
+            stats = self.AGGRO_WEAPON_STATS.get(weapon, self.AGGRO_WEAPON_STATS['pistol'])
+            if (dist > float(stats.get('range', self.CITY_GANG_FIRE_R))
+                    or now-float(bot.get('_shot_t') or 0) < float(stats.get('cd', 1.0))
+                    or not _world_los(bot['x'], bot['y'], cop['x'], cop['y'])
+                    or not self._city_gang_shot_safe(gang, bot, cop['x'], cop['y'])):
+                continue
+            mag_size = int(stats.get('mag', 8))
+            if '_mag' not in bot:
+                bot['_mag'] = mag_size
+            if int(bot.get('_mag') or 0) <= 0:
+                bot['_reload_started'] = now
+                bot['_reload_until'] = now + float(stats.get('reload', 1.8))
+                continue
+            bot['_mag'] -= 1; bot['_shot_t'] = now
+            bot['_shooting_until'] = now + .24; bot['_combat_state'] = 'shoot'
+            bot['ang'] = _m.atan2(dy, dx)
+            miss = random.random() < .18
+            damage = 0 if miss else self._bandit_damage(int(stats.get('dmg', 7)),
+                                                        int(bot.get('level') or 1))
+            cop['hp'] = max(0, int(cop.get('hp') or 0)-damage)
+            killed = cop['hp'] <= 0
+            if killed:
+                cop['alive'] = False
+            return [{'kind':'gang_shot_cop', 'gid':gang['id'],
+                     'bot_id':bot['id'], 'cop_id':cop['id'], 'weapon':weapon,
+                     'sx':round(bot['x'],2), 'sy':round(bot['y'],2),
+                     'tx':round(cop['x'],2), 'ty':round(cop['y'],2),
+                     'dmg':int(damage), 'miss':miss, 'killed':killed}]
+        return []
+
+    def _tick_city_gang_throwable_dodge(self, gang: dict, bots: list,
+                                         dt: float, now: float) -> set:
+        """Moves street fighters and bosses out of predicted blast/fire zones."""
+        import math as _m
+        self._gang_throwables = [q for q in self._gang_throwables
+                                  if now < float(q.get('expires_at') or 0)]
+        evading = set()
+        for index, bot in enumerate(bots):
+            nearest = None; nearest_dist = 1e9
+            for danger in self._gang_throwables:
+                dist = _m.hypot(float(bot.get('x') or 0)-float(danger['x']),
+                                float(bot.get('y') or 0)-float(danger['y']))
+                if dist <= self.CITY_GANG_GRENADE_NOTICE_R and dist < nearest_dist:
+                    nearest, nearest_dist = danger, dist
+            if nearest is None:
+                continue
+            owner_uid = str(nearest.get('owner_uid') or '')
+            if owner_uid in self.players:
+                gang['state'] = 'hostile'; gang['_target_uid'] = owner_uid
+                gang['_hostile_until'] = max(float(gang.get('_hostile_until') or 0),
+                                             now + self.CITY_GANG_HOSTILE_S)
+            kind = str(nearest.get('kind') or 'grenade')
+            safe = (self.CITY_GANG_MOLOTOV_SAFE_R if kind == 'molotov'
+                    else self.CITY_GANG_GRENADE_SAFE_R)
+            if nearest_dist >= safe:
+                continue
+            evading.add(str(bot.get('id')))
+            qx, qy = float(nearest['x']), float(nearest['y'])
+            if nearest_dist < .05:
+                angle = index * _m.tau / max(1, len(bots))
+            else:
+                angle = _m.atan2(float(bot.get('y') or 0)-qy,
+                                 float(bot.get('x') or 0)-qx)
+            boss_bonus = .9 if bot.get('kind') == 'district_boss' else 0.0
+            step = min((self.CITY_GANG_DODGE_SPEED + boss_bonus) * max(0.0, dt),
+                       safe - nearest_dist + .4)
+            moved = False
+            for turn in (0.0, .42, -.42, .84, -.84, 1.26, -1.26, _m.pi):
+                move_ang = angle + turn
+                nx = float(bot.get('x') or 0) + _m.cos(move_ang) * step
+                ny = float(bot.get('y') or 0) + _m.sin(move_ang) * step
+                did = gang.get('district_did')
+                if did and not _district_patrol_ok(did, nx, ny):
+                    continue
+                if not _world_bot_passable(nx, ny) or _m.hypot(nx-qx, ny-qy) <= nearest_dist:
+                    continue
+                bot['x'], bot['y'], bot['ang'] = nx, ny, move_ang
+                moved = True; break
+            bot['_moving'] = moved; bot['_act'] = 'walk'
+            bot['_dodging_until'] = now + .28
+            bot['_dodge_kind'] = kind
+            bot['_combat_state'] = 'dodge'
+        return evading
+
+    def _tick_lair_throwable_dodge(self, tid: str, state: dict, bots: list,
+                                    dt: float, now: float) -> tuple[set, list]:
+        """Gives the Lair the same predicted grenade/Molotov escape as city squads."""
+        proxy = {'id':tid, 'bots':bots, 'state':'patrol', 'district_did':None,
+                 '_target_uid':None, '_hostile_until':0.0}
+        evading = self._tick_city_gang_throwable_dodge(proxy, bots, dt, now)
+        events = []
+        if not evading:
+            return evading, events
+        owners = {
+            str(danger.get('owner_uid') or '')
+            for danger in self._gang_throwables
+            if any(math.hypot(float(bot.get('x') or 0)-float(danger.get('x') or 0),
+                              float(bot.get('y') or 0)-float(danger.get('y') or 0))
+                   <= self.CITY_GANG_GRENADE_NOTICE_R for bot in bots)
+        }
+        for owner_uid in owners:
+            if owner_uid in self.players:
+                state.setdefault('_hostile_uids', {})[owner_uid] = now + 60.0
+        if now >= float(state.get('_grenade_alert_until') or 0):
+            state['_grenade_alert_until'] = now + 2.5
+            zone_def = self.TERRITORIES_DEF.get(tid) or {}
+            events.append({'kind':'lair_grenade_alert', 'tid':tid,
+                           'bot_ids':sorted(evading),
+                           'x':float(zone_def.get('c') or 0),
+                           'y':float(zone_def.get('r') or 0),
+                           'text':'Граната! Врассыпную!'})
+        state['_alarm_level'] = max(2, int(state.get('_alarm_level') or 0))
+        state['_alarm_at'] = now
+        return evading, events
+
     def aggro_shoot_bot(self, uid: str, bot_id: str, weapon: str = '',
                         fire_x=None, fire_y=None) -> dict | None:
         """Игрок стреляет в банда-бота. Из-за зоны хиты не наносятся."""
@@ -17401,6 +18642,10 @@ class WorldSim:
                 # Только подтверждённое попадание разрешает всей группе
                 # отвечать конкретно этому стрелку. Через минуту агро гаснет.
                 st.setdefault('_hostile_uids', {})[str(uid)] = time.time() + 60.0
+                if int(st.get('_alarm_level') or 0) < 2:
+                    st['_alarm_level'] = 2
+                    st['_alarm_at'] = time.time()
+                    st['_alarm_source'] = str(uid)
                 killed = False
                 cleared = False
                 if bot['hp'] <= 0:
@@ -17476,6 +18721,381 @@ class WorldSim:
     NEST_AGGRO_R         = 6.0        # игрок ближе → hostile
     NEST_CLEAR_CASH      = 150
     NEST_CLEAR_EXP       = 25
+
+    @staticmethod
+    def _city_gang_business_id(gang: dict) -> str:
+        return str(gang.get('_business_target_id') or
+                   gang.get('_business_guard_id') or '')
+
+    def _city_gang_business_guard_alive(self, control: dict) -> bool:
+        gid = str(control.get('guard_gid') or '')
+        return any(str(g.get('id')) == gid and any(
+            b.get('alive') for b in g.get('bots', [])) for g in self.city_gangs)
+
+    def _npc_business_strategy_blocked(self, biz_id: str, now: float) -> bool:
+        """Keep NPC racket AI separate from player/family ownership workflows."""
+        biz_id = str(biz_id)
+        if biz_id in self._business_family_wars:
+            return True
+        family_control = self._robbed_business_controls.get(biz_id) or {}
+        if family_control and (bool(family_control.get('persistent')) or
+                               float(family_control.get('expires_at') or 0) > now):
+            return True
+        if float(self._business_closed_until.get(biz_id) or 0) > now:
+            return True
+        return any(str(nest.get('business_id') or '') == biz_id
+                   for nest in self.gang_nests)
+
+    def _npc_gang_profile(self, faction: str) -> dict:
+        return self.NPC_GANG_PROFILES.get(
+            str(faction), self.NPC_GANG_PROFILES['purple'])
+
+    def _npc_gang_try_spend(self, faction: str, amount: int) -> bool:
+        state = self._npc_gang_economy.get(str(faction))
+        amount = max(0, int(amount))
+        if not state or int(state.get('treasury') or 0) < amount:
+            return False
+        state['treasury'] = int(state.get('treasury') or 0) - amount
+        state['spent'] = int(state.get('spent') or 0) + amount
+        return True
+
+    def _tick_npc_gang_economy(self, now: float) -> list:
+        """Pay bounded NPC income without touching player/family treasuries."""
+        packets = []
+        holdings = {
+            faction: sum(1 for control in self._npc_business_controls.values()
+                         if str(control.get('faction') or '') == faction)
+            for faction in ('purple', 'yellow')
+        }
+        for faction in ('purple', 'yellow'):
+            state = self._npc_gang_economy.setdefault(faction, {
+                'faction': faction, 'treasury': 240, 'last_income_at': now,
+                'earned': 0, 'spent': 0,
+            })
+            last = float(state.get('last_income_at') or now)
+            ticks = int(max(0.0, now-last) // self.NPC_GANG_ECONOMY_TICK_S)
+            profile = self._npc_gang_profile(faction)
+            controlled = holdings[faction]
+            if ticks > 0:
+                per_tick = (controlled * self.NPC_GANG_BUSINESS_INCOME
+                            if controlled else self.NPC_GANG_COMEBACK_INCOME)
+                amount = max(1, int(round(per_tick * float(profile['income'])))) * ticks
+                before = int(state.get('treasury') or 0)
+                after = min(self.NPC_GANG_TREASURY_CAP, before + amount)
+                paid = max(0, after-before)
+                state['treasury'] = after
+                state['earned'] = int(state.get('earned') or 0) + paid
+                state['last_income_at'] = last + ticks * self.NPC_GANG_ECONOMY_TICK_S
+                if paid:
+                    packets.append({
+                        'kind':'npc_gang_income', 'faction':faction,
+                        'amount':paid, 'treasury':after, 'businesses':controlled,
+                        'comeback':controlled == 0,
+                    })
+            candidates = [
+                (biz_id, control)
+                for biz_id, control in self._npc_business_controls.items()
+                if str(control.get('faction') or '') == faction
+                and self._city_gang_business_guard_alive(control)
+                and int(control.get('defense_level') or 0) < self.NPC_GANG_MAX_DEFENSE
+                and now-float(control.get('last_fortified_at') or
+                              control.get('captured_at') or now) >= self.NPC_GANG_FORTIFY_GAP_S
+            ]
+            if candidates:
+                candidates.sort(key=lambda item: (
+                    int(item[1].get('defense_level') or 0),
+                    float(item[1].get('last_fortified_at') or 0)))
+                biz_id, control = candidates[0]
+                cost = max(45, int(round(
+                    self.NPC_GANG_FORTIFY_COST /
+                    max(.7, float(profile['defense'])))))
+                if self._npc_gang_try_spend(faction, cost):
+                    control['defense_level'] = min(
+                        self.NPC_GANG_MAX_DEFENSE,
+                        int(control.get('defense_level') or 0)+1)
+                    control['last_fortified_at'] = now
+                    packets.append({
+                        'kind':'npc_business_fortified', 'faction':faction,
+                        'biz_id':biz_id, 'level':control['defense_level'],
+                        'cost':cost, 'treasury':int(state.get('treasury') or 0),
+                    })
+        return packets
+
+    def _city_gang_choose_business_target(self, gang: dict, cx: float,
+                                          cy: float, now: float) -> str:
+        """Choose a reachable objective with bounded randomness and comeback bias."""
+        faction = str(gang.get('faction') or 'purple')
+        profile = self._npc_gang_profile(faction)
+        owned = {key: sum(1 for ctl in self._npc_business_controls.values()
+                          if str(ctl.get('faction') or '') == key)
+                 for key in ('purple', 'yellow')}
+        reserved = {
+            self._city_gang_business_id(other)
+            for other in self.city_gangs
+            if other is not gang
+            and str(other.get('faction') or '') == faction
+            and other.get('_business_mode') not in ('guard', '')
+        }
+        scored = []
+        for biz_id, (r, c) in BUSINESS_POIS_RC.items():
+            if self._npc_business_strategy_blocked(biz_id, now):
+                continue
+            control = self._npc_business_controls.get(biz_id) or {}
+            owner = str(control.get('faction') or '')
+            guarded = self._city_gang_business_guard_alive(control)
+            if owner == faction and guarded:
+                continue
+            if biz_id in reserved:
+                continue
+            distance = math.hypot(float(c) - cx, float(r) - cy)
+            if distance > 155.0:
+                continue
+            route = _world_bot_path(cx, cy, float(c), float(r))
+            if not route:
+                continue
+            # Neutral and abandoned holdings are sensible low-risk targets.
+            # A trailing faction becomes more daring so a runaway leader can
+            # still be challenged without scripting the winner.
+            score = 105.0 - distance
+            score += 34.0 if not owner else (25.0 if not guarded else 8.0)
+            if owner == faction and not guarded:
+                score += 44.0 * float(profile['defense'])
+            elif owner and owner != faction:
+                score += 18.0 * float(profile['aggression'])
+            score += max(0, owned.get('yellow' if faction == 'purple' else 'purple', 0)
+                         - owned.get(faction, 0)) * 7.5
+            if owner and owner != faction and guarded:
+                guard = next((g for g in self.city_gangs
+                              if str(g.get('id')) == str(control.get('guard_gid') or '')), None)
+                defenders = sum(1 for bot in (guard or {}).get('bots', [])
+                                if bot.get('alive'))
+                attackers = sum(1 for bot in gang.get('bots', []) if bot.get('alive'))
+                fortification = max(0, int(control.get('defense_level') or 0))
+                score += (attackers - defenders) * 8.0
+                score -= fortification * 7.0 / max(.5, float(profile['aggression']))
+            # A runaway leader still defends vulnerable holdings, but becomes
+            # less interested in swallowing every remaining neutral point.
+            rival_faction = 'yellow' if faction == 'purple' else 'purple'
+            lead = owned.get(faction, 0) - owned.get(rival_faction, 0)
+            if lead >= 3 and not owner:
+                score -= lead * 13.0
+            score += random.uniform(-13.0, 13.0)
+            scored.append((score, biz_id))
+        if not scored:
+            return ''
+        scored.sort(reverse=True)
+        # Picking among the best options keeps the simulation surprising while
+        # never sending a patrol to an unreachable or nonsensical objective.
+        shortlist = scored[:min(3, len(scored))]
+        floor = min(score for score, _ in shortlist)
+        weights = [max(1.0, score - floor + 4.0) for score, _ in shortlist]
+        return random.choices([biz_id for _, biz_id in shortlist], weights=weights, k=1)[0]
+
+    def _city_gang_set_business_target(self, gang: dict, biz_id: str,
+                                       now: float) -> bool:
+        rc = BUSINESS_POIS_RC.get(str(biz_id))
+        alive = [bot for bot in gang.get('bots', []) if bot.get('alive')]
+        if (not rc or not alive or
+                self._npc_business_strategy_blocked(str(biz_id), now)):
+            return False
+        cx = sum(float(bot.get('x') or 0) for bot in alive) / len(alive)
+        cy = sum(float(bot.get('y') or 0) for bot in alive) / len(alive)
+        r, c = rc
+        route = _world_bot_path(cx, cy, float(c), float(r))
+        if not route and math.hypot(float(c)-cx, float(r)-cy) > self.CITY_GANG_BUSINESS_RADIUS:
+            return False
+        gang['_business_target_id'] = str(biz_id)
+        gang['_business_guard_id'] = ''
+        control = self._npc_business_controls.get(str(biz_id)) or {}
+        gang['_business_mode'] = ('assault' if control and
+                                  str(control.get('faction') or '') !=
+                                  str(gang.get('faction') or '') else 'travel')
+        gang['_business_capture_started'] = 0.0
+        gang['_business_operation_started'] = now
+        gang['_business_replan_at'] = (now + self.CITY_GANG_BUSINESS_ROUTE_TTL_S *
+                                       float(self._npc_gang_profile(
+                                           str(gang.get('faction') or 'purple'))['replan']))
+        gang['_rival_target_gid'] = ''
+        if route:
+            gang['_patrol_route'] = route
+            gang['_patrol_route_i'] = 0
+            gang['_patrol_wp_until'] = now + self.CITY_GANG_BUSINESS_ROUTE_TTL_S
+            gang['_patrol_wp'] = route[0]
+        return True
+
+    def _city_gang_business_rivals_must_fight(self, first: dict,
+                                               second: dict) -> bool:
+        if str(first.get('faction') or '') == str(second.get('faction') or ''):
+            return False
+        first_id = self._city_gang_business_id(first)
+        second_id = self._city_gang_business_id(second)
+        return bool(first_id and first_id == second_id and
+                    (first.get('_business_mode') == 'guard' or
+                     second.get('_business_mode') == 'guard' or
+                     first.get('_business_mode') == 'assault' or
+                     second.get('_business_mode') == 'assault'))
+
+    def _city_gang_guard_route(self, biz_id: str) -> list:
+        rc = BUSINESS_POIS_RC.get(str(biz_id))
+        if not rc:
+            return []
+        r, c = rc
+        route = []
+        phase = random.random() * math.tau
+        for index in range(8):
+            ang = phase + index * math.tau / 8.0
+            for radius in (3.7, 4.6, 2.8):
+                x = float(c) + math.cos(ang) * radius
+                y = float(r) + math.sin(ang) * radius
+                if _world_bot_passable(x, y):
+                    route.append((x, y))
+                    break
+        return route
+
+    def _tick_city_gang_business_strategy(self, gang: dict, alive_bots: list,
+                                           cx: float, cy: float,
+                                           now: float) -> list:
+        """Advance travel, assault, capture and physical garrison states."""
+        packets = []
+        if gang.get('district_did') or gang.get('state') != 'patrol' or not alive_bots:
+            return packets
+        faction = str(gang.get('faction') or 'purple')
+        mode = str(gang.get('_business_mode') or '')
+        biz_id = self._city_gang_business_id(gang)
+        if biz_id and self._npc_business_strategy_blocked(biz_id, now):
+            released = self._npc_business_controls.pop(biz_id, None) is not None
+            gang['_business_target_id'] = ''
+            gang['_business_guard_id'] = ''
+            gang['_business_mode'] = ''
+            gang['_business_capture_started'] = 0.0
+            gang['_business_replan_at'] = now + random.uniform(5.0, 10.0)
+            packets.append({'kind':('npc_business_released' if released else
+                                    'npc_business_operation_cancelled'),
+                            'gid':gang['id'], 'biz_id':biz_id,
+                            'faction':faction, 'reason':'player_or_family_event'})
+            return packets
+        if mode == 'guard' and biz_id:
+            control = self._npc_business_controls.get(biz_id)
+            if not control or str(control.get('guard_gid') or '') != str(gang.get('id')):
+                gang['_business_mode'] = ''
+                gang['_business_target_id'] = ''
+                gang['_business_guard_id'] = ''
+                gang['_business_replan_at'] = now + random.uniform(4.0, 9.0)
+            return packets
+        if not biz_id and now >= float(gang.get('_business_replan_at') or 0):
+            target_id = self._city_gang_choose_business_target(gang, cx, cy, now)
+            gang['_business_replan_at'] = now + random.uniform(
+                self.CITY_GANG_BUSINESS_REPLAN_MIN_S,
+                self.CITY_GANG_BUSINESS_REPLAN_MAX_S)
+            if target_id and self._city_gang_set_business_target(gang, target_id, now):
+                biz_id = target_id
+                mode = str(gang.get('_business_mode') or 'travel')
+                packets.append({'kind':'npc_business_march', 'gid':gang['id'],
+                                'biz_id':biz_id, 'faction':faction,
+                                'x':round(cx,2), 'y':round(cy,2)})
+        if not biz_id:
+            return packets
+        rc = BUSINESS_POIS_RC.get(biz_id)
+        if not rc:
+            gang['_business_target_id'] = ''
+            gang['_business_mode'] = ''
+            return packets
+        r, c = rc
+        distance = math.hypot(float(c)-cx, float(r)-cy)
+        control = self._npc_business_controls.get(biz_id) or {}
+        current_owner = str(control.get('faction') or '')
+        if current_owner == faction:
+            if not self._city_gang_business_guard_alive(control):
+                if distance > self.CITY_GANG_BUSINESS_RADIUS:
+                    if now >= float(gang.get('_business_replan_at') or 0):
+                        self._city_gang_set_business_target(gang, biz_id, now)
+                    return packets
+                control.update({'faction':faction,
+                                'mafia_family':gang.get('mafia_family',''),
+                                'guard_gid':str(gang['id']),
+                                'last_reinforced_at':now})
+                self._npc_business_controls[biz_id] = control
+                gang['_business_mode'] = 'guard'
+                gang['_business_guard_id'] = biz_id
+                gang['_business_target_id'] = ''
+            else:
+                gang['_business_target_id'] = ''
+                gang['_business_mode'] = ''
+                gang['_business_replan_at'] = now + random.uniform(5.0, 12.0)
+            return packets
+        if distance > self.CITY_GANG_BUSINESS_RADIUS:
+            if now >= float(gang.get('_business_replan_at') or 0):
+                self._city_gang_set_business_target(gang, biz_id, now)
+            return packets
+        defenders = []
+        for rival in self.city_gangs:
+            if rival is gang or str(rival.get('faction') or '') == faction:
+                continue
+            if self._city_gang_business_id(rival) != biz_id:
+                continue
+            rivals = [bot for bot in rival.get('bots', []) if bot.get('alive')]
+            if not rivals:
+                continue
+            rx = sum(float(bot.get('x') or 0) for bot in rivals) / len(rivals)
+            ry = sum(float(bot.get('y') or 0) for bot in rivals) / len(rivals)
+            if math.hypot(rx-cx, ry-cy) <= self.CITY_GANG_BUSINESS_FIGHT_R:
+                defenders.append(rival)
+        if defenders:
+            gang['_business_mode'] = 'assault'
+            gang['_business_capture_started'] = 0.0
+            gang['_rival_target_gid'] = str(defenders[0].get('id') or '')
+            return packets
+        started = float(gang.get('_business_capture_started') or 0)
+        if not started:
+            gang['_business_capture_started'] = now
+            gang['_business_mode'] = 'capture'
+            packets.append({'kind':'npc_business_capture_started',
+                            'gid':gang['id'], 'biz_id':biz_id,
+                            'faction':faction, 'x':float(c), 'y':float(r)})
+            return packets
+        defense_level = (max(0, int(control.get('defense_level') or 0))
+                         if current_owner and current_owner != faction else 0)
+        aggression = max(.55, float(self._npc_gang_profile(faction)['aggression']))
+        capture_required = (self.CITY_GANG_BUSINESS_CAPTURE_S *
+                            (1.0 + defense_level * .22) / aggression
+                            if defense_level else self.CITY_GANG_BUSINESS_CAPTURE_S)
+        if now - started < capture_required:
+            gang['_business_mode'] = 'capture'
+            return packets
+        previous_faction = current_owner
+        family = str(gang.get('mafia_family') or '')
+        control = {
+            'biz_id':biz_id, 'faction':faction, 'mafia_family':family,
+            'gang_name':'Жёлтые Псы' if faction == 'yellow' else 'Фиолетовые Короли',
+            'color':'#ffe34d' if faction == 'yellow' else '#b887ff',
+            'guard_gid':str(gang['id']), 'captured_at':now,
+            'previous_faction':previous_faction,
+            'defense_level':1, 'last_fortified_at':now,
+        }
+        self._npc_business_controls[biz_id] = control
+        gang['_business_target_id'] = ''
+        gang['_business_guard_id'] = biz_id
+        gang['_business_mode'] = 'guard'
+        gang['_business_operation_started'] = 0.0
+        gang['_business_capture_started'] = 0.0
+        gang['_business_replan_at'] = now + 3600.0
+        guard_route = self._city_gang_guard_route(biz_id)
+        if guard_route:
+            gang['_patrol_route'] = guard_route
+            gang['_patrol_route_i'] = 0
+            gang['_patrol_wp'] = guard_route[0]
+            gang['_patrol_wp_until'] = now + 90.0
+        self._faction_war_add('mafia', 5,
+            did=self._district_id_at(float(c), float(r)),
+            action=f'npc_business_capture:{biz_id}:{faction}', cooldown_s=20)
+        packets.append({'kind':'npc_business_captured', 'gid':gang['id'],
+                        'biz_id':biz_id, 'faction':faction,
+                        'mafia_family':family, 'color':control['color'],
+                        'gang_name':control['gang_name'],
+                        'previous_faction':previous_faction,
+                        'defense_level':control['defense_level'],
+                        'x':float(c), 'y':float(r), 'global':True})
+        return packets
 
     def _spawn_city_gang(self, requested_faction: str | None = None) -> dict | None:
         """Спавнит маленькую группу бандитов в городе на проходимом тайле.
@@ -17573,9 +19193,91 @@ class WorldSim:
             'faction':          faction,
             'mafia_family':     'moretti' if faction == 'yellow' else 'bellini',
             '_gang_fight_at':   0.0,
+            '_initial_size':     len(bots),
+            '_reinforcements':   0,
+            '_reinforce_at':     0.0,
+            '_rival_target_gid': '',
+            '_rival_replan_at':  0.0,
+            '_retreat_until':    0.0,
+            '_morale':           1.0,
+            '_business_mode':    '',
+            '_business_target_id': '',
+            '_business_guard_id': '',
+            '_business_capture_started': 0.0,
+            '_business_replan_at': time.time() + random.uniform(4.0, 12.0),
         }
         self.city_gangs.append(gang)
         return gang
+
+    @staticmethod
+    def _street_sector(x: float, y: float) -> str:
+        """Stable 20x20 street-control sector used by NPC faction wars."""
+        return f'{max(0, int(y)//20)}:{max(0, int(x)//20)}'
+
+    def _spawn_city_gang_reinforcement(self, gang: dict, count: int = 1) -> list:
+        """Adds bounded reinforcements near the surviving squad."""
+        alive = [bot for bot in gang.get('bots', []) if bot.get('alive')]
+        if not alive:
+            return []
+        spawned = []
+        faction = str(gang.get('faction') or 'purple')
+        cx = sum(float(bot.get('x') or 0) for bot in alive) / len(alive)
+        cy = sum(float(bot.get('y') or 0) for bot in alive) / len(alive)
+        for _ in range(max(0, int(count))):
+            bx, by = cx, cy
+            for attempt in range(16):
+                angle = (attempt / 16.0) * math.tau
+                distance = 2.4 + (attempt % 3) * .55
+                nx, ny = cx + math.cos(angle) * distance, cy + math.sin(angle) * distance
+                if _world_bot_passable(nx, ny):
+                    bx, by = nx, ny
+                    break
+            self._next_bot_id += 1
+            level = random.randint(4, 14)
+            hp = self._bandit_hp(self.AGGRO_BOT_HP, level)
+            bot = {
+                'id':f'cgbot{self._next_bot_id}', 'x':bx, 'y':by, 'ang':0.0,
+                'hp':hp, 'max_hp':hp, 'level':level, 'alive':True,
+                'kind':'aggro_grunt', 'weapon':self._pick_aggro_weapon(),
+                '_shot_t':0.0, '_act':'walk',
+                '_act_until':time.time()+random.uniform(8.0, 14.0),
+                'look':{
+                    'gender':0,
+                    'skin':random.choice([0,2,3]) if faction == 'yellow' else random.choice([1,2,3]),
+                    'body':3 if faction == 'yellow' else 2,
+                    'face':random.choice([0,1,2]), 'hair':random.choice([0,1,3]),
+                    'hat':2 if faction == 'yellow' else 4,
+                    'gang':2 if faction == 'yellow' else 1,
+                    **({'suit':'#f3efe5'} if faction == 'yellow' else {}),
+                },
+            }
+            gang.setdefault('bots', []).append(bot)
+            spawned.append(bot)
+        return spawned
+
+    def world_event_visible_to(self, uid: str, packet: dict,
+                               radius: float = 34.0) -> bool:
+        """Keep combat FX local while allowing global strategic announcements."""
+        if packet.get('global') or packet.get('kind') in {
+                'territory_captured', 'district_control', 'major_control',
+                'city_gang_control', 'city_gang_spawned'}:
+            return True
+        player = self.players.get(str(uid))
+        if not player:
+            return False
+        # Damage confirmations without coordinates are useful only to the
+        # player involved. The visible shot/tracer packet carries coordinates
+        # for nearby observers, so this keeps distant interiors quiet.
+        if packet.get('kind') in {'aggro_apply', 'cop_apply', 'gang_companion_apply'}:
+            involved = {str(packet.get(key) or '') for key in
+                        ('uid', 'target_uid', 'owner_uid', 'shooter_uid')}
+            return str(uid) in involved
+        x = packet.get('x', packet.get('sx', packet.get('tx')))
+        y = packet.get('y', packet.get('sy', packet.get('ty')))
+        if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
+            return True
+        return math.hypot(float(player.get('x') or 0)-float(x),
+                          float(player.get('y') or 0)-float(y)) <= radius
 
     def tick_city_gangs(self, dt: float) -> list:
         """AI для бродячих городских банд. Возвращает event-пакеты:
@@ -17583,11 +19285,35 @@ class WorldSim:
         import math as _m
         pkts = []
         now = time.time()
+        pkts.extend(self._tick_npc_gang_economy(now))
+        self._street_control = {
+            sector: control for sector, control in self._street_control.items()
+            if float(control.get('expires_at') or 0) > now
+        }
+        for gang in self.city_gangs:
+            for bot in gang.get('bots') or []:
+                if (bot.get('alive') and bot.get('_despawn_at')
+                        and now >= float(bot['_despawn_at'])):
+                    bot['alive'] = False
         # Удаляем группы где все мертвы (без респауна — следующая придёт позже)
+        dead_gids = {str(g.get('id')) for g in self.city_gangs
+                     if not any(b.get('alive') for b in g.get('bots', []))}
+        for biz_id, control in self._npc_business_controls.items():
+            if str(control.get('guard_gid') or '') in dead_gids:
+                control['guard_gid'] = ''
+                control['vulnerable_since'] = now
+                control['defense_level'] = max(
+                    0, int(control.get('defense_level') or 0)-1)
+                pkts.append({'kind':'npc_business_weakened', 'biz_id':biz_id,
+                             'faction':str(control.get('faction') or ''),
+                             'level':int(control.get('defense_level') or 0)})
         self.city_gangs = [g for g in self.city_gangs
                             if any(b['alive'] for b in g['bots'])]
         # Спавн новой группы если их меньше CITY_GANG_MAX
-        normal_gang_count = sum(1 for g in self.city_gangs if not g.get('district_did'))
+        # Garrison squads remain visible but do not consume roaming slots.
+        normal_gang_count = sum(1 for g in self.city_gangs
+                                if not g.get('district_did')
+                                and g.get('_business_mode') != 'guard')
         if (self.players
                 and normal_gang_count < self.CITY_GANG_MAX
                 and now >= self._city_gang_next_spawn_at):
@@ -17627,6 +19353,8 @@ class WorldSim:
                              if district_id else None)
                 if self._tick_bandit_fire_flee(bot, dt, validator):
                     fire_flee_ids.add(str(bot['id']))
+            throwable_evade_ids = self._tick_city_gang_throwable_dodge(
+                g, alive_bots, dt, now)
             # Сброс hostile если время вышло И никто не атакует
             if g['state'] == 'hostile' and now > g['_hostile_until']:
                 g['state'] = 'patrol'
@@ -17635,6 +19363,99 @@ class WorldSim:
             # Центр группы
             cx = sum(b['x'] for b in alive_bots) / len(alive_bots)
             cy = sum(b['y'] for b in alive_bots) / len(alive_bots)
+            initial_size = max(1, int(g.get('_initial_size') or self.CITY_GANG_SIZE))
+            hp_now = sum(max(0.0, float(bot.get('hp') or 0)) for bot in alive_bots)
+            hp_max = sum(max(1.0, float(bot.get('max_hp') or 1)) for bot in alive_bots)
+            g['_morale'] = min(1.0, (len(alive_bots) / initial_size) * .65
+                               + (hp_now / max(1.0, hp_max)) * .35)
+            pkts.extend(self._tick_city_gang_business_strategy(
+                g, alive_bots, cx, cy, now))
+            if (len(alive_bots) < initial_size
+                    and int(g.get('_reinforcements') or 0) < self.CITY_GANG_MAX_REINFORCEMENTS
+                    and not g.get('_reinforce_at')
+                    and now >= float(g.get('_reinforce_retry_at') or 0)):
+                g['_reinforce_at'] = now + self.CITY_GANG_REINFORCE_DELAY_S
+                pkts.append({'kind':'city_gang_backup_called', 'gid':g['id'],
+                             'faction':g.get('faction','purple'),
+                             'x':round(cx,2), 'y':round(cy,2)})
+            if g.get('_reinforce_at') and now >= float(g['_reinforce_at']):
+                faction = str(g.get('faction') or 'purple')
+                backup_cost = int(self._npc_gang_profile(faction)['backup_cost'])
+                funded = self._npc_gang_try_spend(faction, backup_cost)
+                reinforcements = (self._spawn_city_gang_reinforcement(g, 1)
+                                  if funded else [])
+                g['_reinforce_at'] = 0.0
+                if not funded:
+                    g['_reinforce_retry_at'] = now + 20.0
+                    pkts.append({'kind':'city_gang_backup_denied', 'gid':g['id'],
+                                 'faction':faction, 'reason':'no_money',
+                                 'cost':backup_cost, 'x':round(cx,2), 'y':round(cy,2)})
+                g['_reinforcements'] = int(g.get('_reinforcements') or 0) + len(reinforcements)
+                if reinforcements:
+                    treasury = int(self._npc_gang_economy[faction].get('treasury') or 0)
+                    pkts.append({'kind':'city_gang_backup_arrived', 'gid':g['id'],
+                                 'faction':faction, 'cost':backup_cost,
+                                 'treasury':treasury,
+                                 'count':len(reinforcements),
+                                 'x':round(cx,2), 'y':round(cy,2)})
+            retreating = now < float(g.get('_retreat_until') or 0)
+            if (not retreating and len(alive_bots) == 1
+                    and g['_morale'] <= self.CITY_GANG_RETREAT_HP_RATIO):
+                survivor = alive_bots[0]
+                hp_ratio = (float(survivor.get('hp') or 0) /
+                            max(1.0, float(survivor.get('max_hp') or 1)))
+                surrender = hp_ratio <= .16 and random.random() < .35
+                g['_retreat_until'] = now + (9.0 if surrender else 18.0)
+                g['_rival_target_gid'] = ''
+                retreating = True
+                if surrender:
+                    survivor['_surrendered_until'] = now + 9.0
+                    survivor['_despawn_at'] = now + 9.0
+                    survivor['_moving'] = False
+                    survivor['_combat_state'] = 'surrender'
+                pkts.append({'kind':('city_gang_surrender' if surrender
+                                     else 'city_gang_retreat'), 'gid':g['id'],
+                             'faction':g.get('faction','purple'),
+                             'x':round(cx,2), 'y':round(cy,2)})
+            # Patrols actively look for the nearest rival. They still need a
+            # real passable route and can disengage when morale collapses.
+            if (g.get('state') == 'patrol'
+                    and not self._city_gang_business_id(g)
+                    and now >= float(g.get('_rival_replan_at') or 0)):
+                g['_rival_replan_at'] = now + self.CITY_GANG_RIVAL_REPLAN_S
+                candidates = [] if retreating else [
+                    rival for rival in self.city_gangs
+                    if rival is not g and not rival.get('district_did')
+                    and rival.get('faction','purple') != g.get('faction','purple')
+                    and any(bot.get('alive') for bot in rival.get('bots', []))]
+                candidates.sort(key=lambda rival: min(
+                    _m.hypot(float(bot.get('x') or 0)-cx,
+                             float(bot.get('y') or 0)-cy)
+                    for bot in rival.get('bots', []) if bot.get('alive')))
+                target_rival = candidates[0] if candidates else None
+                if target_rival:
+                    rival_bots = [bot for bot in target_rival['bots'] if bot.get('alive')]
+                    rx = sum(bot['x'] for bot in rival_bots) / len(rival_bots)
+                    ry = sum(bot['y'] for bot in rival_bots) / len(rival_bots)
+                    if _m.hypot(rx-cx, ry-cy) <= self.CITY_GANG_RIVAL_SEEK_R:
+                        g['_rival_target_gid'] = target_rival['id']
+                        route = _world_bot_path(cx, cy, rx, ry)
+                        if route:
+                            g['_patrol_route'] = route
+                            g['_patrol_route_i'] = 0
+                            g['_patrol_wp_until'] = now + self.CITY_GANG_RIVAL_REPLAN_S
+                    else:
+                        g['_rival_target_gid'] = ''
+                else:
+                    g['_rival_target_gid'] = ''
+            if retreating and g.get('state') == 'patrol':
+                rally_x = 8.0 if g.get('faction') == 'purple' else WORLD_MAP_COLS - 8.0
+                rally_y = 8.0
+                route = _world_bot_path(cx, cy, rally_x, rally_y)
+                if route:
+                    g['_patrol_route'] = route
+                    g['_patrol_route_i'] = 0
+                    g['_patrol_wp_until'] = now + 18.0
             # Общий watchdog движения. Если патруль за пять секунд почти не
             # сдвинул центр, сбрасываем маршрут и принудительно возвращаем
             # бойцов в walk. Это лечит группу целиком, а не одного крайнего NPC.
@@ -17663,13 +19484,22 @@ class WorldSim:
                     continue
                 rx = sum(b['x'] for b in rivals) / len(rivals)
                 ry = sum(b['y'] for b in rivals) / len(rivals)
-                if _m.hypot(cx - rx, cy - ry) > 7.0:
+                forced_business_fight = self._city_gang_business_rivals_must_fight(g, rival)
+                encounter_radius = (self.CITY_GANG_BUSINESS_FIGHT_R
+                                    if forced_business_fight else 7.0)
+                if _m.hypot(cx - rx, cy - ry) > encounter_radius:
                     continue
                 pair = tuple(sorted((str(g['id']), str(rival['id']))))
                 encounter = self._city_gang_encounters.get(pair)
+                if encounter and forced_business_fight:
+                    encounter['fight'] = True
+                    encounter['business_assault'] = True
                 if not encounter or now >= encounter['until']:
-                    encounter = {'fight': random.random() < 0.45,
-                                 'until': now + 20.0, 'shot_at': 0.0}
+                    business_assault = forced_business_fight
+                    encounter = {'fight': business_assault or random.random() < 0.45,
+                                 'until': now + 20.0, 'shot_at': 0.0,
+                                 'police_called': False,
+                                 'business_assault': business_assault}
                     self._city_gang_encounters[pair] = encounter
                     if encounter['fight']:
                         speaker = random.choice(alive_bots)
@@ -17680,18 +19510,53 @@ class WorldSim:
                                          'Сегодня вам не пройти!'])})
                 if not encounter['fight'] or now - encounter['shot_at'] < 1.0:
                     continue
-                encounter['shot_at'] = now
-                attacker = random.choice(alive_bots)
+                ready_attackers = [b for b in alive_bots
+                                   if now >= float(b.get('_reload_until') or 0)
+                                   and now >= float(b.get('_dodging_until') or 0)
+                                   and now >= float(b.get('_surrendered_until') or 0)]
+                if not ready_attackers:
+                    continue
+                attacker = random.choice(ready_attackers)
                 victim = random.choice(rivals)
-                damage = random.randint(12, 24)
+                weapon = attacker.get('weapon') or 'pistol'
+                stats = self.AGGRO_WEAPON_STATS.get(
+                    weapon, self.AGGRO_WEAPON_STATS['pistol'])
+                mag_size = int(stats.get('mag', 8))
+                if '_mag' not in attacker:
+                    attacker['_mag'] = mag_size
+                if int(attacker.get('_mag') or 0) <= 0:
+                    attacker['_reload_started'] = now
+                    attacker['_reload_until'] = now + float(stats.get('reload', 1.8))
+                    attacker['_combat_state'] = 'reload'
+                    continue
+                if (not _world_los(attacker['x'], attacker['y'], victim['x'], victim['y'])
+                        or not self._city_gang_shot_safe(
+                            g, attacker, victim['x'], victim['y'])):
+                    continue
+                encounter['shot_at'] = now
+                attacker['_mag'] -= 1; attacker['_shot_t'] = now
+                attacker['_shooting_until'] = now + .24
+                attacker['_combat_state'] = 'shoot'
+                damage = self._bandit_damage(int(stats.get('dmg', 7)),
+                                              int(attacker.get('level') or 1))
                 victim['hp'] = max(0, int(victim.get('hp', 0)) - damage)
                 killed = victim['hp'] <= 0
                 if killed:
                     victim['alive'] = False
+                if not encounter.get('police_called'):
+                    encounter['police_called'] = True
+                    self._dispatch_cops_on_gang(g, cx, cy, count=2)
+                    self._dispatch_cops_on_gang(rival, rx, ry, count=2)
+                    pkts.append({'kind':'city_gang_police_called',
+                                 'x':round((cx+rx)/2,2), 'y':round((cy+ry)/2,2),
+                                 'gangs':[g['id'], rival['id']]})
+                    pkts.append({'kind':'city_gang_civilians_flee',
+                                 'x':round((cx+rx)/2,2), 'y':round((cy+ry)/2,2),
+                                 'radius':14.0})
                 pkts.append({
                     'kind':'aggro_hit', 'tid':rival['id'],
                     'bot_id':victim['id'], 'shooter_bot_id':attacker['id'],
-                    'weapon':attacker.get('weapon') or 'pistol',
+                    'weapon':weapon,
                     'attacker_faction':g.get('faction','purple'),
                     'victim_faction':rival.get('faction','purple'),
                     'sx':round(attacker['x'],2), 'sy':round(attacker['y'],2),
@@ -17699,6 +19564,20 @@ class WorldSim:
                     'hp':int(victim['hp']), 'dmg':damage,
                     'killed':killed, 'npc_gang_fight':True,
                 })
+                if killed and not any(bot.get('alive') for bot in rival.get('bots', [])):
+                    sector = self._street_sector(victim['x'], victim['y'])
+                    control = {'faction':g.get('faction','purple'),
+                               'mafia_family':g.get('mafia_family',''),
+                               'x':round(victim['x'],2), 'y':round(victim['y'],2),
+                               'expires_at':now + self.CITY_GANG_CONTROL_S,
+                               'won_at':now}
+                    self._street_control[sector] = control
+                    self._faction_war_add('mafia', 4,
+                        did=self._district_id_at(victim['x'], victim['y']),
+                        action=f'npc_street_win:{sector}', cooldown_s=30)
+                    pkts.append({'kind':'city_gang_control', 'sector':sector,
+                                 **control, 'duration_s':self.CITY_GANG_CONTROL_S,
+                                 'global':True})
                 break
             if len(self._city_gang_encounters) > 32:
                 self._city_gang_encounters = {
@@ -17776,7 +19655,9 @@ class WorldSim:
                 # Группа выглядит живой: один пьёт, второй рисует, третий
                 # пристаёт к прохожим.
                 for bot in alive_bots:
-                    if str(bot['id']) in fire_flee_ids:
+                    if (str(bot['id']) in fire_flee_ids
+                            or str(bot['id']) in throwable_evade_ids
+                            or now < float(bot.get('_surrendered_until') or 0)):
                         continue
                     if g.get('district_did'):
                         bot['_act'] = 'walk'
@@ -17888,24 +19769,45 @@ class WorldSim:
                         g['_patrol_route_i'] = route_i
                         need_route = route_i >= len(route)
                     if need_route:
-                        for _ in range(60):
-                            nwx = random.uniform(5.5, WORLD_MAP_COLS - 5.5)
-                            nwy = random.uniform(5.5, WORLD_BEACH_R1 - 1.5)
-                            if (_m.hypot(nwx - cx, nwy - cy) < 24.0
-                                    or not _world_bot_passable(nwx, nwy)):
-                                continue
-                            new_route = _world_bot_path(cx, cy, nwx, nwy)
+                        objective_id = self._city_gang_business_id(g)
+                        objective_mode = str(g.get('_business_mode') or '')
+                        if objective_id and objective_mode in ('guard', 'capture', 'assault'):
+                            new_route = self._city_gang_guard_route(objective_id)
                             if new_route:
                                 g['_patrol_route'] = new_route
                                 g['_patrol_route_i'] = 0
-                                g['_patrol_wp_until'] = now + 180.0
+                                g['_patrol_wp_until'] = now + 90.0
                                 route, route_i = new_route, 0
-                                break
+                        elif objective_id:
+                            rc = BUSINESS_POIS_RC.get(objective_id)
+                            new_route = (_world_bot_path(cx, cy, float(rc[1]), float(rc[0]))
+                                         if rc else [])
+                            if new_route:
+                                g['_patrol_route'] = new_route
+                                g['_patrol_route_i'] = 0
+                                g['_patrol_wp_until'] = now + self.CITY_GANG_BUSINESS_ROUTE_TTL_S
+                                route, route_i = new_route, 0
+                        else:
+                            for _ in range(60):
+                                nwx = random.uniform(5.5, WORLD_MAP_COLS - 5.5)
+                                nwy = random.uniform(5.5, WORLD_BEACH_R1 - 1.5)
+                                if (_m.hypot(nwx - cx, nwy - cy) < 24.0
+                                        or not _world_bot_passable(nwx, nwy)):
+                                    continue
+                                new_route = _world_bot_path(cx, cy, nwx, nwy)
+                                if new_route:
+                                    g['_patrol_route'] = new_route
+                                    g['_patrol_route_i'] = 0
+                                    g['_patrol_wp_until'] = now + 180.0
+                                    route, route_i = new_route, 0
+                                    break
                     if route_i < len(route):
                         g['_patrol_wp'] = route[route_i]
                 wx, wy = g['_patrol_wp']
                 for bot_i, bot in enumerate(alive_bots):
-                    if str(bot['id']) in fire_flee_ids:
+                    if (str(bot['id']) in fire_flee_ids
+                            or str(bot['id']) in throwable_evade_ids
+                            or now < float(bot.get('_surrendered_until') or 0)):
                         continue
                     # Боты не в режиме 'walk' стоят на месте (пьют/тегят/
                     # пристают к NPC — клиент рисует визуал).
@@ -17967,17 +19869,71 @@ class WorldSim:
                     continue
                 tx, ty = target['x'], target['y']
                 for bot in alive_bots:
-                    if str(bot['id']) in evading_c4_ids or str(bot['id']) in fire_flee_ids:
+                    if (str(bot['id']) in evading_c4_ids
+                            or str(bot['id']) in fire_flee_ids
+                            or str(bot['id']) in throwable_evade_ids
+                            or now < float(bot.get('_surrendered_until') or 0)):
                         continue
                     dx2 = tx - bot['x']; dy2 = ty - bot['y']
                     dist = _m.hypot(dx2, dy2) + 1e-6
                     bot['ang'] = _m.atan2(dy2, dx2)
-                    # Приближаемся если далеко
-                    if dist > 5.5:
-                        step = self.CITY_GANG_CHASE_SPEED * dt
-                        direct = _m.atan2(dy2, dx2)
-                        for turn in (0.0, .42, -.42, .82, -.82, 1.25, -1.25):
-                            ang = direct + turn
+                    weapon = bot.get('weapon') or 'pistol_heavy'
+                    w_stats = self.AGGRO_WEAPON_STATS.get(
+                        weapon, self.AGGRO_WEAPON_STATS['pistol'])
+                    w_range = float(w_stats.get('range', self.CITY_GANG_FIRE_R))
+                    w_cd    = float(w_stats.get('cd',    self.AGGRO_BOT_CD))
+                    is_boss = bot.get('kind') == 'district_boss'
+                    mag_size = int(w_stats.get('mag', 8)) + (4 if is_boss else 0)
+                    if '_mag' not in bot:
+                        bot['_mag'] = mag_size
+                    reload_until = float(bot.get('_reload_until') or 0)
+                    if reload_until and now >= reload_until:
+                        bot['_mag'] = mag_size
+                        bot['_reload_until'] = 0.0
+                        reload_until = 0.0
+                    if int(bot.get('_mag') or 0) <= 0 and not reload_until:
+                        reload_time = float(w_stats.get('reload', 1.8)) * (.78 if is_boss else 1.0)
+                        bot['_reload_started'] = now
+                        bot['_reload_until'] = now + reload_time
+                        reload_until = bot['_reload_until']
+                    reloading = now < reload_until
+                    low_hp = (float(bot.get('hp') or 0) /
+                              max(1.0, float(bot.get('max_hp') or 1))) <= self.CITY_GANG_COVER_HP_RATIO
+                    wants_cover = reloading or low_hp
+                    cover = bot.get('_cover_point')
+                    if wants_cover and (not cover or now >= float(bot.get('_cover_refresh_at') or 0)):
+                        cover = self._city_gang_cover_point(g, bot, tx, ty)
+                        bot['_cover_point'] = cover
+                        bot['_cover_refresh_at'] = now + 2.2
+                    if not wants_cover:
+                        cover = None
+                        bot['_cover_point'] = None
+                    # Tactical movement: close distance, retreat when crowded,
+                    # strafe at weapon range, and break LOS while reloading.
+                    if now >= float(bot.get('_combat_move_until') or 0):
+                        bot['_combat_move_until'] = now + random.uniform(.65, 1.35)
+                        bot['_strafe_dir'] = random.choice((-1, 1))
+                    ideal = max(3.2, w_range * .72)
+                    direct = _m.atan2(dy2, dx2)
+                    move_ang = None; move_scale = 1.0
+                    if cover:
+                        cdx, cdy = cover[0]-bot['x'], cover[1]-bot['y']
+                        if _m.hypot(cdx, cdy) > .28:
+                            move_ang = _m.atan2(cdy, cdx); move_scale = 1.22
+                    elif dist > ideal + 1.0:
+                        move_ang = direct
+                    elif dist < max(2.2, ideal - 1.5):
+                        move_ang = direct + _m.pi + float(bot.get('_strafe_dir') or 1) * .22
+                        move_scale = 1.08
+                    elif not reloading:
+                        move_ang = direct + float(bot.get('_strafe_dir') or 1) * _m.pi / 2
+                        move_scale = .62
+                    moved = False
+                    if move_ang is not None:
+                        speed = self.CITY_GANG_CHASE_SPEED + (.25 if is_boss else 0.0)
+                        step = speed * move_scale * dt
+                        for turn in (0.0, .4, -.4, .8, -.8, 1.2, -1.2):
+                            ang = move_ang + turn
                             nx = bot['x'] + _m.cos(ang) * step
                             ny = bot['y'] + _m.sin(ang) * step
                             if (g.get('district_did')
@@ -17985,23 +19941,32 @@ class WorldSim:
                                 continue
                             if not _world_bot_passable(nx, ny):
                                 continue
-                            bot['x'], bot['y'], bot['ang'] = nx, ny, ang
-                            break
-                    # Стрельба: оружие у бота назначено при спауне (рандом).
-                    # Урон отложен — пуля летит со speed, можно увернуться.
-                    weapon = bot.get('weapon') or 'pistol_heavy'
-                    w_stats = self.AGGRO_WEAPON_STATS.get(
-                        weapon, self.AGGRO_WEAPON_STATS['pistol'])
-                    w_range = float(w_stats.get('range', self.CITY_GANG_FIRE_R))
-                    w_cd    = float(w_stats.get('cd',    self.AGGRO_BOT_CD))
+                            bot['x'], bot['y'] = nx, ny
+                            moved = True; break
+                    bot['_moving'] = moved
+                    bot['_taking_cover'] = bool(wants_cover and cover)
+                    bot['_combat_state'] = ('reload' if reloading else
+                                             'cover' if bot['_taking_cover'] else
+                                             'strafe' if moved else 'aim')
+                    # Урон отложен — пуля летит физически и может промахнуться.
+                    # Союзник в линии огня блокирует выстрел, как у банды игрока.
                     if (dist <= w_range
                             and (now - bot['_shot_t']) >= w_cd
-                            and _world_los(bot['x'], bot['y'], tx, ty)):
+                            and not reloading
+                            and _world_los(bot['x'], bot['y'], tx, ty)
+                            and self._city_gang_shot_safe(g, bot, tx, ty)):
                         bot['_shot_t'] = now
+                        bot['_mag'] = max(0, int(bot.get('_mag') or 0) - 1)
+                        bot['_shooting_until'] = now + .24
+                        bot['_combat_state'] = 'shoot'
                         pkts.append(self._enqueue_bot_shot(
                             target=target, sx=bot['x'], sy=bot['y'],
                             tx=tx, ty=ty, weapon=weapon,
                             bot_id=bot['id'], tid=g['id'], bot_level=bot.get('level', 1)))
+            if (g['state'] == 'hostile' or any(
+                    cop.get('alive') and str(cop.get('target_gang_id') or '') == str(g['id'])
+                    for cop in self.cops)):
+                pkts.extend(self._city_gang_fire_on_cops(g, alive_bots, now))
             # При hostile — диспатчим копов один раз (они атакуют банду).
             if (g['state'] == 'hostile' and not g['_cops_dispatched']
                     and not g.get('district_did')):
@@ -18015,12 +19980,13 @@ class WorldSim:
                 })
         return pkts
 
-    def _dispatch_cops_on_gang(self, g: dict, cx: float, cy: float) -> None:
+    def _dispatch_cops_on_gang(self, g: dict, cx: float, cy: float,
+                               count: int | None = None) -> None:
         """Спавним группу копов рядом с hostile-бандой. У копа задаётся
         target_gang_id — в tick_cops он будет атаковать бойцов банды,
         а не игрока."""
         import math as _m
-        for i in range(self.CITY_GANG_COPS_PER_GANG):
+        for i in range(self.CITY_GANG_COPS_PER_GANG if count is None else max(0, int(count))):
             for _try in range(8):
                 ang  = random.random() * 2 * _m.pi
                 dist = 9 + random.random() * 4
@@ -19957,6 +21923,10 @@ class WorldSim:
                 'police': bool(p.get('_police')),
                 'mafia': bool(p.get('_mafia')),
                 'mafia_family': str(p.get('_mafia_family') or ''),
+                'custom_gang_id': int(p.get('_custom_gang_id') or 0),
+                'custom_gang_name': str(p.get('_custom_gang_name') or ''),
+                'custom_gang_role': str(p.get('_custom_gang_role') or ''),
+                'custom_gang_flag': dict(p.get('_custom_gang_flag') or {}),
                 'crew_mate': bool(crew_id and str(p.get('_crew_id') or '')==crew_id),
                 'police_cuffed': bool(p.get('_police_cuffed_by')),
                 'police_stunned_in': max(0.0, float(p.get('_police_stunned_until') or 0) - time.time()),
@@ -20241,6 +22211,15 @@ class WorldSim:
                     'evading_c4': bool(bot.get('_evading_c4')),
                     'burning': now_t < float(bot.get('_burn_until') or 0),
                     'fleeing_fire': now_t < float(bot.get('_fire_flee_until') or 0),
+                    'dodging': now_t < float(bot.get('_dodging_until') or 0),
+                    'dodgeKind': str(bot.get('_dodge_kind') or ''),
+                    'panicking': now_t < float(bot.get('_panic_until') or 0),
+                    'alerted': int(st.get('_alarm_level') or 0) >= 1,
+                    'sentry': bool(bot.get('_sentry')),
+                    'lastStand': bool(bot.get('_last_stand')),
+                    'combatState': ('dodge' if now_t < float(bot.get('_dodging_until') or 0)
+                                    else 'panic' if now_t < float(bot.get('_panic_until') or 0)
+                                    else 'last_stand' if bot.get('_last_stand') else ''),
                     'look':    bot.get('look') or {},
                 })
             covers_out = []
@@ -20268,6 +22247,7 @@ class WorldSim:
                 'covers':        covers_out,
                 'cap_left':      round(cap_left, 2),
                 'next_respawn':  next_respawn,
+                'alarm_level':   int(st.get('_alarm_level') or 0),
             }
         # Бродячие городские банды — кладём в тот же aggro-payload по
         # gid, чтобы клиент рисовал их через тот же drawAggroBot.
@@ -20294,6 +22274,25 @@ class WorldSim:
                     'evading_c4': bool(bot.get('_evading_c4')),
                     'burning': now_t < float(bot.get('_burn_until') or 0),
                     'fleeing_fire': now_t < float(bot.get('_fire_flee_until') or 0),
+                    'moving': bool(bot.get('_moving')),
+                    'shooting': now_t < float(bot.get('_shooting_until') or 0),
+                    'aiming': (g.get('state') == 'hostile'
+                               and now_t >= float(bot.get('_reload_until') or 0)
+                               and now_t >= float(bot.get('_dodging_until') or 0)),
+                    'shotAge': max(0, int((now_t-float(bot.get('_shot_t') or 0))*1000)),
+                    'reloading': now_t < float(bot.get('_reload_until') or 0),
+                    'reloadProgress': (max(0.0, min(1.0,
+                        (now_t-float(bot.get('_reload_started') or now_t)) /
+                        max(.01, float(bot.get('_reload_until') or now_t)-
+                                  float(bot.get('_reload_started') or now_t))))
+                        if now_t < float(bot.get('_reload_until') or 0) else 0.0),
+                    'dodging': now_t < float(bot.get('_dodging_until') or 0),
+                    'dodgeKind': str(bot.get('_dodge_kind') or ''),
+                    'takingCover': bool(bot.get('_taking_cover')),
+                    'panicking': now_t < float(g.get('_retreat_until') or 0),
+                    'surrendering': now_t < float(bot.get('_surrendered_until') or 0),
+                    'alerted': bool(g.get('_rival_target_gid') or g.get('state') == 'hostile'),
+                    'combatState': str(bot.get('_combat_state') or ''),
                     'look':    bot.get('look') or {},
                     # Текущая активность: walk/idle/drink/tag/harass —
                     # клиент рисует бутылку/баллончик/стоит спокойно.
@@ -20317,6 +22316,11 @@ class WorldSim:
                 'is_city_gang':  True,
                 'district_did':  g.get('district_did'),
                 'faction':       g.get('faction', 'purple'),
+                'morale':        round(float(g.get('_morale') or 0), 2),
+                'rival_target_gid': str(g.get('_rival_target_gid') or ''),
+                'retreating':    now_t < float(g.get('_retreat_until') or 0),
+                'business_mode': str(g.get('_business_mode') or ''),
+                'business_id': self._city_gang_business_id(g),
             }
         # Бандитские гнёзда — те же боты через aggro_payload + отдельный
         # nests payload с anchor (для рендера красной подсветки здания).
@@ -20479,8 +22483,19 @@ class WorldSim:
                         float(me.get('_mafia_traitor_until') or 0) - now_t))),
                     'mafia_join_denied': str(me.pop('_mafia_join_denied', '') or ''),
                     'mafia_family_counts': dict(me.get('_mafia_family_counts') or {}),
+                    'custom_gang': ({
+                        'id': int(me.get('_custom_gang_id') or 0),
+                        'name': str(me.get('_custom_gang_name') or ''),
+                        'role': str(me.get('_custom_gang_role') or ''),
+                        'flag': dict(me.get('_custom_gang_flag') or {}),
+                        'hq_apt_key': str(me.get('_custom_gang_hq') or ''),
+                    } if me.get('_custom_gang_id') else None),
                     'spray_cans': int(me.get('_spray_cans') or 0),
-                    'online_gang': {'crew_id':crew_id,'members':crew_members,'max_players':3} if crew_id else None,
+                    'online_gang': ({
+                        'crew_id':crew_id,
+                        'members':crew_members,
+                        'max_players':CUSTOM_GANG_MAX_MEMBERS if crew_id.startswith('cg:') else 3,
+                    } if crew_id else None),
                     'apartment_hosts': apartment_hosts,
                     'police_arrests_today': int(me.get('_police_daily_count') or 0),
                     'police_arrest_limit': me.get('_police_daily_limit'),
@@ -20508,6 +22523,14 @@ class WorldSim:
                 'next_event_in': next_event_in,
                 'pvp_active':    me_in_pvp,
                 'faction_war':   self.faction_war_payload(),
+                'street_control': {
+                    sector: {
+                        **control,
+                        'remaining_s': max(0, int(float(control.get('expires_at') or 0) - now_t)),
+                    }
+                    for sector, control in self._street_control.items()
+                    if float(control.get('expires_at') or 0) > now_t
+                },
                 'major_objects': self.major_objects_payload(),
                 'bank_vault_raids': {
                     str(bank_id): {
@@ -20524,6 +22547,55 @@ class WorldSim:
                 'world_c4':        world_c4_payload,
                 'aggro':           aggro_payload,
                 'gang_nests':      nests_payload,
+                'npc_business_controls': {
+                    biz_id: {
+                        'biz_id': biz_id,
+                        'faction': str(control.get('faction') or ''),
+                        'mafia_family': str(control.get('mafia_family') or ''),
+                        'gang_name': str(control.get('gang_name') or ''),
+                        'color': str(control.get('color') or '#999999'),
+                        'guard_gid': str(control.get('guard_gid') or ''),
+                        'guarded': self._city_gang_business_guard_alive(control),
+                        'captured_at': float(control.get('captured_at') or 0),
+                        'defense_level': max(0, int(control.get('defense_level') or 0)),
+                    }
+                    for biz_id, control in self._npc_business_controls.items()
+                    if biz_id in BUSINESS_POIS_RC
+                },
+                'npc_business_dominance': {
+                    faction: sum(1 for control in self._npc_business_controls.values()
+                                 if str(control.get('faction') or '') == faction)
+                    for faction in ('purple', 'yellow')
+                },
+                'npc_gang_economy': {
+                    faction: {
+                        'faction': faction,
+                        'treasury': max(0, int(state.get('treasury') or 0)),
+                        'earned': max(0, int(state.get('earned') or 0)),
+                        'spent': max(0, int(state.get('spent') or 0)),
+                        'businesses': sum(
+                            1 for control in self._npc_business_controls.values()
+                            if str(control.get('faction') or '') == faction),
+                        'doctrine': str(self._npc_gang_profile(faction)['doctrine']),
+                    }
+                    for faction, state in self._npc_gang_economy.items()
+                    if faction in ('purple', 'yellow')
+                },
+                'npc_business_operations': [
+                    {
+                        'gid': str(gang.get('id') or ''),
+                        'biz_id': self._city_gang_business_id(gang),
+                        'faction': str(gang.get('faction') or ''),
+                        'phase': str(gang.get('_business_mode') or 'travel'),
+                        'strength': sum(1 for bot in gang.get('bots', [])
+                                        if bot.get('alive')),
+                        'morale': round(float(gang.get('_morale') or 1.0), 2),
+                        'started_at': float(gang.get('_business_operation_started') or now_t),
+                    }
+                    for gang in self.city_gangs
+                    if self._city_gang_business_id(gang)
+                    and str(gang.get('_business_mode') or '') != 'guard'
+                ],
                 'business_closures': {
                     bid: max(0, int(until - now_t))
                     for bid, until in self._business_closed_until.items()
@@ -20918,6 +22990,12 @@ async def _robbed_business_controls_load(world: 'WorldSim') -> None:
             war_rows = await (await db.execute(
                 "SELECT * FROM business_family_wars WHERE expires_at>?", (now,)
             )).fetchall()
+            npc_control_rows = await (await db.execute(
+                "SELECT * FROM npc_business_control"
+            )).fetchall()
+            npc_economy_rows = await (await db.execute(
+                "SELECT * FROM npc_gang_economy"
+            )).fetchall()
             score_rows = await (await db.execute(
                 "SELECT family,points,treasury,captures,defenses,robberies "
                 "FROM mafia_family_scores WHERE family IN ('bellini','moretti')"
@@ -20966,6 +23044,28 @@ async def _robbed_business_controls_load(world: 'WorldSim') -> None:
             biz_id = str(row['biz_id'])
             if biz_id in SHOP_ROB_CONFIG:
                 world._business_family_wars[biz_id] = dict(row)
+        for row in npc_control_rows:
+            biz_id = str(row['biz_id'] or '')
+            faction = str(row['faction'] or '')
+            if biz_id in BUSINESS_POIS_RC and faction in ('purple', 'yellow'):
+                world._npc_business_controls[biz_id] = {
+                    **dict(row), 'guard_gid': '', 'guarded': False,
+                    'vulnerable_since': now,
+                    'defense_level': max(0, min(world.NPC_GANG_MAX_DEFENSE,
+                                               int(row['defense_level'] or 0))),
+                    'last_fortified_at': float(row['last_fortified_at'] or 0),
+                }
+        for row in npc_economy_rows:
+            faction = str(row['faction'] or '')
+            if faction in world._npc_gang_economy:
+                world._npc_gang_economy[faction] = {
+                    'faction': faction,
+                    'treasury': max(0, min(world.NPC_GANG_TREASURY_CAP,
+                                          int(row['treasury'] or 0))),
+                    'last_income_at': float(row['last_income_at'] or now),
+                    'earned': max(0, int(row['earned'] or 0)),
+                    'spent': max(0, int(row['spent'] or 0)),
+                }
         for row in score_rows:
             family = str(row['family'] or '')
             if family in world._business_war_score:
@@ -21681,6 +23781,67 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 # Threat-фразы сохраняем на боте чтобы snapshot.aggro мог
                 # их передать клиенту (как чат-баббл над головой).
                 gang_pkts = world.tick_city_gangs(WORLD_TICK_DT) or []
+                updated_businesses = {
+                    str(gp.get('biz_id') or '')
+                    for gp in gang_pkts
+                    if gp.get('kind') in ('npc_business_captured', 'npc_business_fortified',
+                                          'npc_business_weakened')
+                    and str(gp.get('biz_id') or '') in BUSINESS_POIS_RC
+                }
+                if updated_businesses:
+                    try:
+                        async with aiosqlite.connect(DB_PATH) as db:
+                            for biz_id in updated_businesses:
+                                control = world._npc_business_controls.get(biz_id) or {}
+                                await db.execute(
+                                    "INSERT OR REPLACE INTO npc_business_control "
+                                    "(biz_id,faction,mafia_family,gang_name,color,captured_at,"
+                                    "defense_level,last_fortified_at) VALUES(?,?,?,?,?,?,?,?)",
+                                    (biz_id, str(control.get('faction') or ''),
+                                     str(control.get('mafia_family') or ''),
+                                     str(control.get('gang_name') or '')[:40],
+                                     str(control.get('color') or '#999999'),
+                                     float(control.get('captured_at') or time.time()),
+                                     int(control.get('defense_level') or 0),
+                                     float(control.get('last_fortified_at') or 0)))
+                            await db.commit()
+                    except Exception as _e:
+                        logger.warning("WorldSim: NPC business control persistence failed: %r", _e)
+                released_businesses = {
+                    str(gp.get('biz_id') or '') for gp in gang_pkts
+                    if gp.get('kind') == 'npc_business_released'
+                    and str(gp.get('biz_id') or '') in BUSINESS_POIS_RC
+                }
+                if released_businesses:
+                    try:
+                        async with aiosqlite.connect(DB_PATH) as db:
+                            await db.executemany(
+                                "DELETE FROM npc_business_control WHERE biz_id=?",
+                                [(biz_id,) for biz_id in released_businesses])
+                            await db.commit()
+                    except Exception as _e:
+                        logger.warning("WorldSim: NPC business release persistence failed: %r", _e)
+                economy_changed = any(
+                    gp.get('kind') in ('npc_gang_income', 'npc_business_fortified',
+                                       'city_gang_backup_arrived')
+                    for gp in gang_pkts)
+                if economy_changed:
+                    try:
+                        async with aiosqlite.connect(DB_PATH) as db:
+                            for faction, state in world._npc_gang_economy.items():
+                                if faction not in ('purple', 'yellow'):
+                                    continue
+                                await db.execute(
+                                    "INSERT OR REPLACE INTO npc_gang_economy "
+                                    "(faction,treasury,last_income_at,earned,spent) "
+                                    "VALUES(?,?,?,?,?)",
+                                    (faction, int(state.get('treasury') or 0),
+                                     float(state.get('last_income_at') or time.time()),
+                                     int(state.get('earned') or 0),
+                                     int(state.get('spent') or 0)))
+                            await db.commit()
+                    except Exception as _e:
+                        logger.warning("WorldSim: NPC gang economy persistence failed: %r", _e)
                 for gp in gang_pkts:
                     if gp.get('kind') == 'city_gang_threat':
                         bot_id = gp.get('bot_id')
@@ -21850,11 +24011,14 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     await _record_world_event_news(world, _news_pkt)
                 # Broadcast всех event-пакетов
                 if ev_pkts:
-                    blob = [json.dumps({'t': 'event', 'd': p}, ensure_ascii=False)
-                            for p in ev_pkts]
                     for u2, ws2 in list(world.connections.items()):
-                        for s in blob:
-                            try: await ws2.send_str(s)
+                        visible_packets = [
+                            packet for packet in ev_pkts
+                            if world.world_event_visible_to(u2, packet)]
+                        for packet in visible_packets:
+                            try:
+                                await ws2.send_str(json.dumps(
+                                    {'t':'event', 'd':packet}, ensure_ascii=False))
                             except Exception:
                                 world.connections.pop(u2, None)
                                 break
@@ -21924,11 +24088,34 @@ async def _coop_http_app():
 
     async def _cors(resp):
         resp.headers['Access-Control-Allow-Origin']  = '*'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
         return resp
 
     async def h_options(req):
         return await _cors(web.Response(status=204))
+
+    async def h_steam_session(req):
+        try:
+            body = await req.json()
+        except Exception:
+            body = {}
+        validation = await authenticate_steam_ticket(body.get('ticket'))
+        if not validation.get('ok'):
+            status = 503 if validation.get('error') in {
+                'steam unavailable', 'steam auth not configured'
+            } else 401
+            return await _cors(web.json_response(validation, status=status))
+        result = await issue_steam_session(
+            validation['steam_id'], str(body.get('display_name') or ''))
+        return await _cors(web.json_response(result, status=200 if result.get('ok') else 400))
+
+    async def h_steam_ws_ticket(req):
+        uid = await resolve_request_player(req)
+        if uid is None:
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'unauthorized'}, status=401))
+        return await _cors(web.json_response(await issue_world_ws_ticket(uid)))
 
     async def h_create(req):
         try:
@@ -23411,6 +25598,12 @@ async def _coop_http_app():
         apt_key = str(b.get('apt_key', '')).strip()[:32]
         if not apt_key or ',' not in apt_key:
             return await _cors(web.json_response({'ok': False, 'error': 'bad apt'}, status=400))
+        gang = await get_custom_gang_for_user(uid)
+        if gang and gang['hq_apt_key'] == apt_key:
+            return await _cors(web.json_response({
+                'ok': False, 'error': 'hq active',
+                'message': 'Сначала распусти банду: действующий штаб продать нельзя.',
+            }, status=409))
         sale = await sell_apartment_db(uid, apt_key)
         if not sale:
             return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
@@ -23420,6 +25613,215 @@ async def _coop_http_app():
         return await _cors(web.json_response({
             'ok': True, 'refund': sale['refund'], 'cash': sale['cash'], 'owned': owned,
         }))
+
+    # ── ПОЛЬЗОВАТЕЛЬСКИЕ БАНДЫ: квартира-штаб, флаг и постоянный состав ──
+    async def h_custom_gang_state(req):
+        uid = await resolve_request_player(req, req.match_info.get('uid'))
+        if uid is None:
+            return await _cors(web.json_response({'ok': False, 'error': 'unauthorized'}, status=401))
+        return await _cors(web.json_response({
+            'ok': True,
+            'gang': await get_custom_gang_for_user(uid),
+            'headquarters': await get_custom_gang_headquarters(),
+        }))
+
+    async def notify_custom_gang_state(member_uids) -> None:
+        if not _WORLD:
+            return
+        blob = json.dumps(
+            {'t': 'event', 'd': {'kind': 'custom_gang_state_changed'}},
+            ensure_ascii=False)
+        for member_uid in set(str(value) for value in member_uids):
+            socket = _WORLD.connections.get(member_uid)
+            if socket:
+                try:
+                    await socket.send_str(blob)
+                except Exception:
+                    pass
+
+    async def h_custom_gang_create(req):
+        try:
+            body = await req.json()
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad request'}, status=400))
+        uid = await resolve_request_player(req, req.match_info.get('uid'))
+        if uid is None:
+            return await _cors(web.json_response({'ok': False, 'error': 'unauthorized'}, status=401))
+        name = normalize_custom_gang_name(body.get('name'))
+        apt_key = str(body.get('apt_key') or '').strip()[:32]
+        if not name or apartment_price_for_key(apt_key) is None:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad name or hq'}, status=400))
+        flag_in = body.get('flag') if isinstance(body.get('flag'), dict) else {}
+        flag = normalize_custom_gang_flag(
+            flag_in.get('primary'), flag_in.get('secondary'), flag_in.get('emblem'))
+        world = _WORLD
+        leader = world.players.get(str(uid)) if world else None
+        if not leader:
+            return await _cors(web.json_response({'ok': False, 'error': 'leader offline'}, status=409))
+        if leader.get('_mafia') or leader.get('_mafia_family') or leader.get('_police'):
+            return await _cors(web.json_response({'ok': False, 'error': 'faction conflict'}, status=409))
+        crew_id = str(leader.get('_crew_id') or '')
+        if crew_id.startswith('cg:') or leader.get('_custom_gang_id'):
+            return await _cors(web.json_response({'ok': False, 'error': 'already in gang'}, status=409))
+        # Временная пати принадлежит игроку, чей uid используется как crew_id.
+        # Участник не может расколоть её, молча создав собственную банду.
+        if crew_id and crew_id != str(uid):
+            return await _cors(web.json_response({'ok': False, 'error': 'party leader only'}, status=409))
+        party = [(other_uid, p) for other_uid, p in world.players.items()
+                 if crew_id and str(p.get('_crew_id') or '') == crew_id]
+        if any(p.get('_mafia') or p.get('_mafia_family') or p.get('_police') or
+               p.get('_custom_gang_id') for _, p in party):
+            return await _cors(web.json_response({'ok': False, 'error': 'party faction conflict'}, status=409))
+        party_uids = [int(other_uid) for other_uid, _ in party if other_uid != str(uid)]
+        result = await create_custom_gang_db(uid, apt_key, name, flag, party_uids)
+        if not result.get('ok'):
+            return await _cors(web.json_response(result, status=409))
+        for member_uid in result['member_uids']:
+            live = world.players.get(str(member_uid))
+            member_gang = await get_custom_gang_for_user(int(member_uid))
+            apply_custom_gang_to_player(live, member_gang)
+        await notify_custom_gang_state(result['member_uids'])
+        gang = await get_custom_gang_for_user(uid)
+        return await _cors(web.json_response({
+            'ok': True, 'gang': gang,
+            'headquarters': await get_custom_gang_headquarters(),
+        }))
+
+    async def h_custom_gang_leave(req):
+        uid = await resolve_request_player(req, req.match_info.get('uid'))
+        if uid is None:
+            return await _cors(web.json_response({'ok': False, 'error': 'unauthorized'}, status=401))
+        result = await leave_custom_gang_db(uid)
+        if not result.get('ok'):
+            return await _cors(web.json_response(result, status=409))
+        if _WORLD:
+            apply_custom_gang_to_player(_WORLD.players.get(str(uid)), None)
+        await notify_custom_gang_state(result.get('member_uids') or [uid])
+        return await _cors(web.json_response({
+            'ok': True, 'gang': None, 'headquarters': await get_custom_gang_headquarters(),
+        }))
+
+    async def h_custom_gang_disband(req):
+        uid = await resolve_request_player(req, req.match_info.get('uid'))
+        if uid is None:
+            return await _cors(web.json_response({'ok': False, 'error': 'unauthorized'}, status=401))
+        result = await disband_custom_gang_db(uid)
+        if not result.get('ok'):
+            return await _cors(web.json_response(result, status=409))
+        if _WORLD:
+            for member_uid in result['member_uids']:
+                apply_custom_gang_to_player(_WORLD.players.get(str(member_uid)), None)
+        await notify_custom_gang_state(result['member_uids'])
+        return await _cors(web.json_response({
+            'ok': True, 'gang': None, 'headquarters': await get_custom_gang_headquarters(),
+        }))
+
+    async def h_custom_gang_kick(req):
+        uid = await resolve_request_player(req, req.match_info.get('uid'))
+        if uid is None:
+            return await _cors(web.json_response({'ok': False, 'error': 'unauthorized'}, status=401))
+        try:
+            body = await req.json()
+            target_uid = int(body.get('target_uid'))
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad target'}, status=400))
+        result = await kick_custom_gang_member_db(uid, target_uid)
+        if not result.get('ok'):
+            return await _cors(web.json_response(result, status=409))
+        if _WORLD:
+            apply_custom_gang_to_player(_WORLD.players.get(str(target_uid)), None)
+            apply_custom_gang_to_player(_WORLD.players.get(str(uid)),
+                                        await get_custom_gang_for_user(uid))
+        await notify_custom_gang_state(result['member_uids'])
+        return await _cors(web.json_response({
+            'ok': True, 'gang': await get_custom_gang_for_user(uid),
+            'headquarters': await get_custom_gang_headquarters(),
+        }))
+
+    async def h_custom_gang_transfer(req):
+        uid = await resolve_request_player(req, req.match_info.get('uid'))
+        if uid is None:
+            return await _cors(web.json_response({'ok': False, 'error': 'unauthorized'}, status=401))
+        try:
+            body = await req.json()
+            target_uid = int(body.get('target_uid'))
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad target'}, status=400))
+        before = await get_custom_gang_for_user(uid)
+        result = await transfer_custom_gang_leadership_db(uid, target_uid)
+        if not result.get('ok'):
+            return await _cors(web.json_response(result, status=409))
+        affected = [str(member['telegram_id']) for member in (before or {}).get('members', [])]
+        if _WORLD:
+            for member_uid in affected:
+                apply_custom_gang_to_player(
+                    _WORLD.players.get(member_uid),
+                    await get_custom_gang_for_user(int(member_uid)))
+        await notify_custom_gang_state(affected)
+        return await _cors(web.json_response({
+            'ok': True, 'gang': await get_custom_gang_for_user(uid),
+            'headquarters': await get_custom_gang_headquarters(),
+        }))
+
+    async def h_custom_gang_treasury(req):
+        uid = await resolve_request_player(req, req.match_info.get('uid'))
+        if uid is None:
+            return await _cors(web.json_response({'ok': False, 'error': 'unauthorized'}, status=401))
+        try:
+            body = await req.json()
+            amount = int(body.get('amount') or 0)
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad amount'}, status=400))
+        result = await custom_gang_treasury_db(uid, amount)
+        if not result.get('ok'):
+            return await _cors(web.json_response(result, status=409))
+        if _WORLD and str(uid) in _WORLD.players:
+            _WORLD.players[str(uid)]['_cash'] = int(result['cash'])
+        gang = await get_custom_gang_for_user(uid)
+        await notify_custom_gang_state(
+            [member['telegram_id'] for member in (gang or {}).get('members', [])])
+        return await _cors(web.json_response({'ok': True, 'cash': result['cash'], 'gang': gang}))
+
+    async def h_custom_gang_edit(req):
+        uid = await resolve_request_player(req, req.match_info.get('uid'))
+        if uid is None:
+            return await _cors(web.json_response({'ok': False, 'error': 'unauthorized'}, status=401))
+        try:
+            body = await req.json()
+        except Exception:
+            body = {}
+        name = normalize_custom_gang_name(body.get('name'))
+        if not name:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad name'}, status=400))
+        raw_flag = body.get('flag') if isinstance(body.get('flag'), dict) else {}
+        flag = normalize_custom_gang_flag(
+            raw_flag.get('primary'), raw_flag.get('secondary'), raw_flag.get('emblem'))
+        before = await get_custom_gang_for_user(uid)
+        result = await edit_custom_gang_db(uid, name, flag)
+        if not result.get('ok'):
+            return await _cors(web.json_response(result, status=409))
+        affected = [str(member['telegram_id']) for member in (before or {}).get('members', [])]
+        if _WORLD:
+            for member_uid in affected:
+                apply_custom_gang_to_player(
+                    _WORLD.players.get(member_uid),
+                    await get_custom_gang_for_user(int(member_uid)))
+        await notify_custom_gang_state(affected)
+        return await _cors(web.json_response({
+            'ok': True, 'gang': await get_custom_gang_for_user(uid),
+            'headquarters': await get_custom_gang_headquarters(),
+        }))
+
+    async def h_custom_gang_npc_sync(req):
+        uid = await resolve_request_player(req, req.match_info.get('uid'))
+        if uid is None:
+            return await _cors(web.json_response({'ok': False, 'error': 'unauthorized'}, status=401))
+        try:
+            body = await req.json()
+        except Exception:
+            body = {}
+        result = await sync_custom_gang_npcs_db(uid, body.get('npcs'))
+        return await _cors(web.json_response(result, status=200 if result.get('ok') else 409))
 
     # ── ЧЁРНЫЙ РЫНОК и ИНВЕНТАРЬ (всё внутри мини-аппа) ──────────────────
     async def h_shop_list(req):
@@ -24256,10 +26658,10 @@ async def _coop_http_app():
         uid = req.query.get('uid', '').strip()
         if not uid or not uid.isdigit():
             return web.Response(status=400, text='uid required')
-        try:
-            uid_int = int(uid)
-        except Exception:
-            return web.Response(status=400, text='bad uid')
+        uid_int = await resolve_request_player(req, uid)
+        if uid_int is None:
+            return web.Response(status=401, text='steam session required')
+        uid = str(uid_int)
         char = await get_character(uid_int)
         if not char:
             return web.Response(status=404, text='no character')
@@ -24388,6 +26790,12 @@ async def _coop_http_app():
                     (await get_apartments_owned(uid_int)).keys())
             except Exception:
                 p_ref['_owned_apartments'] = set()
+            try:
+                apply_custom_gang_to_player(
+                    p_ref, await get_custom_gang_for_user(uid_int))
+            except Exception as exc:
+                logger.warning("WorldSim: failed to load custom gang for %s: %r", uid, exc)
+                apply_custom_gang_to_player(p_ref, None)
             # Сервер принимает урон только от реально имеющегося класса
             # оружия. Семейный пистолет выдаётся только действующему мафиози.
             try:
@@ -24818,6 +27226,16 @@ async def _coop_http_app():
                                         for u2, ws2 in list(world.connections.items()):
                                             try: await ws2.send_str(blob)
                                             except Exception: pass
+                    elif t == 'grenade':
+                        throw_pkt = world.register_gang_throwable(uid, d)
+                        if throw_pkt:
+                            throw_blob = json.dumps(
+                                {'t':'event', 'd':throw_pkt}, ensure_ascii=False)
+                            for _uid2, _ws2 in list(world.connections.items()):
+                                try:
+                                    await _ws2.send_str(throw_blob)
+                                except Exception:
+                                    pass
                     elif t == 'cop_shoot':
                         # Игрок стреляет в копа (тоже копит wanted).
                         # d = {target: 'cop123', weapon: 'pistol'}
@@ -24867,7 +27285,8 @@ async def _coop_http_app():
                         target_uid=str(d.get('target_uid') or ''); inviter=world.players.get(uid) or {}; target=world.players.get(target_uid)
                         crew_id=str(inviter.get('_crew_id') or uid); members=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
                         reason=None
-                        if not inviter.get('_mafia') or not target or not target.get('_mafia'): reason='mafia_only'
+                        if inviter.get('_custom_gang_id') or (target and target.get('_custom_gang_id')): reason='custom_gang_conflict'
+                        elif not inviter.get('_mafia') or not target or not target.get('_mafia'): reason='mafia_only'
                         elif str(inviter.get('_mafia_family') or '') != str(target.get('_mafia_family') or ''): reason='other_family'
                         elif target_uid==str(uid): reason='self'
                         elif target.get('_crew_id'): reason='already_in_gang'
@@ -24890,12 +27309,82 @@ async def _coop_http_app():
                                 if mws: await mws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_changed','accepted':accept}},ensure_ascii=False))
                     elif t in ('gang_player_leave','gang_player_kick'):
                         actor=world.players.get(uid) or {}; crew_id=str(actor.get('_crew_id') or ''); target_uid=str(d.get('target_uid') or uid) if t=='gang_player_kick' else str(uid); target=world.players.get(target_uid)
-                        if crew_id and target and str(target.get('_crew_id') or '')==crew_id:
+                        can_remove = t == 'gang_player_leave' or crew_id == str(uid)
+                        if can_remove and crew_id and not crew_id.startswith('cg:') and target and str(target.get('_crew_id') or '')==crew_id:
                             target.pop('_crew_id',None); left=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
                             if len(left)<2:
                                 for q in left:q.pop('_crew_id',None)
+                    elif t == 'custom_gang_player_invite':
+                        target_uid=str(d.get('target_uid') or ''); inviter=world.players.get(uid) or {}; target=world.players.get(target_uid)
+                        reason=None
+                        if str(inviter.get('_custom_gang_role') or '')!='leader': reason='leader_only'
+                        elif not target: reason='offline'
+                        elif target_uid==str(uid): reason='self'
+                        elif target.get('_custom_gang_id'): reason='already_in_gang'
+                        elif target.get('_mafia') or target.get('_mafia_family') or target.get('_police'): reason='faction_conflict'
+                        elif ((float(inviter.get('x',0))-float(target.get('x',0)))**2+(float(inviter.get('y',0))-float(target.get('y',0)))**2)>3.2**2: reason='too_far'
+                        if reason:
+                            await ws.send_str(json.dumps({'t':'event','d':{'kind':'custom_gang_player_reply','ok':False,'reason':reason}},ensure_ascii=False))
+                        else:
+                            gang_id=int(inviter.get('_custom_gang_id') or 0)
+                            world.custom_gang_invites[target_uid]={'from_uid':str(uid),'gang_id':gang_id,'expires_at':time.time()+25}
+                            tws=world.connections.get(target_uid)
+                            if tws: await tws.send_str(json.dumps({'t':'event','d':{'kind':'custom_gang_player_invite','from_uid':str(uid),'from_name':inviter.get('name','Игрок'),'gang_name':inviter.get('_custom_gang_name',''),'flag':dict(inviter.get('_custom_gang_flag') or {})}},ensure_ascii=False))
+                            await ws.send_str(json.dumps({'t':'event','d':{'kind':'custom_gang_player_reply','ok':True,'pending':True,'target_name':target.get('name','Игрок')}},ensure_ascii=False))
+                    elif t == 'custom_gang_player_answer':
+                        inv=world.custom_gang_invites.pop(str(uid),None); inviter=world.players.get(str(inv.get('from_uid'))) if inv else None; target=world.players.get(uid); accept=bool(d.get('accept'))
+                        result={'ok':False,'error':'expired'}
+                        if inv and inviter and target and time.time()<=float(inv.get('expires_at',0)):
+                            target_conflict = bool(target.get('_custom_gang_id') or target.get('_mafia') or
+                                                   target.get('_mafia_family') or target.get('_police'))
+                            if accept and target_conflict:
+                                result={'ok':False,'error':'faction conflict'}
+                            elif accept and str(inviter.get('_custom_gang_role') or '')=='leader':
+                                result=await join_custom_gang_db(int(inv['gang_id']),int(uid),int(inv['from_uid']))
+                                if result.get('ok'):
+                                    apply_custom_gang_to_player(target,await get_custom_gang_for_user(int(uid)))
+                            else:
+                                result={'ok':True,'declined':True}
+                        event={'kind':'custom_gang_player_changed','accepted':bool(accept and result.get('ok')),'ok':bool(result.get('ok')),'error':result.get('error','')}
+                        for member_uid in ({str(inv.get('from_uid')),str(uid)} if inv else {str(uid)}):
+                            mws=world.connections.get(member_uid)
+                            if mws: await mws.send_str(json.dumps({'t':'event','d':event},ensure_ascii=False))
                     elif t == 'gang_hire_bot':
-                        reply = world.hire_city_gang_bot(uid, str(d.get('bot_id') or '')[:48])
+                        bot_id = str(d.get('bot_id') or '')[:48]
+                        live_player = world.players.get(uid) or {}
+                        custom_before = None
+                        if live_player.get('_custom_gang_id'):
+                            custom_before = await get_custom_gang_for_user(int(uid))
+                        owned_npcs = [npc for npc in (custom_before or {}).get('npcs', [])
+                                      if str(npc.get('owner_uid')) == str(uid)]
+                        if custom_before and len(owned_npcs) >= 5:
+                            reply = {'kind': 'gang_hire_reply', 'ok': False,
+                                     'reason': 'custom_gang_npc_full', 'bot_id': bot_id}
+                        else:
+                            reply = await world.hire_city_gang_bot(uid, bot_id)
+                        if reply.get('ok') and live_player.get('_custom_gang_id'):
+                            try:
+                                npc = await persist_custom_gang_npc(int(uid), reply)
+                                if npc:
+                                    reply['npc'] = npc
+                                else:
+                                    reply = {'kind': 'gang_hire_reply', 'ok': False,
+                                             'reason': 'custom_gang_npc_full',
+                                             'bot_id': reply.get('bot_id', ''),
+                                             'cost': reply.get('cost', 0)}
+                            except Exception:
+                                logger.exception('Failed to persist hired custom-gang NPC for %s', uid)
+                                reply = {'kind': 'gang_hire_reply', 'ok': False,
+                                         'reason': 'persist_failed',
+                                         'bot_id': reply.get('bot_id', ''),
+                                         'cost': reply.get('cost', 0)}
+                            if not reply.get('ok'):
+                                refund = max(0, int(reply.get('cost') or 0))
+                                if refund:
+                                    await update_character(int(uid),
+                                        cash=int(live_player.get('_cash') or 0) + refund)
+                                    live_player['_cash'] = int(live_player.get('_cash') or 0) + refund
+                                world.restore_hired_city_gang_bot(bot_id)
                         try:
                             await ws.send_str(json.dumps({'t':'event','d':reply}, ensure_ascii=False))
                         except Exception:
@@ -27464,6 +29953,8 @@ async def _coop_http_app():
 
     aio_app = web.Application()
     aio_app.router.add_route('OPTIONS', '/{path_info:.*}', h_options)
+    aio_app.router.add_post('/auth/steam/session', h_steam_session)
+    aio_app.router.add_post('/auth/steam/ws-ticket', h_steam_ws_ticket)
     aio_app.router.add_post('/coop/create',       h_create)
     aio_app.router.add_post('/coop/{sid}/join',   h_join)
     aio_app.router.add_get ('/coop/{sid}',        h_get)
@@ -27499,6 +29990,15 @@ async def _coop_http_app():
     aio_app.router.add_post('/apartment/{uid}/buy',     h_apartment_buy)
     aio_app.router.add_post('/apartment/{uid}/upgrade', h_apartment_upgrade)
     aio_app.router.add_post('/apartment/{uid}/sell',    h_apartment_sell)
+    aio_app.router.add_get ('/custom-gang/{uid}/state',   h_custom_gang_state)
+    aio_app.router.add_post('/custom-gang/{uid}/create',  h_custom_gang_create)
+    aio_app.router.add_post('/custom-gang/{uid}/leave',   h_custom_gang_leave)
+    aio_app.router.add_post('/custom-gang/{uid}/disband', h_custom_gang_disband)
+    aio_app.router.add_post('/custom-gang/{uid}/kick',     h_custom_gang_kick)
+    aio_app.router.add_post('/custom-gang/{uid}/transfer', h_custom_gang_transfer)
+    aio_app.router.add_post('/custom-gang/{uid}/treasury', h_custom_gang_treasury)
+    aio_app.router.add_post('/custom-gang/{uid}/edit',     h_custom_gang_edit)
+    aio_app.router.add_post('/custom-gang/{uid}/npcs/sync', h_custom_gang_npc_sync)
     aio_app.router.add_get ('/shop/{uid}/list',    h_shop_list)
     aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
@@ -27530,6 +30030,9 @@ async def _coop_http_app():
     site = _web.TCPSite(runner, '0.0.0.0', _api_port)
     await site.start()
     logger.info("Co-op HTTP API listening on :%d", _api_port)
+    # Возвращаем runner вызывающему коду: production его может игнорировать,
+    # а интеграционные проверки корректно закрывают сокеты и временную БД.
+    return runner
 
 
 def main():
