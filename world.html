@@ -9218,6 +9218,7 @@ let _murderIncidentSeq=0;
 const _murderIncidents=[];
 let _murderPoliceArrest=null;
 let _murderPoliceRescueGraceUntil=0;
+let _custodyPoseResetUntil=0;
 // Пожарка остаётся на дороге, а очаг нередко находится на тротуаре/газоне.
 // 4.5 тайла не хватало до ближайшей законной точки остановки, из-за чего
 // машина приезжала и стояла без воды. Длина штатного рукава покрывает 8 тайлов.
@@ -10965,6 +10966,7 @@ function _completeMurderPolicePrisonTransport(v,now=performance.now(),reason='ro
   player.r=jailR;player.c=jailC;player.vr=0;player.vc=0;player.walking=false;
   cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;
   window._studioTeleportUntil=Date.now()+5000;
+  _custodyPoseResetUntil=now+6000;
   myDead=false;_localDeath=false;myHp=Math.max(1,Math.ceil((PVP.max_hp||100)*.25));myDeathLeft=0;myDeathBy='';
   _localHpHurtAt=0;_selfHpBarUntil=now+3000;_deathOv?.classList.remove('show');
   v._policePrisonTransport=false;
@@ -21629,7 +21631,12 @@ function wsConnect() {
         // входа (стационарная savedC/savedR) → слал dead=true+тюрьму при
         // живых 50% HP. Урон в банке наносит только охрана через _hurtLocal.
         if (!_localDeath && !_bankShield()) {
-          myDead = !!d.me.dead;
+          // После физической доставки сервер ещё может один-два снапшота
+          // присылать старый dead=true. Заключённый уже жив и оформлен, поэтому
+          // тюремный статус важнее устаревшей смерти и не возвращает лежачую позу.
+          const custodyAlive=(+d.me.jail_in||0)>0||(myJailIn||0)>0||performance.now()<(_custodyPoseResetUntil||0);
+          myDead=!!d.me.dead&&!custodyAlive;
+          if(custodyAlive){_localDeath=false;myHp=Math.max(myHp,Math.ceil((PVP.max_hp||100)*.25));}
           myDeathLeft = d.me.respawn_in || 0;
         }
         if (!wasDead && myDead) {
@@ -58888,7 +58895,7 @@ window.Mafiozi3DBridge = Object.freeze({
     // Keep the transport state machine detailed while feeding the existing
     // renderer poses it already understands: prone extraction and walking escort.
     const arrestVisualPhase=arrestPhase==='awaiting_pickup'?'downed':
-      arrestPhase==='unloading'||arrestPhase==='booking'?'cuffing':
+      arrestPhase==='unloading'?'cuffing':
       arrestPhase==='prison_escort'?'escort':arrestPhase;
     const state={
       r: +player.r || 0, c: +player.c || 0, ang: +player.ang || 0,
@@ -63503,6 +63510,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d261-blackmarket-park-site"></script>
+<script type="module" src="three_preview.js?v=3d261-blackmarket-park-site-clean"></script>
 </body>
 </html>
