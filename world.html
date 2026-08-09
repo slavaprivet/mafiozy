@@ -4846,7 +4846,7 @@ const BLOCK = 10;
 const JAIL_CENTER_R = 76, JAIL_CENTER_C = 76;
 const JAIL_RADIUS_TILES = 7.0;
 const JAIL_GATE_HALF_RAD = 0.50;
-let _prisonReleaseGateSeconds=0,_prisonReleaseGateOpenedAt=-Infinity;
+let _prisonReleaseGateSeconds=0,_prisonLocalJailUntil=0,_prisonReleaseGateOpenedAt=-Infinity;
 const _prisonAlarmState={active:false,startedAt:0,lastHostileAt:0,reason:'',spawnRemaining:0,nextSpawnAt:0,sequence:0,clearedAt:0,clearReason:''};
 let _prisonAlarmServerSyncAt=0;
 function _prisonAlarmActive(){return !!_prisonAlarmState.active;}
@@ -4872,7 +4872,15 @@ function _syncPrisonAlarmFromServer(payload,now=performance.now()){
 }
 function _effectivePrisonJailSeconds(){
   if(_LOCAL_PREVIEW&&_UP.has('previewjailtimer'))return Math.max(0,+_UP.get('previewjailtimer')||0);
-  return Math.max(0,+_prisonReleaseGateSeconds||0);
+  const now=performance.now(),localLeft=_prisonLocalJailUntil>0?Math.max(0,Math.ceil((_prisonLocalJailUntil-now)/1000)):0;
+  if(_prisonLocalJailUntil>0&&localLeft<=0){
+    _prisonLocalJailUntil=0;
+    if((+_prisonReleaseGateSeconds||0)<=0){
+      myJailIn=0;
+      if(!Number.isFinite(_prisonReleaseGateOpenedAt))_prisonReleaseGateOpenedAt=now;
+    }
+  }
+  return Math.max(0,+_prisonReleaseGateSeconds||0,localLeft);
 }
 function _prisonReleaseGateProgress(){
   if(_effectivePrisonJailSeconds()>0)return 0;
@@ -9725,7 +9733,9 @@ function _vehicleStep(v, dt) {
       }
       v._bodyBlockedSince=0;
     }
-    const blocker = ['ambulance','firetruck','tow','police','taxi'].includes(v.kind)?null:_vehicleBlockedByCar(v, ny, nx);
+    const emergencyPriority=['ambulance','firetruck','tow','police','taxi'].includes(v.kind);
+    const detectedBlocker=_vehicleBlockedByCar(v,ny,nx);
+    const blocker=emergencyPriority&&detectedBlocker?.type==='traffic'?null:detectedBlocker;
     if (blocker) {
       v._blockedSince ||= performance.now();
       if (blocker.type === 'traffic' && v.state === 'go_to_scene') {
@@ -9733,6 +9743,10 @@ function _vehicleStep(v, dt) {
       }
       // Экстренная машина не должна навсегда исчезать в плотной пробке.
       // После короткого ожидания сирена получает приоритет и проезжает.
+      if (blocker.type==='service'&&_serviceVehicleMustYield(v,blocker.ref,dr/d,dc/d)) {
+        v.ang = nextAng;
+        return false;
+      }
       if (performance.now() - v._blockedSince < 1200) {
         v.ang = nextAng;
         return false;
@@ -11085,7 +11099,7 @@ function _spawnMurderPrisonHandoffOfficer(v,ar,slot,receiver=false,now=performan
   // Тюремная смена ждёт у открытого КПП, а не идёт от машины напрямик
   // через западную стену. Патруль физически доведёт задержанного до неё.
   const gate=JAIL_ISLAND_3D_ENABLED
-    ?{r:JAIL_ISLAND_LAYOUT.centerR,c:JAIL_ISLAND_LAYOUT.west-.62}
+    ?{r:JAIL_VEHICLE_GATE_3D.handoffR,c:JAIL_VEHICLE_GATE_3D.handoffC}
     :{r:v.y+dr/d*2.15,c:v.x+dc/d*2.15};
   const start=receiver?{r:gate.r+(slot?-.48:.48),c:gate.c-.12}:door;
   const cop={id:`arrest_${receiver?'intake':'delivery'}_${++_cityCopId}`,x:start.c,y:start.r,tx:start.c,ty:start.r,
@@ -11128,7 +11142,7 @@ function _murderPrisonEscortWaypoints(target){
   // Передача уже состоялась у западного КПП. Дальше тюремная смена идёт
   // только по свободному внутреннему коридору мимо крыла камер.
   return[
-    {r:q.centerR,c:q.west+.72},
+    {r:JAIL_VEHICLE_GATE_3D.insideR,c:JAIL_VEHICLE_GATE_3D.insideC},
     {r:80.82,c:q.west+.72},
     {r:q.intake.north-1.05,c:q.centerC},
     {r:q.intake.north+.72,c:q.centerC},
@@ -11154,7 +11168,7 @@ function _updateMurderPolicePrisonHandoff(v,ar,dt,now=performance.now()){
     }
   }else if(ar.phase==='handoff'){
     const handoff=JAIL_ISLAND_3D_ENABLED
-      ?{r:JAIL_ISLAND_LAYOUT.centerR,c:JAIL_ISLAND_LAYOUT.west-.62}
+      ?{r:JAIL_VEHICLE_GATE_3D.handoffR,c:JAIL_VEHICLE_GATE_3D.handoffC}
       :{r:door.r,c:door.c};
     const primary=delivery[0],reached=_movePrisonEscortCop(primary,handoff.r,handoff.c,dt,1.18);
     const followR=primary.y-Math.sin(primary.ang)*.58,followC=primary.x-Math.cos(primary.ang)*.58,k=Math.min(1,dt*7);
@@ -11211,14 +11225,26 @@ function _completeMurderPolicePrisonTransport(v,now=performance.now(),reason='ro
   _custodyPoseResetUntil=now+6000;
   myDead=false;_localDeath=false;myHp=Math.max(1,Math.ceil((PVP.max_hp||100)*.25));myDeathLeft=0;myDeathBy='';
   _localHpHurtAt=0;_selfHpBarUntil=now+3000;_deathOv?.classList.remove('show');
+  const bookedSeconds=Math.max(1,+ar.jailSeconds||60);
+  _prisonLocalJailUntil=now+bookedSeconds*1000;
+  myJailIn=Math.max(myJailIn,bookedSeconds);
+  _prisonReleaseGateOpenedAt=-Infinity;
+  try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'citycop_arrest',d:{cop_id:ar.copId,
+    x:+player.c.toFixed(2),y:+player.r.toFixed(2),response_vehicle:v.id,voluntary:!!ar.voluntary,booking:true}}));}catch(e){}
   v._policePrisonTransport=false;
   _murderPoliceArrest=null;
   document.documentElement.dataset.policeArrestPhase=`jailed:${reason}`;
   document.documentElement.dataset.policeArrestDelivered=String((+document.documentElement.dataset.policeArrestDelivered||0)+1);
   _clearPrisonAssault(`jailed:${reason}`,now);
-  showEventBanner('🔒 ДОСТАВЛЕН В БЛОК',ar.serverAccepted?`Срок: ${Math.max(1,Math.round((ar.jailSeconds||60)/60))} мин.`:'Оформление задержания завершено.',3900,'lose');
+  showEventBanner('🔒 ДОСТАВЛЕН В БЛОК',`Срок: ${Math.max(1,Math.round(bookedSeconds/60))} мин. Решётка откроется после таймера.`,3900,'lose');
   _finishMurderPoliceCall(v,now);
   return true;
+}
+function _anchorCuffingOfficer(cop){
+  if(!cop)return;
+  let ang=Math.atan2(player.r-cop.y,player.c-cop.x);
+  if(!Number.isFinite(ang))ang=Number.isFinite(+player.ang)?+player.ang:0;
+  cop.y=player.r-Math.sin(ang)*.52;cop.x=player.c-Math.cos(ang)*.52;cop.ang=ang;cop.walkPhase=0;
 }
 function _updateMurderPoliceArrest(v,dt,now=performance.now()){
   const ar=_murderPoliceArrest;
@@ -11248,7 +11274,7 @@ function _updateMurderPoliceArrest(v,dt,now=performance.now()){
     primary._lifeState='';primary._lifeGesture='';player.walking=false;
     const reached=_moveMurderResponseCop(primary,player.r,player.c,dt,1.08);
     if(reached||Math.hypot(primary.y-player.r,primary.x-player.c)<.9||now-ar.phaseAt>6500){
-      if(Math.hypot(primary.y-player.r,primary.x-player.c)>1.3){primary.y=player.r-Math.sin(primary.ang)*.72;primary.x=player.c-Math.cos(primary.ang)*.72;}
+      _anchorCuffingOfficer(primary);
       primary._lifeState='helping';primary._lifeGesture='aid';_setMurderPoliceArrestPhase(ar,'cuffing',now);
       _copChats.set(primary.id,{text:'Правильное решение. Руки за спину.',untilMs:now+2200});
     }
@@ -11256,12 +11282,13 @@ function _updateMurderPoliceArrest(v,dt,now=performance.now()){
     primary._lifeState='';primary._lifeGesture='';
     const reached=_moveMurderResponseCop(primary,player.r,player.c,dt,1.12);
     if(reached||Math.hypot(primary.y-player.r,primary.x-player.c)<.9||now-ar.phaseAt>6500){
-      if(Math.hypot(primary.y-player.r,primary.x-player.c)>1.3){primary.y=player.r-Math.sin(primary.ang)*.72;primary.x=player.c-Math.cos(primary.ang)*.72;}
+      _anchorCuffingOfficer(primary);
       primary._lifeState='helping';primary._lifeGesture='aid';primary._lifeStateSince=now;
       _copChats.set(primary.id,{text:'Руки за спину.',untilMs:now+1900});
       _setMurderPoliceArrestPhase(ar,'cuffing',now);
     }
   }else if(ar.phase==='cuffing'){
+    _anchorCuffingOfficer(primary);
     primary._lifeState='helping';primary._lifeGesture='aid';primary.walkPhase=0;
     if(now-ar.phaseAt>=POLICE_ARREST_CUFF_MS){
       primary._lifeState='';primary._lifeGesture='';primary._casePhase='arrest_escort';
@@ -20478,6 +20505,13 @@ function handleEventPacket(d) {
     // не просто предупреждение при 1★). Сервер посадил в тюрьму, обнулил
     // звёзды. Локально — тост + showArrestOverlay.
     if (d.ok) {
+      if(d.booking){
+        const bookedSeconds=Math.max(1,+d.jail_s||60),now=performance.now();
+        _prisonLocalJailUntil=Math.max(_prisonLocalJailUntil,now+bookedSeconds*1000);
+        myJailIn=Math.max(myJailIn,bookedSeconds);_prisonReleaseGateOpenedAt=-Infinity;
+        document.documentElement.dataset.prisonBookingTimer=String(bookedSeconds);
+        return;
+      }
       if(_murderPoliceArrest){
         _murderPoliceArrest.serverAccepted=true;
         _murderPoliceArrest.jailSeconds=Math.max(1,+d.jail_s||60);
@@ -22144,13 +22178,15 @@ function wsConnect() {
               _clearPrisonAssault('server-booked',performance.now());
             }
           }
-          myJailIn = d.me.jail_in;
+          const serverJailIn=Math.max(0,+d.me.jail_in||0);
+          const localJailIn=_prisonLocalJailUntil>0?Math.max(0,Math.ceil((_prisonLocalJailUntil-performance.now())/1000)):0;
+          myJailIn = Math.max(serverJailIn,localJailIn);
           if(_murderPoliceArrest&&myJailIn>0){
             _murderPoliceArrest.serverAccepted=true;
             _murderPoliceArrest.jailSeconds=Math.max(_murderPoliceArrest.jailSeconds||0,myJailIn);
           }
-          _prisonReleaseGateSeconds=myJailIn;
-          if(previousJailIn>0&&myJailIn<=0)_prisonReleaseGateOpenedAt=performance.now();
+          _prisonReleaseGateSeconds=serverJailIn;
+          if(previousJailIn>0&&myJailIn<=0&&localJailIn<=0)_prisonReleaseGateOpenedAt=performance.now();
           else if(myJailIn>0)_prisonReleaseGateOpenedAt=-Infinity;
         }
         if (typeof d.me.terr_cd === 'number') myTerrCd = d.me.terr_cd;
@@ -23809,6 +23845,19 @@ function _findLiveAggroBotById(botId) {
     }
   }
   return null;
+}
+
+// Service vehicles keep emergency priority over civilian traffic, but they no
+// longer ghost through one another. Same-direction traffic forms a queue; in a
+// head-on meeting the stable id order prevents a permanent two-way deadlock.
+function _serviceVehicleMustYield(v,other,dirR,dirC){
+  if(!other)return false;
+  const relR=other.y-v.y,relC=other.x-v.x,dist=Math.hypot(relR,relC);
+  const otherAng=Number.isFinite(+other.ang)?+other.ang:0;
+  const alignment=dirR*Math.sin(otherAng)+dirC*Math.cos(otherAng);
+  if(alignment<-.28)return String(v.id)>String(other.id);
+  const forward=relR*dirR+relC*dirC;
+  return forward>=-.12||(dist<1.12&&String(v.id)>String(other.id));
 }
 function selectGangNpcFrom3D(botId) {
   const found=_findLiveAggroBotById(botId);
@@ -27838,6 +27887,24 @@ if (_localCombatPreview && currentWeapon) {
       (previewAmmo.cfg.magSize || 1) * 3);
   }
 }
+// Одноразовое восстановление для профилей, которые сохранили полностью пустой
+// магазин и резерв. Это исправляет старое состояние 0/0, но не выдаёт патроны
+// повторно при каждой перезагрузке страницы.
+const _ammoEmergencyRecoveryKey = `mafiozi_ammo_emergency_recovery_v1_${QP.uid || 'guest'}`;
+if (currentWeapon && !['grenade','molotov','c4','taser'].includes(resolveWeapon(currentWeapon))) {
+  const recoveryAmmo = _weaponAmmoState(currentWeapon);
+  let recoveryUsed = false;
+  try { recoveryUsed = localStorage.getItem(_ammoEmergencyRecoveryKey) === '1'; } catch(e) {}
+  if (!recoveryUsed && recoveryAmmo.slot.mag <= 0 && recoveryAmmo.reserve <= 0) {
+    recoveryAmmo.slot.mag = recoveryAmmo.cfg.magSize || 1;
+    const recoveryDef = AMMO_TYPES[recoveryAmmo.cfg.ammoType];
+    _ammoState.reserve[recoveryAmmo.cfg.ammoType] = Math.min(
+      recoveryDef?.max || (recoveryAmmo.cfg.magSize || 1) * 3,
+      (recoveryAmmo.cfg.magSize || 1) * 3);
+    try { localStorage.setItem(_ammoEmergencyRecoveryKey, '1'); } catch(e) {}
+    document.documentElement.dataset.ammoEmergencyRecovery = `${recoveryAmmo.id}:${recoveryAmmo.slot.mag}+${_ammoState.reserve[recoveryAmmo.cfg.ammoType]}`;
+  }
+}
 _saveAmmoState();
 let _reloadWeapon = null, _reloadUntil = 0, _reloadTicker = 0, _emptyAmmoToastAt = 0;
 function _isReloadingWeapon(weapon) {
@@ -28664,7 +28731,7 @@ function fire(angle = null) {
   // является настоящим игровым предметом: им можно атаковать охрану. Старая
   // заглушка превращала любой выстрел в удар кулаком и делала 3D-патруль
   // полностью неуязвимым.
-  const _meInJail = (myJailIn > 0)&&_inPrisonIslandRestrictedZone(player.r,player.c,.35);
+  const _meInJail = (_effectivePrisonJailSeconds() > 0)&&_inPrisonIslandRestrictedZone(player.r,player.c,.35);
   // Авто-fallback: angle не задан.
   //   1) если есть locked-цель — стреляем В НЕЁ (auto-aim после тапа)
   //   2) иначе если правый стик сдвинут — берём его направление
@@ -28677,6 +28744,18 @@ function fire(angle = null) {
     const _dc = (_s + _d) * 0.5;
     const _dr = (_s - _d) * 0.5;
     angle = Math.atan2(_dr, _dc);
+  }
+  // The fire button remains useful in a locked cell: when there is no manual
+  // stick direction, aim at the nearest visible prison officer. The normal
+  // wall raycast below still stops bullets at bars and solid walls.
+  if(angle===null&&_meInJail){
+    let nearest=null,nearestD=Infinity;
+    for(const cop of cityCops){
+      if(!cop?.alive||cop.kind!=='prison_staff')continue;
+      const d=Math.hypot(cop.y-player.r,cop.x-player.c);
+      if(d<nearestD){nearest=cop;nearestD=d;}
+    }
+    if(nearest){angle=Math.atan2(nearest.y-player.r,nearest.x-player.c);document.documentElement.dataset.prisonFireTarget=String(nearest.id);}
   }
   // В машине или в автобусе нельзя стрелять — обе руки на руле / двери закрыты.
   if ((myDrivingCarId && !_canShootFromBike()) || myJetSkiId || _playerSwimmingDeep || _inBus) return;
@@ -29689,10 +29768,11 @@ function updatePvpUI() {
   }
   // Jail overlay — большой блок при сидении в тюрьме
   if (_jailOvEl) {
-    if (myJailIn > 0 && !_murderPoliceArrest) {
+    const jailSeconds=Math.ceil(_effectivePrisonJailSeconds());
+    if (jailSeconds > 0 && !_murderPoliceArrest) {
       _jailOvEl.classList.add('show');
-      const m = Math.floor(myJailIn / 60);
-      const s = myJailIn % 60;
+      const m = Math.floor(jailSeconds / 60);
+      const s = jailSeconds % 60;
       _jailCntEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     } else {
       _jailOvEl.classList.remove('show');
@@ -63811,6 +63891,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d266-mafia-rmb-reticle"></script>
+<script type="module" src="three_preview.js?v=3d267-compact-aim-throwables"></script>
 </body>
 </html>
