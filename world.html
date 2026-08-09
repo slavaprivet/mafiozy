@@ -10409,11 +10409,33 @@ function _policeCrewPassable(r,c){
   const prison=typeof _prisonIslandCollisionAt==='function'?_prisonIslandCollisionAt(r,c):null;
   return prison?!prison.blocked:npcPassableForSnitch(r,c);
 }
+function _murderPoliceSpacingVector(cop,radius=1.55){
+  const phase=String(cop?._casePhase||'');
+  if(!cop||cop.kind!=='murder_response'||phase==='boarding'||phase==='return'||phase.startsWith('arrest_'))return{r:0,c:0,count:0};
+  let pushR=0,pushC=0,count=0;
+  for(const other of cityCops){
+    if(!other||other===cop||!other.alive||other.kind!=='murder_response')continue;
+    let dr=cop.y-other.y,dc=cop.x-other.x,d=Math.hypot(dr,dc);
+    if(d>=radius)continue;
+    if(d<.001){
+      const aId=String(cop.id||''),bId=String(other.id||''),pair=aId<bId?aId+'|'+bId:bId+'|'+aId;
+      let hash=0;for(let i=0;i<pair.length;i++)hash=(hash*33+pair.charCodeAt(i))>>>0;
+      const ang=(hash%6283)/1000,sign=aId<bId?1:-1;
+      dr=Math.sin(ang)*sign;dc=Math.cos(ang)*sign;d=1;
+    }
+    const force=(radius-d)/radius;
+    pushR+=dr/d*force;pushC+=dc/d*force;count++;
+  }
+  return{r:pushR,c:pushC,count};
+}
 function _moveMurderResponseCop(cop,tr,tc,dt,mul=1){
   const dr=tr-cop.y,dc=tc-cop.x,d=Math.hypot(dr,dc);
-  cop.ang=Math.atan2(dr,dc);
-  if(d<.18)return true;
-  const step=Math.min(d,(cop.speed||1.35)*mul*dt),sr=dr/d*step,sc=dc/d*step;
+  const spacing=_murderPoliceSpacingVector(cop),hasSpacing=spacing.count&&Math.hypot(spacing.r,spacing.c)>.01;
+  if(d<.18&&!hasSpacing)return true;
+  let wishR=d>.001?dr/d:0,wishC=d>.001?dc/d:0;
+  if(hasSpacing){wishR+=spacing.r*3.4;wishC+=spacing.c*3.4;}
+  const wishD=Math.hypot(wishR,wishC)||1,step=Math.min(Math.max(d,.3),(cop.speed||1.35)*mul*dt),sr=wishR/wishD*step,sc=wishC/wishD*step;
+  cop.ang=Math.atan2(sr,sc);
   const tries=[[sr,sc],[sc*.72,-sr*.72],[-sc*.72,sr*.72],[sr*.45,0],[0,sc*.45]];
   for(const [rr,cc] of tries){
     if(!_policeCrewPassable(cop.y+rr,cop.x+cc))continue;
@@ -10449,7 +10471,7 @@ function _createMurderCrewCop(v,incident,slot,phase,now=performance.now()){
     prisonGear:profile.gear,shield:tier>=3&&slot%2===0,
     look:{gender:slot%2,skin:skins[slot%skins.length],body:tier?3:8,face:faces[slot%faces.length],hair:tier?0:(slot?2:1),hat:tier?6:3,suit:profile.suit},
     speed:profile.speed+slot*.035,_wayUntil:0,_responseVehicleId:v.id,_murderIncidentId:incident.id,
-    _crewSlot:slot,_casePhase:phase,_phaseStartedAt:now,_nextCaseCryAt:0,_nextShootAt:0};
+    _crewSlot:slot,_formationIndex:(Math.max(0,+v.fleetSlot||0)*4+slot),_casePhase:phase,_phaseStartedAt:now,_nextCaseCryAt:0,_nextShootAt:0};
   cityCops.push(cop);v._policeCrewIds.push(cop.id);return cop;
 }
 function _removeMurderCrewForVehicle(v){
@@ -10516,7 +10538,7 @@ function _startMurderPoliceScene(v,now=performance.now()){
   incident.status='searching';incident.searchStartedAt=now;incident.initialSearchUntil=now+11000;incident.lostAt=0;
   const crewCount=_murderVehicleCrewCount(v);
   for(let slot=0;slot<crewCount;slot++){
-    const cop=_createMurderCrewCop(v,incident,slot,'disembark',now),p=_pickMurderSearchPoint(incident,slot,slot+1);
+    const cop=_createMurderCrewCop(v,incident,slot,'disembark',now),p=_pickMurderSearchPoint(incident,cop._formationIndex,slot+1+(+v.fleetSlot||0)*5);
     cop._searchR=p.r;cop._searchC=p.c;
   }
   if(!incident.playerArrestPickup)_assignMurderWitnessInterviews(v,now);
@@ -11040,9 +11062,10 @@ function _updateMurderPoliceArrest(v,dt,now=performance.now()){
   return true;
 }
 function _murderCopShootPlayer(cop,dt,now){
-  const incident=serviceVehicles.find(v=>v?.id===cop._responseVehicleId)?.payload?.murderIncident,profile=_murderPoliceProfile(incident);
-  const slot=+cop._crewSlot||0,tier=_murderPoliceTier(incident),ring=5.2+(slot%2)*1.1,flank=(slot-1.5)*.72,
-    targetR=player.r-Math.sin(player.ang+flank)*ring,targetC=player.c-Math.cos(player.ang+flank)*ring;
+  const vehicle=serviceVehicles.find(v=>v?.id===cop._responseVehicleId),incident=vehicle?.payload?.murderIncident,profile=_murderPoliceProfile(incident);
+  const slot=+cop._crewSlot||0,tier=_murderPoliceTier(incident),formation=Number.isFinite(+cop._formationIndex)?+cop._formationIndex:(Math.max(0,+vehicle?.fleetSlot||0)*4+slot),
+    ring=5.1+(formation%3)*.8,flank=player.ang+Math.PI+(formation%12)*(Math.PI*2/12),
+    targetR=player.r+Math.sin(flank)*ring,targetC=player.c+Math.cos(flank)*ring;
   const dr=player.r-cop.y,dc=player.c-cop.x,d=Math.hypot(dr,dc)||.001;cop.ang=Math.atan2(dr,dc);
   if(d>8||Math.hypot(cop.y-targetR,cop.x-targetC)>2.4)_moveMurderResponseCop(cop,targetR,targetC,dt,1.25+tier*.08);
   else if(d<3.2)_moveMurderResponseCop(cop,cop.y-dr/d*1.8,cop.x-dc/d*1.8,dt,1.15);
@@ -11111,8 +11134,10 @@ function _updateMurderResponseCop(cop,dt,now){
     _murderCopShootNpc(cop,incident.armedTargetRef,dt,now);return true;
   }
   if(cop._casePhase==='question'&&_murderPlayerInZone(incident)){
-    const d=Math.hypot(player.r-cop.y,player.c-cop.x);cop.ang=Math.atan2(player.r-cop.y,player.c-cop.x);
-    if(d>2.2)_moveMurderResponseCop(cop,player.r,player.c,dt,1.05);
+    const formation=Number.isFinite(+cop._formationIndex)?+cop._formationIndex:(+cop._crewSlot||0),questionAng=player.ang+Math.PI+(formation%12)*(Math.PI*2/12),questionRing=2+(formation%2)*.45,
+      targetR=player.r+Math.sin(questionAng)*questionRing,targetC=player.c+Math.cos(questionAng)*questionRing,
+      d=Math.hypot(player.r-cop.y,player.c-cop.x);cop.ang=Math.atan2(player.r-cop.y,player.c-cop.x);
+    if(Math.hypot(targetR-cop.y,targetC-cop.x)>.45)_moveMurderResponseCop(cop,targetR,targetC,dt,1.05);
     if(now>=(cop._nextCaseCryAt||0)){
       const elapsed=now-incident.questionStartedAt,lines=cop._crewSlot?
         ['Оставайтесь на месте.','Вы видели стрелявшего?','Куда он побежал?']:
@@ -11122,7 +11147,7 @@ function _updateMurderResponseCop(cop,dt,now){
     return true;
   }
   if(!Number.isFinite(cop._searchR)||Math.hypot(cop.y-cop._searchR,cop.x-cop._searchC)<.35||now>(cop._searchRetargetAt||0)){
-    const p=_pickMurderSearchPoint(incident,cop._crewSlot,(now*.001+(cop._crewSlot||0)*3)|0);
+    const formation=Number.isFinite(+cop._formationIndex)?+cop._formationIndex:(+cop._crewSlot||0),p=_pickMurderSearchPoint(incident,formation,(now*.001+formation*3)|0);
     cop._searchR=p.r;cop._searchC=p.c;cop._searchRetargetAt=now+1900+Math.random()*1600;
   }
   _moveMurderResponseCop(cop,cop._searchR,cop._searchC,dt,1.0);
@@ -11543,11 +11568,14 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.policeMurderCrew=String(cityCops.filter(c=>c?.alive&&c.kind==='murder_response').length);
   document.documentElement.dataset.policeMurderTierCounts=[0,1,2,3].map(t=>`${t}:${cityCops.filter(c=>c?.alive&&c.kind==='murder_response'&&(+c.responseTier||0)===t).length}`).join(',');
   document.documentElement.dataset.policeMurderGear=cityCops.filter(c=>c?.alive&&c.kind==='murder_response').map(c=>`${+c.responseTier||0}:${c.weapon}:${c.prisonGear||'none'}:${c.shield?'shield':'free'}`).join('|');
+  const activeMurderCops=cityCops.filter(c=>c?.alive&&c.kind==='murder_response'&&!String(c._casePhase||'').match(/^(boarding|return|arrest_)/));
+  let minMurderCopGap=99;for(let i=0;i<activeMurderCops.length;i++)for(let j=i+1;j<activeMurderCops.length;j++)minMurderCopGap=Math.min(minMurderCopGap,Math.hypot(activeMurderCops[i].y-activeMurderCops[j].y,activeMurderCops[i].x-activeMurderCops[j].x));
+  document.documentElement.dataset.policeMurderMinGap=minMurderCopGap===99?'none':minMurderCopGap.toFixed(2);
   document.documentElement.dataset.policeWitnessInterviews=String(_murderIncidents.reduce((sum,q)=>sum+(+q.witnessCount||0),0));
   document.documentElement.dataset.policeWitnessInterviewsActive=String(cityCops.filter(c=>c?.alive&&c._casePhase==='witness_question').length);
   document.documentElement.dataset.policeArmoredVans=String(policeFleet.filter(v=>_murderPoliceProfile(v.payload?.murderIncident).armoredVan).length);
   document.documentElement.dataset.policeRoofGunners=String(policeFleet.filter(v=>v._roofGunner&&!v._turretDisabled).length);
-  document.documentElement.dataset.policeMurderProfile='smart-flank-witness-hq-replacement-armored-turret-cuff-v249';
+  document.documentElement.dataset.policeMurderProfile='smart-unique-formation-spacing-v250';
   document.documentElement.dataset.policeArrestPhase=_murderPoliceArrest?.phase||document.documentElement.dataset.policeArrestPhase||'idle';
   document.documentElement.dataset.policeArrestProgress=_murderPoliceArrest?_murderPoliceArrestProgress().toFixed(3):'0.000';
   // Deterministic browser QA: each arrived unit loses one officer, then a tier-2
@@ -63517,6 +63545,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d262-custody-label-declutter"></script>
+<script type="module" src="three_preview.js?v=3d263-police-formation-spacing"></script>
 </body>
 </html>
