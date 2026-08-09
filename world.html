@@ -8845,7 +8845,7 @@ const PRISON_STAFF_LOOKS = Object.freeze([
 ]);
 const _prisonStaffRespawnAt = new Float64Array(PRISON_STAFF_ROUTES.length);
 const PRISON_ASSAULT_WEAPONS=Object.freeze(['rifle','shotgun','smg','rifle']);
-let _prisonAlarmSirenNextAt=0;
+let _prisonAlarmSirenNextAt=0,_prisonPlayerHitCooldownUntil=0;
 function _spawnPrisonAssaultOfficer(index,now=performance.now()){
   const weapon=PRISON_ASSAULT_WEAPONS[index%PRISON_ASSAULT_WEAPONS.length],side=index%2?1:-1,row=Math.floor(index/2),entry=JAIL_POLICE_STATION_3D;
   const cop={id:`prison_assault_${++_cityCopId}`,x:entry.entryC+side*.34,y:entry.entryR+row*.28,tx:player.c,ty:player.r,
@@ -8863,6 +8863,7 @@ function _activatePrisonAssault(cop=null,reason='guard-hit',now=performance.now(
   _prisonAlarmState.active=true;_prisonAlarmState.lastHostileAt=now;_prisonAlarmState.reason=reason;
   if(first){
     _prisonAlarmState.startedAt=now;_prisonAlarmState.spawnRemaining=PRISON_ASSAULT_WEAPONS.length;_prisonAlarmState.nextSpawnAt=now+260;_prisonAlarmState.sequence++;
+    _prisonPlayerHitCooldownUntil=now+850;
     _prisonAlarmSirenNextAt=0;
     showEventBanner('🚨 НАПАДЕНИЕ НА ТЮРЬМУ','КПП заблокирован. Вооружённая смена выходит из участка и открывает огонь.',4300,'lose');
   }
@@ -8942,7 +8943,10 @@ function _updatePrisonStaffCop(cop,dt,now){
         muzR=cop.y+Math.sin(cop.ang)*.45,muzC=cop.x+Math.cos(cop.ang)*.45;
       cop._nextShootAt=now+fireProfile.cd+Math.random()*(cop.weapon==='smg'?120:280);
       spawnBullet(muzR,muzC,player.r+miss,player.c-miss*.3,{hit:Math.abs(miss)<fireProfile.hit,fromNpc:true,weapon:cop.weapon});spawnMuzzle(muzR,muzC,cop.ang,cop.weapon,true);
-      if(Math.abs(miss)<fireProfile.hit)_hurtLocal(damage,'Тюремная охрана',true,{kind:'city_cop',cop,weapon:cop.weapon});
+      if(Math.abs(miss)<fireProfile.hit&&now>=_prisonPlayerHitCooldownUntil){
+        _prisonPlayerHitCooldownUntil=now+360;
+        _hurtLocal(damage,'Тюремная охрана',true,{kind:'city_cop',cop,weapon:cop.weapon});
+      }
     }
     return true;
   }
@@ -11223,9 +11227,13 @@ function _completeMurderPolicePrisonTransport(v,now=performance.now(),reason='ro
   cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;
   window._studioTeleportUntil=Date.now()+5000;
   _custodyPoseResetUntil=now+6000;
-  myDead=false;_localDeath=false;myHp=Math.max(1,Math.ceil((PVP.max_hp||100)*.25));myDeathLeft=0;myDeathBy='';
+  // Booking includes first aid. Full HP restores the ordinary armed walking
+  // rig (25% HP previously forced the permanent limp pose) and prevents the
+  // first guard pellet from instantly killing a newly delivered prisoner.
+  myDead=false;_localDeath=false;myHp=Math.max(1,PVP.max_hp||100);myDeathLeft=0;myDeathBy='';
   _localHpHurtAt=0;_selfHpBarUntil=now+3000;_deathOv?.classList.remove('show');
-  const bookedSeconds=Math.max(1,+ar.jailSeconds||60);
+  const bookedSeconds=_LOCAL_PREVIEW&&_UP.has('previewjailduration')
+    ?Math.max(1,+_UP.get('previewjailduration')||1):Math.max(1,+ar.jailSeconds||60);
   _prisonLocalJailUntil=now+bookedSeconds*1000;
   myJailIn=Math.max(myJailIn,bookedSeconds);
   _prisonReleaseGateOpenedAt=-Infinity;
@@ -60076,7 +60084,7 @@ if(_LOCAL_PREVIEW&&_UP.has('previewjail')){
 }
 if(_LOCAL_PREVIEW&&_UP.has('previewprisonassault'))setTimeout(()=>{
   const now=performance.now();player.r=JAIL_ISLAND_LAYOUT.centerR-1.2;player.c=JAIL_ISLAND_LAYOUT.centerC;player.vr=0;player.vc=0;player.walking=false;
-  myHp=Math.min(18,PVP.max_hp||100);myDead=false;_localDeath=false;myJailIn=0;_prisonReleaseGateSeconds=0;currentWeapon='pistol';
+  myHp=Math.max(1,PVP.max_hp||100);myDead=false;_localDeath=false;myJailIn=0;_prisonReleaseGateSeconds=0;currentWeapon='pistol';
   _ensurePrisonStaffCops(now);const target=cityCops.find(c=>c?.alive&&c.kind==='prison_staff'&&!c._prisonAssaultUnit);
   if(target)hitCityCop(target,0,1,1,{kind:'player',weapon:'pistol'});else _activatePrisonAssault(null,'preview-armed-shot',now);
   const trace=setInterval(()=>{
