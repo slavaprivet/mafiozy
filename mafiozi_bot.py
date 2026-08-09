@@ -13042,34 +13042,34 @@ class WorldSim:
     COP_DESPAWN_R       = 25.0      # если коп отстал — деспаун
     JAIL_DURATION_S     = 20        # 20 сек в тюрьме (было 60 — юзер
                                     # воспринимал минуту как «зависание»)
-    JAIL_X              = 76.0      # legacy-центр полицейской зоны (c)
-    JAIL_Y              = 76.0      # legacy-центр полицейской зоны (r)
-    JAIL_R              = 7.0       # legacy-радиус для дальних police-зон
-    # Серверные границы комнаты приёма. Пока действует jail_until, координаты
-    # игрока жёстко остаются внутри этих стен. Северная граница заканчивается
-    # у персональной решётки, которую клиент поднимает после окончания срока.
-    JAIL_MIN_X          = 85.5
-    JAIL_MAX_X          = 93.5
-    JAIL_MIN_Y          = 91.5
-    JAIL_MAX_Y          = 102.5
-    # Безопасные точки посадки между мебелью, стойкой оформления и лавками.
-    # При посадке выбираем случайную, чтобы заключённые не наслаивались.
+    JAIL_X              = 76.0      # тюрьма в правом-нижнем углу карты 80×80
+    JAIL_Y              = 76.0      # (совпадает с POI 'police' в world.html)
+    # Радиус «тюремной зоны» — игрок не может выйти пока jail_until.
+    # Был 3.5 (диаметр ~7 тайлов, тесно для нескольких игроков). Теперь
+    # 7.0 — диаметр 14 тайлов, влезает 10+ человек. Внутри радиуса
+    # проходимые тайлы (дороги 70..73, 80..83 + бордюры 69, 74, 79).
+    # Здание участка на (76, 76) и блок 75-78×75-78 остаются стенами —
+    # игроки ходят по периметру вокруг участка.
+    JAIL_R              = 7.0
+    # Несколько точек спавна внутри загона — на бордюрах (тайлы %10∈{4,9}
+    # = проходимые) вокруг здания участка. При посадке выбираем случайную,
+    # чтобы 10 игроков не наслаивались в одну клетку. Все ВНУТРИ радиуса 7.
     JAIL_SPAWNS = [
-        (88.5, 95.0),
-        (90.5, 95.0),
-        (92.0, 95.0),
-        (88.5, 97.0),
-        (90.5, 97.0),
-        (92.0, 97.0),
-        (88.5, 99.0),
-        (90.5, 99.0),
-        (92.0, 99.0),
-        (89.5, 100.0),
+        (76.0, 74.0),  # север участка, ближе к центру
+        (74.0, 76.0),  # запад
+        (79.0, 76.0),  # восток
+        (76.0, 79.0),  # юг (у ворот)
+        (74.0, 74.0),  # NW угол
+        (79.0, 74.0),  # NE угол
+        (74.0, 79.0),  # SW угол
+        (79.0, 79.0),  # SE угол
+        (72.0, 76.0),  # запад-2 (дорога)
+        (76.0, 72.0),  # север-2 (дорога)
     ]
-    # Legacy fallback для старых сохранений. Обычный выпуск теперь не
-    # телепортирует: после открытия личной решётки игрок выходит сам.
+    # Точка ВЫХОДА после освобождения — за южными лазерными воротами
+    # на дорогу. JAIL_R=7 → радиус загона 7 тайлов, поэтому 84 = за пределами.
     JAIL_RELEASE_X      = 76.0
-    JAIL_RELEASE_Y      = 84.0
+    JAIL_RELEASE_Y      = 84.0      # за пределами JAIL_R=7, на дороге (84%10=4 = бордюр)
     # Госпиталь — точка респауна после смерти НЕ в тюрьму. POI «🏥 Больница»
     # на клиенте стоит на (r=26, c=46) — здание северо-востока на 80×80,
     # а сама точка выхода ставится на ближайшую дорогу (c=43, r=23) —
@@ -14726,21 +14726,18 @@ class WorldSim:
             ny = float(d.get('y', p['y']))
         except Exception:
             return
-        jail_active = (p.get('_jail_until') or 0) > time.time()
-        # Основной город по-прежнему имеет ширину 80 тайлов. Для вынесенного
-        # на воду тюремного острова разрешён узкий отдельный коридор координат;
-        # это не расширяет город и не создаёт NPC/машины за его границей.
-        in_prison_extension = (self._in_prison_extension(p.get('x') or 0, p.get('y') or 0)
-                               or self._in_prison_extension(nx, ny))
-        max_x = 99.5 if (jail_active or in_prison_extension) else WORLD_MAP_COLS - 0.5
-        nx = max(0.5, min(max_x, nx))
+        # Clamp в границы карты с небольшим отступом
+        nx = max(0.5, min(WORLD_MAP_COLS - 0.5, nx))
         ny = max(0.5, min(WORLD_MAP_ROWS - 0.5, ny))
-        # В тюрьме — нельзя выходить из настоящей комнаты приёма. Клиентская
-        # решётка даёт визуальную обратную связь, эти границы являются
-        # авторитетной защитой от обхода коллизии до окончания таймера.
-        if jail_active:
-            nx = max(self.JAIL_MIN_X, min(self.JAIL_MAX_X, nx))
-            ny = max(self.JAIL_MIN_Y, min(self.JAIL_MAX_Y, ny))
+        # В тюрьме — нельзя выходить за её радиус (JAIL_R).
+        # Клиент может слать координаты «снаружи», мы тянем обратно.
+        if (p.get('_jail_until') or 0) > time.time():
+            dx = nx - self.JAIL_X; dy = ny - self.JAIL_Y
+            d_cell = (dx*dx + dy*dy) ** 0.5
+            if d_cell > self.JAIL_R:
+                k = self.JAIL_R / d_cell if d_cell > 0.001 else 0
+                nx = self.JAIL_X + dx * k
+                ny = self.JAIL_Y + dy * k
         # Phase 1: лимит скорости — не больше 8 тайлов/сек.
         # Считаем по dt с прошлого инпута. Если прыжок больше — режем.
         last_t = p.get('_input_t', 0.0)
@@ -15765,12 +15762,12 @@ class WorldSim:
                         p['_respawn_point'] = 'hospital'
 
     def tick_jail_release(self) -> None:
-        """По окончании срока разблокировать личную решётку заключённого.
-
-        Позицию намеренно не меняем: клиент локально показывает подъём ворот,
-        затем игрок сам проходит из комнаты приёма в основной двор. Серверная
-        прямоугольная коллизия прекращает действовать только после таймера.
-        """
+        """Освобождение из тюрьмы: когда _jail_until истёк, телепортируем
+        игрока за лазерные ворота на проходимый тайл. Без этого игрок
+        оставался ВНУТРИ загона (на тайле здания — POI 'police'), и хотя
+        клиент входил в stuck-mode, ощущение «не могу ходить» оставалось.
+        Отметка `_jail_released` гарантирует одноразовый телепорт за выход.
+        Раз игрок ушёл — больше его трогать не надо."""
         now = time.time()
         for p in self.players.values():
             ju = p.get('_jail_until') or 0
@@ -15779,9 +15776,20 @@ class WorldSim:
             if ju > now:
                 continue  # ещё сидит
             if p.get('_jail_released'):
-                continue  # уже разблокировали
+                continue  # уже вывели
+            # Только если игрок физически ВНУТРИ зоны тюрьмы (свежевыпущенный
+            # и не успевший уйти сам). Иначе телепортируем впустую.
+            dx = (p.get('x') or 0) - self.JAIL_X
+            dy = (p.get('y') or 0) - self.JAIL_Y
+            if (dx*dx + dy*dy) ** 0.5 > self.JAIL_R + 0.5:
+                p['_jail_released'] = True   # уже сам ушёл
+                p['_jail_until']    = 0
+                continue
+            # Перенос на дорогу за лазером
+            p['x'] = self.JAIL_RELEASE_X
+            p['y'] = self.JAIL_RELEASE_Y
             p['_jail_released'] = True
-            p['_jail_until'] = 0
+            p['_jail_until']    = 0   # окончательно сбросим — клиент перестаёт показывать overlay
 
     @classmethod
     def _weapon_profile(cls, weapon: str) -> dict:
@@ -16135,20 +16143,11 @@ class WorldSim:
                 and self.ARENA_R0 <= y <= self.ARENA_R1 + 1)
 
     def _in_jail(self, x: float, y: float) -> bool:
-        """Точка лежит в физической комнате приёма заключённых."""
-        return (self.JAIL_MIN_X <= x <= self.JAIL_MAX_X
-                and self.JAIL_MIN_Y <= y <= self.JAIL_MAX_Y)
-
-    @staticmethod
-    def _in_prison_extension(x: float, y: float) -> bool:
-        """Точка лежит на вынесенном за карту тюремном острове/подъезде."""
-        try:
-            x = float(x); y = float(y)
-        except (TypeError, ValueError):
-            return False
-        on_island = 80.0 <= x <= 99.5 and 60.5 <= y <= 103.5
-        on_west_access = 75.5 <= x <= 81.0 and 74.5 <= y <= 77.5
-        return on_island or on_west_access
+        """Точка лежит в физическом загоне тюрьмы (радиус JAIL_R от центра).
+        Используется чтобы разрешить PvP-урон ТОЛЬКО между сидящими внутри."""
+        dx = x - self.JAIL_X
+        dy = y - self.JAIL_Y
+        return (dx*dx + dy*dy) <= self.JAIL_R * self.JAIL_R
 
     def _in_lair_zone(self, x: float, y: float) -> bool:
         """Точка в любой aggro-зоне (Логово). Копы туда не суются —
@@ -23490,47 +23489,95 @@ async def _coop_http_app():
         except Exception:
             b = {}
         item_id = str(b.get('item_id', ''))
-        qty     = max(1, int(b.get('qty', 1)))
+        try:
+            qty = max(1, min(99, int(b.get('qty', 1))))
+        except (TypeError, ValueError):
+            qty = 1
         it      = ITEMS.get(item_id)
         if not it:
             return await _cors(web.json_response({'ok': False, 'error': 'unknown item'}, status=400))
         if it.get('type') == 'weapon' and item_id not in BLACKMARKET_WEAPON_IDS:
             return await _cors(web.json_response({'ok': False, 'error': 'not for sale'}, status=400))
-        char = await get_character(uid)
-        if not char:
-            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
-        cash     = char.get('cash')     or 0
-        diamonds = char.get('diamonds') or 0
         price_c  = it.get('price')
         price_d  = it.get('diamonds_price')
-        # Оружие/броню больше 1 не покупаем
+        # Оружие и броня продаются только по одному экземпляру за запрос.
         if it.get('type') in ('weapon', 'armor'):
             qty = 1
-        if it.get('type') == 'weapon':
-            inv = await get_inventory(uid)
-            wanted_class = WEAPON_ITEM_CLASSES.get(item_id, item_id)
-            owned_classes = {
-                WEAPON_ITEM_CLASSES.get(iid, iid)
-                for iid, count in (inv or {}).items() if int(count or 0) > 0
-            }
-            if wanted_class in owned_classes:
-                return await _cors(web.json_response({
-                    'ok': False, 'error': 'already owned', 'cash': cash,
-                }))
-        if price_d:
-            cost = price_d * qty
-            if diamonds < cost:
-                return await _cors(web.json_response({'ok': False, 'error': 'no diamonds'}))
-            await update_character(uid, diamonds=diamonds - cost)
-        elif price_c:
-            cost = price_c * qty
-            if cash < cost:
-                return await _cors(web.json_response({'ok': False, 'error': 'no cash'}))
-            await update_character(uid, cash=cash - cost)
-        else:
+        if not price_d and not price_c:
             return await _cors(web.json_response({'ok': False, 'error': 'not for sale'}))
-        for _ in range(qty):
-            await add_item(uid, item_id)
+        # Деньги и предмет меняются одной транзакцией. Раньше два быстрых тапа
+        # могли оба пройти проверку старого баланса и добавить товар дважды.
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute('BEGIN IMMEDIATE')
+            async with db.execute(
+                'SELECT cash,diamonds FROM characters WHERE telegram_id=?', (uid,)
+            ) as cur:
+                row = await cur.fetchone()
+            if not row:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+            cash, diamonds = int(row[0] or 0), int(row[1] or 0)
+            if it.get('type') in ('weapon', 'armor'):
+                async with db.execute(
+                    'SELECT item_id,quantity FROM inventory WHERE telegram_id=?', (uid,)
+                ) as cur:
+                    inv_rows = await cur.fetchall()
+                already_owned = False
+                if it.get('type') == 'armor':
+                    # Жилеты одноразовые, но разных типов можно иметь несколько.
+                    # Один и тот же тип нельзя сложить в стопку: после разрушения
+                    # строка исчезнет и этот тип снова станет доступен для покупки.
+                    already_owned = any(
+                        iid == item_id and int(count or 0) > 0
+                        for iid, count in inv_rows
+                    )
+                else:
+                    wanted_class = WEAPON_ITEM_CLASSES.get(item_id, item_id)
+                    owned_classes = {
+                        WEAPON_ITEM_CLASSES.get(iid, iid)
+                        for iid, count in inv_rows if int(count or 0) > 0
+                    }
+                    already_owned = wanted_class in owned_classes
+                if already_owned:
+                    await db.rollback()
+                    return await _cors(web.json_response({
+                        'ok': False, 'error': 'already owned', 'cash': cash,
+                    }))
+            if price_d:
+                cost = int(price_d) * qty
+                if diamonds < cost:
+                    await db.rollback()
+                    return await _cors(web.json_response({'ok': False, 'error': 'no diamonds'}))
+                diamonds -= cost
+                await db.execute(
+                    'UPDATE characters SET diamonds=? WHERE telegram_id=?', (diamonds, uid)
+                )
+            else:
+                cost = int(price_c) * qty
+                if cash < cost:
+                    await db.rollback()
+                    return await _cors(web.json_response({'ok': False, 'error': 'no cash'}))
+                cash -= cost
+                await db.execute('UPDATE characters SET cash=? WHERE telegram_id=?', (cash, uid))
+            await db.execute("""
+                INSERT INTO inventory (telegram_id,item_id,quantity) VALUES (?,?,?)
+                ON CONFLICT(telegram_id,item_id) DO UPDATE SET quantity=quantity+excluded.quantity
+            """, (uid, item_id, qty))
+            # В открытом мире купленная броня должна быть надета сразу. Это
+            # атомарно с покупкой и не оставляет оплаченный, но не надетый жилет.
+            equipped_armor = None
+            if it.get('type') == 'armor':
+                equipped_armor = item_id
+                await db.execute(
+                    'UPDATE characters SET armor=? WHERE telegram_id=?', (item_id, uid)
+                )
+            async with db.execute(
+                'SELECT quantity FROM inventory WHERE telegram_id=? AND item_id=?',
+                (uid, item_id),
+            ) as cur:
+                inv_qty_row = await cur.fetchone()
+            inventory_qty = int(inv_qty_row[0] or 0) if inv_qty_row else qty
+            await db.commit()
         # Покупка оружия сразу обновляет серверный затвор активной WebSocket-
         # сессии; переподключаться к миру после Витька не требуется.
         if it.get('type') == 'weapon':
@@ -23545,12 +23592,16 @@ async def _coop_http_app():
                         classes.add(WEAPON_ITEM_CLASSES.get(item_id, item_id))
             except Exception:
                 pass
-        # Обновлённый игрок
-        char2 = await get_character(uid)
         return await _cors(web.json_response({
             'ok':       True,
-            'cash':     char2.get('cash')     or 0,
-            'diamonds': char2.get('diamonds') or 0,
+            'cash':     cash,
+            'diamonds': diamonds,
+            'item_id': item_id,
+            'item_type': it.get('type'),
+            'inventory_qty': inventory_qty,
+            'ammo_type': it.get('ammo_type'),
+            'rounds': int(it.get('rounds') or 0),
+            'equipped_armor': equipped_armor,
         }))
 
     async def h_inv_list(req):
@@ -23579,6 +23630,9 @@ async def _coop_http_app():
                 'heal':          it.get('heal'),
                 'mana':          it.get('mana'),
                 'sell_price':    it.get('sell_price'),
+                'ammo_type':     it.get('ammo_type'),
+                'rounds':        int(it.get('rounds') or 0),
+                'price':         it.get('price'),
             })
         return await _cors(web.json_response({
             'ok':            True,
@@ -23754,42 +23808,69 @@ async def _coop_http_app():
             b = await req.json()
         except Exception:
             b = {}
-        item_id = str(b.get('item_id', '')) or None
+        raw_item_id = b.get('item_id')
+        item_id = str(raw_item_id).strip() if raw_item_id not in (None, '') else None
         slot    = str(b.get('slot', '')).strip()  # 'weapon' | 'armor' | '' (auto)
-        char = await get_character(uid)
-        if not char:
-            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
         if item_id:
             it = ITEMS.get(item_id)
             if not it or it.get('type') not in ('weapon', 'armor'):
                 return await _cors(web.json_response({'ok': False, 'error': 'not equipable'}, status=400))
-            inv = await get_inventory(uid)
-            if not inv or (inv.get(item_id) or 0) <= 0:
-                return await _cors(web.json_response({'ok': False, 'error': 'not in inventory'}))
             slot = it.get('type')  # weapon or armor
-            await update_character(uid, **{slot: item_id})
         else:
             # Снятие
             if slot not in ('weapon', 'armor'):
                 return await _cors(web.json_response({'ok': False, 'error': 'bad slot'}, status=400))
-            await update_character(uid, **{slot: None})
-        char2 = await get_character(uid)
+        # Проверка наличия и запись слота обязаны быть одной транзакцией.
+        # Иначе параллельное разрушение брони могло удалить предмет между
+        # SELECT и UPDATE, оставив персонажу ссылку на несуществующий жилет.
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute('BEGIN IMMEDIATE')
+            async with db.execute(
+                'SELECT weapon,armor FROM characters WHERE telegram_id=?', (uid,)
+            ) as cur:
+                char_row = await cur.fetchone()
+            if not char_row:
+                await db.rollback()
+                return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
+            if item_id:
+                async with db.execute(
+                    'SELECT quantity FROM inventory WHERE telegram_id=? AND item_id=?',
+                    (uid, item_id),
+                ) as cur:
+                    inv_row = await cur.fetchone()
+                if not inv_row or int(inv_row[0] or 0) <= 0:
+                    await db.rollback()
+                    return await _cors(web.json_response({'ok': False, 'error': 'not in inventory'}, status=400))
+            await db.execute(
+                f'UPDATE characters SET {slot}=? WHERE telegram_id=?',
+                (item_id, uid),
+            )
+            async with db.execute(
+                'SELECT weapon,armor FROM characters WHERE telegram_id=?', (uid,)
+            ) as cur:
+                equipped_row = await cur.fetchone()
+            await db.commit()
         return await _cors(web.json_response({
             'ok':              True,
-            'equipped_weapon': char2.get('weapon'),
-            'equipped_armor':  char2.get('armor'),
+            'equipped_weapon': equipped_row[0],
+            'equipped_armor':  equipped_row[1],
         }))
 
     async def h_inv_break_armor(req):
-        """Death destroys the currently equipped personal armor.
+        """Destroy the exact armor reported depleted by the client.
 
-        The update is atomic and idempotent: repeated death/snapshot requests
-        cannot consume a second vest after the equipped slot has been cleared.
+        The update is atomic and idempotent. A delayed request from another
+        tab cannot consume the newer vest that is currently equipped.
         """
         try:
             uid = int(req.match_info['uid'])
         except Exception:
             return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            body = await req.json()
+        except Exception:
+            body = {}
+        expected_armor_id = str(body.get('armor_id') or '').strip()
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute('BEGIN IMMEDIATE')
             async with db.execute("SELECT armor FROM characters WHERE telegram_id=?", (uid,)) as cur:
@@ -23797,29 +23878,34 @@ async def _coop_http_app():
             if not row:
                 await db.rollback()
                 return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
-            armor_id = str(row[0] or '')
-            if not armor_id:
-                await db.commit()
-                return await _cors(web.json_response({'ok': True, 'broken': None, 'equipped_armor': None}))
+            equipped_armor_id = str(row[0] or '')
+            armor_id = expected_armor_id or equipped_armor_id
             item = ITEMS.get(armor_id) or {}
-            if item.get('type') == 'armor':
-                async with db.execute(
-                    "SELECT quantity FROM inventory WHERE telegram_id=? AND item_id=?",
+            if not armor_id or item.get('type') != 'armor':
+                await db.commit()
+                return await _cors(web.json_response({'ok': True, 'broken': None, 'equipped_armor': equipped_armor_id or None}))
+            async with db.execute(
+                "SELECT quantity FROM inventory WHERE telegram_id=? AND item_id=?",
+                (uid, armor_id),
+            ) as cur:
+                inv_row = await cur.fetchone()
+            qty = int(inv_row[0] or 0) if inv_row else 0
+            if qty <= 0:
+                await db.commit()
+                return await _cors(web.json_response({'ok': True, 'broken': None, 'equipped_armor': equipped_armor_id or None}))
+            if qty == 1:
+                await db.execute("DELETE FROM inventory WHERE telegram_id=? AND item_id=?", (uid, armor_id))
+            else:
+                await db.execute(
+                    "UPDATE inventory SET quantity=quantity-1 WHERE telegram_id=? AND item_id=?",
                     (uid, armor_id),
-                ) as cur:
-                    inv_row = await cur.fetchone()
-                qty = int(inv_row[0] or 0) if inv_row else 0
-                if qty <= 1:
-                    await db.execute("DELETE FROM inventory WHERE telegram_id=? AND item_id=?", (uid, armor_id))
-                else:
-                    await db.execute(
-                        "UPDATE inventory SET quantity=quantity-1 WHERE telegram_id=? AND item_id=?",
-                        (uid, armor_id),
-                    )
-            await db.execute("UPDATE characters SET armor=NULL WHERE telegram_id=?", (uid,))
+                )
+            if equipped_armor_id == armor_id:
+                await db.execute("UPDATE characters SET armor=NULL WHERE telegram_id=?", (uid,))
+                equipped_armor_id = ''
             await db.commit()
         return await _cors(web.json_response({
-            'ok': True, 'broken': armor_id, 'equipped_armor': None,
+            'ok': True, 'broken': armor_id, 'equipped_armor': equipped_armor_id or None,
         }))
 
     async def h_inv_consume(req):
