@@ -16046,11 +16046,14 @@ function _nearbyBuildingInteractionFor3D() {
     const q=JAIL_POLICE_STATION_3D,d=Math.hypot(player.r-q.entryR,player.c-q.entryC);
     if(d<=q.interactRadius){best={kind:'building',id:'prison-police-admin',r:q.buildingR,c:q.buildingC,targetR:q.targetR,targetC:q.targetC,entryR:q.entryR,entryC:q.entryC,name:'Полицейский участок',type:'police_st',distance:d,islandEntry:true};bestD=d;}
   }
+  // A special authored entrance owns E while the player stands on its marker.
+  // Resolve it before banks/businesses and never let the blocked house tiles
+  // under the facade become a generic-building fallback.
+  const market=_nearestBlackmarketInteraction(3.5);
+  if(market){const p=market.poi,a=market.entrance;return {kind:'building',id:String(p.id),r:+p.r,c:+p.c,entryR:a.r,entryC:a.c,name:p.name||'Чёрный рынок',type:'blackmarket',distance:market.distance};}
   for(const bank of BANKS){const d=_bankInteractionDistance(bank);if(d<=BANK_INTERACT_R&&d<bestD){const a=_bankInteractionAnchor(bank);best={kind:'bank',id:String(bank.id),r:+bank.r+1.5,c:+bank.c+1.5,entryR:a.r,entryC:a.c,name:bank.name||'Банк',distance:d};bestD=d;}}
   for(const biz of BUSINESS_POIS){const d=_businessInteractionDistance(biz);if(d<=BUSINESS_INTERACTION_RADIUS&&d<bestD){const a=_businessInteractionAnchor(biz);best={kind:'business',id:String(biz.id),r:+biz.r,c:+biz.c,entryR:a.r,entryC:a.c,name:biz.name||'Бизнес',distance:d};bestD=d;}}
   for(const poi of POI){if(!MAJOR_OBJECT_IDS.has(poi.id))continue;const d=_majorInteractionDistance(poi);if(d<=MAJOR_INTERACTION_RADIUS&&d<bestD){const a=_majorInteractionAnchor(poi);best={kind:'major',id:String(poi.id),r:+poi.r,c:+poi.c,entryR:a.r,entryC:a.c,name:poi.name||poi.label||'Здание',distance:d};bestD=d;}}
-  const market=_nearestBlackmarketInteraction(3.5);
-  if(market&&market.distance<bestD){const p=market.poi,a=market.entrance;best={kind:'building',id:String(p.id),r:+p.r,c:+p.c,entryR:a.r,entryC:a.c,name:p.name||'Чёрный рынок',type:'blackmarket',distance:market.distance};bestD=market.distance;}
   // A landmark/business facade owns the nearby E action. Ordinary blocked
   // tiles behind a large exterior must never steal it.
   if(best)return best;
@@ -23247,11 +23250,11 @@ function _syncBusinessActionCard(){
   const sel=_businessActionSelection;if(!sel)return;
   const poi=sel.kind==='business'?BUSINESS_POIS.find(b=>b.id===sel.id):sel.kind==='major'?POI.find(p=>p.id===sel.id):sel.kind==='building'?{id:sel.id,r:sel.r,c:sel.c,name:sel.name||'Здание',icon:'🏢'}:null;
   const maxDist=sel.kind==='major'?MAJOR_INTERACTION_RADIUS:sel.kind==='building'?(sel.type==='mafia_hq'?4.2:(sel.type?3.5:3.05)):BUSINESS_INTERACTION_RADIUS;
-  const buildingAnchor=sel.kind==='building'&&poi?_genericBuildingEntranceAnchor(poi.r,poi.c):null;
-  const interactionDistance=poi?(sel.kind==='business'?_businessInteractionDistance(poi):sel.kind==='major'?_majorInteractionDistance(poi):Math.min(
-    Math.hypot(player.r-poi.r-.5,player.c-poi.c-.5),
-    Math.hypot(player.r-buildingAnchor.r,player.c-buildingAnchor.c)
-  )):Infinity;
+  const explicitBuildingAnchor=sel.kind==='building'&&Number.isFinite(+sel.entryR)&&Number.isFinite(+sel.entryC);
+  const buildingAnchor=sel.kind==='building'&&poi?(explicitBuildingAnchor?{r:+sel.entryR,c:+sel.entryC}:_genericBuildingEntranceAnchor(poi.r,poi.c)):null;
+  const interactionDistance=poi?(sel.kind==='business'?_businessInteractionDistance(poi):sel.kind==='major'?_majorInteractionDistance(poi):explicitBuildingAnchor
+    ?Math.hypot(player.r-buildingAnchor.r,player.c-buildingAnchor.c)
+    :Math.min(Math.hypot(player.r-poi.r-.5,player.c-poi.c-.5),Math.hypot(player.r-buildingAnchor.r,player.c-buildingAnchor.c))):Infinity;
   if(!poi||_buildingInt||_bankInt||interactionDistance>maxDist){_closeBusinessActionCard(false);return;}
   const actions=[];
   if(sel.kind==='building')actions.push(['building','peace','🚪 Войти в здание']);
@@ -23270,7 +23273,7 @@ function _syncBusinessActionCard(){
 }
 function _openBusinessActionCard(kind,poi,pointerAnchor=null){
   _businessActionDismissedId='';
-  _businessActionPointerAnchor=pointerAnchor;_businessActionSelection={kind,id:poi.id||`${poi.r},${poi.c}`,r:poi.r,c:poi.c,type:poi.type||null,name:poi.name||poi.label||'Здание'};_businessActionSignature='';
+  _businessActionPointerAnchor=pointerAnchor;_businessActionSelection={kind,id:poi.id||`${poi.r},${poi.c}`,r:poi.r,c:poi.c,type:poi.type||null,name:poi.name||poi.label||'Здание',entryR:Number.isFinite(+poi.entryR)?+poi.entryR:null,entryC:Number.isFinite(+poi.entryC)?+poi.entryC:null,interactionId:poi.interactionId||poi.id||''};_businessActionSignature='';
   updateGtaInteractions();_syncBusinessActionCard();
 }
 function _prepareSelectedEstablishmentActions(){
@@ -24721,11 +24724,12 @@ function activateCurrentBuildingEntry() {
   const parts = _gtaActionCarId.split(',');
   const br = Number(parts[0]), bc = Number(parts[1]), btype = parts[2] || null;
   if (!Number.isFinite(br) || !Number.isFinite(bc)) return false;
-  const entrance = _genericBuildingEntranceAnchor(br, bc),islandPoliceDistance=btype==='police_st'&&JAIL_ISLAND_3D_ENABLED?Math.hypot(player.r-JAIL_POLICE_STATION_3D.entryR,player.c-JAIL_POLICE_STATION_3D.entryC):Infinity;
-  const distance = Math.min(islandPoliceDistance,
-    Math.hypot(player.r - br - .5, player.c - bc - .5),
-    Math.hypot(player.r - entrance.r, player.c - entrance.c)
-  );
+  const marketPoi=btype==='blackmarket'?POI.find(p=>p.r===br&&p.c===bc&&p.special==='blackmarket'):null;
+  if(btype==='blackmarket'&&!marketPoi)return false;
+  const entrance = marketPoi?_blackmarketEntranceAnchor(marketPoi):_genericBuildingEntranceAnchor(br, bc),islandPoliceDistance=btype==='police_st'&&JAIL_ISLAND_3D_ENABLED?Math.hypot(player.r-JAIL_POLICE_STATION_3D.entryR,player.c-JAIL_POLICE_STATION_3D.entryC):Infinity;
+  const entranceDistance=Math.hypot(player.r-entrance.r,player.c-entrance.c);
+  const distance = marketPoi?entranceDistance:Math.min(islandPoliceDistance,
+    Math.hypot(player.r - br - .5, player.c - bc - .5),entranceDistance);
   const maxDistance = btype === 'mafia_hq' ? 4.2 : (btype ? 3.5 : 3.05);
   if (distance > maxDistance) {
     showToast('Подойди ближе ко входу', '🚪', 1700);
