@@ -10978,6 +10978,7 @@ function _beginVoluntarySurrender(now=performance.now()){
   if(!_canVoluntarilySurrender())return false;
   const found=_nearestSurrenderPolice(12),cop=found?.cop;if(!cop)return false;
   if(_myBagWeight>0&&((_bankRob&&_bankRob.myBag)||_policeEvidenceBag))dropVaultBag();
+  const surrenderedWeapon=currentWeapon;
   currentWeapon=null;player.walking=false;player.vr=0;player.vc=0;myDead=false;_localDeath=false;myHp=Math.max(1,myHp);
   const incident={id:`police_surrender_${++_murderIncidentSeq}`,r:+player.r||0,c:+player.c||0,
     victim:null,source:{kind:'voluntary_surrender',copId:String(cop.id||'')},occurredAt:now,status:'queued',assignedVehicleId:null,
@@ -10985,7 +10986,8 @@ function _beginVoluntarySurrender(now=performance.now()){
     playerArrestPickup:true,voluntarySurrender:true,routeRetryAt:0,routeFailures:0};
   _murderIncidents.push(incident);while(_murderIncidents.length>24)_murderIncidents.shift();
   _murderPoliceArrest={vehicleId:'',incidentId:incident.id,copId:'',coverCopId:'',phase:'surrendering',voluntary:true,
-    startedAt:now,phaseAt:now,lastGangShots:Object.create(null),serverRequested:false,serverAccepted:false,serverRejectedReason:''};
+    hpBefore:myHp,weaponBefore:surrenderedWeapon,startedAt:now,phaseAt:now,lastGangShots:Object.create(null),
+    serverRequested:false,serverAccepted:false,serverRejectedReason:''};
   _dispatchMurderPoliceCalls(now);
   document.documentElement.dataset.policeArrestPhase='surrendering';document.documentElement.dataset.policeArrestRescuable='0';
   showEventBanner('🙌 ТЫ СДАЛСЯ','Оружие убрано. Не двигайся: наряд наденет наручники и отвезёт тебя в тюрьму.',3800,'neutral');
@@ -11013,13 +11015,18 @@ function _applyGangmateRescueFire(ar,now=performance.now()){
   }
 }
 function _cancelMurderPoliceArrest(source=null,now=performance.now()){
-  const ar=_murderPoliceArrest;if(!ar||_murderPoliceArrestInCustody(ar))return false;
+  const ar=_murderPoliceArrest,serverRejected=source?.kind==='server-rejected';
+  if(!ar||(_murderPoliceArrestInCustody(ar)&&!serverRejected))return false;
   const v=serviceVehicles.find(q=>q.id===ar.vehicleId),incident=v?.payload?.murderIncident;
   _murderPoliceArrest=null;_murderPoliceRescueGraceUntil=now+3500;
-  myDead=false;_localDeath=false;myHp=1;myDeathLeft=0;myDeathBy='';
+  myDead=false;_localDeath=false;myHp=ar.voluntary?Math.max(1,+ar.hpBefore||1):1;myDeathLeft=0;myDeathBy='';
+  if(ar.voluntary&&ar.weaponBefore)currentWeapon=ar.weaponBefore;
   player.walking=false;player.vr=0;player.vc=0;_localHpHurtAt=now;_selfHpBarUntil=now+4500;
   _deathOv?.classList.remove('show');
   if(v&&incident){
+    if(serverRejected){
+      player.r=v.y;player.c=v.x;v._policePrisonTransport=false;_finishMurderPoliceCall(v,now);
+    }else{
     v._policePrisonTransport=false;v.state='police_search';v.speed=0;v.path=[];v.pathIdx=0;v._lastMoveT=now;
     incident.status='rescue-interrupted';incident.lostAt=now;incident.initialSearchUntil=now+POLICE_MURDER_SEARCH_MS;
     const npcRescuer=source?.kind==='gang_companion'&&source.ref;
@@ -11028,9 +11035,11 @@ function _cancelMurderPoliceArrest(source=null,now=performance.now()){
       officer._lifeState='';officer._lifeGesture='';officer._phaseStartedAt=now;officer._pursuing=!!npcRescuer;
       officer._casePhase=npcRescuer?'npc_combat':'search';
     }
+    }
   }
-  document.documentElement.dataset.policeArrestPhase='rescued';
+  document.documentElement.dataset.policeArrestPhase=serverRejected?'server-rejected':'rescued';
   document.documentElement.dataset.policeArrestRescuable='0';
+  if(serverRejected){showToast('Сервер отклонил задержание — конвой отменён','⚠️',2600);return true;}
   showEventBanner('◆ АРЕСТ СОРВАН','Союзник остановил полицейского. У тебя 1 HP — уходи!',3600,'win');
   return true;
 }
@@ -11060,7 +11069,7 @@ function _startMurderPolicePrisonTransport(v,ar,now=performance.now()){
   if(!ar.serverRequested){
     ar.serverRequested=true;
     try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'citycop_arrest',d:{cop_id:ar.copId,
-      x:+v.x.toFixed(2),y:+v.y.toFixed(2),response_vehicle:v.id}}));}catch(e){}
+      x:+v.x.toFixed(2),y:+v.y.toFixed(2),response_vehicle:v.id,voluntary:!!ar.voluntary}}));}catch(e){}
   }
   _confiscateBagOnArrest();
   document.documentElement.dataset.policeArrestRescuable='0';
@@ -11724,9 +11733,10 @@ function dispatchEmergencyServices() {
     if(cop){
       cop.y=player.r+2.2;cop.x=player.c+.6;cop.ty=cop.y;cop.tx=cop.x;
       myWanted=2;myDead=false;_localDeath=false;myHp=Math.max(25,+myHp||0);currentWeapon='pistol';
-      document.documentElement.dataset.previewSurrenderSeeded=_beginVoluntarySurrender(now)?'started':'failed';
+      document.documentElement.dataset.previewSurrenderSeeded=_UP.get('previewsurrender')==='button'?'button-ready':(_beginVoluntarySurrender(now)?'started':'failed');
     }
   }
+  if(_LOCAL_PREVIEW&&_UP.get('previewsurrender')==='button'&&!_murderPoliceArrest)myWanted=Math.max(2,myWanted);
   if(_LOCAL_PREVIEW&&_UP.has('previewdownedfinish')&&!document.documentElement.dataset.previewDownedFinish){
     const victim=NPCS.find(n=>_isCivilianMurderVictim(n)&&!n.dead&&!n._medicalDowned);
     const bay=_policeResponseBays()[0],road=_nearestRoadTile(bay.r+7,bay.c+2,14);
@@ -20481,6 +20491,7 @@ function handleEventPacket(d) {
       if(!_murderPoliceArrest)try { showArrestOverlay && showArrestOverlay(); } catch(e) {}
     }else if(_murderPoliceArrest){
       _murderPoliceArrest.serverRejectedReason=String(d.reason||'unknown');
+      if(_murderPoliceArrest.voluntary)_cancelMurderPoliceArrest({kind:'server-rejected'},performance.now());
     }
     // ok=false молча — это либо лагнувший пакет, либо сервер уже посадил
   } else if (kind === 'prison_alarm_reply') {
@@ -36850,8 +36861,6 @@ if(_LOCAL_PREVIEW&&_UP.get('previewbuilding')){
       outer:for(let r=8;r<Math.min(MAP_ROWS-8,72);r++)for(let c=8;c<Math.min(MAP_COLS-8,72);c++){
         const key=`${r},${c}`;
         if(MAP[r]?.[c]!==1||POI_BY_RC.has(key)||_bankTileSet.has(key)||MAJOR_CASINO_WORLD_TILES.has(key)||(BUSINESS_BY_RC&&BUSINESS_BY_RC.has(key)))continue;
-        if(BANKS.some(p=>Math.hypot((+p.r||0)-r,(+p.c||0)-c)<8))continue;
-        if(POI.some(p=>Math.hypot((+p.r||0)-r,(+p.c||0)-c)<8)||BUSINESS_POIS.some(p=>Math.hypot((+p.r||0)-r,(+p.c||0)-c)<8))continue;
         const anchor=_genericBuildingEntranceAnchor(r,c);
         if(isBlockedPed(anchor.r,anchor.c))continue;
         target={r,c};break outer;
@@ -59447,7 +59456,7 @@ window.Mafiozi3DBridge = Object.freeze({
       }
       const buildingParts=cachedBuildingParts
         .filter(q=>!(JAIL_ISLAND_3D_ENABLED&&JAIL_CENTER_R>=q.minR&&JAIL_CENTER_R<=q.maxR&&JAIL_CENTER_C>=q.minC&&JAIL_CENTER_C<=q.maxC))
-        .map((q,i)=>{const entry=_genericBuildingEntranceAnchor(q.r,q.c);return {...q,height:heightBase+((seed+i*13)%heightSpread),entryR:entry.r,entryC:entry.c};});
+        .map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread)}));
       blocks.push({
         r0,c0,styleId,buildings,roads,pavement,grass,sand,water,seed,
         building: buildingParts[0]||null,buildingParts,
@@ -63794,6 +63803,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d268-city-animated-color-doors"></script>
+<script type="module" src="three_preview.js?v=3d265-authored-blackmarket-door-sync"></script>
 </body>
 </html>
