@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v260: moved black market plus duplicate-weapon ownership lock. -->
+<!DOCTYPE html><!-- v261: main black market replaces the northern park block, with the old site restored to a regular building. -->
 <!-- v254: shop purchases reconcile atomically with arsenal, armor and ammo. -->
 <!-- v253: every weapon rig and reload family is audited by automated 3D QA. -->
 <!-- v252: animation conflict audit adds authoritative state priority, teleport resets and pooled vehicle cleanup. -->
@@ -5109,6 +5109,7 @@ function _updateGasStations(now) {
 // 1 парк на каждые ~6 блоков. Раскидаем по карте красиво.
 const PARK_BLOCKS = new Set();
 function isParkBlock(br, bc) { return PARK_BLOCKS.has(br + ',' + bc); }
+const MAIN_BLACKMARKET_SITE = Object.freeze({ r: 6, c: 26 });
 
 const CITY_CANAL_C0 = 80, CITY_CANAL_C1 = 100;
 const CITY_BRIDGE_R0 = 47, CITY_BRIDGE_R1 = 56;
@@ -5153,6 +5154,10 @@ function buildMap() {
       if (h === 0 || h === 7) PARK_BLOCKS.add(br + ',' + bc);
     }
   }
+  // The main black market occupies the former north-side park selected by the
+  // player. Reserving the complete block here removes its procedural trees and
+  // creates a full 4x4 building footprint instead of a floating one-tile POI.
+  PARK_BLOCKS.delete(Math.floor(MAIN_BLACKMARKET_SITE.r / BLOCK) + ',' + Math.floor(MAIN_BLACKMARKET_SITE.c / BLOCK));
 
   MAP = [];
   for (let r = 0; r < MAP_ROWS; r++) {
@@ -5782,9 +5787,8 @@ const POI = [
   // на сервере). Босс даёт x10 больше.
   { id: 'lair',    r: 120, c: 40, icon: '☠️', name: 'Логово',       minLvl: 10, aggro: true, radius: 20, noCapture: true },
   // Особые POI
-  // На один тайл выше прежнего места: весь фасад и портал остаются внутри
-  // квартала и не цепляют южную дорогу, но вход сохраняет привычный район.
-  { id: 'blackmarket', r:  5, c: 36, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'blackmarket' },
+  // Главный рынок перенесён целиком на место бывшего северного парка.
+  { id: 'blackmarket', r: MAIN_BLACKMARKET_SITE.r, c: MAIN_BLACKMARKET_SITE.c, icon: '🌌', name: 'Чёрный рынок', minLvl: 1, special: 'blackmarket' },
   // Отдельное соседнее здание к западу от банка «Район»: рынок больше не
   // накладывается на банковский корпус (банк занимает r=15..17, c=55..57).
   { id: 'blackmarket_bellini', r:36, c:46, icon:'🌌', name:'Рынок Беллини', minLvl:1, special:'blackmarket', mafiaFamily:'bellini' },
@@ -10879,6 +10883,20 @@ function _movePrisonEscortCop(cop,tr,tc,dt,mul=1){
   if(!collision||!collision.blocked||escortGate){cop.y=nr;cop.x=nc;cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;return false;}
   return _moveMurderResponseCop(cop,tr,tc,dt,mul);
 }
+function _murderPrisonEscortWaypoints(target){
+  if(!JAIL_ISLAND_3D_ENABLED)return[target];
+  const q=JAIL_ISLAND_LAYOUT;
+  // Машина стоит снаружи острова. Ведём конвой через настоящий западный КПП,
+  // затем по свободной служебной аллее мимо крыла камер и через дверь приёмника.
+  return[
+    {r:q.centerR,c:q.west-.62},
+    {r:q.centerR,c:q.west+.72},
+    {r:80.82,c:q.west+.72},
+    {r:q.intake.north-1.05,c:q.centerC},
+    {r:q.intake.north+.72,c:q.centerC},
+    target
+  ];
+}
 function _updateMurderPolicePrisonHandoff(v,ar,dt,now=performance.now()){
   const delivery=_murderArrestCopsByIds(ar.deliveryCopIds),receivers=_murderArrestCopsByIds(ar.prisonCopIds);
   if(delivery.length<2||receivers.length<2){
@@ -10904,16 +10922,32 @@ function _updateMurderPolicePrisonHandoff(v,ar,dt,now=performance.now()){
     if(now-ar.phaseAt>=POLICE_ARREST_HANDOFF_MS){
       for(const cop of delivery){cop._casePhase='arrest_handoff_complete';cop._lifeGesture='salute';}
       for(const cop of receivers)cop._casePhase='arrest_prison_escort';
+      ar.prisonEscortWaypoints=_murderPrisonEscortWaypoints(target);ar.prisonEscortWaypoint=0;
+      ar.prisonEscortLastR=receivers[0].y;ar.prisonEscortLastC=receivers[0].x;ar.prisonEscortLastMoveAt=now;
       _setMurderPoliceArrestPhase(ar,'prison_escort',now);player.walking=true;
       showEventBanner('🔒 ТЮРЕМНЫЙ КОНВОЙ','Тюремные полицейские ведут тебя в приёмный блок.',3000,'lose');
     }
   }else if(ar.phase==='prison_escort'){
-    const lead=receivers[0],rear=receivers[1],reached=_movePrisonEscortCop(lead,target.r,target.c,dt,1.04);
+    const lead=receivers[0],rear=receivers[1],route=ar.prisonEscortWaypoints||_murderPrisonEscortWaypoints(target);
+    let routeIndex=Math.max(0,Math.min(route.length-1,+ar.prisonEscortWaypoint||0)),waypoint=route[routeIndex]||target;
+    let reached=_movePrisonEscortCop(lead,waypoint.r,waypoint.c,dt,1.04);
+    if(reached||Math.hypot(lead.y-waypoint.r,lead.x-waypoint.c)<.28){
+      if(routeIndex<route.length-1){ar.prisonEscortWaypoint=++routeIndex;waypoint=route[routeIndex];reached=false;}
+      else reached=true;
+    }
+    const moved=Math.hypot(lead.y-(+ar.prisonEscortLastR||lead.y),lead.x-(+ar.prisonEscortLastC||lead.x));
+    if(moved>.025){ar.prisonEscortLastR=lead.y;ar.prisonEscortLastC=lead.x;ar.prisonEscortLastMoveAt=now;}
+    else if(now-(+ar.prisonEscortLastMoveAt||now)>2400){
+      // Редкая динамическая преграда не имеет права навсегда удерживать арест.
+      lead.y=waypoint.r;lead.x=waypoint.c;ar.prisonEscortLastR=lead.y;ar.prisonEscortLastC=lead.x;ar.prisonEscortLastMoveAt=now;
+      if(routeIndex<route.length-1)ar.prisonEscortWaypoint=routeIndex+1;
+      document.documentElement.dataset.policeArrestEscortRecoveries=String((+document.documentElement.dataset.policeArrestEscortRecoveries||0)+1);
+    }
     const followR=lead.y-Math.sin(lead.ang)*.68,followC=lead.x-Math.cos(lead.ang)*.68,k=Math.min(1,dt*7);
     player.r+=(followR-player.r)*k;player.c+=(followC-player.c)*k;player.ang=lead.ang;player.walking=true;player.walkPhase+=dt*7;
     const rearR=player.r-Math.sin(lead.ang)*.78,rearC=player.c-Math.cos(lead.ang)*.78;
     _movePrisonEscortCop(rear,rearR,rearC,dt,1.08);
-    if(reached||Math.hypot(lead.y-target.r,lead.x-target.c)<.35||now-ar.phaseAt>22000){
+    if(reached||Math.hypot(lead.y-target.r,lead.x-target.c)<.35||now-ar.phaseAt>26000){
       player.r=target.r;player.c=target.c;player.walking=false;_setMurderPoliceArrestPhase(ar,'booking',now);
       receivers[0]._lifeState='helping';receivers[0]._lifeGesture='aid';
     }
@@ -27262,7 +27296,7 @@ const _taxiFade = document.getElementById('taxiFade');
 const TAXI_COST = 50;
 const _TAXI_DESTINATIONS = [
   { id:'beach', icon: '🏖️', name: 'Пляж',           r: 145, c: 40 },
-  { id:'blackmarket', icon: '🌌', name: 'Чёрный рынок',   r: 5,   c: 36 },
+  { id:'blackmarket', icon: '🌌', name: 'Чёрный рынок',   r: MAIN_BLACKMARKET_SITE.r, c: MAIN_BLACKMARKET_SITE.c },
   { id:'gym', icon: '💪', name: 'Спортзал',       r: 26,  c: 26 },
   { id:'job', icon: '💼', name: 'Биржа труда',    r: 36,  c: 16 },
   { id:'hospital', icon: '🏥', name: 'Больница',       r: 26,  c: 46 },
@@ -59678,6 +59712,29 @@ if(_LOCAL_PREVIEW&&_UP.has('previewjail')){
   document.documentElement.dataset.prisonCollisionAudit=JSON.stringify(auditPoints.map(([name,r,c])=>({name,blocked:isBlockedPed(r,c),surface:_prisonIslandCollisionAt(r,c)?.surface||'world'})));
   document.documentElement.dataset.prisonReleaseGate=`${_effectivePrisonJailSeconds()>0?'locked':'released'}:${_prisonReleaseGateProgress().toFixed(2)}`;
 }
+if(_LOCAL_PREVIEW&&_UP.has('previewprisonconvoy'))setTimeout(()=>{
+  const now=performance.now(),v=_ensurePoliceResponseFleet()[0];
+  if(!v)return;
+  const incident={id:'preview_prison_convoy',status:'arresting-player',policeTier:0,crewCount:2};
+  v.payload={murderIncident:incident};v.x=v.homeC;v.y=v.homeR;v.ang=Math.atan2(JAIL_ISLAND_LAYOUT.intake.spawnR-v.y,JAIL_ISLAND_LAYOUT.intake.spawnC-v.x);
+  v._policeExpectedCrew=2;v._policePrisonTransport=true;
+  _murderPoliceArrest={vehicleId:v.id,incidentId:incident.id,copId:'preview_delivery_0',coverCopId:'preview_delivery_1',phase:'transport',phaseAt:now,
+    startedAt:now,transportCrew:[{name:'Патрульный'},{name:'Старший патруля'}],serverRequested:true,serverAccepted:true,jailSeconds:60};
+  myDead=true;_localDeath=true;myHp=0;player.r=v.y;player.c=v.x;player.walking=false;
+  _startMurderPolicePrisonHandoff(v,now,'preview-direct');
+  const trace=setInterval(()=>{
+    const ar=_murderPoliceArrest,lead=ar?_murderArrestCopsByIds(ar.prisonCopIds)[0]:null,target=JAIL_ISLAND_LAYOUT.intake;
+    document.documentElement.dataset.previewPrisonConvoy=JSON.stringify({
+      phase:ar?.phase||document.documentElement.dataset.policeArrestPhase||'none',
+      elapsed:ar?Math.round(performance.now()-ar.phaseAt):0,
+      player:[+player.r.toFixed(2),+player.c.toFixed(2)],
+      lead:lead?[+lead.y.toFixed(2),+lead.x.toFixed(2)]:null,
+      distance:lead?+Math.hypot(lead.y-target.spawnR,lead.x-target.spawnC).toFixed(2):0,
+      delivered:+document.documentElement.dataset.policeArrestDelivered||0
+    });
+    if(!ar)clearInterval(trace);
+  },200);
+},1500);
 if(_LOCAL_PREVIEW&&_UP.has('previewjunkyard')){
   player.r=JUNKYARD_R+4.5;player.c=JUNKYARD_C;player.vr=0;player.vc=0;player.walking=false;
   window._studioTeleportUntil=Date.now()+10000;
@@ -63446,6 +63503,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d260-blackmarket-owned-weapon"></script>
+<script type="module" src="three_preview.js?v=3d261-blackmarket-park-site"></script>
 </body>
 </html>
