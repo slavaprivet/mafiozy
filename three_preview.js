@@ -2130,7 +2130,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       npcParts.gangBand.renderOrder=13;renderer.domElement.dataset.npcInstanceColors='physically-lit-instance-colors-with-night-fill';
       const selectedNpcRing=new THREE.Group(),selectedNpcOuter=new THREE.Mesh(new THREE.RingGeometry(1.55,1.82,40),new THREE.MeshBasicMaterial({color:0xffdf62,transparent:true,opacity:.98,side:THREE.DoubleSide,depthTest:false})),selectedNpcInner=new THREE.Mesh(new THREE.RingGeometry(1.08,1.22,40),new THREE.MeshBasicMaterial({color:0x69ffc2,transparent:true,opacity:.94,side:THREE.DoubleSide,depthTest:false}));for(const ring of [selectedNpcOuter,selectedNpcInner]){ring.rotation.x=-Math.PI/2;ring.renderOrder=55;selectedNpcRing.add(ring);}selectedNpcRing.visible=false;scene.add(selectedNpcRing);
       const citizenPool=[];for(let i=0;i<NPC_CAP;i++){const hpGroup=new THREE.Group(),hpBg=new THREE.Sprite(new THREE.SpriteMaterial({color:0x140b0d,depthTest:false})),hpBar=new THREE.Sprite(new THREE.SpriteMaterial({color:0x58e67c,depthTest:false}));hpBg.position.y=4.25;hpBg.scale.set(1.95,.28,1);hpBar.position.y=4.26;hpBar.scale.set(1.78,.16,1);hpBar.renderOrder=42;hpBg.renderOrder=41;hpGroup.add(hpBg,hpBar);hpGroup.layers.enable(1);hpGroup.visible=false;scene.add(hpGroup);citizenPool.push({hpGroup,hpBar});}
-      const npcLabels=[];for(let i=0;i<NPC_CAP;i++){const canvas=document.createElement('canvas');canvas.width=768;canvas.height=192;const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;texture.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false}));sprite.scale.set(15.5,3.88,1);sprite.renderOrder=46;sprite.layers.enable(1);sprite.visible=false;scene.add(sprite);npcLabels.push({canvas,texture,sprite,sig:''});}renderer.domElement.dataset.npcLabelProfile='large-role-name-hp-raised-v204';renderer.domElement.dataset.npcLabelCanvas='768x192';
+      const npcLabels=[];for(let i=0;i<NPC_CAP;i++){const canvas=document.createElement('canvas');canvas.width=768;canvas.height=192;const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;texture.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false}));sprite.scale.set(15.5,3.88,1);sprite.renderOrder=46;sprite.layers.enable(1);sprite.visible=false;scene.add(sprite);npcLabels.push({canvas,texture,sprite,sig:''});}renderer.domElement.dataset.npcLabelProfile='large-role-name-hp-raised-v204';renderer.domElement.dataset.npcLabelCanvas='768x192';renderer.domElement.dataset.policeResponseLabelProfile='compact-staggered-v263';
       startupMark('npc-pools');
       const outlinedLabelText=(c,text,x,y,font,color)=>{c.font=font;c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';c.lineWidth=17;c.strokeStyle='rgba(0,0,0,1)';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
       const fitOutlinedLabelText=(c,text,x,y,maxWidth,startSize,color)=>{const safe=String(text||'');let size=startSize;for(;size>30;size-=2){c.font=`900 ${size}px system-ui`;if(c.measureText(safe).width<=maxWidth)break;}outlinedLabelText(c,safe,x,y,`900 ${size}px system-ui`,color);};
@@ -2141,12 +2141,16 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const updateCustodyAwareNpcLabel=(entry,src,x,y,z)=>{
         const custody=['escort','loading','unloading','handoff','prison_escort','booking'].includes(activeArrestLabelPhase),
           name=String(src?.name||''),escortOfficer=/Тюремный конвой|Приёмный офицер/i.test(name),
+          responseOfficer=String(src?.kind||'')==='murder_response',formation=Math.max(0,+src?._formationIndex||0),
           nearPlayer=Math.hypot(x-player.position.x,z-player.position.z)<WORLD_SCALE*26;
         if(custody&&nearPlayer&&!escortOfficer){entry.sprite.visible=false;return;}
         updateNpcSpeechLabel(entry,src,x,y,z);
         if(custody&&escortOfficer){
           entry.sprite.scale.set(7.6,1.9,1);
           entry.sprite.position.set(x+(name.includes('Приёмный')?-.48:.48),5.55+(name.includes('Приёмный')?0:.72),z);
+        }else if(responseOfficer){
+          entry.sprite.scale.set(10.2,2.55,1);
+          entry.sprite.position.set(x+((formation%2)-.5)*.52,6.2+(formation%3)*.62,z);
         }
       };
       // NPC source angles use the 2D convention (zero points east), while the
