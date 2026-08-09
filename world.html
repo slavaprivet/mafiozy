@@ -10707,7 +10707,7 @@ function _murderPoliceArrestProgress(ar=_murderPoliceArrest,now=performance.now(
   if(!ar)return 0;
   const duration=ar.phase==='downed'?900:ar.phase==='cuffing'?POLICE_ARREST_CUFF_MS:
     ar.phase==='escort'?6200:ar.phase==='loading'?POLICE_ARREST_LOAD_MS:
-    ar.phase==='unloading'?POLICE_ARREST_UNLOAD_MS:ar.phase==='handoff'?POLICE_ARREST_HANDOFF_MS:
+    ar.phase==='unloading'?POLICE_ARREST_UNLOAD_MS:ar.phase==='handoff'?12000:
     ar.phase==='booking'?POLICE_ARREST_BOOK_MS:ar.phase==='prison_escort'?22000:1;
   return Math.max(0,Math.min(1,(now-(ar.phaseAt||now))/duration));
 }
@@ -10847,9 +10847,12 @@ function _spawnMurderPrisonHandoffOfficer(v,ar,slot,receiver=false,now=performan
     :{r:JAIL_CENTER_R+1,c:JAIL_CENTER_C+1};
   const dr=target.r-v.y,dc=target.c-v.x,d=Math.hypot(dr,dc)||1,side=slot?1:-1;
   const saved=ar.transportCrew?.[slot]||null;
-  const start=receiver
-    ?{r:v.y+dr/d*2.15-dc/d*side*.42,c:v.x+dc/d*2.15+dr/d*side*.42}
-    :door;
+  // Тюремная смена ждёт у открытого КПП, а не идёт от машины напрямик
+  // через западную стену. Патруль физически доведёт задержанного до неё.
+  const gate=JAIL_ISLAND_3D_ENABLED
+    ?{r:JAIL_ISLAND_LAYOUT.centerR,c:JAIL_ISLAND_LAYOUT.west-.62}
+    :{r:v.y+dr/d*2.15,c:v.x+dc/d*2.15};
+  const start=receiver?{r:gate.r+(slot?-.48:.48),c:gate.c-.12}:door;
   const cop={id:`arrest_${receiver?'intake':'delivery'}_${++_cityCopId}`,x:start.c,y:start.r,tx:start.c,ty:start.r,
     ang:Math.atan2(target.r-start.r,target.c-start.c),walkPhase:0,kind:'murder_response',weapon:'pistol',
     hp:100,max_hp:100,alive:true,role:receiver?'prison_police':'police',isPolice:true,_prisonStaff:!!receiver,
@@ -10887,10 +10890,9 @@ function _movePrisonEscortCop(cop,tr,tc,dt,mul=1){
 function _murderPrisonEscortWaypoints(target){
   if(!JAIL_ISLAND_3D_ENABLED)return[target];
   const q=JAIL_ISLAND_LAYOUT;
-  // Машина стоит снаружи острова. Ведём конвой через настоящий западный КПП,
-  // затем по свободной служебной аллее мимо крыла камер и через дверь приёмника.
+  // Передача уже состоялась у западного КПП. Дальше тюремная смена идёт
+  // только по свободному внутреннему коридору мимо крыла камер.
   return[
-    {r:q.centerR,c:q.west-.62},
     {r:q.centerR,c:q.west+.72},
     {r:80.82,c:q.west+.72},
     {r:q.intake.north-1.05,c:q.centerC},
@@ -10916,11 +10918,16 @@ function _updateMurderPolicePrisonHandoff(v,ar,dt,now=performance.now()){
       _copChats.set(receivers[0].id,{text:'Приняли. Ведём в блок.',untilMs:now+2200});
     }
   }else if(ar.phase==='handoff'){
-    const dr=target.r-door.r,dc=target.c-door.c,d=Math.hypot(dr,dc)||1;
-    const handoffR=door.r+dr/d*.9,handoffC=door.c+dc/d*.9;
-    player.r=handoffR;player.c=handoffC;player.ang=Math.atan2(dr,dc);player.walking=false;
-    for(let i=0;i<receivers.length;i++)_movePrisonEscortCop(receivers[i],handoffR,handoffC+(i ? .52 : -.52),dt,1.05);
-    if(now-ar.phaseAt>=POLICE_ARREST_HANDOFF_MS){
+    const handoff=JAIL_ISLAND_3D_ENABLED
+      ?{r:JAIL_ISLAND_LAYOUT.centerR,c:JAIL_ISLAND_LAYOUT.west-.62}
+      :{r:door.r,c:door.c};
+    const primary=delivery[0],reached=_movePrisonEscortCop(primary,handoff.r,handoff.c,dt,1.18);
+    const followR=primary.y-Math.sin(primary.ang)*.58,followC=primary.x-Math.cos(primary.ang)*.58,k=Math.min(1,dt*7);
+    player.r+=(followR-player.r)*k;player.c+=(followC-player.c)*k;player.ang=primary.ang;player.walking=true;player.walkPhase+=dt*7;
+    _movePrisonEscortCop(delivery[1],player.r-Math.sin(primary.ang)*.72,player.c-Math.cos(primary.ang)*.72,dt,1.12);
+    for(let i=0;i<receivers.length;i++)_movePrisonEscortCop(receivers[i],handoff.r+(i?-.48:.48),handoff.c-.12,dt,1.05);
+    if(reached||Math.hypot(primary.y-handoff.r,primary.x-handoff.c)<.32||now-ar.phaseAt>=12000){
+      primary.y=handoff.r;primary.x=handoff.c;player.r=handoff.r;player.c=handoff.c;player.walking=false;
       for(const cop of delivery){cop._casePhase='arrest_handoff_complete';cop._lifeGesture='salute';}
       for(const cop of receivers)cop._casePhase='arrest_prison_escort';
       ar.prisonEscortWaypoints=_murderPrisonEscortWaypoints(target);ar.prisonEscortWaypoint=0;
