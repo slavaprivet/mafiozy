@@ -1365,25 +1365,31 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           // Dark masonry, steel cornice and barred windows replace the generic
           // apartment frontage without changing the authoritative footprint.
           add(x,z,w+.36,d+.36,.42,marketSteel,h+.18);
+          const armoredFacade=add(x,front+.28,w*.94,.42,h*.84,marketBrick,h*.42);outline(armoredFacade);
+          add(x,front+.54,w*.96,.22,.24,marketTrim,h*.82);
+          for(const sx of [-w*.455,w*.455])add(x+sx,front+.54,.28,.22,h*.82,marketTrim,h*.42);
           for(const sx of [-w*.46,-w*.23,0,w*.23,w*.46])add(x+sx,front+.11,.24,.22,h*.82,marketTrim,h*.41);
           for(const sx of [-w*.34,-w*.17,w*.17,w*.34])for(const y of [3.15,5.75]){
             add(x+sx,front+.145,w*.105,.12,1.18,marketGlass,y);
             for(let slat=-1;slat<=1;slat++)add(x+sx+slat*w*.026,front+.23,.045,.08,1.34,marketSteel,y);
           }
           // Recessed entrance and a real two-leaf armored door.
-          const entryZ=front+.32,doorW=Math.min(1.55,w*.095),doorH=4.05;
-          add(x,entryZ,w*.27,.48,4.8,marketSteel,2.4);add(x,front+1.05,w*.36,1.85,.28,marketTrim,4.82);
+          const entryZ=front+.62,doorW=Math.min(2.35,Math.max(1.75,w*.12)),doorH=4.45;
+          add(x,entryZ,doorW*2.75,.62,5.25,marketSteel,2.625);add(x,front+1.45,Math.min(w*.48,doorW*3.6),2.3,.34,marketTrim,5.18);
+          add(x,front+1.64,Math.min(w*.43,doorW*3.25),1.78,.14,marketGlow,5.34);
           for(const sx of [-w*.18,w*.18])add(x+sx,front+.72,.34,.34,5.15,marketSteel,2.58);
           const leftPivot=new THREE.Group(),rightPivot=new THREE.Group();leftPivot.position.set(x-doorW,doorH*.5,entryZ+.28);rightPivot.position.set(x+doorW,doorH*.5,entryZ+.28);scene.add(leftPivot,rightPivot);
           const leftDoor=new THREE.Mesh(new THREE.BoxGeometry(doorW,doorH,.24),marketGlass),rightDoor=new THREE.Mesh(new THREE.BoxGeometry(doorW,doorH,.24),marketGlass);leftDoor.position.x=doorW*.5;rightDoor.position.x=-doorW*.5;leftDoor.castShadow=rightDoor.castShadow=true;leftPivot.add(leftDoor);rightPivot.add(rightDoor);
           for(const door of [leftDoor,rightDoor])for(let y=-1.5;y<=1.5;y+=.75){const bar=new THREE.Mesh(new THREE.BoxGeometry(doorW*.82,.055,.08),marketTrim);bar.position.set(0,y,.17);door.add(bar);}
           blackmarketDoorActors.push({left:leftPivot,right:rightPivot,x,z:front+1.25,open:0});
           // Neon identity, surveillance cameras, ventilation and unloading props.
-          const sign=labelSprite(kind==='blackmarket'?'ЧЁРНЫЙ РЫНОК':kind==='blackmarket_bellini'?'MERCATO BELLINI':'MERCATO MORETTI',`#${accent.toString(16).padStart(6,'0')}`);sign.position.set(x,7.65,front+.72);sign.scale.set(Math.min(13,w*.72),2.25,1);sign.material.depthTest=true;scene.add(sign);
-          add(x,front+.77,w*.58,.3,.16,marketGlow,6.55);
+          const sign=labelSprite(kind==='blackmarket'?'ЧЁРНЫЙ РЫНОК':kind==='blackmarket_bellini'?'MERCATO BELLINI':'MERCATO MORETTI',`#${accent.toString(16).padStart(6,'0')}`);sign.position.set(x,7.35,front+1.05);sign.scale.set(Math.min(18,w*.88),3.15,1);sign.material.depthTest=false;sign.renderOrder=24;scene.add(sign);
+          add(x,front+.82,w*.72,.36,.22,marketGlow,6.25);
+          for(const sx of [-w*.41,w*.41])add(x+sx,front+.78,.14,.2,5.7,marketGlow,3.35);
           for(const sx of [-w*.38,w*.38]){const mount=add(x+sx,front+.68,.18,.18,.62,marketTrim,5.45),cameraBody=add(x+sx+(sx<0?.28:-.28),front+.88,.62,.36,.34,marketSteel,5.22);cameraBody.rotation.z=sx<0?-.16:.16;cameraBody.rotation.y=sx<0?.18:-.18;mount.castShadow=cameraBody.castShadow=false;}
           for(const sx of [-w*.27,0,w*.27]){const vent=new THREE.Mesh(new THREE.CylinderGeometry(.32,.42,1.8,10),marketSteel);vent.position.set(x+sx,h+.9,z-d*.12);vent.castShadow=true;scene.add(vent);const cap=new THREE.Mesh(new THREE.CylinderGeometry(.52,.36,.28,10),marketTrim);cap.position.set(x+sx,h+1.82,z-d*.12);scene.add(cap);}
-          const apron=add(x,front+3.1,w*.66,5.3,.18,new THREE.MeshStandardMaterial({color:0x35383c,roughness:.94}),.09);apron.receiveShadow=true;
+          const apron=add(x,front+3.45,w*.72,6.1,.18,new THREE.MeshStandardMaterial({color:0x35383c,roughness:.94}),.09);apron.receiveShadow=true;
+          for(let lane=-2;lane<=2;lane++)add(x+lane*w*.105,front+3.45,.08,5.25,.035,marketGlow,.205);
           for(const sx of [-w*.3,w*.3])for(let i=0;i<2;i++){const crate=add(x+sx,front+2.15+i*.9,1.15,.82,.72,new THREE.MeshStandardMaterial({color:0x654126,roughness:.9}),.36);crate.rotation.y=(sx<0?-1:1)*.08;}
           // Authored guard is visual-only and never consumes gameplay NPC slots.
           const guard=new THREE.Group(),guardBody=new THREE.Mesh(new THREE.BoxGeometry(1.05,1.65,.65),marketSteel),guardHead=new THREE.Mesh(new THREE.SphereGeometry(.42,12,9),new THREE.MeshStandardMaterial({color:0xb98363,roughness:.9})),guardCap=new THREE.Mesh(new THREE.CylinderGeometry(.48,.52,.3,12),marketSteel),guardArmL=new THREE.Mesh(new THREE.BoxGeometry(.3,1.45,.34),marketBrick),guardArmR=guardArmL.clone(),guardLegL=new THREE.Mesh(new THREE.BoxGeometry(.38,1.5,.44),marketSteel),guardLegR=guardLegL.clone(),guardGun=new THREE.Mesh(new THREE.BoxGeometry(.18,.18,1.55),marketTrim);
@@ -1634,7 +1640,12 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         // so approaching them is seamless after the next sector stream.
         const detailDistanceTiles=Math.hypot(x/WORLD_SCALE,z/WORLD_SCALE);
         const detailRadius=Math.max(20,Math.min(WORLD_SNAPSHOT_RADIUS,+rendererConfig.detailRadius||24));
-        const detailed=buildingMeta.primary!==false&&detailDistanceTiles<=detailRadius,steppedTower=detailed&&!architecturalKind&&(districtStyle==='downtown'||districtStyle==='rich'||districtStyle==='chinatown_rich')&&h>24,lowerH=steppedTower?h*.64:h;
+        // Unique POI exteriors must not disappear merely because the first 3D
+        // snapshot was centred farther away.  The black market can be reached
+        // after sector streaming, so always author its facade when its main
+        // shell is created; otherwise players only see the generic dark box.
+        const forceAuthoredExterior=String(architecturalKind||'').startsWith('blackmarket');
+        const detailed=buildingMeta.primary!==false&&(forceAuthoredExterior||detailDistanceTiles<=detailRadius),steppedTower=detailed&&!architecturalKind&&(districtStyle==='downtown'||districtStyle==='rich'||districtStyle==='chinatown_rich')&&h>24,lowerH=steppedTower?h*.64:h;
         const mainBuilding=buildingBox(x,z,w,d,lowerH,wall,localRoof);mainBuilding.userData.fadeMaterials=[wall,localRoof];mainBuilding.userData.building=buildingMeta;mainBuilding.userData.mainBuilding=true;occluders.push(mainBuilding);buildingPickables.push(mainBuilding);if(detailed)outline(mainBuilding);
         const detailSceneStart=scene.children.length;
         if(detailed){if(steppedTower){const upperH=h-lowerH,upper=buildingBox(x,z,w*.72,d*.72,upperH,wall,localRoof);upper.position.y=lowerH+upperH/2;upper.userData.fadeMaterials=[wall,localRoof];upper.userData.building=buildingMeta;occluders.push(upper);buildingPickables.push(upper);outline(upper);const crownBand=box(x,z,w*.78,d*.78,.42,neonMats[buildingSeed%3]);crownBand.position.y=lowerH+.2;}
