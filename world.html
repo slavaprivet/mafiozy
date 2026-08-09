@@ -19575,6 +19575,21 @@ function handleEventPacket(d) {
     _streetGangControls.set(String(d.sector||`${d.x}:${d.y}`),{...d,until:performance.now()+Math.max(1000,(+d.duration_s||180)*1000)});
     const yellow=d.faction==='yellow';
     showEventBanner(yellow?'🟡 ЖЁЛТЫЕ ВЗЯЛИ УЛИЦУ':'🟣 СИРЕНЕВЫЕ ВЗЯЛИ УЛИЦУ','Победившая банда временно контролирует этот сектор.',3300,'win');
+  } else if(kind==='npc_business_capture_started'){
+    const biz=BUSINESS_POIS.find(item=>String(item.id)===String(d.biz_id));
+    if(biz&&Math.hypot(player.r-biz.r,player.c-biz.c)<24){
+      showToast(`Банда начала захват: ${biz.name}`,'⚔️',2100);
+    }
+  } else if(kind==='npc_business_captured'){
+    const biz=BUSINESS_POIS.find(item=>String(item.id)===String(d.biz_id));
+    _npcBusinessControls[String(d.biz_id)]={
+      ...d,biz_id:String(d.biz_id),guarded:true,guard_gid:String(d.gid||'')
+    };
+    const yellow=d.faction==='yellow';
+    showEventBanner(
+      yellow?'🟡 ЖЁЛТЫЕ ЗАХВАТИЛИ БИЗНЕС':'🟣 ФИОЛЕТОВЫЕ ЗАХВАТИЛИ БИЗНЕС',
+      `${biz?.name||'Точка'} теперь под флагом банды «${d.gang_name||'Банда'}». Гарнизон остаётся охранять здание.`,
+      4200,'win');
   } else if(kind==='lair_alarm'){
     showEventBanner('🚨 ТРЕВОГА В ЛОГОВЕ',d.text||'Весь лагерь поднят по тревоге.',3000,'spawn');
   } else if(kind==='lair_grenade_alert'){
@@ -21289,6 +21304,26 @@ function wsConnect() {
       const d = pkt.d || {};
       // Маркер для heartbeat-диагностики — sec since last snap
       try { _lastSnapT = performance.now(); } catch(e){}
+      // Контроль бизнеса нужен сразу и 2D, и 3D. Применяем его до остальных
+      // подсистем снапшота, чтобы флаги и гарнизоны не зависели от ошибки в
+      // каком-либо необязательном HUD/квестовом блоке ниже.
+      if (d.npc_business_controls !== undefined) {
+        const fresh = d.npc_business_controls || {};
+        for (const id of Object.keys(_npcBusinessControls)) {
+          if (!(id in fresh)) delete _npcBusinessControls[id];
+        }
+        for (const [id, control] of Object.entries(fresh)) {
+          _npcBusinessControls[id] = {...control};
+        }
+      }
+      if (d.npc_business_dominance !== undefined) {
+        _npcBusinessDominance = {
+          purple: Math.max(0, +d.npc_business_dominance?.purple || 0),
+          yellow: Math.max(0, +d.npc_business_dominance?.yellow || 0),
+        };
+        document.documentElement.dataset.npcBusinessDominance =
+          `purple:${_npcBusinessDominance.purple},yellow:${_npcBusinessDominance.yellow}`;
+      }
       _updateFactionWarHud(d.faction_war);
       // Reconcile серверной позиции с КЛИЕНТСКОЙ
       // (client-side prediction).
@@ -22821,6 +22856,8 @@ let _robCashierNpc = null;   // ссылка на NPC из NPCS — кассир
 const _robCooldowns = {};    // biz_id → timestamp окончания кулдауна
 const _businessClosures = {}; // biz_id → общий серверный респавн владельца/охраны
 const _robbedBusinessControls = {}; // biz_id → постоянный семейный владелец до отжима
+const _npcBusinessControls = {};    // biz_id → автономная уличная банда и физический гарнизон
+let _npcBusinessDominance = {purple:0,yellow:0};
 const _businessFamilyWars = {}; // biz_id → открытая война семей
 let _businessWarScore = {
   bellini:{influence:0,treasury:0,captures:0,defenses:0,robberies:0,controlled:0},
@@ -37472,8 +37509,56 @@ function _nearestBusinessPoi() {
   return best;
 }
 
+function drawNpcBusinessControl(b, p = w2s(b.r + 0.5, b.c + 0.5)) {
+  const control = _npcBusinessControls[b.id];
+  if (!control) return;
+  const color = control.color || (control.faction === 'yellow' ? '#ffe34d' : '#b887ff');
+  const pulse = (Math.sin(performance.now() * .0045) + 1) * .5;
+  ctx.save();
+  // Isometric ownership ring around the whole establishment, visible both
+  // while approaching and while standing at the entrance.
+  ctx.globalAlpha = .2 + pulse * .08;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 9, 54 + pulse * 4, 24 + pulse * 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = .86;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = control.guarded ? 3 : 1.8;
+  ctx.setLineDash(control.guarded ? [] : [6, 4]);
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 9, 52, 23, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Roof flag and compact owner label. A broken/dashed ring means the
+  // garrison was cleared and the point is ready to be taken over.
+  const roofY = p.y - 88;
+  ctx.strokeStyle = '#d8c39a';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(p.x, roofY + 42); ctx.lineTo(p.x, roofY - 16); ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(p.x + 1, roofY - 15);
+  ctx.lineTo(p.x + 38, roofY - 7 + Math.sin(performance.now()*.006)*2);
+  ctx.lineTo(p.x + 1, roofY + 5);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1; ctx.stroke();
+  const label = String(control.gang_name ||
+    (control.faction === 'yellow' ? 'ЖЁЛТЫЕ' : 'ФИОЛЕТОВЫЕ')).toUpperCase();
+  ctx.font = '900 9px system-ui,sans-serif';
+  const labelW = Math.max(68, Math.min(126, ctx.measureText(label).width + 18));
+  ctx.fillStyle = 'rgba(5,7,12,.9)';
+  ctx.fillRect(p.x-labelW/2, roofY+44, labelW, 17);
+  ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+  ctx.strokeRect(p.x-labelW/2+.5, roofY+44.5, labelW-1, 16);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, p.x, roofY+52.5);
+  ctx.restore();
+}
+
 function drawBusinessPoi(b) {
   const p = w2s(b.r + 0.5, b.c + 0.5);
+  drawNpcBusinessControl(b, p);
   // Вблизи название, статус и цена уже показаны контекстными кнопками.
   // Освобождаем фасад небольшого здания от большой плашки со стрелкой.
   if (_businessInteractionDistance(b) < 5.5) return;
@@ -47809,6 +47894,24 @@ function drawMinimap() {
   // Бизнесы на минимапе — маленькие эмодзи в цветных кружочках.
   // Купленные — золотое кольцо + мерцание при наличии дохода. Свободные —
   // тонкое серое кольцо. Размер заметно меньше POI чтобы не мешать.
+  // Compact per-district balance makes domination readable without opening
+  // a menu: the leading color gets the larger badge, ties show both.
+  for(const district of DISTRICTS){
+    if(!district.capturable)continue;
+    let purple=0,yellow=0;
+    for(const biz of BUSINESS_POIS){
+      if(biz.r<district.r0||biz.r>district.r1||biz.c<district.c0||biz.c>district.c1)continue;
+      const faction=_npcBusinessControls[biz.id]?.faction;
+      if(faction==='purple')purple++;else if(faction==='yellow')yellow++;
+    }
+    if(!purple&&!yellow)continue;
+    const x=(district.c0+3)*sx,y=(district.r0+4)*sy,text=`🟣${purple}  🟡${yellow}`;
+    ctx2.font='900 7px system-ui,sans-serif';ctx2.textAlign='left';ctx2.textBaseline='middle';
+    const w=Math.max(32,ctx2.measureText(text).width+6);
+    ctx2.fillStyle='rgba(4,6,10,.82)';ctx2.fillRect(x-2,y-6,w,12);
+    ctx2.strokeStyle=purple===yellow?'#ddd':purple>yellow?'#b887ff':'#ffe34d';ctx2.lineWidth=1;
+    ctx2.strokeRect(x-1.5,y-5.5,w-1,11);ctx2.fillStyle='#fff';ctx2.fillText(text,x+1,y);
+  }
   ctx2.font = 'bold 8px "Segoe UI Emoji", system-ui, sans-serif';
   ctx2.textAlign = 'center';
   ctx2.textBaseline = 'middle';
@@ -47819,6 +47922,9 @@ function drawMinimap() {
     const own = myBusinesses.get(b.id);
     const owned = !!(own && own.owned);
     const closed = (_businessClosures[b.id] || 0) > Date.now();
+    const gangControl = _npcBusinessControls[b.id];
+    const gangColor = gangControl?.color ||
+      (gangControl?.faction === 'yellow' ? '#ffe34d' : '#b887ff');
     const hasIncome = owned && own.pending && own.pending > 0;
     const r = 6;
     // Свечение если есть невыбранный доход
@@ -47830,13 +47936,19 @@ function drawMinimap() {
     ctx2.fillStyle = 'rgba(0,0,0,.6)';
     ctx2.beginPath(); ctx2.arc(x, y, r, 0, Math.PI * 2); ctx2.fill();
     // Кольцо
-    ctx2.strokeStyle = closed ? '#ff4d5d' :
+    ctx2.strokeStyle = closed ? '#ff4d5d' : gangControl ? gangColor :
       (owned ? 'rgba(126,255,154,.95)' : 'rgba(170,170,170,.65)');
-    ctx2.lineWidth = owned ? 1.4 : 1;
+    ctx2.lineWidth = gangControl ? 2.2 : owned ? 1.4 : 1;
+    ctx2.setLineDash(gangControl&&!gangControl.guarded?[3,2]:[]);
     ctx2.beginPath(); ctx2.arc(x, y, r, 0, Math.PI * 2); ctx2.stroke();
+    ctx2.setLineDash([]);
     // Эмодзи
     ctx2.fillStyle = '#fff';
     ctx2.fillText(closed ? '💥' : b.emoji, x, y);
+    if(gangControl){
+      ctx2.fillStyle=gangColor;ctx2.strokeStyle='#111';ctx2.lineWidth=.8;
+      ctx2.fillRect(x+5,y-10,6,5);ctx2.strokeRect(x+5.5,y-9.5,5,4);
+    }
   }
   // Купленные квартиры — яркие зелёные домики с подписью «МОЯ».
   const aptPulse = (Math.sin(performance.now() * 0.005) + 1) * 0.5;
@@ -58544,6 +58656,13 @@ window.Mafiozi3DBridge = Object.freeze({
     };
   },
   getCustomGangHqs() { return _threeCustomGangHqSnapshot(); },
+  getNpcBusinessControls() {
+    return BUSINESS_POIS.map(biz => ({
+      id:String(biz.id),r:+biz.r,c:+biz.c,name:biz.name||biz.id,
+      businessControl:_npcBusinessControls[biz.id]
+        ? {..._npcBusinessControls[biz.id]} : null,
+    })).filter(item => item.businessControl);
+  },
   getInteriorState() {
     const src=_buildingInt||_bankInt||null;
     if(!src)return null;
@@ -58758,7 +58877,7 @@ window.Mafiozi3DBridge = Object.freeze({
       },
       lair:lairZone?{r:lairZone.r,c:lairZone.c,radius:lairZone.radius||18}:null,
       mafiaHq:(typeof BURJ_POS!=='undefined'?{id:'mafia_hq',r:BURJ_POS.r,c:BURJ_POS.c,name:'Burj Mafia · Беллини',family:'bellini'}:null),
-      businesses:(typeof BUSINESS_POIS!=='undefined'?BUSINESS_POIS:[]).map(b=>{const entry=_businessInteractionAnchor(b),exterior=BUSINESS_EXTERIOR_GEOMETRY_3D[b.id]||null;return {id:b.id,r:b.r+.5,c:b.c+.5,tileR:b.r,tileC:b.c,entryR:entry.r,entryC:entry.c,exterior,name:b.name,emoji:b.emoji};}),
+      businesses:(typeof BUSINESS_POIS!=='undefined'?BUSINESS_POIS:[]).map(b=>{const entry=_businessInteractionAnchor(b),exterior=BUSINESS_EXTERIOR_GEOMETRY_3D[b.id]||null,businessControl=_npcBusinessControls[b.id]?{..._npcBusinessControls[b.id]}:null;return {id:b.id,r:b.r+.5,c:b.c+.5,tileR:b.r,tileC:b.c,entryR:entry.r,entryC:entry.c,exterior,name:b.name,emoji:b.emoji,businessControl};}),
       districtHqs:(typeof DISTRICTS!=='undefined'?DISTRICTS:[]).filter(d=>d.hq).map(d=>({id:d.id,r:d.hq.r,c:d.hq.c,name:d.name,color:d.color,capturable:d.capturable!==false})),
       customGangHqs:_threeCustomGangHqSnapshot(),
       banks:(typeof BANKS!=='undefined'?BANKS:[]).map(b=>({id:b.id,r:b.r,c:b.c,name:b.name,size:b.size})),

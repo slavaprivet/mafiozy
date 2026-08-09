@@ -122,6 +122,16 @@ preview_city_gangs = [
         "faction":"lair","look":{"gender":0,"skin":1,"body":3,
         "face":1,"hair":0,"hat":4,"gang":1,"boss":1,"suit":"#351b48"}}]},
 ]
+PREVIEW_NPC_BUSINESS_CONTROLS = {
+    "coffee": {"biz_id":"coffee", "faction":"purple", "mafia_family":"bellini",
+               "gang_name":"Фиолетовые Короли", "color":"#b887ff",
+               "guard_gid":"preview_purple", "guarded":True,
+               "captured_at":time.time()},
+    "carwash": {"biz_id":"carwash", "faction":"yellow", "mafia_family":"moretti",
+                "gang_name":"Жёлтые Псы", "color":"#ffe34d",
+                "guard_gid":"preview_yellow", "guarded":True,
+                "captured_at":time.time()},
+}
 for _gang in preview_city_gangs:
     for _bot in _gang["bots"]:
         _bot.update({"home_x":_bot["x"], "home_y":_bot["y"], "alive":True,
@@ -1763,6 +1773,12 @@ def snap(uid):
             "beachgoers": PREVIEW_BEACHGOERS,
             "michael_guards": [],
             "gang_nests": [],
+            "npc_business_controls": PREVIEW_NPC_BUSINESS_CONTROLS,
+            "npc_business_dominance": {
+                faction: sum(1 for control in PREVIEW_NPC_BUSINESS_CONTROLS.values()
+                             if control.get("faction") == faction)
+                for faction in ("purple", "yellow")
+            },
             "districts": {
                 "owners": district_owners,
                 "captures": {

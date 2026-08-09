@@ -148,13 +148,77 @@ def run():
     }
     assert "0:0" in filter_world.snapshot_for("near")["d"]["street_control"]
 
+    # Autonomous business sandbox: a patrol chooses a reachable business,
+    # captures it only after a real hold, stays there as the visible garrison,
+    # and a surviving rival can take the same point after clearing defenders.
+    sandbox = game.WorldSim()
+    sandbox.city_gangs.clear()
+    sandbox.cops.clear()
+    sandbox._city_gang_next_spawn_at = time.time() + 3600
+    attackers = city_gang(sandbox, "purple", 13.0, 33.0)
+    target_id = sandbox._city_gang_choose_business_target(
+        attackers, 13.0, 33.0, time.time())
+    assert target_id in game.BUSINESS_POIS_RC
+    sandbox._city_gang_set_business_target(attackers, "coffee", time.time())
+    for bot in attackers["bots"]:
+        bot.update(x=13.0, y=33.0, _act="walk")
+    attackers["_business_capture_started"] = (
+        time.time() - sandbox.CITY_GANG_BUSINESS_CAPTURE_S - .2)
+    capture_packets = sandbox.tick_city_gangs(.1)
+    control = sandbox._npc_business_controls.get("coffee")
+    assert control and control["faction"] == "purple"
+    assert control["guard_gid"] == attackers["id"]
+    assert attackers["_business_mode"] == "guard"
+    assert any(p["kind"] == "npc_business_captured" for p in capture_packets)
+
+    defenders = attackers
+    rivals = city_gang(sandbox, "yellow", 13.4, 33.2)
+    sandbox._city_gang_set_business_target(rivals, "coffee", time.time())
+    assert sandbox._city_gang_business_rivals_must_fight(defenders, rivals)
+    for bot in defenders["bots"]:
+        bot["alive"] = False
+    for bot in rivals["bots"]:
+        bot.update(x=13.0, y=33.0, _act="walk")
+    rivals["_business_capture_started"] = (
+        time.time() - sandbox.CITY_GANG_BUSINESS_CAPTURE_S - .2)
+    takeover_packets = sandbox.tick_city_gangs(.1)
+    new_control = sandbox._npc_business_controls.get("coffee")
+    assert new_control and new_control["faction"] == "yellow"
+    assert new_control["guard_gid"] == rivals["id"]
+    assert any(p["kind"] == "npc_business_captured"
+               and p.get("previous_faction") == "purple"
+               for p in takeover_packets)
+
+    # An abandoned friendly point still requires the replacement patrol to
+    # physically arrive; ownership cannot teleport a remote squad into guard.
+    sandbox._npc_business_controls["bar"] = {
+        "faction": "yellow", "guard_gid": "", "color": "#ffe34d"}
+    relief = city_gang(sandbox, "yellow", 5.0, 5.0)
+    sandbox._city_gang_set_business_target(relief, "bar", time.time())
+    sandbox.tick_city_gangs(.1)
+    assert relief["_business_mode"] != "guard"
+    assert sandbox._npc_business_controls["bar"]["guard_gid"] == ""
+
+    sandbox.add_or_update("observer", "Observer", {})
+    sandbox.players["observer"].update(x=13.0, y=33.0)
+    snap = sandbox.snapshot_for("observer")["d"]
+    assert snap["npc_business_controls"]["coffee"]["faction"] == "yellow"
+    assert snap["npc_business_dominance"]["yellow"] == 2
+
     world_source = Path("world.html").read_text(encoding="utf-8")
     preview_source = Path("three_preview.js").read_text(encoding="utf-8")
     for marker in ("city_gang_surrender", "street_control", "ceasefire",
-                   "lair_boss_fallen", "_gangSquadMorale"):
+                   "lair_boss_fallen", "_gangSquadMorale",
+                   "npc_business_controls", "drawNpcBusinessControl"):
         assert marker in world_source
     assert "sentry-last-stand-retreat-surrender" in preview_source
-    print("OK: street wars, reinforcements, police, surrender, lair and 2D/3D states")
+    assert "businessControl" in preview_source
+    # The authoritative controls must be applied at the start of a snapshot,
+    # never from the interior movement loop (where `d` is not a packet).
+    control_apply = "if (d.npc_business_controls !== undefined)"
+    assert world_source.count(control_apply) == 1
+    assert world_source.index(control_apply) < world_source.index("_updateFactionWarHud(d.faction_war)")
+    print("OK: street wars, business sandbox, police, lair and 2D/3D states")
 
 
 if __name__ == "__main__":
