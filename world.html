@@ -36240,9 +36240,10 @@ function _verifyBusinessInteriorCollisionLayoutLegacyV2() {
 }
 if(_LOCAL_PREVIEW)_verifyBusinessInteriorCollisionLayoutLegacyV2();
 
-// Visual layout v7 is consumed by Canvas and Three.js only.  Its authored
-// rooms may evolve freely because gameplay collision stays on legacy v2 above.
-const BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION = 8;
+// Visual layout v9 is shared by Canvas, Three.js and runtime interior movement.
+// solid:false remains the explicit escape hatch for rugs, light rigs, open
+// portals and other detail that must never become an invisible obstacle.
+const BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION = 9;
 function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
   const id=String(bizId||''),W=Math.max(8,+width||18),H=Math.max(8,+height||13);
   const cfg=BUSINESS_INTERIORS[id]||BUSINESS_INTERIORS.coffee,items=[];
@@ -36489,12 +36490,13 @@ function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
       box('major_port_docker_bench',21.05,10.5,3.2,.9,.42,'#775334',true,{zone:'locker_room',boots:true,hooks:true});
       break;
   }
-  // Compact-business plans were authored on an 18x13 board. Expand the visual
-  // composition to the real 16x11..28x19 room instead of leaving large
-  // warehouses, clubs and casinos half empty. Collision remains frozen on v2.
+  // Compact-business plans were authored on an 18x13 board. Decorative floor,
+  // wall and ceiling pieces may expand to the real room, but solid furniture
+  // stays on the frozen v2 footprint so it never becomes a fake obstacle that
+  // the player can walk through. Extra edge detail is authored as solid:false.
   if(!['port','major_mansion','major_casino','major_factory','major_market','major_port'].includes(id)){
     const sx=(W-2)/16,sy=(H-2)/11;
-    for(const q of items){q.c=1+(q.c-1)*sx;q.r=1+(q.r-1)*sy;q.w*=sx;q.d*=sy;}
+    for(const q of items)if(q.solid===false){q.c=1+(q.c-1)*sx;q.r=1+(q.r-1)*sy;q.w*=sx;q.d*=sy;}
   }
   return {version:BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION,id,title:cfg.title||id,floor:[...(cfg.floor||['#62584f'])],wall:cfg.wall||'#313943',accent:cfg.accent||'#d7ae4c',items};
 }
@@ -53637,11 +53639,62 @@ function _mansionMovementBlocked(bi,r,c,pad=.36) {
     Math.abs(r-b.r)<b.d/2+pad&&Math.abs(c-b.c)<b.w/2+pad);
 }
 
+const APARTMENT_INTERIOR_COLLISION_PROFILES = Object.freeze([
+  [-.02,.01,-.01,.01,0,0],[.055,-.015,.045,.055,-.025,.005],[-.055,.035,.02,-.045,.035,-.018],
+  [.075,-.015,-.03,.075,-.055,.02],[-.075,.02,.04,.035,.045,-.035],[.02,.065,-.06,-.03,.06,.015],
+  [-.045,-.055,.04,.04,-.035,.045],[.065,.045,-.055,-.05,.025,-.045],[-.075,-.02,.035,.075,.055,.035],
+  [.045,-.065,-.065,.025,-.015,.055],[-.055,.065,.04,-.035,.035,-.055],[.075,.025,-.035,-.07,-.06,-.01],
+]);
+function _interiorVisualCollisionBlockers(bi) {
+  if(!bi)return [];
+  const W=+bi.W||16,H=+bi.H||12;
+  if(!bi.type){
+    const identity=String(bi.apartmentKey||`${bi.seed||0}:${W}x${H}`);
+    let seed=2166136261;
+    for(const ch of identity)seed=Math.imul(seed^ch.charCodeAt(0),16777619)>>>0;
+    const variant=seed%12,[livingDx,livingDz,diningDx,diningDz,bedDx,bedDz]=APARTMENT_INTERIOR_COLLISION_PROFILES[variant],S=Math.max(3,Math.min(5,+window.MAFIOZI_RENDERER_CONFIG?.worldScale||4.1)),turnDining=variant%4===1||variant%4===3;
+    return [
+      {kind:'sofa',c:W*(.26+livingDx),r:H*(.7+livingDz),w:7.4/S,d:2.8/S},
+      {kind:'coffee_table',c:W*(.48+livingDx*.45),r:H*(.58+livingDz*.55),w:5.2/S,d:2.55/S},
+      {kind:'television',c:W*.27,r:H*.465,w:6.1/S,d:1.35/S},
+      {kind:'kitchen',c:W*.3,r:H*.11,w:13.7/S,d:2.02/S},
+      {kind:'fridge',c:W*.03,r:H*.11,w:2.6/S,d:2/S},
+      {kind:'dining_table',c:W*(.33+diningDx),r:H*(.32+diningDz),w:(turnDining?3:5.3)/S,d:(turnDining?5.3:3)/S},
+      {kind:'bed',c:W*(.79+bedDx),r:H*(.67+bedDz),w:7.1/S,d:7.2/S},
+      {kind:'wardrobe',c:W*.95,r:H*.68,w:5.4/S,d:1.8/S},
+      {kind:'bath',c:W*.84,r:H*.22,w:5.2/S,d:2.35/S},
+    ];
+  }
+  if(bi.type==='hospital')return [
+    ...[[2.3,3],[5.4,3],[2.3,6],[5.4,6]].map(([c,r])=>({kind:'bed',c,r,w:2.15,d:1})),
+    {kind:'desk',c:W-2.35,r:H-2.05,w:3.1,d:1.05},{kind:'cabinet',c:W-1.1,r:2,w:1.05,d:.72},
+  ];
+  if(bi.type==='police_st')return [
+    {kind:'front_desk',c:W/2,r:2.15,w:4.7,d:1.05},{kind:'cabinet',c:1.1,r:3.2,w:1.05,d:.72},
+    {kind:'cabinet',c:1.1,r:6.2,w:1.05,d:.72},{kind:'office_desk',c:W*.72,r:H-1.75,w:3.8,d:1.05},
+  ];
+  if(bi.type==='gym')return [
+    {kind:'rack',c:3,r:3,w:2.9,d:1.8},{kind:'rack',c:8,r:3,w:2.9,d:1.8},
+    {kind:'bench',c:W-2.3,r:3.1,w:2.3,d:1.05},{kind:'bench',c:W-2.3,r:6.3,w:2.3,d:1.05},
+    {kind:'desk',c:W-2.25,r:H-2.05,w:3.3,d:1.05},
+  ];
+  if(bi.type==='job')return [2.4,6,9.6].map(c=>({kind:'desk',c,r:3,w:2.7,d:1.05}));
+  if(bi.type==='blackmarket')return [
+    ...[[2.1,3],[5,3],[7.9,3]].map(([c,r])=>({kind:'counter',c,r,w:2.3,d:1.25})),
+    {kind:'desk',c:W-1.6,r:4.8,w:2.2,d:1.05},
+  ];
+  return [];
+}
+
 function _businessInteriorMovementBlocked(bi,r,c,pad=.42) {
   if(!bi)return false;
   if(bi.bizId==='major_casino')return _casinoMovementBlocked(bi,r,c,pad);
   if(bi.bizId==='major_mansion')return _mansionMovementBlocked(bi,r,c,Math.min(pad,.38));
-  const layout=_businessInteriorCollisionLayoutLegacyV2For(bi);
+  const authoredBlockers=_interiorVisualCollisionBlockers(bi);
+  if(authoredBlockers.some(q=>Math.abs(r-q.r)<q.d/2+pad&&Math.abs(c-q.c)<q.w/2+pad))return true;
+  // Collision follows the same authored footprint that both renderers show.
+  // The frozen v2 builder stays available for compatibility auditing only.
+  const layout=_businessInteriorVisualLayoutFor(bi)||_businessInteriorCollisionLayoutLegacyV2For(bi);
   return !!layout?.items?.some(q=>q.solid!==false&&
     Math.abs(r-q.r)<q.d/2+pad&&Math.abs(c-q.c)<q.w/2+pad);
 }
@@ -55528,7 +55581,7 @@ function drawBuildingInterior() {
 
 // ── BANK INTERIOR CFG — единая большая комната ─────────────────
 // The detailed 2D bank below is the canonical visual source for every renderer.
-const BANK_INTERIOR_VISUAL_VERSION = 4;
+const BANK_INTERIOR_VISUAL_VERSION = 5;
 const _BINT = {
   small:  { W:28, H:24, crackTime:10, counterRow:15 },
   medium: { W:36, H:30, crackTime:15, counterRow:19 },
@@ -59020,11 +59073,20 @@ window.Mafiozi3DBridge = Object.freeze({
     const bankState=_bankInt?{
       visualVersion:BANK_INTERIOR_VISUAL_VERSION,size:_bankInt.bank?.size||'small',
       name:_bankInt.bank?.name||'Банк',phase:_bankInt.phase||'lobby',
-      architecture:'bank-rooms-v4',
+      architecture:'bank-rooms-v5',
       rooms:_bankInt.room==='vault'
         ?['vault','deposit_box_gallery','cash_cage','counting_zone','service_bay','biometric_airlock']
         :['main_hall','teller_hall','security_booth','staff_office','manager_office','archive','break_room','conference_room','screening_corridor','cash_processing','vault_approach','atm_zone'],
       counterRow:+_bankInt.counterRow||Math.floor((+_bankInt.H||18)*.58),
+      visualPlan:{
+        archRow:Math.max(4.8,(+_bankInt.counterRow||Math.floor((+_bankInt.H||18)*.58))-4),
+        staffEnd:Math.floor((+_bankInt.W||16)*.38),
+        loungeStart:Math.floor((+_bankInt.W||16)*.62),
+        staffOpening:[Math.floor((+_bankInt.W||16)*.1),Math.floor((+_bankInt.W||16)*.1)+3],
+        centerOpening:[Math.floor((+_bankInt.W||16)/2)-3,Math.floor((+_bankInt.W||16)/2)+3],
+        loungeOpening:[Math.floor((+_bankInt.W||16)*.65),Math.floor((+_bankInt.W||16)*.65)+3],
+        vaultSouthOpen:_bankInt.room==='vault',
+      },
       alarmTriggered:!!_bankInt.alarmTriggered,crackProg:+_bankInt.crackProg||0,
       vaultW:+_bankInt.vaultW||8,vaultH:+_bankInt.vaultH||12,
       carryingBag:!!_bankInt.myBag,
