@@ -26127,8 +26127,6 @@ async def _coop_http_app():
                         # Само «выдать цель» делает клиент (помечает _hitTarget=true
                         # у случайного NPC) — серверу важен только факт выдачи
                         # для подсчёта лимита и потом начисление при kill.
-                        arrest_body = d if isinstance(d, dict) else {}
-                        voluntary = bool(arrest_body.get('voluntary'))
                         p = world.players.get(uid)
                         reply = {'ok': False, 'reason': 'unknown'}
                         if not p or p.get('dead') or p.get('_mode') == 'pve':
@@ -26290,18 +26288,22 @@ async def _coop_http_app():
                         # должен только ПРЕДУПРЕЖДАТЬ и отступать через 12с — один
                         # удар по случайному жителю поднимает wanted ровно до 1★,
                         # этого недостаточно для ареста. На срок CITYCOP_JAIL_S =
-                        # 5 мин (короче чем «полный» 60-минутный jail боевых
-                        # копов — это всё-таки лёгкое задержание). Звёзды
+                        # 1 минуту после фактической регистрации в блоке. Звёзды
                         # сбрасываются в 0, и в БД тоже (wanted_stars = 0), чтобы
                         # повторная сессия не подняла их обратно.
                         CITYCOP_JAIL_S = 60   # 1 минута (макс срок по ТЗ)
+                        arrest_body = d if isinstance(d, dict) else {}
+                        voluntary = bool(arrest_body.get('voluntary'))
+                        booking = bool(arrest_body.get('booking'))
                         p = world.players.get(uid)
                         reply = {'ok': False, 'reason': 'unknown'}
                         if not p or p.get('dead'):
                             reply = {'ok': False, 'reason': 'dead'}
-                        elif (p.get('_jail_until') or 0) > time.time():
+                        elif (p.get('_jail_until') or 0) > time.time() and not booking:
                             reply = {'ok': False, 'reason': 'already_jailed'}
-                        elif (float(p.get('_wanted') or 0) < (1.0 if voluntary else 2.0)
+                        elif booking and (p.get('_jail_until') or 0) <= time.time():
+                            reply = {'ok': False, 'reason': 'booking_without_arrest'}
+                        elif (not booking and float(p.get('_wanted') or 0) < (1.0 if voluntary else 2.0)
                               and not (voluntary and world.prison_alarm.get('active')
                                        and str(uid) in world.prison_alarm.get('attackers', set()))):
                             reply = {'ok': False, 'reason': 'not_wanted'}
@@ -26326,7 +26328,7 @@ async def _coop_http_app():
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event',
-                                 'd': dict(reply, kind='citycop_arrest_reply')},
+                                 'd': dict(reply, kind='citycop_arrest_reply', booking=booking)},
                                 ensure_ascii=False))
                         except Exception: pass
                     elif t == 'prison_alarm':
