@@ -36850,6 +36850,8 @@ if(_LOCAL_PREVIEW&&_UP.get('previewbuilding')){
       outer:for(let r=8;r<Math.min(MAP_ROWS-8,72);r++)for(let c=8;c<Math.min(MAP_COLS-8,72);c++){
         const key=`${r},${c}`;
         if(MAP[r]?.[c]!==1||POI_BY_RC.has(key)||_bankTileSet.has(key)||MAJOR_CASINO_WORLD_TILES.has(key)||(BUSINESS_BY_RC&&BUSINESS_BY_RC.has(key)))continue;
+        if(BANKS.some(p=>Math.hypot((+p.r||0)-r,(+p.c||0)-c)<8))continue;
+        if(POI.some(p=>Math.hypot((+p.r||0)-r,(+p.c||0)-c)<8)||BUSINESS_POIS.some(p=>Math.hypot((+p.r||0)-r,(+p.c||0)-c)<8))continue;
         const anchor=_genericBuildingEntranceAnchor(r,c);
         if(isBlockedPed(anchor.r,anchor.c))continue;
         target={r,c};break outer;
@@ -59445,7 +59447,7 @@ window.Mafiozi3DBridge = Object.freeze({
       }
       const buildingParts=cachedBuildingParts
         .filter(q=>!(JAIL_ISLAND_3D_ENABLED&&JAIL_CENTER_R>=q.minR&&JAIL_CENTER_R<=q.maxR&&JAIL_CENTER_C>=q.minC&&JAIL_CENTER_C<=q.maxC))
-        .map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread)}));
+        .map((q,i)=>{const entry=_genericBuildingEntranceAnchor(q.r,q.c);return {...q,height:heightBase+((seed+i*13)%heightSpread),entryR:entry.r,entryC:entry.c};});
       blocks.push({
         r0,c0,styleId,buildings,roads,pavement,grass,sand,water,seed,
         building: buildingParts[0]||null,buildingParts,
@@ -63792,6 +63794,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d265-authored-blackmarket-door-sync"></script>
+<script type="module" src="three_preview.js?v=3d268-city-animated-color-doors"></script>
 </body>
 </html>
