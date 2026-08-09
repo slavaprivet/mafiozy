@@ -4448,12 +4448,17 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             body.scale.y=1-loading*.08;body.position.y=2.65-loading*.28;body.rotation.set(loading*.34,0,Math.sin(t*.003)*.025);
             head.rotation.set(loading*.16,0,0);leftArm.position.set(-.62,2.48,-.28);rightArm.position.set(.62,2.48,-.28);
             leftArm.rotation.set(.88+loading*.18,0,-.34);rightArm.rotation.set(.88+loading*.18,0,.34);
-            leftLeg.rotation.x=playerArrestPhase==='escort'?playerStep*.48:-loading*.58;rightLeg.rotation.x=playerArrestPhase==='escort'?-playerStep*.48:-loading*.48;
+            const cuffWalk=playerArrestPhase==='escort'||playerArrestPhase==='prisoner';
+            leftLeg.rotation.x=cuffWalk?playerStep*.48:-loading*.58;rightLeg.rotation.x=cuffWalk?-playerStep*.48:-loading*.48;
+            if(playerArrestPhase==='prisoner'){
+              body.rotation.z=Math.sin(t*.0032)*.018;head.rotation.y=Math.sin(t*.0014)*.065;
+              renderer.domElement.dataset.prisonerCuffedPose=moving?'walking-hands-behind':'idle-hands-behind';
+            }
           }
           renderer.domElement.dataset.playerArrestAnimation=`${playerArrestPhase}:${playerArrestProgress.toFixed(2)}`;
           renderer.domElement.dataset.playerArrestCuffs=arrestCuffs.visible?'visible':'hidden';
         }else{
-          arrestCuffs.visible=false;renderer.domElement.dataset.playerArrestAnimation='idle';renderer.domElement.dataset.playerArrestCuffs='hidden';
+          arrestCuffs.visible=false;renderer.domElement.dataset.playerArrestAnimation='idle';renderer.domElement.dataset.playerArrestCuffs='hidden';renderer.domElement.dataset.prisonerCuffedPose='released';
         }
         for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.mesh.position.addScaledVector(b.vel,dt);b.life-=dt;if(b.life<=0){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();bullets.splice(i,1);}}
         recoilKick=Math.max(0,recoilKick-dt*(currentWeaponFx.decay||9));const gunBaseY=gun.userData.baseY===undefined?(gun.userData.baseY=gun.position.y):gun.userData.baseY,gunBaseZ=gun.userData.baseZ===undefined?(gun.userData.baseZ=gun.position.z):gun.userData.baseZ,kickNorm=recoilKick/Math.max(.7,currentWeaponFx.recoil||1),recoilPitch=currentWeaponFx.recoilPitch??.82,recoilBack=currentWeaponFx.recoilBack??.78,recoilRise=currentWeaponFx.recoilRise??.2,pumpTravel=currentWeaponFx.pumpTravel??.62;gun.rotation.x=-.08-Math.min(recoilPitch,kickNorm*(currentWeaponFx.family==='shotgun'?.18:currentWeaponFx.family==='heavy-pistol'?.68:currentWeaponFx.family==='revolver'?.44:.54));gun.rotation.y=recoilSide*Math.min(.07,kickNorm*.026);gun.position.y=gunBaseY+Math.min(recoilRise,kickNorm*(currentWeaponFx.family==='shotgun'?.07:.13));gun.position.z=gunBaseZ-Math.min(recoilBack,kickNorm*(currentWeaponFx.family==='shotgun'?.16:currentWeaponFx.family==='heavy-pistol'?.62:.52));gunSlide.position.z=.72-Math.min(currentWeaponFx.family==='gold-pistol'?.5:.42,kickNorm*(currentWeaponFx.family==='gold-pistol'?.42:.34));heavySlide.position.z=.88-Math.min(.32,kickNorm*.27);revolverHammer.rotation.x=-.32-Math.min(.7,kickNorm*.46);shotgunPump.position.z=1.32-Math.min(pumpTravel,kickNorm*(currentWeaponFx.family==='shotgun'?.34:.52));revolverCylinder.rotation.y+=dt*(recoilKick>0?(currentWeaponId==='nagan'?13:19):0);renderer.domElement.dataset.weaponRecoil=kickNorm>.04?`active:${kickNorm.toFixed(2)}`:'settled';
