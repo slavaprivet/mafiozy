@@ -4888,6 +4888,7 @@ function _effectivePrisonJailSeconds(){
     _prisonLocalJailUntil=0;
     if((+_prisonReleaseGateSeconds||0)<=0){
       myJailIn=0;
+      _resetCustodyCombatInput('local-sentence-ended');
       if(!Number.isFinite(_prisonReleaseGateOpenedAt))_prisonReleaseGateOpenedAt=now;
     }
   }
@@ -4900,6 +4901,7 @@ function _prisonReleaseGateProgress(){
 }
 function _prisonWeaponLocked(notify=true){
   if(!_inPrisonIslandRestrictedZone(player.r,player.c,.35))return false;
+  _resetCustodyCombatInput('prison-weapon-lock');
   document.documentElement.dataset.prisonFireBlocked='inside-prison';
   if(notify&&performance.now()-_prisonWeaponLockToastAt>1400){
     _prisonWeaponLockToastAt=performance.now();
@@ -11346,6 +11348,7 @@ function _completeMurderPolicePrisonTransport(v,now=performance.now(),reason='ro
     ?Math.max(1,+_UP.get('previewjailduration')||1):Math.max(1,+ar.jailSeconds||60);
   _prisonLocalJailUntil=now+bookedSeconds*1000;
   myJailIn=Math.max(myJailIn,bookedSeconds);
+  _resetCustodyCombatInput('police-booking');
   _prisonReleaseGateOpenedAt=-Infinity;
   try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'citycop_arrest',d:{cop_id:ar.copId,
     x:+player.c.toFixed(2),y:+player.r.toFixed(2),response_vehicle:v.id,voluntary:!!ar.voluntary,booking:true}}));}catch(e){}
@@ -22281,6 +22284,7 @@ function wsConnect() {
           const previousJailIn=myJailIn;
           // Переход свобода→тюрьма: копы забирают несомый мешок при аресте.
           if (myJailIn <= 0 && d.me.jail_in > 0) {
+            _resetCustodyCombatInput('server-jail-started');
             _confiscateBagOnArrest();
             // МГНОВЕННЫЙ телепорт в двор участка. Раньше игрока в тюрьму
             // «тащила» rubber-band коррекция снапшота (8%/снап, без
@@ -22304,7 +22308,10 @@ function wsConnect() {
             _murderPoliceArrest.jailSeconds=Math.max(_murderPoliceArrest.jailSeconds||0,myJailIn);
           }
           _prisonReleaseGateSeconds=serverJailIn;
-          if(previousJailIn>0&&myJailIn<=0&&localJailIn<=0)_prisonReleaseGateOpenedAt=performance.now();
+          if(previousJailIn>0&&myJailIn<=0&&localJailIn<=0){
+            _resetCustodyCombatInput('server-jail-ended');
+            _prisonReleaseGateOpenedAt=performance.now();
+          }
           else if(myJailIn>0)_prisonReleaseGateOpenedAt=-Infinity;
         }
         if (typeof d.me.terr_cd === 'number') myTerrCd = d.me.terr_cd;
@@ -29738,6 +29745,19 @@ function _npcTriggerFight(npc) {
 // _fireBtnDown — флаг «кнопка стрельбы удерживается». В open world это
 // триггер для автоогня по locked-цели (см. блок hold-to-fire в update).
 let _fireBtnDown = false;
+// Custody can hide the fire controls while a pointer/key is still held. Mobile
+// WebViews do not guarantee the matching pointerup/keyup after an overlay or a
+// server teleport, so the stale flag used to resume a full automatic burst as
+// soon as the sentence ended. Clear every fire/aim latch on jail boundaries;
+// this changes no weapon visuals or ballistics, it only prevents ghost input.
+function _resetCustodyCombatInput(reason='custody-state-change') {
+  _fireBtnDown = false;
+  joyR.active = false; joyR.dx = 0; joyR.dy = 0;
+  joyR.id = -1; joyR._touchId = null; joyR.hasAim = false;
+  if (joyRKnob) joyRKnob.style.transform = '';
+  if (joyREl) joyREl.classList.remove('aiming');
+  document.documentElement.dataset.custodyCombatInputReset = `${reason}:${Math.round(performance.now())}`;
+}
 _fireBtn.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   _fireBtnDown = true;
@@ -59919,6 +59939,7 @@ window.Mafiozi3DBridge = Object.freeze({
     };});
     if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const [j,npc] of npcs.slice(0,8).entries())if(!npc.dead){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*3.8;npc.c=player.c+Math.cos(a)*3.8;npc.ang=a;npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.forcedCrawl=false;npc.severMask=0;npc.walking=true;}
     if(_LOCAL_PREVIEW&&_UP.has('previewnpcwalk'))for(const [j,npc] of npcs.filter(x=>!x.dead).slice(0,6).entries()){const a=-1.05+j*.42;npc.r=player.r+Math.sin(a)*4.2;npc.c=player.c+Math.cos(a)*4.2;npc.ang=a+Math.PI;npc.hp=npc.maxHp;npc.forcedCrawl=false;npc.severMask=0;npc.walking=npc.moving=true;npc.speed=2.4;npc.look={...(npc.look||{}),suit:j===0?'#20b8aa':j===1?'#4a9bd8':j===2?'#e59b45':npc.look?.suit};}
+    if(_LOCAL_PREVIEW&&_UP.has('previewnpcactions')){const npc=npcs.find(x=>!x.dead);if(npc){if(!npc._previewActionAnchor)npc._previewActionAnchor={r:player.r+1.55,c:player.c+.72};npc.r=npc._previewActionAnchor.r;npc.c=npc._previewActionAnchor.c;npc.walking=npc.moving=false;document.documentElement.dataset.previewNpcActions=String(npc.id||npc.sourceId||'ready');}}
     if(_LOCAL_PREVIEW&&_UP.has('previewlabels')){
       const samples=[
         {role:'civilian',visualRole:'civilian',name:'Житель',hp:42,maxHp:60},
@@ -60199,6 +60220,16 @@ if(_LOCAL_PREVIEW&&_UP.has('previewjail')){
   document.documentElement.dataset.prisonCollisionAudit=JSON.stringify(auditPoints.map(([name,r,c])=>({name,blocked:isBlockedPed(r,c),surface:_prisonIslandCollisionAt(r,c)?.surface||'world'})));
   document.documentElement.dataset.prisonReleaseGate=`${_effectivePrisonJailSeconds()>0?'locked':'released'}:${_prisonReleaseGateProgress().toFixed(2)}`;
 }
+if(_LOCAL_PREVIEW&&_UP.has('previewcustodyinputqa'))setTimeout(()=>{
+  _fireBtnDown=true;joyR.active=true;joyR.hasAim=true;joyR.dx=.8;joyR.dy=.2;
+  _resetCustodyCombatInput('preview-jail-started');
+  const entryReset=!_fireBtnDown&&!joyR.active&&!joyR.hasAim&&joyR.dx===0&&joyR.dy===0;
+  _fireBtnDown=true;joyR.active=true;joyR.hasAim=true;
+  myJailIn=1;_prisonReleaseGateSeconds=0;_prisonLocalJailUntil=performance.now()-1;
+  const released=_effectivePrisonJailSeconds()===0;
+  const releaseReset=!_fireBtnDown&&!joyR.active&&!joyR.hasAim;
+  document.documentElement.dataset.custodyInputQa=JSON.stringify({ok:entryReset&&released&&releaseReset,entryReset,released,releaseReset});
+},1200);
 if(_LOCAL_PREVIEW&&_UP.has('previewprisonassault'))setTimeout(()=>{
   const now=performance.now();player.r=JAIL_ISLAND_LAYOUT.centerR-1.2;player.c=JAIL_ISLAND_LAYOUT.centerC;player.vr=0;player.vc=0;player.walking=false;
   myHp=Math.max(1,PVP.max_hp||100);myDead=false;_localDeath=false;myJailIn=0;_prisonReleaseGateSeconds=0;currentWeapon='pistol';
@@ -64034,6 +64065,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d269-enter-chat-speech"></script>
+<script type="module" src="three_preview.js?v=3d279-prompt-layout-cache"></script>
 </body>
 </html>

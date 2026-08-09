@@ -1,5 +1,9 @@
 # TASK_FOR_CLAUDE
 
+Before implementing or expanding a 3D feature, read
+`docs/ai/OPTIMIZATION_MEMORY.md` and keep its quality contract and validation
+checklist in the task acceptance criteria.
+
 (Шаблон. Заполняет ChatGPT/пользователь перед тем как принести задачу Claude Code.
 Перед написанием задачи прочитать ARCHITECTURE.md в корне проекта — там реальная
 архитектура, системы координат и грабли. Не придумывать функции/переменные,
