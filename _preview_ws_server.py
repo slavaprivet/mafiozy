@@ -126,10 +126,12 @@ PREVIEW_NPC_BUSINESS_CONTROLS = {
     "coffee": {"biz_id":"coffee", "faction":"purple", "mafia_family":"bellini",
                "gang_name":"Фиолетовые Короли", "color":"#b887ff",
                "guard_gid":"preview_purple", "guarded":True,
+               "defense_level":2,
                "captured_at":time.time()},
     "carwash": {"biz_id":"carwash", "faction":"yellow", "mafia_family":"moretti",
                 "gang_name":"Жёлтые Псы", "color":"#ffe34d",
                 "guard_gid":"preview_yellow", "guarded":True,
+                "defense_level":1,
                 "captured_at":time.time()},
 }
 for _gang in preview_city_gangs:
@@ -1561,15 +1563,17 @@ async def business_collect(req):
     return cors(web.json_response({"ok": True, "collected": pay, "cash": account["cash"], "events": []}))
 
 
-async def coop_api(_req):
-    return cors(web.json_response({"base": "http://127.0.0.1:8080"}))
+async def coop_api(req):
+    # Keep HTTP and WebSocket on the same preview origin. The old hard-coded
+    # :8080 left a page served from :8081 with ws=NULL and hid every live flag.
+    return cors(web.json_response({"base": f"{req.scheme}://{req.host}"}))
 
 
 async def preview_world(_req):
     html = Path("world.html").read_text(encoding="utf-8", errors="replace")
     html = html.replace(
         "https://slavaprivet.github.io/mafiozi-battle/coop_api.json?t=",
-        "http://127.0.0.1:8080/coop_api.json?t=",
+        "http://127.0.0.1:8081/coop_api.json?t=",
     )
     return web.Response(text=html, content_type="text/html")
 
@@ -1776,9 +1780,20 @@ def snap(uid):
             "npc_business_controls": PREVIEW_NPC_BUSINESS_CONTROLS,
             "npc_business_dominance": {
                 faction: sum(1 for control in PREVIEW_NPC_BUSINESS_CONTROLS.values()
-                             if control.get("faction") == faction)
+                              if control.get("faction") == faction)
                 for faction in ("purple", "yellow")
             },
+            "npc_gang_economy": {
+                "purple": {"faction":"purple", "treasury":620, "businesses":1,
+                           "earned":980, "spent":360, "doctrine":"Оборона и укрепление"},
+                "yellow": {"faction":"yellow", "treasury":410, "businesses":1,
+                           "earned":840, "spent":430, "doctrine":"Налёты и экспансия"},
+            },
+            "npc_business_operations": [
+                {"gid":"preview_yellow", "biz_id":"bar", "faction":"yellow",
+                 "phase":"travel", "strength":5, "morale":.92,
+                 "started_at":now-12},
+            ],
             "districts": {
                 "owners": district_owners,
                 "captures": {

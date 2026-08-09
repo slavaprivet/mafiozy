@@ -205,14 +205,94 @@ def run():
     assert snap["npc_business_controls"]["coffee"]["faction"] == "yellow"
     assert snap["npc_business_dominance"]["yellow"] == 2
 
+    # Faction economy is isolated from player/family money. Holdings generate
+    # a bounded treasury while a faction with no holdings still receives a
+    # small comeback reserve, so the map cannot permanently snowball.
+    economy = game.WorldSim()
+    economy.city_gangs.clear()
+    economy._npc_business_controls = {
+        "coffee": {"faction": "purple", "guard_gid": ""},
+        "pizza": {"faction": "purple", "guard_gid": ""},
+    }
+    economy_now = time.time()
+    for state in economy._npc_gang_economy.values():
+        state["treasury"] = 0
+        state["last_income_at"] = economy_now - economy.NPC_GANG_ECONOMY_TICK_S * 2.1
+    economy_packets = economy._tick_npc_gang_economy(economy_now)
+    assert economy._npc_gang_economy["purple"]["treasury"] > \
+        economy._npc_gang_economy["yellow"]["treasury"] > 0
+    assert any(p["kind"] == "npc_gang_income" for p in economy_packets)
+    assert economy.NPC_GANG_PROFILES["purple"]["doctrine"] != \
+        economy.NPC_GANG_PROFILES["yellow"]["doctrine"]
+
+    # Reinforcements are no longer free: an empty treasury blocks the wave
+    # without creating extra bots or a retry storm.
+    broke_world = game.WorldSim()
+    broke_world.city_gangs.clear()
+    broke_world._city_gang_next_spawn_at = time.time() + 3600
+    broke = city_gang(broke_world, "yellow", 50.0, 50.0)
+    broke["_reinforcements"] = 0
+    broke["bots"][-1]["alive"] = False
+    broke["_reinforce_at"] = time.time() - 1
+    broke_world._npc_gang_economy["yellow"]["treasury"] = 0
+    broke_packets = broke_world.tick_city_gangs(.1)
+    assert len([b for b in broke["bots"] if b["alive"]]) == 2
+    assert any(p["kind"] == "city_gang_backup_denied" for p in broke_packets)
+
+    fort_world = game.WorldSim()
+    fort_world.city_gangs.clear()
+    fort_guard = city_gang(fort_world, "purple", 13.0, 33.0)
+    fort_now = time.time()
+    fort_world._npc_business_controls["coffee"] = {
+        "faction": "purple", "guard_gid": fort_guard["id"],
+        "defense_level": 1, "captured_at": fort_now - 500,
+        "last_fortified_at": fort_now - fort_world.NPC_GANG_FORTIFY_GAP_S - 1,
+    }
+    fort_world._npc_gang_economy["purple"].update(
+        treasury=500, last_income_at=fort_now)
+    fort_packets = fort_world._tick_npc_gang_economy(fort_now)
+    assert fort_world._npc_business_controls["coffee"]["defense_level"] == 2
+    assert fort_world._npc_gang_economy["purple"]["treasury"] < 500
+    assert any(p["kind"] == "npc_business_fortified" for p in fort_packets)
+
+    # A player/family business war has priority over ambient NPC racket. The
+    # old NPC flag is released instead of running two ownership state machines
+    # on the same building.
+    conflict_world = game.WorldSim()
+    conflict_world.city_gangs.clear()
+    conflict_guard = city_gang(conflict_world, "purple", 13.0, 33.0)
+    conflict_world._npc_business_controls["coffee"] = {
+        "faction": "purple", "guard_gid": conflict_guard["id"],
+        "defense_level": 1,
+    }
+    conflict_guard.update(_business_mode="guard", _business_guard_id="coffee")
+    conflict_world._business_family_wars["coffee"] = {"expires_at": time.time()+60}
+    conflict_packets = conflict_world.tick_city_gangs(.1)
+    assert "coffee" not in conflict_world._npc_business_controls
+    assert conflict_guard["_business_mode"] == ""
+    assert any(p["kind"] == "npc_business_released" for p in conflict_packets)
+    assert not conflict_world._city_gang_set_business_target(
+        conflict_guard, "coffee", time.time())
+
+    # A reconnect receives both strategic strength and live operation phases;
+    # this payload is display-only and cannot overwrite player business state.
+    strategy_snap = sandbox.snapshot_for("observer")["d"]
+    assert set(strategy_snap["npc_gang_economy"]) == {"purple", "yellow"}
+    assert any(op["biz_id"] == "bar" for op in strategy_snap["npc_business_operations"])
+    assert "treasury" not in strategy_snap["npc_business_controls"]["coffee"]
+
     world_source = Path("world.html").read_text(encoding="utf-8")
     preview_source = Path("three_preview.js").read_text(encoding="utf-8")
+    preview_server_source = Path("_preview_ws_server.py").read_text(encoding="utf-8")
     for marker in ("city_gang_surrender", "street_control", "ceasefire",
                    "lair_boss_fallen", "_gangSquadMorale",
-                   "npc_business_controls", "drawNpcBusinessControl"):
+                   "npc_business_controls", "npc_gang_economy",
+                   "npc_business_operations", "drawNpcBusinessControl"):
         assert marker in world_source
     assert "sentry-last-stand-retreat-surrender" in preview_source
     assert "businessControl" in preview_source
+    assert 'f"{req.scheme}://{req.host}"' in preview_server_source
+    assert '{"base": "http://127.0.0.1:8080"}' not in preview_server_source
     # The authoritative controls must be applied at the start of a snapshot,
     # never from the interior movement loop (where `d` is not a packet).
     control_apply = "if (d.npc_business_controls !== undefined)"

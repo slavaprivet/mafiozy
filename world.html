@@ -2612,8 +2612,8 @@ function _q(k, d) { return _UP.get(k) || d; }
 function _qInt(k, d) { const v = parseInt(_UP.get(k)); return isFinite(v) ? v : d; }
 function _qStr(k, d) { try { return decodeURIComponent(_UP.get(k) || '') || d; } catch(e){ return d; } }
 const QP = {
-  // Страница превью живёт на :8080, игровой WebSocket/API — на :8081.
-  // только на localhost и никак не затрагивает Telegram/production URL.
+  // Локальное превью держит страницу, API и WebSocket на одном origin.
+  // Это действует только на localhost и не затрагивает Steam production URL.
   api:  _UP.get('api') || (_LOCAL_PREVIEW ? location.origin : ''),
   uid:  _UP.get('uid') || (_LOCAL_PREVIEW ? '1' : ''),
   name: _qStr('name', 'Игрок'),
@@ -19558,6 +19558,8 @@ function handleEventPacket(d) {
     showToast('Чужая банда вызывает подкрепление','📻',1900);
   } else if(kind==='city_gang_backup_arrived'){
     showToast(`К перестрелке прибыло подкрепление: ${d.count||1}`,'🚙',2200);
+  } else if(kind==='city_gang_backup_denied'){
+    showToast('У чужой банды не хватило денег на подкрепление','📻',1900);
   } else if(kind==='city_gang_retreat'){
     showToast('Раненые бандиты отступают','↩️',1800);
   } else if(kind==='city_gang_surrender'){
@@ -19579,6 +19581,17 @@ function handleEventPacket(d) {
     const biz=BUSINESS_POIS.find(item=>String(item.id)===String(d.biz_id));
     if(biz&&Math.hypot(player.r-biz.r,player.c-biz.c)<24){
       showToast(`Банда начала захват: ${biz.name}`,'⚔️',2100);
+    }
+  } else if(kind==='npc_business_fortified'){
+    const biz=BUSINESS_POIS.find(item=>String(item.id)===String(d.biz_id));
+    if(biz&&Math.hypot(player.r-biz.r,player.c-biz.c)<24){
+      showToast(`${biz.name}: охрана усилена до уровня ${d.level||1}`,'🛡️',2200);
+    }
+  } else if(kind==='npc_business_released'){
+    const biz=BUSINESS_POIS.find(item=>String(item.id)===String(d.biz_id));
+    delete _npcBusinessControls[String(d.biz_id)];
+    if(biz&&Math.hypot(player.r-biz.r,player.c-biz.c)<24){
+      showToast(`${biz.name}: уличная банда отступила из-за большой войны`,'🏳️',2400);
     }
   } else if(kind==='npc_business_captured'){
     const biz=BUSINESS_POIS.find(item=>String(item.id)===String(d.biz_id));
@@ -21324,6 +21337,18 @@ function wsConnect() {
         document.documentElement.dataset.npcBusinessDominance =
           `purple:${_npcBusinessDominance.purple},yellow:${_npcBusinessDominance.yellow}`;
       }
+      if (d.npc_gang_economy !== undefined) {
+        _npcGangEconomy = {
+          purple:{...(_npcGangEconomy.purple||{}),...(d.npc_gang_economy?.purple||{})},
+          yellow:{...(_npcGangEconomy.yellow||{}),...(d.npc_gang_economy?.yellow||{})},
+        };
+      }
+      if (d.npc_business_operations !== undefined) {
+        _npcBusinessOperations = Array.isArray(d.npc_business_operations)
+          ? d.npc_business_operations.map(operation=>({...operation})) : [];
+        document.documentElement.dataset.npcBusinessOperations =
+          String(_npcBusinessOperations.length);
+      }
       _updateFactionWarHud(d.faction_war);
       // Reconcile серверной позиции с КЛИЕНТСКОЙ
       // (client-side prediction).
@@ -22858,6 +22883,8 @@ const _businessClosures = {}; // biz_id → общий серверный рес
 const _robbedBusinessControls = {}; // biz_id → постоянный семейный владелец до отжима
 const _npcBusinessControls = {};    // biz_id → автономная уличная банда и физический гарнизон
 let _npcBusinessDominance = {purple:0,yellow:0};
+let _npcGangEconomy = {purple:{treasury:0,businesses:0},yellow:{treasury:0,businesses:0}};
+let _npcBusinessOperations = [];
 const _businessFamilyWars = {}; // biz_id → открытая война семей
 let _businessWarScore = {
   bellini:{influence:0,treasury:0,captures:0,defenses:0,robberies:0,controlled:0},
@@ -22879,6 +22906,8 @@ function _businessLiveStatus(biz){
   if(sab){const left=Math.max(0,(+sab._untilAt||0)-now);if(left>0){const kind=sab.kind||sab.sabotage_kind||'shutdown',labels={shutdown:['⚡','НЕТ СВЕТА','Электричество отключено'],arson:['🔥','ПОЖАР','Доход остановлен из-за пожара'],alarm:['📡','НЕТ ОХРАНЫ','Сигнализация сломана']}[kind]||['💣','ДИВЕРСИЯ','Бизнес повреждён'];return {icon:labels[0],short:`${labels[1]} ${_businessClosureText(left)}`,text:`${labels[2]} · осталось ${_businessClosureText(left)}`,tone:'#ff775c'};}}
   const control=_robbedBusinessControls[biz.id];
   if(control){const family=MAFIA_FAMILIES[control.mafia_family]?.short||'Семья';return {icon:'🏴',short:`${family.toUpperCase()}`,text:`Под контролем: ${family} · доход $${(+control.income_per_member||0).toLocaleString('ru')}`,tone:control.mafia_family==='bellini'?'#b68cff':'#f4ead5'};}
+  const npcControl=_npcBusinessControls[biz.id];
+  if(npcControl){const gang=npcControl.gang_name||(npcControl.faction==='yellow'?'Жёлтые Псы':'Фиолетовые Короли'),level=Math.max(0,+npcControl.defense_level||0);return {icon:'🚩',short:`УЛИЧНЫЙ КОНТРОЛЬ`,text:`Рэкет: ${gang} · охрана ${npcControl.guarded?'на точке':'разбита'}${level?` · укрепление ${level}`:''}`,tone:npcControl.color||(npcControl.faction==='yellow'?'#ffe34d':'#b887ff')};}
   const closed=Math.max(0,(_businessClosures[biz.id]||0)-now);
   if(closed)return {icon:'🔒',short:`ЗАКРЫТО ${_businessClosureText(closed)}`,text:`После ограбления закрыто · ${_businessClosureText(closed)}`,tone:'#ff6268'};
   return {icon:'✅',short:'РАБОТАЕТ',text:'Работает в обычном режиме',tone:'#78e69c'};
@@ -37509,7 +37538,23 @@ function _nearestBusinessPoi() {
   return best;
 }
 
+function drawNpcBusinessOperation(b,p=w2s(b.r+.5,b.c+.5)){
+  const operation=_npcBusinessOperations.find(item=>String(item.biz_id)===String(b.id));
+  if(!operation)return;
+  const color=operation.faction==='yellow'?'#ffe34d':'#b887ff';
+  const phases={travel:'МАРШ',assault:'ШТУРМ',capture:'ЗАХВАТ'};
+  const phase=phases[operation.phase]||'ОПЕРАЦИЯ',pulse=(Math.sin(performance.now()*.009)+1)*.5;
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2.2;ctx.setLineDash([7,4]);ctx.globalAlpha=.72+.2*pulse;
+  ctx.beginPath();ctx.ellipse(p.x,p.y+9,61+pulse*4,28+pulse*2,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='900 9px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  const text=`⚔ ${phase} · ${Math.max(0,+operation.strength||0)}`;
+  ctx.fillStyle='rgba(5,7,12,.9)';ctx.fillRect(p.x-47,p.y-112,94,17);
+  ctx.strokeStyle=color;ctx.strokeRect(p.x-46.5,p.y-111.5,93,16);
+  ctx.fillStyle='#fff';ctx.fillText(text,p.x,p.y-103);ctx.restore();
+}
+
 function drawNpcBusinessControl(b, p = w2s(b.r + 0.5, b.c + 0.5)) {
+  drawNpcBusinessOperation(b,p);
   const control = _npcBusinessControls[b.id];
   if (!control) return;
   const color = control.color || (control.faction === 'yellow' ? '#ffe34d' : '#b887ff');
@@ -37543,6 +37588,7 @@ function drawNpcBusinessControl(b, p = w2s(b.r + 0.5, b.c + 0.5)) {
   ctx.lineTo(p.x + 1, roofY + 5);
   ctx.closePath(); ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1; ctx.stroke();
+  const defense = Math.max(0,Math.min(3,+control.defense_level||0));
   const label = String(control.gang_name ||
     (control.faction === 'yellow' ? 'ЖЁЛТЫЕ' : 'ФИОЛЕТОВЫЕ')).toUpperCase();
   ctx.font = '900 9px system-ui,sans-serif';
@@ -37552,7 +37598,7 @@ function drawNpcBusinessControl(b, p = w2s(b.r + 0.5, b.c + 0.5)) {
   ctx.strokeStyle = color; ctx.lineWidth = 1.2;
   ctx.strokeRect(p.x-labelW/2+.5, roofY+44.5, labelW-1, 16);
   ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(label, p.x, roofY+52.5);
+  ctx.fillText(`${label}${defense?'  '+'◆'.repeat(defense):''}`, p.x, roofY+52.5);
   ctx.restore();
 }
 
@@ -37571,7 +37617,7 @@ function drawBusinessPoi(b) {
   //   куплено + есть доход → ярко-золотой фон, мерцает, показывает +$N
   //   куплено             → тёмно-зелёный фон + «МОЁ»
   //   на продажу          → тёмный фон + название + цена
-  const hasWorldStatus=!!(_businessFamilyWars[b.id]||_businessWarSabotage[b.id]||_robbedBusinessControls[b.id]||closedLeft);
+  const hasWorldStatus=!!(_businessFamilyWars[b.id]||_businessWarSabotage[b.id]||_robbedBusinessControls[b.id]||_npcBusinessControls[b.id]||closedLeft);
   const fgCol  = hasWorldStatus ? liveStatus.tone : (owned ? '#7eff9a' : '#ffd76b');
   const bgGrad = ctx.createLinearGradient(0, 0, 0, 1);   // placeholder
   // Размеры вывески — заметно крупнее старой
@@ -47911,6 +47957,16 @@ function drawMinimap() {
     ctx2.fillStyle='rgba(4,6,10,.82)';ctx2.fillRect(x-2,y-6,w,12);
     ctx2.strokeStyle=purple===yellow?'#ddd':purple>yellow?'#b887ff':'#ffe34d';ctx2.lineWidth=1;
     ctx2.strokeRect(x-1.5,y-5.5,w-1,11);ctx2.fillStyle='#fff';ctx2.fillText(text,x+1,y);
+  }
+  const purpleCash=Math.max(0,+_npcGangEconomy.purple?.treasury||0);
+  const yellowCash=Math.max(0,+_npcGangEconomy.yellow?.treasury||0);
+  if(purpleCash||yellowCash){
+    const text=`🟣 $${purpleCash}   🟡 $${yellowCash}`;
+    ctx2.font='900 8px system-ui,sans-serif';ctx2.textAlign='center';ctx2.textBaseline='middle';
+    const w=Math.max(80,ctx2.measureText(text).width+10),x=MINI_W/2,y=10;
+    ctx2.fillStyle='rgba(4,6,10,.86)';ctx2.fillRect(x-w/2,y-7,w,14);
+    ctx2.strokeStyle=purpleCash===yellowCash?'#ddd':purpleCash>yellowCash?'#b887ff':'#ffe34d';ctx2.lineWidth=1;
+    ctx2.strokeRect(x-w/2+.5,y-6.5,w-1,13);ctx2.fillStyle='#fff';ctx2.fillText(text,x,y);
   }
   ctx2.font = 'bold 8px "Segoe UI Emoji", system-ui, sans-serif';
   ctx2.textAlign = 'center';
@@ -58662,6 +58718,12 @@ window.Mafiozi3DBridge = Object.freeze({
       businessControl:_npcBusinessControls[biz.id]
         ? {..._npcBusinessControls[biz.id]} : null,
     })).filter(item => item.businessControl);
+  },
+  getNpcBusinessOperations() {
+    return _npcBusinessOperations.map(operation=>{
+      const biz=BUSINESS_POIS.find(item=>String(item.id)===String(operation.biz_id));
+      return biz?{...operation,r:+biz.r,c:+biz.c,name:biz.name||biz.id}:null;
+    }).filter(Boolean);
   },
   getInteriorState() {
     const src=_buildingInt||_bankInt||null;
