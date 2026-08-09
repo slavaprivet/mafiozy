@@ -16046,14 +16046,11 @@ function _nearbyBuildingInteractionFor3D() {
     const q=JAIL_POLICE_STATION_3D,d=Math.hypot(player.r-q.entryR,player.c-q.entryC);
     if(d<=q.interactRadius){best={kind:'building',id:'prison-police-admin',r:q.buildingR,c:q.buildingC,targetR:q.targetR,targetC:q.targetC,entryR:q.entryR,entryC:q.entryC,name:'Полицейский участок',type:'police_st',distance:d,islandEntry:true};bestD=d;}
   }
-  // A special authored entrance owns E while the player stands on its marker.
-  // Resolve it before banks/businesses and never let the blocked house tiles
-  // under the facade become a generic-building fallback.
-  const market=_nearestBlackmarketInteraction(3.5);
-  if(market){const p=market.poi,a=market.entrance;return {kind:'building',id:String(p.id),r:+p.r,c:+p.c,entryR:a.r,entryC:a.c,name:p.name||'Чёрный рынок',type:'blackmarket',distance:market.distance};}
   for(const bank of BANKS){const d=_bankInteractionDistance(bank);if(d<=BANK_INTERACT_R&&d<bestD){const a=_bankInteractionAnchor(bank);best={kind:'bank',id:String(bank.id),r:+bank.r+1.5,c:+bank.c+1.5,entryR:a.r,entryC:a.c,name:bank.name||'Банк',distance:d};bestD=d;}}
   for(const biz of BUSINESS_POIS){const d=_businessInteractionDistance(biz);if(d<=BUSINESS_INTERACTION_RADIUS&&d<bestD){const a=_businessInteractionAnchor(biz);best={kind:'business',id:String(biz.id),r:+biz.r,c:+biz.c,entryR:a.r,entryC:a.c,name:biz.name||'Бизнес',distance:d};bestD=d;}}
   for(const poi of POI){if(!MAJOR_OBJECT_IDS.has(poi.id))continue;const d=_majorInteractionDistance(poi);if(d<=MAJOR_INTERACTION_RADIUS&&d<bestD){const a=_majorInteractionAnchor(poi);best={kind:'major',id:String(poi.id),r:+poi.r,c:+poi.c,entryR:a.r,entryC:a.c,name:poi.name||poi.label||'Здание',distance:d};bestD=d;}}
+  const market=_nearestBlackmarketInteraction(3.5);
+  if(market&&market.distance<bestD){const p=market.poi,a=market.entrance;best={kind:'building',id:String(p.id),r:+p.r,c:+p.c,entryR:a.r,entryC:a.c,name:p.name||'Чёрный рынок',type:'blackmarket',distance:market.distance};bestD=market.distance;}
   // A landmark/business facade owns the nearby E action. Ordinary blocked
   // tiles behind a large exterior must never steal it.
   if(best)return best;
@@ -23250,11 +23247,11 @@ function _syncBusinessActionCard(){
   const sel=_businessActionSelection;if(!sel)return;
   const poi=sel.kind==='business'?BUSINESS_POIS.find(b=>b.id===sel.id):sel.kind==='major'?POI.find(p=>p.id===sel.id):sel.kind==='building'?{id:sel.id,r:sel.r,c:sel.c,name:sel.name||'Здание',icon:'🏢'}:null;
   const maxDist=sel.kind==='major'?MAJOR_INTERACTION_RADIUS:sel.kind==='building'?(sel.type==='mafia_hq'?4.2:(sel.type?3.5:3.05)):BUSINESS_INTERACTION_RADIUS;
-  const explicitBuildingAnchor=sel.kind==='building'&&Number.isFinite(+sel.entryR)&&Number.isFinite(+sel.entryC);
-  const buildingAnchor=sel.kind==='building'&&poi?(explicitBuildingAnchor?{r:+sel.entryR,c:+sel.entryC}:_genericBuildingEntranceAnchor(poi.r,poi.c)):null;
-  const interactionDistance=poi?(sel.kind==='business'?_businessInteractionDistance(poi):sel.kind==='major'?_majorInteractionDistance(poi):explicitBuildingAnchor
-    ?Math.hypot(player.r-buildingAnchor.r,player.c-buildingAnchor.c)
-    :Math.min(Math.hypot(player.r-poi.r-.5,player.c-poi.c-.5),Math.hypot(player.r-buildingAnchor.r,player.c-buildingAnchor.c))):Infinity;
+  const buildingAnchor=sel.kind==='building'&&poi?_genericBuildingEntranceAnchor(poi.r,poi.c):null;
+  const interactionDistance=poi?(sel.kind==='business'?_businessInteractionDistance(poi):sel.kind==='major'?_majorInteractionDistance(poi):Math.min(
+    Math.hypot(player.r-poi.r-.5,player.c-poi.c-.5),
+    Math.hypot(player.r-buildingAnchor.r,player.c-buildingAnchor.c)
+  )):Infinity;
   if(!poi||_buildingInt||_bankInt||interactionDistance>maxDist){_closeBusinessActionCard(false);return;}
   const actions=[];
   if(sel.kind==='building')actions.push(['building','peace','🚪 Войти в здание']);
@@ -23273,7 +23270,7 @@ function _syncBusinessActionCard(){
 }
 function _openBusinessActionCard(kind,poi,pointerAnchor=null){
   _businessActionDismissedId='';
-  _businessActionPointerAnchor=pointerAnchor;_businessActionSelection={kind,id:poi.id||`${poi.r},${poi.c}`,r:poi.r,c:poi.c,type:poi.type||null,name:poi.name||poi.label||'Здание',entryR:Number.isFinite(+poi.entryR)?+poi.entryR:null,entryC:Number.isFinite(+poi.entryC)?+poi.entryC:null,interactionId:poi.interactionId||poi.id||''};_businessActionSignature='';
+  _businessActionPointerAnchor=pointerAnchor;_businessActionSelection={kind,id:poi.id||`${poi.r},${poi.c}`,r:poi.r,c:poi.c,type:poi.type||null,name:poi.name||poi.label||'Здание'};_businessActionSignature='';
   updateGtaInteractions();_syncBusinessActionCard();
 }
 function _prepareSelectedEstablishmentActions(){
@@ -24724,12 +24721,11 @@ function activateCurrentBuildingEntry() {
   const parts = _gtaActionCarId.split(',');
   const br = Number(parts[0]), bc = Number(parts[1]), btype = parts[2] || null;
   if (!Number.isFinite(br) || !Number.isFinite(bc)) return false;
-  const marketPoi=btype==='blackmarket'?POI.find(p=>p.r===br&&p.c===bc&&p.special==='blackmarket'):null;
-  if(btype==='blackmarket'&&!marketPoi)return false;
-  const entrance = marketPoi?_blackmarketEntranceAnchor(marketPoi):_genericBuildingEntranceAnchor(br, bc),islandPoliceDistance=btype==='police_st'&&JAIL_ISLAND_3D_ENABLED?Math.hypot(player.r-JAIL_POLICE_STATION_3D.entryR,player.c-JAIL_POLICE_STATION_3D.entryC):Infinity;
-  const entranceDistance=Math.hypot(player.r-entrance.r,player.c-entrance.c);
-  const distance = marketPoi?entranceDistance:Math.min(islandPoliceDistance,
-    Math.hypot(player.r - br - .5, player.c - bc - .5),entranceDistance);
+  const entrance = _genericBuildingEntranceAnchor(br, bc),islandPoliceDistance=btype==='police_st'&&JAIL_ISLAND_3D_ENABLED?Math.hypot(player.r-JAIL_POLICE_STATION_3D.entryR,player.c-JAIL_POLICE_STATION_3D.entryC):Infinity;
+  const distance = Math.min(islandPoliceDistance,
+    Math.hypot(player.r - br - .5, player.c - bc - .5),
+    Math.hypot(player.r - entrance.r, player.c - entrance.c)
+  );
   const maxDistance = btype === 'mafia_hq' ? 4.2 : (btype ? 3.5 : 3.05);
   if (distance > maxDistance) {
     showToast('Подойди ближе ко входу', '🚪', 1700);
@@ -31314,11 +31310,12 @@ function update(dt) {
         const spd = 4.0 * _shotMoveMultiplier();
         const nextR=Math.max(0.4,Math.min(biH-0.5,player.r+dr/mag*spd*dt*mv));
         const nextC=Math.max(0.4,Math.min(biW-0.4,player.c+dc/mag*spd*dt*mv));
-        if(_canMoveInsideBusinessInterior(bi,player.r,player.c,nextR,nextC)){
+        const escapingInteriorFurniture=_businessInteriorMovementBlocked(bi,player.r,player.c);
+        if(!_businessInteriorMovementBlocked(bi,nextR,nextC)||escapingInteriorFurniture){
           player.r=nextR;player.c=nextC;
-        }else if(_canMoveInsideBusinessInterior(bi,player.r,player.c,nextR,player.c)){
+        }else if(!_businessInteriorMovementBlocked(bi,nextR,player.c)){
           player.r=nextR;
-        }else if(_canMoveInsideBusinessInterior(bi,player.r,player.c,player.r,nextC)){
+        }else if(!_businessInteriorMovementBlocked(bi,player.r,nextC)){
           player.c=nextC;
         }
         player.ang = Math.atan2(dr, dc);
@@ -36430,8 +36427,8 @@ function _buildBusinessInteriorCollisionLayoutLegacyV2(bizId, width = 18, height
       box('bookshelf',2.4,5.2,7,1.2,3.5,'#5b3423');box('bookshelf',7.8,1.2,1.2,5,3.5,'#5b3423');
       box('fireplace',4.5,10.3,3.2,1.2,2.6,'#8d4a32');box('mansion_sofa',8.7,7,4.2,1.5,1.05,'#5f2632');
       box('dining_table',14.2,7.5,7,3,1,'#713922');box('wine_cabinet',18.2,2,4.4,1.2,3.2,'#713922');
-      box('mansion_sofa',16.7,18,4.8,1.5,1.05,'#6f2836');box('mansion_sofa',20.5,19,4.8,1.5,1.05,'#6f2836');
-      box('coffee_table',18.6,19,2.8,1.7,.58,'#7e502b');box('grand_piano',18.5,25,3.7,2.1,1.05,'#18191d');
+      box('mansion_sofa',16.7,19,4.8,1.5,1.05,'#6f2836');box('mansion_sofa',20.5,19,4.8,1.5,1.05,'#6f2836');
+      box('coffee_table',18.6,19,2.8,1.7,.58,'#7e502b');box('grand_piano',18.5,24,3.7,2.1,1.05,'#18191d');
       box('don_desk',6.3,28.5,6,2.4,1.15,'#5b3423');box('bookshelf',2.1,27.8,6.5,1.2,3.5,'#5b3423');
       box('safe',8.7,31.2,2.1,1.8,2.2,'#a68544');box('mansion_sofa',11.5,27.8,3.8,1.5,1.05,'#54202b');
       for(const [r,c] of [[4,23],[9,23],[14,27],[20,28]])box('statue',r,c,1.4,1.4,2.2,'#d2b06a');
@@ -36487,10 +36484,9 @@ function _verifyBusinessInteriorCollisionLayoutLegacyV2() {
 }
 if(_LOCAL_PREVIEW)_verifyBusinessInteriorCollisionLayoutLegacyV2();
 
-// Visual layout v11 is shared by Canvas, Three.js and runtime interior movement.
-// solid:false remains the explicit escape hatch for rugs, light rigs, open
-// portals and other detail that must never become an invisible obstacle.
-const BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION = 11;
+// Visual layout v7 is consumed by Canvas and Three.js only.  Its authored
+// rooms may evolve freely because gameplay collision stays on legacy v2 above.
+const BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION = 8;
 function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
   const id=String(bizId||''),W=Math.max(8,+width||18),H=Math.max(8,+height||13);
   const cfg=BUSINESS_INTERIORS[id]||BUSINESS_INTERIORS.coffee,items=[];
@@ -36527,9 +36523,7 @@ function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
       box('delivery_rack',10.3,3.2,2.6,1.2,.85,'#397a3d');box('pizza_boxes',10.2,14.5,2.4,1.4,1.2,'#c49352');
       break;
     case 'garage':
-      box('garage_lift',6.8,8.8,6.2,3,2.5,'#d8a92d',true,{collisionParts:[
-        {dr:0,dc:-2.62,w:.62,d:2.55},{dr:0,dc:2.62,w:.62,d:2.55}
-      ]});box('vehicle',6.8,8.8,4.4,1.9,.95,'#477bb8');
+      box('garage_lift',6.8,8.8,6.2,3,2.5,'#d8a92d');box('vehicle',6.8,8.8,4.4,1.9,.95,'#477bb8');
       box('engine_stand',4.1,3,2.2,1.6,1.25,'#515b62');box('tire_stack',7.7,3,2.1,1.5,1.65,'#22252c');
       box('welder',10,3.1,2.1,1.3,1.3,'#d07d25');box('tool_wall',5,14.7,2.8,1.3,1.9,'#a13b35');
       box('parts_rack',9.5,14.4,3,1.6,1.4,'#6f7881');box('oil_drums',3.2,9,2.3,1.1,1.3,'#293844');
@@ -36559,23 +36553,19 @@ function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
       box('slot_bank',7.4,14.7,3.5,1.2,2.05,'#8f3eaa');box('cashier',10,14.2,3.2,1.3,1.25,'#d2a83e');
       box('bar_counter',9.8,9.5,3,1.2,1.05,'#6f352e');box('pool_table',4.1,8.2,3.5,1.95,.8,'#176040');
       box('security_desk',10.2,3.2,2.2,1.2,1.35,'#343b47');
-      // Physical room walls use the same segmented geometry as the renderer.
-      // The horizontal doorway is 2.05 tiles wide, so a player-sized circle
-      // clears both jambs without clipping while walls remain truly solid.
-      box('casino_room_wall',4.5,11.45,.28,3.7,2.8,'#2b1123',true);
-      box('casino_room_wall',10.1,11.45,.28,3.5,2.8,'#2b1123',true);
-      box('casino_room_wall',6.55,4.75,4.8,.28,2.8,'#2b1123',true);
-      box('casino_room_wall',6.55,10,1.6,.28,2.8,'#2b1123',true);
+      // Visual-only architecture: the compact casino now reads as rooms with
+      // real openings and a VIP stair instead of one undivided template hall.
+      box('casino_room_wall',4.5,11.45,.28,3.7,2.8,'#2b1123',false);
+      box('casino_room_wall',10.1,11.45,.28,3.5,2.8,'#2b1123',false);
+      box('casino_room_wall',6.55,5.1,5.5,.28,2.8,'#2b1123',false);
+      box('casino_room_wall',6.55,9.75,2.1,.28,2.8,'#2b1123',false);
       box('casino_stairs',10.15,8.05,3.2,2.65,2.3,'#7a2149',false);
       break;
     case 'port':
       // Port robbery interiors are 30x21. Captain Rizzo keeps the engine's
       // original anchor at (2.25,W/2); the dispatch furniture follows W/2.
       box('port_dispatch_floor',2.15,W/2,11,3.35,.04,'#314a56',false,{zone:'dispatch',floor:true});
-      box('port_dispatch_booth',1.95,W/2,10.5,2.55,2.55,'#527687',true,{zone:'dispatch',glass:true,doorSide:'east',wallMap:true,logShelf:true,lifeRing:true,collisionParts:[
-        {dr:-1.16,dc:0,w:10.1,d:.18},{dr:0,dc:-5.05,w:.18,d:2.5},
-        {dr:-.55,dc:5.05,w:.18,d:1.35}
-      ]});
+      box('port_dispatch_booth',1.95,W/2,10.5,2.55,2.55,'#527687',false,{zone:'dispatch',glass:true,doorSide:'east',wallMap:true,logShelf:true,lifeRing:true});
       box('port_dispatch_desk',2.95,W/2,6.8,1,1.05,'#875735',true,{zone:'dispatch',monitors:2,radio:true,phones:2,logbooks:3,manifestMap:true});
       box('port_dispatch_chair',1.88,W/2,.85,.85,.95,'#26323a',false,{zone:'dispatch',swivel:true});
 
@@ -36585,12 +36575,9 @@ function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
       box('port_container',9.15,4,6,2.45,2.55,'#47774b',true,{zone:'container_yard',serial:'MAEU 330912',doors:'south',locks:2,corrugated:true,weight:'24.1T'});
       box('port_container',9.15,W-4,6,2.45,2.55,'#b66f32',true,{zone:'container_yard',serial:'TGHU 118450',doors:'south',locks:2,corrugated:true,weight:'32.0T'});
 
-      // The gantry spans the aisle visually; only its four real legs collide,
-      // so the central crane lane stays usable by staff and the player.
-      box('port_crane',9.35,W/2,12,4.5,4.7,'#e3aa2f',true,{zone:'crane_lane',gantry:true,legs:4,trolley:true,spreader:true,rails:true,warningBeacon:true,collisionParts:[
-        {dr:-1.72,dc:-5.35,w:.68,d:.68},{dr:1.72,dc:-5.35,w:.68,d:.68},
-        {dr:-1.72,dc:5.35,w:.68,d:.68},{dr:1.72,dc:5.35,w:.68,d:.68}
-      ]});
+      // A visual-only portal crane spans the aisle: only the cargo and work
+      // equipment below it participate in collision, so staff cannot be trapped.
+      box('port_crane',9.35,W/2,12,4.5,4.7,'#e3aa2f',false,{zone:'crane_lane',gantry:true,legs:4,trolley:true,spreader:true,rails:true,warningBeacon:true});
       box('port_work_floor',10.8,W/2,7.2,3.5,.04,'#3d4a50',false,{zone:'dock_workers',floor:true,hazardBorder:true});
       box('port_worker_station',10.9,9.5,2.8,1.15,1.65,'#55636b',true,{zone:'dock_workers',toolboard:true,hardHats:3,vests:2,clipboard:true,chainRack:true});
       box('port_forklift',11.5,W-7.2,3.2,1.9,1.8,'#d6a72f',true,{zone:'crane_lane',mast:true,forks:true,overheadGuard:true,beacon:true});
@@ -36619,10 +36606,7 @@ function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
     case 'major_market':
       {const stallTypes=['produce','bakery','fish','butcher','cheese','flowers'];let stallIndex=0;
       for(let r=6;r<20;r+=4)for(let c=5;c<30;c+=6){const stallType=stallTypes[stallIndex%stallTypes.length];box('market_stall',r,c,4,1.5,.72,(r+c)%3?'#8b5d32':'#c98b38',true,{stallType,stallIndex});stallIndex++;}}
-      box('market_store',19,28,7,5,2.2,'#785232',true,{collisionParts:[
-        {dr:-2.32,dc:0,w:6.8,d:.3},{dr:0,dc:-3.32,w:.3,d:4.7},{dr:0,dc:3.32,w:.3,d:4.7},
-        {dr:-1.25,dc:0,w:4.8,d:.72}
-      ]});box('market_scale',7,29,2,2,1.2,'#d8b454');
+      box('market_store',19,28,7,5,2.2,'#785232');box('market_scale',7,29,2,2,1.2,'#d8b454');
       break;
     case 'major_factory':
       // The entrance stays on the south centre line (r=24,c=17).  Furniture
@@ -36632,15 +36616,10 @@ function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
       box('factory_control_booth',2.9,17,6.2,1.15,2.35,'#d47728',true,{zone:'control',monitors:3,accessGate:true,helmetRack:true});
       box('factory_electrical_panel',2.1,28.5,5.4,.9,2.2,'#4d5962',true,{zone:'control',meters:6,warningLights:true});
       {const lineLoads=['gearbox','steel_beam','engine_block'];for(let i=0;i<3;i++){const r=6+i*5;
-        box('production_lift',r,7,5.5,2.7,2.25,'#d6a72f',true,{zone:'machine_shop',line:i+1,load:lineLoads[i],chainHoist:true,collisionParts:[
-          {dr:0,dc:-2.28,w:.62,d:2.3},{dr:0,dc:2.28,w:.62,d:2.3},{dr:0,dc:0,w:2.7,d:1.28}
-        ]});
+        box('production_lift',r,7,5.5,2.7,2.25,'#d6a72f',true,{zone:'machine_shop',line:i+1,load:lineLoads[i],chainHoist:true});
         box('conveyor',r,18,10,1.8,1.1,'#b26430',true,{zone:'assembly_line',line:i+1,cargo:i===0?'metal_blanks':i===1?'machine_parts':'scrap_bins',motor:true,emergencyStop:true});
       }}
-      box('industrial_press',9,29,5,5,3.2,'#a14334',true,{zone:'heavy_press',safetyCage:true,emergencyStop:true,pressureGauge:true,collisionParts:[
-        {dr:-1.92,dc:0,w:4.5,d:.68},{dr:0,dc:-1.95,w:.7,d:3.25},
-        {dr:0,dc:1.95,w:.7,d:3.25},{dr:.7,dc:0,w:2.45,d:1.65}
-      ]});
+      box('industrial_press',9,29,5,5,3.2,'#a14334',true,{zone:'heavy_press',safetyCage:true,emergencyStop:true,pressureGauge:true});
       box('factory_store',19,28,7,5,2.4,'#5f6971',true,{zone:'secure_store',meshWalls:true,doorSide:'south',rackRows:3});
 
       // South-west staff room: two wall sections leave a real doorway at c=6.
@@ -36656,8 +36635,8 @@ function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
       // South workshop uses the same doorway language and stops before c=17,
       // preserving the direct entrance lane through the middle of the hall.
       box('factory_workshop_floor',20.65,21,6.5,4.7,.04,'#3f4a51',false,{zone:'workshop',floor:true});
-      box('factory_room_wall',18.22,18.85,2,.22,2.45,'#353d45',true,{zone:'workshop',wall:true});
-      box('factory_room_wall',18.22,23.15,2,.22,2.45,'#353d45',true,{zone:'workshop',wall:true});
+      box('factory_room_wall',18.22,19.05,2.4,.22,2.45,'#353d45',true,{zone:'workshop',wall:true});
+      box('factory_room_wall',18.22,22.95,2.4,.22,2.45,'#353d45',true,{zone:'workshop',wall:true});
       box('factory_room_wall',20.55,24.15,.22,4.5,2.45,'#353d45',true,{zone:'workshop',wall:true});
       box('factory_workbench',19.25,21.1,5,1.15,1.05,'#79502e',true,{zone:'workshop',vise:true,toolboard:true});
       box('factory_parts_rack',21.45,19.05,2,1.15,1.8,'#59656e',true,{zone:'workshop',bins:12});
@@ -36741,8 +36720,8 @@ function _buildBusinessInteriorVisualLayout(bizId, width = 18, height = 13) {
       box('major_port_office_wall',16.55,29,7.1,.22,2.75,'#58717b',true,{zone:'dispatch',wall:'north'});
       box('major_port_office_wall',18.85,25.48,.22,4.4,2.75,'#58717b',true,{zone:'dispatch',wall:'west'});
       box('major_port_office_wall',18.85,32.52,.22,4.4,2.75,'#58717b',true,{zone:'dispatch',wall:'east'});
-      box('major_port_office_wall',21.05,27.02,2.35,.22,2.75,'#58717b',true,{zone:'dispatch',wall:'south_left'});
-      box('major_port_office_wall',21.05,31.18,2.35,.22,2.75,'#58717b',true,{zone:'dispatch',wall:'south_right'});
+      box('major_port_office_wall',21.05,27.2,2.7,.22,2.75,'#58717b',true,{zone:'dispatch',wall:'south_left'});
+      box('major_port_office_wall',21.05,31,2.7,.22,2.75,'#58717b',true,{zone:'dispatch',wall:'south_right'});
       box('major_port_dispatch_console',17.75,29,4.7,1.05,1.05,'#405964',true,{zone:'dispatch',cctv:4,radio:true});
       box('major_port_map_table',19.5,27.4,2.2,1.2,.82,'#6d5037',true,{zone:'dispatch',chart:true});
 
@@ -45922,10 +45901,7 @@ function updateProjectiles(dt) {
       b.dist = b.maxDist;
       const wallDirR=(+b.vr||0)/_sp,wallDirC=(+b.vc||0)/_sp,probeR=b.r+wallDirR*.22,probeC=b.c+wallDirC*.22;
       let endedOnWall=false;
-      if(_buildingInt&&!_bankInt){
-        endedOnWall=probeR<=.12||probeC<=.12||probeR>=_buildingInt.H-.12||probeC>=_buildingInt.W-.12||
-          _businessInteriorMovementBlocked(_buildingInt,probeR,probeC,.08);
-      }
+      if(_buildingInt&&!_bankInt){endedOnWall=_buildingInt.bizId==='major_casino'?_casinoInteriorBlocked(_buildingInt,probeR,probeC,.08):(probeR<=.12||probeC<=.12||probeR>=_buildingInt.H-.12||probeC>=_buildingInt.W-.12);}
       else endedOnWall=_bankInt?_isBlockedInterior(probeR,probeC):isBlocked(probeR,probeC);
       if (endedOnWall && b.weapon !== 'water_hose' && b.weapon !== 'rpg' && !b._holePlaced) {
         b._holePlaced = true;
@@ -52264,9 +52240,8 @@ function _spawnInteriorNpcs(bi) {
     if (bi.robbery) {
       const tier = BUSINESS_ROB_TIERS[bi.bizId] || {guards:2};
       const guardCount = Math.max(1, tier.guards + Math.max(0,Math.min(6,+bi.guardBonus||0)));
-      const ownerSpot=_nearestFreeInteriorPoint(bi,2.25,bi.W/2,.3);
       const owner = {
-        r:ownerSpot.r,c:ownerSpot.c,tr:ownerSpot.r,tc:ownerSpot.c,ang:Math.PI,walkPhase:0,walking:false,
+        r:2.25,c:bi.W/2,tr:2.25,tc:bi.W/2,ang:Math.PI,walkPhase:0,walking:false,
         name:cfg.manager,role:'owner',fixed:true,hp:100,maxHp:100,dead:false,
         look:{gender:0,skin:1,body:1,face:2,hair:2,hat:0,suit:cfg.accent},
         idleUntil:Infinity,speed:0,persona:BUSINESS_OWNER_PERSONAS[bi.bizId]||BUSINESS_OWNER_PERSONAS.coffee,
@@ -52274,9 +52249,8 @@ function _spawnInteriorNpcs(bi) {
       const guards=[];
       for(let i=0;i<guardCount;i++){
         const row=4.6+Math.floor(i/3)*2.5, lane=(i%3+1)*bi.W/4;
-        const guardSpot=_nearestFreeInteriorPoint(bi,Math.min(bi.H-2.5,row),lane,.3);
         guards.push({
-          r:guardSpot.r,c:guardSpot.c,tr:guardSpot.r,tc:guardSpot.c,ang:Math.PI/2,
+          r:Math.min(bi.H-2.5,row),c:lane,tr:row,tc:lane,ang:Math.PI/2,
           walkPhase:0,walking:false,name:i%3===0?'Старший охранник':'Охранник',
           role:'biz_guard',fixed:false,hp:90+(guardCount>=5?30:0),maxHp:90+(guardCount>=5?30:0),dead:false,
           look:{gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%3,hat:5,suit:i%3===0?'#171b24':'#273143'},
@@ -52298,9 +52272,8 @@ function _spawnInteriorNpcs(bi) {
       const fixed = i === 0;
       const r = fixed ? 2.25 : 4 + (i % 2) * 2.6;
       const c = fixed ? bi.W / 2 : 3 + ((i * 4.1) % (bi.W - 6));
-      const spawn=_nearestFreeInteriorPoint(bi,r,c,.3);
       return {
-        r:spawn.r, c:spawn.c, tr:spawn.r, tc:spawn.c, ang:Math.PI, walkPhase:0, walking:false,
+        r, c, tr:r, tc:c, ang:Math.PI, walkPhase:0, walking:false,
         name, role: fixed ? 'manager' : 'staff', fixed,
         look:{ gender:i===2?1:0, skin:1+(i%3), body:i===0?1:0, face:i%4, hair:i%6, hat:0, suit:suits[i%suits.length] },
         idleUntil:performance.now()+Math.random()*2500, speed:1.05+Math.random()*.35,
@@ -53766,7 +53739,6 @@ function _drawCasinoVaultEntrance() {
 // Перегородки GRAND CASINO образуют входной коридор, боковые комнаты,
 // большой игровой зал и отдельную сейфовую. Разрывы между сегментами —
 // настоящие дверные проёмы, а не нарисованные поверх стены двери.
-const MAJOR_CASINO_VISUAL_VERSION = 9;
 const MAJOR_CASINO_WALLS = [
   // Холл и длинный центральный коридор от входа.
   {r0:25,c0:.4,r1:25,c1:18.7},{r0:25,c0:25.3,r1:25,c1:43.6},
@@ -53812,10 +53784,8 @@ const MAJOR_CASINO_STATIC_BLOCKERS = [
   {id:'vip_table',r:22.35,c:7.2,w:4.6,d:1.4,color:'#5c1742'},
   {id:'vip_sofa_s',r:24.05,c:7.2,w:4.7,d:.8,color:'#6e234f'},
   {id:'champagne',r:23,c:12,w:2.2,d:1.3,color:'#d0a73b'},
-  {id:'office',r:5.8,c:40.6,w:4.4,d:2.1,color:'#4f2038'},
-  {id:'security',r:13,c:40.6,w:3.8,d:2.1,color:'#30243a'},
-  {id:'lobby_console_l',r:28,c:15.7,w:4.1,d:1.05,color:'#5b3423'},
-  {id:'lobby_console_r',r:28,c:28.3,w:4.1,d:1.05,color:'#5b3423'},
+  {id:'office',r:5.8,c:40,w:6.2,d:2.1,color:'#4f2038'},
+  {id:'security',r:13,c:40,w:5.2,d:2.1,color:'#30243a'},
 ];
 
 // Чисто визуальные предметы GRAND CASINO. Они намеренно не входят в
@@ -53836,29 +53806,29 @@ const MAJOR_MANSION_STATIC_BLOCKERS = [
   // Центральный марш лестницы намеренно не блокируется: игрок должен
   // свободно подняться по ковру к Дону. Коллизии сохраняются у колонн.
   // Библиотека и каминная.
-  {r:2.4,c:5.2,w:7,d:1.2,kind:'books'},
-  {r:7.8,c:1.2,w:1.2,d:5,kind:'books'},
-  {r:4.5,c:10.3,w:3.2,d:1.2,kind:'fireplace'},
-  {r:8.7,c:7,w:4.2,d:1.5,kind:'sofa'},
+  {r:2.4,c:5.2,w:7,d:.9,kind:'books'},
+  {r:7.8,c:1.2,w:5,d:.9,kind:'books'},
+  {r:4.5,c:10.3,w:3.9,d:1.2,kind:'fireplace'},
+  {r:8.7,c:7,w:4.4,d:1.65,kind:'sofa'},
   {r:8.7,c:10,w:1.1,d:1.1,kind:'table'},
   // Банкетная зона.
-  {r:14.2,c:7.5,w:7,d:3,kind:'dining'},
-  {r:18.2,c:2,w:4.4,d:1.2,kind:'cabinet'},
+  {r:14.2,c:7.5,w:8.8,d:3.2,kind:'dining'},
+  {r:18.2,c:2,w:4.5,d:1,kind:'cabinet'},
   {r:18.2,c:10.8,w:4,d:1.25,kind:'buffet'},
   // Гостиная и рояль.
-  {r:16.7,c:18,w:4.8,d:1.5,kind:'sofa'},
-  {r:20.5,c:19,w:4.8,d:1.5,kind:'sofa'},
-  {r:18.6,c:19,w:2.8,d:1.7,kind:'table'},
-  {r:18.5,c:25,w:3.7,d:2.1,kind:'piano'},
+  {r:16.7,c:19,w:5,d:1.7,kind:'sofa'},
+  {r:20.5,c:19,w:5,d:1.7,kind:'sofa'},
+  {r:18.6,c:19,w:3,d:1.9,kind:'table'},
+  {r:18.5,c:24,w:4,d:2.4,kind:'piano'},
   // Кабинет Дона.
   {r:6.3,c:28.5,w:5.8,d:2.35,kind:'desk'},
-  {r:2.1,c:27.8,w:6.5,d:1.2,kind:'books'},
-  {r:8.7,c:31.2,w:2.1,d:1.8,kind:'safe'},
-  {r:11.5,c:27.8,w:3.8,d:1.5,kind:'sofa'},
+  {r:2.1,c:27.8,w:6.7,d:.9,kind:'books'},
+  {r:8.7,c:31.2,w:2.3,d:2,kind:'safe'},
+  {r:11.5,c:27.8,w:4,d:1.65,kind:'sofa'},
   {r:10.4,c:24.7,w:1.4,d:1.4,kind:'lamp'},
   // Скульптурные постаменты.
   ...[[4,23],[9,23],[14,27],[20,28]]
-    .map(([r,c])=>({r,c,w:1.4,d:1.4,kind:'statue'})),
+    .map(([r,c])=>({r,c,w:1.65,d:1.65,kind:'statue'})),
 ];
 
 function _casinoPropAlive(id) {
@@ -53911,148 +53881,13 @@ function _mansionMovementBlocked(bi,r,c,pad=.36) {
     Math.abs(r-b.r)<b.d/2+pad&&Math.abs(c-b.c)<b.w/2+pad);
 }
 
-const APARTMENT_INTERIOR_COLLISION_PROFILES = Object.freeze([
-  [-.02,.01,-.01,.01,0,0],[.055,-.015,.045,.055,-.025,.005],[-.055,.035,.02,-.045,.035,-.018],
-  [.075,-.015,-.03,.075,-.055,.02],[-.075,.02,.04,.035,.045,-.035],[.02,.065,-.06,-.03,.06,.015],
-  [-.045,-.055,.04,.04,-.035,.045],[.065,.045,-.055,-.05,.025,-.045],[-.075,-.02,.035,.075,.055,.035],
-  [.045,-.065,-.065,.025,-.015,.055],[-.055,.065,.04,-.035,.035,-.055],[.075,.025,-.035,-.07,-.06,-.01],
-]);
-function _interiorVisualCollisionBlockers(bi) {
-  if(!bi)return [];
-  const W=+bi.W||16,H=+bi.H||12;
-  if(!bi.type){
-    const identity=String(bi.apartmentKey||`${bi.seed||0}:${W}x${H}`);
-    let seed=2166136261;
-    for(const ch of identity)seed=Math.imul(seed^ch.charCodeAt(0),16777619)>>>0;
-    const variant=seed%12,[livingDx,livingDz,diningDx,diningDz,bedDx,bedDz]=APARTMENT_INTERIOR_COLLISION_PROFILES[variant],S=Math.max(3,Math.min(5,+window.MAFIOZI_RENDERER_CONFIG?.worldScale||4.1)),turnDining=variant%4===1||variant%4===3;
-    const blockers=[
-      {kind:'sofa',c:W*(.26+livingDx),r:H*(.7+livingDz),w:7.4/S,d:2.8/S},
-      {kind:'coffee_table',c:W*(.48+livingDx*.45),r:H*(.58+livingDz*.55),w:5.2/S,d:2.55/S},
-      {kind:'armchair',c:W*(.48+livingDx*.45),r:H*(.7+livingDz)-3.2/S,w:2.2/S,d:2.15/S},
-      {kind:'armchair',c:W*(.48+livingDx*.45),r:H*(.7+livingDz)+3.2/S,w:2.2/S,d:2.15/S},
-      {kind:'television',c:W*.27,r:H*.465,w:6.1/S,d:1.35/S},
-      {kind:'kitchen',c:W*.3,r:H*.11,w:13.7/S,d:2.02/S},
-      {kind:'fridge',c:W*.03,r:H*.11,w:2.6/S,d:2/S},
-      {kind:'dining_table',c:W*(.33+diningDx),r:H*(.32+diningDz),w:(turnDining?3:5.3)/S,d:(turnDining?5.3:3)/S},
-      {kind:'bed',c:W*(.79+bedDx),r:H*(.67+bedDz),w:7.1/S,d:7.2/S},
-      {kind:'wardrobe',c:W*.95,r:H*.68,w:5.4/S,d:1.8/S},
-      {kind:'bed_bench',c:W*(.79+bedDx),r:H*(.67+bedDz)+4.35/S,w:4.4/S,d:1.65/S},
-      {kind:'bath',c:W*.84,r:H*.22-2.3/S,w:5.2/S,d:2.35/S},
-      {kind:'toilet',c:W*.84+3.3/S,r:H*.22+1.65/S,w:1.65/S,d:1.75/S},
-      {kind:'bath_sink',c:W*.84-2.9/S,r:H*.22+1.25/S,w:2.25/S,d:1.35/S},
-    ];
-    const theme=variant%6,themeC=W*(variant%2?.13:.87),themeR=H*(variant%3===0?.72:.81);
-    const themeSizes=[[4.8,1.8],[5.4,2.1],[3.2,1.55],[4.2,1.15],[5.8,1.5],[4.8,2.4]];
-    blockers.push({kind:`apartment_theme_${theme}`,c:themeC,r:themeR,w:themeSizes[theme][0]/S,d:themeSizes[theme][1]/S});
-    const apartmentKey=bi.apartmentKey||(_apartmentOwnedKey?.(bi.r,bi.c)||'');
-    if(+(_myApartments?.[apartmentKey]?.safe_level||0)>0)
-      blockers.push({kind:'apartment_safe',c:W*.94,r:H*.11,w:2.6/S,d:2.15/S});
-    return blockers;
-  }
-  if(bi.type==='hospital')return [
-    ...[[2.3,3],[5.4,3],[2.3,6],[5.4,6]].map(([c,r])=>({kind:'bed',c,r,w:2.15,d:1})),
-    {kind:'desk',c:W-2.35,r:H-2.05,w:3.1,d:1.05},{kind:'desk_chair',c:W-2.35,r:H-1,w:.72,d:.68},
-    {kind:'cabinet',c:W-1.1,r:2,w:1.05,d:.72},{kind:'diagnostic_machine',c:W-1.55,r:H*.5,w:1.2,d:.82},
-  ];
-  if(bi.type==='police_st')return [
-    {kind:'front_desk',c:W/2,r:2.15,w:4.7,d:1.05},{kind:'cabinet',c:1.1,r:3.2,w:1.05,d:.72},
-    {kind:'cabinet',c:1.1,r:6.2,w:1.05,d:.72},{kind:'office_desk',c:W*.72,r:H-1.75,w:3.8,d:1.05},
-    ...[-1.5,1.5].map(dc=>({kind:'cell_bunk',c:W*.7+dc,r:6.15,w:2.3,d:.72})),
-    {kind:'armory_wall',c:W*.32,r:H-1.1,w:5,d:.3},
-  ];
-  if(bi.type==='gym')return [
-    {kind:'rack',c:3,r:3.45,w:2.9,d:2.7},{kind:'rack',c:8,r:3.45,w:2.9,d:2.7},
-    {kind:'bench',c:W-2.3,r:3.1,w:2.3,d:1.05},{kind:'bench',c:W-2.3,r:6.3,w:2.3,d:1.05},
-    ...[2.2,4.4,6.6,8.8].map(c=>({kind:'punching_bag',c,r:H-3,w:.85,d:.85})),
-    {kind:'locker_bank',c:3.3,r:1.15,w:5.85,d:.7},{kind:'cooler',c:1.15,r:H-2,w:1.05,d:.85},
-    {kind:'desk',c:W-2.25,r:H-2.05,w:3.3,d:1.05},
-  ];
-  if(bi.type==='job')return [
-    ...[2.4,6,9.6].map(c=>({kind:'desk',c,r:3,w:2.7,d:1.05})),
-    {kind:'queue_rope',c:4.05,r:5.4,w:1.9,d:.18},{kind:'queue_rope',c:7.95,r:5.4,w:1.9,d:.18},
-  ];
-  if(bi.type==='blackmarket')return [
-    ...[[2.1,3],[5,3],[7.9,3]].map(([c,r])=>({kind:'counter',c,r,w:1.95,d:1.25})),
-    {kind:'desk',c:W-1.6,r:4.8,w:2.2,d:1.05},
-  ];
-  return [];
-}
-
-function _interiorCollisionRects(bi) {
-  const apartmentKey=!bi?.type?(bi?.apartmentKey||(_apartmentOwnedKey?.(bi?.r,bi?.c)||'')):'';
-  const apartmentSafe=apartmentKey?+(_myApartments?.[apartmentKey]?.safe_level||0):0;
-  const cacheKey=`v${BUSINESS_INTERIOR_VISUAL_LAYOUT_VERSION}:${bi?.type||'apartment'}:${bi?.bizId||apartmentKey||bi?.seed||''}:${bi?.W||0}x${bi?.H||0}:safe${apartmentSafe}`;
-  if(bi?._interiorCollisionRectsKey===cacheKey&&Array.isArray(bi._interiorCollisionRects))return bi._interiorCollisionRects;
-  const rects=[];
-  const append=q=>{
-    if(!q||q.solid===false)return;
-    if(Array.isArray(q.collisionParts)&&q.collisionParts.length){
-      for(const p of q.collisionParts)rects.push({
-        kind:q.kind,c:(+q.c||0)+(+p.dc||0),r:(+q.r||0)+(+p.dr||0),
-        w:Math.max(.12,+p.w||.12),d:Math.max(.12,+p.d||.12),wall:/wall/i.test(q.kind||'')
-      });
-      return;
-    }
-    const wall=/wall|partition|cage/i.test(q.kind||'');
-    // Furniture boxes are slightly inset from their visible silhouette. This
-    // leaves comfortable corner clearance without making the object passable.
-    const inset=wall?0:Math.min(.18,Math.max(.04,Math.min(+q.w||1,+q.d||1)*.08));
-    rects.push({kind:q.kind,c:+q.c||0,r:+q.r||0,
-      w:Math.max(.12,(+q.w||.12)-inset*2),d:Math.max(.12,(+q.d||.12)-inset*2),wall});
-  };
-  for(const q of _interiorVisualCollisionBlockers(bi))append({...q,solid:true});
-  const layout=_businessInteriorVisualLayoutFor(bi)||_businessInteriorCollisionLayoutLegacyV2For(bi);
-  for(const q of (layout?.items||[]))append(q);
-  if(bi){bi._interiorCollisionRectsKey=cacheKey;bi._interiorCollisionRects=rects;}
-  return rects;
-}
-
-function _businessInteriorMovementBlocked(bi,r,c,pad=.32) {
+function _businessInteriorMovementBlocked(bi,r,c,pad=.42) {
   if(!bi)return false;
   if(bi.bizId==='major_casino')return _casinoMovementBlocked(bi,r,c,pad);
   if(bi.bizId==='major_mansion')return _mansionMovementBlocked(bi,r,c,Math.min(pad,.38));
-  return _interiorCollisionRects(bi).some(q=>
+  const layout=_businessInteriorCollisionLayoutLegacyV2For(bi);
+  return !!layout?.items?.some(q=>q.solid!==false&&
     Math.abs(r-q.r)<q.d/2+pad&&Math.abs(c-q.c)<q.w/2+pad);
-}
-
-function _businessInteriorEscapeDistance(bi,r,c,pad=.32) {
-  if(!_businessInteriorMovementBlocked(bi,r,c,pad))return 0;
-  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[.707,.707],[.707,-.707],[-.707,.707],[-.707,-.707]];
-  // Only evaluated after a stale save/spawn has placed an actor inside a
-  // blocker. The nearest free probe gives a monotonic route out instead of
-  // disabling every collision until the actor has crossed the whole object.
-  for(let distance=.08;distance<=2.4;distance+=.08){
-    for(const [dr,dc] of dirs){
-      if(!_businessInteriorMovementBlocked(bi,r+dr*distance,c+dc*distance,pad))return distance;
-    }
-  }
-  return 2.48;
-}
-
-function _canMoveInsideBusinessInterior(bi,fromR,fromC,toR,toC,pad=.32) {
-  if(!_businessInteriorMovementBlocked(bi,toR,toC,pad))return true;
-  if(!_businessInteriorMovementBlocked(bi,fromR,fromC,pad))return false;
-  const fromEscape=_businessInteriorEscapeDistance(bi,fromR,fromC,pad);
-  const toEscape=_businessInteriorEscapeDistance(bi,toR,toC,pad);
-  return toEscape+0.005<fromEscape;
-}
-
-function _nearestFreeInteriorPoint(bi,r,c,pad=.3) {
-  const clampPoint=(rr,cc)=>({
-    r:Math.max(.55,Math.min((+bi?.H||12)-.65,rr)),
-    c:Math.max(.55,Math.min((+bi?.W||16)-.65,cc))
-  });
-  let point=clampPoint(r,c);
-  if(!_businessInteriorMovementBlocked(bi,point.r,point.c,pad))return point;
-  for(let radius=.45;radius<=5.4;radius+=.45){
-    const steps=Math.max(8,Math.ceil(radius*12));
-    for(let i=0;i<steps;i++){
-      const angle=i/steps*Math.PI*2;
-      point=clampPoint(r+Math.sin(angle)*radius,c+Math.cos(angle)*radius);
-      if(!_businessInteriorMovementBlocked(bi,point.r,point.c,pad))return point;
-    }
-  }
-  return clampPoint((+bi?.H||12)-1.5,(+bi?.W||16)/2);
 }
 
 function _casinoGuardSpawnPoints(bi) {
@@ -55258,17 +55093,12 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
       const isHpLoot = isThemed && (type === 'hospital' || type === 'gym') && Math.random() < 0.5;
       const amount = isHpLoot ? (10 + Math.floor(Math.random() * 21))
         : (BLDG_LOOT_MIN + Math.floor(Math.random() * (BLDG_LOOT_MAX - BLDG_LOOT_MIN + 1)));
-      let lootSpot=null;
-      for(let attempt=0;attempt<36&&!lootSpot;attempt++){
-        const candidate={r:2+Math.random()*(biH-5),c:2+Math.random()*(biW-4)};
-        if(!_businessInteriorMovementBlocked(_buildingInt,candidate.r,candidate.c,.26))lootSpot=candidate;
-      }
-      lootSpot=lootSpot||_nearestFreeInteriorPoint(_buildingInt,biH-2.2,biW/2,.26);
-      _buildingInt.loot = { r: lootSpot.r, c: lootSpot.c, amount, picked: false, hp: !!isHpLoot };
+      const lr = 2 + Math.random() * (biH - 5);
+      const lc = 2 + Math.random() * (biW - 4);
+      _buildingInt.loot = { r: lr, c: lc, amount, picked: false, hp: !!isHpLoot };
     }
   }
-  const entrySpot=_nearestFreeInteriorPoint(_buildingInt,biH-1.5,biW/2,.32);
-  player.r = entrySpot.r; player.c = entrySpot.c;
+  player.r = biH - 1.5; player.c = biW / 2;
   for (let gi = 0; gi < _myGang.length; gi++) {
     const ga = ((gi + 1) / (GANG_MAX + 1)) * Math.PI * 2;
     _myGang[gi].r = player.r + Math.sin(ga) * 1.5;
@@ -55942,7 +55772,7 @@ function drawBuildingInterior() {
 
 // ── BANK INTERIOR CFG — единая большая комната ─────────────────
 // The detailed 2D bank below is the canonical visual source for every renderer.
-const BANK_INTERIOR_VISUAL_VERSION = 8;
+const BANK_INTERIOR_VISUAL_VERSION = 4;
 const _BINT = {
   small:  { W:28, H:24, crackTime:10, counterRow:15 },
   medium: { W:36, H:30, crackTime:15, counterRow:19 },
@@ -56132,8 +55962,12 @@ function enterBankInterior(bank) {
   const cfg=_BINT[bank.size]||_BINT.small;
   const {W,H,crackTime,counterRow}=cfg;
   const vW=Math.floor(W*0.26), vH=Math.floor(H*0.55);
-  const bagCount=vaultOpen?bagsLeft:bank.bags;
-  const bags=Array.from({length:bagCount},(_,id)=>({id,taken:false,r:vH*.35,c:vW/2}));
+  const bags=[],bagCount=vaultOpen?bagsLeft:bank.bags;
+  for (let i=0;i<bagCount;i++) {
+    bags.push({id:i,taken:false,
+      r:1+Math.random()*(vH-3),
+      c:1+Math.random()*(vW-2)});
+  }
   _bankInt={bank,W,H,crackTime,counterRow,
     room:'lobby',
     vaultW:Math.floor(W*0.26),
@@ -56147,19 +55981,6 @@ function enterBankInterior(bank) {
     npcs:_spawnBankNpcs(bank,W,H,counterRow),
     panicAt:vaultOpen?performance.now():null,_snitches:[],
     _reinforcementsSpawned:false,_reinforcementCount:0};
-  // Money bags share the vault collision map and cannot spawn inside props.
-  {const lobbyRoom=_bankInt.room;_bankInt.room='vault';
-    for(const bag of bags){
-      let placed=false;
-      for(let attempt=0;attempt<80;attempt++){
-        const br=1.15+Math.random()*(vH-2.65),bc=1.15+Math.random()*(vW-2.3);
-        if(_canStandBankInterior(br,bc,.24)){bag.r=br;bag.c=bc;placed=true;break;}
-      }
-      if(!placed)outer:for(let br=1.2;br<vH-1.15;br+=.35)for(let bc=1.2;bc<vW-1.15;bc+=.35)
-        if(_canStandBankInterior(br,bc,.24)){bag.r=br;bag.c=bc;break outer;}
-    }
-    _bankInt.room=lobbyRoom;
-  }
   if (existingRob && (_bankRob._reinforcementCount | 0) > 0) {
     _bankInt._reinforcementCount = _spawnBankReinforcements(_bankInt, _bankRob._reinforcementCount);
     _bankInt._reinforcementsSpawned = true;
@@ -56279,18 +56100,6 @@ function _isBlockedInterior(r,c) {
   if (int.room === 'vault') {
     const vW = int.vaultW || 8, vH = int.vaultH || 12;
     if (r < 0.3 || c < 0.3 || c > vW - 0.3) return true;
-    // Крупное оборудование хранилища совпадает с 3D-геометрией. Центральный
-    // продольный проход и весь южный выход остаются свободными.
-    const inBox=(cc,rr,hw,hd)=>Math.abs(c-cc)<=hw&&Math.abs(r-rr)<=hd;
-    if (r < .95) return true; // северная стена депозитных ячеек
-    if (c < 1.02 || c > vW-1.02) return true; // боковые депозитные ячейки
-    if (inBox(vW*.26,3.35,1.05,.9)||inBox(vW*.74,3.35,1.05,.9)) return true;
-    if(vW<9){if(inBox(1.72,vH*.44,1.38,.82)||inBox(vW-1.72,vH*.59,1.38,.82))return true;}
-    else if (inBox(vW*.38,vH*.48,1.42,.92)||inBox(vW*.64,vH*.48,1.42,.92)) return true;
-    if (inBox(vW*.5,vH*.62,.92,.68)) return true;
-    if (inBox(vW*.5,vH*(vW<9?.685:.72),1.72,.92)) return true;
-    if (inBox(1.55,vH-1.45,1.2,.78)||inBox(vW-1.65,vH-1.55,1.2,.76)) return true;
-    if(r>vH-1.12&&c<vW/2-1.2) return true; // открытая створка лежит слева от центрального выхода
     // Южную стену НЕ блокируем — выход через неё
     return false;
   }
@@ -56305,19 +56114,8 @@ function _isBlockedInterior(r,c) {
     if (!(c>=eDL && c<eDR)) return true;
   }
   const archRow=counterRow-4;
-  const inBox=(cc,rr,hw,hd)=>Math.abs(c-cc)<=hw&&Math.abs(r-rr)<=hd;
-  // Стойка теперь состоит из двух архитектурных крыльев с широким проходом
-  // по красной дорожке. Через камень, мебель охраны, банкоматы и диваны пройти нельзя.
-  const runnerHalf=Math.max(2.6,Math.min(3.4,W*.09)),counterGap=runnerHalf+.72;
-  if (r>counterRow-.86&&r<counterRow+.86&&(c<W/2-counterGap||c>W/2+counterGap)) return true;
-  const guardC=Math.min(3.35,W*.22),guardR=H-4.45;
-  if(inBox(guardC,guardR+.2,2.35,.72)) return true;
-  if(inBox(Math.min(3.2,W*.22),counterRow+2.15,1.9,.72)) return true;
-  if(c>W-1.42&&r>counterRow+.65) return true;
-  const waitingR=H-2.5;
-  if(inBox(W*.32,waitingR,Math.min(2.7,W*.11),.82)||inBox(W*.68,waitingR,Math.min(2.7,W*.11),.82)) return true;
   // Внутренняя стена на archRow — 1.5-тайловая зона чтобы не проскочить при высокой скорости
-  if (Math.abs(r-archRow)<.23) {
+  if (r>archRow-0.5&&r<archRow+1.5) {
     const staffL=Math.floor(W*.10),staffR=staffL+3;
     const loungeL=Math.floor(W*.65),loungeR=loungeL+3;
     const cenL=Math.floor(W/2)-3,cenR=Math.floor(W/2)+3;
@@ -56328,29 +56126,14 @@ function _isBlockedInterior(r,c) {
   // северной стены (r<0.5) оставалась ЩЕЛЬ, через которую можно было
   // проскользнуть сквозь нарисованную перегородку («через некоторые
   // стены можно пройти»). Теперь блокируем от самого верха (r>=0).
-  if (r<archRow-.23 && r>=0) {
+  if (r<archRow-0.5 && r>=0) {
     const pL=Math.floor(W*.38), pR=Math.floor(W*.62);
     // Перегородки сплошные (обход — через арки на archRow). Раньше были
     // условия c>=staffArchR / c<loungeArchL, но pL/pR всегда им
     // удовлетворяют → по сути сплошная стена. Оставляем сплошными явно.
-    if (Math.abs(c-pL)<.23) return true;   // персонал | хранилище
-    if (Math.abs(c-pR)<.23) return true;   // хранилище | отдых
+    if (c>=pL-0.5 && c<pL+0.5) return true;   // персонал | хранилище
+    if (c>=pR-0.5 && c<pR+0.5) return true;   // хранилище | отдых
   }
-  const staffEnd=Math.floor(W*.38),loungeStart=Math.floor(W*.62),staffSplitR=Math.max(5.5,archRow*.54),loungeSplitR=Math.max(5.2,archRow*.58);
-  const glassBlocked=(rr,c0,c1,doorC)=>Math.abs(r-rr)<.16&&c>c0&&c<c1&&Math.abs(c-doorC)>1.2;
-  if(glassBlocked(staffSplitR,.35,staffEnd-.22,staffEnd*.52))return true;
-  if(glassBlocked(loungeSplitR,loungeStart+.22,W-.35,(loungeStart+W)*.5))return true;
-  const staffDeskW=Math.max(2.7,staffEnd*.7);
-  if(inBox(staffEnd*.48,2.15,staffDeskW*.5,.62))return true;
-  if(staffEnd>5.3&&inBox(staffEnd*.52,4.55,staffDeskW*.5,.62))return true;
-  const loungeC=(loungeStart+W)/2,loungeW=Math.max(2.8,(W-loungeStart)*.72);
-  if(inBox(loungeC,2.15,loungeW*.5,.62)||inBox(loungeC,archRow-1.25,loungeW*.5,.62)||inBox(loungeC,archRow*.53,1.12,1.12))return true;
-  const secureW=Math.max(3.1,(loungeStart-staffEnd)*.62);
-  if(inBox(W/2,archRow*.42,secureW*.5,.62)||inBox(W/2,Math.min(archRow-1.5,archRow*.72+2.15),.92,.66))return true;
-  const archiveCount=Math.max(3,Math.floor(staffEnd/2.3));
-  if(inBox(Math.max(1.8,staffEnd*.28),staffSplitR+1.15,archiveCount*.56,.48))return true;
-  if(W>=36&&inBox((loungeStart+W)*.5,Math.min(archRow-2.1,loungeSplitR+2.55),Math.max(3.6,(W-loungeStart)*.58)*.5,.9))return true;
-  if(inBox(W*.82,H-4.05,.55,.48))return true;
   return false;
 }
 
@@ -59175,14 +58958,14 @@ requestAnimationFrame(frame);
 // Central rollback switch for the gradual renderer migration. Canvas remains
 // the safe default; changing threeEnabled to false disables 3D globally even
 // when an old link still contains ?render=3d.
-let _threeMouseAimAngle=null,_threeMouseAimUntil=0;
+let _threeMouseAimAngle=null,_threeMouseAimUntil=0,_threeMouseAimHeld=false;
 function _applyThreeMouseAim(){
-  if(joyR?.active||!Number.isFinite(_threeMouseAimAngle)||performance.now()>_threeMouseAimUntil)return false;
+  if(joyR?.active||!Number.isFinite(_threeMouseAimAngle)||(!_threeMouseAimHeld&&performance.now()>_threeMouseAimUntil))return false;
   player.ang=_threeMouseAimAngle;return true;
 }
 function _threeAimRelativeKeyboardInput(inDx,inDy){
   if(_UP.get('render')!=='3d'||joyL?.active||myDrivingCarId||_inBus||myJetSkiId||
-     !Number.isFinite(_threeMouseAimAngle)||performance.now()>_threeMouseAimUntil)return [inDx,inDy];
+     !Number.isFinite(_threeMouseAimAngle)||(!_threeMouseAimHeld&&performance.now()>_threeMouseAimUntil))return [inDx,inDy];
   const forward=(_keyState.up?1:0)-(_keyState.down?1:0);
   const strafe=(_keyState.right?1:0)-(_keyState.left?1:0);
   const keyMag=Math.min(1,Math.hypot(forward,strafe));
@@ -59377,7 +59160,7 @@ function _threePlayerAnimationTelemetry(now=performance.now()){
   const impact=_threePlayerImpactState||{};
   return {
     speed,accel:teleported?0:Math.max(-30,Math.min(30,accel)),moveAng:_threePlayerMotionSample.moveAng,teleported,
-    aiming:!!(joyR?.active||joyR?.hasAim||now<(_threeMouseAimUntil||0)),
+    aiming:!!(joyR?.active||joyR?.hasAim||_threeMouseAimHeld||now<(_threeMouseAimUntil||0)),
     impact:{stamp:+impact.at||0,age:Math.max(0,now-(+impact.at||0)),angle:+impact.angle||0,power:+impact.power||0,kind:impact.kind||'generic',bodyPart:impact.bodyPart||'torso'}
   };
 }
@@ -59417,6 +59200,14 @@ window.Mafiozi3DBridge = Object.freeze({
     return state;
   },
   setAim(angle) { if (Number.isFinite(angle)){_threeMouseAimAngle=angle;_threeMouseAimUntil=performance.now()+240;player.ang=angle;} },
+  setAimHeld(active) {
+    _threeMouseAimHeld=!!active;
+    if(active&&Number.isFinite(_threeMouseAimAngle)){
+      _threeMouseAimUntil=performance.now()+240;
+      player.ang=_threeMouseAimAngle;
+    }
+    document.documentElement.dataset.mouseAimHeld=_threeMouseAimHeld?'1':'0';
+  },
   selectBuilding(r,c,screenX,screenY) { return selectBuildingFrom3D(+r,+c,+screenX,+screenY); },
   getNearbyBuildingInteraction() { return _nearbyBuildingInteractionFor3D(); },
   getNearbyVehicleInteraction() { return getNearbyVehicleInteractionFor3D(); },
@@ -59471,8 +59262,6 @@ window.Mafiozi3DBridge = Object.freeze({
     const businessLayout=businessLayoutBase&&majorBusinessId
       ?{...businessLayoutBase,safes:majorSafes.map(s=>({...s}))}:businessLayoutBase;
     const casinoLayout=casino?{
-      visualVersion:MAJOR_CASINO_VISUAL_VERSION,
-      architecture:'grand-casino-v9-open-service-rooms-visible-vault-leaf',
       walls:MAJOR_CASINO_WALLS.map(w=>({r0:+w.r0,c0:+w.c0,r1:+w.r1,c1:+w.c1,kind:w.kind||'',lowerOnly:!!w.lowerOnly})),
       props:[
         ...MAJOR_CASINO_STATIC_BLOCKERS.filter(p=>_casinoPropAlive(p.id)),
@@ -59484,8 +59273,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const bankState=_bankInt?{
       visualVersion:BANK_INTERIOR_VISUAL_VERSION,size:_bankInt.bank?.size||'small',
       name:_bankInt.bank?.name||'Банк',phase:_bankInt.phase||'lobby',
-      architecture:'bank-rooms-v8-clear-small-vault-prop-safe-spawns',
-      finish:'warm-patterned-marble-burgundy-runner-brass-inlay-stable-depth',
+      architecture:'bank-rooms-v4',
       rooms:_bankInt.room==='vault'
         ?['vault','deposit_box_gallery','cash_cage','counting_zone','service_bay','biometric_airlock']
         :['main_hall','teller_hall','security_booth','staff_office','manager_office','archive','break_room','conference_room','screening_corridor','cash_processing','vault_approach','atm_zone'],
@@ -59676,7 +59464,7 @@ window.Mafiozi3DBridge = Object.freeze({
       }
       const buildingParts=cachedBuildingParts
         .filter(q=>!(JAIL_ISLAND_3D_ENABLED&&JAIL_CENTER_R>=q.minR&&JAIL_CENTER_R<=q.maxR&&JAIL_CENTER_C>=q.minC&&JAIL_CENTER_C<=q.maxC))
-        .map((q,i)=>{const entry=_genericBuildingEntranceAnchor(q.r,q.c);return {...q,height:heightBase+((seed+i*13)%heightSpread),entryR:entry.r,entryC:entry.c};});
+        .map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread)}));
       blocks.push({
         r0,c0,styleId,buildings,roads,pavement,grass,sand,water,seed,
         building: buildingParts[0]||null,buildingParts,
@@ -64023,6 +63811,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d272-dark-door-portals-stream-safe"></script>
+<script type="module" src="three_preview.js?v=3d265-authored-blackmarket-door-sync"></script>
 </body>
 </html>
