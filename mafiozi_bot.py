@@ -26127,6 +26127,8 @@ async def _coop_http_app():
                         # Само «выдать цель» делает клиент (помечает _hitTarget=true
                         # у случайного NPC) — серверу важен только факт выдачи
                         # для подсчёта лимита и потом начисление при kill.
+                        arrest_body = d if isinstance(d, dict) else {}
+                        voluntary = bool(arrest_body.get('voluntary'))
                         p = world.players.get(uid)
                         reply = {'ok': False, 'reason': 'unknown'}
                         if not p or p.get('dead') or p.get('_mode') == 'pve':
@@ -26299,7 +26301,9 @@ async def _coop_http_app():
                             reply = {'ok': False, 'reason': 'dead'}
                         elif (p.get('_jail_until') or 0) > time.time():
                             reply = {'ok': False, 'reason': 'already_jailed'}
-                        elif float(p.get('_wanted') or 0) < 2.0:
+                        elif (float(p.get('_wanted') or 0) < (1.0 if voluntary else 2.0)
+                              and not (voluntary and world.prison_alarm.get('active')
+                                       and str(uid) in world.prison_alarm.get('attackers', set()))):
                             reply = {'ok': False, 'reason': 'not_wanted'}
                         elif world._in_lair_zone(p.get('x', 0), p.get('y', 0)):
                             reply = {'ok': False, 'reason': 'in_lair'}
