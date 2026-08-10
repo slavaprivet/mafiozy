@@ -19864,6 +19864,7 @@ function handleEventPacket(d) {
     const overlay=document.getElementById('npcActionOverlay');overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);
     if(!pending)return;
     if(!d.ok){
+      if(+d.cooldown_until){_setNpcThreatCooldown(pending.key,+d.cooldown_until*1000);_setNpcRobCooldown(pending.key,+d.cooldown_until*1000);}
       const msg=d.reason==='cooldown'?`Этот житель уже напуган. Повтори через ${Math.max(1,Math.ceil((+d.retry_s||1)/60))} мин.`:d.reason==='cash'?'Сделка сорвалась':'Угроза сейчас не сработала';
       _npcActionSay(pending.ref,msg,3000);showToast(msg,'⚠️',2300);return;
     }
@@ -19894,7 +19895,7 @@ function handleEventPacket(d) {
     const pending=_pendingNpcRobbery;
     if(pending&&String(d.robbery_id||'')===pending.robberyId){
       if(d.ok){if(+d.cooldown_until)_setNpcRobCooldown(pending.key,+d.cooldown_until*1000);_completeNpcRobbery(pending.ref,pending.key,+d.amount||1,pending.robberyId,d.cash,typeof d.interrogation_arrest==='boolean'?d.interrogation_arrest:null);}
-      else{delete _npcRobCooldowns[pending.key];try{localStorage.setItem(_npcRobCooldownKey,JSON.stringify(_npcRobCooldowns));}catch(e){}_npcActionSay(pending.ref,d.reason==='cooldown'?'У меня больше нет денег.':'Не трогай меня!',3000);showToast('Ограбление не состоялось','⚠️',1900);}
+      else{if(d.reason==='cooldown'&&+d.cooldown_until){_setNpcRobCooldown(pending.key,+d.cooldown_until*1000);_setNpcThreatCooldown(pending.key,+d.cooldown_until*1000);}else{delete _npcRobCooldowns[pending.key];try{localStorage.setItem(_npcRobCooldownKey,JSON.stringify(_npcRobCooldowns));}catch(e){}}_npcActionSay(pending.ref,d.reason==='cooldown'?'У меня больше нет денег.':'Не трогай меня!',3000);showToast('Ограбление не состоялось','⚠️',1900);}
       _pendingNpcRobbery=null;
     }
   }else if(kind==='npc_robbery_confiscate_reply'){
@@ -24484,8 +24485,9 @@ function _runNpcAction(action){
   }
   if(action==='threaten'){
     const left=_npcThreatCooldownLeft(t.key);if(left){const msg=`Он уже напуган. Возвращайся через ${Math.max(1,Math.ceil(left/60000))} мин.`;_npcActionSay(ref,msg,3000);showToast(msg,'⌛',2200);return;}
-    if(_pendingNpcThreat)return;const threatId=`${QP.uid||'preview'}:${t.key}:threat:${Date.now()}`;_pendingNpcThreat={ref,key:t.key,threatId};
+    if(_pendingNpcThreat)return;const threatId=`${QP.uid||'preview'}:${t.key}:threat:${Date.now()}`;_pendingNpcThreat={ref,key:t.key,threatId};const threatRequest=_pendingNpcThreat;
     const overlay=document.getElementById('npcActionOverlay');overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=true);
+    setTimeout(()=>{if(_pendingNpcThreat!==threatRequest)return;_pendingNpcThreat=null;overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);showToast('Житель не ответил — попробуй ещё раз','🌐',2200);},10000);
     if(ws&&ws.readyState===1){try{ws.send(JSON.stringify({t:'npc_threaten',d:{npc_id:t.key,threat_id:threatId}}));}catch(e){_pendingNpcThreat=null;overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);showToast('Не удалось пригрозить','⚠️',1900);}return;}
     const roll=Math.random(),outcome=roll<.5?'silent':roll<.8?'snitch':'resist',amount=outcome==='resist'?0:2+Math.floor(Math.random()*6),until=Date.now()+NPC_THREAT_COOLDOWN_MS;_setNpcThreatCooldown(t.key,until);_setNpcRobCooldown(t.key,until);
     _pendingNpcThreat=null;_districtRepAdd(-2,'вымогательство у жителя',true);if(amount)_npcActionEarn(amount);
@@ -24505,7 +24507,8 @@ function _runNpcAction(action){
     if(!myWanted){_npcActionSay(ref,'Уберите деньги. Вы ничего не нарушили.');finish('Офицер не видит причин для такого разговора','👮');return;}
     if(_pendingNpcPoliceBribe)return;const cost=120+Math.max(1,Math.min(3,Math.ceil(+myWanted||1)))*180;
     if(myCash<cost){_npcActionSay(ref,'Такими деньгами меня не заинтересовать.');showToast(`Нужно $${cost}`,'💵',1900);return;}
-    _pendingNpcPoliceBribe={ref,cost};const overlay=document.getElementById('npcActionOverlay');overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=true);
+    _pendingNpcPoliceBribe={ref,cost};const bribeRequest=_pendingNpcPoliceBribe,overlay=document.getElementById('npcActionOverlay');overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=true);
+    setTimeout(()=>{if(_pendingNpcPoliceBribe!==bribeRequest)return;_pendingNpcPoliceBribe=null;overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);showToast('Офицер не ответил — деньги не списаны','🌐',2300);},10000);
     if(ws&&ws.readyState===1){try{ws.send(JSON.stringify({t:'npc_police_bribe',d:{cop_id:String(ref.id||view.sourceId||'')}}));}catch(e){_pendingNpcPoliceBribe=null;overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);showToast('Не удалось предложить взятку','⚠️',1900);}return;}
     _pendingNpcPoliceBribe=null;const accepted=Math.random()<.75;
     if(accepted){_npcActionSpend(cost);_applyNpcPoliceBribeRelief({wanted:Math.max(0,myWanted-1),cover_s:45});_npcActionSay(ref,'Я вас не видел. Исчезните отсюда.');finish(`−1★ · патруль отозван на 45 сек · −$${cost}`,'💵');}
