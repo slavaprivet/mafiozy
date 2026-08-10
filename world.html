@@ -10838,7 +10838,8 @@ function _pickMurderSearchPoint(incident,slot,seed=0){
 }
 function _murderSceneWitnesses(incident){
   if(!incident)return[];
-  return NPCS.filter(n=>n&&n!==incident.victim&&!n.dead&&!n._medicalDowned&&!n.isPolice&&!n.police&&!n._guard&&
+  const robbery=incident.source?.kind==='npc_robbery',pool=robbery?[incident.victim,...NPCS.filter(n=>n!==incident.victim)]:NPCS;
+  return pool.filter(n=>n&&(robbery||n!==incident.victim)&&!n.dead&&!n._medicalDowned&&!n.isPolice&&!n.police&&!n._guard&&
     !String(n.role||n.kind||'').toLowerCase().match(/police|cop|guard|gang|boss/)&&
     Math.hypot((+n.r||0)-incident.r,(+n.c||0)-incident.c)<=8.5)
     .sort((a,b)=>Math.hypot((+a.r||0)-incident.r,(+a.c||0)-incident.c)-Math.hypot((+b.r||0)-incident.r,(+b.c||0)-incident.c)).slice(0,3);
@@ -10854,7 +10855,7 @@ function _assignMurderWitnessInterviews(v,now=performance.now()){
 function _startMurderPoliceScene(v,now=performance.now()){
   const incident=v?.payload?.murderIncident;if(!incident)return false;
   v.state='police_search';v.speed=0;v.path=[];v.pathIdx=0;v._policeCrewIds=[];v._policeReturned=0;
-  incident.status='searching';incident.searchStartedAt=now;incident.initialSearchUntil=now+11000;incident.lostAt=0;
+  incident.status='searching';incident.searchStartedAt=now;incident.initialSearchUntil=now+(incident.source?.kind==='npc_robbery'?45000:11000);incident.lostAt=0;
   const crewCount=_murderVehicleCrewCount(v);
   for(let slot=0;slot<crewCount;slot++){
     const cop=_createMurderCrewCop(v,incident,slot,'disembark',now),p=_pickMurderSearchPoint(incident,cop._formationIndex,slot+1+(+v.fleetSlot||0)*5);
@@ -10960,13 +10961,22 @@ function _orderMurderCrewReturn(v,reason='search-complete',now=performance.now()
 }
 function _updateMurderPoliceScene(v,now=performance.now()){
   const incident=v?.payload?.murderIncident;if(!incident){_orderMurderCrewReturn(v,'missing-incident',now);return;}
-  const inZone=_murderPlayerInZone(incident),visible=inZone&&_murderCrewCanSeePlayer(v);
+  const robbery=incident.source?.kind==='npc_robbery';
+  if(robbery&&!incident.questionStartedAt&&!incident.armedContact&&!myDead&&now-(incident.lastTrackingAt||0)>900){
+    incident.r+=(player.r-incident.r)*.55;incident.c+=(player.c-incident.c)*.55;incident.lastTrackingAt=now;
+    // По ориентировке один офицер идёт к последней позиции подозреваемого,
+    // а не бесконечно выбирает случайные точки вокруг места ограбления.
+    const lead=_murderCrewForVehicle(v).find(c=>c._casePhase!=='witness_question');
+    if(lead){lead._searchR=player.r;lead._searchC=player.c;lead._searchRetargetAt=now+1050;lead._pursuing=true;}
+  }
+  const inZone=_murderPlayerInZone(incident),leadContact=robbery&&inZone&&_murderCrewForVehicle(v).some(c=>c._casePhase!=='witness_question'&&Math.hypot(player.r-c.y,player.c-c.x)<=2.6),visible=inZone&&(_murderCrewCanSeePlayer(v)||leadContact);
   const armedPlayer=visible&&_playerWeaponVisibleToMurderPolice();
   const armedNpc=!armedPlayer&&!incident.armedContact?_findArmedNpcAtMurderScene(v):null;
   if((armedPlayer||armedNpc)&&!incident.armedContact){
     incident.armedContact=true;incident.armedTargetType=armedPlayer?'player':'npc';incident.armedTargetRef=armedNpc||null;
     incident.status='armed-contact';incident.lostAt=0;
-    showEventBanner('🚨 ПОЛИЦИЯ ОТКРЫЛА ОГОНЬ',armedPlayer?'Офицеры заметили оружие в зоне убийства.':'Офицеры нашли вооружённого подозреваемого.',2800,'lose');
+    if(robbery&&armedPlayer)_confiscateNpcRobberyLoot(incident,'armed-contact');
+    showEventBanner('🚨 ПОЛИЦИЯ ОТКРЫЛА ОГОНЬ',armedPlayer?(robbery?`У тебя оружие. Украденные $${incident.robberyAmount||0} конфискованы.`:'Офицеры заметили оружие в зоне убийства.'):'Офицеры нашли вооружённого подозреваемого.',2800,'lose');
     for(const cop of _murderCrewForVehicle(v)){if(cop._witnessRef){cop._witnessRef._lifeState='';cop._witnessRef._lifeGesture='';cop._witnessRef=null;}cop._lifeState='';cop._lifeGesture='';cop._casePhase=armedPlayer?'combat':'npc_combat';cop._pursuing=true;}
   }else if(visible){
     incident.lastPlayerSeenAt=now;incident.lostAt=0;
@@ -10974,7 +10984,7 @@ function _updateMurderPoliceScene(v,now=performance.now()){
     if(!incident.armedContact&&!incident.questionStartedAt&&!witnessInterviewActive){
       incident.questionStartedAt=now;incident.status='questioning';
       for(const cop of _murderCrewForVehicle(v))cop._casePhase='question';
-      showEventBanner('👮 ПОЛИЦИЯ ОПРАШИВАЕТ','Уберите руки от карманов и ответьте на вопросы.',2600,'neutral');
+      showEventBanner('👮 ПОЛИЦИЯ ОПРАШИВАЕТ',robbery?'На тебя есть ориентировка. Оставайся на месте.':'Уберите руки от карманов и ответьте на вопросы.',2600,'neutral');
     }
   }
   if(incident.armedContact){
@@ -10997,6 +11007,17 @@ function _updateMurderPoliceScene(v,now=performance.now()){
       incident.lostAt||=now;
       if(now-incident.lostAt>=POLICE_MURDER_SEARCH_MS){_orderMurderCrewReturn(v,'questioned-person-left-zone',now);return;}
       for(const cop of _murderCrewForVehicle(v))if(cop._casePhase!=='return')cop._casePhase='search';
+    }else if(robbery&&now-incident.questionStartedAt>6200&&!incident.interrogationResolved){
+      incident.interrogationResolved=true;
+      if(incident.interrogationArrest){
+        _confiscateNpcRobberyLoot(incident,'interrogation');
+        const primary=_murderCrewForVehicle(v)[0];if(primary){_copChats.set(primary.id,{text:'Ориентировка подтверждена. Вы задержаны.',untilMs:now+2600});_beginMurderPoliceArrest(primary,now,{peaceful:true,robbery:true});}
+      }else{
+        myWanted=Math.max(0,myWanted-1);document.documentElement.dataset.npcRobberyOutcome='released';
+        const primary=_murderCrewForVehicle(v)[0];if(primary)_copChats.set(primary.id,{text:'Доказательств недостаточно. Можете идти.',untilMs:now+2600});
+        try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'npc_robbery_resolve',d:{robbery_id:incident.robberyId,outcome:'released'}}));}catch(e){}
+        showEventBanner('👮 ОТПУЩЕН','Доказательств не хватило. Деньги остались у тебя.',2800,'neutral');_orderMurderCrewReturn(v,'robbery-question-released',now);return;
+      }
     }else if(now-incident.questionStartedAt>7800){_orderMurderCrewReturn(v,'questioning-complete',now);return;}
   }else if(now>=incident.initialSearchUntil){
     _orderMurderCrewReturn(v,'no-suspect-found',now);
@@ -11059,7 +11080,7 @@ function _murderPoliceArrestProgress(ar=_murderPoliceArrest,now=performance.now(
 function _murderPoliceArrestInCustody(ar=_murderPoliceArrest){
   return !!ar&&['transport','unloading','handoff','prison_escort','booking'].includes(ar.phase);
 }
-function _beginMurderPoliceArrest(cop,now=performance.now()){
+function _beginMurderPoliceArrest(cop,now=performance.now(),opts={}){
   if(_murderPoliceArrest||!_murderPoliceCopActive(cop))return false;
   const v=serviceVehicles.find(q=>q.id===cop._responseVehicleId),incident=v?.payload?.murderIncident;
   if(!v||!incident||!v._murderFleet)return false;
@@ -11074,8 +11095,8 @@ function _beginMurderPoliceArrest(cop,now=performance.now()){
   if(_myBagWeight>0&&((_bankRob&&_bankRob.myBag)||_policeEvidenceBag))dropVaultBag();
   const cover=crew.find(q=>q!==cop)||null;
   _murderPoliceArrest={vehicleId:v.id,incidentId:incident.id,copId:cop.id,coverCopId:cover?.id||'',
-    phase:'downed',startedAt:now,phaseAt:now,lastGangShots:Object.create(null),serverRequested:false,
-    serverAccepted:false,serverRejectedReason:''};
+    phase:peaceful?'cuffing':'downed',startedAt:now,phaseAt:now,lastGangShots:Object.create(null),serverRequested:false,
+    serverAccepted:false,serverRejectedReason:'',peaceful,robbery:!!opts.robbery};
   v.state='police_arrest_scene';v.speed=0;v.path=[];v.pathIdx=0;v._policePrisonTransport=false;
   incident.status='arresting-player';incident.arrestStartedAt=now;
   for(const officer of crew){
@@ -11083,16 +11104,19 @@ function _beginMurderPoliceArrest(cop,now=performance.now()){
     officer._phaseStartedAt=now;officer._pursuing=true;officer._lifeState='';officer._lifeGesture='';
   }
   _copChats.set(cop.id,{text:'Не двигаться! Вы задержаны!',untilMs:now+2300});
-  document.documentElement.dataset.policeArrestPhase='downed';
-  document.documentElement.dataset.policeArrestRescuable='1';
-  showEventBanner('🚔 НЕ ДВИГАЙСЯ','Ты ранен, но жив. Офицер идёт надеть наручники.',3500,'lose');
+  document.documentElement.dataset.policeArrestPhase=peaceful?'cuffing':'downed';
+  document.documentElement.dataset.policeArrestRescuable=peaceful?'0':'1';
+  if(peaceful)showEventBanner('🚔 ЗАДЕРЖАНИЕ','Допрос закончен. Офицер надевает наручники.',3500,'lose');
+  else showEventBanner('🚔 НЕ ДВИГАЙСЯ','Ты ранен, но жив. Офицер идёт надеть наручники.',3500,'lose');
   return true;
 }
 function _queueAnyPoliceDeathPickup(cop=null,meta={},now=performance.now()){
   if(_murderPoliceArrest)return true;
   if(myDrivingCarId){exitCar('police_arrest');viewZoom=WORLD_VIEW_ZOOM;}
   if(myJetSkiId)exitJetSki(true);
-  myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;
+  const peaceful=!!opts.peaceful;
+  if(peaceful){currentWeapon=null;myDead=false;_localDeath=false;myHp=Math.max(1,myHp);}
+  else{myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;}
   player.walking=false;player.vr=0;player.vc=0;_playerEmergencyPatient=null;
   _deathOv?.classList.remove('show');
   if(_myBagWeight>0&&((_bankRob&&_bankRob.myBag)||_policeEvidenceBag))dropVaultBag();
@@ -11217,7 +11241,7 @@ function _startMurderPolicePrisonTransport(v,ar,now=performance.now()){
   if(!ar.serverRequested){
     ar.serverRequested=true;
     try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'citycop_arrest',d:{cop_id:ar.copId,
-      x:+v.x.toFixed(2),y:+v.y.toFixed(2),response_vehicle:v.id,voluntary:!!ar.voluntary}}));}catch(e){}
+      x:+v.x.toFixed(2),y:+v.y.toFixed(2),response_vehicle:v.id,voluntary:!!ar.voluntary,robbery:!!ar.robbery}}));}catch(e){}
   }
   _confiscateBagOnArrest();
   document.documentElement.dataset.policeArrestRescuable='0';
@@ -11511,7 +11535,7 @@ function _updateMurderResponseCop(cop,dt,now){
     if(d>1.65)_moveMurderResponseCop(cop,p.r,p.c,dt,1.02);
     else{
       cop._lifeState='social';cop._lifeGesture='point';witness.ang=Math.atan2(cop.y-p.r,cop.x-p.c);witness._lifeState='social';witness._lifeGesture='talk';
-      if(now>=(cop._nextCaseCryAt||0)){const lines=['Полиция. Что вы видели?','Опишите подозреваемого.','Куда он побежал?','Оружие у него было?'];_copChats.set(cop.id,{text:lines[((now-cop._phaseStartedAt)/1800|0)%lines.length],untilMs:now+1700});witness.cryText=['Я слышал выстрелы!','Он побежал туда!','У него было оружие!'][cop._crewSlot%3];witness.cryUntil=now+1600;cop._nextCaseCryAt=now+1900;}
+      if(now>=(cop._nextCaseCryAt||0)){const robbery=incident.source?.kind==='npc_robbery',lines=robbery?['Полиция. Это он вас ограбил?','Сколько денег он забрал?','Куда он побежал?']:['Полиция. Что вы видели?','Опишите подозреваемого.','Куда он побежал?','Оружие у него было?'];_copChats.set(cop.id,{text:lines[((now-cop._phaseStartedAt)/1800|0)%lines.length],untilMs:now+1700});witness.cryText=robbery?`Он забрал у меня $${incident.robberyAmount||0}!`:['Я слышал выстрелы!','Он побежал туда!','У него было оружие!'][cop._crewSlot%3];witness.cryUntil=now+1800;cop._nextCaseCryAt=now+1900;}
     }
     return true;
   }
@@ -11528,7 +11552,7 @@ function _updateMurderResponseCop(cop,dt,now){
       d=Math.hypot(player.r-cop.y,player.c-cop.x);cop.ang=Math.atan2(player.r-cop.y,player.c-cop.x);
     if(Math.hypot(targetR-cop.y,targetC-cop.x)>.45)_moveMurderResponseCop(cop,targetR,targetC,dt,1.05);
     if(now>=(cop._nextCaseCryAt||0)){
-      const elapsed=now-incident.questionStartedAt,lines=cop._crewSlot?
+      const elapsed=now-incident.questionStartedAt,robbery=incident.source?.kind==='npc_robbery',lines=robbery?(cop._crewSlot?['Стойте на месте.','Мы сверяем ориентировку.','Не делайте резких движений.']:['Полиция. Вас описал потерпевший.','Где вы были минуту назад?','Отвечайте чётко.']):cop._crewSlot?
         ['Оставайтесь на месте.','Вы видели стрелявшего?','Куда он побежал?']:
         ['Полиция. Оружие есть?','Что произошло здесь?','Назовите ваше имя.'];
       _copChats.set(cop.id,{text:lines[Math.min(lines.length-1,Math.floor(elapsed/2400))],untilMs:now+2100});cop._nextCaseCryAt=now+2400;
@@ -12903,9 +12927,9 @@ function _nearestCallingWitness(maxDist=1.65){
   for(const n of NPCS){if(!n||n.dead||!n.snitching||n._witnessStage!=='calling'||now>=(n._witnessCallUntil||0))continue;const d=Math.hypot(n.r-player.r,n.c-player.c);if(d<bestD){best=n;bestD=d;}}
   return best;
 }
-function _silenceWitness(){
+function _silenceWitness(target=null){
   if(_policeState?.employed||myDead||_buildingInt||_bankInt)return;
-  const n=_nearestCallingWitness();if(!n)return;
+  const n=target&&target.snitching&&target._witnessStage==='calling'?target:_nearestCallingWitness();if(!n)return;
   const d=districtAt(player.r,player.c),rep=d?_districtRepValue(d.id):0,cost=Math.max(40,140-(rep>0?rep:0));
   if(myCash<cost){showToast(`Нужно $${cost}, чтобы убедить свидетеля молчать`,'💵',1800);return;}
   const chance=Math.max(.25,Math.min(.9,.55+rep*.004+_hqLvl('mafia','cameras')*.08));
@@ -19655,7 +19679,36 @@ function handleEventPacket(d) {
       showToast(`🕴️ +${d.mafia_xp_gain} XP мафии · ${d.mafia_reason||'авторитет вырос'}`,'🏅',2600);
   }
   if (!kind) return;
-  if(kind==='taxi_ride_reply'){
+  if(kind==='npc_cash_action_reply'){
+    const pending=_pendingNpcGift;_pendingNpcGift=null;
+    if(pending&&d.ok){
+      _applyNpcCash(d.cash,-Math.abs(+d.amount||pending.amount));_npcActionFloat(`Ты отдал −$${Math.abs(+d.amount||pending.amount)}`,'#8fe3be');
+      _npcActionSay(pending.ref,'Спасибо. Такое не забывают.');_districtRepAdd(1,'помощь жителю',true);
+      showToast(`Списано $${Math.abs(+d.amount||pending.amount)} · баланс $${formatExactMoney(myCash)}`,'🤝',2600);closeNpcActionMenu();
+    }else if(pending){
+      _npcActionSay(pending.ref,d.reason==='cash'?'У тебя не хватает денег.':'Оплата сейчас не прошла.');showToast(d.reason==='cash'?'Недостаточно денег':'Не удалось провести оплату','⚠️',2100);
+      document.getElementById('npcActionOverlay')?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);
+    }
+  }else if(kind==='npc_robbery_state_reply'){
+    for(const row of (Array.isArray(d.active)?d.active:[])){
+      const robberyId=String(row.robbery_id||'');if(!robberyId||_murderIncidents.some(x=>x?.robberyId===robberyId&&!x.closedAt))continue;
+      const key=String(row.npc_id||''),entry=_threeNpcActionRefs.get(key),ref=entry?.ref||entry?.view||{r:player.r,c:player.c,name:'Житель'};
+      if(+row.cooldown_until)_setNpcRobCooldown(key,+row.cooldown_until*1000);
+      _npcRobberyOutstanding+=Math.max(1,Math.min(10,+row.amount||1));myWanted=Math.max(1,myWanted);
+      _registerNpcRobberyIncident(ref,+row.amount||1,robberyId,typeof row.interrogation_arrest==='boolean'?row.interrogation_arrest:null);
+    }
+  }else if(kind==='npc_robbery_reply'){
+    const pending=_pendingNpcRobbery;
+    if(pending&&String(d.robbery_id||'')===pending.robberyId){
+      if(d.ok){if(+d.cooldown_until)_setNpcRobCooldown(pending.key,+d.cooldown_until*1000);_completeNpcRobbery(pending.ref,pending.key,+d.amount||1,pending.robberyId,d.cash,typeof d.interrogation_arrest==='boolean'?d.interrogation_arrest:null);}
+      else{delete _npcRobCooldowns[pending.key];try{localStorage.setItem(_npcRobCooldownKey,JSON.stringify(_npcRobCooldowns));}catch(e){}_npcActionSay(pending.ref,d.reason==='cooldown'?'У меня больше нет денег.':'Не трогай меня!',3000);showToast('Ограбление не состоялось','⚠️',1900);}
+      _pendingNpcRobbery=null;
+    }
+  }else if(kind==='npc_robbery_confiscate_reply'){
+    if(d.ok&&Number.isFinite(+d.cash))_applyNpcCash(+d.cash,-Math.abs(+d.amount||0));
+  }else if(kind==='npc_robbery_resolve_reply'){
+    if(Number.isFinite(+d.wanted))myWanted=Math.max(0,+d.wanted);
+  }else if(kind==='taxi_ride_reply'){
     const dest=_taxiPending;
     if(!d.ok){
       _taxiPending=null;
@@ -20666,7 +20719,7 @@ function handleEventPacket(d) {
       if(!_murderPoliceArrest)try { showArrestOverlay && showArrestOverlay(); } catch(e) {}
     }else if(_murderPoliceArrest){
       _murderPoliceArrest.serverRejectedReason=String(d.reason||'unknown');
-      if(_murderPoliceArrest.voluntary)_cancelMurderPoliceArrest({kind:'server-rejected'},performance.now());
+      if(_murderPoliceArrest.voluntary||_murderPoliceArrest.peaceful)_cancelMurderPoliceArrest({kind:'server-rejected'},performance.now());
     }
     // ok=false молча — это либо лагнувший пакет, либо сервер уже посадил
   } else if (kind === 'prison_alarm_reply') {
@@ -21941,6 +21994,9 @@ function wsConnect() {
       // Запрашиваем GTA-статус (активный контракт + счётчик) сразу после
       // hello — чтобы HUD при перезаходе показывал текущий заказ Майкла.
       try { ws.send(JSON.stringify({ t: 'gta_status', d: {} })); } catch(e){}
+      // Восстанавливаем незавершённое ограбление после reload: сервер вернёт
+      // активную ориентировку, сумму и кулдаун, а полиция продолжит поиск.
+      try { ws.send(JSON.stringify({ t: 'npc_robbery_state', d: {} })); } catch(e){}
       // Точка респавна + список купленных бизнесов — чтобы при выходе
       // из dead-overlay лейбл уже знал «🏥 Госпиталь» или «☕ Кофейня».
       try { ws.send(JSON.stringify({ t: 'respawn_status', d: {} })); } catch(e){}
@@ -23970,6 +24026,14 @@ function playEnterCarAnim(r, c) {
 
 let _threeSelectedGangBotId = null;
 let _threeSelectedGangBotUntil = 0;
+const _threeNpcActionRefs = new Map();
+let _npcActionTarget = null;
+let _npcStreetErrand = null;
+const NPC_ROB_COOLDOWN_MS=60*60*1000;
+const _npcRobCooldownKey=`mafiozi_npc_rob_cd_${QP.uid||'preview'}`;
+const _npcRobCooldowns=Object.create(null);
+let _pendingNpcRobbery=null,_pendingNpcGift=null,_npcRobberyOutstanding=0;
+try{const saved=JSON.parse(localStorage.getItem(_npcRobCooldownKey)||'{}'),now=Date.now();for(const [key,until] of Object.entries(saved))if(+until>now)_npcRobCooldowns[key]=+until;}catch(e){}
 let _threeForcedGangShotId = null;
 let _threeForcedGangShotUntil = 0;
 let _threeForcedNpcShotId = null;
@@ -24025,6 +24089,169 @@ function _showGangHireAction(bot) {
   _gtaBtn.style.display='block';
   return true;
 }
+
+function _npcActionKind(ref, view) {
+  const role=String(view?.role||ref?.role||ref?.kind||'').toLowerCase();
+  const name=String(view?.name||ref?.name||'').toLowerCase();
+  if(ref?.snitching&&ref?._witnessStage==='calling')return 'witness';
+  if(view?.police||ref?.police||ref?.isPolice||role.includes('police')||role.includes('cop'))return 'police';
+  if(role.includes('medic')||role.includes('doctor')||name.includes('врач')||name.includes('доктор'))return 'doctor';
+  if(role.includes('mechanic')||role.includes('junkyard_worker')||name.includes('механик'))return 'mechanic';
+  if(view?.gang||ref?.gang||role.includes('gang')||role.includes('boss'))return view?.behavior==='follows_player'?'crew':'bandit';
+  if(role.includes('homeless')||role.includes('beggar')||role.includes('hobo')||name.includes('бездом')||name.includes('нищий'))return 'homeless';
+  return 'civilian';
+}
+function _npcActionSay(ref,text,ms=2600){
+  if(!ref)return;
+  ref.cryText=String(text||'').slice(0,72);ref.cryUntil=performance.now()+ms;
+  ref._talking=performance.now()+Math.min(ms,2200);
+}
+function _npcActionSpend(amount){
+  amount=Math.max(0,Math.round(amount));if(myCash<amount){showToast(`Нужно $${amount}`,'💵',1800);return false;}
+  myCash-=amount;QP.cash=myCash;showExactMoneyHudTemporarily();showCashDelta(-amount,'cash');return true;
+}
+function _npcActionEarn(amount){amount=Math.max(0,Math.round(amount));myCash+=amount;QP.cash=myCash;showExactMoneyHudTemporarily();showCashDelta(amount,'cash');}
+function _applyNpcCash(cash,delta=0){
+  if(!Number.isFinite(+cash))return false;
+  myCash=+cash;QP.cash=myCash;if(typeof showExactMoneyHudTemporarily==='function')showExactMoneyHudTemporarily();else updateMoneyHud();if(delta)showCashDelta(delta,'cash');
+  const hud=document.getElementById('hudMoneyToggle');if(hud){hud.classList.remove('npc-cash-flash');void hud.offsetWidth;hud.classList.add('npc-cash-flash');hud.title=`Точный баланс: $${formatExactMoney(myCash)}`;setTimeout(()=>hud.classList.remove('npc-cash-flash'),1700);}
+  return true;
+}
+function _npcRobCooldownLeft(key,now=Date.now()){return Math.max(0,(+_npcRobCooldowns[String(key)]||0)-now);}
+function _setNpcRobCooldown(key,until=Date.now()+NPC_ROB_COOLDOWN_MS){_npcRobCooldowns[String(key)]=+until;try{localStorage.setItem(_npcRobCooldownKey,JSON.stringify(_npcRobCooldowns));}catch(e){}}
+function _npcActionFloat(text,color='#a9e7cf'){spawnFloatText(player.r-.55,player.c,String(text),{color,size:13,life:1900});}
+function _npcActionCrime(ref,repLoss=-2){
+  _districtRepAdd(repLoss,'давление на жителя',true);
+  if(ref&&!ref.police)markNpcSnitch(ref,'Полиция! На меня напали!');
+  try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'open_fire',d:{x:+player.c.toFixed(2),y:+player.r.toFixed(2),weapon:currentWeapon||'fists',civilian:true,witness:true}}));}catch(e){}
+}
+function _npcActionDistrictLine(){
+  const d=districtAt(player.r,player.c);if(!d)return 'Мы сейчас вне городских районов.';
+  const influence=_factionWarState.districts?.[d.id]||{},police=Math.max(0,+influence.police||0),mafia=Math.max(0,+influence.mafia||0),owner=districtOwners[d.id],capture=districtCaptures.get(d.id);
+  const holder=owner?(owner.gangTag||owner.ownerName||owner.name||'местная банда'):null;
+  if(capture)return `${d.name}: сейчас идёт захват. Влияние — полиция ${police}, мафия ${mafia}.`;
+  if(holder)return `${d.name} держит ${holder}. Влияние — полиция ${police}, мафия ${mafia}.`;
+  const lead=Math.abs(police-mafia)<15?'район нейтрален':police>mafia?'перевес полиции':'перевес мафии';
+  return `${d.name}: ${lead}. Влияние — полиция ${police}, мафия ${mafia}.`;
+}
+function _registerNpcRobberyIncident(victim,amount,robberyId,interrogationArrest=null,now=performance.now()){
+  if(!victim||!amount)return null;
+  const incident={id:`robbery_${++_murderIncidentSeq}`,r:+player.r||0,c:+player.c||0,victim,
+    source:{kind:'npc_robbery',robberyId:String(robberyId||''),amount},robberyAmount:amount,robberyId:String(robberyId||''),
+    occurredAt:now,status:'queued',assignedVehicleId:null,searchStartedAt:0,initialSearchUntil:0,lostAt:0,
+    questionStartedAt:0,armedContact:false,closedAt:0,policeTier:0,crewCount:2,routeRetryAt:0,routeFailures:0,
+    interrogationArrest:_LOCAL_PREVIEW&&_UP.has('previewrobberyarrest')?_UP.get('previewrobberyarrest')!=='0':typeof interrogationArrest==='boolean'?interrogationArrest:Math.random()<.8,confiscated:false,lastTrackingAt:0};
+  _murderIncidents.push(incident);while(_murderIncidents.length>24)_murderIncidents.shift();
+  _dispatchMurderPoliceCalls(now);document.documentElement.dataset.npcRobberyPolice=incident.id;return incident;
+}
+function _completeNpcRobbery(ref,key,amount,robberyId,cash=null,interrogationArrest=null){
+  amount=Math.max(1,Math.min(10,Math.round(amount)||1));if(cash!==null&&cash!==undefined&&Number.isFinite(+cash))_applyNpcCash(+cash,amount);else _npcActionEarn(amount);
+  _npcRobberyOutstanding+=amount;myWanted=Math.max(1,myWanted);ref._npcRobbedAt=Date.now();
+  _districtRepAdd(-3,'ограбление жителя',true);markNpcSnitch(ref,`Меня ограбили! Он забрал $${amount}!`);
+  _npcActionSay(ref,`Помогите! Он забрал у меня $${amount}!`,4200);_npcActionFloat(`Ты забрал +$${amount}`,'#ffd06a');
+  _registerNpcRobberyIncident(ref,amount,robberyId,interrogationArrest);showToast(`Добыча $${amount} · полиция получила наводку`,'🚔',2600);
+}
+function _confiscateNpcRobberyLoot(incident,reason='police'){
+  if(!incident||incident.confiscated)return 0;const amount=Math.max(0,Math.min(10,+incident.robberyAmount||0));incident.confiscated=true;
+  const taken=Math.min(amount,myCash);myCash-=taken;QP.cash=myCash;updateMoneyHud();_npcRobberyOutstanding=Math.max(0,_npcRobberyOutstanding-amount);
+  _npcActionFloat(`Полиция конфисковала −$${taken}`,'#74c8ff');
+  document.documentElement.dataset.npcRobberyOutcome=`confiscated:${reason}:${taken}`;
+  try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'npc_robbery_confiscate',d:{robbery_id:incident.robberyId,amount,reason}}));}catch(e){}
+  return taken;
+}
+function _npcActionButtons(kind,ref,view){
+  if(kind==='witness')return [['pay_silence','🤝 Заплатить за молчание'],['threaten_silence','🔪 Пригрозить']];
+  if(kind==='police')return [['talk','💬 Поговорить'],['documents','🪪 Показать документы'],['bribe','💵 Предложить взятку'],['surrender','🙌 Сдаться']];
+  if(kind==='doctor')return [['talk','💬 Поговорить'],['heal','🩺 Лечиться']];
+  if(kind==='bandit')return [['talk','💬 Поговорить'],['price','📋 Узнать условия'],['hire','🤝 Нанять']];
+  if(kind==='crew')return [['talk','💬 Поговорить'],['command','✋ Дать команду'],['dismiss','🚪 Отпустить из банды']];
+  if(kind==='homeless'){
+    const ready=_npcStreetErrand&&_npcStreetErrand.npc===ref&&districtAt(player.r,player.c)?.id===_npcStreetErrand.target;
+    return [['talk','💬 Поговорить'],['give10','🥖 Дать $10'],['rumor','🗞️ Спросить слух'],[ready?'finish_errand':'errand',ready?'✅ Завершить поручение':'📦 Случайное поручение']];
+  }
+  return [['talk','💬 Поговорить'],['rumor','🗞️ Спросить о районе'],['give25','🤝 Дать $25'],['threaten','🔪 Пригрозить'],['rob','💰 Ограбить']];
+}
+function _npcActionDescription(id){
+  const left=_npcActionTarget?_npcRobCooldownLeft(_npcActionTarget.key):0;
+  return ({
+    talk:['Узнать, что человек скажет сейчас','БЕЗ РИСКА'],rumor:['Достоверная обстановка в текущем районе','СВЕДЕНИЯ'],
+    give25:['Списывается $25 · репутация района +1','−$25'],give10:['Списывается $10 · человек запомнит помощь','−$10'],
+    threaten:['Может уступить или немедленно вызвать полицию','РИСК'],rob:[left?`Повторно можно через ${Math.max(1,Math.ceil(left/60000))} мин.`:'Добыча $1–10 · полиция приедет всегда · кулдаун 1 час',left?'КУЛДАУН':'ВЫСОКИЙ РИСК'],
+    documents:['Проверка завершится сразу, если нет розыска','ПРОВЕРКА'],bribe:['Цена зависит от розыска · взятку могут не принять','РИСК'],surrender:['Добровольное задержание без перестрелки','АРЕСТ'],
+    heal:['Полностью восстановить здоровье за деньги','ЛЕЧЕНИЕ'],price:['Показать цену и требования бойца','УСЛОВИЯ'],hire:['Нанять бойца в свою банду','НАЙМ'],
+    command:['Приказать держаться рядом и прикрывать','КОМАНДА'],dismiss:['Навсегда отпустить бойца из текущей банды','ПОТЕРЯ БОЙЦА'],
+    pay_silence:['Свидетель замолчит, если примет деньги','−$'],threaten_silence:['Может замолчать или ускорить вызов полиции','РИСК'],
+    errand:['Получить небольшое поручение в другом районе','ЗАДАНИЕ'],finish_errand:['Награда $90 · репутация района +2','+$90']
+  })[id]||['Выполнить выбранное действие','ДЕЙСТВИЕ'];
+}
+function _appendNpcActionButton(grid,id,label){
+  const [desc,badge]=_npcActionDescription(id),b=document.createElement('button');
+  b.className='npc-act-btn'+(['rob','threaten','threaten_silence','dismiss'].includes(id)?' danger':'');b.dataset.npcAction=id;
+  const title=document.createElement('span'),note=document.createElement('span'),tag=document.createElement('span');
+  title.className='npc-act-btn-title';title.textContent=label;note.className='npc-act-btn-note';note.textContent=desc;tag.className='npc-act-btn-tag';tag.textContent=badge;
+  b.append(title,note,tag);grid.appendChild(b);
+}
+function _ensureNpcActionMenu(){
+  let overlay=document.getElementById('npcActionOverlay');if(overlay)return overlay;
+  const style=document.createElement('style');style.textContent=`
+  #npcActionOverlay{position:fixed;inset:0;z-index:12050;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(3,7,10,.58);backdrop-filter:blur(3px);pointer-events:auto}
+  #npcActionOverlay.show{display:flex}#npcActionCard{width:min(520px,calc(100vw - 28px));max-height:min(760px,calc(100vh - 28px));overflow:auto;border:1px solid #c5963b;border-radius:16px;background:linear-gradient(155deg,#191b1e,#090c10 72%);box-shadow:0 24px 80px #000e,0 0 0 1px #000 inset,0 0 34px #d39a2418;color:#eee6d5;font-family:system-ui,sans-serif}
+  .npc-act-head{position:relative;display:flex;gap:13px;align-items:center;padding:17px 18px;border-bottom:1px solid #76511f;background:linear-gradient(100deg,#442615,#181a1e 66%)}.npc-act-head:after{content:'';position:absolute;left:76px;right:54px;bottom:-1px;height:1px;background:linear-gradient(90deg,#f0bd51,transparent)}.npc-act-seal{display:grid;place-items:center;width:48px;height:48px;border:1px solid #dfb14f;border-radius:10px;transform:rotate(45deg);background:#17100c;color:#f4c45f;font-size:20px;box-shadow:inset 0 0 16px #d38a231c}.npc-act-seal::first-letter{transform:rotate(-45deg)}.npc-act-title{flex:1}.npc-act-kicker{color:#c7a773;font:900 9px/1.2 system-ui;letter-spacing:2.2px;text-transform:uppercase}.npc-act-name{margin-top:4px;color:#ffe19a;font:900 21px/1.15 Georgia,serif;text-shadow:0 2px 10px #000}.npc-act-close{width:36px;height:36px;border:1px solid #65523c;border-radius:9px;background:#15171a;color:#dbc9ac;font-size:20px;cursor:pointer}.npc-act-close:hover{border-color:#dbad53;color:#fff}
+  .npc-act-status{padding:11px 18px;color:#b8c0c9;font:700 11px/1.45 system-ui;border-bottom:1px solid #ffffff0d;background:#05080b55}.npc-act-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:15px}.npc-act-btn{position:relative;min-height:83px;padding:11px 64px 12px 13px;border:1px solid #66502e;border-radius:10px;background:linear-gradient(145deg,#2b271f,#15181c);color:#f2dfb9;text-align:left;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}.npc-act-btn:hover{transform:translateY(-1px);border-color:#d6a748;background:linear-gradient(145deg,#382d1e,#1a1c20)}.npc-act-btn:active{transform:translateY(1px)}.npc-act-btn.danger{border-color:#77333a;background:linear-gradient(145deg,#31191c,#1c1215)}.npc-act-btn.danger:hover{border-color:#d25864;background:linear-gradient(145deg,#422026,#211317)}.npc-act-btn-title{display:block;color:#ffe4a6;font:900 13px/1.2 system-ui}.npc-act-btn.danger .npc-act-btn-title{color:#ffbdc2}.npc-act-btn-note{display:block;margin-top:7px;color:#9fa8b2;font:650 10px/1.35 system-ui}.npc-act-btn-tag{position:absolute;top:11px;right:10px;max-width:55px;padding:4px 6px;border:1px solid #6d5937;border-radius:6px;background:#0d0f12;color:#d9b86f;font:900 8px/1 system-ui;letter-spacing:.55px;text-align:center}.npc-act-btn.danger .npc-act-btn-tag{border-color:#74323a;color:#ff919b}.npc-act-btn:disabled{opacity:.48;cursor:wait}.npc-act-foot{padding:0 15px 15px;color:#7e8996;font:700 9px/1.3 system-ui;text-align:center}.npc-cash-flash{animation:npcCashHudFlash .42s ease 3}@keyframes npcCashHudFlash{50%{filter:brightness(1.8);transform:scale(1.05)}}@media(max-width:520px){#npcActionOverlay{align-items:flex-end;padding:8px}.npc-act-grid{grid-template-columns:1fr}.npc-act-btn{min-height:72px}}
+  `;document.head.appendChild(style);
+  overlay=document.createElement('div');overlay.id='npcActionOverlay';overlay.innerHTML='<div id="npcActionCard"><div class="npc-act-head"><div class="npc-act-seal">◆</div><div class="npc-act-title"><div class="npc-act-kicker">Личное дело · взаимодействие</div><div class="npc-act-name"></div></div><button class="npc-act-close" aria-label="Закрыть">×</button></div><div class="npc-act-status"></div><div class="npc-act-grid"></div><div class="npc-act-foot">Во время разговора движение и оружие заблокированы · ESC — закрыть</div></div>';
+  document.body.appendChild(overlay);overlay.addEventListener('pointerdown',e=>{e.stopPropagation();},true);overlay.addEventListener('click',e=>{e.stopPropagation();if(e.target===overlay||e.target.closest('.npc-act-close'))closeNpcActionMenu();const btn=e.target.closest('[data-npc-action]');if(btn)_runNpcAction(btn.dataset.npcAction);});return overlay;
+}
+function closeNpcActionMenu(){
+  const overlay=document.getElementById('npcActionOverlay');overlay?.classList.remove('show');_npcActionTarget=null;delete document.documentElement.dataset.npcActionMenu;window.dispatchEvent(new CustomEvent('mafiozi-npc-action-mode',{detail:{open:false}}));
+}
+function openNpcActionMenuFrom3D(entityId){
+  const key=String(entityId||''),entry=_threeNpcActionRefs.get(key);if(!entry)return {ok:false,reason:'missing'};
+  const ref=entry.ref||entry.view,view=entry.view||{},distance=Math.hypot((+(view.r??ref.r??ref.y)||0)-player.r,(+(view.c??ref.c??ref.x)||0)-player.c);if(distance>3.5)return {ok:false,reason:'far'};
+  const kind=_npcActionKind(ref,view);if(kind==='mechanic'){showToast('Механик сейчас занят работой','🔧',1600);return {ok:false,reason:'mechanic-untouched'};}
+  _npcActionTarget={key,ref,view,kind};const overlay=_ensureNpcActionMenu(),labels={civilian:'Житель',police:'Полицейский',bandit:'Бандит',crew:'Боец вашей банды',witness:'Свидетель',doctor:'Врач',homeless:'Бездомный'};
+  overlay.querySelector('.npc-act-name').textContent=view.name||ref.name||labels[kind]||'Житель';overlay.querySelector('.npc-act-status').textContent=kind==='witness'?'Собирается сообщить полиции':kind==='police'?(myWanted?`Проверяет ориентировку · розыск ${myWanted}`:'На службе · нарушений не видит'):kind==='doctor'?`Может восстановить здоровье · ${Math.round(myHp)}/${PVP.max_hp||100} HP`:labels[kind];
+  const grid=overlay.querySelector('.npc-act-grid');grid.innerHTML='';for(const [id,label] of _npcActionButtons(kind,ref,view))_appendNpcActionButton(grid,id,label);
+  overlay.classList.add('show');document.documentElement.dataset.npcActionMenu=`open:${kind}`;window.dispatchEvent(new CustomEvent('mafiozi-npc-action-mode',{detail:{open:true,kind}}));return {ok:true,kind,key};
+}
+function _runNpcAction(action){
+  const t=_npcActionTarget;if(!t)return;const {ref,view,kind}=t,now=performance.now(),finish=(text,icon='💬')=>{if(text)showToast(text,icon,2200);closeNpcActionMenu();};
+  if(action==='talk'){const text=kind==='police'?(myWanted?'Остановитесь. Вы подходите под описание.':'Не нарушайте порядок.'):kind==='doctor'?'Берегите себя. Улицы сегодня неспокойные.':kind==='bandit'?'Деньги вперёд. Верность потом.':kind==='crew'?'Я рядом, босс.':kind==='homeless'?'Город говорит с теми, кто умеет слушать.':'Добрый день. Здесь всякое бывает.';_npcActionSay(ref,text);finish(text);return;}
+  if(action==='rumor'){const text=_npcActionDistrictLine();_npcActionSay(ref,text,3600);finish(text,'🗞️');return;}
+  if(action==='give25'||action==='give10'){
+    const amount=action==='give25'?25:10;if(myCash<amount){_npcActionSay(ref,'У тебя не хватает денег.');showToast(`Нужно $${amount}`,'💵',1800);return;}
+    if(_pendingNpcGift)return;_pendingNpcGift={ref,action,amount};const overlay=document.getElementById('npcActionOverlay');overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=true);
+    if(ws&&ws.readyState===1){try{ws.send(JSON.stringify({t:'npc_cash_action',d:{action}}));}catch(e){_pendingNpcGift=null;overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);showToast('Не удалось провести оплату','⚠️',1900);}return;}
+    _pendingNpcGift=null;if(!_npcActionSpend(amount))return;_npcActionFloat(`Ты отдал −$${amount}`,'#8fe3be');_npcActionSay(ref,'Спасибо. Такое не забывают.');_districtRepAdd(1,'помощь жителю',true);finish(`Баланс $${formatExactMoney(myCash)} · −$${amount}`,'🤝');return;
+  }
+  if(action==='threaten'){const d=districtAt(player.r,player.c),rep=d?_districtRepValue(d.id):0,chance=Math.max(.25,Math.min(.85,.5+myWanted*.08-rep*.003));_districtRepAdd(-1,'угроза жителю',true);if(Math.random()<chance){ref._npcSurrenderUntil=now+5000;_npcActionSay(ref,'Ладно… только не трогай меня.');finish('Житель испугался и уступил','🔪');}else{_npcActionCrime(ref,-1);finish('Житель зовёт полицию','📞');}return;}
+  if(action==='rob'){
+    const left=_npcRobCooldownLeft(t.key);if(left){const mins=Math.max(1,Math.ceil(left/60000)),text=`У меня больше нет денег. Приходи через ${mins} мин.`;_npcActionSay(ref,text,3200);finish(text,'💸');return;}
+    const robberyId=`${QP.uid||'preview'}:${t.key}:${Date.now()}`;_setNpcRobCooldown(t.key);_pendingNpcRobbery={ref,key:t.key,amount:0,robberyId};
+    _npcActionSay(ref,'Не трогай меня! Я отдам всё, что есть!',3200);closeNpcActionMenu();
+    if(ws&&ws.readyState===1)try{ws.send(JSON.stringify({t:'npc_robbery',d:{npc_id:t.key,robbery_id:robberyId}}));}catch(e){const amount=1+Math.floor(Math.random()*10);_completeNpcRobbery(ref,t.key,amount,robberyId);_pendingNpcRobbery=null;}
+    else{const amount=1+Math.floor(Math.random()*10);_completeNpcRobbery(ref,t.key,amount,robberyId);_pendingNpcRobbery=null;}return;
+  }
+  if(action==='documents'){const text=myWanted?'Документы не сходятся. Оставайтесь на месте.':'Всё в порядке. Можете идти.';_npcActionSay(ref,text);finish(text,'🪪');return;}
+  if(action==='bribe'){if(!myWanted){_npcActionSay(ref,'Уберите деньги. Вы ничего не нарушили.');finish('Офицер не видит причин для такого разговора','👮');return;}const cost=120+myWanted*180;if(!_npcActionSpend(cost)){_npcActionSay(ref,'У вас нет таких денег.');return;}const d=districtAt(player.r,player.c),rep=d?_districtRepValue(d.id):0;if(Math.random()<Math.max(.25,Math.min(.82,.48+rep*.004))){myWanted=Math.max(0,myWanted-1);_npcActionSay(ref,'Сегодня я вас не видел.');finish(`Розыск снижен · −$${cost}`,'💵');}else{_npcActionSay(ref,'Вы пытаетесь подкупить офицера?');myWanted=Math.min(3,myWanted+1);finish(`Взятка не принята · розыск ${myWanted}`,'🚨');}return;}
+  if(action==='surrender'){_npcActionSay(ref,myWanted?'Оружие не доставай. Руки на виду.':'У вас нет розыска.');closeNpcActionMenu();if(!_beginVoluntarySurrender())showToast(myWanted?'Сейчас сдаться не удалось':'У тебя нет розыска','🙌',1900);return;}
+  if(action==='pay_silence'){_silenceWitness(ref);closeNpcActionMenu();return;}
+  if(action==='threaten_silence'){_districtRepAdd(-2,'угроза свидетелю',true);if(Math.random()<.48){ref.snitching=false;ref._witnessStage='silent';ref._witnessCallUntil=0;_npcActionSay(ref,'Я ничего не видел…');finish('Свидетель отступил','🤫');}else{ref._witnessCallUntil=now+450;_npcActionSay(ref,'Полиция уже едет!');finish('Запугать свидетеля не удалось','📞');}return;}
+  if(action==='heal'){const missing=Math.max(0,(PVP.max_hp||100)-myHp),cost=Math.max(50,Math.min(120,50+Math.ceil(missing*.7)));if(!missing){_npcActionSay(ref,'Вам не требуется лечение.');finish('Лечение не требуется','🩺');return;}if(!_npcActionSpend(cost)){_npcActionSay(ref,'У вас не хватает на лечение.');return;}myHp=PVP.max_hp||100;_npcActionSay(ref,'Готово. Постарайтесь не открывать рану.');finish(`Здоровье восстановлено · −$${cost}`,'🩺');return;}
+  if(action==='price'){const boss=!!(ref.is_boss||ref.boss||String(ref.kind||'').includes('boss')),cost=Math.max(50,Math.round((boss?800:GANG_HIRE_COST)*(_mafiaLevel()>=2?.85:1)));_npcActionSay(ref,`Моя цена — $${cost}.`);finish(`Найм: $${cost} · уровень ${Math.max(1,+view.level||+ref.level||1)}`,'📋');return;}
+  if(action==='hire'){const sourceId=String(view.sourceId||ref.sourceId||ref.id||'');const found=_findLiveAggroBotById(sourceId);if(!found){_npcActionSay(ref,'Сейчас не могу.');finish('Этот боец сейчас недоступен','⚠️');return;}const b=found.bot;_npcActionSay(ref,'Договорились. Я с тобой.');closeNpcActionMenu();_hireGangMember(b.look,+b.y||0,+b.x||0,b.id,!!(b.is_boss||b.boss),+b.level||1,+b.max_hp||0,false,b.weapon,b.faction);return;}
+  if(action==='command'){ref._npcCommandAt=now;_npcActionSay(ref,'Понял. Держусь рядом и прикрываю.');finish('Боец подтвердил команду','✋');return;}
+  if(action==='dismiss'){_npcActionSay(ref,'Понял, босс. Я ухожу.');closeNpcActionMenu();_dismissGangMember(ref.id);return;}
+  if(action==='errand'){const districts=(typeof DISTRICTS!=='undefined'?DISTRICTS:[]).filter(d=>d&&d.id!==districtAt(player.r,player.c)?.id);if(!districts.length){_npcActionSay(ref,'Сейчас для тебя поручений нет.');finish('Сейчас поручений нет','📦');return;}const target=districts[Math.floor(Math.random()*districts.length)];_npcStreetErrand={npc:ref,target:target.id,name:target.name||target.label||'другой район'};_npcActionSay(ref,`Загляни в ${_npcStreetErrand.name} и вернись ко мне.`);finish(`Поручение: посетить «${_npcStreetErrand.name}»`,'📦');return;}
+  if(action==='finish_errand'){_npcActionEarn(90);_districtRepAdd(2,'помощь жителю',true);_npcStreetErrand=null;_npcActionSay(ref,'Вот твоя награда. Хорошая работа.');finish('Поручение выполнено · +$90 · репутация +2','✅');}
+}
+window.addEventListener('keydown',e=>{if(e.code==='Escape'&&document.documentElement.dataset.npcActionMenu){e.preventDefault();e.stopImmediatePropagation();closeNpcActionMenu();}},true);
+if(_LOCAL_PREVIEW)window.__npcActionQa={
+  keys:()=>[..._threeNpcActionRefs.keys()],
+  openFirst:()=>{const key=_threeNpcActionRefs.keys().next().value,entry=key&&_threeNpcActionRefs.get(key);if(!entry)return {ok:false,reason:'empty'};entry.view.r=player.r;entry.view.c=player.c;return openNpcActionMenuFrom3D(key);},
+  close:()=>closeNpcActionMenu(),
+  state:()=>({open:document.documentElement.dataset.npcActionMenu||'',target:_npcActionTarget?.kind||'',cash:myCash,wanted:myWanted,hp:myHp,robbery:_murderIncidents.find(x=>x?.source?.kind==='npc_robbery'&&!x.closedAt)||null,cooldowns:{..._npcRobCooldowns}})
+};
 
 function updateGtaInteractions() {
   document.body.classList.remove('near-major-establishment');
@@ -29927,13 +30154,17 @@ function formatMoney(n) {
 function formatExactMoney(n) {
   return Math.max(0, Math.trunc(Number(n) || 0)).toLocaleString('ru-RU');
 }
-let _moneyExactVisible = false;
+let _moneyExactVisible = false, _moneyTemporaryExactUntil = 0, _moneyTemporaryExactTimer = 0;
 function updateMoneyHud() {
   if (_moneyCashEl) _moneyCashEl.textContent = formatMoney(myCash);
   if (_moneyDiaEl)  _moneyDiaEl.textContent  = formatMoney(myDiamonds);
   // Деньги в верхнем HUD-баре (аватар+lvl+имя+HP+деньги+время).
   const _hm = document.getElementById('hudMoneyVal');
-  if (_hm) _hm.textContent = _moneyExactVisible ? formatExactMoney(myCash) : formatMoney(myCash);
+  if (_hm) _hm.textContent = (_moneyExactVisible||Date.now()<_moneyTemporaryExactUntil) ? formatExactMoney(myCash) : formatMoney(myCash);
+}
+function showExactMoneyHudTemporarily(ms=2600){
+  _moneyTemporaryExactUntil=Date.now()+ms;clearTimeout(_moneyTemporaryExactTimer);updateMoneyHud();
+  _moneyTemporaryExactTimer=setTimeout(()=>{_moneyTemporaryExactUntil=0;updateMoneyHud();},ms+30);
 }
 const _hudMoneyToggle = document.getElementById('hudMoneyToggle');
 function toggleExactMoney() {
@@ -59407,7 +59638,7 @@ window.Mafiozi3DBridge = Object.freeze({
       walking: !!player.walking, walkPhase: +player.walkPhase || 0,
       speed:anim.speed,accel:anim.accel,moveAng:anim.moveAng,teleported:anim.teleported,aiming:anim.aiming,impact:anim.impact,
       hp: _LOCAL_PREVIEW&&_UP.has('previewlimp')?20:Math.max(0,+myHp||0),
-      dead:arrest?['awaiting_pickup','downed','cuffing','unloading'].includes(arrestPhase):!!myDead,
+      dead:arrest?(arrest.peaceful?['awaiting_pickup','downed','unloading'].includes(arrestPhase):['awaiting_pickup','downed','cuffing','unloading'].includes(arrestPhase)):!!myDead,
       arrestPhase:arrestVisualPhase,arrestProgress,voluntarySurrender:!!arrest?.voluntary,cuffed:servingSentence||['cuffing','escort','loading','transport','unloading','handoff','prison_escort','booking'].includes(arrestPhase),arrestHidden:arrestPhase==='transport',
       mode: myMode, weapon:previewWeaponId||currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
@@ -59851,15 +60082,15 @@ window.Mafiozi3DBridge = Object.freeze({
     let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.room==='vault'?[]:(_bankInt.npcs||[])):(typeof NPCS!=='undefined'?NPCS:[]);
     if(!inside){
       const combat=[];
-      if(typeof _myGang!=='undefined')for(const g of _myGang)if(g)combat.push({...g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,behavior:'follows_player',name:g.name||'Боец семьи',family:_customGang?.name||g.gangName||g.faction||''});
-      if(typeof _policeBackupUnits!=='undefined')for(const cop of _policeBackupUnits)if(cop)combat.push({...cop,id:`police_${cop.id}`,role:'police',police:true,name:cop.name||'Офицер'});
+      if(typeof _myGang!=='undefined')for(const g of _myGang)if(g)combat.push({...g,_actionRef:g,id:`crew_${g.id}`,role:'gang_fighter',gang:true,behavior:'follows_player',name:g.name||'Боец семьи',family:_customGang?.name||g.gangName||g.faction||''});
+      if(typeof _policeBackupUnits!=='undefined')for(const cop of _policeBackupUnits)if(cop)combat.push({...cop,_actionRef:cop,id:`police_${cop.id}`,role:'police',police:true,name:cop.name||'Офицер'});
       if(typeof worldEvent!=='undefined'&&worldEvent){const eventPeople=[worldEvent.boss,...(worldEvent.guards||[])].filter(Boolean);for(const person of eventPeople)combat.push({...person,id:`world_event_${worldEvent.id||'event'}_${person.id}`,r:+person.y||0,c:+person.x||0,dead:person.alive===false,role:person===worldEvent.boss?'convoy_boss':'convoy_guard',gang:true,name:person===worldEvent.boss?'Инкассатор':'Охрана конвоя'});}
-      if(typeof aggroZones!=='undefined')for(const zone of Object.values(aggroZones||{}))for(const bot of zone?.bots||[])if(bot&&bot.alive!==false)combat.push({...bot,id:`aggro_${zone.id||'zone'}_${bot.id}`,sourceId:String(bot.id),hireable:!_isDistrictDefenderBot(bot),r:+bot.y||0,c:+bot.x||0,role:bot.kind||'gang_fighter',gang:true,behavior:'hostile_zone',name:bot.name||'Боец банды'});
+      if(typeof aggroZones!=='undefined')for(const zone of Object.values(aggroZones||{}))for(const bot of zone?.bots||[])if(bot&&bot.alive!==false)combat.push({...bot,_actionRef:bot,id:`aggro_${zone.id||'zone'}_${bot.id}`,sourceId:String(bot.id),hireable:!_isDistrictDefenderBot(bot),r:+bot.y||0,c:+bot.x||0,role:bot.kind||'gang_fighter',gang:true,behavior:'hostile_zone',name:bot.name||'Боец банды'});
       if(typeof gangNests!=='undefined')for(const nest of gangNests||[])for(const guard of nest?.guards||[])if(guard&&!guard.dead&&(+guard.hp||1)>0)combat.push({...guard,id:`nest_${nest.id||'gang'}_${guard.id}`,r:+(guard.r??guard.y)||0,c:+(guard.c??guard.x)||0,role:guard.kind||'gang_guard',gang:true,behavior:'guards_nest',name:guard.name||guard.boss_name||'Боец банды'});
       if(typeof BUSINESS_POIS!=='undefined'&&typeof myBusinesses!=='undefined'&&typeof _idleBusinessGuardPose==='function')for(const biz of BUSINESS_POIS){const own=myBusinesses.get(biz.id);if(!own?.owned||_isBusinessGangOccupied(biz.id,own))continue;for(let i=0;i<Math.min(6,+own.guards||0);i++){const pose=_idleBusinessGuardPose(biz,i);combat.push({...pose,id:`biz_guard_${biz.id}_${i}`,r:+pose.y||0,c:+pose.x||0,role:'guard',name:`Охрана · ${biz.name}`,hp:100,max_hp:100});}}
       if(typeof beachgoers!=='undefined')for(const beachNpc of beachgoers.values()){if(!beachNpc||beachNpc._evacuated||beachNpc._carriedByAmbulance)continue;const pos=_beachgoerWorldPos(beachNpc);combat.push({...beachNpc,id:`beach_${beachNpc.id}`,r:beachNpc.dead?(beachNpc._deathR??pos.r):pos.r,c:beachNpc.dead?(beachNpc._deathC??pos.c):pos.c,role:'beach_civilian',name:beachNpc.name||'Отдыхающий'});}
-      if(typeof cityCops!=='undefined')for(const cop of cityCops||[])if(cop)combat.push({...cop,id:`city_cop_${cop.id}`,r:+cop.y||0,c:+cop.x||0,dead:cop.alive===false,role:'police',police:true,name:cop.name||'Полицейский'});
-      if(typeof worldCops!=='undefined')for(const cop of worldCops||[])if(cop)combat.push({...cop,id:`world_cop_${cop.id}`,r:+(cop.y??cop.r)||0,c:+(cop.x??cop.c)||0,dead:cop.alive===false||cop.dead===true,role:'police_response',police:true,name:cop.name||'Полиция'});
+      if(typeof cityCops!=='undefined')for(const cop of cityCops||[])if(cop)combat.push({...cop,_actionRef:cop,id:`city_cop_${cop.id}`,r:+cop.y||0,c:+cop.x||0,dead:cop.alive===false,role:'police',police:true,name:cop.name||'Полицейский'});
+      if(typeof worldCops!=='undefined')for(const cop of worldCops||[])if(cop)combat.push({...cop,_actionRef:cop,id:`world_cop_${cop.id}`,r:+(cop.y??cop.r)||0,c:+(cop.x??cop.c)||0,dead:cop.alive===false||cop.dead===true,role:'police_response',police:true,name:cop.name||'Полиция'});
       // When there is no authoritative aggro snapshot (plain browser launch),
       // retain the old 2D lair population until real server fighters arrive.
       if(typeof AGGRO_ZONES!=='undefined')for(const zoneDef of AGGRO_ZONES){
@@ -59880,7 +60111,7 @@ window.Mafiozi3DBridge = Object.freeze({
       if(typeof serviceVehicles!=='undefined')for(const service of serviceVehicles){
         if(service?.kind!=='ambulance'||!service._medicalScene?.active)continue;
         for(const medic of (service._medicalCrew||[]))if(medic?.visible)combat.push({
-          ...medic,id:medic.id,role:'medic',name:medic.slot?'Врач скорой':'Старший врач',
+          ...medic,_actionRef:medic,id:medic.id,role:'medic',name:medic.slot?'Врач скорой':'Старший врач',
           walking:!!medic.walking,moving:!!medic.walking,hp:100,max_hp:100,
           _medicCarry:!!medic.carrying,_medicSlot:+medic.slot||0,_medicAction:medic.action||'',
           _medicActionProgress:+medic.actionProgress||0,behavior:'ambulance_body_recovery',
@@ -59925,10 +60156,11 @@ window.Mafiozi3DBridge = Object.freeze({
       npcSelected.push(...overflow.slice(0,NPC_LIFE_NPC_CAP-npcSelected.length));
     }
     document.documentElement.dataset.npcLifePools=`mission:${npcEligible.filter(x=>npcLifePool(x)==='mission').length},police:${npcEligible.filter(x=>npcLifePool(x)==='police').length},guard:${npcEligible.filter(x=>npcLifePool(x)==='guard').length},gang:${npcEligible.filter(x=>npcLifePool(x)==='gang').length},civilian:${npcEligible.filter(x=>npcLifePool(x)==='civilian').length},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
-    const npcs=npcSelected.map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:Number.isFinite(+x.tgtR)?+x.tgtR:Number.isFinite(+x.ty)?+x.ty:r,targetC=Number.isFinite(+x.tc)?+x.tc:Number.isFinite(+x.tgtC)?+x.tgtC:Number.isFinite(+x.tx)?+x.tx:c,targetMoving=Math.hypot(targetR-r,targetC-c)>.035,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,+x.max_hp||+x.maxHp||60),hp=death.dead?0:(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._lifeState||x.lifeState||''),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow));return {
+    _threeNpcActionRefs.clear();
+    const npcs=npcSelected.map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:Number.isFinite(+x.tgtR)?+x.tgtR:Number.isFinite(+x.ty)?+x.ty:r,targetC=Number.isFinite(+x.tc)?+x.tc:Number.isFinite(+x.tgtC)?+x.tgtC:Number.isFinite(+x.tx)?+x.tx:c,targetMoving=Math.hypot(targetR-r,targetC-c)>.035,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,+x.max_hp||+x.maxHp||60),hp=death.dead?0:(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._lifeState||x.lifeState||''),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow));const view={
       id,r,c,ang:+x.ang||0,walking:!death.dead&&(declaredMoving||targetMoving),moving:!death.dead&&(declaredMoving||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
-      role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,54):'',hp,maxHp,
+      role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,84):'',hp,maxHp,
       said:!!x._said,important:!!(x._said||x._keyNpc||x._invulnerable),talkable:!!x._said,hired:!!(x._said&&_saidState?.hired),
       lifeState:lifeState||'',panic,cowering,surrendering,surrendered:surrendering,helping,
       talking:social,social,alerted:!death.dead&&(lifeState==='alert'||x._alertUntil>fxNow),
@@ -59945,7 +60177,8 @@ window.Mafiozi3DBridge = Object.freeze({
       severMask:+x._severMask||0,forcedCrawl:!!x._forcedCrawl,
       medicCarry:!!x._medicCarry,medicSlot:+x._medicSlot||0,
       medicAction:x._medicAction||'',medicActionProgress:+x._medicActionProgress||0,
-    };});
+    };_threeNpcActionRefs.set(String(id),{ref:x._actionRef||x,view});return view;});
+    if(_LOCAL_PREVIEW&&_UP.has('previewnpcactions')&&npcs[0]){npcs[0].r=player.r+1.5;npcs[0].c=player.c+.25;npcs[0].walking=npcs[0].moving=false;}
     if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const [j,npc] of npcs.slice(0,8).entries())if(!npc.dead){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*3.8;npc.c=player.c+Math.cos(a)*3.8;npc.ang=a;npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.forcedCrawl=false;npc.severMask=0;npc.walking=true;}
     if(_LOCAL_PREVIEW&&_UP.has('previewnpcwalk'))for(const [j,npc] of npcs.filter(x=>!x.dead).slice(0,6).entries()){const a=-1.05+j*.42;npc.r=player.r+Math.sin(a)*4.2;npc.c=player.c+Math.cos(a)*4.2;npc.ang=a+Math.PI;npc.hp=npc.maxHp;npc.forcedCrawl=false;npc.severMask=0;npc.walking=npc.moving=true;npc.speed=2.4;npc.look={...(npc.look||{}),suit:j===0?'#20b8aa':j===1?'#4a9bd8':j===2?'#e59b45':npc.look?.suit};}
     if(_LOCAL_PREVIEW&&_UP.has('previewlabels')){
@@ -60179,6 +60412,8 @@ window.Mafiozi3DBridge = Object.freeze({
     return accepted;
   },
   selectGangNpc(sourceId) { return selectGangNpcFrom3D(sourceId); },
+  openNpcActions(entityId) { return openNpcActionMenuFrom3D(entityId); },
+  closeNpcActions() { closeNpcActionMenu(); return {ok:true}; },
   openBrigadirActions() { return openBrigadirActionCardFrom3D(); },
   canStand(r, c) { return Number.isFinite(r) && Number.isFinite(c) && !isBlocked(r, c); },
 });
@@ -64052,6 +64287,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d302-final-combat-prewarm"></script>
+<script type="module" src="three_preview.js?v=3d303-npc-actions-money"></script>
 </body>
 </html>
