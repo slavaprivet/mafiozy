@@ -9433,7 +9433,7 @@ function updateCityCops(dt) {
   }
   const policeInSolids=cityCops.filter(c=>c?.alive&&!_policeCrewBodyPassable(c.y,c.x));
   document.documentElement.dataset.policeBuildingOverlap=policeInSolids.length?policeInSolids.map(c=>c.id).join(','):'0';
-  document.documentElement.dataset.policeFootNavigation='body-collision-cardinal-route-v1';
+  document.documentElement.dataset.policeFootNavigation='body-collision-cardinal-route-v2-stall-replan';
 }
 
 // ── Спецтранспорт: скорая и пожарная ────────────────────────────────
@@ -10794,11 +10794,13 @@ function _markPoliceShot(cop,weapon,now=performance.now()){
 // a short cached cardinal route whenever the direct pursuit step meets a wall.
 function _movePoliceFootCop(cop,targetR,targetC,dt,mul=1){
   const now=performance.now(),directR=targetR-cop.y,directC=targetC-cop.x,directD=Math.hypot(directR,directC);
-  if(directD<.18){_clearPoliceFootRoute(cop);return true;}
+  if(directD<.18){_clearPoliceFootRoute(cop);cop._policeFootBlockedSince=0;cop._policeFootLastMoveAt=now;return true;}
+  if(!Number.isFinite(+cop._policeFootLastMoveAt))cop._policeFootLastMoveAt=now;
   const speed=(cop.speed||1.35)*mul,step=Math.min(directD,speed*dt);
   const tryStep=(wr,wc)=>{const d=Math.hypot(wr,wc)||1,rr=wr/d*step,cc=wc/d*step;
     if(!_policeCrewBodyPassable(cop.y+rr,cop.x+cc))return false;
-    cop.y+=rr;cop.x+=cc;cop.ang=Math.atan2(rr,cc);cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;return true;};
+    cop.y+=rr;cop.x+=cc;cop.ang=Math.atan2(rr,cc);cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;
+    cop._policeFootBlockedSince=0;cop._policeFootLastMoveAt=now;return true;};
   if(!cop._policeFootRoute?.length&&tryStep(directR,directC))return false;
   const routeStale=now>=(cop._policeFootRouteUntil||0)||Math.hypot(targetR-(cop._policeFootRouteTargetR||0),targetC-(cop._policeFootRouteTargetC||0))>2;
   if(routeStale||!cop._policeFootRoute?.length)_planPoliceFootRoute(cop,targetR,targetC,now);
@@ -10806,7 +10808,16 @@ function _movePoliceFootCop(cop,targetR,targetC,dt,mul=1){
   while(wp&&Math.hypot(wp.r-cop.y,wp.c-cop.x)<.24){idx++;wp=route[idx];cop._policeFootRouteIndex=idx;}
   if(wp&&tryStep(wp.r-cop.y,wp.c-cop.x))return false;
   if(tryStep(directR,directC)){_clearPoliceFootRoute(cop);return false;}
-  cop._policeFootRouteUntil=Math.max(cop._policeFootRouteUntil||0,now+220);cop._policeFootRouteRetryAt=Math.max(cop._policeFootRouteRetryAt||0,now+220);return false;
+  if(!cop._policeFootBlockedSince)cop._policeFootBlockedSince=now;
+  const blockedFor=now-cop._policeFootBlockedSince;
+  if(blockedFor>=520){
+    // Do not extend a failed route forever. A tree or another compact map
+    // obstacle can invalidate its first waypoint while the officer remains on
+    // a legal tile. Drop that route so the bounded BFS chooses another side.
+    _clearPoliceFootRoute(cop);cop._policeFootRouteRetryAt=now+70;cop._policeFootBlockedSince=now;
+    document.documentElement.dataset.policeFootStallRecoveries=String((+document.documentElement.dataset.policeFootStallRecoveries||0)+1);
+  }
+  return false;
 }
 function _murderPoliceSpacingVector(cop,radius=1.55){
   const phase=String(cop?._casePhase||'');
@@ -11623,6 +11634,26 @@ function _anchorCuffingOfficer(cop){
   if(!Number.isFinite(ang))ang=Number.isFinite(+player.ang)?+player.ang:0;
   cop.y=player.r-Math.sin(ang)*.52;cop.x=player.c-Math.cos(ang)*.52;cop.ang=ang;cop.walkPhase=0;
 }
+function _stagePreviewPoliceEscortTree(ar,v,primary,now=performance.now()){
+  if(!_LOCAL_PREVIEW||!ar||!v||!primary)return {ok:false,reason:'escort-actors-missing'};
+  let fixture=null;const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+  for(let r=2;r<MAP_ROWS-2&&!fixture;r++)for(let c=2;c<MAP_COLS-2&&!fixture;c++){
+    if(MAP[r]?.[c]!==6)continue;
+    for(const [dr,dc] of dirs){
+      const start={r:r+.5+dr*1.45,c:c+.5+dc*1.45},door={r:r+.5-dr*1.45,c:c+.5-dc*1.45};
+      if(!_policeCrewBodyPassable(start.r,start.c)||!_policeCrewBodyPassable(door.r,door.c))continue;
+      fixture={tree:{r:r+.5,c:c+.5},start,door};break;
+    }
+  }
+  if(!fixture)return {ok:false,reason:'tree-fixture-not-found'};
+  v.ang=0;v.y=fixture.door.r+.62;v.x=fixture.door.c-.08;v.speed=0;v.state='police_arrest_scene';v.path=[];v.pathIdx=0;
+  primary.y=fixture.start.r;primary.x=fixture.start.c;primary.ang=Math.atan2(fixture.door.r-fixture.start.r,fixture.door.c-fixture.start.c);
+  primary._casePhase='arrest_escort';_clearPoliceFootRoute(primary);primary._policeFootBlockedSince=0;
+  player.r=primary.y-Math.sin(primary.ang)*.58;player.c=primary.x-Math.cos(primary.ang)*.58;player.walking=true;
+  ar.phase='escort';ar.phaseAt=now;ar.escortLastR=primary.y;ar.escortLastC=primary.x;ar.escortLastMoveAt=now;ar.escortRouteResets=0;
+  document.documentElement.dataset.policeArrestPhase='escort';document.documentElement.dataset.previewPoliceEscortTree=JSON.stringify(fixture);
+  return {ok:true,...fixture,phase:ar.phase};
+}
 function _updateMurderPoliceArrest(v,dt,now=performance.now()){
   const ar=_murderPoliceArrest;
   if(!ar||String(ar.vehicleId)!==String(v?.id)){if(v)v.state='police_search';return false;}
@@ -11634,6 +11665,9 @@ function _updateMurderPoliceArrest(v,dt,now=performance.now()){
   if(ar.coverCopId&&!_murderPoliceCopActive(cover,ar)){
     cover=_murderCrewForVehicle(v).find(q=>q!==primary)||null;ar.coverCopId=cover?.id||'';
     if(cover){cover._casePhase='arrest_cover';cover._phaseStartedAt=now;cover._pursuing=true;}
+  }
+  if(_LOCAL_PREVIEW&&_UP.has('previewpoliceescorttree')&&!document.documentElement.dataset.previewPoliceEscortTree){
+    _stagePreviewPoliceEscortTree(ar,v,primary,now);
   }
   if(_LOCAL_PREVIEW&&_UP.has('previewpolicerescue')&&ar.phase==='cuffing'&&now-ar.phaseAt>1100&&!document.documentElement.dataset.previewPoliceRescueTriggered){
     document.documentElement.dataset.previewPoliceRescueTriggered=primary.id;
@@ -11669,11 +11703,21 @@ function _updateMurderPoliceArrest(v,dt,now=performance.now()){
     primary._lifeState='helping';primary._lifeGesture='aid';primary.walkPhase=0;
     if(now-ar.phaseAt>=POLICE_ARREST_CUFF_MS){
       primary._lifeState='';primary._lifeGesture='';primary._casePhase='arrest_escort';
+      ar.escortLastR=primary.y;ar.escortLastC=primary.x;ar.escortLastMoveAt=now;ar.escortRouteResets=0;
       _setMurderPoliceArrestPhase(ar,'escort',now);player.walking=true;
       _copChats.set(primary.id,{text:'К машине. Без резких движений.',untilMs:now+2100});
     }
   }else if(ar.phase==='escort'){
     const door=_policeCrewBoardPoint(v,primary._crewSlot),reached=_moveMurderResponseCop(primary,door.r,door.c,dt,1.02);
+    const escortMoved=Math.hypot(primary.y-(+ar.escortLastR||primary.y),primary.x-(+ar.escortLastC||primary.x));
+    if(escortMoved>.025){ar.escortLastR=primary.y;ar.escortLastC=primary.x;ar.escortLastMoveAt=now;}
+    else if(now-(+ar.escortLastMoveAt||now)>900){
+      // Custody must not hang on a stale pedestrian route. The ordinary mover
+      // replans on its own too; this shorter escort watchdog guarantees that a
+      // carried player never waits indefinitely beside a tree.
+      _clearPoliceFootRoute(primary);primary._policeFootBlockedSince=now-520;ar.escortLastMoveAt=now;ar.escortRouteResets=(+ar.escortRouteResets||0)+1;
+      document.documentElement.dataset.policeArrestEscortRouteResets=String((+document.documentElement.dataset.policeArrestEscortRouteResets||0)+1);
+    }
     const followR=primary.y-Math.sin(primary.ang)*.58,followC=primary.x-Math.cos(primary.ang)*.58,k=Math.min(1,dt*7);
     player.r+=(followR-player.r)*k;player.c+=(followC-player.c)*k;player.ang=primary.ang;player.walking=true;player.walkPhase+=dt*7;
     if(reached||Math.hypot(primary.y-door.r,primary.x-door.c)<.35||now-ar.phaseAt>8200){
@@ -60204,6 +60248,21 @@ window.Mafiozi3DBridge = Object.freeze({
     hitCityCop(cop,0,1,999,{kind:String(sourceKind||'player'),ref:{uid:'preview-gangmate'},weapon:'rifle'});
     return {ok:true,phase:document.documentElement.dataset.policeArrestPhase||'',hp:myHp,dead:myDead,
       corpse:NPCS.some(n=>n.id===corpseId)};
+  },
+  previewStagePoliceEscortTree() {
+    if(!_LOCAL_PREVIEW||!_murderPoliceArrest)return {ok:false,reason:'no-active-arrest'};
+    const ar=_murderPoliceArrest,v=serviceVehicles.find(q=>String(q?.id)===String(ar.vehicleId));
+    const primary=cityCops.find(q=>String(q?.id)===String(ar.copId)&&q?.alive);
+    if(!v||!primary)return {ok:false,reason:'escort-actors-missing'};
+    return _stagePreviewPoliceEscortTree(ar,v,primary,performance.now());
+  },
+  previewPoliceEscortTreeState() {
+    if(!_LOCAL_PREVIEW)return null;
+    const ar=_murderPoliceArrest,v=ar?serviceVehicles.find(q=>String(q?.id)===String(ar.vehicleId)):null;
+    const primary=ar?cityCops.find(q=>String(q?.id)===String(ar.copId)&&q?.alive):null;
+    return {phase:ar?.phase||document.documentElement.dataset.policeArrestPhase||'idle',resets:+ar?.escortRouteResets||0,
+      stallRecoveries:+document.documentElement.dataset.policeFootStallRecoveries||0,escortRecoveries:+document.documentElement.dataset.policeArrestEscortRouteResets||0,
+      cop:primary?[+primary.y.toFixed(2),+primary.x.toFixed(2)]:null,player:[+player.r.toFixed(2),+player.c.toFixed(2)],vehicle:v?[+v.y.toFixed(2),+v.x.toFixed(2)]:null};
   },
   previewPoliceEscalationState() {
     if(!_LOCAL_PREVIEW)return null;
