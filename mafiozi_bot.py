@@ -16214,6 +16214,10 @@ class WorldSim:
         для decay-таймера."""
         if not shooter:
             return
+        # Подкуп даёт только время скрыться. Новое преступление немедленно
+        # отменяет договорённость, иначе 45 секунд превращались бы в лицензию
+        # на безнаказанную стрельбу.
+        shooter['_police_bribe_cover_until'] = 0.0
         shooter['_wanted']      = min(self.WANTED_MAX,
                                        (shooter.get('_wanted') or 0) + amount)
         shooter['_last_shot_t'] = time.time()
@@ -16309,6 +16313,8 @@ class WorldSim:
         for uid, p in self.players.items():
             if p.get('dead'):
                 continue
+            if now < float(p.get('_police_bribe_cover_until') or 0):
+                continue
             if (p.get('_jail_until') or 0) > now:
                 continue
             if p.get('_police_cuffed_by'):
@@ -16350,7 +16356,7 @@ class WorldSim:
                         continue
             # Если target пропал или ушёл в тюрьму — переназначаем на
             # ближайший wanted с уровнем >= уровня этого копа.
-            if not t or t.get('dead') or t.get('_police_cuffed_by') or (t.get('_jail_until') or 0) > now or cur_lvl < 1:
+            if not t or t.get('dead') or t.get('_police_cuffed_by') or (t.get('_jail_until') or 0) > now or now < float(t.get('_police_bribe_cover_until') or 0) or cur_lvl < 1:
                 matching = [(p, lv) for (p, lv) in wanted_targets
                             if cop.get('kind') == 'patrol' or lv >= 2]
                 if matching:
@@ -26327,6 +26333,84 @@ async def _coop_http_app():
                                 reply = {'ok': False, 'reason': 'db_error', 'action': action, 'amount': amount}
                         try:
                             await ws.send_str(json.dumps({'t': 'event', 'd': dict(reply, kind='npc_cash_action_reply')}, ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'npc_police_bribe':
+                        # Взятка проводится только сервером: браузер больше не
+                        # может локально списать деньги/звезду, которые затем
+                        # возвращались следующим authoritative snapshot.
+                        p = world.players.get(uid)
+                        now_t = time.time()
+                        wanted = float((p or {}).get('_wanted') or 0)
+                        level = max(1, min(3, int(wanted + .999)))
+                        cost = 120 + level * 180
+                        retry_at = float((p or {}).get('_police_bribe_retry_at') or 0)
+                        reply = {'ok': False, 'reason': 'invalid', 'cost': cost,
+                                 'wanted': wanted, 'cover_s': 45}
+                        if not p or p.get('dead') or (p.get('_jail_until') or 0) > now_t:
+                            reply['reason'] = 'unavailable'
+                        elif wanted < 1:
+                            reply['reason'] = 'not_wanted'
+                        elif now_t < retry_at:
+                            reply.update(reason='cooldown', retry_s=max(1, int(retry_at - now_t)))
+                        elif int(p.get('_cash') or 0) < cost:
+                            reply.update(reason='cash', cash=int(p.get('_cash') or 0))
+                        else:
+                            accepted = random.random() < .75
+                            if accepted:
+                                try:
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        await db.execute('BEGIN IMMEDIATE')
+                                        cur = await db.execute(
+                                            "UPDATE characters SET cash = cash - ? WHERE telegram_id = ? AND cash >= ?",
+                                            (cost, int(uid), cost))
+                                        cash_row = await (await db.execute(
+                                            "SELECT cash FROM characters WHERE telegram_id = ?", (int(uid),))).fetchone()
+                                        if cur.rowcount <= 0:
+                                            await db.rollback()
+                                            reply.update(reason='cash', cash=int((cash_row or [0])[0] or 0))
+                                        else:
+                                            new_wanted = max(0.0, wanted - 1.0)
+                                            robbery_row = await (await db.execute(
+                                                "SELECT robbery_id FROM npc_robberies WHERE uid=? AND status='active' "
+                                                "ORDER BY created_at DESC LIMIT 1", (int(uid),))).fetchone()
+                                            robbery_id = str((robbery_row or [''])[0] or '')
+                                            if robbery_id:
+                                                await db.execute(
+                                                    "UPDATE npc_robberies SET status='bribed', resolved_at=? "
+                                                    "WHERE uid=? AND robbery_id=? AND status='active'",
+                                                    (int(now_t), int(uid), robbery_id))
+                                            await db.execute(
+                                                "UPDATE characters SET wanted_stars=? WHERE telegram_id=?",
+                                                (int(new_wanted), int(uid)))
+                                            await db.commit()
+                                            cash = int((cash_row or [int(p.get('_cash') or 0) - cost])[0] or 0)
+                                            p['_cash'] = cash
+                                            p['_wanted'] = new_wanted
+                                            p['_police_bribe_cover_until'] = now_t + 45
+                                            p['_police_bribe_retry_at'] = now_t + 180
+                                            world._patrol_done_at[str(uid)] = now_t
+                                            reply = {'ok': True, 'accepted': True, 'cost': cost, 'cash': cash,
+                                                     'wanted': new_wanted, 'cover_s': 45,
+                                                     'robbery_id': robbery_id, 'retry_s': 180}
+                                except Exception:
+                                    reply.update(reason='db_error')
+                            else:
+                                # За отклонённую взятку деньги не снимаются,
+                                # но офицер оформляет дополнительный рапорт.
+                                new_wanted = min(3.0, wanted + 1.0)
+                                p['_wanted'] = new_wanted
+                                p['_last_shot_t'] = now_t
+                                p['_police_bribe_cover_until'] = 0.0
+                                p['_police_bribe_retry_at'] = now_t + 30
+                                try:
+                                    await update_character(int(uid), wanted_stars=int(new_wanted))
+                                except Exception:
+                                    pass
+                                reply = {'ok': True, 'accepted': False, 'cost': 0,
+                                         'cash': int(p.get('_cash') or 0), 'wanted': new_wanted,
+                                         'cover_s': 0, 'retry_s': 30}
+                        try:
+                            await ws.send_str(json.dumps({'t': 'event', 'd': dict(reply, kind='npc_police_bribe_reply')}, ensure_ascii=False))
                         except Exception: pass
                     elif t == 'npc_robbery_state':
                         p = world.players.get(uid)
