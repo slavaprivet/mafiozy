@@ -10587,8 +10587,9 @@ function _dispatchHeistPolice(rob) {
 // На месте тот же экипаж физически выходит, прочёсывает зону и возвращается
 // в машину. После посадки наряд едет домой либо сразу на следующий вызов.
 function _policeResponseOrigin(){
-  if(typeof JAIL_ISLAND_3D_ENABLED!=='undefined'&&JAIL_ISLAND_3D_ENABLED)
-    return{r:JAIL_POLICE_STATION_3D.entryR,c:JAIL_POLICE_STATION_3D.entryC};
+  // Городские вызовы выезжают с материкового участка. Тюремная станция в 3D
+  // стоит на отдельной визуальной платформе, которая не является частью
+  // тайлового дорожного графа: из неё маршрут к ограблению мог не построиться.
   return{r:POLICE_STATION_R,c:POLICE_STATION_C};
 }
 function _policeResponseBays(){
@@ -10660,6 +10661,22 @@ function _policeSceneParking(targetR,targetC,fromR,fromC){
   chosen.path=_roadBfsPathToKey(tree,chosenKey)||[];
   if(!best&&chosen.path.length)document.documentElement.dataset.policeRouteFallbacks=String((+document.documentElement.dataset.policeRouteFallbacks||0)+1);
   return chosen.path.length?chosen:null;
+}
+function _robberyPatrolStaging(incident){
+  if(!incident||incident.source?.kind!=='npc_robbery')return null;
+  const target=_nearestRoadTile(incident.r,incident.c,16);if(!target)return null;
+  const tree=_buildRoadBfsTree(target.r+.5,target.c+.5,16);if(!tree)return null;
+  let best=null,bestScore=Infinity;
+  for(let dr=-24;dr<=24;dr++)for(let dc=-24;dc<=24;dc++){
+    const r=target.r+dr+.5,c=target.c+dc+.5,d=Math.hypot(r-incident.r,c-incident.c);
+    if(d<13||d>23||!_vehicleRoadPassable(r,c))continue;
+    const key=Math.floor(r)*(MAP_COLS|0)+Math.floor(c);if(!_roadBfsHas(tree,key))continue;
+    const before=_roadBfsPreviousPoint(tree,key,target.r+.5,target.c+.5),ang=Math.atan2(r-before.r,c-before.c);
+    if(!_serviceVehicleFootprintClear({kind:'police',ang},r,c,ang))continue;
+    const score=Math.abs(d-18)+Math.abs(dr)*.006+Math.abs(dc)*.006;
+    if(score<bestScore){bestScore=score;best={r,c,ang};}
+  }
+  return best;
 }
 function _policeCrewPassable(r,c){
   const prison=typeof _prisonIslandCollisionAt==='function'?_prisonIslandCollisionAt(r,c):null;
@@ -10799,7 +10816,15 @@ function _removeMurderCrewForVehicle(v){
 function _assignMurderPoliceCall(v,incident,now=performance.now(),crewAlreadyAboard=false){
   if(!v||!incident||incident.status!=='queued')return false;
   const routeStartedAt=performance.now();
-  const parking=_policeSceneParking(incident.r,incident.c,v.y,v.x);
+  let parking=_policeSceneParking(incident.r,incident.c,v.y,v.x),streetPatrol=false;
+  // Ограбление жителя всегда получает реальный выезд. Если редактор карты
+  // разорвал дорогу между участком и районом, берём уже патрулирующий экипаж
+  // на той же связанной дорожной компоненте — он появляется в отдалении и
+  // дальше едет к месту своим ходом, без телепорта к жертве.
+  if(!parking&&incident.source?.kind==='npc_robbery'){
+    const staging=_robberyPatrolStaging(incident);
+    if(staging){v.x=staging.c;v.y=staging.r;v.ang=staging.ang;v._prevX=v.x;v._prevY=v.y;streetPatrol=true;crewAlreadyAboard=true;parking=_policeSceneParking(incident.r,incident.c,v.y,v.x);document.documentElement.dataset.npcRobberyPoliceFallback='connected-street-patrol';}
+  }
   const routeMs=performance.now()-routeStartedAt;document.documentElement.dataset.policeRouteMs=routeMs.toFixed(1);document.documentElement.dataset.policeRouteMaxMs=Math.max(routeMs,+document.documentElement.dataset.policeRouteMaxMs||0).toFixed(1);
   if(!parking){incident.routeFailures=(+incident.routeFailures||0)+1;incident.routeRetryAt=now+Math.min(6000,900+incident.routeFailures*650);return false;}
   const profile=_murderPoliceProfile(incident),crewCount=_murderPoliceCrewCount(incident);
@@ -10817,6 +10842,7 @@ function _assignMurderPoliceCall(v,incident,now=performance.now(),crewAlreadyAbo
   }
   if(Math.hypot(player.r-incident.r,player.c-incident.c)<18)
     showEventBanner(incident.officerDown?'🚨 УСИЛЕНИЕ ВЫЕХАЛО':'🚔 ПОЛИЦИЯ ВЫЕХАЛА',`${profile.label}: ${crewCount} офицера направлены к месту происшествия.`,2800,incident.officerDown?'lose':'neutral');
+  if(streetPatrol)document.documentElement.dataset.npcRobberyPoliceDispatch=`street-patrol:${v.id}:${parking.path.length}`;
   return true;
 }
 function _dispatchMurderPoliceCalls(now=performance.now()){
