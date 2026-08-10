@@ -446,7 +446,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         coast.containers.forEach((q,i)=>{const color=coast.containerColors[q.presetIndex]||'#c45b3d';const container=box(toX(q.c),toZ(q.r),q.w*2*WORLD_SCALE,q.h*2*WORLD_SCALE,q.height*WORLD_SCALE,new THREE.MeshStandardMaterial({color,roughness:.58,metalness:.32}));container.position.y=q.height*WORLD_SCALE/2+.4;if(q.stackIndex>=0){const top=container.clone();top.material=new THREE.MeshStandardMaterial({color:coast.containerColors[q.stackIndex]||'#3b79a8',roughness:.58,metalness:.32});top.position.y+=q.height*WORLD_SCALE;scene.add(top);}});
       }
       let refreshCustomGangHqs=()=>{},casinoExteriorAnimation=()=>{};
-      const authoredLandmarkStaticDetails=[],bankExteriors=[];
+      const authoredLandmarkStaticDetails=[],bankExteriors=[],bankDoorActors=[];
       // Architectural heights are also consumed by streamed city buildings
       // below, so keep the table in the renderer scope rather than inside the
       // optional landmarks branch. Otherwise 3D crashes before its first frame.
@@ -896,8 +896,17 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           const pedimentShape=new THREE.Shape();pedimentShape.moveTo(-porticoW*.53,0);pedimentShape.lineTo(0,2.35*scale);pedimentShape.lineTo(porticoW*.53,0);pedimentShape.closePath();
           const pediment=new THREE.Mesh(new THREE.ExtrudeGeometry(pedimentShape,{depth:.42*scale,bevelEnabled:false}),stoneDark);pediment.position.set(0,columnH+.88*scale,front+porticoDepth*.91);pediment.rotation.y=Math.PI;pediment.castShadow=true;root.add(pediment);
           const doorwayW=(bank.size==='small'?2.6:3.25)*scale;
-          addBox(0,bodyH*.34,front+.035,doorwayW,bodyH*.58,.18,glass);
-          addBox(0,bodyH*.34,front+.16,.12*scale,bodyH*.58,.14,gold);
+          const doorH=bodyH*.58,doorGap=.12*scale,leafW=(doorwayW-doorGap)*.5;
+          addBox(0,bodyH*.34,front-.04,doorwayW+.12*scale,doorH+.18*scale,.18,granite);
+          const leftPivot=new THREE.Group(),rightPivot=new THREE.Group();
+          leftPivot.position.set(-doorGap*.5-leafW,bodyH*.34,front+.19);rightPivot.position.set(doorGap*.5+leafW,bodyH*.34,front+.19);
+          root.add(leftPivot,rightPivot);
+          const leftLeaf=addBox(leafW*.5,0,0,leafW,doorH,.13,glass,leftPivot),rightLeaf=addBox(-leafW*.5,0,0,leafW,doorH,.13,glass,rightPivot);
+          for(const leaf of [leftLeaf,rightLeaf])leaf.castShadow=false;
+          addBox(leafW*.5,0,.08,.055*scale,doorH,.06,gold,leftPivot).castShadow=false;
+          addBox(-leafW*.5,0,.08,.055*scale,doorH,.06,gold,rightPivot).castShadow=false;
+          bankDoorActors.push({id:String(bank.id),left:leftPivot,right:rightPivot,open:0});
+          addBox(0,bodyH*.34,front+.16,doorGap,doorH,.14,gold);
           for(const side of [-1,1])addBox(side*(doorwayW*.5+.17*scale),bodyH*.34,front+.18,.26*scale,bodyH*.64,.3*scale,bronze);
           for(let step=0;step<4;step++)addBox(0,.12+step*.16,front+porticoDepth*(.95+step*.2),porticoW*(1.04-step*.07),.24,1.2*scale,stepMat);
           addBox(0,.53,front+porticoDepth*1.72,2.15*scale,.08,4.6*scale,redCarpet);
@@ -936,7 +945,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           return root;
         };
         for(const bank of worldSnapshot.landmarks.banks||[])bankExteriors.push(buildAuthoredBankExterior3D(bank));
-        renderer.domElement.dataset.bankExterior='authored-bank-complex-v4';renderer.domElement.dataset.bankExteriorCount=String(bankExteriors.length);renderer.domElement.dataset.bankExteriorFeatures='portico-pediment-steps-wings-windows-atms-armored-dock-cctv-clock';
+        renderer.domElement.dataset.bankExterior='authored-bank-complex-v5';renderer.domElement.dataset.bankExteriorCount=String(bankExteriors.length);renderer.domElement.dataset.bankExteriorFeatures='portico-pediment-steps-wings-windows-atms-armored-dock-cctv-clock-proximity-double-doors';
         const gasRed=new THREE.MeshStandardMaterial({color:0xd74137,roughness:.48}),gasWhite=new THREE.MeshStandardMaterial({color:0xe9e5d9,roughness:.65}),gasDark=new THREE.MeshStandardMaterial({color:0x272d33,metalness:.42,roughness:.45});
         for(const gas of worldSnapshot.landmarks.gasStations||[]){const x=toX(gas.c+.7),z=toZ(gas.r+.7),canopy=box(x,z,10,7,.65,gasRed);canopy.position.y=5;for(const [dx,dz] of [[-4,-2.5],[4,-2.5],[-4,2.5],[4,2.5]]){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.18,.22,5,8),gasWhite);pole.position.set(x+dx,2.5,z+dz);scene.add(pole);}for(const dx of [-2,2]){const pump=box(x+dx,z,1.15,1.1,2.3,gasDark);pump.position.y=1.15;const screen=box(x+dx,z+.58,.55,.08,.48,new THREE.MeshBasicMaterial({color:0x63d8ff}));screen.position.y=1.55;}const label=labelSprite('⛽ АЗС','#ff554b');label.position.set(x,6.8,z);scene.add(label);}
         const buildGrandCasinoExterior3D=poi=>{
@@ -3989,6 +3998,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         for(const fx of businessExteriorFx){const wave=Math.sin(t*.006+fx.phase*11);if(fx.kind==='wash-brush'){fx.mesh.rotation.y=t*.003*(fx.phase<0?-1:1);fx.mesh.scale.x=.92+wave*.08;}else if(fx.kind==='wash-water'){fx.mesh.material.opacity=.3+wave*.12;fx.mesh.position.y=1.72+wave*.08;}else if(fx.kind==='garage-spark'){const cycle=(t*.0018+fx.phase)%1;fx.mesh.position.set(fx.baseX+(cycle-.5)*1.2,.48+Math.sin(cycle*Math.PI)*1.35,fx.baseZ+(fx.phase-.5)*.65);fx.mesh.visible=cycle<.82;}else if(fx.kind==='bar-neon')fx.material.color.setHSL(.91,.9,.54+wave*.09);else if(fx.kind==='club-meter')fx.mesh.scale.y=.55+(wave+1)*.45;else if(fx.kind==='forklift-beacon'){fx.mesh.visible=wave>.05;fx.mesh.scale.setScalar(1.05+Math.max(0,wave)*.45);}}
         if(interiorLightingActive)for(const fx of interiorVisualFx){if(fx.kind==='factory-hoist'){const lift=(Math.sin(t*.0011+fx.phase)+1)*.42;fx.meshes.forEach((m,i)=>m.position.y=fx.baseY[i]-lift);}else if(fx.kind==='factory-belt'){const cycle=(t*.00012+fx.phase)%1;fx.mesh.position.x=fx.baseX+(cycle-.5)*fx.span*.78;}else if(fx.kind==='factory-press'){const press=(Math.sin(t*.00145+fx.phase)+1)*.42;fx.meshes.forEach((m,i)=>m.position.y=fx.baseY[i]-press*(i?.65:1));}}
         for(const smoke of factorySmokePuffs){const fx=smoke.userData.factorySmoke,cycle=(t*.000045+fx.phase)%1,wobble=Math.sin(t*.00065+fx.phase*9);smoke.position.set(fx.baseX+wobble*(.55+cycle)*fx.drift,fx.baseY+cycle*8.5,fx.baseZ+Math.cos(t*.00048+fx.phase*7)*.42);smoke.scale.setScalar(.72+cycle*1.65);smoke.material.opacity=.04+Math.sin(cycle*Math.PI)*.24;smoke.visible=!interiorLightingActive;}
+        let activeBankDoor=null;for(const door of bankDoorActors){const near=!interiorLightingActive&&nearbyActionState?.kind==='bank'&&String(nearbyActionState.id)===door.id,target=near?1:0;door.open+=(target-door.open)*Math.min(1,dt*7.5);door.left.rotation.y=door.open*1.12;door.right.rotation.y=-door.open*1.12;door.left.visible=door.right.visible=!interiorLightingActive;if(near)activeBankDoor=door;}renderer.domElement.dataset.bankDoorState=activeBankDoor?(activeBankDoor.open>.82?`open:${activeBankDoor.id}`:`moving:${activeBankDoor.id}`):'closed';
         for(const door of blackmarketDoorActors){const distance=Math.hypot(player.position.x-door.x,player.position.z-door.z),near=!interiorLightingActive&&(nearbyActionState?.type==='blackmarket'||distance<12),target=near?1:0;door.open+=(target-door.open)*Math.min(1,dt*6.5);door.left.rotation.y=door.open*1.12;door.right.rotation.y=-door.open*1.12;door.left.visible=door.right.visible=!interiorLightingActive;renderer.domElement.dataset.blackmarketDoorDistance=distance.toFixed(2);renderer.domElement.dataset.blackmarketDoorState=door.open>.82?'open':door.open>.08?'moving':'closed';}
         for(const guard of blackmarketGuardActors){const breathe=Math.sin(t*.0021+guard.phase),scan=Math.sin(t*.00072+guard.phase)*.18;guard.root.visible=!interiorLightingActive;guard.root.position.y=guard.baseY+breathe*.035;guard.head.rotation.y=scan;guard.leftArm.rotation.x=.06+breathe*.025;guard.rightArm.rotation.x=-.24-breathe*.025;}
         const businessModalOpen=!!bizConfirmModal?.classList.contains('show');if(bridge&&t-nearbyActionAt>140){nearbyActionState=bridge.getNearbyBuildingInteraction?.()||null;nearbyNpcState=nearestNpcInteraction();nearbyVehicleState=bridge.getNearbyVehicleInteraction?.()||null;nearbyActionAt=t;const visualSig=businessModalOpen?'modal':`${nearbyActionState?.kind||''}:${nearbyActionState?.id||''}|${nearbyNpcState?.key||''}|${nearbyVehicleState?.id||''}`;if(visualSig!==nearbyActionVisualSig){nearbyActionVisualSig=visualSig;if(businessModalOpen){buildingPrompt.style.display='none';npcPrompt.style.display='none';nearbyNpcRing.visible=false;nearbyVehicleRing.visible=false;entranceMarker.visible=false;renderer.domElement.dataset.buildingPrompt='hidden-by-business-modal';}else showNearbyBuilding(nearbyActionState);}}if(!businessModalOpen){showNearbyNpc(nearbyNpcState,t);showNearbyVehicle(nearbyVehicleState,t);}
