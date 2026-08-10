@@ -7775,16 +7775,39 @@ function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
 // Раньше в патрульных вообще нельзя было ни целиться, ни попасть.
 // Любая атака копа — witness-инцидент: open_fire(witness=true) бампает
 // wanted; раненый патрульный сразу переходит в погоню.
+function _cityCopEngagePlayerAfterHit(cop,now=performance.now()){
+  if(!cop?.alive)return;
+  cop._pursuing=true;
+  cop._reactUntil=Math.max(+cop._reactUntil||0,now+45000);
+  cop._playerAttackUntil=Math.max(+cop._playerAttackUntil||0,now+45000);
+  cop._murderAggroUntil=Math.max(+cop._murderAggroUntil||0,now+45000);
+  cop._lifeState='alert';cop._lifeGesture='lookout';
+  cop._nextShootAt=Math.min(Number.isFinite(+cop._nextShootAt)?+cop._nextShootAt:Infinity,now+180+Math.random()*160);
+  cop._murderNextShootAt=Math.min(Number.isFinite(+cop._murderNextShootAt)?+cop._murderNextShootAt:Infinity,now+180+Math.random()*160);
+  if(cop.kind!=='murder_response')return;
+  const vehicle=serviceVehicles.find(v=>v?.id===cop._responseVehicleId),incident=vehicle?.payload?.murderIncident;
+  if(!incident)return;
+  incident.armedContact=true;incident.armedTargetType='player';incident.armedTargetRef=null;incident.status='armed-contact';
+  for(const officer of cityCops){
+    if(!officer?.alive||officer.kind!=='murder_response'||officer._responseVehicleId!==cop._responseVehicleId)continue;
+    officer._casePhase='combat';officer._phaseStartedAt=now;officer._pursuing=true;
+    officer._playerAttackUntil=Math.max(+officer._playerAttackUntil||0,now+45000);
+    officer._lifeState='alert';officer._lifeGesture='lookout';
+    officer._murderNextShootAt=Math.min(Number.isFinite(+officer._murderNextShootAt)?+officer._murderNextShootAt:Infinity,now+180+(+officer._crewSlot||0)*90);
+  }
+}
 function hitCityCop(cop, dirY, dirX, damage, source = null) {
   if (!cop || !cop.alive) return;
   let deathWitnessAlerted=false;
+  const hitNow=performance.now(),localUid=typeof QP==='object'&&QP?QP.uid:null,hitByPlayer=!source||source.kind==='player'||(localUid!=null&&source.uid!=null&&String(source.uid)===String(localUid));
   if(cop.kind==='prison_staff'&&cop.shield)damage=Math.max(1,Math.round((+damage||0)*.62));
   cop.hp = Math.max(0, (cop.hp | 0) - (damage | 0));
   const knockR=cop.y+dirY*.07,knockC=cop.x+dirX*.07;
   if(typeof _policeCrewBodyPassable!=='function'||_policeCrewBodyPassable(knockR,knockC)){cop.y=knockR;cop.x=knockC;}
   _markCombatBleeding(cop, cop.y, cop.x, damage, dirY, dirX, currentWeapon);
   cop._pursuing = true;
-  cop._reactUntil = performance.now() + 2800;
+  cop._reactUntil = hitNow + 2800;
+  if(hitByPlayer)_cityCopEngagePlayerAfterHit(cop,hitNow);
   if(cop.kind==='prison_staff'){
     const alarmNow=performance.now();
     for(const guard of cityCops)if(guard?.alive&&guard.kind==='prison_staff'&&Math.hypot(guard.y-cop.y,guard.x-cop.x)<24){guard._pursuing=true;guard._reactUntil=alarmNow+45000;}
@@ -7831,7 +7854,7 @@ function hitCityCop(cop, dirY, dirX, damage, source = null) {
     _onMurderArrestCopKilled(cop, source);
     _queueMurderOfficerDownBackup(cop, killedAt);
   }
-  if ((!source || source.kind === 'player')&&!deathWitnessAlerted)_sendPoliceWitnessOpenFire();
+  if (hitByPlayer&&!deathWitnessAlerted)_sendPoliceWitnessOpenFire();
 }
 // ── Жители-декор: пассажиры автобуса / ожидающие / хозяева парковок ──
 // У них нет hp — одно попадание убивает. Раньше в них нельзя было ни
@@ -9234,6 +9257,9 @@ function updateCityCops(dt) {
   for (let i = cityCops.length - 1; i >= 0; i--) {
     const cop = cityCops[i];
     if (!cop.alive) continue;
+    // Movement is asserted only by the collision-aware mover during this tick.
+    // Stale patrol targets must not keep a stationary firing officer's legs cycling.
+    cop.walking=false;
     // Arrest/custody actors are moved by the arrest sequence itself. Running the
     // generic body recovery first made the west-gate escort bounce back out of
     // the narrow checkpoint every frame, so the officer appeared stuck in the wall.
@@ -9332,15 +9358,18 @@ function updateCityCops(dt) {
     // П6: скрытие в потоке — радиус обнаружения сокращается на 40%
     const _effectivePursueR = (_trafficHideActive && myDrivingCarId)
       ? CITYCOP_PURSUE_R * 0.6 : CITYCOP_PURSUE_R;
+    const directAttack=!_murderPoliceArrest&&now<(cop._playerAttackUntil||0)&&!myDead
+      &&!(typeof myJailIn==='number'&&myJailIn>0)&&!_bankInt&&!_buildingInt;
     const murderAggro=!_murderPoliceArrest&&now<(cop._murderAggroUntil||0)&&!myDead
       &&!(typeof myJailIn==='number'&&myJailIn>0)&&!_bankInt&&!_buildingInt;
-    const activePursueR=murderAggro?Math.max(24,_effectivePursueR):_effectivePursueR;
-    if ((playerWanted||murderAggro) && distToPlayer <= activePursueR) {
+    const armedAggro=murderAggro||directAttack;
+    const activePursueR=armedAggro?Math.max(24,_effectivePursueR):_effectivePursueR;
+    if ((playerWanted||armedAggro) && distToPlayer <= activePursueR) {
       cop._pursuing = true;
       cop.ang = Math.atan2(dpr,dpc);
       // Увидев убийство, обычный патруль не ждёт синхронизации wanted с
       // сервером: сразу открывает прицельный огонь и продолжает сближение.
-      if(murderAggro&&distToPlayer>.9&&distToPlayer<14&&_policeWorldLineClear(cop.y,cop.x,player.r,player.c)){
+      if(armedAggro&&distToPlayer>.7&&distToPlayer<14&&_policeWorldLineClear(cop.y,cop.x,player.r,player.c)){
         if(!cop._murderNextShootAt)cop._murderNextShootAt=now+280+Math.random()*420;
         if(now>=cop._murderNextShootAt){
           cop._murderNextShootAt=now+900+Math.random()*550;
@@ -9363,7 +9392,7 @@ function updateCityCops(dt) {
       }
       // Игрок в машине — бежим к точке за машиной, но не лезем под колёса.
       // Если игрок прямо тут и НЕ в машине — пробуем арестовать.
-      if (distToPlayer <= CITYCOP_ARREST_R && !myDrivingCarId) {
+      if (!armedAggro&&distToPlayer <= CITYCOP_ARREST_R && !myDrivingCarId) {
         if (now - _lastCitycopArrestAt > CITYCOP_ARREST_CD_MS) {
           _lastCitycopArrestAt = now;
           try {
@@ -9375,7 +9404,6 @@ function updateCityCops(dt) {
           } catch(e) {}
         }
         // Стоим вплотную, не бегаем кругами
-        cop.walkPhase += dt * 2;
         continue;
       }
       // Бежим к игроку (speed×1.8). Чуть быстрее чем обычная скорость патруля,
@@ -9385,7 +9413,10 @@ function updateCityCops(dt) {
       // Снитч-проходимость (тротуар + дорога + газон) — патруль может выйти
       // на дорогу чтобы догнать.
       const pursueBeforeR=cop.y,pursueBeforeC=cop.x;
-      _movePoliceFootCop(cop,player.r,player.c,dt,1.8);
+      // During a firefight hold a stable shooting lane; close distance only
+      // from far away and step back if the player crowds the officer.
+      if(!armedAggro||distToPlayer>7)_movePoliceFootCop(cop,player.r,player.c,dt,1.8);
+      else if(distToPlayer<2.8)_movePoliceFootCop(cop,cop.y-dpr,cop.x-dpc,dt,1.35);
       if (Math.hypot(cop.y-pursueBeforeR,cop.x-pursueBeforeC)<.0001) {
         // Препятствие — пробуем обойти по 4 направлениям
         const tries = [
@@ -10794,12 +10825,12 @@ function _markPoliceShot(cop,weapon,now=performance.now()){
 // a short cached cardinal route whenever the direct pursuit step meets a wall.
 function _movePoliceFootCop(cop,targetR,targetC,dt,mul=1){
   const now=performance.now(),directR=targetR-cop.y,directC=targetC-cop.x,directD=Math.hypot(directR,directC);
-  if(directD<.18){_clearPoliceFootRoute(cop);cop._policeFootBlockedSince=0;cop._policeFootLastMoveAt=now;return true;}
+  if(directD<.18){cop.walking=false;_clearPoliceFootRoute(cop);cop._policeFootBlockedSince=0;cop._policeFootLastMoveAt=now;return true;}
   if(!Number.isFinite(+cop._policeFootLastMoveAt))cop._policeFootLastMoveAt=now;
   const speed=(cop.speed||1.35)*mul,step=Math.min(directD,speed*dt);
   const tryStep=(wr,wc)=>{const d=Math.hypot(wr,wc)||1,rr=wr/d*step,cc=wc/d*step;
     if(!_policeCrewBodyPassable(cop.y+rr,cop.x+cc))return false;
-    cop.y+=rr;cop.x+=cc;cop.ang=Math.atan2(rr,cc);cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;
+    cop.y+=rr;cop.x+=cc;cop.ang=Math.atan2(rr,cc);cop.walking=true;cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;
     cop._policeFootBlockedSince=0;cop._policeFootLastMoveAt=now;return true;};
   if(!cop._policeFootRoute?.length&&tryStep(directR,directC))return false;
   const routeStale=now>=(cop._policeFootRouteUntil||0)||Math.hypot(targetR-(cop._policeFootRouteTargetR||0),targetC-(cop._policeFootRouteTargetC||0))>2;
@@ -10817,6 +10848,7 @@ function _movePoliceFootCop(cop,targetR,targetC,dt,mul=1){
     _clearPoliceFootRoute(cop);cop._policeFootRouteRetryAt=now+70;cop._policeFootBlockedSince=now;
     document.documentElement.dataset.policeFootStallRecoveries=String((+document.documentElement.dataset.policeFootStallRecoveries||0)+1);
   }
+  cop.walking=false;
   return false;
 }
 function _murderPoliceSpacingVector(cop,radius=1.55){
@@ -60138,6 +60170,22 @@ window.Mafiozi3DBridge = Object.freeze({
   },
   closeBuildingActions() { _closeBusinessActionCard(); return true; },
   updateDistrictEntry() { _updateDistrictBanner(); },
+  previewPoliceRetaliation(kind='patrol') {
+    if(!_LOCAL_PREVIEW)return {ok:false,reason:'preview-only'};
+    const wantedKind=String(kind||'patrol'),target=cityCops.find(c=>c?.alive&&c.kind===wantedKind);
+    if(!target)return {ok:false,reason:'no-'+wantedKind};
+    if(wantedKind!=='prison_staff'){
+      const road=_nearestRoadTile(player.r+Math.sin(player.ang||0)*5.2,player.c+Math.cos(player.ang||0)*5.2,10);
+      if(road){target.y=road.r+.5;target.x=road.c+.5;target.ty=target.y;target.tx=target.x;}
+    }
+    const hpBefore=+myHp||0;hitCityCop(target,0,1,1,{kind:'player',weapon:'pistol'});
+    document.documentElement.dataset.previewPoliceRetaliation=`armed:${wantedKind}:${target.id}`;
+    return {ok:true,id:target.id,kind:target.kind,hpBefore,phase:target._casePhase||'',attackUntil:+target._playerAttackUntil||0};
+  },
+  previewPoliceRetaliationState(kind='patrol') {
+    const wantedKind=String(kind||'patrol'),actors=cityCops.filter(c=>c?.alive&&c.kind===wantedKind).map(c=>({id:c.id,phase:c._casePhase||'',hp:+c.hp||0,shots:+c._shotSeq||0,walking:!!c.walking,distance:+Math.hypot(c.y-player.r,c.x-player.c).toFixed(2)}));
+    return {kind:wantedKind,playerHp:+myHp||0,dead:!!myDead,actors};
+  },
   collisionProbe(r,c) {
     const rr=+r,cc=+c,valid=Number.isFinite(rr)&&Number.isFinite(cc),prison=valid?_prisonIslandCollisionAt(rr,cc):null;
     return {r:rr,c:cc,blocked:valid?isBlockedPed(rr,cc):true,tile:valid?MAP[Math.floor(rr)]?.[Math.floor(cc)]??null:null,prison};
@@ -60629,7 +60677,7 @@ window.Mafiozi3DBridge = Object.freeze({
     }
     document.documentElement.dataset.npcLifePools=`mission:${npcEligible.filter(x=>npcLifePool(x)==='mission').length},police:${npcEligible.filter(x=>npcLifePool(x)==='police').length},guard:${npcEligible.filter(x=>npcLifePool(x)==='guard').length},gang:${npcEligible.filter(x=>npcLifePool(x)==='gang').length},civilian:${npcEligible.filter(x=>npcLifePool(x)==='civilian').length},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
     _threeNpcActionRefs.clear();
-    const npcs=npcSelected.map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:Number.isFinite(+x.tgtR)?+x.tgtR:Number.isFinite(+x.ty)?+x.ty:r,targetC=Number.isFinite(+x.tc)?+x.tc:Number.isFinite(+x.tgtC)?+x.tgtC:Number.isFinite(+x.tx)?+x.tx:c,targetMoving=Math.hypot(targetR-r,targetC-c)>.035,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,+x.max_hp||+x.maxHp||60),hp=death.dead?0:(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._lifeState||x.lifeState||''),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow));const view={
+    const npcs=npcSelected.map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,targetR=Number.isFinite(+x.tr)?+x.tr:Number.isFinite(+x.tgtR)?+x.tgtR:Number.isFinite(+x.ty)?+x.ty:r,targetC=Number.isFinite(+x.tc)?+x.tc:Number.isFinite(+x.tgtC)?+x.tgtC:Number.isFinite(+x.tx)?+x.tx:c,targetMoving=!police&&Math.hypot(targetR-r,targetC-c)>.035,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,+x.max_hp||+x.maxHp||60),hp=death.dead?0:(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._lifeState||x.lifeState||''),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow));const view={
       id,r,c,ang:+x.ang||0,walking:!death.dead&&(declaredMoving||targetMoving),moving:!death.dead&&(declaredMoving||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:(+x.cryUntil||0)>performance.now()?String(x.cryText||'').slice(0,84):'',hp,maxHp,
@@ -60922,6 +60970,19 @@ if(_LOCAL_PREVIEW&&_UP.has('previewjail')){
   document.documentElement.dataset.prisonCollisionAudit=JSON.stringify(auditPoints.map(([name,r,c])=>({name,blocked:isBlockedPed(r,c),surface:_prisonIslandCollisionAt(r,c)?.surface||'world'})));
   document.documentElement.dataset.prisonReleaseGate=`${_effectivePrisonJailSeconds()>0?'locked':'released'}:${_prisonReleaseGateProgress().toFixed(2)}`;
 }
+if(_LOCAL_PREVIEW&&_UP.has('previewpoliceretaliation')){const retaliationKind=String(_UP.get('previewpoliceretaliation')||'patrol'),startedAt=performance.now();let armed=false;const armTimer=setInterval(()=>{
+  const target=cityCops.find(c=>c?.alive&&c.kind===retaliationKind);
+  if(!target){if(performance.now()-startedAt>30000){document.documentElement.dataset.previewPoliceRetaliation='failed:no-'+retaliationKind;clearInterval(armTimer);}return;}
+  myHp=Math.max(5000,+myHp||0);myDead=false;_localDeath=false;currentWeapon='pistol';
+  if(retaliationKind!=='prison_staff'){
+    const road=_nearestRoadTile(player.r+Math.sin(player.ang||0)*5.2,player.c+Math.cos(player.ang||0)*5.2,10);
+    if(road){target.y=road.r+.5;target.x=road.c+.5;target.ty=target.y;target.tx=target.x;}
+  }
+  hitCityCop(target,0,1,1,{kind:'player',weapon:'pistol'});armed=true;clearInterval(armTimer);
+  document.documentElement.dataset.previewPoliceRetaliation=`armed:${retaliationKind}:${target.id}`;
+  const trace=setInterval(()=>{const actors=cityCops.filter(c=>c?.alive&&c.kind===retaliationKind);document.documentElement.dataset.previewPoliceRetaliationState=JSON.stringify({kind:retaliationKind,hp:+myHp||0,armed,shots:actors.reduce((n,c)=>n+(+c._shotSeq||0),0),firing:actors.filter(c=>performance.now()-(+c._shotAt||0)<460).length,walking:actors.filter(c=>c.walking).length,actors:actors.map(c=>({id:c.id,phase:c._casePhase||'',shots:+c._shotSeq||0,walking:!!c.walking,distance:+Math.hypot(c.y-player.r,c.x-player.c).toFixed(2)}))});},120);
+  setTimeout(()=>clearInterval(trace),20000);
+},200);}
 if(_LOCAL_PREVIEW&&_UP.has('previewprisonassault')){const previewPrisonAssaultDelay=Math.max(1500,Math.min(15000,+_UP.get('previewprisonassaultdelay')||1500));setTimeout(()=>{
   const now=performance.now();player.r=JAIL_ISLAND_LAYOUT.centerR-1.2;player.c=JAIL_ISLAND_LAYOUT.centerC;player.vr=0;player.vc=0;player.walking=false;
   myHp=Math.max(1,PVP.max_hp||100);myDead=false;_localDeath=false;myJailIn=0;_prisonReleaseGateSeconds=0;currentWeapon='pistol';
@@ -64768,6 +64829,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d313-prison-waiting-corner"></script>
+<script type="module" src="three_preview.js?v=3d314-police-retaliation-fire-pose"></script>
 </body>
 </html>
