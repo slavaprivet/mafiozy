@@ -4865,6 +4865,18 @@ const JAIL_CENTER_R = 76, JAIL_CENTER_C = 76;
 const JAIL_RADIUS_TILES = 7.0;
 const JAIL_GATE_HALF_RAD = 0.50;
 let _prisonReleaseGateSeconds=0,_prisonLocalJailUntil=0,_prisonReleaseGateOpenedAt=-Infinity;
+let _lastPrisonReleaseTransitionAt=-Infinity;
+function _finishPrisonReleaseTransition(now=performance.now(),reason='timer'){
+  if(now-_lastPrisonReleaseTransitionAt<2500)return false;
+  _lastPrisonReleaseTransitionAt=now;
+  myJailIn=0;_prisonLocalJailUntil=0;_prisonReleaseGateSeconds=0;_custodyPoseResetUntil=0;
+  player.vr=0;player.vc=0;player.walking=false;hitStopUntil=0;camShake=0;camKickX=0;camKickY=0;screenFlash=0;
+  bullets.length=0;muzzles.length=0;impacts.length=0;shells.length=0;lockedTargets.clear();
+  closeNpcActionMenu();_closeBusinessActionCard(false);_beginWorldResume();
+  window.dispatchEvent(new CustomEvent('mafiozi-custody-mode',{detail:{released:true,reason}}));
+  document.documentElement.dataset.prisonReleaseTransition=`clean:${reason}:staged-world-resume-v311`;
+  return true;
+}
 let _prisonStatusJailActive=false,_prisonWeaponLockToastAt=0;
 const _prisonAlarmState={active:false,startedAt:0,lastHostileAt:0,reason:'',spawnRemaining:0,nextSpawnAt:0,sequence:0,clearedAt:0,clearReason:'',batchRevision:0,lastActivationAt:-Infinity,lastServerSignature:'',uiSignature:''};
 let _prisonAlarmServerSyncAt=0;
@@ -4902,6 +4914,7 @@ function _effectivePrisonJailSeconds(){
     if((+_prisonReleaseGateSeconds||0)<=0){
       myJailIn=0;
       if(!Number.isFinite(_prisonReleaseGateOpenedAt))_prisonReleaseGateOpenedAt=now;
+      _finishPrisonReleaseTransition(now,'local-timer');
     }
   }
   return Math.max(0,+_prisonReleaseGateSeconds||0,localLeft);
@@ -10680,7 +10693,8 @@ function _registerMurderIncident(victim,source=null,now=performance.now()){
   return incident;
 }
 function _nextQueuedMurderIncident(now=performance.now()){
-  return _murderIncidents.filter(q=>q.status==='queued'&&now>=(+q.routeRetryAt||0)).sort((a,b)=>a.occurredAt-b.occurredAt)[0]||null;
+  const inside=!!(_buildingInt||_bankInt);
+  return _murderIncidents.filter(q=>q.status==='queued'&&!(inside&&q.deferUntilExterior)&&now>=(+q.routeRetryAt||0)).sort((a,b)=>a.occurredAt-b.occurredAt)[0]||null;
 }
 function _policeSceneParking(targetR,targetC,fromR,fromC){
   const tree=_buildRoadBfsTree(fromR,fromC,30),r0=Math.floor(targetR),c0=Math.floor(targetC);
@@ -10708,9 +10722,9 @@ function _robberyPatrolStaging(incident){
   const target=_nearestRoadTile(incident.r,incident.c,16);if(!target)return null;
   const tree=_buildRoadBfsTree(target.r+.5,target.c+.5,16);if(!tree)return null;
   let best=null,bestScore=Infinity;
-  for(let dr=-24;dr<=24;dr++)for(let dc=-24;dc<=24;dc++){
+  for(let dr=-52;dr<=52;dr++)for(let dc=-52;dc<=52;dc++){
     const r=target.r+dr+.5,c=target.c+dc+.5,d=Math.hypot(r-incident.r,c-incident.c);
-    if(d<13||d>23||!_vehicleRoadPassable(r,c))continue;
+    if(d<38||d>50||!_vehicleRoadPassable(r,c))continue;
     const key=Math.floor(r)*(MAP_COLS|0)+Math.floor(c);if(!_roadBfsHas(tree,key))continue;
     const before=_roadBfsPreviousPoint(tree,key,target.r+.5,target.c+.5),ang=Math.atan2(r-before.r,c-before.c);
     if(!_serviceVehicleFootprintClear({kind:'police',ang},r,c,ang))continue;
@@ -10864,7 +10878,7 @@ function _assignMurderPoliceCall(v,incident,now=performance.now(),crewAlreadyAbo
   // дальше едет к месту своим ходом, без телепорта к жертве.
   if(!parking&&incident.source?.kind==='npc_robbery'){
     const staging=_robberyPatrolStaging(incident);
-    if(staging){v.x=staging.c;v.y=staging.r;v.ang=staging.ang;v._prevX=v.x;v._prevY=v.y;streetPatrol=true;crewAlreadyAboard=true;parking=_policeSceneParking(incident.r,incident.c,v.y,v.x);document.documentElement.dataset.npcRobberyPoliceFallback='connected-street-patrol';}
+    if(staging){v.x=staging.c;v.y=staging.r;v.ang=staging.ang;v._prevX=v.x;v._prevY=v.y;v._arrivalRevealDistance=30;streetPatrol=true;crewAlreadyAboard=true;parking=_policeSceneParking(incident.r,incident.c,v.y,v.x);document.documentElement.dataset.npcRobberyPoliceFallback='offscreen-connected-street-patrol-v311';}
   }
   const routeMs=performance.now()-routeStartedAt;document.documentElement.dataset.policeRouteMs=routeMs.toFixed(1);document.documentElement.dataset.policeRouteMaxMs=Math.max(routeMs,+document.documentElement.dataset.policeRouteMaxMs||0).toFixed(1);
   if(!parking){incident.routeFailures=(+incident.routeFailures||0)+1;incident.routeRetryAt=now+Math.min(6000,900+incident.routeFailures*650);return false;}
@@ -22665,7 +22679,7 @@ function wsConnect() {
             _murderPoliceArrest.jailSeconds=Math.max(_murderPoliceArrest.jailSeconds||0,myJailIn);
           }
           _prisonReleaseGateSeconds=serverJailIn;
-          if(previousJailIn>0&&myJailIn<=0&&localJailIn<=0)_prisonReleaseGateOpenedAt=performance.now();
+          if(previousJailIn>0&&myJailIn<=0&&localJailIn<=0){_prisonReleaseGateOpenedAt=performance.now();_finishPrisonReleaseTransition(performance.now(),'server-release');}
           else if(myJailIn>0)_prisonReleaseGateOpenedAt=-Infinity;
         }
         if (typeof d.me.terr_cd === 'number') myTerrCd = d.me.terr_cd;
@@ -24469,13 +24483,23 @@ function _npcActionDistrictLine(){
 }
 function _registerNpcRobberyIncident(victim,amount,robberyId,interrogationArrest=null,now=performance.now()){
   if(!victim||!amount)return null;
-  const incident={id:`robbery_${++_murderIncidentSeq}`,r:+player.r||0,c:+player.c||0,victim,
+  const activeInterior=_bankInt||_buildingInt,worldR=Number.isFinite(+activeInterior?.savedR)?+activeInterior.savedR:(+player.r||0),worldC=Number.isFinite(+activeInterior?.savedC)?+activeInterior.savedC:(+player.c||0);
+  const incident={id:`robbery_${++_murderIncidentSeq}`,r:worldR,c:worldC,victim,
     source:{kind:'npc_robbery',robberyId:String(robberyId||''),amount},robberyAmount:amount,robberyId:String(robberyId||''),
     occurredAt:now,status:'queued',assignedVehicleId:null,searchStartedAt:0,initialSearchUntil:0,lostAt:0,
     questionStartedAt:0,armedContact:false,closedAt:0,policeTier:0,crewCount:2,routeRetryAt:0,routeFailures:0,
+    deferUntilExterior:!!activeInterior,
     interrogationArrest:_LOCAL_PREVIEW&&_UP.has('previewrobberyarrest')?_UP.get('previewrobberyarrest')!=='0':typeof interrogationArrest==='boolean'?interrogationArrest:Math.random()<.8,confiscated:false,lastTrackingAt:0};
   _murderIncidents.push(incident);while(_murderIncidents.length>24)_murderIncidents.shift();
   _dispatchMurderPoliceCalls(now);document.documentElement.dataset.npcRobberyPolice=incident.id;return incident;
+}
+function _dispatchDeferredInteriorPoliceCalls(now=performance.now()){
+  let released=0;
+  for(const incident of _murderIncidents)if(incident?.status==='queued'&&incident.deferUntilExterior){incident.deferUntilExterior=false;released++;}
+  if(!released)return 0;
+  _dispatchMurderPoliceCalls(now);
+  document.documentElement.dataset.npcRobberyPoliceDeparture=`after-exit:${released}:world-coordinates-v311`;
+  return released;
 }
 function _completeNpcRobbery(ref,key,amount,robberyId,cash=null,interrogationArrest=null){
   amount=Math.max(1,Math.min(10,Math.round(amount)||1));_setNpcThreatCooldown(key,Date.now()+NPC_ROB_COOLDOWN_MS);if(cash!==null&&cash!==undefined&&Number.isFinite(+cash))_applyNpcCash(+cash,amount);else _npcActionEarn(amount);
@@ -24528,7 +24552,9 @@ function _npcActionButtons(kind,ref,view){
     const ready=_npcStreetErrand&&_npcStreetErrand.npc===ref&&districtAt(player.r,player.c)?.id===_npcStreetErrand.target;
     return [['talk','💬 Поговорить'],['give10','🥖 Дать $10'],['rumor','🗞️ Спросить слух'],[ready?'finish_errand':'errand',ready?'✅ Завершить поручение':'📦 Случайное поручение']];
   }
-  return [['talk','💬 Поговорить'],['rumor','🗞️ Спросить о районе'],['give25','🤝 Дать $25'],['threaten','🔪 Пригрозить'],['rob','💰 Ограбить']];
+  const actions=[['talk','💬 Поговорить'],['rumor','🗞️ Спросить о районе'],['give25','🤝 Дать $25'],['threaten','🔪 Пригрозить']];
+  if(!_buildingInt)actions.push(['rob','💰 Ограбить']);
+  return actions;
 }
 function _npcActionDescription(id){
   const left=_npcActionTarget?_npcRobCooldownLeft(_npcActionTarget.key):0;
@@ -24603,6 +24629,7 @@ function _runNpcAction(action){
     else{_npcActionSay(ref,'Полиция!');_npcActionCrime(ref,0);ref.snitching=false;ref._witnessStage='reported';finish('Житель сразу вызвал полицию','🚨');}return;
   }
   if(action==='rob'){
+    if(_buildingInt){showToast('Внутри зданий жителей грабить нельзя','🚫',2200);return;}
     const left=_npcRobCooldownLeft(t.key);if(left){const mins=Math.max(1,Math.ceil(left/60000)),text=`У меня больше нет денег. Приходи через ${mins} мин.`;_npcActionSay(ref,text,3200);finish(text,'💸');return;}
     const robberyId=`${QP.uid||'preview'}:${t.key}:${Date.now()}`;_setNpcRobCooldown(t.key);_pendingNpcRobbery={ref,key:t.key,amount:0,robberyId};
     _npcActionSay(ref,'Не трогай меня! Я отдам всё, что есть!',3200);closeNpcActionMenu();
@@ -55990,6 +56017,7 @@ function exitBuildingInterior() {
   hitStopUntil = 0;
   _buildingHideTimer = 0;
   _beginWorldResume();
+  _dispatchDeferredInteriorPoliceCalls(performance.now());
   // Сразу сообщаем серверу, что локальные интерьерные координаты больше не
   // актуальны, не дожидаясь следующего периодического input-пакета.
   try { sendInput(true); } catch(e) {}
@@ -56925,6 +56953,8 @@ function exitBankInterior(withBag) {
   const hudEl=document.getElementById('bankRobHud');
   if (hudEl&&!_bankRob) hudEl.style.display='none';
   _updateBankZoneBtn();
+  _beginWorldResume();
+  _dispatchDeferredInteriorPoliceCalls(performance.now());
 }
 
 function _isBlockedInterior(r,c) {
@@ -60409,6 +60439,12 @@ window.Mafiozi3DBridge = Object.freeze({
     }
     if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
       if(!v||v.state==='done')continue;
+      if(v._arrivalRevealDistance){
+        const revealDistance=Math.hypot(player.r-(+v.y||0),player.c-(+v.x||0));
+        if(revealDistance>v._arrivalRevealDistance)continue;
+        v._arrivalRevealDistance=0;
+        document.documentElement.dataset.policeArrivalReveal=`approached-from-offscreen:${revealDistance.toFixed(1)}:v311`;
+      }
       const visibleFireTarget=v.kind==='firetruck'&&v.state==='working'?_fireTruckTarget(v):null;
       if(!near(+v.y||0,+v.x||0)&&!(visibleFireTarget&&near(visibleFireTarget.r,visibleFireTarget.c)))continue;
       const ambulance=v.kind==='ambulance',fire=v.kind==='firetruck',tow=v.kind==='tow',police=v.kind==='police',policeProfile=police?POLICE_RESPONSE_PROFILES[Math.max(0,Math.min(POLICE_RESPONSE_MAX_TIER,+v._policeTier||0))]:null,serviceSize=policeProfile?.vehicleSize||[2.05,.98,.88],ambulanceOnCall=ambulance&&v.state!=='ambulance_parked';
@@ -60851,6 +60887,15 @@ if(_LOCAL_PREVIEW&&_UP.has('previewprisonweaponqa'))setTimeout(()=>{
   const after={mag:+ammoAfter?.slot?.mag||0,reserve:+ammoAfter?.reserve||0,grenade:_myGrenadeCount,molotov:_myMolotovCount,c4:_myC4Count};
   document.documentElement.dataset.prisonWeaponQa=JSON.stringify({ok:Object.values(results).every(v=>v===false)&&JSON.stringify(before)===JSON.stringify(after),results,before,after,blocked:document.documentElement.dataset.prisonFireBlocked||''});
 },2600);
+if(_LOCAL_PREVIEW&&_UP.has('previewprisonreleaseqa'))setTimeout(()=>{
+  const now=performance.now(),target=JAIL_ISLAND_LAYOUT.intake;
+  player.r=target.spawnR;player.c=target.spawnC;player.vr=0;player.vc=0;player.walking=false;
+  myJailIn=1;_prisonReleaseGateSeconds=0;_prisonLocalJailUntil=now-1;_prisonReleaseGateOpenedAt=-Infinity;
+  _effectivePrisonJailSeconds();
+  document.documentElement.dataset.previewPrisonReleaseQa=JSON.stringify({
+    jail:myJailIn,localUntil:_prisonLocalJailUntil,transition:document.documentElement.dataset.prisonReleaseTransition||'',resumeFrames:_worldResumeFrames,
+  });
+},2800);
 if(_LOCAL_PREVIEW&&_UP.has('previewprisonconvoy'))setTimeout(()=>{
   const now=performance.now(),v=_ensurePoliceResponseFleet()[0];
   if(!v)return;
@@ -64664,6 +64709,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d310-opaque-high-npc-actions"></script>
+<script type="module" src="three_preview.js?v=3d311-custody-arrival-fix"></script>
 </body>
 </html>
