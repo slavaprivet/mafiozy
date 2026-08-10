@@ -9151,6 +9151,7 @@ function initCityCops() {
 
 let _cityCopsLastSpawnAt = 0;
 let _cityCopReplacementQueue=0;
+let _policeBribeCoverUntil=0,_policeBribeWantedAfter=0;
 // Радиус, в котором NPC-патрульный «замечает» игрока с wanted и переключается
 // в pursue. 16 тайлов ≈ полтора квартала — реалистично: патруль увидел и побежал.
 const CITYCOP_PURSUE_R = 16;
@@ -9162,6 +9163,11 @@ const CITYCOP_ARREST_CD_MS = 3000;
 let _lastCitycopArrestAt = 0;
 function updateCityCops(dt) {
   const now = performance.now();
+  // Сервер снимает прикрытие при новом преступлении. Клиент повторяет это
+  // сразу после роста wanted, не дожидаясь окончания 45-секундного таймера.
+  if(now<_policeBribeCoverUntil&&Number.isFinite(+myWanted)&&+myWanted>_policeBribeWantedAfter+.01){
+    _policeBribeCoverUntil=0;document.documentElement.dataset.policeBribe='cancelled:new-crime';
+  }
   // Сначала окончательно удаляем погибших и их чаты. Так массив не растёт
   // бесконечно, а замена считается по живым патрульным, не по спецгруппам.
   for(let i=cityCops.length-1;i>=0;i--)if(!cityCops[i]?.alive){if(cityCops[i]?._prisonAssaultUnit)_prisonAssaultLive=Math.max(0,_prisonAssaultLive-1);_copChats.delete(cityCops[i]?.id);cityCops.splice(i,1);}
@@ -9186,7 +9192,7 @@ function updateCityCops(dt) {
   // случайно попадали в радиус ареста → ложный citycop_arrest + стрельба
   // «сквозь стены банка» → игрока сажали в тюрьму. Пока _bankInt активен —
   // никакого преследования/ареста/реакции на игрока.
-  const playerWanted = (typeof myWanted === 'number') && myWanted >= 1
+  const playerWanted = now>=_policeBribeCoverUntil && (typeof myWanted === 'number') && myWanted >= 1
     && !myDead && !(typeof myJailIn === 'number' && myJailIn > 0) && !_bankInt && !_buildingInt;
   // ── #3: копы докапываются ТОЛЬКО когда видят игрока с НЕСОМЫМ мешком ──
   // При грабеже мешает лишь охрана банка; копов на улице компромат интересует
@@ -19836,6 +19842,23 @@ function handleEventPacket(d) {
       _npcActionSay(pending.ref,d.reason==='cash'?'У тебя не хватает денег.':'Оплата сейчас не прошла.');showToast(d.reason==='cash'?'Недостаточно денег':'Не удалось провести оплату','⚠️',2100);
       document.getElementById('npcActionOverlay')?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);
     }
+  }else if(kind==='npc_police_bribe_reply'){
+    const pending=_pendingNpcPoliceBribe;_pendingNpcPoliceBribe=null;
+    const overlay=document.getElementById('npcActionOverlay');overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);
+    if(!pending)return;
+    if(d.ok&&d.accepted){
+      _applyNpcCash(d.cash,-Math.abs(+d.cost||pending.cost));_applyNpcPoliceBribeRelief(d);
+      _npcActionSay(pending.ref,d.robbery_id?'Ориентировка исчезнет из сводки. Уходи.':'Патруль отвернётся. У тебя меньше минуты.',3600);
+      showToast(`−1★ розыска · патруль отозван на ${Math.max(1,+d.cover_s||45)} сек · −$${Math.abs(+d.cost||pending.cost)}`,'💵',3600);closeNpcActionMenu();
+    }else if(d.ok){
+      if(Number.isFinite(+d.wanted))myWanted=Math.max(0,+d.wanted);
+      _npcActionSay(pending.ref,'Вы пытаетесь подкупить офицера? Руки на виду!',3400);
+      showToast(`Взятка отклонена · деньги сохранены · розыск ${myWanted}★`,'🚨',3300);closeNpcActionMenu();
+    }else{
+      if(Number.isFinite(+d.cash))_applyNpcCash(+d.cash,0);
+      const msg=d.reason==='cash'?'Не хватает денег':d.reason==='cooldown'?`Этот патруль настороже ещё ${Math.max(1,Math.ceil((+d.retry_s||1)/60))} мин.`:d.reason==='not_wanted'?'У тебя нет розыска':'Сделка не состоялась';
+      _npcActionSay(pending.ref,msg,2800);showToast(msg,'⚠️',2300);
+    }
   }else if(kind==='npc_robbery_state_reply'){
     for(const row of (Array.isArray(d.active)?d.active:[])){
       const robberyId=String(row.robbery_id||'');if(!robberyId||_murderIncidents.some(x=>x?.robberyId===robberyId&&!x.closedAt))continue;
@@ -24179,7 +24202,7 @@ let _npcStreetErrand = null;
 const NPC_ROB_COOLDOWN_MS=60*60*1000;
 const _npcRobCooldownKey=`mafiozi_npc_rob_cd_${QP.uid||'preview'}`;
 const _npcRobCooldowns=Object.create(null);
-let _pendingNpcRobbery=null,_pendingNpcGift=null,_npcRobberyOutstanding=0;
+let _pendingNpcRobbery=null,_pendingNpcGift=null,_pendingNpcPoliceBribe=null,_npcRobberyOutstanding=0;
 try{const saved=JSON.parse(localStorage.getItem(_npcRobCooldownKey)||'{}'),now=Date.now();for(const [key,until] of Object.entries(saved))if(+until>now)_npcRobCooldowns[key]=+until;}catch(e){}
 let _threeForcedGangShotId = null;
 let _threeForcedGangShotUntil = 0;
@@ -24342,9 +24365,30 @@ function _confiscateNpcRobberyLoot(incident,reason='police'){
   try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'npc_robbery_confiscate',d:{robbery_id:incident.robberyId,amount,reason}}));}catch(e){}
   return taken;
 }
+function _applyNpcPoliceBribeRelief(reply={}){
+  const now=performance.now(),coverMs=Math.max(5000,Math.min(90000,(+reply.cover_s||45)*1000));
+  if(Number.isFinite(+reply.wanted))myWanted=Math.max(0,+reply.wanted);
+  _policeBribeWantedAfter=+myWanted||0;_policeBribeCoverUntil=now+coverMs;
+  for(const cop of cityCops){
+    if(!cop?.alive||cop.kind==='prison_staff'||cop._prisonAssaultUnit)continue;
+    cop._pursuing=false;cop._reactUntil=0;cop._murderAggroUntil=0;cop._wayUntil=0;
+    if(cop.kind==='patrol')pickCityCopWaypoint(cop);
+  }
+  const robberyId=String(reply.robbery_id||'');
+  for(const incident of _murderIncidents){
+    if(incident?.source?.kind!=='npc_robbery'||incident.closedAt)continue;
+    if(robberyId&&String(incident.robberyId||'')!==robberyId)continue;
+    _npcRobberyOutstanding=Math.max(0,_npcRobberyOutstanding-Math.max(0,+incident.robberyAmount||0));
+    incident.status='bribed';incident.closedAt=now;
+    const v=serviceVehicles.find(q=>q?.payload?.murderIncident===incident);
+    if(v)_orderMurderCrewReturn(v,'officer-bribed',now);
+    if(robberyId)break;
+  }
+  document.documentElement.dataset.policeBribe=`cover:${Math.round(coverMs/1000)}:wanted:${myWanted}:case:${robberyId||'none'}`;
+}
 function _npcActionButtons(kind,ref,view){
   if(kind==='witness')return [['pay_silence','🤝 Заплатить за молчание'],['threaten_silence','🔪 Пригрозить']];
-  if(kind==='police')return [['talk','💬 Поговорить'],['documents','🪪 Показать документы'],['bribe','💵 Предложить взятку'],['surrender','🙌 Сдаться']];
+  if(kind==='police'){const cost=120+Math.max(1,Math.min(3,Math.ceil(+myWanted||1)))*180;return [['talk','💬 Поговорить'],['documents','🪪 Показать документы'],['bribe',`💵 Подкупить · $${cost}`],['surrender','🙌 Сдаться']];}
   if(kind==='doctor')return [['talk','💬 Поговорить'],['heal','🩺 Лечиться']];
   if(kind==='bandit')return [['talk','💬 Поговорить'],['price','📋 Узнать условия'],['hire','🤝 Нанять']];
   if(kind==='crew')return [['talk','💬 Поговорить'],['command','✋ Дать команду'],['dismiss','🚪 Отпустить из банды']];
@@ -24360,7 +24404,7 @@ function _npcActionDescription(id){
     talk:['Узнать, что человек скажет сейчас','БЕЗ РИСКА'],rumor:['Достоверная обстановка в текущем районе','СВЕДЕНИЯ'],
     give25:['Списывается $25 · репутация района +1','−$25'],give10:['Списывается $10 · человек запомнит помощь','−$10'],
     threaten:['Может уступить или немедленно вызвать полицию','РИСК'],rob:[left?`Повторно можно через ${Math.max(1,Math.ceil(left/60000))} мин.`:'Добыча $1–10 · полиция приедет всегда · кулдаун 1 час',left?'КУЛДАУН':'ВЫСОКИЙ РИСК'],
-    documents:['Проверка завершится сразу, если нет розыска','ПРОВЕРКА'],bribe:['Цена зависит от розыска · взятку могут не принять','РИСК'],surrender:['Добровольное задержание без перестрелки','АРЕСТ'],
+    documents:['Проверка завершится сразу, если нет розыска','ПРОВЕРКА'],bribe:['75%: −1★, патруль уйдёт, 45 сек на отход · отказ: деньги останутся, +1★','ПОЛЬЗА + РИСК'],surrender:['Добровольное задержание без перестрелки','АРЕСТ'],
     heal:['Полностью восстановить здоровье за деньги','ЛЕЧЕНИЕ'],price:['Показать цену и требования бойца','УСЛОВИЯ'],hire:['Нанять бойца в свою банду','НАЙМ'],
     command:['Приказать держаться рядом и прикрывать','КОМАНДА'],dismiss:['Навсегда отпустить бойца из текущей банды','ПОТЕРЯ БОЙЦА'],
     pay_silence:['Свидетель замолчит, если примет деньги','−$'],threaten_silence:['Может замолчать или ускорить вызов полиции','РИСК'],
@@ -24417,7 +24461,16 @@ function _runNpcAction(action){
     else{const amount=1+Math.floor(Math.random()*10);_completeNpcRobbery(ref,t.key,amount,robberyId);_pendingNpcRobbery=null;}return;
   }
   if(action==='documents'){const text=myWanted?'Документы не сходятся. Оставайтесь на месте.':'Всё в порядке. Можете идти.';_npcActionSay(ref,text);finish(text,'🪪');return;}
-  if(action==='bribe'){if(!myWanted){_npcActionSay(ref,'Уберите деньги. Вы ничего не нарушили.');finish('Офицер не видит причин для такого разговора','👮');return;}const cost=120+myWanted*180;if(!_npcActionSpend(cost)){_npcActionSay(ref,'У вас нет таких денег.');return;}const d=districtAt(player.r,player.c),rep=d?_districtRepValue(d.id):0;if(Math.random()<Math.max(.25,Math.min(.82,.48+rep*.004))){myWanted=Math.max(0,myWanted-1);_npcActionSay(ref,'Сегодня я вас не видел.');finish(`Розыск снижен · −$${cost}`,'💵');}else{_npcActionSay(ref,'Вы пытаетесь подкупить офицера?');myWanted=Math.min(3,myWanted+1);finish(`Взятка не принята · розыск ${myWanted}`,'🚨');}return;}
+  if(action==='bribe'){
+    if(!myWanted){_npcActionSay(ref,'Уберите деньги. Вы ничего не нарушили.');finish('Офицер не видит причин для такого разговора','👮');return;}
+    if(_pendingNpcPoliceBribe)return;const cost=120+Math.max(1,Math.min(3,Math.ceil(+myWanted||1)))*180;
+    if(myCash<cost){_npcActionSay(ref,'Такими деньгами меня не заинтересовать.');showToast(`Нужно $${cost}`,'💵',1900);return;}
+    _pendingNpcPoliceBribe={ref,cost};const overlay=document.getElementById('npcActionOverlay');overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=true);
+    if(ws&&ws.readyState===1){try{ws.send(JSON.stringify({t:'npc_police_bribe',d:{cop_id:String(ref.id||view.sourceId||'')}}));}catch(e){_pendingNpcPoliceBribe=null;overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);showToast('Не удалось предложить взятку','⚠️',1900);}return;}
+    _pendingNpcPoliceBribe=null;const accepted=Math.random()<.75;
+    if(accepted){_npcActionSpend(cost);_applyNpcPoliceBribeRelief({wanted:Math.max(0,myWanted-1),cover_s:45});_npcActionSay(ref,'Я вас не видел. Исчезните отсюда.');finish(`−1★ · патруль отозван на 45 сек · −$${cost}`,'💵');}
+    else{myWanted=Math.min(3,myWanted+1);_npcActionSay(ref,'Вы пытаетесь подкупить офицера?');finish(`Деньги сохранены · розыск ${myWanted}★`,'🚨');}return;
+  }
   if(action==='surrender'){_npcActionSay(ref,myWanted?'Оружие не доставай. Руки на виду.':'У вас нет розыска.');closeNpcActionMenu();if(!_beginVoluntarySurrender())showToast(myWanted?'Сейчас сдаться не удалось':'У тебя нет розыска','🙌',1900);return;}
   if(action==='pay_silence'){_silenceWitness(ref);closeNpcActionMenu();return;}
   if(action==='threaten_silence'){_districtRepAdd(-2,'угроза свидетелю',true);if(Math.random()<.48){ref.snitching=false;ref._witnessStage='silent';ref._witnessCallUntil=0;_npcActionSay(ref,'Я ничего не видел…');finish('Свидетель отступил','🤫');}else{ref._witnessCallUntil=now+450;_npcActionSay(ref,'Полиция уже едет!');finish('Запугать свидетеля не удалось','📞');}return;}
