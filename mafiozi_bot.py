@@ -25272,6 +25272,13 @@ async def _coop_http_app():
                                 )
                                 has_witness = (near_station or civilian
                                                or cop_sees or player_sees or witness_npc)
+                                if has_witness:
+                                    # Любое замеченное новое преступление рвёт
+                                    # договорённость с подкупленным патрульным.
+                                    # Раньше прямые ветки civilian/station
+                                    # обходили _bump_wanted и оставляли игроку
+                                    # 45 секунд серверной невидимости.
+                                    p['_police_bribe_cover_until'] = 0.0
                                 if not has_witness:
                                     # Тихий выстрел — никто не видел, wanted не растёт,
                                     # баннер тоже не шлём. Сам стрелок просто стреляет.
