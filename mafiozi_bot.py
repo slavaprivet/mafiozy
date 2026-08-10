@@ -26412,6 +26412,58 @@ async def _coop_http_app():
                         try:
                             await ws.send_str(json.dumps({'t': 'event', 'd': dict(reply, kind='npc_police_bribe_reply')}, ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'npc_threaten':
+                        # Вымогательство отличается от прямого ограбления:
+                        # добыча меньше, но половина жителей промолчит. Остальные
+                        # могут донести с задержкой или вызвать полицию сразу.
+                        body = d if isinstance(d, dict) else {}
+                        p = world.players.get(uid)
+                        npc_id = str(body.get('npc_id') or '')[:96]
+                        threat_id = str(body.get('threat_id') or '')[:160]
+                        now_t = int(time.time())
+                        reply = {'ok': False, 'reason': 'invalid', 'threat_id': threat_id}
+                        if p and not p.get('dead') and npc_id and threat_id:
+                            try:
+                                async with aiosqlite.connect(DB_PATH) as db:
+                                    await db.execute('BEGIN IMMEDIATE')
+                                    row = await (await db.execute(
+                                        "SELECT cooldown_until FROM npc_robberies WHERE uid=? AND npc_id=?",
+                                        (int(uid), npc_id))).fetchone()
+                                    cooldown_until = int((row or [0])[0] or 0)
+                                    if cooldown_until > now_t:
+                                        await db.rollback()
+                                        reply.update(reason='cooldown', retry_s=cooldown_until-now_t,
+                                                     cooldown_until=cooldown_until)
+                                    else:
+                                        roll = random.random()
+                                        outcome = 'silent' if roll < .50 else ('snitch' if roll < .80 else 'resist')
+                                        amount = 0 if outcome == 'resist' else random.randint(2, 7)
+                                        cooldown_until = now_t + 600
+                                        await db.execute(
+                                            "INSERT INTO npc_robberies(uid,npc_id,robbery_id,amount,cooldown_until,interrogation_arrest,status,created_at,resolved_at) "
+                                            "VALUES(?,?,?,?,?,0,?,?,?) "
+                                            "ON CONFLICT(uid,npc_id) DO UPDATE SET robbery_id=excluded.robbery_id,amount=excluded.amount,"
+                                            "cooldown_until=excluded.cooldown_until,interrogation_arrest=0,status=excluded.status,"
+                                            "created_at=excluded.created_at,resolved_at=excluded.resolved_at",
+                                            (int(uid), npc_id, threat_id, amount, cooldown_until,
+                                             'threatened_'+outcome, now_t, now_t))
+                                        if amount:
+                                            await db.execute(
+                                                "UPDATE characters SET cash=cash+? WHERE telegram_id=?",
+                                                (amount, int(uid)))
+                                        cash_row = await (await db.execute(
+                                            "SELECT cash FROM characters WHERE telegram_id=?", (int(uid),))).fetchone()
+                                        await db.commit()
+                                        cash = int((cash_row or [int(p.get('_cash') or 0)+amount])[0] or 0)
+                                        p['_cash'] = cash
+                                        reply = {'ok': True, 'threat_id': threat_id, 'outcome': outcome,
+                                                 'amount': amount, 'cash': cash,
+                                                 'cooldown_until': cooldown_until}
+                            except Exception:
+                                reply.update(reason='db_error')
+                        try:
+                            await ws.send_str(json.dumps({'t': 'event', 'd': dict(reply, kind='npc_threaten_reply')}, ensure_ascii=False))
+                        except Exception: pass
                     elif t == 'npc_robbery_state':
                         p = world.players.get(uid)
                         active = []
