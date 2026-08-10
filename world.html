@@ -13580,6 +13580,20 @@ function updateNpcs(dt) {
     if (n._knockedUntil && n._knockedUntil <= now) {
       n._knockedUntil = 0;n._knockedAt=0; n.cryText = 'Чё происходит?!'; n.cryUntil = now + 1700;
     }
+    // Обращённый к игроку житель не продолжает свой маршрут во время
+    // открытого меню и до конца ответной реплики. Он стоит на месте и всё
+    // время смотрит на собеседника. Опасность важнее разговора: паника,
+    // донос или бой немедленно снимают мирную фиксацию.
+    const playerConversationActive=n._playerConversationOpen||n._playerConversationUntil>now;
+    const playerConversationInterrupted=n.snitching||n.panicUntil>now||n._hostile||n._fighting||n._fightingMelee;
+    if(playerConversationActive&&!playerConversationInterrupted){
+      n.walking=false;n.walkPhase=0;n.tr=n.r;n.tc=n.c;
+      n.ang=Math.atan2(player.r-n.r,player.c-n.c);
+      continue;
+    }
+    if(n._playerConversationResume&&(playerConversationInterrupted||n._playerConversationUntil<=now)){
+      _resumeNpcAfterPlayerConversation(n,!playerConversationInterrupted);
+    }
     if(n._npcHelpingTarget&&(n.snitching||n.panicUntil>now||n._hostile||n._fighting||n._fightingMelee))_npcCancelHelping(n);
 
     // Сдающийся локальный бандит на несколько секунд прекращает бой и
@@ -24155,10 +24169,46 @@ function _npcActionKind(ref, view) {
   if(role.includes('homeless')||role.includes('beggar')||role.includes('hobo')||name.includes('бездом')||name.includes('нищий'))return 'homeless';
   return 'civilian';
 }
+function _npcConversationPosition(ref){
+  const r=+(ref?.r??ref?.y),c=+(ref?.c??ref?.x);
+  return Number.isFinite(r)&&Number.isFinite(c)?{r,c}:null;
+}
+function _beginNpcPlayerConversation(ref){
+  const pos=_npcConversationPosition(ref);if(!ref||!pos)return false;
+  if(!ref._playerConversationResume){
+    ref._playerConversationResume={tr:ref.tr,tc:ref.tc,route:ref._route?.map?.(p=>({...p}))||null,
+      routeIndex:ref._routeIndex||0,routeKind:ref._routeKind||'',idleUntil:ref.idleUntil||0};
+  }
+  ref._playerConversationOpen=true;ref._playerConversationUntil=Infinity;
+  _clearNpcRoute(ref);ref.tr=pos.r;ref.tc=pos.c;ref.walking=false;ref.walkPhase=0;
+  ref.ang=Math.atan2(player.r-pos.r,player.c-pos.c);ref._talking=Number.MAX_SAFE_INTEGER;
+  return true;
+}
+function _endNpcPlayerConversation(ref){
+  if(!ref)return;
+  const now=performance.now(),speechUntil=Math.max(now+120,+ref.cryUntil||0);
+  ref._playerConversationOpen=false;ref._playerConversationUntil=speechUntil;
+  if(ref._talking===Number.MAX_SAFE_INTEGER)ref._talking=speechUntil;
+}
+function _resumeNpcAfterPlayerConversation(ref,restoreRoute=true){
+  if(!ref)return;
+  const saved=ref._playerConversationResume;ref._playerConversationResume=null;
+  ref._playerConversationOpen=false;ref._playerConversationUntil=0;
+  if(ref._talking===Number.MAX_SAFE_INTEGER)ref._talking=0;
+  if(!restoreRoute||!saved)return;
+  if(saved.route?.length){
+    ref._route=saved.route;ref._routeIndex=Math.min(saved.routeIndex||0,saved.route.length-1);
+    ref._routeKind=saved.routeKind||'';const next=saved.route[ref._routeIndex];ref.tr=next.r;ref.tc=next.c;
+  }else if(Number.isFinite(+saved.tr)&&Number.isFinite(+saved.tc)){
+    ref.tr=+saved.tr;ref.tc=+saved.tc;
+  }
+  ref.idleUntil=Math.min(+saved.idleUntil||0,performance.now()+250);
+}
 function _npcActionSay(ref,text,ms=2600){
   if(!ref)return;
-  ref.cryText=String(text||'').slice(0,72);ref.cryUntil=performance.now()+ms;
-  ref._talking=performance.now()+Math.min(ms,2200);
+  const now=performance.now();ref.cryText=String(text||'').slice(0,72);ref.cryUntil=now+ms;
+  ref._talking=now+ms;if(ref._playerConversationOpen||ref._playerConversationResume)ref._playerConversationUntil=ref.cryUntil;
+  const pos=_npcConversationPosition(ref);if(pos)ref.ang=Math.atan2(player.r-pos.r,player.c-pos.c);
 }
 function _npcActionSpend(amount){
   amount=Math.max(0,Math.round(amount));if(myCash<amount){showToast(`Нужно $${amount}`,'💵',1800);return false;}
@@ -24257,13 +24307,14 @@ function _ensureNpcActionMenu(){
   document.body.appendChild(overlay);overlay.addEventListener('pointerdown',e=>{e.stopPropagation();},true);overlay.addEventListener('click',e=>{e.stopPropagation();if(e.target===overlay||e.target.closest('.npc-act-close'))closeNpcActionMenu();const btn=e.target.closest('[data-npc-action]');if(btn)_runNpcAction(btn.dataset.npcAction);});return overlay;
 }
 function closeNpcActionMenu(){
-  const overlay=document.getElementById('npcActionOverlay');overlay?.classList.remove('show');_npcActionTarget=null;delete document.documentElement.dataset.npcActionMenu;window.dispatchEvent(new CustomEvent('mafiozi-npc-action-mode',{detail:{open:false}}));
+  const overlay=document.getElementById('npcActionOverlay'),ref=_npcActionTarget?.ref;overlay?.classList.remove('show');
+  if(ref)_endNpcPlayerConversation(ref);_npcActionTarget=null;delete document.documentElement.dataset.npcActionMenu;window.dispatchEvent(new CustomEvent('mafiozi-npc-action-mode',{detail:{open:false}}));
 }
 function openNpcActionMenuFrom3D(entityId){
   const key=String(entityId||''),entry=_threeNpcActionRefs.get(key);if(!entry)return {ok:false,reason:'missing'};
   const ref=entry.ref||entry.view,view=entry.view||{},distance=Math.hypot((+(view.r??ref.r??ref.y)||0)-player.r,(+(view.c??ref.c??ref.x)||0)-player.c);if(distance>3.5)return {ok:false,reason:'far'};
   const kind=_npcActionKind(ref,view);if(kind==='mechanic'){showToast('Механик сейчас занят работой','🔧',1600);return {ok:false,reason:'mechanic-untouched'};}
-  _npcActionTarget={key,ref,view,kind};const overlay=_ensureNpcActionMenu(),labels={civilian:'Житель',police:'Полицейский',bandit:'Бандит',crew:'Боец вашей банды',witness:'Свидетель',doctor:'Врач',homeless:'Бездомный'};
+  _npcActionTarget={key,ref,view,kind};_beginNpcPlayerConversation(ref);const overlay=_ensureNpcActionMenu(),labels={civilian:'Житель',police:'Полицейский',bandit:'Бандит',crew:'Боец вашей банды',witness:'Свидетель',doctor:'Врач',homeless:'Бездомный'};
   overlay.querySelector('.npc-act-name').textContent=view.name||ref.name||labels[kind]||'Житель';overlay.querySelector('.npc-act-status').textContent=kind==='witness'?'Собирается сообщить полиции':kind==='police'?(myWanted?`Проверяет ориентировку · розыск ${myWanted}`:'На службе · нарушений не видит'):kind==='doctor'?`Может восстановить здоровье · ${Math.round(myHp)}/${PVP.max_hp||100} HP`:labels[kind];
   const grid=overlay.querySelector('.npc-act-grid');grid.innerHTML='';for(const [id,label] of _npcActionButtons(kind,ref,view))_appendNpcActionButton(grid,id,label);
   overlay.classList.add('show');document.documentElement.dataset.npcActionMenu=`open:${kind}`;window.dispatchEvent(new CustomEvent('mafiozi-npc-action-mode',{detail:{open:true,kind}}));return {ok:true,kind,key};
