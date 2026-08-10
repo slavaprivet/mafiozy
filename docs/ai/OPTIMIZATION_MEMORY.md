@@ -1,162 +1,59 @@
 # Mafiozi 3D optimization memory
 
-Read this before adding or expanding a 3D feature in `world.html` or
-`three_preview.js`. Performance work must preserve or improve visible quality.
+The canonical file was missing from the working root on 2026-08-10. The latest
+recovered historical baseline remains available at
+`_github3d_impact_20260810/docs/ai/OPTIMIZATION_MEMORY.md` and must be read for
+the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 
-## Non-negotiable quality contract
+## Non-negotiable interaction rule
 
-- Keep authored geometry, textures, lighting, day/night grading and real-time
-  PCF soft shadows. Do not solve a slowdown by silently lowering resolution,
-  texture size, anisotropy, model detail, view distance or effect quality.
-- The server-backed player role, faction/family and business ownership remain
-  authoritative. Preview flags must never replace live status in production.
-- Prefer removing redundant CPU/GPU work. Any adaptive degradation requires an
-  explicit product decision and a separate visual comparison.
+- Proximity visuals must consume the existing throttled
+  `nearbyActionState`; do not add another complete building/NPC scan to the
+  render loop.
+- Build door geometry once with the exterior and animate only pivot transforms.
+  Do not allocate geometry, materials, vectors or timers while the player is
+  approaching a door.
+- One authoritative entrance must drive collision reachability, the marker,
+  the `E` prompt, door animation and the actual transition. Hidden legacy DOM
+  buttons must not be created or clicked as a bridge between those systems.
 
-## Checklist for every new feature
+## Confirmed pattern: bank entrance (2026-08-10)
 
-1. Run `git log -1` and compare `origin/main`; work on an isolated `codex/*`
-   branch because the world is edited concurrently.
-2. Record a representative baseline: FPS, `renderMs`, `renderMaxMs`,
-   `maxFrameGapMs`, `maxFrameWorkMs`, draw calls, triangles, GPU geometries and
-   textures. Keep idle/warmup work separate from animation-frame work.
-3. Search for an existing pool, material, geometry, texture, bridge field or
-   streaming queue before creating another system.
-4. Implement the feature, then test the actual transition that makes it first
-   visible. First-use shader compilation and GPU upload are common freeze causes.
-5. Run `node --check three_preview.js`, `git diff --check`, a local browser
-   preview, a visual shadow/light check and a Three.js error-log check.
-6. Recheck `origin/main` immediately before committing or publishing.
+- All three bank entrances resolved to walkable anchors in local 3D QA.
+- Reusing the 140 ms cached `nearbyActionState` opened only the matching bank's
+  prebuilt double-door pivots; no extra proximity scan was introduced.
+- The exterior `zoneBtn` stayed hidden, the common `E` prompt remained visible,
+  and `E` entered the bank lobby directly without Three.js errors.
 
-## Resource rules
+## NPC action prompt layering (2026-08-10)
 
-- Never create identical `Geometry`, immutable `Material`, `CanvasTexture` or
-  high-resolution canvas assets per entity/slot. Cache by real construction
-  parameters and share them. Keep only mutable state (paint, braking lamps,
-  damage values, per-instance uniforms) private.
-- Preserve texture repetition through geometry UVs instead of cloning a texture
-  only to change `repeat`.
-- Use bounded pools for bullets, decals, particles, vehicle damage, NPC labels
-  and temporary effects. Reuse slots; remove unbounded arrays, intervals and DOM
-  listeners. Disposal must not destroy a resource still shared by another mesh.
-- Avoid allocations and scene traversal in per-frame paths. Cache vectors,
-  matrices, signatures and spatial lookup results.
+- Use the existing cached nearest-NPC state and cached projection vector for the DOM `E` prompt; do not add another NPC scan or per-frame layout read.
+- Project the prompt above the highest NPC name/role/HP label and use a fully opaque fill. Remove duplicate legacy top-HUD NPC buttons so `E` remains the single interaction path.
 
-## Static world and shadows
+## Custody release and emergency arrivals (2026-08-10)
 
-- Spatially batch immutable opaque detail by material and chunk. Keep animated,
-  selectable, transparent, skinned, morphing and gameplay-linked objects out of
-  static batches.
-- The colour pass must preserve all authored materials. A separate position-only
-  spatial shadow proxy may combine opaque static casters because the directional
-  depth pass only needs the exact silhouette.
-- Keep chunks small enough for useful camera and shadow-frustum culling. Seal
-  bounds after instancing or merging.
-- Do not mark every decorative mesh as a shadow caster. Make the decision from
-  visible contribution, but never remove an existing visible shadow without a
-  before/after comparison.
+- Treat prison release as an input-cancellation and staged world-resume boundary: clear held combat/interaction state, reset frame timing and spread the first world updates across the existing resume frames.
+- Interior crimes must store exterior world coordinates and remain queued until the player exits. A disconnected-road fallback vehicle must begin outside the 3D dynamic radius and become visible only while actually approaching, never teleport into the live view.
 
-## Streaming and warmup
+## Crisp projected DOM prompts (2026-08-10)
 
-- Build distant sectors incrementally and yield between bounded slices. Never
-  compile or upload a whole authored district in one gameplay frame.
-- Warm the exact final shader configuration: preserve nested visibility,
-  material flags, light counts, layers and `castShadow`. A mismatched warmup
-  merely moves compilation back into the first visible frame.
-- Warm GPU buffers with a tiny offscreen target, one source per idle slice. Do
-  not recompute full shadow maps inside each 2x2 upload slice.
-- Reveal only after compile/upload work is ready; batch shadow invalidation so
-  streamed roots do not trigger repeated full shadow passes.
+- Do not animate projected gameplay text with CSS `filter: blur(...)`: even after the animation, compositor rasterization can leave small bold glyphs visibly soft.
+- Snap projected screen coordinates to whole pixels, use a 2D `translate(...)`, and avoid permanent `will-change: transform` on text overlays. This keeps the prompt crisp without adding layout reads to the frame loop.
 
-## Stateful input and gameplay transitions
+## Police foot-route stall recovery (2026-08-10)
 
-- Treat prison, death, arrest, vehicle/interior entry, overlays and app
-  visibility changes as input-cancellation boundaries. Clear held fire, stale
-  pointer/touch IDs and right-stick aim when controls become unavailable.
-- Mobile WebViews may omit `pointerup`, `pointercancel` or `keyup` while an
-  overlay or server teleport is taking control. Never let a hidden control keep
-  an automatic-fire loop alive or resume a ghost burst after release.
-- Add transition-focused preview checks. A steady-state FPS test will not catch
-  a retained input flag, first-shot warmup or duplicate response spawned only
-  on the first frame after a state change.
-- Keep the number and kinds of visible Three.js lights stable across gameplay
-  state changes. Switching a zero-intensity light's colour/intensity is cheap;
-  adding a newly visible `PointLight` can recompile every affected material.
-  Pre-create one light slot when only one alarm colour is emitted at a time.
-- With `renderer.shadowMap.autoUpdate = false`, a second warmup render does not
-  exercise the shadow/depth variants unless it first sets
-  `renderer.shadowMap.needsUpdate = true`. Do this only behind the loading screen;
-  do not add an extra shadow refresh to the live frame loop.
-- `needsUpdate` has no effect while `renderer.shadowMap.enabled` is false. For a
-  loading-only shadow warmup, temporarily enable it and restore the previous
-  value in `finally`. Put a proxy using a real mapped material inside the current
-  sun-shadow frustum; otherwise the later `map/uv` depth key still compiles live.
-- Hidden vehicle roots are skipped by scene compilation. Briefly reveal one
-  bounded vehicle slot during warmup so its physical glass and instanced wheel
-  variants are ready before police/service vehicles enter the scene.
-- Prime `InstancedMesh.instanceColor` before shader warmup whenever live code
-  later calls `setColorAt`. Creating that attribute on the first projectile or
-  decal changes shader defines and moves compilation back into gameplay.
+- Never extend the expiry of a failed cached foot route from its blocked branch. Doing so every frame keeps the same invalid first waypoint alive forever beside compact obstacles such as trees.
+- Clear a route after a bounded no-progress interval and let the existing one-route-per-frame BFS budget recalculate it. Custody adds a shorter watchdog because an escorted player cannot be left waiting indefinitely.
+- Deterministic 3D QA placed a tree at `(5.5, 5.5)` directly between the arresting officer and the police-van door. The officer changed from `escort` to `loading` through collision-safe replans with no Three.js errors and without another world scan.
 
-## Proximity prompts and DOM overlays
+## Prison intake static waiting corner (2026-08-10)
 
-- Do not scan the complete NPC pool every render frame. Cache the nearest-NPC
-  result for roughly 100 ms, compare squared distances inside the scan and run
-  one forced fresh scan only when the player presses the interaction key.
-- Never mix per-frame style writes with `getBoundingClientRect`, `offsetWidth`
-  or `offsetHeight`. Cache stage/canvas bounds until resize and measure prompt
-  dimensions only when its content or target changes.
-- Keep 3D marker animation and projection at render cadence; throttling the
-  search and caching layout must not make the visible ring or label judder.
-- Preview fixtures must anchor actors to a fixed world position once. Rewriting
-  an NPC position from the player's current coordinates on every bridge sample
-  accidentally creates a follower and invalidates proximity/performance tests.
+- Reposition intake furniture only inside the one-time authored prison constructor; do not add a frame update or a second collision representation for visual-only benches and screens.
+- The television/information screen and both benches now share the south-west corner opposite the northern release gate. Local 3D QA kept the gate released, reported zero police/body overlap and no Three.js errors; the sampled render was 16.4 ms at the existing quality settings.
 
-## Existing measured patterns (2026-08-10)
+## Police retaliation and stationary firing gait (2026-08-10)
 
-- Original junkyard streaming produced roughly a 2.7 second freeze.
-- Spatial batching retained full geometry: prison `442 -> 52`, junkyard
-  `97 -> 23` visual batches.
-- Shared facade textures plus baked UV repetition removed per-building texture
-  clones without changing the facade image.
-- The fixed vehicle render pool reused 1,396 duplicate geometries and retained
-  131 unique shapes across 18 slots.
-- After those changes, a representative desktop preview produced steady render
-  samples around p50 18.5 ms / p95 25.2 ms and 21-23 FPS at the existing native
-  quality policy. Treat these as historical evidence, not universal thresholds.
-
-## Dynamic actor frame batching (2026-08-10)
-
-- A cached `instanceColor` is not useful if a later generic mesh loop still sets
-  every `instanceColor.needsUpdate` flag. Audit the whole frame after adding a
-  signature cache; one later blanket flag restores the full GPU upload cost.
-- Compute a complex NPC pose once per actor per frame and share it between body,
-  equipment and label passes. Re-evaluating the same animation state in adjacent
-  loops wastes CPU and can give accessories a slightly different time sample.
-- Cache remote-player and gang-aura colours by pool slot plus authoritative actor
-  id. Keep matrix animation at full cadence, but upload colour attributes only
-  when the actor or its visual role/faction changes.
-- DOM `dataset` diagnostics are telemetry, not gameplay. Batch stable counters at
-  roughly 4 Hz while retaining animation, transforms and combat at render cadence.
-- Police line-of-sight uses a static collision map. A bounded 120 ms cache with
-  quarter-tile endpoint keys safely shares repeated checks without delaying
-  visible reactions or changing walls.
-- Prison-assault preview after these changes completed all four reinforcements,
-  preserved chat/labels/shadows and sampled about 25.2 ms total frame work with
-  21.0 ms render time at native quality. Use this as a scenario comparison, not
-  a device-independent target.
-
-## Diagnostics interpretation
-
-- `renderMaxProgramGrowth` changing during a long frame usually means a shader
-  variant escaped warmup.
-- `gpuWarmupSliceMaxMs` measures idle upload stalls that `maxFrameWorkMs` misses.
-- `maxFrameGapMs` is the player-visible pause and includes work outside rAF.
-- A long render with no program growth points to actual draw, shadow-map, upload
-  or synchronization cost; profile that path instead of changing shader warmup.
-
-## Publishing
-
-The project deploys through its GitHub API upload workflow, not direct
-`git push`. Never publish over a newer `main`; reconcile the exact fresh commit,
-validate again and publish only with explicit authorization.
+- Do not infer a police actor's movement from its cached patrol target in the 3D bridge. Combat AI can deliberately hold a firing lane while the old waypoint remains distant; using that target makes a stationary officer cycle the walk animation forever.
+- Reset the explicit `walking` flag at the start of each police simulation tick and let the shared collision-aware foot mover assert it only after a successful displacement. Measured visual motion remains the renderer-side fallback.
+- A player hit must enter a durable armed-retaliation state immediately, independently of delayed wanted synchronization. For investigation crews, promote the whole responding vehicle crew and its incident to armed contact so search/question phases cannot absorb incoming fire without answering.
+- Local deterministic 3D QA confirmed return fire for patrol (`15` sampled shots, shooter `walking=false`), murder-response crews (`15` shots across two officers, both `walking=false`) and prison staff (`10` shots with the active prison alarm), with no Three.js startup errors.
