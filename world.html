@@ -60184,9 +60184,10 @@ if(_LOCAL_PREVIEW&&_UP.has('previewjail')){
   document.documentElement.dataset.prisonCollisionAudit=JSON.stringify(auditPoints.map(([name,r,c])=>({name,blocked:isBlockedPed(r,c),surface:_prisonIslandCollisionAt(r,c)?.surface||'world'})));
   document.documentElement.dataset.prisonReleaseGate=`${_effectivePrisonJailSeconds()>0?'locked':'released'}:${_prisonReleaseGateProgress().toFixed(2)}`;
 }
-if(_LOCAL_PREVIEW&&_UP.has('previewprisonassault'))setTimeout(()=>{
+if(_LOCAL_PREVIEW&&_UP.has('previewprisonassault')){const previewPrisonAssaultDelay=Math.max(1500,Math.min(15000,+_UP.get('previewprisonassaultdelay')||1500));setTimeout(()=>{
   const now=performance.now();player.r=JAIL_ISLAND_LAYOUT.centerR-1.2;player.c=JAIL_ISLAND_LAYOUT.centerC;player.vr=0;player.vc=0;player.walking=false;
   myHp=Math.max(1,PVP.max_hp||100);myDead=false;_localDeath=false;myJailIn=0;_prisonReleaseGateSeconds=0;currentWeapon='pistol';
+  const threeCanvas=document.getElementById('threePreview');if(threeCanvas){for(const key of ['maxFrameGapMs','maxFrameWorkMs','renderMaxMs'])threeCanvas.dataset[key]='0';threeCanvas.dataset.renderMaxPhase='prison-assault-reset';threeCanvas.dataset.previewPrisonAssaultStartedAt=String(Math.round(now));}
   _ensurePrisonStaffCops(now);const target=cityCops.find(c=>c?.alive&&c.kind==='prison_staff'&&!c._prisonAssaultUnit);
   if(target)hitCityCop(target,0,1,1,{kind:'player',weapon:'pistol'});else _activatePrisonAssault(null,'preview-armed-shot',now);
   const trace=setInterval(()=>{
@@ -60198,7 +60199,7 @@ if(_LOCAL_PREVIEW&&_UP.has('previewprisonassault'))setTimeout(()=>{
     });
     if(!_prisonAlarmActive()&&(+document.documentElement.dataset.policeArrestDelivered||0)>0)clearInterval(trace);
   },180);
-},1500);
+},previewPrisonAssaultDelay);}
 if(_LOCAL_PREVIEW&&_UP.has('previewprisonweaponqa'))setTimeout(()=>{
   const bridge=window.Mafiozi3DBridge,ammo=_weaponAmmoState(resolveWeapon(currentWeapon));
   const before={mag:+ammo?.slot?.mag||0,reserve:+ammo?.reserve||0,grenade:_myGrenadeCount,molotov:_myMolotovCount,c4:_myC4Count};
@@ -64019,6 +64020,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d273-volumetric-fire-hose"></script>
+<script type="module" src="three_preview.js?v=3d293-prison-response-prewarm"></script>
 </body>
 </html>

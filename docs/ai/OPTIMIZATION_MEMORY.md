@@ -83,6 +83,10 @@ Read this before adding or expanding a 3D feature in `world.html` or
   state changes. Switching a zero-intensity light's colour/intensity is cheap;
   adding a newly visible `PointLight` can recompile every affected material.
   Pre-create one light slot when only one alarm colour is emitted at a time.
+- With `renderer.shadowMap.autoUpdate = false`, a second warmup render does not
+  exercise the shadow/depth variants unless it first sets
+  `renderer.shadowMap.needsUpdate = true`. Do this only behind the loading screen;
+  do not add an extra shadow refresh to the live frame loop.
 - Prime `InstancedMesh.instanceColor` before shader warmup whenever live code
   later calls `setColorAt`. Creating that attribute on the first projectile or
   decal changes shader defines and moves compilation back into gameplay.
