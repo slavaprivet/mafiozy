@@ -24219,7 +24219,7 @@ function openNpcActionMenuFrom3D(entityId){
 }
 function _runNpcAction(action){
   const t=_npcActionTarget;if(!t)return;const {ref,view,kind}=t,now=performance.now(),finish=(text,icon='💬')=>{if(text)showToast(text,icon,2200);closeNpcActionMenu();};
-  if(action==='talk'){const text=kind==='police'?(myWanted?'Остановитесь. Вы подходите под описание.':'Не нарушайте порядок.'):kind==='doctor'?'Берегите себя. Улицы сегодня неспокойные.':kind==='bandit'?'Деньги вперёд. Верность потом.':kind==='crew'?'Я рядом, босс.':kind==='homeless'?'Город говорит с теми, кто умеет слушать.':'Добрый день. Здесь всякое бывает.';_npcActionSay(ref,text);finish(text);return;}
+  if(action==='talk'){const text=kind==='police'?(myWanted?'Остановитесь. Вы подходите под описание.':'Не нарушайте порядок.'):kind==='doctor'?'Берегите себя. Улицы сегодня неспокойные.':kind==='bandit'?'Деньги вперёд. Верность потом.':kind==='crew'?'Я рядом, босс.':kind==='homeless'?'Город говорит с теми, кто умеет слушать.':'Добрый день. Здесь всякое бывает.';_npcActionSay(ref,text);finish();return;}
   if(action==='rumor'){const text=_npcActionDistrictLine();_npcActionSay(ref,text,3600);finish(text,'🗞️');return;}
   if(action==='give25'||action==='give10'){
     const amount=action==='give25'?25:10;if(myCash<amount){_npcActionSay(ref,'У тебя не хватает денег.');showToast(`Нужно $${amount}`,'💵',1800);return;}
