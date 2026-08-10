@@ -60,6 +60,7 @@ RACE_SLOTS = [
 ]
 quest_cars = {}
 preview_accounts = {}
+preview_npc_robberies = {}
 preview_business_claims = {}
 preview_connections = {}
 preview_apartments = {}
@@ -2807,6 +2808,73 @@ async def world_ws(req):
                 if reply.get("ok"):
                     action=dict(reply); action["kind"]=t
                     await broadcast_event(action)
+            elif t == "npc_cash_action":
+                account = preview_account(uid)
+                action = str(d.get("action") or "")[:32]
+                amount = {"give25": 25, "give10": 10}.get(action, 0)
+                if not amount:
+                    reply = {"kind":"npc_cash_action_reply","ok":False,"reason":"invalid","action":action,"amount":0}
+                elif account["cash"] < amount:
+                    reply = {"kind":"npc_cash_action_reply","ok":False,"reason":"cash","action":action,"amount":amount,"cash":account["cash"]}
+                else:
+                    account["cash"] -= amount
+                    reply = {"kind":"npc_cash_action_reply","ok":True,"action":action,"amount":amount,"cash":account["cash"]}
+                await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
+            elif t == "npc_robbery_state":
+                robbery_state = preview_npc_robberies.setdefault(str(uid), {})
+                outstanding = robbery_state.setdefault("outstanding", {})
+                meta = robbery_state.setdefault("meta", {})
+                active = [dict(meta[rid]) for rid in outstanding if rid in meta]
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"npc_robbery_state_reply","ok":True,"active":active}}, ensure_ascii=False))
+            elif t == "npc_robbery":
+                account = preview_account(uid); p = players.setdefault(uid, {})
+                robbery_state = preview_npc_robberies.setdefault(str(uid), {})
+                npc_id = str(d.get("npc_id") or "")[:96]
+                robbery_id = str(d.get("robbery_id") or "")[:160]
+                now_t = time.time(); cooldowns = robbery_state.setdefault("cooldowns", {})
+                until = float(cooldowns.get(npc_id) or 0)
+                if not npc_id or not robbery_id:
+                    reply = {"kind":"npc_robbery_reply","ok":False,"reason":"invalid","robbery_id":robbery_id}
+                elif until > now_t:
+                    reply = {"kind":"npc_robbery_reply","ok":False,"reason":"cooldown","robbery_id":robbery_id,"cooldown_until":int(until)}
+                else:
+                    amount = random.randint(1, 10)
+                    interrogation_arrest = random.random() < 0.8
+                    until = now_t + 3600; cooldowns[npc_id] = until
+                    robbery_state.setdefault("outstanding", {})[robbery_id] = amount
+                    robbery_state.setdefault("meta", {})[robbery_id] = {"npc_id":npc_id,"robbery_id":robbery_id,"amount":amount,"cooldown_until":int(until),"created_at":int(now_t),"interrogation_arrest":interrogation_arrest}
+                    account["cash"] += amount; account["wanted"] = max(1, int(account.get("wanted") or 0)); p["wanted"] = account["wanted"]
+                    reply = {"kind":"npc_robbery_reply","ok":True,"robbery_id":robbery_id,"amount":amount,"cash":account["cash"],"cooldown_until":int(until),"interrogation_arrest":interrogation_arrest}
+                await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
+            elif t == "npc_robbery_confiscate":
+                account = preview_account(uid); robbery_id = str(d.get("robbery_id") or "")[:160]
+                robbery_state = preview_npc_robberies.setdefault(str(uid), {})
+                stored = robbery_state.setdefault("outstanding", {}).pop(robbery_id, None)
+                robbery_state.setdefault("meta", {}).pop(robbery_id, None)
+                if stored is None: reply = {"kind":"npc_robbery_confiscate_reply","ok":False,"reason":"missing","robbery_id":robbery_id}
+                else:
+                    amount = max(0, min(10, int(stored))); account["cash"] = max(0, account["cash"] - amount)
+                    reply = {"kind":"npc_robbery_confiscate_reply","ok":True,"robbery_id":robbery_id,"amount":amount,"cash":account["cash"]}
+                await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
+            elif t == "npc_robbery_resolve":
+                account = preview_account(uid); p = players.setdefault(uid, {})
+                robbery_id = str(d.get("robbery_id") or "")
+                robbery_state = preview_npc_robberies.setdefault(str(uid), {})
+                meta = robbery_state.setdefault("meta", {}).get(robbery_id)
+                released = bool(meta) and not bool(meta.get("interrogation_arrest"))
+                if released:
+                    robbery_state.setdefault("outstanding", {}).pop(robbery_id, None)
+                    robbery_state.setdefault("meta", {}).pop(robbery_id, None)
+                    account["wanted"] = max(0, int(account.get("wanted") or 0) - 1); p["wanted"] = account["wanted"]
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"npc_robbery_resolve_reply","ok":released,"robbery_id":robbery_id,"wanted":account["wanted"]}}, ensure_ascii=False))
+            elif t == "citycop_arrest":
+                p = players.setdefault(uid, {}); account = preview_account(uid)
+                booking = bool(d.get("booking")); voluntary = bool(d.get("voluntary")); robbery = bool(d.get("robbery"))
+                wanted = max(float(p.get("wanted") or 0), float(account.get("wanted") or 0))
+                ok = (booking and float(p.get("jail_until") or 0) > time.time()) or wanted >= (1 if (voluntary or robbery) else 2)
+                if ok:
+                    p["wanted"] = 0; account["wanted"] = 0; p["jail_until"] = time.time() + 60
+                await ws.send_str(json.dumps({"t":"event","d":{"kind":"citycop_arrest_reply","ok":ok,"reason":"" if ok else "not_wanted","booking":booking,"jail_s":60}}, ensure_ascii=False))
             elif t == "brigadir_take":
                 p=players.setdefault(uid,{})
                 reply={"kind":"brigadir_take_reply","ok":not p.get("dead"),
