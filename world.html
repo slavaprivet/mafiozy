@@ -9217,7 +9217,10 @@ function updateCityCops(dt) {
   for (let i = cityCops.length - 1; i >= 0; i--) {
     const cop = cityCops[i];
     if (!cop.alive) continue;
-    _recoverPoliceFootCop(cop);
+    // Arrest/custody actors are moved by the arrest sequence itself. Running the
+    // generic body recovery first made the west-gate escort bounce back out of
+    // the narrow checkpoint every frame, so the officer appeared stuck in the wall.
+    if(!String(cop._casePhase||'').startsWith('arrest_'))_recoverPoliceFootCop(cop);
     if(cop._hqReplacement&&Math.hypot(cop.y-cop.ty,cop.x-cop.tx)<.5){cop._hqReplacement=false;pickCityCopWaypoint(cop);}
     if(cop.kind==='prison_staff'&&_updatePrisonStaffCop(cop,dt,now))continue;
     // Экипаж убийства имеет собственные фазы: выход из участка, посадка,
@@ -11442,6 +11445,18 @@ function _murderPrisonEscortWaypoints(target){
     target
   ];
 }
+function _murderPrisonHandoffWaypoints(v){
+  if(!JAIL_ISLAND_3D_ENABLED)return[{..._policeCrewBoardPoint(v,0)}];
+  const g=JAIL_VEHICLE_GATE_3D;
+  // Машина может остановиться сбоку от КПП. Сначала выводим конвой на ось
+  // подъезда перед стеной, затем проводим по открытому западному шлагбауму.
+  // Прямая от двери машины к handoff раньше срезала угол через стену.
+  return[
+    {r:g.stopR,c:g.stopC},
+    {r:g.r,c:JAIL_ISLAND_LAYOUT.west-1.28},
+    {r:g.handoffR,c:g.handoffC}
+  ];
+}
 function _updateMurderPolicePrisonHandoff(v,ar,dt,now=performance.now()){
   const delivery=_murderArrestCopsByIds(ar.deliveryCopIds),receivers=_murderArrestCopsByIds(ar.prisonCopIds);
   if(delivery.length<2||receivers.length<2){
@@ -11457,17 +11472,36 @@ function _updateMurderPolicePrisonHandoff(v,ar,dt,now=performance.now()){
     if(now-ar.phaseAt>=POLICE_ARREST_UNLOAD_MS){
       delivery[0]._lifeState='';delivery[0]._lifeGesture='';
       _setMurderPoliceArrestPhase(ar,'handoff',now);
+      ar.handoffWaypoints=_murderPrisonHandoffWaypoints(v);ar.handoffWaypoint=0;
+      ar.handoffLastR=delivery[0].y;ar.handoffLastC=delivery[0].x;ar.handoffLastMoveAt=now;
       _copChats.set(receivers[0].id,{text:'Приняли. Ведём в блок.',untilMs:now+2200});
     }
   }else if(ar.phase==='handoff'){
     const handoff=JAIL_ISLAND_3D_ENABLED
       ?{r:JAIL_VEHICLE_GATE_3D.handoffR,c:JAIL_VEHICLE_GATE_3D.handoffC}
       :{r:door.r,c:door.c};
-    const primary=delivery[0],reached=_movePrisonEscortCop(primary,handoff.r,handoff.c,dt,1.18);
+    const primary=delivery[0],route=ar.handoffWaypoints||_murderPrisonHandoffWaypoints(v);
+    let routeIndex=Math.max(0,Math.min(route.length-1,+ar.handoffWaypoint||0)),waypoint=route[routeIndex]||handoff;
+    let reached=_movePrisonEscortCop(primary,waypoint.r,waypoint.c,dt,1.18);
+    if(reached||Math.hypot(primary.y-waypoint.r,primary.x-waypoint.c)<.28){
+      if(routeIndex<route.length-1){ar.handoffWaypoint=++routeIndex;waypoint=route[routeIndex];reached=false;}
+      else reached=true;
+    }
+    const handoffMoved=Math.hypot(primary.y-(+ar.handoffLastR||primary.y),primary.x-(+ar.handoffLastC||primary.x));
+    if(handoffMoved>.025){ar.handoffLastR=primary.y;ar.handoffLastC=primary.x;ar.handoffLastMoveAt=now;}
+    else if(now-(+ar.handoffLastMoveAt||now)>2200){
+      // Все точки лежат на свободном подъезде/в проёме КПП. Если динамический
+      // актёр всё же зажал ведущего, переносим только к текущей безопасной
+      // точке, а не сквозь произвольную стену.
+      primary.y=waypoint.r;primary.x=waypoint.c;ar.handoffLastR=primary.y;ar.handoffLastC=primary.x;ar.handoffLastMoveAt=now;
+      if(routeIndex<route.length-1)ar.handoffWaypoint=routeIndex+1;
+      document.documentElement.dataset.policeArrestHandoffRecoveries=String((+document.documentElement.dataset.policeArrestHandoffRecoveries||0)+1);
+    }
     const followR=primary.y-Math.sin(primary.ang)*.58,followC=primary.x-Math.cos(primary.ang)*.58,k=Math.min(1,dt*7);
     player.r+=(followR-player.r)*k;player.c+=(followC-player.c)*k;player.ang=primary.ang;player.walking=true;player.walkPhase+=dt*7;
     _movePrisonEscortCop(delivery[1],player.r-Math.sin(primary.ang)*.72,player.c-Math.cos(primary.ang)*.72,dt,1.12);
     for(let i=0;i<receivers.length;i++)_movePrisonEscortCop(receivers[i],handoff.r+(i?-.48:.48),handoff.c-.12,dt,1.05);
+    document.documentElement.dataset.policeArrestHandoffRoute=`${routeIndex+1}/${route.length}:${Math.hypot(primary.y-waypoint.r,primary.x-waypoint.c).toFixed(2)}`;
     if(reached||Math.hypot(primary.y-handoff.r,primary.x-handoff.c)<.32||now-ar.phaseAt>=12000){
       primary.y=handoff.r;primary.x=handoff.c;player.r=handoff.r;player.c=handoff.c;player.walking=false;
       for(const cop of delivery){cop._casePhase='arrest_handoff_complete';cop._lifeGesture='salute';}
