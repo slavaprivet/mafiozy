@@ -10321,7 +10321,9 @@ function _ambulanceWatchdogAdvance(v,now=performance.now(),reason='stuck'){
 }
 
 function _dispatchPlayerAmbulance(){
-  if(_playerEmergencyPatient||myJailIn>0)return;
+  // Полицейское ранение обслуживает конвой: скорая не должна перехватывать
+  // задержанного и мгновенно отправлять его в больницу.
+  if(_playerEmergencyPatient||myJailIn>0||_murderPoliceArrest||/полици|коп/i.test(String(myDeathBy||'')))return;
   const now=performance.now();_playerEmergencyPatient={r:player.r,c:player.c,_playerPatient:true,_medicalDowned:true,_medicalDownedAt:now,_medicalBleedoutAt:now+18000};
   const amb=spawnAmbulance(player.r,player.c,_playerEmergencyPatient);
   if(amb){_playerEmergencyPatient._ambulanceDispatched=true;showEventBanner('🚑 СКОРАЯ ВЫЕХАЛА','Продержись: врачи едут к месту ранения.',3000,'neutral');}
@@ -11114,6 +11116,7 @@ function _beginMurderPoliceArrest(cop,now=performance.now(),opts={}){
   if(crew.length<1||!crew.includes(cop))return false;
   if(myDrivingCarId){exitCar('police_arrest');viewZoom=WORLD_VIEW_ZOOM;}
   if(myJetSkiId)exitJetSki(true);
+  const emergencyPatient=_playerEmergencyPatient;if(emergencyPatient)_cancelAmbulanceCallForPatient(emergencyPatient);
   myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;
   player.walking=false;player.vr=0;player.vc=0;
   _playerEmergencyPatient=null;
@@ -11140,7 +11143,10 @@ function _queueAnyPoliceDeathPickup(cop=null,meta={},now=performance.now()){
   if(_murderPoliceArrest)return true;
   if(myDrivingCarId){exitCar('police_arrest');viewZoom=WORLD_VIEW_ZOOM;}
   if(myJetSkiId)exitJetSki(true);
-  const peaceful=!!opts.peaceful;
+  // `opts` здесь никогда не существовал: ReferenceError обрывал создание
+  // конвоя, и обычный медицинский респаун отправлял игрока в больницу.
+  const peaceful=!!meta.peaceful;
+  const emergencyPatient=_playerEmergencyPatient;if(emergencyPatient)_cancelAmbulanceCallForPatient(emergencyPatient);
   if(peaceful){currentWeapon=null;myDead=false;_localDeath=false;myHp=Math.max(1,myHp);}
   else{myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;}
   player.walking=false;player.vr=0;player.vc=0;_playerEmergencyPatient=null;
@@ -11860,6 +11866,7 @@ function updateServiceVehicles(dt) {
       if (v.kind === 'ambulance' && v.payload.npc) {
         const patient=v.payload.npc;
         if(patient._playerPatient){
+          if(_murderPoliceArrest){_releaseFailedAmbulanceCall(v);v.payload={};v._medicalScene=null;v._medicalCrew=[];_sendAmbulanceToHospital(v,now,'cancelled-by-police-custody');continue;}
           patient._medicalDowned=false;patient._ambulanceDispatched=false;
           if(_localDeath){_localDeath=false;myDead=false;myHp=Math.max(40,Math.ceil(PVP.max_hp*.4));myDeathLeft=0;_deathOv?.classList.remove('show');}
           try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'emergency_revive',d:{}}));}catch(e){}
@@ -20073,7 +20080,7 @@ function handleEventPacket(d) {
     _policePatrolReadyAt=performance.now()+180000;_renderPoliceQuickPanel();
     showEventBanner('🚓 ПАТРУЛЬНАЯ МАШИНА ГОТОВА',d.existing?'Диспетчер отметил ближайшую свободную машину.':'Круизер доставлен на 1 минуту. Подойди и садись за руль.',3600,'win');
   } else if (kind === 'emergency_revive_reply') {
-    if(d.ok){myDead=false;_localDeath=false;myHp=Math.max(1,+d.hp||40);myDeathLeft=0;_deathOv?.classList.remove('show');_playerEmergencyPatient=null;}
+    if(d.ok&&!_murderPoliceArrest){myDead=false;_localDeath=false;myHp=Math.max(1,+d.hp||40);myDeathLeft=0;_deathOv?.classList.remove('show');_playerEmergencyPatient=null;}
   } else if (kind === 'career_vehicle_reply') {
     const careerAir=d.vehicle_kind==='air'||d.model==='police_heli'||d.model==='mafia_heli';if(careerAir)_careerAirPending=false;else _careerVehiclePending=false;
     if(!d.ok){_careerVehiclePending=false;_careerAirPending=false;showToast(d.error==='cooldown'?`Техника будет готова через ${Math.ceil(+d.cooldown_left||0)} сек.`:_policeError(d.error),'🚘',2400);_renderPoliceQuickPanel();return;}
