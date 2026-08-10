@@ -21113,7 +21113,10 @@ function handleEventPacket(d) {
       if(!_murderPoliceArrest)try { showArrestOverlay && showArrestOverlay(); } catch(e) {}
     }else if(_murderPoliceArrest){
       _murderPoliceArrest.serverRejectedReason=String(d.reason||'unknown');
-      if(_murderPoliceArrest.voluntary||_murderPoliceArrest.peaceful)_cancelMurderPoliceArrest({kind:'server-rejected'},performance.now());
+      // Сервер теперь проверяет свой наряд, дистанцию и LOS. Любой отказ
+      // отменяет и боевой локальный конвой: клиент не может остаться
+      // заблокированным в анимации после отклонённого ареста.
+      _cancelMurderPoliceArrest({kind:'server-rejected'},performance.now());
     }
     // ok=false молча — это либо лагнувший пакет, либо сервер уже посадил
   } else if (kind === 'prison_alarm_reply') {
