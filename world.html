@@ -16057,7 +16057,10 @@ function selectVehicleFromCanvasTap(x, y, hitRadius = 48) {
   return true;
 }
 
-const THREE_VEHICLE_DETECT_R = 5.4;
+// Метка машины нужна только когда игрок уже действительно подошёл к двери.
+// Большой радиус 5.4 подсвечивал транспорт через полдороги и воспринимался
+// как постоянная цель, хотя действие ещё не выглядело естественным.
+const THREE_VEHICLE_DETECT_R = 2.4;
 const THREE_VEHICLE_PREFERRED_R = 6.4;
 function _ensureThreePreviewDriveCar() {
   if (!_LOCAL_PREVIEW || !_UP.has('previewdrive') || window.__threePreviewDrivePlaced) return null;
@@ -64287,6 +64290,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d303-npc-actions-money"></script>
+<script type="module" src="three_preview.js?v=3d304-stable-prompts"></script>
 </body>
 </html>
