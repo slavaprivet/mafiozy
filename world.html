@@ -19859,6 +19859,29 @@ function handleEventPacket(d) {
       const msg=d.reason==='cash'?'Не хватает денег':d.reason==='cooldown'?`Этот патруль настороже ещё ${Math.max(1,Math.ceil((+d.retry_s||1)/60))} мин.`:d.reason==='not_wanted'?'У тебя нет розыска':'Сделка не состоялась';
       _npcActionSay(pending.ref,msg,2800);showToast(msg,'⚠️',2300);
     }
+  }else if(kind==='npc_threaten_reply'){
+    const pending=_pendingNpcThreat;_pendingNpcThreat=null;
+    const overlay=document.getElementById('npcActionOverlay');overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);
+    if(!pending)return;
+    if(!d.ok){
+      const msg=d.reason==='cooldown'?`Этот житель уже напуган. Повтори через ${Math.max(1,Math.ceil((+d.retry_s||1)/60))} мин.`:d.reason==='cash'?'Сделка сорвалась':'Угроза сейчас не сработала';
+      _npcActionSay(pending.ref,msg,3000);showToast(msg,'⚠️',2300);return;
+    }
+    if(+d.cooldown_until){_setNpcThreatCooldown(pending.key,+d.cooldown_until*1000);_setNpcRobCooldown(pending.key,+d.cooldown_until*1000);}
+    if(Number.isFinite(+d.cash))_applyNpcCash(+d.cash,+d.amount||0);
+    _districtRepAdd(-2,'вымогательство у жителя',true);
+    const amount=Math.max(0,+d.amount||0),outcome=String(d.outcome||'resist');
+    if(outcome==='silent'){
+      pending.ref._npcSurrenderUntil=performance.now()+7000;_npcActionSay(pending.ref,`Ладно… забирай $${amount}. Только уходи.`,3900);
+      _npcActionFloat(`Вымогательство +$${amount}`,'#ffd06a');showToast(`Житель испугался · +$${amount} · полиция не вызвана`,'🔪',3100);
+    }else if(outcome==='snitch'){
+      pending.ref._npcSurrenderUntil=performance.now()+7000;_npcActionSay(pending.ref,`Хорошо… вот $${amount}. Не трогай меня.`,3900);
+      _npcActionFloat(`Вымогательство +$${amount}`,'#ffd06a');showToast(`Житель отдал $${amount} · но выглядит подозрительно`,'👀',3100);
+      setTimeout(()=>{if(!pending.ref||pending.ref.dead)return;markNpcSnitch(pending.ref,'Меня заставили отдать деньги!');showToast('Житель обманул тебя и побежал сообщать полиции','📞',3000);},2600);
+    }else{
+      _npcActionSay(pending.ref,'Отойди от меня! Полиция!',3400);_npcActionCrime(pending.ref,0);pending.ref.snitching=false;pending.ref._witnessStage='reported';showToast('Житель не испугался и сразу вызвал полицию','🚨',3000);
+    }
+    closeNpcActionMenu();
   }else if(kind==='npc_robbery_state_reply'){
     for(const row of (Array.isArray(d.active)?d.active:[])){
       const robberyId=String(row.robbery_id||'');if(!robberyId||_murderIncidents.some(x=>x?.robberyId===robberyId&&!x.closedAt))continue;
@@ -24200,10 +24223,14 @@ const _threeNpcActionRefs = new Map();
 let _npcActionTarget = null;
 let _npcStreetErrand = null;
 const NPC_ROB_COOLDOWN_MS=60*60*1000;
+const NPC_THREAT_COOLDOWN_MS=10*60*1000;
 const _npcRobCooldownKey=`mafiozi_npc_rob_cd_${QP.uid||'preview'}`;
+const _npcThreatCooldownKey=`mafiozi_npc_threat_cd_${QP.uid||'preview'}`;
 const _npcRobCooldowns=Object.create(null);
-let _pendingNpcRobbery=null,_pendingNpcGift=null,_pendingNpcPoliceBribe=null,_npcRobberyOutstanding=0;
+const _npcThreatCooldowns=Object.create(null);
+let _pendingNpcRobbery=null,_pendingNpcGift=null,_pendingNpcPoliceBribe=null,_pendingNpcThreat=null,_npcRobberyOutstanding=0;
 try{const saved=JSON.parse(localStorage.getItem(_npcRobCooldownKey)||'{}'),now=Date.now();for(const [key,until] of Object.entries(saved))if(+until>now)_npcRobCooldowns[key]=+until;}catch(e){}
+try{const saved=JSON.parse(localStorage.getItem(_npcThreatCooldownKey)||'{}'),now=Date.now();for(const [key,until] of Object.entries(saved))if(+until>now)_npcThreatCooldowns[key]=+until;}catch(e){}
 let _threeForcedGangShotId = null;
 let _threeForcedGangShotUntil = 0;
 let _threeForcedNpcShotId = null;
@@ -24325,6 +24352,8 @@ function _applyNpcCash(cash,delta=0){
 }
 function _npcRobCooldownLeft(key,now=Date.now()){return Math.max(0,(+_npcRobCooldowns[String(key)]||0)-now);}
 function _setNpcRobCooldown(key,until=Date.now()+NPC_ROB_COOLDOWN_MS){_npcRobCooldowns[String(key)]=+until;try{localStorage.setItem(_npcRobCooldownKey,JSON.stringify(_npcRobCooldowns));}catch(e){}}
+function _npcThreatCooldownLeft(key,now=Date.now()){return Math.max(0,(+_npcThreatCooldowns[String(key)]||0)-now);}
+function _setNpcThreatCooldown(key,until=Date.now()+NPC_THREAT_COOLDOWN_MS){_npcThreatCooldowns[String(key)]=+until;try{localStorage.setItem(_npcThreatCooldownKey,JSON.stringify(_npcThreatCooldowns));}catch(e){}}
 function _npcActionFloat(text,color='#a9e7cf'){spawnFloatText(player.r-.55,player.c,String(text),{color,size:13,life:1900});}
 function _npcActionCrime(ref,repLoss=-2){
   _districtRepAdd(repLoss,'давление на жителя',true);
@@ -24351,7 +24380,7 @@ function _registerNpcRobberyIncident(victim,amount,robberyId,interrogationArrest
   _dispatchMurderPoliceCalls(now);document.documentElement.dataset.npcRobberyPolice=incident.id;return incident;
 }
 function _completeNpcRobbery(ref,key,amount,robberyId,cash=null,interrogationArrest=null){
-  amount=Math.max(1,Math.min(10,Math.round(amount)||1));if(cash!==null&&cash!==undefined&&Number.isFinite(+cash))_applyNpcCash(+cash,amount);else _npcActionEarn(amount);
+  amount=Math.max(1,Math.min(10,Math.round(amount)||1));_setNpcThreatCooldown(key,Date.now()+NPC_ROB_COOLDOWN_MS);if(cash!==null&&cash!==undefined&&Number.isFinite(+cash))_applyNpcCash(+cash,amount);else _npcActionEarn(amount);
   _npcRobberyOutstanding+=amount;myWanted=Math.max(1,myWanted);ref._npcRobbedAt=Date.now();
   _districtRepAdd(-3,'ограбление жителя',true);markNpcSnitch(ref,`Меня ограбили! Он забрал $${amount}!`);
   _npcActionSay(ref,`Помогите! Он забрал у меня $${amount}!`,4200);_npcActionFloat(`Ты забрал +$${amount}`,'#ffd06a');
@@ -24400,10 +24429,11 @@ function _npcActionButtons(kind,ref,view){
 }
 function _npcActionDescription(id){
   const left=_npcActionTarget?_npcRobCooldownLeft(_npcActionTarget.key):0;
+  const threatLeft=_npcActionTarget?_npcThreatCooldownLeft(_npcActionTarget.key):0;
   return ({
     talk:['Узнать, что человек скажет сейчас','БЕЗ РИСКА'],rumor:['Достоверная обстановка в текущем районе','СВЕДЕНИЯ'],
     give25:['Списывается $25 · репутация района +1','−$25'],give10:['Списывается $10 · человек запомнит помощь','−$10'],
-    threaten:['Может уступить или немедленно вызвать полицию','РИСК'],rob:[left?`Повторно можно через ${Math.max(1,Math.ceil(left/60000))} мин.`:'Добыча $1–10 · полиция приедет всегда · кулдаун 1 час',left?'КУЛДАУН':'ВЫСОКИЙ РИСК'],
+    threaten:[threatLeft?`Житель уже напуган · повтор через ${Math.max(1,Math.ceil(threatLeft/60000))} мин.`:'Вымогательство $2–7: 50% молчит · 30% донесёт позже · 20% вызовет полицию сразу',threatLeft?'КУЛДАУН':'ТРИ ИСХОДА'],rob:[left?`Повторно можно через ${Math.max(1,Math.ceil(left/60000))} мин.`:'Добыча $1–10 · полиция приедет всегда · кулдаун 1 час',left?'КУЛДАУН':'ВЫСОКИЙ РИСК'],
     documents:['Проверка завершится сразу, если нет розыска','ПРОВЕРКА'],bribe:['75%: −1★, патруль уйдёт, 45 сек на отход · отказ: деньги останутся, +1★','ПОЛЬЗА + РИСК'],surrender:['Добровольное задержание без перестрелки','АРЕСТ'],
     heal:['Полностью восстановить здоровье за деньги','ЛЕЧЕНИЕ'],price:['Показать цену и требования бойца','УСЛОВИЯ'],hire:['Нанять бойца в свою банду','НАЙМ'],
     command:['Приказать держаться рядом и прикрывать','КОМАНДА'],dismiss:['Навсегда отпустить бойца из текущей банды','ПОТЕРЯ БОЙЦА'],
@@ -24452,7 +24482,17 @@ function _runNpcAction(action){
     if(ws&&ws.readyState===1){try{ws.send(JSON.stringify({t:'npc_cash_action',d:{action}}));}catch(e){_pendingNpcGift=null;overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);showToast('Не удалось провести оплату','⚠️',1900);}return;}
     _pendingNpcGift=null;if(!_npcActionSpend(amount))return;_npcActionFloat(`Ты отдал −$${amount}`,'#8fe3be');_npcActionSay(ref,'Спасибо. Такое не забывают.');_districtRepAdd(1,'помощь жителю',true);finish(`Баланс $${formatExactMoney(myCash)} · −$${amount}`,'🤝');return;
   }
-  if(action==='threaten'){const d=districtAt(player.r,player.c),rep=d?_districtRepValue(d.id):0,chance=Math.max(.25,Math.min(.85,.5+myWanted*.08-rep*.003));_districtRepAdd(-1,'угроза жителю',true);if(Math.random()<chance){ref._npcSurrenderUntil=now+5000;_npcActionSay(ref,'Ладно… только не трогай меня.');finish('Житель испугался и уступил','🔪');}else{_npcActionCrime(ref,-1);finish('Житель зовёт полицию','📞');}return;}
+  if(action==='threaten'){
+    const left=_npcThreatCooldownLeft(t.key);if(left){const msg=`Он уже напуган. Возвращайся через ${Math.max(1,Math.ceil(left/60000))} мин.`;_npcActionSay(ref,msg,3000);showToast(msg,'⌛',2200);return;}
+    if(_pendingNpcThreat)return;const threatId=`${QP.uid||'preview'}:${t.key}:threat:${Date.now()}`;_pendingNpcThreat={ref,key:t.key,threatId};
+    const overlay=document.getElementById('npcActionOverlay');overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=true);
+    if(ws&&ws.readyState===1){try{ws.send(JSON.stringify({t:'npc_threaten',d:{npc_id:t.key,threat_id:threatId}}));}catch(e){_pendingNpcThreat=null;overlay?.querySelectorAll('.npc-act-btn').forEach(b=>b.disabled=false);showToast('Не удалось пригрозить','⚠️',1900);}return;}
+    const roll=Math.random(),outcome=roll<.5?'silent':roll<.8?'snitch':'resist',amount=outcome==='resist'?0:2+Math.floor(Math.random()*6),until=Date.now()+NPC_THREAT_COOLDOWN_MS;_setNpcThreatCooldown(t.key,until);_setNpcRobCooldown(t.key,until);
+    _pendingNpcThreat=null;_districtRepAdd(-2,'вымогательство у жителя',true);if(amount)_npcActionEarn(amount);
+    if(outcome==='silent'){ref._npcSurrenderUntil=now+7000;_npcActionSay(ref,`Ладно… забирай $${amount}.`);finish(`Житель промолчал · +$${amount}`,'🔪');}
+    else if(outcome==='snitch'){ref._npcSurrenderUntil=now+7000;_npcActionSay(ref,`Хорошо… вот $${amount}.`);finish(`Получено $${amount} · житель выглядит подозрительно`,'👀');setTimeout(()=>{if(ref&&!ref.dead)markNpcSnitch(ref,'Меня заставили отдать деньги!');},2600);}
+    else{_npcActionSay(ref,'Полиция!');_npcActionCrime(ref,0);ref.snitching=false;ref._witnessStage='reported';finish('Житель сразу вызвал полицию','🚨');}return;
+  }
   if(action==='rob'){
     const left=_npcRobCooldownLeft(t.key);if(left){const mins=Math.max(1,Math.ceil(left/60000)),text=`У меня больше нет денег. Приходи через ${mins} мин.`;_npcActionSay(ref,text,3200);finish(text,'💸');return;}
     const robberyId=`${QP.uid||'preview'}:${t.key}:${Date.now()}`;_setNpcRobCooldown(t.key);_pendingNpcRobbery={ref,key:t.key,amount:0,robberyId};
