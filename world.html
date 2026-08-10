@@ -4858,7 +4858,7 @@ const JAIL_RADIUS_TILES = 7.0;
 const JAIL_GATE_HALF_RAD = 0.50;
 let _prisonReleaseGateSeconds=0,_prisonLocalJailUntil=0,_prisonReleaseGateOpenedAt=-Infinity;
 let _prisonStatusJailActive=false,_prisonWeaponLockToastAt=0;
-const _prisonAlarmState={active:false,startedAt:0,lastHostileAt:0,reason:'',spawnRemaining:0,nextSpawnAt:0,sequence:0,clearedAt:0,clearReason:''};
+const _prisonAlarmState={active:false,startedAt:0,lastHostileAt:0,reason:'',spawnRemaining:0,nextSpawnAt:0,sequence:0,clearedAt:0,clearReason:'',batchRevision:0,lastActivationAt:-Infinity,lastServerSignature:'',uiSignature:''};
 let _prisonAlarmServerSyncAt=0;
 function _prisonAlarmActive(){return !!_prisonAlarmState.active;}
 function _sendPrisonAlarmServer(action,reason=''){
@@ -4868,18 +4868,22 @@ function _sendPrisonAlarmServer(action,reason=''){
 }
 function _syncPrisonAlarmFromServer(payload,now=performance.now()){
   if(!payload||typeof payload.active!=='boolean')return;
+  const serverSequence=Math.max(0,+payload.sequence||0),signature=`${payload.active?1:0}:${serverSequence}:${String(payload.reason||'')}:${String(payload.clear_reason||'')}`;
+  if(signature===_prisonAlarmState.lastServerSignature&&_prisonAlarmState.active===payload.active)return false;
+  _prisonAlarmState.lastServerSignature=signature;
   if(payload.active){
     const wasActive=_prisonAlarmState.active;
     _prisonAlarmState.active=true;_prisonAlarmState.reason=String(payload.reason||'server');
-    _prisonAlarmState.sequence=Math.max(+_prisonAlarmState.sequence||0,+payload.sequence||0);
+    _prisonAlarmState.sequence=Math.max(+_prisonAlarmState.sequence||0,serverSequence);
     _prisonAlarmState.startedAt=now-Math.max(0,+payload.age_s||0)*1000;
     _prisonAlarmState.lastHostileAt=now;
-    if(!wasActive){_prisonAlarmState.spawnRemaining=PRISON_ASSAULT_WEAPONS.length;_prisonAlarmState.nextSpawnAt=now+260;_prisonAlarmSirenNextAt=0;}
+    if(!wasActive){_prisonAlarmState.spawnRemaining=PRISON_ASSAULT_WEAPONS.length;_prisonAlarmState.nextSpawnAt=now+260;_prisonAlarmSirenNextAt=0;_prisonAlarmState.batchRevision++;}
     document.documentElement.dataset.prisonAlarm=`active:${_prisonAlarmState.sequence}:server`;
     document.documentElement.dataset.prisonLockdown='locked';
   }else if(_prisonAlarmState.active){
     _clearPrisonAssault(String(payload.clear_reason||'server-clear'),now,false);
   }
+  return true;
 }
 function _effectivePrisonJailSeconds(){
   if(_LOCAL_PREVIEW&&_UP.has('previewjailtimer'))return Math.max(0,+_UP.get('previewjailtimer')||0);
@@ -8867,6 +8871,7 @@ const PRISON_STAFF_LOOKS = Object.freeze([
 const _prisonStaffRespawnAt = new Float64Array(PRISON_STAFF_ROUTES.length);
 const PRISON_ASSAULT_WEAPONS=Object.freeze(['rifle','shotgun','smg','rifle']);
 let _prisonAlarmSirenNextAt=0,_prisonPlayerHitCooldownUntil=0;
+let _prisonStaffEnsureAt=0,_prisonAlarmUiAt=0,_prisonAssaultLive=0;
 function _spawnPrisonAssaultOfficer(index,now=performance.now()){
   const weapon=PRISON_ASSAULT_WEAPONS[index%PRISON_ASSAULT_WEAPONS.length],side=index%2?1:-1,row=Math.floor(index/2),entry=JAIL_POLICE_STATION_3D;
   const cop={id:`prison_assault_${++_cityCopId}`,x:entry.entryC+side*.34,y:entry.entryR+row*.28,tx:player.c,ty:player.r,
@@ -8877,19 +8882,25 @@ function _spawnPrisonAssaultOfficer(index,now=performance.now()){
     staffVariant:index%3,prisonGear:weapon==='shotgun'?'riot_helmet_shield':'tactical_helmet',shield:weapon==='shotgun',
     behavior:'prison_assault',_pursuing:true,_reactUntil:now+120000,_nextShootAt:now+420+index*90,_nextCaseCryAt:now+300+index*180};
   cityCops.push(cop);_copChats.set(cop.id,{text:['Штурм! К воротам!','Контакт во дворе!','Оружие на землю!','Блокировать выход!'][index%4],untilMs:now+2100});
+  _prisonAssaultLive++;
   return cop;
 }
 function _activatePrisonAssault(cop=null,reason='guard-hit',now=performance.now(),notifyServer=true){
   const first=!_prisonAlarmState.active;
-  _prisonAlarmState.active=true;_prisonAlarmState.lastHostileAt=now;_prisonAlarmState.reason=reason;
+  if(!first&&reason===_prisonAlarmState.reason&&now-_prisonAlarmState.lastActivationAt<320){
+    _prisonAlarmState.lastHostileAt=now;
+    document.documentElement.dataset.prisonAlarmDeduped=String((+document.documentElement.dataset.prisonAlarmDeduped||0)+1);
+    return false;
+  }
+  _prisonAlarmState.active=true;_prisonAlarmState.lastHostileAt=now;_prisonAlarmState.lastActivationAt=now;
   if(first){
-    _prisonAlarmState.startedAt=now;_prisonAlarmState.spawnRemaining=PRISON_ASSAULT_WEAPONS.length;_prisonAlarmState.nextSpawnAt=now+260;_prisonAlarmState.sequence++;
+    _prisonAlarmState.reason=reason;_prisonAlarmState.startedAt=now;_prisonAlarmState.spawnRemaining=PRISON_ASSAULT_WEAPONS.length;_prisonAlarmState.nextSpawnAt=now+260;_prisonAlarmState.sequence++;_prisonAlarmState.batchRevision++;
     _prisonPlayerHitCooldownUntil=now+850;
     _prisonAlarmSirenNextAt=0;
     showEventBanner('🚨 НАПАДЕНИЕ НА ТЮРЬМУ','КПП заблокирован. Вооружённая смена выходит из участка и открывает огонь.',4300,'lose');
-  }
-  for(const guard of cityCops)if(guard?.alive&&guard.kind==='prison_staff'){
-    guard._pursuing=true;guard._reactUntil=now+120000;guard._prisonPauseUntil=0;
+    for(const guard of cityCops)if(guard?.alive&&guard.kind==='prison_staff'){
+      guard._pursuing=true;guard._reactUntil=now+120000;guard._prisonPauseUntil=0;
+    }
   }
   document.documentElement.dataset.prisonAlarm=`active:${_prisonAlarmState.sequence}:${reason}`;
   document.documentElement.dataset.prisonLockdown='locked';
@@ -8898,7 +8909,7 @@ function _activatePrisonAssault(cop=null,reason='guard-hit',now=performance.now(
 }
 function _clearPrisonAssault(reason='booked',now=performance.now(),notifyServer=true){
   if(!_prisonAlarmState.active)return false;
-  _prisonAlarmState.active=false;_prisonAlarmState.clearedAt=now;_prisonAlarmState.clearReason=reason;_prisonAlarmState.spawnRemaining=0;
+  _prisonAlarmState.active=false;_prisonAlarmState.clearedAt=now;_prisonAlarmState.clearReason=reason;_prisonAlarmState.spawnRemaining=0;_prisonAlarmState.batchRevision++;
   for(const guard of cityCops)if(guard?.alive&&guard.kind==='prison_staff'){
     guard._pursuing=false;guard._reactUntil=0;if(guard._prisonAssaultUnit)guard._prisonReturningToStation=true;
   }
@@ -8912,15 +8923,17 @@ function _updatePrisonAssaultAlarm(now=performance.now()){
   if(_prisonAlarmState.spawnRemaining>0&&now>=_prisonAlarmState.nextSpawnAt){
     const index=PRISON_ASSAULT_WEAPONS.length-_prisonAlarmState.spawnRemaining;_spawnPrisonAssaultOfficer(index,now);
     _prisonAlarmState.spawnRemaining--;_prisonAlarmState.nextSpawnAt=now+520;
+    if(_prisonAlarmState.spawnRemaining===0)_prisonAlarmState.batchRevision++;
   }
   if(now>=_prisonAlarmSirenNextAt){
     _prisonAlarmSirenNextAt=now+1450;
     _tone({freq:620,freqEnd:920,dur:.58,type:'sawtooth',vol:.055,attack:.025});
     _tone({freq:920,freqEnd:610,dur:.58,type:'sawtooth',vol:.05,delay:.62,attack:.025});
   }
-  const liveAssault=cityCops.filter(c=>c?.alive&&c._prisonAssaultUnit).length;
-  document.documentElement.dataset.prisonAlarm=`active:${_prisonAlarmState.sequence}:${Math.round((now-_prisonAlarmState.startedAt)/1000)}s`;
-  document.documentElement.dataset.prisonAssaultUnits=`${liveAssault}:${_prisonAlarmState.spawnRemaining}`;
+  if(now>=_prisonAlarmUiAt){
+    _prisonAlarmUiAt=now+250;const uiSignature=`${_prisonAlarmState.sequence}:${Math.round((now-_prisonAlarmState.startedAt)/1000)}:${_prisonAssaultLive}:${_prisonAlarmState.spawnRemaining}`;
+    if(uiSignature!==_prisonAlarmState.uiSignature){_prisonAlarmState.uiSignature=uiSignature;document.documentElement.dataset.prisonAlarm=`active:${_prisonAlarmState.sequence}:${Math.round((now-_prisonAlarmState.startedAt)/1000)}s`;document.documentElement.dataset.prisonAssaultUnits=`${_prisonAssaultLive}:${_prisonAlarmState.spawnRemaining}`;}
+  }
 }
 function _createPrisonStaffCop(slot,replacement=false,now=performance.now()){
   const route=PRISON_STAFF_ROUTES[slot],police=slot<3,start=replacement
@@ -8934,13 +8947,18 @@ function _createPrisonStaffCop(slot,replacement=false,now=performance.now()){
     behavior:'prison_patrol',_nextShootAt:now+700+slot*120,_nextCaseCryAt:0};
 }
 function _ensurePrisonStaffCops(now=performance.now()){
+  if(now<_prisonStaffEnsureAt)return 0;_prisonStaffEnsureAt=now+600;
+  const occupiedSlots=new Set();for(const cop of cityCops)if(cop?.alive&&cop.kind==='prison_staff'&&cop._prisonSlot<PRISON_STAFF_ROUTES.length)occupiedSlots.add(cop._prisonSlot);
+  let spawned=0;
   for(let slot=0;slot<PRISON_STAFF_ROUTES.length;slot++){
-    if(cityCops.some(c=>c?.alive&&c.kind==='prison_staff'&&c._prisonSlot===slot))continue;
+    if(occupiedSlots.has(slot))continue;
     if(_prisonStaffRespawnAt[slot]&&now<_prisonStaffRespawnAt[slot])continue;
     const replacement=!!_prisonStaffRespawnAt[slot],cop=_createPrisonStaffCop(slot,replacement,now);
-    _prisonStaffRespawnAt[slot]=0;cityCops.push(cop);
+    _prisonStaffRespawnAt[slot]=0;cityCops.push(cop);occupiedSlots.add(slot);spawned++;
     if(replacement)_copChats.set(cop.id,{text:'Смена прибыла!',untilMs:now+2200});
   }
+  if(spawned)_prisonAlarmState.batchRevision++;
+  return spawned;
 }
 function _updatePrisonStaffCop(cop,dt,now){
   if(cop._prisonReturningToStation){
@@ -9120,7 +9138,7 @@ function updateCityCops(dt) {
   const now = performance.now();
   // Сначала окончательно удаляем погибших и их чаты. Так массив не растёт
   // бесконечно, а замена считается по живым патрульным, не по спецгруппам.
-  for(let i=cityCops.length-1;i>=0;i--)if(!cityCops[i]?.alive){_copChats.delete(cityCops[i]?.id);cityCops.splice(i,1);}
+  for(let i=cityCops.length-1;i>=0;i--)if(!cityCops[i]?.alive){if(cityCops[i]?._prisonAssaultUnit)_prisonAssaultLive=Math.max(0,_prisonAssaultLive-1);_copChats.delete(cityCops[i]?.id);cityCops.splice(i,1);}
   const livePatrols=cityCops.filter(c=>c?.alive&&c.kind==='patrol').length;
   _cityCopReplacementQueue=Math.min(CITY_COPS_TARGET,Math.max(_cityCopReplacementQueue,CITY_COPS_TARGET-livePatrols));
   if (_cityCopReplacementQueue>0 && livePatrols<CITY_COPS_TARGET && now - _cityCopsLastSpawnAt > 420) {
@@ -9130,6 +9148,7 @@ function updateCityCops(dt) {
   }
   _ensurePrisonStaffCops(now);
   _updatePrisonAssaultAlarm(now);
+  if(now>=_policeFootRouteDiagnosticsAt){_policeFootRouteDiagnosticsAt=now+500;document.documentElement.dataset.policeFootRoutePlans=String(_policeFootRoutePlanCount);document.documentElement.dataset.policeFootRouteDeferred=String(_policeFootRouteDeferredCount);document.documentElement.dataset.policeFootRouteMaxMs=_policeFootRouteMaxMs.toFixed(2);}
   document.documentElement.dataset.policeHqReplacementQueue=String(_cityCopReplacementQueue);
   document.documentElement.dataset.policePatrolLive=String(livePatrols);
   document.documentElement.dataset.policeLocalActors=String(cityCops.length);
@@ -10654,7 +10673,12 @@ function _policeCrewBodyPassable(r,c){
     _policeCrewPassable(r+pad,c+pad);
 }
 function _clearPoliceFootRoute(cop){
-  cop._policeFootRoute=null;cop._policeFootRouteIndex=0;cop._policeFootRouteUntil=0;
+  cop._policeFootRoute=null;cop._policeFootRouteIndex=0;cop._policeFootRouteUntil=0;cop._policeFootRouteRetryAt=0;
+}
+let _policeFootRouteFrame=-1,_policeFootRoutesThisFrame=0,_policeFootRouteDeferredCount=0,_policeFootRoutePlanCount=0,_policeFootRouteMaxMs=0,_policeFootRouteDiagnosticsAt=0;
+function _reservePoliceFootRoute(now){
+  const frame=Math.floor(now/16.667);if(frame!==_policeFootRouteFrame){_policeFootRouteFrame=frame;_policeFootRoutesThisFrame=0;}
+  if(_policeFootRoutesThisFrame>=1)return false;_policeFootRoutesThisFrame++;return true;
 }
 function _recoverPoliceFootCop(cop){
   if(_policeCrewBodyPassable(cop.y,cop.x))return false;
@@ -10670,6 +10694,8 @@ function _recoverPoliceFootCop(cop){
   return false;
 }
 function _planPoliceFootRoute(cop,targetR,targetC,now=performance.now()){
+  if(now<(cop._policeFootRouteRetryAt||0)||!_reservePoliceFootRoute(now)){_policeFootRouteDeferredCount++;return false;}
+  const routeStartedAt=performance.now();targetR=Math.round(targetR*2)/2;targetC=Math.round(targetC*2)/2;
   const sr=Math.floor(cop.y),sc=Math.floor(cop.x),startKey=sr*MAP_COLS+sc;
   const queue=[{r:sr,c:sc,key:startKey}],nodes=new Map([[startKey,queue[0]]]),dirs=[[1,0],[-1,0],[0,1],[0,-1]];
   let best=queue[0],bestD=Math.hypot(sr+.5-targetR,sc+.5-targetC),goal=null;
@@ -10684,7 +10710,8 @@ function _planPoliceFootRoute(cop,targetR,targetC,now=performance.now()){
   goal=goal||best;const path=[];
   while(goal&&goal.key!==startKey){path.push({r:goal.r+.5,c:goal.c+.5});goal=nodes.get(goal.parent);}
   path.reverse();cop._policeFootRoute=path;cop._policeFootRouteIndex=0;
-  cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;cop._policeFootRouteUntil=now+900;
+  cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;cop._policeFootRouteUntil=now+1600;cop._policeFootRouteRetryAt=path.length?now+240:now+520;
+  const routeMs=performance.now()-routeStartedAt;_policeFootRoutePlanCount++;_policeFootRouteMaxMs=Math.max(_policeFootRouteMaxMs,routeMs);
   return path.length>0;
 }
 function _markPoliceShot(cop,weapon,now=performance.now()){
@@ -10701,13 +10728,13 @@ function _movePoliceFootCop(cop,targetR,targetC,dt,mul=1){
     if(!_policeCrewBodyPassable(cop.y+rr,cop.x+cc))return false;
     cop.y+=rr;cop.x+=cc;cop.ang=Math.atan2(rr,cc);cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;return true;};
   if(!cop._policeFootRoute?.length&&tryStep(directR,directC))return false;
-  const routeStale=now>=(cop._policeFootRouteUntil||0)||Math.hypot(targetR-(cop._policeFootRouteTargetR||0),targetC-(cop._policeFootRouteTargetC||0))>1.25;
+  const routeStale=now>=(cop._policeFootRouteUntil||0)||Math.hypot(targetR-(cop._policeFootRouteTargetR||0),targetC-(cop._policeFootRouteTargetC||0))>2;
   if(routeStale||!cop._policeFootRoute?.length)_planPoliceFootRoute(cop,targetR,targetC,now);
   const route=cop._policeFootRoute||[];let idx=Math.max(0,+cop._policeFootRouteIndex||0),wp=route[idx];
   while(wp&&Math.hypot(wp.r-cop.y,wp.c-cop.x)<.24){idx++;wp=route[idx];cop._policeFootRouteIndex=idx;}
   if(wp&&tryStep(wp.r-cop.y,wp.c-cop.x))return false;
   if(tryStep(directR,directC)){_clearPoliceFootRoute(cop);return false;}
-  cop._policeFootRouteUntil=0;return false;
+  cop._policeFootRouteUntil=Math.max(cop._policeFootRouteUntil||0,now+220);cop._policeFootRouteRetryAt=Math.max(cop._policeFootRouteRetryAt||0,now+220);return false;
 }
 function _murderPoliceSpacingVector(cop,radius=1.55){
   const phase=String(cop?._casePhase||'');
@@ -59382,7 +59409,7 @@ window.Mafiozi3DBridge = Object.freeze({
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
       jailIn,jailGateProgress:_prisonReleaseGateProgress(),
-      prisonAlarm:{active:_prisonAlarmActive(),startedAt:+_prisonAlarmState.startedAt||0,sequence:+_prisonAlarmState.sequence||0,reason:_prisonAlarmState.reason||'',lockdown:_prisonAlarmActive()},
+      prisonAlarm:{active:_prisonAlarmActive(),startedAt:+_prisonAlarmState.startedAt||0,sequence:+_prisonAlarmState.sequence||0,reason:_prisonAlarmState.reason||'',lockdown:_prisonAlarmActive(),batchRevision:+_prisonAlarmState.batchRevision||0},
       carryingBag:!!((_bankInt&&_bankInt.myBag)||(_bankRob&&_bankRob.myBag)||_myBagWeight>0),
       name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
       chat: _localChat && stateNow-_localChatT<chatDuration(_localChat) ? _localChat : '',
@@ -60384,6 +60411,7 @@ function _submitChat(t) {
   // обратного снапа от сервера.
   _localChat = t.slice(0, 80);
   _localChatT = performance.now();
+  document.documentElement.dataset.chatLocalEcho=`${_localChat.length}:${Math.round(_localChatT)}`;
 }
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
