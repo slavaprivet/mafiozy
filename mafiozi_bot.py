@@ -14675,6 +14675,7 @@ class WorldSim:
             p['_major_interior'] = major_id
             p.pop('_business_interior', None)
             p.pop('_business_private', None)
+            p['_interior_kind'] = 'major'
             p['_in_interior'] = True
             p['_in_interior_until'] = time.time() + 30.0
             p['_input_t'] = time.time()
@@ -14697,6 +14698,7 @@ class WorldSim:
             # Клиент не может сам объявить помещение закрытым: собственность
             # проверяется по серверному кешу, загруженному из БД.
             p['_business_private'] = biz_id in (p.get('_owned_biz') or set())
+            p['_interior_kind'] = 'business'
             p['_in_interior'] = True
             p['_in_interior_until'] = time.time() + 30.0
             p['_input_t'] = time.time()
@@ -14733,6 +14735,7 @@ class WorldSim:
             except (TypeError, ValueError):
                 return
             p['_in_interior'] = True
+            p['_interior_kind'] = interior_kind
             p['_in_interior_until'] = time.time() + 30.0
             p['_input_t'] = time.time()
             p['last_seen'] = time.time()
@@ -14748,6 +14751,7 @@ class WorldSim:
             p.pop('_interior_x', None)
             p.pop('_interior_y', None)
         p['_in_interior'] = False
+        p.pop('_interior_kind', None)
         p['_in_interior_until'] = 0
         try:
             nx = float(d.get('x', p['x']))
@@ -26497,7 +26501,11 @@ async def _coop_http_app():
                         robbery_id = str(body.get('robbery_id') or '')[:160]
                         now_t = time.time()
                         reply = {'ok': False, 'reason': 'denied', 'robbery_id': robbery_id}
-                        if not p or p.get('dead') or not npc_id or not robbery_id:
+                        active_interior = bool(p and p.get('_in_interior') and now_t < float(p.get('_in_interior_until') or 0))
+                        interior_kind = str((p or {}).get('_interior_kind') or '')
+                        if active_interior and interior_kind != 'bank':
+                            reply['reason'] = 'interior'
+                        elif not p or p.get('dead') or not npc_id or not robbery_id:
                             reply['reason'] = 'invalid'
                         else:
                             try:
