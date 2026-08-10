@@ -225,6 +225,14 @@ body.in-pvp #gtaActionBtn { top: 104px; }
 /* В бизнес-интерьере верхние 106px занимает карточка давления.
    Действие ставим отдельной строкой, чтобы оно не закрывало шкалу. */
 #gtaActionBtn.biz-pressure-action { top: 116px; }
+#gtaActionBtn.custody-status {
+  display: block !important; top: 70px !important; max-width: min(360px, 72vw); padding: 9px 16px;
+  background: linear-gradient(135deg, rgba(58,43,18,.82), rgba(116,77,17,.78));
+  border-color: rgba(238,190,83,.78); color: #fff3cd; cursor: default;
+  pointer-events: none; opacity: .9; backdrop-filter: blur(5px);
+  box-shadow: 0 4px 14px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 /* Ручной тормоз — круглая кнопка справа снизу, видна только за рулём */
 #handbrakeBtn {
   position: absolute; right: 16px; bottom: 120px;
@@ -11129,6 +11137,7 @@ function _murderPoliceArrestInCustody(ar=_murderPoliceArrest){
 }
 function _beginMurderPoliceArrest(cop,now=performance.now(),opts={}){
   if(_murderPoliceArrest||!_murderPoliceCopActive(cop))return false;
+  const peaceful=!!opts.peaceful;
   const v=serviceVehicles.find(q=>q.id===cop._responseVehicleId),incident=v?.payload?.murderIncident;
   if(!v||!incident||!v._murderFleet)return false;
   const crew=_murderCrewForVehicle(v);
@@ -11136,7 +11145,8 @@ function _beginMurderPoliceArrest(cop,now=performance.now(),opts={}){
   if(myDrivingCarId){exitCar('police_arrest');viewZoom=WORLD_VIEW_ZOOM;}
   if(myJetSkiId)exitJetSki(true);
   const emergencyPatient=_playerEmergencyPatient;if(emergencyPatient)_cancelAmbulanceCallForPatient(emergencyPatient);
-  myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;
+  if(peaceful){currentWeapon=null;myDead=false;_localDeath=false;myHp=Math.max(1,myHp);myDeathBy='';myDeathLeft=0;}
+  else{myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;}
   player.walking=false;player.vr=0;player.vc=0;
   _playerEmergencyPatient=null;
   _deathOv?.classList.remove('show');
@@ -11214,6 +11224,7 @@ function _beginVoluntarySurrender(now=performance.now()){
   _murderPoliceArrest={vehicleId:'',incidentId:incident.id,copId:'',coverCopId:'',holdingCopId:String(cop.id||''),phase:'surrendering',voluntary:true,
     hpBefore:myHp,weaponBefore:surrenderedWeapon,startedAt:now,phaseAt:now,lastGangShots:Object.create(null),
     surrenderR:+player.r||0,surrenderC:+player.c||0,localCuffed:false,transportFallbackUsed:false,
+    nextTransportRecoveryAt:now+9000,transportRecoveryAttempts:0,
     serverRequested:false,serverAccepted:false,serverRejectedReason:''};
   cop._casePhase='voluntary_surrender_hold';cop._phaseStartedAt=now;cop._pursuing=true;
   _dispatchMurderPoliceCalls(now);
@@ -11251,14 +11262,34 @@ function _tickVoluntarySurrender(dt,now=performance.now()){
   // Если транспорт физически застрял или его маршрут переотправлялся,
   // через 9 секунд подводим уже назначенную машину к рассчитанной точке
   // сцены и продолжаем штатную посадку. Процедура больше не висит бесконечно.
-  if(!ar.transportFallbackUsed&&now-ar.startedAt>9000){
-    const incident=_murderIncidents.find(q=>q?.id===ar.incidentId&&!q.closedAt),v=vehicle||serviceVehicles.find(q=>q?.payload?.murderIncident===incident);
+  if(!ar.transportFallbackUsed&&now-ar.startedAt>9000&&now>=(+ar.nextTransportRecoveryAt||0)){
+    ar.nextTransportRecoveryAt=now+1200;ar.transportRecoveryAttempts=(+ar.transportRecoveryAttempts||0)+1;
+    const incident=_murderIncidents.find(q=>q?.id===ar.incidentId&&!q.closedAt);let v=vehicle||serviceVehicles.find(q=>q?.payload?.murderIncident===incident);
+    // Сначала даём диспетчеру ровно одну попытку на интервал. Раньше этот
+    // вызов шёл каждый кадр и при разорванной дорожной сети мог сам подвесить
+    // игру сотнями повторных расчётов маршрута.
+    if(!v&&incident){_dispatchMurderPoliceCalls(now);v=serviceVehicles.find(q=>q?.payload?.murderIncident===incident);}
+    // Если карта не позволяет построить маршрут несколько раз подряд,
+    // резервный экипаж появляется на ближайшей дороге. Это аварийный выход:
+    // задержание гарантированно продолжается, а игрок не остаётся в наручниках.
+    if(!v&&incident&&ar.transportRecoveryAttempts>=4){
+      const reserve=_ensurePoliceResponseFleet().find(q=>q.state==='police_parked'||(q.state==='returning'&&!q.payload?.murderIncident));
+      const road=typeof _nearestRoadTile==='function'?_nearestRoadTile(ar.surrenderR,ar.surrenderC,10):null;
+      if(reserve&&road){
+        v=reserve;incident.status='enroute';incident.assignedVehicleId=v.id;incident.dispatchedAt=now;
+        v.payload={murderIncident:incident};v._policeTier=_murderPoliceTier(incident);v._policeExpectedCrew=_murderPoliceCrewCount(incident);
+        v.sceneParkingR=road.r+.5;v.sceneParkingC=road.c+.5;v.y=v.sceneParkingR;v.x=v.sceneParkingC;v.ang=0;
+        v.path=[];v.pathIdx=0;v.finalTarget={y:v.y,x:v.x};v._lastMoveT=now;ar.vehicleId=String(v.id||'');
+        document.documentElement.dataset.voluntarySurrenderFallback='reserve-nearest-road';
+      }
+    }
     if(v&&incident){
       ar.transportFallbackUsed=true;_removeMurderCrewForVehicle(v);
       const rr=Number.isFinite(+v.sceneParkingR)?+v.sceneParkingR:+ar.surrenderR,cc=Number.isFinite(+v.sceneParkingC)?+v.sceneParkingC:+ar.surrenderC;
       ar.vehicleId=String(v.id||'');v.y=rr;v.x=cc;v.path=[];v.pathIdx=0;v.finalTarget={y:rr,x:cc};v._lastMoveT=now;
       _startMurderPoliceScene(v,now);document.documentElement.dataset.voluntarySurrenderFallback='transport-scene-after-9s';
-    }else{_dispatchMurderPoliceCalls(now);}
+    }
+    document.documentElement.dataset.voluntarySurrenderRecovery=`${ar.transportRecoveryAttempts}:${v?'vehicle':'waiting'}`;
   }
   return true;
 }
@@ -24420,10 +24451,21 @@ function updateGtaInteractions() {
   if(_robBtn)delete _robBtn.dataset.establishmentAction;
   if(_businessActionSelection)_syncBusinessActionCard();
   _gtaActionBagCarRef = null;
-  _gtaBtn.classList.remove('biz-pressure-action');
+  _gtaBtn.classList.remove('biz-pressure-action','custody-status');
+  _gtaBtn.disabled=false;_gtaBtn.removeAttribute('aria-disabled');
   if (_robBtn) _robBtn._majorAssaultId = null;
   _updatePoliceStealthButton();
-  if(_murderPoliceArrest){_gtaActionKind=null;_gtaActionCarId=null;_gtaBtn.style.display='none';if(_robBtn)_robBtn.style.display='none';return;}
+  if(_murderPoliceArrest){
+    _gtaActionKind=null;_gtaActionCarId=null;
+    const phase=String(_murderPoliceArrest.phase||''),labels={
+      surrendering:'🙌 Сдача · офицер подходит',surrender_wait_transport:'🔒 Наручники · ожидаем машину',
+      downed:'🚔 Полиция подходит',cuffing:'🔗 Надевают наручники',escort:'🚶 Ведут к машине',
+      loading:'🚔 Посадка в машину',transport:'🚔 Доставка в тюрьму',unloading:'🚔 Прибытие в тюрьму',
+      handoff:'🔒 Передача конвою',prison_escort:'🚶 Конвой в камеру',booking:'📋 Оформление задержания'};
+    _gtaBtn.textContent=labels[phase]||'🚔 Идёт задержание';_gtaBtn.classList.add('custody-status');
+    _gtaBtn.disabled=true;_gtaBtn.setAttribute('aria-disabled','true');_gtaBtn.style.display='block';
+    if(_robBtn)_robBtn.style.display='none';return;
+  }
   if(_threeSelectedGangBotId&&performance.now()<_threeSelectedGangBotUntil&&!_policeState?.employed&&!_buildingInt&&!_bankInt&&!myDrivingCarId&&!myDead&&_myGang.length<GANG_MAX&&!(myGangs>0)){
     const selected=_findLiveAggroBotById(_threeSelectedGangBotId);
     if(selected&&!_isDistrictDefenderBot(selected.bot)&&Math.hypot(player.r-(+selected.bot.y||0),player.c-(+selected.bot.x||0))<=4.4){
