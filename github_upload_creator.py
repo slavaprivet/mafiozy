@@ -23,7 +23,7 @@ except FileNotFoundError:
     print("    Создай его и впиши туда свой GitHub-токен одной строкой.")
     input("Press Enter to exit..."); sys.exit(1)
 
-REPO   = "slavaprivet/mafiozi-battle"
+REPO   = "slavaprivet/mafiozy"
 SRC    = os.path.join(_HERE, "creator.html")
 TARGET = "creator.html"
 
@@ -63,6 +63,6 @@ print(f"    HTTP {code} — {'OK' if code in (200,201) else r.get('message','ERR
 print()
 print("=" * 52)
 print(" Done! Check in ~1 min:")
-print(f" https://slavaprivet.github.io/mafiozi-battle/{TARGET}")
+print(f" https://slavaprivet.github.io/mafiozy/{TARGET}")
 print("=" * 52)
 input("\nPress Enter to exit...")

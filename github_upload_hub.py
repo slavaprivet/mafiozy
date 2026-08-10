@@ -26,7 +26,7 @@ except FileNotFoundError:
     print(f"[!] Файл .token не найден: {_TOKEN_FILE}")
     input("Press Enter to exit..."); sys.exit(1)
 
-REPO   = "slavaprivet/mafiozi-battle"
+REPO   = "slavaprivet/mafiozy"
 BRANCH = "main"
 SRC    = os.path.join(_HERE, "hub.html")
 FILE   = "hub.html"
@@ -134,7 +134,7 @@ print("=" * 64)
 if verified:
     print(" UPLOAD OK И ПРОВЕРЕН")
     print(f" Время       : {stamp}")
-    print(f" Pages-URL   : https://slavaprivet.github.io/mafiozi-battle/{FILE}")
+    print(f" Pages-URL   : https://slavaprivet.github.io/mafiozy/{FILE}")
     print(f" Raw-URL     : {raw_url}")
     print()
     print(" Дальше: в Telegram /start — мини-апп подхватит свежую версию.")

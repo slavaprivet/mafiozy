@@ -23,7 +23,7 @@ except FileNotFoundError:
     print(f"    Создай его и впиши туда свой GitHub-токен одной строкой.")
     input("Press Enter to exit..."); sys.exit(1)
 
-REPO  = "slavaprivet/mafiozi-battle"
+REPO  = "slavaprivet/mafiozy"
 SRC   = os.path.join(_HERE, "battle.html")
 
 # Загружаем под обоими именами — index.html (основной) и battle.html
@@ -66,6 +66,6 @@ for FILE in TARGETS:
 print()
 print("=" * 44)
 print(" Done! Check in ~1 min:")
-print(" https://slavaprivet.github.io/mafiozi-battle/")
+print(" https://slavaprivet.github.io/mafiozy/")
 print("=" * 44)
 input("\nPress Enter to exit...")

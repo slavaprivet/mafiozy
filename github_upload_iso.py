@@ -26,7 +26,7 @@ except FileNotFoundError:
     print(f"[!] Файл .token не найден: {_TOKEN_FILE}")
     input("Press Enter to exit..."); sys.exit(1)
 
-REPO   = "slavaprivet/mafiozi-battle"
+REPO   = "slavaprivet/mafiozy"
 BRANCH = "main"
 SRC    = os.path.join(_HERE, "demo_isometric.html")
 FILE   = "demo_isometric.html"
@@ -127,13 +127,13 @@ print("=" * 64)
 if verified:
     print(" UPLOAD OK")
     print(f" Время       : {stamp}")
-    print(f" Pages-URL   : https://slavaprivet.github.io/mafiozi-battle/{FILE}")
+    print(f" Pages-URL   : https://slavaprivet.github.io/mafiozy/{FILE}")
     print()
     print(" Дальше: в Telegram /start — мини-апп подхватит свежую версию.")
     print(" (CDN GitHub Pages обновляется ~10-60 сек после коммита.)")
 else:
     print(" PUT прошёл, но контрольную проверку не прошли. Файл скорее всего")
     print(" уже залит — открой Pages-URL в браузере и проверь:")
-    print(f"   https://slavaprivet.github.io/mafiozi-battle/{FILE}")
+    print(f"   https://slavaprivet.github.io/mafiozy/{FILE}")
 print("=" * 64)
 input("\nPress Enter to exit...")
