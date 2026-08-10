@@ -10914,7 +10914,8 @@ function _startMurderPoliceScene(v,now=performance.now()){
     ar.vehicleId=v.id;ar.copId=primary.id;ar.coverCopId=cover?.id||'';
     v.state='police_arrest_scene';incident.status='arresting-player';incident.arrestStartedAt=now;
     for(const officer of crew){officer._casePhase=officer===primary?'arrest_approach':'arrest_cover';officer._phaseStartedAt=now;officer._pursuing=true;}
-    _setMurderPoliceArrestPhase(ar,ar.voluntary?'surrendering':'downed',now);
+    if(ar.holdingCopId)_releaseVoluntarySurrenderHoldingCop(ar);
+    _setMurderPoliceArrestPhase(ar,ar.voluntary?(ar.localCuffed?'cuffing':'surrendering'):'downed',now);
     document.documentElement.dataset.policeArrestRescuable=ar.voluntary?'0':'1';
     return true;
   }
@@ -11117,7 +11118,7 @@ function _setMurderPoliceArrestPhase(ar,phase,now=performance.now()){
 }
 function _murderPoliceArrestProgress(ar=_murderPoliceArrest,now=performance.now()){
   if(!ar)return 0;
-  const duration=ar.phase==='surrendering'?6500:ar.phase==='downed'?900:ar.phase==='cuffing'?POLICE_ARREST_CUFF_MS:
+  const duration=ar.phase==='surrendering'?1800:ar.phase==='surrender_wait_transport'?1:ar.phase==='downed'?900:ar.phase==='cuffing'?POLICE_ARREST_CUFF_MS:
     ar.phase==='escort'?6200:ar.phase==='loading'?POLICE_ARREST_LOAD_MS:
     ar.phase==='unloading'?POLICE_ARREST_UNLOAD_MS:ar.phase==='handoff'?12000:
     ar.phase==='booking'?POLICE_ARREST_BOOK_MS:ar.phase==='prison_escort'?22000:1;
@@ -11202,17 +11203,63 @@ function _beginVoluntarySurrender(now=performance.now()){
   if(_myBagWeight>0&&((_bankRob&&_bankRob.myBag)||_policeEvidenceBag))dropVaultBag();
   const surrenderedWeapon=currentWeapon;
   currentWeapon=null;player.walking=false;player.vr=0;player.vc=0;myDead=false;_localDeath=false;myHp=Math.max(1,myHp);
+  if(typeof joyLEnd==='function')joyLEnd();if(typeof joyREnd==='function')joyREnd();
+  if(typeof _keyState==='object')_keyState.up=_keyState.down=_keyState.left=_keyState.right=false;
+  if(typeof _fireBtnDown!=='undefined')_fireBtnDown=false;
   const incident={id:`police_surrender_${++_murderIncidentSeq}`,r:+player.r||0,c:+player.c||0,
     victim:null,source:{kind:'voluntary_surrender',copId:String(cop.id||'')},occurredAt:now,status:'queued',assignedVehicleId:null,
     searchStartedAt:0,initialSearchUntil:0,lostAt:0,questionStartedAt:0,armedContact:false,closedAt:0,
     playerArrestPickup:true,voluntarySurrender:true,routeRetryAt:0,routeFailures:0};
   _murderIncidents.push(incident);while(_murderIncidents.length>24)_murderIncidents.shift();
-  _murderPoliceArrest={vehicleId:'',incidentId:incident.id,copId:'',coverCopId:'',phase:'surrendering',voluntary:true,
+  _murderPoliceArrest={vehicleId:'',incidentId:incident.id,copId:'',coverCopId:'',holdingCopId:String(cop.id||''),phase:'surrendering',voluntary:true,
     hpBefore:myHp,weaponBefore:surrenderedWeapon,startedAt:now,phaseAt:now,lastGangShots:Object.create(null),
+    surrenderR:+player.r||0,surrenderC:+player.c||0,localCuffed:false,transportFallbackUsed:false,
     serverRequested:false,serverAccepted:false,serverRejectedReason:''};
+  cop._casePhase='voluntary_surrender_hold';cop._phaseStartedAt=now;cop._pursuing=true;
   _dispatchMurderPoliceCalls(now);
   document.documentElement.dataset.policeArrestPhase='surrendering';document.documentElement.dataset.policeArrestRescuable='0';
   showEventBanner('🙌 ТЫ СДАЛСЯ','Оружие убрано. Не двигайся: наряд наденет наручники и отвезёт тебя в тюрьму.',3800,'neutral');
+  return true;
+}
+function _releaseVoluntarySurrenderHoldingCop(ar){
+  const cop=cityCops.find(q=>String(q?.id)===String(ar?.holdingCopId||''));
+  if(cop&&cop.alive){cop._casePhase=cop.kind==='patrol'?'patrol':'search';cop._pursuing=false;cop._lifeState='';cop._lifeGesture='';}
+  if(ar)ar.holdingCopId='';
+}
+function _tickVoluntarySurrender(dt,now=performance.now()){
+  const ar=_murderPoliceArrest;if(!ar?.voluntary)return false;
+  const vehicle=serviceVehicles.find(v=>String(v?.id)===String(ar.vehicleId||'')),sceneReady=vehicle?.state==='police_arrest_scene';
+  if(sceneReady){if(ar.holdingCopId)_releaseVoluntarySurrenderHoldingCop(ar);return true;}
+  // С момента подтверждения сдачи позиция является частью процедуры ареста,
+  // а не советом игроку «не двигаться».
+  player.r=Number.isFinite(+ar.surrenderR)?+ar.surrenderR:player.r;
+  player.c=Number.isFinite(+ar.surrenderC)?+ar.surrenderC:player.c;
+  player.vr=0;player.vc=0;player.walking=false;
+  let cop=cityCops.find(q=>String(q?.id)===String(ar.holdingCopId||'')&&_murderPoliceCopActive(q));
+  if(!cop){const replacement=_nearestSurrenderPolice(20)?.cop;if(replacement){cop=replacement;ar.holdingCopId=String(cop.id||'');ar.phaseAt=now;}}
+  if(cop){
+    cop._casePhase='voluntary_surrender_hold';cop._pursuing=true;cop.ang=Math.atan2(player.r-cop.y,player.c-cop.x);
+    if(!ar.localCuffed){
+      const reached=_moveMurderResponseCop(cop,player.r,player.c,dt,2.15),distance=Math.hypot(cop.y-player.r,cop.x-player.c);
+      if(reached||distance<.9||now-ar.startedAt>1800){
+        _anchorCuffingOfficer(cop);cop._lifeState='helping';cop._lifeGesture='aid';ar.localCuffed=true;
+        _setMurderPoliceArrestPhase(ar,'surrender_wait_transport',now);
+        _copChats.set(cop.id,{text:'Руки за спину. Ожидаем машину.',untilMs:now+2200});
+      }
+    }else{_anchorCuffingOfficer(cop);cop._lifeState='helping';cop._lifeGesture='aid';}
+  }
+  // Если транспорт физически застрял или его маршрут переотправлялся,
+  // через 9 секунд подводим уже назначенную машину к рассчитанной точке
+  // сцены и продолжаем штатную посадку. Процедура больше не висит бесконечно.
+  if(!ar.transportFallbackUsed&&now-ar.startedAt>9000){
+    const incident=_murderIncidents.find(q=>q?.id===ar.incidentId&&!q.closedAt),v=vehicle||serviceVehicles.find(q=>q?.payload?.murderIncident===incident);
+    if(v&&incident){
+      ar.transportFallbackUsed=true;_removeMurderCrewForVehicle(v);
+      const rr=Number.isFinite(+v.sceneParkingR)?+v.sceneParkingR:+ar.surrenderR,cc=Number.isFinite(+v.sceneParkingC)?+v.sceneParkingC:+ar.surrenderC;
+      ar.vehicleId=String(v.id||'');v.y=rr;v.x=cc;v.path=[];v.pathIdx=0;v.finalTarget={y:rr,x:cc};v._lastMoveT=now;
+      _startMurderPoliceScene(v,now);document.documentElement.dataset.voluntarySurrenderFallback='transport-scene-after-9s';
+    }else{_dispatchMurderPoliceCalls(now);}
+  }
   return true;
 }
 function _applyGangmateRescueFire(ar,now=performance.now()){
@@ -11240,6 +11287,7 @@ function _cancelMurderPoliceArrest(source=null,now=performance.now()){
   const ar=_murderPoliceArrest,serverRejected=source?.kind==='server-rejected';
   if(!ar||(_murderPoliceArrestInCustody(ar)&&!serverRejected))return false;
   const v=serviceVehicles.find(q=>q.id===ar.vehicleId),incident=v?.payload?.murderIncident;
+  if(ar.holdingCopId)_releaseVoluntarySurrenderHoldingCop(ar);
   _murderPoliceArrest=null;_murderPoliceRescueGraceUntil=now+3500;
   myDead=false;_localDeath=false;myHp=ar.voluntary?Math.max(1,+ar.hpBefore||1):1;myDeathLeft=0;myDeathBy='';
   if(ar.voluntary&&ar.weaponBefore)currentWeapon=ar.weaponBefore;
@@ -32108,7 +32156,7 @@ function update(dt) {
   // ближайшей залоченной цели РОВНО в неё. Без лока кнопка бьёт кулаком /
   // стреляет в направление взгляда (fire(null)). Правый стик = только
   // прицеливание/лок (лазер). В PvP-арене (inArena) — free-aim по стику.
-  if (myMode !== 'pve' && !myDead && (!myDrivingCarId || _canShootFromBike()) && !myJetSkiId && !_playerSwimmingDeep) {
+  if (myMode !== 'pve' && !myDead && !_murderPoliceArrest && (!myDrivingCarId || _canShootFromBike()) && !myJetSkiId && !_playerSwimmingDeep) {
     const meInArena = inArena(player.r, player.c);
     if (RIGHT_STICK_DIRECT_FIRE && joyR.active && joyR.hasAim) {
       const ang = _joyRAimAngle();
@@ -32175,6 +32223,7 @@ function update(dt) {
   }
   if (!myDrivingCarId) _fuelWarnShown = false;
   updateCityCops(dt);
+  _tickVoluntarySurrender(dt,performance.now());
   _updateGang(dt);
   updatePets(dt);
   _updateGasStations(performance.now());
@@ -59736,6 +59785,7 @@ window.Mafiozi3DBridge = Object.freeze({
     // Keep the transport state machine detailed while feeding the existing
     // renderer poses it already understands: prone extraction and walking escort.
     const arrestVisualPhase=arrestPhase==='awaiting_pickup'?'downed':
+      arrestPhase==='surrender_wait_transport'?'cuffing':
       arrestPhase==='unloading'?'cuffing':
       arrestPhase==='prison_escort'?'escort':(arrestPhase||(servingSentence?'prisoner':''));
     const state={
@@ -59743,8 +59793,8 @@ window.Mafiozi3DBridge = Object.freeze({
       walking: !!player.walking, walkPhase: +player.walkPhase || 0,
       speed:anim.speed,accel:anim.accel,moveAng:anim.moveAng,teleported:anim.teleported,aiming:anim.aiming,impact:anim.impact,
       hp: _LOCAL_PREVIEW&&_UP.has('previewlimp')?20:Math.max(0,+myHp||0),
-      dead:arrest?(arrest.peaceful?['awaiting_pickup','downed','unloading'].includes(arrestPhase):['awaiting_pickup','downed','cuffing','unloading'].includes(arrestPhase)):!!myDead,
-      arrestPhase:arrestVisualPhase,arrestProgress,voluntarySurrender:!!arrest?.voluntary,cuffed:servingSentence||['cuffing','escort','loading','transport','unloading','handoff','prison_escort','booking'].includes(arrestPhase),arrestHidden:arrestPhase==='transport',
+      dead:arrest?((arrest.peaceful||arrest.voluntary)?['awaiting_pickup','downed','unloading'].includes(arrestPhase):['awaiting_pickup','downed','cuffing','unloading'].includes(arrestPhase)):!!myDead,
+      arrestPhase:arrestVisualPhase,arrestProgress,voluntarySurrender:!!arrest?.voluntary,cuffed:servingSentence||['surrender_wait_transport','cuffing','escort','loading','transport','unloading','handoff','prison_escort','booking'].includes(arrestPhase),arrestHidden:arrestPhase==='transport',
       mode: myMode, weapon:previewWeaponId||currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
