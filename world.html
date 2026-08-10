@@ -24875,28 +24875,8 @@ function updateGtaInteractions() {
         _gtaBtn.style.display = 'block'; return;
       }
     }
-    // Взаимодействие с персоналом — рядом с любым сотрудником (bi.npcs)
-    if (_buildingInt.npcs && _buildingInt.npcs.length) {
-      const _BTN_BY_TYPE = { hospital:'🏥 Лечиться', police_st:'👮 Поговорить', gym:'💪 Тренировка', job:'💼 Устроиться' };
-      let nearNpc = null, nearD = 2.0;
-      for (const n of _buildingInt.npcs) {
-        const d = Math.hypot(player.r - n.r, player.c - n.c);
-        if (d < nearD) { nearD = d; nearNpc = n; }
-      }
-      if (nearNpc && _buildingInt.type !== 'police_st') {
-        if (_buildingInt.type === 'job') {
-          const _jd=_jobDef(_jobState.job),_jl=_jobRemaining();
-          _gtaActionKind = (_jd&&_jl<=0) ? 'job_collect' : 'job_open';
-          _gtaBtn.textContent = !_jd ? '💼 Устроиться на работу'
-            : (_jl<=0 ? '💵 Получить зарплату у менеджера' : `💼 Моя работа · ${_jobTime(_jl)}`);
-        } else {
-          _gtaActionKind = 'bldg_npc';
-          _gtaBtn.textContent = _BTN_BY_TYPE[_buildingInt.type] || `💬 ${nearNpc.name}`;
-        }
-        _gtaActionCarId = null;
-        _gtaBtn.style.display = 'block'; return;
-      }
-    }
+    // Общение с обычным персоналом и клиентами идёт только через подсказку E.
+    // Верхний HUD оставляем для отдельных контекстных действий здания.
     // Иначе — кнопок нет
     _gtaBtn.style.display = 'none'; _gtaActionKind = null;
     return;
@@ -64684,6 +64664,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d309-bank-entrance-doors"></script>
+<script type="module" src="three_preview.js?v=3d310-opaque-high-npc-actions"></script>
 </body>
 </html>
