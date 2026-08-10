@@ -16118,9 +16118,9 @@ function _currentBuildingEntryTarget() {
     };
   }
 
-  // Банк использует отдельную кнопку зоны, но выбор ближайшего банка уже
-  // сделан той же логикой, которая обрабатывает нажатие «Войти в банк».
-  if (_bankZoneCur && _zoneEl && _zoneEl.style.display === 'block' && _zoneEl.dataset.bankId) {
+  // Canvas keeps its world marker, while 3D uses the same explicit entrance
+  // marker and E prompt as every other building. It must not depend on zoneBtn.
+  if (_bankZoneCur && (_UP.get('render')==='3d' || (_zoneEl && _zoneEl.style.display === 'block' && _zoneEl.dataset.bankId))) {
     const entrance=_bankInteractionAnchor(_bankZoneCur);
     return { r:entrance.r, c:entrance.c, radius:1.8 };
   }
@@ -16487,12 +16487,18 @@ function _activateBankEntryFrom3D(bank) {
   _closeBusinessActionCard();
   _selectedBuildingEntry=null;_selectedVehicleEntry=null;
   _bankZoneCur=bank;
-  delete _zoneEl.dataset.bizId;
-  delete _zoneEl.dataset.establishmentAction;
-  _zoneEl.dataset.bankId=bank.id;
-  _zoneEl.style.display='block';
-  _zoneEl.click();
-  return {ok:true,entered:!!_bankInt,kind:'bank',id:String(bank.id),name:bank.name||'Банк'};
+  // 3D entry is direct, like an ordinary building. The old route briefly
+  // displayed the global zoneBtn and clicked it programmatically.
+  delete _zoneEl.dataset.bankId;delete _zoneEl.dataset.bizId;delete _zoneEl.dataset.establishmentAction;
+  _zoneEl.style.display='none';
+  if(myDead)return {ok:false,reason:'dead'};
+  if(myDrivingCarId)return {ok:false,reason:'driving'};
+  if(_bankRob&&_bankRob.bank.id===bank.id&&_bankRob.phase==='escaping'&&_bankRob.bagsLoaded>0){
+    showToast('🚗 Вези мешки к своему бизнесу и нажми «Спрятать куш»','ℹ️',2600);
+    return {ok:false,reason:'deliver-loot'};
+  }
+  enterBankInterior(bank);
+  return {ok:!!_bankInt,entered:!!_bankInt,kind:'bank',id:String(bank.id),name:bank.name||'Банк'};
 }
 
 function toggleNearbyBuildingActionsFrom3D(screenX=null,screenY=null) {
@@ -22996,6 +23002,15 @@ function updateZoneBtn() {
   const prevBank = _bankZoneCur;
   _bankZoneCur = nearBank;
   if (nearBank) {
+    // In 3D the bank follows the common facade interaction contract: the
+    // renderer shows the entrance marker and E prompt. Never add a second
+    // full-width button above the game.
+    if(_UP.get('render')==='3d'){
+      _zoneEl.style.display='none';delete _zoneEl.dataset.bankId;
+      const inPvp2=inArena(player.r,player.c);
+      _pvpBn.style.display=inPvp2?'block':'none';document.body.classList.toggle('in-pvp',inPvp2);
+      return;
+    }
     // Если несём мешок — банковская кнопка скрыта (приоритет у мешка через _gtaBtn)
     if (_myBagWeight > 0 && _bankRob && _bankRob.myBag) {
       _zoneEl.style.display = 'none';
@@ -64669,6 +64684,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d308-custody-interaction-lock"></script>
+<script type="module" src="three_preview.js?v=3d309-bank-entrance-doors"></script>
 </body>
 </html>
