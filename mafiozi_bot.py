@@ -13052,6 +13052,10 @@ class WorldSim:
     COP_CHASE_SPEED     = 2.0       # быстрее обычной машины
     COP_PATROL_SPEED    = 1.4       # патруль идёт неспешно
     COP_OPT_RANGE       = 5.5       # оптимальная боевая дистанция (тайлы)
+    # NPC-задержание подтверждает серверный коп, а не присланные
+    # клиентом cop_id/x/y. Радиус чуть шире боевой дистанции, чтобы стрейф
+    # между сетевыми тиками не давал ложный отказ.
+    CITYCOP_ARREST_CONFIRM_R = 8.5
     COP_STRAFE_T        = 1.3       # как часто меняем стрейф (секунды)
     COP_STRAFE_OFF      = 1.6       # амплитуда стрейфа (тайлы перпендикулярно)
     COP_MISS_CHANCE     = 0.48      # разброс: ≈48% выстрелов мимо (было 28%)
@@ -16289,6 +16293,43 @@ class WorldSim:
         if lvl >= 2: return self.COP_COMBAT_COUNT   # 5 на бой
         if lvl == 1: return self.COP_PATROL_COUNT   # 2 на патруль-предупреждение
         return 0
+
+    def validate_citycop_arrest(self, uid: str, voluntary: bool = False) -> dict:
+        """Server-authoritative proof that an NPC police unit reached this player.
+
+        Local city cops and response animations are presentation only.  A client
+        cannot authorize jail by inventing their id or coordinates: at least one
+        live server cop assigned to the same player must be nearby and have LOS.
+        """
+        p = self.players.get(str(uid))
+        if not p:
+            return {'ok': False, 'reason': 'unknown_player'}
+        if p.get('_in_interior') and time.time() < float(p.get('_in_interior_until') or 0):
+            return {'ok': False, 'reason': 'in_interior'}
+        if p.get('_gta_active_car_id'):
+            return {'ok': False, 'reason': 'in_vehicle'}
+        px, py = float(p.get('x') or 0), float(p.get('y') or 0)
+        radius2 = self.CITYCOP_ARREST_CONFIRM_R ** 2
+        candidates = []
+        for cop in self.cops:
+            if not cop.get('alive') or str(cop.get('target_uid') or '') != str(uid):
+                continue
+            if cop.get('target_gang_id'):
+                continue
+            # При 2★/3★ арест подтверждает боевой наряд. При добровольной
+            # сдаче достаточно и патрульного, потому что игрок не сопротивляется.
+            if not voluntary and cop.get('kind') not in ('combat', 'swat'):
+                continue
+            dx, dy = float(cop.get('x') or 0) - px, float(cop.get('y') or 0) - py
+            d2 = dx * dx + dy * dy
+            if d2 > radius2 or not _world_los(float(cop.get('x') or 0), float(cop.get('y') or 0), px, py):
+                continue
+            candidates.append((d2, cop))
+        if not candidates:
+            return {'ok': False, 'reason': 'no_server_cop_contact'}
+        d2, cop = min(candidates, key=lambda item: item[0])
+        return {'ok': True, 'server_cop_id': str(cop.get('id') or ''),
+                'server_cop_distance': round(d2 ** 0.5, 2)}
 
     def tick_cops(self, dt: float) -> list:
         """Двигает копов, спавнит новых по wanted-уровню, стреляет
@@ -26633,6 +26674,22 @@ async def _coop_http_app():
                         elif world._in_lair_zone(p.get('x', 0), p.get('y', 0)):
                             reply = {'ok': False, 'reason': 'in_lair'}
                         else:
+                            # `cop_id`, x/y и response_vehicle приходят от клиента и не
+                            # являются доказательством захвата. Первичный арест разрешает
+                            # только серверный наряд с тем же target_uid, дистанцией и LOS.
+                            # `booking` — лишь второй этап уже подтверждённого срока.
+                            contact = ({'ok': True} if booking else
+                                       world.validate_citycop_arrest(uid, voluntary=voluntary))
+                            if not contact.get('ok'):
+                                reply = contact
+                                try:
+                                    await ws.send_str(json.dumps(
+                                        {'t': 'event',
+                                         'd': dict(reply, kind='citycop_arrest_reply', booking=booking)},
+                                        ensure_ascii=False))
+                                except Exception:
+                                    pass
+                                continue
                             now_ts = int(time.time())
                             p['_jail_until']    = now_ts + CITYCOP_JAIL_S
                             p['_jail_released'] = False
@@ -26647,7 +26704,9 @@ async def _coop_http_app():
                                                        jail_until=now_ts + CITYCOP_JAIL_S)
                             except Exception:
                                 pass
-                            reply = {'ok': True, 'jail_s': CITYCOP_JAIL_S}
+                            reply = {'ok': True, 'jail_s': CITYCOP_JAIL_S,
+                                     'server_cop_id': contact.get('server_cop_id', ''),
+                                     'server_cop_distance': contact.get('server_cop_distance')}
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event',
