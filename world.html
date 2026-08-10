@@ -7928,6 +7928,11 @@ function _hitBankGuard(npc, dirY, dirX, damage) {
 function npcPassable(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
+  // Тайла недостаточно: в 3D у домов, контейнеров и береговых объектов
+  // есть расширенный физический контур. Жители должны уважать ту же
+  // коллизию, что и игрок, иначе у края модели кажется, что NPC идёт
+  // прямо сквозь стену.
+  if (isBlockedPed(r, c)) return false;
   if (_inPrisonIslandRestrictedZone(r,c,.35)) return false;
   if (inArena(ri, ci)) return false;
   if (inLair(ri, ci)) return false;   // обычные NPC не ходят в логово
@@ -7948,6 +7953,7 @@ function npcPassable(r, c) {
 function npcPassableForSnitch(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
+  if (isBlockedPed(r, c)) return false;
   if (_inPrisonIslandRestrictedZone(r,c,.35)) return false;
   if (inArena(ri, ci)) return false;
   if (inLair(ri, ci)) return false;
@@ -7962,6 +7968,18 @@ function _npcBodyPassable(r, c, passFn=npcPassable) {
   const rad=.18;
   return passFn(r,c) && passFn(r-rad,c-rad) && passFn(r-rad,c+rad) &&
     passFn(r+rad,c-rad) && passFn(r+rad,c+rad);
+}
+// Проверяем весь отрезок движения, а не только конечную точку. Обычно за
+// кадр получается одна проверка; дополнительные нужны лишь после просадки
+// FPS, когда большой шаг иначе мог перепрыгнуть тонкую стену дома.
+function _npcPathPassable(fromR,fromC,toR,toC,passFn=npcPassable) {
+  const distance=Math.hypot(toR-fromR,toC-fromC);
+  const samples=Math.max(1,Math.ceil(distance/.14));
+  for(let i=1;i<=samples;i++){
+    const t=i/samples;
+    if(!_npcBodyPassable(fromR+(toR-fromR)*t,fromC+(toC-fromC)*t,passFn))return false;
+  }
+  return true;
 }
 function _recoverNpcFromCollision(n) {
   const pass=n.snitching?npcPassableForSnitch:npcPassable;
@@ -8075,7 +8093,7 @@ function _npcAdvanceRoute(npc,dt,speed,passFn=npcPassable) {
     npc.tr=target.r;npc.tc=target.c;dr=target.r-npc.r;dc=target.c-npc.c;d=Math.hypot(dr,dc);
   }
   const step=Math.min(speed*dt,d),nr=npc.r+(dr/Math.max(.001,d))*step,nc=npc.c+(dc/Math.max(.001,d))*step;
-  if(!_npcBodyPassable(nr,nc,passFn))return 'blocked';
+  if(!_npcPathPassable(npc.r,npc.c,nr,nc,passFn))return 'blocked';
   npc.r=nr;npc.c=nc;npc.ang=Math.atan2(dr,dc);npc.walkPhase+=dt*14;npc.walking=true;npc._routeBlockedAt=0;
   return true;
 }
@@ -13548,7 +13566,7 @@ function updateNpcs(dt) {
       const awayLen=Math.hypot(awayR,awayC)||1;
       const crawlStep=Math.max(.035,(n.speed||.8)*.075)*dt;
       const nr=n.r+awayR/awayLen*crawlStep,nc=n.c+awayC/awayLen*crawlStep;
-      if(_npcBodyPassable(nr,nc)){n.r=nr;n.c=nc;n.ang=Math.atan2(awayR,awayC);n.walking=true;n.walkPhase+=dt*.85;}
+      if(_npcPathPassable(n.r,n.c,nr,nc)){n.r=nr;n.c=nc;n.ang=Math.atan2(awayR,awayC);n.walking=true;n.walkPhase+=dt*.85;}
       else n.walking=false;
       n.tr=n.r;n.tc=n.c;
       if(now>=(n._nextDownedBloodAt||0)){
@@ -13609,7 +13627,7 @@ function updateNpcs(dt) {
       if (dist > 1.2) {
         const spd = n.speed || 2.5;
         const nr=n.r+(dy/dist)*spd*dt,nc=n.c+(dx/dist)*spd*dt;
-        if(_npcBodyPassable(nr,nc)){n.r=nr;n.c=nc;n.walkPhase=(n.walkPhase||0)+dt*10;}
+        if(_npcPathPassable(n.r,n.c,nr,nc)){n.r=nr;n.c=nc;n.walkPhase=(n.walkPhase||0)+dt*10;}
         else n.walkPhase=0;
       }
       if (dist < 1.5 && now > (n._attackCd || 0)) {
@@ -13878,7 +13896,7 @@ function updateNpcs(dt) {
     }
     const sp = _npcEffectiveSpeed(n) * dt;
     const nr=n.r+(dr/d)*sp,nc=n.c+(dc/d)*sp;
-    if(_npcBodyPassable(nr,nc)){
+    if(_npcPathPassable(n.r,n.c,nr,nc)){
       n.r=nr;n.c=nc;n.ang=Math.atan2(dr,dc);n.walkPhase+=dt*8;n.walking=true;n._routeBlockedAt=0;
     }else{
       n.walkPhase=0;n.walking=false;
