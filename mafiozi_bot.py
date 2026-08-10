@@ -1400,6 +1400,27 @@ async def init_db():
                 PRIMARY KEY (uid, biz_id)
             )
         """)
+        # Ограбления жителей сохраняются между WebSocket-сессиями. Иначе
+        # обновление страницы стирало ориентировку и позволяло оставить добычу.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS npc_robberies (
+                uid            INTEGER NOT NULL,
+                npc_id         TEXT NOT NULL,
+                robbery_id     TEXT NOT NULL,
+                amount         INTEGER NOT NULL,
+                cooldown_until INTEGER NOT NULL,
+                interrogation_arrest INTEGER NOT NULL DEFAULT 1,
+                status         TEXT NOT NULL DEFAULT 'active',
+                created_at     INTEGER NOT NULL,
+                resolved_at    INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (uid, npc_id),
+                UNIQUE (uid, robbery_id)
+            )
+        """)
+        await db.execute("CREATE INDEX IF NOT EXISTS ix_npc_robberies_active ON npc_robberies(uid, status)")
+        npc_robbery_cols = {row[1] for row in await (await db.execute("PRAGMA table_info(npc_robberies)")).fetchall()}
+        if 'interrogation_arrest' not in npc_robbery_cols:
+            await db.execute("ALTER TABLE npc_robberies ADD COLUMN interrogation_arrest INTEGER NOT NULL DEFAULT 1")
         # Бригадир — хит-контракты. Лимит BRIGADIR_DAILY_LIMIT за сутки на игрока.
         # Каждый append — отдельная запись (kill_t = когда сдан, или 0 если выдан).
         await db.execute("""
@@ -26279,6 +26300,156 @@ async def _coop_http_app():
                                  'd': dict(reply, kind='brigadir_claim_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'npc_cash_action':
+                        body = d if isinstance(d, dict) else {}
+                        p = world.players.get(uid)
+                        action = str(body.get('action') or '')[:32]
+                        costs = {'give25': 25, 'give10': 10}
+                        amount = int(costs.get(action) or 0)
+                        reply = {'ok': False, 'reason': 'invalid', 'action': action, 'amount': amount}
+                        if p and not p.get('dead') and amount:
+                            try:
+                                async with aiosqlite.connect(DB_PATH) as db:
+                                    await db.execute('BEGIN IMMEDIATE')
+                                    cur = await db.execute(
+                                        "UPDATE characters SET cash = cash - ? WHERE telegram_id = ? AND cash >= ?",
+                                        (amount, int(uid), amount))
+                                    row = await (await db.execute(
+                                        "SELECT cash FROM characters WHERE telegram_id = ?", (int(uid),))).fetchone()
+                                    await db.commit()
+                                cash = int((row or [0])[0] or 0)
+                                if cur.rowcount > 0:
+                                    p['_cash'] = cash
+                                    reply = {'ok': True, 'action': action, 'amount': amount, 'cash': cash}
+                                else:
+                                    reply = {'ok': False, 'reason': 'cash', 'action': action, 'amount': amount, 'cash': cash}
+                            except Exception:
+                                reply = {'ok': False, 'reason': 'db_error', 'action': action, 'amount': amount}
+                        try:
+                            await ws.send_str(json.dumps({'t': 'event', 'd': dict(reply, kind='npc_cash_action_reply')}, ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'npc_robbery_state':
+                        p = world.players.get(uid)
+                        active = []
+                        try:
+                            async with aiosqlite.connect(DB_PATH) as db:
+                                rows = await (await db.execute(
+                                    "SELECT npc_id, robbery_id, amount, cooldown_until, created_at, interrogation_arrest "
+                                    "FROM npc_robberies WHERE uid = ? AND status = 'active' "
+                                    "ORDER BY created_at DESC LIMIT 5", (int(uid),))).fetchall()
+                            active = [{'npc_id': str(row[0]), 'robbery_id': str(row[1]), 'amount': int(row[2]),
+                                       'cooldown_until': int(row[3]), 'created_at': int(row[4]),
+                                       'interrogation_arrest': bool(row[5])} for row in rows]
+                        except Exception:
+                            active = []
+                        if p and active:
+                            p['_wanted'] = max(1.0, float(p.get('_wanted') or 0))
+                        try:
+                            await ws.send_str(json.dumps({'t': 'event', 'd': {'kind': 'npc_robbery_state_reply', 'ok': True, 'active': active}}, ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'npc_robbery':
+                        body = d if isinstance(d, dict) else {}
+                        p = world.players.get(uid)
+                        npc_id = str(body.get('npc_id') or '')[:96]
+                        robbery_id = str(body.get('robbery_id') or '')[:160]
+                        now_t = time.time()
+                        reply = {'ok': False, 'reason': 'denied', 'robbery_id': robbery_id}
+                        if not p or p.get('dead') or not npc_id or not robbery_id:
+                            reply['reason'] = 'invalid'
+                        else:
+                            try:
+                                async with aiosqlite.connect(DB_PATH) as db:
+                                    await db.execute('BEGIN IMMEDIATE')
+                                    row = await (await db.execute(
+                                        "SELECT cooldown_until FROM npc_robberies WHERE uid = ? AND npc_id = ?",
+                                        (int(uid), npc_id))).fetchone()
+                                    cooldown_until = int((row or [0])[0] or 0)
+                                    if cooldown_until > now_t:
+                                        await db.rollback()
+                                        reply.update(reason='cooldown', cooldown_until=cooldown_until)
+                                    else:
+                                        amount = random.randint(1, 10)
+                                        interrogation_arrest = 1 if random.random() < 0.8 else 0
+                                        cooldown_until = int(now_t) + 3600
+                                        await db.execute(
+                                            "INSERT INTO npc_robberies(uid,npc_id,robbery_id,amount,cooldown_until,interrogation_arrest,status,created_at,resolved_at) "
+                                            "VALUES(?,?,?,?,?,?,'active',?,0) "
+                                            "ON CONFLICT(uid,npc_id) DO UPDATE SET robbery_id=excluded.robbery_id,amount=excluded.amount,"
+                                            "cooldown_until=excluded.cooldown_until,interrogation_arrest=excluded.interrogation_arrest,"
+                                            "status='active',created_at=excluded.created_at,resolved_at=0",
+                                            (int(uid), npc_id, robbery_id, amount, cooldown_until, interrogation_arrest, int(now_t)))
+                                        await db.execute("UPDATE characters SET cash = cash + ? WHERE telegram_id = ?", (amount, int(uid)))
+                                        cash_row = await (await db.execute(
+                                            "SELECT cash FROM characters WHERE telegram_id = ?", (int(uid),))).fetchone()
+                                        await db.commit()
+                                        cash = int((cash_row or [int(p.get('_cash') or 0) + amount])[0] or 0)
+                                        p['_cash'] = cash
+                                        p['_wanted'] = max(1.0, float(p.get('_wanted') or 0))
+                                        p['_last_shot_t'] = now_t
+                                        reply = {'ok': True, 'robbery_id': robbery_id, 'amount': amount,
+                                                 'cash': cash, 'cooldown_until': cooldown_until,
+                                                 'interrogation_arrest': bool(interrogation_arrest)}
+                            except Exception:
+                                reply = {'ok': False, 'reason': 'db_error', 'robbery_id': robbery_id}
+                        try:
+                            await ws.send_str(json.dumps({'t': 'event', 'd': dict(reply, kind='npc_robbery_reply')}, ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'npc_robbery_confiscate':
+                        body = d if isinstance(d, dict) else {}
+                        p = world.players.get(uid)
+                        robbery_id = str(body.get('robbery_id') or '')[:160]
+                        reply = {'ok': False, 'reason': 'missing', 'robbery_id': robbery_id}
+                        if p is not None and robbery_id:
+                            try:
+                                async with aiosqlite.connect(DB_PATH) as db:
+                                    await db.execute('BEGIN IMMEDIATE')
+                                    row = await (await db.execute(
+                                        "SELECT amount FROM npc_robberies WHERE uid = ? AND robbery_id = ? AND status = 'active'",
+                                        (int(uid), robbery_id))).fetchone()
+                                    if not row:
+                                        await db.rollback()
+                                        raise LookupError('missing')
+                                    amount = max(0, min(10, int(row[0] or 0)))
+                                    await db.execute("UPDATE characters SET cash = MAX(0, cash - ?) WHERE telegram_id = ?", (amount, int(uid)))
+                                    await db.execute(
+                                        "UPDATE npc_robberies SET status='confiscated', resolved_at=? WHERE uid=? AND robbery_id=? AND status='active'",
+                                        (int(time.time()), int(uid), robbery_id))
+                                    cash_row = await (await db.execute(
+                                        "SELECT cash FROM characters WHERE telegram_id = ?", (int(uid),))).fetchone()
+                                    await db.commit()
+                                cash = int((cash_row or [max(0, int(p.get('_cash') or 0) - amount)])[0] or 0)
+                                p['_cash'] = cash
+                                reply = {'ok': True, 'robbery_id': robbery_id, 'amount': amount, 'cash': cash}
+                            except LookupError:
+                                pass
+                            except Exception:
+                                reply['reason'] = 'db_error'
+                        try:
+                            await ws.send_str(json.dumps({'t': 'event', 'd': dict(reply, kind='npc_robbery_confiscate_reply')}, ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'npc_robbery_resolve':
+                        body = d if isinstance(d, dict) else {}
+                        p = world.players.get(uid)
+                        robbery_id = str(body.get('robbery_id') or '')[:160]
+                        released = False
+                        if p and str(body.get('outcome') or '') == 'released':
+                            try:
+                                async with aiosqlite.connect(DB_PATH) as db:
+                                    cur = await db.execute(
+                                        "UPDATE npc_robberies SET status='released', resolved_at=? "
+                                        "WHERE uid=? AND robbery_id=? AND status='active' AND interrogation_arrest=0",
+                                        (int(time.time()), int(uid), robbery_id))
+                                    await db.commit()
+                                    released = cur.rowcount > 0
+                            except Exception:
+                                pass
+                            if released:
+                                p['_wanted'] = max(0.0, float(p.get('_wanted') or 0) - 1.0)
+                        reply = {'ok': bool(p) and (str(body.get('outcome') or '') != 'released' or released),
+                                 'robbery_id': robbery_id, 'wanted': float((p or {}).get('_wanted') or 0)}
+                        try:
+                            await ws.send_str(json.dumps({'t': 'event', 'd': dict(reply, kind='npc_robbery_resolve_reply')}, ensure_ascii=False))
+                        except Exception: pass
                     elif t == 'citycop_arrest':
                         # NPC-патрульный (cityCop, чисто клиентский фоновый коп)
                         # схватил игрока. Серверу шлётся факт ареста, сервер
@@ -26295,6 +26466,7 @@ async def _coop_http_app():
                         arrest_body = d if isinstance(d, dict) else {}
                         voluntary = bool(arrest_body.get('voluntary'))
                         booking = bool(arrest_body.get('booking'))
+                        robbery = bool(arrest_body.get('robbery'))
                         p = world.players.get(uid)
                         reply = {'ok': False, 'reason': 'unknown'}
                         if not p or p.get('dead'):
@@ -26303,7 +26475,7 @@ async def _coop_http_app():
                             reply = {'ok': False, 'reason': 'already_jailed'}
                         elif booking and (p.get('_jail_until') or 0) <= time.time():
                             reply = {'ok': False, 'reason': 'booking_without_arrest'}
-                        elif (not booking and float(p.get('_wanted') or 0) < (1.0 if voluntary else 2.0)
+                        elif (not booking and float(p.get('_wanted') or 0) < (1.0 if (voluntary or robbery) else 2.0)
                               and not (voluntary and world.prison_alarm.get('active')
                                        and str(uid) in world.prison_alarm.get('attackers', set()))):
                             reply = {'ok': False, 'reason': 'not_wanted'}
