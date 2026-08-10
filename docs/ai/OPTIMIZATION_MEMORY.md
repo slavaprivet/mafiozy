@@ -125,6 +125,27 @@ Read this before adding or expanding a 3D feature in `world.html` or
   samples around p50 18.5 ms / p95 25.2 ms and 21-23 FPS at the existing native
   quality policy. Treat these as historical evidence, not universal thresholds.
 
+## Dynamic actor frame batching (2026-08-10)
+
+- A cached `instanceColor` is not useful if a later generic mesh loop still sets
+  every `instanceColor.needsUpdate` flag. Audit the whole frame after adding a
+  signature cache; one later blanket flag restores the full GPU upload cost.
+- Compute a complex NPC pose once per actor per frame and share it between body,
+  equipment and label passes. Re-evaluating the same animation state in adjacent
+  loops wastes CPU and can give accessories a slightly different time sample.
+- Cache remote-player and gang-aura colours by pool slot plus authoritative actor
+  id. Keep matrix animation at full cadence, but upload colour attributes only
+  when the actor or its visual role/faction changes.
+- DOM `dataset` diagnostics are telemetry, not gameplay. Batch stable counters at
+  roughly 4 Hz while retaining animation, transforms and combat at render cadence.
+- Police line-of-sight uses a static collision map. A bounded 120 ms cache with
+  quarter-tile endpoint keys safely shares repeated checks without delaying
+  visible reactions or changing walls.
+- Prison-assault preview after these changes completed all four reinforcements,
+  preserved chat/labels/shadows and sampled about 25.2 ms total frame work with
+  21.0 ms render time at native quality. Use this as a scenario comparison, not
+  a device-independent target.
+
 ## Diagnostics interpretation
 
 - `renderMaxProgramGrowth` changing during a long frame usually means a shader

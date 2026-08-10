@@ -10875,13 +10875,17 @@ function _startMurderPoliceScene(v,now=performance.now()){
     showToast(`${_murderPoliceProfile(incident).label}: ${crewCount} бойца прочёсывают место происшествия`,'🚔',2600);
   return true;
 }
+const _policeLineClearCache=new Map();let _policeLineClearBucket=-1;
 function _policeWorldLineClear(r0,c0,r1,c1){
+  const bucket=Math.floor(performance.now()/120);if(bucket!==_policeLineClearBucket){_policeLineClearBucket=bucket;_policeLineClearCache.clear();}
+  const key=`${Math.round(r0*4)}:${Math.round(c0*4)}:${Math.round(r1*4)}:${Math.round(c1*4)}`;
+  if(_policeLineClearCache.has(key))return _policeLineClearCache.get(key);
   const steps=Math.max(4,Math.ceil(Math.hypot(r1-r0,c1-c0)*1.7));
   for(let i=1;i<steps;i++){
     const k=i/steps,ri=Math.floor(r0+(r1-r0)*k),ci=Math.floor(c0+(c1-c0)*k);
-    if(!MAP[ri]||MAP[ri][ci]===1)return false;
+    if(!MAP[ri]||MAP[ri][ci]===1){_policeLineClearCache.set(key,false);return false;}
   }
-  return true;
+  _policeLineClearCache.set(key,true);return true;
 }
 function _murderPlayerInZone(incident){
   return !!incident&&!myDead&&performance.now()>=_murderPoliceRescueGraceUntil&&!_bankInt&&!_buildingInt&&Math.hypot(player.r-incident.r,player.c-incident.c)<=POLICE_MURDER_ZONE_R;
