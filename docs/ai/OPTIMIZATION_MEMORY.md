@@ -87,6 +87,13 @@ Read this before adding or expanding a 3D feature in `world.html` or
   exercise the shadow/depth variants unless it first sets
   `renderer.shadowMap.needsUpdate = true`. Do this only behind the loading screen;
   do not add an extra shadow refresh to the live frame loop.
+- `needsUpdate` has no effect while `renderer.shadowMap.enabled` is false. For a
+  loading-only shadow warmup, temporarily enable it and restore the previous
+  value in `finally`. Put a proxy using a real mapped material inside the current
+  sun-shadow frustum; otherwise the later `map/uv` depth key still compiles live.
+- Hidden vehicle roots are skipped by scene compilation. Briefly reveal one
+  bounded vehicle slot during warmup so its physical glass and instanced wheel
+  variants are ready before police/service vehicles enter the scene.
 - Prime `InstancedMesh.instanceColor` before shader warmup whenever live code
   later calls `setColorAt`. Creating that attribute on the first projectile or
   decal changes shader defines and moves compilation back into gameplay.
