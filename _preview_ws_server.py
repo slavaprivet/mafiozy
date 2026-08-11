@@ -1637,9 +1637,29 @@ async def npc_empire_state(req):
             "comebacks": 0, "dominance_score": 25 + rank, "district_count": rank % 3,
             "peak_power": 140 + rank * 4, "war_pressure": None,
         })
+    # The local preview always keeps one deterministic NPC-family war alive so
+    # the physical sandbox (convergence, squads, bullets and retreats) can be
+    # inspected without waiting for a five-minute production economy tick.
+    diplomacy = []
+    if len(empires) >= 2:
+        left, right = empires[0], empires[1]
+        slot = now // npc_empire.VISIBLE_ACTIVITY_SECONDS
+        left["activity"] = {"kind": "gang_war", "target_id": right["leader_id"],
+            "target_r": right["hq_r"], "target_c": right["hq_c"], "phase": "engage",
+            "stance": "assault", "force": 3,
+            "created_at": slot * npc_empire.VISIBLE_ACTIVITY_SECONDS,
+            "summary": f'{left["gang_name"]} идут на {right["gang_name"]}'}
+        right["activity"] = {"kind": "gang_war", "target_id": left["leader_id"],
+            "target_r": left["hq_r"], "target_c": left["hq_c"], "phase": "engage",
+            "stance": "defend", "force": 3,
+            "created_at": slot * npc_empire.VISIBLE_ACTIVITY_SECONDS,
+            "summary": f'{right["gang_name"]} отвечают {left["gang_name"]}'}
+        a, b = sorted((left["leader_id"], right["leader_id"]))
+        diplomacy.append({"leader_a": a, "leader_b": b, "score": -100,
+                          "pact": "war", "tension": 80, "last_event_at": now})
     return cors(web.json_response({"ok": True, "empires": empires,
         "leaderboard": [e["leader_id"] for e in empires], "districts": [],
-        "diplomacy": [], "events": [], "player_war_events": [], "server_time": now}))
+        "diplomacy": diplomacy, "events": [], "player_war_events": [], "server_time": now}))
 
 
 async def npc_empire_diplomacy(req):

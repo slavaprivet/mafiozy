@@ -978,25 +978,25 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   nine seconds while her route shrank from 45 to 13 nodes; the bounded scene
   exposed 11 escorts and 12 active nearby HQ markers.
 
-## Shared NPC joint continuity and face variation (2026-08-11, v357)
+## Physical NPC empire wars (2026-08-12, v358)
 
-- Do not restore separate shoulder, elbow, knee or ankle mesh pools. The v354
-  close-view regression already showed that extra pools can reduce performance
-  to 14 FPS. Keep joint continuity by slightly overlapping the existing shared
-  upper-arm, forearm, hand and leg capsules and moving their centres inward.
-- Reuse the existing hip-detail `InstancedMesh` as a pelvis bridge for every
-  resident. Female and male silhouettes use different transform scales, but the
-  same bounded pool and common hide lifecycle, so animated legs remain attached
-  without another draw-call family.
-- Face diversity should remain transform-only where possible. Small deterministic
-  variations in eye spacing, face depth, nose length, mouth width, brow position
-  and ear scale make residents less repetitive without new geometry, materials
-  or per-frame allocations. Existing blink and gaze animation stays authoritative.
-- One-tab localhost QA covered routine walking and the extreme panic, cower,
-  surrender, helping, social and alert poses. The final sampled streamed scene
-  reported 22 FPS, `23.3 ms` frame work, `13.1 ms` render work, 489 draw calls
-  and about `1.48M` triangles with no console errors. Population and camera state
-  vary between samples, so this is a safety check rather than an FPS improvement
-  claim; the structural guarantee is zero additional instance pools.
-- `node --check three_preview.js`, `python check_world.py`,
-  `python test_npc_life_system.py` and `git diff --check` all pass for v357.
+- NPC-vs-NPC diplomacy with `pact='war'` now overrides the 75-second visible
+  activity with one deterministic `gang_war` order. The server publishes the
+  same enemy, stance and force to every client and remains authoritative for
+  holdings and economy.
+- Do not create a second global combat loop. Field combat runs in the existing
+  NPC update, reuses `spawnBullet`, `spawnMuzzle`, `_npcMuzzleWorldPoint`, hit
+  reactions and 3D shot timestamps, and becomes physical only within 52 tiles
+  of the local player.
+- Target selection is throttled to 260-365 ms per fighter. The visual budget
+  remains four nearby leaders and at most twelve escorts; the existing caps of
+  50 bullets and 16 impacts remain active during family firefights.
+- Boss/escort AI compares local force and combat HP to choose advance, strafe,
+  focus fire or a timed retreat to the authoritative HQ. Unique bosses retain
+  story invulnerability outside this separate field-combat HP pool, avoiding
+  accidental civilian death, witness and ambulance flows.
+- The 3D bridge exposes field HP plus `_shotAt`, `_shotSeq` and `_shotWeapon`;
+  omitting any of these makes real combat look static in 3D.
+- Local preview seeds exactly one NPC-family war for immediate QA. Production
+  never uses this fixture: its orders come from SQLite diplomacy and the
+  five-minute empire tick.

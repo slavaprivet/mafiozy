@@ -191,6 +191,23 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
             'summary': f'{profile.leader_name} {label}'}
 
 
+def _war_activity(profile: EmpireProfile, row, enemy: dict, now: int) -> dict:
+    """Expose one deterministic physical war order to every connected client."""
+    slot = now // VISIBLE_ACTIVITY_SECONDS
+    enemy_strength = max(1, int(enemy.get('strength') or 1))
+    own_strength = max(1, int(row['strength'] or 1))
+    stance = 'assault' if own_strength >= enemy_strength * .82 else 'harass'
+    return {
+        'kind': 'gang_war', 'target_id': str(enemy['leader_id']),
+        'target_r': float(enemy.get('hq_r') or 0),
+        'target_c': float(enemy.get('hq_c') or 0),
+        'phase': 'engage', 'stance': stance,
+        'force': min(4, max(2, int(row['members'] or 1) // 4 + 1)),
+        'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
+        'summary': f'{profile.leader_name} ведёт {profile.gang_name} против {enemy["gang_name"]}',
+    }
+
+
 def _comeback_delay(profile: EmpireProfile, defeats: int) -> int:
     intelligence = (profile.commerce + profile.diplomacy + profile.loyalty) // 3
     span = COMEBACK_MAX_SECONDS - COMEBACK_MIN_SECONDS
@@ -479,6 +496,16 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
         rows = await (await db.execute(
             "SELECT * FROM npc_empires WHERE status IN ('active','rebuilding','vassal')"
         )).fetchall()
+        empire_row_by_id = {str(row['leader_id']): row for row in rows}
+        diplomacy_state = {}
+        for relation in await (await db.execute(
+            "SELECT leader_a,leader_b,pact,tension FROM npc_empire_diplomacy"
+        )).fetchall():
+            diplomacy_state[(str(relation['leader_a']), str(relation['leader_b']))] = (
+                str(relation['pact'] or 'none'), int(relation['tension'] or 0))
+        player_war_leaders = {str(row[0]) for row in await (await db.execute(
+            "SELECT DISTINCT leader_id FROM npc_empire_player_wars"
+        )).fetchall()}
         building_owner = {str(r['holding_id']):str(r['leader_id']) for r in await (await db.execute(
             "SELECT holding_id,leader_id FROM npc_empire_holdings WHERE kind='building'"
         )).fetchall()}
@@ -564,16 +591,43 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             # Autonomous wars only move NPC-controlled holdings here. Battles
             # involving a player are created as explicit defendable sessions.
             if rng.random() < (.025 + profile.aggression/1600):
-                rivals = [other for other in PROFILES if other.leader_id != leader_id]
-                rival = rivals[rng.randrange(len(rivals))]
+                holding_counts: dict[str, int] = {}
+                for owner in list(building_owner.values()) + list(business_owner.values()):
+                    holding_counts[owner] = holding_counts.get(owner, 0) + 1
+                rivals = []
+                for other in PROFILES:
+                    if other.leader_id == leader_id or not holding_counts.get(other.leader_id):
+                        continue
+                    # Keep a boss physically available while a player has an
+                    # unresolved personal war with that family.
+                    if other.leader_id in player_war_leaders:
+                        continue
+                    rival_row = empire_row_by_id.get(other.leader_id)
+                    if not rival_row or str(rival_row['status']) == 'ruined':
+                        continue
+                    pair = tuple(sorted((leader_id, other.leader_id)))
+                    pact, tension = diplomacy_state.get(pair, ('none', 0))
+                    if pact in {'alliance', 'truce', 'vassal'}:
+                        continue
+                    relative = int(rival_row['strength'] or 1) / max(1, strength)
+                    if relative > 1.7 and pact != 'war':
+                        continue
+                    # Prefer an existing enemy, then a weaker but valuable family.
+                    score = (0 if pact == 'war' else 3) + relative * 4 - holding_counts[other.leader_id] * .38 - tension * .012
+                    score += rng.random() * .45
+                    rivals.append((score, other))
+                if not rivals:
+                    rivals = []
+                rivals.sort(key=lambda item: (item[0], item[1].leader_id))
+                rival = rivals[0][1] if rivals else None
                 target_rows = await (await db.execute(
                     "SELECT kind,holding_id,income,defense FROM npc_empire_holdings "
                     "WHERE leader_id=? AND kind IN ('building','business') ORDER BY kind DESC",
-                    (rival.leader_id,),
+                    (rival.leader_id if rival else '__none__',),
                 )).fetchall()
                 rival_state = await (await db.execute(
                     "SELECT strength,members,status FROM npc_empires WHERE leader_id=?",
-                    (rival.leader_id,),
+                    (rival.leader_id if rival else '__none__',),
                 )).fetchone()
                 if target_rows and rival_state and rival_state['status'] in ('active','rebuilding','vassal') and rival.leader_id not in ruined_this_tick:
                     target = target_rows[rng.randrange(len(target_rows))]
@@ -724,8 +778,11 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int) -
 
 async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> dict:
     now = int(now or time.time())
-    await advance(db_path, now)
+    await ensure_schema(db_path)
+    # Resolve already-scheduled player pressure before the same timestamp's
+    # global NPC tick can collapse that attacker in a separate family war.
     player_war_events = await _apply_player_war_pressure(db_path, telegram_id, now)
+    await advance(db_path, now)
     async with aiosqlite.connect(db_path) as db:
         db.row_factory = aiosqlite.Row
         rows = await (await db.execute("SELECT * FROM npc_empires ORDER BY leader_id")).fetchall()
@@ -790,6 +847,32 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
     ))
     for rank, empire in enumerate(leaderboard, 1):
         empire['rank'] = rank
+    # A persistent NPC-vs-NPC war becomes a physical order in the shared city.
+    # Target choice is deterministic inside the 75-second slot, so clients see
+    # the same attacker, defender and stance without a render-loop database hit.
+    empire_by_id = {str(empire['leader_id']): empire for empire in result}
+    war_enemies: dict[str, list[dict]] = {leader_id: [] for leader_id in empire_by_id}
+    for pact_row in diplomacy_rows:
+        if str(pact_row.get('pact') or '') != 'war':
+            continue
+        left = empire_by_id.get(str(pact_row.get('leader_a') or ''))
+        right = empire_by_id.get(str(pact_row.get('leader_b') or ''))
+        if not left or not right or left['status'] == 'ruined' or right['status'] == 'ruined':
+            continue
+        war_enemies[left['leader_id']].append(right)
+        war_enemies[right['leader_id']].append(left)
+    row_by_id = {str(row['leader_id']): row for row in rows}
+    for empire in result:
+        enemies = war_enemies.get(empire['leader_id']) or []
+        if not enemies:
+            continue
+        enemies.sort(key=lambda enemy: (
+            int(enemy['strength']), -len(enemy.get('holdings') or []), enemy['leader_id']))
+        slot = now // VISIBLE_ACTIVITY_SECONDS
+        enemy = enemies[int.from_bytes(hashlib.sha256(
+            f'{empire["leader_id"]}:war:{slot}'.encode()).digest()[:2], 'big') % len(enemies)]
+        empire['activity'] = _war_activity(
+            PROFILE_BY_ID[empire['leader_id']], row_by_id[empire['leader_id']], enemy, now)
     districts = [{
         **row, 'name': DISTRICTS.get(str(row['district_id']), str(row['district_id'])),
         'contested': bool(row['contested']),

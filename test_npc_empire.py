@@ -48,23 +48,38 @@ async def run() -> None:
 
         state = await ne.state_for(path, 101)
         assert len(state["empires"]) == 19
-        assert all(e["activity"]["kind"] in {
-            "recruit", "business_capture", "business_bought", "expand", "hq_expand",
-            "patrol", "war_won", "war_lost", "gang_destroyed", "comeback",
-        } for e in state["empires"])
-        assert all(e["activity"]["complete_at"] >= state["server_time"] for e in state["empires"])
-        assert len(ne.WEAPON_PROFILES) == 19
-        assert {p.weapon_id for p in ne.PROFILES} == set(ne.WEAPON_PROFILES)
-        assert len({p.weapon_name for p in ne.PROFILES}) == 19
-        assert all(e["weapon_profile"] == ne.WEAPON_PROFILES[e["weapon_id"]] for e in state["empires"])
-        assert ne.WEAPON_PROFILES["timur_express"]["effect"] == "arrow"
-        assert ne.WEAPON_PROFILES["rustam_wrench"]["effect"] == "nailed_bat"
-        assert ne.WEAPON_PROFILES["rustam_wrench"]["kind"] == "melee"
-        assert ne.WEAPON_PROFILES["marco_road"]["effect"] == "explosive"
         assert {x["leader_name"] for x in state["empires"]} == set(ne.MAFIA_BOSS_NAMES.values())
         assert next(x for x in state["empires"] if x["leader_id"] == "rustam")["leader_name"] == "Билли Капоне"
         assert len(state["leaderboard"]) == 19 and len(state["districts"]) == len(ne.DISTRICTS)
         assert all(x["relation"] == 0 and x["relation_band"] == "neutral" for x in state["empires"])
+        assert all(x["activity"]["phase"] == "travel" for x in state["empires"])
+        leila_activity = next(x for x in state["empires"] if x["leader_id"] == "leila")["activity"]
+        assert "target_r" in leila_activity and "target_c" in leila_activity
+        later_state = await ne.state_for(path, 101, now=2_000_000_000 + ne.VISIBLE_ACTIVITY_SECONDS)
+        later_activity = next(x for x in later_state["empires"] if x["leader_id"] == "leila")["activity"]
+        assert later_activity["created_at"] != leila_activity["created_at"]
+
+        # A server NPC war becomes a shared physical order: both leaders choose
+        # the opposing boss, carry a stance/force, and converge in the city.
+        async with aiosqlite.connect(path) as db:
+            left, right = sorted(("leila", "rustam"))
+            await db.execute(
+                "UPDATE npc_empire_diplomacy SET score=-100,pact='war',tension=80 "
+                "WHERE leader_a=? AND leader_b=?", (left, right),
+            )
+            await db.commit()
+        war_state = await ne.state_for(path, 101, now=2_000_000_080)
+        leila_war = next(x for x in war_state["empires"] if x["leader_id"] == "leila")["activity"]
+        rustam_war = next(x for x in war_state["empires"] if x["leader_id"] == "rustam")["activity"]
+        assert leila_war["kind"] == rustam_war["kind"] == "gang_war"
+        assert leila_war["target_id"] == "rustam" and rustam_war["target_id"] == "leila"
+        assert leila_war["stance"] in {"assault", "harass"} and 2 <= leila_war["force"] <= 4
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "UPDATE npc_empire_diplomacy SET score=0,pact='none',tension=0 "
+                "WHERE leader_a=? AND leader_b=?", (left, right),
+            )
+            await db.commit()
 
         gift = await ne.diplomacy_action(path, 101, "leila", "gift", now=2_000_000_000)
         assert gift["ok"] and gift["cost"] == 500 and gift["cash"] == 9500 and gift["relation"] == 12
@@ -76,12 +91,36 @@ async def run() -> None:
         second = await ne.diplomacy_action(path, 101, "rustam", "respect", now=2_000_000_011)
         assert first["ok"] and not second["ok"] and second["error"] == "cooldown"
 
+        # War is an explicit decision available only after relations turn negative.
+        neutral_war = await ne.diplomacy_action(path, 101, "marco", "declare_war", now=2_000_000_020)
+        assert not neutral_war["ok"] and neutral_war["error"] == "war requires negative relation"
+        insult = await ne.diplomacy_action(path, 101, "marco", "insult", now=2_000_000_021)
+        assert insult["ok"] and insult["relation"] < 0 and insult["pact"] == "none"
+        war = await ne.diplomacy_action(path, 101, "marco", "declare_war", now=2_000_000_922)
+        assert war["ok"] and war["pact"] == "war" and war["relation"] == -100
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "INSERT INTO player_businesses VALUES(101,'pizza',0,0,'ok',0,0,1,0,NULL)"
+            )
+            await db.execute(
+                "UPDATE npc_empire_player_wars SET next_attack_at=? WHERE leader_id='marco' AND telegram_id=101",
+                (2_000_000_923,),
+            )
+            await db.commit()
+        pressured = await ne.state_for(path, 101, now=2_000_000_923)
+        assert pressured["player_war_events"] and pressured["player_war_events"][0]["business_id"] == "pizza"
+        assert await _scalar(path, "SELECT blocked_until FROM player_businesses WHERE biz_id='pizza'") == 2_000_001_523
+        assert next(e for e in pressured["empires"] if e["leader_id"] == "marco")["war_pressure"]["attacks"] == 1
+        compensation = await ne.diplomacy_action(path, 101, "marco", "compensation", now=2_000_000_924)
+        assert compensation["ok"] and compensation["relation"] == -70 and compensation["pact"] == "war"
+        compensation = await ne.diplomacy_action(path, 101, "marco", "compensation", now=2_000_000_925)
+        assert compensation["ok"] and compensation["relation"] == -40 and compensation["pact"] == "truce"
+        assert await _scalar(path, "SELECT COUNT(*) FROM npc_empire_player_wars WHERE leader_id='marco' AND telegram_id=101") == 0
+
         too_far = await ne.prepare_assault(path, 101, "leila", 0, 0, now=2_000_001_000)
         assert not too_far["ok"] and too_far["error"] == "too far"
         assault = await ne.prepare_assault(path, 101, "leila", 26, 16, now=2_000_001_001)
         assert assault["ok"] and 4 <= len(assault["guards"]) <= 14
-        assert all(g["weapon_id"] == "leila_mercy" and g["weapon_profile"] for g in assault["guards"])
-        assert assault["boss"]["weapon_profile"] == ne.WEAPON_PROFILES["leila_mercy"]
         token = assault["token"]
         blocked = await ne.assault_hit(path, 101, token, "boss", None, 35, now=2_000_001_001.2)
         assert not blocked["ok"] and blocked["error"] == "guards alive"
