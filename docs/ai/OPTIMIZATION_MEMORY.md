@@ -879,3 +879,26 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Local `previewcity=1` may bypass the character menu only on localhost and only
   when the URL already supplies `character` plus `has_look=1`. Production keeps
   the server-backed character gate unchanged.
+
+## NPC anatomy and micro-expression pass (2026-08-11, v355)
+
+- Improve population silhouettes by replacing the shared capsule torso with one
+  lathed neck/shoulder/chest/waist profile. Body diversity still comes from the
+  existing per-instance X/Z profiles, so this changes geometry once rather than
+  introducing a skeleton or object hierarchy per NPC.
+- A tapered shirt panel, one two-wing collar geometry, a shared jaw and an
+  optional beard pool add clothing and face depth. Rounded shoes reuse the same
+  paired pool. Keep these details instanced and hide them through the common
+  death/slot lifecycle to prevent detached parts after an NPC dies or despawns.
+- Blinks and tiny pupil saccades are deterministic functions of time and stable
+  pool index. They allocate no vectors, timers or tweens and remain inside the
+  existing bounded NPC pose loop. A 3-second QA window observed one or two
+  simultaneous blinks throughout all 30 samples.
+- Count every paired (`hand`, `brow`, `ear`, shoes and equipment) and quad hair
+  pool from the active NPC instance count. Previously several paired pools kept
+  their full 72-NPC capacity active even when the visible population was smaller.
+- Local close-view QA held 22 FPS with no console errors. Samples reported
+  `16.4-17.5 ms` frame work, `12.9-14.4 ms` render work and `661-683`
+  view-dependent draw calls. Geometry detail increased the sampled scene to
+  about `1.82M` triangles, but submission and frame timings remained below the
+  v354 comparison sample; retain the shared-pool design if adding more detail.
