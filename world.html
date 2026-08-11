@@ -1,5 +1,7 @@
 <!DOCTYPE html><!-- v318: authoritative roaming gangs capture businesses, wage wars and can be hired. -->
 <!-- v327: prison alarm uses fixed professional double-pulse lightbars. -->
+<!-- v325: high-volume 3D diagnostics publish on the shared 250 ms cadence. -->
+<!-- v324: standard opaque static detail geometries share spatial render batches. -->
 <!-- v323: grouped static outlines retain their parent world transform. -->
 <!-- v320: desktop RMB aim keeps a deduplicated LMB click fallback for reliable firing. -->
 <!-- v319: unarmed player and every walking humanoid NPC use a restrained arm swing. -->
@@ -10861,7 +10863,12 @@ function _planPoliceFootRoute(cop,targetR,targetC,now=performance.now()){
   goal=goal||best;const path=[];
   while(goal&&goal.key!==startKey){path.push({r:goal.r+.5,c:goal.c+.5});goal=nodes.get(goal.parent);}
   path.reverse();cop._policeFootRoute=path;cop._policeFootRouteIndex=0;
-  cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;cop._policeFootRouteUntil=now+1600;cop._policeFootRouteRetryAt=path.length?now+240:now+520;
+  cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;
+  // Collision geometry is static and the mover still invalidates immediately
+  // when the target shifts by two tiles or a waypoint makes no progress. Keep
+  // a successful route long enough that stationary pursuits do not rebuild the
+  // same BFS every 1.6 seconds for every officer around one obstacle.
+  cop._policeFootRouteUntil=now+2600;cop._policeFootRouteRetryAt=path.length?now+240:now+620;
   const routeMs=performance.now()-routeStartedAt;_policeFootRoutePlanCount++;_policeFootRouteMaxMs=Math.max(_policeFootRouteMaxMs,routeMs);
   return path.length>0;
 }
@@ -65201,6 +65208,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d327-prison-professional-lightbars"></script>
+<script type="module" src="three_preview.js?v=3d327-lightbars-v325-telemetry-static-geometry-matte-wreck"></script>
 </body>
 </html>

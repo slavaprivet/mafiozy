@@ -173,3 +173,121 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 
 - Keep emergency lightbar housings fixed. Animate lens emissive intensity, inner emitters and bounded additive glow with a double-flash red/blue cadence instead of rotating the entire fixture.
 - Preserve a constant scene-light count: only the two gate fixtures own zero-intensity `PointLight` slots, while tower fixtures use emissive meshes. Reusing shared housing geometry/materials keeps the six authored beacons inexpensive.
+
+## Dynamic effect buffers and police route reuse (2026-08-11)
+
+- `InstancedMesh.count` is the authoritative visibility boundary for the packed
+  projectile, shell, bullet-hole, blood and gore pools. Do not rewrite hidden
+  matrices above the active count. A slot entering the active prefix must still
+  receive its complete matrix on that first visible frame; static decal matrix
+  signatures therefore include source identity, position, rotation and scale.
+- Cache the four projectile colour layers by the resulting colour/weapon class,
+  not merely by actor id. Upload `instanceColor` only when one of those actual
+  results changes. Gore limb/chunk colours follow the same slot-dirty rule.
+  Bullet-hole and blood fading remains at full render cadence because its colour
+  genuinely changes; only their unchanged matrices are cached.
+- Player gait, weapon pose/recoil, reload state, blood count and wreck-fire DOM
+  fields are diagnostics. Publish them through the existing 250 ms telemetry
+  cadence; their underlying animation and effect transforms remain per-frame.
+- A successful police foot route may live for 2.6 seconds while the target stays
+  within the existing two-tile invalidation threshold. Direct collision checks
+  still run every movement tick, and the existing 520 ms no-progress watchdog
+  still forces an earlier replan. In the same ordinary-city preview scenario,
+  measured BFS frequency fell from `10.85` to `7.23` plans/s (about 33%) while
+  target-shift and stall recovery semantics stayed unchanged.
+- Representative native-quality city samples changed from `26.5 ms` frame work
+  / `22.8 ms` render to `23.2 ms` / `20.6 ms`. These are single-run scenario
+  comparisons, not device-independent promises; scene population was 43 versus
+  40 NPCs respectively.
+- Final local regression kept one browser tab and closed it afterwards. Pooled
+  projectile/bullet-hole/blood/gore effects, compact NPC labels, chat local echo,
+  real-time shadows and the server-backed `Гражданский` status remained intact.
+  Prison assault reached `4:0` reinforcement state and `shadowed:3`; escort later
+  progressed to `server-rejected` rather than sticking. Prison release reported
+  `clean:local-timer:staged-world-resume-v311`, and repeated post-release fire
+  produced a bullet hole without a runtime or Three.js console error.
+- Remaining risk: the prison-return view still compiled two `mfz-wind-v3`
+  programs (`227 -> 229`) during live rendering. The observed render maximum was
+  `220.5 ms` after this package versus `384.8 ms` in the baseline run, but this
+  is not considered fixed. The program growth happened with no active projectile
+  effect, so future work should audit deferred-root wind shader warmup rather than
+  degrade foliage, shadows or resolution.
+
+## Static detail geometry batching (2026-08-11)
+
+- The next measured city bottleneck was render submission, not the JavaScript
+  simulation: a production sample spent `26.3 ms` of `29.2 ms` frame work in
+  `renderer.render`, at `1843` draw calls and about `1.18M` triangles.
+- The existing spatial static-detail merge was unnecessarily restricted to
+  `BoxGeometry`, although it already copies the exact transformed vertex,
+  normal and UV buffers. It now accepts ordinary opaque static buffer geometry
+  with that same standard attribute layout. Instanced/skinned geometry, morph
+  targets, vertex colours, custom render/depth callbacks, transparent material
+  and custom attributes stay unmerged so shader behaviour cannot change.
+- On the same loaded city content this increased merged static sources from
+  `610 -> 778` and spatial batches from `69 -> 88`: 168 more authored details
+  became 19 batches, removing 149 potential submissions without changing their
+  vertices, materials, resolution, shadows or culling chunks. A diagnostic city
+  sample then reported `1689` draw calls, `21.2 ms` render and `23.6 ms` total
+  frame work at `1,175,416` triangles and 35 NPCs. A later production sample
+  varied to `1846` calls / `29.1 ms` render as the streamed view and shadow set
+  changed, so treat the 149 structurally removed submissions as the reliable
+  result rather than promising a fixed FPS gain for every camera/time state.
+- Fresh-main prison regression kept weapon confiscation intact (`shot`, grenade
+  and C4 all rejected with unchanged ammo), completed release as
+  `clean:local-timer:staged-world-resume-v311`, stayed responsive through
+  repeated movement/fire input, and reactivated the prison assault with four
+  units. Alarm shadow batching reached `shadowed:3`; the run had no JavaScript
+  or Three.js error and preserved compact NPC labels, real-time shadows and the
+  server-backed `Гражданский` status. The prison run measured `57.2 ms` maximum
+  render work and `118.2 ms` maximum frame work while the escort was active.
+
+## Shared cadence for high-volume 3D diagnostics (2026-08-11)
+
+- Vehicle, medical, NPC gait/heading, wreck, custody, prison-gate, reload and
+  arrest fields in `renderer.domElement.dataset` are QA telemetry, not gameplay
+  state. Publish them through the existing 250 ms `telemetryDue` cadence while
+  keeping movement, pose, damage, fire, siren, door and shadow calculations at
+  full frame cadence.
+- This removed roughly 58 redundant DOM attribute assignments per rendered
+  frame and moved 14 diagnostic `filter`/`map` passes over cars and medical
+  effects from every frame to about 4 Hz. The city comparison was render-bound
+  and had different populations (`36 NPC / 1714 calls` before versus `39 NPC /
+  1814 calls` after), so its `23.8 -> 27.8 ms` frame samples do not establish an
+  FPS gain. The reliable result is the bounded diagnostic work; do not present
+  the noisy scene comparison as a speedup.
+- Fresh-main browser regression kept one tab, native quality and real-time
+  shadows. The prison weapon QA rejected shot/grenade/C4 without changing ammo,
+  local-timer release completed cleanly, a new assault spawned four units, and
+  the escort remained responsive with `shadowed:3`. At 67 visible NPCs the
+  sampled frame was `26.6 ms` (`22.3 ms` render), with `96.7 ms` maximum frame
+  work and `41.6 ms` maximum render work. Compact labels, corrected prison
+  outlines and the server-backed `Гражданский` status remained visible; there
+  were no JavaScript or Three.js errors.
+
+## Matte wreck shader warmup (2026-08-11)
+
+- The first vehicle explosion after a prison release changes the live car paint
+  from clear-coated to matte (`clearcoat: 0`). That is a distinct physical shader
+  variant for both the screen and shadow/linear passes. Before this fix the first
+  post-release shot grew the program cache from `231` to `233` and produced a
+  measured `78.5 ms` render peak; a deterministic vehicle-explosion rerun reached
+  `95.2 ms` with the same two missing physical programs.
+- Warm the matte paint with a single retained material proxy alongside the two
+  already-required prison light warmup frames. Do not mutate the live car and do
+  not add extra full-city renders. Removing the proxy is safe, but disposing its
+  one material immediately releases the only GPU-program reference and makes the
+  first explosion compile the variants again.
+- Deterministic `previewprisonreleaseqa + previewcarexplosion` verification kept
+  three visible point lights, reported the clean staged release, retained all
+  explosion/fire layers and showed no explosion-time program growth. The sampled
+  render maximum was `32.2 ms` (`22 FPS`, current frame work `20.5 ms`). A final
+  rerun after rebasing onto the WebView RMB/LMB changes also had no explosion-time
+  growth and measured a `36.6 ms` render maximum at `20 FPS`.
+- The ordinary-city regression moved the player `0.193` tiles with a held `W`,
+  rendered `37` live NPCs with `compact-readable-v264` labels and real-time
+  shadows on, and sampled `27.1 ms` frame work / `23.5 ms` render. Server-backed
+  status remained `Гражданский`; local chat submission advanced
+  `chatLocalEcho`. Browser console had no runtime errors (only expected local
+  static-server warnings for unavailable JSON API endpoints). One tab was used
+  at a time and all tabs and the preview server were closed afterward.
