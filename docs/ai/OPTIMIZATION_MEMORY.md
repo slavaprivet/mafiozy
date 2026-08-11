@@ -594,3 +594,14 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   `24.3 ms` render work and a noisy `199.0 ms` render maximum during streaming.
   Do not claim an FPS gain from this visual package; its reliable performance
   property is reuse of the existing label/decal pools and settled matrix cache.
+
+## Full-size decorative collision cars (2026-08-11, v344)
+
+- MAP obstacle type `2` is a static parked car, not a live traffic vehicle. Its
+  old two-box `3.5 x 1.75` silhouette was much smaller than the `5.8 x 2.75`
+  traffic shell and had no wheels, which made every such obstacle look like a
+  toy car beside the player.
+- Keep these collision visuals in static instanced obstacle pools. A full-size
+  body, roof, hood and one shared four-wheel pool add two bounded static draw
+  calls but no per-frame object creation or scans; transforms are written only
+  when a streamed map obstacle is first registered.
