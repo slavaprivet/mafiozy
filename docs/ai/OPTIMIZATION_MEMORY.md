@@ -165,6 +165,7 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - A world-anchored DOM prompt must be projected after the camera update on every rendered frame. Throttling only the interaction scan is safe; throttling the already-cached projection makes the label visibly step behind a smoothly moving camera.
 - Snap projected coordinates to whole pixels and move the prompt with one 2D `translate(...)`. Keep its appearance animation opacity-only: blur or animated scale/translation competes with the world projection and looks like shaking.
 - Keep building raycasts throttled, but retain occlusion state between samples. A short release hysteresis plus exponential opacity easing absorbs triangle-edge changes and prevents roof materials from flashing between opaque and transparent states.
+- Do not fade a building's facade to the same low opacity as its roof. At night a 22% wall becomes visually indistinguishable from an empty lot; use per-material floors (about 52% for walls and 28% for roofs), and immediately restore the selected building's materials while its entrance prompt is active.
 
 ## Authoritative business-property markers (2026-08-11)
 
