@@ -977,3 +977,26 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   add timers or a second NPC scan. Browser QA observed Sofia move 10.74 tiles in
   nine seconds while her route shrank from 45 to 13 nodes; the bounded scene
   exposed 11 escorts and 12 active nearby HQ markers.
+
+## Shared NPC joint continuity and face variation (2026-08-11, v357)
+
+- Do not restore separate shoulder, elbow, knee or ankle mesh pools. The v354
+  close-view regression already showed that extra pools can reduce performance
+  to 14 FPS. Keep joint continuity by slightly overlapping the existing shared
+  upper-arm, forearm, hand and leg capsules and moving their centres inward.
+- Reuse the existing hip-detail `InstancedMesh` as a pelvis bridge for every
+  resident. Female and male silhouettes use different transform scales, but the
+  same bounded pool and common hide lifecycle, so animated legs remain attached
+  without another draw-call family.
+- Face diversity should remain transform-only where possible. Small deterministic
+  variations in eye spacing, face depth, nose length, mouth width, brow position
+  and ear scale make residents less repetitive without new geometry, materials
+  or per-frame allocations. Existing blink and gaze animation stays authoritative.
+- One-tab localhost QA covered routine walking and the extreme panic, cower,
+  surrender, helping, social and alert poses. The final sampled streamed scene
+  reported 22 FPS, `23.3 ms` frame work, `13.1 ms` render work, 489 draw calls
+  and about `1.48M` triangles with no console errors. Population and camera state
+  vary between samples, so this is a safety check rather than an FPS improvement
+  claim; the structural guarantee is zero additional instance pools.
+- `node --check three_preview.js`, `python check_world.py`,
+  `python test_npc_life_system.py` and `git diff --check` all pass for v357.
