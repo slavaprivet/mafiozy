@@ -697,3 +697,12 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   locked quality, real-time shadows, the new shared framed HP profile, gameplay
   bridge, chat local echo and server-backed `Гражданский` status remained intact
   with no Three.js error.
+
+## Raised framed NPC health anchor (2026-08-11, v349)
+
+- Keep the shared frame and fill sprites unchanged and raise only their pooled
+  group anchor. This places health between the character head and the already
+  raised identity card without adding textures, draw calls, scans or per-frame
+  allocations.
+- Apply the same one-unit lift to standing and crawling poses so injury
+  animation cannot push the framed indicator back onto the character model.
