@@ -2748,7 +2748,7 @@ async function _fetchApiFallback() {
   try {
     const ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     if (ctl) setTimeout(() => ctl.abort(), 3000);
-    const r = await fetch('https://slavaprivet.github.io/mafiozi-battle/coop_api.json?t=' + Date.now(), {
+    const r = await fetch('https://slavaprivet.github.io/mafiozy/coop_api.json?t=' + Date.now(), {
       cache: 'no-store', signal: ctl ? ctl.signal : undefined,
     });
     if (!r.ok) return '';
