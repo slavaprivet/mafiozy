@@ -834,3 +834,22 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   server-backed `Гражданский` status and all 17 weapon states/16 aliases
   (`17:16:0`) remained intact. Do not claim an FPS gain from these unmatched
   scene samples; the confirmed result is lower shader-cache/program pressure.
+
+## Creator anatomy and city body-profile parity (2026-08-11, v342)
+
+- Keep free creator rotation transform-only: pointer dragging updates the existing character group's Y angle and label, never rebuilds the rig or option-card snapshots. Rebuild geometry only when a saved look field actually changes.
+- The detailed creator may use a richer local rig (separate shoulders, upper/lower arms, elbows, hands, thighs, knees, calves and shoes) because it owns exactly one animated WebGL context. Option cards continue to reuse the single static off-screen renderer.
+- City body composition must remain a bounded local-player concern. Apply the saved body profile by scaling the existing torso/arm/leg meshes and toggling at most one belly/chest accent; do not add another actor loop, skeleton system or per-frame allocation.
+- Preserve the saved `body/face/hair` integers across the world bridge. The city renderer exposes compact QA signatures (`data-player-body-profile`, `data-player-face-details`, `data-player-hair-profile`) only when the visual signature changes.
+
+## Collision-safe character accessories (2026-08-11, v343)
+
+- Classify creator choices before changing hair visibility. Only fitted head coverings (`1,2,3,4,7,8`) tuck the crown hair; glasses, the eye patch and the chain remain independent accessories and must never create a generic hat.
+- A fitted hat can hide the high-volume hairstyle mesh while retaining two small temple locks (and a tucked rear lock for long hair). This avoids z-fighting without adding collision tests or per-frame geometry allocation.
+- Anchor the chain in front of the greatest body/armor depth when applying the body profile. The full body needs a dedicated forward offset because its belly is parented to a torso whose depth scale also affects the belly mesh.
+
+## Gender-readable creator silhouettes (2026-08-11, v344)
+
+- A single uniform width multiplier does not make creator gender readable. Keep shoulder, waist, hip, limb and depth multipliers separate so the same four body profiles remain recognisable while male/female silhouettes differ.
+- Reuse one female face-detail group and one body silhouette group in the city rig. Toggle and rescale those existing meshes only when the authoritative look signature changes; do not build geometry in the animation loop.
+- Creator and city must apply the same semantic shape: narrower shoulders and waist, wider hips, a tailored chest, slimmer limbs, lashes, lips and earrings.
