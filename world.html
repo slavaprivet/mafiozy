@@ -6424,6 +6424,9 @@ const activeCaptures = new Map();
 // Заполняется из snap.aggro. Боты рисуются как банда (фиолетовая футболка +
 // балаклава), укрытия — как разрушаемые ящики с HP-баром.
 const aggroZones = Object.create(null);
+// Server-authoritative NPC offenders currently moving through the same
+// physical police custody pipeline as a player.
+let _npcCustodies = [];
 // Активные бандитские гнёзда — массив объектов [{id, r, c, state,
 // expires_in, bots_alive}]. Перезаписывается с каждым snap.
 let gangNests = [];
@@ -11976,6 +11979,7 @@ function updateServiceVehicles(dt) {
   const now = performance.now();
   for (let i = serviceVehicles.length - 1; i >= 0; i--) {
     const v = serviceVehicles[i];
+    if(v?._npcCustodyRemote)continue;
     if (v.state === 'done') {
       _releaseAbortedFireCall(v);
       _releaseFailedTowCall(v);
@@ -19956,6 +19960,36 @@ function spawnBotCorpse(botId, isBoss) {
   }
   spawnImpact(by, bx, isBoss ? 'rifle' : 'pistol', true);
 }
+
+function _syncNpcCustodies(fresh){
+  _npcCustodies=Array.isArray(fresh)?fresh.map(q=>({...q,look:{...(q.look||{})}})):[];
+  const bots=[];
+  for(const q of _npcCustodies){
+    if(!q||q.hidden_in_vehicle)continue;
+    const jailed=q.phase==='jailed',released=q.phase==='released';
+    const look=jailed?{...(q.look||{}),body:2,hat:0,suit:'#f07818',prisoner:true}:{...(q.look||{})};
+    bots.push({id:`custody_${q.bot_id}`,x:+q.x||0,y:+q.y||0,ang:+q.ang||0,
+      tx:+q.x||0,ty:+q.y||0,tAng:+q.ang||0,hp:100,max_hp:100,level:1,
+      kind:jailed?'prisoner':(q.kind||'gang_fighter'),role:jailed?'prisoner':'gang_fighter',
+      faction:q.faction||'purple',weapon:'none',look,act:released?'walk':'idle',
+      _lifeState:jailed?'prisoner':released?'walk':'surrender',_policeCuffed:!!q.cuffed,
+      prisoner:jailed,jailIn:+q.jail_in||0,custodyPhase:q.phase,name:q.name||'Задержанный'});
+  }
+  if(bots.length)aggroZones.npc_custody={state:'custody',bots,covers:[],cap_left:0,next_respawn:0,faction:'prisoner',is_npc_custody:true};
+  else delete aggroZones.npc_custody;
+  const liveVehicles=new Set();
+  for(const q of _npcCustodies){
+    if(!['escort','loading','transport','unloading'].includes(String(q.phase||'')))continue;
+    const id=`npc_custody_vehicle_${q.id}`;liveVehicles.add(id);
+    let v=serviceVehicles.find(x=>x?._npcCustodyRemote&&x.id===id);
+    if(!v){v={id,kind:'police',state:'police_arrest_scene',_npcCustodyRemote:true,_policeTier:0,
+      x:+q.vehicle_x||0,y:+q.vehicle_y||0,ang:+q.vehicle_ang||0,speed:0,payload:{},path:[],pathIdx:0};serviceVehicles.push(v);}
+    v.x=+q.vehicle_x||0;v.y=+q.vehicle_y||0;v.ang=+q.vehicle_ang||0;
+    v.state=q.phase==='transport'?'returning':'police_arrest_scene';v._npcCustodyPhase=q.phase;
+  }
+  for(let i=serviceVehicles.length-1;i>=0;i--){const v=serviceVehicles[i];if(v?._npcCustodyRemote&&!liveVehicles.has(v.id))serviceVehicles.splice(i,1);}
+  document.documentElement.dataset.npcCustodies=_npcCustodies.map(q=>`${q.bot_id}:${q.phase}:${q.jail_in||0}`).join(',')||'none';
+}
 function spawnTransientNpcCorpse(id,r,c,look,ang=0,role='civilian',maxHp=100) {
   const corpseId=String(id||`${role}:${Math.round(r*10)}:${Math.round(c*10)}`);
   if(!Number.isFinite(+r)||!Number.isFinite(+c)||NPCS.some(n=>
@@ -20176,6 +20210,12 @@ function handleEventPacket(d) {
   }
   else if(kind==='city_gang_police_called'){
     showToast('Очевидцы вызвали полицию на перестрелку банд','🚔',2200);
+  }
+  else if(kind==='npc_custody_started'){
+    showEventBanner('🚔 NPC ЗАДЕРЖАН','Полиция заковывает убийцу и ведёт его к машине.',3200,'neutral');
+  }
+  else if(kind==='npc_custody_released'){
+    showToast(`NPC отсидел минуту и вышел из участка · ${d.mode==='roam'?'бродит по городу':'возвращается к банде'}`,'🔓',3400);
   }
   else if(kind==='city_gang_control'){
     showToast('Победившая банда удерживает эту улицу','🚩',2400);
@@ -22903,6 +22943,7 @@ function wsConnect() {
         // (телепортировались 15 раз/сек между снапами).
         applyAggroTargets(d.aggro || {});
       }
+      if(d.npc_custodies!==undefined)_syncNpcCustodies(d.npc_custodies);
       if (d.graffiti !== undefined) {
         _loadGraffitiFromSnap(d.graffiti);
       }
@@ -60762,7 +60803,7 @@ window.Mafiozi3DBridge = Object.freeze({
         damageRatio:policeProfile?.armoredVan&&Number.isFinite(v._ballisticHp)?Math.max(.01,v._ballisticHp/Math.max(1,v._ballisticMax||policeProfile.vehicleHp)):1,
         bulletHoles:+v._bulletHoleCount||0,bulletMarks:v._threeBulletMarks||[],hitAge:fxNow-(+v._lastConfirmedGunHitAt||0),smoking:!!policeProfile?.armoredVan&&Number.isFinite(v._ballisticHp)&&v._ballisticHp<(v._ballisticMax||policeProfile.vehicleHp)*.45,
         medicalDoorsOpen:medicalDoorProgress>.5,medicalDoorProgress,
-        policeDoorsOpen:police&&v.state==='police_arrest_scene'&&['escort','loading','unloading','handoff'].includes(_murderPoliceArrest?.phase||''),
+        policeDoorsOpen:police&&v.state==='police_arrest_scene'&&['escort','loading','unloading','handoff'].includes(v._npcCustodyPhase||_murderPoliceArrest?.phase||''),
         fireWorkProgress:fire&&v.state==='working'?Math.max(0,Math.min(1,(fxNow-(+v._waterStartedAt||fxNow))/Math.max(1,+v.workDuration||4500))):0,
         fireHoseAngle:fire&&Number.isFinite(+v._hoseAng)?+v._hoseAng:null,
         fireTargetR:visibleFireTarget?+visibleFireTarget.r:null,fireTargetC:visibleFireTarget?+visibleFireTarget.c:null,
