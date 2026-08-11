@@ -902,3 +902,30 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   view-dependent draw calls. Geometry detail increased the sampled scene to
   about `1.82M` triangles, but submission and frame timings remained below the
   v354 comparison sample; retain the shared-pool design if adding more detail.
+
+## Articulated NPCs and semantic weapon details (2026-08-11, v356)
+
+- Split the shared NPC arm into an upper-arm pool plus one paired forearm pool.
+  Derive elbow, forearm centre and hand endpoint from reused quaternion/vector
+  scratch objects inside the existing pose loop. This gives walking, firing,
+  phone, medical and cowering poses visible elbow bends without per-NPC bones,
+  allocations or object trees.
+- Role clothing uses one shared tapered lower-garment pool for police, medics,
+  guards, owners, bosses and deterministic civilian/female variants. Its colour
+  is updated through the existing appearance signature, and it participates in
+  the common despawn/death hiding path.
+- Detail the held arsenal with a fixed semantic mesh set reused across weapon
+  families: trigger guard, front/rear sights, ejection port, top rail, barrel
+  shroud, stock pad, bipod, sling ring, safety pin and special wire. Configure
+  transforms only when the equipped weapon changes; never create a hidden full
+  hierarchy for every inventory item.
+- The localhost arsenal audit covers 16 armed profiles plus `none` and all 16
+  aliases. It requires at least two semantic details for every armed profile and
+  zero for `none`. The v356 run returned `17:16:0` (profiles:aliases:faults):
+  pistols 4-5 details, shotgun 6, SMG/Tommy 6-7, rifle 8, sniper 10, taser 7,
+  RPG 4, grenade/Molotov 2 each and C4 3.
+- A close populated preview held 22 FPS with no console errors at 678 draw
+  calls, `21.4 ms` frame work and `14.0 ms` render work. A wider streamed city
+  view naturally rose to 2,043 calls / `26.1 ms` render while retaining 22 FPS;
+  compare like-for-like camera views and remember that only the selected weapon
+  exposes its detail subset.
