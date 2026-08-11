@@ -19969,6 +19969,21 @@ function spawnBotCorpse(botId, isBoss) {
   spawnImpact(by, bx, isBoss ? 'rifle' : 'pistol', true);
 }
 
+function _markGangBotShot(botId,weapon,preferredTid=''){
+  const id=String(botId||'');if(!id)return null;
+  const preferred=aggroZones[String(preferredTid||'')];
+  let bot=(preferred?.bots||[]).find(item=>String(item.id)===id)||null;
+  if(!bot)for(const zone of Object.values(aggroZones||{})){
+    bot=(zone?.bots||[]).find(item=>String(item.id)===id)||null;
+    if(bot)break;
+  }
+  const shotAt=performance.now();
+  lastBossShotAt.set(id,shotAt);
+  if(bot){bot._shotAt=shotAt;bot._shotWeapon=weapon||bot.weapon||'pistol';bot._shotSeq=(+bot._shotSeq||0)+1;}
+  document.documentElement.dataset.gangShotPose=`${id}:${resolveWeapon(weapon||bot?.weapon||'pistol')}:${bot?'bridged':'event-only'}`;
+  return bot;
+}
+
 function _syncNpcCustodies(fresh){
   _npcCustodies=Array.isArray(fresh)?fresh.map(q=>({...q,look:{...(q.look||{})}})):[];
   const bots=[];
@@ -21856,8 +21871,9 @@ function handleEventPacket(d) {
       spawnBullet(sR, sC, tR, tC, opts);
       spawnMuzzle(sR, sC, ang, wep, true);
       spawnImpact(tR, tC, wep, true);
+      if(kind==='aggro_shot')_playWorldNpcWeaponShot(wep,sR,sC);
     }
-    if (d.bot_id) lastBossShotAt.set(d.bot_id, performance.now());
+    if (d.bot_id) _markGangBotShot(d.bot_id,d.weapon,d.tid);
     // Aggro_melee (сабля) применяется мгновенно — урон в d.dmg/killed
     if (kind === 'aggro_melee' && String(d.target_uid) === String(QP.uid)
         && !d.miss && !_bankShield()) {
@@ -21909,10 +21925,12 @@ function handleEventPacket(d) {
     if(d.npc_gang_fight&&typeof d.sy==='number'&&typeof d.sx==='number'&&typeof d.ty==='number'&&typeof d.tx==='number'){
       const wp=d.weapon||'pistol',ang=Math.atan2(d.ty-d.sy,d.tx-d.sx);
       const md=weaponMuzzleD(wp,.92),sR=d.sy+Math.sin(ang)*md,sC=d.sx+Math.cos(ang)*md;
-      spawnBullet(sR,sC,d.ty,d.tx,{hit:true,fromNpc:true,weapon:wp,speed:18});
+      spawnBullet(sR,sC,d.ty,d.tx,{hit:true,fromNpc:true,weapon:wp,
+        speed:typeof d.bullet_speed==='number'&&d.bullet_speed>0?d.bullet_speed:18});
       spawnMuzzle(sR,sC,ang,wp,true);
       spawnImpact(d.ty,d.tx,wp,true);
-      if(d.shooter_bot_id)lastBossShotAt.set(String(d.shooter_bot_id),performance.now());
+      _playWorldNpcWeaponShot(wp,sR,sC);
+      if(d.shooter_bot_id)_markGangBotShot(d.shooter_bot_id,wp,d.attacker_gid||'');
     }
     // Немедленно показываем подтверждённый сервером урон. Раньше HP бойца
     // менялся только со следующим snapshot, поэтому попадание выглядело пустым.
@@ -44170,10 +44188,10 @@ function _prepareShotgunSound() {
   document.documentElement.dataset.shotgunAudio='mixed-buffer';
   return buf;
 }
-function _playPreparedShotgun() {
+function _playPreparedShotgun(gainScale=1) {
   const ac=_ac(),buf=_prepareShotgunSound();if(!ac||!buf)return false;
   const src=ac.createBufferSource(),gain=ac.createGain(),now=ac.currentTime;
-  src.buffer=buf;gain.gain.setValueAtTime(Math.max(.0001,_sfxVol),now);
+  src.buffer=buf;gain.gain.setValueAtTime(Math.max(.0001,_sfxVol*Math.max(0,Math.min(1,+gainScale||0))),now);
   src.connect(gain);gain.connect(_sfxOut(ac));src.start(now);
   return true;
 }
@@ -44232,16 +44250,25 @@ function _prepareWeaponShotMix(weapon) {
   _weaponShotBuffers.set(id,{sampleRate:rate,buffer:buf});
   return buf;
 }
-function _playPreparedWeaponShot(weapon) {
+function _playPreparedWeaponShot(weapon,gainScale=1) {
   const id=resolveWeapon(weapon);
-  if(id==='shotgun')return _playPreparedShotgun();
+  if(id==='shotgun')return _playPreparedShotgun(gainScale);
   const ac=_ac(),buf=_prepareWeaponShotMix(id);if(!ac||!buf)return false;
   const src=ac.createBufferSource(),gain=ac.createGain(),now=ac.currentTime;
-  src.buffer=buf;gain.gain.setValueAtTime(Math.max(.0001,_sfxVol),now);
+  src.buffer=buf;gain.gain.setValueAtTime(Math.max(.0001,_sfxVol*Math.max(0,Math.min(1,+gainScale||0))),now);
   src.connect(gain);gain.connect(_sfxOut(ac));src.start(now);
   return true;
 }
 const _preparedShot=weapon=>()=>_playPreparedWeaponShot(weapon);
+function _playWorldNpcWeaponShot(weapon,r,c){
+  const distance=Math.hypot((+r||0)-player.r,(+c||0)-player.c);
+  if(distance>32)return false;
+  const gain=Math.max(.10,Math.min(.82,1-distance/36));
+  const id=resolveWeapon(weapon||'pistol');
+  const played=_playPreparedWeaponShot(id,gain);
+  document.documentElement.dataset.gangShotAudio=`${id}:${distance.toFixed(1)}:${gain.toFixed(2)}:${played?'played':'locked'}`;
+  return played;
+}
 const _explosionSoundBuffers=new Map();
 function _prepareExplosionSound(kind='blast'){
   const key=kind==='rpg'?'rpg':kind==='grenade'?'grenade':'blast',cached=_explosionSoundBuffers.get(key);
