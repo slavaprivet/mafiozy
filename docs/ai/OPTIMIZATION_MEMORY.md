@@ -1071,3 +1071,13 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Bump the `three_preview.js` query key when fixing the banner after a failed
   preview. Reusing the original key can leave an embedded browser on the broken
   module even though the source file on disk has been corrected.
+
+## Open suspension-bridge collision corridor (2026-08-12)
+
+- The visual bridge and map tile `19` are not sufficient guarantees of access:
+  later authored collision layers can still create an invisible seam at either
+  bank. Keep one narrow world-coordinate corridor over the deck and its two
+  approach seams authoritative for both pedestrian and player-car collision.
+- This is a constant-time predicate inside the existing collision calls. Do not
+  add a bridge scan to the render loop. Local preview samples the centre line
+  only when `previewbridge=1` and publishes a compact QA result in the DOM.

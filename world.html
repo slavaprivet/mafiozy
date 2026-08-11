@@ -20964,6 +20964,15 @@ function isBlocked(r, c) {
   if (_isThreeWholeBuildingBlocked(r,c)) return true;
   return !PASSABLE.has(MAP[ri][ci]);
 }
+// The suspension bridge is one continuous public crossing. Keep a narrow
+// collision override over the authored deck and both approach seams: streamed
+// building/prison collision helpers must never turn an otherwise valid tile 19
+// into an invisible gate between the two city halves.
+function _openCityBridgeSurface(r,c,pad=0){
+  const p=Math.max(0,+pad||0);
+  return r>=CITY_BRIDGE_R0+.34+p&&r<=CITY_BRIDGE_R1-.34-p&&
+    c>=CITY_CANAL_C0-1.75-p&&c<=CITY_CANAL_C1+1.75+p;
+}
 // Коллизия для МАШИНЫ: в отличие от пешехода, машина НЕ заезжает на песок
 // пляжа (тайл 14), кроме асфальтовой дороги к Майклу (c=40..43). Песок для
 // пешехода остаётся проходимым через обычный isBlocked.
@@ -20972,6 +20981,7 @@ function isBlocked(r, c) {
 // что и пешеходу (здания/вода/границы) через isBlocked. Раньше тут стоял
 // доп. блок песка — машина «врезалась в пляж».
 function isBlockedCar(r, c) {
+  if(_openCityBridgeSurface(r,c,.08))return false;
   // The service causeway and prison yard are pedestrian-only.
   if(_prisonIslandCollisionAt(r,c))return true;
   return isBlocked(r, c);
@@ -20983,6 +20993,7 @@ function _isRaceWaterEdgeBlockedForPed(r, c) {
   return _nearestRaceTrackPoint(r, c).d > TRACK_HALF_W - 0.15;
 }
 function isBlockedPed(r, c) {
+  if(_openCityBridgeSurface(r,c,.04))return false;
   return isBlocked(r, c) || _isRaceWaterEdgeBlockedForPed(r, c);
 }
 // Машина стоит на песке? (для замедления + анимации зарывания колёс)
@@ -62303,9 +62314,12 @@ window.Mafiozi3DBridge = Object.freeze({
   },
   previewApproachBridge() {
     if(!_LOCAL_PREVIEW)return false;
-    player.r=(CITY_BRIDGE_R0+CITY_BRIDGE_R1)*.5;player.c=(CITY_CANAL_C0+CITY_CANAL_C1)*.5;
+    const r=(CITY_BRIDGE_R0+CITY_BRIDGE_R1)*.5;
+    let blocked=0,carBlocked=0,samples=0;for(let c=CITY_CANAL_C0-1.5;c<=CITY_CANAL_C1+1.5;c+=.25){samples++;if(isBlockedPed(r,c))blocked++;if(isBlockedCar(r,c))carBlocked++;}
+    document.documentElement.dataset.bridgeAccessQa=`${blocked===0&&carBlocked===0?'open':'blocked'}:ped${blocked}:car${carBlocked}/${samples}:west-east`;
+    player.r=r;player.c=CITY_CANAL_C0-1.35;
     player.vr=0;player.vc=0;player.walking=false;window._studioTeleportUntil=Date.now()+10000;
-    return {r:player.r,c:player.c};
+    return {r:player.r,c:player.c,blocked,carBlocked,samples};
   },
   previewApproachJunkyard() {
     if(!_LOCAL_PREVIEW)return false;
