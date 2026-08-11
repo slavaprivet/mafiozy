@@ -43,6 +43,49 @@ def run():
     assert any(p["kind"] == "city_gang_civilians_flee" for p in packets)
     assert {str(c.get("target_gang_id")) for c in world.cops} >= {
         str(purple["id"]), str(yellow["id"])}
+    gang_fight = next(p for p in packets if p.get("npc_gang_fight"))
+    assert gang_fight["attacker_gid"] == purple["id"]
+    assert gang_fight["weapon"] in world.AGGRO_WEAPON_STATS
+    assert gang_fight["bullet_speed"] == \
+        world.AGGRO_WEAPON_STATS[gang_fight["weapon"]]["speed"]
+
+    # A hostile street gang attacks the player with each member's authored
+    # weapon. Projectiles apply damage only after their individual flight time,
+    # while the player's own firearm can damage the same server bot.
+    combat_world = game.WorldSim()
+    combat_world.city_gangs.clear()
+    combat_world.cops.clear()
+    combat_world._city_gang_next_spawn_at = time.time() + 3600
+    uid = "gang-combat-player"
+    combat_world.add_or_update(uid, "Combat", {})
+    player = combat_world.players[uid]
+    player.update(x=40.0, y=40.0, _mode="pvp", dead=False,
+                  hp=100, max_hp=100, _weapon_classes={"rifle"})
+    attackers = city_gang(combat_world, "purple", 42.0, 40.0)
+    weapons = ("pistol", "shotgun", "rifle")
+    for index, (bot, weapon) in enumerate(zip(attackers["bots"], weapons)):
+        bot.update(x=42.0 + index * .25, y=40.0 + index * .2,
+                   weapon=weapon, _shot_t=0.0, alive=True)
+    attackers.update(state="hostile", _target_uid=uid,
+                     _hostile_until=time.time() + 60,
+                     _cops_dispatched=True)
+    attack_packets = combat_world.tick_city_gangs(.12)
+    hostile_shots = [p for p in attack_packets if p.get("kind") == "aggro_shot"]
+    assert {p["weapon"] for p in hostile_shots} == set(weapons)
+    assert {p["bullet_speed"] for p in hostile_shots} == {11.0, 14.0, 20.0}
+    assert player["hp"] == 100
+    for pending in combat_world._pending_bot_shots:
+        pending["apply_at"] = time.time() - 1
+    applied = combat_world.tick_pending_bot_shots()
+    assert len([p for p in applied if not p.get("miss")]) == 3
+    assert player["hp"] < 100
+    player["_weapon_shot_t"] = 0.0
+    target = attackers["bots"][0]
+    hp_before = target["hp"]
+    player_hit = combat_world.city_gang_shoot_bot(
+        uid, target["id"], "rifle")
+    assert player_hit and player_hit["kind"] == "aggro_hit"
+    assert target["hp"] < hp_before
 
     # A gang returns fire on those cops even though no player started the war.
     for bot in purple["bots"]:
@@ -288,6 +331,9 @@ def run():
                    "lair_boss_fallen", "_gangSquadMorale",
                    "npc_business_controls", "npc_gang_economy",
                    "npc_business_operations", "drawNpcBusinessControl"):
+        assert marker in world_source
+    for marker in ("_playWorldNpcWeaponShot", "gangShotAudio",
+                   "_markGangBotShot", "gangShotPose", "bullet_speed"):
         assert marker in world_source
     assert "sentry-last-stand-retreat-surrender" in preview_source
     assert "businessControl" in preview_source
