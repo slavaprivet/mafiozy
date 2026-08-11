@@ -1,6 +1,7 @@
 """Deterministic regression for gang/Lair NPC police custody."""
 
 import os
+import random
 import time
 from pathlib import Path
 
@@ -36,7 +37,10 @@ def run():
 
     _advance(world, custody, "cuffing", world.NPC_CUSTODY_CUFF_S + .1)
     assert custody["phase"] == "escort"
-    _advance(world, custody, "escort", world.NPC_CUSTODY_ESCORT_S + .1)
+    for _ in range(120):
+        world._tick_npc_custodies(.12, time.time())
+        if custody["phase"] == "loading":
+            break
     assert custody["phase"] == "loading"
     _advance(world, custody, "loading", world.NPC_CUSTODY_LOAD_S + .1)
     assert custody["phase"] == "transport"
@@ -47,7 +51,10 @@ def run():
     assert custody["phase"] == "unloading"
     _advance(world, custody, "unloading", world.NPC_CUSTODY_UNLOAD_S + .1)
     assert custody["phase"] == "prison_escort"
-    _advance(world, custody, "prison_escort", world.NPC_CUSTODY_PRISON_ESCORT_S + .1)
+    for _ in range(160):
+        world._tick_npc_custodies(.12, time.time())
+        if custody["phase"] == "jailed":
+            break
     assert custody["phase"] == "jailed"
     assert 59 <= custody["jail_until"] - time.time() <= 61
 
@@ -80,11 +87,37 @@ def run():
                for p in lair_world._tick_cop_vs_gang(lair_cop, .12))
     assert lair_bot.get("_custody_id")
 
+    # Fixed-seed city sweep: officers spawned on either side of real map
+    # obstacles must all reach the exact offender through cached A* routes.
+    passable = [(x+.2, y+.2)
+                for y in range(6, game.WORLD_MAP_ROWS-8, 9)
+                for x in range(6, game.WORLD_MAP_COLS-8, 9)
+                if game._world_bot_passable(x, y)]
+    for seed in range(64):
+        random.seed(seed)
+        sweep = game.WorldSim()
+        sweep.city_gangs.clear(); sweep.cops.clear()
+        sweep._city_gang_next_spawn_at = time.time() + 3600
+        group = sweep._spawn_city_gang("purple")
+        target = group["bots"][0]
+        x, y = passable[seed % len(passable)]
+        target.update(x=x, y=y, alive=True, hp=100)
+        assert sweep._flag_npc_murderer_by_ids(group["id"], target["id"], "npc")
+        for _ in range(900):
+            for officer in list(sweep.cops):
+                if officer.get("alive") and officer.get("target_gang_id") == group["id"]:
+                    sweep._tick_cop_vs_gang(officer, .12)
+            if target.get("_custody_id"):
+                break
+        assert target.get("_custody_id"), (seed, x, y)
+        arresting = next(c for c in sweep.cops if c.get("npc_custody_id"))
+        assert int(arresting.get("_npc_route_replans") or 0) <= 2
+
     html = Path("world.html").read_text(encoding="utf-8")
     assert "suit:'#f07818'" in html
     assert "npc_custody_vehicle_" in html
     assert "_npcCustodyRemote" in html
-    print("NPC_POLICE_CUSTODY_OK")
+    print("NPC_POLICE_CUSTODY_OK: 64 obstacle approaches, full convoy and Lair")
 
 
 if __name__ == "__main__":
